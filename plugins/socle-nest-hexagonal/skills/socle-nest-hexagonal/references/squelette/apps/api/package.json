@@ -1,0 +1,48 @@
+{
+  "name": "@{{SCOPE}}/{{PROJET}}-api",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "build": "nest build",
+    "dev": "nest start --watch",
+    "start": "node dist/main.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint src --max-warnings 0",
+    "test": "vitest run",
+    "check": "eslint src --max-warnings 0 && tsc -p tsconfig.json --noEmit",
+    "check:arch": "tsc -p tsconfig.arch.json --noEmit",
+    "check:cycles": "dpdm --no-warning --no-tree --exit-code circular:1 --tsconfig tsconfig.json src/main.ts",
+    "openapi:emit": "nest build && node dist/openapi/emit.js",
+    "openapi:check": "nest build && node dist/openapi/emit.js --check"
+  },
+  "dependencies": {
+    "@{{SCOPE}}/{{PROJET}}-contracts": "workspace:*",
+    "@nestjs/common": "^11.0.1",
+    "@nestjs/core": "^11.0.1",
+    "@nestjs/platform-express": "^11.0.1",
+    "@nestjs/swagger": "^11.4.6",
+    "cookie-parser": "^1.4.7",
+    "dotenv": "^17.4.2",
+    "nestjs-zod": "^5.5.0",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.1",
+    "uuidv7": "^1.2.1",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@nestjs/cli": "^11.0.0",
+    "@nestjs/schematics": "^11.0.0",
+    "@nestjs/testing": "^11.1.27",
+    "@swc/core": "^1.15.43",
+    "@types/cookie-parser": "^1.4.8",
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.10.5",
+    "@types/supertest": "^7.2.0",
+    "dpdm": "^4.2.0",
+    "supertest": "^7.2.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3",
+    "unplugin-swc": "^1.5.9",
+    "vitest": "^2.1.8"
+  }
+}

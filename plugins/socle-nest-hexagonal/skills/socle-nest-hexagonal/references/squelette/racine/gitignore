@@ -1,0 +1,36 @@
+.DS_Store
+.claude/*
+!.claude/settings.json
+
+# dependencies
+node_modules/
+.pnpm-store/
+
+# builds
+dist/
+build/
+.turbo/
+*.tsbuildinfo
+
+# env & secrets
+.env
+.env.*
+!.env.example
+
+# logs & coverage
+*.log
+coverage/
+
+# editors
+.vscode/
+.idea/
+
+# outillage agent local (non versionné)
+.agents/
+skills-lock.json
+
+# gardes locales de la machine (jamais versionnées)
+.husky/*.local
+
+# graphe de connaissance graphify (reconstruit en continu, jamais versionné)
+graphify-out/

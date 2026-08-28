@@ -1,0 +1,6 @@
+#!/usr/bin/env sh
+# Garde-fou avant envoi au dépôt : miroir du job CI « qualite » (build · lint ·
+# typecheck) + détection des dépendances circulaires (dpdm). Les tests restent
+# en CI (ils exigent Postgres). Installé par Husky au `pnpm install` → partagé
+# par toute l'équipe. Voir docs/methode/pare-feu-ci.md.
+pnpm run check

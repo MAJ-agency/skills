@@ -1,0 +1,8 @@
+#!/usr/bin/env sh
+# Point d'extension local (non versionné) — garde de la machine du dev.
+if [ -f .husky/pre-commit.local ]; then
+  sh .husky/pre-commit.local || exit 1
+fi
+
+# Formatage des fichiers stagés uniquement.
+npx --no -- lint-staged

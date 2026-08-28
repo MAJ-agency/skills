@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "paths": {
+      "@domain/*": ["src/domain/*"],
+      "@application/*": ["src/application/*"],
+      "@shared/*": ["src/domain/shared/*"],
+      "@test/*": ["src/utils/tests/*"]
+    }
+  },
+  "include": ["src/domain/**/*", "src/application/**/*"]
+}

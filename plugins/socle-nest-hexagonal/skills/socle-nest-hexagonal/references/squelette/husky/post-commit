@@ -1,0 +1,8 @@
+#!/usr/bin/env sh
+# Relais vers le hook graphify local (installé par `graphify hook install` dans
+# .git/hooks/, non versionné). Nécessaire car Husky détourne core.hooksPath vers
+# .husky/_ : sans ce relais, git ignorerait le hook graphify. No-op si graphify
+# n'est pas installé sur la machine.
+g="$(git rev-parse --git-dir)/hooks/post-commit"
+[ -f "$g" ] && sh "$g" "$@"
+exit 0

@@ -1,0 +1,19 @@
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: {{PROJET_SNAKE}}
+      POSTGRES_USER: {{PROJET_SNAKE}}_migrator
+      POSTGRES_PASSWORD: wallet_dev
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U {{PROJET_SNAKE}}_migrator -d {{PROJET_SNAKE}}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  pgdata:

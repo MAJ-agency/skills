@@ -1,0 +1,3 @@
+#!/usr/bin/env sh
+# Commits conventionnels (commitlint) — en français, comme le reste du projet.
+npx --no -- commitlint --edit "$1"
