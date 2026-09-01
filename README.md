@@ -73,6 +73,8 @@ skills/
 
 Ce qui dépasse une page va dans `references/`, atteint par un pointeur depuis `SKILL.md` — le corps du skill reste lisible, et les détails ne se chargent qu'au besoin.
 
+> **Les liens à l'intérieur de `references/` ne résolvent pas dans ce dépôt, et c'est normal.** Ce sont des gabarits : leurs chemins relatifs visent le **projet généré**, pas l'arborescence du skill. Les cliquer depuis GitHub donne des 404 sans que rien ne soit cassé. Ce qui doit résoudre ici, ce sont les liens du `README.md`, des `SKILL.md` et de leurs `CONTENU.md`.
+
 ## Renommer
 
 Deux chaînes à changer, et rien d'autre :
