@@ -1,15 +1,15 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
-  "name": "socle-nest-hexagonal",
-  "description": "Socle d'amorçage pour backends NestJS hexagonaux",
+  "name": "maj",
   "owner": { "name": "Guillaume Jauffret" },
+  "description": "Skills d'ingénierie maison, installables comme plugin Claude Code.",
   "plugins": [
     {
-      "name": "socle-nest-hexagonal",
-      "description": "Amorce un backend NestJS hexagonal complet : configuration, règles d'architecture, méthode de travail, documentation structurée, outillage agent, et les tickets de ce qui reste à trancher. Aucune règle métier.",
-      "author": { "name": "Guillaume Jauffret" },
+      "name": "maj-skills",
+      "source": "./",
+      "description": "Amorçage de socle backend NestJS hexagonal, méthode de travail et structuration de la documentation. Aucune règle métier.",
       "category": "development",
-      "source": "./plugins/socle-nest-hexagonal"
+      "keywords": ["nestjs", "hexagonal", "scaffolding", "architecture", "documentation", "adr"]
     }
   ]
 }

@@ -1,9 +1,0 @@
-{
-  "name": "socle-nest-hexagonal",
-  "version": "1.0.0",
-  "description": "Amorce un backend NestJS hexagonal complet : configuration, règles d'architecture, méthode de travail, documentation structurée, outillage agent, et les tickets de ce qui reste à trancher. Aucune règle métier.",
-  "author": { "name": "Guillaume Jauffret" },
-  "license": "MIT",
-  "keywords": ["nestjs", "hexagonal", "scaffolding", "architecture", "documentation", "adr"],
-  "skills": ["./skills/socle-nest-hexagonal"]
-}
