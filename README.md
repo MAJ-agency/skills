@@ -7,7 +7,7 @@ Ces skills ne portent **aucune règle métier**. Ce sont des règles de configur
 ## Installer
 
 ```bash
-claude plugin marketplace add <votre-compte>/skills
+claude plugin marketplace add MAJ-agency/skills
 claude plugin install maj-skills@maj
 ```
 
@@ -79,7 +79,7 @@ Ce qui dépasse une page va dans `references/`, atteint par un pointeur depuis `
 
 Deux chaînes à changer, et rien d'autre :
 
-- `maj` — le nom du **marketplace**, dans `.claude-plugin/marketplace.json`.
+- `maj` — le nom du **marketplace**, dans `.claude-plugin/marketplace.json`. Il n'a pas à correspondre au nom du dépôt GitHub : c'est lui qu'on écrit après le `@` dans `claude plugin install <plugin>@<marketplace>`.
 - `maj-skills` — le nom du **plugin**, dans les deux manifestes. C'est le préfixe d'invocation (`/maj-skills:<skill>`).
 
 ## Licence
