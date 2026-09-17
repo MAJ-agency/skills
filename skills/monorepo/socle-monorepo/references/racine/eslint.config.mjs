@@ -7,28 +7,30 @@ import globals from "globals";
 
 // Configuration ESLint de la racine : les règles communes à tout le monorepo.
 //
-// Chaque service porte SES règles dans `apps/<service>/eslint.rules.mjs` — un
-// module qui exporte une fonction `({ globals }) => [blocs de config]`. Ce
-// fichier les charge tous, dans l'ordre alphabétique des services. Un service
-// sans fichier de règles n'ajoute rien. La racine ne connaît donc aucune stack :
-// c'est le skill qui pose un service qui pose ses règles, en bloc.
+// Chaque brique — service sous `apps/`, paquet sous `packages/` — porte SES
+// règles dans son `eslint.rules.mjs` : un module qui exporte une fonction
+// `({ globals }) => [blocs de config]`. Ce fichier les charge tous, paquets
+// puis services, dans l'ordre alphabétique. Une brique sans fichier de règles
+// n'ajoute rien. La racine ne connaît donc aucune stack : c'est le skill qui
+// pose une brique qui pose ses règles, en bloc.
 //
 // ⚠️ Un seul bloc `no-restricted-imports` par groupe de fichiers : en flat
 // config, deux blocs qui matchent le même fichier ne fusionnent PAS leurs
 // options — le dernier écrase le premier. Tout ce qui concerne un groupe de
 // fichiers vit donc dans un seul bloc, dans le fichier du service concerné.
 const racine = dirname(fileURLToPath(import.meta.url));
-const dossierApps = join(racine, "apps");
-const services = existsSync(dossierApps)
-  ? readdirSync(dossierApps, { withFileTypes: true })
-      .filter((d) => d.isDirectory())
-      .map((d) => d.name)
-      .sort()
-  : [];
-const reglesServices = (
+const briques = ["packages", "apps"].flatMap((dossier) => {
+  const chemin = join(racine, dossier);
+  if (!existsSync(chemin)) return [];
+  return readdirSync(chemin, { withFileTypes: true })
+    .filter((d) => d.isDirectory())
+    .map((d) => join(chemin, d.name))
+    .sort();
+});
+const reglesBriques = (
   await Promise.all(
-    services.map(async (service) => {
-      const fichier = join(dossierApps, service, "eslint.rules.mjs");
+    briques.map(async (brique) => {
+      const fichier = join(brique, "eslint.rules.mjs");
       if (!existsSync(fichier)) return [];
       const module = await import(pathToFileURL(fichier).href);
       return module.default({ globals });
@@ -65,6 +67,6 @@ export default tseslint.config(
     languageOptions: { globals: { ...globals.node } },
     rules: { "no-console": "off" },
   },
-  // Règles propres à chaque service (apps/<service>/eslint.rules.mjs).
-  ...reglesServices,
+  // Règles propres à chaque brique (packages/<paquet>/ et apps/<service>/eslint.rules.mjs).
+  ...reglesBriques,
 );

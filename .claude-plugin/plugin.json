@@ -16,6 +16,7 @@
   ],
   "skills": [
     "./skills/monorepo/socle-monorepo",
+    "./skills/packages/socle-contrats",
     "./skills/backend/socle-nest-hexagonal"
   ]
 }

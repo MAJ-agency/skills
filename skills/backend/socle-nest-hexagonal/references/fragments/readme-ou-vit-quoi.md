@@ -13,6 +13,5 @@ apps/api/                le service NestJS
     main.ts              bootstrap : pipes, filtres, CORS, Swagger
     app.module.ts        racine de composition
 
-packages/contracts/      schémas Zod du contrat interne
 compose.yaml             PostgreSQL local sur 5433
 ```

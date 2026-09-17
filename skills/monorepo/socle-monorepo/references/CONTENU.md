@@ -18,7 +18,7 @@ Cinq documents qui font autorité sur la façon de travailler.
 
 - **`package.json`** — les scripts orchestrés par Turborepo (`build`, `lint`, `typecheck`, `test`, `check:cycles`) et `pnpm check` qui les enchaîne ; commitlint et lint-staged. Aucune dépendance de service : chaque service porte les siennes.
 - **`turbo.json`** — chaque tâche dépend de `^build` : sans ça, `typecheck` ment sur les paquets partagés non construits.
-- **`eslint.config.mjs`** — les règles communes, et **le chargement des règles de chaque service** depuis `apps/<service>/eslint.rules.mjs`. La racine ne connaît aucune stack. **Un seul bloc `no-restricted-imports` par groupe de fichiers** : en flat config, deux blocs qui matchent le même fichier ne fusionnent pas leurs options, le dernier écrase le premier. C'est un piège coûteux, d'où un bloc par couche, dans le fichier du service.
+- **`eslint.config.mjs`** — les règles communes, et **le chargement des règles de chaque brique** depuis `packages/<paquet>/eslint.rules.mjs` et `apps/<service>/eslint.rules.mjs`. La racine ne connaît aucune stack. **Un seul bloc `no-restricted-imports` par groupe de fichiers** : en flat config, deux blocs qui matchent le même fichier ne fusionnent pas leurs options, le dernier écrase le premier. C'est un piège coûteux, d'où un bloc par couche, dans le fichier du service.
 - **`tsconfig.base.json`** — strict, `noUncheckedIndexedAccess`, `noImplicitOverride`. Chaque brique l'étend.
 - **`README.md` et `CLAUDE.md`** — génériques, avec des **zones d'insertion** `<!-- socle:… -->` où chaque service dépose ses lignes. Les marqueurs restent : ils permettent d'ajouter un service après coup.
 - **`CONTEXT.md`** — le glossaire, **vide et c'est voulu**.

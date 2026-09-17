@@ -24,7 +24,7 @@ class ErreurResponse extends createZodDto(ErreurDto) {}
 export function buildOpenApiDocument(app: INestApplication): OpenAPIObject {
   const config = new DocumentBuilder()
     .setTitle("{{TITRE}} — API interne")
-    .setDescription("Contrat interne du portefeuille de licence numérique.")
+    .setDescription("{{DESCRIPTION}}")
     .setVersion("0.0.1")
     .addGlobalResponse({
       status: "4XX",

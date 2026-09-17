@@ -13,9 +13,10 @@ Tous les gabarits vivent dans [`references/`](references/). Les copier **verbati
 
 ## Avant de commencer — vérifier le terrain
 
-1. **La racine est-elle posée ?** Si `pnpm-workspace.yaml` est absent, **invoquer `/maj-skills:socle-monorepo`** avec `api` comme seul service : il pose la racine, l'outillage, la méthode, puis revient ici. Ne pas poser la racine à la main.
-2. Si `apps/api/` existe déjà, **s'arrêter et demander** : appliquer le socle par-dessus écraserait des fichiers.
-3. Les placeholders (`{{PROJET}}`, `{{PROJET_SNAKE}}`, `{{SCOPE}}`, `{{TITRE}}`, `{{DESCRIPTION}}`, `{{LANGUE}}`, `{{DATE}}`) sont ceux fixés par `socle-monorepo`. S'ils ne sont pas dans la conversation, les relire dans `package.json` (`name`, `description`) et `CLAUDE.md` (titre, langue).
+1. **La racine est-elle posée ?** Si `pnpm-workspace.yaml` est absent, **invoquer `/maj-skills:socle-monorepo`** avec `api` comme seul service : il pose la racine, l'outillage, la méthode, les contrats, puis revient ici. Ne pas poser la racine à la main.
+2. **Les contrats sont-ils posés ?** Si `packages/contracts/` est absent, **invoquer `/maj-skills:socle-contrats`** : l'API en dépend (`ErreurDto`, document OpenAPI).
+3. Si `apps/api/` existe déjà, **s'arrêter et demander** : appliquer le socle par-dessus écraserait des fichiers.
+4. Les placeholders (`{{PROJET}}`, `{{PROJET_SNAKE}}`, `{{SCOPE}}`, `{{TITRE}}`, `{{DESCRIPTION}}`, `{{LANGUE}}`, `{{DATE}}`) sont ceux fixés par `socle-monorepo`. S'ils ne sont pas dans la conversation, les relire dans `package.json` (`name`, `description`) et `CLAUDE.md` (titre, langue).
 
 ## Étape 1 — la question
 
@@ -32,7 +33,6 @@ Copier `references/` vers le dépôt selon cette table, puis substituer les plac
 | Source                              | Destination                                        |
 | ----------------------------------- | -------------------------------------------------- |
 | `references/squelette/apps/api/*`   | `apps/api/` — dont `eslint.rules.mjs`, chargé par l'ESLint racine |
-| `references/squelette/packages/*`   | `packages/`                                        |
 | `references/squelette/compose.yaml` | `compose.yaml` (racine) — PostgreSQL local          |
 | `references/api/CLAUDE.md`          | `apps/api/CLAUDE.md`                               |
 | `references/api/docs/*`             | `apps/api/docs/`                                   |
@@ -89,7 +89,7 @@ Les gabarits de `references/tickets/` deviennent `docs/features/socle/issues/`, 
 - **Aucune couche base de données.** L'environnement valide `DATABASE_URL`, mais rien ne s'y connecte : le schéma dépend d'un domaine qui n'existe pas encore. C'est le ticket `04`.
 - **Aucun front.** Un client a son propre skill.
 - **Aucune décision d'hébergement**, donc `trust proxy` reste non configuré — le défaut échoue du bon côté.
-- **Ni racine, ni méthode, ni outillage** : c'est `socle-monorepo`.
+- **Ni racine, ni méthode, ni outillage** : c'est `socle-monorepo`. **Ni contrats** : c'est `socle-contrats`, l'API les consomme.
 
 ## Anti-patterns
 

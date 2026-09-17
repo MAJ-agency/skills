@@ -27,6 +27,14 @@ claude plugin marketplace update maj
 
 Invocation : `/maj-skills:socle-monorepo`. C'est le point d'entrée d'un projet neuf : il demande quels services installer et invoque leur skill.
 
+### `packages/`
+
+| Skill                                                       | Ce qu'il fait                                                                                                          |
+| ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| [`socle-contrats`](skills/packages/socle-contrats/SKILL.md) | Pose `packages/contracts` (schémas Zod, types inférés, formes de réponse) et ses règles ; `packages/utils` à la première fonction partagée |
+
+Invocation : `/maj-skills:socle-contrats`. Invoqué par `socle-monorepo` avant tout service : c'est ce que l'API et ses clients partagent.
+
 ### `backend/`
 
 | Skill                                                                  | Ce qu'il fait                                                                                            |
@@ -73,6 +81,10 @@ skills/
     socle-monorepo/
       SKILL.md         le processus, en huit étapes
       references/      racine, hooks, méthode, ADR transverses, tickets transverses
+  packages/
+    socle-contrats/
+      SKILL.md         le processus, en trois étapes
+      references/      paquets contracts et utils, règles des paquets, fragments de racine
   backend/
     socle-nest-hexagonal/
       SKILL.md         le processus, en quatre étapes

@@ -1,6 +1,15 @@
 import { z } from "zod";
 
 /**
+ * Point d'entrée du paquet de contrats : UN fichier par sujet sous `src/`,
+ * ré-exporté ici. Les consommateurs n'importent que depuis ce barrel, jamais
+ * un chemin interne (packages/CLAUDE.md).
+ *
+ * Aucun contrat métier ici : ils naissent avec le premier use case, une fois
+ * le domaine modélisé (ticket 01).
+ */
+
+/**
  * Corps d'erreur commun de l'API. C'est la forme que le `DomainErrorFilter`
  * global rend pour TOUT refus — déclarée une fois ici, exposée une fois en
  * réponse `4XX` globale du document OpenAPI.

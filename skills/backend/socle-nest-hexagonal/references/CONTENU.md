@@ -22,7 +22,7 @@ Ce qui démarre, et pourquoi c'est là plutôt qu'ailleurs.
 - **`health/`** — sonde de vie qui ne dit **rien** de l'état interne : ni version, ni base, ni dépendances. Une sonde bavarde est une surface de reconnaissance.
 - **`eslint.rules.mjs`** — les frontières hexagonales verrouillées par `no-restricted-imports`, chargées par l'ESLint racine. **Un seul bloc par couche** : en flat config, deux blocs qui matchent le même fichier ne fusionnent pas leurs options, le dernier écrase le premier. C'est un piège coûteux.
 - **`tsconfig.arch.json`** — compile `domain/` + `application/` **sans** `infrastructure/`. Si ça casse, une dépendance pointe dans le mauvais sens.
-- **`packages/contracts`** — les schémas Zod du contrat interne, consommés par l'API et, plus tard, par ses clients.
+- **`packages/contracts`** n'est pas ici : il est posé par `socle-contrats`, l'API le consomme (`ErreurDto` dans le document OpenAPI).
 - **`compose.yaml`** — PostgreSQL sur **5433**, pas 5432 : pour ne pas entrer en conflit avec une instance locale. Fichier de racine, mais posé par ce skill : c'est l'API qui en a besoin.
 
 ## Fragments de racine — `fragments/`

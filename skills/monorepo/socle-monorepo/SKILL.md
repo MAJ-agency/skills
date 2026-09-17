@@ -101,15 +101,17 @@ Puis vérifier trois points que la skill amont ne connaît pas :
 
 > **Si la skill amont ne peut pas tourner** (plugin absent, session non interactive), copier `references/agents/*` vers `docs/agents/` : ce sont les mêmes réponses, déjà corrigées sur ces trois points. Le dire explicitement plutôt que de laisser `CLAUDE.md` pointer vers des fichiers absents.
 
-## Étape 5 — installer les services
+## Étape 5 — installer les contrats, puis les services
 
-Pour chaque service choisi à l'étape 1, **invoquer son skill**, dans l'ordre api → web → mobile. Le skill trouve la racine posée et n'a plus qu'à poser le service ; les placeholders sont ceux de l'étape 1, déjà dans la conversation.
+**D'abord les contrats**, dès qu'au moins un service est choisi : invoquer `/maj-skills:socle-contrats`. Il pose `packages/contracts` et `packages/CLAUDE.md`, sans question — c'est ce que l'API et ses clients partagent, il précède tout service.
+
+Puis, pour chaque service choisi à l'étape 1, **invoquer son skill**, dans l'ordre api → web → mobile. Le skill trouve la racine et les contrats posés et n'a plus qu'à poser le service ; les placeholders sont ceux de l'étape 1, déjà dans la conversation.
 
 ### Le contrat d'un skill de service
 
 Un skill de service **suppose la racine posée** (`pnpm-workspace.yaml` présent) et, s'il est lancé seul dans un dépôt vide, **invoque ce skill** avec lui seul comme service coché. Il ne touche qu'à :
 
-- `apps/<service>/` et ses paquets `packages/<nom>/` — ses fichiers, dont `apps/<service>/eslint.rules.mjs` pour ses règles de lint, chargé par l'ESLint racine ;
+- `apps/<service>/` — ses fichiers, dont `apps/<service>/eslint.rules.mjs` pour ses règles de lint, chargé par l'ESLint racine (même mécanique pour un paquet sous `packages/`) ;
 - ses **fragments** dans les zones `<!-- socle:… -->` de `README.md` et `CLAUDE.md` — chaque fragment s'insère **immédiatement au-dessus** du marqueur de sa zone ;
 - ses **ajouts en fin de fichier** dans `.env.example` et `.prettierignore` ;
 - ses fichiers de racine propres (un `compose.yaml` pour une base locale, par exemple) ;
@@ -148,16 +150,17 @@ Des commits qui racontent le projet, pas la séance. Conventional commits, dans 
 1. `chore: initialise le dépôt et son outillage` — **package.json en premier**, sinon commitlint n'a pas de configuration et le commit est refusé
 2. `docs: établit la méthode de travail`
 3. `docs(adr): consigne les décisions d'amorçage`
-4. par service, dans l'ordre d'installation : `docs(<service>): pose les règles d'architecture` puis `feat(<service>): amorce le service`
-5. `docs: rédige le README, le guide agent et le glossaire`
-6. `chore(agents): configure les skills` + `docs: dépose les tickets du socle`
+4. `feat(contracts): pose le paquet de contrats`
+5. par service, dans l'ordre d'installation : `docs(<service>): pose les règles d'architecture` puis `feat(<service>): amorce le service`
+6. `docs: rédige le README, le guide agent et le glossaire`
+7. `chore(agents): configure les skills` + `docs: dépose les tickets du socle`
 
 Chaque commit doit laisser le dépôt **constructible**. Ne pas découper un service en morceaux qui ne compilent pas.
 
 ## Ce que ce skill ne fait pas
 
 - **Aucune règle métier.** Ni entité, ni use case, ni glossaire pré-rempli.
-- **Aucun service par lui-même.** Il pose la racine et délègue : chaque service a son skill, et garde son indépendance.
+- **Ni service ni paquet par lui-même.** Il pose la racine et délègue : les contrats ont leur skill, chaque service a le sien, et chacun garde son indépendance.
 - **Aucune décision d'hébergement, d'authentification ni d'observabilité.** Ce sont des tickets.
 
 ## Anti-patterns
