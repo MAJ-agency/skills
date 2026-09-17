@@ -84,7 +84,7 @@ Aucun `.env` n'est nécessaire en local : chaque service embarque ses valeurs de
 pnpm check
 ```
 
-`build` + `lint` + `typecheck` + `check:cycles`. C'est aussi ce que joue le hook `pre-push`, donc un push qui casse la qualité est refusé avant d'atteindre le dépôt.
+`build` + `lint` + `typecheck` + `check:cycles` + `check:gates` (les gates propres à chaque brique : frontières d'architecture, dérive de contrat, cliquet de dette). C'est aussi ce que joue le hook `pre-push`, donc un push qui casse la qualité est refusé avant d'atteindre le dépôt.
 
 | Commande                                            | Effet                                                          |
 | --------------------------------------------------- | -------------------------------------------------------------- |

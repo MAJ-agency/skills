@@ -16,7 +16,7 @@ Cinq documents qui font autorité sur la façon de travailler.
 
 ## Configuration — `racine/` et `husky/`
 
-- **`package.json`** — les scripts orchestrés par Turborepo (`build`, `lint`, `typecheck`, `test`, `check:cycles`) et `pnpm check` qui les enchaîne ; commitlint et lint-staged. Aucune dépendance de service : chaque service porte les siennes.
+- **`package.json`** — les scripts orchestrés par Turborepo (`build`, `lint`, `typecheck`, `test`, `check:cycles`, `check:gates`) et `pnpm check` qui les enchaîne ; commitlint et lint-staged. `check:gates` est le point d'accroche des gates propres à chaque brique (frontières d'architecture, dérive de contrat, cliquet de dette) : une brique qui en a expose un script `check:gates`, la racine n'a pas à le connaître. Aucune dépendance de service : chaque service porte les siennes.
 - **`turbo.json`** — chaque tâche dépend de `^build` : sans ça, `typecheck` ment sur les paquets partagés non construits.
 - **`eslint.config.mjs`** — les règles communes, et **le chargement des règles de chaque brique** depuis `packages/<paquet>/eslint.rules.mjs` et `apps/<service>/eslint.rules.mjs`. La racine ne connaît aucune stack. **Un seul bloc `no-restricted-imports` par groupe de fichiers** : en flat config, deux blocs qui matchent le même fichier ne fusionnent pas leurs options, le dernier écrase le premier. C'est un piège coûteux, d'où un bloc par couche, dans le fichier du service.
 - **`tsconfig.base.json`** — strict, `noUncheckedIndexedAccess`, `noImplicitOverride`. Chaque brique l'étend.
@@ -40,6 +40,6 @@ Les trois fichiers de configuration (`issue-tracker.md`, `triage-labels.md`, `do
 
 ## Tickets — `tickets/`
 
-Ce que la racine a délibérément laissé ouvert, en six tickets : `01` modéliser le domaine (bloquant : presque tout en dépend), `02` hébergement, `03` client et forme de l'authentification (**tranché d'office si un client est installé**), `07` pare-feu CI, `08` observabilité, `09` registre des règles métier. Les numéros `04`–`06` sont réservés à l'API, `10` et suivants aux services à venir.
+Ce que la racine a délibérément laissé ouvert, en six tickets : `01` modéliser le domaine (bloquant : presque tout en dépend), `02` hébergement, `03` client et forme de l'authentification (**tranché d'office si un client est installé**), `07` pare-feu CI, `08` observabilité, `09` registre des règles métier. Les numéros `04`–`06` sont réservés à l'API, `10`–`12` au web, `13` et suivants aux services à venir.
 
 Les adapter au projet réel. Un ticket qui pose une question déjà tranchée est du bruit.

@@ -13,7 +13,8 @@
     "check:arch": "tsc -p tsconfig.arch.json --noEmit",
     "check:cycles": "dpdm --no-warning --no-tree --exit-code circular:1 --tsconfig tsconfig.json src/main.ts",
     "openapi:emit": "nest build && node dist/openapi/emit.js",
-    "openapi:check": "nest build && node dist/openapi/emit.js --check"
+    "openapi:check": "nest build && node dist/openapi/emit.js --check",
+    "check:gates": "pnpm check:arch && pnpm openapi:check"
   },
   "dependencies": {
     "@{{SCOPE}}/{{PROJET}}-contracts": "workspace:*",

@@ -8,7 +8,9 @@
   "license": "MIT",
   "keywords": [
     "nestjs",
+    "nextjs",
     "hexagonal",
+    "monorepo",
     "scaffolding",
     "architecture",
     "documentation",
@@ -17,6 +19,7 @@
   "skills": [
     "./skills/monorepo/socle-monorepo",
     "./skills/packages/socle-contrats",
-    "./skills/backend/socle-nest-hexagonal"
+    "./skills/backend/socle-nest-hexagonal",
+    "./skills/frontend/socle-web-next"
   ]
 }

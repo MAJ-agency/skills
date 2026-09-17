@@ -43,6 +43,14 @@ Invocation : `/maj-skills:socle-contrats`. Invoqué par `socle-monorepo` avant t
 
 Invocation : `/maj-skills:socle-nest-hexagonal`. Lancé seul dans un dépôt vide, il pose d'abord la racine via `socle-monorepo`.
 
+### `frontend/`
+
+| Skill                                                       | Ce qu'il fait                                                                                                              |
+| ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| [`socle-web-next`](skills/frontend/socle-web-next/SKILL.md) | Amorce un client web Next.js App Router — routes minces, features feuilles verrouillées par le lint, un seul client HTTP à cookies — et dépose ses tickets |
+
+Invocation : `/maj-skills:socle-web-next`. Suppose la racine et les contrats posés ; la page d'accueil interroge `/health` de l'API pour prouver la chaîne complète.
+
 **La racine est une seule source.** `socle-monorepo` la pose ; un skill de service n'écrit que dans `apps/<service>/`, ses paquets, et des fragments insérés dans les zones `<!-- socle:… -->` de `README.md` et `CLAUDE.md`. Ses règles de lint vivent dans `apps/<service>/eslint.rules.mjs`, chargé par l'ESLint racine.
 
 ## `socle-nest-hexagonal` en deux mots
@@ -89,6 +97,10 @@ skills/
     socle-nest-hexagonal/
       SKILL.md         le processus, en quatre étapes
       references/      squelette du service, règles back, fragments de racine, tickets API
+  frontend/
+    socle-web-next/
+      SKILL.md         le processus, en trois étapes
+      references/      squelette du client, règles front, ADR WEB-0001, fragments, tickets web
 ```
 
 ## Ajouter un skill

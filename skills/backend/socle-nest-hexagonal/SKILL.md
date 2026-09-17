@@ -65,11 +65,12 @@ Ne pas annoncer que ça marche sans l'avoir constaté :
 
 ```bash
 pnpm install
-pnpm check                                      # build · lint · typecheck · cycles
-pnpm --filter @<scope>/<projet>-api check:arch  # domain+application sans infrastructure
-pnpm --filter @<scope>/<projet>-api openapi:emit
-pnpm --filter @<scope>/<projet>-api dev         # puis curl localhost:3000/health
+pnpm --filter @<scope>/<projet>-api openapi:emit   # émet apps/api/openapi.json — AVANT le premier check, sinon openapi:check le déclare absent
+pnpm check                                         # build · lint · typecheck · cycles · gates (check:arch + openapi:check)
+pnpm --filter @<scope>/<projet>-api dev            # puis curl localhost:3000/health
 ```
+
+`openapi.json` est généré, jamais édité à la main, et **committé** : c'est le témoin que `openapi:check` compare aux schémas Zod à chaque `pnpm check`.
 
 Vérifier aussi que **les gardes de couche mordent** — c'est ce qui distingue une règle écrite d'une règle appliquée. Créer un fichier de sonde important `Logger` depuis `@nestjs/common` dans `application/`, confirmer que `pnpm lint` échoue, **puis le supprimer**. Si le lint ne mord pas, c'est que `apps/api/eslint.rules.mjs` n'est pas chargé par l'ESLint racine.
 

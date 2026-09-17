@@ -1,0 +1,23 @@
+@import "tailwindcss";
+
+/*
+ * Design tokens — la seule source des couleurs, exposées en variables CSS pour
+ * qu'un thème (marque, tenant) puisse les surcharger à l'exécution sans
+ * recompiler. Aucune valeur de couleur en dur dans un composant.
+ */
+@theme {
+  --color-primary-500: #0f62fe;
+  --color-primary-600: #0043ce;
+  --color-neutral-50: #f7f7f8;
+  --color-neutral-900: #16161d;
+  --color-success-500: #198038;
+  --color-error-500: #da1e28;
+}
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  @apply bg-neutral-50 text-neutral-900 antialiased;
+}

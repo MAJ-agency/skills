@@ -14,11 +14,12 @@
     "lint": "eslint .",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
-    "check": "pnpm build && pnpm lint && pnpm typecheck && pnpm check:cycles",
+    "check": "pnpm build && pnpm lint && pnpm typecheck && pnpm check:cycles && pnpm check:gates",
     "check:cycles": "turbo run check:cycles",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "prepare": "husky"
+    "prepare": "husky",
+    "check:gates": "turbo run check:gates"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.6.1",

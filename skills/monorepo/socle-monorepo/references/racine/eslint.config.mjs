@@ -61,9 +61,9 @@ export default tseslint.config(
     files: ["packages/**/*.ts"],
     languageOptions: { globals: { ...globals.node } },
   },
-  // Un script de gate PARLE : console autorisée.
+  // Un script de gate PARLE : console autorisée — à la racine comme dans une brique.
   {
-    files: ["scripts/**/*.{mjs,ts}"],
+    files: ["scripts/**/*.{mjs,ts}", "**/scripts/**/*.{mjs,ts}"],
     languageOptions: { globals: { ...globals.node } },
     rules: { "no-console": "off" },
   },

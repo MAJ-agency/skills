@@ -31,7 +31,8 @@ Poser **la frontière en un seul tour**, chacune avec une recommandation, puis a
 4. **Langue de la documentation** — français ou anglais. _(Recommandé : celle de l'équipe. Les règles impératives des services restent en anglais dans les deux cas, pour rester diffables avec leur gabarit.)_
 5. **Services à installer** — choix multiple, chacun porté par son skill :
    - **api** — backend NestJS hexagonal → `/maj-skills:socle-nest-hexagonal` _(Recommandé : oui.)_
-   - **web**, **mobile** — _pas encore de skill : ne pas les proposer tant que leur skill n'existe pas dans ce plugin._
+   - **web** — client Next.js App Router → `/maj-skills:socle-web-next` _(Recommandé : oui s'il y a un utilisateur devant un navigateur.)_
+   - **mobile** — _pas encore de skill : ne pas le proposer tant que son skill n'existe pas dans ce plugin._
 
 > **Ne pas poser d'autres questions ici.** Les questions structurantes propres à un service (multi-tenance pour l'API, par exemple) sont posées **par le skill du service**, au moment où il s'installe. L'hébergement, l'authentification, l'observabilité : tout ça part en tickets à l'étape 6. Les poser maintenant, c'est demander d'arbitrer avant de savoir.
 
@@ -123,9 +124,9 @@ Il ne commite pas : l'historique est écrit ici, à l'étape 8.
 
 Les gabarits de `references/tickets/` deviennent `docs/features/socle/issues/`. Ils portent ce que la racine a **délibérément** laissé ouvert : modélisation du domaine, hébergement, nature du client et forme de l'authentification, pare-feu CI, observabilité, registre des règles métier.
 
-Les numéros sont **réservés par skill**, pour que deux skills n'écrivent jamais le même : `01`–`03` et `07`–`09` pour la racine, `04`–`06` pour l'API, `10` et suivants pour les services à venir. Un numéro absent (service non installé) est un trou, pas une erreur : les numéros ne se réutilisent jamais.
+Les numéros sont **réservés par skill**, pour que deux skills n'écrivent jamais le même : `01`–`03` et `07`–`09` pour la racine, `04`–`06` pour l'API, `10`–`12` pour le web, `13` et suivants pour les services à venir. Un numéro absent (service non installé) est un trou, pas une erreur : les numéros ne se réutilisent jamais.
 
-**Adapter chaque ticket à ce qui est déjà connu du projet.** Un ticket qui pose une question déjà tranchée est du bruit : le supprimer, ou le convertir en ADR. En particulier, **si un client web ou mobile a été coché à l'étape 1, le ticket `03` est tranché** : le convertir en ADR (`ARC`) qui fixe la forme de l'authentification par client — cookies `__Host-` pour un navigateur, jetons porteurs pour du mobile — et laisser `05` pointer vers cette ADR. Si le contexte appelle des tickets absents des gabarits — une intégration amont, une contrainte réglementaire — **en écrire**, dans le même format.
+**Adapter chaque ticket à ce qui est déjà connu du projet.** Un ticket qui pose une question déjà tranchée est du bruit : le supprimer, ou le convertir en ADR. En particulier, **si un client web ou mobile a été coché à l'étape 1, le ticket `03` est tranché** : le convertir en ADR (`ARC`) qui fixe la forme de l'authentification par client — cookies `__Host-` pour un navigateur, jetons porteurs pour du mobile — et laisser `05` pointer vers cette ADR. Le skill du client a déjà remplacé la décision « no client, for now » dans `apps/api/CLAUDE.md` ; vérifier que l'ADR et cette décision disent la même chose. Si le contexte appelle des tickets absents des gabarits — une intégration amont, une contrainte réglementaire — **en écrire**, dans le même format.
 
 Écrire aussi `docs/features/socle/spec.md` : une page qui dit ce qu'est le socle, quels services sont installés, ce qu'il ne fait pas, et dans quel ordre attaquer les tickets — les siens **et** ceux des services.
 
