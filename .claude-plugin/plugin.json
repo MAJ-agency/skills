@@ -1,9 +1,21 @@
 {
   "name": "maj-skills",
   "version": "1.0.0",
-  "description": "Skills d'ingénierie maison : amorçage de socle backend, méthode de travail, structuration de la documentation. Aucune règle métier.",
-  "author": { "name": "Guillaume Jauffret" },
+  "description": "Skills d'ingénierie maison : amorçage de monorepo et de socle backend, méthode de travail, structuration de la documentation. Aucune règle métier.",
+  "author": {
+    "name": "Guillaume Jauffret"
+  },
   "license": "MIT",
-  "keywords": ["nestjs", "hexagonal", "scaffolding", "architecture", "documentation", "adr"],
-  "skills": ["./skills/backend/socle-nest-hexagonal"]
+  "keywords": [
+    "nestjs",
+    "hexagonal",
+    "scaffolding",
+    "architecture",
+    "documentation",
+    "adr"
+  ],
+  "skills": [
+    "./skills/monorepo/socle-monorepo",
+    "./skills/backend/socle-nest-hexagonal"
+  ]
 }

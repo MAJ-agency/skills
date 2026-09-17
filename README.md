@@ -19,13 +19,23 @@ claude plugin marketplace update maj
 
 ## Les skills
 
+### `monorepo/`
+
+| Skill                                                       | Ce qu'il fait                                                                                                                       |
+| ----------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| [`socle-monorepo`](skills/monorepo/socle-monorepo/SKILL.md) | Amorce la racine d'un monorepo pnpm/Turborepo — hooks, méthode, documentation, outillage agent — puis installe les services choisis |
+
+Invocation : `/maj-skills:socle-monorepo`. C'est le point d'entrée d'un projet neuf : il demande quels services installer et invoque leur skill.
+
 ### `backend/`
 
-| Skill                                                                  | Ce qu'il fait                                                                                              |
-| ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| [`socle-nest-hexagonal`](skills/backend/socle-nest-hexagonal/SKILL.md) | Amorce un backend NestJS hexagonal complet dans un dépôt vide, et dépose en tickets ce qui reste à trancher |
+| Skill                                                                  | Ce qu'il fait                                                                                            |
+| ---------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| [`socle-nest-hexagonal`](skills/backend/socle-nest-hexagonal/SKILL.md) | Amorce un backend NestJS hexagonal complet dans le monorepo, et dépose en tickets ce qui reste à trancher |
 
-Invocation : `/maj-skills:socle-nest-hexagonal`.
+Invocation : `/maj-skills:socle-nest-hexagonal`. Lancé seul dans un dépôt vide, il pose d'abord la racine via `socle-monorepo`.
+
+**La racine est une seule source.** `socle-monorepo` la pose ; un skill de service n'écrit que dans `apps/<service>/`, ses paquets, et des fragments insérés dans les zones `<!-- socle:… -->` de `README.md` et `CLAUDE.md`. Ses règles de lint vivent dans `apps/<service>/eslint.rules.mjs`, chargé par l'ESLint racine.
 
 ## `socle-nest-hexagonal` en deux mots
 
@@ -41,7 +51,7 @@ Invocation : `/maj-skills:socle-nest-hexagonal`.
 
 **Une documentation structurée.** Tout sous `docs/`, trié par thème — ADR, architecture, métier, features. Nomenclature `<TRI>-<NNNN>-<slug>.md` avec registre de trigrammes, pour qu'une référence ne casse jamais au déplacement d'un fichier.
 
-**L'outillage agent installé.** graphify avec ses hooks, les skills Matt Pocock et superpowers, et la configuration `docs/agents/` produite en invoquant `setup-matt-pocock-skills` — pas recopiée à la main.
+**L'outillage agent installé** (par `socle-monorepo`). graphify avec ses hooks, les skills Matt Pocock et superpowers, et la configuration `docs/agents/` produite en invoquant `setup-matt-pocock-skills` — pas recopiée à la main.
 
 **Neuf tickets.** Ce que le socle a délibérément laissé ouvert : modéliser le domaine, choisir l'hébergement, décider s'il y a un client, monter la couche base de données, l'authentification, le journal d'audit, le pare-feu CI, l'observabilité, le registre des règles métier.
 
@@ -59,10 +69,14 @@ Invocation : `/maj-skills:socle-nest-hexagonal`.
   marketplace.json     le marketplace « maj », qui expose le plugin
   plugin.json          le plugin « maj-skills », qui déclare ses skills
 skills/
+  monorepo/
+    socle-monorepo/
+      SKILL.md         le processus, en huit étapes
+      references/      racine, hooks, méthode, ADR transverses, tickets transverses
   backend/
     socle-nest-hexagonal/
-      SKILL.md         le processus, en sept étapes
-      references/      gabarits copiés verbatim par le skill
+      SKILL.md         le processus, en quatre étapes
+      references/      squelette du service, règles back, fragments de racine, tickets API
 ```
 
 ## Ajouter un skill

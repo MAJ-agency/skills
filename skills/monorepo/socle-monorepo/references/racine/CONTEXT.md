@@ -1,7 +1,5 @@
 # {{TITRE}}
 
-Service de portefeuille de licence numérique de la Fédération Française du Sport Automobile.
-
 > **Vide, et c'est normal.** Le langage ubiquitaire du projet n'a pas encore été établi — il se construit **pendant** le grilling, terme par terme, au moment où chacun se cristallise. Ne pas le pré-remplir depuis les documents sources : un terme n'entre ici qu'une fois **tranché**.
 
 ## Règles de tenue

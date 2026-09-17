@@ -1,42 +1,18 @@
-import js from "@eslint/js";
-import tseslint from "typescript-eslint";
-import globals from "globals";
-
+// Règles ESLint propres au service API — chargées par eslint.config.mjs à la racine.
 // Frontières hexagonales verrouillées par le lint — voir apps/api/CLAUDE.md.
 //
 // ⚠️ Un seul bloc `no-restricted-imports` par couche : en flat config, deux blocs
 // qui matchent le même fichier ne fusionnent PAS leurs options — le dernier
 // écrase le premier. Tout ce qui concerne une couche vit donc dans son bloc.
-//
-// Aucune règle front ici : ce socle est une API. Le jour où un client naît
-// (apps/web), ajouter son paquet de règles EN BLOC — react, jsx-a11y en erreur
-// si l'accessibilité est une obligation, et les verrous propres à sa stack.
-export default tseslint.config(
+export default ({ globals }) => [
+  // Node / TypeScript
   {
-    ignores: [
-      "**/dist/**",
-      "**/build/**",
-      "**/node_modules/**",
-      "**/.turbo/**",
-      "**/*.config.{js,cjs,mjs,ts}",
-    ],
-  },
-  js.configs.recommended,
-  ...tseslint.configs.recommended,
-  {
-    rules: {
-      "no-console": ["warn", { allow: ["warn", "error"] }],
-    },
-  },
-  // Node / TypeScript (API, packages, scripts)
-  {
-    files: ["apps/api/**/*.ts", "packages/**/*.ts"],
+    files: ["apps/api/**/*.ts"],
     languageOptions: { globals: { ...globals.node } },
   },
   // Un script de gate PARLE : console autorisée.
   {
-    files: ["scripts/**/*.{mjs,ts}", "apps/api/src/openapi/emit.ts"],
-    languageOptions: { globals: { ...globals.node } },
+    files: ["apps/api/src/openapi/emit.ts"],
     rules: { "no-console": "off" },
   },
   // ---- Couche domaine : pure. Aucun framework, aucune I/O, aucune couche externe.
@@ -104,4 +80,4 @@ export default tseslint.config(
       ],
     },
   },
-);
+];

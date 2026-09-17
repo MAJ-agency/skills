@@ -1,0 +1,12 @@
+node_modules
+dist
+build
+.turbo
+coverage
+pnpm-lock.yaml
+
+# Livrables HTML autoportés de la doc : artefacts figés, hors du gate format:check.
+docs/**/*.html
+
+# Fichiers GÉNÉRÉS : les reformater les fait diverger de leur source et casse
+# les gates de dérive. Chaque service ajoute les siens ci-dessous.

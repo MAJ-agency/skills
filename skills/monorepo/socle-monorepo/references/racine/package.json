@@ -2,7 +2,7 @@
   "name": "{{PROJET}}",
   "version": "0.0.0",
   "private": true,
-  "description": "{{TITRE}} — portefeuille de licence numérique de la Fédération Française du Sport Automobile",
+  "description": "{{DESCRIPTION}}",
   "packageManager": "pnpm@9.15.4",
   "engines": {
     "node": ">=22",

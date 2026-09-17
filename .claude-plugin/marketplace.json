@@ -7,7 +7,7 @@
     {
       "name": "maj-skills",
       "source": "./",
-      "description": "Amorçage de socle backend NestJS hexagonal, méthode de travail et structuration de la documentation. Aucune règle métier.",
+      "description": "Amorçage de monorepo et de socle backend NestJS hexagonal, méthode de travail et structuration de la documentation. Aucune règle métier.",
       "category": "development",
       "keywords": ["nestjs", "hexagonal", "scaffolding", "architecture", "documentation", "adr"]
     }

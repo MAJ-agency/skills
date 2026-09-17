@@ -4,7 +4,7 @@ services:
     environment:
       POSTGRES_DB: {{PROJET_SNAKE}}
       POSTGRES_USER: {{PROJET_SNAKE}}_migrator
-      POSTGRES_PASSWORD: wallet_dev
+      POSTGRES_PASSWORD: {{PROJET_SNAKE}}_dev
     ports:
       - "5433:5432"
     volumes:

@@ -14,8 +14,8 @@
  * — le durcissement `superRefine` les refuserait de toute façon.
  */
 export const devDefaults = {
-  DATABASE_URL: "postgres://{{PROJET_SNAKE}}_app:wallet_dev@localhost:5433/{{PROJET_SNAKE}}",
-  DATABASE_MIGRATOR_URL: "postgres://{{PROJET_SNAKE}}_migrator:wallet_dev@localhost:5433/{{PROJET_SNAKE}}",
+  DATABASE_URL: "postgres://{{PROJET_SNAKE}}_app:{{PROJET_SNAKE}}_dev@localhost:5433/{{PROJET_SNAKE}}",
+  DATABASE_MIGRATOR_URL: "postgres://{{PROJET_SNAKE}}_migrator:{{PROJET_SNAKE}}_dev@localhost:5433/{{PROJET_SNAKE}}",
   CORS_ORIGIN: "http://localhost:5173",
   JWT_ACCESS_SECRET: "dev-access-secret-change-me-0123456789",
   CSRF_HMAC_SECRET: "dev-csrf-secret-change-me-0123456789",
