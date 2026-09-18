@@ -80,3 +80,4 @@ React Hook Form + `zodResolver(schema)` with the schema from `packages/contracts
 - [ ] Every mutation has `meta.messageSucces` or `meta.silencieuse`; invalidation by `queryKeys.<subject>.all`.
 - [ ] Keyboard-navigable, named regions, `pnpm lint` (jsx-a11y) green.
 - [ ] Pure logic covered by a colocated `*.spec.ts`; `pnpm check` green.
+- [ ] **Reviewed before commit**: `/mattpocock-skills:code-review` run from the branch base; Standards axis against this file and the ADRs, Spec axis against the ticket. Every Standards finding is either fixed or answered in writing — and any finding the machine could have caught becomes a proposal for a lint rule or a `verify-*` script, so it is never found twice.

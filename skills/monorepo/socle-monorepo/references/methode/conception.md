@@ -92,3 +92,7 @@ Une revue de code se lit sur deux axes indépendants, rendus côte à côte :
 Un écart sur l'axe Standards est une dette ; un écart sur l'axe Spec est un malentendu. Les deux se corrigent différemment — d'où l'intérêt de ne pas les mélanger dans une liste unique.
 
 **Recevoir une revue** demande de la rigueur, pas de l'acquiescement : vérifier techniquement chaque remarque avant de l'appliquer. Une remarque fausse s'argumente ; une remarque juste s'applique sans cérémonie.
+
+**Quand.** Avant le commit qui clôt une feature, depuis la base de la branche : `/mattpocock-skills:code-review`. C'est la definition of done de chaque brique qui l'exige, pas un hook — un relecteur au commit serait lent, non déterministe et contournable, et [`pare-feu-ci.md`](pare-feu-ci.md) dit qu'aucun invariant critique ne dépend d'un relecteur. La revue par agent voit ce que le lint ne voit pas : une règle métier dans un contrôleur, un use case qui en appelle un autre, un port qui rend une ligne de base, une donnée serveur copiée dans un état local.
+
+**Le cliquet de la revue.** Un constat de l'axe Standards que la machine aurait pu faire — un import, un nommage, une forme de fichier — ne se corrige pas seulement : il devient une **proposition de garde** (règle de lint, `check:arch`, script `verify-*`), déposée avec le correctif ou en ticket. Une violation trouvée deux fois par un relecteur est une garde qui manque.

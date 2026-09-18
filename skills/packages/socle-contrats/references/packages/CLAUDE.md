@@ -51,3 +51,4 @@ Imperative rules for what the API and its clients **share**. Read `apps/<service
 - [ ] `openapi:check` of the API is green — the document was regenerated, not edited.
 - [ ] No `interface` duplicating a schema, no deep import, no framework import.
 - [ ] A new enum comes with its `as const` tuple, its type, its `z.enum`.
+- [ ] **Reviewed before commit**: `/mattpocock-skills:code-review` run from the branch base; Standards axis against this file and the ADRs, Spec axis against the ticket. Every Standards finding is either fixed or answered in writing — and any finding the machine could have caught becomes a proposal for a lint rule or a `verify-*` script, so it is never found twice.

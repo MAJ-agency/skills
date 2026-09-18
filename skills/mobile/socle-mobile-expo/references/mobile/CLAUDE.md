@@ -78,3 +78,4 @@ Every `useMutation` declares `meta.messageSucces` **or** `meta.silencieuse: true
 - [ ] Every mutation has `meta.messageSucces` or `meta.silencieuse`.
 - [ ] No token outside `lib/secure-store.ts`; no `StyleSheet`; every `Pressable` labelled.
 - [ ] Pure logic covered by a colocated `*.spec.ts`; `pnpm check` green, bundle included.
+- [ ] **Reviewed before commit**: `/mattpocock-skills:code-review` run from the branch base; Standards axis against this file and the ADRs, Spec axis against the ticket. Every Standards finding is either fixed or answered in writing — and any finding the machine could have caught becomes a proposal for a lint rule or a `verify-*` script, so it is never found twice.

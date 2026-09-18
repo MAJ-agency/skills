@@ -219,7 +219,8 @@ Enforce by lint (`no-restricted-imports` / `eslint-plugin-boundaries`) and repla
 5. `check` green (lint + typecheck).
 6. Swagger updated for HTTP changes; the contracts updated if the internal contract changed.
 7. No relative cross-layer imports; no concrete adapter imported outside its module; no multi-write path outside `IUnitOfWork.run`.
-8. Commits in French, conventional commits (commitlint).
+8. **Reviewed before commit**: `/mattpocock-skills:code-review` run from the branch base — Standards axis against this file, `ARCHITECTURE_GUIDELINES.md` and the ADRs; Spec axis against the ticket. Every Standards finding is either fixed or answered in writing, and any finding the machine could have caught becomes a proposal for a lint rule, `check:arch` or a `verify-*` script — so it is never found twice.
+9. Commits in French, conventional commits (commitlint).
 
 ---
 
