@@ -64,7 +64,7 @@ Puis, **avec l'API lancée** (`pnpm --filter @<scope>/<projet>-api dev`), lancer
 
 Vérifier que **les gardes de frontière mordent** — créer `apps/web/src/features/sonde/index.ts` contenant `export { SantePanel } from "@/features/sante";`, confirmer que `pnpm lint` échoue avec le message « n'importe jamais une autre feature », **puis le supprimer**. Faire de même avec un import relatif remontant (`../lib/utils`) dans un composant : le lint doit refuser.
 
-Contrôler qu'il ne reste **aucun placeholder `{{…}}`** dans les fichiers posés, et que les marqueurs `<!-- socle:… -->` sont toujours là.
+Contrôler qu'il ne reste **aucun placeholder `{{…}}`** (chercher `{{[A-Z_]+}}` — les doubles accolades JSX ne comptent pas) dans les fichiers posés, et que les marqueurs `<!-- socle:… -->` sont toujours là.
 
 ## Étape 3 — déposer les tickets
 

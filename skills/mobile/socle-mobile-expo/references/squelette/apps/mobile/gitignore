@@ -1,0 +1,11 @@
+.expo/
+dist/
+expo-env.d.ts
+# projets natifs générés par `expo prebuild` — reconstruits, jamais versionnés
+ios/
+android/
+# clés et profils de signature
+*.jks
+*.p8
+*.p12
+*.mobileprovision

@@ -74,7 +74,7 @@ pnpm --filter @<scope>/<projet>-api dev            # puis curl localhost:3000/he
 
 Vérifier aussi que **les gardes de couche mordent** — c'est ce qui distingue une règle écrite d'une règle appliquée. Créer un fichier de sonde important `Logger` depuis `@nestjs/common` dans `application/`, confirmer que `pnpm lint` échoue, **puis le supprimer**. Si le lint ne mord pas, c'est que `apps/api/eslint.rules.mjs` n'est pas chargé par l'ESLint racine.
 
-Contrôler enfin qu'il ne reste **aucun placeholder `{{…}}`** dans les fichiers posés, et que les marqueurs `<!-- socle:… -->` sont toujours dans `README.md` et `CLAUDE.md`.
+Contrôler enfin qu'il ne reste **aucun placeholder `{{…}}`** (chercher `{{[A-Z_]+}}` — les doubles accolades JSX ne comptent pas) dans les fichiers posés, et que les marqueurs `<!-- socle:… -->` sont toujours dans `README.md` et `CLAUDE.md`.
 
 ## Étape 4 — déposer les tickets
 

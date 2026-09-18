@@ -1,0 +1,3 @@
+# Expo + pnpm : Metro suit les liens symboliques du store isolé (metro.config.js).
+# Si `expo export` échoue à résoudre un module natif, la parade documentée par
+# Expo est `node-linker=hoisted` — à activer ici, pour tout le monorepo.

@@ -1,0 +1,4 @@
+apps/mobile/.expo/
+apps/mobile/dist/
+apps/mobile/expo-env.d.ts
+apps/mobile/nativewind-env.d.ts

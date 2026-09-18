@@ -9,6 +9,7 @@
   "keywords": [
     "nestjs",
     "nextjs",
+    "expo",
     "hexagonal",
     "monorepo",
     "scaffolding",
@@ -20,6 +21,7 @@
     "./skills/monorepo/socle-monorepo",
     "./skills/packages/socle-contrats",
     "./skills/backend/socle-nest-hexagonal",
-    "./skills/frontend/socle-web-next"
+    "./skills/frontend/socle-web-next",
+    "./skills/mobile/socle-mobile-expo"
   ]
 }

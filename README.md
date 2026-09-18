@@ -51,6 +51,14 @@ Invocation : `/maj-skills:socle-nest-hexagonal`. Lancé seul dans un dépôt vid
 
 Invocation : `/maj-skills:socle-web-next`. Suppose la racine et les contrats posés ; la page d'accueil interroge `/health` de l'API pour prouver la chaîne complète.
 
+### `mobile/`
+
+| Skill                                                           | Ce qu'il fait                                                                                                              |
+| --------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| [`socle-mobile-expo`](skills/mobile/socle-mobile-expo/SKILL.md) | Amorce un client mobile Expo — même architecture que le web, session par jetons dans le Keychain, bundle Metro comme gate — et dépose ses tickets |
+
+Invocation : `/maj-skills:socle-mobile-expo`. Suppose la racine et les contrats posés ; l'écran d'accueil interroge `/health` de l'API.
+
 **La racine est une seule source.** `socle-monorepo` la pose ; un skill de service n'écrit que dans `apps/<service>/`, ses paquets, et des fragments insérés dans les zones `<!-- socle:… -->` de `README.md` et `CLAUDE.md`. Ses règles de lint vivent dans `apps/<service>/eslint.rules.mjs`, chargé par l'ESLint racine.
 
 ## `socle-nest-hexagonal` en deux mots
@@ -101,6 +109,10 @@ skills/
     socle-web-next/
       SKILL.md         le processus, en trois étapes
       references/      squelette du client, règles front, ADR WEB-0001, fragments, tickets web
+  mobile/
+    socle-mobile-expo/
+      SKILL.md         le processus, en trois étapes
+      references/      squelette Expo, règles mobile, ADR MOB-0001, fragments, tickets mobile
 ```
 
 ## Ajouter un skill

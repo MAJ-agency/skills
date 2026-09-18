@@ -56,7 +56,7 @@ pnpm check      # le paquet build, lint, typecheck avec le reste
 
 Vérifier que **la garde de framework mord** : créer `packages/contracts/src/sonde.ts` avec `import { Injectable } from "@nestjs/common";`, confirmer que `pnpm lint` échoue avec le message de `packages/CLAUDE.md`, **puis le supprimer**. Si le lint ne mord pas, `packages/contracts/eslint.rules.mjs` n'est pas chargé par l'ESLint racine.
 
-Contrôler qu'il ne reste **aucun placeholder `{{…}}`** dans les fichiers posés.
+Contrôler qu'il ne reste **aucun placeholder `{{…}}`** (chercher `{{[A-Z_]+}}` — les doubles accolades JSX ne comptent pas) dans les fichiers posés.
 
 **Ne pas commiter** : l'historique est écrit par `socle-monorepo` à la fin.
 
