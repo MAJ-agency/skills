@@ -39,6 +39,12 @@ kebab-case files, PascalCase component exports. `features/<module>/api/<module>-
 - Auth is a **cookie httpOnly** set by the API. The client **NEVER** sees, stores or forwards a token. **NEVER** `localStorage` for anything session-related. The single-flight refresh queue in `api-client.ts` is inert until the API exposes `/auth/refresh` (ticket).
 - Every response is typed by a schema from `packages/contracts` and **parsed** at the edge (`Schema.parse(reponse.data)`) — a lying API fails loudly, at the boundary, not three components later. **NEVER** declare a response `interface` in `features/*/api/*`: it belongs to the contract.
 - Errors: the API's error body is `ErreurDto` (`code` stable, `message` prescriptive). Read it through `lib/api-error.ts` only. Branch behaviour on `code`, show `message`.
+<!-- ══ TENANT-B ══ -->
+- **Tenant (`ARC-2`)**: the client **NEVER** sends a `tenantId` — not in a header, not in a body, not in a query string. The session carries it; the API resolves it. A tenant switch is an API call that re-issues the session, then `queryClient.clear()`. **NEVER** cache data across a tenant switch.
+<!-- ══ /TENANT-B ══ -->
+<!-- ══ ROLES-B ══ -->
+- **Roles (`ARC-2`)**: the current role comes from `/auth/me` through `lib/auth/`, typed by `RoleSchema` from `packages/contracts`. Hiding a button by role is **presentation**: it improves the screen, it protects nothing. **NEVER** treat a role check in the client as authorisation — the API refuses, the client only avoids showing what would be refused.
+<!-- ══ /ROLES-B ══ -->
 
 ## Mutations — feedback is global
 

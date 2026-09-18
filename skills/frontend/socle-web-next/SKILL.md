@@ -45,7 +45,9 @@ Puis **composer les fichiers de la racine** — chaque fragment s'insère **imm�
 | `references/fragments/env.example.txt`              | `.env.example`    | **en fin de fichier**                |
 | `references/fragments/prettierignore.txt`           | `.prettierignore` | **en fin de fichier**                |
 
-Substituer les placeholders dans tout ce qui vient d'être copié. Le trigramme `WEB` est déjà au registre de `docs/methode/nomenclature.md` (réservé) : passer son statut à « actif ».
+Substituer les placeholders dans tout ce qui vient d'être copié.
+
+**Branches.** `apps/web/CLAUDE.md` et le ticket `10` portent des blocs entre marqueurs `<!-- ══ TENANT-B ══ -->` / `<!-- ══ ROLES-B ══ -->` : les **garder** si la réponse à la question correspondante (multi-tenance, rôles — posée par `socle-monorepo` ou par le skill API) est oui, les **supprimer avec leurs marqueurs** sinon. Aucun marqueur `══` ne doit subsister. Le trigramme `WEB` est déjà au registre de `docs/methode/nomenclature.md` (réservé) : passer son statut à « actif ».
 
 **Si `apps/api/` existe**, deux ajustements que l'API ne peut pas connaître d'avance :
 

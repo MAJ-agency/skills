@@ -18,11 +18,14 @@ Tous les gabarits vivent dans [`references/`](references/). Les copier **verbati
 3. Si `apps/api/` existe déjà, **s'arrêter et demander** : appliquer le socle par-dessus écraserait des fichiers.
 4. Les placeholders (`{{PROJET}}`, `{{PROJET_SNAKE}}`, `{{SCOPE}}`, `{{TITRE}}`, `{{DESCRIPTION}}`, `{{LANGUE}}`, `{{DATE}}`) sont ceux fixés par `socle-monorepo`. S'ils ne sont pas dans la conversation, les relire dans `package.json` (`name`, `description`) et `CLAUDE.md` (titre, langue).
 
-## Étape 1 — la question
+## Étape 1 — les deux questions
 
-Une seule, avec sa recommandation, puis attendre :
+**Si `socle-monorepo` les a déjà posées, ne pas les reposer** : les réponses sont dans la conversation. Sinon, poser les deux en un tour, chacune avec sa recommandation, puis attendre :
 
-**Multi-tenance et gestion de rôles** — _(Recommandé : **non** aux deux.)_ C'est la seule question structurante qui ne peut pas attendre : elle décide de la signature du port de transaction, de la présence d'une colonne sur chaque table et d'un gate CI. Les deux branches sont écrites dans [`references/adr/ARC-2-transactions-et-isolation.md`](references/adr/ARC-2-transactions-et-isolation.md) ; en garder **une**, supprimer l'autre.
+1. **Multi-tenance** — le service isole-t-il des organisations clientes dans une même base ? _(Recommandé : **non**.)_ Elle décide de la signature du port de transaction, d'une colonne sur chaque table et d'un gate CI.
+2. **Gestion de rôles** — plusieurs profils aux droits différents ? _(Recommandé : **non**.)_ Indépendante de la première.
+
+Chaque réponse choisit une **branche** dans les fichiers qui en portent deux, entre marqueurs `<!-- ══ TENANT-A ══ -->` / `TENANT-B` et `ROLES-A` / `ROLES-B` : `ARC-2`, `apps/api/CLAUDE.md`, `ARCHITECTURE_GUIDELINES.md`, les tickets `4` et `5`. **Garder la branche choisie, supprimer l'autre et les marqueurs**, dans chaque fichier, à la copie. Un fichier livré avec ses deux branches n'a rien décidé.
 
 > **Ne pas poser d'autres questions ici.** L'hébergement, la nature du client, l'authentification, la base de données : tout ça part en tickets à l'étape 4. Les poser maintenant, c'est demander d'arbitrer avant de savoir.
 
@@ -36,7 +39,7 @@ Copier `references/` vers le dépôt selon cette table, puis substituer les plac
 | `references/squelette/compose.yaml` | `compose.yaml` (racine) — PostgreSQL local          |
 | `references/api/CLAUDE.md`          | `apps/api/CLAUDE.md`                               |
 | `references/api/docs/*`             | `apps/api/docs/`                                   |
-| `references/adr/ARC-2-*`         | `docs/adr/` — **après avoir tranché la branche**   |
+| `references/adr/ARC-2-*`         | `docs/adr/` — **après avoir tranché ses deux sections** (isolation, rôles) |
 | `references/tickets/*`              | `docs/features/socle/issues/`                      |
 
 Puis **composer les fichiers de la racine** — chaque fragment s'insère **immédiatement au-dessus** du marqueur de sa zone, sans supprimer le marqueur :
@@ -74,7 +77,7 @@ pnpm --filter @<scope>/<projet>-api dev            # puis curl localhost:3000/he
 
 Vérifier aussi que **les gardes de couche mordent** — c'est ce qui distingue une règle écrite d'une règle appliquée. Créer un fichier de sonde important `Logger` depuis `@nestjs/common` dans `application/`, confirmer que `pnpm lint` échoue, **puis le supprimer**. Si le lint ne mord pas, c'est que `apps/api/eslint.rules.mjs` n'est pas chargé par l'ESLint racine.
 
-Contrôler enfin qu'il ne reste **aucun placeholder `{{…}}`** (chercher `{{[A-Z_]+}}` — les doubles accolades JSX ne comptent pas) dans les fichiers posés, et que les marqueurs `<!-- socle:… -->` sont toujours dans `README.md` et `CLAUDE.md`.
+Contrôler enfin qu'il ne reste **aucun placeholder `{{…}}`** (chercher `{{[A-Z_]+}}` — les doubles accolades JSX ne comptent pas) dans les fichiers posés, que les marqueurs `<!-- socle:… -->` sont toujours dans `README.md` et `CLAUDE.md`, et qu'**aucun marqueur de branche `══` ne subsiste** dans `apps/api/` ni `docs/`.
 
 ## Étape 4 — déposer les tickets
 

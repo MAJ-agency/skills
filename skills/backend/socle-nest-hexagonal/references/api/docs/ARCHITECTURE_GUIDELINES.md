@@ -353,9 +353,10 @@ A shared collaborator that is **neither a use case** (not driven by an inbound A
 
 ### Transactions & the Unit of Work
 
+<!-- ══ TENANT-A ══ -->
 A use case that writes more than one row wraps its work in `IUnitOfWork.run`. Either everything commits, or nothing does.
 
-> In a multi-tenant service the primitive would be `runInTenant(tenantId, work)`, because there a transaction is also the tenant boundary — Row-Level Security reads the tenant from a per-transaction setting. **This service is single-tenant (`ARC-2`)**, so the primitive is just `run(work)`: a transaction, and nothing else.
+> In a multi-tenant service the primitive would be `runInTenant(tenantId, work)`, because there a transaction is also the tenant boundary. **This service is single-tenant (`ARC-2`)**, so the primitive is just `run(work)`: a transaction, and nothing else.
 
 ```typescript
 await this.uow.run(async () => {
@@ -363,6 +364,27 @@ await this.uow.run(async () => {
   await this.demandes.enregistrer(demande); // same tx
 });
 ```
+<!-- ══ /TENANT-A ══ -->
+<!-- ══ TENANT-B ══ -->
+Every access to tenant data — reads included — goes through `IUnitOfWork.runInTenant(tenantId, work)`. Either everything commits, or nothing does, **and** the whole unit runs under one tenant.
+
+> **This service is multi-tenant (`ARC-2`)**: a transaction is also the tenant boundary. Row-Level Security reads the tenant from a **per-transaction** setting (`set_config(..., true)` = `LOCAL`, cleared at COMMIT), so a pooled connection can never leak a tenant into the next request. The `tenantId` comes from the authenticated session or from a URL coordinate **proven under RLS** — never from a header or a body.
+
+```typescript
+await this.uow.runInTenant(tenantId, async () => {
+  const place = await this.demandes.reserverPlace(ressourceId); // atomic
+  await this.demandes.enregistrer(demande); // same tx
+});
+```
+
+The adapter differs from the single-tenant one by a single statement, executed first inside the transaction:
+
+```typescript
+// LOCAL setting (third arg `true`): cleared at COMMIT, immune to pool
+// connection reuse. NEVER `set_config(..., false)` nor a bare SET.
+await sql`SELECT set_config('app.tenant_id', ${tenantId}, true)`.execute(trx);
+```
+<!-- ══ /TENANT-B ══ -->
 
 The transaction is stashed in a **continuation-local store** (`nestjs-cls`, backed by `AsyncLocalStorage`) so repositories pick it up ambiently — no `trx` parameter on any port method. That matters for the hexagon: a port signature must stay expressible without naming the database.
 
@@ -426,16 +448,31 @@ Persistence mapping (domain model ↔ Kysely row) stays **private inside the rep
 
 ## Ownership & isolation
 
-This service is **single-tenant, with no role catalogue** (`ARC-2`). There is no `tenant_id`, no Row-Level Security, no `runInTenant`.
+<!-- ══ TENANT-A ══ -->
+This service is **single-tenant** (`ARC-2`). There is no `tenant_id`, no Row-Level Security, no `runInTenant`.
 
 **That removes a safety net, and the consequence is the whole point of this section.** With RLS, a forgotten `WHERE` turns a query into an empty result, not a leak. Here there is nothing behind you — **the explicit check IS the protection**.
+<!-- ══ /TENANT-A ══ -->
+<!-- ══ TENANT-B ══ -->
+This service is **multi-tenant, isolated by Row-Level Security** (`ARC-2`). Every tenant table carries `tenant_id NOT NULL`, `ENABLE` + `FORCE ROW LEVEL SECURITY`, and a policy with `USING` + `WITH CHECK` that fails closed on the session setting. The runtime connects as a `NOBYPASSRLS` role; only migrations run as the owner.
+
+**RLS is a backstop, not a licence.** With RLS, a forgotten `WHERE` turns a query into an empty result, not a cross-tenant leak — but **within** a tenant, nothing proves that a resource belongs to the authenticated account except the use case. So the explicit ownership check stays.
+
+- **MUST**: `tenantId` never comes from a client header or body. Either the session carries it, or it is a URL coordinate **proven under RLS**: inside the transaction, a `SELECT` on the target resource must find it, else `404`. That proof is mandatory because **foreign-key constraints bypass RLS** — without it a row of tenant B can reference a resource of tenant A.
+- The **tenant isolation gate** is blocking: SQL introspection (every `public` table RLS-forced or in the versioned allowlist), a cross-tenant leak test (under tenant A, tenant B is invisible and unwritable), a GUC-leak test (the setting is gone outside the transaction) — `docs/methode/pare-feu-ci.md`. A table deliberately not tenant-scoped is an **ADR**: which table, why, and what replaces RLS as proof of ownership.
+<!-- ══ /TENANT-B ══ -->
+<!-- ══ ROLES-B ══ -->
+**Roles** (`ARC-2`): the catalogue is a closed `z.enum` in `packages/contracts/src/roles.ts`; who holds which role is data; what a role permits is a rule written in the use case — never a `permission` table. The role comes from the session, and a use case checks it **before** acting, the same way it proves ownership.
+<!-- ══ /ROLES-B ══ -->
 
 - **MUST**: a use case touching a resource that belongs to someone proves that ownership **explicitly**, inside the transaction, before acting. Identity comes from the session (`req.session.sub`), never from a client-supplied field.
 - **A foreign key is not a proof of ownership.** It proves a row exists, not that it is yours. `WHERE id = :id` alone is a leak waiting for its first URL guess.
 - **Prefer `404` to `403`** when the existence of the resource is itself information the caller should not have.
 - **MUST**: every route reading or writing an owned resource carries a test proving another account is refused. With no RLS backstop, that suite _is_ the isolation proof — treat it as a blocking gate (`docs/methode/pare-feu-ci.md`).
 
+<!-- ══ TENANT-A ══ -->
 Should the project ever need real multi-tenancy, that is a reopening of `ARC-2` — a migration plus a review of every data access, not a flag to flip.
+<!-- ══ /TENANT-A ══ -->
 
 ## Inbound Adapters
 

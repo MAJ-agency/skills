@@ -26,14 +26,17 @@ Chaque gate protège **un** invariant. À définir précisément pour le projet 
 
 ### Gate — isolation des données
 
-Deux formes, selon la décision prise sur la multi-tenance ([`ARC-2`](../adr/ARC-2-transactions-et-isolation.md)). **Une seule s'applique — ne pas porter les deux.**
+La forme suit la décision prise sur la multi-tenance ([`ARC-2`](../adr/ARC-2-transactions-et-isolation.md)).
 
-**Si mono-tenant (sans RLS) — le gate d'appartenance.** Il n'y a pas de filet : la vérification explicite dans le use case EST la protection. Le gate le prouve.
+<!-- ══ TENANT-A ══ -->
+**Le gate d'appartenance.** Il n'y a pas de filet : la vérification explicite dans le use case EST la protection. Le gate le prouve.
 
 1. Pour chaque route touchant une ressource possédée, un cas « compte A demande la ressource de compte B » → refus (404 de préférence : ne pas révéler l'existence).
 2. Aucune route de ce type sans son cas de refus. Une route ajoutée sans test d'appartenance est un trou.
 
-**Si multi-tenant (avec RLS PostgreSQL) — le gate anti-fuite tenant.** Trois vérifications, jouées contre une base migrée :
+<!-- ══ /TENANT-A ══ -->
+<!-- ══ TENANT-B ══ -->
+**Le gate anti-fuite tenant.** Trois vérifications, jouées contre une base migrée :
 
 1. **Introspection SQL.** Toute table du schéma `public` doit satisfaire : `relrowsecurity AND relforcerowsecurity` (RLS activée **et** forcée), colonne `tenant_id NOT NULL`, et des policies portant `USING` **et** `WITH CHECK`. Toute table non conforme doit figurer dans une **allowlist versionnée** — sinon échec.
 
@@ -50,6 +53,7 @@ WHERE n.nspname = 'public' AND c.relkind = 'r'
 3. **Test de fuite de GUC.** Après `withTenant()`, le réglage de session **est réinitialisé** hors transaction. Plus un grep anti-`SET` non-`LOCAL` : tout `set_config(..., false)` fuirait entre requêtes sur une connexion poolée.
 
 L'allowlist est **versionnée et revue** : son diff est visible en PR. C'est la parade au contournement par allowlist laxiste.
+<!-- ══ /TENANT-B ══ -->
 
 ### Gate — anti-drift des sources de vérité
 

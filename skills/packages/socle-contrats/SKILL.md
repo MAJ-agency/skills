@@ -36,6 +36,8 @@ Puis **composer les fichiers de la racine** — chaque fragment s'insère **imm�
 
 Substituer les placeholders dans tout ce qui vient d'être copié.
 
+**Branches.** `packages/CLAUDE.md` portent des blocs entre marqueurs `<!-- ══ TENANT-B ══ -->` / `<!-- ══ ROLES-B ══ -->` : les **garder** si la réponse à la question correspondante (multi-tenance, rôles — posée par `socle-monorepo` ou par le skill API) est oui, les **supprimer avec leurs marqueurs** sinon. Aucun marqueur `══` ne doit subsister.
+
 ## Étape 2 — `utils`, seulement à la première fonction
 
 **Ne pas poser `packages/utils` maintenant.** Un paquet vide est un mensonge : il annonce un partage qui n'existe pas. Le gabarit [`references/squelette/utils/`](references/squelette/utils/) attend le jour où **deux briques** ont besoin de la même fonction pure. Ce jour-là :

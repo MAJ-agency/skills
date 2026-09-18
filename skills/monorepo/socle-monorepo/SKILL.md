@@ -33,8 +33,12 @@ Poser **la frontière en un seul tour**, chacune avec une recommandation, puis a
    - **api** — backend NestJS hexagonal → `/maj-skills:socle-nest-hexagonal` _(Recommandé : oui.)_
    - **web** — client Next.js App Router → `/maj-skills:socle-web-next` _(Recommandé : oui s'il y a un utilisateur devant un navigateur.)_
    - **mobile** — client Expo (iOS / Android) → `/maj-skills:socle-mobile-expo` _(Recommandé : seulement si un usage mobile est identifié ; un client web suffit souvent au départ.)_
+6. **Multi-tenance** — le service isole-t-il des organisations clientes les unes des autres, dans une même base ? _(Recommandé : **non**.)_ Elle décide de la signature du port de transaction, d'une colonne sur chaque table, d'un gate CI, et de ce qu'un client ne doit jamais envoyer. **Deux branches** sont écrites partout où elle compte (`ARC-2`, règles et guidelines API, tickets, règles des clients) : la réponse choisit la branche.
+7. **Gestion de rôles** — plusieurs profils d'utilisateurs aux droits différents dans un même périmètre ? _(Recommandé : **non** ; oui si le besoin est déjà identifié.)_ Indépendante de la précédente : un service mono-tenant peut avoir des rôles. Même mécanique de branches.
 
-> **Ne pas poser d'autres questions ici.** Les questions structurantes propres à un service (multi-tenance pour l'API, par exemple) sont posées **par le skill du service**, au moment où il s'installe. L'hébergement, l'authentification, l'observabilité : tout ça part en tickets à l'étape 6. Les poser maintenant, c'est demander d'arbitrer avant de savoir.
+> **Ne pas poser d'autres questions ici.** L'hébergement, l'authentification, l'observabilité : tout ça part en tickets à l'étape 6. Les poser maintenant, c'est demander d'arbitrer avant de savoir. Les réponses 6 et 7 sont **transmises à chaque skill de service** : lancé seul, un skill de service repose la question qui lui manque.
+
+**Les fichiers à branches.** Plusieurs gabarits portent **deux branches entre marqueurs** `<!-- ══ TENANT-A ══ -->` / `<!-- ══ TENANT-B ══ -->` (mono / multi-tenant) et `<!-- ══ ROLES-A ══ -->` / `<!-- ══ ROLES-B ══ -->` (sans / avec rôles), fermées par `<!-- ══ /… ══ -->`. Après la copie, **garder la branche choisie, supprimer l'autre et les quatre marqueurs**. Un fichier livré avec ses deux branches est un fichier **non tranché** : la vérification finale le refuse.
 
 Les placeholders des gabarits, **communs à tous les skills de service** : `{{PROJET}}` (kebab), `{{PROJET_SNAKE}}` (snake, pour les identifiants SQL), `{{SCOPE}}`, `{{TITRE}}`, `{{DESCRIPTION}}`, `{{LANGUE}}`, `{{DATE}}` (AAAA-MM-JJ).
 
@@ -128,7 +132,7 @@ Les gabarits de `references/tickets/` deviennent `docs/features/socle/issues/`. 
 
 Les numéros sont **réservés par skill**, pour que deux skills n'écrivent jamais le même : `1`–`3` et `7`–`9` pour la racine, `4`–`6` pour l'API, `10`–`12` pour le web, `13`–`15` pour le mobile, `16` et suivants pour les services à venir. Un numéro absent (service non installé) est un trou, pas une erreur : les numéros ne se réutilisent jamais.
 
-**Adapter chaque ticket à ce qui est déjà connu du projet.** Un ticket qui pose une question déjà tranchée est du bruit : le supprimer, ou le convertir en ADR. En particulier, **si un client web ou mobile a été coché à l'étape 1, le ticket `3` est tranché** : le convertir en ADR (`ARC`) qui fixe la forme de l'authentification par client — cookies `__Host-` pour un navigateur, jetons porteurs pour du mobile — et laisser `5` pointer vers cette ADR. Le skill de chaque client a déjà remplacé ou complété la décision « no client, for now » dans `apps/api/CLAUDE.md` (cookies pour le web, jetons porteurs pour le mobile, les deux discriminés par `X-Client-Type`) ; vérifier que l'ADR et cette décision disent la même chose. Si le contexte appelle des tickets absents des gabarits — une intégration amont, une contrainte réglementaire — **en écrire**, dans le même format.
+**Adapter chaque ticket à ce qui est déjà connu du projet.** Un ticket qui pose une question déjà tranchée est du bruit : le supprimer, ou le convertir en ADR. En particulier, **si un client web ou mobile a été coché à l'étape 1, le ticket `3` est tranché** : **ne pas le copier**, et poser à sa place [`references/adr/ARC-3-forme-de-l-authentification-par-client.md`](references/adr/ARC-3-forme-de-l-authentification-par-client.md) dans `docs/adr/` — un gabarit à sections par client (`<!-- ══ CLIENT-WEB ══ -->`, `<!-- ══ CLIENT-MOBILE ══ -->`) : garder celles des clients installés, supprimer les autres et leurs marqueurs. Le ticket `5` de l'API pointe déjà vers `ARC-3`. Le skill de chaque client a remplacé la décision « no client, for now » dans `apps/api/CLAUDE.md` ; vérifier que `ARC-3` et cette décision disent la même chose. Sans aucun client, le ticket `3` reste un ticket et `ARC-3` n'existe pas. Si le contexte appelle des tickets absents des gabarits — une intégration amont, une contrainte réglementaire — **en écrire**, dans le même format.
 
 Écrire aussi `docs/features/socle/socle.spec.md` : une page qui dit ce qu'est le socle, quels services sont installés, ce qu'il ne fait pas, et dans quel ordre attaquer les tickets — les siens **et** ceux des services.
 
@@ -144,7 +148,7 @@ sh .husky/post-commit   # le relais graphify répond (silencieux = OK)
 
 Chaque skill de service a ses propres vérifications (un service qui démarre, des gardes de couche qui mordent) : **les avoir toutes jouées** avant de conclure.
 
-Contrôler enfin qu'aucun lien markdown n'est cassé, qu'il ne reste **aucun placeholder `{{…}}`** (chercher `{{[A-Z_]+}}` — les doubles accolades JSX ne comptent pas) dans le dépôt généré, et que les marqueurs `<!-- socle:… -->` sont toujours là.
+Contrôler enfin qu'aucun lien markdown n'est cassé, qu'il ne reste **aucun placeholder `{{…}}`** (chercher `{{[A-Z_]+}}` — les doubles accolades JSX ne comptent pas) dans le dépôt généré, que les marqueurs `<!-- socle:… -->` sont toujours là, et qu'**aucun marqueur de branche ne subsiste** : `grep -rn '══' --include='*.md' .` doit ne rien renvoyer. Un marqueur restant est une décision non prise.
 
 ## Étape 8 — l'historique
 

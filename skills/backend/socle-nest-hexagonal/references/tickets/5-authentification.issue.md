@@ -13,6 +13,12 @@ Bloqué par : `3-client-et-forme-de-l-authentification`. La recette ci-dessous n
 - **CSRF signed double-submit** : HMAC de l'identifiant de session, en-tête `X-CSRF-Token`. La garde exige un `Origin` égal à l'origine attendue et **rejette aussi son absence** sur mutation.
 - **Gardes globales** : toute route est authentifiée par défaut, toute mutation authentifiée exige Origin + CSRF. Les méthodes sûres (`GET`/`HEAD`/`OPTIONS`) sautent le CSRF. L'exemption est explicite et **chaque exemption est un point de revue**.
 - Ordre d'exécution : authentification **puis** CSRF.
+<!-- ══ TENANT-B ══ -->
+- **La session porte le `tenantId`** (`ARC-2`) : il ne vient jamais d'un en-tête ni d'un corps client. Un compte rattaché à plusieurs tenants choisit son tenant actif par un endpoint dédié, qui réémet la session.
+<!-- ══ /TENANT-B ══ -->
+<!-- ══ ROLES-B ══ -->
+- **La session porte le rôle** (`ARC-2`), lu dans la table d'affectation à l'authentification et à chaque refresh. Le catalogue est le `z.enum` de `packages/contracts/src/roles.ts`.
+<!-- ══ /ROLES-B ══ -->
 
 ## Cadence des endpoints publics
 

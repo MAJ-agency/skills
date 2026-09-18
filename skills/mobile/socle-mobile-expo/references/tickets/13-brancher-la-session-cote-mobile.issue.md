@@ -14,6 +14,12 @@ Bloqué par : `5-authentification` — l'API doit répondre en JSON (`{ acces, r
 3. Brancher `definirOnSessionPerdue` dans `app/_layout.tsx` : `router.replace` vers la connexion.
 4. La porte d'entrée : `app/index.tsx` lit `jetons.lireAcces()` et redirige vers la connexion ou l'espace connecté. Ce n'est pas une frontière de sécurité, l'API refuse elle-même.
 5. Aligner la forme de la réponse de refresh dans `rafraichir()` sur le contrat une fois écrit.
+<!-- ══ TENANT-B ══ -->
+6. Tenant : `useUtilisateurCourant()` expose le tenant actif ; un changement de tenant réémet les jetons puis vide le cache TanStack. Le client n'envoie **jamais** un `tenantId`.
+<!-- ══ /TENANT-B ══ -->
+<!-- ══ ROLES-B ══ -->
+7. Rôle : `useUtilisateurCourant()` expose le rôle (`RoleSchema` du contrat) ; le masquage par rôle est de la présentation, l'API décide. Ne jamais décoder le jeton sur l'appareil pour y lire un rôle.
+<!-- ══ /ROLES-B ══ -->
 
 ## Rappels non négociables
 

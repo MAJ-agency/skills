@@ -73,19 +73,39 @@ These are **project decisions**, not open questions. Do not deviate.
 - **DECISION — no use-case-to-use-case calls.** A use case **NEVER** calls another use case. Shared logic spanning entities goes into a **domain service** (`@domain/<domain>/services/`), injected by token into both use cases.
 - **DECISION — inter-module communication via exposed port only.** When module A needs domain B, A depends on a **port B exposes** (an API use-case port or a dedicated SPI), wired by token in A's module. **NEVER** import B's repository, row type, or internal model directly across modules. For async decoupling, publish/subscribe **domain events** instead.
 - **DECISION — UUID v7, generated in the application.** Identifiers are minted app-side, not by the database.
-- **DECISION — single-tenant, no role catalogue (`ARC-2`).** This service is **not** multi-tenant and has **no role management**. There is no `tenant_id`, no Row-Level Security, no `runInTenant`. **NEVER** introduce a tenant column, an RLS policy, or a role/permission table — that would reopen `ARC-2`, which was decided on purpose. _(If the multi-tenant branch of `ARC-2` was chosen instead, replace this bullet and the Transactions section with the RLS rules the ADR describes.)_
+<!-- ══ TENANT-A ══ -->
+- **DECISION — single-tenant (`ARC-2`).** There is no `tenant_id`, no Row-Level Security, no `runInTenant`. **NEVER** introduce a tenant column or an RLS policy — that would reopen `ARC-2`, which was decided on purpose.
+<!-- ══ /TENANT-A ══ -->
+<!-- ══ TENANT-B ══ -->
+- **DECISION — multi-tenant, isolation by Row-Level Security (`ARC-2`).** Every tenant table carries `tenant_id NOT NULL`, with `ENABLE` **and** `FORCE ROW LEVEL SECURITY`, and a policy carrying `USING` **and** `WITH CHECK`, fail-closed on a session setting. The runtime connects with a **`NOBYPASSRLS`** role; migrations and seed run as the **owner** role — **NEVER** an application query with the owner role. A table without tenant scope is an **ADR** naming the table, why, and what replaces RLS as proof of ownership; those tables are the versioned allowlist of the isolation gate.
+<!-- ══ /TENANT-B ══ -->
+<!-- ══ ROLES-A ══ -->
+- **DECISION — no role catalogue (`ARC-2`).** Authorisation is ownership, proven in the use case. **NEVER** introduce a role or permission table — that would reopen `ARC-2`.
+<!-- ══ /ROLES-A ══ -->
+<!-- ══ ROLES-B ══ -->
+- **DECISION — roles: closed catalogue in code, assignment in data (`ARC-2`).** The role catalogue is a **closed tuple in `packages/contracts/src/roles.ts`** (`as const` + `z.enum`; code, typed, reviewed). Who holds which role is **data**, in a table like any other. What a role permits is a rule **written in the use case** — **NEVER** a `permission` table. The role travels with the **authenticated session**, **NEVER** in a header or a body; a client may hide an action by role, the API alone decides.
+<!-- ══ /ROLES-B ══ -->
 - **DECISION — no client, for now.** The {{TITRE}} ships **no user interface**: it is a headless API, and its published surface is the OpenAPI document. Zod schemas live in `packages/contracts` (`@{{SCOPE}}/{{PROJET}}-contracts`). **Do not build browser-shaped machinery** — no session cookie flow, no CSRF, no CORS credentials design — until a client exists and its nature is known (browser? mobile? Apple/Google projet pass?). Each answer wants a different auth shape.
 
 ---
 
 ## Transactions
 
+<!-- ══ TENANT-A ══ -->
 A use case that writes more than one row wraps its work in the `IUnitOfWork` port. It is a **transaction boundary and nothing else** — a tenant-scoped `runInTenant` is deliberately absent (`ARC-2`).
 
 - **MUST**: multi-write work goes through `IUnitOfWork.run(work)`. Either everything commits, or nothing does.
+- **Ownership is proven in the use case**, explicitly, inside the transaction: a resource belongs to the authenticated account or the request is refused. With no RLS there is **no backstop** — the explicit check _is_ the protection, so it is never optional and never inferred from a foreign key.
+<!-- ══ /TENANT-A ══ -->
+<!-- ══ TENANT-B ══ -->
+Every access to tenant data goes through the `IUnitOfWork` port: **`runInTenant(tenantId, work)` is the only path to a tenant row** (`ARC-2`). It is a transaction boundary **and** the tenant scope.
+
+- **MUST**: all tenant-scoped work — reads included — goes through `IUnitOfWork.runInTenant(tenantId, work)`. Either everything commits, or nothing does. Its adapter opens a transaction and sets the tenant setting **`LOCAL`** (cleared at COMMIT, immune to pool connection reuse). **NEVER** a non-`LOCAL` `SET` nor `set_config(..., false)`: it would leak between requests on a pooled connection.
+- **MUST**: the `tenantId` **never** comes from a client header or body. Either it is a URL coordinate **proven under RLS** — inside the transaction, a `SELECT` on the target resource must find it, else 404 — or it comes from the authenticated session. That proof `SELECT` is **mandatory**: foreign-key constraints bypass RLS, so without it a row of tenant B can reference a resource of tenant A.
+- **RLS is a backstop, not a licence**: repositories still target the right rows explicitly, and ownership **inside** a tenant (a resource belongs to the authenticated account) is still proven in the use case. RLS guarantees that a bug does not become a cross-tenant leak.
+<!-- ══ /TENANT-B ══ -->
 - **MUST**: the transaction travels **ambiently** (continuation-local store, `nestjs-cls`), never as a `trx` parameter on a port method. A port signature must stay expressible without naming the database.
 - **MUST**: Kysely (`db`, `Transaction`, `sql`) is imported **only** in infrastructure — never in `domain/` or `application/`. Enforced by lint and by `check:arch`.
-- **Ownership is proven in the use case**, explicitly, inside the transaction: a resource belongs to the authenticated account or the request is refused. With no RLS there is **no backstop** — the explicit check _is_ the protection, so it is never optional and never inferred from a foreign key.
 
 ---
 

@@ -51,6 +51,8 @@ Puis **composer les fichiers de la racine** — chaque fragment s'insère **imm�
 
 Substituer les placeholders dans tout ce qui vient d'être copié.
 
+**Branches.** `apps/mobile/CLAUDE.md` et le ticket `13` portent des blocs entre marqueurs `<!-- ══ TENANT-B ══ -->` / `<!-- ══ ROLES-B ══ -->` : les **garder** si la réponse à la question correspondante (multi-tenance, rôles — posée par `socle-monorepo` ou par le skill API) est oui, les **supprimer avec leurs marqueurs** sinon. Aucun marqueur `══` ne doit subsister.
+
 **Si `apps/api/` existe**, la décision client dans `apps/api/CLAUDE.md` évolue :
 
 - s'il n'y a pas de client web, remplacer « **no client, for now** » par « **DECISION — a mobile client (`apps/mobile`).** Auth is token-shaped: Bearer access token + rotating refresh, returned as JSON when `X-Client-Type: mobile`; no cookies, no CSRF. Contract changes are expand/contract: a mobile app does not update by force. » ;

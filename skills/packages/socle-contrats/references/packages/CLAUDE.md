@@ -17,6 +17,9 @@ Imperative rules for what the API and its clients **share**. Read `apps/<service
 - The schema constant and its inferred type share one name: `export const XxxDto = z.object(…)` and `export type XxxDto = z.infer<typeof XxxDto>`. Request bodies: `Creer{Entity}Dto`, `Modifier{Entity}Dto`. Responses: `{Entity}Dto`, `{Entity}ListeDto`. The common error body is `ErreurDto`.
 - **Response shapes are Zod schemas too**, not hand-written interfaces. That is what makes drift impossible: the API serialises through the schema, the client reads the inferred type, OpenAPI is derived from the same object. A manual `interface` next to a schema is a second source of truth — **NEVER**.
 - Enums: `export const XXX = ["a", "b"] as const;` + `export type Xxx = (typeof XXX)[number];` + `export const XxxSchema = z.enum(XXX);`. Human labels for an enum are **presentation**: they live in `utils` (or in the client), never in `contracts`.
+<!-- ══ ROLES-B ══ -->
+- **The role catalogue lives here** (`ARC-2`): `src/roles.ts`, `export const ROLES = […] as const` + `Role` + `RoleSchema = z.enum(ROLES)`, re-exported by the barrel. It is created **with the first role validated at the grilling**, never before (an enum needs at least one value, and a guessed role is a wrong role). The API reads it to type the session, the clients read it to hide actions — **presentation only**, the API alone decides.
+<!-- ══ /ROLES-B ══ -->
 
 ## Sealed type universes
 

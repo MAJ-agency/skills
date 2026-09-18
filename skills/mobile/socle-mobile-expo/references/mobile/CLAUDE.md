@@ -28,6 +28,12 @@ app/                                 ←  features/, components/, lib/
 - `lib/api-client.ts` sends `Authorization: Bearer` from the Keychain and `X-Client-Type: mobile`, so the API returns tokens as JSON instead of `Set-Cookie`. The single-flight refresh queue is inert until the API exposes `/auth/refresh` (ticket).
 - **Same endpoints as the web.** **NEVER** a `/mobile/*` route on the API to duplicate an existing one. A contract change is expand/contract: a mobile app does not update by force.
 - Biometrics, offline caches, push: **not** in the socle. Each is a ticket with its own security review.
+<!-- ══ TENANT-B ══ -->
+- **Tenant (`ARC-2`)**: the client **NEVER** sends a `tenantId` — not in a header, not in a body. The session (the access token) carries it. A tenant switch re-issues the tokens, then `queryClient.clear()`; **NEVER** keep tenant data cached across a switch, on device least of all.
+<!-- ══ /TENANT-B ══ -->
+<!-- ══ ROLES-B ══ -->
+- **Roles (`ARC-2`)**: the current role comes from `/auth/me` through `lib/auth/`, typed by `RoleSchema` from `packages/contracts`. Hiding a screen or a button by role is **presentation**; the API alone decides. **NEVER** decode the token on device to read a role — call `/auth/me`.
+<!-- ══ /ROLES-B ══ -->
 
 ## API client and errors
 

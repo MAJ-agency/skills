@@ -38,6 +38,11 @@ Les trois fichiers de configuration (`issue-tracker.md`, `triage-labels.md`, `do
 
 « Une source n'est pas une spécification. » Le dossier des entrées brutes, exclu de la nomenclature.
 
+## ADR — `adr/`
+
+- **`ARC-1`** — la nomenclature, sans branche.
+- **`ARC-3`** — la forme de l'authentification par client, **à sections** : garder celles des clients installés. Remplace le ticket `3` dès qu'un client existe.
+
 ## Tickets — `tickets/`
 
 Ce que la racine a délibérément laissé ouvert, en six tickets : `1` modéliser le domaine (bloquant : presque tout en dépend), `2` hébergement, `3` client et forme de l'authentification (**tranché d'office si un client est installé**), `7` pare-feu CI, `8` observabilité, `9` registre des règles métier. Les numéros `4`–`6` sont réservés à l'API, `10`–`12` au web, `13`–`15` au mobile, `16` et suivants aux services à venir.

@@ -1,6 +1,6 @@
 {
   "name": "maj-skills",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Skills d'ingénierie maison : amorçage de monorepo et de socle backend, méthode de travail, structuration de la documentation. Aucune règle métier.",
   "author": {
     "name": "Guillaume Jauffret"
