@@ -355,7 +355,7 @@ A shared collaborator that is **neither a use case** (not driven by an inbound A
 
 A use case that writes more than one row wraps its work in `IUnitOfWork.run`. Either everything commits, or nothing does.
 
-> In a multi-tenant service the primitive would be `runInTenant(tenantId, work)`, because there a transaction is also the tenant boundary — Row-Level Security reads the tenant from a per-transaction setting. **This service is single-tenant (`ARC-0002`)**, so the primitive is just `run(work)`: a transaction, and nothing else.
+> In a multi-tenant service the primitive would be `runInTenant(tenantId, work)`, because there a transaction is also the tenant boundary — Row-Level Security reads the tenant from a per-transaction setting. **This service is single-tenant (`ARC-2`)**, so the primitive is just `run(work)`: a transaction, and nothing else.
 
 ```typescript
 await this.uow.run(async () => {
@@ -426,7 +426,7 @@ Persistence mapping (domain model ↔ Kysely row) stays **private inside the rep
 
 ## Ownership & isolation
 
-This service is **single-tenant, with no role catalogue** (`ARC-0002`). There is no `tenant_id`, no Row-Level Security, no `runInTenant`.
+This service is **single-tenant, with no role catalogue** (`ARC-2`). There is no `tenant_id`, no Row-Level Security, no `runInTenant`.
 
 **That removes a safety net, and the consequence is the whole point of this section.** With RLS, a forgotten `WHERE` turns a query into an empty result, not a leak. Here there is nothing behind you — **the explicit check IS the protection**.
 
@@ -435,7 +435,7 @@ This service is **single-tenant, with no role catalogue** (`ARC-0002`). There is
 - **Prefer `404` to `403`** when the existence of the resource is itself information the caller should not have.
 - **MUST**: every route reading or writing an owned resource carries a test proving another account is refused. With no RLS backstop, that suite _is_ the isolation proof — treat it as a blocking gate (`docs/methode/pare-feu-ci.md`).
 
-Should the project ever need real multi-tenancy, that is a reopening of `ARC-0002` — a migration plus a review of every data access, not a flag to flip.
+Should the project ever need real multi-tenancy, that is a reopening of `ARC-2` — a migration plus a review of every data access, not a flag to flip.
 
 ## Inbound Adapters
 

@@ -3,7 +3,7 @@
 Status: needs-info
 Type: task
 
-Bloqué par : `03-client-et-forme-de-l-authentification`. La recette ci-dessous ne vaut **que pour un client navigateur**.
+Bloqué par : `3-client-et-forme-de-l-authentification`. La recette ci-dessous ne vaut **que pour un client navigateur**.
 
 ## Recette (si navigateur)
 
@@ -18,6 +18,6 @@ Bloqué par : `03-client-et-forme-de-l-authentification`. La recette ci-dessous 
 
 Compteur en base, hors session (la cadence se mesure **avant** toute authentification), incrémenté par UPSERT atomique. **Double clef** : par IP et par cible visée, **cible hachée** — le compteur ne stocke pas la liste des adresses. Refus **générique** (`429`, message identique quel que soit le cas, jamais un oracle), posé dans une garde **avant** la validation et avant tout hachage. **Fail-open tracé** : si le compteur tombe, la requête passe et l'erreur part au journal — une panne du compteur ne doit pas devenir un déni de service de l'authentification.
 
-Dépend de `02-hebergement-et-trust-proxy` : le comptage par IP exige un `req.ip` fiable.
+Dépend de `2-hebergement-et-trust-proxy` : le comptage par IP exige un `req.ip` fiable.
 
 ## Comments

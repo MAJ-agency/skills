@@ -1,4 +1,4 @@
-# ARC-0002 — Transactions et isolation des données
+# ARC-2 — Transactions et isolation des données
 
 - Statut : **accepté**
 - Date : {{DATE}}

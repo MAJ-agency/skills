@@ -27,7 +27,7 @@ Ce skill ne pose **aucune question** : le choix « application mobile » est fai
 | `references/squelette/apps/mobile/*`    | `apps/mobile/` — **`gitignore` se copie en `.gitignore`** ; `eslint.rules.mjs` est chargé par l'ESLint racine |
 | `references/mobile/CLAUDE.md`           | `apps/mobile/CLAUDE.md`                                                     |
 | `references/mobile/docs/*`              | `apps/mobile/docs/`                                                         |
-| `references/adr/mobile/MOB-0001-*`      | `docs/adr/mobile/` — décision rattachée au sujet `MOB`                      |
+| `references/adr/mobile/MOB-1-*`      | `docs/adr/mobile/` — décision rattachée au sujet `MOB`                      |
 | `references/tickets/*`                  | `docs/features/socle/issues/`                                               |
 
 Le trigramme **`MOB`** n'est pas au registre de `docs/methode/nomenclature.md` : **l'y inscrire avant de copier l'ADR** (sujet : « guides et décisions propres au client mobile (`apps/mobile/`) », statut actif). Registre d'abord, fichier ensuite.
@@ -77,7 +77,7 @@ Contrôler qu'il ne reste **aucun placeholder `{{…}}`** (chercher `{{[A-Z_]+}}
 
 ## Étape 3 — déposer les tickets
 
-Les gabarits de `references/tickets/` sont dans la plage `13`–`15` réservée au mobile : brancher la session (bloqué par l'authentification de l'API), distribution EAS et stores (grilling → `MOB-0002`), parcours sur appareil (bloqué par le pare-feu CI et la distribution).
+Les gabarits de `references/tickets/` sont dans la plage `13`–`15` réservée au mobile : brancher la session (bloqué par l'authentification de l'API), distribution EAS et stores (grilling → `MOB-2`), parcours sur appareil (bloqué par le pare-feu CI et la distribution).
 
 **Adapter chaque ticket à ce qui est déjà connu.** Un compte développeur existant, une politique OTA déjà tranchée : le dire dans le ticket, ou le convertir en ADR.
 
@@ -89,7 +89,7 @@ Les gabarits de `references/tickets/` sont dans la plage `13`–`15` réservée 
 - **Aucune session.** Le Keychain et le client Bearer sont prêts, inertes : ticket `13`.
 - **Aucune distribution.** Ni `eas.json`, ni icônes, ni comptes : ticket `14`. Les identifiants de bundle dérivés du projet sont des valeurs de départ, pas des décisions.
 - **Ni biométrie, ni hors-ligne, ni notifications** : chacun est un ticket avec sa revue de sécurité, le jour où le besoin existe.
-- **Aucun paquet UI partagé avec le web** : `MOB-0001` dit pourquoi.
+- **Aucun paquet UI partagé avec le web** : `MOB-1` dit pourquoi.
 
 ## Anti-patterns
 

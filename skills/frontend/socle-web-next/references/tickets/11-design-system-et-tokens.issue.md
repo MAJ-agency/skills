@@ -14,6 +14,6 @@ Le client embarque un seul jeu de tokens (`app/globals.css`, `@theme`) et une pr
 
 ## Sortie attendue
 
-Une ADR `DES-0001` (trigramme `DES`, réservé au registre) qui fixe les tokens, la stratégie de thème et le niveau d'accessibilité — puis `app/globals.css` mis à jour, et `docs/design/` créé avec son premier document.
+Une ADR `DES-1` (trigramme `DES`, réservé au registre) qui fixe les tokens, la stratégie de thème et le niveau d'accessibilité — puis `app/globals.css` mis à jour, et `docs/design/` créé avec son premier document.
 
 ## Comments

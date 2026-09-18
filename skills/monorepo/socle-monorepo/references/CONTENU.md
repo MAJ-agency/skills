@@ -10,7 +10,7 @@ Cinq documents qui font autorité sur la façon de travailler.
 | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
 | `grilling.md`        | L'arbre de décision et sa **frontière** ; le déroulé par tours, chaque question accompagnée d'une recommandation ; « les faits sont ton travail, les décisions sont celles de l'humain » ; le cycle `candidate → validée` qu'aucune machine ne franchit ; le re-grilling daté d'une décision. |
 | `decisions.md`       | Les **trois critères** pour écrire une ADR (difficile à défaire, surprenante, vrai arbitrage) ; le format MADR ; les règles de tenue du glossaire ; le registre de règles métier ; la documentation vivante en trois couches ; comment écrire pour un agent. |
-| `nomenclature.md`    | `<TRI>-<NNNN>-<slug>.md`, le registre des trigrammes, la procédure d'en créer un, et les quatre thèmes de `docs/`.                  |
+| `nomenclature.md`    | `<TRI>-<N>-<slug>.md`, le registre des trigrammes, la procédure d'en créer un, et les quatre thèmes de `docs/`.                  |
 | `conception.md`      | Le vocabulaire des **modules profonds** (module, interface, profondeur, couture, adapter, levier, localité) ; la boucle TDD et ses anti-patterns ; la revue sur deux axes. |
 | `pare-feu-ci.md`     | « Aucun invariant critique ne dépend d'un relecteur » ; l'activation d'un gate **au sprint où apparaît la surface qu'il protège** ; le catalogue des gates, dont les deux branches du gate d'isolation. |
 
@@ -28,11 +28,11 @@ Cinq documents qui font autorité sur la façon de travailler.
 
 ## ADR — `adr/`
 
-- **`ARC-0001`** — la nomenclature `<TRI>-<NNNN>-<slug>.md`, avec ses alternatives écartées. Transverse, donc à la racine du socle.
+- **`ARC-1`** — la nomenclature `<TRI>-<N>-<slug>.md`, avec ses alternatives écartées. Transverse, donc à la racine du socle.
 
 ## Skills Matt Pocock — `agents/`
 
-Les trois fichiers de configuration (`issue-tracker.md`, `triage-labels.md`, `domain.md`) tels que `setup-matt-pocock-skills` les produirait, **déjà corrigés** : tracker sous `docs/features/`, ADR citées `ARC-0001`, règles d'écriture déléguées à `methode/`. À copier seulement si la skill amont ne peut pas tourner.
+Les trois fichiers de configuration (`issue-tracker.md`, `triage-labels.md`, `domain.md`) tels que `setup-matt-pocock-skills` les produirait, **déjà corrigés** : tracker sous `docs/features/`, ADR citées `ARC-1`, règles d'écriture déléguées à `methode/`. À copier seulement si la skill amont ne peut pas tourner.
 
 ## Sources — `sources/README.md`
 
@@ -40,6 +40,6 @@ Les trois fichiers de configuration (`issue-tracker.md`, `triage-labels.md`, `do
 
 ## Tickets — `tickets/`
 
-Ce que la racine a délibérément laissé ouvert, en six tickets : `01` modéliser le domaine (bloquant : presque tout en dépend), `02` hébergement, `03` client et forme de l'authentification (**tranché d'office si un client est installé**), `07` pare-feu CI, `08` observabilité, `09` registre des règles métier. Les numéros `04`–`06` sont réservés à l'API, `10`–`12` au web, `13`–`15` au mobile, `16` et suivants aux services à venir.
+Ce que la racine a délibérément laissé ouvert, en six tickets : `1` modéliser le domaine (bloquant : presque tout en dépend), `2` hébergement, `3` client et forme de l'authentification (**tranché d'office si un client est installé**), `7` pare-feu CI, `8` observabilité, `9` registre des règles métier. Les numéros `4`–`6` sont réservés à l'API, `10`–`12` au web, `13`–`15` au mobile, `16` et suivants aux services à venir.
 
 Les adapter au projet réel. Un ticket qui pose une question déjà tranchée est du bruit.

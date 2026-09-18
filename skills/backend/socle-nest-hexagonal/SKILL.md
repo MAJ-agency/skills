@@ -22,7 +22,7 @@ Tous les gabarits vivent dans [`references/`](references/). Les copier **verbati
 
 Une seule, avec sa recommandation, puis attendre :
 
-**Multi-tenance et gestion de rôles** — _(Recommandé : **non** aux deux.)_ C'est la seule question structurante qui ne peut pas attendre : elle décide de la signature du port de transaction, de la présence d'une colonne sur chaque table et d'un gate CI. Les deux branches sont écrites dans [`references/adr/ARC-0002-transactions-et-isolation.md`](references/adr/ARC-0002-transactions-et-isolation.md) ; en garder **une**, supprimer l'autre.
+**Multi-tenance et gestion de rôles** — _(Recommandé : **non** aux deux.)_ C'est la seule question structurante qui ne peut pas attendre : elle décide de la signature du port de transaction, de la présence d'une colonne sur chaque table et d'un gate CI. Les deux branches sont écrites dans [`references/adr/ARC-2-transactions-et-isolation.md`](references/adr/ARC-2-transactions-et-isolation.md) ; en garder **une**, supprimer l'autre.
 
 > **Ne pas poser d'autres questions ici.** L'hébergement, la nature du client, l'authentification, la base de données : tout ça part en tickets à l'étape 4. Les poser maintenant, c'est demander d'arbitrer avant de savoir.
 
@@ -36,7 +36,7 @@ Copier `references/` vers le dépôt selon cette table, puis substituer les plac
 | `references/squelette/compose.yaml` | `compose.yaml` (racine) — PostgreSQL local          |
 | `references/api/CLAUDE.md`          | `apps/api/CLAUDE.md`                               |
 | `references/api/docs/*`             | `apps/api/docs/`                                   |
-| `references/adr/ARC-0002-*`         | `docs/adr/` — **après avoir tranché la branche**   |
+| `references/adr/ARC-2-*`         | `docs/adr/` — **après avoir tranché la branche**   |
 | `references/tickets/*`              | `docs/features/socle/issues/`                      |
 
 Puis **composer les fichiers de la racine** — chaque fragment s'insère **immédiatement au-dessus** du marqueur de sa zone, sans supprimer le marqueur :
@@ -78,16 +78,16 @@ Contrôler enfin qu'il ne reste **aucun placeholder `{{…}}`** (chercher `{{[A-
 
 ## Étape 4 — déposer les tickets
 
-Les gabarits de `references/tickets/` deviennent `docs/features/socle/issues/`, dans la plage `04`–`06` réservée à l'API : couche base de données, authentification, journal d'audit. Les tickets transverses (`01` domaine, `02` hébergement, `03` client, `07` CI, `08` observabilité, `09` règles métier) sont déposés par `socle-monorepo`.
+Les gabarits de `references/tickets/` deviennent `docs/features/socle/issues/`, dans la plage `4`–`6` réservée à l'API : couche base de données, authentification, journal d'audit. Les tickets transverses (`1` domaine, `2` hébergement, `3` client, `7` CI, `8` observabilité, `9` règles métier) sont déposés par `socle-monorepo`.
 
-**Adapter chaque ticket à ce qui est déjà connu du projet.** Un ticket qui pose une question déjà tranchée est du bruit : le supprimer, ou le convertir en ADR. Si `socle-monorepo` a converti le ticket `03` en ADR (un client web ou mobile est installé), faire pointer `05` vers cette ADR.
+**Adapter chaque ticket à ce qui est déjà connu du projet.** Un ticket qui pose une question déjà tranchée est du bruit : le supprimer, ou le convertir en ADR. Si `socle-monorepo` a converti le ticket `3` en ADR (un client web ou mobile est installé), faire pointer `5` vers cette ADR.
 
 **Ne pas commiter** : l'historique est écrit par `socle-monorepo` à la fin, une fois tous les services posés.
 
 ## Ce que ce skill ne fait pas
 
 - **Aucune règle métier.** Ni entité, ni use case, ni code d'erreur de domaine. La table de correspondance code → statut HTTP est livrée **vide**, avec sa procédure d'ajout.
-- **Aucune couche base de données.** L'environnement valide `DATABASE_URL`, mais rien ne s'y connecte : le schéma dépend d'un domaine qui n'existe pas encore. C'est le ticket `04`.
+- **Aucune couche base de données.** L'environnement valide `DATABASE_URL`, mais rien ne s'y connecte : le schéma dépend d'un domaine qui n'existe pas encore. C'est le ticket `4`.
 - **Aucun front.** Un client a son propre skill.
 - **Aucune décision d'hébergement**, donc `trust proxy` reste non configuré — le défaut échoue du bon côté.
 - **Ni racine, ni méthode, ni outillage** : c'est `socle-monorepo`. **Ni contrats** : c'est `socle-contrats`, l'API les consomme.

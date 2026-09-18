@@ -5,11 +5,11 @@ Type: task
 
 `docs/metier/` n'existe pas encore — normal, il naît avec sa première règle. Ce ticket rappelle **comment** l'ouvrir, pour que la première règle écrite le soit correctement.
 
-Bloqué par : `01-modeliser-le-domaine`.
+Bloqué par : `1-modeliser-le-domaine`.
 
 ## Structure
 
-Un fichier par domaine dans `docs/metier/regles/`, avec des **identifiants stables** préfixés par le trigramme du sujet (`XXX-001`, `XXX-002`…). Le trigramme s'inscrit **au registre avant** le premier fichier : `docs/methode/nomenclature.md`.
+Un fichier par domaine dans `docs/metier/regles/`, avec des **identifiants stables** préfixés par le trigramme du sujet (`XXX-1`, `XXX-2`…). Le trigramme s'inscrit **au registre avant** le premier fichier : `docs/methode/nomenclature.md`.
 
 ## Le cycle, et ce qui ne se négocie pas
 

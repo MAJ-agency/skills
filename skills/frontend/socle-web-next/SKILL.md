@@ -27,7 +27,7 @@ Ce skill ne pose **aucune question** : le choix « navigateur » est fait par le
 | `references/squelette/apps/web/*`   | `apps/web/` — **`gitignore` se copie en `.gitignore`** ; `eslint.rules.mjs` est chargé par l'ESLint racine |
 | `references/web/CLAUDE.md`          | `apps/web/CLAUDE.md`                                              |
 | `references/web/docs/*`             | `apps/web/docs/`                                                  |
-| `references/adr/web/WEB-0001-*`     | `docs/adr/web/` — décision rattachée au sujet `WEB`, donc dans son sous-dossier |
+| `references/adr/web/WEB-1-*`     | `docs/adr/web/` — décision rattachée au sujet `WEB`, donc dans son sous-dossier |
 | `references/tickets/*`              | `docs/features/socle/issues/`                                     |
 
 Puis **composer les fichiers de la racine** — chaque fragment s'insère **immédiatement au-dessus** du marqueur de sa zone, sans supprimer le marqueur :
@@ -68,7 +68,7 @@ Contrôler qu'il ne reste **aucun placeholder `{{…}}`** (chercher `{{[A-Z_]+}}
 
 ## Étape 3 — déposer les tickets
 
-Les gabarits de `references/tickets/` sont dans la plage `10`–`12` réservée au web : brancher la session (bloqué par l'authentification de l'API), design system et tokens (grilling → `DES-0001`), parcours de bout en bout (bloqué par le pare-feu CI).
+Les gabarits de `references/tickets/` sont dans la plage `10`–`12` réservée au web : brancher la session (bloqué par l'authentification de l'API), design system et tokens (grilling → `DES-1`), parcours de bout en bout (bloqué par le pare-feu CI).
 
 **Adapter chaque ticket à ce qui est déjà connu du projet.** Une charte graphique existante répond à la moitié du ticket `11` : le dire dans le ticket, ou le convertir en ADR.
 
@@ -79,7 +79,7 @@ Les gabarits de `references/tickets/` sont dans la plage `10`–`12` réservée 
 - **Aucune règle métier, aucun écran métier.** La feature `sante` est un placeholder étiqueté comme tel.
 - **Aucune session.** Le client la porte (cookies, file de refresh inerte) mais ne la crée pas : c'est le ticket `10`, bloqué par l'API.
 - **Aucun design system.** Un jeu de tokens et une primitive pour montrer la forme ; le reste est le ticket `11`.
-- **Aucun store client global**, aucun préchargement serveur par défaut : `WEB-0001` dit pourquoi, et comment les ajouter le jour venu.
+- **Aucun store client global**, aucun préchargement serveur par défaut : `WEB-1` dit pourquoi, et comment les ajouter le jour venu.
 
 ## Anti-patterns
 

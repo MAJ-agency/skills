@@ -69,14 +69,14 @@ These are **project decisions**, not open questions. Do not deviate.
 - **DECISION — no use-case-to-use-case calls.** A use case **NEVER** calls another use case. Shared logic spanning entities goes into a **domain service** (`@domain/<domain>/services/`), injected by token into both use cases.
 - **DECISION — inter-module communication via exposed port only.** When module A needs domain B, A depends on a **port B exposes** (an API use-case port or a dedicated SPI), wired by token in A's module. **NEVER** import B's repository, row type, or internal model directly across modules. For async decoupling, publish/subscribe **domain events** instead.
 - **DECISION — UUID v7, generated in the application.** Identifiers are minted app-side, not by the database.
-- **DECISION — single-tenant, no role catalogue (`ARC-0002`).** This service is **not** multi-tenant and has **no role management**. There is no `tenant_id`, no Row-Level Security, no `runInTenant`. **NEVER** introduce a tenant column, an RLS policy, or a role/permission table — that would reopen `ARC-0002`, which was decided on purpose. _(If the multi-tenant branch of `ARC-0002` was chosen instead, replace this bullet and the Transactions section with the RLS rules the ADR describes.)_
+- **DECISION — single-tenant, no role catalogue (`ARC-2`).** This service is **not** multi-tenant and has **no role management**. There is no `tenant_id`, no Row-Level Security, no `runInTenant`. **NEVER** introduce a tenant column, an RLS policy, or a role/permission table — that would reopen `ARC-2`, which was decided on purpose. _(If the multi-tenant branch of `ARC-2` was chosen instead, replace this bullet and the Transactions section with the RLS rules the ADR describes.)_
 - **DECISION — no client, for now.** The {{TITRE}} ships **no user interface**: it is a headless API, and its published surface is the OpenAPI document. Zod schemas live in `packages/contracts` (`@{{SCOPE}}/{{PROJET}}-contracts`). **Do not build browser-shaped machinery** — no session cookie flow, no CSRF, no CORS credentials design — until a client exists and its nature is known (browser? mobile? Apple/Google projet pass?). Each answer wants a different auth shape.
 
 ---
 
 ## Transactions
 
-A use case that writes more than one row wraps its work in the `IUnitOfWork` port. It is a **transaction boundary and nothing else** — a tenant-scoped `runInTenant` is deliberately absent (`ARC-0002`).
+A use case that writes more than one row wraps its work in the `IUnitOfWork` port. It is a **transaction boundary and nothing else** — a tenant-scoped `runInTenant` is deliberately absent (`ARC-2`).
 
 - **MUST**: multi-write work goes through `IUnitOfWork.run(work)`. Either everything commits, or nothing does.
 - **MUST**: the transaction travels **ambiently** (continuation-local store, `nestjs-cls`), never as a `trx` parameter on a port method. A port signature must stay expressible without naming the database.
@@ -181,7 +181,7 @@ Enforce by lint (`no-restricted-imports` / `eslint-plugin-boundaries`) and repla
 - **Repositories**: integration-test against a real Postgres (the transaction boundary cannot be meaningfully mocked); verify row↔model mapping, atomic-claim behavior under contention, and idempotency.
 - **Ownership checks**: every route that reads or writes a resource owned by someone gets a test proving another account is refused. With no RLS backstop, this suite IS the isolation proof — treat it as blocking.
 - **Inbound adapters**: HTTP → `supertest` e2e-style (override guards/config, real global `ZodValidationPipe` + domain filter); assert status, response shape, 400 validation, 5xx mapping. Consumers/cron/CLI → unit-test that input is deserialized and `execute()` is called.
-- Tests covering a registered business rule carry its ID in the name: `test("XXX-002 — <behaviour>", …)`.
+- Tests covering a registered business rule carry its ID in the name: `test("XXX-2 — <behaviour>", …)`.
 - Shared mocks in `@test/mocks/`. AAA pattern, fresh mocks per test (`afterEach(() => vi.clearAllMocks())`), one concern per test, names `should [behavior] when [condition]`. Test behavior, not implementation.
 
 ---

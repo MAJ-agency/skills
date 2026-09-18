@@ -1,4 +1,4 @@
-# ARC-0001 — Nomenclature des documents : `<TRI>-<NNNN>-<slug>.md`
+# ARC-1 — Nomenclature des documents : `<TRI>-<N>-<slug>.md`
 
 - Statut : **accepté**
 - Date : {{DATE}}
@@ -17,14 +17,14 @@ Le dépôt part de zéro : aucun document n'est encore nommé, donc le coût de 
 
 ## Décision
 
-**Nommer `<TRI>-<NNNN>-<slug>.md` tout document de contenu**, ADR comprises.
+**Nommer `<TRI>-<N>-<slug>.md` tout document de contenu**, ADR comprises.
 
 - Le trigramme désigne le **sujet**, jamais le dossier ; il vient toujours d'un **registre** qui fait autorité.
-- La séquence `NNNN` est unique **par trigramme, tous dossiers confondus**. Les numéros ne sont jamais réutilisés, même après suppression.
+- La séquence `N` est unique **par trigramme, tous dossiers confondus**, sans zéro de tête. Les numéros ne sont jamais réutilisés, même après suppression.
 - Un sujet sans trigramme au registre : **on l'y inscrit, puis on crée le fichier.** Jamais l'inverse.
 - Une décision transverse porte le trigramme réservé `ARC` et vit à la racine de `docs/adr/`.
 
-Un document se cite alors par son **identifiant court** (`SEC-0005`), sans chemin, partout — commits, tickets, conversations, autres documents. L'arborescence ne porte plus que le _type_ ; le nom porte l'identité.
+Un document se cite alors par son **identifiant court** (`SEC-5`), sans chemin, partout — commits, tickets, conversations, autres documents. L'arborescence ne porte plus que le _type_ ; le nom porte l'identité.
 
 La **règle opérationnelle complète** — périmètre, exclusions, registre, procédures — vit dans [`../methode/nomenclature.md`](../methode/nomenclature.md). Cette ADR porte la décision et son _pourquoi_ ; elle ne duplique pas le _comment_.
 
@@ -33,8 +33,9 @@ La **règle opérationnelle complète** — périmètre, exclusions, registre, p
 ## Alternatives écartées
 
 - **Numérotation plate `NNNN-slug.md`** — ne couvre que les ADR, laisse tous les autres documents sans identifiant, et impose un index tenu à la main.
-- **Séquence par dossier** — rend la référence courte ambiguë : deux dossiers, deux `LIC-0001`. Or c'est la référence courte qui fait tout l'intérêt du dispositif.
+- **Séquence par dossier** — rend la référence courte ambiguë : deux dossiers, deux `LIC-1`. Or c'est la référence courte qui fait tout l'intérêt du dispositif.
 - **Trigramme par dossier top-level** — fondrait toutes les features dans une seule séquence, et le trigramme cesserait de désigner un sujet pour ne plus désigner qu'un rangement.
+- **Zéros de tête (`0001`)** — donnent un tri lexical correct jusqu'à `9999`, au prix d'une borne arbitraire et d'un renommage général le jour où elle saute. Or on ne trie pas les documents par nom, on les cite par identifiant : le tri n'est pas un usage, la borne est un coût.
 - **Pré-remplir le registre avec les sujets pressentis** — fige un découpage du domaine qui n'a pas encore été tranché. Les trigrammes métier s'ajoutent quand le sujet apparaît réellement.
 
 ## Conséquences

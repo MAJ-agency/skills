@@ -5,7 +5,7 @@ Type: task
 
 Un log technique est un diagnostic éphémère. Un **événement métier sensible** — une transition portant argent, identité ou droit — est une **preuve**, et n'a rien à faire dans un `logger.error`.
 
-Bloqué par : `04-couche-base-de-donnees`.
+Bloqué par : `4-couche-base-de-donnees`.
 
 ## À faire
 

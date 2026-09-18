@@ -14,7 +14,7 @@
 | [`docs/adr/`](docs/adr/)                                       | les décisions structurantes et leur _pourquoi_                                       |
 | [`docs/methode/grilling.md`](docs/methode/grilling.md)         | **comment on interroge un plan** avant de l'écrire                                   |
 | [`docs/methode/decisions.md`](docs/methode/decisions.md)       | ADR, `CONTEXT.md`, registre de règles, documentation vivante                         |
-| [`docs/methode/nomenclature.md`](docs/methode/nomenclature.md) | **nommer un document** : `<TRI>-<NNNN>-<slug>.md`, et le **registre des trigrammes** |
+| [`docs/methode/nomenclature.md`](docs/methode/nomenclature.md) | **nommer un document** : `<TRI>-<N>-<slug>.md`, et le **registre des trigrammes** |
 | [`docs/methode/conception.md`](docs/methode/conception.md)     | modules profonds, TDD, revue                                                         |
 | [`docs/methode/pare-feu-ci.md`](docs/methode/pare-feu-ci.md)   | les invariants vérifiés par la machine                                               |
 | [`CONTEXT.md`](CONTEXT.md)                                     | le langage ubiquitaire (glossaire, et rien d'autre)                                  |

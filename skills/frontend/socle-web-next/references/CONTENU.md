@@ -22,11 +22,11 @@ Inventaire des gabarits, avec la raison d'être de chacun. La racine du monorepo
 
 ## ADR — `adr/web/`
 
-- **`WEB-0001`** — rendu, routage et périmètre des tests : routes minces, pages client par défaut, préchargement serveur page par page, tests unitaires sur la logique pure et parcours de bout en bout. Rattachée au sujet `WEB`, donc dans `docs/adr/web/`.
+- **`WEB-1`** — rendu, routage et périmètre des tests : routes minces, pages client par défaut, préchargement serveur page par page, tests unitaires sur la logique pure et parcours de bout en bout. Rattachée au sujet `WEB`, donc dans `docs/adr/web/`.
 
 ## Tickets — `tickets/`
 
-Plage `10`–`12`, réservée au web : `10` brancher la session (bloqué par `05`), `11` design system et tokens (grilling vers `DES-0001`), `12` parcours de bout en bout (bloqué par `07`).
+Plage `10`–`12`, réservée au web : `10` brancher la session (bloqué par `5`), `11` design system et tokens (grilling vers `DES-1`), `12` parcours de bout en bout (bloqué par `7`).
 
 ## Fragments — `fragments/`
 

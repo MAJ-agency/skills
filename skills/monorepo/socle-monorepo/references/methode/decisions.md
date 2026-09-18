@@ -35,9 +35,9 @@ Si c'est facile à défaire, on le défera. Si ce n'est pas surprenant, personne
 Format retenu : MADR simplifié. Le minimum viable d'une ADR est un paragraphe ; les sections ci-dessous ne se remplissent que quand elles apportent vraiment quelque chose.
 
 ```md
-# NNNN — <titre court de la décision>
+# <TRI>-<N> — <titre court de la décision>
 
-- Statut : proposé | accepté | déprécié | remplacé par ADR-NNNN
+- Statut : proposé | accepté | déprécié | remplacé par `<TRI>-<N>`
 - Date : AAAA-MM-JJ
 - Décideurs : <qui a tranché>
 - Portée : <ce que ça engage>
@@ -70,7 +70,7 @@ Format retenu : MADR simplifié. Le minimum viable d'une ADR est un paragraphe ;
 - Sources : …
 ```
 
-- **Nommage du fichier : `<TRI>-<NNNN>-<slug>.md`** — trigramme du sujet, séquence unique par trigramme tous dossiers confondus. Règle complète et registre : [`nomenclature.md`](nomenclature.md). **Si le sujet n'a pas encore de trigramme, l'inscrire au registre avant de créer le fichier** — c'est une étape de la procédure, pas une exception. Une décision transverse porte le trigramme réservé `ARC` et vit à la racine de `docs/adr/` ; une décision rattachée à un sujet vit dans le sous-dossier de ce sujet. **`docs/adr/` n'a pas d'index** — le nom du fichier porte l'identité (`ARC-0001`), lister le dossier suffit.
+- **Nommage du fichier : `<TRI>-<N>-<slug>.md`** — trigramme du sujet, séquence unique par trigramme tous dossiers confondus. Règle complète et registre : [`nomenclature.md`](nomenclature.md). **Si le sujet n'a pas encore de trigramme, l'inscrire au registre avant de créer le fichier** — c'est une étape de la procédure, pas une exception. Une décision transverse porte le trigramme réservé `ARC` et vit à la racine de `docs/adr/` ; une décision rattachée à un sujet vit dans le sous-dossier de ce sujet. **`docs/adr/` n'a pas d'index** — le nom du fichier porte l'identité (`ARC-1`), lister le dossier suffit.
 - **Créer `docs/adr/` paresseusement** : à la première ADR, pas avant.
 - **Une ADR n'est jamais supprimée.** Elle est `dépréciée` ou `remplacée par`, avec sa raison.
 - Le re-grilling d'une ADR ajoute une section `## Amendements du grill (JJ/MM/AAAA)` — voir [grilling.md](grilling.md#re-griller-ce-qui-a-déjà-été-décidé).
@@ -117,9 +117,9 @@ _Éviter_ : utilisateur, compte, licencié
 Distinct des ADR : une ADR dit **pourquoi une décision technique**, une règle dit **ce que le métier exige**. Une règle survit à un changement de stack ; une ADR non.
 
 - Un fichier par domaine, dans `docs/metier/regles/`.
-- **Identifiants stables** avec préfixe par domaine (`XXX-001`, `XXX-002`, …). Les préfixes du projet sont à fixer au grilling.
+- **Identifiants stables** avec préfixe par domaine (`XXX-1`, `XXX-2`, …). Les préfixes du projet sont à fixer au grilling.
 - Cycle de vie et interdit de suppression : voir [grilling.md](grilling.md#cycle-de-validation--la-machine-ne-valide-jamais).
-- **Un test qui couvre une règle porte son identifiant dans son nom** : `test("LIC-002 — <comportement>", …)`. C'est le lien vérifiable entre le registre et le code.
+- **Un test qui couvre une règle porte son identifiant dans son nom** : `test("LIC-2 — <comportement>", …)`. C'est le lien vérifiable entre le registre et le code.
 - Les questions non arbitrées vivent dans `docs/questions-ouvertes.md`, datées et sourcées.
 
 ---

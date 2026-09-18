@@ -4,7 +4,7 @@
 
 ### Issue tracker
 
-Issues are tracked as local markdown files under `docs/issues/<feature-slug>/` in this repo (no remote tracker). See `docs/agents/issue-tracker.md`.
+Issues are tracked as local markdown files under `docs/issues/<feature-slug>/` in this repo (no remote tracker): `<slug>.spec.md` plus `issues/<N>-<slug>.issue.md`, numbered from `1` with no leading zero. See `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 

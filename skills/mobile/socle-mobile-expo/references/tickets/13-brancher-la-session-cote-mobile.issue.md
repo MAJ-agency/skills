@@ -5,7 +5,7 @@ Type: task
 
 Le client mobile est prêt pour une session par **jetons porteurs** : `lib/secure-store.ts` (Keychain), `lib/api-client.ts` (Bearer, `X-Client-Type: mobile`, file de rafraîchissement à un seul vol), tous inertes tant que l'API n'émet pas de jetons.
 
-Bloqué par : `05-authentification` — l'API doit répondre en JSON (`{ acces, refresh }`) quand `X-Client-Type: mobile` est présent, au lieu de `Set-Cookie`.
+Bloqué par : `5-authentification` — l'API doit répondre en JSON (`{ acces, refresh }`) quand `X-Client-Type: mobile` est présent, au lieu de `Set-Cookie`.
 
 ## À faire, quand l'API expose `/auth/*`
 

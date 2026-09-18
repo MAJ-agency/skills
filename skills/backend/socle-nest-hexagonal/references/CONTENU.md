@@ -31,10 +31,10 @@ Ce que le service ajoute aux fichiers génériques de la racine : ses lignes dan
 
 ## ADR — `adr/`
 
-- **`ARC-0002`** — transactions et isolation, **à deux branches**. En garder une, supprimer l'autre. Une ADR qui laisse les deux options ouvertes n'a rien décidé.
+- **`ARC-2`** — transactions et isolation, **à deux branches**. En garder une, supprimer l'autre. Une ADR qui laisse les deux options ouvertes n'a rien décidé.
 
 ## Tickets — `tickets/`
 
-Ce que le service a délibérément laissé ouvert, en trois tickets : `04` couche base de données, `05` authentification, `06` journal d'audit. Tous dépendent de `01-modeliser-le-domaine`, déposé par `socle-monorepo`.
+Ce que le service a délibérément laissé ouvert, en trois tickets : `4` couche base de données, `5` authentification, `6` journal d'audit. Tous dépendent de `1-modeliser-le-domaine`, déposé par `socle-monorepo`.
 
 Les adapter au projet réel. Un ticket qui pose une question déjà tranchée est du bruit.

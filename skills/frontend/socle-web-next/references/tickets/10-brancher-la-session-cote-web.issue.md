@@ -5,7 +5,7 @@ Type: task
 
 Le client web est prêt pour une session par **cookie httpOnly** : `lib/api-client.ts` envoie les cookies et porte une file de rafraîchissement à un seul vol, inerte tant que l'API ne répond jamais 401. Rien d'autre n'existe : ni page de connexion, ni garde de route, ni notion d'utilisateur courant.
 
-Bloqué par : `05-authentification` — la session est posée par l'API, le client ne fait que la porter.
+Bloqué par : `5-authentification` — la session est posée par l'API, le client ne fait que la porter.
 
 ## À faire, quand l'API expose `/auth/*`
 

@@ -73,7 +73,7 @@ Invocation : `/maj-skills:socle-mobile-expo`. Suppose la racine et les contrats 
 
 **Une méthode écrite.** Cinq documents qui font autorité : comment interroger un plan (grilling), quand écrire une ADR, comment nommer un document, comment concevoir un module profond, quels invariants la machine doit garantir.
 
-**Une documentation structurée.** Tout sous `docs/`, trié par thème — ADR, architecture, métier, features. Nomenclature `<TRI>-<NNNN>-<slug>.md` avec registre de trigrammes, pour qu'une référence ne casse jamais au déplacement d'un fichier.
+**Une documentation structurée.** Tout sous `docs/`, trié par thème — ADR, architecture, métier, features. Nomenclature `<TRI>-<N>-<slug>.md` (sans zéro de tête) avec registre de trigrammes, pour qu'une référence ne casse jamais au déplacement d'un fichier.
 
 **L'outillage agent installé** (par `socle-monorepo`). graphify avec ses hooks, les skills Matt Pocock et superpowers, et la configuration `docs/agents/` produite en invoquant `setup-matt-pocock-skills` — pas recopiée à la main.
 
@@ -108,11 +108,11 @@ skills/
   frontend/
     socle-web-next/
       SKILL.md         le processus, en trois étapes
-      references/      squelette du client, règles front, ADR WEB-0001, fragments, tickets web
+      references/      squelette du client, règles front, ADR WEB-1, fragments, tickets web
   mobile/
     socle-mobile-expo/
       SKILL.md         le processus, en trois étapes
-      references/      squelette Expo, règles mobile, ADR MOB-0001, fragments, tickets mobile
+      references/      squelette Expo, règles mobile, ADR MOB-1, fragments, tickets mobile
 ```
 
 ## Ajouter un skill

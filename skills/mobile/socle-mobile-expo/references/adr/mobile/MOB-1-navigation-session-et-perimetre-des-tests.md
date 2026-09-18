@@ -1,4 +1,4 @@
-# MOB-0001 — Navigation, session et périmètre des tests du client mobile
+# MOB-1 — Navigation, session et périmètre des tests du client mobile
 
 - Statut : **accepté**
 - Date : {{DATE}}

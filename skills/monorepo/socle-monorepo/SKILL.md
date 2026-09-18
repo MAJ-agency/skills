@@ -47,7 +47,7 @@ Copier `references/` vers le dépôt selon cette table, puis substituer les plac
 | `references/racine/*`           | racine du dépôt — **`gitignore` se copie en `.gitignore`** (il est stocké sans point pour ne pas s'appliquer au dépôt du skill lui-même) |
 | `references/husky/*`            | `.husky/` (les rendre exécutables)                                                                                                       |
 | `references/methode/*`          | `docs/methode/`                                                                                                                          |
-| `references/adr/ARC-0001-*`     | `docs/adr/`                                                                                                                              |
+| `references/adr/ARC-1-*`     | `docs/adr/`                                                                                                                              |
 | `references/sources/README.md`  | `docs/sources/README.md`                                                                                                                 |
 
 **Ne pas créer** `apps/`, `packages/`, `docs/metier/`, `docs/architecture/` ni `docs/features/<autre>/` : ils naissent avec leur premier fichier.
@@ -96,9 +96,9 @@ Répondre avec les valeurs du socle :
 
 Puis vérifier trois points que la skill amont ne connaît pas :
 
-1. `docs/agents/` et `docs/features/<slug>/spec.md` + `issues/` figurent bien dans les **exclusions** de `docs/methode/nomenclature.md`, sinon ces fichiers violent la nomenclature du dépôt.
+1. `docs/agents/` et `docs/features/<slug>/<slug>.spec.md` + `issues/*.issue.md` figurent bien dans les **exclusions** de `docs/methode/nomenclature.md`, sinon ces fichiers violent la nomenclature du dépôt.
 2. `docs/agents/domain.md` **renvoie** vers `docs/methode/decisions.md` et `nomenclature.md` pour les règles d'écriture au lieu de les répéter.
-3. Les ADR se citent `ARC-0001`, pas `ADR-0001` : le gabarit amont suppose la numérotation plate.
+3. Les ADR se citent `ARC-1`, pas `ADR-0001` : le gabarit amont suppose la numérotation plate à zéros. Ici, ni zéros de tête ni index.
 
 > **Si la skill amont ne peut pas tourner** (plugin absent, session non interactive), copier `references/agents/*` vers `docs/agents/` : ce sont les mêmes réponses, déjà corrigées sur ces trois points. Le dire explicitement plutôt que de laisser `CLAUDE.md` pointer vers des fichiers absents.
 
@@ -124,11 +124,11 @@ Il ne commite pas : l'historique est écrit ici, à l'étape 8.
 
 Les gabarits de `references/tickets/` deviennent `docs/features/socle/issues/`. Ils portent ce que la racine a **délibérément** laissé ouvert : modélisation du domaine, hébergement, nature du client et forme de l'authentification, pare-feu CI, observabilité, registre des règles métier.
 
-Les numéros sont **réservés par skill**, pour que deux skills n'écrivent jamais le même : `01`–`03` et `07`–`09` pour la racine, `04`–`06` pour l'API, `10`–`12` pour le web, `13`–`15` pour le mobile, `16` et suivants pour les services à venir. Un numéro absent (service non installé) est un trou, pas une erreur : les numéros ne se réutilisent jamais.
+Les numéros sont **réservés par skill**, pour que deux skills n'écrivent jamais le même : `1`–`3` et `7`–`9` pour la racine, `4`–`6` pour l'API, `10`–`12` pour le web, `13`–`15` pour le mobile, `16` et suivants pour les services à venir. Un numéro absent (service non installé) est un trou, pas une erreur : les numéros ne se réutilisent jamais.
 
-**Adapter chaque ticket à ce qui est déjà connu du projet.** Un ticket qui pose une question déjà tranchée est du bruit : le supprimer, ou le convertir en ADR. En particulier, **si un client web ou mobile a été coché à l'étape 1, le ticket `03` est tranché** : le convertir en ADR (`ARC`) qui fixe la forme de l'authentification par client — cookies `__Host-` pour un navigateur, jetons porteurs pour du mobile — et laisser `05` pointer vers cette ADR. Le skill de chaque client a déjà remplacé ou complété la décision « no client, for now » dans `apps/api/CLAUDE.md` (cookies pour le web, jetons porteurs pour le mobile, les deux discriminés par `X-Client-Type`) ; vérifier que l'ADR et cette décision disent la même chose. Si le contexte appelle des tickets absents des gabarits — une intégration amont, une contrainte réglementaire — **en écrire**, dans le même format.
+**Adapter chaque ticket à ce qui est déjà connu du projet.** Un ticket qui pose une question déjà tranchée est du bruit : le supprimer, ou le convertir en ADR. En particulier, **si un client web ou mobile a été coché à l'étape 1, le ticket `3` est tranché** : le convertir en ADR (`ARC`) qui fixe la forme de l'authentification par client — cookies `__Host-` pour un navigateur, jetons porteurs pour du mobile — et laisser `5` pointer vers cette ADR. Le skill de chaque client a déjà remplacé ou complété la décision « no client, for now » dans `apps/api/CLAUDE.md` (cookies pour le web, jetons porteurs pour le mobile, les deux discriminés par `X-Client-Type`) ; vérifier que l'ADR et cette décision disent la même chose. Si le contexte appelle des tickets absents des gabarits — une intégration amont, une contrainte réglementaire — **en écrire**, dans le même format.
 
-Écrire aussi `docs/features/socle/spec.md` : une page qui dit ce qu'est le socle, quels services sont installés, ce qu'il ne fait pas, et dans quel ordre attaquer les tickets — les siens **et** ceux des services.
+Écrire aussi `docs/features/socle/socle.spec.md` : une page qui dit ce qu'est le socle, quels services sont installés, ce qu'il ne fait pas, et dans quel ordre attaquer les tickets — les siens **et** ceux des services.
 
 ## Étape 7 — vérifier, puis seulement conclure
 

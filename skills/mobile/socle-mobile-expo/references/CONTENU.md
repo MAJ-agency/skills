@@ -23,11 +23,11 @@ Inventaire des gabarits, avec la raison d'être de chacun. La racine du monorepo
 
 ## ADR — `adr/mobile/`
 
-- **`MOB-0001`** — Expo et Expo Router, même architecture que le web, session par jetons dans le Keychain, bundle comme gate. Le trigramme `MOB` s'inscrit au registre avant la copie.
+- **`MOB-1`** — Expo et Expo Router, même architecture que le web, session par jetons dans le Keychain, bundle comme gate. Le trigramme `MOB` s'inscrit au registre avant la copie.
 
 ## Tickets — `tickets/`
 
-Plage `13`–`15` : `13` session mobile (bloqué par `05`), `14` distribution EAS et stores (grilling vers `MOB-0002`), `15` parcours sur appareil (bloqué par `07` et `14`).
+Plage `13`–`15` : `13` session mobile (bloqué par `5`), `14` distribution EAS et stores (grilling vers `MOB-2`), `15` parcours sur appareil (bloqué par `7` et `14`).
 
 ## Fragments — `fragments/`
 

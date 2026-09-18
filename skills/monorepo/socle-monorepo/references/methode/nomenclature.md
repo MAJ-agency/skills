@@ -1,6 +1,6 @@
-# Nomenclature des documents — `<TRI>-<NNNN>-<slug>.md`
+# Nomenclature des documents — `<TRI>-<N>-<slug>.md`
 
-Le _pourquoi_ de cette règle, avec ses alternatives écartées, vit dans [`ARC-0001`](../adr/ARC-0001-nomenclature-trigramme.md). Ce fichier porte le _comment_ : périmètre, registre des trigrammes, procédures.
+Le _pourquoi_ de cette règle, avec ses alternatives écartées, vit dans [`ARC-1`](../adr/ARC-1-nomenclature-trigramme.md). Ce fichier porte le _comment_ : périmètre, registre des trigrammes, procédures.
 
 > **Elle s'applique à tous les documents de contenu, pas seulement aux ADR.**
 
@@ -8,10 +8,10 @@ Le _pourquoi_ de cette règle, avec ses alternatives écartées, vit dans [`ARC-
 
 ## La règle
 
-Tout document de contenu est nommé `<TRI>-<NNNN>-<slug>.md` :
+Tout document de contenu est nommé `<TRI>-<N>-<slug>.md` :
 
 - **`<TRI>`** — trigramme du **sujet**, pas du dossier. Il vient **toujours** du [registre](#registre-des-trigrammes) ci-dessous : soit il y figure déjà, soit **on l'y inscrit avant de créer le fichier**.
-- **`<NNNN>`** — séquence **unique par trigramme, tous dossiers confondus**. Pour l'attribuer : scanner tout l'arbre `docs/` à la recherche du plus grand `NNNN` de ce trigramme, et incrémenter. **Les numéros ne sont jamais réutilisés**, même après suppression d'un document.
+- **`<N>`** — séquence **unique par trigramme, tous dossiers confondus**, écrite **sans zéro de tête** : `1`, `2`… `12`, `120`. Pour l'attribuer : scanner tout l'arbre `docs/` à la recherche du plus grand `N` de ce trigramme, et incrémenter. **Les numéros ne sont jamais réutilisés**, même après suppression d'un document. Un `ls` classe `ARC-10` avant `ARC-2` : sans importance, l'identité est dans le nom et la commande de scan trie numériquement — et aucune borne (`9999`) ne viendra jamais imposer un repadding.
 - **`<slug>`** — kebab-case minuscule, dans la langue du titre du document. Ne pas traduire le titre.
 
 > **Le registre est la source de vérité : un trigramme qui n'y figure pas n'existe pas.** Un fichier nommé avec un trigramme absent du registre est un fichier mal nommé, même si le trigramme « tombe sous le sens ».
@@ -22,13 +22,13 @@ Tout document de contenu est nommé `<TRI>-<NNNN>-<slug>.md` :
 
 ## Pourquoi
 
-Un document se cite par son **identifiant court** (`LIC-0005`), sans chemin, partout : issues, commits, conversations, autres documents. L'identifiant est unique dans tout le dépôt, donc la référence ne devient jamais ambiguë et ne casse pas quand le fichier déménage.
+Un document se cite par son **identifiant court** (`LIC-5`), sans chemin, partout : issues, commits, conversations, autres documents. L'identifiant est unique dans tout le dépôt, donc la référence ne devient jamais ambiguë et ne casse pas quand le fichier déménage.
 
 **L'arborescence ne porte plus que le _type_ de document ; le nom porte l'identité.**
 
 Deux alternatives ont été écartées dans l'ADR d'origine :
 
-- **Séquence par dossier** — rend la référence courte `LIC-0001` ambiguë (deux dossiers, deux `LIC-0001`).
+- **Séquence par dossier** — rend la référence courte `LIC-1` ambiguë (deux dossiers, deux `LIC-1`).
 - **Trigramme par dossier top-level** — fondrait toutes les features dans une seule séquence, et le trigramme cesserait de désigner un sujet.
 
 ---
@@ -41,7 +41,7 @@ Il n'y a pas de dossier de travail à côté : ni `.scratch/`, ni brouillon hors
 
 | Thème            | Dossier              | Contenu                                                            |
 | ---------------- | -------------------- | ------------------------------------------------------------------ |
-| **ADR**          | `docs/adr/`          | les décisions et leur _pourquoi_ (`ARC-0001`, `ARC-0002`…)         |
+| **ADR**          | `docs/adr/`          | les décisions et leur _pourquoi_ (`ARC-1`, `ARC-2`…)         |
 | **Architecture** | `docs/architecture/` | guides techniques qui ne sont **pas** des décisions                |
 | **Métier**       | `docs/metier/`       | registre des règles (`regles/`), référence fonctionnelle, réunions |
 | **Feature**      | `docs/features/`     | un dossier par feature : sa spec et ses tickets                    |
@@ -54,7 +54,7 @@ Quatre dossiers de service complètent l'arbre, hors thème : `methode/` (commen
 >
 > `apps/api/docs/ARCHITECTURE_GUIDELINES.md` fait exception et **reste près du code** qu'il gouverne : il est lu en même temps que `apps/api/CLAUDE.md`, et les séparer ferait perdre l'un des deux.
 
-### Couvert par `<TRI>-<NNNN>-<slug>.md`
+### Couvert par `<TRI>-<N>-<slug>.md`
 
 Tout document de contenu : `docs/adr/`, `docs/architecture/`, `docs/metier/regles/`, `docs/infrastructure/`, `docs/design/`, et les documents de fond d'une feature.
 
@@ -62,8 +62,8 @@ Tout document de contenu : `docs/adr/`, `docs/architecture/`, `docs/metier/regle
 
 | Chemin                                 | Convention                                                                    |
 | -------------------------------------- | ----------------------------------------------------------------------------- |
-| `docs/features/<slug>/spec.md`         | nom fixe — une spec par feature, consommée par les skills                     |
-| `docs/features/<slug>/issues/`         | `<NN>-<slug>.md`, numérotés à partir de `01` — les tickets                    |
+| `docs/features/<slug>/<slug>.spec.md`  | suffixe fixe `.spec.md` — une spec par feature, consommée par les skills ; le nom se suffit hors contexte |
+| `docs/features/<slug>/issues/`         | `<N>-<titre>.issue.md`, numérotés à partir de `1` sans zéro de tête — les tickets |
 | `docs/methode/`                        | nom parlant (`grilling.md`, `conception.md`) — ce sont les règles elles-mêmes |
 | `docs/sources/`                        | `<sujet>-<AAAA-MM-JJ>.<ext>` — entrées brutes, datées à la source             |
 | `docs/superpowers/`                    | `AAAA-MM-JJ-<sujet>-design.md`                                                |
@@ -101,7 +101,7 @@ Le tableau ci-dessus ne contient que les trigrammes **structurels**. Les trigram
 2. **Choisir trois lettres** évoquant le sujet, dans la langue du projet.
 3. **Vérifier la collision** contre tout le registre. Si les trois lettres sont déjà prises, **c'est le nouveau sujet qui prend une quatrième lettre** — jamais l'existant, qui est déjà cité ailleurs.
 4. **Écrire la ligne dans le registre ci-dessus**, avec le sujet en clair et son statut.
-5. **Puis seulement** créer le fichier, avec le numéro `0001`.
+5. **Puis seulement** créer le fichier, avec le numéro `1`.
 
 > **L'ordre compte.** Le registre d'abord, le fichier ensuite. Créer le fichier puis « penser à » enregistrer le trigramme est exactement comme ça qu'un registre se met à mentir.
 
@@ -113,20 +113,20 @@ Ce n'est **pas une question à poser** avant d'agir : c'est une étape à exécu
 
 1. Identifier le **sujet** du document (pas son dossier).
 2. Chercher son trigramme dans le registre. **S'il n'y figure pas, le créer** — voir [la section ci-dessus](#créer-un-trigramme-absent-du-registre) — puis continuer.
-3. Scanner `docs/` pour le plus grand `NNNN` de ce trigramme, **tous dossiers confondus**. Incrémenter.
+3. Scanner `docs/` pour le plus grand `N` de ce trigramme, **tous dossiers confondus**. Incrémenter.
 4. Écrire le slug en kebab-case, dans la langue du titre.
 5. Créer le fichier dans le dossier qui correspond à son **type**.
 
 ```bash
 # étape 3 — le plus grand numéro du trigramme LIC, tous dossiers confondus
-ls docs/**/LIC-*.md 2>/dev/null | sed 's/.*LIC-\([0-9]\{4\}\).*/\1/' | sort -n | tail -1
+ls docs/**/LIC-*.md 2>/dev/null | sed -E 's/.*LIC-([0-9]+)-.*/\1/' | sort -n | tail -1
 ```
 
 ---
 
 ## Cas particulier des ADR
 
-Cette convention **remplace** la numérotation séquentielle plate `NNNN-slug.md` usuelle des ADR. Une ADR est un document de contenu comme un autre : elle est nommée `<TRI>-<NNNN>-<slug>.md`.
+Cette convention **remplace** la numérotation séquentielle plate `NNNN-slug.md` usuelle des ADR. Une ADR est un document de contenu comme un autre : elle est nommée `<TRI>-<N>-<slug>.md`.
 
 - Une décision **rattachée à un sujet** porte le trigramme de ce sujet et vit dans le sous-dossier de ce sujet sous `docs/adr/`.
 - Une décision **transverse**, qui n'appartient à aucun sujet, porte le trigramme réservé `ARC` et vit à la **racine** de `docs/adr/`.
@@ -140,11 +140,11 @@ Le format du contenu (MADR simplifié) et les critères pour décider d'écrire 
 
 Toujours par son **identifiant court**, jamais par son chemin :
 
-> ✅ « conforme à `ARC-0002` »
+> ✅ « conforme à `ARC-2` »
 > ❌ « conforme à `docs/adr/0002-transactions.md` »
 
 Un lien Markdown vers le fichier reste bienvenu **en plus** de l'identifiant, jamais à sa place.
 
 **Quand une production contredit une ADR existante, le dire explicitement** plutôt que de l'écraser en silence :
 
-> _Contredit `ARC-0007` (contrats Zod) — mais mérite d'être rouvert parce que…_
+> _Contredit `ARC-7` (contrats Zod) — mais mérite d'être rouvert parce que…_

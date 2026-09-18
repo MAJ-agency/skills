@@ -5,7 +5,7 @@ Type: task
 
 `DATABASE_URL` et `DATABASE_MIGRATOR_URL` sont validées au démarrage et `compose.yaml` sert un PostgreSQL local, mais **aucun code ne touche la base** : ni `src/db/`, ni migration, ni repository.
 
-Bloqué par : `01-modeliser-le-domaine` — une table sans domaine est une supposition.
+Bloqué par : `1-modeliser-le-domaine` — une table sans domaine est une supposition.
 
 ## À faire
 

@@ -26,7 +26,7 @@ Chaque gate protège **un** invariant. À définir précisément pour le projet 
 
 ### Gate — isolation des données
 
-Deux formes, selon la décision prise sur la multi-tenance ([`ARC-0002`](../adr/ARC-0002-transactions-et-isolation.md)). **Une seule s'applique — ne pas porter les deux.**
+Deux formes, selon la décision prise sur la multi-tenance ([`ARC-2`](../adr/ARC-2-transactions-et-isolation.md)). **Une seule s'applique — ne pas porter les deux.**
 
 **Si mono-tenant (sans RLS) — le gate d'appartenance.** Il n'y a pas de filet : la vérification explicite dans le use case EST la protection. Le gate le prouve.
 

@@ -15,6 +15,6 @@ Type: grilling
 
 ## Sortie attendue
 
-Une ADR `MOB-0002` qui fixe comptes, profils et politique OTA, puis `eas.json`, les icônes et splash, et le job CI `mobile-preview` (build sur la branche d'intégration) et `mobile-production` (sur tag, approbation manuelle).
+Une ADR `MOB-2` qui fixe comptes, profils et politique OTA, puis `eas.json`, les icônes et splash, et le job CI `mobile-preview` (build sur la branche d'intégration) et `mobile-production` (sur tag, approbation manuelle).
 
 ## Comments

@@ -4,7 +4,7 @@
 
 > **⚠️ Squelette technique, aucun métier.** Les services démarrent, la configuration est en place et les gardes de qualité mordent — mais **aucun domaine n'est modélisé** : pas d'entité, pas de use case, pas de base. `CONTEXT.md` est vide.
 >
-> **Ce qui reste à faire et ce qui reste à trancher est déposé en tickets** dans [`docs/features/socle/issues/`](docs/features/socle/issues/). Commencer par `01-modeliser-le-domaine` : presque tout en dépend.
+> **Ce qui reste à faire et ce qui reste à trancher est déposé en tickets** dans [`docs/features/socle/issues/`](docs/features/socle/issues/). Commencer par `1-modeliser-le-domaine` : presque tout en dépend.
 
 ---
 
@@ -40,10 +40,10 @@ apps/                    un dossier par service — chacun porte son CLAUDE.md
 packages/                paquets partagés entre services
 
 docs/                    TOUTE la documentation, triée par thème
-  adr/                   décisions d'architecture — ARC-0001, ARC-0002…
+  adr/                   décisions d'architecture — ARC-1, ARC-2… (sans zéro de tête)
   architecture/          guides techniques qui ne sont pas des décisions
   metier/                règles métier, référence fonctionnelle, réunions
-  features/<slug>/       une feature : spec.md + issues/<NN>-<slug>.md
+  features/<slug>/       une feature : <slug>.spec.md + issues/<N>-<titre>.issue.md
   methode/               comment on travaille (grilling, décisions, conception, CI)
   agents/                configuration des skills (tracker, labels, domaine)
   sources/               documents bruts fournis en entrée — pas de la spec
@@ -55,7 +55,7 @@ docs/                    TOUTE la documentation, triée par thème
 
 **Tout vit sous `docs/`, trié par thème** — il n'y a aucun dossier de travail à côté. Les dossiers naissent avec leur premier document.
 
-Il n'y a **pas de sommaire** dans `docs/adr/` : le nom d'un fichier porte son identité (`ARC-0001`), donc lister le dossier suffit.
+Il n'y a **pas de sommaire** dans `docs/adr/` : le nom d'un fichier porte son identité (`ARC-1`), donc lister le dossier suffit.
 
 ## Prérequis
 
@@ -113,7 +113,7 @@ Quelques règles transverses, pour ne pas avoir à les chercher :
 
 - **Tout est en {{LANGUE}}** — code, commentaires, commits (conventional commits), documentation.
 <!-- socle:regles-transverses -->
-- **Un document de contenu se nomme `<TRI>-<NNNN>-<slug>.md`** et se cite par son identifiant court (`ARC-0001`), jamais par son chemin. Si le sujet n'a pas de trigramme, **on l'inscrit au registre avant de créer le fichier**.
+- **Un document de contenu se nomme `<TRI>-<N>-<slug>.md`** et se cite par son identifiant court (`ARC-1`), jamais par son chemin. Si le sujet n'a pas de trigramme, **on l'inscrit au registre avant de créer le fichier**.
 - **Aucun invariant critique ne dépend d'un relecteur** : chacun est un test bloquant en CI.
 - **Rien n'est « validé » sans un geste humain.** Ni skill, ni agent n'écrit ce statut.
 
