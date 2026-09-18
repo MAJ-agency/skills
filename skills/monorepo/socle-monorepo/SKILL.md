@@ -95,7 +95,7 @@ Si une commande échoue (permissions, réseau, session non interactive), **le di
 
 Répondre avec les valeurs du socle :
 
-- **Tracker** : markdown local, mais **corriger le chemin** — le gabarit amont propose `.scratch/`, or **toute la documentation vit sous `docs/`**. Le tracker est `docs/features/<feature>/`. Si le dépôt a déjà un remote GitHub, choisir GitHub à la place.
+- **Tracker** : markdown local, mais **corriger le chemin** — le gabarit amont propose `.scratch/`, or **toute la documentation vit sous `docs/`**, selon l'arbre de `docs/methode/nomenclature.md` § _Tout vit sous `docs/`_. Le tracker est `docs/features/<feature>/` ; les règles métier qu'une spec découvre vont dans `docs/metier/regles/`, jamais dans la spec. Si le dépôt a déjà un remote GitHub, choisir GitHub à la place.
 - **Labels de triage** : les cinq rôles par défaut.
 - **Contexte** : unique. `pnpm-workspace.yaml` signale des paquets, pas des contextes métier — ne pas se laisser piéger par ce faux positif.
 - **Fichier** : `CLAUDE.md`, qui existe déjà — le bloc `## Agent skills` y est, la skill amont le met à jour en place.

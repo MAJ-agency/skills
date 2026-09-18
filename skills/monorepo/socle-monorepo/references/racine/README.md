@@ -61,21 +61,27 @@ CONTEXT.md               glossaire du domaine (langage ubiquitaire) — et rien 
 apps/                    un dossier par service — chacun porte son CLAUDE.md
 packages/                paquets partagés entre services
 
-docs/                    TOUTE la documentation, triée par thème
-  adr/                   décisions d'architecture — ARC-1, ARC-2… (sans zéro de tête)
+docs/                    TOUTE la documentation, triée par thème (l'arbre complet : docs/methode/nomenclature.md)
+  adr/                   décisions et leur pourquoi — ARC-1, ARC-2… (sans zéro de tête)
   architecture/          guides techniques qui ne sont pas des décisions
-  metier/                règles métier, référence fonctionnelle, réunions
-  features/<slug>/       une feature : <slug>.spec.md + issues/<N>-<titre>.issue.md
-  methode/               comment on travaille (grilling, décisions, conception, CI)
+  infrastructure/        hébergement, base, CI/CD, déploiement
+  design/                design system
+  metier/                ce qui reste vrai après les features
+    regles/              registre des règles métier — identifiants stables, candidate → validée
+    reference/           référence fonctionnelle : le produit tel qu'il est
+    reunions/            comptes rendus datés
+  features/<slug>/       le travail en cours : <slug>.spec.md + issues/<N>-<titre>.issue.md
+  methode/               comment on travaille (grilling, décisions, nomenclature, conception, CI)
   agents/                configuration des skills (tracker, labels, domaine)
   sources/               documents bruts fournis en entrée — pas de la spec
+  questions-ouvertes.md  les questions non tranchées, datées et sourcées
 
 .husky/                  hooks git partagés par l'équipe
 ```
 
 <!-- socle:ou-vit-quoi -->
 
-**Tout vit sous `docs/`, trié par thème** — il n'y a aucun dossier de travail à côté. Les dossiers naissent avec leur premier document.
+**Tout vit sous `docs/`, trié par thème** — il n'y a aucun dossier de travail à côté. Les dossiers naissent avec leur premier document. Une spec de feature **cite** les règles métier du registre, elle ne les formule pas : la règle vit dans `metier/regles/`, la feature dans `features/`.
 
 Il n'y a **pas de sommaire** dans `docs/adr/` : le nom d'un fichier porte son identité (`ARC-1`), donc lister le dossier suffit.
 

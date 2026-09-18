@@ -39,16 +39,38 @@ Deux alternatives ont été écartées dans l'ADR d'origine :
 
 Il n'y a pas de dossier de travail à côté : ni `.scratch/`, ni brouillon hors de l'arbre. Un document appartient à **un** thème, et son dossier le dit.
 
-| Thème            | Dossier              | Contenu                                                            |
-| ---------------- | -------------------- | ------------------------------------------------------------------ |
-| **ADR**          | `docs/adr/`          | les décisions et leur _pourquoi_ (`ARC-1`, `ARC-2`…)         |
-| **Architecture** | `docs/architecture/` | guides techniques qui ne sont **pas** des décisions                |
-| **Métier**       | `docs/metier/`       | registre des règles (`regles/`), référence fonctionnelle, réunions |
-| **Feature**      | `docs/features/`     | un dossier par feature : sa spec et ses tickets                    |
+```
+docs/
+├── adr/                    décisions et leur pourquoi — ARC-1, ARC-2… ; un sous-dossier par sujet (web/, mobile/)
+├── architecture/           guides techniques qui ne sont pas des décisions
+├── infrastructure/         hébergement, base, CI/CD, déploiement — les specs, pas les décisions
+├── design/                 design system : tokens, principes, composants
+├── metier/                 ce qui reste vrai après les features
+│   ├── regles/             le registre des règles métier — identifiants stables, cycle candidate → validée
+│   ├── reference/          la référence fonctionnelle : comment le produit fonctionne, tel qu'il est
+│   └── reunions/           comptes rendus datés, décisions prises en séance
+├── features/<slug>/        le travail en cours : <slug>.spec.md + issues/<N>-<titre>.issue.md
+├── methode/                comment on travaille (grilling, décisions, nomenclature, conception, CI)
+├── agents/                 configuration des skills (tracker, labels, domaine)
+├── sources/                documents bruts fournis en entrée — pas de la spec
+├── superpowers/            specs de session
+└── questions-ouvertes.md   les questions non tranchées, datées et sourcées
+```
 
-Quatre dossiers de service complètent l'arbre, hors thème : `methode/` (comment on travaille), `agents/` (config des skills), `sources/` (entrées brutes), `superpowers/` (specs de session).
+| Thème              | Dossier                | Contenu                                                            |
+| ------------------ | ---------------------- | ------------------------------------------------------------------ |
+| **ADR**            | `docs/adr/`            | les décisions et leur _pourquoi_ (`ARC-1`, `ARC-2`…)               |
+| **Architecture**   | `docs/architecture/`   | guides techniques qui ne sont **pas** des décisions                |
+| **Infrastructure** | `docs/infrastructure/` | hébergement, base, CI/CD, déploiement                              |
+| **Design**         | `docs/design/`         | design system                                                      |
+| **Métier**         | `docs/metier/`         | `regles/` (registre), `reference/` (fonctionnel), `reunions/`      |
+| **Feature**        | `docs/features/`       | un dossier par feature : sa spec et ses tickets                    |
 
-**Créés paresseusement** : un dossier naît avec son premier document, jamais d'avance.
+Quatre dossiers de service complètent l'arbre, hors thème : `methode/` (comment on travaille), `agents/` (config des skills), `sources/` (entrées brutes), `superpowers/` (specs de session). Et un fichier à la racine de `docs/` : `questions-ouvertes.md`, où va toute question non tranchée, datée et sourcée, jusqu'à ce qu'une ADR ou une règle la ferme.
+
+**Créés paresseusement** : un dossier naît avec son premier document, jamais d'avance. L'arbre ci-dessus dit **où** un document va, pas ce qui existe.
+
+> **Feature ou métier ?** La frontière est la **durée de vie**. `features/<slug>/` est du travail en cours : une spec et des tickets qui ont un statut et finissent « faits » ; livrée, la feature ne fait plus autorité sur rien. `metier/` est ce qui reste vrai après : le registre des règles, la référence, les comptes rendus. **Une spec ne formule jamais une règle métier en propre** : une règle découverte en écrivant une spec entre au registre comme `candidate`, avec son identifiant, et la spec la **cite** (« implémente `LIC-3` »). Si la règle change, une seule ligne bouge, au registre, et la spec reste juste parce qu'elle ne portait qu'une référence.
 
 > **ADR ou architecture ?** Une **ADR** consigne un arbitrage — il y avait des alternatives, on en a choisi une, on dit pourquoi. Un document d'**architecture** explique comment faire quelque chose une fois la décision prise (un guide de création d'endpoint, un schéma d'ensemble). Si le texte ne comporte pas d'alternative écartée, ce n'est pas une ADR.
 >
@@ -56,7 +78,7 @@ Quatre dossiers de service complètent l'arbre, hors thème : `methode/` (commen
 
 ### Couvert par `<TRI>-<N>-<slug>.md`
 
-Tout document de contenu : `docs/adr/`, `docs/architecture/`, `docs/metier/regles/`, `docs/infrastructure/`, `docs/design/`, et les documents de fond d'une feature.
+Tout document de contenu : `docs/adr/`, `docs/architecture/`, `docs/infrastructure/`, `docs/design/`, `docs/metier/regles/`, `docs/metier/reference/`, et les documents de fond d'une feature. Les comptes rendus de `docs/metier/reunions/` sont datés (`reunion-<AAAA-MM-JJ>-<sujet>.md`) et exclus : une réunion n'est pas un sujet.
 
 ### Exclu — la mécanique, qui garde ses propres conventions
 
@@ -66,6 +88,8 @@ Tout document de contenu : `docs/adr/`, `docs/architecture/`, `docs/metier/regle
 | `docs/features/<slug>/issues/`         | `<N>-<titre>.issue.md`, numérotés à partir de `1` sans zéro de tête — les tickets |
 | `docs/methode/`                        | nom parlant (`grilling.md`, `conception.md`) — ce sont les règles elles-mêmes |
 | `docs/sources/`                        | `<sujet>-<AAAA-MM-JJ>.<ext>` — entrées brutes, datées à la source             |
+| `docs/metier/reunions/`                | `reunion-<AAAA-MM-JJ>-<sujet>.md` — comptes rendus datés                        |
+| `docs/questions-ouvertes.md`           | nom fixe — les questions non tranchées, un fichier                             |
 | `docs/superpowers/`                    | `AAAA-MM-JJ-<sujet>-design.md`                                                |
 | `docs/agents/`                         | config des skills (`issue-tracker.md`, `triage-labels.md`, `domain.md`)       |
 | `README.md`, `CLAUDE.md`, `CONTEXT.md` | noms conventionnels, jamais renommés                                          |
