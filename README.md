@@ -11,10 +11,11 @@ claude plugin marketplace add MAJ-agency/skills
 claude plugin install maj-skills@maj
 ```
 
-Une installation, tous les skills disponibles. Pour mettre à jour :
+Une installation, tous les skills disponibles. Pour mettre à jour, deux commandes — la première rafraîchit le catalogue, la seconde installe la nouvelle version, puis redémarrer Claude Code :
 
 ```bash
 claude plugin marketplace update maj
+claude plugin update maj-skills@maj
 ```
 
 ## Les skills
@@ -120,7 +121,7 @@ skills/
 1. Créer `skills/<categorie>/<nom>/SKILL.md`, avec un frontmatter `name` + `description`. La description décide **quand** le skill se déclenche : y mettre les branches, pas une paraphrase du titre.
 2. Ajouter `"./skills/<categorie>/<nom>"` au tableau `skills` de `.claude-plugin/plugin.json`.
 3. Ajouter une ligne au tableau ci-dessus.
-4. **Bumper `version` dans `.claude-plugin/plugin.json`** — c'est ce champ que `claude plugin marketplace update` compare : sans bump, aucun changement de contenu n'est détecté chez ceux qui ont installé le plugin. Patch pour une correction, mineure pour un skill ou un gabarit ajouté, majeure quand un skill existant change de contrat.
+4. **Bumper `version` dans `.claude-plugin/plugin.json`** — c'est ce champ que `claude plugin update maj-skills@maj` compare : sans bump, aucun changement de contenu n'est détecté chez ceux qui ont installé le plugin. Patch pour une correction, mineure pour un skill ou un gabarit ajouté, majeure quand un skill existant change de contrat.
 
 Cette règle vaut pour **tout** changement de contenu, pas seulement l'ajout d'un skill.
 
