@@ -11,6 +11,11 @@ export default defineConfig({
   test: {
     globals: false,
     environment: "node",
+    // Le critère : le besoin d'infrastructure. Une suite qui exige Postgres se
+    // nomme `*.db.spec.ts` ; elle est exclue ici et jouée par `test:db`
+    // (vitest.db.config.ts), en CI avec le service. Tout le reste tourne partout :
+    // au pre-commit, au pre-push, sans base.
+    exclude: ["**/node_modules/**", "**/dist/**", "**/*.db.spec.ts"],
   },
   resolve: {
     alias: {

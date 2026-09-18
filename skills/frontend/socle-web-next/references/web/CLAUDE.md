@@ -72,6 +72,20 @@ React Hook Form + `zodResolver(schema)` with the schema from `packages/contracts
 - **Rendering and flows**: Playwright at the monorepo root, against a real API (ticket). Accessibility checked with axe at `serious`/`critical`.
 - No Testing Library, no Storybook, no snapshot: one test tool per level, and the rendering level is end-to-end.
 
+## Verification — the loop
+
+```bash
+pnpm --filter @{{SCOPE}}/{{PROJET}}-web test           # pure logic, no DOM — runs at pre-commit
+pnpm --filter @{{SCOPE}}/{{PROJET}}-web typecheck      # runs at pre-commit
+pnpm --filter @{{SCOPE}}/{{PROJET}}-web check:dette    # feature-import ratchet (gate)
+pnpm --filter @{{SCOPE}}/{{PROJET}}-api dev &          # the API on 3000
+pnpm --filter @{{SCOPE}}/{{PROJET}}-web dev            # the client on 3001
+curl -s localhost:3001/api/health                      # the /api relay reaches the API
+curl -s localhost:3001/ | grep -c "<main"              # the page renders
+```
+
+"It works" means: the page renders through the real API, not that the code compiles. Before claiming a screen is done, **run it**: start both servers, hit the route, read the response. A rendering or flow that matters gets a Playwright test (ticket) — that is the only test that sees the DOM.
+
 ## Definition of done — every feature
 
 - [ ] `app/` contains only the route; the feature owns the screen.

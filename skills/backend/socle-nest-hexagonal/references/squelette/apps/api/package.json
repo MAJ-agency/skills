@@ -8,13 +8,14 @@
     "start": "node dist/main.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint src --max-warnings 0",
-    "test": "vitest run",
+    "test": "vitest run --passWithNoTests",
     "check": "eslint src --max-warnings 0 && tsc -p tsconfig.json --noEmit",
     "check:arch": "tsc -p tsconfig.arch.json --noEmit",
     "check:cycles": "dpdm --no-warning --no-tree --exit-code circular:1 --tsconfig tsconfig.json src/main.ts",
     "openapi:emit": "nest build && node dist/openapi/emit.js",
     "openapi:check": "nest build && node dist/openapi/emit.js --check",
-    "check:gates": "pnpm check:arch && pnpm openapi:check"
+    "check:gates": "pnpm check:arch && pnpm openapi:check",
+    "test:db": "vitest run --config vitest.db.config.ts --passWithNoTests"
   },
   "dependencies": {
     "@{{SCOPE}}/{{PROJET}}-contracts": "workspace:*",

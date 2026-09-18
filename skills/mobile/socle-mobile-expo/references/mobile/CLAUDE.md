@@ -70,6 +70,18 @@ Every `useMutation` declares `meta.messageSucces` **or** `meta.silencieuse: true
 - **Unit (Vitest, `environment: node`)**: pure logic of `lib/` and `features/*/lib/` — no React Native, no Expo import. A test that touches the native layer fails immediately, on purpose.
 - **Flows**: on device or simulator, end-to-end (ticket: Maestro or Detox). No component test with a fake native layer.
 
+## Verification — the loop
+
+```bash
+pnpm --filter @{{SCOPE}}/{{PROJET}}-mobile test          # pure logic, no React Native — runs at pre-commit
+pnpm --filter @{{SCOPE}}/{{PROJET}}-mobile typecheck     # runs at pre-commit
+pnpm --filter @{{SCOPE}}/{{PROJET}}-mobile check:bundle  # Metro bundles the app (gate) — proves the monorepo resolves, not the rendering
+pnpm --filter @{{SCOPE}}/{{PROJET}}-mobile doctor        # expo-doctor: one expected failure (metro.config.js)
+pnpm --filter @{{SCOPE}}/{{PROJET}}-mobile dev           # Metro + QR code; needs a device or a simulator
+```
+
+"It works" means: the screen renders on a device or a simulator against the real API. **Without one, say so** — a green bundle is not a rendered screen. A flow that matters gets a Maestro test (ticket).
+
 ## Definition of done — every feature
 
 - [ ] `app/` contains only the route; the feature owns the screen, rendered inside `Screen`.

@@ -1,8 +1,16 @@
 #!/usr/bin/env sh
+# La boucle courte, sur le chemin de l'agent : un agent commite souvent et ne
+# pousse presque jamais dans une session — ce qui n'est vérifié qu'au push ne
+# l'atteint pas. Ici, en moins d'une minute grâce au cache Turborepo :
+#   1. lint-staged — Prettier + ESLint sur les fichiers stagés (les frontières
+#      d'architecture sont des règles ESLint : une violation se voit ici) ;
+#   2. typecheck + tests sans infrastructure, sur les briques touchées.
+# Le reste (build, cycles, gates) attend le push. Voir docs/methode/pare-feu-ci.md.
+
 # Point d'extension local (non versionné) — garde de la machine du dev.
 if [ -f .husky/pre-commit.local ]; then
   sh .husky/pre-commit.local || exit 1
 fi
 
-# Formatage des fichiers stagés uniquement.
-npx --no -- lint-staged
+npx --no -- lint-staged || exit 1
+pnpm run check:commit

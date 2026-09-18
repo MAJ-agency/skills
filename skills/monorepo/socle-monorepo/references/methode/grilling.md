@@ -64,6 +64,7 @@ Le grilling n'est pas qu'une conversation : il **écrit** pendant qu'il interrog
 
 - **Un terme tranché → [`CONTEXT.md`](../../CONTEXT.md) immédiatement.** Ne pas empiler pour plus tard : capturer au moment où ça se cristallise.
 - **Une décision structurante tranchée → une ADR** dans [`docs/adr/`](../adr/), si et seulement si les trois critères sont réunis (voir [decisions.md](decisions.md)).
+- **Une question qui ne se tranche qu'en construisant** a deux réponses possibles : une **balle traçante** — une tranche minuscule de bout en bout, du code qu'on garde — quand la question porte sur la faisabilité ou la forme d'un chemin réel ; un **prototype** (`/mattpocock-skills:prototype`) — du code qu'on jette — quand elle porte sur un modèle d'état ou une interface qu'on veut sentir avant de s'engager. Choisir avant d'écrire : un prototype qu'on garde est une dette, une tranche qu'on jette est du temps perdu.
 - **Une question non tranchée → `docs/questions-ouvertes.md`**, datée, avec ce qui bloque. Une question ouverte assumée vaut mieux qu'un arbitrage implicite.
 - **Une contradiction entre deux sources → une question ouverte, pas un arbitrage solo.** Les contradictions remontent **en tête**, jamais noyées dans le corps d'un compte rendu.
 

@@ -227,7 +227,8 @@ Enforce by lint (`no-restricted-imports` / `eslint-plugin-boundaries`) and repla
 ## Verification
 
 ```bash
-pnpm --filter @{{SCOPE}}/{{PROJET}}-api test           # all tests (needs Postgres)
+pnpm --filter @{{SCOPE}}/{{PROJET}}-api test           # every suite that needs no infrastructure — runs at pre-commit and pre-push
+pnpm --filter @{{SCOPE}}/{{PROJET}}-api test:db        # `*.db.spec.ts` only — needs Postgres, runs in CI with the service
 pnpm --filter @{{SCOPE}}/{{PROJET}}-api test:cov       # coverage
 pnpm --filter @{{SCOPE}}/{{PROJET}}-api check          # lint + typecheck (tsc --noEmit)
 pnpm --filter @{{SCOPE}}/{{PROJET}}-api check:arch     # domain+application compile with infrastructure excluded

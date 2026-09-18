@@ -14,12 +14,13 @@
     "lint": "eslint .",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
-    "check": "pnpm build && pnpm lint && pnpm typecheck && pnpm check:cycles && pnpm check:gates",
+    "check": "node scripts/check.mjs",
     "check:cycles": "turbo run check:cycles",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "prepare": "husky",
-    "check:gates": "turbo run check:gates"
+    "check:gates": "turbo run check:gates",
+    "check:commit": "turbo run typecheck test"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.6.1",
@@ -35,7 +36,11 @@
     "typescript-eslint": "^8.19.1"
   },
   "lint-staged": {
-    "*.{ts,tsx,js,jsx,json,md,yml,yaml,css}": "prettier --write"
+    "*.{ts,tsx}": [
+      "eslint --max-warnings 0 --no-warn-ignored",
+      "prettier --write"
+    ],
+    "*.{js,jsx,mjs,json,md,yml,yaml,css}": "prettier --write"
   },
   "commitlint": {
     "extends": [

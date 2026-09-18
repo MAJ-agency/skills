@@ -24,7 +24,8 @@ Cinq documents qui font autorité sur la façon de travailler.
 - **`CONTEXT.md`** — le glossaire, **vide et c'est voulu**.
 - **`.env.example` et `.prettierignore`** — un en-tête générique ; chaque service ajoute son bloc en fin de fichier.
 - **`gitignore`** — stocké sans point pour ne pas s'appliquer au dépôt du skill ; ignore `graphify-out/` (graphe local, reconstruit en continu) et `.husky/*.local` (gardes de la machine).
-- **Husky** — `commit-msg` (commitlint), `pre-commit` (lint-staged + point d'extension local `.husky/pre-commit.local`, non versionné), `pre-push` (`pnpm check`), et les **relais** `post-commit` / `post-checkout` vers graphify, indispensables parce que Husky détourne `core.hooksPath`.
+- **Husky** — `commit-msg` (commitlint) ; `pre-commit` : point d'extension local `.husky/pre-commit.local` (non versionné), lint-staged (Prettier **et ESLint** sur les fichiers stagés — les frontières d'architecture se voient au commit) — avec `--no-warn-ignored` : ESLint 9 avertit pour chaque fichier de configuration qu'on lui passe et que sa config ignore, et `--max-warnings 0` en ferait un refus de commit puis `check:commit` (typecheck + tests sans infrastructure, cache Turborepo) ; `pre-push` : `pnpm check` complet. La boucle courte est sur le chemin de l'agent, qui commite souvent et ne pousse presque jamais. Plus les **relais** `post-commit` / `post-checkout` vers graphify, indispensables parce que Husky détourne `core.hooksPath`.
+- **`scripts/check.mjs`** — la porte unique, étapes de la moins chère à la plus chère, et un message par échec qui dit **quoi faire** : c'est ce message que l'agent lit. Les suites qui exigent une base (`*.db.spec.ts`, `test:db`) sont hors de la porte et tournent en CI avec le service.
 
 ## Questions ouvertes — `racine/docs/questions-ouvertes.md`
 

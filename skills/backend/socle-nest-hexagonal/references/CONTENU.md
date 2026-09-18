@@ -29,6 +29,10 @@ Ce qui démarre, et pourquoi c'est là plutôt qu'ailleurs.
 
 Ce que le service ajoute aux fichiers génériques de la racine : ses lignes dans la carte d'orientation de `CLAUDE.md`, sa sous-arborescence, ses commandes et ses règles dans `README.md`, son bloc de variables dans `.env.example`, ses fichiers générés dans `.prettierignore`. Un fragment par zone, inséré au-dessus du marqueur `<!-- socle:… -->` correspondant.
 
+## Tests — `vitest.config.ts` et `vitest.db.config.ts`
+
+Le critère de découpe est le besoin d'infrastructure. `vitest.config.ts` exclut `*.db.spec.ts` : ce que `pnpm test` joue tourne sans base, donc au pre-commit et au pre-push. `vitest.db.config.ts` (`pnpm test:db`) ne joue que ces suites-là, en CI avec Postgres.
+
 ## ADR — `adr/`
 
 - **`ARC-2`** — transactions et isolation, **à deux branches**. En garder une, supprimer l'autre. Une ADR qui laisse les deux options ouvertes n'a rien décidé.

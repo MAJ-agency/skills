@@ -28,7 +28,7 @@ Toute divergence par rapport à ces règles fait l'objet d'une **ADR**, justifi�
 
 1. **Grilling** — faire tomber les non-dits avant d'écrire quoi que ce soit. Protocole : [`docs/methode/grilling.md`](docs/methode/grilling.md). Le projet est neuf : il est **architectural**, donc questions → approches → design → **spec écrite**.
 2. **Documentation** — glossaire, règles métier, ADR, spec technique. Format : [`docs/methode/decisions.md`](docs/methode/decisions.md).
-3. **Code** — TDD, en suivant les règles impératives du service concerné (`apps/<service>/CLAUDE.md`).
+3. **Code** — **par balles traçantes** : construire d'abord une tranche minuscule de bout en bout, la faire tourner, demander un retour, puis étendre à partir de là — une tranche par fenêtre de contexte. À l'intérieur d'une tranche, TDD et les règles impératives du service concerné (`apps/<service>/CLAUDE.md`). Méthode : [`docs/methode/conception.md`](docs/methode/conception.md).
 
 Les documents fournis en cours de projet atterrissent dans [`docs/sources/`](docs/sources/) — ce sont des **entrées brutes**, pas de la spécification.
 

@@ -80,6 +80,16 @@ La question : « quelle est l'interface publique, et quelles coutures testons-no
 - **Une tranche à la fois.** Une couture, un test, une implémentation minimale par cycle.
 - **Le refactoring ne fait pas partie de la boucle.** Il appartient à l'étape de revue, pas au cycle rouge → vert.
 
+### La balle traçante — du test au ticket
+
+Le même mot désigne la même chose à deux échelles. **Au niveau du test**, chaque cycle rouge → vert est une balle traçante : une couture, un comportement, et le suivant répond à ce que celui-ci a appris. **Au niveau du ticket**, une feature se construit par **tranches verticales** : une tranche minuscule qui traverse toutes les couches — contrat, use case, adapter, écran — tourne de bout en bout **avant** qu'aucune couche ne soit complète. C'est `/mattpocock-skills:to-tickets` qui découpe une spec en tranches de cette forme, chacune démontrable seule.
+
+Pourquoi c'est non négociable avec un agent : livré à lui-même, il produit la solution entière d'un coup — tous les endpoints, tout le modèle, la gestion d'erreurs, l'authentification — avant d'avoir vérifié que la première requête traverse. Il **dépasse ses phares**, et ce qu'il a construit à l'aveugle se refait. La tranche force le retour tôt, quand il est encore bon marché.
+
+**Une tranche par fenêtre de contexte.** Une tranche est dimensionnée pour tenir dans un contexte ; livrée et revue, la suivante commence dans un contexte **neuf**, avec la spec et le ticket, pas avec l'historique de la précédente. Un contexte qui a construit trois tranches raisonne avec les résidus des deux premières.
+
+**Ce que la tranche ne change pas** : à l'intérieur, l'ordre reste domain-first — port, use case, puis adapter. La balle traçante dit quelle **largeur** prendre, pas dans quel ordre traverser les couches.
+
 ---
 
 ## Revue — deux axes
