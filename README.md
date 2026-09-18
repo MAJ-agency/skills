@@ -120,6 +120,9 @@ skills/
 1. Créer `skills/<categorie>/<nom>/SKILL.md`, avec un frontmatter `name` + `description`. La description décide **quand** le skill se déclenche : y mettre les branches, pas une paraphrase du titre.
 2. Ajouter `"./skills/<categorie>/<nom>"` au tableau `skills` de `.claude-plugin/plugin.json`.
 3. Ajouter une ligne au tableau ci-dessus.
+4. **Bumper `version` dans `.claude-plugin/plugin.json`** — c'est ce champ que `claude plugin marketplace update` compare : sans bump, aucun changement de contenu n'est détecté chez ceux qui ont installé le plugin. Patch pour une correction, mineure pour un skill ou un gabarit ajouté, majeure quand un skill existant change de contrat.
+
+Cette règle vaut pour **tout** changement de contenu, pas seulement l'ajout d'un skill.
 
 Ce qui dépasse une page va dans `references/`, atteint par un pointeur depuis `SKILL.md` — le corps du skill reste lisible, et les détails ne se chargent qu'au besoin.
 
