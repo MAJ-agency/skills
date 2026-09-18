@@ -73,6 +73,8 @@ Puis **deux corrections** que graphify ne fait pas :
 
 `graphify-out/` est dans le `.gitignore` du gabarit : le graphe reste local.
 
+**Le premier graphe se construit à la main.** Les hooks git ne réextraient que le **code** (AST) ; la partie la plus utile pour comprendre l'architecture — les règles, les ADR, la méthode — est une extraction **sémantique** des documents, que seul `/graphify` lance. Après le dernier commit de l'étape 8, **invoquer `/graphify`** une fois sur le dépôt. Ensuite les hooks tiennent le code à jour, et `graphify update .` après une modification de documentation fait le reste.
+
 **Les plugins de skills** — vérifier ce qui est déjà installé (`claude plugin list`) avant d'installer :
 
 ```bash

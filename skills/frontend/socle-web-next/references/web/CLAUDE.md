@@ -18,6 +18,10 @@ app/                                 ←  features/, components/, lib/
 - `lib/` is the transverse floor: HTTP client, query provider, query keys, env, utils. It knows neither `features/` nor `components/`.
 - All of this is **enforced by `eslint.rules.mjs`**: feature list read from disk, one block per feature, relative parent imports (`../`) forbidden everywhere — cross-folder imports use `@/…`, which says where a module comes from. The debt ratchet `DETTE_FEATURES` is empty on a new project and stays empty; `pnpm check:dette` refuses a stale entry.
 
+## Living reference
+
+`features/sante` is a labelled placeholder. **The first real feature becomes the living reference**: before creating another one, read it entirely and reproduce its shape (`api/` → `hooks/` → `components/`, barrel, tests). When it drifts from this file, fix one of the two.
+
 ## File naming
 
 kebab-case files, PascalCase component exports. `features/<module>/api/<module>-api.ts`, `features/<module>/hooks/use-<module>.ts`, `features/<module>/components/<name>.tsx`, `features/<module>/index.ts`. Tests: `*.spec.ts` colocated.

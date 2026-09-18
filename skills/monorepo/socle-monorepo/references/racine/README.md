@@ -29,6 +29,28 @@ Le projet se construit en trois temps, dans cet ordre. Chaque étape a ses règl
 
 **Le projet est neuf** : il n'a aucun flux existant à modifier. Toute demande de fonctionnalité est donc **architecturale** — questions, approches, design, puis spec écrite. Pas de code avant validation explicite.
 
+### Comment une feature traverse le dépôt
+
+Les briques ne se connaissent que dans un sens, et ce sens est vérifié par le lint :
+
+```
+packages/contracts      schémas Zod : corps, réponses, erreurs, enums    ← ne dépend de rien
+packages/utils          fonctions pures partagées                        ← ne dépend de rien
+        ▲                        ▲
+        │                        │
+apps/api                un service, hexagonal : domain ← application ← infrastructure
+apps/web · apps/mobile  un client, en feuilles : lib ← components ← features ← app
+```
+
+Une règle métier s'écrit **une fois**, comme schéma Zod dans `packages/contracts`. Ce même objet :
+
+1. **valide l'entrée de l'API** — le DTO du use case en dérive (`createZodDto`), le pipe global refuse ce qui ne passe pas ;
+2. **valide le formulaire du client** — `zodResolver` sur le même schéma, aucune règle réécrite côté client ;
+3. **type la réponse** — le client la **parse** à la frontière (`Schema.parse`), donc une API qui ment échoue là, pas trois composants plus loin ;
+4. **produit le document OpenAPI** — généré, jamais écrit à la main, et `openapi:check` refuse toute dérive.
+
+Un changement de contrat casse le typecheck de **tous** les consommateurs en même temps : c'est voulu, c'est le gate. Le détail de chaque brique vit dans son `CLAUDE.md` ; ce schéma dit seulement comment elles se tiennent.
+
 ## Où vit quoi
 
 ```

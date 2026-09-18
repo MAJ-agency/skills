@@ -18,6 +18,10 @@ app/                                 ←  features/, components/, lib/
 - Enforced by `eslint.rules.mjs`: feature list read from disk, relative parent imports forbidden (`@/…` says where a module comes from), `DETTE_FEATURES` empty and staying empty.
 - **What is shared with the web client**: types, schemas, utils — through `packages/`. **What is NOT shared**: components (React Native ≠ DOM), the HTTP client (Bearer ≠ cookie), stores. Two clients, two implementations, one contract.
 
+## Living reference
+
+`features/sante` is a labelled placeholder. **The first real feature becomes the living reference**: before creating another one, read it entirely and reproduce its shape — and keep it in step with its web twin when the feature exists on both clients.
+
 ## Session — the Keychain, and nothing else
 
 - Tokens live in **`expo-secure-store`** (Keychain / EncryptedSharedPreferences) through `lib/secure-store.ts`, the **only** file allowed to import it (lint). **NEVER** AsyncStorage for anything secret, **NEVER** a token in React state, **NEVER** a token in a log.

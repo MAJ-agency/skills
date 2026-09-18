@@ -25,6 +25,10 @@ Dependencies point **inward only**: `infrastructure → application → domain`.
 
 ---
 
+## Living reference
+
+The socle ships no business feature. **The first real feature (domain + use case + adapter + tests) becomes the living reference**: before creating another one, read it entirely and reproduce its shape. When it drifts from this file, fix one of the two — never let them disagree in silence.
+
 ## Imports — path aliases (MANDATORY)
 
 Use TypeScript path aliases. **NEVER** use deep relative imports (`../../../...`).
