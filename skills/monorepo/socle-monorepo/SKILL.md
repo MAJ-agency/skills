@@ -49,6 +49,7 @@ Copier `references/` vers le dépôt selon cette table, puis substituer les plac
 | Source                          | Destination                                                                                                                              |
 | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
 | `references/racine/*`           | racine du dépôt — **`gitignore` se copie en `.gitignore`** (il est stocké sans point pour ne pas s'appliquer au dépôt du skill lui-même) |
+| `references/racine/docs/questions-ouvertes.md` | `docs/questions-ouvertes.md` — livré vide avec son format, comme `CONTEXT.md` : les trois documents de méthode qui le citent doivent trouver le fichier |
 | `references/husky/*`            | `.husky/` (les rendre exécutables)                                                                                                       |
 | `references/methode/*`          | `docs/methode/`                                                                                                                          |
 | `references/adr/ARC-1-*`     | `docs/adr/`                                                                                                                              |

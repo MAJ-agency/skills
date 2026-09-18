@@ -26,6 +26,10 @@ Cinq documents qui font autorité sur la façon de travailler.
 - **`gitignore`** — stocké sans point pour ne pas s'appliquer au dépôt du skill ; ignore `graphify-out/` (graphe local, reconstruit en continu) et `.husky/*.local` (gardes de la machine).
 - **Husky** — `commit-msg` (commitlint), `pre-commit` (lint-staged + point d'extension local `.husky/pre-commit.local`, non versionné), `pre-push` (`pnpm check`), et les **relais** `post-commit` / `post-checkout` vers graphify, indispensables parce que Husky détourne `core.hooksPath`.
 
+## Questions ouvertes — `racine/docs/questions-ouvertes.md`
+
+Livré **vide, avec son format d'entrée** (date, source, ce que ça bloque) et la règle de déplacement quand la question est tranchée — vers une ADR, le registre ou le glossaire. Même précédent que `CONTEXT.md` : un fichier à nom fixe, cité par la méthode, existe dès le départ ; ce sont les dossiers thématiques qui naissent avec leur premier document.
+
 ## ADR — `adr/`
 
 - **`ARC-1`** — la nomenclature `<TRI>-<N>-<slug>.md`, avec ses alternatives écartées. Transverse, donc à la racine du socle.

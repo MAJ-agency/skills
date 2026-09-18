@@ -57,14 +57,14 @@ docs/
 └── questions-ouvertes.md   les questions non tranchées, datées et sourcées
 ```
 
-| Thème              | Dossier                | Contenu                                                            |
-| ------------------ | ---------------------- | ------------------------------------------------------------------ |
-| **ADR**            | `docs/adr/`            | les décisions et leur _pourquoi_ (`ARC-1`, `ARC-2`…)               |
-| **Architecture**   | `docs/architecture/`   | guides techniques qui ne sont **pas** des décisions                |
-| **Infrastructure** | `docs/infrastructure/` | hébergement, base, CI/CD, déploiement                              |
-| **Design**         | `docs/design/`         | design system                                                      |
-| **Métier**         | `docs/metier/`         | `regles/` (registre), `reference/` (fonctionnel), `reunions/`      |
-| **Feature**        | `docs/features/`       | un dossier par feature : sa spec et ses tickets                    |
+| Thème              | Dossier                | Contenu                                                       | Frontière — ce qui y va, ce qui n'y va pas                                                                          |
+| ------------------ | ---------------------- | ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| **ADR**            | `docs/adr/`            | les décisions et leur _pourquoi_ (`ARC-1`, `ARC-2`…)          | un arbitrage entre alternatives ; un texte sans alternative écartée n'est pas une ADR                               |
+| **Architecture**   | `docs/architecture/`   | guides techniques qui ne sont **pas** des décisions           | comment faire une fois décidé ; le _pourquoi_ reste dans l'ADR qu'on cite                                           |
+| **Infrastructure** | `docs/infrastructure/` | hébergement, base, CI/CD, déploiement (`INF-1`…)              | où et comment ça tourne ; jamais ce que le métier exige                                                             |
+| **Design**         | `docs/design/`         | charte, tokens, primitives (`DES-1`…)                         | ce que l'utilisateur voit et touche ; jamais une règle métier déguisée en écran                                     |
+| **Métier**         | `docs/metier/`         | `regles/` (registre), `reference/` (fonctionnel), `reunions/` | **ce qui reste vrai après** la livraison ; une règle s'y écrit **une fois**, avec son identifiant                    |
+| **Feature**        | `docs/features/`       | un dossier par feature : sa spec et ses tickets               | **du travail en cours**, qui a un statut et une fin ; une spec **cite** les règles (`LIC-3`), elle ne les formule jamais |
 
 Quatre dossiers de service complètent l'arbre, hors thème : `methode/` (comment on travaille), `agents/` (config des skills), `sources/` (entrées brutes), `superpowers/` (specs de session). Et un fichier à la racine de `docs/` : `questions-ouvertes.md`, où va toute question non tranchée, datée et sourcée, jusqu'à ce qu'une ADR ou une règle la ferme.
 
