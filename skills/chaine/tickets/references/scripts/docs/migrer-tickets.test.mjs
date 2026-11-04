@@ -7,9 +7,13 @@ import { ENV, depotJouet } from './depot-jouet.mjs';
 const SCRIPT = new URL('./migrer-tickets.mjs', import.meta.url).pathname;
 const FICHIERS = {
   'docs/features/socle/socle.spec.md': '# Le socle\n\nTickets : [`4-couche`](issues/4-couche-base-de-donnees.issue.md), `1-modeliser-le-domaine`.\n',
-  'docs/features/socle/issues/1-modeliser-le-domaine.issue.md': '# Modéliser\n\nStatus: ready-for-human\n',
+  'docs/features/socle/issues/1-modeliser-le-domaine.issue.md': '# Modéliser\n\nStatus: ready-for-human\n\nBloqué par : rien. À faire avant `4-couche-base-de-donnees`.\n',
   'docs/features/socle/issues/4-couche-base-de-donnees.issue.md': '# Couche\n\nStatus: needs-triage\n\nBloqué par : `1-modeliser-le-domaine`.\n\nVoir [la spec](../socle.spec.md).\n',
-  'docs/adr/ARC-2-isolation.md': '# ARC-2\n\nLe ticket [4](../features/socle/issues/4-couche-base-de-donnees.issue.md).\n',
+  'docs/features/socle/issues/6-journal.issue.md':
+    '# Journal\n\nStatus: needs-triage\n\nBloqué par : `4-couche-base-de-donnees` et `1-modeliser-le-domaine` — deux tables.\n',
+  'docs/features/socle/issues/7-audit.issue.md':
+    '# Audit\n\nStatus: needs-triage\n\nBloqué par : `4-couche-base-de-donnees` (la table des comptes).\n',
+  'docs/adr/ARC-2-isolation.md': '# ARC-2\n\nLe ticket [4](../features/socle/issues/4-couche-base-de-donnees.issue.md). Voir [les ADR](../adr/).\n',
 };
 const lancer = (d, args) => spawnSync(process.execPath, [SCRIPT, ...args], { cwd: d.travail, env: { ...ENV, PATH: bin(d) }, encoding: 'utf8' });
 const bin = (d) => d.bin;
@@ -32,6 +36,14 @@ test('--appliquer : git mv, liens et mentions réécrits, Blocked by sur deux ch
   assert.match(spec, /`SOC-1-socle\.01`/);
   const t4 = readFileSync(`${d.travail}/docs/features/socle/issues/SOC-1-socle.04.issue.md`, 'utf8');
   assert.match(t4, /^Blocked by: 01$/m);
+  const t6 = readFileSync(`${d.travail}/docs/features/socle/issues/SOC-1-socle.06.issue.md`, 'utf8');
+  assert.match(t6, /^Blocked by: 01, 04 — deux tables\.$/m);
+  const t7 = readFileSync(`${d.travail}/docs/features/socle/issues/SOC-1-socle.07.issue.md`, 'utf8');
+  assert.match(t7, /^Blocked by: 04 — la table des comptes$/m); // le « 1 » de SOC-1 n'est pas un numéro ; la raison reste, sans redite
+  const adr = readFileSync(`${d.travail}/docs/adr/ARC-2-isolation.md`, 'utf8');
+  assert.match(adr, /\]\(\.\.\/adr\/\)/); // un lien sans rapport n'est pas normalisé
+  const t1 = readFileSync(`${d.travail}/docs/features/socle/issues/SOC-1-socle.01.issue.md`, 'utf8');
+  assert.match(t1, /^Bloqué par : rien\. À faire avant `SOC-1-socle\.04`\.$/m); // « rien » n'est pas une liste
   assert.match(t4, /\(\.\.\/SOC-1-socle\.spec\.md\)/);
   const adr = readFileSync(`${d.travail}/docs/adr/ARC-2-isolation.md`, 'utf8');
   assert.match(adr, /features\/socle\/issues\/SOC-1-socle\.04\.issue\.md/);

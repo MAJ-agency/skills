@@ -69,6 +69,8 @@ function reecrire(ancien, texte) {
   let sortie = texte.replace(LIEN, (tout, cible, ancre = '') => {
     if (EXTERNE.test(cible)) return tout;
     const cibleAbsolue = posix.normalize(posix.join(dirname(ancien), cible));
+    // Un lien qui ne vise pas un fichier déplacé, dans un fichier qui ne bouge pas, reste tel quel.
+    if (!deplaces.has(cibleAbsolue) && nouvelEmplacement === ancien) return tout;
     const cibleFinale = deplaces.get(cibleAbsolue) ?? cibleAbsolue;
     const relatif = posix.relative(dirname(nouvelEmplacement), cibleFinale);
     return relatif === cible ? tout : `](${relatif}${ancre})`;
@@ -78,12 +80,37 @@ function reecrire(ancien, texte) {
     const ancienSlug = cle.slice(5);
     sortie = sortie.replace(new RegExp(`\`${ancienSlug}\``, 'g'), `\`${nouveau}\``);
   }
-  // Un ticket migré : ses numéros courts de `Blocked by:` / `Bloqué par :` passent sur deux chiffres.
+  // Un ticket migré : sa ligne `Blocked by:` / `Bloqué par :` passe en liste de tête à deux chiffres,
+  // lue sur la ligne d'origine (avant la réécriture des slugs, dont le `1` de `SOC-1` serait pris pour
+  // un numéro) ; la raison qui suivait est gardée après un tiret, les slugs y deviennent leur index.
   if (ancien.startsWith(`${dossier}/issues/`)) {
-    sortie = sortie.replace(/^(Blocked by|Bloqué par)\s*:\s*(.+)$/m, (tout, _k, reste) => {
-      const nums = [...reste.matchAll(/`?(\d+)-[a-z0-9-]+`?|\b(\d{1,2})\b/g)].map((m) => (m[1] ?? m[2]).padStart(2, '0')).filter((x) => numeros.has(String(Number(x))));
-      return nums.length ? `Blocked by: ${[...new Set(nums)].join(', ')}` : tout;
-    });
+    const ligne = /^(Blocked by|Bloqué par)\s*:\s*(.+)$/m.exec(texte);
+    // « Bloqué par : rien. … » n'est pas une liste : la ligne reste une phrase, slugs réécrits.
+    if (ligne && !/^(rien|aucun|non|—|–|-)\b/i.test(ligne[2].trim())) {
+      const reste = ligne[2];
+      const nums = [...reste.matchAll(/`(\d+)-[a-z0-9-]+`|(?<![\w.-])(\d{1,2})(?![\w.-])/g)]
+        .map((m) => (m[1] ?? m[2]).padStart(2, "0"))
+        .filter((x) => numeros.has(String(Number(x))));
+      if (nums.length) {
+        const raison = reste
+          .replace(/`(\d+)-[a-z0-9-]+`/g, (_m, n) => n.padStart(2, "0"))
+          .replace(/^[\s—–-]*/, "")
+          .replace(/^(\d{2}|\d{2}(?:\s*(?:,|et)\s*\d{2})*)[\s.]*$/, "")
+          .trim();
+        // Un seul bloquant : sa reprise en tête de raison (« 04 — … », « 04 (…) ») est redondante.
+        const unique = [...new Set(nums)];
+        // La reprise de la liste en tête de raison (« 04 — … », « 04 (…) », « 07 et 14 — … ») est redondante.
+        const tete = unique.sort().join(", ");
+        const reprise = new RegExp(`^(?:${unique.join("|")})(?:\\s*(?:,|et)\\s*(?:${unique.join("|")}))*\\s*(?:[—–-]\\s*)?`);
+        const raisonNette =
+          unique.length === 1 && raison.startsWith(unique[0])
+            ? raison.slice(2).replace(/^\s*[—–-]?\s*/, "").replace(/^\((.*)\)\.?$/, "$1").trim()
+            : reprise.test(raison) && /[—–-]\s*$/.test(reprise.exec(raison)[0])
+              ? raison.replace(reprise, "").trim()
+              : raison;
+        sortie = sortie.replace(/^(Blocked by|Bloqué par)\s*:.*$/m, raisonNette ? `Blocked by: ${tete} — ${raisonNette}` : `Blocked by: ${tete}`);
+      }
+    }
   }
   return sortie;
 }
