@@ -40,12 +40,11 @@ test('--appliquer : git mv, liens et mentions réécrits, Blocked by sur deux ch
   assert.match(t6, /^Blocked by: 01, 04 — deux tables\.$/m);
   const t7 = readFileSync(`${d.travail}/docs/features/socle/issues/SOC-1-socle.07.issue.md`, 'utf8');
   assert.match(t7, /^Blocked by: 04 — la table des comptes$/m); // le « 1 » de SOC-1 n'est pas un numéro ; la raison reste, sans redite
-  const adr = readFileSync(`${d.travail}/docs/adr/ARC-2-isolation.md`, 'utf8');
-  assert.match(adr, /\]\(\.\.\/adr\/\)/); // un lien sans rapport n'est pas normalisé
   const t1 = readFileSync(`${d.travail}/docs/features/socle/issues/SOC-1-socle.01.issue.md`, 'utf8');
   assert.match(t1, /^Bloqué par : rien\. À faire avant `SOC-1-socle\.04`\.$/m); // « rien » n'est pas une liste
   assert.match(t4, /\(\.\.\/SOC-1-socle\.spec\.md\)/);
   const adr = readFileSync(`${d.travail}/docs/adr/ARC-2-isolation.md`, 'utf8');
+  assert.match(adr, /\]\(\.\.\/adr\/\)/); // un lien sans rapport n'est pas normalisé
   assert.match(adr, /features\/socle\/issues\/SOC-1-socle\.04\.issue\.md/);
   assert.ok(!existsSync(`${d.travail}/docs/features/socle/issues/4-couche-base-de-donnees.issue.md`));
 });
