@@ -16,7 +16,7 @@
  */
 import { execFileSync } from 'node:child_process';
 import { readFileSync, writeFileSync } from 'node:fs';
-import { basename, dirname, posix } from 'node:path';
+import { dirname, posix } from 'node:path';
 
 const args = process.argv.slice(2);
 const [feature, tri] = args.filter((a) => !a.startsWith('--') && args[args.indexOf(a) - 1] !== '--n');

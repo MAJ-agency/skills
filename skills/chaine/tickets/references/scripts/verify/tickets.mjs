@@ -52,7 +52,8 @@ for (const chemin of chemins) {
   for (const e of r.erreurs) erreurs.push(`${chemin}:${e.ligne} : ${e.message}`);
   if (geles.has(chemin) && r.pret && ecartsFormatPret(texte).length > 0) detteActive.add(chemin);
 }
-const cartes = ls('docs/**/*.map.md');
+// Les gabarits de docs/agents/gabarits/ portent des placeholders : ils ne sont pas des cartes.
+const cartes = ls('docs/**/*.map.md').filter((c) => !c.startsWith('docs/agents/gabarits/'));
 const cartesEnDette = new Set();
 for (const chemin of cartes) {
   const r = controlerCarte({ nom: basename(chemin), texte: readFileSync(join(ROOT, chemin), 'utf8') });
