@@ -3,13 +3,13 @@ import { ActivityIndicator, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Button } from "@/components/ui/button";
 
-type Statut = "chargement" | "ok" | "vide" | "erreur";
+type Status = "loading" | "ok" | "empty" | "error";
 
 interface ScreenProps {
-  statut?: Statut;
-  messageErreur?: string;
-  messageVide?: string;
-  onReessayer?: () => void;
+  status?: Status;
+  errorMessage?: string;
+  emptyMessage?: string;
+  onRetry?: () => void;
   children: ReactNode;
 }
 
@@ -18,29 +18,39 @@ interface ScreenProps {
  * avec réessai, état vide — décidés UNE fois ici. Un écran de feature ne rend
  * que son contenu et passe son statut (apps/mobile/CLAUDE.md, Screens).
  */
-export function Screen({ statut = "ok", messageErreur, messageVide, onReessayer, children }: ScreenProps) {
+export function Screen({
+  status = "ok",
+  errorMessage,
+  emptyMessage,
+  onRetry,
+  children,
+}: ScreenProps) {
   return (
     <SafeAreaView className="flex-1 bg-neutral-50" edges={["top"]}>
-      {statut === "chargement" && (
+      {status === "loading" && (
         <View className="flex-1 items-center justify-center" accessibilityRole="progressbar">
           <ActivityIndicator size="large" color="#0f62fe" />
         </View>
       )}
-      {statut === "erreur" && (
+      {status === "error" && (
         <View className="flex-1 items-center justify-center px-6">
-          <Text className="mb-2 text-lg font-semibold text-neutral-900">Une erreur est survenue</Text>
-          <Text className="mb-6 text-center text-base text-neutral-900/70">
-            {messageErreur ?? "Vérifie ta connexion et réessaie."}
+          <Text className="mb-2 text-lg font-semibold text-neutral-900">
+            Une erreur est survenue
           </Text>
-          {onReessayer ? <Button libelle="Réessayer" onPress={onReessayer} /> : null}
+          <Text className="mb-6 text-center text-base text-neutral-900/70">
+            {errorMessage ?? "Vérifie ta connexion et réessaie."}
+          </Text>
+          {onRetry ? <Button label="Réessayer" onPress={onRetry} /> : null}
         </View>
       )}
-      {statut === "vide" && (
+      {status === "empty" && (
         <View className="flex-1 items-center justify-center px-6">
-          <Text className="text-center text-base text-neutral-900/70">{messageVide ?? "Rien à afficher."}</Text>
+          <Text className="text-center text-base text-neutral-900/70">
+            {emptyMessage ?? "Rien à afficher."}
+          </Text>
         </View>
       )}
-      {statut === "ok" && (
+      {status === "ok" && (
         <ScrollView contentContainerClassName="px-4 py-4" keyboardShouldPersistTaps="handled">
           {children}
         </ScrollView>

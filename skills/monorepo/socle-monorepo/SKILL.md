@@ -49,15 +49,17 @@ Copier `references/` vers le dépôt selon cette table, puis substituer les plac
 | Source                          | Destination                                                                                                                              |
 | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
 | `references/racine/*`           | racine du dépôt — **`gitignore` se copie en `.gitignore`** (il est stocké sans point pour ne pas s'appliquer au dépôt du skill lui-même) |
-| `references/racine/docs/questions-ouvertes.md` | `docs/questions-ouvertes.md` — livré vide avec son format, comme `CONTEXT.md` : les trois documents de méthode qui le citent doivent trouver le fichier |
+| `references/racine/docs/questions-ouvertes.md` | `docs/questions-ouvertes.md` — livré vide avec son format, comme `GLOSSARY.md` : les trois documents de méthode qui le citent doivent trouver le fichier |
 | `references/husky/*`            | `.husky/` (les rendre exécutables)                                                                                                       |
 | `references/methode/*`          | `docs/methode/`                                                                                                                          |
-| `references/adr/ARC-1-*`     | `docs/adr/`                                                                                                                              |
+| `references/racine/.claude/settings.json` | `.claude/settings.json` — les marketplaces et plugins de skills, posé **avant** `graphify claude install` (étape 3), qui y ajoute ses hooks |
+| `references/racine/.claude/rules/tests.md` | `.claude/rules/tests.md` — la fiche transverse des tests, chargée par chemin ; sa zone `<!-- socle:tests -->` reçoit la ligne de chaque service |
+| `references/adr/ARC-*`       | `docs/adr/` — `ARC-1` (nomenclature) et `ARC-4` (langue des identifiants) ; `ARC-3` attend l'étape 6, il n'existe qu'avec un client |
 | `references/sources/README.md`  | `docs/sources/README.md`                                                                                                                 |
 
 **Ne pas créer** `apps/`, `packages/`, `docs/metier/`, `docs/architecture/` ni `docs/features/<autre>/` : ils naissent avec leur premier fichier.
 
-**Les zones d'insertion.** `README.md` et `CLAUDE.md` contiennent des marqueurs `<!-- socle:<zone> -->` : c'est là que chaque skill de service insère ses lignes (une ligne de table, un paragraphe, un bloc). Les marqueurs **restent dans le fichier généré** — invisibles au rendu, ils permettent d'ajouter un service plus tard. Ne pas les supprimer, ne pas les déplacer.
+**Les zones d'insertion.** `README.md`, `CLAUDE.md` et `.claude/rules/tests.md` contiennent des marqueurs `<!-- socle:<zone> -->` : c'est là que chaque skill de service insère ses lignes (une ligne de table, un paragraphe, un bloc). Les marqueurs **restent dans le fichier généré** — invisibles au rendu, ils permettent d'ajouter un service plus tard. Ne pas les supprimer, ne pas les déplacer.
 
 Détail de ce que contient la racine et pourquoi : [`references/CONTENU.md`](references/CONTENU.md).
 
@@ -80,13 +82,16 @@ Puis **deux corrections** que graphify ne fait pas :
 
 **Le premier graphe se construit à la main.** Les hooks git ne réextraient que le **code** (AST) ; la partie la plus utile pour comprendre l'architecture — les règles, les ADR, la méthode — est une extraction **sémantique** des documents, que seul `/graphify` lance. Après le dernier commit de l'étape 8, **invoquer `/graphify`** une fois sur le dépôt. Ensuite les hooks tiennent le code à jour, et `graphify update .` après une modification de documentation fait le reste.
 
-**Les plugins de skills** — vérifier ce qui est déjà installé (`claude plugin list`) avant d'installer :
+**Les plugins de skills** — `.claude/settings.json` du gabarit (posé à l'étape 2, **avant** `graphify claude install` qui y ajoute ses hooks) déclare déjà les marketplaces `mattpocock` (`mattpocock/skills`) et `maj` (`MAJ-agency/skills`) et active `mattpocock-skills@mattpocock` et `maj-skills@maj` : en local, Claude Code propose de les installer à l'ouverture du dépôt. Pour la session courante et pour un script de configuration cloud, vérifier ce qui est déjà installé (`claude plugin list`) puis :
 
 ```bash
-claude plugin marketplace add anthropics/claude-plugins-official
-claude plugin install mattpocock-skills@claude-plugins-official
-claude plugin install superpowers@claude-plugins-official
+claude plugin marketplace add mattpocock/skills
+claude plugin install mattpocock-skills@mattpocock
+claude plugin marketplace add MAJ-agency/skills
+claude plugin install maj-skills@maj
 ```
+
+`superpowers` (`anthropics/claude-plugins-official`) reste optionnel : `grilling.md` cite `superpowers:brainstorming` pour la classification de l'effort, rien ne l'exige.
 
 Si une commande échoue (permissions, réseau, session non interactive), **le dire et donner la commande à jouer à la main** — ne pas faire comme si c'était passé.
 
@@ -122,6 +127,7 @@ Un skill de service **suppose la racine posée** (`pnpm-workspace.yaml` présent
 - `apps/<service>/` — ses fichiers, dont `apps/<service>/eslint.rules.mjs` pour ses règles de lint, chargé par l'ESLint racine (même mécanique pour un paquet sous `packages/`) ;
 - ses **fragments** dans les zones `<!-- socle:… -->` de `README.md` et `CLAUDE.md` — chaque fragment s'insère **immédiatement au-dessus** du marqueur de sa zone ;
 - ses **ajouts en fin de fichier** dans `.env.example` et `.prettierignore` ;
+- sa ligne dans `.claude/rules/tests.md` : la zone `<!-- socle:tests -->` ferme le tableau des types de tests — chaque service y insère **immédiatement au-dessus** la ligne de ses suites à infrastructure (une base réelle en `.db.spec.ts`, un rendu, un bundle) et, sous `<!-- socle:tests-commandes -->`, la commande qui les joue (`pnpm --filter … test:db`) ; le marqueur reste ;
 - ses fichiers de racine propres (un `compose.yaml` pour une base locale, par exemple) ;
 - ses ADR dans `docs/adr/` et ses tickets dans `docs/features/socle/issues/`, **dans sa plage de numéros** (voir étape 6).
 
@@ -176,7 +182,7 @@ Chaque commit doit laisser le dépôt **constructible**. Ne pas découper un ser
 | Tentation                                            | Pourquoi c'est faux                                                                       |
 | ---------------------------------------------------- | ------------------------------------------------------------------------------------------ |
 | « Je reformule les gabarits à ma sauce »             | Ce sont des règles éprouvées. Les paraphraser en perd la précision.                          |
-| « Je pré-remplis `CONTEXT.md` avec le domaine »      | Le glossaire se construit au grilling, terme par terme. Le pré-remplir fige un non-dit.      |
+| « Je pré-remplis `GLOSSARY.md` avec le domaine »      | Le glossaire se construit au grilling, terme par terme. Le pré-remplir fige un non-dit.      |
 | « J'invente des trigrammes métier »                  | Un trigramme désigne un sujet tranché. Seuls les trigrammes structurels sont posés d'avance. |
 | « Je mets les règles de l'API dans l'ESLint racine » | La racine ne connaît aucune stack. Les règles d'un service vivent dans `apps/<service>/eslint.rules.mjs`. |
 | « Je supprime les marqueurs `socle:` du README »     | Ils sont invisibles au rendu et permettent d'ajouter un service plus tard.                   |

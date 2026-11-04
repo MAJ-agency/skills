@@ -3,7 +3,7 @@ import { z } from "zod";
 /**
  * Environnement PUBLIC du client, validé au chargement du module : fail-fast.
  * Next inline `process.env.NEXT_PUBLIC_*` au build, donc chaque variable est
- * lue LITTÉRALEMENT (jamais `process.env[nom]`), et toute nouvelle variable
+ * lue LITTÉRALEMENT (jamais `process.env[name]`), et toute nouvelle variable
  * s'ajoute ici ET dans `.env.example` (apps/web/CLAUDE.md, Environment).
  */
 const EnvSchema = z.object({

@@ -1,0 +1,6 @@
+{
+  "$comment": "Dette gelée du gate tickets : tickets prêts d avant son installation, cartes et identifiants en double. Ne reçoit jamais d entrée nouvelle ; --elaguer retire les entrées éteintes.",
+  "tickets": [],
+  "cartes": [],
+  "identifiants": []
+}

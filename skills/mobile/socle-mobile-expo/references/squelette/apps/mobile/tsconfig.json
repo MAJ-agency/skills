@@ -11,6 +11,13 @@
       "@/*": ["src/*"]
     }
   },
-  "include": ["app/**/*", "src/**/*", "app.config.ts", ".expo/types/**/*.ts", "expo-env.d.ts", "nativewind-env.d.ts"],
+  "include": [
+    "app/**/*",
+    "src/**/*",
+    "app.config.ts",
+    ".expo/types/**/*.ts",
+    "expo-env.d.ts",
+    "nativewind-env.d.ts"
+  ],
   "exclude": ["node_modules", ".expo/export-check", "dist"]
 }

@@ -2,9 +2,9 @@
 
 {{TITRE}} — {{DESCRIPTION}}
 
-**Le code, les commentaires, les commits (conventional commits) et la documentation sont en {{LANGUE}}.** Conserver cette convention.
+**Les identifiants de code sont en anglais, généralistes ; la prose est en {{LANGUE}}** — commentaires, commits (conventional commits), documentation, textes d'interface, noms de tests. `GLOSSARY.md` fait le pont : chaque terme métier y a son nom en code. Décision et raisons : [`docs/adr/ARC-4-langue-des-identifiants-de-code.md`](docs/adr/ARC-4-langue-des-identifiants-de-code.md).
 
-> **État du dépôt — squelette technique, aucun métier.** Les services démarrent et les gardes de qualité mordent, mais **aucun domaine n'est modélisé** : `CONTEXT.md` est vide et `docs/metier/` n'existe pas. Ce qui reste à faire et ce qui reste à trancher est **déposé en tickets** dans `docs/features/socle/issues/`. Ne rien supposer d'existant qui ne soit pas listé ici.
+> **État du dépôt — squelette technique, aucun métier.** Les services démarrent et les gardes de qualité mordent, mais **aucun domaine n'est modélisé** : `GLOSSARY.md` attend le grilling et `docs/metier/` n'existe pas. Ce qui reste à faire et ce qui reste à trancher est **déposé en tickets** dans `docs/features/socle/issues/`. Ne rien supposer d'existant qui ne soit pas listé ici.
 
 ## Les règles vivent ici — carte d'orientation
 
@@ -13,11 +13,12 @@
 | [`README.md`](README.md)                                       | démarrage, outils, comment se repérer dans le dépôt (pour un humain)                 |
 | [`docs/adr/`](docs/adr/)                                       | les décisions structurantes et leur _pourquoi_                                       |
 | [`docs/methode/grilling.md`](docs/methode/grilling.md)         | **comment on interroge un plan** avant de l'écrire                                   |
-| [`docs/methode/decisions.md`](docs/methode/decisions.md)       | ADR, `CONTEXT.md`, registre de règles, documentation vivante                         |
+| [`docs/methode/decisions.md`](docs/methode/decisions.md)       | ADR, `GLOSSARY.md`, registre de règles, documentation vivante                         |
 | [`docs/methode/nomenclature.md`](docs/methode/nomenclature.md) | **nommer un document** : `<TRI>-<N>-<slug>.md`, et le **registre des trigrammes** |
 | [`docs/methode/conception.md`](docs/methode/conception.md)     | modules profonds, TDD, revue                                                         |
 | [`docs/methode/pare-feu-ci.md`](docs/methode/pare-feu-ci.md)   | les invariants vérifiés par la machine                                               |
-| [`CONTEXT.md`](CONTEXT.md)                                     | le langage ubiquitaire (glossaire, et rien d'autre)                                  |
+| [`GLOSSARY.md`](GLOSSARY.md)                                     | le langage ubiquitaire (glossaire, et rien d'autre)                                  |
+| [`.claude/rules/`](.claude/rules/)                             | fiches transverses chargées par chemin — `tests.md` pour tout test ou configuration de test         |
 <!-- socle:routing -->
 
 <!-- socle:avant-code -->
@@ -27,6 +28,7 @@ Toute divergence par rapport à ces règles fait l'objet d'une **ADR**, justifi�
 ## Méthode de travail
 
 1. **Grilling** — faire tomber les non-dits avant d'écrire quoi que ce soit. Protocole : [`docs/methode/grilling.md`](docs/methode/grilling.md). Le projet est neuf : il est **architectural**, donc questions → approches → design → **spec écrite**.
+   **On grille toujours avec les skills de Matt Pocock, jamais à la main** : `/mattpocock-skills:grill-with-docs`, c'est-à-dire `grilling` + `domain-modeling`. Seul un humain peut taper `grill-with-docs` ; quand l'agent doit griller sans qu'on l'ait tapé, il charge lui-même `mattpocock-skills:grilling` puis `mattpocock-skills:domain-modeling`. Si l'humain tape `grill-me`, l'agent charge aussi `domain-modeling` : ici, un grilling, c'est toujours `grill-with-docs`. Ils lisent et complètent `GLOSSARY.md` à la racine.
 2. **Documentation** — glossaire, règles métier, ADR, spec technique. Format : [`docs/methode/decisions.md`](docs/methode/decisions.md).
 3. **Code** — **par balles traçantes** : construire d'abord une tranche minuscule de bout en bout, la faire tourner, demander un retour, puis étendre à partir de là — une tranche par fenêtre de contexte. À l'intérieur d'une tranche, TDD et les règles impératives du service concerné (`apps/<service>/CLAUDE.md`). Méthode : [`docs/methode/conception.md`](docs/methode/conception.md).
 
@@ -35,6 +37,10 @@ Les documents fournis en cours de projet atterrissent dans [`docs/sources/`](doc
 **Après toute modification de code ou de documentation, lancer `graphify update .`** pour que le graphe de connaissance reste vrai.
 
 ## Agent skills
+
+Les skills de Matt Pocock (`mattpocock-skills`) sont déclarés dans [`.claude/settings.json`](.claude/settings.json) : le marketplace `mattpocock/skills` et le plugin activé. En local, Claude Code propose de les installer à l'ouverture du dépôt ; dans le cloud, c'est le script de configuration de l'environnement qui les installe (`claude plugin marketplace add mattpocock/skills`, puis `claude plugin install mattpocock-skills@mattpocock`) ; les commandes gardent le préfixe `/mattpocock-skills:` (par exemple `grill-with-docs`, `code-review`).
+
+Les skills de Maj-agency (`maj-skills`, dépôt [`MAJ-agency/skills`](https://github.com/MAJ-agency/skills)) sont déclarés de la même façon : le marketplace `maj` et le plugin `maj-skills@maj` dans `.claude/settings.json` ; dans le cloud, le script de configuration doit aussi les installer (`claude plugin marketplace add MAJ-agency/skills`, puis `claude plugin install maj-skills@maj`). Préfixe `/maj-skills:` — `socle-monorepo`, `socle-contrats`, `socle-nest-hexagonal`, `socle-web-next`, `socle-mobile-expo`. Ils portent le socle technique, aucune règle métier.
 
 ### Issue tracker
 
@@ -46,4 +52,4 @@ Les cinq rôles canoniques, sans renommage, portés par une ligne `Status:` en t
 
 ### Domain docs
 
-Contexte unique : `CONTEXT.md` + `docs/adr/` à la racine. Voir [`docs/agents/domain.md`](docs/agents/domain.md).
+Contexte unique : `GLOSSARY.md` + `docs/adr/` à la racine. Voir [`docs/agents/domain.md`](docs/agents/domain.md).

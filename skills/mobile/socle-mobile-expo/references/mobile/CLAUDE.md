@@ -15,12 +15,14 @@ app/                                 ←  features/, components/, lib/
 
 - `app/` is **Expo Router**: route files only (`_layout.tsx`, `index.tsx`, `(group)/`). **ZERO** business logic, **ZERO** component defined there. A route renders one feature screen.
 - A **feature** is a leaf: `features/<module>/{api,hooks,components,lib?}` + `index.ts`. It **NEVER** imports another feature. Shared code moves by number of readers: screen → `components/shared/`, data layer → `lib/<subject>/`, type/schema → `packages/contracts`, pure function → `packages/utils`.
-- Enforced by `eslint.rules.mjs`: feature list read from disk, relative parent imports forbidden (`@/…` says where a module comes from), `DETTE_FEATURES` empty and staying empty.
+- Enforced by `eslint.rules.mjs`: feature list read from disk, relative parent imports forbidden (`@/…` says where a module comes from), `FEATURE_DEBT` empty and staying empty.
 - **What is shared with the web client**: types, schemas, utils — through `packages/`. **What is NOT shared**: components (React Native ≠ DOM), the HTTP client (Bearer ≠ cookie), stores. Two clients, two implementations, one contract.
 
 ## Living reference
 
-`features/sante` is a labelled placeholder. **The first real feature becomes the living reference**: before creating another one, read it entirely and reproduce its shape — and keep it in step with its web twin when the feature exists on both clients.
+**Identifiers are English and generic (`ARC-4`)** — files, screens, hooks, props, Keychain keys, DTO fields — using the code names of `GLOSSARY.md`; user-facing text and comments are French.
+
+`features/health` is a labelled placeholder. **The first real feature becomes the living reference**: before creating another one, read it entirely and reproduce its shape — and keep it in step with its web twin when the feature exists on both clients.
 
 ## Session — the Keychain, and nothing else
 
@@ -38,8 +40,8 @@ app/                                 ←  features/, components/, lib/
 ## API client and errors
 
 - **One HTTP client**: `lib/api-client.ts` (Axios). **NEVER** `fetch` in a feature.
-- Every response is typed by a schema from `packages/contracts` and **parsed** at the edge (`Schema.parse(reponse.data)`). **NEVER** a response `interface` in `features/*/api/*`.
-- Errors: the API's error body is `ErreurDto`. Read it through `lib/api-error.ts` only. Branch on `code`, show `message`.
+- Every response is typed by a schema from `packages/contracts` and **parsed** at the edge (`Schema.parse(response.data)`). **NEVER** a response `interface` in `features/*/api/*`.
+- Errors: the API's error body is `ErrorDto`. Read it through `lib/api-error.ts` only. Branch on `code`, show `message`.
 - `EXPO_PUBLIC_API_URL` is read **literally** and validated by Zod in `lib/env.ts` at boot — fail-fast. On a physical device `localhost` is the device: use the LAN address in `.env.local`.
 
 ## State — three kinds, three tools
@@ -50,11 +52,11 @@ app/                                 ←  features/, components/, lib/
 
 ## Mutations — feedback is global
 
-Every `useMutation` declares `meta.messageSucces` **or** `meta.silencieuse: true`; `meta.messageErreur` is the fallback. `lib/query-provider.tsx` shows the feedback through `lib/toast.ts`. **NEVER** `Alert.alert` or a toast in a screen for a mutation result. Invalidate by subject after a mutation.
+Every `useMutation` declares `meta.successMessage` **or** `meta.silent: true`; `meta.errorMessage` is the fallback. `lib/query-provider.tsx` shows the feedback through `lib/toast.ts`. **NEVER** `Alert.alert` or a toast in a screen for a mutation result. Invalidate by subject after a mutation.
 
 ## Screens and components
 
-- Every top-level screen renders inside `components/ui/screen.tsx` (`Screen`): safe area, loading, error with retry, empty state are decided **once**. A feature screen passes a `statut` and renders its content.
+- Every top-level screen renders inside `components/ui/screen.tsx` (`Screen`): safe area, loading, error with retry, empty state are decided **once**. A feature screen passes a `status` and renders its content.
 - **NativeWind only** (`className`). **NEVER** `StyleSheet.create` (lint), **NEVER** inline `style` for colours, **NEVER** another UI library (Tamagui, Gluestack…). Tokens in `tailwind.config.js` mirror the web's `globals.css`; keep them aligned by hand until a tokens package exists (ticket design system).
 - Accessibility: every `Pressable` has `accessibilityRole` and `accessibilityLabel`; async status uses `accessibilityLiveRegion`; touch targets ≥ 44 pt.
 - **NEVER** a WebView for a screen the app can render natively.
@@ -87,7 +89,7 @@ pnpm --filter @{{SCOPE}}/{{PROJET}}-mobile dev           # Metro + QR code; need
 - [ ] `app/` contains only the route; the feature owns the screen, rendered inside `Screen`.
 - [ ] No import from another feature; `pnpm lint` green (`--max-warnings 0`).
 - [ ] Responses parsed with a contract schema; forms resolved with a contract schema.
-- [ ] Every mutation has `meta.messageSucces` or `meta.silencieuse`.
+- [ ] Every mutation has `meta.successMessage` or `meta.silent`.
 - [ ] No token outside `lib/secure-store.ts`; no `StyleSheet`; every `Pressable` labelled.
 - [ ] Pure logic covered by a colocated `*.spec.ts`; `pnpm check` green, bundle included.
 - [ ] **Reviewed before commit**: `/mattpocock-skills:code-review` run from the branch base; Standards axis against this file and the ADRs, Spec axis against the ticket. Every Standards finding is either fixed or answered in writing — and any finding the machine could have caught becomes a proposal for a lint rule or a `verify-*` script, so it is never found twice.

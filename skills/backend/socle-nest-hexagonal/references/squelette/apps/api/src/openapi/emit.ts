@@ -15,17 +15,17 @@ const OUT_FILE = resolve(__dirname, "../../openapi.json");
 
 async function emit(): Promise<void> {
   const app = await NestFactory.create(AppModule, { logger: false });
-  const contenu = `${JSON.stringify(buildOpenApiDocument(app), null, 2)}\n`;
+  const content = `${JSON.stringify(buildOpenApiDocument(app), null, 2)}\n`;
   await app.close();
 
   if (process.argv.includes("--check")) {
-    let actuel = "";
+    let current = "";
     try {
-      actuel = readFileSync(OUT_FILE, "utf8");
+      current = readFileSync(OUT_FILE, "utf8");
     } catch {
       // absent : le check échoue ci-dessous
     }
-    if (actuel !== contenu) {
+    if (current !== content) {
       console.error(
         `✗ ${OUT_FILE} a dérivé des schémas Zod. Rejouer : pnpm --filter @{{SCOPE}}/{{PROJET}}-api openapi:emit`,
       );
@@ -35,7 +35,7 @@ async function emit(): Promise<void> {
     return;
   }
 
-  writeFileSync(OUT_FILE, contenu);
+  writeFileSync(OUT_FILE, content);
   console.log(`✔ ${OUT_FILE} émis.`);
 }
 

@@ -1,4 +1,4 @@
-import { SantePanel } from "@/features/sante";
+import { HealthPanel } from "@/features/health";
 
 /**
  * Une page est un emballage mince : elle rend un composant de feature, rien
@@ -10,7 +10,7 @@ export default function Page() {
       <h1 className="text-2xl font-semibold">{{TITRE}}</h1>
       <p className="mt-2 text-sm text-neutral-900/70">{{DESCRIPTION}}</p>
       <div className="mt-8">
-        <SantePanel />
+        <HealthPanel />
       </div>
     </main>
   );

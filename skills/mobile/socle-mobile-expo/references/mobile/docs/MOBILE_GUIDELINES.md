@@ -1,6 +1,6 @@
 # Mobile guidelines — the why
 
-Companion to `apps/mobile/CLAUDE.md`. The example feature (`sante`) illustrates a **form**, not a business.
+Companion to `apps/mobile/CLAUDE.md`. The example feature (`health`) illustrates a **form**, not a business.
 
 ## Why the same architecture as the web client
 
@@ -14,15 +14,21 @@ The refresh queue is the same single-flight pattern as the web: one refresh for 
 
 ## Why `Screen` decides loading, error and empty once
 
-Thirty screens that each handle their spinner, their error and their empty state produce thirty variants and ten forgotten retries. `Screen` takes a `statut` and does it once, with the safe area. A feature screen only renders its content:
+Thirty screens that each handle their spinner, their error and their empty state produce thirty variants and ten forgotten retries. `Screen` takes a `status` and does it once, with the safe area. A feature screen only renders its content:
 
 ```tsx
-export function DemandesEcran() {
-  const { data, error, isPending, refetch } = useDemandes();
-  const statut = isPending ? "chargement" : error ? "erreur" : data.length === 0 ? "vide" : "ok";
+export function RequestListScreen() {
+  const { data, error, isPending, refetch } = useRequests();
+  const status = isPending ? "loading" : error ? "error" : data.length === 0 ? "empty" : "ok";
   return (
-    <Screen statut={statut} messageErreur={error ? messageErreurApi(error, "Impossible de charger.") : undefined} onReessayer={() => void refetch()}>
-      {data?.map((d) => <DemandeLigne key={d.id} demande={d} />)}
+    <Screen
+      status={status}
+      errorMessage={error ? apiErrorMessage(error, "Impossible de charger.") : undefined}
+      onRetry={() => void refetch()}
+    >
+      {data?.map((d) => (
+        <RequestRow key={d.id} request={d} />
+      ))}
     </Screen>
   );
 }

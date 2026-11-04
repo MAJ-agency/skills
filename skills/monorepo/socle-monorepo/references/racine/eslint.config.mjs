@@ -18,21 +18,21 @@ import globals from "globals";
 // config, deux blocs qui matchent le même fichier ne fusionnent PAS leurs
 // options — le dernier écrase le premier. Tout ce qui concerne un groupe de
 // fichiers vit donc dans un seul bloc, dans le fichier du service concerné.
-const racine = dirname(fileURLToPath(import.meta.url));
-const briques = ["packages", "apps"].flatMap((dossier) => {
-  const chemin = join(racine, dossier);
-  if (!existsSync(chemin)) return [];
-  return readdirSync(chemin, { withFileTypes: true })
+const root = dirname(fileURLToPath(import.meta.url));
+const bricks = ["packages", "apps"].flatMap((dir) => {
+  const path = join(root, dir);
+  if (!existsSync(path)) return [];
+  return readdirSync(path, { withFileTypes: true })
     .filter((d) => d.isDirectory())
-    .map((d) => join(chemin, d.name))
+    .map((d) => join(path, d.name))
     .sort();
 });
-const reglesBriques = (
+const brickRules = (
   await Promise.all(
-    briques.map(async (brique) => {
-      const fichier = join(brique, "eslint.rules.mjs");
-      if (!existsSync(fichier)) return [];
-      const module = await import(pathToFileURL(fichier).href);
+    bricks.map(async (brick) => {
+      const file = join(brick, "eslint.rules.mjs");
+      if (!existsSync(file)) return [];
+      const module = await import(pathToFileURL(file).href);
       return module.default({ globals });
     }),
   )
@@ -68,5 +68,5 @@ export default tseslint.config(
     rules: { "no-console": "off" },
   },
   // Règles propres à chaque brique (packages/<paquet>/ et apps/<service>/eslint.rules.mjs).
-  ...reglesBriques,
+  ...brickRules,
 );

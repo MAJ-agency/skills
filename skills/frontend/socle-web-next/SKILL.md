@@ -7,14 +7,14 @@ description: Amorce un client web Next.js (App Router) dans un monorepo — rout
 
 Amorce un client web qui démarre, ses règles d'architecture, ses gardes de frontière et ce qui reste à trancher — dans un monorepo dont la racine est posée par `/maj-skills:socle-monorepo` et les contrats par `/maj-skills:socle-contrats`.
 
-**Ce socle ne contient aucune règle métier.** Sa seule feature, `sante`, interroge `GET /health` de l'API : elle montre la forme d'une feature et prouve la chaîne complète, puis disparaît avec la première feature métier.
+**Ce socle ne contient aucune règle métier.** Sa seule feature, `health`, interroge `GET /health` de l'API : elle montre la forme d'une feature et prouve la chaîne complète, puis disparaît avec la première feature métier.
 
 Tous les gabarits vivent dans [`references/`](references/). Les copier **verbatim** puis substituer les placeholders.
 
 ## Avant de commencer — vérifier le terrain
 
 1. **La racine est-elle posée ?** Si `pnpm-workspace.yaml` est absent, **invoquer `/maj-skills:socle-monorepo`** avec `web` (et l'API si elle est voulue) : il pose la racine, les contrats, puis revient ici.
-2. **Les contrats sont-ils posés ?** Si `packages/contracts/` est absent, **invoquer `/maj-skills:socle-contrats`** : le client lit `ErreurDto` et, demain, tous ses schémas.
+2. **Les contrats sont-ils posés ?** Si `packages/contracts/` est absent, **invoquer `/maj-skills:socle-contrats`** : le client lit `ErrorDto` et, demain, tous ses schémas.
 3. Si `apps/web/` existe déjà, **s'arrêter et demander**.
 4. Les placeholders sont ceux fixés par `socle-monorepo`, plus un dérivé : `{{LANGUE_HTML}}` = `fr` si la langue est le français, `en` sinon (attribut `lang` du document).
 
@@ -58,13 +58,13 @@ Substituer les placeholders dans tout ce qui vient d'être copié.
 
 ```bash
 pnpm install
-pnpm check                                          # build (next build compris) · lint · typecheck · cycles · gates (check:dette)
+pnpm check                                          # build (next build compris) · lint · typecheck · cycles · gates (check:debt)
 pnpm --filter @<scope>/<projet>-web test            # api-error, query-keys
 ```
 
 Puis, **avec l'API lancée** (`pnpm --filter @<scope>/<projet>-api dev`), lancer `pnpm --filter @<scope>/<projet>-web dev` et ouvrir `http://localhost:3001` : la page affiche « `<projet>-api — ok` ». C'est la preuve de la chaîne complète (relais `/api`, client Axios, parsing Zod, TanStack Query, rendu).
 
-Vérifier que **les gardes de frontière mordent** — créer `apps/web/src/features/sonde/index.ts` contenant `export { SantePanel } from "@/features/sante";`, confirmer que `pnpm lint` échoue avec le message « n'importe jamais une autre feature », **puis le supprimer**. Faire de même avec un import relatif remontant (`../lib/utils`) dans un composant : le lint doit refuser.
+Vérifier que **les gardes de frontière mordent** — créer `apps/web/src/features/probe/index.ts` contenant `export { HealthPanel } from "@/features/health";`, confirmer que `pnpm lint` échoue avec le message « n'importe jamais une autre feature », **puis le supprimer**. Faire de même avec un import relatif remontant (`../lib/utils`) dans un composant : le lint doit refuser.
 
 Contrôler qu'il ne reste **aucun placeholder `{{…}}`** (chercher `{{[A-Z_]+}}` — les doubles accolades JSX ne comptent pas) dans les fichiers posés, et que les marqueurs `<!-- socle:… -->` sont toujours là.
 
@@ -78,7 +78,7 @@ Les gabarits de `references/tickets/` sont dans la plage `10`–`12` réservée 
 
 ## Ce que ce skill ne fait pas
 
-- **Aucune règle métier, aucun écran métier.** La feature `sante` est un placeholder étiqueté comme tel.
+- **Aucune règle métier, aucun écran métier.** La feature `health` est un placeholder étiqueté comme tel.
 - **Aucune session.** Le client la porte (cookies, file de refresh inerte) mais ne la crée pas : c'est le ticket `10`, bloqué par l'API.
 - **Aucun design system.** Un jeu de tokens et une primitive pour montrer la forme ; le reste est le ticket `11`.
 - **Aucun store client global**, aucun préchargement serveur par défaut : `WEB-1` dit pourquoi, et comment les ajouter le jour venu.

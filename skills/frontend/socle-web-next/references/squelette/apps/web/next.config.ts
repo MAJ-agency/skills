@@ -2,10 +2,10 @@ import type { NextConfig } from "next";
 
 // Monorepo : les paquets partagés exposent leurs SOURCES (packages/CLAUDE.md),
 // Next doit donc les transpiler comme s'ils étaient dans src/.
-const paquetsPartages = ["@{{SCOPE}}/{{PROJET}}-contracts"];
+const sharedPackages = ["@{{SCOPE}}/{{PROJET}}-contracts"];
 
 const config: NextConfig = {
-  transpilePackages: paquetsPartages,
+  transpilePackages: sharedPackages,
   output: "standalone",
   reactStrictMode: true,
   poweredByHeader: false,
@@ -27,8 +27,8 @@ const config: NextConfig = {
   // appelle NEXT_PUBLIC_API_URL directement et le relais est absent.
   async rewrites() {
     if (process.env.NODE_ENV !== "development") return [];
-    const cible = process.env.API_INTERNAL_URL ?? "http://localhost:3000";
-    return [{ source: "/api/:path*", destination: `${cible}/:path*` }];
+    const target = process.env.API_INTERNAL_URL ?? "http://localhost:3000";
+    return [{ source: "/api/:path*", destination: `${target}/:path*` }];
   },
 };
 

@@ -1,0 +1,36 @@
+{
+  "$comment": "Fragment à fusionner dans la clé `hooks` de .claude/settings.json : les matchers s'ajoutent à ceux de graphify, ils ne les remplacent pas.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/scripts/agent/garde-fichiers.mjs"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/scripts/agent/garde-commandes.mjs"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/scripts/agent/demarrage.mjs",
+            "timeout": 900
+          }
+        ]
+      }
+    ]
+  }
+}

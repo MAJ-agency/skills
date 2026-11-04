@@ -7,20 +7,20 @@ import { queryKeys } from "./query-keys";
  * l'atteint pas.
  */
 describe("queryKeys", () => {
-  const espaces = Object.entries(queryKeys);
+  const namespaces = Object.entries(queryKeys);
 
   it("chaque espace expose `all`, préfixé par son nom", () => {
-    for (const [nom, espace] of espaces) {
-      expect(espace.all[0]).toBe(nom);
+    for (const [name, namespace] of namespaces) {
+      expect(namespace.all[0]).toBe(name);
     }
   });
 
   it("chaque clé dérivée commence par le `all` de son espace", () => {
-    for (const [, espace] of espaces) {
-      for (const [nomCle, fabrique] of Object.entries(espace)) {
-        if (nomCle === "all" || typeof fabrique !== "function") continue;
-        const cle = (fabrique as (...args: never[]) => readonly unknown[])();
-        expect(cle.slice(0, espace.all.length)).toEqual([...espace.all]);
+    for (const [, namespace] of namespaces) {
+      for (const [keyName, factory] of Object.entries(namespace)) {
+        if (keyName === "all" || typeof factory !== "function") continue;
+        const key = (factory as (...args: never[]) => readonly unknown[])();
+        expect(key.slice(0, namespace.all.length)).toEqual([...namespace.all]);
       }
     }
   });

@@ -4,7 +4,7 @@ Inventaire des gabarits, avec la raison d'être de chacun. La racine du monorepo
 
 ## Règles mobile — `mobile/`
 
-- **`CLAUDE.md`** — les contraintes impératives, en anglais : même architecture que le web (routes minces, features feuilles, sens unique), session dans le Keychain et nulle part ailleurs, un seul client HTTP Bearer sur les mêmes endpoints que le web, les trois sortes d'état, retour des mutations global, `Screen` comme coquille de tout écran, NativeWind seul, environnement et build, périmètre des tests, definition of done.
+- **`CLAUDE.md`** — les contraintes impératives, en anglais : identifiants de code anglais et généralistes (`ARC-4`), même architecture que le web (routes minces, features feuilles, sens unique), session dans le Keychain et nulle part ailleurs, un seul client HTTP Bearer sur les mêmes endpoints que le web, les trois sortes d'état, retour des mutations global, `Screen` comme coquille de tout écran, NativeWind seul, environnement et build, périmètre des tests, definition of done.
 - **`docs/MOBILE_GUIDELINES.md`** — le _pourquoi_ : Bearer plutôt que cookies, `Screen`, NativeWind plutôt que StyleSheet, le bundle comme gate, les trois réglages Metro d'un monorepo pnpm.
 
 ## Squelette — `squelette/apps/mobile/`
@@ -15,10 +15,10 @@ Inventaire des gabarits, avec la raison d'être de chacun. La racine du monorepo
 - **`babel.config.js`** — `babel-preset-expo` avec le runtime JSX de NativeWind ; ni `nativewind/babel` (v2) ni plugin worklets à la main, le preset l'ajoute.
 - **`tailwind.config.js`** — preset NativeWind, tokens **identiques** à `apps/web/src/app/globals.css`, alignés à la main jusqu'au paquet de design tokens.
 - **`eslint.rules.mjs`** — les frontières du web, plus deux gardes mobiles : `expo-secure-store` importable seulement depuis `lib/`, AsyncStorage interdit partout, `StyleSheet` interdit. Ignore `.expo/`, `dist/`, `android/`, `ios/`.
-- **`app/`** — `_layout.tsx` (gesture handler, zone sûre, TanStack Query, barre d'état, pile de navigation) et `index.tsx` (rend l'écran de la feature `sante`).
-- **`src/lib/`** — `env.ts` (`EXPO_PUBLIC_API_URL` validée par Zod au démarrage), `secure-store.ts` (le Keychain, seul dépositaire des jetons), `api-client.ts` (Bearer, `X-Client-Type: mobile`, file de refresh à un seul vol, inerte), `api-error.ts` (lecture d'`ErreurDto` depuis le contrat), `query-keys.ts` et son spec, `query-provider.tsx` (`meta` → `toast`), `toast.ts` (`Alert`, sans module natif, donc Expo Go).
+- **`app/`** — `_layout.tsx` (gesture handler, zone sûre, TanStack Query, barre d'état, pile de navigation) et `index.tsx` (rend l'écran de la feature `health`).
+- **`src/lib/`** — `env.ts` (`EXPO_PUBLIC_API_URL` validée par Zod au démarrage), `secure-store.ts` (le Keychain, seul dépositaire des jetons), `api-client.ts` (Bearer, `X-Client-Type: mobile`, file de refresh à un seul vol, inerte), `api-error.ts` (lecture d'`ErrorDto` depuis le contrat), `query-keys.ts` et son spec, `query-provider.tsx` (`meta` → `toast`), `toast.ts` (`Alert`, sans module natif, donc Expo Go).
 - **`src/components/ui/`** — `screen.tsx` (zone sûre, chargement, erreur avec réessai, vide — décidés une fois) et `button.tsx` (cible ≥ 44 pt, état accessible).
-- **`src/features/sante/`** — la feature d'exemple, placeholder étiqueté.
+- **`src/features/health/`** — la feature d'exemple, placeholder étiqueté (`HealthScreen`, `useHealthStatus`, `queryKeys.health.status()`).
 - **`vitest.config.ts`** — Node à dessein ; **`gitignore`** — `.expo/`, `dist/`, `ios/`, `android/` (générés par `prebuild`), clés de signature.
 
 ## ADR — `adr/mobile/`

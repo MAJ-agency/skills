@@ -58,7 +58,7 @@ Face à une interface, se demander : puis-je réduire le nombre de méthodes ? s
 
 Un test vérifie un **comportement** à travers une interface publique, pas un détail d'implémentation. Le code peut changer entièrement ; les tests, non. Un bon test se lit comme une spécification.
 
-À l'exploration du code, lire [`CONTEXT.md`](../../CONTEXT.md) pour que les noms de tests et le vocabulaire des interfaces collent au langage du domaine, et respecter les ADR de la zone touchée.
+À l'exploration du code, lire [`GLOSSARY.md`](../../GLOSSARY.md) pour que les noms de tests et le vocabulaire des interfaces collent au langage du domaine, et respecter les ADR de la zone touchée.
 
 ### Où vont les tests : les coutures
 

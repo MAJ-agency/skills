@@ -12,28 +12,28 @@ import reactHooks from "eslint-plugin-react-hooks";
 import jsxA11y from "eslint-plugin-jsx-a11y";
 import nextPlugin from "@next/eslint-plugin-next";
 
-const ici = dirname(fileURLToPath(import.meta.url));
-const dossierFeatures = join(ici, "src", "features");
+const here = dirname(fileURLToPath(import.meta.url));
+const featuresDir = join(here, "src", "features");
 
 /**
  * CLIQUET DE DETTE — couplages entre features TOLÉRÉS, gelés avec leur date.
  * Sur un projet neuf cette liste est VIDE et le reste. Sur un projet qui hérite
  * de couplages, on y inscrit l'existant (mesure du jour en commentaire), puis :
  *   • on n'y AJOUTE jamais une entrée pour faire passer un lot ;
- *   • on en RETIRE une dès que le couplage est résorbé — `pnpm check:dette`
+ *   • on en RETIRE une dès que le couplage est résorbé — `pnpm check:debt`
  *     échoue si une entrée déclarée n'est plus utilisée, ce qui force son retrait.
- * Forme : { featureQuiImporte: ["featureImportee", …] }.
+ * Forme : { importingFeature: ["importedFeature", …] }.
  */
-export const DETTE_FEATURES = {};
+export const FEATURE_DEBT = {};
 
-export const features = existsSync(dossierFeatures)
-  ? readdirSync(dossierFeatures, { withFileTypes: true })
+export const features = existsSync(featuresDir)
+  ? readdirSync(featuresDir, { withFileTypes: true })
       .filter((d) => d.isDirectory())
       .map((d) => d.name)
       .sort()
   : [];
 
-const INTERDITS_COMMUNS = [
+const COMMON_RESTRICTIONS = [
   {
     group: ["../*"],
     message:
@@ -45,12 +45,12 @@ const INTERDITS_COMMUNS = [
   },
 ];
 
-const versFeatures = (sauf = []) =>
+const toFeatures = (except = []) =>
   features
-    .filter((f) => !sauf.includes(f))
+    .filter((f) => !except.includes(f))
     .flatMap((f) => [`@/features/${f}`, `@/features/${f}/*`]);
 
-const reglesNext = {
+const nextRules = {
   ...(nextPlugin.configs?.recommended?.rules ?? {}),
   ...(nextPlugin.configs?.["core-web-vitals"]?.rules ?? {}),
 };
@@ -74,7 +74,7 @@ export default ({ globals }) => [
     settings: { react: { version: "detect" } },
     rules: {
       ...jsxA11y.flatConfigs.recommended.rules,
-      ...reglesNext,
+      ...nextRules,
       "react-hooks/rules-of-hooks": "error",
       "react-hooks/exhaustive-deps": "error",
     },
@@ -87,11 +87,11 @@ export default ({ globals }) => [
         "error",
         {
           patterns: [
-            ...INTERDITS_COMMUNS,
-            ...(versFeatures([f, ...(DETTE_FEATURES[f] ?? [])]).length
+            ...COMMON_RESTRICTIONS,
+            ...(toFeatures([f, ...(FEATURE_DEBT[f] ?? [])]).length
               ? [
                   {
-                    group: versFeatures([f, ...(DETTE_FEATURES[f] ?? [])]),
+                    group: toFeatures([f, ...(FEATURE_DEBT[f] ?? [])]),
                     message: `features/${f} n'importe jamais une autre feature : ce qui est partagé va dans components/shared, lib/ ou packages/ (apps/web/CLAUDE.md, Features).`,
                   },
                 ]
@@ -109,7 +109,7 @@ export default ({ globals }) => [
         "error",
         {
           patterns: [
-            ...INTERDITS_COMMUNS,
+            ...COMMON_RESTRICTIONS,
             {
               group: ["@/features/*", "@/components/*", "@/app/*"],
               message:
@@ -128,7 +128,7 @@ export default ({ globals }) => [
         "error",
         {
           patterns: [
-            ...INTERDITS_COMMUNS,
+            ...COMMON_RESTRICTIONS,
             {
               group: ["@/features/*", "@/app/*"],
               message:
@@ -143,7 +143,7 @@ export default ({ globals }) => [
   {
     files: ["apps/web/src/app/**/*.{ts,tsx}"],
     rules: {
-      "no-restricted-imports": ["error", { patterns: INTERDITS_COMMUNS }],
+      "no-restricted-imports": ["error", { patterns: COMMON_RESTRICTIONS }],
     },
   },
 ];

@@ -5,20 +5,20 @@ Type: task
 
 Le client mobile est prêt pour une session par **jetons porteurs** : `lib/secure-store.ts` (Keychain), `lib/api-client.ts` (Bearer, `X-Client-Type: mobile`, file de rafraîchissement à un seul vol), tous inertes tant que l'API n'émet pas de jetons.
 
-Bloqué par : `5-authentification` — l'API doit répondre en JSON (`{ acces, refresh }`) quand `X-Client-Type: mobile` est présent, au lieu de `Set-Cookie`.
+Bloqué par : `5-authentification` — l'API doit répondre en JSON (`{ access, refresh }`) quand `X-Client-Type: mobile` est présent, au lieu de `Set-Cookie`.
 
 ## À faire, quand l'API expose `/auth/*`
 
 1. `features/auth/` : écran de connexion (`zodResolver` sur le schéma du contrat), déconnexion (effacer le Keychain, vider le cache TanStack).
-2. `lib/auth/` : `useUtilisateurCourant()` (`/auth/me`), lu par toutes les features.
-3. Brancher `definirOnSessionPerdue` dans `app/_layout.tsx` : `router.replace` vers la connexion.
-4. La porte d'entrée : `app/index.tsx` lit `jetons.lireAcces()` et redirige vers la connexion ou l'espace connecté. Ce n'est pas une frontière de sécurité, l'API refuse elle-même.
-5. Aligner la forme de la réponse de refresh dans `rafraichir()` sur le contrat une fois écrit.
+2. `lib/auth/` : `useCurrentUser()` (`/auth/me`), lu par toutes les features.
+3. Brancher `setOnSessionLost` dans `app/_layout.tsx` : `router.replace` vers la connexion.
+4. La porte d'entrée : `app/index.tsx` lit `tokens.getAccess()` et redirige vers la connexion ou l'espace connecté. Ce n'est pas une frontière de sécurité, l'API refuse elle-même.
+5. Aligner la forme de la réponse de refresh dans `refreshSession()` sur le contrat une fois écrit.
 <!-- ══ TENANT-B ══ -->
-6. Tenant : `useUtilisateurCourant()` expose le tenant actif ; un changement de tenant réémet les jetons puis vide le cache TanStack. Le client n'envoie **jamais** un `tenantId`.
+6. Tenant : `useCurrentUser()` expose le tenant actif ; un changement de tenant réémet les jetons puis vide le cache TanStack. Le client n'envoie **jamais** un `tenantId`.
 <!-- ══ /TENANT-B ══ -->
 <!-- ══ ROLES-B ══ -->
-7. Rôle : `useUtilisateurCourant()` expose le rôle (`RoleSchema` du contrat) ; le masquage par rôle est de la présentation, l'API décide. Ne jamais décoder le jeton sur l'appareil pour y lire un rôle.
+7. Rôle : `useCurrentUser()` expose le rôle (`RoleSchema` du contrat) ; le masquage par rôle est de la présentation, l'API décide. Ne jamais décoder le jeton sur l'appareil pour y lire un rôle.
 <!-- ══ /ROLES-B ══ -->
 
 ## Rappels non négociables

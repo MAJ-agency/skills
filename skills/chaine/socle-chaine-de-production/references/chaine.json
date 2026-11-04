@@ -1,0 +1,7 @@
+{
+  "$comment": "Contrat de la chaîne de production (skill socle-chaine-de-production). Lu par les skills tickets, sujet, fusionner, revue-adversariale, chantier et par scripts/agent/regles.mjs. Les branches sont fixes : develop intègre, main livre.",
+  "cheminsSensibles": [],
+  "criteresRevue": "docs/agents/criteres-revue.md",
+  "fillesParVague": 6,
+  "migrations": "apps/api/src/db/migrations/"
+}

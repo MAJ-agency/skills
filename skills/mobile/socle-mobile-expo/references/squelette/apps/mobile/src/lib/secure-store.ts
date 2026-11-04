@@ -7,21 +7,24 @@ import * as SecureStore from "expo-secure-store";
  *
  * Inerte tant que l'API n'émet pas de jetons : c'est le ticket « session ».
  */
-const CLE_ACCES = "{{PROJET}}.jeton_acces";
-const CLE_REFRESH = "{{PROJET}}.jeton_refresh";
+const ACCESS_KEY = "{{PROJET}}.access_token";
+const REFRESH_KEY = "{{PROJET}}.refresh_token";
 
-export const jetons = {
-  async definir(acces: string, refresh: string): Promise<void> {
-    await SecureStore.setItemAsync(CLE_ACCES, acces);
-    await SecureStore.setItemAsync(CLE_REFRESH, refresh);
+export const tokens = {
+  async set(access: string, refresh: string): Promise<void> {
+    await SecureStore.setItemAsync(ACCESS_KEY, access);
+    await SecureStore.setItemAsync(REFRESH_KEY, refresh);
   },
-  lireAcces(): Promise<string | null> {
-    return SecureStore.getItemAsync(CLE_ACCES);
+  getAccess(): Promise<string | null> {
+    return SecureStore.getItemAsync(ACCESS_KEY);
   },
-  lireRefresh(): Promise<string | null> {
-    return SecureStore.getItemAsync(CLE_REFRESH);
+  getRefresh(): Promise<string | null> {
+    return SecureStore.getItemAsync(REFRESH_KEY);
   },
-  async effacer(): Promise<void> {
-    await Promise.all([SecureStore.deleteItemAsync(CLE_ACCES), SecureStore.deleteItemAsync(CLE_REFRESH)]);
+  async clear(): Promise<void> {
+    await Promise.all([
+      SecureStore.deleteItemAsync(ACCESS_KEY),
+      SecureStore.deleteItemAsync(REFRESH_KEY),
+    ]);
   },
 };

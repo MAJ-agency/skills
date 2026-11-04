@@ -21,7 +21,9 @@ Cinq documents qui font autorité sur la façon de travailler.
 - **`eslint.config.mjs`** — les règles communes, et **le chargement des règles de chaque brique** depuis `packages/<paquet>/eslint.rules.mjs` et `apps/<service>/eslint.rules.mjs`. La racine ne connaît aucune stack. **Un seul bloc `no-restricted-imports` par groupe de fichiers** : en flat config, deux blocs qui matchent le même fichier ne fusionnent pas leurs options, le dernier écrase le premier. C'est un piège coûteux, d'où un bloc par couche, dans le fichier du service.
 - **`tsconfig.base.json`** — strict, `noUncheckedIndexedAccess`, `noImplicitOverride`. Chaque brique l'étend.
 - **`README.md` et `CLAUDE.md`** — génériques, avec des **zones d'insertion** `<!-- socle:… -->` où chaque service dépose ses lignes. Les marqueurs restent : ils permettent d'ajouter un service après coup.
-- **`CONTEXT.md`** — le glossaire, **vide et c'est voulu**.
+- **`GLOSSARY.md`** — le glossaire, **qui se construit au grilling** ; le nom qu'attendent les skills de Matt Pocock, et l'entrée de chaque terme est son nom en code (`ARC-4`).
+- **`.claude/settings.json`** — les marketplaces `mattpocock` et `maj` et leurs plugins activés, pour que Claude Code propose les skills à l'ouverture du dépôt. Sans hooks : `graphify claude install` ajoute les siens par-dessus.
+- **`.claude/rules/tests.md`** — la fiche transverse des tests (nommage, tests creux interdits, couverture, propriétés, commandes), chargée par chemin dès qu'un test est lu ou écrit. Sa zone `<!-- socle:tests -->` ferme le tableau des types : chaque service y insère sa ligne à infrastructure. Branche `TENANT-B` pour les tests d'isolation.
 - **`.env.example` et `.prettierignore`** — un en-tête générique ; chaque service ajoute son bloc en fin de fichier.
 - **`gitignore`** — stocké sans point pour ne pas s'appliquer au dépôt du skill ; ignore `graphify-out/` (graphe local, reconstruit en continu) et `.husky/*.local` (gardes de la machine).
 - **Husky** — `commit-msg` (commitlint) ; `pre-commit` : point d'extension local `.husky/pre-commit.local` (non versionné), lint-staged (Prettier **et ESLint** sur les fichiers stagés — les frontières d'architecture se voient au commit) — avec `--no-warn-ignored` : ESLint 9 avertit pour chaque fichier de configuration qu'on lui passe et que sa config ignore, et `--max-warnings 0` en ferait un refus de commit puis `check:commit` (typecheck + tests sans infrastructure, cache Turborepo) ; `pre-push` : `pnpm check` complet. La boucle courte est sur le chemin de l'agent, qui commite souvent et ne pousse presque jamais. Plus les **relais** `post-commit` / `post-checkout` vers graphify, indispensables parce que Husky détourne `core.hooksPath`.
@@ -29,11 +31,7 @@ Cinq documents qui font autorité sur la façon de travailler.
 
 ## Questions ouvertes — `racine/docs/questions-ouvertes.md`
 
-Livré **vide, avec son format d'entrée** (date, source, ce que ça bloque) et la règle de déplacement quand la question est tranchée — vers une ADR, le registre ou le glossaire. Même précédent que `CONTEXT.md` : un fichier à nom fixe, cité par la méthode, existe dès le départ ; ce sont les dossiers thématiques qui naissent avec leur premier document.
-
-## ADR — `adr/`
-
-- **`ARC-1`** — la nomenclature `<TRI>-<N>-<slug>.md`, avec ses alternatives écartées. Transverse, donc à la racine du socle.
+Livré **vide, avec son format d'entrée** (date, source, ce que ça bloque) et la règle de déplacement quand la question est tranchée — vers une ADR, le registre ou le glossaire. Même précédent que `GLOSSARY.md` : un fichier à nom fixe, cité par la méthode, existe dès le départ ; ce sont les dossiers thématiques qui naissent avec leur premier document.
 
 ## Skills Matt Pocock — `agents/`
 
@@ -45,7 +43,8 @@ Les trois fichiers de configuration (`issue-tracker.md`, `triage-labels.md`, `do
 
 ## ADR — `adr/`
 
-- **`ARC-1`** — la nomenclature, sans branche.
+- **`ARC-1`** — la nomenclature `<TRI>-<N>-<slug>.md`, avec ses alternatives écartées. Transverse, donc à la racine du socle.
+- **`ARC-4`** — la langue des identifiants de code : anglais et généralistes, prose dans la langue du projet, `GLOSSARY.md` porte la correspondance. Sans branche.
 - **`ARC-3`** — la forme de l'authentification par client, **à sections** : garder celles des clients installés. Remplace le ticket `3` dès qu'un client existe.
 
 ## Tickets — `tickets/`

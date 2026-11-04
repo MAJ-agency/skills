@@ -1,16 +1,16 @@
 # Frontend guidelines — the why
 
-Companion to `apps/web/CLAUDE.md`, which holds the rules. This file explains them, with examples. The example feature (`sante`) and the placeholder domain (`Demande`) illustrate a **form**, not a business.
+Companion to `apps/web/CLAUDE.md`, which holds the rules. This file explains them, with examples. The example feature (`health`) and the placeholder domain (`Request`) illustrate a **form**, not a business.
 
 ## Why routes are thin
 
 A Next route file is glued to the framework: its path, its conventions, its rendering mode. A feature component is plain React. Keeping every screen in `features/` means a route can move, be renamed or be grouped `(backoffice)`/`(public)` without touching the screen — and the screen can be rendered outside Next, in a test or another host.
 
 ```tsx
-// app/(backoffice)/demandes/page.tsx — the whole file
-import { DemandesListe } from "@/features/demandes";
+// app/(backoffice)/requests/page.tsx — the whole file
+import { RequestList } from "@/features/requests";
 export default function Page() {
-  return <DemandesListe />;
+  return <RequestList />;
 }
 ```
 
@@ -18,73 +18,73 @@ export default function Page() {
 
 Two features that import each other cannot evolve, be deleted or be understood separately; the folder boundary stops meaning anything. The rule creates a friction at the exact moment a question must be asked: **who owns this code?** The answer is always one of four moves, by number of readers:
 
-| Shared thing                              | Goes to               |
-| ----------------------------------------- | --------------------- |
-| a screen component used by two features   | `components/shared/`  |
-| a data layer read by two features         | `lib/<subject>/`      |
-| a type, a schema                          | `packages/contracts`  |
-| a pure function                           | `packages/utils`      |
+| Shared thing                            | Goes to              |
+| --------------------------------------- | -------------------- |
+| a screen component used by two features | `components/shared/` |
+| a data layer read by two features       | `lib/<subject>/`     |
+| a type, a schema                        | `packages/contracts` |
+| a pure function                         | `packages/utils`     |
 
-On an existing codebase the rule is introduced with a **ratchet**: today's couplings are frozen in `DETTE_FEATURES` with the date and the count, lint refuses any new one, `check:dette` refuses a stale entry. The list can only shrink. On a new project it is empty from day one.
+On an existing codebase the rule is introduced with a **ratchet**: today's couplings are frozen in `FEATURE_DEBT` with the date and the count, lint refuses any new one, `check:debt` refuses a stale entry. The list can only shrink. On a new project it is empty from day one.
 
 ## Anatomy of a feature
 
 ```
-features/demandes/
-├── api/demandes-api.ts        one function per endpoint; parses with the contract schema
-├── hooks/use-demandes.ts      useQuery/useMutation; keys from lib/query-keys
+features/requests/
+├── api/requests-api.ts        one function per endpoint; parses with the contract schema
+├── hooks/use-requests.ts      useQuery/useMutation; keys from lib/query-keys
 ├── components/                screens, forms, rows — PascalCase exports, kebab-case files
 ├── lib/                       pure local logic, only if there is some (with *.spec.ts)
 └── index.ts                   barrel: what app/ may import
 ```
 
 ```ts
-// api/demandes-api.ts
-import { DemandeDto, DemandeListeDto, CreerDemandeDto } from "@{{SCOPE}}/{{PROJET}}-contracts";
+// api/requests-api.ts
+import { RequestDto, RequestListDto, CreateRequestDto } from "@{{SCOPE}}/{{PROJET}}-contracts";
 import { apiClient } from "@/lib/api-client";
 
-export async function listerDemandes(): Promise<DemandeListeDto> {
-  const reponse = await apiClient.get<unknown>("/demandes");
-  return DemandeListeDto.parse(reponse.data);          // the edge parses; a lying API fails here
+export async function listRequests(): Promise<RequestListDto> {
+  const response = await apiClient.get<unknown>("/requests");
+  return RequestListDto.parse(response.data); // the edge parses; a lying API fails here
 }
-export async function creerDemande(corps: CreerDemandeDto): Promise<DemandeDto> {
-  const reponse = await apiClient.post<unknown>("/demandes", corps);
-  return DemandeDto.parse(reponse.data);
+export async function createRequest(body: CreateRequestDto): Promise<RequestDto> {
+  const response = await apiClient.post<unknown>("/requests", body);
+  return RequestDto.parse(response.data);
 }
 ```
 
 ```ts
-// hooks/use-demandes.ts
+// hooks/use-requests.ts
 "use client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { creerDemande, listerDemandes } from "@/features/demandes/api/demandes-api";
+import { createRequest, listRequests } from "@/features/requests/api/requests-api";
 import { queryKeys } from "@/lib/query-keys";
 
-export function useDemandes() {
-  return useQuery({ queryKey: queryKeys.demandes.liste(), queryFn: listerDemandes });
+export function useRequests() {
+  return useQuery({ queryKey: queryKeys.requests.list(), queryFn: listRequests });
 }
-export function useCreerDemande() {
+export function useCreateRequest() {
   const client = useQueryClient();
   return useMutation({
-    mutationFn: creerDemande,
-    meta: { messageSucces: "Demande créée." },   // feedback is global — no toast in the component
-    onSuccess: () => client.invalidateQueries({ queryKey: queryKeys.demandes.all }),
+    mutationFn: createRequest,
+    meta: { successMessage: "Demande créée." }, // feedback is global — no toast in the component
+    onSuccess: () => client.invalidateQueries({ queryKey: queryKeys.requests.all }),
   });
 }
 ```
 
 ```tsx
-// components/demande-form.tsx — the same schema the API validates with
-const form = useForm<CreerDemandeDto>({ resolver: zodResolver(CreerDemandeDto) });
+// components/request-form.tsx — the same schema the API validates with
+const form = useForm<CreateRequestDto>({ resolver: zodResolver(CreateRequestDto) });
 ```
 
 ## Why parse responses at the edge
 
-TypeScript types vanish at runtime. `apiClient.get<DemandeDto>()` is a promise, not a check: if the API changes a field, the UI breaks three components later with an undefined. `DemandeDto.parse()` moves the failure to the boundary, with a message that names the field. The cost is one call per response; the schema already exists in `packages/contracts`, nothing is written twice.
+TypeScript types vanish at runtime. `apiClient.get<RequestDto>()` is a promise, not a check: if the API changes a field, the UI breaks three components later with an undefined. `RequestDto.parse()` moves the failure to the boundary, with a message that names the field. The cost is one call per response; the schema already exists in `packages/contracts`, nothing is written twice.
 
 ## Why the mutation feedback is global
 
-Thirty features that each write `toast.success(...)` in their `onSuccess` produce thirty wordings and ten forgotten error paths. One `MutationCache` reads `meta` and does it once: success message declared next to the mutation, error message from the API's prescriptive `message`, `silencieuse` for the rare mutation whose feedback is the UI itself.
+Thirty features that each write `toast.success(...)` in their `onSuccess` produce thirty wordings and ten forgotten error paths. One `MutationCache` reads `meta` and does it once: success message declared next to the mutation, error message from the API's prescriptive `message`, `silent` for the rare mutation whose feedback is the UI itself.
 
 ## Why no SSR prefetch by default
 

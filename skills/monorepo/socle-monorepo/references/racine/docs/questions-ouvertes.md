@@ -2,7 +2,7 @@
 
 Les questions **non tranchées**, une par entrée, **datées et sourcées** : d'où vient la question, ce qui bloque, qui peut trancher. Une question ouverte assumée vaut mieux qu'une décision implicite ([`methode/grilling.md`](methode/grilling.md)).
 
-Quand une question est tranchée, son entrée est **déplacée** : vers une ADR si c'est un arbitrage (`docs/adr/`), vers le registre des règles si c'est du métier (`docs/metier/regles/`), ou vers le glossaire (`CONTEXT.md`) si c'est un terme. Rien n'est supprimé sans dire où c'est parti.
+Quand une question est tranchée, son entrée est **déplacée** : vers une ADR si c'est un arbitrage (`docs/adr/`), vers le registre des règles si c'est du métier (`docs/metier/regles/`), ou vers le glossaire (`GLOSSARY.md`) si c'est un terme. Rien n'est supprimé sans dire où c'est parti.
 
 ## Format d'une entrée
 

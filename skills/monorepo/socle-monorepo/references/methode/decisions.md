@@ -1,12 +1,12 @@
-# Décisions & glossaire — ADR, CONTEXT.md, documentation vivante
+# Décisions & glossaire — ADR, GLOSSARY.md, documentation vivante
 
 Comment on écrit ce qui a été tranché. Trois artefacts, trois rôles distincts qu'il ne faut pas mélanger.
 
-| Artefact                         | Répond à                       | Ne contient jamais                               |
-| -------------------------------- | ------------------------------ | ------------------------------------------------ |
-| [`CONTEXT.md`](../../CONTEXT.md) | **que veut dire ce mot ?**     | de détail d'implémentation, de spec, de décision |
-| [`docs/adr/`](../adr/)           | **pourquoi ce choix ?**        | de règle métier (elle va au registre)            |
-| `docs/metier/regles/`            | **que doit faire le métier ?** | de justification technique                       |
+| Artefact                           | Répond à                       | Ne contient jamais                               |
+| ---------------------------------- | ------------------------------ | ------------------------------------------------ |
+| [`GLOSSARY.md`](../../GLOSSARY.md) | **que veut dire ce mot ?**     | de détail d'implémentation, de spec, de décision |
+| [`docs/adr/`](../adr/)             | **pourquoi ce choix ?**        | de règle métier (elle va au registre)            |
+| `docs/metier/regles/`              | **que doit faire le métier ?** | de justification technique                       |
 
 ---
 
@@ -77,9 +77,9 @@ Format retenu : MADR simplifié. Le minimum viable d'une ADR est un paragraphe ;
 
 ---
 
-## CONTEXT.md — le langage ubiquitaire
+## GLOSSARY.md — le langage ubiquitaire
 
-`CONTEXT.md` est **un glossaire et rien d'autre**. Ce n'est ni une spec, ni un brouillon, ni un dépôt de décisions d'implémentation. Il est **totalement dépourvu de détail d'implémentation**.
+`GLOSSARY.md` est **un glossaire et rien d'autre**. Ce n'est ni une spec, ni un brouillon, ni un dépôt de décisions d'implémentation. Il est **totalement dépourvu de détail d'implémentation** — à une exception près, voulue par `ARC-4` : **l'entrée de chaque terme est son nom en code**, anglais et généraliste, suivi du libellé français affiché. C'est le seul pont entre le mot du métier et l'identifiant.
 
 ```md
 # <Nom du contexte>
@@ -88,11 +88,11 @@ Format retenu : MADR simplifié. Le minimum viable d'une ADR est un paragraphe ;
 
 ## Langage
 
-**Licence** :
+**licence** — licence :
 Le titre annuel délivré par la fédération à une personne physique.
 _Éviter_ : carte, permis, adhésion
 
-**Titulaire** :
+**holder** — titulaire :
 La personne physique à qui une licence est délivrée.
 _Éviter_ : utilisateur, compte, licencié
 ```
@@ -107,8 +107,8 @@ _Éviter_ : utilisateur, compte, licencié
 
 ### Un ou plusieurs contextes
 
-- Un seul `CONTEXT.md` à la racine : cas par défaut.
-- Plusieurs contextes → un `CONTEXT-MAP.md` à la racine qui liste les contextes, où ils vivent, et **comment ils se relient** (quels événements traversent quelle frontière, quels types sont partagés). Les ADR système restent dans `docs/adr/` ; les ADR propres à un contexte vivent à côté de lui.
+- Un seul `GLOSSARY.md` à la racine : cas par défaut.
+- Plusieurs contextes → un `GLOSSARY-MAP.md` à la racine qui liste les contextes, où ils vivent, et **comment ils se relient** (quels événements traversent quelle frontière, quels types sont partagés). Les ADR système restent dans `docs/adr/` ; les ADR propres à un contexte vivent à côté de lui.
 
 ---
 
@@ -116,8 +116,8 @@ _Éviter_ : utilisateur, compte, licencié
 
 Distinct des ADR : une ADR dit **pourquoi une décision technique**, une règle dit **ce que le métier exige**. Une règle survit à un changement de stack ; une ADR non.
 
-- Un fichier par domaine, dans `docs/metier/regles/`.
-- **Identifiants stables** avec préfixe par domaine (`XXX-1`, `XXX-2`, …). Les préfixes du projet sont à fixer au grilling.
+- Un fichier par sujet, dans `docs/metier/regles/`, nommé **`<TRI>-regles.md`** — sans numéro : le registre est une mécanique, pas un document de contenu, et il est **hors nomenclature** ([`nomenclature.md`](nomenclature.md)). Ainsi `LIC-3` désigne toujours une règle, jamais un document.
+- **Identifiants stables** avec le trigramme du sujet (`LIC-1`, `LIC-2`, …), attribués dans l'ordre, jamais réutilisés. Les trigrammes viennent du registre de `nomenclature.md`.
 - Cycle de vie et interdit de suppression : voir [grilling.md](grilling.md#cycle-de-validation--la-machine-ne-valide-jamais).
 - **Un test qui couvre une règle porte son identifiant dans son nom** : `test("LIC-2 — <comportement>", …)`. C'est le lien vérifiable entre le registre et le code.
 - Les questions non arbitrées vivent dans `docs/questions-ouvertes.md`, datées et sourcées.
