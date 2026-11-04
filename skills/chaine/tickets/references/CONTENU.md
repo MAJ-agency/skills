@@ -1,0 +1,41 @@
+# Ce que contient le skill tickets, et pourquoi
+
+## `scripts/docs/identifiants.mjs`
+
+La convention en un seul module : le préfixe à un ou plusieurs segments, l'identifiant de spec, celui de ticket, les noms de fichiers, le slug de branche. Tous les autres scripts l'importent : changer la convention, c'est changer ce fichier et ses tests.
+
+## `next-id.mjs`, `next-id-branches.mjs`
+
+Le prochain numéro d'un préfixe, lu dans l'arbre **et** sur les branches distantes `sujet/*` et `docs/*` : une spec écrite sur une branche non fusionnée a déjà reçu le même numéro qu'une autre, deux fois.
+
+## `ticket-libre.mjs`
+
+Trois sources croisées avant de commencer : la ligne `Status:` sur `develop` et sur chaque sujet, les branches distantes qui portent le slug, les PR ouvertes. Sans `gh` authentifié (session cloud), il ne conclut pas et donne la recherche MCP à faire : un « libre » faux coûte un ticket codé deux fois.
+
+## `vagues.mjs`
+
+Les vagues d'un chantier d'après les tickets : bloquants faits, fichiers chauds disjoints, au plus N. Il propose, l'architecte décide : trois sous-PR d'une même vague sont revenues en conflit sur un fichier chaud commun quand les vagues se faisaient à la main.
+
+## `avancement.mjs`, `avancement-regles.mjs`
+
+Le tableau d'avancement en une commande : l'humain demandait « en % ? » cinq fois par jour, chaque réponse coûtant un tour d'architecte sur un gros contexte.
+
+## `archiver-tickets.mjs`
+
+Les tickets faits depuis 180 jours sortent du chemin des gates et de la réservation, sans quitter git ; les liens sont réécrits.
+
+## `migrer-tickets.mjs`
+
+Le passage d'un dépôt au format du socle vers cette convention, avec réécriture des liens et des mentions. Dry-run par défaut.
+
+## `scripts/verify/tickets.mjs`, `tickets-regles.mjs`, `tickets-dette.json`
+
+Le gate : vocabulaire fermé de `Status:`, `Blocked by:` qui existent, `Sujet:` bien formé, identifiant porté par une seule spec, carte de chantier complète, et format prêt pour agent. La dette gelée ne grandit jamais.
+
+## `agents/`, `gabarits/`
+
+Le tracker et les labels tels que les skills de Matt Pocock les attendent (`docs/agents/`), complétés par la réservation, l'archivage et le ticket prêt pour agent ; les gabarits d'une spec, d'un ticket et d'une carte.
+
+## `depot-jouet.mjs` et les tests
+
+Chaque script a son test ; ceux qui parlent à git tournent sur un dépôt jouet, avec un `origin` nu local et un PATH sans `gh`, comme une session cloud. `node --test scripts/docs/*.test.mjs scripts/verify/*.test.mjs`.
