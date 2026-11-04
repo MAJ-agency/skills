@@ -19,7 +19,12 @@ import { fileURLToPath } from 'node:url';
 const ICI = dirname(fileURLToPath(import.meta.url));
 // Racine des skills de la chaîne : <skills>/chaine/<skill>/scripts/<nom>.
 export const SKILLS = dirname(dirname(ICI));
-export const script = (skill, nom) => join(SKILLS, skill, 'scripts', nom);
+// Posés dans un projet, tous les scripts de la chaîne vivent dans le même dossier (scripts/chaine/) ;
+// dans le plugin, chacun est dans son skill.
+export const script = (skill, nom) => {
+  const local = join(ICI, nom);
+  return existsSync(local) ? local : join(SKILLS, skill, 'scripts', nom);
+};
 
 // Sans les GIT_* hérités : sous le hook pre-push, GIT_DIR et GIT_INDEX_FILE visent le vrai dépôt,
 // et les commandes du dépôt jouet y écriraient (commit « initial » sur la branche poussée).
