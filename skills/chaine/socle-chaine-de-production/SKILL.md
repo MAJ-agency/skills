@@ -47,6 +47,8 @@ Rien d'autre : les branches sont `develop` et `main`, les labels ont leurs noms,
 | `references/fragments/readme-commandes.md`  | `README.md`  | `<!-- socle:commandes -->`    |
 | `references/fragments/readme-ou-vit-quoi.md` | `README.md` | `<!-- socle:ou-vit-quoi -->`  |
 
+Un fragment d'arborescence prend le style de l'arbre déjà dessiné dans le fichier (indentation ou `├──`), à l'intérieur de son bloc de code, pas en dessous.
+
 11. **La liste de l'admin** : `references/admin.md` → `docs/agents/chaine-admin.md`, cases à cocher par l'humain.
 
 ## Étape 3 — vérifier, puis seulement conclure
