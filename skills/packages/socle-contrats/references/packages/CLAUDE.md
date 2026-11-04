@@ -14,7 +14,7 @@ Imperative rules for what the API and its clients **share**. Read `apps/<service
 ## One validation grammar: Zod, declared once
 
 - A rule is written **once**, as a Zod schema in `contracts`. The API validates with it (`createZodDto` via `nestjs-zod`), the clients validate forms with it (`zodResolver`), the OpenAPI document is **generated** from it (`openapi:emit`). **NEVER** rewrite a validation rule in a client component or in a controller.
-- The schema constant and its inferred type share one name: `export const XxxDto = z.object(…)` and `export type XxxDto = z.infer<typeof XxxDto>`. Request bodies: `Creer{Entity}Dto`, `Modifier{Entity}Dto`. Responses: `{Entity}Dto`, `{Entity}ListeDto`. The common error body is `ErreurDto`.
+- The schema constant and its inferred type share one name: `export const XxxDto = z.object(…)` and `export type XxxDto = z.infer<typeof XxxDto>`. Request bodies: `Create{Entity}Dto`, `Update{Entity}Dto`. Responses: `{Entity}Dto`, `{Entity}ListDto`. The common error body is `ErrorDto`. **Identifiers are English and generic (`ARC-4`)**: the entity name is the code name written in `GLOSSARY.md` (`Request`, `Stakeholder`), never a word from the project's prose language or from a single trade.
 - **Response shapes are Zod schemas too**, not hand-written interfaces. That is what makes drift impossible: the API serialises through the schema, the client reads the inferred type, OpenAPI is derived from the same object. A manual `interface` next to a schema is a second source of truth — **NEVER**.
 - Enums: `export const XXX = ["a", "b"] as const;` + `export type Xxx = (typeof XXX)[number];` + `export const XxxSchema = z.enum(XXX);`. Human labels for an enum are **presentation**: they live in `utils` (or in the client), never in `contracts`.
 <!-- ══ ROLES-B ══ -->
@@ -41,7 +41,7 @@ Imperative rules for what the API and its clients **share**. Read `apps/<service
 
 ## Layout and tests
 
-- `src/index.ts` is a barrel; **one file per subject** under `src/` (`erreur.ts`, `licence.ts`…), re-exported from the barrel. A subject that grows gets a folder with its own `index.ts`.
+- `src/index.ts` is a barrel; **one file per subject** under `src/` (`error.ts`, `roles.ts`…), re-exported from the barrel. A subject that grows gets a folder with its own `index.ts`.
 - `contracts`: schemas are declarative, no test by default. A schema with a `refine`/`superRefine` or a transform gets a colocated `*.spec.ts` (Vitest).
 - `utils`: **every** exported function has a colocated `*.spec.ts`. A pure function without a test is not shared.
 

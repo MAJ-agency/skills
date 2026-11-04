@@ -4,6 +4,16 @@ Le grilling est la discipline qui précède toute écriture : **faire tomber les
 
 Sources : skills `mattpocock-skills:grilling`, `grill-with-docs`, `domain-modeling`, `superpowers:brainstorming`.
 
+## Lancer un grilling : toujours par les skills
+
+**On grille toujours avec les skills de Matt Pocock, jamais à la main.** Ce document explique la méthode ; ce sont les skills qui la portent pendant la session.
+
+- **L'humain tape `/mattpocock-skills:grill-with-docs`.** Ce skill charge deux skills : `grilling` (l'interrogatoire par tours) et `domain-modeling` (le glossaire et les ADR écrits au fil de l'eau).
+- **L'agent ne peut pas lancer `grill-with-docs` lui-même** : le skill est réservé à l'humain. Quand un grilling s'impose sans qu'on l'ait tapé — un plan à interroger, un terme flou, une décision à prendre —, l'agent charge directement `mattpocock-skills:grilling` puis `mattpocock-skills:domain-modeling`. Le résultat est le même.
+- **`grill-me` ne suffit pas ici.** Il ne charge que `grilling` : les questions, sans le glossaire ni les ADR. Si l'humain tape `/mattpocock-skills:grill-me`, l'agent charge aussi `mattpocock-skills:domain-modeling`. Dans ce dépôt, un grilling, c'est toujours `grill-with-docs`.
+- **Le glossaire est [`GLOSSARY.md`](../../GLOSSARY.md)**, le nom qu'attendent les skills : ils le lisent et le complètent tels quels. Détail : [`../agents/domain.md`](../agents/domain.md).
+- **Ce document reste la référence pour ce que les skills ne disent pas** : la prose en français, le classement des points (nouveau, confirme, précise, contredit), le cycle de validation des règles, la classification de l'effort.
+
 ---
 
 ## Le modèle : un arbre de décision et sa frontière
@@ -62,7 +72,7 @@ La recommandation n'est pas optionnelle : une question sans recommandation repor
 
 Le grilling n'est pas qu'une conversation : il **écrit** pendant qu'il interroge (skill `grill-with-docs` = `grilling` + `domain-modeling`).
 
-- **Un terme tranché → [`CONTEXT.md`](../../CONTEXT.md) immédiatement.** Ne pas empiler pour plus tard : capturer au moment où ça se cristallise.
+- **Un terme tranché → [`GLOSSARY.md`](../../GLOSSARY.md) immédiatement.** Ne pas empiler pour plus tard : capturer au moment où ça se cristallise.
 - **Une décision structurante tranchée → une ADR** dans [`docs/adr/`](../adr/), si et seulement si les trois critères sont réunis (voir [decisions.md](decisions.md)).
 - **Une question qui ne se tranche qu'en construisant** a deux réponses possibles : une **balle traçante** — une tranche minuscule de bout en bout, du code qu'on garde — quand la question porte sur la faisabilité ou la forme d'un chemin réel ; un **prototype** (`/mattpocock-skills:prototype`) — du code qu'on jette — quand elle porte sur un modèle d'état ou une interface qu'on veut sentir avant de s'engager. Choisir avant d'écrire : un prototype qu'on garde est une dette, une tranche qu'on jette est du temps perdu.
 - **Une question non tranchée → `docs/questions-ouvertes.md`**, datée, avec ce qui bloque. Une question ouverte assumée vaut mieux qu'un arbitrage implicite.
@@ -74,7 +84,7 @@ Le grilling n'est pas qu'une conversation : il **écrit** pendant qu'il interrog
 
 Repris de `mattpocock-skills:domain-modeling`.
 
-- **Challenger contre le glossaire.** Quand un terme employé entre en conflit avec `CONTEXT.md`, le dire immédiatement : « ton glossaire définit X comme ceci, mais tu sembles vouloir dire cela. Lequel ? »
+- **Challenger contre le glossaire.** Quand un terme employé entre en conflit avec `GLOSSARY.md`, le dire immédiatement : « ton glossaire définit X comme ceci, mais tu sembles vouloir dire cela. Lequel ? »
 - **Aiguiser le vocabulaire flou.** Un terme vague ou surchargé appelle une proposition de terme canonique précis : « tu dis "compte" : tu parles du licencié ou de l'utilisateur ? Ce sont deux choses. »
 - **Éprouver par des scénarios concrets.** Quand une relation de domaine est en discussion, inventer des scénarios qui sondent les cas limites et forcent la précision sur les frontières entre concepts.
 - **Confronter au code.** Quand l'utilisateur affirme comment quelque chose marche, vérifier que le code est d'accord. En cas de contradiction, la remonter.

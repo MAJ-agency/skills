@@ -4,13 +4,13 @@
 // des deux qui existe. Sans ce repli, un lancement depuis `apps/api` ne verrait
 // AUCUN `.env` et retomberait silencieusement sur les défauts de dev.
 import { existsSync } from "node:fs";
-import { config as chargerEnv } from "dotenv";
+import { config as loadEnv } from "dotenv";
 // …sauf sous Vitest : les tests ne doivent JAMAIS hériter du `.env` de la
 // machine (identifiants réels compris) — ils tournent sur les défauts
 // déterministes de `env.development.ts`, plus les variables posées
 // explicitement (overrides de suite, CI).
 if (!process.env.VITEST) {
-  chargerEnv({ path: existsSync(".env") ? ".env" : "../../.env" });
+  loadEnv({ path: existsSync(".env") ? ".env" : "../../.env" });
 }
 import { z } from "zod";
 import { devDefaults } from "./env.development";
@@ -53,12 +53,12 @@ const EnvSchema = z
   // Durcissement production : secrets longs + origine https.
   .superRefine((cfg, ctx) => {
     if (cfg.NODE_ENV !== "production") return;
-    for (const champ of ["JWT_ACCESS_SECRET", "CSRF_HMAC_SECRET"] as const) {
-      if (cfg[champ].length < MIN_SECRET_PROD) {
+    for (const field of ["JWT_ACCESS_SECRET", "CSRF_HMAC_SECRET"] as const) {
+      if (cfg[field].length < MIN_SECRET_PROD) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          path: [champ],
-          message: `${champ} doit faire au moins ${MIN_SECRET_PROD} caractères en production.`,
+          path: [field],
+          message: `${field} doit faire au moins ${MIN_SECRET_PROD} caractères en production.`,
         });
       }
     }

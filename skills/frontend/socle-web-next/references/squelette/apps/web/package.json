@@ -10,8 +10,8 @@
     "lint": "eslint src --max-warnings 0",
     "test": "vitest run",
     "check:cycles": "dpdm --no-warning --no-tree --exit-code circular:1 --tsconfig tsconfig.json \"src/**/*.{ts,tsx}\"",
-    "check:dette": "node scripts/verify-dette-imports.mjs",
-    "check:gates": "pnpm check:dette"
+    "check:debt": "node scripts/verify-debt-imports.mjs",
+    "check:gates": "pnpm check:debt"
   },
   "dependencies": {
     "@{{SCOPE}}/{{PROJET}}-contracts": "workspace:*",

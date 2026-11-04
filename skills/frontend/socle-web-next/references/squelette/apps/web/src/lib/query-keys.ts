@@ -3,11 +3,11 @@
  * tableau de clé à la main : elle prend la fabrique ici, pour que l'invalidation
  * d'un sujet (`all`) atteigne toutes ses requêtes (apps/web/CLAUDE.md, State).
  *
- * Un espace par sujet : `all`, puis `liste(filtres)` / `detail(id)` selon le besoin.
+ * Un espace par sujet : `all`, puis `list(filters)` / `detail(id)` selon le besoin.
  */
 export const queryKeys = {
-  sante: {
-    all: ["sante"] as const,
-    etat: () => [...queryKeys.sante.all, "etat"] as const,
+  health: {
+    all: ["health"] as const,
+    status: () => [...queryKeys.health.all, "status"] as const,
   },
 } as const;

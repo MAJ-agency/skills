@@ -18,8 +18,8 @@ import { z } from "zod";
  * public, un client peut brancher dessus. `message` est prescriptif — il dit
  * quoi faire, pas seulement ce qui a échoué.
  */
-export const ErreurDto = z.object({
+export const ErrorDto = z.object({
   code: z.string(),
   message: z.string(),
 });
-export type ErreurDto = z.infer<typeof ErreurDto>;
+export type ErrorDto = z.infer<typeof ErrorDto>;

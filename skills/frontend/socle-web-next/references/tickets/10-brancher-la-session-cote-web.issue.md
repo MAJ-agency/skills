@@ -10,15 +10,15 @@ Bloqué par : `5-authentification` — la session est posée par l'API, le clien
 ## À faire, quand l'API expose `/auth/*`
 
 1. `features/auth/` : formulaire de connexion (`zodResolver` sur le schéma du contrat), déconnexion.
-2. `lib/auth/` : `useUtilisateurCourant()` (`/auth/me`, `staleTime: Infinity`, `retry: false`) — dans `lib/` parce que toutes les features le lisent.
-3. Brancher `definirOnSessionPerdue` dans `app/layout.tsx` : redirection vers la page de connexion.
+2. `lib/auth/` : `useCurrentUser()` (`/auth/me`, `staleTime: Infinity`, `retry: false`) — dans `lib/` parce que toutes les features le lisent.
+3. Brancher `setOnSessionLost` dans `app/layout.tsx` : redirection vers la page de connexion.
 4. Garde de route **optimiste** dans `proxy.ts` (Next 16 ; `middleware.ts` avant) : redirige un visiteur sans cookie vers la connexion. **Ce n'est pas une frontière de sécurité** — l'API refuse elle-même — c'est du confort. Ne jamais y mettre une décision d'accès.
 5. CSRF : en-tête `X-CSRF-Token` posé par l'intercepteur de requête sur les mutations, valeur lue depuis le cookie non-httpOnly que l'API pose (signed double-submit, `apps/api/CLAUDE.md`).
 <!-- ══ TENANT-B ══ -->
-6. Tenant : `useUtilisateurCourant()` expose le tenant actif tel que la session le porte ; un changement de tenant appelle l'endpoint dédié puis `queryClient.clear()`. Le client n'envoie **jamais** un `tenantId`.
+6. Tenant : `useCurrentUser()` expose le tenant actif tel que la session le porte ; un changement de tenant appelle l'endpoint dédié puis `queryClient.clear()`. Le client n'envoie **jamais** un `tenantId`.
 <!-- ══ /TENANT-B ══ -->
 <!-- ══ ROLES-B ══ -->
-7. Rôle : `useUtilisateurCourant()` expose le rôle (`RoleSchema` du contrat) ; un `peut(action)` dans `lib/auth/` centralise le masquage — présentation seulement, l'API décide.
+7. Rôle : `useCurrentUser()` expose le rôle (`RoleSchema` du contrat) ; un `can(action)` dans `lib/auth/` centralise le masquage — présentation seulement, l'API décide.
 <!-- ══ /ROLES-B ══ -->
 
 ## Rappels non négociables

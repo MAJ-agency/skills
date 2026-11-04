@@ -11,14 +11,14 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import reactHooks from "eslint-plugin-react-hooks";
 
-const ici = dirname(fileURLToPath(import.meta.url));
-const dossierFeatures = join(ici, "src", "features");
+const here = dirname(fileURLToPath(import.meta.url));
+const featuresDir = join(here, "src", "features");
 
 /** Cliquet de dette des imports entre features — vide sur un projet neuf. Même contrat que le web. */
-export const DETTE_FEATURES = {};
+export const FEATURE_DEBT = {};
 
-export const features = existsSync(dossierFeatures)
-  ? readdirSync(dossierFeatures, { withFileTypes: true })
+export const features = existsSync(featuresDir)
+  ? readdirSync(featuresDir, { withFileTypes: true })
       .filter((d) => d.isDirectory())
       .map((d) => d.name)
       .sort()
@@ -27,22 +27,25 @@ export const features = existsSync(dossierFeatures)
 // Interdits valables partout dans l'app : chemins relatifs remontants, imports
 // profonds, et les deux pièges mobiles — un jeton hors du Keychain, un style
 // hors de NativeWind.
-const INTERDITS_COMMUNS = {
+const COMMON_RESTRICTIONS = {
   paths: [
     {
       name: "react-native",
       importNames: ["StyleSheet"],
-      message: "Pas de StyleSheet : NativeWind (className) partout (apps/mobile/CLAUDE.md, Components).",
+      message:
+        "Pas de StyleSheet : NativeWind (className) partout (apps/mobile/CLAUDE.md, Components).",
     },
   ],
   patterns: [
     {
       group: ["../*"],
-      message: "Pas d'import relatif remontant : utiliser l'alias `@/…` (apps/mobile/CLAUDE.md, Imports).",
+      message:
+        "Pas d'import relatif remontant : utiliser l'alias `@/…` (apps/mobile/CLAUDE.md, Imports).",
     },
     {
       group: ["@{{SCOPE}}/*/src/*"],
-      message: "Importer depuis le barrel du paquet, jamais un chemin interne (packages/CLAUDE.md).",
+      message:
+        "Importer depuis le barrel du paquet, jamais un chemin interne (packages/CLAUDE.md).",
     },
     {
       group: ["@react-native-async-storage/*", "expo-secure-store"],
@@ -52,19 +55,23 @@ const INTERDITS_COMMUNS = {
   ],
 };
 
-const versFeatures = (sauf = []) =>
-  features.filter((f) => !sauf.includes(f)).flatMap((f) => [`@/features/${f}`, `@/features/${f}/*`]);
+const toFeatures = (except = []) =>
+  features
+    .filter((f) => !except.includes(f))
+    .flatMap((f) => [`@/features/${f}`, `@/features/${f}/*`]);
 
-const bloc = (files, motifsSupplementaires = [], autoriserSecureStore = false) => ({
+const block = (files, extraPatterns = [], allowSecureStore = false) => ({
   files,
   rules: {
     "no-restricted-imports": [
       "error",
       {
-        paths: INTERDITS_COMMUNS.paths,
+        paths: COMMON_RESTRICTIONS.paths,
         patterns: [
-          ...INTERDITS_COMMUNS.patterns.filter((p) => autoriserSecureStore ? !p.group.includes("expo-secure-store") : true),
-          ...motifsSupplementaires,
+          ...COMMON_RESTRICTIONS.patterns.filter((p) =>
+            allowSecureStore ? !p.group.includes("expo-secure-store") : true,
+          ),
+          ...extraPatterns,
         ],
       },
     ],
@@ -73,7 +80,16 @@ const bloc = (files, motifsSupplementaires = [], autoriserSecureStore = false) =
 
 export default ({ globals }) => [
   // Sorties générées : jamais lintées.
-  { ignores: ["apps/mobile/.expo/**", "apps/mobile/dist/**", "apps/mobile/android/**", "apps/mobile/ios/**", "apps/mobile/expo-env.d.ts", "apps/mobile/nativewind-env.d.ts"] },
+  {
+    ignores: [
+      "apps/mobile/.expo/**",
+      "apps/mobile/dist/**",
+      "apps/mobile/android/**",
+      "apps/mobile/ios/**",
+      "apps/mobile/expo-env.d.ts",
+      "apps/mobile/nativewind-env.d.ts",
+    ],
+  },
   {
     files: ["apps/mobile/**/*.{ts,tsx}"],
     languageOptions: {
@@ -88,12 +104,12 @@ export default ({ globals }) => [
   },
   // ---- features/<F> : une feuille. Jamais une autre feature, sauf dette déclarée.
   ...features.map((f) =>
-    bloc(
+    block(
       [`apps/mobile/src/features/${f}/**/*.{ts,tsx}`],
-      versFeatures([f, ...(DETTE_FEATURES[f] ?? [])]).length
+      toFeatures([f, ...(FEATURE_DEBT[f] ?? [])]).length
         ? [
             {
-              group: versFeatures([f, ...(DETTE_FEATURES[f] ?? [])]),
+              group: toFeatures([f, ...(FEATURE_DEBT[f] ?? [])]),
               message: `features/${f} n'importe jamais une autre feature : ce qui est partagé va dans components/shared, lib/ ou packages/ (apps/mobile/CLAUDE.md, Features).`,
             },
           ]
@@ -101,26 +117,28 @@ export default ({ globals }) => [
     ),
   ),
   // ---- lib/ : le socle transverse — seul endroit autorisé à toucher le Keychain.
-  bloc(
+  block(
     ["apps/mobile/src/lib/**/*.{ts,tsx}"],
     [
       {
         group: ["@/features/*", "@/components/*", "@/app/*"],
-        message: "lib/ est en dessous de tout : il n'importe ni features/, ni components/, ni app/ (apps/mobile/CLAUDE.md, Import direction).",
+        message:
+          "lib/ est en dessous de tout : il n'importe ni features/, ni components/, ni app/ (apps/mobile/CLAUDE.md, Import direction).",
       },
     ],
     true,
   ),
   // ---- components/ : partagé, donc n'importe aucune feature.
-  bloc(
+  block(
     ["apps/mobile/src/components/**/*.{ts,tsx}"],
     [
       {
         group: ["@/features/*", "@/app/*"],
-        message: "components/ est partagé : il n'importe jamais une feature ni une route (apps/mobile/CLAUDE.md, Import direction).",
+        message:
+          "components/ est partagé : il n'importe jamais une feature ni une route (apps/mobile/CLAUDE.md, Import direction).",
       },
     ],
   ),
   // ---- app/ : des routes minces.
-  bloc(["apps/mobile/app/**/*.{ts,tsx}"]),
+  block(["apps/mobile/app/**/*.{ts,tsx}"]),
 ];

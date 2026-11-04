@@ -45,6 +45,7 @@ docs/
 ├── architecture/           guides techniques qui ne sont pas des décisions
 ├── infrastructure/         hébergement, base, CI/CD, déploiement — les specs, pas les décisions
 ├── design/                 design system : tokens, principes, composants
+│   └── proto/              prototypes HTML jetables, un par parcours — du code qu'on jette, pas un document
 ├── metier/                 ce qui reste vrai après les features
 │   ├── regles/             le registre des règles métier — identifiants stables, cycle candidate → validée
 │   ├── reference/          la référence fonctionnelle : comment le produit fonctionne, tel qu'il est
@@ -63,7 +64,7 @@ docs/
 | **Architecture**   | `docs/architecture/`   | guides techniques qui ne sont **pas** des décisions           | comment faire une fois décidé ; le _pourquoi_ reste dans l'ADR qu'on cite                                           |
 | **Infrastructure** | `docs/infrastructure/` | hébergement, base, CI/CD, déploiement (`INF-1`…)              | où et comment ça tourne ; jamais ce que le métier exige                                                             |
 | **Design**         | `docs/design/`         | charte, tokens, primitives (`DES-1`…)                         | ce que l'utilisateur voit et touche ; jamais une règle métier déguisée en écran                                     |
-| **Métier**         | `docs/metier/`         | `regles/` (registre), `reference/` (fonctionnel), `reunions/` | **ce qui reste vrai après** la livraison ; une règle s'y écrit **une fois**, avec son identifiant                    |
+| **Métier**         | `docs/metier/`         | `reference/` (fonctionnement tel qu'il est), `regles/` (registre, identifiants stables, cycle `candidate → validée → implémentée`), `reunions/` (comptes rendus datés) | **ce qui reste vrai après** la livraison ; une règle s'y écrit **une fois**, avec son identifiant                    |
 | **Feature**        | `docs/features/`       | un dossier par feature : sa spec et ses tickets               | **du travail en cours**, qui a un statut et une fin ; une spec **cite** les règles (`LIC-3`), elle ne les formule jamais |
 
 Quatre dossiers de service complètent l'arbre, hors thème : `methode/` (comment on travaille), `agents/` (config des skills), `sources/` (entrées brutes), `superpowers/` (specs de session). Et un fichier à la racine de `docs/` : `questions-ouvertes.md`, où va toute question non tranchée, datée et sourcée, jusqu'à ce qu'une ADR ou une règle la ferme.
@@ -78,7 +79,7 @@ Quatre dossiers de service complètent l'arbre, hors thème : `methode/` (commen
 
 ### Couvert par `<TRI>-<N>-<slug>.md`
 
-Tout document de contenu : `docs/adr/`, `docs/architecture/`, `docs/infrastructure/`, `docs/design/`, `docs/metier/regles/`, `docs/metier/reference/`, et les documents de fond d'une feature. Les comptes rendus de `docs/metier/reunions/` sont datés (`reunion-<AAAA-MM-JJ>-<sujet>.md`) et exclus : une réunion n'est pas un sujet.
+Tout document de contenu : `docs/adr/`, `docs/architecture/`, `docs/infrastructure/`, `docs/design/`, `docs/metier/reference/`, et les documents de fond d'une feature. Les comptes rendus de `docs/metier/reunions/` sont datés (`reunion-<AAAA-MM-JJ>-<sujet>.md`) et exclus : une réunion n'est pas un sujet. Les registres de `docs/metier/regles/` sont exclus : ce sont les **règles** qui portent l'identifiant `<TRI>-<N>`, pas le fichier ([`decisions.md`](decisions.md#registre-des-règles-métier)).
 
 ### Exclu — la mécanique, qui garde ses propres conventions
 
@@ -88,11 +89,14 @@ Tout document de contenu : `docs/adr/`, `docs/architecture/`, `docs/infrastructu
 | `docs/features/<slug>/issues/`         | `<N>-<titre>.issue.md`, numérotés à partir de `1` sans zéro de tête — les tickets |
 | `docs/methode/`                        | nom parlant (`grilling.md`, `conception.md`) — ce sont les règles elles-mêmes |
 | `docs/sources/`                        | `<sujet>-<AAAA-MM-JJ>.<ext>` — entrées brutes, datées à la source             |
-| `docs/metier/reunions/`                | `reunion-<AAAA-MM-JJ>-<sujet>.md` — comptes rendus datés                        |
-| `docs/questions-ouvertes.md`           | nom fixe — les questions non tranchées, un fichier                             |
+| `docs/metier/reunions/`                | `reunion-<AAAA-MM-JJ>-<sujet>.md` — comptes rendus datés ; une réunion n'est pas un sujet |
+| `docs/metier/regles/`                  | `<TRI>-regles.md` — un registre par sujet ; l'identifiant `<TRI>-<N>` est celui de la **règle**, le fichier n'en a pas |
+| `docs/features/<slug>/*.map.md`        | la carte d'un chantier, sous le même identifiant que sa spec — de la mécanique, pas du contenu |
 | `docs/superpowers/`                    | `AAAA-MM-JJ-<sujet>-design.md`                                                |
+| `docs/design/proto/`                   | prototypes HTML jetables, un fichier par parcours — du code qu'on jette, pas un document ; ce qui en reste vrai entre dans `docs/design/` avec un trigramme (`DES`) ; leurs parcours Playwright dans `tests/<maquette>/` |
 | `docs/agents/`                         | config des skills (`issue-tracker.md`, `triage-labels.md`, `domain.md`)       |
-| `README.md`, `CLAUDE.md`, `CONTEXT.md` | noms conventionnels, jamais renommés                                          |
+| `README.md`, `CLAUDE.md`, `GLOSSARY.md` | noms conventionnels, jamais renommés                                          |
+| `docs/questions-ouvertes.md`           | nom conventionnel — les questions non arbitrées, datées et sourcées (`grilling.md`) |
 
 **Pas de sommaire.** Un dossier de documents n'a pas d'index : le nom du fichier porte son identité, donc lister le dossier suffit. Un sommaire tenu à la main serait une copie de l'arborescence, qui se périme sans que rien ne le signale. (Si un index devenait un jour utile — pour du rendu web par exemple — il serait **généré** depuis les fichiers et vérifié par le gate doc-drift, jamais écrit à la main : voir [`decisions.md`](decisions.md#documentation-vivante--trois-couches).)
 
@@ -111,6 +115,7 @@ Tout document de contenu : `docs/adr/`, `docs/architecture/`, `docs/infrastructu
 | `SEC`     | sécurité (auth, cadence, audit, RGPD)                    | réservé                                         |
 | `API`     | guides propres au service back (`apps/api/`)             | réservé — conditionné à la forme du dépôt       |
 | `WEB`     | guides propres au client (`apps/web/`)                   | réservé — conditionné à l'existence d'un client |
+| `MOB`     | guides et décisions propres au client mobile (`apps/mobile/`) | réservé — conditionné à l'existence d'un client mobile |
 | `DES`     | design system                                            | réservé — conditionné à l'existence d'un client |
 
 Le tableau ci-dessus ne contient que les trigrammes **structurels**. Les trigrammes de **sujets métier** (features, epics) n'y sont volontairement pas : ils s'ajoutent quand le sujet apparaît réellement — au grilling, puis au fil du projet. **Ne pas les pré-inventer depuis les documents sources** : un trigramme créé pour un sujet qui n'a pas encore été tranché fige un découpage qui n'existe pas.

@@ -26,9 +26,9 @@ Un client web Next.js offre plusieurs façons de rendre une page (composant serv
 
 **Coûts.** Une page publique qui a besoin du premier rendu complet demande un geste explicite (préchargement par page). Un composant sans logique pure n'a pas de test unitaire : sa couverture est le parcours Playwright, qui exige une API qui tourne.
 
-**Risque et parade.** Le cliquet de dette peut être contourné en ajoutant une entrée « pour faire passer un lot ». Parade : la liste est revue à chaque PR qui la touche, et `check:dette` refuse une entrée périmée.
+**Risque et parade.** Le cliquet de dette peut être contourné en ajoutant une entrée « pour faire passer un lot ». Parade : la liste est revue à chaque PR qui la touche, et `check:debt` refuse une entrée périmée.
 
 ## Liens
 
 - Règles : `apps/web/CLAUDE.md` ; le pourquoi : `apps/web/docs/FRONTEND_GUIDELINES.md`
-- Frontières : `apps/web/eslint.rules.mjs`, `apps/web/scripts/verify-dette-imports.mjs`
+- Frontières : `apps/web/eslint.rules.mjs`, `apps/web/scripts/verify-debt-imports.mjs`

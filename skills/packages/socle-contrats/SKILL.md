@@ -7,7 +7,7 @@ description: Pose les paquets partagés d'un monorepo — packages/contracts (sc
 
 Pose ce que l'API et ses clients **partagent** : le paquet `contracts`, source unique des schémas Zod, et le gabarit du paquet `utils`, posé le jour où deux briques partagent une fonction pure. Avec les règles qui font tenir le partage, et le lint qui les applique.
 
-**Ce socle ne contient aucun contrat métier** : `contracts` ne porte que le corps d'erreur commun. Les contrats métier naissent avec le premier use case, une fois le domaine modélisé.
+**Ce socle ne contient aucun contrat métier** : `contracts` ne porte que le corps d'erreur commun. Ses identifiants suivent `ARC-4` : anglais et généralistes (`ErrorDto`, `Create{Entity}Dto`), le nom d'entité étant le nom en code du `GLOSSARY.md` ; les commentaires restent dans la langue du projet. Les contrats métier naissent avec le premier use case, une fois le domaine modélisé.
 
 Tous les gabarits vivent dans [`references/`](references/). Les copier **verbatim** puis substituer les placeholders.
 
@@ -56,7 +56,7 @@ pnpm install
 pnpm check      # le paquet build, lint, typecheck avec le reste
 ```
 
-Vérifier que **la garde de framework mord** : créer `packages/contracts/src/sonde.ts` avec `import { Injectable } from "@nestjs/common";`, confirmer que `pnpm lint` échoue avec le message de `packages/CLAUDE.md`, **puis le supprimer**. Si le lint ne mord pas, `packages/contracts/eslint.rules.mjs` n'est pas chargé par l'ESLint racine.
+Vérifier que **la garde de framework mord** : créer `packages/contracts/src/probe.ts` avec `import { Injectable } from "@nestjs/common";`, confirmer que `pnpm lint` échoue avec le message de `packages/CLAUDE.md`, **puis le supprimer**. Si le lint ne mord pas, `packages/contracts/eslint.rules.mjs` n'est pas chargé par l'ESLint racine.
 
 Contrôler qu'il ne reste **aucun placeholder `{{…}}`** (chercher `{{[A-Z_]+}}` — les doubles accolades JSX ne comptent pas) dans les fichiers posés.
 

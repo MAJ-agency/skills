@@ -41,3 +41,11 @@ test('le texte libre d’une commande (message de commit, heredoc) n’est pas l
   assert.equal(decisionCommande("git commit -m 'ne jamais git push --force'"), null);
   assert.equal(sansTexte('cat <<EOF\ngit push --force\nEOF'), 'cat <<heredoc');
 });
+
+test('planDemarrage ne lance que les étapes manquantes et actives', async () => {
+  const { planDemarrage } = await import('./demarrage.mjs');
+  const pret = { originDevelop: true, originHead: true, nodeModules: true, lockfileMtime: 1, installMtime: 2, postgres: null, baseTest: null };
+  assert.deepEqual(planDemarrage(pret), []);
+  assert.deepEqual(planDemarrage({ ...pret, originDevelop: false, lockfileMtime: 3 }), ['fetch-develop', 'install']);
+  assert.deepEqual(planDemarrage({ ...pret, postgres: false, baseTest: false }), [], 'étapes de base désactivées tant que le projet n’a pas sa base');
+});

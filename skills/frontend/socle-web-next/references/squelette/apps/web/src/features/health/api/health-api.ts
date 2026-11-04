@@ -7,10 +7,10 @@ import { apiClient } from "@/lib/api-client";
  * `/health` n'en a pas (sonde anonyme de l'API), on la déclare donc ici, au plus
  * près de l'appel — et nulle part ailleurs.
  */
-const EtatSante = z.object({ status: z.string(), service: z.string() });
-export type EtatSante = z.infer<typeof EtatSante>;
+const HealthStatus = z.object({ status: z.string(), service: z.string() });
+export type HealthStatus = z.infer<typeof HealthStatus>;
 
-export async function lireEtatSante(): Promise<EtatSante> {
-  const reponse = await apiClient.get<unknown>("/health");
-  return EtatSante.parse(reponse.data);
+export async function fetchHealthStatus(): Promise<HealthStatus> {
+  const response = await apiClient.get<unknown>("/health");
+  return HealthStatus.parse(response.data);
 }

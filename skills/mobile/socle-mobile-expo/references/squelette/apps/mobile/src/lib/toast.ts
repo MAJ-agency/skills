@@ -7,10 +7,10 @@ import { Alert } from "react-native";
  * changer.
  */
 export const toast = {
-  succes(message: string): void {
+  success(message: string): void {
     Alert.alert("OK", message);
   },
-  erreur(message: string): void {
+  error(message: string): void {
     Alert.alert("Erreur", message);
   },
 };

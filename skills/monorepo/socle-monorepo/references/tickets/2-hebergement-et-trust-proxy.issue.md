@@ -21,6 +21,10 @@ Le nombre dépend donc de la topologie réelle (CDN ? load balancer ? routeur du
 1. Quel hébergeur, et combien d'intermédiaires devant l'app ?
 2. Contraintes de souveraineté : où les données peuvent-elles vivre ? Un CDN qui termine le TLS est-il acceptable ?
 3. PostgreSQL managé : sauvegarde à un instant donné (PITR) chiffrée ? Peut-on créer un rôle applicatif distinct du propriétaire ?
+<!-- ══ TENANT-B ══ -->
+4. Le rôle applicatif doit pouvoir être créé **`NOBYPASSRLS`** : c'est une exigence de `ARC-2` (isolation par RLS). Un hébergeur qui ne le permet pas est **éliminatoire**.
+<!-- ══ /TENANT-B ══ -->
+5. Les clients (`ARC-3`) : l'origine du client web déployé devient `CORS_ORIGIN` de l'API ; une application mobile doit joindre l'API publiquement (`EXPO_PUBLIC_API_URL`).
 
 ## À faire ensuite
 

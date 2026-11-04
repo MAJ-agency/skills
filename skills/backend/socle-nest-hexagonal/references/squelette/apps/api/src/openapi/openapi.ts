@@ -2,7 +2,7 @@ import type { INestApplication } from "@nestjs/common";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import type { OpenAPIObject } from "@nestjs/swagger";
 import { cleanupOpenApiDoc, createZodDto } from "nestjs-zod";
-import { ErreurDto } from "@{{SCOPE}}/{{PROJET}}-contracts";
+import { ErrorDto } from "@{{SCOPE}}/{{PROJET}}-contracts";
 
 /**
  * Corps d'erreur commun : la forme que le `DomainErrorFilter` global rend pour
@@ -11,7 +11,7 @@ import { ErreurDto } from "@{{SCOPE}}/{{PROJET}}-contracts";
  * est la vérité de l'API, et c'est ce que le document doit dire pour que le
  * canal d'erreur d'un client typé le soit aussi.
  */
-class ErreurResponse extends createZodDto(ErreurDto) {}
+class ErrorResponse extends createZodDto(ErrorDto) {}
 
 /**
  * Document OpenAPI de l'API interne : généré depuis les schémas Zod via
@@ -28,7 +28,7 @@ export function buildOpenApiDocument(app: INestApplication): OpenAPIObject {
     .setVersion("0.0.1")
     .addGlobalResponse({
       status: "4XX",
-      type: ErreurResponse,
+      type: ErrorResponse,
       description:
         "Refus (domaine, accès ou validation) : `code` stable du domaine + `message` prescriptif.",
     })

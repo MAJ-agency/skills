@@ -2,7 +2,7 @@
 
 {{DESCRIPTION}}
 
-> **⚠️ Squelette technique, aucun métier.** Les services démarrent, la configuration est en place et les gardes de qualité mordent — mais **aucun domaine n'est modélisé** : pas d'entité, pas de use case, pas de base. `CONTEXT.md` est vide.
+> **⚠️ Squelette technique, aucun métier.** Les services démarrent, la configuration est en place et les gardes de qualité mordent — mais **aucun domaine n'est modélisé** : pas d'entité, pas de use case, pas de base. Le glossaire (`GLOSSARY.md`) se construit au grilling.
 >
 > **Ce qui reste à faire et ce qui reste à trancher est déposé en tickets** dans [`docs/features/socle/issues/`](docs/features/socle/issues/). Commencer par `1-modeliser-le-domaine` : presque tout en dépend.
 
@@ -18,7 +18,7 @@ Le projet se construit en trois temps, dans cet ordre. Chaque étape a ses règl
         │             → docs/methode/grilling.md
         ▼
 2. DOCUMENTATION     ce qui est tranché est écrit : vocabulaire, décisions,
-   CONTEXT.md         règles métier
+   GLOSSARY.md         règles métier
    docs/adr/          → docs/methode/decisions.md · docs/methode/nomenclature.md
    docs/metier/
         │
@@ -56,7 +56,7 @@ Un changement de contrat casse le typecheck de **tous** les consommateurs en mê
 ```
 README.md                démarrage, outils, règles — ce fichier
 CLAUDE.md                les mêmes repères, en instructions pour un agent
-CONTEXT.md               glossaire du domaine (langage ubiquitaire) — et rien d'autre
+GLOSSARY.md               glossaire du domaine (langage ubiquitaire) — et rien d'autre
 
 apps/                    un dossier par service — chacun porte son CLAUDE.md
 packages/                paquets partagés entre services
@@ -77,6 +77,7 @@ docs/                    TOUTE la documentation, triée par thème (l'arbre comp
   questions-ouvertes.md  les questions non tranchées, datées et sourcées
 
 .husky/                  hooks git partagés par l'équipe
+.claude/rules/           fiches transverses chargées par chemin (tests.md)
 ```
 
 <!-- socle:ou-vit-quoi -->
@@ -139,7 +140,7 @@ pnpm check
 
 Quelques règles transverses, pour ne pas avoir à les chercher :
 
-- **Tout est en {{LANGUE}}** — code, commentaires, commits (conventional commits), documentation.
+- **Les identifiants de code sont en anglais, généralistes ; la prose est en {{LANGUE}}** — commentaires, commits (conventional commits), documentation, textes d'interface (`ARC-4`). `GLOSSARY.md` donne le nom en code de chaque terme métier. Exceptions assumées : les règles impératives des services (`apps/<service>/CLAUDE.md`, leurs guidelines) et `packages/CLAUDE.md` restent en anglais, pour rester diffables avec leur gabarit d'origine.
 <!-- socle:regles-transverses -->
 - **Un document de contenu se nomme `<TRI>-<N>-<slug>.md`** et se cite par son identifiant court (`ARC-1`), jamais par son chemin. Si le sujet n'a pas de trigramme, **on l'inscrit au registre avant de créer le fichier**.
 - **Aucun invariant critique ne dépend d'un relecteur** : chacun est un test bloquant en CI.

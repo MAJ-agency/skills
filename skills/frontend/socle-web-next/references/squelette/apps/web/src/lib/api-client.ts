@@ -12,13 +12,13 @@ import { env } from "@/lib/env";
  *   vers l'API (next.config.ts) : sinon le cookie d'une autre origine n'est pas
  *   renvoyé.
  */
-function origineApi(): string {
-  const navigateurEnDev = typeof window !== "undefined" && env.NODE_ENV === "development";
-  return navigateurEnDev ? "/api" : env.NEXT_PUBLIC_API_URL;
+function apiOrigin(): string {
+  const browserInDev = typeof window !== "undefined" && env.NODE_ENV === "development";
+  return browserInDev ? "/api" : env.NEXT_PUBLIC_API_URL;
 }
 
 export const apiClient = axios.create({
-  baseURL: origineApi(),
+  baseURL: apiOrigin(),
   withCredentials: true,
   timeout: 15_000,
   headers: { "Content-Type": "application/json" },
@@ -39,38 +39,38 @@ apiClient.interceptors.request.use((config) => {
  * refresh token révoque la famille (apps/api/CLAUDE.md, Invariants — auth).
  *
  * Inerte tant que l'API ne répond jamais 401 : l'authentification est un
- * ticket. Quand elle arrive, seul `CHEMIN_REFRESH` et `onSessionPerdue`
+ * ticket. Quand elle arrive, seul `REFRESH_PATH` et `onSessionLost`
  * sont à brancher.
  */
-const CHEMIN_REFRESH = "/auth/refresh";
-const CHEMINS_SANS_REFRESH = ["/auth/login", "/auth/logout", CHEMIN_REFRESH];
+const REFRESH_PATH = "/auth/refresh";
+const PATHS_WITHOUT_REFRESH = ["/auth/login", "/auth/logout", REFRESH_PATH];
 
-let refreshEnVol: Promise<void> | undefined;
-let onSessionPerdue: () => void = () => {};
+let refreshInFlight: Promise<void> | undefined;
+let onSessionLost: () => void = () => {};
 
 /** Branché par le layout : quoi faire quand la session ne peut pas être rétablie. */
-export function definirOnSessionPerdue(callback: () => void): void {
-  onSessionPerdue = callback;
+export function setOnSessionLost(callback: () => void): void {
+  onSessionLost = callback;
 }
 
-apiClient.interceptors.response.use(undefined, async (erreur: unknown) => {
-  if (!axios.isAxiosError(erreur) || erreur.response?.status !== 401 || !erreur.config) {
-    throw erreur;
+apiClient.interceptors.response.use(undefined, async (error: unknown) => {
+  if (!axios.isAxiosError(error) || error.response?.status !== 401 || !error.config) {
+    throw error;
   }
-  const config = erreur.config as typeof erreur.config & { _rejouee?: boolean };
-  const chemin = config.url ?? "";
-  if (config._rejouee || CHEMINS_SANS_REFRESH.some((c) => chemin.startsWith(c))) {
-    throw erreur;
+  const config = error.config as typeof error.config & { _retried?: boolean };
+  const path = config.url ?? "";
+  if (config._retried || PATHS_WITHOUT_REFRESH.some((p) => path.startsWith(p))) {
+    throw error;
   }
   try {
-    refreshEnVol ??= apiClient.post(CHEMIN_REFRESH).then(() => undefined);
-    await refreshEnVol;
+    refreshInFlight ??= apiClient.post(REFRESH_PATH).then(() => undefined);
+    await refreshInFlight;
   } catch {
-    onSessionPerdue();
-    throw erreur;
+    onSessionLost();
+    throw error;
   } finally {
-    refreshEnVol = undefined;
+    refreshInFlight = undefined;
   }
-  config._rejouee = true;
+  config._retried = true;
   return apiClient.request(config);
 });

@@ -8,22 +8,50 @@
 // tourne en CI avec Postgres. Voir docs/methode/pare-feu-ci.md.
 import { spawnSync } from "node:child_process";
 
-const etapes = [
-  ["build", "turbo run build", "une brique ne compile pas : lire l'erreur TypeScript ou Next/Metro au-dessus."],
-  ["lint", "eslint .", "une règle ESLint est violée — souvent une frontière d'architecture : le message cite le CLAUDE.md qui la fonde."],
-  ["typecheck", "turbo run typecheck", "les types ne passent pas : corriger le type, jamais `as` ni `any` pour faire passer."],
-  ["test", "turbo run test", "un test rouge : lire son nom, il porte le comportement (et l'identifiant de règle) attendu."],
-  ["check:cycles", "turbo run check:cycles", "une dépendance circulaire : casser le cycle par un port, pas par un import paresseux."],
-  ["check:gates", "turbo run check:gates", "un gate propre à une brique échoue (check:arch, openapi:check, cliquet de dette, bundle) : son message dit lequel."],
+const steps = [
+  [
+    "build",
+    "turbo run build",
+    "une brique ne compile pas : lire l'erreur TypeScript ou Next/Metro au-dessus.",
+  ],
+  [
+    "lint",
+    "eslint .",
+    "une règle ESLint est violée — souvent une frontière d'architecture : le message cite le CLAUDE.md qui la fonde.",
+  ],
+  [
+    "typecheck",
+    "turbo run typecheck",
+    "les types ne passent pas : corriger le type, jamais `as` ni `any` pour faire passer.",
+  ],
+  [
+    "test",
+    "turbo run test",
+    "un test rouge : lire son nom, il porte le comportement (et l'identifiant de règle) attendu.",
+  ],
+  [
+    "check:cycles",
+    "turbo run check:cycles",
+    "une dépendance circulaire : casser le cycle par un port, pas par un import paresseux.",
+  ],
+  [
+    "check:gates",
+    "turbo run check:gates",
+    "un gate propre à une brique échoue (check:arch, openapi:check, cliquet de dette, bundle) : son message dit lequel.",
+  ],
 ];
 
-const debut = Date.now();
-for (const [nom, commande, conseil] of etapes) {
-  console.log(`\n▶ ${nom}  (${commande})`);
-  const r = spawnSync(commande, { shell: true, stdio: "inherit" });
+const start = Date.now();
+for (const [name, command, hint] of steps) {
+  console.log(`\n▶ ${name}  (${command})`);
+  const r = spawnSync(command, { shell: true, stdio: "inherit" });
   if (r.status !== 0) {
-    console.error(`\n✗ check — échec à l'étape « ${nom} ».\n  ${conseil}\n  Relancer seulement cette étape : pnpm ${nom}`);
+    console.error(
+      `\n✗ check — échec à l'étape « ${name} ».\n  ${hint}\n  Relancer seulement cette étape : pnpm ${name}`,
+    );
     process.exit(r.status ?? 1);
   }
 }
-console.log(`\n✔ check — ${etapes.length} étapes vertes en ${Math.round((Date.now() - debut) / 1000)} s.`);
+console.log(
+  `\n✔ check — ${steps.length} étapes vertes en ${Math.round((Date.now() - start) / 1000)} s.`,
+);

@@ -7,7 +7,7 @@ description: Amorce un client mobile Expo (Expo Router, NativeWind) dans un mono
 
 Amorce un client mobile qui démarre, ses règles d'architecture, ses gardes de frontière et ce qui reste à trancher — dans un monorepo dont la racine est posée par `/maj-skills:socle-monorepo` et les contrats par `/maj-skills:socle-contrats`.
 
-**Ce socle ne contient aucune règle métier.** Sa seule feature, `sante`, interroge `GET /health` de l'API depuis l'écran d'accueil : elle montre la forme d'une feature et la coquille `Screen`, puis disparaît avec la première feature métier.
+**Ce socle ne contient aucune règle métier.** Sa seule feature, `health`, interroge `GET /health` de l'API depuis l'écran d'accueil : elle montre la forme d'une feature et la coquille `Screen`, puis disparaît avec la première feature métier.
 
 Tous les gabarits vivent dans [`references/`](references/). Les copier **verbatim** puis substituer les placeholders.
 
@@ -73,7 +73,7 @@ Le bundle est la preuve sans appareil : `expo export --platform android` travers
 
 Puis, **avec l'API lancée**, `pnpm --filter @<scope>/<projet>-mobile dev` et ouvrir dans Expo Go ou un simulateur : l'écran affiche « `<projet>-api — ok` ». Sur un téléphone physique, `EXPO_PUBLIC_API_URL` doit pointer vers l'adresse LAN du poste. **Si aucun appareil ni simulateur n'est disponible, le dire** : le bundle prouve la construction, pas le rendu.
 
-Vérifier que **les gardes mordent** — créer `apps/mobile/src/features/sonde/index.ts` avec `export { SanteEcran } from "@/features/sante";` : le lint refuse (« n'importe jamais une autre feature »). Créer `apps/mobile/src/features/sante/lib/sonde.ts` avec `import * as S from "expo-secure-store"; export const s = S;` : le lint refuse (« Un jeton vit dans lib/secure-store.ts »). Créer un composant avec `import { StyleSheet } from "react-native";` : le lint refuse. **Supprimer les trois sondes.**
+Vérifier que **les gardes mordent** — créer `apps/mobile/src/features/probe/index.ts` avec `export { HealthScreen } from "@/features/health";` : le lint refuse (« n'importe jamais une autre feature »). Créer `apps/mobile/src/features/health/lib/probe.ts` avec `import * as S from "expo-secure-store"; export const s = S;` : le lint refuse (« Un jeton vit dans lib/secure-store.ts »). Créer un composant avec `import { StyleSheet } from "react-native";` : le lint refuse. **Supprimer les trois sondes.**
 
 Contrôler qu'il ne reste **aucun placeholder `{{…}}`** (chercher `{{[A-Z_]+}}` — les doubles accolades JSX ne comptent pas), et que les marqueurs `<!-- socle:… -->` sont toujours là.
 
@@ -87,7 +87,7 @@ Les gabarits de `references/tickets/` sont dans la plage `13`–`15` réservée 
 
 ## Ce que ce skill ne fait pas
 
-- **Aucune règle métier, aucun écran métier.** La feature `sante` est un placeholder étiqueté.
+- **Aucune règle métier, aucun écran métier.** La feature `health` est un placeholder étiqueté.
 - **Aucune session.** Le Keychain et le client Bearer sont prêts, inertes : ticket `13`.
 - **Aucune distribution.** Ni `eas.json`, ni icônes, ni comptes : ticket `14`. Les identifiants de bundle dérivés du projet sont des valeurs de départ, pas des décisions.
 - **Ni biométrie, ni hors-ligne, ni notifications** : chacun est un ticket avec sa revue de sécurité, le jour où le besoin existe.
