@@ -10,7 +10,7 @@ Un lot de PR liées vit sur `sujet/<nom>` **dès sa première PR**, et entre dan
 
 ## Étape 0 — poser (une fois par dépôt, `poser`)
 
-`scripts/sujet.sh` → `scripts/chaine/sujet.sh` (exécutable). Il s'appuie sur `scripts/chaine/github.sh` et `revue-exigee.mjs`, posés par `fusionner poser` ; les deux skills se posent ensemble. Dépendances : `git`, `jq`, `gh` authentifié pour tout ce qui écrit sur GitHub (sans lui, le script affiche l'appel de l'outil GitHub MCP à faire). Tests : `node --test scripts/chaine/*.test.mjs` (le socle les joue dans `check:tickets`).
+`scripts/sujet.sh` → `scripts/chaine/sujet.sh` (exécutable), avec son banc d'essai `scripts/sujet.test.mjs`, `scripts/depot-jouet.mjs` et `scripts/faux-gh.mjs` → `scripts/chaine/` (les tests du capitaine s'en servent aussi). Il s'appuie sur `scripts/chaine/github.sh` et `revue-exigee.mjs`, posés par `fusionner poser` ; les deux skills se posent ensemble. Dépendances : `git`, `jq`, `gh` authentifié pour tout ce qui écrit sur GitHub (sans lui, le script affiche l'appel de l'outil GitHub MCP à faire). Tests : `node --test scripts/chaine/*.test.mjs` (le socle les joue dans `check:tickets`).
 
 ## Quand un sujet
 

@@ -11,7 +11,7 @@ disable-model-invocation: true
 
 ## Étape 0 — poser (une fois par dépôt, `poser`)
 
-`scripts/*.sh`, `scripts/revue-exigee.mjs` → `scripts/chaine/` (exécutables), avec `sujet.sh` du skill `sujet`. Les tests `*.test.mjs` suivent : `node --test scripts/chaine/*.test.mjs`. Dépendances : `git`, `jq`, `gh` authentifié (le capitaine écrit sur GitHub ; depuis une session cloud, `gh api` passe par le proxy).
+`scripts/*.sh`, `scripts/revue-exigee.mjs` → `scripts/chaine/` (exécutables), avec `sujet.sh` du skill `sujet`. Les tests `scripts/*.test.mjs` suivent ; ils lisent `depot-jouet.mjs` et `faux-gh.mjs`, posés par `sujet poser` : `node --test scripts/chaine/*.test.mjs`. Dépendances : `git`, `jq`, `gh` authentifié (le capitaine écrit sur GitHub ; depuis une session cloud, `gh api` passe par le proxy).
 
 ## La règle (`CLAUDE.md` § « Fusion vers develop »)
 

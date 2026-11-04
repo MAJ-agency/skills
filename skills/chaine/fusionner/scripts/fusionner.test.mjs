@@ -3,7 +3,11 @@
 // `gh` de depot-jouet.mjs, qui fusionne pour de vrai dans le dépôt nu ; aucun réseau.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { depotJouet, script as scriptDe } from '../../sujet/scripts/depot-jouet.mjs';
+import { existsSync } from 'node:fs';
+// Posé dans un projet, depot-jouet.mjs est à côté (scripts/chaine/) ; dans le plugin, il est dans le skill sujet.
+const { depotJouet, script: scriptDe } = await import(
+  existsSync(new URL('./depot-jouet.mjs', import.meta.url)) ? './depot-jouet.mjs' : '../../sujet/scripts/depot-jouet.mjs'
+);
 
 const script = (nom) => scriptDe('fusionner', nom);
 const PERIMETRE = 'Périmètre des changements';
