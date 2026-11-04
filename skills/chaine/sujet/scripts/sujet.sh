@@ -1,0 +1,572 @@
+#!/usr/bin/env bash
+# =============================================================================
+# Branches de sujet (skill `sujet`, ADR « branches de sujet ») : une série de PR liées vit sur
+# `sujet/<nom>`, puis entre dans develop en UNE PR, par un commit de merge qui garde
+# un commit par sous-PR.
+#
+#   demarrer <ticket|nom> place la branche de travail (sans commit propre) sur le sujet du ticket
+#                         (ligne `Sujet:` du ticket ou de sa spec), ouvert au besoin ; affiche la
+#                         base de la future PR (sujet/<nom>, ou develop si le ticket n'a pas de sujet)
+#                         refuse (4) un ticket dont la spec n'est pas sur cette base, ou dont un
+#                         `Blocked by:` n'y est pas fait (Status resolved/Fait/done) ; une branche
+#                         qui a déjà des commits partis de develop reçoit la commande de rebase
+#   ouvrir <nom> [--specs <pr>]
+#                         crée sujet/<nom> depuis develop, sans protection de branche (A-8 de
+#                         ALL-INF-13) ; `--specs` recible sur le sujet la PR de specs du lot
+#   fusionner <pr>        squash d'une sous-PR dans son sujet : checks exigés verts sur son sommet,
+#                         titre qui passe commitlint
+#                         (lancé par le capitaine pour une sous-PR étiquetée `à-fusionner`)
+#   rafraichir <nom> [--abandon-si-conflit]
+#                         fusionne develop dans sujet/<nom> (jamais de rebase), index régénérés ;
+#                         `--abandon-si-conflit` (capitaine) annule la fusion au lieu de la laisser en cours
+#   livrer <nom> <titre>  ouvre la PR sujet/<nom> → develop, étiquetée `à-fusionner` ; refuse tant
+#                         qu'une sous-PR est ouverte
+#   livrer-prets [--dry-run]
+#                         (capitaine) livre chaque sujet « prêt à livrer », sauf label `sujet-manuel` :
+#                         plus de sous-PR ouverte, ET tickets déclarés (`Sujet:`) tous faits ou label
+#                         `sujet-auto` (né d'un regroupement) : un ticket pas commencé n'a pas de PR
+#                         (#575, 15/10) ; `--dry-run` affiche sans rien écrire
+#   relancer <pr>         sous-PR sans CI (reciblée depuis une pile) : fusionne son sujet dans sa
+#                         branche et pousse, ce qui lance sa CI (jamais de rebase ni de force)
+#   series                séries repérées dans la file du capitaine (PR vers develop ou empilées) :
+#                         même spec (SOC-1.xx), même pile, même préfixe de branche
+#   regrouper-series [--dry-run]
+#                         (capitaine) regroupe d'office les séries par spec (≥ 3 PR, ou un sujet de
+#                         la spec existe déjà) et les piles (≥ 2 PR), hors prio:haute et hors-sujet ;
+#                         `--dry-run` affiche les regroupements sans rien écrire
+#   regrouper <nom> <pr>… ouvre sujet/<nom> au besoin, le met à jour avec develop, puis recible
+#                         chaque PR vers develop listée sur le sujet (sans toucher à ses commits :
+#                         le sujet contient le sommet de develop) et la commente
+#   carte                 « ticket<TAB>sujet » pour chaque ticket qui déclare un sujet (develop et sujets)
+#   de <ticket>           sujet d'un ticket
+#   etat                  tableau des sujets ouverts : avance, retard, sous-PR, tickets, verdict
+#                         (`en cours`, `prêt à livrer`, `livré #n`)
+#
+# Sorties : 0 fait · 2 conflit · 3 checks rouges ou en cours · 4 refus corrigeable par l'auteur (sa
+# dernière ligne est le motif, `fusionner` : titre, commitlint, revue, base) · 7 `fusionner` d'une PR
+# fermée ou en brouillon (rien à corriger : sautée)
+# Tout passe par l'API REST (`gh api`) : GraphQL est refusé depuis les sessions cloud. Depuis la
+# racine du dépôt ; sans argument, affiche cette aide.
+# =============================================================================
+set -euo pipefail
+# github.sh : à côté (scripts/chaine/ du projet, ou copie des outils du capitaine), sinon dans le skill fusionner.
+ici=$(cd "$(dirname "$0")" && pwd)
+if [ -f "$ici/github.sh" ]; then . "$ici/github.sh"; else . "$ici/../../fusionner/scripts/github.sh"; fi
+cd "$(git rev-parse --show-toplevel)"
+
+sortir() { echo "$2"; exit "$1"; }
+# Clone superficiel : merge-base faux (même parade que passer.sh).
+[ "$(git rev-parse --is-shallow-repository)" = false ] || git fetch -q --unshallow origin
+
+GENERES=$(index_generes_regex) # scripts/docs/index-generes.json ; regenerer_index : github.sh
+
+# Tickets rattachés à un sujet : ligne `Sujet: sujet/<nom>` (ou `- **Sujet :** sujet/<nom>`) en tête
+# du ticket, ou de sa spec
+# (alors valable pour tous ses tickets). Lue sur develop et sur chaque branche de sujet, car le
+# découpage d'un lot peut entrer directement dans son sujet. Sortie : « ticket<TAB>nom », le
+# ticket en `SOC-1.02` ou, pour une spec, `SOC-1`.
+LIGNE_SUJET='^(- )?\**Sujet ?:\** *sujet/[a-z0-9][a-z0-9-]*'
+branches_sujet() { git for-each-ref --format='%(refname:short)' 'refs/remotes/origin/sujet/*'; }
+carte() {
+  git fetch -q origin develop '+refs/heads/sujet/*:refs/remotes/origin/sujet/*' 2>/dev/null || true
+  # shellcheck disable=SC2046
+  git grep -h -E -m1 -o "$LIGNE_SUJET" origin/develop $(branches_sujet) -- \
+    'docs/*.spec.md' 'docs/*.issue.md' ':!docs/*/issues/archive/*' >/dev/null 2>&1 || return 0
+  # shellcheck disable=SC2046
+  git grep -E -m1 -o "$LIGNE_SUJET" origin/develop $(branches_sujet) -- \
+    'docs/*.spec.md' 'docs/*.issue.md' ':!docs/*/issues/archive/*' 2>/dev/null |
+    sed -E 's#^[^:]+:##; s#:(- )?\**Sujet ?:\** *sujet/#\t#' |
+    while IFS="$(printf '\t')" read -r fichier nom; do
+      f=${fichier##*/}
+      [[ "$f" =~ ^(${ID_SPEC})-.*\.([0-9]{2})\.issue\.md$ ]] &&
+        printf '%s.%s\t%s\n' "${BASH_REMATCH[1]}" "${BASH_REMATCH[3]}" "$nom" && continue
+      [[ "$f" =~ ^(${ID_SPEC})-.*\.spec\.md$ ]] && printf '%s\t%s\n' "${BASH_REMATCH[1]}" "$nom"
+    done | sort -u
+}
+
+# Sujet d'un ticket (SOC-1.02) : celui du ticket, sinon celui de sa spec (SOC-1).
+sujet_du_ticket() {
+  local c
+  c=$(carte)
+  awk -F '\t' -v t="$1" -v s="${1%.*}" '$1 == t { print $2; trouve = 1; exit } $1 == s { spec = $2 }
+    END { if (!trouve && spec != "") print spec }' <<<"$c"
+}
+
+# Fichier d'un ticket (SOC-1.02) ou d'une spec (SOC-1, `.spec.md` ou `.map.md`) sur une
+# référence ; vide s'il n'y est pas.
+fichier_sur() {
+  local motif
+  if [[ "$2" =~ ^(.+)\.([0-9]{2})$ ]]; then motif="/${BASH_REMATCH[1]}-[^/]*\.${BASH_REMATCH[2]}\.issue\.md\$"
+  else motif="/$2-[^/]*\.(spec|map)\.md\$"; fi
+  git ls-tree -r --name-only "$1" -- docs 2>/dev/null | grep -E -m1 "$motif" || true
+}
+
+# Tickets bloquants lus sur la ligne `Blocked by:` d'un ticket, un par ligne, en identifiant complet
+# (`05` devient SOC-1.05) ; « ? <ligne> » quand la ligne ne cite aucun ticket. `—`, `aucun` :
+# rien. Les parenthèses sont des commentaires (« SOC-1.01 conseillé avant ») : ignorées.
+bloquants() {
+  local ref=$1 fichier=$2 id=$3 ligne ids
+  ligne=$(git show "$ref:$fichier" | grep -m1 -E '^(- )?\**Blocked by ?:' |
+    sed -E 's/^(- )?\**Blocked by ?:\** *//') || true
+  [ -n "$ligne" ] || return 0
+  [[ "$ligne" =~ ^(—|-|aucun|none|néant) ]] && return 0
+  ligne=$(sed -E 's/\([^)]*\)//g; s/`//g' <<<"$ligne")
+  ids=$(
+    grep -oE "${ID_SPEC}\.[0-9]{2}" <<<"$ligne" || true
+    tr -s ' ,;' '\n' <<<"$ligne" | grep -E '^[0-9]{2}$' | sed "s/^/${id%.*}./" || true
+  )
+  if [ -n "$ids" ]; then printf '%s\n' "$ids"; else printf '? %s\n' "$ligne"; fi
+}
+
+fait_sur() { git show "$1:$2" | grep -m1 -E '^(- )?\**Status\**\s*:' | grep -qiE ':\** *(resolved|fait|done)'; }
+
+# Garde-fous de `demarrer` (cas vécus) : la spec et le ticket doivent être sur la base
+# (une branche partie d'une branche de specs non fusionnée tombe en conflit au squash des specs),
+# et chaque `Blocked by:` y être fait (jamais de fusion locale d'une dépendance non fusionnée).
+verifier_ticket() {
+  local id=$1 ref=$2 base=${2#origin/} spec fichier b fb manquants='' illisibles=''
+  spec=$(fichier_sur "$ref" "${id%.*}")
+  [ -n "$spec" ] || sortir 4 "la spec ${id%.*} n'est pas encore sur $base : sa PR de specs n'est pas fusionnée.
+Ne pas partir de la branche de specs. La faire fusionner dans $base d'abord (\`sujet.sh ouvrir <nom> --specs <pr>\`
+la recible sur le sujet), ou \`sujet.sh rafraichir ${base#sujet/}\` si elle est déjà dans develop."
+  [[ "$id" == *.* ]] || return 0
+  fichier=$(fichier_sur "$ref" "$id")
+  [ -n "$fichier" ] || sortir 4 "le ticket $id n'est pas sur $base : attendre la fusion de la PR qui l'ajoute."
+  while IFS= read -r b; do
+    [ -n "$b" ] || continue
+    case "$b" in '? '*) illisibles="${b#? }"; continue ;; esac
+    fb=$(fichier_sur "$ref" "$b")
+    if [ -z "$fb" ] || ! fait_sur "$ref" "$fb"; then manquants="$manquants $b"; fi
+  done < <(bloquants "$ref" "$fichier" "$id")
+  [ -z "$illisibles" ] || echo "! Blocked by: « $illisibles » ne cite aucun ticket : le vérifier à la main."
+  [ -z "$manquants" ] || sortir 4 "$id est bloqué par$manquants, pas encore fait sur $base (ligne Status:).
+Attendre que leur PR y soit fusionnée, puis relancer demarrer. Ne pas fusionner leur branche dans la sienne."
+}
+
+demarrer() {
+  local arg=${1:?identifiant de ticket (SOC-1.02) ou nom de sujet}
+  local nom branche courante ticket='' ref present=''
+  if [[ "$arg" =~ ^${ID_SPEC}(\.[0-9]{2})?$ ]]; then
+    ticket=$arg
+    nom=$(sujet_du_ticket "$arg")
+    if [ -z "$nom" ]; then
+      # Ni sur develop ni sur un sujet : sa spec n'est pas fusionnée, ce n'est pas « sans sujet ».
+      for ref in origin/develop $(branches_sujet); do
+        [ -z "$(fichier_sur "$ref" "${arg%.*}")" ] || present=1
+      done
+      [ -n "$present" ] || sortir 4 "la spec ${arg%.*} n'est ni sur develop ni sur un sujet : sa PR de specs n'est pas fusionnée.
+Ne pas partir de la branche de specs : attendre sa fusion (ou \`sujet.sh ouvrir <nom> --specs <pr>\`), puis relancer."
+      verifier_ticket "$arg" origin/develop
+      echo "base=develop"
+      echo "$arg ne déclare pas de sujet (ligne « Sujet: sujet/<nom> » du ticket ou de sa spec) : la PR vise develop."
+      echo "S'il fait partie d'un lot de plusieurs PR liées, déclarer le sujet dans la spec d'abord."
+      return 0
+    fi
+  else
+    nom=${arg#sujet/}
+  fi
+  [[ "$nom" =~ ^[a-z0-9][a-z0-9-]*$ ]] || sortir 4 "nom de sujet en kebab-case attendu : $nom"
+  branche="sujet/$nom"
+  # `git ls-remote` plutôt que `gh api` : marche aussi sans `gh` authentifié (session cloud).
+  git ls-remote --exit-code --heads origin "$branche" >/dev/null 2>&1 || ouvrir "$nom"
+  git fetch -q origin develop "$branche"
+  [ -z "$ticket" ] || verifier_ticket "$ticket" "origin/$branche"
+  courante=$(git rev-parse --abbrev-ref HEAD)
+  [ "$courante" != HEAD ] || sortir 4 "HEAD détachée : se placer sur la branche de travail d'abord"
+  [[ "$courante" != sujet/* && "$courante" != develop && "$courante" != main ]] ||
+    sortir 4 "on ne travaille pas sur $courante : se placer sur une branche de travail"
+  # Déjà partie du sujet, même d'un sommet antérieur : elle n'apporte aucun commit de develop
+  # absent du sujet (son point de départ sur develop est contenu dans son départ du sujet).
+  if git merge-base --is-ancestor "$(git merge-base HEAD origin/develop)" "$(git merge-base HEAD "origin/$branche")"; then
+    :
+  elif [ -z "$(git rev-list -1 origin/develop..HEAD)" ] || git merge-base --is-ancestor HEAD "origin/$branche"; then
+    # Aucun commit propre : la branche repart du sujet (les modifications non commitées suivent).
+    git switch -q -C "$courante" "origin/$branche"
+  else
+    echo "$courante porte déjà des commits partis de develop. Pour la placer sur le sujet (branche à soi) :"
+    echo "  git rebase --onto origin/$branche origin/develop && git push --force-with-lease"
+    sortir 4 "puis relancer demarrer"
+  fi
+  echo "base=$branche"
+  echo "$courante part de $branche ($(git rev-parse --short "origin/$branche")) : la PR vise $branche,"
+  echo "label à-fusionner dès le push ; le capitaine la fusionne dans le sujet quand sa CI est verte."
+}
+
+ouvrir() {
+  local nom=${1:?nom du sujet} specs=''
+  [ "${2:-}" != --specs ] || specs=${3:?numéro de la PR de specs}
+  nom=${nom#sujet/}
+  [[ "$nom" =~ ^[a-z0-9][a-z0-9-]*$ ]] || sortir 4 "nom en kebab-case attendu : $nom"
+  local branche="sujet/$nom"
+  if git ls-remote --exit-code --heads origin "$branche" >/dev/null 2>&1; then
+    [ -n "$specs" ] || sortir 4 "$branche existe déjà"
+    recibler_specs "${specs#\#}" "$branche"
+    return 0
+  fi
+  # Création par `git push` : le proxy des sessions cloud refuse `POST git/refs` (403).
+  git fetch -q origin develop
+  git push -q --no-verify origin "origin/develop:refs/heads/$branche"
+  # Pas de protection de branche : le push forcé est refusé aux sessions par
+  # scripts/agent/garde-commandes.mjs, ce script ne force jamais, et GitHub ne supprime la branche
+  # qu'à la fusion de la PR finale. Le filet est cette PR vers develop (CI complète).
+  echo "$branche ouverte sur develop ($(git rev-parse --short origin/develop))"
+  [ -z "$specs" ] || recibler_specs "${specs#\#}" "$branche"
+}
+
+# La PR de specs d'un lot vise son sujet dès l'ouverture : ses tickets partent du sujet une fois
+# les specs fusionnées dedans, jamais de la branche de specs.
+recibler_specs() {
+  if gh api -X PATCH "$DEPOT/pulls/$1" -f base="$2" >/dev/null 2>&1; then
+    echo "PR de specs #$1 reciblée sur $2 : les tickets partent de $2 une fois les specs fusionnées dedans"
+  else
+    echo "PR de specs #$1 NON reciblée (gh indisponible ou refusé) : la recibler par l'outil GitHub MCP"
+    echo "  update_pull_request(pullNumber: $1, base: \"$2\")"
+  fi
+}
+
+fusionner() {
+  local n=${1:?numéro de la sous-PR}
+  local pr base titre sommet longueur
+  pr=$(pr_json "$n")
+  [ "$(jq -r .state <<<"$pr")" = open ] || sortir 7 "#$n n'est pas ouverte"
+  [ "$(jq -r .draft <<<"$pr")" = false ] || sortir 7 "#$n est en brouillon"
+  base=$(jq -r .base.ref <<<"$pr")
+  [[ "$base" == sujet/* ]] || sortir 4 "#$n vise $base, pas une branche sujet/ : elle passe par le capitaine"
+  titre=$(jq -r .title <<<"$pr")
+  sommet=$(jq -r .head.sha <<<"$pr")
+  longueur=$(node -e 'console.log([...process.argv[1]].length)' "$titre (#$n)")
+  [ "$longueur" -le 120 ] || sortir 4 "sujet du squash à $longueur caractères (> 120) : raccourcir le titre"
+  # Le commit entre tel quel dans develop à la livraison : commitlint dès maintenant.
+  printf '%s\n' "$titre (#$n)" | pnpm exec commitlint >/dev/null 2>&1 ||
+    sortir 4 "titre refusé par commitlint (Conventional Commits) : $titre"
+  # Revue adversariale (ADR « chaîne de production »), comme au passage vers develop : la livraison
+  # du sujet en est dispensée, c'est donc ici qu'on l'exige.
+  local revue motif
+  revue="$ici/revue-exigee.mjs"
+  [ -f "$revue" ] || revue="$ici/../../fusionner/scripts/revue-exigee.mjs"
+  git fetch -q origin "$base" "$(jq -r .head.ref <<<"$pr")"
+  motif=$(git diff --name-only "$(git merge-base "$sommet" "origin/$base")" "$sommet" |
+    node "$revue" "$(jq -r '.body // ""' <<<"$pr")" "$titre") || sortir 4 "#$n $motif"
+
+  # Checks exigés sur develop, lus sur le sommet de la sous-PR. Les E2E y sont sautés
+  # (branche de sujet), donc comptés réussis : ils tournent sur la PR finale.
+  local requis etats rouges='' attente=0 nom c
+  requis=$(checks_exiges | jq -r '.[]')
+  etats=$(checks_commit "$sommet")
+  while IFS= read -r nom; do
+    c=$(printf '%s\n' "$etats" | awk -F '\t' -v n="$nom" '$1 == n { c = $2 } END { print c }')
+    case "$c" in
+      SUCCESS | SKIPPED | NEUTRAL) ;;
+      FAILURE | CANCELLED | TIMED_OUT | ACTION_REQUIRED | STARTUP_FAILURE | ERROR) rouges="$rouges $nom ;" ;;
+      *) attente=1 ;;
+    esac
+  done <<<"$requis"
+  [ -z "$rouges" ] || sortir 3 "checks rouges sur #$n :$rouges"
+  [ "$attente" = 0 ] || sortir 3 "checks encore en cours sur #$n : attendre leur fin"
+
+  git fetch -q origin develop "$base" "$(jq -r .head.ref <<<"$pr")"
+  # La sous-PR contient du develop plus récent que son sujet (capitaine passé dessus, branche
+  # repartie du sommet de develop) : le squash l'embarquerait. Le sujet est d'abord rafraîchi.
+  if ! git merge-base --is-ancestor "$(git merge-base "$sommet" origin/develop)" "origin/$base"; then
+    rafraichir "${base#sujet/}" --abandon-si-conflit
+    git fetch -q origin "$base"
+  fi
+  git log --no-merges --reverse --format='%B' "$(git merge-base "$sommet" "origin/$base")..$sommet" |
+    jq -Rs --arg sha "$sommet" --arg titre "$titre (#$n)" \
+      '{merge_method: "squash", sha: $sha, commit_title: $titre, commit_message: .}' |
+    gh api -X PUT "$DEPOT/pulls/$n/merge" --input - >/dev/null ||
+    sortir 3 "fusion refusée par GitHub (sommet bougé, conflit avec $base ?)"
+  echo "#$n fusionnée dans $base"
+}
+
+rafraichir() {
+  local nom=${1:?nom du sujet} abandon=${2:-}
+  local branche="sujet/$nom"
+  [ -z "$(git status --porcelain)" ] || sortir 4 "arbre de travail pas propre : committer ou ranger d'abord"
+  git fetch -q origin develop "$branche"
+  if git merge-base --is-ancestor origin/develop "origin/$branche"; then
+    echo "$branche déjà à jour avec develop"
+    return 0
+  fi
+  git switch -q -C "$branche" "origin/$branche"
+  if ! git merge -q --no-edit origin/develop >/dev/null 2>&1; then
+    local conflits autres
+    conflits=$(git diff --name-only --diff-filter=U)
+    autres=$(printf '%s\n' "$conflits" | grep -Ev "$GENERES" || true)
+    if [ -n "$autres" ] && [ "$abandon" = --abandon-si-conflit ]; then
+      git merge --abort
+      echo "conflit avec develop sur $branche, fusion annulée :"
+      printf '  %s\n' $autres
+      exit 2
+    elif [ -n "$autres" ]; then
+      echo "conflit avec develop, à résoudre sur $branche (merge en cours) :"
+      printf '  %s\n' $autres
+      exit 2
+    fi
+    # Index générés : la régénération fait foi.
+    git checkout --theirs -- $conflits && git add -- $conflits
+  fi
+  # Un échec ici (dépendances, gate des ADR ou des registres : numéro d'ADR réutilisé…) ne doit pas
+  # laisser la fusion en cours : le worktree du capitaine resterait sale pour tout le tour.
+  abandonner() {
+    git merge --abort 2>/dev/null || git reset -q --hard
+    sortir 3 "$1 : fusion de develop dans $branche annulée, à corriger par une session sur le sujet"
+  }
+  pnpm install --frozen-lockfile --prefer-offline >/dev/null 2>&1 || abandonner "pnpm install en échec"
+  regenerer_index || abandonner "gate des index/registres en échec"
+  if git rev-parse -q --verify MERGE_HEAD >/dev/null; then
+    git commit -q --no-edit --no-verify
+  elif ! git diff --cached --quiet; then
+    git commit -q -m 'docs: régénère les index après mise à jour avec develop'
+  fi
+  # Sans hook, comme passer.sh : le pre-push lance les tests sur base (absente d'une session
+  # cloud). Le commit ne contient que develop et le sujet, déjà vérifiés ; la PR finale rejoue tout.
+  git push -q --no-verify origin "HEAD:refs/heads/$branche"
+  echo "$branche à jour avec develop ($(git rev-parse --short HEAD))"
+}
+
+livrer() {
+  local nom=${1:?nom du sujet} titre=${2:?titre de la PR finale (Conventional Commits)}
+  local branche="sujet/$nom" corps n
+  git fetch -q origin develop "$branche"
+  [ "$(gh api "$DEPOT/pulls?state=open&base=$(uri "$branche")" --jq length)" = 0 ] ||
+    sortir 4 "des sous-PR visent encore $branche : les fusionner ou les fermer avant de livrer"
+  corps=$(
+    printf 'Branche de sujet : entre dans develop par un commit de merge, un commit par sous-PR.\n\n## Sous-PR\n\n'
+    git log --first-parent --no-merges --reverse --format='- %s' "origin/develop..origin/$branche"
+  )
+  n=$(gh api -X POST "$DEPOT/pulls" -f base=develop -f head="$branche" -f title="$titre" -f body="$corps" --jq .number)
+  poser_label "$n" à-fusionner
+  echo "PR #$n ouverte ($branche → develop), étiquetée à-fusionner"
+}
+
+relancer() {
+  local n=${1:?numéro de la sous-PR} pr base tete
+  pr=$(pr_json "$n")
+  base=$(jq -r .base.ref <<<"$pr")
+  tete=$(jq -r .head.ref <<<"$pr")
+  [[ "$base" == sujet/* ]] || sortir 4 "#$n vise $base, pas un sujet"
+  [ -z "$(git status --porcelain)" ] || sortir 4 "arbre de travail pas propre"
+  git fetch -q origin "$base" "$tete"
+  git switch -q --detach "origin/$tete"
+  if ! git merge -q --no-edit "origin/$base" >/dev/null 2>&1; then
+    git merge --abort
+    sortir 2 "conflit entre #$n et $base"
+  fi
+  [ "$(git rev-parse HEAD)" != "$(git rev-parse "origin/$tete")" ] ||
+    sortir 3 "#$n contient déjà $base : aucun commit à pousser, CI non déclenchable"
+  git push -q --no-verify origin "HEAD:refs/heads/$tete"
+  echo "#$n : $base fusionné dans sa branche, CI lancée"
+}
+
+# Séries de la file : PR ouvertes, non brouillon, qui visent develop ou une autre PR. Clés de
+# regroupement : spec du ticket cité (titre ou branche), racine de la pile, et, sans ticket, les
+# deux premiers mots de la branche (`chore/ffsb-vivante-stats` → `chore/ffsb-vivante-*`). Une clé qui réunit au moins 2 PR est une
+# série. Sortie : « clé<TAB>#n #m …<TAB>prio:haute ? », une par série.
+series() {
+  gh api --paginate "$DEPOT/pulls?state=open&per_page=100" --jq '.[] | select(.draft | not)
+    | select(any(.labels[].name; . == "hors-sujet") | not)
+    | [.number, .base.ref, .head.ref, (any(.labels[].name; . == "prio:haute")), .title] | @tsv' |
+    awk -F '\t' -v id="$ID_SPEC" '
+      $2 ~ /^sujet\// { next }
+      { n[NR] = $1; base[$1] = $2; tete[$1] = $3; prio[$1] = $4; titre[$1] = $5; pr_de[$3] = $1 }
+      END {
+        for (i in n) {
+          p = n[i]
+          # racine de la pile
+          r = p; while (base[r] != "develop" && (base[r] in pr_de)) r = pr_de[base[r]]
+          if (r != p) { cle["pile #" r] = cle["pile #" r] " #" p; vu["pile #" r, r] = 1 }
+          # spec du ticket : SOC-1.04 ou soc-1-04
+          t = titre[p] " " toupper(tete[p])
+          if (match(t, id "[.-][0-9][0-9]")) {
+            s = substr(t, RSTART, RLENGTH); sub(/[.-][0-9][0-9]$/, "", s); cle["spec " s] = cle["spec " s] " #" p
+          } else if (match(tete[p], /^[a-z]+\/[a-z0-9]+-[a-z0-9]+-/) && tete[p] !~ /^claude\//) {
+            # sans ticket : type/ + deux premiers mots de la branche (chore/ffsb-vivante-*)
+            b = substr(tete[p], 1, RLENGTH - 1); cle["branche " b "-*"] = cle["branche " b "-*"] " #" p
+          }
+          if (prio[p] == "true") haute[p] = 1
+        }
+        for (k in cle) {
+          liste = cle[k]
+          if (k ~ /^pile #/) { r = substr(k, 7); liste = " #" r liste }
+          m = split(liste, a, " "); if (m < 2) continue
+          h = ""; for (j = 1; j <= m; j++) if (substr(a[j], 2) in haute) h = "prio:haute"
+          print k "\t" substr(liste, 2) "\t" h
+        }
+      }' | sort
+}
+
+regrouper() {
+  local nom=${1:?nom du sujet} n base
+  shift
+  [ "$#" -gt 0 ] || sortir 4 "au moins une PR à regrouper"
+  nom=${nom#sujet/}
+  gh api "$DEPOT/branches/$(uri "sujet/$nom")" >/dev/null 2>&1 || ouvrir "$nom"
+  # Le sujet contient le sommet de develop : toute PR partie de develop s'y fusionne avec ses
+  # seuls changements (fusion à trois points sur son départ), sans réécrire sa branche.
+  rafraichir "$nom" --abandon-si-conflit
+  for n in "$@"; do
+    n=${n#\#}
+    base=$(gh api "$DEPOT/pulls/$n" --jq .base.ref)
+    case "$base" in
+      develop)
+        gh api -X PATCH "$DEPOT/pulls/$n" -f base="sujet/$nom" >/dev/null
+        # Série regroupée : le sujet est fini quand ses PR sont entrées (livraison automatique).
+        poser_label "$n" sujet-auto
+        commenter "$n" "$(printf 'Regroupée dans \`sujet/%s\` par le capitaine de fusion : elle y sera fusionnée en squash dès que sa CI légère est verte, puis entrera dans develop avec le reste du sujet. Rien à faire côté session ; une suite de ce travail part de \`sujet/%s\`.\n\n---\n_Generated by [Claude Code](https://claude.ai/code)_' "$nom" "$nom")"
+        echo "#$n reciblée sur sujet/$nom" ;;
+      sujet/*) echo "#$n déjà dans $base" ;;
+      *) echo "#$n empilée sur $base : elle suivra sa parente dans le sujet" ;;
+    esac
+  done
+}
+
+# Regroupement automatique (capitaine, à chaque tour) : sans `prio:haute` dans la série,
+#   - une série « spec X » rejoint le sujet qui contient déjà une PR de cette spec (titre ou
+#     branche), ou ouvre `sujet/<x>` à partir de 3 PR ;
+#   - une pile de 2 PR ou plus ouvre `sujet/pile-<racine>` : la racine y entre, les suivantes
+#     y sont reciblées quand leur parente y est fusionnée.
+# Les séries « branche » (préfixe commun, sans ticket) restent proposées à l'utilisateur.
+# Séries à regrouper maintenant, « nom<TAB>clé<TAB>#n #m… », « spec » avant « pile ».
+series_a_regrouper() {
+  local existants=$1 vers_develop cle prs haute nom spec p mobile
+  # Une série dont aucune PR ne vise develop n'a rien à recibler (piles seules) : ignorée.
+  vers_develop=" $(gh api --paginate "$DEPOT/pulls?state=open&per_page=100&base=develop" --jq '.[].number' | tr '\n' ' ')"
+  while IFS="$(printf '\t')" read -r cle prs haute; do
+    [ -n "$cle" ] && [ -z "$haute" ] || continue
+    set -- $prs
+    mobile=''
+    for p in "$@"; do case "$vers_develop" in *" ${p#\#} "*) mobile=1 ;; esac; done
+    [ -n "$mobile" ] || continue
+    nom=''
+    case "$cle" in
+      'spec '*)
+        spec=${cle#spec }
+        nom=$(awk -F '\t' -v s="$spec" '$1 == s { sub(/^sujet\//, "", $2); print $2; exit }' <<<"$existants")
+        if [ -z "$nom" ] && [ "$#" -ge 3 ]; then nom=$(tr 'A-Z' 'a-z' <<<"$spec"); fi ;;
+      'pile #'*) [ "$#" -lt 2 ] || nom="pile-${cle#pile #}" ;;
+    esac
+    [ -z "$nom" ] || printf '%s\t%s\t%s\n' "$nom" "$cle" "$prs"
+  done < <(series | sort -t "$(printf '\t')" -k1,1r) # « spec » avant « pile » avant « branche »
+}
+
+regrouper_series() {
+  local essai=${1:-} tour existants choix nom cle prs
+  # Sujets déjà nourris d'une spec : PR (ouvertes ou fermées) qui visent un sujet, par spec citée.
+  existants=$(gh api "$DEPOT/pulls?state=all&sort=updated&direction=desc&per_page=100" --jq '.[]
+      | select(.base.ref | startswith("sujet/")) | "\(.base.ref)\t\(.title) \(.head.ref | ascii_upcase)"' |
+    awk -F '\t' -v id="$ID_SPEC" 'match($2, id "[.-][0-9][0-9]") {
+        s = substr($2, RSTART, RLENGTH); sub(/[.-][0-9][0-9]$/, "", s); if (!(s in v)) { v[s] = 1; print s "\t" $1 } }')
+  if [ "$essai" = --dry-run ]; then
+    while IFS="$(printf '\t')" read -r nom cle prs; do
+      [ -z "$nom" ] || echo "série « $cle » → sujet/$nom : $prs (--dry-run : rien n'est reciblé)"
+    done <<<"$(series_a_regrouper "$existants")"
+    return 0
+  fi
+  # Une série à la fois : chaque regroupement change les bases, la suivante est relue après.
+  for tour in 1 2 3 4 5 6 7 8 9 10; do
+    # Pas de `head -1` : sous pipefail, la fonction tuée par SIGPIPE ferait sortir en 141.
+    choix=$(series_a_regrouper "$existants")
+    choix=${choix%%$'\n'*}
+    [ -n "$choix" ] || return 0
+    IFS="$(printf '\t')" read -r nom cle prs <<<"$choix"
+    echo "série « $cle » → sujet/$nom : $prs"
+    # shellcheck disable=SC2086
+    regrouper "$nom" ${prs//#/}
+  done
+}
+
+# Tableau des sujets ouverts. Verdict :
+#   livré #n          sa PR vers develop est ouverte : le capitaine la passe
+#   prêt à livrer     aucune sous-PR ouverte et tous ses tickets faits (Status resolved/Fait/done)
+#   en cours          sinon ; « VIEUX » au-delà de 5 jours sans livraison, « EN RETARD » au-delà
+#                     de 20 commits de develop non fusionnés
+etat() {
+  local c prs b nom avance retard sous livree tickets restants age vieux debut fermees spec
+  c=$(carte)
+  prs=$(gh api --paginate "$DEPOT/pulls?state=open&per_page=100" --jq '.[] | "\(.base.ref)\t\(.head.ref)\t\(.number)"')
+  printf 'sujet\tavance\tretard\tsous-PR\ttickets restants\tverdict\n'
+  for b in $(branches_sujet); do
+    nom=${b#origin/sujet/}
+    avance=$(git rev-list --count --first-parent --no-merges "origin/develop..$b")
+    [ "$avance" -gt 0 ] || [ -n "$(awk -F '\t' -v b="sujet/$nom" '$1 == b' <<<"$prs")" ] || continue
+    retard=$(git rev-list --count "$b..origin/develop")
+    # Sous-PR : celles qui visent le sujet, et les piles posées sur une sous-PR déjà fusionnée
+    # dedans (elles y seront reciblées) — sans elles, le sujet se croirait fini trop tôt.
+    fermees=$(gh api --paginate "$DEPOT/pulls?state=closed&per_page=100&base=$(uri "sujet/$nom")" --jq '.[].head.ref')
+    sous=$(awk -F '\t' -v b="sujet/$nom" -v f="$fermees" 'BEGIN { n = split(f, t, "\n"); for (i = 1; i <= n; i++) h[t[i]] = 1 }
+      $1 == b || ($1 in h) { printf "#%s ", $3 }' <<<"$prs")
+    livree=$(awk -F '\t' -v b="sujet/$nom" '$1 == "develop" && $2 == b { print $3 }' <<<"$prs")
+    # Tickets du sujet : ceux qui le déclarent, et tous ceux d'une spec qui le déclare.
+    tickets=$(
+      awk -F '\t' -v s="$nom" '$2 == s && $1 ~ /\.[0-9][0-9]$/ { print $1 }' <<<"$c"
+      for spec in $(awk -F '\t' -v s="$nom" '$2 == s && $1 !~ /\.[0-9][0-9]$/ { print $1 }' <<<"$c"); do
+        git ls-tree -r --name-only "$b" -- docs |
+          { grep -v '/issues/archive/' || true; } |
+          sed -nE "s#^.*/(${spec})-[^/]*\.([0-9]{2})\.issue\.md\$#\1.\2#p"
+      done | sort -u
+    )
+    restants=''
+    for t in $tickets; do
+      git grep -h -m1 -E '^Status ?:' "$b" -- "docs/*/${t%.*}-*.${t##*.}.issue.md" 2>/dev/null |
+        grep -qiE 'resolved|fait|done|wontfix' || restants="$restants$t "
+    done
+    # Âge depuis le premier commit propre ; un sujet sans commit (sous-PR pas encore fusionnées) a 0 jour.
+    debut=$(git log --first-parent --format=%ct "origin/develop..$b" | tail -1)
+    age=$(( ( $(date +%s) - ${debut:-$(date +%s)} ) / 86400 ))
+    vieux=''
+    [ "$age" -le 5 ] || vieux=' VIEUX'
+    [ "$retard" -le 20 ] || vieux="$vieux EN RETARD"
+    if [ -n "$livree" ]; then v="livré #$livree"
+    elif [ -z "$sous" ] && [ -z "$restants" ] && [ "$avance" -gt 0 ]; then v="prêt à livrer$vieux"
+    else v="en cours$vieux"; fi
+    printf '%s\t%s\t%s\t%s\t%s\t%s\n' "$nom" "$avance" "$retard" "${sous:-—}" "${restants:-—}" "$v"
+  done
+}
+
+# Livraison automatique (capitaine) : chaque sujet « prêt à livrer » est livré s'il déclare ses
+# tickets (tous faits) ou s'il est né d'un regroupement (label `sujet-auto` sur ses sous-PR),
+# sauf si une de ses sous-PR, ouverte ou fusionnée, porte le label `sujet-manuel`. Titre : le type le plus fort
+# des sous-PR (feat > fix > autre) et leur scope le plus fréquent.
+livrer_prets() {
+  local essai=${1:-} nom verdict sujets titre type scope n labels carte_sujets
+  sujets=$(etat | tail -n +2 | awk -F '\t' '$6 ~ /^prêt à livrer/ { print $1 }')
+  carte_sujets=$(carte)
+  for nom in $sujets; do
+    labels=$(gh api --paginate "$DEPOT/pulls?state=all&per_page=100&base=$(uri "sujet/$nom")" --jq '.[].labels[].name' | sort -u)
+    if grep -qx sujet-manuel <<<"$labels"; then
+      echo "sujet/$nom prêt, mais label sujet-manuel : livraison laissée à la main"
+      continue
+    fi
+    # « Plus de sous-PR ouverte » ne dit pas qu'un lot est fini : un ticket pas encore commencé
+    # n'a pas de PR. Livraison automatique seulement si le sujet déclare ses tickets (`Sujet:`,
+    # tous faits, vérifié par etat) ou s'il est né d'un regroupement (`sujet-auto`).
+    if [ -z "$(awk -F '\t' -v s="$nom" '$2 == s' <<<"$carte_sujets")" ] && ! grep -qx sujet-auto <<<"$labels"; then
+      echo "sujet/$nom sans sous-PR ouverte, mais ni tickets déclarés ni sujet-auto : livraison laissée à la main"
+      continue
+    fi
+    n=$(git rev-list --count --first-parent --no-merges "origin/develop..origin/sujet/$nom")
+    read -r type scope <<<"$(git log --first-parent --no-merges --format=%s "origin/develop..origin/sujet/$nom" |
+      sed -nE 's/^([a-z]+)(\(([^)]+)\))?!?: .*/\1 \3/p' |
+      awk '{ t[$1]++; if ($2 != "") s[$2]++ }
+        END { ty = ("feat" in t) ? "feat" : ("fix" in t) ? "fix" : "chore"
+              for (k in s) if (s[k] > m) { m = s[k]; sc = k }
+              print ty, sc }')"
+    titre="${type:-chore}${scope:+($scope)}: sujet $nom — $n sous-PR"
+    if [ "$essai" = --dry-run ]; then
+      echo "sujet/$nom prêt : livrerait « $titre » (--dry-run : aucune PR ouverte)"
+    else
+      livrer "$nom" "$titre"
+    fi
+  done
+}
+
+commande=${1:-}
+shift || true
+case "$commande" in
+  demarrer | ouvrir | fusionner | rafraichir | livrer | relancer | series | regrouper | carte | etat) "$commande" "$@" ;;
+  de) sujet_du_ticket "${1:?ticket}" ;;
+  livrer-prets) livrer_prets "$@" ;;
+  regrouper-series) regrouper_series "$@" ;;
+  *) sed -n '3,/^# =====/p' "$0" | sed '$d; s/^# \{0,1\}//'; sortir 4 "usage : sujet.sh demarrer <ticket|nom> | ouvrir <nom> [--specs <pr>] | fusionner <pr> | rafraichir <nom> | livrer <nom> <titre> | livrer-prets [--dry-run] | relancer <pr> | series | regrouper-series [--dry-run] | regrouper <nom> <pr>… | carte | etat | de <ticket>" ;;
+esac

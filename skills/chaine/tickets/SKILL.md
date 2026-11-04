@@ -37,7 +37,7 @@ Dans un dépôt dont la racine est posée (`pnpm-workspace.yaml` présent) :
 | `references/agents/triage-labels.md`      | `docs/agents/triage-labels.md`                |
 | `references/gabarits/*`                   | `docs/agents/gabarits/`                       |
 
-Puis dans `package.json` racine, un script `check:tickets` : `node scripts/verify/tickets.mjs && node --test scripts/docs/*.test.mjs scripts/verify/*.test.mjs scripts/agent/*.test.mjs`, et une étape `check:tickets` dans `scripts/check.mjs`, après `lint`. La CI du socle de la chaîne la joue ; sans ce socle, l'ajouter au job de qualité.
+Puis dans `package.json` racine, un script `check:tickets` : `node scripts/verify/tickets.mjs && node --test scripts/docs/*.test.mjs scripts/verify/*.test.mjs scripts/agent/*.test.mjs scripts/chaine/*.test.mjs` (les globs sans fichier sont ignorés par `node --test`), et une étape `check:tickets` dans `scripts/check.mjs`, après `lint`. La CI du socle de la chaîne la joue ; sans ce socle, l'ajouter au job de qualité.
 
 `docs/methode/nomenclature.md` § exclusions : les fichiers `.spec.md`, `.issue.md` et `.map.md` suivent cette convention, pas la nomenclature générale (leur identifiant est celui de la spec).
 

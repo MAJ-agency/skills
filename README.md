@@ -66,8 +66,11 @@ Invocation : `/maj-skills:socle-mobile-expo`. Suppose la racine et les contrats 
 | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
 | [`socle-chaine-de-production`](skills/chaine/socle-chaine-de-production/SKILL.md)  | Pose ce que supposent les skills de la chaîne : `develop` intègre et `main` livre, les sept labels, les hooks d'agent, le contrat `.claude/chaine.json`, les index générés, une CI minimale, la méthode et trois ADR |
 | [`tickets`](skills/chaine/tickets/SKILL.md)                                         | La convention des specs et tickets (`SOC-1`, `SOC-1.03`), les scripts qui la lisent (numéro suivant, ticket libre, vagues, avancement, archivage, gate) et la migration d'un dépôt |
+| [`revue-adversariale`](skills/chaine/revue-adversariale/SKILL.md)                   | Avant `à-fusionner` : un sous-agent vierge, le diff seul, une liste fermée de critères (treize du socle, plus ceux du projet), une section de PR |
+| [`sujet`](skills/chaine/sujet/SKILL.md)                                             | Un lot de PR liées sur `sujet/<nom>` dès sa première PR, entré dans develop en une PR par un commit de merge ; `demarrer`, `etat`, `livrer` |
+| [`fusionner`](skills/chaine/fusionner/SKILL.md)                                     | Le capitaine de fusion : la file `à-fusionner` passée une PR à la fois, les sous-PR dans leur sujet, les renvois ; une seule session |
 
-Invocation : `/maj-skills:socle-chaine-de-production` une fois par dépôt ; `/maj-skills:tickets` au quotidien. À venir dans la même catégorie : `revue-adversariale`, `sujet`, `fusionner`, `chantier`, `recette-humaine`.
+Invocation : `/maj-skills:socle-chaine-de-production` une fois par dépôt, qui pose les scripts des quatre autres dans `scripts/chaine/` ; `/maj-skills:tickets` et `/maj-skills:revue-adversariale` au quotidien dans une session de travail ; `/maj-skills:sujet` au début de tout ticket ; `/maj-skills:fusionner` dans une session dédiée. À venir : `chantier`, `recette-humaine`.
 
 **La racine est une seule source.** `socle-monorepo` la pose ; un skill de service n'écrit que dans `apps/<service>/`, ses paquets, et des fragments insérés dans les zones `<!-- socle:… -->` de `README.md` et `CLAUDE.md`. Ses règles de lint vivent dans `apps/<service>/eslint.rules.mjs`, chargé par l'ESLint racine.
 
@@ -130,6 +133,16 @@ skills/
     tickets/
       SKILL.md         la convention, poser, au quotidien, migrer
       references/      scripts (docs/, verify/) et leurs tests, tracker, labels de triage, gabarits
+    revue-adversariale/
+      SKILL.md         poser, quand, le diff, les chemins sensibles, le sous-agent, trier, corriger
+      scripts/         diff-revue.sh
+      references/      critères du socle, prompt exact, section de PR
+    sujet/
+      SKILL.md         quand un sujet, session de travail, capitaine, livrer
+      scripts/         sujet.sh, le dépôt jouet et le faux gh, les tests
+    fusionner/
+      SKILL.md         la règle, REST seulement, mise en place, boucle, renvoyer, fin de passage
+      scripts/         github.sh, file.sh, passer.sh, boucle.sh, renvoyer.sh, refus.sh, proprietaire.sh, revue-exigee.mjs, les tests
 ```
 
 ## Ajouter un skill

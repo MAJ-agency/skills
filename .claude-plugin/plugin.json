@@ -28,6 +28,9 @@
     "./skills/frontend/socle-web-next",
     "./skills/mobile/socle-mobile-expo",
     "./skills/chaine/socle-chaine-de-production",
-    "./skills/chaine/tickets"
+    "./skills/chaine/tickets",
+    "./skills/chaine/revue-adversariale",
+    "./skills/chaine/sujet",
+    "./skills/chaine/fusionner"
   ]
 }
