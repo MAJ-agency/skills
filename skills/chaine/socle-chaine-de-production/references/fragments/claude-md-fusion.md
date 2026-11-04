@@ -1,0 +1,10 @@
+## Fusion vers `develop` : une file, un capitaine
+
+`develop` intègre, `main` livre. `develop` exige une PR à jour : chaque fusion remet les autres PR en retard. **Une seule session fusionne** : le capitaine de fusion (skill `fusionner`). Décision : `{{ADR_CHAINE}}`, `{{ADR_SUJET}}`.
+
+- **Réserver le ticket avant de coder** (sessions en parallèle) : `node scripts/docs/ticket-libre.mjs <identifiant>` « LIBRE », puis branche, commit `Status: en cours` et PR brouillon — `docs/agents/issue-tracker.md` § « Réserver un ticket ».
+- **Session de travail.** Avant le label, toute PR de code passe la **revue adversariale** (skill `revue-adversariale`). Dès la PR poussée et rien d'autre à faire : label `à-fusionner` (en session cloud, par l'outil GitHub MCP `issue_write`). **Ne pas attendre la CI.** `prio:haute` pour une démo, une recette ou un blocage. **Ne jamais fusionner soi-même, ni remettre la branche à jour avec `develop`.**
+- **Capitaine.** File dans l'ordre (sous-PR de sujet, livraisons de sujet, `prio:haute`, puis numéro) ; met à jour avec `develop`, régénère les index générés (`scripts/docs/index-generes.json`), attend les checks exigés, squashe, vérifie l'arbre. CI rouge relancée une fois, puis PR renvoyée.
+- **`fusion-bloquée`** : PR renvoyée (conflit, CI rouge, refus) avec commentaire → corriger, retirer `fusion-bloquée`, remettre `à-fusionner`.
+- **Branches de sujet dès le départ** (skill `sujet`) : un lot qui donnera plusieurs PR liées vit sur `sujet/<nom>` dès sa première PR ; le découpage le déclare (`Sujet: sujet/<nom>` en tête de la spec ou du ticket) et, avant le premier commit, `bash scripts/chaine/sujet.sh demarrer <ticket>` fait partir la branche du sujet. **Jamais de PR empilée sur une autre.** Un correctif isolé qui doit arriver seul en recette reste une PR directe vers `develop`, `hors-sujet` si son ticket déclare un sujet.
+- **Hooks d'agent** (`scripts/agent/`) : refusent le push forcé, `--no-verify`, le push direct sur `develop` ou `main`, l'édition d'une migration livrée ou d'un index généré, et demandent avant toute dépendance nouvelle.

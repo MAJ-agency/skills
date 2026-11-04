@@ -60,6 +60,15 @@ Invocation : `/maj-skills:socle-web-next`. Suppose la racine et les contrats pos
 
 Invocation : `/maj-skills:socle-mobile-expo`. Suppose la racine et les contrats posés ; l'écran d'accueil interroge `/health` de l'API.
 
+### `chaine/`
+
+| Skill                                                                               | Ce qu'il fait                                                                                                                        |
+| ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| [`socle-chaine-de-production`](skills/chaine/socle-chaine-de-production/SKILL.md)  | Pose ce que supposent les skills de la chaîne : `develop` intègre et `main` livre, les sept labels, les hooks d'agent, le contrat `.claude/chaine.json`, les index générés, une CI minimale, la méthode et trois ADR |
+| [`tickets`](skills/chaine/tickets/SKILL.md)                                         | La convention des specs et tickets (`SOC-1`, `SOC-1.03`), les scripts qui la lisent (numéro suivant, ticket libre, vagues, avancement, archivage, gate) et la migration d'un dépôt |
+
+Invocation : `/maj-skills:socle-chaine-de-production` une fois par dépôt ; `/maj-skills:tickets` au quotidien. À venir dans la même catégorie : `revue-adversariale`, `sujet`, `fusionner`, `chantier`, `recette-humaine`.
+
 **La racine est une seule source.** `socle-monorepo` la pose ; un skill de service n'écrit que dans `apps/<service>/`, ses paquets, et des fragments insérés dans les zones `<!-- socle:… -->` de `README.md` et `CLAUDE.md`. Ses règles de lint vivent dans `apps/<service>/eslint.rules.mjs`, chargé par l'ESLint racine.
 
 ## `socle-nest-hexagonal` en deux mots
@@ -114,6 +123,13 @@ skills/
     socle-mobile-expo/
       SKILL.md         le processus, en trois étapes
       references/      squelette Expo, règles mobile, ADR MOB-1, fragments, tickets mobile
+  chaine/
+    socle-chaine-de-production/
+      SKILL.md         le processus, en quatre étapes
+      references/      contrat, index générés, hooks d'agent, labels, CI, méthode, trois ADR, fragments, liste admin
+    tickets/
+      SKILL.md         la convention, poser, au quotidien, migrer
+      references/      scripts (docs/, verify/) et leurs tests, tracker, labels de triage, gabarits
 ```
 
 ## Ajouter un skill

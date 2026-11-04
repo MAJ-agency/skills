@@ -1,0 +1,4 @@
+{
+  "$comment": "Index générés, régénérés après chaque fusion : un seul emplacement, lu par les scripts du capitaine (passer.sh, sujet.sh), diff.sh de la revue adversariale et scripts/agent/regles.mjs (qui refuse leur édition à la main). `*` = un segment de chemin. Chaque socle de service y ajoute ses entrées.",
+  "index": [{ "chemin": "apps/api/openapi.json", "commande": "pnpm --filter @{{SCOPE}}/{{PROJET}}-api openapi:emit" }]
+}

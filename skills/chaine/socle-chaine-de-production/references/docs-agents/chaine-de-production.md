@@ -1,0 +1,110 @@
+# Chaîne de production : qui fait quoi, du cadrage à develop
+
+Mode d'emploi des sessions de l'assistant de développement quand plusieurs travaillent en parallèle. Décision et raisons : `{{ADR_CHAINE}}`. Branches de sujet : `{{ADR_SUJET}}`. Contrat du projet : `.claude/chaine.json`.
+
+**Pour lancer un chantier : `/maj-skills:chantier <objectif>`** dans une session neuve. Elle pose les questions de setup, écrit la fiche dans la carte et déroule ce fichier phase par phase ; relancée avec le nom du sujet, elle reprend à la phase en cours.
+
+Le principe : **les tokens se dépensent une fois, au cadrage**. Une session fille qui doit chercher où coder, relire les règles en entier, deviner une décision ou réparer son environnement paie ce que l'architecte aurait payé une seule fois pour toutes.
+
+## 1. Les rôles
+
+Une session tient **un seul rôle**. Un travail d'un autre rôle (un deck, une étude, une contre-revue longue) part dans une autre session ou un sous-agent.
+
+| Rôle                 | Combien                      | Fait                                                                                                                                                    | Ne fait jamais                                                      | Modèle conseillé                  |
+| -------------------- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- | --------------------------------- |
+| Produit (humain)     | —                            | tranche les questions du grilling, valide le découpage, décide la livraison en recette                                                                  | —                                                                   | —                                 |
+| Architecte           | un par chantier              | grilling, carte, specs, tickets **prêts pour agent** (§ 3), ouverture du sujet, lancement des filles par vagues, suivi par le tableau d'avancement, contre-revue ciblée | coder un ticket, produire un livrable hors chantier, fusionner      | Opus                              |
+| Session fille        | une par ticket               | réserve, code, vérifie, revue adversariale, livre, s'arrête                                                                                             | prendre un 2ᵉ ticket, fusionner, partir d'une branche non fusionnée | Sonnet ; Opus si le ticket le dit |
+| Capitaine de fusion  | un pour le dépôt             | file `à-fusionner`, sous-PR dans les sujets, livraison des sujets, renvois (skill `fusionner`)                                                          | résoudre un conflit de code d'une autre session                     | Sonnet                            |
+| Relecteur adversaire | un sous-agent par PR de code | lit le diff seul, liste fermée de critères (skill `revue-adversariale`)                                                                                 | proposer des améliorations                                          | celui de la session               |
+
+Le **modèle se choisit par ticket**, pas par chantier : la ligne `Modèle:` du ticket (§ 3) le dit. Sonnet pour un ticket dont le brief nomme les fichiers, les décisions et les surfaces ; Opus pour ce qui reste à concevoir ou à arbitrer (migration délicate, conception d'écran neuve, règle absente ou ambiguë), raison écrite sur la ligne `Modèle:`. Mesuré sur un premier projet : 4 $ par ticket en Sonnet, 7 $ par ticket comparable en Opus, sans écart de qualité visible au passage du capitaine.
+
+## 2. Le cycle d'un chantier
+
+```
+cadrage ──► carte + specs ──► tickets prêts ──► PR de specs fusionnée dans le sujet ──► vagues de filles ──► sujet livré ──► rétro
+ (produit)    (architecte)      (architecte)          (capitaine)                         (filles)            (capitaine)   (architecte)
+```
+
+1. **Cadrage.** Grilling avec le produit (`docs/methode/grilling.md`, par les skills de Matt Pocock) : une question à la fois, recherche faite **avant** de poser la question, recommandation à chaque fois. Rien n'est écrit dans le dépôt pendant le grilling.
+2. **Carte et specs.** Carte `*.map.md` (décisions, brouillard), specs, tickets. La spec porte `Sujet: sujet/<nom>`.
+3. **Sujet ouvert, specs d'abord.** `sujet.sh ouvrir <nom>`, puis la PR de specs **vise le sujet** et y est fusionnée **avant** le lancement de la première fille. Jamais de fille partie d'une branche de specs : douze PR parties d'une branche de specs sont toutes tombées en conflit au squash des specs.
+4. **Vagues.** Une vague = les tickets dont tous les `Blocked by:` sont fusionnés dans le sujet **et** qui ne partagent pas de fichier chaud (§ 4). Un ticket bloqué attend la vague suivante : on ne « fusionne pas localement » la dépendance.
+5. **Suivi.** L'architecte suit le tableau d'avancement (`node scripts/docs/avancement.mjs sujet/<nom>`, ou `<SPEC>` ; `--json` pour une page partagée), pas les messages de chaque fille. Il ne se réveille que sur un renvoi, une question ou une fin de vague.
+6. **Livraison.** Le capitaine livre le sujet quand ses tickets sont faits (`sujet.sh livrer-prets`).
+7. **Rétro.** Chaque renvoi du capitaine et chaque échec de vague donne une ligne : un piège documenté, un critère de la revue adversariale, ou un gate. Un piège vécu deux fois sans gate est une dette.
+
+## 3. Un ticket prêt pour agent
+
+`Status: ready-for-agent` veut dire qu'une session neuve peut le coder **sans exploration large ni question**. En tête du ticket :
+
+```markdown
+Status: ready-for-agent
+Sujet: sujet/<nom> # si différent de la spec
+Blocked by: 01, 03 # tickets du même chantier, fusionnés dans le sujet avant de commencer
+Modèle: sonnet # ou opus, avec la raison
+Fichiers chauds: src/db/migrations/* # fichiers que d'autres tickets touchent aussi (§ 4)
+Label: architecte # chemin sensible : l'architecte contre-relit, puis pose lui-même à-fusionner (§ 5, étape 6)
+```
+
+Puis, dans le corps, quatre sections que la fille lit au lieu de chercher :
+
+| Section           | Contenu                                                                                                                                                                      | Ce que ça évite                                         |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| `## Où`           | fichiers à créer ou modifier, `fichier:ligne` du modèle à imiter, l'appelant réel de toute fonction citée (route, listener, cron), règles à lire (deux au plus)              | l'exploration du dépôt, la lecture de toutes les règles |
+| `## Décisions`    | ce qui est tranché (renvoi à la carte ou à l'ADR), et ce que la fille tranche seule par défaut prudent                                                                       | les questions à l'humain, les allers-retours            |
+| `## Surfaces`     | table surface → test qui la prouve                                                                                                                                           | la couverture rouge découverte au push                  |
+| `## Vérification` | commandes ciblées avant `pnpm check` (typecheck du paquet, specs nommées), index à régénérer, specs de garde à compléter                                                     | trois `pnpm check` complets pour un typecheck rouge     |
+
+Le gate `tickets` (`pnpm check:tickets`, `scripts/verify/tickets.mjs`) refuse un ticket `ready-for-agent` sans `Modèle:` ou sans l'une de ces quatre sections ; les tickets prêts d'avant l'installation du gate sont gelés dans `scripts/verify/tickets-dette.json`, qui ne reçoit jamais d'entrée nouvelle. Gabarit : `docs/agents/gabarits/ticket.issue.md`.
+
+Taille : un jour au plus, une quinzaine de fichiers. Une fille qui dépasse 300 k tokens de contexte signale un ticket mal découpé : la rétro le note.
+
+## 4. Branches et fichiers chauds
+
+Les règles de branche (sujet dès la première PR, jamais de PR empilée, un seul capitaine) sont celles de `CLAUDE.md` § « Fusion vers `develop` : une file, un capitaine ». S'y ajoute **l'ordonnancement des fichiers chauds** : deux tickets d'une même vague ne touchent pas le même fichier parmi ceux que les tickets déclarent. Candidats habituels : le dossier des migrations (une migration à la fois par sujet, horodatages réservés par l'architecte dans le brief), les seeds, les contrats partagés de `packages/contracts`, les fichiers de registre.
+
+`node scripts/docs/vagues.mjs <spec>` applique ces règles aux tickets (`Blocked by:` faits, `Fichiers chauds:` disjoints) et propose les vagues ; l'architecte décide.
+
+Les index générés (`scripts/docs/index-generes.json`) ne comptent pas : ils se régénèrent après chaque merge.
+
+## 5. Session fille : les consignes communes
+
+Le prompt de lancement **renvoie à cette section** au lieu de la recopier. Gabarit du prompt, tout le reste est dans le ticket :
+
+```text
+Session fille du chantier <nom>, architecte : <session_id>.
+Ticket : <chemin du .issue.md>. Base : origin/sujet/<nom>.
+Suis docs/agents/chaine-de-production.md § 5, puis le ticket. Ne m'écris (send_message) que si tu es bloqué ; un choix non tranché se décide prudemment et se note sous ## Comments.
+<une ligne de situation particulière, s'il y en a une>
+```
+
+Déroulé :
+
+1. **Environnement.** `git fetch origin develop sujet/<nom>` ; `pnpm install --frozen-lockfile --prefer-offline` ; la base locale (`compose.yaml`) si le ticket touche la persistance.
+2. **Réserver** depuis `origin/sujet/<nom>` : `docs/agents/issue-tracker.md` § « Réserver un ticket » (PR brouillon vers le sujet).
+3. **Lire** le ticket, les deux règles qu'il nomme et le modèle qu'il cite. Pas d'exploration au-delà ; un besoin de lecture large passe par un sous-agent `Explore`, qui rend une conclusion et pas des fichiers.
+4. **Coder**, puis les vérifications ciblées du ticket, puis `pnpm check` **une fois**. Après tout merge du sujet dans la branche : régénérer les index avant le check.
+5. **Revue adversariale** (skill `revue-adversariale`), corriger les bloquants. La section `## Revue adversariale` va **dans le corps de la PR** : le capitaine la lit là.
+6. **Livrer.** `Status: Fait — PR #<n>`, PR hors brouillon, label `à-fusionner` : `CLAUDE.md` § « Fusion vers `develop` ». La PR sort du brouillon **après le dernier push** : un brouillon ne lance aucun job, une PR prête relance toute la CI à chaque push. Avant de poser `à-fusionner`, vérifier que « titre (#n) » tient en 120 caractères et passe commitlint : `printf '%s\n' "<titre> (#<n>)" | pnpm exec commitlint`. Le label se pose **après le push du dernier commit** (`git ls-remote origin <branche>` = `HEAD`) : le capitaine squashe la tête qu'il trouve. Pour un ticket `Label: architecte`, la fille livre **sans** `à-fusionner` ; l'architecte contre-relit, puis pose le label lui-même.
+7. **Rendre la main** en cinq lignes : PR, fait, reste, décision prise par défaut (aussi notée sous `## Comments` du ticket), question. Puis armer **un** `send_later` à 90 min — « si ma PR porte `fusion-bloquée`, lire les commentaires du capitaine et corriger ; sinon rien ». Puis s'arrêter : une session fille ne prend pas de second ticket.
+
+Renvoyée par le capitaine (`fusion-bloquée`) : corriger, retirer le label, remettre `à-fusionner`, relire les labels.
+
+## 6. Économie de tokens : les règles
+
+| Règle                                                                                                                                                       | Pourquoi (mesuré sur un premier projet)                                                                         |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| Une session, un rôle ; un livrable hors rôle part ailleurs                                                                                                  | un architecte a produit un deck de 25 slides dans son contexte d'orchestration : 788 k tokens, compaction forcée |
+| L'architecte tient son état dans la carte et le tableau d'avancement, et compacte (`/compact`) entre deux vagues                                            | un architecte relisait 610 à 640 k tokens à chaque notification de fille : 99 $ pour la journée                 |
+| Prompt de fille = gabarit de trois lignes, le reste dans le ticket et ce fichier                                                                            | 3 k caractères de règles recopiés dans chacun de 30 prompts                                                      |
+| Ticket prêt = `Où` / `Décisions` / `Surfaces` / `Vérification` remplis                                                                                      | exploration, questions et `pnpm check` répétés chez les filles                                                   |
+| Specs fusionnées dans le sujet avant la première fille ; dépendance fusionnée avant le ticket qui en dépend                                                  | 12 PR en conflit à remettre à jour une par une, deux doublons fermés                                              |
+| Aucune attente active : ni sonde de CI, ni « j'attends » ; une fille qui a livré s'arrête                                                                   | chaque réveil d'un gros contexte coûte 0,4 à 0,7 $                                                               |
+| Avancement demandé = tableau lu, pas un tour de l'architecte                                                                                                | cinq demandes « en % ? » dans la journée, chacune sur un contexte de plus de 600 k tokens                        |
+| Plafond de l'architecte : au-delà de 400 k tokens de contexte, `/compact` entre deux vagues ou passage de main à une session de suite (`Architecte:` mis à jour) | 31 $ la suite de chantier contre 99 $                                                                            |
+| `.claude/settings.json` et `scripts/agent/` se modifient par une PR, jamais dans l'éditeur GitHub ; une session n'y élargit rien                              | un `settings.json` retouché quatre fois dans l'éditeur GitHub, une seule fois juste                              |
+| Sonnet par défaut pour une fille, Opus sur raison écrite                                                                                                    | 4 $ contre 7 $ par ticket comparable                                                                             |
+
+**Relevé des coûts.** Le coût d'une session se lit par `get_session` (`external_metadata.usage.cost_usd`) ; c'est l'architecte qui le relève, dans la section `## Coût` de la carte : les filles d'une vague dès qu'elle est fusionnée, avant leur archivage par le capitaine, puis le capitaine et l'architecte en fin de chantier. Chaque session lancée porte le tag `chantier:<nom>`. Le coût moyen par ticket, comparé d'un chantier à l'autre, dit si les règles ci-dessus font baisser la dépense.

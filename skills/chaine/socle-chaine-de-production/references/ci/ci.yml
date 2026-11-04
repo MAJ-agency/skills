@@ -1,0 +1,53 @@
+# CI minimale de la chaîne de production (skill socle-chaine-de-production).
+# Deux jobs exigés par la protection de develop : `qualite` (pnpm check, gates, tickets, tests sans
+# infrastructure) et `test-db` (les suites Postgres de l'API). Un push de session sur une PR brouillon
+# ne lance rien ; la PR sort du brouillon après son dernier push. Les E2E, quand ils existent, s'ajoutent
+# ici en job séparé joué au passage du capitaine (label `ci-complète` pour les avancer).
+name: CI
+on:
+  pull_request:
+    branches: ['develop', 'main', 'sujet/**']
+  push:
+    branches: ['develop', 'main']
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+permissions:
+  contents: read
+jobs:
+  qualite:
+    if: github.event_name == 'push' || !github.event.pull_request.draft
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version-file: .nvmrc, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check
+      - run: pnpm check:gates
+      - run: pnpm check:tickets
+      - run: pnpm check:commit
+      - name: Messages de commit
+        if: github.event_name == 'pull_request'
+        run: pnpm exec commitlint --from ${{ github.event.pull_request.base.sha }} --to ${{ github.event.pull_request.head.sha }}
+  test-db:
+    if: github.event_name == 'push' || !github.event.pull_request.draft
+    runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: postgres:16
+        env: { POSTGRES_USER: {{PROJET_SNAKE}}, POSTGRES_PASSWORD: {{PROJET_SNAKE}}, POSTGRES_DB: {{PROJET_SNAKE}}_test }
+        ports: ['5432:5432']
+        options: --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version-file: .nvmrc, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @{{SCOPE}}/{{PROJET}}-api test:db
+        env:
+          DATABASE_URL: postgres://{{PROJET_SNAKE}}:{{PROJET_SNAKE}}@localhost:5432/{{PROJET_SNAKE}}_test
+          DATABASE_MIGRATOR_URL: postgres://{{PROJET_SNAKE}}:{{PROJET_SNAKE}}@localhost:5432/{{PROJET_SNAKE}}_test
