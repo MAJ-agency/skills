@@ -31,6 +31,8 @@
     "./skills/chaine/tickets",
     "./skills/chaine/revue-adversariale",
     "./skills/chaine/sujet",
-    "./skills/chaine/fusionner"
+    "./skills/chaine/fusionner",
+    "./skills/chaine/chantier",
+    "./skills/chaine/recette-humaine"
   ]
 }

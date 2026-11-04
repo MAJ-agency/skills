@@ -35,7 +35,7 @@ Rien d'autre : les branches sont `develop` et `main`, les labels ont leurs noms,
 4. **Les hooks d'agent** : `references/agent/*` → `scripts/agent/`. Fusionner `references/settings-hooks.json` dans la clé `hooks` de `.claude/settings.json` : les deux entrées `PreToolUse` **s'ajoutent** à celles de graphify. Tester : `node --test scripts/agent/regles.test.mjs`, puis une commande refusée à la main : `echo '{"tool_input":{"command":"git push --force origin x"}}' | node scripts/agent/garde-commandes.mjs` sort en 2.
 5. **Les labels** : `references/labels.sh` → `scripts/github/labels.sh`. Avec `gh` authentifié, le jouer ; sinon `--liste`, et la ligne va dans `admin.md`.
 6. **La CI** : `references/ci/ci.yml` → `.github/workflows/ci.yml`, placeholders substitués. S'il existe déjà un workflow, y ajouter les deux jobs plutôt que le remplacer.
-7. **La méthode** : `references/docs-agents/chaine-de-production.md` → `docs/agents/chaine-de-production.md`.
+7. **La méthode** : `references/docs-agents/chaine-de-production.md` → `docs/agents/chaine-de-production.md`, et `references/docs-agents/pieges.md` → `docs/agents/pieges.md`.
 8. **Les ADR** : `node scripts/docs/next-id.mjs ARC` trois fois, de suite ; `references/adr/ARC-N-chaine-de-production.md`, `ARC-N-branches-de-sujet.md`, `ARC-N-recette-humaine.md` → `docs/adr/ARC-<n>-….md`, `{{N}}` et `{{DATE}}` substitués. `{{ADR_CHAINE}}` et `{{ADR_SUJET}}` valent ces identifiants dans tous les fichiers posés.
 9. **La branche `develop`** : `git fetch origin main && git push origin origin/main:refs/heads/develop` si elle n'existe pas. La branche par défaut et sa protection sont à l'admin (`admin.md`).
 10. **Les fragments** : chaque fragment s'insère immédiatement au-dessus du marqueur de sa zone, sans le supprimer :
