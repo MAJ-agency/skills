@@ -29,6 +29,7 @@ Rien d'autre : les branches sont `develop` et `main`, les labels ont leurs noms,
 ## Étape 2 — poser
 
 1. **Le skill `tickets`** : invoquer `/maj-skills:tickets poser`. Il pose les scripts de `scripts/docs/` et `scripts/verify/`, le tracker et les gabarits.
+   Puis `/maj-skills:revue-adversariale poser` : `scripts/chaine/diff-revue.sh` et le fichier de critères. (Les skills `sujet` et `fusionner` se posent de même, à leur arrivée.)
 2. **Le contrat** : `references/chaine.json` → `.claude/chaine.json`, rempli des réponses de l'étape 1.
 3. **Les index générés** : `references/index-generes.json` → `scripts/docs/index-generes.json`, s'il n'existe pas. Y ajouter les index que le projet connaît déjà (OpenAPI de l'API, index de graphify s'il est versionné).
 4. **Les hooks d'agent** : `references/agent/*` → `scripts/agent/`. Fusionner `references/settings-hooks.json` dans la clé `hooks` de `.claude/settings.json` : les deux entrées `PreToolUse` **s'ajoutent** à celles de graphify. Tester : `node --test scripts/agent/regles.test.mjs`, puis une commande refusée à la main : `echo '{"tool_input":{"command":"git push --force origin x"}}' | node scripts/agent/garde-commandes.mjs` sort en 2.
