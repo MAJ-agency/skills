@@ -54,6 +54,9 @@ S12 Clients web et mobile — apps/web/CLAUDE.md, apps/mobile/CLAUDE.md. Une rou
     par TanStack Query, jamais un cache maison.
 S13 Parité web et mobile (si les deux existent) — une évolution d'un client est répercutée sur
     l'autre, ou nommée comme trou de parité dans la PR ; les deux lisent le même schéma.
+S14 Chemins sensibles — .claude/chaine.json (cheminsSensibles). Un diff qui introduit du code
+    d'authentification, de droits, de chiffrement, de paiement ou d'export de données hors des chemins
+    déclarés est un écart : le chemin manque à la liste, et /security-review n'a pas tourné.
 ```
 
 ## Critères du projet

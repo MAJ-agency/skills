@@ -48,6 +48,8 @@ Fichiers chauds: src/db/migrations/* # fichiers que d'autres tickets touchent au
 Label: architecte # chemin sensible : l'architecte contre-relit, puis pose lui-même à-fusionner (§ 5, étape 6)
 ```
 
+Un ticket qui crée un module d'authentification, de droits, de chiffrement, de paiement ou d'export ajoute son dossier à `cheminsSensibles` (`.claude/chaine.json`) dans la PR de cadrage ; la revue adversariale (critère S14) relève un tel code hors de la liste.
+
 Puis, dans le corps, quatre sections que la fille lit au lieu de chercher :
 
 | Section           | Contenu                                                                                                                                                                      | Ce que ça évite                                         |

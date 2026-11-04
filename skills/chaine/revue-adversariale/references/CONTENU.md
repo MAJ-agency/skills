@@ -6,7 +6,7 @@ Le diff relu, sans le lockfile, les index générés (lus dans `scripts/docs/ind
 
 ## `references/criteres-socle.md`
 
-Les treize critères communs à tout projet amorcé par ces socles : sens des dépendances, contrats, tenant, erreurs, migrations, typage, tests, injection, concurrence, configuration, langue des identifiants, clients, parité. Chacun renvoie à la règle du projet qu'il applique. Posé une fois comme `docs/agents/criteres-revue.md` (le chemin que `.claude/chaine.json` nomme) ; le projet y ajoute ses critères `P`, et retire ceux qui ne s'appliquent pas. Un projet qui a déjà sa liste la garde : Fedora y met ses quinze critères.
+Les quatorze critères communs à tout projet amorcé par ces socles : sens des dépendances, contrats, tenant, erreurs, migrations, typage, tests, injection, concurrence, configuration, langue des identifiants, clients, parité, chemins sensibles. Chacun renvoie à la règle du projet qu'il applique. Posé une fois comme `docs/agents/criteres-revue.md` (le chemin que `.claude/chaine.json` nomme) ; le projet y ajoute ses critères `P`, et retire ceux qui ne s'appliquent pas. Un projet qui a déjà sa liste la garde : Fedora y met ses quinze critères.
 
 ## `references/prompt.md`
 
