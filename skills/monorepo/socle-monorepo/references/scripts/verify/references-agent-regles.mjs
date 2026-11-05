@@ -106,6 +106,9 @@ function viseClaudeMd(contenu, index) {
   return !/(\.md|\.mjs|\.ts|ADR|spec|\b[A-Z]{2,}(?:-[A-Z]{2,})*-\d+|PRD|ticket|skill)/i.test(segment);
 }
 
+/** `PRÉFIXE-n.NN` : un ticket, qui doit exister sous docs/**\/issues/. */
+const TICKET_CITE = /\b([A-Z][A-Z0-9]*(?:-[A-Z][A-Z0-9]*)*-\d+\.\d{2})\b/g;
+
 /**
  * Références cassées d'un fichier.
  * @param {object} p
@@ -114,6 +117,7 @@ function viseClaudeMd(contenu, index) {
  * @param {(chemin: string) => boolean} p.existeChemin chemin relatif à la racine présent dans l'arbre
  * @param {(nom: string) => boolean} p.commandeExiste skill, commande projet ou intégrée
  * @param {(nom: string) => boolean} p.skillExiste skill du dépôt (`.claude/skills/<nom>`)
+ * @param {(id: string) => boolean} [p.ticketExiste] ticket `PRÉFIXE-n.NN` présent sous docs/ (absent : non lu)
  * @param {Set<string>} p.racines entrées de premier niveau de l'arbre (`apps`, `docs`, `.claude`…)
  * @param {{titres: string[], table: string[]}} p.sections titres de CLAUDE.md et des règles, table des règles
  * @returns {{ligne: number, nature: string, reference: string}[]}
@@ -124,6 +128,7 @@ export function referencesCassees({
   existeChemin,
   commandeExiste,
   skillExiste,
+  ticketExiste,
   sections,
   racines,
 }) {
@@ -154,6 +159,9 @@ export function referencesCassees({
   for (const [i, { ligne, contenu, dansBloc }] of toutes.entries()) {
     // Une section citée se lit aussi dans un bloc (gabarit de prompt) ; chemins et commandes non.
     if (!dansBloc) lireCodes(ligne, contenu);
+    if (!dansBloc && ticketExiste) {
+      for (const m of contenu.matchAll(TICKET_CITE)) if (!ticketExiste(m[1])) ajouter(ligne, 'ticket', m[1]);
+    }
     // Une citation coupée en fin de ligne (« § « Titre\n suite ») se lit sur deux lignes.
     const suite = toutes[i + 1]?.ligne === ligne + 1 ? toutes[i + 1].contenu.trim() : '';
     const lu = suite ? `${contenu} ${suite}` : contenu;

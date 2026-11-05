@@ -15,7 +15,8 @@ import { CHAINE } from './regles.mjs';
 
 if (lireEntree().stop_hook_active) process.exit(0);
 
-const modifies = execFileSync('git', ['status', '--porcelain'], { cwd: RACINE, encoding: 'utf8' });
+// --untracked-files=all : sans lui, git replie un dossier nouveau en « ?? apps/ » et le fichier .ts n'est pas vu.
+const modifies = execFileSync('git', ['status', '--porcelain', '--untracked-files=all'], { cwd: RACINE, encoding: 'utf8' });
 if (!/\.(ts|tsx|mjs|js|json|md|sql|yml|yaml)$/m.test(modifies)) process.exit(0);
 
 const GATES = (CHAINE.gatesRapides ?? []).filter((g) => existsSync(join(RACINE, g)));
