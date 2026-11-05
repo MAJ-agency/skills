@@ -47,7 +47,8 @@ S10 Configuration et secrets — apps/api/CLAUDE.md § « Frozen architecture de
     d'environnement en dur ; une variable nouvelle est déclarée dans .env.example.
 S11 Langue des identifiants — ARC-4, GLOSSARY.md. Identifiants en anglais, d'après les noms en code du
     glossaire ; prose, messages et textes d'interface en français ; un terme du domaine nouveau sans
-    entrée au glossaire est un écart.
+    entrée au glossaire est un écart. Hors règle : les scripts posés par le plugin maj-skills
+    (scripts/docs, verify, chaine, agent, github), copies verbatim en français (ARC-4 § exception).
 S12 Clients web et mobile — apps/web/CLAUDE.md, apps/mobile/CLAUDE.md. Une route est mince et délègue
     à une feature ; aucun import entre features (hors dette déclarée) ; sens unique lib → components →
     features → app ; un seul client HTTP ; un formulaire valide par le schéma partagé ; l'état serveur
