@@ -22,6 +22,7 @@ La question n'est pas « français ou anglais » mais **où passe la frontière 
 - **La prose reste en français** : commentaires, documentation, messages de commit, textes d'interface, messages d'erreur destinés aux humains, noms de tests (qui citent les règles du registre, `<TRI>-<N>`).
 - **`GLOSSARY.md` porte la correspondance.** Chaque terme du glossaire a pour entrée son **nom en code** et sa définition en français, avec le libellé affiché à l'utilisateur. C'est le seul pont entre le mot du métier et l'identifiant ; un agent n'a pas à deviner. Le fichier s'appelle `GLOSSARY.md`, le nom qu'attendent les skills de Matt Pocock (`grill-with-docs`, `domain-modeling`) qui portent le grilling : avec un autre nom, ils créeraient un second glossaire.
 - **Un terme métier sans nom en code dans `GLOSSARY.md` n'est pas prêt à être codé.**
+- **Exception : les scripts posés par le plugin `maj-skills`** (`scripts/docs/`, `scripts/verify/`, `scripts/chaine/`, `scripts/agent/`, `scripts/github/`, et les scripts `package.json` qui les lancent) gardent la langue du plugin, le français. Ce sont des copies verbatim de ses gabarits, corrigées dans le plugin et reposées ici : les traduire les rendrait indiffables avec leur source — la raison même pour laquelle les règles impératives des services restent en anglais. Un script écrit pour ce projet seul suit la règle générale.
 
 ## Alternatives écartées
 
