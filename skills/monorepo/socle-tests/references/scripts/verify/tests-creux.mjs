@@ -118,8 +118,11 @@ for (const dir of SCAN) {
       if (mot) {
         const line = sf.getLineAndCharacterOfPosition(n.getStart(sf)).line + 1;
         const titre = n.arguments[0]?.getText(sf) ?? "";
-        const autour = lines[line - 2] ?? ""; // la ligne au-dessus : la directive eslint-disable qui porte le ticket
-        if (!TICKET.test(titre) && !TICKET.test(autour)) {
+        // La ligne au-dessus ne compte que si c'est un commentaire (la directive eslint-disable qui
+        // porte le ticket) : le ticket d'un cas voisin ne couvre pas celui-ci.
+        const auDessus = (lines[line - 2] ?? "").trim();
+        const commente = auDessus.startsWith("//") && TICKET.test(auDessus);
+        if (!TICKET.test(titre) && !commente) {
           errors.push(`${rel}:${line} : ${titre.replace(/\s+/g, " ").slice(0, 70)} — \`.${mot}\` sans ticket`);
         }
       }
