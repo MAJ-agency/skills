@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { controlerCarte, controlerTicket, ecartsFormatPret, estArchive, identifiant, identifiantsEnDouble, statusValide, ticketsCites } from './tickets-regles.mjs';
+import { controlerCarte, controlerTicket, ecartsFormatPret, estArchive, identifiant, identifiantsEnDouble, statusValide, ticketsCites, ecartsFiches
+} from './tickets-regles.mjs';
 
 const NOM = 'SOC-1-socle.06.issue.md';
 const EXISTANTS = new Set(['SOC-1.05', 'SOC-1.06', 'ALL-STR-6.01']);
@@ -46,4 +47,16 @@ test('carte de chantier : fiche, phase, architecte, coût dès la vague 1, rétr
   assert.match(carte('fini', '\n## Coût\n\n| a |\n').erreurs[0].message, /Rétro/);
   assert.match(carte('7-x').erreurs[0].message, /hors vocabulaire/);
   assert.equal(controlerCarte({ nom: 'x.map.md', texte: '# sans sujet\n' }).carte, false);
+});
+
+test('les fiches du skill passent ; une fiche réécrite par setup-matt-pocock-skills, ou absente, est nommée avec son remède', () => {
+  const tracker = '# Suivi\n\n## Conventions\n\n## Réserver un ticket (sessions parallèles)\n\n## Un ticket prêt pour agent\n\n## Archivage\n';
+  const triage = '| `en cours — <branche>` | … |\n| `Fait — PR #<n>` | … |\n';
+  assert.deepEqual(ecartsFiches({ issueTracker: tracker, triageLabels: triage }), []);
+  const ancien = '# Issue tracker\n\n## Conventions\n\n## Quand une skill dit « publish to the issue tracker »\n';
+  const e = ecartsFiches({ issueTracker: ancien, triageLabels: '| needs-triage |\n' });
+  assert.equal(e.length, 5);
+  assert.match(e[0], /issue-tracker\.md : section « Réserver un ticket » absente — rejouer `\/maj-skills:tickets poser`/);
+  assert.match(e[3], /triage-labels\.md : valeur « en cours — <branche> » absente/);
+  assert.deepEqual(ecartsFiches({ issueTracker: null, triageLabels: null }).length, 2);
 });
