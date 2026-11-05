@@ -68,5 +68,7 @@ export default tseslint.config(
     rules: { "no-console": "off" },
   },
   // Règles propres à chaque brique (packages/<paquet>/ et apps/<service>/eslint.rules.mjs).
+  // Le lint des tests, posé par le skill socle-tests (`eslint.tests.mjs` à la racine).
+  ...(existsSync(join(root, "eslint.tests.mjs")) ? (await import(pathToFileURL(join(root, "eslint.tests.mjs")).href)).default : []),
   ...brickRules,
 );
