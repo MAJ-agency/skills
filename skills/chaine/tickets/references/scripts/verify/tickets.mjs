@@ -10,6 +10,9 @@
  *   1. `Status:` ∈ vocabulaire fermé (docs/agents/triage-labels.md) ;
  *   2. `Blocked by:` ne cite que des tickets qui existent ;
  *   3. `Sujet:` de la forme `sujet/<kebab>` ;
+ *   0. les fiches docs/agents/issue-tracker.md et triage-labels.md sont celles du skill `tickets`
+ *      (sections « Réserver un ticket », « Un ticket prêt pour agent », « Archivage » ; valeurs
+ *      `en cours — <branche>` et `Fait — PR #<n>`) : rejouer setup-matt-pocock-skills les écrase,
  *   4. la fiche d'une carte de chantier (`docs/**\/*.map.md` à ligne `Sujet:`) : `Phase:`, `Architecte:`,
  *      `## Coût` dès `4-vague-1`, `## Rétro` à `fini` ;
  *   5. un identifiant de spec n'est porté que par une spec ;
@@ -21,9 +24,9 @@
  * Usage : node scripts/verify/tickets.mjs [--elaguer]   (pnpm check:tickets — CI)
  */
 import { execFileSync } from 'node:child_process';
-import { readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
-import { controlerCarte, controlerTicket, ecartsFormatPret, estArchive, identifiant, identifiantsEnDouble } from './tickets-regles.mjs';
+import { controlerCarte, controlerTicket, ecartsFiches, ecartsFormatPret, estArchive, identifiant, identifiantsEnDouble } from './tickets-regles.mjs';
 
 const ROOT = process.env.PROJET_RACINE ?? new URL('../..', import.meta.url).pathname;
 const DETTE = join(ROOT, 'scripts/verify/tickets-dette.json');
@@ -39,6 +42,9 @@ const cartesGelees = new Set(dette.cartes ?? []);
 const doublonsGeles = new Set(dette.identifiants ?? []);
 
 const erreurs = [];
+// Les fiches que les skills lisent : celles du skill `tickets`, pas celles d'origine de Matt Pocock.
+const fiche = (nom) => (existsSync(join(ROOT, 'docs/agents', nom)) ? readFileSync(join(ROOT, 'docs/agents', nom), 'utf8') : null);
+erreurs.push(...ecartsFiches({ issueTracker: fiche('issue-tracker.md'), triageLabels: fiche('triage-labels.md') }));
 const doublons = identifiantsEnDouble(ls('docs/**'));
 for (const d of doublons.filter((x) => !doublonsGeles.has(x.id))) {
   erreurs.push(

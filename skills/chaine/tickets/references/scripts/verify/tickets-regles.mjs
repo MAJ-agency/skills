@@ -169,3 +169,28 @@ export function controlerCarte({ nom, texte }) {
   }
   return { carte: true, erreurs };
 }
+
+/** Ce que les fiches de `docs/agents/` doivent porter pour que les skills de la chaîne lisent le dépôt. */
+export const SECTIONS_TRACKER = ['Réserver un ticket', 'Un ticket prêt pour agent', 'Archivage'];
+export const VALEURS_TRIAGE = ['en cours — <branche>', 'Fait — PR #<n>'];
+
+/**
+ * Contrôle des fiches `docs/agents/issue-tracker.md` et `triage-labels.md` : celles du skill
+ * `tickets`, pas celles d'origine de `setup-matt-pocock-skills`. Rejouer ce dernier les réécrit
+ * sans la réservation, l'archivage ni le ticket prêt pour agent, et rien d'autre ne le verrait :
+ * les skills `chantier`, `sujet` et `fusionner` renvoient à ces sections par leur titre.
+ * `issueTracker` et `triageLabels` : le texte de chaque fiche, ou null si elle manque.
+ */
+export function ecartsFiches({ issueTracker, triageLabels }) {
+  const erreurs = [];
+  const remede = 'rejouer `/maj-skills:tickets poser` (la fiche a été réécrite, sans doute par setup-matt-pocock-skills)';
+  if (issueTracker === null) erreurs.push('docs/agents/issue-tracker.md absente : `/maj-skills:tickets poser`');
+  else
+    for (const titre of SECTIONS_TRACKER)
+      if (!new RegExp(`^## ${titre}`, 'm').test(issueTracker)) erreurs.push(`docs/agents/issue-tracker.md : section « ${titre} » absente — ${remede}`);
+  if (triageLabels === null) erreurs.push('docs/agents/triage-labels.md absente : `/maj-skills:tickets poser`');
+  else
+    for (const valeur of VALEURS_TRIAGE)
+      if (!triageLabels.includes(valeur)) erreurs.push(`docs/agents/triage-labels.md : valeur « ${valeur} » absente — ${remede}`);
+  return erreurs;
+}

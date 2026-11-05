@@ -4,7 +4,11 @@ import { test } from 'node:test';
 import { ENV, depotJouet } from '../docs/depot-jouet.mjs';
 
 const SCRIPT = new URL('./tickets.mjs', import.meta.url).pathname;
-const DETTE = { 'scripts/verify/tickets-dette.json': '{"tickets":[],"cartes":[],"identifiants":[]}\n' };
+const DETTE = {
+  'scripts/verify/tickets-dette.json': '{"tickets":[],"cartes":[],"identifiants":[]}\n',
+  'docs/agents/issue-tracker.md': '# Suivi\n\n## Réserver un ticket (sessions parallèles)\n\n## Un ticket prêt pour agent\n\n## Archivage\n',
+  'docs/agents/triage-labels.md': '`en cours — <branche>` · `Fait — PR #<n>`\n',
+};
 const lancer = (d) => spawnSync(process.execPath, [SCRIPT], { cwd: d.travail, env: { ...ENV, PATH: d.bin, PROJET_RACINE: d.travail }, encoding: 'utf8' });
 
 test('un dépôt conforme passe, un Status hors vocabulaire échoue avec le chemin et la ligne', () => {
