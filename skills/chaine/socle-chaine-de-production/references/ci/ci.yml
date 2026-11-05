@@ -51,3 +51,12 @@ jobs:
         env:
           DATABASE_URL: postgres://{{PROJET_SNAKE}}:{{PROJET_SNAKE}}@localhost:5432/{{PROJET_SNAKE}}_test
           DATABASE_MIGRATOR_URL: postgres://{{PROJET_SNAKE}}:{{PROJET_SNAKE}}@localhost:5432/{{PROJET_SNAKE}}_test
+  zizmor:
+    # Audit des workflows GitHub Actions : injection par gabarit, actions non épinglées,
+    # pull_request_target, permissions trop larges. Version épinglée.
+    if: github.event_name == 'push' || !github.event.pull_request.draft
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 -m pip install --user --quiet zizmor==1.31.0
+      - run: zizmor --min-severity medium .github/workflows

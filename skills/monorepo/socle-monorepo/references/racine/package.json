@@ -20,7 +20,8 @@
     "format:check": "prettier --check .",
     "prepare": "husky",
     "check:gates": "turbo run check:gates",
-    "check:commit": "turbo run typecheck test"
+    "check:commit": "turbo run typecheck test",
+    "check:contexte": "node scripts/verify/budget-contexte.mjs && node scripts/verify/references-agent.mjs"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.6.1",
