@@ -30,14 +30,14 @@ Le critère de séparation est **le besoin d'infrastructure**, pas la couche : u
 
 ## Tests creux — interdits
 
-Un `it` sans assertion ; un `it` dont la seule assertion est `toBeDefined` ou `toBeTruthy` ; une assertion sous condition ; un `it.skip` ou `it.todo` sans ticket ; un `expect` dans un `try` sans `expect.assertions`. Le gate qui les refuse en CI est à poser par le ticket `7-pare-feu-ci` ; la règle vaut dès maintenant.
+Un `it` sans assertion ; un `it` dont la seule assertion est `toBeDefined` ou `toBeTruthy` ; une assertion sous condition ; un `it.skip` ou `it.todo` sans ticket ; un `expect` dans un `try` sans `expect.assertions`. Le lint des tests (`eslint.tests.mjs`) et le gate `tests-creux` (`scripts/verify/tests-creux.mjs`, dans `pnpm check`) les refusent ; posés par le skill `socle-tests`. Un cas assumé porte `// tests-creux: ignore — <raison>` sur la ligne au-dessus.
 
 Un test désactivé s'écrit sur une ligne au-dessus : `// skip: <ticket> — <raison>`. Le correctif retire le `skip` **sans changer l'attendu**.
 
 ## Couverture
 
-- Tout fichier de code touché par un diff a au moins un test qui l'exécute. Une exemption se nomme dans le fichier : `// coverage: ignore — <raison>`.
-- Les seuils chiffrés et leur gate (`coverage-diff`) sont posés par le ticket `7-pare-feu-ci` ; un plancher daté se relève quand la mesure progresse, jamais ne baisse.
+- Tout fichier de code touché par un diff a au moins un test qui l'exécute. Une exemption se nomme dans les dix premières lignes du fichier : `// coverage-diff: ignore — <raison>`.
+- Le gate `coverage-diff` (`pnpm check:coverage`, pre-push et job CI `test-db`) refuse tout fichier de code du diff qu'aucun test n'exécute, ou sous 80 % de lignes / 70 % de branches (90 % de lignes pour un fichier nouveau) ; les suites sur base comptent quand `DATABASE_URL` est définie. Posé par le skill `socle-tests`. Un plancher daté se relève quand la mesure progresse, jamais ne baisse.
 
 <!-- ══ TENANT-B ══ -->
 ## Tests d'isolation — bloquants
@@ -47,7 +47,7 @@ Trois tests prouvent l'isolation des tenants et bloquent la fusion (`docs/method
 
 ## Propriétés
 
-Une fonction pure qui porte un invariant métier chiffré — montants, quantités, dates, arrondis — gagne un test de propriétés à côté d'elle (`*.property.spec.ts`, `fast-check`, à installer à la première). L'oracle est indépendant de l'implémentation : entiers exacts pour l'argent, aller-retour pour un format. Une propriété rouge est un bug : corriger le code, garder le contre-exemple minimal comme test d'exemple.
+Une fonction pure qui porte un invariant métier chiffré — montants, quantités, dates, arrondis — gagne un test de propriétés à côté d'elle (`*.property.spec.ts`, `fast-check`, à installer à la première ; gabarit `docs/agents/gabarits/exemple.property.spec.ts`). L'oracle est indépendant de l'implémentation : entiers exacts pour l'argent, aller-retour pour un format. Une propriété rouge est un bug : corriger le code, garder le contre-exemple minimal comme test d'exemple.
 
 ## Commandes
 

@@ -1,0 +1,12 @@
+{
+  "name": "maj-skills-bancs",
+  "private": true,
+  "description": "Bancs d'essai des scripts que les skills posent dans un projet. Les skills eux-mêmes n'ont aucune dépendance : ce fichier ne sert qu'à jouer leurs tests ici.",
+  "type": "module",
+  "scripts": {
+    "test": "node --test 'skills/*/*/scripts/*.test.mjs' 'skills/*/*/references/scripts/*/*.test.mjs' 'skills/*/*/references/agent/*.test.mjs'"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}

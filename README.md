@@ -25,6 +25,7 @@ claude plugin update maj-skills@maj
 | Skill                                                       | Ce qu'il fait                                                                                                                       |
 | ----------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
 | [`socle-monorepo`](skills/monorepo/socle-monorepo/SKILL.md) | Amorce la racine d'un monorepo pnpm/Turborepo — hooks, méthode, documentation, outillage agent — puis installe les services choisis |
+| [`socle-tests`](skills/monorepo/socle-tests/SKILL.md) | Pose les gates de qualité des tests : tests creux refusés (lint + AST), couverture du diff sur Vitest, propriétés `fast-check`, score de mutation Stryker, trois ADR |
 
 Invocation : `/maj-skills:socle-monorepo`. C'est le point d'entrée d'un projet neuf : il demande quels services installer et invoque leur skill.
 
