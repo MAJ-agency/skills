@@ -137,3 +137,18 @@ test('section : lue dans un bloc de code et sur deux lignes', () => {
     ],
   );
 });
+
+test('ticket : un identifiant cité qui n’existe pas est signalé, un existant ignoré, un bloc de code non lu', () => {
+  const tickets = ['SOC-1.03'];
+  const r = referencesCassees({
+    texte: 'Voir `SOC-1.03` et SOC-1.09.\n```\nSOC-1.42\n```\n',
+    dossier: '.',
+    existeChemin: () => true,
+    commandeExiste: () => true,
+    skillExiste: () => true,
+    ticketExiste: (id) => tickets.includes(id),
+    sections: { titres: [], table: [] },
+    racines: new Set(['docs']),
+  });
+  assert.deepEqual(r, [{ ligne: 1, nature: 'ticket', reference: 'SOC-1.09' }]);
+});

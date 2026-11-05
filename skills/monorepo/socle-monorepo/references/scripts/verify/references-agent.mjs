@@ -10,7 +10,8 @@
  * Fichiers lus : tout CLAUDE.md (racine, apps/*, packages/*), GLOSSARY.md, .claude/rules/*.md,
  * .claude/skills/**\/*.md, .claude/commands/*.md, docs/agents/**\/*.md. Natures (règles pures :
  * references-agent-regles.mjs) : chemin, commande, skill qualifiée (plugins installés listés dans
- * references-agent-integrees.json), section de CLAUDE.md ou des règles.
+ * references-agent-integrees.json), section de CLAUDE.md ou des règles, identifiant de ticket
+ * (`SOC-1.03`, présent sous docs/**\/issues/).
  *
  * Dette : `references-agent-dette.json`, références cassées à l'allumage gelées par
  * `fichier:ligne:référence`. Jamais d'entrée nouvelle : on corrige la référence.
@@ -62,6 +63,17 @@ const skillsPlugins = new Set(listes['skills-plugins'] ?? []);
 const racines = new Set(suivis.map((f) => f.split('/')[0]));
 const existeChemin = (c) =>
   suivisSet.has(c) || suivis.some((f) => f.startsWith(c.replace(/\/?$/, '/')));
+const tickets = new Set(
+  suivis
+    .filter((f) => /\/issues\/[^/]+\.issue\.md$/.test(f))
+    .map((f) => /\/((?:[A-Z][A-Z0-9]*-)+\d+)-[a-z0-9-]+\.(\d{2})\.issue\.md$/.exec(f))
+    .filter(Boolean)
+    .map((m) => `${m[1]}.${m[2]}`),
+);
+const ticketExiste = (id) => tickets.has(id);
+// Les documents qui définissent la convention des tickets citent des identifiants d'exemple
+// (`SOC-1.03`) : ils ne sont pas lus pour cette nature.
+const CONVENTION = /^docs\/agents\/(issue-tracker|triage-labels|chaine-de-production)\.md$|^docs\/agents\/gabarits\//;
 const skillExiste = (nom) => skillsPlugins.has(nom) || existsSync(join(ROOT, '.claude/skills', nom, 'SKILL.md'));
 const commandeExiste = (nom) =>
   skillExiste(nom) || existsSync(join(ROOT, '.claude/commands', `${nom}.md`)) || integrees.has(nom) || [...skillsPlugins].some((s) => s.endsWith(`:${nom}`));
@@ -74,6 +86,7 @@ for (const fichier of lus) {
     existeChemin,
     commandeExiste,
     skillExiste,
+    ticketExiste: CONVENTION.test(fichier) ? undefined : ticketExiste,
     sections,
     racines,
   })) {
