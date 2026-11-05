@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { ajouteUneDependance, decisionCommande, refusEdition, sansTexte } from './regles.mjs';
+import { ajouteUneDependance, decisionCommande, refusEdition, sansTexte, lintable
+} from './regles.mjs';
 
 const livree = { migrationExistante: () => true, migrations: 'apps/api/src/db/migrations/' };
 const nouvelle = { migrationExistante: () => false, migrations: 'apps/api/src/db/migrations/' };
@@ -48,4 +49,9 @@ test('planDemarrage ne lance que les étapes manquantes et actives', async () =>
   assert.deepEqual(planDemarrage(pret), []);
   assert.deepEqual(planDemarrage({ ...pret, originDevelop: false, lockfileMtime: 3 }), ['fetch-develop', 'install']);
   assert.deepEqual(planDemarrage({ ...pret, postgres: false, baseTest: false }), [], 'étapes de base désactivées tant que le projet n’a pas sa base');
+});
+
+test('lintable : le code TypeScript et les scripts, jamais les sorties de build ni node_modules', () => {
+  for (const f of ['apps/api/src/a.ts', 'apps/web/src/b.tsx', 'scripts/verify/c.mjs', 'd.js']) assert.equal(lintable(f), true, f);
+  for (const f of ['README.md', 'package.json', 'apps/web/.next/x.js', 'node_modules/x/y.ts', 'apps/api/dist/main.js', 'coverage/lcov.ts']) assert.equal(lintable(f), false, f);
 });
