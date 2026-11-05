@@ -2,7 +2,7 @@
 // Revue adversariale exigée au passage du capitaine (ADR « chaîne de production »).
 //
 // Une PR qui touche du code (apps/, packages/, scripts/, donc les seeds de scripts/db/)
-// n'est éligible que si sa description porte une section « Revue adversariale » : un titre
+// n'est éligible que si sa description porte une section « Revue de ticket » ou « Revue adversariale » : un titre
 // Markdown hors bloc de code. Règles pures, testées par revue-exigee.test.mjs ; la CLI sert
 // passer.sh et sujet.sh.
 //
@@ -22,7 +22,7 @@ export function exigeRevue(fichiers) {
   return fichiers.some((f) => CHEMINS_CODE.test(f.trim()));
 }
 
-/** La description a-t-elle un titre « Revue adversariale » hors bloc de code ? */
+/** La description a-t-elle un titre « Revue de ticket » ou « Revue adversariale » hors bloc de code ? */
 export function aSectionRevue(corps) {
   let dansBloc = false;
   for (const ligne of (corps ?? '').split(/\r?\n/)) {
@@ -30,7 +30,7 @@ export function aSectionRevue(corps) {
       dansBloc = !dansBloc;
       continue;
     }
-    if (!dansBloc && /^\s{0,3}#{1,6}\s+revue adversariale\b/i.test(ligne)) return true;
+    if (!dansBloc && /^\s{0,3}#{1,6}\s+revue (adversariale|de ticket)\b/i.test(ligne)) return true;
   }
   return false;
 }
@@ -38,7 +38,7 @@ export function aSectionRevue(corps) {
 /** Motif de non-éligibilité, ou null si la PR peut passer. */
 export function motifSansRevue({ corps, fichiers }) {
   if (!exigeRevue(fichiers) || aSectionRevue(corps)) return null;
-  return 'sans section « Revue adversariale » dans la description alors que la PR touche apps/, packages/ ou scripts/ : lancer le skill revue-adversariale';
+  return 'sans section « Revue de ticket » ni « Revue adversariale » dans la description alors que la PR touche apps/, packages/ ou scripts/ : lancer le skill revue-de-ticket (ou revue-adversariale pour une PR sans ticket)';
 }
 
 const TYPES_AVEC_CODE = /^(feat|fix|refactor|perf)(\([^)]*\))?!?:/;

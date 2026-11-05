@@ -19,6 +19,7 @@ test('aSectionRevue : titre de section, quel que soit son niveau ou sa casse', (
   assert.equal(aSectionRevue(SECTION), true);
   assert.equal(aSectionRevue('### revue ADVERSARIALE\n'), true);
   assert.equal(aSectionRevue('## Revue adversariale — deux tours\n'), true);
+  assert.equal(aSectionRevue('## Revue de ticket\n'), true);
 });
 
 test('aSectionRevue : la mention en texte ou dans un bloc de code ne compte pas', () => {
