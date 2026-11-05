@@ -1,0 +1,4 @@
+{
+  "$comment": "Références cassées gelées à la pose du gate (fichier:ligne:référence). Jamais d'entrée nouvelle : on corrige la référence. `--elaguer` retire les entrées éteintes.",
+  "references": []
+}

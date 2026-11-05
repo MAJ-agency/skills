@@ -1,7 +1,14 @@
 {
-  "$comment": "Contrat de la chaîne de production (skill socle-chaine-de-production). Lu par les skills tickets, sujet, fusionner, revue-adversariale, chantier et par scripts/agent/regles.mjs. Les branches sont fixes : develop intègre, main livre.",
+  "$comment": "Contrat de la chaîne de production (skill socle-chaine-de-production). Lu par les skills tickets, sujet, fusionner, revue-adversariale, chantier et par scripts/agent/regles.mjs. Les branches sont fixes : develop intègre, main livre. `gatesRapides` : les gates que le hook de fin de tour rejoue sur le travail en cours (ceux qui existent).",
   "cheminsSensibles": [],
   "criteresRevue": "docs/agents/criteres-revue.md",
   "fillesParVague": 6,
-  "migrations": "apps/api/src/db/migrations/"
+  "migrations": "apps/api/src/db/migrations/",
+  "gatesRapides": [
+    "scripts/verify/tests-creux.mjs",
+    "scripts/verify/tickets.mjs",
+    "scripts/verify/budget-contexte.mjs",
+    "scripts/verify/references-agent.mjs",
+    "scripts/verify/settings-json.mjs"
+  ]
 }

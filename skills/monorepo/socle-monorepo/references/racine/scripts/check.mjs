@@ -20,6 +20,11 @@ const steps = [
     "une règle ESLint est violée — souvent une frontière d'architecture : le message cite le CLAUDE.md qui la fonde.",
   ],
   [
+    "check:contexte",
+    "pnpm check:contexte",
+    "ce que lisent les agents est faux ou trop long : CLAUDE.md ou une règle au-delà de 200 lignes, une règle sans paths:, une référence (chemin, commande, skill, section) qui n'existe pas. Le message nomme le fichier et la ligne.",
+  ],
+  [
     "typecheck",
     "turbo run typecheck",
     "les types ne passent pas : corriger le type, jamais `as` ni `any` pour faire passer.",

@@ -53,6 +53,7 @@ Copier `references/` vers le dépôt selon cette table, puis substituer les plac
 | `references/husky/*`            | `.husky/` (les rendre exécutables)                                                                                                       |
 | `references/methode/*`          | `docs/methode/`                                                                                                                          |
 | `references/racine/.claude/settings.json` | `.claude/settings.json` — les marketplaces et plugins de skills, posé **avant** `graphify claude install` (étape 3), qui y ajoute ses hooks |
+| `references/scripts/verify/*`   | `scripts/verify/` — les gates de la racine : `budget-contexte` (CLAUDE.md et règles ≤ 200 lignes, `paths:` qui désignent des fichiers) et `references-agent` (tout chemin, commande, skill ou section cité dans ce que lisent les agents existe ; plugins et commandes intégrées dans `references-agent-integrees.json`, dette gelée vide), joués par `check:contexte` dans `pnpm check` |
 | `references/racine/.claude/rules/tests.md` | `.claude/rules/tests.md` — la fiche transverse des tests, chargée par chemin ; sa zone `<!-- socle:tests -->` reçoit la ligne de chaque service |
 | `references/adr/ARC-*`       | `docs/adr/` — `ARC-1` (nomenclature) et `ARC-4` (langue des identifiants) ; `ARC-3` attend l'étape 6, il n'existe qu'avec un client |
 | `references/sources/README.md`  | `docs/sources/README.md`                                                                                                                 |

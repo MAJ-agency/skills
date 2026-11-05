@@ -52,3 +52,5 @@ Les trois fichiers de configuration (`issue-tracker.md`, `triage-labels.md`, `do
 Ce que la racine a délibérément laissé ouvert, en six tickets : `1` modéliser le domaine (bloquant : presque tout en dépend), `2` hébergement, `3` client et forme de l'authentification (**tranché d'office si un client est installé**), `7` pare-feu CI, `8` observabilité, `9` registre des règles métier. Les numéros `4`–`6` sont réservés à l'API, `10`–`12` au web, `13`–`15` au mobile, `16` et suivants aux services à venir.
 
 Les adapter au projet réel. Un ticket qui pose une question déjà tranchée est du bruit.
+
+- **`scripts/verify/budget-contexte.mjs`**, **`references-agent.mjs`** — ce que lisent les agents reste court et vrai : `CLAUDE.md` et chaque `.claude/rules/*.md` tiennent en 200 lignes, chaque règle a un `paths:` qui désigne des fichiers ; toute référence (chemin, commande `/x`, skill `plugin:x`, section « § … ») citée dans `CLAUDE.md`, les règles et `docs/agents/` existe. Sur un premier projet, un audit avait trouvé treize références fausses qu'une session lisait comme des faits. Règles pures testées ; `pnpm check:contexte` dans `pnpm check`.

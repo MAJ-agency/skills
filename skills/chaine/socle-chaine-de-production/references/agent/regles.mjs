@@ -105,3 +105,7 @@ export function decisionCommande(commande) {
   if (ajouteUneDependance(code)) return { decision: 'demander', raison: RAISON_DEPENDANCE };
   return null;
 }
+
+/** Un fichier que le hook d'après-édition passe à Prettier puis ESLint. */
+export const lintable = (chemin) =>
+  /\.(ts|tsx|mjs|js)$/.test(chemin) && !/(^|\/)(node_modules|dist|\.next|\.expo|coverage|\.turbo)\//.test(chemin);
