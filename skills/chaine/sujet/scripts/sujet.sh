@@ -498,13 +498,17 @@ etat() {
       $1 == b || ($1 in h) { printf "#%s ", $3 }' <<<"$prs")
     livree=$(awk -F '\t' -v b="sujet/$nom" '$1 == "develop" && $2 == b { print $3 }' <<<"$prs")
     # Tickets du sujet : ceux qui le déclarent, et tous ceux d'une spec qui le déclare.
+    # `sort -u` sur l'ensemble : un ticket qui déclare le sujet ET appartient à une spec qui le
+    # déclare sortait deux fois (le pipe ne portait que sur la boucle).
     tickets=$(
-      awk -F '\t' -v s="$nom" '$2 == s && $1 ~ /\.[0-9][0-9]$/ { print $1 }' <<<"$c"
-      for spec in $(awk -F '\t' -v s="$nom" '$2 == s && $1 !~ /\.[0-9][0-9]$/ { print $1 }' <<<"$c"); do
-        git ls-tree -r --name-only "$b" -- docs |
-          { grep -v '/issues/archive/' || true; } |
-          sed -nE "s#^.*/(${spec})-[^/]*\.([0-9]{2})\.issue\.md\$#\1.\2#p"
-      done | sort -u
+      {
+        awk -F '\t' -v s="$nom" '$2 == s && $1 ~ /\.[0-9][0-9]$/ { print $1 }' <<<"$c"
+        for spec in $(awk -F '\t' -v s="$nom" '$2 == s && $1 !~ /\.[0-9][0-9]$/ { print $1 }' <<<"$c"); do
+          git ls-tree -r --name-only "$b" -- docs |
+            { grep -v '/issues/archive/' || true; } |
+            sed -nE "s#^.*/(${spec})-[^/]*\.([0-9]{2})\.issue\.md\$#\1.\2#p"
+        done
+      } | sort -u
     )
     restants=''
     for t in $tickets; do
