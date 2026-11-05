@@ -22,59 +22,59 @@ claude plugin update maj-skills@maj
 
 ### `monorepo/`
 
-| Skill                                                       | Ce qu'il fait                                                                                                                       |
-| ----------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| [`socle-monorepo`](skills/monorepo/socle-monorepo/SKILL.md) | Amorce la racine d'un monorepo pnpm/Turborepo — hooks, méthode, documentation, outillage agent — puis installe les services choisis |
-| [`socle-tests`](skills/monorepo/socle-tests/SKILL.md) | Pose les gates de qualité des tests : tests creux refusés (lint + AST), couverture du diff sur Vitest, propriétés `fast-check`, score de mutation Stryker, trois ADR |
+| Skill                                                       | Ce qu'il fait                                                                                                                                                        |
+| ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`socle-monorepo`](skills/monorepo/socle-monorepo/SKILL.md) | Amorce la racine d'un monorepo pnpm/Turborepo — hooks, méthode, documentation, outillage agent — puis installe les services choisis                                  |
+| [`socle-tests`](skills/monorepo/socle-tests/SKILL.md)       | Pose les gates de qualité des tests : tests creux refusés (lint + AST), couverture du diff sur Vitest, propriétés `fast-check`, score de mutation Stryker, trois ADR |
 
-Invocation : `/maj-skills:socle-monorepo`. C'est le point d'entrée d'un projet neuf : il demande quels services installer et invoque leur skill.
+Invocation : `/maj-skills:socle-monorepo`. C'est le point d'entrée d'un projet neuf : il demande quels services installer et invoque leur skill, puis `socle-tests` et, après le premier push, `socle-chaine-de-production` quand ils sont cochés. Un dépôt amorcé sort complet : socle, gates de tests, chaîne de production.
 
 ### `packages/`
 
-| Skill                                                       | Ce qu'il fait                                                                                                          |
-| ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| Skill                                                       | Ce qu'il fait                                                                                                                              |
+| ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
 | [`socle-contrats`](skills/packages/socle-contrats/SKILL.md) | Pose `packages/contracts` (schémas Zod, types inférés, formes de réponse) et ses règles ; `packages/utils` à la première fonction partagée |
 
 Invocation : `/maj-skills:socle-contrats`. Invoqué par `socle-monorepo` avant tout service : c'est ce que l'API et ses clients partagent.
 
 ### `backend/`
 
-| Skill                                                                  | Ce qu'il fait                                                                                            |
-| ---------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| Skill                                                                  | Ce qu'il fait                                                                                             |
+| ---------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
 | [`socle-nest-hexagonal`](skills/backend/socle-nest-hexagonal/SKILL.md) | Amorce un backend NestJS hexagonal complet dans le monorepo, et dépose en tickets ce qui reste à trancher |
 
 Invocation : `/maj-skills:socle-nest-hexagonal`. Lancé seul dans un dépôt vide, il pose d'abord la racine via `socle-monorepo`.
 
 ### `frontend/`
 
-| Skill                                                       | Ce qu'il fait                                                                                                              |
-| ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| Skill                                                       | Ce qu'il fait                                                                                                                                              |
+| ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [`socle-web-next`](skills/frontend/socle-web-next/SKILL.md) | Amorce un client web Next.js App Router — routes minces, features feuilles verrouillées par le lint, un seul client HTTP à cookies — et dépose ses tickets |
 
 Invocation : `/maj-skills:socle-web-next`. Suppose la racine et les contrats posés ; la page d'accueil interroge `/health` de l'API pour prouver la chaîne complète.
 
 ### `mobile/`
 
-| Skill                                                           | Ce qu'il fait                                                                                                              |
-| --------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| Skill                                                           | Ce qu'il fait                                                                                                                                     |
+| --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [`socle-mobile-expo`](skills/mobile/socle-mobile-expo/SKILL.md) | Amorce un client mobile Expo — même architecture que le web, session par jetons dans le Keychain, bundle Metro comme gate — et dépose ses tickets |
 
 Invocation : `/maj-skills:socle-mobile-expo`. Suppose la racine et les contrats posés ; l'écran d'accueil interroge `/health` de l'API.
 
 ### `chaine/`
 
-| Skill                                                                               | Ce qu'il fait                                                                                                                        |
-| ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| [`socle-chaine-de-production`](skills/chaine/socle-chaine-de-production/SKILL.md)  | Pose ce que supposent les skills de la chaîne : `develop` intègre et `main` livre, les sept labels, les hooks d'agent, le contrat `.claude/chaine.json`, les index générés, une CI minimale, la méthode et trois ADR |
-| [`tickets`](skills/chaine/tickets/SKILL.md)                                         | La convention des specs et tickets (`SOC-1`, `SOC-1.03`), les scripts qui la lisent (numéro suivant, ticket libre, vagues, avancement, archivage, gate) et la migration d'un dépôt |
-| [`revue-adversariale`](skills/chaine/revue-adversariale/SKILL.md)                   | Avant `à-fusionner` : un sous-agent vierge, le diff seul, une liste fermée de critères (quatorze du socle, plus ceux du projet), une section de PR |
-| [`revue-de-ticket`](skills/chaine/revue-de-ticket/SKILL.md)                         | Quand un ticket est « fini » : trois sous-agents vierges — règles (la revue adversariale), ticket (surfaces, décisions, règles et cas de bord, périmètre), documentation — une seule section de PR |
-| [`sujet`](skills/chaine/sujet/SKILL.md)                                             | Un lot de PR liées sur `sujet/<nom>` dès sa première PR, entré dans develop en une PR par un commit de merge ; `demarrer`, `etat`, `livrer` |
-| [`fusionner`](skills/chaine/fusionner/SKILL.md)                                     | Le capitaine de fusion : la file `à-fusionner` passée une PR à la fois, les sous-PR dans leur sujet, les renvois ; une seule session |
-| [`chantier`](skills/chaine/chantier/SKILL.md)                                       | L'architecte : grilling, carte, specs et tickets prêts pour agent, sujet, vagues de sessions filles, suivi sans attente active, rétro ; reprenable |
-| [`recette-humaine`](skills/chaine/recette-humaine/SKILL.md)                         | La recette d'un module en quatre phases, arrêt après l'inventaire pour que le produit tranche, tests rouges, tickets de défauts |
+| Skill                                                                             | Ce qu'il fait                                                                                                                                                                                                        |
+| --------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`socle-chaine-de-production`](skills/chaine/socle-chaine-de-production/SKILL.md) | Pose ce que supposent les skills de la chaîne : `develop` intègre et `main` livre, les sept labels, les hooks d'agent, le contrat `.claude/chaine.json`, les index générés, une CI minimale, la méthode et trois ADR |
+| [`tickets`](skills/chaine/tickets/SKILL.md)                                       | La convention des specs et tickets (`SOC-1`, `SOC-1.03`), les scripts qui la lisent (numéro suivant, ticket libre, vagues, avancement, archivage, gate) et la migration d'un dépôt                                   |
+| [`revue-adversariale`](skills/chaine/revue-adversariale/SKILL.md)                 | Avant `à-fusionner` : un sous-agent vierge, le diff seul, une liste fermée de critères (quatorze du socle, plus ceux du projet), une section de PR                                                                   |
+| [`revue-de-ticket`](skills/chaine/revue-de-ticket/SKILL.md)                       | Quand un ticket est « fini » : trois sous-agents vierges — règles (la revue adversariale), ticket (surfaces, décisions, règles et cas de bord, périmètre), documentation — une seule section de PR                   |
+| [`sujet`](skills/chaine/sujet/SKILL.md)                                           | Un lot de PR liées sur `sujet/<nom>` dès sa première PR, entré dans develop en une PR par un commit de merge ; `demarrer`, `etat`, `livrer`                                                                          |
+| [`fusionner`](skills/chaine/fusionner/SKILL.md)                                   | Le capitaine de fusion : la file `à-fusionner` passée une PR à la fois, les sous-PR dans leur sujet, les renvois ; une seule session                                                                                 |
+| [`chantier`](skills/chaine/chantier/SKILL.md)                                     | L'architecte : grilling, carte, specs et tickets prêts pour agent, sujet, vagues de sessions filles, suivi sans attente active, rétro ; reprenable                                                                   |
+| [`recette-humaine`](skills/chaine/recette-humaine/SKILL.md)                       | La recette d'un module en quatre phases, arrêt après l'inventaire pour que le produit tranche, tests rouges, tickets de défauts                                                                                      |
 
-Invocation : `/maj-skills:socle-chaine-de-production` une fois par dépôt, qui pose les scripts des quatre autres dans `scripts/chaine/` ; `/maj-skills:tickets` et `/maj-skills:revue-adversariale` au quotidien dans une session de travail ; `/maj-skills:sujet` au début de tout ticket ; `/maj-skills:fusionner` et `/maj-skills:chantier` chacun dans une session dédiée ; `/maj-skills:recette-humaine` sur un module livré.
+Invocation : `/maj-skills:socle-chaine-de-production` une fois par dépôt (depuis `socle-monorepo`, ou à la main ; `chantier` le réclame s'il manque), qui pose les scripts des quatre autres dans `scripts/chaine/` ; `/maj-skills:tickets` et `/maj-skills:revue-adversariale` au quotidien dans une session de travail ; `/maj-skills:sujet` au début de tout ticket ; `/maj-skills:fusionner` et `/maj-skills:chantier` chacun dans une session dédiée ; `/maj-skills:recette-humaine` sur un module livré.
 
 **La racine est une seule source.** `socle-monorepo` la pose ; un skill de service n'écrit que dans `apps/<service>/`, ses paquets, et des fragments insérés dans les zones `<!-- socle:… -->` de `README.md` et `CLAUDE.md`. Ses règles de lint vivent dans `apps/<service>/eslint.rules.mjs`, chargé par l'ESLint racine.
 

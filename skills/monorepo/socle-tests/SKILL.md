@@ -48,7 +48,7 @@ Puis **une preuve que le gate mord** : ajouter une ligne vide à un fichier de c
 
 ## Étape 4 — l'historique
 
-Invoqué seul : `chore(tests): pose les gates de qualité des tests`, puis `docs(adr): consigne les tests sans infrastructure, les propriétés et le score de mutation`.
+Invoqué seul : `chore(tests): pose les gates de qualité des tests`, puis `docs(adr): consigne les tests sans infrastructure, les propriétés et le score de mutation`. Invoqué par `socle-monorepo` (sa question **tests**), c'est lui qui écrit l'historique.
 
 ## Ce que ce skill ne fait pas
 
@@ -58,10 +58,10 @@ Invoqué seul : `chore(tests): pose les gates de qualité des tests`, puis `docs
 
 ## Anti-patterns
 
-| Tentation | Pourquoi c'est faux |
-| --- | --- |
-| « Je baisse le seuil pour faire passer cette PR » | Un seuil est un plancher daté : il monte quand la mesure progresse, jamais ne baisse. Une PR sous le seuil écrit ses tests ou exempte le fichier avec une raison. |
-| « `// coverage-diff: ignore` sur ce service, il est dur à tester » | L'exemption est pour ce qui n'est pas testable en unitaire (amorçage, câblage). Un service dur à tester est un service à découper : c'est le signal du gate. |
-| « Je mets `toBeDefined()` en attendant » | C'est exactement le test creux que le gate refuse : il passe sur `{}`. Contraindre le résultat, ou ne pas écrire le cas. |
-| « La mutation à chaque PR, pour être sûr » | Plusieurs minutes de runner par PR pour un signal qui bouge peu. À la demande, après un changement du périmètre. |
-| « Jest mesurait mieux » | `vitest related` + `@vitest/coverage-v8` donnent le même rapport istanbul ; le gate lit le rapport, pas l'outil. |
+| Tentation                                                          | Pourquoi c'est faux                                                                                                                                               |
+| ------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| « Je baisse le seuil pour faire passer cette PR »                  | Un seuil est un plancher daté : il monte quand la mesure progresse, jamais ne baisse. Une PR sous le seuil écrit ses tests ou exempte le fichier avec une raison. |
+| « `// coverage-diff: ignore` sur ce service, il est dur à tester » | L'exemption est pour ce qui n'est pas testable en unitaire (amorçage, câblage). Un service dur à tester est un service à découper : c'est le signal du gate.      |
+| « Je mets `toBeDefined()` en attendant »                           | C'est exactement le test creux que le gate refuse : il passe sur `{}`. Contraindre le résultat, ou ne pas écrire le cas.                                          |
+| « La mutation à chaque PR, pour être sûr »                         | Plusieurs minutes de runner par PR pour un signal qui bouge peu. À la demande, après un changement du périmètre.                                                  |
+| « Jest mesurait mieux »                                            | `vitest related` + `@vitest/coverage-v8` donnent le même rapport istanbul ; le gate lit le rapport, pas l'outil.                                                  |

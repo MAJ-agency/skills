@@ -33,6 +33,8 @@ Poser **la frontière en un seul tour**, chacune avec une recommandation, puis a
    - **api** — backend NestJS hexagonal → `/maj-skills:socle-nest-hexagonal` _(Recommandé : oui.)_
    - **web** — client Next.js App Router → `/maj-skills:socle-web-next` _(Recommandé : oui s'il y a un utilisateur devant un navigateur.)_
    - **mobile** — client Expo (iOS / Android) → `/maj-skills:socle-mobile-expo` _(Recommandé : seulement si un usage mobile est identifié ; un client web suffit souvent au départ.)_
+   - **tests** — gates de qualité des tests (tests creux, couverture du diff, propriétés, mutation) → `/maj-skills:socle-tests` _(Recommandé : oui. Posé avant le premier code, il passe à blanc et mord dès la première PR ; posé après, il trouve déjà de la dette.)_
+   - **chaîne** — chaîne de production (develop/main, labels, hooks d'agent, CI, capitaine, chantiers) → `/maj-skills:socle-chaine-de-production` _(Recommandé : oui dès que plus d'une session travaillera sur le dépôt.)_
 6. **Multi-tenance** — le service isole-t-il des organisations clientes les unes des autres, dans une même base ? _(Recommandé : **non**.)_ Elle décide de la signature du port de transaction, d'une colonne sur chaque table, d'un gate CI, et de ce qu'un client ne doit jamais envoyer. **Deux branches** sont écrites partout où elle compte (`ARC-2`, règles et guidelines API, tickets, règles des clients) : la réponse choisit la branche.
 7. **Gestion de rôles** — plusieurs profils d'utilisateurs aux droits différents dans un même périmètre ? _(Recommandé : **non** ; oui si le besoin est déjà identifié.)_ Indépendante de la précédente : un service mono-tenant peut avoir des rôles. Même mécanique de branches.
 
@@ -46,17 +48,17 @@ Les placeholders des gabarits, **communs à tous les skills de service** : `{{PR
 
 Copier `references/` vers le dépôt selon cette table, puis substituer les placeholders **dans tous les fichiers copiés**.
 
-| Source                          | Destination                                                                                                                              |
-| ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `references/racine/*`           | racine du dépôt — **`gitignore` se copie en `.gitignore`** (il est stocké sans point pour ne pas s'appliquer au dépôt du skill lui-même) |
-| `references/racine/docs/questions-ouvertes.md` | `docs/questions-ouvertes.md` — livré vide avec son format, comme `GLOSSARY.md` : les trois documents de méthode qui le citent doivent trouver le fichier |
-| `references/husky/*`            | `.husky/` (les rendre exécutables)                                                                                                       |
-| `references/methode/*`          | `docs/methode/`                                                                                                                          |
-| `references/racine/.claude/settings.json` | `.claude/settings.json` — les marketplaces et plugins de skills, posé **avant** `graphify claude install` (étape 3), qui y ajoute ses hooks |
-| `references/scripts/verify/*`   | `scripts/verify/` — les gates de la racine : `budget-contexte` (CLAUDE.md et règles ≤ 200 lignes, `paths:` qui désignent des fichiers) et `references-agent` (tout chemin, commande, skill ou section cité dans ce que lisent les agents existe ; plugins et commandes intégrées dans `references-agent-integrees.json`, dette gelée vide), joués par `check:contexte` dans `pnpm check` |
-| `references/racine/.claude/rules/tests.md` | `.claude/rules/tests.md` — la fiche transverse des tests, chargée par chemin ; sa zone `<!-- socle:tests -->` reçoit la ligne de chaque service |
-| `references/adr/ARC-*`       | `docs/adr/` — `ARC-1` (nomenclature) et `ARC-4` (langue des identifiants) ; `ARC-3` attend l'étape 6, il n'existe qu'avec un client |
-| `references/sources/README.md`  | `docs/sources/README.md`                                                                                                                 |
+| Source                                         | Destination                                                                                                                                                                                                                                                                                                                                                                              |
+| ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `references/racine/*`                          | racine du dépôt — **`gitignore` se copie en `.gitignore`** (il est stocké sans point pour ne pas s'appliquer au dépôt du skill lui-même)                                                                                                                                                                                                                                                 |
+| `references/racine/docs/questions-ouvertes.md` | `docs/questions-ouvertes.md` — livré vide avec son format, comme `GLOSSARY.md` : les trois documents de méthode qui le citent doivent trouver le fichier                                                                                                                                                                                                                                 |
+| `references/husky/*`                           | `.husky/` (les rendre exécutables)                                                                                                                                                                                                                                                                                                                                                       |
+| `references/methode/*`                         | `docs/methode/`                                                                                                                                                                                                                                                                                                                                                                          |
+| `references/racine/.claude/settings.json`      | `.claude/settings.json` — les marketplaces et plugins de skills, posé **avant** `graphify claude install` (étape 3), qui y ajoute ses hooks                                                                                                                                                                                                                                              |
+| `references/scripts/verify/*`                  | `scripts/verify/` — les gates de la racine : `budget-contexte` (CLAUDE.md et règles ≤ 200 lignes, `paths:` qui désignent des fichiers) et `references-agent` (tout chemin, commande, skill ou section cité dans ce que lisent les agents existe ; plugins et commandes intégrées dans `references-agent-integrees.json`, dette gelée vide), joués par `check:contexte` dans `pnpm check` |
+| `references/racine/.claude/rules/tests.md`     | `.claude/rules/tests.md` — la fiche transverse des tests, chargée par chemin ; sa zone `<!-- socle:tests -->` reçoit la ligne de chaque service                                                                                                                                                                                                                                          |
+| `references/adr/ARC-*`                         | `docs/adr/` — `ARC-1` (nomenclature) et `ARC-4` (langue des identifiants) ; `ARC-3` attend l'étape 6, il n'existe qu'avec un client                                                                                                                                                                                                                                                      |
+| `references/sources/README.md`                 | `docs/sources/README.md`                                                                                                                                                                                                                                                                                                                                                                 |
 
 **Ne pas créer** `apps/`, `packages/`, `docs/metier/`, `docs/architecture/` ni `docs/features/<autre>/` : ils naissent avec leur premier fichier.
 
@@ -121,6 +123,8 @@ Puis vérifier trois points que la skill amont ne connaît pas :
 
 Puis, pour chaque service choisi à l'étape 1, **invoquer son skill**, dans l'ordre api → web → mobile. Le skill trouve la racine et les contrats posés et n'a plus qu'à poser le service ; les placeholders sont ceux de l'étape 1, déjà dans la conversation.
 
+**Tests** coché : invoquer ensuite `/maj-skills:socle-tests`. Il mesure les paquets Vitest que les services viennent de poser ; sans code, ses gates passent à blanc. Il ne commite pas : l'historique est écrit à l'étape 8.
+
 ### Le contrat d'un skill de service
 
 Un skill de service **suppose la racine posée** (`pnpm-workspace.yaml` présent) et, s'il est lancé seul dans un dépôt vide, **invoque ce skill** avec lui seul comme service coché. Il ne touche qu'à :
@@ -169,8 +173,11 @@ Des commits qui racontent le projet, pas la séance. Conventional commits, dans 
 5. par service, dans l'ordre d'installation : `docs(<service>): pose les règles d'architecture` puis `feat(<service>): amorce le service`
 6. `docs: rédige le README, le guide agent et le glossaire`
 7. `chore(agents): configure les skills` + `docs: dépose les tickets du socle`
+8. **tests** coché : `chore(tests): pose les gates de qualité des tests` + `docs(adr): consigne les tests sans infrastructure, les propriétés et le score de mutation`
 
 Chaque commit doit laisser le dépôt **constructible**. Ne pas découper un service en morceaux qui ne compilent pas.
+
+**Chaîne** cochée : pousser `main` (ce socle exige un remote GitHub), puis invoquer `/maj-skills:socle-chaine-de-production`. Il pose `tickets`, écrit ses propres commits et `docs/agents/admin.md` (develop, rulesets, labels : ce que l'admin fait à la main). Sans remote encore : le dire, et le lancer plus tard — `chantier` le réclame avant toute fille (son § 0).
 
 ## Ce que ce skill ne fait pas
 
@@ -180,12 +187,12 @@ Chaque commit doit laisser le dépôt **constructible**. Ne pas découper un ser
 
 ## Anti-patterns
 
-| Tentation                                            | Pourquoi c'est faux                                                                       |
-| ---------------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| « Je reformule les gabarits à ma sauce »             | Ce sont des règles éprouvées. Les paraphraser en perd la précision.                          |
-| « Je pré-remplis `GLOSSARY.md` avec le domaine »      | Le glossaire se construit au grilling, terme par terme. Le pré-remplir fige un non-dit.      |
-| « J'invente des trigrammes métier »                  | Un trigramme désigne un sujet tranché. Seuls les trigrammes structurels sont posés d'avance. |
+| Tentation                                            | Pourquoi c'est faux                                                                                       |
+| ---------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| « Je reformule les gabarits à ma sauce »             | Ce sont des règles éprouvées. Les paraphraser en perd la précision.                                       |
+| « Je pré-remplis `GLOSSARY.md` avec le domaine »     | Le glossaire se construit au grilling, terme par terme. Le pré-remplir fige un non-dit.                   |
+| « J'invente des trigrammes métier »                  | Un trigramme désigne un sujet tranché. Seuls les trigrammes structurels sont posés d'avance.              |
 | « Je mets les règles de l'API dans l'ESLint racine » | La racine ne connaît aucune stack. Les règles d'un service vivent dans `apps/<service>/eslint.rules.mjs`. |
-| « Je supprime les marqueurs `socle:` du README »     | Ils sont invisibles au rendu et permettent d'ajouter un service plus tard.                   |
-| « Je crée `docs/metier/` et `docs/architecture/` »   | Les dossiers naissent avec leur premier document, jamais d'avance.                           |
-| « J'annonce que le socle tourne »                    | Pas avant `pnpm check` vert et les vérifications de chaque service jouées.                   |
+| « Je supprime les marqueurs `socle:` du README »     | Ils sont invisibles au rendu et permettent d'ajouter un service plus tard.                                |
+| « Je crée `docs/metier/` et `docs/architecture/` »   | Les dossiers naissent avec leur premier document, jamais d'avance.                                        |
+| « J'annonce que le socle tourne »                    | Pas avant `pnpm check` vert et les vérifications de chaque service jouées.                                |
