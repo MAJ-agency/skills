@@ -33,7 +33,7 @@ Rien d'autre : les branches sont `develop` et `main`, les labels ont leurs noms,
 2. **Le contrat** : `references/chaine.json` → `.claude/chaine.json`, rempli des réponses de l'étape 1.
 3. **Les index générés** : `references/index-generes.json` → `scripts/docs/index-generes.json`, s'il n'existe pas. Y ajouter les index que le projet connaît déjà (OpenAPI de l'API, index de graphify s'il est versionné).
 4. **Les hooks d'agent** : `references/agent/*` → `scripts/agent/`. Fusionner `references/settings-hooks.json` dans la clé `hooks` de `.claude/settings.json` : les deux entrées `PreToolUse` **s'ajoutent** à celles de graphify ; `PostToolUse` lance `apres-edition.mjs` (Prettier puis ESLint sur le fichier édité, l'erreur revient à l'agent tout de suite) ; `Stop` lance `fin-de-tour.mjs` (les `gatesRapides` de `.claude/chaine.json` qui existent, une fois, avant de rendre la main) ; `SessionStart` lance `demarrage.mjs` (fetch de develop, `origin/HEAD`, `pnpm install` si le lockfile a changé ; les étapes Postgres et base de test sont écrites, à activer dans `ETAPES_ACTIVES` quand le projet a sa base). Tester : `node --test scripts/agent/regles.test.mjs`, puis une commande refusée à la main : `echo '{"tool_input":{"command":"git push --force origin x"}}' | node scripts/agent/garde-commandes.mjs` sort en 2.
-4 bis. **Le gate `settings-json`** : `references/scripts/verify/settings-json*` → `scripts/verify/` ; script `check:settings` (`node scripts/verify/settings-json.mjs`) dans `package.json`, étape `check:settings` dans `scripts/check.mjs` après `check:contexte`. Il refuse un `.claude/settings.json` invalide, un `allow` hors de `permissions`, une entrée qui autorise ce que les hooks refusent, un hook exigé absent ou qui cite un script inexistant. Il lit, ne corrige pas : une session ne touche pas à ses droits.
+   4 bis. **Le gate `settings-json`** : `references/scripts/verify/settings-json*` → `scripts/verify/` ; script `check:settings` (`node scripts/verify/settings-json.mjs`) dans `package.json`, étape `check:settings` dans `scripts/check.mjs` après `check:contexte`. Il refuse un `.claude/settings.json` invalide, un `allow` hors de `permissions`, une entrée qui autorise ce que les hooks refusent, un hook exigé absent ou qui cite un script inexistant. Il lit, ne corrige pas : une session ne touche pas à ses droits.
 5. **Les labels** : `references/labels.sh` → `scripts/github/labels.sh`. Avec `gh` authentifié, le jouer ; sinon `--liste`, et la ligne va dans `admin.md`.
 6. **La CI** : `references/ci/ci.yml` → `.github/workflows/ci.yml`, placeholders substitués. S'il existe déjà un workflow, y ajouter les trois jobs plutôt que le remplacer. Le job `zizmor` audite les workflows (injection par gabarit `${{ … }}` dans un `run:`, action non épinglée, `pull_request_target`, permissions larges) ; une valeur d'événement passe par `env:`, jamais dans un `run:`.
 7. **La méthode** : `references/docs-agents/chaine-de-production.md` → `docs/agents/chaine-de-production.md`, et `references/docs-agents/pieges.md` → `docs/agents/pieges.md`.
@@ -41,12 +41,12 @@ Rien d'autre : les branches sont `develop` et `main`, les labels ont leurs noms,
 9. **La branche `develop`** : `git fetch origin main && git push origin origin/main:refs/heads/develop` si elle n'existe pas. La branche par défaut et sa protection sont à l'admin (`admin.md`).
 10. **Les fragments** : chaque fragment s'insère immédiatement au-dessus du marqueur de sa zone, sans le supprimer :
 
-| Fragment                                  | Fichier racine | Zone                          |
-| ----------------------------------------- | -------------- | ----------------------------- |
-| `references/fragments/claude-md-routing.md` | `CLAUDE.md`  | `<!-- socle:routing -->`      |
-| `references/fragments/claude-md-fusion.md`  | `CLAUDE.md`  | en fin de fichier, avant `## graphify` |
-| `references/fragments/readme-commandes.md`  | `README.md`  | `<!-- socle:commandes -->`    |
-| `references/fragments/readme-ou-vit-quoi.md` | `README.md` | `<!-- socle:ou-vit-quoi -->`  |
+| Fragment                                     | Fichier racine | Zone                                   |
+| -------------------------------------------- | -------------- | -------------------------------------- |
+| `references/fragments/claude-md-routing.md`  | `CLAUDE.md`    | `<!-- socle:routing -->`               |
+| `references/fragments/claude-md-fusion.md`   | `CLAUDE.md`    | en fin de fichier, avant `## graphify` |
+| `references/fragments/readme-commandes.md`   | `README.md`    | `<!-- socle:commandes -->`             |
+| `references/fragments/readme-ou-vit-quoi.md` | `README.md`    | `<!-- socle:ou-vit-quoi -->`           |
 
 Un fragment d'arborescence prend le style de l'arbre déjà dessiné dans le fichier (indentation ou `├──`), à l'intérieur de son bloc de code, pas en dessous.
 
@@ -66,7 +66,7 @@ Remettre à l'humain **la liste de `chaine-admin.md`** : rien de la chaîne ne t
 
 ## Étape 4 — l'historique
 
-Si ce socle est invoqué seul : `chore(chaine): pose le socle de la chaîne de production`, puis `docs(adr): consigne la chaîne de production, les branches de sujet et la recette humaine`. Invoqué par `socle-monorepo`, c'est lui qui écrit l'historique.
+`chore(chaine): pose le socle de la chaîne de production`, puis `docs(adr): consigne la chaîne de production, les branches de sujet et la recette humaine` — aussi quand `socle-monorepo` l'invoque (sa question **chaîne**) : il arrive après le premier push de `main`, la racine est déjà dans l'historique.
 
 ## Ce que ce skill ne fait pas
 
@@ -76,10 +76,10 @@ Si ce socle est invoqué seul : `chore(chaine): pose le socle de la chaîne de p
 
 ## Anti-patterns
 
-| Tentation                                                      | Pourquoi c'est faux                                                                                  |
-| -------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| « Je garde `main` comme branche d'intégration, c'est plus simple » | Le capitaine, les sujets et les scripts lisent `develop`. Deux conventions, c'est deux fois les tests. |
-| « Je mets les règles de fusion dans un prompt, pas dans un hook » | Un prompt se contourne, un hook non. Le push forcé a été vu deux fois avant le hook.                |
-| « Je recopie les ADR de Fedora »                               | Une ADR est une décision du projet, datée et signée. Le gabarit porte les faits ; le projet la fait sienne. |
-| « J'ajoute un label de plus pour notre cas »                   | Les sept labels sont le protocole des skills. Un huitième n'est lu par personne.                     |
-| « La CI minimale ne suffit pas, j'écris les E2E tout de suite » | Un E2E sans seed ni parcours est un job rouge. Ils arrivent avec le premier parcours.               |
+| Tentation                                                          | Pourquoi c'est faux                                                                                         |
+| ------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------- |
+| « Je garde `main` comme branche d'intégration, c'est plus simple » | Le capitaine, les sujets et les scripts lisent `develop`. Deux conventions, c'est deux fois les tests.      |
+| « Je mets les règles de fusion dans un prompt, pas dans un hook »  | Un prompt se contourne, un hook non. Le push forcé a été vu deux fois avant le hook.                        |
+| « Je recopie les ADR de Fedora »                                   | Une ADR est une décision du projet, datée et signée. Le gabarit porte les faits ; le projet la fait sienne. |
+| « J'ajoute un label de plus pour notre cas »                       | Les sept labels sont le protocole des skills. Un huitième n'est lu par personne.                            |
+| « La CI minimale ne suffit pas, j'écris les E2E tout de suite »    | Un E2E sans seed ni parcours est un job rouge. Ils arrivent avec le premier parcours.                       |
