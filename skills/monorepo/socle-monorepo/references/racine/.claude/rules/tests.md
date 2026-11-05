@@ -32,11 +32,11 @@ Le critère de séparation est **le besoin d'infrastructure**, pas la couche : u
 
 Un `it` sans assertion ; un `it` dont la seule assertion est `toBeDefined` ou `toBeTruthy` ; une assertion sous condition ; un `it.skip` ou `it.todo` sans ticket ; un `expect` dans un `try` sans `expect.assertions`. Le lint des tests (`eslint.tests.mjs`) et le gate `tests-creux` (`scripts/verify/tests-creux.mjs`, dans `pnpm check`) les refusent ; posés par le skill `socle-tests`. Un cas assumé porte `// tests-creux: ignore — <raison>` sur la ligne au-dessus.
 
-Un test désactivé s'écrit sur une ligne au-dessus : `// skip: <ticket> — <raison>`. Le correctif retire le `skip` **sans changer l'attendu**.
+Un test désactivé porte son ticket sur la ligne au-dessus, dans la directive que le lint exige : `// eslint-disable-next-line vitest/no-disabled-tests -- skip: <TICKET> <raison>` ; un `it.todo` porte le ticket dans son titre. Le correctif retire le `skip` **sans changer l'attendu**.
 
 ## Couverture
 
-- Tout fichier de code touché par un diff a au moins un test qui l'exécute. Une exemption se nomme dans les dix premières lignes du fichier : `// coverage-diff: ignore — <raison>`.
+- Tout fichier de code touché par un diff a au moins un test qui l'exécute. Le périmètre est le code des apps et des paquets (hors specs, routes, migrations, types générés, ui vendored) ; les scripts de `scripts/` sont tenus par leurs bancs `*.test.mjs`, joués par `check:tickets`. Une exemption se nomme dans les dix premières lignes du fichier : `// coverage-diff: ignore — <raison>`.
 - Le gate `coverage-diff` (`pnpm check:coverage`, pre-push et job CI `test-db`) refuse tout fichier de code du diff qu'aucun test n'exécute, ou sous 80 % de lignes / 70 % de branches (90 % de lignes pour un fichier nouveau) ; les suites sur base comptent quand `DATABASE_URL` est définie. Posé par le skill `socle-tests`. Un plancher daté se relève quand la mesure progresse, jamais ne baisse.
 
 <!-- ══ TENANT-B ══ -->

@@ -15,6 +15,10 @@
  * ensemble est non vide et entièrement inclus dans { toBeDefined, toBeTruthy }. Un cas sans
  * `expect` direct (assertions déléguées à un helper) relève de `vitest/expect-expect`.
  *
+ * Un cas désactivé (`it.skip`, `it.todo`, `describe.skip`) sans identifiant de ticket dans son
+ * titre ou sur la ligne au-dessus (`SOC-1.07`, `ARC-4`…) est refusé aussi : un test
+ * désactivé sans ticket est un test oublié.
+ *
  * Échappatoire, pour un cas que l'on assume (fumée d'instanciation d'un module Nest, par
  * exemple) : `// tests-creux: ignore — <raison>` sur l'une des deux lignes au-dessus du `it`.
  *
@@ -43,6 +47,8 @@ const SCAN = ["apps", "packages"].map((d) => join(ROOT, d)).filter((d) => exists
 const SPEC = /\.(spec|e2e-spec|test)\.tsx?$/;
 const IGNORE = /tests-creux:\s*ignore\s*[—–:-]\s*\S/;
 const CREUX = new Set(["toBeDefined", "toBeTruthy"]);
+const TICKET = /\b[A-Z]{2,}(?:-[A-Z]{2,})*-\d+(?:\.\d{2})?\b/;
+const DESACTIVE = new Set(["skip", "todo"]);
 const SKIP_DIRS = new Set(["node_modules", "dist", ".next", ".expo", "coverage", ".turbo"]);
 
 function walk(dir, out = []) {
@@ -70,6 +76,14 @@ function isTestCase(call) {
   return ts.isCallExpression(callee) && call.arguments.length >= 2; // each
 }
 
+/** `it.skip(...)`, `test.todo(...)`, `describe.skip(...)` → le mot (`skip` | `todo`), sinon null. */
+function desactivation(call) {
+  const c = call.expression;
+  if (!ts.isPropertyAccessExpression(c) || !DESACTIVE.has(c.name.text)) return null;
+  const racine = ts.isIdentifier(c.expression) ? c.expression.text : null;
+  return ["it", "test", "describe"].includes(racine) ? c.name.text : null;
+}
+
 /** Nom du matcher si `call` est `expect(...)[.not|.resolves|.rejects]*.<matcher>(...)`. */
 function matcherOf(call) {
   if (!ts.isPropertyAccessExpression(call.expression)) return null;
@@ -94,12 +108,21 @@ let ignored = 0;
 for (const dir of SCAN) {
   for (const file of walk(dir)) {
     const src = readFileSync(file, "utf8");
-    if (!src.includes("expect(")) continue;
+    if (!src.includes("expect(") && !/\.(skip|todo)\(/.test(src)) continue;
     const sf = ts.createSourceFile(file, src, ts.ScriptTarget.Latest, true);
     const lines = src.split("\n");
     const rel = relative(ROOT, file);
 
     const visit = (n) => {
+      const mot = ts.isCallExpression(n) ? desactivation(n) : null;
+      if (mot) {
+        const line = sf.getLineAndCharacterOfPosition(n.getStart(sf)).line + 1;
+        const titre = n.arguments[0]?.getText(sf) ?? "";
+        const autour = lines[line - 2] ?? ""; // la ligne au-dessus : la directive eslint-disable qui porte le ticket
+        if (!TICKET.test(titre) && !TICKET.test(autour)) {
+          errors.push(`${rel}:${line} : ${titre.replace(/\s+/g, " ").slice(0, 70)} — \`.${mot}\` sans ticket`);
+        }
+      }
       if (ts.isCallExpression(n) && isTestCase(n)) {
         cases++;
         const line = sf.getLineAndCharacterOfPosition(n.getStart(sf)).line + 1;
@@ -133,7 +156,8 @@ for (const e of errors) console.log(`  ✖ ${e}`);
 if (errors.length) {
   console.log(
     "  → contraindre le résultat (toEqual, toMatchObject, toHaveLength, toBe…) ; un cas assumé porte\n" +
-      "    `// tests-creux: ignore — <raison>` sur la ligne au-dessus.",
+      "    `// tests-creux: ignore — <raison>` sur la ligne au-dessus. Un cas désactivé porte son ticket :\n" +
+      "    `// eslint-disable-next-line vitest/no-disabled-tests -- skip: <TICKET> <raison>`.",
   );
   process.exit(1);
 }

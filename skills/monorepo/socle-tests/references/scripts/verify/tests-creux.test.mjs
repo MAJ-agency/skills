@@ -63,3 +63,22 @@ it('fumée', () => {
   assert.equal(r.status, 0, r.stdout);
   assert.match(r.stdout, /1 cas analysés \(1 exemption\(s\) commentée\(s\)\)/);
 });
+
+
+test("un it.skip, it.todo ou describe.skip sans ticket est refusé ; avec un ticket dans le titre ou au-dessus, il passe", () => {
+  const r = lancer(
+    depot({
+      "apps/api/src/e.spec.ts": `it.todo('plus tard');
+// eslint-disable-next-line vitest/no-disabled-tests -- skip: SOC-1.07 la base n'est pas posée
+it.skip('x', () => { expect(1).toBe(1); });
+it.todo('ARC-4 renommer les identifiants');
+describe.skip('y', () => { it('z', () => { expect(1).toBe(1); }); });
+`,
+    }),
+  );
+  assert.equal(r.status, 1);
+  assert.match(r.stdout, /e\.spec\.ts:1 : 'plus tard' — `\.todo` sans ticket/);
+  assert.match(r.stdout, /e\.spec\.ts:5 : 'y' — `\.skip` sans ticket/);
+  assert.doesNotMatch(r.stdout, /e\.spec\.ts:3 /);
+  assert.doesNotMatch(r.stdout, /e\.spec\.ts:4 /);
+});

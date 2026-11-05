@@ -6,7 +6,7 @@
 
 ## Contexte
 
-Le pare-feu répartit les contrôles selon **le besoin d'infrastructure**, pas selon leur nature : ce qui tourne sans rien va dans `pnpm check` (hook pre-push, job `qualite`), ce qui exige Postgres va dans le job `test-db`. Mesuré sur un premier projet qui n'avait pas appliqué ce critère jusqu'au bout : 288 tests écrits ne tournaient nulle part (les paquets partagés et le mobile n'étaient joués par aucun job), une suite était rouge depuis des semaines sans que personne ne le voie, et un test de sécurité ne prouvait rien une fois sur quatre.
+Le pare-feu répartit les contrôles selon **le besoin d'infrastructure**, pas selon leur nature : ce qui tourne sans rien va dans `pnpm check` (hook pre-push, job `qualite`), ce qui exige Postgres va dans le job `test-db`. Mesuré sur un premier projet qui n'avait pas appliqué ce critère jusqu'au bout : 288 tests écrits ne tournaient nulle part (les paquets partagés et le mobile n'étaient joués par aucun job), une suite était rouge depuis des semaines sans que personne ne le voie.
 
 Le coût d'une suite sans infrastructure est de quelques secondes ; celui d'une suite sur base, plusieurs minutes de mise en place. Les mêler, c'est faire attendre les premières ou sauter les secondes.
 
@@ -15,7 +15,6 @@ Le coût d'une suite sans infrastructure est de quelques secondes ; celui d'une 
 1. **Toute suite qui n'a besoin d'aucune infrastructure est jouée par `pnpm check:commit`** (pre-commit) et par le job `qualite` : `packages/*`, `apps/web`, `apps/mobile`, et les suites `*.spec.ts` de l'API. Une suite qui dépasse quelques secondes a une dépendance qu'elle devrait déclarer.
 2. **Une suite qui exige Postgres se nomme `*.db.spec.ts`** et ne tourne que par `test:db` (configuration Vitest dédiée), en local avec `compose.yaml`, en CI dans le job `test-db` avec le service. Un repository n'est jamais prouvé contre une base simulée.
 3. **Aucun job CI de plus** : `qualite` rejoue `pnpm check` tel quel, sans filtre de chemins, sur chaque PR et chaque push.
-4. **Une falsification se fait sur les octets, jamais sur le texte encodé** : altérer un octet d'une signature puis ré-encoder ; le dernier caractère base64 ne porte que des bits de remplissage.
 
 ## Alternatives écartées
 
