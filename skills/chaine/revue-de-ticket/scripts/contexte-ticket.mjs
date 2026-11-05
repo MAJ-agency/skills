@@ -16,7 +16,7 @@
  */
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { basename, join, relative } from "node:path";
-import { lireTicket, specDuTicket } from "../docs/identifiants.mjs";
+import { lireTicket } from "../docs/identifiants.mjs";
 
 const ROOT = process.env.PROJET_RACINE ?? new URL("../..", import.meta.url).pathname;
 const id = (process.argv[2] ?? "").toUpperCase();
