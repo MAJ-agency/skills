@@ -8,17 +8,18 @@
 
 ## Les règles vivent ici — carte d'orientation
 
-| Document                                                       | Fait autorité sur                                                                    |
-| -------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| [`README.md`](README.md)                                       | démarrage, outils, comment se repérer dans le dépôt (pour un humain)                 |
-| [`docs/adr/`](docs/adr/)                                       | les décisions structurantes et leur _pourquoi_                                       |
-| [`docs/methode/grilling.md`](docs/methode/grilling.md)         | **comment on interroge un plan** avant de l'écrire                                   |
-| [`docs/methode/decisions.md`](docs/methode/decisions.md)       | ADR, `GLOSSARY.md`, registre de règles, documentation vivante                         |
-| [`docs/methode/nomenclature.md`](docs/methode/nomenclature.md) | **nommer un document** : `<TRI>-<N>-<slug>.md`, et le **registre des trigrammes** |
-| [`docs/methode/conception.md`](docs/methode/conception.md)     | modules profonds, TDD, revue                                                         |
-| [`docs/methode/pare-feu-ci.md`](docs/methode/pare-feu-ci.md)   | les invariants vérifiés par la machine                                               |
-| [`GLOSSARY.md`](GLOSSARY.md)                                     | le langage ubiquitaire (glossaire, et rien d'autre)                                  |
-| [`.claude/rules/`](.claude/rules/)                             | fiches transverses chargées par chemin — `tests.md` pour tout test ou configuration de test         |
+| Document                                                       | Fait autorité sur                                                                           |
+| -------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| [`README.md`](README.md)                                       | démarrage, outils, comment se repérer dans le dépôt (pour un humain)                        |
+| [`docs/adr/`](docs/adr/)                                       | les décisions structurantes et leur _pourquoi_                                              |
+| [`docs/methode/grilling.md`](docs/methode/grilling.md)         | **comment on interroge un plan** avant de l'écrire                                          |
+| [`docs/methode/decisions.md`](docs/methode/decisions.md)       | ADR, `GLOSSARY.md`, registre de règles, documentation vivante                               |
+| [`docs/methode/nomenclature.md`](docs/methode/nomenclature.md) | **nommer un document** : `<TRI>-<N>-<slug>.md`, et le **registre des trigrammes**           |
+| [`docs/methode/conception.md`](docs/methode/conception.md)     | modules profonds, TDD, revue                                                                |
+| [`docs/methode/pare-feu-ci.md`](docs/methode/pare-feu-ci.md)   | les invariants vérifiés par la machine                                                      |
+| [`GLOSSARY.md`](GLOSSARY.md)                                   | le langage ubiquitaire (glossaire, et rien d'autre)                                         |
+| [`.claude/rules/`](.claude/rules/)                             | fiches transverses chargées par chemin — `tests.md` pour tout test ou configuration de test |
+
 <!-- socle:routing -->
 
 <!-- socle:avant-code -->
