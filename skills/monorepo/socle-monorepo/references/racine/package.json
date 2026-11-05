@@ -41,10 +41,5 @@
       "prettier --write"
     ],
     "*.{js,jsx,mjs,json,md,yml,yaml,css}": "prettier --write"
-  },
-  "commitlint": {
-    "extends": [
-      "@commitlint/config-conventional"
-    ]
   }
 }
