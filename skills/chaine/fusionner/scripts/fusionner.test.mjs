@@ -156,11 +156,11 @@ test('passer.sh : un conflit dans du code n’est jamais résolu, sortie 2 sans 
   assert.deepEqual(d.journal(), []);
 });
 
-test('passer.sh : une PR qui touche apps/ sans section « Revue adversariale » n’est pas éligible', () => {
+test('passer.sh : une PR qui touche apps/ sans section « Revue de ticket » ni « Revue adversariale » n’est pas éligible', () => {
   const { d } = conflitCode('Pas de revue.');
   const r = d.lancer(script('passer.sh'), '31');
   assert.equal(r.status, 4, r.stdout + r.stderr);
-  assert.match(r.stdout, /sans section « Revue adversariale »/);
+  assert.match(r.stdout, /sans section « Revue de ticket » ni « Revue adversariale »/);
   assert.deepEqual(d.journal(), []);
 });
 
