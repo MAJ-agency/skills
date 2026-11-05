@@ -159,9 +159,9 @@ Contrôler enfin qu'aucun lien markdown n'est cassé, qu'il ne reste **aucun pla
 
 ## Étape 8 — l'historique
 
-Des commits qui racontent le projet, pas la séance. Conventional commits, dans la langue du dépôt, corps replié à 100 caractères (commitlint le vérifie). Un découpage qui marche :
+Des commits qui racontent le projet, pas la séance. Conventional commits, dans la langue du dépôt, en-tête de 120 caractères au plus, corps en prose replié à la main (`commitlint.config.mjs` le vérifie). Un découpage qui marche :
 
-1. `chore: initialise le dépôt et son outillage` — **package.json en premier**, sinon commitlint n'a pas de configuration et le commit est refusé
+1. `chore: initialise le dépôt et son outillage` — **package.json et `commitlint.config.mjs` en premier**, sinon commitlint n'a pas de configuration et le commit est refusé
 2. `docs: établit la méthode de travail`
 3. `docs(adr): consigne les décisions d'amorçage`
 4. `feat(contracts): pose le paquet de contrats`
