@@ -8,17 +8,18 @@
 
 ## Les règles vivent ici — carte d'orientation
 
-| Document                                                       | Fait autorité sur                                                                    |
-| -------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| [`README.md`](README.md)                                       | démarrage, outils, comment se repérer dans le dépôt (pour un humain)                 |
-| [`docs/adr/`](docs/adr/)                                       | les décisions structurantes et leur _pourquoi_                                       |
-| [`docs/methode/grilling.md`](docs/methode/grilling.md)         | **comment on interroge un plan** avant de l'écrire                                   |
-| [`docs/methode/decisions.md`](docs/methode/decisions.md)       | ADR, `GLOSSARY.md`, registre de règles, documentation vivante                         |
-| [`docs/methode/nomenclature.md`](docs/methode/nomenclature.md) | **nommer un document** : `<TRI>-<N>-<slug>.md`, et le **registre des trigrammes** |
-| [`docs/methode/conception.md`](docs/methode/conception.md)     | modules profonds, TDD, revue                                                         |
-| [`docs/methode/pare-feu-ci.md`](docs/methode/pare-feu-ci.md)   | les invariants vérifiés par la machine                                               |
-| [`GLOSSARY.md`](GLOSSARY.md)                                     | le langage ubiquitaire (glossaire, et rien d'autre)                                  |
-| [`.claude/rules/`](.claude/rules/)                             | fiches transverses chargées par chemin — `tests.md` pour tout test ou configuration de test         |
+| Document                                                       | Fait autorité sur                                                                           |
+| -------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| [`README.md`](README.md)                                       | démarrage, outils, comment se repérer dans le dépôt (pour un humain)                        |
+| [`docs/adr/`](docs/adr/)                                       | les décisions structurantes et leur _pourquoi_                                              |
+| [`docs/methode/grilling.md`](docs/methode/grilling.md)         | **comment on interroge un plan** avant de l'écrire                                          |
+| [`docs/methode/decisions.md`](docs/methode/decisions.md)       | ADR, `GLOSSARY.md`, registre de règles, documentation vivante                               |
+| [`docs/methode/nomenclature.md`](docs/methode/nomenclature.md) | **nommer un document** : `<TRI>-<N>-<slug>.md`, et le **registre des trigrammes**           |
+| [`docs/methode/conception.md`](docs/methode/conception.md)     | modules profonds, TDD, revue                                                                |
+| [`docs/methode/pare-feu-ci.md`](docs/methode/pare-feu-ci.md)   | les invariants vérifiés par la machine                                                      |
+| [`GLOSSARY.md`](GLOSSARY.md)                                   | le langage ubiquitaire (glossaire, et rien d'autre)                                         |
+| [`.claude/rules/`](.claude/rules/)                             | fiches transverses chargées par chemin — `tests.md` pour tout test ou configuration de test |
+
 <!-- socle:routing -->
 
 <!-- socle:avant-code -->
@@ -38,9 +39,9 @@ Les documents fournis en cours de projet atterrissent dans [`docs/sources/`](doc
 
 ## Agent skills
 
-Les skills de Matt Pocock (`mattpocock-skills`) sont déclarés dans [`.claude/settings.json`](.claude/settings.json) : le marketplace `mattpocock/skills` et le plugin activé. En local, Claude Code propose de les installer à l'ouverture du dépôt ; dans le cloud, c'est le script de configuration de l'environnement qui les installe (`claude plugin marketplace add mattpocock/skills`, puis `claude plugin install mattpocock-skills@mattpocock`) ; les commandes gardent le préfixe `/mattpocock-skills:` (par exemple `grill-with-docs`, `code-review`).
+Les skills de Matt Pocock (`mattpocock-skills`) sont déclarés dans [`.claude/settings.json`](.claude/settings.json) : le marketplace `mattpocock/skills` et le plugin activé. En local, Claude Code propose de les installer à l'ouverture du dépôt ; dans le cloud, c'est le script de configuration de l'environnement qui les installe (`claude plugin marketplace add mattpocock/skills`, puis `claude plugin install mattpocock-skills@mattpocock`) **et les met à jour à chaque démarrage** (`claude plugin marketplace update mattpocock`, puis `claude plugin update mattpocock-skills@mattpocock`) : l'image de l'environnement garde la version de son dernier build, et `install` ne touche pas à un plugin déjà présent ; les commandes gardent le préfixe `/mattpocock-skills:` (par exemple `grill-with-docs`, `code-review`).
 
-Les skills de Maj-agency (`maj-skills`, dépôt [`MAJ-agency/skills`](https://github.com/MAJ-agency/skills)) sont déclarés de la même façon : le marketplace `maj` et le plugin `maj-skills@maj` dans `.claude/settings.json` ; dans le cloud, le script de configuration doit aussi les installer (`claude plugin marketplace add MAJ-agency/skills`, puis `claude plugin install maj-skills@maj`). Préfixe `/maj-skills:` — les socles `socle-monorepo`, `socle-tests`, `socle-contrats`, `socle-nest-hexagonal`, `socle-web-next`, `socle-mobile-expo`, et la chaîne de production `socle-chaine-de-production`, `tickets`, `revue-adversariale`, `revue-de-ticket`, `sujet`, `fusionner`, `chantier`, `recette-humaine` (plugin ≥ 3.2). Ils portent le socle technique et la méthode, aucune règle métier. La version du plugin est figée au démarrage d'une session : un skill absent de la liste installée se lit dans le dépôt `skills` en attendant la session suivante.
+Les skills de Maj-agency (`maj-skills`, dépôt [`MAJ-agency/skills`](https://github.com/MAJ-agency/skills)) sont déclarés de la même façon : le marketplace `maj` et le plugin `maj-skills@maj` dans `.claude/settings.json` ; dans le cloud, le script de configuration doit aussi les installer (`claude plugin marketplace add MAJ-agency/skills`, puis `claude plugin install maj-skills@maj`) et les mettre à jour (`claude plugin marketplace update maj`, puis `claude plugin update maj-skills@maj`). Préfixe `/maj-skills:` — les socles `socle-monorepo`, `socle-tests`, `socle-contrats`, `socle-nest-hexagonal`, `socle-web-next`, `socle-mobile-expo`, et la chaîne de production `socle-chaine-de-production`, `tickets`, `revue-adversariale`, `revue-de-ticket`, `sujet`, `fusionner`, `chantier`, `recette-humaine` (plugin ≥ 3.2). Ils portent le socle technique et la méthode, aucune règle métier. La version du plugin est figée au démarrage d'une session : un skill absent de la liste installée se lit dans le dépôt `skills` en attendant la session suivante.
 
 ### Issue tracker
 
