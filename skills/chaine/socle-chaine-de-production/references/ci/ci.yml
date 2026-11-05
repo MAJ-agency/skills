@@ -7,6 +7,9 @@ name: CI
 on:
   pull_request:
     branches: ['develop', 'main', 'sujet/**']
+    # `ready_for_review` n'est pas dans les types par défaut : sans lui, une PR qui sort du
+    # brouillon garde ses jobs « skipped » jusqu'au push suivant, et rien ne tourne jamais.
+    types: [opened, synchronize, reopened, ready_for_review]
   push:
     branches: ['develop', 'main']
 concurrency:

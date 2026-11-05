@@ -6,7 +6,10 @@
  */
 
 /** Périmètre : le code exécutable, testable en unitaire. */
-export const IN_SCOPE = [/^apps\/[^/]+\/src\/.+\.tsx?$/, /^packages\/[^/]+\/src\/.+\.tsx?$/];
+export const IN_SCOPE = [
+  /^apps\/[^/]+\/src\/.+\.tsx?$/,
+  /^packages\/[^/]+\/src\/.+\.tsx?$/,
+];
 export const OUT_OF_SCOPE = [
   /\.(spec|e2e-spec|test|property\.spec|d)\.tsx?$/,
   /\.module\.ts$/,
@@ -17,7 +20,8 @@ export const OUT_OF_SCOPE = [
   /^apps\/mobile\/app\//, // routes Expo Router : idem, prouvées par le bundle
   /(^|\/)components\/ui\//, // shadcn/ui vendored
 ];
-export const inScope = (f) => IN_SCOPE.some((r) => r.test(f)) && !OUT_OF_SCOPE.some((r) => r.test(f));
+export const inScope = (f) =>
+  IN_SCOPE.some((r) => r.test(f)) && !OUT_OF_SCOPE.some((r) => r.test(f));
 
 /** Seuils : un fichier modifié, un fichier neuf (sans histoire pour excuser ses trous). */
 export const SEUILS = { lignes: 80, branches: 70, lignesNouveau: 90 };
@@ -26,7 +30,11 @@ export const IGNORE = /coverage-diff:\s*ignore\s*[—–:-]\s*(\S.*)$/;
 
 /** Raison d'exemption si l'une des dix premières lignes la porte, sinon null. */
 export function exemption(texte) {
-  const m = texte.split("\n").slice(0, 10).map((l) => l.match(IGNORE)).find(Boolean);
+  const m = texte
+    .split("\n")
+    .slice(0, 10)
+    .map((l) => l.match(IGNORE))
+    .find(Boolean);
   return m ? m[1].trim() : null;
 }
 
@@ -52,7 +60,8 @@ export function metriques(entree) {
   const nonCouvertes = lignes.filter((l) => parLigne.get(l) === 0);
   const branches = Object.values(entree.b).flat();
   const fonctions = Object.values(entree.f);
-  const pct = (couvert, total) => (total === 0 ? null : Math.round((couvert / total) * 1000) / 10);
+  const pct = (couvert, total) =>
+    total === 0 ? null : Math.round((couvert / total) * 1000) / 10;
   return {
     lignes: pct(lignes.length - nonCouvertes.length, lignes.length),
     branches: pct(branches.filter((n) => n > 0).length, branches.length),
@@ -65,8 +74,9 @@ export function metriques(entree) {
 
 /**
  * Fusion de deux rapports istanbul sur les mêmes fichiers (suites sans base, puis suites sur
- * base) : les compteurs s'additionnent, les cartes sont celles du premier rapport qui connaît
- * le fichier.
+ * base) : les compteurs s'additionnent, les cartes sont celles du rapport qui a le plus exécuté
+ * le fichier — `coverage.all` fabrique, pour un fichier qu'aucune suite n'a chargé, une entrée
+ * squelette dont les cartes (statements, fonctions) ne sont pas celles d'une vraie exécution.
  */
 export function fusionner(a, b) {
   const out = { ...a };
@@ -76,23 +86,45 @@ export function fusionner(a, b) {
       out[fichier] = entree;
       continue;
     }
-    const somme = (x, y) => Object.fromEntries(Object.keys(x).map((k) => [k, (x[k] ?? 0) + (y[k] ?? 0)]));
+    const executions = (e) => Object.values(e.s).reduce((n, v) => n + v, 0);
+    const [base, autre] =
+      executions(entree) > executions(deja) ? [entree, deja] : [deja, entree];
+    const somme = (x, y) =>
+      Object.fromEntries(
+        Object.keys(x).map((k) => [k, (x[k] ?? 0) + (y[k] ?? 0)]),
+      );
     const sommeB = Object.fromEntries(
-      Object.keys(deja.b).map((k) => [k, deja.b[k].map((n, i) => n + (entree.b[k]?.[i] ?? 0))]),
+      Object.keys(base.b).map((k) => [
+        k,
+        base.b[k].map((n, i) => n + (autre.b[k]?.[i] ?? 0)),
+      ]),
     );
-    out[fichier] = { ...deja, s: somme(deja.s, entree.s), f: somme(deja.f, entree.f), b: sommeB };
+    out[fichier] = {
+      ...base,
+      s: somme(base.s, autre.s),
+      f: somme(base.f, autre.f),
+      b: sommeB,
+    };
   }
   return out;
 }
 
 /** Verdict d'un fichier : la liste de ses problèmes, vide s'il passe. */
 export function verdict(m, { nouveau, seuils = SEUILS }) {
-  if (!m || (m.lignes === 0 && m.totalLignes > 0) || (m.fonctions === 0 && m.totalFonctions > 0)) {
+  if (
+    !m ||
+    (m.lignes === 0 && m.totalLignes > 0) ||
+    (m.fonctions === 0 && m.totalFonctions > 0)
+  ) {
     return ["aucun test n'exécute ce fichier"];
   }
   const problemes = [];
-  const minLignes = nouveau ? Math.max(seuils.lignesNouveau, seuils.lignes) : seuils.lignes;
-  if (m.lignes !== null && m.lignes < minLignes) problemes.push(`lignes ${m.lignes} % < ${minLignes} %`);
-  if (m.branches !== null && m.branches < seuils.branches) problemes.push(`branches ${m.branches} % < ${seuils.branches} %`);
+  const minLignes = nouveau
+    ? Math.max(seuils.lignesNouveau, seuils.lignes)
+    : seuils.lignes;
+  if (m.lignes !== null && m.lignes < minLignes)
+    problemes.push(`lignes ${m.lignes} % < ${minLignes} %`);
+  if (m.branches !== null && m.branches < seuils.branches)
+    problemes.push(`branches ${m.branches} % < ${seuils.branches} %`);
   return problemes;
 }
