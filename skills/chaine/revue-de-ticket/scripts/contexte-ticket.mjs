@@ -18,10 +18,13 @@ import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { basename, join, relative } from "node:path";
 import { lireTicket } from "../docs/identifiants.mjs";
 
-const ROOT = process.env.PROJET_RACINE ?? new URL("../..", import.meta.url).pathname;
+const ROOT =
+  process.env.PROJET_RACINE ?? new URL("../..", import.meta.url).pathname;
 const id = (process.argv[2] ?? "").toUpperCase();
 if (!lireTicket(id)) {
-  console.error("Usage : node scripts/chaine/contexte-ticket.mjs <PRÉFIXE-n.NN>   (ex. SOC-1.03)");
+  console.error(
+    "Usage : node scripts/chaine/contexte-ticket.mjs <PRÉFIXE-n.NN>   (ex. SOC-1.03)",
+  );
   process.exit(2);
 }
 
@@ -42,50 +45,116 @@ const lire = (p) => readFileSync(p, "utf8");
 // ── Le ticket et sa spec ───────────────────────────────────────────────────────────────
 const nn = id.split(".")[1];
 const spec = id.split(".")[0];
-const ticket = docs.find((p) => /\/issues\/[^/]+\.issue\.md$/.test(p) && !/\/issues\/archive\//.test(p) && basename(p).startsWith(`${spec}-`) && basename(p).endsWith(`.${nn}.issue.md`));
+const ticket = docs.find(
+  (p) =>
+    /\/issues\/[^/]+\.issue\.md$/.test(p) &&
+    !/\/issues\/archive\//.test(p) &&
+    basename(p).startsWith(`${spec}-`) &&
+    basename(p).endsWith(`.${nn}.issue.md`),
+);
 if (!ticket) {
   console.error(`contexte-ticket : ticket ${id} introuvable sous docs/`);
   process.exit(2);
 }
 const texteTicket = lire(ticket);
-const fichierSpec = docs.find((p) => basename(p).startsWith(`${spec}-`) && p.endsWith(".spec.md"));
-const ligneSpec = fichierSpec ? lire(fichierSpec).split("\n").filter((l) => l.includes(`${id}`) || l.includes(`${spec}.${nn}`) || new RegExp(`^\\|\\s*${nn}\\s*\\|`).test(l)) : [];
+const fichierSpec = docs.find(
+  (p) => basename(p).startsWith(`${spec}-`) && p.endsWith(".spec.md"),
+);
+const ligneSpec = fichierSpec
+  ? lire(fichierSpec)
+      .split("\n")
+      .filter(
+        (l) =>
+          l.includes(`${id}`) ||
+          l.includes(`${spec}.${nn}`) ||
+          new RegExp(`^\\|\\s*${nn}\\s*\\|`).test(l),
+      )
+  : [];
 
 // ── Règles et ADR cités ────────────────────────────────────────────────────────────────
 const corpus = texteTicket + "\n" + ligneSpec.join("\n");
-const cites = [...new Set(corpus.match(/\b[A-Z]{2,}(?:-[A-Z]{2,})*-\d+\b/g) ?? [])].filter((c) => c !== spec && !c.startsWith(`${spec}.`)).sort();
-const registresMd = docs.filter((p) => /regles?\.md$/.test(p) || /\/regles\//.test(p));
-const registresJson = walk(join(ROOT, "federations")).filter((p) => basename(p) === "rules.json");
+// `(?!\.\d)` : `SOC-1.04` est un numéro de ticket, pas la règle `SOC-1`.
+const cites = [
+  ...new Set(corpus.match(/\b[A-Z]{2,}(?:-[A-Z]{2,})*-\d+\b(?!\.\d)/g) ?? []),
+]
+  .filter((c) => c !== spec && !c.startsWith(`${spec}.`))
+  .sort();
+const registresMd = docs.filter(
+  (p) => /regles?\.md$/.test(p) || /\/regles\//.test(p),
+);
+const registresJson = walk(join(ROOT, "federations")).filter(
+  (p) => basename(p) === "rules.json",
+);
 
 function regle(code) {
   const trouvees = [];
   for (const p of registresMd) {
-    for (const l of lire(p).split("\n")) if (new RegExp(`^\\|\\s*${code}\\s*\\|`).test(l)) trouvees.push(`- ${relative(ROOT, p)} :\n  ${l.trim()}`);
+    for (const l of lire(p).split("\n"))
+      if (new RegExp(`^\\|\\s*${code}\\s*\\|`).test(l))
+        trouvees.push(`- ${relative(ROOT, p)} :\n  ${l.trim()}`);
   }
   for (const p of registresJson) {
     try {
       const json = JSON.parse(lire(p));
-      const liste = Array.isArray(json) ? json : (json.rules ?? json.regles ?? Object.values(json).flat());
-      for (const r of liste) if (r && (r.id === code || r.code === code)) trouvees.push(`- ${relative(ROOT, p)} :\n  ${JSON.stringify(r)}`);
+      const liste = Array.isArray(json)
+        ? json
+        : (json.rules ?? json.regles ?? Object.values(json).flat());
+      for (const r of liste)
+        if (r && (r.id === code || r.code === code))
+          trouvees.push(`- ${relative(ROOT, p)} :\n  ${JSON.stringify(r)}`);
     } catch {
       /* pas un registre */
     }
   }
   return trouvees;
 }
-const adr = (code) => docs.filter((p) => basename(p).startsWith(`${code}-`) && p.endsWith(".md") && !p.endsWith(".spec.md") && !p.includes("/issues/"));
+const adr = (code) =>
+  docs.filter(
+    (p) =>
+      basename(p).startsWith(`${code}-`) &&
+      p.endsWith(".md") &&
+      !p.endsWith(".spec.md") &&
+      !p.includes("/issues/"),
+  );
 
 // ── Sortie ─────────────────────────────────────────────────────────────────────────────
 const out = [];
-out.push(`# Contexte du ticket ${id}`, "", `## Ticket — ${relative(ROOT, ticket)}`, "", texteTicket.trim(), "");
-out.push(`## Spec — ${fichierSpec ? relative(ROOT, fichierSpec) : "introuvable"}`, "", ...(ligneSpec.length ? ligneSpec.map((l) => l.trim()) : ["(aucune ligne de la spec ne cite ce ticket)"]), "");
+out.push(
+  `# Contexte du ticket ${id}`,
+  "",
+  `## Ticket — ${relative(ROOT, ticket)}`,
+  "",
+  texteTicket.trim(),
+  "",
+);
+out.push(
+  `## Spec — ${fichierSpec ? relative(ROOT, fichierSpec) : "introuvable"}`,
+  "",
+  ...(ligneSpec.length
+    ? ligneSpec.map((l) => l.trim())
+    : ["(aucune ligne de la spec ne cite ce ticket)"]),
+  "",
+);
 out.push("## Règles et décisions citées", "");
 if (cites.length === 0) out.push("(aucune)");
 for (const code of cites) {
   const r = regle(code);
   const a = adr(code);
   if (r.length) out.push(`### ${code} (règle)`, ...r, "");
-  else if (a.length) out.push(`### ${code} (ADR)`, ...a.map((p) => `- ${relative(ROOT, p)} : ${lire(p).split("\n")[0].replace(/^#\s*/, "")}`), "");
-  else out.push(`### ${code}`, "- introuvable dans docs/ ni federations/ : le ticket cite un identifiant que le dépôt ne porte pas", "");
+  else if (a.length)
+    out.push(
+      `### ${code} (ADR)`,
+      ...a.map(
+        (p) =>
+          `- ${relative(ROOT, p)} : ${lire(p).split("\n")[0].replace(/^#\s*/, "")}`,
+      ),
+      "",
+    );
+  else
+    out.push(
+      `### ${code}`,
+      "- introuvable dans docs/ ni federations/ : le ticket cite un identifiant que le dépôt ne porte pas",
+      "",
+    );
 }
 console.log(out.join("\n"));
