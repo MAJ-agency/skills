@@ -59,7 +59,7 @@ La file lit la CI de chaque PR : états dans l'en-tête de `file.sh`. **À la ma
 
 Compte rendu à l'utilisateur : PR fusionnées, avec squash et arbre vérifié ; PR renvoyées, avec la cause et la session prévenue ; PR restantes, avec leur état dans `file.sh`. Une fois par mois : `node scripts/docs/archiver-tickets.mjs` (dry-run, sortie relue) puis `--appliquer`.
 
-**Sessions terminées : archivées d'office.** Le capitaine archive (`archive_session`) une session « completed », sans PR ouverte, qui n'organise aucun chantier. Jamais une session qui attend une réponse, ni une session active. **Coût relevé avant d'archiver une fille `chantier:<nom>`** : `get_session` → `external_metadata.usage.cost_usd`, `context_usage.used_tokens`, `last_served_model` ; une ligne dans la section `## Coût` de la carte du chantier, commit sur le sujet ; **puis** `archive_session`. Carte introuvable : ne pas archiver, le dire à l'architecte.
+**Les filles d'un chantier, c'est leur architecte qui les archive** (skill `chantier` § 6.6), après avoir relevé leur coût : le capitaine n'y touche pas. Il archive seulement une session « completed », sans PR ouverte, **sans tag `chantier:`**, qui n'organise aucun chantier. Jamais une session qui attend une réponse, ni une session active.
 
 **Branches fusionnées : supprimées par GitHub** (réglage « Automatically delete head branches », liste de l'admin). Les scripts ne suppriment rien : depuis le cloud, le proxy refuse la suppression.
 
