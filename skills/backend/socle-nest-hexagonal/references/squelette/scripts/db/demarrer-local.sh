@@ -41,13 +41,28 @@ if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
   exit 0
 fi
 
-bin=$(ls -d /usr/lib/postgresql/*/bin 2>/dev/null | sort -V | tail -n 1 || true)
+# Un dossier /usr/lib/postgresql/<n>/bin peut ne contenir que le client (paquet postgresql-client) :
+# on ne retient que la version la plus récente qui a aussi le serveur.
+bin=""
+for d in $(ls -d "${PG_RACINE:-/usr/lib/postgresql}"/*/bin 2>/dev/null | sort -rV); do
+  if [ -x "$d/initdb" ] && [ -x "$d/pg_ctl" ] && [ -x "$d/psql" ]; then bin=$d; break; fi
+done
 if [ -z "$bin" ]; then
-  if command -v docker >/dev/null 2>&1; then
-    echo "demarrer-local : Docker est installé mais son démon ne répond pas, et aucun PostgreSQL local (/usr/lib/postgresql/*/bin)" >&2
-  else
-    echo "demarrer-local : ni Docker ni PostgreSQL installé (/usr/lib/postgresql/*/bin)" >&2
-  fi
+  {
+    if command -v docker >/dev/null 2>&1; then
+      echo "demarrer-local : Docker est installé mais son démon ne répond pas (le démarrer : Docker Desktop, ou sudo systemctl start docker)."
+    else
+      echo "demarrer-local : Docker n'est pas installé."
+    fi
+    client=$(ls -d "${PG_RACINE:-/usr/lib/postgresql}"/*/bin 2>/dev/null | sort -V | tail -n 1 || true)
+    if [ -n "$client" ]; then
+      version=$(basename "$(dirname "$client")")
+      echo "  Seul le client PostgreSQL $version est installé ($client), sans serveur : sudo apt install postgresql-$version"
+    else
+      echo "  Aucun PostgreSQL local (/usr/lib/postgresql/*/bin) : sudo apt install postgresql"
+    fi
+    echo "  Puis relancer : bash scripts/db/demarrer-local.sh"
+  } >&2
   exit 3
 fi
 
