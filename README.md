@@ -6,6 +6,8 @@ Ces skills ne portent **aucune règle métier**. Ce sont des règles de configur
 
 ## Installer
 
+Le dépôt est **privé** : il faut un accès en lecture (membre de MAJ-agency, ou invité sur le dépôt) et un `git` authentifié sur GitHub (`gh auth login`, ou une clé SSH).
+
 ```bash
 claude plugin marketplace add MAJ-agency/skills
 claude plugin install maj-skills@maj
@@ -16,6 +18,15 @@ Une installation, tous les skills disponibles. Pour mettre à jour, deux command
 ```bash
 claude plugin marketplace update maj
 claude plugin update maj-skills@maj
+```
+
+**Dans un environnement cloud** (sessions Claude Code sur claude.ai), le script de configuration n'a pas d'identifiants GitHub : il ne peut pas cloner un dépôt privé. Ajouter `MAJ-agency/skills` aux **Dépôts** de l'environnement, à côté du projet ; la session le clone alors elle-même, et le script installe le plugin depuis ce dossier, toujours à la version du clone :
+
+```bash
+if [ -d skills ]; then
+  claude plugin marketplace add "$PWD/skills" || true
+  claude plugin install maj-skills@maj || true
+fi
 ```
 
 ## Les skills
