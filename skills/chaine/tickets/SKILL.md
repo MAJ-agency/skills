@@ -50,6 +50,7 @@ Vérifier : `pnpm check:tickets` vert (le gate dit `tickets : OK — 0 tickets` 
 - **Avant de coder** : `node scripts/docs/ticket-libre.mjs SOC-1.03`. Sortie 0 libre, 1 pris, 3 libre côté git mais PR non vérifiées (session cloud : la recherche `search_pull_requests` que le script affiche, par l'outil GitHub MCP). Puis réserver : branche, `Status: en cours — <branche>`, PR brouillon. Procédure complète : `docs/agents/issue-tracker.md` § « Réserver un ticket ».
 - **Vagues d'un chantier** : `node scripts/docs/vagues.mjs SOC-1 --max 6` propose les vagues (bloquants faits, fichiers chauds disjoints) ; l'architecte décide.
 - **Avancement** : `node scripts/docs/avancement.mjs sujet/<nom>` ou `SOC-1`, `--json` pour une page. Sans `gh`, sortie 3 et la recherche MCP à faire.
+- **Coûts de production** : `node scripts/docs/couts.mjs` régénère `docs/agents/couts.md` depuis la section `## Coût` des cartes (index généré, `--verify` pour vérifier) ; on corrige la carte, jamais le registre.
 - **Archiver** : `node scripts/docs/archiver-tickets.mjs` (dry-run), `--appliquer` : les tickets faits depuis plus de 180 jours passent dans `issues/archive/`. Une fois par mois, par le capitaine, jamais en CI.
 - **Gate** : `pnpm check:tickets`. Une dette (tickets prêts d'avant le gate, cartes, identifiants en double) se gèle dans `scripts/verify/tickets-dette.json` et ne grandit jamais ; `--elaguer` retire les entrées éteintes.
 
