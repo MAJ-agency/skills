@@ -10,4 +10,4 @@ Le skill ne peut pas le faire : l'API GitHub refuse ces réglages depuis une ses
 - [ ] **Les sept labels** : `bash scripts/github/labels.sh` depuis un poste où `gh` est authentifié (`--liste` pour les lire).
 - [ ] **Secrets et variables de la CI**, selon l'hébergement choisi.
 
-Vérification : `gh api repos/{owner}/{repo}/branches/develop/protection --jq '.required_status_checks.strict'` rend `true`.
+Vérification : `gh api repos/{owner}/{repo}/rules/branches/develop --jq '.[] | select(.type == "required_status_checks") | .parameters.strict_required_status_checks_policy'` rend `true` (l'ancienne API `branches/develop/protection` répond 404 quand un ruleset protège la branche).
