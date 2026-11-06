@@ -65,8 +65,16 @@ checks_commit() {
   gh api "$DEPOT/commits/$1/status" --jq '.statuses[] | "\(.context)\t\(.state | ascii_upcase)"'
 }
 
-# Checks exigés par la protection de develop, en tableau JSON.
-checks_exiges() { gh api "$DEPOT/branches/develop/protection/required_status_checks" --jq '.contexts'; }
+# Checks exigés sur develop, en tableau JSON. D'abord les rulesets (`rules/branches/develop` :
+# ce que GitHub recommande, et ce que pose admin.md), sinon l'ancienne protection de branche,
+# qui répond 404 « Branch not protected » quand seul un ruleset protège la branche.
+checks_exiges() {
+  local regles
+  regles=$(gh api "$DEPOT/rules/branches/develop" --jq \
+    '[.[] | select(.type == "required_status_checks") | .parameters.required_status_checks[].context] | unique' 2>/dev/null || echo '[]')
+  if [ "$(jq 'length' <<<"$regles")" -gt 0 ]; then printf '%s\n' "$regles"; return; fi
+  gh api "$DEPOT/branches/develop/protection/required_status_checks" --jq '.contexts' 2>/dev/null || echo '[]'
+}
 
 poser_label() { gh api -X POST "$DEPOT/issues/$1/labels" -f "labels[]=$2" >/dev/null; }
 # Un label déjà absent n'est pas une erreur (404).
