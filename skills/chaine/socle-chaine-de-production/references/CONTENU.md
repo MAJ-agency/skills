@@ -6,7 +6,7 @@ Quatre lignes, et rien d'autre, que les skills d'exploitation lisent au lieu de 
 
 ## Les index générés — `index-generes.json`
 
-Une liste unique des fichiers qu'on régénère et qu'on n'édite jamais, avec leur commande : lue par le capitaine avant chaque push, par `diff.sh` de la revue (exclus du diff relu), et par `regles.mjs` (édition refusée). Chaque socle de service y ajoute ses entrées ; le socle API y met l'OpenAPI.
+Une liste unique des fichiers qu'on régénère et qu'on n'édite jamais, avec leur commande : lue par le capitaine avant chaque push, par `diff.sh` de la revue (exclus du diff relu), et par `regles.mjs` (édition refusée). Chaque socle de service y ajoute ses entrées ; le socle API y met l'OpenAPI. La chaîne y met le registre des coûts de production, `docs/agents/couts.md` : `scripts/docs/couts.mjs` (posé par `tickets`) l'agrège depuis la section `## Coût` des cartes de chantier.
 
 ## Les hooks d'agent — `agent/`
 
