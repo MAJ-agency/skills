@@ -4,6 +4,7 @@ La rétro d'un chantier (skill `chantier` § 7) ajoute ici une ligne par inciden
 
 ## Dépôt, branches, worktrees
 
+- **Pas de Docker en session cloud** : sans base, `db:types`, `test:db` et la régénération des index par le capitaine échouent. `bash scripts/db/demarrer-local.sh` (posé par le socle API) allume la base de `compose.yaml` avec le PostgreSQL de la machine ; le script de démarrage de l'environnement cloud l'appelle pour chaque session (`admin.md`). Il ne repasse pas sur une reprise de session : relancer le script, sans risque, avant `test:db` ou `db:types`.
 - **Ne jamais pousser depuis un `git worktree`** : le pre-push lance `pnpm check`, dont les tests des scripts de chaîne écrivent dans la config git partagée (`core.bare=true`, HEAD déplacé, commits « jouet » dans le worktree). Pousser depuis un clone normal (`git clone --no-local <dépôt> <dossier>`, puis `pnpm install`). Lire du code dans un worktree détaché reste sans risque.
 - Un **worktree neuf n'a pas de `node_modules`** : le pre-push y échoue avec des erreurs absurdes. `pnpm install --frozen-lockfile --prefer-offline` d'abord.
 - `next-id.mjs` lit l'arbre **et** les branches `sujet/*` et `docs/*` : `git fetch origin` avant, sinon deux specs reçoivent le même numéro.

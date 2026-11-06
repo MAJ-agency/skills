@@ -37,6 +37,7 @@ Copier `references/` vers le dépôt selon cette table, puis substituer les plac
 | ----------------------------------- | -------------------------------------------------- |
 | `references/squelette/apps/api/*`   | `apps/api/` — dont `eslint.rules.mjs`, chargé par l'ESLint racine |
 | `references/squelette/compose.yaml` | `compose.yaml` (racine) — PostgreSQL local          |
+| `references/squelette/scripts/db/demarrer-local.sh` | `scripts/db/demarrer-local.sh` — allume la base de `compose.yaml`, avec ou sans Docker (session cloud) ; exécutable |
 | `references/api/CLAUDE.md`          | `apps/api/CLAUDE.md`                               |
 | `references/api/docs/*`             | `apps/api/docs/`                                   |
 | `references/adr/ARC-2-*`         | `docs/adr/` — **après avoir tranché ses deux sections** (isolation, rôles) |
