@@ -46,6 +46,7 @@ Blocked by: 01, 03 # tickets du même chantier, fusionnés dans le sujet avant d
 Modèle: sonnet # ou opus, avec la raison
 Fichiers chauds: src/db/migrations/* # fichiers que d'autres tickets touchent aussi (§ 4)
 Label: architecte # chemin sensible : l'architecte contre-relit, puis pose lui-même à-fusionner (§ 5, étape 6)
+Maquette: <artefact ou maquette HTML, et la planche ou la section> # dès que le ticket touche un écran ; sans planche validée, le ticket reste needs-info
 ```
 
 Un ticket qui crée un module d'authentification, de droits, de chiffrement, de paiement ou d'export ajoute son dossier à `cheminsSensibles` (`.claude/chaine.json`) dans la PR de cadrage ; la revue adversariale (critère S14) relève un tel code hors de la liste.
@@ -87,6 +88,7 @@ Déroulé :
 1. **Environnement.** `git fetch origin develop sujet/<nom>` ; `pnpm install --frozen-lockfile --prefer-offline` ; la base locale (`compose.yaml`) si le ticket touche la persistance.
 2. **Réserver** depuis `origin/sujet/<nom>` : `docs/agents/issue-tracker.md` § « Réserver un ticket » (PR brouillon vers le sujet).
 3. **Lire** le ticket, les deux règles qu'il nomme et le modèle qu'il cite. Pas d'exploration au-delà ; un besoin de lecture large passe par un sous-agent `Explore`, qui rend une conclusion et pas des fichiers.
+   **Un écran se code sur sa planche** (ligne `Maquette:`), jamais de mémoire. Un doute sur le design — un geste, un état, un libellé, une place — ne se tranche pas seul : il se pose au produit par `AskUserQuestion`, avec deux ou trois options et une recommandation, et le design peut évoluer dans la session avec lui. Les sources de design du projet et leur ordre de priorité sont dans son programme ou dans la carte du chantier.
 4. **Coder**, puis les vérifications ciblées du ticket, puis `pnpm check` **une fois**. Après tout merge du sujet dans la branche : régénérer les index avant le check.
 5. **Revue de ticket** (skill `revue-de-ticket` : trois sous-agents — règles, ticket, documentation), corriger les bloquants, deux tours au plus. La section `## Revue de ticket` va **dans le corps de la PR** : le capitaine la lit là. Un trou du ticket révélé par la revue (surface oubliée, règle non citée) se corrige dans le ticket aussi.
 6. **Livrer.** `Status: Fait — PR #<n>`, PR hors brouillon, label `à-fusionner` : `CLAUDE.md` § « Fusion vers `develop` ». La PR sort du brouillon **après le dernier push** : un brouillon ne lance aucun job, une PR prête relance toute la CI à chaque push. Avant de poser `à-fusionner`, vérifier que « titre (#n) » tient en 120 caractères et passe commitlint : `printf '%s\n' "<titre> (#<n>)" | pnpm exec commitlint`. Le label se pose **après le push du dernier commit** (`git ls-remote origin <branche>` = `HEAD`) : le capitaine squashe la tête qu'il trouve. Pour un ticket `Label: architecte`, la fille livre **sans** `à-fusionner` ; l'architecte contre-relit, puis pose le label lui-même.

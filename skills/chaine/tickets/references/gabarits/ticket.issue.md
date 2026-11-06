@@ -5,6 +5,7 @@ Sujet: sujet/{{nom}}
 Blocked by: {{NN, NN — ou retirer la ligne}}
 Modèle: sonnet
 Fichiers chauds: `{{chemin}}`, `{{chemin}}` — ou `—`
+Maquette: {{artefact ou maquette HTML, et la planche ou la section}} — ou retirer la ligne si le ticket ne touche aucun écran
 
 ## Le besoin
 
