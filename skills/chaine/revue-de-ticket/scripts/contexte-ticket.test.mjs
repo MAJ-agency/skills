@@ -85,11 +85,33 @@ test("un identifiant cité que le dépôt ne porte pas est dit introuvable ; un 
   const r = lancer(racine, "X-1.01");
   assert.equal(r.status, 0, r.stderr);
   assert.match(r.stdout, /### ZZZ-9\n- introuvable/);
+  assert.match(
+    r.stdout,
+    /### SOC-1\.04 \(ticket\)\n- introuvable dans docs\/ : le ticket cité n'existe pas/,
+  );
   assert.doesNotMatch(
     r.stdout,
-    /### SOC-1\b/,
+    /### SOC-1[\n ]/,
     "un numéro de ticket n'est pas une règle",
   );
   assert.equal(lancer(racine, "X-1.02").status, 2);
   assert.equal(lancer(racine).status, 2);
+});
+
+test("SOC-1.06 cité est lu comme un ticket, pas comme la spec SOC-1", () => {
+  const r = lancer(
+    depot({
+      "docs/features/socle/issues/SOC-1-socle.03.issue.md":
+        "# Couche base\n\nStatus: ready-for-agent\n\nS'appuie sur SOC-1.06.\n",
+      "docs/features/socle/issues/SOC-1-socle.06.issue.md":
+        "# SOC-1.06 — Tableau\n\nStatus: needs-triage\n",
+    }),
+    "SOC-1.03",
+  );
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(
+    r.stdout,
+    /### SOC-1\.06 \(ticket\)\n- docs\/features\/socle\/issues\/SOC-1-socle\.06\.issue\.md : SOC-1\.06 — Tableau/,
+  );
+  assert.doesNotMatch(r.stdout, /### SOC-1\n/);
 });

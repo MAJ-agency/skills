@@ -73,11 +73,13 @@ const ligneSpec = fichierSpec
 
 // ── Règles et ADR cités ────────────────────────────────────────────────────────────────
 const corpus = texteTicket + "\n" + ligneSpec.join("\n");
-// `(?!\.\d)` : `SOC-1.04` est un numéro de ticket, pas la règle `SOC-1`.
+// `<TRI>-<n>` (règle, ADR, spec) ou `<TRI>-<n>.<NN>` (ticket) : `SOC-1.06` n'est pas lu comme `SOC-1`.
 const cites = [
-  ...new Set(corpus.match(/\b[A-Z]{2,}(?:-[A-Z]{2,})*-\d+\b(?!\.\d)/g) ?? []),
+  ...new Set(
+    corpus.match(/\b[A-Z]{2,}(?:-[A-Z]{2,})*-\d+(?:\.\d{2})?\b/g) ?? [],
+  ),
 ]
-  .filter((c) => c !== spec && !c.startsWith(`${spec}.`))
+  .filter((c) => c !== spec && c !== id)
   .sort();
 const registresMd = docs.filter(
   (p) => /regles?\.md$/.test(p) || /\/regles\//.test(p),
@@ -138,6 +140,23 @@ out.push(
 out.push("## Règles et décisions citées", "");
 if (cites.length === 0) out.push("(aucune)");
 for (const code of cites) {
+  if (lireTicket(code)) {
+    const [specCitee, nnCite] = code.split(".");
+    const t = docs.find(
+      (p) =>
+        /\/issues\/[^/]+\.issue\.md$/.test(p) &&
+        basename(p).startsWith(`${specCitee}-`) &&
+        basename(p).endsWith(`.${nnCite}.issue.md`),
+    );
+    out.push(
+      `### ${code} (ticket)`,
+      t
+        ? `- ${relative(ROOT, t)} : ${lire(t).split("\n")[0].replace(/^#\s*/, "")}`
+        : "- introuvable dans docs/ : le ticket cité n'existe pas",
+      "",
+    );
+    continue;
+  }
   const r = regle(code);
   const a = adr(code);
   if (r.length) out.push(`### ${code} (règle)`, ...r, "");
