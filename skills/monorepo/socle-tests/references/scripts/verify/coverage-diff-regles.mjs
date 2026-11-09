@@ -110,15 +110,20 @@ export function fusionner(a, b) {
 }
 
 /**
- * Décision quand la base est introuvable, d'après la sortie de `git ls-remote --heads origin` :
- * un distant sans aucune branche est un dépôt neuf à son premier push — rien à comparer, le
- * gate passe (`premier-push`) ; des branches, ou `ls-remote` en échec (`null`), et la base
- * manque vraiment (`base-absente`).
+ * Décision quand la base est introuvable en local, d'après la sortie de `git ls-remote --heads
+ * origin` et le nom de la branche de base. Un distant sans aucune branche est un dépôt neuf à son
+ * premier push — rien à comparer, le gate passe (`premier-push`). Tout le reste est un refus, qui
+ * dit où la base manque : le distant la liste, il suffit de la rapatrier (`base-a-fetcher`) ; il a
+ * des branches mais pas celle-là, elle n'existe encore nulle part (`base-absente`) ; `ls-remote`
+ * en échec (`null`), on ne sait rien du distant (`distant-muet`).
  */
-export function decisionSansBase(tetesDistantes) {
-  return typeof tetesDistantes === "string" && tetesDistantes.trim() === ""
-    ? "premier-push"
-    : "base-absente";
+export function decisionSansBase(tetesDistantes, branche = "develop") {
+  if (typeof tetesDistantes !== "string") return "distant-muet";
+  if (tetesDistantes.trim() === "") return "premier-push";
+  const listee = tetesDistantes
+    .split("\n")
+    .some((l) => l.trimEnd().endsWith(`\trefs/heads/${branche}`));
+  return listee ? "base-a-fetcher" : "base-absente";
 }
 
 /** Verdict d'un fichier : la liste de ses problèmes, vide s'il passe. */
