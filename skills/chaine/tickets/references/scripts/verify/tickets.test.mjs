@@ -1,6 +1,18 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { controlerCarte, controlerTicket, ecartsFormatPret, estArchive, identifiant, identifiantsEnDouble, statusValide, ticketsCites, ecartsFiches
+import {
+  cheminsChauds,
+  controlerCarte,
+  controlerTicket,
+  ecartsFormatPret,
+  estArchive,
+  identifiant,
+  identifiantsEnDouble,
+  lireCheminsSensibles,
+  motifSensibleTouche,
+  statusValide,
+  ticketsCites,
+  ecartsFiches,
 } from './tickets-regles.mjs';
 
 const NOM = 'SOC-1-socle.06.issue.md';
@@ -59,4 +71,37 @@ test('les fiches du skill passent ; une fiche réécrite par setup-matt-pocock-s
   assert.match(e[0], /issue-tracker\.md : section « Réserver un ticket » absente — rejouer `\/maj-skills:tickets poser`/);
   assert.match(e[3], /triage-labels\.md : valeur « en cours — <branche> » absente/);
   assert.deepEqual(ecartsFiches({ issueTracker: null, triageLabels: null }).length, 2);
+});
+
+const SENSIBLES = ['apps/api/src/**/auth/**', 'apps/api/src/db/migrations/**', 'packages/contracts/src/auth*.ts'];
+const sur = (chauds, label = '') =>
+  PRET.replace('Fichiers chauds: —', `Fichiers chauds: ${chauds}`).replace('Modèle: sonnet\n', `Modèle: sonnet\n${label}`);
+
+test("un ticket prêt sur un chemin sensible sans `Label: architecte` est refusé ; avec, accepté ; hors chemin sensible, rien n'est exigé", () => {
+  const refus = ecartsFormatPret(sur('`apps/api/src/infrastructure/auth/jwt.ts`'), SENSIBLES);
+  assert.equal(refus.length, 1);
+  assert.match(refus[0], /Label: architecte.*absente.*apps\/api\/src\/\*\*\/auth\/\*\*/);
+  assert.deepEqual(ecartsFormatPret(sur('`apps/api/src/infrastructure/auth/jwt.ts`', 'Label: architecte\n'), SENSIBLES), []);
+  assert.deepEqual(ecartsFormatPret(sur('`scripts/docs/avancement.mjs`'), SENSIBLES), []);
+  assert.deepEqual(ecartsFormatPret(sur('—'), SENSIBLES), []);
+  const r = controlerTicket({ nom: NOM, texte: sur('`packages/contracts/src/auth.ts`'), existe, cheminsSensibles: SENSIBLES });
+  assert.match(r.erreurs[0].message, /ready-for-agent : ligne `Label: architecte` absente/);
+  assert.deepEqual(controlerTicket({ nom: NOM, texte: sur('`packages/contracts/src/auth.ts`'), existe, gele: true, cheminsSensibles: SENSIBLES }).erreurs, []);
+});
+
+test('les chemins chauds se lisent entre accents graves ou en liste, et un motif `**/` accepte zéro dossier', () => {
+  assert.deepEqual(cheminsChauds('`a/b.ts`, `c/*` — raison'), ['a/b.ts', 'c/*']);
+  assert.deepEqual(cheminsChauds('a/b.ts, c/d.ts'), ['a/b.ts', 'c/d.ts']);
+  assert.deepEqual(cheminsChauds('—'), []);
+  assert.equal(motifSensibleTouche('apps/api/src/auth/x.ts', SENSIBLES), SENSIBLES[0]);
+  assert.equal(motifSensibleTouche('apps/api/src/db/migrations/*', SENSIBLES), SENSIBLES[1]);
+  assert.equal(motifSensibleTouche('apps/api/src/application/users/u.ts', SENSIBLES), null);
+});
+
+test('cheminsSensibles : contrat absent → aucun motif ; présent mais illisible ou mal formé → le gate échoue fermé', () => {
+  assert.deepEqual(lireCheminsSensibles(null), []);
+  assert.deepEqual(lireCheminsSensibles('{}'), []);
+  assert.deepEqual(lireCheminsSensibles('{"cheminsSensibles":["a/**"]}'), ['a/**']);
+  assert.throws(() => lireCheminsSensibles('{ pas du json'), /chaine\.json illisible/);
+  assert.throws(() => lireCheminsSensibles('{"cheminsSensibles":"a/**"}'), /liste de motifs/);
 });
