@@ -53,10 +53,12 @@ C'est un skill de service ou un développeur qui déclenche ce geste, pas ce ski
 
 ```bash
 pnpm install
-pnpm check      # le paquet build, lint, typecheck avec le reste
+pnpm check      # le paquet lint et typecheck avec le reste — il ne construit rien
 ```
 
 Vérifier que **la garde de framework mord** : créer `packages/contracts/src/probe.ts` avec `import { Injectable } from "@nestjs/common";`, confirmer que `pnpm lint` échoue avec le message de `packages/CLAUDE.md`, **puis le supprimer**. Si le lint ne mord pas, `packages/contracts/eslint.rules.mjs` n'est pas chargé par l'ESLint racine.
+
+Vérifier que **le barrel se charge en direct** — c'est l'exécution qui révèle ce défaut, jamais le typecheck : créer `packages/contracts/src/probe-sujet.ts` avec `export const PROBE_SUJET = "probe" as const;`, ajouter `export * from "./probe-sujet.ts";` au barrel (**avec l'extension**, `packages/CLAUDE.md` § Layout), jouer `pnpm check` : vert, **`openapi:check` compris** — c'est lui qui fait charger les sources par Node (`node dist/openapi/emit.js`), donc la sonde ne prouve le chargement que si `apps/api/` est posée ; sinon la rejouer à l'étape 3 de `socle-nest-hexagonal`. Puis **retirer la sonde et sa ligne du barrel**. Un `ERR_MODULE_NOT_FOUND … src/probe-sujet` dit qu'un ré-export a perdu son extension ; un `TS5097` dit que le `tsconfig.json` d'un consommateur n'admet pas les extensions `.ts`.
 
 Contrôler qu'il ne reste **aucun placeholder `{{…}}`** (chercher `{{[A-Z_]+}}` — les doubles accolades JSX ne comptent pas) dans les fichiers posés.
 

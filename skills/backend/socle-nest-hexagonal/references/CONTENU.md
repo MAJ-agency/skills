@@ -22,7 +22,7 @@ Ce qui démarre, et pourquoi c'est là plutôt qu'ailleurs.
 - **`health/`** — sonde de vie qui ne dit **rien** de l'état interne : ni version, ni base, ni dépendances. Une sonde bavarde est une surface de reconnaissance.
 - **`eslint.rules.mjs`** — les frontières hexagonales verrouillées par `no-restricted-imports`, chargées par l'ESLint racine. **Un seul bloc par couche** : en flat config, deux blocs qui matchent le même fichier ne fusionnent pas leurs options, le dernier écrase le premier. C'est un piège coûteux.
 - **`tsconfig.arch.json`** — compile `domain/` + `application/` **sans** `infrastructure/`. Si ça casse, une dépendance pointe dans le mauvais sens.
-- **`packages/contracts`** n'est pas ici : il est posé par `socle-contrats`, l'API le consomme (`ErrorDto` dans le document OpenAPI).
+- **`packages/contracts`** n'est pas ici : il est posé par `socle-contrats`, l'API le consomme (`ErrorDto` dans le document OpenAPI) — et le charge **en direct** par Node depuis `dist/` (`openapi:check`, `main.js`), d'où `rewriteRelativeImportExtensions` dans `tsconfig.json` : la seule option qui admette les ré-exports `.ts` du barrel dans un programme qui émet (`allowImportingTsExtensions` exige `noEmit`).
 - **`compose.yaml`** — PostgreSQL sur **5433**, pas 5432 : pour ne pas entrer en conflit avec une instance locale. Fichier de racine, mais posé par ce skill : c'est l'API qui en a besoin.
 - **`scripts/db/demarrer-local.sh`** — allume cette base, avec ou sans Docker : il lit port et identifiants dans `compose.yaml`, ne fait rien si la base répond, passe par Docker s'il est là, sinon par le PostgreSQL de la machine (session cloud). Le script de démarrage de l'environnement cloud l'appelle (`socle-chaine-de-production`, `admin.md`).
 

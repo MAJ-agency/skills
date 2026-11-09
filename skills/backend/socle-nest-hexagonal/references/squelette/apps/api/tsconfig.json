@@ -8,6 +8,7 @@
     "target": "ES2022",
     "outDir": "dist",
     "rootDir": "src",
+    "rewriteRelativeImportExtensions": true,
     "declaration": false,
     "baseUrl": ".",
     "paths": {
