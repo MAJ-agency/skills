@@ -3,4 +3,4 @@
 ├── scripts/chaine/          → les scripts du capitaine de fusion, des branches de sujet et de la revue adversariale
 ├── scripts/docs/            → tickets : next-id, ticket-libre, vagues, avancement, archivage, index générés
 ├── scripts/verify/          → le gate des tickets et sa dette gelée
-├── scripts/github/          → les labels de la chaîne
+├── scripts/github/          → la branche develop et les labels de la chaîne
