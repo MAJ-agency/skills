@@ -77,6 +77,8 @@ pnpm --filter @<scope>/<projet>-api dev            # puis curl localhost:3000/he
 
 `openapi.json` est généré, jamais édité à la main, et **committé** : c'est le témoin que `openapi:check` compare aux schémas Zod à chaque `pnpm check`.
 
+`openapi:check` est aussi ce qui fait charger les sources de `packages/contracts` **par Node**, en direct : si les contrats ont été posés avant l'API, **rejouer ici la sonde de barrel** de `socle-contrats` (son étape 3 : `src/probe-sujet.ts` ré-exporté avec l'extension `.ts`, `pnpm check`, retrait) — elle n'avait pas encore d'API pour prouver le chargement.
+
 Vérifier aussi que **les gardes de couche mordent** — c'est ce qui distingue une règle écrite d'une règle appliquée. Créer un fichier de sonde important `Logger` depuis `@nestjs/common` dans `application/`, confirmer que `pnpm lint` échoue, **puis le supprimer**. Si le lint ne mord pas, c'est que `apps/api/eslint.rules.mjs` n'est pas chargé par l'ESLint racine.
 
 Contrôler enfin qu'il ne reste **aucun placeholder `{{…}}`** (chercher `{{[A-Z_]+}}` — les doubles accolades JSX ne comptent pas) dans les fichiers posés, que les marqueurs `<!-- socle:… -->` sont toujours dans `README.md` et `CLAUDE.md`, et qu'**aucun marqueur de branche `══` ne subsiste** dans `apps/api/`, `docs/` ni `.claude/rules/`.

@@ -5,5 +5,8 @@
  * Ce paquet n'existe que parce qu'au moins deux briques partagent une fonction
  * pure (formatage, normalisation, calcul sans I/O). Il ne porte ni composant,
  * ni store, ni client HTTP : chaque client a les siens (packages/CLAUDE.md).
+ *
+ * Chaque ré-export porte son extension : `export * from "./slug.ts";` — Node
+ * charge ces sources en direct, sans build (packages/CLAUDE.md § Layout).
  */
 export {};

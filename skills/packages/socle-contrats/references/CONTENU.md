@@ -9,8 +9,9 @@ La règle qui fait la différence avec un dépôt qui sépare « types » et « 
 ## Squelette — `squelette/contracts/`
 
 - **`package.json`** — `main: ./src/index.ts` : les sources sont exposées directement, aucun build, aucune dépendance `^build` pour les consommateurs. `zod` en seule dépendance. `vitest run --passWithNoTests` : les schémas sont déclaratifs, un test n'apparaît qu'avec un `refine`.
+- **`tsconfig.json`** — `noEmit` et `allowImportingTsExtensions`, pas d'`outDir` : le paquet ne construit rien, et ses imports relatifs portent l'extension `.ts` parce que Node charge les sources **en direct** depuis le `dist/` de l'API (`openapi:check`, `main.js`) et exige le chemin complet d'un module ESM. Sans l'extension, le typecheck passe et `openapi:check` casse au premier sujet (`ERR_MODULE_NOT_FOUND`) ; sans l'option, le typecheck refuse l'extension (`TS5097`). Chaque consommateur l'admet aussi : `rewriteRelativeImportExtensions` pour l'API qui émet, `allowImportingTsExtensions` pour les clients. Même `tsconfig.json` pour `utils`.
 - **`eslint.rules.mjs`** — chargé par l'ESLint racine : interdit tout import de framework (`react`, `@nestjs/*`, `kysely`, `next`, `expo`…) et tout import d'un autre paquet `@{{SCOPE}}/*`. C'est ce qui garantit qu'un contrat tourne côté Node comme côté client.
-- **`src/index.ts`** — le barrel, avec `ErrorDto` (identifiants anglais et généralistes, `ARC-4` ; un sujet par fichier : `error.ts`, `roles.ts`…) : le corps d'erreur commun, déclaré une fois, exposé une fois en réponse `4XX` globale du document OpenAPI de l'API.
+- **`src/index.ts`** — le barrel, avec `ErrorDto` (identifiants anglais et généralistes, `ARC-4` ; un sujet par fichier : `error.ts`, `roles.ts`…, ré-exporté **avec son extension** : `export * from "./roles.ts";`) : le corps d'erreur commun, déclaré une fois, exposé une fois en réponse `4XX` globale du document OpenAPI de l'API.
 
 ## Squelette — `squelette/utils/`
 
