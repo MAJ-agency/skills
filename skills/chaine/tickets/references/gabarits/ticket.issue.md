@@ -6,7 +6,7 @@ Blocked by: {{NN, NN — ou retirer la ligne}}
 Modèle: sonnet
 Fichiers chauds: `{{chemin}}`, `{{chemin}}` — ou `—`
 Dépendances: `{{paquet}}`, `{{paquet}}` — ou retirer la ligne
-Maquette: {{artefact ou maquette HTML, et la planche ou la section}} — ou retirer la ligne si le ticket ne touche aucun écran
+Maquette: {{fichier du dépôt : maquette HTML et section, ou planche recopiée sous docs/design/planches/ — jamais un artefact seul, la fille ne peut pas l'ouvrir}} — ou retirer la ligne si le ticket ne touche aucun écran
 
 ## Le besoin
 
