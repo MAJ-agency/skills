@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { ajouteUneDependance, decisionCommande, refusEdition, sansTexte, lintable
-} from './regles.mjs';
+import { ajouteUneDependance, decisionCommande, identifiantDeBranche, lireDependances, paquetsAjoutes, pousseSurUnSujet, refusEdition, sansTexte, lintable } from './regles.mjs';
 
 const livree = { migrationExistante: () => true, migrations: 'apps/api/src/db/migrations/' };
 const nouvelle = { migrationExistante: () => false, migrations: 'apps/api/src/db/migrations/' };
@@ -36,6 +35,75 @@ test('une dépendance nouvelle demande, une réinstallation ne demande pas', () 
   assert.equal(decisionCommande('pnpm --filter @x/api add -D vitest').decision, 'demander');
   assert.equal(decisionCommande('pnpm install --frozen-lockfile 2>&1 | tail -3'), null);
   assert.equal(ajouteUneDependance('pnpm install'), false);
+});
+
+test('paquetsAjoutes : noms sans version, portée gardée, alias et sources gardés entiers', () => {
+  assert.deepEqual(paquetsAjoutes('pnpm add leaflet@1.9.4 @types/leaflet@^1'), ['leaflet', '@types/leaflet']);
+  assert.deepEqual(paquetsAjoutes('pnpm --filter @x/web add -D @types/leaflet'), ['@types/leaflet']);
+  assert.deepEqual(paquetsAjoutes('pnpm add leaflet@npm:autre'), ['leaflet@npm:autre']);
+  assert.deepEqual(paquetsAjoutes('pnpm install --frozen-lockfile'), []);
+});
+
+const prevus = (liste) => ({ dependancesPrevues: () => liste });
+
+test('un paquet prévu par le ticket passe sans question, avec ou sans version', () => {
+  const ctx = prevus(['leaflet', '@types/leaflet']);
+  assert.equal(decisionCommande('pnpm add leaflet', ctx), null);
+  assert.equal(decisionCommande('pnpm add leaflet@1.9.4', ctx), null);
+  assert.equal(decisionCommande('pnpm --filter @x/web add -D @types/leaflet@^1', ctx), null);
+});
+
+test('un paquet prévu et un non prévu, un alias ou une option de source : la commande entière demande', () => {
+  const ctx = prevus(['leaflet']);
+  assert.equal(decisionCommande('pnpm add leaflet zod', ctx).decision, 'demander');
+  assert.equal(decisionCommande('pnpm add leaflet && pnpm add zod', ctx).decision, 'demander');
+  assert.equal(decisionCommande('pnpm add leaflet@npm:autre', ctx).decision, 'demander');
+  for (const option of ['--registry=https://x.example', '--registry https://x.example', '--config.registry=x', '-g'])
+    assert.equal(decisionCommande(`pnpm add leaflet ${option}`, ctx).decision, 'demander', option);
+  for (const commande of ['pnpm -C /tmp/x add leaflet', 'pnpm --dir=/tmp/x add leaflet', 'npm_config_registry=https://x.example pnpm add leaflet', 'NPM_CONFIG_REGISTRY=x pnpm add leaflet', 'env pnpm add leaflet'])
+    assert.equal(decisionCommande(commande, ctx).decision, 'demander', commande);
+  assert.equal(decisionCommande('pnpm add -E --filter=@x/web leaflet', ctx), null);
+});
+
+test('ticket introuvable (contexte null ou vide) : demander ; les refus restent', () => {
+  assert.equal(decisionCommande('pnpm add leaflet', prevus(null)).decision, 'demander');
+  assert.equal(decisionCommande('pnpm add leaflet', prevus([])).decision, 'demander');
+  assert.equal(decisionCommande('pnpm add leaflet').decision, 'demander');
+  assert.equal(decisionCommande('npm install leaflet', prevus(['leaflet'])).decision, 'refuser');
+  assert.equal(decisionCommande('yarn add leaflet', prevus(['leaflet'])).decision, 'refuser');
+  let lu = false;
+  decisionCommande('pnpm install --frozen-lockfile', { dependancesPrevues: () => (lu = true) });
+  assert.equal(lu, false, 'le ticket ne se lit que si la commande ajoute un paquet');
+});
+
+test('depuis une branche de ticket, un push vers un sujet est refusé', () => {
+  const ticket = { brancheCourante: () => 'feat/soc-1-04-hook' };
+  for (const commande of ['git push origin HEAD:sujet/demo', 'git push origin HEAD:refs/heads/sujet/demo', 'git push -u origin sujet/demo', 'git push origin feat/soc-1-04-hook HEAD:sujet/demo'])
+    assert.equal(decisionCommande(commande, ticket)?.decision, 'refuser', commande);
+  assert.equal(decisionCommande('git push -u origin feat/soc-1-04-hook', ticket), null);
+  assert.equal(decisionCommande('git push origin HEAD:sujet/demo'), null, 'branche inconnue');
+  assert.equal(decisionCommande('git push origin sujet/demo', { brancheCourante: () => 'sujet/demo' }), null, 'architecte ou capitaine sur le sujet : rien ne change');
+  assert.equal(pousseSurUnSujet('git commit -m x && git push origin HEAD:sujet/x'), true);
+  assert.equal(pousseSurUnSujet('git push origin feat/sujet-x'), false);
+});
+
+test('lireDependances : la ligne d’en-tête, accents graves ou nus, — ou absente → []', () => {
+  const ticket = (ligne) => `# X\n\nStatus: ready-for-agent\n${ligne}\n\n## Le besoin\n\nx\n`;
+  assert.deepEqual(lireDependances(ticket('Dépendances: `leaflet`, `@types/leaflet`')), ['leaflet', '@types/leaflet']);
+  assert.deepEqual(lireDependances(ticket('Dépendances: leaflet, zod')), ['leaflet', 'zod']);
+  assert.deepEqual(lireDependances(ticket('Dépendances: —')), []);
+  assert.deepEqual(lireDependances(ticket('Dépendances: `zod` — ou retirer la ligne')), ['zod']);
+  assert.deepEqual(lireDependances(ticket('Modèle: sonnet')), []);
+  assert.deepEqual(lireDependances('# X\n\nStatus: x\n\n## Comments\n\nDépendances: `zod`\n'), [], 'hors de l’en-tête, la ligne ne compte pas');
+});
+
+test('identifiantDeBranche : branche de ticket → identifiant, sinon null', () => {
+  assert.equal(identifiantDeBranche('feat/soc-1-04-hook'), 'SOC-1.04');
+  assert.equal(identifiantDeBranche('fix/all-fof-12-03-x'), 'ALL-FOF-12.03');
+  assert.equal(identifiantDeBranche('feat/geo-1-04'), 'GEO-1.04');
+  assert.equal(identifiantDeBranche('sujet/fiabilite-de-la-chaine'), null);
+  assert.equal(identifiantDeBranche('docs/relecture'), null);
+  assert.equal(identifiantDeBranche('HEAD'), null);
 });
 
 test('le texte libre d’une commande (message de commit, heredoc) n’est pas lu', () => {

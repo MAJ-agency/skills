@@ -2,7 +2,7 @@
 
 ## `scripts/github.sh`
 
-La bibliothèque commune, sourcée par les autres scripts : `DEPOT`, `ID_SPEC` (la convention `tickets`), les index générés lus dans `scripts/docs/index-generes.json` avec leurs commandes (`index_generes`, `index_commandes`, `regenerer_index`, `ajouter_index`), une PR en JSON, son sommet, les checks d'un commit (un par nom, le plus récent : deux exécutions d'un même workflow laissent deux checks du même nom), les checks exigés lus dans la protection de develop, les labels, les commentaires. Tout en REST.
+La bibliothèque commune, sourcée par les autres scripts : `DEPOT`, `ID_SPEC` (la convention `tickets`), les index générés lus dans `scripts/docs/index-generes.json` avec leurs commandes et leurs contrôles (`index_generes`, `index_commandes`, `index_verifications`, `regenerer_index`, `ajouter_index`) : `regenerer_index` joue les `verification` après toutes les régénérations, et un contrôle en échec fait échouer la mise à jour du sujet (`sujet.sh rafraichir`), la boucle et `passer.sh` (sortie 3), au lieu de laisser partir un index régénéré contre un état faux (des types lus sur une base sans les migrations du sujet, cas vécu) ; une PR en JSON, son sommet, les checks d'un commit (un par nom, le plus récent : deux exécutions d'un même workflow laissent deux checks du même nom), les checks exigés lus dans la protection de develop, les labels, les commentaires. Tout en REST.
 
 ## `scripts/file.sh`
 
@@ -14,7 +14,11 @@ Fait passer une PR : éligibilité (label, brouillon, titre de 120 caractères, 
 
 ## `scripts/boucle.sh`
 
-La boucle : rouges relancés une fois puis renvoyés, séries regroupées, sous-PR squashées dans leur sujet, reciblages, sujets rafraîchis quand ils sont au repos et livrés quand ils sont finis, puis la file vers develop, PR par PR. Elle s'arrête sur ce qu'elle ne sait pas traiter.
+La boucle : rouges relancés une fois puis renvoyés, séries regroupées, sous-PR squashées dans leur sujet, reciblages, sujets rafraîchis quand ils sont au repos et livrés quand ils sont finis, puis la file vers develop, PR par PR. Une sous-PR en conflit avec son sujet sur des index générés seuls est mise à jour par `sujet.sh fusionner` (sortie 8, `MISE À JOUR`), pas renvoyée : deux sous-PR qui régénèrent le même `openapi.json` tombaient l'une après l'autre en conflit (cas vécu). Elle s'arrête sur ce qu'elle ne sait pas traiter.
+
+## `scripts/veille.sh`
+
+La veille : `boucle.sh` s'arrête sur `FILE VIDE`, et une PR étiquetée ensuite n'était vue par personne (cas vécu : une file restée pleine jusqu'à ce qu'on prévienne le capitaine à la main). La veille lance la boucle, sonde `file.sh` toutes les 2 min et la relance dès qu'une PR devient prête ou rouge, ou qu'une PR mise de côté sans CI reçoit sa CI ; elle s'arrête d'elle-même sous la limite de 2 h d'une tâche de fond (`VEILLE FINIE`) ou avec la boucle (`VEILLE ARRÊTÉE`), ce qui réveille le capitaine.
 
 ## `scripts/renvoyer.sh`, `refus.sh`, `proprietaire.sh`
 
@@ -26,4 +30,4 @@ Le garde-fou de la revue adversariale : une PR qui touche `apps/`, `packages/` o
 
 ## Les tests
 
-`fusionner.test.mjs` et `revue-exigee.test.mjs`, sur le dépôt jouet du skill `sujet` : ordre de la file, conflit d'index régénéré, conflit de code jamais résolu, pile dont la parente est squashée, checks exigés rouges ou non exigés, renvoi, titre trop long, boucle qui renvoie et saute.
+`fusionner.test.mjs` et `revue-exigee.test.mjs`, sur le dépôt jouet du skill `sujet` : ordre de la file, conflit d'index régénéré, conflit de code jamais résolu, pile dont la parente est squashée, checks exigés rouges ou non exigés, renvoi, titre trop long, boucle qui renvoie et saute. `github.test.mjs` : les contrôles de `regenerer_index` (ordre, dédoublonnage, échec qui annule `rafraichir`). `sujet-fusionner.test.mjs` : la sous-PR en conflit sur un index mise à jour (sortie 8), le conflit de code renvoyé, la boucle qui ne renvoie pas. `veille.test.mjs`, avec des doublures de `boucle.sh` et `file.sh` : relance sur une PR prête ou rouge, pas sur « CI en cours », une seule relance pour une PR sautée, PR sans CI reprise, `VEILLE FINIE`, `VEILLE ARRÊTÉE`.

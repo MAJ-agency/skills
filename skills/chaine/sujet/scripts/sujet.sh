@@ -20,7 +20,8 @@
 #                         fusionne develop dans sujet/<nom> (jamais de rebase), index régénérés ;
 #                         `--abandon-si-conflit` (capitaine) annule la fusion au lieu de la laisser en cours
 #   livrer <nom> <titre>  ouvre la PR sujet/<nom> → develop, étiquetée `à-fusionner` ; refuse tant
-#                         qu'une sous-PR est ouverte
+#                         qu'une sous-PR est ouverte ; livraison intermédiaire (carte avant `5-livraison`) :
+#                         la PR part de `livraison/<nom>-<date>`, jetable, et `sujet/<nom>` survit
 #   livrer-prets [--dry-run]
 #                         (capitaine) livre chaque sujet « prêt à livrer », sauf label `sujet-manuel` :
 #                         plus de sous-PR ouverte, ET tickets déclarés (`Sujet:`) tous faits ou label
@@ -45,6 +46,9 @@
 # Sorties : 0 fait · 2 conflit · 3 checks rouges ou en cours · 4 refus corrigeable par l'auteur (sa
 # dernière ligne est le motif, `fusionner` : titre, commitlint, revue, base) · 7 `fusionner` d'une PR
 # fermée ou en brouillon (rien à corriger : sautée)
+# `fusionner` encore : 5 la sous-PR a bougé pendant sa mise à jour (reprise au tour suivant) · 8 conflit
+# avec le sujet sur des index générés seuls : branche mise à jour (index régénérés) et poussée, CI
+# relancée, aucun squash
 # Tout passe par l'API REST (`gh api`) : GraphQL est refusé depuis les sessions cloud. Depuis la
 # racine du dépôt ; sans argument, affiche cette aide.
 # =============================================================================
@@ -143,6 +147,43 @@ la recible sur le sujet), ou \`sujet.sh rafraichir ${base#sujet/}\` si elle est 
 Attendre que leur PR y soit fusionnée, puis relancer demarrer. Ne pas fusionner leur branche dans la sienne."
 }
 
+# Sujet livré : sa carte (`docs/**/*.map.md` dont la ligne `Sujet:` le nomme), lue sur
+# origin/develop, porte `Phase: 6-nettoyage` ou `Phase: fini` ; à défaut de carte, la branche
+# `sujet/<nom>` est absente et develop contient son commit de merge. Un sujet livré ne se rouvre
+# jamais par automatisme : file.sh, regrouper et demarrer s'en remettent à cette seule
+# fonction. Sortie 0 = livré.
+sujet_livre() {
+  local nom=${1#sujet/} f trouve='' phase
+  git fetch -q origin develop 2>/dev/null || true
+  while IFS= read -r f; do
+    git show "origin/develop:$f" | grep -qE "^(- )?\**Sujet ?:\** *sujet/${nom}[[:space:]]*\$" || continue
+    trouve=1
+    phase=$(git show "origin/develop:$f" | grep -m1 -E '^Phase ?:' | sed -E 's/^Phase ?: *//; s/[[:space:]]*$//') || true
+    case "$phase" in 6-nettoyage* | fini*) return 0 ;; esac
+  done < <(git ls-tree -r --name-only origin/develop -- docs | grep -E '\.map\.md$' | grep -v '/gabarits/' || true)
+  [ -z "$trouve" ] || return 1
+  git ls-remote --exit-code --heads origin "sujet/$nom" >/dev/null 2>&1 && return 1
+  [ -n "$(git log origin/develop --merges -1 --format=%H -F --grep "sujet/$nom")" ]
+}
+
+# Phase de la carte du sujet (vide si le sujet n'a pas de carte). Lue d'abord sur la branche du
+# sujet, où la carte vit et avance jusqu'à la livraison (la PR de cadrage vise le sujet, les mises à
+# jour de phase y sont poussées), puis sur origin/develop. Cas vécu : lue sur develop seul, la carte
+# d'un sujet jamais livré était introuvable et sa livraison intermédiaire partait de sujet/<nom>.
+phase_carte() {
+  local nom=${1#sujet/} ref f phase=''
+  for ref in "origin/sujet/$nom" origin/develop; do
+    git rev-parse -q --verify "$ref" >/dev/null || continue
+    while IFS= read -r f; do
+      git show "$ref:$f" | grep -qE "^(- )?\**Sujet ?:\** *sujet/${nom}[[:space:]]*\$" || continue
+      phase=$(git show "$ref:$f" | grep -m1 -E '^Phase ?:' | sed -E 's/^Phase ?: *//; s/[[:space:]]*$//') || true
+      break
+    done < <(git ls-tree -r --name-only "$ref" -- docs | grep -E '\.map\.md$' | grep -v '/gabarits/' || true)
+    [ -z "$phase" ] || break
+  done
+  printf '%s\n' "$phase"
+}
+
 demarrer() {
   local arg=${1:?identifiant de ticket (SOC-1.02) ou nom de sujet}
   local nom branche courante ticket='' ref present=''
@@ -167,6 +208,13 @@ Ne pas partir de la branche de specs : attendre sa fusion (ou \`sujet.sh ouvrir 
   fi
   [[ "$nom" =~ ^[a-z0-9][a-z0-9-]*$ ]] || sortir 4 "nom de sujet en kebab-case attendu : $nom"
   branche="sujet/$nom"
+  if sujet_livre "$nom"; then
+    [ -n "$ticket" ] || sortir 4 "$branche est livré dans develop : on ne le rouvre pas. Partir de develop."
+    verifier_ticket "$ticket" origin/develop
+    echo "base=develop"
+    echo "$branche est déjà livré dans develop : $ticket part de develop et la PR vise develop (label hors-sujet)."
+    return 0
+  fi
   # `git ls-remote` plutôt que `gh api` : marche aussi sans `gh` authentifié (session cloud).
   git ls-remote --exit-code --heads origin "$branche" >/dev/null 2>&1 || ouvrir "$nom"
   git fetch -q origin develop "$branche"
@@ -224,6 +272,45 @@ recibler_specs() {
   fi
 }
 
+# Sous-PR en conflit avec son sujet sur des index générés seuls (deux sous-PR qui régénèrent le même
+# `openapi.json`, cas vécu) : un index ne se fusionne jamais à la main, le capitaine met la branche à
+# jour (merge, avance rapide, jamais de force : la branche appartient à une autre session), régénère,
+# pousse, et sort en 8 ; la CI repart, la sous-PR repasse au tour suivant. Sans conflit : rien n'est
+# touché. Conflit hors index : annulé, sortie 3 (renvoi), branche intacte.
+mettre_a_jour_sous_pr() {
+  local n=$1 base=$2 tete=$3 conflits autres
+  [ -z "$(git status --porcelain)" ] || sortir 4 "arbre de travail pas propre : committer ou ranger d'abord"
+  git switch -q -C "capitaine/$n" "origin/$tete"
+  if git merge -q --no-edit "origin/$base" >/dev/null 2>&1; then
+    git switch -q --detach origin/develop # fusion propre : rien à pousser, le squash suit
+    return 0
+  fi
+  conflits=$(git diff --name-only --diff-filter=U)
+  autres=$(printf '%s\n' "$conflits" | grep -Ev "$GENERES" || true)
+  if [ -n "$autres" ] || [ -z "$conflits" ]; then
+    git merge --abort 2>/dev/null || git reset -q --hard
+    git switch -q --detach origin/develop
+    sortir 3 "fusion refusée par GitHub (conflit avec $base hors index générés : $(tr '\n' ' ' <<<"$autres")) : renvoi"
+  fi
+  # shellcheck disable=SC2086
+  git checkout --theirs -- $conflits && git add -- $conflits
+  local echec
+  echec() {
+    git merge --abort 2>/dev/null || git reset -q --hard
+    git switch -q --detach origin/develop
+    sortir 3 "$1 : mise à jour de #$n avec $base annulée"
+  }
+  pnpm install --frozen-lockfile --prefer-offline >/dev/null 2>&1 || echec "pnpm install en échec"
+  regenerer_index || echec "gate des index/registres en échec"
+  git commit -q --no-edit --no-verify
+  if ! git push -q --no-verify origin "HEAD:refs/heads/$tete" >/dev/null 2>&1; then
+    git switch -q --detach origin/develop
+    sortir 5 "la sous-PR #$n a bougé : mise à jour non poussée, la boucle la reprendra"
+  fi
+  git switch -q --detach origin/develop
+  sortir 8 "#$n mise à jour avec $base (index régénérés), CI relancée"
+}
+
 fusionner() {
   local n=${1:?numéro de la sous-PR}
   local pr base titre sommet longueur
@@ -271,6 +358,7 @@ fusionner() {
     rafraichir "${base#sujet/}" --abandon-si-conflit
     git fetch -q origin "$base"
   fi
+  mettre_a_jour_sous_pr "$n" "$base" "$(jq -r .head.ref <<<"$pr")"
   git log --no-merges --reverse --format='%B' "$(git merge-base "$sommet" "origin/$base")..$sommet" |
     jq -Rs --arg sha "$sommet" --arg titre "$titre (#$n)" \
       '{merge_method: "squash", sha: $sha, commit_title: $titre, commit_message: .}' |
@@ -327,17 +415,29 @@ rafraichir() {
 
 livrer() {
   local nom=${1:?nom du sujet} titre=${2:?titre de la PR finale (Conventional Commits)}
-  local branche="sujet/$nom" corps n
+  local branche="sujet/$nom" corps n tete phase intermediaire=''
   git fetch -q origin develop "$branche"
+  # Livraison intermédiaire : carte en phase d'avant `5-livraison`. La PR part d'une
+  # branche jetable, que GitHub supprime à la fusion : la branche du sujet survit.
+  phase=$(phase_carte "$nom")
+  case "$phase" in '' | 5-livraison* | 6-nettoyage* | fini*) ;; *) intermediaire=1 ;; esac
+  tete=$branche
   [ "$(gh api "$DEPOT/pulls?state=open&base=$(uri "$branche")" --jq length)" = 0 ] ||
     sortir 4 "des sous-PR visent encore $branche : les fusionner ou les fermer avant de livrer"
   corps=$(
     printf 'Branche de sujet : entre dans develop par un commit de merge, un commit par sous-PR.\n\n## Sous-PR\n\n'
     git log --first-parent --no-merges --reverse --format='- %s' "origin/develop..origin/$branche"
+    if [ -n "$intermediaire" ]; then
+      printf '\nLivraison intermédiaire : la PR part d'\''une branche jetable, `%s` survit à la fusion.\n' "$branche"
+    fi
   )
-  n=$(gh api -X POST "$DEPOT/pulls" -f base=develop -f head="$branche" -f title="$titre" -f body="$corps" --jq .number)
+  if [ -n "$intermediaire" ]; then
+    tete="livraison/$nom-$(date -u +%Y%m%d-%H%M)"
+    git push -q --no-verify origin "origin/$branche:refs/heads/$tete"
+  fi
+  n=$(gh api -X POST "$DEPOT/pulls" -f base=develop -f head="$tete" -f title="$titre" -f body="$corps" --jq .number)
   poser_label "$n" à-fusionner
-  echo "PR #$n ouverte ($branche → develop), étiquetée à-fusionner"
+  echo "PR #$n ouverte ($tete → develop), étiquetée à-fusionner"
 }
 
 relancer() {
@@ -401,6 +501,7 @@ regrouper() {
   shift
   [ "$#" -gt 0 ] || sortir 4 "au moins une PR à regrouper"
   nom=${nom#sujet/}
+  ! sujet_livre "$nom" || sortir 4 "sujet/$nom est livré dans develop : on ne le rouvre pas (la PR passe vers develop, label hors-sujet)."
   gh api "$DEPOT/branches/$(uri "sujet/$nom")" >/dev/null 2>&1 || ouvrir "$nom"
   # Le sujet contient le sommet de develop : toute PR partie de develop s'y fusionne avec ses
   # seuls changements (fusion à trois points sur son départ), sans réécrire sa branche.
@@ -570,6 +671,7 @@ shift || true
 case "$commande" in
   demarrer | ouvrir | fusionner | rafraichir | livrer | relancer | series | regrouper | carte | etat) "$commande" "$@" ;;
   de) sujet_du_ticket "${1:?ticket}" ;;
+  livre) sujet_livre "${1:?nom du sujet}" ;;
   livrer-prets) livrer_prets "$@" ;;
   regrouper-series) regrouper_series "$@" ;;
   *) sed -n '3,/^# =====/p' "$0" | sed '$d; s/^# \{0,1\}//'; sortir 4 "usage : sujet.sh demarrer <ticket|nom> | ouvrir <nom> [--specs <pr>] | fusionner <pr> | rafraichir <nom> | livrer <nom> <titre> | livrer-prets [--dry-run] | relancer <pr> | series | regrouper-series [--dry-run] | regrouper <nom> <pr>… | carte | etat | de <ticket>" ;;

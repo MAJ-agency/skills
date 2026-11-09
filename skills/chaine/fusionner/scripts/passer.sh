@@ -81,6 +81,18 @@ longueur=$(node -e 'console.log([...process.argv[1]].length)' "$titre (#$N)")
 git fetch -q origin develop "$tete"
 origine=$(git rev-parse "origin/$tete")
 
+# Livraison de sujet : tête `sujet/*`, ou livraison intermédiaire `livraison/<nom>-<AAAAMMJJ-HHMM>`.
+# Le nom de branche seul ne suffit pas (il dispense de la revue) : `sujet/<nom>` doit exister et
+# contenir le sommet de la PR ; sinon la PR repasse par le chemin ordinaire (revue exigée, squash).
+livraison_sujet=0
+if [[ "$tete" == sujet/* ]]; then
+  livraison_sujet=1
+elif [[ "$tete" =~ ^livraison/(.+)-[0-9]{8}-[0-9]{4}$ ]] &&
+  git fetch -q origin "sujet/${BASH_REMATCH[1]}" 2>/dev/null &&
+  git merge-base --is-ancestor "$origine" "origin/sujet/${BASH_REMATCH[1]}"; then
+  livraison_sujet=1
+fi
+
 # Point de départ des commits propres à la PR (corps du squash).
 if [ "$base" = develop ]; then
   depart=$(git merge-base "$origine" origin/develop)
@@ -97,7 +109,7 @@ fi
 
 # Revue adversariale (ADR « chaîne de production ») : exigée dès que le diff touche apps/, packages/ ou scripts/.
 # Une livraison de sujet en est dispensée : chaque sous-PR l'a passée (sujet.sh fusionner).
-if [[ "$tete" != sujet/* ]]; then
+if [ "$livraison_sujet" = 0 ]; then
   motif=$(git diff --name-only "$depart" "$origine" | node "$PASSER_OUTILS/revue-exigee.mjs" "$(champ '.body // ""')" "$titre") ||
     sortir 4 "$motif"
 fi
@@ -224,9 +236,9 @@ esac
 sujet="$titre (#$N)"
 longueur=$(node -e 'console.log([...process.argv[1]].length)' "$sujet")
 [ "$longueur" -le 120 ] || sortir 4 "sujet du squash à $longueur caractères (> 120) : raccourcir le titre de la PR"
-# Branche de sujet : commit de merge, qui garde un commit par sous-PR ; le corps
+# Branche de sujet (ou livraison intermédiaire `livraison/*`) : commit de merge, qui garde un commit par sous-PR ; le corps
 # les liste. Sinon squash, corps = messages des commits de la PR.
-if [[ "$tete" == sujet/* ]]; then
+if [ "$livraison_sujet" = 1 ]; then
   methode=merge
   corps() { git log --first-parent --no-merges --reverse --format='- %s' "$depart..$origine"; }
 else

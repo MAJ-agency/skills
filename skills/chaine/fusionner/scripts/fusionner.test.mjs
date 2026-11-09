@@ -406,3 +406,93 @@ test("boucle.sh : sous-PR et PR vers develop à titre trop long renvoyées avec 
   assert.deepEqual(labels[70], ["fusion-bloquée"]);
   assert.deepEqual(labels[72], ["hors-sujet", "fusion-bloquée"]);
 });
+
+// un sujet livré ne se rouvre jamais par automatisme.
+const SPEC_LOT = "docs/features/demo/all/ALL-DEM-1-demo.spec.md";
+const CARTE_LOT = "docs/features/demo/all/ALL-DEM-1-demo.map.md";
+function depotSujetLivre(phase) {
+  const d = depotJouet();
+  d.ecrire(SPEC_LOT, "# ALL-DEM-1\n\n- **Sujet :** sujet/lot\n");
+  d.ecrire(CARTE_LOT, `# ALL-DEM-1 — carte\n\nSujet: sujet/lot\n\nPhase: ${phase}\n`);
+  d.commit("docs: spec et carte");
+  d.git("push", "-q", "origin", "HEAD:develop");
+  d.branche("fix/all-dem-1-02-correctif", "origin/develop", { "docs/c.md": "c\n" });
+  d.git("switch", "-q", "--detach", "origin/develop");
+  d.github({
+    exiges: ["qualite"],
+    checks: { "*": { qualite: "SUCCESS" } },
+    pulls: [pr(80, "fix/all-dem-1-02-correctif", { title: "fix(demo): ALL-DEM-1.02 correctif" })],
+  });
+  return d;
+}
+const branchesDistantes = (d) => d.git("ls-remote", "--heads", "origin", "sujet/*");
+
+test("file.sh : PR dont le ticket déclare un sujet livré (carte Phase: fini) classée directe, sans écriture", () => {
+  const d = depotSujetLivre("fini");
+  const r = d.lancer(script("file.sh"));
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stdout, /^80\tprête\t.*\tsujet livré : lot$/m);
+  assert.doesNotMatch(r.stdout, /vers sujet/);
+  assert.deepEqual(d.journal(), []);
+});
+
+test("boucle.sh : sujet livré — hors-sujet posé, ni branche créée ni reciblage", () => {
+  const d = depotSujetLivre("6-nettoyage");
+  d.lancer(script("boucle.sh"));
+  assert.equal(branchesDistantes(d), "", "aucune branche sujet/lot recréée");
+  assert.ok(ecritures(d).includes("POST issues/80/labels"));
+  assert.ok(!ecritures(d).some((e) => e.startsWith("PATCH pulls/80")), "jamais reciblée");
+  assert.ok(d.etat().pulls.every((p) => p.number !== 80 || p.base !== "sujet/lot"));
+});
+
+test("file.sh : sujet en cours (Phase: 4-code) — PR toujours reciblée sur le sujet", () => {
+  const d = depotSujetLivre("4-code");
+  d.git("push", "-q", "origin", "origin/develop:refs/heads/sujet/lot");
+  const r = d.lancer(script("file.sh"));
+  assert.match(r.stdout, /^80\tvers sujet\/lot\t/m);
+  assert.doesNotMatch(r.stdout, /sujet livré/);
+});
+
+// une livraison intermédiaire (tête `livraison/<nom>-<date>`) se traite comme une livraison
+// de sujet seulement si `sujet/<nom>` existe et contient son sommet : le nom de branche seul ne suffit pas.
+const LIVRAISON = "livraison/lot-20261109-1200";
+function livraison(tete, sujetContientSommet) {
+  const d = depotJouet();
+  d.branche("sujet/lot", "origin/develop", { "lot.md": "lot\n" });
+  if (sujetContientSommet) d.git("push", "-q", "origin", `origin/sujet/lot:refs/heads/${tete}`);
+  else d.branche(tete, "origin/develop", { "apps/api/l.ts": "export const l = 1;\n" });
+  d.git("switch", "-q", "--detach", "origin/develop");
+  d.github({
+    exiges: ["qualite"],
+    checks: { "*": { [PERIMETRE]: "SUCCESS", qualite: "SUCCESS" } },
+    pulls: [pr(40, tete, { title: "feat(demo): livraison intermédiaire" })],
+  });
+  return d;
+}
+
+test("passer.sh : une vraie livraison intermédiaire est fusionnée par commit de merge", () => {
+  const d = livraison(LIVRAISON, true);
+  const r = d.lancer(script("passer.sh"), "40");
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  d.git("fetch", "-q", "origin");
+  assert.equal(
+    d.git("rev-list", "--parents", "-1", "origin/develop").split(" ").length,
+    3,
+    "commit de merge : deux parents",
+  );
+});
+
+test("passer.sh : un faux livraison/* qui ne vient d'aucun sujet repasse par la revue", () => {
+  const d = livraison("livraison/x-20261109-1200", false);
+  const r = d.lancer(script("passer.sh"), "40");
+  assert.equal(r.status, 4, r.stdout + r.stderr);
+  assert.match(r.stdout, /sans section « Revue de ticket » ni « Revue adversariale »/);
+  assert.deepEqual(d.journal(), []);
+});
+
+test("passer.sh : livraison/* dont le sommet n'est pas dans sujet/<nom> repasse par la revue", () => {
+  const d = livraison(LIVRAISON, false);
+  const r = d.lancer(script("passer.sh"), "40");
+  assert.equal(r.status, 4, r.stdout + r.stderr);
+  assert.deepEqual(d.journal(), []);
+});

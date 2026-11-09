@@ -11,7 +11,7 @@ disable-model-invocation: true
 
 ## Étape 0 — poser (une fois par dépôt, `poser`)
 
-`scripts/*.sh`, `scripts/revue-exigee.mjs` → `scripts/chaine/` (exécutables), avec `sujet.sh` du skill `sujet`. Les tests `scripts/*.test.mjs` suivent ; ils lisent `depot-jouet.mjs` et `faux-gh.mjs`, posés par `sujet poser` : `node --test scripts/chaine/*.test.mjs`. Dépendances : `git`, `jq`, `gh` authentifié (le capitaine écrit sur GitHub ; depuis une session cloud, `gh api` passe par le proxy).
+`scripts/*.sh` (dont `veille.sh`), `scripts/revue-exigee.mjs` → `scripts/chaine/` (exécutables), avec `sujet.sh` du skill `sujet`. Les tests `scripts/*.test.mjs` suivent ; ils lisent `depot-jouet.mjs` et `faux-gh.mjs`, posés par `sujet poser` : `node --test scripts/chaine/*.test.mjs`. Dépendances : `git`, `jq`, `gh` authentifié (le capitaine écrit sur GitHub ; depuis une session cloud, `gh api` passe par le proxy).
 
 ## La règle (`CLAUDE.md` § « Fusion vers develop »)
 
@@ -39,14 +39,23 @@ cd <scratchpad>/capitaine && pnpm install --frozen-lockfile --prefer-offline
 
 ## Boucle
 
-**Automatique (le cas normal).** Copier les scripts hors du worktree (`passer.sh` change de branche), puis lancer la boucle depuis le worktree **en arrière-plan**, sortie dans un journal :
+**Automatique (le cas normal) : la veille.** Copier les scripts hors du worktree (`passer.sh` change de branche), puis lancer depuis le worktree, **en tâche de fond**, la veille et non la boucle seule, sortie dans un journal :
 
 ```bash
 mkdir -p <scratchpad>/outils && cp scripts/chaine/*.sh scripts/chaine/revue-exigee.mjs <scratchpad>/outils/
-bash <scratchpad>/outils/boucle.sh > <scratchpad>/boucle.log 2>&1
+bash <scratchpad>/outils/veille.sh > <scratchpad>/veille.log 2>&1   # --pause <s> (120), --duree <min> (110)
 ```
 
-Suivre le journal avec un `Monitor` filtré sur `FUSIONNÉE|sortie=|ARRÊT|FILE VIDE|conflit|rouges|RELANCE|RENVOI|REGROUPÉE|RECIBLÉE|SUJET EN CONFLIT|LIVRÉ`. La boucle traite seule les sorties 2 à 5 de `passer.sh` et la CI rouge (une relance, puis renvoi) ; un refus corrigeable (sortie 4 : titre trop long ou refusé par commitlint, revue adversariale absente, base hors `sujet/`) renvoie la PR avec son motif (`refus.sh`) ; une PR non éligible sans correction possible (sortie 7 : fermée, brouillon, sans label, déjà `fusion-bloquée`, empilée sur une parente non fusionnée) est sautée sans bruit. Sur un `ARRÊT`, le capitaine traite le cas (suite par code : en-tête de `passer.sh`), puis relance ; sur un `RENVOI`, il prévient la session.
+`boucle.sh` s'arrête sur `FILE VIDE` : une PR étiquetée ensuite ne serait vue par personne. `veille.sh` lance la boucle, puis sonde `file.sh` toutes les 2 min (une lecture GitHub, aucune CI) et relance la boucle dès qu'une PR est « prête » ou « CI rouge » sans l'avoir été à la sonde précédente : une PR que la boucle vient de sauter ne la relance pas en rond. Une PR mise de côté « sans CI » la relance quand sa CI apparaît. « CI en cours », « attend », « bloquée » et brouillon ne relancent rien. Journal : `VEILLE <hh:mm> : file vide` au plus toutes les 10 min.
+
+La veille s'arrête d'elle-même, et sa fin réveille la session :
+
+- **`VEILLE FINIE`** (sortie 0) : durée écoulée (110 min, sous la limite de 2 h d'une tâche de fond). La relancer telle quelle.
+- **`VEILLE ARRÊTÉE`** : la boucle est sortie en code non nul (`ARRÊT` : gates, install, CI bloquée), et la veille avec le même code. Traiter le cas (suite par code : en-tête de `passer.sh`), puis relancer la veille.
+
+Suivre le journal avec un `Monitor` filtré sur `VEILLE FINIE|VEILLE ARRÊTÉE|FUSIONNÉE|MISE À JOUR|sortie=|ARRÊT|conflit|rouges|RELANCE|RENVOI|REGROUPÉE|RECIBLÉE|SUJET EN CONFLIT|LIVRÉ`. La boucle traite seule les sorties 2 à 5 de `passer.sh` et la CI rouge (une relance, puis renvoi) ; un refus corrigeable (sortie 4 : titre trop long ou refusé par commitlint, revue adversariale absente, base hors `sujet/`) renvoie la PR avec son motif (`refus.sh`) ; une PR non éligible sans correction possible (sortie 7 : fermée, brouillon, sans label, déjà `fusion-bloquée`, empilée sur une parente non fusionnée) est sautée sans bruit. Une sous-PR en conflit avec son sujet **sur des index générés seuls** n'est pas renvoyée : `sujet.sh fusionner` la met à jour, régénère et pousse (sortie 8, `MISE À JOUR`) ; elle repasse au tour suivant, CI verte. Sur un `RENVOI`, le capitaine prévient la session.
+
+**Sans veille en cours** (capitaine démarré avant que `veille.sh` soit posé, veille arrêtée et pas encore relancée), qui pose `à-fusionner` prévient le capitaine par `send_message` : `docs/agents/chaine-de-production.md` § 2.
 
 La file lit la CI de chaque PR : états dans l'en-tête de `file.sh`. **À la main** (`file.sh`, `file.sh --next`, `passer.sh`), ordre de la file, sujets et regroupement : en-tête de `boucle.sh`. Codes de sortie de `passer.sh` et la suite à donner : en-tête de `passer.sh`.
 
@@ -72,8 +81,8 @@ Compte rendu à l'utilisateur : PR fusionnées, avec squash et arbre vérifié ;
 
 ## Enseignements
 
-- **Veille de fond + moniteur.** Un moniteur expire ; la veille (tâche de fond qui lit `file.sh`, lance `boucle.sh` sur les PR prêtes et les rouges nouvelles) doit tourner à part, et le moniteur se ré-arme. Une file laissée à elle-même ne se vide pas.
-- **Arrêter la veille avant toute action manuelle** (`passer.sh`, `sujet.sh rafraichir … --abandon-si-conflit`) : deux processus dans le worktree le laissent en pleine fusion.
+- **Les scripts tournent sur leur copie.** La veille et la boucle lisent `<scratchpad>/outils/`, copié au démarrage : une version des scripts fusionnée depuis ne s'applique qu'après une nouvelle copie et une veille relancée.
+- **Arrêter la veille (`TaskStop`) avant toute action manuelle** (`passer.sh`, `sujet.sh rafraichir … --abandon-si-conflit`) : deux processus dans le worktree le laissent en pleine fusion.
 - **Rouge réelle ou instable ?** Lire l'échec avant de relancer. Erreur de typage ou de test déterministe : prévenir la session propriétaire tout de suite, la relance ne sert à rien.
 - **« CI en cours » sans job en cours** : aucun run sur le sommet (push perdu). Seul un vrai push la relance (`sujet.sh relancer <pr>` par la session propriétaire), jamais une fusion côté serveur du capitaine.
 - **« Arbre du squash ≠ arbre testé »** : chercher une PR fusionnée hors file entre-temps (`git diff <sommet testé> <squash>`).

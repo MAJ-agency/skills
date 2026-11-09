@@ -20,6 +20,8 @@
 #                       mise à jour ni E2E, quelques secondes. Sans CI : `sujet.sh relancer`.
 #   vers sujet/<nom>    vise develop, mais son ticket déclare `Sujet: sujet/<nom>` : boucle.sh la
 #                       recible (`sujet.sh regrouper`), sauf label `hors-sujet`
+#   (4e colonne « sujet livré : <nom> » : le ticket déclare un sujet déjà livré ; la PR est classée
+#                       comme une PR directe, boucle.sh lui pose `hors-sujet`)
 #   prête (à recibler sur sujet/<nom>)
 #                       empilée sur une PR déjà fusionnée dans un sujet : boucle.sh la recible
 # Sur un push de session, la branche est en retard sur develop : les E2E sont sautés
@@ -90,6 +92,13 @@ jq -r '.[] | select(any(.labels[]; . == "à-fusionner")) | [
       sujet_ticket=$(awk -F '\t' -v t="$ticket" -v s="${ticket%.*}" '$1 == t { print $2; f = 1; exit }
         $1 == s { sp = $2 } END { if (!f && sp != "") print sp }' <<<"$carte")
     fi
+    # Sujet déclaré déjà livré dans develop : la PR est directe, jamais reciblée ;
+    # 4e colonne pour que boucle.sh pose `hors-sujet` (file.sh ne fait que lire).
+    livre=''
+    if [ -n "$sujet_ticket" ] && [ "$hors_sujet" = false ] && bash "$SUJET" livre "$sujet_ticket" 2>/dev/null; then
+      livre=$sujet_ticket
+      sujet_ticket=''
+    fi
     if [ "$brouillon" = true ]; then
       etat='brouillon'
     elif [ "$bloquee" = true ]; then
@@ -112,7 +121,7 @@ jq -r '.[] | select(any(.labels[]; . == "à-fusionner")) | [
       fi
     fi
     [ "$prio" = 2 ] && titre="[prio:haute] $titre"
-    printf '%s\t%s\t%s\n' "$n" "$etat" "$titre"
+    printf '%s\t%s\t%s\t%s\n' "$n" "$etat" "$titre" "${livre:+sujet livré : $livre}"
   done |
   case "${1:-}" in
     # Lit tout (pas d'`exit` au premier trouvé) : sous pipefail, l'amont tué par SIGPIPE ferait sortir en 141.

@@ -45,6 +45,7 @@ Les identifiants SQL sont en anglais (`ARC-4`), les noms de code de `GLOSSARY.md
 - Une migration est **écrite à la main**, dans `src/db/migrations/<AAAAMMJJHHMM>-<slug>.ts`, jouée par le rôle propriétaire (`DATABASE_MIGRATOR_URL`). Le rôle runtime (`DATABASE_URL`) est `NOBYPASSRLS` et ne migre jamais.
 <!-- ══ /TENANT-B ══ -->
 - **Même commit** : la migration, les types régénérés (`db:types`) et le repository qui les consomme. `db:types:check` refuse une dérive.
+- **`db:types` ne lit jamais la base locale** : il crée une base jetable sur le serveur de `DATABASE_MIGRATOR_URL`, la migre depuis zéro avec les migrations de l'arbre de travail, la lit, puis la supprime, même en échec. Une base locale en retard effaçait des tables de `types.ts`. `db:types:check` compare `types.ts` à la même base jetable.
 - **Jamais éditer une migration existante.** On en écrit une nouvelle. Une migration jouée quelque part est figée.
 - **Tout changement destructif est explicite et relu** : suppression de colonne, de table, de valeur d'enum, changement de type, colonne `NOT NULL` sans défaut. Jamais un outil qui « synchronise » le schéma.
 - **Expand puis contract.** Dès que l'application est déployée en continu, l'ancien code tourne quelques secondes sur le nouveau schéma. Toute opération qui casse le code déployé se fait en deux déploiements : ajouter la nouvelle forme et écrire dans les deux, puis retirer l'ancienne forme dans un déploiement ultérieur. Un renommage est un expand/contract, jamais un `DROP` + `ADD`.

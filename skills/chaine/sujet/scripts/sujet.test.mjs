@@ -320,3 +320,108 @@ test("demarrer accepte un identifiant à un seul segment de préfixe", () => {
   assert.match(r.stdout, /^base=sujet\/socle$/m);
   assert.equal(d.lancer(SCRIPT, "de", "SOC-1.01").stdout.trim(), "socle");
 });
+
+// `regrouper` et `demarrer` ne rouvrent pas un sujet livré.
+function sujetLivre(phase = "fini") {
+  const d = depotJouet();
+  d.ecrire(SPEC, "# ALL-DEM-1\n\n- **Sujet :** sujet/demo\n");
+  d.ecrire(ticket("01"), "# .01\n\nStatus: ready-for-agent\nBlocked by: —\n");
+  d.ecrire(
+    "docs/features/demo/all/ALL-DEM-1-demo.map.md",
+    `# carte\n\nSujet: sujet/demo\n\nPhase: ${phase}\n`,
+  );
+  d.commit("docs: specs et carte");
+  d.git("push", "-q", "origin", "HEAD:develop");
+  d.git("switch", "-q", "-c", "feat/all-dem-1-01-travail", "origin/develop");
+  return d;
+}
+const sujetsDistants = (d) => d.git("ls-remote", "--heads", "origin", "sujet/*");
+
+test("regrouper refuse un sujet livré, sans créer de branche", () => {
+  const d = sujetLivre();
+  const r = d.lancer(SCRIPT, "regrouper", "demo", "5");
+  assert.equal(r.status, 4, r.stdout + r.stderr);
+  assert.match(r.stdout, /sujet\/demo est livré/);
+  assert.equal(sujetsDistants(d), "");
+});
+
+test("demarrer d'un ticket de sujet livré part de develop, sans rouvrir le sujet", () => {
+  const d = sujetLivre("6-nettoyage");
+  const r = demarrer(d, "ALL-DEM-1.01");
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /^base=develop$/m);
+  assert.match(r.stdout, /déjà livré/);
+  assert.equal(sujetsDistants(d), "");
+});
+
+test("sujet livre : sans carte, branche absente et commit de merge sur develop", () => {
+  const d = depotJouet();
+  assert.equal(d.lancer(SCRIPT, "livre", "demo").status, 1, "rien : pas livré");
+  d.git("switch", "-q", "-c", "sujet/demo", "origin/develop");
+  d.ecrire("x.md", "x\n");
+  d.commit("feat: x");
+  d.git("switch", "-q", "develop");
+  d.git("merge", "-q", "--no-ff", "-m", "feat: livre sujet/demo", "sujet/demo");
+  d.git("push", "-q", "origin", "develop");
+  assert.equal(d.lancer(SCRIPT, "livre", "demo").status, 0, "livré");
+});
+
+// une livraison intermédiaire ne met pas la branche du sujet en jeu.
+function sujetAvecCarte(phase) {
+  const d = depotJouet();
+  d.ecrire(SPEC, "# ALL-DEM-1\n\nSujet: sujet/demo\n");
+  d.ecrire(
+    "docs/features/demo/all/ALL-DEM-1-demo.map.md",
+    `# carte\n\nSujet: sujet/demo\n\nPhase: ${phase}\n`,
+  );
+  d.commit("docs: spec et carte");
+  d.git("push", "-q", "origin", "HEAD:develop");
+  d.branche("sujet/demo", "origin/develop", { "docs/x.md": "x\n" }, "feat(demo): x (#1)");
+  d.git("switch", "-q", "--detach", "origin/develop");
+  d.github({ pulls: [] });
+  return d;
+}
+const teteDeLaPR = (d) => d.journal().find((e) => e.methode === "POST" && e.route === "pulls");
+
+test("livrer : la carte qui n'existe que sur le sujet (phase 4) donne une livraison intermédiaire", () => {
+  const d = depotJouet();
+  d.ecrire(SPEC, "# ALL-DEM-1\n\nSujet: sujet/demo\n");
+  d.commit("docs: spec");
+  d.git("push", "-q", "origin", "HEAD:develop");
+  d.branche(
+    "sujet/demo",
+    "origin/develop",
+    {
+      "docs/features/demo/all/ALL-DEM-1-demo.map.md":
+        "# carte\n\nSujet: sujet/demo\n\nPhase: 4-vague-2\n",
+    },
+    "docs(demo): carte (#1)",
+  );
+  d.git("switch", "-q", "--detach", "origin/develop");
+  d.github({ pulls: [] });
+  const r = d.lancer(SCRIPT, "livrer", "demo", "feat(demo): livraison intermédiaire");
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(teteDeLaPR(d).champs.head, /^livraison\/demo-\d{8}-\d{4}$/);
+  assert.match(d.git("ls-remote", "--heads", "origin", "sujet/demo"), /refs\/heads\/sujet\/demo/);
+});
+
+test("livrer en phase 4 : la PR part d'une branche jetable, sujet/<nom> reste", () => {
+  const d = sujetAvecCarte("4-vagues");
+  const r = d.lancer(SCRIPT, "livrer", "demo", "feat(demo): livraison intermédiaire");
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  const pr = teteDeLaPR(d);
+  assert.match(pr.champs.head, /^livraison\/demo-\d{8}-\d{4}$/);
+  assert.match(pr.champs.body, /Livraison intermédiaire/);
+  assert.match(d.git("ls-remote", "--heads", "origin", "sujet/demo"), /refs\/heads\/sujet\/demo/);
+  assert.match(d.git("ls-remote", "--heads", "origin", pr.champs.head), /livraison\/demo-/);
+});
+
+test("livrer en 5-livraison : la PR part de sujet/<nom>, comme avant", () => {
+  const d = sujetAvecCarte("5-livraison");
+  const r = d.lancer(SCRIPT, "livrer", "demo", "feat(demo): livraison");
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  const pr = teteDeLaPR(d);
+  assert.equal(pr.champs.head, "sujet/demo");
+  assert.doesNotMatch(pr.champs.body, /intermédiaire/);
+  assert.equal(d.git("ls-remote", "--heads", "origin", "livraison/*"), "");
+});

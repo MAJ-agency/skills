@@ -59,7 +59,10 @@ export function depotJouet() {
     chmodSync(join(bin, nom), 0o755);
   };
   outil('gh', `exec node ${JSON.stringify(join(ICI, 'faux-gh.mjs'))} "$@"`);
-  outil('pnpm', `echo "pnpm $*" >> ${JSON.stringify(join(faux, 'pnpm.log'))}`);
+  // Le faux pnpm lit son entrée standard jusqu'au bout, comme le vrai `pnpm exec commitlint` :
+  // sinon il sort avant que `printf … | pnpm` n'ait écrit, et sous charge `printf` meurt de
+  // SIGPIPE (le tube est rompu), ce que `pipefail` rapporte comme un titre refusé (sortie 4).
+  outil('pnpm', `cat > /dev/null\necho "pnpm $*" >> ${JSON.stringify(join(faux, 'pnpm.log'))}`);
   outil('sleep', ':');
   const env = {
     ...ENV_GIT,

@@ -20,14 +20,31 @@ index_json() {
 index_generes() { index_json | jq -r '.index[] | if type == "string" then . else .chemin end'; }
 # Commandes de régénération, dédoublonnées, dans l'ordre de la liste.
 index_commandes() { index_json | jq -r '.index[] | objects | .commande // empty' | awk '!v[$0]++'; }
-# Régénère chaque index par sa commande, puis indexe ce qui a changé. Échec = sortie non nulle.
+# Contrôles (`verification`, facultatifs), dédoublonnés, dans l'ordre de la liste.
+index_verifications() { index_json | jq -r '.index[] | objects | .verification // empty' | awk '!v[$0]++'; }
+# Régénère chaque index par sa commande, joue ensuite les contrôles (une régénération peut en
+# nourrir une autre), puis indexe ce qui a changé. Échec = sortie non nulle ; la sortie d'une
+# commande ou d'un contrôle en échec part sur stderr, préfixée de sa commande (cas vécu : base
+# éteinte, `db:types` échouait sans un mot).
 regenerer_index() {
   local c
   while IFS= read -r c; do
     [ -n "$c" ] || continue
-    sh -c "$c" >/dev/null 2>&1 || return 1
+    jouer_ou_dire "$c" || return 1
   done < <(index_commandes)
+  while IFS= read -r c; do
+    [ -n "$c" ] || continue
+    jouer_ou_dire "$c" || return 1
+  done < <(index_verifications)
   ajouter_index
+}
+# Joue une commande ; en échec, sa sortie part sur stderr, chaque ligne préfixée de la commande.
+jouer_ou_dire() {
+  local l sortie
+  if ! sortie=$(sh -c "$1" 2>&1); then
+    while IFS= read -r l; do printf '[%s] %s\n' "$1" "$l" >&2; done <<<"$sortie"
+    return 1
+  fi
 }
 # Les mêmes en expression régulière pour `grep -E` (un chemin par ligne).
 index_generes_regex() {
