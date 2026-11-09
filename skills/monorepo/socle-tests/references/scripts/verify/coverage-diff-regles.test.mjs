@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
+  decisionSansBase,
   exemption,
   fusionner,
   inScope,
@@ -120,6 +121,18 @@ test("l'exemption se lit dans les dix premières lignes, avec sa raison", () => 
     ),
     null,
   );
+});
+
+test("sans base : un distant sans aucune branche est un premier push qui passe ; des branches ou un ls-remote en échec, la base manque", () => {
+  assert.equal(decisionSansBase(""), "premier-push");
+  assert.equal(decisionSansBase("\n"), "premier-push");
+  assert.equal(
+    decisionSansBase("0123abcd\trefs/heads/main\n4567ef01\trefs/heads/develop"),
+    "base-absente",
+  );
+  assert.equal(decisionSansBase("0123abcd\trefs/heads/main"), "base-absente");
+  assert.equal(decisionSansBase(null), "base-absente");
+  assert.equal(decisionSansBase(undefined), "base-absente");
 });
 
 test("fusionner — le squelette coverage.all d'une suite sans base ne masque pas l'exécution réelle sur base", () => {
