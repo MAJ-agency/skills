@@ -36,12 +36,13 @@ Imperative rules for what the API and its clients **share**. Read `apps/<service
 ## Consumption — sources, no build step
 
 - Every package exposes its **sources**: `"main": "./src/index.ts"`. There is no `dist/`, no `^build` ordering, no stale output. A consumer sees a change immediately.
-- Each consumer declares how it transpiles workspace sources: the API through its own TypeScript build (nothing to declare), a Next client through `transpilePackages`, an Expo client through Metro's `watchFolders` + `nodeModulesPaths`. That is the consumer's `apps/<service>/CLAUDE.md` concern, not this file's.
+- Each consumer declares how it transpiles workspace sources: the API through its own TypeScript build, a Next client through `transpilePackages`, an Expo client through Metro's `watchFolders` + `nodeModulesPaths`. Each consumer's `tsconfig.json` also admits the `.ts` extensions these sources import each other with (Layout, below): `rewriteRelativeImportExtensions` for the API, which emits; `allowImportingTsExtensions` for the clients, which do not. That is the consumer's `apps/<service>/CLAUDE.md` concern, not this file's.
 - Consumers import from the **barrel** only: `@{{SCOPE}}/{{PROJET}}-contracts`. **NEVER** a deep path (`…/src/…`).
 
 ## Layout and tests
 
 - `src/index.ts` is a barrel; **one file per subject** under `src/` (`error.ts`, `roles.ts`…), re-exported from the barrel. A subject that grows gets a folder with its own `index.ts`.
+- Barrel re-exports and every relative import inside a package **carry the `.ts` extension**: `export * from "./roles.ts";` in the barrel, `import { ROLES } from "./roles.ts";` in a spec. Nobody builds these sources: the API `require`s the barrel **at runtime** from its `dist/` (`openapi:check`, `node dist/main.js`), and Node 22 loads a `.ts` file by stripping its types and treating it as an ES module, which demands the full path. A bare `./roles` passes every typecheck and fails at the first `pnpm check` with `ERR_MODULE_NOT_FOUND`. TypeScript accepts the extension through `allowImportingTsExtensions` (the packages, `noEmit`); the consumers' options are under Consumption, above.
 - `contracts`: schemas are declarative, no test by default. A schema with a `refine`/`superRefine` or a transform gets a colocated `*.spec.ts` (Vitest).
 - `utils`: **every** exported function has a colocated `*.spec.ts`. A pure function without a test is not shared.
 

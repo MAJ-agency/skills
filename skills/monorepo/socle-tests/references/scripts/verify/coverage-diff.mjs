@@ -12,6 +12,8 @@
  * Ce qu'il fait.
  *   1. Fichiers du diff (`git diff <merge-base(base, HEAD)>`, index et arbre de travail
  *      compris, fichiers non suivis compris), filtrés sur le code (`coverage-diff-regles.mjs`).
+ *      Base introuvable et distant sans aucune branche (`git ls-remote --heads origin` vide) :
+ *      premier push d'un dépôt neuf, rien à comparer, sortie 0 ; sinon sortie 2.
  *   2. Par paquet, `vitest related <fichiers>` sous couverture v8 (`@vitest/coverage-v8`),
  *      rapport istanbul `coverage-final.json`, `coverage.all` pour qu'un fichier qu'aucune
  *      suite ne charge apparaisse à zéro. Si le paquet a un `vitest.db.config.ts` et que
@@ -31,13 +33,13 @@
  *   node scripts/verify/coverage-diff.mjs --base origin/develop  (défaut)
  *   node scripts/verify/coverage-diff.mjs --dry-run              (fichiers du diff, sans lancer Vitest)
  *   node scripts/verify/coverage-diff.mjs --seuil-lignes 80 --seuil-branches 70
- * Sorties : 0 OK · 1 un fichier sous les seuils ou jamais exécuté, ou des tests rouges · 2 usage.
+ * Sorties : 0 OK (ou distant vide au premier push) · 1 un fichier sous les seuils ou jamais exécuté, ou des tests rouges · 2 usage, base introuvable.
  */
 import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, relative, resolve } from "node:path";
-import { SEUILS, exemption, fusionner, inScope, metriques, plages, verdict } from "./coverage-diff-regles.mjs";
+import { SEUILS, decisionSansBase, exemption, fusionner, inScope, metriques, plages, verdict } from "./coverage-diff-regles.mjs";
 
 const ROOT = resolve(process.env.PROJET_RACINE ?? new URL("../..", import.meta.url).pathname);
 const args = process.argv.slice(2);
@@ -63,6 +65,18 @@ let mergeBase;
 try {
   mergeBase = git("merge-base", BASE, "HEAD");
 } catch {
+  // Premier push d'un dépôt neuf : le distant n'a encore aucune branche, donc aucune base.
+  // Il n'y a rien à comparer ; refuser ici bloquerait la naissance même de la branche de base.
+  let tetesDistantes = null;
+  try {
+    tetesDistantes = git("ls-remote", "--heads", "origin");
+  } catch {
+    tetesDistantes = null; // pas de distant, ou injoignable : la base manque vraiment
+  }
+  if (decisionSansBase(tetesDistantes) === "premier-push") {
+    console.log(`coverage-diff: dépôt distant vide, premier push — rien à comparer (la base « ${BASE} » naîtra avec la chaîne)`);
+    process.exit(0);
+  }
   console.log(`coverage-diff: référence de base « ${BASE} » introuvable (git fetch origin develop ?)`);
   process.exit(2);
 }
