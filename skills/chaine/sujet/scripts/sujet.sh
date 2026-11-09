@@ -166,14 +166,21 @@ sujet_livre() {
   [ -n "$(git log origin/develop --merges -1 --format=%H -F --grep "sujet/$nom")" ]
 }
 
-# Phase de la carte du sujet, lue sur origin/develop (vide si le sujet n'a pas de carte).
+# Phase de la carte du sujet (vide si le sujet n'a pas de carte). Lue d'abord sur la branche du
+# sujet, où la carte vit et avance jusqu'à la livraison (la PR de cadrage vise le sujet, les mises à
+# jour de phase y sont poussées), puis sur origin/develop. Cas vécu : lue sur develop seul, la carte
+# d'un sujet jamais livré était introuvable et sa livraison intermédiaire partait de sujet/<nom>.
 phase_carte() {
-  local nom=${1#sujet/} f phase=''
-  while IFS= read -r f; do
-    git show "origin/develop:$f" | grep -qE "^(- )?\**Sujet ?:\** *sujet/${nom}[[:space:]]*\$" || continue
-    phase=$(git show "origin/develop:$f" | grep -m1 -E '^Phase ?:' | sed -E 's/^Phase ?: *//; s/[[:space:]]*$//') || true
-    break
-  done < <(git ls-tree -r --name-only origin/develop -- docs | grep -E '\.map\.md$' | grep -v '/gabarits/' || true)
+  local nom=${1#sujet/} ref f phase=''
+  for ref in "origin/sujet/$nom" origin/develop; do
+    git rev-parse -q --verify "$ref" >/dev/null || continue
+    while IFS= read -r f; do
+      git show "$ref:$f" | grep -qE "^(- )?\**Sujet ?:\** *sujet/${nom}[[:space:]]*\$" || continue
+      phase=$(git show "$ref:$f" | grep -m1 -E '^Phase ?:' | sed -E 's/^Phase ?: *//; s/[[:space:]]*$//') || true
+      break
+    done < <(git ls-tree -r --name-only "$ref" -- docs | grep -E '\.map\.md$' | grep -v '/gabarits/' || true)
+    [ -z "$phase" ] || break
+  done
   printf '%s\n' "$phase"
 }
 

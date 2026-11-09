@@ -383,6 +383,28 @@ function sujetAvecCarte(phase) {
 }
 const teteDeLaPR = (d) => d.journal().find((e) => e.methode === "POST" && e.route === "pulls");
 
+test("livrer : la carte qui n'existe que sur le sujet (phase 4) donne une livraison intermédiaire", () => {
+  const d = depotJouet();
+  d.ecrire(SPEC, "# ALL-DEM-1\n\nSujet: sujet/demo\n");
+  d.commit("docs: spec");
+  d.git("push", "-q", "origin", "HEAD:develop");
+  d.branche(
+    "sujet/demo",
+    "origin/develop",
+    {
+      "docs/features/demo/all/ALL-DEM-1-demo.map.md":
+        "# carte\n\nSujet: sujet/demo\n\nPhase: 4-vague-2\n",
+    },
+    "docs(demo): carte (#1)",
+  );
+  d.git("switch", "-q", "--detach", "origin/develop");
+  d.github({ pulls: [] });
+  const r = d.lancer(SCRIPT, "livrer", "demo", "feat(demo): livraison intermédiaire");
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(teteDeLaPR(d).champs.head, /^livraison\/demo-\d{8}-\d{4}$/);
+  assert.match(d.git("ls-remote", "--heads", "origin", "sujet/demo"), /refs\/heads\/sujet\/demo/);
+});
+
 test("livrer en phase 4 : la PR part d'une branche jetable, sujet/<nom> reste", () => {
   const d = sujetAvecCarte("4-vagues");
   const r = d.lancer(SCRIPT, "livrer", "demo", "feat(demo): livraison intermédiaire");
