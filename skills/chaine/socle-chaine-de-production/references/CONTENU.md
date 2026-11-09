@@ -20,6 +20,10 @@ La forme de `.claude/settings.json` : JSON valide (une virgule en trop et Claude
 
 Les sept mots du protocole entre les skills, créés en REST, idempotent. Un projet n'a aucune raison de les renommer.
 
+## La branche `develop` — `scripts/github/develop.sh`
+
+Créée sur le distant depuis `origin/main`, une fois, puis rapatriée : la couverture du diff et la revue comparent à `origin/develop`. Par `git push --no-verify`, et c'est voulu : le push ne porte que `origin/main`, déjà sur le distant et vérifié par son propre push. La commande tapée à la main passe sous le hook pre-push, qui joue `pnpm check` sur l'arbre de travail — pas ce qui part — et dont le gate `coverage-diff` cherche `origin/develop` comme base : la branche que ce push crée. Refus certain, sortie 2 (vu le 2026-11-09 à la pose d'un socle). L'API GitHub (`POST git/refs`) ne convient pas : le proxy des sessions cloud la refuse (403), comme pour `sujet.sh ouvrir`. Idempotent ; testé dans le plugin (`develop.test.mjs`, dépôt jouet dont le hook pre-push refuse tout push).
+
 ## La CI — `ci/ci.yml`
 
 Deux jobs exigés par la protection de `develop` : `qualite` et `test-db`. Un brouillon ne lance rien. Les E2E s'ajoutent en job séparé quand ils existent.
