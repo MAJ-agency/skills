@@ -1,8 +1,8 @@
 /**
  * Règles pures du gate `coverage-diff` : périmètre, lecture d'un rapport istanbul, fusion de
- * deux rapports (suites sans base et suites sur base), verdict par fichier. Rien n'est lu ni
- * lancé ici : `coverage-diff.mjs` orchestre git et Vitest, ce module décide. Testé par
- * `coverage-diff-regles.test.mjs`.
+ * deux rapports (suites sans base et suites sur base), décision quand la base manque, verdict
+ * par fichier. Rien n'est lu ni lancé ici : `coverage-diff.mjs` orchestre git et Vitest, ce
+ * module décide. Testé par `coverage-diff-regles.test.mjs`.
  */
 
 /** Périmètre : le code exécutable, testable en unitaire. */
@@ -107,6 +107,18 @@ export function fusionner(a, b) {
     };
   }
   return out;
+}
+
+/**
+ * Décision quand la base est introuvable, d'après la sortie de `git ls-remote --heads origin` :
+ * un distant sans aucune branche est un dépôt neuf à son premier push — rien à comparer, le
+ * gate passe (`premier-push`) ; des branches, ou `ls-remote` en échec (`null`), et la base
+ * manque vraiment (`base-absente`).
+ */
+export function decisionSansBase(tetesDistantes) {
+  return typeof tetesDistantes === "string" && tetesDistantes.trim() === ""
+    ? "premier-push"
+    : "base-absente";
 }
 
 /** Verdict d'un fichier : la liste de ses problèmes, vide s'il passe. */

@@ -56,8 +56,8 @@ Sujet: sujet/<nom> # si différent de la spec
 Blocked by: 01, 03 # tickets du même chantier, fusionnés dans le sujet avant de commencer
 Modèle: sonnet # ou opus, avec la raison
 Fichiers chauds: src/db/migrations/* # fichiers que d'autres tickets touchent aussi (§ 4)
-Dépendances: `leaflet`, `@types/leaflet` # paquets que le ticket ajoute, validés au découpage ; sinon pas de ligne
-Label: architecte # chemin sensible : l'architecte contre-relit, puis pose lui-même à-fusionner (§ 5, étape 6)
+Label: architecte # obligatoire quand Fichiers chauds touche cheminsSensibles (le gate tickets le vérifie) : l'architecte contre-relit, puis pose lui-même à-fusionner (§ 5, étape 6)
+Dépendances: `leaflet`, `@types/leaflet` # paquets que le ticket ajoute, nom sans version, validés au découpage, ou — ; une dépendance hors de cette ligne est un blocage (§ 5)
 Maquette: <fichier du dépôt : maquette HTML et section, ou planche recopiée sous docs/design/planches/> # dès que le ticket touche un écran ; sans planche validée, le ticket reste needs-info ; jamais un artefact seul : une fille ne peut pas l'ouvrir
 ```
 
@@ -74,7 +74,7 @@ Puis, dans le corps, quatre sections que la fille lit au lieu de chercher :
 | `## Surfaces`     | table surface → test qui la prouve                                                                                                                                           | la couverture rouge découverte au push                  |
 | `## Vérification` | commandes ciblées avant `pnpm check` (typecheck du paquet, specs nommées), index à régénérer, specs de garde à compléter                                                     | trois `pnpm check` complets pour un typecheck rouge     |
 
-Le gate `tickets` (`pnpm check:tickets`, `scripts/verify/tickets.mjs`) refuse un ticket `ready-for-agent` sans `Modèle:` ou sans l'une de ces quatre sections ; les tickets prêts d'avant l'installation du gate sont gelés dans `scripts/verify/tickets-dette.json`, qui ne reçoit jamais d'entrée nouvelle. Gabarit : `docs/agents/gabarits/ticket.issue.md`.
+Le gate `tickets` (`pnpm check:tickets`, `scripts/verify/tickets.mjs`) refuse un ticket `ready-for-agent` sans `Modèle:`, sans l'une de ces quatre sections, ou dont `Fichiers chauds:` touche un motif de `cheminsSensibles` sans `Label: architecte` ; les tickets prêts d'avant l'installation du gate sont gelés dans `scripts/verify/tickets-dette.json`, qui ne reçoit jamais d'entrée nouvelle. Gabarit : `docs/agents/gabarits/ticket.issue.md`.
 
 Taille : un jour au plus, une quinzaine de fichiers. Une fille qui dépasse 300 k tokens de contexte signale un ticket mal découpé : la rétro le note.
 
@@ -93,9 +93,11 @@ Le prompt de lancement **renvoie à cette section** au lieu de la recopier. Gaba
 ```text
 Session fille du chantier <nom>, architecte : <session_id>.
 Ticket : <chemin du .issue.md>. Base : origin/sujet/<nom>.
-Suis docs/agents/chaine-de-production.md § 5, puis le ticket. Ne m'écris (send_message) que si tu es bloqué ; un choix non tranché se décide prudemment et se note sous ## Comments. Une question à l'humain suit § 2 (« Une question au produit »).
+Suis docs/agents/chaine-de-production.md § 5, puis le ticket. Écris-moi (send_message) si tu es bloqué, et une fois à la fin ; un choix non tranché se décide prudemment et se note sous ## Comments. Une question à l'humain suit § 2 (« Une question au produit »).
 <une ligne de situation particulière, s'il y en a une>
 ```
+
+_Cette ligne ne redit jamais une règle de ce document. Le régime de livraison se lit sur l'en-tête du ticket (`Label:`), jamais sur le prompt._
 
 Déroulé :
 
@@ -106,7 +108,9 @@ Déroulé :
 4. **Coder**, puis les vérifications ciblées du ticket, puis `pnpm check` **une fois**. Après tout merge du sujet dans la branche : régénérer les index avant le check.
 5. **Revue de ticket** (skill `revue-de-ticket` : trois sous-agents — règles, ticket, documentation), corriger les bloquants, deux tours au plus. La section `## Revue de ticket` va **dans le corps de la PR** : le capitaine la lit là. Un trou du ticket révélé par la revue (surface oubliée, règle non citée) se corrige dans le ticket aussi. **Skill absent de la session** : une fille ne reçoit que le dépôt du projet, et les skills MAJ ne s'installent qu'avec le dépôt `skills` cloné à côté. Elle attache alors ce dépôt par `add_repo` (`MAJ-agency/skills`), le clone comme l'outil l'indique, puis lit et suit `skills/chaine/revue-de-ticket/SKILL.md` du clone, ses références comprises. Si l'attache échoue, la PR sort du brouillon **sans** `à-fusionner` et la revue est demandée à l'architecte : jamais de PR livrée sans revue. Cas vécu : cinq filles d'une même journée livrées sans revue de ticket.
 6. **Livrer.** `Status: Fait — PR #<n>`, PR hors brouillon, label `à-fusionner` : `CLAUDE.md` § « Fusion vers `develop` ». La PR sort du brouillon **après le dernier push** : un brouillon ne lance aucun job, une PR prête relance toute la CI à chaque push. Avant de poser `à-fusionner`, vérifier que « titre (#n) » tient en 120 caractères et passe commitlint : `printf '%s\n' "<titre> (#<n>)" | pnpm exec commitlint`. Le label se pose **après le push du dernier commit** (`git ls-remote origin <branche>` = `HEAD`) : le capitaine squashe la tête qu'il trouve. Pour un ticket `Label: architecte`, la fille livre **sans** `à-fusionner` ; l'architecte contre-relit, puis pose le label lui-même.
-7. **Rendre la main** en cinq lignes : PR, fait, reste, décision prise par défaut (aussi notée sous `## Comments` du ticket), question. Puis armer **un** `send_later` à 90 min — « si ma PR porte `fusion-bloquée`, lire les commentaires du capitaine et corriger ; sinon rien ». Puis s'arrêter : une session fille ne prend pas de second ticket.
+7. **Rendre la main** en cinq lignes, qui partent par `send_message` à l'architecte. Toute décision attendue de lui (ADR proposée, dépendance, règle à trancher) est écrite sous `## Comments` et dans la section de PR, puis nommée dans ce message : PR, fait, reste, décision prise par défaut (aussi notée sous `## Comments` du ticket), question. Puis armer **un** `send_later` à 90 min — « si ma PR porte `fusion-bloquée`, lire les commentaires du capitaine et corriger ; sinon rien ». Puis s'arrêter : une session fille ne prend pas de second ticket.
+
+Une dépendance hors de la ligne `Dépendances:` du ticket est un blocage : `send_message` à l'architecte, jamais un contournement.
 
 Renvoyée par le capitaine (`fusion-bloquée`) : corriger, retirer le label, remettre `à-fusionner`, relire les labels.
 

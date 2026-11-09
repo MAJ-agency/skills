@@ -19,14 +19,16 @@
  *   6. un ticket `ready-for-agent` a `Modèle:` et les sections `## Où`, `## Décisions`, `## Surfaces`,
  *      `## Vérification` non vides (docs/agents/chaine-de-production.md § 3), sauf s'il est gelé dans
  *      `tickets-dette.json` (prêts d'avant l'installation du gate). La dette ne grandit pas : un ticket
- *      nouveau ne s'y ajoute jamais ; `--elaguer` retire les entrées éteintes.
+ *      nouveau ne s'y ajoute jamais ; `--elaguer` retire les entrées éteintes ;
+ *   7. un ticket `ready-for-agent` dont `Fichiers chauds:` touche un motif de `cheminsSensibles`
+ *      (`.claude/chaine.json`) porte `Label: architecte`.
  *
  * Usage : node scripts/verify/tickets.mjs [--elaguer]   (pnpm check:tickets — CI)
  */
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
-import { controlerCarte, controlerTicket, ecartsFiches, ecartsFormatPret, estArchive, identifiant, identifiantsEnDouble } from './tickets-regles.mjs';
+import { controlerCarte, controlerTicket, ecartsFiches, ecartsFormatPret, estArchive, identifiant, identifiantsEnDouble, lireCheminsSensibles } from './tickets-regles.mjs';
 
 const ROOT = process.env.PROJET_RACINE ?? new URL('../..', import.meta.url).pathname;
 const DETTE = join(ROOT, 'scripts/verify/tickets-dette.json');
@@ -41,6 +43,15 @@ const geles = new Set(dette.tickets ?? []);
 const cartesGelees = new Set(dette.cartes ?? []);
 const doublonsGeles = new Set(dette.identifiants ?? []);
 
+const CHAINE = join(ROOT, '.claude/chaine.json');
+let cheminsSensibles;
+try {
+  cheminsSensibles = lireCheminsSensibles(existsSync(CHAINE) ? readFileSync(CHAINE, 'utf8') : null);
+} catch (e) {
+  console.error(`tickets : ${e.message}`);
+  process.exit(1);
+}
+
 const erreurs = [];
 // Les fiches que les skills lisent : celles du skill `tickets`, pas celles d'origine de Matt Pocock.
 const fiche = (nom) => (existsSync(join(ROOT, 'docs/agents', nom)) ? readFileSync(join(ROOT, 'docs/agents', nom), 'utf8') : null);
@@ -54,9 +65,9 @@ for (const d of doublons.filter((x) => !doublonsGeles.has(x.id))) {
 const detteActive = new Set();
 for (const chemin of chemins) {
   const texte = readFileSync(join(ROOT, chemin), 'utf8');
-  const r = controlerTicket({ nom: basename(chemin), texte, existe: (id) => ids.has(id), gele: geles.has(chemin) });
+  const r = controlerTicket({ nom: basename(chemin), texte, existe: (id) => ids.has(id), gele: geles.has(chemin), cheminsSensibles });
   for (const e of r.erreurs) erreurs.push(`${chemin}:${e.ligne} : ${e.message}`);
-  if (geles.has(chemin) && r.pret && ecartsFormatPret(texte).length > 0) detteActive.add(chemin);
+  if (geles.has(chemin) && r.pret && ecartsFormatPret(texte, cheminsSensibles).length > 0) detteActive.add(chemin);
 }
 // Les gabarits de docs/agents/gabarits/ portent des placeholders : ils ne sont pas des cartes.
 const cartes = ls('docs/**/*.map.md').filter((c) => !c.startsWith('docs/agents/gabarits/'));

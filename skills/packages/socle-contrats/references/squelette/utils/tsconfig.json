@@ -3,7 +3,8 @@
   "compilerOptions": {
     "module": "CommonJS",
     "moduleResolution": "Node",
-    "outDir": "dist",
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
     "rootDir": "src"
   },
   "include": ["src/**/*"]

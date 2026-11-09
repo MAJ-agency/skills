@@ -16,6 +16,8 @@ const STATUS = enTete('Status');
 const BLOCKED_BY = enTete('Blocked by');
 const SUJET = /^Sujet\s*:\s*(.*)$/;
 const MODELE = /^Modèle\s*:\s*(.*)$/;
+const CHAUDS = /^Fichiers chauds\s*:\s*(.*)$/;
+const LABEL = /^Label\s*:\s*(.*)$/;
 
 export const VOCABULAIRE = ['needs-triage', 'needs-info', 'ready-for-agent', 'ready-for-human', 'wontfix', 'en cours — <branche>', 'Fait — PR #<n>'];
 
@@ -91,12 +93,83 @@ function sections(lignes) {
   return corps;
 }
 
-/** Écarts de format « prêt pour agent » ; vide si le ticket est conforme. */
-export function ecartsFormatPret(texte) {
+/**
+ * Motif de chemin (`**` = tout, y compris zéro dossier avant `/` ; `*` = un segment) → expression
+ * régulière. `scripts/agent/regles.mjs` n'expose qu'un moteur à `*` seul : il ne lit pas les `**` de
+ * `cheminsSensibles`, d'où ce moteur-ci.
+ */
+function regexDuMotif(motif) {
+  // Un seul passage : `**/` → dossiers facultatifs, `**` → tout, `*` → un segment.
+  const re = motif.replace(/\*\*\/|\*\*|\*|[.+?^${}()|[\]\\]/g, (m) => {
+    if (m === '**/') return '(?:.*/)?';
+    if (m === '**') return '.*';
+    if (m === '*') return '[^/]*';
+    return `\\${m}`;
+  });
+  return new RegExp(`^${re}$`);
+}
+
+/**
+ * `cheminsSensibles` du contrat `.claude/chaine.json`. `texte` null : pas de contrat (projet sans
+ * chaîne), aucun chemin sensible. Un contrat présent mais illisible ou mal formé lève : un gate de
+ * sécurité échoue fermé, il ne cesse pas d'exiger.
+ */
+export function lireCheminsSensibles(texte) {
+  if (texte === null) return [];
+  let contrat;
+  try {
+    contrat = JSON.parse(texte);
+  } catch (e) {
+    throw new Error(`.claude/chaine.json illisible : ${e.message}`);
+  }
+  const liste = contrat?.cheminsSensibles ?? [];
+  if (!Array.isArray(liste) || liste.some((m) => typeof m !== 'string'))
+    throw new Error('.claude/chaine.json : `cheminsSensibles` doit être une liste de motifs');
+  return liste;
+}
+
+/** Chemins de la ligne `Fichiers chauds:` : ceux entre accents graves, sinon la liste séparée par des virgules. */
+export function cheminsChauds(valeur) {
+  const entre = [...valeur.matchAll(/`([^`]+)`/g)].map((m) => m[1].trim());
+  if (entre.length > 0) return entre;
+  return valeur
+    .split(',')
+    .map((c) => c.replace(/\s+—.*$/, '').trim())
+    .filter((c) => c && c !== '—');
+}
+
+/**
+ * Motif sensible touché par un chemin chaud, ou `null`. Un chemin chaud peut lui-même être un motif
+ * (`src/db/migrations/*`) : il est comparé tel quel, ses `*` compris dans `.*` du motif sensible.
+ */
+export function motifSensibleTouche(chemin, cheminsSensibles) {
+  const c = chemin.replace(/^\.\//, '');
+  return cheminsSensibles.find((motif) => regexDuMotif(motif).test(c)) ?? null;
+}
+
+/**
+ * Écarts de format « prêt pour agent » ; vide si le ticket est conforme.
+ * `cheminsSensibles` : le contrat de `.claude/chaine.json` ; un chemin chaud qui en touche un exige
+ * la ligne `Label: architecte` (chaine-de-production.md § 3).
+ */
+export function ecartsFormatPret(texte, cheminsSensibles = []) {
   const lignes = texte.split('\n');
   const ecarts = [];
   const modele = chercher(lignes, MODELE);
   if (!modele || !/^(sonnet|opus|haiku)\b/.test(modele.valeur)) ecarts.push('ligne `Modèle: sonnet|opus` (avec la raison pour opus) absente');
+  const chauds = chercher(lignes, CHAUDS);
+  const label = chercher(lignes, LABEL);
+  if (chauds && !/^architecte(\s|$)/.test(label?.valeur ?? '')) {
+    for (const chemin of cheminsChauds(chauds.valeur)) {
+      const motif = motifSensibleTouche(chemin, cheminsSensibles);
+      if (motif) {
+        ecarts.push(
+          `ligne \`Label: architecte\` absente : \`Fichiers chauds\` touche \`${chemin}\`, chemin sensible (\`${motif}\`, cheminsSensibles de .claude/chaine.json)`,
+        );
+        break;
+      }
+    }
+  }
   const corps = sections(lignes);
   for (const s of SECTIONS_PRET) {
     if (!corps.has(s)) ecarts.push(`section \`## ${s}\` absente`);
@@ -109,7 +182,7 @@ export function ecartsFormatPret(texte) {
  * Contrôle d'un ticket. `existe(id)` dit si un ticket du dépôt porte cet identifiant ;
  * `gele` : ticket prêt d'avant l'allumage, dispensé du format (dette).
  */
-export function controlerTicket({ nom, texte, existe, gele = false }) {
+export function controlerTicket({ nom, texte, existe, gele = false, cheminsSensibles = [] }) {
   const lignes = texte.split('\n');
   const id = identifiantDuTicket(nom);
   const erreurs = [];
@@ -128,7 +201,7 @@ export function controlerTicket({ nom, texte, existe, gele = false }) {
     erreurs.push({ ligne: sujet.ligne, message: `Sujet « ${sujet.valeur} » : attendu \`sujet/<nom-en-kebab>\`` });
   const pret = status?.valeur === 'ready-for-agent';
   if (pret && !gele) {
-    for (const e of ecartsFormatPret(texte))
+    for (const e of ecartsFormatPret(texte, cheminsSensibles))
       erreurs.push({ ligne: status.ligne, message: `ready-for-agent : ${e} (docs/agents/chaine-de-production.md § 3)` });
   }
   return { status: status?.valeur ?? null, pret, erreurs };

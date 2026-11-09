@@ -6,8 +6,15 @@ import { z } from "zod";
  * un chemin interne (packages/CLAUDE.md).
  *
  * Aucun contrat métier ici : ils naissent avec le premier use case, une fois
- * le domaine modélisé (ticket 01).
+ * le domaine modélisé (ticket 1).
  */
+
+// Le premier sujet se ré-exporte AVEC son extension : `export * from "./roles.ts";`
+// (packages/CLAUDE.md § Layout). L'API charge ces sources en direct par Node, sans
+// build, qui exige le chemin complet d'un module ESM : `./roles` nu passe le typecheck
+// et casse `openapi:check` (ERR_MODULE_NOT_FOUND). TypeScript l'admet par
+// `allowImportingTsExtensions` (paquets et clients, sans émission) et
+// `rewriteRelativeImportExtensions` (API, qui émet).
 
 /**
  * Corps d'erreur commun de l'API. C'est la forme que le `DomainErrorFilter`
