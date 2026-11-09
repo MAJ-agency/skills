@@ -146,6 +146,25 @@ la recible sur le sujet), ou \`sujet.sh rafraichir ${base#sujet/}\` si elle est 
 Attendre que leur PR y soit fusionnée, puis relancer demarrer. Ne pas fusionner leur branche dans la sienne."
 }
 
+# Sujet livré : sa carte (`docs/**/*.map.md` dont la ligne `Sujet:` le nomme), lue sur
+# origin/develop, porte `Phase: 6-nettoyage` ou `Phase: fini` ; à défaut de carte, la branche
+# `sujet/<nom>` est absente et develop contient son commit de merge. Un sujet livré ne se rouvre
+# jamais par automatisme : file.sh, regrouper et demarrer s'en remettent à cette seule
+# fonction. Sortie 0 = livré.
+sujet_livre() {
+  local nom=${1#sujet/} f trouve='' phase
+  git fetch -q origin develop 2>/dev/null || true
+  while IFS= read -r f; do
+    git show "origin/develop:$f" | grep -qE "^(- )?\**Sujet ?:\** *sujet/${nom}[[:space:]]*\$" || continue
+    trouve=1
+    phase=$(git show "origin/develop:$f" | grep -m1 -E '^Phase ?:' | sed -E 's/^Phase ?: *//; s/[[:space:]]*$//') || true
+    case "$phase" in 6-nettoyage* | fini*) return 0 ;; esac
+  done < <(git ls-tree -r --name-only origin/develop -- docs | grep -E '\.map\.md$' | grep -v '/gabarits/' || true)
+  [ -z "$trouve" ] || return 1
+  git ls-remote --exit-code --heads origin "sujet/$nom" >/dev/null 2>&1 && return 1
+  [ -n "$(git log origin/develop --merges -1 --format=%H -F --grep "sujet/$nom")" ]
+}
+
 demarrer() {
   local arg=${1:?identifiant de ticket (SOC-1.02) ou nom de sujet}
   local nom branche courante ticket='' ref present=''
@@ -170,6 +189,13 @@ Ne pas partir de la branche de specs : attendre sa fusion (ou \`sujet.sh ouvrir 
   fi
   [[ "$nom" =~ ^[a-z0-9][a-z0-9-]*$ ]] || sortir 4 "nom de sujet en kebab-case attendu : $nom"
   branche="sujet/$nom"
+  if sujet_livre "$nom"; then
+    [ -n "$ticket" ] || sortir 4 "$branche est livré dans develop : on ne le rouvre pas. Partir de develop."
+    verifier_ticket "$ticket" origin/develop
+    echo "base=develop"
+    echo "$branche est déjà livré dans develop : $ticket part de develop et la PR vise develop (label hors-sujet)."
+    return 0
+  fi
   # `git ls-remote` plutôt que `gh api` : marche aussi sans `gh` authentifié (session cloud).
   git ls-remote --exit-code --heads origin "$branche" >/dev/null 2>&1 || ouvrir "$nom"
   git fetch -q origin develop "$branche"
@@ -444,6 +470,7 @@ regrouper() {
   shift
   [ "$#" -gt 0 ] || sortir 4 "au moins une PR à regrouper"
   nom=${nom#sujet/}
+  ! sujet_livre "$nom" || sortir 4 "sujet/$nom est livré dans develop : on ne le rouvre pas (la PR passe vers develop, label hors-sujet)."
   gh api "$DEPOT/branches/$(uri "sujet/$nom")" >/dev/null 2>&1 || ouvrir "$nom"
   # Le sujet contient le sommet de develop : toute PR partie de develop s'y fusionne avec ses
   # seuls changements (fusion à trois points sur son départ), sans réécrire sa branche.
@@ -613,6 +640,7 @@ shift || true
 case "$commande" in
   demarrer | ouvrir | fusionner | rafraichir | livrer | relancer | series | regrouper | carte | etat) "$commande" "$@" ;;
   de) sujet_du_ticket "${1:?ticket}" ;;
+  livre) sujet_livre "${1:?nom du sujet}" ;;
   livrer-prets) livrer_prets "$@" ;;
   regrouper-series) regrouper_series "$@" ;;
   *) sed -n '3,/^# =====/p' "$0" | sed '$d; s/^# \{0,1\}//'; sortir 4 "usage : sujet.sh demarrer <ticket|nom> | ouvrir <nom> [--specs <pr>] | fusionner <pr> | rafraichir <nom> | livrer <nom> <titre> | livrer-prets [--dry-run] | relancer <pr> | series | regrouper-series [--dry-run] | regrouper <nom> <pr>… | carte | etat | de <ticket>" ;;

@@ -406,3 +406,49 @@ test("boucle.sh : sous-PR et PR vers develop à titre trop long renvoyées avec 
   assert.deepEqual(labels[70], ["fusion-bloquée"]);
   assert.deepEqual(labels[72], ["hors-sujet", "fusion-bloquée"]);
 });
+
+// un sujet livré ne se rouvre jamais par automatisme.
+const SPEC_LOT = "docs/features/demo/all/ALL-DEM-1-demo.spec.md";
+const CARTE_LOT = "docs/features/demo/all/ALL-DEM-1-demo.map.md";
+function depotSujetLivre(phase) {
+  const d = depotJouet();
+  d.ecrire(SPEC_LOT, "# ALL-DEM-1\n\n- **Sujet :** sujet/lot\n");
+  d.ecrire(CARTE_LOT, `# ALL-DEM-1 — carte\n\nSujet: sujet/lot\n\nPhase: ${phase}\n`);
+  d.commit("docs: spec et carte");
+  d.git("push", "-q", "origin", "HEAD:develop");
+  d.branche("fix/all-dem-1-02-correctif", "origin/develop", { "docs/c.md": "c\n" });
+  d.git("switch", "-q", "--detach", "origin/develop");
+  d.github({
+    exiges: ["qualite"],
+    checks: { "*": { qualite: "SUCCESS" } },
+    pulls: [pr(80, "fix/all-dem-1-02-correctif", { title: "fix(demo): ALL-DEM-1.02 correctif" })],
+  });
+  return d;
+}
+const branchesDistantes = (d) => d.git("ls-remote", "--heads", "origin", "sujet/*");
+
+test("file.sh : PR dont le ticket déclare un sujet livré (carte Phase: fini) classée directe, sans écriture", () => {
+  const d = depotSujetLivre("fini");
+  const r = d.lancer(script("file.sh"));
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stdout, /^80\tprête\t.*\tsujet livré : lot$/m);
+  assert.doesNotMatch(r.stdout, /vers sujet/);
+  assert.deepEqual(d.journal(), []);
+});
+
+test("boucle.sh : sujet livré — hors-sujet posé, ni branche créée ni reciblage", () => {
+  const d = depotSujetLivre("6-nettoyage");
+  d.lancer(script("boucle.sh"));
+  assert.equal(branchesDistantes(d), "", "aucune branche sujet/lot recréée");
+  assert.ok(ecritures(d).includes("POST issues/80/labels"));
+  assert.ok(!ecritures(d).some((e) => e.startsWith("PATCH pulls/80")), "jamais reciblée");
+  assert.ok(d.etat().pulls.every((p) => p.number !== 80 || p.base !== "sujet/lot"));
+});
+
+test("file.sh : sujet en cours (Phase: 4-code) — PR toujours reciblée sur le sujet", () => {
+  const d = depotSujetLivre("4-code");
+  d.git("push", "-q", "origin", "origin/develop:refs/heads/sujet/lot");
+  const r = d.lancer(script("file.sh"));
+  assert.match(r.stdout, /^80\tvers sujet\/lot\t/m);
+  assert.doesNotMatch(r.stdout, /sujet livré/);
+});

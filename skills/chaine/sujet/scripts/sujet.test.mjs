@@ -320,3 +320,48 @@ test("demarrer accepte un identifiant à un seul segment de préfixe", () => {
   assert.match(r.stdout, /^base=sujet\/socle$/m);
   assert.equal(d.lancer(SCRIPT, "de", "SOC-1.01").stdout.trim(), "socle");
 });
+
+// `regrouper` et `demarrer` ne rouvrent pas un sujet livré.
+function sujetLivre(phase = "fini") {
+  const d = depotJouet();
+  d.ecrire(SPEC, "# ALL-DEM-1\n\n- **Sujet :** sujet/demo\n");
+  d.ecrire(ticket("01"), "# .01\n\nStatus: ready-for-agent\nBlocked by: —\n");
+  d.ecrire(
+    "docs/features/demo/all/ALL-DEM-1-demo.map.md",
+    `# carte\n\nSujet: sujet/demo\n\nPhase: ${phase}\n`,
+  );
+  d.commit("docs: specs et carte");
+  d.git("push", "-q", "origin", "HEAD:develop");
+  d.git("switch", "-q", "-c", "feat/all-dem-1-01-travail", "origin/develop");
+  return d;
+}
+const sujetsDistants = (d) => d.git("ls-remote", "--heads", "origin", "sujet/*");
+
+test("regrouper refuse un sujet livré, sans créer de branche", () => {
+  const d = sujetLivre();
+  const r = d.lancer(SCRIPT, "regrouper", "demo", "5");
+  assert.equal(r.status, 4, r.stdout + r.stderr);
+  assert.match(r.stdout, /sujet\/demo est livré/);
+  assert.equal(sujetsDistants(d), "");
+});
+
+test("demarrer d'un ticket de sujet livré part de develop, sans rouvrir le sujet", () => {
+  const d = sujetLivre("6-nettoyage");
+  const r = demarrer(d, "ALL-DEM-1.01");
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /^base=develop$/m);
+  assert.match(r.stdout, /déjà livré/);
+  assert.equal(sujetsDistants(d), "");
+});
+
+test("sujet livre : sans carte, branche absente et commit de merge sur develop", () => {
+  const d = depotJouet();
+  assert.equal(d.lancer(SCRIPT, "livre", "demo").status, 1, "rien : pas livré");
+  d.git("switch", "-q", "-c", "sujet/demo", "origin/develop");
+  d.ecrire("x.md", "x\n");
+  d.commit("feat: x");
+  d.git("switch", "-q", "develop");
+  d.git("merge", "-q", "--no-ff", "-m", "feat: livre sujet/demo", "sujet/demo");
+  d.git("push", "-q", "origin", "develop");
+  assert.equal(d.lancer(SCRIPT, "livre", "demo").status, 0, "livré");
+});
