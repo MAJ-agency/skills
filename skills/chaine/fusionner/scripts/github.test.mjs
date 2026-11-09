@@ -78,3 +78,13 @@ test("rafraichir annule la mise à jour quand un contrôle échoue : le sujet re
   assert.match(r.stderr, /\[echo faux; exit 1\] faux/);
   assert.equal(d.git("ls-remote", "origin", "sujet/demo").split("\t")[0], avant);
 });
+
+test("regenerer_index montre la sortie d’une commande de régénération en échec, préfixée de la commande", () => {
+  const d = depotJouet();
+  const commande = "echo base injoignable; echo detail >&2; exit 1";
+  declarer(d, [{ chemin: "a.txt", commande }]);
+  const r = regenerer(d);
+  assert.equal(r.status, 1, r.stdout + r.stderr);
+  assert.ok(r.stderr.includes(`[${commande}] base injoignable`), r.stderr);
+  assert.ok(r.stderr.includes(`[${commande}] detail`), r.stderr);
+});
