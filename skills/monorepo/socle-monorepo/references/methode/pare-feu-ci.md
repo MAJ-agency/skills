@@ -59,7 +59,7 @@ L'allowlist est **versionnée et revue** : son diff est visible en PR. C'est la 
 
 Les sources de vérité sont étanches et régénérables ; la CI échoue si l'une dérive.
 
-- **Types data** (`kysely-codegen`) régénérés depuis la base migrée : `git diff` non vide → échec (schéma et types désynchronisés, ou édition manuelle de `types.ts`).
+- **Types data** (`kysely-codegen`) régénérés depuis une base jetable migrée depuis zéro, jamais la base locale : `git diff` non vide → échec (schéma et types désynchronisés, ou édition manuelle de `types.ts`).
 - **OpenAPI interne** généré depuis les schémas Zod : diff non vide → échec.
 - **Frontières verrouillées** : `no-restricted-imports` / `eslint-plugin-boundaries` interdisent l'import de DTO externes hors des adapters et le mélange des univers de types.
 

@@ -68,26 +68,95 @@ const COMMANDES_INTERDITES = [
   [/\bgit\s+(rebase|reset\s+--hard)\b[^;&|]*\b(origin\/)?(develop|main|sujet\/)/, 'rebase ou reset --hard sur une branche partagée : jamais ; un sujet se rafraîchit par merge (sujet.sh rafraichir).'],
 ];
 
-const RAISON_DEPENDANCE = "Nouvelle dépendance : vérifier qu'elle existe depuis longtemps, ses mainteneurs, ses téléchargements, et qu'aucun code interne ne suffit.";
+const RAISON_DEPENDANCE =
+  "Nouvelle dépendance : vérifier qu'elle existe depuis longtemps, ses mainteneurs, ses téléchargements, et qu'aucun code interne ne suffit. Un paquet prévu par la ligne `Dépendances:` du ticket, sur le sujet, passe sans question.";
 
 /** Options de pnpm suivies d'une valeur, qu'il ne faut pas prendre pour un paquet. */
 const OPTIONS_A_VALEUR = new Set(['--filter', '-F', '--dir', '-C', '--reporter', '--loglevel', '--store-dir', '--modules-dir', '--lockfile-dir', '--network-concurrency', '--child-concurrency']);
 
-/** Vrai si la commande ajoute un paquet (`pnpm add <paquet>`, `pnpm install <paquet>`). */
-export function ajouteUneDependance(code) {
+/**
+ * Nom d'un paquet sans sa version : `leaflet@1.9.4` → `leaflet`, `@types/leaflet@^1` → `@types/leaflet`.
+ * Seule une version ou une étiquette se retire : un alias ou une source (`leaflet@npm:autre`,
+ * `x@github:…`, `x@file:…`) garde la spécification entière, qu'aucune ligne `Dépendances:` ne porte.
+ */
+export const nomDuPaquet = (specification) => {
+  const arobase = specification.indexOf('@', specification.startsWith('@') ? 1 : 0);
+  if (arobase < 0) return specification;
+  const version = specification.slice(arobase + 1);
+  return /^[\w.^~<>=*|+-]*$/.test(version) ? specification.slice(0, arobase) : specification;
+};
+
+/**
+ * Options de `pnpm add` qui ne changent ni la source ni la cible de l'installation : seules celles-ci
+ * laissent passer un paquet prévu. `--registry`, `--config.*`, `--global`, `-C`/`--dir` (qui lit le
+ * `.npmrc` d'un autre dossier)… demandent toujours.
+ */
+const OPTIONS_SANS_RISQUE = new Set(['-D', '--save-dev', '-P', '--save-prod', '-O', '--save-optional', '-E', '--save-exact', '--save-peer', '-w', '--workspace-root', '--filter', '-F', '--prefer-offline', '--offline']);
+
+/** Chaque ajout de la commande (`pnpm add`, `pnpm install <paquet>`) : `{ paquets, options }`. */
+function ajouts(code) {
   const commandes = code.replace(/\d*(>>?|<)&?\s*[^\s;&|]*/g, ' ').split(/[;&|\n]+/);
-  return commandes.some((commande) => {
+  return commandes.flatMap((commande) => {
     const mots = commande.trim().split(/\s+/);
     let i = mots.findIndex((mot) => /(^|\/)pnpm$/.test(mot));
-    if (i < 0) return false;
+    if (i < 0) return [];
     const positionnels = [];
+    // Ce qui précède pnpm (`npm_config_registry=… pnpm`, `env …`) peut changer la source.
+    const options = i > 0 ? ['(préfixe)'] : [];
     for (i++; i < mots.length; i++) {
       if (!mots[i].startsWith('-')) positionnels.push(mots[i]);
-      else if (OPTIONS_A_VALEUR.has(mots[i])) i++;
+      else {
+        options.push(mots[i].split('=')[0]);
+        if (OPTIONS_A_VALEUR.has(mots[i])) i++;
+      }
     }
     const [sousCommande, ...paquets] = positionnels;
-    return ['add', 'i', 'install'].includes(sousCommande) && paquets.length > 0;
+    return ['add', 'i', 'install'].includes(sousCommande) && paquets.length > 0 ? [{ paquets: paquets.map(nomDuPaquet), options }] : [];
   });
+}
+
+/**
+ * Paquets qu'ajoute la commande (`pnpm add <paquet>`, `pnpm install <paquet>`), noms sans version.
+ * Un chemin, une URL ou un alias reste tel quel : il ne figure dans aucune ligne `Dépendances:`.
+ */
+export const paquetsAjoutes = (code) => ajouts(code).flatMap(({ paquets }) => paquets);
+
+/** Vrai si la commande ajoute un paquet (`pnpm add <paquet>`, `pnpm install <paquet>`). */
+export const ajouteUneDependance = (code) => paquetsAjoutes(code).length > 0;
+
+/**
+ * Paquets que le ticket prévoit : sa ligne d'en-tête `Dépendances:` (avant la première section),
+ * noms entre accents graves ou nus, séparés par des virgules, jusqu'à un ` — ` ou ` # ` de commentaire.
+ * `—` ou ligne absente → `[]`.
+ */
+export function lireDependances(texteDuTicket) {
+  const enTete = (texteDuTicket ?? '').split(/^## /m)[0];
+  const ligne = (/^Dépendances:[ \t]*(.*)$/m.exec(enTete)?.[1] ?? '').split(/\s[—#]\s/)[0];
+  return ligne
+    .split(',')
+    .map((nom) => nom.replace(/`/g, '').trim())
+    .filter((nom) => nom && !/^[—–-]+$/.test(nom))
+    .map(nomDuPaquet);
+}
+
+/**
+ * Préfixe d'identifiant de la convention `tickets` : même motif que `PREFIXE` de
+ * `scripts/docs/identifiants.mjs`, recopié ici pour que les hooks qui lisent ce module (garde-fichiers,
+ * apres-edition, fin-de-tour) ne dépendent pas d'un autre skill.
+ */
+const PREFIXE_TICKET = '[a-z][a-z0-9]*(?:-[a-z][a-z0-9]*)*';
+
+/**
+ * Identifiant du ticket porté par une branche de ticket (`docs/agents/issue-tracker.md`,
+ * « Réserver un ticket ») : `feat/soc-1-04-hook` → `SOC-1.04`, `feat/all-fof-12-03-x` → `ALL-FOF-12.03`.
+ * Branche de sujet, sans identifiant ou détachée (`HEAD`) → `null`.
+ */
+const BRANCHE_DE_TICKET = new RegExp(`^[a-z]+/(${PREFIXE_TICKET})-(\\d+)-(\\d{2})(?:-|$)`);
+
+export function identifiantDeBranche(branche) {
+  const m = BRANCHE_DE_TICKET.exec(branche ?? '');
+  if (!m || (branche ?? '').startsWith('sujet/')) return null;
+  return `${m[1].toUpperCase()}-${m[2]}.${m[3]}`;
 }
 
 /** La commande sans son texte libre : corps de heredoc et chaînes entre guillemets. */
@@ -98,12 +167,44 @@ export function sansTexte(commande) {
     .replace(/"(?:[^"\\]|\\.)*"/g, '""');
 }
 
-/** Décision sur une commande shell : `{ decision: 'refuser' | 'demander', raison }`, ou `null`. */
-export function decisionCommande(commande) {
+const RAISON_PUSH_SUJET = 'une branche de ticket ne pousse jamais sur un sujet : le capitaine y squashe les sous-PR (sujet.sh).';
+
+/**
+ * Vrai si un `git push` de la commande a pour destination une branche de sujet : `HEAD:sujet/x`,
+ * `HEAD:refs/heads/sujet/x`, ou `sujet/x` seul. Sans ce refus, une session écrirait elle-même, sur
+ * le sujet, la ligne `Dépendances:` qui l'autorise (faille relevée en contre-revue).
+ */
+export function pousseSurUnSujet(code) {
+  return code.split(/[;&|\n]+/).some((commande) => {
+    const mots = commande.trim().split(/\s+/);
+    const i = mots.findIndex((mot, k) => mot === 'push' && mots[k - 1] === 'git');
+    if (i < 0) return false;
+    const positionnels = mots.slice(i + 1).filter((mot) => !mot.startsWith('-'));
+    return positionnels.slice(1).some((refspec) => /^\+?(refs\/heads\/)?sujet\//.test(refspec.split(':').pop() ?? ''));
+  });
+}
+
+/**
+ * Décision sur une commande shell : `{ decision: 'refuser' | 'demander', raison }`, ou `null`.
+ * @param {{ dependancesPrevues?: () => string[] | null, brancheCourante?: () => string | null }} [contexte]
+ *   `brancheCourante` : branche de la session ; depuis une branche de ticket, un `git push` vers un
+ *   `sujet/…` est refusé, sans quoi la session écrirait elle-même la ligne qui l'autorise.
+ *   `dependancesPrevues` : paquets de la ligne `Dépendances:` du ticket de la branche, lue sur le
+ *   sujet (`null` si introuvable) ; appelée seulement si la commande ajoute un paquet. Une commande
+ *   passe sans question quand chacun de ses paquets y figure et qu'aucune option ne change la source
+ *   (`--registry`, `--config.*`) ; un seul paquet absent ou une telle option, et elle demande.
+ */
+export function decisionCommande(commande, { dependancesPrevues = () => null, brancheCourante = () => null } = {}) {
   const code = sansTexte(commande);
   for (const [motif, raison] of COMMANDES_INTERDITES) if (motif.test(code)) return { decision: 'refuser', raison };
-  if (ajouteUneDependance(code)) return { decision: 'demander', raison: RAISON_DEPENDANCE };
-  return null;
+  if (pousseSurUnSujet(code) && identifiantDeBranche(brancheCourante())) return { decision: 'refuser', raison: RAISON_PUSH_SUJET };
+  const liste = ajouts(code);
+  if (liste.length === 0) return null;
+  const sansRisque = liste.every(({ options }) => options.every((o) => OPTIONS_SANS_RISQUE.has(o)));
+  const prevues = sansRisque ? dependancesPrevues() : null;
+  const paquets = liste.flatMap((a) => a.paquets);
+  if (Array.isArray(prevues) && paquets.every((p) => prevues.includes(p))) return null;
+  return { decision: 'demander', raison: RAISON_DEPENDANCE };
 }
 
 /** Un fichier que le hook d'après-édition passe à Prettier puis ESLint. */

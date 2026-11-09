@@ -45,6 +45,9 @@
 # Sorties : 0 fait · 2 conflit · 3 checks rouges ou en cours · 4 refus corrigeable par l'auteur (sa
 # dernière ligne est le motif, `fusionner` : titre, commitlint, revue, base) · 7 `fusionner` d'une PR
 # fermée ou en brouillon (rien à corriger : sautée)
+# `fusionner` encore : 5 la sous-PR a bougé pendant sa mise à jour (reprise au tour suivant) · 8 conflit
+# avec le sujet sur des index générés seuls : branche mise à jour (index régénérés) et poussée, CI
+# relancée, aucun squash
 # Tout passe par l'API REST (`gh api`) : GraphQL est refusé depuis les sessions cloud. Depuis la
 # racine du dépôt ; sans argument, affiche cette aide.
 # =============================================================================
@@ -224,6 +227,45 @@ recibler_specs() {
   fi
 }
 
+# Sous-PR en conflit avec son sujet sur des index générés seuls (deux sous-PR qui régénèrent le même
+# `openapi.json`, cas vécu) : un index ne se fusionne jamais à la main, le capitaine met la branche à
+# jour (merge, avance rapide, jamais de force : la branche appartient à une autre session), régénère,
+# pousse, et sort en 8 ; la CI repart, la sous-PR repasse au tour suivant. Sans conflit : rien n'est
+# touché. Conflit hors index : annulé, sortie 3 (renvoi), branche intacte.
+mettre_a_jour_sous_pr() {
+  local n=$1 base=$2 tete=$3 conflits autres
+  [ -z "$(git status --porcelain)" ] || sortir 4 "arbre de travail pas propre : committer ou ranger d'abord"
+  git switch -q -C "capitaine/$n" "origin/$tete"
+  if git merge -q --no-edit "origin/$base" >/dev/null 2>&1; then
+    git switch -q --detach origin/develop # fusion propre : rien à pousser, le squash suit
+    return 0
+  fi
+  conflits=$(git diff --name-only --diff-filter=U)
+  autres=$(printf '%s\n' "$conflits" | grep -Ev "$GENERES" || true)
+  if [ -n "$autres" ] || [ -z "$conflits" ]; then
+    git merge --abort 2>/dev/null || git reset -q --hard
+    git switch -q --detach origin/develop
+    sortir 3 "fusion refusée par GitHub (conflit avec $base hors index générés : $(tr '\n' ' ' <<<"$autres")) : renvoi"
+  fi
+  # shellcheck disable=SC2086
+  git checkout --theirs -- $conflits && git add -- $conflits
+  local echec
+  echec() {
+    git merge --abort 2>/dev/null || git reset -q --hard
+    git switch -q --detach origin/develop
+    sortir 3 "$1 : mise à jour de #$n avec $base annulée"
+  }
+  pnpm install --frozen-lockfile --prefer-offline >/dev/null 2>&1 || echec "pnpm install en échec"
+  regenerer_index || echec "gate des index/registres en échec"
+  git commit -q --no-edit --no-verify
+  if ! git push -q --no-verify origin "HEAD:refs/heads/$tete" >/dev/null 2>&1; then
+    git switch -q --detach origin/develop
+    sortir 5 "la sous-PR #$n a bougé : mise à jour non poussée, la boucle la reprendra"
+  fi
+  git switch -q --detach origin/develop
+  sortir 8 "#$n mise à jour avec $base (index régénérés), CI relancée"
+}
+
 fusionner() {
   local n=${1:?numéro de la sous-PR}
   local pr base titre sommet longueur
@@ -271,6 +313,7 @@ fusionner() {
     rafraichir "${base#sujet/}" --abandon-si-conflit
     git fetch -q origin "$base"
   fi
+  mettre_a_jour_sous_pr "$n" "$base" "$(jq -r .head.ref <<<"$pr")"
   git log --no-merges --reverse --format='%B' "$(git merge-base "$sommet" "origin/$base")..$sommet" |
     jq -Rs --arg sha "$sommet" --arg titre "$titre (#$n)" \
       '{merge_method: "squash", sha: $sha, commit_title: $titre, commit_message: .}' |

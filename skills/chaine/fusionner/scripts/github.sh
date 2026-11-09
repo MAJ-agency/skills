@@ -20,13 +20,24 @@ index_json() {
 index_generes() { index_json | jq -r '.index[] | if type == "string" then . else .chemin end'; }
 # Commandes de régénération, dédoublonnées, dans l'ordre de la liste.
 index_commandes() { index_json | jq -r '.index[] | objects | .commande // empty' | awk '!v[$0]++'; }
-# Régénère chaque index par sa commande, puis indexe ce qui a changé. Échec = sortie non nulle.
+# Contrôles (`verification`, facultatifs), dédoublonnés, dans l'ordre de la liste.
+index_verifications() { index_json | jq -r '.index[] | objects | .verification // empty' | awk '!v[$0]++'; }
+# Régénère chaque index par sa commande, joue ensuite les contrôles (une régénération peut en
+# nourrir une autre), puis indexe ce qui a changé. Échec = sortie non nulle ; la sortie d'un
+# contrôle en échec part sur stderr, préfixée de sa commande.
 regenerer_index() {
-  local c
+  local c l sortie
   while IFS= read -r c; do
     [ -n "$c" ] || continue
     sh -c "$c" >/dev/null 2>&1 || return 1
   done < <(index_commandes)
+  while IFS= read -r c; do
+    [ -n "$c" ] || continue
+    if ! sortie=$(sh -c "$c" 2>&1); then
+      while IFS= read -r l; do printf '[%s] %s\n' "$c" "$l" >&2; done <<<"$sortie"
+      return 1
+    fi
+  done < <(index_verifications)
   ajouter_index
 }
 # Les mêmes en expression régulière pour `grep -E` (un chemin par ligne).

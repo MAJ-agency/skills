@@ -249,8 +249,8 @@ pnpm --filter @{{SCOPE}}/{{PROJET}}-api test:cov       # coverage
 pnpm --filter @{{SCOPE}}/{{PROJET}}-api check          # lint + typecheck (tsc --noEmit)
 pnpm --filter @{{SCOPE}}/{{PROJET}}-api check:arch     # domain+application compile with infrastructure excluded
 pnpm --filter @{{SCOPE}}/{{PROJET}}-api check:cycles   # circular-dependency detection (dpdm)
-pnpm --filter @{{SCOPE}}/{{PROJET}}-api db:types       # regenerate src/db/types.ts from the live schema
-pnpm --filter @{{SCOPE}}/{{PROJET}}-api db:types:check # CI gate: fails if types.ts drifted from the schema
+pnpm --filter @{{SCOPE}}/{{PROJET}}-api db:types       # regenerate src/db/types.ts from a scratch database migrated from zero (never the local one)
+pnpm --filter @{{SCOPE}}/{{PROJET}}-api db:types:check # CI gate: fails if types.ts drifted from the migrations (same scratch database)
 ```
 
 > `check:arch` must run `tsc --noEmit` against a tsconfig that includes only `src/domain` and `src/application`. If it fails, an inward-dependency rule was violated — fix the import direction, do not weaken the config.

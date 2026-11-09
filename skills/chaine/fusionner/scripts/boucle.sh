@@ -20,6 +20,8 @@
 # sujet non livré SANS sous-PR ouverte : bouger la tête d'un sujet sous ses sous-PR les remettait
 # en conflit avant leur passage (cas vécu). Un sujet actif est mis à jour par sa livraison
 # (passer.sh) ou par `sujet.sh fusionner` quand une sous-PR apporte du develop plus récent.
+# Une sous-PR en conflit avec son sujet sur des index générés seuls n'est pas renvoyée : `sujet.sh
+# fusionner` la met à jour, régénère et pousse (sortie 8, MISE À JOUR) ; elle repasse CI verte.
 # Un conflit est annulé et signalé (SUJET EN CONFLIT), jamais résolu ici : une session le
 # résout avec `sujet.sh rafraichir <nom>`.
 # Un sujet « prêt à livrer » (plus de sous-PR, tickets faits) est livré par `sujet.sh
@@ -118,7 +120,9 @@ traiter_sujets() {
           0) echo "[#$n] FUSIONNÉE dans ${etat%%:*}" ;;
           3) bash "$outils/renvoyer.sh" "$n" "fusion dans ${etat%%:*} refusée par GitHub (conflit avec le sujet) : fusionner ${etat%%:*} dans la branche et le résoudre" ;;
           4) bash "$outils/refus.sh" "$n" "$sortie" ;; # corrigeable (titre, revue, base) : renvoyée
+          5) echo "[#$n] sous-PR bougée pendant sa mise à jour : reprise au tour suivant" ;;
           7) echo "[#$n] sous-PR non éligible (fermée ou en brouillon)" ;;
+          8) echo "[#$n] MISE À JOUR avec ${etat%% :*} (index régénérés), CI relancée" ;;
           *) echo "[#$n] sous-PR non éligible (sortie $rc)" ;;
         esac ;;
     esac
