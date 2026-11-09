@@ -20,7 +20,8 @@
 #                         fusionne develop dans sujet/<nom> (jamais de rebase), index régénérés ;
 #                         `--abandon-si-conflit` (capitaine) annule la fusion au lieu de la laisser en cours
 #   livrer <nom> <titre>  ouvre la PR sujet/<nom> → develop, étiquetée `à-fusionner` ; refuse tant
-#                         qu'une sous-PR est ouverte
+#                         qu'une sous-PR est ouverte ; livraison intermédiaire (carte avant `5-livraison`) :
+#                         la PR part de `livraison/<nom>-<date>`, jetable, et `sujet/<nom>` survit
 #   livrer-prets [--dry-run]
 #                         (capitaine) livre chaque sujet « prêt à livrer », sauf label `sujet-manuel` :
 #                         plus de sous-PR ouverte, ET tickets déclarés (`Sujet:`) tous faits ou label
@@ -163,6 +164,17 @@ sujet_livre() {
   [ -z "$trouve" ] || return 1
   git ls-remote --exit-code --heads origin "sujet/$nom" >/dev/null 2>&1 && return 1
   [ -n "$(git log origin/develop --merges -1 --format=%H -F --grep "sujet/$nom")" ]
+}
+
+# Phase de la carte du sujet, lue sur origin/develop (vide si le sujet n'a pas de carte).
+phase_carte() {
+  local nom=${1#sujet/} f phase=''
+  while IFS= read -r f; do
+    git show "origin/develop:$f" | grep -qE "^(- )?\**Sujet ?:\** *sujet/${nom}[[:space:]]*\$" || continue
+    phase=$(git show "origin/develop:$f" | grep -m1 -E '^Phase ?:' | sed -E 's/^Phase ?: *//; s/[[:space:]]*$//') || true
+    break
+  done < <(git ls-tree -r --name-only origin/develop -- docs | grep -E '\.map\.md$' | grep -v '/gabarits/' || true)
+  printf '%s\n' "$phase"
 }
 
 demarrer() {
@@ -396,17 +408,29 @@ rafraichir() {
 
 livrer() {
   local nom=${1:?nom du sujet} titre=${2:?titre de la PR finale (Conventional Commits)}
-  local branche="sujet/$nom" corps n
+  local branche="sujet/$nom" corps n tete phase intermediaire=''
   git fetch -q origin develop "$branche"
+  # Livraison intermédiaire : carte en phase d'avant `5-livraison`. La PR part d'une
+  # branche jetable, que GitHub supprime à la fusion : la branche du sujet survit.
+  phase=$(phase_carte "$nom")
+  case "$phase" in '' | 5-livraison* | 6-nettoyage* | fini*) ;; *) intermediaire=1 ;; esac
+  tete=$branche
   [ "$(gh api "$DEPOT/pulls?state=open&base=$(uri "$branche")" --jq length)" = 0 ] ||
     sortir 4 "des sous-PR visent encore $branche : les fusionner ou les fermer avant de livrer"
   corps=$(
     printf 'Branche de sujet : entre dans develop par un commit de merge, un commit par sous-PR.\n\n## Sous-PR\n\n'
     git log --first-parent --no-merges --reverse --format='- %s' "origin/develop..origin/$branche"
+    if [ -n "$intermediaire" ]; then
+      printf '\nLivraison intermédiaire : la PR part d'\''une branche jetable, `%s` survit à la fusion.\n' "$branche"
+    fi
   )
-  n=$(gh api -X POST "$DEPOT/pulls" -f base=develop -f head="$branche" -f title="$titre" -f body="$corps" --jq .number)
+  if [ -n "$intermediaire" ]; then
+    tete="livraison/$nom-$(date -u +%Y%m%d-%H%M)"
+    git push -q --no-verify origin "origin/$branche:refs/heads/$tete"
+  fi
+  n=$(gh api -X POST "$DEPOT/pulls" -f base=develop -f head="$tete" -f title="$titre" -f body="$corps" --jq .number)
   poser_label "$n" à-fusionner
-  echo "PR #$n ouverte ($branche → develop), étiquetée à-fusionner"
+  echo "PR #$n ouverte ($tete → develop), étiquetée à-fusionner"
 }
 
 relancer() {

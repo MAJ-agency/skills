@@ -365,3 +365,41 @@ test("sujet livre : sans carte, branche absente et commit de merge sur develop",
   d.git("push", "-q", "origin", "develop");
   assert.equal(d.lancer(SCRIPT, "livre", "demo").status, 0, "livré");
 });
+
+// une livraison intermédiaire ne met pas la branche du sujet en jeu.
+function sujetAvecCarte(phase) {
+  const d = depotJouet();
+  d.ecrire(SPEC, "# ALL-DEM-1\n\nSujet: sujet/demo\n");
+  d.ecrire(
+    "docs/features/demo/all/ALL-DEM-1-demo.map.md",
+    `# carte\n\nSujet: sujet/demo\n\nPhase: ${phase}\n`,
+  );
+  d.commit("docs: spec et carte");
+  d.git("push", "-q", "origin", "HEAD:develop");
+  d.branche("sujet/demo", "origin/develop", { "docs/x.md": "x\n" }, "feat(demo): x (#1)");
+  d.git("switch", "-q", "--detach", "origin/develop");
+  d.github({ pulls: [] });
+  return d;
+}
+const teteDeLaPR = (d) => d.journal().find((e) => e.methode === "POST" && e.route === "pulls");
+
+test("livrer en phase 4 : la PR part d'une branche jetable, sujet/<nom> reste", () => {
+  const d = sujetAvecCarte("4-vagues");
+  const r = d.lancer(SCRIPT, "livrer", "demo", "feat(demo): livraison intermédiaire");
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  const pr = teteDeLaPR(d);
+  assert.match(pr.champs.head, /^livraison\/demo-\d{8}-\d{4}$/);
+  assert.match(pr.champs.body, /Livraison intermédiaire/);
+  assert.match(d.git("ls-remote", "--heads", "origin", "sujet/demo"), /refs\/heads\/sujet\/demo/);
+  assert.match(d.git("ls-remote", "--heads", "origin", pr.champs.head), /livraison\/demo-/);
+});
+
+test("livrer en 5-livraison : la PR part de sujet/<nom>, comme avant", () => {
+  const d = sujetAvecCarte("5-livraison");
+  const r = d.lancer(SCRIPT, "livrer", "demo", "feat(demo): livraison");
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  const pr = teteDeLaPR(d);
+  assert.equal(pr.champs.head, "sujet/demo");
+  assert.doesNotMatch(pr.champs.body, /intermédiaire/);
+  assert.equal(d.git("ls-remote", "--heads", "origin", "livraison/*"), "");
+});
