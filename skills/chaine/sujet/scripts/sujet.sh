@@ -597,7 +597,10 @@ etat() {
     fermees=$(gh api --paginate "$DEPOT/pulls?state=closed&per_page=100&base=$(uri "sujet/$nom")" --jq '.[].head.ref')
     sous=$(awk -F '\t' -v b="sujet/$nom" -v f="$fermees" 'BEGIN { n = split(f, t, "\n"); for (i = 1; i <= n; i++) h[t[i]] = 1 }
       $1 == b || ($1 in h) { printf "#%s ", $3 }' <<<"$prs")
-    livree=$(awk -F '\t' -v b="sujet/$nom" '$1 == "develop" && $2 == b { print $3 }' <<<"$prs")
+    # Livraison ouverte : depuis le sujet, ou depuis sa branche jetable `livraison/<nom>-<date>`.
+    # Sans la seconde, une livraison intermédiaire bloquée était rouverte à chaque tour.
+    livree=$(awk -F '\t' -v b="sujet/$nom" -v l="^livraison/$nom-[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9]\$" \
+      '$1 == "develop" && ($2 == b || $2 ~ l) { print $3 }' <<<"$prs")
     # Tickets du sujet : ceux qui le déclarent, et tous ceux d'une spec qui le déclare.
     # `sort -u` sur l'ensemble : un ticket qui déclare le sujet ET appartient à une spec qui le
     # déclare sortait deux fois (le pipe ne portait que sur la boucle).

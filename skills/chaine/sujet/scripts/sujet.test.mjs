@@ -301,6 +301,24 @@ test("livrer-prets ouvre la PR du seul sujet prêt, étiquetée à-fusionner", (
   );
 });
 
+test("livrer-prets ne rouvre pas un sujet dont la livraison intermédiaire est déjà ouverte", () => {
+  const d = sujetsALivrer();
+  const etat = d.etat();
+  etat.pulls.push({
+    number: 70,
+    title: "feat(demo): sujet pret — 1 sous-PR",
+    head: "livraison/pret-20261109-2245",
+    base: "develop",
+    labels: ["fusion-bloquée"],
+  });
+  d.github(etat);
+  const r = d.lancer(SCRIPT, "livrer-prets");
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.doesNotMatch(r.stdout, /ouverte \(/, "aucune nouvelle livraison");
+  assert.deepEqual(d.journal(), []);
+  assert.match(d.lancer(SCRIPT, "etat").stdout, /^pret\t.*\tlivré #70$/m);
+});
+
 // Un préfixe à un seul segment (SOC-1) se lit comme ALL-DEM-1.
 test("demarrer accepte un identifiant à un seul segment de préfixe", () => {
   const d = depotJouet();
