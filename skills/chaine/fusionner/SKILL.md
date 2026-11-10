@@ -47,7 +47,7 @@ cd <scratchpad>/capitaine && pnpm install --frozen-lockfile --prefer-offline
 
 ```bash
 mkdir -p <scratchpad>/outils && cp scripts/chaine/*.sh scripts/chaine/identifiant.mjs scripts/docs/identifiants.mjs <scratchpad>/outils/
-bash <scratchpad>/outils/veille.sh > <scratchpad>/veille.log 2>&1   # --pause <s> (120), --duree <min> (110)
+bash <scratchpad>/outils/veille.sh > <scratchpad>/veille.log 2>&1   # --pause <s> (120), --duree <min> (110) ; --sondes <n> n'existe que pour les tests
 ```
 
 `boucle.sh` s'arrête sur `FILE VIDE` : une PR étiquetée ensuite ne serait vue par personne. `veille.sh` lance la boucle, puis sonde `file.sh` toutes les 2 min (une lecture GitHub, aucune CI) et relance la boucle dès qu'une PR est « prête » ou « CI rouge » sans l'avoir été à la sonde précédente : une PR que la boucle vient de sauter ne la relance pas en rond. Une PR mise de côté « sans CI » la relance quand sa CI apparaît. « CI en cours », « attend », « bloquée » et brouillon ne relancent rien. Journal : `VEILLE <hh:mm> : file vide` au plus toutes les 10 min.
