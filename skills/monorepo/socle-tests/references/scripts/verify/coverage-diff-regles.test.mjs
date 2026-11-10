@@ -1,6 +1,12 @@
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { test } from "node:test";
 import {
+  baseDepuisPush,
+  choisirBase,
   decisionSansBase,
   exemption,
   fusionner,
@@ -160,4 +166,90 @@ test("fusionner — le squelette coverage.all d'une suite sans base ne masque pa
   assert.equal(m.lignes, 100);
   assert.equal(m.totalFonctions, 0);
   assert.deepEqual(verdict(m, { nouveau: false }), []);
+});
+
+const ZERO = "0".repeat(40);
+const HEAD = "a".repeat(40);
+
+test("la base d'un push vers un sujet : origin/sujet/<nom>", () => {
+  const ligne = `refs/heads/docs/carte ${HEAD} refs/heads/sujet/demo ${"b".repeat(40)}`;
+  assert.equal(baseDepuisPush(ligne, HEAD), "origin/sujet/demo");
+});
+
+test("la base d'un push : seul un push vers un sujet compte, la suppression est ignorée", () => {
+  assert.equal(baseDepuisPush(`refs/heads/fix/x ${HEAD} refs/heads/fix/x ${ZERO}`, HEAD), null);
+  assert.equal(baseDepuisPush(`refs/heads/develop ${HEAD} refs/heads/develop ${ZERO}`, HEAD), null);
+  assert.equal(baseDepuisPush(`(delete) ${ZERO} refs/heads/sujet/x ${HEAD}`, HEAD), null);
+  assert.equal(baseDepuisPush("", HEAD), null);
+  assert.equal(baseDepuisPush(undefined, HEAD), null);
+});
+
+test("la base d'un push : parmi plusieurs refs, celle de HEAD", () => {
+  const autre = "c".repeat(40);
+  const lignes = [
+    `refs/heads/a ${autre} refs/heads/sujet/autre ${ZERO}`,
+    `refs/heads/b ${HEAD} refs/heads/sujet/le-bon ${ZERO}`,
+  ].join("\n");
+  assert.equal(baseDepuisPush(lignes, HEAD), "origin/sujet/le-bon");
+});
+
+test("la base : le plus proche ancêtre parmi develop et les sujets, develop à égalité", () => {
+  const develop = { ref: "origin/develop", distance: 12 };
+  assert.equal(choisirBase([develop, { ref: "origin/sujet/s", distance: 2 }]), "origin/sujet/s");
+  assert.equal(
+    choisirBase([develop, { ref: "origin/sujet/livre", distance: 12 }]),
+    "origin/develop",
+  );
+  assert.equal(
+    choisirBase([{ ref: "origin/sujet/loin", distance: 30 }, develop]),
+    "origin/develop",
+  );
+  assert.equal(
+    choisirBase([
+      develop,
+      { ref: "origin/sujet/b", distance: 3 },
+      { ref: "origin/sujet/a", distance: 3 },
+    ]),
+    "origin/sujet/a",
+  );
+  assert.equal(choisirBase([]), "origin/develop");
+});
+
+test("la base : un sujet qui a avancé depuis la création de la branche reste le plus proche", () => {
+  const sh = (cwd, ...a) =>
+    execFileSync("git", ["-c", "user.name=t", "-c", "user.email=t@t", ...a], {
+      cwd,
+      encoding: "utf8",
+    }).trim();
+  const dir = mkdtempSync(join(tmpdir(), "base-auto-"));
+  try {
+    sh(dir, "init", "-q", "-b", "main");
+    const commit = (m) => sh(dir, "commit", "-q", "--allow-empty", "-m", m);
+    commit("develop");
+    sh(dir, "update-ref", "refs/remotes/origin/develop", "HEAD");
+    commit("sujet 1");
+    const fille = sh(dir, "rev-parse", "HEAD");
+    commit("sœur squashée dans le sujet");
+    sh(dir, "update-ref", "refs/remotes/origin/sujet/demo", "HEAD");
+    sh(dir, "checkout", "-q", "--detach", fille);
+    commit("fille 1");
+    commit("fille 2");
+    const sortie = execFileSync(
+      process.execPath,
+      [new URL("./coverage-diff.mjs", import.meta.url).pathname, "--base-auto", "--dry-run"],
+      { env: { ...process.env, PROJET_RACINE: dir }, encoding: "utf8" },
+    );
+    assert.match(sortie, /par rapport à origin\/sujet\/demo/);
+    // Une branche partie de develop garde develop, un sujet existant ne l'attire pas.
+    sh(dir, "checkout", "-q", "--detach", "origin/develop");
+    commit("correctif");
+    const hors = execFileSync(
+      process.execPath,
+      [new URL("./coverage-diff.mjs", import.meta.url).pathname, "--base-auto", "--dry-run"],
+      { env: { ...process.env, PROJET_RACINE: dir }, encoding: "utf8" },
+    );
+    assert.match(hors, /par rapport à origin\/develop/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });

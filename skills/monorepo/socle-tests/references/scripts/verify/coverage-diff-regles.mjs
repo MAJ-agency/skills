@@ -140,3 +140,40 @@ export function verdict(m, { nouveau, seuils = SEUILS }) {
     problemes.push(`branches ${m.branches} % < ${seuils.branches} %`);
   return problemes;
 }
+
+export const BASE_DEFAUT = "origin/develop";
+
+/**
+ * Base d'un push, lue sur l'entrée du hook pre-push (`<local_ref> <local_sha> <remote_ref>
+ * <remote_sha>`, une ligne par ref) : pousser vers `refs/heads/sujet/<nom>` se fusionne dans
+ * `origin/sujet/<nom>`. On retient la ligne qui pousse HEAD ; une suppression ne compte pas.
+ * Null si aucun push vers un sujet.
+ */
+export function baseDepuisPush(stdin, headSha) {
+  const lignes = (stdin ?? "")
+    .split("\n")
+    .map((l) => l.trim().split(/\s+/))
+    .filter((c) => c.length >= 4 && !/^0+$/.test(c[1]));
+  const vers = (c) => /^refs\/heads\/(sujet\/.+)$/.exec(c[2])?.[1];
+  const ligne = lignes.find((c) => c[1] === headSha && vers(c)) ?? lignes.find((c) => vers(c));
+  return ligne ? `origin/${vers(ligne)}` : null;
+}
+
+/**
+ * Base d'une branche de travail : le candidat (develop ou `origin/sujet/*`) dont il manque le
+ * moins de commits à HEAD (`distance` = `rev-list --count <ref>..HEAD`). Pas d'ascendance exigée :
+ * une branche dont le sujet a avancé (sous-PR sœur squashée, `sujet.sh rafraichir`) ne l'a plus
+ * pour ancêtre, mais seuls ses propres commits lui manquent, donc son sujet reste le plus proche ;
+ * un sujet étranger lui manque au moins tous les commits du sien. À égalité develop l'emporte : un
+ * sujet livré n'est jamais plus proche, et une branche partie de develop (correctif `hors-sujet`,
+ * dont le ticket déclare pourtant un sujet) garde develop.
+ */
+export function choisirBase(candidats) {
+  const tri = [...candidats].sort(
+    (a, b) =>
+      a.distance - b.distance ||
+      (b.ref === BASE_DEFAUT) - (a.ref === BASE_DEFAUT) ||
+      a.ref.localeCompare(b.ref),
+  );
+  return tri[0]?.ref ?? BASE_DEFAUT;
+}
