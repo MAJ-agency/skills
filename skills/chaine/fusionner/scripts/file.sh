@@ -63,9 +63,12 @@ ci_jq='
     else "en cours" end'
 
 # Ordre : sous-PR de sujet d'abord (squash en quelques secondes), puis livraisons de sujet (une
-# PR qui en vaut N), puis prio:haute, puis numéro.
+# PR qui en vaut N : tête `sujet/<nom>`, ou livraison intermédiaire `livraison/<nom>-<AAAAMMJJ-HHMM>`
+# de sujet.sh livrer), puis prio:haute, puis numéro. L'ordre seul : passer.sh vérifie qu'une
+# livraison intermédiaire vient bien de son sujet avant de la dispenser de revue.
 jq -r '.[] | select(any(.labels[]; . == "à-fusionner")) | [
-    (if (.base | startswith("sujet/")) then 0 elif (.head | startswith("sujet/")) then 1
+    (if (.base | startswith("sujet/")) then 0
+     elif (.head | startswith("sujet/")) or (.head | test("^livraison/.+-[0-9]{8}-[0-9]{4}$")) then 1
      elif any(.labels[]; . == "prio:haute") then 2 else 3 end),
     .number, .sommet, .base, .draft,
     any(.labels[]; . == "fusion-bloquée"),
