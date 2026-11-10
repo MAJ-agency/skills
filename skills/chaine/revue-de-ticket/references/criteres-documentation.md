@@ -1,9 +1,9 @@
 # Critères de l'axe Documentation (liste fermée)
 
-Le relecteur reçoit le **diff** et lit la documentation du dépôt. Il ne rend que des écarts rattachés à l'un de ces critères. Les chemins sont des rôles : le glossaire du projet (`GLOSSARY.md`, ou `CONTEXT.md`), le registre de règles (`docs/metier/regles/` ou `rules.json`), les ADR (`docs/adr/` ou `docs/architecture/adr/`).
+Le relecteur reçoit le **diff** et lit la documentation du dépôt. Il ne rend que des écarts rattachés à l'un de ces critères. Les chemins sont des rôles : le glossaire du projet (`GLOSSARY.md`, ou `CONTEXT.md`), le registre de règles (`docs/metier/regles/<ctx>/RULE_<CTX>_<TRI>-<n>.md`), les ADR (`docs/adr/` ou `docs/architecture/adr/`).
 
 ```text
-D1  Glossaire — ARC-4 / langue des identifiants. Un terme du domaine nouveau dans le code (entité,
+D1  Glossaire — ADR_ALL_ARC-4 / langue des identifiants. Un terme du domaine nouveau dans le code (entité,
     value object, table, champ de contrat) a son entrée au glossaire avec son nom en code ; un
     identifiant qui ne correspond à aucune entrée est un écart.
 D2  Registre de règles — docs/methode/decisions.md. Une règle métier nouvelle ou précisée par le
@@ -20,6 +20,6 @@ D5  Fiches et README — CLAUDE.md, README.md, .claude/rules/. Une commande, un 
 D6  Ticket et spec — docs/agents/issue-tracker.md. Le ticket et la spec reflètent ce qui a été
     fait : statut, décisions par défaut sous ## Comments, question ouverte dans
     docs/questions-ouvertes.md si une a surgi.
-D7  Commentaires de code — ARC-4. Un commentaire dit le pourquoi, en français ; un commentaire qui
+D7  Commentaires de code — ADR_ALL_ARC-4. Un commentaire dit le pourquoi, en français ; un commentaire qui
     paraphrase le code, ou un TODO sans ticket, est un écart.
 ```

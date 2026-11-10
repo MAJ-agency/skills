@@ -1,11 +1,12 @@
-# Poser les parcours de bout en bout sur appareil
+# SPEC_ALL_SOC-1.15 — Poser les parcours de bout en bout sur appareil
 
 Status: ready-for-human
 Type: task
+Blocked by: 07, 14
 
-`MOB-1` place les parcours hors des tests unitaires : ils se jouent sur un simulateur ou un appareil, contre une vraie API. Rien n'est posé encore.
+`ADR_ALL_MOB-1` place les parcours hors des tests unitaires : ils se jouent sur un simulateur ou un appareil, contre une vraie API. Rien n'est posé encore.
 
-Bloqué par : `7-pare-feu-ci` et `14-distribution-eas-et-stores` — un parcours qui ne tourne pas en CI n'est pas un gate, et il faut un build à instrumenter.
+Un parcours qui ne tourne pas en CI n'est pas un gate, et il faut un build à instrumenter.
 
 ## À faire
 

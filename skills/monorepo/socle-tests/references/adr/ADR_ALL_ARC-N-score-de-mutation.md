@@ -1,4 +1,4 @@
-# ARC-{{N}} — Le noyau critique a un score de mutation plancher, mesuré à la demande
+# ADR_ALL_ARC-{{N}} — Le noyau critique a un score de mutation plancher, mesuré à la demande
 
 - Statut : **accepté**
 - Date : {{DATE}}

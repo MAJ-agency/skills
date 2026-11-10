@@ -72,7 +72,7 @@ const tickets = new Set(
 );
 const ticketExiste = (id) => tickets.has(id);
 // Les documents qui définissent la convention des tickets citent des identifiants d'exemple
-// (`SOC-1.03`) : ils ne sont pas lus pour cette nature.
+// (`SPEC_ALL_SOC-1.03`) : ils ne sont pas lus pour cette nature.
 const CONVENTION = /^docs\/agents\/(issue-tracker|triage-labels|chaine-de-production)\.md$|^docs\/agents\/gabarits\//;
 const skillExiste = (nom) => skillsPlugins.has(nom) || existsSync(join(ROOT, '.claude/skills', nom, 'SKILL.md'));
 const commandeExiste = (nom) =>

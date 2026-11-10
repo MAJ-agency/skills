@@ -1,4 +1,4 @@
-# Décider s'il y a un client, puis la forme de l'authentification
+# SPEC_ALL_SOC-1.03 — Décider s'il y a un client, puis la forme de l'authentification
 
 Status: needs-info
 Type: grilling

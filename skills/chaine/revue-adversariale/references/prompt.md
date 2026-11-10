@@ -28,7 +28,7 @@ Gravité :
 
 Format de sortie, et rien d'autre :
 - une ligne par constat :
-  <fichier>:<ligne> — <écart, une phrase> — <règle : <fichier> § « … » ou ARC-n> — <bloquant | à corriger | doute>
+  <fichier>:<ligne> — <écart, une phrase> — <règle : <fichier> § « … » ou ADR_ALL_ARC-n> — <bloquant | à corriger | doute>
 - ou, s'il n'y a rien : « aucun écart »
 - puis une dernière ligne : « Critères non concernés : S… P… » (ceux que le diff ne touche pas).
 

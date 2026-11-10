@@ -1,4 +1,4 @@
-# Choisir l'hébergement, puis régler `trust proxy`
+# SPEC_ALL_SOC-1.02 — Choisir l'hébergement, puis régler `trust proxy`
 
 Status: needs-info
 Type: research

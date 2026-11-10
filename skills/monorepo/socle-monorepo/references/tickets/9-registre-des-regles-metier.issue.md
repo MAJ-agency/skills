@@ -1,11 +1,11 @@
-# Ouvrir le registre des règles métier
+# SPEC_ALL_SOC-1.09 — Ouvrir le registre des règles métier
 
 Status: ready-for-human
 Type: task
+Blocked by: 01
 
 `docs/metier/regles/all/` est posé vide par le socle : le registre naît avec sa première règle. Ce ticket rappelle **comment** l'ouvrir, pour que la première règle écrite le soit correctement.
 
-Bloqué par : `1-modeliser-le-domaine`.
 
 ## Structure
 

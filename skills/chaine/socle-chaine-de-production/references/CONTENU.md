@@ -30,7 +30,7 @@ Les rôles, le cycle, le ticket prêt pour agent, les fichiers chauds, les consi
 
 ## Les ADR — `adr/`
 
-Trois gabarits, numérotés à l'installation par `next-id.mjs ARC` : la chaîne de production (un rôle par session, le ticket prêt, la revue adversariale, le capitaine), les branches de sujet, la recette humaine. Ils portent la décision et les faits mesurés qui la fondent ; le projet les date et peut les réviser. Les skills ne les relisent jamais.
+Trois gabarits, numérotés à l'installation par `next-id.mjs ADR ALL ARC` : la chaîne de production (un rôle par session, le ticket prêt, la revue adversariale, le capitaine), les branches de sujet, la recette humaine. Ils portent la décision et les faits mesurés qui la fondent ; le projet les date et peut les réviser. Les skills ne les relisent jamais.
 
 ## Les fragments — `fragments/`
 

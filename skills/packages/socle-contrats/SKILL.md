@@ -7,7 +7,7 @@ description: Pose les paquets partagés d'un monorepo — packages/contracts (sc
 
 Pose ce que l'API et ses clients **partagent** : le paquet `contracts`, source unique des schémas Zod, et le gabarit du paquet `utils`, posé le jour où deux briques partagent une fonction pure. Avec les règles qui font tenir le partage, et le lint qui les applique.
 
-**Ce socle ne contient aucun contrat métier** : `contracts` ne porte que le corps d'erreur commun. Ses identifiants suivent `ARC-4` : anglais et généralistes (`ErrorDto`, `Create{Entity}Dto`), le nom d'entité étant le nom en code du `GLOSSARY.md` ; les commentaires restent dans la langue du projet. Les contrats métier naissent avec le premier use case, une fois le domaine modélisé.
+**Ce socle ne contient aucun contrat métier** : `contracts` ne porte que le corps d'erreur commun. Ses identifiants suivent `ADR_ALL_ARC-4` : anglais et généralistes (`ErrorDto`, `Create{Entity}Dto`), le nom d'entité étant le nom en code du `GLOSSARY.md` ; les commentaires restent dans la langue du projet. Les contrats métier naissent avec le premier use case, une fois le domaine modélisé.
 
 Tous les gabarits vivent dans [`references/`](references/). Les copier **verbatim** puis substituer les placeholders.
 
