@@ -1,0 +1,24 @@
+---
+id: RULE_{{CTX}}_{{TRI}}-{{n}}
+title: {{Le titre de la règle, en une ligne, sans point final}}
+validation:
+  status: candidate # candidate | validated | rejected | obsolete — seul un humain écrit validated
+  # date: AAAA-MM-JJ        obligatoire dès que le statut n'est plus candidate
+  # by: Prénom Nom          qui a tranché, par son nom
+  # reason: …               obligatoire pour rejected et obsolete
+# exception: { status: not-applicable | contradiction, reason: … }   les deux seuls états de réalisation écrits à la main
+# instanceOf: RULE_ALL_{{TRI}}-{{m}}   la règle de socle que cette règle instancie ; elle hérite de ses preuves tant qu'elle n'en a pas en propre
+sources:
+  - { ref: {{réunion du AAAA-MM-JJ, document, grilling et numéro de question}}, path: {{docs/metier/reunions/…}}, at: {{horodatage ou section}} }
+# decisions:
+#   - { date: AAAA-MM-JJ, text: …, by: Prénom Nom }
+# links:
+#   - { type: refines | replaces | contradicts | parameterized-by | blocked-by, target: RULE_{{CTX}}_{{TRI}}-{{m}} }
+# config:
+#   - { key: {{clé.de.configuration}}, value: {{valeur attendue}} }   une règle qui déclare des clés et n'a pas de test est « configurée »
+# extensions: {}   champs propres au projet, ignorés par Anchorpost
+---
+
+{{L'énoncé de la règle, en markdown libre, dans la langue du projet : ce que le métier exige, pas comment on le construit. Les précisions datées restent dans le texte : _(précisée le JJ/MM : …)_. Un passage qui ne vaut plus se barre, ~~ainsi~~, avec la date et la source de la revue. Une autre règle se cite par son identifiant complet (`RULE_ALL_LIC-2`) : la citation devient un lien déduit.}}
+
+Un test qui prouve cette règle porte son identifiant entre crochets en tête de son nom : `it('[RULE_{{CTX}}_{{TRI}}-{{n}}] should …')`. La réalisation (à construire, configurée, prouvée) n'est pas écrite ici : elle se lit dans les tests.

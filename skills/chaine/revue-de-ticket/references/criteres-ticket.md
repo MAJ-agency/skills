@@ -10,8 +10,8 @@ T2  Décisions tenues — ticket § « Décisions ». Chaque décision tranchée
     décision laissée à la fille « par défaut prudent » est prise, et notée sous ## Comments du
     ticket ; une décision contredite par le code est un écart.
 T3  Règles citées et cas de bord — registre de règles, `.claude/rules/tests.md` § Règles. Chaque
-    règle que le ticket ou la spec cite (`FAC-3`) a au moins un test qui porte son identifiant en
-    tête du nom ; les cas de bord que la règle énonce (limite, zéro, dépassement, chevauchement,
+    règle que le ticket cite (`Règles:`, `RULE_ALL_FAC-3`) a au moins un test qui porte son
+    identifiant entre crochets en tête du nom (`[RULE_ALL_FAC-3]`) ; les cas de bord que la règle énonce (limite, zéro, dépassement, chevauchement,
     passage à minuit, montant nul ou négatif, doublon) ont chacun un cas ; un test qui porte un
     identifiant de règle qu'il ne prouve pas est un écart.
 T4  Où — ticket § « Où ». Les fichiers que le ticket nomme sont ceux que le diff touche ; un
