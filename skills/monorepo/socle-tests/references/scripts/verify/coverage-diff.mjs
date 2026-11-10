@@ -112,7 +112,7 @@ try {
   } catch {
     tetesDistantes = null; // pas de distant, ou injoignable : on ne sait rien de lui
   }
-  const branche = BASE.replace(/^origin\//, "");
+  const branche = String(BASE).replace(/^origin\//, ""); // `--base` sans valeur : BASE est undefined, sortie 2 comme avant
   const decision = decisionSansBase(tetesDistantes, branche);
   if (decision === "premier-push") {
     console.log(`coverage-diff: dépôt distant vide, premier push — rien à comparer (la base « ${BASE} » naîtra avec la chaîne)`);

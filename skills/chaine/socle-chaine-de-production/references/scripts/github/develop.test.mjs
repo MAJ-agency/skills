@@ -94,3 +94,13 @@ test('refuse (4) un distant sans main, et un clone sans remote origin', () => {
   assert.equal(s.status, 4, s.stdout + s.stderr);
   assert.match(s.stderr, /aucun remote origin/);
 });
+
+test('refuse (6) un distant injoignable, sans le confondre avec une main absente, et ne pousse rien', () => {
+  const d = depotJouet();
+  d.git('remote', 'set-url', 'origin', join(d.travail, '..', 'inexistant.git'));
+  const r = d.lancer();
+  assert.equal(r.status, 6, r.stdout + r.stderr);
+  assert.match(r.stderr, /distant injoignable/);
+  assert.doesNotMatch(r.stderr, /main absente/);
+  assert.equal(d.hookJoue(), false);
+});
