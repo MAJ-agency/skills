@@ -11,7 +11,7 @@ Tous les gabarits vivent dans [`references/`](references/). Les copier **verbati
 
 ## Avant de commencer — vérifier le terrain
 
-1. **La racine est posée** (`pnpm-workspace.yaml`, `scripts/check.mjs`, `.claude/rules/tests.md`) ; sinon `/maj-skills:socle-monorepo` d'abord.
+1. **La racine est posée** (`pnpm-workspace.yaml`, `scripts/check.mjs`, `.claude/rules/tests.md`, `scripts/docs/identifiants.mjs` que `tests-creux` importe) ; sinon `/maj-skills:socle-monorepo` d'abord.
 2. **Les paquets testent par Vitest** (`"test": "vitest …"` dans chaque `package.json`). Un paquet sous Jest n'est pas mesuré par `coverage-diff` : le dire, ne pas l'adapter.
 3. Si `scripts/verify/coverage-diff.mjs` existe, le socle est posé : **s'arrêter et demander** ; une mise à jour se fait pièce par pièce.
 4. La chaîne de production (`.claude/chaine.json`) n'est pas requise, mais si elle est là, `coverage-diff` compare à `origin/develop` par défaut, et au pre-push (`--base-auto`) au sujet visé par le push ou au plus proche de develop et des `origin/sujet/*`.

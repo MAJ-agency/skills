@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import {
+import { module } from '../docs/depot-jouet.mjs';
+
+const {
   cheminsChauds,
   controlerCarte,
   controlerTicket,
@@ -19,7 +21,7 @@ import {
   reglesCitees,
   testsNommes,
   typeValide,
-} from './tickets-regles.mjs';
+} = await module('verify/tickets-regles.mjs');
 
 const NOM = 'SPEC_ALL_SOC-1-socle.06.issue.md';
 const EXISTANTS = new Set(['SPEC_ALL_SOC-1.05', 'SPEC_ALL_SOC-1.06', 'SPEC_FNSMR_STR-6.01']);

@@ -33,7 +33,7 @@ Une branche ou une PR d'une autre session ne se reprend pas sans l'accord de l'h
 
 ## Un ticket prêt pour agent
 
-`Status: ready-for-agent` veut dire qu'une session neuve peut le coder sans exploration large ni question : en tête `Modèle:`, `Fichiers chauds:` et, s'il y a lieu, `Blocked by:` et `Sujet:` ; dans le corps les sections `## Où`, `## Décisions`, `## Surfaces`, `## Vérification`. Format et raisons : `docs/agents/chaine-de-production.md` § 3. Gabarit : `docs/agents/gabarits/ticket.issue.md`. Le gate `tickets` refuse un ticket prêt qui ne le respecte pas.
+`Status: ready-for-agent` veut dire qu'une session neuve peut le coder sans exploration large ni question : en tête `Modèle:`, `Fichiers chauds:` et, s'il y a lieu, `Blocked by:` et `Sujet:` ; dans le corps les sections `## Où`, `## Décisions`, `## Surfaces`, `## Vérification`. Format et raisons : la méthode de la chaîne, `chaine-de-production.md` § 3 (posée dans `docs/agents/` par `socle-chaine-de-production`). Gabarit : `docs/agents/gabarits/ticket.issue.md`. Le gate `tickets` refuse un ticket prêt qui ne le respecte pas.
 
 ## Archivage
 

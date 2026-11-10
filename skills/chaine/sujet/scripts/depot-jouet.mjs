@@ -46,9 +46,9 @@ writeFileSync('docs/adr/README.md', readdirSync('docs/adr').filter((f) => /^ADR_
 `;
 const INDEX_GENERES = JSON.stringify({ index: [{ chemin: 'docs/adr/README.md', commande: 'node scripts/docs/adr-index.mjs' }] });
 
-// La grammaire des identifiants (skill `tickets`) : `scripts/docs/identifiants.mjs` dans un projet,
-// à côté de `scripts/chaine/` ; dans le plugin, dans le skill `tickets`.
-export const GRAMMAIRE = [join(ICI, '../docs/identifiants.mjs'), join(SKILLS, 'tickets/references/scripts/docs/identifiants.mjs')].find(existsSync);
+// La grammaire des identifiants (skill `socle-monorepo`) : `scripts/docs/identifiants.mjs` dans un
+// projet, à côté de `scripts/chaine/` ; dans le plugin, dans le skill `socle-monorepo`.
+export const GRAMMAIRE = [join(ICI, '../docs/identifiants.mjs'), join(SKILLS, '../monorepo/socle-monorepo/references/scripts/docs/identifiants.mjs')].find(existsSync);
 
 // Scripts que la boucle appelle : [skill, nom]. Posés dans un projet, tous vivent dans scripts/chaine/.
 const CHAINE = [

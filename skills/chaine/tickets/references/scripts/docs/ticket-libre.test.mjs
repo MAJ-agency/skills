@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { test } from 'node:test';
-import { ENV, depotJouet } from './depot-jouet.mjs';
+import { ENV, depotJouet, script } from './depot-jouet.mjs';
 
-const SCRIPT = new URL('./ticket-libre.mjs', import.meta.url).pathname;
+const SCRIPT = script('docs/ticket-libre.mjs');
 const TICKET = 'docs/features/socle/all/issues/SPEC_ALL_SOC-1-socle.03.issue.md';
 const lancer = ({ travail, bin }, id = 'SPEC_ALL_SOC-1.03') => spawnSync(process.execPath, [SCRIPT, id], { cwd: travail, env: { ...ENV, PATH: bin }, encoding: 'utf8' });
 

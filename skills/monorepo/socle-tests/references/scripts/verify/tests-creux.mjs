@@ -15,20 +15,30 @@
  * ensemble est non vide et entièrement inclus dans { toBeDefined, toBeTruthy }. Un cas sans
  * `expect` direct (assertions déléguées à un helper) relève de `vitest/expect-expect`.
  *
- * Un cas désactivé (`it.skip`, `it.todo`, `describe.skip`) sans identifiant de ticket dans son
- * titre ou sur la ligne au-dessus (`SOC-1.07`, `ARC-4`…) est refusé aussi : un test
- * désactivé sans ticket est un test oublié.
+ * Un cas désactivé (`it.skip`, `it.todo`, `describe.skip`) sans identifiant de ticket ou de spec
+ * dans son titre ou sur la ligne au-dessus (`SPEC_ALL_SOC-1.07`, `SPEC_ALL_ARC-4`…) est refusé
+ * aussi : un test désactivé sans ticket est un test oublié. L'identifiant se lit par la grammaire du
+ * socle, `scripts/docs/identifiants.mjs` (posée par `socle-monorepo`) : aucune expression n'en est
+ * écrite ici, et l'ancienne forme (`SOC-1.07`) ne compte pas.
  *
  * Échappatoire, pour un cas que l'on assume (fumée d'instanciation d'un module Nest, par
  * exemple) : `// tests-creux: ignore — <raison>` sur l'une des deux lignes au-dessus du `it`.
  *
  * Usage : node scripts/verify/tests-creux.mjs        (pnpm check, après lint)
  * Racine : le dépôt qui contient scripts/ ; `PROJET_RACINE` la remplace (tests).
- * Sorties : 0 OK · 1 au moins un cas creux.
+ * Sorties : 0 OK · 1 au moins un cas creux · 2 `scripts/docs/identifiants.mjs` absent.
  */
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { createRequire } from "node:module";
 import { join, relative } from "node:path";
+
+const grammaire = await import("../docs/identifiants.mjs").catch(() => null);
+if (!grammaire) {
+  console.error("tests-creux : scripts/docs/identifiants.mjs introuvable (grammaire des identifiants, posée par /maj-skills:socle-monorepo)");
+  process.exit(2);
+}
+// Un cas désactivé porte une spec ou un ticket : le travail qui le réactivera.
+const porteTicket = (texte) => grammaire.identifiantsCites(texte).some((id) => id.startsWith("SPEC_"));
 
 const ROOT = process.env.PROJET_RACINE ?? new URL("../..", import.meta.url).pathname;
 // `typescript` est celui du projet analysé (dépendance de la racine) ; à défaut, celui que le
@@ -47,7 +57,6 @@ const SCAN = ["apps", "packages"].map((d) => join(ROOT, d)).filter((d) => exists
 const SPEC = /\.(spec|e2e-spec|test)\.tsx?$/;
 const IGNORE = /tests-creux:\s*ignore\s*[—–:-]\s*\S/;
 const CREUX = new Set(["toBeDefined", "toBeTruthy"]);
-const TICKET = /\b[A-Z]{2,}(?:-[A-Z]{2,})*-\d+(?:\.\d{2})?\b/;
 const DESACTIVE = new Set(["skip", "todo"]);
 const SKIP_DIRS = new Set(["node_modules", "dist", ".next", ".expo", "coverage", ".turbo"]);
 
@@ -121,8 +130,8 @@ for (const dir of SCAN) {
         // La ligne au-dessus ne compte que si c'est un commentaire (la directive eslint-disable qui
         // porte le ticket) : le ticket d'un cas voisin ne couvre pas celui-ci.
         const auDessus = (lines[line - 2] ?? "").trim();
-        const commente = auDessus.startsWith("//") && TICKET.test(auDessus);
-        if (!TICKET.test(titre) && !commente) {
+        const commente = auDessus.startsWith("//") && porteTicket(auDessus);
+        if (!porteTicket(titre) && !commente) {
           errors.push(`${rel}:${line} : ${titre.replace(/\s+/g, " ").slice(0, 70)} — \`.${mot}\` sans ticket`);
         }
       }

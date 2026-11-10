@@ -1,15 +1,32 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, symlinkSync, writeFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { test } from "node:test";
 
-const SCRIPT = new URL("./tests-creux.mjs", import.meta.url).pathname;
-// Le script importe `typescript` depuis son propre emplacement : la racine jouet n'a pas besoin de node_modules.
+const ICI = dirname(new URL(import.meta.url).pathname);
+// Le script lit la grammaire à `scripts/docs/identifiants.mjs` : posée par socle-monorepo à côté de
+// `scripts/verify/` dans un projet ; dans le plugin, dans le skill socle-monorepo. Le banc joue une
+// copie posée comme dans un projet.
+const GRAMMAIRE = [
+  join(ICI, "../docs/identifiants.mjs"),
+  join(ICI, "../../../../socle-monorepo/references/scripts/docs/identifiants.mjs"),
+].find(existsSync);
+// `typescript` vient de la racine jouet : un lien vers celui que le banc trouve.
+const TYPESCRIPT = dirname(createRequire(import.meta.url).resolve("typescript/package.json"));
 
-function depot(specs) {
+function depot(specs, { avecGrammaire = true } = {}) {
   const racine = mkdtempSync(join(tmpdir(), "tests-creux-"));
+  mkdirSync(join(racine, "scripts/verify"), { recursive: true });
+  copyFileSync(join(ICI, "tests-creux.mjs"), join(racine, "scripts/verify/tests-creux.mjs"));
+  if (avecGrammaire) {
+    mkdirSync(join(racine, "scripts/docs"));
+    copyFileSync(GRAMMAIRE, join(racine, "scripts/docs/identifiants.mjs"));
+  }
+  mkdirSync(join(racine, "node_modules"));
+  symlinkSync(TYPESCRIPT, join(racine, "node_modules/typescript"));
   for (const [chemin, texte] of Object.entries(specs)) {
     mkdirSync(join(racine, chemin, ".."), { recursive: true });
     writeFileSync(join(racine, chemin), texte);
@@ -17,7 +34,7 @@ function depot(specs) {
   return racine;
 }
 const lancer = (racine) =>
-  spawnSync(process.execPath, [SCRIPT], { env: { ...process.env, PROJET_RACINE: racine }, encoding: "utf8" });
+  spawnSync(process.execPath, [join(racine, "scripts/verify/tests-creux.mjs")], { env: { ...process.env, PROJET_RACINE: racine }, encoding: "utf8" });
 
 test("un cas dont la seule assertion est toBeDefined est refusé, avec son fichier, sa ligne et son titre", () => {
   const r = lancer(
@@ -69,9 +86,9 @@ test("un it.skip, it.todo ou describe.skip sans ticket est refusé ; avec un tic
   const r = lancer(
     depot({
       "apps/api/src/e.spec.ts": `it.todo('plus tard');
-// eslint-disable-next-line vitest/no-disabled-tests -- skip: SOC-1.07 la base n'est pas posée
+// eslint-disable-next-line vitest/no-disabled-tests -- skip: SPEC_ALL_SOC-1.07 la base n'est pas posée
 it.skip('x', () => { expect(1).toBe(1); });
-it.todo('ARC-4 renommer les identifiants');
+it.todo('SPEC_ALL_ARC-4 renommer les identifiants');
 describe.skip('y', () => { it('z', () => { expect(1).toBe(1); }); });
 `,
     }),
@@ -81,4 +98,26 @@ describe.skip('y', () => { it('z', () => { expect(1).toBe(1); }); });
   assert.match(r.stdout, /e\.spec\.ts:5 : 'y' — `\.skip` sans ticket/);
   assert.doesNotMatch(r.stdout, /e\.spec\.ts:3 /);
   assert.doesNotMatch(r.stdout, /e\.spec\.ts:4 /);
+});
+
+test("un cas désactivé annoté de l'ancienne forme (SOC-1.07) ou d'une règle est refusé : seul un ticket ou une spec de la grammaire compte", () => {
+  const r = lancer(
+    depot({
+      "apps/api/src/f.spec.ts": `// eslint-disable-next-line vitest/no-disabled-tests -- skip: SOC-1.07 la base n'est pas posée
+it.skip('x', () => { expect(1).toBe(1); });
+it.todo('RULE_ALL_LIC-3 à prouver');
+it.todo('SPEC_ALL_SOC-1.07 à écrire');
+`,
+    }),
+  );
+  assert.equal(r.status, 1);
+  assert.match(r.stdout, /f\.spec\.ts:2 : 'x' — `\.skip` sans ticket/);
+  assert.match(r.stdout, /f\.spec\.ts:3 : 'RULE_ALL_LIC-3 à prouver' — `\.todo` sans ticket/);
+  assert.doesNotMatch(r.stdout, /f\.spec\.ts:4 /);
+});
+
+test("scripts/docs/identifiants.mjs absent : sortie 2, la grammaire nommée", () => {
+  const r = lancer(depot({ "apps/api/src/g.spec.ts": "it('x', () => { expect(1).toBe(1); });\n" }, { avecGrammaire: false }));
+  assert.equal(r.status, 2);
+  assert.match(r.stderr, /scripts\/docs\/identifiants\.mjs introuvable/);
 });

@@ -6,7 +6,7 @@ Un bloc ESLint pour les specs, chargé par `eslint.config.mjs` de la racine quan
 
 ## Le gate `tests-creux` — `scripts/verify/tests-creux.mjs`
 
-ESLint garantit qu'un `it` contient une assertion, pas qu'elle contraint quelque chose : `expect(r).toBeDefined()` est vert sur `{}`. Ce gate lit l'AST TypeScript de chaque spec et refuse un cas dont toutes les assertions sont `toBeDefined` ou `toBeTruthy`. Échappatoire motivée sur la ligne au-dessus. Dans `pnpm check`, après lint : quelques centaines de millisecondes.
+ESLint garantit qu'un `it` contient une assertion, pas qu'elle contraint quelque chose : `expect(r).toBeDefined()` est vert sur `{}`. Ce gate lit l'AST TypeScript de chaque spec et refuse un cas dont toutes les assertions sont `toBeDefined` ou `toBeTruthy`. Échappatoire motivée sur la ligne au-dessus. Un cas désactivé (`it.skip`, `it.todo`, `describe.skip`) porte une spec ou un ticket (`SPEC_ALL_SOC-1.07`) dans son titre ou dans le commentaire au-dessus, lu par la grammaire du socle (`scripts/docs/identifiants.mjs`, posée par `socle-monorepo`) : sans elle, le gate sort en 2. Dans `pnpm check`, après lint : quelques centaines de millisecondes.
 
 ## Le gate `coverage-diff` — `scripts/verify/coverage-diff.mjs` et `coverage-diff-regles.mjs`
 

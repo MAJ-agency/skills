@@ -4,7 +4,9 @@ import { chmodSync, mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
-import { avancement, enMarkdown, etat, lireTicket, prDuTicket } from './avancement-regles.mjs';
+import { module, script } from './depot-jouet.mjs';
+
+const { avancement, enMarkdown, etat, lireTicket, prDuTicket } = await module('docs/avancement-regles.mjs');
 
 const ticket = (nn, status, extra = '') => lireTicket(`docs/x/all/issues/SPEC_ALL_SOC-1-socle.${nn}.issue.md`, `# SPEC_ALL_SOC-1.${nn} — Objet ${nn}\n\nStatus: ${status}\n${extra}`);
 
@@ -103,7 +105,7 @@ test('gh en échec : avancement sans PR, ligne search_pull_requests, sortie 3', 
   mkdirSync(bin);
   writeFileSync(join(bin, 'gh'), '#!/bin/sh\nexit 1\n');
   chmodSync(join(bin, 'gh'), 0o755);
-  const r = spawnSync(process.execPath, [new URL('./avancement.mjs', import.meta.url).pathname, 'SPEC_ALL_SOC-1'], { cwd: travail, encoding: 'utf8', env: { ...env, PATH: `${bin}:${process.env.PATH}` } });
+  const r = spawnSync(process.execPath, [script('docs/avancement.mjs'), 'SPEC_ALL_SOC-1'], { cwd: travail, encoding: 'utf8', env: { ...env, PATH: `${bin}:${process.env.PATH}` } });
   assert.equal(r.status, 3, r.stderr);
   assert.match(r.stdout, /PR non vérifiées \(gh indisponible\)/);
   assert.match(r.stderr, /requête `SPEC_ALL_SOC-1 is:pr`/);

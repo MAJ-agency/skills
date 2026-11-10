@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { bilan, enEuros, enMarkdown, lireCarte, montant, table } from "./couts.mjs";
+import { module } from "./depot-jouet.mjs";
+
+const { bilan, enEuros, enMarkdown, lireCarte, montant, table } = await module("docs/couts.mjs");
 
 /** Les tables sont alignées : on compare le contenu, espaces de remplissage écrasés. */
 const plat = (md) => md.replace(/ {2,}/g, " ");

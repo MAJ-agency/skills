@@ -4,7 +4,7 @@ import { execFileSync } from 'node:child_process';
 import { lireEntree, RACINE } from './entree.mjs';
 import { decisionCommande, lireDependances } from './regles.mjs';
 
-// Grammaire des identifiants du skill `tickets` : le ticket d'une branche (`feat/spec-all-soc-1-04-hook`
+// Grammaire des identifiants du skill `socle-monorepo` : le ticket d'une branche (`feat/spec-all-soc-1-04-hook`
 // → `SPEC_ALL_SOC-1.04`) et celui d'un fichier ne se lisent que par elle, aucune expression n'en est
 // recopiée ici. Absente, le hook garde ses refus et demande pour toute dépendance, au lieu de tomber
 // entier sur un module manquant.

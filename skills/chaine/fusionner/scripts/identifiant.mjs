@@ -2,7 +2,7 @@
 /**
  * Point d'entrée des scripts shell de la chaîne (`sujet.sh`, `file.sh`) vers la grammaire des
  * identifiants. Les `.sh` n'écrivent pas la grammaire (type, contexte, trigramme) : ils appellent ce fichier, qui
- * importe `identifiants.mjs` du skill `tickets` (`slug`, `lireIdentifiant`, `ticketDeLaPr`…).
+ * importe `identifiants.mjs` du skill `socle-monorepo` (`slug`, `lireIdentifiant`, `ticketDeLaPr`…).
  *
  *   lire <id>                 l'identifiant de spec ou de ticket, en majuscules ; sortie 1 sinon
  *   slug <id>                 `SPEC_ALL_SOC-1.03` → `spec-all-soc-1-03` (nom de branche, de sujet)
@@ -16,7 +16,7 @@
  *
  * `identifiants.mjs` est cherché à côté de `scripts/chaine/` (`../docs/`, dans un projet et dans la
  * copie que `boucle.sh` fait de develop), à côté de ce fichier (copie à plat des outils du capitaine),
- * puis dans le skill `tickets` du plugin. Sorties : 0 · 1 `lire` d'un autre texte · 2 usage · 6
+ * puis dans le skill `socle-monorepo` du plugin. Sorties : 0 · 1 `lire` d'un autre texte · 2 usage · 6
  * grammaire introuvable.
  */
 import { existsSync, readFileSync } from 'node:fs';
@@ -24,11 +24,11 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const ICI = dirname(fileURLToPath(import.meta.url));
-const grammaire = ['../docs/identifiants.mjs', 'identifiants.mjs', '../../tickets/references/scripts/docs/identifiants.mjs']
+const grammaire = ['../docs/identifiants.mjs', 'identifiants.mjs', '../../../monorepo/socle-monorepo/references/scripts/docs/identifiants.mjs']
   .map((c) => join(ICI, c))
   .find(existsSync);
 if (!grammaire) {
-  console.error(`identifiant.mjs : scripts/docs/identifiants.mjs introuvable depuis ${ICI} (skill tickets : /maj-skills:tickets poser)`);
+  console.error(`identifiant.mjs : scripts/docs/identifiants.mjs introuvable depuis ${ICI} (posé par le skill socle-monorepo)`);
   process.exit(6);
 }
 const { identifiantDeLaSpec, identifiantDuTicket, lireIdentifiant, slug, ticketDeLaPr, ticketsCites } = await import(pathToFileURL(grammaire).href);

@@ -11,7 +11,8 @@
  * .claude/skills/**\/*.md, .claude/commands/*.md, docs/agents/**\/*.md. Natures (règles pures :
  * references-agent-regles.mjs) : chemin, commande, skill qualifiée (plugins installés listés dans
  * references-agent-integrees.json), section de CLAUDE.md ou des règles, identifiant de ticket
- * (`SOC-1.03`, présent sous docs/**\/issues/).
+ * (`SPEC_ALL_SOC-1.03`, son fichier présent sous docs/**\/issues/, nommé selon
+ * `scripts/docs/identifiants.mjs`).
  *
  * Dette : `references-agent-dette.json`, références cassées à l'allumage gelées par
  * `fichier:ligne:référence`. Jamais d'entrée nouvelle : on corrige la référence.
@@ -22,7 +23,8 @@
  */
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { basename, dirname, join } from 'node:path';
+import { identifiantDuTicket } from '../docs/identifiants.mjs';
 import { cleDette, intitulesTable, referencesCassees, titres } from './references-agent-regles.mjs';
 
 const ROOT = process.env.PROJET_RACINE ?? new URL('../..', import.meta.url).pathname;
@@ -66,9 +68,8 @@ const existeChemin = (c) =>
 const tickets = new Set(
   suivis
     .filter((f) => /\/issues\/[^/]+\.issue\.md$/.test(f))
-    .map((f) => /\/((?:[A-Z][A-Z0-9]*-)+\d+)-[a-z0-9-]+\.(\d{2})\.issue\.md$/.exec(f))
-    .filter(Boolean)
-    .map((m) => `${m[1]}.${m[2]}`),
+    .map((f) => identifiantDuTicket(basename(f)))
+    .filter(Boolean),
 );
 const ticketExiste = (id) => tickets.has(id);
 // Les documents qui définissent la convention des tickets citent des identifiants d'exemple

@@ -1,6 +1,6 @@
 // Le hook garde-commandes sur un dépôt jouet : la ligne `Dépendances:` du ticket ne compte que lue
 // sur `origin/sujet/*`. Les hooks sont copiés dans un dossier `scripts/` jouet, avec
-// `scripts/docs/identifiants.mjs` (skill `tickets`), comme dans un projet ; CLAUDE_PROJECT_DIR
+// `scripts/docs/identifiants.mjs` (skill `socle-monorepo`), comme dans un projet ; CLAUDE_PROJECT_DIR
 // désigne le clone de travail.
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
@@ -8,8 +8,11 @@ import { copyFileSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { test } from 'node:test';
 
-// Posé dans un projet, scripts/docs/ est à côté de scripts/agent/ ; dans le plugin, il est dans le skill tickets.
-const DOCS = existsSync(new URL('../docs/identifiants.mjs', import.meta.url)) ? new URL('../docs/', import.meta.url) : new URL('../../../tickets/references/scripts/docs/', import.meta.url);
+// Posé dans un projet, scripts/docs/ est à côté de scripts/agent/ ; dans le plugin, le dépôt jouet est
+// dans le skill tickets et la grammaire dans le skill socle-monorepo.
+const PROJET = existsSync(new URL('../docs/identifiants.mjs', import.meta.url));
+const DOCS = PROJET ? new URL('../docs/', import.meta.url) : new URL('../../../tickets/references/scripts/docs/', import.meta.url);
+const GRAMMAIRE = PROJET ? new URL('../docs/identifiants.mjs', import.meta.url) : new URL('../../../../monorepo/socle-monorepo/references/scripts/docs/identifiants.mjs', import.meta.url);
 const { ENV, depotJouet } = await import(new URL('depot-jouet.mjs', DOCS).href);
 
 const TICKET = 'docs/features/demo/all/issues/SPEC_ALL_DEMO-1-demo.01.issue.md';
@@ -27,7 +30,7 @@ function depot(ligneSujet, { avecIdentifiants = true } = {}) {
   for (const f of ['entree.mjs', 'regles.mjs', 'garde-commandes.mjs']) copyFileSync(new URL(f, import.meta.url), join(outils, 'agent', f));
   if (avecIdentifiants) {
     mkdirSync(join(outils, 'docs'), { recursive: true });
-    copyFileSync(new URL('identifiants.mjs', DOCS), join(outils, 'docs/identifiants.mjs'));
+    copyFileSync(GRAMMAIRE, join(outils, 'docs/identifiants.mjs'));
   }
   return { ...d, script: join(outils, 'agent/garde-commandes.mjs') };
 }
