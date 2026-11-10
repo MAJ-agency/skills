@@ -4,7 +4,7 @@ Inventaire des gabarits, avec la raison d'être de chacun. La racine du monorepo
 
 ## Règles mobile — `mobile/`
 
-- **`CLAUDE.md`** — les contraintes impératives, en anglais : identifiants de code anglais et généralistes (`ARC-4`), même architecture que le web (routes minces, features feuilles, sens unique), session dans le Keychain et nulle part ailleurs, un seul client HTTP Bearer sur les mêmes endpoints que le web, les trois sortes d'état, retour des mutations global, `Screen` comme coquille de tout écran, NativeWind seul, environnement et build, périmètre des tests, definition of done.
+- **`CLAUDE.md`** — les contraintes impératives, en anglais : identifiants de code anglais et généralistes (`ADR_ALL_ARC-4`), même architecture que le web (routes minces, features feuilles, sens unique), session dans le Keychain et nulle part ailleurs, un seul client HTTP Bearer sur les mêmes endpoints que le web, les trois sortes d'état, retour des mutations global, `Screen` comme coquille de tout écran, NativeWind seul, environnement et build, périmètre des tests, definition of done.
 - **`docs/MOBILE_GUIDELINES.md`** — le _pourquoi_ : Bearer plutôt que cookies, `Screen`, NativeWind plutôt que StyleSheet, le bundle comme gate, les trois réglages Metro d'un monorepo pnpm.
 
 ## Squelette — `squelette/apps/mobile/`
@@ -24,11 +24,11 @@ Inventaire des gabarits, avec la raison d'être de chacun. La racine du monorepo
 
 ## ADR — `adr/mobile/`
 
-- **`MOB-1`** — Expo et Expo Router, même architecture que le web, session par jetons dans le Keychain, bundle comme gate. Le trigramme `MOB` s'inscrit au registre avant la copie.
+- **`ADR_ALL_MOB-1`** — Expo et Expo Router, même architecture que le web, session par jetons dans le Keychain, bundle comme gate. Le trigramme `MOB` s'inscrit au registre avant la copie.
 
 ## Tickets — `tickets/`
 
-Plage `13`–`15` : `13` session mobile (bloqué par `5`), `14` distribution EAS et stores (grilling vers `MOB-2`), `15` parcours sur appareil (bloqué par `7` et `14`).
+Plage `13`–`15` : `13` session mobile (bloqué par `5`), `14` distribution EAS et stores (grilling vers `ADR_ALL_MOB-2`), `15` parcours sur appareil (bloqué par `7` et `14`).
 
 ## Fragments — `fragments/`
 

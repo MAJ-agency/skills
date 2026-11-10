@@ -5,7 +5,7 @@ Inventaire des gabarits du socle API, avec la raison d'être de chacun. À lire 
 ## Règles back — `api/`
 
 - **`CLAUDE.md`** — les contraintes impératives, en anglais pour rester diffable : règle d'or des dépendances (`infrastructure → application → domain`), alias de chemins obligatoires, décisions gelées, règles par couche, invariants (concurrence, idempotence, authentification, journal d'audit), frontières de contrat, nommage des ports, injection par token, stratégie de test, definition of done, ordre de génération domain-first.
-- **`docs/ARCHITECTURE_GUIDELINES.md`** — le _pourquoi_, avec exemples de code et check-lists. Les exemples utilisent un domaine placeholder (`Request`, `Resource`) **explicitement étiqueté** : il illustre une forme, pas un métier. Identifiants en anglais, prose en français (`ARC-4`) — le gabarit montre la règle qu'il énonce.
+- **`docs/ARCHITECTURE_GUIDELINES.md`** — le _pourquoi_, avec exemples de code et check-lists. Les exemples utilisent un domaine placeholder (`Request`, `Resource`) **explicitement étiqueté** : il illustre une forme, pas un métier. Identifiants en anglais, prose en français (`ADR_ALL_ARC-4`) — le gabarit montre la règle qu'il énonce.
 
 ## Squelette de code — `squelette/`
 
@@ -43,7 +43,7 @@ Le critère de découpe est le besoin d'infrastructure. `vitest.config.ts` exclu
 
 ## ADR — `adr/`
 
-- **`ARC-2`** — transactions et isolation, **à deux branches**. En garder une, supprimer l'autre. Une ADR qui laisse les deux options ouvertes n'a rien décidé.
+- **`ADR_ALL_ARC-2`** — transactions et isolation, **à deux branches**. En garder une, supprimer l'autre. Une ADR qui laisse les deux options ouvertes n'a rien décidé.
 
 ## Tickets — `tickets/`
 

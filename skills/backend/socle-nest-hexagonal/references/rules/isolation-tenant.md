@@ -10,7 +10,7 @@ paths:
 
 # Isolation des tenants
 
-S'applique dès qu'on touche l'API, les contrats partagés, le client HTTP d'un client ou un seed. {{TITRE}} sert plusieurs organisations depuis une même base, isolées par Row-Level Security (`ARC-2`). Le mécanisme de transaction est dans `apps/api/CLAUDE.md` § « Transactions » ; cette fiche dit ce qui doit tenir **dans toutes les briques** pour qu'une organisation ne voie jamais une autre.
+S'applique dès qu'on touche l'API, les contrats partagés, le client HTTP d'un client ou un seed. {{TITRE}} sert plusieurs organisations depuis une même base, isolées par Row-Level Security (`ADR_ALL_ARC-2`). Le mécanisme de transaction est dans `apps/api/CLAUDE.md` § « Transactions » ; cette fiche dit ce qui doit tenir **dans toutes les briques** pour qu'une organisation ne voie jamais une autre.
 
 ## Le tenant ne vient jamais du client
 

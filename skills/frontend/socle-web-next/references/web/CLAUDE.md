@@ -24,7 +24,7 @@ app/                                 ←  features/, components/, lib/
 
 ## File naming
 
-**Identifiers are English and generic (`ARC-4`)** — files, components, hooks, query keys, props, mutation meta — using the code names of `GLOSSARY.md`; user-facing text and comments are French. kebab-case files, PascalCase component exports. `features/<module>/api/<module>-api.ts`, `features/<module>/hooks/use-<module>.ts`, `features/<module>/components/<name>.tsx`, `features/<module>/index.ts`. Tests: `*.spec.ts` colocated.
+**Identifiers are English and generic (`ADR_ALL_ARC-4`)** — files, components, hooks, query keys, props, mutation meta — using the code names of `GLOSSARY.md`; user-facing text and comments are French. kebab-case files, PascalCase component exports. `features/<module>/api/<module>-api.ts`, `features/<module>/hooks/use-<module>.ts`, `features/<module>/components/<name>.tsx`, `features/<module>/index.ts`. Tests: `*.spec.ts` colocated.
 
 ## State — three kinds, three tools
 
@@ -40,10 +40,10 @@ app/                                 ←  features/, components/, lib/
 - Every response is typed by a schema from `packages/contracts` and **parsed** at the edge (`Schema.parse(response.data)`) — a lying API fails loudly, at the boundary, not three components later. **NEVER** declare a response `interface` in `features/*/api/*`: it belongs to the contract.
 - Errors: the API's error body is `ErrorDto` (`code` stable, `message` prescriptive). Read it through `lib/api-error.ts` only. Branch behaviour on `code`, show `message`.
 <!-- ══ TENANT-B ══ -->
-- **Tenant (`ARC-2`)**: the client **NEVER** sends a `tenantId` — not in a header, not in a body, not in a query string. The session carries it; the API resolves it. A tenant switch is an API call that re-issues the session, then `queryClient.clear()`. **NEVER** cache data across a tenant switch.
+- **Tenant (`ADR_ALL_ARC-2`)**: the client **NEVER** sends a `tenantId` — not in a header, not in a body, not in a query string. The session carries it; the API resolves it. A tenant switch is an API call that re-issues the session, then `queryClient.clear()`. **NEVER** cache data across a tenant switch.
 <!-- ══ /TENANT-B ══ -->
 <!-- ══ ROLES-B ══ -->
-- **Roles (`ARC-2`)**: the current role comes from `/auth/me` through `lib/auth/`, typed by `RoleSchema` from `packages/contracts`. Hiding a button by role is **presentation**: it improves the screen, it protects nothing. **NEVER** treat a role check in the client as authorisation — the API refuses, the client only avoids showing what would be refused.
+- **Roles (`ADR_ALL_ARC-2`)**: the current role comes from `/auth/me` through `lib/auth/`, typed by `RoleSchema` from `packages/contracts`. Hiding a button by role is **presentation**: it improves the screen, it protects nothing. **NEVER** treat a role check in the client as authorisation — the API refuses, the client only avoids showing what would be refused.
 <!-- ══ /ROLES-B ══ -->
 
 ## Mutations — feedback is global

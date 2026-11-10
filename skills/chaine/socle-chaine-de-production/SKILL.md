@@ -37,7 +37,7 @@ Rien d'autre : les branches sont `develop` et `main`, les labels ont leurs noms,
 5. **Les labels** : `references/labels.sh` → `scripts/github/labels.sh`. Avec `gh` authentifié, le jouer ; sinon `--liste`, et la ligne va dans `admin.md`.
 6. **La CI** : `references/ci/ci.yml` → `.github/workflows/ci.yml`, placeholders substitués. S'il existe déjà un workflow, y ajouter les trois jobs plutôt que le remplacer. Le job `zizmor` audite les workflows (injection par gabarit `${{ … }}` dans un `run:`, action non épinglée, `pull_request_target`, permissions larges) ; une valeur d'événement passe par `env:`, jamais dans un `run:`.
 7. **La méthode** : `references/docs-agents/chaine-de-production.md` → `docs/agents/chaine-de-production.md`, et `references/docs-agents/pieges.md` → `docs/agents/pieges.md`.
-8. **Les ADR** : `node scripts/docs/next-id.mjs ARC` trois fois, de suite ; `references/adr/ARC-N-chaine-de-production.md`, `ARC-N-branches-de-sujet.md`, `ARC-N-recette-humaine.md` → `docs/adr/ARC-<n>-….md`, `{{N}}` et `{{DATE}}` substitués. `{{ADR_CHAINE}}` et `{{ADR_SUJET}}` valent ces identifiants dans tous les fichiers posés.
+8. **Les ADR** : `node scripts/docs/next-id.mjs ADR ALL ARC` trois fois, de suite, chaque ADR copiée avant l'appel suivant ; `references/adr/ADR_ALL_ARC-N-chaine-de-production.md`, `ADR_ALL_ARC-N-branches-de-sujet.md`, `ADR_ALL_ARC-N-recette-humaine.md` → `docs/adr/ADR_ALL_ARC-<n>-….md`, `{{N}}` et `{{DATE}}` substitués. `{{ADR_CHAINE}}` et `{{ADR_SUJET}}` valent ces identifiants dans tous les fichiers posés.
 9. **La branche `develop`** : `git fetch origin main && git push origin origin/main:refs/heads/develop` si elle n'existe pas. La branche par défaut et sa protection sont à l'admin (`admin.md`).
 10. **Les fragments** : chaque fragment s'insère immédiatement au-dessus du marqueur de sa zone, sans le supprimer :
 
@@ -57,7 +57,7 @@ Un fragment d'arborescence prend le style de l'arbre déjà dessiné dans le fic
 ```bash
 pnpm check
 pnpm check:tickets        # le gate et les tests des scripts, dont scripts/agent/
-node scripts/docs/next-id.mjs ARC
+node scripts/docs/next-id.mjs ADR ALL ARC
 ```
 
 Puis : aucun placeholder `{{…}}` restant (chercher `{{[A-Z_]+}}` hors JSX) ; `.claude/settings.json` valide et les quatre hooks présents (deux graphify, deux agent) ; `gh api repos/{owner}/{repo}/labels --jq '.[].name'` liste les sept labels, ou la case correspondante de `chaine-admin.md` est ouverte.

@@ -45,7 +45,7 @@ Les skills de Maj-agency (`maj-skills`, dépôt [`MAJ-agency/skills`](https://gi
 
 ### Issue tracker
 
-Les issues et les specs vivent en markdown sous `docs/features/<feature>/` — pas de tracker externe, et **aucun dossier de travail hors de `docs/`**. Voir [`docs/agents/issue-tracker.md`](docs/agents/issue-tracker.md).
+Les issues et les specs vivent en markdown sous `docs/features/<feature>/<ctx>/` — pas de tracker externe, et **aucun dossier de travail hors de `docs/`**. Voir [`docs/agents/issue-tracker.md`](docs/agents/issue-tracker.md).
 
 ### Triage labels
 

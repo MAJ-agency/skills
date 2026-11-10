@@ -3,7 +3,7 @@
 Status: ready-for-human
 Type: task
 
-`WEB-1` place le rendu et les parcours hors des tests unitaires : ils se testent de bout en bout, contre une vraie API. Rien n'est posé encore.
+`ADR_ALL_WEB-1` place le rendu et les parcours hors des tests unitaires : ils se testent de bout en bout, contre une vraie API. Rien n'est posé encore.
 
 Bloqué par : `7-pare-feu-ci` — un parcours qui ne tourne pas en CI n'est pas un gate.
 

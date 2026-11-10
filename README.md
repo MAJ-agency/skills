@@ -102,7 +102,7 @@ Invocation : `/maj-skills:socle-chaine-de-production` une fois par dépôt (depu
 
 **Une méthode écrite.** Cinq documents qui font autorité : comment interroger un plan (grilling), quand écrire une ADR, comment nommer un document, comment concevoir un module profond, quels invariants la machine doit garantir.
 
-**Une documentation structurée.** Tout sous `docs/`, trié par thème — ADR, architecture, métier, features. Nomenclature `<TRI>-<N>-<slug>.md` (sans zéro de tête) avec registre de trigrammes, pour qu'une référence ne casse jamais au déplacement d'un fichier.
+**Une documentation structurée.** Tout sous `docs/`, trié par thème — ADR, architecture, métier, features. Nomenclature `<TYPE>_<CTX>_<TRI>-<n>-<slug>.md` (`ADR_ALL_ARC-2`, `SPEC_ALL_SOC-1`, `RULE_ALL_LIC-3` ; six types, le contexte `ALL` toujours écrit, sans zéro de tête) avec registre de trigrammes, pour qu'une référence ne casse jamais au déplacement d'un fichier.
 
 **L'outillage agent installé** (par `socle-monorepo`). graphify avec ses hooks, les skills Matt Pocock et superpowers, et la configuration `docs/agents/` produite en invoquant `setup-matt-pocock-skills` — pas recopiée à la main.
 
@@ -137,11 +137,11 @@ skills/
   frontend/
     socle-web-next/
       SKILL.md         le processus, en trois étapes
-      references/      squelette du client, règles front, ADR WEB-1, fragments, tickets web
+      references/      squelette du client, règles front, ADR_ALL_WEB-1, fragments, tickets web
   mobile/
     socle-mobile-expo/
       SKILL.md         le processus, en trois étapes
-      references/      squelette Expo, règles mobile, ADR MOB-1, fragments, tickets mobile
+      references/      squelette Expo, règles mobile, ADR_ALL_MOB-1, fragments, tickets mobile
   chaine/
     socle-chaine-de-production/
       SKILL.md         le processus, en quatre étapes

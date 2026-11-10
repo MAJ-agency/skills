@@ -1,4 +1,4 @@
-# ARC-2 — Transactions, isolation des données et rôles
+# ADR_ALL_ARC-2 — Transactions, isolation des données et rôles
 
 - Statut : **accepté**
 - Date : {{DATE}}
@@ -86,4 +86,4 @@ Elles sont structurantes : la première décide de la signature du port de trans
 
 - Règles impératives correspondantes : [`../../apps/api/CLAUDE.md`](../../apps/api/CLAUDE.md) § _Frozen architecture decisions_ et § _Transactions_
 - Gate CI correspondant : [`../methode/pare-feu-ci.md`](../methode/pare-feu-ci.md) § _Gate — isolation des données_
-- La forme de l'authentification et ce que la session transporte : `ARC-3` s'il existe
+- La forme de l'authentification et ce que la session transporte : `ADR_ALL_ARC-3` s'il existe

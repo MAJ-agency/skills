@@ -8,7 +8,7 @@ paths:
 
 # Base de données, migrations Kysely et types générés
 
-S'applique dès qu'on touche `src/db/`, une migration, un repository ou le Postgres local. Décisions : `apps/api/CLAUDE.md` § « Frozen architecture decisions » (Kysely, jamais un ORM), `ARC-2` (transactions et isolation). La couche est à monter par le ticket `4-couche-base-de-donnees` ; ses règles valent dès la première table.
+S'applique dès qu'on touche `src/db/`, une migration, un repository ou le Postgres local. Décisions : `apps/api/CLAUDE.md` § « Frozen architecture decisions » (Kysely, jamais un ORM), `ADR_ALL_ARC-2` (transactions et isolation). La couche est à monter par le ticket `4-couche-base-de-donnees` ; ses règles valent dès la première table.
 
 ## Nommage
 
@@ -22,7 +22,7 @@ S'applique dès qu'on touche `src/db/`, une migration, un repository ou le Postg
 | État          | `enum` PostgreSQL, valeurs en anglais             | `draft`, `active`, `closed`    |
 | Montant       | entier en centimes, jamais `float`                | `amount_cents`                 |
 
-Les identifiants SQL sont en anglais (`ARC-4`), les noms de code de `GLOSSARY.md` font foi.
+Les identifiants SQL sont en anglais (`ADR_ALL_ARC-4`), les noms de code de `GLOSSARY.md` font foi.
 
 ## Règles
 
@@ -62,7 +62,7 @@ CREATE TABLE resource (
 );
 ```
 
-L'appartenance d'une ligne à un compte se prouve dans le cas d'usage (`ARC-2`) : une clé étrangère vers le compte n'est pas une preuve, c'est le `SELECT` du use case qui l'est.
+L'appartenance d'une ligne à un compte se prouve dans le cas d'usage (`ADR_ALL_ARC-2`) : une clé étrangère vers le compte n'est pas une preuve, c'est le `SELECT` du use case qui l'est.
 <!-- ══ /TENANT-A ══ -->
 <!-- ══ TENANT-B ══ -->
 ## Gabarit d'une table d'organisation
