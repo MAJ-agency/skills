@@ -48,9 +48,17 @@ const INDEX_GENERES = JSON.stringify({ index: [{ chemin: 'docs/adr/README.md', c
 
 // Scripts que la boucle appelle : [skill, nom]. Posés dans un projet, tous vivent dans scripts/chaine/.
 const CHAINE = [
-  ...['boucle.sh', 'file.sh', 'passer.sh', 'renvoyer.sh', 'refus.sh', 'proprietaire.sh', 'github.sh', 'revue-exigee.mjs'].map(
-    (n) => ['fusionner', n],
-  ),
+  ...[
+    'boucle.sh',
+    'file.sh',
+    'passer.sh',
+    'renvoyer.sh',
+    'refus.sh',
+    'proprietaire.sh',
+    'github.sh',
+    'revue-exigee.mjs',
+    'migrations-ordre.mjs',
+  ].map((n) => ['fusionner', n]),
   ['revue-adversariale', 'diff-revue.sh'],
   ['revue-de-ticket', 'contexte-ticket.mjs'],
   ['sujet', 'sujet.sh'],

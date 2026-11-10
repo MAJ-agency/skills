@@ -21,14 +21,16 @@
  *      `tickets-dette.json` (prêts d'avant l'installation du gate). La dette ne grandit pas : un ticket
  *      nouveau ne s'y ajoute jamais ; `--elaguer` retire les entrées éteintes ;
  *   7. un ticket `ready-for-agent` dont `Fichiers chauds:` touche un motif de `cheminsSensibles`
- *      (`.claude/chaine.json`) porte `Label: architecte`.
+ *      (`.claude/chaine.json`) porte `Label: architecte` ;
+ *   8. deux cartes ouvertes ne réservent pas le même horodatage de migration (ligne `Migrations:` de
+ *      la fiche ; une carte `fini` ne réserve plus).
  *
  * Usage : node scripts/verify/tickets.mjs [--elaguer]   (pnpm check:tickets — CI)
  */
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
-import { controlerCarte, controlerTicket, ecartsFiches, ecartsFormatPret, estArchive, identifiant, identifiantsEnDouble, lireCheminsSensibles } from './tickets-regles.mjs';
+import { controlerCarte, controlerTicket, ecartsFiches, ecartsFormatPret, estArchive, identifiant, identifiantsEnDouble, lireCheminsSensibles, reservationsEnDouble } from './tickets-regles.mjs';
 
 const ROOT = process.env.PROJET_RACINE ?? new URL('../..', import.meta.url).pathname;
 const DETTE = join(ROOT, 'scripts/verify/tickets-dette.json');
@@ -80,6 +82,11 @@ for (const chemin of cartes) {
   }
   for (const e of r.erreurs) erreurs.push(`${chemin}:${e.ligne} : ${e.message}`);
 }
+erreurs.push(
+  ...reservationsEnDouble(
+    cartes.filter((c) => !cartesGelees.has(c)).map((chemin) => ({ chemin, texte: readFileSync(join(ROOT, chemin), 'utf8') })),
+  ),
+);
 const eteintes = [
   ...(dette.tickets ?? []).filter((c) => !detteActive.has(c)),
   ...[...cartesGelees].filter((c) => !cartesEnDette.has(c)),

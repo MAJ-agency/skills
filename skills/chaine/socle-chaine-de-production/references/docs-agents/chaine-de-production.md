@@ -84,6 +84,8 @@ Les règles de branche (sujet dès la première PR, jamais de PR empilée, un se
 
 `node scripts/docs/vagues.mjs <spec>` applique ces règles aux tickets (`Blocked by:` faits, `Fichiers chauds:` disjoints) et propose les vagues ; l'architecte décide.
 
+**Migrations : l'ordre d'arrivée dans develop fait foi.** Les horodatages réservés dans la carte (ligne `Migrations:` de la fiche, un horodatage jamais réservé par deux cartes ouvertes : `check:tickets`) sont un point de départ. Juste avant la livraison, une migration non livrée prend un horodatage strictement postérieur à la dernière migration de develop ; `scripts/chaine/migrations-ordre.mjs` le vérifie à la livraison d'un sujet (`sujet.sh livrer`), au passage d'une PR vers develop (`passer.sh`, refus = renvoi avec le fichier à renommer et l'horodatage libre suivant) et en CI (job `qualite`, étape « Ordre des migrations » ; `pnpm check:migrations-ordre` en local). Une sous-PR vers un sujet n'est pas concernée. Le dossier est la clé `migrations` de `.claude/chaine.json`.
+
 Les index générés (`scripts/docs/index-generes.json`) ne comptent pas : ils se régénèrent après chaque merge.
 
 ## 5. Session fille : les consignes communes
