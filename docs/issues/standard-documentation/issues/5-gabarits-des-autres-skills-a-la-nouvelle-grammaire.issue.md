@@ -17,6 +17,7 @@ Blocked by: 1
 - `skills/chaine/revue-adversariale/references/criteres-socle.md`, `skills/chaine/revue-de-ticket/references/*.md`, `skills/chaine/chantier/SKILL.md`, `skills/chaine/recette-humaine/**` : exemples d'identifiants (`SOC-1.03` → `SPEC_ALL_SOC-1.03`, `FAC-3` → `RULE_ALL_FAC-3`).
 - Les tickets de `references/tickets/` de chaque skill de service : `Type: task` déjà présent ; citations.
 - `README.md` de ce dépôt et `CLAUDE.md` du gabarit racine (`socle:routing`) : exemples.
+- Les appels à `next-id.mjs` sans type ni contexte, qui sortent en `2` depuis le ticket `2` : `node scripts/docs/next-id.mjs ARC` devient `node scripts/docs/next-id.mjs ADR ALL ARC`, `next-id.mjs <TRI>` devient `next-id.mjs SPEC <CTX> <TRI>`. Relevés par la fille du ticket `2` : `skills/chaine/socle-chaine-de-production/SKILL.md` (étape 8 et le bloc de commandes), `references/CONTENU.md` (§ ADR), `references/fragments/readme-commandes.md`, `skills/monorepo/socle-tests/SKILL.md` (étape 7), `skills/chaine/chantier/SKILL.md` (§ Fiche). Un `grep -rn 'next-id.mjs' skills --include=*.md` ne doit plus rendre que des appels à trois arguments.
 
 ## Décisions
 
@@ -27,6 +28,7 @@ Blocked by: 1
 
 | Surface                       | Preuve                                                                              |
 | ----------------------------- | ----------------------------------------------------------------------------------- |
+| appels de `next-id`           | le `grep` de `next-id.mjs` ci-dessus : trois arguments partout                     |
 | aucune ancienne grammaire     | le `grep` ci-dessus vide                                                            |
 | une pose complète             | `/maj-skills:socle-monorepo` sur un dépôt vide avec api, web, tests, chaîne : `docs/adr/` ne contient que des `ADR_ALL_*` ; `pnpm check` vert ; `references-agent` vert |
 
@@ -37,3 +39,4 @@ Blocked by: 1
 ## Comments
 
 - 2026-11-10 — Ouvert à la clôture du grilling (ticket `1`). Les fichiers de `socle-monorepo` sont déjà renommés dans la PR du grilling.
+- 2026-11-10 — Ajout de l'architecte, sur le constat de la fille du ticket `2` : les appels `next-id.mjs ARC` et `next-id.mjs <TRI>` des SKILL.md sont à reprendre ici.
