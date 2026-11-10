@@ -45,8 +45,28 @@
 # nouvelle version. `origin/develop` ou `scripts/chaine` introuvable, ou fetch en échec trois
 # fois : arrêt (sortie 6) avec un message, jamais de scripts périmés.
 #
+# Instance unique, arrêt d'un geste. Un verrou `flock` (`<git-common-dir>/boucle.verrou`,
+# « pid pgid » de la boucle dedans) interdit deux boucles à la fois : une seconde s'arrête aussitôt,
+# sortie 9. Le verrou est tenu par le descripteur 9, que l'`exec` de relance garde et que les fils
+# (passer.sh, tee…) héritent : il reste tenu tant qu'un orphelin vit, même boucle morte (`kill -9`).
+# Couplage fragile : `scripts/db/demarrer-local.sh` (socle API) ferme ce descripteur par hasard
+# (il rouvre le 9 pour son propre verrou, puis le ferme pour PostgreSQL) ; tout script du projet
+# qui lance un démon doit le fermer (`9>&-`), sinon le démon garde le verrou après la boucle.
+# L'arrêt passe par un fichier (`<git-common-dir>/boucle-arret`), que ni un processus d'attente
+# oublié ni `pgrep` ne contournent : la boucle le lit au démarrage, au début de chaque tour, avant
+# `livrer-prets`, avant chaque `passer` et avant le rafraîchissement de fin (sortie 10) ; une boucle
+# relancée tant qu'il existe refuse de démarrer (sortie 10, message). `--arreter` interrompt aussi le
+# passage en cours (TERM, puis KILL) : la trappe remet le worktree propre (`git merge --abort` ou
+# `reset --hard`, puis `switch --detach origin/develop` ; le worktree du capitaine ne porte rien
+# d'autre), sortie 143 (TERM) ou 130 (INT). Option inconnue : sortie 64. `flock` (util-linux) requis.
+#
 # Usage, depuis le worktree du capitaine (plus de copie manuelle à faire) :
 #   bash scripts/chaine/boucle.sh > <journal> 2>&1
+#   bash scripts/chaine/boucle.sh --arreter     pose le fichier d'arrêt, termine la boucle en cours
+#                                               (détenteurs réels du verrou, descendants, groupe noté ;
+#                                               la veille qui la porte n'est tuée que si elle est du
+#                                               même groupe)
+#   bash scripts/chaine/boucle.sh --reprendre   retire le fichier d'arrêt, puis lance la boucle
 # À la main, pour une PR vers develop (la boucle arrêtée : deux processus dans le worktree le
 # laissent en pleine fusion) :
 #   1. `file.sh` montre la file ; `n=$(file.sh --next)` donne la suivante vers develop, jamais
@@ -60,9 +80,99 @@
 # (sous `.git`, partagé par les worktrees) ; `BOUCLE_COPIE` le remplace. Le dossier voisin
 # `.nouveau` est extrait puis échangé d'un coup : un bash qui lit encore l'ancien fichier le garde.
 empreinte=$(git hash-object "$0")
-COPIE=${BOUCLE_COPIE:-$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null)/boucle-outils}
+COMMUN=$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null)
+COPIE=${BOUCLE_COPIE:-$COMMUN/boucle-outils}
 case "$COPIE" in /boucle-outils) echo "ARRÊT : boucle.sh se lance depuis un dépôt git (worktree du capitaine)" >&2; exit 6 ;; esac
 export BOUCLE_COPIE="$COPIE"
+[ -n "$COMMUN" ] || { echo "ARRÊT : boucle.sh se lance depuis un dépôt git (worktree du capitaine)" >&2; exit 6; }
+VERROU="$COMMUN/boucle.verrou"
+ARRET="$COMMUN/boucle-arret"
+
+command -v flock >/dev/null || { echo "ARRÊT : flock (util-linux) requis" >&2; exit 6; }
+usage() { echo "usage : boucle.sh [--arreter | --reprendre]" >&2; exit 64; }
+
+# `sleep` du PATH peut être factice (tests) : l'attente d'arrêt prend celui du système.
+pause_reelle() { PATH=/usr/bin:/bin sleep "$1"; }
+# Processus qui tiennent réellement le verrou : ceux qui ont le fichier ouvert (`-ef` : même inode).
+# Le pid noté dans le fichier peut être mort ou recyclé : on ne tue que ce que /proc montre.
+detenteurs() {
+  local f p
+  for f in /proc/[0-9]*/fd/*; do
+    [ "$f" -ef "$VERROU" ] || continue
+    p=${f#/proc/}; p=${p%%/*}
+    [ "$p" = "$$" ] || echo "$p"
+  done 2>/dev/null | sort -un
+}
+descendants() { local p; for p in $(pgrep -P "$1" 2>/dev/null); do descendants "$p"; echo "$p"; done; }
+pgid_de() { ps -o pgid= -p "$1" 2>/dev/null | tr -d ' '; }
+
+# --arreter : fichier d'arrêt posé d'abord (une relance oubliée refusera), puis la boucle en cours
+# est terminée : détenteurs réels du verrou et leurs descendants, et le groupe noté dans le verrou
+# (même si son meneur est mort) à condition qu'un détenteur en soit membre. Jamais notre groupe.
+arreter_boucle() {
+  date +%FT%T > "$ARRET"
+  local det pg moi cibles essai p
+  det=$(detenteurs)
+  if [ -z "$det" ]; then echo "[boucle] aucune boucle en cours ; fichier d'arrêt posé ($ARRET), --reprendre le retire"; return 0; fi
+  pg=$(awk '{ print $2 }' "$VERROU" 2>/dev/null)
+  moi=$(pgid_de $$)
+  case "$pg" in ''|*[!0-9]*) pg= ;; esac
+  if [ -n "$pg" ]; then
+    local membre=
+    for p in $det; do [ "$(pgid_de "$p")" = "$pg" ] && membre=1; done
+    [ -n "$membre" ] || pg=
+  fi
+  for essai in TERM KILL; do
+    cibles="$det"
+    for p in $det; do cibles="$cibles $(descendants "$p")"; done
+    [ -z "$pg" ] || [ "$pg" = "$moi" ] || kill -"$essai" -- "-$pg" 2>/dev/null
+    # shellcheck disable=SC2086
+    kill -"$essai" $cibles 2>/dev/null
+    for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
+      det=$(detenteurs)
+      [ -n "$det" ] || { echo "[boucle] boucle arrêtée ; fichier d'arrêt posé ($ARRET), --reprendre le retire"; return 0; }
+      pause_reelle 0.25
+    done
+  done
+  echo "[boucle] processus ($det) tiennent encore le verrou après KILL : à arrêter à la main" >&2
+  return 1
+}
+
+reprendre=0
+case "${1:-}" in
+  --arreter) arreter_boucle; exit $? ;;
+  --reprendre) reprendre=1; shift ;;
+  --*) usage ;;
+esac
+
+# Instance unique. Après un `exec` de relance (même pid), le descripteur 9 porte déjà le verrou.
+if [ "${BOUCLE_VERROU_PID:-}" != "$$" ]; then
+  exec 9>>"$VERROU"
+  flock -n 9 || { echo "REFUS : une boucle tourne déjà (pid $(cut -d' ' -f1 "$VERROU" 2>/dev/null)) : une seule à la fois, '--arreter' d'abord" >&2; exit 9; }
+  echo "$$ $(pgid_de $$)" > "$VERROU"
+  export BOUCLE_VERROU_PID=$$
+  # Un `git gc --auto` détaché hériterait du descripteur 9 et garderait le verrou : jamais détaché.
+  n=${GIT_CONFIG_COUNT:-0}
+  export "GIT_CONFIG_KEY_$n=gc.autoDetach" "GIT_CONFIG_VALUE_$n=false" \
+    "GIT_CONFIG_KEY_$((n + 1))=maintenance.autoDetach" "GIT_CONFIG_VALUE_$((n + 1))=false" \
+    "GIT_CONFIG_COUNT=$((n + 2))"
+fi
+[ "$reprendre" = 0 ] || rm -f "$ARRET"
+
+# Fichier d'arrêt : lu au démarrage, à chaque tour, avant `livrer-prets`, avant chaque passage.
+verifier_arret() {
+  [ ! -e "$ARRET" ] || { echo "ARRÊT demandé ($ARRET, posé le $(cat "$ARRET" 2>/dev/null)) : '--reprendre' pour relancer" >&2; exit 10; }
+}
+verifier_arret
+# Signal en plein passage : worktree remis propre (fusion commitée ou non, index régénérés).
+arret_signal() {
+  echo "[boucle] signal reçu : worktree remis propre, arrêt" >&2
+  git merge --abort 2>/dev/null || git reset -q --hard 2>/dev/null
+  git switch -q --detach origin/develop 2>/dev/null
+  exit "$1"
+}
+trap 'arret_signal 143' TERM
+trap 'arret_signal 130' INT
 
 arret_outils() { echo "ARRÊT : $1 : jouer des scripts périmés est pire qu'attendre, le capitaine traite puis relance" >&2; exit 6; }
 
@@ -134,6 +244,7 @@ rafraichir_sujets() {
 # Sous-PR et reciblages : rapides, faits avant chaque passage vers develop.
 traiter_sujets() {
   local n etat sujet rc
+  verifier_arret
   # Séries par spec et piles : regroupées d'office (hors prio:haute et hors-sujet).
   bash "$SUJET" regrouper-series 2>&1 | sed 's#^série #[sujets] REGROUPÉE série #; s#^#  #'
   bash "$outils/file.sh" | while IFS="$(printf '\t')" read -r n etat _ livre; do
@@ -173,6 +284,7 @@ traiter_sujets() {
     esac
   done
   # Sujets finis : PR finale ouverte, elle entre dans la file au tour suivant.
+  verifier_arret
   bash "$SUJET" livrer-prets 2>&1 | sed 's#^#[sujets] #; s#PR \(\#[0-9]*\) ouverte#LIVRÉ : PR \1 ouverte#'
   git switch -q --detach origin/develop 2>/dev/null || true
 }
@@ -181,6 +293,7 @@ traiter_sujets() {
 sortie=$(mktemp)
 trap 'rm -f "$sortie"' EXIT
 passer() {
+  verifier_arret
   bash "$outils/passer.sh" "$1" 2>&1 | tee "$sortie"
   return "${PIPESTATUS[0]}"
 }
@@ -190,6 +303,7 @@ sautees=${BOUCLE_SAUTEES:- }
 attente_fusion=${BOUCLE_ATTENTE:- }
 rafraichir_sujets
 while :; do
+  verifier_arret
   rafraichir_outils "$@"
   traiter_rouges
   traiter_sujets
@@ -237,6 +351,7 @@ while :; do
     *) echo "ARRÊT sur #$n (sortie $rc)"; exit "$rc" ;;
   esac
 done
+verifier_arret
 rafraichir_sujets
 attente=$(bash "$outils/file.sh" | awk -F '\t' '$2 ~ /CI en cours$/ { printf " #%s", $1 }')
 echo "FILE VIDE $(date +%H:%M)${attente:+ (CI en cours :$attente)}"

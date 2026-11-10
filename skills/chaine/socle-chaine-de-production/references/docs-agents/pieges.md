@@ -18,3 +18,8 @@ La rétro d'un chantier (skill `chantier` § 7) ajoute ici une ligne par inciden
 - **Titre de sous-PR au-delà de 120 caractères avec « (#n) »**, ou refusé par commitlint : renvoyée, jamais fusionnée.
 - **Le label se pose après le dernier push** : étiquetée sur son seul commit de réservation, une PR entre vide dans son sujet.
 - **Un capitaine arrêté ne prévient personne** : l'architecte qui attend une fusion regarde d'abord la date de la dernière fusion sur develop.
+
+## Boucle du capitaine
+
+- **Une boucle arrêtée peut être relancée par un processus d'attente oublié** que `pgrep` ne voit pas (cas vécu : une livraison intermédiaire rouverte puis fermée sans fusion) : arrêter la boucle par `bash scripts/chaine/boucle.sh --arreter` (fichier d'arrêt + verrou d'instance unique), jamais par un simple `kill` ; `--reprendre` pour repartir.
+- **Le pid noté dans un verrou ne prouve rien** : boucle morte (`kill -9`), ses orphelins (passer.sh, `tee`, `git gc` détaché) gardent le verrou, et le pid peut être recyclé par un processus étranger. `--arreter` ne tue que les détenteurs réels (`/proc/*/fd` → verrou) et le groupe noté s'ils en sont membres ; `scripts/db/demarrer-local.sh` ferme le descripteur 9 par hasard, couplage fragile : un script qui lance un démon le ferme (`9>&-`).
