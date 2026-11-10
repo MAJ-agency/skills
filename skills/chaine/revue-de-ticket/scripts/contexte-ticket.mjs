@@ -10,8 +10,9 @@
  * entrée d'un `rules.json` (`federations/<slug>/rules.json`, objet dont `id` ou `code` vaut
  * l'identifiant). ADR : le fichier de `docs/**` dont le nom commence par l'identifiant.
  *
- * Les identifiants (le ticket, ceux qu'il cite) se lisent par `scripts/docs/identifiants.mjs`, la
- * grammaire `<TYPE>_<CTX>_<TRI>-<n>` ; aucune expression d'identifiant ici.
+ * Le ticket, sa spec, leurs fichiers et les identifiants cités se lisent par
+ * `scripts/docs/identifiants.mjs`, la grammaire `<TYPE>_<CTX>_<TRI>-<n>`. Une règle et une ADR citées
+ * se cherchent encore par leur identifiant littéral, sous les deux formes de registre ci-dessus.
  *
  * Usage : node scripts/chaine/contexte-ticket.mjs <SPEC_ALL_SOC-1.03> [> <scratchpad>/revue/contexte.md]
  * Racine : le dépôt qui contient scripts/ ; `PROJET_RACINE` la remplace (tests).
@@ -19,7 +20,13 @@
  */
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { basename, join, relative } from "node:path";
-import { identifiantsCites, lireTicket } from "../docs/identifiants.mjs";
+import {
+  estArchive,
+  fichierDuTicket,
+  identifiantDeLaSpec,
+  identifiantsCites,
+  lireTicket,
+} from "../docs/identifiants.mjs";
 
 const ROOT =
   process.env.PROJET_RACINE ?? new URL("../..", import.meta.url).pathname;
@@ -48,23 +55,14 @@ const lire = (p) => readFileSync(p, "utf8");
 const litteral = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 // ── Le ticket et sa spec ───────────────────────────────────────────────────────────────
-const nn = id.split(".")[1];
-const spec = id.split(".")[0];
-const ticket = docs.find(
-  (p) =>
-    /\/issues\/[^/]+\.issue\.md$/.test(p) &&
-    !/\/issues\/archive\//.test(p) &&
-    basename(p).startsWith(`${spec}-`) &&
-    basename(p).endsWith(`.${nn}.issue.md`),
-);
+const { spec, index: nn } = lireTicket(id);
+const ticket = docs.find((p) => fichierDuTicket(id).test(p) && !estArchive(p));
 if (!ticket) {
   console.error(`contexte-ticket : ticket ${id} introuvable sous docs/`);
   process.exit(2);
 }
 const texteTicket = lire(ticket);
-const fichierSpec = docs.find(
-  (p) => basename(p).startsWith(`${spec}-`) && p.endsWith(".spec.md"),
-);
+const fichierSpec = docs.find((p) => identifiantDeLaSpec(basename(p)) === spec);
 const ligneSpec = fichierSpec
   ? lire(fichierSpec)
       .split("\n")
@@ -142,13 +140,7 @@ out.push("## Règles et décisions citées", "");
 if (cites.length === 0) out.push("(aucune)");
 for (const code of cites) {
   if (lireTicket(code)) {
-    const [specCitee, nnCite] = code.split(".");
-    const t = docs.find(
-      (p) =>
-        /\/issues\/[^/]+\.issue\.md$/.test(p) &&
-        basename(p).startsWith(`${specCitee}-`) &&
-        basename(p).endsWith(`.${nnCite}.issue.md`),
-    );
+    const t = docs.find((p) => fichierDuTicket(code).test(p));
     out.push(
       `### ${code} (ticket)`,
       t

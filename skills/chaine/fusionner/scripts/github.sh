@@ -9,8 +9,10 @@
 # =============================================================================
 DEPOT='repos/{owner}/{repo}'
 # Identifiants de la convention `tickets` (SPEC_ALL_SOC-1, SPEC_ALL_SOC-1.03 ; `spec-all-soc-1-03` dans
-# une branche) : aucune expression d'identifiant en shell. Tout passe par identifiant.mjs, à côté de
-# ce fichier, qui importe la grammaire de `scripts/docs/identifiants.mjs` (commandes : son en-tête).
+# une branche) : la grammaire (type, contexte, trigramme) ne s'écrit pas en shell. Lire un identifiant
+# dans un titre de PR, une branche ou un nom de fichier passe par identifiant.mjs, à côté de ce
+# fichier, qui importe `scripts/docs/identifiants.mjs` (commandes : son en-tête). Le shell ne fait que
+# retirer l'index `.NN` d'un identifiant déjà lu et chercher un fichier par son identifiant littéral.
 IDENTIFIANT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/identifiant.mjs"
 identifiant() { node "$IDENTIFIANT" "$@"; }
 

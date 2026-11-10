@@ -1,7 +1,7 @@
 /**
  * Grammaire des identifiants (`docs/methode/nomenclature.md`, `ADR_ALL_ARC-1`), en un seul endroit :
  * tous les scripts de `scripts/docs/`, `scripts/verify/`, `scripts/agent/` et `scripts/chaine/`
- * l'importent d'ici, aucun ne garde sa propre expression d'identifiant.
+ * l'importent d'ici, aucun n'écrit la grammaire de son côté.
  *
  *   <TYPE>_<CTX>_<TRI>-<n>         RULE_ALL_LIC-3 · SPEC_FNSMR_PAY-3 · ADR_ALL_ARC-11
  *   <TYPE>_<CTX>_<TRI>-<n>.<NN>    SPEC_FNSMR_PAY-3.02   (un ticket : sa spec, puis l'index)

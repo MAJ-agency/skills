@@ -2,7 +2,7 @@
 
 ## Le script — `scripts/contexte-ticket.mjs` → `scripts/chaine/`
 
-Le contexte que l'axe Ticket reçoit : le ticket entier, la ligne de sa spec, chaque règle métier et chaque ADR cités, tels que le dépôt les écrit — ligne d'un registre markdown (`| FAC-3 | … |`) ou entrée d'un `rules.json` (`{ "id": "ALL-LIC-7", … }`). Le sous-agent relit le diff contre ce contexte et n'explore pas le dépôt pour deviner l'intention : c'est le ticket qui la porte, et s'il ne la porte pas, c'est un défaut du ticket que la revue doit nommer. Banc d'essai sur un dépôt jouet, les deux formes de registre.
+Le contexte que l'axe Ticket reçoit : le ticket entier, la ligne de sa spec, chaque règle métier et chaque ADR cités, tels que le dépôt les écrit — ligne d'un registre markdown (`| RULE_ALL_FAC-3 | … |`) ou entrée d'un `rules.json` (`{ "id": "RULE_FFSA_LIC-7", … }`). Le sous-agent relit le diff contre ce contexte et n'explore pas le dépôt pour deviner l'intention : c'est le ticket qui la porte, et s'il ne la porte pas, c'est un défaut du ticket que la revue doit nommer. Banc d'essai sur un dépôt jouet, les deux formes de registre.
 
 ## Les critères — `criteres-ticket.md`, `criteres-documentation.md`
 

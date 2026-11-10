@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Point d'entrée des scripts shell de la chaîne (`sujet.sh`, `file.sh`) vers la grammaire des
- * identifiants. Les `.sh` ne portent aucune expression d'identifiant : ils appellent ce fichier, qui
+ * identifiants. Les `.sh` n'écrivent pas la grammaire (type, contexte, trigramme) : ils appellent ce fichier, qui
  * importe `identifiants.mjs` du skill `tickets` (`slug`, `lireIdentifiant`, `ticketDeLaPr`…).
  *
  *   lire <id>                 l'identifiant de spec ou de ticket, en majuscules ; sortie 1 sinon
