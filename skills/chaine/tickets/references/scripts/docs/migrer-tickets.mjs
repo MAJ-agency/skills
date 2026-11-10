@@ -10,7 +10,8 @@
  *      `n` est le prochain numéro libre (next-id.mjs, et les anciens `<TRI>-<n>` pas encore migrés),
  *      ou celui donné par `--n` ; NN = N sur deux chiffres, un ticket au-delà de 99 est refusé.
  *   B. `<TRI>-<n>` sans type ni contexte (ou `<CTX>-<TRI>-<n>`, le contexte dans le préfixe)
- *        <TRI>-<n>-<slug>.spec.md, .map.md              → <ctx>/SPEC_<CTX>_<TRI>-<n>-<slug>.spec.md, .map.md
+ *        <TRI>-<n>-<slug>.spec.md, .map.md, .analyse.md, .question.md (tout `<TRI>-<n>-<slug>.<sorte>.md`)
+ *                                                       → <ctx>/SPEC_<CTX>_<TRI>-<n>-<slug>.<sorte>.md
  *        issues/[archive/]<TRI>-<n>-<slug>.<NN>.issue.md → <ctx>/issues/[archive/]SPEC_<CTX>_<TRI>-<n>-<slug>.<NN>.issue.md
  *      `n`, le slug et NN sont gardés : un identifiant existant ne se renumérote pas. Les mentions
  *      `<TRI>-<n>` et `<TRI>-<n>.<NN>` de ces specs deviennent `SPEC_<CTX>_<TRI>-<n>[.<NN>]` dans tous
@@ -53,7 +54,9 @@ const spec = mds.find((f) => f === `${dossier}/${feature}.spec.md`);
 const tickets = mds.filter((f) => f.startsWith(`${dossier}/issues/`) && /\/(\d+)-[a-z0-9-]+\.issue\.md$/.test(f) && !estArchive(f));
 // ── Forme B : <TRI>-<n>-<slug>, ou <CTX>-<TRI>-<n>-<slug>. L'ancienne grammaire ne se lit qu'ici. ──
 const ANCIEN = `(?:${CTX}-)?${TRI}-(\\d+)`;
-const ANCIEN_FICHIER = new RegExp(`^(${ANCIEN})-([a-z0-9-]+)\\.(?:(spec|map)|(\\d{2})\\.issue)\\.md$`);
+// Tout fichier qui porte l'identifiant suit sa spec : `.spec.md`, `.map.md`, `.analyse.md`, `.question.md`
+// (docs/agents/issue-tracker.md § « Conventions »), et les tickets `.<NN>.issue.md`.
+const ANCIEN_FICHIER = new RegExp(`^(${ANCIEN})-([a-z0-9-]+)\\.(?:((?!issue\\b)[a-z]+)|(\\d{2})\\.issue)\\.md$`);
 const anciens = mds
   .filter((f) => f.startsWith(`${dossier}/`))
   .map((f) => ({ f, m: ANCIEN_FICHIER.exec(basename(f)) }))

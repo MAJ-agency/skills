@@ -131,9 +131,13 @@ export function branchePorte(branche, id) {
 
 const litteral = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-/** Le texte cite-t-il cet identifiant, bordé (`SPEC_ALL_SOC-1.01` n'est pas cité par `SPEC_ALL_SOC-1.010`) ? */
+/**
+ * Le texte cite-t-il cet identifiant, bordé ? `SPEC_ALL_SOC-1.01` n'est pas cité par
+ * `SPEC_ALL_SOC-1.010`, ni la spec `SPEC_ALL_SOC-1` par son ticket `SPEC_ALL_SOC-1.03` ; un point de
+ * fin de phrase après l'identifiant ne l'empêche pas d'être cité.
+ */
 export function texteCite(texte, id) {
-  return new RegExp(`(?<![\\w.-])${litteral(majuscules(id))}(?![\\w.])`, 'i').test(texte ?? '');
+  return new RegExp(`(?<![\\w.-])${litteral(majuscules(id))}(?!\\w|\\.\\d)`, 'i').test(texte ?? '');
 }
 
 /** Motif « identifiant de ticket dans un texte libre », bordé. */

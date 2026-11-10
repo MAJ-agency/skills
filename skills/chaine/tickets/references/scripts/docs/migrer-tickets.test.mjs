@@ -69,7 +69,9 @@ test('`Type: task` est posé sur un ticket qui n’a pas de `Type:`, sous `Statu
 // Forme B : `<TRI>-<n>` sans type ni contexte.
 const ANCIENS = {
   'docs/features/socle/SOC-1-socle.spec.md': '# SOC-1 — Le socle\n\nSujet: sujet/socle\n\n| Ticket | Objet |\n| --- | --- |\n| SOC-1.01 | [modéliser](issues/archive/SOC-1-socle.01.issue.md) |\n| SOC-1.03 | la couche base (RULE_ALL_FAC-3) |\n',
-  'docs/features/socle/SOC-1-socle.map.md': '# SOC-1 — Carte\n\nSujet: sujet/socle\n',
+  'docs/features/socle/SOC-1-socle.map.md': '# SOC-1 — Carte\n\nSujet: sujet/socle\n\nVoir [l’analyse](SOC-1-socle.analyse.md).\n',
+  'docs/features/socle/SOC-1-socle.analyse.md': '# Analyse pour SOC-1\n',
+  'docs/features/socle/SOC-1-hebergement.question.md': '# Question\n\nPosée par [la spec](SOC-1-socle.spec.md).\n',
   'docs/features/socle/issues/SOC-1-socle.03.issue.md': '# SOC-1.03 — Couche base\n\nStatus: ready-for-agent\nBlocked by: 01\nModèle: sonnet\n\nVoir [la spec](../SOC-1-socle.spec.md) et SOC-1.01 ; SOC-12.01 et SOC-10 sont d’autres specs.\n',
   'docs/features/socle/issues/archive/SOC-1-socle.01.issue.md': '# SOC-1.01 — Modéliser\n\nStatus: Fait — PR #4\nType: grilling\n',
   'docs/features/suite/SOC-12-suite.spec.md': '# SOC-12 — La suite, après SOC-1\n',
@@ -84,6 +86,10 @@ test('forme <TRI>-<n> sans contexte : le numéro, le slug et l’index sont gard
   assert.match(sec.stdout, /socle → SPEC_ALL_SOC-1 \(dry-run/);
   const r = lancer(d, ['socle', 'ALL', 'SOC', '--appliquer']);
   assert.equal(r.status, 0, r.stderr);
+  // L'analyse et la question portent l'identifiant de la spec : elles la suivent, et leurs liens avec elles.
+  assert.match(lire(d, `${ALL}/SPEC_ALL_SOC-1-socle.map.md`), /\[l’analyse\]\(SPEC_ALL_SOC-1-socle\.analyse\.md\)/);
+  assert.equal(lire(d, `${ALL}/SPEC_ALL_SOC-1-socle.analyse.md`), '# Analyse pour SPEC_ALL_SOC-1\n');
+  assert.match(lire(d, `${ALL}/SPEC_ALL_SOC-1-hebergement.question.md`), /\[la spec\]\(SPEC_ALL_SOC-1-socle\.spec\.md\)/);
   for (const f of ['SPEC_ALL_SOC-1-socle.spec.md', 'SPEC_ALL_SOC-1-socle.map.md', 'issues/SPEC_ALL_SOC-1-socle.03.issue.md', 'issues/archive/SPEC_ALL_SOC-1-socle.01.issue.md'])
     assert.ok(existsSync(`${d.travail}/${ALL}/${f}`), f);
   assert.ok(!existsSync(`${d.travail}/docs/features/socle/SOC-1-socle.spec.md`));

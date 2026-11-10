@@ -119,6 +119,9 @@ test('une branche ou un texte porte un identifiant, jamais par un préfixe', () 
   assert.ok(texteCite('feat(api): couche (spec_all_soc-1.03)', 'SPEC_ALL_SOC-1.03'));
   assert.ok(!texteCite('autre (SPEC_ALL_SOC-1.030)', 'SPEC_ALL_SOC-1.03'));
   assert.ok(!texteCite('autre (XSPEC_ALL_SOC-1.03)', 'SPEC_ALL_SOC-1.03'));
+  assert.ok(texteCite('fix(api): corrige SPEC_ALL_SOC-1.03.', 'SPEC_ALL_SOC-1.03'), 'un point final ne cache pas le ticket');
+  assert.ok(texteCite('docs: cadre SPEC_ALL_SOC-1.', 'SPEC_ALL_SOC-1'));
+  assert.ok(!texteCite('feat(api): couche (SPEC_ALL_SOC-1.03)', 'SPEC_ALL_SOC-1'), 'un ticket ne cite pas sa spec');
 });
 
 test('les identifiants cités dans un texte libre, et le ticket d’une PR', () => {
