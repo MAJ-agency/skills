@@ -29,7 +29,7 @@
 import { execFileSync } from 'node:child_process';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { basename, dirname, posix } from 'node:path';
-import { dossierDuContexte, estArchive, lireIdentifiant } from './identifiants.mjs';
+import { dossierDuContexte, estArchive, lireIdentifiant, litteral } from './identifiants.mjs';
 
 const args = process.argv.slice(2);
 const appliquer = args.includes('--appliquer');
@@ -53,7 +53,9 @@ const mds = git('ls-files', '-z', 'docs/**/*.md').split('\0').filter(Boolean);
 const spec = mds.find((f) => f === `${dossier}/${feature}.spec.md`);
 const tickets = mds.filter((f) => f.startsWith(`${dossier}/issues/`) && /\/(\d+)-[a-z0-9-]+\.issue\.md$/.test(f) && !estArchive(f));
 // ── Forme B : <TRI>-<n>-<slug>, ou <CTX>-<TRI>-<n>-<slug>. L'ancienne grammaire ne se lit qu'ici. ──
-const ANCIEN = `(?:${CTX}-)?${TRI}-(\\d+)`;
+// `CTX` et `TRI` sortent de la grammaire (lettres et chiffres seulement) ; échappés quand même, un motif
+// ne se construit jamais d'un argument de commande brut.
+const ANCIEN = `(?:${litteral(CTX)}-)?${litteral(TRI)}-(\\d+)`;
 // Tout fichier qui porte l'identifiant suit sa spec : `.spec.md`, `.map.md`, `.analyse.md`, `.question.md`
 // (docs/agents/issue-tracker.md § « Conventions »), et les tickets `.<NN>.issue.md`.
 const ANCIEN_FICHIER = new RegExp(`^(${ANCIEN})-([a-z0-9-]+)\\.(?:((?!issue\\b)[a-z]+)|(\\d{2})\\.issue)\\.md$`);
@@ -168,7 +170,7 @@ function reecrire(ancien, texte) {
   }
   // Forme B : les mentions de l'ancien identifiant, ticket compris (`SOC-1.03`), jamais un autre numéro
   // (`SOC-12`) ni un identifiant déjà typé (`SPEC_ALL_SOC-1`, `ALL-SOC-1`).
-  for (const [ancienId, nouveau] of mentions) sortie = sortie.replace(new RegExp(`(?<![\\w-])${ancienId}(?!\\w)`, 'g'), nouveau);
+  for (const [ancienId, nouveau] of mentions) sortie = sortie.replace(new RegExp(`(?<![\\w-])${litteral(ancienId)}(?!\\w)`, 'g'), nouveau);
   if (ticketsMigres.has(ancien)) sortie = avecType(sortie);
   return sortie;
 }

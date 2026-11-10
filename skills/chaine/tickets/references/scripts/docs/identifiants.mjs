@@ -124,12 +124,18 @@ export function identifiantDeBranche(branche) {
   return `SPEC_${m[1].toUpperCase()}_${m[2].toUpperCase()}-${m[3]}.${m[4]}`;
 }
 
+/**
+ * Un texte devient un motif littéral : ses caractères spéciaux d'expression régulière sont échappés.
+ * Tout motif construit depuis un identifiant reçu (argument de commande, nom de branche) passe par
+ * ici, même quand la grammaire l'a déjà validé : une fonction appelée sans validation ne construit
+ * jamais un motif plus large que son argument.
+ */
+export const litteral = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 /** La branche porte-t-elle le slug de cet identifiant (`feat/spec-all-soc-1-03-x` pour `SPEC_ALL_SOC-1.03`) ? */
 export function branchePorte(branche, id) {
-  return new RegExp(`(^|[/-])${slug(id)}(-|$)`).test(branche ?? '');
+  return new RegExp(`(^|[/-])${litteral(slug(id))}(-|$)`).test(branche ?? '');
 }
-
-const litteral = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 /**
  * Le texte cite-t-il cet identifiant, bordé ? `SPEC_ALL_SOC-1.01` n'est pas cité par
@@ -171,7 +177,7 @@ export const fichiersDeLaSpec = (spec) => new RegExp(`/${litteral(spec)}-${SLUG}
 /** Motif du fichier d'un ticket donné, dans un chemin, archive comprise. */
 export function fichierDuTicket(id) {
   const t = lireTicket(id);
-  return t ? new RegExp(`/${litteral(t.spec)}-${SLUG}\\.${t.index}\\.issue\\.md$`) : null;
+  return t ? new RegExp(`/${litteral(t.spec)}-${SLUG}\\.${litteral(t.index)}\\.issue\\.md$`) : null;
 }
 
 /** Un ticket rangé dans `issues/archive/` est sorti du chemin des gates et de la réservation. */

@@ -115,6 +115,8 @@ test('une branche ou un texte porte un identifiant, jamais par un préfixe', () 
   assert.ok(branchePorte('chore/spec-all-soc-1-03', 'SPEC_ALL_SOC-1.03'));
   assert.ok(!branchePorte('chore/spec-all-soc-1-030', 'SPEC_ALL_SOC-1.03'));
   assert.ok(!branchePorte('chore/spec-all-soc-11-03-x', 'SPEC_ALL_SOC-1.03'));
+  assert.ok(!branchePorte('feat/nimporte-quoi', '.*'), "un argument qui n'est pas un identifiant ne devient pas un motif");
+  assert.ok(!texteCite('nimporte quoi', '.*'));
   assert.ok(texteCite('feat(api): couche (SPEC_ALL_SOC-1.03)', 'SPEC_ALL_SOC-1.03'));
   assert.ok(texteCite('feat(api): couche (spec_all_soc-1.03)', 'SPEC_ALL_SOC-1.03'));
   assert.ok(!texteCite('autre (SPEC_ALL_SOC-1.030)', 'SPEC_ALL_SOC-1.03'));
