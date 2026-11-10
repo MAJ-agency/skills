@@ -46,6 +46,16 @@ writeFileSync('docs/adr/README.md', readdirSync('docs/adr').filter((f) => /^ARC-
 `;
 const INDEX_GENERES = JSON.stringify({ index: [{ chemin: 'docs/adr/README.md', commande: 'node scripts/docs/adr-index.mjs' }] });
 
+// Scripts que la boucle appelle : [skill, nom]. Posés dans un projet, tous vivent dans scripts/chaine/.
+const CHAINE = [
+  ...['boucle.sh', 'file.sh', 'passer.sh', 'renvoyer.sh', 'refus.sh', 'proprietaire.sh', 'github.sh', 'revue-exigee.mjs'].map(
+    (n) => ['fusionner', n],
+  ),
+  ['revue-adversariale', 'diff-revue.sh'],
+  ['revue-de-ticket', 'contexte-ticket.mjs'],
+  ['sujet', 'sujet.sh'],
+];
+
 export function depotJouet() {
   const racine = mkdtempSync(join(tmpdir(), 'jouet-'));
   const origine = join(racine, 'origine.git');
@@ -119,6 +129,17 @@ export function depotJouet() {
   };
   const lancer = (script, ...args) =>
     spawnSync('bash', [script, ...args], { cwd: travail, env, encoding: 'utf8' });
+  // Publie les vrais scripts de la chaîne sur le develop du jouet (`scripts/chaine/`) : `boucle.sh`
+  // joue la copie d'origin/develop, jamais celle du worktree.
+  const publierChaine = () => {
+    for (const [skill, nom] of CHAINE) {
+      const source = script(skill, nom);
+      if (existsSync(source)) ecrire(`scripts/chaine/${nom}`, readFileSync(source, 'utf8'));
+    }
+    commit('chore(chaine): scripts de la chaîne');
+    git('push', '-q', 'origin', 'HEAD:develop');
+    git('fetch', '-q', 'origin');
+  };
   const developDistant = (chemin) => git('show', `origin/develop:${chemin}`);
 
   return {
@@ -136,5 +157,6 @@ export function depotJouet() {
     journal,
     lancer,
     developDistant,
+    publierChaine,
   };
 }

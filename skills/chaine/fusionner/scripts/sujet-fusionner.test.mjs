@@ -105,6 +105,7 @@ test("fusionner : sans conflit, squash comme avant", () => {
 
 test("boucle.sh : la sortie 8 ne renvoie pas la PR (MISE À JOUR, aucun label ni commentaire)", () => {
   const { d } = sousPrEnConflit("index");
+  d.publierChaine();
   const r = d.lancer(BOUCLE);
   assert.equal(r.status, 0, r.stdout + r.stderr);
   assert.match(r.stdout, /\[#80\] MISE À JOUR avec sujet\/lot \(index régénérés\), CI relancée/);

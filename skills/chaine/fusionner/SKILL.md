@@ -39,10 +39,12 @@ cd <scratchpad>/capitaine && pnpm install --frozen-lockfile --prefer-offline
 
 ## Boucle
 
-**Automatique (le cas normal) : la veille.** Copier les scripts hors du worktree (`passer.sh` change de branche), puis lancer depuis le worktree, **en tâche de fond**, la veille et non la boucle seule, sortie dans un journal :
+**Les scripts joués sont ceux de develop, à chaque tour.** `boucle.sh` se lance depuis le worktree, sans copie manuelle : à chaque tour elle fait `git fetch origin develop`, recopie `scripts/chaine` d'`origin/develop` dans `<git-common-dir>/boucle-outils` (hors de l'arbre de travail, partagé par les worktrees ; `BOUCLE_COPIE` le remplace) et n'appelle que cette copie, jamais les scripts du worktree, que `passer.sh` fait changer de branche. Un correctif de la chaîne fusionné pendant la boucle est joué au tour suivant ; si `boucle.sh` lui-même a changé sur develop, elle se relance dessus (`exec`), PR sautées gardées. `origin/develop` ou `scripts/chaine` introuvable, ou fetch en échec trois fois : `ARRÊT`, sortie 6, jamais de scripts périmés.
+
+**Automatique (le cas normal) : la veille.** Seule la veille tourne sur une copie, puisqu'elle appelle `file.sh` et `boucle.sh` à côté d'elle pendant que `passer.sh` change la branche du worktree ; la boucle qu'elle lance se remplace d'elle-même par la version de develop. Copier, puis lancer depuis le worktree, **en tâche de fond**, la veille et non la boucle seule, sortie dans un journal :
 
 ```bash
-mkdir -p <scratchpad>/outils && cp scripts/chaine/*.sh scripts/chaine/revue-exigee.mjs <scratchpad>/outils/
+mkdir -p <scratchpad>/outils && cp scripts/chaine/*.sh <scratchpad>/outils/
 bash <scratchpad>/outils/veille.sh > <scratchpad>/veille.log 2>&1   # --pause <s> (120), --duree <min> (110)
 ```
 
@@ -81,7 +83,7 @@ Compte rendu à l'utilisateur : PR fusionnées, avec squash et arbre vérifié ;
 
 ## Enseignements
 
-- **Les scripts tournent sur leur copie.** La veille et la boucle lisent `<scratchpad>/outils/`, copié au démarrage : une version des scripts fusionnée depuis ne s'applique qu'après une nouvelle copie et une veille relancée.
+- **La boucle rejoue develop, la veille sa copie.** La boucle recopie `scripts/chaine` d'`origin/develop` à chaque tour : un correctif fusionné s'applique au tour suivant, sans rien relancer (cas vécu : des livraisons parties en double alors que le correctif était déjà dans develop, la boucle jouant la copie faite à son lancement). Seuls `veille.sh` et `file.sh`, qu'elle sonde, restent ceux de `<scratchpad>/outils/` : un correctif de la veille ne s'applique qu'après une nouvelle copie et une veille relancée.
 - **Arrêter la veille (`TaskStop`) avant toute action manuelle** (`passer.sh`, `sujet.sh rafraichir … --abandon-si-conflit`) : deux processus dans le worktree le laissent en pleine fusion.
 - **Rouge réelle ou instable ?** Lire l'échec avant de relancer. Erreur de typage ou de test déterministe : prévenir la session propriétaire tout de suite, la relance ne sert à rien.
 - **« CI en cours » sans job en cours** : aucun run sur le sommet (push perdu). Seul un vrai push la relance (`sujet.sh relancer <pr>` par la session propriétaire), jamais une fusion côté serveur du capitaine.

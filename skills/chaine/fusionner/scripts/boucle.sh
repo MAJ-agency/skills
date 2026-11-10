@@ -38,8 +38,15 @@
 # branche, `prio:haute`), que le capitaine propose à l'utilisateur (`sujet.sh regrouper <nom>
 # <pr>…`) : regrouper une série non déclarée retarde sa recette, l'utilisateur tranche.
 #
-# Usage, depuis le worktree du capitaine, scripts copiés hors du worktree :
-#   bash <copie>/boucle.sh > <journal> 2>&1
+# Scripts : à chaque tour, `git fetch origin develop` puis copie fraîche de `scripts/chaine`
+# d'origin/develop dans `<git-common-dir>/boucle-outils` (hors de l'arbre de travail) ; la boucle
+# n'appelle QUE cette copie, jamais les scripts du worktree (qui peut être sur une branche de
+# sujet plus ancienne). Si `boucle.sh` a changé sur develop, elle se relance (`exec`) sur la
+# nouvelle version. `origin/develop` ou `scripts/chaine` introuvable, ou fetch en échec trois
+# fois : arrêt (sortie 6) avec un message, jamais de scripts périmés.
+#
+# Usage, depuis le worktree du capitaine (plus de copie manuelle à faire) :
+#   bash scripts/chaine/boucle.sh > <journal> 2>&1
 # À la main, pour une PR vers develop (la boucle arrêtée : deux processus dans le worktree le
 # laissent en pleine fusion) :
 #   1. `file.sh` montre la file ; `n=$(file.sh --next)` donne la suivante vers develop, jamais
@@ -48,8 +55,43 @@
 #      doc), attendre la notification sans sonder ; la suite selon le code de sortie est dans
 #      l'en-tête de passer.sh ; reprendre en 1.
 # =============================================================================
-outils=$(cd "$(dirname "$0")" && pwd)
-. "$outils/github.sh"
+# Les scripts joués sont ceux d'origin/develop, recopiés à CHAQUE tour : un correctif
+# de la chaîne fusionné pendant la boucle est vu au tour suivant. Dossier fixe hors du worktree
+# (sous `.git`, partagé par les worktrees) ; `BOUCLE_COPIE` le remplace. Le dossier voisin
+# `.nouveau` est extrait puis échangé d'un coup : un bash qui lit encore l'ancien fichier le garde.
+empreinte=$(git hash-object "$0")
+COPIE=${BOUCLE_COPIE:-$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null)/boucle-outils}
+case "$COPIE" in /boucle-outils) echo "ARRÊT : boucle.sh se lance depuis un dépôt git (worktree du capitaine)" >&2; exit 6 ;; esac
+export BOUCLE_COPIE="$COPIE"
+
+arret_outils() { echo "ARRÊT : $1 : jouer des scripts périmés est pire qu'attendre, le capitaine traite puis relance" >&2; exit 6; }
+
+rafraichir_outils() {
+  local essai
+  for essai in 1 2 3; do
+    git fetch -q origin develop 2>/dev/null && break
+    [ "$essai" != 3 ] || arret_outils "git fetch origin develop impossible, ou origin/develop introuvable"
+    sleep $((essai * 5))
+  done
+  git rev-parse --verify -q origin/develop >/dev/null || arret_outils "origin/develop introuvable"
+  rm -rf "$COPIE.nouveau" && mkdir -p "$COPIE.nouveau" &&
+    git archive origin/develop scripts/chaine 2>/dev/null | tar -x -C "$COPIE.nouveau" ||
+    arret_outils "scripts/chaine absent d'origin/develop"
+  [ -f "$COPIE.nouveau/scripts/chaine/boucle.sh" ] || arret_outils "scripts/chaine/boucle.sh absent d'origin/develop"
+  rm -rf "$COPIE" && mv "$COPIE.nouveau" "$COPIE"
+  outils="$COPIE/scripts/chaine"
+  # `boucle.sh` lui-même a changé sur develop : on repart sur la nouvelle version, état gardé.
+  if [ "$(git hash-object "$outils/boucle.sh")" != "$empreinte" ]; then
+    echo "[boucle] boucle.sh a changé sur develop : relance sur la nouvelle version"
+    rm -f "${sortie:-}"
+    BOUCLE_SAUTEES="${sautees:- }" BOUCLE_ATTENTE="${attente_fusion:- }" exec bash "$outils/boucle.sh" "$@"
+  fi
+  SUJET="$outils/sujet.sh"
+  [ -f "$SUJET" ] || SUJET="$outils/../../sujet/scripts/sujet.sh"
+  . "$outils/github.sh"
+}
+sortie=
+rafraichir_outils "$@"
 
 # CI rouge sur le sommet d'une PR de la file : une relance des jobs rouges, puis renvoi.
 # Tous les workflows du sommet comptent : « Secret Detection » vit dans « Security Scan », pas
@@ -74,9 +116,6 @@ traiter_rouges() {
     fi
   done
 }
-
-SUJET="$outils/sujet.sh"
-[ -f "$SUJET" ] || SUJET="$outils/../../sujet/scripts/sujet.sh"
 
 # develop dans chaque sujet ni livré (sa PR vers develop, passer.sh la tient à jour) ni actif
 # (une sous-PR ouverte : la mise à jour la remettrait en conflit avec la nouvelle tête).
@@ -146,11 +185,12 @@ passer() {
   return "${PIPESTATUS[0]}"
 }
 
-sautees=' '
+sautees=${BOUCLE_SAUTEES:- }
 # Sans CI déclenchée : mises de côté jusqu'à la prochaine fusion (develop aura bougé).
-attente_fusion=' '
+attente_fusion=${BOUCLE_ATTENTE:- }
 rafraichir_sujets
 while :; do
+  rafraichir_outils "$@"
   traiter_rouges
   traiter_sujets
   n=$(bash "$outils/file.sh" | awk -F '\t' -v s="$sautees$attente_fusion" '!t && $2 ~ /^prête/ && $2 !~ /sur sujet\// && index(s, " " $1 " ") == 0 { print $1; t = 1 }')
