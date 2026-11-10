@@ -50,7 +50,7 @@ Livré dans une seule PR vers `main`, plugin passé en 4.0.0 (le contrat du skil
 
 Tests : 262, 262 verts (231 sur `main`), par `node --test 'skills/*/*/scripts/*.test.mjs' 'skills/*/*/references/scripts/*/*.test.mjs' 'skills/*/*/references/agent/*.test.mjs'`. La vérification par pose a été remplacée, sur décision de l'architecte, par un dépôt vide monté à la main (gabarit `docs/` de `socle-monorepo` et scripts de `tickets`) : gate vert, `next-id SPEC ALL SOC` → `2`, `next-id ADR ALL ARC` → `6`. Sorties dans la PR.
 
-Revue adversariale : deux lots, neuf constats, aucun bloquant ; cinq corrigés, quatre laissés aux tickets `4` et `5` avec leur raison (détail dans la PR).
+Revue adversariale : deux lots, huit constats distincts, aucun bloquant ; six corrigés, deux laissés aux tickets `4` et `5` avec leur raison (détail dans la PR).
 
 Reste, hors de ce ticket : les appels `next-id.mjs ARC` et `next-id.mjs <TRI>` des `SKILL.md` de `socle-chaine-de-production`, `socle-tests` et `chantier` (ticket `5`) sortent maintenant en 2. Et deux scripts d'autres skills gardent une expression de l'ancienne forme, `references-agent-regles.mjs` et `references-agent.mjs` (`socle-monorepo`), `tests-creux.mjs` (`socle-tests`). Ils ne peuvent pas importer `identifiants.mjs` sans que ces skills dépendent de `tickets` : à décider dans un ticket à part.
 
