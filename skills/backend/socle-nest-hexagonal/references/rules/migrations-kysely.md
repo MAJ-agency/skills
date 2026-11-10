@@ -8,7 +8,7 @@ paths:
 
 # Base de données, migrations Kysely et types générés
 
-S'applique dès qu'on touche `src/db/`, une migration, un repository ou le Postgres local. Décisions : `apps/api/CLAUDE.md` § « Frozen architecture decisions » (Kysely, jamais un ORM), `ADR_ALL_ARC-2` (transactions et isolation). La couche est à monter par le ticket `4-couche-base-de-donnees` ; ses règles valent dès la première table.
+S'applique dès qu'on touche `src/db/`, une migration, un repository ou le Postgres local. Décisions : `apps/api/CLAUDE.md` § « Frozen architecture decisions » (Kysely, jamais un ORM), `ADR_ALL_ARC-2` (transactions et isolation). La couche est à monter par le ticket `SPEC_ALL_SOC-1.04` ; ses règles valent dès la première table.
 
 ## Nommage
 

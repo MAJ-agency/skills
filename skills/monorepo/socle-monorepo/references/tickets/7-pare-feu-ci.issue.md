@@ -1,4 +1,4 @@
-# Poser le pare-feu CI
+# SPEC_ALL_SOC-1.07 — Poser le pare-feu CI
 
 Status: ready-for-human
 Type: task

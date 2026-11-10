@@ -1,4 +1,4 @@
-# Modéliser le domaine
+# SPEC_ALL_SOC-1.01 — Modéliser le domaine
 
 Status: needs-info
 Type: grilling
@@ -31,6 +31,6 @@ Le socle technique tourne, mais **rien du métier n'est connu** : `GLOSSARY.md` 
 
 ## Ce qui suit ce ticket : une balle traçante, pas des couches
 
-La sortie du grilling n'est pas « le domaine modélisé » puis les tickets de couche un à un. C'est **une première tranche verticale** : un use case réel, du schéma dans `packages/contracts` à l'écran de chaque client, en passant par le port, le use case, l'adapter et la table — avec **juste ce que ce chemin exige** des tickets de couche (`4`, `5`, et les sessions des clients). Ces tickets se dimensionnent à la tranche ; ils ne se finissent pas avant elle. Découpage : `/mattpocock-skills:to-tickets` sur la spec issue du grilling ; méthode : `docs/methode/conception.md` § _La balle traçante_.
+La sortie du grilling n'est pas « le domaine modélisé » puis les tickets de couche un à un. C'est **une première tranche verticale** : un use case réel, du schéma dans `packages/contracts` à l'écran de chaque client, en passant par le port, le use case, l'adapter et la table — avec **juste ce que ce chemin exige** des tickets de couche (`SPEC_ALL_SOC-1.04`, `SPEC_ALL_SOC-1.05`, et les sessions des clients). Ces tickets se dimensionnent à la tranche ; ils ne se finissent pas avant elle. Découpage : `/mattpocock-skills:to-tickets` sur la spec issue du grilling ; méthode : `docs/methode/conception.md` § _La balle traçante_.
 
 ## Comments

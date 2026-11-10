@@ -41,7 +41,7 @@ Copier `references/` vers le dépôt selon cette table, puis substituer les plac
 | `references/api/CLAUDE.md`          | `apps/api/CLAUDE.md`                               |
 | `references/api/docs/*`             | `apps/api/docs/`                                   |
 | `references/adr/ADR_ALL_ARC-2-*`         | `docs/adr/` — **après avoir tranché ses deux sections** (isolation, rôles) |
-| `references/tickets/*`              | `docs/features/socle/issues/`                      |
+| `references/tickets/*`              | `docs/features/socle/all/issues/SPEC_ALL_SOC-1-socle.<NN>.issue.md` (`socle-monorepo` étape 6) |
 | `references/rules/*`                | `.claude/rules/` — règles à portée de chemins (`paths:`), chargées par Claude Code quand on touche la base ou le tenant ; **une branche par marqueur**, et `isolation-tenant.md` n'existe qu'en multi-tenant |
 
 Puis **composer les fichiers de la racine** — chaque fragment s'insère **immédiatement au-dessus** du marqueur de sa zone, sans supprimer le marqueur :
@@ -85,7 +85,7 @@ Contrôler enfin qu'il ne reste **aucun placeholder `{{…}}`** (chercher `{{[A-
 
 ## Étape 4 — déposer les tickets
 
-Les gabarits de `references/tickets/` deviennent `docs/features/socle/issues/`, dans la plage `4`–`6` réservée à l'API : couche base de données, authentification, journal d'audit. Les tickets transverses (`1` domaine, `2` hébergement, `3` client, `7` CI, `8` observabilité, `9` règles métier) sont déposés par `socle-monorepo`.
+Les gabarits de `references/tickets/` deviennent `docs/features/socle/all/issues/`, dans la plage `4`–`6` réservée à l'API : couche base de données, authentification, journal d'audit. Les tickets transverses (`1` domaine, `2` hébergement, `3` client, `7` CI, `8` observabilité, `9` règles métier) sont déposés par `socle-monorepo`.
 
 **Adapter chaque ticket à ce qui est déjà connu du projet.** Un ticket qui pose une question déjà tranchée est du bruit : le supprimer, ou le convertir en ADR. Si `socle-monorepo` a converti le ticket `3` en ADR (un client web ou mobile est installé), faire pointer `5` vers cette ADR.
 

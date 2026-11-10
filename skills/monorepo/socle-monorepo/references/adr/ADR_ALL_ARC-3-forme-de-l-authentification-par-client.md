@@ -4,7 +4,7 @@
 - Date : {{DATE}}
 - Portée : sécurité, API (`apps/api`) et ses clients
 
-> **Gabarit à sections par client.** Garder les sections des clients installés, supprimer les autres **et leurs marqueurs**. Sans aucun client, cette ADR n'existe pas : le ticket `3` reste ouvert.
+> **Gabarit à sections par client.** Garder les sections des clients installés, supprimer les autres **et leurs marqueurs**. Sans aucun client, cette ADR n'existe pas : le ticket `SPEC_ALL_SOC-1.03` reste ouvert.
 
 ## Contexte
 
@@ -27,7 +27,7 @@ La forme de l'authentification dépend de la nature du client — un navigateur 
 - **Jetons porteurs pour le navigateur aussi** — un jeton lisible par JavaScript est exposé au premier XSS ; le cookie httpOnly ne l'est pas.
 - **Cookies pour le mobile** — pas de jar fiable, pas de same-origin : une session fragile.
 - **Des routes séparées par client** (`/mobile/*`) — deux surfaces à documenter, tester et faire dériver, pour une différence qui tient à la forme de la réponse.
-- **Laisser la question ouverte** (le ticket `3` d'origine) — les clients sont installés : la question n'est plus ouverte, le ticket serait du bruit.
+- **Laisser la question ouverte** (le ticket `SPEC_ALL_SOC-1.03` d'origine) — les clients sont installés : la question n'est plus ouverte, le ticket serait du bruit.
 
 ## Conséquences
 
@@ -47,4 +47,4 @@ La forme de l'authentification dépend de la nature du client — un navigateur 
 
 - `ADR_ALL_ARC-2` — ce que la session porte (tenant, rôle)
 - Règles impératives : [`../../apps/api/CLAUDE.md`](../../apps/api/CLAUDE.md) § _Frozen architecture decisions_ et § _Invariants_
-- Tickets : `5-authentification` (API), puis le ticket de session de chaque client
+- Tickets : `SPEC_ALL_SOC-1.05` (API), puis le ticket de session de chaque client

@@ -28,7 +28,7 @@ Ce skill ne pose **aucune question** : le choix « navigateur » est fait par le
 | `references/web/CLAUDE.md`          | `apps/web/CLAUDE.md`                                              |
 | `references/web/docs/*`             | `apps/web/docs/`                                                  |
 | `references/adr/web/ADR_ALL_WEB-1-*`     | `docs/adr/web/` — décision rattachée au sujet `WEB`, donc dans son sous-dossier |
-| `references/tickets/*`              | `docs/features/socle/issues/`                                     |
+| `references/tickets/*`              | `docs/features/socle/all/issues/SPEC_ALL_SOC-1-socle.<NN>.issue.md` (`socle-monorepo` étape 6) |
 
 Puis **composer les fichiers de la racine** — chaque fragment s'insère **immédiatement au-dessus** du marqueur de sa zone, sans supprimer le marqueur :
 

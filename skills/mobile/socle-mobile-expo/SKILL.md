@@ -28,7 +28,7 @@ Ce skill ne pose **aucune question** : le choix « application mobile » est fai
 | `references/mobile/CLAUDE.md`           | `apps/mobile/CLAUDE.md`                                                     |
 | `references/mobile/docs/*`              | `apps/mobile/docs/`                                                         |
 | `references/adr/mobile/ADR_ALL_MOB-1-*`      | `docs/adr/mobile/` — décision rattachée au sujet `MOB`                      |
-| `references/tickets/*`                  | `docs/features/socle/issues/`                                               |
+| `references/tickets/*`                  | `docs/features/socle/all/issues/SPEC_ALL_SOC-1-socle.<NN>.issue.md` (`socle-monorepo` étape 6) |
 
 Le trigramme **`MOB`** n'est pas au registre de `docs/methode/nomenclature.md` : **l'y inscrire avant de copier l'ADR** (sujet : « guides et décisions propres au client mobile (`apps/mobile/`) », statut actif). Registre d'abord, fichier ensuite.
 

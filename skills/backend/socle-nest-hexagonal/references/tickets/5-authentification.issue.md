@@ -1,9 +1,9 @@
-# Implémenter l'authentification
+# SPEC_ALL_SOC-1.05 — Implémenter l'authentification
 
 Status: needs-info
 Type: task
 
-Bloqué par : `3-client-et-forme-de-l-authentification`. La recette ci-dessous ne vaut **que pour un client navigateur**. Si un client a été installé, `3` est devenu `ADR_ALL_ARC-3` : la forme est tranchée, ce ticket implémente et ne re-décide pas — remplacer ce paragraphe par un renvoi à `ADR_ALL_ARC-3` et passer le statut à `ready-for-human`.
+Dépend de `SPEC_ALL_SOC-1.03`. La recette ci-dessous ne vaut **que pour un client navigateur**. Si un client a été installé, `SPEC_ALL_SOC-1.03` est devenu `ADR_ALL_ARC-3` : la forme est tranchée, ce ticket implémente et ne re-décide pas — remplacer ce paragraphe par un renvoi à `ADR_ALL_ARC-3` et passer le statut à `ready-for-human`.
 
 ## Recette navigateur (défaut, sans `X-Client-Type`)
 
@@ -34,6 +34,6 @@ Bloqué par : `3-client-et-forme-de-l-authentification`. La recette ci-dessous n
 
 Compteur en base, hors session (la cadence se mesure **avant** toute authentification), incrémenté par UPSERT atomique. **Double clef** : par IP et par cible visée, **cible hachée** — le compteur ne stocke pas la liste des adresses. Refus **générique** (`429`, message identique quel que soit le cas, jamais un oracle), posé dans une garde **avant** la validation et avant tout hachage. **Fail-open tracé** : si le compteur tombe, la requête passe et l'erreur part au journal — une panne du compteur ne doit pas devenir un déni de service de l'authentification.
 
-Dépend de `2-hebergement-et-trust-proxy` : le comptage par IP exige un `req.ip` fiable.
+Dépend de `SPEC_ALL_SOC-1.02` : le comptage par IP exige un `req.ip` fiable.
 
 ## Comments

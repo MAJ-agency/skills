@@ -1,4 +1,4 @@
-# Poser le design system : tokens, primitives, thème
+# SPEC_ALL_SOC-1.11 — Poser le design system : tokens, primitives, thème
 
 Status: needs-info
 Type: grilling

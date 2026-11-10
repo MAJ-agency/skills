@@ -40,6 +40,6 @@ S'applique dès qu'on touche l'API, les contrats partagés, le client HTTP d'un 
 ## Vérification
 
 - Les trois tests d'isolation — fuite cross-tenant, fuite de GUC, introspection SQL — sont bloquants (`docs/methode/pare-feu-ci.md` § isolation).
-- Un gate CI refuse les identifiants d'organisation en dur dans `src/` (à poser par le ticket `7-pare-feu-ci`, avec une liste d'exceptions qui ne peut que décroître).
+- Un gate CI refuse les identifiants d'organisation en dur dans `src/` (à poser par le ticket `SPEC_ALL_SOC-1.07`, avec une liste d'exceptions qui ne peut que décroître).
 - Toucher l'authentification ou l'adapter de `IUnitOfWork` → rejouer les trois tests d'isolation et les tests de refus par route avant de pousser.
 <!-- ══ /TENANT-B ══ -->

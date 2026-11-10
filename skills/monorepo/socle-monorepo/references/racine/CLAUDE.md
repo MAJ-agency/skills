@@ -4,7 +4,7 @@
 
 **Les identifiants de code sont en anglais, généralistes ; la prose est en {{LANGUE}}** — commentaires, commits (conventional commits), documentation, textes d'interface, noms de tests. `GLOSSARY.md` fait le pont : chaque terme métier y a son nom en code. Décision et raisons : [`docs/adr/ADR_ALL_ARC-4-langue-des-identifiants-de-code.md`](docs/adr/ADR_ALL_ARC-4-langue-des-identifiants-de-code.md).
 
-> **État du dépôt — squelette technique, aucun métier.** Les services démarrent et les gardes de qualité mordent, mais **aucun domaine n'est modélisé** : `GLOSSARY.md` attend le grilling et `docs/metier/` n'existe pas. Ce qui reste à faire et ce qui reste à trancher est **déposé en tickets** dans `docs/features/socle/issues/`. Ne rien supposer d'existant qui ne soit pas listé ici.
+> **État du dépôt — squelette technique, aucun métier.** Les services démarrent et les gardes de qualité mordent, mais **aucun domaine n'est modélisé** : `GLOSSARY.md` attend le grilling et `docs/metier/` n'existe pas. Ce qui reste à faire et ce qui reste à trancher est **déposé en tickets** dans `docs/features/socle/all/issues/`. Ne rien supposer d'existant qui ne soit pas listé ici.
 
 ## Les règles vivent ici — carte d'orientation
 

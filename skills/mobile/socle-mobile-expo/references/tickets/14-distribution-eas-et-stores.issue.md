@@ -1,4 +1,4 @@
-# Décider la distribution : EAS, profils, stores, mises à jour
+# SPEC_ALL_SOC-1.14 — Décider la distribution : EAS, profils, stores, mises à jour
 
 Status: needs-info
 Type: grilling

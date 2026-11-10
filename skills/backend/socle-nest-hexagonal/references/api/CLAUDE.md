@@ -10,7 +10,7 @@ Stack (non-negotiable): **Kysely** (not TypeORM/Prisma) · **Zod / `nestjs-zod`*
 
 > **State note.** The skeleton exists and boots: path aliases, the `domain/application/infrastructure` tree, the `check`/`check:arch`/`check:cycles` scripts, global validation pipe and error filter, OpenAPI generation. **No domain is modelled** — `application/` is empty, there is no database layer yet. `src/db/`, migrations and `kysely-codegen` arrive with the first entity; don't assume they're there.
 
-> **Still open.** Decisions the scaffold deliberately did NOT make are filed as tickets under `docs/features/socle/issues/`, each with its options and its consequence. Settle one, then record it as an ADR — never adopt or drop one silently.
+> **Still open.** Decisions the scaffold deliberately did NOT make are filed as tickets under `docs/features/socle/all/issues/`, each with its options and its consequence. Settle one, then record it as an ADR — never adopt or drop one silently.
 
 ---
 

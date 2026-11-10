@@ -1,11 +1,12 @@
-# Monter la couche base de données
+# SPEC_ALL_SOC-1.04 — Monter la couche base de données
 
 Status: ready-for-human
 Type: task
+Blocked by: 01
 
 `DATABASE_URL` et `DATABASE_MIGRATOR_URL` sont validées au démarrage et `compose.yaml` sert un PostgreSQL local, mais **aucun code ne touche la base** : ni `src/db/`, ni migration, ni repository.
 
-Bloqué par : `1-modeliser-le-domaine` — une table sans domaine est une supposition.
+Une table sans domaine est une supposition.
 
 ## À faire
 
@@ -23,7 +24,7 @@ Bloqué par : `1-modeliser-le-domaine` — une table sans domaine est une suppos
 4. L'adapter `IUnitOfWork.runInTenant(tenantId, work)` : transaction + réglage tenant posé en **`LOCAL`** + propagation **ambiante** via un store de continuation (`nestjs-cls`), jamais un paramètre `trx` sur une méthode de port. Vérifié par `ADR_ALL_ARC-2`.
 5. Le **gabarit de migration d'une table tenant** : `tenant_id NOT NULL`, `ENABLE` + `FORCE ROW LEVEL SECURITY`, politique `USING` + `WITH CHECK` fail-closed sur le réglage de session ; et l'**allowlist versionnée** des tables hors tenant (vide au départ, chaque entrée justifiée par une ADR).
 6. Déclarer `src/db/types.ts` dans `scripts/docs/index-generes.json` si la chaîne de production est posée (`commande` : `db:types`, `verification` : `db:types:check`, chacune précédée du démarrage idempotent de la base locale, par exemple `bash scripts/db/demarrer-local.sh && …` : une session reprise a sa base éteinte). Ajouter `db:types:check` et le **gate anti-fuite tenant** (introspection SQL, fuite cross-tenant, fuite de GUC — `docs/methode/pare-feu-ci.md` § isolation) aux gates de la CI.
-7. Vérifier **avant de s'engager** que l'hébergement cible (`2-hebergement-et-trust-proxy`) permet de créer un rôle `NOBYPASSRLS` sur son PostgreSQL managé. C'est éliminatoire.
+7. Vérifier **avant de s'engager** que l'hébergement cible (`SPEC_ALL_SOC-1.02`) permet de créer un rôle `NOBYPASSRLS` sur son PostgreSQL managé. C'est éliminatoire.
 <!-- ══ /TENANT-B ══ -->
 <!-- ══ ROLES-B ══ -->
 8. La table d'**affectation des rôles** (qui porte quel rôle, dans quel tenant si multi-tenant), tenant-scopée comme les autres si la RLS s'applique ; le catalogue lui-même reste dans `packages/contracts/src/roles.ts`.
