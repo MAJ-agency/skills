@@ -16,18 +16,22 @@
 # Journal : « VEILLE <hh:mm> : file vide » au plus toutes les 10 min.
 #
 # Usage, en tâche de fond, depuis le worktree du capitaine, scripts copiés hors du worktree :
-#   bash <copie>/veille.sh [--pause <s>] [--duree <min>] > <journal> 2>&1   (défauts 120 s, 110 min)
+#   bash <copie>/veille.sh [--pause <s>] [--duree <min>] [--sondes <n>] > <journal> 2>&1   (défauts 120 s, 110 min)
 # Borné sous la limite de 2 h d'une tâche de fond ; VEILLE FINIE ou VEILLE ARRÊTÉE réveille la session.
+# `--sondes <n>` (pour les tests seulement) : VEILLE FINIE après n sondes, durée ou pas, pour qu'un test
+# compte des sondes sans dépendre de l'horloge. Défaut : pas de limite.
 # =============================================================================
 outils=$(cd "$(dirname "$0")" && pwd)
 
 pause=120
 duree=110
+sondes=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --pause) pause=${2:?--pause attend des secondes}; shift 2 ;;
     --duree) duree=${2:?--duree attend des minutes}; shift 2 ;;
-    *) echo "usage : veille.sh [--pause <s>] [--duree <min>]" >&2; exit 64 ;;
+    --sondes) sondes=${2:?--sondes attend un nombre}; shift 2 ;;
+    *) echo "usage : veille.sh [--pause <s>] [--duree <min>] [--sondes <n>]" >&2; exit 64 ;;
   esac
 done
 fin=$(awk -v d="$duree" 'BEGIN { printf "%d", d * 60 }')
@@ -58,9 +62,11 @@ SECONDS=0
 vu=$(etat_file || true)
 lancer
 dernier_journal=-600
-while [ "$SECONDS" -lt "$fin" ]; do
+faites=0
+while [ "$SECONDS" -lt "$fin" ] && { [ -z "$sondes" ] || [ "$faites" -lt "$sondes" ]; }; do
   sleep "$pause"
   [ "$SECONDS" -lt "$fin" ] || break
+  faites=$((faites + 1))
   if ! actuel=$(etat_file); then
     echo "VEILLE $(heure) : lecture de la file impossible, sonde sautée"
     continue
