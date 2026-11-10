@@ -92,7 +92,7 @@ Deux fichiers de code à retoucher, que le script ne devine pas :
 Dans `packages/shared-validators/src/federation-rules/` :
 
 1. Supprimer `repo-rules.ts` et `rules-doc.ts`, `rules-doc.cli.ts` (le README généré n'existe plus : l'index est l'annuaire), le script `docs:federation-rules` de `package.json`, et l'entrée `docs/produit/federations/*/README.md` de `scripts/docs/index-generes.json` ; `git rm` les README générés.
-2. Réécrire `federation-rules.registry.spec.ts` sur `readRules(root, slug)` et `collectProofs(root)` du paquet, en ne gardant que : les clés `config[].key` connues du contrat (`federationConfigShape`) ou du manifeste, et posées avec la bonne valeur dans `config.json` pour une règle `configured` ; les fichiers de `extensions.fedora.code` et `extensions.fedora.seed` existants, et les extraits de seed présents ; `configFederation('<slug>')` (ou `configsServies(` pour `all`) dans tout test P0 de `apps/api/src/` étiqueté pour une fédération servie ; les règles de mode étude (`ffbad`, `ffsavate`) qui portent toutes `decisions` et `extensions.fedora.outil` ; les cas en données valides (`cas.ts`). Tout ce que la CLI vérifie (schéma, identifiants, cibles, étiquettes vers une règle absente, plancher, tickets) **sort** de ce test.
+2. Réécrire `federation-rules.registry.spec.ts` sur `readRules(root, slug)` et `collectProofs(root)` du paquet, en ne gardant que : les clés `config[].key` connues du contrat (`federationConfigShape`) ou du manifeste, et posées avec la bonne valeur dans `config.json` pour une règle `configured` ; les fichiers de `extensions.fedora.seed` existants (ceux de `code` sont vérifiés par la CLI), et les extraits de seed présents ; `configFederation('<slug>')` (ou `configsServies(` pour `all`) dans tout test P0 de `apps/api/src/` étiqueté pour une fédération servie ; les règles de mode étude (`ffbad`, `ffsavate`) qui portent toutes `decisions` et `extensions.fedora.outil` ; les cas en données valides (`cas.ts`). Tout ce que la CLI vérifie (schéma, identifiants, cibles, étiquettes vers une règle absente, plancher, tickets) **sort** de ce test.
 3. `rules.ts` ne garde que `RULE_DOMAINS`, `RULE_TAG_PATTERN`, les schémas de `cas.ts` et ce que l'API lit encore ; `federationRuleSchema` et `federationRulesSchema` disparaissent avec `rules.json`.
 4. `scripts/check.mjs` : l'étape 6 (registre) appelle `anchorpost check` par `check:anchorpost` ; la CI joue `pnpm check` donc le gate.
 
@@ -116,7 +116,7 @@ Dans le manifeste : `documents` (le glossaire, `SPEC_ALL_ARC-2` architecture, `S
 
 **But** : Stryker tourne comme avant.
 
-`scripts/verify/mutation-regles.mjs` : `reglesProuvees` lit `readIndex(root).rules` filtrées sur `realisation.status === "proven"` ; `fichiersDesReglesProuvees` lit `extensions.fedora.code` par `readRules` ; `ETIQUETTE` disparaît. `mutation-regles-synthese.mjs` suit. Le workflow `mutation.yml` ne change pas.
+`scripts/verify/mutation-regles.mjs` : `reglesProuvees` lit `readIndex(root).rules` filtrées sur `realisation.status === "proven"` ; `fichiersDesReglesProuvees` lit `code` par `readRules` ; `ETIQUETTE` disparaît. `mutation-regles-synthese.mjs` suit. Le workflow `mutation.yml` ne change pas.
 
 **Vérification** : la liste produite est identique, ligne pour ligne, à `/tmp/perimetre-avant.txt` de l'étape 1 (`diff`) ; `node --test scripts/verify/mutation-regles*.test.mjs` vert ; un `workflow_dispatch` de `mutation.yml` sur « règles » rend un rapport.
 

@@ -76,6 +76,7 @@ type RuleFile = {
   sources?: { ref: string; path?: string; at?: string }[];
   decisions?: { date: string; text: string; by: string }[];
   config?: { key: string; value?: unknown }[];
+  code?: string[];            // fichiers de code qui réalisent la règle, chemins depuis la racine ; périmètre de la mutation par règle
   extensions?: Record<string, unknown>;   // propre au projet, jamais dans l'index
 };
 // corps : l'énoncé, markdown, dans la langue du projet
@@ -127,6 +128,7 @@ type Rule = {
   sources: { ref: string; path?: string; at?: string }[];
   decisions: { date: string; text: string; by: string }[];
   config: { key: string; value?: unknown }[];
+  code: string[];              // repris de l'en-tête, [] s'il n'y en a pas
   instanceOf?: string;
   links: { type: LinkType; target: string; origin: "declared" | "deduced"; justification?: string }[];
   proofs: { file: string; title: string; category: ProofCategory; level: "P0" | "P1" | "P2"; cases?: number }[];
@@ -174,7 +176,7 @@ Liste **fermée** de refus, sortie 1 au premier groupe d'erreurs, toutes listée
 
 1. manifeste ou fichier de règle invalide au schéma ;
 2. deux règles au même identifiant dans un contexte ; un identifiant de fichier différent de son champ `id` ;
-3. une cible de `links`, `instanceOf`, `Règles:`, `Cible:`, `Suite:`, `Origine:`, `Blocked by:` absente ; un `sources[].path` qui n'existe pas ;
+3. une cible de `links`, `instanceOf`, `Règles:`, `Cible:`, `Suite:`, `Origine:`, `Blocked by:` absente ; un `sources[].path` ou un chemin de `code` qui n'existe pas ;
 4. un ticket sans `Type:`, ou hors vocabulaire ; un `Status:` hors vocabulaire ;
 5. un ticket `Type: défaut` à `Status: Fait` dont un test nommé dans `## Surfaces` n'existe pas ou est désactivé (`it.skip`, `test.skip`, `xit`, `describe.skip`) ;
 6. une étiquette de test qui cite une règle absente ;
@@ -213,7 +215,8 @@ Un identifiant déjà à la nouvelle grammaire n'est jamais touché. Le script r
 | `socle: LIC-01`                  | `instanceOf: RULE_ALL_LIC-01`                                                                             |
 | `config[]`                       | `config[]`, tel quel                                                                                      |
 | `tickets[]`                      | une ligne `Règles:` ajoutée à chaque ticket cité, avec l'identifiant de la règle ; le champ disparaît     |
-| `code[]`, `seed[]`, `portee`, `jours`, `chantier`, `outil` | `extensions.fedora.*`, tels quels : les gates de Fedora les lisent encore                  |
+| `code[]`                         | `code`, tel quel (champ du standard, décision produit du 2026-11-10)                                       |
+| `seed[]`, `portee`, `jours`, `chantier`, `outil` | `extensions.fedora.*`, tels quels : les gates de Fedora les lisent encore                  |
 | `plancher { date, couvertes_prouvees }` du registre | `contexts[].floor` dans le manifeste                                                                |
 
 **Depuis un tableau markdown (Iroki, socle)**, pour chaque ligne `| Id | Règle | Source | ex | Statut |` :
@@ -259,7 +262,7 @@ checkProject(root): { errors: Alert[]; health: Alert[] }
 ruleFileSchema, manifestSchema, indexSchema    // Zod
 ```
 
-Fedora réécrit ses trois contrôles propres sur `readRules` et `collectProofs` ; son périmètre de mutation sur `readIndex` (`rules[].proofs`) et `readRules` (`extensions.fedora.code`).
+Fedora réécrit ses trois contrôles propres sur `readRules` et `collectProofs` ; son périmètre de mutation sur `readIndex` (`rules[].proofs`) et `readRules` (`code`).
 
 ## 10. Tickets
 
