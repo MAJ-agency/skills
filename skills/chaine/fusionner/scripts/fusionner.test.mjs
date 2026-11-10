@@ -456,7 +456,8 @@ test("file.sh : sujet en cours (Phase: 4-code) — PR toujours reciblée sur le 
 });
 
 // une livraison intermédiaire (tête `livraison/<nom>-<date>`) se traite comme une livraison
-// de sujet seulement si `sujet/<nom>` existe et contient son sommet : le nom de branche seul ne suffit pas.
+// de sujet seulement si `sujet/<nom>` existe et que la branche n'apporte qu'un sommet du sujet (fusionné
+// avec develop après une mise à jour) : le nom de branche seul ne suffit pas.
 const LIVRAISON = "livraison/lot-20261109-1200";
 function livraison(tete, sujetContientSommet) {
   const d = depotJouet();
@@ -497,4 +498,46 @@ test("passer.sh : livraison/* dont le sommet n'est pas dans sujet/<nom> repasse 
   const r = d.lancer(script("passer.sh"), "40");
   assert.equal(r.status, 4, r.stdout + r.stderr);
   assert.deepEqual(d.journal(), []);
+});
+
+// Livraison intermédiaire de code (revue exigée hors livraison) : develop a bougé, le premier passage
+// pousse sur la tête la fusion avec develop, puis s'arrête sur des checks rouges (sortie 3).
+function livraisonMiseAJour() {
+  const d = depotJouet();
+  d.branche("sujet/lot", "origin/develop", { "apps/api/lot.ts": "export const lot = 1;\n" });
+  d.git("push", "-q", "origin", `origin/sujet/lot:refs/heads/${LIVRAISON}`);
+  d.branche("develop", "origin/develop", { "docs/autre.md": "autre\n" }, "docs: autre (#39)");
+  d.git("switch", "-q", "--detach", "origin/develop");
+  d.github({
+    exiges: ["qualite"],
+    checks: { "*": { [PERIMETRE]: "SUCCESS", qualite: "FAILURE" } },
+    pulls: [pr(40, LIVRAISON, { title: "feat(demo): livraison intermédiaire" })],
+  });
+  const premier = d.lancer(script("passer.sh"), "40");
+  assert.equal(premier.status, 3, premier.stdout + premier.stderr);
+  assert.match(premier.stdout, /mise à jour poussée/);
+  d.github({ checks: { "*": { [PERIMETRE]: "SUCCESS", qualite: "SUCCESS" } } });
+  return d;
+}
+
+test("passer.sh : une livraison intermédiaire mise à jour avec develop reste une livraison (commit de merge, sans revue)", () => {
+  const d = livraisonMiseAJour();
+  const r = d.lancer(script("passer.sh"), "40");
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  d.git("fetch", "-q", "origin");
+  assert.equal(
+    d.git("rev-list", "--parents", "-1", "origin/develop").split(" ").length,
+    3,
+    "commit de merge : deux parents",
+  );
+});
+
+test("passer.sh : un commit ajouté sur une livraison intermédiaire mise à jour la renvoie à la revue", () => {
+  const d = livraisonMiseAJour();
+  d.git("fetch", "-q", "origin");
+  d.branche(LIVRAISON, `origin/${LIVRAISON}`, { "apps/api/ajout.ts": "export const a = 1;\n" });
+  d.git("switch", "-q", "--detach", "origin/develop");
+  const r = d.lancer(script("passer.sh"), "40");
+  assert.equal(r.status, 4, r.stdout + r.stderr);
+  assert.match(r.stdout, /sans section « Revue de ticket » ni « Revue adversariale »/);
 });
