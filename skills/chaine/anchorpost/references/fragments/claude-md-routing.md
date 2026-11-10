@@ -1,0 +1,1 @@
+| [`.claude/rules/anchorpost.md`](.claude/rules/anchorpost.md) | **écrire pour être lu par Anchorpost** — une règle par fichier, qui écrit quoi, étiquettes de tests, en-têtes de tickets, index généré jamais édité ; le manifeste est `anchorpost/manifest.json` |

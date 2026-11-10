@@ -1,0 +1,20 @@
+{
+  "$comment": "Manifeste Anchorpost (schéma pivot ANC-2, version 2) : écrit et validé par un humain, jamais généré après init. Il porte ce que les sources ne disent pas. Les noms de personnes de la table roles restent ici et s'affichent avec leur rôle.",
+  "schema": "2",
+  "name": "{{TITRE}}",
+  "pitch": "{{Une phrase pour la MOA : ce que le projet fait, pour qui.}}",
+  "audiences": ["{{MOA du projet}}", "{{équipe de construction}}"],
+  "contexts": [
+    {
+      "id": "all",
+      "name": "{{TITRE}}",
+      "pitch": "{{Le socle : ce qui vaut pour tout le projet. Facultatif.}}",
+      "floor": { "date": "{{DATE}}", "proven": 0 }
+    }
+  ],
+  "epics": [],
+  "documents": [
+    { "role": "glossary", "path": "GLOSSARY.md", "title": "Glossaire" }
+  ],
+  "roles": {}
+}
