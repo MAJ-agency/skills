@@ -19,9 +19,9 @@
 #   rafraichir <nom> [--abandon-si-conflit]
 #                         fusionne develop dans sujet/<nom> (jamais de rebase), index régénérés ;
 #                         `--abandon-si-conflit` (capitaine) annule la fusion au lieu de la laisser en cours
-#   livrer <nom> <titre>  ouvre la PR sujet/<nom> → develop, étiquetée `à-fusionner` ; refuse tant
-#                         qu'une sous-PR est ouverte ; livraison intermédiaire (carte avant `5-livraison`) :
-#                         la PR part de `livraison/<nom>-<date>`, jetable, et `sujet/<nom>` survit
+#   livrer <nom> <titre>  ouvre la PR sujet/<nom> → develop, étiquetée `à-fusionner` ; refuse une migration
+#                         plus ancienne que la dernière de develop, et tant qu'une sous-PR est ouverte ;
+#                         livraison intermédiaire (carte avant `5-livraison`) : la PR part de `livraison/<nom>-<date>`, jetable, et `sujet/<nom>` survit
 #   livrer-prets [--dry-run]
 #                         (capitaine) livre chaque sujet « prêt à livrer », sauf label `sujet-manuel` :
 #                         plus de sous-PR ouverte, ET tickets déclarés (`Sujet:`) tous faits ou label
@@ -424,6 +424,10 @@ livrer() {
   tete=$branche
   [ "$(gh api "$DEPOT/pulls?state=open&base=$(uri "$branche")" --jq length)" = 0 ] ||
     sortir 4 "des sous-PR visent encore $branche : les fusionner ou les fermer avant de livrer"
+  # Ordre des migrations : seul l'ordre d'arrivée dans develop compte (migrations-ordre.mjs).
+  ordre="$ici/migrations-ordre.mjs"
+  [ -f "$ordre" ] || ordre="$ici/../../fusionner/scripts/migrations-ordre.mjs"
+  motif=$(node "$ordre" origin/develop "origin/$branche") || sortir 4 "$motif"
   corps=$(
     printf 'Branche de sujet : entre dans develop par un commit de merge, un commit par sous-PR.\n\n## Sous-PR\n\n'
     git log --first-parent --no-merges --reverse --format='- %s' "origin/develop..origin/$branche"
@@ -597,7 +601,10 @@ etat() {
     fermees=$(gh api --paginate "$DEPOT/pulls?state=closed&per_page=100&base=$(uri "sujet/$nom")" --jq '.[].head.ref')
     sous=$(awk -F '\t' -v b="sujet/$nom" -v f="$fermees" 'BEGIN { n = split(f, t, "\n"); for (i = 1; i <= n; i++) h[t[i]] = 1 }
       $1 == b || ($1 in h) { printf "#%s ", $3 }' <<<"$prs")
-    livree=$(awk -F '\t' -v b="sujet/$nom" '$1 == "develop" && $2 == b { print $3 }' <<<"$prs")
+    # Livraison ouverte : depuis le sujet, ou depuis sa branche jetable `livraison/<nom>-<date>`.
+    # Sans la seconde, une livraison intermédiaire bloquée était rouverte à chaque tour.
+    livree=$(awk -F '\t' -v b="sujet/$nom" -v l="^livraison/$nom-[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9]\$" \
+      '$1 == "develop" && ($2 == b || $2 ~ l) { print $3 }' <<<"$prs")
     # Tickets du sujet : ceux qui le déclarent, et tous ceux d'une spec qui le déclare.
     # `sort -u` sur l'ensemble : un ticket qui déclare le sujet ET appartient à une spec qui le
     # déclare sortait deux fois (le pipe ne portait que sur la boucle).

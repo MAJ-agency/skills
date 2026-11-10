@@ -35,7 +35,7 @@ Chaque commande, son effet et ses sorties : en-tête de `sujet.sh` ; `sujet.sh` 
 
 ## Livrer
 
-Le capitaine livre lui-même un sujet « prêt à livrer » (`livrer-prets`) : plus de sous-PR ouverte **et** tickets déclarés tous faits, ou sujet né d'un regroupement (`sujet-auto`). À la main, pour livrer plus tôt ou un sujet `sujet-manuel` : `livrer <nom> "<type>(<scope>): <résumé du lot>"`. Un sujet « VIEUX » (plus de 5 jours) ou « EN RETARD » (plus de 20 commits de develop non fusionnés) se livre en l'état ou se découpe. S'il est renvoyé (conflit, CI rouge) : corriger sur le sujet, retirer `fusion-bloquée`, remettre `à-fusionner`.
+Le capitaine livre lui-même un sujet « prêt à livrer » (`livrer-prets`) : plus de sous-PR ouverte **et** tickets déclarés tous faits, ou sujet né d'un regroupement (`sujet-auto`). À la main, pour livrer plus tôt ou un sujet `sujet-manuel` : `livrer <nom> "<type>(<scope>): <résumé du lot>"`. `livrer` refuse (sortie 4) un sujet qui ajoute une migration pas postérieure à la dernière de develop : le motif nomme le fichier à renommer et l'horodatage libre suivant (`migrations-ordre.mjs`, posé par `fusionner`). Un sujet « VIEUX » (plus de 5 jours) ou « EN RETARD » (plus de 20 commits de develop non fusionnés) se livre en l'état ou se découpe. S'il est renvoyé (conflit, CI rouge) : corriger sur le sujet, retirer `fusion-bloquée`, remettre `à-fusionner`.
 
 ## Branches fusionnées
 

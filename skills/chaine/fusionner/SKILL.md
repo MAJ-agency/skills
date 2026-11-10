@@ -11,7 +11,7 @@ disable-model-invocation: true
 
 ## Étape 0 — poser (une fois par dépôt, `poser`)
 
-`scripts/*.sh` (dont `veille.sh`), `scripts/revue-exigee.mjs` → `scripts/chaine/` (exécutables), avec `sujet.sh` du skill `sujet`. Les tests `scripts/*.test.mjs` suivent ; ils lisent `depot-jouet.mjs` et `faux-gh.mjs`, posés par `sujet poser` : `node --test scripts/chaine/*.test.mjs`. Dépendances : `git`, `jq`, `gh` authentifié (le capitaine écrit sur GitHub ; depuis une session cloud, `gh api` passe par le proxy).
+`scripts/*.sh` (dont `veille.sh`), `scripts/revue-exigee.mjs`, `scripts/migrations-ordre.mjs` → `scripts/chaine/` (exécutables), avec `sujet.sh` du skill `sujet`. Dans `package.json` racine, `check:migrations-ordre` : `node scripts/chaine/migrations-ordre.mjs origin/develop HEAD` (le dossier vient de la clé `migrations` de `.claude/chaine.json` ; sans elle, rien à contrôler). Les tests `scripts/*.test.mjs` suivent ; ils lisent `depot-jouet.mjs` et `faux-gh.mjs`, posés par `sujet poser` : `node --test scripts/chaine/*.test.mjs`. Dépendances : `git`, `jq`, `gh` authentifié (le capitaine écrit sur GitHub ; depuis une session cloud, `gh api` passe par le proxy).
 
 ## La règle (`CLAUDE.md` § « Fusion vers develop »)
 
@@ -39,10 +39,14 @@ cd <scratchpad>/capitaine && pnpm install --frozen-lockfile --prefer-offline
 
 ## Boucle
 
-**Automatique (le cas normal) : la veille.** Copier les scripts hors du worktree (`passer.sh` change de branche), puis lancer depuis le worktree, **en tâche de fond**, la veille et non la boucle seule, sortie dans un journal :
+**Les scripts joués sont ceux de develop, à chaque tour.** `boucle.sh` se lance depuis le worktree, sans copie manuelle : à chaque tour elle fait `git fetch origin develop`, recopie `scripts/chaine` d'`origin/develop` dans `<git-common-dir>/boucle-outils` (hors de l'arbre de travail, partagé par les worktrees ; `BOUCLE_COPIE` le remplace) et n'appelle que cette copie, jamais les scripts du worktree, que `passer.sh` fait changer de branche. Un correctif de la chaîne fusionné pendant la boucle est joué au tour suivant ; si `boucle.sh` lui-même a changé sur develop, elle se relance dessus (`exec`), PR sautées gardées. `origin/develop` ou `scripts/chaine` introuvable, ou fetch en échec trois fois : `ARRÊT`, sortie 6, jamais de scripts périmés.
+
+**Une seule boucle à la fois, arrêt d'un geste.** Un verrou `flock` (`<git-common-dir>/boucle.verrou`, tenu à travers l'`exec` de relance) refuse une seconde boucle : `REFUS`, sortie 9, même relancée par un processus d'attente oublié. `flock` (util-linux) absent : sortie 6. **Arrêter** : `bash scripts/chaine/boucle.sh --arreter`, jamais un simple `kill` ni `TaskStop` seul. Il pose `<git-common-dir>/boucle-arret`, puis termine la boucle et le passage en cours (les détenteurs réels du verrou, leurs descendants et le groupe noté ; la veille qui la porte n'est tuée que si elle partage ce groupe) ; la trappe remet le worktree propre (`merge --abort` ou `reset --hard`, puis `switch --detach origin/develop`), sortie 143 (TERM) ou 130 (INT). La boucle relit ce fichier au démarrage, en tête de tour, avant `livrer-prets`, avant chaque passage et avant le rafraîchissement final : `ARRÊT demandé`, sortie 10 ; une relance le refuse tant qu'il existe. **Reprendre** : `bash scripts/chaine/boucle.sh --reprendre` retire le fichier puis lance la boucle (refusé, sortie 9 et fichier gardé, si une boucle tient encore le verrou), puis relancer la veille. Option inconnue : `usage`, sortie 64, rien n'est lancé.
+
+**Automatique (le cas normal) : la veille.** Seule la veille tourne sur une copie, puisqu'elle appelle `file.sh` et `boucle.sh` à côté d'elle pendant que `passer.sh` change la branche du worktree ; la boucle qu'elle lance se remplace d'elle-même par la version de develop. Copier, puis lancer depuis le worktree, **en tâche de fond**, la veille et non la boucle seule, sortie dans un journal :
 
 ```bash
-mkdir -p <scratchpad>/outils && cp scripts/chaine/*.sh scripts/chaine/revue-exigee.mjs <scratchpad>/outils/
+mkdir -p <scratchpad>/outils && cp scripts/chaine/*.sh <scratchpad>/outils/
 bash <scratchpad>/outils/veille.sh > <scratchpad>/veille.log 2>&1   # --pause <s> (120), --duree <min> (110)
 ```
 
@@ -51,9 +55,9 @@ bash <scratchpad>/outils/veille.sh > <scratchpad>/veille.log 2>&1   # --pause <s
 La veille s'arrête d'elle-même, et sa fin réveille la session :
 
 - **`VEILLE FINIE`** (sortie 0) : durée écoulée (110 min, sous la limite de 2 h d'une tâche de fond). La relancer telle quelle.
-- **`VEILLE ARRÊTÉE`** : la boucle est sortie en code non nul (`ARRÊT` : gates, install, CI bloquée), et la veille avec le même code. Traiter le cas (suite par code : en-tête de `passer.sh`), puis relancer la veille.
+- **`VEILLE ARRÊTÉE`** : la boucle est sortie en code non nul (`ARRÊT` : gates, install, CI bloquée), et la veille avec le même code. Traiter le cas (suite par code : en-tête de `passer.sh`), puis relancer la veille. Sortie 9 : une autre boucle tient le verrou, ne rien relancer avant de savoir laquelle ; sortie 10 : arrêt demandé, `--reprendre` quand on veut repartir.
 
-Suivre le journal avec un `Monitor` filtré sur `VEILLE FINIE|VEILLE ARRÊTÉE|FUSIONNÉE|MISE À JOUR|sortie=|ARRÊT|conflit|rouges|RELANCE|RENVOI|REGROUPÉE|RECIBLÉE|SUJET EN CONFLIT|LIVRÉ`. La boucle traite seule les sorties 2 à 5 de `passer.sh` et la CI rouge (une relance, puis renvoi) ; un refus corrigeable (sortie 4 : titre trop long ou refusé par commitlint, revue adversariale absente, base hors `sujet/`) renvoie la PR avec son motif (`refus.sh`) ; une PR non éligible sans correction possible (sortie 7 : fermée, brouillon, sans label, déjà `fusion-bloquée`, empilée sur une parente non fusionnée) est sautée sans bruit. Une sous-PR en conflit avec son sujet **sur des index générés seuls** n'est pas renvoyée : `sujet.sh fusionner` la met à jour, régénère et pousse (sortie 8, `MISE À JOUR`) ; elle repasse au tour suivant, CI verte. Sur un `RENVOI`, le capitaine prévient la session.
+Suivre le journal avec un `Monitor` filtré sur `VEILLE FINIE|VEILLE ARRÊTÉE|FUSIONNÉE|MISE À JOUR|sortie=|ARRÊT|conflit|rouges|RELANCE|RENVOI|REGROUPÉE|RECIBLÉE|SUJET EN CONFLIT|LIVRÉ|REFUS`. La boucle traite seule les sorties 2 à 5 de `passer.sh` et la CI rouge (une relance, puis renvoi) ; un refus corrigeable (sortie 4 : titre trop long ou refusé par commitlint, revue adversariale absente, base hors `sujet/`) renvoie la PR avec son motif (`refus.sh`) ; une PR non éligible sans correction possible (sortie 7 : fermée, brouillon, sans label, déjà `fusion-bloquée`, empilée sur une parente non fusionnée) est sautée sans bruit. Une sous-PR en conflit avec son sujet **sur des index générés seuls** n'est pas renvoyée : `sujet.sh fusionner` la met à jour, régénère et pousse (sortie 8, `MISE À JOUR`) ; elle repasse au tour suivant, CI verte. Sur un `RENVOI`, le capitaine prévient la session.
 
 **Sans veille en cours** (capitaine démarré avant que `veille.sh` soit posé, veille arrêtée et pas encore relancée), qui pose `à-fusionner` prévient le capitaine par `send_message` : `docs/agents/chaine-de-production.md` § 2.
 
@@ -81,8 +85,8 @@ Compte rendu à l'utilisateur : PR fusionnées, avec squash et arbre vérifié ;
 
 ## Enseignements
 
-- **Les scripts tournent sur leur copie.** La veille et la boucle lisent `<scratchpad>/outils/`, copié au démarrage : une version des scripts fusionnée depuis ne s'applique qu'après une nouvelle copie et une veille relancée.
-- **Arrêter la veille (`TaskStop`) avant toute action manuelle** (`passer.sh`, `sujet.sh rafraichir … --abandon-si-conflit`) : deux processus dans le worktree le laissent en pleine fusion.
+- **La boucle rejoue develop, la veille sa copie.** La boucle recopie `scripts/chaine` d'`origin/develop` à chaque tour : un correctif fusionné s'applique au tour suivant, sans rien relancer (cas vécu : des livraisons parties en double alors que le correctif était déjà dans develop, la boucle jouant la copie faite à son lancement). Seuls `veille.sh` et `file.sh`, qu'elle sonde, restent ceux de `<scratchpad>/outils/` : un correctif de la veille ne s'applique qu'après une nouvelle copie et une veille relancée.
+- **Arrêter la veille (`TaskStop`) et la boucle (`boucle.sh --arreter`) avant toute action manuelle** (`passer.sh`, `sujet.sh rafraichir … --abandon-si-conflit`) : deux processus dans le worktree le laissent en pleine fusion. Le fichier d'arrêt empêche aussi un processus d'attente oublié de relancer la boucle derrière soi (cas vécu : une livraison intermédiaire rouverte par une boucle qu'on croyait arrêtée).
 - **Rouge réelle ou instable ?** Lire l'échec avant de relancer. Erreur de typage ou de test déterministe : prévenir la session propriétaire tout de suite, la relance ne sert à rien.
 - **« CI en cours » sans job en cours** : aucun run sur le sommet (push perdu). Seul un vrai push la relance (`sujet.sh relancer <pr>` par la session propriétaire), jamais une fusion côté serveur du capitaine.
 - **« Arbre du squash ≠ arbre testé »** : chercher une PR fusionnée hors file entre-temps (`git diff <sommet testé> <squash>`).

@@ -30,7 +30,7 @@ Le passage d'un dépôt au format du socle vers cette convention, avec réécrit
 
 ## `scripts/verify/tickets.mjs`, `tickets-regles.mjs`, `tickets-dette.json`
 
-Le gate : vocabulaire fermé de `Status:` et de `Type:`, `Règles:` dont chaque identifiant existe dans le registre de son contexte ou de `ALL`, `Blocked by:` qui existent, `Sujet:` bien formé, identifiant porté par une seule spec, carte de chantier complète, format prêt pour agent, et tests nommés par un défaut `Fait` présents et actifs. La dette gelée ne grandit jamais.
+Le gate : vocabulaire fermé de `Status:` et de `Type:`, `Règles:` dont chaque identifiant existe dans le registre de son contexte ou de `ALL`, `Blocked by:` qui existent, `Sujet:` bien formé, identifiant porté par une seule spec, carte de chantier complète (ligne `Migrations:` bien formée si présente), deux cartes ouvertes jamais sur le même horodatage de migration (une carte `fini` ne réserve plus : sinon deux chantiers se découvrent à la livraison du second), format prêt pour agent, et tests nommés par un défaut `Fait` présents et actifs. La dette gelée ne grandit jamais.
 
 ## `agents/`, `gabarits/`
 
