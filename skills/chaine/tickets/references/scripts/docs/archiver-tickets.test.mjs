@@ -2,9 +2,9 @@ import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { test } from 'node:test';
-import { ENV, depotJouet } from './depot-jouet.mjs';
+import { ENV, depotJouet, script } from './depot-jouet.mjs';
 
-const SCRIPT = new URL('./archiver-tickets.mjs', import.meta.url).pathname;
+const SCRIPT = script('docs/archiver-tickets.mjs');
 const ISSUES = 'docs/features/socle/all/issues';
 const FICHIERS = {
   'docs/features/socle/all/SPEC_ALL_SOC-1-socle.spec.md': '# SPEC_ALL_SOC-1\n\n[le ticket 01](issues/SPEC_ALL_SOC-1-socle.01.issue.md)\n',

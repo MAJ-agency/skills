@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { enMarkdown, fichiersChauds, lireTickets, seRecouvrent, vagues } from './vagues.mjs';
+import { module } from './depot-jouet.mjs';
+
+const { enMarkdown, fichiersChauds, lireTickets, seRecouvrent, vagues } = await module('docs/vagues.mjs');
 
 const t = (nn, status, extra = '') => ({ nom: `docs/x/all/issues/SPEC_ALL_SOC-9-demo.${nn}.issue.md`, texte: `# SPEC_ALL_SOC-9.${nn} — Objet ${nn}\n\nStatus: ${status}\n${extra}` });
 const ids = (r) => r.vagues.map((v) => v.map((x) => x.id.slice(-2)));

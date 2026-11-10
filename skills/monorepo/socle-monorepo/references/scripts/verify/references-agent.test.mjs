@@ -103,7 +103,7 @@ test('section : intitulé inexistant signalé, citation d’un autre document ig
   const r = analyser(
     [
       'CLAUDE.md § « Pagination » et § « Notifications (STRICT) ».',
-      'docs/agents/chaine-de-production.md § « Inconnu » et ALL-ADR-51 § « Autre ».',
+      'docs/agents/chaine-de-production.md § « Inconnu » et RULE_ALL_LIC-3 § « Autre ».',
       'Renvoi § 5 et § « … ».',
     ].join('\n'),
   );
@@ -138,10 +138,10 @@ test('section : lue dans un bloc de code et sur deux lignes', () => {
   );
 });
 
-test('ticket : un identifiant cité qui n’existe pas est signalé, un existant ignoré, un bloc de code non lu', () => {
-  const tickets = ['SOC-1.03'];
+test('ticket : un identifiant cité qui n’existe pas est signalé, un existant ignoré, un bloc de code non lu, l’ancienne forme non lue', () => {
+  const tickets = ['SPEC_ALL_SOC-1.03'];
   const r = referencesCassees({
-    texte: 'Voir `SOC-1.03` et SOC-1.09.\n```\nSOC-1.42\n```\n',
+    texte: 'Voir `SPEC_ALL_SOC-1.03` et SPEC_ALL_SOC-1.09, pas SOC-1.07.\n```\nSPEC_ALL_SOC-1.42\n```\n',
     dossier: '.',
     existeChemin: () => true,
     commandeExiste: () => true,
@@ -150,7 +150,7 @@ test('ticket : un identifiant cité qui n’existe pas est signalé, un existant
     sections: { titres: [], table: [] },
     racines: new Set(['docs']),
   });
-  assert.deepEqual(r, [{ ligne: 1, nature: 'ticket', reference: 'SOC-1.09' }]);
+  assert.deepEqual(r, [{ ligne: 1, nature: 'ticket', reference: 'SPEC_ALL_SOC-1.09' }]);
 });
 
 // ── La coquille, sur un dépôt jouet : identifiants de ticket dérivés des fichiers, dette gelée, --elaguer ──
@@ -160,11 +160,15 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 
 const ICI = dirname(new URL(import.meta.url).pathname);
+// La grammaire est posée par le même skill, à `scripts/docs/` : à côté dans un projet comme dans le plugin.
+const GRAMMAIRE = join(ICI, '../docs/identifiants.mjs');
 function jouet(fichiers) {
   const racine = mkdtempSync(join(tmpdir(), 'references-agent-'));
   execFileSync('git', ['init', '-q', racine]);
   mkdirSync(join(racine, 'scripts/verify'), { recursive: true });
   for (const f of ['references-agent.mjs', 'references-agent-regles.mjs']) writeFileSync(join(racine, 'scripts/verify', f), lireFichier(join(ICI, f)));
+  mkdirSync(join(racine, 'scripts/docs'), { recursive: true });
+  writeFileSync(join(racine, 'scripts/docs/identifiants.mjs'), lireFichier(GRAMMAIRE));
   writeFileSync(join(racine, 'scripts/verify/references-agent-dette.json'), '{"references":[]}\n');
   writeFileSync(join(racine, 'scripts/verify/references-agent-integrees.json'), '{"commandes":["clear"],"routes-http":[],"skills-plugins":["maj-skills:tickets"]}\n');
   for (const [chemin, texte] of Object.entries({ 'CLAUDE.md': '# x\n\n## Méthode\n', ...fichiers })) {
@@ -178,19 +182,19 @@ const gate = (racine, ...args) => spawnSync(process.execPath, [join(racine, 'scr
 
 test('coquille : un ticket cité existe par son fichier ; un absent est nommé ; la convention n’est pas lue ; dette gelée puis élaguée', () => {
   const r = jouet({
-    'docs/features/x/issues/X-1-x.01.issue.md': '# t\n\nStatus: needs-triage\n',
-    'docs/agents/notes.md': 'Voir `X-1.01`, `X-1.02`, `/clear`, `maj-skills:tickets`, § « Méthode ».\n',
-    'docs/agents/issue-tracker.md': 'Un ticket se cite `SOC-1.03`.\n',
+    'docs/features/x/all/issues/SPEC_ALL_SOC-1-x.03.issue.md': '# t\n\nStatus: needs-triage\n',
+    'docs/agents/notes.md': 'Voir `SPEC_ALL_SOC-1.03`, `SPEC_ALL_SOC-1.04`, `/clear`, `maj-skills:tickets`, § « Méthode ».\n',
+    'docs/agents/issue-tracker.md': 'Un ticket se cite `SPEC_ALL_SOC-1.09`.\n',
   });
   const r1 = gate(r);
   assert.equal(r1.status, 1);
-  assert.match(r1.stderr, /docs\/agents\/notes\.md:1 — ticket « X-1\.02 » introuvable/);
-  assert.doesNotMatch(r1.stderr, /X-1\.01|SOC-1\.03|clear|tickets|Méthode/);
-  writeFileSync(join(r, 'scripts/verify/references-agent-dette.json'), JSON.stringify({ references: ['docs/agents/notes.md:1:X-1.02'] }));
+  assert.match(r1.stderr, /docs\/agents\/notes\.md:1 — ticket « SPEC_ALL_SOC-1\.04 » introuvable/);
+  assert.doesNotMatch(r1.stderr, /SPEC_ALL_SOC-1\.03|SPEC_ALL_SOC-1\.09|clear|tickets|Méthode/);
+  writeFileSync(join(r, 'scripts/verify/references-agent-dette.json'), JSON.stringify({ references: ['docs/agents/notes.md:1:SPEC_ALL_SOC-1.04'] }));
   const r2 = gate(r);
   assert.equal(r2.status, 0, r2.stderr);
   assert.match(r2.stdout, /0 nouvelle, 1 gelée\(s\)/);
-  writeFileSync(join(r, 'docs/agents/notes.md'), 'Voir `X-1.01`.\n');
+  writeFileSync(join(r, 'docs/agents/notes.md'), 'Voir `SPEC_ALL_SOC-1.03`.\n');
   assert.match(gate(r).stdout, /1 entrée\(s\) éteinte\(s\), à retirer par --elaguer/);
   assert.equal(gate(r, '--elaguer').status, 0);
   assert.deepEqual(JSON.parse(lireFichier(join(r, 'scripts/verify/references-agent-dette.json'), 'utf8')).references, []);

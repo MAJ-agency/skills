@@ -32,12 +32,19 @@
  *      (`fichier.test.ts` « titre ») qui existent dans les fichiers de tests suivis et sont actifs.
  *
  * Usage : node scripts/verify/tickets.mjs [--elaguer | --geler-types]   (pnpm check:tickets — CI)
+ * Sortie 2 : `scripts/docs/identifiants.mjs` absent (posé par `socle-monorepo`).
  */
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
-import { dossierDuContexte, identifiantDeLaRegle, lireIdentifiant } from '../docs/identifiants.mjs';
-import {
+// La grammaire est posée par socle-monorepo, pas par ce skill : sans elle, un refus qui la nomme
+// plutôt qu'un module introuvable.
+if (!existsSync(new URL('../docs/identifiants.mjs', import.meta.url))) {
+  console.error('tickets : scripts/docs/identifiants.mjs introuvable (grammaire des identifiants, posée par /maj-skills:socle-monorepo)');
+  process.exit(2);
+}
+const { dossierDuContexte, identifiantDeLaRegle, lireIdentifiant } = await import('../docs/identifiants.mjs');
+const {
   FICHIER_DE_TEST,
   controlerCarte,
   controlerTicket,
@@ -49,7 +56,7 @@ import {
   identifiantsEnDouble,
   lireCheminsSensibles,
   reservationsEnDouble,
-} from './tickets-regles.mjs';
+} = await import('./tickets-regles.mjs');
 
 const ROOT = process.env.PROJET_RACINE ?? new URL('../..', import.meta.url).pathname;
 const DETTE = join(ROOT, 'scripts/verify/tickets-dette.json');

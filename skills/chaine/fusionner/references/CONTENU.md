@@ -6,7 +6,7 @@ La bibliothèque commune, sourcée par les autres scripts : `DEPOT`, la fonction
 
 ## `scripts/identifiant.mjs`
 
-Le point d'entrée des `.sh` vers la grammaire des identifiants (`<TYPE>_<CTX>_<TRI>-<n>`, skill `tickets`). Un titre de PR porte `SPEC_ALL_SOC-1.03`, une branche `spec-all-soc-1-03` : la conversion ne s'écrit pas deux fois, et la grammaire (type, contexte, trigramme) pas en shell. `file.sh` et `sujet.sh` appellent ses commandes (`lire`, `slug`, `ticket-de-pr`, `tickets`, `fichiers`, `colonne-ticket`), et lui importe `identifiants.mjs`, cherché dans `../docs/` (un projet, et la copie que la boucle fait de develop), à côté de lui (la copie à plat des outils de la veille), puis dans le skill `tickets` du plugin. Grammaire introuvable : sortie 6 et un message, jamais un identifiant deviné.
+Le point d'entrée des `.sh` vers la grammaire des identifiants (`<TYPE>_<CTX>_<TRI>-<n>`, skill `socle-monorepo`). Un titre de PR porte `SPEC_ALL_SOC-1.03`, une branche `spec-all-soc-1-03` : la conversion ne s'écrit pas deux fois, et la grammaire (type, contexte, trigramme) pas en shell. `file.sh` et `sujet.sh` appellent ses commandes (`lire`, `slug`, `ticket-de-pr`, `tickets`, `fichiers`, `colonne-ticket`), et lui importe `identifiants.mjs`, cherché dans `../docs/` (un projet, et la copie que la boucle fait de develop), à côté de lui (la copie à plat des outils de la veille), puis dans le skill `tickets` du plugin. Grammaire introuvable : sortie 6 et un message, jamais un identifiant deviné.
 
 ## `scripts/file.sh`
 

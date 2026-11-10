@@ -3,9 +3,9 @@ import { spawnSync } from 'node:child_process';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { test } from 'node:test';
-import { ENV, depotJouet } from '../docs/depot-jouet.mjs';
+import { ENV, depotJouet, script } from '../docs/depot-jouet.mjs';
 
-const SCRIPT = new URL('./tickets.mjs', import.meta.url).pathname;
+const SCRIPT = script('verify/tickets.mjs');
 const DETTE = {
   'scripts/verify/tickets-dette.json': '{"tickets":[],"cartes":[],"identifiants":[]}\n',
   'docs/agents/issue-tracker.md': '# Suivi\n\n## Réserver un ticket (sessions parallèles)\n\n## Un ticket prêt pour agent\n\n## Archivage\n',
@@ -122,4 +122,16 @@ test('dette `types` : gelée une fois par --geler-types, jamais agrandie, élagu
   assert.match(r3.stdout, /1 entrée\(s\) éteinte\(s\)/);
   lancer(d, '--elaguer');
   assert.deepEqual(JSON.parse(readFileSync(join(d.travail, 'scripts/verify/tickets-dette.json'), 'utf8')).types, []);
+});
+
+test('scripts/docs/identifiants.mjs absent : sortie 2, la grammaire du socle nommée', async () => {
+  const { cpSync, mkdtempSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  const { dirname } = await import('node:path');
+  const d = depotJouet();
+  const sans = join(mkdtempSync(join(tmpdir(), 'tickets-sans-grammaire-')), 'scripts/verify');
+  cpSync(dirname(SCRIPT), sans, { recursive: true });
+  const r = spawnSync(process.execPath, [join(sans, 'tickets.mjs')], { cwd: d.travail, env: { ...ENV, PATH: d.bin, PROJET_RACINE: d.travail }, encoding: 'utf8' });
+  assert.equal(r.status, 2, r.stderr);
+  assert.match(r.stderr, /scripts\/docs\/identifiants\.mjs introuvable .*socle-monorepo/);
 });

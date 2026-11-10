@@ -16,7 +16,7 @@ import { test } from "node:test";
 const ICI = dirname(new URL(import.meta.url).pathname);
 const IDENTIFIANTS = [
   join(ICI, "../docs/identifiants.mjs"),
-  join(ICI, "../../tickets/references/scripts/docs/identifiants.mjs"),
+  join(ICI, "../../../monorepo/socle-monorepo/references/scripts/docs/identifiants.mjs"),
 ].find(existsSync);
 
 function depot(fichiers) {

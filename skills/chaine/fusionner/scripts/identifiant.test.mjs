@@ -10,7 +10,7 @@ import { test } from "node:test";
 const SCRIPT = new URL("./identifiant.mjs", import.meta.url).pathname;
 const GRAMMAIRE = [
   new URL("../docs/identifiants.mjs", import.meta.url).pathname,
-  new URL("../../tickets/references/scripts/docs/identifiants.mjs", import.meta.url).pathname,
+  new URL("../../../monorepo/socle-monorepo/references/scripts/docs/identifiants.mjs", import.meta.url).pathname,
 ].find(existsSync);
 const lancer = (args, input = "", script = SCRIPT) =>
   spawnSync(process.execPath, [script, ...args], { input, encoding: "utf8" });

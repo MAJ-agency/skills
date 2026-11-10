@@ -12,7 +12,7 @@ Une seule convention pour les specs et les tickets, et les scripts qui la lisent
 
 ## La convention
 
-La grammaire des identifiants est celle du socle, `docs/methode/nomenclature.md` (`ADR_ALL_ARC-1`) : `<TYPE>_<CTX>_<TRI>-<n>`, le type, le contexte (`ALL` toujours écrit), le trigramme du sujet, le numéro. Ce skill en pose les scripts et les gabarits pour quatre types : `SPEC` et ses tickets, `RULE`, `REQ`, et la numérotation des `ADR`, `DSG` et `DOC`.
+La grammaire des identifiants est celle du socle, `docs/methode/nomenclature.md` (`ADR_ALL_ARC-1`) : `<TYPE>_<CTX>_<TRI>-<n>`, le type, le contexte (`ALL` toujours écrit), le trigramme du sujet, le numéro. Le code de cette grammaire (`scripts/docs/identifiants.mjs`) et la numérotation (`next-id.mjs`) sont posés par `socle-monorepo` ; ce skill pose les scripts et les gabarits de quatre types qui s'en servent : `SPEC` et ses tickets, `RULE`, `REQ`.
 
 | Quoi                        | Forme                                                                     | Exemple                                                  |
 | --------------------------- | ------------------------------------------------------------------------- | -------------------------------------------------------- |
@@ -37,11 +37,11 @@ Le dossier de contexte s'écrit en minuscules (`all/`, `fnsmr/`) et **existe tou
 
 ## Étape 1 — poser (`poser`)
 
-Dans un dépôt dont la racine est posée (`pnpm-workspace.yaml` présent) :
+Dans un dépôt dont la racine est posée (`pnpm-workspace.yaml` présent) et qui porte la grammaire du socle (`scripts/docs/identifiants.mjs`, `next-id.mjs` et `next-id-branches.mjs`). L'un des deux manque : s'arrêter, et poser `/maj-skills:socle-monorepo` d'abord. Ce skill ne pose pas ces trois fichiers, et ne les remplace pas.
 
 | Source                                    | Destination                                   |
 | ----------------------------------------- | --------------------------------------------- |
-| `references/scripts/docs/*`               | `scripts/docs/` (tests `*.test.mjs` compris)  |
+| `references/scripts/docs/*`               | `scripts/docs/` (tests `*.test.mjs` compris), à côté de la grammaire du socle |
 | `references/scripts/verify/*`             | `scripts/verify/`                             |
 | `references/agents/issue-tracker.md`      | `docs/agents/issue-tracker.md` (remplace celui de `setup-matt-pocock-skills`) |
 | `references/agents/triage-labels.md`      | `docs/agents/triage-labels.md`                |

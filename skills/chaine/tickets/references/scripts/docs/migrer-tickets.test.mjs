@@ -2,9 +2,9 @@ import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { test } from 'node:test';
-import { ENV, depotJouet } from './depot-jouet.mjs';
+import { ENV, depotJouet, script } from './depot-jouet.mjs';
 
-const SCRIPT = new URL('./migrer-tickets.mjs', import.meta.url).pathname;
+const SCRIPT = script('docs/migrer-tickets.mjs');
 // Forme A : le socle d'avant le standard, sans identifiant.
 const FICHIERS = {
   'docs/features/socle/socle.spec.md': '# Le socle\n\nTickets : [`4-couche`](issues/4-couche-base-de-donnees.issue.md), `1-modeliser-le-domaine`.\n',
