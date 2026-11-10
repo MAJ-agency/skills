@@ -99,8 +99,10 @@ function sections(lignes) {
  * `cheminsSensibles`, d'où ce moteur-ci.
  */
 function regexDuMotif(motif) {
+  // Un motif qui finit par `/` désigne un dossier : tout ce qu'il contient (`src/auth/` = `src/auth/**`).
+  const complet = motif.endsWith('/') ? `${motif}**` : motif;
   // Un seul passage : `**/` → dossiers facultatifs, `**` → tout, `*` → un segment.
-  const re = motif.replace(/\*\*\/|\*\*|\*|[.+?^${}()|[\]\\]/g, (m) => {
+  const re = complet.replace(/\*\*\/|\*\*|\*|[.+?^${}()|[\]\\]/g, (m) => {
     if (m === '**/') return '(?:.*/)?';
     if (m === '**') return '.*';
     if (m === '*') return '[^/]*';

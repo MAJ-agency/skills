@@ -76,15 +76,34 @@ test('ticket introuvable (contexte null ou vide) : demander ; les refus restent'
   assert.equal(lu, false, 'le ticket ne se lit que si la commande ajoute un paquet');
 });
 
-test('depuis une branche de ticket, un push vers un sujet est refusé', () => {
+test('un push vers un sujet est refusé, quelle que soit la branche et la forme de la commande', () => {
   const ticket = { brancheCourante: () => 'feat/soc-1-04-hook' };
-  for (const commande of ['git push origin HEAD:sujet/demo', 'git push origin HEAD:refs/heads/sujet/demo', 'git push -u origin sujet/demo', 'git push origin feat/soc-1-04-hook HEAD:sujet/demo'])
+  for (const commande of [
+    'git push origin HEAD:sujet/demo',
+    'git push origin HEAD:refs/heads/sujet/demo',
+    'git push -u origin sujet/demo',
+    'git push origin feat/soc-1-04-hook HEAD:sujet/demo',
+    'git push origin "HEAD:refs/heads/sujet/demo"',
+    "git push origin 'sujet/demo'",
+    'git -C . push origin HEAD:sujet/demo',
+    'git -c push.default=simple push origin HEAD:sujet/demo',
+    '/usr/bin/git push origin HEAD:sujet/demo',
+    'git push -o ci.skip origin HEAD:sujet/demo',
+  ])
     assert.equal(decisionCommande(commande, ticket)?.decision, 'refuser', commande);
+  assert.equal(decisionCommande('git push origin HEAD:sujet/demo')?.decision, 'refuser', 'branche inconnue : refusé aussi');
+  assert.equal(decisionCommande('git push origin HEAD:sujet/demo', { brancheCourante: () => 'tmp' })?.decision, 'refuser', 'branche quelconque : refusé aussi');
+  assert.equal(decisionCommande('git push origin sujet/demo', { brancheCourante: () => 'sujet/demo' })?.decision, 'refuser', 'même depuis le sujet : seul sujet.sh y écrit');
+  assert.equal(decisionCommande('git push', { brancheCourante: () => 'sujet/demo' })?.decision, 'refuser', 'sans refspec depuis un sujet : la branche courante est le sujet');
   assert.equal(decisionCommande('git push -u origin feat/soc-1-04-hook', ticket), null);
-  assert.equal(decisionCommande('git push origin HEAD:sujet/demo'), null, 'branche inconnue');
-  assert.equal(decisionCommande('git push origin sujet/demo', { brancheCourante: () => 'sujet/demo' }), null, 'architecte ou capitaine sur le sujet : rien ne change');
+  assert.equal(decisionCommande('git push', ticket), null, 'sans refspec depuis une branche de ticket');
+  assert.equal(decisionCommande('git push origin feat/x', { brancheCourante: () => 'sujet/demo' }), null, 'depuis le sujet, un refspec explicite vers une autre branche passe');
+  assert.equal(decisionCommande('b=sujet/demo; git push origin HEAD:$b', ticket)?.decision, 'demander', 'refspec illisible : on demande');
+  assert.equal(decisionCommande('git push origin HEAD:$(cat cible)', ticket)?.decision, 'demander');
   assert.equal(pousseSurUnSujet('git commit -m x && git push origin HEAD:sujet/x'), true);
   assert.equal(pousseSurUnSujet('git push origin feat/sujet-x'), false);
+  assert.equal(pousseSurUnSujet('git commit -m "voir git push origin HEAD:sujet/x plus tard"'), false, 'un texte cité qui parle d’un push n’est pas un push');
+  assert.equal(pousseSurUnSujet("cat <<'EOF' > note.md\ngit push origin HEAD:sujet/x\nEOF"), false, 'un corps de heredoc non plus');
 });
 
 test('lireDependances : la ligne d’en-tête, accents graves ou nus, — ou absente → []', () => {

@@ -30,6 +30,9 @@ function dependancesPrevues() {
   try {
     const id = identifiantDeBranche(brancheCourante());
     if (!id || !identifiants) return null;
+    // Un paquet prévu ne passe sans question que si ce qui décide d'où il vient n'a pas bougé par
+    // rapport à develop : un `.npmrc` ou un workspace modifié sur la branche, et on demande.
+    if (git('diff', '--name-only', 'origin/develop', '--', '.npmrc', 'pnpm-workspace.yaml') !== '') return null;
     const { estArchive, identifiantDuTicket } = identifiants;
     const distants = new Map(
       git('ls-remote', '--heads', 'origin', 'refs/heads/sujet/*')

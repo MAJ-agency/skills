@@ -92,7 +92,10 @@ test('écrire la ligne puis pousser soi-même sur le sujet est refusé à l’é
   d.git('commit', '-qam', "je m'autorise");
   const r = lancer(d, 'git push origin HEAD:refs/heads/sujet/demo');
   assert.equal(r.status, 2);
-  assert.match(r.stderr, /ne pousse jamais sur un sujet/);
+  assert.match(r.stderr, /un sujet ne se pousse jamais à la main/);
+  // Les formes qui contournaient la première version : refspec cité, `git -C`, `git` par son chemin.
+  for (const commande of ['git push origin "HEAD:refs/heads/sujet/demo"', 'git -C . push origin HEAD:sujet/demo', '/usr/bin/git push origin HEAD:sujet/demo'])
+    assert.equal(lancer(d, commande).status, 2, commande);
   assert.equal(demande(lancer(d, 'pnpm add zod')), true);
 });
 
