@@ -20,14 +20,14 @@
  * Le rapport des survivants par règle est écrit par `mutation-regles-synthese.mjs`. Ce n'est pas un
  * plancher : `mutation:regles` ne refuse rien en V1 ; le plancher reste celui du noyau (`mutation`).
  *
- * Variables : `PROJET_RACINE` (racine du dépôt ; par défaut, deux dossiers au-dessus du script) ;
+ * Variables lues (ici et par la configuration Stryker qui importe ce module) : `PROJET_RACINE` (racine du dépôt ; par défaut, deux dossiers au-dessus du script) ;
  * `STRYKER_MUTATE` (essai local : des fichiers séparés par des virgules, relatifs au paquet, qui
  * remplacent le périmètre de l'index — la configuration les lit, `--lancer` ne court-circuite pas).
  * Sorties : 0 (y compris périmètre vide) · le code de Stryker s'il échoue · 2 usage.
  */
 import { spawnSync } from "node:child_process";
-import { existsSync, readFileSync, statSync } from "node:fs";
-import { join, posix, relative, resolve, sep } from "node:path";
+import { existsSync, readFileSync, realpathSync, statSync } from "node:fs";
+import { isAbsolute, join, posix, relative, resolve, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 export const INDEX = "anchorpost/anchorpost.json";
@@ -35,8 +35,14 @@ export const SCHEMA = "2";
 
 const CODE_MUTABLE = /\.[cm]?[jt]sx?$/;
 const PAS_DU_CODE = /\.(?:spec|test|e2e-spec|property\.spec|d)\.[cm]?[jt]sx?$/;
-// Du câblage et des formes, pas de la logique : un mutant y survit toujours (mêmes exclusions que `coverage-diff`).
-const CABLAGE = [/\.(?:controller|module)\.[cm]?[jt]sx?$/, /(^|\/)dto\//, /(^|\/)templates\//];
+// Du câblage, des formes ou du code généré, pas de la logique : un mutant y survit toujours. Une partie
+// de ces exclusions est celle de `coverage-diff-regles.mjs` (modules, migrations, types générés, `main.ts`).
+const CABLAGE = [
+  /\.(?:controller|module)\.[cm]?[jt]sx?$/,
+  /(^|\/)(?:dto|templates|migrations)\//,
+  /(^|\/)db\/types\.ts$/,
+  /(^|\/)main\.ts$/,
+];
 
 /** Chemin du dépôt, en slashs et sans `./` ; `null` s'il sort du dépôt (absolu, `..`, vide). */
 export function normaliser(chemin) {
@@ -98,9 +104,13 @@ export function perimetre(index, existe) {
 /** Racine du dépôt : `PROJET_RACINE`, sinon deux dossiers au-dessus de `scripts/verify/`. */
 export const racineDuDepot = () => process.env.PROJET_RACINE ?? fileURLToPath(new URL("../..", import.meta.url));
 
+/** Un fichier du dépôt : ni absent, ni un dossier, ni un lien qui sort du dépôt. */
 const estUnFichier = (racine) => (chemin) => {
   try {
-    return statSync(join(racine, chemin), { throwIfNoEntry: false })?.isFile() === true;
+    const complet = join(racine, chemin);
+    if (statSync(complet, { throwIfNoEntry: false })?.isFile() !== true) return false;
+    const dedans = relative(realpathSync(racine), realpathSync(complet));
+    return dedans !== "" && dedans !== ".." && !dedans.startsWith(`..${sep}`) && !isAbsolute(dedans);
   } catch {
     return false; // chemin que le système refuse (trop long, octet nul…) : pas un fichier du dépôt
   }
@@ -137,13 +147,13 @@ export function perimetreDuPaquet(racine = racineDuDepot(), cwd = process.cwd())
     .map((r) => ({ regle: r.regle, fichiers: r.fichiers.filter((f) => dedans(f) !== null) }))
     .filter((r) => r.fichiers.length);
   const fichiers = p.fichiers.filter((f) => dedans(f) !== null);
-  const dehors = p.fichiers.length - fichiers.length;
+  const ailleurs = p.fichiers.filter((f) => dedans(f) === null);
   return {
     fichiers,
     mutate: fichiers.map(dedans).map(echapperGlob),
     regles,
     ecartes: p.ecartes,
-    dehors,
+    ailleurs,
     raison: fichiers.length
       ? undefined
       : p.raison ?? `aucun des ${p.fichiers.length} fichier(s) du périmètre n'est dans ce paquet : rien à muter ici`,
@@ -167,6 +177,7 @@ function main(args) {
     const cwd = process.cwd();
     const p = perimetreDuPaquet(racine, cwd);
     dire(p, (m) => console.log(m));
+    if (p.ailleurs.length) console.log(`mutation-regles : ${p.ailleurs.length} fichier(s) de règles prouvées sont dans un autre paquet, à muter par sa configuration : ${p.ailleurs.join(", ")}`);
     if (!p.fichiers.length && !process.env.STRYKER_MUTATE) return 0;
     console.log(`mutation-regles : ${process.env.STRYKER_MUTATE ? "essai local" : `${p.regles.length} règle(s), ${p.fichiers.length} fichier(s) à muter`}`);
     const r = spawnSync("pnpm", ["exec", "stryker", "run", "stryker.regles.config.mjs"], { stdio: "inherit", cwd });

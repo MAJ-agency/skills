@@ -4,7 +4,8 @@
 // Le périmètre n'est pas écrit ici : c'est l'union des `code` des règles `proven` de l'index commis
 // `anchorpost/anchorpost.json`, restreinte aux fichiers de ce paquet (une config par paquet qui teste).
 // Sans index Anchorpost, `mutation-regles.mjs --lancer` ne lance rien et le dit. `STRYKER_MUTATE`
-// (fichiers séparés par des virgules, relatifs au paquet) remplace le périmètre pour un essai local.
+// (fichiers séparés par des virgules, relatifs au paquet) remplace le périmètre pour un essai local ;
+// `PROJET_RACINE` (racine du dépôt) n'a besoin d'être posée que si le dépôt n'a pas la forme du socle.
 import base from "./stryker.config.mjs";
 import { perimetreDuPaquet } from "../../scripts/verify/mutation-regles.mjs";
 

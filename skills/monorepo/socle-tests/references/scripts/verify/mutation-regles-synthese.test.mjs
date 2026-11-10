@@ -86,6 +86,12 @@ test("la synthèse liste le hors périmètre avec son motif, ou dit « Aucun. »
   assert.match(synthese([], { files: {} }), /## Hors périmètre\n\nAucun\./);
 });
 
+test("la synthèse nomme les fichiers prouvés d'un autre paquet, et n'écrit rien s'il n'y en a pas", () => {
+  const md = synthese([], { files: {} }, undefined, [], ["packages/x/src/c.ts"]);
+  assert.match(md, /## Dans un autre paquet\n\nProuvés mais pas mutés ici : .*\n\n- `packages\/x\/src\/c\.ts`/);
+  assert.doesNotMatch(synthese([], { files: {} }), /autre paquet/);
+});
+
 test("sans index : la synthèse dit périmètre vide, pas « interrompu »", () => {
   const racine = projet({});
   const t = texteDuPaquet(racine, join(racine, "apps/api"));

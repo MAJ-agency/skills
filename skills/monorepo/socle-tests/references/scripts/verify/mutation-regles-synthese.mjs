@@ -7,6 +7,7 @@
  * la sortie vers `$GITHUB_STEP_SUMMARY` : un passage interrompu (délai dépassé, Stryker tué) dit en
  * clair « pas de rapport » au lieu de n'écrire rien. Périmètre vide (pas d'index Anchorpost) : le dit,
  * ce n'est pas une interruption. Sortie 0 toujours : le rouge d'un passage vient de Stryker.
+ * Variable : `PROJET_RACINE` (racine du dépôt ; par défaut, deux dossiers au-dessus du script).
  * Pas de plancher en V1 : la synthèse nomme les assertions qui manquent, elle ne refuse rien.
  */
 import { existsSync, readFileSync } from "node:fs";
@@ -33,8 +34,9 @@ const TUES = new Set(["Killed", "Timeout"]);
  * @param mutation  le JSON du reporter `json` de Stryker (`files[chemin].mutants[]`).
  * @param versDepot convertit une clé de `mutation.files` en chemin du dépôt (défaut : identité).
  * @param ecartes   `[{ regle, chemin, motif }]` de `perimetre` : la section « Hors périmètre ».
+ * @param ailleurs  les fichiers prouvés d'un autre paquet (`perimetreDuPaquet().ailleurs`) : ils ne sont pas mutés ici.
  */
-export function synthese(regles, mutation, versDepot = (c) => c, ecartes = []) {
+export function synthese(regles, mutation, versDepot = (c) => c, ecartes = [], ailleurs = []) {
   const parFichier = new Map();
   for (const [cle, f] of Object.entries(mutation?.files ?? {})) parFichier.set(versDepot(cle), f?.mutants ?? []);
   const comptes = { tues: 0, survivants: 0 };
@@ -72,6 +74,10 @@ export function synthese(regles, mutation, versDepot = (c) => c, ecartes = []) {
   lignes.push("", "## Hors périmètre", "");
   if (!ecartes.length) lignes.push("Aucun.");
   for (const e of ecartes) lignes.push(`- ${ligne(e.regle)} : ${code(e.chemin, 200)} — ${e.motif}`);
+  if (ailleurs.length) {
+    lignes.push("", "## Dans un autre paquet", "", "Prouvés mais pas mutés ici : la configuration de leur paquet les mute.", "");
+    for (const f of ailleurs) lignes.push(`- ${code(f, 200)}`);
+  }
   return `${lignes.join("\n")}\n`;
 }
 
@@ -87,7 +93,7 @@ export function texteDuPaquet(racine = racineDuDepot(), cwd = process.cwd()) {
   } catch {
     return "Pas de rapport de mutation (rapport illisible, passage interrompu).\n";
   }
-  return synthese(p.regles, mutation, (c) => relative(racine, resolve(cwd, c)).split(sep).join("/"), p.ecartes);
+  return synthese(p.regles, mutation, (c) => relative(racine, resolve(cwd, c)).split(sep).join("/"), p.ecartes, p.ailleurs);
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) process.stdout.write(texteDuPaquet());

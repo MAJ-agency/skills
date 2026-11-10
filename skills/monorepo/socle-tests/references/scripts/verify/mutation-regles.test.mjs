@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { copyFileSync, existsSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
@@ -89,13 +89,13 @@ test("des règles prouvées sans fichier de code, ou sans règle prouvée : vide
 
 test("un chemin qui sort du dépôt, un test, une déclaration, du câblage (contrôleur, module, dto, gabarit) ou un autre langage est écarté, jamais muté", () => {
   const p = perimetre(
-    index([regle("RULE_ALL_LIC-1", "proven", ["../hors.ts", "/etc/passwd.ts", "C:/x.ts", "a/../../b.ts", "src/a.spec.ts", "src/a.d.ts", "db/schema.sql", 42, "src/ok.ts", "src/x.controller.ts", "src/x.module.ts", "src/dto/in.ts", "src/templates/m.ts"])]),
+    index([regle("RULE_ALL_LIC-1", "proven", ["../hors.ts", "/etc/passwd.ts", "C:/x.ts", "a/../../b.ts", "src/a.spec.ts", "src/a.d.ts", "db/schema.sql", 42, "src/ok.ts", "src/x.controller.ts", "src/x.module.ts", "src/dto/in.ts", "src/templates/m.ts", "src/db/migrations/001.ts", "src/db/types.ts", "src/main.ts"])]),
     tous,
   );
   assert.deepEqual(p.fichiers, ["src/ok.ts"]);
   assert.deepEqual(
     p.ecartes.map((e) => [e.chemin, e.motif.split(" ")[0]]),
-    [["../hors.ts", "hors"], ["/etc/passwd.ts", "hors"], ["C:/x.ts", "hors"], ["a/../../b.ts", "hors"], ["src/a.spec.ts", "hors"], ["src/a.d.ts", "hors"], ["db/schema.sql", "hors"], ["42", "hors"], ["src/x.controller.ts", "hors"], ["src/x.module.ts", "hors"], ["src/dto/in.ts", "hors"], ["src/templates/m.ts", "hors"]],
+    [["../hors.ts", "hors"], ["/etc/passwd.ts", "hors"], ["C:/x.ts", "hors"], ["a/../../b.ts", "hors"], ["src/a.spec.ts", "hors"], ["src/a.d.ts", "hors"], ["db/schema.sql", "hors"], ["42", "hors"], ["src/x.controller.ts", "hors"], ["src/x.module.ts", "hors"], ["src/dto/in.ts", "hors"], ["src/templates/m.ts", "hors"], ["src/db/migrations/001.ts", "hors"], ["src/db/types.ts", "hors"], ["src/main.ts", "hors"]],
   );
 });
 
@@ -133,6 +133,16 @@ test("perimetreDuDepot lit l'index commis : un fichier réel est retenu, un doss
   assert.deepEqual(p.ecartes.map((e) => e.chemin), ["apps/api/src", "apps/api/src/b.ts"]);
 });
 
+test("un lien symbolique du dépôt vers l'extérieur n'entre pas dans le périmètre", () => {
+  const dehors = mkdtempSync(join(tmpdir(), "mutation-dehors-"));
+  writeFileSync(join(dehors, "secret.ts"), "export const s = 1;\n");
+  const racine = depot(index([regle("RULE_ALL_LIC-1", "proven", ["src/lien/secret.ts", "src/ok.ts"])]), ["src/ok.ts"]);
+  symlinkSync(dehors, join(racine, "src/lien"));
+  const p = perimetreDuDepot(racine);
+  assert.deepEqual(p.fichiers, ["src/ok.ts"]);
+  assert.deepEqual(p.ecartes.map((e) => e.chemin), ["src/lien/secret.ts"]);
+});
+
 test("perimetreDuDepot : index absent ou JSON invalide → vide, sans lever", () => {
   assert.match(perimetreDuDepot(depot(undefined)).raison, /pas d'index/);
   assert.match(perimetreDuDepot(depot("{ pas du json")).raison, /illisible/);
@@ -146,7 +156,7 @@ test("perimetreDuPaquet ne garde que les fichiers du paquet, en chemins relatifs
   const p = perimetreDuPaquet(racine, join(racine, "apps/api"));
   assert.deepEqual(p.mutate, ["src/a.ts"]);
   assert.deepEqual(p.regles, [{ regle: "RULE_ALL_LIC-1", fichiers: ["apps/api/src/a.ts"] }]);
-  assert.equal(p.dehors, 1);
+  assert.deepEqual(p.ailleurs, ["packages/x/src/c.ts"]);
   assert.equal(p.raison, undefined);
   const autre = perimetreDuPaquet(racine, join(racine, "apps/web"));
   assert.deepEqual(autre.mutate, []);
@@ -179,6 +189,18 @@ test("--list sans index : rien sur stdout, la raison sur stderr, sortie 0", () =
   assert.equal(r.status, 0);
   assert.equal(r.stdout, "");
   assert.match(r.stderr, /périmètre vide — pas d'index anchorpost\/anchorpost\.json/);
+});
+
+test("--lancer nomme les fichiers prouvés d'un autre paquet, qu'il ne mute pas", () => {
+  const racine = projet({ avecIndex: false });
+  mkdirSync(join(racine, "packages/x/src"), { recursive: true });
+  writeFileSync(join(racine, "packages/x/src/c.ts"), "export const c = 1;\n");
+  mkdirSync(join(racine, "anchorpost"), { recursive: true });
+  writeFileSync(join(racine, "anchorpost/anchorpost.json"), JSON.stringify(index([regle("RULE_ALL_LIC-1", "proven", ["packages/x/src/c.ts"])])));
+  const r = lancer(racine, ["--lancer"], join(racine, "apps/api"));
+  assert.equal(r.status, 0);
+  assert.match(r.stdout, /1 fichier\(s\) de règles prouvées sont dans un autre paquet.*packages\/x\/src\/c\.ts/);
+  assert.match(r.stdout, /aucun des 1 fichier\(s\) du périmètre n'est dans ce paquet/);
 });
 
 test("--lancer sans index : ne lance rien (ni pnpm ni Stryker), le dit, sortie 0", () => {
