@@ -130,6 +130,17 @@ test("fusionner : worktree du capitaine pas propre, sortie 6 sans écriture, bra
   assert.equal(d.git("rev-parse", "origin/docs/sous"), sommet);
 });
 
+test("rafraichir et regrouper : worktree du capitaine pas propre, sortie 6 sans écriture (boucle.sh la distingue d'un conflit de sujet)", () => {
+  const { d } = sousPrEnConflit("aucun");
+  d.ecrire("brouillon.txt", "en cours\n");
+  for (const args of [["rafraichir", "lot"], ["regrouper", "lot", "80"]]) {
+    const r = d.lancer(SUJET, ...args);
+    assert.equal(r.status, 6, args[0] + ": " + r.stdout + r.stderr);
+    assert.match(r.stdout, /arbre de travail pas propre/);
+  }
+  assert.deepEqual(d.journal(), []);
+});
+
 test("boucle.sh : worktree du capitaine pas propre, la sous-PR n'est pas renvoyée (PAS PROPRE, aucun label ni commentaire)", () => {
   const { d } = sousPrEnConflit("aucun");
   d.publierChaine();

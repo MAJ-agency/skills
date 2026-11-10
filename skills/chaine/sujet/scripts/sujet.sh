@@ -53,7 +53,7 @@
 #
 # Sorties : 0 fait · 2 conflit · 3 checks rouges ou en cours · 4 refus corrigeable par l'auteur (sa
 # dernière ligne est le motif, `fusionner` : titre, commitlint, revue, base) · 6 arbre de travail pas
-# propre (`fusionner`, `rafraichir`, `relancer` : à nettoyer par qui lance, jamais un renvoi de la PR,
+# propre (`fusionner`, `rafraichir`, `regrouper`, `relancer` : à nettoyer par qui lance, jamais un renvoi de la PR,
 # comme la sortie 6 de passer.sh) · 7 `fusionner` d'une PR fermée ou en brouillon (rien à corriger :
 # sautée) · 9 `carte <nom>` refusée (rien n'est poussé)
 # `fusionner` encore : 5 la sous-PR a bougé pendant sa mise à jour (reprise au tour suivant) · 8 conflit

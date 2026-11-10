@@ -92,7 +92,7 @@ origine=$(git rev-parse "origin/$tete")
 # sujet, hors de develop, dont la fusion avec le develop que la tête contient donne l'arbre de la
 # tête, aux index générés près. Sinon la PR repasse par le chemin ordinaire (revue exigée, squash).
 livraison_intermediaire() {
-  local nom=$1 d s attendu
+  local nom=$1 d s attendu ecart
   git fetch -q origin "sujet/$nom" 2>/dev/null || return 1
   d=$(git merge-base "$origine" origin/develop) || return 1
   for s in $(git merge-base --all "$origine" "origin/sujet/$nom" 2>/dev/null); do
@@ -101,7 +101,9 @@ livraison_intermediaire() {
     # donc un écart avec la tête.
     attendu=$(git merge-tree --write-tree --no-messages "$s" "$d" 2>/dev/null | sed -n 1p) || true
     [ -n "$attendu" ] || continue
-    [ -n "$(git diff --name-only "$attendu" "$origine" | grep -Ev "$GENERES" || true)" ] || return 0
+    # Un `git diff` en échec n'est jamais une dispense : on ne conclut que sur un diff lu.
+    ecart=$(git diff --name-only "$attendu" "$origine") || continue
+    [ -n "$(printf '%s\n' "$ecart" | grep -Ev "$GENERES" || true)" ] || return 0
   done
   return 1
 }

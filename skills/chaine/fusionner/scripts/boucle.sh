@@ -235,8 +235,11 @@ rafraichir_sujets() {
     case "$verdict" in livré*) continue ;; esac
     [ "$sous" = "—" ] || continue
     bash "$SUJET" rafraichir "$nom" --abandon-si-conflit 2>&1 | sed "s#^#[sujet/$nom] #"
-    [ "${PIPESTATUS[0]}" = 0 ] ||
-      echo "[sujet/$nom] SUJET EN CONFLIT avec develop : à résoudre par une session (sujet.sh rafraichir $nom)"
+    case "${PIPESTATUS[0]}" in
+      0) ;;
+      6) echo "[sujet/$nom] PAS PROPRE : worktree du capitaine à nettoyer, sujet laissé tel quel (aucun conflit)" ;;
+      *) echo "[sujet/$nom] SUJET EN CONFLIT avec develop : à résoudre par une session (sujet.sh rafraichir $nom)" ;;
+    esac
   done
   git switch -q --detach origin/develop 2>/dev/null || true
 }
@@ -259,8 +262,12 @@ traiter_sujets() {
       'vers sujet/'*)
         sujet=${etat#vers sujet/}
         bash "$SUJET" regrouper "$sujet" "$n" 2>&1 | sed "s#^#[\#$n] #"
-        if [ "${PIPESTATUS[0]}" = 0 ]; then echo "[#$n] REGROUPÉE dans sujet/$sujet (son ticket le déclare)"
-        else echo "[#$n] regroupement dans sujet/$sujet impossible (SUJET EN CONFLIT ?)"; fi ;;
+        rc=${PIPESTATUS[0]}
+        case "$rc" in
+          0) echo "[#$n] REGROUPÉE dans sujet/$sujet (son ticket le déclare)" ;;
+          6) echo "[#$n] PAS PROPRE : worktree du capitaine à nettoyer, regroupement repris au tour suivant (aucun renvoi)" ;;
+          *) echo "[#$n] regroupement dans sujet/$sujet impossible (SUJET EN CONFLIT ?)" ;;
+        esac ;;
       'prête (à recibler sur sujet/'*)
         sujet=${etat#prête (à recibler sur }
         sujet=${sujet%)}
