@@ -5,7 +5,7 @@
  * Vocabulaire de `Status:` : `docs/agents/triage-labels.md`. Format « prêt pour agent » :
  * `docs/agents/chaine-de-production.md` § 3. Tout changement passe d'abord par ces fichiers.
  */
-import { TICKET, identifiantDeLaSpec, identifiantDuTicket, estArchive, lireIdentifiant, litteral, dossierDuContexte } from '../docs/identifiants.mjs';
+import { TICKET, identifiantDeLaSpec, identifiantDuTicket, estArchive, lireIdentifiant, litteral, dossierDuContexte, REGLE } from '../docs/identifiants.mjs';
 
 export { identifiantDuTicket as identifiant, estArchive };
 
@@ -35,13 +35,14 @@ function tete(lignes) {
  * graves ou non ; rien d'autre sur la ligne. Rend `{ cites, malformes }` : `malformes` sont les
  * morceaux qui ne sont pas un identifiant de règle (`LIC-3`, `SPEC_ALL_SOC-1`, `voir`).
  */
+const REGLE_SEULE = new RegExp(`^${REGLE}$`);
+
 export function reglesCitees(valeur) {
   const cites = [];
   const malformes = [];
   for (const morceau of valeur.split(/[\s,]+/).filter(Boolean)) {
     const nu = /^`([^`]+)`$/.exec(morceau)?.[1] ?? morceau;
-    const lu = lireIdentifiant(nu);
-    if (lu?.type === 'RULE' && lu.index === undefined && /^[A-Z0-9_-]+$/.test(nu)) cites.push(nu);
+    if (REGLE_SEULE.test(nu)) cites.push(nu);
     else malformes.push(morceau);
   }
   return { cites: [...new Set(cites)], malformes };
@@ -58,7 +59,8 @@ export const FICHIER_DE_TEST = /\.(?:test|spec|e2e-spec)\.[cm]?[jt]sx?$/;
 
 /**
  * Tests nommés par la colonne « Preuve » de `## Surfaces` : un fichier de test entre accents graves,
- * suivi de ses titres entre « », "" ou accents graves : `a.test.ts` « refuse X », « refuse Y ».
+ * suivi de ses titres entre « » ou "" : `a.test.ts` « refuse X », « refuse Y ». Un autre texte entre
+ * accents graves (un chemin de code cité à côté) n'est pas un titre.
  * Rend `{ tests: [{ fichier, titre }], ecarts }` ; `ecarts` dit ce qui empêche de lire la preuve.
  */
 export function testsNommes(lignes) {
@@ -79,8 +81,8 @@ export function testsNommes(lignes) {
         if (fichier && titres === 0) ecarts.push(`la preuve nomme \`${fichier}\` sans titre de test`);
         fichier = m[1];
         titres = 0;
-      } else if (fichier) {
-        tests.push({ fichier, titre: m[1] ?? m[2] ?? m[3] });
+      } else if (fichier && m[1] === undefined) {
+        tests.push({ fichier, titre: m[2] ?? m[3] });
         titres++;
       }
     }

@@ -217,11 +217,10 @@ const testExiste = (fichier, titre) => (fichier.endsWith('licence.spec.ts') ? (E
 const defaut = (status, preuve) => messages(controlerTicket({ nom: NOM, texte: DEFAUT(status, preuve), existe, regleExiste, testExiste }));
 
 test('Surfaces : la colonne Preuve nomme un fichier de test entre accents graves puis ses titres', () => {
-  const lignes = DEFAUT('Fait — PR #9', '`apps/api/src/licence.spec.ts` « a », "b" puis `c` ; `e2e/x.e2e-spec.ts` « d » \\| e').split('\n');
+  const lignes = DEFAUT('Fait — PR #9', '`apps/api/src/licence.spec.ts` « a », "b", couvre `src/licence.ts` ; `e2e/x.e2e-spec.ts` « d » \\| e').split('\n');
   assert.deepEqual(testsNommes(lignes).tests, [
     { fichier: 'apps/api/src/licence.spec.ts', titre: 'a' },
     { fichier: 'apps/api/src/licence.spec.ts', titre: 'b' },
-    { fichier: 'apps/api/src/licence.spec.ts', titre: 'c' },
     { fichier: 'e2e/x.e2e-spec.ts', titre: 'd' },
   ]);
   assert.deepEqual(testsNommes(DEFAUT('Fait — PR #9', '`x.spec.md` « une spec de doc »').split('\n')).tests, []);
