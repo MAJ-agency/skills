@@ -106,6 +106,78 @@ test('un push vers un sujet est refusé, quelle que soit la branche et la forme 
   assert.equal(pousseSurUnSujet("cat <<'EOF' > note.md\ngit push origin HEAD:sujet/x\nEOF"), false, 'un corps de heredoc non plus');
 });
 
+test('tout git push vers un sujet est refusé, quelle que soit la branche, et le refus indique sujet.sh carte', () => {
+  const formes = [
+    'git push origin HEAD:sujet/demo',
+    'git push origin HEAD:refs/heads/sujet/demo',
+    'git push -u origin sujet/demo',
+    'git push origin feat/demo-1-04-hook HEAD:sujet/demo',
+    'git push origin +HEAD:sujet/demo',
+    'git push origin "HEAD:sujet/demo"',
+    "git push origin 'HEAD:refs/heads/sujet/demo'",
+    'git -C /tmp/depot push origin HEAD:sujet/demo',
+    'git -c core.x=1 push origin HEAD:sujet/demo',
+    '/usr/bin/git push origin HEAD:sujet/demo',
+    'GIT_TRACE=1 git push origin HEAD:sujet/demo',
+    'env git push origin HEAD:sujet/demo',
+    'bash -c "git push origin HEAD:sujet/demo"',
+    'git commit -m x && git push origin HEAD:sujet/x',
+    '(git push origin HEAD:sujet/demo)',
+    'echo $(git push origin HEAD:sujet/demo)',
+    // `git` se lit où qu'il soit dans le segment, pas derrière une liste fermée de préfixes.
+    'timeout 5 git push origin HEAD:sujet/demo',
+    'nice -n 5 git push origin HEAD:sujet/demo',
+    'xargs -r git push origin HEAD:sujet/demo',
+    // `--repo` porte le remote : tous les positionnels sont des refspecs.
+    'git push --repo origin HEAD:sujet/demo',
+    'git push --repo=origin HEAD:sujet/demo',
+  ];
+  for (const brancheCourante of ['feat/demo-1-04-hook', 'docs/demo-carte', 'sujet/demo', 'HEAD', null])
+    for (const commande of formes) {
+      const d = decisionCommande(commande, { brancheCourante: () => brancheCourante });
+      assert.equal(d?.decision, 'refuser', `${brancheCourante} : ${commande}`);
+      assert.match(d.raison, /sujet\.sh carte <nom>/);
+    }
+});
+
+test('un git push nu, ou vers HEAD, depuis une branche sujet/… est refusé', () => {
+  const sur = (branche) => ({ brancheCourante: () => branche });
+  for (const commande of ['git push', 'git push origin', 'git push -u origin', 'git push origin HEAD', 'git push origin @', 'git push -o ci.skip origin'])
+    assert.equal(decisionCommande(commande, sur('sujet/demo'))?.decision, 'refuser', commande);
+  for (const commande of ['git push', 'git push origin HEAD', 'git push -u origin feat/x']) assert.equal(decisionCommande(commande, sur('feat/demo-1-04-hook')), null, commande);
+  assert.equal(decisionCommande('git push', sur(null)), null, 'branche inconnue');
+});
+
+test('un refspec illisible (variable, substitution, motif, --all, --mirror) demande confirmation', () => {
+  for (const commande of [
+    'git push origin "$REF"',
+    'git push origin HEAD:$BRANCHE',
+    'git push origin HEAD:$(cat cible)',
+    'git push origin HEAD:`cat cible`',
+    'git push origin refs/heads/*:refs/heads/*',
+    'git push --all',
+    'git push --mirror origin',
+    'git push origin $SRC:feat/x',
+  ])
+    assert.equal(decisionCommande(commande)?.decision, 'demander', commande);
+});
+
+test('ce qui n’écrit pas sur un sujet passe, sujet.sh carte compris', () => {
+  for (const commande of [
+    'git push -u origin feat/demo-1-04-hook',
+    'git push origin HEAD:refs/heads/feat/sujet-x',
+    'git push origin feat/sujet-x',
+    "git commit -m 'docs: git push origin HEAD:sujet/x refusé'",
+    'git commit -m "git push origin HEAD:sujet/x"',
+    'bash scripts/chaine/sujet.sh carte x',
+    'bash scripts/chaine/sujet.sh carte demo',
+    'git fetch origin sujet/demo',
+    'git pull --ff-only origin sujet/demo',
+    'git log origin/sujet/demo',
+  ])
+    assert.equal(decisionCommande(commande, { brancheCourante: () => 'docs/demo-carte' }), null, commande);
+});
+
 test('lireDependances : la ligne d’en-tête, accents graves ou nus, — ou absente → []', () => {
   const ticket = (ligne) => `# X\n\nStatus: ready-for-agent\n${ligne}\n\n## Le besoin\n\nx\n`;
   assert.deepEqual(lireDependances(ticket('Dépendances: `leaflet`, `@types/leaflet`')), ['leaflet', '@types/leaflet']);

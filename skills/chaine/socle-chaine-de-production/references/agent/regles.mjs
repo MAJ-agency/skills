@@ -168,8 +168,9 @@ export function sansTexte(commande) {
 }
 
 const RAISON_PUSH_SUJET =
-  "un sujet ne se pousse jamais à la main, quelle que soit la branche : seul sujet.sh y écrit (demarrer, rafraichir, fusionner, livrer). Sans ce refus, une session écrirait elle-même la ligne `Dépendances:` qui l'autorise.";
-const RAISON_PUSH_ILLISIBLE = "git push dont la destination ne se lit pas (variable ou substitution dans le refspec) : l'écrire en clair.";
+  "un sujet ne se pousse jamais à la main, quelle que soit la branche : seul sujet.sh y écrit (demarrer, rafraichir, fusionner, livrer, carte). Sans ce refus, une session écrirait elle-même la ligne `Dépendances:` qui l'autorise. Pour la carte : `bash scripts/chaine/sujet.sh carte <nom>`.";
+const RAISON_PUSH_ILLISIBLE =
+  "git push dont la destination ne se lit pas (variable, substitution, motif, --all, --mirror) : elle pourrait viser un sujet. L'écrire en clair ; pour la carte : `bash scripts/chaine/sujet.sh carte <nom>`.";
 
 /** La commande sans ses corps de heredoc ni ses guillemets : un refspec cité se lit comme un refspec nu. */
 function sansGuillemets(commande) {
@@ -178,15 +179,22 @@ function sansGuillemets(commande) {
 
 /** Options de `git` placées avant la sous-commande et suivies d'une valeur (`git -C .. push`). */
 const OPTIONS_GIT_A_VALEUR = new Set(['-C', '-c', '--git-dir', '--work-tree', '--namespace', '--exec-path', '--super-prefix']);
+/** Options de `git push` suivies d'une valeur séparée : cette valeur n'est ni le remote ni un refspec. */
+const OPTIONS_PUSH_A_VALEUR = new Set(['-o', '--push-option', '--repo', '--receive-pack', '--exec']);
 
 /**
  * Chaque `git push` de la commande, `git` nu ou par son chemin (`/usr/bin/git`), avec ou sans options
- * (`git -C . push`, `git -c x=y push`) : ses refspecs, c'est-à-dire les positionnels après le remote.
- * Les guillemets sont retirés d'abord : `"HEAD:sujet/x"` vise le même sujet que `HEAD:sujet/x`.
+ * (`git -C . push`, `git -c x=y push`), derrière n'importe quel préfixe (`timeout 5 git push`), dans
+ * un sous-shell ou une substitution (`(…)`, `$(…)`, accents graves) : ses refspecs, c'est-à-dire les
+ * positionnels après le remote (tous, si `--repo` porte le remote), et `tout` pour `--all`,
+ * `--mirror` ou `--branches`. Les guillemets sont retirés d'abord : `"HEAD:sujet/x"` vise le même sujet
+ * que `HEAD:sujet/x`. Seul le premier `git` d'un segment compte : `git commit -m "… git push …"` n'est
+ * pas un push.
  */
 function pushs(commande) {
   return sansGuillemets(commande)
-    .split(/[;&|\n]+/)
+    .replace(/`/g, '$(')
+    .split(/[;&|\n()]+/)
     .flatMap((segment) => {
       const mots = segment.trim().split(/\s+/);
       const i = mots.findIndex((mot) => /(^|\/)git$/.test(mot));
@@ -194,26 +202,50 @@ function pushs(commande) {
       let j = i + 1;
       while (j < mots.length && mots[j].startsWith('-')) j += OPTIONS_GIT_A_VALEUR.has(mots[j]) ? 2 : 1;
       if (mots[j] !== 'push') return [];
-      const positionnels = mots.slice(j + 1).filter((mot) => !mot.startsWith('-'));
-      return [{ refspecs: positionnels.slice(1) }];
+      const positionnels = [];
+      let tout = false;
+      let remoteEnOption = false;
+      for (let k = j + 1; k < mots.length; k++) {
+        const mot = mots[k];
+        if (!mot.startsWith('-')) {
+          positionnels.push(mot);
+          continue;
+        }
+        if (/^--(all|mirror|branches)$/.test(mot)) tout = true;
+        if (/^--repo(=|$)/.test(mot)) remoteEnOption = true;
+        if (OPTIONS_PUSH_A_VALEUR.has(mot)) k++;
+      }
+      return [{ refspecs: remoteEnOption ? positionnels : positionnels.slice(1), tout }];
     });
+}
+
+/** La branche distante qu'écrit un refspec ; `HEAD` ou `@` seuls poussent la branche courante. */
+function destination(refspec, brancheCourante) {
+  const cible = refspec.replace(/^\+/, '').split(':').pop() ?? '';
+  return cible === 'HEAD' || cible === '@' ? (brancheCourante() ?? '') : cible;
 }
 
 /**
  * Vrai si un `git push` de la commande a pour destination une branche de sujet : `HEAD:sujet/x`,
- * `HEAD:refs/heads/sujet/x`, ou `sujet/x` seul, cités ou non. Un sujet ne s'écrit que par `sujet.sh`
- * (que le hook ne voit pas, il lance un script) : sans ce refus, une session écrirait elle-même, sur
- * le sujet, la ligne `Dépendances:` qui l'autorise (faille relevée en contre-revue, puis en revue de
- * sécurité : la première version ne refusait que depuis une branche de ticket, et laissait passer un
- * refspec entre guillemets, `git -C`, `git` par son chemin, ou une autre branche courante).
+ * `HEAD:refs/heads/sujet/x`, `sujet/x` seul, cités ou non, ou `HEAD` depuis une branche `sujet/…`.
+ * Un sujet ne s'écrit que par `sujet.sh` (que le hook ne voit pas, il lance un script) : sans ce
+ * refus, une session écrirait elle-même, sur le sujet, la ligne `Dépendances:` qui l'autorise (faille
+ * relevée en contre-revue, puis en revue de sécurité : la première version ne refusait que depuis une
+ * branche de ticket, et laissait passer un refspec entre guillemets, `git -C`, `git` par son chemin,
+ * une autre branche courante, ou `git` derrière un préfixe comme `timeout 5`).
  */
-export function pousseSurUnSujet(commande) {
-  return pushs(commande).some(({ refspecs }) => refspecs.some((refspec) => /^\+?(refs\/heads\/)?sujet\//.test(refspec.split(':').pop() ?? '')));
+export function pousseSurUnSujet(commande, brancheCourante = () => null) {
+  return pushs(commande).some(({ refspecs }) => refspecs.some((refspec) => /^(refs\/heads\/)?sujet\//.test(destination(refspec, brancheCourante))));
 }
 
-/** Vrai si un `git push` de la commande a un refspec qu'on ne peut pas lire : variable ou substitution. */
+/**
+ * Vrai si un `git push` de la commande a un refspec qu'on ne peut pas lire : variable ou
+ * substitution, destination en motif (`refs/heads/*`), ou `--all`, `--mirror`, `--branches`.
+ */
 export function pushIllisible(commande) {
-  return pushs(commande).some(({ refspecs }) => refspecs.some((refspec) => /[$`]/.test(refspec)));
+  return pushs(commande).some(
+    ({ refspecs, tout }) => tout || refspecs.some((refspec) => /[$`]/.test(refspec) || /[*?[{]/.test(destination(refspec, () => null))),
+  );
 }
 
 /** Vrai si un `git push` de la commande n'a aucun refspec : il pousse la branche courante vers son amont. */
@@ -226,8 +258,9 @@ export function pushSansRefspec(commande) {
  * @param {{ dependancesPrevues?: () => string[] | null, brancheCourante?: () => string | null }} [contexte]
  *   Tout `git push` vers un `sujet/…` est refusé, quelle que soit la branche courante : un sujet ne
  *   s'écrit que par `sujet.sh`, sans quoi la session écrirait elle-même la ligne qui l'autorise. Un
- *   `git push` sans refspec depuis une branche `sujet/…` (`brancheCourante`) l'est aussi ; un refspec
- *   illisible (variable, substitution) demande.
+ *   `git push` sans refspec, ou vers `HEAD`, depuis une branche `sujet/…` (`brancheCourante`, lue
+ *   une fois au plus) l'est aussi ; un refspec illisible (variable, substitution, motif, `--all`)
+ *   demande.
  *   `dependancesPrevues` : paquets de la ligne `Dépendances:` du ticket de la branche, lue sur le
  *   sujet (`null` si introuvable) ; appelée seulement si la commande ajoute un paquet. Une commande
  *   passe sans question quand chacun de ses paquets y figure et qu'aucune option ne change la source
@@ -236,8 +269,10 @@ export function pushSansRefspec(commande) {
 export function decisionCommande(commande, { dependancesPrevues = () => null, brancheCourante = () => null } = {}) {
   const code = sansTexte(commande);
   for (const [motif, raison] of COMMANDES_INTERDITES) if (motif.test(code)) return { decision: 'refuser', raison };
-  if (pousseSurUnSujet(commande)) return { decision: 'refuser', raison: RAISON_PUSH_SUJET };
-  if (pushSansRefspec(commande) && (brancheCourante() ?? '').startsWith('sujet/')) return { decision: 'refuser', raison: RAISON_PUSH_SUJET };
+  let branche;
+  const courante = () => (branche === undefined ? (branche = brancheCourante()) : branche);
+  if (pousseSurUnSujet(commande, courante)) return { decision: 'refuser', raison: RAISON_PUSH_SUJET };
+  if (pushSansRefspec(commande) && (courante() ?? '').startsWith('sujet/')) return { decision: 'refuser', raison: RAISON_PUSH_SUJET };
   if (pushIllisible(commande)) return { decision: 'demander', raison: RAISON_PUSH_ILLISIBLE };
   const liste = ajouts(code);
   if (liste.length === 0) return null;

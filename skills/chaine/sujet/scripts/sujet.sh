@@ -38,14 +38,22 @@
 #   regrouper <nom> <pr>… ouvre sujet/<nom> au besoin, le met à jour avec develop, puis recible
 #                         chaque PR vers develop listée sur le sujet (sans toucher à ses commits :
 #                         le sujet contient le sommet de develop) et la commente
-#   carte                 « ticket<TAB>sujet » pour chaque ticket qui déclare un sujet (develop et sujets)
+#   carte <nom>           (architecte) pousse sur origin/sujet/<nom> les commits locaux de la branche
+#                         courante qui n'y sont pas : seul geste d'écriture d'une session sur un sujet
+#                         (le hook d'agent refuse tout `git push` vers sujet/…). Chaque commit modifie en
+#                         place UN fichier docs/**/*.map.md et rien d'autre (ni création, ni suppression,
+#                         ni renommage, ni mode), dont la ligne `Sujet:` nomme exactement sujet/<nom>
+#                         avant comme après, et ce fichier est formaté par Prettier. Une branche en retard
+#                         rattrape le sujet par `git merge --ff-only` ; historique divergent, commit de
+#                         fusion ou option (jamais de push forcé) : sortie 9, rien n'est poussé
+#   carte (sans argument) « ticket<TAB>sujet » pour chaque ticket qui déclare un sujet (develop et sujets)
 #   de <ticket>           sujet d'un ticket
 #   etat                  tableau des sujets ouverts : avance, retard, sous-PR, tickets, verdict
 #                         (`en cours`, `prêt à livrer`, `livré #n`)
 #
 # Sorties : 0 fait · 2 conflit · 3 checks rouges ou en cours · 4 refus corrigeable par l'auteur (sa
 # dernière ligne est le motif, `fusionner` : titre, commitlint, revue, base) · 7 `fusionner` d'une PR
-# fermée ou en brouillon (rien à corriger : sautée)
+# fermée ou en brouillon (rien à corriger : sautée) · 9 `carte <nom>` refusée (rien n'est poussé)
 # `fusionner` encore : 5 la sous-PR a bougé pendant sa mise à jour (reprise au tour suivant) · 8 conflit
 # avec le sujet sur des index générés seuls : branche mise à jour (index régénérés) et poussée, CI
 # relancée, aucun squash
@@ -673,13 +681,71 @@ livrer_prets() {
   done
 }
 
+# `carte <nom>` : voir l'en-tête. Le seul geste d'écriture d'une session sur un sujet.
+# Vrai si la carte `<rev>:<chemin>` déclare, en première ligne `Sujet:` de son en-tête (avant le
+# premier `## `), exactement `sujet/<nom>` : la lecture de `sujet_livre` et `phase_carte`. awk lit
+# tout le flux (pas de sortie anticipée) : sous pipefail, un SIGPIPE de git ferait un faux refus.
+carte_cite_le_sujet() {
+  git cat-file blob "$1" 2>/dev/null | awk -v s="sujet/$2" '
+    fini { next }
+    /^## / { fini = 1; next }
+    /^(- )?\**Sujet ?:/ { l = $0; sub(/^(- )?\**Sujet ?:\** */, "", l); sub(/[[:space:]]+$/, "", l); ok = (l == s); fini = 1 }
+    END { exit !ok }'
+}
+
+carte_sujet() {
+  local nom=${1-} branche tete c f meta lignes n i=0 avant tmp
+  shift || true
+  refuser() { echo "REFUS : $1"; exit 9; }
+  [ $# -eq 0 ] || refuser "carte ne prend que le nom du sujet ($*) : jamais de push forcé, jamais d'option"
+  [[ "$nom" =~ ^[a-z0-9][a-z0-9-]*$ ]] || refuser "nom de sujet illisible : « $nom »"
+  branche="sujet/$nom"
+  git fetch -q origin "+refs/heads/$branche:refs/remotes/origin/$branche" 2>/dev/null || refuser "origin/$branche introuvable"
+  if ! git merge-base --is-ancestor "origin/$branche" HEAD; then
+    git merge --ff-only -q "origin/$branche" >/dev/null 2>&1 ||
+      refuser "la branche diverge de origin/$branche (git merge --ff-only impossible) : repartir de origin/$branche et rejouer le commit de carte"
+  fi
+  # Le sommet vérifié est celui qui part : HEAD ne se relit pas entre la vérification et le push.
+  tete=$(git rev-parse HEAD)
+  mapfile -t avant < <(git rev-list --reverse "origin/$branche..$tete")
+  [ "${#avant[@]}" -gt 0 ] || { echo "rien à pousser : la branche n'a aucun commit absent de origin/$branche"; return 0; }
+  tmp=$(mktemp -d)
+  for c in "${avant[@]}"; do
+    n=$(git rev-list --parents -n1 "$c" | wc -w)
+    [ "$n" -eq 2 ] || refuser "$c est un commit de fusion ou racine : seules les mises à jour de carte, une par commit, passent par ici"
+    # Sortie brute, sans détection de renommage : `:<mode> <mode> <sha> <sha> <statut>\t<chemin>`.
+    mapfile -t lignes < <(git diff-tree -r --no-commit-id --no-renames "$c")
+    [ "${#lignes[@]}" -eq 1 ] && [[ "${lignes[0]#*$'\t'}" =~ ^docs/.+\.map\.md$ ]] ||
+      refuser "$c touche autre chose qu'un seul fichier docs/**/*.map.md (${lignes[*]#*$'\t'}) : le reste passe par une PR"
+    meta=${lignes[0]%%$'\t'*}
+    f=${lignes[0]#*$'\t'}
+    [[ "$meta" =~ ^:100644\ 100644\ [0-9a-f]+\ [0-9a-f]+\ M$ ]] ||
+      refuser "$c ne modifie pas $f en place (création, suppression, renommage ou changement de mode) : passe par une PR"
+    carte_cite_le_sujet "$c^:$f" "$nom" ||
+      refuser "$f ne déclarait pas Sujet: $branche avant $c : la carte d'un autre sujet ne se pousse pas ici"
+    carte_cite_le_sujet "$c:$f" "$nom" ||
+      refuser "$f ne déclare plus exactement Sujet: $branche dans son en-tête au commit $c"
+    git cat-file blob "$c:$f" >"$tmp/avant"
+    pnpm exec prettier --stdin-filepath "$f" <"$tmp/avant" >"$tmp/apres" 2>/dev/null || true
+    cmp -s "$tmp/avant" "$tmp/apres" || {
+      rm -rf "$tmp"
+      refuser "$f n'est pas formaté par Prettier au commit $c : pnpm exec prettier --write $f, puis corriger le commit"
+    }
+    i=$((i + 1))
+  done
+  rm -rf "$tmp"
+  git push -q origin "$tete:refs/heads/$branche" || refuser "le push sur $branche a échoué (jamais de force : relancer après un fetch)"
+  echo "carte poussée : $i commit(s) sur $branche"
+}
+
 commande=${1:-}
 shift || true
+if [ "$commande" = carte ] && [ $# -gt 0 ]; then carte_sujet "$@"; exit; fi
 case "$commande" in
   demarrer | ouvrir | fusionner | rafraichir | livrer | relancer | series | regrouper | carte | etat) "$commande" "$@" ;;
   de) sujet_du_ticket "${1:?ticket}" ;;
   livre) sujet_livre "${1:?nom du sujet}" ;;
   livrer-prets) livrer_prets "$@" ;;
   regrouper-series) regrouper_series "$@" ;;
-  *) sed -n '3,/^# =====/p' "$0" | sed '$d; s/^# \{0,1\}//'; sortir 4 "usage : sujet.sh demarrer <ticket|nom> | ouvrir <nom> [--specs <pr>] | fusionner <pr> | rafraichir <nom> | livrer <nom> <titre> | livrer-prets [--dry-run] | relancer <pr> | series | regrouper-series [--dry-run] | regrouper <nom> <pr>… | carte | etat | de <ticket>" ;;
+  *) sed -n '3,/^# =====/p' "$0" | sed '$d; s/^# \{0,1\}//'; sortir 4 "usage : sujet.sh demarrer <ticket|nom> | ouvrir <nom> [--specs <pr>] | fusionner <pr> | rafraichir <nom> | livrer <nom> <titre> | livrer-prets [--dry-run] | relancer <pr> | series | regrouper-series [--dry-run] | regrouper <nom> <pr>… | carte | carte <nom> | etat | de <ticket>" ;;
 esac
