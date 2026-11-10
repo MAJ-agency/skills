@@ -62,7 +62,7 @@ apps/                    un dossier par service — chacun porte son CLAUDE.md
 packages/                paquets partagés entre services
 
 docs/                    TOUTE la documentation, triée par thème (l'arbre complet : docs/methode/nomenclature.md)
-  adr/                   décisions et leur pourquoi — ARC-1, ARC-2… (sans zéro de tête)
+  adr/                   décisions et leur pourquoi — ADR_ALL_ARC-1, ADR_ALL_ARC-2… (sans zéro de tête)
   architecture/          guides techniques qui ne sont pas des décisions
   infrastructure/        hébergement, base, CI/CD, déploiement
   design/                design system
@@ -84,7 +84,7 @@ docs/                    TOUTE la documentation, triée par thème (l'arbre comp
 
 **Tout vit sous `docs/`, trié par thème** — il n'y a aucun dossier de travail à côté. Les dossiers naissent avec leur premier document. Une spec de feature **cite** les règles métier du registre, elle ne les formule pas : la règle vit dans `metier/regles/`, la feature dans `features/`.
 
-Il n'y a **pas de sommaire** dans `docs/adr/` : le nom d'un fichier porte son identité (`ARC-1`), donc lister le dossier suffit.
+Il n'y a **pas de sommaire** dans `docs/adr/` : le nom d'un fichier porte son identité (`ADR_ALL_ARC-1`), donc lister le dossier suffit.
 
 ## Prérequis
 
@@ -140,9 +140,9 @@ pnpm check
 
 Quelques règles transverses, pour ne pas avoir à les chercher :
 
-- **Les identifiants de code sont en anglais, généralistes ; la prose est en {{LANGUE}}** — commentaires, commits (conventional commits), documentation, textes d'interface (`ARC-4`). `GLOSSARY.md` donne le nom en code de chaque terme métier. Exceptions assumées : les règles impératives des services (`apps/<service>/CLAUDE.md`, leurs guidelines) et `packages/CLAUDE.md` restent en anglais, pour rester diffables avec leur gabarit d'origine.
+- **Les identifiants de code sont en anglais, généralistes ; la prose est en {{LANGUE}}** — commentaires, commits (conventional commits), documentation, textes d'interface (`ADR_ALL_ARC-4`). `GLOSSARY.md` donne le nom en code de chaque terme métier. Exceptions assumées : les règles impératives des services (`apps/<service>/CLAUDE.md`, leurs guidelines) et `packages/CLAUDE.md` restent en anglais, pour rester diffables avec leur gabarit d'origine.
 <!-- socle:regles-transverses -->
-- **Un document de contenu se nomme `<TRI>-<N>-<slug>.md`** et se cite par son identifiant court (`ARC-1`), jamais par son chemin. Si le sujet n'a pas de trigramme, **on l'inscrit au registre avant de créer le fichier**.
+- **Tout ce qui se cite porte un identifiant `<TYPE>_<CTX>_<TRI>-<n>`** (`RULE_ALL_LIC-3`, `SPEC_ALL_SOC-1`, `ADR_ALL_ARC-1`) et se cite par cet identifiant, jamais par son chemin. Si le sujet n'a pas de trigramme, **on l'inscrit au registre avant de créer le fichier**.
 - **Aucun invariant critique ne dépend d'un relecteur** : chacun est un test bloquant en CI.
 - **Rien n'est « validé » sans un geste humain.** Ni skill, ni agent n'écrit ce statut.
 

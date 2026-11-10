@@ -70,7 +70,7 @@ Format retenu : MADR simplifié. Le minimum viable d'une ADR est un paragraphe ;
 - Sources : …
 ```
 
-- **Nommage du fichier : `<TRI>-<N>-<slug>.md`** — trigramme du sujet, séquence unique par trigramme tous dossiers confondus. Règle complète et registre : [`nomenclature.md`](nomenclature.md). **Si le sujet n'a pas encore de trigramme, l'inscrire au registre avant de créer le fichier** — c'est une étape de la procédure, pas une exception. Une décision transverse porte le trigramme réservé `ARC` et vit à la racine de `docs/adr/` ; une décision rattachée à un sujet vit dans le sous-dossier de ce sujet. **`docs/adr/` n'a pas d'index** — le nom du fichier porte l'identité (`ARC-1`), lister le dossier suffit.
+- **Nommage du fichier : `ADR_<CTX>_<TRI>-<n>-<slug>.md`** — le type `ADR`, le contexte (`ALL` pour une décision qui vaut partout), le trigramme du sujet, une séquence unique par type, contexte et trigramme. Règle complète et registre : [`nomenclature.md`](nomenclature.md). **Si le sujet n'a pas encore de trigramme, l'inscrire au registre avant de créer le fichier** — c'est une étape de la procédure, pas une exception. Une décision transverse porte le trigramme réservé `ARC` et vit à la racine de `docs/adr/` ; une décision rattachée à un sujet vit dans le sous-dossier de ce sujet. **`docs/adr/` n'a pas d'index** — le nom du fichier porte l'identité (`ADR_ALL_ARC-1`), lister le dossier suffit.
 - **Créer `docs/adr/` paresseusement** : à la première ADR, pas avant.
 - **Une ADR n'est jamais supprimée.** Elle est `dépréciée` ou `remplacée par`, avec sa raison.
 - Le re-grilling d'une ADR ajoute une section `## Amendements du grill (JJ/MM/AAAA)` — voir [grilling.md](grilling.md#re-griller-ce-qui-a-déjà-été-décidé).
@@ -79,7 +79,7 @@ Format retenu : MADR simplifié. Le minimum viable d'une ADR est un paragraphe ;
 
 ## GLOSSARY.md — le langage ubiquitaire
 
-`GLOSSARY.md` est **un glossaire et rien d'autre**. Ce n'est ni une spec, ni un brouillon, ni un dépôt de décisions d'implémentation. Il est **totalement dépourvu de détail d'implémentation** — à une exception près, voulue par `ARC-4` : **l'entrée de chaque terme est son nom en code**, anglais et généraliste, suivi du libellé français affiché. C'est le seul pont entre le mot du métier et l'identifiant.
+`GLOSSARY.md` est **un glossaire et rien d'autre**. Ce n'est ni une spec, ni un brouillon, ni un dépôt de décisions d'implémentation. Il est **totalement dépourvu de détail d'implémentation** — à une exception près, voulue par `ADR_ALL_ARC-4` : **l'entrée de chaque terme est son nom en code**, anglais et généraliste, suivi du libellé français affiché. C'est le seul pont entre le mot du métier et l'identifiant.
 
 ```md
 # <Nom du contexte>
@@ -116,11 +116,18 @@ _Éviter_ : utilisateur, compte, licencié
 
 Distinct des ADR : une ADR dit **pourquoi une décision technique**, une règle dit **ce que le métier exige**. Une règle survit à un changement de stack ; une ADR non.
 
-- Un fichier par sujet, dans `docs/metier/regles/`, nommé **`<TRI>-regles.md`** — sans numéro : le registre est une mécanique, pas un document de contenu, et il est **hors nomenclature** ([`nomenclature.md`](nomenclature.md)). Ainsi `LIC-3` désigne toujours une règle, jamais un document.
-- **Identifiants stables** avec le trigramme du sujet (`LIC-1`, `LIC-2`, …), attribués dans l'ordre, jamais réutilisés. Les trigrammes viennent du registre de `nomenclature.md`.
-- Cycle de vie et interdit de suppression : voir [grilling.md](grilling.md#cycle-de-validation--la-machine-ne-valide-jamais).
-- **Un test qui couvre une règle porte son identifiant dans son nom** : `test("LIC-2 — <comportement>", …)`. C'est le lien vérifiable entre le registre et le code.
-- Les questions non arbitrées vivent dans `docs/questions-ouvertes.md`, datées et sourcées.
+Décision et alternatives écartées : `ADR_ALL_ARC-<N>` (le registre, un fichier par règle). Le gabarit : `docs/agents/gabarits/regle.md`.
+
+- **Une règle est un fichier** : `docs/metier/regles/<ctx>/RULE_<CTX>_<TRI>-<n>.md`. Un en-tête YAML entre deux lignes `---`, validé par un schéma, puis l'énoncé en markdown libre : aussi long qu'il faut, avec ses précisions datées (`_(précisée le 24/09 : …)_`) et ses passages barrés. Le contexte `all/` existe toujours. Les champs de l'en-tête sont en anglais ; la prose est dans la langue du projet.
+- **L'identifiant est stable** : `RULE_<CTX>_<TRI>-<n>`, attribué dans l'ordre par `node scripts/docs/next-id.mjs RULE <CTX> <TRI>`, jamais réutilisé, jamais renommé ([`nomenclature.md`](nomenclature.md)). Le trigramme vient du registre des trigrammes.
+- **Deux statuts.** La `validation` est écrite par un humain : `candidate`, `validated`, `rejected`, `obsolete`, avec `date`, `by` (qui a tranché, par son nom) et `reason` pour un rejet ou une obsolescence. Aucune machine n'écrit `validated`. La **réalisation** n'est jamais écrite : elle est calculée depuis les tests (`proven` avec son niveau P0, P1 ou P2), depuis les clés de configuration déclarées (`configured`), sinon `to-build`. Deux exceptions s'écrivent à la main dans le champ `exception`, avec leur raison : `not-applicable` et `contradiction`.
+- **Une règle n'est jamais supprimée** : elle devient `rejected` ou `obsolete`. Cycle complet : [grilling.md](grilling.md#cycle-de-validation--la-machine-ne-valide-jamais).
+- **Un test qui prouve une règle porte son identifiant entre crochets en tête de son nom** : `it('[RULE_ALL_LIC-2] should <comportement>', …)`. Plusieurs étiquettes par test sont permises. C'est le lien vérifiable entre le registre et le code ; un test de recette n'en porte jamais ([`.claude/rules/tests.md`](../../.claude/rules/tests.md)).
+- **Les liens entre règles sont typés et déclarés** dans l'en-tête (`links`) : `replaces`, `refines`, `contradicts`, `parameterized-by`, `blocked-by`. Une règle de contexte qui instancie une règle de socle le dit par `instanceOf`, et hérite de ses preuves tant qu'elle n'en a pas en propre. Les liens par simple citation sont déduits par la machine, jamais écrits.
+- **Les sources et les décisions** sont des listes : `sources` (référence, chemin, horodatage), `decisions` (date, texte, qui). Les noms des personnes s'écrivent : on sait qui a dit quoi.
+- **Les champs propres à un projet** (une estimation, un chantier, des fichiers de code) vivent sous `extensions`, que le schéma laisse passer et qu'Anchorpost ignore.
+- Les questions non arbitrées vivent dans `docs/questions-ouvertes.md`, datées et sourcées. Une question dont la ligne `Bloque :` cite une règle la marque « a une question ouverte », sans toucher à ses statuts.
+- **Aucun annuaire écrit à la main.** La vue d'ensemble d'un registre est l'index généré `anchorpost/anchorpost.json`, qui porte pour chaque règle ses statuts, ses liens et les tests qui la prouvent.
 
 ---
 
@@ -134,7 +141,7 @@ Principe directeur, non négociable :
 | --------------------------- | ----------------------------------------- | --------------------- | --------------------------------------------- |
 | **1 — Généré déterministe** | ERD, contrats OpenAPI, graphe de modules  | fonction pure du code | **régénéré + vérifié en CI** (gate doc-drift) |
 | **2 — Narratif**            | ADR, docs de domaine, runbooks, glossaire | décision humaine      | **assisté** en PR (propose, un humain valide) |
-| **3 — Assemblage visuel**   | le site qui agrège 1 + 2                  | build                 | rebuild à chaque merge                        |
+| **3 — Assemblage visuel**   | Anchorpost, qui lit l'index `anchorpost/anchorpost.json` (couche 1) et les documents du manifeste (couche 2) | lecture à chaque push | aucun calcul côté site : il lit l'index commis |
 
 - Les générateurs de la couche 1 doivent être **déterministes** (tri stable, aucun horodatage dans la sortie) — sinon le gate clignote et on apprend à l'ignorer.
 - **Jamais d'auto-merge de prose.** Un LLM _propose_, il ne _décide_ pas. De la doc narrative auto-générée sans relecture produit du plausible-mais-faux, noie le signal et érode la confiance.

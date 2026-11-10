@@ -2,7 +2,7 @@
 
 {{TITRE}} — {{DESCRIPTION}}
 
-**Les identifiants de code sont en anglais, généralistes ; la prose est en {{LANGUE}}** — commentaires, commits (conventional commits), documentation, textes d'interface, noms de tests. `GLOSSARY.md` fait le pont : chaque terme métier y a son nom en code. Décision et raisons : [`docs/adr/ARC-4-langue-des-identifiants-de-code.md`](docs/adr/ARC-4-langue-des-identifiants-de-code.md).
+**Les identifiants de code sont en anglais, généralistes ; la prose est en {{LANGUE}}** — commentaires, commits (conventional commits), documentation, textes d'interface, noms de tests. `GLOSSARY.md` fait le pont : chaque terme métier y a son nom en code. Décision et raisons : [`docs/adr/ADR_ALL_ARC-4-langue-des-identifiants-de-code.md`](docs/adr/ADR_ALL_ARC-4-langue-des-identifiants-de-code.md).
 
 > **État du dépôt — squelette technique, aucun métier.** Les services démarrent et les gardes de qualité mordent, mais **aucun domaine n'est modélisé** : `GLOSSARY.md` attend le grilling et `docs/metier/` n'existe pas. Ce qui reste à faire et ce qui reste à trancher est **déposé en tickets** dans `docs/features/socle/issues/`. Ne rien supposer d'existant qui ne soit pas listé ici.
 
@@ -14,7 +14,7 @@
 | [`docs/adr/`](docs/adr/)                                       | les décisions structurantes et leur _pourquoi_                                              |
 | [`docs/methode/grilling.md`](docs/methode/grilling.md)         | **comment on interroge un plan** avant de l'écrire                                          |
 | [`docs/methode/decisions.md`](docs/methode/decisions.md)       | ADR, `GLOSSARY.md`, registre de règles, documentation vivante                               |
-| [`docs/methode/nomenclature.md`](docs/methode/nomenclature.md) | **nommer un document** : `<TRI>-<N>-<slug>.md`, et le **registre des trigrammes**           |
+| [`docs/methode/nomenclature.md`](docs/methode/nomenclature.md) | **nommer et citer** : `<TYPE>_<CTX>_<TRI>-<n>`, les six types, les contextes, le **registre des trigrammes**           |
 | [`docs/methode/conception.md`](docs/methode/conception.md)     | modules profonds, TDD, revue                                                                |
 | [`docs/methode/pare-feu-ci.md`](docs/methode/pare-feu-ci.md)   | les invariants vérifiés par la machine                                                      |
 | [`GLOSSARY.md`](GLOSSARY.md)                                   | le langage ubiquitaire (glossaire, et rien d'autre)                                         |

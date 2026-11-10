@@ -124,15 +124,19 @@ Toute règle candidate est **sourcée** (document + section, ou locuteur + horod
 ## Cycle de validation — la machine ne valide jamais
 
 ```
-candidate ──(geste humain)──▶ validée ──▶ implémentée
-     │
-     ├──▶ rejetée   (avec sa raison)
-     └──▶ obsolète  (avec sa raison)
+validation (écrite par un humain)      candidate ──(geste humain)──▶ validated
+                                            ├──▶ rejected  (avec sa raison)
+                                            └──▶ obsolete  (avec sa raison)
+
+réalisation (calculée, jamais écrite)  to-build · configured · proven (P0, P1, P2)
+                                       exceptions écrites à la main : not-applicable, contradiction
 ```
 
-- **Une règle n'entre jamais en `validée` sans un geste humain.** Ni skill, ni agent, ni moi n'écrivons « validée ».
-- **Une règle n'est jamais supprimée** : elle est marquée `rejetée` ou `obsolète` avec sa raison. L'historique des arbitrages a plus de valeur que la propreté du fichier.
-- **Le signal d'alerte à surveiller** : un stock de `candidate` non arbitrées qui gonfle. Ça veut dire que la validation ne suit pas, et le registre ment par omission.
+- **Une règle n'entre jamais en `validated` sans un geste humain.** Ni skill, ni agent, ni moi n'écrivons « validée ». Le champ dit la date et qui a tranché, par son nom.
+- **Personne n'écrit « implémentée ».** La réalisation se lit dans les tests : une règle est prouvée quand un test porte son identifiant entre crochets dans son nom. Une règle dite couverte sans un tel test n'est pas couverte, et l'index la signale.
+- **Une règle n'est jamais supprimée** : elle est marquée `rejected` ou `obsolete` avec sa raison. L'historique des arbitrages a plus de valeur que la propreté du fichier.
+- **Une question ouverte ne change pas le statut.** Une règle validée reste validée quand `docs/questions-ouvertes.md` la cite dans une ligne `Bloque :` ; elle porte en plus l'indicateur « a une question ouverte ».
+- **Le signal d'alerte à surveiller** : un stock de `candidate` non arbitrées qui gonfle, ou des `candidate` qui ont des tests. La validation ne suit pas, et le registre ment par omission.
 
 ---
 
