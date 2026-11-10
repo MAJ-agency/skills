@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { ajouteUneDependance, decisionCommande, identifiantDeBranche, lireDependances, paquetsAjoutes, pousseSurUnSujet, refusEdition, sansTexte, lintable } from './regles.mjs';
+import { ajouteUneDependance, decisionCommande, lireDependances, paquetsAjoutes, pousseSurUnSujet, refusEdition, sansTexte, lintable } from './regles.mjs';
 
 const livree = { migrationExistante: () => true, migrations: 'apps/api/src/db/migrations/' };
 const nouvelle = { migrationExistante: () => false, migrations: 'apps/api/src/db/migrations/' };
@@ -26,7 +26,7 @@ test('decisionCommande refuse le push forcé, --no-verify, le push direct sur de
   assert.equal(decisionCommande('git push origin develop').decision, 'refuser');
   assert.equal(decisionCommande('git push origin HEAD:main').decision, 'refuser');
   assert.equal(decisionCommande('git rebase origin/sujet/x').decision, 'refuser');
-  assert.equal(decisionCommande('git push -u origin feat/soc-1-03-x'), null);
+  assert.equal(decisionCommande('git push -u origin feat/spec-all-soc-1-03-x'), null);
   assert.equal(decisionCommande('npm install').decision, 'refuser');
 });
 
@@ -77,12 +77,12 @@ test('ticket introuvable (contexte null ou vide) : demander ; les refus restent'
 });
 
 test('un push vers un sujet est refusé, quelle que soit la branche et la forme de la commande', () => {
-  const ticket = { brancheCourante: () => 'feat/soc-1-04-hook' };
+  const ticket = { brancheCourante: () => 'feat/spec-all-soc-1-04-hook' };
   for (const commande of [
     'git push origin HEAD:sujet/demo',
     'git push origin HEAD:refs/heads/sujet/demo',
     'git push -u origin sujet/demo',
-    'git push origin feat/soc-1-04-hook HEAD:sujet/demo',
+    'git push origin feat/spec-all-soc-1-04-hook HEAD:sujet/demo',
     'git push origin "HEAD:refs/heads/sujet/demo"',
     "git push origin 'sujet/demo'",
     'git -C . push origin HEAD:sujet/demo',
@@ -95,7 +95,7 @@ test('un push vers un sujet est refusé, quelle que soit la branche et la forme 
   assert.equal(decisionCommande('git push origin HEAD:sujet/demo', { brancheCourante: () => 'tmp' })?.decision, 'refuser', 'branche quelconque : refusé aussi');
   assert.equal(decisionCommande('git push origin sujet/demo', { brancheCourante: () => 'sujet/demo' })?.decision, 'refuser', 'même depuis le sujet : seul sujet.sh y écrit');
   assert.equal(decisionCommande('git push', { brancheCourante: () => 'sujet/demo' })?.decision, 'refuser', 'sans refspec depuis un sujet : la branche courante est le sujet');
-  assert.equal(decisionCommande('git push -u origin feat/soc-1-04-hook', ticket), null);
+  assert.equal(decisionCommande('git push -u origin feat/spec-all-soc-1-04-hook', ticket), null);
   assert.equal(decisionCommande('git push', ticket), null, 'sans refspec depuis une branche de ticket');
   assert.equal(decisionCommande('git push origin feat/x', { brancheCourante: () => 'sujet/demo' }), null, 'depuis le sujet, un refspec explicite vers une autre branche passe');
   assert.equal(decisionCommande('b=sujet/demo; git push origin HEAD:$b', ticket)?.decision, 'demander', 'refspec illisible : on demande');
@@ -111,7 +111,7 @@ test('tout git push vers un sujet est refusé, quelle que soit la branche, et le
     'git push origin HEAD:sujet/demo',
     'git push origin HEAD:refs/heads/sujet/demo',
     'git push -u origin sujet/demo',
-    'git push origin feat/demo-1-04-hook HEAD:sujet/demo',
+    'git push origin feat/spec-all-demo-1-04-hook HEAD:sujet/demo',
     'git push origin +HEAD:sujet/demo',
     'git push origin "HEAD:sujet/demo"',
     "git push origin 'HEAD:refs/heads/sujet/demo'",
@@ -132,7 +132,7 @@ test('tout git push vers un sujet est refusé, quelle que soit la branche, et le
     'git push --repo origin HEAD:sujet/demo',
     'git push --repo=origin HEAD:sujet/demo',
   ];
-  for (const brancheCourante of ['feat/demo-1-04-hook', 'docs/demo-carte', 'sujet/demo', 'HEAD', null])
+  for (const brancheCourante of ['feat/spec-all-demo-1-04-hook', 'docs/demo-carte', 'sujet/demo', 'HEAD', null])
     for (const commande of formes) {
       const d = decisionCommande(commande, { brancheCourante: () => brancheCourante });
       assert.equal(d?.decision, 'refuser', `${brancheCourante} : ${commande}`);
@@ -144,7 +144,7 @@ test('un git push nu, ou vers HEAD, depuis une branche sujet/… est refusé', (
   const sur = (branche) => ({ brancheCourante: () => branche });
   for (const commande of ['git push', 'git push origin', 'git push -u origin', 'git push origin HEAD', 'git push origin @', 'git push -o ci.skip origin'])
     assert.equal(decisionCommande(commande, sur('sujet/demo'))?.decision, 'refuser', commande);
-  for (const commande of ['git push', 'git push origin HEAD', 'git push -u origin feat/x']) assert.equal(decisionCommande(commande, sur('feat/demo-1-04-hook')), null, commande);
+  for (const commande of ['git push', 'git push origin HEAD', 'git push -u origin feat/x']) assert.equal(decisionCommande(commande, sur('feat/spec-all-demo-1-04-hook')), null, commande);
   assert.equal(decisionCommande('git push', sur(null)), null, 'branche inconnue');
 });
 
@@ -164,7 +164,7 @@ test('un refspec illisible (variable, substitution, motif, --all, --mirror) dema
 
 test('ce qui n’écrit pas sur un sujet passe, sujet.sh carte compris', () => {
   for (const commande of [
-    'git push -u origin feat/demo-1-04-hook',
+    'git push -u origin feat/spec-all-demo-1-04-hook',
     'git push origin HEAD:refs/heads/feat/sujet-x',
     'git push origin feat/sujet-x',
     "git commit -m 'docs: git push origin HEAD:sujet/x refusé'",
@@ -186,15 +186,6 @@ test('lireDependances : la ligne d’en-tête, accents graves ou nus, — ou abs
   assert.deepEqual(lireDependances(ticket('Dépendances: `zod` — ou retirer la ligne')), ['zod']);
   assert.deepEqual(lireDependances(ticket('Modèle: sonnet')), []);
   assert.deepEqual(lireDependances('# X\n\nStatus: x\n\n## Comments\n\nDépendances: `zod`\n'), [], 'hors de l’en-tête, la ligne ne compte pas');
-});
-
-test('identifiantDeBranche : branche de ticket → identifiant, sinon null', () => {
-  assert.equal(identifiantDeBranche('feat/soc-1-04-hook'), 'SOC-1.04');
-  assert.equal(identifiantDeBranche('fix/all-fof-12-03-x'), 'ALL-FOF-12.03');
-  assert.equal(identifiantDeBranche('feat/geo-1-04'), 'GEO-1.04');
-  assert.equal(identifiantDeBranche('sujet/fiabilite-de-la-chaine'), null);
-  assert.equal(identifiantDeBranche('docs/relecture'), null);
-  assert.equal(identifiantDeBranche('HEAD'), null);
 });
 
 test('le texte libre d’une commande (message de commit, heredoc) n’est pas lu', () => {

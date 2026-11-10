@@ -85,8 +85,7 @@ jq -r '.[] | select(any(.labels[]; . == "à-fusionner")) | [
       esac
     }
     # Ticket cité (titre ou branche) → sujet déclaré.
-    ticket=$(printf '%s %s' "$titre" "$tete" | tr 'a-z' 'A-Z' |
-      grep -oE "${ID_SPEC}[.-][0-9]{2}" | head -1 | sed -E 's/-([0-9]{2})$/.\1/' || true)
+    ticket=$(identifiant ticket-de-pr "$titre" "$tete" </dev/null)
     sujet_ticket=''
     if [ -n "$ticket" ]; then
       sujet_ticket=$(awk -F '\t' -v t="$ticket" -v s="${ticket%.*}" '$1 == t { print $2; f = 1; exit }

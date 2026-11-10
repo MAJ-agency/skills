@@ -30,6 +30,7 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
+import { lireIdentifiant } from '../docs/identifiants.mjs';
 import { controlerCarte, controlerTicket, ecartsFiches, ecartsFormatPret, estArchive, identifiant, identifiantsEnDouble, lireCheminsSensibles, reservationsEnDouble } from './tickets-regles.mjs';
 
 const ROOT = process.env.PROJET_RACINE ?? new URL('../..', import.meta.url).pathname;
@@ -60,8 +61,9 @@ const fiche = (nom) => (existsSync(join(ROOT, 'docs/agents', nom)) ? readFileSyn
 erreurs.push(...ecartsFiches({ issueTracker: fiche('issue-tracker.md'), triageLabels: fiche('triage-labels.md') }));
 const doublons = identifiantsEnDouble(ls('docs/**'));
 for (const d of doublons.filter((x) => !doublonsGeles.has(x.id))) {
+  const { type, contexte, trigramme } = lireIdentifiant(d.id);
   erreurs.push(
-    `${d.id} : identifiant porté par plusieurs specs (${d.fichiers.join(', ')}). Prendre le suivant par \`node scripts/docs/next-id.mjs ${d.id.split('-').slice(0, -1).join(' ')}\`, puis renommer la spec la plus récente et ses tickets.`,
+    `${d.id} : identifiant porté par plusieurs specs (${d.fichiers.join(', ')}). Prendre le suivant par \`node scripts/docs/next-id.mjs ${type} ${contexte} ${trigramme}\`, puis renommer la spec la plus récente et ses tickets.`,
   );
 }
 const detteActive = new Set();

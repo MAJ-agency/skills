@@ -87,17 +87,17 @@ const index = (...adr) => adr.map((f) => `- ${f}\n`).join("");
 // develop et la PR #30 ajoutent chacun une ADR et régénèrent l'index : conflit sur l'index seul.
 function conflitIndex() {
   const d = depotJouet();
-  d.ecrire(`${ADR}/ARC-1-a.md`, "# 1\n");
-  d.ecrire(`${ADR}/README.md`, index("ARC-1-a.md"));
+  d.ecrire(`${ADR}/ADR_ALL_ARC-1-a.md`, "# 1\n");
+  d.ecrire(`${ADR}/README.md`, index("ADR_ALL_ARC-1-a.md"));
   d.commit("docs: adr 1");
   d.git("push", "-q", "origin", "HEAD:develop");
   d.branche("docs/adr-deux", "origin/develop", {
-    [`${ADR}/ARC-2-b.md`]: "# 2\n",
-    [`${ADR}/README.md`]: index("ARC-1-a.md", "ARC-2-b.md"),
+    [`${ADR}/ADR_ALL_ARC-2-b.md`]: "# 2\n",
+    [`${ADR}/README.md`]: index("ADR_ALL_ARC-1-a.md", "ADR_ALL_ARC-2-b.md"),
   });
   d.branche("develop", "origin/develop", {
-    [`${ADR}/ARC-3-c.md`]: "# 3\n",
-    [`${ADR}/README.md`]: index("ARC-1-a.md", "ARC-3-c.md"),
+    [`${ADR}/ADR_ALL_ARC-3-c.md`]: "# 3\n",
+    [`${ADR}/README.md`]: index("ADR_ALL_ARC-1-a.md", "ADR_ALL_ARC-3-c.md"),
   });
   d.git("switch", "-q", "--detach", "origin/develop");
   d.github({
@@ -117,7 +117,7 @@ test("passer.sh : un conflit sur un index généré seul est régénéré, puis 
   d.git("fetch", "-q", "origin");
   assert.equal(
     d.developDistant(`${ADR}/README.md`) + "\n",
-    index("ARC-1-a.md", "ARC-2-b.md", "ARC-3-c.md"),
+    index("ADR_ALL_ARC-1-a.md", "ADR_ALL_ARC-2-b.md", "ADR_ALL_ARC-3-c.md"),
   );
   assert.match(
     d.git("log", "-1", "--format=%s", "origin/develop"),
@@ -409,21 +409,21 @@ test("boucle.sh : sous-PR et PR vers develop à titre trop long renvoyées avec 
 });
 
 // un sujet livré ne se rouvre jamais par automatisme.
-const SPEC_LOT = "docs/features/demo/all/ALL-DEM-1-demo.spec.md";
-const CARTE_LOT = "docs/features/demo/all/ALL-DEM-1-demo.map.md";
+const SPEC_LOT = "docs/features/demo/all/SPEC_ALL_DEM-1-demo.spec.md";
+const CARTE_LOT = "docs/features/demo/all/SPEC_ALL_DEM-1-demo.map.md";
 function depotSujetLivre(phase) {
   const d = depotJouet();
-  d.ecrire(SPEC_LOT, "# ALL-DEM-1\n\n- **Sujet :** sujet/lot\n");
-  d.ecrire(CARTE_LOT, `# ALL-DEM-1 — carte\n\nSujet: sujet/lot\n\nPhase: ${phase}\n`);
+  d.ecrire(SPEC_LOT, "# SPEC_ALL_DEM-1\n\n- **Sujet :** sujet/lot\n");
+  d.ecrire(CARTE_LOT, `# SPEC_ALL_DEM-1 — carte\n\nSujet: sujet/lot\n\nPhase: ${phase}\n`);
   d.commit("docs: spec et carte");
   d.git("push", "-q", "origin", "HEAD:develop");
   d.publierChaine();
-  d.branche("fix/all-dem-1-02-correctif", "origin/develop", { "docs/c.md": "c\n" });
+  d.branche("fix/spec-all-dem-1-02-correctif", "origin/develop", { "docs/c.md": "c\n" });
   d.git("switch", "-q", "--detach", "origin/develop");
   d.github({
     exiges: ["qualite"],
     checks: { "*": { qualite: "SUCCESS" } },
-    pulls: [pr(80, "fix/all-dem-1-02-correctif", { title: "fix(demo): ALL-DEM-1.02 correctif" })],
+    pulls: [pr(80, "fix/spec-all-dem-1-02-correctif", { title: "fix(demo): SPEC_ALL_DEM-1.02 correctif" })],
   });
   return d;
 }

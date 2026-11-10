@@ -139,26 +139,6 @@ export function lireDependances(texteDuTicket) {
     .map(nomDuPaquet);
 }
 
-/**
- * Préfixe d'identifiant de la convention `tickets` : même motif que `PREFIXE` de
- * `scripts/docs/identifiants.mjs`, recopié ici pour que les hooks qui lisent ce module (garde-fichiers,
- * apres-edition, fin-de-tour) ne dépendent pas d'un autre skill.
- */
-const PREFIXE_TICKET = '[a-z][a-z0-9]*(?:-[a-z][a-z0-9]*)*';
-
-/**
- * Identifiant du ticket porté par une branche de ticket (`docs/agents/issue-tracker.md`,
- * « Réserver un ticket ») : `feat/soc-1-04-hook` → `SOC-1.04`, `feat/all-fof-12-03-x` → `ALL-FOF-12.03`.
- * Branche de sujet, sans identifiant ou détachée (`HEAD`) → `null`.
- */
-const BRANCHE_DE_TICKET = new RegExp(`^[a-z]+/(${PREFIXE_TICKET})-(\\d+)-(\\d{2})(?:-|$)`);
-
-export function identifiantDeBranche(branche) {
-  const m = BRANCHE_DE_TICKET.exec(branche ?? '');
-  if (!m || (branche ?? '').startsWith('sujet/')) return null;
-  return `${m[1].toUpperCase()}-${m[2]}.${m[3]}`;
-}
-
 /** La commande sans son texte libre : corps de heredoc et chaînes entre guillemets. */
 export function sansTexte(commande) {
   return commande

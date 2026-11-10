@@ -42,9 +42,13 @@ const ENV_GIT = {
 // scripts/docs/index-generes.json déclare (le projet réel y met ses propres index).
 const ADR_INDEX = `import { existsSync, readdirSync, writeFileSync } from 'node:fs';
 if (!existsSync('docs/adr')) process.exit(0);
-writeFileSync('docs/adr/README.md', readdirSync('docs/adr').filter((f) => /^ARC-/.test(f)).sort().map((f) => '- ' + f + '\\n').join(''));
+writeFileSync('docs/adr/README.md', readdirSync('docs/adr').filter((f) => /^ADR_/.test(f)).sort().map((f) => '- ' + f + '\\n').join(''));
 `;
 const INDEX_GENERES = JSON.stringify({ index: [{ chemin: 'docs/adr/README.md', commande: 'node scripts/docs/adr-index.mjs' }] });
+
+// La grammaire des identifiants (skill `tickets`) : `scripts/docs/identifiants.mjs` dans un projet,
+// à côté de `scripts/chaine/` ; dans le plugin, dans le skill `tickets`.
+export const GRAMMAIRE = [join(ICI, '../docs/identifiants.mjs'), join(SKILLS, 'tickets/references/scripts/docs/identifiants.mjs')].find(existsSync);
 
 // Scripts que la boucle appelle : [skill, nom]. Posés dans un projet, tous vivent dans scripts/chaine/.
 const CHAINE = [
@@ -56,6 +60,7 @@ const CHAINE = [
     'refus.sh',
     'proprietaire.sh',
     'github.sh',
+    'identifiant.mjs',
     'revue-exigee.mjs',
     'migrations-ordre.mjs',
   ].map((n) => ['fusionner', n]),
@@ -144,6 +149,8 @@ export function depotJouet() {
       const source = script(skill, nom);
       if (existsSync(source)) ecrire(`scripts/chaine/${nom}`, readFileSync(source, 'utf8'));
     }
+    // La boucle copie aussi la grammaire d'origin/develop : identifiant.mjs l'importe de ../docs/.
+    ecrire('scripts/docs/identifiants.mjs', readFileSync(GRAMMAIRE, 'utf8'));
     commit('chore(chaine): scripts de la chaîne');
     git('push', '-q', 'origin', 'HEAD:develop');
     git('fetch', '-q', 'origin');

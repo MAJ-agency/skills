@@ -8,8 +8,13 @@
 # depuis le remote `origin`.
 # =============================================================================
 DEPOT='repos/{owner}/{repo}'
-# Identifiant de spec de la convention `tickets` : SOC-1, ALL-FOF-12 (préfixe à un ou plusieurs segments).
-ID_SPEC='[A-Z][A-Z0-9]*(-[A-Z][A-Z0-9]*)*-[0-9]+'
+# Identifiants de la convention `tickets` (SPEC_ALL_SOC-1, SPEC_ALL_SOC-1.03 ; `spec-all-soc-1-03` dans
+# une branche) : la grammaire (type, contexte, trigramme) ne s'écrit pas en shell. Lire un identifiant
+# dans un titre de PR, une branche ou un nom de fichier passe par identifiant.mjs, à côté de ce
+# fichier, qui importe `scripts/docs/identifiants.mjs` (commandes : son en-tête). Le shell ne fait que
+# retirer l'index `.NN` d'un identifiant déjà lu et chercher un fichier par son identifiant littéral.
+IDENTIFIANT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/identifiant.mjs"
+identifiant() { node "$IDENTIFIANT" "$@"; }
 
 # Index générés : liste unique `scripts/docs/index-generes.json` ({ chemin, commande }), lue dans le
 # worktree, sinon sur origin/develop (branche partie avant son arrivée). `*` = un segment.

@@ -65,7 +65,7 @@ export function statusValide(valeur) {
 }
 
 /**
- * Tickets cités par une ligne `Blocked by:`. Un identifiant complet (`SOC-1.01`) partout dans la
+ * Tickets cités par une ligne `Blocked by:`. Un identifiant complet (`SPEC_ALL_SOC-1.01`) partout dans la
  * ligne ; un numéro court (`01`, `.03`) seulement en liste de tête (`01, 03 (raison)`), relatif à la
  * spec du ticket. Le texte libre qui suit n'est pas lu.
  */

@@ -6,7 +6,7 @@ La convention en un seul module : la grammaire `<TYPE>_<CTX>_<TRI>-<n>` du socle
 
 ## `next-id.mjs`, `next-id-branches.mjs`
 
-Le prochain numéro d'un préfixe, lu dans l'arbre **et** sur les branches distantes `sujet/*` et `docs/*` : une spec écrite sur une branche non fusionnée a déjà reçu le même numéro qu'une autre, deux fois.
+Le prochain numéro d'un type, d'un contexte et d'un trigramme (`next-id.mjs RULE ALL LIC`), lu dans les noms de fichiers de l'arbre **et** des branches distantes `sujet/*` et `docs/*` : une spec écrite sur une branche non fusionnée a déjà reçu le même numéro qu'une autre, deux fois. Une règle n'a pas de slug (`RULE_ALL_LIC-3.md`) et une règle existante garde ses zéros (`RULE_FNSMR_LIC-05` compte pour 5) : le numéro se lit par `identifiantDuFichier` et `lireIdentifiant`, pas par une expression locale.
 
 ## `ticket-libre.mjs`
 
@@ -26,7 +26,7 @@ Les tickets faits depuis 180 jours sortent du chemin des gates et de la réserva
 
 ## `migrer-tickets.mjs`
 
-Le passage d'un dépôt au format du socle vers cette convention, avec réécriture des liens et des mentions. Dry-run par défaut.
+Le passage d'une feature vers cette convention (`migrer <feature> <CTX> <TRI>`), depuis le format du socle d'avant le standard ou depuis `<TRI>-<n>` sans type ni contexte : fichiers rangés sous `<feature>/<ctx>/`, liens et mentions réécrits, `Type: task` posé sur un ticket qui n'en a pas. C'est le seul script qui lit une ancienne forme, pour la convertir. Dry-run par défaut.
 
 ## `scripts/verify/tickets.mjs`, `tickets-regles.mjs`, `tickets-dette.json`
 

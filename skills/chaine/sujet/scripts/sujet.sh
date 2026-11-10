@@ -30,7 +30,7 @@
 #   relancer <pr>         sous-PR sans CI (reciblée depuis une pile) : fusionne son sujet dans sa
 #                         branche et pousse, ce qui lance sa CI (jamais de rebase ni de force)
 #   series                séries repérées dans la file du capitaine (PR vers develop ou empilées) :
-#                         même spec (SOC-1.xx), même pile, même préfixe de branche
+#                         même spec (SPEC_ALL_SOC-1.xx), même pile, même préfixe de branche
 #   regrouper-series [--dry-run]
 #                         (capitaine) regroupe d'office les séries par spec (≥ 3 PR, ou un sujet de
 #                         la spec existe déjà) et les piles (≥ 2 PR), hors prio:haute et hors-sujet ;
@@ -76,7 +76,8 @@ GENERES=$(index_generes_regex) # scripts/docs/index-generes.json ; regenerer_ind
 # du ticket, ou de sa spec
 # (alors valable pour tous ses tickets). Lue sur develop et sur chaque branche de sujet, car le
 # découpage d'un lot peut entrer directement dans son sujet. Sortie : « ticket<TAB>nom », le
-# ticket en `SOC-1.02` ou, pour une spec, `SOC-1`.
+# ticket en `SPEC_ALL_SOC-1.02` ou, pour une spec, `SPEC_ALL_SOC-1` (lus dans le nom du fichier par
+# identifiant.mjs, la grammaire du skill `tickets`).
 LIGNE_SUJET='^(- )?\**Sujet ?:\** *sujet/[a-z0-9][a-z0-9-]*'
 branches_sujet() { git for-each-ref --format='%(refname:short)' 'refs/remotes/origin/sujet/*'; }
 carte() {
@@ -88,15 +89,10 @@ carte() {
   git grep -E -m1 -o "$LIGNE_SUJET" origin/develop $(branches_sujet) -- \
     'docs/*.spec.md' 'docs/*.issue.md' ':!docs/*/issues/archive/*' 2>/dev/null |
     sed -E 's#^[^:]+:##; s#:(- )?\**Sujet ?:\** *sujet/#\t#' |
-    while IFS="$(printf '\t')" read -r fichier nom; do
-      f=${fichier##*/}
-      [[ "$f" =~ ^(${ID_SPEC})-.*\.([0-9]{2})\.issue\.md$ ]] &&
-        printf '%s.%s\t%s\n' "${BASH_REMATCH[1]}" "${BASH_REMATCH[3]}" "$nom" && continue
-      [[ "$f" =~ ^(${ID_SPEC})-.*\.spec\.md$ ]] && printf '%s\t%s\n' "${BASH_REMATCH[1]}" "$nom"
-    done | sort -u
+    identifiant fichiers | sort -u
 }
 
-# Sujet d'un ticket (SOC-1.02) : celui du ticket, sinon celui de sa spec (SOC-1).
+# Sujet d'un ticket (SPEC_ALL_SOC-1.02) : celui du ticket, sinon celui de sa spec (SPEC_ALL_SOC-1).
 sujet_du_ticket() {
   local c
   c=$(carte)
@@ -104,7 +100,7 @@ sujet_du_ticket() {
     END { if (!trouve && spec != "") print spec }' <<<"$c"
 }
 
-# Fichier d'un ticket (SOC-1.02) ou d'une spec (SOC-1, `.spec.md` ou `.map.md`) sur une
+# Fichier d'un ticket (SPEC_ALL_SOC-1.02) ou d'une spec (SPEC_ALL_SOC-1, `.spec.md` ou `.map.md`) sur une
 # référence ; vide s'il n'y est pas.
 fichier_sur() {
   local motif
@@ -114,8 +110,8 @@ fichier_sur() {
 }
 
 # Tickets bloquants lus sur la ligne `Blocked by:` d'un ticket, un par ligne, en identifiant complet
-# (`05` devient SOC-1.05) ; « ? <ligne> » quand la ligne ne cite aucun ticket. `—`, `aucun` :
-# rien. Les parenthèses sont des commentaires (« SOC-1.01 conseillé avant ») : ignorées.
+# (`05` devient SPEC_ALL_SOC-1.05) ; « ? <ligne> » quand la ligne ne cite aucun ticket. `—`, `aucun` :
+# rien. Les parenthèses sont des commentaires (« SPEC_ALL_SOC-1.01 conseillé avant ») : ignorées.
 bloquants() {
   local ref=$1 fichier=$2 id=$3 ligne ids
   ligne=$(git show "$ref:$fichier" | grep -m1 -E '^(- )?\**Blocked by ?:' |
@@ -124,7 +120,7 @@ bloquants() {
   [[ "$ligne" =~ ^(—|-|aucun|none|néant) ]] && return 0
   ligne=$(sed -E 's/\([^)]*\)//g; s/`//g' <<<"$ligne")
   ids=$(
-    grep -oE "${ID_SPEC}\.[0-9]{2}" <<<"$ligne" || true
+    identifiant tickets <<<"$ligne"
     tr -s ' ,;' '\n' <<<"$ligne" | grep -E '^[0-9]{2}$' | sed "s/^/${id%.*}./" || true
   )
   if [ -n "$ids" ]; then printf '%s\n' "$ids"; else printf '? %s\n' "$ligne"; fi
@@ -193,10 +189,10 @@ phase_carte() {
 }
 
 demarrer() {
-  local arg=${1:?identifiant de ticket (SOC-1.02) ou nom de sujet}
+  local arg=${1:?identifiant de ticket (SPEC_ALL_SOC-1.02) ou nom de sujet}
   local nom branche courante ticket='' ref present=''
-  if [[ "$arg" =~ ^${ID_SPEC}(\.[0-9]{2})?$ ]]; then
-    ticket=$arg
+  if ticket=$(identifiant lire "$arg"); then
+    arg=$ticket
     nom=$(sujet_du_ticket "$arg")
     if [ -z "$nom" ]; then
       # Ni sur develop ni sur un sujet : sa spec n'est pas fusionnée, ce n'est pas « sans sujet ».
@@ -479,19 +475,19 @@ series() {
   gh api --paginate "$DEPOT/pulls?state=open&per_page=100" --jq '.[] | select(.draft | not)
     | select(any(.labels[].name; . == "hors-sujet") | not)
     | [.number, .base.ref, .head.ref, (any(.labels[].name; . == "prio:haute")), .title] | @tsv' |
-    awk -F '\t' -v id="$ID_SPEC" '
+    identifiant colonne-ticket 5 3 |
+    awk -F '\t' '
       $2 ~ /^sujet\// { next }
-      { n[NR] = $1; base[$1] = $2; tete[$1] = $3; prio[$1] = $4; titre[$1] = $5; pr_de[$3] = $1 }
+      { n[NR] = $1; base[$1] = $2; tete[$1] = $3; prio[$1] = $4; ticket[$1] = $6; pr_de[$3] = $1 }
       END {
         for (i in n) {
           p = n[i]
           # racine de la pile
           r = p; while (base[r] != "develop" && (base[r] in pr_de)) r = pr_de[base[r]]
           if (r != p) { cle["pile #" r] = cle["pile #" r] " #" p; vu["pile #" r, r] = 1 }
-          # spec du ticket : SOC-1.04 ou soc-1-04
-          t = titre[p] " " toupper(tete[p])
-          if (match(t, id "[.-][0-9][0-9]")) {
-            s = substr(t, RSTART, RLENGTH); sub(/[.-][0-9][0-9]$/, "", s); cle["spec " s] = cle["spec " s] " #" p
+          # spec du ticket que le titre cite (SPEC_ALL_SOC-1.04) ou que la branche porte (spec-all-soc-1-04)
+          if (ticket[p] != "") {
+            s = ticket[p]; sub(/\.[0-9][0-9]$/, "", s); cle["spec " s] = cle["spec " s] " #" p
           } else if (match(tete[p], /^[a-z]+\/[a-z0-9]+-[a-z0-9]+-/) && tete[p] !~ /^claude\//) {
             # sans ticket : type/ + deux premiers mots de la branche (chore/ffsb-vivante-*)
             b = substr(tete[p], 1, RLENGTH - 1); cle["branche " b "-*"] = cle["branche " b "-*"] " #" p
@@ -556,7 +552,7 @@ series_a_regrouper() {
       'spec '*)
         spec=${cle#spec }
         nom=$(awk -F '\t' -v s="$spec" '$1 == s { sub(/^sujet\//, "", $2); print $2; exit }' <<<"$existants")
-        if [ -z "$nom" ] && [ "$#" -ge 3 ]; then nom=$(tr 'A-Z' 'a-z' <<<"$spec"); fi ;;
+        if [ -z "$nom" ] && [ "$#" -ge 3 ]; then nom=$(identifiant slug "$spec"); fi ;;
       'pile #'*) [ "$#" -lt 2 ] || nom="pile-${cle#pile #}" ;;
     esac
     [ -z "$nom" ] || printf '%s\t%s\t%s\n' "$nom" "$cle" "$prs"
@@ -567,9 +563,9 @@ regrouper_series() {
   local essai=${1:-} tour existants choix nom cle prs
   # Sujets déjà nourris d'une spec : PR (ouvertes ou fermées) qui visent un sujet, par spec citée.
   existants=$(gh api "$DEPOT/pulls?state=all&sort=updated&direction=desc&per_page=100" --jq '.[]
-      | select(.base.ref | startswith("sujet/")) | "\(.base.ref)\t\(.title) \(.head.ref | ascii_upcase)"' |
-    awk -F '\t' -v id="$ID_SPEC" 'match($2, id "[.-][0-9][0-9]") {
-        s = substr($2, RSTART, RLENGTH); sub(/[.-][0-9][0-9]$/, "", s); if (!(s in v)) { v[s] = 1; print s "\t" $1 } }')
+      | select(.base.ref | startswith("sujet/")) | [.base.ref, .title, .head.ref] | @tsv' |
+    identifiant colonne-ticket 2 3 |
+    awk -F '\t' '$4 != "" { s = $4; sub(/\.[0-9][0-9]$/, "", s); if (!(s in v)) { v[s] = 1; print s "\t" $1 } }')
   if [ "$essai" = --dry-run ]; then
     while IFS="$(printf '\t')" read -r nom cle prs; do
       [ -z "$nom" ] || echo "série « $cle » → sujet/$nom : $prs (--dry-run : rien n'est reciblé)"

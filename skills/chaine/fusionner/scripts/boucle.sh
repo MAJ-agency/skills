@@ -39,11 +39,13 @@
 # <pr>…`) : regrouper une série non déclarée retarde sa recette, l'utilisateur tranche.
 #
 # Scripts : à chaque tour, `git fetch origin develop` puis copie fraîche de `scripts/chaine`
-# d'origin/develop dans `<git-common-dir>/boucle-outils` (hors de l'arbre de travail) ; la boucle
-# n'appelle QUE cette copie, jamais les scripts du worktree (qui peut être sur une branche de
-# sujet plus ancienne). Si `boucle.sh` a changé sur develop, elle se relance (`exec`) sur la
-# nouvelle version. `origin/develop` ou `scripts/chaine` introuvable, ou fetch en échec trois
-# fois : arrêt (sortie 6) avec un message, jamais de scripts périmés.
+# d'origin/develop dans `<git-common-dir>/boucle-outils` (hors de l'arbre de travail), avec
+# `scripts/docs/identifiants.mjs`, la grammaire des identifiants que `identifiant.mjs` importe pour
+# `file.sh` et `sujet.sh` ; la boucle n'appelle QUE cette copie, jamais les scripts du worktree (qui
+# peut être sur une branche de sujet plus ancienne). Si `boucle.sh` a changé sur develop, elle se
+# relance (`exec`) sur la nouvelle version. `origin/develop`, `scripts/chaine` ou
+# `scripts/docs/identifiants.mjs` introuvable, ou fetch en échec trois fois : arrêt (sortie 6) avec
+# un message, jamais de scripts périmés.
 #
 # Instance unique, arrêt d'un geste. Un verrou `flock` (`<git-common-dir>/boucle.verrou`,
 # « pid pgid » de la boucle dedans) interdit deux boucles à la fois : une seconde s'arrête aussitôt,
@@ -188,6 +190,9 @@ rafraichir_outils() {
     git archive origin/develop scripts/chaine 2>/dev/null | tar -x -C "$COPIE.nouveau" ||
     arret_outils "scripts/chaine absent d'origin/develop"
   [ -f "$COPIE.nouveau/scripts/chaine/boucle.sh" ] || arret_outils "scripts/chaine/boucle.sh absent d'origin/develop"
+  # La grammaire des identifiants (skill `tickets`), que identifiant.mjs cherche dans ../docs/.
+  git archive origin/develop scripts/docs/identifiants.mjs 2>/dev/null | tar -x -C "$COPIE.nouveau" 2>/dev/null ||
+    arret_outils "scripts/docs/identifiants.mjs absent d'origin/develop (skill tickets : /maj-skills:tickets poser)"
   rm -rf "$COPIE" && mv "$COPIE.nouveau" "$COPIE"
   outils="$COPIE/scripts/chaine"
   # `boucle.sh` lui-même a changé sur develop : on repart sur la nouvelle version, état gardé.

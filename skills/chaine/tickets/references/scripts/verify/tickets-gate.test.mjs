@@ -12,14 +12,29 @@ const DETTE = {
 const lancer = (d) => spawnSync(process.execPath, [SCRIPT], { cwd: d.travail, env: { ...ENV, PATH: d.bin, PROJET_RACINE: d.travail }, encoding: 'utf8' });
 
 test('un dépôt conforme passe, un Status hors vocabulaire échoue avec le chemin et la ligne', () => {
-  const ok = depotJouet({ fichiers: { ...DETTE, 'docs/features/socle/SOC-1-socle.spec.md': '# s\n', 'docs/features/socle/issues/SOC-1-socle.01.issue.md': '# x\n\nStatus: needs-triage\n' } });
+  const ok = depotJouet({ fichiers: { ...DETTE, 'docs/features/socle/all/SPEC_ALL_SOC-1-socle.spec.md': '# s\n', 'docs/features/socle/all/issues/SPEC_ALL_SOC-1-socle.01.issue.md': '# x\n\nStatus: needs-triage\n' } });
   const r = lancer(ok);
   assert.equal(r.status, 0, r.stderr);
   assert.match(r.stdout, /tickets : OK — 1 tickets/);
-  const ko = depotJouet({ fichiers: { ...DETTE, 'docs/features/socle/issues/SOC-1-socle.01.issue.md': '# x\n\nStatus: À faire\n' } });
+  const ko = depotJouet({ fichiers: { ...DETTE, 'docs/features/socle/all/issues/SPEC_ALL_SOC-1-socle.01.issue.md': '# x\n\nStatus: À faire\n' } });
   const r2 = lancer(ko);
   assert.equal(r2.status, 1);
-  assert.match(r2.stderr, /SOC-1-socle\.01\.issue\.md:3 : Status « À faire » hors vocabulaire/);
+  assert.match(r2.stderr, /SPEC_ALL_SOC-1-socle\.01\.issue\.md:3 : Status « À faire » hors vocabulaire/);
+});
+
+test('un identifiant porté par deux specs est refusé, avec la commande next-id à trois segments', () => {
+  const d = depotJouet({
+    fichiers: {
+      ...DETTE,
+      'docs/features/socle/all/SPEC_ALL_SOC-1-socle.spec.md': '# s\n',
+      'docs/features/autre/all/SPEC_ALL_SOC-1-autre.spec.md': '# a\n',
+      'docs/features/autre/fnsmr/SPEC_FNSMR_SOC-1-autre.spec.md': '# un autre contexte : un autre identifiant\n',
+    },
+  });
+  const r = lancer(d);
+  assert.equal(r.status, 1);
+  assert.match(r.stderr, /tickets : 1 écart\(s\)/);
+  assert.match(r.stderr, /SPEC_ALL_SOC-1 : identifiant porté par plusieurs specs .* `node scripts\/docs\/next-id\.mjs SPEC ALL SOC`/);
 });
 
 const PRET_SENSIBLE = (label) =>
@@ -27,17 +42,17 @@ const PRET_SENSIBLE = (label) =>
 const CHAINE = { '.claude/chaine.json': '{"cheminsSensibles":["apps/api/src/**/auth/**"]}\n' };
 
 test('un ticket prêt dont `Fichiers chauds` touche `cheminsSensibles` sans `Label: architecte` est refusé ; avec, il passe', () => {
-  const ko = depotJouet({ fichiers: { ...DETTE, ...CHAINE, 'docs/features/socle/issues/SOC-1-socle.01.issue.md': PRET_SENSIBLE('') } });
+  const ko = depotJouet({ fichiers: { ...DETTE, ...CHAINE, 'docs/features/socle/all/issues/SPEC_ALL_SOC-1-socle.01.issue.md': PRET_SENSIBLE('') } });
   const r = lancer(ko);
   assert.equal(r.status, 1);
-  assert.match(r.stderr, /SOC-1-socle\.01\.issue\.md:3 : ready-for-agent : ligne `Label: architecte` absente : `Fichiers chauds` touche `apps\/api\/src\/infrastructure\/auth\/jwt\.ts`/);
-  const ok = depotJouet({ fichiers: { ...DETTE, ...CHAINE, 'docs/features/socle/issues/SOC-1-socle.01.issue.md': PRET_SENSIBLE('Label: architecte\n') } });
+  assert.match(r.stderr, /SPEC_ALL_SOC-1-socle\.01\.issue\.md:3 : ready-for-agent : ligne `Label: architecte` absente : `Fichiers chauds` touche `apps\/api\/src\/infrastructure\/auth\/jwt\.ts`/);
+  const ok = depotJouet({ fichiers: { ...DETTE, ...CHAINE, 'docs/features/socle/all/issues/SPEC_ALL_SOC-1-socle.01.issue.md': PRET_SENSIBLE('Label: architecte\n') } });
   const r2 = lancer(ok);
   assert.equal(r2.status, 0, r2.stderr);
 });
 
 test('un `.claude/chaine.json` illisible fait sortir le gate en erreur, au lieu de cesser d\'exiger', () => {
-  const d = depotJouet({ fichiers: { ...DETTE, '.claude/chaine.json': '{ cassé', 'docs/features/socle/issues/SOC-1-socle.01.issue.md': '# x\n\nStatus: needs-triage\n' } });
+  const d = depotJouet({ fichiers: { ...DETTE, '.claude/chaine.json': '{ cassé', 'docs/features/socle/all/issues/SPEC_ALL_SOC-1-socle.01.issue.md': '# x\n\nStatus: needs-triage\n' } });
   const r = lancer(d);
   assert.equal(r.status, 1);
   assert.match(r.stderr, /tickets : \.claude\/chaine\.json illisible/);

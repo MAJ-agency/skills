@@ -16,6 +16,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
+import { lireTicket } from "./identifiants.mjs";
 
 export const REGISTRE = "docs/agents/couts.md";
 
@@ -74,7 +75,7 @@ export function lireCarte(chemin, texte) {
 }
 
 const somme = (lignes) => lignes.reduce((s, l) => s + l.cout, 0);
-const estTicket = (t) => /^[A-Z][A-Z0-9]*-\d+\.\d{2}$/.test(t);
+const estTicket = (t) => lireTicket(t) !== null;
 
 /** Bilan d'un chantier : total, part des filles, tickets distincts et moyenne par ticket. */
 export function bilan(carte) {

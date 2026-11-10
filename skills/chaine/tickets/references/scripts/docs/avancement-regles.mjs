@@ -2,7 +2,7 @@
  * Règles pures du tableau d'avancement : lues par `avancement.mjs` et `vagues.mjs`, testées par
  * `avancement.test.mjs`. Rien n'est lu ici : on reçoit les tickets et les PR.
  */
-import { SPEC, TICKET, identifiantDuTicket, slug } from './identifiants.mjs';
+import { TICKET, branchePorte, identifiantDuTicket, slug, texteCite, ticketsCites } from './identifiants.mjs';
 
 /** Ligne d'en-tête, sous ses trois formes : `X:`, `**X:**`, `- X:`. */
 const enTete = (nom) => new RegExp(`^(?:- )?\\**${nom}\\**\\s*:\\**\\s*(.*)$`, 'i');
@@ -33,7 +33,7 @@ export function etat(status) {
 /** Tickets cités par `Blocked by:` : identifiants complets, ou numéros courts en tête de ligne. */
 export function bloquants(valeur, id) {
   if (!valeur) return [];
-  const cites = new Set(valeur.match(new RegExp(`\\b${TICKET}\\b`, 'g')) ?? []);
+  const cites = new Set(ticketsCites(valeur));
   const tete = /^\.?\d{2}(?:\s*,\s*\.?\d{2})*(?![\w.])/.exec(valeur);
   if (tete && id) {
     const spec = id.replace(/\.\d{2}$/, '');
@@ -48,7 +48,7 @@ export function lireTicket(nom, texte) {
   const titre =
     /^# (.+)$/m
       .exec(texte)?.[1]
-      .replace(new RegExp(`^(?:${SPEC}\\.\\d{2}\\s+—|\\d{2}\\s*:)\\s+`), '')
+      .replace(new RegExp(`^(?:${TICKET}\\s+—|\\d{2}\\s*:)\\s+`), '')
       .trim() ?? '';
   const status = lire(texte, 'Status');
   return {
@@ -66,9 +66,7 @@ export function lireTicket(nom, texte) {
  * qui porte son slug. La plus récente d'abord.
  */
 export function prDuTicket(id, prs) {
-  const s = new RegExp(`(^|[/-])${slug(id)}(-|$)`);
-  const t = new RegExp(`(?<![\\w.-])${id.replace('.', '\\.')}(?![\\w.])`, 'i');
-  return prs.filter((p) => t.test(p.titre) || s.test(p.branche)).sort((a, b) => b.numero - a.numero)[0] ?? null;
+  return prs.filter((p) => texteCite(p.titre, id) || branchePorte(p.branche, id)).sort((a, b) => b.numero - a.numero)[0] ?? null;
 }
 
 /**
