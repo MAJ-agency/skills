@@ -27,7 +27,7 @@ REVUE_DIR=<scratchpad>/revue bash scripts/chaine/diff-revue.sh [<base>]
 node scripts/chaine/contexte-ticket.mjs <ID> > <scratchpad>/revue/contexte.md
 ```
 
-Base `origin/develop`, ou `origin/sujet/<nom>` pour une sous-PR de sujet. L'identifiant est celui de la branche (`feat/spec-all-soc-1-03-…` → `SPEC_ALL_SOC-1.03`). Un ticket dont `## Surfaces` est vide ou dont une règle citée est « introuvable » dans le contexte : **s'arrêter**, c'est un défaut du ticket, à corriger dans le ticket avant de relire le code. Chemins sensibles : comme la revue adversariale (étape 2 de son SKILL).
+Base `origin/develop`, ou `origin/sujet/<nom>` pour une sous-PR de sujet. L'identifiant est celui de la branche (`feat/spec-all-soc-1-03-…` → `SPEC_ALL_SOC-1.03`). Un ticket dont `## Surfaces` est vide ou dont une règle de la ligne `Règles:` est « introuvable » dans le contexte : **s'arrêter**, c'est un défaut du ticket, à corriger dans le ticket avant de relire le code. Chemins sensibles : comme la revue adversariale (étape 2 de son SKILL).
 
 ## Étape 2 — trois sous-agents, en parallèle
 
