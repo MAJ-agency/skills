@@ -1,6 +1,6 @@
 # Passer les scripts du skill `tickets` et de la chaîne à la grammaire `<TYPE>_<CTX>_<TRI>-<n>`
 
-Status: ready-for-agent
+Status: resolved
 Type: task
 Blocked by: 1
 
@@ -35,6 +35,24 @@ Le standard est écrit dans les gabarits (`SKILL.md` de `tickets`, `nomenclature
 
 `pnpm test` à la racine de ce dépôt (tous les bancs), puis une pose sur un dépôt vide (`/maj-skills:socle-monorepo` avec chaîne) : `pnpm check:tickets` vert, `node scripts/docs/next-id.mjs SPEC ALL SOC` rend `2`.
 
+## Answer
+
+Livré dans une seule PR vers `main`, plugin passé en 4.0.0 (le contrat du skill `tickets` change).
+
+- **La grammaire en un seul module**, `identifiants.mjs` : les six types, `lireIdentifiant`, `REGLE`, `DEMANDE`, `identifiantDeLaRegle`, `identifiantDeLaDemande`, `identifiantDuFichier`, `dossierDuContexte`, `slug` et son inverse `identifiantDeBranche`, `ticketDeLaPr`. Une règle existante garde ses zéros (`RULE_FNSMR_LIC-05`, comptée 5). `LIC-3`, `SOC-1`, `SPEC_SOC-1` sont refusés.
+- **`next-id.mjs <TYPE> <CTX> <TRI>`** : le plus grand `n` par type, contexte et trigramme, lu dans les noms de fichiers de l'arbre et des branches `sujet/*` et `docs/*` ; une règle sans slug est vue. Sert `ADR ALL ARC` pour `socle-monorepo`.
+- **`ticket-libre`, `avancement`, `avancement-regles`, `vagues`, `archiver-tickets`, `couts`, le gate `tickets.mjs`** : plus aucune expression d'identifiant locale, tout vient d'`identifiants.mjs`.
+- **`migrer-tickets.mjs <feature> <CTX> <TRI>`** : seul script qui lit une ancienne forme. Il range sous `<feature>/<ctx>/`, pose `Type: task` sur un ticket sans `Type:`, et convertit aussi `<TRI>-<n>-<slug>` (et `<CTX>-<TRI>-<n>`) en gardant le numéro, mentions réécrites.
+- **`sujet.sh`, `file.sh`, `github.sh`** : `ID_SPEC` disparaît. Les `.sh` appellent `identifiant.mjs` (skill `fusionner`), petit point d'entrée `node` qui importe la grammaire ; `boucle.sh` copie aussi `scripts/docs/identifiants.mjs` d'`origin/develop` avec ses outils, et s'arrête (6) s'il manque.
+- **Hooks d'agent** : `regles.mjs` ne recopie plus le préfixe ; `garde-commandes.mjs` lit le ticket de la branche par `identifiants.mjs`.
+- **`contexte-ticket.mjs`** (ticket `4`) : seul le strict nécessaire pour rester vert, les identifiants cités se lisent par la grammaire ; la lecture d'une règle dans son fichier reste au ticket `4`.
+- **Bancs** : fixtures de tous les `depot-jouet.mjs` et tests à la nouvelle grammaire ; bancs ajoutés pour `next-id`, `archiver-tickets`, `identifiant.mjs`.
+
+Tests : 262, 262 verts (231 sur `main`), par `node --test 'skills/*/*/scripts/*.test.mjs' 'skills/*/*/references/scripts/*/*.test.mjs' 'skills/*/*/references/agent/*.test.mjs'`. La vérification par pose a été remplacée, sur décision de l'architecte, par un dépôt vide monté à la main (gabarit `docs/` de `socle-monorepo` et scripts de `tickets`) : gate vert, `next-id SPEC ALL SOC` → `2`, `next-id ADR ALL ARC` → `6`. Sorties dans la PR.
+
+Reste, hors de ce ticket : deux scripts d'autres skills gardent une expression de l'ancienne forme, `references-agent-regles.mjs` et `references-agent.mjs` (`socle-monorepo`), `tests-creux.mjs` (`socle-tests`). Ils ne peuvent pas importer `identifiants.mjs` sans que ces skills dépendent de `tickets` : à décider dans un ticket à part.
+
 ## Comments
 
 - 2026-11-10 — Ouvert à la clôture du grilling (ticket `1`). Le standard est dans les gabarits ; les scripts suivent ici.
+- 2026-11-10 — Résolu : scripts et bancs à la grammaire `<TYPE>_<CTX>_<TRI>-<n>`, 262 tests verts, plugin 4.0.0. Voir `## Answer`.

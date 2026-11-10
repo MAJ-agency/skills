@@ -158,7 +158,7 @@ skills/
       scripts/         sujet.sh, le dépôt jouet et le faux gh, les tests
     fusionner/
       SKILL.md         la règle, REST seulement, mise en place, boucle, renvoyer, fin de passage
-      scripts/         github.sh, file.sh, passer.sh, boucle.sh, renvoyer.sh, refus.sh, proprietaire.sh, revue-exigee.mjs, migrations-ordre.mjs, les tests
+      scripts/         github.sh, identifiant.mjs, file.sh, passer.sh, boucle.sh, renvoyer.sh, refus.sh, proprietaire.sh, revue-exigee.mjs, migrations-ordre.mjs, les tests
     chantier/
       SKILL.md         reprendre ou démarrer, setup, les six phases, le suivi à chaque réveil
     recette-humaine/

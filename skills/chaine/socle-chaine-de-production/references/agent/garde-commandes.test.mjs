@@ -12,8 +12,8 @@ import { test } from 'node:test';
 const DOCS = existsSync(new URL('../docs/identifiants.mjs', import.meta.url)) ? new URL('../docs/', import.meta.url) : new URL('../../../tickets/references/scripts/docs/', import.meta.url);
 const { ENV, depotJouet } = await import(new URL('depot-jouet.mjs', DOCS).href);
 
-const TICKET = 'docs/features/demo/issues/DEMO-1-demo.01.issue.md';
-const ticket = (dependances) => `# DEMO-1.01 — x\n\nStatus: ready-for-agent\n${dependances}\n\n## Le besoin\n\nx\n`;
+const TICKET = 'docs/features/demo/all/issues/SPEC_ALL_DEMO-1-demo.01.issue.md';
+const ticket = (dependances) => `# SPEC_ALL_DEMO-1.01 — x\n\nStatus: ready-for-agent\n${dependances}\n\n## Le besoin\n\nx\n`;
 
 /** Dépôt jouet : le ticket sur develop sans ligne, `origin/sujet/demo` le porte avec `ligneSujet`. */
 function depot(ligneSujet, { avecIdentifiants = true } = {}) {
@@ -21,7 +21,7 @@ function depot(ligneSujet, { avecIdentifiants = true } = {}) {
   writeFileSync(join(d.travail, TICKET), ticket(ligneSujet));
   d.git('commit', '-q', '--allow-empty', '-am', 'dépendances');
   d.git('push', '-q', 'origin', 'HEAD:refs/heads/sujet/demo');
-  d.git('checkout', '-q', '-b', 'feat/demo-1-01-carte', 'origin/develop');
+  d.git('checkout', '-q', '-b', 'feat/spec-all-demo-1-01-carte', 'origin/develop');
   const outils = join(d.racine, 'outils/scripts');
   mkdirSync(join(outils, 'agent'), { recursive: true });
   for (const f of ['entree.mjs', 'regles.mjs', 'garde-commandes.mjs']) copyFileSync(new URL(f, import.meta.url), join(outils, 'agent', f));
@@ -54,7 +54,7 @@ test('ticket modifié dans l’arbre de travail ou sur la branche, pas sur le su
   writeFileSync(join(d.travail, TICKET), ticket('Dépendances: `leaflet`'));
   assert.equal(demande(lancer(d, 'pnpm add leaflet')), true, 'arbre de travail');
   d.git('commit', '-qam', "je m'autorise");
-  d.git('push', '-q', 'origin', 'HEAD:refs/heads/feat/demo-1-01-carte');
+  d.git('push', '-q', 'origin', 'HEAD:refs/heads/feat/spec-all-demo-1-01-carte');
   assert.equal(demande(lancer(d, 'pnpm add leaflet')), true, 'branche de la session');
 });
 
@@ -81,7 +81,7 @@ test('ticket sur deux sujets : seuls les paquets que toutes ses copies prévoien
   d.git('commit', '-qam', 'autre sujet');
   d.git('push', '-q', 'origin', 'HEAD:refs/heads/sujet/autre');
   d.git('fetch', '-q', 'origin');
-  d.git('checkout', '-q', 'feat/demo-1-01-carte');
+  d.git('checkout', '-q', 'feat/spec-all-demo-1-01-carte');
   assert.equal(demande(lancer(d, 'pnpm add leaflet')), false);
   assert.equal(demande(lancer(d, 'pnpm add zod')), true);
 });

@@ -6,7 +6,7 @@ Une commande par geste : `demarrer`, `ouvrir`, `fusionner`, `rafraichir`, `livre
 
 `carte <nom>` est le seul geste d'écriture d'une session sur un sujet, car le hook d'agent refuse tout `git push` vers `sujet/…` : sans ce refus, une session écrirait elle-même la ligne `Dépendances:` qui l'autorise. La commande ne laisse passer que des mises à jour en place de la carte qui déclare déjà ce sujet (statut `M`, mode 100644, un seul fichier par commit, ligne `Sujet:` exacte avant et après, Prettier passé) et pousse le sommet qu'elle a vérifié, sans force ; tout le reste sort en 9. Cas vécu : un commit pouvait créer sur le sujet une seconde carte que `phase_carte` aurait lue la première, ou réécrire la carte d'un autre sujet pour citer celui-ci.
 
-Ce qui vient du projet : l'identifiant de ticket (`ID_SPEC` de `github.sh`, la convention `tickets`), les index générés et leurs commandes (`scripts/docs/index-generes.json`), la branche d'intégration `develop`.
+Ce qui vient du projet : l'identifiant de ticket (`SPEC_ALL_SOC-1.03` dans un titre de PR ou un nom de fichier, `spec-all-soc-1-03` dans une branche), lu par `identifiant.mjs` du skill `fusionner`, qui importe la grammaire de `scripts/docs/identifiants.mjs` (skill `tickets`) : `sujet.sh` ne porte aucune expression d'identifiant, les index générés et leurs commandes (`scripts/docs/index-generes.json`), la branche d'intégration `develop`.
 
 ## `scripts/depot-jouet.mjs`, `scripts/faux-gh.mjs`
 
@@ -14,7 +14,7 @@ Le banc d'essai partagé avec `fusionner` : un `origin` nu local, un clone de tr
 
 ## `scripts/sujet.test.mjs`
 
-Les garde-fous de `demarrer`, `ouvrir` sans protection, le regroupement des séries et des piles, la livraison automatique, avec des préfixes à un et à deux segments.
+Les garde-fous de `demarrer`, `ouvrir` sans protection, le regroupement des séries et des piles, la livraison automatique, avec le contexte `ALL` et un autre ; l'ancienne forme (`SOC-1.01`) n'est plus lue.
 
 ## `scripts/sujet-carte.test.mjs`
 

@@ -2,10 +2,12 @@
 /** Hook PreToolUse (Bash) : commandes interdites ou soumises à l'humain. */
 import { execFileSync } from 'node:child_process';
 import { lireEntree, RACINE } from './entree.mjs';
-import { decisionCommande, identifiantDeBranche, lireDependances } from './regles.mjs';
+import { decisionCommande, lireDependances } from './regles.mjs';
 
-// Convention d'identifiants du skill `tickets` : absente, le hook garde ses refus et demande pour
-// toute dépendance, au lieu de tomber entier sur un module manquant.
+// Grammaire des identifiants du skill `tickets` : le ticket d'une branche (`feat/spec-all-soc-1-04-hook`
+// → `SPEC_ALL_SOC-1.04`) et celui d'un fichier ne se lisent que par elle, aucune expression n'en est
+// recopiée ici. Absente, le hook garde ses refus et demande pour toute dépendance, au lieu de tomber
+// entier sur un module manquant.
 const identifiants = await import('../docs/identifiants.mjs').catch(() => null);
 
 const git = (...args) => execFileSync('git', args, { cwd: RACINE, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], timeout: 10_000 }).trim();
@@ -28,8 +30,8 @@ function brancheCourante() {
  */
 function dependancesPrevues() {
   try {
-    const id = identifiantDeBranche(brancheCourante());
-    if (!id || !identifiants) return null;
+    const id = identifiants?.identifiantDeBranche(brancheCourante());
+    if (!id) return null;
     // Un paquet prévu ne passe sans question que si ce qui décide d'où il vient n'a pas bougé par
     // rapport à develop : un `.npmrc` ou un workspace modifié sur la branche, ou créé hors de l'index
     // (que `git diff` ne voit pas), et on demande.

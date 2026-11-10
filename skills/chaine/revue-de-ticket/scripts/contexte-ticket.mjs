@@ -10,20 +10,23 @@
  * entrée d'un `rules.json` (`federations/<slug>/rules.json`, objet dont `id` ou `code` vaut
  * l'identifiant). ADR : le fichier de `docs/**` dont le nom commence par l'identifiant.
  *
- * Usage : node scripts/chaine/contexte-ticket.mjs <SOC-1.03> [> <scratchpad>/revue/contexte.md]
+ * Les identifiants (le ticket, ceux qu'il cite) se lisent par `scripts/docs/identifiants.mjs`, la
+ * grammaire `<TYPE>_<CTX>_<TRI>-<n>` ; aucune expression d'identifiant ici.
+ *
+ * Usage : node scripts/chaine/contexte-ticket.mjs <SPEC_ALL_SOC-1.03> [> <scratchpad>/revue/contexte.md]
  * Racine : le dépôt qui contient scripts/ ; `PROJET_RACINE` la remplace (tests).
  * Sorties : 0 · 2 usage ou ticket introuvable.
  */
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { basename, join, relative } from "node:path";
-import { lireTicket } from "../docs/identifiants.mjs";
+import { identifiantsCites, lireTicket } from "../docs/identifiants.mjs";
 
 const ROOT =
   process.env.PROJET_RACINE ?? new URL("../..", import.meta.url).pathname;
 const id = (process.argv[2] ?? "").toUpperCase();
 if (!lireTicket(id)) {
   console.error(
-    "Usage : node scripts/chaine/contexte-ticket.mjs <PRÉFIXE-n.NN>   (ex. SOC-1.03)",
+    "Usage : node scripts/chaine/contexte-ticket.mjs <SPEC>.<NN>   (ex. SPEC_ALL_SOC-1.03)",
   );
   process.exit(2);
 }
@@ -75,12 +78,8 @@ const ligneSpec = fichierSpec
 
 // ── Règles et ADR cités ────────────────────────────────────────────────────────────────
 const corpus = texteTicket + "\n" + ligneSpec.join("\n");
-// `<TRI>-<n>` (règle, ADR, spec) ou `<TRI>-<n>.<NN>` (ticket) : `SOC-1.06` n'est pas lu comme `SOC-1`.
-const cites = [
-  ...new Set(
-    corpus.match(/\b[A-Z]{2,}(?:-[A-Z]{2,})*-\d+(?:\.\d{2})?\b/g) ?? [],
-  ),
-]
+// Règle, ADR, spec ou ticket : `SPEC_ALL_SOC-1.06` n'est pas lu comme `SPEC_ALL_SOC-1`.
+const cites = identifiantsCites(corpus)
   .filter((c) => c !== spec && c !== id)
   .sort();
 const registresMd = docs.filter(

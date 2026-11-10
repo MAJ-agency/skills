@@ -8,8 +8,11 @@
 # depuis le remote `origin`.
 # =============================================================================
 DEPOT='repos/{owner}/{repo}'
-# Identifiant de spec de la convention `tickets` : SOC-1, ALL-FOF-12 (préfixe à un ou plusieurs segments).
-ID_SPEC='[A-Z][A-Z0-9]*(-[A-Z][A-Z0-9]*)*-[0-9]+'
+# Identifiants de la convention `tickets` (SPEC_ALL_SOC-1, SPEC_ALL_SOC-1.03 ; `spec-all-soc-1-03` dans
+# une branche) : aucune expression d'identifiant en shell. Tout passe par identifiant.mjs, à côté de
+# ce fichier, qui importe la grammaire de `scripts/docs/identifiants.mjs` (commandes : son en-tête).
+IDENTIFIANT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/identifiant.mjs"
+identifiant() { node "$IDENTIFIANT" "$@"; }
 
 # Index générés : liste unique `scripts/docs/index-generes.json` ({ chemin, commande }), lue dans le
 # worktree, sinon sur origin/develop (branche partie avant son arrivée). `*` = un segment.

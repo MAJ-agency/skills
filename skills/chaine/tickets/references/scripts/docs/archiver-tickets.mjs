@@ -20,6 +20,7 @@
 import { execFileSync } from 'node:child_process';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { basename, dirname, posix } from 'node:path';
+import { estArchive, identifiantDuTicket } from './identifiants.mjs';
 
 const args = process.argv.slice(2);
 const inconnus = args.filter((a) => !/^--(appliquer|jours=\d+|aujourdhui=\d{4}-\d{2}-\d{2})$/.test(a));
@@ -41,7 +42,8 @@ const LIGNE_FAIT = /^(?:- )?\**Status\**\s*:\**\s*Fait — PR #(\d+)/im;
 const aArchiver = [];
 const sansDate = [];
 for (const f of mds) {
-  if (!f.endsWith('.issue.md') || f.includes('/issues/archive/') || basename(dirname(f)) !== 'issues') continue;
+  // Seul un ticket de la convention s'archive : un fichier d'une autre forme n'est lu par aucun script.
+  if (!identifiantDuTicket(basename(f)) || estArchive(f) || basename(dirname(f)) !== 'issues') continue;
   const m = LIGNE_FAIT.exec(readFileSync(f, 'utf8'));
   if (!m) continue;
   const date = git('log', '-1', '--format=%cs', '-G', '^(- )?\\**Status\\**\\s*:\\**\\s*Fait — PR', '--', f).trim();
