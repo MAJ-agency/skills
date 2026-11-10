@@ -530,6 +530,7 @@ test("passer.sh : une livraison intermédiaire mise à jour avec develop reste u
     3,
     "commit de merge : deux parents",
   );
+  assert.match(d.git("log", "-1", "--format=%B", "origin/develop"), /^Sujet: sujet\/lot$/m);
 });
 
 test("passer.sh : un commit ajouté sur une livraison intermédiaire mise à jour la renvoie à la revue", () => {
@@ -540,4 +541,22 @@ test("passer.sh : un commit ajouté sur une livraison intermédiaire mise à jou
   const r = d.lancer(script("passer.sh"), "40");
   assert.equal(r.status, 4, r.stdout + r.stderr);
   assert.match(r.stdout, /sans section « Revue de ticket » ni « Revue adversariale »/);
+});
+
+test("passer.sh : la livraison d'une branche sujet/ nomme son sujet dans le corps du commit de merge", () => {
+  const d = depotJouet();
+  d.branche("sujet/lot", "origin/develop", { "docs/lot.md": "lot\n" }, "docs(demo): lot (#41)");
+  d.git("switch", "-q", "--detach", "origin/develop");
+  d.github({
+    exiges: ["qualite"],
+    checks: { "*": { [PERIMETRE]: "SUCCESS", qualite: "SUCCESS" } },
+    pulls: [pr(42, "sujet/lot", { title: "docs(demo): sujet/lot — 1 sous-PR" })],
+  });
+  const r = d.lancer(script("passer.sh"), "42");
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  d.git("fetch", "-q", "origin");
+  assert.equal(
+    d.git("log", "-1", "--format=%B", "origin/develop"),
+    "docs(demo): sujet/lot — 1 sous-PR (#42)\n\n- docs(demo): lot (#41)\n\nSujet: sujet/lot",
+  );
 });

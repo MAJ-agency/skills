@@ -264,10 +264,14 @@ sujet="$titre (#$N)"
 longueur=$(node -e 'console.log([...process.argv[1]].length)' "$sujet")
 [ "$longueur" -le 120 ] || sortir 4 "sujet du squash à $longueur caractères (> 120) : raccourcir le titre de la PR"
 # Branche de sujet (ou livraison intermédiaire `livraison/*`) : commit de merge, qui garde un commit par sous-PR ; le corps
-# les liste. Sinon squash, corps = messages des commits de la PR.
+# les liste, puis nomme le sujet (`Sujet: sujet/<nom>`, que `sujet.sh livre` cherche dans develop une
+# fois la branche supprimée). Sinon squash, corps = messages des commits de la PR.
 if [ "$livraison_sujet" = 1 ]; then
   methode=merge
-  corps() { git log --first-parent --no-merges --reverse --format='- %s' "$depart..$origine"; }
+  corps() {
+    git log --first-parent --no-merges --reverse --format='- %s' "$depart..$origine"
+    printf '\nSujet: sujet/%s\n' "$nom_sujet"
+  }
 else
   methode=squash
   corps() { git log --no-merges --reverse --format='%B' "$depart..$origine"; }

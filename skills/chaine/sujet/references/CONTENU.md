@@ -12,4 +12,4 @@ Le banc d'essai partagé avec `fusionner` : un `origin` nu local, un clone de tr
 
 ## `scripts/sujet.test.mjs`
 
-Les garde-fous de `demarrer`, `ouvrir` sans protection, le regroupement des séries et des piles, la livraison automatique, avec des préfixes à un et à deux segments.
+Les garde-fous de `demarrer`, `ouvrir` sans protection, le regroupement des séries et des piles, la livraison automatique, avec des préfixes à un et à deux segments. Un sujet sans carte est reconnu livré sur le commit de merge que `passer.sh` écrit vraiment, une fois sa branche supprimée, jamais sur un message forgé pour le test ; `sujet/demo` ne reconnaît pas `sujet/demo-2`.
