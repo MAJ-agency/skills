@@ -52,6 +52,21 @@ La recommandation n'est pas optionnelle : une question sans recommandation repor
 
 ---
 
+## Écrire une question qu'un humain comprend
+
+**Une question de grilling se lit sans ouvrir le dépôt.** Elle est écrite pour la personne qui décide, pas pour l'agent qui l'écrit ni pour celui qui la relira. Le test, avant d'envoyer un tour : relire chaque question comme quelqu'un qui ne connaît ni les fichiers ni le code. Si une phrase exige de connaître un nom de fichier, un champ ou une commande pour être comprise, elle est à réécrire.
+
+- **Une idée par phrase.** Des phrases courtes, avec un verbe. Jamais une suite de couples « x → y » séparés par des points-virgules : chaque transformation se dit en une phrase complète, et une liste de cas devient une liste à puces, une phrase par puce.
+- **Le mot avant le symbole.** On nomme la chose en français d'abord (« le statut de réalisation », « le fichier généré que lit Anchorpost »). L'identifiant de code vient après, une fois, seulement s'il faut aller le chercher. Au plus un identifiant de code par phrase.
+- **Dire ce qui change pour l'humain.** Aujourd'hui, demain, ce que ça coûte, ce que ça casse. Un exemple concret vaut mieux qu'une règle abstraite : montrer la ligne telle qu'elle s'écrira, le nom du test, le nom du fichier.
+- **Une analogie quand le concept est neuf**, puis le terme exact du glossaire.
+- **Une seule décision par question.** Deux décisions dans une question font une réponse qui n'en tranche aucune.
+- **Les choix techniques ne font pas une question.** Commande, outil, bibliothèque, forme d'un fichier de configuration, mécanisme interne : l'agent tranche par défaut prudent, l'écrit dans le ticket ou la carte, et l'humain peut le rouvrir d'un mot. Seules les décisions de standard et de métier lui remontent. La même règle, écrite pour la chaîne de production : `docs/agents/chaine-de-production.md` § « Une question au produit ».
+
+Cas vécu : une question écrite « `couverte` → dérivé (prouvée si une étiquette existe, sinon `à construire` + alerte santé) ; `configuree` → dérivé (`config[]` non vide et aucune preuve) ; … » a reçu « rien compris » et a coûté un tour entier. La même question, lisible : « Aujourd'hui Fedora écrit à la main que telle règle est couverte. Demain, c'est la machine qui le dit, en cherchant un test qui porte le nom de la règle. Une règle dite couverte sans un tel test apparaîtra comme un écart à corriger. D'accord ? »
+
+---
+
 ## La répartition du travail
 
 - **Les faits sont ton travail, jamais celui de l'utilisateur.** Quand une question de la frontière a besoin d'un fait de l'environnement (contenu d'un fichier, version d'une dépendance, ce que fait vraiment le code), va le chercher. Ne demande jamais ce que tu peux lire.
