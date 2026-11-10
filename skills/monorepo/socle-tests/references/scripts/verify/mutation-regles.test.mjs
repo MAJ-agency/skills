@@ -1,14 +1,19 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { copyFileSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
-import { fileURLToPath } from "node:url";
-import { normaliser, perimetre, perimetreDuDepot, perimetreDuPaquet, rapport } from "./mutation-regles.mjs";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import { echapperGlob, normaliser, perimetre, perimetreDuDepot, perimetreDuPaquet } from "./mutation-regles.mjs";
 
 const ICI = dirname(fileURLToPath(import.meta.url));
-const CONFIG = join(ICI, "../../gabarits/stryker.regles.config.mjs");
+// Les configurations sont dans `gabarits/` du skill ; posées dans un projet, dans `apps/api/` (SKILL.md
+// étape 2.5). Le banc joue celles qu'il trouve, comme `tests-creux.test.mjs` pour la grammaire.
+const trouver = (nom) => [join(ICI, "../../gabarits", nom), join(ICI, "../../apps/api", nom)].find(existsSync);
+const CONFIG = trouver("stryker.regles.config.mjs");
+const CONFIG_NOYAU = trouver("stryker.config.mjs");
+const base = (await import(pathToFileURL(CONFIG_NOYAU).href)).default;
 
 const regle = (key, status, code) => ({ key, realisation: { status, levels: [], proofCount: 0, inherited: false }, code });
 const index = (rules, schema = "2") => ({ schema, rules });
@@ -82,16 +87,24 @@ test("des règles prouvées sans fichier de code, ou sans règle prouvée : vide
   assert.match(perimetre(index([]), tous).raison, /aucune règle prouvée/);
 });
 
-test("un chemin qui sort du dépôt, un test, une déclaration ou un autre langage est écarté, jamais muté", () => {
+test("un chemin qui sort du dépôt, un test, une déclaration, du câblage (contrôleur, module, dto, gabarit) ou un autre langage est écarté, jamais muté", () => {
   const p = perimetre(
-    index([regle("RULE_ALL_LIC-1", "proven", ["../hors.ts", "/etc/passwd.ts", "C:/x.ts", "a/../../b.ts", "src/a.spec.ts", "src/a.d.ts", "db/schema.sql", 42, "src/ok.ts"])]),
+    index([regle("RULE_ALL_LIC-1", "proven", ["../hors.ts", "/etc/passwd.ts", "C:/x.ts", "a/../../b.ts", "src/a.spec.ts", "src/a.d.ts", "db/schema.sql", 42, "src/ok.ts", "src/x.controller.ts", "src/x.module.ts", "src/dto/in.ts", "src/templates/m.ts"])]),
     tous,
   );
   assert.deepEqual(p.fichiers, ["src/ok.ts"]);
   assert.deepEqual(
     p.ecartes.map((e) => [e.chemin, e.motif.split(" ")[0]]),
-    [["../hors.ts", "hors"], ["/etc/passwd.ts", "hors"], ["C:/x.ts", "hors"], ["a/../../b.ts", "hors"], ["src/a.spec.ts", "pas"], ["src/a.d.ts", "pas"], ["db/schema.sql", "pas"], ["42", "hors"]],
+    [["../hors.ts", "hors"], ["/etc/passwd.ts", "hors"], ["C:/x.ts", "hors"], ["a/../../b.ts", "hors"], ["src/a.spec.ts", "hors"], ["src/a.d.ts", "hors"], ["db/schema.sql", "hors"], ["42", "hors"], ["src/x.controller.ts", "hors"], ["src/x.module.ts", "hors"], ["src/dto/in.ts", "hors"], ["src/templates/m.ts", "hors"]],
   );
+});
+
+test("un chemin avec un octet nul est écarté, il ne fait pas planter le script", () => {
+  const racine = depot(index([regle("RULE_ALL_LIC-1", "proven", ["src/a\0.ts", "src/ok.ts"])]), ["src/ok.ts"]);
+  const p = perimetreDuDepot(racine);
+  assert.deepEqual(p.fichiers, ["src/ok.ts"]);
+  assert.equal(p.ecartes.length, 1);
+  assert.equal(normaliser("a\0b.ts"), null);
 });
 
 test("normaliser : ./ et // retirés, slashs, sorties du dépôt refusées", () => {
@@ -140,61 +153,6 @@ test("perimetreDuPaquet ne garde que les fichiers du paquet, en chemins relatifs
   assert.match(autre.raison, /aucun des 2 fichier\(s\) du périmètre n'est dans ce paquet/);
 });
 
-const stryker = {
-  files: {
-    "src/a.ts": {
-      mutants: [
-        { id: "1", mutatorName: "ConditionalExpression", status: "Killed", location: { start: { line: 3 } } },
-        { id: "2", mutatorName: "EqualityOperator", status: "Survived", replacement: "a <= b", location: { start: { line: 12 } } },
-        { id: "3", mutatorName: "StringLiteral", status: "NoCoverage", replacement: '"x`y"', location: { start: { line: 7 } } },
-      ],
-    },
-    "src/b.ts": { mutants: [{ id: "4", mutatorName: "BlockStatement", status: "Killed", location: { start: { line: 1 } } }] },
-  },
-};
-const versDepot = (c) => `apps/api/${c}`;
-
-test("le rapport range les survivants par règle puis par fichier, triés par ligne, avec le score", () => {
-  const md = rapport(
-    [
-      { regle: "RULE_FNSMR_LIC-05", fichiers: ["apps/api/src/a.ts"] },
-      { regle: "RULE_ALL_LIC-2", fichiers: ["apps/api/src/b.ts"] },
-    ],
-    stryker,
-    versDepot,
-  );
-  assert.match(md, /^# Mutation des règles prouvées/);
-  assert.match(md, /2 règle\(s\), 2 fichier\(s\)\. Score : 50 % \(2 tués, 2 survivants\)/);
-  const a = md.indexOf("## RULE_FNSMR_LIC-05 — 2 survivant(s)");
-  const b = md.indexOf("## RULE_ALL_LIC-2 — aucun survivant");
-  assert.ok(a > 0 && b > a, "l'ordre des règles est celui de l'entrée, les zéros sont gardés");
-  assert.ok(md.indexOf("ligne 7 :") < md.indexOf("ligne 12 :"), "les survivants sont triés par ligne");
-  assert.match(md, /ligne 12 : EqualityOperator → `a <= b` \(survécu\)/);
-  assert.match(md, /ligne 7 : StringLiteral → `"x'y"` \(aucun test ne l'atteint\)/);
-});
-
-test("un fichier partagé par deux règles figure sous les deux sans être compté deux fois dans le score", () => {
-  const md = rapport(
-    [
-      { regle: "RULE_ALL_LIC-1", fichiers: ["apps/api/src/a.ts"] },
-      { regle: "RULE_ALL_LIC-2", fichiers: ["apps/api/src/a.ts"] },
-    ],
-    stryker,
-    versDepot,
-  );
-  assert.match(md, /Score : 33 % \(1 tués, 2 survivants\)/);
-  assert.equal(md.match(/ligne 12 :/g).length, 2);
-});
-
-test("un rapport sans mutant mesuré le dit, et un remplacement multiligne reste sur une ligne", () => {
-  assert.match(rapport([{ regle: "RULE_ALL_LIC-1", fichiers: ["a.ts"] }], { files: {} }), /Aucun mutant mesuré/);
-  const md = rapport(
-    [{ regle: "RULE_ALL_LIC-1", fichiers: ["a.ts"] }],
-    { files: { "a.ts": { mutants: [{ mutatorName: "Block", status: "Survived", replacement: "{\n}\n# titre", location: { start: { line: 1 } } }] } } },
-  );
-  assert.match(md, /→ `\{ \} # titre`/);
-});
-
 function projet({ avecIndex }) {
   const racine = depot(avecIndex ? index([regle("RULE_ALL_LIC-1", "proven", ["apps/api/src/a.ts"]), regle("RULE_ALL_LIC-2", "proven", ["apps/api/src/gone.ts"]), regle("RULE_ALL_LIC-3", "to-build", ["apps/api/src/c.ts"])]) : undefined, [
     "apps/api/src/a.ts",
@@ -203,6 +161,7 @@ function projet({ avecIndex }) {
   mkdirSync(join(racine, "scripts/verify"), { recursive: true });
   copyFileSync(join(ICI, "mutation-regles.mjs"), join(racine, "scripts/verify/mutation-regles.mjs"));
   copyFileSync(CONFIG, join(racine, "apps/api/stryker.regles.config.mjs"));
+  copyFileSync(CONFIG_NOYAU, join(racine, "apps/api/stryker.config.mjs"));
   return racine;
 }
 const lancer = (racine, args, cwd = racine) =>
@@ -236,6 +195,15 @@ test("sans option, usage et sortie 2", () => {
   assert.match(r.stderr, /usage/);
 });
 
+test("mutate échappe les globs par une classe à un caractère : une route [id].ts ou (groupe)/x.ts se mute elle-même", () => {
+  assert.equal(echapperGlob("src/app/[id]/(g)/a{b}*?.ts"), "src/app/[[]id]/[(]g[)]/a[{]b[}][*][?].ts");
+  assert.equal(echapperGlob("src/a!b+c@d.ts"), "src/a!b+c@d.ts");
+  const racine = depot(index([regle("RULE_ALL_LIC-1", "proven", ["apps/web/src/[id].ts"])]), ["apps/web/src/[id].ts"]);
+  const p = perimetreDuPaquet(racine, join(racine, "apps/web"));
+  assert.deepEqual(p.fichiers, ["apps/web/src/[id].ts"]);
+  assert.deepEqual(p.mutate, ["src/[[]id].ts"]);
+});
+
 test("la config Stryker des règles lit le périmètre du paquet : mutate relatif, vide sans index", () => {
   const lire = (racine) =>
     JSON.parse(
@@ -247,7 +215,19 @@ test("la config Stryker des règles lit le périmètre du paquet : mutate relati
     );
   const avec = lire(projet({ avecIndex: true }));
   assert.deepEqual(avec.mutate, ["src/a.ts"]);
-  assert.equal(avec.thresholds.break, undefined, "pas de plancher en V1");
+  assert.equal(avec.thresholds.break, 0, "rapport seulement : le plancher du noyau ne s'applique pas");
+  assert.equal(avec.plugins[0], "@stryker-mutator/vitest-runner", "hérite de la configuration du noyau");
+  assert.notEqual(avec.incrementalFile, base.incrementalFile);
   assert.ok(avec.reporters.includes("json"));
   assert.deepEqual(lire(projet({ avecIndex: false })).mutate, []);
+});
+
+test("STRYKER_MUTATE remplace le périmètre de l'index pour un essai local", () => {
+  const racine = projet({ avecIndex: true });
+  const sortie = spawnSync(process.execPath, ["--input-type=module", "-e", "import('./stryker.regles.config.mjs').then((m) => console.log(JSON.stringify(m.default.mutate)))"], {
+    cwd: join(racine, "apps/api"),
+    encoding: "utf8",
+    env: { ...process.env, PROJET_RACINE: undefined, STRYKER_MUTATE: "src/x.ts,src/y.ts" },
+  });
+  assert.deepEqual(JSON.parse(sortie.stdout), ["src/x.ts", "src/y.ts"]);
 });

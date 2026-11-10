@@ -15,29 +15,32 @@
  *
  *   node scripts/verify/mutation-regles.mjs --list      le périmètre du dépôt, un fichier par ligne
  *   node scripts/verify/mutation-regles.mjs --lancer    (depuis un paquet) Stryker sur les fichiers
- *                                                       du paquet, puis le rapport des survivants
+ *                                                       du paquet ; périmètre vide : rien n'est lancé
  *
- * Ce que le script n'est pas : un plancher. `mutation:regles` produit un rapport (règle → fichiers →
- * mutants survivants), il ne refuse rien en V1 ; le plancher reste celui du noyau (`mutation`).
+ * Le rapport des survivants par règle est écrit par `mutation-regles-synthese.mjs`. Ce n'est pas un
+ * plancher : `mutation:regles` ne refuse rien en V1 ; le plancher reste celui du noyau (`mutation`).
  *
- * Variable : `PROJET_RACINE` (racine du dépôt ; par défaut, deux dossiers au-dessus du script).
- * Sorties : 0 (y compris périmètre vide) · 1 Stryker a échoué ou n'a rien rapporté · 2 usage.
+ * Variables : `PROJET_RACINE` (racine du dépôt ; par défaut, deux dossiers au-dessus du script) ;
+ * `STRYKER_MUTATE` (essai local : des fichiers séparés par des virgules, relatifs au paquet, qui
+ * remplacent le périmètre de l'index — la configuration les lit, `--lancer` ne court-circuite pas).
+ * Sorties : 0 (y compris périmètre vide) · le code de Stryker s'il échoue · 2 usage.
  */
 import { spawnSync } from "node:child_process";
-import { appendFileSync, existsSync, readFileSync, statSync } from "node:fs";
+import { existsSync, readFileSync, statSync } from "node:fs";
 import { join, posix, relative, resolve, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 export const INDEX = "anchorpost/anchorpost.json";
 export const SCHEMA = "2";
-export const RAPPORT_JSON = "reports/mutation/mutation.json";
 
 const CODE_MUTABLE = /\.[cm]?[jt]sx?$/;
 const PAS_DU_CODE = /\.(?:spec|test|e2e-spec|property\.spec|d)\.[cm]?[jt]sx?$/;
+// Du câblage et des formes, pas de la logique : un mutant y survit toujours (mêmes exclusions que `coverage-diff`).
+const CABLAGE = [/\.(?:controller|module)\.[cm]?[jt]sx?$/, /(^|\/)dto\//, /(^|\/)templates\//];
 
 /** Chemin du dépôt, en slashs et sans `./` ; `null` s'il sort du dépôt (absolu, `..`, vide). */
 export function normaliser(chemin) {
-  if (typeof chemin !== "string") return null;
+  if (typeof chemin !== "string" || chemin.includes("\0")) return null;
   const c = posix.normalize(chemin.trim().replaceAll("\\", "/"));
   if (c === "." || c === ".." || c.startsWith("../") || c.startsWith("/") || c[1] === ":") return null;
   return c;
@@ -74,8 +77,8 @@ export function perimetre(index, existe) {
       const chemin = normaliser(brut);
       if (chemin === null) ecartes.push({ regle, chemin: String(brut), motif: "hors du dépôt" });
       else if (!existe(chemin)) ecartes.push({ regle, chemin, motif: "absent du dépôt" });
-      else if (!CODE_MUTABLE.test(chemin) || PAS_DU_CODE.test(chemin)) {
-        ecartes.push({ regle, chemin, motif: "pas du code mutable (test, déclaration ou autre langage)" });
+      else if (!CODE_MUTABLE.test(chemin) || PAS_DU_CODE.test(chemin) || CABLAGE.some((r) => r.test(chemin))) {
+        ecartes.push({ regle, chemin, motif: "hors périmètre de la mutation (test, déclaration, contrôleur, module, dto, gabarit ou autre langage)" });
       } else if (!retenus.includes(chemin)) retenus.push(chemin);
     }
     if (retenus.length) regles.push({ regle, fichiers: retenus });
@@ -95,7 +98,20 @@ export function perimetre(index, existe) {
 /** Racine du dépôt : `PROJET_RACINE`, sinon deux dossiers au-dessus de `scripts/verify/`. */
 export const racineDuDepot = () => process.env.PROJET_RACINE ?? fileURLToPath(new URL("../..", import.meta.url));
 
-const estUnFichier = (racine) => (chemin) => statSync(join(racine, chemin), { throwIfNoEntry: false })?.isFile() === true;
+const estUnFichier = (racine) => (chemin) => {
+  try {
+    return statSync(join(racine, chemin), { throwIfNoEntry: false })?.isFile() === true;
+  } catch {
+    return false; // chemin que le système refuse (trop long, octet nul…) : pas un fichier du dépôt
+  }
+};
+
+/**
+ * Stryker lit `mutate` comme des globs : `[id].ts` (route Next) ou `(groupe)/x.ts` ne se mutent pas
+ * eux-mêmes sans échappement. Le backslash n'y marche pas (mesuré) ; la classe à un caractère, si :
+ * `[id].ts` → `[[]id].ts`. `]`, `!`, `+` et `@` restent littéraux dans un chemin relatif.
+ */
+export const echapperGlob = (chemin) => chemin.replace(/[[*?{}()]/g, (c) => `[${c}]`);
 
 /** Lit l'index commis et en calcule le périmètre. */
 export function perimetreDuDepot(racine = racineDuDepot()) {
@@ -124,7 +140,7 @@ export function perimetreDuPaquet(racine = racineDuDepot(), cwd = process.cwd())
   const dehors = p.fichiers.length - fichiers.length;
   return {
     fichiers,
-    mutate: fichiers.map(dedans),
+    mutate: fichiers.map(dedans).map(echapperGlob),
     regles,
     ecartes: p.ecartes,
     dehors,
@@ -132,60 +148,6 @@ export function perimetreDuPaquet(racine = racineDuDepot(), cwd = process.cwd())
       ? undefined
       : p.raison ?? `aucun des ${p.fichiers.length} fichier(s) du périmètre n'est dans ce paquet : rien à muter ici`,
   };
-}
-
-/** Une cellule de code Markdown sûre : une ligne, sans accent grave, tronquée. */
-const code = (texte, max = 80) => {
-  const t = String(texte ?? "").replace(/\s+/g, " ").replaceAll("`", "'").trim();
-  return `\`${t.length > max ? `${t.slice(0, max - 1)}…` : t}\``;
-};
-
-const SURVIVANTS = new Set(["Survived", "NoCoverage"]);
-const TUES = new Set(["Killed", "Timeout"]);
-
-/**
- * Le rapport des survivants, par règle : règle → fichiers → mutants survivants, en Markdown.
- *
- * @param regles   `[{ regle, fichiers }]` de `perimetre` (ou `perimetreDuPaquet`).
- * @param mutation le JSON du reporter `json` de Stryker (`files[chemin].mutants[]`).
- * @param versDepot convertit une clé de `mutation.files` en chemin du dépôt (défaut : identité).
- */
-export function rapport(regles, mutation, versDepot = (c) => c) {
-  const parFichier = new Map();
-  for (const [cle, f] of Object.entries(mutation?.files ?? {})) parFichier.set(versDepot(cle), f?.mutants ?? []);
-  const comptes = { tues: 0, survivants: 0 };
-  for (const mutants of new Set(regles.flatMap((r) => r.fichiers).map((f) => parFichier.get(f) ?? []))) {
-    for (const m of mutants) {
-      if (TUES.has(m.status)) comptes.tues += 1;
-      else if (SURVIVANTS.has(m.status)) comptes.survivants += 1;
-    }
-  }
-  const mesures = comptes.tues + comptes.survivants;
-  const fichiers = new Set(regles.flatMap((r) => r.fichiers)).size;
-  const lignes = [
-    "# Mutation des règles prouvées",
-    "",
-    `${regles.length} règle(s), ${fichiers} fichier(s). ` +
-      (mesures ? `Score : ${Math.round((100 * comptes.tues) / mesures)} % (${comptes.tues} tués, ${comptes.survivants} survivants).` : "Aucun mutant mesuré."),
-    "",
-    "Pas de plancher : ce rapport nomme les assertions qui manquent, il ne refuse rien.",
-  ];
-  for (const { regle, fichiers: fs } of regles) {
-    const parChemin = fs.map((f) => ({
-      f,
-      survivants: (parFichier.get(f) ?? []).filter((m) => SURVIVANTS.has(m.status)).sort((a, b) => (a.location?.start?.line ?? 0) - (b.location?.start?.line ?? 0)),
-    }));
-    const total = parChemin.reduce((n, x) => n + x.survivants.length, 0);
-    lignes.push("", `## ${regle} — ${total ? `${total} survivant(s)` : "aucun survivant"}`);
-    for (const { f, survivants } of parChemin) {
-      lignes.push("", `- ${code(f, 200)} — ${survivants.length ? `${survivants.length} survivant(s)` : "aucun survivant"}`);
-      for (const m of survivants) {
-        const ou = m.location?.start?.line ?? "?";
-        lignes.push(`  - ligne ${ou} : ${m.mutatorName ?? "?"}${m.replacement ? ` → ${code(m.replacement)}` : ""} (${m.status === "NoCoverage" ? "aucun test ne l'atteint" : "survécu"})`);
-      }
-    }
-  }
-  return `${lignes.join("\n")}\n`;
 }
 
 function dire(p, sortie) {
@@ -205,20 +167,10 @@ function main(args) {
     const cwd = process.cwd();
     const p = perimetreDuPaquet(racine, cwd);
     dire(p, (m) => console.log(m));
-    if (!p.fichiers.length) return 0;
-    console.log(`mutation-regles : ${p.regles.length} règle(s), ${p.fichiers.length} fichier(s) à muter`);
+    if (!p.fichiers.length && !process.env.STRYKER_MUTATE) return 0;
+    console.log(`mutation-regles : ${process.env.STRYKER_MUTATE ? "essai local" : `${p.regles.length} règle(s), ${p.fichiers.length} fichier(s) à muter`}`);
     const r = spawnSync("pnpm", ["exec", "stryker", "run", "stryker.regles.config.mjs"], { stdio: "inherit", cwd });
-    if (r.status !== 0) return r.status ?? 1;
-    if (!existsSync(join(cwd, RAPPORT_JSON))) {
-      console.error(`mutation-regles : Stryker n'a pas écrit ${RAPPORT_JSON} (reporter \`json\` absent de la configuration ?)`);
-      return 1;
-    }
-    const md = rapport(p.regles, JSON.parse(readFileSync(join(cwd, RAPPORT_JSON), "utf8")), (c) =>
-      relative(racine, resolve(cwd, c)).split(sep).join("/"),
-    );
-    console.log(md);
-    if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, md);
-    return 0;
+    return r.status ?? 1;
   }
   console.error("usage : node scripts/verify/mutation-regles.mjs --list | --lancer");
   return 2;
