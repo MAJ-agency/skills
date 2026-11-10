@@ -1,6 +1,8 @@
 # {{ID}}.{{NN}} — {{Objet du ticket, en une ligne}}
 
 Status: ready-for-agent
+Type: task # task | défaut | grilling | research — obligatoire, vérifié par le gate
+Règles: {{RULE_ALL_<TRI>-<n>, RULE_<CTX>_<TRI>-<n> — les règles que le ticket réalise ou corrige, par leur identifiant complet ; ou retirer la ligne}}
 Sujet: sujet/{{nom}}
 Blocked by: {{NN, NN — ou retirer la ligne}}
 Modèle: sonnet
@@ -11,7 +13,7 @@ Maquette: {{fichier du dépôt : maquette HTML et section, ou planche recopiée 
 
 ## Le besoin
 
-{{Deux ou trois phrases : ce que l'utilisateur doit pouvoir faire quand le ticket est fait.}}
+{{Deux ou trois phrases : ce que l'utilisateur doit pouvoir faire quand le ticket est fait. Pour un défaut : le constat `D-n` de l'inventaire de recette et le test rouge qui le prouve.}}
 
 ## Où
 
@@ -29,11 +31,11 @@ Maquette: {{fichier du dépôt : maquette HTML et section, ou planche recopiée 
 
 | Surface               | Preuve                     |
 | --------------------- | -------------------------- |
-| {{écran, endpoint…}}  | {{le test qui la prouve}}  |
+| {{écran, endpoint…}}  | {{le test qui la prouve — pour un défaut, le gate vérifie que ce test existe et n'est pas désactivé quand le ticket est `Fait`}} |
 
 ## Vérification
 
-{{Commandes ciblées avant `pnpm check` : typecheck du paquet, specs nommées ; index à régénérer ; specs de garde à compléter.}}
+{{Commandes ciblées avant `pnpm check` : typecheck du paquet, specs nommées ; index à régénérer (`pnpm anchorpost:index` si le projet est suivi) ; specs de garde à compléter.}}
 
 ## Comments
 

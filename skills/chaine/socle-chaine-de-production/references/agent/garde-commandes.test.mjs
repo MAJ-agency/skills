@@ -93,10 +93,38 @@ test('écrire la ligne puis pousser soi-même sur le sujet est refusé à l’é
   const r = lancer(d, 'git push origin HEAD:refs/heads/sujet/demo');
   assert.equal(r.status, 2);
   assert.match(r.stderr, /un sujet ne se pousse jamais à la main/);
+  assert.match(r.stderr, /sujet\.sh carte <nom>/);
   // Les formes qui contournaient la première version : refspec cité, `git -C`, `git` par son chemin.
   for (const commande of ['git push origin "HEAD:refs/heads/sujet/demo"', 'git -C . push origin HEAD:sujet/demo', '/usr/bin/git push origin HEAD:sujet/demo'])
     assert.equal(lancer(d, commande).status, 2, commande);
   assert.equal(demande(lancer(d, 'pnpm add zod')), true);
+});
+
+test('un .npmrc ou un pnpm-workspace.yaml qui diffère de develop, même hors de l’index, suspend le laissez-passer', () => {
+  for (const fichier of ['.npmrc', 'pnpm-workspace.yaml']) {
+    const d = depot('Dépendances: `leaflet`');
+    assert.equal(demande(lancer(d, 'pnpm add leaflet')), false, 'avant : le paquet prévu passe');
+    writeFileSync(join(d.travail, fichier), 'registry=https://registre.example/\n');
+    assert.equal(demande(lancer(d, 'pnpm add leaflet')), true, `${fichier} non suivi dans l’arbre de travail`);
+    d.git('add', fichier);
+    d.git('commit', '-qm', 'registre');
+    assert.equal(demande(lancer(d, 'pnpm add leaflet')), true, `${fichier} commité sur la branche`);
+  }
+});
+
+test('toutes les formes de push vers un sujet sont refusées, sujet.sh carte passe', () => {
+  const d = depot('Modèle: sonnet');
+  for (const commande of ['git push origin "HEAD:sujet/demo"', `git -C ${d.travail} push origin HEAD:sujet/demo`, '/usr/bin/git push origin HEAD:sujet/demo']) {
+    const r = lancer(d, commande);
+    assert.equal(r.status, 2, commande);
+    assert.match(r.stderr, /bash scripts\/chaine\/sujet\.sh carte <nom>/);
+  }
+  d.git('checkout', '-q', '-b', 'sujet/local', 'origin/sujet/demo');
+  assert.equal(lancer(d, 'git push').status, 2, 'git push nu depuis une branche sujet/…');
+  assert.equal(demande(lancer(d, 'git push origin "$REF"')), true, 'refspec illisible');
+  const ok = lancer(d, 'bash scripts/chaine/sujet.sh carte x');
+  assert.equal(ok.status, 0, ok.stderr);
+  assert.equal(demande(ok), false, ok.stdout);
 });
 
 test('scripts/docs/identifiants.mjs absent : le hook ne tombe pas, il demande et garde ses refus', () => {

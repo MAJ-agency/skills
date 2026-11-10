@@ -79,6 +79,33 @@ Anchorpost (`MAJ-agency/anchorpost`) lit un projet depuis la documentation de so
 - Deux **chantiers de refonte**, déposés en specs dans Fedora et Iroki, pilotés par la liste rouge de `anchorpost check`.
 - Une **spec Anchorpost** pour les adaptateurs de la CLI (hors périmètre de `ANC-1`), et une révision du pivot si le standard le fait bouger (version 2 du schéma).
 
+## Décisions du second grilling (2026-11-10, cinq tours, Q1 à Q43)
+
+Décisions de l'humain (MOA), sauf mention « défaut » : un choix technique tranché par l'agent par défaut prudent, selon la consigne relayée par le capitaine le 2026-11-10, que l'humain peut rouvrir d'un mot.
+
+1. **Forme source unique : un fichier par règle** (Q1, Q20, Q32), `docs/metier/regles/<ctx>/RULE_<CTX>_<TRI>-<n>.md`, en-tête YAML validé par un schéma, énoncé en markdown libre. Pas de tableau, pas de JSON, pas de README généré : l'index est l'annuaire (Q33).
+2. **Champs en anglais**, dans les fichiers de règles comme dans le schéma pivot, qui passe en version 2 (Q2, Q21).
+3. **Identifiants `<TYPE>_<CTX>_<TRI>-<n>`** (Q3, Q22, Q34, Q40, Q43) : six types `RULE`, `SPEC`, `ADR`, `DSG`, `DOC`, `REQ` ; un ticket porte l'identifiant de sa spec suivi de `.NN` ; `ARC` reste le trigramme des décisions transverses ; le contexte s'écrit toujours, `ALL` compris (Q4) ; le nom du fichier porte l'identifiant complet ; le numéro est unique par type, contexte et trigramme ; un identifiant existant ne se renomme jamais, zéros compris.
+4. **Étiquette de test `[RULE_<CTX>_<TRI>-<n>]`**, plusieurs par titre permises, une sur un `describe` vaut pour ses tests ; jamais sur un test de recette (Q4).
+5. **En-têtes de tickets** : `Type:` obligatoire (`task`, `défaut`, `grilling`, `research`), `Règles:` facultative et vérifiée, le lien va du ticket vers la règle seulement ; un défaut nomme ses tests dans `## Surfaces` (Q5).
+6. **Demandes** `REQ_<CTX>_<TRI>-<n>` sous `docs/demandes/<ctx>/`, `Status:` au vocabulaire des tickets avec `Fait — <spec>`, `Suite:` et `Origine:`, archivage comme un ticket (Q6).
+7. **Catégories et niveaux des preuves** dérivés du chemin et du suffixe, convention fixée dans la CLI, surcharge par le manifeste (Q7, défaut).
+8. **Plancher cliquet par contexte, `ALL` compris**, dans le manifeste, posé par `init` à la mesure, relevé à la main, vérifié par `check` (Q8, Q23).
+9. **Validation** structurée (`status`, `date`, `by`, `reason`), humaine ; une `candidate` qui a des tests est une alerte, jamais une conversion (Q9).
+10. **Liens déclarés** typés dans l'en-tête (`replaces`, `refines`, `contradicts`, `parameterized-by`, `blocked-by`), `instanceOf` pour le socle ; `cited-with` et `mentions` déduits seulement. Une question ouverte qui cite une règle la marque « a une question ouverte » : **un indicateur, pas un statut** ; la règle garde sa validation et sa réalisation (Q10, Q31).
+11. **Les noms des personnes restent**, dans les sources comme dans l'index ; Anchorpost affiche le rôle entre parenthèses quand la table du manifeste le connaît ; `ANC-13`, `ANC-14`, `ANC-19` s'amendent (Q11, Q24, Q35).
+12. **CLI** : `init`, `index`, `check`, `migrate` ; liste de refus fermée ; le paquet expose une bibliothèque de lecture que les gates des projets importent (Q12, Q25, Q42, défaut pour la liste).
+13. **Installation** : paquet privé, devDependency, `index-generes.json`, `check` dans `gatesRapides` et `check.mjs`, clé par environnement, `NODE_AUTH_TOKEN` sur Scalingo ou build sans dépendances de développement (Q13, Q26, défaut).
+14. **Skill `anchorpost`**, catégorie `chaine`, huit points reconstruits depuis ce grilling ; `socle-monorepo` pose la question « Anchorpost ? » et l'invoque en dernier (Q14).
+15. **CI par test** : rien dans le standard (Q15, Q27).
+16. **Fedora** : la réalisation se calcule, « la parole ne prouve pas » ; `sans_objet` et `contradiction` seuls états écrits à la main ; `module` se lit « à construire » et se trie à la refonte ; champs propres sous `extensions` ; `CONTEXT.md` devient `GLOSSARY.md` à la refonte ; les 36 domaines dans le registre des trigrammes ; un EPIC par module à la refonte ; les questions `status: question` deviennent des questions ouvertes (Q16, Q17, Q28, Q37, Q38).
+17. **Fedora migre d'abord** : `rules.json` est converti par `migrate rules-json`, contexte par contexte, avant le branchement sur Anchorpost ; le standard n'a qu'une forme ; les gates de Fedora se réécrivent sur la bibliothèque du paquet ; `config.json` et `federation.json` ne bougent pas (Q39, Q42).
+18. **Iroki** : `ex` devient une source, les précisions restent dans le texte, les « tranché par » deviennent des `decisions[]` ; `ORG-1` donne des liens `parameterized-by` ; `PRG-1` est un document, pas un EPIC ; les protos sont ignorés (Q18, Q19, Q29, Q30).
+19. **Le standard vaut pour tous les projets du socle** ; Anchorpost est une option par-dessus (Q41). La convention de dossiers est posée par le socle et documentée dans le skill `anchorpost` (Q36).
+20. **Deux corrections de méthode** : une question de grilling se lit sans ouvrir le dépôt (`grilling.md` § « Écrire une question qu'un humain comprend ») ; les choix techniques ne remontent pas à l'humain.
+
+**Suites hors de ce ticket** : les scripts du skill `tickets` et de la chaîne à la nouvelle grammaire, les gabarits des autres skills, `socle-tests` avec le workflow de mutation hebdomadaire et le périmètre « règles prouvées » depuis l'index, le dépôt des trois specs dans leurs dépôts : tickets `2` à `7` de ce dossier.
+
 ## À savoir avant de commencer
 
 - Deux correctifs de gabarits sont en attente dans ce dépôt (cartes de tâche proposées le 2026-11-09, corrigés localement dans Anchorpost) : `coverage-diff` refuse le premier push d'un dépôt neuf (distant vide) ; le barrel de `socle-contrats` doit ré-exporter avec l'extension `.ts` (Node charge les sources en direct), avec `allowImportingTsExtensions` (paquets, web) et `rewriteRelativeImportExtensions` (API).

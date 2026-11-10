@@ -22,7 +22,7 @@ Contexte **unique** — un seul domaine métier dans ce dépôt :
 ```
 /
 ├── GLOSSARY.md         ← glossaire, et rien d'autre
-├── docs/adr/           ← ARC-1, ARC-2, ARC-3…
+├── docs/adr/           ← ADR_ALL_ARC-1, ADR_ALL_ARC-2…
 └── apps/ · packages/
 ```
 
@@ -38,6 +38,6 @@ Si le concept dont tu as besoin n'est pas encore au glossaire, **c'est un signal
 
 Si ta production contredit une ADR existante, le dire explicitement plutôt que de l'écraser en silence :
 
-> _Contredit `ARC-2` (transactions et isolation) — mais mérite d'être rouvert parce que…_
+> _Contredit `ADR_ALL_ARC-2` (transactions et isolation) — mais mérite d'être rouvert parce que…_
 
-Les ADR se citent par leur **identifiant court** (`ARC-2`), jamais par leur chemin.
+Les ADR se citent par leur **identifiant court** (`ADR_ALL_ARC-2`), jamais par leur chemin.

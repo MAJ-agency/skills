@@ -52,6 +52,21 @@ La recommandation n'est pas optionnelle : une question sans recommandation repor
 
 ---
 
+## Écrire une question qu'un humain comprend
+
+**Une question de grilling se lit sans ouvrir le dépôt.** Elle est écrite pour la personne qui décide, pas pour l'agent qui l'écrit ni pour celui qui la relira. Le test, avant d'envoyer un tour : relire chaque question comme quelqu'un qui ne connaît ni les fichiers ni le code. Si une phrase exige de connaître un nom de fichier, un champ ou une commande pour être comprise, elle est à réécrire.
+
+- **Une idée par phrase.** Des phrases courtes, avec un verbe. Jamais une suite de couples « x → y » séparés par des points-virgules : chaque transformation se dit en une phrase complète, et une liste de cas devient une liste à puces, une phrase par puce.
+- **Le mot avant le symbole.** On nomme la chose en français d'abord (« le statut de réalisation », « le fichier généré que lit Anchorpost »). L'identifiant de code vient après, une fois, seulement s'il faut aller le chercher. Au plus un identifiant de code par phrase.
+- **Dire ce qui change pour l'humain.** Aujourd'hui, demain, ce que ça coûte, ce que ça casse. Un exemple concret vaut mieux qu'une règle abstraite : montrer la ligne telle qu'elle s'écrira, le nom du test, le nom du fichier.
+- **Une analogie quand le concept est neuf**, puis le terme exact du glossaire.
+- **Une seule décision par question.** Deux décisions dans une question font une réponse qui n'en tranche aucune.
+- **Les choix techniques ne font pas une question.** Commande, outil, bibliothèque, forme d'un fichier de configuration, mécanisme interne : l'agent tranche par défaut prudent, l'écrit dans le ticket ou la carte, et l'humain peut le rouvrir d'un mot. Seules les décisions de standard et de métier lui remontent. La même règle, écrite pour la chaîne de production : `docs/agents/chaine-de-production.md` § « Une question au produit ».
+
+Cas vécu : une question écrite « `couverte` → dérivé (prouvée si une étiquette existe, sinon `à construire` + alerte santé) ; `configuree` → dérivé (`config[]` non vide et aucune preuve) ; … » a reçu « rien compris » et a coûté un tour entier. La même question, lisible : « Aujourd'hui Fedora écrit à la main que telle règle est couverte. Demain, c'est la machine qui le dit, en cherchant un test qui porte le nom de la règle. Une règle dite couverte sans un tel test apparaîtra comme un écart à corriger. D'accord ? »
+
+---
+
 ## La répartition du travail
 
 - **Les faits sont ton travail, jamais celui de l'utilisateur.** Quand une question de la frontière a besoin d'un fait de l'environnement (contenu d'un fichier, version d'une dépendance, ce que fait vraiment le code), va le chercher. Ne demande jamais ce que tu peux lire.
@@ -109,15 +124,19 @@ Toute règle candidate est **sourcée** (document + section, ou locuteur + horod
 ## Cycle de validation — la machine ne valide jamais
 
 ```
-candidate ──(geste humain)──▶ validée ──▶ implémentée
-     │
-     ├──▶ rejetée   (avec sa raison)
-     └──▶ obsolète  (avec sa raison)
+validation (écrite par un humain)      candidate ──(geste humain)──▶ validated
+                                            ├──▶ rejected  (avec sa raison)
+                                            └──▶ obsolete  (avec sa raison)
+
+réalisation (calculée, jamais écrite)  to-build · configured · proven (P0, P1, P2)
+                                       exceptions écrites à la main : not-applicable, contradiction
 ```
 
-- **Une règle n'entre jamais en `validée` sans un geste humain.** Ni skill, ni agent, ni moi n'écrivons « validée ».
-- **Une règle n'est jamais supprimée** : elle est marquée `rejetée` ou `obsolète` avec sa raison. L'historique des arbitrages a plus de valeur que la propreté du fichier.
-- **Le signal d'alerte à surveiller** : un stock de `candidate` non arbitrées qui gonfle. Ça veut dire que la validation ne suit pas, et le registre ment par omission.
+- **Une règle n'entre jamais en `validated` sans un geste humain.** Ni skill, ni agent, ni moi n'écrivons « validée ». Le champ dit la date et qui a tranché, par son nom.
+- **Personne n'écrit « implémentée ».** La réalisation se lit dans les tests : une règle est prouvée quand un test porte son identifiant entre crochets dans son nom. Une règle dite couverte sans un tel test n'est pas couverte, et l'index la signale.
+- **Une règle n'est jamais supprimée** : elle est marquée `rejected` ou `obsolete` avec sa raison. L'historique des arbitrages a plus de valeur que la propreté du fichier.
+- **Une question ouverte ne change pas le statut.** Une règle validée reste validée quand `docs/questions-ouvertes.md` la cite dans une ligne `Bloque :` ; elle porte en plus l'indicateur « a une question ouverte ».
+- **Le signal d'alerte à surveiller** : un stock de `candidate` non arbitrées qui gonfle, ou des `candidate` qui ont des tests. La validation ne suit pas, et le registre ment par omission.
 
 ---
 

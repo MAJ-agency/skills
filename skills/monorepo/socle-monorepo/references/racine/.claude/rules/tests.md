@@ -21,7 +21,8 @@ Le critère de séparation est **le besoin d'infrastructure**, pas la couche : u
 
 ## Règles
 
-- **Le nom dit le comportement** : `describe('<Sujet>')` puis `it('should <comportement> when <condition>')`. Un test qui couvre une règle métier du registre porte son identifiant en tête du nom : `it('<TRI>-<N> — …')`. Jamais d'identifiant de règle sur un test qui ne la prouve pas.
+- **Le nom dit le comportement** : `describe('<Sujet>')` puis `it('should <comportement> when <condition>')`.
+- **Un test qui prouve une règle du registre porte son identifiant entre crochets en tête du nom** : `it('[RULE_ALL_LIC-2] should refuse a second licence in the same season')`. Plusieurs étiquettes se juxtaposent (`[RULE_ALL_LIC-2] [RULE_FNSMR_LIC-05] …`) ; une étiquette sur un `describe` vaut pour tous ses tests. L'identifiant est complet, contexte compris, `ALL` écrit. Jamais d'étiquette sur un test qui ne prouve pas la règle, jamais sur un test de recette (`recette.*`). C'est ce que lit `anchorpost index` pour dire qu'une règle est prouvée ; la catégorie et le niveau de la preuve viennent du tableau ci-dessus (`.spec.ts` unitaire P0, `.db.spec.ts` base réelle P0, `.property.spec.ts` propriétés P0, `apps/api/test/**` intégration P1, `tests/**` et `e2e/**` e2e P2).
 - **Tester le comportement, pas l'implémentation.** Un test qui casse à un refactor sans changement de comportement est un test à réécrire.
 - **Jamais la base mockée dans un repository.** Le mapping ligne ↔ modèle, l'atomicité et l'idempotence se prouvent contre une vraie base. Les ports, eux, se mockent dans les tests de cas d'usage.
 - **AAA, un sujet par test, mocks neufs** : `afterEach(() => vi.clearAllMocks())`. Mocks partagés dans `@test/mocks/`.

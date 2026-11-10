@@ -61,7 +61,7 @@ Le produit relit l'inventaire, tranche ou reporte les `T-n`, retire ou ajoute de
 
 ## Phase 4 — tickets (`--phase tickets`)
 
-- Une spec de défauts `<TRI>-<n>-defauts-recette-<module>.spec.md` (identifiant par `node scripts/docs/next-id.mjs <TRI>`), `Sujet: sujet/recette-<module>` en tête si plus de trois tickets, et un ticket par défaut confirmé au format « prêt pour agent » (`docs/agents/chaine-de-production.md` § 3). Chaque ticket cite la ligne `D-n` de l'inventaire et le test rouge.
+- Une spec de défauts `SPEC_<CTX>_<TRI>-<n>-defauts-recette-<module>.spec.md` (identifiant par `node scripts/docs/next-id.mjs SPEC <CTX> <TRI>`), `Sujet: sujet/recette-<module>` en tête si plus de trois tickets, et un ticket par défaut confirmé au format « prêt pour agent » (`docs/agents/chaine-de-production.md` § 3), avec `Type: défaut` et `Règles:` reprises de l'inventaire. Chaque ticket cite la ligne `D-n` de l'inventaire et nomme le test rouge dans `## Surfaces` : le gate vérifie qu'il existe et n'est plus désactivé quand le ticket est `Fait`.
 - Un défaut qui attend une réponse du produit : ticket `needs-info` avec la question `T-n`.
 - Puis la chaîne ordinaire : `node scripts/docs/ticket-libre.mjs`, correctif, revue adversariale, `à-fusionner`. La PR de correctifs cite les tests passés de rouge à vert.
 

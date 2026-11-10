@@ -1,7 +1,7 @@
 ---
 name: sujet
 description: Branche de sujet — un lot de PR liées vit sur `sujet/<nom>` dès sa première PR et entre dans develop en une PR, par un commit de merge. `demarrer` place une branche de travail sur le sujet de son ticket ; le capitaine fusionne les sous-PR étiquetées `à-fusionner`, tient le sujet à jour avec develop, repère et regroupe les séries ; `livrer` ouvre la PR finale. À utiliser au début de tout travail sur un ticket ou un lot (« démarre SOC-1.02 », « ouvre un sujet pour la démo », « regroupe les PR SOC-1 », « où en sont les sujets », « livre le sujet socle »). `poser` l'installe une fois dans le dépôt.
-argument-hint: 'poser | demarrer <ticket|nom> | etat | series | regrouper <nom> <pr>… | livrer <nom> "<titre>" | ouvrir | fusionner | rafraichir | relancer'
+argument-hint: 'poser | demarrer <ticket|nom> | etat | series | regrouper <nom> <pr>… | livrer <nom> "<titre>" | carte <nom> | ouvrir | fusionner | rafraichir | relancer'
 ---
 
 # Branches de sujet
@@ -10,7 +10,7 @@ Un lot de PR liées vit sur `sujet/<nom>` **dès sa première PR**, et entre dan
 
 ## Étape 0 — poser (une fois par dépôt, `poser`)
 
-`scripts/sujet.sh` → `scripts/chaine/sujet.sh` (exécutable), avec son banc d'essai `scripts/sujet.test.mjs`, `scripts/depot-jouet.mjs` et `scripts/faux-gh.mjs` → `scripts/chaine/` (les tests du capitaine s'en servent aussi). Il s'appuie sur `scripts/chaine/github.sh` et `revue-exigee.mjs`, posés par `fusionner poser` ; les deux skills se posent ensemble. Dépendances : `git`, `jq`, `gh` authentifié pour tout ce qui écrit sur GitHub (sans lui, le script affiche l'appel de l'outil GitHub MCP à faire). Tests : `node --test scripts/chaine/*.test.mjs` (le socle les joue dans `check:tickets`).
+`scripts/sujet.sh` → `scripts/chaine/sujet.sh` (exécutable), avec son banc d'essai `scripts/sujet.test.mjs`, `scripts/sujet-carte.test.mjs`, `scripts/depot-jouet.mjs` et `scripts/faux-gh.mjs` → `scripts/chaine/` (les tests du capitaine s'en servent aussi). Il s'appuie sur `scripts/chaine/github.sh` et `revue-exigee.mjs`, posés par `fusionner poser` ; les deux skills se posent ensemble. Dépendances : `git`, `jq`, `gh` authentifié pour tout ce qui écrit sur GitHub (sans lui, le script affiche l'appel de l'outil GitHub MCP à faire). Tests : `node --test scripts/chaine/*.test.mjs` (le socle les joue dans `check:tickets`).
 
 ## Quand un sujet
 
@@ -31,7 +31,11 @@ Le sujet se **déclare au découpage** : `Sujet: sujet/<nom>` en tête de la spe
 
 ## Commandes
 
-Chaque commande, son effet et ses sorties : en-tête de `sujet.sh` ; `sujet.sh` sans argument affiche l'aide. Sorties : 0 fait · 2 conflit · 3 checks rouges ou en cours · 4 refus corrigeable par l'auteur · 7 sautée. `fusionner` a deux sorties de plus : 5, la sous-PR a bougé pendant sa mise à jour (reprise au tour suivant) ; 8, la sous-PR était en conflit avec son sujet **sur des index générés seuls** — le capitaine a fusionné le sujet dans sa branche (merge, avance rapide, jamais de force), régénéré les index, poussé : CI relancée, aucun squash, la boucle la laisse dans la file (`MISE À JOUR`). Un conflit hors index reste un renvoi (sortie 3).
+Chaque commande, son effet et ses sorties : en-tête de `sujet.sh` ; `sujet.sh` sans argument affiche l'aide. Sorties : 0 fait · 2 conflit · 3 checks rouges ou en cours · 4 refus corrigeable par l'auteur · 7 sautée · 9 `carte <nom>` refusée. `fusionner` a deux sorties de plus : 5, la sous-PR a bougé pendant sa mise à jour (reprise au tour suivant) ; 8, la sous-PR était en conflit avec son sujet **sur des index générés seuls** — le capitaine a fusionné le sujet dans sa branche (merge, avance rapide, jamais de force), régénéré les index, poussé : CI relancée, aucun squash, la boucle la laisse dans la file (`MISE À JOUR`). Un conflit hors index reste un renvoi (sortie 3).
+
+## Pousser la carte du chantier (`carte <nom>`)
+
+Un sujet ne se pousse jamais à la main : le hook `garde-commandes` refuse tout `git push` vers `sujet/…`, sous toutes ses formes, sans quoi une session écrirait elle-même sur le sujet la ligne `Dépendances:` qui l'autorise. Seule la carte du chantier (`*.map.md`) y avance hors PR, par `bash scripts/chaine/sujet.sh carte <nom>`, depuis un clone normal : commits locaux qui modifient chacun en place ce seul fichier, formaté par Prettier, dont la ligne `Sujet:` nomme exactement `sujet/<nom>` avant comme après. La commande rattrape le sujet par `git merge --ff-only`, vérifie chaque commit, puis pousse sans force le sommet vérifié. Elle refuse (sortie 9, rien n'est poussé) un autre fichier, une carte créée, supprimée, renommée ou changée de mode, la carte d'un autre sujet, une ligne `Sujet:` inexacte, un commit de fusion, un historique divergent, un fichier que Prettier changerait, une option ou un nom vide. `carte` sans argument liste toujours « ticket<TAB>sujet ».
 
 ## Livrer
 
@@ -43,6 +47,6 @@ Avec le réglage « Automatically delete head branches » du dépôt (liste de l
 
 ## Ne jamais
 
-- Rebaser ou pousser en force une branche de sujet.
+- Rebaser ou pousser en force une branche de sujet, ou y pousser à la main : la carte passe par `sujet.sh carte <nom>`.
 - Fusionner une sous-PR dont un check exigé est rouge ou en cours.
 - Regrouper une série non déclarée sans l'accord de l'utilisateur, ou mettre un correctif de démo dans un sujet.
