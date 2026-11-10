@@ -30,7 +30,10 @@
  *
  * Usage :
  *   node scripts/verify/coverage-diff.mjs                        (pre-push, après pnpm check ; job CI test-db)
- *   node scripts/verify/coverage-diff.mjs --base origin/develop  (défaut)
+ *   node scripts/verify/coverage-diff.mjs --base origin/develop  (défaut ; la CI nomme la cible de la PR)
+ *   node scripts/verify/coverage-diff.mjs --base-auto            (pre-push : base = ce sur quoi on fusionnera,
+ *       PRE_PUSH_REFS = stdin du hook ; push vers sujet/<nom> → origin/sujet/<nom> ; sinon le plus proche
+ *       (moins de commits de HEAD absents) parmi develop et origin/sujet/*, develop à égalité)
  *   node scripts/verify/coverage-diff.mjs --dry-run              (fichiers du diff, sans lancer Vitest)
  *   node scripts/verify/coverage-diff.mjs --seuil-lignes 80 --seuil-branches 70
  * Sorties : 0 OK (ou distant vide au premier push) · 1 un fichier sous les seuils ou jamais exécuté, ou des tests rouges · 2 usage, base introuvable.
@@ -39,7 +42,19 @@ import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, relative, resolve } from "node:path";
-import { SEUILS, decisionSansBase, exemption, fusionner, inScope, metriques, plages, verdict } from "./coverage-diff-regles.mjs";
+import {
+  BASE_DEFAUT,
+  SEUILS,
+  baseDepuisPush,
+  choisirBase,
+  decisionSansBase,
+  exemption,
+  fusionner,
+  inScope,
+  metriques,
+  plages,
+  verdict,
+} from "./coverage-diff-regles.mjs";
 
 const ROOT = resolve(process.env.PROJET_RACINE ?? new URL("../..", import.meta.url).pathname);
 const args = process.argv.slice(2);
@@ -48,7 +63,7 @@ const opt = (nom, defaut) => {
   return i === -1 ? defaut : args[i + 1];
 };
 const DRY_RUN = args.includes("--dry-run");
-const BASE = opt("--base", "origin/develop");
+const DEJA_NOMMEE = args.includes("--base");
 const seuils = {
   lignes: Number(opt("--seuil-lignes", SEUILS.lignes)),
   branches: Number(opt("--seuil-branches", SEUILS.branches)),
@@ -61,6 +76,29 @@ if (Number.isNaN(seuils.lignes) || Number.isNaN(seuils.branches)) {
 
 // ── 1. Fichiers du diff ────────────────────────────────────────────────────────────────
 const git = (...a) => execFileSync("git", a, { cwd: ROOT, encoding: "utf8" }).trim();
+const gitOk = (...a) => {
+  try {
+    return git(...a);
+  } catch {
+    return null;
+  }
+};
+
+/** Ce sur quoi le travail sera fusionné (voir `choisirBase`) : jamais develop par défaut. */
+function baseAuto() {
+  const head = gitOk("rev-parse", "HEAD");
+  const poussee = baseDepuisPush(process.env.PRE_PUSH_REFS, head);
+  if (poussee && gitOk("rev-parse", "--verify", "--quiet", poussee)) return poussee;
+  const refs = (gitOk("for-each-ref", "--format=%(refname:short)", "refs/remotes/origin/sujet") ?? "")
+    .split("\n")
+    .filter(Boolean);
+  const candidats = [BASE_DEFAUT, ...refs]
+    .filter((ref) => gitOk("rev-parse", "--verify", "--quiet", ref) !== null)
+    .map((ref) => ({ ref, distance: Number(gitOk("rev-list", "--count", `${ref}..HEAD`)) }));
+  return choisirBase(candidats);
+}
+// `--base` nommée gagne (CI : la cible de la PR) ; `--base-auto` (pre-push) la devine ; sinon develop.
+const BASE = DEJA_NOMMEE ? opt("--base", BASE_DEFAUT) : args.includes("--base-auto") ? baseAuto() : BASE_DEFAUT;
 let mergeBase;
 try {
   mergeBase = git("merge-base", BASE, "HEAD");

@@ -2,7 +2,7 @@
 
 ## `scripts/sujet.sh`
 
-Une commande par geste : `demarrer`, `ouvrir`, `fusionner`, `rafraichir`, `livrer`, `livrer-prets`, `relancer`, `series`, `regrouper`, `regrouper-series`, `carte`, `etat`, `de`. Chaque refus a un code de sortie et un motif, nés d'un incident : une branche partie d'une branche de specs non fusionnée, une dépendance fusionnée localement, un titre refusé par commitlint après quatorze minutes de CI, un sujet livré alors qu'un ticket n'avait pas commencé, un merge-base faux sur un clone superficiel. Tout GitHub en REST (`gh api`) : GraphQL est refusé depuis les sessions cloud.
+Une commande par geste : `demarrer`, `ouvrir`, `fusionner`, `rafraichir`, `livrer`, `livrer-prets`, `relancer`, `series`, `regrouper`, `regrouper-series`, `carte`, `etat`, `de`. Chaque refus a un code de sortie et un motif, nés d'un incident : une branche partie d'une branche de specs non fusionnée, une dépendance fusionnée localement, un titre refusé par commitlint après quatorze minutes de CI, un sujet livré alors qu'un ticket n'avait pas commencé, un merge-base faux sur un clone superficiel, une migration de sujet plus ancienne que la dernière de develop (`livrer`, par `migrations-ordre.mjs` du skill `fusionner`, cherché à côté de `sujet.sh` puis dans `../../fusionner/scripts/`). Tout GitHub en REST (`gh api`) : GraphQL est refusé depuis les sessions cloud.
 
 Ce qui vient du projet : l'identifiant de ticket (`ID_SPEC` de `github.sh`, la convention `tickets`), les index générés et leurs commandes (`scripts/docs/index-generes.json`), la branche d'intégration `develop`.
 

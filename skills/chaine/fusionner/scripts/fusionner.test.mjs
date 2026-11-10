@@ -369,6 +369,7 @@ test("refus.sh : sortie illisible, renvoyée avec un motif de repli", () => {
 
 test("boucle.sh : sous-PR et PR vers develop à titre trop long renvoyées avec le motif ; brouillon sauté sans écriture", () => {
   const d = depotJouet();
+  d.publierChaine();
   d.branche("sujet/lot", "origin/develop", { "lot.md": "lot\n" });
   d.branche("feat/sous-longue", "origin/sujet/lot", { "sl.md": "sl\n" });
   d.branche("feat/sous-brouillon", "origin/sujet/lot", { "sb.md": "sb\n" });
@@ -416,6 +417,7 @@ function depotSujetLivre(phase) {
   d.ecrire(CARTE_LOT, `# ALL-DEM-1 — carte\n\nSujet: sujet/lot\n\nPhase: ${phase}\n`);
   d.commit("docs: spec et carte");
   d.git("push", "-q", "origin", "HEAD:develop");
+  d.publierChaine();
   d.branche("fix/all-dem-1-02-correctif", "origin/develop", { "docs/c.md": "c\n" });
   d.git("switch", "-q", "--detach", "origin/develop");
   d.github({

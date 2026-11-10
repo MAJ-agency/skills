@@ -213,6 +213,7 @@ export const PHASES = ['1-grilling', '2-decoupage', '3-specs-en-fusion', '4-vagu
 
 const PHASE = /^Phase\s*:\s*(.*)$/;
 const ARCHITECTE = /^Architecte\s*:\s*(.*)$/;
+const MIGRATIONS = /^Migrations\s*:\s*(.*)$/;
 const phaseValide = (v) => /^(1-grilling|2-decoupage|3-specs-en-fusion|4-vague-[1-9]\d*|5-livraison|6-nettoyage|fini)(\s|$)/.test(v);
 
 /**
@@ -242,7 +243,42 @@ export function controlerCarte({ nom, texte }) {
     const retro = corps.get('Rétro');
     if (!retro || retro.length === 0) erreurs.push({ ligne: phase.ligne, message: `carte ${nom} : section \`## Rétro\` absente ou vide (obligatoire à \`fini\`)` });
   }
+  const migrations = chercher(lignes, MIGRATIONS);
+  if (migrations && !formeMigrations(migrations.valeur))
+    erreurs.push({
+      ligne: migrations.ligne,
+      message: `carte ${nom} : \`Migrations:\` « ${migrations.valeur} » : attendu des horodatages de 12 chiffres (AAAAMMJJHHMM) séparés par des virgules, ou « — »`,
+    });
   return { carte: true, erreurs };
+}
+
+const formeMigrations = (v) => v === '—' || v === '' || v.split(',').every((h) => /^\d{12}$/.test(h.trim()));
+
+/** Horodatages de migration réservés par une carte (ligne `Migrations:`) ; aucun si « — » ou ligne absente. */
+export function migrationsReservees(texte) {
+  const m = chercher(texte.split('\n'), MIGRATIONS);
+  if (!m || !formeMigrations(m.valeur)) return [];
+  return m.valeur === '—' || m.valeur === '' ? [] : m.valeur.split(',').map((h) => h.trim());
+}
+
+/**
+ * Deux cartes ouvertes (phase autre que `fini`) ne réservent jamais le même horodatage de migration :
+ * le migrateur refuse une migration plus ancienne que la dernière jouée, et deux chantiers sur le même
+ * horodatage se découvrent à la livraison du second.
+ */
+export function reservationsEnDouble(cartes) {
+  const par = new Map();
+  for (const { chemin, texte } of cartes) {
+    const phase = chercher(texte.split('\n'), PHASE);
+    if (phase && /^fini(\s|$)/.test(phase.valeur)) continue;
+    for (const h of new Set(migrationsReservees(texte))) par.set(h, [...(par.get(h) ?? []), chemin]);
+  }
+  return [...par]
+    .filter(([, c]) => c.length > 1)
+    .map(
+      ([h, c]) =>
+        `horodatage de migration ${h} réservé par plusieurs cartes ouvertes (${c.join(', ')}) : une carte prend le suivant libre, après la dernière migration de develop et les réservations des autres cartes`,
+    );
 }
 
 /** Ce que les fiches de `docs/agents/` doivent porter pour que les skills de la chaîne lisent le dépôt. */

@@ -30,8 +30,8 @@
 #      `gh run rerun <id> --failed` puis relancer ; sinon renvoyer
 #   3  aucun check sur le sommet après 5 min : CI non déclenchée → ni fermeture-réouverture ni
 #      commit vide ; boucle.sh la met de côté jusqu'à la fusion suivante, qui la poussera
-#   4  refus que l'auteur peut corriger (titre trop long, sans section « Revue adversariale »,
-#      titre de code sur un diff docs seul) : la dernière ligne dit pourquoi ; boucle.sh renvoie
+#   4  refus que l'auteur peut corriger (migration plus ancienne que la dernière de develop,
+#      titre trop long, sans section « Revue adversariale », titre de code sur un diff docs seul) : la dernière ligne dit pourquoi ; boucle.sh renvoie
 #      la PR (refus.sh) avec ce motif, jamais de saut silencieux
 #   7  pas éligible, rien à corriger côté auteur (non ouverte, brouillon, sans `à-fusionner`,
 #      déjà `fusion-bloquée`, empilée sur une parente pas encore fusionnée) : la boucle la saute
@@ -113,6 +113,11 @@ if [ "$livraison_sujet" = 0 ]; then
   motif=$(git diff --name-only "$depart" "$origine" | node "$PASSER_OUTILS/revue-exigee.mjs" "$(champ '.body // ""')" "$titre") ||
     sortir 4 "$motif"
 fi
+
+# Ordre des migrations : une migration ajoutée par la PR est strictement postérieure à la dernière
+# de develop, sinon le migrateur refuserait la livraison. Valable pour la livraison d'un sujet comme
+# pour une PR directe ; les sous-PR vers un sujet passent par sujet.sh, hors de ce contrôle.
+motif=$(node "$PASSER_OUTILS/migrations-ordre.mjs" origin/develop "$origine") || sortir 4 "$motif"
 
 # ── 2. Mise à jour avec develop ─────────────────────────────────────────────
 git switch -q -C "capitaine/$N" "$origine"

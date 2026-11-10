@@ -32,6 +32,10 @@ jobs:
       - run: pnpm check:gates
       - run: pnpm check:tickets
       - run: pnpm check:commit
+      # Même calcul que le capitaine (scripts/chaine/passer.sh) : l'auteur voit le refus avant lui.
+      - name: Ordre des migrations (PR vers develop)
+        if: github.event_name == 'pull_request' && github.event.pull_request.base.ref == 'develop'
+        run: node scripts/chaine/migrations-ordre.mjs origin/develop HEAD
       - name: Messages de commit
         if: github.event_name == 'pull_request'
         run: pnpm exec commitlint --from ${{ github.event.pull_request.base.sha }} --to ${{ github.event.pull_request.head.sha }}

@@ -4,6 +4,8 @@ import {
   cheminsChauds,
   controlerCarte,
   controlerTicket,
+  migrationsReservees,
+  reservationsEnDouble,
   ecartsFormatPret,
   estArchive,
   identifiant,
@@ -108,4 +110,30 @@ test('cheminsSensibles : contrat absent → aucun motif ; présent mais illisibl
   assert.deepEqual(lireCheminsSensibles('{"cheminsSensibles":["a/**"]}'), ['a/**']);
   assert.throws(() => lireCheminsSensibles('{ pas du json'), /chaine\.json illisible/);
   assert.throws(() => lireCheminsSensibles('{"cheminsSensibles":"a/**"}'), /liste de motifs/);
+});
+
+const carteAvec = (migrations, phase = '4-vague-1') =>
+  `# X — Carte\n\nSujet: sujet/x\n\n## Fiche\n\nPhase: ${phase}\nArchitecte: s\n${migrations === undefined ? '' : `Migrations: ${migrations}\n`}\n## Coût\n`;
+
+test('Migrations: se lit en liste d’horodatages ; « — » et l’absence de ligne ne réservent rien', () => {
+  assert.deepEqual(migrationsReservees(carteAvec('202611271000, 202611271100')), ['202611271000', '202611271100']);
+  assert.deepEqual(migrationsReservees(carteAvec('—')), []);
+  assert.deepEqual(migrationsReservees(carteAvec(undefined)), []);
+});
+
+test('Migrations: de forme fausse est une erreur de la carte', () => {
+  const r = controlerCarte({ nom: 'x.map.md', texte: carteAvec('2026-11-27') });
+  assert.match(r.erreurs[0].message, /Migrations.*12 chiffres/);
+  assert.equal(controlerCarte({ nom: 'x.map.md', texte: carteAvec('202611271000') }).erreurs.length, 0);
+});
+
+test('deux cartes ouvertes qui réservent le même horodatage : écart ; une carte finie ne réserve plus', () => {
+  const cartes = [
+    { chemin: 'a.map.md', texte: carteAvec('202611271000') },
+    { chemin: 'b.map.md', texte: carteAvec('202611281000, 202611271000') },
+    { chemin: 'c.map.md', texte: carteAvec('202611281000', 'fini') },
+  ];
+  const e = reservationsEnDouble(cartes);
+  assert.equal(e.length, 1);
+  assert.match(e[0], /202611271000.*a\.map\.md.*b\.map\.md/);
 });
