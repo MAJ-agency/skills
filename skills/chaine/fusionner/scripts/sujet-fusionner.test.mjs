@@ -116,3 +116,30 @@ test("boucle.sh : la sortie 8 ne renvoie pas la PR (MISE À JOUR, aucun label ni
   );
   assert.deepEqual(d.etat().pulls[0].labels, ["à-fusionner"]);
 });
+
+// Worktree du capitaine pas propre : rien que l'auteur de la sous-PR puisse corriger. Sortie 6 (comme
+// passer.sh), jamais 4, que boucle.sh traiterait en renvoi (`fusion-bloquée`).
+test("fusionner : worktree du capitaine pas propre, sortie 6 sans écriture, branche intacte", () => {
+  const { d, sommet } = sousPrEnConflit("aucun");
+  d.ecrire("brouillon.txt", "en cours\n");
+  const r = d.lancer(SUJET, "fusionner", "80");
+  assert.equal(r.status, 6, r.stdout + r.stderr);
+  assert.match(r.stdout, /arbre de travail pas propre/);
+  assert.deepEqual(d.journal(), []);
+  d.git("fetch", "-q", "origin");
+  assert.equal(d.git("rev-parse", "origin/docs/sous"), sommet);
+});
+
+test("boucle.sh : worktree du capitaine pas propre, la sous-PR n'est pas renvoyée (PAS PROPRE, aucun label ni commentaire)", () => {
+  const { d } = sousPrEnConflit("aucun");
+  d.publierChaine();
+  d.ecrire("brouillon.txt", "en cours\n");
+  const r = d.lancer(BOUCLE);
+  assert.match(r.stdout, /\[#80\] PAS PROPRE : worktree du capitaine à nettoyer/);
+  assert.doesNotMatch(r.stdout, /RENVOI/);
+  assert.ok(
+    !ecritures(d).some((e) => /issues\/80\/(labels|comments)/.test(e)),
+    ecritures(d).join(),
+  );
+  assert.deepEqual(d.etat().pulls[0].labels, ["à-fusionner"]);
+});

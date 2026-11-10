@@ -268,7 +268,10 @@ traiter_sujets() {
       sujet/*': prête (sans CI)')
         bash "$SUJET" relancer "$n" 2>&1 | sed "s#^#[\#$n] #"
         rc=${PIPESTATUS[0]}
-        [ "$rc" != 2 ] || bash "$outils/renvoyer.sh" "$n" "conflit avec ${etat%%:*} : fusionner ${etat%%:*} dans la branche et le résoudre" ;;
+        case "$rc" in
+          2) bash "$outils/renvoyer.sh" "$n" "conflit avec ${etat%%:*} : fusionner ${etat%%:*} dans la branche et le résoudre" ;;
+          6) echo "[#$n] PAS PROPRE : worktree du capitaine à nettoyer, sous-PR laissée dans la file (aucun renvoi)" ;;
+        esac ;;
       sujet/*': prête')
         bash "$SUJET" fusionner "$n" 2>&1 | tee "$sortie" | sed "s#^#[\#$n] #"
         rc=${PIPESTATUS[0]}
@@ -277,6 +280,8 @@ traiter_sujets() {
           3) bash "$outils/renvoyer.sh" "$n" "fusion dans ${etat%%:*} refusée par GitHub (conflit avec le sujet) : fusionner ${etat%%:*} dans la branche et le résoudre" ;;
           4) bash "$outils/refus.sh" "$n" "$sortie" ;; # corrigeable (titre, revue, base) : renvoyée
           5) echo "[#$n] sous-PR bougée pendant sa mise à jour : reprise au tour suivant" ;;
+          # Worktree du capitaine sale : rien que l'auteur puisse corriger, jamais un renvoi.
+          6) echo "[#$n] PAS PROPRE : worktree du capitaine à nettoyer, sous-PR laissée dans la file (aucun renvoi)" ;;
           7) echo "[#$n] sous-PR non éligible (fermée ou en brouillon)" ;;
           8) echo "[#$n] MISE À JOUR avec ${etat%% :*} (index régénérés), CI relancée" ;;
           *) echo "[#$n] sous-PR non éligible (sortie $rc)" ;;
