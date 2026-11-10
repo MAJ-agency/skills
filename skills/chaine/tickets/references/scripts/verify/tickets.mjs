@@ -23,15 +23,33 @@
  *   7. un ticket `ready-for-agent` dont `Fichiers chauds:` touche un motif de `cheminsSensibles`
  *      (`.claude/chaine.json`) porte `Label: architecte` ;
  *   8. deux cartes ouvertes ne réservent pas le même horodatage de migration (ligne `Migrations:` de
- *      la fiche ; une carte `fini` ne réserve plus).
+ *      la fiche ; une carte `fini` ne réserve plus) ;
+ *   9. `Type:` ∈ task, défaut, grilling, research ; absente, elle n'est tolérée que pour un ticket gelé
+ *      dans la clé `types` de la dette, écrite une seule fois, à l'arrivée du gate (`--geler-types`) ;
+ *  10. `Règles:`, si la ligne est là, cite au moins une règle, chacune `RULE_<CTX>_<TRI>-<n>` ayant son
+ *      fichier `docs/metier/regles/<ctx>/RULE_….md`, du contexte du ticket ou de `ALL` ;
+ *  11. un `Type: défaut` à `Fait — PR #n` nomme dans la colonne « Preuve » de `## Surfaces` des tests
+ *      (`fichier.test.ts` « titre ») qui existent dans les fichiers de tests suivis et sont actifs.
  *
- * Usage : node scripts/verify/tickets.mjs [--elaguer]   (pnpm check:tickets — CI)
+ * Usage : node scripts/verify/tickets.mjs [--elaguer | --geler-types]   (pnpm check:tickets — CI)
  */
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
-import { lireIdentifiant } from '../docs/identifiants.mjs';
-import { controlerCarte, controlerTicket, ecartsFiches, ecartsFormatPret, estArchive, identifiant, identifiantsEnDouble, lireCheminsSensibles, reservationsEnDouble } from './tickets-regles.mjs';
+import { dossierDuContexte, identifiantDeLaRegle, lireIdentifiant } from '../docs/identifiants.mjs';
+import {
+  FICHIER_DE_TEST,
+  controlerCarte,
+  controlerTicket,
+  ecartsFiches,
+  ecartsFormatPret,
+  estArchive,
+  etatDuTest,
+  identifiant,
+  identifiantsEnDouble,
+  lireCheminsSensibles,
+  reservationsEnDouble,
+} from './tickets-regles.mjs';
 
 const ROOT = process.env.PROJET_RACINE ?? new URL('../..', import.meta.url).pathname;
 const DETTE = join(ROOT, 'scripts/verify/tickets-dette.json');
@@ -45,6 +63,34 @@ const dette = JSON.parse(readFileSync(DETTE, 'utf8'));
 const geles = new Set(dette.tickets ?? []);
 const cartesGelees = new Set(dette.cartes ?? []);
 const doublonsGeles = new Set(dette.identifiants ?? []);
+const typesGeles = new Set(dette.types ?? []);
+
+// Registre des règles : un fichier `RULE_<CTX>_<TRI>-<n>.md` dans le dossier de son contexte. Le nom suffit.
+const regles = new Set(
+  ls('docs/metier/regles/*/RULE_*.md')
+    .map((c) => ({ c, id: identifiantDeLaRegle(basename(c)) }))
+    .filter(({ c, id }) => id && c === `docs/metier/regles/${dossierDuContexte(lireIdentifiant(id).contexte)}/${id}.md`)
+    .map(({ id }) => id),
+);
+const regleExiste = (id) => regles.has(id);
+
+// Fichiers de tests suivis, lus à la demande : seul un défaut `Fait` les fait ouvrir.
+let fichiersDeTest = null;
+const textes = new Map();
+const testExiste = (fichier, titre) => {
+  fichiersDeTest ??= [...new Set(['*.test.*', '*.spec.*', '*.e2e-spec.*'].flatMap(ls))].filter((c) => FICHIER_DE_TEST.test(c));
+  // Un chemin vise ce fichier ; un nom seul, tout fichier de ce nom. Un seul `actif` suffit.
+  const nom = fichier.replace(/^\.\//, '');
+  const candidats = fichiersDeTest.filter((c) => c === nom || c.endsWith(`/${nom}`));
+  let etat = 'absent';
+  for (const c of candidats) {
+    if (!textes.has(c)) textes.set(c, readFileSync(join(ROOT, c), 'utf8'));
+    const e = etatDuTest(textes.get(c), titre);
+    if (e === 'actif') return e;
+    if (e === 'désactivé') etat = e;
+  }
+  return etat;
+};
 
 const CHAINE = join(ROOT, '.claude/chaine.json');
 let cheminsSensibles;
@@ -67,11 +113,36 @@ for (const d of doublons.filter((x) => !doublonsGeles.has(x.id))) {
   );
 }
 const detteActive = new Set();
+const sansType = [];
 for (const chemin of chemins) {
   const texte = readFileSync(join(ROOT, chemin), 'utf8');
-  const r = controlerTicket({ nom: basename(chemin), texte, existe: (id) => ids.has(id), gele: geles.has(chemin), cheminsSensibles });
+  const r = controlerTicket({
+    nom: basename(chemin),
+    texte,
+    existe: (id) => ids.has(id),
+    gele: geles.has(chemin),
+    typeGele: typesGeles.has(chemin),
+    cheminsSensibles,
+    regleExiste,
+    testExiste,
+  });
   for (const e of r.erreurs) erreurs.push(`${chemin}:${e.ligne} : ${e.message}`);
   if (geles.has(chemin) && r.pret && ecartsFormatPret(texte, cheminsSensibles).length > 0) detteActive.add(chemin);
+  if (r.type === null) sansType.push(chemin);
+}
+const typesEnDette = new Set(sansType.filter((c) => typesGeles.has(c)));
+
+// La dette `types` s'écrit une fois, à l'arrivée du gate : la liste des tickets qui n'ont pas encore
+// de `Type:`. La clé posée, elle ne reçoit plus rien.
+if (process.argv.includes('--geler-types')) {
+  if (Array.isArray(dette.types)) {
+    console.error('tickets : la dette `types` est déjà gelée (clé présente dans tickets-dette.json) ; elle ne grandit jamais. Poser `Type:` sur le ticket.');
+    process.exit(1);
+  }
+  dette.types = sansType;
+  writeFileSync(DETTE, `${JSON.stringify(dette, null, 2)}\n`);
+  console.log(`tickets : dette \`types\` gelée — ${sansType.length} ticket(s) sans \`Type:\``);
+  process.exit(0);
 }
 // Les gabarits de docs/agents/gabarits/ portent des placeholders : ils ne sont pas des cartes.
 const cartes = ls('docs/**/*.map.md').filter((c) => !c.startsWith('docs/agents/gabarits/'));
@@ -93,6 +164,7 @@ const eteintes = [
   ...(dette.tickets ?? []).filter((c) => !detteActive.has(c)),
   ...[...cartesGelees].filter((c) => !cartesEnDette.has(c)),
   ...[...doublonsGeles].filter((id) => !doublons.some((d) => d.id === id)),
+  ...[...typesGeles].filter((c) => !typesEnDette.has(c)),
 ];
 
 if (process.argv.includes('--elaguer')) {
@@ -100,6 +172,7 @@ if (process.argv.includes('--elaguer')) {
   dette.tickets = (dette.tickets ?? []).filter((c) => detteActive.has(c) || !presents.has(c));
   dette.cartes = (dette.cartes ?? []).filter((c) => cartesEnDette.has(c) || !cartes.includes(c));
   dette.identifiants = (dette.identifiants ?? []).filter((id) => doublons.some((d) => d.id === id));
+  if (Array.isArray(dette.types)) dette.types = dette.types.filter((c) => typesEnDette.has(c));
   writeFileSync(DETTE, `${JSON.stringify(dette, null, 2)}\n`);
   console.log(`tickets : dette élaguée — ${dette.tickets.length} ticket(s) prêt(s) hors format restent gelés`);
   process.exit(0);
@@ -110,4 +183,6 @@ if (erreurs.length > 0) {
   process.exit(1);
 }
 const elaguer = eteintes.length > 0 ? ` ; ${eteintes.length} entrée(s) éteinte(s), à retirer par --elaguer` : '';
-console.log(`tickets : OK — ${chemins.length} tickets, dette gelée ${detteActive.size}, ${cartes.length} carte(s) dont ${cartesEnDette.size} gelée(s)${elaguer}`);
+console.log(
+  `tickets : OK — ${chemins.length} tickets, dette gelée ${detteActive.size}, ${typesEnDette.size} sans Type: gelé(s), ${cartes.length} carte(s) dont ${cartesEnDette.size} gelée(s)${elaguer}`,
+);
