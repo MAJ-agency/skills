@@ -5,7 +5,7 @@
  * Vocabulaire de `Status:` : `docs/agents/triage-labels.md`. Format « prêt pour agent » :
  * `docs/agents/chaine-de-production.md` § 3. Tout changement passe d'abord par ces fichiers.
  */
-import { TICKET, identifiantDeLaSpec, identifiantDuTicket, estArchive } from '../docs/identifiants.mjs';
+import { TICKET, identifiantDeLaSpec, identifiantDuTicket, estArchive, lireIdentifiant, litteral, dossierDuContexte, REGLE } from '../docs/identifiants.mjs';
 
 export { identifiantDuTicket as identifiant, estArchive };
 
@@ -14,6 +14,125 @@ const enTete = (nom) => new RegExp(`^(?:- )?\\**${nom}\\**\\s*:\\**\\s*(.*)$`, '
 
 const STATUS = enTete('Status');
 const BLOCKED_BY = enTete('Blocked by');
+const TYPE = enTete('Type');
+const REGLES = enTete('Règles');
+
+/** Vocabulaire fermé de `Type:` (docs/agents/issue-tracker.md). */
+export const TYPES = ['task', 'défaut', 'grilling', 'research'];
+// Un commentaire de gabarit (`Type: task # task | défaut | …`) peut suivre la valeur.
+const TYPE_VALIDE = new RegExp(`^(${TYPES.join('|')})(?:\\s+#.*)?$`);
+export const typeValide = (valeur) => TYPE_VALIDE.test(valeur);
+export const typeDe = (valeur) => TYPE_VALIDE.exec(valeur)?.[1] ?? null;
+
+/** Les lignes d'en-tête : celles d'avant la première section `## `. Le corps n'est pas lu comme en-tête. */
+function tete(lignes) {
+  const fin = lignes.findIndex((l) => /^## /.test(l));
+  return fin === -1 ? lignes : lignes.slice(0, fin);
+}
+
+/**
+ * Les identifiants d'une ligne `Règles:`, séparés par des virgules ou des espaces, entre accents
+ * graves ou non ; rien d'autre sur la ligne. Rend `{ cites, malformes }` : `malformes` sont les
+ * morceaux qui ne sont pas un identifiant de règle (`LIC-3`, `SPEC_ALL_SOC-1`, `voir`).
+ */
+const REGLE_SEULE = new RegExp(`^${REGLE}$`);
+
+export function reglesCitees(valeur) {
+  const cites = [];
+  const malformes = [];
+  for (const morceau of valeur.split(/[\s,]+/).filter(Boolean)) {
+    const nu = /^`([^`]+)`$/.exec(morceau)?.[1] ?? morceau;
+    if (REGLE_SEULE.test(nu)) cites.push(nu);
+    else malformes.push(morceau);
+  }
+  return { cites: [...new Set(cites)], malformes };
+}
+
+/** Ligne de tableau markdown → cellules, `\|` compris dans une cellule. */
+function cellules(ligne) {
+  const t = ligne.trim().replace(/^\|/, '').replace(/(?<!\\)\|$/, '');
+  return t.split(/(?<!\\)\|/).map((c) => c.trim().replace(/\\\|/g, '|'));
+}
+
+/** Fichier de test : `*.test.*`, `*.spec.*`, `*.e2e-spec.*` de code (une spec `*.spec.md` n'en est pas un). */
+export const FICHIER_DE_TEST = /\.(?:test|spec|e2e-spec)\.[cm]?[jt]sx?$/;
+
+/**
+ * Tests nommés par la colonne « Preuve » de `## Surfaces` : un fichier de test entre accents graves,
+ * suivi de ses titres entre « » ou "" : `a.test.ts` « refuse X », « refuse Y ». Un autre texte entre
+ * accents graves (un chemin de code cité à côté) n'est pas un titre.
+ * Rend `{ tests: [{ fichier, titre }], ecarts }` ; `ecarts` dit ce qui empêche de lire la preuve.
+ */
+export function testsNommes(lignes) {
+  const corps = sections(lignes).get('Surfaces');
+  if (!corps) return { tests: [], ecarts: ['section `## Surfaces` absente'] };
+  const table = corps.filter((l) => l.trim().startsWith('|'));
+  const colonne = table.length > 0 ? cellules(table[0]).findIndex((c) => /^preuves?$/i.test(c)) : -1;
+  if (colonne === -1) return { tests: [], ecarts: ['`## Surfaces` sans tableau à colonne « Preuve »'] };
+  const tests = [];
+  const ecarts = [];
+  for (const ligne of table.slice(1)) {
+    const cellule = cellules(ligne)[colonne] ?? '';
+    if (/^:?-+:?$/.test(cellule)) continue;
+    let fichier = null;
+    let titres = 0;
+    for (const m of cellule.matchAll(/`([^`]+)`|«\s*([^»]+?)\s*»|"([^"]+)"/g)) {
+      if (m[1] !== undefined && FICHIER_DE_TEST.test(m[1])) {
+        if (fichier && titres === 0) ecarts.push(`la preuve nomme \`${fichier}\` sans titre de test`);
+        fichier = m[1];
+        titres = 0;
+      } else if (fichier && m[1] === undefined) {
+        tests.push({ fichier, titre: m[2] ?? m[3] });
+        titres++;
+      }
+    }
+    if (fichier && titres === 0) ecarts.push(`la preuve nomme \`${fichier}\` sans titre de test`);
+  }
+  if (tests.length === 0 && ecarts.length === 0) ecarts.push('aucun test nommé dans la colonne « Preuve » de `## Surfaces` (`fichier.test.ts` « titre »)');
+  return { tests, ecarts };
+}
+
+// Appel de test ou de bloc : `it(`, `test.skip(`, `xit(`, `describe.each(t)(`, `it.skip.each([…])(`.
+const APPEL = /\b(x?it|x?test|x?describe|fit|fdescribe|suite)((?:\.\w+)*)(?:\([^()]*\))?\s*\(/;
+const desactive = (ligne) => {
+  const m = APPEL.exec(ligne);
+  if (!m) return false;
+  // node:test : `test('x', { skip: true }, …)`, `{ todo: … }`.
+  return m[1].startsWith('x') || /\.(skip|todo)\b/.test(m[2]) || /\{\s*(?:[^}]*,\s*)?(?:skip|todo)\s*:/.test(ligne.slice(m.index));
+};
+const indentation = (l) => /^\s*/.exec(l)[0].replace(/\t/g, '  ').length;
+
+/**
+ * État d'un test dans le texte d'un fichier : `'actif'`, `'désactivé'` ou `'absent'`. Le titre est
+ * cherché littéralement comme chaîne entière (`'titre'`, `"titre"`, `` `titre` ``) en premier argument
+ * d'un appel `it`/`test`/`describe` ; il est désactivé si cet appel ou un bloc qui l'englobe porte
+ * `.skip`, `.todo`, un `x` (`xit`, `xdescribe`) ou l'option `{ skip }` / `{ todo }` de node:test.
+ *
+ * Limite assumée : analyse ligne à ligne, sans parseur. L'appel et son titre tiennent sur une ligne ;
+ * les blocs englobants se lisent par l'indentation (en remontant, chaque ligne moins indentée que la
+ * précédente retenue ouvre un bloc qui englobe le test) : un fichier formaté (Prettier) suffit, un
+ * fichier à indentation fantaisiste peut tromper la détection. Une ligne commentée n'est pas un test.
+ * Plusieurs occurrences du titre : un seul `'actif'` suffit.
+ */
+export function etatDuTest(texte, titre) {
+  const lignes = texte.split('\n');
+  const t = litteral(titre);
+  const motif = new RegExp(`${APPEL.source}\\s*(?:'${t}'|"${t}"|\`${t}\`)`);
+  let etat = 'absent';
+  for (let i = 0; i < lignes.length; i++) {
+    if (/^\s*(?:\/\/|\/?\*)/.test(lignes[i]) || !motif.test(lignes[i])) continue;
+    let coupe = desactive(lignes[i]);
+    let niveau = indentation(lignes[i]);
+    for (let j = i - 1; j >= 0 && niveau > 0 && !coupe; j--) {
+      if (lignes[j].trim() === '' || indentation(lignes[j]) >= niveau) continue;
+      niveau = indentation(lignes[j]);
+      coupe = desactive(lignes[j]);
+    }
+    if (!coupe) return 'actif';
+    etat = 'désactivé';
+  }
+  return etat;
+}
 const SUJET = /^Sujet\s*:\s*(.*)$/;
 const MODELE = /^Modèle\s*:\s*(.*)$/;
 const CHAUDS = /^Fichiers chauds\s*:\s*(.*)$/;
@@ -181,10 +300,64 @@ export function ecartsFormatPret(texte, cheminsSensibles = []) {
 }
 
 /**
- * Contrôle d'un ticket. `existe(id)` dit si un ticket du dépôt porte cet identifiant ;
- * `gele` : ticket prêt d'avant l'allumage, dispensé du format (dette).
+ * Écarts de la ligne `Règles:` d'un ticket. Absente : rien à vérifier. Présente, elle cite au moins une
+ * règle, chacune bien formée, existante (`regleExiste(id)`) et du contexte du ticket ou de `ALL`.
+ * `contexte` : celui de l'identifiant du ticket, `null` s'il est illisible (seul `ALL` est alors sûr).
  */
-export function controlerTicket({ nom, texte, existe, gele = false, cheminsSensibles = [] }) {
+export function ecartsRegles(valeur, { contexte, regleExiste }) {
+  const { cites, malformes } = reglesCitees(valeur);
+  const ecarts = malformes.map(
+    (m) => `Règles cite « ${m} », qui n'est pas un identifiant de règle complet (\`RULE_<CTX>_<TRI>-<n>\`, \`RULE_ALL_LIC-3\`) ; rien d'autre sur la ligne`,
+  );
+  if (cites.length === 0 && malformes.length === 0) ecarts.push('ligne `Règles:` vide : citer au moins une règle, ou retirer la ligne');
+  for (const id of cites) {
+    const ctx = lireIdentifiant(id).contexte;
+    if (ctx !== 'ALL' && ctx !== contexte)
+      ecarts.push(
+        contexte
+          ? `Règles cite ${id}, du contexte ${ctx} : un ticket du contexte ${contexte} ne cite que des règles de ${contexte === 'ALL' ? 'ALL' : `${contexte} ou de ALL`}`
+          : `Règles cite ${id}, du contexte ${ctx} : le nom du ticket ne porte pas d'identifiant lisible, seules les règles de ALL sont acceptées`,
+      );
+    else if (!regleExiste(id)) ecarts.push(`Règles cite ${id}, absente du registre (docs/metier/regles/${dossierDuContexte(ctx)}/${id}.md)`);
+  }
+  return ecarts;
+}
+
+/**
+ * Écarts d'un défaut `Fait` : chaque test nommé par la colonne « Preuve » de `## Surfaces` existe et
+ * est actif (`testExiste(fichier, titre) → 'actif' | 'désactivé' | 'absent'`). La promesse de `ANC-11` :
+ * un défaut est résolu par des tests nommés, un test désactivé ne prouve rien (refus, pas alerte).
+ */
+export function ecartsDefautFait(lignes, testExiste) {
+  const { tests, ecarts } = testsNommes(lignes);
+  const vus = new Set();
+  for (const { fichier, titre } of tests) {
+    const cle = `${fichier}\0${titre}`;
+    if (vus.has(cle)) continue;
+    vus.add(cle);
+    const etat = testExiste(fichier, titre);
+    if (etat === 'absent') ecarts.push(`le test « ${titre} » est introuvable dans \`${fichier}\``);
+    else if (etat === 'désactivé') ecarts.push(`le test « ${titre} » de \`${fichier}\` est désactivé (skip, todo, x) : il ne prouve pas la correction`);
+  }
+  return ecarts;
+}
+
+/**
+ * Contrôle d'un ticket. `existe(id)` dit si un ticket du dépôt porte cet identifiant ;
+ * `gele` : ticket prêt d'avant l'allumage, dispensé du format (dette) ; `typeGele` : ticket d'avant le
+ * gate de `Type:`, dispensé de la ligne absente (dette `types`) ; `regleExiste(id)` : la règle a son
+ * fichier dans le registre de son contexte ; `testExiste(fichier, titre)` : état d'un test du dépôt.
+ */
+export function controlerTicket({
+  nom,
+  texte,
+  existe,
+  gele = false,
+  typeGele = false,
+  cheminsSensibles = [],
+  regleExiste = () => false,
+  testExiste = () => 'absent',
+}) {
   const lignes = texte.split('\n');
   const id = identifiantDuTicket(nom);
   const erreurs = [];
@@ -192,6 +365,19 @@ export function controlerTicket({ nom, texte, existe, gele = false, cheminsSensi
   if (!status) erreurs.push({ ligne: 1, message: `ligne \`Status:\` absente (attendu : ${VOCABULAIRE.join(', ')})` });
   else if (!statusValide(status.valeur))
     erreurs.push({ ligne: status.ligne, message: `Status « ${status.valeur} » hors vocabulaire (attendu : ${VOCABULAIRE.join(', ')})` });
+  const type = chercher(tete(lignes), TYPE);
+  if (!type) {
+    if (!typeGele) erreurs.push({ ligne: 1, message: `ligne \`Type:\` absente (attendu : ${TYPES.join(', ')})` });
+  } else if (!typeValide(type.valeur))
+    erreurs.push({ ligne: type.ligne, message: `Type « ${type.valeur} » hors vocabulaire (attendu : ${TYPES.join(', ')})` });
+  const regles = chercher(tete(lignes), REGLES);
+  if (regles) {
+    const contexte = id ? lireIdentifiant(id).contexte : null;
+    for (const e of ecartsRegles(regles.valeur, { contexte, regleExiste })) erreurs.push({ ligne: regles.ligne, message: e });
+  }
+  if (typeDe(type?.valeur ?? '') === 'défaut' && /^Fait — PR #\d+/.test(status?.valeur ?? '')) {
+    for (const e of ecartsDefautFait(lignes, testExiste)) erreurs.push({ ligne: type.ligne, message: `défaut Fait : ${e}` });
+  }
   const bloque = chercher(lignes, BLOCKED_BY);
   if (bloque) {
     for (const cite of ticketsCites(bloque.valeur, id)) {
@@ -206,7 +392,7 @@ export function controlerTicket({ nom, texte, existe, gele = false, cheminsSensi
     for (const e of ecartsFormatPret(texte, cheminsSensibles))
       erreurs.push({ ligne: status.ligne, message: `ready-for-agent : ${e} (docs/agents/chaine-de-production.md § 3)` });
   }
-  return { status: status?.valeur ?? null, pret, erreurs };
+  return { status: status?.valeur ?? null, type: type?.valeur ?? null, pret, erreurs };
 }
 
 export const PHASES = ['1-grilling', '2-decoupage', '3-specs-en-fusion', '4-vague-<k>', '5-livraison', '6-nettoyage', 'fini'];

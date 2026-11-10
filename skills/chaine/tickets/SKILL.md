@@ -33,7 +33,7 @@ La grammaire des identifiants est celle du socle, `docs/methode/nomenclature.md`
 
 Le dossier de contexte s'écrit en minuscules (`all/`, `fnsmr/`) et **existe toujours**, même dans un projet à un seul contexte. Le contexte d'une spec, d'un ticket, d'une règle ou d'une demande est celui de son identifiant ; un ticket ne cite que des règles de son contexte ou du contexte `ALL`.
 
-**Un ticket `Type: défaut`** nomme dans `## Surfaces` les tests qui prouvent la correction ; le gate refuse un défaut `Fait` dont un test nommé n'existe pas ou est désactivé. Le skill `recette-humaine` produit ses tickets de défaut ainsi : `Type: défaut`, `Règles:` reprises de l'inventaire, la ligne `D-n` de l'inventaire et le test rouge cités dans le corps.
+**Un ticket `Type: défaut`** nomme dans la colonne « Preuve » de `## Surfaces` les tests qui prouvent la correction : le fichier de test entre accents graves, puis le titre exact de chaque test entre guillemets (`` `apps/api/src/licence.spec.ts` « [RULE_ALL_LIC-3] refuse une licence expirée » ``) ; le gate refuse un défaut `Fait` qui n'en nomme aucun, ou dont un test nommé n'existe pas ou est désactivé (`it.skip`, `test.skip`, `xit`, `describe.skip`, `it.todo`, sur le test ou un bloc qui l'englobe). Le skill `recette-humaine` produit ses tickets de défaut ainsi : `Type: défaut`, `Règles:` reprises de l'inventaire, la ligne `D-n` de l'inventaire et le test rouge cités dans le corps.
 
 ## Étape 1 — poser (`poser`)
 
@@ -51,6 +51,8 @@ Puis dans `package.json` racine, un script `check:tickets` : `node scripts/verif
 
 `docs/methode/nomenclature.md` § exclusions : les fichiers `.spec.md`, `.issue.md` et `.map.md` suivent cette convention, pas la nomenclature générale (leur identifiant est celui de la spec).
 
+Si le projet a déjà un `scripts/verify/tickets-dette.json`, le garder : la dette d'un projet ne se remplace pas par celle du skill. Puis `node scripts/verify/tickets.mjs --geler-types` : à l'arrivée du gate de `Type:`, il gèle sous la clé `types` les tickets qui n'en ont pas encore ; une fois la clé écrite, il refuse de la rejouer.
+
 Vérifier : `pnpm check:tickets` vert (le gate dit `tickets : OK — 0 tickets` sur un dépôt sans ticket). Ne pas commiter si un socle appelle ce skill : il écrit l'historique.
 
 ## Étape 2 — au quotidien
@@ -62,7 +64,7 @@ Vérifier : `pnpm check:tickets` vert (le gate dit `tickets : OK — 0 tickets` 
 - **Avancement** : `node scripts/docs/avancement.mjs sujet/<nom>` ou `SPEC_ALL_SOC-1`, `--json` pour une page. Sans `gh`, sortie 3 et la recherche MCP à faire.
 - **Coûts de production** : `node scripts/docs/couts.mjs` régénère `docs/agents/couts.md` depuis la section `## Coût` des cartes (index généré, `--verify` pour vérifier) ; on corrige la carte, jamais le registre.
 - **Archiver** : `node scripts/docs/archiver-tickets.mjs` (dry-run), `--appliquer` : les tickets faits depuis plus de 180 jours passent dans `issues/archive/`. Une fois par mois, par le capitaine, jamais en CI.
-- **Gate** : `pnpm check:tickets`. Il vérifie `Status:`, `Type:`, `Règles:` (chaque règle citée existe dans le registre de son contexte ou de `ALL`), `Blocked by:`, `Sujet:`, le format prêt pour agent, et les tests nommés par un défaut `Fait`. Une dette (tickets prêts d'avant le gate, cartes, identifiants en double) se gèle dans `scripts/verify/tickets-dette.json` et ne grandit jamais ; `--elaguer` retire les entrées éteintes.
+- **Gate** : `pnpm check:tickets`. Il vérifie `Status:`, `Type:`, `Règles:` (chaque règle citée existe dans le registre de son contexte ou de `ALL`), `Blocked by:`, `Sujet:`, le format prêt pour agent, et les tests nommés par un défaut `Fait`. Une dette (tickets prêts d'avant le gate, tickets sans `Type:` d'avant son gate, cartes, identifiants en double) se gèle dans `scripts/verify/tickets-dette.json` et ne grandit jamais ; `--elaguer` retire les entrées éteintes.
 
 ## Étape 3 — migrer un dépôt (`migrer <feature> <CTX> <TRI>`)
 

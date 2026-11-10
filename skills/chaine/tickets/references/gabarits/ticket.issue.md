@@ -31,7 +31,7 @@ Maquette: {{fichier du dépôt : maquette HTML et section, ou planche recopiée 
 
 | Surface               | Preuve                     |
 | --------------------- | -------------------------- |
-| {{écran, endpoint…}}  | {{le test qui la prouve — pour un défaut, le gate vérifie que ce test existe et n'est pas désactivé quand le ticket est `Fait`}} |
+| {{écran, endpoint…}}  | {{le test qui la prouve — pour un défaut : `chemin/du/fichier.spec.ts` « titre exact du test », le gate vérifie qu'il existe et n'est pas désactivé quand le ticket est `Fait`}} |
 
 ## Vérification
 
