@@ -1,7 +1,7 @@
 ---
 name: tickets
-description: Convention et outillage des specs et tickets d'un dépôt — identifiants `<PRÉFIXE>-<n>` et `<PRÉFIXE>-<n>.<NN>`, fichiers sous docs/features/, ligne `Status:` à vocabulaire fermé, ticket « prêt pour agent », réservation d'un ticket entre sessions parallèles, vagues et avancement d'un chantier, archivage. Pose les scripts et les gabarits dans le projet, et migre des tickets existants. Use when creating a spec or a ticket, numbering a document, checking whether a ticket is free before coding, computing waves or progress of a project, or migrating a repo's tickets to this convention.
-argument-hint: '[poser | migrer <feature> <TRI> | libre <id> | prochain <PRÉFIXE> | vagues <SPEC> | avancement <sujet/x|SPEC>]'
+description: Convention et outillage des specs, tickets, règles et demandes d'un dépôt — identifiants `<TYPE>_<CTX>_<TRI>-<n>` (`SPEC_ALL_SOC-1`, `RULE_FNSMR_LIC-05`) et tickets `.<NN>`, fichiers sous docs/features/<feature>/<ctx>/, docs/metier/regles/<ctx>/ et docs/demandes/<ctx>/, en-têtes `Status:`, `Type:` et `Règles:` à vocabulaire fermé et vérifiés, ticket « prêt pour agent », réservation d'un ticket entre sessions parallèles, vagues et avancement d'un chantier, archivage. Pose les scripts et les gabarits dans le projet, et migre des tickets existants. Use when creating a spec, a ticket, a rule or a request, numbering a document, checking whether a ticket is free before coding, computing waves or progress of a project, or migrating a repo's tickets to this convention.
+argument-hint: '[poser | migrer <feature> <CTX> <TRI> | libre <id> | prochain <TYPE> <CTX> <TRI> | vagues <SPEC> | avancement <sujet/x|SPEC>]'
 ---
 
 # Tickets
@@ -12,18 +12,28 @@ Une seule convention pour les specs et les tickets, et les scripts qui la lisent
 
 ## La convention
 
-| Quoi                       | Forme                                                       | Exemple                                        |
-| -------------------------- | ----------------------------------------------------------- | ---------------------------------------------- |
-| Identifiant d'une spec     | `<PRÉFIXE>-<n>` — trigramme du sujet, précédé d'une portée s'il y en a une ; `n` unique par préfixe dans tout `docs/` | `SOC-1`, `ALL-FOF-12`, `FFSA-LIC-3`           |
-| Identifiant d'un ticket    | `<PRÉFIXE>-<n>.<NN>` — index à deux chiffres dans la spec   | `SOC-1.03`                                     |
-| Fichier de spec            | `docs/features/<feature>/[<portée>/]<ID>-<slug>.spec.md`    | `docs/features/socle/SOC-1-socle.spec.md`      |
-| Fichier de ticket          | `…/issues/<ID>-<slug>.<NN>.issue.md`, un fichier par ticket | `issues/SOC-1-socle.03.issue.md`               |
-| Carte d'un chantier        | `<ID>-<slug>.map.md`, même identifiant que la spec          |                                                |
-| Branche d'un ticket        | `<type>/<id en minuscules, point en tiret>-<nom>`           | `feat/soc-1-03-couche-base`                    |
-| Titre de PR                | se termine par l'identifiant                                | `feat(api): couche base (SOC-1.03)`            |
-| `Status:`                  | vocabulaire fermé : `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`, `en cours — <branche>`, `Fait — PR #<n>` | |
+La grammaire des identifiants est celle du socle, `docs/methode/nomenclature.md` (`ADR_ALL_ARC-1`) : `<TYPE>_<CTX>_<TRI>-<n>`, le type, le contexte (`ALL` toujours écrit), le trigramme du sujet, le numéro. Ce skill en pose les scripts et les gabarits pour quatre types : `SPEC` et ses tickets, `RULE`, `REQ`, et la numérotation des `ADR`, `DSG` et `DOC`.
 
-Le trigramme vient du registre de `docs/methode/nomenclature.md` (`ARC-1`) ; une ADR se numérote de la même façon (`ARC-7`), par le même script. La portée est facultative : un projet qui sert une seule organisation n'en a pas.
+| Quoi                        | Forme                                                                     | Exemple                                                  |
+| --------------------------- | ------------------------------------------------------------------------- | -------------------------------------------------------- |
+| Identifiant d'une spec      | `SPEC_<CTX>_<TRI>-<n>` ; `n` unique par contexte et trigramme dans tout `docs/` | `SPEC_ALL_SOC-1`, `SPEC_FNSMR_LIC-3`               |
+| Identifiant d'un ticket     | `<spec>.<NN>`, index à deux chiffres dans la spec                         | `SPEC_ALL_SOC-1.03`                                      |
+| Identifiant d'une règle     | `RULE_<CTX>_<TRI>-<n>` ; un identifiant existant ne se renomme jamais     | `RULE_ALL_LIC-3`, `RULE_FNSMR_LIC-05`                    |
+| Identifiant d'une demande   | `REQ_<CTX>_<TRI>-<n>`                                                     | `REQ_ALL_LIC-7`                                          |
+| Fichier de spec             | `docs/features/<feature>/<ctx>/<ID>-<slug>.spec.md`                       | `docs/features/socle/all/SPEC_ALL_SOC-1-socle.spec.md`   |
+| Fichier de ticket           | `…/<ctx>/issues/<ID>-<slug>.<NN>.issue.md`, un fichier par ticket         | `issues/SPEC_ALL_SOC-1-socle.03.issue.md`                |
+| Carte d'un chantier         | `<ID>-<slug>.map.md`, même identifiant que la spec                        |                                                          |
+| Fichier de règle            | `docs/metier/regles/<ctx>/<ID>.md`, sans slug : le titre est dans l'en-tête | `docs/metier/regles/all/RULE_ALL_LIC-3.md`             |
+| Fichier de demande          | `docs/demandes/<ctx>/<ID>-<slug>.md`                                      | `docs/demandes/all/REQ_ALL_LIC-7-licence-famille.md`     |
+| Branche d'un ticket         | `<type>/<id en minuscules, tirets bas et point en tirets>-<nom>`          | `feat/spec-all-soc-1-03-couche-base`                     |
+| Titre de PR                 | se termine par l'identifiant                                              | `feat(api): couche base (SPEC_ALL_SOC-1.03)`             |
+| `Status:` (ticket, demande) | vocabulaire fermé : `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`, `en cours — <branche>`, `Fait — PR #<n>` ; pour une demande, `Fait — <spec>` | |
+| `Type:` (ticket)            | obligatoire, vocabulaire fermé : `task`, `défaut`, `grilling`, `research` | `Type: défaut`                                           |
+| `Règles:` (ticket, demande) | facultative ; les règles que le travail réalise ou corrige, par leur identifiant complet, chacune existant dans le registre de son contexte | `Règles: RULE_ALL_LIC-3, RULE_FNSMR_LIC-05` |
+
+Le dossier de contexte s'écrit en minuscules (`all/`, `fnsmr/`) et **existe toujours**, même dans un projet à un seul contexte. Le contexte d'une spec, d'un ticket, d'une règle ou d'une demande est celui de son identifiant ; un ticket ne cite que des règles de son contexte ou du contexte `ALL`.
+
+**Un ticket `Type: défaut`** nomme dans `## Surfaces` les tests qui prouvent la correction ; le gate refuse un défaut `Fait` dont un test nommé n'existe pas ou est désactivé. Le skill `recette-humaine` produit ses tickets de défaut ainsi : `Type: défaut`, `Règles:` reprises de l'inventaire, la ligne `D-n` de l'inventaire et le test rouge cités dans le corps.
 
 ## Étape 1 — poser (`poser`)
 
@@ -45,23 +55,25 @@ Vérifier : `pnpm check:tickets` vert (le gate dit `tickets : OK — 0 tickets` 
 
 ## Étape 2 — au quotidien
 
-- **Numéroter** : `node scripts/docs/next-id.mjs SOC` (ou `ALL FOF`, `ARC`). Lit l'arbre et les branches distantes `sujet/*` et `docs/*` : `git fetch origin` d'abord si le dernier date.
-- **Créer une spec ou un ticket** : copier le gabarit de `docs/agents/gabarits/`, nommer d'après la table, `Status: needs-triage` tant qu'il n'est pas prêt. Un ticket `ready-for-agent` porte `Modèle:`, `Fichiers chauds:`, `Dépendances:` s'il ajoute un paquet, les quatre sections `## Où`, `## Décisions`, `## Surfaces`, `## Vérification`, et `Label: architecte` dès que `Fichiers chauds:` touche un motif de `cheminsSensibles` (`.claude/chaine.json`) : `docs/agents/chaine-de-production.md` § 3. Le gate le refuse sinon.
-- **Avant de coder** : `node scripts/docs/ticket-libre.mjs SOC-1.03`. Sortie 0 libre, 1 pris, 3 libre côté git mais PR non vérifiées (session cloud : la recherche `search_pull_requests` que le script affiche, par l'outil GitHub MCP). Puis réserver : branche, `Status: en cours — <branche>`, PR brouillon. Procédure complète : `docs/agents/issue-tracker.md` § « Réserver un ticket ».
-- **Vagues d'un chantier** : `node scripts/docs/vagues.mjs SOC-1 --max 6` propose les vagues (bloquants faits, fichiers chauds disjoints) ; l'architecte décide.
-- **Avancement** : `node scripts/docs/avancement.mjs sujet/<nom>` ou `SOC-1`, `--json` pour une page. Sans `gh`, sortie 3 et la recherche MCP à faire.
+- **Numéroter** : `node scripts/docs/next-id.mjs SPEC ALL SOC` (ou `RULE ALL LIC`, `ADR ALL ARC`, `REQ FNSMR PAY`). Lit l'arbre et les branches distantes `sujet/*` et `docs/*` : `git fetch origin` d'abord si le dernier date.
+- **Créer une spec, un ticket, une règle ou une demande** : copier le gabarit de `docs/agents/gabarits/` (`spec.spec.md`, `ticket.issue.md`, `regle.md`, `demande.md`), nommer d'après la table, `Status: needs-triage` tant qu'il n'est pas prêt, `Type:` dès la création ; une règle naît `candidate`, seul un humain écrit `validated`. Un ticket `ready-for-agent` porte `Modèle:`, `Fichiers chauds:`, `Dépendances:` s'il ajoute un paquet, les quatre sections `## Où`, `## Décisions`, `## Surfaces`, `## Vérification`, et `Label: architecte` dès que `Fichiers chauds:` touche un motif de `cheminsSensibles` (`.claude/chaine.json`) : `docs/agents/chaine-de-production.md` § 3. Le gate le refuse sinon.
+- **Avant de coder** : `node scripts/docs/ticket-libre.mjs SPEC_ALL_SOC-1.03`. Sortie 0 libre, 1 pris, 3 libre côté git mais PR non vérifiées (session cloud : la recherche `search_pull_requests` que le script affiche, par l'outil GitHub MCP). Puis réserver : branche, `Status: en cours — <branche>`, PR brouillon. Procédure complète : `docs/agents/issue-tracker.md` § « Réserver un ticket ».
+- **Vagues d'un chantier** : `node scripts/docs/vagues.mjs SPEC_ALL_SOC-1 --max 6` propose les vagues (bloquants faits, fichiers chauds disjoints) ; l'architecte décide.
+- **Avancement** : `node scripts/docs/avancement.mjs sujet/<nom>` ou `SPEC_ALL_SOC-1`, `--json` pour une page. Sans `gh`, sortie 3 et la recherche MCP à faire.
 - **Coûts de production** : `node scripts/docs/couts.mjs` régénère `docs/agents/couts.md` depuis la section `## Coût` des cartes (index généré, `--verify` pour vérifier) ; on corrige la carte, jamais le registre.
 - **Archiver** : `node scripts/docs/archiver-tickets.mjs` (dry-run), `--appliquer` : les tickets faits depuis plus de 180 jours passent dans `issues/archive/`. Une fois par mois, par le capitaine, jamais en CI.
-- **Gate** : `pnpm check:tickets`. Une dette (tickets prêts d'avant le gate, cartes, identifiants en double) se gèle dans `scripts/verify/tickets-dette.json` et ne grandit jamais ; `--elaguer` retire les entrées éteintes.
+- **Gate** : `pnpm check:tickets`. Il vérifie `Status:`, `Type:`, `Règles:` (chaque règle citée existe dans le registre de son contexte ou de `ALL`), `Blocked by:`, `Sujet:`, le format prêt pour agent, et les tests nommés par un défaut `Fait`. Une dette (tickets prêts d'avant le gate, cartes, identifiants en double) se gèle dans `scripts/verify/tickets-dette.json` et ne grandit jamais ; `--elaguer` retire les entrées éteintes.
 
-## Étape 3 — migrer un dépôt (`migrer <feature> <TRI>`)
+## Étape 3 — migrer un dépôt (`migrer <feature> <CTX> <TRI>`)
 
-Pour un dépôt au format du socle (`docs/features/<feature>/<feature>.spec.md`, `issues/<N>-<slug>.issue.md`) :
+Pour un dépôt au format du socle d'avant le standard (`docs/features/<feature>/<feature>.spec.md` et `issues/<N>-<slug>.issue.md`, ou `<TRI>-<n>-<slug>.spec.md` sans type ni contexte) :
 
 1. Inscrire le trigramme de la feature au registre de `nomenclature.md` s'il n'y est pas.
-2. `node scripts/docs/migrer-tickets.mjs <feature> <TRI>` : dry-run, relire. `--n <n>` pour forcer le numéro.
-3. `--appliquer` : `git mv` de la spec et des tickets, liens relatifs et mentions `` `N-slug` `` réécrits dans tous les `docs/**/*.md`, lignes `Blocked by:` / `Bloqué par :` passées en `Blocked by: NN`. Puis `pnpm check:tickets` et `git diff` relu : les statuts hors vocabulaire (`done`, `À faire`) se corrigent à la main.
+2. `node scripts/docs/migrer-tickets.mjs <feature> <CTX> <TRI>` : dry-run, relire. `--n <n>` pour forcer le numéro.
+3. `--appliquer` : `git mv` de la spec et des tickets dans `<feature>/<ctx>/`, liens relatifs et mentions réécrits dans tous les `docs/**/*.md`, lignes `Blocked by:` / `Bloqué par :` passées en `Blocked by: NN`, `Type: task` posé sur les tickets qui n'en ont pas. Puis `pnpm check:tickets` et `git diff` relu : les statuts hors vocabulaire (`done`, `À faire`) se corrigent à la main.
 4. Une feature par passage ; un ticket au-delà de 99 refuse : découper la feature.
+
+Un registre de règles en tableau markdown et les ADR, design et guides sans type se migrent par `anchorpost migrate` (skill `anchorpost`), qui réécrit les identifiants dans tout le dépôt.
 
 ## Ce que ce skill ne fait pas
 
@@ -75,6 +87,8 @@ Pour un dépôt au format du socle (`docs/features/<feature>/<feature>.spec.md`,
 | ----------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
 | « Je numérote à la main, le prochain est évident »          | Une spec sur une branche de sujet non fusionnée porte peut-être déjà ce numéro. Le script lit les branches. |
 | « `Status: done`, c'est pareil que `Fait` »                 | Les scripts lisent un vocabulaire fermé ; `done` est invisible pour `ticket-libre` et l'avancement.    |
+| « `Règles : LIC-05, voir aussi la section 3 de l'ADR » »     | Une ligne libre n'est lue par personne. `Règles:` ne porte que des identifiants complets, et le gate vérifie que chacun existe. |
+| « Le projet n'a qu'un contexte, j'omets `ALL` »             | Le jour où un second contexte arrive, tout se renomme. `ALL` s'écrit toujours, et `all/` existe toujours. |
 | « Je commence, je réserverai après le premier commit »      | Trois sessions ont codé le même ticket. La réservation, c'est la branche poussée et la PR brouillon, avant la première ligne. |
 | « Un seul fichier avec tous les tickets, c'est plus lisible » | Un ticket est un fichier : c'est ce qu'une session réserve, cite et livre.                            |
 | « Je déclare les deux conventions dans un fichier de config » | Deux formats à parser et à tester dans chaque script, pour toujours. On migre.                         |

@@ -39,7 +39,7 @@ Chaque changement de phase met à jour la ligne `Phase:` et se pousse : c'est ce
 
 ## 2. Phase 1 — grilling (`Phase: 1-grilling`)
 
-- **Complet** : par les skills de Matt Pocock (`docs/methode/grilling.md` : `grilling` puis `domain-modeling`), une question à la fois. Avant chaque question, la recherche (code de `origin/develop` en worktree détaché, `fichier:ligne` ; registre de règles ; outil en place) — par un sous-agent `Explore` quand elle est large, pour garder ce contexte léger. Chaque question porte une **recommandation**.
+- **Complet** : par les skills de Matt Pocock (`docs/methode/grilling.md` : `grilling` puis `domain-modeling`), une question à la fois. Avant chaque question, la recherche (code de `origin/develop` en worktree détaché, `fichier:ligne` ; registre de règles ; outil en place) — par un sous-agent `Explore` quand elle est large, pour garder ce contexte léger. Chaque question porte une **recommandation** et s'écrit en prose lisible sans ouvrir le dépôt (`docs/methode/grilling.md` § « Écrire une question qu'un humain comprend »).
 - **Court** : la liste des points ouverts en un message, chacun avec sa recommandation ; l'humain répond en bloc.
 - **Aucun** : lire la spec donnée, relever ses trous en un message.
 

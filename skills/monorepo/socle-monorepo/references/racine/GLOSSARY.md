@@ -8,7 +8,7 @@
 
 Ce fichier est **un glossaire et rien d'autre** : ni spec, ni brouillon, ni dépôt de décisions d'implémentation.
 
-- **L'entrée est le nom en code** (`ARC-4`) : l'identifiant anglais, généraliste, tel qu'il apparaît en base et dans le domaine. Le libellé français affiché à l'utilisateur suit après le tiret. La définition est en français.
+- **L'entrée est le nom en code** (`ADR_ALL_ARC-4`) : l'identifiant anglais, généraliste, tel qu'il apparaît en base et dans le domaine. Le libellé français affiché à l'utilisateur suit après le tiret. La définition est en français.
 - **Être tranchant.** Quand plusieurs mots existent pour le même concept, en choisir un et lister les autres sous `_Éviter_`.
 - **Définitions serrées.** Une à deux phrases maximum. Définir ce que la chose **est**, pas ce qu'elle fait.
 - **Seulement les termes propres à ce contexte.** Les concepts génériques de programmation n'y ont pas leur place. Le test : _est-ce un concept propre au projet, ou un concept général ?_

@@ -16,7 +16,7 @@ Le jour où le dépôt aura un remote GitHub, rejouer `/mattpocock-skills:setup-
 
 **Une spec cite les règles métier, elle ne les formule pas.** Une règle découverte en écrivant une spec entre au registre `docs/metier/regles/` comme `candidate`, avec son identifiant, et la spec y renvoie (« implémente `LIC-3` »). La feature est du travail en cours ; la règle est ce qui reste vrai après. L'arbre complet de `docs/` : [`../methode/nomenclature.md`](../methode/nomenclature.md).
 
-`<slug>.spec.md` et `issues/<N>-<titre>.issue.md` sont de la **mécanique consommée par les skills** : ils gardent ces noms et sont exclus de la nomenclature `<TRI>-<N>-<slug>.md` ([`ARC-1`](../adr/ARC-1-nomenclature-trigramme.md)). En revanche, un document **de fond** posé dans le dossier d'une feature — une note de conception, une analyse — porte bien un trigramme.
+Les specs et les tickets sont de la **mécanique consommée par les skills** : ils sont nommés `SPEC_<CTX>_<TRI>-<n>-<slug>.spec.md` et `.<NN>.issue.md` ([`ADR_ALL_ARC-1`](../adr/ADR_ALL_ARC-1-identifiants-types-et-contextes.md)). En revanche, un document **de fond** posé dans le dossier d'une feature — une note de conception, une analyse — porte bien un trigramme.
 
 ## Quand une skill dit « publish to the issue tracker »
 

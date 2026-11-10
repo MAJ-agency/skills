@@ -10,7 +10,8 @@ Quand une question est tranchée, son entrée est **déplacée** : vers une ADR 
 ### <question, en une phrase>
 - Ouverte le : AAAA-MM-JJ
 - Source : <document de docs/sources/, réunion, ticket>
-- Bloque : <ce qui ne peut pas avancer sans réponse>
+- Bloque : <ce qui ne peut pas avancer sans réponse — une règle citée par son identifiant (`RULE_ALL_LIC-3`) porte alors l'indicateur « a une question ouverte » dans l'index>
+- Échéance : AAAA-MM-JJ (facultative — qui doit répondre, pour quand)
 - Tranchée le : — (puis la date et le lien vers l'ADR / la règle / le terme)
 ```
 

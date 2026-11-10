@@ -1,14 +1,15 @@
 # {{ID}} — {{Titre de la spec}}
 
 Sujet: sujet/{{nom}}
+Origine: {{REQ_<CTX>_<TRI>-<n> — la demande dont la spec est née ; ou retirer la ligne}}
 
 ## Ce qu'on construit
 
-{{Le besoin en quelques phrases, avec les termes du glossaire. Les règles métier sont citées par leur identifiant du registre, jamais formulées ici.}}
+{{Le besoin en quelques phrases, avec les termes du glossaire. Les règles métier sont citées par leur identifiant complet (`RULE_ALL_LIC-3`), jamais formulées ici.}}
 
 ## Décisions
 
-- {{Référence à la carte `{{ID}}` `## Decisions-so-far`, ou aux ADR.}}
+- {{Référence à la carte `{{ID}}` `## Decisions-so-far`, ou aux ADR (`ADR_ALL_ARC-n`).}}
 
 ## Tickets
 

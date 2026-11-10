@@ -2,7 +2,7 @@
 
 ## `scripts/docs/identifiants.mjs`
 
-La convention en un seul module : le préfixe à un ou plusieurs segments, l'identifiant de spec, celui de ticket, les noms de fichiers, le slug de branche. Tous les autres scripts l'importent : changer la convention, c'est changer ce fichier et ses tests.
+La convention en un seul module : la grammaire `<TYPE>_<CTX>_<TRI>-<n>` du socle (`ADR_ALL_ARC-1`), les six types, l'identifiant de spec, de ticket, de règle et de demande, les noms de fichiers, le slug de branche. Tous les autres scripts l'importent : changer la convention, c'est changer ce fichier et ses tests.
 
 ## `next-id.mjs`, `next-id-branches.mjs`
 
@@ -30,11 +30,11 @@ Le passage d'un dépôt au format du socle vers cette convention, avec réécrit
 
 ## `scripts/verify/tickets.mjs`, `tickets-regles.mjs`, `tickets-dette.json`
 
-Le gate : vocabulaire fermé de `Status:`, `Blocked by:` qui existent, `Sujet:` bien formé, identifiant porté par une seule spec, carte de chantier complète (ligne `Migrations:` bien formée si présente), deux cartes ouvertes jamais sur le même horodatage de migration (une carte `fini` ne réserve plus : sinon deux chantiers se découvrent à la livraison du second), et format prêt pour agent. La dette gelée ne grandit jamais.
+Le gate : vocabulaire fermé de `Status:` et de `Type:`, `Règles:` dont chaque identifiant existe dans le registre de son contexte ou de `ALL`, `Blocked by:` qui existent, `Sujet:` bien formé, identifiant porté par une seule spec, carte de chantier complète (ligne `Migrations:` bien formée si présente), deux cartes ouvertes jamais sur le même horodatage de migration (une carte `fini` ne réserve plus : sinon deux chantiers se découvrent à la livraison du second), format prêt pour agent, et tests nommés par un défaut `Fait` présents et actifs. La dette gelée ne grandit jamais.
 
 ## `agents/`, `gabarits/`
 
-Le tracker et les labels tels que les skills de Matt Pocock les attendent (`docs/agents/`), complétés par la réservation, l'archivage et le ticket prêt pour agent ; les gabarits d'une spec, d'un ticket et d'une carte.
+Le tracker et les labels tels que les skills de Matt Pocock les attendent (`docs/agents/`), complétés par la réservation, l'archivage et le ticket prêt pour agent ; les gabarits d'une spec, d'un ticket, d'une carte, d'une règle (`regle.md` : en-tête YAML validé, énoncé en markdown) et d'une demande (`demande.md`).
 
 ## `depot-jouet.mjs` et les tests
 
