@@ -6,7 +6,7 @@ La bibliothèque commune, sourcée par les autres scripts : `DEPOT`, `ID_SPEC` (
 
 ## `scripts/file.sh`
 
-La file : les PR `à-fusionner` dans l'ordre de passage, sous-PR de sujet, livraisons de sujet, `prio:haute`, puis numéro, chacune avec son état. « Sans CI » veut dire aucun check exigé posé : un check d'une appli tierce ne prouve pas que la CI a démarré.
+La file : les PR `à-fusionner` dans l'ordre de passage, sous-PR de sujet, livraisons de sujet (tête `sujet/<nom>`, ou livraison intermédiaire `livraison/<nom>-<date>`), `prio:haute`, puis numéro, chacune avec son état. « Sans CI » veut dire aucun check exigé posé : un check d'une appli tierce ne prouve pas que la CI a démarré.
 
 ## `scripts/passer.sh`
 

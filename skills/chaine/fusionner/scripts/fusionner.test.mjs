@@ -26,9 +26,10 @@ const pr = (number, head, autres = {}) => ({
   ...autres,
 });
 
-test("file.sh : sous-PR de sujet, livraison de sujet, prio:haute, puis numéro ; CI en cours et rouge signalées", () => {
+test("file.sh : sous-PR de sujet, livraisons de sujet (sujet/ et livraison intermédiaire), prio:haute, puis numéro ; CI en cours et rouge signalées", () => {
   const d = depotJouet();
   d.branche("sujet/lot", "origin/develop", { "lot.md": "lot\n" });
+  d.git("push", "-q", "origin", "origin/sujet/lot:refs/heads/livraison/lot-20261109-1200");
   for (const b of [
     "feat/seize",
     "feat/dix-sept",
@@ -56,6 +57,7 @@ test("file.sh : sous-PR de sujet, livraison de sujet, prio:haute, puis numéro ;
       pr(21, "fix/vingt-et-un", { labels: ["à-fusionner", "prio:haute"] }),
       pr(22, "sujet/lot"),
       pr(23, "feat/sous", { base: "sujet/lot" }),
+      pr(24, "livraison/lot-20261109-1200"),
     ],
   });
 
@@ -68,6 +70,7 @@ test("file.sh : sous-PR de sujet, livraison de sujet, prio:haute, puis numéro ;
   assert.deepEqual(lignes, [
     "23 sujet/lot : prête",
     "22 prête",
+    "24 prête",
     "21 prête",
     "16 bloquée",
     "17 CI rouge : qualite",
