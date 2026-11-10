@@ -52,8 +52,10 @@
 #                         (`en cours`, `prêt à livrer`, `livré #n`)
 #
 # Sorties : 0 fait · 2 conflit · 3 checks rouges ou en cours · 4 refus corrigeable par l'auteur (sa
-# dernière ligne est le motif, `fusionner` : titre, commitlint, revue, base) · 7 `fusionner` d'une PR
-# fermée ou en brouillon (rien à corriger : sautée) · 9 `carte <nom>` refusée (rien n'est poussé)
+# dernière ligne est le motif, `fusionner` : titre, commitlint, revue, base) · 6 arbre de travail pas
+# propre (`fusionner`, `rafraichir`, `relancer` : à nettoyer par qui lance, jamais un renvoi de la PR,
+# comme la sortie 6 de passer.sh) · 7 `fusionner` d'une PR fermée ou en brouillon (rien à corriger :
+# sautée) · 9 `carte <nom>` refusée (rien n'est poussé)
 # `fusionner` encore : 5 la sous-PR a bougé pendant sa mise à jour (reprise au tour suivant) · 8 conflit
 # avec le sujet sur des index générés seuls : branche mise à jour (index régénérés) et poussée, CI
 # relancée, aucun squash
@@ -290,7 +292,7 @@ recibler_specs() {
 # touché. Conflit hors index : annulé, sortie 3 (renvoi), branche intacte.
 mettre_a_jour_sous_pr() {
   local n=$1 base=$2 tete=$3 conflits autres
-  [ -z "$(git status --porcelain)" ] || sortir 4 "arbre de travail pas propre : committer ou ranger d'abord"
+  [ -z "$(git status --porcelain)" ] || sortir 6 "arbre de travail pas propre : committer ou ranger d'abord, puis relancer (rien à corriger côté PR)"
   git switch -q -C "capitaine/$n" "origin/$tete"
   if git merge -q --no-edit "origin/$base" >/dev/null 2>&1; then
     git switch -q --detach origin/develop # fusion propre : rien à pousser, le squash suit
@@ -381,7 +383,7 @@ fusionner() {
 rafraichir() {
   local nom=${1:?nom du sujet} abandon=${2:-}
   local branche="sujet/$nom"
-  [ -z "$(git status --porcelain)" ] || sortir 4 "arbre de travail pas propre : committer ou ranger d'abord"
+  [ -z "$(git status --porcelain)" ] || sortir 6 "arbre de travail pas propre : committer ou ranger d'abord, puis relancer"
   git fetch -q origin develop "$branche"
   if git merge-base --is-ancestor origin/develop "origin/$branche"; then
     echo "$branche déjà à jour avec develop"
@@ -461,7 +463,7 @@ relancer() {
   base=$(jq -r .base.ref <<<"$pr")
   tete=$(jq -r .head.ref <<<"$pr")
   [[ "$base" == sujet/* ]] || sortir 4 "#$n vise $base, pas un sujet"
-  [ -z "$(git status --porcelain)" ] || sortir 4 "arbre de travail pas propre"
+  [ -z "$(git status --porcelain)" ] || sortir 6 "arbre de travail pas propre : committer ou ranger d'abord, puis relancer (rien à corriger côté PR)"
   git fetch -q origin "$base" "$tete"
   git switch -q --detach "origin/$tete"
   if ! git merge -q --no-edit "origin/$base" >/dev/null 2>&1; then
