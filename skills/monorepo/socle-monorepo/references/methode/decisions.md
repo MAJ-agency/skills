@@ -125,7 +125,8 @@ Décision et alternatives écartées : `ADR_ALL_ARC-<N>` (le registre, un fichie
 - **Un test qui prouve une règle porte son identifiant entre crochets en tête de son nom** : `it('[RULE_ALL_LIC-2] should <comportement>', …)`. Plusieurs étiquettes par test sont permises. C'est le lien vérifiable entre le registre et le code ; un test de recette n'en porte jamais ([`.claude/rules/tests.md`](../../.claude/rules/tests.md)).
 - **Les liens entre règles sont typés et déclarés** dans l'en-tête (`links`) : `replaces`, `refines`, `contradicts`, `parameterized-by`, `blocked-by`. Une règle de contexte qui instancie une règle de socle le dit par `instanceOf`, et hérite de ses preuves tant qu'elle n'en a pas en propre. Les liens par simple citation sont déduits par la machine, jamais écrits.
 - **Les sources et les décisions** sont des listes : `sources` (référence, chemin, horodatage), `decisions` (date, texte, qui). Les noms des personnes s'écrivent : on sait qui a dit quoi.
-- **Les champs propres à un projet** (une estimation, un chantier, des fichiers de code) vivent sous `extensions`, que le schéma laisse passer et qu'Anchorpost ignore.
+- **Les fichiers de code d'une règle** s'écrivent dans `code` (facultatif, chemins depuis la racine du dépôt) : c'est un champ du standard, et le périmètre de la mutation par règle (`socle-tests`). Un chemin qui n'existe pas est refusé par `anchorpost check`.
+- **Les champs propres à un projet** (une estimation, un chantier) vivent sous `extensions`, que le schéma laisse passer et qu'Anchorpost ignore.
 - Les questions non arbitrées vivent dans `docs/questions-ouvertes.md`, datées et sourcées. Une question dont la ligne `Bloque :` cite une règle la marque « a une question ouverte », sans toucher à ses statuts.
 - **Aucun annuaire écrit à la main.** La vue d'ensemble d'un registre est l'index généré `anchorpost/anchorpost.json`, qui porte pour chaque règle ses statuts, ses liens et les tests qui la prouvent.
 

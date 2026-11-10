@@ -74,7 +74,9 @@ Le manifeste est écrit à la main et validé par un humain. Il n'est jamais gé
 3. `scripts/check.mjs` : une étape `check:anchorpost` après `check:tickets`, et le script `"check:anchorpost": "anchorpost check"` dans `package.json`.
 4. La CI : le job de qualité joue déjà `pnpm check` ; vérifier que `NODE_AUTH_TOKEN` y vaut `${{ secrets.GITHUB_TOKEN }}` pour l'installation (l'accès du paquet est accordé au dépôt par un admin : étape 6).
 
-Ce que `check` refuse est une liste fermée, portée par le paquet : un fichier de règle mal formé ; deux règles au même identifiant dans un contexte ; un lien, un `instanceOf` ou une source vers une cible absente ; un ticket dont `Type:` est hors vocabulaire ou dont `Règles:` cite une règle absente ; un défaut `Fait` dont un test nommé n'existe pas ou est désactivé ; une étiquette de test qui cite une règle absente ; un compte de règles prouvées sous le plancher de son contexte, ou un plancher au-dessus de la mesure ; un index qui n'est pas celui que les sources donnent, octet pour octet.
+`code` est un champ du standard (les fichiers de code qui réalisent une règle) : `socle-tests` lit `rules[].code` des règles `proven` dans l'index commis pour le périmètre de sa mutation hebdomadaire.
+
+Ce que `check` refuse est une liste fermée, portée par le paquet : un fichier de règle mal formé ; deux règles au même identifiant dans un contexte ; un lien, un `instanceOf` ou une source vers une cible absente, ou un chemin de `code` absent du dépôt ; un ticket dont `Type:` est hors vocabulaire ou dont `Règles:` cite une règle absente ; un défaut `Fait` dont un test nommé n'existe pas ou est désactivé ; une étiquette de test qui cite une règle absente ; un compte de règles prouvées sous le plancher de son contexte, ou un plancher au-dessus de la mesure ; un index qui n'est pas celui que les sources donnent, octet pour octet.
 
 ## Étape 5 — la fiche d'écriture
 
