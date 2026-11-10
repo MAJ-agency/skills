@@ -157,9 +157,11 @@ Attendre que leur PR y soit fusionnée, puis relancer demarrer. Ne pas fusionner
 
 # Sujet livré : sa carte (`docs/**/*.map.md` dont la ligne `Sujet:` le nomme), lue sur
 # origin/develop, porte `Phase: 6-nettoyage` ou `Phase: fini` ; à défaut de carte, la branche
-# `sujet/<nom>` est absente et develop contient son commit de merge. Un sujet livré ne se rouvre
-# jamais par automatisme : file.sh, regrouper et demarrer s'en remettent à cette seule
-# fonction. Sortie 0 = livré.
+# `sujet/<nom>` est absente et develop contient son commit de merge : la ligne `Sujet: sujet/<nom>`
+# que passer.sh écrit dans le corps, ou le message par défaut d'une fusion faite sur GitHub
+# (« Merge pull request #n from <owner>/sujet/<nom> »). Ligne entière : `sujet/demo` ne reconnaît
+# pas `sujet/demo-2`. Un sujet livré ne se rouvre jamais par automatisme : file.sh, regrouper et
+# demarrer s'en remettent à cette seule fonction. Sortie 0 = livré.
 sujet_livre() {
   local nom=${1#sujet/} f trouve='' phase
   git fetch -q origin develop 2>/dev/null || true
@@ -171,7 +173,8 @@ sujet_livre() {
   done < <(git ls-tree -r --name-only origin/develop -- docs | grep -E '\.map\.md$' | grep -v '/gabarits/' || true)
   [ -z "$trouve" ] || return 1
   git ls-remote --exit-code --heads origin "sujet/$nom" >/dev/null 2>&1 && return 1
-  [ -n "$(git log origin/develop --merges -1 --format=%H -F --grep "sujet/$nom")" ]
+  [ -n "$(git log origin/develop --merges -1 --format=%H -E \
+    --grep "^Sujet: sujet/${nom}\$" --grep "^Merge pull request #[0-9]+ from [^ ]+/sujet/${nom}\$")" ]
 }
 
 # Phase de la carte du sujet (vide si le sujet n'a pas de carte). Lue d'abord sur la branche du
@@ -672,7 +675,7 @@ livrer_prets() {
         END { ty = ("feat" in t) ? "feat" : ("fix" in t) ? "fix" : "chore"
               for (k in s) if (s[k] > m) { m = s[k]; sc = k }
               print ty, sc }')"
-    titre="${type:-chore}${scope:+($scope)}: sujet $nom — $n sous-PR"
+    titre="${type:-chore}${scope:+($scope)}: sujet/$nom — $n sous-PR"
     if [ "$essai" = --dry-run ]; then
       echo "sujet/$nom prêt : livrerait « $titre » (--dry-run : aucune PR ouverte)"
     else
