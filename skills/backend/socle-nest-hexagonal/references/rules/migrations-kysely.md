@@ -34,7 +34,7 @@ Les identifiants SQL sont en anglais (`ARC-4`), les noms de code de `GLOSSARY.md
 - **Index** sur chaque clé étrangère, chaque colonne d'état filtrée, chaque borne de date interrogée. Un index se justifie par une requête qui existe.
 - **Les types de lignes sont générés** par `kysely-codegen` dans `src/db/types.ts`, jamais écrits à la main, pas même un champ. Ils ne sortent jamais du repository : le mapping ligne ↔ modèle est privé.
 - **Kysely n'est importé que dans `infrastructure/`** et `src/db/`. Le lint et `check:arch` le refusent ailleurs.
-- **SQL brut** : le tag `sql` de Kysely seulement, dans un repository ou une migration. Jamais une chaîne concaténée.
+- **SQL brut** : le tag `sql` de Kysely seulement, dans un repository, une migration, ou l'outillage de `src/db/` (base jetable de `db:types`, où `CREATE DATABASE` n'a pas de forme Kysely ; le nom passe par `sql.id`). Jamais une chaîne concaténée.
 
 ## Migrations
 

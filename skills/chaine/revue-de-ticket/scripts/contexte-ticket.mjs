@@ -41,6 +41,8 @@ function walk(dir, out = []) {
 }
 const docs = walk(join(ROOT, "docs"));
 const lire = (p) => readFileSync(p, "utf8");
+/** Un identifiant devient un motif littéral : ses caractères spéciaux de regex sont échappés. */
+const litteral = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 // ── Le ticket et sa spec ───────────────────────────────────────────────────────────────
 const nn = id.split(".")[1];
@@ -67,7 +69,7 @@ const ligneSpec = fichierSpec
         (l) =>
           l.includes(`${id}`) ||
           l.includes(`${spec}.${nn}`) ||
-          new RegExp(`^\\|\\s*${nn}\\s*\\|`).test(l),
+          new RegExp(`^\\|\\s*${litteral(nn)}\\s*\\|`).test(l),
       )
   : [];
 
@@ -92,7 +94,7 @@ function regle(code) {
   const trouvees = [];
   for (const p of registresMd) {
     for (const l of lire(p).split("\n"))
-      if (new RegExp(`^\\|\\s*${code}\\s*\\|`).test(l))
+      if (new RegExp(`^\\|\\s*${litteral(code)}\\s*\\|`).test(l))
         trouvees.push(`- ${relative(ROOT, p)} :\n  ${l.trim()}`);
   }
   for (const p of registresJson) {

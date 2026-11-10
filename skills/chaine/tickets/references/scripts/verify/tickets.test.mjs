@@ -96,6 +96,10 @@ test('les chemins chauds se lisent entre accents graves ou en liste, et un motif
   assert.equal(motifSensibleTouche('apps/api/src/auth/x.ts', SENSIBLES), SENSIBLES[0]);
   assert.equal(motifSensibleTouche('apps/api/src/db/migrations/*', SENSIBLES), SENSIBLES[1]);
   assert.equal(motifSensibleTouche('apps/api/src/application/users/u.ts', SENSIBLES), null);
+  const dossier = ['apps/api/src/infrastructure/**/auth/'];
+  assert.equal(motifSensibleTouche('apps/api/src/infrastructure/auth/jwt.ts', dossier), dossier[0], 'un motif à barre finale désigne le dossier entier');
+  assert.equal(motifSensibleTouche('apps/api/src/infrastructure/http/auth/guard.ts', dossier), dossier[0]);
+  assert.equal(motifSensibleTouche('apps/api/src/infrastructure/authz/x.ts', dossier), null);
 });
 
 test('cheminsSensibles : contrat absent → aucun motif ; présent mais illisible ou mal formé → le gate échoue fermé', () => {
