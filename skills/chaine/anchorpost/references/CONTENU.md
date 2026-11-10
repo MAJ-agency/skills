@@ -14,7 +14,7 @@ Un relais d'une ligne vers `pnpm anchorpost:check`, pour que `.claude/chaine.jso
 
 ## `adr/ADR_ALL_ARC-N-index-anchorpost.md`
 
-La décision pour le projet : son index est commis dans son dépôt, généré et vérifié par un paquet privé, lu par Anchorpost sans calcul ; la CLI reste hors ligne. Les alternatives écartées (calcul côté serveur, scripts copiés, paquet public) sont celles du grilling d'Anchorpost (`ADR_ALL_ARC-11`, `ADR_ALL_ARC-13` de ce dépôt-là), reprises ici pour que le projet n'ait pas à les rejouer.
+La décision pour le projet : son index est commis dans son dépôt, généré et vérifié par un paquet privé, lu par Anchorpost sans calcul ; la CLI reste hors ligne. Les alternatives écartées (calcul côté serveur, scripts copiés, paquet public) sont celles du grilling d'Anchorpost (`ARC-11`, `ARC-13` de ce dépôt-là, sous sa forme d'avant le standard tant qu'il n'a pas migré), reprises ici pour que le projet n'ait pas à les rejouer.
 
 ## `fragments/`
 

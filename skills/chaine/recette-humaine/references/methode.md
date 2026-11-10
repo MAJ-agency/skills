@@ -92,12 +92,12 @@ Un défaut confirmé devient un ticket `Type: défaut`, au format « prêt pour 
 
 | Surface             | Preuve                                                                                     |
 | ------------------- | ------------------------------------------------------------------------------------------ |
-| refus à l'échéance  | `apps/api/src/licence/recette.licence.db.spec.ts` « [RULE_ALL_LIC-3] refuse une licence expirée » |
+| refus à l'échéance  | `apps/api/src/licence/recette.licence.db.spec.ts` « refuse une licence expirée » |
 | écran de renouvellement | `tests/recette-licence.spec.ts` « affiche la date d'échéance », « propose le renouvellement » |
 ```
 
 - Le fichier de test entre accents graves (`*.spec.ts`, `*.test.ts`, `*.e2e-spec.ts`), puis le **titre exact** de chaque test entre « » ou "" ; plusieurs titres d'un même fichier se suivent, séparés par des virgules.
-- Le titre est celui du premier argument de `it(…)` ou `test(…)`, caractère pour caractère : le gate le cherche littéralement.
+- Le titre est celui du premier argument de `it(…)` ou `test(…)`, caractère pour caractère : le gate le cherche littéralement. Un test de recette ne porte pas d'identifiant de règle dans son titre (`.claude/rules/tests.md`) : la règle est citée par la ligne `Règles:`.
 - Quand le ticket passe `Fait`, le gate refuse un test introuvable, et un test désactivé (`it.skip`, `test.skip`, `xit`, `it.todo`, ou sous un `describe.skip`) : il ne prouve rien.
 
 ## Ce qu'un premier passage a appris

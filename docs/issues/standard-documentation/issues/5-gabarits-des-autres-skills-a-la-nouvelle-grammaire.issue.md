@@ -1,6 +1,6 @@
 # Passer les gabarits des autres skills à la grammaire des identifiants
 
-Status: ready-for-agent
+Status: resolved
 Type: task
 Blocked by: 1
 
@@ -36,7 +36,20 @@ Blocked by: 1
 
 `pnpm test` (les bancs ne lisent pas les ADR, mais `settings-json` et `references-agent` tournent sur le dépôt posé).
 
+## Answer
+
+Livré par la PR #43 (vers `sujet/standard-documentation`) :
+
+- ADR des skills de service renommées par `git mv`, titres compris : `ADR_ALL_ARC-2-…` (nest), `ADR_ALL_ARC-N-*` (socle-tests, chaîne), `ADR_ALL_WEB-1-…`, `ADR_ALL_MOB-1-…` ; `{{N}}` gardés. Citations `ARC-n`, `WEB-n`, `MOB-n`, `DES-1`, `XXX-2` reprises dans les `CLAUDE.md`, règles, guides, tickets, critères de revue et le `README.md`.
+- Appels de `next-id.mjs` à trois arguments partout (`ADR ALL ARC`, `SPEC <CTX> <TRI>`), `readme-commandes.md` compris.
+- `socle-monorepo` pose `scripts/docs/next-id.mjs` (avec `identifiants.mjs`, `next-id-branches.mjs`) : sa propre ADR se numérote à la pose, sans la chaîne.
+- Les tickets du socle se posent sous la spec : `docs/features/socle/all/issues/SPEC_ALL_SOC-1-socle.<NN>.issue.md`, titres et citations `SPEC_ALL_SOC-1.<NN>`, `Blocked by: NN` quand le bloquant est toujours posé ; `issue-tracker.md` du socle à la grammaire.
+- `recette-humaine` : forme de la preuve d'un défaut (colonne « Preuve », fichier puis titres exacts) ; `criteres-documentation.md` : registre `docs/metier/regles/<ctx>/RULE_<CTX>_<TRI>-<n>.md`.
+- Tests : 275 verts (`pnpm test`). Pose complète (monorepo, api, web, tests, chaîne) : `docs/adr/` ne contient que des `ADR_ALL_*`, `pnpm check` vert, `references-agent` vert, `next-id.mjs ADR ALL ARC` → `12`.
+- Restent au ticket `8` : les regex locales de `tests-creux.mjs` et `references-agent*.mjs` (ancienne grammaire, commentaires compris).
+
 ## Comments
 
 - 2026-11-10 — Ouvert à la clôture du grilling (ticket `1`). Les fichiers de `socle-monorepo` sont déjà renommés dans la PR du grilling.
 - 2026-11-10 — Ajout de l'architecte, sur le constat de la fille du ticket `2` : les appels `next-id.mjs ARC` et `next-id.mjs <TRI>` des SKILL.md sont à reprendre ici.
+- 2026-11-10 — Résolu par la PR #43 : gabarits, citations et appels de `next-id` à la grammaire ; première pose complète verte.
