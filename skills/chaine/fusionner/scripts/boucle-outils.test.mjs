@@ -76,7 +76,8 @@ test("boucle.sh modifié sur develop : la boucle se relance sur la nouvelle vers
   const { d, publier } = jouet();
   const reelle = readFileSync(BOUCLE, "utf8");
   publier({
-    "boucle.sh": reelle.replace("\n", '\necho "BOUCLE-NOUVELLE" >&2\n'),
+    // Une ligne insérée juste après le shebang : la boucle publiée diffère de celle qui tourne.
+    "boucle.sh": reelle.replace(/^([^\n]*\n)/, '$1echo "BOUCLE-NOUVELLE" >&2\n'),
     "file.sh": fileSh(1, 0),
     "passer.sh": passerSh(1),
   });
