@@ -235,8 +235,11 @@ rafraichir_sujets() {
     case "$verdict" in livré*) continue ;; esac
     [ "$sous" = "—" ] || continue
     bash "$SUJET" rafraichir "$nom" --abandon-si-conflit 2>&1 | sed "s#^#[sujet/$nom] #"
-    [ "${PIPESTATUS[0]}" = 0 ] ||
-      echo "[sujet/$nom] SUJET EN CONFLIT avec develop : à résoudre par une session (sujet.sh rafraichir $nom)"
+    case "${PIPESTATUS[0]}" in
+      0) ;;
+      6) echo "[sujet/$nom] PAS PROPRE : worktree du capitaine à nettoyer, sujet laissé tel quel (aucun conflit)" ;;
+      *) echo "[sujet/$nom] SUJET EN CONFLIT avec develop : à résoudre par une session (sujet.sh rafraichir $nom)" ;;
+    esac
   done
   git switch -q --detach origin/develop 2>/dev/null || true
 }
@@ -259,8 +262,12 @@ traiter_sujets() {
       'vers sujet/'*)
         sujet=${etat#vers sujet/}
         bash "$SUJET" regrouper "$sujet" "$n" 2>&1 | sed "s#^#[\#$n] #"
-        if [ "${PIPESTATUS[0]}" = 0 ]; then echo "[#$n] REGROUPÉE dans sujet/$sujet (son ticket le déclare)"
-        else echo "[#$n] regroupement dans sujet/$sujet impossible (SUJET EN CONFLIT ?)"; fi ;;
+        rc=${PIPESTATUS[0]}
+        case "$rc" in
+          0) echo "[#$n] REGROUPÉE dans sujet/$sujet (son ticket le déclare)" ;;
+          6) echo "[#$n] PAS PROPRE : worktree du capitaine à nettoyer, regroupement repris au tour suivant (aucun renvoi)" ;;
+          *) echo "[#$n] regroupement dans sujet/$sujet impossible (SUJET EN CONFLIT ?)" ;;
+        esac ;;
       'prête (à recibler sur sujet/'*)
         sujet=${etat#prête (à recibler sur }
         sujet=${sujet%)}
@@ -268,7 +275,10 @@ traiter_sujets() {
       sujet/*': prête (sans CI)')
         bash "$SUJET" relancer "$n" 2>&1 | sed "s#^#[\#$n] #"
         rc=${PIPESTATUS[0]}
-        [ "$rc" != 2 ] || bash "$outils/renvoyer.sh" "$n" "conflit avec ${etat%%:*} : fusionner ${etat%%:*} dans la branche et le résoudre" ;;
+        case "$rc" in
+          2) bash "$outils/renvoyer.sh" "$n" "conflit avec ${etat%%:*} : fusionner ${etat%%:*} dans la branche et le résoudre" ;;
+          6) echo "[#$n] PAS PROPRE : worktree du capitaine à nettoyer, sous-PR laissée dans la file (aucun renvoi)" ;;
+        esac ;;
       sujet/*': prête')
         bash "$SUJET" fusionner "$n" 2>&1 | tee "$sortie" | sed "s#^#[\#$n] #"
         rc=${PIPESTATUS[0]}
@@ -277,6 +287,8 @@ traiter_sujets() {
           3) bash "$outils/renvoyer.sh" "$n" "fusion dans ${etat%%:*} refusée par GitHub (conflit avec le sujet) : fusionner ${etat%%:*} dans la branche et le résoudre" ;;
           4) bash "$outils/refus.sh" "$n" "$sortie" ;; # corrigeable (titre, revue, base) : renvoyée
           5) echo "[#$n] sous-PR bougée pendant sa mise à jour : reprise au tour suivant" ;;
+          # Worktree du capitaine sale : rien que l'auteur puisse corriger, jamais un renvoi.
+          6) echo "[#$n] PAS PROPRE : worktree du capitaine à nettoyer, sous-PR laissée dans la file (aucun renvoi)" ;;
           7) echo "[#$n] sous-PR non éligible (fermée ou en brouillon)" ;;
           8) echo "[#$n] MISE À JOUR avec ${etat%% :*} (index régénérés), CI relancée" ;;
           *) echo "[#$n] sous-PR non éligible (sortie $rc)" ;;

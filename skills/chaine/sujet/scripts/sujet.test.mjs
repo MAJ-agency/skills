@@ -263,7 +263,7 @@ test("livrer-prets --dry-run : seul le sujet prêt est annoncé, rien n’est ou
   assert.equal(r.status, 0, r.stdout + r.stderr);
   assert.match(
     r.stdout,
-    /^sujet\/pret prêt : livrerait « feat\(demo\): sujet pret — 1 sous-PR » \(--dry-run/m,
+    /^sujet\/pret prêt : livrerait « feat\(demo\): sujet\/pret — 1 sous-PR » \(--dry-run/m,
   );
   assert.match(r.stdout, /^sujet\/manuel prêt, mais label sujet-manuel/m);
   assert.match(
@@ -372,16 +372,50 @@ test("demarrer d'un ticket de sujet livré part de develop, sans rouvrir le suje
   assert.equal(sujetsDistants(d), "");
 });
 
-test("sujet livre : sans carte, branche absente et commit de merge sur develop", () => {
+// Sans carte : le sujet est livré quand sa branche a disparu et que develop contient le commit de
+// merge que la chaîne écrit vraiment (passer.sh), jamais un message forgé pour le test.
+test("sujet livre : sans carte, livré par passer.sh puis branche supprimée, demarrer ne le rouvre pas", () => {
   const d = depotJouet();
   assert.equal(d.lancer(SCRIPT, "livre", "demo").status, 1, "rien : pas livré");
-  d.git("switch", "-q", "-c", "sujet/demo", "origin/develop");
+  d.branche("sujet/demo", "origin/develop", { "docs/x.md": "x\n" }, "docs(demo): x (#1)");
+  d.git("switch", "-q", "--detach", "origin/develop");
+  d.github({
+    exiges: ["qualite"],
+    checks: { "*": { qualite: "SUCCESS" } },
+    pulls: [
+      {
+        number: 2,
+        title: "docs(demo): sujet/demo — 1 sous-PR",
+        head: "sujet/demo",
+        base: "develop",
+        labels: ["à-fusionner"],
+      },
+    ],
+  });
+  const passe = d.lancer(script("fusionner", "passer.sh"), "2");
+  assert.equal(passe.status, 0, passe.stdout + passe.stderr);
+  assert.equal(d.lancer(SCRIPT, "livre", "demo").status, 1, "branche encore là : pas livré");
+  // GitHub supprime la branche du sujet à la fusion de sa PR finale.
+  d.git("push", "-q", "origin", ":refs/heads/sujet/demo");
+  assert.equal(d.lancer(SCRIPT, "livre", "demo").status, 0, "livré");
+  assert.equal(d.lancer(SCRIPT, "livre", "dem").status, 1, "un préfixe n'est pas le sujet");
+  d.git("switch", "-q", "-c", "feat/travail", "origin/develop");
+  const r = demarrer(d, "demo");
+  assert.equal(r.status, 4, r.stdout + r.stderr);
+  assert.match(r.stdout, /sujet\/demo est livré dans develop : on ne le rouvre pas/);
+  assert.equal(sujetsDistants(d), "", "sujet/demo pas recréé");
+});
+
+test("sujet livre : une fusion faite sur GitHub (message par défaut) compte, un autre sujet au nom plus long non", () => {
+  const d = depotJouet();
+  d.git("switch", "-q", "-c", "sujet/demo-2", "origin/develop");
   d.ecrire("x.md", "x\n");
   d.commit("feat: x");
   d.git("switch", "-q", "develop");
-  d.git("merge", "-q", "--no-ff", "-m", "feat: livre sujet/demo", "sujet/demo");
+  d.git("merge", "-q", "--no-ff", "-m", "Merge pull request #3 from org/sujet/demo-2", "sujet/demo-2");
   d.git("push", "-q", "origin", "develop");
-  assert.equal(d.lancer(SCRIPT, "livre", "demo").status, 0, "livré");
+  assert.equal(d.lancer(SCRIPT, "livre", "demo-2").status, 0, "livré par l'interface de GitHub");
+  assert.equal(d.lancer(SCRIPT, "livre", "demo").status, 1, "sujet/demo n'est pas sujet/demo-2");
 });
 
 // une livraison intermédiaire ne met pas la branche du sujet en jeu.
