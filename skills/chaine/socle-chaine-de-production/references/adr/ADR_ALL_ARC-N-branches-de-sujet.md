@@ -1,4 +1,4 @@
-# ARC-{{N}} — Une série de PR liées vit sur une branche de sujet et entre dans `develop` en une seule PR, par un commit de merge
+# ADR_ALL_ARC-{{N}} — Une série de PR liées vit sur une branche de sujet et entre dans `develop` en une seule PR, par un commit de merge
 
 - Statut : **accepté**
 - Date : {{DATE}}

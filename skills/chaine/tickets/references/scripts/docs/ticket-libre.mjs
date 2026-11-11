@@ -8,27 +8,24 @@
  * session l'a commencé. Le script croise donc trois sources :
  *   1. la ligne `Status:` du ticket sur origin/develop et sur chaque branche `sujet/*`, où un
  *      ticket peut vivre avant develop (Fait, en cours, wontfix → pris) ;
- *   2. les branches distantes dont le nom porte l'identifiant (`feat/soc-1-03-…`) ;
+ *   2. les branches distantes dont le nom porte l'identifiant (`feat/spec-all-soc-1-03-…`) ;
  *   3. les PR ouvertes dont le titre porte l'identifiant ou dont la branche le porte
  *      (`gh api`, REST). Sans `gh` authentifié (session cloud), le script ne conclut pas : il
  *      donne la recherche `search_pull_requests` à faire par l'outil GitHub MCP.
  *
- * Usage : node scripts/docs/ticket-libre.mjs SOC-1.03
+ * Usage : node scripts/docs/ticket-libre.mjs SPEC_ALL_SOC-1.03
  * Sorties : 0 libre · 1 pris (le script dit par qui ; ticket archivé compris) · 2 usage ou ticket introuvable
  *           3 libre côté git, mais PR ouvertes non vérifiées (gh indisponible)
  */
 import { execFileSync } from 'node:child_process';
-import { lireTicket, slug as slugDe } from './identifiants.mjs';
+import { branchePorte, estArchive, fichierDuTicket, lireTicket, texteCite } from './identifiants.mjs';
 
 const id = (process.argv[2] ?? '').toUpperCase();
-const t = lireTicket(id);
-if (!t) {
-  console.error('Usage : node scripts/docs/ticket-libre.mjs <PRÉFIXE>-<n>.<NN>   (ex. SOC-1.03, ALL-FOF-11.04)');
+if (!lireTicket(id)) {
+  console.error('Usage : node scripts/docs/ticket-libre.mjs <SPEC>.<NN>   (ex. SPEC_ALL_SOC-1.03, SPEC_FNSMR_PAY-3.02)');
   process.exit(2);
 }
-const { spec, index: nn } = t;
-const slug = slugDe(id);
-const dansBranche = new RegExp(`(^|[/-])${slug}(-|$)`);
+const dansBranche = (branche) => branchePorte(branche, id);
 
 const git = (...args) => execFileSync('git', args, { encoding: 'utf8' });
 const pris = [];
@@ -45,15 +42,15 @@ const refs = [
     .split('\n')
     .filter(Boolean),
 ];
-const motif = new RegExp(`/${spec}-[^/]*\\.${nn}\\.issue\\.md$`);
+const motif = fichierDuTicket(id);
 // Un ticket archivé (`issues/archive/`) est fait : hors du chemin de la réservation.
 let archive = false;
 const trouves = refs.flatMap((ref) => {
   const candidats = git('ls-tree', '-r', '--name-only', ref, 'docs')
     .split('\n')
     .filter((l) => motif.test(l));
-  if (candidats.some((l) => l.includes('/issues/archive/'))) archive = true;
-  const f = candidats.find((l) => !l.includes('/issues/archive/'));
+  if (candidats.some(estArchive)) archive = true;
+  const f = candidats.find((l) => !estArchive(l));
   return f ? [{ ref, f }] : [];
 });
 if (!trouves.length && archive) {
@@ -83,7 +80,7 @@ const statuts = trouves.map(({ ref, f }) => {
 const branches = git('ls-remote', '--heads', 'origin')
   .split('\n')
   .map((l) => l.split('\trefs/heads/')[1])
-  .filter((b) => b && dansBranche.test(b));
+  .filter((b) => b && dansBranche(b));
 for (const b of branches) pris.push(`branche distante : ${b}`);
 
 // 3. PR ouvertes (REST : `gh pr list` passe par GraphQL, refusé depuis les sessions cloud).
@@ -96,7 +93,7 @@ try {
   );
   for (const ligne of lignes.split('\n').filter(Boolean)) {
     const [num, ref, draft, titre] = ligne.split('\t');
-    if (titre.toUpperCase().includes(id) || dansBranche.test(ref)) {
+    if (texteCite(titre, id) || dansBranche(ref)) {
       pris.push(`PR #${num}${draft === 'true' ? ' (brouillon)' : ''} : ${titre} [${ref}]`);
     }
   }

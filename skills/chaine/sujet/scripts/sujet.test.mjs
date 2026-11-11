@@ -6,16 +6,16 @@ import assert from "node:assert/strict";
 import { depotJouet, script } from "./depot-jouet.mjs";
 
 const SCRIPT = script("sujet", "sujet.sh");
-const SPEC = "docs/features/demo/all/ALL-DEM-1-demo.spec.md";
+const SPEC = "docs/features/demo/all/SPEC_ALL_DEM-1-demo.spec.md";
 const ticket = (nn) =>
-  `docs/features/demo/all/issues/ALL-DEM-1-demo.${nn}.issue.md`;
+  `docs/features/demo/all/issues/SPEC_ALL_DEM-1-demo.${nn}.issue.md`;
 
 const demarrer = (d, id) => d.lancer(SCRIPT, "demarrer", id);
 
 // Sujet ouvert, spec et deux tickets dessus, `.02` bloqué par `.01`.
 function sujetAvecTickets(blocage = "01") {
   const d = depotJouet();
-  d.ecrire(SPEC, "# ALL-DEM-1\n\n- **Sujet :** sujet/demo\n");
+  d.ecrire(SPEC, "# SPEC_ALL_DEM-1\n\n- **Sujet :** sujet/demo\n");
   d.ecrire(ticket("01"), "# .01\n\nStatus: ready-for-agent\nBlocked by: —\n");
   d.ecrire(
     ticket("02"),
@@ -23,17 +23,17 @@ function sujetAvecTickets(blocage = "01") {
   );
   d.commit("docs: specs");
   d.git("push", "-q", "origin", "HEAD:develop", "HEAD:refs/heads/sujet/demo");
-  d.git("switch", "-q", "-c", "feat/all-dem-1-02-travail", "origin/develop");
+  d.git("switch", "-q", "-c", "feat/spec-all-dem-1-02-travail", "origin/develop");
   return d;
 }
 
 test("demarrer refuse un ticket dont le Blocked by: n’est pas fait sur le sujet", () => {
   const d = sujetAvecTickets("01");
-  const r = demarrer(d, "ALL-DEM-1.02");
+  const r = demarrer(d, "SPEC_ALL_DEM-1.02");
   assert.equal(r.status, 4, r.stdout + r.stderr);
   assert.match(
     r.stdout,
-    /bloqué par ALL-DEM-1\.01, pas encore fait sur sujet\/demo/,
+    /bloqué par SPEC_ALL_DEM-1\.01, pas encore fait sur sujet\/demo/,
   );
 });
 
@@ -43,24 +43,24 @@ test("demarrer accepte le ticket une fois son bloquant fait sur le sujet", () =>
   d.ecrire(ticket("01"), "# .01\n\nStatus: Fait — PR #1\nBlocked by: —\n");
   d.commit("feat: .01");
   d.git("push", "-q", "origin", "HEAD:sujet/demo");
-  d.git("switch", "-q", "feat/all-dem-1-02-travail");
-  const r = demarrer(d, "ALL-DEM-1.02");
+  d.git("switch", "-q", "feat/spec-all-dem-1-02-travail");
+  const r = demarrer(d, "SPEC_ALL_DEM-1.02");
   assert.equal(r.status, 0, r.stdout + r.stderr);
   assert.match(r.stdout, /^base=sujet\/demo$/m);
 });
 
 test("demarrer lit les identifiants complets et ignore les parenthèses", () => {
-  const d = sujetAvecTickets("— (ALL-DEM-1.01 conseillé avant)");
-  assert.equal(demarrer(d, "ALL-DEM-1.02").status, 0);
-  const e = sujetAvecTickets("ALL-DEM-1.01 (registre)");
-  const r = demarrer(e, "ALL-DEM-1.02");
+  const d = sujetAvecTickets("— (SPEC_ALL_DEM-1.01 conseillé avant)");
+  assert.equal(demarrer(d, "SPEC_ALL_DEM-1.02").status, 0);
+  const e = sujetAvecTickets("SPEC_ALL_DEM-1.01 (registre)");
+  const r = demarrer(e, "SPEC_ALL_DEM-1.02");
   assert.equal(r.status, 4);
-  assert.match(r.stdout, /bloqué par ALL-DEM-1\.01/);
+  assert.match(r.stdout, /bloqué par SPEC_ALL_DEM-1\.01/);
 });
 
 test("demarrer signale une ligne Blocked by: qui ne cite aucun ticket, sans refuser", () => {
   const d = sujetAvecTickets("tous les tickets du sujet");
-  const r = demarrer(d, "ALL-DEM-1.02");
+  const r = demarrer(d, "SPEC_ALL_DEM-1.02");
   assert.equal(r.status, 0, r.stdout + r.stderr);
   assert.match(r.stdout, /ne cite aucun ticket/);
 });
@@ -69,26 +69,26 @@ test("demarrer refuse quand la spec du ticket n’est pas encore sur le sujet", 
   const d = depotJouet();
   // Le sujet existe depuis avant la spec, entrée ensuite dans develop seulement.
   d.git("push", "-q", "origin", "HEAD:refs/heads/sujet/demo");
-  d.ecrire(SPEC, "# ALL-DEM-1\n\nSujet: sujet/demo\n");
+  d.ecrire(SPEC, "# SPEC_ALL_DEM-1\n\nSujet: sujet/demo\n");
   d.ecrire(ticket("01"), "# .01\n\nStatus: ready-for-agent\nBlocked by: —\n");
   d.commit("docs: specs");
   d.git("push", "-q", "origin", "HEAD:develop");
-  d.git("switch", "-q", "-c", "feat/all-dem-1-01-travail", "origin/develop");
-  const r = demarrer(d, "ALL-DEM-1.01");
+  d.git("switch", "-q", "-c", "feat/spec-all-dem-1-01-travail", "origin/develop");
+  const r = demarrer(d, "SPEC_ALL_DEM-1.01");
   assert.equal(r.status, 4, r.stdout + r.stderr);
-  assert.match(r.stdout, /spec ALL-DEM-1 n'est pas encore sur sujet\/demo/);
+  assert.match(r.stdout, /spec SPEC_ALL_DEM-1 n'est pas encore sur sujet\/demo/);
   assert.match(r.stdout, /rafraichir demo/);
 });
 
 test("demarrer refuse un ticket dont la spec n’est que sur une branche de specs", () => {
   const d = depotJouet();
   d.git("switch", "-q", "-c", "docs/demo-specs");
-  d.ecrire(SPEC, "# ALL-DEM-1\n\nSujet: sujet/demo\n");
+  d.ecrire(SPEC, "# SPEC_ALL_DEM-1\n\nSujet: sujet/demo\n");
   d.ecrire(ticket("01"), "# .01\n\nStatus: ready-for-agent\nBlocked by: —\n");
   d.commit("docs: specs");
   d.git("push", "-q", "origin", "HEAD:refs/heads/docs/demo-specs");
-  d.git("switch", "-q", "-c", "feat/all-dem-1-01-travail");
-  const r = demarrer(d, "ALL-DEM-1.01");
+  d.git("switch", "-q", "-c", "feat/spec-all-dem-1-01-travail");
+  const r = demarrer(d, "SPEC_ALL_DEM-1.01");
   assert.equal(r.status, 4, r.stdout + r.stderr);
   assert.match(r.stdout, /ni sur develop ni sur un sujet/);
 });
@@ -110,8 +110,8 @@ test("ouvrir crée le sujet par git push et ne tente aucun appel de protection",
   );
 });
 
-// File du capitaine : une série de 3 PR (ALL-DEM-2), une pile de 2 (#5 ← #6), une série de 3 dont
-// une prio:haute (ALL-DEM-3), une série de 3 dont une hors-sujet (ALL-DEM-4, il en reste 2).
+// File du capitaine : une série de 3 PR (SPEC_ALL_DEM-2), une pile de 2 (#5 ← #6), une série de 3 dont
+// une prio:haute (SPEC_ALL_DEM-3), une série de 3 dont une hors-sujet (SPEC_ALL_DEM-4, il en reste 2).
 function fileAvecSeries() {
   const d = depotJouet();
   const pr = (number, head, autres = {}) => ({
@@ -124,17 +124,17 @@ function fileAvecSeries() {
   });
   d.github({
     pulls: [
-      pr(1, "feat/all-dem-2-01-a"),
-      pr(2, "feat/all-dem-2-02-b"),
-      pr(3, "feat/all-dem-2-03-c"),
+      pr(1, "feat/spec-all-dem-2-01-a"),
+      pr(2, "feat/spec-all-dem-2-02-b"),
+      pr(3, "feat/spec-all-dem-2-03-c"),
       pr(5, "feat/racine"),
       pr(6, "feat/etage", { base: "feat/racine" }),
-      pr(7, "feat/all-dem-3-01-a"),
-      pr(8, "feat/all-dem-3-02-b", { labels: ["prio:haute"] }),
-      pr(9, "feat/all-dem-3-03-c"),
-      pr(10, "feat/all-dem-4-01-a"),
-      pr(11, "feat/all-dem-4-02-b"),
-      pr(12, "feat/all-dem-4-03-c", { labels: ["hors-sujet"] }),
+      pr(7, "feat/spec-all-dem-3-01-a"),
+      pr(8, "feat/spec-all-dem-3-02-b", { labels: ["prio:haute"] }),
+      pr(9, "feat/spec-all-dem-3-03-c"),
+      pr(10, "feat/spec-all-dem-4-01-a"),
+      pr(11, "feat/spec-all-dem-4-02-b"),
+      pr(12, "feat/spec-all-dem-4-03-c", { labels: ["hors-sujet"] }),
     ],
   });
   return d;
@@ -152,7 +152,7 @@ test("regrouper-series --dry-run : série de 3 et pile de 2 annoncées, prio:hau
   );
   assert.deepEqual(
     [cle, nom, numeros(prs)],
-    ["spec ALL-DEM-2", "all-dem-2", "#1 #2 #3"],
+    ["spec SPEC_ALL_DEM-2", "spec-all-dem-2", "#1 #2 #3"],
   );
   const [, cleP, nomP, prsP] = lignes[1].match(
     /^série « (.+) » → sujet\/(\S+) : ([#0-9 ]+) \(--dry-run/,
@@ -174,9 +174,9 @@ test("regrouper-series recible la série et la racine de la pile, puis s’arrê
     d.etat().pulls.map((p) => [p.number, p.base]),
   );
   assert.deepEqual(bases, {
-    1: "sujet/all-dem-2",
-    2: "sujet/all-dem-2",
-    3: "sujet/all-dem-2",
+    1: "sujet/spec-all-dem-2",
+    2: "sujet/spec-all-dem-2",
+    3: "sujet/spec-all-dem-2",
     5: "sujet/pile-5",
     6: "feat/racine",
     7: "develop",
@@ -193,7 +193,7 @@ test("regrouper-series recible la série et la racine de la pile, puis s’arrê
   assert.deepEqual(etiquetees, [1, 2, 3, 5]);
   assert.match(
     d.git("ls-remote", "--heads", "origin", "sujet/*"),
-    /sujet\/all-dem-2[\s\S]*sujet\/pile-5/,
+    /sujet\/pile-5[\s\S]*sujet\/spec-all-dem-2/,
   );
 });
 
@@ -202,10 +202,10 @@ test("regrouper-series recible la série et la racine de la pile, puis s’arrê
 function sujetsALivrer() {
   const d = depotJouet();
   const spec = (n, nom) => ({
-    [`docs/features/demo/all/ALL-DEM-${n}-demo.spec.md`]: `# ALL-DEM-${n}\n\nSujet: sujet/${nom}\n`,
+    [`docs/features/demo/all/SPEC_ALL_DEM-${n}-demo.spec.md`]: `# SPEC_ALL_DEM-${n}\n\nSujet: sujet/${nom}\n`,
   });
   const tk = (n, nn, statut, sujet = "") => ({
-    [`docs/features/demo/all/issues/ALL-DEM-${n}-demo.${nn}.issue.md`]: `# .${nn}\n\nStatus: ${statut}\n${sujet ? `Sujet: sujet/${sujet}\n` : ""}`,
+    [`docs/features/demo/all/issues/SPEC_ALL_DEM-${n}-demo.${nn}.issue.md`]: `# .${nn}\n\nStatus: ${statut}\n${sujet ? `Sujet: sujet/${sujet}\n` : ""}`,
   });
   d.branche(
     "sujet/pret",
@@ -278,7 +278,7 @@ test("livrer-prets --dry-run : seul le sujet prêt est annoncé, rien n’est ou
   assert.deepEqual(d.journal(), []);
   assert.match(
     d.lancer(SCRIPT, "etat").stdout,
-    /^inacheve\t1\t0\t—\tALL-DEM-7\.02 \ten cours$/m,
+    /^inacheve\t1\t0\t—\tSPEC_ALL_DEM-7\.02 \ten cours$/m,
   );
 });
 
@@ -319,38 +319,60 @@ test("livrer-prets ne rouvre pas un sujet dont la livraison intermédiaire est d
   assert.match(d.lancer(SCRIPT, "etat").stdout, /^pret\t.*\tlivré #70$/m);
 });
 
-// Un préfixe à un seul segment (SOC-1) se lit comme ALL-DEM-1.
-test("demarrer accepte un identifiant à un seul segment de préfixe", () => {
+// Un autre contexte que ALL se lit pareil ; l'ancienne forme (SOC-1.01) n'est plus un identifiant.
+test("demarrer lit un ticket d'un autre contexte, et ne lit plus l'ancienne forme", () => {
   const d = depotJouet();
   d.ecrire(
-    "docs/features/socle/SOC-1-socle.spec.md",
-    "# SOC-1\n\nSujet: sujet/socle\n",
+    "docs/features/socle/fnsmr/SPEC_FNSMR_SOC-1-socle.spec.md",
+    "# SPEC_FNSMR_SOC-1\n\nSujet: sujet/socle\n",
   );
   d.ecrire(
-    "docs/features/socle/issues/SOC-1-socle.01.issue.md",
+    "docs/features/socle/fnsmr/issues/SPEC_FNSMR_SOC-1-socle.01.issue.md",
     "# .01\n\nStatus: ready-for-agent\n",
+  );
+  // Une spec restée à l'ancienne forme : aucun script ne la lit, elle ne déclare donc aucun sujet.
+  d.ecrire(
+    "docs/features/vieux/SOC-2-vieux.spec.md",
+    "# SOC-2\n\nSujet: sujet/vieux\n",
   );
   d.commit("docs: specs");
   d.git("push", "-q", "origin", "HEAD:develop", "HEAD:refs/heads/sujet/socle");
-  d.git("switch", "-q", "-c", "feat/soc-1-01-travail", "origin/develop");
-  const r = demarrer(d, "SOC-1.01");
+  d.git(
+    "switch",
+    "-q",
+    "-c",
+    "feat/spec-fnsmr-soc-1-01-travail",
+    "origin/develop",
+  );
+  const r = demarrer(d, "SPEC_FNSMR_SOC-1.01");
   assert.equal(r.status, 0, r.stdout + r.stderr);
   assert.match(r.stdout, /^base=sujet\/socle$/m);
-  assert.equal(d.lancer(SCRIPT, "de", "SOC-1.01").stdout.trim(), "socle");
+  assert.equal(
+    d.lancer(SCRIPT, "de", "SPEC_FNSMR_SOC-1.01").stdout.trim(),
+    "socle",
+  );
+  assert.equal(
+    d.lancer(SCRIPT, "carte").stdout,
+    "SPEC_FNSMR_SOC-1\tsocle\n",
+    "la carte ne porte que des identifiants de la grammaire",
+  );
+  const ancien = demarrer(d, "SOC-1.01");
+  assert.equal(ancien.status, 4, ancien.stdout + ancien.stderr);
+  assert.match(ancien.stdout, /nom de sujet en kebab-case attendu : SOC-1\.01/);
 });
 
 // `regrouper` et `demarrer` ne rouvrent pas un sujet livré.
 function sujetLivre(phase = "fini") {
   const d = depotJouet();
-  d.ecrire(SPEC, "# ALL-DEM-1\n\n- **Sujet :** sujet/demo\n");
+  d.ecrire(SPEC, "# SPEC_ALL_DEM-1\n\n- **Sujet :** sujet/demo\n");
   d.ecrire(ticket("01"), "# .01\n\nStatus: ready-for-agent\nBlocked by: —\n");
   d.ecrire(
-    "docs/features/demo/all/ALL-DEM-1-demo.map.md",
+    "docs/features/demo/all/SPEC_ALL_DEM-1-demo.map.md",
     `# carte\n\nSujet: sujet/demo\n\nPhase: ${phase}\n`,
   );
   d.commit("docs: specs et carte");
   d.git("push", "-q", "origin", "HEAD:develop");
-  d.git("switch", "-q", "-c", "feat/all-dem-1-01-travail", "origin/develop");
+  d.git("switch", "-q", "-c", "feat/spec-all-dem-1-01-travail", "origin/develop");
   return d;
 }
 const sujetsDistants = (d) => d.git("ls-remote", "--heads", "origin", "sujet/*");
@@ -365,7 +387,7 @@ test("regrouper refuse un sujet livré, sans créer de branche", () => {
 
 test("demarrer d'un ticket de sujet livré part de develop, sans rouvrir le sujet", () => {
   const d = sujetLivre("6-nettoyage");
-  const r = demarrer(d, "ALL-DEM-1.01");
+  const r = demarrer(d, "SPEC_ALL_DEM-1.01");
   assert.equal(r.status, 0, r.stdout + r.stderr);
   assert.match(r.stdout, /^base=develop$/m);
   assert.match(r.stdout, /déjà livré/);
@@ -421,9 +443,9 @@ test("sujet livre : une fusion faite sur GitHub (message par défaut) compte, un
 // une livraison intermédiaire ne met pas la branche du sujet en jeu.
 function sujetAvecCarte(phase) {
   const d = depotJouet();
-  d.ecrire(SPEC, "# ALL-DEM-1\n\nSujet: sujet/demo\n");
+  d.ecrire(SPEC, "# SPEC_ALL_DEM-1\n\nSujet: sujet/demo\n");
   d.ecrire(
-    "docs/features/demo/all/ALL-DEM-1-demo.map.md",
+    "docs/features/demo/all/SPEC_ALL_DEM-1-demo.map.md",
     `# carte\n\nSujet: sujet/demo\n\nPhase: ${phase}\n`,
   );
   d.commit("docs: spec et carte");
@@ -437,14 +459,14 @@ const teteDeLaPR = (d) => d.journal().find((e) => e.methode === "POST" && e.rout
 
 test("livrer : la carte qui n'existe que sur le sujet (phase 4) donne une livraison intermédiaire", () => {
   const d = depotJouet();
-  d.ecrire(SPEC, "# ALL-DEM-1\n\nSujet: sujet/demo\n");
+  d.ecrire(SPEC, "# SPEC_ALL_DEM-1\n\nSujet: sujet/demo\n");
   d.commit("docs: spec");
   d.git("push", "-q", "origin", "HEAD:develop");
   d.branche(
     "sujet/demo",
     "origin/develop",
     {
-      "docs/features/demo/all/ALL-DEM-1-demo.map.md":
+      "docs/features/demo/all/SPEC_ALL_DEM-1-demo.map.md":
         "# carte\n\nSujet: sujet/demo\n\nPhase: 4-vague-2\n",
     },
     "docs(demo): carte (#1)",

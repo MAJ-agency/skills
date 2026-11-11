@@ -2,7 +2,7 @@
 
 Les skills parlent en termes de cinq rôles de triage canoniques. Ce fichier fait le lien entre ces rôles et les libellés utilisés dans ce dépôt.
 
-Le tracker est en Markdown local : le « label » est la valeur de la ligne `Status:` en tête de chaque ticket `docs/features/<feature>/issues/<PRÉFIXE>-<n>-<nom>.<NN>.issue.md`.
+Le tracker est en Markdown local : le « label » est la valeur de la ligne `Status:` en tête de chaque ticket `docs/features/<feature>/<ctx>/issues/SPEC_<CTX>_<TRI>-<n>-<nom>.<NN>.issue.md`.
 
 | Label             | Signification                                     |
 | ----------------- | ------------------------------------------------- |

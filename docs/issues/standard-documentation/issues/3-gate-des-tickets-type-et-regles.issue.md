@@ -1,6 +1,6 @@
 # Le gate des tickets vérifie `Type:`, `Règles:` et les tests d'un défaut
 
-Status: ready-for-agent
+Status: resolved
 Type: task
 Blocked by: 2
 
@@ -31,6 +31,22 @@ La convention dit que chaque ticket porte `Type:` et que `Règles:` ne cite que 
 
 `pnpm test` ; sur un dépôt posé, `pnpm check:tickets` dit `tickets : OK — n tickets` et refuse un ticket de test sans `Type:`.
 
+## Answer
+
+Livré dans une PR vers `sujet/standard-documentation`, sans bump du plugin (le sujet est en 4.0.0).
+
+- **`Type:`** obligatoire, lu dans l'en-tête seul (avant le premier `## `) : `task`, `défaut`, `grilling`, `research` ; un commentaire de gabarit (`Type: task # …`) est toléré. Absente : refus, sauf ticket gelé sous la clé `types` de `tickets-dette.json`. Cette clé n'existe pas dans la dette livrée : `tickets.mjs --geler-types` l'écrit une fois, à l'arrivée du gate, avec les tickets sans `Type:` du moment, puis refuse de la rejouer ; `--elaguer` retire les entrées éteintes.
+- **`Règles:`** : absente, rien à vérifier ; présente, au moins une règle. Virgules ou espaces, accents graves ou non, rien d'autre sur la ligne. Chaque identifiant passe par `REGLE` d'`identifiants.mjs`, sans regex locale, et doit avoir son fichier `docs/metier/regles/<ctx>/RULE_….md` dans le dossier de son contexte. Il est écrit tel quel, zéros compris : `RULE_FNSMR_LIC-5` ne vaut pas `-05`. Il est du contexte du ticket (celui de son identifiant) ou de `ALL` ; un ticket au nom illisible n'accepte que `ALL`.
+- **Défaut `Fait — PR #n`** : la colonne « Preuve » de `## Surfaces` nomme `` `fichier.spec.ts` « titre exact » `` (ou `"…"`). Le gate refuse :
+  - un défaut qui ne nomme aucun test ;
+  - un fichier nommé sans titre ;
+  - un test introuvable ;
+  - un test désactivé (`.skip`, `.todo`, `xit`/`xdescribe`, `{ skip }`/`{ todo }` de node:test), sur sa ligne ou sur un bloc qui l'englobe.
+
+  Les fichiers lus sont les `*.test.*`, `*.spec.*` et `*.e2e-spec.*` de code suivis par git. Limite documentée dans `etatDuTest` : l'analyse se fait ligne à ligne, les blocs englobants se lisent par l'indentation.
+- Tests : `pnpm test` à 271 verts (262 avant). `Type: task` a été ajouté aux fixtures existantes, assertions inchangées. Il y a 6 nouveaux tests unitaires et 3 tests du gate sur dépôt jouet (registre de deux règles, dette `types`).
+
 ## Comments
 
 - 2026-11-10 — Ouvert à la clôture du grilling (ticket `1`).
+- 2026-11-10 — Résolu : `Type:`, `Règles:` et tests d'un défaut `Fait` vérifiés par le gate, dette `types` par `--geler-types`, 271 tests verts. Voir `## Answer`.

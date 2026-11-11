@@ -17,7 +17,12 @@ import { join } from "node:path";
 const VEILLE = new URL("./veille.sh", import.meta.url).pathname;
 
 // `etats` : la table de file.sh renvoyée à la sonde n (0 = lecture initiale), la dernière se répète.
-function veilleJouet(etats, { rcBoucle = 0, args = ["--pause", "0.2", "--duree", "0.04"] } = {}) {
+// Chaque test borne la veille par `sondes` (le nombre d'états qu'il veut voir consommer, lecture
+// initiale exclue) : la durée (1 min) n'est qu'un garde-fou, aucun test ne dépend de l'horloge.
+function veilleJouet(
+  etats,
+  { rcBoucle = 0, sondes = etats.length - 1, args = ["--pause", "0.2", "--duree", "1", "--sondes", String(sondes)] } = {},
+) {
   const dir = mkdtempSync(join(tmpdir(), "veille-"));
   copyFileSync(VEILLE, join(dir, "veille.sh"));
   writeFileSync(
@@ -43,7 +48,8 @@ cat "$f"
   const lancements = existsSync(journal)
     ? readFileSync(journal, "utf8").trim().split("\n").length
     : 0;
-  return { ...r, lancements };
+  const compte = Number(readFileSync(join(dir, "compte"), "utf8"));
+  return { ...r, lancements, compte };
 }
 
 const prete = (n) => `${n}\tprête\t\n`;
@@ -57,7 +63,7 @@ test("file vide, puis une PR prête : boucle.sh relancée une fois (lancement in
 });
 
 test("PR seulement « CI en cours » : pas de relance", () => {
-  const r = veilleJouet([`31\tCI en cours\t\n32\tattend #31\t\n33\tbloquée\t\n`]);
+  const r = veilleJouet([`31\tCI en cours\t\n32\tattend #31\t\n33\tbloquée\t\n`], { sondes: 2 });
   assert.equal(r.status, 0, r.stderr);
   assert.equal(r.lancements, 1);
 });
@@ -71,13 +77,14 @@ test("même PR sautée deux sondes de suite : une seule relance ; rouge puis pr�
 });
 
 test("durée écoulée : VEILLE FINIE, sortie 0", () => {
-  const r = veilleJouet([""]);
+  // Seul test qui compte sur l'horloge : pas de --sondes, une durée courte, aucun nombre de sondes attendu.
+  const r = veilleJouet([""], { args: ["--pause", "0.2", "--duree", "0.04"] });
   assert.equal(r.status, 0);
   assert.match(r.stdout, /^VEILLE FINIE \d\d:\d\d$/m);
 });
 
 test("boucle.sh sort en 3 : VEILLE ARRÊTÉE, sortie 3", () => {
-  const r = veilleJouet([""], { rcBoucle: 3 });
+  const r = veilleJouet([""], { rcBoucle: 3, sondes: 1 });
   assert.equal(r.status, 3);
   assert.match(r.stdout, /^VEILLE ARRÊTÉE \d\d:\d\d/m);
   assert.doesNotMatch(r.stdout, /VEILLE FINIE/);
@@ -85,7 +92,7 @@ test("boucle.sh sort en 3 : VEILLE ARRÊTÉE, sortie 3", () => {
 });
 
 test("journal « file vide » : au plus une ligne par tranche de 10 min", () => {
-  const r = veilleJouet([""]);
+  const r = veilleJouet([""], { sondes: 3 });
   assert.equal(r.stdout.match(/file vide/g)?.length, 1);
 });
 
@@ -96,4 +103,12 @@ test("PR mise de côté sans CI : relancée quand sa CI arrive (prête ou rouge)
   assert.equal(r.lancements, 3);
   const r2 = veilleJouet(["", sansCi, `31\tCI en cours\t\n`, `31\tCI rouge : qualite\t\n`]);
   assert.equal(r2.lancements, 3);
+});
+
+test("--sondes 2 : la veille s'arrête après deux sondes (lecture initiale + 2 = 3 appels de file.sh)", () => {
+  const r = veilleJouet([""], { sondes: 2 });
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stdout, /^VEILLE FINIE \d\d:\d\d$/m);
+  assert.equal(r.compte, 3);
+  assert.equal(r.lancements, 1);
 });

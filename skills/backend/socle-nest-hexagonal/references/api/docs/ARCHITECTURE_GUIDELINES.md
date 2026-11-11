@@ -4,7 +4,7 @@ This guide describes how the project backend is structured following hexagonal (
 
 > **Mental model.** Think of the application as a walled city (the domain). _Ports_ are the gates in the wall — they define who is allowed to pass and in which direction. _Adapters_ are the roads outside the gates: HTTP, a database driver, an upstream API, an identity provider. The city does not know or care which road you took; it only knows the gate. Swap any road and the city is unchanged.
 
-**Stack.** Kysely, not an ORM · Zod / `nestjs-zod` for validation, not `class-validator` · UUID v7 minted app-side · Vitest · pnpm. Identifiers are **English and generic**, prose is French (`ARC-4`).
+**Stack.** Kysely, not an ORM · Zod / `nestjs-zod` for validation, not `class-validator` · UUID v7 minted app-side · Vitest · pnpm. Identifiers are **English and generic**, prose is French (`ADR_ALL_ARC-4`).
 
 The binding, machine-readable rules are in [`../CLAUDE.md`](../CLAUDE.md). This document is the _why_ — read it when a rule is unclear. The ADRs ([`../../../docs/adr/`](../../../docs/adr/)) are the ultimate authority on the decisions cited throughout.
 
@@ -250,7 +250,7 @@ Contract that inbound adapters use to drive a use case. One port per use case, s
 export interface ICreateRequestUseCaseParams {
   accountId: string; // identity, from the session — never a client-supplied field
 <!-- ══ TENANT-B ══ -->
-  tenantId: string; // tenant, from the session (ARC-2) — never a client-supplied field
+  tenantId: string; // tenant, from the session (ADR_ALL_ARC-2) — never a client-supplied field
 <!-- ══ /TENANT-B ══ -->
   resourceId: string;
   holderId: string;
@@ -277,11 +277,11 @@ export interface IRequestRepository {
 
 export interface IUnitOfWork {
 <!-- ══ TENANT-A ══ -->
-  // A transaction boundary and nothing else (ARC-2).
+  // A transaction boundary and nothing else (ADR_ALL_ARC-2).
   run<T>(work: () => Promise<T>): Promise<T>;
 <!-- ══ /TENANT-A ══ -->
 <!-- ══ TENANT-B ══ -->
-  // The ONLY path to a tenant row: one transaction, scoped to one tenant (ARC-2).
+  // The ONLY path to a tenant row: one transaction, scoped to one tenant (ADR_ALL_ARC-2).
   runInTenant<T>(tenantId: string, work: () => Promise<T>): Promise<T>;
 <!-- ══ /TENANT-B ══ -->
 }
@@ -326,7 +326,7 @@ export class CreateRequestUseCase implements ICreateRequestUseCase {
 <!-- ══ TENANT-B ══ -->
     // One transaction, one tenant: the ownership check, the atomic claim and
     // the insert commit or roll back together. tenantId comes from the
-    // authenticated session (ARC-2), never from the body.
+    // authenticated session (ADR_ALL_ARC-2), never from the body.
     return this.uow.runInTenant(params.tenantId, async () => {
 <!-- ══ /TENANT-B ══ -->
       const existing = await this.requests.findByIdempotencyKey(params.idempotencyKey);
@@ -374,7 +374,7 @@ A shared collaborator that is **neither a use case** (not driven by an inbound A
 <!-- ══ TENANT-A ══ -->
 A use case that writes more than one row wraps its work in `IUnitOfWork.run`. Either everything commits, or nothing does.
 
-> In a multi-tenant service the primitive would be `runInTenant(tenantId, work)`, because there a transaction is also the tenant boundary. **This service is single-tenant (`ARC-2`)**, so the primitive is just `run(work)`: a transaction, and nothing else.
+> In a multi-tenant service the primitive would be `runInTenant(tenantId, work)`, because there a transaction is also the tenant boundary. **This service is single-tenant (`ADR_ALL_ARC-2`)**, so the primitive is just `run(work)`: a transaction, and nothing else.
 
 ```typescript
 await this.uow.run(async () => {
@@ -386,7 +386,7 @@ await this.uow.run(async () => {
 <!-- ══ TENANT-B ══ -->
 Every access to tenant data — reads included — goes through `IUnitOfWork.runInTenant(tenantId, work)`. Either everything commits, or nothing does, **and** the whole unit runs under one tenant.
 
-> **This service is multi-tenant (`ARC-2`)**: a transaction is also the tenant boundary. Row-Level Security reads the tenant from a **per-transaction** setting (`set_config(..., true)` = `LOCAL`, cleared at COMMIT), so a pooled connection can never leak a tenant into the next request. The `tenantId` comes from the authenticated session or from a URL coordinate **proven under RLS** — never from a header or a body.
+> **This service is multi-tenant (`ADR_ALL_ARC-2`)**: a transaction is also the tenant boundary. Row-Level Security reads the tenant from a **per-transaction** setting (`set_config(..., true)` = `LOCAL`, cleared at COMMIT), so a pooled connection can never leak a tenant into the next request. The `tenantId` comes from the authenticated session or from a URL coordinate **proven under RLS** — never from a header or a body.
 
 ```typescript
 await this.uow.runInTenant(tenantId, async () => {
@@ -475,19 +475,19 @@ Persistence mapping (domain model ↔ Kysely row) stays **private inside the rep
 ## Ownership & isolation
 
 <!-- ══ TENANT-A ══ -->
-This service is **single-tenant** (`ARC-2`). There is no `tenant_id`, no Row-Level Security, no `runInTenant`.
+This service is **single-tenant** (`ADR_ALL_ARC-2`). There is no `tenant_id`, no Row-Level Security, no `runInTenant`.
 
 **That removes a safety net, and the consequence is the whole point of this section.** With RLS, a forgotten `WHERE` turns a query into an empty result, not a leak. Here there is nothing behind you — **the explicit check IS the protection**.
 <!-- ══ /TENANT-A ══ -->
 <!-- ══ TENANT-B ══ -->
-This service is **multi-tenant, isolated by Row-Level Security** (`ARC-2`). Every tenant table carries `tenant_id NOT NULL`, `ENABLE` + `FORCE ROW LEVEL SECURITY`, and a policy with `USING` + `WITH CHECK` that fails closed on the session setting. The runtime connects as a `NOBYPASSRLS` role; only migrations run as the owner.
+This service is **multi-tenant, isolated by Row-Level Security** (`ADR_ALL_ARC-2`). Every tenant table carries `tenant_id NOT NULL`, `ENABLE` + `FORCE ROW LEVEL SECURITY`, and a policy with `USING` + `WITH CHECK` that fails closed on the session setting. The runtime connects as a `NOBYPASSRLS` role; only migrations run as the owner.
 
 **RLS is a backstop, not a licence.** With RLS, a forgotten `WHERE` turns a query into an empty result, not a cross-tenant leak — but **within** a tenant, nothing proves that a resource belongs to the authenticated account except the use case. So the explicit ownership check stays.
 
 - **MUST**: `tenantId` never comes from a client header or body. Either the session carries it, or it is a URL coordinate **proven under RLS**: inside the transaction, a `SELECT` on the target resource must find it, else `404`. That proof is mandatory because **foreign-key constraints bypass RLS** — without it a row of tenant B can reference a resource of tenant A.
 <!-- ══ /TENANT-B ══ -->
 <!-- ══ ROLES-B ══ -->
-**Roles** (`ARC-2`): the catalogue is a closed `z.enum` in `packages/contracts/src/roles.ts`; who holds which role is data; what a role permits is a rule written in the use case — never a `permission` table. The role comes from the session, and a use case checks it **before** acting, the same way it proves ownership.
+**Roles** (`ADR_ALL_ARC-2`): the catalogue is a closed `z.enum` in `packages/contracts/src/roles.ts`; who holds which role is data; what a role permits is a rule written in the use case — never a `permission` table. The role comes from the session, and a use case checks it **before** acting, the same way it proves ownership.
 <!-- ══ /ROLES-B ══ -->
 
 - **MUST**: a use case touching a resource that belongs to someone proves that ownership **explicitly**, inside the transaction, before acting. Identity comes from the session (`req.session.sub`), never from a client-supplied field.
@@ -496,7 +496,7 @@ This service is **multi-tenant, isolated by Row-Level Security** (`ARC-2`). Ever
 <!-- ══ TENANT-A ══ -->
 - **MUST**: every route reading or writing an owned resource carries a test proving another account is refused. With no RLS backstop, that suite _is_ the isolation proof — treat it as a blocking gate (`docs/methode/pare-feu-ci.md`).
 
-Should the project ever need real multi-tenancy, that is a reopening of `ARC-2` — a migration plus a review of every data access, not a flag to flip.
+Should the project ever need real multi-tenancy, that is a reopening of `ADR_ALL_ARC-2` — a migration plus a review of every data access, not a flag to flip.
 <!-- ══ /TENANT-A ══ -->
 <!-- ══ TENANT-B ══ -->
 - **MUST**: every route reading or writing an owned resource carries a test proving another account is refused. And the **tenant isolation gate** is blocking: SQL introspection (every `public` table RLS-forced or in the versioned allowlist), a cross-tenant leak test (under tenant A, tenant B is invisible and unwritable), a GUC-leak test (the setting is gone outside the transaction) — `docs/methode/pare-feu-ci.md`.

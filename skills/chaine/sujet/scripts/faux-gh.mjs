@@ -9,12 +9,44 @@
 // (méthode autre que GET) est appliquée à l'état et journalisée dans $FAUX_GH/journal.jsonl.
 // =============================================================================
 import { execFileSync, spawnSync } from "node:child_process";
-import { appendFileSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  appendFileSync,
+  mkdirSync,
+  readFileSync,
+  renameSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { join } from "node:path";
 
 const DOSSIER = process.env.FAUX_GH;
 const ORIGINE = process.env.FAUX_GH_ORIGINE;
 const FICHIER = join(DOSSIER, "etat.json");
+
+// Un seul appel à la fois. Chaque appel lit l'état au début et le réécrit à la fin, lectures
+// comprises : sans verrou, deux appels concurrents se marchent dessus. `boucle.sh` lance
+// `file.sh | while …`, dont le producteur lit l'état pendant que le corps de boucle (renvoyer.sh)
+// y pose un label : l'écriture du second était perdue (le label `fusion-bloquée` manquait), ou la
+// lecture tombait sur un fichier à moitié écrit (SyntaxError). GitHub, lui, est atomique : le
+// défaut était celui du faux, pas des scripts. Verrou = création d'un dossier (atomique), libéré à
+// la sortie du processus qui l'a pris. Pas de reprise d'un verrou « périmé » : elle serait elle-même
+// une course (deux appelants qui le jugent périmé, ou un détenteur lent dont on supprimerait le
+// verrou neuf). Chaque banc a son dossier d'état ; un appel tué en laisse le verrou, et l'appel
+// suivant échoue au bout de 30 s plutôt que de lire un état qu'il ne tient pas.
+const VERROU = join(DOSSIER, "etat.verrou");
+const pause = (ms) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+for (let essais = 0; ; essais++) {
+  try {
+    mkdirSync(VERROU);
+    break;
+  } catch (erreur) {
+    if (erreur.code !== "EEXIST") throw erreur;
+    if (essais > 6000) throw new Error("faux gh : verrou de l'état jamais obtenu en 30 s");
+    pause(5);
+  }
+}
+process.on("exit", () => rmSync(VERROU, { recursive: true, force: true }));
+
 const etat = JSON.parse(readFileSync(FICHIER, "utf8"));
 
 const args = process.argv.slice(2);
@@ -234,7 +266,10 @@ function fusionner(
 }
 
 const reponse = repondre();
-writeFileSync(FICHIER, JSON.stringify(etat, null, 2));
+// Écriture atomique : un lecteur qui n'est pas un appel du faux (les bancs lisent etat.json pour
+// leurs assertions) ne voit jamais un état tronqué.
+writeFileSync(`${FICHIER}.${process.pid}`, JSON.stringify(etat, null, 2));
+renameSync(`${FICHIER}.${process.pid}`, FICHIER);
 const json = JSON.stringify(reponse);
 if (jqExpr === null) process.stdout.write(`${json}\n`);
 else {

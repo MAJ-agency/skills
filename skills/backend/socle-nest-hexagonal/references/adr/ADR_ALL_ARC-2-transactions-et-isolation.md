@@ -1,4 +1,4 @@
-# ARC-2 — Transactions, isolation des données et rôles
+# ADR_ALL_ARC-2 — Transactions, isolation des données et rôles
 
 - Statut : **accepté**
 - Date : {{DATE}}
@@ -74,7 +74,7 @@ Elles sont structurantes : la première décide de la signature du port de trans
 - **Le catalogue des rôles est du code** : un tuple fermé déclaré une fois dans `packages/contracts/src/roles.ts` (`as const` + `z.enum`), typé, testé et relu en PR. Ce qu'un rôle autorise est une **règle écrite dans le use case**, jamais une ligne d'une table `permission`.
 - **L'affectation est de la donnée** : qui porte quel rôle — et, si multi-tenant, dans quel tenant — vit en base, dans une table comme les autres (tenant-scopée si la section précédente l'exige).
 - **Le rôle voyage avec la session authentifiée**, jamais dans un en-tête ni un corps client. Un client peut **masquer** une action selon le rôle : c'est de la présentation, l'API seule décide.
-- **La liste des rôles n'est pas fixée ici** : elle est du métier et naît au grilling (`1-modeliser-le-domaine`). Cette ADR fixe la forme, pas le contenu.
+- **La liste des rôles n'est pas fixée ici** : elle est du métier et naît au grilling (`SPEC_ALL_SOC-1.01`). Cette ADR fixe la forme, pas le contenu.
 
 ### Alternatives écartées
 
@@ -86,4 +86,4 @@ Elles sont structurantes : la première décide de la signature du port de trans
 
 - Règles impératives correspondantes : [`../../apps/api/CLAUDE.md`](../../apps/api/CLAUDE.md) § _Frozen architecture decisions_ et § _Transactions_
 - Gate CI correspondant : [`../methode/pare-feu-ci.md`](../methode/pare-feu-ci.md) § _Gate — isolation des données_
-- La forme de l'authentification et ce que la session transporte : `ARC-3` s'il existe
+- La forme de l'authentification et ce que la session transporte : `ADR_ALL_ARC-3` s'il existe

@@ -16,6 +16,7 @@ sources:
 #   - { type: refines | replaces | contradicts | parameterized-by | blocked-by, target: RULE_{{CTX}}_{{TRI}}-{{m}} }
 # config:
 #   - { key: {{clé.de.configuration}}, value: {{valeur attendue}} }   une règle qui déclare des clés et n'a pas de test est « configurée »
+# code: [ apps/api/src/…/fichier.ts ]   fichiers de code qui réalisent la règle, chemins depuis la racine ; périmètre de la mutation par règle (`socle-tests`)
 # extensions: {}   champs propres au projet, ignorés par Anchorpost
 ---
 

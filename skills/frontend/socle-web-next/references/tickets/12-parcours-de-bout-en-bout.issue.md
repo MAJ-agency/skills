@@ -1,11 +1,12 @@
-# Poser les parcours de bout en bout (Playwright + axe)
+# SPEC_ALL_SOC-1.12 — Poser les parcours de bout en bout (Playwright + axe)
 
 Status: ready-for-human
 Type: task
+Blocked by: 07
 
-`WEB-1` place le rendu et les parcours hors des tests unitaires : ils se testent de bout en bout, contre une vraie API. Rien n'est posé encore.
+`ADR_ALL_WEB-1` place le rendu et les parcours hors des tests unitaires : ils se testent de bout en bout, contre une vraie API. Rien n'est posé encore.
 
-Bloqué par : `7-pare-feu-ci` — un parcours qui ne tourne pas en CI n'est pas un gate.
+Un parcours qui ne tourne pas en CI n'est pas un gate.
 
 ## À faire
 

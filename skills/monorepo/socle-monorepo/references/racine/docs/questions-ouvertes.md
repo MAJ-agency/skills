@@ -17,4 +17,4 @@ Quand une question est tranchée, son entrée est **déplacée** : vers une ADR 
 
 ## Questions
 
-_Aucune pour l'instant : le grilling n'a pas commencé (ticket `1-modeliser-le-domaine`)._
+_Aucune pour l'instant : le grilling n'a pas commencé (ticket `SPEC_ALL_SOC-1.01`)._

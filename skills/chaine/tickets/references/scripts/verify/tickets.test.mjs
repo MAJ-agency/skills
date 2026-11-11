@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import {
+import { module } from '../docs/depot-jouet.mjs';
+
+const {
   cheminsChauds,
   controlerCarte,
   controlerTicket,
@@ -15,46 +17,52 @@ import {
   statusValide,
   ticketsCites,
   ecartsFiches,
-} from './tickets-regles.mjs';
+  elementsCites,
+  etatDuTest,
+  optionDesactivee,
+  reglesCitees,
+  testsNommes,
+  typeValide,
+} = await module('verify/tickets-regles.mjs');
 
-const NOM = 'SOC-1-socle.06.issue.md';
-const EXISTANTS = new Set(['SOC-1.05', 'SOC-1.06', 'ALL-STR-6.01']);
+const NOM = 'SPEC_ALL_SOC-1-socle.06.issue.md';
+const EXISTANTS = new Set(['SPEC_ALL_SOC-1.05', 'SPEC_ALL_SOC-1.06', 'SPEC_FNSMR_STR-6.01']);
 const existe = (id) => EXISTANTS.has(id);
-const PRET = `# SOC-1.06 — Tableau\n\nStatus: ready-for-agent\nBlocked by: 05\nModèle: sonnet\nFichiers chauds: —\n\n## Le besoin\n\nDu texte.\n\n## Où\n\n- \`scripts/docs/avancement.mjs\`\n\n## Décisions\n\n- Pourcentage = tickets faits.\n\n## Surfaces\n\n| surface | preuve |\n\n## Vérification\n\n\`node --test\`\n`;
+const PRET = `# SPEC_ALL_SOC-1.06 — Tableau\n\nStatus: ready-for-agent\nType: task\nBlocked by: 05\nModèle: sonnet\nFichiers chauds: —\n\n## Le besoin\n\nDu texte.\n\n## Où\n\n- \`scripts/docs/avancement.mjs\`\n\n## Décisions\n\n- Pourcentage = tickets faits.\n\n## Surfaces\n\n| surface | preuve |\n\n## Vérification\n\n\`node --test\`\n`;
 
 test("l'identifiant se lit dans le nom du fichier", () => {
-  assert.equal(identifiant(NOM), 'SOC-1.06');
-  assert.equal(identifiant('FFSB-STR-1-secteurs-drome.01.issue.md'), 'FFSB-STR-1.01');
+  assert.equal(identifiant(NOM), 'SPEC_ALL_SOC-1.06');
+  assert.equal(identifiant('SPEC_FFSB_STR-1-secteurs-drome.01.issue.md'), 'SPEC_FFSB_STR-1.01');
   assert.equal(identifiant('notes.md'), null);
-  assert.ok(estArchive('docs/x/issues/archive/SOC-1-socle.01.issue.md'));
+  assert.ok(estArchive('docs/x/all/issues/archive/SPEC_ALL_SOC-1-socle.01.issue.md'));
 });
 
 test('vocabulaire fermé de Status', () => {
-  for (const v of ['ready-for-agent', 'needs-info — question n° 2', 'wontfix — renvoyé', 'en cours — chore/soc-1-05-gate', 'Fait — PR #683', 'Fait — PR #552 (sous-PR de sujet/x)']) assert.equal(statusValide(v), true, v);
+  for (const v of ['ready-for-agent', 'needs-info — question n° 2', 'wontfix — renvoyé', 'en cours — chore/spec-all-soc-1-05-gate', 'Fait — PR #683', 'Fait — PR #552 (sous-PR de sujet/x)']) assert.equal(statusValide(v), true, v);
   for (const v of ['À faire', 'done — PR #466', 'resolved', 'Fait — lot B2b', 'ready-for-agent!', 'en cours', '']) assert.equal(statusValide(v), false, v);
 });
 
 test('Blocked by : identifiants complets partout, numéros courts en tête seulement', () => {
-  assert.deepEqual(ticketsCites('05', 'SOC-1.06'), ['SOC-1.05']);
-  assert.deepEqual(ticketsCites('01, .03 (raison)', 'SOC-1.06'), ['SOC-1.01', 'SOC-1.03']);
-  assert.deepEqual(ticketsCites('ALL-STR-6.01 puis 10 adhérents', 'SOC-1.06'), ['ALL-STR-6.01']);
+  assert.deepEqual(ticketsCites('05', 'SPEC_ALL_SOC-1.06'), ['SPEC_ALL_SOC-1.05']);
+  assert.deepEqual(ticketsCites('01, .03 (raison)', 'SPEC_ALL_SOC-1.06'), ['SPEC_ALL_SOC-1.01', 'SPEC_ALL_SOC-1.03']);
+  assert.deepEqual(ticketsCites('SPEC_FNSMR_STR-6.01 puis 10 adhérents', 'SPEC_ALL_SOC-1.06'), ['SPEC_FNSMR_STR-6.01']);
 });
 
 test('un ticket prêt conforme passe ; sans section ou sans modèle, il est refusé', () => {
   assert.deepEqual(controlerTicket({ nom: NOM, texte: PRET, existe }).erreurs, []);
   assert.deepEqual(ecartsFormatPret(PRET.replace('Modèle: sonnet\n', '').replace('## Surfaces\n\n| surface | preuve |\n', '')), ['ligne `Modèle: sonnet|opus` (avec la raison pour opus) absente', 'section `## Surfaces` absente']);
-  const r = controlerTicket({ nom: NOM, texte: '# x\n\nStatus: À faire\nBlocked by: 09\nSujet: Socle\n', existe });
+  const r = controlerTicket({ nom: NOM, texte: '# x\n\nStatus: À faire\nType: task\nBlocked by: 09\nSujet: Socle\n', existe });
   assert.deepEqual(r.erreurs.map((e) => e.message.split(' ')[0]), ['Status', 'Blocked', 'Sujet']);
-  assert.deepEqual(controlerTicket({ nom: NOM, texte: '# x\n\nStatus: ready-for-agent\n', existe, gele: true }).erreurs, []);
+  assert.deepEqual(controlerTicket({ nom: NOM, texte: '# x\n\nStatus: ready-for-agent\nType: task\n', existe, gele: true }).erreurs, []);
 });
 
 test('identifiants en double : deux specs, ou un ticket au nom d’une autre spec', () => {
-  assert.deepEqual(identifiantsEnDouble(['docs/a/SOC-1-socle.spec.md', 'docs/a/issues/SOC-1-socle.01.issue.md', 'docs/b/SOC-1-autre.spec.md']), [{ id: 'SOC-1', fichiers: ['docs/a/SOC-1-socle.spec.md', 'docs/a/issues/SOC-1-socle.01.issue.md', 'docs/b/SOC-1-autre.spec.md'] }]);
-  assert.deepEqual(identifiantsEnDouble(['docs/a/SOC-1-socle.spec.md', 'docs/a/SOC-1-socle.map.md', 'docs/a/issues/SOC-1-socle.01.issue.md']), []);
+  assert.deepEqual(identifiantsEnDouble(['docs/a/all/SPEC_ALL_SOC-1-socle.spec.md', 'docs/a/all/issues/SPEC_ALL_SOC-1-socle.01.issue.md', 'docs/b/all/SPEC_ALL_SOC-1-autre.spec.md']), [{ id: 'SPEC_ALL_SOC-1', fichiers: ['docs/a/all/SPEC_ALL_SOC-1-socle.spec.md', 'docs/a/all/issues/SPEC_ALL_SOC-1-socle.01.issue.md', 'docs/b/all/SPEC_ALL_SOC-1-autre.spec.md'] }]);
+  assert.deepEqual(identifiantsEnDouble(['docs/a/all/SPEC_ALL_SOC-1-socle.spec.md', 'docs/a/all/SPEC_ALL_SOC-1-socle.map.md', 'docs/a/all/issues/SPEC_ALL_SOC-1-socle.01.issue.md']), []);
 });
 
 test('carte de chantier : fiche, phase, architecte, coût dès la vague 1, rétro à fini', () => {
-  const carte = (phase, extra = '') => controlerCarte({ nom: 'SOC-1-socle.map.md', texte: `# Carte\n\nSujet: sujet/socle\n\n## Fiche\n\nPhase: ${phase}\nArchitecte: session_x\n${extra}` });
+  const carte = (phase, extra = '') => controlerCarte({ nom: 'SPEC_ALL_SOC-1-socle.map.md', texte: `# Carte\n\nSujet: sujet/socle\n\n## Fiche\n\nPhase: ${phase}\nArchitecte: session_x\n${extra}` });
   assert.deepEqual(carte('1-grilling').erreurs, []);
   assert.match(carte('4-vague-1').erreurs[0].message, /Coût/);
   assert.deepEqual(carte('4-vague-2', '\n## Coût\n\n| a |\n').erreurs, []);
@@ -136,4 +144,168 @@ test('deux cartes ouvertes qui réservent le même horodatage : écart ; une car
   const e = reservationsEnDouble(cartes);
   assert.equal(e.length, 1);
   assert.match(e[0], /202611271000.*a\.map\.md.*b\.map\.md/);
+});
+
+const ticket = (entetes, corps = '') => `# x\n\n${entetes}\n${corps}`;
+const messages = (r) => r.erreurs.map((e) => e.message);
+
+test('Type: absent, hors vocabulaire ou vide est refusé ; gelé dans la dette, l’absence seule est tolérée', () => {
+  for (const v of ['task', 'défaut', 'grilling', 'research', 'task # task | défaut | grilling | research']) assert.equal(typeValide(v), true, v);
+  for (const v of ['bug', 'defaut', 'Task', 'task, défaut', '']) assert.equal(typeValide(v), false, v);
+  assert.match(messages(controlerTicket({ nom: NOM, texte: ticket('Status: needs-triage'), existe }))[0], /ligne `Type:` absente \(attendu : task, défaut, grilling, research\)/);
+  const hors = controlerTicket({ nom: NOM, texte: ticket('Status: needs-triage\nType: bug'), existe });
+  assert.deepEqual(hors.erreurs, [{ ligne: 4, message: 'Type « bug » hors vocabulaire (attendu : task, défaut, grilling, research)' }]);
+  assert.deepEqual(controlerTicket({ nom: NOM, texte: ticket('Status: needs-triage'), existe, typeGele: true }).erreurs, []);
+  assert.equal(controlerTicket({ nom: NOM, texte: ticket('Status: needs-triage\nType: bug'), existe, typeGele: true }).erreurs.length, 1, 'la dette ne couvre que l’absence');
+  assert.equal(controlerTicket({ nom: NOM, texte: ticket('Status: needs-triage', '## Décisions\n\nType: task\n'), existe }).erreurs.length, 1, 'le corps n’est pas un en-tête');
+});
+
+const REGISTRE = new Set(['RULE_ALL_LIC-3', 'RULE_FNSMR_LIC-05']);
+const regleExiste = (id) => REGISTRE.has(id);
+const NOM_FNSMR = 'SPEC_FNSMR_STR-6-secteurs.02.issue.md';
+const avecRegles = (ligne, nom = NOM_FNSMR) => messages(controlerTicket({ nom, texte: ticket(`Status: needs-triage\nType: task\n${ligne}`), existe, regleExiste }));
+
+test('Règles: virgules ou espaces, accents graves ou non ; seuls des identifiants de règle complets', () => {
+  assert.deepEqual(reglesCitees('RULE_ALL_LIC-3, RULE_FNSMR_LIC-05'), { cites: ['RULE_ALL_LIC-3', 'RULE_FNSMR_LIC-05'], malformes: [] });
+  assert.deepEqual(reglesCitees('`RULE_ALL_LIC-3` `RULE_FNSMR_LIC-05`,RULE_ALL_LIC-3'), { cites: ['RULE_ALL_LIC-3', 'RULE_FNSMR_LIC-05'], malformes: [] });
+  assert.deepEqual(reglesCitees('LIC-3, SPEC_ALL_SOC-1 voir rule_all_lic-3').malformes, ['LIC-3', 'SPEC_ALL_SOC-1', 'voir', 'rule_all_lic-3']);
+});
+
+test('Règles: existante passe ; absente, d’un autre contexte, mal formée ou vide est refusée', () => {
+  assert.deepEqual(avecRegles('Règles: RULE_ALL_LIC-3, `RULE_FNSMR_LIC-05`'), []);
+  assert.deepEqual(avecRegles('Règles : RULE_ALL_LIC-3'), [], 'la typographie française « Règles : » est un en-tête');
+  assert.deepEqual(avecRegles('Règles: RULE_FNSMR_LIC-7'), ["Règles cite RULE_FNSMR_LIC-7, absente du registre (docs/metier/regles/fnsmr/RULE_FNSMR_LIC-7.md)"]);
+  assert.deepEqual(avecRegles('Règles: RULE_FNSMR_LIC-5'), ["Règles cite RULE_FNSMR_LIC-5, absente du registre (docs/metier/regles/fnsmr/RULE_FNSMR_LIC-5.md)"], 'un identifiant s’écrit avec ses zéros');
+  assert.deepEqual(avecRegles('Règles: RULE_FNSMR_LIC-05', NOM), ['Règles cite RULE_FNSMR_LIC-05, du contexte FNSMR : un ticket du contexte ALL ne cite que des règles de ALL']);
+  assert.match(avecRegles('Règles: RULE_FFSA_LIC-1')[0], /du contexte FFSA : un ticket du contexte FNSMR ne cite que des règles de FNSMR ou de ALL/);
+  assert.match(avecRegles('Règles: LIC-3')[0], /Règles cite « LIC-3 », qui n'est pas un identifiant de règle complet/);
+  assert.match(avecRegles('Règles: RULE_ALL_LIC-3, voir la section 3')[0], /« voir »/);
+  assert.deepEqual(avecRegles('Règles:'), ['ligne `Règles:` vide : citer au moins une règle, ou retirer la ligne']);
+  assert.deepEqual(avecRegles(''), [], 'sans ligne `Règles:`, rien à vérifier');
+  assert.match(avecRegles('Règles: RULE_FNSMR_LIC-05', 'notes.issue.md')[0], /pas d'identifiant lisible, seules les règles de ALL/);
+  assert.deepEqual(avecRegles('Règles: RULE_ALL_LIC-3', 'notes.issue.md'), []);
+});
+
+const SPEC_TS = [
+  "import { describe, it } from 'vitest';",
+  '',
+  "describe('licences', () => {",
+  "  it('[RULE_ALL_LIC-3] refuse une licence expirée', () => {",
+  '    expect(1).toBe(1);',
+  '  });',
+  '  // skip: SPEC_ALL_SOC-1.04 — rouge de recette',
+  "  it.skip('recette.licence accepte un mineur', () => {});",
+  "  describe.skip('en attente', () => {",
+  "    it('accepte un renouvellement', () => {});",
+  '  });',
+  "  it('après un bloc désactivé', () => {});",
+  "  xit('ancienne forme', () => {});",
+  "  it.todo('à écrire');",
+  "  it.each([[1], [2]])('table %s', (n) => {});",
+  "  // it('commenté', () => {});",
+  '});',
+  "test('node:test désactivé', { skip: 'ticket' }, () => {});",
+  'test("guillemets doubles", () => {});',
+].join('\n');
+
+test('état d’un test : actif, désactivé sur la ligne ou par un bloc englobant, absent', () => {
+  for (const t of ['[RULE_ALL_LIC-3] refuse une licence expirée', 'après un bloc désactivé', 'table %s', 'guillemets doubles']) assert.equal(etatDuTest(SPEC_TS, t), 'actif', t);
+  for (const t of ['recette.licence accepte un mineur', 'accepte un renouvellement', 'ancienne forme', 'à écrire', 'node:test désactivé']) assert.equal(etatDuTest(SPEC_TS, t), 'désactivé', t);
+  for (const t of ['commenté', 'refuse une licence', 'licence (expirée)', 'inexistant']) assert.equal(etatDuTest(SPEC_TS, t), 'absent', t);
+});
+
+const DEFAUT = (status, preuve) =>
+  `# x\n\nStatus: ${status}\nType: défaut\nRègles: RULE_ALL_LIC-3\n\n## Surfaces\n\n| Surface | Preuve |\n| ------- | ------ |\n| licence | ${preuve} |\n`;
+const ETATS = { 'refuse une licence expirée': 'actif', 'accepte un mineur': 'désactivé' };
+const testExiste = (fichier, titre) => (fichier.endsWith('licence.spec.ts') ? (ETATS[titre] ?? 'absent') : 'absent');
+const defaut = (status, preuve) => messages(controlerTicket({ nom: NOM, texte: DEFAUT(status, preuve), existe, regleExiste, testExiste }));
+
+test('Surfaces : la colonne Preuve nomme un fichier de test entre accents graves puis ses titres', () => {
+  const lignes = DEFAUT('Fait — PR #9', '`apps/api/src/licence.spec.ts` « a », "b", couvre `src/licence.ts` ; `e2e/x.e2e-spec.ts` « d » \\| e').split('\n');
+  assert.deepEqual(testsNommes(lignes).tests, [
+    { fichier: 'apps/api/src/licence.spec.ts', titre: 'a' },
+    { fichier: 'apps/api/src/licence.spec.ts', titre: 'b' },
+    { fichier: 'e2e/x.e2e-spec.ts', titre: 'd' },
+  ]);
+  assert.deepEqual(testsNommes(DEFAUT('Fait — PR #9', '`x.spec.md` « une spec de doc »').split('\n')).tests, []);
+});
+
+test('défaut Fait : test actif passe ; test it.skip, introuvable ou non nommé est refusé ; avant Fait, rien n’est exigé', () => {
+  assert.deepEqual(defaut('Fait — PR #9', '`licence.spec.ts` « refuse une licence expirée »'), []);
+  assert.deepEqual(defaut('Fait — PR #9', '`licence.spec.ts` « accepte un mineur »'), [
+    'défaut Fait : le test « accepte un mineur » de `licence.spec.ts` est désactivé (skip, todo, x) : il ne prouve pas la correction',
+  ]);
+  assert.deepEqual(defaut('Fait — PR #9', '`licence.spec.ts` « inventé »'), ['défaut Fait : le test « inventé » est introuvable dans `licence.spec.ts`']);
+  assert.match(defaut('Fait — PR #9', 'vérifié à la main')[0], /défaut Fait : aucun test nommé dans la colonne « Preuve »/);
+  assert.match(defaut('Fait — PR #9', '`licence.spec.ts` seul')[0], /nomme `licence.spec.ts` sans titre de test/);
+  assert.deepEqual(defaut('en cours — fix/spec-all-soc-1-06-x', '`licence.spec.ts` « accepte un mineur »'), []);
+  const tache = DEFAUT('Fait — PR #9', '`licence.spec.ts` « inventé »').replace('Type: défaut', 'Type: task');
+  assert.deepEqual(controlerTicket({ nom: NOM, texte: tache, existe, regleExiste, testExiste }).erreurs, []);
+});
+
+// Entrées hostiles : une ligne de fichier de test ou une cellule de ticket est de la donnée, pas du code de confiance.
+const ENOUGH_MS = 3000; // la forme linéaire rend en quelques millisecondes ; les anciennes expressions, en minutes
+const duree = (f) => {
+  const t0 = process.hrtime.bigint();
+  const r = f();
+  return { r, ms: Number(process.hrtime.bigint() - t0) / 1e6 };
+};
+
+test('Surfaces : « titre » entre chevrons français, rogné, en temps borné sur une cellule hostile', () => {
+  const lignes = DEFAUT('Fait — PR #9', '`a.spec.ts` «   un titre rogné   »').split('\n');
+  assert.deepEqual(testsNommes(lignes).tests, [{ fichier: 'a.spec.ts', titre: 'un titre rogné' }]);
+  // « suivi de 4 000 espaces, jamais fermé : l'ancienne expression `«\s*([^»]+?)\s*»` y était cubique.
+  const hostile = DEFAUT('Fait — PR #9', '`a.spec.ts` «' + ' '.repeat(4000) + 'x').split('\n');
+  const { r, ms } = duree(() => testsNommes(hostile));
+  assert.deepEqual(r.tests, []);
+  assert.ok(ms < ENOUGH_MS, `${ms} ms`);
+  // « répétés, jamais fermés : `[^»]+` acceptait aussi « et rescannait à chaque départ (quadratique).
+  const chevrons = DEFAUT('Fait — PR #9', '`a.spec.ts` ' + '«'.repeat(150000)).split('\n');
+  const c = duree(() => testsNommes(chevrons));
+  assert.deepEqual(c.r.tests, []);
+  assert.ok(c.ms < ENOUGH_MS, `${c.ms} ms`);
+});
+
+test("option { skip } / { todo } de node:test : même verdict que l'ancienne expression, en temps borné", () => {
+  const ANCIENNE = /\{\s*(?:[^}]*,\s*)?(?:skip|todo)\s*:/;
+  const lignes = [
+    "test('x', { skip: true }, () => {})",
+    "test('x', {skip:'raison'}, () => {})",
+    "test('x', { todo : true }, () => {})",
+    "test('x', { timeout: 5, skip: true }, () => {})",
+    "test('x', { timeout: 5,\n skip: true }, () => {})",
+    "test('x', { timeout: 5 }, () => { return { skip: 1 }; })",
+    "test('x', { a: { b: 1 }, skip: true }, () => {})",
+    "test('x', { a: {b}, skip: true }, () => {})",
+    "test('x', { noskip: true }, () => {})",
+    "test('x', { skipped: true }, () => {})",
+    "test('x', () => { const skip = 1; })",
+    "test('x', { a: 1 }) // skip: ",
+    "{ skip",
+    "}, skip:",
+    "{ a, b, todo: 1 }",
+  ];
+  for (const l of lignes) assert.equal(optionDesactivee(l), ANCIENNE.test(l), JSON.stringify(l));
+  for (const hostile of ['{'.repeat(100000), '{' + ' '.repeat(100000) + 'x', '{' + ', '.repeat(50000) + 'x', '{ a,'.repeat(25000)]) {
+    const { r, ms } = duree(() => optionDesactivee(hostile));
+    assert.equal(r, false);
+    assert.ok(ms < ENOUGH_MS, `${ms} ms`);
+  }
+});
+
+test("Surfaces : la lecture d'une cellule garde la sémantique de l'ancienne expression (« isolé dans un titre compris)", () => {
+  const ANCIENNE = /`([^`]+)`|«\s*([^»]+?)\s*»|"([^"]+)"/g;
+  const lire = (c) => [...c.matchAll(ANCIENNE)].map((m) => ({ fichier: m[1] !== undefined, texte: m[1] ?? m[2] ?? m[3] }));
+  for (const c of ['« aa« »', '« voir « seul»', '`a.spec.ts` «   un titre   », "b"', '«« x »»', '» « y »', '« z', '`x` «', '"a" `b.test.ts` « c »']) {
+    assert.deepEqual(elementsCites(c), lire(c), JSON.stringify(c));
+  }
+  // Fuzz déterministe : mêmes éléments que l'ancienne expression (hors titre fait d'espaces seuls, rogné à vide).
+  let graine = 12345;
+  const alea = (n) => ((graine = (graine * 1103515245 + 12345) % 2147483648) % n);
+  const alphabet = ['«', '»', '`', '"', ' ', 'a', 'b', 'x.spec.ts', '\\', '|'];
+  for (let i = 0; i < 3000; i++) {
+    const c = Array.from({ length: 1 + alea(14) }, () => alphabet[alea(alphabet.length)]).join('');
+    const attendu = lire(c).map((e) => (e.texte.trim() === '' && !e.fichier ? { ...e, texte: '' } : e));
+    assert.deepEqual(elementsCites(c), attendu, JSON.stringify(c));
+  }
 });

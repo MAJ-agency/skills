@@ -1,6 +1,6 @@
 // Le hook garde-commandes sur un dépôt jouet : la ligne `Dépendances:` du ticket ne compte que lue
 // sur `origin/sujet/*`. Les hooks sont copiés dans un dossier `scripts/` jouet, avec
-// `scripts/docs/identifiants.mjs` (skill `tickets`), comme dans un projet ; CLAUDE_PROJECT_DIR
+// `scripts/docs/identifiants.mjs` (skill `socle-monorepo`), comme dans un projet ; CLAUDE_PROJECT_DIR
 // désigne le clone de travail.
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
@@ -8,12 +8,15 @@ import { copyFileSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { test } from 'node:test';
 
-// Posé dans un projet, scripts/docs/ est à côté de scripts/agent/ ; dans le plugin, il est dans le skill tickets.
-const DOCS = existsSync(new URL('../docs/identifiants.mjs', import.meta.url)) ? new URL('../docs/', import.meta.url) : new URL('../../../tickets/references/scripts/docs/', import.meta.url);
+// Posé dans un projet, scripts/docs/ est à côté de scripts/agent/ ; dans le plugin, le dépôt jouet est
+// dans le skill tickets et la grammaire dans le skill socle-monorepo.
+const PROJET = existsSync(new URL('../docs/identifiants.mjs', import.meta.url));
+const DOCS = PROJET ? new URL('../docs/', import.meta.url) : new URL('../../../tickets/references/scripts/docs/', import.meta.url);
+const GRAMMAIRE = PROJET ? new URL('../docs/identifiants.mjs', import.meta.url) : new URL('../../../../monorepo/socle-monorepo/references/scripts/docs/identifiants.mjs', import.meta.url);
 const { ENV, depotJouet } = await import(new URL('depot-jouet.mjs', DOCS).href);
 
-const TICKET = 'docs/features/demo/issues/DEMO-1-demo.01.issue.md';
-const ticket = (dependances) => `# DEMO-1.01 — x\n\nStatus: ready-for-agent\n${dependances}\n\n## Le besoin\n\nx\n`;
+const TICKET = 'docs/features/demo/all/issues/SPEC_ALL_DEMO-1-demo.01.issue.md';
+const ticket = (dependances) => `# SPEC_ALL_DEMO-1.01 — x\n\nStatus: ready-for-agent\n${dependances}\n\n## Le besoin\n\nx\n`;
 
 /** Dépôt jouet : le ticket sur develop sans ligne, `origin/sujet/demo` le porte avec `ligneSujet`. */
 function depot(ligneSujet, { avecIdentifiants = true } = {}) {
@@ -21,13 +24,13 @@ function depot(ligneSujet, { avecIdentifiants = true } = {}) {
   writeFileSync(join(d.travail, TICKET), ticket(ligneSujet));
   d.git('commit', '-q', '--allow-empty', '-am', 'dépendances');
   d.git('push', '-q', 'origin', 'HEAD:refs/heads/sujet/demo');
-  d.git('checkout', '-q', '-b', 'feat/demo-1-01-carte', 'origin/develop');
+  d.git('checkout', '-q', '-b', 'feat/spec-all-demo-1-01-carte', 'origin/develop');
   const outils = join(d.racine, 'outils/scripts');
   mkdirSync(join(outils, 'agent'), { recursive: true });
   for (const f of ['entree.mjs', 'regles.mjs', 'garde-commandes.mjs']) copyFileSync(new URL(f, import.meta.url), join(outils, 'agent', f));
   if (avecIdentifiants) {
     mkdirSync(join(outils, 'docs'), { recursive: true });
-    copyFileSync(new URL('identifiants.mjs', DOCS), join(outils, 'docs/identifiants.mjs'));
+    copyFileSync(GRAMMAIRE, join(outils, 'docs/identifiants.mjs'));
   }
   return { ...d, script: join(outils, 'agent/garde-commandes.mjs') };
 }
@@ -54,7 +57,7 @@ test('ticket modifié dans l’arbre de travail ou sur la branche, pas sur le su
   writeFileSync(join(d.travail, TICKET), ticket('Dépendances: `leaflet`'));
   assert.equal(demande(lancer(d, 'pnpm add leaflet')), true, 'arbre de travail');
   d.git('commit', '-qam', "je m'autorise");
-  d.git('push', '-q', 'origin', 'HEAD:refs/heads/feat/demo-1-01-carte');
+  d.git('push', '-q', 'origin', 'HEAD:refs/heads/feat/spec-all-demo-1-01-carte');
   assert.equal(demande(lancer(d, 'pnpm add leaflet')), true, 'branche de la session');
 });
 
@@ -81,7 +84,7 @@ test('ticket sur deux sujets : seuls les paquets que toutes ses copies prévoien
   d.git('commit', '-qam', 'autre sujet');
   d.git('push', '-q', 'origin', 'HEAD:refs/heads/sujet/autre');
   d.git('fetch', '-q', 'origin');
-  d.git('checkout', '-q', 'feat/demo-1-01-carte');
+  d.git('checkout', '-q', 'feat/spec-all-demo-1-01-carte');
   assert.equal(demande(lancer(d, 'pnpm add leaflet')), false);
   assert.equal(demande(lancer(d, 'pnpm add zod')), true);
 });

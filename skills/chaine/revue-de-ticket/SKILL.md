@@ -1,7 +1,7 @@
 ---
 name: revue-de-ticket
 description: Revue d'une branche de ticket par trois sous-agents en contexte vierge, jouée par la session qui pense avoir fini, avant de sortir la PR du brouillon — axe Règles (la revue adversariale, diff seul contre les critères du projet), axe Ticket (surfaces prouvées, décisions tenues, règles citées avec leurs cas de bord, périmètre), axe Documentation (glossaire, registre, ADR, index générés, README, ticket) — puis une seule section de PR. À utiliser quand un ticket est « fini », quand on demande une « revue de ticket » ou « est-ce que ma branche est prête », et avant tout label à-fusionner. `poser` l'installe une fois dans le dépôt.
-argument-hint: 'poser | <SOC-1.03>'
+argument-hint: 'poser | <SPEC_ALL_SOC-1.03>'
 ---
 
 # Revue de ticket
@@ -12,7 +12,7 @@ Le `code-review` de Matt Pocock relit « standards » et « spec » en deux sous
 
 ## Étape 0 — poser (une fois par dépôt, `poser`)
 
-`scripts/contexte-ticket.mjs` et son test → `scripts/chaine/` (ils lisent `scripts/docs/identifiants.mjs`, posé par `tickets`). Le skill `revue-adversariale` est posé (`scripts/chaine/diff-revue.sh`, fichier de critères). Puis `docs/agents/issue-tracker.md` § Livrer et `docs/agents/chaine-de-production.md` § 5 nomment cette revue (les gabarits ≥ 3.2 la nomment déjà).
+`scripts/contexte-ticket.mjs` et son test → `scripts/chaine/` (ils lisent `scripts/docs/identifiants.mjs`, posé par `socle-monorepo`). Le skill `revue-adversariale` est posé (`scripts/chaine/diff-revue.sh`, fichier de critères). Puis `docs/agents/issue-tracker.md` § Livrer et `docs/agents/chaine-de-production.md` § 5 nomment cette revue (les gabarits ≥ 3.2 la nomment déjà).
 
 ## Quand
 
@@ -27,7 +27,7 @@ REVUE_DIR=<scratchpad>/revue bash scripts/chaine/diff-revue.sh [<base>]
 node scripts/chaine/contexte-ticket.mjs <ID> > <scratchpad>/revue/contexte.md
 ```
 
-Base `origin/develop`, ou `origin/sujet/<nom>` pour une sous-PR de sujet. L'identifiant est celui de la branche (`feat/soc-1-03-…` → `SOC-1.03`). Un ticket dont `## Surfaces` est vide ou dont une règle citée est « introuvable » dans le contexte : **s'arrêter**, c'est un défaut du ticket, à corriger dans le ticket avant de relire le code. Chemins sensibles : comme la revue adversariale (étape 2 de son SKILL).
+Base `origin/develop`, ou `origin/sujet/<nom>` pour une sous-PR de sujet. L'identifiant est celui de la branche (`feat/spec-all-soc-1-03-…` → `SPEC_ALL_SOC-1.03`). Un ticket dont `## Surfaces` est vide ou dont une règle de la ligne `Règles:` est « introuvable » dans le contexte : **s'arrêter**, c'est un défaut du ticket, à corriger dans le ticket avant de relire le code. Chemins sensibles : comme la revue adversariale (étape 2 de son SKILL).
 
 ## Étape 2 — trois sous-agents, en parallèle
 

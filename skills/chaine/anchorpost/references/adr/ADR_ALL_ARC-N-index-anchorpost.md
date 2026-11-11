@@ -44,4 +44,4 @@ Ce projet est lu par Anchorpost, qui montre à la MOA ses règles métier, leurs
 
 - `ADR_ALL_ARC-1` — les identifiants ; `ADR_ALL_ARC-<N>` — le registre, un fichier par règle
 - `.claude/rules/anchorpost.md` — la fiche d'écriture ; `docs/agents/admin.md` — la recette de la clé
-- Anchorpost : `ANC-2` (le schéma pivot), `ARC-11`, `ARC-13` du dépôt `MAJ-agency/anchorpost`
+- Anchorpost : `ANC-2` (le schéma pivot), `ARC-11`, `ARC-13` du dépôt `MAJ-agency/anchorpost`, cités sous la forme que ce dépôt leur donne tant qu'il n'a pas migré vers le standard

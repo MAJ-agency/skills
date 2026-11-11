@@ -52,10 +52,10 @@ test('CLI : fichiers sur l’entrée standard, corps en argument, sortie 1 et mo
 });
 
 test('motifTitreSansCode : feat/fix/refactor/perf sans aucun fichier hors docs/ refusés (#844, #939)', () => {
-  const ticket = ['docs/features/licences/all/issues/ALL-LIC-17.06.issue.md'];
+  const ticket = ['docs/features/licences/all/issues/SPEC_ALL_LIC-17-formules.06.issue.md'];
   assert.match(
     motifTitreSansCode({
-      titre: 'feat(club): éligibilité des formules (ALL-LIC-17.06)',
+      titre: 'feat(club): éligibilité des formules (SPEC_ALL_LIC-17.06)',
       fichiers: ticket,
     }),
     /titre « feat » mais le diff ne contient que de la documentation \(1 fichier/,
@@ -66,7 +66,7 @@ test('motifTitreSansCode : feat/fix/refactor/perf sans aucun fichier hors docs/ 
 });
 
 test('motifTitreSansCode : acceptés dès qu’un fichier hors docs/ est là, ou pour un autre type', () => {
-  const ticket = ['docs/features/licences/all/issues/ALL-LIC-17.06.issue.md'];
+  const ticket = ['docs/features/licences/all/issues/SPEC_ALL_LIC-17-formules.06.issue.md'];
   assert.equal(
     motifTitreSansCode({ titre: 'feat(club): x', fichiers: [...ticket, 'apps/api/src/a.ts'] }),
     null,

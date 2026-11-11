@@ -77,7 +77,7 @@ Invocation : `/maj-skills:socle-mobile-expo`. Suppose la racine et les contrats 
 | Skill                                                                             | Ce qu'il fait                                                                                                                                                                                                        |
 | --------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [`socle-chaine-de-production`](skills/chaine/socle-chaine-de-production/SKILL.md) | Pose ce que supposent les skills de la chaîne : `develop` intègre et `main` livre, les sept labels, les hooks d'agent, le contrat `.claude/chaine.json`, les index générés, une CI minimale, la méthode et trois ADR |
-| [`tickets`](skills/chaine/tickets/SKILL.md)                                       | La convention des specs et tickets (`SOC-1`, `SOC-1.03`), les scripts qui la lisent (numéro suivant, ticket libre, vagues, avancement, archivage, gate) et la migration d'un dépôt                                   |
+| [`tickets`](skills/chaine/tickets/SKILL.md)                                       | La convention des specs et tickets (`SPEC_ALL_SOC-1`, `SPEC_ALL_SOC-1.03`), les scripts qui la lisent (numéro suivant, ticket libre, vagues, avancement, archivage, gate) et la migration d'un dépôt                                   |
 | [`anchorpost`](skills/chaine/anchorpost/SKILL.md)                                 | Branche un dépôt sur Anchorpost, le site qui montre à la MOA les règles, les preuves, les défauts et les demandes lus dans la documentation : la CLI privée, le manifeste, l'index généré et son gate, la fiche d'écriture, la recette d'installation de la clé |
 | [`revue-adversariale`](skills/chaine/revue-adversariale/SKILL.md)                 | Avant `à-fusionner` : un sous-agent vierge, le diff seul, une liste fermée de critères (quatorze du socle, plus ceux du projet), une section de PR                                                                   |
 | [`revue-de-ticket`](skills/chaine/revue-de-ticket/SKILL.md)                       | Quand un ticket est « fini » : trois sous-agents vierges — règles (la revue adversariale), ticket (surfaces, décisions, règles et cas de bord, périmètre), documentation — une seule section de PR                   |
@@ -102,7 +102,7 @@ Invocation : `/maj-skills:socle-chaine-de-production` une fois par dépôt (depu
 
 **Une méthode écrite.** Cinq documents qui font autorité : comment interroger un plan (grilling), quand écrire une ADR, comment nommer un document, comment concevoir un module profond, quels invariants la machine doit garantir.
 
-**Une documentation structurée.** Tout sous `docs/`, trié par thème — ADR, architecture, métier, features. Nomenclature `<TRI>-<N>-<slug>.md` (sans zéro de tête) avec registre de trigrammes, pour qu'une référence ne casse jamais au déplacement d'un fichier.
+**Une documentation structurée.** Tout sous `docs/`, trié par thème — ADR, architecture, métier, features. Nomenclature `<TYPE>_<CTX>_<TRI>-<n>-<slug>.md` (`ADR_ALL_ARC-2`, `SPEC_ALL_SOC-1`, `RULE_ALL_LIC-3` ; six types, le contexte `ALL` toujours écrit, sans zéro de tête) avec registre de trigrammes, pour qu'une référence ne casse jamais au déplacement d'un fichier.
 
 **L'outillage agent installé** (par `socle-monorepo`). graphify avec ses hooks, les skills Matt Pocock et superpowers, et la configuration `docs/agents/` produite en invoquant `setup-matt-pocock-skills` — pas recopiée à la main.
 
@@ -137,11 +137,11 @@ skills/
   frontend/
     socle-web-next/
       SKILL.md         le processus, en trois étapes
-      references/      squelette du client, règles front, ADR WEB-1, fragments, tickets web
+      references/      squelette du client, règles front, ADR_ALL_WEB-1, fragments, tickets web
   mobile/
     socle-mobile-expo/
       SKILL.md         le processus, en trois étapes
-      references/      squelette Expo, règles mobile, ADR MOB-1, fragments, tickets mobile
+      references/      squelette Expo, règles mobile, ADR_ALL_MOB-1, fragments, tickets mobile
   chaine/
     socle-chaine-de-production/
       SKILL.md         le processus, en quatre étapes
@@ -158,7 +158,7 @@ skills/
       scripts/         sujet.sh, le dépôt jouet et le faux gh, les tests
     fusionner/
       SKILL.md         la règle, REST seulement, mise en place, boucle, renvoyer, fin de passage
-      scripts/         github.sh, file.sh, passer.sh, boucle.sh, renvoyer.sh, refus.sh, proprietaire.sh, revue-exigee.mjs, migrations-ordre.mjs, les tests
+      scripts/         github.sh, identifiant.mjs, file.sh, passer.sh, boucle.sh, renvoyer.sh, refus.sh, proprietaire.sh, revue-exigee.mjs, migrations-ordre.mjs, les tests
     chantier/
       SKILL.md         reprendre ou démarrer, setup, les six phases, le suivi à chaque réveil
     recette-humaine/

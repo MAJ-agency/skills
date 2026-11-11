@@ -33,7 +33,9 @@ S6  Typage — apps/api/CLAUDE.md, apps/web/CLAUDE.md. Aucun any (ni as any, ni 
 S7  Tests — .claude/rules/tests.md. Un repository se teste contre un vrai Postgres ; un cas d'usage
     avec ses ports mockés ; une route a son test de refus (401, 403, 404 hors périmètre) ; aucun test
     creux (sans assertion, toBeDefined seul, assertion sous condition, skip sans ticket, setTimeout) ;
-    un test qui couvre une règle du registre porte son identifiant.
+    un test qui couvre une règle du registre porte son identifiant entre crochets en tête de son nom
+    ([RULE_<CTX>_<TRI>-<n>], plusieurs permis, un sur un describe vaut pour ses tests), jamais un
+    test de recette.
 S8  Injection — apps/api/CLAUDE.md § « Dependency injection ». Tout provider nouveau ou nouvellement
     injecté est fourni dans chaque graphe qui le consomme (AppModule, et le graphe d'un worker s'il
     existe) ; un port est injecté par son token ; pas de forwardRef ni de dépendance circulaire
@@ -45,10 +47,10 @@ S9  Concurrence et idempotence — apps/api/CLAUDE.md § « Invariants ». Une r
 S10 Configuration et secrets — apps/api/CLAUDE.md § « Frozen architecture decisions ». L'environnement
     est lu par le schéma Zod de config, jamais par process.env ailleurs ; aucun secret, aucune URL
     d'environnement en dur ; une variable nouvelle est déclarée dans .env.example.
-S11 Langue des identifiants — ARC-4, GLOSSARY.md. Identifiants en anglais, d'après les noms en code du
+S11 Langue des identifiants — ADR_ALL_ARC-4, GLOSSARY.md. Identifiants en anglais, d'après les noms en code du
     glossaire ; prose, messages et textes d'interface en français ; un terme du domaine nouveau sans
     entrée au glossaire est un écart. Hors règle : les scripts posés par le plugin maj-skills
-    (scripts/docs, verify, chaine, agent, github), copies verbatim en français (ARC-4 § exception).
+    (scripts/docs, verify, chaine, agent, github), copies verbatim en français (ADR_ALL_ARC-4 § exception).
 S12 Clients web et mobile — apps/web/CLAUDE.md, apps/mobile/CLAUDE.md. Une route est mince et délègue
     à une feature ; aucun import entre features (hors dette déclarée) ; sens unique lib → components →
     features → app ; un seul client HTTP ; un formulaire valide par le schéma partagé ; l'état serveur

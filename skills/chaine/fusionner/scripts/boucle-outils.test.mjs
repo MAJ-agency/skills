@@ -7,7 +7,7 @@ import { spawn, spawnSync } from "node:child_process";
 import assert from "node:assert/strict";
 import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-const { depotJouet, script: scriptDe } = await import(
+const { depotJouet, script: scriptDe, GRAMMAIRE } = await import(
   existsSync(new URL("./depot-jouet.mjs", import.meta.url))
     ? "./depot-jouet.mjs"
     : "../../sujet/scripts/depot-jouet.mjs"
@@ -41,8 +41,11 @@ function jouet(extraEnv = {}) {
     d.git("push", "-q", "origin", "HEAD:develop");
     d.git("fetch", "-q", "origin");
   };
+  // La boucle copie aussi la grammaire des identifiants d'origin/develop, à côté de scripts/chaine/.
+  d.ecrire("scripts/docs/identifiants.mjs", readFileSync(GRAMMAIRE, "utf8"));
   publier({
     "github.sh": readFileSync(scriptDe("fusionner", "github.sh"), "utf8"),
+    "identifiant.mjs": readFileSync(scriptDe("fusionner", "identifiant.mjs"), "utf8"),
     "boucle.sh": readFileSync(BOUCLE, "utf8"),
     "sujet.sh": "#!/usr/bin/env bash\nexit 0\n",
     "renvoyer.sh": "#!/usr/bin/env bash\nexit 0\n",
@@ -106,6 +109,26 @@ test("origin/develop introuvable : arrêt avec un message clair, aucun script jo
   assert.notEqual(r.status, 0);
   assert.match(r.stderr, /origin\/develop/);
   assert.deepEqual(lu(), []);
+});
+
+test("scripts/docs/identifiants.mjs absent de develop : arrêt (6), aucun script joué ; présent, il est copié à côté des outils", () => {
+  const { d, publier, lu } = jouet();
+  publier({ "file.sh": fileSh(1, 1), "passer.sh": passerSh(1) });
+  const copie = join(d.racine, "copie");
+  d.env.BOUCLE_COPIE = copie;
+  const ok = d.lancer(BOUCLE);
+  assert.equal(ok.status, 0, ok.stdout + ok.stderr);
+  assert.equal(existsSync(join(copie, "scripts/docs/identifiants.mjs")), true);
+  // identifiant.mjs de la copie trouve la grammaire copiée (../docs/), hors de tout dépôt.
+  const lu1 = spawnSync("node", [join(copie, "scripts/chaine/identifiant.mjs"), "slug", "SPEC_ALL_SOC-1.03"], { cwd: d.racine, encoding: "utf8" });
+  assert.equal(lu1.stdout.trim(), "spec-all-soc-1-03", lu1.stderr);
+  d.git("rm", "-q", "scripts/docs/identifiants.mjs");
+  publier({}, "chore: sans la grammaire");
+  writeFileSync(d.env.TRACE, "");
+  const r = d.lancer(BOUCLE);
+  assert.equal(r.status, 6, r.stdout + r.stderr);
+  assert.match(r.stderr, /ARRÊT : scripts\/docs\/identifiants\.mjs absent d'origin\/develop/);
+  assert.deepEqual(lu(), [""]);
 });
 
 // --- Instance unique et arrêt d'un geste -----------------------------------------------------------

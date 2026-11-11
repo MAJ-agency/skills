@@ -1,17 +1,22 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 
 // Le script importe identifiants.mjs depuis ../docs/ : le banc le joue depuis une copie posée
 // comme dans un projet (scripts/chaine/ et scripts/docs/ côte à côte).
-import { existsSync, readFileSync } from "node:fs";
 const ICI = dirname(new URL(import.meta.url).pathname);
 const IDENTIFIANTS = [
   join(ICI, "../docs/identifiants.mjs"),
-  join(ICI, "../../tickets/references/scripts/docs/identifiants.mjs"),
+  join(ICI, "../../../monorepo/socle-monorepo/references/scripts/docs/identifiants.mjs"),
 ].find(existsSync);
 
 function depot(fichiers) {
@@ -38,80 +43,233 @@ const lancer = (racine, ...args) =>
     [join(racine, "scripts/chaine/contexte-ticket.mjs"), ...args],
     { env: { ...process.env, PROJET_RACINE: racine }, encoding: "utf8" },
   );
+/** Le texte d'une section `### <id> …` de la sortie, jusqu'à la suivante. */
+const section = (sortie, id) =>
+  new RegExp(`### ${id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}[ \\n][\\s\\S]*?(?=\\n###? |$)`).exec(
+    sortie,
+  )?.[0] ?? "";
 
-test("le contexte porte le ticket, la ligne de spec, les règles d'un registre markdown ou d'un rules.json, et les ADR", () => {
+const SPEC = "docs/features/socle/all/SPEC_ALL_SOC-1-socle.spec.md";
+const TICKET = "docs/features/socle/all/issues/SPEC_ALL_SOC-1-socle.03.issue.md";
+const REGLE_LIC_3 = [
+  "---",
+  "id: RULE_ALL_LIC-3",
+  "title: Une licence par saison et par adhérent",
+  "validation:",
+  "  status: validated",
+  "  date: 2026-11-10",
+  "  by: Marie Curie",
+  "sources:",
+  "  - { ref: réunion du 2026-11-09, path: docs/metier/reunions/2026-11-09.md, at: § 2 }",
+  "---",
+  "",
+  "Un adhérent ne détient qu'une licence par saison.",
+  "",
+].join("\n");
+
+test("une règle de la ligne Règles: est rendue depuis son fichier, en-tête YAML compris, avant les identifiants cités", () => {
   const r = lancer(
     depot({
-      "docs/features/socle/SOC-1-socle.spec.md":
-        "# SOC-1\n\n| Ticket | Objet |\n| --- | --- |\n| SOC-1.03 | la couche base (FAC-3, ARC-2) |\n",
-      "docs/features/socle/issues/SOC-1-socle.03.issue.md":
-        "# Couche base\n\nStatus: ready-for-agent\n\nApplique `FAC-3` et `ALL-LIC-7`, selon `ARC-2`.\n",
-      "docs/metier/regles/FAC-regles.md":
-        "| ID | Règle |\n| --- | --- |\n| FAC-3 | part du tiers payeur = heures × tarif × taux | candidate |\n",
-      "federations/ffsa/rules.json": JSON.stringify({
-        rules: [{ id: "ALL-LIC-7", texte: "une licence par saison" }],
-      }),
-      "docs/adr/ARC-2-transactions-et-isolation.md":
-        "# ARC-2 — Transactions et isolation\n",
+      [SPEC]:
+        "# SPEC_ALL_SOC-1\n\n| Ticket | Objet |\n| --- | --- |\n| SPEC_ALL_SOC-1.03 | la couche licence (ADR_ALL_ARC-2) |\n",
+      [TICKET]:
+        "# Couche licence\n\nStatus: ready-for-agent\nType: task\nRègles: RULE_ALL_LIC-3\n\n## Où\n\nSelon `ADR_ALL_ARC-2`.\n",
+      "docs/metier/regles/all/RULE_ALL_LIC-3.md": REGLE_LIC_3,
+      "docs/adr/ADR_ALL_ARC-2-transactions.md":
+        "# ADR_ALL_ARC-2 — Transactions\n",
     }),
-    "soc-1.03",
+    "spec_all_soc-1.03",
   );
   assert.equal(r.status, 0, r.stderr);
-  assert.match(r.stdout, /^# Contexte du ticket SOC-1\.03/);
-  assert.match(
-    r.stdout,
-    /## Ticket — docs\/features\/socle\/issues\/SOC-1-socle\.03\.issue\.md/,
+  const o = r.stdout;
+  assert.match(o, /^# Contexte du ticket SPEC_ALL_SOC-1\.03/);
+  const rangs = [
+    `## Ticket — ${TICKET}`,
+    `## Spec — ${SPEC}`,
+    "| SPEC_ALL_SOC-1.03 | la couche licence",
+    "## Règles du ticket\n\nRègles: RULE_ALL_LIC-3",
+    "### RULE_ALL_LIC-3 (règle du ticket)",
+    "## Identifiants cités",
+    "### ADR_ALL_ARC-2 (ADR)",
+  ].map((m) => o.indexOf(m));
+  assert.ok(rangs.every((i) => i >= 0), `un repère manque : ${rangs}\n${o}`);
+  assert.deepEqual(rangs, [...rangs].sort((a, b) => a - b), o);
+  const lic3 = section(o, "RULE_ALL_LIC-3");
+  assert.match(lic3, /- trouvée : docs\/metier\/regles\/all\/RULE_ALL_LIC-3\.md/);
+  assert.ok(lic3.includes(REGLE_LIC_3.trim()), "le fichier est rendu tel quel");
+  assert.match(lic3, /by: Marie Curie/, "le nom de la personne reste");
+  assert.equal(
+    o.split("### RULE_ALL_LIC-3").length,
+    2,
+    "une règle de la ligne Règles: n'est pas répétée parmi les cités",
   );
-  assert.match(r.stdout, /\| SOC-1\.03 \| la couche base/);
   assert.match(
-    r.stdout,
-    /### FAC-3 \(règle\)\n- docs\/metier\/regles\/FAC-regles\.md :\n {2}\| FAC-3 \| part du tiers payeur/,
-  );
-  assert.match(
-    r.stdout,
-    /### ALL-LIC-7 \(règle\)\n- federations\/ffsa\/rules\.json :\n {2}\{"id":"ALL-LIC-7"/,
-  );
-  assert.match(
-    r.stdout,
-    /### ARC-2 \(ADR\)\n- docs\/adr\/ARC-2-transactions-et-isolation\.md : ARC-2 — Transactions et isolation/,
+    section(o, "ADR_ALL_ARC-2"),
+    /- trouvé : docs\/adr\/ADR_ALL_ARC-2-transactions\.md — ADR_ALL_ARC-2 — Transactions/,
   );
 });
 
-test("un identifiant cité que le dépôt ne porte pas est dit introuvable ; un ticket inconnu sort en 2", () => {
-  const racine = depot({
-    "docs/features/x/issues/X-1-x.01.issue.md":
-      "# x\n\nStatus: needs-triage\n\nVoir `ZZZ-9` et le ticket `SOC-1.04`.\n",
-  });
-  const r = lancer(racine, "X-1.01");
+test("aucune ancienne forme n'est lue : un rules.json et une ligne de tableau ne rendent pas la règle", () => {
+  const r = lancer(
+    depot({
+      [TICKET]:
+        "# Couche\n\nStatus: ready-for-agent\nType: task\nRègles: RULE_FFSA_LIC-7, RULE_ALL_FAC-3\n\nVoir RULE_ALL_FAC-4.\n",
+      "federations/ffsa/rules.json": JSON.stringify({
+        rules: [{ id: "RULE_FFSA_LIC-7", texte: "une licence par saison" }],
+      }),
+      "docs/metier/regles/FAC-regles.md":
+        "| ID | Règle |\n| --- | --- |\n| RULE_ALL_FAC-3 | part du tiers payeur | candidate |\n| RULE_ALL_FAC-4 | plafond | candidate |\n",
+    }),
+    "SPEC_ALL_SOC-1.03",
+  );
   assert.equal(r.status, 0, r.stderr);
-  assert.match(r.stdout, /### ZZZ-9\n- introuvable/);
+  assert.match(
+    section(r.stdout, "RULE_FFSA_LIC-7"),
+    /- introuvable : docs\/metier\/regles\/ffsa\/RULE_FFSA_LIC-7\.md/,
+  );
+  assert.match(
+    section(r.stdout, "RULE_ALL_FAC-3"),
+    /- introuvable : docs\/metier\/regles\/all\/RULE_ALL_FAC-3\.md/,
+  );
+  assert.match(
+    section(r.stdout, "RULE_ALL_FAC-4"),
+    /### RULE_ALL_FAC-4 \(règle citée\)\n- introuvable : docs\/metier\/regles\/all\/RULE_ALL_FAC-4\.md/,
+  );
+  assert.doesNotMatch(r.stdout, /rules\.json|une licence par saison|tiers payeur|FAC-regles/);
+});
+
+test("une ADR, une spec, une demande et un identifiant absent : trouvés ou introuvables, avec le chemin cherché", () => {
+  const r = lancer(
+    depot({
+      [TICKET]:
+        "# Couche\n\nStatus: ready-for-agent\nType: task\n\nSelon ADR_ALL_ARC-2, suite de SPEC_ALL_PAY-2, née de REQ_ALL_LIC-7, maquette DSG_ALL_UI-1, guide DOC_ALL_GUI-1.\n",
+      "docs/adr/ADR_ALL_ARC-2-transactions.md": "# ADR_ALL_ARC-2 — Transactions\n",
+      "docs/adr/ADR_ALL_ARC-20-autre.md": "# ADR_ALL_ARC-20 — Autre\n",
+      "docs/features/paiement/all/SPEC_ALL_PAY-2-paiement.spec.md":
+        "# SPEC_ALL_PAY-2 — Paiement\n",
+      "docs/demandes/all/REQ_ALL_LIC-7-licence-famille.md":
+        "# REQ_ALL_LIC-7 — Licence famille\n",
+    }),
+    "SPEC_ALL_SOC-1.03",
+  );
+  assert.equal(r.status, 0, r.stderr);
+  const o = r.stdout;
+  assert.match(o, /## Règles du ticket\n\n\(le ticket n'a pas de ligne `Règles:`\)/);
+  assert.match(
+    section(o, "ADR_ALL_ARC-2"),
+    /- trouvé : docs\/adr\/ADR_ALL_ARC-2-transactions\.md — ADR_ALL_ARC-2 — Transactions\n*$/,
+    "ADR_ALL_ARC-20 n'est pas un candidat de ADR_ALL_ARC-2",
+  );
+  assert.match(
+    section(o, "SPEC_ALL_PAY-2"),
+    /### SPEC_ALL_PAY-2 \(spec\)\n- trouvé : docs\/features\/paiement\/all\/SPEC_ALL_PAY-2-paiement\.spec\.md — SPEC_ALL_PAY-2 — Paiement/,
+  );
+  assert.match(
+    section(o, "REQ_ALL_LIC-7"),
+    /### REQ_ALL_LIC-7 \(demande\)\n- trouvé : docs\/demandes\/all\/REQ_ALL_LIC-7-licence-famille\.md/,
+  );
+  assert.match(
+    section(o, "DSG_ALL_UI-1"),
+    /### DSG_ALL_UI-1 \(design\)\n- introuvable : docs\/\*\*\/DSG_ALL_UI-1-\*/,
+  );
+  assert.match(
+    section(o, "DOC_ALL_GUI-1"),
+    /### DOC_ALL_GUI-1 \(guide\)\n- introuvable : docs\/\*\*\/DOC_ALL_GUI-1-\*/,
+  );
+});
+
+test("deux fichiers pour une même ADR : les deux candidats sont listés, aucun n'est choisi", () => {
+  const r = lancer(
+    depot({
+      [TICKET]: "# Couche\n\nStatus: ready-for-agent\nType: task\n\nSelon ADR_ALL_ARC-2.\n",
+      "docs/adr/ADR_ALL_ARC-2-transactions.md": "# ADR_ALL_ARC-2 — Transactions\n",
+      "docs/archive/ADR_ALL_ARC-2-ancienne.md": "# ADR_ALL_ARC-2 — Ancienne\n",
+    }),
+    "SPEC_ALL_SOC-1.03",
+  );
+  assert.equal(r.status, 0, r.stderr);
+  const s = section(r.stdout, "ADR_ALL_ARC-2");
+  assert.match(s, /- 2 candidats pour docs\/\*\*\/ADR_ALL_ARC-2-\*, aucun n'est choisi :/);
+  assert.match(s, /\n {2}- docs\/adr\/ADR_ALL_ARC-2-transactions\.md — ADR_ALL_ARC-2 — Transactions/);
+  assert.match(s, /\n {2}- docs\/archive\/ADR_ALL_ARC-2-ancienne\.md — ADR_ALL_ARC-2 — Ancienne/);
+  assert.doesNotMatch(s, /- trouvé/);
+});
+
+test("une règle d'un autre contexte que celui du ticket et ALL est rendue et signalée ; les zéros de tête sont gardés", () => {
+  const racine = depot({
+    [TICKET]:
+      "# Couche\n\nStatus: ready-for-agent\nType: task\nRègles: RULE_FNSMR_LIC-05, RULE_ALL_LIC-3\n",
+    "docs/features/lic/fnsmr/issues/SPEC_FNSMR_LIC-2-licence.01.issue.md":
+      "# Licence\n\nStatus: ready-for-agent\nType: task\nRègles: RULE_FNSMR_LIC-05, RULE_ALL_LIC-3\n",
+    "docs/metier/regles/fnsmr/RULE_FNSMR_LIC-05.md":
+      "---\nid: RULE_FNSMR_LIC-05\ntitle: Licence FNSMR\n---\n\nÉnoncé FNSMR.\n\n````\nexemple\n````\n",
+    "docs/metier/regles/all/RULE_ALL_LIC-3.md": REGLE_LIC_3,
+  });
+  const all = lancer(racine, "SPEC_ALL_SOC-1.03");
+  assert.equal(all.status, 0, all.stderr);
+  const lic05 = section(all.stdout, "RULE_FNSMR_LIC-05");
+  assert.match(lic05, /- contexte différent du ticket : FNSMR, le ticket est ALL/);
+  assert.match(lic05, /- trouvée : docs\/metier\/regles\/fnsmr\/RULE_FNSMR_LIC-05\.md/);
+  assert.match(
+    lic05,
+    /\n`````markdown\n---\nid: RULE_FNSMR_LIC-05[\s\S]*\n````\nexemple\n````\n`````\n/,
+    "la clôture dépasse les accents graves du fichier : il est rendu entier",
+  );
+  assert.doesNotMatch(section(all.stdout, "RULE_ALL_LIC-3"), /contexte différent/);
+
+  const fnsmr = lancer(racine, "SPEC_FNSMR_LIC-2.01");
+  assert.equal(fnsmr.status, 0, fnsmr.stderr);
+  assert.doesNotMatch(fnsmr.stdout, /contexte différent/, "ALL et le contexte du ticket passent");
+});
+
+test("la ligne Règles: qui porte autre chose qu'une règle : chaque jeton est signalé", () => {
+  const r = lancer(
+    depot({
+      [TICKET]:
+        "# Couche\n\nStatus: ready-for-agent\nType: task\nRègles: LIC-3, ADR_ALL_ARC-2, RULE_ALL_LIC-3\n",
+      "docs/metier/regles/all/RULE_ALL_LIC-3.md": REGLE_LIC_3,
+    }),
+    "SPEC_ALL_SOC-1.03",
+  );
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stdout, /### LIC-3\n- illisible : la ligne `Règles:` porte un jeton qui n'est pas un identifiant/);
+  assert.match(r.stdout, /### ADR_ALL_ARC-2\n- pas une règle/);
+  assert.match(section(r.stdout, "RULE_ALL_LIC-3"), /- trouvée/);
+});
+
+test("un ticket cité est lu comme un ticket, pas comme sa spec ; un ticket inconnu sort en 2", () => {
+  const racine = depot({
+    [TICKET]:
+      "# Couche base\n\nStatus: ready-for-agent\nType: task\n\nS'appuie sur SPEC_ALL_SOC-1.06 et SPEC_ALL_SOC-1.04.\n",
+    "docs/features/socle/all/issues/archive/SPEC_ALL_SOC-1-socle.06.issue.md":
+      "# SPEC_ALL_SOC-1.06 — Tableau\n\nStatus: resolved\n",
+  });
+  const r = lancer(racine, "SPEC_ALL_SOC-1.03");
+  assert.equal(r.status, 0, r.stderr);
   assert.match(
     r.stdout,
-    /### SOC-1\.04 \(ticket\)\n- introuvable dans docs\/ : le ticket cité n'existe pas/,
+    /### SPEC_ALL_SOC-1\.06 \(ticket\)\n- trouvé \(archivé\) : docs\/features\/socle\/all\/issues\/archive\/SPEC_ALL_SOC-1-socle\.06\.issue\.md — SPEC_ALL_SOC-1\.06 — Tableau/,
   );
-  assert.doesNotMatch(
+  assert.match(
     r.stdout,
-    /### SOC-1[\n ]/,
-    "un numéro de ticket n'est pas une règle",
+    /### SPEC_ALL_SOC-1\.04 \(ticket\)\n- introuvable : docs\/\*\*\/issues\/SPEC_ALL_SOC-1-<slug>\.04\.issue\.md/,
   );
-  assert.equal(lancer(racine, "X-1.02").status, 2);
+  assert.doesNotMatch(r.stdout, /### SPEC_ALL_SOC-1[\n ]/, "le ticket n'est pas sa spec");
+  assert.equal(lancer(racine, "SPEC_ALL_SOC-1.02").status, 2);
+  assert.equal(lancer(racine, "SOC-1.03").status, 2, "l'ancienne forme n'est pas lue");
   assert.equal(lancer(racine).status, 2);
 });
 
-test("SOC-1.06 cité est lu comme un ticket, pas comme la spec SOC-1", () => {
+test("la ligne Règles: avec un jeton hostile (200 000 points) est lue en temps borné, le jeton signalé rogné", () => {
+  const hostile = "x" + ".".repeat(200000) + "x";
+  const t0 = process.hrtime.bigint();
   const r = lancer(
     depot({
-      "docs/features/socle/issues/SOC-1-socle.03.issue.md":
-        "# Couche base\n\nStatus: ready-for-agent\n\nS'appuie sur SOC-1.06.\n",
-      "docs/features/socle/issues/SOC-1-socle.06.issue.md":
-        "# SOC-1.06 — Tableau\n\nStatus: needs-triage\n",
+      [TICKET]: `# Couche\n\nStatus: ready-for-agent\nType: task\nRègles: (LIC-3). ${hostile}.\n`,
     }),
-    "SOC-1.03",
+    "SPEC_ALL_SOC-1.03",
   );
+  assert.ok(Number(process.hrtime.bigint() - t0) / 1e6 < 8000);
   assert.equal(r.status, 0, r.stderr);
-  assert.match(
-    r.stdout,
-    /### SOC-1\.06 \(ticket\)\n- docs\/features\/socle\/issues\/SOC-1-socle\.06\.issue\.md : SOC-1\.06 — Tableau/,
-  );
-  assert.doesNotMatch(r.stdout, /### SOC-1\n/);
+  assert.match(r.stdout, /### LIC-3\n- illisible/);
 });

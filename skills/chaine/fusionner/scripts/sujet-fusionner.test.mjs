@@ -20,8 +20,8 @@ const ecritures = (d) => d.journal().map((e) => `${e.methode} ${e.route}`);
 // Le sujet ajoute l'ADR 3, la sous-PR #80 l'ADR 2 (ou, avec `fichier`, un fichier de code en conflit).
 function sousPrEnConflit(conflit) {
   const d = depotJouet();
-  d.ecrire(`${ADR}/ARC-1-a.md`, "# 1\n");
-  d.ecrire(`${ADR}/README.md`, index("ARC-1-a.md"));
+  d.ecrire(`${ADR}/ADR_ALL_ARC-1-a.md`, "# 1\n");
+  d.ecrire(`${ADR}/README.md`, index("ADR_ALL_ARC-1-a.md"));
   d.ecrire("docs/f.md", "0\n");
   d.commit("docs: adr 1");
   d.git("push", "-q", "origin", "HEAD:develop");
@@ -31,7 +31,7 @@ function sousPrEnConflit(conflit) {
     "origin/develop",
     conflit === "code"
       ? { "docs/f.md": "sous\n" }
-      : { [`${ADR}/ARC-2-b.md`]: "# 2\n", [`${ADR}/README.md`]: index("ARC-1-a.md", "ARC-2-b.md") },
+      : { [`${ADR}/ADR_ALL_ARC-2-b.md`]: "# 2\n", [`${ADR}/README.md`]: index("ADR_ALL_ARC-1-a.md", "ADR_ALL_ARC-2-b.md") },
   );
   d.branche(
     "sujet/lot",
@@ -40,8 +40,8 @@ function sousPrEnConflit(conflit) {
       ? { "docs/f.md": "sujet\n" }
       : conflit === "index"
         ? {
-            [`${ADR}/ARC-3-c.md`]: "# 3\n",
-            [`${ADR}/README.md`]: index("ARC-1-a.md", "ARC-3-c.md"),
+            [`${ADR}/ADR_ALL_ARC-3-c.md`]: "# 3\n",
+            [`${ADR}/README.md`]: index("ADR_ALL_ARC-1-a.md", "ADR_ALL_ARC-3-c.md"),
           }
         : { "docs/autre.md": "autre\n" },
   );
@@ -78,7 +78,7 @@ test("fusionner : conflit sur un index généré seul, la branche est mise à jo
   );
   assert.equal(
     d.git("show", `${tete}:${ADR}/README.md`) + "\n",
-    index("ARC-1-a.md", "ARC-2-b.md", "ARC-3-c.md"),
+    index("ADR_ALL_ARC-1-a.md", "ADR_ALL_ARC-2-b.md", "ADR_ALL_ARC-3-c.md"),
   );
   assert.ok(!ecritures(d).some((e) => e.startsWith("PUT ")), "aucun squash");
   assert.equal(d.git("status", "--porcelain"), "");

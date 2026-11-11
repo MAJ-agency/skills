@@ -1,6 +1,6 @@
 ---
 name: sujet
-description: Branche de sujet — un lot de PR liées vit sur `sujet/<nom>` dès sa première PR et entre dans develop en une PR, par un commit de merge. `demarrer` place une branche de travail sur le sujet de son ticket ; le capitaine fusionne les sous-PR étiquetées `à-fusionner`, tient le sujet à jour avec develop, repère et regroupe les séries ; `livrer` ouvre la PR finale. À utiliser au début de tout travail sur un ticket ou un lot (« démarre SOC-1.02 », « ouvre un sujet pour la démo », « regroupe les PR SOC-1 », « où en sont les sujets », « livre le sujet socle »). `poser` l'installe une fois dans le dépôt.
+description: Branche de sujet — un lot de PR liées vit sur `sujet/<nom>` dès sa première PR et entre dans develop en une PR, par un commit de merge. `demarrer` place une branche de travail sur le sujet de son ticket ; le capitaine fusionne les sous-PR étiquetées `à-fusionner`, tient le sujet à jour avec develop, repère et regroupe les séries ; `livrer` ouvre la PR finale. À utiliser au début de tout travail sur un ticket ou un lot (« démarre SPEC_ALL_SOC-1.02 », « ouvre un sujet pour la démo », « regroupe les PR SPEC_ALL_SOC-1 », « où en sont les sujets », « livre le sujet socle »). `poser` l'installe une fois dans le dépôt.
 argument-hint: 'poser | demarrer <ticket|nom> | etat | series | regrouper <nom> <pr>… | livrer <nom> "<titre>" | carte <nom> | ouvrir | fusionner | rafraichir | relancer'
 ---
 
@@ -10,7 +10,7 @@ Un lot de PR liées vit sur `sujet/<nom>` **dès sa première PR**, et entre dan
 
 ## Étape 0 — poser (une fois par dépôt, `poser`)
 
-`scripts/sujet.sh` → `scripts/chaine/sujet.sh` (exécutable), avec son banc d'essai `scripts/sujet.test.mjs`, `scripts/sujet-carte.test.mjs`, `scripts/depot-jouet.mjs` et `scripts/faux-gh.mjs` → `scripts/chaine/` (les tests du capitaine s'en servent aussi). Il s'appuie sur `scripts/chaine/github.sh` et `revue-exigee.mjs`, posés par `fusionner poser` ; les deux skills se posent ensemble. Dépendances : `git`, `jq`, `gh` authentifié pour tout ce qui écrit sur GitHub (sans lui, le script affiche l'appel de l'outil GitHub MCP à faire). Tests : `node --test scripts/chaine/*.test.mjs` (le socle les joue dans `check:tickets`).
+`scripts/sujet.sh` → `scripts/chaine/sujet.sh` (exécutable), avec son banc d'essai `scripts/sujet.test.mjs`, `scripts/sujet-carte.test.mjs`, `scripts/depot-jouet.mjs`, `scripts/faux-gh.mjs` et `scripts/faux-gh.test.mjs` → `scripts/chaine/` (les tests du capitaine s'en servent aussi). Il s'appuie sur `scripts/chaine/github.sh`, `identifiant.mjs` (qui lit les identifiants par `scripts/docs/identifiants.mjs`, posé par `tickets`) et `revue-exigee.mjs`, posés par `fusionner poser` ; les deux skills se posent ensemble. Dépendances : `git`, `jq`, `gh` authentifié pour tout ce qui écrit sur GitHub (sans lui, le script affiche l'appel de l'outil GitHub MCP à faire). Tests : `node --test scripts/chaine/*.test.mjs` (le socle les joue dans `check:tickets`).
 
 ## Quand un sujet
 

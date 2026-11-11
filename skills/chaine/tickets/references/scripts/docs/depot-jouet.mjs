@@ -4,9 +4,36 @@
  * Sans les GIT_* hérités : sous un hook git, GIT_DIR et GIT_INDEX_FILE visent le vrai dépôt.
  */
 import { execFileSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, symlinkSync, writeFileSync } from 'node:fs';
+import { copyFileSync, cpSync, existsSync, mkdirSync, mkdtempSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+
+const ICI = dirname(fileURLToPath(import.meta.url));
+/** La grammaire et la numérotation, posées par `socle-monorepo` à `scripts/docs/`, pas par ce skill. */
+const DU_SOCLE = ['identifiants.mjs', 'next-id.mjs', 'next-id-branches.mjs'];
+// Dans le plugin, elles vivent dans le skill `socle-monorepo` : skills/monorepo/socle-monorepo/.
+const SOCLE = join(ICI, '../../../../../monorepo/socle-monorepo/references/scripts/docs');
+let pose;
+
+/**
+ * Le dossier `scripts/` tel que le projet le porte : `docs/` et `verify/` côte à côte, la grammaire
+ * du socle dans `docs/`. Dans un projet, c'est celui de ce fichier ; dans le plugin, une copie des
+ * scripts du skill augmentée de ceux du socle, faite une fois par processus de test.
+ */
+export function scripts() {
+  if (existsSync(join(ICI, 'identifiants.mjs'))) return dirname(ICI);
+  if (!pose) {
+    pose = join(mkdtempSync(join(tmpdir(), 'tickets-poses-')), 'scripts');
+    cpSync(dirname(ICI), pose, { recursive: true });
+    for (const f of DU_SOCLE) copyFileSync(join(SOCLE, f), join(pose, 'docs', f));
+  }
+  return pose;
+}
+/** Chemin d'un script posé : `script('docs/vagues.mjs')`. */
+export const script = (chemin) => join(scripts(), chemin);
+/** Module d'un script posé, pour un test qui l'importe : `await module('docs/vagues.mjs')`. */
+export const module = (chemin) => import(pathToFileURL(script(chemin)).href);
 
 export const ENV = {
   ...Object.fromEntries(Object.entries(process.env).filter(([cle]) => !cle.startsWith('GIT_'))),

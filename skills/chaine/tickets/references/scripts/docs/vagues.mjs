@@ -14,7 +14,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { lireTicket } from './avancement-regles.mjs';
-import { SPEC, fichiersDeLaSpec } from './identifiants.mjs';
+import { estSpec, fichiersDeLaSpec, identifiantDuFichier } from './identifiants.mjs';
 
 /** Valeur d'une ligne d'en-tête, sous ses formes `X:`, `**X:**`, `- X:`. */
 function enTete(texte, nom) {
@@ -45,8 +45,14 @@ export function fichiersChauds(valeur) {
   return bruts.map((c) => c.replace(/\\/g, '').split(/\s/)[0]).filter(Boolean).flatMap(developper);
 }
 
+/** Le chemin sans ses `/` de queue, en un seul passage (`/\/+$/` est quadratique). */
+export const sansBarresFinales = (chemin) => {
+  let fin = chemin.length;
+  while (fin > 0 && chemin[fin - 1] === '/') fin--;
+  return chemin.slice(0, fin);
+};
 const motif = (chemin) =>
-  new RegExp('^' + chemin.replace(/\/+$/, '').replace(/[.+^${}()|[\]]/g, '\\$&').replace(/\*/g, '.*') + '(/.*)?$');
+  new RegExp('^' + sansBarresFinales(chemin).replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*') + '(/.*)?$');
 const nomSeul = (c) => !c.includes('/');
 
 /**
@@ -55,7 +61,7 @@ const nomSeul = (c) => !c.includes('/');
  */
 export function seRecouvrent(a, b) {
   if (motif(a).test(b) || motif(b).test(a)) return true;
-  const fin = (c) => c.replace(/\/+$/, '').split('/').pop();
+  const fin = (c) => sansBarresFinales(c).split('/').pop();
   return (nomSeul(a) && motif(a).test(fin(b))) || (nomSeul(b) && motif(b).test(fin(a)));
 }
 
@@ -124,9 +130,10 @@ function principal() {
   const i = args.indexOf('--max');
   const max = i >= 0 ? Number(args[i + 1]) : 6;
   const arg = args.find((a, k) => !a.startsWith('--') && args[k - 1] !== '--max') ?? '';
-  const spec = new RegExp(`(${SPEC})`).exec(arg.split('/').pop())?.[1];
+  // L'identifiant seul, ou le chemin de la spec (ou de sa carte), dont le nom commence par lui.
+  const spec = [arg.toUpperCase(), identifiantDuFichier(arg.split('/').pop())].find(estSpec);
   if (!spec || !Number.isInteger(max) || max < 1) {
-    console.error('Usage : node scripts/docs/vagues.mjs <SPEC|chemin de la spec> [--max N] [--json]   (ex. SOC-1)');
+    console.error('Usage : node scripts/docs/vagues.mjs <SPEC|chemin de la spec> [--max N] [--json]   (ex. SPEC_ALL_SOC-1)');
     process.exit(2);
   }
   const fichiers = execFileSync('git', ['ls-files', '--full-name', ':/docs'], { encoding: 'utf8' })

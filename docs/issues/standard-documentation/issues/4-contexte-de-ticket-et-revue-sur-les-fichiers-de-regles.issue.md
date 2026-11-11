@@ -1,6 +1,6 @@
 # La revue de ticket lit une règle dans son fichier
 
-Status: ready-for-agent
+Status: resolved
 Type: task
 Blocked by: 2
 
@@ -29,6 +29,11 @@ Blocked by: 2
 
 `pnpm test` ; sur un dépôt posé, `node scripts/chaine/contexte-ticket.mjs SPEC_ALL_SOC-1.03` rend le contexte.
 
+## Answer
+
+Livré : `contexte-ticket.mjs` lit chaque identifiant par `identifiants.mjs` et rend, dans l'ordre, le ticket, sa ligne de spec, « Règles du ticket » (la ligne `Règles:`, puis chaque `docs/metier/regles/<ctx>/RULE_<CTX>_<TRI>-<n>.md` rendu tel quel, en-tête YAML compris), puis « Identifiants cités » (règles, ADR, specs, tickets, design, guides, demandes), chacun trouvé ou introuvable avec le chemin cherché. Une ADR, un `DSG`, un `DOC` : le fichier de `docs/**` dont le nom commence par `<ID>-` ; deux candidats ou plus sont tous listés. Une règle d'un autre contexte que celui du ticket et `ALL` est rendue avec la ligne « contexte différent du ticket ». Un jeton de la ligne `Règles:` qui n'est pas un identifiant, ou un identifiant qui n'est pas une règle, est signalé. Plus aucune lecture de `rules.json` ni de tableau `| <ID> |`. `S7` (`criteres-socle.md`), `prompt-ticket.md`, `T3` (`criteres-ticket.md`), `CONTENU.md` et `SKILL.md` du skill `revue-de-ticket` disent l'étiquette `[RULE_<CTX>_<TRI>-<n>]` et la liste fermée de la ligne `Règles:`. `pnpm test` : 266 verts (262 au sommet `5349a7b`, le banc de `contexte-ticket` passe de 3 à 7 cas).
+
 ## Comments
 
 - 2026-11-10 — Ouvert à la clôture du grilling (ticket `1`).
+- 2026-11-10 — Fait. Décisions par défaut : `T3` vise la ligne `Règles:`, et à défaut de ligne les règles citées par le ticket ; une demande `REQ` se cherche sous `docs/demandes/<ctx>/` ; un ticket cité se cherche archive comprise et le dit ; `criteres-documentation.md` garde « ou `rules.json` » tant que Fedora n'a pas migré (hors « Où »).
