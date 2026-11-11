@@ -260,8 +260,8 @@ test("un ticket cité est lu comme un ticket, pas comme sa spec ; un ticket inco
   assert.equal(lancer(racine).status, 2);
 });
 
-test("la ligne Règles: avec un jeton hostile (100 000 points) est lue en temps borné, le jeton signalé rogné", () => {
-  const hostile = "x" + ".".repeat(100000) + "x";
+test("la ligne Règles: avec un jeton hostile (200 000 points) est lue en temps borné, le jeton signalé rogné", () => {
+  const hostile = "x" + ".".repeat(200000) + "x";
   const t0 = process.hrtime.bigint();
   const r = lancer(
     depot({
@@ -269,7 +269,7 @@ test("la ligne Règles: avec un jeton hostile (100 000 points) est lue en temps 
     }),
     "SPEC_ALL_SOC-1.03",
   );
-  assert.ok(Number(process.hrtime.bigint() - t0) / 1e6 < 5000);
+  assert.ok(Number(process.hrtime.bigint() - t0) / 1e6 < 8000);
   assert.equal(r.status, 0, r.stderr);
   assert.match(r.stdout, /### LIC-3\n- illisible/);
 });

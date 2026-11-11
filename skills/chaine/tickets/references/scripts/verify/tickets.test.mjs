@@ -17,6 +17,7 @@ const {
   statusValide,
   ticketsCites,
   ecartsFiches,
+  elementsCites,
   etatDuTest,
   optionDesactivee,
   reglesCitees,
@@ -243,7 +244,7 @@ test('défaut Fait : test actif passe ; test it.skip, introuvable ou non nommé 
 });
 
 // Entrées hostiles : une ligne de fichier de test ou une cellule de ticket est de la donnée, pas du code de confiance.
-const ENOUGH_MS = 1500; // la forme linéaire rend en quelques millisecondes ; les anciennes expressions, en minutes
+const ENOUGH_MS = 3000; // la forme linéaire rend en quelques millisecondes ; les anciennes expressions, en minutes
 const duree = (f) => {
   const t0 = process.hrtime.bigint();
   const r = f();
@@ -253,13 +254,13 @@ const duree = (f) => {
 test('Surfaces : « titre » entre chevrons français, rogné, en temps borné sur une cellule hostile', () => {
   const lignes = DEFAUT('Fait — PR #9', '`a.spec.ts` «   un titre rogné   »').split('\n');
   assert.deepEqual(testsNommes(lignes).tests, [{ fichier: 'a.spec.ts', titre: 'un titre rogné' }]);
-  // « suivi de 3 000 espaces, jamais fermé : l'ancienne expression `«\s*([^»]+?)\s*»` y était cubique.
-  const hostile = DEFAUT('Fait — PR #9', '`a.spec.ts` «' + ' '.repeat(3000) + 'x').split('\n');
+  // « suivi de 4 000 espaces, jamais fermé : l'ancienne expression `«\s*([^»]+?)\s*»` y était cubique.
+  const hostile = DEFAUT('Fait — PR #9', '`a.spec.ts` «' + ' '.repeat(4000) + 'x').split('\n');
   const { r, ms } = duree(() => testsNommes(hostile));
   assert.deepEqual(r.tests, []);
   assert.ok(ms < ENOUGH_MS, `${ms} ms`);
   // « répétés, jamais fermés : `[^»]+` acceptait aussi « et rescannait à chaque départ (quadratique).
-  const chevrons = DEFAUT('Fait — PR #9', '`a.spec.ts` ' + '«'.repeat(60000)).split('\n');
+  const chevrons = DEFAUT('Fait — PR #9', '`a.spec.ts` ' + '«'.repeat(150000)).split('\n');
   const c = duree(() => testsNommes(chevrons));
   assert.deepEqual(c.r.tests, []);
   assert.ok(c.ms < ENOUGH_MS, `${c.ms} ms`);
@@ -285,9 +286,26 @@ test("option { skip } / { todo } de node:test : même verdict que l'ancienne exp
     "{ a, b, todo: 1 }",
   ];
   for (const l of lignes) assert.equal(optionDesactivee(l), ANCIENNE.test(l), JSON.stringify(l));
-  for (const hostile of ['{'.repeat(60000), '{' + ' '.repeat(60000) + 'x', '{' + ', '.repeat(30000) + 'x', '{ a,'.repeat(15000)]) {
+  for (const hostile of ['{'.repeat(100000), '{' + ' '.repeat(100000) + 'x', '{' + ', '.repeat(50000) + 'x', '{ a,'.repeat(25000)]) {
     const { r, ms } = duree(() => optionDesactivee(hostile));
     assert.equal(r, false);
     assert.ok(ms < ENOUGH_MS, `${ms} ms`);
+  }
+});
+
+test("Surfaces : la lecture d'une cellule garde la sémantique de l'ancienne expression (« isolé dans un titre compris)", () => {
+  const ANCIENNE = /`([^`]+)`|«\s*([^»]+?)\s*»|"([^"]+)"/g;
+  const lire = (c) => [...c.matchAll(ANCIENNE)].map((m) => ({ fichier: m[1] !== undefined, texte: m[1] ?? m[2] ?? m[3] }));
+  for (const c of ['« aa« »', '« voir « seul»', '`a.spec.ts` «   un titre   », "b"', '«« x »»', '» « y »', '« z', '`x` «', '"a" `b.test.ts` « c »']) {
+    assert.deepEqual(elementsCites(c), lire(c), JSON.stringify(c));
+  }
+  // Fuzz déterministe : mêmes éléments que l'ancienne expression (hors titre fait d'espaces seuls, rogné à vide).
+  let graine = 12345;
+  const alea = (n) => ((graine = (graine * 1103515245 + 12345) % 2147483648) % n);
+  const alphabet = ['«', '»', '`', '"', ' ', 'a', 'b', 'x.spec.ts', '\\', '|'];
+  for (let i = 0; i < 3000; i++) {
+    const c = Array.from({ length: 1 + alea(14) }, () => alphabet[alea(alphabet.length)]).join('');
+    const attendu = lire(c).map((e) => (e.texte.trim() === '' && !e.fichier ? { ...e, texte: '' } : e));
+    assert.deepEqual(elementsCites(c), attendu, JSON.stringify(c));
   }
 });

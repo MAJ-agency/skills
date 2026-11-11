@@ -46,7 +46,7 @@ export function fichiersChauds(valeur) {
 }
 
 /** Le chemin sans ses `/` de queue, en un seul passage (`/\/+$/` est quadratique). */
-const sansBarresFinales = (chemin) => {
+export const sansBarresFinales = (chemin) => {
   let fin = chemin.length;
   while (fin > 0 && chemin[fin - 1] === '/') fin--;
   return chemin.slice(0, fin);

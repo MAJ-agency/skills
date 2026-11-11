@@ -63,6 +63,21 @@ export const FICHIER_DE_TEST = /\.(?:test|spec|e2e-spec)\.[cm]?[jt]sx?$/;
  * accents graves (un chemin de code cité à côté) n'est pas un titre.
  * Rend `{ tests: [{ fichier, titre }], ecarts }` ; `ecarts` dit ce qui empêche de lire la preuve.
  */
+/**
+ * Ce qu'une cellule cite, dans l'ordre : un `fichier` entre accents graves, un titre entre « et » (rogné)
+ * ou entre guillemets droits. Un « placé après le dernier » ne peut ouvrir aucun titre, mais `[^»]+` le
+ * rescannerait jusqu'à la fin à chaque départ (quadratique sur une suite de «) : on les neutralise pour
+ * la recherche, sans changer une position, et le texte rendu vient de la cellule d'origine.
+ */
+export function elementsCites(cellule) {
+  const dernier = cellule.lastIndexOf('»');
+  const cherche = cellule.slice(0, dernier + 1) + cellule.slice(dernier + 1).replaceAll('«', '‹');
+  return [...cherche.matchAll(/`([^`]+)`|«([^»]+)»|"([^"]+)"/g)].map((m) => {
+    const brut = cellule.slice(m.index + 1, m.index + m[0].length - 1);
+    return { fichier: m[1] !== undefined, texte: m[2] === undefined ? brut : brut.trim() };
+  });
+}
+
 export function testsNommes(lignes) {
   const corps = sections(lignes).get('Surfaces');
   if (!corps) return { tests: [], ecarts: ['section `## Surfaces` absente'] };
@@ -76,13 +91,13 @@ export function testsNommes(lignes) {
     if (/^:?-+:?$/.test(cellule)) continue;
     let fichier = null;
     let titres = 0;
-    for (const m of cellule.matchAll(/`([^`]+)`|«([^«»]+)»|"([^"]+)"/g)) {
-      if (m[1] !== undefined && FICHIER_DE_TEST.test(m[1])) {
+    for (const e of elementsCites(cellule)) {
+      if (e.fichier && FICHIER_DE_TEST.test(e.texte)) {
         if (fichier && titres === 0) ecarts.push(`la preuve nomme \`${fichier}\` sans titre de test`);
-        fichier = m[1];
+        fichier = e.texte;
         titres = 0;
-      } else if (fichier && m[1] === undefined) {
-        tests.push({ fichier, titre: m[2] === undefined ? m[3] : m[2].trim() });
+      } else if (fichier && !e.fichier) {
+        tests.push({ fichier, titre: e.texte });
         titres++;
       }
     }
