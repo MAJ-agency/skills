@@ -58,6 +58,21 @@ function cellules(ligne) {
 export const FICHIER_DE_TEST = /\.(?:test|spec|e2e-spec)\.[cm]?[jt]sx?$/;
 
 /**
+ * Ce qu'une cellule cite, dans l'ordre : un `fichier` entre accents graves, un titre entre « et » (rogné)
+ * ou entre guillemets droits. Un « placé après le dernier » ne peut ouvrir aucun titre, mais `[^»]+` le
+ * rescannerait jusqu'à la fin à chaque départ (quadratique sur une suite de «) : on les neutralise pour
+ * la recherche, sans changer une position, et le texte rendu vient de la cellule d'origine.
+ */
+export function elementsCites(cellule) {
+  const dernier = cellule.lastIndexOf('»');
+  const cherche = cellule.slice(0, dernier + 1) + cellule.slice(dernier + 1).replaceAll('«', '‹');
+  return [...cherche.matchAll(/`([^`]+)`|«([^»]+)»|"([^"]+)"/g)].map((m) => {
+    const brut = cellule.slice(m.index + 1, m.index + m[0].length - 1);
+    return { fichier: m[1] !== undefined, texte: m[2] === undefined ? brut : brut.trim() };
+  });
+}
+
+/**
  * Tests nommés par la colonne « Preuve » de `## Surfaces` : un fichier de test entre accents graves,
  * suivi de ses titres entre « » ou "" : `a.test.ts` « refuse X », « refuse Y ». Un autre texte entre
  * accents graves (un chemin de code cité à côté) n'est pas un titre.
@@ -76,13 +91,13 @@ export function testsNommes(lignes) {
     if (/^:?-+:?$/.test(cellule)) continue;
     let fichier = null;
     let titres = 0;
-    for (const m of cellule.matchAll(/`([^`]+)`|«\s*([^»]+?)\s*»|"([^"]+)"/g)) {
-      if (m[1] !== undefined && FICHIER_DE_TEST.test(m[1])) {
+    for (const e of elementsCites(cellule)) {
+      if (e.fichier && FICHIER_DE_TEST.test(e.texte)) {
         if (fichier && titres === 0) ecarts.push(`la preuve nomme \`${fichier}\` sans titre de test`);
-        fichier = m[1];
+        fichier = e.texte;
         titres = 0;
-      } else if (fichier && m[1] === undefined) {
-        tests.push({ fichier, titre: m[2] ?? m[3] });
+      } else if (fichier && !e.fichier) {
+        tests.push({ fichier, titre: e.texte });
         titres++;
       }
     }
@@ -98,8 +113,28 @@ const desactive = (ligne) => {
   const m = APPEL.exec(ligne);
   if (!m) return false;
   // node:test : `test('x', { skip: true }, …)`, `{ todo: … }`.
-  return m[1].startsWith('x') || /\.(skip|todo)\b/.test(m[2]) || /\{\s*(?:[^}]*,\s*)?(?:skip|todo)\s*:/.test(ligne.slice(m.index));
+  return m[1].startsWith('x') || /\.(skip|todo)\b/.test(m[2]) || optionDesactivee(ligne.slice(m.index));
 };
+/**
+ * `{ skip: … }` ou `{ todo: … }` : un `skip` ou `todo` suivi de `:`, juste après un `{` ou une `,` d'un
+ * objet encore ouvert (aucun `}` depuis son `{`). Un seul passage sur la ligne : l'expression
+ * régulière qui disait la même chose (`\{\s*(?:[^}]*,\s*)?(?:skip|todo)\s*:`) est quadratique.
+ */
+export function optionDesactivee(texte) {
+  let ouvert = false;
+  let precedent = '';
+  for (const [jeton] of texte.matchAll(/(?:skip|todo)\s*:|\S/g)) {
+    if (jeton.length > 1) {
+      if (ouvert && (precedent === '{' || precedent === ',')) return true;
+      precedent = ':';
+      continue;
+    }
+    if (jeton === '{') ouvert = true;
+    else if (jeton === '}') ouvert = false;
+    precedent = jeton;
+  }
+  return false;
+}
 const indentation = (l) => /^\s*/.exec(l)[0].replace(/\t/g, '  ').length;
 
 /**

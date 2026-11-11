@@ -45,8 +45,14 @@ export function fichiersChauds(valeur) {
   return bruts.map((c) => c.replace(/\\/g, '').split(/\s/)[0]).filter(Boolean).flatMap(developper);
 }
 
+/** Le chemin sans ses `/` de queue, en un seul passage (`/\/+$/` est quadratique). */
+export const sansBarresFinales = (chemin) => {
+  let fin = chemin.length;
+  while (fin > 0 && chemin[fin - 1] === '/') fin--;
+  return chemin.slice(0, fin);
+};
 const motif = (chemin) =>
-  new RegExp('^' + chemin.replace(/\/+$/, '').replace(/[.+^${}()|[\]]/g, '\\$&').replace(/\*/g, '.*') + '(/.*)?$');
+  new RegExp('^' + sansBarresFinales(chemin).replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*') + '(/.*)?$');
 const nomSeul = (c) => !c.includes('/');
 
 /**
@@ -55,7 +61,7 @@ const nomSeul = (c) => !c.includes('/');
  */
 export function seRecouvrent(a, b) {
   if (motif(a).test(b) || motif(b).test(a)) return true;
-  const fin = (c) => c.replace(/\/+$/, '').split('/').pop();
+  const fin = (c) => sansBarresFinales(c).split('/').pop();
   return (nomSeul(a) && motif(a).test(fin(b))) || (nomSeul(b) && motif(b).test(fin(a)));
 }
 

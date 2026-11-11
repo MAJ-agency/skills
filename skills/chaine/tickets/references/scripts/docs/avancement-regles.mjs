@@ -100,7 +100,7 @@ export function avancement(tickets, prs) {
   };
 }
 
-const cellule = (s) => String(s ?? '—').replace(/\|/g, '\\|');
+const cellule = (s) => String(s ?? '—').replace(/\\/g, '\\\\').replace(/\|/g, '\\|');
 
 /** Sortie Markdown : en-tête, tableau, puis prochaines actions. */
 export function enMarkdown(nom, a) {

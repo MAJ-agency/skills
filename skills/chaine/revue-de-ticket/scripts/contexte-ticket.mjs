@@ -113,10 +113,18 @@ const valeurRegles = (ligneRegles ?? "")
   .replace(/^Règles\s*:/, "")
   .replace(/\s#.*$/, "");
 const reglesDuTicket = identifiantsCites(valeurRegles);
+/** Un jeton de la ligne sans les `(` de tête ni les `.` et `)` de queue, en un seul passage. */
+function rognerJeton(jeton) {
+  let debut = 0;
+  let fin = jeton.length;
+  while (debut < fin && jeton[debut] === "(") debut++;
+  while (fin > debut && (jeton[fin - 1] === "." || jeton[fin - 1] === ")")) fin--;
+  return jeton.slice(debut, fin);
+}
 /** Ce que la ligne porte et que la grammaire ne lit pas comme identifiant (`LIC-3`, `ALL-LIC-3`). */
 const jetonsIllisibles = valeurRegles
   .split(/[\s,;`]+/)
-  .map((j) => j.replace(/^\(+|[.)]+$/g, ""))
+  .map(rognerJeton)
   .filter((j) => j && !/^[—–-]$/.test(j) && !lireIdentifiant(j));
 
 // ── Les identifiants cités ailleurs ──────────────────────────────────────────────────────

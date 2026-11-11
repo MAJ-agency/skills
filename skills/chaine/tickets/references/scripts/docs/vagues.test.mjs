@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { module } from './depot-jouet.mjs';
 
-const { enMarkdown, fichiersChauds, lireTickets, seRecouvrent, vagues } = await module('docs/vagues.mjs');
+const { enMarkdown, fichiersChauds, lireTickets, sansBarresFinales, seRecouvrent, vagues } = await module('docs/vagues.mjs');
 
 const t = (nn, status, extra = '') => ({ nom: `docs/x/all/issues/SPEC_ALL_SOC-9-demo.${nn}.issue.md`, texte: `# SPEC_ALL_SOC-9.${nn} — Objet ${nn}\n\nStatus: ${status}\n${extra}` });
 const ids = (r) => r.vagues.map((v) => v.map((x) => x.id.slice(-2)));
@@ -36,4 +36,21 @@ test('sortie Markdown', () => {
   const md = enMarkdown('SPEC_ALL_SOC-9', vagues(lireTickets([t('01', 'ready-for-agent', 'Modèle: sonnet\nFichiers chauds: `a.ts`\n')])));
   assert.match(md, /^# Vagues proposées — SPEC_ALL_SOC-9/);
   assert.match(md, /\| 1 \| SPEC_ALL_SOC-9\.01 \| Objet 01 \| sonnet \| `a\.ts` \|/);
+});
+
+test("un chemin chaud est lu littéralement : le backslash ne devient pas une classe, les barres finales se rognent", () => {
+  // `\b` dans un motif non échappé est une limite de mot, pas un backslash.
+  assert.ok(seRecouvrent('a\\b.ts', 'a\\b.ts'));
+  assert.ok(!seRecouvrent('a\\b.ts', 'ab.ts'));
+  assert.ok(seRecouvrent('scripts/db///', 'scripts/db/seed.ts'));
+  assert.ok(seRecouvrent('x.ts', 'apps/y/x.ts//'));
+  assert.ok(!seRecouvrent('scripts/db///', 'scripts/dbx/seed.ts'));
+});
+
+test("sansBarresFinales : même résultat que /\\/+$/, en temps borné sur 200 000 barres non finales", () => {
+  for (const c of ['', '/', 'a', 'a/', 'a///', '/a//b/', '///', 'a//b']) assert.equal(sansBarresFinales(c), c.replace(/\/+$/, ''), JSON.stringify(c));
+  const hostile = 'a' + '/'.repeat(200000) + 'b'; // l'ancienne expression y met plusieurs dizaines de secondes
+  const t0 = process.hrtime.bigint();
+  assert.equal(sansBarresFinales(hostile), hostile);
+  assert.ok(Number(process.hrtime.bigint() - t0) / 1e6 < 3000);
 });
