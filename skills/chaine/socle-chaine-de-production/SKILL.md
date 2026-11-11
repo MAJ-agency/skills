@@ -38,7 +38,7 @@ Rien d'autre : les branches sont `develop` et `main`, les labels ont leurs noms,
 6. **La CI** : `references/ci/ci.yml` → `.github/workflows/ci.yml`, placeholders substitués. S'il existe déjà un workflow, y ajouter les trois jobs plutôt que le remplacer. Le job `zizmor` audite les workflows (injection par gabarit `${{ … }}` dans un `run:`, action non épinglée, `pull_request_target`, permissions larges) ; une valeur d'événement passe par `env:`, jamais dans un `run:`.
 7. **La méthode** : `references/docs-agents/chaine-de-production.md` → `docs/agents/chaine-de-production.md`, et `references/docs-agents/pieges.md` → `docs/agents/pieges.md`.
 8. **Les ADR** : `node scripts/docs/next-id.mjs ADR ALL ARC` trois fois, de suite, chaque ADR copiée avant l'appel suivant ; `references/adr/ADR_ALL_ARC-N-chaine-de-production.md`, `ADR_ALL_ARC-N-branches-de-sujet.md`, `ADR_ALL_ARC-N-recette-humaine.md` → `docs/adr/ADR_ALL_ARC-<n>-….md`, `{{N}}` et `{{DATE}}` substitués. `{{ADR_CHAINE}}` et `{{ADR_SUJET}}` valent ces identifiants dans tous les fichiers posés.
-9. **La branche `develop`** : `git fetch origin main && git push origin origin/main:refs/heads/develop` si elle n'existe pas. La branche par défaut et sa protection sont à l'admin (`admin.md`).
+9. **La branche `develop`** : `references/scripts/github/develop.sh` → `scripts/github/develop.sh`, puis `bash scripts/github/develop.sh` : crée `develop` sur le distant depuis `origin/main` si elle n'existe pas, et la rapatrie (`origin/develop`). **Jamais `git push origin origin/main:refs/heads/develop` à la main** : ce push passe sous le hook pre-push, qui joue `pnpm check` sur l'arbre de travail (pas ce qui part) et dont le gate `coverage-diff` cherche `origin/develop` comme base — la branche que le push crée : refus, sortie 2. Le script pousse `--no-verify` parce que le push ne porte que `origin/main`, déjà vérifié par son propre push ; l'API GitHub (`POST git/refs`) n'est pas une option, le proxy des sessions cloud la refuse. Push refusé (droits) : la ligne va dans `admin.md`. La branche par défaut et sa protection sont à l'admin (`admin.md`).
 10. **Les fragments** : chaque fragment s'insère immédiatement au-dessus du marqueur de sa zone, sans le supprimer :
 
 | Fragment                                     | Fichier racine | Zone                                   |
@@ -60,7 +60,7 @@ pnpm check:tickets        # le gate et les tests des scripts, dont scripts/agent
 node scripts/docs/next-id.mjs ADR ALL ARC
 ```
 
-Puis : aucun placeholder `{{…}}` restant (chercher `{{[A-Z_]+}}` hors JSX) ; `.claude/settings.json` valide et les quatre hooks présents (deux graphify, deux agent) ; `gh api repos/{owner}/{repo}/labels --jq '.[].name'` liste les sept labels, ou la case correspondante de `chaine-admin.md` est ouverte.
+Puis : aucun placeholder `{{…}}` restant (chercher `{{[A-Z_]+}}` hors JSX) ; `.claude/settings.json` valide et les quatre hooks présents (deux graphify, deux agent) ; `git ls-remote --heads origin develop` rend une ligne ; `gh api repos/{owner}/{repo}/labels --jq '.[].name'` liste les sept labels, ou la case correspondante de `chaine-admin.md` est ouverte.
 
 Remettre à l'humain **la liste de `chaine-admin.md`** : rien de la chaîne ne tourne tant que `develop` n'est pas protégée avec « branche à jour exigée ».
 
