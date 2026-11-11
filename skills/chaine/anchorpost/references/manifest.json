@@ -12,9 +12,7 @@
       "floor": { "date": "{{DATE}}", "proven": 0 }
     }
   ],
-  "epics": [
-    { "id": "{{epic}}", "name": "{{Gestion de … : un module de l'application}}", "domains": ["{{TRI}}"] }
-  ],
+  "epics": [],
   "documents": [
     { "role": "glossary", "path": "GLOSSARY.md", "title": "Glossaire" }
   ],

@@ -62,6 +62,7 @@ Un chemin qui ne peut pas bouger (les règles d'une fédération dans `federatio
 2. **Les contextes** : `all` seul, ou une liste. Chacun a un identifiant court en minuscules et un nom affiché. Recommandation : `all` seul, sauf si le projet sert plusieurs organisations aux règles distinctes.
 3. **Les documents à rendre** : le glossaire, le document d'architecture, le programme. Recommandation : `GLOSSARY.md`, et les documents que `CLAUDE.md` nomme dans sa carte d'orientation.
 4. **La table nom → rôle** : les personnes citées dans les règles et les décisions, avec leur rôle (`client`, `MOA`, `MOE`). Facultative : Anchorpost affiche le nom, et le rôle entre parenthèses quand il le connaît.
+5. **Les modules de l'application (EPIC)** : les grands pans fonctionnels, chacun avec ses domaines du registre. Recommandation : un EPIC par grand pan fonctionnel ; sans réponse, aucun, et « Technique » reçoit tout, avec un avertissement.
 
 Les **EPIC** (`epics`) se déclarent dans le manifeste : un EPIC est un **module de l'application**, un pan fonctionnel (« Gestion des licences », « Gestion des affiliations », « Vie d'équipe ») qui regroupe un ou plusieurs domaines (`{ "id": "licences", "name": "Gestion des licences", "domains": ["LIC", "PAY"] }`). L'EPIC « Technique » est fourni par défaut : un domaine qu'aucun EPIC ne liste y va, et la santé le signale. Les planchers (`floor`) sont écrits par `init` à la valeur mesurée ce jour-là, pour chaque contexte ; un humain les relève, jamais ne les baisse.
 

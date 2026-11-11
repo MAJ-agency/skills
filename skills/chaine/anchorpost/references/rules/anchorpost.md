@@ -10,7 +10,7 @@ Ce dépôt est lu par Anchorpost, qui montre à la MOA ses règles métier, leur
 
 ## Identifiants
 
-Tout se cite par un identifiant complet `<TYPE>_<CTX>_<TRI>-<n>` : `RULE_ALL_LIC-3`, `SPEC_FNSMR_PAY-3.02`, `ADR_ALL_ARC-11`, `REQ_ALL_LIC-7`. Le contexte s'écrit toujours, `ALL` compris. Le prochain numéro : `node scripts/docs/next-id.mjs RULE ALL LIC`. Un identifiant existant ne se renomme jamais.
+Tout se cite par un identifiant complet `<TYPE>_<CTX>_<TRI>-<n>` : `RULE_ALL_LIC-3`, `SPEC_FNSMR_PAY-3.02`, `ADR_ALL_ARC-11`, `REQ_ALL_LIC-7`. Le contexte s'écrit toujours, `ALL` compris. Le prochain numéro : `node scripts/docs/next-id.mjs RULE ALL LIC`. Un identifiant existant ne se renomme pas, sauf pour résoudre une collision de sigles avant la première lecture par Anchorpost (ci-dessous).
 
 **Un sigle, un domaine, un sens.** Un sigle a un seul sens dans tout le dépôt ; le partager entre contextes est normal (`LIC` partout). Avant d'en créer un, prendre un domaine existant du registre. Une collision se règle par `renames` (`anchorpost/identifiers-resolutions.json`, `anchorpost migrate identifiers`), **avant la première lecture par Anchorpost** : après, plus aucun renommage. Voir `docs/methode/nomenclature.md` § « Résoudre une collision de sigles ».
 

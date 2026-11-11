@@ -18,7 +18,7 @@ Un troisième point n'était tenu nulle part : le statut « implémentée » ét
 
 **Deux statuts distincts.** La **validation** est écrite par un humain : `candidate`, `validated`, `rejected`, `obsolete`, avec la date, qui, et la raison pour un rejet ou une obsolescence. Aucune machine n'écrit `validated`. La **réalisation** est **calculée**, jamais écrite : `proven` quand au moins un test porte l'identifiant de la règle entre crochets dans son nom, avec le niveau du test (P0, P1, P2) ; `configured` quand la règle déclare des clés de configuration et n'a pas de test ; `to-build` sinon. Deux exceptions seulement s'écrivent à la main, avec leur raison : `not-applicable` et `contradiction`.
 
-**Une règle n'est jamais supprimée** : elle devient `rejected` ou `obsolete`. **Un identifiant ne se renomme jamais.**
+**Une règle n'est jamais supprimée** : elle devient `rejected` ou `obsolete`. **Un identifiant ne se renomme pas**, sauf pour résoudre une collision de sigles avant la première lecture par Anchorpost.
 
 **Les liens sont typés et déclarés dans l'en-tête** (`replaces`, `refines`, `contradicts`, `parameterized-by`, `blocked-by`), et `instanceOf` désigne la règle de socle qu'un contexte instancie. Une question ouverte (`docs/questions-ouvertes.md`) dont la ligne `Bloque :` cite une règle la marque « a une question ouverte », sans toucher à ses statuts.
 

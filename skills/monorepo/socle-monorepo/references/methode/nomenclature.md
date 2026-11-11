@@ -18,7 +18,7 @@ Le _pourquoi_ de cette règle, avec ses alternatives écartées, vit dans [`ADR_
 | `TYPE`   | ce que c'est                                    | l'un des six types ci-dessous                     |
 | `CTX`    | le contexte, `ALL` pour ce qui vaut partout     | majuscules, `[A-Z][A-Z0-9]*` ; `ALL` toujours écrit |
 | `TRI`    | le **sujet**, pas le dossier                    | 2 à 4 lettres majuscules, du [registre](#registre-des-trigrammes) |
-| `n`      | la séquence, unique par type, contexte et trigramme | sans zéro de tête pour un document neuf ; un identifiant existant **ne se renomme jamais**, même avec ses zéros (`LIC-05` chez Fedora) |
+| `n`      | la séquence, unique par type, contexte et trigramme | sans zéro de tête pour un document neuf ; un identifiant existant **ne se renomme pas**, même avec ses zéros (`LIC-05` chez Fedora), sauf pour résoudre une collision de sigles avant la première lecture par Anchorpost ([collision de sigles](#résoudre-une-collision-de-sigles)) |
 | `NN`     | l'index d'un ticket dans sa spec                | deux chiffres                                     |
 
 Un tiret bas sépare le type, le contexte et le trigramme. Un tiret simple ne précède que le numéro. Aucune autre forme.
