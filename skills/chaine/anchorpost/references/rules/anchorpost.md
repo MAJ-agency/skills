@@ -12,6 +12,12 @@ Ce dépôt est lu par Anchorpost, qui montre à la MOA ses règles métier, leur
 
 Tout se cite par un identifiant complet `<TYPE>_<CTX>_<TRI>-<n>` : `RULE_ALL_LIC-3`, `SPEC_FNSMR_PAY-3.02`, `ADR_ALL_ARC-11`, `REQ_ALL_LIC-7`. Le contexte s'écrit toujours, `ALL` compris. Le prochain numéro : `node scripts/docs/next-id.mjs RULE ALL LIC`. Un identifiant existant ne se renomme jamais.
 
+**Un sigle, un domaine, un sens.** Un sigle a un seul sens dans tout le dépôt ; le partager entre contextes est normal (`LIC` partout). Avant d'en créer un, prendre un domaine existant du registre. Une collision se règle par `renames` (`anchorpost/identifiers-resolutions.json`, `anchorpost migrate identifiers`), **avant la première lecture par Anchorpost** : après, plus aucun renommage. Voir `docs/methode/nomenclature.md` § « Résoudre une collision de sigles ».
+
+## Ce qu'est une règle
+
+Une règle dit ce que le logiciel permet, exige, calcule ou refuse. Une fonctionnalité voulue (« Billetterie », « Partenaires ») est une **demande** `REQ`. Une règle de l'organisation cliente sans rapport avec le logiciel (une règle fédérale d'équipement, la composition d'une instance) est un **document** `DOC`, avec son énoncé, sa source et sa raison. Dans le doute, c'est une règle, et la question remonte au produit.
+
 ## Une règle est un fichier
 
 `docs/metier/regles/<ctx>/RULE_<CTX>_<TRI>-<n>.md`, d'après `docs/agents/gabarits/regle.md`. En haut, un en-tête YAML ; en bas, l'énoncé en markdown libre, dans la langue du projet, avec ses précisions datées et ses passages barrés.
@@ -34,6 +40,6 @@ Un test qui prouve une règle porte son identifiant entre crochets en tête de s
 
 ## Le manifeste et l'index
 
-- `anchorpost/manifest.json` est écrit à la main : nom, pitch, contextes, documents à rendre, table nom → rôle, planchers. Un chemin hors convention se déclare sur son contexte (`rules`, `features`, `requests`). Un plancher se relève à la main, jamais ne se baisse.
+- `anchorpost/manifest.json` est écrit à la main : nom, pitch, contextes, EPIC, documents à rendre, table nom → rôle, planchers. Un EPIC est un module de l'application, un pan fonctionnel (`{ "id": "licences", "name": "Gestion des licences", "domains": ["LIC"] }`) qui regroupe un ou plusieurs domaines ; l'EPIC « Technique » est fourni par défaut, et la santé signale un domaine qu'aucun EPIC ne liste. Un chemin hors convention se déclare sur son contexte (`rules`, `features`, `requests`). Un plancher se relève à la main, jamais ne se baisse.
 - `anchorpost/anchorpost.json` est **généré** par `pnpm anchorpost:index`, **jamais édité** : le hook d'agent refuse, le gate `pnpm anchorpost:check` compare. Après toute modification de `docs/`, d'un test étiqueté ou d'un ticket : régénérer, puis `pnpm anchorpost:check` avant le push. Le capitaine régénère à chaque fusion.
 - La section `health` de l'index liste ce que la CLI tolère mais signale : une `candidate` qui a des tests, une règle dite couverte sans test, un défaut sans règle. La lire après chaque régénération.

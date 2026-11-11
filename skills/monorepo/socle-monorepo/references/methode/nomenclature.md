@@ -162,9 +162,9 @@ Un projet suivi par Anchorpost tient cette liste dans `anchorpost/manifest.json`
 
 ## Résoudre une collision de sigles
 
-**Le constat.** Deux domaines différents portent le même sigle, souvent dans deux contextes : `DIS` pour les sanctions dans une fédération et pour les disciplines sportives dans une autre.
+**Le constat.** Deux domaines différents portent le même sigle, souvent dans deux contextes : `DIS` pour les sanctions dans une fédération et pour les disciplines sportives dans une autre. Un sigle **partagé** par plusieurs contextes est le cas normal, tant qu'il garde le même sens partout (`LIC` dans chaque fédération).
 
-**La règle.** Le sigle reste au domaine le plus répandu. L'autre domaine reçoit un nouveau sigle, une lettre changée ou une quatrième lettre ajoutée (`DIS` → `DISC`), inscrit au registre **avant** tout fichier qui le porte.
+**La règle.** Avant de créer un sigle, **préférer un domaine existant** du registre. Si la collision est réelle, le sigle reste au domaine le plus répandu ; l'autre domaine reçoit un nouveau sigle de deux à quatre lettres, une lettre changée ou une quatrième ajoutée (`DIS` → `DISC`), inscrit au registre **avant** tout fichier qui le porte.
 
 **L'outil.** Les règles se renomment par `anchorpost migrate identifiers`, avec la table `renames` d'`anchorpost/identifiers-resolutions.json` :
 
@@ -174,14 +174,27 @@ Un projet suivi par Anchorpost tient cette liste dans `anchorpost/manifest.json`
 
 On relit le plan, puis `--apply`, puis `--check`, qui doit sortir 0. Il demande `@maj-agency/anchorpost` ≥ 1.1.0.
 
-**Pourquoi.** C'est le seul cas où un identifiant se renomme : il était faux, puisque son sigle disait autre chose. On le fait une fois, par la table commise, et jamais à la main.
+**Quand.** **Avant la première lecture du dépôt par Anchorpost** : une fois lu, un identifiant ne se renomme plus. Une collision découverte plus tard se règle sur les documents à venir, avec un sigle nouveau.
+
+**Pourquoi.** C'est le seul cas où un identifiant se renomme, et seulement avant cette première lecture : il était faux, puisque son sigle disait autre chose. On le fait une fois, par la table commise, et jamais à la main.
 
 ---
+
+## Ce qu'est une règle, ce qui n'en est pas une
+
+Une **règle** (`RULE`) dit ce que le **logiciel** permet, exige, calcule ou refuse. Ce qui n'en est pas une va ailleurs :
+
+| Ce que c'est                                                                         | Où ça va                                  | Exemple                                          |
+| ------------------------------------------------------------------------------------ | ----------------------------------------- | ------------------------------------------------ |
+| une fonctionnalité voulue                                                            | une **demande** (`REQ`)                   | « Billetterie », « Partenaires »                 |
+| une règle de l'organisation cliente sans rapport avec le logiciel                    | un **document** (`DOC`), qui garde son énoncé, sa source et sa raison | une règle fédérale d'équipement, la composition d'une instance |
+| un doute sur l'application de la règle par le logiciel                               | reste une règle ; la question remonte au produit |                                          |
 
 ## Créer un trigramme absent du registre
 
 **C'est un geste normal, pas une exception.** Quand le sujet d'un document n'a pas encore de trigramme, on le crée.
 
+0. **Préférer un domaine existant.** Parcourir le registre : un sujet qui s'y range n'a pas besoin d'un sigle nouveau.
 1. **Nommer le sujet**, pas le document ni le dossier. Ce sujet portera-t-il plusieurs documents ou règles dans le temps ? Sinon, il appartient à un sujet existant.
 2. **Choisir deux à quatre lettres** évoquant le sujet, dans la langue du projet.
 3. **Vérifier la collision** contre tout le registre. Si les lettres sont prises, **le nouveau sujet prend une lettre de plus** ; l'existant ne change jamais.
