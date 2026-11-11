@@ -13,7 +13,8 @@
  *   1. Fichiers du diff (`git diff <merge-base(base, HEAD)>`, index et arbre de travail
  *      compris, fichiers non suivis compris), filtrés sur le code (`coverage-diff-regles.mjs`).
  *      Base introuvable et distant sans aucune branche (`git ls-remote --heads origin` vide) :
- *      premier push d'un dépôt neuf, rien à comparer, sortie 0 ; sinon sortie 2.
+ *      premier push d'un dépôt neuf, rien à comparer, sortie 0 ; sinon sortie 2, en disant où la
+ *      base manque (à rapatrier du distant, absente du distant aussi, distant muet).
  *   2. Par paquet, `vitest related <fichiers>` sous couverture v8 (`@vitest/coverage-v8`),
  *      rapport istanbul `coverage-final.json`, `coverage.all` pour qu'un fichier qu'aucune
  *      suite ne charge apparaisse à zéro. Si le paquet a un `vitest.db.config.ts` et que
@@ -109,13 +110,23 @@ try {
   try {
     tetesDistantes = git("ls-remote", "--heads", "origin");
   } catch {
-    tetesDistantes = null; // pas de distant, ou injoignable : la base manque vraiment
+    tetesDistantes = null; // pas de distant, ou injoignable : on ne sait rien de lui
   }
-  if (decisionSansBase(tetesDistantes) === "premier-push") {
+  const branche = String(BASE).replace(/^origin\//, ""); // `--base` sans valeur : BASE est undefined, sortie 2 comme avant
+  const decision = decisionSansBase(tetesDistantes, branche);
+  if (decision === "premier-push") {
     console.log(`coverage-diff: dépôt distant vide, premier push — rien à comparer (la base « ${BASE} » naîtra avec la chaîne)`);
     process.exit(0);
   }
-  console.log(`coverage-diff: référence de base « ${BASE} » introuvable (git fetch origin develop ?)`);
+  const conseil = {
+    "base-a-fetcher": `elle existe sur le distant : git fetch origin ${branche}`,
+    "base-absente":
+      `le distant a des branches mais pas celle-là : la créer` +
+      (branche === "develop" ? ` depuis main (bash scripts/github/develop.sh quand le socle de la chaîne est posé)` : "") +
+      `, ou passer --base <branche>`,
+    "distant-muet": `et le distant ne répond pas : git fetch origin ${branche} quand il répond`,
+  }[decision];
+  console.log(`coverage-diff: référence de base « ${BASE} » introuvable en local — ${conseil}`);
   process.exit(2);
 }
 /** fichier → 'A' (nouveau) | 'M' (modifié). */
