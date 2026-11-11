@@ -15,7 +15,6 @@ import {
   readFileSync,
   renameSync,
   rmSync,
-  statSync,
   writeFileSync,
 } from "node:fs";
 import { join } from "node:path";
@@ -29,8 +28,11 @@ const FICHIER = join(DOSSIER, "etat.json");
 // `file.sh | while …`, dont le producteur lit l'état pendant que le corps de boucle (renvoyer.sh)
 // y pose un label : l'écriture du second était perdue (le label `fusion-bloquée` manquait), ou la
 // lecture tombait sur un fichier à moitié écrit (SyntaxError). GitHub, lui, est atomique : le
-// défaut était celui du faux, pas des scripts. Verrou = création d'un dossier (atomique) ; un
-// verrou de plus de 30 s, laissé par un appel tué, est repris.
+// défaut était celui du faux, pas des scripts. Verrou = création d'un dossier (atomique), libéré à
+// la sortie du processus qui l'a pris. Pas de reprise d'un verrou « périmé » : elle serait elle-même
+// une course (deux appelants qui le jugent périmé, ou un détenteur lent dont on supprimerait le
+// verrou neuf). Chaque banc a son dossier d'état ; un appel tué en laisse le verrou, et l'appel
+// suivant échoue au bout de 30 s plutôt que de lire un état qu'il ne tient pas.
 const VERROU = join(DOSSIER, "etat.verrou");
 const pause = (ms) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
 for (let essais = 0; ; essais++) {
@@ -39,15 +41,8 @@ for (let essais = 0; ; essais++) {
     break;
   } catch (erreur) {
     if (erreur.code !== "EEXIST") throw erreur;
-    let age = 0;
-    try {
-      age = Date.now() - statSync(VERROU).mtimeMs;
-    } catch {
-      continue; // libéré entre-temps
-    }
-    if (age > 30000) rmSync(VERROU, { recursive: true, force: true });
-    else if (essais > 6000) throw new Error("faux gh : verrou de l'état jamais obtenu");
-    else pause(5);
+    if (essais > 6000) throw new Error("faux gh : verrou de l'état jamais obtenu en 30 s");
+    pause(5);
   }
 }
 process.on("exit", () => rmSync(VERROU, { recursive: true, force: true }));
@@ -271,7 +266,8 @@ function fusionner(
 }
 
 const reponse = repondre();
-// Écriture atomique : un lecteur hors verrou (le test lit le fichier) ne voit jamais un état tronqué.
+// Écriture atomique : un lecteur qui n'est pas un appel du faux (les bancs lisent etat.json pour
+// leurs assertions) ne voit jamais un état tronqué.
 writeFileSync(`${FICHIER}.${process.pid}`, JSON.stringify(etat, null, 2));
 renameSync(`${FICHIER}.${process.pid}`, FICHIER);
 const json = JSON.stringify(reponse);
