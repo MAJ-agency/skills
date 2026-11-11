@@ -129,16 +129,29 @@ test("l'exemption se lit dans les dix premières lignes, avec sa raison", () => 
   );
 });
 
-test("sans base : un distant sans aucune branche est un premier push qui passe ; des branches ou un ls-remote en échec, la base manque", () => {
+test("sans base : un distant sans aucune branche est un premier push qui passe ; la base listée sur le distant est à rapatrier ; des branches sans elle, elle est absente ; ls-remote en échec, le distant est muet", () => {
   assert.equal(decisionSansBase(""), "premier-push");
   assert.equal(decisionSansBase("\n"), "premier-push");
   assert.equal(
     decisionSansBase("0123abcd\trefs/heads/main\n4567ef01\trefs/heads/develop"),
+    "base-a-fetcher",
+  );
+  assert.equal(
+    decisionSansBase("0123abcd\trefs/heads/main\n4567ef01\trefs/heads/develop\n"),
+    "base-a-fetcher",
+  );
+  // Le cas de la chaîne : `main` poussée, `develop` pas encore née.
+  assert.equal(decisionSansBase("0123abcd\trefs/heads/main"), "base-absente");
+  assert.equal(
+    decisionSansBase("0123abcd\trefs/heads/main\n4567ef01\trefs/heads/develop-old"),
     "base-absente",
   );
-  assert.equal(decisionSansBase("0123abcd\trefs/heads/main"), "base-absente");
-  assert.equal(decisionSansBase(null), "base-absente");
-  assert.equal(decisionSansBase(undefined), "base-absente");
+  assert.equal(
+    decisionSansBase("0123abcd\trefs/heads/main", "main"),
+    "base-a-fetcher",
+  );
+  assert.equal(decisionSansBase(null), "distant-muet");
+  assert.equal(decisionSansBase(undefined), "distant-muet");
 });
 
 test("fusionner — le squelette coverage.all d'une suite sans base ne masque pas l'exécution réelle sur base", () => {

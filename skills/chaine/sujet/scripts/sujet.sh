@@ -52,8 +52,10 @@
 #                         (`en cours`, `prêt à livrer`, `livré #n`)
 #
 # Sorties : 0 fait · 2 conflit · 3 checks rouges ou en cours · 4 refus corrigeable par l'auteur (sa
-# dernière ligne est le motif, `fusionner` : titre, commitlint, revue, base) · 7 `fusionner` d'une PR
-# fermée ou en brouillon (rien à corriger : sautée) · 9 `carte <nom>` refusée (rien n'est poussé)
+# dernière ligne est le motif, `fusionner` : titre, commitlint, revue, base) · 6 arbre de travail pas
+# propre (`fusionner`, `rafraichir`, `regrouper`, `relancer` : à nettoyer par qui lance, jamais un renvoi de la PR,
+# comme la sortie 6 de passer.sh) · 7 `fusionner` d'une PR fermée ou en brouillon (rien à corriger :
+# sautée) · 9 `carte <nom>` refusée (rien n'est poussé)
 # `fusionner` encore : 5 la sous-PR a bougé pendant sa mise à jour (reprise au tour suivant) · 8 conflit
 # avec le sujet sur des index générés seuls : branche mise à jour (index régénérés) et poussée, CI
 # relancée, aucun squash
@@ -153,9 +155,11 @@ Attendre que leur PR y soit fusionnée, puis relancer demarrer. Ne pas fusionner
 
 # Sujet livré : sa carte (`docs/**/*.map.md` dont la ligne `Sujet:` le nomme), lue sur
 # origin/develop, porte `Phase: 6-nettoyage` ou `Phase: fini` ; à défaut de carte, la branche
-# `sujet/<nom>` est absente et develop contient son commit de merge. Un sujet livré ne se rouvre
-# jamais par automatisme : file.sh, regrouper et demarrer s'en remettent à cette seule
-# fonction. Sortie 0 = livré.
+# `sujet/<nom>` est absente et develop contient son commit de merge : la ligne `Sujet: sujet/<nom>`
+# que passer.sh écrit dans le corps, ou le message par défaut d'une fusion faite sur GitHub
+# (« Merge pull request #n from <owner>/sujet/<nom> »). Ligne entière : `sujet/demo` ne reconnaît
+# pas `sujet/demo-2`. Un sujet livré ne se rouvre jamais par automatisme : file.sh, regrouper et
+# demarrer s'en remettent à cette seule fonction. Sortie 0 = livré.
 sujet_livre() {
   local nom=${1#sujet/} f trouve='' phase
   git fetch -q origin develop 2>/dev/null || true
@@ -167,7 +171,8 @@ sujet_livre() {
   done < <(git ls-tree -r --name-only origin/develop -- docs | grep -E '\.map\.md$' | grep -v '/gabarits/' || true)
   [ -z "$trouve" ] || return 1
   git ls-remote --exit-code --heads origin "sujet/$nom" >/dev/null 2>&1 && return 1
-  [ -n "$(git log origin/develop --merges -1 --format=%H -F --grep "sujet/$nom")" ]
+  [ -n "$(git log origin/develop --merges -1 --format=%H -E \
+    --grep "^Sujet: sujet/${nom}\$" --grep "^Merge pull request #[0-9]+ from [^ ]+/sujet/${nom}\$")" ]
 }
 
 # Phase de la carte du sujet (vide si le sujet n'a pas de carte). Lue d'abord sur la branche du
@@ -283,7 +288,7 @@ recibler_specs() {
 # touché. Conflit hors index : annulé, sortie 3 (renvoi), branche intacte.
 mettre_a_jour_sous_pr() {
   local n=$1 base=$2 tete=$3 conflits autres
-  [ -z "$(git status --porcelain)" ] || sortir 4 "arbre de travail pas propre : committer ou ranger d'abord"
+  [ -z "$(git status --porcelain)" ] || sortir 6 "arbre de travail pas propre : committer ou ranger d'abord, puis relancer (rien à corriger côté PR)"
   git switch -q -C "capitaine/$n" "origin/$tete"
   if git merge -q --no-edit "origin/$base" >/dev/null 2>&1; then
     git switch -q --detach origin/develop # fusion propre : rien à pousser, le squash suit
@@ -374,7 +379,7 @@ fusionner() {
 rafraichir() {
   local nom=${1:?nom du sujet} abandon=${2:-}
   local branche="sujet/$nom"
-  [ -z "$(git status --porcelain)" ] || sortir 4 "arbre de travail pas propre : committer ou ranger d'abord"
+  [ -z "$(git status --porcelain)" ] || sortir 6 "arbre de travail pas propre : committer ou ranger d'abord, puis relancer"
   git fetch -q origin develop "$branche"
   if git merge-base --is-ancestor origin/develop "origin/$branche"; then
     echo "$branche déjà à jour avec develop"
@@ -454,7 +459,7 @@ relancer() {
   base=$(jq -r .base.ref <<<"$pr")
   tete=$(jq -r .head.ref <<<"$pr")
   [[ "$base" == sujet/* ]] || sortir 4 "#$n vise $base, pas un sujet"
-  [ -z "$(git status --porcelain)" ] || sortir 4 "arbre de travail pas propre"
+  [ -z "$(git status --porcelain)" ] || sortir 6 "arbre de travail pas propre : committer ou ranger d'abord, puis relancer (rien à corriger côté PR)"
   git fetch -q origin "$base" "$tete"
   git switch -q --detach "origin/$tete"
   if ! git merge -q --no-edit "origin/$base" >/dev/null 2>&1; then
@@ -668,7 +673,7 @@ livrer_prets() {
         END { ty = ("feat" in t) ? "feat" : ("fix" in t) ? "fix" : "chore"
               for (k in s) if (s[k] > m) { m = s[k]; sc = k }
               print ty, sc }')"
-    titre="${type:-chore}${scope:+($scope)}: sujet $nom — $n sous-PR"
+    titre="${type:-chore}${scope:+($scope)}: sujet/$nom — $n sous-PR"
     if [ "$essai" = --dry-run ]; then
       echo "sujet/$nom prêt : livrerait « $titre » (--dry-run : aucune PR ouverte)"
     else

@@ -17,7 +17,9 @@
 #   4. Pousse en avance rapide, sans hook : les checks exigés rejouent `pnpm check`
 #      et la couverture du diff, et la fusion les attend.
 #   5. Attend les checks exigés du nouveau sommet (aucun check au bout de 5 min → sortie 3).
-#   6. Squash lié au sommet testé (`sha`) — commit de merge pour une branche sujet/ —,
+#   6. Squash lié au sommet testé (`sha`) — commit de merge pour une branche sujet/ ou une
+#      livraison intermédiaire `livraison/<nom>-<date>`, reconnue aussi après sa mise à jour
+#      avec develop (étape 4) : son arbre est celui d'un sommet du sujet fusionné avec develop —,
 #      puis vérifie arbre(fusion) = arbre testé.
 #
 # Le push du capitaine passe `--no-verify` : il ne contient que develop, la PR déjà vérifiée et
@@ -81,16 +83,38 @@ longueur=$(node -e 'console.log([...process.argv[1]].length)' "$titre (#$N)")
 git fetch -q origin develop "$tete"
 origine=$(git rev-parse "origin/$tete")
 
-# Livraison de sujet : tête `sujet/*`, ou livraison intermédiaire `livraison/<nom>-<AAAAMMJJ-HHMM>`.
-# Le nom de branche seul ne suffit pas (il dispense de la revue) : `sujet/<nom>` doit exister et
-# contenir le sommet de la PR ; sinon la PR repasse par le chemin ordinaire (revue exigée, squash).
+# Livraison de sujet : tête `sujet/<nom>`, ou livraison intermédiaire `livraison/<nom>-<AAAAMMJJ-HHMM>`.
+# Le nom de branche seul ne suffit pas (il dispense de la revue) : `sujet/<nom>` doit exister, et la
+# livraison n'apporter qu'un sommet du sujet fusionné avec develop. La contenance du sommet dans le
+# sujet ne suffit pas non plus : l'étape 4 pousse sur la livraison sa fusion avec develop, qu'aucun
+# sujet ne contient, et au passage suivant (checks rouges relancés, sortie 5) la livraison passait
+# pour une PR ordinaire (revue exigée, puis squash). Critère : un ancêtre commun de la tête et du
+# sujet, hors de develop, dont la fusion avec le develop que la tête contient donne l'arbre de la
+# tête, aux index générés près. Sinon la PR repasse par le chemin ordinaire (revue exigée, squash).
+livraison_intermediaire() {
+  local nom=$1 d s attendu ecart
+  git fetch -q origin "sujet/$nom" 2>/dev/null || return 1
+  d=$(git merge-base "$origine" origin/develop) || return 1
+  for s in $(git merge-base --all "$origine" "origin/sujet/$nom" 2>/dev/null); do
+    ! git merge-base --is-ancestor "$s" origin/develop || continue
+    # Arbre de la fusion, même en conflit (sortie 1) : un conflit hors index y laisse ses marqueurs,
+    # donc un écart avec la tête.
+    attendu=$(git merge-tree --write-tree --no-messages "$s" "$d" 2>/dev/null | sed -n 1p) || true
+    [ -n "$attendu" ] || continue
+    # Un `git diff` en échec n'est jamais une dispense : on ne conclut que sur un diff lu.
+    ecart=$(git diff --name-only "$attendu" "$origine") || continue
+    [ -n "$(printf '%s\n' "$ecart" | grep -Ev "$GENERES" || true)" ] || return 0
+  done
+  return 1
+}
 livraison_sujet=0
+nom_sujet=''
 if [[ "$tete" == sujet/* ]]; then
   livraison_sujet=1
-elif [[ "$tete" =~ ^livraison/(.+)-[0-9]{8}-[0-9]{4}$ ]] &&
-  git fetch -q origin "sujet/${BASH_REMATCH[1]}" 2>/dev/null &&
-  git merge-base --is-ancestor "$origine" "origin/sujet/${BASH_REMATCH[1]}"; then
-  livraison_sujet=1
+  nom_sujet=${tete#sujet/}
+elif [[ "$tete" =~ ^livraison/(.+)-[0-9]{8}-[0-9]{4}$ ]]; then
+  nom_sujet=${BASH_REMATCH[1]}
+  if livraison_intermediaire "$nom_sujet"; then livraison_sujet=1; else nom_sujet=''; fi
 fi
 
 # Point de départ des commits propres à la PR (corps du squash).
@@ -242,10 +266,14 @@ sujet="$titre (#$N)"
 longueur=$(node -e 'console.log([...process.argv[1]].length)' "$sujet")
 [ "$longueur" -le 120 ] || sortir 4 "sujet du squash à $longueur caractères (> 120) : raccourcir le titre de la PR"
 # Branche de sujet (ou livraison intermédiaire `livraison/*`) : commit de merge, qui garde un commit par sous-PR ; le corps
-# les liste. Sinon squash, corps = messages des commits de la PR.
+# les liste, puis nomme le sujet (`Sujet: sujet/<nom>`, que `sujet.sh livre` cherche dans develop une
+# fois la branche supprimée). Sinon squash, corps = messages des commits de la PR.
 if [ "$livraison_sujet" = 1 ]; then
   methode=merge
-  corps() { git log --first-parent --no-merges --reverse --format='- %s' "$depart..$origine"; }
+  corps() {
+    git log --first-parent --no-merges --reverse --format='- %s' "$depart..$origine"
+    printf '\nSujet: sujet/%s\n' "$nom_sujet"
+  }
 else
   methode=squash
   corps() { git log --no-merges --reverse --format='%B' "$depart..$origine"; }
