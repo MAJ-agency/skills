@@ -10,7 +10,7 @@ Ce qui vient du projet : l'identifiant de ticket (`SPEC_ALL_SOC-1.03` dans un ti
 
 ## `scripts/depot-jouet.mjs`, `scripts/faux-gh.mjs`
 
-Le banc d'essai partagé avec `fusionner` : un `origin` nu local, un clone de travail, et en tête de PATH un faux `gh` qui répond à `gh api` depuis un état JSON et fusionne pour de vrai dans le dépôt nu, un faux `pnpm` et un `sleep` immédiat. Aucun réseau.
+Le banc d'essai partagé avec `fusionner` : un `origin` nu local, un clone de travail, et en tête de PATH un faux `gh` qui répond à `gh api` depuis un état JSON et fusionne pour de vrai dans le dépôt nu, un faux `pnpm` et un `sleep` immédiat. Aucun réseau. Le faux `gh` sérialise ses appels (verrou, écriture atomique de l'état) : `boucle.sh` lance `file.sh | while …`, dont les lectures croisent les écritures de `renvoyer.sh`, et GitHub, lui, ne perd aucune écriture. `scripts/faux-gh.test.mjs` : 25 écritures et 25 lectures concurrentes, aucune écriture perdue, aucun état tronqué.
 
 ## `scripts/sujet.test.mjs`
 
