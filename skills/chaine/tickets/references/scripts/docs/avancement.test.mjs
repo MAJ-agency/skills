@@ -110,3 +110,9 @@ test('gh en échec : avancement sans PR, ligne search_pull_requests, sortie 3', 
   assert.match(r.stdout, /PR non vérifiées \(gh indisponible\)/);
   assert.match(r.stderr, /requête `SPEC_ALL_SOC-1 is:pr`/);
 });
+
+test('enMarkdown : le backslash et la barre d’un titre sont échappés dans la cellule du tableau', () => {
+  const t = lireTicket('docs/x/all/issues/SPEC_ALL_SOC-1-socle.09.issue.md', '# SPEC_ALL_SOC-1.09 — a\\b | c\\|d\n\nStatus: ready-for-agent\n');
+  const md = enMarkdown('sujet/x', avancement([t], null));
+  assert.match(md, /\| a\\\\b \\\| c\\\\\\\|d \|/);
+});

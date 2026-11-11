@@ -76,13 +76,13 @@ export function testsNommes(lignes) {
     if (/^:?-+:?$/.test(cellule)) continue;
     let fichier = null;
     let titres = 0;
-    for (const m of cellule.matchAll(/`([^`]+)`|«\s*([^»]+?)\s*»|"([^"]+)"/g)) {
+    for (const m of cellule.matchAll(/`([^`]+)`|«([^»]+)»|"([^"]+)"/g)) {
       if (m[1] !== undefined && FICHIER_DE_TEST.test(m[1])) {
         if (fichier && titres === 0) ecarts.push(`la preuve nomme \`${fichier}\` sans titre de test`);
         fichier = m[1];
         titres = 0;
       } else if (fichier && m[1] === undefined) {
-        tests.push({ fichier, titre: m[2] ?? m[3] });
+        tests.push({ fichier, titre: m[2] === undefined ? m[3] : m[2].trim() });
         titres++;
       }
     }
@@ -98,8 +98,28 @@ const desactive = (ligne) => {
   const m = APPEL.exec(ligne);
   if (!m) return false;
   // node:test : `test('x', { skip: true }, …)`, `{ todo: … }`.
-  return m[1].startsWith('x') || /\.(skip|todo)\b/.test(m[2]) || /\{\s*(?:[^}]*,\s*)?(?:skip|todo)\s*:/.test(ligne.slice(m.index));
+  return m[1].startsWith('x') || /\.(skip|todo)\b/.test(m[2]) || optionDesactivee(ligne.slice(m.index));
 };
+/**
+ * `{ skip: … }` ou `{ todo: … }` : un `skip` ou `todo` suivi de `:`, juste après un `{` ou une `,` d'un
+ * objet encore ouvert (aucun `}` depuis son `{`). Un seul passage sur la ligne : l'expression
+ * régulière qui disait la même chose (`\{\s*(?:[^}]*,\s*)?(?:skip|todo)\s*:`) est quadratique.
+ */
+export function optionDesactivee(texte) {
+  let ouvert = false;
+  let precedent = '';
+  for (const [jeton] of texte.matchAll(/(?:skip|todo)\s*:|\S/g)) {
+    if (jeton.length > 1) {
+      if (ouvert && (precedent === '{' || precedent === ',')) return true;
+      precedent = ':';
+      continue;
+    }
+    if (jeton === '{') ouvert = true;
+    else if (jeton === '}') ouvert = false;
+    precedent = jeton;
+  }
+  return false;
+}
 const indentation = (l) => /^\s*/.exec(l)[0].replace(/\t/g, '  ').length;
 
 /**

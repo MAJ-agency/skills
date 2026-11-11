@@ -18,6 +18,7 @@ const {
   ticketsCites,
   ecartsFiches,
   etatDuTest,
+  optionDesactivee,
   reglesCitees,
   testsNommes,
   typeValide,
@@ -239,4 +240,49 @@ test('défaut Fait : test actif passe ; test it.skip, introuvable ou non nommé 
   assert.deepEqual(defaut('en cours — fix/spec-all-soc-1-06-x', '`licence.spec.ts` « accepte un mineur »'), []);
   const tache = DEFAUT('Fait — PR #9', '`licence.spec.ts` « inventé »').replace('Type: défaut', 'Type: task');
   assert.deepEqual(controlerTicket({ nom: NOM, texte: tache, existe, regleExiste, testExiste }).erreurs, []);
+});
+
+// Entrées hostiles : une ligne de fichier de test ou une cellule de ticket est de la donnée, pas du code de confiance.
+const ENOUGH_MS = 1500; // la forme linéaire rend en quelques millisecondes ; les anciennes expressions, en minutes
+const duree = (f) => {
+  const t0 = process.hrtime.bigint();
+  const r = f();
+  return { r, ms: Number(process.hrtime.bigint() - t0) / 1e6 };
+};
+
+test('Surfaces : « titre » entre chevrons français, rogné, en temps borné sur une cellule hostile', () => {
+  const lignes = DEFAUT('Fait — PR #9', '`a.spec.ts` «   un titre rogné   »').split('\n');
+  assert.deepEqual(testsNommes(lignes).tests, [{ fichier: 'a.spec.ts', titre: 'un titre rogné' }]);
+  // « suivi de 3 000 espaces, jamais fermé : l'ancienne expression `«\s*([^»]+?)\s*»` y était cubique.
+  const hostile = DEFAUT('Fait — PR #9', '`a.spec.ts` «' + ' '.repeat(3000) + 'x').split('\n');
+  const { r, ms } = duree(() => testsNommes(hostile));
+  assert.deepEqual(r.tests, []);
+  assert.ok(ms < ENOUGH_MS, `${ms} ms`);
+});
+
+test("option { skip } / { todo } de node:test : même verdict que l'ancienne expression, en temps borné", () => {
+  const ANCIENNE = /\{\s*(?:[^}]*,\s*)?(?:skip|todo)\s*:/;
+  const lignes = [
+    "test('x', { skip: true }, () => {})",
+    "test('x', {skip:'raison'}, () => {})",
+    "test('x', { todo : true }, () => {})",
+    "test('x', { timeout: 5, skip: true }, () => {})",
+    "test('x', { timeout: 5,\n skip: true }, () => {})",
+    "test('x', { timeout: 5 }, () => { return { skip: 1 }; })",
+    "test('x', { a: { b: 1 }, skip: true }, () => {})",
+    "test('x', { a: {b}, skip: true }, () => {})",
+    "test('x', { noskip: true }, () => {})",
+    "test('x', { skipped: true }, () => {})",
+    "test('x', () => { const skip = 1; })",
+    "test('x', { a: 1 }) // skip: ",
+    "{ skip",
+    "}, skip:",
+    "{ a, b, todo: 1 }",
+  ];
+  for (const l of lignes) assert.equal(optionDesactivee(l), ANCIENNE.test(l), JSON.stringify(l));
+  for (const hostile of ['{'.repeat(60000), '{' + ' '.repeat(60000) + 'x', '{' + ', '.repeat(30000) + 'x', '{ a,'.repeat(15000)]) {
+    const { r, ms } = duree(() => optionDesactivee(hostile));
+    assert.equal(r, false);
+    assert.ok(ms < ENOUGH_MS, `${ms} ms`);
+  }
 });

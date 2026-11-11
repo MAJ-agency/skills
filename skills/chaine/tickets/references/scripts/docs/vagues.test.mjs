@@ -37,3 +37,12 @@ test('sortie Markdown', () => {
   assert.match(md, /^# Vagues proposées — SPEC_ALL_SOC-9/);
   assert.match(md, /\| 1 \| SPEC_ALL_SOC-9\.01 \| Objet 01 \| sonnet \| `a\.ts` \|/);
 });
+
+test("un chemin chaud est lu littéralement : le backslash ne devient pas une classe, les barres finales se rognent", () => {
+  // `\b` dans un motif non échappé est une limite de mot, pas un backslash.
+  assert.ok(seRecouvrent('a\\b.ts', 'a\\b.ts'));
+  assert.ok(!seRecouvrent('a\\b.ts', 'ab.ts'));
+  assert.ok(seRecouvrent('scripts/db///', 'scripts/db/seed.ts'));
+  assert.ok(seRecouvrent('x.ts', 'apps/y/x.ts//'));
+  assert.ok(!seRecouvrent('scripts/db///', 'scripts/dbx/seed.ts'));
+});
