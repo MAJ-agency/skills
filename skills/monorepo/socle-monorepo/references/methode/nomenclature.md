@@ -46,7 +46,7 @@ Une **règle de socle instanciée** par un contexte (`RULE_FNSMR_MUT-05` qui ins
 
 ### Le trigramme
 
-Le trigramme désigne le **sujet** : un domaine métier (`LIC` licences, `PLA` planning) ou un sujet technique (`ARC` transverse, `WEB` client web). Il vient toujours du registre. Un même trigramme sert aux règles, aux specs, aux ADR et aux documents de ce sujet : le type les distingue, pas le trigramme. `ARC` reste le trigramme des décisions transverses, celles qui n'appartiennent à aucun sujet : `ADR_ALL_ARC-11`.
+Le trigramme désigne le **sujet** : un domaine métier (`LIC` licences, `PLA` planning) ou un sujet technique (`ARC` transverse, `WEB` client web). Il vient toujours du registre, et il a **de deux à quatre lettres**. **Un sigle a un seul sens dans tout le dépôt**, tous contextes confondus : un sigle commun à plusieurs contextes (`LIC` dans chaque fédération) désigne partout le même sujet. Deux sujets différents ne partagent jamais un sigle : voir [Résoudre une collision de sigles](#résoudre-une-collision-de-sigles). Un même trigramme sert aux règles, aux specs, aux ADR et aux documents de ce sujet : le type les distingue, pas le trigramme. `ARC` reste le trigramme des décisions transverses, celles qui n'appartiennent à aucun sujet : `ADR_ALL_ARC-11`.
 
 ---
 
@@ -135,7 +135,7 @@ Le slug est en kebab-case minuscule, dans la langue du titre. Le nom de branche 
 
 ## Registre des trigrammes
 
-**Ce tableau est la source de vérité.** On y ajoute une ligne dès qu'un sujet apparaît, **avant** d'écrire le premier fichier qui le porte. La colonne « Sujet » est le nom que lit la MOA : c'est le titre de l'EPIC dans Anchorpost (`PLA — Planning`).
+**Ce tableau est la source de vérité, et il est unique** : un seul registre pour tout le dépôt, pas un par contexte. On y ajoute une ligne dès qu'un sujet apparaît, **avant** d'écrire le premier fichier qui le porte. La colonne « Sujet » est le nom que lit la MOA : c'est le titre de l'EPIC dans Anchorpost (`PLA — Planning`).
 
 | Trigramme | Sujet                                                         | Statut                                                 |
 | --------- | ------------------------------------------------------------- | ------------------------------------------------------ |
@@ -157,6 +157,24 @@ Le tableau ne contient que les trigrammes **structurels**. Les trigrammes de **s
 | `ALL`    | {{TITRE}}   | le socle, toujours présent |
 
 Un projet suivi par Anchorpost tient cette liste dans `anchorpost/manifest.json` ; ce tableau en est alors la copie lisible.
+
+---
+
+## Résoudre une collision de sigles
+
+**Le constat.** Deux domaines différents portent le même sigle, souvent dans deux contextes : `DIS` pour les sanctions dans une fédération et pour les disciplines sportives dans une autre.
+
+**La règle.** Le sigle reste au domaine le plus répandu. L'autre domaine reçoit un nouveau sigle, une lettre changée ou une quatrième lettre ajoutée (`DIS` → `DISC`), inscrit au registre **avant** tout fichier qui le porte.
+
+**L'outil.** Les règles se renomment par `anchorpost migrate identifiers`, avec la table `renames` d'`anchorpost/identifiers-resolutions.json` :
+
+```json
+{ "renames": [{ "from": "RULE_<CTX>_<TRI>-<n>", "to": "RULE_<CTX>_<NOUVEAU>-<m>" }] }
+```
+
+On relit le plan, puis `--apply`, puis `--check`, qui doit sortir 0. Il demande `@maj-agency/anchorpost` ≥ 1.1.0.
+
+**Pourquoi.** C'est le seul cas où un identifiant se renomme : il était faux, puisque son sigle disait autre chose. On le fait une fois, par la table commise, et jamais à la main.
 
 ---
 

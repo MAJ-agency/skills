@@ -65,6 +65,8 @@ Un chemin qui ne peut pas bouger (les règles d'une fédération dans `federatio
 
 Les regroupements EPIC (`epics`) ne se posent pas d'avance : un EPIC par domaine est le défaut. Les planchers (`floor`) sont écrits par `init` à la valeur mesurée ce jour-là, pour chaque contexte ; un humain les relève, jamais ne les baisse.
 
+**Un sigle a un seul sens dans tout le dépôt**, et le registre des trigrammes est unique (`docs/methode/nomenclature.md`) : pas de nomenclature par contexte. Une collision (deux domaines sous un même sigle) se résout en renommant l'un des deux, par la table `renames` d'`anchorpost/identifiers-resolutions.json` et `anchorpost migrate identifiers` : plan, `--apply`, puis `--check`. Quand le manifeste déclare des `epics`, un domaine qu'aucun EPIC ne liste va dans l'EPIC « Technique », avec un avertissement de santé ; un sigle absent du registre donne l'avertissement « domaine sans nom ». Tout cela demande `@maj-agency/anchorpost` **≥ 1.1.0**.
+
 Le manifeste est écrit à la main et validé par un humain. Il n'est jamais généré après `init`.
 
 ## Étape 4 — l'index, le gate, les hooks
