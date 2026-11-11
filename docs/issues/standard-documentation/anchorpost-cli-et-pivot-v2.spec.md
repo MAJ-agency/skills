@@ -1,10 +1,10 @@
 # Anchorpost — la CLI, ses lecteurs, le schéma pivot version 2
 
-> À déposer dans `MAJ-agency/anchorpost` comme spec de feature (`docs/features/anchorpost/all/SPEC_ALL_ANC-2-cli-et-pivot-v2.spec.md` une fois le dépôt migré, étape 0 ci-dessous), avec `Origine : second grilling (dépôt skills, 2026-11-10)`. Hors périmètre de `ANC-1` par décision du premier grilling. Rien ici ne rouvre `ANC-1` à `ANC-22` sauf les quatre amendements de la section 6, décidés par la MOA au second grilling.
+> **Déposée** le 2026-11-10 dans `MAJ-agency/anchorpost` (PR #27, `develop` `3891db5`) : `docs/features/anchorpost/ANC-4-cli-et-pivot-v2.spec.md`, qui fait foi (`SPEC_ALL_ANC-4` après la migration du dépôt). Ce fichier en reste une copie de lecture, pour les tickets de ce lot qui citent son schéma (ticket `6`) ; une correction se fait d'abord dans anchorpost. Hors périmètre de `ANC-1` par décision du premier grilling. Rien ici ne rouvre `ANC-1` à `ANC-22` sauf les quatre amendements de la section 6, décidés par la MOA au second grilling.
 
 ## Ce qu'on construit
 
-Le paquet npm privé `@maj-agency/anchorpost` : une commande `anchorpost` à quatre sous-commandes (`init`, `index`, `check`, `migrate`) et une bibliothèque de lecture que les gates des projets importent. Il lit un dépôt au **standard de documentation** (dépôt `skills`, `ADR_ALL_ARC-1` et l'ADR du registre), produit l'index `anchorpost/anchorpost.json` au **schéma pivot version 2**, et le vérifie. Il remplace le « générateur minimal » de `ANC-1.03` et les deux adaptateurs prévus par `ANC-2` : il n'y a plus qu'**une forme source**, et `migrate` convertit une fois les anciennes formes.
+Le paquet npm privé `@maj-agency/anchorpost` : une commande `anchorpost` à quatre sous-commandes (`init`, `index`, `check`, `migrate`) et une bibliothèque de lecture que les gates des projets importent. Il lit un dépôt au **standard de documentation** (dépôt `skills`, `ADR_ALL_ARC-1` et l'ADR du registre), produit l'index `anchorpost/anchorpost.json` au **schéma pivot version 2**, et le vérifie. Il succède au générateur minimal de `ANC-1.07`, qui reste en place et sert l'index de ce dépôt jusqu'à la livraison de la CLI, et remplace les deux adaptateurs prévus par le document `ANC-2` : il n'y a plus qu'**une forme source**, et `migrate` convertit une fois les anciennes formes.
 
 Le paquet est hors ligne (`ARC-13`) : il lit et écrit dans le dépôt, ne parle jamais au service.
 
@@ -283,9 +283,11 @@ Fedora réécrit ses trois contrôles propres sur `readRules` et `collectProofs`
 | .11        | Anchorpost migre lui-même (§ 11) et devient le premier espace lu par cette CLI (`ANC-22`)                    | .09, .10   |
 | .12        | Amendements `ANC-6`, `ANC-13`, `ANC-14`, `ANC-19` ; `ANC-2` en version 2 ; question ouverte tranchée         | .01        |
 
+`.01` ne part pas avant la fusion de `ANC-1.08` dans `sujet/anchorpost-v1` : `ANC-1.08` valide l'index au commit avec `packages/schema` en version 1. S'il part plus tôt, `.01` garde la version 1 lisible.
+
 ## 11. Anchorpost lui-même
 
-Par `migrate markdown-table` puis `migrate identifiers` : `docs/metier/regles/ANC-regles.md` devient 22 fichiers `docs/metier/regles/all/RULE_ALL_ANC-n.md` (validation `validated`, 2026-11-09, `by: Guillaume Jauffret`, source « grilling 2026-11-09, Qn ») ; `docs/features/anchorpost/ANC-1-anchorpost.spec.md` devient `docs/features/anchorpost/all/SPEC_ALL_ANC-1-anchorpost.spec.md` ; `docs/architecture/ANC-2-schema-pivot.md` devient `docs/architecture/DOC_ALL_ANC-2-schema-pivot.md` (version 2) ; `docs/features/socle/SOC-1-socle.spec.md` et ses tickets passent sous `socle/all/` en `SPEC_ALL_SOC-1` ; `docs/adr/ARC-n-…` devient `ADR_ALL_ARC-n-…`, `docs/adr/web/WEB-1-…` devient `ADR_ALL_WEB-1-…`. Le manifeste passe en version 2 (`name`, `pitch`, `audiences`, `contexts: [{ id: "all", … }]`, `roles`). La collision `ANC-1` (règle et spec) disparaît sans renommer le trigramme.
+Par `migrate markdown-table` puis `migrate identifiers` : `docs/metier/regles/ANC-regles.md` devient 22 fichiers `docs/metier/regles/all/RULE_ALL_ANC-n.md` (validation `validated`, 2026-11-09, `by: Guillaume Jauffret`, source « grilling 2026-11-09, Qn ») ; `docs/features/anchorpost/ANC-1-anchorpost.spec.md` devient `docs/features/anchorpost/all/SPEC_ALL_ANC-1-anchorpost.spec.md`, et cette spec `docs/features/anchorpost/all/SPEC_ALL_ANC-4-cli-et-pivot-v2.spec.md` ; `docs/architecture/ANC-2-schema-pivot.md` devient `docs/architecture/DOC_ALL_ANC-2-schema-pivot.md` (version 2) ; `docs/features/socle/SOC-1-socle.spec.md` et ses tickets passent sous `socle/all/` en `SPEC_ALL_SOC-1` ; `docs/adr/ARC-n-…` devient `ADR_ALL_ARC-n-…`, `docs/adr/web/WEB-1-…` devient `ADR_ALL_WEB-1-…`. Le manifeste passe en version 2 (`name`, `pitch`, `audiences`, `contexts: [{ id: "all", … }]`, `roles`). La collision `ANC-1` (règle et spec) disparaît sans renommer le trigramme.
 
 ## Hors périmètre
 
