@@ -58,12 +58,6 @@ function cellules(ligne) {
 export const FICHIER_DE_TEST = /\.(?:test|spec|e2e-spec)\.[cm]?[jt]sx?$/;
 
 /**
- * Tests nommés par la colonne « Preuve » de `## Surfaces` : un fichier de test entre accents graves,
- * suivi de ses titres entre « » ou "" : `a.test.ts` « refuse X », « refuse Y ». Un autre texte entre
- * accents graves (un chemin de code cité à côté) n'est pas un titre.
- * Rend `{ tests: [{ fichier, titre }], ecarts }` ; `ecarts` dit ce qui empêche de lire la preuve.
- */
-/**
  * Ce qu'une cellule cite, dans l'ordre : un `fichier` entre accents graves, un titre entre « et » (rogné)
  * ou entre guillemets droits. Un « placé après le dernier » ne peut ouvrir aucun titre, mais `[^»]+` le
  * rescannerait jusqu'à la fin à chaque départ (quadratique sur une suite de «) : on les neutralise pour
@@ -78,6 +72,12 @@ export function elementsCites(cellule) {
   });
 }
 
+/**
+ * Tests nommés par la colonne « Preuve » de `## Surfaces` : un fichier de test entre accents graves,
+ * suivi de ses titres entre « » ou "" : `a.test.ts` « refuse X », « refuse Y ». Un autre texte entre
+ * accents graves (un chemin de code cité à côté) n'est pas un titre.
+ * Rend `{ tests: [{ fichier, titre }], ecarts }` ; `ecarts` dit ce qui empêche de lire la preuve.
+ */
 export function testsNommes(lignes) {
   const corps = sections(lignes).get('Surfaces');
   if (!corps) return { tests: [], ecarts: ['section `## Surfaces` absente'] };
