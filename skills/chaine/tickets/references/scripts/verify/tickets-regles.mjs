@@ -76,7 +76,7 @@ export function testsNommes(lignes) {
     if (/^:?-+:?$/.test(cellule)) continue;
     let fichier = null;
     let titres = 0;
-    for (const m of cellule.matchAll(/`([^`]+)`|«([^»]+)»|"([^"]+)"/g)) {
+    for (const m of cellule.matchAll(/`([^`]+)`|«([^«»]+)»|"([^"]+)"/g)) {
       if (m[1] !== undefined && FICHIER_DE_TEST.test(m[1])) {
         if (fichier && titres === 0) ecarts.push(`la preuve nomme \`${fichier}\` sans titre de test`);
         fichier = m[1];

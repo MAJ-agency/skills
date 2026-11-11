@@ -258,6 +258,11 @@ test('Surfaces : « titre » entre chevrons français, rogné, en temps borné s
   const { r, ms } = duree(() => testsNommes(hostile));
   assert.deepEqual(r.tests, []);
   assert.ok(ms < ENOUGH_MS, `${ms} ms`);
+  // « répétés, jamais fermés : `[^»]+` acceptait aussi « et rescannait à chaque départ (quadratique).
+  const chevrons = DEFAUT('Fait — PR #9', '`a.spec.ts` ' + '«'.repeat(60000)).split('\n');
+  const c = duree(() => testsNommes(chevrons));
+  assert.deepEqual(c.r.tests, []);
+  assert.ok(c.ms < ENOUGH_MS, `${c.ms} ms`);
 });
 
 test("option { skip } / { todo } de node:test : même verdict que l'ancienne expression, en temps borné", () => {
