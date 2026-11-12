@@ -172,7 +172,7 @@ Un projet suivi par Anchorpost tient cette liste dans `anchorpost/manifest.json`
 { "renames": [{ "from": "RULE_<CTX>_<TRI>-<n>", "to": "RULE_<CTX>_<NOUVEAU>-<m>" }] }
 ```
 
-On relit le plan, puis `--apply`, puis `--check`, qui doit sortir 0. Il demande `@maj-agency/anchorpost` ≥ 1.1.0.
+On relit le plan, puis `--apply`, puis `--check`, qui doit sortir 0. Il demande `@maj-agency/anchorpost` ≥ 1.1.1. Pour un dépôt dont les anciens documents du socle s'écrivaient `ALL-LIC-1-…`, poser `bareAliases: false` dans `extensions.anchorpost.migrate` avant le premier `--apply` (voir la fiche `.claude/rules/anchorpost.md`).
 
 **Quand.** **Avant la première lecture du dépôt par Anchorpost** : une fois lu, un identifiant ne se renomme plus. Une collision découverte plus tard se règle sur les documents à venir, avec un sigle nouveau.
 

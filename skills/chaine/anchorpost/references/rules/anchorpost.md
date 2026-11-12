@@ -14,6 +14,8 @@ Tout se cite par un identifiant complet `<TYPE>_<CTX>_<TRI>-<n>` : `RULE_ALL_LIC
 
 **Un sigle, un domaine, un sens.** Un sigle a un seul sens dans tout le dépôt ; le partager entre contextes est normal (`LIC` partout). Avant d'en créer un, prendre un domaine existant du registre. Une collision se règle par `renames` (`anchorpost/identifiers-resolutions.json`, `anchorpost migrate identifiers`), **avant la première lecture par Anchorpost** : après, plus aucun renommage. Voir `docs/methode/nomenclature.md` § « Résoudre une collision de sigles ».
 
+**Rejouer la migration.** Si les anciens documents du socle s'écrivaient `ALL-LIC-1-…`, poser `"bareAliases": false` dans `extensions.anchorpost.migrate` du manifeste **avant le premier `--apply`** de `anchorpost migrate identifiers` ; avec la forme nue `LIC-1-…`, ou pour un projet neuf, ne rien poser. Le plan à blanc affiche la valeur lue : la relire avant `--apply`. « Laisser tel quel » s'écrit `to` = le mot lui-même ; les plages `GRD-01-05` sont signalées par le plan et se corrigent à la main ; il faut `@maj-agency/anchorpost` ≥ 1.1.1.
+
 ## Ce qu'est une règle
 
 Une règle dit ce que le logiciel permet, exige, calcule ou refuse. Une fonctionnalité voulue (« Billetterie », « Partenaires ») est une **demande** `REQ`. Une règle de l'organisation cliente sans rapport avec le logiciel (une règle fédérale d'équipement, la composition d'une instance) est un **document** `DOC`, avec son énoncé, sa source et sa raison. Dans le doute, c'est une règle, et la question remonte au produit.
