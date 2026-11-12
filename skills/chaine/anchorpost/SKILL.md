@@ -72,6 +72,18 @@ Les **EPIC** (`epics`) se déclarent dans le manifeste : un EPIC est un **module
 
 Le registre des trigrammes est unique : pas de nomenclature par contexte. La résolution se joue par la table `renames` d'`anchorpost/identifiers-resolutions.json` et `anchorpost migrate identifiers` (plan, `--apply`, puis `--check`). Un sigle absent du registre donne l'avertissement de santé « domaine sans nom », un domaine sans EPIC l'avertissement « domaine sans EPIC » quand le manifeste déclare des `epics`. Tout cela demande `@maj-agency/anchorpost` **≥ 1.1.0**.
 
+**Rejouer la migration : `bareAliases`.** Un document du socle déjà migré (`SPEC_ALL_LIC-1-…`) garde par défaut l'alias nu `LIC-1`, et `migrate identifiers` le lit encore. Si les anciens documents du socle s'écrivaient `ALL-LIC-1-…`, ce défaut réécrit à tort des données et des citations (une donnée `'LIC-1'` deviendrait `SPEC_ALL_LIC-1`) : un projet de ce genre a compté 463 réécritures fausses au rejeu. **Poser la clé est donc une question de `init` et de la migration, avec sa recommandation** :
+
+1. **Demander** : « Comment s'écrivaient les anciens documents du socle : `ALL-LIC-1-…` ou `LIC-1-…` ? »
+2. **Avec `ALL-…`**, poser `"bareAliases": false` dans `extensions.anchorpost.migrate` du manifeste, **avant le premier `--apply`**. **Avec la forme nue**, ne rien poser. **Pour un projet neuf**, sans ancienne forme, ne rien poser.
+3. **Relire le plan à blanc** : il affiche en tête la valeur lue et ce qu'elle implique. Le relire avant `--apply` ; s'il dit « oui (défaut) » alors que les anciens documents s'écrivaient `ALL-…`, poser la clé et relancer le plan.
+
+Le reste du standard de la migration :
+
+- **« Laisser tel quel »** est une résolution d'ambiguïté : elle s'écrit dans la clé `resolutions` d'`anchorpost/identifiers-resolutions.json`, avec `to` égal au mot lui-même (`{ "word": "LIC-05", "to": "LIC-05" }`, `"path"` facultatif pour la limiter à un fichier). Le mot reste tel quel et `--check` le compte comme tranché. `renames` ne sert qu'à renommer une règle.
+- **Les plages** (`GRD-01-05`, « GRD-01 à 05 ») ne sont jamais réécrites : le plan les signale dans « Plages laissées telles quelles », et elles se corrigent à la main.
+- **La version minimale** pour tout ce qui précède (`bareAliases`, plages, « laisser tel quel » dans `--check`) : `@maj-agency/anchorpost` **≥ 1.1.1**.
+
 Le manifeste est écrit à la main et validé par un humain. Il n'est jamais généré après `init`.
 
 ## Étape 4 — l'index, le gate, les hooks
