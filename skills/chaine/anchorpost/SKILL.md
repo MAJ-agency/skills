@@ -80,7 +80,7 @@ Le registre des trigrammes est unique : pas de nomenclature par contexte. La ré
 
 Le reste du standard de la migration :
 
-- **« Laisser tel quel »** s'écrit, dans `renames`, avec `to` égal au mot lui-même (`"from": "RULE_ALL_LIC-3", "to": "RULE_ALL_LIC-3"`).
+- **« Laisser tel quel »** est une résolution d'ambiguïté : elle s'écrit dans la clé `resolutions` d'`anchorpost/identifiers-resolutions.json`, avec `to` égal au mot lui-même (`{ "word": "LIC-05", "to": "LIC-05" }`, `"path"` facultatif pour la limiter à un fichier). Le mot reste tel quel et `--check` le compte comme tranché. `renames` ne sert qu'à renommer une règle.
 - **Les plages** (`GRD-01-05`, « GRD-01 à 05 ») ne sont jamais réécrites : le plan les signale dans « Plages laissées telles quelles », et elles se corrigent à la main.
 - **La version minimale** pour tout ce qui précède (`bareAliases`, plages, « laisser tel quel » dans `--check`) : `@maj-agency/anchorpost` **≥ 1.1.1**.
 
