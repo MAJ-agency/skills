@@ -62,8 +62,15 @@ Un chemin qui ne peut pas bouger (les règles d'une fédération dans `federatio
 2. **Les contextes** : `all` seul, ou une liste. Chacun a un identifiant court en minuscules et un nom affiché. Recommandation : `all` seul, sauf si le projet sert plusieurs organisations aux règles distinctes.
 3. **Les documents à rendre** : le glossaire, le document d'architecture, le programme. Recommandation : `GLOSSARY.md`, et les documents que `CLAUDE.md` nomme dans sa carte d'orientation.
 4. **La table nom → rôle** : les personnes citées dans les règles et les décisions, avec leur rôle (`client`, `MOA`, `MOE`). Facultative : Anchorpost affiche le nom, et le rôle entre parenthèses quand il le connaît.
+5. **Les modules de l'application (EPIC)** : les grands pans fonctionnels, chacun avec ses domaines du registre. Recommandation : un EPIC par grand pan fonctionnel ; sans réponse, aucun, et « Technique » reçoit tout, avec un avertissement.
 
-Les regroupements EPIC (`epics`) ne se posent pas d'avance : un EPIC par domaine est le défaut. Les planchers (`floor`) sont écrits par `init` à la valeur mesurée ce jour-là, pour chaque contexte ; un humain les relève, jamais ne les baisse.
+Les **EPIC** (`epics`) se déclarent dans le manifeste : un EPIC est un **module de l'application**, un pan fonctionnel (« Gestion des licences », « Gestion des affiliations », « Vie d'équipe ») qui regroupe un ou plusieurs domaines (`{ "id": "licences", "name": "Gestion des licences", "domains": ["LIC", "PAY"] }`). L'EPIC « Technique » est fourni par défaut : un domaine qu'aucun EPIC ne liste y va, et la santé le signale. Les planchers (`floor`) sont écrits par `init` à la valeur mesurée ce jour-là, pour chaque contexte ; un humain les relève, jamais ne les baisse.
+
+**Un sigle, un domaine, un sens.** Un sigle a un seul sens dans tout le dépôt, et un sigle partagé par plusieurs contextes est le cas normal (`LIC` dans chaque fédération). Avant d'en créer un, préférer un domaine existant. Une collision se résout en renommant l'un des deux (de 2 à 4 lettres, par `renames`), **avant la première lecture par Anchorpost** : ensuite, un identifiant ne se renomme plus.
+
+**Une règle dit ce que le logiciel permet, exige, calcule ou refuse.** Une fonctionnalité voulue (« Billetterie ») est une demande `REQ` ; une règle de l'organisation cliente sans rapport avec le logiciel (une règle fédérale d'équipement) est un document `DOC`, qui garde son énoncé, sa source et sa raison ; dans le doute, elle reste une règle et la question remonte au produit. Détail : `docs/methode/nomenclature.md`.
+
+Le registre des trigrammes est unique : pas de nomenclature par contexte. La résolution se joue par la table `renames` d'`anchorpost/identifiers-resolutions.json` et `anchorpost migrate identifiers` (plan, `--apply`, puis `--check`). Un sigle absent du registre donne l'avertissement de santé « domaine sans nom », un domaine sans EPIC l'avertissement « domaine sans EPIC » quand le manifeste déclare des `epics`. Tout cela demande `@maj-agency/anchorpost` **≥ 1.1.0**.
 
 Le manifeste est écrit à la main et validé par un humain. Il n'est jamais généré après `init`.
 

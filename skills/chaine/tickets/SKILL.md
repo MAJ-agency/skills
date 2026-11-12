@@ -18,7 +18,7 @@ La grammaire des identifiants est celle du socle, `docs/methode/nomenclature.md`
 | --------------------------- | ------------------------------------------------------------------------- | -------------------------------------------------------- |
 | Identifiant d'une spec      | `SPEC_<CTX>_<TRI>-<n>` ; `n` unique par contexte et trigramme dans tout `docs/` | `SPEC_ALL_SOC-1`, `SPEC_FNSMR_LIC-3`               |
 | Identifiant d'un ticket     | `<spec>.<NN>`, index à deux chiffres dans la spec                         | `SPEC_ALL_SOC-1.03`                                      |
-| Identifiant d'une règle     | `RULE_<CTX>_<TRI>-<n>` ; un identifiant existant ne se renomme jamais     | `RULE_ALL_LIC-3`, `RULE_FNSMR_LIC-05`                    |
+| Identifiant d'une règle     | `RULE_<CTX>_<TRI>-<n>` ; un identifiant existant ne se renomme pas, sauf pour résoudre une collision de sigles avant la première lecture par Anchorpost     | `RULE_ALL_LIC-3`, `RULE_FNSMR_LIC-05`                    |
 | Identifiant d'une demande   | `REQ_<CTX>_<TRI>-<n>`                                                     | `REQ_ALL_LIC-7`                                          |
 | Fichier de spec             | `docs/features/<feature>/<ctx>/<ID>-<slug>.spec.md`                       | `docs/features/socle/all/SPEC_ALL_SOC-1-socle.spec.md`   |
 | Fichier de ticket           | `…/<ctx>/issues/<ID>-<slug>.<NN>.issue.md`, un fichier par ticket         | `issues/SPEC_ALL_SOC-1-socle.03.issue.md`                |

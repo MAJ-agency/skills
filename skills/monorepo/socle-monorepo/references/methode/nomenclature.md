@@ -18,7 +18,7 @@ Le _pourquoi_ de cette règle, avec ses alternatives écartées, vit dans [`ADR_
 | `TYPE`   | ce que c'est                                    | l'un des six types ci-dessous                     |
 | `CTX`    | le contexte, `ALL` pour ce qui vaut partout     | majuscules, `[A-Z][A-Z0-9]*` ; `ALL` toujours écrit |
 | `TRI`    | le **sujet**, pas le dossier                    | 2 à 4 lettres majuscules, du [registre](#registre-des-trigrammes) |
-| `n`      | la séquence, unique par type, contexte et trigramme | sans zéro de tête pour un document neuf ; un identifiant existant **ne se renomme jamais**, même avec ses zéros (`LIC-05` chez Fedora) |
+| `n`      | la séquence, unique par type, contexte et trigramme | sans zéro de tête pour un document neuf ; un identifiant existant **ne se renomme pas**, même avec ses zéros (`LIC-05` chez Fedora), sauf pour résoudre une collision de sigles avant la première lecture par Anchorpost ([collision de sigles](#résoudre-une-collision-de-sigles)) |
 | `NN`     | l'index d'un ticket dans sa spec                | deux chiffres                                     |
 
 Un tiret bas sépare le type, le contexte et le trigramme. Un tiret simple ne précède que le numéro. Aucune autre forme.
@@ -46,7 +46,7 @@ Une **règle de socle instanciée** par un contexte (`RULE_FNSMR_MUT-05` qui ins
 
 ### Le trigramme
 
-Le trigramme désigne le **sujet** : un domaine métier (`LIC` licences, `PLA` planning) ou un sujet technique (`ARC` transverse, `WEB` client web). Il vient toujours du registre. Un même trigramme sert aux règles, aux specs, aux ADR et aux documents de ce sujet : le type les distingue, pas le trigramme. `ARC` reste le trigramme des décisions transverses, celles qui n'appartiennent à aucun sujet : `ADR_ALL_ARC-11`.
+Le trigramme désigne le **sujet** : un domaine métier (`LIC` licences, `PLA` planning) ou un sujet technique (`ARC` transverse, `WEB` client web). Il vient toujours du registre, et il a **de deux à quatre lettres**. **Un sigle a un seul sens dans tout le dépôt**, tous contextes confondus : un sigle commun à plusieurs contextes (`LIC` dans chaque fédération) désigne partout le même sujet. Deux sujets différents ne partagent jamais un sigle : voir [Résoudre une collision de sigles](#résoudre-une-collision-de-sigles). Un même trigramme sert aux règles, aux specs, aux ADR et aux documents de ce sujet : le type les distingue, pas le trigramme. `ARC` reste le trigramme des décisions transverses, celles qui n'appartiennent à aucun sujet : `ADR_ALL_ARC-11`.
 
 ---
 
@@ -135,7 +135,7 @@ Le slug est en kebab-case minuscule, dans la langue du titre. Le nom de branche 
 
 ## Registre des trigrammes
 
-**Ce tableau est la source de vérité.** On y ajoute une ligne dès qu'un sujet apparaît, **avant** d'écrire le premier fichier qui le porte. La colonne « Sujet » est le nom que lit la MOA : c'est le titre de l'EPIC dans Anchorpost (`PLA — Planning`).
+**Ce tableau est la source de vérité, et il est unique** : un seul registre pour tout le dépôt, pas un par contexte. On y ajoute une ligne dès qu'un sujet apparaît, **avant** d'écrire le premier fichier qui le porte. La colonne « Sujet » est le nom que lit la MOA : c'est le titre de l'EPIC dans Anchorpost (`PLA — Planning`).
 
 | Trigramme | Sujet                                                         | Statut                                                 |
 | --------- | ------------------------------------------------------------- | ------------------------------------------------------ |
@@ -160,10 +160,41 @@ Un projet suivi par Anchorpost tient cette liste dans `anchorpost/manifest.json`
 
 ---
 
+## Résoudre une collision de sigles
+
+**Le constat.** Deux domaines différents portent le même sigle, souvent dans deux contextes : `DIS` pour les sanctions dans une fédération et pour les disciplines sportives dans une autre. Un sigle **partagé** par plusieurs contextes est le cas normal, tant qu'il garde le même sens partout (`LIC` dans chaque fédération).
+
+**La règle.** Avant de créer un sigle, **préférer un domaine existant** du registre. Si la collision est réelle, le sigle reste au domaine le plus répandu ; l'autre domaine reçoit un nouveau sigle de deux à quatre lettres, une lettre changée ou une quatrième ajoutée (`DIS` → `DISC`), inscrit au registre **avant** tout fichier qui le porte.
+
+**L'outil.** Les règles se renomment par `anchorpost migrate identifiers`, avec la table `renames` d'`anchorpost/identifiers-resolutions.json` :
+
+```json
+{ "renames": [{ "from": "RULE_<CTX>_<TRI>-<n>", "to": "RULE_<CTX>_<NOUVEAU>-<m>" }] }
+```
+
+On relit le plan, puis `--apply`, puis `--check`, qui doit sortir 0. Il demande `@maj-agency/anchorpost` ≥ 1.1.0.
+
+**Quand.** **Avant la première lecture du dépôt par Anchorpost** : une fois lu, un identifiant ne se renomme plus. Une collision découverte plus tard se règle sur les documents à venir, avec un sigle nouveau.
+
+**Pourquoi.** C'est le seul cas où un identifiant se renomme, et seulement avant cette première lecture : il était faux, puisque son sigle disait autre chose. On le fait une fois, par la table commise, et jamais à la main.
+
+---
+
+## Ce qu'est une règle, ce qui n'en est pas une
+
+Une **règle** (`RULE`) dit ce que le **logiciel** permet, exige, calcule ou refuse. Ce qui n'en est pas une va ailleurs :
+
+| Ce que c'est                                                                         | Où ça va                                  | Exemple                                          |
+| ------------------------------------------------------------------------------------ | ----------------------------------------- | ------------------------------------------------ |
+| une fonctionnalité voulue                                                            | une **demande** (`REQ`)                   | « Billetterie », « Partenaires »                 |
+| une règle de l'organisation cliente sans rapport avec le logiciel                    | un **document** (`DOC`), qui garde son énoncé, sa source et sa raison | une règle fédérale d'équipement, la composition d'une instance |
+| un doute sur l'application de la règle par le logiciel                               | reste une règle ; la question remonte au produit |                                          |
+
 ## Créer un trigramme absent du registre
 
 **C'est un geste normal, pas une exception.** Quand le sujet d'un document n'a pas encore de trigramme, on le crée.
 
+0. **Préférer un domaine existant.** Parcourir le registre : un sujet qui s'y range n'a pas besoin d'un sigle nouveau.
 1. **Nommer le sujet**, pas le document ni le dossier. Ce sujet portera-t-il plusieurs documents ou règles dans le temps ? Sinon, il appartient à un sujet existant.
 2. **Choisir deux à quatre lettres** évoquant le sujet, dans la langue du projet.
 3. **Vérifier la collision** contre tout le registre. Si les lettres sont prises, **le nouveau sujet prend une lettre de plus** ; l'existant ne change jamais.

@@ -20,6 +20,8 @@ sources:
 # extensions: {}   champs propres au projet, ignorés par Anchorpost
 ---
 
+<!-- Une règle dit ce que le logiciel permet, exige, calcule ou refuse. Une fonctionnalité voulue (« Billetterie ») est une demande REQ ; une règle de l'organisation cliente sans rapport avec le logiciel est un document DOC. Le sigle {{TRI}} vient du registre (`docs/methode/nomenclature.md`) et a un seul sens dans tout le dépôt : préférer un domaine existant. -->
+
 {{L'énoncé de la règle, en markdown libre, dans la langue du projet : ce que le métier exige, pas comment on le construit. Les précisions datées restent dans le texte : _(précisée le JJ/MM : …)_. Un passage qui ne vaut plus se barre, ~~ainsi~~, avec la date et la source de la revue. Une autre règle se cite par son identifiant complet (`RULE_ALL_LIC-2`) : la citation devient un lien déduit.}}
 
 Un test qui prouve cette règle porte son identifiant entre crochets en tête de son nom : `it('[RULE_{{CTX}}_{{TRI}}-{{n}}] should …')`. La réalisation (à construire, configurée, prouvée) n'est pas écrite ici : elle se lit dans les tests.

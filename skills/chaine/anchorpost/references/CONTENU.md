@@ -2,7 +2,7 @@
 
 ## `manifest.json`
 
-Le squelette du manifeste, écrit à la main par un humain et jamais généré après `init`. Il porte ce que les sources ne disent pas : le nom et le pitch du projet, ses publics, ses contextes (identifiant, nom, chemin des sources quand il sort de la convention, plancher), ses regroupements EPIC facultatifs, les documents à rendre tels quels, la table nom → rôle. Clés en anglais, comme le schéma pivot d'Anchorpost (`ANC-2`, version 2) : un seul vocabulaire des fichiers du projet jusqu'à l'écran.
+Le squelette du manifeste, écrit à la main par un humain et jamais généré après `init`. Il porte ce que les sources ne disent pas : le nom et le pitch du projet, ses publics, ses contextes (identifiant, nom, chemin des sources quand il sort de la convention, plancher), ses regroupements EPIC facultatifs (un domaine qu'aucun ne liste va dans « Technique », avec un avertissement ; `@maj-agency/anchorpost` ≥ 1.1.0), les documents à rendre tels quels, la table nom → rôle. Clés en anglais, comme le schéma pivot d'Anchorpost (`ANC-2`, version 2) : un seul vocabulaire des fichiers du projet jusqu'à l'écran.
 
 ## `rules/anchorpost.md`
 
