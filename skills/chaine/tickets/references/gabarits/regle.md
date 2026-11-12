@@ -7,7 +7,7 @@ validation:
   # by: Prénom Nom          qui a tranché, par son nom
   # reason: …               obligatoire pour rejected et obsolete
 # exception: { status: not-applicable | contradiction, reason: … }   les deux seuls états de réalisation écrits à la main
-# epics: [ {{id-du-module}} ]   les modules (EPIC du manifeste) de la règle ; sans la clé, le module par défaut de son domaine ; sans l'un ni l'autre, le module des specs qui la citent, sinon « technique » (CLI ≥ 1.2.0)
+# epics: [ {{id-du-module}} ]   les modules (EPIC du manifeste) de la règle ; sans la clé, le module par défaut de son domaine ; en plus, le module des specs qui la déclarent en `Règles:` ; sans aucun, « technique » (CLI ≥ 1.2.0)
 # instanceOf: RULE_ALL_{{TRI}}-{{m}}   la règle de socle que cette règle instancie ; elle hérite de ses preuves tant qu'elle n'en a pas en propre
 sources:
   - { ref: {{réunion du AAAA-MM-JJ, document, grilling et numéro de question}}, path: {{docs/metier/reunions/…}}, at: {{horodatage ou section}} }
