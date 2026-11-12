@@ -135,7 +135,7 @@ Le slug est en kebab-case minuscule, dans la langue du titre. Le nom de branche 
 
 ## Registre des trigrammes
 
-**Ce tableau est la source de vérité, et il est unique** : un seul registre pour tout le dépôt, pas un par contexte. On y ajoute une ligne dès qu'un sujet apparaît, **avant** d'écrire le premier fichier qui le porte. La colonne « Sujet » est le nom que lit la MOA : c'est le titre de l'EPIC dans Anchorpost (`PLA — Planning`).
+**Ce tableau est la source de vérité, et il est unique** : un seul registre pour tout le dépôt, pas un par contexte. On y ajoute une ligne dès qu'un sujet apparaît, **avant** d'écrire le premier fichier qui le porte. La colonne « Sujet » est le nom que lit la MOA : c'est le nom du domaine dans Anchorpost, et le titre de l'EPIC quand le manifeste n'en déclare aucun (`PLA — Planning`). Un domaine est transverse : il peut concerner plusieurs modules (EPIC) ; il ne donne pas de module à ses règles : une règle déclare les siens, ou les reçoit d'une spec qui déclare la réaliser.
 
 | Trigramme | Sujet                                                         | Statut                                                 |
 | --------- | ------------------------------------------------------------- | ------------------------------------------------------ |

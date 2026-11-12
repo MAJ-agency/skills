@@ -2,6 +2,8 @@
 
 Sujet: sujet/{{nom}}
 Origine: {{REQ_<CTX>_<TRI>-<n> — la demande dont la spec est née ; ou retirer la ligne}}
+EPIC: {{l'id du module du manifeste (`epics[].id`) ; ou retirer la ligne si le manifeste ne déclare pas d'EPIC}}
+Règles: {{les règles que la spec réalise, identifiants complets séparés par des virgules ; elles rejoignent le module de la spec. Une règle seulement citée dans le corps n'y va pas ; ou retirer la ligne}}
 
 ## Ce qu'on construit
 
