@@ -99,7 +99,7 @@ Le prompt de lancement **renvoie à cette section** au lieu de la recopier. Gaba
 ```text
 Session fille du chantier <nom>, conducteur : <session_id>.
 Ticket : <chemin du .issue.md>. Base : origin/sujet/<nom>.
-Suis docs/agents/chaine-de-production.md § 5, puis le ticket. Écris-moi (send_message) si tu es bloqué, et une fois à la fin ; un choix non tranché se décide prudemment et se note sous ## Comments. Hors programme, une question à l'humain suit § 2 (« Une question au produit ») ; dans un programme, une question part au conducteur par `send_message`, qui la relaie à l'architecte.
+Suis docs/agents/chaine-de-production.md § 5, puis le ticket. Écris-moi (send_message) si tu es bloqué, et dès ta PR livrée, sans attendre ni les contrôles ni la fusion ; un choix non tranché se décide prudemment et se note sous ## Comments. Hors programme, une question à l'humain suit § 2 (« Une question au produit ») ; dans un programme, une question part au conducteur par `send_message`, qui la relaie à l'architecte.
 <une ligne de situation particulière, s'il y en a une>
 ```
 
