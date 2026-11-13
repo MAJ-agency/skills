@@ -11,7 +11,7 @@ Phase: spec (chantiers 0 et 2 finis le 2026-11-13 ; grilling fini, décisions P-
 Architecte: session_017ZgEwK5fY2gMf7NLzjnBM8 (seul à parler au produit ; session de suite ouverte par le produit le 2026-11-13 à 18 h 43 UTC, après session_017ZgEwMNFyHUf2UViG1WeUv)
 Responsable: Guillaume Jauffret
 Capitaine de `skills`: session_017ZgEwMYpEPe9y3Vg1JHAPM (troisième, lancé le 2026-11-13 à 11 h 43 UTC, tag `role:capitaine-skills` ; file : PR 65). Avant lui : session_017ZgEwLQpjiYnafE1qoLyZx (archivée, 1,94 $, a fusionné les PR 59 à 64) et session_017ZgEwMeUndGApzYbxNvkLW (archivée, 0,48 $, PR 58)
-Capitaine d'`anchorpost`: session_017ZgEwKZHhDMQ2ymArgWjdh (lancé par l'architecte le 2026-11-13 à la demande du produit ; tag `role:capitaine`)
+Capitaine d'`anchorpost`: aucun en veille. session_017ZgEwKZHhDMQ2ymArgWjdh (lancé le 2026-11-13, tag `role:capitaine`) est « disconnected » d'après `get_session` le 2026-11-13 à 19 h UTC, sans événement depuis 9 h 12 UTC ; la PR 119 a été fusionnée à 12 h 41 par une session d'un autre lot. À relancer, par `architecte/references/lancement.md`, avant la première PR d'`anchorpost` à fusionner.
 Objectif: seize améliorations de la chaîne de production par agents, et un chantier neuf, la preuve suffisante (dire pour chaque règle métier, à chaque PR, si elle est assez testée).
 Dépôts: `MAJ-agency/skills` (la méthode), `MAJ-agency/anchorpost` (terrain d'essai), puis `fedora` et `iroki-monorepo` (adoption des deux champs de règle).
 Source: [`sources/2026-11-12-passation-qualite-chaine-et-preuve.md`](sources/2026-11-12-passation-qualite-chaine-et-preuve.md) — entrée brute, ni spec ni décision. L'artefact « Gouverner nos boucles » qu'elle cite répond « not found » depuis cette session : la passation fait foi.
@@ -146,6 +146,7 @@ Vague 1 fusionnée le 2026-11-13 par le capitaine de `skills` (`main` à `8eb1c9
 | `session_017ZgEwMWanZnYh4EXHX7GHg` | ticket   | 8      | 2,18   | 217 257           |
 | `session_017ZgEwLZNvoayrikkW3ious` | ticket   | `SPEC_ALL_SOC-1.14` (sans dépôt, A-5)  | 0,15 | 79 375  |
 | `session_017ZgEwMNFyHUf2UViG1WeUv` | architecte | —    | 64,48 | 552 767 |
+| `session_017ZgEwK5fY2gMf7NLzjnBM8` | architecte | — (session de suite, relevé du 2026-11-13 à 19 h UTC, en cours) | 7,05 | 204 966 |
 
 La ligne de l'architecte est un relevé du 2026-11-13 à 11 h 45 UTC, session en cours (elle était à 9,20 $ et 289 647 tokens à 8 h 52) ; la cellule de coût ne porte qu'un montant, pour rester lisible par `couts.mjs`.
 
@@ -177,6 +178,15 @@ Repère pour la question des plafonds : une session de ticket démarre déjà au
 
 ## Passation — pour la session de suite de l'architecte
 
+**État au 2026-11-13, 19 h UTC (session `session_017ZgEwK5fY2gMf7NLzjnBM8`).** Ce paragraphe remplace les points numérotés plus bas, gardés pour l'histoire.
+
+- **La carte est dans `main` de `skills`** : la PR 57 a été fusionnée le 2026-11-13 à 18 h 48 UTC (`c939479`) par le capitaine de `skills`. La branche `claude/compassionate-euler-st84s9` a été recréée depuis `main` ; elle porte ce qui a été écrit depuis (pas de PR ouverte : en demander une au produit avant d'en créer).
+- **Chantier 4** : spec écrite, `SPEC_ALL_ANC-5` (`anchorpost`, branche `claude/ecstatic-brahmagupta-bg4l0s`, commit `6cebb2b`, sans PR). Attend du produit : la réponse à `Q18` (Fog), puis la validation de la spec. Ensuite : conducteur à lancer sur `anchorpost` (`lancement.md`), qui ouvre le sujet `sujet/preuve-suffisante` et la PR de specs ; la part de `skills` (§ 8 de la spec) en sessions de ticket lancées par l'architecte.
+- **Repose du plugin 5.0.0 dans `anchorpost`** : ticket en cours de rédaction dans `anchorpost` (branche de session). Il lui faut un capitaine d'`anchorpost` (voir la fiche : aucun en veille).
+- **Ticket 9 de `skills`** (`A-14 bis` et le moment du message d'une fille) : écrit, à faire relire par un agent neuf, puis une session de ticket depuis `origin/main`, puis sa PR nommée au capitaine de `skills` (`session_017ZgEwMYpEPe9y3Vg1JHAPM`, en vie, prévenu du passage de main).
+- **Rappel au produit, pas encore fait par cette session** : rendre obligatoire le check « CI / bancs » sur `main` de `skills`.
+- **Un autre lot tourne en parallèle** sur `fedora` et `iroki-monorepo` (sessions taguées `passation-2026-11-13` et `chantier:alignement-de-la-chaine`, parent `session_017ZgEwKjpx9s5E3FQnFZ2kc`) : il monte Anchorpost en 1.2.1 dans ces dépôts. Il n'appartient pas à ce programme ; la tranche 5 de `SPEC_ALL_ANC-5` devra s'accorder avec lui.
+
 **Comment parler au produit** (demandé deux fois le 2026-11-13) : des réponses précises et courtes, des faits vérifiés à la source avec le nom du fichier, aucune formule vague du type « à vérifier » ou « il faudra s'assurer » ; quand un fait manque, aller le chercher avant de répondre. Une question à la fois se répond par oui ou non. Le produit a aussi rejeté le style télégraphique : phrases entières.
 
 **Ordre de la suite** : 1. la spec du chantier 4 (preuve suffisante), toutes ses décisions sont prises (P-6 à P-8, P-11 à P-17, A-19) ; 2. la repose du plugin 5.0.0 dans `anchorpost` ; 3. le ticket qui reporte A-14 et A-14 bis dans le skill de l'architecte. Capitaine de `skills` en vie : `session_017ZgEwMYpEPe9y3Vg1JHAPM` ; capitaine d'`anchorpost` : `session_017ZgEwKZHhDMQ2ymArgWjdh`.
@@ -197,3 +207,4 @@ Repère pour la question des plafonds : une session de ticket démarre déjà au
 - 2026-11-13 — Tickets 1, 2 et 3 livrés (PR 59, 58, 60 de `skills`), vérifiés à la source. Tour 1 validé en bloc par le produit, avec l'ajout du diagramme et de la section de PR pour le modèle de données. Tour 2 posé. Spec du chantier 2 écrite, découpage proposé. Capitaine d'`anchorpost` relancé (en place, file vide, veille lancée). Réponses du produit à `Q7` et `Q8`. Passation écrite : l'architecte est à 355 000 tokens.
 - 2026-11-13 — Passage de main : la session de suite de l'architecte (`session_017ZgEwK5fY2gMf7NLzjnBM8`, ouverte par le produit sur les quatre dépôts) reprend à la passation. Environnement vérifié : quatre clones, `graphify` présent, outils de session et GitHub MCP chargés. Étape en cours : la spec du chantier 4.
 - 2026-11-13 — Spec du chantier 4 écrite : `SPEC_ALL_ANC-5` dans `anchorpost` (commit `6cebb2b`, branche de session, pas encore de PR), avec six règles candidates (`RULE_ALL_ANC-24` à `RULE_ALL_ANC-29`), cinq termes au glossaire, l'index régénéré (`anchorpost check` conforme). Faits relevés par deux lecteurs puis vérifiés à la source ; décisions A-20 à A-30. Copie de lecture dans `docs/issues/standard-documentation/`. Question `Q18` posée au produit.
+- 2026-11-13 — PR 57 fusionnée par le capitaine de `skills` (`c939479`) pendant l'écriture de la spec : la branche de la carte, supprimée par la fusion, est recréée depuis `main`. Capitaine de `skills` prévenu du passage de main ; capitaine d'`anchorpost` trouvé déconnecté. Ticket 9 de `skills` écrit ; ticket de repose du plugin 5.0.0 dans `anchorpost` en rédaction par un sous-agent. Relevé de l'architecte : 204 966 tokens, 7,05 $, verdict `ok` de `plafonds.mjs`.
