@@ -7,7 +7,7 @@ source, et reprend à la phase indiquée sans reposer une question déjà tranch
 
 ## Fiche
 
-Phase: 1-grilling (tour 1 validé par le produit le 2026-11-13 ; tour 2 posé)
+Phase: suivi et grilling (chantiers 0 et 2 finis le 2026-11-13 ; tours 1 et 2 du grilling validés ; tour 3 posé, `Q12` à `Q17`, sans réponse)
 Architecte: session_017ZgEwMNFyHUf2UViG1WeUv (seul à parler au produit)
 Responsable: Guillaume Jauffret
 Capitaine de `skills`: session_017ZgEwMYpEPe9y3Vg1JHAPM (troisième, lancé le 2026-11-13 à 11 h 43 UTC, tag `role:capitaine-skills` ; file : PR 65). Avant lui : session_017ZgEwLQpjiYnafE1qoLyZx (archivée, 1,94 $, a fusionné les PR 59 à 64) et session_017ZgEwMeUndGApzYbxNvkLW (archivée, 0,48 $, PR 58)
@@ -23,7 +23,7 @@ Plafond que l'architecte s'applique: 400 000 tokens de contexte ; relevé par `g
 | --- | --------------------------------------------------------------------------- | --------------------------- | ----------------------------------------------------------------- |
 | 0   | Corriger ce qui est faux (étape 1 de la source)                             | `anchorpost`, `skills`      | lancé le 2026-11-13 : trois sessions, voir « Chantier 0 »         |
 | 1   | Mesurer la solidité des tests (champ `code`, première mesure de mutation)   | `anchorpost`                | attend la fusion de la PR 113 (elle touche les en-têtes de règle) |
-| 2   | Limites des sessions, gel d'un chantier, rôles et skill de l'architecte (source § 5 A, points 1, 2, 8) | `skills` | spec écrite le 2026-11-13 ([`plafonds-gel-et-roles.spec.md`](plafonds-gel-et-roles.spec.md)), découpage en cinq tickets à valider par le produit |
+| 2   | Limites des sessions, gel d'un chantier, rôles et skill de l'architecte (source § 5 A, points 1, 2, 8) | `skills` | **fini le 2026-11-13** : cinq tickets fusionnés (PR 61 à 65), plugin 5.0.0 ; reste la repose dans `anchorpost` |
 | 2 bis | Modèle de données relationnel : étape de grilling, dictionnaire et diagramme générés, axe de revue, section de PR | `skills`, puis `anchorpost` pour l'affichage | décidé (P-5), à spécifier après le chantier 2 |
 | 3   | Revue que l'auteur ne contrôle pas, relecture des tickets, fin de chantier  | `skills`                    | grilling, tours suivants                                          |
 | 4   | Preuve suffisante : standard, CLI, gates (source § 5 B)                     | `anchorpost`, puis `skills` | grilling, tours suivants                                          |
@@ -96,11 +96,27 @@ Tickets écrits par un sous-agent d'après la spec, faits revérifiés sur `main
 | 1     | [`5`](issues/5-roles-responsable-et-label-contre-revue.issue.md) — rôles, responsable, label  | opus   | `session_017ZgEwKJDppD3JTAkkTXpGM` | 62  | **fusionné** (`8eb1c9b`) ; livré, sondé par l'architecte (gate : les deux valeurs de `Label:` acceptées, `Responsable:` et `Conducteur:` exigées ; 33 bancs du gate verts ; table des rôles renommée), nommé au capitaine le 2026-11-13 |
 | 2     | [`6`](issues/6-skill-de-l-architecte.issue.md) — skill de l'architecte                        | opus   | `session_017ZgEwLXovbMS1trs2tu3MN` | 64  | **fusionné** (`5a5e4f3`) ; livré, sondé par l'architecte (14 fichiers ; skill de 88 lignes, gabarit `programme.md`, deux signalements de `demarrage.mjs`), nommé au capitaine le 2026-11-13 |
 | 2     | [`7`](issues/7-plafonds-et-renvois-comptes.issue.md) — plafonds et renvois comptés            | sonnet | `session_017ZgEwJYcjFLZwVB1ooMaoV` | 63  | **fusionné** (`a742844`) ; livré, sondé par l'architecte (18 fichiers ; clé `plafonds` aux valeurs de P-3, banc de `plafonds.mjs` : 6 cas verts), nommé au capitaine le 2026-11-13 |
-| 3     | [`8`](issues/8-gel-d-un-chantier.issue.md) — gel d'un chantier, version 5.0.0 du plugin       | sonnet | `session_017ZgEwMWanZnYh4EXHX7GHg` | 65  | livré, sondé par l'architecte (16 fichiers ; plugin 5.0.0, états « gelée » et « humain » de `file.sh`, prose corrigée, 58 bancs du sujet et du capitaine verts), nommé au capitaine le 2026-11-13 |
+| 3     | [`8`](issues/8-gel-d-un-chantier.issue.md) — gel d'un chantier, version 5.0.0 du plugin       | sonnet | `session_017ZgEwMWanZnYh4EXHX7GHg` | 65  | **fusionné** (`9a14d51`) ; livré, sondé par l'architecte (16 fichiers ; plugin 5.0.0, états « gelée » et « humain » de `file.sh`, prose corrigée, 58 bancs du sujet et du capitaine verts), nommé au capitaine le 2026-11-13 |
 
 Vague 1 fusionnée le 2026-11-13 par le capitaine de `skills` (`main` à `8eb1c9b`, arbres vérifiés, 345 tests verts), sessions archivées. **À faire par un administrateur du dépôt** : rendre obligatoire le check « CI / bancs » dans la protection de `main`, à côté de CodeQL. Vague 2 lancée le 2026-11-13 à 11 h 05 UTC : tickets 6 et 7 remis à jour sur `main` (`8eb1c9b`) par un sous-agent, relus par un agent neuf (verdict « prêt », sept points fermés dans les tickets, aucun fichier commun), réveil de suivi armé à 45 minutes (`trig_01MyfAXjDv11DY1gYKP67BPA`). Le prompt de lancement demande désormais d'écrire à l'architecte dès la PR ouverte, sans attendre les contrôles : les filles de la vague 1 ne l'avaient fait qu'après la fusion. Vague 2 fusionnée le 2026-11-13 à 11 h 19 UTC (`main` à `5a5e4f3`, 365 tests verts d'après le capitaine, arbres vérifiés), sessions archivées, réveil supprimé. Vague 3 lancée le 2026-11-13 à 11 h 31 UTC : ticket 8 remis à jour sur `main` (`5a5e4f3`), relu par un agent neuf dont le verdict était « à compléter » (premier de la journée) ; le ticket a été complété avant le lancement (commande `sujet.sh gel`, primauté du gel sur une livraison ouverte, dégel sans réveil automatique, place de la procédure d'arrêt, preuves des deux corrections de prose). Réveil de suivi : `trig_01NJhFYfQvkHviSXYzhFEPFc`. À la fusion du ticket 8, le chantier 2 est fini : relever le coût, écrire sa rétro ici, puis prévoir la repose dans `anchorpost` (ticket de ce dépôt).
 
 À surveiller : le ticket 5 touche 22 fichiers et le ticket 7 en touche 17, pour un repère d'une quinzaine ; relever leur contexte à la livraison. Réveil de suivi armé à 45 minutes (`trig_01Ubi6VM3BgqgSWNDgaEwQPY`). Une PR livrée se nomme au capitaine de `skills`, qui la fusionne.
+
+## Rétro du chantier 2 (fini le 2026-11-13 à 11 h 45 UTC)
+
+**Livré.** Cinq tickets, cinq PR (61 à 65), toutes fusionnées dans `main` de `skills` sans renvoi ; plugin 5.0.0 (`9a14d51`), 381 tests verts d'après le capitaine, arbres vérifiés à chaque fusion. Découpage validé à 9 h 37 UTC, dernière fusion à 11 h 45 : deux heures.
+
+**Coût.** Filles : 17,40 $ pour cinq tickets, soit 3,48 $ par ticket (sonnet : 1,11, 1,99 et 2,18 $ ; opus : 4,58 et 7,54 $). Capitaines de `skills` : 2,42 $ relevés, le troisième non relevé. Aucune fille n'a atteint un plafond (maximum 230 661 tokens, 7,54 $).
+
+**L'architecte a dépassé son propre plafond, et c'est le premier poste de coût.** 552 767 tokens pour un plafond de 400 000, atteint vers 9 h 20 UTC ; 64,48 $, dont 55 $ dépensés après 8 h 52, sous-agents de rédaction et de relecture compris. C'est trois fois le coût de toutes les filles des chantiers 0 et 2 (21,69 $). L'architecte a demandé cinq fois une session de suite, que seul le produit peut ouvrir, puis a continué sur son « ok go ». Le plafond d'un pilote n'a donc aucun effet tant que personne ne peut l'appliquer : à traiter au chantier 3 (un architecte ne peut pas se relayer seul, A-5).
+
+**Incidents, et ce qu'ils deviennent.**
+
+- Deux refus d'un capitaine dus à la consigne de l'architecte (mise à jour de branche absente, interdit mal formulé sur la ligne `version`) : décisions A-14 et A-14 bis, à reporter dans `skills/chaine/architecte/references/lancement.md` par un ticket.
+- Les filles de la vague 1 n'ont écrit à l'architecte qu'après la fusion : consigne corrigée dès la vague 2 (« dès la PR ouverte »), à reporter dans le gabarit de prompt.
+- Des tickets écrits d'avance vieillissent : ceux des vagues 2 et 3 ont dû être remis à jour sur `main` avant leur lancement (26 puis 21 références). Leçon : n'écrire en détail que la vague suivante.
+- La relecture par un agent neuf a servi à chaque vague : cinq, sept, puis un verdict « à compléter » sur le ticket 8 (dégel non décrit, trois livrables sans preuve). À outiller au chantier 3.
+- L'attache de `skills` par une fille a marché quand la consigne la demandait (une fois sur une), et a été refusée sinon (deux fois).
 
 ## Coût
 
@@ -117,10 +133,11 @@ Vague 1 fusionnée le 2026-11-13 par le capitaine de `skills` (`main` à `8eb1c9
 | `session_017ZgEwKJDppD3JTAkkTXpGM` | ticket   | 5      | 7,54   | 230 661           |
 | `session_017ZgEwLXovbMS1trs2tu3MN` | ticket   | 6      | 4,58   | 219 935           |
 | `session_017ZgEwJYcjFLZwVB1ooMaoV` | ticket   | 7      | 1,99   | 199 231           |
+| `session_017ZgEwMWanZnYh4EXHX7GHg` | ticket   | 8      | 2,18   | 217 257           |
 | `session_017ZgEwLZNvoayrikkW3ious` | ticket   | `SPEC_ALL_SOC-1.14` (sans dépôt, A-5)  | 0,15 | 79 375  |
-| `session_017ZgEwMNFyHUf2UViG1WeUv` | architecte | —    | 9,20 | 289 647 |
+| `session_017ZgEwMNFyHUf2UViG1WeUv` | architecte | —    | 64,48 | 552 767 |
 
-La ligne de l'architecte est un relevé du 2026-11-13 à 8 h 52 UTC, session en cours ; la cellule de coût ne porte qu'un montant, pour rester lisible par `couts.mjs`.
+La ligne de l'architecte est un relevé du 2026-11-13 à 11 h 45 UTC, session en cours (elle était à 9,20 $ et 289 647 tokens à 8 h 52) ; la cellule de coût ne porte qu'un montant, pour rester lisible par `couts.mjs`.
 
 Relevé du 2026-11-13 à 8 h 57 UTC : les trois tickets livrés ont coûté 2,95 $, soit 0,98 $ par ticket ; les deux sessions perdues sur le ticket à deux dépôts, 0,85 $. Les cinq sessions sont archivées.
 
@@ -150,6 +167,7 @@ Repère pour la question des plafonds : une session de ticket démarre déjà au
 
 À ouvrir par le produit depuis l'application, sur l'environnement ANCHORPOST (les quatre dépôts), avec le droit de pousser sur `claude/compassionate-euler-st84s9` de `skills` (la PR 57 porte cette carte).
 
+0. **Chantier 2 fini** (voir sa rétro). Reste à faire pour qu'il serve : **reposer le plugin 5.0.0 dans `anchorpost`** (scripts de chaîne, gabarits, `docs/agents/chaine-de-production.md`, clé `plafonds` de `.claude/chaine.json`) par un ticket de ce dépôt, session fille avec attache de `skills`, capitaine d'`anchorpost` ; puis l'essai réel du gel sur un sujet jouet. Un ticket dans `skills` pour reporter A-14 et A-14 bis dans `architecte/references/lancement.md`. **Rappeler au produit** le réglage du check « CI / bancs » obligatoire sur `main`. La PR 57 (cette carte, la spec, les tickets) reste en brouillon : à finaliser, et la carte à déplacer vers `docs/programmes/gouverner-nos-boucles.programme.md` selon le skill de l'architecte.
 1. **Chantier 0 fusionné dans `main` de `skills`** le 2026-11-13 (PR 58, 59, 60 ; `main` à `1f29a3a`, plugin toujours 4.2.0). **Repose faite** : PR 118 d'`anchorpost` fusionnée (`2c57a70`), session archivée ; `SPEC_ALL_SOC-1.14` est clos (il écrit à l'architecte à la fin). **Attend le produit** : la validation du découpage du chantier 2 ; (toutes les questions des tours 1 et 2 sont tranchées) ; Plus de choix à demander pour la repose de `couts.mjs` dans `anchorpost` : dès la PR 60 fusionnée, lancer une session fille sur `anchorpost`, branche `fix/spec-all-soc-1-14-couts-verify` (PR 118, brouillon), dont le prompt lui dit d'attacher `MAJ-agency/skills` par `add_repo` (`chaine-de-production.md` § 5, étape 5) ; elle livre avec `à-fusionner`, le capitaine d'`anchorpost` fusionne.
 2. **Chantier 2 en cours** : voir la section « Chantier 2 ». Suivre la vague 1, nommer ses PR au capitaine de `skills`, puis faire relire et lancer la vague 2 (tickets 6 et 7), puis la 3 (ticket 8).
 3. **Tour 3 du grilling posé le 2026-11-13** (`Q12` à `Q17` : sens de « prouvée », revalidation d'un cas ajouté, contrôle de solidité des tests sur une PR, règle sans parcours, exigences d'une règle basse, ce qu'Anchorpost montre de la fabrication) ; réponses attendues. Décision de l'architecte annoncée : un parcours se déclare dans le manifeste du projet. Ensuite, puis la spec du chantier 4 (preuve suffisante) dans `anchorpost`, avec sa copie dans `docs/issues/standard-documentation/`.
