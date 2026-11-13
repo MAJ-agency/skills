@@ -52,7 +52,7 @@ Décisions de l'architecte (choix techniques, sans effet sur ce que voit un util
 
 | Ticket                                                                                                                   | Dépôt                    | Session | PR  | État  |
 | ------------------------------------------------------------------------------------------------------------------------ | ------------------------ | ------- | --- | ----- |
-| [`1`](issues/1-criteres-et-pieges-des-deux-retros.issue.md) — dix leçons en critères et piège                            | `skills`                 | `session_017ZgEwMrJhErj5gAFEXirwK` | —   | lancé |
+| [`1`](issues/1-criteres-et-pieges-des-deux-retros.issue.md) — dix leçons en critères et piège                            | `skills`                 | `session_017ZgEwMrJhErj5gAFEXirwK` | 59  | livré le 2026-11-13, critères `S15` à `S21`, `T8`, `T9` et le piège lus par l'architecte, attend la fusion humaine ; coût à relever |
 | [`2`](issues/2-plugin-declare-anchorpost-et-budget-des-skills.issue.md) — plugin complet, banc des 200 lignes            | `skills`                 | `session_017ZgEwHynXjgwREFTcpKqQX` | 58  | livré le 2026-11-13, vérifié par l'architecte (banc joué : 4 cas verts, `SKILL.md` à 189 lignes), attend la fusion humaine |
 | `SPEC_ALL_SOC-1.14` (ticket d'`anchorpost`) — un montant illisible fait échouer `couts.mjs --verify`                     | `skills` puis `anchorpost` | `session_017ZgEwMdAB15RvGMFEuThNT` | —   | lancé |
 
