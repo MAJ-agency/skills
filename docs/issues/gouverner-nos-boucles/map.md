@@ -10,6 +10,7 @@ source, et reprend à la phase indiquée sans reposer une question déjà tranch
 Phase: 1-grilling (tour 1 validé par le produit le 2026-11-13 ; tour 2 posé)
 Architecte du programme: session_017ZgEwMNFyHUf2UViG1WeUv (seul à parler au produit)
 Responsable: Guillaume Jauffret
+Capitaine d'`anchorpost`: session_017ZgEwKZHhDMQ2ymArgWjdh (lancé par l'architecte le 2026-11-13 à la demande du produit ; tag `role:capitaine`)
 Objectif: seize améliorations de la chaîne de production par agents, et un chantier neuf, la preuve suffisante (dire pour chaque règle métier, à chaque PR, si elle est assez testée).
 Dépôts: `MAJ-agency/skills` (la méthode), `MAJ-agency/anchorpost` (terrain d'essai), puis `fedora` et `iroki-monorepo` (adoption des deux champs de règle).
 Source: [`sources/2026-11-12-passation-qualite-chaine-et-preuve.md`](sources/2026-11-12-passation-qualite-chaine-et-preuve.md) — entrée brute, ni spec ni décision. L'artefact « Gouverner nos boucles » qu'elle cite répond « not found » depuis cette session : la passation fait foi.
@@ -94,7 +95,7 @@ Repère pour la question des plafonds : une session de ticket démarre déjà au
 - _(tranché, P-3)_ **Plafonds d'une session** (décision 2 de la source). Question 3 du tour 1.
 - _(tranché, P-5)_ **Skill « modèle de données relationnel »**, idée du produit (12/11). Question 5 du tour 1.
 - **« Aucun nom de modèle dans un commit »** (source § 7) : presque tous les commits fusionnés des deux dépôts en portent un, par la ligne d'attribution que l'outil ajoute seul (« Co-Authored-By »). Soit un réglage la retire pour toutes les sessions, soit la règle ne vise que la prose. À poser au produit.
-- **Capitaine d'`anchorpost`** : invisible depuis ce compte, mais actif d'après `develop` (trois fusions dans la nuit du 12 au 13, la dernière à 6 h 19). Le produit autorise l'architecte à en lancer un « si besoin » (13/11) : pas de besoin constaté, et un second capitaine violerait la règle du capitaine unique.
+- _(levé)_ **Capitaine d'`anchorpost`** : le produit a confirmé le 2026-11-13 qu'il n'y en avait plus ; l'architecte en a lancé un. Faute du skill `fusionner` dans une session à un seul dépôt (`Q10`), son mode d'emploi lui est passé en prompt système, copié du plugin 4.2.0. À surveiller : sa mise en place et son premier passage.
 - **Session de suite de l'architecte** : elle doit être ouverte par le produit depuis l'application, seule façon d'avoir plusieurs dépôts (A-5).
 - **Les skills dans une session créée par une autre session** (`Q10`, posée le 2026-11-13) : une telle session ne reçoit qu'un dépôt, et aucun projet ne porte les skills de la chaîne (`anchorpost` n'a pas de `.claude/skills/`). Elle n'a donc ni `chantier`, ni `revue-de-ticket`, ni `fusionner`. Conditionne le lancement d'un conducteur par l'architecte (P-2) et le ticket 6. Recommandation : recopier les skills d'exploitation dans chaque projet, version comprise.
 - **Tour 2 posé le 2026-11-13** : qui vérifie le code avant la fusion (décision 1 de la source), où s'écrivent les cas d'une règle (3), qui fixe la criticité (5), et la portée de la règle sur les noms de modèle.
@@ -105,4 +106,4 @@ Repère pour la question des plafonds : une session de ticket démarre déjà au
 
 - 2026-11-12 — Reprise par l'architecte du programme. Lecture de la méthode, du skill `chantier`, de l'environnement. Carte ouverte, tour 1 du grilling posé, inventaire des restes de l'étape 1 lancé (sous-agent de lecture).
 - 2026-11-13 — Inventaire rendu : la source se trompait sur les trois tickets du socle et sur `tests.md`. Tickets 1 et 2 écrits, chantier 0 lancé. Script de démarrage de l'environnement corrigé (accepté par le produit ; à prouver par la première session neuve).
-- 2026-11-13 — Tickets 1, 2 et 3 livrés (PR 59, 58, 60 de `skills`), vérifiés à la source. Tour 1 validé en bloc par le produit, avec l'ajout du diagramme et de la section de PR pour le modèle de données. Tour 2 posé. Spec du chantier 2 écrite, découpage proposé.
+- 2026-11-13 — Tickets 1, 2 et 3 livrés (PR 59, 58, 60 de `skills`), vérifiés à la source. Tour 1 validé en bloc par le produit, avec l'ajout du diagramme et de la section de PR pour le modèle de données. Tour 2 posé. Spec du chantier 2 écrite, découpage proposé. Capitaine d'`anchorpost` relancé.
