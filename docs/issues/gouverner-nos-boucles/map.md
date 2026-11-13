@@ -8,7 +8,7 @@ source, et reprend à la phase indiquée sans reposer une question déjà tranch
 ## Fiche
 
 Phase: spec (chantiers 0 et 2 finis le 2026-11-13 ; grilling fini, tours 1 à 3 validés, décisions P-1 à P-17 ; prochaine étape : la spec du chantier 4, la preuve suffisante)
-Architecte: session_017ZgEwMNFyHUf2UViG1WeUv (seul à parler au produit)
+Architecte: session_017ZgEwK5fY2gMf7NLzjnBM8 (seul à parler au produit ; session de suite ouverte par le produit le 2026-11-13 à 18 h 43 UTC, après session_017ZgEwMNFyHUf2UViG1WeUv)
 Responsable: Guillaume Jauffret
 Capitaine de `skills`: session_017ZgEwMYpEPe9y3Vg1JHAPM (troisième, lancé le 2026-11-13 à 11 h 43 UTC, tag `role:capitaine-skills` ; file : PR 65). Avant lui : session_017ZgEwLQpjiYnafE1qoLyZx (archivée, 1,94 $, a fusionné les PR 59 à 64) et session_017ZgEwMeUndGApzYbxNvkLW (archivée, 0,48 $, PR 58)
 Capitaine d'`anchorpost`: session_017ZgEwKZHhDMQ2ymArgWjdh (lancé par l'architecte le 2026-11-13 à la demande du produit ; tag `role:capitaine`)
@@ -191,3 +191,4 @@ Repère pour la question des plafonds : une session de ticket démarre déjà au
 - 2026-11-12 — Reprise par l'architecte du programme. Lecture de la méthode, du skill `chantier`, de l'environnement. Carte ouverte, tour 1 du grilling posé, inventaire des restes de l'étape 1 lancé (sous-agent de lecture).
 - 2026-11-13 — Inventaire rendu : la source se trompait sur les trois tickets du socle et sur `tests.md`. Tickets 1 et 2 écrits, chantier 0 lancé. Script de démarrage de l'environnement corrigé (accepté par le produit ; à prouver par la première session neuve).
 - 2026-11-13 — Tickets 1, 2 et 3 livrés (PR 59, 58, 60 de `skills`), vérifiés à la source. Tour 1 validé en bloc par le produit, avec l'ajout du diagramme et de la section de PR pour le modèle de données. Tour 2 posé. Spec du chantier 2 écrite, découpage proposé. Capitaine d'`anchorpost` relancé (en place, file vide, veille lancée). Réponses du produit à `Q7` et `Q8`. Passation écrite : l'architecte est à 355 000 tokens.
+- 2026-11-13 — Passage de main : la session de suite de l'architecte (`session_017ZgEwK5fY2gMf7NLzjnBM8`, ouverte par le produit sur les quatre dépôts) reprend à la passation. Environnement vérifié : quatre clones, `graphify` présent, outils de session et GitHub MCP chargés. Étape en cours : la spec du chantier 4.
