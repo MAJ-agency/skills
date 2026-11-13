@@ -2,7 +2,7 @@
 /**
  * Registre des coûts de production, généré depuis les cartes de chantier.
  *
- * Pourquoi. Le coût d'une session ne se lit que par `get_session`. L'architecte le relève dans la
+ * Pourquoi. Le coût d'une session ne se lit que par `get_session`. Le conducteur le relève dans la
  * section `## Coût` de sa carte (`docs/agents/chaine-de-production.md` § 6). Le coût de production
  * restait donc éparpillé, une carte par chantier. Ce script les agrège en un seul registre :
  * `docs/agents/couts.md`. C'est un index généré (`scripts/docs/index-generes.json`) : le capitaine

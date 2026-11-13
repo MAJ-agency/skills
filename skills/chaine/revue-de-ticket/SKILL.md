@@ -48,8 +48,8 @@ Chaque constat est relu dans le code, ligne ouverte. **Sans critère cité** : �
 ## Étape 4 — corriger, répondre, relancer
 
 1. Bloquants corrigés, chacun avec le test qui l'aurait attrapé ; à corriger : corrigés, ou laissés avec une raison écrite ; doutes : une ligne de réponse chacun.
-2. Si une correction déborde des lignes signalées : nouveau tour, trois sous-agents neufs. **Deux tours au plus** ; au-delà, le dire à l'humain ou à l'architecte.
-3. Un bloquant de l'axe Ticket ouvert après deux tours : la PR reste en brouillon, le ticket repasse `en cours`, l'architecte est prévenu.
+2. Si une correction déborde des lignes signalées : nouveau tour, trois sous-agents neufs. **Deux tours au plus** ; au-delà, le dire au conducteur du chantier (sans chantier, au produit).
+3. Un bloquant de l'axe Ticket ouvert après deux tours : la PR reste en brouillon, le ticket repasse `en cours`, le conducteur est prévenu.
 
 ## Étape 5 — la section de PR, puis le label
 

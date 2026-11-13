@@ -2,9 +2,9 @@
 /**
  * Vagues d'un chantier calculées depuis les tickets.
  *
- * Pourquoi. L'architecte répartissait les tickets en vagues à la main ; trois sous-PR d'une même vague
+ * Pourquoi. Le conducteur répartissait les tickets en vagues à la main ; trois sous-PR d'une même vague
  * sont revenues en conflit sur des fichiers chauds communs. Les tickets portent déjà `Status:`,
- * `Blocked by:` et `Fichiers chauds:` : ce script les croise. Il propose, l'architecte décide : il ne
+ * `Blocked by:` et `Fichiers chauds:` : ce script les croise. Il propose, le conducteur décide : il ne
  * modifie pas la carte. Rien n'est lu de GitHub, tout vient des fichiers de la branche courante.
  *
  * Usage : node scripts/docs/vagues.mjs <SPEC|chemin de la spec> [--max N] [--json]
@@ -120,7 +120,7 @@ export function enMarkdown(nom, { vagues: liste, bloques }) {
     sortie.push('');
   }
   if (bloques.length) sortie.push('Prêts mais bloqués : ' + bloques.map((b) => `${b.id} (attend ${b.attend.join(', ')})`).join(' · '), '');
-  sortie.push("Proposition : l'architecte la relit, une raison écrite pour s'en écarter, puis la copie dans la carte.");
+  sortie.push("Proposition : le conducteur la relit, une raison écrite pour s'en écarter, puis la copie dans la carte.");
   return sortie.join('\n') + '\n';
 }
 

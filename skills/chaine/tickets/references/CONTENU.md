@@ -10,11 +10,11 @@ Trois sources croisées avant de commencer : la ligne `Status:` sur `develop` et
 
 ## `vagues.mjs`
 
-Les vagues d'un chantier d'après les tickets : bloquants faits, fichiers chauds disjoints, au plus N. Il propose, l'architecte décide : trois sous-PR d'une même vague sont revenues en conflit sur un fichier chaud commun quand les vagues se faisaient à la main.
+Les vagues d'un chantier d'après les tickets : bloquants faits, fichiers chauds disjoints, au plus N. Il propose, le conducteur décide : trois sous-PR d'une même vague sont revenues en conflit sur un fichier chaud commun quand les vagues se faisaient à la main.
 
 ## `avancement.mjs`, `avancement-regles.mjs`
 
-Le tableau d'avancement en une commande : l'humain demandait « en % ? » cinq fois par jour, chaque réponse coûtant un tour d'architecte sur un gros contexte.
+Le tableau d'avancement en une commande : le produit demandait « en % ? » cinq fois par jour, chaque réponse coûtant un tour du conducteur sur un gros contexte.
 
 ## `archiver-tickets.mjs`
 

@@ -5,7 +5,9 @@ Sujet: sujet/{{nom}}
 ## Fiche
 
 Phase: 1-grilling
-Architecte: {{session_id de la session architecte}}
+Responsable: {{la personne qui répond du chantier — un nom, jamais un session_id}}
+Architecte: {{session_id de l'architecte du programme — ou retirer la ligne si le chantier n'a pas de programme}}
+Conducteur: {{session_id de la session qui mène le chantier}}
 Objectif: {{une phrase}}
 Échéance: {{date ou aucune}}
 Grilling: {{complet | court | aucun}}
