@@ -21,7 +21,7 @@ Quand le ticket est fait, le mode d'emploi du lancement dit comment écrire un i
 
 Lignes de `origin/main` à `c939479` (2026-11-13).
 
-- `skills/chaine/architecte/references/lancement.md` (41 lignes), section « Le capitaine d'un dépôt » (ligne 24), après le paragraphe « La procédure du capitaine est celle du skill `fusionner` » (ligne 34) : un paragraphe nouveau, de la longueur des voisins. Il dit que les interdits d'une procédure donnée dans un prompt s'écrivent comme des **gestes de la session** (« tu ne modifies aucun fichier toi-même », « tu ne pousses sur aucune branche »), jamais comme des **contenus** (« ne pas monter la version ») ; que le contenu d'une PR nommée a été validé avant d'être nommé, et que le capitaine ne le rejuge pas ; et il cite le cas vécu par son fait et sa date (2026-11-13, la PR qui montait la version du plugin), sans identifiant de session.
+- `skills/chaine/architecte/references/lancement.md` (41 lignes), section « Le capitaine d'un dépôt » (ligne 24), après le paragraphe « La procédure du capitaine est celle du skill `fusionner` » (ligne 34) : un paragraphe nouveau, de trois à cinq phrases. Il dit que les interdits d'une procédure donnée dans un prompt s'écrivent comme des **gestes de la session** (« tu ne modifies aucun fichier toi-même », « tu ne pousses sur aucune branche »), jamais comme des **contenus** (« ne pas monter la version ») ; que le contenu d'une PR nommée a été validé avant d'être nommé, et que le capitaine ne le rejuge pas ; et il cite le cas vécu par son fait et sa date (2026-11-13, la PR qui montait la version du plugin), sans identifiant de session.
 - `skills/chaine/socle-chaine-de-production/references/docs-agents/chaine-de-production.md`, gabarit du prompt d'une fille, ligne 102 : « Écris-moi (send_message) si tu es bloqué, et une fois à la fin » devient « Écris-moi (send_message) si tu es bloqué, et dès ta PR livrée, sans attendre ni les contrôles ni la fusion ». L'étape 7 de la même section (ligne 117, « Rendre la main ») place déjà ce message après la livraison : elle ne change pas.
 - `skills/chaine/chantier/SKILL.md`, ligne 77 : « si elle est bloquée, et une fois à la fin » reçoit la même formule (« et dès sa PR livrée, sans attendre ni les contrôles ni la fusion »).
 - `.claude-plugin/plugin.json`, ligne 3 : `5.0.0` devient `5.0.1`. La description du plugin ne change pas.
@@ -45,6 +45,6 @@ Lignes de `origin/main` à `c939479` (2026-11-13).
 
 - `pnpm test` vert (les bancs lisent des scripts, aucun ne lit ces textes : le nombre de tests ne change pas) ; `skills/chaine/chantier/SKILL.md` reste sous 200 lignes.
 - `grep -rn "une fois à la fin" skills/ --include=*.md` ne rend rien.
-- La PR vise `main`. La session part de `origin/main`, lit ce ticket sur la branche `claude/compassionate-euler-st84s9`, ne le modifie pas, et écrit à l'architecte dès sa PR ouverte.
+- La PR vise `main`. La session part de `origin/main`, lit ce ticket sur la branche `claude/compassionate-euler-st84s9`, ne le modifie pas, et écrit à l'architecte dès sa PR livrée (ouverte, hors brouillon), sans attendre ni les contrôles ni la fusion.
 
 ## Comments
