@@ -48,6 +48,7 @@ Les lignes citées sont celles de `origin/main` à `1f29a3a` (2026-11-13). Les t
 
 ## Décisions
 
+- `A-15` (2026-11-13, sur une question de la session du ticket 5) — **ce ticket corrige aussi `skills/chaine/socle-chaine-de-production/references/docs-agents/chaine-de-production.md` § 5, étape 3** : elle fait encore poser un doute de design au produit par la session fille (`AskUserQuestion`), ce qui contredit `P-1` dans un programme. Nouvelle règle à y écrire : dans un programme, une fille n'a personne devant elle ; elle écrit son doute de design à son conducteur (`send_message`), qui le relaie à l'architecte, lequel le pose au produit dans la forme du § 2. Hors programme, la règle actuelle reste. Le produit garde la liberté d'ouvrir lui-même la session d'une fille pour faire évoluer un écran avec elle.
 Tranché :
 
 - `A-11` : le gel est une ligne `Gel:` de la fiche, lue sur `origin/sujet/<nom>` ; non vide (date et raison), le chantier est gelé ; elle se pose par `sujet.sh geler` ou à la main dans l'éditeur de GitHub, `sujet.sh degeler` la vide. Aucun label.
