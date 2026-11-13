@@ -173,6 +173,10 @@ Repère pour la question des plafonds : une session de ticket démarre déjà au
 
 ## Passation — pour la session de suite de l'architecte
 
+**Comment parler au produit** (demandé deux fois le 2026-11-13) : des réponses précises et courtes, des faits vérifiés à la source avec le nom du fichier, aucune formule vague du type « à vérifier » ou « il faudra s'assurer » ; quand un fait manque, aller le chercher avant de répondre. Une question à la fois se répond par oui ou non. Le produit a aussi rejeté le style télégraphique : phrases entières.
+
+**Ordre de la suite** : 1. la spec du chantier 4 (preuve suffisante), toutes ses décisions sont prises (P-6 à P-8, P-11 à P-17, A-19) ; 2. la repose du plugin 5.0.0 dans `anchorpost` ; 3. le ticket qui reporte A-14 et A-14 bis dans le skill de l'architecte. Capitaine de `skills` en vie : `session_017ZgEwMYpEPe9y3Vg1JHAPM` ; capitaine d'`anchorpost` : `session_017ZgEwKZHhDMQ2ymArgWjdh`.
+
 À ouvrir par le produit depuis l'application, sur l'environnement ANCHORPOST (les quatre dépôts), avec le droit de pousser sur `claude/compassionate-euler-st84s9` de `skills` (la PR 57 porte cette carte).
 
 0. **Chantier 2 fini** (voir sa rétro). Reste à faire pour qu'il serve : **reposer le plugin 5.0.0 dans `anchorpost`** (scripts de chaîne, gabarits, `docs/agents/chaine-de-production.md`, clé `plafonds` de `.claude/chaine.json`) par un ticket de ce dépôt, session fille avec attache de `skills`, capitaine d'`anchorpost` ; puis l'essai réel du gel sur un sujet jouet. Un ticket dans `skills` pour reporter A-14 et A-14 bis dans `architecte/references/lancement.md`. **Rappeler au produit** le réglage du check « CI / bancs » obligatoire sur `main`. La PR 57 (cette carte, la spec, les tickets) reste en brouillon : à finaliser, et la carte à déplacer vers `docs/programmes/gouverner-nos-boucles.programme.md` selon le skill de l'architecte.
