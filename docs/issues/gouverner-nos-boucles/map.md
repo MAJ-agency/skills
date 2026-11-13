@@ -74,7 +74,9 @@ Restent à mettre en tickets dans `anchorpost` : la phrase de `.claude/rules/tes
 | Session                          | Rôle     | Ticket | Coût $ | Contexte (tokens) |
 | -------------------------------- | -------- | ------ | ------ | ----------------- |
 | `session_017ZgEwHynXjgwREFTcpKqQX` | ticket   | 2      | 0,77   | 123 602           |
-| `session_017ZgEwMNFyHUf2UViG1WeUv` | architecte | —    | 9,20 (relevé du 13/11 à 8 h 52 UTC, session en cours) | 289 647 |
+| `session_017ZgEwMNFyHUf2UViG1WeUv` | architecte | —    | 9,20 | 289 647 |
+
+La ligne de l'architecte est un relevé du 2026-11-13 à 8 h 52 UTC, session en cours ; la cellule de coût ne porte qu'un montant, pour rester lisible par `couts.mjs`.
 
 Repère pour la question des plafonds : une session de ticket démarre déjà au-delà de 100 000 tokens (consignes, skills, `CLAUDE.md`) ; un plafond à 300 000 laisse donc moins de 200 000 tokens de travail.
 
