@@ -1,11 +1,11 @@
 # SPEC_ALL_ANC-5 — La preuve suffisante : criticité, cas attendus, état « partielle »
 
-> **Copie de lecture.** Le fichier qui fait foi est `docs/features/anchorpost/all/SPEC_ALL_ANC-5-preuve-suffisante.spec.md` du dépôt `MAJ-agency/anchorpost` (branche `claude/ecstatic-brahmagupta-bg4l0s`, commit `6cebb2b`, en attendant la PR de specs). Copie du 2026-11-13.
+> **Copie de lecture.** Le fichier qui fait foi est `docs/features/anchorpost/all/SPEC_ALL_ANC-5-preuve-suffisante.spec.md` du dépôt `MAJ-agency/anchorpost` (branche `claude/ecstatic-brahmagupta-bg4l0s`, commit `28b1b12`, en attendant la PR de specs). Copie du 2026-11-13.
 
 Sujet: sujet/preuve-suffisante
 Règles: RULE_ALL_ANC-6, RULE_ALL_ANC-9, RULE_ALL_ANC-24, RULE_ALL_ANC-25, RULE_ALL_ANC-26, RULE_ALL_ANC-27, RULE_ALL_ANC-28, RULE_ALL_ANC-29
 
-> Date : 2026-11-13 — Statut : écrite par l'architecte du programme « gouverner nos boucles », **à valider par le produit**, pas encore découpée. Origine : la carte du programme (dépôt `MAJ-agency/skills`, branche `claude/compassionate-euler-st84s9`, `docs/issues/gouverner-nos-boucles/map.md`), décisions du produit `P-6` à `P-8` et `P-11` à `P-17`, décisions de l'architecte `A-19` à `A-29`. Une copie de lecture vit dans `skills`, `docs/issues/standard-documentation/preuve-suffisante.spec.md` ; ce fichier fait foi. Faits relevés sur `develop` (`e8c3857`) et sur `main` de `skills` (plugin 5.0.0).
+> Date : 2026-11-13 — Statut : écrite par l'architecte du programme « gouverner nos boucles », **à valider par le produit**, pas encore découpée. Origine : la carte du programme (dépôt `MAJ-agency/skills`, branche `claude/compassionate-euler-st84s9`, `docs/issues/gouverner-nos-boucles/map.md`), décisions du produit `P-6` à `P-8` et `P-11` à `P-18`, décisions de l'architecte `A-19` à `A-29`. Une copie de lecture vit dans `skills`, `docs/issues/standard-documentation/preuve-suffisante.spec.md` ; ce fichier fait foi. Faits relevés sur `develop` (`e8c3857`) et sur `main` de `skills` (plugin 5.0.0).
 
 ## Ce qu'on construit
 
@@ -21,7 +21,7 @@ Jamais un nombre de tests exigé, jamais un objectif global de couverture, jamai
 
 ## Décisions
 
-Les décisions du produit sont dans la carte du programme, `## Decisions-so-far` : `P-6` (qui vérifie selon la criticité), `P-7` (les cas dans le fichier de règle), `P-8` et `P-11` (le parcours), `P-12` (« prouvée » change de sens), `P-13` (cas métier, cas technique), `P-14` (cadence du contrôle de solidité), `P-15` (« à classer »), `P-16` (règle basse), `P-17` (ce qu'Anchorpost montre). Les décisions de l'architecte, choix techniques sans effet sur ce que voit un utilisateur :
+Les décisions du produit sont dans la carte du programme, `## Decisions-so-far` : `P-6` (qui vérifie selon la criticité), `P-7` (les cas dans le fichier de règle), `P-8` et `P-11` (le parcours), `P-12` (« prouvée » change de sens), `P-13` (cas métier, cas technique), `P-14` (cadence du contrôle de solidité), `P-15` (« à classer »), `P-16` (règle basse), `P-17` (ce qu'Anchorpost montre), `P-18` (« prouvée » veut dire « assez testée pour sa criticité » : un cas n'est prouvé qu'avec la preuve du niveau exigé, § 2). Les décisions de l'architecte, choix techniques sans effet sur ce que voit un utilisateur :
 
 - `A-19` — **Un parcours se déclare dans le manifeste, sous son module** (`epics[].journeys[]`). Un projet sans module déclaré déclare ses modules avant son premier parcours.
 - `A-20` — **Le pivot passe en version 3, la CLI en 2.0.0.** C'est l'application d'`ADR_ALL_ARC-15` (« un changement non compatible du pivot est une version majeure du paquet et une nouvelle valeur de `schema` ») : `proven` change de sens et `partial` est une valeur qu'un lecteur de la version 2 refuse. Le service lit les versions 1, 2 et 3, comme il lit déjà la 1 et la 2 (carte de `SPEC_ALL_ANC-4`, `A-24`) : une fonction pure de `packages/schema` convertit un index 2 en index 3, et une règle `proven` sans cas déclaré y devient `partial`. « Prouvée » n'a ainsi qu'un sens dans tout ce qu'Anchorpost affiche.
