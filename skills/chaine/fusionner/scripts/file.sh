@@ -14,6 +14,9 @@
 #                       ne tourne qu'à ce moment-là, les PR vers une autre base n'en ont pas)
 #   attend #N           empilée sur la PR #N, encore ouverte
 #   bloquée / brouillon label `fusion-bloquée` ou PR en brouillon : sautée
+#   humain              PR déjà renvoyée autant de fois que le plafond (`plafonds.renvoisParPR`, 3 ; les
+#                       renvois se comptent par leur marque, github.sh) : ni passée, ni relancée, ni renvoyée.
+#                       Un humain décide, puis le capitaine la passe à la main (passer.sh <n>)
 #   sujet/<nom> : …     sous-PR d'une branche de sujet , mêmes états de CI que
 #                       ci-dessus (« sujet/x : prête », « sujet/x : CI rouge : … ») ; une sous-PR
 #                       prête passe en premier : squash dans le sujet (`sujet.sh fusionner`), sans
@@ -39,6 +42,7 @@ outils=$(cd "$(dirname "$0")" && pwd)
 SUJET=$outils/sujet.sh
 [ -f "$SUJET" ] || SUJET=$outils/../../sujet/scripts/sujet.sh
 cd "$(git rev-parse --show-toplevel)"
+plafond=$(plafond_renvois)
 
 prs=$(gh api --paginate "$DEPOT/pulls?state=open&per_page=100" --jq '.[] | {number, title, draft,
   head: .head.ref, sommet: .head.sha, base: .base.ref, labels: [.labels[].name]}' | jq -s .)
@@ -105,6 +109,8 @@ jq -r '.[] | select(any(.labels[]; . == "à-fusionner")) | [
       etat='brouillon'
     elif [ "$bloquee" = true ]; then
       etat='bloquée'
+    elif [ "$(renvois_de "$n" 2>/dev/null || echo 0)" -ge "$plafond" ]; then
+      etat='humain'
     elif [[ "$base" == sujet/* ]]; then
       etat="$base : $(ci_de)"
     elif [ "$base" = develop ] && [ -n "$sujet_ticket" ] && [ "$hors_sujet" = false ]; then
