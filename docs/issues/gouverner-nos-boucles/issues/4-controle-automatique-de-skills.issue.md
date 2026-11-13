@@ -23,6 +23,7 @@ Les trois empreintes du modèle ont été vérifiées le 2026-11-13 contre les d
 
 ## Décisions
 
+- Relecture du 2026-11-13 par un agent neuf, deux points fermés : le `checkout` garde la profondeur par défaut (pas de `fetch-depth: 0`, aucun banc ne lit l'historique du dépôt) ; le déclencheur `pull_request` n'a pas de ligne `types:` (ceux de GitHub par défaut, brouillons compris).
 - `A-13` : un seul workflow, un seul job, deux commandes (installer, puis `pnpm test`), sur toute PR vers `main`, brouillons compris. Ni lint, ni audit des workflows, ni matrice de versions.
 - `A-13` : rendre ce check obligatoire est un réglage GitHub, fait par un administrateur. La session ne le tente pas ; elle donne le nom exact du check dans le corps de la PR et dans son message à l'architecte.
 - Aucune expression `${{ … }}` dans un `run:` ; toute action est épinglée par une empreinte de quarante caractères, sa version en commentaire.

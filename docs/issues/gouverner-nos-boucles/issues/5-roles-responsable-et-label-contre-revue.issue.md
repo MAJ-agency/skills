@@ -41,6 +41,7 @@ Relevé fait sur `origin/main` (`1f29a3a`) le 2026-11-13. Le mot « architecte �
 
 ## Décisions
 
+- Relecture du 2026-11-13 par un agent neuf, trois points fermés. Une carte nouvelle sans ligne `Architecte:` passe le gate : la ligne est facultative (`A-7`), un chantier peut exister sans programme. `Conducteur:` est exigée non vide, sans contrôle de forme ; en pratique c'est un identifiant de session. Le conducteur se sait « dans un programme » quand la fiche de sa carte porte une ligne `Architecte:` remplie ou que son prompt de lancement nomme un architecte : ses questions vont alors à l'architecte (`send_message`), sinon au produit.
 Tranché :
 
 - `P-1` et `CONTEXT.md` : le sens des trois mots. « Architecte de chantier » et « chef de chantier » ne s'emploient plus.
