@@ -6,7 +6,7 @@ Le prompt est court et renvoie : la procédure est dans le skill que la session 
 
 ## Le conducteur d'un chantier
 
-`create_session` : `title` « `<Projet> <chantier> — Conducteur` » ; `tags` `["role:conducteur", "programme:<nom>"]` (jamais `chantier:<nom>` : c'est le tag des filles, que le conducteur liste) ; `source_url` le dépôt du chantier ; `source_revision` sa branche d'intégration ; `model` Opus (table des rôles, § 1).
+`create_session` : `title` « `<Projet> <chantier> — Conducteur` » ; `tags` `["role:conducteur", "programme:<nom>"]` (jamais `chantier:<nom>` : c'est le tag des filles, que le conducteur liste) ; `source_url` le dépôt du chantier ; `source_revision` sa branche d'intégration ; `model` Opus (table des rôles, § 1) ; `permission_mode` `"auto"`.
 
 ```text
 Conducteur du chantier <nom>, programme <programme>, architecte : <session_id de cette session>.
@@ -23,7 +23,7 @@ Ce que le conducteur fait de ce prompt est écrit dans `chantier/SKILL.md` ; le 
 
 ## Le capitaine d'un dépôt
 
-`create_session` : `title` « `<Projet> — Capitaine de fusion` » ; `tags` `["role:capitaine"]` (le conducteur le cherche par ce tag) ; `source_url` le dépôt ; `model` Sonnet.
+`create_session` : `title` « `<Projet> — Capitaine de fusion` » ; `tags` `["role:capitaine"]` (le conducteur le cherche par ce tag) ; `source_url` le dépôt ; `model` Sonnet ; `permission_mode` `"auto"`.
 
 ```text
 Capitaine de fusion du dépôt <dépôt>, programme <programme>, architecte : <session_id de cette session>.
@@ -39,5 +39,6 @@ Les interdits d'une procédure donnée dans un prompt s'écrivent comme des **ge
 
 - La session dans la carte du programme (ligne du chantier, ou `Capitaines:`), une ligne au journal, commit et push.
 - `send_later` à 20 minutes, puis `get_session` : `blocked` ou `failed` se lit par `list_events` (`kinds: ["assistant"]`) — un refus d'attache s'y voit même quand son `send_message` n'est pas arrivé.
+- `permission_mode` : une session lancée ne peut pas avoir un mode plus permissif que celle qui la lance, donc le produit ouvre l'architecte en mode « Auto ». Si `create_session` refuse ce mode, l'architecte le dit au produit et ne relance pas dans un autre mode.
 - Un refus d'attache : la ligne au journal, le produit prévenu, rien de contourné (`SKILL.md` § 5).
 - Ensuite, un message à cette session ne fait que **nommer le travail** (une spec validée, des PR à traiter) ; il n'ajoute ni ne change jamais une règle.
