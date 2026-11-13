@@ -89,8 +89,8 @@ Tickets écrits par un sous-agent d'après la spec, faits revérifiés sur `main
 
 | Vague | Ticket                                                                                        | Modèle | Session                            | PR  | État                |
 | ----- | --------------------------------------------------------------------------------------------- | ------ | ---------------------------------- | --- | ------------------- |
-| 1     | [`4`](issues/4-controle-automatique-de-skills.issue.md) — contrôle automatique de `skills`    | sonnet | `session_017ZgEwKF9HqEPNaGpeTPgjs` | —   | lancé le 2026-11-13 |
-| 1     | [`5`](issues/5-roles-responsable-et-label-contre-revue.issue.md) — rôles, responsable, label  | opus   | `session_017ZgEwKJDppD3JTAkkTXpGM` | —   | lancé le 2026-11-13 |
+| 1     | [`4`](issues/4-controle-automatique-de-skills.issue.md) — contrôle automatique de `skills`    | sonnet | `session_017ZgEwKF9HqEPNaGpeTPgjs` | branche `ci/gnb-4-controle-automatique` | livré, sondé par l'architecte (actions épinglées, aucun `${{ }}` dans un `run:`, essai rouge puis annulé), nommé au capitaine de `skills` le 2026-11-13 |
+| 1     | [`5`](issues/5-roles-responsable-et-label-contre-revue.issue.md) — rôles, responsable, label  | opus   | `session_017ZgEwKJDppD3JTAkkTXpGM` | 62  | livré, sondé par l'architecte (gate : les deux valeurs de `Label:` acceptées, `Responsable:` et `Conducteur:` exigées ; 33 bancs du gate verts ; table des rôles renommée), nommé au capitaine le 2026-11-13 |
 | 2     | [`6`](issues/6-skill-de-l-architecte.issue.md) — skill de l'architecte                        | opus   | —                                  | —   | attend le ticket 5  |
 | 2     | [`7`](issues/7-plafonds-et-renvois-comptes.issue.md) — plafonds et renvois comptés            | sonnet | —                                  | —   | attend le ticket 5  |
 | 3     | [`8`](issues/8-gel-d-un-chantier.issue.md) — gel d'un chantier, version 5.0.0 du plugin       | sonnet | —                                  | —   | attend 6 et 7       |
@@ -105,12 +105,18 @@ Tickets écrits par un sous-agent d'après la spec, faits revérifiés sur `main
 | `session_017ZgEwHynXjgwREFTcpKqQX` | ticket   | 2      | 0,82   | 125 109           |
 | `session_017ZgEwHN4xCPwGoDS3BQSwm` | ticket   | 3      | 0,81   | 125 671           |
 | `session_017ZgEwMdAB15RvGMFEuThNT` | ticket   | `SPEC_ALL_SOC-1.14` (interrompue, A-5) | 0,70 | 121 835 |
+| `session_017ZgEwLxg9Yh5mosow8rvFa` | ticket   | `SPEC_ALL_SOC-1.14`, repose (PR 118 d'`anchorpost`, fusionnée `2c57a70`) | 1,34 | 124 666 |
+| `session_017ZgEwMeUndGApzYbxNvkLW` | capitaine de `skills` | PR 58 | 0,48 | 111 494 |
+| `session_017ZgEwKF9HqEPNaGpeTPgjs` | ticket   | 4      | 0,98   | 119 033           |
+| `session_017ZgEwKJDppD3JTAkkTXpGM` | ticket   | 5      | 7,34   | 225 445           |
 | `session_017ZgEwLZNvoayrikkW3ious` | ticket   | `SPEC_ALL_SOC-1.14` (sans dépôt, A-5)  | 0,15 | 79 375  |
 | `session_017ZgEwMNFyHUf2UViG1WeUv` | architecte | —    | 9,20 | 289 647 |
 
 La ligne de l'architecte est un relevé du 2026-11-13 à 8 h 52 UTC, session en cours ; la cellule de coût ne porte qu'un montant, pour rester lisible par `couts.mjs`.
 
 Relevé du 2026-11-13 à 8 h 57 UTC : les trois tickets livrés ont coûté 2,95 $, soit 0,98 $ par ticket ; les deux sessions perdues sur le ticket à deux dépôts, 0,85 $. Les cinq sessions sont archivées.
+
+Relevé du 2026-11-13 à 10 h 50 UTC. Le ticket 5 (opus, 22 fichiers) a coûté 7,34 $ pour 225 000 tokens : sous les plafonds, mais sept fois le coût d'un ticket ordinaire du lot. La PR 118 d'`anchorpost` a été fusionnée par le capitaine lancé le matin : le mode d'emploi passé en prompt système a tenu de bout en bout. Les sessions des tickets 4 et 5 restent ouvertes jusqu'à la fusion de leur PR.
 
 Repère pour la question des plafonds : une session de ticket démarre déjà au-delà de 100 000 tokens (consignes, skills, `CLAUDE.md`) ; un plafond à 300 000 laisse donc moins de 200 000 tokens de travail.
 
@@ -134,7 +140,7 @@ Repère pour la question des plafonds : une session de ticket démarre déjà au
 
 À ouvrir par le produit depuis l'application, sur l'environnement ANCHORPOST (les quatre dépôts), avec le droit de pousser sur `claude/compassionate-euler-st84s9` de `skills` (la PR 57 porte cette carte).
 
-1. **Chantier 0 fusionné dans `main` de `skills`** le 2026-11-13 (PR 58, 59, 60 ; `main` à `1f29a3a`, plugin toujours 4.2.0). **Repose en cours** : session fille `session_017ZgEwLxg9Yh5mosow8rvFa` sur `anchorpost` (PR 118) ; relever son coût, puis l'archiver une fois la PR fusionnée par le capitaine d'`anchorpost` (il écrit à l'architecte à la fin). **Attend le produit** : la validation du découpage du chantier 2 ; (toutes les questions des tours 1 et 2 sont tranchées) ; Plus de choix à demander pour la repose de `couts.mjs` dans `anchorpost` : dès la PR 60 fusionnée, lancer une session fille sur `anchorpost`, branche `fix/spec-all-soc-1-14-couts-verify` (PR 118, brouillon), dont le prompt lui dit d'attacher `MAJ-agency/skills` par `add_repo` (`chaine-de-production.md` § 5, étape 5) ; elle livre avec `à-fusionner`, le capitaine d'`anchorpost` fusionne.
+1. **Chantier 0 fusionné dans `main` de `skills`** le 2026-11-13 (PR 58, 59, 60 ; `main` à `1f29a3a`, plugin toujours 4.2.0). **Repose faite** : PR 118 d'`anchorpost` fusionnée (`2c57a70`), session archivée ; `SPEC_ALL_SOC-1.14` est clos (il écrit à l'architecte à la fin). **Attend le produit** : la validation du découpage du chantier 2 ; (toutes les questions des tours 1 et 2 sont tranchées) ; Plus de choix à demander pour la repose de `couts.mjs` dans `anchorpost` : dès la PR 60 fusionnée, lancer une session fille sur `anchorpost`, branche `fix/spec-all-soc-1-14-couts-verify` (PR 118, brouillon), dont le prompt lui dit d'attacher `MAJ-agency/skills` par `add_repo` (`chaine-de-production.md` § 5, étape 5) ; elle livre avec `à-fusionner`, le capitaine d'`anchorpost` fusionne.
 2. **Chantier 2 en cours** : voir la section « Chantier 2 ». Suivre la vague 1, nommer ses PR au capitaine de `skills`, puis faire relire et lancer la vague 2 (tickets 6 et 7), puis la 3 (ticket 8).
 3. **Tour 3 du grilling posé le 2026-11-13** (`Q12` à `Q17` : sens de « prouvée », revalidation d'un cas ajouté, contrôle de solidité des tests sur une PR, règle sans parcours, exigences d'une règle basse, ce qu'Anchorpost montre de la fabrication) ; réponses attendues. Décision de l'architecte annoncée : un parcours se déclare dans le manifeste du projet. Ensuite, puis la spec du chantier 4 (preuve suffisante) dans `anchorpost`, avec sa copie dans `docs/issues/standard-documentation/`.
 4. **Petits tickets d'`anchorpost` à écrire** : la phrase de `.claude/rules/tests.md` ligne 21 ; la repose des critères du socle après la fusion de la PR 59. La mesure de mutation (chantier 1) attend la fusion de la PR 113 d'`anchorpost`.
