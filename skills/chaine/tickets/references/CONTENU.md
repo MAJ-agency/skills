@@ -30,7 +30,7 @@ Le gate : vocabulaire fermé de `Status:` et de `Type:`, `Règles:` dont chaque 
 
 ## `agents/`, `gabarits/`
 
-Le tracker et les labels tels que les skills de Matt Pocock les attendent (`docs/agents/`), complétés par la réservation, l'archivage et le ticket prêt pour agent ; les gabarits d'une spec, d'un ticket, d'une carte, d'une règle (`regle.md` : en-tête YAML validé, énoncé en markdown) et d'une demande (`demande.md`).
+Le tracker et les labels tels que les skills de Matt Pocock les attendent (`docs/agents/`), complétés par la réservation, l'archivage et le ticket prêt pour agent ; les gabarits d'une spec, d'un ticket, d'une carte de chantier, d'une carte de programme (`programme.md` : la mémoire de l'architecte, que le gate des cartes `*.map.md` ne lit pas), d'une règle (`regle.md` : en-tête YAML validé, énoncé en markdown) et d'une demande (`demande.md`).
 
 ## `depot-jouet.mjs` et les tests
 

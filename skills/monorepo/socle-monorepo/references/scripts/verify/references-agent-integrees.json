@@ -4,7 +4,7 @@
   "routes-http": ["health", "auth", "api"],
   "skills-plugins": [
     "maj-skills:socle-monorepo", "maj-skills:socle-tests", "maj-skills:socle-contrats", "maj-skills:socle-nest-hexagonal", "maj-skills:socle-web-next", "maj-skills:socle-mobile-expo",
-    "maj-skills:socle-chaine-de-production", "maj-skills:tickets", "maj-skills:revue-adversariale", "maj-skills:revue-de-ticket", "maj-skills:sujet", "maj-skills:fusionner", "maj-skills:chantier", "maj-skills:recette-humaine",
+    "maj-skills:socle-chaine-de-production", "maj-skills:tickets", "maj-skills:revue-adversariale", "maj-skills:revue-de-ticket", "maj-skills:sujet", "maj-skills:fusionner", "maj-skills:architecte", "maj-skills:chantier", "maj-skills:recette-humaine",
     "mattpocock-skills:grill-with-docs", "mattpocock-skills:grill-me", "mattpocock-skills:grilling", "mattpocock-skills:domain-modeling", "mattpocock-skills:code-review", "mattpocock-skills:tdd", "mattpocock-skills:pr", "mattpocock-skills:research", "mattpocock-skills:prototype", "mattpocock-skills:wizard", "mattpocock-skills:diagnosing-bugs", "mattpocock-skills:codebase-design", "mattpocock-skills:writing-for-agents", "mattpocock-skills:setup-matt-pocock-skills", "mattpocock-skills:wayfinder"
   ]
 }

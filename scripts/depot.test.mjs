@@ -117,3 +117,31 @@ test("le workflow de contrôle se lance sur toute PR vers main et joue pnpm test
   assert.ok(commande(w, "pnpm install --frozen-lockfile"), `${CI} : installation figée attendue`);
   assert.ok(commande(w, "pnpm test"), `${CI} : pnpm test attendu`);
 });
+
+// La carte d'un programme : son gabarit porte les sections de la carte de chantier qu'elle partage,
+// plus la passation, et n'est pas une carte de chantier (aucune ligne `Sujet:`).
+const PROGRAMME = "skills/chaine/tickets/references/gabarits/programme.md";
+const SECTIONS_PROGRAMME = ["## Fiche", "## Chantiers", "## Decisions-so-far", "## Fog", "## Coût", "## Passation", "## Journal"];
+const titres = (texte) => lignes(texte).filter((l) => /^## /.test(l)).map((l) => l.trimEnd());
+const lignesSujet = (texte) => lignes(texte).filter((l) => /^\s*Sujet:/.test(l));
+const ficheDe = (texte) => texte.split(/^## /m).find((bloc) => bloc.startsWith("Fiche")) ?? "";
+
+test("lecteurs du gabarit de programme : entrées piégées", () => {
+  assert.deepEqual(titres("## Fiche\r\n### Sous\r\n## Coût \r\n# Titre"), ["## Fiche", "## Coût"]);
+  assert.equal(lignesSujet("Sujet: sujet/x\r\n").length, 1);
+  assert.equal(lignesSujet("pas de ligne `Sujet:` ici").length, 0);
+  assert.match(ficheDe("# T\n\n## Fiche\n\nArchitecte: x\n\n## Chantiers\n"), /^Fiche\n\nArchitecte: x/);
+  assert.equal(ficheDe("# T\n\n## Chantiers\n"), "");
+});
+
+test("le gabarit de programme porte ses sections et aucune ligne `Sujet:`", () => {
+  const texte = readFileSync(join(RACINE, PROGRAMME), "utf8");
+  assert.deepEqual(titres(texte), SECTIONS_PROGRAMME, `${PROGRAMME} : sections attendues, dans l'ordre`);
+  assert.deepEqual(lignesSujet(texte), [], `${PROGRAMME} : une carte de programme n'a pas de ligne Sujet:`);
+  for (const ligne of ["Phase:", "Responsable:", "Architecte:"]) {
+    assert.ok(lignes(ficheDe(texte)).some((l) => l.startsWith(ligne)), `${PROGRAMME} : la fiche porte ${ligne}`);
+  }
+  const cout = texte.split(/^## Coût\s*$/m)[1] ?? "";
+  assert.ok(cout.includes("| Rôle | Ticket | Session | Modèle | Contexte max | Coût $ |"), `${PROGRAMME} : en-tête du coût de la carte de chantier`);
+  assert.ok(!PROGRAMME.endsWith(".map.md"), "un gabarit de programme n'est pas lu par le gate des cartes de chantier");
+});

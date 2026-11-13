@@ -201,6 +201,48 @@ test('planDemarrage ne lance que les étapes manquantes et actives', async () =>
   assert.deepEqual(planDemarrage({ ...pret, postgres: false, baseTest: false }), [], 'étapes de base désactivées tant que le projet n’a pas sa base');
 });
 
+const PLUGINS = JSON.stringify({ version: 2, plugins: { 'maj-skills@maj': [{ scope: 'user', version: '4.2.0' }] } });
+const CLAUDE_GRAPHIFY = '# CLAUDE.md\n\nAprès toute modification, lancer `graphify update .`.\n';
+const depotPret = { claudeMd: CLAUDE_GRAPHIFY, graphifyCommande: true, grapheGraphify: true, pluginsInstalles: PLUGINS };
+
+test('le démarrage signale graphify quand CLAUDE.md le demande et que la commande ou le graphe manque', async () => {
+  const { signalementsDemarrage } = await import('./demarrage.mjs');
+  const sansCommande = signalementsDemarrage({ ...depotPret, graphifyCommande: false });
+  assert.equal(sansCommande.length, 1);
+  assert.match(sansCommande[0], /graphify/);
+  assert.match(sansCommande[0], /commande est introuvable/);
+  const sansGraphe = signalementsDemarrage({ ...depotPret, grapheGraphify: false });
+  assert.equal(sansGraphe.length, 1);
+  assert.match(sansGraphe[0], /graphify-out\/graph\.json manque/);
+  assert.match(sansGraphe[0], /graphify update \./);
+  assert.equal(signalementsDemarrage({ ...depotPret, graphifyCommande: false, grapheGraphify: false }).length, 1, 'un seul signalement graphify : la commande d’abord');
+  for (const claudeMd of [null, '# CLAUDE.md\n\ngraphify est installé.\n', '']) {
+    assert.deepEqual(signalementsDemarrage({ ...depotPret, claudeMd, graphifyCommande: false, grapheGraphify: false }), [], `CLAUDE.md ne demande rien : ${JSON.stringify(claudeMd)}`);
+  }
+});
+
+test('le démarrage signale les skills de la chaîne absents de la session, avec le remède', async () => {
+  const { signalementsDemarrage, pluginInstalle } = await import('./demarrage.mjs');
+  const absents = [null, '', '{', 'null', '[]', JSON.stringify({ version: 2 }), JSON.stringify({ plugins: { 'mattpocock-skills@mattpocock': [] } }), JSON.stringify({ plugins: { 'maj-skills@autre': [] } })];
+  for (const pluginsInstalles of absents) {
+    const s = signalementsDemarrage({ ...depotPret, pluginsInstalles });
+    assert.equal(s.length, 1, `fichier ${JSON.stringify(pluginsInstalles)} : un signalement`);
+    assert.match(s[0], /skills de la chaîne absents/);
+    assert.match(s[0], /add_repo/);
+    assert.match(s[0], /MAJ-agency\/skills/);
+    assert.match(s[0], /§ 5, étape 5/);
+    assert.equal(pluginInstalle(pluginsInstalles), false);
+  }
+  assert.equal(pluginInstalle(PLUGINS), true);
+  assert.equal(pluginInstalle(JSON.stringify({ plugins: { 'maj-skills@maj': [] } })), true);
+});
+
+test('un dépôt prêt ne signale rien', async () => {
+  const { signalementsDemarrage } = await import('./demarrage.mjs');
+  assert.deepEqual(signalementsDemarrage(depotPret), []);
+  assert.deepEqual(signalementsDemarrage({ ...depotPret, claudeMd: null, graphifyCommande: false, grapheGraphify: false }), [], 'sans CLAUDE.md, graphify n’est pas demandé');
+});
+
 test('lintable : le code TypeScript et les scripts, jamais les sorties de build ni node_modules', () => {
   for (const f of ['apps/api/src/a.ts', 'apps/web/src/b.tsx', 'scripts/verify/c.mjs', 'd.js']) assert.equal(lintable(f), true, f);
   for (const f of ['README.md', 'package.json', 'apps/web/.next/x.js', 'node_modules/x/y.ts', 'apps/api/dist/main.js', 'coverage/lcov.ts']) assert.equal(lintable(f), false, f);

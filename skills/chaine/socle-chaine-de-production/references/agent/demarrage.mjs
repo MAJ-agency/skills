@@ -8,9 +8,15 @@
  * develop), `origin-head`, `install` (si le lockfile a changé), le certificat du proxy des sessions
  * cloud. Les étapes d'une base locale sont écrites, désactivées : les activer dans `ETAPES_ACTIVES`
  * quand le projet a sa base (ticket « couche base de données »), avec la commande `db:test:prepare`.
+ *
+ * Deux signalements, sans action : `CLAUDE.md` demande graphify (il porte `graphify update`) et la
+ * commande ou `graphify-out/graph.json` manque ; les skills de la chaîne ne sont pas installés dans
+ * la session (une session créée par une autre ne reçoit que le dépôt du projet). Une erreur de
+ * lecture se tait : le hook ne signale que ce qu'il a pu lire, et sort toujours en 0.
  */
 import { spawnSync } from 'node:child_process';
-import { appendFileSync, existsSync, statSync } from 'node:fs';
+import { appendFileSync, existsSync, readFileSync, statSync } from 'node:fs';
+import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { RACINE } from './entree.mjs';
 
@@ -18,6 +24,9 @@ const ETAPES_ACTIVES = new Set(['fetch-develop', 'origin-head', 'install' /* , '
 const PG = { host: process.env.PGHOST ?? 'localhost', port: process.env.PGPORT ?? '5432' };
 /** Autorité de certification du proxy des sessions cloud : à poser seulement si elle existe. */
 const CA_SESSION_CLOUD = '/root/.ccr/ca-bundle.crt';
+/** Le plugin qui porte les skills de la chaîne, clé de `~/.claude/plugins/installed_plugins.json`. */
+const PLUGIN_CHAINE = 'maj-skills@maj';
+const PLUGINS_INSTALLES = join(homedir(), '.claude', 'plugins', 'installed_plugins.json');
 
 const sh = (cmd, args, timeout = 300_000, options = {}) =>
   spawnSync(cmd, args, { cwd: RACINE, encoding: 'utf8', timeout, stdio: 'pipe', ...options });
@@ -41,6 +50,47 @@ export function planDemarrage(etat) {
   if (etat.baseTest === false) etapes.push('base-test');
   return etapes.filter((e) => ETAPES_ACTIVES.has(e));
 }
+
+/** Vrai si le texte de `installed_plugins.json` déclare le plugin ; absent, illisible ou sans la clé : faux. */
+export function pluginInstalle(texte, nom = PLUGIN_CHAINE) {
+  if (typeof texte !== 'string') return false;
+  try {
+    const plugins = JSON.parse(texte)?.plugins;
+    return Boolean(plugins && typeof plugins === 'object' && Object.hasOwn(plugins, nom));
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Manques à signaler au démarrage, une ligne chacun, sans rien lancer. `etat.claudeMd` : le texte du
+ * `CLAUDE.md` racine, ou `null` ; `etat.pluginsInstalles` : le texte de `installed_plugins.json`, ou
+ * `null`. Les signalements graphify ne valent que si `CLAUDE.md` le demande.
+ */
+export function signalementsDemarrage(etat) {
+  const signalements = [];
+  if (typeof etat.claudeMd === 'string' && etat.claudeMd.includes('graphify update')) {
+    if (!etat.graphifyCommande) {
+      signalements.push('démarrage : graphify — CLAUDE.md le demande et la commande est introuvable ; à installer (script de démarrage de l’environnement), puis : graphify update .');
+    } else if (!etat.grapheGraphify) {
+      signalements.push('démarrage : graphify — CLAUDE.md le demande et graphify-out/graph.json manque ; à lancer : graphify update .');
+    }
+  }
+  if (!pluginInstalle(etat.pluginsInstalles)) {
+    signalements.push(
+      `démarrage : skills de la chaîne absents de la session (plugin ${PLUGIN_CHAINE} non installé) — attacher MAJ-agency/skills par add_repo, le cloner comme l’outil l’indique, puis lire le skill dans le clone (docs/agents/chaine-de-production.md § 5, étape 5) ; attache refusée : le dire à qui a lancé la session, sans contourner`,
+    );
+  }
+  return signalements;
+}
+
+const lireOuNull = (chemin) => {
+  try {
+    return readFileSync(chemin, 'utf8');
+  } catch {
+    return null;
+  }
+};
 
 const ACTIONS = {
   'fetch-develop': () => sh('git', ['fetch', 'origin', 'develop'], 120_000),
@@ -81,6 +131,18 @@ if (process.argv[1] && import.meta.url === `file://${process.argv[1]}`) {
       r = { status: 1, stderr: String(e) };
     }
     sortie.push(r.status === 0 ? `démarrage : ${etape} — fait` : `démarrage : ${etape} — échec, à lancer : ${A_LANCER[etape]}`);
+  }
+  try {
+    sortie.push(
+      ...signalementsDemarrage({
+        claudeMd: lireOuNull(join(RACINE, 'CLAUDE.md')),
+        graphifyCommande: ok('sh', ['-c', 'command -v graphify']),
+        grapheGraphify: existsSync(join(RACINE, 'graphify-out', 'graph.json')),
+        pluginsInstalles: lireOuNull(PLUGINS_INSTALLES),
+      }),
+    );
+  } catch {
+    // Un signalement ne bloque jamais le démarrage : une erreur de lecture se tait.
   }
   if (sortie.length) process.stdout.write(`${sortie.join('\n')}\n`);
   process.exit(0);
