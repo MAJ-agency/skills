@@ -100,6 +100,14 @@ test('une carte sans `Responsable:`, ou dont le responsable est un identifiant d
   assert.match(sansConducteur[0].message, /`Conducteur:` absent ou vide/);
 });
 
+test('carte de chantier : la ligne Gel:, vide, datée ou écrite à la main, ne crée aucune erreur', () => {
+  // Le « gel » du chantier (ligne `Gel:`) n'a rien à voir avec `ficheGelee`, la carte d'avant les rôles.
+  const base = 'Responsable: Camille Martin\nConducteur: session_y\n';
+  for (const gel of ['Gel:', 'Gel: 2026-11-13 — le produit change d\'avis', 'Gel: pause', '- **Gel :** à la main'])
+    assert.deepEqual(controlerCarte({ nom: 'c.map.md', texte: FICHE(`${base}${gel}\n`) }).erreurs, [], gel);
+  assert.deepEqual(controlerCarte({ nom: 'c.map.md', texte: FICHE(`${base}Gel:\r\n`) }).erreurs, [], 'CRLF');
+});
+
 test('une carte gelée passe avec `Architecte:` seul ; non gelée, la même carte est refusée', () => {
   const ancienne = FICHE('Architecte: session_x\nConducteur: session_z\n');
   assert.deepEqual(controlerCarte({ nom: 'c.map.md', texte: ancienne, ficheGelee: true }).erreurs, []);

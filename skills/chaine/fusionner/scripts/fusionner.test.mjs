@@ -644,3 +644,81 @@ test("passer.sh : la livraison d'une branche sujet/ nomme son sujet dans le corp
     "docs(demo): sujet/lot — 1 sous-PR (#42)\n\n- docs(demo): lot (#41)\n\nSujet: sujet/lot",
   );
 });
+
+// =============================================================================
+// Gel d'un chantier : les PR d'un sujet gelé prennent l'état « gelée », avant « humain ».
+// =============================================================================
+const CARTE_GELEE = "docs/features/demo/all/SPEC_ALL_DEM-1-demo.map.md";
+const carteGelee = (gel) =>
+  `# SPEC_ALL_DEM-1 — carte\n\nSujet: sujet/lot\n\n## Fiche\n\nPhase: 4-vague-1\n${gel}\n## Fog\n\n- x\n`;
+
+// Sujet `lot` avec sa carte (gel au choix), sa spec ; la sous-PR 90, la livraison 91 (tête sujet/lot,
+// tête livraison/…), la PR à recibler 92 (ticket du sujet) et une PR sans rapport 93.
+function depotGele(gel) {
+  const d = depotJouet();
+  d.ecrire(SPEC_LOT, "# SPEC_ALL_DEM-1\n\n- **Sujet :** sujet/lot\n");
+  d.commit("docs: spec");
+  d.git("push", "-q", "origin", "HEAD:develop");
+  d.publierChaine();
+  d.branche("sujet/lot", "origin/develop", { [CARTE_GELEE]: carteGelee(gel) });
+  d.git("push", "-q", "origin", "origin/sujet/lot:refs/heads/livraison/lot-20261113-1200");
+  d.branche("feat/sous", "origin/sujet/lot", { "s.md": "s\n" });
+  d.branche("fix/spec-all-dem-1-02-correctif", "origin/develop", { "c.md": "c\n" });
+  d.branche("feat/libre", "origin/develop", { "l.md": "l\n" });
+  d.git("switch", "-q", "--detach", "origin/develop");
+  d.github({
+    exiges: ["qualite"],
+    checks: { "*": { qualite: "SUCCESS" } },
+    pulls: [
+      pr(90, "feat/sous", { base: "sujet/lot" }),
+      pr(91, "sujet/lot"),
+      pr(94, "livraison/lot-20261113-1200"),
+      pr(92, "fix/spec-all-dem-1-02-correctif", { title: "fix(demo): SPEC_ALL_DEM-1.02 correctif" }),
+      pr(93, "feat/libre"),
+    ],
+  });
+  return d;
+}
+const etatsFile = (d) =>
+  Object.fromEntries(
+    d.lancer(script("file.sh")).stdout.trim().split("\n").map((l) => l.split("\t")).map(([n, e]) => [n, e]),
+  );
+
+test("file.sh : la sous-PR, la PR à recibler et la livraison d'un sujet gelé sont gelées, et ni --next ni --rouges ne les rendent", () => {
+  const d = depotGele("Gel: 2026-11-13 — pause\n");
+  const e = etatsFile(d);
+  assert.deepEqual(e, { 90: "gelée", 91: "gelée", 92: "gelée", 93: "prête", 94: "gelée" });
+  assert.equal(d.lancer(script("file.sh"), "--next").stdout, "93\n");
+  assert.equal(d.lancer(script("file.sh"), "--rouges").stdout, "");
+  assert.deepEqual(d.journal(), [], "file.sh ne fait que lire");
+  // Une ligne écrite à la main, sans date, gèle aussi ; vide, elle ne gèle rien.
+  assert.equal(etatsFile(depotGele("Gel: pause\n"))[90], "gelée");
+  const libre = etatsFile(depotGele("Gel:\n"));
+  assert.equal(libre[90], "sujet/lot : prête");
+  assert.equal(libre[91], "prête");
+  assert.equal(libre[92], "vers sujet/lot");
+});
+
+test("file.sh : le gel prime sur « humain » (renvoi_de non appelé), qui revient au dégel", () => {
+  const d = depotGele("Gel: 2026-11-13 — pause\n");
+  const etat = d.etat();
+  etat.pulls.find((p) => p.number === 90).commentaires = [renvoi, renvoi, renvoi];
+  d.github(etat);
+  assert.equal(etatsFile(d)[90], "gelée");
+  const degele = depotGele("Gel:\n");
+  const e2 = degele.etat();
+  e2.pulls.find((p) => p.number === 90).commentaires = [renvoi, renvoi, renvoi];
+  degele.github(e2);
+  assert.equal(etatsFile(degele)[90], "humain");
+});
+
+test("boucle.sh : une sous-PR d'un sujet gelé n'est ni fusionnée, ni renvoyée, ni reciblée", () => {
+  const d = depotGele("Gel: 2026-11-13 — pause\n");
+  const r = d.lancer(script("boucle.sh"));
+  assert.match(r.stdout, /FILE VIDE|\[#93\]/, r.stdout + r.stderr);
+  const ecrit = ecritures(d);
+  for (const n of [90, 91, 92, 94])
+    assert.ok(!ecrit.some((e) => e.includes(`/${n}`)), `aucune écriture sur #${n} : ${ecrit}`);
+  assert.ok(!ecrit.some((e) => /^PATCH pulls/.test(e) && e.includes("/92")), "jamais reciblée");
+  assert.match(r.stdout, /\tgelé$/m, "le tableau des sujets montre le verdict gelé");
+});

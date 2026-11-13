@@ -14,6 +14,7 @@ Grilling: {{complet | court | aucun}}
 Filles par vague: {{n}}
 Migrations: {{horodatages réservés, séparés par des virgules (AAAAMMJJHHMM, AAAAMMJJHHMM) — ou « — » ; ligne lue par check:tickets, jamais deux cartes ouvertes sur le même horodatage}}
 Capitaine: {{session_id ou « absent »}}
+Gel:
 
 ## Decisions-so-far
 
@@ -39,6 +40,10 @@ Une session au plafond (`plafonds` de `.claude/chaine.json`) y a sa ligne : sans
 
 | Session | Ticket | Mesure | Décision du produit | Date |
 | ------- | ------ | ------ | ------------------- | ---- |
+
+## Journal
+
+- {{AAAA-MM-JJ}} — {{ce qui s'est passé : gel, interruption des filles, dégel}}
 
 ## Rétro
 

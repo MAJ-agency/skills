@@ -156,3 +156,12 @@ test("le gabarit de programme porte ses sections et aucune ligne `Sujet:`", () =
   assert.ok(cout.includes("| Rôle | Ticket | Session | Modèle | Contexte max | Coût $ |"), `${PROGRAMME} : en-tête du coût de la carte de chantier`);
   assert.ok(!PROGRAMME.endsWith(".map.md"), "un gabarit de programme n'est pas lu par le gate des cartes de chantier");
 });
+
+// La carte de chantier : son gabarit porte la ligne `Gel:` (vide) dans la fiche et la section `## Journal`
+// où le conducteur écrit ses arrêts ; le gate des cartes n'exige ni l'une ni l'autre.
+const CARTE = "skills/chaine/tickets/references/gabarits/carte.map.md";
+test("le gabarit de la carte de chantier porte `Gel:` dans sa fiche et la section `## Journal`", () => {
+  const texte = readFileSync(join(RACINE, CARTE), "utf8");
+  assert.ok(lignes(section(texte, "Fiche")).includes("Gel:"), `${CARTE} : la fiche porte la ligne Gel: vide`);
+  assert.ok(titres(texte).includes("## Journal"), `${CARTE} : section ## Journal`);
+});
