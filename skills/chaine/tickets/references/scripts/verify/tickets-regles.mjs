@@ -363,7 +363,14 @@ function plafondsDeLaCarte({ nom, lignes, corps, plafonds }) {
       const plafond = fille ? plafonds.contexteFille : plafonds.contextePilote;
       if (tokens >= plafond) mesures.push(`contexte ${tokens} tokens ≥ plafond ${plafond}`);
     }
-    const dollars = fille && !NON_RELEVE.test(cout) ? coutEnDollars(cout) : null;
+    let dollars = null;
+    if (fille && !NON_RELEVE.test(cout)) {
+      dollars = coutEnDollars(cout);
+      if (dollars === null) {
+        erreurs.push({ ligne, message: `carte ${nom} : \`## Coût\`, ligne ${role}/${ticket} : « Coût $ » « ${cout} » illisible (attendu un montant : \`2,20\`)` });
+        continue;
+      }
+    }
     if (dollars !== null && dollars >= plafonds.coutFille) mesures.push(`coût ${dollars} $ ≥ plafond ${plafonds.coutFille} $`);
     if (mesures.length === 0 || (session && couvertes.has(session))) continue;
     erreurs.push({

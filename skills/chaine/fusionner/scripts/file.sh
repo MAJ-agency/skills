@@ -109,7 +109,7 @@ jq -r '.[] | select(any(.labels[]; . == "à-fusionner")) | [
       etat='brouillon'
     elif [ "$bloquee" = true ]; then
       etat='bloquée'
-    elif [ "$(renvois_de "$n" 2>/dev/null || echo 0)" -ge "$plafond" ]; then
+    elif [ "$(renvois_de "$n")" -ge "$plafond" ]; then
       etat='humain'
     elif [[ "$base" == sujet/* ]]; then
       etat="$base : $(ci_de)"

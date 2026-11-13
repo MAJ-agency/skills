@@ -415,3 +415,9 @@ test('plafonds : contrat absent → aucun ; sans clé → défauts ; mal formée
   assert.throws(() => lirePlafonds('{"plafonds":{"coutFille":"20"}}'), /coutFille/);
   assert.throws(() => lirePlafonds('{"plafonds":{"coutFile":20}}'), /inconnu/);
 });
+
+test('un coût de fille illisible est une erreur de la carte, jamais un dépassement ignoré', () => {
+  const erreur = juger(COUT('| fille | t | s | sonnet | 100 k | 25 $ |'));
+  assert.equal(erreur.length, 1);
+  assert.match(erreur[0].message, /« Coût \$ » « 25 \$ » illisible/);
+});

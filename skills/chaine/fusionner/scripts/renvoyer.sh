@@ -13,7 +13,7 @@ cause=${*:?cause du renvoi manquante}
 outils=$(cd "$(dirname "$0")" && pwd)
 . "$outils/github.sh"
 
-deja=$(renvois_de "$N" 2>/dev/null || echo 0)
+deja=$(renvois_de "$N")
 plafond=$(plafond_renvois)
 numero=$((deja + 1))
 suite="Corriger, puis retirer \`fusion-bloquée\` et remettre \`à-fusionner\` (CLAUDE.md § « Fusion vers \`develop\` »)."

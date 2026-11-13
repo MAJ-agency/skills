@@ -15,7 +15,16 @@ DEPOT='repos/{owner}/{repo}'
 # Renvois d'une PR (A-10) : chaque commentaire de renvoyer.sh porte cette marque, invisible (un
 # commentaire HTML). Le compte se lit sur la PR elle-même : aucun label nouveau.
 MARQUE_RENVOI='<!-- renvoi-capitaine -->'
-renvois_de() { gh api --paginate "$DEPOT/issues/$1/comments?per_page=100" --jq '.[] | select(.body | contains("<!-- renvoi-capitaine -->")) | 1' | wc -l | tr -d ' '; }
+# Lecture impossible : 0 sur la sortie, dit sur la sortie d'erreur (un seul nombre, jamais deux).
+renvois_de() {
+  local lus
+  if lus=$(gh api --paginate "$DEPOT/issues/$1/comments?per_page=100" --jq '.[] | select(.body | contains("<!-- renvoi-capitaine -->")) | 1'); then
+    printf '%s\n' "$lus" | grep -c . || true
+  else
+    echo "renvois de #$1 : commentaires illisibles, compte 0" >&2
+    echo 0
+  fi
+}
 # Plafond de renvois (`plafonds.renvoisParPR` de .claude/chaine.json : l'arbre de travail, sinon
 # origin/develop). Sans contrat ou sans clé : 3. Contrat mal formé : 3 aussi, dit sur la sortie d'erreur
 # (la file du capitaine ne tombe jamais pour un contrat).

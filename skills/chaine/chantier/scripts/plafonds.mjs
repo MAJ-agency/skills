@@ -16,6 +16,7 @@
 // Les mesures se lisent par `get_session` : `context_usage.used_tokens` et `external_metadata.usage.cost_usd`.
 // =============================================================================
 import { existsSync, readFileSync } from "node:fs";
+import { pathToFileURL } from "node:url";
 
 export const PAR_DEFAUT = Object.freeze({
   contexteFille: 300000,
@@ -93,7 +94,7 @@ export function jugerTout(sessions, plafonds = PAR_DEFAUT) {
   });
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (import.meta.url === pathToFileURL(process.argv[1]).href) {
   try {
     const plafonds = lirePlafonds();
     const entree = JSON.parse(readFileSync(0, "utf8"));
