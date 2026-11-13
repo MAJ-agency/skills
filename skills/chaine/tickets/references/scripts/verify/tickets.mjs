@@ -15,8 +15,11 @@
  *      `en cours — <branche>` et `Fait — PR #<n>`) : rejouer setup-matt-pocock-skills les écrase,
  *   4. la fiche d'une carte de chantier (`docs/**\/*.map.md` à ligne `Sujet:`) : `Phase:`, `Responsable:`
  *      (une personne, pas un identifiant `session_…`), `Conducteur:`, `## Coût` dès `4-vague-1`, `## Rétro`
- *      à `fini` ; `Architecte:` est facultative. Une carte d'avant ces deux lignes, gelée dans la clé
- *      `fiches` de la dette, écrite une seule fois (`--geler-fiches`), garde l'ancienne règle :
+ *      à `fini` ; une ligne de `## Coût` au-delà du plafond de son rôle (`plafonds` de `.claude/chaine.json`,
+ *      l'égalité compte : `fille` 300 k tokens ou 20 $, `conducteur` et `architecte` 400 k tokens) exige une
+ *      ligne de `## Dépassements` pour la même session (sans contrat, aucun plafond ; une carte gelée n'est pas
+ *      jugée sur ses dépassements) ; `Architecte:` est facultative. Une carte d'avant ces deux lignes, gelée
+ *      dans la clé `fiches` de la dette, écrite une seule fois (`--geler-fiches`), garde l'ancienne règle :
  *      `Architecte:` non vide ;
  *   5. un identifiant de spec n'est porté que par une spec ;
  *   6. un ticket `ready-for-agent` a `Modèle:` et les sections `## Où`, `## Décisions`, `## Surfaces`,
@@ -59,6 +62,7 @@ const {
   identifiant,
   identifiantsEnDouble,
   lireCheminsSensibles,
+  lirePlafonds,
   reservationsEnDouble,
 } = await import('./tickets-regles.mjs');
 
@@ -106,8 +110,11 @@ const testExiste = (fichier, titre) => {
 
 const CHAINE = join(ROOT, '.claude/chaine.json');
 let cheminsSensibles;
+let plafonds;
 try {
-  cheminsSensibles = lireCheminsSensibles(existsSync(CHAINE) ? readFileSync(CHAINE, 'utf8') : null);
+  const contrat = existsSync(CHAINE) ? readFileSync(CHAINE, 'utf8') : null;
+  cheminsSensibles = lireCheminsSensibles(contrat);
+  plafonds = lirePlafonds(contrat);
 } catch (e) {
   console.error(`tickets : ${e.message}`);
   process.exit(1);
@@ -181,7 +188,7 @@ if (process.argv.includes('--geler-fiches')) {
 const fichesEnDette = new Set(sansFicheNouvelle.filter((c) => fichesGelees.has(c)));
 const cartesEnDette = new Set();
 for (const chemin of cartes) {
-  const r = controlerCarte({ nom: basename(chemin), texte: textesDesCartes.get(chemin), ficheGelee: fichesEnDette.has(chemin) });
+  const r = controlerCarte({ nom: basename(chemin), texte: textesDesCartes.get(chemin), ficheGelee: fichesEnDette.has(chemin), plafonds });
   if (cartesGelees.has(chemin)) {
     if (r.erreurs.length > 0) cartesEnDette.add(chemin);
     continue;

@@ -33,6 +33,13 @@ Capitaine: {{session_id ou « absent »}}
 | Rôle | Ticket | Session | Modèle | Contexte max | Coût $ |
 | ---- | ------ | ------- | ------ | ------------ | ------ |
 
+## Dépassements
+
+Une session au plafond (`plafonds` de `.claude/chaine.json`) y a sa ligne : sans elle, le gate `tickets` refuse la ligne de `## Coût` qui le dépasse.
+
+| Session | Ticket | Mesure | Décision du produit | Date |
+| ------- | ------ | ------ | ------------------- | ---- |
+
 ## Rétro
 
 {{À la fin : incidents, ce qui a donné un gate ou un critère de revue, coût total et par ticket.}}

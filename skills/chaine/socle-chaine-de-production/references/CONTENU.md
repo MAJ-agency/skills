@@ -2,7 +2,7 @@
 
 ## Le contrat — `chaine.json`
 
-Quatre lignes, et rien d'autre, que les skills d'exploitation lisent au lieu de deviner : les **chemins sensibles** (un diff qui les touche passe en plus `/security-review`), le **fichier de critères** de la revue adversariale propre au projet, le nombre de **filles par vague** par défaut, et le **dossier des migrations** (que le hook `garde-fichiers` protège). Les branches ne s'y déclarent pas : `develop` intègre, `main` livre, pour tous les projets.
+Cinq clés, et rien d'autre, que les skills d'exploitation lisent au lieu de deviner : les **chemins sensibles** (un diff qui les touche passe en plus `/security-review`), le **fichier de critères** de la revue adversariale propre au projet, le nombre de **filles par vague** par défaut, le **dossier des migrations** (que le hook `garde-fichiers` protège), les **gates rapides** que le hook de fin de tour rejoue, et les **plafonds** (`plafonds` : le contexte et le coût au-delà desquels une fille est interrompue, le contexte au-delà duquel un conducteur ou un architecte passe la main, le nombre de renvois après lequel une PR attend un humain ; `plafonds.mjs` en tire la décision, le gate `tickets` contrôle les cartes, `renvoyer.sh` et `file.sh` comptent les renvois ; sans la clé, les valeurs par défaut s'appliquent). Les branches ne s'y déclarent pas : `develop` intègre, `main` livre, pour tous les projets.
 
 ## Les index générés — `index-generes.json`
 
