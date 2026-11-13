@@ -52,9 +52,9 @@ Décisions de l'architecte (choix techniques, sans effet sur ce que voit un util
 
 | Ticket                                                                                                                   | Dépôt                    | Session | PR  | État  |
 | ------------------------------------------------------------------------------------------------------------------------ | ------------------------ | ------- | --- | ----- |
-| [`1`](issues/1-criteres-et-pieges-des-deux-retros.issue.md) — dix leçons en critères et piège                            | `skills`                 | —       | —   | lancé |
-| [`2`](issues/2-plugin-declare-anchorpost-et-budget-des-skills.issue.md) — plugin complet, banc des 200 lignes            | `skills`                 | —       | —   | lancé |
-| `SPEC_ALL_SOC-1.14` (ticket d'`anchorpost`) — un montant illisible fait échouer `couts.mjs --verify`                     | `skills` puis `anchorpost` | —       | —   | lancé |
+| [`1`](issues/1-criteres-et-pieges-des-deux-retros.issue.md) — dix leçons en critères et piège                            | `skills`                 | `session_017ZgEwMrJhErj5gAFEXirwK` | —   | lancé |
+| [`2`](issues/2-plugin-declare-anchorpost-et-budget-des-skills.issue.md) — plugin complet, banc des 200 lignes            | `skills`                 | `session_017ZgEwHynXjgwREFTcpKqQX` | —   | lancé |
+| `SPEC_ALL_SOC-1.14` (ticket d'`anchorpost`) — un montant illisible fait échouer `couts.mjs --verify`                     | `skills` puis `anchorpost` | `session_017ZgEwMdAB15RvGMFEuThNT` | —   | lancé |
 
 Restent à mettre en tickets dans `anchorpost` : la phrase de `.claude/rules/tests.md`, et la repose des critères du socle une fois le ticket 1 fusionné (la liste `S` d'`anchorpost` saute `S13`).
 
