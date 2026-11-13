@@ -1,11 +1,11 @@
 # SPEC_ALL_ANC-5 — La preuve suffisante : criticité, cas attendus, état « partielle »
 
-> **Copie de lecture.** Le fichier qui fait foi est `docs/features/anchorpost/all/SPEC_ALL_ANC-5-preuve-suffisante.spec.md` du dépôt `MAJ-agency/anchorpost` (branche `claude/ecstatic-brahmagupta-bg4l0s`, commit `28b1b12`, en attendant la PR de specs). Copie du 2026-11-13.
+> **Copie de lecture.** Le fichier qui fait foi est `docs/features/anchorpost/all/SPEC_ALL_ANC-5-preuve-suffisante.spec.md` du dépôt `MAJ-agency/anchorpost` (branche `claude/ecstatic-brahmagupta-bg4l0s`, commit `10dc74c`, en attendant son entrée dans `develop`). Copie du 2026-11-13.
 
 Sujet: sujet/preuve-suffisante
 Règles: RULE_ALL_ANC-6, RULE_ALL_ANC-9, RULE_ALL_ANC-24, RULE_ALL_ANC-25, RULE_ALL_ANC-26, RULE_ALL_ANC-27, RULE_ALL_ANC-28, RULE_ALL_ANC-29
 
-> Date : 2026-11-13 — Statut : écrite par l'architecte du programme « gouverner nos boucles », **à valider par le produit**, pas encore découpée. Origine : la carte du programme (dépôt `MAJ-agency/skills`, branche `claude/compassionate-euler-st84s9`, `docs/issues/gouverner-nos-boucles/map.md`), décisions du produit `P-6` à `P-8` et `P-11` à `P-18`, décisions de l'architecte `A-19` à `A-29`. Une copie de lecture vit dans `skills`, `docs/issues/standard-documentation/preuve-suffisante.spec.md` ; ce fichier fait foi. Faits relevés sur `develop` (`e8c3857`) et sur `main` de `skills` (plugin 5.0.0).
+> Date : 2026-11-13 — Statut : écrite par l'architecte du programme « gouverner nos boucles », **validée par le produit le 2026-11-13**, pas encore découpée. Origine : la carte du programme (dépôt `MAJ-agency/skills`, branche `claude/compassionate-euler-st84s9`, `docs/issues/gouverner-nos-boucles/map.md`), décisions du produit `P-6` à `P-8` et `P-11` à `P-18`, décisions de l'architecte `A-19` à `A-29`. Une copie de lecture vit dans `skills`, `docs/issues/standard-documentation/preuve-suffisante.spec.md` ; ce fichier fait foi. Faits relevés sur `develop` (`e8c3857`) et sur `main` de `skills` (plugin 5.0.0).
 
 ## Ce qu'on construit
 
