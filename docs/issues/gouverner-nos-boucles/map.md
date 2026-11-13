@@ -89,11 +89,13 @@ Tickets écrits par un sous-agent d'après la spec, faits revérifiés sur `main
 
 | Vague | Ticket                                                                                        | Modèle | Session                            | PR  | État                |
 | ----- | --------------------------------------------------------------------------------------------- | ------ | ---------------------------------- | --- | ------------------- |
-| 1     | [`4`](issues/4-controle-automatique-de-skills.issue.md) — contrôle automatique de `skills`    | sonnet | `session_017ZgEwKF9HqEPNaGpeTPgjs` | branche `ci/gnb-4-controle-automatique` | livré, sondé par l'architecte (actions épinglées, aucun `${{ }}` dans un `run:`, essai rouge puis annulé), nommé au capitaine de `skills` le 2026-11-13 |
-| 1     | [`5`](issues/5-roles-responsable-et-label-contre-revue.issue.md) — rôles, responsable, label  | opus   | `session_017ZgEwKJDppD3JTAkkTXpGM` | 62  | livré, sondé par l'architecte (gate : les deux valeurs de `Label:` acceptées, `Responsable:` et `Conducteur:` exigées ; 33 bancs du gate verts ; table des rôles renommée), nommé au capitaine le 2026-11-13 |
+| 1     | [`4`](issues/4-controle-automatique-de-skills.issue.md) — contrôle automatique de `skills`    | sonnet | `session_017ZgEwKF9HqEPNaGpeTPgjs` | 61  | **fusionné** (`f2c5b54`) ; livré, sondé par l'architecte (actions épinglées, aucun `${{ }}` dans un `run:`, essai rouge puis annulé), nommé au capitaine de `skills` le 2026-11-13 |
+| 1     | [`5`](issues/5-roles-responsable-et-label-contre-revue.issue.md) — rôles, responsable, label  | opus   | `session_017ZgEwKJDppD3JTAkkTXpGM` | 62  | **fusionné** (`8eb1c9b`) ; livré, sondé par l'architecte (gate : les deux valeurs de `Label:` acceptées, `Responsable:` et `Conducteur:` exigées ; 33 bancs du gate verts ; table des rôles renommée), nommé au capitaine le 2026-11-13 |
 | 2     | [`6`](issues/6-skill-de-l-architecte.issue.md) — skill de l'architecte                        | opus   | —                                  | —   | attend le ticket 5  |
 | 2     | [`7`](issues/7-plafonds-et-renvois-comptes.issue.md) — plafonds et renvois comptés            | sonnet | —                                  | —   | attend le ticket 5  |
 | 3     | [`8`](issues/8-gel-d-un-chantier.issue.md) — gel d'un chantier, version 5.0.0 du plugin       | sonnet | —                                  | —   | attend 6 et 7       |
+
+Vague 1 fusionnée le 2026-11-13 par le capitaine de `skills` (`main` à `8eb1c9b`, arbres vérifiés, 345 tests verts), sessions archivées. **À faire par un administrateur du dépôt** : rendre obligatoire le check « CI / bancs » dans la protection de `main`, à côté de CodeQL. Vague 2 : les tickets 6 et 7 sont remis à jour sur le nouveau `main` par un sous-agent, puis relus par un agent neuf, puis lancés.
 
 À surveiller : le ticket 5 touche 22 fichiers et le ticket 7 en touche 17, pour un repère d'une quinzaine ; relever leur contexte à la livraison. Réveil de suivi armé à 45 minutes (`trig_01Ubi6VM3BgqgSWNDgaEwQPY`). Une PR livrée se nomme au capitaine de `skills`, qui la fusionne.
 
