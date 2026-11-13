@@ -306,7 +306,8 @@ export function motifSensibleTouche(chemin, cheminsSensibles) {
 /**
  * Écarts de format « prêt pour agent » ; vide si le ticket est conforme.
  * `cheminsSensibles` : le contrat de `.claude/chaine.json` ; un chemin chaud qui en touche un exige
- * la ligne `Label: architecte` (chaine-de-production.md § 3).
+ * la ligne `Label: contre-revue` (chaine-de-production.md § 3). L'ancienne valeur `architecte` a le même
+ * effet et reste acceptée sur tout ticket ; les messages ne nomment que `contre-revue`.
  */
 export function ecartsFormatPret(texte, cheminsSensibles = []) {
   const lignes = texte.split('\n');
@@ -315,12 +316,12 @@ export function ecartsFormatPret(texte, cheminsSensibles = []) {
   if (!modele || !/^(sonnet|opus|haiku)\b/.test(modele.valeur)) ecarts.push('ligne `Modèle: sonnet|opus` (avec la raison pour opus) absente');
   const chauds = chercher(lignes, CHAUDS);
   const label = chercher(lignes, LABEL);
-  if (chauds && !/^architecte(\s|$)/.test(label?.valeur ?? '')) {
+  if (chauds && !/^(contre-revue|architecte)(\s|$)/.test(label?.valeur ?? '')) {
     for (const chemin of cheminsChauds(chauds.valeur)) {
       const motif = motifSensibleTouche(chemin, cheminsSensibles);
       if (motif) {
         ecarts.push(
-          `ligne \`Label: architecte\` absente : \`Fichiers chauds\` touche \`${chemin}\`, chemin sensible (\`${motif}\`, cheminsSensibles de .claude/chaine.json)`,
+          `ligne \`Label: contre-revue\` absente : \`Fichiers chauds\` touche \`${chemin}\`, chemin sensible (\`${motif}\`, cheminsSensibles de .claude/chaine.json)`,
         );
         break;
       }
@@ -434,14 +435,20 @@ export const PHASES = ['1-grilling', '2-decoupage', '3-specs-en-fusion', '4-vagu
 
 const PHASE = /^Phase\s*:\s*(.*)$/;
 const ARCHITECTE = /^Architecte\s*:\s*(.*)$/;
+const RESPONSABLE = /^Responsable\s*:\s*(.*)$/;
+const CONDUCTEUR = /^Conducteur\s*:\s*(.*)$/;
 const MIGRATIONS = /^Migrations\s*:\s*(.*)$/;
 const phaseValide = (v) => /^(1-grilling|2-decoupage|3-specs-en-fusion|4-vague-[1-9]\d*|5-livraison|6-nettoyage|fini)(\s|$)/.test(v);
 
 /**
  * Contrôle de la fiche d'une carte de chantier (`*.map.md` portant une ligne `Sujet:`). Une carte
  * sans ligne `Sujet:` n'est pas une carte de chantier : ignorée (`carte: false`).
+ * La fiche nomme `Responsable:` (une personne, jamais un identifiant de session) et `Conducteur:` (la
+ * session qui mène le chantier) ; `Architecte:` (la session du programme) est facultative.
+ * `ficheGelee` : carte d'avant ces deux lignes, gelée dans la clé `fiches` de la dette ; pour elle
+ * l'ancienne règle vaut seule, `Architecte:` non vide.
  */
-export function controlerCarte({ nom, texte }) {
+export function controlerCarte({ nom, texte, ficheGelee = false }) {
   const lignes = texte.split('\n');
   const sujet = chercher(lignes, SUJET);
   if (!sujet) return { carte: false, erreurs: [] };
@@ -456,8 +463,20 @@ export function controlerCarte({ nom, texte }) {
       ligne: phase?.ligne ?? 1,
       message: `carte ${nom} : \`Phase:\` ${phase ? `« ${phase.valeur} » hors vocabulaire` : 'absente'} (attendu : ${PHASES.join(', ')})`,
     });
-  const architecte = chercher(lignes, ARCHITECTE);
-  if (!architecte || architecte.valeur === '') erreurs.push({ ligne: architecte?.ligne ?? 1, message: `carte ${nom} : \`Architecte:\` absent ou vide` });
+  if (ficheGelee) {
+    const architecte = chercher(lignes, ARCHITECTE);
+    if (!architecte || architecte.valeur === '')
+      erreurs.push({ ligne: architecte?.ligne ?? 1, message: `carte ${nom} : \`Architecte:\` absent ou vide (carte gelée dans la dette \`fiches\`)` });
+  } else {
+    const responsable = chercher(lignes, RESPONSABLE);
+    if (!responsable || responsable.valeur === '')
+      erreurs.push({ ligne: responsable?.ligne ?? 1, message: `carte ${nom} : \`Responsable:\` absent ou vide (la personne qui répond du chantier)` });
+    else if (/^session_/.test(responsable.valeur))
+      erreurs.push({ ligne: responsable.ligne, message: `carte ${nom} : \`Responsable:\` « ${responsable.valeur} » : un identifiant de session ; attendu une personne` });
+    const conducteur = chercher(lignes, CONDUCTEUR);
+    if (!conducteur || conducteur.valeur === '')
+      erreurs.push({ ligne: conducteur?.ligne ?? 1, message: `carte ${nom} : \`Conducteur:\` absent ou vide (la session qui mène le chantier)` });
+  }
   const m = phase && /^(?:4-vague-([1-9]\d*)|5-livraison|6-nettoyage|fini)/.exec(phase.valeur);
   if (m && !corps.has('Coût')) erreurs.push({ ligne: phase.ligne, message: `carte ${nom} : section \`## Coût\` absente (obligatoire dès 4-vague-1)` });
   if (phase && /^fini(\s|$)/.test(phase.valeur)) {
@@ -471,6 +490,12 @@ export function controlerCarte({ nom, texte }) {
       message: `carte ${nom} : \`Migrations:\` « ${migrations.valeur} » : attendu des horodatages de 12 chiffres (AAAAMMJJHHMM) séparés par des virgules, ou « — »`,
     });
   return { carte: true, erreurs };
+}
+
+/** La fiche porte les deux lignes nouvelles, non vides : une carte gelée dans la dette `fiches` en sort. */
+export function ficheNommeResponsableEtConducteur(texte) {
+  const lignes = texte.split('\n');
+  return [RESPONSABLE, CONDUCTEUR].every((motif) => (chercher(lignes, motif)?.valeur ?? '') !== '');
 }
 
 const formeMigrations = (v) => v === '—' || v === '' || v.split(',').every((h) => /^\d{12}$/.test(h.trim()));

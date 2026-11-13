@@ -38,7 +38,7 @@
 #   regrouper <nom> <pr>… ouvre sujet/<nom> au besoin, le met à jour avec develop, puis recible
 #                         chaque PR vers develop listée sur le sujet (sans toucher à ses commits :
 #                         le sujet contient le sommet de develop) et la commente
-#   carte <nom>           (architecte) pousse sur origin/sujet/<nom> les commits locaux de la branche
+#   carte <nom>           (session qui tient la carte) pousse sur origin/sujet/<nom> les commits locaux de la branche
 #                         courante qui n'y sont pas : seul geste d'écriture d'une session sur un sujet
 #                         (le hook d'agent refuse tout `git push` vers sujet/…). Chaque commit modifie en
 #                         place UN fichier docs/**/*.map.md et rien d'autre (ni création, ni suppression,

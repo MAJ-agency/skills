@@ -28,7 +28,7 @@ test("une carte rend son chantier, sa phase et ses seules lignes chiffrées", ()
     carte("demo", [
       ["fille", "SPEC_ALL_SOC-9.01", "s1", "sonnet", "200 k", "3,00"],
       ["fille", "SPEC_ALL_SOC-9.02", "s2", "sonnet", "—", "à relever"],
-      ["architecte", "—", "s3", "opus", "300 k", "10,50"],
+      ["conducteur", "—", "s3", "opus", "300 k", "10,50"],
     ]),
   );
   assert.equal(c.chantier, "demo");
@@ -37,19 +37,19 @@ test("une carte rend son chantier, sa phase et ses seules lignes chiffrées", ()
     c.lignes.map((l) => [l.role, l.session, l.cout]),
     [
       ["fille", "s1", 3],
-      ["architecte", "s3", 10.5],
+      ["conducteur", "s3", 10.5],
     ],
   );
 });
 
-test("le bilan compte les tickets distincts des filles et leur coût moyen, hors architecte", () => {
+test("le bilan compte les tickets distincts des filles et leur coût moyen, hors conducteur", () => {
   const c = lireCarte(
     "docs/f/all/SPEC_ALL_SOC-9-demo.map.md",
     carte("demo", [
       ["fille", "SPEC_ALL_SOC-9.01", "s1", "sonnet", "", "3,00"],
       ["fille", "SPEC_ALL_SOC-9.01", "s1b", "sonnet", "", "1,00"],
       ["fille", "SPEC_ALL_SOC-9.02", "s2", "opus", "", "6,00"],
-      ["architecte", "—", "s3", "opus", "", "10,00"],
+      ["conducteur", "—", "s3", "opus", "", "10,00"],
     ]),
   );
   assert.deepEqual(bilan(c), { total: 20, filles: 10, tickets: 2, parTicket: 5 });

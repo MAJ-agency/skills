@@ -1,5 +1,5 @@
 {
-  "$comment": "Dette gelée du gate tickets : tickets prêts d avant son installation, cartes et identifiants en double ; la clé types (tickets sans Type:) s écrit une fois, à l arrivée du gate, par --geler-types, et n existe pas avant. Ne reçoit jamais d entrée nouvelle ; --elaguer retire les entrées éteintes.",
+  "$comment": "Dette gelée du gate tickets : tickets prêts d avant son installation, cartes et identifiants en double ; la clé types (tickets sans Type:) s écrit une fois, à l arrivée du gate, par --geler-types, et n existe pas avant ; la clé fiches (cartes dont la fiche ne nomme pas encore Responsable: et Conducteur:, pour qui seule Architecte: non vide est exigée) s écrit de même une fois, à la pose, par --geler-fiches. Ne reçoit jamais d entrée nouvelle ; --elaguer retire les entrées éteintes.",
   "tickets": [],
   "cartes": [],
   "identifiants": []

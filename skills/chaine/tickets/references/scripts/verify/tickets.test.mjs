@@ -10,6 +10,7 @@ const {
   reservationsEnDouble,
   ecartsFormatPret,
   estArchive,
+  ficheNommeResponsableEtConducteur,
   identifiant,
   identifiantsEnDouble,
   lireCheminsSensibles,
@@ -61,14 +62,45 @@ test('identifiants en double : deux specs, ou un ticket au nom d’une autre spe
   assert.deepEqual(identifiantsEnDouble(['docs/a/all/SPEC_ALL_SOC-1-socle.spec.md', 'docs/a/all/SPEC_ALL_SOC-1-socle.map.md', 'docs/a/all/issues/SPEC_ALL_SOC-1-socle.01.issue.md']), []);
 });
 
-test('carte de chantier : fiche, phase, architecte, coût dès la vague 1, rétro à fini', () => {
-  const carte = (phase, extra = '') => controlerCarte({ nom: 'SPEC_ALL_SOC-1-socle.map.md', texte: `# Carte\n\nSujet: sujet/socle\n\n## Fiche\n\nPhase: ${phase}\nArchitecte: session_x\n${extra}` });
-  assert.deepEqual(carte('1-grilling').erreurs, []);
+test('carte de chantier : fiche, phase, responsable et conducteur, coût dès la vague 1, rétro à fini', () => {
+  const carte = (phase, extra = '') => controlerCarte({ nom: 'SPEC_ALL_SOC-1-socle.map.md', texte: `# Carte\n\nSujet: sujet/socle\n\n## Fiche\n\nPhase: ${phase}\nResponsable: Camille Martin\nConducteur: session_y\n${extra}` });
+  assert.deepEqual(carte('1-grilling').erreurs, [], 'sans programme, la ligne `Architecte:` est facultative');
+  assert.deepEqual(carte('2-decoupage', 'Architecte: session_x\n').erreurs, []);
   assert.match(carte('4-vague-1').erreurs[0].message, /Coût/);
   assert.deepEqual(carte('4-vague-2', '\n## Coût\n\n| a |\n').erreurs, []);
   assert.match(carte('fini', '\n## Coût\n\n| a |\n').erreurs[0].message, /Rétro/);
   assert.match(carte('7-x').erreurs[0].message, /hors vocabulaire/);
   assert.equal(controlerCarte({ nom: 'x.map.md', texte: '# sans sujet\n' }).carte, false);
+});
+
+const FICHE = (lignes) => `# Carte\n\nSujet: sujet/socle\n\n## Fiche\n\nPhase: 2-decoupage\n${lignes}`;
+
+test('une carte sans `Responsable:`, ou dont le responsable est un identifiant de session, est refusée, la ligne nommée', () => {
+  const sans = controlerCarte({ nom: 'c.map.md', texte: FICHE('Conducteur: session_y\n') }).erreurs;
+  assert.equal(sans.length, 1);
+  assert.match(sans[0].message, /carte c\.map\.md : `Responsable:` absent ou vide/);
+  const vide = controlerCarte({ nom: 'c.map.md', texte: FICHE('Responsable:\nConducteur: session_y\n') }).erreurs;
+  assert.match(vide[0].message, /`Responsable:` absent ou vide/);
+  assert.equal(vide[0].ligne, 8);
+  const session = controlerCarte({ nom: 'c.map.md', texte: FICHE('Responsable: session_017abc\nConducteur: session_y\n') }).erreurs;
+  assert.equal(session.length, 1);
+  assert.match(session[0].message, /`Responsable:` « session_017abc » : un identifiant de session ; attendu une personne/);
+  assert.equal(session[0].ligne, 8);
+  const sansConducteur = controlerCarte({ nom: 'c.map.md', texte: FICHE('Responsable: Camille Martin\nArchitecte: session_x\n') }).erreurs;
+  assert.equal(sansConducteur.length, 1);
+  assert.match(sansConducteur[0].message, /`Conducteur:` absent ou vide/);
+});
+
+test('une carte gelée passe avec `Architecte:` seul ; non gelée, la même carte est refusée', () => {
+  const ancienne = FICHE('Architecte: session_x\nConducteur: session_z\n');
+  assert.deepEqual(controlerCarte({ nom: 'c.map.md', texte: ancienne, ficheGelee: true }).erreurs, []);
+  const refus = controlerCarte({ nom: 'c.map.md', texte: ancienne }).erreurs;
+  assert.equal(refus.length, 1);
+  assert.match(refus[0].message, /`Responsable:` absent ou vide/);
+  const gelee = controlerCarte({ nom: 'c.map.md', texte: FICHE('Conducteur: session_z\n'), ficheGelee: true }).erreurs;
+  assert.match(gelee[0].message, /`Architecte:` absent ou vide/);
+  assert.equal(ficheNommeResponsableEtConducteur(ancienne), false);
+  assert.equal(ficheNommeResponsableEtConducteur(FICHE('Responsable: Camille Martin\nConducteur: session_y\n')), true);
 });
 
 test('les fiches du skill passent ; une fiche réécrite par setup-matt-pocock-skills, ou absente, est nommée avec son remède', () => {
@@ -87,15 +119,18 @@ const SENSIBLES = ['apps/api/src/**/auth/**', 'apps/api/src/db/migrations/**', '
 const sur = (chauds, label = '') =>
   PRET.replace('Fichiers chauds: —', `Fichiers chauds: ${chauds}`).replace('Modèle: sonnet\n', `Modèle: sonnet\n${label}`);
 
-test("un ticket prêt sur un chemin sensible sans `Label: architecte` est refusé ; avec, accepté ; hors chemin sensible, rien n'est exigé", () => {
+test("un ticket prêt sur un chemin sensible sans `Label: contre-revue` est refusé ; avec, accepté ; l'ancienne valeur `architecte` reste acceptée ; hors chemin sensible, rien n'est exigé", () => {
   const refus = ecartsFormatPret(sur('`apps/api/src/infrastructure/auth/jwt.ts`'), SENSIBLES);
   assert.equal(refus.length, 1);
-  assert.match(refus[0], /Label: architecte.*absente.*apps\/api\/src\/\*\*\/auth\/\*\*/);
+  assert.match(refus[0], /Label: contre-revue.*absente.*apps\/api\/src\/\*\*\/auth\/\*\*/);
+  assert.doesNotMatch(refus[0], /architecte|conducteur/i, 'le message ne nomme aucun rôle');
+  assert.deepEqual(ecartsFormatPret(sur('`apps/api/src/infrastructure/auth/jwt.ts`', 'Label: contre-revue\n'), SENSIBLES), []);
   assert.deepEqual(ecartsFormatPret(sur('`apps/api/src/infrastructure/auth/jwt.ts`', 'Label: architecte\n'), SENSIBLES), []);
+  assert.equal(ecartsFormatPret(sur('`apps/api/src/infrastructure/auth/jwt.ts`', 'Label: contre-revues\n'), SENSIBLES).length, 1);
   assert.deepEqual(ecartsFormatPret(sur('`scripts/docs/avancement.mjs`'), SENSIBLES), []);
   assert.deepEqual(ecartsFormatPret(sur('—'), SENSIBLES), []);
   const r = controlerTicket({ nom: NOM, texte: sur('`packages/contracts/src/auth.ts`'), existe, cheminsSensibles: SENSIBLES });
-  assert.match(r.erreurs[0].message, /ready-for-agent : ligne `Label: architecte` absente/);
+  assert.match(r.erreurs[0].message, /ready-for-agent : ligne `Label: contre-revue` absente/);
   assert.deepEqual(controlerTicket({ nom: NOM, texte: sur('`packages/contracts/src/auth.ts`'), existe, gele: true, cheminsSensibles: SENSIBLES }).erreurs, []);
 });
 
@@ -121,7 +156,7 @@ test('cheminsSensibles : contrat absent → aucun motif ; présent mais illisibl
 });
 
 const carteAvec = (migrations, phase = '4-vague-1') =>
-  `# X — Carte\n\nSujet: sujet/x\n\n## Fiche\n\nPhase: ${phase}\nArchitecte: s\n${migrations === undefined ? '' : `Migrations: ${migrations}\n`}\n## Coût\n`;
+  `# X — Carte\n\nSujet: sujet/x\n\n## Fiche\n\nPhase: ${phase}\nResponsable: Camille Martin\nConducteur: s\n${migrations === undefined ? '' : `Migrations: ${migrations}\n`}\n## Coût\n`;
 
 test('Migrations: se lit en liste d’horodatages ; « — » et l’absence de ligne ne réservent rien', () => {
   assert.deepEqual(migrationsReservees(carteAvec('202611271000, 202611271100')), ['202611271000', '202611271100']);

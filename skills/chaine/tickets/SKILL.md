@@ -51,16 +51,16 @@ Puis dans `package.json` racine, un script `check:tickets` : `node scripts/verif
 
 `docs/methode/nomenclature.md` § exclusions : les fichiers `.spec.md`, `.issue.md` et `.map.md` suivent cette convention, pas la nomenclature générale (leur identifiant est celui de la spec).
 
-Si le projet a déjà un `scripts/verify/tickets-dette.json`, le garder : la dette d'un projet ne se remplace pas par celle du skill. Puis `node scripts/verify/tickets.mjs --geler-types` : à l'arrivée du gate de `Type:`, il gèle sous la clé `types` les tickets qui n'en ont pas encore ; une fois la clé écrite, il refuse de la rejouer.
+Si le projet a déjà un `scripts/verify/tickets-dette.json`, le garder : la dette d'un projet ne se remplace pas par celle du skill. Puis `node scripts/verify/tickets.mjs --geler-types` : à l'arrivée du gate de `Type:`, il gèle sous la clé `types` les tickets qui n'en ont pas encore ; une fois la clé écrite, il refuse de la rejouer. De même, `node scripts/verify/tickets.mjs --geler-fiches` gèle sous la clé `fiches` les cartes de chantier dont la fiche ne nomme pas encore `Responsable:` et `Conducteur:` : pour elles seule l'ancienne règle vaut (`Architecte:` non vide), et `--elaguer` en retire une carte dès qu'elle porte les deux lignes. Aucune carte n'est à réécrire.
 
 Vérifier : `pnpm check:tickets` vert (le gate dit `tickets : OK — 0 tickets` sur un dépôt sans ticket). Ne pas commiter si un socle appelle ce skill : il écrit l'historique.
 
 ## Étape 2 — au quotidien
 
 - **Numéroter** : `node scripts/docs/next-id.mjs SPEC ALL SOC` (ou `RULE ALL LIC`, `ADR ALL ARC`, `REQ FNSMR PAY`). Lit l'arbre et les branches distantes `sujet/*` et `docs/*` : `git fetch origin` d'abord si le dernier date.
-- **Créer une spec, un ticket, une règle ou une demande** : copier le gabarit de `docs/agents/gabarits/` (`spec.spec.md`, `ticket.issue.md`, `regle.md`, `demande.md`), nommer d'après la table, `Status: needs-triage` tant qu'il n'est pas prêt, `Type:` dès la création ; une règle naît `candidate`, seul un humain écrit `validated`. Un ticket `ready-for-agent` porte `Modèle:`, `Fichiers chauds:`, `Dépendances:` s'il ajoute un paquet, les quatre sections `## Où`, `## Décisions`, `## Surfaces`, `## Vérification`, et `Label: architecte` dès que `Fichiers chauds:` touche un motif de `cheminsSensibles` (`.claude/chaine.json`) : `docs/agents/chaine-de-production.md` § 3. Le gate le refuse sinon.
+- **Créer une spec, un ticket, une règle ou une demande** : copier le gabarit de `docs/agents/gabarits/` (`spec.spec.md`, `ticket.issue.md`, `regle.md`, `demande.md`), nommer d'après la table, `Status: needs-triage` tant qu'il n'est pas prêt, `Type:` dès la création ; une règle naît `candidate`, seul un humain écrit `validated`. Un ticket `ready-for-agent` porte `Modèle:`, `Fichiers chauds:`, `Dépendances:` s'il ajoute un paquet, les quatre sections `## Où`, `## Décisions`, `## Surfaces`, `## Vérification`, et `Label: contre-revue` dès que `Fichiers chauds:` touche un motif de `cheminsSensibles` (`.claude/chaine.json`) : `docs/agents/chaine-de-production.md` § 3. Le gate le refuse sinon.
 - **Avant de coder** : `node scripts/docs/ticket-libre.mjs SPEC_ALL_SOC-1.03`. Sortie 0 libre, 1 pris, 3 libre côté git mais PR non vérifiées (session cloud : la recherche `search_pull_requests` que le script affiche, par l'outil GitHub MCP). Puis réserver : branche, `Status: en cours — <branche>`, PR brouillon. Procédure complète : `docs/agents/issue-tracker.md` § « Réserver un ticket ».
-- **Vagues d'un chantier** : `node scripts/docs/vagues.mjs SPEC_ALL_SOC-1 --max 6` propose les vagues (bloquants faits, fichiers chauds disjoints) ; l'architecte décide.
+- **Vagues d'un chantier** : `node scripts/docs/vagues.mjs SPEC_ALL_SOC-1 --max 6` propose les vagues (bloquants faits, fichiers chauds disjoints) ; le conducteur décide.
 - **Avancement** : `node scripts/docs/avancement.mjs sujet/<nom>` ou `SPEC_ALL_SOC-1`, `--json` pour une page. Sans `gh`, sortie 3 et la recherche MCP à faire.
 - **Coûts de production** : `node scripts/docs/couts.mjs` régénère `docs/agents/couts.md` depuis la section `## Coût` des cartes (index généré, `--verify` pour vérifier) ; on corrige la carte, jamais le registre.
 - **Archiver** : `node scripts/docs/archiver-tickets.mjs` (dry-run), `--appliquer` : les tickets faits depuis plus de 180 jours passent dans `issues/archive/`. Une fois par mois, par le capitaine, jamais en CI.
@@ -79,7 +79,7 @@ Un registre de règles en tableau markdown et les ADR, design et guides sans typ
 
 ## Ce que ce skill ne fait pas
 
-- **Aucun contenu de ticket.** Il pose la forme ; le découpage est l'affaire de l'architecte et du grilling.
+- **Aucun contenu de ticket.** Il pose la forme ; le découpage est l'affaire du conducteur de chantier, sur la spec que le grilling a validée.
 - **Aucun appel GitHub en écriture.** Réserver une PR, poser un label : l'outil GitHub MCP ou `gh api`, décrits dans `issue-tracker.md`.
 - **Aucune branche de sujet.** C'est le skill `sujet`.
 
