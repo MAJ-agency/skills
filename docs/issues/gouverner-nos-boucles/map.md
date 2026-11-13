@@ -83,6 +83,20 @@ Décisions de l'architecte (choix techniques, sans effet sur ce que voit un util
 
 Restent à mettre en tickets dans `anchorpost` : la phrase de `.claude/rules/tests.md`, et la repose des critères du socle une fois le ticket 1 fusionné (la liste `S` d'`anchorpost` saute `S13`).
 
+## Chantier 2 — découpage validé par le produit le 2026-11-13 (« ok go »)
+
+Tickets écrits par un sous-agent d'après la spec, faits revérifiés sur `main` (`1f29a3a`). Tickets 4 et 5 relus par un agent neuf avant la vague (verdict « prêt », cinq points fermés dans les tickets). Les tickets 6, 7 et 8 sont à faire relire de la même façon avant leur vague.
+
+| Vague | Ticket                                                                                        | Modèle | Session                            | PR  | État                |
+| ----- | --------------------------------------------------------------------------------------------- | ------ | ---------------------------------- | --- | ------------------- |
+| 1     | [`4`](issues/4-controle-automatique-de-skills.issue.md) — contrôle automatique de `skills`    | sonnet | `session_017ZgEwKF9HqEPNaGpeTPgjs` | —   | lancé le 2026-11-13 |
+| 1     | [`5`](issues/5-roles-responsable-et-label-contre-revue.issue.md) — rôles, responsable, label  | opus   | `session_017ZgEwKJDppD3JTAkkTXpGM` | —   | lancé le 2026-11-13 |
+| 2     | [`6`](issues/6-skill-de-l-architecte.issue.md) — skill de l'architecte                        | opus   | —                                  | —   | attend le ticket 5  |
+| 2     | [`7`](issues/7-plafonds-et-renvois-comptes.issue.md) — plafonds et renvois comptés            | sonnet | —                                  | —   | attend le ticket 5  |
+| 3     | [`8`](issues/8-gel-d-un-chantier.issue.md) — gel d'un chantier, version 5.0.0 du plugin       | sonnet | —                                  | —   | attend 6 et 7       |
+
+À surveiller : le ticket 5 touche 22 fichiers et le ticket 7 en touche 17, pour un repère d'une quinzaine ; relever leur contexte à la livraison. Réveil de suivi armé à 45 minutes (`trig_01Ubi6VM3BgqgSWNDgaEwQPY`). Une PR livrée se nomme au capitaine de `skills`, qui la fusionne.
+
 ## Coût
 
 | Session                          | Rôle     | Ticket | Coût $ | Contexte (tokens) |
@@ -121,8 +135,8 @@ Repère pour la question des plafonds : une session de ticket démarre déjà au
 À ouvrir par le produit depuis l'application, sur l'environnement ANCHORPOST (les quatre dépôts), avec le droit de pousser sur `claude/compassionate-euler-st84s9` de `skills` (la PR 57 porte cette carte).
 
 1. **Chantier 0 fusionné dans `main` de `skills`** le 2026-11-13 (PR 58, 59, 60 ; `main` à `1f29a3a`, plugin toujours 4.2.0). **Repose en cours** : session fille `session_017ZgEwLxg9Yh5mosow8rvFa` sur `anchorpost` (PR 118) ; relever son coût, puis l'archiver une fois la PR fusionnée par le capitaine d'`anchorpost` (il écrit à l'architecte à la fin). **Attend le produit** : la validation du découpage du chantier 2 ; (toutes les questions des tours 1 et 2 sont tranchées) ; Plus de choix à demander pour la repose de `couts.mjs` dans `anchorpost` : dès la PR 60 fusionnée, lancer une session fille sur `anchorpost`, branche `fix/spec-all-soc-1-14-couts-verify` (PR 118, brouillon), dont le prompt lui dit d'attacher `MAJ-agency/skills` par `add_repo` (`chaine-de-production.md` § 5, étape 5) ; elle livre avec `à-fusionner`, le capitaine d'`anchorpost` fusionne.
-2. **Dès le découpage validé** : écrire les tickets 4 à 8 d'après [`plafonds-gel-et-roles.spec.md`](plafonds-gel-et-roles.spec.md) (les `fichier:ligne` y sont), les faire relire par un sous-agent neuf, lancer la vague 1 (tickets 4 et 5) comme le chantier 0 : une session par ticket, source `skills`, branche de travail depuis `origin/main`, ticket lu sur la branche de cadrage (A-4).
-3. **Ensuite** : tour 3 du grilling, puis la spec du chantier 4 (preuve suffisante) dans `anchorpost`, avec sa copie dans `docs/issues/standard-documentation/`.
+2. **Chantier 2 en cours** : voir la section « Chantier 2 ». Suivre la vague 1, nommer ses PR au capitaine de `skills`, puis faire relire et lancer la vague 2 (tickets 6 et 7), puis la 3 (ticket 8).
+3. **Tour 3 du grilling posé le 2026-11-13** (`Q12` à `Q17` : sens de « prouvée », revalidation d'un cas ajouté, contrôle de solidité des tests sur une PR, règle sans parcours, exigences d'une règle basse, ce qu'Anchorpost montre de la fabrication) ; réponses attendues. Décision de l'architecte annoncée : un parcours se déclare dans le manifeste du projet. Ensuite, puis la spec du chantier 4 (preuve suffisante) dans `anchorpost`, avec sa copie dans `docs/issues/standard-documentation/`.
 4. **Petits tickets d'`anchorpost` à écrire** : la phrase de `.claude/rules/tests.md` ligne 21 ; la repose des critères du socle après la fusion de la PR 59. La mesure de mutation (chantier 1) attend la fusion de la PR 113 d'`anchorpost`.
 5. **Sessions en vie** : le capitaine d'`anchorpost` (fiche). Toutes les sessions de ticket du chantier 0 sont archivées.
 
