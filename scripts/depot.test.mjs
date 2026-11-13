@@ -85,7 +85,7 @@ test("lecteurs du workflow : entrées piégées", () => {
   assert.equal(nombreActions(`- uses: a/b@${SHA} # v1`), 1);
   // commande exacte : `pnpm test:watch` n'est pas `pnpm test`
   assert.equal(commande("      - run: pnpm test\r\n", "pnpm test"), true);
-  assert.equal(commande("      - run: pnpm test", "pnpm test"), false);
+  assert.equal(commande("      - run: pnpm test", "pnpm test"), true);
   assert.equal(commande("      - run: pnpm test:watch", "pnpm test"), false);
   // déclencheur
   const on = "on:\n  pull_request:\n    branches: ['main']\n";
