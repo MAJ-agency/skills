@@ -4,7 +4,7 @@ Status: ready-for-agent
 Type: task
 Blocked by: 5
 Modèle: sonnet
-Fichiers chauds: `skills/chaine/socle-chaine-de-production/references/chaine.json`, `skills/chaine/chantier/SKILL.md`, `skills/chaine/tickets/references/scripts/verify/tickets-regles.mjs`, `skills/chaine/tickets/references/gabarits/carte.map.md`, `skills/chaine/fusionner/scripts/renvoyer.sh`, `skills/chaine/fusionner/scripts/file.sh`, `skills/chaine/socle-chaine-de-production/references/docs-agents/chaine-de-production.md`
+Fichiers chauds: `skills/chaine/socle-chaine-de-production/references/chaine.json`, `skills/chaine/chantier/SKILL.md`, `skills/chaine/tickets/references/scripts/verify/tickets-regles.mjs`, `skills/chaine/tickets/references/gabarits/carte.map.md`, `skills/chaine/fusionner/scripts/renvoyer.sh`, `skills/chaine/fusionner/scripts/file.sh`, `skills/chaine/socle-chaine-de-production/references/docs-agents/chaine-de-production.md`, `skills/chaine/tickets/references/scripts/verify/tickets.mjs`, `skills/chaine/socle-chaine-de-production/references/CONTENU.md`, `skills/chaine/chantier/references/CONTENU.md`, `skills/chaine/sujet/scripts/faux-gh.mjs`, `skills/chaine/fusionner/SKILL.md`
 
 ## Le besoin
 
@@ -54,6 +54,7 @@ Trois phrases de `skills/chaine/socle-chaine-de-production/references/docs-agent
 
 ## Décisions
 
+- Relecture du 2026-11-13 par un agent neuf, trois points fermés. **Rôles jugés dans `## Coût`** : `fille` (plafonds d'une fille), `conducteur` et `architecte` (plafond d'un pilote) ; tout autre rôle (`capitaine`, `ticket`…) n'est pas jugé et ne fait pas d'erreur. **Formes lues pour le contexte** : un entier, avec ou sans espaces (`121 835`), ou suivi de `k` (`174 k`) ; une autre forme sur une ligne d'un rôle jugé est une erreur du gate, pas une ligne ignorée (même principe que le coût illisible de `couts.mjs`). **Qui pose `plafonds.mjs` dans un projet** : l'étape « poser » du skill `fusionner`, qui copie déjà `sujet.sh` d'un autre skill vers `scripts/chaine/` ; ajouter `plafonds.mjs` et son banc à sa liste.
 Tranché :
 
 - `A-9` : les plafonds vivent dans `.claude/chaine.json`, la décision dans `plafonds.mjs` ; le conducteur ne juge pas lui-même ; un dépassement s'écrit dans `## Dépassements` (session, ticket, mesure, décision du produit, date).
