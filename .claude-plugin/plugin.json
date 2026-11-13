@@ -34,6 +34,7 @@
     "./skills/mobile/socle-mobile-expo",
     "./skills/chaine/socle-chaine-de-production",
     "./skills/chaine/tickets",
+    "./skills/chaine/anchorpost",
     "./skills/chaine/revue-adversariale",
     "./skills/chaine/revue-de-ticket",
     "./skills/chaine/sujet",
