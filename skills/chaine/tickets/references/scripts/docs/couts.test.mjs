@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import { test } from "node:test";
-import { module } from "./depot-jouet.mjs";
+import { ENV, depotJouet, module, script } from "./depot-jouet.mjs";
 
-const { bilan, enEuros, enMarkdown, lireCarte, montant, table } = await module("docs/couts.mjs");
+const { bilan, enEuros, enMarkdown, lireCarte, messagesIllisibles, montant, table } = await module("docs/couts.mjs");
 
 /** Les tables sont alignées : on compare le contenu, espaces de remplissage écrasés. */
 const plat = (md) => md.replace(/ {2,}/g, " ");
@@ -106,16 +107,76 @@ test("une table est alignée comme Prettier : colonnes à la largeur de la plus 
   );
 });
 
-test("une Phase vide ne lit pas la ligne suivante, et un coût mal écrit est signalé sans être compté", (t) => {
-  const erreurs = [];
-  t.mock.method(console, "error", (m) => erreurs.push(m));
-  const c = lireCarte(
-    "docs/f/all/X.map.md",
-    "Phase:\nAutre: y\n\n## Coût\n\n| R | T | S | M | C | Coût $ |\n| - | - | - | - | - | - |\n" +
-      "| fille | SPEC_ALL_XYZ-1.01 | s1 | sonnet | 1 k | 4,08 $ |\n| fille | SPEC_ALL_XYZ-1.02 | s2 | sonnet | 1 k | à relever |\n",
-  );
+const ligneIllisible =
+  "| fille | SPEC_ALL_XYZ-1.01 | s1 | sonnet | 1 k | 4,08 $ |\n| fille | SPEC_ALL_XYZ-1.02 | s2 | sonnet | 1 k | à relever |\n";
+const enTete = "## Coût\n\n| R | T | S | M | C | Coût $ |\n| - | - | - | - | - | - |\n";
+
+test("une Phase vide ne lit pas la ligne suivante, et un coût mal écrit est rendu sans être compté", () => {
+  const c = lireCarte("docs/f/all/X.map.md", `Phase:\nAutre: y\n\n${enTete}${ligneIllisible}`);
   assert.equal(c.phase, "—");
   assert.deepEqual(c.lignes, []);
-  assert.equal(erreurs.length, 1);
-  assert.match(erreurs[0], /coût illisible « 4,08 \$ »/);
+  assert.equal(c.illisibles.length, 1);
+  assert.equal(c.illisibles[0].cout, "4,08 $");
+  assert.deepEqual(messagesIllisibles([c]), [
+    `couts : docs/f/all/X.map.md — coût illisible « 4,08 $ », ligne ignorée : ${c.illisibles[0].ligne}`,
+  ]);
+});
+
+test("un en-tête Coût suivi de milliers de blancs se lit en temps linéaire", () => {
+  const duree = (n) => {
+    const debut = performance.now();
+    const c = lireCarte("docs/c.md", `Sujet: sujet/x\n\n## Coût${" ".repeat(n)}x\n`);
+    assert.deepEqual(c.lignes, []);
+    return performance.now() - debut;
+  };
+  duree(1_000); // échauffement
+  const court = Math.max(duree(20_000), 1);
+  const long = duree(200_000);
+  // dix fois plus long : un temps linéaire reste proche de dix, un temps quadratique approche cent
+  assert.ok(long / court < 40, `${long} ms contre ${court} ms`);
+});
+
+/** Joue `couts.mjs` sur un dépôt jouet qui porte une carte ; renvoie son code de sortie et ses sorties. */
+function jouer(lignes) {
+  const { travail, bin } = depotJouet({
+    fichiers: { "docs/agents/README.md": "agents\n", "docs/f/all/X.map.md": `Sujet: sujet/x\n\n${enTete}${lignes}` },
+  });
+  const lance = (...a) => {
+    const r = spawnSync(process.execPath, [script("docs/couts.mjs"), ...a], {
+      cwd: travail,
+      env: { ...ENV, PATH: bin },
+      encoding: "utf8",
+    });
+    return { code: r.status, out: r.stdout, err: r.stderr };
+  };
+  return { lance };
+}
+
+test("un coût illisible fait échouer la vérification, que le registre soit à jour ou non", () => {
+  const { lance } = jouer(ligneIllisible);
+  const avant = lance("--verify");
+  assert.equal(avant.code, 1);
+  assert.match(avant.err, /docs\/f\/all\/X\.map\.md — coût illisible « 4,08 \$ »/);
+  // sans --verify : le registre s'écrit, le message reste sur stderr, la sortie est 0
+  const ecrit = lance();
+  assert.equal(ecrit.code, 0);
+  assert.match(ecrit.err, /coût illisible « 4,08 \$ »/);
+  // le registre est maintenant à jour, et la vérification échoue quand même
+  const apres = lance("--verify");
+  assert.equal(apres.code, 1);
+  assert.match(apres.err, /X\.map\.md — coût illisible/);
+  assert.doesNotMatch(apres.out, /à jour/);
+});
+
+test("un relevé à venir, un tiret, un gabarit ou une cellule vide ne font pas échouer la vérification", () => {
+  const { lance } = jouer(
+    "| fille | SPEC_ALL_XYZ-1.01 | s1 | sonnet | 1 k | 3,00 |\n| fille | SPEC_ALL_XYZ-1.02 | s2 | sonnet | — | à relever |\n" +
+      "| fille | SPEC_ALL_XYZ-1.03 | s3 | sonnet | — | — |\n| fille | SPEC_ALL_XYZ-1.04 | s4 | sonnet | — | {{coût}} |\n" +
+      "| fille | SPEC_ALL_XYZ-1.05 | s5 | sonnet | — |  |\n",
+  );
+  assert.equal(lance().code, 0);
+  const r = lance("--verify");
+  assert.equal(r.code, 0);
+  assert.equal(r.err, "");
+  assert.match(r.out, /à jour/);
 });
