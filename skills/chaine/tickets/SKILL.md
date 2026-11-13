@@ -23,6 +23,7 @@ La grammaire des identifiants est celle du socle, `docs/methode/nomenclature.md`
 | Fichier de spec             | `docs/features/<feature>/<ctx>/<ID>-<slug>.spec.md`                       | `docs/features/socle/all/SPEC_ALL_SOC-1-socle.spec.md`   |
 | Fichier de ticket           | `…/<ctx>/issues/<ID>-<slug>.<NN>.issue.md`, un fichier par ticket         | `issues/SPEC_ALL_SOC-1-socle.03.issue.md`                |
 | Carte d'un chantier         | `<ID>-<slug>.map.md`, même identifiant que la spec                        |                                                          |
+| Carte d'un programme        | `docs/programmes/<nom-en-kebab>.programme.md`, sans identifiant ; gabarit `programme.md`, hors du gate des cartes de chantier | `docs/programmes/gouverner-nos-boucles.programme.md` |
 | Fichier de règle            | `docs/metier/regles/<ctx>/<ID>.md`, sans slug : le titre est dans l'en-tête | `docs/metier/regles/all/RULE_ALL_LIC-3.md`             |
 | Fichier de demande          | `docs/demandes/<ctx>/<ID>-<slug>.md`                                      | `docs/demandes/all/REQ_ALL_LIC-7-licence-famille.md`     |
 | Branche d'un ticket         | `<type>/<id en minuscules, tirets bas et point en tirets>-<nom>`          | `feat/spec-all-soc-1-03-couche-base`                     |

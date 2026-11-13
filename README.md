@@ -83,10 +83,11 @@ Invocation : `/maj-skills:socle-mobile-expo`. Suppose la racine et les contrats 
 | [`revue-de-ticket`](skills/chaine/revue-de-ticket/SKILL.md)                       | Quand un ticket est « fini » : trois sous-agents vierges — règles (la revue adversariale), ticket (surfaces, décisions, règles et cas de bord, périmètre), documentation — une seule section de PR                   |
 | [`sujet`](skills/chaine/sujet/SKILL.md)                                           | Un lot de PR liées sur `sujet/<nom>` dès sa première PR, entré dans develop en une PR par un commit de merge ; `demarrer`, `etat`, `livrer`                                                                          |
 | [`fusionner`](skills/chaine/fusionner/SKILL.md)                                   | Le capitaine de fusion : la file `à-fusionner` passée une PR à la fois, les sous-PR dans leur sujet, les renvois ; une seule session                                                                                 |
+| [`architecte`](skills/chaine/architecte/SKILL.md)                                 | L'architecte d'un programme : seul à parler au produit, il tient la carte du programme, mène le grilling jusqu'à la spec validée, lance conducteurs et capitaines avec leur procédure entière, passe la main au plafond |
 | [`chantier`](skills/chaine/chantier/SKILL.md)                                     | Le conducteur de chantier : depuis une spec validée, carte, tickets prêts pour agent, sujet, vagues de sessions filles, suivi sans attente active, rétro ; reprenable                                                |
 | [`recette-humaine`](skills/chaine/recette-humaine/SKILL.md)                       | La recette d'un module en quatre phases, arrêt après l'inventaire pour que le produit tranche, tests rouges, tickets de défauts                                                                                      |
 
-Invocation : `/maj-skills:socle-chaine-de-production` une fois par dépôt (depuis `socle-monorepo`, ou à la main ; `chantier` le réclame s'il manque), qui pose les scripts des quatre autres dans `scripts/chaine/` ; `/maj-skills:tickets` et `/maj-skills:revue-adversariale` au quotidien dans une session de travail ; `/maj-skills:sujet` au début de tout ticket ; `/maj-skills:fusionner` et `/maj-skills:chantier` chacun dans une session dédiée ; `/maj-skills:recette-humaine` sur un module livré.
+Invocation : `/maj-skills:socle-chaine-de-production` une fois par dépôt (depuis `socle-monorepo`, ou à la main ; `chantier` le réclame s'il manque), qui pose les scripts des quatre autres dans `scripts/chaine/` ; `/maj-skills:tickets` et `/maj-skills:revue-adversariale` au quotidien dans une session de travail ; `/maj-skills:sujet` au début de tout ticket ; `/maj-skills:architecte`, `/maj-skills:fusionner` et `/maj-skills:chantier` chacun dans une session dédiée (l'architecte dans une session ouverte par le produit) ; `/maj-skills:recette-humaine` sur un module livré.
 
 **La racine est une seule source.** `socle-monorepo` la pose ; un skill de service n'écrit que dans `apps/<service>/`, ses paquets, et des fragments insérés dans les zones `<!-- socle:… -->` de `README.md` et `CLAUDE.md`. Ses règles de lint vivent dans `apps/<service>/eslint.rules.mjs`, chargé par l'ESLint racine.
 
@@ -159,6 +160,9 @@ skills/
     fusionner/
       SKILL.md         la règle, REST seulement, mise en place, boucle, renvoyer, fin de passage
       scripts/         github.sh, identifiant.mjs, file.sh, passer.sh, boucle.sh, renvoyer.sh, refus.sh, proprietaire.sh, revue-exigee.mjs, migrations-ordre.mjs, les tests
+    architecte/
+      SKILL.md         lire, vérifier l'environnement, la carte du programme, le grilling, lancer, suivre, passer la main
+      references/      les prompts de lancement d'un conducteur et d'un capitaine
     chantier/
       SKILL.md         reprendre ou démarrer, setup, les six phases, le suivi à chaque réveil
     recette-humaine/

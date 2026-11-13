@@ -117,3 +117,42 @@ test("le workflow de contrôle se lance sur toute PR vers main et joue pnpm test
   assert.ok(commande(w, "pnpm install --frozen-lockfile"), `${CI} : installation figée attendue`);
   assert.ok(commande(w, "pnpm test"), `${CI} : pnpm test attendu`);
 });
+
+// La carte d'un programme : son gabarit porte les sections de la carte de chantier qu'elle partage,
+// plus la passation, et n'est pas une carte de chantier (aucune ligne `Sujet:`).
+const PROGRAMME = "skills/chaine/tickets/references/gabarits/programme.md";
+const SECTIONS_PROGRAMME = ["## Fiche", "## Chantiers", "## Decisions-so-far", "## Fog", "## Coût", "## Passation", "## Journal"];
+const titres = (texte) => lignes(texte).filter((l) => /^## /.test(l)).map((l) => l.trimEnd());
+const lignesSujet = (texte) => lignes(texte).filter((l) => /^\s*Sujet:/.test(l));
+// Le corps d'une section `## <titre>` exacte, jusqu'à la section suivante ; "" si elle manque.
+const section = (texte, titre) => {
+  const l = lignes(texte);
+  const debut = l.findIndex((x) => x.trimEnd() === `## ${titre}`);
+  if (debut < 0) return "";
+  const fin = l.findIndex((x, i) => i > debut && /^## /.test(x));
+  return l.slice(debut + 1, fin < 0 ? undefined : fin).join("\n");
+};
+
+test("lecteurs du gabarit de programme : entrées piégées", () => {
+  assert.deepEqual(titres("## Fiche\r\n### Sous\r\n## Coût \r\n# Titre"), ["## Fiche", "## Coût"]);
+  assert.equal(lignesSujet("Sujet: sujet/x\r\n").length, 1);
+  assert.equal(lignesSujet("pas de ligne `Sujet:` ici").length, 0);
+  assert.equal(section("# T\n\n## Fiche\n\nArchitecte: x\n\n## Chantiers\n", "Fiche"), "\nArchitecte: x\n");
+  assert.equal(section("# T\r\n\r\n## Fiche \r\nArchitecte: x\r\n## Chantiers\r\n", "Fiche"), "Architecte: x", "CRLF");
+  assert.equal(section("## Coût\n| Rôle |", "Coût"), "| Rôle |", "dernière ligne sans fin de ligne");
+  assert.equal(section("## Fiches\nArchitecte: x\n", "Fiche"), "", "variante voisine");
+  assert.equal(section("## Coûts\n| Rôle |\n", "Coût"), "", "variante voisine");
+  assert.equal(section("# T\n\n## Chantiers\n", "Fiche"), "");
+});
+
+test("le gabarit de programme porte ses sections et aucune ligne `Sujet:`", () => {
+  const texte = readFileSync(join(RACINE, PROGRAMME), "utf8");
+  assert.deepEqual(titres(texte), SECTIONS_PROGRAMME, `${PROGRAMME} : sections attendues, dans l'ordre`);
+  assert.deepEqual(lignesSujet(texte), [], `${PROGRAMME} : une carte de programme n'a pas de ligne Sujet:`);
+  for (const ligne of ["Phase:", "Responsable:", "Architecte:"]) {
+    assert.ok(lignes(section(texte, "Fiche")).some((l) => l.startsWith(ligne)), `${PROGRAMME} : la fiche porte ${ligne}`);
+  }
+  const cout = section(texte, "Coût");
+  assert.ok(cout.includes("| Rôle | Ticket | Session | Modèle | Contexte max | Coût $ |"), `${PROGRAMME} : en-tête du coût de la carte de chantier`);
+  assert.ok(!PROGRAMME.endsWith(".map.md"), "un gabarit de programme n'est pas lu par le gate des cartes de chantier");
+});

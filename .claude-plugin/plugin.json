@@ -39,6 +39,7 @@
     "./skills/chaine/revue-de-ticket",
     "./skills/chaine/sujet",
     "./skills/chaine/fusionner",
+    "./skills/chaine/architecte",
     "./skills/chaine/chantier",
     "./skills/chaine/recette-humaine"
   ]
