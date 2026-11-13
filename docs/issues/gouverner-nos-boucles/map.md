@@ -7,7 +7,7 @@ source, et reprend à la phase indiquée sans reposer une question déjà tranch
 
 ## Fiche
 
-Phase: 1-grilling (tour 1 posé le 2026-11-12, réponses attendues)
+Phase: 1-grilling (tour 1 validé par le produit le 2026-11-13 ; tour 2 posé)
 Architecte du programme: session_017ZgEwMNFyHUf2UViG1WeUv (seul à parler au produit)
 Responsable: Guillaume Jauffret
 Objectif: seize améliorations de la chaîne de production par agents, et un chantier neuf, la preuve suffisante (dire pour chaque règle métier, à chaque PR, si elle est assez testée).
@@ -21,7 +21,8 @@ Plafond que l'architecte s'applique: 400 000 tokens de contexte ; relevé par `g
 | --- | --------------------------------------------------------------------------- | --------------------------- | ----------------------------------------------------------------- |
 | 0   | Corriger ce qui est faux (étape 1 de la source)                             | `anchorpost`, `skills`      | lancé le 2026-11-13 : trois sessions, voir « Chantier 0 »         |
 | 1   | Mesurer la solidité des tests (champ `code`, première mesure de mutation)   | `anchorpost`                | attend la fusion de la PR 113 (elle touche les en-têtes de règle) |
-| 2   | Limites des sessions, gel d'un chantier, rôles (source § 5 A, points 1, 2, 8) | `skills`                    | grilling, tour 1                                                  |
+| 2   | Limites des sessions, gel d'un chantier, rôles et skill de l'architecte (source § 5 A, points 1, 2, 8) | `skills` | décidé (P-1 à P-4), spec à écrire |
+| 2 bis | Modèle de données relationnel : étape de grilling, dictionnaire et diagramme générés, axe de revue, section de PR | `skills`, puis `anchorpost` pour l'affichage | décidé (P-5), à spécifier après le chantier 2 |
 | 3   | Revue que l'auteur ne contrôle pas, relecture des tickets, fin de chantier  | `skills`                    | grilling, tours suivants                                          |
 | 4   | Preuve suffisante : standard, CLI, gates (source § 5 B)                     | `anchorpost`, puis `skills` | grilling, tours suivants                                          |
 | 5   | Produit Anchorpost (source § 5 D)                                           | `anchorpost`                | après le chantier 4                                               |
@@ -40,6 +41,14 @@ chantiers suivants.
 - **Les sessions des deux premiers chantiers ne sont pas visibles depuis ce compte** (`get_session` sur le capitaine du chantier `anchorpost-cli` répond « not found ») : l'architecte du programme ne peut ni vérifier qu'un capitaine tourne sur `anchorpost`, ni le prévenir.
 
 ## Decisions-so-far
+
+Décisions du produit (tour 1 du grilling, validées en bloc le 2026-11-13) :
+
+- P-1 [terme] — **Les rôles prennent les mots du bâtiment.** L'« Architecte » est la session unique du programme, qui mène l'amont et parle seule au produit ; le « Conducteur de chantier » est la session qui déroule le skill `chantier`. Un ticket de renommage dans `skills` ; les cartes d'avant cette date gardent leur ancien sens et ne sont pas réécrites. Termes posés dans `CONTEXT.md`.
+- P-2 — **L'architecte s'arrête à la spec validée.** Le conducteur découpe les tickets, les fait relire par un agent neuf avant la vague, lance les sessions et les suit ; l'architecte ne lit ensuite que les cartes. Un skill dit à l'architecte quoi lire au départ, comment tenir la carte du programme et ce que son environnement doit fournir.
+- P-3 — **Arrêt automatique aux plafonds.** Une session de ticket est interrompue à 300 000 tokens de contexte ou à trois fois le coût habituel d'un ticket (environ 20 $), et la question revient au produit : découper, relancer, ou accepter le dépassement par écrit. Un conducteur ou l'architecte, à 400 000 tokens, passe la main à une session de suite. Limite connue : contrôle toutes les 45 minutes.
+- P-4 — **`skills` reste relu et fusionné par le produit**, PR vers `main`, sans capitaine ni conducteur, avec un contrôle automatique minimal à chaque PR. L'architecte y lance lui-même les sessions de ticket.
+- P-5 — **Le modèle de données relationnel se tient en trois pièces**, plus deux ajouts du produit. Les trois pièces : une étape du grilling qui fixe le modèle (chaque table et colonne rattachée à un terme du glossaire et aux règles qu'elle sert) ; un dictionnaire de données généré depuis les migrations et versionné ; un axe de revue déclenché quand une PR touche les migrations. Les ajouts : un diagramme Mermaid régénéré à chaque création, suppression ou modification de table, visible dans Anchorpost ; et, dans toute PR qui touche le modèle, une section « nouveautés du modèle » (tableau ou visuel).
 
 Décisions de l'architecte (choix techniques, sans effet sur ce que voit un utilisateur) :
 
@@ -65,20 +74,25 @@ Restent à mettre en tickets dans `anchorpost` : la phrase de `.claude/rules/tes
 | Session                          | Rôle     | Ticket | Coût $ | Contexte (tokens) |
 | -------------------------------- | -------- | ------ | ------ | ----------------- |
 | `session_017ZgEwHynXjgwREFTcpKqQX` | ticket   | 2      | 0,77   | 123 602           |
+| `session_017ZgEwMNFyHUf2UViG1WeUv` | architecte | —    | 9,20 (relevé du 13/11 à 8 h 52 UTC, session en cours) | 289 647 |
 
 Repère pour la question des plafonds : une session de ticket démarre déjà au-delà de 100 000 tokens (consignes, skills, `CLAUDE.md`) ; un plafond à 300 000 laisse donc moins de 200 000 tokens de travail.
 
 ## Fog
 
-- **Vocabulaire des rôles [terme].** Les cartes des deux premiers chantiers nomment « Conducteur » la session qui parle seule au produit et « Architecte » la session qui déroule le skill `chantier`. Le produit emploie les deux mots dans l'autre sens (12/11). Question 1 du tour 1.
-- **Où s'arrête l'amont.** Le skill `chantier` fait tout, du grilling au suivi des vagues ; c'est la session qui a dépassé 700 000 tokens deux fois. Question 2 du tour 1.
-- **Plafonds d'une session** (décision 2 de la source). Question 3 du tour 1.
-- **Skill « modèle de données relationnel »**, idée du produit (12/11). Question 5 du tour 1.
+- _(tranché, P-1)_ **Vocabulaire des rôles [terme].** Les cartes des deux premiers chantiers nomment « Conducteur » la session qui parle seule au produit et « Architecte » la session qui déroule le skill `chantier`. Le produit emploie les deux mots dans l'autre sens (12/11). Question 1 du tour 1.
+- _(tranché, P-2)_ **Où s'arrête l'amont.** Le skill `chantier` fait tout, du grilling au suivi des vagues ; c'est la session qui a dépassé 700 000 tokens deux fois. Question 2 du tour 1.
+- _(tranché, P-3)_ **Plafonds d'une session** (décision 2 de la source). Question 3 du tour 1.
+- _(tranché, P-5)_ **Skill « modèle de données relationnel »**, idée du produit (12/11). Question 5 du tour 1.
 - **« Aucun nom de modèle dans un commit »** (source § 7) : presque tous les commits fusionnés des deux dépôts en portent un, par la ligne d'attribution que l'outil ajoute seul (« Co-Authored-By »). Soit un réglage la retire pour toutes les sessions, soit la règle ne vise que la prose. À poser au produit.
-- Décisions 1 et 3 à 8 de la source (§ 6), et la colonne « basse » de la grille : tours suivants.
-- **Comment `skills` reçoit ses changements** : ni `develop`, ni capitaine, ni CI ; le skill `chantier` ne peut pas s'y dérouler tel quel. Question 4 du tour 1.
+- **Capitaine d'`anchorpost`** : invisible depuis ce compte, mais actif d'après `develop` (trois fusions dans la nuit du 12 au 13, la dernière à 6 h 19). Le produit autorise l'architecte à en lancer un « si besoin » (13/11) : pas de besoin constaté, et un second capitaine violerait la règle du capitaine unique.
+- **Session de suite de l'architecte** : elle doit être ouverte par le produit depuis l'application, seule façon d'avoir plusieurs dépôts (A-5).
+- **Tour 2 posé le 2026-11-13** : qui vérifie le code avant la fusion (décision 1 de la source), où s'écrivent les cas d'une règle (3), qui fixe la criticité (5), et la portée de la règle sur les noms de modèle.
+- Décisions 4, 6, 7, 8 de la source (§ 6), et la colonne « basse » de la grille : tours suivants.
+- _(tranché, P-4)_ **Comment `skills` reçoit ses changements** : ni `develop`, ni capitaine, ni CI ; le skill `chantier` ne peut pas s'y dérouler tel quel. Question 4 du tour 1.
 
 ## Journal
 
 - 2026-11-12 — Reprise par l'architecte du programme. Lecture de la méthode, du skill `chantier`, de l'environnement. Carte ouverte, tour 1 du grilling posé, inventaire des restes de l'étape 1 lancé (sous-agent de lecture).
 - 2026-11-13 — Inventaire rendu : la source se trompait sur les trois tickets du socle et sur `tests.md`. Tickets 1 et 2 écrits, chantier 0 lancé. Script de démarrage de l'environnement corrigé (accepté par le produit ; à prouver par la première session neuve).
+- 2026-11-13 — Tickets 1, 2 et 3 livrés (PR 59, 58, 60 de `skills`), vérifiés à la source. Tour 1 validé en bloc par le produit, avec l'ajout du diagramme et de la section de PR pour le modèle de données. Tour 2 posé.
