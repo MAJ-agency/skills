@@ -41,7 +41,7 @@ Faits relevés sur `origin/main` (`342171d`) le 2026-11-13. `socle/` abrège `sk
 - Nouveau skill `skills/chaine/architecte/`, déclaré dans `.claude-plugin/plugin.json`, lancé par un humain. Il dit : quoi lire au départ, comment tenir la carte du programme (`A-8`), où s'arrête l'amont, comment un conducteur est lancé, quand passer la main (`A-9`).
 - Gabarit `tickets/gabarits/programme.md`.
 - `socle/agent/demarrage.mjs` (hook `SessionStart`, ne bloque jamais, étapes listées ligne 17) signale deux manques au lieu de les laisser découvrir : `CLAUDE.md` demande `graphify` et la commande ou `graphify-out/graph.json` manque ; les skills de la chaîne ne sont pas disponibles dans la session.
-- Ce lot dépend de la question ouverte ci-dessous.
+- Le lancement d'un conducteur s'appuie sur la section « Les skills dans une session créée par une autre session ».
 
 ### Lot 3 — plafonds et renvois
 
@@ -62,9 +62,9 @@ Faits relevés sur `origin/main` (`342171d`) le 2026-11-13. `socle/` abrège `sk
 
 - `.github/workflows/ci.yml` : aucune expression dans un `run:`, actions épinglées (ticket `docs/issues/pose-du-socle/issues/1-ci-sans-expression-dans-run.issue.md`). Le script `test` de `package.json` joue déjà tous les bancs.
 
-## Question ouverte, qui conditionne le lot 2
+## Les skills dans une session créée par une autre session
 
-Une session créée par une autre session ne reçoit qu'un dépôt, celui du projet. Or les skills de la chaîne ne s'installent que si le dépôt `skills` est cloné à côté, et un projet ne les porte pas (`anchorpost` n'a aucun dossier `.claude/skills/`). Conséquence : une session que l'architecte crée n'a ni `chantier`, ni `revue-de-ticket`, ni `fusionner`. Constat du 2026-11-13 : l'attache du second dépôt en cours de session a été refusée deux fois par le classifieur de permissions. Question `Q10` posée au produit ; la recommandation est de recopier les skills d'exploitation dans chaque projet, avec leur version, et de faire signaler tout écart au démarrage.
+Une session créée par une autre session ne reçoit qu'un dépôt, celui du projet, et démarre sans les skills de la chaîne : le script de démarrage ne les installe que si le clone de `skills` est là (vérifié le 2026-11-13 sur une session à un seul dépôt). Le mécanisme en place est celui de `chaine-de-production.md` § 5, étape 5 : la session attache `MAJ-agency/skills` par `add_repo`, puis lit le skill dans le clone. Il a marché sur les chantiers d'Iroki ; il a été refusé deux fois le 2026-11-13 par le contrôle automatique des permissions. Le lot 2 s'appuie dessus pour lancer un conducteur, écrit la consigne d'attache dans le prompt de lancement, et prévoit le repli : si l'attache est refusée, la session le dit à l'architecte et s'arrête, sans improviser. Recopier les skills dans chaque projet ne se décide que si les refus se répètent.
 
 ## Hors périmètre
 
@@ -76,7 +76,7 @@ Chantier 3 : la relecture des tickets par un agent neuf avant la vague, la revue
 | ------ | --------------------------------------------------------------------- | --- | ------ | ------------------------------------------------------------------------------------- | ------------------- |
 | 4      | Contrôle automatique de `skills`                                      | 5   | sonnet | `.github/workflows/ci.yml`                                                            | 2 (PR 58 fusionnée) |
 | 5      | Rôles, responsable, `Label: contre-revue`, coupure amont et aval      | 1   | opus   | `chantier/SKILL.md`, `chaine-de-production.md`, `tickets-regles.mjs`, gabarits        | 1, 3 (PR 59 et 60)  |
-| 6      | Skill de l'architecte, carte de programme, signalements au démarrage  | 2   | opus   | `skills/chaine/architecte/`, `plugin.json`, `demarrage.mjs`                           | 5, et `Q10`         |
+| 6      | Skill de l'architecte, carte de programme, signalements au démarrage  | 2   | opus   | `skills/chaine/architecte/`, `plugin.json`, `demarrage.mjs`                           | 5                   |
 | 7      | Plafonds et renvois comptés                                           | 3   | sonnet | `socle/chaine.json`, `chantier/SKILL.md` § 6, `tickets-regles.mjs`, `renvoyer.sh`, `file.sh` | 5                   |
 | 8      | Gel d'un chantier, et la montée de version du plugin qui clôt le lot  | 4   | sonnet | `sujet.sh`, `file.sh`, `chantier/SKILL.md`, `plugin.json`                             | 6, 7                |
 
