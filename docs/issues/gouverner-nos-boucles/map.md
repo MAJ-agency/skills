@@ -93,11 +93,11 @@ Tickets écrits par un sous-agent d'après la spec, faits revérifiés sur `main
 | ----- | --------------------------------------------------------------------------------------------- | ------ | ---------------------------------- | --- | ------------------- |
 | 1     | [`4`](issues/4-controle-automatique-de-skills.issue.md) — contrôle automatique de `skills`    | sonnet | `session_017ZgEwKF9HqEPNaGpeTPgjs` | 61  | **fusionné** (`f2c5b54`) ; livré, sondé par l'architecte (actions épinglées, aucun `${{ }}` dans un `run:`, essai rouge puis annulé), nommé au capitaine de `skills` le 2026-11-13 |
 | 1     | [`5`](issues/5-roles-responsable-et-label-contre-revue.issue.md) — rôles, responsable, label  | opus   | `session_017ZgEwKJDppD3JTAkkTXpGM` | 62  | **fusionné** (`8eb1c9b`) ; livré, sondé par l'architecte (gate : les deux valeurs de `Label:` acceptées, `Responsable:` et `Conducteur:` exigées ; 33 bancs du gate verts ; table des rôles renommée), nommé au capitaine le 2026-11-13 |
-| 2     | [`6`](issues/6-skill-de-l-architecte.issue.md) — skill de l'architecte                        | opus   | —                                  | —   | attend le ticket 5  |
-| 2     | [`7`](issues/7-plafonds-et-renvois-comptes.issue.md) — plafonds et renvois comptés            | sonnet | —                                  | —   | attend le ticket 5  |
+| 2     | [`6`](issues/6-skill-de-l-architecte.issue.md) — skill de l'architecte                        | opus   | `session_017ZgEwLXovbMS1trs2tu3MN` | —   | lancé le 2026-11-13 |
+| 2     | [`7`](issues/7-plafonds-et-renvois-comptes.issue.md) — plafonds et renvois comptés            | sonnet | `session_017ZgEwJYcjFLZwVB1ooMaoV` | —   | lancé le 2026-11-13 |
 | 3     | [`8`](issues/8-gel-d-un-chantier.issue.md) — gel d'un chantier, version 5.0.0 du plugin       | sonnet | —                                  | —   | attend 6 et 7       |
 
-Vague 1 fusionnée le 2026-11-13 par le capitaine de `skills` (`main` à `8eb1c9b`, arbres vérifiés, 345 tests verts), sessions archivées. **À faire par un administrateur du dépôt** : rendre obligatoire le check « CI / bancs » dans la protection de `main`, à côté de CodeQL. Vague 2 : les tickets 6 et 7 sont remis à jour sur le nouveau `main` par un sous-agent, puis relus par un agent neuf, puis lancés.
+Vague 1 fusionnée le 2026-11-13 par le capitaine de `skills` (`main` à `8eb1c9b`, arbres vérifiés, 345 tests verts), sessions archivées. **À faire par un administrateur du dépôt** : rendre obligatoire le check « CI / bancs » dans la protection de `main`, à côté de CodeQL. Vague 2 lancée le 2026-11-13 à 11 h 05 UTC : tickets 6 et 7 remis à jour sur `main` (`8eb1c9b`) par un sous-agent, relus par un agent neuf (verdict « prêt », sept points fermés dans les tickets, aucun fichier commun), réveil de suivi armé à 45 minutes (`trig_01MyfAXjDv11DY1gYKP67BPA`). Le prompt de lancement demande désormais d'écrire à l'architecte dès la PR ouverte, sans attendre les contrôles : les filles de la vague 1 ne l'avaient fait qu'après la fusion. Avant la vague 3 : faire remettre à jour puis relire le ticket 8.
 
 À surveiller : le ticket 5 touche 22 fichiers et le ticket 7 en touche 17, pour un repère d'une quinzaine ; relever leur contexte à la livraison. Réveil de suivi armé à 45 minutes (`trig_01Ubi6VM3BgqgSWNDgaEwQPY`). Une PR livrée se nomme au capitaine de `skills`, qui la fusionne.
 
@@ -111,8 +111,8 @@ Vague 1 fusionnée le 2026-11-13 par le capitaine de `skills` (`main` à `8eb1c9
 | `session_017ZgEwMdAB15RvGMFEuThNT` | ticket   | `SPEC_ALL_SOC-1.14` (interrompue, A-5) | 0,70 | 121 835 |
 | `session_017ZgEwLxg9Yh5mosow8rvFa` | ticket   | `SPEC_ALL_SOC-1.14`, repose (PR 118 d'`anchorpost`, fusionnée `2c57a70`) | 1,34 | 124 666 |
 | `session_017ZgEwMeUndGApzYbxNvkLW` | capitaine de `skills` | PR 58 | 0,48 | 111 494 |
-| `session_017ZgEwKF9HqEPNaGpeTPgjs` | ticket   | 4      | 0,98   | 119 033           |
-| `session_017ZgEwKJDppD3JTAkkTXpGM` | ticket   | 5      | 7,34   | 225 445           |
+| `session_017ZgEwKF9HqEPNaGpeTPgjs` | ticket   | 4      | 1,11   | 130 999           |
+| `session_017ZgEwKJDppD3JTAkkTXpGM` | ticket   | 5      | 7,54   | 230 661           |
 | `session_017ZgEwLZNvoayrikkW3ious` | ticket   | `SPEC_ALL_SOC-1.14` (sans dépôt, A-5)  | 0,15 | 79 375  |
 | `session_017ZgEwMNFyHUf2UViG1WeUv` | architecte | —    | 9,20 | 289 647 |
 
