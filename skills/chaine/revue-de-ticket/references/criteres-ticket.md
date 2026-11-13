@@ -26,4 +26,13 @@ T6  Périmètre — spec. Rien dans le diff au-delà du ticket : un ticket voisi
 T7  Statut — docs/agents/issue-tracker.md. Le ticket porte `Status: Fait — PR #<n>` (ou
     `en cours — <branche>` si la PR n'est pas encore ouverte) et ses décisions par défaut sous
     ## Comments, datées.
+T8  Recette d'un service tiers — cas vécu : anchorpost PR 74. Un test de recette ou un script
+    qui pilote un service tiers (API, CLI, console) a sous ## Comments du ticket la page de
+    documentation du fournisseur qui fonde chaque appel, lue à la date de la branche ; une recette
+    sans cette référence, ou avec une référence plus ancienne que la branche, est un écart.
+T9  Essai d'une réécriture de dépôt — cas vécu : anchorpost, vague 8 (ticket .39). Un diff qui
+    réécrit les fichiers d'un dépôt (codemod, migration de convention, script de la chaîne qui
+    modifie un projet) a sous ## Comments du ticket l'essai fait sur une copie d'un dépôt réel :
+    le dépôt, son commit, la commande et ce qu'elle a changé ; un essai sur un dépôt jouet seul
+    est un écart.
 ```
