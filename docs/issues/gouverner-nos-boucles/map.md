@@ -34,7 +34,7 @@ chantiers suivants.
 
 - **Étape 1, points 1 et 2 : déjà fusionnés** sur `develop` d'`anchorpost` (PR 104, encadrés d'état ; PR 105, coût de l'architecte lisible, avec un ticket de durcissement). Le registre `docs/agents/couts.md` affiche 630,56 $ sur 64 sessions et 2 chantiers.
 - **`graphify` est installé** dans l'environnement cloud, mais la fin du script de démarrage est cassée (l'`export PATH` est collé au commentaire qui le précède, les guillemets de la boucle sont typographiques) : `graphify update .` ne tourne jamais et `graphify-out/` n'existe dans aucun clone. La boucle corrigée a été jouée à la main : elle produit le graphe d'`anchorpost`, de `skills` et d'`iroki-monorepo`. Correction du script proposée au produit le 2026-11-12.
-- **`skills` n'a ni `develop`, ni capitaine, ni CI** : une PR y vise `main` et attend un humain. PR ouvertes : 44, 55, 56 (la 55 a été fusionnée par le produit dans la nuit du 12 au 13 : `main` est à `342171d`, plugin 4.2.0).
+- **`skills` n'a ni `develop`, ni capitaine, ni CI à lui** (seule l'analyse CodeQL de GitHub tourne sur ses PR, d'après les sessions des tickets 1 à 3) : une PR y vise `main` et attend un humain. PR ouvertes : 44, 55, 56 (la 55 a été fusionnée par le produit dans la nuit du 12 au 13 : `main` est à `342171d`, plugin 4.2.0).
 - **`anchorpost`** : `develop` est à `c0ff374` ; une seule PR ouverte, la 113 (brouillon, `SPEC_ALL_ANC-4.49`, une règle rejoint un ou plusieurs modules).
 - Les tickets `SPEC_ALL_SOC-1` `.04`, `.05`, `.07` restent `ready-for-human` à juste titre : un commentaire du 2026-11-12 y note « vérifié contre le code, le ticket n'est pas entièrement livré » (base jetable absente pour `.04`, cadence des routes publiques absente pour `.05`, analyse de secrets et deux gates absents pour `.07`). La source se trompait : ils ne sont pas à clore.
 - `.claude/rules/tests.md` d'`anchorpost` n'a qu'une phrase inexacte, ligne 21 (« tout le reste tourne partout, au pre-commit comme au pre-push ») : le pre-commit ne joue pas les bancs `node --test` des scripts. À corriger par un ticket d'`anchorpost` (chemin sensible, `Label: architecte`).
@@ -62,9 +62,9 @@ Décisions de l'architecte (choix techniques, sans effet sur ce que voit un util
 
 | Ticket                                                                                                                   | Dépôt                    | Session | PR  | État  |
 | ------------------------------------------------------------------------------------------------------------------------ | ------------------------ | ------- | --- | ----- |
-| [`1`](issues/1-criteres-et-pieges-des-deux-retros.issue.md) — dix leçons en critères et piège                            | `skills`                 | `session_017ZgEwMrJhErj5gAFEXirwK` | 59  | livré le 2026-11-13, critères `S15` à `S21`, `T8`, `T9` et le piège lus par l'architecte, attend la fusion humaine ; coût à relever |
+| [`1`](issues/1-criteres-et-pieges-des-deux-retros.issue.md) — dix leçons en critères et piège                            | `skills`                 | `session_017ZgEwMrJhErj5gAFEXirwK` | 59  | livré le 2026-11-13, critères `S15` à `S21`, `T8`, `T9` et le piège lus par l'architecte, attend la fusion humaine ; session archivée |
 | [`2`](issues/2-plugin-declare-anchorpost-et-budget-des-skills.issue.md) — plugin complet, banc des 200 lignes            | `skills`                 | `session_017ZgEwHynXjgwREFTcpKqQX` | 58  | livré le 2026-11-13, vérifié par l'architecte (banc joué : 4 cas verts, `SKILL.md` à 189 lignes), attend la fusion humaine |
-| [`3`](issues/3-couts-verify-refuse-un-montant-illisible.issue.md) — partie plugin de `SPEC_ALL_SOC-1.14` : un montant illisible fait échouer `couts.mjs --verify` | `skills` | `session_017ZgEwHN4xCPwGoDS3BQSwm` | 60 | livré le 2026-11-13, banc `couts.test.mjs` rejoué par l'architecte (10 cas verts), attend la fusion humaine ; coût à relever |
+| [`3`](issues/3-couts-verify-refuse-un-montant-illisible.issue.md) — partie plugin de `SPEC_ALL_SOC-1.14` : un montant illisible fait échouer `couts.mjs --verify` | `skills` | `session_017ZgEwHN4xCPwGoDS3BQSwm` | 60 | livré le 2026-11-13, banc `couts.test.mjs` rejoué par l'architecte (10 cas verts), attend la fusion humaine ; session archivée |
 | `SPEC_ALL_SOC-1.14`, repose dans `anchorpost` (branche `fix/spec-all-soc-1-14-couts-verify`, PR 118 en brouillon) | `anchorpost` | — | 118 | attend la fusion humaine de la PR du ticket 3 ; il lui faudra les deux dépôts |
 
 Restent à mettre en tickets dans `anchorpost` : la phrase de `.claude/rules/tests.md`, et la repose des critères du socle une fois le ticket 1 fusionné (la liste `S` d'`anchorpost` saute `S13`).
@@ -73,10 +73,16 @@ Restent à mettre en tickets dans `anchorpost` : la phrase de `.claude/rules/tes
 
 | Session                          | Rôle     | Ticket | Coût $ | Contexte (tokens) |
 | -------------------------------- | -------- | ------ | ------ | ----------------- |
-| `session_017ZgEwHynXjgwREFTcpKqQX` | ticket   | 2      | 0,77   | 123 602           |
+| `session_017ZgEwMrJhErj5gAFEXirwK` | ticket   | 1      | 1,32   | 121 699           |
+| `session_017ZgEwHynXjgwREFTcpKqQX` | ticket   | 2      | 0,82   | 125 109           |
+| `session_017ZgEwHN4xCPwGoDS3BQSwm` | ticket   | 3      | 0,81   | 125 671           |
+| `session_017ZgEwMdAB15RvGMFEuThNT` | ticket   | `SPEC_ALL_SOC-1.14` (interrompue, A-5) | 0,70 | 121 835 |
+| `session_017ZgEwLZNvoayrikkW3ious` | ticket   | `SPEC_ALL_SOC-1.14` (sans dépôt, A-5)  | 0,15 | 79 375  |
 | `session_017ZgEwMNFyHUf2UViG1WeUv` | architecte | —    | 9,20 | 289 647 |
 
 La ligne de l'architecte est un relevé du 2026-11-13 à 8 h 52 UTC, session en cours ; la cellule de coût ne porte qu'un montant, pour rester lisible par `couts.mjs`.
+
+Relevé du 2026-11-13 à 8 h 57 UTC : les trois tickets livrés ont coûté 2,95 $, soit 0,98 $ par ticket ; les deux sessions perdues sur le ticket à deux dépôts, 0,85 $. Les cinq sessions sont archivées.
 
 Repère pour la question des plafonds : une session de ticket démarre déjà au-delà de 100 000 tokens (consignes, skills, `CLAUDE.md`) ; un plafond à 300 000 laisse donc moins de 200 000 tokens de travail.
 
