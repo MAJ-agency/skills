@@ -51,6 +51,11 @@ Décisions du produit (tour 1 du grilling, validées en bloc le 2026-11-13) :
 - P-4 — **`skills` reste relu et fusionné par le produit**, PR vers `main`, sans capitaine ni conducteur, avec un contrôle automatique minimal à chaque PR. L'architecte y lance lui-même les sessions de ticket.
 - P-5 — **Le modèle de données relationnel se tient en trois pièces**, plus deux ajouts du produit. Les trois pièces : une étape du grilling qui fixe le modèle (chaque table et colonne rattachée à un terme du glossaire et aux règles qu'elle sert) ; un dictionnaire de données généré depuis les migrations et versionné ; un axe de revue déclenché quand une PR touche les migrations. Les ajouts : un diagramme Mermaid régénéré à chaque création, suppression ou modification de table, visible dans Anchorpost ; et, dans toute PR qui touche le modèle, une section « nouveautés du modèle » (tableau ou visuel).
 
+Décisions du produit, tour 2 (2026-11-13) :
+
+- P-7 — **Les cas attendus d'une règle s'écrivent dans le fichier de la règle, dans son en-tête YAML, bien structurés** (question `Q7`, décision 3 de la source). Le format se fige avant les refontes de Fedora et d'Iroki.
+- P-8 [terme] — **La MOA fixe la criticité par parcours** (question `Q8`, décision 5 de la source). Un parcours n'est pas un module : c'est une partie d'un module, qui regroupe plusieurs fonctionnalités. La criticité d'un parcours vaut pour toutes ses fonctionnalités, et par elles pour leurs règles ; une règle prend la plus haute des criticités qu'elle reçoit et peut être relevée seule. À porter dans `GLOSSARY.md` d'`anchorpost` à la PR de cadrage du chantier 4 : « parcours », « parcours critique », « parcours principal », « criticité ». Le glossaire y connaît déjà « EPIC » (un module montré à la MOA) et « feature » (qui déclare ses règles par `Règles:`) : la chaîne serait module, parcours, fonctionnalité, règle.
+
 Décisions de l'architecte (choix techniques, sans effet sur ce que voit un utilisateur) :
 
 - A-1 — **Une seule montée de version du plugin par lot.** Les PR du chantier 0 ne touchent pas la ligne `version` de `.claude-plugin/plugin.json` ; une dernière PR la monte une fois le lot fusionné. Raison : la PR 55, ouverte, modifie déjà cette ligne, et des PR parallèles s'y marcheraient dessus.
@@ -98,12 +103,24 @@ Repère pour la question des plafonds : une session de ticket démarre déjà au
 - _(levé)_ **Capitaine d'`anchorpost`** : le produit a confirmé le 2026-11-13 qu'il n'y en avait plus ; l'architecte en a lancé un. Faute du skill `fusionner` dans une session à un seul dépôt (`Q10`), son mode d'emploi lui est passé en prompt système, copié du plugin 4.2.0. À surveiller : sa mise en place et son premier passage.
 - **Session de suite de l'architecte** : elle doit être ouverte par le produit depuis l'application, seule façon d'avoir plusieurs dépôts (A-5).
 - **Les skills dans une session créée par une autre session** (`Q10`, posée le 2026-11-13) : une telle session ne reçoit qu'un dépôt, et aucun projet ne porte les skills de la chaîne (`anchorpost` n'a pas de `.claude/skills/`). Elle n'a donc ni `chantier`, ni `revue-de-ticket`, ni `fusionner`. Conditionne le lancement d'un conducteur par l'architecte (P-2) et le ticket 6. Recommandation : recopier les skills d'exploitation dans chaque projet, version comprise.
-- **Tour 2 posé le 2026-11-13** : qui vérifie le code avant la fusion (décision 1 de la source), où s'écrivent les cas d'une règle (3), qui fixe la criticité (5), et la portée de la règle sur les noms de modèle.
+- **Tour 2, encore ouvert** : `Q6`, qui vérifie le code avant la fusion (décision 1 de la source), sans réponse ; `Q9`, la ligne d'attribution des commits, non comprise par le produit et réexpliquée le 2026-11-13 ; `Q10`, sans réponse.
+- **`Q11`, posée le 2026-11-13** : un parcours peut-il traverser plusieurs modules ? Le produit dit « une partie d'un module » ; le skill `parcours-federation` de Fedora décrit des parcours (affiliation, adhésion, panier) qui semblent en traverser plusieurs.
+- **Tour 3, à poser** : le sens de « prouvée » et l'état « partielle » (décision 4), la revalidation d'un cas ajouté (7), la mutation sur une PR (6, après `Q6`), jusqu'où Anchorpost montre la fabrication (8), la colonne « basse » de la grille, où se déclare un parcours (piste de l'architecte : le manifeste `anchorpost/manifest.json`, déjà écrit et validé par un humain), et la criticité d'une règle qu'aucun parcours ne couvre.
 - Décisions 4, 6, 7, 8 de la source (§ 6), et la colonne « basse » de la grille : tours suivants.
 - _(tranché, P-4)_ **Comment `skills` reçoit ses changements** : ni `develop`, ni capitaine, ni CI ; le skill `chantier` ne peut pas s'y dérouler tel quel. Question 4 du tour 1.
+
+## Passation — pour la session de suite de l'architecte
+
+À ouvrir par le produit depuis l'application, sur l'environnement ANCHORPOST (les quatre dépôts), avec le droit de pousser sur `claude/compassionate-euler-st84s9` de `skills` (la PR 57 porte cette carte).
+
+1. **Attend le produit** : la fusion des PR 58, 59, 60 de `skills` ; la validation du découpage du chantier 2 ; les réponses à `Q6`, `Q9`, `Q10`, `Q11` ; le choix de qui fait la repose de `couts.mjs` dans `anchorpost` (PR 118, brouillon, à faire après la fusion de la PR 60, et il y faut les deux dépôts).
+2. **Dès le découpage validé** : écrire les tickets 4 à 8 d'après [`plafonds-gel-et-roles.spec.md`](plafonds-gel-et-roles.spec.md) (les `fichier:ligne` y sont), les faire relire par un sous-agent neuf, lancer la vague 1 (tickets 4 et 5) comme le chantier 0 : une session par ticket, source `skills`, branche de travail depuis `origin/main`, ticket lu sur la branche de cadrage (A-4).
+3. **Ensuite** : tour 3 du grilling, puis la spec du chantier 4 (preuve suffisante) dans `anchorpost`, avec sa copie dans `docs/issues/standard-documentation/`.
+4. **Petits tickets d'`anchorpost` à écrire** : la phrase de `.claude/rules/tests.md` ligne 21 ; la repose des critères du socle après la fusion de la PR 59. La mesure de mutation (chantier 1) attend la fusion de la PR 113 d'`anchorpost`.
+5. **Sessions en vie** : le capitaine d'`anchorpost` (fiche). Toutes les sessions de ticket du chantier 0 sont archivées.
 
 ## Journal
 
 - 2026-11-12 — Reprise par l'architecte du programme. Lecture de la méthode, du skill `chantier`, de l'environnement. Carte ouverte, tour 1 du grilling posé, inventaire des restes de l'étape 1 lancé (sous-agent de lecture).
 - 2026-11-13 — Inventaire rendu : la source se trompait sur les trois tickets du socle et sur `tests.md`. Tickets 1 et 2 écrits, chantier 0 lancé. Script de démarrage de l'environnement corrigé (accepté par le produit ; à prouver par la première session neuve).
-- 2026-11-13 — Tickets 1, 2 et 3 livrés (PR 59, 58, 60 de `skills`), vérifiés à la source. Tour 1 validé en bloc par le produit, avec l'ajout du diagramme et de la section de PR pour le modèle de données. Tour 2 posé. Spec du chantier 2 écrite, découpage proposé. Capitaine d'`anchorpost` relancé.
+- 2026-11-13 — Tickets 1, 2 et 3 livrés (PR 59, 58, 60 de `skills`), vérifiés à la source. Tour 1 validé en bloc par le produit, avec l'ajout du diagramme et de la section de PR pour le modèle de données. Tour 2 posé. Spec du chantier 2 écrite, découpage proposé. Capitaine d'`anchorpost` relancé (en place, file vide, veille lancée). Réponses du produit à `Q7` et `Q8`. Passation écrite : l'architecte est à 355 000 tokens.
