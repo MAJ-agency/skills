@@ -661,3 +661,36 @@ test("l'aide nomme geler, degeler et gel, et sort en 4", () => {
   assert.equal(r.status, 4);
   assert.match(r.stdout, /geler <nom> "<raison>" \| degeler <nom> \| gel <nom>/);
 });
+
+test("gel et geler lisent une carte en CRLF, sans fin de ligne finale, et ignorent les variantes proches", () => {
+  const ecrireCarte = (d, texte) => {
+    d.git("switch", "-q", "-c", "tmp", "origin/sujet/demo");
+    d.ecrire(CARTE_GEL, texte);
+    d.commit("docs: carte");
+    d.git("push", "-q", "origin", "HEAD:sujet/demo");
+  };
+  const crlf = sujetGelable();
+  ecrireCarte(crlf, fiche("Gel: pause\n").replaceAll("\n", "\r\n"));
+  const g = crlf.lancer(SCRIPT, "gel", "demo");
+  assert.equal(g.status, 0);
+  assert.equal(g.stdout.trim(), "pause", "CRLF");
+  const fin = sujetGelable();
+  ecrireCarte(fin, "# c\n\nSujet: sujet/demo\n\n## Fiche\n\nPhase: 4\nGel: pause");
+  assert.equal(fin.lancer(SCRIPT, "gel", "demo").stdout.trim(), "pause", "dernière ligne sans fin de ligne");
+  const voisines = sujetGelable();
+  ecrireCarte(voisines, fiche("Gelé: non\nGel sans deux-points\nDégel: non\n"));
+  assert.equal(voisines.lancer(SCRIPT, "gel", "demo").status, 1, "variantes proches : pas gelé");
+  // geler sur une fiche qui finit sans fin de ligne ajoute la ligne proprement.
+  const sans = sujetGelable();
+  ecrireCarte(sans, "# c\n\nSujet: sujet/demo\n\n## Fiche\n\nPhase: 4");
+  assert.equal(geler(sans, "raison").status, 0);
+  assert.match(sans.git("show", `origin/sujet/demo:${CARTE_GEL}`), /Phase: 4\nGel: \d{4}-\d{2}-\d{2} — raison/);
+});
+
+test("geler : une raison contenant des séquences d'échappement littérales reste sur une seule ligne", () => {
+  const d = sujetGelable();
+  assert.equal(geler(d, "a\\nb\\tc \\\\ d").status, 0);
+  const carte = d.git("show", `origin/sujet/demo:${CARTE_GEL}`);
+  assert.match(carte, /^Gel: \d{4}-\d{2}-\d{2} — a\\nb\\tc \\\\ d$/m);
+  assert.equal(d.git("diff", "--numstat", "origin/sujet/demo~1", "origin/sujet/demo").split("\t").slice(0, 2).join(","), "1,0");
+});

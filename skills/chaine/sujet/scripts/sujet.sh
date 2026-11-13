@@ -39,7 +39,7 @@
 #                         chaque PR vers develop listée sur le sujet (sans toucher à ses commits :
 #                         le sujet contient le sommet de develop) et la commente
 #   carte <nom>           (session qui tient la carte) pousse sur origin/sujet/<nom> les commits locaux de la branche
-#                         courante qui n'y sont pas : seul geste d'écriture d'une session sur un sujet
+#                         courante qui n'y sont pas : geste d'écriture d'une session sur un sujet, avec geler/degeler
 #                         (le hook d'agent refuse tout `git push` vers sujet/…). Chaque commit modifie en
 #                         place UN fichier docs/**/*.map.md et rien d'autre (ni création, ni suppression,
 #                         ni renommage, ni mode), dont la ligne `Sujet:` nomme exactement sujet/<nom>
@@ -239,7 +239,9 @@ gel() {
 # Réécrit la ligne `Gel:` de la fiche (stdin → stdout) : remplace la ligne en place, l'ajoute après la
 # dernière ligne de la fiche quand elle manque ; sortie 3 sans section `## Fiche`.
 reecrire_gel() {
-  awk -v v="$1" '
+  # La raison passe par l'environnement : `awk -v` interprète les séquences `\n`, `\t`…
+  VALEUR=$1 awk '
+    BEGIN { v = ENVIRON["VALEUR"] }
     function ligne() { return "Gel:" (v == "" ? "" : " " v) }
     function sortie() { if (fiche && !fait) { print ligne(); fait = 1 } printf "%s", blancs; blancs = ""; fiche = 0 }
     /^## / { sortie(); fiche = ($0 ~ /^## Fiche[[:space:]]*$/); vu = vu || fiche; print; next }
@@ -810,7 +812,7 @@ livrer_prets() {
   done
 }
 
-# `carte <nom>` : voir l'en-tête. Le seul geste d'écriture d'une session sur un sujet.
+# `carte <nom>` : voir l'en-tête. Avec `geler` et `degeler` (qui ne changent que la ligne `Gel:`), le seul geste d'écriture d'une session sur un sujet.
 # Vrai si la carte `<rev>:<chemin>` déclare, en première ligne `Sujet:` de son en-tête (avant le
 # premier `## `), exactement `sujet/<nom>` : la lecture de `sujet_livre` et `phase_carte`. awk lit
 # tout le flux (pas de sortie anticipée) : sous pipefail, un SIGPIPE de git ferait un faux refus.
