@@ -204,7 +204,8 @@ export function identifiantsEnDouble(chemins) {
 
 function chercher(lignes, motif) {
   for (let i = 0; i < lignes.length; i++) {
-    const m = motif.exec(lignes[i]);
+    // Une fin de ligne CRLF laisse un `\r` que `.` ne prend pas : sans ce retrait, la ligne serait absente.
+    const m = motif.exec(lignes[i].replace(/\r$/, ''));
     if (m) return { valeur: m[1].trim(), ligne: i + 1 };
   }
   return null;

@@ -86,6 +86,13 @@ test('une carte sans `Responsable:`, ou dont le responsable est un identifiant d
   assert.equal(session.length, 1);
   assert.match(session[0].message, /`Responsable:` « session_017abc » : un identifiant de session ; attendu une personne/);
   assert.equal(session[0].ligne, 8);
+  const crlf = FICHE('Responsable: Camille Martin\nConducteur: session_y').replaceAll('\n', '\r\n');
+  assert.deepEqual(controlerCarte({ nom: 'c.map.md', texte: crlf }).erreurs, [], 'CRLF, dernière ligne sans fin de ligne');
+  assert.equal(ficheNommeResponsableEtConducteur(crlf), true);
+  assert.match(controlerCarte({ nom: 'c.map.md', texte: FICHE('Responsable: session_017abc\r\nConducteur: session_y') }).erreurs[0].message, /identifiant de session/);
+  assert.match(controlerCarte({ nom: 'c.map.md', texte: FICHE('Responsable:  session_017abc\nConducteur: session_y\n') }).erreurs[0].message, /identifiant de session/, 'espaces avant la valeur');
+  assert.deepEqual(controlerCarte({ nom: 'c.map.md', texte: FICHE('Responsable: Camille session_x\nConducteur: session_y\n') }).erreurs, [], 'seule une valeur qui commence par session_ est refusée');
+  assert.match(controlerCarte({ nom: 'c.map.md', texte: FICHE('Responsable: Camille\nConducteur:\r\n') }).erreurs[0].message, /`Conducteur:` absent ou vide/);
   const sansConducteur = controlerCarte({ nom: 'c.map.md', texte: FICHE('Responsable: Camille Martin\nArchitecte: session_x\n') }).erreurs;
   assert.equal(sansConducteur.length, 1);
   assert.match(sansConducteur[0].message, /`Conducteur:` absent ou vide/);
@@ -127,6 +134,10 @@ test("un ticket prêt sur un chemin sensible sans `Label: contre-revue` est refu
   assert.deepEqual(ecartsFormatPret(sur('`apps/api/src/infrastructure/auth/jwt.ts`', 'Label: contre-revue\n'), SENSIBLES), []);
   assert.deepEqual(ecartsFormatPret(sur('`apps/api/src/infrastructure/auth/jwt.ts`', 'Label: architecte\n'), SENSIBLES), []);
   assert.equal(ecartsFormatPret(sur('`apps/api/src/infrastructure/auth/jwt.ts`', 'Label: contre-revues\n'), SENSIBLES).length, 1);
+  assert.equal(ecartsFormatPret(sur('`apps/api/src/infrastructure/auth/jwt.ts`', 'Label: architectes\n'), SENSIBLES).length, 1);
+  const crlf = sur('`apps/api/src/infrastructure/auth/jwt.ts`', 'Label: contre-revue\n').replaceAll('\n', '\r\n');
+  assert.deepEqual(ecartsFormatPret(crlf, SENSIBLES), [], 'CRLF');
+  assert.deepEqual(ecartsFormatPret(`${sur('`apps/api/src/infrastructure/auth/jwt.ts`')}Label: contre-revue`, SENSIBLES), [], 'dernière ligne sans fin de ligne');
   assert.deepEqual(ecartsFormatPret(sur('`scripts/docs/avancement.mjs`'), SENSIBLES), []);
   assert.deepEqual(ecartsFormatPret(sur('—'), SENSIBLES), []);
   const r = controlerTicket({ nom: NOM, texte: sur('`packages/contracts/src/auth.ts`'), existe, cheminsSensibles: SENSIBLES });
