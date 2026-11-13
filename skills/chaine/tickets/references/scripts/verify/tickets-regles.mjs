@@ -204,7 +204,8 @@ export function identifiantsEnDouble(chemins) {
 
 function chercher(lignes, motif) {
   for (let i = 0; i < lignes.length; i++) {
-    const m = motif.exec(lignes[i]);
+    // Une fin de ligne CRLF laisse un `\r` que `.` ne prend pas : sans ce retrait, la ligne serait absente.
+    const m = motif.exec(lignes[i].replace(/\r$/, ''));
     if (m) return { valeur: m[1].trim(), ligne: i + 1 };
   }
   return null;
@@ -284,6 +285,102 @@ export function lireCheminsSensibles(texte) {
   return liste;
 }
 
+/** Valeurs par défaut des plafonds (A-9, P-3) : les mêmes que `chantier/scripts/plafonds.mjs`. */
+const PLAFONDS_PAR_DEFAUT = { contexteFille: 300000, coutFille: 20, contextePilote: 400000, renvoisParPR: 3 };
+
+/**
+ * `plafonds` du contrat `.claude/chaine.json`. `texte` null : pas de contrat, aucun plafond contrôlé
+ * (`null`). Contrat sans la clé : les valeurs par défaut. Clé mal formée, comme un contrat illisible :
+ * lève (le gate échoue fermé).
+ */
+export function lirePlafonds(texte) {
+  if (texte === null) return null;
+  let contrat;
+  try {
+    contrat = JSON.parse(texte);
+  } catch (e) {
+    throw new Error(`.claude/chaine.json illisible : ${e.message}`);
+  }
+  const p = contrat?.plafonds;
+  if (p === undefined) return { ...PLAFONDS_PAR_DEFAUT };
+  if (typeof p !== 'object' || p === null || Array.isArray(p))
+    throw new Error('.claude/chaine.json : `plafonds` doit être un objet');
+  for (const [cle, v] of Object.entries(p)) {
+    if (!(cle in PLAFONDS_PAR_DEFAUT)) throw new Error(`.claude/chaine.json : plafonds.${cle} inconnu`);
+    if (typeof v !== 'number' || !Number.isFinite(v) || v <= 0)
+      throw new Error(`.claude/chaine.json : plafonds.${cle} doit être un nombre strictement positif`);
+  }
+  return { ...PLAFONDS_PAR_DEFAUT, ...p };
+}
+
+const cellulesDe = (ligne) => ligne.trim().replace(/^\||\|$/g, '').split('|').map((c) => c.trim());
+const NON_RELEVE = /^$|^—$|^à relever$|^\{\{.*\}\}$/i;
+
+/** Lignes de données d'un tableau de section (entête et séparateur ôtés) : { ligne, cellules }. */
+function lignesDeTableau(lignes, corps) {
+  const lus = (corps ?? []).filter((l) => l.trim().startsWith('|')).slice(2);
+  return lus.map((l) => ({ ligne: lignes.indexOf(l) + 1, cellules: cellulesDe(l) }));
+}
+
+/** `174 k` → 174000, `121 835` → 121835, `726 k (compactée)` → 726000 ; autre forme → null. */
+export function contexteEnTokens(texte) {
+  const m = /^(\d[\d\s]*?)\s*(k)?\s*(?:\(.*\))?$/i.exec(texte.trim());
+  if (!m) return null;
+  return Number(m[1].replace(/\s/g, '')) * (m[2] ? 1000 : 1);
+}
+
+/** Coût `2,20` ou `2.20` → nombre ; autre forme → null (la lecture de `couts.mjs`, `montant`). */
+const coutEnDollars = (texte) => {
+  const t = texte.trim().replace(/\s/g, '').replace(',', '.');
+  return /^\d+(\.\d+)?$/.test(t) ? Number(t) : null;
+};
+
+/**
+ * Plafonds de `## Coût` : une ligne dont le rôle est jugé (`fille`, `conducteur`, `architecte`) qui
+ * atteint son plafond (l'égalité compte) exige une ligne dans `## Dépassements` pour la même session.
+ * Tout autre rôle n'est pas jugé ; une cellule « Contexte max » vide, `—`, `à relever` ou au gabarit
+ * non plus ; toute autre forme illisible sur un rôle jugé est une erreur de la carte.
+ */
+function plafondsDeLaCarte({ nom, lignes, corps, plafonds }) {
+  const erreurs = [];
+  const couvertes = new Set(
+    lignesDeTableau(lignes, corps.get('Dépassements'))
+      .map((r) => r.cellules[0] ?? '')
+      .filter((s) => !NON_RELEVE.test(s)),
+  );
+  for (const { ligne, cellules } of lignesDeTableau(lignes, corps.get('Coût'))) {
+    const [role = '', ticket = '', session = '', , contexte = '', cout = ''] = cellules;
+    const r = role.toLowerCase();
+    const fille = r === 'fille';
+    if (!fille && r !== 'conducteur' && r !== 'architecte') continue;
+    const mesures = [];
+    if (!NON_RELEVE.test(contexte)) {
+      const tokens = contexteEnTokens(contexte);
+      if (tokens === null) {
+        erreurs.push({ ligne, message: `carte ${nom} : \`## Coût\`, ligne ${role}/${ticket} : « Contexte max » « ${contexte} » illisible (attendu un entier, avec ou sans espaces, ou suivi de \`k\` : \`174 k\`)` });
+        continue;
+      }
+      const plafond = fille ? plafonds.contexteFille : plafonds.contextePilote;
+      if (tokens >= plafond) mesures.push(`contexte ${tokens} tokens ≥ plafond ${plafond}`);
+    }
+    let dollars = null;
+    if (fille && !NON_RELEVE.test(cout)) {
+      dollars = coutEnDollars(cout);
+      if (dollars === null) {
+        erreurs.push({ ligne, message: `carte ${nom} : \`## Coût\`, ligne ${role}/${ticket} : « Coût $ » « ${cout} » illisible (attendu un montant : \`2,20\`)` });
+        continue;
+      }
+    }
+    if (dollars !== null && dollars >= plafonds.coutFille) mesures.push(`coût ${dollars} $ ≥ plafond ${plafonds.coutFille} $`);
+    if (mesures.length === 0 || (session && couvertes.has(session))) continue;
+    erreurs.push({
+      ligne,
+      message: `carte ${nom} : \`## Coût\`, session ${session || '(sans identifiant)'} (${role}) : ${mesures.join(' ; ')}, sans ligne dans \`## Dépassements\` pour cette session (décision du produit : découper, relancer ou accepter par écrit)`,
+    });
+  }
+  return erreurs;
+}
+
 /** Chemins de la ligne `Fichiers chauds:` : ceux entre accents graves, sinon la liste séparée par des virgules. */
 export function cheminsChauds(valeur) {
   const entre = [...valeur.matchAll(/`([^`]+)`/g)].map((m) => m[1].trim());
@@ -306,7 +403,8 @@ export function motifSensibleTouche(chemin, cheminsSensibles) {
 /**
  * Écarts de format « prêt pour agent » ; vide si le ticket est conforme.
  * `cheminsSensibles` : le contrat de `.claude/chaine.json` ; un chemin chaud qui en touche un exige
- * la ligne `Label: architecte` (chaine-de-production.md § 3).
+ * la ligne `Label: contre-revue` (chaine-de-production.md § 3). L'ancienne valeur `architecte` a le même
+ * effet et reste acceptée sur tout ticket ; les messages ne nomment que `contre-revue`.
  */
 export function ecartsFormatPret(texte, cheminsSensibles = []) {
   const lignes = texte.split('\n');
@@ -315,12 +413,12 @@ export function ecartsFormatPret(texte, cheminsSensibles = []) {
   if (!modele || !/^(sonnet|opus|haiku)\b/.test(modele.valeur)) ecarts.push('ligne `Modèle: sonnet|opus` (avec la raison pour opus) absente');
   const chauds = chercher(lignes, CHAUDS);
   const label = chercher(lignes, LABEL);
-  if (chauds && !/^architecte(\s|$)/.test(label?.valeur ?? '')) {
+  if (chauds && !/^(contre-revue|architecte)(\s|$)/.test(label?.valeur ?? '')) {
     for (const chemin of cheminsChauds(chauds.valeur)) {
       const motif = motifSensibleTouche(chemin, cheminsSensibles);
       if (motif) {
         ecarts.push(
-          `ligne \`Label: architecte\` absente : \`Fichiers chauds\` touche \`${chemin}\`, chemin sensible (\`${motif}\`, cheminsSensibles de .claude/chaine.json)`,
+          `ligne \`Label: contre-revue\` absente : \`Fichiers chauds\` touche \`${chemin}\`, chemin sensible (\`${motif}\`, cheminsSensibles de .claude/chaine.json)`,
         );
         break;
       }
@@ -434,14 +532,21 @@ export const PHASES = ['1-grilling', '2-decoupage', '3-specs-en-fusion', '4-vagu
 
 const PHASE = /^Phase\s*:\s*(.*)$/;
 const ARCHITECTE = /^Architecte\s*:\s*(.*)$/;
+const RESPONSABLE = /^Responsable\s*:\s*(.*)$/;
+const CONDUCTEUR = /^Conducteur\s*:\s*(.*)$/;
 const MIGRATIONS = /^Migrations\s*:\s*(.*)$/;
 const phaseValide = (v) => /^(1-grilling|2-decoupage|3-specs-en-fusion|4-vague-[1-9]\d*|5-livraison|6-nettoyage|fini)(\s|$)/.test(v);
 
 /**
  * Contrôle de la fiche d'une carte de chantier (`*.map.md` portant une ligne `Sujet:`). Une carte
  * sans ligne `Sujet:` n'est pas une carte de chantier : ignorée (`carte: false`).
+ * La fiche nomme `Responsable:` (une personne, jamais un identifiant de session) et `Conducteur:` (la
+ * session qui mène le chantier) ; `Architecte:` (la session du programme) est facultative.
+ * `ficheGelee` : carte d'avant ces deux lignes, gelée dans la clé `fiches` de la dette ; pour elle
+ * l'ancienne règle vaut seule, `Architecte:` non vide, et ses dépassements ne sont pas jugés.
+ * `plafonds` : ceux du contrat (`lirePlafonds`) ; null, aucun plafond contrôlé.
  */
-export function controlerCarte({ nom, texte }) {
+export function controlerCarte({ nom, texte, ficheGelee = false, plafonds = null }) {
   const lignes = texte.split('\n');
   const sujet = chercher(lignes, SUJET);
   if (!sujet) return { carte: false, erreurs: [] };
@@ -456,10 +561,24 @@ export function controlerCarte({ nom, texte }) {
       ligne: phase?.ligne ?? 1,
       message: `carte ${nom} : \`Phase:\` ${phase ? `« ${phase.valeur} » hors vocabulaire` : 'absente'} (attendu : ${PHASES.join(', ')})`,
     });
-  const architecte = chercher(lignes, ARCHITECTE);
-  if (!architecte || architecte.valeur === '') erreurs.push({ ligne: architecte?.ligne ?? 1, message: `carte ${nom} : \`Architecte:\` absent ou vide` });
+  if (ficheGelee) {
+    const architecte = chercher(lignes, ARCHITECTE);
+    if (!architecte || architecte.valeur === '')
+      erreurs.push({ ligne: architecte?.ligne ?? 1, message: `carte ${nom} : \`Architecte:\` absent ou vide (carte gelée dans la dette \`fiches\`)` });
+  } else {
+    const responsable = chercher(lignes, RESPONSABLE);
+    if (!responsable || responsable.valeur === '')
+      erreurs.push({ ligne: responsable?.ligne ?? 1, message: `carte ${nom} : \`Responsable:\` absent ou vide (la personne qui répond du chantier)` });
+    else if (/^session_/.test(responsable.valeur))
+      erreurs.push({ ligne: responsable.ligne, message: `carte ${nom} : \`Responsable:\` « ${responsable.valeur} » : un identifiant de session ; attendu une personne` });
+    const conducteur = chercher(lignes, CONDUCTEUR);
+    if (!conducteur || conducteur.valeur === '')
+      erreurs.push({ ligne: conducteur?.ligne ?? 1, message: `carte ${nom} : \`Conducteur:\` absent ou vide (la session qui mène le chantier)` });
+  }
   const m = phase && /^(?:4-vague-([1-9]\d*)|5-livraison|6-nettoyage|fini)/.exec(phase.valeur);
   if (m && !corps.has('Coût')) erreurs.push({ ligne: phase.ligne, message: `carte ${nom} : section \`## Coût\` absente (obligatoire dès 4-vague-1)` });
+  // Plafonds : pas de contrat (`plafonds` null) ou carte gelée d'avant les rôles, rien n'est jugé.
+  if (plafonds && !ficheGelee && corps.has('Coût')) erreurs.push(...plafondsDeLaCarte({ nom, lignes, corps, plafonds }));
   if (phase && /^fini(\s|$)/.test(phase.valeur)) {
     const retro = corps.get('Rétro');
     if (!retro || retro.length === 0) erreurs.push({ ligne: phase.ligne, message: `carte ${nom} : section \`## Rétro\` absente ou vide (obligatoire à \`fini\`)` });
@@ -471,6 +590,12 @@ export function controlerCarte({ nom, texte }) {
       message: `carte ${nom} : \`Migrations:\` « ${migrations.valeur} » : attendu des horodatages de 12 chiffres (AAAAMMJJHHMM) séparés par des virgules, ou « — »`,
     });
   return { carte: true, erreurs };
+}
+
+/** La fiche porte les deux lignes nouvelles, non vides : une carte gelée dans la dette `fiches` en sort. */
+export function ficheNommeResponsableEtConducteur(texte) {
+  const lignes = texte.split('\n');
+  return [RESPONSABLE, CONDUCTEUR].every((motif) => (chercher(lignes, motif)?.valeur ?? '') !== '');
 }
 
 const formeMigrations = (v) => v === '—' || v === '' || v.split(',').every((h) => /^\d{12}$/.test(h.trim()));

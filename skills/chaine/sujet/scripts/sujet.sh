@@ -38,8 +38,8 @@
 #   regrouper <nom> <pr>… ouvre sujet/<nom> au besoin, le met à jour avec develop, puis recible
 #                         chaque PR vers develop listée sur le sujet (sans toucher à ses commits :
 #                         le sujet contient le sommet de develop) et la commente
-#   carte <nom>           (architecte) pousse sur origin/sujet/<nom> les commits locaux de la branche
-#                         courante qui n'y sont pas : seul geste d'écriture d'une session sur un sujet
+#   carte <nom>           (session qui tient la carte) pousse sur origin/sujet/<nom> les commits locaux de la branche
+#                         courante qui n'y sont pas : geste d'écriture d'une session sur un sujet, avec geler/degeler
 #                         (le hook d'agent refuse tout `git push` vers sujet/…). Chaque commit modifie en
 #                         place UN fichier docs/**/*.map.md et rien d'autre (ni création, ni suppression,
 #                         ni renommage, ni mode), dont la ligne `Sujet:` nomme exactement sujet/<nom>
@@ -49,13 +49,24 @@
 #   carte (sans argument) « ticket<TAB>sujet » pour chaque ticket qui déclare un sujet (develop et sujets)
 #   de <ticket>           sujet d'un ticket
 #   etat                  tableau des sujets ouverts : avance, retard, sous-PR, tickets, verdict
-#                         (`en cours`, `prêt à livrer`, `livré #n`)
+#                         (`en cours`, `prêt à livrer`, `livré #n`, `gelé` : le gel prime sur les autres)
+#   geler <nom> "<raison>"  gèle le chantier : écrit `Gel: AAAA-MM-JJ — <raison>` dans la fiche de la carte
+#                         et le pousse sur origin/sujet/<nom> (commit construit sur origin/sujet/<nom>, sans
+#                         toucher à la branche courante ni à l'arbre de travail ; sans force, sans hook ;
+#                         sujet qui a bougé : un second essai, puis sortie 9). Refuse (4) un sujet sans carte
+#                         sur sa branche, une raison vide, un sujet déjà gelé. Plus aucune session ne part
+#                         de ce sujet (`demarrer`), plus aucune de ses PR n'entre (`livrer`, `fusionner`,
+#                         état « gelée » de file.sh). Un sujet gelé reste rafraîchi par la boucle
+#   degeler <nom>         vide la ligne `Gel:` (sortie 0, rien de poussé, si le sujet n'est pas gelé)
+#   gel <nom>             lecture : écrit la valeur de `Gel:` (fiche de la carte sur origin/sujet/<nom>) et
+#                         sort en 0 si le sujet est gelé, 1 sinon. Toute valeur non vide gèle, datée ou non
+#                         (ligne écrite à la main dans l'éditeur de GitHub)
 #
 # Sorties : 0 fait · 2 conflit · 3 checks rouges ou en cours · 4 refus corrigeable par l'auteur (sa
 # dernière ligne est le motif, `fusionner` : titre, commitlint, revue, base) · 6 arbre de travail pas
 # propre (`fusionner`, `rafraichir`, `regrouper`, `relancer` : à nettoyer par qui lance, jamais un renvoi de la PR,
-# comme la sortie 6 de passer.sh) · 7 `fusionner` d'une PR fermée ou en brouillon (rien à corriger :
-# sautée) · 9 `carte <nom>` refusée (rien n'est poussé)
+# comme la sortie 6 de passer.sh) · 7 `fusionner` d'une PR fermée, en brouillon ou d'un sujet gelé (rien à
+# corriger : sautée) · 9 `carte <nom>` refusée, ou `geler`/`degeler` dont le push échoue deux fois (rien n'est poussé)
 # `fusionner` encore : 5 la sous-PR a bougé pendant sa mise à jour (reprise au tour suivant) · 8 conflit
 # avec le sujet sur des index générés seuls : branche mise à jour (index régénérés) et poussée, CI
 # relancée, aucun squash
@@ -193,6 +204,118 @@ phase_carte() {
   printf '%s\n' "$phase"
 }
 
+# Gel du chantier (A-11) : ligne `Gel:` de la fiche de la carte, lue sur origin/sujet/<nom> seul (la
+# carte y vit jusqu'à la livraison). Valeur non vide = gelé, quelle que soit sa forme. Sans réseau :
+# l'appelant a déjà rapatrié le sujet (la commande `gel` le fait).
+# Fichier de la carte du sujet sur une référence ; vide si le sujet n'en a pas.
+carte_fichier() {
+  local ref=$1 nom=$2 f
+  while IFS= read -r f; do
+    git show "$ref:$f" | grep -qE "^(- )?\**Sujet ?:\** *sujet/${nom}[[:space:]]*\$" || continue
+    printf '%s\n' "$f"
+    return 0
+  done < <(git ls-tree -r --name-only "$ref" -- docs 2>/dev/null | grep -E '\.map\.md$' | grep -v '/gabarits/' || true)
+}
+# Valeur de `Gel:` (vide si absente ou vide), cherchée dans la seule section `## Fiche`.
+gel_de() {
+  local nom=${1#sujet/} f
+  git rev-parse -q --verify "origin/sujet/$nom" >/dev/null || return 0
+  f=$(carte_fichier "origin/sujet/$nom" "$nom")
+  [ -n "$f" ] || return 0
+  git show "origin/sujet/$nom:$f" | awk '
+    /^## / { fiche = ($0 ~ /^## Fiche[[:space:]]*$/); next }
+    fiche && !trouve && /^(- )?\**Gel ?:/ { l = $0; sub(/^(- )?\**Gel ?:\** */, "", l); sub(/[[:space:]]+$/, "", l); print l; trouve = 1 }'
+}
+# `sujet.sh gel <nom>` : écrit la valeur, sortie 0 si gelé, 1 sinon.
+gel() {
+  local nom=${1:?nom du sujet} v
+  nom=${nom#sujet/}
+  git fetch -q origin "+refs/heads/sujet/$nom:refs/remotes/origin/sujet/$nom" 2>/dev/null || true
+  v=$(gel_de "$nom")
+  [ -n "$v" ] || return 1
+  printf '%s\n' "$v"
+}
+
+# Réécrit la ligne `Gel:` de la fiche (stdin → stdout) : remplace la ligne en place, l'ajoute après la
+# dernière ligne de la fiche quand elle manque ; sortie 3 sans section `## Fiche`.
+reecrire_gel() {
+  # La raison passe par l'environnement : `awk -v` interprète les séquences `\n`, `\t`…
+  VALEUR=$1 awk '
+    BEGIN { v = ENVIRON["VALEUR"] }
+    function ligne() { return "Gel:" (v == "" ? "" : " " v) }
+    function sortie() { if (fiche && !fait) { print ligne(); fait = 1 } printf "%s", blancs; blancs = ""; fiche = 0 }
+    /^## / { sortie(); fiche = ($0 ~ /^## Fiche[[:space:]]*$/); vu = vu || fiche; print; next }
+    fiche && !fait && /^(- )?\**Gel ?:/ { printf "%s", blancs; blancs = ""; print ligne(); fait = 1; next }
+    fiche && /^[[:space:]]*$/ { blancs = blancs $0 "\n"; next }
+    fiche { printf "%s", blancs; blancs = ""; print; next }
+    { print }
+    END { sortie(); if (!vu) exit 3 }'
+}
+
+# Pousse sur origin/sujet/<nom> un commit qui n'a changé que la ligne `Gel:` de la carte : construit
+# par plomberie sur un index temporaire, sans toucher à la branche courante ni à l'arbre de travail.
+ecrire_gel() {
+  local nom=$1 valeur=$2 message=$3 essai f mode blob idx tree commit nouveau formate
+  for essai in 1 2; do
+    git fetch -q origin "+refs/heads/sujet/$nom:refs/remotes/origin/sujet/$nom" 2>/dev/null || sortir 9 "origin/sujet/$nom introuvable"
+    f=$(carte_fichier "origin/sujet/$nom" "$nom")
+    [ -n "$f" ] || sortir 4 "sujet/$nom n'a pas de carte sur sa branche (ligne Sujet: sujet/$nom d'un docs/**/*.map.md) : un sujet sans carte ne se gèle pas"
+    mode=$(git ls-tree "origin/sujet/$nom" -- "$f" | awk '{ print $1 }')
+    nouveau=$(git show "origin/sujet/$nom:$f" | reecrire_gel "$valeur") ||
+      sortir 4 "la carte $f n'a pas de section « ## Fiche » : y ajouter la ligne Gel: à la main"
+    # Prettier formate la carte quand il est là (le gate des cartes l'exige) ; sinon, texte tel quel.
+    formate=$(printf '%s\n' "$nouveau" | pnpm exec prettier --stdin-filepath "$f" 2>/dev/null || true)
+    [ -z "$formate" ] || nouveau=$formate
+    blob=$(printf '%s\n' "$nouveau" | git hash-object -w --stdin)
+    idx=$(mktemp -u)
+    GIT_INDEX_FILE=$idx git read-tree "origin/sujet/$nom"
+    GIT_INDEX_FILE=$idx git update-index --cacheinfo "$mode,$blob,$f"
+    tree=$(GIT_INDEX_FILE=$idx git write-tree)
+    rm -f "$idx"
+    commit=$(git commit-tree "$tree" -p "origin/sujet/$nom" -m "$message")
+    if git push -q --no-verify origin "$commit:refs/heads/sujet/$nom" 2>/dev/null; then
+      git fetch -q origin "+refs/heads/sujet/$nom:refs/remotes/origin/sujet/$nom" 2>/dev/null || true
+      return 0
+    fi
+  done
+  sortir 9 "le push sur sujet/$nom a échoué deux fois (le sujet bouge) : relancer"
+}
+
+geler() {
+  local nom=${1:?nom du sujet} raison=${2-} actuel
+  nom=${nom#sujet/}
+  [[ "$nom" =~ ^[a-z0-9][a-z0-9-]*$ ]] || sortir 4 "nom de sujet en kebab-case attendu : $nom"
+  raison=$(tr '\n\r' '  ' <<<"$raison" | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//')
+  [ -n "$raison" ] || sortir 4 "une raison est obligatoire : sujet.sh geler $nom \"<raison>\""
+  git fetch -q origin "+refs/heads/sujet/$nom:refs/remotes/origin/sujet/$nom" 2>/dev/null ||
+    sortir 4 "origin/sujet/$nom introuvable : un sujet sans branche ne se gèle pas"
+  actuel=$(gel_de "$nom")
+  [ -z "$actuel" ] || sortir 4 "sujet/$nom est déjà gelé : Gel: $actuel"
+  ecrire_gel "$nom" "$(date -u +%Y-%m-%d) — $raison" "docs: gèle le chantier sujet/$nom"
+  echo "sujet/$nom gelé : plus aucune session n'en part, plus aucune de ses PR n'entre"
+}
+
+degeler() {
+  local nom=${1:?nom du sujet}
+  nom=${nom#sujet/}
+  git fetch -q origin "+refs/heads/sujet/$nom:refs/remotes/origin/sujet/$nom" 2>/dev/null ||
+    sortir 4 "origin/sujet/$nom introuvable"
+  if [ -z "$(gel_de "$nom")" ]; then
+    echo "sujet/$nom n'est pas gelé : rien à faire"
+    return 0
+  fi
+  ecrire_gel "$nom" "" "docs: dégèle le chantier sujet/$nom"
+  echo "sujet/$nom dégelé. Le conducteur ne se réveille pas tout seul : le prévenir (send_message) s'il vit encore,"
+  echo "sinon relancer le chantier par le skill chantier avec le nom du sujet."
+}
+
+# Refus (4) d'un sujet gelé : la ligne en place est citée.
+refuser_si_gele() {
+  local g
+  g=$(gel_de "$1")
+  [ -z "$g" ] || sortir 4 "sujet/${1#sujet/} est gelé (Gel: $g) : plus aucune session n'en part, plus aucune PR n'y entre. Dégeler d'abord (sujet.sh degeler ${1#sujet/}) ou demander au produit."
+}
+
 demarrer() {
   local arg=${1:?identifiant de ticket (SPEC_ALL_SOC-1.02) ou nom de sujet}
   local nom branche courante ticket='' ref present=''
@@ -227,6 +350,7 @@ Ne pas partir de la branche de specs : attendre sa fusion (ou \`sujet.sh ouvrir 
   # `git ls-remote` plutôt que `gh api` : marche aussi sans `gh` authentifié (session cloud).
   git ls-remote --exit-code --heads origin "$branche" >/dev/null 2>&1 || ouvrir "$nom"
   git fetch -q origin develop "$branche"
+  refuser_si_gele "$nom"
   [ -z "$ticket" ] || verifier_ticket "$ticket" "origin/$branche"
   courante=$(git rev-parse --abbrev-ref HEAD)
   [ "$courante" != HEAD ] || sortir 4 "HEAD détachée : se placer sur la branche de travail d'abord"
@@ -328,6 +452,9 @@ fusionner() {
   [ "$(jq -r .draft <<<"$pr")" = false ] || sortir 7 "#$n est en brouillon"
   base=$(jq -r .base.ref <<<"$pr")
   [[ "$base" == sujet/* ]] || sortir 4 "#$n vise $base, pas une branche sujet/ : elle passe par le capitaine"
+  # Sujet gelé : rien à corriger côté auteur (7), jamais 4 qui renverrait la PR à sa session.
+  git fetch -q origin "+refs/heads/$base:refs/remotes/origin/$base" 2>/dev/null || true
+  [ -z "$(gel_de "$base")" ] || sortir 7 "#$n : $base est gelé (Gel: $(gel_de "$base")) : sous-PR laissée dans la file"
   titre=$(jq -r .title <<<"$pr")
   sommet=$(jq -r .head.sha <<<"$pr")
   longueur=$(node -e 'console.log([...process.argv[1]].length)' "$titre (#$n)")
@@ -426,6 +553,7 @@ livrer() {
   local nom=${1:?nom du sujet} titre=${2:?titre de la PR finale (Conventional Commits)}
   local branche="sujet/$nom" corps n tete phase intermediaire=''
   git fetch -q origin develop "$branche"
+  refuser_si_gele "$nom"
   # Livraison intermédiaire : carte en phase d'avant `5-livraison`. La PR part d'une
   # branche jetable, que GitHub supprime à la fusion : la branche du sujet survit.
   phase=$(phase_carte "$nom")
@@ -591,6 +719,7 @@ regrouper_series() {
 }
 
 # Tableau des sujets ouverts. Verdict :
+#   gelé              la ligne `Gel:` de sa carte n'est pas vide : prime sur tous les autres verdicts
 #   livré #n          sa PR vers develop est ouverte : le capitaine la passe
 #   prêt à livrer     aucune sous-PR ouverte et tous ses tickets faits (Status resolved/Fait/done)
 #   en cours          sinon ; « VIEUX » au-delà de 5 jours sans livraison, « EN RETARD » au-delà
@@ -638,7 +767,8 @@ etat() {
     vieux=''
     [ "$age" -le 5 ] || vieux=' VIEUX'
     [ "$retard" -le 20 ] || vieux="$vieux EN RETARD"
-    if [ -n "$livree" ]; then v="livré #$livree"
+    if [ -n "$(gel_de "$nom")" ]; then v='gelé'
+    elif [ -n "$livree" ]; then v="livré #$livree"
     elif [ -z "$sous" ] && [ -z "$restants" ] && [ "$avance" -gt 0 ]; then v="prêt à livrer$vieux"
     else v="en cours$vieux"; fi
     printf '%s\t%s\t%s\t%s\t%s\t%s\n' "$nom" "$avance" "$retard" "${sous:-—}" "${restants:-—}" "$v"
@@ -682,7 +812,7 @@ livrer_prets() {
   done
 }
 
-# `carte <nom>` : voir l'en-tête. Le seul geste d'écriture d'une session sur un sujet.
+# `carte <nom>` : voir l'en-tête. Avec `geler` et `degeler` (qui ne changent que la ligne `Gel:`), le seul geste d'écriture d'une session sur un sujet.
 # Vrai si la carte `<rev>:<chemin>` déclare, en première ligne `Sujet:` de son en-tête (avant le
 # premier `## `), exactement `sujet/<nom>` : la lecture de `sujet_livre` et `phase_carte`. awk lit
 # tout le flux (pas de sortie anticipée) : sous pipefail, un SIGPIPE de git ferait un faux refus.
@@ -743,10 +873,10 @@ commande=${1:-}
 shift || true
 if [ "$commande" = carte ] && [ $# -gt 0 ]; then carte_sujet "$@"; exit; fi
 case "$commande" in
-  demarrer | ouvrir | fusionner | rafraichir | livrer | relancer | series | regrouper | carte | etat) "$commande" "$@" ;;
+  demarrer | ouvrir | fusionner | rafraichir | livrer | relancer | series | regrouper | carte | etat | geler | degeler | gel) "$commande" "$@" ;;
   de) sujet_du_ticket "${1:?ticket}" ;;
   livre) sujet_livre "${1:?nom du sujet}" ;;
   livrer-prets) livrer_prets "$@" ;;
   regrouper-series) regrouper_series "$@" ;;
-  *) sed -n '3,/^# =====/p' "$0" | sed '$d; s/^# \{0,1\}//'; sortir 4 "usage : sujet.sh demarrer <ticket|nom> | ouvrir <nom> [--specs <pr>] | fusionner <pr> | rafraichir <nom> | livrer <nom> <titre> | livrer-prets [--dry-run] | relancer <pr> | series | regrouper-series [--dry-run] | regrouper <nom> <pr>… | carte | carte <nom> | etat | de <ticket>" ;;
+  *) sed -n '3,/^# =====/p' "$0" | sed '$d; s/^# \{0,1\}//'; sortir 4 "usage : sujet.sh demarrer <ticket|nom> | ouvrir <nom> [--specs <pr>] | fusionner <pr> | rafraichir <nom> | livrer <nom> <titre> | livrer-prets [--dry-run] | relancer <pr> | series | regrouper-series [--dry-run] | regrouper <nom> <pr>… | carte | carte <nom> | etat | geler <nom> \"<raison>\" | degeler <nom> | gel <nom> | de <ticket>" ;;
 esac

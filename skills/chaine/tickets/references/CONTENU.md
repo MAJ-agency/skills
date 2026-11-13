@@ -10,11 +10,11 @@ Trois sources croisées avant de commencer : la ligne `Status:` sur `develop` et
 
 ## `vagues.mjs`
 
-Les vagues d'un chantier d'après les tickets : bloquants faits, fichiers chauds disjoints, au plus N. Il propose, l'architecte décide : trois sous-PR d'une même vague sont revenues en conflit sur un fichier chaud commun quand les vagues se faisaient à la main.
+Les vagues d'un chantier d'après les tickets : bloquants faits, fichiers chauds disjoints, au plus N. Il propose, le conducteur décide : trois sous-PR d'une même vague sont revenues en conflit sur un fichier chaud commun quand les vagues se faisaient à la main.
 
 ## `avancement.mjs`, `avancement-regles.mjs`
 
-Le tableau d'avancement en une commande : l'humain demandait « en % ? » cinq fois par jour, chaque réponse coûtant un tour d'architecte sur un gros contexte.
+Le tableau d'avancement en une commande : le produit demandait « en % ? » cinq fois par jour, chaque réponse coûtant un tour du conducteur sur un gros contexte.
 
 ## `archiver-tickets.mjs`
 
@@ -30,7 +30,7 @@ Le gate : vocabulaire fermé de `Status:` et de `Type:`, `Règles:` dont chaque 
 
 ## `agents/`, `gabarits/`
 
-Le tracker et les labels tels que les skills de Matt Pocock les attendent (`docs/agents/`), complétés par la réservation, l'archivage et le ticket prêt pour agent ; les gabarits d'une spec, d'un ticket, d'une carte, d'une règle (`regle.md` : en-tête YAML validé, énoncé en markdown) et d'une demande (`demande.md`).
+Le tracker et les labels tels que les skills de Matt Pocock les attendent (`docs/agents/`), complétés par la réservation, l'archivage et le ticket prêt pour agent ; les gabarits d'une spec, d'un ticket, d'une carte de chantier, d'une carte de programme (`programme.md` : la mémoire de l'architecte, que le gate des cartes `*.map.md` ne lit pas), d'une règle (`regle.md` : en-tête YAML validé, énoncé en markdown) et d'une demande (`demande.md`).
 
 ## `depot-jouet.mjs` et les tests
 

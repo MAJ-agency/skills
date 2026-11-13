@@ -18,7 +18,8 @@ La rétro d'un chantier (skill `chantier` § 7) ajoute ici une ligne par inciden
 - **Retenir une sous-PR, c'est retirer `à-fusionner`** : un message au capitaine arrive après le squash.
 - **Titre de sous-PR au-delà de 120 caractères avec « (#n) »**, ou refusé par commitlint : renvoyée, jamais fusionnée.
 - **Le label se pose après le dernier push** : étiquetée sur son seul commit de réservation, une PR entre vide dans son sujet.
-- **Un capitaine arrêté ne prévient personne** : l'architecte qui attend une fusion regarde d'abord la date de la dernière fusion sur develop.
+- **Un `pnpm check` vert sur la seule branche ne dit rien de sa fusion** avec un sujet qui a avancé depuis son départ (cas vécu : anchorpost PR 54) : avant de poser `à-fusionner`, `git fetch origin`, fusionner le sujet dans la branche et rejouer `pnpm check` sur le résultat.
+- **Un capitaine arrêté ne prévient personne** : le conducteur qui attend une fusion regarde d'abord la date de la dernière fusion sur develop.
 
 ## Boucle du capitaine
 

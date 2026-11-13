@@ -7,7 +7,7 @@ Sujet: sujet/{{nom}}
 Blocked by: {{NN, NN — ou retirer la ligne}}
 Modèle: sonnet
 Fichiers chauds: `{{chemin}}`, `{{chemin}}` — ou `—`
-Label: architecte # obligatoire quand `Fichiers chauds` touche `cheminsSensibles` (le gate `tickets` le vérifie) — sinon retirer la ligne
+Label: contre-revue # obligatoire quand `Fichiers chauds` touche `cheminsSensibles` (le gate `tickets` le vérifie) — sinon retirer la ligne
 Dépendances: `{{paquet}}`, `{{paquet}}` — ou `—`
 Maquette: {{fichier du dépôt : maquette HTML et section, ou planche recopiée sous docs/design/planches/ — jamais un artefact seul, la fille ne peut pas l'ouvrir}} — ou retirer la ligne si le ticket ne touche aucun écran
 

@@ -43,14 +43,16 @@ const PRET_SENSIBLE = (label) =>
   `# x\n\nStatus: ready-for-agent\nType: task\nModèle: sonnet\nFichiers chauds: \`apps/api/src/infrastructure/auth/jwt.ts\`\n${label}\n## Où\n\n- a\n\n## Décisions\n\n- b\n\n## Surfaces\n\n- c\n\n## Vérification\n\n- d\n`;
 const CHAINE = { '.claude/chaine.json': '{"cheminsSensibles":["apps/api/src/**/auth/**"]}\n' };
 
-test('un ticket prêt dont `Fichiers chauds` touche `cheminsSensibles` sans `Label: architecte` est refusé ; avec, il passe', () => {
+test("un ticket prêt dont `Fichiers chauds` touche `cheminsSensibles` sans `Label: contre-revue` est refusé ; avec, ou avec l'ancienne valeur, il passe", () => {
   const ko = depotJouet({ fichiers: { ...DETTE, ...CHAINE, 'docs/features/socle/all/issues/SPEC_ALL_SOC-1-socle.01.issue.md': PRET_SENSIBLE('') } });
   const r = lancer(ko);
   assert.equal(r.status, 1);
-  assert.match(r.stderr, /SPEC_ALL_SOC-1-socle\.01\.issue\.md:3 : ready-for-agent : ligne `Label: architecte` absente : `Fichiers chauds` touche `apps\/api\/src\/infrastructure\/auth\/jwt\.ts`/);
-  const ok = depotJouet({ fichiers: { ...DETTE, ...CHAINE, 'docs/features/socle/all/issues/SPEC_ALL_SOC-1-socle.01.issue.md': PRET_SENSIBLE('Label: architecte\n') } });
-  const r2 = lancer(ok);
-  assert.equal(r2.status, 0, r2.stderr);
+  assert.match(r.stderr, /SPEC_ALL_SOC-1-socle\.01\.issue\.md:3 : ready-for-agent : ligne `Label: contre-revue` absente : `Fichiers chauds` touche `apps\/api\/src\/infrastructure\/auth\/jwt\.ts`/);
+  for (const label of ['Label: contre-revue\n', 'Label: architecte\n']) {
+    const ok = depotJouet({ fichiers: { ...DETTE, ...CHAINE, 'docs/features/socle/all/issues/SPEC_ALL_SOC-1-socle.01.issue.md': PRET_SENSIBLE(label) } });
+    const r2 = lancer(ok);
+    assert.equal(r2.status, 0, `${label}${r2.stderr}`);
+  }
 });
 
 test('un `.claude/chaine.json` illisible fait sortir le gate en erreur, au lieu de cesser d\'exiger', () => {
@@ -124,6 +126,45 @@ test('dette `types` : gelée une fois par --geler-types, jamais agrandie, élagu
   assert.deepEqual(JSON.parse(readFileSync(join(d.travail, 'scripts/verify/tickets-dette.json'), 'utf8')).types, []);
 });
 
+const FICHE_CARTE = (lignes) => `# Carte\n\nSujet: sujet/socle\n\n## Fiche\n\nPhase: 2-decoupage\n${lignes}`;
+
+test('dette des fiches : gelée une fois, jamais agrandie, élaguée quand la carte nomme son responsable et son conducteur', () => {
+  const ancienne = 'docs/features/socle/all/SPEC_ALL_SOC-1-socle.map.md';
+  const d = depotJouet({ fichiers: { ...DETTE, [ancienne]: FICHE_CARTE('Architecte: session_x\nConducteur: session_z\n') } });
+  const lireDette = () => JSON.parse(readFileSync(join(d.travail, 'scripts/verify/tickets-dette.json'), 'utf8'));
+  const avant = lancer(d);
+  assert.equal(avant.status, 1);
+  assert.match(avant.stderr, /SPEC_ALL_SOC-1-socle\.map\.md:1 : carte SPEC_ALL_SOC-1-socle\.map\.md : `Responsable:` absent ou vide/);
+  const gel = lancer(d, '--geler-fiches');
+  assert.equal(gel.status, 0, gel.stderr);
+  assert.deepEqual(lireDette().fiches, [ancienne]);
+  const r = lancer(d);
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stdout, /1 fiche\(s\) d'avant Responsable:\/Conducteur:/);
+  const encore = lancer(d, '--geler-fiches');
+  assert.equal(encore.status, 1);
+  assert.match(encore.stderr, /dette `fiches` est déjà gelée/);
+  // Gelée, la carte garde l'ancienne règle : `Architecte:` non vide.
+  writeFileSync(join(d.travail, ancienne), FICHE_CARTE('Architecte:\n'));
+  assert.match(lancer(d).stderr, /`Architecte:` absent ou vide/);
+  // Une carte nouvelle n'entre jamais dans la dette.
+  const nouvelle = 'docs/features/socle/all/SPEC_ALL_SOC-2-autre.map.md';
+  writeFileSync(join(d.travail, ancienne), FICHE_CARTE('Architecte: session_x\n'));
+  writeFileSync(join(d.travail, nouvelle), FICHE_CARTE('Architecte: session_x\n'));
+  d.git('add', '-A');
+  const r2 = lancer(d);
+  assert.equal(r2.status, 1);
+  assert.match(r2.stderr, /SPEC_ALL_SOC-2-autre\.map\.md:1 : carte SPEC_ALL_SOC-2-autre\.map\.md : `Responsable:` absent ou vide/);
+  assert.doesNotMatch(r2.stderr, /SPEC_ALL_SOC-1-socle\.map\.md/);
+  writeFileSync(join(d.travail, nouvelle), FICHE_CARTE('Responsable: Camille Martin\nConducteur: session_y\n'));
+  writeFileSync(join(d.travail, ancienne), FICHE_CARTE('Responsable: Camille Martin\nConducteur: session_z\n'));
+  const r3 = lancer(d);
+  assert.equal(r3.status, 0, r3.stderr);
+  assert.match(r3.stdout, /1 entrée\(s\) éteinte\(s\)/);
+  lancer(d, '--elaguer');
+  assert.deepEqual(lireDette().fiches, []);
+});
+
 test('scripts/docs/identifiants.mjs absent : sortie 2, la grammaire du socle nommée', async () => {
   const { cpSync, mkdtempSync } = await import('node:fs');
   const { tmpdir } = await import('node:os');
@@ -134,4 +175,25 @@ test('scripts/docs/identifiants.mjs absent : sortie 2, la grammaire du socle nom
   const r = spawnSync(process.execPath, [join(sans, 'tickets.mjs')], { cwd: d.travail, env: { ...ENV, PATH: d.bin, PROJET_RACINE: d.travail }, encoding: 'utf8' });
   assert.equal(r.status, 2, r.stderr);
   assert.match(r.stderr, /scripts\/docs\/identifiants\.mjs introuvable .*socle-monorepo/);
+});
+
+test('gate complet : une fille au-delà du plafond sans dépassement écrit est refusée, la carte et la session nommées', () => {
+  const carte = 'docs/features/socle/all/SPEC_ALL_SOC-1-socle.map.md';
+  const cout = (suite = '') =>
+    `# Carte\n\nSujet: sujet/socle\n\n## Fiche\n\nPhase: 4-vague-1\nResponsable: Camille Martin\nConducteur: session_z\n\n## Coût\n\n| Rôle | Ticket | Session | Modèle | Contexte max | Coût $ |\n| --- | --- | --- | --- | --- | --- |\n| fille | SPEC_ALL_SOC-1.01 | session_f | sonnet | 174 k | 25,00 |\n${suite}`;
+  const d = depotJouet({ fichiers: { ...DETTE, '.claude/chaine.json': '{}\n', [carte]: cout() } });
+  const r = lancer(d);
+  assert.equal(r.status, 1);
+  assert.match(r.stderr, /SPEC_ALL_SOC-1-socle\.map\.md:\d+ : carte SPEC_ALL_SOC-1-socle\.map\.md : `## Coût`, session session_f \(fille\) : coût 25 \$ ≥ plafond 20 \$/);
+  writeFileSync(join(d.travail, carte), cout('\n## Dépassements\n\n| Session | Ticket | Mesure | Décision du produit | Date |\n| --- | --- | --- | --- | --- |\n| session_f | SPEC_ALL_SOC-1.01 | 25 $ | accepté | 2026-11-13 |\n'));
+  d.git('add', '-A');
+  const ok = lancer(d);
+  assert.equal(ok.status, 0, ok.stderr);
+  // Contrat mal formé : le gate échoue fermé ; sans contrat, aucun plafond.
+  writeFileSync(join(d.travail, '.claude/chaine.json'), '{"plafonds":{"coutFille":0}}\n');
+  const mal = lancer(d);
+  assert.equal(mal.status, 1);
+  assert.match(mal.stderr, /plafonds\.coutFille/);
+  const sans = depotJouet({ fichiers: { ...DETTE, [carte]: cout() } });
+  assert.equal(lancer(sans).status, 0);
 });

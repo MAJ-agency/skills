@@ -3,7 +3,7 @@
  * Tableau d'avancement d'un chantier.
  *
  * Pourquoi. L'humain demandait l'avancement « en % » plusieurs fois par jour ; chaque réponse coûtait
- * un tour d'architecte sur un contexte de plusieurs centaines de milliers de tokens. L'état existe
+ * un tour du conducteur sur un contexte de plusieurs centaines de milliers de tokens. L'état existe
  * déjà : lignes `Status:` des tickets, PR et leurs labels. Ce script les croise en une commande.
  *
  * Tickets du chantier :

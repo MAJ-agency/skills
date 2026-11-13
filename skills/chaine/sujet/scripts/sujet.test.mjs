@@ -499,3 +499,198 @@ test("livrer en 5-livraison : la PR part de sujet/<nom>, comme avant", () => {
   assert.doesNotMatch(pr.champs.body, /intermédiaire/);
   assert.equal(d.git("ls-remote", "--heads", "origin", "livraison/*"), "");
 });
+
+// =============================================================================
+// Gel d'un chantier (A-11) : ligne `Gel:` de la fiche de la carte, sur origin/sujet/<nom>.
+// =============================================================================
+const CARTE_GEL = "docs/features/demo/all/SPEC_ALL_DEM-1-demo.map.md";
+const fiche = (gel = "") =>
+  `# SPEC_ALL_DEM-1 — Carte\n\nSujet: sujet/demo\n\n## Fiche\n\nPhase: 4-vague-1\nConducteur: session_y\n${gel}\n## Decisions-so-far\n\n- A-1 — x\n`;
+const gelSur = (d) =>
+  d.git("show", `origin/sujet/demo:${CARTE_GEL}`).match(/^Gel ?:.*$/m)?.[0];
+const AUJOURDHUI = /^Gel: \d{4}-\d{2}-\d{2} — le produit change d'avis$/;
+
+// Sujet demo avec sa carte (et sa spec), un ticket par sujet ; la branche de travail part du sujet.
+function sujetGelable(gel = "", { carte = true } = {}) {
+  const d = depotJouet();
+  d.ecrire(SPEC, "# SPEC_ALL_DEM-1\n\nSujet: sujet/demo\n");
+  d.ecrire(ticket("01"), "# .01\n\nStatus: ready-for-agent\nBlocked by: —\n");
+  if (carte) d.ecrire(CARTE_GEL, fiche(gel));
+  d.commit("docs: specs et carte");
+  d.git("push", "-q", "origin", "HEAD:develop", "HEAD:refs/heads/sujet/demo");
+  d.git("fetch", "-q", "origin");
+  d.git("switch", "-q", "-c", "feat/spec-all-dem-1-01-travail", "origin/develop");
+  return d;
+}
+const geler = (d, ...a) => d.lancer(SCRIPT, "geler", "demo", ...a);
+
+test("geler écrit la ligne Gel: datée dans la carte du sujet, sans toucher la branche courante ni l'arbre de travail", () => {
+  const d = sujetGelable();
+  d.ecrire("src/en-cours.ts", "export const x = 1;\n");
+  const avant = {
+    tete: d.git("rev-parse", "HEAD"),
+    branche: d.git("rev-parse", "--abbrev-ref", "HEAD"),
+    statut: d.git("status", "--porcelain"),
+  };
+  const r = geler(d, "le produit change d'avis");
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(gelSur(d), AUJOURDHUI);
+  const carte = d.git("show", `origin/sujet/demo:${CARTE_GEL}`);
+  assert.ok(carte.indexOf("Gel:") < carte.indexOf("## Decisions-so-far"), "la ligne est dans la fiche");
+  assert.match(carte, /Conducteur: session_y\nGel: /, "ajoutée après la dernière ligne de la fiche");
+  assert.match(d.git("log", "-1", "--format=%s", "origin/sujet/demo"), /gèle le chantier sujet\/demo/);
+  assert.equal(d.git("rev-parse", "HEAD"), avant.tete);
+  assert.equal(d.git("rev-parse", "--abbrev-ref", "HEAD"), avant.branche);
+  assert.equal(d.git("status", "--porcelain"), avant.statut);
+  const g = d.lancer(SCRIPT, "gel", "demo");
+  assert.equal(g.status, 0);
+  assert.match(g.stdout.trim(), /^\d{4}-\d{2}-\d{2} — le produit change d'avis$/);
+});
+
+test("geler remplace la ligne Gel: vide de la fiche en place", () => {
+  const d = sujetGelable("Gel:\n");
+  assert.equal(geler(d, "le produit change d'avis").status, 0);
+  const carte = d.git("show", `origin/sujet/demo:${CARTE_GEL}`);
+  assert.equal(carte.match(/^Gel/gm).length, 1);
+  assert.match(carte, AUJOURDHUI_DANS_FICHE);
+});
+const AUJOURDHUI_DANS_FICHE = /Conducteur: session_y\nGel: \d{4}-\d{2}-\d{2} — le produit change d'avis\n\n## Decisions-so-far/;
+
+test("degeler vide la ligne Gel: ; sur un sujet non gelé, il ne pousse rien", () => {
+  const d = sujetGelable();
+  const avant = d.git("rev-parse", "origin/sujet/demo");
+  const rien = d.lancer(SCRIPT, "degeler", "demo");
+  assert.equal(rien.status, 0, rien.stdout + rien.stderr);
+  assert.equal(d.git("ls-remote", "origin", "refs/heads/sujet/demo").split("\t")[0], avant);
+  assert.equal(geler(d, "le produit change d'avis").status, 0);
+  assert.equal(d.lancer(SCRIPT, "gel", "demo").status, 0);
+  const r = d.lancer(SCRIPT, "degeler", "demo");
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /prévenir/, "dit qui prévenir");
+  assert.equal(gelSur(d), "Gel:");
+  assert.equal(d.lancer(SCRIPT, "gel", "demo").status, 1);
+});
+
+test("geler refuse un sujet sans carte, une raison vide et un sujet déjà gelé, sans rien pousser", () => {
+  const sans = sujetGelable("", { carte: false });
+  const tete = sans.git("rev-parse", "origin/sujet/demo");
+  const r = geler(sans, "raison");
+  assert.equal(r.status, 4, r.stdout + r.stderr);
+  assert.match(r.stdout, /pas de carte/);
+  assert.equal(sans.git("rev-parse", "origin/sujet/demo"), tete);
+
+  const d = sujetGelable();
+  const vide = geler(d, "  ");
+  assert.equal(vide.status, 4);
+  assert.match(vide.stdout, /raison est obligatoire/);
+  assert.equal(geler(d).status, 4, "sans raison");
+  assert.equal(gelSur(d), undefined, "rien d'écrit");
+
+  assert.equal(geler(d, "le produit change d'avis").status, 0);
+  const apres = d.git("rev-parse", "origin/sujet/demo");
+  const deux = geler(d, "autre raison");
+  assert.equal(deux.status, 4);
+  assert.match(deux.stdout, /déjà gelé : Gel: \d{4}-\d{2}-\d{2} — le produit change d'avis/);
+  assert.equal(d.git("rev-parse", "origin/sujet/demo"), apres);
+
+  const inconnu = d.lancer(SCRIPT, "geler", "absent", "raison");
+  assert.equal(inconnu.status, 4);
+});
+
+test("demarrer refuse un sujet gelé, sortie 4, la raison du gel citée", () => {
+  const d = sujetGelable("Gel: 2026-11-13 — pause du produit\n");
+  const r = demarrer(d, "SPEC_ALL_DEM-1.01");
+  assert.equal(r.status, 4, r.stdout + r.stderr);
+  assert.match(r.stdout, /sujet\/demo est gelé \(Gel: 2026-11-13 — pause du produit\)/);
+  assert.equal(d.git("rev-parse", "--abbrev-ref", "HEAD"), "feat/spec-all-dem-1-01-travail", "la branche n'a pas bougé");
+  assert.equal(demarrer(d, "demo").status, 4, "par le nom du sujet aussi");
+  // Une fois dégelé, demarrer repasse.
+  assert.equal(d.lancer(SCRIPT, "degeler", "demo").status, 0);
+  assert.equal(demarrer(d, "SPEC_ALL_DEM-1.01").status, 0);
+});
+
+test("une ligne Gel: écrite à la main, sans date, gèle aussi", () => {
+  const d = sujetGelable("Gel: pause\n");
+  const g = d.lancer(SCRIPT, "gel", "demo");
+  assert.equal(g.status, 0);
+  assert.equal(g.stdout.trim(), "pause");
+  const r = demarrer(d, "SPEC_ALL_DEM-1.01");
+  assert.equal(r.status, 4);
+  assert.match(r.stdout, /Gel: pause/);
+  // Un « Gel: » hors de la fiche ne gèle pas.
+  const e = sujetGelable();
+  e.git("switch", "-q", "-c", "tmp", "origin/sujet/demo");
+  e.ecrire(CARTE_GEL, fiche() + "\n## Fog\n\nGel: ceci est du texte\n");
+  e.commit("docs: texte");
+  e.git("push", "-q", "origin", "HEAD:sujet/demo");
+  assert.equal(e.lancer(SCRIPT, "gel", "demo").status, 1);
+});
+
+test("livrer refuse un sujet gelé ; livrer-prets livre le sujet prêt qui le suit", () => {
+  const d = sujetsALivrer();
+  // `gele` : prêt à livrer (ticket fait) mais gelé ; il précède `pret` dans l'ordre alphabétique.
+  d.branche(
+    "sujet/gele",
+    "origin/develop",
+    {
+      "docs/features/demo/all/SPEC_ALL_DEM-8-demo.spec.md": "# SPEC_ALL_DEM-8\n\nSujet: sujet/gele\n",
+      "docs/features/demo/all/issues/SPEC_ALL_DEM-8-demo.01.issue.md": "# .01\n\nStatus: Fait — PR #64\n",
+      "docs/features/demo/all/SPEC_ALL_DEM-8-demo.map.md":
+        "# carte\n\nSujet: sujet/gele\n\n## Fiche\n\nPhase: 4-vague-1\nGel: 2026-11-13 — pause\n",
+    },
+    "feat(demo): gele (#64)",
+  );
+  d.git("switch", "-q", "--detach", "origin/develop");
+  const refus = d.lancer(SCRIPT, "livrer", "gele", "feat(demo): gele");
+  assert.equal(refus.status, 4, refus.stdout + refus.stderr);
+  assert.match(refus.stdout, /sujet\/gele est gelé/);
+  assert.match(d.lancer(SCRIPT, "etat").stdout, /^gele\t.*\tgelé$/m);
+  const r = d.lancer(SCRIPT, "livrer-prets");
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /^PR #\d+ ouverte \(sujet\/pret → develop\), étiquetée à-fusionner$/m);
+  assert.doesNotMatch(r.stdout, /gele →/);
+  assert.ok(
+    d.journal().every((e) => e.methode !== "POST" || e.route !== "pulls" || e.champs.head === "sujet/pret"),
+    "aucune PR ouverte pour le sujet gelé",
+  );
+});
+
+test("l'aide nomme geler, degeler et gel, et sort en 4", () => {
+  const d = depotJouet();
+  const r = d.lancer(SCRIPT);
+  assert.equal(r.status, 4);
+  assert.match(r.stdout, /geler <nom> "<raison>" \| degeler <nom> \| gel <nom>/);
+});
+
+test("gel et geler lisent une carte en CRLF, sans fin de ligne finale, et ignorent les variantes proches", () => {
+  const ecrireCarte = (d, texte) => {
+    d.git("switch", "-q", "-c", "tmp", "origin/sujet/demo");
+    d.ecrire(CARTE_GEL, texte);
+    d.commit("docs: carte");
+    d.git("push", "-q", "origin", "HEAD:sujet/demo");
+  };
+  const crlf = sujetGelable();
+  ecrireCarte(crlf, fiche("Gel: pause\n").replaceAll("\n", "\r\n"));
+  const g = crlf.lancer(SCRIPT, "gel", "demo");
+  assert.equal(g.status, 0);
+  assert.equal(g.stdout.trim(), "pause", "CRLF");
+  const fin = sujetGelable();
+  ecrireCarte(fin, "# c\n\nSujet: sujet/demo\n\n## Fiche\n\nPhase: 4\nGel: pause");
+  assert.equal(fin.lancer(SCRIPT, "gel", "demo").stdout.trim(), "pause", "dernière ligne sans fin de ligne");
+  const voisines = sujetGelable();
+  ecrireCarte(voisines, fiche("Gelé: non\nGel sans deux-points\nDégel: non\n"));
+  assert.equal(voisines.lancer(SCRIPT, "gel", "demo").status, 1, "variantes proches : pas gelé");
+  // geler sur une fiche qui finit sans fin de ligne ajoute la ligne proprement.
+  const sans = sujetGelable();
+  ecrireCarte(sans, "# c\n\nSujet: sujet/demo\n\n## Fiche\n\nPhase: 4");
+  assert.equal(geler(sans, "raison").status, 0);
+  assert.match(sans.git("show", `origin/sujet/demo:${CARTE_GEL}`), /Phase: 4\nGel: \d{4}-\d{2}-\d{2} — raison/);
+});
+
+test("geler : une raison contenant des séquences d'échappement littérales reste sur une seule ligne", () => {
+  const d = sujetGelable();
+  assert.equal(geler(d, "a\\nb\\tc \\\\ d").status, 0);
+  const carte = d.git("show", `origin/sujet/demo:${CARTE_GEL}`);
+  assert.match(carte, /^Gel: \d{4}-\d{2}-\d{2} — a\\nb\\tc \\\\ d$/m);
+  assert.equal(d.git("diff", "--numstat", "origin/sujet/demo~1", "origin/sujet/demo").split("\t").slice(0, 2).join(","), "1,0");
+});

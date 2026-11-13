@@ -1,7 +1,7 @@
 ---
 name: sujet
 description: Branche de sujet — un lot de PR liées vit sur `sujet/<nom>` dès sa première PR et entre dans develop en une PR, par un commit de merge. `demarrer` place une branche de travail sur le sujet de son ticket ; le capitaine fusionne les sous-PR étiquetées `à-fusionner`, tient le sujet à jour avec develop, repère et regroupe les séries ; `livrer` ouvre la PR finale. À utiliser au début de tout travail sur un ticket ou un lot (« démarre SPEC_ALL_SOC-1.02 », « ouvre un sujet pour la démo », « regroupe les PR SPEC_ALL_SOC-1 », « où en sont les sujets », « livre le sujet socle »). `poser` l'installe une fois dans le dépôt.
-argument-hint: 'poser | demarrer <ticket|nom> | etat | series | regrouper <nom> <pr>… | livrer <nom> "<titre>" | carte <nom> | ouvrir | fusionner | rafraichir | relancer'
+argument-hint: 'poser | demarrer <ticket|nom> | etat | series | regrouper <nom> <pr>… | livrer <nom> "<titre>" | carte <nom> | geler <nom> "<raison>" | degeler <nom> | gel <nom> | ouvrir | fusionner | rafraichir | relancer'
 ---
 
 # Branches de sujet
@@ -31,7 +31,11 @@ Le sujet se **déclare au découpage** : `Sujet: sujet/<nom>` en tête de la spe
 
 ## Commandes
 
-Chaque commande, son effet et ses sorties : en-tête de `sujet.sh` ; `sujet.sh` sans argument affiche l'aide. Sorties : 0 fait · 2 conflit · 3 checks rouges ou en cours · 4 refus corrigeable par l'auteur · 6 arbre de travail pas propre (`fusionner`, `rafraichir`, `regrouper`, `relancer` : à nettoyer par qui lance, jamais un renvoi de la PR) · 7 sautée · 9 `carte <nom>` refusée. `fusionner` a deux sorties de plus : 5, la sous-PR a bougé pendant sa mise à jour (reprise au tour suivant) ; 8, la sous-PR était en conflit avec son sujet **sur des index générés seuls** — le capitaine a fusionné le sujet dans sa branche (merge, avance rapide, jamais de force), régénéré les index, poussé : CI relancée, aucun squash, la boucle la laisse dans la file (`MISE À JOUR`). Un conflit hors index reste un renvoi (sortie 3).
+Chaque commande, son effet et ses sorties : en-tête de `sujet.sh` ; `sujet.sh` sans argument affiche l'aide. Sorties : 0 fait · 2 conflit · 3 checks rouges ou en cours · 4 refus corrigeable par l'auteur · 6 arbre de travail pas propre (`fusionner`, `rafraichir`, `regrouper`, `relancer` : à nettoyer par qui lance, jamais un renvoi de la PR) · 7 sautée · 9 `carte <nom>` refusée, ou `geler`/`degeler` dont le push échoue deux fois. `fusionner` a deux sorties de plus : 5, la sous-PR a bougé pendant sa mise à jour (reprise au tour suivant) ; 8, la sous-PR était en conflit avec son sujet **sur des index générés seuls** — le capitaine a fusionné le sujet dans sa branche (merge, avance rapide, jamais de force), régénéré les index, poussé : CI relancée, aucun squash, la boucle la laisse dans la file (`MISE À JOUR`). Un conflit hors index reste un renvoi (sortie 3).
+
+## Geler un chantier (`geler`, `degeler`, `gel`)
+
+Le gel est une ligne `Gel:` de la fiche de la carte, lue sur `origin/sujet/<nom>` : non vide, le chantier est gelé, quelle qu'en soit la forme (le produit peut l'écrire à la main dans l'éditeur de GitHub, sans session ; le gate ne la refuse jamais). `sujet.sh geler <nom> "<raison>"` écrit `Gel: AAAA-MM-JJ — <raison>` et le pousse, sans toucher à la branche ni à l'arbre de travail de qui l'appelle ; `degeler <nom>` la vide ; `gel <nom>` la lit (sortie 0 si gelé). Un sujet sans carte sur sa branche ne se gèle pas (sortie 4). Effets : `demarrer` et `livrer` refusent (sortie 4, la ligne citée), `fusionner` sort en 7, `file.sh` montre « gelée » pour la sous-PR, la livraison et la PR à recibler, `etat` donne le verdict `gelé` (il prime sur les autres) et `livrer-prets` l'écarte. Le capitaine continue de rafraîchir le sujet. La procédure complète d'arrêt (interrompre les filles, supprimer les réveils) est dans le skill `chantier`.
 
 ## Pousser la carte du chantier (`carte <nom>`)
 

@@ -1,6 +1,6 @@
 {
   "name": "maj-skills",
-  "version": "4.1.1",
+  "version": "5.0.0",
   "description": "Skills d'ingénierie maison : amorçage de monorepo et de socles (API NestJS hexagonale, web Next.js, mobile Expo), chaîne de production pour des sessions d'agent en parallèle (tickets, sujets, capitaine de fusion, revue adversariale, chantier, recette). Aucune règle métier.",
   "author": {
     "name": "Guillaume Jauffret"
@@ -34,10 +34,12 @@
     "./skills/mobile/socle-mobile-expo",
     "./skills/chaine/socle-chaine-de-production",
     "./skills/chaine/tickets",
+    "./skills/chaine/anchorpost",
     "./skills/chaine/revue-adversariale",
     "./skills/chaine/revue-de-ticket",
     "./skills/chaine/sujet",
     "./skills/chaine/fusionner",
+    "./skills/chaine/architecte",
     "./skills/chaine/chantier",
     "./skills/chaine/recette-humaine"
   ]

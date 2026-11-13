@@ -10,9 +10,12 @@ const {
   reservationsEnDouble,
   ecartsFormatPret,
   estArchive,
+  ficheNommeResponsableEtConducteur,
   identifiant,
   identifiantsEnDouble,
   lireCheminsSensibles,
+  lirePlafonds,
+  contexteEnTokens,
   motifSensibleTouche,
   statusValide,
   ticketsCites,
@@ -61,14 +64,60 @@ test('identifiants en double : deux specs, ou un ticket au nom d’une autre spe
   assert.deepEqual(identifiantsEnDouble(['docs/a/all/SPEC_ALL_SOC-1-socle.spec.md', 'docs/a/all/SPEC_ALL_SOC-1-socle.map.md', 'docs/a/all/issues/SPEC_ALL_SOC-1-socle.01.issue.md']), []);
 });
 
-test('carte de chantier : fiche, phase, architecte, coût dès la vague 1, rétro à fini', () => {
-  const carte = (phase, extra = '') => controlerCarte({ nom: 'SPEC_ALL_SOC-1-socle.map.md', texte: `# Carte\n\nSujet: sujet/socle\n\n## Fiche\n\nPhase: ${phase}\nArchitecte: session_x\n${extra}` });
-  assert.deepEqual(carte('1-grilling').erreurs, []);
+test('carte de chantier : fiche, phase, responsable et conducteur, coût dès la vague 1, rétro à fini', () => {
+  const carte = (phase, extra = '') => controlerCarte({ nom: 'SPEC_ALL_SOC-1-socle.map.md', texte: `# Carte\n\nSujet: sujet/socle\n\n## Fiche\n\nPhase: ${phase}\nResponsable: Camille Martin\nConducteur: session_y\n${extra}` });
+  assert.deepEqual(carte('1-grilling').erreurs, [], 'sans programme, la ligne `Architecte:` est facultative');
+  assert.deepEqual(carte('2-decoupage', 'Architecte: session_x\n').erreurs, []);
   assert.match(carte('4-vague-1').erreurs[0].message, /Coût/);
   assert.deepEqual(carte('4-vague-2', '\n## Coût\n\n| a |\n').erreurs, []);
   assert.match(carte('fini', '\n## Coût\n\n| a |\n').erreurs[0].message, /Rétro/);
   assert.match(carte('7-x').erreurs[0].message, /hors vocabulaire/);
   assert.equal(controlerCarte({ nom: 'x.map.md', texte: '# sans sujet\n' }).carte, false);
+});
+
+const FICHE = (lignes) => `# Carte\n\nSujet: sujet/socle\n\n## Fiche\n\nPhase: 2-decoupage\n${lignes}`;
+
+test('une carte sans `Responsable:`, ou dont le responsable est un identifiant de session, est refusée, la ligne nommée', () => {
+  const sans = controlerCarte({ nom: 'c.map.md', texte: FICHE('Conducteur: session_y\n') }).erreurs;
+  assert.equal(sans.length, 1);
+  assert.match(sans[0].message, /carte c\.map\.md : `Responsable:` absent ou vide/);
+  const vide = controlerCarte({ nom: 'c.map.md', texte: FICHE('Responsable:\nConducteur: session_y\n') }).erreurs;
+  assert.match(vide[0].message, /`Responsable:` absent ou vide/);
+  assert.equal(vide[0].ligne, 8);
+  const session = controlerCarte({ nom: 'c.map.md', texte: FICHE('Responsable: session_017abc\nConducteur: session_y\n') }).erreurs;
+  assert.equal(session.length, 1);
+  assert.match(session[0].message, /`Responsable:` « session_017abc » : un identifiant de session ; attendu une personne/);
+  assert.equal(session[0].ligne, 8);
+  const crlf = FICHE('Responsable: Camille Martin\nConducteur: session_y').replaceAll('\n', '\r\n');
+  assert.deepEqual(controlerCarte({ nom: 'c.map.md', texte: crlf }).erreurs, [], 'CRLF, dernière ligne sans fin de ligne');
+  assert.equal(ficheNommeResponsableEtConducteur(crlf), true);
+  assert.match(controlerCarte({ nom: 'c.map.md', texte: FICHE('Responsable: session_017abc\r\nConducteur: session_y') }).erreurs[0].message, /identifiant de session/);
+  assert.match(controlerCarte({ nom: 'c.map.md', texte: FICHE('Responsable:  session_017abc\nConducteur: session_y\n') }).erreurs[0].message, /identifiant de session/, 'espaces avant la valeur');
+  assert.deepEqual(controlerCarte({ nom: 'c.map.md', texte: FICHE('Responsable: Camille session_x\nConducteur: session_y\n') }).erreurs, [], 'seule une valeur qui commence par session_ est refusée');
+  assert.match(controlerCarte({ nom: 'c.map.md', texte: FICHE('Responsable: Camille\nConducteur:\r\n') }).erreurs[0].message, /`Conducteur:` absent ou vide/);
+  const sansConducteur = controlerCarte({ nom: 'c.map.md', texte: FICHE('Responsable: Camille Martin\nArchitecte: session_x\n') }).erreurs;
+  assert.equal(sansConducteur.length, 1);
+  assert.match(sansConducteur[0].message, /`Conducteur:` absent ou vide/);
+});
+
+test('carte de chantier : la ligne Gel:, vide, datée ou écrite à la main, ne crée aucune erreur', () => {
+  // Le « gel » du chantier (ligne `Gel:`) n'a rien à voir avec `ficheGelee`, la carte d'avant les rôles.
+  const base = 'Responsable: Camille Martin\nConducteur: session_y\n';
+  for (const gel of ['Gel:', 'Gel: 2026-11-13 — le produit change d\'avis', 'Gel: pause', '- **Gel :** à la main'])
+    assert.deepEqual(controlerCarte({ nom: 'c.map.md', texte: FICHE(`${base}${gel}\n`) }).erreurs, [], gel);
+  assert.deepEqual(controlerCarte({ nom: 'c.map.md', texte: FICHE(`${base}Gel:\r\n`) }).erreurs, [], 'CRLF');
+});
+
+test('une carte gelée passe avec `Architecte:` seul ; non gelée, la même carte est refusée', () => {
+  const ancienne = FICHE('Architecte: session_x\nConducteur: session_z\n');
+  assert.deepEqual(controlerCarte({ nom: 'c.map.md', texte: ancienne, ficheGelee: true }).erreurs, []);
+  const refus = controlerCarte({ nom: 'c.map.md', texte: ancienne }).erreurs;
+  assert.equal(refus.length, 1);
+  assert.match(refus[0].message, /`Responsable:` absent ou vide/);
+  const gelee = controlerCarte({ nom: 'c.map.md', texte: FICHE('Conducteur: session_z\n'), ficheGelee: true }).erreurs;
+  assert.match(gelee[0].message, /`Architecte:` absent ou vide/);
+  assert.equal(ficheNommeResponsableEtConducteur(ancienne), false);
+  assert.equal(ficheNommeResponsableEtConducteur(FICHE('Responsable: Camille Martin\nConducteur: session_y\n')), true);
 });
 
 test('les fiches du skill passent ; une fiche réécrite par setup-matt-pocock-skills, ou absente, est nommée avec son remède', () => {
@@ -87,15 +136,22 @@ const SENSIBLES = ['apps/api/src/**/auth/**', 'apps/api/src/db/migrations/**', '
 const sur = (chauds, label = '') =>
   PRET.replace('Fichiers chauds: —', `Fichiers chauds: ${chauds}`).replace('Modèle: sonnet\n', `Modèle: sonnet\n${label}`);
 
-test("un ticket prêt sur un chemin sensible sans `Label: architecte` est refusé ; avec, accepté ; hors chemin sensible, rien n'est exigé", () => {
+test("un ticket prêt sur un chemin sensible sans `Label: contre-revue` est refusé ; avec, accepté ; l'ancienne valeur `architecte` reste acceptée ; hors chemin sensible, rien n'est exigé", () => {
   const refus = ecartsFormatPret(sur('`apps/api/src/infrastructure/auth/jwt.ts`'), SENSIBLES);
   assert.equal(refus.length, 1);
-  assert.match(refus[0], /Label: architecte.*absente.*apps\/api\/src\/\*\*\/auth\/\*\*/);
+  assert.match(refus[0], /Label: contre-revue.*absente.*apps\/api\/src\/\*\*\/auth\/\*\*/);
+  assert.doesNotMatch(refus[0], /architecte|conducteur/i, 'le message ne nomme aucun rôle');
+  assert.deepEqual(ecartsFormatPret(sur('`apps/api/src/infrastructure/auth/jwt.ts`', 'Label: contre-revue\n'), SENSIBLES), []);
   assert.deepEqual(ecartsFormatPret(sur('`apps/api/src/infrastructure/auth/jwt.ts`', 'Label: architecte\n'), SENSIBLES), []);
+  assert.equal(ecartsFormatPret(sur('`apps/api/src/infrastructure/auth/jwt.ts`', 'Label: contre-revues\n'), SENSIBLES).length, 1);
+  assert.equal(ecartsFormatPret(sur('`apps/api/src/infrastructure/auth/jwt.ts`', 'Label: architectes\n'), SENSIBLES).length, 1);
+  const crlf = sur('`apps/api/src/infrastructure/auth/jwt.ts`', 'Label: contre-revue\n').replaceAll('\n', '\r\n');
+  assert.deepEqual(ecartsFormatPret(crlf, SENSIBLES), [], 'CRLF');
+  assert.deepEqual(ecartsFormatPret(`${sur('`apps/api/src/infrastructure/auth/jwt.ts`')}Label: contre-revue`, SENSIBLES), [], 'dernière ligne sans fin de ligne');
   assert.deepEqual(ecartsFormatPret(sur('`scripts/docs/avancement.mjs`'), SENSIBLES), []);
   assert.deepEqual(ecartsFormatPret(sur('—'), SENSIBLES), []);
   const r = controlerTicket({ nom: NOM, texte: sur('`packages/contracts/src/auth.ts`'), existe, cheminsSensibles: SENSIBLES });
-  assert.match(r.erreurs[0].message, /ready-for-agent : ligne `Label: architecte` absente/);
+  assert.match(r.erreurs[0].message, /ready-for-agent : ligne `Label: contre-revue` absente/);
   assert.deepEqual(controlerTicket({ nom: NOM, texte: sur('`packages/contracts/src/auth.ts`'), existe, gele: true, cheminsSensibles: SENSIBLES }).erreurs, []);
 });
 
@@ -121,7 +177,7 @@ test('cheminsSensibles : contrat absent → aucun motif ; présent mais illisibl
 });
 
 const carteAvec = (migrations, phase = '4-vague-1') =>
-  `# X — Carte\n\nSujet: sujet/x\n\n## Fiche\n\nPhase: ${phase}\nArchitecte: s\n${migrations === undefined ? '' : `Migrations: ${migrations}\n`}\n## Coût\n`;
+  `# X — Carte\n\nSujet: sujet/x\n\n## Fiche\n\nPhase: ${phase}\nResponsable: Camille Martin\nConducteur: s\n${migrations === undefined ? '' : `Migrations: ${migrations}\n`}\n## Coût\n`;
 
 test('Migrations: se lit en liste d’horodatages ; « — » et l’absence de ligne ne réservent rien', () => {
   assert.deepEqual(migrationsReservees(carteAvec('202611271000, 202611271100')), ['202611271000', '202611271100']);
@@ -308,4 +364,68 @@ test("Surfaces : la lecture d'une cellule garde la sémantique de l'ancienne exp
     const attendu = lire(c).map((e) => (e.texte.trim() === '' && !e.fichier ? { ...e, texte: '' } : e));
     assert.deepEqual(elementsCites(c), attendu, JSON.stringify(c));
   }
+});
+
+const PLAFONDS = { contexteFille: 300000, coutFille: 20, contextePilote: 400000, renvoisParPR: 3 };
+const COUT = (...lignes) =>
+  `${FICHE('Responsable: Camille Martin\nConducteur: session_z\n')}\n## Coût\n\n| Rôle | Ticket | Session | Modèle | Contexte max | Coût $ |\n| ---- | ------ | ------- | ------ | ------------ | ------ |\n${lignes.join('\n')}\n`;
+const DEPASSEMENTS = (...lignes) =>
+  `\n## Dépassements\n\n| Session | Ticket | Mesure | Décision du produit | Date |\n| ------- | ------ | ------ | ------------------- | ---- |\n${lignes.join('\n')}\n`;
+const juger = (texte, extra = {}) => controlerCarte({ nom: 'c.map.md', texte, plafonds: PLAFONDS, ...extra }).erreurs;
+
+test('une ligne de coût au-delà du plafond de son rôle est refusée sans ligne de dépassement pour sa session ; avec, elle passe', () => {
+  const fille = '| fille | SPEC_ALL_SOC-1.02 | session_f | sonnet | 310 k | 4,10 |';
+  const refus = juger(COUT(fille));
+  assert.equal(refus.length, 1);
+  assert.match(refus[0].message, /session session_f \(fille\) : contexte 310000 tokens ≥ plafond 300000, sans ligne dans `## Dépassements`/);
+  assert.equal(refus[0].ligne, COUT(fille).split('\n').indexOf(fille) + 1);
+  assert.deepEqual(juger(COUT(fille) + DEPASSEMENTS('| session_f | SPEC_ALL_SOC-1.02 | 310 k | accepté par écrit | 2026-11-13 |')), []);
+  // Une ligne pour une autre session ne couvre pas celle-ci.
+  assert.equal(juger(COUT(fille) + DEPASSEMENTS('| session_g | x | 1 | x | x |')).length, 1);
+  // Le coût seul, le plafond atteint à l'égalité, le pilote par son contexte.
+  assert.match(juger(COUT('| fille | t | s1 | sonnet | 100 k | 20,00 |'))[0].message, /coût 20 \$ ≥ plafond 20 \$/);
+  assert.equal(juger(COUT('| fille | t | s1 | sonnet | 299 999 | 19,99 |')).length, 0);
+  assert.match(juger(COUT('| conducteur | t | s2 | opus | 400 k | 50,00 |'))[0].message, /s2 \(conducteur\) : contexte 400000 tokens ≥ plafond 400000/);
+  assert.equal(juger(COUT('| architecte | t | s3 | opus | 399 k | 50,00 |')).length, 0);
+  // Un pilote n'est jugé que sur son contexte, un capitaine ou un rôle libre n'est pas jugé.
+  assert.equal(juger(COUT('| capitaine | t | s4 | opus | 900 k | 90,00 |', '| ticket | t | s5 | opus | 900 k | 90,00 |')).length, 0);
+  // Sans contrat (plafonds null), rien n'est jugé.
+  assert.deepEqual(controlerCarte({ nom: 'c.map.md', texte: COUT(fille) }).erreurs, []);
+});
+
+test('le contexte se lit en milliers (`174 k`), une cellule vide ou à relever n\'est pas jugée, une autre forme est une erreur', () => {
+  assert.equal(contexteEnTokens('174 k'), 174000);
+  assert.equal(contexteEnTokens('726 k (compactée)'), 726000);
+  assert.equal(contexteEnTokens('121 835'), 121835);
+  assert.equal(contexteEnTokens('174k'), 174000);
+  for (const vu of ['beaucoup', '1,5 M', '12 k k', '-3']) assert.equal(contexteEnTokens(vu), null, vu);
+  for (const cellule of ['', '—', 'à relever', '{{tokens}}'])
+    assert.deepEqual(juger(COUT(`| fille | t | s | sonnet | ${cellule} | — |`)), [], cellule);
+  const erreur = juger(COUT('| fille | t | s | sonnet | beaucoup | 2,20 |'));
+  assert.equal(erreur.length, 1);
+  assert.match(erreur[0].message, /« Contexte max » « beaucoup » illisible/);
+  assert.equal(juger(COUT('| capitaine | t | s | sonnet | beaucoup | 2,20 |')).length, 0);
+  assert.equal(juger(COUT('| fille | t | s | sonnet | 726 k (compactée) | 2,20 |')).length, 1);
+});
+
+test('une carte gelée d\'avant les rôles n\'est pas jugée sur ses dépassements', () => {
+  const ancienne = `${FICHE('Architecte: session_x\nConducteur: session_z\n')}\n## Coût\n\n| Rôle | Ticket | Session | Modèle | Contexte max | Coût $ |\n| --- | --- | --- | --- | --- | --- |\n| architecte | t | s | opus | 726 k (compactée) | 30,72 |\n`;
+  assert.deepEqual(juger(ancienne, { ficheGelee: true }), []);
+  assert.equal(juger(ancienne).filter((e) => /Dépassements/.test(e.message)).length, 1);
+});
+
+test('plafonds : contrat absent → aucun ; sans clé → défauts ; mal formée → le gate échoue fermé', () => {
+  assert.equal(lirePlafonds(null), null);
+  assert.deepEqual(lirePlafonds('{}'), PLAFONDS);
+  assert.deepEqual(lirePlafonds('{"plafonds":{"coutFille":5}}'), { ...PLAFONDS, coutFille: 5 });
+  assert.throws(() => lirePlafonds('{ pas du json'), /illisible/);
+  assert.throws(() => lirePlafonds('{"plafonds":3}'), /objet/);
+  assert.throws(() => lirePlafonds('{"plafonds":{"coutFille":"20"}}'), /coutFille/);
+  assert.throws(() => lirePlafonds('{"plafonds":{"coutFile":20}}'), /inconnu/);
+});
+
+test('un coût de fille illisible est une erreur de la carte, jamais un dépassement ignoré', () => {
+  const erreur = juger(COUT('| fille | t | s | sonnet | 100 k | 25 $ |'));
+  assert.equal(erreur.length, 1);
+  assert.match(erreur[0].message, /« Coût \$ » « 25 \$ » illisible/);
 });
