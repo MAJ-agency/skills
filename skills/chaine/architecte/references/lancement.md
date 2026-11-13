@@ -33,6 +33,8 @@ Skills : si /maj-skills:fusionner n'est pas parmi tes skills, attache MAJ-agency
 
 La procédure du capitaine est celle du skill `fusionner` : ce prompt ne la recopie pas. Seul un dépôt qui n'a pas la chaîne (ni `develop`, ni scripts de fusion) reçoit la sienne dans le prompt, et alors **en entier** : un message ne l'élargira pas.
 
+Les interdits d'une procédure donnée dans un prompt s'écrivent comme des **gestes de la session** (« tu ne modifies aucun fichier toi-même », « tu ne pousses sur aucune branche »), jamais comme des **contenus** (« ne pas monter la version ») : un interdit de contenu s'applique aux PR que le capitaine reçoit, et il refuse de fusionner. Le contenu d'une PR nommée a été validé avant d'être nommé, le capitaine ne le rejuge pas. Cas vécu le 2026-11-13 : un capitaine s'est arrêté devant la PR qui montait la version du plugin, parce que sa consigne lui interdisait de monter la version.
+
 ## Après le lancement
 
 - La session dans la carte du programme (ligne du chantier, ou `Capitaines:`), une ligne au journal, commit et push.
