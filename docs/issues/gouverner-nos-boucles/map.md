@@ -33,7 +33,7 @@ chantiers suivants.
 
 - **Étape 1, points 1 et 2 : déjà fusionnés** sur `develop` d'`anchorpost` (PR 104, encadrés d'état ; PR 105, coût de l'architecte lisible, avec un ticket de durcissement). Le registre `docs/agents/couts.md` affiche 630,56 $ sur 64 sessions et 2 chantiers.
 - **`graphify` est installé** dans l'environnement cloud, mais la fin du script de démarrage est cassée (l'`export PATH` est collé au commentaire qui le précède, les guillemets de la boucle sont typographiques) : `graphify update .` ne tourne jamais et `graphify-out/` n'existe dans aucun clone. La boucle corrigée a été jouée à la main : elle produit le graphe d'`anchorpost`, de `skills` et d'`iroki-monorepo`. Correction du script proposée au produit le 2026-11-12.
-- **`skills` n'a ni `develop`, ni capitaine, ni CI** : une PR y vise `main` et attend un humain. PR ouvertes : 44, 55, 56.
+- **`skills` n'a ni `develop`, ni capitaine, ni CI** : une PR y vise `main` et attend un humain. PR ouvertes : 44, 55, 56 (la 55 a été fusionnée par le produit dans la nuit du 12 au 13 : `main` est à `342171d`, plugin 4.2.0).
 - **`anchorpost`** : `develop` est à `c0ff374` ; une seule PR ouverte, la 113 (brouillon, `SPEC_ALL_ANC-4.49`, une règle rejoint un ou plusieurs modules).
 - Les tickets `SPEC_ALL_SOC-1` `.04`, `.05`, `.07` restent `ready-for-human` à juste titre : un commentaire du 2026-11-12 y note « vérifié contre le code, le ticket n'est pas entièrement livré » (base jetable absente pour `.04`, cadence des routes publiques absente pour `.05`, analyse de secrets et deux gates absents pour `.07`). La source se trompait : ils ne sont pas à clore.
 - `.claude/rules/tests.md` d'`anchorpost` n'a qu'une phrase inexacte, ligne 21 (« tout le reste tourne partout, au pre-commit comme au pre-push ») : le pre-commit ne joue pas les bancs `node --test` des scripts. À corriger par un ticket d'`anchorpost` (chemin sensible, `Label: architecte`).
@@ -53,10 +53,18 @@ Décisions de l'architecte (choix techniques, sans effet sur ce que voit un util
 | Ticket                                                                                                                   | Dépôt                    | Session | PR  | État  |
 | ------------------------------------------------------------------------------------------------------------------------ | ------------------------ | ------- | --- | ----- |
 | [`1`](issues/1-criteres-et-pieges-des-deux-retros.issue.md) — dix leçons en critères et piège                            | `skills`                 | `session_017ZgEwMrJhErj5gAFEXirwK` | —   | lancé |
-| [`2`](issues/2-plugin-declare-anchorpost-et-budget-des-skills.issue.md) — plugin complet, banc des 200 lignes            | `skills`                 | `session_017ZgEwHynXjgwREFTcpKqQX` | —   | lancé |
+| [`2`](issues/2-plugin-declare-anchorpost-et-budget-des-skills.issue.md) — plugin complet, banc des 200 lignes            | `skills`                 | `session_017ZgEwHynXjgwREFTcpKqQX` | 58  | livré le 2026-11-13, vérifié par l'architecte (banc joué : 4 cas verts, `SKILL.md` à 189 lignes), attend la fusion humaine |
 | `SPEC_ALL_SOC-1.14` (ticket d'`anchorpost`) — un montant illisible fait échouer `couts.mjs --verify`                     | `skills` puis `anchorpost` | `session_017ZgEwMdAB15RvGMFEuThNT` | —   | lancé |
 
 Restent à mettre en tickets dans `anchorpost` : la phrase de `.claude/rules/tests.md`, et la repose des critères du socle une fois le ticket 1 fusionné (la liste `S` d'`anchorpost` saute `S13`).
+
+## Coût
+
+| Session                          | Rôle     | Ticket | Coût $ | Contexte (tokens) |
+| -------------------------------- | -------- | ------ | ------ | ----------------- |
+| `session_017ZgEwHynXjgwREFTcpKqQX` | ticket   | 2      | 0,77   | 123 602           |
+
+Repère pour la question des plafonds : une session de ticket démarre déjà au-delà de 100 000 tokens (consignes, skills, `CLAUDE.md`) ; un plafond à 300 000 laisse donc moins de 200 000 tokens de travail.
 
 ## Fog
 
@@ -64,6 +72,7 @@ Restent à mettre en tickets dans `anchorpost` : la phrase de `.claude/rules/tes
 - **Où s'arrête l'amont.** Le skill `chantier` fait tout, du grilling au suivi des vagues ; c'est la session qui a dépassé 700 000 tokens deux fois. Question 2 du tour 1.
 - **Plafonds d'une session** (décision 2 de la source). Question 3 du tour 1.
 - **Skill « modèle de données relationnel »**, idée du produit (12/11). Question 5 du tour 1.
+- **« Aucun nom de modèle dans un commit »** (source § 7) : presque tous les commits fusionnés des deux dépôts en portent un, par la ligne d'attribution que l'outil ajoute seul (« Co-Authored-By »). Soit un réglage la retire pour toutes les sessions, soit la règle ne vise que la prose. À poser au produit.
 - Décisions 1 et 3 à 8 de la source (§ 6), et la colonne « basse » de la grille : tours suivants.
 - **Comment `skills` reçoit ses changements** : ni `develop`, ni capitaine, ni CI ; le skill `chantier` ne peut pas s'y dérouler tel quel. Question 4 du tour 1.
 
