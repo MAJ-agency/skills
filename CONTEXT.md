@@ -15,12 +15,12 @@ La session unique d'un programme qui mène l'amont — questions au produit, dé
 _Avoid_: conducteur (ancien sens, cartes d'avant le 2026-11-13), architecte de chantier
 
 **Conducteur de chantier**:
-La session qui fait tourner un chantier à partir d'une spec validée : elle découpe les tickets, lance les sessions de ticket et les suit.
+La session qui fait tourner un chantier à partir d'une spec validée : elle découpe les tickets, lance les sessions filles et les suit.
 _Avoid_: architecte (ancien sens, cartes d'avant le 2026-11-13), chef de chantier
 
-**Session de ticket**:
+**Session fille**:
 La session qui réalise un ticket, et un seul, puis s'arrête.
-_Avoid_: fille, session fille, worker
+_Avoid_: worker, sous-agent (un sous-agent vit dans la session qui le lance)
 
 **Capitaine de fusion**:
 La session unique d'un dépôt qui fait entrer les PR prêtes dans la branche d'intégration, une par une.
@@ -34,6 +34,9 @@ _Avoid_: projet, épopée
 
 **Chantier**:
 Un lot de tickets issu d'une spec, mené par un conducteur de chantier et livré en une fois.
+
+**Responsable**:
+La personne nommée qui répond d'un chantier ou d'un programme.
 _Avoid_: sprint, lot
 
 **Plafond**:
