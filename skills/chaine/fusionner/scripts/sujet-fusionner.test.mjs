@@ -154,3 +154,21 @@ test("boucle.sh : worktree du capitaine pas propre, la sous-PR n'est pas renvoy�
   );
   assert.deepEqual(d.etat().pulls[0].labels, ["à-fusionner"]);
 });
+
+test("sujet.sh fusionner : une sous-PR d'un sujet gelé sort en 7, jamais en 4, sans rien écrire", () => {
+  const { d } = sousPrEnConflit("aucun");
+  d.branche(
+    "sujet/lot",
+    "origin/sujet/lot",
+    {
+      "docs/features/demo/all/SPEC_ALL_DEM-1-demo.map.md":
+        "# carte\n\nSujet: sujet/lot\n\n## Fiche\n\nPhase: 4-vague-1\nGel: 2026-11-13 — pause\n",
+    },
+    "docs: carte",
+  );
+  d.git("switch", "-q", "--detach", "origin/develop");
+  const r = d.lancer(SUJET, "fusionner", "80");
+  assert.equal(r.status, 7, r.stdout + r.stderr);
+  assert.match(r.stdout, /sujet\/lot est gelé/);
+  assert.deepEqual(ecritures(d), []);
+});
