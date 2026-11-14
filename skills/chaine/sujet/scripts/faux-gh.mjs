@@ -2,7 +2,10 @@
 // =============================================================================
 // Faux `gh` du dépôt jouet (depot-jouet.mjs) : placé en tête de PATH, il répond à `gh api`
 // comme l'API REST de GitHub, sans réseau. État dans $FAUX_GH/etat.json :
-//   pulls       PR { number, title, body, draft, state, labels: [noms], base, head, merged_at, commentaires: [corps] }
+//   pulls       PR { number, title, body, draft, state, labels: [noms], base, head, merged_at, commentaires }
+//               `commentaires` : [corps], écrits par le compte du capitaine, ou { auteur, body } d'un autre compte
+//   capitaine   compte que rend `gh api user` (défaut « capitaine ») ; compteIllisible : `user` répond 403
+//   brancheParDefaut  branche par défaut du dépôt (défaut « main »), dans `base.repo.default_branch`
 //   checks      états par PR (« #12 ») ou pour tout commit (« * ») : { nom: SUCCESS | FAILURE | IN_PROGRESS… }
 //   exiges      checks exigés de develop ; runs : workflow_runs par PR (« #12 »)
 // Le sommet d'une PR est lu dans le dépôt nu ($FAUX_GH_ORIGINE), comme GitHub. Chaque écriture
@@ -108,7 +111,7 @@ function versRest(pr) {
     state: pr.state ?? "open",
     merged_at: pr.merged_at ?? null,
     labels: (pr.labels ?? []).map((name) => ({ name })),
-    base: { ref: pr.base },
+    base: { ref: pr.base, repo: { default_branch: etat.brancheParDefaut ?? "main" } },
     head: { ref: pr.head, sha: pr.sha ?? ref(pr.head) ?? "0".repeat(40) },
   };
 }
@@ -194,9 +197,17 @@ function repondre() {
     (pr(m[1]).commentaires ??= []).push(champs.body);
     return { id: 1 };
   }
-  // Lecture des commentaires : ceux de `commentaires` (corps seuls), comme GitHub les rend.
+  // Lecture des commentaires, comme GitHub les rend : un corps seul est du compte du capitaine.
   if ((m = route.match(/^issues\/(\d+)\/comments$/)) && methode === "GET")
-    return (pr(m[1]).commentaires ?? []).map((body, i) => ({ id: i + 1, body }));
+    return (pr(m[1]).commentaires ?? []).map((c, i) =>
+      typeof c === "string"
+        ? { id: i + 1, body: c, user: { login: etat.capitaine ?? "capitaine" } }
+        : { id: i + 1, body: c.body, user: { login: c.auteur } },
+    );
+  if (route === "user" && methode === "GET")
+    return etat.compteIllisible
+      ? echec("gh: Resource not accessible by integration (HTTP 403)")
+      : { login: etat.capitaine ?? "capitaine" };
   if ((m = route.match(/^commits\/([0-9a-f]+)\/check-runs$/))) {
     const runs = Object.entries(checksDe(m[1])).map(([name, e], i) =>
       TERMINES.has(e)

@@ -20,7 +20,7 @@ Tous les gabarits vivent dans [`references/`](references/). Les copier **verbati
 
 En un seul tour, chacune avec sa recommandation :
 
-1. **Chemins sensibles** — les dossiers du code où un diff passe en plus `/security-review` : authentification, droits, chiffrement, paiement, export de données. _(Recommandé : `apps/api/src/infrastructure/**/auth/`, et ce que le projet a déjà nommé.)_ Les gardes de la chaîne (`scripts/agent/**`, `scripts/docs/identifiants.mjs`, `.claude/**`) y sont déjà : un diff qui touche un hook passe aussi la contre-revue.
+1. **Chemins sensibles** — les dossiers du code où un diff passe en plus `/security-review` : authentification, droits, chiffrement, paiement, export de données. _(Recommandé : `apps/api/src/infrastructure/**/auth/`, et ce que le projet a déjà nommé.)_ Les gardes de la chaîne (`scripts/agent/**`, `scripts/chaine/**`, `.husky/**`, `.github/workflows/**`, `.github/actions/**`, `scripts/docs/identifiants.mjs`, `.claude/**`) y sont déjà : un diff qui touche un hook, un script de la chaîne ou la CI passe aussi la contre-revue.
 2. **Filles par vague** — combien de sessions filles en parallèle par défaut. _(Recommandé : 6.)_
 3. **Dossier des migrations** — ce que le hook de fichiers protège. _(Recommandé : `apps/api/src/db/migrations/` pour le socle API ; `apps/api/prisma/migrations/` pour un projet Prisma.)_
 
