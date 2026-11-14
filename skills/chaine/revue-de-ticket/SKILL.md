@@ -12,7 +12,7 @@ Le `code-review` de Matt Pocock relit « standards » et « spec » en deux sous
 
 ## Étape 0 — poser (une fois par dépôt, `poser`)
 
-`scripts/contexte-ticket.mjs` et son test → `scripts/chaine/` (ils lisent `scripts/docs/identifiants.mjs`, posé par `socle-monorepo`). Le skill `revue-adversariale` est posé (`scripts/chaine/diff-revue.sh`, fichier de critères). Puis `docs/agents/issue-tracker.md` § Livrer et `docs/agents/chaine-de-production.md` § 5 nomment cette revue (les gabarits ≥ 3.2 la nomment déjà).
+`scripts/contexte-ticket.mjs` et son test → `scripts/chaine/` (ils lisent `scripts/docs/identifiants.mjs`, posé par `socle-monorepo`). Le skill `revue-adversariale` est posé (`scripts/chaine/diff-revue.sh` et `chemins-sensibles.mjs`, fichier de critères). Puis `docs/agents/issue-tracker.md` § Livrer et `docs/agents/chaine-de-production.md` § 5 nomment cette revue (les gabarits ≥ 3.2 la nomment déjà).
 
 ## Quand
 

@@ -191,6 +191,14 @@ test('Migrations: de forme fausse est une erreur de la carte', () => {
   assert.equal(controlerCarte({ nom: 'x.map.md', texte: carteAvec('202611271000') }).erreurs.length, 0);
 });
 
+test('Migrations: accepte 12 ou 14 chiffres, rien d’autre', () => {
+  const ok = controlerCarte({ nom: 'x.map.md', texte: carteAvec('20261127100000') });
+  assert.equal(ok.erreurs.length, 0);
+  assert.deepEqual(migrationsReservees(carteAvec('20261127100000')), ['20261127100000']);
+  const ko = controlerCarte({ nom: 'x.map.md', texte: carteAvec('2026112710') });
+  assert.match(ko.erreurs[0].message, /12 chiffres.*14/);
+});
+
 test('deux cartes ouvertes qui réservent le même horodatage : écart ; une carte finie ne réserve plus', () => {
   const cartes = [
     { chemin: 'a.map.md', texte: carteAvec('202611271000') },

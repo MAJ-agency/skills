@@ -12,7 +12,7 @@
 #      depuis le départ de la pile (le squash de la parente masque juste l'ascendance :
 #      ce côté fait foi, comme un rebase --onto ; cas vécus : #369 sur #354, et #469 après sa
 #      sœur #468, toutes deux sur #458). Tout autre conflit → sortie 2.
-#   3. Régénère les index (ADR, registre config, manifestes, règles) et passe leurs
+#   3. Régénère les index générés (`scripts/docs/index-generes.json`) et passe leurs
 #      gates avant de pousser (une règle qui cite un test disparu de develop → sortie 3).
 #   4. Pousse en avance rapide, sous les hooks du projet (jamais --no-verify) : le pre-push
 #      joue `pnpm check` ; la CI exigée le rejoue et la fusion l'attend.
@@ -258,7 +258,7 @@ attendre_checks() {
 # et ne pousse pas de commit vide : il s'arrête, la décision revient à l'humain ou à la session.
 attendre_checks 30 || sortir 3 "aucun check sur le sommet après 5 min : CI non déclenchée (un push de la session propriétaire la lancera)"
 # Liste lue dans la protection de develop : les checks du sommet ne montrent que ceux déjà
-# créés, et une synthèse (« E2E Web par fédération ») n'apparaît qu'en fin de matrice.
+# créés, et un check de synthèse (qui attend toute une matrice) n'apparaît qu'en fin de matrice.
 requis=$(checks_exiges | jq -r '.[]')
 verdict=''
 for _ in $(seq 1 120); do # 60 min au plus

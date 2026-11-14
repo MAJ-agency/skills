@@ -86,6 +86,43 @@ test("CLI : sortie 1 et message pour une migration trop ancienne, 0 sinon", () =
   assert.equal(d2.lancer("-c", `node ${cli()} origin/develop origin/feat/migr`).status, 0);
 });
 
+test("horodatage et plus10Minutes : la forme Prisma à 14 chiffres", () => {
+  assert.equal(horodatage("20260906120000_pass"), "20260906120000");
+  assert.equal(horodatage("migration_lock.toml"), null);
+  assert.equal(plus10Minutes("20261231235500"), "20270101000500");
+});
+
+test("controlerOrdre : une migration Prisma antérieure est refusée, proposée dans sa forme", () => {
+  const refus = controlerOrdre({ base: ["20261201100000_b"], ajoutees: ["20261128100000_c"] });
+  assert.equal(refus.length, 1);
+  assert.equal(refus[0].propose, "20261201101000");
+  assert.equal(refus[0].dernier, "20261201100000");
+  assert.match(message(refus), /renommer en 20261201101000_c/);
+});
+
+test("CLI : un dossier Prisma plus ancien que develop sort en 1", () => {
+  const dossier = "apps/api/prisma/migrations";
+  const prisma = (h, nom) => ({
+    [`${dossier}/${h}_${nom}/migration.sql`]: "-- sql\n",
+  });
+  const prepare = (h) => {
+    const d = depotJouet();
+    d.ecrire(".claude/chaine.json", JSON.stringify({ migrations: `${dossier}/` }));
+    for (const [c, v] of Object.entries(prisma("20261201100000", "livree"))) d.ecrire(c, v);
+    d.ecrire(`${dossier}/migration_lock.toml`, 'provider = "postgresql"\n');
+    d.commit("chore: develop");
+    d.git("push", "-q", "origin", "HEAD:develop");
+    d.git("fetch", "-q", "origin");
+    d.branche("feat/migr", "origin/develop", prisma(h, "nouvelle"));
+    return d;
+  };
+  const ko = prepare("20261128100000").lancer("-c", `node ${cli()} origin/develop origin/feat/migr`);
+  assert.equal(ko.status, 1, ko.stdout + ko.stderr);
+  assert.match(ko.stdout, /20261201101000_nouvelle/);
+  const ok = prepare("20261201110000").lancer("-c", `node ${cli()} origin/develop origin/feat/migr`);
+  assert.equal(ok.status, 0, ok.stdout + ok.stderr);
+});
+
 test("passer.sh : une migration ajoutée plus ancienne que celle de develop est refusée (sortie 4), sans fusion", () => {
   const d = depotJouet();
   pr(d, "202611281000");

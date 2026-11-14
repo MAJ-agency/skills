@@ -12,7 +12,7 @@ Objectif: {{une phrase}}
 Échéance: {{date ou aucune}}
 Grilling: {{complet | court | aucun}}
 Filles par vague: {{n}}
-Migrations: {{horodatages réservés, séparés par des virgules (AAAAMMJJHHMM, AAAAMMJJHHMM) — ou « — » ; ligne lue par check:tickets, jamais deux cartes ouvertes sur le même horodatage}}
+Migrations: {{horodatages réservés, séparés par des virgules (AAAAMMJJHHMM, AAAAMMJJHHMM ; AAAAMMJJHHMMSS pour des migrations Prisma) — ou « — » ; ligne lue par check:tickets, jamais deux cartes ouvertes sur le même horodatage}}
 Capitaine: {{session_id ou « absent »}}
 Gel:
 

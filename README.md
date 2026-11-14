@@ -152,7 +152,7 @@ skills/
       references/      scripts (docs/, verify/) et leurs tests, tracker, labels de triage, gabarits
     revue-adversariale/
       SKILL.md         poser, quand, le diff, les chemins sensibles, le sous-agent, trier, corriger
-      scripts/         diff-revue.sh
+      scripts/         diff-revue.sh, chemins-sensibles.mjs
       references/      critères du socle, prompt exact, section de PR
     sujet/
       SKILL.md         quand un sujet, session de travail, capitaine, livrer

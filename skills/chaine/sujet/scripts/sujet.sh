@@ -11,8 +11,8 @@
 #                         `Blocked by:` n'y est pas fait (Status resolved/Fait/done) ; une branche
 #                         qui a déjà des commits partis de develop reçoit la commande de rebase
 #   ouvrir <nom> [--specs <pr>]
-#                         crée sujet/<nom> depuis develop, sans protection de branche (A-8 de
-#                         ALL-INF-13) ; `--specs` recible sur le sujet la PR de specs du lot
+#                         crée sujet/<nom> depuis develop, sans protection de branche ;
+#                         `--specs` recible sur le sujet la PR de specs du lot
 #   fusionner <pr>        squash d'une sous-PR dans son sujet : checks exigés verts sur son sommet,
 #                         titre qui passe commitlint
 #                         (lancé par le capitaine pour une sous-PR étiquetée `à-fusionner`)
@@ -646,7 +646,7 @@ relancer() {
 
 # Séries de la file : PR ouvertes, non brouillon, qui visent develop ou une autre PR. Clés de
 # regroupement : spec du ticket cité (titre ou branche), racine de la pile, et, sans ticket, les
-# deux premiers mots de la branche (`chore/ffsb-vivante-stats` → `chore/ffsb-vivante-*`). Une clé qui réunit au moins 2 PR est une
+# deux premiers mots de la branche (`chore/tableau-bord-stats` → `chore/tableau-bord-*`). Une clé qui réunit au moins 2 PR est une
 # série. Sortie : « clé<TAB>#n #m …<TAB>prio:haute ? », une par série.
 series() {
   gh api --paginate "$DEPOT/pulls?state=open&per_page=100" --jq '.[] | select(.draft | not)
@@ -666,7 +666,7 @@ series() {
           if (ticket[p] != "") {
             s = ticket[p]; sub(/\.[0-9][0-9]$/, "", s); cle["spec " s] = cle["spec " s] " #" p
           } else if (match(tete[p], /^[a-z]+\/[a-z0-9]+-[a-z0-9]+-/) && tete[p] !~ /^claude\//) {
-            # sans ticket : type/ + deux premiers mots de la branche (chore/ffsb-vivante-*)
+            # sans ticket : type/ + deux premiers mots de la branche (chore/tableau-bord-*)
             b = substr(tete[p], 1, RLENGTH - 1); cle["branche " b "-*"] = cle["branche " b "-*"] " #" p
           }
           if (prio[p] == "true") haute[p] = 1
