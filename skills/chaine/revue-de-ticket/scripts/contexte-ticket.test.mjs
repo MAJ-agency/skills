@@ -273,3 +273,27 @@ test("la ligne Règles: avec un jeton hostile (200 000 points) est lue en temps 
   assert.equal(r.status, 0, r.stderr);
   assert.match(r.stdout, /### LIC-3\n- illisible/);
 });
+
+test("une spec rangée hors de docs/features/ est trouvée par son identifiant, avec la ligne qui cite le ticket", () => {
+  const d = depot({
+    "docs/infrastructure/all/SPEC_ALL_INF-1-hebergement.spec.md":
+      "# SPEC_ALL_INF-1 — Hébergement\n\n| NN | Objet |\n| --- | --- |\n| 01 | Mesurer l'hébergement |\n",
+    "docs/infrastructure/all/issues/SPEC_ALL_INF-1-hebergement.01.issue.md":
+      "# Mesurer\n\nStatus: ready-for-agent\nType: task\n",
+  });
+  const r = lancer(d, "SPEC_ALL_INF-1.01");
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stdout, /## Spec — docs\/infrastructure\/all\/SPEC_ALL_INF-1-hebergement\.spec\.md/);
+  assert.match(r.stdout, /\| 01 \| Mesurer l'hébergement \|/);
+});
+
+test("une spec citée hors de docs/features/ est trouvée ; absente, le chemin cherché est docs/**", () => {
+  const d = depot({
+    [TICKET]: "# Ticket\n\nStatus: ready-for-agent\nType: task\n\nVoir SPEC_ALL_DES-2 et SPEC_ALL_ARC-9.\n",
+    "docs/design/all/SPEC_ALL_DES-2-charte.spec.md": "# SPEC_ALL_DES-2 — Charte\n",
+  });
+  const r = lancer(d, "SPEC_ALL_SOC-1.03");
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(section(r.stdout, "SPEC_ALL_DES-2"), /- trouvé : docs\/design\/all\/SPEC_ALL_DES-2-charte\.spec\.md — SPEC_ALL_DES-2 — Charte/);
+  assert.match(section(r.stdout, "SPEC_ALL_ARC-9"), /- introuvable : docs\/\*\*\/SPEC_ALL_ARC-9-<slug>\.spec\.md/);
+});

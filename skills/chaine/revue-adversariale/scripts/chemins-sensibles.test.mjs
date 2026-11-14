@@ -2,10 +2,14 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { module as chargerModule } from "../../tickets/references/scripts/docs/depot-jouet.mjs";
+// Posé dans un projet, le gate est dans scripts/verify/ ; dans le plugin, le dépôt jouet du skill tickets le pose.
+const GATE_POSE = new URL("../verify/tickets-regles.mjs", import.meta.url);
+const chargerGate = existsSync(GATE_POSE)
+  ? () => import(GATE_POSE.href)
+  : async () => (await import("../../tickets/references/scripts/docs/depot-jouet.mjs")).module("verify/tickets-regles.mjs");
 
 const CLI = new URL("./chemins-sensibles.mjs", import.meta.url).pathname;
 const sansGit = () =>
@@ -56,7 +60,7 @@ test("la table : les motifs se lisent comme ceux du gate", () => {
 });
 
 test("parité : même verdict que motifSensibleTouche du gate", async () => {
-  const gate = await chargerModule("verify/tickets-regles.mjs");
+  const gate = await chargerGate();
   for (const [motif, chemin] of TABLE) {
     const r = lancer(dossierAvec(JSON.stringify({ cheminsSensibles: [motif] })), `${chemin}\n`);
     const attendu = gate.motifSensibleTouche(chemin, [motif]);

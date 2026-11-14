@@ -746,10 +746,19 @@ test("boucle.sh : une sous-PR d'un sujet gelé n'est ni fusionnée, ni renvoyée
 // jouet), le vrai `pre-commit` du socle avec un faux `npx` et un faux `pnpm` qui journalisent la
 // présence de GIT_INDEX_FILE, et un `commit-msg` qui applique `ignores` du vrai commitlint.config.mjs.
 // =============================================================================
-const SOCLE = fileURLToPath(new URL("../../../monorepo/socle-monorepo/references/", import.meta.url));
+// Posé dans un projet (depot-jouet.mjs à côté), les scripts passent sous le hook et la configuration de la
+// racine du projet ; dans le plugin, sous ceux du socle. Un fichier absent fait échouer ces tests, jamais les sauter.
+const POSE = existsSync(new URL("./depot-jouet.mjs", import.meta.url));
+const [PRE_COMMIT, COMMITLINT] = (
+  POSE
+    ? ["../../.husky/pre-commit", "../../commitlint.config.mjs"]
+    : ["../../../monorepo/socle-monorepo/references/husky/pre-commit", "../../../monorepo/socle-monorepo/references/racine/commitlint.config.mjs"]
+).map((chemin) => fileURLToPath(new URL(chemin, import.meta.url)));
+const MANQUANT = [PRE_COMMIT, COMMITLINT].find((f) => !existsSync(f));
 const REFUS = /pre-push jouet : refus/;
 
 function hooks(d) {
+  if (MANQUANT) assert.fail(`fichier manquant : ${MANQUANT} (posé par socle-monorepo) ; les tests sous les hooks en ont besoin`);
   const dir = join(d.racine, "hooks");
   const journal = join(d.racine, "hooks.log");
   const J = JSON.stringify(journal);
@@ -764,14 +773,14 @@ function hooks(d) {
   writeFileSync(
     join(dir, "commit-msg.mjs"),
     `import { readFileSync } from "node:fs";
-const { default: config } = await import(${JSON.stringify(join(SOCLE, "racine/commitlint.config.mjs"))});
+const { default: config } = await import(${JSON.stringify(COMMITLINT)});
 const msg = readFileSync(process.argv[2], "utf8");
 if (config.ignores.some((f) => f(msg))) process.exit(0);
 if (!/^(feat|fix|docs|chore|refactor|test)(\\([a-z-]+\\))?: .+/.test(msg)) { console.error("commit-msg jouet : message refusé"); process.exit(1); }
 `,
   );
   poser("commit-msg", `echo commit-msg >> ${J}\n${refuse("commit-msg")}\nexec node "$(dirname "$0")/commit-msg.mjs" "$1"`);
-  writeFileSync(join(dir, "pre-commit"), readFileSync(join(SOCLE, "husky/pre-commit"), "utf8"));
+  writeFileSync(join(dir, "pre-commit"), readFileSync(PRE_COMMIT, "utf8"));
   chmodSync(join(dir, "pre-commit"), 0o755);
   const outil = (nom, corps) => {
     writeFileSync(join(d.racine, "bin", nom), `#!/bin/sh\n${corps}\n`);

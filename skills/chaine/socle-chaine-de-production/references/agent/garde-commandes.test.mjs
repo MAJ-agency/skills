@@ -19,12 +19,17 @@ const TICKET = 'docs/features/demo/all/issues/SPEC_ALL_DEMO-1-demo.01.issue.md';
 const ticket = (dependances) => `# SPEC_ALL_DEMO-1.01 — x\n\nStatus: ready-for-agent\n${dependances}\n\n## Le besoin\n\nx\n`;
 
 /** Dépôt jouet : le ticket sur develop sans ligne, `origin/sujet/demo` le porte avec `ligneSujet`. */
-function depot(ligneSujet, { avecIdentifiants = true } = {}) {
-  const d = depotJouet({ fichiers: { [TICKET]: ticket('Modèle: sonnet') } });
-  writeFileSync(join(d.travail, TICKET), ticket(ligneSujet));
+function depot(ligneSujet, { avecIdentifiants = true, chemin = TICKET, branche = 'feat/spec-all-demo-1-01-carte', copies = {} } = {}) {
+  const d = depotJouet({ fichiers: { [chemin]: ticket('Modèle: sonnet') } });
+  writeFileSync(join(d.travail, chemin), ticket(ligneSujet));
+  for (const [autre, ligne] of Object.entries(copies)) {
+    mkdirSync(join(d.travail, autre, '..'), { recursive: true });
+    writeFileSync(join(d.travail, autre), ticket(ligne));
+    d.git('add', autre);
+  }
   d.git('commit', '-q', '--allow-empty', '-am', 'dépendances');
   d.git('push', '-q', 'origin', 'HEAD:refs/heads/sujet/demo');
-  d.git('checkout', '-q', '-b', 'feat/spec-all-demo-1-01-carte', 'origin/develop');
+  d.git('checkout', '-q', '-b', branche, 'origin/develop');
   const outils = join(d.racine, 'outils/scripts');
   mkdirSync(join(outils, 'agent'), { recursive: true });
   for (const f of ['entree.mjs', 'regles.mjs', 'garde-commandes.mjs']) copyFileSync(new URL(f, import.meta.url), join(outils, 'agent', f));
@@ -57,6 +62,28 @@ test('ticket du sujet avec Dépendances: `leaflet` → pnpm add leaflet passe, z
   const d = depot('Dépendances: `leaflet`');
   passe(lancer(d, 'pnpm add leaflet@1.9.4'));
   refuse(lancer(d, 'pnpm add leaflet zod'));
+});
+
+test('ticket rangé hors de docs/features/ avec Dépendances: `leaflet` sur le sujet → pnpm add leaflet passe', () => {
+  const d = depot('Dépendances: `leaflet`', {
+    chemin: 'docs/infrastructure/all/issues/SPEC_ALL_INF-1-hebergement.01.issue.md',
+    branche: 'feat/spec-all-inf-1-01-mesure',
+  });
+  passe(lancer(d, 'pnpm add leaflet@1.9.4'));
+  refuse(lancer(d, 'pnpm add leaflet zod'));
+});
+
+test('ticket seul sous un dossier au nom accentué : son paquet prévu passe', () => {
+  const d = depot('Dépendances: `leaflet`', { chemin: 'docs/sécurité/all/issues/SPEC_ALL_DEMO-1-demo.01.issue.md' });
+  passe(lancer(d, 'pnpm add leaflet@1.9.4'));
+});
+
+test('deux copies du ticket, la stricte sous un dossier accentué, la large sous docs/features/ : l’intersection, zod refusé', () => {
+  const d = depot('Dépendances: `leaflet`, `zod`', {
+    copies: { 'docs/sécurité/all/issues/SPEC_ALL_DEMO-1-demo.01.issue.md': 'Dépendances: `leaflet`' },
+  });
+  passe(lancer(d, 'pnpm add leaflet'));
+  refuse(lancer(d, 'pnpm add zod'));
 });
 
 test('ticket modifié dans l’arbre de travail ou sur la branche, pas sur le sujet → refusé', () => {

@@ -48,7 +48,7 @@ function dependancesPrevues() {
     for (const ligne of git('for-each-ref', '--format=%(objectname) %(refname)', 'refs/remotes/origin/sujet/').split('\n').filter(Boolean)) {
       const [sha, ref] = ligne.split(' ');
       if (distants.get(ref.replace('refs/remotes/origin/', 'refs/heads/')) !== sha) continue;
-      for (const chemin of git('ls-tree', '-r', '--name-only', sha, 'docs/features').split('\n'))
+      for (const chemin of git('ls-tree', '-r', '-z', '--name-only', sha, 'docs').split('\0').filter(Boolean))
         if (!estArchive(chemin) && identifiantDuTicket(chemin.split('/').pop() ?? '') === id) copies.push(lireDependances(git('show', `${sha}:${chemin}`)));
     }
     if (copies.length === 0) return null;
