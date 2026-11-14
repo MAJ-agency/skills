@@ -25,6 +25,6 @@
 
 ## Conséquences
 
-Une passe de CI complète par série au lieu d'une par PR. Les conflits internes à une série se règlent dans le sujet. En échange : rien du sujet n'arrive en recette avant sa livraison, et la PR finale est volumineuse, à relire sous-PR par sous-PR. Les branches `sujet/*` ne sont pas protégées : le push forcé y est refusé aux sessions par le hook `garde-commandes`, et la suppression automatique des branches par GitHub n'intervient qu'à la fusion de la PR finale.
+Une passe de CI complète par série au lieu d'une par PR. Les conflits internes à une série se règlent dans le sujet. En échange : rien du sujet n'arrive en recette avant sa livraison, et la PR finale est volumineuse, à relire sous-PR par sous-PR. Les branches `sujet/*` ne sont pas protégées : le push forcé, et toute écriture d'une session (`git push`, `gh` en écriture), y sont refusés par le hook `garde-commandes`, l'écriture par un outil GitHub par le hook `garde-github`, et la suppression automatique des branches par GitHub n'intervient qu'à la fusion de la PR finale.
 
 Mode d'emploi : skill `sujet` et son `sujet.sh` ; ordre de la file et regroupement : skill `fusionner`.

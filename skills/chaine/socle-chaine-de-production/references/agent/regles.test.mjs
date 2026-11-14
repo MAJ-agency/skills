@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { ajouteUneDependance, decisionCommande, lireDependances, paquetsAjoutes, pousseSurUnSujet, refusEdition, sansTexte, lintable } from './regles.mjs';
+import { ajouteUneDependance, decisionCommande, decisionOutilGithub, lireDependances, paquetsAjoutes, pousseSurUnSujet, refusEdition, sansTexte, segmentsDeCommande, lintable } from './regles.mjs';
 
 const livree = { migrationExistante: () => true, migrations: 'apps/api/src/db/migrations/' };
 const nouvelle = { migrationExistante: () => false, migrations: 'apps/api/src/db/migrations/' };
@@ -216,6 +216,250 @@ test('ce qui n’écrit pas sur un sujet passe, sujet.sh carte compris', () => {
     'git log origin/sujet/demo',
   ])
     assert.equal(decisionCommande(commande, { brancheCourante: () => 'docs/demo-carte' }), null, commande);
+});
+
+test('un git push vers develop, main ou la branche par défaut est refusé sous toutes ses graphies ; une source develop ou un nom voisin passent', () => {
+  const ctx = (courante = 'feat/spec-all-demo-1-01-x') => ({ brancheCourante: () => courante, brancheParDefaut: () => 'trunk' });
+  for (const commande of [
+    'git push origin develop',
+    'git push origin HEAD:main',
+    'git push origin HEAD:refs/heads/develop',
+    'git push origin HEAD:refs/heads/main',
+    'git push origin origin/main:refs/heads/develop',
+    'git push origin +refs/heads/x:refs/heads/main',
+    'git push origin HEAD:heads/develop',
+    'git push origin HEAD:DEVELOP',
+    'git push origin "HEAD:refs/heads//main"',
+    'git push origin HEAD:trunk',
+    'git push origin :develop',
+  ])
+    assert.equal(decisionCommande(commande, ctx())?.decision, 'refuser', commande);
+  for (const courante of ['develop', 'main', 'trunk'])
+    for (const commande of ['git push', 'git push origin', 'git push origin HEAD'])
+      assert.equal(decisionCommande(commande, ctx(courante))?.decision, 'refuser', `${courante} : ${commande}`);
+  for (const commande of ['git push origin develop:feat/x', 'git push origin feat/develop', 'git push origin feat/main-menu', 'git push -u origin feat/spec-all-demo-1-01-x', 'git push origin HEAD'])
+    assert.equal(decisionCommande(commande, ctx()), null, commande);
+  assert.equal(decisionCommande('git push', ctx(null)), null, 'branche courante inconnue');
+});
+
+test('une barre oblique inverse ne cache ni git ni gh : lignes continuées recollées, \\git lu comme git', () => {
+  for (const commande of [
+    '\\git push --force origin feat/x',
+    'git push origin \\\nHEAD:sujet/x',
+    'git push origin \\\nHEAD:refs/heads/develop',
+    'gh api -X PUT \\\nrepos/o/r/pulls/3/merge',
+    'gh pr \\\nmerge 3',
+    '\\gh pr merge 3',
+  ])
+    assert.equal(decisionCommande(commande, { brancheCourante: () => 'feat/x' })?.decision, 'refuser', commande);
+  assert.equal(decisionCommande('git commit -m "a\\\nb"', { brancheCourante: () => 'feat/x' }), null);
+});
+
+test('une substitution de commande ne cache ni git ni gh : lue à part, remplacée dans la commande englobante par un mot illisible', () => {
+  const ctx = { brancheCourante: () => 'feat/x' };
+  for (const commande of [
+    'git -C "$(pwd)" push origin HEAD:sujet/x',
+    'git -C $(pwd) push --force origin feat/x',
+    'git -C `pwd` push origin HEAD:sujet/x',
+    'gh -R $(echo o/r) pr merge 3',
+    'x=$(gh pr merge 3)',
+    'git push origin "$(git branch --show-current)"',
+    '$(true)git push --force origin feat/x',
+    '`true`git push origin HEAD:sujet/x',
+    'echo `echo \\`git push --force origin feat/x\\``',
+    '$(true)gh pr merge 3',
+  ])
+    assert.equal(decisionCommande(commande, ctx)?.decision, 'refuser', commande);
+  for (const commande of ['git push -u origin feat/x && echo "$(date)"', 'gh pr view $(cat n.txt)'])
+    assert.equal(decisionCommande(commande, ctx), null, commande);
+  assert.deepEqual(
+    segmentsDeCommande('git -C "$(pwd)" push origin HEAD:x; echo `date`').map(({ segment }) => segment.trim()),
+    ['pwd', 'date', 'git -C $SUBSTITUTION push origin HEAD:x', 'echo $SUBSTITUTION'],
+  );
+});
+
+test('decisionOutilGithub : écrire ou fusionner vers une branche gardée, ou mettre à jour une PR dont la tête est gardée, est refusé, sous toutes ses graphies', () => {
+  const ctx = { brancheParDefaut: 'trunk' };
+  for (const branch of ['sujet/demo', 'refs/heads/sujet/demo', 'develop', 'main', 'trunk', '', undefined, 5, ['develop'], { a: 1 }, ' sujet/x', 'develop ', 'heads/sujet/x', 'refs/heads//sujet/x', 'Sujet/x', 'origin/develop', 'TRUNK', '/main'])
+    for (const outil of ['mcp__github__push_files', 'mcp__github__create_or_update_file', 'mcp__github__delete_file', 'mcp__autre__push_files'])
+      assert.equal(decisionOutilGithub(outil, { branch }, ctx)?.decision, 'refuser', `${outil} ${JSON.stringify(branch)}`);
+  assert.equal(decisionOutilGithub('mcp__github__create_branch', { branch: 'sujet/neuf' }, ctx)?.decision, 'refuser');
+  assert.equal(decisionOutilGithub('mcp__github__push_files', { branch: 'feat/x' }, ctx), null);
+  assert.equal(decisionOutilGithub('mcp__github__create_branch', { branch: 'feat/x', from_branch: 'sujet/demo' }, ctx), null);
+  assert.equal(decisionOutilGithub('mcp__github__get_file_contents', { ref: 'sujet/demo' }, ctx), null);
+  const pr = (tete, base) => ({ ...ctx, refsDeLaPr: () => (tete === null ? null : { tete, base }) });
+  for (const b of ['sujet/demo', 'refs/heads/Sujet/demo', 'develop', 'main', 'trunk'])
+    for (const outil of ['mcp__github__merge_pull_request', 'mcp__github__enable_pr_auto_merge'])
+      assert.equal(decisionOutilGithub(outil, { pullNumber: 1 }, pr('feat/x', b))?.decision, 'refuser', `${outil} ${b}`);
+  assert.equal(decisionOutilGithub('mcp__github__merge_pull_request', { pullNumber: 1 }, pr(null))?.decision, 'refuser', 'refs illisibles');
+  assert.equal(decisionOutilGithub('mcp__github__merge_pull_request', { pullNumber: 1 }, pr('feat/x', 'feat/y')), null);
+  for (const tete of ['sujet/demo', 'develop', 'main', 'trunk', 'Main'])
+    assert.equal(decisionOutilGithub('mcp__github__update_pull_request_branch', { pullNumber: 1 }, pr(tete, 'develop'))?.decision, 'refuser', `mise à jour, tête ${tete}`);
+  assert.equal(decisionOutilGithub('mcp__github__update_pull_request_branch', { pullNumber: 1 }, pr(null))?.decision, 'refuser', 'tête illisible');
+  assert.equal(decisionOutilGithub('mcp__github__update_pull_request_branch', { pullNumber: 1 }, pr('feat/x', 'sujet/demo')), null, 'tête ordinaire, base gardée : la mise à jour écrit sur la tête');
+});
+
+test('gh en écriture vers une branche, un fichier ou une règle de branche est refusé ; la lecture, les PR et les labels passent', () => {
+  for (const commande of [
+    'gh api -X PATCH repos/o/r/git/refs/heads/sujet/x -f sha=abc',
+    'gh api repos/o/r/git/refs -f ref=refs/heads/sujet/x -f sha=abc',
+    'gh api --method DELETE repos/o/r/git/refs/heads/feat/x',
+    'gh api -XPUT repos/o/r/pulls/3/merge',
+    'gh api -X PUT "repos/o/r/contents/docs/a.md" -f branch=sujet/x',
+    'gh api repos/o/r/merges -f base=sujet/x -f head=feat/y',
+    'gh api graphql -f query="mutation { createCommitOnBranch(input: {}) { commit { oid } } }"',
+    'gh api graphql -F query=@requete.graphql',
+    'gh pr merge 12 --squash',
+    'timeout 5 gh pr merge 12',
+    '/usr/bin/gh api -X PATCH repos/o/r/git/refs/heads/develop -f sha=abc',
+    'gh api -X PATCH "$REF_URL" -f sha=abc',
+    'gh api --method=PUT repos/o/r/pulls/$(cat n)/merge',
+    'gh -R o/r pr merge 3',
+    'gh --repo o/r pr merge 3',
+    'gh pr -R o/r merge 3',
+    'env GH_X=1 gh pr merge 3',
+    'gh api graphql -f query="$Q"',
+    'gh api graphql --input q.json',
+    'gh api graphql -f query="query A { a(x: 1) } mutation B { b }"',
+    'gh api /graphql -f query="mutation { x }"',
+    'gh api https://api.github.com/graphql -f query="mutation { x }"',
+    'gh api -X PATCH repos/o/r/git//refs/heads/x -f sha=a',
+    'gh api -X PATCH repos/o/r/git/./refs/heads/x -f sha=a',
+    'gh api -X PATCH repos/o/r/GIT/REFS/heads/x -f sha=a',
+    'gh api -X PUT repos/o/r/pulls/3%2Fmerge',
+    'gh api -X PUT repos/o/r/pulls/3/ccr/auto_merge',
+    'gh api -X PUT repos/o/r/pulls/3/update-branch',
+    'gh --hostname github.com pr merge 3',
+    'gh api -X PUT repos/o/r/pulls/3/merge/',
+    'gh api -X PUT repos/o/r//pulls/3/merge',
+    'gh api repos/o/r/merge-upstream -f branch=develop',
+    'gh api -X PUT repos/o/r/branches/develop/protection --input p.json',
+    'gh api -X DELETE repos/o/r/branches/develop/protection',
+    'gh api -X POST repos/o/r/rulesets --input r.json',
+    'gh repo sync o/r -b develop --force',
+    'gh pr close 3 -d',
+    'gh pr close 3 --delete-branch',
+    'gh alias set m "pr merge"',
+    'gh alias set --shell m "gh pr merge $1"',
+    'gh alias import aliases.yml',
+    'gh alias import - < aliases.yml',
+  ])
+    assert.equal(decisionCommande(commande)?.decision, 'refuser', commande);
+  for (const commande of [
+    'gh api repos/o/r/git/refs/heads/sujet/x',
+    'gh api repos/o/r/pulls/3',
+    'gh api -X POST repos/o/r/pulls -f title=x -f head=feat/x -f base=sujet/x',
+    'gh api -X PATCH repos/o/r/pulls/3 -f base=sujet/x',
+    'gh api -X POST repos/o/r/issues/3/labels -f "labels[]=à-fusionner"',
+    'gh api graphql -f query="{ viewer { login } }"',
+    "gh api graphql -f query='query { repository(owner:\"o\", name:\"r\") { pullRequest(number: 1) { mergeable } } }'",
+    'git commit -m "fix: mutation testing" && gh api graphql -f query="{ viewer { login } }"',
+    'gh api repos/o/r/rules/branches/develop',
+    'gh api repos/o/r/branches/develop/protection',
+    'gh api -X GET repos/o/r/contents/docs/a.md -f ref=sujet/x',
+    'gh pr create --base sujet/x --title t --body b',
+    'gh pr edit 3 --add-label à-fusionner',
+    'gh pr close 3',
+    'gh alias list',
+    'gh alias delete m',
+    'gh pr view 3',
+    'git commit -m "gh pr merge 3"',
+    'bash scripts/chaine/passer.sh 12',
+  ])
+    assert.equal(decisionCommande(commande), null, commande);
+});
+
+test('contournements relevés pendant le ticket 27 : champ gh collé ou route après un champ à blancs, $\'git\', casse, programme caché derrière un mot en /git, séparateur cité, option en /git après le programme, fragment ou option groupée de gh, git après une substitution, branche en ./ ou à barre finale, substitution parenthésée, -n et --no-veri… de git commit, mot cité seul', () => {
+  const ctx = { brancheCourante: () => 'feat/x' };
+  const sujet = 'sujet/x';
+  const nv = '--no-verify';
+  for (const commande of [
+    `gh api repos/o/r/git/refs -fref=refs/heads/${sujet} -fsha=abc`,
+    `gh api repos/o/r/git/refs -Fref=refs/heads/${sujet} -Fsha=abc`,
+    `gh api -X PUT -f message="add file" -f branch=${sujet} repos/o/r/contents/a.md`,
+    'gh api -f query="mutation { x }" graphql',
+    `$'git' push origin HEAD:${sujet}`,
+    '$"gh" pr merge 3',
+    'GIT push --force origin feat/x',
+    'Gh pr merge 3',
+    `git -c a.b=$((1)) push origin HEAD:${sujet}`,
+    'git -C "$( (pwd) )" push --force origin feat/x',
+    'gh -R $( (echo o/r) ) pr merge 3',
+    'git commit -n -m x',
+    'git commit -anm x',
+    'git commit -m x --no-veri',
+    `git merge ${nv} feat/y`,
+    `"git" commit ${nv} -m x`,
+    `g''it commit ${nv} -m x`,
+    `git commit "${nv}" -m x`,
+    `GIT commit ${nv} -m x`,
+    "'npm' install leaflet",
+    'X=/a/git git push --force origin feat/x',
+    `env -C /w/git git push origin HEAD:${sujet}`,
+    `sudo -u git git push origin HEAD:${sujet}`,
+    'X=/a/git gh pr merge 5',
+    'sudo -u git gh api -X PUT repos/o/r/pulls/5/merge',
+    `./a=b/git push origin HEAD:${sujet}`,
+    '/tmp/a=b/git push --force origin feat/x',
+    'env --chdir=/w/git git push --force origin feat/x',
+    'gh api -f message="fix(api): x" -X PUT repos/o/r/contents/a.md',
+    'gh api -f commit_title="a; b" -X PUT repos/o/r/pulls/3/merge',
+    'gh api --jq ".a | .b" -X PUT repos/o/r/pulls/3/merge',
+    'gh -R "o/r;x" pr merge 3',
+    'git -c user.name="a;b" push --force origin feat/x',
+    `git -c user.name="A (B)" push origin HEAD:${sujet}`,
+    'git commit -m x --no-verif',
+    'git --work-tree=/usr/share/doc/git push -f origin HEAD:feat/x',
+    `git --work-tree=/home/u/git push origin HEAD:${sujet}`,
+    'git --work-tree=/home/u/git push origin HEAD:refs/heads/develop',
+    'gh --subject=a/gh pr merge 3 --squash',
+    'gh --jq=.a/gh api -X PUT repos/o/r/pulls/3/merge',
+    'sudo -u GIT -H git push --force origin feat/x',
+    `sudo -u GIT -H git push origin HEAD:${sujet}`,
+    'gh api -X PUT repos/o/r/pulls/3/merge#x',
+    'gh api repos/o/r/merges#x -f base=develop -f head=feat/x',
+    'gh api -X DELETE repos/o/r/branches/develop/protection#',
+    'gh api graphql#x -f query="mutation { a }"',
+    'gh api -iX PUT repos/o/r/pulls/3/merge',
+    'gh api -iXPUT repos/o/r/pulls/3/merge',
+    'gh api repos/o/r/merges -ifbase=develop -ifhead=feat/x',
+    'gh api repos/o/r/merges -if base=develop -if head=feat/x',
+    'gh pr close 3 -dc done',
+    'gh pr close 3 --delete-branch=true',
+    'sudo -u git $(true) git push --force origin feat/x',
+    `env -C /tmp/git $(true) git push origin HEAD:${sujet}`,
+    `sudo -u git \`true\` git push origin HEAD:${sujet}`,
+    'gh api -X PUT repos/o/r/pulls/3/merge/#x',
+    'gh api -X POST repos/o/r/merges/#x',
+    'gh api -X PUT repos/o/r/pulls/3/merge/?a=1',
+    'gh pr update-branch 12',
+    'gh -R o/r pr update-branch 12 --rebase',
+    `gh api -X POST repos/o/r/branches/feat-x/rename -f new_name=${sujet}`,
+    'gh api -X PUT repos/o/r/pulls/3/merge/x/..',
+    'git --attr-source HEAD push --force origin feat/x',
+  ])
+    assert.equal(decisionCommande(commande, ctx)?.decision, 'refuser', commande);
+  for (const branch of ['./develop', './main', `./${sujet}`, 'feat/../develop', 'feat/%2e%2e/main', 'feat/x\u0000', 'develop/', 'main/', 'develop//', './feat/x', 'feat/./x'])
+    assert.equal(decisionOutilGithub('mcp__github__push_files', { branch }, {})?.decision, 'refuser', JSON.stringify(branch));
+  for (const branch of ['develop/', './feat/x', 'feat/./x'])
+    assert.match(decisionOutilGithub('mcp__github__push_files', { branch }, {})?.raison ?? '', /nom de branche illisible/, branch);
+  for (const commande of ['git push origin HEAD:./feat/x', 'git push origin HEAD:feat/./x'])
+    assert.match(decisionCommande(commande, ctx)?.raison ?? '', /nom de branche illisible/, commande);
+  assert.equal(decisionOutilGithub('mcp__github__push_files', { branch: 'feat/x.y' }, {}), null);
+  for (const commande of [
+    `git commit -m "jamais ${nv}"`,
+    'git commit --amend --no-edit',
+    'git commit -m x -- docs/a.md',
+    'gh api -X POST repos/o/r/issues/3/comments -f body="voir graphql et contents"',
+    'echo $((1+2)) && git push -u origin feat/x',
+    'git merge --no-verify-signatures origin/develop',
+    'git pull --no-verify-signatures',
+    'gh api -i repos/o/r/pulls/3',
+    'gh pr close 3 -c fini',
+  ])
+    assert.equal(decisionCommande(commande, ctx), null, commande);
+  for (const commande of ['git --work-tree=/tmp/git push'])
+    assert.equal(decisionCommande(commande, { brancheCourante: () => 'sujet/y' })?.decision, 'refuser', commande);
 });
 
 test('lireDependances : la ligne d’en-tête, accents graves ou nus, — ou absente → []', () => {

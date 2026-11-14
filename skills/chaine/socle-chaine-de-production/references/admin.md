@@ -22,4 +22,6 @@ Le skill ne peut pas le faire : l'API GitHub refuse ces réglages depuis une ses
   `for depot in */; do if [ -f "${depot}scripts/db/demarrer-local.sh" ]; then bash "${depot}scripts/db/demarrer-local.sh" || true; fi; done`
   (le script de démarrage part du dossier qui contient les clones ; la boucle sert tous les dépôts de l'environnement).
 
+- [ ] **Claude Code 2.1.295 au moins**, sur chaque poste et dans l'environnement cloud : les trois gardes de `PreToolUse` portent `"onFailure": "block"`, que cette version introduit. Le comportement d'une version plus ancienne devant cette clé n'est pas établi.
+
 Vérification : `gh api repos/{owner}/{repo}/rules/branches/develop --jq '.[] | select(.type == "required_status_checks") | .parameters.strict_required_status_checks_policy'` rend `true` (l'ancienne API `branches/develop/protection` répond 404 quand un ruleset protège la branche).
