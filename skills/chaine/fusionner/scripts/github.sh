@@ -20,13 +20,16 @@ command -v jq >/dev/null || { echo "ARRÊT : jq est requis par les scripts de la
 # LOGIN_CAPITAINE, `?` s'il est illisible) : la marque recopiée par un autre compte ne met pas la PR
 # en attente d'un humain.
 MARQUE_RENVOI='<!-- renvoi-capitaine -->'
+unset LOGIN_CAPITAINE # posé par file.sh après ce fichier, jamais hérité de l'environnement
+# Login GitHub bien formé (utilisateur ou `app[bot]`) : seul un login de cette forme entre dans le filtre jq.
+login_valide() { [[ "${1:-}" =~ ^[A-Za-z0-9][A-Za-z0-9-]*(\[bot\])?$ ]]; }
 # Commentaires illisibles : 0 sur la sortie, dit sur la sortie d'erreur (un seul nombre, jamais deux).
 # Compte du capitaine illisible : le plafond (la PR attend un humain), dit sur la sortie d'erreur ;
 # le frein des renvois ne se lâche jamais faute de savoir qui renvoie.
 renvois_de() {
   local lus login=${LOGIN_CAPITAINE:-}
   [ -n "$login" ] || login=$(gh api user --jq .login 2>/dev/null) || login=''
-  if ! [[ "$login" =~ ^[A-Za-z0-9][A-Za-z0-9-]*(\[bot\])?$ ]]; then
+  if ! login_valide "$login"; then
     [ -n "${LOGIN_CAPITAINE:-}" ] ||
       echo "renvois de #$1 : compte du capitaine illisible (gh api user), compté au plafond : la PR attend un humain" >&2
     plafond_renvois

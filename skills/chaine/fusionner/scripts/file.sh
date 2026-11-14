@@ -48,7 +48,7 @@ cd "$(git rev-parse --show-toplevel)"
 plafond=$(plafond_renvois)
 # Compte du capitaine, lu une fois pour toute la file (renvois_de) ; illisible : dit une fois ici.
 LOGIN_CAPITAINE=$(gh api user --jq .login 2>/dev/null) || LOGIN_CAPITAINE=''
-if [ -z "$LOGIN_CAPITAINE" ]; then
+if ! login_valide "$LOGIN_CAPITAINE"; then
   echo "compte du capitaine illisible (gh api user) : chaque PR se lit au plafond de renvois et attend un humain" >&2
   LOGIN_CAPITAINE='?' # dit une fois : renvois_de rend le plafond sans relire ni redire
 fi

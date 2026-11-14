@@ -429,6 +429,32 @@ test("renvois : seuls les commentaires du compte du capitaine comptent ; compte 
   assert.equal(r.status, 0, r.stderr);
   assert.deepEqual(r.stdout.trim().split("\n").map((l) => l.split("\t").slice(0, 2).join(" ")), ["58 humain", "59 humain"]);
   assert.equal(r.stderr.match(/compte du capitaine illisible \(gh api user\)/g)?.length, 1, r.stderr);
+  // Un login mal formé (une espace) vaut un compte illisible : même message, une fois, même plafond.
+  const f = depotJouet();
+  f.branche("feat/e", "origin/develop", { "feat/e.md": "e\n" });
+  f.github({ capitaine: "un compte", exiges: ["qualite"], checks: { "*": { qualite: "SUCCESS" } }, pulls: [pr(60, "feat/e")] });
+  const m = f.lancer(script("file.sh"));
+  assert.equal(m.status, 0, m.stderr);
+  assert.deepEqual(m.stdout.trim().split("\n").map((l) => l.split("\t").slice(0, 2).join(" ")), ["60 humain"]);
+  assert.equal(m.stderr.match(/compte du capitaine illisible \(gh api user\)/g)?.length, 1, m.stderr);
+});
+
+test("renvois : LOGIN_CAPITAINE hérité de l'environnement n'est jamais lu, ni pour un autre compte ni pour « ? »", () => {
+  for (const herite of ["intrus", "?"]) {
+    const d = depotJouet();
+    d.branche("feat/f", "origin/develop", { "feat/f.md": "f\n" });
+    // Un renvoi du capitaine, deux recopiés par « intrus » : seul le premier compte.
+    d.github({
+      exiges: ["qualite"],
+      checks: { "*": { qualite: "SUCCESS" } },
+      pulls: [pr(61, "feat/f", { commentaires: [renvoi, { auteur: "intrus", body: renvoi }, { auteur: "intrus", body: renvoi }] })],
+    });
+    d.env.LOGIN_CAPITAINE = herite;
+    const r = d.lancer(script("renvoyer.sh"), "61", "x");
+    assert.equal(r.status, 0, r.stdout + r.stderr);
+    assert.match(r.stdout, /^\[#61\] RENVOI : x$/m, `LOGIN_CAPITAINE=${herite} : ${r.stdout}${r.stderr}`);
+    assert.doesNotMatch(r.stdout + r.stderr, /attend un humain|illisible/);
+  }
 });
 
 test("boucle.sh : une PR à l'état humain n'est ni passée, ni relancée, ni renvoyée", () => {
