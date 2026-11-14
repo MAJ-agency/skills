@@ -14,6 +14,7 @@ La session qui a écrit le code est la plus mal placée pour le relire. Un **sou
 | -------------------------------------- | ---------------------------------------------------------------------- |
 | `scripts/diff-revue.sh`                | `scripts/chaine/diff-revue.sh` (exécutable)                            |
 | `scripts/chemins-sensibles.mjs`        | `scripts/chaine/chemins-sensibles.mjs`                                 |
+| `scripts/*.test.mjs`                   | `scripts/chaine/` (`diff-revue.test.mjs` lit `depot-jouet.mjs`, posé par `sujet poser` ; `chemins-sensibles.test.mjs` lit le gate `scripts/verify/tickets-regles.mjs`, posé par `tickets poser`) |
 | `references/criteres-socle.md`         | le fichier que `.claude/chaine.json` nomme (`criteresRevue`, défaut `docs/agents/criteres-revue.md`), **s'il n'existe pas** |
 
 Puis relire la liste : retirer `S3` en mono-tenant, `S13` sans second client ; ajouter sous « Critères du projet » un critère par ADR qui pose une règle de code. Un projet qui a déjà sa liste la garde.
