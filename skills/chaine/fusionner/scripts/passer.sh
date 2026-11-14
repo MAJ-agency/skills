@@ -74,6 +74,9 @@ case "$labels" in *,fusion-bloquée,*) sortir 7 "label fusion-bloquée" ;; esac
 
 base=$(champ .base.ref)
 tete=$(champ .head.ref)
+# Tête gardée (develop, main, branche par défaut) : l'étape 4 y pousserait la fusion avec develop.
+! tete_gardee "$tete" "$(champ '.base.repo.default_branch // ""')" ||
+  sortir 4 "tête de la PR = $tete, branche gardée (develop, main ou la branche par défaut) : le capitaine n'y pousse jamais ; ouvrir la PR depuis une branche de travail"
 titre=$(champ .title)
 # Sujet du squash trop long : vu avant la CI, pas après. #479 et #454, nuit du 14/10 : un passage
 # complet (mise à jour, push, ~14 min de checks) perdu chacune pour un titre à 124 et 122 caractères.

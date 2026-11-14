@@ -14,7 +14,7 @@ La file : les PR `à-fusionner` dans l'ordre de passage, sous-PR de sujet, livra
 
 ## `scripts/passer.sh`
 
-Fait passer une PR : éligibilité (label, brouillon, titre de 120 caractères, section de revue, pile, ordre des migrations), mise à jour par merge de develop (conflit de pile résolu comme un rebase, index régénérés, tout autre conflit renvoyé), push en avance rapide, attente des checks exigés, squash lié au sommet testé ou commit de merge pour un sujet, dont le corps nomme le sujet (`Sujet: sujet/<nom>`), vérification que l'arbre fusionné est l'arbre testé. Une livraison intermédiaire (`livraison/<nom>-<date>`) n'est dispensée de revue que si son arbre est celui d'un sommet de `sujet/<nom>` fusionné avec le develop qu'elle contient, aux index générés près : vrai après la mise à jour que `passer.sh` y pousse lui-même, faux dès qu'une session y ajoute un commit. Cas relevé : reconnue par la seule contenance de son sommet dans le sujet, elle retombait au rang de PR ordinaire au passage suivant (revue exigée, renvoi, ou squash au lieu du merge). Sept codes de sortie, chacun avec sa suite. Il tourne depuis une copie, car il change de branche.
+Fait passer une PR : éligibilité (label, brouillon, tête qui n'est ni `develop`, ni `main`, ni la branche par défaut, titre de 120 caractères, section de revue, pile, ordre des migrations), mise à jour par merge de develop (conflit de pile résolu comme un rebase, index régénérés, tout autre conflit renvoyé), push en avance rapide, attente des checks exigés, squash lié au sommet testé ou commit de merge pour un sujet, dont le corps nomme le sujet (`Sujet: sujet/<nom>`), vérification que l'arbre fusionné est l'arbre testé. Une livraison intermédiaire (`livraison/<nom>-<date>`) n'est dispensée de revue que si son arbre est celui d'un sommet de `sujet/<nom>` fusionné avec le develop qu'elle contient, aux index générés près : vrai après la mise à jour que `passer.sh` y pousse lui-même, faux dès qu'une session y ajoute un commit. Cas relevé : reconnue par la seule contenance de son sommet dans le sujet, elle retombait au rang de PR ordinaire au passage suivant (revue exigée, renvoi, ou squash au lieu du merge). Sept codes de sortie, chacun avec sa suite. Il tourne depuis une copie, car il change de branche.
 
 ## `scripts/boucle.sh`
 
@@ -30,7 +30,7 @@ La veille : `boucle.sh` s'arrête sur `FILE VIDE`, et une PR étiquetée ensuite
 
 ## `scripts/renvoyer.sh`, `refus.sh`, `proprietaire.sh`
 
-Le renvoi : labels échangés, cause commentée, worktree propriétaire retrouvé pour prévenir la session. `refus.sh` renvoie avec le dernier motif d'un refus corrigeable.
+Le renvoi : labels échangés, cause commentée, worktree propriétaire retrouvé pour prévenir la session. Le compte des renvois ne lit que les commentaires marqués du compte qui tient le capitaine (`gh api user`, lu une fois par `file.sh`) : la marque recopiée par un autre compte ne met pas une PR en attente d'un humain ; ce compte illisible, toute PR se lit au plafond (le frein ne se lâche pas faute de savoir qui renvoie), et `file.sh` le dit une fois. Les sessions du projet commentent sous le même compte, et un collaborateur peut supprimer des commentaires : le compte est un frein contre la boucle, pas une frontière. `refus.sh` renvoie avec le dernier motif d'un refus corrigeable.
 
 ## `scripts/revue-exigee.mjs`
 
