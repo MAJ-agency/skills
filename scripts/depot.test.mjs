@@ -1,6 +1,6 @@
 // Le dépôt contre lui-même : tout skill est déclaré dans le plugin, tout skill déclaré existe,
 // son nom est celui de son dossier, et aucun SKILL.md ne dépasse le budget de 200 lignes
-// que le socle impose aux projets (`budget-contexte.mjs`).
+// que le socle impose aux projets (`budget-contexte.mjs`), et un skill marqué `disable-model-invocation` ne se charge que par sa commande en tête d'un prompt de lancement.
 import assert from "node:assert/strict";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
@@ -264,4 +264,53 @@ test("aucun script du plugin ne saute un hook git", () => {
     .filter((f) => !EXCEPTIONS_SAUT.includes(f))
     .flatMap((f) => sautsDeHook(readFileSync(join(RACINE, f), "utf8")).map((n) => `${f}:${n}`));
   assert.deepEqual(fautes, [], `un script saute un hook git : ${fautes.join(", ")}`);
+});
+
+// Un skill marqué `disable-model-invocation: true` ne se charge que par sa commande en tête du
+// message (documentation de Claude Code, page des skills) : tout bloc de prompt de lancement qui
+// nomme un tel skill commence par sa commande, et aucun SKILL.md ne demande au modèle de l'invoquer.
+const LANCEMENT = "skills/chaine/architecte/references/lancement.md";
+const marque = (texte) => {
+  const entete = texte.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+  return Boolean(entete) && /^disable-model-invocation:\s*true\s*$/m.test(entete[1]);
+};
+const blocsTexte = (texte) => [...texte.matchAll(/^```text\r?\n([\s\S]*?)^```/gm)].map((m) => m[1]);
+const cmdSkill = (n) => `/maj-skills:${n}(?![\\w-])`;
+// Les skills marqués nommés dans le bloc dont la commande n'ouvre pas la première ligne.
+const horsTete = (bloc, noms) => {
+  const premiere = lignes(bloc)[0] ?? "";
+  return noms.filter((n) => new RegExp(cmdSkill(n)).test(bloc) && !new RegExp(`^${cmdSkill(n)}`).test(premiere));
+};
+const skillsMarques = () => skillsDuDepot.filter((s) => marque(lire(s))).map((s) => s.split("/").pop());
+
+test("lecteurs des prompts de lancement : entrées piégées", () => {
+  assert.equal(marque("---\nname: x\ndisable-model-invocation: true\n---\n"), true);
+  assert.equal(marque("---\r\nname: x\r\ndisable-model-invocation: true\r\n---\r\n"), true, "CRLF");
+  assert.equal(marque("---\nname: x\ndisable-model-invocation: false\n---\n"), false);
+  assert.equal(marque("---\nname: x\n---\ndisable-model-invocation: true\n"), false, "hors de l'en-tête");
+  assert.deepEqual(blocsTexte("a\n```text\nl1\nl2\n```\n```bash\nx\n```\n"), ["l1\nl2\n"]);
+  assert.deepEqual(horsTete("/maj-skills:chantier nom\nlis /maj-skills:chantier\n", ["chantier"]), []);
+  assert.deepEqual(horsTete("Conducteur\nlis et suis /maj-skills:chantier\n", ["chantier"]), ["chantier"]);
+  assert.deepEqual(horsTete("/maj-skills:chantiers x\n", ["chantier"]), [], "nom voisin non nommé");
+  assert.deepEqual(horsTete("/maj-skills:chantierx\n/maj-skills:chantier\n", ["chantier"]), ["chantier"], "variante voisine en tête");
+  assert.deepEqual(horsTete("Session\nlis et suis /maj-skills:revue-de-ticket\n", ["chantier"]), []);
+});
+
+test("chaque prompt de lancement qui nomme un skill marqué commence par sa commande", () => {
+  const noms = skillsMarques();
+  assert.ok(noms.includes("chantier") && noms.includes("fusionner"), "chantier et fusionner sont marqués");
+  const blocs = blocsTexte(readFileSync(join(RACINE, LANCEMENT), "utf8"));
+  assert.ok(blocs.length >= 3, `${LANCEMENT} : au moins trois blocs de prompt`);
+  const fautes = blocs.flatMap((b, i) => horsTete(b, noms).map((n) => `bloc ${i + 1} : /maj-skills:${n} hors de la première ligne`));
+  assert.deepEqual(fautes, [], `${LANCEMENT} : ${fautes.join(" ; ")}`);
+});
+
+test("aucun SKILL.md ne demande la commande d'un skill marqué, que le modèle ne peut pas invoquer", () => {
+  const noms = skillsMarques();
+  const fautes = skillsDuDepot.flatMap((s) =>
+    lignes(lire(s)).flatMap((l, i) =>
+      noms.filter((n) => new RegExp(cmdSkill(n)).test(l)).map((n) => `${s}/SKILL.md:${i + 1} : /maj-skills:${n}`),
+    ),
+  );
+  assert.deepEqual(fautes, [], `lire le fichier du skill, jamais l'invoquer : ${fautes.join(" ; ")}`);
 });
