@@ -165,7 +165,6 @@ skills/
       references/      les prompts de lancement d'un conducteur et d'un capitaine
     chantier/
       SKILL.md         reprendre ou démarrer, setup, les six phases, le suivi à chaque réveil, l'arrêt d'un chantier
-      scripts/         plafonds.mjs (plafonds de session et de coût) et son banc
       references/      CONTENU.md
     recette-humaine/
       SKILL.md         quand, les règles du jeu, les quatre phases
