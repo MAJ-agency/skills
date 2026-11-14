@@ -270,7 +270,7 @@ test('CLI : le contrat se lit dans la base ; une PR qui retire son chemin sensib
   for (const f of ['infra/main.tf', 'docs/revue/criteres.md']) {
     const r = lancer(`${f}\n`, 'develop');
     assert.equal(r.status, 1, `${f} : ${r.stdout}${r.stderr}`);
-    assert.match(r.stdout, new RegExp(f.replace(/[./]/g, '\\$&')), f);
+    assert.match(r.stdout, new RegExp(f.replace(/[./\\]/g, '\\$&')), f);
   }
   assert.equal(lancer('docs/autre.md\n', 'develop').status, 0, 'le fichier des critères de la PR ne compte pas');
   assert.equal(lancer('infra/main.tf\n').status, 0, 'sans base : le plancher seul');
