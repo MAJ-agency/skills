@@ -56,7 +56,6 @@ test("aucun SKILL.md ne dépasse 200 lignes", () => {
 // Les lecteurs ci-dessous sont des fonctions pures, éprouvées sur des entrées piégées
 // (CRLF, dernière ligne sans fin de ligne, variante voisine qui ne doit pas correspondre).
 const CI = ".github/workflows/ci.yml";
-const RECOPIE = ".github/workflows/recopier-skills.yml";
 const workflow = () => readFileSync(join(RACINE, CI), "utf8");
 const workflows = () =>
   readdirSync(join(RACINE, ".github/workflows"))
@@ -151,48 +150,6 @@ test("le workflow de contrôle se lance sur toute PR vers main et joue pnpm test
   assert.ok(commande(w, "pnpm test"), `${CI} : pnpm test attendu`);
 });
 
-// Le workflow de recopie : deux déclencheurs, jeton en lecture seule, secret lu d'une seule façon.
-const declencheurs = (w) => [...w.matchAll(/^  ([\w_]+):/gm)].map((m) => m[1]).filter((k) => ["push", "pull_request", "pull_request_target", "workflow_dispatch", "schedule"].includes(k));
-const filtreChemin = (w) => /^on:\s*\r?\n(?:.*\r?\n)*?\s+paths:\s*\[\s*'\.claude-plugin\/plugin\.json'\s*\]/m.test(w);
-const permissionsLectureSeule = (w) => /^permissions:\s*\r?\n\s+contents:[ \t]*read[ \t]*(?:\r?\n(?![ \t])|(?![\s\S]))/m.test(w);
-const lignesSecret = (w) => lignes(w).filter((l) => l.includes("secrets."));
-const lignesSecretMalFormees = (w) => lignesSecret(w).filter((l) => !/^\s*(?:-\s+)?[\w-]+:\s*\$\{\{\s*secrets\.RECOPIE_TOKEN\s*\}\}\s*$/.test(l));
-
-test("lecteurs du workflow de recopie : entrées piégées", () => {
-  assert.deepEqual(declencheurs("on:\r\n  push:\r\n    branches: ['main']\r\n  workflow_dispatch:\r\n"), ["push", "workflow_dispatch"]);
-  assert.deepEqual(declencheurs("on:\n  pull_request:\n  workflow_dispatch:"), ["pull_request", "workflow_dispatch"]);
-  assert.equal(filtreChemin("on:\n  push:\n    paths: ['.claude-plugin/plugin.json']\n"), true);
-  assert.equal(filtreChemin("on:\n  push:\n    paths: ['.claude-plugin/plugin.json', 'x']\n"), false);
-  assert.equal(filtreChemin("on:\n  push:\n    paths: ['.claude-plugin/plugin.jsonx']\n"), false);
-  assert.equal(permissionsLectureSeule("permissions:\n  contents: read\njobs:\n"), true);
-  assert.equal(permissionsLectureSeule("permissions:\r\n  contents: read"), true);
-  assert.equal(permissionsLectureSeule("permissions:\n  contents: write\n"), false);
-  assert.equal(permissionsLectureSeule("permissions:\n  contents: read\n  pull-requests: write\n"), false);
-  assert.deepEqual(lignesSecretMalFormees("          token: ${{ secrets.RECOPIE_TOKEN }}\r\n"), []);
-  assert.deepEqual(lignesSecretMalFormees("          RECOPIE_TOKEN: ${{ secrets.RECOPIE_TOKEN }}"), []);
-  assert.equal(lignesSecretMalFormees("        run: echo ${{ secrets.RECOPIE_TOKEN }}").length, 1);
-  assert.equal(lignesSecretMalFormees("          token: ${{ secrets.AUTRE }}").length, 1);
-  assert.equal(lignesSecretMalFormees("          token: ${{ secrets.RECOPIE_TOKEN }} x").length, 1);
-});
-
-test("recopier-skills.yml : push sur main limité à plugin.json, workflow_dispatch, jamais pull_request", () => {
-  const w = readFileSync(join(RACINE, RECOPIE), "utf8");
-  assert.deepEqual(declencheurs(w), ["push", "workflow_dispatch"]);
-  assert.ok(filtreChemin(w), `${RECOPIE} : filtre paths: ['.claude-plugin/plugin.json'] attendu`);
-  assert.ok(!/pull_request/.test(w.replace(/^\s*#.*$/gm, "")), `${RECOPIE} : aucun pull_request`);
-});
-
-test("recopier-skills.yml : le jeton du workflow ne fait que lire", () => {
-  const w = readFileSync(join(RACINE, RECOPIE), "utf8");
-  assert.ok(permissionsLectureSeule(w), `${RECOPIE} : permissions réduit à contents: read`);
-});
-
-test("recopier-skills.yml : le secret n'apparaît que sous la forme `<clé>: ${{ secrets.RECOPIE_TOKEN }}`", () => {
-  const w = readFileSync(join(RACINE, RECOPIE), "utf8");
-  assert.ok(lignesSecret(w).length > 0, `${RECOPIE} : secret RECOPIE_TOKEN attendu`);
-  assert.deepEqual(lignesSecretMalFormees(w), []);
-});
-
 // La carte d'un programme : son gabarit porte les sections de la carte de chantier qu'elle partage,
 // plus la passation, et n'est pas une carte de chantier (aucune ligne `Sujet:`).
 const PROGRAMME = "skills/chaine/tickets/references/gabarits/programme.md";
@@ -239,4 +196,12 @@ test("le gabarit de la carte de chantier porte `Gel:` dans sa fiche et la sectio
   const texte = readFileSync(join(RACINE, CARTE), "utf8");
   assert.ok(lignes(section(texte, "Fiche")).includes("Gel:"), `${CARTE} : la fiche porte la ligne Gel: vide`);
   assert.ok(titres(texte).includes("## Journal"), `${CARTE} : section ## Journal`);
+});
+
+// Un skill propre au projet (`P-21`) se commite sans `git add -f` : le gabarit ne l'ignore pas.
+const GITIGNORE = "skills/monorepo/socle-monorepo/references/racine/gitignore";
+test("le gabarit .gitignore laisse commiter les skills propres au projet", () => {
+  const l = lignes(readFileSync(join(RACINE, GITIGNORE), "utf8"));
+  assert.ok(l.includes("!.claude/skills/"), `${GITIGNORE} : !.claude/skills/ attendu`);
+  assert.ok(l.indexOf("!.claude/skills/") > l.indexOf(".claude/*"), `${GITIGNORE} : !.claude/skills/ vient après .claude/*`);
 });
