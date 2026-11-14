@@ -8,11 +8,11 @@
 # Sorties : 0 fait · 4 précondition (pas de remote origin, `main` absente du distant) · 5 push refusé ·
 # 6 distant injoignable (rien n'est poussé, relancer quand il répond)
 #
-# Pourquoi `git push --no-verify`, et pas la commande à la main. Le push ne porte que `origin/main`,
-# déjà sur le distant et déjà vérifié par son propre push : rien de neuf à contrôler. Le hook
-# pre-push, lui, jouerait `pnpm check` sur l'arbre de travail local — qui n'est pas ce qui part —
-# et son gate `coverage-diff` chercherait `origin/develop` comme base : la branche que ce push crée.
-# Refus certain (sortie 2, vu le 2026-11-09), pour un push sans aucun diff à mesurer.
+# Le push passe sous les hooks git, comme celui d'une session : jamais en les sautant. Il ne porte que
+# `origin/main`, déjà sur le distant : rien de neuf ne part, et le pre-push du socle (`husky/pre-push`)
+# conclut alors qu'il n'a rien à contrôler. Un `.husky/pre-push` antérieur au socle 7.0.1 jouerait
+# `pnpm check` sur l'arbre de travail et refuserait ce push (`coverage-diff` cherche `origin/develop`,
+# la branche créée) : le reposer depuis le socle, jamais le sauter.
 # Pourquoi pas l'API GitHub (`POST git/refs`) : le proxy des sessions cloud la refuse (403), comme
 # pour `sujet.sh ouvrir`. Un `git push` passe partout où le dépôt est joignable.
 # La branche par défaut et sa protection restent à l'admin (docs/agents/chaine-admin.md).
@@ -40,8 +40,8 @@ fi
 tete_distante main ||
   sortir 4 "main absente du distant : pousser main d'abord (le socle de la chaîne arrive après le premier push)"
 rapatrier main
-git push -q --no-verify origin origin/main:refs/heads/develop ||
-  sortir 5 "push refusé : droits d'écriture sur le dépôt ? Sinon l'admin crée develop depuis main (docs/agents/chaine-admin.md)"
+git push -q origin origin/main:refs/heads/develop ||
+  sortir 5 "push refusé : droits d'écriture sur le dépôt ? Un .husky/pre-push antérieur au socle 7.0.1 refuse aussi ce push : reposer le hook (husky/pre-push du socle), jamais le sauter. Sinon l'admin crée develop depuis main (docs/agents/chaine-admin.md)"
 rapatrier develop
 echo "develop créée sur le distant depuis main ($(git rev-parse --short origin/develop)) et rapatriée"
 echo "branche par défaut et protection : à l'admin (docs/agents/chaine-admin.md)"

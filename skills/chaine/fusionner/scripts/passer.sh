@@ -14,20 +14,22 @@
 #      sœur #468, toutes deux sur #458). Tout autre conflit → sortie 2.
 #   3. Régénère les index (ADR, registre config, manifestes, règles) et passe leurs
 #      gates avant de pousser (une règle qui cite un test disparu de develop → sortie 3).
-#   4. Pousse en avance rapide, sans hook : les checks exigés rejouent `pnpm check`
-#      et la couverture du diff, et la fusion les attend.
+#   4. Pousse en avance rapide, sous les hooks du projet (jamais --no-verify) : le pre-push
+#      joue `pnpm check` ; la CI exigée le rejoue et la fusion l'attend.
 #   5. Attend les checks exigés du nouveau sommet (aucun check au bout de 5 min → sortie 3).
 #   6. Squash lié au sommet testé (`sha`) — commit de merge pour une branche sujet/ ou une
 #      livraison intermédiaire `livraison/<nom>-<date>`, reconnue aussi après sa mise à jour
 #      avec develop (étape 4) : son arbre est celui d'un sommet du sujet fusionné avec develop —,
 #      puis vérifie arbre(fusion) = arbre testé.
 #
-# Le push du capitaine passe `--no-verify` : il ne contient que develop, la PR déjà vérifiée et
-# les index régénérés, dont les gates viennent de passer.
+# Les fusions, commits et push du capitaine passent sous les hooks git du projet, comme ceux d'une
+# session. Un refus de hook sort en 3, sa sortie sur stderr : le lire, corriger, jamais --no-verify.
 #
 # Sorties, et la suite pour le capitaine (boucle.sh en traite la plupart elle-même) :
 #   0  fusionnée, arbre du squash = arbre testé → suivante
 #   2  conflit avec develop hors index générés → renvoyer (renvoyer.sh)
+#   3  hook git (commit-msg, pre-commit, pre-push) qui refuse la fusion, un commit ou le push : worktree
+#      détaché sur origin/develop, sortie du hook sur stderr → la lire, corriger, jamais --no-verify
 #   3  gates des registres ou checks rouges → lire l'échec : instabilité connue →
 #      `gh run rerun <id> --failed` puis relancer ; sinon renvoyer
 #   3  aucun check sur le sommet après 5 min : CI non déclenchée → ni fermeture-réouverture ni
@@ -146,8 +148,15 @@ motif=$(node "$PASSER_OUTILS/migrations-ordre.mjs" origin/develop "$origine") ||
 # ── 2. Mise à jour avec develop ─────────────────────────────────────────────
 git switch -q -C "capitaine/$N" "$origine"
 fusion_en_cours=0
-if ! git merge -q --no-edit origin/develop >/dev/null 2>&1; then
+if ! sortie_merge=$(git merge -q --no-edit origin/develop 2>&1); then
   conflits=$(git diff --name-only --diff-filter=U)
+  # Sans fichier en conflit, c'est un refus (hook commit-msg, fichier non suivi écrasé), pas une fusion en cours.
+  if [ -z "$conflits" ]; then
+    printf '%s\n' "$sortie_merge" >&2
+    annuler_fusion
+    git switch -q --detach origin/develop
+    sortir 3 "fusion de develop refusée (hook git ou fichier non suivi) : sortie ci-dessus ; corriger, jamais en sautant le hook"
+  fi
   autres=$(printf '%s\n' "$conflits" | grep -Ev "$GENERES" || true)
   # Pile : le squash de la parente masque l'ascendance, d'où un conflit sur tout fichier que
   # la pile touche. Comme un rebase --onto : si develop a la version du départ de la pile, la
@@ -191,9 +200,16 @@ pnpm install --frozen-lockfile --prefer-offline >/dev/null 2>&1 || sortir 3 "pnp
 # ── 3. Index régénérés ──────────────────────────────────────────────────────
 regenerer_index || sortir 3 "régénération des index en échec après mise à jour (scripts/docs/index-generes.json)"
 if [ "$fusion_en_cours" = 1 ]; then
-  git commit -q --no-edit --no-verify # conclut la fusion, comme `git merge` sans conflit
+  commande_commit="git commit -q --no-edit" # conclut la fusion, comme `git merge` sans conflit
 elif ! git diff --cached --quiet; then
-  git commit -q -m 'docs: régénère les index après mise à jour avec develop'
+  commande_commit="git commit -q -m 'docs: régénère les index après mise à jour avec develop'"
+else
+  commande_commit=
+fi
+if [ -n "$commande_commit" ] && ! jouer_ou_dire "$commande_commit"; then
+  annuler_fusion
+  git switch -q --detach origin/develop
+  sortir 3 "commit refusé par un hook git (commit-msg, pre-commit) : sortie ci-dessus ; corriger, jamais en sautant le hook"
 fi
 
 
@@ -205,7 +221,15 @@ if [ "$base" != develop ]; then
   log "reciblée sur develop (parente #$parente fusionnée)"
 fi
 if [ "$sommet" != "$origine" ]; then
-  git push -q --no-verify origin "HEAD:refs/heads/$tete" || sortir 5 "push refusé : la branche a bougé, relancer"
+  pousser "HEAD:refs/heads/$tete" "$tete" "$origine" && statut=0 || statut=$?
+  case $statut in
+    0) ;;
+    5) sortir 5 "push refusé : la branche a bougé, relancer" ;;
+    *)
+      git switch -q --detach origin/develop
+      sortir 3 "push refusé par le hook pre-push (ou le distant) : sortie ci-dessus ; corriger, jamais en sautant le hook"
+      ;;
+  esac
   log "mise à jour poussée ($(git rev-parse --short HEAD))"
 else
   log "déjà à jour avec develop"

@@ -13,4 +13,7 @@ if [ -f .husky/pre-commit.local ]; then
 fi
 
 npx --no -- lint-staged || exit 1
+# Sous un `git worktree`, git exporte GIT_DIR et GIT_INDEX_FILE : les tests qui font un `git init`
+# jouet écriraient dans le dépôt réel. lint-staged, au-dessus, lit l'index du commit : il les garde.
+unset GIT_DIR GIT_INDEX_FILE
 pnpm run check:commit

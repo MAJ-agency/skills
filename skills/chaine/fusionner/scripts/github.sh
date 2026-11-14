@@ -77,6 +77,24 @@ jouer_ou_dire() {
     return 1
   fi
 }
+# Pousse `<refspec>` sous les hooks git, jamais en les sautant. `<branche>` est la branche distante
+# visée, `<avant>` son sommet lu avant le push (vide pour une branche à créer). Sorties : 0 poussé ;
+# 5 la branche a bougé (ou le distant ne répond pas) ; 3 refusé par le hook pre-push (ou le distant),
+# sa sortie sur stderr, chaque ligne préfixée de la commande.
+pousser() {
+  local refspec=$1 branche=$2 avant=${3:-} apres
+  jouer_ou_dire "git push -q origin $(printf '%q' "$refspec")" && return 0
+  apres=$(git ls-remote origin "refs/heads/$branche" 2>/dev/null) || return 5
+  apres=${apres%%[[:space:]]*}
+  [ "$apres" = "$avant" ] || return 5
+  echo "push refusé par le hook pre-push (ou le distant) : sortie ci-dessus ; corriger, jamais en sautant le hook" >&2
+  return 3
+}
+# Après un `git merge` ou un `git commit` refusé (hook, fichier non suivi écrasé) : rend l'arbre comme
+# avant la fusion — `git merge --abort` si elle est en cours, sinon `git reset -q --hard`.
+annuler_fusion() {
+  if git rev-parse -q --verify MERGE_HEAD >/dev/null; then git merge --abort; else git reset -q --hard; fi
+}
 # Les mêmes en expression régulière pour `grep -E` (un chemin par ligne).
 index_generes_regex() {
   index_generes | jq -Rrs 'split("\n") | map(select(. != "") | gsub("\\."; "\\.") | gsub("\\*"; "[^/]+"))

@@ -52,8 +52,8 @@
 #                         (`en cours`, `prêt à livrer`, `livré #n`, `gelé` : le gel prime sur les autres)
 #   geler <nom> "<raison>"  gèle le chantier : écrit `Gel: AAAA-MM-JJ — <raison>` dans la fiche de la carte
 #                         et le pousse sur origin/sujet/<nom> (commit construit sur origin/sujet/<nom>, sans
-#                         toucher à la branche courante ni à l'arbre de travail ; sans force, sans hook ;
-#                         sujet qui a bougé : un second essai, puis sortie 9). Refuse (4) un sujet sans carte
+#                         toucher à la branche courante ni à l'arbre de travail ; sans force, sous le hook pre-push, qui
+#                         contrôle l'arbre de travail ; sujet qui a bougé : un second essai, puis sortie 9). Refuse (4) un sujet sans carte
 #                         sur sa branche, une raison vide, un sujet déjà gelé. Plus aucune session ne part
 #                         de ce sujet (`demarrer`), plus aucune de ses PR n'entre (`livrer`, `fusionner`,
 #                         état « gelée » de file.sh). Un sujet gelé reste rafraîchi par la boucle
@@ -62,12 +62,14 @@
 #                         sort en 0 si le sujet est gelé, 1 sinon. Toute valeur non vide gèle, datée ou non
 #                         (ligne écrite à la main dans l'éditeur de GitHub)
 #
-# Sorties : 0 fait · 2 conflit · 3 checks rouges ou en cours · 4 refus corrigeable par l'auteur (sa
+# Sorties : 0 fait · 2 conflit · 3 checks rouges ou en cours, ou fusion, commit ou push refusé par un hook git
+# (sa sortie sur stderr : la lire, corriger, jamais en sautant le hook ; le pre-push contrôle l'arbre de travail) · 4 refus corrigeable par l'auteur (sa
 # dernière ligne est le motif, `fusionner` : titre, commitlint, revue, base) · 6 arbre de travail pas
 # propre (`fusionner`, `rafraichir`, `regrouper`, `relancer` : à nettoyer par qui lance, jamais un renvoi de la PR,
 # comme la sortie 6 de passer.sh) · 7 `fusionner` d'une PR fermée, en brouillon ou d'un sujet gelé (rien à
 # corriger : sautée) · 9 `carte <nom>` refusée, ou `geler`/`degeler` dont le push échoue deux fois (rien n'est poussé)
-# `fusionner` encore : 5 la sous-PR a bougé pendant sa mise à jour (reprise au tour suivant) · 8 conflit
+# `fusionner`, `rafraichir`, `relancer`, `livrer` : 5 la branche a bougé pendant l'écriture, relancer
+# `fusionner` encore : la sous-PR a bougé pendant sa mise à jour (reprise au tour suivant) · 8 conflit
 # avec le sujet sur des index générés seuls : branche mise à jour (index régénérés) et poussée, CI
 # relancée, aucun squash
 # Tout passe par l'API REST (`gh api`) : GraphQL est refusé depuis les sessions cloud. Depuis la
@@ -255,7 +257,7 @@ reecrire_gel() {
 # Pousse sur origin/sujet/<nom> un commit qui n'a changé que la ligne `Gel:` de la carte : construit
 # par plomberie sur un index temporaire, sans toucher à la branche courante ni à l'arbre de travail.
 ecrire_gel() {
-  local nom=$1 valeur=$2 message=$3 essai f mode blob idx tree commit nouveau formate
+  local nom=$1 valeur=$2 message=$3 essai statut f mode blob idx tree commit nouveau formate
   for essai in 1 2; do
     git fetch -q origin "+refs/heads/sujet/$nom:refs/remotes/origin/sujet/$nom" 2>/dev/null || sortir 9 "origin/sujet/$nom introuvable"
     f=$(carte_fichier "origin/sujet/$nom" "$nom")
@@ -273,10 +275,12 @@ ecrire_gel() {
     tree=$(GIT_INDEX_FILE=$idx git write-tree)
     rm -f "$idx"
     commit=$(git commit-tree "$tree" -p "origin/sujet/$nom" -m "$message")
-    if git push -q --no-verify origin "$commit:refs/heads/sujet/$nom" 2>/dev/null; then
+    pousser "$commit:refs/heads/sujet/$nom" "sujet/$nom" "$(git rev-parse "origin/sujet/$nom")" && statut=0 || statut=$?
+    if [ "$statut" = 0 ]; then
       git fetch -q origin "+refs/heads/sujet/$nom:refs/remotes/origin/sujet/$nom" 2>/dev/null || true
       return 0
     fi
+    [ "$statut" = 5 ] || sortir 3 "le pre-push a contrôlé l'arbre de travail, pas le gel : relancer depuis un arbre vert (un worktree détaché sur origin/develop, après pnpm install), jamais en sautant le hook"
   done
   sortir 9 "le push sur sujet/$nom a échoué deux fois (le sujet bouge) : relancer"
 }
@@ -378,7 +382,7 @@ ouvrir() {
   [ "${2:-}" != --specs ] || specs=${3:?numéro de la PR de specs}
   nom=${nom#sujet/}
   [[ "$nom" =~ ^[a-z0-9][a-z0-9-]*$ ]] || sortir 4 "nom en kebab-case attendu : $nom"
-  local branche="sujet/$nom"
+  local branche="sujet/$nom" statut
   if git ls-remote --exit-code --heads origin "$branche" >/dev/null 2>&1; then
     [ -n "$specs" ] || sortir 4 "$branche existe déjà"
     recibler_specs "${specs#\#}" "$branche"
@@ -386,7 +390,12 @@ ouvrir() {
   fi
   # Création par `git push` : le proxy des sessions cloud refuse `POST git/refs` (403).
   git fetch -q origin develop
-  git push -q --no-verify origin "origin/develop:refs/heads/$branche"
+  pousser "origin/develop:refs/heads/$branche" "$branche" "" && statut=0 || statut=$?
+  case $statut in
+    0) ;;
+    5) sortir 4 "$branche existe déjà" ;;
+    *) sortir 3 "ouverture de $branche refusée par le hook pre-push (ou le distant) : sortie ci-dessus" ;;
+  esac
   # Pas de protection de branche : le push forcé est refusé aux sessions par
   # scripts/agent/garde-commandes.mjs, ce script ne force jamais, et GitHub ne supprime la branche
   # qu'à la fusion de la PR finale. Le filet est cette PR vers develop (CI complète).
@@ -411,17 +420,23 @@ recibler_specs() {
 # pousse, et sort en 8 ; la CI repart, la sous-PR repasse au tour suivant. Sans conflit : rien n'est
 # touché. Conflit hors index : annulé, sortie 3 (renvoi), branche intacte.
 mettre_a_jour_sous_pr() {
-  local n=$1 base=$2 tete=$3 conflits autres
+  local n=$1 base=$2 tete=$3 conflits autres sortie statut
   [ -z "$(git status --porcelain)" ] || sortir 6 "arbre de travail pas propre : committer ou ranger d'abord, puis relancer (rien à corriger côté PR)"
   git switch -q -C "capitaine/$n" "origin/$tete"
-  if git merge -q --no-edit "origin/$base" >/dev/null 2>&1; then
+  if sortie=$(git merge -q --no-edit "origin/$base" 2>&1); then
     git switch -q --detach origin/develop # fusion propre : rien à pousser, le squash suit
     return 0
   fi
   conflits=$(git diff --name-only --diff-filter=U)
+  if [ -z "$conflits" ]; then # aucun fichier en conflit : un refus (hook commit-msg, fichier non suivi écrasé)
+    printf '%s\n' "$sortie" >&2
+    annuler_fusion
+    git switch -q --detach origin/develop
+    sortir 3 "fusion de $base dans #$n refusée par un hook git ou un fichier non suivi : sortie ci-dessus ; corriger, jamais en sautant le hook"
+  fi
   autres=$(printf '%s\n' "$conflits" | grep -Ev "$GENERES" || true)
-  if [ -n "$autres" ] || [ -z "$conflits" ]; then
-    git merge --abort 2>/dev/null || git reset -q --hard
+  if [ -n "$autres" ]; then
+    annuler_fusion
     git switch -q --detach origin/develop
     sortir 3 "fusion refusée par GitHub (conflit avec $base hors index générés : $(tr '\n' ' ' <<<"$autres")) : renvoi"
   fi
@@ -435,9 +450,11 @@ mettre_a_jour_sous_pr() {
   }
   pnpm install --frozen-lockfile --prefer-offline >/dev/null 2>&1 || echec "pnpm install en échec"
   regenerer_index || echec "gate des index/registres en échec"
-  git commit -q --no-edit --no-verify
-  if ! git push -q --no-verify origin "HEAD:refs/heads/$tete" >/dev/null 2>&1; then
+  jouer_ou_dire "git commit -q --no-edit" || echec "commit refusé par un hook git (sortie ci-dessus)"
+  pousser "HEAD:refs/heads/$tete" "$tete" "$(git rev-parse "origin/$tete")" && statut=0 || statut=$?
+  if [ "$statut" != 0 ]; then
     git switch -q --detach origin/develop
+    [ "$statut" = 5 ] || sortir 3 "mise à jour de #$n refusée par le hook pre-push (ou le distant) : sortie ci-dessus"
     sortir 5 "la sous-PR #$n a bougé : mise à jour non poussée, la boucle la reprendra"
   fi
   git switch -q --detach origin/develop
@@ -513,9 +530,21 @@ rafraichir() {
     return 0
   fi
   git switch -q -C "$branche" "origin/$branche"
-  if ! git merge -q --no-edit origin/develop >/dev/null 2>&1; then
+  # Un échec ici (dépendances, gate des ADR ou des registres : numéro d'ADR réutilisé…, refus d'un hook git)
+  # ne doit pas laisser la fusion en cours : le worktree du capitaine resterait sale pour tout le tour.
+  abandonner() {
+    annuler_fusion
+    git reset -q --hard "origin/$branche"
+    sortir 3 "$1 : fusion de develop dans $branche annulée, à corriger par une session sur le sujet"
+  }
+  local sortie statut
+  if ! sortie=$(git merge -q --no-edit origin/develop 2>&1); then
     local conflits autres
     conflits=$(git diff --name-only --diff-filter=U)
+    if [ -z "$conflits" ]; then # aucun fichier en conflit : un refus (hook commit-msg, fichier non suivi écrasé)
+      printf '%s\n' "$sortie" >&2
+      abandonner "fusion refusée par un hook git ou un fichier non suivi (sortie ci-dessus ; jamais en sautant le hook)"
+    fi
     autres=$(printf '%s\n' "$conflits" | grep -Ev "$GENERES" || true)
     if [ -n "$autres" ] && [ "$abandon" = --abandon-si-conflit ]; then
       git merge --abort
@@ -530,28 +559,28 @@ rafraichir() {
     # Index générés : la régénération fait foi.
     git checkout --theirs -- $conflits && git add -- $conflits
   fi
-  # Un échec ici (dépendances, gate des ADR ou des registres : numéro d'ADR réutilisé…) ne doit pas
-  # laisser la fusion en cours : le worktree du capitaine resterait sale pour tout le tour.
-  abandonner() {
-    git merge --abort 2>/dev/null || git reset -q --hard
-    sortir 3 "$1 : fusion de develop dans $branche annulée, à corriger par une session sur le sujet"
-  }
   pnpm install --frozen-lockfile --prefer-offline >/dev/null 2>&1 || abandonner "pnpm install en échec"
   regenerer_index || abandonner "gate des index/registres en échec"
   if git rev-parse -q --verify MERGE_HEAD >/dev/null; then
-    git commit -q --no-edit --no-verify
+    jouer_ou_dire "git commit -q --no-edit" || abandonner "commit refusé par un hook git (sortie ci-dessus)"
   elif ! git diff --cached --quiet; then
-    git commit -q -m 'docs: régénère les index après mise à jour avec develop'
+    jouer_ou_dire "git commit -q -m 'docs: régénère les index après mise à jour avec develop'" ||
+      abandonner "commit refusé par un hook git (sortie ci-dessus)"
   fi
-  # Sans hook, comme passer.sh : le pre-push lance les tests sur base (absente d'une session
-  # cloud). Le commit ne contient que develop et le sujet, déjà vérifiés ; la PR finale rejoue tout.
-  git push -q --no-verify origin "HEAD:refs/heads/$branche"
+  # Sous les hooks, comme tout push : le pre-push ne joue rien quand rien de neuf ne part, et la CI
+  # exigée rejoue tout sur la PR finale.
+  pousser "HEAD:refs/heads/$branche" "$branche" "$(git rev-parse "origin/$branche")" && statut=0 || statut=$?
+  case $statut in
+    0) ;;
+    5) git reset -q --hard "origin/$branche"; sortir 5 "$branche a bougé pendant la mise à jour : relancer" ;;
+    *) abandonner "push refusé par le hook pre-push (ou le distant) : sortie ci-dessus" ;;
+  esac
   echo "$branche à jour avec develop ($(git rev-parse --short HEAD))"
 }
 
 livrer() {
   local nom=${1:?nom du sujet} titre=${2:?titre de la PR finale (Conventional Commits)}
-  local branche="sujet/$nom" corps n tete phase intermediaire=''
+  local branche="sujet/$nom" corps n tete phase statut intermediaire=''
   git fetch -q origin develop "$branche"
   refuser_si_gele "$nom"
   # Livraison intermédiaire : carte en phase d'avant `5-livraison`. La PR part d'une
@@ -574,7 +603,12 @@ livrer() {
   )
   if [ -n "$intermediaire" ]; then
     tete="livraison/$nom-$(date -u +%Y%m%d-%H%M)"
-    git push -q --no-verify origin "origin/$branche:refs/heads/$tete"
+    pousser "origin/$branche:refs/heads/$tete" "$tete" "" && statut=0 || statut=$?
+    case $statut in
+      0) ;;
+      5) sortir 5 "$tete a bougé pendant l'écriture : relancer" ;;
+      *) sortir 3 "livraison intermédiaire $tete refusée par le hook pre-push (ou le distant) : sortie ci-dessus ; aucune PR ouverte" ;;
+    esac
   fi
   n=$(gh api -X POST "$DEPOT/pulls" -f base=develop -f head="$tete" -f title="$titre" -f body="$corps" --jq .number)
   poser_label "$n" à-fusionner
@@ -582,7 +616,7 @@ livrer() {
 }
 
 relancer() {
-  local n=${1:?numéro de la sous-PR} pr base tete
+  local n=${1:?numéro de la sous-PR} pr base tete sortie statut
   pr=$(pr_json "$n")
   base=$(jq -r .base.ref <<<"$pr")
   tete=$(jq -r .head.ref <<<"$pr")
@@ -590,13 +624,23 @@ relancer() {
   [ -z "$(git status --porcelain)" ] || sortir 6 "arbre de travail pas propre : committer ou ranger d'abord, puis relancer (rien à corriger côté PR)"
   git fetch -q origin "$base" "$tete"
   git switch -q --detach "origin/$tete"
-  if ! git merge -q --no-edit "origin/$base" >/dev/null 2>&1; then
+  if ! sortie=$(git merge -q --no-edit "origin/$base" 2>&1); then
+    if [ -z "$(git diff --name-only --diff-filter=U)" ]; then # aucun fichier en conflit : un refus
+      printf '%s\n' "$sortie" >&2
+      annuler_fusion
+      sortir 3 "fusion de $base dans #$n refusée par un hook git ou un fichier non suivi : sortie ci-dessus ; corriger, jamais en sautant le hook"
+    fi
     git merge --abort
     sortir 2 "conflit entre #$n et $base"
   fi
   [ "$(git rev-parse HEAD)" != "$(git rev-parse "origin/$tete")" ] ||
     sortir 3 "#$n contient déjà $base : aucun commit à pousser, CI non déclenchable"
-  git push -q --no-verify origin "HEAD:refs/heads/$tete"
+  pousser "HEAD:refs/heads/$tete" "$tete" "$(git rev-parse "origin/$tete")" && statut=0 || statut=$?
+  case $statut in
+    0) ;;
+    5) sortir 5 "#$n a bougé pendant la mise à jour : relancer" ;;
+    *) sortir 3 "mise à jour de #$n refusée par le hook pre-push (ou le distant) : sortie ci-dessus" ;;
+  esac
   echo "#$n : $base fusionné dans sa branche, CI lancée"
 }
 
