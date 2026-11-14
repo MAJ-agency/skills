@@ -369,7 +369,7 @@ test('gh en écriture vers une branche, un fichier ou une règle de branche est 
     assert.equal(decisionCommande(commande), null, commande);
 });
 
-test('contournements relevés pendant le ticket 27 : champ gh collé ou route après un champ à blancs, $\'git\', casse, programme caché derrière un mot en /git, séparateur cité, branche en ./ ou à barre finale, substitution parenthésée, -n et --no-veri… de git commit, mot cité seul', () => {
+test('contournements relevés pendant le ticket 27 : champ gh collé ou route après un champ à blancs, $\'git\', casse, programme caché derrière un mot en /git, séparateur cité, option en /git après le programme, fragment ou option groupée de gh, branche en ./ ou à barre finale, substitution parenthésée, -n et --no-veri… de git commit, mot cité seul', () => {
   const ctx = { brancheCourante: () => 'feat/x' };
   const sujet = 'sujet/x';
   const nv = '--no-verify';
@@ -414,6 +414,18 @@ test('contournements relevés pendant le ticket 27 : champ gh collé ou route ap
     'git --work-tree=/home/u/git push origin HEAD:refs/heads/develop',
     'gh --subject=a/gh pr merge 3 --squash',
     'gh --jq=.a/gh api -X PUT repos/o/r/pulls/3/merge',
+    'sudo -u GIT -H git push --force origin feat/x',
+    `sudo -u GIT -H git push origin HEAD:${sujet}`,
+    'gh api -X PUT repos/o/r/pulls/3/merge#x',
+    'gh api repos/o/r/merges#x -f base=develop -f head=feat/x',
+    'gh api -X DELETE repos/o/r/branches/develop/protection#',
+    'gh api graphql#x -f query="mutation { a }"',
+    'gh api -iX PUT repos/o/r/pulls/3/merge',
+    'gh api -iXPUT repos/o/r/pulls/3/merge',
+    'gh api repos/o/r/merges -ifbase=develop -ifhead=feat/x',
+    'gh api repos/o/r/merges -if base=develop -if head=feat/x',
+    'gh pr close 3 -dc done',
+    'gh pr close 3 --delete-branch=true',
   ])
     assert.equal(decisionCommande(commande, ctx)?.decision, 'refuser', commande);
   for (const branch of ['./develop', './main', `./${sujet}`, 'feat/../develop', 'feat/%2e%2e/main', 'feat/x\u0000', 'develop/', 'main/', 'develop//', './feat/x', 'feat/./x'])
@@ -431,6 +443,8 @@ test('contournements relevés pendant le ticket 27 : champ gh collé ou route ap
     'echo $((1+2)) && git push -u origin feat/x',
     'git merge --no-verify-signatures origin/develop',
     'git pull --no-verify-signatures',
+    'gh api -i repos/o/r/pulls/3',
+    'gh pr close 3 -c fini',
   ])
     assert.equal(decisionCommande(commande, ctx), null, commande);
   for (const commande of ['git --work-tree=/tmp/git push'])

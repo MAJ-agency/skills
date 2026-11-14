@@ -267,6 +267,14 @@ function indexDuProgramme(mots, motif) {
 }
 
 /**
+ * Les index où lire le programme d'un segment : celui d'`indexDuProgramme`, et le premier mot que `exact`
+ * reconnaît (la lecture d'avant, à la casse exacte), pour que rien de ce qu'elle refusait ne passe.
+ */
+function lecturesDuProgramme(mots, motif, exact) {
+  return [...new Set([indexDuProgramme(mots, motif), mots.findIndex((mot) => exact.test(mot))])].filter((i) => i >= 0);
+}
+
+/**
  * Chaque `git push` de la commande, `git` nu ou par son chemin (`/usr/bin/git`), avec ou sans options
  * (`git -C . push`, `git -c x=y push`), derrière n'importe quel préfixe (`timeout 5 git push`), dans
  * un sous-shell ou une substitution (`(…)`, `$(…)`, accents graves) : ses refspecs, c'est-à-dire les
@@ -279,32 +287,34 @@ function pushs(commande) {
   return segmentsDeCommande(commande)
     .flatMap(({ segment }) => {
       const mots = segment.trim().split(/\s+/);
-      const i = indexDuProgramme(mots, /(^|[/$])git$/i);
-      if (i < 0) return [];
-      let j = i + 1;
-      while (j < mots.length && mots[j].startsWith('-')) j += OPTIONS_GIT_A_VALEUR.has(mots[j]) ? 2 : 1;
-      if (mots[j]?.toLowerCase() !== 'push') return [];
-      const positionnels = [];
-      let tout = false;
-      let remoteEnOption = false;
-      let force = false;
-      let illisible = false;
-      for (let k = j + 1; k < mots.length; k++) {
-        const mot = mots[k];
-        if (/[$`]/.test(mot)) illisible = true;
-        if (!mot.startsWith('-')) {
-          positionnels.push(mot);
-          continue;
+      // Deux lectures du programme : la prudente, et celle d'avant (premier `git` à la casse exacte), pour que
+      // rien de ce qu'elle refusait ne passe (`sudo -u GIT -H git push …`).
+      return lecturesDuProgramme(mots, /(^|[/$])git$/i, /(^|\/)git$/).flatMap((i) => {
+        let j = i + 1;
+        while (j < mots.length && mots[j].startsWith('-')) j += OPTIONS_GIT_A_VALEUR.has(mots[j]) ? 2 : 1;
+        if (mots[j]?.toLowerCase() !== 'push') return [];
+        const positionnels = [];
+        let tout = false;
+        let remoteEnOption = false;
+        let force = false;
+        let illisible = false;
+        for (let k = j + 1; k < mots.length; k++) {
+          const mot = mots[k];
+          if (/[$`]/.test(mot)) illisible = true;
+          if (!mot.startsWith('-')) {
+            positionnels.push(mot);
+            continue;
+          }
+          if (/^--(all|mirror|branches)$/.test(mot)) tout = true;
+          // Git accepte les abréviations non ambiguës (`--force-w`, `--force-wi`, `--force-i`) ; `--for…` les couvre
+          // toutes, et refuse aussi `--forc`, que git rejette comme ambigu : prudence sans coût.
+          if (/^(--for[a-z-]*(=.*)?|-[a-zA-Z]*f[a-zA-Z]*)$/.test(mot)) force = true;
+          if (/^--repo(=|$)/.test(mot)) remoteEnOption = true;
+          if (OPTIONS_PUSH_A_VALEUR.has(mot)) k++;
         }
-        if (/^--(all|mirror|branches)$/.test(mot)) tout = true;
-        // Git accepte les abréviations non ambiguës (`--force-w`, `--force-wi`, `--force-i`) ; `--for…` les couvre
-        // toutes, et refuse aussi `--forc`, que git rejette comme ambigu : prudence sans coût.
-        if (/^(--for[a-z-]*(=.*)?|-[a-zA-Z]*f[a-zA-Z]*)$/.test(mot)) force = true;
-        if (/^--repo(=|$)/.test(mot)) remoteEnOption = true;
-        if (OPTIONS_PUSH_A_VALEUR.has(mot)) k++;
-      }
-      const refspecs = remoteEnOption ? positionnels : positionnels.slice(1);
-      return [{ refspecs, tout, illisible, force: force || refspecs.some((refspec) => refspec.startsWith('+')) }];
+        const refspecs = remoteEnOption ? positionnels : positionnels.slice(1);
+        return [{ refspecs, tout, illisible, force: force || refspecs.some((refspec) => refspec.startsWith('+')) }];
+      });
     });
 }
 
@@ -521,51 +531,54 @@ const CHEMIN_GH_ECRIT = /(^|\/)(git\/refs(\/|$)|contents(\/|$)|merges$|merge-ups
  */
 export function ecritParGh(commande) {
   return segmentsDeCommande(commande).some(({ segment, suite }) => {
-    const mots = segment.trim().split(/\s+/);
+    // `-i` est la seule option booléenne courte de `gh api` : `-iX PUT`, `-iXPUT`, `-ifk=v` se lisent `-X`, `-f`.
+    const mots = segment.trim().split(/\s+/).map((mot) => mot.replace(/^-i+(?=[XfF])/, '-'));
     // Seul le premier programme du segment compte : `git commit -m "gh pr merge 3"` n'est pas une fusion.
     // `$'gh'` se lit `$gh` sans ses guillemets ; un système de fichiers insensible à la casse lance `GH`.
-    const i = indexDuProgramme(mots, /(^|[/$])(gh|git)$/i);
-    if (i < 0 || !/(^|[/$])gh$/i.test(mots[i])) return false;
-    // Positionnels après `gh`, sans `-R`, `--repo`, `--hostname` ni leur valeur : `gh -R o/r pr merge 3` est `pr merge`.
-    const pos = [];
-    for (let k = i + 1; k < mots.length; k++) {
-      if (mots[k] === '-R' || mots[k] === '--repo' || mots[k] === '--hostname') k++;
-      else if (!mots[k].startsWith('-')) pos.push(mots[k]);
-    }
-    if ((pos[0] === 'pr' && pos[1] === 'merge') || (pos[0] === 'repo' && pos[1] === 'sync')) return true;
-    if (pos[0] === 'alias' && (pos[1] === 'set' || pos[1] === 'import')) return true;
-    if (pos[0] === 'pr' && pos[1] === 'close' && mots.some((mot) => /^(-d|--delete-branch)$/.test(mot))) return true;
-    if (pos[0] !== 'api') return false;
-    let chemin = null;
-    const positionnels = [];
-    let methode = null;
-    let champs = false;
-    for (let k = mots.indexOf('api', i + 1) + 1; k < mots.length; k++) {
-      const mot = mots[k];
-      if (!mot.startsWith('-')) {
-        chemin ??= mot;
-        positionnels.push(mot);
-        continue;
+    return lecturesDuProgramme(mots, /(^|[/$])(gh|git)$/i, /(^|\/)(gh|git)$/).some((i) => {
+      if (!/(^|[/$])gh$/i.test(mots[i])) return false;
+      // Positionnels après `gh`, sans `-R`, `--repo`, `--hostname` ni leur valeur : `gh -R o/r pr merge 3` est `pr merge`.
+      const pos = [];
+      for (let k = i + 1; k < mots.length; k++) {
+        if (mots[k] === '-R' || mots[k] === '--repo' || mots[k] === '--hostname') k++;
+        else if (!mots[k].startsWith('-')) pos.push(mots[k]);
       }
-      const [option, valeurJointe] = mot.split(/=(.*)/s);
-      const valeur = valeurJointe ?? (OPTIONS_GH_API_A_VALEUR.has(option) ? mots[++k] : undefined);
-      if (option === '-X' || option === '--method') methode = String(valeur ?? '').toUpperCase();
-      else if (/^-X./.test(mot)) methode = mot.slice(2).toUpperCase();
-      // `-fcle=valeur` : un champ collé à son option fait un POST comme `-f cle=valeur`.
-      if (['-f', '--raw-field', '-F', '--field', '--input'].includes(option) || /^-[fF]./.test(option)) champs = true;
-    }
-    // Route lue comme gh l'enverra : hôte, barres de tête, de fin, doublées et `./` retirés, en minuscules.
-    const routeDe = (c) => c.replace(/^[a-z]+:\/\/[^/]+/i, '').replace(/\/(\.\/)+/g, '/').replace(/\/{2,}/g, '/').replace(/^\/+|\/+$/g, '').split('?')[0].toLowerCase();
-    const route = routeDe(chemin ?? '');
-    // Un champ cité à blancs placé avant la route (`-f message="add file" … repos/…/contents/a`) laisse des mots
-    // devant elle : chaque positionnel qui a la forme d'une route (`repos/…`, `graphql`, une URL) compte aussi.
-    const routes = [route, ...positionnels.slice(1).filter((p) => /^(\/?repos\/|\/?graphql$|[a-z]+:\/\/)/i.test(p)).map(routeDe)];
-    // La mutation se cherche de `gh` à la fin de la commande : ni avant (un message de commit), ni bornée au
-    // segment (la découpe sur `(` couperait `query A { a(x: 1) } mutation B { … }`).
-    if (routes.some((r) => /(^|\/)graphql$/.test(r)) && (/\bmutation\b/i.test(suite) || /query=@|--input|[$]/.test(segment))) return true;
-    if (/(^|\/)graphql$/.test(route)) return false;
-    const ecrit = (methode ?? (champs ? 'POST' : 'GET')) !== 'GET';
-    // Un chemin qui ne se lit pas (variable, substitution, encodé) pourrait viser une branche : refusé en écriture.
-    return ecrit && chemin !== null && (/[$%]/.test(chemin) || routes.some((r) => CHEMIN_GH_ECRIT.test(r)));
+      if ((pos[0] === 'pr' && pos[1] === 'merge') || (pos[0] === 'repo' && pos[1] === 'sync')) return true;
+      if (pos[0] === 'alias' && (pos[1] === 'set' || pos[1] === 'import')) return true;
+      if (pos[0] === 'pr' && pos[1] === 'close' && mots.some((mot) => /^(-[a-zA-Z]*d[a-zA-Z]*|--delete-branch)(=.*)?$/.test(mot))) return true;
+      if (pos[0] !== 'api') return false;
+      let chemin = null;
+      const positionnels = [];
+      let methode = null;
+      let champs = false;
+      for (let k = mots.indexOf('api', i + 1) + 1; k < mots.length; k++) {
+        const mot = mots[k];
+        if (!mot.startsWith('-')) {
+          chemin ??= mot;
+          positionnels.push(mot);
+          continue;
+        }
+        const [option, valeurJointe] = mot.split(/=(.*)/s);
+        const valeur = valeurJointe ?? (OPTIONS_GH_API_A_VALEUR.has(option) ? mots[++k] : undefined);
+        if (option === '-X' || option === '--method') methode = String(valeur ?? '').toUpperCase();
+        else if (/^-X./.test(mot)) methode = mot.slice(2).toUpperCase();
+        // `-fcle=valeur` : un champ collé à son option fait un POST comme `-f cle=valeur`.
+        if (['-f', '--raw-field', '-F', '--field', '--input'].includes(option) || /^-[fF]./.test(option)) champs = true;
+      }
+      // Route lue comme gh l'enverra : hôte, barres de tête, de fin, doublées et `./` retirés, requête et fragment
+    // (`#…`, jamais envoyé) coupés, en minuscules.
+      const routeDe = (c) => c.replace(/^[a-z]+:\/\/[^/]+/i, '').replace(/\/(\.\/)+/g, '/').replace(/\/{2,}/g, '/').replace(/^\/+|\/+$/g, '').split(/[?#]/)[0].toLowerCase();
+      const route = routeDe(chemin ?? '');
+      // Un champ cité à blancs placé avant la route (`-f message="add file" … repos/…/contents/a`) laisse des mots
+      // devant elle : chaque positionnel qui a la forme d'une route (`repos/…`, `graphql`, une URL) compte aussi.
+      const routes = [route, ...positionnels.slice(1).filter((p) => /^(\/?repos\/|\/?graphql$|[a-z]+:\/\/)/i.test(p)).map(routeDe)];
+      // La mutation se cherche de `gh` à la fin de la commande : ni avant (un message de commit), ni bornée au
+      // segment (la découpe sur `(` couperait `query A { a(x: 1) } mutation B { … }`).
+      if (routes.some((r) => /(^|\/)graphql$/.test(r)) && (/\bmutation\b/i.test(suite) || /query=@|--input|[$]/.test(segment))) return true;
+      if (/(^|\/)graphql$/.test(route)) return false;
+      const ecrit = (methode ?? (champs ? 'POST' : 'GET')) !== 'GET';
+      // Un chemin qui ne se lit pas (variable, substitution, encodé) pourrait viser une branche : refusé en écriture.
+      return ecrit && chemin !== null && (/[$%]/.test(chemin) || routes.some((r) => CHEMIN_GH_ECRIT.test(r)));
+    });
   });
 }
