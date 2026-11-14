@@ -8,6 +8,9 @@
 #
 # Une PR que la boucle vient de sauter reste « prête » : on ne relance que si la file contient
 # une ligne (numéro + état) absente de l'ensemble vu au dernier lancement ou à la dernière sonde.
+# Une PR que la boucle a renvoyée (`RENVOI`) ou dont elle a relancé les jobs rouges (`RELANCE`) sort
+# de cet ensemble : revenue dans la file avant la sonde suivante, même ligne qu'avant, elle relance
+# la boucle.
 # « prête (sans CI) » est un état à part : la boucle met de côté une PR sans CI après 5 min, et la
 # CI arrive parfois plus tard. Quand elle arrive (la ligne passe à prête ou rouge), c'est un
 # changement d'état : la boucle est relancée, sans attendre une fusion qui peut ne jamais venir.
@@ -38,14 +41,23 @@ fin=$(awk -v d="$duree" 'BEGIN { printf "%d", d * 60 }')
 
 heure() { date +%H:%M; }
 
-# Lance la boucle ; un code non nul arrête la veille avec ce code.
+# Sortie de la boucle, gardée pour lire les PR qu'elle a renvoyées ou relancées.
+journal_boucle=$(mktemp)
+trap 'rm -f "$journal_boucle"' EXIT
+
+# Lance la boucle ; un code non nul arrête la veille avec ce code. Une PR que la boucle a renvoyée
+# (`[#n] RENVOI`, renvoyer.sh) ou dont elle a relancé les jobs rouges (`[#n] RELANCE`, boucle.sh)
+# sort de l'ensemble vu : si elle revient avant la sonde suivante, même ligne qu'avant la boucle,
+# elle est nouvelle et relance la boucle (cas vécu : PR renvoyée, corrigée en une minute, invisible).
 lancer() {
-  bash "$outils/boucle.sh"
-  local rc=$?
+  bash "$outils/boucle.sh" | tee "$journal_boucle"
+  local rc=${PIPESTATUS[0]} agies
   if [ "$rc" != 0 ]; then
     echo "VEILLE ARRÊTÉE $(heure) : la boucle est sortie en $rc"
     exit "$rc"
   fi
+  agies=$(sed -nE 's/^\[#([0-9]+)\] (RENVOI|RELANCE).*/\1/p' "$journal_boucle" | sort -u)
+  [ -z "$agies" ] || vu=$(printf '%s\n' "$vu" | awk 'NR == FNR { a[$1]; next } !($1 in a)' <(printf '%s\n' "$agies") -)
 }
 
 # Lignes « numéro état » des PR à traiter (prêtes ou rouges), triées.
