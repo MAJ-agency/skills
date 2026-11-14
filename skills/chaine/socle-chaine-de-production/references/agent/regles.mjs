@@ -251,7 +251,7 @@ function lireSegments(commande) {
 }
 
 /** Options de `git` placées avant la sous-commande et suivies d'une valeur (`git -C .. push`). */
-const OPTIONS_GIT_A_VALEUR = new Set(['-C', '-c', '--git-dir', '--work-tree', '--namespace', '--exec-path', '--super-prefix']);
+const OPTIONS_GIT_A_VALEUR = new Set(['-C', '-c', '--git-dir', '--work-tree', '--namespace', '--exec-path', '--super-prefix', '--attr-source']);
 /** Options de `git push` suivies d'une valeur séparée : cette valeur n'est ni le remote ni un refspec. */
 const OPTIONS_PUSH_A_VALEUR = new Set(['-o', '--push-option', '--repo', '--receive-pack', '--exec']);
 
@@ -295,6 +295,18 @@ function lecturesDuProgramme(mots, motif, exact) {
  * pas un push.
  */
 function pushs(commande) {
+  if (derniersPushs.commande !== commande) derniersPushs = { commande, pushs: Object.freeze(lirePushs(commande)) };
+  return derniersPushs.pushs;
+}
+
+/**
+ * Les derniers `pushs` lus : `decisionCommande` les demande six fois pour la même commande (sujet, nom
+ * illisible, branche gardée, push nu, force, illisible) ; la lecture, qui coûte, n'est faite qu'une fois.
+ */
+let derniersPushs = { commande: null, pushs: [] };
+
+/** La lecture de `pushs`, sans mémoire. */
+function lirePushs(commande) {
   // Le découpage de `segmentsDeCommande`, et en plus celui d'avant (texte qui suit une substitution lu comme un
   // segment à part : `sudo -u git $(true) git push …`), pour que rien de ce qu'il refusait ne passe.
   return [...segmentsDeCommande(commande).map(({ segment }) => segment), ...segmentsDAvant(commande)]

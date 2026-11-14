@@ -436,6 +436,7 @@ test('contournements relevés pendant le ticket 27 : champ gh collé ou route ap
     'gh -R o/r pr update-branch 12 --rebase',
     `gh api -X POST repos/o/r/branches/feat-x/rename -f new_name=${sujet}`,
     'gh api -X PUT repos/o/r/pulls/3/merge/x/..',
+    'git --attr-source HEAD push --force origin feat/x',
   ])
     assert.equal(decisionCommande(commande, ctx)?.decision, 'refuser', commande);
   for (const branch of ['./develop', './main', `./${sujet}`, 'feat/../develop', 'feat/%2e%2e/main', 'feat/x\u0000', 'develop/', 'main/', 'develop//', './feat/x', 'feat/./x'])
