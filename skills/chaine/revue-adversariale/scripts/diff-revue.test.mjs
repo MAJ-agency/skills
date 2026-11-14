@@ -54,3 +54,12 @@ test("diff-revue : un diff vide sort en 1 et écrase l'ancien diff.patch", () =>
   assert.match(r.stderr, /diff vide/);
   assert.equal(readFileSync(join(dir, "diff.patch"), "utf8"), "");
 });
+
+test("diff-revue : un diff fait d'un seul index généré est vide et sort en 1", () => {
+  const d = depotJouet();
+  d.branche("feat/index", "origin/develop", { "docs/adr/README.md": "- ADR_x\n" });
+  const dir = mkdtempSync(join(tmpdir(), "revue-"));
+  const r = d.lancer("-c", `REVUE_DIR=${dir} bash ${SCRIPT} origin/develop`);
+  assert.equal(r.status, 1);
+  assert.match(r.stderr, /diff vide/);
+});

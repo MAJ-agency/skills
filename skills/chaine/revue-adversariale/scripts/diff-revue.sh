@@ -2,10 +2,10 @@
 # Diff relu par la revue adversariale (étape 1 de SKILL.md).
 #
 # usage : diff-revue.sh [<base>] [<zone>…]
-#   <base>  défaut origin/develop (origin/sujet/<nom> pour une sous-PR de sujet) ; récupérée par fetch.
+#   <base>  défaut origin/develop (origin/sujet/<nom> pour une sous-PR de sujet) ; rapatriée par fetch si elle commence par origin/, une base locale ne l'est pas.
 #   <zone>  chemins à garder (découpage d'un diff de plus de 2 000 lignes : apps/api, apps/web…).
 # Écrit $REVUE_DIR/diff.patch et $REVUE_DIR/stat.txt (REVUE_DIR défaut : ${TMPDIR:-/tmp}/revue).
-# Sortie 0 diff écrit · 1 base `origin/…` non rapatriée, ou diff vide.
+# Sortie 0 diff écrit · 1 base `origin/…` non rapatriée, ou diff vide (un diff fait des seuls fichiers exclus, index générés compris, est vide).
 #
 # Exclus : lockfile, index générés (scripts/docs/index-generes.json, vérifiés par leurs gates),
 # snapshots. Migrations, seeds et specs restent dans le diff.
