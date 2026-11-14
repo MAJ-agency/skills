@@ -75,6 +75,19 @@ test('carte de chantier : fiche, phase, responsable et conducteur, coût dès la
   assert.equal(controlerCarte({ nom: 'x.map.md', texte: '# sans sujet\n' }).carte, false);
 });
 
+test('une carte peut nommer plusieurs sujets séparés par des virgules ; une liste mal formée est refusée, le message dit la forme attendue', () => {
+  const carte = (sujet) => controlerCarte({ nom: 'c.map.md', texte: `# Carte\n\nSujet: ${sujet}\n\n## Fiche\n\nPhase: 2-decoupage\nResponsable: Camille Martin\nConducteur: session_y\n` });
+  assert.deepEqual(carte('sujet/a, sujet/b, sujet/c').erreurs, []);
+  assert.deepEqual(carte('sujet/a,sujet/b').erreurs, []);
+  for (const mal of ['sujet/a sujet/b', 'sujet/a,', 'sujet/a, b', 'sujet/A']) {
+    const erreurs = carte(mal).erreurs;
+    assert.equal(erreurs.length, 1, mal);
+    assert.match(erreurs[0].message, /carte c\.map\.md : Sujet « .* » : attendu `sujet\/<nom-en-kebab>`, ou plusieurs séparés par des virgules/, mal);
+    assert.equal(erreurs[0].ligne, 3);
+  }
+});
+
+
 const FICHE = (lignes) => `# Carte\n\nSujet: sujet/socle\n\n## Fiche\n\nPhase: 2-decoupage\n${lignes}`;
 
 test('une carte sans `Responsable:`, ou dont le responsable est un identifiant de session, est refusée, la ligne nommée', () => {
