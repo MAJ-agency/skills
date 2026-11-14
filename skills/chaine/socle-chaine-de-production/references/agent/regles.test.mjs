@@ -2,10 +2,8 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { ajouteUneDependance, decisionCommande, lireDependances, paquetsAjoutes, pousseSurUnSujet, refusEdition, sansTexte, lintable } from './regles.mjs';
 
-// Les clés de la copie des skills sont toujours passées : posé dans un projet, ce test y trouve un vrai manifeste.
-const copie = { skillsRecopies: ['chantier'], versionSkills: '5.0.2' };
-const livree = { migrationExistante: () => true, migrations: 'apps/api/src/db/migrations/', ...copie };
-const nouvelle = { migrationExistante: () => false, migrations: 'apps/api/src/db/migrations/', ...copie };
+const livree = { migrationExistante: () => true, migrations: 'apps/api/src/db/migrations/' };
+const nouvelle = { migrationExistante: () => false, migrations: 'apps/api/src/db/migrations/' };
 
 test('refusEdition refuse une migration déjà livrée et laisse écrire une nouvelle', () => {
   const m = 'apps/api/src/db/migrations/202611041200-care-plan.ts';
@@ -14,12 +12,8 @@ test('refusEdition refuse une migration déjà livrée et laisse écrire une nou
   assert.match(refusEdition('apps/api/prisma/migrations/2026_x/migration.sql', { ...livree, migrations: 'apps/api/prisma/migrations' }), /ne se modifie jamais/);
 });
 
-test('refusEdition refuse la copie des skills de la chaîne, pas un skill propre au projet', () => {
-  const refus = (c) => `${c} est une copie des skills de la chaîne (maj-skills 5.0.2) : elle ne se modifie pas dans ce projet. Modifier le skill dans MAJ-agency/skills ; la copie arrive par PR.`;
-  for (const c of ['.claude/skills/chantier/SKILL.md', '.claude/skills/maj-skills.json']) assert.equal(refusEdition(c, nouvelle), refus(c));
-  assert.equal(refusEdition('.claude/skills/parcours-federation/SKILL.md', nouvelle), null);
-  assert.equal(refusEdition('.claude/skills/chantier-bis/x.md', nouvelle), null);
-  for (const c of ['.claude/skills/chantier/SKILL.md', '.claude/skills/maj-skills.json']) assert.equal(refusEdition(c, { ...nouvelle, skillsRecopies: [] }), null);
+test('refusEdition laisse éditer .claude/skills : les skills du plugin vivent hors du dépôt, ceux du projet sont à lui', () => {
+  for (const c of ['.claude/skills/chantier/SKILL.md', '.claude/skills/maj-skills.json', '.claude/skills/parcours-federation/SKILL.md']) assert.equal(refusEdition(c, nouvelle), null);
 });
 
 test('refusEdition refuse le lockfile et les fichiers .env, laisse .env.example', () => {
