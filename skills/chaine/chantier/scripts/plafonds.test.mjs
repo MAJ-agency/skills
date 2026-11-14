@@ -32,13 +32,20 @@ test("une fille au plafond de contexte ou de coût est à signaler, la mesure et
   assert.match(juger({ role: "fille", contexte: 401000, cout: 25 }).motif, /contexte.*coût/);
 });
 
-test("un conducteur ou un architecte au plafond de contexte est à signaler", () => {
-  for (const role of ["conducteur", "architecte"]) {
-    assert.equal(juger({ role, contexte: 399999, cout: 99 }).verdict, "ok");
-    const r = juger({ role, contexte: 400000, cout: 0 });
-    assert.equal(r.verdict, "signaler");
-    assert.match(r.motif, /plafond 400000/);
+test("un conducteur au plafond de contexte est à signaler", () => {
+  assert.equal(juger({ role: "conducteur", contexte: 399999, cout: 99 }).verdict, "ok");
+  const r = juger({ role: "conducteur", contexte: 400000, cout: 0 });
+  assert.equal(r.verdict, "signaler");
+  assert.match(r.motif, /plafond 400000/);
+});
+
+test("l'architecte n'a pas de plafond : toujours ok, quelles que soient ses mesures", () => {
+  for (const contexte of [0, 400000, 2000000]) {
+    const r = juger({ role: "architecte", contexte, cout: 500 });
+    assert.equal(r.verdict, "ok");
+    assert.match(r.motif, /pas de plafond/);
   }
+  assert.equal(juger({ role: "architecte" }).verdict, "ok");
 });
 
 test("aucun verdict ne coupe une session : le script ne rend que ok ou signaler", () => {

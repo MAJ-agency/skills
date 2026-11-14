@@ -1,13 +1,14 @@
 // =============================================================================
-// Plafonds de session : le conducteur (et l'architecte, à chaque fin d'étape) ne juge pas lui-même
-// si une session a dépassé son plafond, il passe ses relevés à ce script et suit le verdict.
+// Plafonds de session : le conducteur ne juge pas lui-même si une session a dépassé son plafond,
+// il passe ses relevés à ce script et suit le verdict.
 //
 // Un plafond ne coupe rien : il se signale, et le produit décide. Aucune session n'est interrompue
 // ni relayée d'office. Deux verdicts seulement, `ok` et `signaler`.
-// Règle (A-9, P-18 qui amende P-3) : rôle `fille` → `signaler` dès que le contexte atteint
-// `contexteFille` ou que le coût atteint `coutFille` ; rôles `conducteur` et `architecte` →
+// Règle (A-9 ; P-3, amendée par le produit le 2026-11-14) : rôle `fille` → `signaler` dès que le
+// contexte atteint `contexteFille` ou que le coût atteint `coutFille` ; rôle `conducteur` →
 // `signaler` dès que le contexte atteint `contextePilote` ; sinon `ok`. Un plafond est atteint dès
-// l'égalité. Qui reçoit le signalement : `chantier/SKILL.md` § 6 et `architecte/SKILL.md` § 6.
+// l'égalité. Rôle `architecte` → toujours `ok` : l'architecte n'a pas de plafond de session (P-25),
+// le produit décide seul quand on en change. Qui reçoit le signalement : `chantier/SKILL.md` § 6.
 // Les valeurs viennent de `plafonds` dans .claude/chaine.json ; sans fichier ou sans cette clé, les
 // valeurs par défaut (400000, 20, 400000, 3). Clé présente mais mal formée : sortie 2.
 //
@@ -72,13 +73,15 @@ export function juger({ role, contexte, cout }, plafonds = PAR_DEFAUT) {
       ? { verdict: "signaler", motif: motifs.join(" ; ") }
       : { verdict: "ok", motif: "sous les plafonds de la fille" };
   }
-  if (role === "conducteur" || role === "architecte") {
+  if (role === "conducteur") {
     if (!(Number.isFinite(contexte) && contexte >= 0))
       throw new Error("mesure illisible : contexte est un nombre positif");
     return contexte >= plafonds.contextePilote
       ? { verdict: "signaler", motif: `contexte ${contexte} tokens ≥ plafond ${plafonds.contextePilote}` }
-      : { verdict: "ok", motif: "sous le plafond du pilote" };
+      : { verdict: "ok", motif: "sous le plafond du conducteur" };
   }
+  // P-25 : l'architecte n'a pas de plafond de session, ses mesures ne sont pas lues.
+  if (role === "architecte") return { verdict: "ok", motif: "l'architecte n'a pas de plafond de session" };
   throw new Error(`rôle inconnu « ${role} » (fille, conducteur ou architecte)`);
 }
 

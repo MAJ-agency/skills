@@ -386,8 +386,10 @@ test('une ligne de coût au-delà du plafond de son rôle est refusée sans lign
   assert.match(juger(COUT('| fille | t | s1 | sonnet | 100 k | 20,00 |'))[0].message, /coût 20 \$ ≥ plafond 20 \$/);
   assert.equal(juger(COUT('| fille | t | s1 | sonnet | 399 999 | 19,99 |')).length, 0);
   assert.match(juger(COUT('| conducteur | t | s2 | opus | 400 k | 50,00 |'))[0].message, /s2 \(conducteur\) : contexte 400000 tokens ≥ plafond 400000/);
-  assert.equal(juger(COUT('| architecte | t | s3 | opus | 399 k | 50,00 |')).length, 0);
-  // Un pilote n'est jugé que sur son contexte, un capitaine ou un rôle libre n'est pas jugé.
+  assert.equal(juger(COUT('| conducteur | t | s3 | opus | 399 k | 50,00 |')).length, 0);
+  // L'architecte n'a pas de plafond (P-25) : jamais jugé, même illisible.
+  assert.equal(juger(COUT('| architecte | t | s6 | opus | 900 k | 90,00 |', '| architecte | t | s7 | opus | beaucoup | 90,00 |')).length, 0);
+  // Un conducteur n'est jugé que sur son contexte, un capitaine ou un rôle libre n'est pas jugé.
   assert.equal(juger(COUT('| capitaine | t | s4 | opus | 900 k | 90,00 |', '| ticket | t | s5 | opus | 900 k | 90,00 |')).length, 0);
   // Sans contrat (plafonds null), rien n'est jugé.
   assert.deepEqual(controlerCarte({ nom: 'c.map.md', texte: COUT(fille) }).erreurs, []);
@@ -409,7 +411,7 @@ test('le contexte se lit en milliers (`174 k`), une cellule vide ou à relever n
 });
 
 test('une carte gelée d\'avant les rôles n\'est pas jugée sur ses dépassements', () => {
-  const ancienne = `${FICHE('Architecte: session_x\nConducteur: session_z\n')}\n## Coût\n\n| Rôle | Ticket | Session | Modèle | Contexte max | Coût $ |\n| --- | --- | --- | --- | --- | --- |\n| architecte | t | s | opus | 726 k (compactée) | 30,72 |\n`;
+  const ancienne = `${FICHE('Architecte: session_x\nConducteur: session_z\n')}\n## Coût\n\n| Rôle | Ticket | Session | Modèle | Contexte max | Coût $ |\n| --- | --- | --- | --- | --- | --- |\n| conducteur | t | s | opus | 726 k (compactée) | 30,72 |\n`;
   assert.deepEqual(juger(ancienne, { ficheGelee: true }), []);
   assert.equal(juger(ancienne).filter((e) => /Dépassements/.test(e.message)).length, 1);
 });

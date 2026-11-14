@@ -285,7 +285,7 @@ export function lireCheminsSensibles(texte) {
   return liste;
 }
 
-/** Valeurs par défaut des plafonds (A-9, P-18) : les mêmes que `chantier/scripts/plafonds.mjs`. */
+/** Valeurs par défaut des plafonds (A-9 ; P-3, amendée le 2026-11-14) : les mêmes que `chantier/scripts/plafonds.mjs`. */
 const PLAFONDS_PAR_DEFAUT = { contexteFille: 400000, coutFille: 20, contextePilote: 400000, renvoisParPR: 3 };
 
 /**
@@ -336,7 +336,7 @@ const coutEnDollars = (texte) => {
 };
 
 /**
- * Plafonds de `## Coût` : une ligne dont le rôle est jugé (`fille`, `conducteur`, `architecte`) qui
+ * Plafonds de `## Coût` : une ligne dont le rôle est jugé (`fille`, `conducteur` ; pas `architecte`, P-25) qui
  * atteint son plafond (l'égalité compte) exige une ligne dans `## Dépassements` pour la même session.
  * Tout autre rôle n'est pas jugé ; une cellule « Contexte max » vide, `—`, `à relever` ou au gabarit
  * non plus ; toute autre forme illisible sur un rôle jugé est une erreur de la carte.
@@ -352,7 +352,7 @@ function plafondsDeLaCarte({ nom, lignes, corps, plafonds }) {
     const [role = '', ticket = '', session = '', , contexte = '', cout = ''] = cellules;
     const r = role.toLowerCase();
     const fille = r === 'fille';
-    if (!fille && r !== 'conducteur' && r !== 'architecte') continue;
+    if (!fille && r !== 'conducteur') continue; // l'architecte n'a pas de plafond (P-25)
     const mesures = [];
     if (!NON_RELEVE.test(contexte)) {
       const tokens = contexteEnTokens(contexte);
