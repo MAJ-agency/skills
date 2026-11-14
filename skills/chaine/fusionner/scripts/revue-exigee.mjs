@@ -15,7 +15,9 @@
 // Sortie 0 éligible · 1 non éligible, motif sur la sortie standard.
 // =============================================================================
 
-const CHEMINS_CODE = /^(apps|packages|scripts)\//;
+// `"?` : git cite entre guillemets un chemin qui porte `"`, `\`, une tabulation ou un saut de ligne, même sous
+// `core.quotePath=false` (`"apps/a\"b.ts"`) ; cité, il reste du code.
+const CHEMINS_CODE = /^"?(apps|packages|scripts)\//;
 
 /** Le diff touche-t-il un chemin qui exige la revue ? */
 export function exigeRevue(fichiers) {

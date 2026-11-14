@@ -758,6 +758,156 @@ test("passer.sh : un commit ajouté sur une livraison intermédiaire mise à jou
   assert.match(r.stdout, /sans section « Revue de ticket » ni « Revue adversariale »/);
 });
 
+// Les lectures `git diff --name-only` qui décident d'une dispense lisent sans détection des renommages :
+// un fichier déplacé ou supprimé derrière un renommage compte à son ancien chemin.
+const GARDE = "scripts/verify/gate-securite.mjs";
+// Chaque cas : le geste de la PR sur sa branche, partie de develop (qui porte la garde).
+const DISPENSES = {
+  "un script déplacé hors de scripts/": (d) => d.git("mv", GARDE, "docs/garde.md"),
+  "un fichier de code à nom accentué (chemin cité par git sans core.quotePath=false)": (d) => {
+    d.ecrire("apps/api/éligibilité.ts", "export const e = 1;\n");
+    d.git("add", "-A");
+  },
+};
+test("passer.sh : la revue exigée lit les chemins sans renommage ni guillemets (script déplacé hors de scripts/, code à nom accentué)", () => {
+  for (const [cas, geste] of Object.entries(DISPENSES)) {
+    const d = depotJouet();
+    d.ecrire(GARDE, "export const garde = true;\n");
+    d.commit("chore: garde");
+    d.git("push", "-q", "origin", "HEAD:develop");
+    d.git("fetch", "-q", "origin");
+    d.git("switch", "-q", "-C", "docs/deplace", "origin/develop");
+    geste(d);
+    d.git("commit", "-q", "-m", "docs: déplace la garde");
+    d.git("push", "-q", "origin", "HEAD:refs/heads/docs/deplace");
+    d.git("fetch", "-q", "origin");
+    d.git("switch", "-q", "--detach", "origin/develop");
+    d.github({
+      exiges: ["qualite"],
+      checks: { "*": { [PERIMETRE]: "SUCCESS", qualite: "SUCCESS" } },
+      pulls: [pr(31, "docs/deplace", { body: "Rien.\n" })],
+    });
+    const r = d.lancer(script("passer.sh"), "31");
+    assert.equal(r.status, 4, `${cas} : ${r.stdout}${r.stderr}`);
+    assert.match(r.stdout, /sans section « Revue de ticket » ni « Revue adversariale »/, cas);
+    assert.deepEqual(d.journal(), [], cas);
+  }
+});
+
+test("passer.sh : une livraison intermédiaire qui supprime un fichier derrière un index généré renommé repasse par la revue", () => {
+  const d = depotJouet();
+  // Un index généré par motif (`docs/generes/*.json`) : un chemin neuf sous ce motif est un index.
+  d.ecrire(
+    "scripts/docs/index-generes.json",
+    JSON.stringify({ index: [{ chemin: `${ADR}/README.md`, commande: "node scripts/docs/adr-index.mjs" }, "docs/generes/*.json"] }),
+  );
+  d.ecrire(GARDE, "export const garde = true;\n");
+  d.commit("chore: garde");
+  d.git("push", "-q", "origin", "HEAD:develop");
+  d.git("fetch", "-q", "origin");
+  d.branche("sujet/lot", "origin/develop", { "apps/api/lot.ts": "export const lot = 1;\n" });
+  d.git("switch", "-q", "-C", LIVRAISON, "origin/sujet/lot");
+  d.ecrire("docs/generes/garde.json", "export const garde = true;\n");
+  d.git("rm", "-q", GARDE);
+  d.commit("docs: index");
+  d.git("push", "-q", "origin", `HEAD:refs/heads/${LIVRAISON}`);
+  d.git("fetch", "-q", "origin");
+  d.git("switch", "-q", "--detach", "origin/develop");
+  d.github({
+    exiges: ["qualite"],
+    checks: { "*": { [PERIMETRE]: "SUCCESS", qualite: "SUCCESS" } },
+    pulls: [pr(40, LIVRAISON, { title: "feat(demo): livraison intermédiaire" })],
+  });
+  const r = d.lancer(script("passer.sh"), "40");
+  assert.equal(r.status, 4, r.stdout + r.stderr);
+  assert.match(r.stdout, /sans section « Revue de ticket » ni « Revue adversariale »/);
+  assert.deepEqual(d.journal(), []);
+});
+
+// Livraison intermédiaire d'un sujet qui change `docs/genere.json`, index généré sans `commande` (chaîne
+// nue de la liste) que develop change aussi. Le premier passage la met à jour avec develop : le conflit,
+// sur un index seul, prend la version de develop ; puis il s'arrête sur des checks rouges (sortie 3).
+// `apres(d)` agit ensuite sur la livraison, avant le second passage, checks verts.
+function livraisonIndexSansCommande(apres = () => {}) {
+  const d = depotJouet();
+  d.ecrire(
+    "scripts/docs/index-generes.json",
+    JSON.stringify({ index: [{ chemin: `${ADR}/README.md`, commande: "node scripts/docs/adr-index.mjs" }, "docs/genere.json"] }),
+  );
+  d.ecrire("docs/genere.json", "0\n");
+  d.commit("docs: index sans commande");
+  d.git("push", "-q", "origin", "HEAD:develop");
+  d.git("fetch", "-q", "origin");
+  d.branche("sujet/lot", "origin/develop", { "apps/api/lot.ts": "export const lot = 1;\n", "docs/genere.json": "sujet\n" });
+  d.git("push", "-q", "origin", `origin/sujet/lot:refs/heads/${LIVRAISON}`);
+  d.branche("develop", "origin/develop", { "docs/genere.json": "develop\n" }, "docs: genere (#39)");
+  d.git("switch", "-q", "--detach", "origin/develop");
+  d.github({
+    exiges: ["qualite"],
+    checks: { "*": { [PERIMETRE]: "SUCCESS", qualite: "FAILURE" } },
+    pulls: [pr(40, LIVRAISON, { title: "feat(demo): livraison intermédiaire" })],
+  });
+  const premier = d.lancer(script("passer.sh"), "40");
+  assert.equal(premier.status, 3, premier.stdout + premier.stderr);
+  assert.match(premier.stdout, /mise à jour poussée/);
+  d.git("fetch", "-q", "origin");
+  assert.equal(d.git("show", `origin/${LIVRAISON}:docs/genere.json`), "develop", "version de develop prise au conflit");
+  apres(d);
+  d.git("switch", "-q", "--detach", "origin/develop");
+  d.github({ checks: { "*": { [PERIMETRE]: "SUCCESS", qualite: "SUCCESS" } } });
+  return d;
+}
+
+test("passer.sh : une livraison intermédiaire dont un index sans commande est celui de develop reste une livraison (sans revue)", () => {
+  const d = livraisonIndexSansCommande();
+  const r = d.lancer(script("passer.sh"), "40");
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  d.git("fetch", "-q", "origin");
+  assert.equal(d.git("rev-list", "--parents", "-1", "origin/develop").split(" ").length, 3, "commit de merge : deux parents");
+});
+
+test("passer.sh : une livraison intermédiaire dont un index sans commande n'est pas celui de develop (autre contenu, ou retiré) repasse par la revue", () => {
+  const gestes = {
+    "autre contenu": (d) => d.branche(LIVRAISON, `origin/${LIVRAISON}`, { "docs/genere.json": '{"pirate":true}\n' }, "docs: genere"),
+    retiré: (d) => {
+      d.git("switch", "-q", "-C", LIVRAISON, `origin/${LIVRAISON}`);
+      d.git("rm", "-q", "docs/genere.json");
+      d.git("commit", "-q", "-m", "docs: genere retiré");
+      d.git("push", "-q", "origin", `HEAD:refs/heads/${LIVRAISON}`);
+    },
+  };
+  for (const [cas, geste] of Object.entries(gestes)) {
+    const d = livraisonIndexSansCommande(geste);
+    const avant = d.git("rev-parse", "origin/develop");
+    const r = d.lancer(script("passer.sh"), "40");
+    assert.equal(r.status, 4, `${cas} : ${r.stdout}${r.stderr}`);
+    assert.match(r.stdout, /sans section « Revue de ticket » ni « Revue adversariale »/, cas);
+    d.git("fetch", "-q", "origin");
+    assert.equal(d.git("rev-parse", "origin/develop"), avant, `${cas} : develop inchangé`);
+  }
+});
+
+// Les outils de la chaîne copiés dans un dossier du jouet, `github.sh` sans `index_regeneres_regex` : une
+// copie du capitaine plus ancienne que `sujet.sh` ou `passer.sh`. La liste des index régénérés ne se lit pas.
+function outilsSansRegeneres(d) {
+  const dossier = join(d.racine, "outils");
+  mkdirSync(dossier);
+  const outils = [["sujet", "sujet.sh"], ...["passer.sh", "github.sh", "revue-exigee.mjs", "migrations-ordre.mjs", "identifiant.mjs"].map((n) => ["fusionner", n])];
+  for (const [skill, nom] of outils) {
+    const texte = readFileSync(scriptDe(skill, nom), "utf8");
+    writeFileSync(join(dossier, nom), nom === "github.sh" ? texte.replace(/\nindex_regeneres_regex\(\) \{\n[\s\S]*?\n\}\n/, "\n") : texte);
+  }
+  assert.doesNotMatch(readFileSync(join(dossier, "github.sh"), "utf8"), /index_regeneres_regex\(\)/);
+  return dossier;
+}
+
+test("passer.sh : sans liste lisible des index régénérés, une livraison dont un index sans commande n'est pas celui de develop repasse par la revue", () => {
+  const d = livraisonIndexSansCommande((d) => d.branche(LIVRAISON, `origin/${LIVRAISON}`, { "docs/genere.json": '{"pirate":true}\n' }, "docs: genere"));
+  const r = d.lancer(join(outilsSansRegeneres(d), "passer.sh"), "40");
+  assert.equal(r.status, 4, r.stdout + r.stderr);
+  assert.match(r.stdout, /sans section « Revue de ticket » ni « Revue adversariale »/);
+});
+
 test("passer.sh : la livraison d'une branche sujet/ nomme son sujet dans le corps du commit de merge", () => {
   const d = depotJouet();
   d.branche("sujet/lot", "origin/develop", { "docs/lot.md": "lot\n" }, "docs(demo): lot (#41)");

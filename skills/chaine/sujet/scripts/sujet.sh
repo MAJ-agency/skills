@@ -17,7 +17,10 @@
 #                         `--specs` recible sur le sujet la PR de specs du lot
 #   fusionner <pr>        squash d'une sous-PR dans son sujet : checks exigés verts sur son sommet,
 #                         titre qui passe commitlint
-#                         (lancé par le capitaine pour une sous-PR étiquetée `à-fusionner`)
+#                         (lancé par le capitaine pour une sous-PR étiquetée `à-fusionner`) ;
+#                         PR de mise à jour (sa tête n'apporte que la fusion de develop dans le sujet, conflit
+#                         résolu) : entre par avance rapide, sans squash, si elle est exactement la résolution
+#                         (voir « PR de mise à jour » plus bas), sinon sortie 4
 #   rafraichir <nom> [--abandon-si-conflit]
 #                         fusionne develop dans sujet/<nom> (jamais de rebase), index régénérés ;
 #                         `--abandon-si-conflit` (capitaine) annule la fusion au lieu de la laisser en cours
@@ -74,7 +77,9 @@
 # `fusionner`, `rafraichir`, `relancer`, `livrer` : 5 la branche a bougé pendant l'écriture, relancer
 # `fusionner` encore : la sous-PR a bougé pendant sa mise à jour (reprise au tour suivant) · 8 conflit
 # avec le sujet sur des index générés seuls : branche mise à jour (index régénérés) et poussée, CI
-# relancée, aucun squash · 69 jq absent du poste
+# relancée, aucun squash · 11 `fusionner` d'une PR de mise à jour : échec côté capitaine (git sans
+# `merge-tree --write-tree`, dépendances, régénération, commit ou push refusé), rien à corriger côté PR,
+# aucun renvoi · 69 jq absent du poste
 # Tout passe par l'API REST (`gh api`) : GraphQL est refusé depuis les sessions cloud. Depuis la
 # racine du dépôt ; sans argument, affiche cette aide.
 # =============================================================================
@@ -527,6 +532,108 @@ refuser_tete_gardee() {
   fi
 }
 
+# PR de mise à jour d'un sujet : un conflit de code entre le sujet et develop, que `rafraichir` ne résout pas
+# (sortie 2) et qu'aucune session ne pousse (le hook refuse tout push vers sujet/…). Une session fille,
+# lancée pour ce geste, résout dans une branche de travail :
+#   git fetch origin develop sujet/<nom>
+#   git switch -c maj/<nom> origin/sujet/<nom>
+#   git merge origin/develop                 conflit résolu, puis `git add <fichiers résolus>` ; un index
+#                                            généré en conflit ne s'édite pas (le hook le refuse) :
+#                                            `git checkout --theirs -- <index>`, puis `git add <index>`, le
+#                                            capitaine le régénère
+#   git commit --no-edit                     message de git, sans ligne `Sujet:`
+#   git push origin HEAD:maj/<nom>, puis PR vers sujet/<nom>, titre `chore(sujet): met <nom> à jour avec
+#   develop`, étiquetée `à-fusionner`
+# Le capitaine la reconnaît : hors du sujet et de develop, sa tête n'apporte que des commits de fusion. Une
+# sous-PR qui porte un commit ordinaire garde le chemin ordinaire (sujet rafraîchi, puis squash).
+est_mise_a_jour() {
+  [ -n "$(git rev-list --merges -n 1 "$1" "^origin/$2" ^origin/develop)" ] &&
+    [ -z "$(git rev-list --no-merges -n 1 "$1" "^origin/$2" ^origin/develop)" ]
+}
+
+# Elle n'entre que si elle est exactement la résolution, sinon sortie 4 (motif à la session) : un seul
+# commit hors du sujet et de develop, son sommet ; un message sans ligne `Sujet:` ni `Merge pull request`
+# (`sujet_livre` les cherche dans les fusions de develop) ; une fusion à deux parents, le sommet du sujet
+# d'abord (avance rapide, et `livrer` lit le sujet par ses premiers parents), puis un commit de develop
+# absent du sujet ; un arbre qui ne s'écarte de la fusion recalculée (`git merge-tree`, git ≥ 2.38, comme
+# passer.sh) que sur les fichiers en conflit et les index régénérés. L'écart se lit sans détection des
+# renommages : un fichier supprimé derrière un chemin en conflit recréé compte. Rien d'autre n'entre par
+# cette voie : un fichier hors conflit (une ligne `Dépendances:`, du code) part en sous-PR, squashée comme
+# les autres. RESOLUTION : l'écart, index compris, et les fichiers en conflit, que lit la revue exigée.
+# Un outil du capitaine en échec (git sans `merge-tree --write-tree`) : sortie 11, rien à corriger côté PR.
+verifier_mise_a_jour() {
+  local n=$1 sommet=$2 base=$3 s p1 p2 reste fusion rc arbre conflits ecart hors regeneres
+  s=$(git rev-parse "origin/$base")
+  [ "$(git rev-list --count "$sommet" "^origin/$base" ^origin/develop)" = 1 ] ||
+    sortir 4 "#$n, PR de mise à jour : une seule fusion de develop dans $base, rien d'autre ; une correction part ensuite en sous-PR"
+  ! grep -qE '^(- )?\**Sujet ?:|^Merge pull request' <<<"$(git log -1 --format=%B "$sommet")" ||
+    sortir 4 "#$n, PR de mise à jour : le message de la fusion porte une ligne « Sujet: » ou « Merge pull request » : refaire la fusion avec le message de git"
+  read -r _ p1 p2 reste <<<"$(git rev-list --parents -n 1 "$sommet")"
+  [ -n "$p2" ] && [ -z "$reste" ] ||
+    sortir 4 "#$n, PR de mise à jour : une fusion à deux parents, le sommet de $base puis develop"
+  [ "$p1" = "$s" ] ||
+    sortir 4 "#$n, PR de mise à jour : le premier parent n'est pas le sommet de $base (le sujet a avancé, ou develop est le premier parent) : la refaire depuis origin/$base"
+  if ! git merge-base --is-ancestor "$p2" origin/develop || git merge-base --is-ancestor "$p2" "$s"; then
+    sortir 4 "#$n, PR de mise à jour : le second parent n'est pas un commit de develop absent de $base"
+  fi
+  fusion=$(git -c core.quotePath=false merge-tree --write-tree --name-only --no-messages "$p1" "$p2") && rc=0 || rc=$?
+  [ "$rc" -le 1 ] || sortir 11 "#$n : git merge-tree --write-tree en échec (git ≥ 2.38 requis), côté capitaine : PR laissée dans la file"
+  arbre=$(sed -n 1p <<<"$fusion")
+  conflits=$(sed -n '2,$p' <<<"$fusion")
+  ecart=$(git -c core.quotePath=false diff --no-renames --name-only "$arbre" "$sommet") ||
+    sortir 11 "#$n : diff de la résolution illisible, côté capitaine : PR laissée dans la file"
+  # La liste des index régénérés illisible (fonction absente, jq en échec) : jamais une garde ouverte. Un projet
+  # sans index généré a une liste vide, `^()$`, qui ne prend aucun chemin.
+  regeneres=$(index_regeneres_regex) && [ -n "$regeneres" ] ||
+    sortir 11 "#$n : liste des index régénérés illisible (index_regeneres_regex de github.sh), côté capitaine : PR laissée dans la file"
+  # Un chemin cité par git (`"apps/a\"b.ts"`) l'est de même dans les deux listes : la comparaison tient.
+  hors=$(comm -23 <(printf '%s\n' "$ecart" | grep -Ev "$regeneres" | sed '/^$/d' | sort -u) <(printf '%s\n' "$conflits" | sort -u))
+  [ -z "$hors" ] ||
+    sortir 4 "#$n, PR de mise à jour : elle écrit hors des fichiers en conflit ($(tr '\n' ' ' <<<"$hors")) : elle n'apporte que la résolution, le reste part en sous-PR"
+  # La revue porte sur l'écart et sur les fichiers en conflit : un conflit modifier/supprimer ou binaire dont la
+  # résolution garde la version du sujet ne fait aucun écart avec l'arbre recalculé, qui la porte déjà.
+  RESOLUTION=$(printf '%s\n%s\n' "$ecart" "$conflits" | sed '/^$/d' | sort -u)
+}
+
+# Avance rapide du sujet jusqu'à la PR de mise à jour vérifiée : index régénérés et contrôlés sur son sommet
+# (un commit de plus s'ils changent), puis `git push` simple, jamais forcé, sous les hooks. Un sujet qui a
+# bougé depuis la lecture refuse le push : sortie 5, rien n'est écrasé ; au tour suivant, la PR, dont le
+# premier parent n'est plus le sommet du sujet, est renvoyée (4). Dépendances, régénération, commit ou push
+# refusés côté capitaine : sortie 11, rien à corriger côté PR, aucun renvoi. Entrée : la PR est fermée avec
+# le sommet qui l'a fait entrer (GitHub peut l'avoir déjà marquée fusionnée), le tour suivant ne la squashe pas.
+avancer_sujet() {
+  local n=$1 base=$2 sommet=$3 avant statut tete
+  [ -z "$(git status --porcelain)" ] || sortir 6 "arbre de travail pas propre : committer ou ranger d'abord, puis relancer (rien à corriger côté PR)"
+  avant=$(git rev-parse "origin/$base")
+  git switch -q --detach "$sommet"
+  local echec
+  echec() {
+    git reset -q --hard
+    git switch -q --detach origin/develop
+    sortir 11 "$1, côté capitaine : #$n non fusionnée dans $base, PR laissée dans la file"
+  }
+  pnpm install --frozen-lockfile --prefer-offline >/dev/null 2>&1 || echec "pnpm install en échec"
+  regenerer_index || echec "gate des index/registres en échec (sortie ci-dessus)"
+  if ! git diff --cached --quiet; then
+    jouer_ou_dire "git commit -q -m 'docs: régénère les index après mise à jour avec develop'" ||
+      echec "commit refusé par un hook git (sortie ci-dessus)"
+  fi
+  tete=$(git rev-parse HEAD)
+  pousser "HEAD:refs/heads/$base" "$base" "$avant" && statut=0 || statut=$?
+  git switch -q --detach origin/develop
+  case $statut in
+    0) ;;
+    5) sortir 5 "$base a bougé pendant l'avance : #$n non fusionnée, reprise au tour suivant" ;;
+    *) sortir 11 "avance de $base refusée par le hook pre-push (ou le distant), côté capitaine : sortie ci-dessus, PR laissée dans la file" ;;
+  esac
+  if [ "$(gh api "$DEPOT/pulls/$n" --jq .state 2>/dev/null)" = open ]; then
+    commenter "$n" "Entrée dans $base par avance rapide au sommet $(git rev-parse --short "$tete") (mise à jour avec develop) : PR fermée par le capitaine." &&
+      gh api -X PATCH "$DEPOT/pulls/$n" -f state=closed >/dev/null ||
+      echo "#$n : PR NON fermée (gh refusé) : la fermer à la main, elle est déjà dans $base"
+  fi
+  echo "#$n fusionnée dans $base par avance rapide (mise à jour avec develop, $(git rev-parse --short "$sommet"))"
+}
+
 fusionner() {
   local n=${1:?numéro de la sous-PR}
   local pr base titre sommet longueur
@@ -548,12 +655,19 @@ fusionner() {
     sortir 4 "titre refusé par commitlint (Conventional Commits) : $titre"
   # Revue adversariale (ADR « chaîne de production »), comme au passage vers develop : la livraison
   # du sujet en est dispensée, c'est donc ici qu'on l'exige.
-  local revue motif
+  local revue motif fichiers maj=''
   revue="$ici/revue-exigee.mjs"
   [ -f "$revue" ] || revue="$ici/../../fusionner/scripts/revue-exigee.mjs"
-  git fetch -q origin "$base" "$(jq -r .head.ref <<<"$pr")"
-  motif=$(git diff --name-only "$(git merge-base "$sommet" "origin/$base")" "$sommet" |
-    node "$revue" "$(jq -r '.body // ""' <<<"$pr")" "$titre") || sortir 4 "#$n $motif"
+  git fetch -q origin develop "$base" "$(jq -r .head.ref <<<"$pr")"
+  # PR de mise à jour : la revue porte sur la résolution seule, pas sur le develop qu'elle apporte.
+  if est_mise_a_jour "$sommet" "$base"; then
+    verifier_mise_a_jour "$n" "$sommet" "$base"
+    maj=1
+    fichiers=$RESOLUTION
+  else
+    fichiers=$(git -c core.quotePath=false diff --no-renames --name-only "$(git merge-base "$sommet" "origin/$base")" "$sommet")
+  fi
+  motif=$(printf '%s\n' "$fichiers" | node "$revue" "$(jq -r '.body // ""' <<<"$pr")" "$titre") || sortir 4 "#$n $motif"
 
   # Checks exigés sur develop, lus sur le sommet de la sous-PR. Les E2E y sont sautés
   # (branche de sujet), donc comptés réussis : ils tournent sur la PR finale.
@@ -570,6 +684,10 @@ fusionner() {
   done <<<"$requis"
   [ -z "$rouges" ] || sortir 3 "checks rouges sur #$n :$rouges"
   [ "$attente" = 0 ] || sortir 3 "checks encore en cours sur #$n : attendre leur fin"
+  if [ -n "$maj" ]; then
+    avancer_sujet "$n" "$base" "$sommet"
+    return 0
+  fi
 
   git fetch -q origin develop "$base" "$(jq -r .head.ref <<<"$pr")"
   # La sous-PR contient du develop plus récent que son sujet (capitaine passé dessus, branche
@@ -621,6 +739,7 @@ rafraichir() {
     elif [ -n "$autres" ]; then
       echo "conflit avec develop, à résoudre sur $branche (merge en cours) :"
       printf '  %s\n' $autres
+      echo "une session ne pousse pas un sujet : git merge --abort, puis une session fille lancée pour ce geste ouvre la PR de mise à jour (en-tête de sujet.sh)"
       exit 2
     fi
     # Index générés : la régénération fait foi.

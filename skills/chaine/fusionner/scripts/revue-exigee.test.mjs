@@ -99,3 +99,11 @@ test('CLI : le titre en troisième argument déclenche le refus d’un titre fea
     '',
   );
 });
+
+// Un chemin qui porte `"`, `\`, une tabulation ou un saut de ligne, git le cite entre guillemets même sous
+// `core.quotePath=false` (`"apps/…"`) : il exige la revue comme le chemin nu.
+test('exigeRevue : un chemin de code que git cite entre guillemets l’exige aussi', () => {
+  for (const cite of ['"apps/api/migrations/2026\\"x.ts"', '"apps/api/migrations/2026\\\\x.ts"', '"scripts/verify/gate\\tx.mjs"', '"packages/a\\nb.ts"'])
+    assert.equal(exigeRevue([cite]), true, cite);
+  assert.equal(exigeRevue(['"docs/a\\"b.md"']), false);
+});

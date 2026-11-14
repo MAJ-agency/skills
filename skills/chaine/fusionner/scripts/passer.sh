@@ -102,7 +102,7 @@ origine=$(git rev-parse "origin/$tete")
 # sujet, hors de develop, dont la fusion avec le develop que la tête contient donne l'arbre de la
 # tête, aux index générés près. Sinon la PR repasse par le chemin ordinaire (revue exigée, squash).
 livraison_intermediaire() {
-  local nom=$1 d s attendu ecart
+  local nom=$1 d s attendu ecart hors regeneres
   git fetch -q origin "sujet/$nom" 2>/dev/null || return 1
   d=$(git merge-base "$origine" origin/develop) || return 1
   for s in $(git merge-base --all "$origine" "origin/sujet/$nom" 2>/dev/null); do
@@ -112,8 +112,23 @@ livraison_intermediaire() {
     attendu=$(git merge-tree --write-tree --no-messages "$s" "$d" 2>/dev/null | sed -n 1p) || true
     [ -n "$attendu" ] || continue
     # Un `git diff` en échec n'est jamais une dispense : on ne conclut que sur un diff lu.
-    ecart=$(git diff --name-only "$attendu" "$origine") || continue
-    [ -n "$(printf '%s\n' "$ecart" | grep -Ev "$GENERES" || true)" ] || return 0
+    # Sans détection des renommages : une suppression ne se cache pas derrière un index généré ajouté.
+    ecart=$(git -c core.quotePath=false diff --no-renames --name-only "$attendu" "$origine") || continue
+    # Un index qui a une `commande` est régénéré : dispensé. Un index sans commande ne l'est que si son
+    # blob au sommet est celui d'origin/develop (la version de develop prise au conflit par la mise à
+    # jour) ; absent d'un côté, il diffère et va à la revue.
+    # Liste illisible (fonction absente, jq en échec) : pas une livraison, la revue est exigée.
+    regeneres=$(index_regeneres_regex) && [ -n "$regeneres" ] || return 1
+    hors=$(printf '%s\n' "$ecart" | sed '/^$/d' | while IFS= read -r f; do
+      if ! grep -qE "$GENERES" <<<"$f"; then
+        printf '%s\n' "$f"
+      elif ! grep -qE "$regeneres" <<<"$f"; then
+        a=$(git rev-parse -q --verify "$origine:$f" 2>/dev/null) || a=''
+        b=$(git rev-parse -q --verify "origin/develop:$f" 2>/dev/null) || b=''
+        [ -n "$a" ] && [ "$a" = "$b" ] || printf '%s\n' "$f"
+      fi
+    done)
+    [ -n "$hors" ] || return 0
   done
   return 1
 }
@@ -144,7 +159,7 @@ fi
 # Revue adversariale (ADR « chaîne de production ») : exigée dès que le diff touche apps/, packages/ ou scripts/.
 # Une livraison de sujet en est dispensée : chaque sous-PR l'a passée (sujet.sh fusionner).
 if [ "$livraison_sujet" = 0 ]; then
-  motif=$(git diff --name-only "$depart" "$origine" | node "$PASSER_OUTILS/revue-exigee.mjs" "$(champ '.body // ""')" "$titre") ||
+  motif=$(git -c core.quotePath=false diff --no-renames --name-only "$depart" "$origine" | node "$PASSER_OUTILS/revue-exigee.mjs" "$(champ '.body // ""')" "$titre") ||
     sortir 4 "$motif"
 fi
 
