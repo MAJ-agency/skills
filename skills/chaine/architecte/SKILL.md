@@ -1,6 +1,6 @@
 ---
 name: architecte
-description: Architecte d'un programme — la session unique qui mène l'amont et parle seule au produit. Lit la carte du programme puis sa source, vérifie son environnement, tient la carte (`docs/programmes/<nom>.programme.md` : fiche, chantiers, décisions P-n et A-n, brouillard, coût, passation, journal), mène le grilling jusqu'à la spec validée par le produit, lance le conducteur de chaque chantier et le capitaine de chaque dépôt avec leur procédure entière, relaie les questions au produit, et passe la main à une session de suite au plafond de contexte. Ne découpe pas, ne lance pas de fille, ne code pas, ne fusionne pas. Reprenable : relancée sur un programme existant, elle reprend à la phase écrite. À lancer à la main dans une session ouverte par le produit, « <Programme> — Architecte ».
+description: Architecte d'un programme — la session unique qui mène l'amont et parle seule au produit. Lit la carte du programme puis sa source, vérifie son environnement, tient la carte (`docs/programmes/<nom>.programme.md` : fiche, chantiers, décisions P-n et A-n, brouillard, coût, passation, journal), mène le grilling jusqu'à la spec validée par le produit, lance le conducteur de chaque chantier et le capitaine de chaque dépôt avec leur procédure entière, relaie au produit les questions et les plafonds signalés, lui signale le sien, et passe la main à une session de suite quand le produit le décide. Ne découpe pas, ne lance pas de fille, ne code pas, ne fusionne pas. Reprenable : relancée sur un programme existant, elle reprend à la phase écrite. À lancer à la main dans une session ouverte par le produit, « <Programme> — Architecte ».
 argument-hint: '[<objectif du programme en une phrase> | <nom du programme> pour reprendre]'
 disable-model-invocation: true
 ---
@@ -64,25 +64,27 @@ Puis : le conducteur dans la ligne du chantier, le capitaine dans `Capitaines:`,
 - **L'architecte ne lit que les cartes** des chantiers (fiche, vagues, coût), jamais leurs tickets ni leurs PR : le tableau d'avancement d'un chantier se demande à son conducteur.
 - **Les questions d'un conducteur passent par l'architecte** (`chaine-de-production.md` § 2, et `chantier/SKILL.md`, « Où commence ce skill ») : il y répond si la carte du programme la tranche, la tranche s'il s'agit de technique (`A-n`), sinon la **réécrit** dans la forme de § 2 et la pose au produit. La réponse repart au conducteur par `send_message`.
 - **Le découpage d'un conducteur** (le tableau des vagues : ticket, objet, modèle, fichiers chauds) arrive par `send_message`. L'architecte le présente au produit pour validation, dans la forme d'une question au produit — « Lancer » · « Modifier » (dire quoi) · « Arrêter ici » — et renvoie la réponse telle quelle. Il **ne relit pas les tickets** : la relecture par un agent neuf avant la vague est le travail du conducteur.
+- **Un plafond signalé par un conducteur** (une de ses filles, ou lui-même) : l'architecte le dit au produit dans la forme de § 2 (la session, la mesure, où elle en est, la recommandation), et renvoie sa décision telle quelle par `send_message`. Aucune session n'est interrompue : elle continue pendant que le produit décide.
 - **Une PR livrée** se nomme au capitaine du dépôt, par `send_message` : le numéro, rien d'autre.
 - Pas d'attente active : `send_later` à 45 minutes tant qu'une session attend une réponse, `/compact` entre deux étapes.
 
 **Un refus d'attache** (`add_repo` refusé à une session lancée) : la session le dit et s'arrête. L'architecte le note au journal de la carte (la date, la session, le dépôt), le dit au produit, et **ne contourne pas** : ni recopie des skills dans le projet, ni procédure dictée de mémoire. La recopie des skills ne se décide que si les refus se répètent : le journal les compte.
 
-## 6. Passer la main
+## 6. Signaler son plafond, passer la main
 
 À **chaque fin d'étape** : `get_session` sans argument, puis son relevé (rôle `architecte`, contexte, coût) soumis au script des plafonds, `scripts/chaine/plafonds.mjs` (dans le dépôt `skills`, `skills/chaine/chantier/scripts/plafonds.mjs`) ; son en-tête dit comment l'appeler. L'architecte suit le verdict, sans juger lui-même.
 
-Au verdict **`passer-la-main`** (400 000 tokens par défaut) :
+Au verdict **`signaler`** (400 000 tokens par défaut), l'architecte le dit au produit (la mesure, où en est le programme, sa recommandation), le note au journal de la carte, et **continue** : un plafond ne coupe rien, le produit décide ce qu'il veut faire. Si le produit décide une session de suite :
 
 1. **La passation** dans `## Passation` de la carte : où en est chaque chantier, ce qui attend le produit, les questions posées sans réponse, les sessions en vie (conducteurs, capitaines), et l'environnement de la session de suite (dépôts, branche où pousser la carte). La ligne de coût de cette session. Commit, push.
-2. **Demander au produit** d'ouvrir la session de suite depuis l'application (§ 1 : `create_session` ne lui donnerait qu'un dépôt), avec ce skill et le nom du programme. Puis s'arrêter.
+2. **Le produit ouvre** la session de suite depuis l'application (§ 1 : `create_session` ne lui donnerait qu'un dépôt), avec ce skill et le nom du programme. L'architecte s'arrête alors.
 3. **La session de suite** lit la carte (§ 0), met à jour `Architecte:` de la fiche et la ligne au journal, puis écrit à **chaque conducteur en vie** (`send_message`) son nouvel identifiant : le conducteur met à jour la ligne `Architecte:` de sa carte à son réveil suivant. Les capitaines, de même.
 
 ## Ne jamais
 
 - Découper un chantier en tickets, relire ses tickets, lancer une fille, coder, fusionner.
 - Changer une procédure par message : elle se donne entière au lancement.
+- Interrompre une session pour un plafond, la sienne comprise : il se signale au produit, qui décide.
 - Contourner un refus d'attache, ou recopier les skills dans un projet sans que le produit l'ait décidé.
 - Garder une décision ailleurs que dans la carte commitée ; citer un cas vécu par un identifiant de session plutôt que par son fait et sa date.
 - Passer une question au produit sans la réécrire dans la forme de § 2.

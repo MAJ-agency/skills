@@ -1,10 +1,10 @@
 {
-  "$comment": "Contrat de la chaîne de production (skill socle-chaine-de-production). Lu par les skills tickets, sujet, fusionner, revue-adversariale, chantier et par scripts/agent/regles.mjs. Les branches sont fixes : develop intègre, main livre. `cheminsSensibles` part des gardes de la chaîne elle-même (les hooks, la convention d'identifiants qu'ils lisent, la configuration de l'agent) ; le projet y ajoute ses dossiers sensibles. `gatesRapides` : les gates que le hook de fin de tour rejoue sur le travail en cours (ceux qui existent). `plafonds` : les seuils qui arrêtent une session (atteints dès l'égalité) — `contexteFille` et `coutFille` interrompent une fille, `contextePilote` fait passer la main à un conducteur ou à un architecte, `renvoisParPR` met une PR renvoyée autant de fois en attente d'un humain ; la décision vit dans `scripts/chaine/plafonds.mjs`.",
+  "$comment": "Contrat de la chaîne de production (skill socle-chaine-de-production). Lu par les skills tickets, sujet, fusionner, revue-adversariale, chantier et par scripts/agent/regles.mjs. Les branches sont fixes : develop intègre, main livre. `cheminsSensibles` part des gardes de la chaîne elle-même (les hooks, la convention d'identifiants qu'ils lisent, la configuration de l'agent) ; le projet y ajoute ses dossiers sensibles. `gatesRapides` : les gates que le hook de fin de tour rejoue sur le travail en cours (ceux qui existent). `plafonds` : les seuils qui se signalent (atteints dès l'égalité), sans jamais couper une session — `contexteFille` et `coutFille` pour une fille, `contextePilote` pour un conducteur ou un architecte : le signalement remonte au produit, qui décide ; `renvoisParPR` met une PR renvoyée autant de fois en attente d'un humain ; le verdict vit dans `scripts/chaine/plafonds.mjs`.",
   "cheminsSensibles": ["scripts/agent/**", "scripts/docs/identifiants.mjs", ".claude/**"],
   "criteresRevue": "docs/agents/criteres-revue.md",
   "fillesParVague": 6,
   "plafonds": {
-    "contexteFille": 300000,
+    "contexteFille": 400000,
     "coutFille": 20,
     "contextePilote": 400000,
     "renvoisParPR": 3

@@ -36,7 +36,7 @@ Gel:
 
 ## Dépassements
 
-Une session au plafond (`plafonds` de `.claude/chaine.json`) y a sa ligne : sans elle, le gate `tickets` refuse la ligne de `## Coût` qui le dépasse.
+Une session au plafond (`plafonds` de `.claude/chaine.json`) y a sa ligne : sans elle, le gate `tickets` refuse la ligne de `## Coût` qui le dépasse. Elle n'est jamais interrompue : le plafond se signale, le produit décide, et sa décision s'écrit ici.
 
 | Session | Ticket | Mesure | Décision du produit | Date |
 | ------- | ------ | ------ | ------------------- | ---- |

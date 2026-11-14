@@ -13,7 +13,7 @@ Objectif: {{une phrase}}
 Dépôts: {{les dépôts du programme, et ce que chacun reçoit}}
 Source: {{chemin de l'entrée brute (passation, notes, artefact) — ni spec ni décision}}
 Capitaines: {{par dépôt : session_id, ou « absent »}}
-Plafond de l'architecte: {{contextePilote de .claude/chaine.json, 400 000 tokens par défaut ; relevé par get_session à chaque fin d'étape}}
+Plafond de l'architecte: {{contextePilote de .claude/chaine.json, 400 000 tokens par défaut ; relevé par get_session à chaque fin d'étape ; atteint, il se signale au produit, qui décide}}
 
 ## Chantiers
 

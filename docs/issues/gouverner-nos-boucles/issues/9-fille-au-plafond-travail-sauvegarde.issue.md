@@ -1,10 +1,12 @@
 # Une fille coupée à son plafond laisse son travail sur le dépôt, et sa reprise est écrite
 
-Status: needs-triage
+Status: wontfix
 Type: task
 Blocked by: —
 Modèle: sonnet
 Fichiers chauds: `skills/chaine/chantier/SKILL.md`, `skills/chaine/socle-chaine-de-production/references/docs-agents/chaine-de-production.md`, `skills/chaine/chantier/references/CONTENU.md`, `skills/chaine/fusionner/SKILL.md`
+
+**Sans objet depuis la décision P-18 du 2026-11-14** : une fille au plafond n'est plus coupée, elle est signalée au produit et continue. Le texte ci-dessous est gardé comme relevé des faits ; voir `## Comments`.
 
 ## Le besoin
 
@@ -82,3 +84,4 @@ Hors de ce ticket :
 ## Comments
 
 - 2026-11-14 — Ticket ouvert à la demande du produit, après lecture du chemin « fille au plafond » dans une session de questions. Il n'est rattaché à aucun chantier : la carte du programme n'a pas été modifiée, l'architecte y tient les statuts. Suite du ticket 7 (chantier 2, fini) ; le chantier 3 est son rattachement naturel.
+- 2026-11-14 — Clos sans objet. Le produit a décidé le même jour (P-18, `map.md`) qu'aucune session n'est interrompue pour un plafond : le conducteur signale, l'architecte prévient le produit, le produit décide, et la fille continue. Il n'y a donc plus de coupure au plafond, ni de travail perdu par elle. Un fait de ce ticket reste vrai et n'a pas de ticket : au gel d'un chantier, les filles sont toujours interrompues (`chantier/SKILL.md`, « Arrêter un chantier », étape 2), et leur travail non poussé ne survit pas au conteneur.

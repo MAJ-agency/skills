@@ -285,8 +285,8 @@ export function lireCheminsSensibles(texte) {
   return liste;
 }
 
-/** Valeurs par défaut des plafonds (A-9, P-3) : les mêmes que `chantier/scripts/plafonds.mjs`. */
-const PLAFONDS_PAR_DEFAUT = { contexteFille: 300000, coutFille: 20, contextePilote: 400000, renvoisParPR: 3 };
+/** Valeurs par défaut des plafonds (A-9, P-18) : les mêmes que `chantier/scripts/plafonds.mjs`. */
+const PLAFONDS_PAR_DEFAUT = { contexteFille: 400000, coutFille: 20, contextePilote: 400000, renvoisParPR: 3 };
 
 /**
  * `plafonds` du contrat `.claude/chaine.json`. `texte` null : pas de contrat, aucun plafond contrôlé
@@ -375,7 +375,7 @@ function plafondsDeLaCarte({ nom, lignes, corps, plafonds }) {
     if (mesures.length === 0 || (session && couvertes.has(session))) continue;
     erreurs.push({
       ligne,
-      message: `carte ${nom} : \`## Coût\`, session ${session || '(sans identifiant)'} (${role}) : ${mesures.join(' ; ')}, sans ligne dans \`## Dépassements\` pour cette session (décision du produit : découper, relancer ou accepter par écrit)`,
+      message: `carte ${nom} : \`## Coût\`, session ${session || '(sans identifiant)'} (${role}) : ${mesures.join(' ; ')}, sans ligne dans \`## Dépassements\` pour cette session (le plafond se signale au produit, sa décision s'y écrit)`,
     });
   }
   return erreurs;
