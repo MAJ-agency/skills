@@ -3,6 +3,7 @@
 // que le socle impose aux projets (`budget-contexte.mjs`).
 import assert from "node:assert/strict";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
 import { join } from "node:path";
 import { test } from "node:test";
 
@@ -204,4 +205,63 @@ test("le gabarit .gitignore laisse commiter les skills propres au projet", () =>
   const l = lignes(readFileSync(join(RACINE, GITIGNORE), "utf8"));
   assert.ok(l.includes("!.claude/skills/"), `${GITIGNORE} : !.claude/skills/ attendu`);
   assert.ok(l.indexOf("!.claude/skills/") > l.indexOf(".claude/*"), `${GITIGNORE} : !.claude/skills/ vient après .claude/*`);
+});
+
+// Un script du plugin ne saute jamais un hook git (« jamais --no-verify ») : les scripts que le plugin
+// pose dans un projet passent sous les hooks du projet, comme une session. Un banc peut INSTALLER un hook
+// dans son dépôt jouet (`config core.hooksPath`), pas en sauter un. Les quatre fichiers ci-dessous nomment
+// le saut pour le refuser ou le tester.
+const REF = "skills/chaine/socle-chaine-de-production/references";
+const EXCEPTIONS_SAUT = [
+  `${REF}/agent/regles.mjs`,
+  `${REF}/agent/regles.test.mjs`,
+  `${REF}/scripts/verify/settings-json.test.mjs`,
+  "scripts/depot.test.mjs",
+];
+const MOTIFS_SAUT = [
+  /--no-verify/,
+  /HUSKY=0/,
+  /(?:^|[\s'"`])-c\s*['"`]?\s*core\.hooksPath/,
+  /['"`]-c['"`]\s*,\s*['"`]core\.hooksPath/,
+  /\bcommit\b[^|;&\n]*?(?:\s|['"`,])-[a-zA-Z]*n[a-zA-Z]*(?=[\s'"`,)]|$)/,
+];
+const estCommentaire = (l) => /^\s*(#|\/\/|\*)/.test(l);
+const sautsDeHook = (texte) =>
+  lignes(texte).flatMap((l, i) => (!estCommentaire(l) && MOTIFS_SAUT.some((m) => m.test(l)) ? [i + 1] : []));
+
+test("le garde-fou des sauts de hook reconnaît ce qu'il refuse et ce qu'il laisse", () => {
+  const refuse = [
+    "git push -q --no-verify origin x",
+    "HUSKY=0 git commit -m x",
+    "git -c core.hooksPath=/dev/null commit -m x",
+    "git('-c', 'core.hooksPath=/dev/null', 'commit')",
+    "git commit -n -m x",
+    "git commit -qn --no-edit",
+    "git('commit', '-n', '-m', 'x')",
+  ];
+  const laisse = [
+    "git config core.hooksPath hooks",
+    "git commit -q --no-edit",
+    "git commit -m 'un nom' --amend",
+    "# git push --no-verify",
+    "  // git push --no-verify",
+    " * git commit -n",
+    "git commit -m 'x' && echo -n y",
+  ];
+  for (const l of refuse) assert.deepEqual(sautsDeHook(l), [1], `refusé : ${l}`);
+  for (const l of laisse) assert.deepEqual(sautsDeHook(l), [], `laissé : ${l}`);
+});
+
+test("aucun script du plugin ne saute un hook git", () => {
+  const suivis = execFileSync("git", ["ls-files", "--", "skills", "scripts"], { cwd: RACINE, encoding: "utf8" })
+    .split("\n")
+    .filter(Boolean);
+  const fichiers = suivis.filter(
+    (f) => /\.(sh|mjs)$/.test(f) || /^skills\/monorepo\/socle-monorepo\/references\/husky\/[^./]+$/.test(f),
+  );
+  assert.ok(fichiers.length > 20, "le garde-fou lit les scripts du dépôt");
+  const fautes = fichiers
+    .filter((f) => !EXCEPTIONS_SAUT.includes(f))
+    .flatMap((f) => sautsDeHook(readFileSync(join(RACINE, f), "utf8")).map((n) => `${f}:${n}`));
+  assert.deepEqual(fautes, [], `un script saute un hook git : ${fautes.join(", ")}`);
 });

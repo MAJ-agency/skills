@@ -3,7 +3,9 @@
 // `gh` de depot-jouet.mjs, qui fusionne pour de vrai dans le dépôt nu ; aucun réseau.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { existsSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 // Posé dans un projet, depot-jouet.mjs est à côté (scripts/chaine/) ; dans le plugin, il est dans le skill sujet.
 const { depotJouet, script: scriptDe } = await import(
   existsSync(new URL("./depot-jouet.mjs", import.meta.url))
@@ -721,4 +723,212 @@ test("boucle.sh : une sous-PR d'un sujet gelé n'est ni fusionnée, ni renvoyée
     assert.ok(!ecrit.some((e) => e.includes(`/${n}`)), `aucune écriture sur #${n} : ${ecrit}`);
   assert.ok(!ecrit.some((e) => /^PATCH pulls/.test(e) && e.includes("/92")), "jamais reciblée");
   assert.match(r.stdout, /\tgelé$/m, "le tableau des sujets montre le verdict gelé");
+});
+
+// =============================================================================
+// Les scripts passent sous les hooks git du projet : jamais de saut (`--no-verify`). Le jouet reçoit des
+// hooks qui journalisent leur nom et refusent sur demande (un fichier `refus.<hook>` dans la racine du
+// jouet), le vrai `pre-commit` du socle avec un faux `npx` et un faux `pnpm` qui journalisent la
+// présence de GIT_INDEX_FILE, et un `commit-msg` qui applique `ignores` du vrai commitlint.config.mjs.
+// =============================================================================
+const SOCLE = fileURLToPath(new URL("../../../monorepo/socle-monorepo/references/", import.meta.url));
+const REFUS = /pre-push jouet : refus/;
+
+function hooks(d) {
+  const dir = join(d.racine, "hooks");
+  const journal = join(d.racine, "hooks.log");
+  const J = JSON.stringify(journal);
+  mkdirSync(dir);
+  const poser = (nom, corps) => {
+    writeFileSync(join(dir, nom), `#!/bin/sh\n${corps}\n`);
+    chmodSync(join(dir, nom), 0o755);
+  };
+  const refuse = (nom) =>
+    `if [ -e ${JSON.stringify(join(d.racine, `refus.${nom}`))} ]; then echo "${nom} jouet : refus" >&2; exit 1; fi`;
+  poser("pre-push", `echo pre-push >> ${J}\n${refuse("pre-push")}`);
+  writeFileSync(
+    join(dir, "commit-msg.mjs"),
+    `import { readFileSync } from "node:fs";
+const { default: config } = await import(${JSON.stringify(join(SOCLE, "racine/commitlint.config.mjs"))});
+const msg = readFileSync(process.argv[2], "utf8");
+if (config.ignores.some((f) => f(msg))) process.exit(0);
+if (!/^(feat|fix|docs|chore|refactor|test)(\\([a-z-]+\\))?: .+/.test(msg)) { console.error("commit-msg jouet : message refusé"); process.exit(1); }
+`,
+  );
+  poser("commit-msg", `echo commit-msg >> ${J}\n${refuse("commit-msg")}\nexec node "$(dirname "$0")/commit-msg.mjs" "$1"`);
+  writeFileSync(join(dir, "pre-commit"), readFileSync(join(SOCLE, "husky/pre-commit"), "utf8"));
+  chmodSync(join(dir, "pre-commit"), 0o755);
+  const outil = (nom, corps) => {
+    writeFileSync(join(d.racine, "bin", nom), `#!/bin/sh\n${corps}\n`);
+    chmodSync(join(d.racine, "bin", nom), 0o755);
+  };
+  outil("npx", `echo "lint-staged GIT_INDEX_FILE=\${GIT_INDEX_FILE-absent}" >> ${J}`);
+  outil(
+    "pnpm",
+    `cat > /dev/null\necho "pnpm $*" >> ${JSON.stringify(join(d.racine, "faux-gh", "pnpm.log"))}\n` +
+      `[ "$1 $2" != "run check:commit" ] || echo "check:commit GIT_INDEX_FILE=\${GIT_INDEX_FILE-absent}" >> ${J}`,
+  );
+  d.git("config", "core.hooksPath", dir);
+  const lire = () => (existsSync(journal) ? readFileSync(journal, "utf8").trim().split("\n") : []);
+  const refuser = (nom) => writeFileSync(join(d.racine, `refus.${nom}`), "");
+  return { lire, refuser, pushes: () => lire().filter((l) => l === "pre-push").length };
+}
+const distant = (d) => d.git("ls-remote", "origin");
+const sansFusion = (d) => assert.throws(() => d.git("rev-parse", "-q", "--verify", "MERGE_HEAD"), "aucune fusion en cours");
+
+test("passer.sh : un conflit d'index conclu sous les hooks (pre-commit, commit-msg, pre-push) ; lint-staged voit GIT_INDEX_FILE, check:commit non", () => {
+  const d = conflitIndex();
+  const h = hooks(d);
+  const r = d.lancer(script("passer.sh"), "30");
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  const lus = h.lire();
+  assert.ok(lus.includes("commit-msg"), "commit-msg joué sur le commit de fusion");
+  assert.ok(lus.includes("pre-push"), "pre-push joué");
+  assert.ok(lus.some((l) => /^lint-staged GIT_INDEX_FILE=(?!absent)/.test(l)), `lint-staged a vu GIT_INDEX_FILE : ${lus}`);
+  assert.ok(lus.includes("check:commit GIT_INDEX_FILE=absent"), `check:commit ne l'a pas vu : ${lus}`);
+  assert.match(d.git("log", "-1", "--format=%s", "origin/develop"), /^docs\(adr\): ADR 2 \(#30\)$/);
+});
+
+test("passer.sh : un pre-push qui refuse donne la sortie 3, sa sortie sur stderr, le distant inchangé et un worktree propre", () => {
+  const d = conflitIndex();
+  const h = hooks(d);
+  h.refuser("pre-push");
+  const avant = distant(d);
+  const r = d.lancer(script("passer.sh"), "30");
+  assert.equal(r.status, 3, r.stdout + r.stderr);
+  assert.match(r.stderr, REFUS, "la sortie du hook est visible");
+  assert.match(r.stderr, /jamais en sautant le hook/);
+  assert.doesNotMatch(r.stdout + r.stderr, /a bougé/);
+  assert.equal(distant(d), avant);
+  assert.equal(d.git("status", "--porcelain"), "");
+  assert.equal(h.pushes(), 1);
+});
+
+test("passer.sh : un commit-msg qui refuse la fusion sans conflit donne la sortie 3, sans fusion en cours", () => {
+  const d = depotJouet();
+  d.branche("feat/c", "origin/develop", { "c.md": "c\n" });
+  d.branche("develop", "origin/develop", { "x.md": "x\n" });
+  d.git("switch", "-q", "--detach", "origin/develop");
+  d.github({
+    exiges: ["qualite"],
+    checks: { "*": { [PERIMETRE]: "SUCCESS", qualite: "SUCCESS" } },
+    pulls: [pr(31, "feat/c")],
+  });
+  const h = hooks(d);
+  h.refuser("commit-msg");
+  const avant = distant(d);
+  const r = d.lancer(script("passer.sh"), "31");
+  assert.equal(r.status, 3, r.stdout + r.stderr);
+  assert.match(r.stderr, /commit-msg jouet : refus/);
+  sansFusion(d);
+  assert.equal(d.git("status", "--porcelain"), "");
+  assert.equal(distant(d), avant);
+});
+
+// Sous-PR #80 et sujet/lot qui ajoutent chacun une ADR : conflit sur l'index seul.
+function sousPrConflitIndex() {
+  const d = depotJouet();
+  d.ecrire(`${ADR}/ADR_ALL_ARC-1-a.md`, "# 1\n");
+  d.ecrire(`${ADR}/README.md`, index("ADR_ALL_ARC-1-a.md"));
+  d.commit("docs: adr 1");
+  d.git("push", "-q", "origin", "HEAD:develop");
+  d.git("fetch", "-q", "origin");
+  d.branche("docs/sous", "origin/develop", {
+    [`${ADR}/ADR_ALL_ARC-2-b.md`]: "# 2\n",
+    [`${ADR}/README.md`]: index("ADR_ALL_ARC-1-a.md", "ADR_ALL_ARC-2-b.md"),
+  });
+  d.branche("sujet/lot", "origin/develop", {
+    [`${ADR}/ADR_ALL_ARC-3-c.md`]: "# 3\n",
+    [`${ADR}/README.md`]: index("ADR_ALL_ARC-1-a.md", "ADR_ALL_ARC-3-c.md"),
+  });
+  d.git("switch", "-q", "--detach", "origin/develop");
+  d.github({
+    exiges: ["qualite"],
+    checks: { "*": { qualite: "SUCCESS" } },
+    pulls: [{ number: 80, title: "docs(adr): ADR 2", head: "docs/sous", base: "sujet/lot", labels: ["à-fusionner"], body: "## Revue de ticket\n\nRien de bloquant.\n" }],
+  });
+  return d;
+}
+
+test("sujet.sh fusionner : une sous-PR en conflit d'index passe sous les hooks (sortie 8) ; un pre-push qui refuse donne 3, pas 5", () => {
+  const d = sousPrConflitIndex();
+  const h = hooks(d);
+  const r = d.lancer(scriptDe("sujet", "sujet.sh"), "fusionner", "80");
+  assert.equal(r.status, 8, r.stdout + r.stderr);
+  const lus = h.lire();
+  for (const attendu of ["commit-msg", "pre-push", "check:commit GIT_INDEX_FILE=absent"]) assert.ok(lus.includes(attendu), `${attendu} : ${lus}`);
+  assert.ok(lus.some((l) => /^lint-staged GIT_INDEX_FILE=(?!absent)/.test(l)));
+
+  const refus = sousPrConflitIndex();
+  hooks(refus).refuser("pre-push");
+  const avant = distant(refus);
+  const x = refus.lancer(scriptDe("sujet", "sujet.sh"), "fusionner", "80");
+  assert.equal(x.status, 3, x.stdout + x.stderr);
+  assert.match(x.stdout + x.stderr, REFUS);
+  assert.equal(distant(refus), avant);
+});
+
+// Les cinq gestes de sujet.sh qui poussent : chacun un jouet prêt, sa commande, et le sort attendu.
+const CARTE_SUJET = "docs/features/demo/all/SPEC_ALL_DEM-1-demo.map.md";
+function sujetCarte() {
+  const d = depotJouet();
+  d.ecrire("docs/features/demo/all/SPEC_ALL_DEM-1-demo.spec.md", "# SPEC_ALL_DEM-1\n\nSujet: sujet/demo\n");
+  d.ecrire(CARTE_SUJET, "# carte\n\nSujet: sujet/demo\n\n## Fiche\n\nPhase: 4-vagues\n\n## Decisions-so-far\n\n- A-1 — x\n");
+  d.commit("docs: spec et carte");
+  d.git("push", "-q", "origin", "HEAD:develop");
+  d.branche("sujet/demo", "origin/develop", { "docs/x.md": "x\n" }, "feat(demo): x (#1)");
+  d.git("switch", "-q", "--detach", "origin/develop");
+  d.github({ pulls: [] });
+  return d;
+}
+const sujetEnRetard = () => {
+  const d = depotJouet();
+  d.branche("sujet/lot", "origin/develop", { "a.md": "a\n" }, "feat(demo): a (#1)");
+  d.branche("feat/s", "origin/sujet/lot", { "s.md": "s\n" });
+  d.branche("sujet/lot", "origin/sujet/lot", { "b.md": "b\n" }, "feat(demo): b (#2)");
+  d.git("switch", "-q", "--detach", "origin/develop");
+  return d;
+};
+const GESTES = {
+  ouvrir: () => ({ d: depotJouet(), args: ["ouvrir", "demo"] }),
+  "livrer intermédiaire": () => ({ d: sujetCarte(), args: ["livrer", "demo", "feat(demo): livraison intermédiaire"] }),
+  rafraichir: () => {
+    const d = depotJouet();
+    d.branche("sujet/lot", "origin/develop", { "a.md": "a\n" }, "feat(demo): a (#1)");
+    d.branche("develop", "origin/develop", { "b.md": "b\n" });
+    d.git("switch", "-q", "--detach", "origin/develop");
+    return { d, args: ["rafraichir", "lot"] };
+  },
+  relancer: () => {
+    const d = sujetEnRetard();
+    d.github({ pulls: [{ number: 50, title: "feat(demo): s", head: "feat/s", base: "sujet/lot", labels: [] }] });
+    return { d, args: ["relancer", "50"] };
+  },
+  geler: () => ({ d: sujetCarte(), args: ["geler", "demo", "le produit change d'avis"] }),
+};
+
+test("sujet.sh : ouvrir, livrer intermédiaire, rafraichir, relancer et geler réveillent le pre-push", () => {
+  for (const [nom, fabrique] of Object.entries(GESTES)) {
+    const { d, args } = fabrique();
+    const h = hooks(d);
+    const r = d.lancer(scriptDe("sujet", "sujet.sh"), ...args);
+    assert.equal(r.status, 0, `${nom} : ${r.stdout}${r.stderr}`);
+    assert.ok(h.pushes() >= 1, `${nom} : le pre-push n'a pas été joué`);
+  }
+});
+
+test("sujet.sh : un pre-push qui refuse donne 3 (geler : au premier essai, hook joué une fois, pas 9), distant inchangé, sortie du hook visible", () => {
+  for (const [nom, fabrique] of Object.entries(GESTES)) {
+    const { d, args } = fabrique();
+    const h = hooks(d);
+    h.refuser("pre-push");
+    const avant = distant(d);
+    const r = d.lancer(scriptDe("sujet", "sujet.sh"), ...args);
+    assert.equal(r.status, 3, `${nom} : ${r.stdout}${r.stderr}`);
+    assert.match(r.stdout + r.stderr, REFUS, `${nom} : sortie du hook`);
+    assert.equal(distant(d), avant, `${nom} : distant inchangé`);
+    if (nom === "geler") assert.equal(h.pushes(), 1, "pas de second essai");
+    if (nom === "livrer intermédiaire") assert.ok(!d.journal().some((e) => e.methode === "POST" && e.route === "pulls"), "aucune PR ouverte");
+    assert.equal(d.git("status", "--porcelain"), "", `${nom} : worktree propre`);
+  }
 });

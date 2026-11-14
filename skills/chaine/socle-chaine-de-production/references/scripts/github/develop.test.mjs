@@ -1,15 +1,19 @@
 // `develop.sh` sur un dépôt jouet : origin nu qui n'a que `main`, clone de travail dont le hook
-// pre-push refuse tout push (il tient le rôle du gate coverage-diff, qui sort en 2 tant que
-// `origin/develop` n'existe pas — la branche que ce push crée). Aucun réseau.
+// pre-push est celui du socle (`husky/pre-push`, augmenté de la ligne que `socle-tests` fait ajouter),
+// avec un faux `pnpm` qui journalise ses appels et refuse. Le push de develop.sh passe sous le hook :
+// rien de neuf ne part, le hook ne joue rien. Aucun réseau.
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { execFileSync, spawnSync } from 'node:child_process';
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const SCRIPT = join(dirname(fileURLToPath(import.meta.url)), 'develop.sh');
+const ICI = dirname(fileURLToPath(import.meta.url));
+const SCRIPT = join(ICI, 'develop.sh');
+// Le pre-push du socle : à côté dans le plugin (`references/`), à sa place dans le dépôt du plugin.
+const HOOK_SOCLE = join(ICI, '../../../../../monorepo/socle-monorepo/references/husky/pre-push');
 
 // Sans les GIT_* hérités : sous un hook pre-push, GIT_DIR et GIT_INDEX_FILE visent le vrai dépôt.
 const ENV = {
@@ -22,13 +26,29 @@ const ENV = {
   GIT_COMMITTER_EMAIL: 'test@example.org',
 };
 
-// Origin nu (branche initiale `main`), clone `travail`, un hook pre-push qui journalise et refuse.
+// Origin nu (branche initiale `main`), clone `travail`, le pre-push du socle et un faux `pnpm` (journal
+// des appels et de GIT_DIR / GIT_INDEX_FILE ; sort avec PNPM_STATUT, 1 par défaut ; avec PNPM_JOUET,
+// fait un `git init` puis un commit dans un dossier temporaire, comme un banc de projet).
 function depotJouet({ avecMain = true } = {}) {
   const racine = mkdtempSync(join(tmpdir(), 'develop-sh-'));
   const origine = join(racine, 'origine.git');
   const travail = join(racine, 'travail');
-  const journal = join(racine, 'pre-push.log');
-  const env = { ...ENV, TMPDIR: racine };
+  const journal = join(racine, 'pnpm.log');
+  const bin = join(racine, 'bin');
+  mkdirSync(bin);
+  writeFileSync(
+    join(bin, 'pnpm'),
+    `#!/bin/sh
+echo "$* GIT_DIR=\${GIT_DIR-absent} GIT_INDEX_FILE=\${GIT_INDEX_FILE-absent}" >> ${JSON.stringify(journal)}
+if [ -n "$PNPM_JOUET" ]; then
+  d=$(mktemp -d)
+  git init -q "$d" && git -C "$d" commit -q --allow-empty -m jouet
+fi
+exit "\${PNPM_STATUT-1}"
+`,
+  );
+  chmodSync(join(bin, 'pnpm'), 0o755);
+  const env = { ...ENV, TMPDIR: racine, PATH: `${bin}:${process.env.PATH}` };
   const git = (...args) => execFileSync('git', args, { cwd: travail, env, encoding: 'utf8' }).trim();
   execFileSync('git', ['init', '-q', '--bare', '-b', 'main', origine], { env });
   execFileSync('git', ['clone', '-q', origine, travail], { env, stdio: 'ignore' });
@@ -38,8 +58,11 @@ function depotJouet({ avecMain = true } = {}) {
   if (avecMain) git('push', '-q', 'origin', 'HEAD:refs/heads/main');
   const hooks = join(racine, 'hooks');
   mkdirSync(hooks);
-  writeFileSync(join(hooks, 'pre-push'), `#!/bin/sh\necho "$@" >> ${JSON.stringify(journal)}\nexit 1\n`);
-  chmodSync(join(hooks, 'pre-push'), 0o755);
+  const hook = join(hooks, 'pre-push');
+  // Husky lance ses hooks sous `sh -e` : le premier échec arrête le hook.
+  const [shebang, ...corps] = readFileSync(HOOK_SOCLE, 'utf8').split('\n');
+  writeFileSync(hook, `${shebang}\nset -e\n${corps.join('\n')}pnpm run check:coverage --base-auto\n`);
+  chmodSync(hook, 0o755);
   git('config', 'core.hooksPath', hooks);
   const lancer = () => spawnSync('bash', [SCRIPT], { cwd: travail, env, encoding: 'utf8' });
   const tetes = () =>
@@ -49,15 +72,20 @@ function depotJouet({ avecMain = true } = {}) {
         .filter(Boolean)
         .map((l) => l.split('\t').reverse()),
     );
-  return { travail, env, git, lancer, tetes, hookJoue: () => existsSync(journal) };
+  const appels = () => (existsSync(journal) ? readFileSync(journal, 'utf8').trim().split('\n') : []);
+  return { racine, hook, travail, env, git, lancer, tetes, appels, hookJoue: () => appels().length > 0 };
 }
 
-test('crée develop sur le distant depuis main, sans passer sous le hook pre-push, et la rapatrie', () => {
+test('crée develop sous le hook pre-push du socle, qui ne joue rien : rien de neuf ne part, et la rapatrie', () => {
   const d = depotJouet();
-  // Le hook mord bien : un push ordinaire est refusé.
+  // Le hook mord bien : un commit neuf est refusé (pnpm run check sort 1).
+  writeFileSync(join(d.travail, 'neuf.md'), 'neuf\n');
+  d.git('add', '-A');
+  d.git('commit', '-q', '-m', 'chore: neuf');
   const ordinaire = spawnSync('git', ['push', '-q', 'origin', 'HEAD:refs/heads/essai'], { cwd: d.travail, env: d.env });
   assert.notEqual(ordinaire.status, 0);
-  assert.ok(d.hookJoue());
+  assert.deepEqual(d.appels().map((l) => l.split(' ')[0]), ['run']);
+  d.git('reset', '-q', '--hard', 'origin/main');
   const avant = d.tetes();
   assert.deepEqual(Object.keys(avant), ['refs/heads/main']);
 
@@ -67,8 +95,8 @@ test('crée develop sur le distant depuis main, sans passer sous le hook pre-pus
   const apres = d.tetes();
   assert.equal(apres['refs/heads/develop'], avant['refs/heads/main']);
   assert.equal(d.git('rev-parse', 'refs/remotes/origin/develop'), avant['refs/heads/main']);
-  // Le journal du hook n'a que le push d'essai : develop.sh ne l'a pas réveillé.
-  assert.equal(execFileSync('wc', ['-l', join(d.travail, '..', 'pre-push.log')], { encoding: 'utf8' }).trim().split(' ')[0], '1');
+  // Le journal de pnpm n'a que l'appel du push d'essai : ni `check`, ni `check:coverage` pour develop.sh.
+  assert.equal(d.appels().length, 1);
 });
 
 test('idempotent : develop déjà sur le distant, rien de poussé, seulement rapatriée', () => {
@@ -103,4 +131,78 @@ test('refuse (6) un distant injoignable, sans le confondre avec une main absente
   assert.match(r.stderr, /distant injoignable/);
   assert.doesNotMatch(r.stderr, /main absente/);
   assert.equal(d.hookJoue(), false);
+});
+
+// Le pre-push du socle, seul.
+const pnpmJoue = (d) => d.appels().map((l) => l.replace(/ GIT_DIR.*/, ''));
+
+test('pre-push du socle : un commit neuf joue `pnpm run check` et un échec refuse le push', () => {
+  const d = depotJouet();
+  writeFileSync(join(d.travail, 'neuf.md'), 'neuf\n');
+  d.git('add', '-A');
+  d.git('commit', '-q', '-m', 'chore: neuf');
+  const r = spawnSync('git', ['push', '-q', 'origin', 'HEAD:refs/heads/essai'], { cwd: d.travail, env: d.env });
+  assert.notEqual(r.status, 0);
+  assert.deepEqual(pnpmJoue(d), ['run check']);
+  assert.deepEqual(Object.keys(d.tetes()), ['refs/heads/main']);
+  // Réussi, il joue aussi la couverture du diff, après `check`.
+  const bon = spawnSync('git', ['push', '-q', 'origin', 'HEAD:refs/heads/essai'], {
+    cwd: d.travail,
+    env: { ...d.env, PNPM_STATUT: '0' },
+  });
+  assert.equal(bon.status, 0, bon.stderr.toString());
+  assert.deepEqual(pnpmJoue(d).slice(1), ['run check', 'run check:coverage --base-auto']);
+});
+
+test('pre-push du socle : entrée vide ou illisible, il contrôle (jamais de sortie 0 par défaut)', () => {
+  for (const entree of ['', '\n', 'refs/heads/x\n', 'refs/heads/x abc refs/heads/x\n']) {
+    const d = depotJouet();
+    const r = spawnSync('sh', [d.hook, 'origin', 'file:///x'], { cwd: d.travail, env: d.env, input: entree, encoding: 'utf8' });
+    assert.equal(r.status, 1, `entrée ${JSON.stringify(entree)} : ${r.stderr}`);
+    assert.deepEqual(pnpmJoue(d), ['run check'], `entrée ${JSON.stringify(entree)}`);
+  }
+  // Un sha qui ne nomme aucun commit : il contrôle aussi.
+  const d = depotJouet();
+  const sha = 'a'.repeat(40);
+  const r = spawnSync('sh', [d.hook, 'origin', 'file:///x'], {
+    cwd: d.travail,
+    env: d.env,
+    input: `refs/heads/x ${sha} refs/heads/x ${'0'.repeat(40)}\n`,
+    encoding: 'utf8',
+  });
+  assert.equal(r.status, 1);
+  assert.deepEqual(pnpmJoue(d), ['run check']);
+});
+
+test('pre-push du socle : supprimer une branche distante ne joue rien', () => {
+  const d = depotJouet();
+  d.git('push', '-q', 'origin', 'HEAD:refs/heads/x');
+  assert.deepEqual(pnpmJoue(d), [], 'un commit déjà distant : rien à contrôler');
+  const r = spawnSync('git', ['push', '-q', 'origin', ':refs/heads/x'], { cwd: d.travail, env: d.env, encoding: 'utf8' });
+  assert.equal(r.status, 0, r.stderr);
+  assert.deepEqual(Object.keys(d.tetes()), ['refs/heads/main']);
+  assert.deepEqual(pnpmJoue(d), []);
+});
+
+test('pre-push du socle : sous un git worktree, pnpm ne voit ni GIT_DIR ni GIT_INDEX_FILE, et le banc jouet n\'écrit rien dans le worktree', () => {
+  const d = depotJouet();
+  const wt = join(d.racine, 'wt');
+  d.git('worktree', 'add', '-q', '-b', 'wt', wt, 'origin/main');
+  const gitWt = (...args) => execFileSync('git', args, { cwd: wt, env: d.env, encoding: 'utf8' }).trim();
+  writeFileSync(join(wt, 'wt.md'), 'wt\n');
+  gitWt('add', '-A');
+  gitWt('commit', '-q', '-m', 'chore: wt');
+  const sommet = gitWt('rev-parse', 'HEAD');
+  const r = spawnSync('git', ['push', '-q', 'origin', 'HEAD:refs/heads/wt'], {
+    cwd: wt,
+    env: { ...d.env, PNPM_STATUT: '0', PNPM_JOUET: '1' },
+    encoding: 'utf8',
+  });
+  assert.equal(r.status, 0, r.stderr);
+  assert.deepEqual(d.appels(), [
+    'run check GIT_DIR=absent GIT_INDEX_FILE=absent',
+    'run check:coverage --base-auto GIT_DIR=absent GIT_INDEX_FILE=absent',
+  ]);
+  assert.equal(gitWt('rev-parse', 'HEAD'), sommet, 'aucun commit « jouet » sur la branche du worktree');
+  assert.notEqual(d.git('config', '--get', 'core.bare'), 'true');
 });
