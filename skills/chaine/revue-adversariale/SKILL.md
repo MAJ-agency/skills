@@ -39,10 +39,10 @@ Base par défaut `origin/develop` ; `origin/sujet/<nom>` pour une sous-PR de suj
 ## Étape 2 — Chemins sensibles
 
 ```bash
-git -c core.quotepath=false diff --name-only --no-renames <base>...HEAD | node scripts/chaine/chemins-sensibles.mjs
+set -o pipefail; git -c core.quotepath=false diff --name-only --no-renames <base>...HEAD | node scripts/chaine/chemins-sensibles.mjs
 ```
 
-Les chemins sont ceux de `.claude/chaine.json` (`cheminsSensibles`) : authentification, droits, chiffrement, paiement, export. Les motifs se lisent comme le gate `tickets` (`**` tout, `*` un segment, `/` final un dossier). Sortie 2 : la revue s'arrête, le contrat se corrige. Script absent (projet posé avant cette version) : la revue s'arrête et le pose d'abord (étape 0), sans revenir à l'ancienne commande. Une ligne au moins : lancer **en plus** la skill `/security-review` sur la branche. Ses constats suivent la même suite (étape 5).
+Les chemins sont ceux de `.claude/chaine.json` (`cheminsSensibles`) : authentification, droits, chiffrement, paiement, export. Les motifs se lisent comme le gate `tickets` (`**` tout, `*` un segment, `/` final un dossier). Sortie non nulle (contrat illisible, entrée vide, `git` en échec dans le tube) : la revue s'arrête et le dit ; le contrat ou la base se corrige. Script absent (projet posé avant cette version) : la revue s'arrête et le pose d'abord (étape 0), sans revenir à l'ancienne commande. Une ligne au moins : lancer **en plus** la skill `/security-review` sur la branche. Ses constats suivent la même suite (étape 5).
 
 ## Étape 3 — Lancer le sous-agent
 

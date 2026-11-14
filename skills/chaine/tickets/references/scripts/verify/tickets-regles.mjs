@@ -248,6 +248,7 @@ function sections(lignes) {
   return corps;
 }
 
+// Ce moteur a une copie dans `revue-adversariale/scripts/chemins-sensibles.mjs`, gardée d'accord par son banc de parité.
 /**
  * Motif de chemin (`**` = tout, y compris zéro dossier avant `/` ; `*` = un segment) → expression
  * régulière. `scripts/agent/regles.mjs` n'expose qu'un moteur à `*` seul : il ne lit pas les `**` de

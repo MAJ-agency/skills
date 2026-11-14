@@ -23,7 +23,18 @@ const TABLE = [
   ["apps/web/src/lib/auth/", "apps/web/src/lib/auth/session.ts", true],
   [".claude/**", ".claude/settings.json", true],
   [".claude/**", "x.claude/a", false],
-];
+  ["**/auth/**", "auth/a.ts", true],
+  ["**/auth/**", "apps/api/src/auth/a.ts", true],
+  ["**/auth/**", "apps/api/src/authz/a.ts", false],
+  ["src/*.pem", "src/cle.pem", true],
+  ["src/*.pem", "src/sous/cle.pem", false],
+  ["src/paiement/*", "src/paiement/relevé de compte.ts", true],
+  ["src/paiement/", "src/paiement/relevé de compte.ts", true],
+  ["src/paiement/réglé.ts", "src/paiement/réglé.ts", true],
+  ["src/a.b+c(d).ts", "src/a.b+c(d).ts", true],
+  ["src/a.b+c(d).ts", "src/aXb+c(d).ts", false],
+  ["src/a.b+c(d).ts", "src/a.bbc(d).ts", false],
+]; 
 
 function dossierAvec(contrat) {
   const d = mkdtempSync(join(tmpdir(), "sens-"));
@@ -97,7 +108,7 @@ test("la commande de l'étape 2 : un fichier déplacé hors du dossier sensible 
   git("commit", "-q", "-m", "feat");
   const r = spawnSync(
     "bash",
-    ["-c", `git -c core.quotepath=false diff --name-only --no-renames develop...HEAD | node ${CLI}`],
+    ["-c", `git -c core.quotepath=false diff --name-only --no-renames develop...HEAD | node "${CLI}"`],
     { cwd: d, env, encoding: "utf8" },
   );
   assert.equal(r.status, 0, r.stderr);
@@ -106,4 +117,27 @@ test("la commande de l'étape 2 : un fichier déplacé hors du dossier sensible 
     "src/paiement/réglé.ts\tsrc/paiement/",
     "src/paiement/stripe-webhook.ts\tsrc/paiement/",
   ]);
+});
+
+test("entrée vide : sortie 2 avec un motif, jamais lue comme « rien de sensible »", () => {
+  const r = lancer(dossierAvec(JSON.stringify({ cheminsSensibles: ["src/"] })), "");
+  assert.equal(r.status, 2);
+  assert.match(r.stderr, /aucun fichier reçu/);
+  assert.equal(r.stdout, "");
+  // Une entrée non vide sans chemin sensible reste une sortie 0 silencieuse.
+  const ok = lancer(dossierAvec(JSON.stringify({ cheminsSensibles: ["src/"] })), "README.md\n");
+  assert.equal(ok.status, 0);
+  assert.equal(ok.stdout, "");
+});
+
+test("la commande de l'étape 2 : git en échec dans le tube, avec pipefail, sort non nul", () => {
+  const d = dossierAvec(JSON.stringify({ cheminsSensibles: ["src/"] }));
+  const env = { ...sansGit(), GIT_CONFIG_GLOBAL: "/dev/null", GIT_CONFIG_NOSYSTEM: "1" };
+  execFileSync("git", ["init", "-q", "-b", "develop"], { cwd: d, env });
+  const r = spawnSync(
+    "bash",
+    ["-c", `set -o pipefail; git -c core.quotepath=false diff --name-only --no-renames base-introuvable...HEAD | node "${CLI}"`],
+    { cwd: d, env, encoding: "utf8" },
+  );
+  assert.notEqual(r.status, 0);
 });

@@ -4,10 +4,11 @@
 // Lit `cheminsSensibles` dans `.claude/chaine.json` (dossier courant) et, sur l'entrée standard, les
 // chemins d'un diff, un par ligne. Écrit `chemin<TAB>motif` pour chaque chemin qui touche un motif,
 // rien sinon. Sortie 0 dans les deux cas, et sans `.claude/chaine.json` (aucun motif, comme le gate).
-// Sortie 2 si le contrat est illisible ou si `cheminsSensibles` n'est pas une liste de chaînes, motif
-// sur la sortie d'erreur : un contrôle de sécurité échoue fermé, comme le gate.
+// Sortie 2 si le contrat est illisible, si `cheminsSensibles` n'est pas une liste de chaînes, ou si
+// l'entrée est vide (diff vide, ou git a échoué en amont : jamais lu comme « rien de sensible »),
+// motif sur la sortie d'erreur : un contrôle de sécurité échoue fermé, comme le gate.
 //
-// Usage : git -c core.quotepath=false diff --name-only --no-renames <base>...HEAD | node scripts/chaine/chemins-sensibles.mjs
+// Usage : set -o pipefail; git -c core.quotepath=false diff --name-only --no-renames <base>...HEAD | node scripts/chaine/chemins-sensibles.mjs
 //
 // Autonome, sans import : le moteur des motifs est celui du gate `tickets`
 // (`tickets/references/scripts/verify/tickets-regles.mjs`, `regexDuMotif` et `motifSensibleTouche`),
@@ -55,6 +56,8 @@ function lireMotifs(fichier = ".claude/chaine.json") {
 try {
   const motifs = lireMotifs();
   const chemins = readFileSync(0, "utf8").split("\n").filter(Boolean);
+  if (chemins.length === 0)
+    throw new Error("aucun fichier reçu : le diff est vide ou git a échoué ; la revue s'arrête");
   for (const chemin of chemins) {
     const motif = motifSensibleTouche(chemin, motifs);
     if (motif !== null) console.log(`${chemin}\t${motif}`);
