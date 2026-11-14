@@ -261,7 +261,9 @@ const OPTIONS_PUSH_A_VALEUR = new Set(['-o', '--push-option', '--repo', '--recei
  * `sudo -u git gh …`) ; un chemin qui contient `=` (`./a=b/git`) reste un programme ; -1 sinon.
  */
 function indexDuProgramme(mots, motif) {
-  return mots.findIndex((mot, k) => motif.test(mot) && !/^(-|[A-Za-z_]\w*=)/.test(mot) && !motif.test(mots[k + 1] ?? ''));
+  // Le mot suivant ne compte que s'il pourrait être un programme : `git --work-tree=/x/git push` reste `git`.
+  const candidat = (mot) => motif.test(mot) && !/^(-|[A-Za-z_]\w*=)/.test(mot);
+  return mots.findIndex((mot, k) => candidat(mot) && !candidat(mots[k + 1] ?? ''));
 }
 
 /**

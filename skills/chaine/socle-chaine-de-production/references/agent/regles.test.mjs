@@ -409,6 +409,11 @@ test('contournements relevés pendant le ticket 27 : champ gh collé ou route ap
     'git -c user.name="a;b" push --force origin feat/x',
     `git -c user.name="A (B)" push origin HEAD:${sujet}`,
     'git commit -m x --no-verif',
+    'git --work-tree=/usr/share/doc/git push -f origin HEAD:feat/x',
+    `git --work-tree=/home/u/git push origin HEAD:${sujet}`,
+    'git --work-tree=/home/u/git push origin HEAD:refs/heads/develop',
+    'gh --subject=a/gh pr merge 3 --squash',
+    'gh --jq=.a/gh api -X PUT repos/o/r/pulls/3/merge',
   ])
     assert.equal(decisionCommande(commande, ctx)?.decision, 'refuser', commande);
   for (const branch of ['./develop', './main', `./${sujet}`, 'feat/../develop', 'feat/%2e%2e/main', 'feat/x\u0000', 'develop/', 'main/', 'develop//', './feat/x', 'feat/./x'])
@@ -428,6 +433,8 @@ test('contournements relevés pendant le ticket 27 : champ gh collé ou route ap
     'git pull --no-verify-signatures',
   ])
     assert.equal(decisionCommande(commande, ctx), null, commande);
+  for (const commande of ['git --work-tree=/tmp/git push'])
+    assert.equal(decisionCommande(commande, { brancheCourante: () => 'sujet/y' })?.decision, 'refuser', commande);
 });
 
 test('lireDependances : la ligne d’en-tête, accents graves ou nus, — ou absente → []', () => {
