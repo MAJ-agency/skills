@@ -123,6 +123,18 @@ test('une garde affaiblie est un écart : sans "onFailure": "block", sans timeou
   }
 });
 
+test('une garde affaiblie se lit aussi en CRLF et sans dernier saut de ligne ; l’écart nomme la ligne de cette garde, pas d’une voisine', () => {
+  const crlf = (objet) => JSON.stringify(objet, null, 2).replace(/\n/g, '\r\n');
+  assert.deepEqual(ecartsSettings(crlf(reglesValides()), { fichierExiste: () => true }), []);
+  const s = reglesValides();
+  delete s.hooks.PreToolUse[1].hooks[0].onFailure;
+  const texte = crlf(s);
+  const attendue = texte.split('\n').findIndex((l) => l.includes('scripts/agent/garde-commandes.mjs')) + 1;
+  const messages = ecartsSettings(texte, { fichierExiste: () => true });
+  assert.deepEqual(messages.map((m) => m.split(' : ')[0]), [`ligne ${attendue}`]);
+  assert.match(messages[0], /garde-commandes\.mjs sans `"onFailure": "block"`/);
+});
+
 test('commande de hook vers un fichier absent', () => {
   const messages = ecarts(reglesValides(), (f) => !f.endsWith('fin-de-tour.mjs'));
   assert.equal(messages.length, 1);

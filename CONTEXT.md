@@ -39,6 +39,10 @@ Un lot de tickets issu d'une spec, mené par un conducteur de chantier et livré
 La personne nommée qui répond d'un chantier ou d'un programme.
 _Avoid_: sprint, lot
 
+**Branche gardée**:
+Une branche qu'aucune session n'écrit elle-même : un sujet (`sujet/…`), `develop`, `main` ou la branche par défaut, sous toutes leurs graphies ; le capitaine y entre par ses scripts, le conducteur un sujet par `sujet.sh`. Une seule définition (`brancheGardee`) sert les hooks pour `git push`, `gh` et les outils GitHub.
+_Avoid_: branche protégée (réglage côté GitHub)
+
 **Plafond**:
 La limite de mémoire de travail au-delà de laquelle une session est signalée au produit, qui décide ; elle n'est jamais interrompue pour cela.
 _Avoid_: budget, quota

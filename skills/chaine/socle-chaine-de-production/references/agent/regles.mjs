@@ -242,6 +242,14 @@ const OPTIONS_GIT_A_VALEUR = new Set(['-C', '-c', '--git-dir', '--work-tree', '-
 const OPTIONS_PUSH_A_VALEUR = new Set(['-o', '--push-option', '--repo', '--receive-pack', '--exec']);
 
 /**
+ * Index du programme d'un segment : le premier mot que `motif` reconnaît, hors affectation (`X=/a/git`)
+ * et hors valeur d'option suivie du vrai programme (`env -C /w/git git …`, `sudo -u git gh …`) ; -1 sinon.
+ */
+function indexDuProgramme(mots, motif) {
+  return mots.findIndex((mot, k) => motif.test(mot) && !mot.includes('=') && !motif.test(mots[k + 1] ?? ''));
+}
+
+/**
  * Chaque `git push` de la commande, `git` nu ou par son chemin (`/usr/bin/git`), avec ou sans options
  * (`git -C . push`, `git -c x=y push`), derrière n'importe quel préfixe (`timeout 5 git push`), dans
  * un sous-shell ou une substitution (`(…)`, `$(…)`, accents graves) : ses refspecs, c'est-à-dire les
@@ -254,7 +262,7 @@ function pushs(commande) {
   return segmentsDeCommande(commande)
     .flatMap(({ segment }) => {
       const mots = segment.trim().split(/\s+/);
-      const i = mots.findIndex((mot) => /(^|[/$])git$/i.test(mot));
+      const i = indexDuProgramme(mots, /(^|[/$])git$/i);
       if (i < 0) return [];
       let j = i + 1;
       while (j < mots.length && mots[j].startsWith('-')) j += OPTIONS_GIT_A_VALEUR.has(mots[j]) ? 2 : 1;
@@ -402,6 +410,9 @@ export const lintable = (chemin) =>
 export function nomDeBranche(branche) {
   const brute = String(branche ?? '');
   if (brute.trim() !== brute) return null;
+  // Un segment `.` ou `..`, un `%` ou un caractère de contrôle : un client d'URL le résout ou le décode
+  // (`./develop` se lit `develop` chez GitHub) ; le nom ne se lit pas, il est gardé.
+  if (brute.split('/').some((s) => s === '.' || s === '..') || /[%\x00-\x1f\x7f]/.test(brute)) return null;
   return brute
     .replace(/\/{2,}/g, '/')
     .replace(/^\/+/, '')
@@ -484,7 +495,7 @@ export function ecritParGh(commande) {
     const mots = segment.trim().split(/\s+/);
     // Seul le premier programme du segment compte : `git commit -m "gh pr merge 3"` n'est pas une fusion.
     // `$'gh'` se lit `$gh` sans ses guillemets ; un système de fichiers insensible à la casse lance `GH`.
-    const i = mots.findIndex((mot) => /(^|[/$])(gh|git)$/i.test(mot));
+    const i = indexDuProgramme(mots, /(^|[/$])(gh|git)$/i);
     if (i < 0 || !/(^|[/$])gh$/i.test(mots[i])) return false;
     // Positionnels après `gh`, sans `-R`, `--repo`, `--hostname` ni leur valeur : `gh -R o/r pr merge 3` est `pr merge`.
     const pos = [];
