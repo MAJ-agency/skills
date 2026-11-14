@@ -44,8 +44,9 @@
 #                         courante qui n'y sont pas : geste d'écriture d'une session sur un sujet, avec geler/degeler
 #                         (le hook d'agent refuse tout `git push` vers sujet/…). Chaque commit modifie en
 #                         place UN fichier docs/**/*.map.md et rien d'autre (ni création, ni suppression,
-#                         ni renommage, ni mode), dont la ligne `Sujet:` nomme exactement sujet/<nom>
-#                         avant comme après, et ce fichier est formaté par Prettier. Une branche en retard
+#                         ni renommage, ni mode), dont la ligne `Sujet:` nomme sujet/<nom> avant comme
+#                         après (seul, ou parmi plusieurs : `Sujet: sujet/a, sujet/b`), et ce fichier est
+#                         formaté par Prettier. Une branche en retard
 #                         rattrape le sujet par `git merge --ff-only` ; historique divergent, commit de
 #                         fusion ou option (jamais de push forcé) : sortie 9, rien n'est poussé
 #   carte (sans argument) « ticket<TAB>sujet » pour chaque ticket qui déclare un sujet (develop et sujets)
@@ -99,6 +100,29 @@ LIGNE_SUJET='^(- )?\**Sujet ?:\** *sujet/[a-z0-9][a-z0-9-]*'
 branches_sujet() { git for-each-ref --format='%(refname:short)' 'refs/remotes/origin/sujet/*'; }
 carte() {
   git fetch -q origin develop '+refs/heads/sujet/*:refs/remotes/origin/sujet/*' 2>/dev/null || true
+  carte_lue
+}
+# Un ticket ou une spec n'a qu'un sujet : la ligne `Sujet:` qui en nomme plusieurs
+# (`Sujet: sujet/a, sujet/b` ou `sujet/a sujet/b`) n'est lue que par `demarrer`, qui la refuse ;
+# seule une carte de chantier (`docs/**/*.map.md`) peut couvrir plusieurs sujets.
+LIGNE_PLUSIEURS="${LIGNE_SUJET}[[:space:],]+sujet/.*"
+# « ticket<TAB>valeurs » pour chaque ticket ou spec dont une ligne `Sujet:` nomme plusieurs sujets.
+declarations_multiples() {
+  # shellcheck disable=SC2046
+  { git grep -E -m1 -o "$LIGNE_PLUSIEURS" origin/develop $(branches_sujet) -- \
+    'docs/*.spec.md' 'docs/*.issue.md' ':!docs/*/issues/archive/*' 2>/dev/null || true; } |
+    sed -E 's#^[^:]+:##; s#:(- )?\**Sujet ?:\** *#\t#' |
+    identifiant fichiers | sort -u
+}
+# Valeurs de la ligne `Sujet:` qui fait foi pour un ticket (la sienne, sinon celle de sa spec) quand
+# elle nomme plusieurs sujets ; vide sinon. À lire après `carte` (qui rapatrie les branches).
+sujets_multiples_du_ticket() {
+  local t=$1 cible
+  cible=${t%.*}
+  [ -z "$(carte_lue | awk -F '\t' -v t="$t" '$1 == t { print "oui" }')" ] || cible=$t
+  declarations_multiples | awk -F '\t' -v c="$cible" '$1 == c && !f { print $2; f = 1 }'
+}
+carte_lue() {
   # shellcheck disable=SC2046
   git grep -h -E -m1 -o "$LIGNE_SUJET" origin/develop $(branches_sujet) -- \
     'docs/*.spec.md' 'docs/*.issue.md' ':!docs/*/issues/archive/*' >/dev/null 2>&1 || return 0
@@ -168,6 +192,24 @@ la recible sur le sujet), ou \`sujet.sh rafraichir ${base#sujet/}\` si elle est 
 Attendre que leur PR y soit fusionnée, puis relancer demarrer. Ne pas fusionner leur branche dans la sienne."
 }
 
+# Une carte de chantier peut couvrir plusieurs sujets : `Sujet: sujet/a, sujet/b, sujet/c` (virgules,
+# espaces tolérées autour). Elle « nomme » `sujet/<nom>` quand l'une de ses valeurs l'est exactement ;
+# une ligne dont une valeur n'est pas `sujet/<nom-en-kebab>` (espace seul pour séparateur, virgule en
+# trop) ne nomme personne : jamais de demi-lecture. Lit la même forme que son équivalent JS,
+# `nomsDeSujets` (skill `tickets`, scripts/docs/ligne-sujet.mjs), hors tiret final ou double, que le
+# gate refuse avant. `nomme(ligne, sujet/<nom>)` reçoit la ligne entière.
+AWK_NOMME='function nomme(l, s,    n, v, i) {
+  sub(/^(- )?\**Sujet ?:\**[ \t]*/, "", l); sub(/[[:space:]]+$/, "", l)
+  n = split(l, v, /[ \t]*,[ \t]*/)
+  for (i = 1; i <= n; i++) if (v[i] !~ /^sujet\/[a-z0-9][a-z0-9-]*$/) return 0
+  for (i = 1; i <= n; i++) if (v[i] == s) return 1
+  return 0
+}'
+# Vrai si la carte reçue sur l'entrée standard a une ligne `Sujet:` qui nomme le sujet <nom>.
+carte_nomme_le_sujet() {
+  awk -v s="sujet/$1" "$AWK_NOMME"' /^(- )?\**Sujet ?:/ { if (nomme($0, s)) ok = 1 } END { exit !ok }'
+}
+
 # Sujet livré : sa carte (`docs/**/*.map.md` dont la ligne `Sujet:` le nomme), lue sur
 # origin/develop, porte `Phase: 6-nettoyage` ou `Phase: fini` ; à défaut de carte, la branche
 # `sujet/<nom>` est absente et develop contient son commit de merge : la ligne `Sujet: sujet/<nom>`
@@ -179,7 +221,7 @@ sujet_livre() {
   local nom=${1#sujet/} f trouve='' phase
   git fetch -q origin develop 2>/dev/null || true
   while IFS= read -r f; do
-    git show "origin/develop:$f" | grep -qE "^(- )?\**Sujet ?:\** *sujet/${nom}[[:space:]]*\$" || continue
+    git show "origin/develop:$f" | carte_nomme_le_sujet "$nom" || continue
     trouve=1
     phase=$(git show "origin/develop:$f" | grep -m1 -E '^Phase ?:' | sed -E 's/^Phase ?: *//; s/[[:space:]]*$//') || true
     case "$phase" in 6-nettoyage* | fini*) return 0 ;; esac
@@ -199,7 +241,7 @@ phase_carte() {
   for ref in "origin/sujet/$nom" origin/develop; do
     git rev-parse -q --verify "$ref" >/dev/null || continue
     while IFS= read -r f; do
-      git show "$ref:$f" | grep -qE "^(- )?\**Sujet ?:\** *sujet/${nom}[[:space:]]*\$" || continue
+      git show "$ref:$f" | carte_nomme_le_sujet "$nom" || continue
       phase=$(git show "$ref:$f" | grep -m1 -E '^Phase ?:' | sed -E 's/^Phase ?: *//; s/[[:space:]]*$//') || true
       break
     done < <(git ls-tree -r --name-only "$ref" -- docs | grep -E '\.map\.md$' | grep -v '/gabarits/' || true)
@@ -215,7 +257,7 @@ phase_carte() {
 carte_fichier() {
   local ref=$1 nom=$2 f
   while IFS= read -r f; do
-    git show "$ref:$f" | grep -qE "^(- )?\**Sujet ?:\** *sujet/${nom}[[:space:]]*\$" || continue
+    git show "$ref:$f" | carte_nomme_le_sujet "$nom" || continue
     printf '%s\n' "$f"
     return 0
   done < <(git ls-tree -r --name-only "$ref" -- docs 2>/dev/null | grep -E '\.map\.md$' | grep -v '/gabarits/' || true)
@@ -263,7 +305,7 @@ ecrire_gel() {
   for essai in 1 2; do
     git fetch -q origin "+refs/heads/sujet/$nom:refs/remotes/origin/sujet/$nom" 2>/dev/null || sortir 9 "origin/sujet/$nom introuvable"
     f=$(carte_fichier "origin/sujet/$nom" "$nom")
-    [ -n "$f" ] || sortir 4 "sujet/$nom n'a pas de carte sur sa branche (ligne Sujet: sujet/$nom d'un docs/**/*.map.md) : un sujet sans carte ne se gèle pas"
+    [ -n "$f" ] || sortir 4 "sujet/$nom n'a pas de carte sur sa branche (un docs/**/*.map.md dont la ligne Sujet: nomme sujet/$nom) : un sujet sans carte ne se gèle pas"
     mode=$(git ls-tree "origin/sujet/$nom" -- "$f" | awk '{ print $1 }')
     nouveau=$(git show "origin/sujet/$nom:$f" | reecrire_gel "$valeur") ||
       sortir 4 "la carte $f n'a pas de section « ## Fiche » : y ajouter la ligne Gel: à la main"
@@ -324,7 +366,7 @@ refuser_si_gele() {
 
 demarrer() {
   local arg=${1:?identifiant de ticket (SPEC_ALL_SOC-1.02) ou nom de sujet}
-  local nom branche courante ticket='' ref present=''
+  local nom branche courante ticket='' ref present='' multiple
   if ticket=$(identifiant lire "$arg"); then
     arg=$ticket
     nom=$(sujet_du_ticket "$arg")
@@ -341,6 +383,10 @@ Ne pas partir de la branche de specs : attendre sa fusion (ou \`sujet.sh ouvrir 
       echo "S'il fait partie d'un lot de plusieurs PR liées, déclarer le sujet dans la spec d'abord."
       return 0
     fi
+    multiple=$(sujets_multiples_du_ticket "$arg")
+    [ -z "$multiple" ] || sortir 4 "$arg déclare plusieurs sujets (Sujet: $multiple) : un ticket se démarre sur un seul sujet.
+Seule une carte de chantier (docs/**/*.map.md) peut en nommer plusieurs. Déclarer un seul sujet dans le ticket
+ou dans sa spec (ligne « Sujet: sujet/<nom> »), puis relancer."
   else
     nom=${arg#sujet/}
   fi
@@ -880,13 +926,14 @@ livrer_prets() {
 
 # `carte <nom>` : voir l'en-tête. Avec `geler` et `degeler` (qui ne changent que la ligne `Gel:`), le seul geste d'écriture d'une session sur un sujet.
 # Vrai si la carte `<rev>:<chemin>` déclare, en première ligne `Sujet:` de son en-tête (avant le
-# premier `## `), exactement `sujet/<nom>` : la lecture de `sujet_livre` et `phase_carte`. awk lit
+# premier `## `), `sujet/<nom>` seul ou parmi plusieurs valeurs (`carte_nomme_le_sujet`) : la lecture
+# de `sujet_livre` et `phase_carte`. awk lit
 # tout le flux (pas de sortie anticipée) : sous pipefail, un SIGPIPE de git ferait un faux refus.
 carte_cite_le_sujet() {
-  git cat-file blob "$1" 2>/dev/null | awk -v s="sujet/$2" '
+  git cat-file blob "$1" 2>/dev/null | awk -v s="sujet/$2" "$AWK_NOMME"'
     fini { next }
     /^## / { fini = 1; next }
-    /^(- )?\**Sujet ?:/ { l = $0; sub(/^(- )?\**Sujet ?:\** */, "", l); sub(/[[:space:]]+$/, "", l); ok = (l == s); fini = 1 }
+    /^(- )?\**Sujet ?:/ { ok = nomme($0, s); fini = 1 }
     END { exit !ok }'
 }
 
