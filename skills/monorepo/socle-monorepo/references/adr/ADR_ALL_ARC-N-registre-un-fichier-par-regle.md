@@ -29,7 +29,7 @@ Le gabarit d'une règle : `docs/agents/gabarits/regle.md`. La forme de l'étique
 ## Alternatives écartées
 
 - **Le tableau markdown durci** (un gabarit de colonnes imposé). Une ligne ne porte pas une liste de sources ou de liens, un `|` dans l'énoncé casse la ligne, et le conflit entre sessions reste.
-- **Un JSON par contexte** (la forme Fedora). Éprouvé sur 1 682 règles, mais l'énoncé long en chaîne JSON et le fichier unique comme point de conflit l'ont écarté ; Fedora migre par une commande, contexte par contexte.
+- **Un JSON par contexte** (la forme d'un projet antérieur). Éprouvé sur 1 682 règles, mais l'énoncé long en chaîne JSON et le fichier unique comme point de conflit l'ont écarté ; ce projet migre par une commande, contexte par contexte.
 - **Un fichier YAML pur par règle.** L'énoncé en chaîne multi-lignes perd le rendu markdown sur GitHub, et l'indentation d'une longue chaîne est le piège classique d'un agent. L'en-tête YAML garde la structure, le corps garde la prose.
 - **Écrire la réalisation à la main.** C'est ce qui mentait. Ce qui se calcule se calcule.
 - **Une règle en statut « question ».** Une règle validée reste validée quand on s'interroge dessus ; la question est un indicateur en plus, pas un statut.

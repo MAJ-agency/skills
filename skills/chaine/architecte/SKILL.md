@@ -68,7 +68,7 @@ Puis : le conducteur dans la ligne du chantier, le capitaine dans `Capitaines:`,
 - **Une PR livrée** se nomme au capitaine du dépôt, par `send_message` : le numéro, rien d'autre.
 - Pas d'attente active : `send_later` à 45 minutes tant qu'une session attend une réponse, `/compact` entre deux étapes.
 
-**Un refus d'attache** (`add_repo` refusé à une session lancée) : la session le dit et s'arrête. L'architecte le note au journal de la carte (la date, la session, le dépôt), le dit au produit, et **ne contourne pas** : ni recopie des skills dans le projet, ni procédure dictée de mémoire. La recopie des skills ne se décide que si les refus se répètent : le journal les compte.
+**Un refus d'attache** (`add_repo` refusé à une session lancée) : la session le dit et s'arrête. L'architecte le note au journal de la carte (la date, la session, le dépôt), le dit au produit, et **ne contourne pas** : ni copie des skills dans le projet, ni procédure dictée de mémoire.
 
 ## 6. Signaler son plafond, passer la main
 
@@ -85,6 +85,6 @@ Au verdict **`signaler`** (400 000 tokens par défaut), l'architecte le dit au p
 - Découper un chantier en tickets, relire ses tickets, lancer une fille, coder, fusionner.
 - Changer une procédure par message : elle se donne entière au lancement.
 - Interrompre une session pour un plafond, la sienne comprise : il se signale au produit, qui décide.
-- Contourner un refus d'attache, ou recopier les skills dans un projet sans que le produit l'ait décidé.
+- Contourner un refus d'attache, en copiant les skills dans un projet ou autrement.
 - Garder une décision ailleurs que dans la carte commitée ; citer un cas vécu par un identifiant de session plutôt que par son fait et sa date.
 - Passer une question au produit sans la réécrire dans la forme de § 2.

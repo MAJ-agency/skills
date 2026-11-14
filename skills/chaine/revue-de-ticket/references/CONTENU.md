@@ -6,7 +6,7 @@ Le contexte que l'axe Ticket reçoit, dans cet ordre : le ticket entier, la lign
 
 ## Les critères — `criteres-ticket.md`, `criteres-documentation.md`
 
-Deux listes fermées, comme celle de la revue adversariale : le relecteur ne rend que des écarts rattachés à un critère. L'axe Ticket (T1–T9) : surfaces prouvées, décisions tenues, règles citées avec leurs cas de bord, « Où », vérification, périmètre, statut, puis — venus des rétros d'Anchorpost — recette d'un service tiers relue contre la documentation du fournisseur, essai d'une réécriture de dépôt sur une copie d'un dépôt réel. L'axe Documentation (D1–D7) : glossaire, registre, ADR, index générés, fiches et README, ticket et spec, commentaires. Les chemins y sont des rôles (« le glossaire du projet ») : Iroki et Fedora les rangent à des endroits différents.
+Deux listes fermées, comme celle de la revue adversariale : le relecteur ne rend que des écarts rattachés à un critère. L'axe Ticket (T1–T9) : surfaces prouvées, décisions tenues, règles citées avec leurs cas de bord, « Où », vérification, périmètre, statut, puis — venus des rétros d'Anchorpost — recette d'un service tiers relue contre la documentation du fournisseur, essai d'une réécriture de dépôt sur une copie d'un dépôt réel. L'axe Documentation (D1–D7) : glossaire, registre, ADR, index générés, fiches et README, ticket et spec, commentaires. Les chemins y sont des rôles (« le glossaire du projet ») : d'un projet à l'autre, ils ne sont pas rangés au même endroit.
 
 ## Les prompts — `prompt-ticket.md`, `prompt-documentation.md`
 

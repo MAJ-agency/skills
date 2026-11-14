@@ -25,9 +25,6 @@ export const CHAINE = lireJson(new URL('../../.claude/chaine.json', import.meta.
 /** Index générés : `[{ chemin, commande }]`, `*` = un segment de chemin. */
 export const INDEX_GENERES = lireJson(new URL('../docs/index-generes.json', import.meta.url))?.index ?? [];
 
-/** Manifeste de la copie des skills de la chaîne (`.claude/skills/maj-skills.json`), `null` s'il est absent ou illisible. */
-export const MANIFESTE_SKILLS = lireJson(new URL('../../.claude/skills/maj-skills.json', import.meta.url));
-
 /**
  * Fichiers générés : ils se régénèrent, ils ne s'éditent pas. Chemin (`*` = un segment) → commande.
  * Les index de `INDEX_GENERES` y sont tous, plus le lockfile.
@@ -43,30 +40,13 @@ const cheminDuMotif = (motif) => new RegExp(`^${motif.replace(/[.+?^${}()|[\]\\]
 /**
  * Refus d'éditer un fichier, ou `null` si l'édition est permise.
  * @param {string} chemin chemin relatif à la racine du dépôt
- * @param {{ migrationExistante: (chemin: string) => boolean, migrations?: string, skillsRecopies?: string[], versionSkills?: string }} contexte
+ * @param {{ migrationExistante: (chemin: string) => boolean, migrations?: string }} contexte
  *   `migrations` : dossier des migrations (défaut : `CHAINE.migrations`, sinon `apps/api/src/db/migrations/`)
- *   `skillsRecopies` : noms des skills recopiés (défaut : `skills` du manifeste, sinon `[]`) ; vide, rien n'est protégé
- *   `versionSkills` : version de la copie (défaut : `version` du manifeste, sinon `?`)
  */
-export function refusEdition(
-  chemin,
-  {
-    migrationExistante,
-    migrations = CHAINE.migrations ?? 'apps/api/src/db/migrations/',
-    skillsRecopies = Array.isArray(MANIFESTE_SKILLS?.skills) ? MANIFESTE_SKILLS.skills : [],
-    versionSkills = MANIFESTE_SKILLS?.version ?? '?',
-  },
-) {
+export function refusEdition(chemin, { migrationExistante, migrations = CHAINE.migrations ?? 'apps/api/src/db/migrations/' }) {
   const c = chemin.replace(/\\/g, '/').replace(/^\.\//, '');
   const genere = Object.keys(FICHIERS_GENERES).find((motif) => cheminDuMotif(motif).test(c));
   if (genere) return `${c} est généré : le régénérer avec « ${FICHIERS_GENERES[genere]} ».`;
-  if (skillsRecopies.length > 0) {
-    const skill = /^\.claude\/skills\/([^/]+)\//.exec(c)?.[1];
-    const dansLaCopie = c === '.claude/skills/maj-skills.json' || (skill !== undefined && skillsRecopies.includes(skill));
-    if (dansLaCopie) {
-      return `${c} est une copie des skills de la chaîne (maj-skills ${versionSkills}) : elle ne se modifie pas dans ce projet. Modifier le skill dans MAJ-agency/skills ; la copie arrive par PR.`;
-    }
-  }
   const nom = c.split('/').pop() ?? '';
   if (/^\.env(\..+)?$/.test(nom) && nom !== '.env.example') {
     return `${c} : fichier d'environnement local, jamais édité par un agent (secrets). Modifier .env.example.`;
