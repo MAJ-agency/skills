@@ -1,6 +1,6 @@
 # Les bancs posés tournent dans un projet, et une spec se trouve par son identifiant où qu'elle soit sous `docs/`, mineure du plugin
 
-Status: ready-for-agent
+Status: Fait — PR #84
 Type: défaut
 Label: contre-revue
 Modèle: sonnet — les deux replis d'import et le test de garde sont donnés entiers, les textes mot pour mot ; ils ont été joués sur une copie jetable (voir « Où »), rien n'est à concevoir.

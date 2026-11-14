@@ -1,6 +1,6 @@
 # Le plugin sans chemins écrits en dur ni noms de projet : migrations Prisma, chemins sensibles, prompt de revue, recette, version mineure
 
-Status: ready-for-agent
+Status: Fait — PR #79
 Type: task
 Modèle: sonnet — les textes à écrire sont donnés mot pour mot ; les scripts et leurs bancs sont spécifiés par leur comportement, cas par cas.
 Blocked by: —

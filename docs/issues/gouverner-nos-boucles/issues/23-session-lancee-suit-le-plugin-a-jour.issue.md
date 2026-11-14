@@ -1,6 +1,6 @@
 # Une session lancée se met à niveau et suit le plugin à jour : le fichier du marketplace fait foi sur le skill chargé, patch du plugin
 
-Status: ready-for-agent
+Status: Fait — PR #83
 Type: défaut
 Label: contre-revue
 Modèle: sonnet — tous les textes à écrire sont donnés ci-dessous, mot pour mot ; le test est donné entier ; rien n'est à concevoir.

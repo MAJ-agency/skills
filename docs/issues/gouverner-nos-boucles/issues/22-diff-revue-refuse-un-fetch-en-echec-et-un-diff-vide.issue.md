@@ -1,6 +1,6 @@
 # `diff-revue.sh` refuse une base qu'il n'a pas pu rapatrier et un diff vide, version corrective
 
-Status: ready-for-agent
+Status: Fait — PR #81
 Type: défaut
 Modèle: sonnet — les textes à écrire sont donnés mot pour mot ; le script et son banc sont spécifiés par leur comportement, cas par cas.
 Blocked by: 17

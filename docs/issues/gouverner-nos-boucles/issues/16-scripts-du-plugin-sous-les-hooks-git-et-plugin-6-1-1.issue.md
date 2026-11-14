@@ -1,6 +1,6 @@
 # Les scripts du plugin passent sous les hooks git : plus aucun `--no-verify`, plugin 6.1.1
 
-Status: ready-for-agent
+Status: Fait — PR #75
 Type: fix
 Modèle: sonnet
 Blocked by: —

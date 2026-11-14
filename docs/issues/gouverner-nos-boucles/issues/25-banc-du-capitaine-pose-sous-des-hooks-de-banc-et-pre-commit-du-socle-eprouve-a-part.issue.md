@@ -1,6 +1,6 @@
 # Le banc du capitaine, posé, ne suppose plus le pre-commit du gabarit : hooks de banc dans `fusionner.test.mjs`, gabarit éprouvé à part, patch du plugin
 
-Status: ready-for-agent
+Status: Fait — PR #85
 Type: défaut
 Label: contre-revue
 Modèle: sonnet — les deux bancs et le garde sont donnés entiers ou en remplacements exacts, joués sur une copie jetable (voir « Où ») ; rien n'est à concevoir.

@@ -1,6 +1,6 @@
 # La veille reprend une PR que la boucle vient de renvoyer ou de relancer, dès qu'elle revient dans la file, version corrective du plugin
 
-Status: ready-for-agent
+Status: Fait — PR #78
 Type: défaut
 Modèle: sonnet — la cause est établie, le remède et les bancs sont donnés ligne à ligne ; rien n'est à concevoir.
 Blocked by: —

@@ -1,6 +1,6 @@
 # La commande du skill en tête du prompt de lancement : un conducteur ou un capitaine charge son skill, patch du plugin
 
-Status: ready-for-agent
+Status: Fait — PR #80
 Type: défaut
 Label: contre-revue
 Modèle: sonnet — tous les textes à écrire sont donnés ci-dessous, mot pour mot ; le test est donné entier ; rien n'est à concevoir.

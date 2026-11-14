@@ -1,6 +1,6 @@
 # L'architecte lance sans demander, et les consignes du produit entrent dans chaque prompt de lancement, version mineure du plugin
 
-Status: ready-for-agent
+Status: Fait — PR #77
 Type: feature
 Modèle: sonnet — tous les textes à écrire sont donnés ci-dessous, mot pour mot ou par leur plan précis ; rien n'est à concevoir.
 Blocked by: — (ordre souhaité : après le ticket 16, voir Décisions)

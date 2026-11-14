@@ -1,6 +1,6 @@
 # Les sorties lues par une machine ne prennent plus les couleurs du poste, et `jq` absent se dit en une ligne
 
-Status: ready-for-agent
+Status: Fait — PR #82
 Type: défaut
 Modèle: sonnet — chaque ligne à changer est donnée ci-dessous ; rien n'est à concevoir.
 Blocked by: —
