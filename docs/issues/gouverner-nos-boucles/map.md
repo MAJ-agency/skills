@@ -215,7 +215,7 @@ Vague 1 fusionnée le 2026-11-13 par le capitaine de `skills` (`main` à `8eb1c9
 | `session_017ZgEwHHcZh4ptyEBSrYh5e` | docs     | `anchorpost`, documentation alignée après la repose (PR 140, fusionnée `d74b576`) | 1,54 | 161 926 |
 | `session_017ZgEwJJ2eDBbhoCFKR2kvk` | ticket   | 27 (opus ; PR 89 de `skills`, fusionnée `cadb4e5`, plugin 7.7.0) | 26,86 | 408 960 |
 | `session_017ZgEwJcsiQKfiDBpHZBXQq` | ticket   | 32 (PR 90 de `skills`, fusionnée `ce61357`, plugin 7.8.0) | 2,21 | 156 675 |
-| `session_017ZgEwKtYKeuPV6GCVmXuns` | ticket   | 31 (lancée le 2026-11-14 à 19 h 37 UTC) | 0 | 0 |
+| `session_017ZgEwKtYKeuPV6GCVmXuns` | ticket   | 31 (PR 92 de `skills`, fusionnée `2826309`, plugin 7.8.2) | 2,08 | 175 109 |
 | `session_017ZgEwH8k29dNtENWHwCNbn` | ticket   | 28 (PR 91 de `skills`, fusionnée `436c96e`, plugin 7.8.1) | 2,85 | 183 698 |
 | `session_017ZgEwJW5CB9AnK1x9r48fv` | ticket   | `SPEC_ALL_SOC-1.15` (PR 136 d'`anchorpost`, fusionnée `8f604d7`) | 1,07 | 143 075 |
 | `session_017ZgEwL2oAmAYcYXYobxLWp` | ticket   | `SPEC_ALL_SOC-1.22` (PR 137 d'`anchorpost`, fusionnée `8691c7c`) | 1,91 | 156 442 |
@@ -580,3 +580,4 @@ La session de suite fait, dans cet ordre :
 - 2026-11-14 — 20 h 55 UTC. **PR 92 corrigée** (`f2fcfc4`, delta relu : gestionnaires de signaux retirés des deux `depot-jouet.mjs` et promesse retirée des deux `CONTENU.md` ; garde de la racine avant `mkdtempSync` ; motif `passer.*/*` écarté avant `passer.*` ; trois tests vus rouges ; 469 annoncés ; 130 dossiers / 23 Mo restants). Prête : attend la fusion de la PR 91 pour fusionner `main` et prendre 7.8.2, puis au capitaine.
 - 2026-11-14 — 21 h 00 UTC. **PR 91 fusionnée** par le capitaine au sommet `dc37942` : `main` à `436c96e`, plugin **7.8.1**, 471 tests ; arbre de `main` identique au sommet relu (`a0b85d3`), vérifié. Session du ticket 28 archivée (2,85 $). La session de la PR 92 fusionne `main` et prend 7.8.2.
 - 2026-11-14 — 21 h 05 UTC. **PR 92** : `main` (7.8.1) fusionné dans la branche, sommet `1b57938`, plugin 7.8.2, 484 tests annoncés (471 + 13) ; delta vérifié (9 fichiers contre `main`, conflit sur la version seule) ; **nommée au capitaine**. Mesure sur `main` 7.8.1 : 645 dossiers / 353 Mo laissés, 136 / 26 Mo avec la PR.
+- 2026-11-14 — 21 h 10 UTC. **PR 92 fusionnée** par le capitaine au sommet `1b57938` : `main` à `2826309`, plugin **7.8.2**, 484 tests ; arbre de `main` identique au sommet relu, vérifié ; le capitaine a rejoué la mesure (136 dossiers / 26 Mo, contre 645 / 353 Mo). Session du ticket 31 archivée (2,08 $). Les autres bancs (16) qui laissent encore des dossiers : ticket suivant, à écrire. `README.md` ne nomme pas `GARDER_JOUETS` : à porter au même ticket.

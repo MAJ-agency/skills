@@ -1,6 +1,6 @@
 # Les bancs de la chaîne retirent leurs dossiers temporaires : `depotJouet()` et ses semblables enregistrent chaque dossier créé et le suppriment à la sortie du processus, `passer.sh` retire sa copie
 
-Status: ready-for-agent
+Status: Fait — PR #92
 Type: défaut
 Label: contre-revue
 Modèle: sonnet — un bloc identique inséré dans deux `depot-jouet.mjs`, quelques remplacements exacts dans deux bancs et dans `passer.sh`, un fichier de test donné entier, deux phrases de documentation et la version ; tout est joué sur une copie jetable de `origin/main` (voir « Vérification ») ; rien n'est à concevoir.
@@ -383,4 +383,5 @@ Pour la session :
 
 ## Comments
 
+- 2026-11-14 — **Fait** : PR 92, fusionnée `2826309`, plugin 7.8.2. Écart décidé par l'architecte à la contre-relecture : la décision 5 (retrait sur signal) est retirée — les gestionnaires retardaient l'arrêt d'un `pnpm test` à 40-50 s sans retirer plus de dossiers ; un signal laisse les dossiers, comme `SIGKILL`. Ajoutés : garde de la racine avant la création, motif de `passer.sh` fermé à `/../`. Mesure : 645 dossiers / 353 Mo → 136 / 26 Mo.
 - 2026-11-14 — Instruit sur `cadb4e5` (plugin 7.7.0, 456 tests). Mesure avant : 626 dossiers, 341 Mo, 45 874 fichiers dans un `TMPDIR` privé après `pnpm test`, dont 375 `jouet-*` (314 Mo), 102 `sens-*`, 10 `revue-*`, 9 `tickets-poses-*`. Remède joué : 466/466 trois fois (deux passes, puis sous l'environnement d'un capitaine), 130 dossiers et 23 Mo restants. Le garde `scripts/poses.test.mjs` n'est pas modifié ; l'attente « zéro dossier » y entre au ticket des autres bancs.
