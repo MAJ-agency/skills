@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
@@ -89,6 +89,26 @@ test("depot-jouet (tickets) : un banc qui échoue retire aussi ses dossiers", ()
 test("depot-jouet (sujet) : GARDER_JOUETS=1 garde les dossiers et dit combien", () => gardeLesJouets(JOUET_SUJET));
 test("depot-jouet (tickets) : GARDER_JOUETS=1 garde les dossiers et dit combien", () => gardeLesJouets(JOUET_TICKETS));
 
+// Le garde agit avant la création : avec TMPDIR=/, rien ne doit être créé à la racine du disque.
+function refuseUneRacine(jouet) {
+  const marque = `racine-${process.pid}-${Date.now()}-`;
+  const banc = bancJetable(
+    jouet,
+    `process.env.TMPDIR = "/";\nassert.throws(() => jouet.dossierTemporaire(${JSON.stringify(marque)}), /le dossier temporaire est la racine/);`,
+  );
+  try {
+    const r = jouer(banc.fichier);
+    const restes = readdirSync("/").filter((n) => n.startsWith(marque));
+    for (const n of restes) rmSync(join("/", n), { recursive: true, force: true });
+    assert.deepEqual(restes, [], "un dossier a été créé à la racine");
+    assert.equal(r.status, 0, r.stdout + r.stderr);
+  } finally {
+    banc.retirer();
+  }
+}
+test("depot-jouet (sujet) : dossierTemporaire refuse un dossier temporaire à la racine sans rien créer", () => refuseUneRacine(JOUET_SUJET));
+test("depot-jouet (tickets) : dossierTemporaire refuse un dossier temporaire à la racine sans rien créer", () => refuseUneRacine(JOUET_TICKETS));
+
 test("depot-jouet (tickets) : la copie des scripts du plugin est retirée aussi", () => {
   const banc = bancJetable(JOUET_TICKETS, "assert.ok(jouet.script('docs/vagues.mjs'));");
   try {
@@ -123,4 +143,23 @@ test("passer.sh retire sa copie du dossier temporaire dès qu'elle tourne", asyn
   assert.equal(r.status, 7, r.stdout + r.stderr);
   assert.match(r.stdout, /\[#7\] sans le label à-fusionner/, "la copie n'a pas tourné jusqu'à l'éligibilité");
   assert.deepEqual(readdirSync(d.env.TMPDIR).filter((n) => n.startsWith("passer.")), []);
+});
+
+// Le motif de retrait ne doit pas laisser `*` traverser `/` : `passer.x/../victime` n'est pas une copie.
+test("passer.sh ne retire pas un chemin qui sort de sa copie par /../", async () => {
+  const { depotJouet, script } = await import(pathToFileURL(JOUET_SUJET).href);
+  const d = depotJouet();
+  d.publierChaine();
+  d.github({ pulls: [{ number: 7, title: "docs(demo): simple", head: "docs/simple", base: "develop", labels: [] }] });
+  const victime = join(d.env.TMPDIR, "victime");
+  writeFileSync(victime, "à garder");
+  mkdirSync(join(d.env.TMPDIR, "passer.x"));
+  const passer = script("fusionner", "passer.sh");
+  const r = spawnSync("bash", [passer, "7"], {
+    cwd: d.travail,
+    env: { ...d.env, PASSER_OUTILS: dirname(passer), PASSER_COPIE: `${d.env.TMPDIR}/passer.x/../victime` },
+    encoding: "utf8",
+  });
+  assert.equal(r.status, 7, r.stdout + r.stderr);
+  assert.ok(existsSync(victime), "passer.sh a retiré un fichier hors de sa copie");
 });

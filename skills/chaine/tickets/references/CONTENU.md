@@ -36,4 +36,4 @@ Le tracker et les labels tels que les skills de Matt Pocock les attendent (`docs
 
 Chaque script a son test ; ceux qui parlent à git tournent sur un dépôt jouet, avec un `origin` nu local et un PATH sans `gh`, comme une session cloud. `node --test scripts/docs/*.test.mjs scripts/verify/*.test.mjs`. Les tests jouent les scripts par `script()` et `module()` de `depot-jouet.mjs` : dans un projet, ceux de `scripts/` tels quels ; dans le plugin, une copie où la grammaire de `socle-monorepo` est posée à côté, comme dans un projet.
 
-Les dossiers temporaires du banc (`depotJouet()`, la copie des scripts, `dossierTemporaire(prefixe)`) sont retirés à la sortie du processus de test ; `GARDER_JOUETS=1` les garde pour lire un échec.
+Les dossiers temporaires du banc (`depotJouet()`, la copie des scripts, `dossierTemporaire(prefixe)`) sont retirés à la sortie du processus de test ; `GARDER_JOUETS=1` les garde pour lire un échec ; un signal d'arrêt les laisse.

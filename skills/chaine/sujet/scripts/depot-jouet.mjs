@@ -14,7 +14,7 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, join, resolve, sep } from 'node:path';
+import { dirname, join, parse, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 // Les scripts de la chaîne et le faux gh appellent jq : sans lui, chaque test échouerait sur
@@ -24,8 +24,8 @@ if (spawnSync('jq', ['--version']).error)
 
 // Dossiers temporaires du banc, retirés à la sortie du processus : `node --test` joue un fichier de
 // test par processus, et chaque dépôt jouet pèse environ un mégaoctet. `GARDER_JOUETS=1` les garde
-// pour les lire après un échec, et dit combien. Un signal d'arrêt (délai dépassé, Ctrl-C, `kill`
-// du groupe) passe par `process.exit`, donc par `exit` ; seul `SIGKILL` ne peut pas être intercepté.
+// pour les lire après un échec, et dit combien. Un signal d'arrêt laisse les dossiers, comme `SIGKILL` :
+// un gestionnaire retarderait l'arrêt jusqu'à la fin du `spawnSync` en cours.
 const A_RETIRER = [];
 process.on('exit', () => {
   if (process.env.GARDER_JOUETS) {
@@ -40,9 +40,10 @@ process.on('exit', () => {
     }
   }
 });
-for (const [signal, code] of [['SIGINT', 130], ['SIGTERM', 143], ['SIGHUP', 129]]) process.on(signal, () => process.exit(code));
 /** Crée un dossier temporaire que la sortie du processus retire. */
 export function dossierTemporaire(prefixe) {
+  const base = resolve(tmpdir());
+  if (base === parse(base).root) throw new Error(`dossierTemporaire : le dossier temporaire est la racine (${base})`);
   const dossier = resolve(mkdtempSync(join(tmpdir(), prefixe)));
   if (!dossier.startsWith(resolve(tmpdir()) + sep)) throw new Error(`dossierTemporaire : ${dossier} est hors de ${tmpdir()}`);
   A_RETIRER.push(dossier);
