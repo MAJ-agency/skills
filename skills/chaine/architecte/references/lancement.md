@@ -1,6 +1,6 @@
 # Lancer un conducteur ou un capitaine
 
-Une session créée par une autre ne reçoit que le dépôt du projet et démarre **sans les skills de la chaîne** : le script de démarrage de l'environnement ne les installe que si le clone de `skills` est là, et le hook de démarrage le signale. Le remède est celui de `chaine-de-production.md` § 5, étape 5 : la session attache `MAJ-agency/skills` par `add_repo`, clone comme l'outil l'indique, puis lit le skill dans le clone. Il a marché sur des chantiers entiers ; il a aussi été refusé deux fois le 2026-11-13 par le contrôle automatique des permissions. D'où les deux lignes que porte chaque prompt : **la consigne d'attache**, et **le repli** — attache refusée, la session le dit et s'arrête, sans improviser.
+Une session créée par une autre ne reçoit que le dépôt du projet. Les skills de la chaîne n'en dépendent plus : le dépôt `MAJ-agency/skills` est public, et le script de l'environnement de chaque projet installe le plugin `maj-skills` depuis GitHub, puis le met à jour, au démarrage de toute session, fille comprise (`P-24`). Chaque prompt porte donc deux choses : **la consigne de lecture** (le skill, par son nom `/maj-skills:<nom>`) et **le repli** : skill absent de la session, elle l'écrit à qui l'a lancée et s'arrête, sans improviser ; le hook de démarrage signale ce manque. Aucun geste d'une session de projet n'exige plus le dépôt `skills` : il n'y a plus de copie à faire, et modifier un skill se fait dans une session ouverte sur `MAJ-agency/skills`, jamais dans un projet. L'attache d'un dépôt à la session, refusée deux fois le 2026-11-13 par le contrôle automatique des permissions, n'a plus d'objet.
 
 Le prompt est court et renvoie : la procédure est dans le skill que la session lit, le travail dans la spec et les cartes. Il ne recopie aucune règle ; il nomme seulement ce qui ne s'y lit pas. Modèle de forme : le prompt d'une fille, `chaine-de-production.md` § 5.
 
@@ -10,7 +10,7 @@ Le prompt est court et renvoie : la procédure est dans le skill que la session 
 
 ```text
 Conducteur du chantier <nom>, programme <programme>, architecte : <session_id de cette session>.
-Skills : si /maj-skills:chantier n'est pas parmi tes skills, attache MAJ-agency/skills par add_repo, clone-le comme l'outil l'indique, puis lis et suis skills/chaine/chantier/SKILL.md du clone, ses références comprises ; tout skill qu'il invoque (/maj-skills:<nom>) se lit de même dans le clone. Attache refusée ou clone impossible : écris-le-moi (send_message) et arrête-toi, sans rien improviser.
+Skills : le plugin maj-skills est installé par le script de l'environnement ; lis et suis /maj-skills:chantier, ses références comprises, et tout skill qu'il invoque. S'il n'est pas parmi tes skills : écris-le-moi (send_message) et arrête-toi, sans rien improviser.
 Spec validée : <chemin> (branche <branche>). Sujet : sujet/<nom>. Carte du programme : <chemin> (dépôt <dépôt>, branche <branche>).
 <Carte du chantier déjà ouverte : <chemin>, s'il y en a une.> <une ligne de situation particulière, s'il y en a une>
 ```
@@ -27,7 +27,7 @@ Ce que le conducteur fait de ce prompt est écrit dans `chantier/SKILL.md` ; le 
 
 ```text
 Capitaine de fusion du dépôt <dépôt>, programme <programme>, architecte : <session_id de cette session>.
-Skills : si /maj-skills:fusionner n'est pas parmi tes skills, attache MAJ-agency/skills par add_repo, clone-le comme l'outil l'indique, puis lis et suis skills/chaine/fusionner/SKILL.md du clone, ses références comprises. Attache refusée ou clone impossible : écris-le-moi (send_message) et arrête-toi, sans rien improviser.
+Skills : le plugin maj-skills est installé par le script de l'environnement ; lis et suis /maj-skills:fusionner, ses références comprises. S'il n'est pas parmi tes skills : écris-le-moi (send_message) et arrête-toi, sans rien improviser.
 <Dépôt sans la chaîne (pas de .claude/chaine.json) : la procédure propre au dépôt, entière, ici — jamais complétée plus tard par message.>
 ```
 
@@ -38,7 +38,7 @@ Les interdits d'une procédure donnée dans un prompt s'écrivent comme des **ge
 ## Après le lancement
 
 - La session dans la carte du programme (ligne du chantier, ou `Capitaines:`), une ligne au journal, commit et push.
-- `send_later` à 20 minutes, puis `get_session` : `blocked` ou `failed` se lit par `list_events` (`kinds: ["assistant"]`) — un refus d'attache s'y voit même quand son `send_message` n'est pas arrivé.
+- `send_later` à 20 minutes, puis `get_session` : `blocked` ou `failed` se lit par `list_events` (`kinds: ["assistant"]`) — un skill absent s'y voit même quand son `send_message` n'est pas arrivé.
 - `permission_mode` : une session lancée ne peut pas avoir un mode plus permissif que celle qui la lance, donc le produit ouvre l'architecte en mode « Auto ». Si `create_session` refuse ce mode, l'architecte le dit au produit et ne relance pas dans un autre mode.
-- Un refus d'attache : la ligne au journal, le produit prévenu, rien de contourné (`SKILL.md` § 5).
+- Un skill absent : la ligne au journal, le produit prévenu, rien de contourné (`SKILL.md` § 5).
 - Ensuite, un message à cette session ne fait que **nommer le travail** (une spec validée, des PR à traiter) ; il n'ajoute ni ne change jamais une règle.
