@@ -175,3 +175,52 @@ test('la sortie standard ne porte jamais permissionDecision, commande refusée o
   for (const commande of ['pnpm add zod', 'pnpm add leaflet', 'git push origin "$REF"', 'git push --force origin x', 'pnpm check'])
     assert.doesNotMatch(lancer(d, commande).stdout, /permissionDecision/, commande);
 });
+
+/** Les gardes copiées dans un dépôt jouet, lancées sur une entrée brute : stdin tel quel, ou l'objet en JSON. */
+function gardes() {
+  const d = depotJouet();
+  const agent = join(d.racine, 'outils/scripts/agent');
+  mkdirSync(agent, { recursive: true });
+  for (const f of ['entree.mjs', 'regles.mjs', 'garde-commandes.mjs', 'garde-fichiers.mjs']) copyFileSync(new URL(f, import.meta.url), join(agent, f));
+  const brut = (garde, entree) =>
+    spawnSync(process.execPath, [join(agent, `${garde}.mjs`)], {
+      cwd: d.travail,
+      env: { ...ENV, PATH: d.bin, CLAUDE_PROJECT_DIR: d.travail },
+      input: typeof entree === 'string' ? entree : JSON.stringify(entree),
+      encoding: 'utf8',
+    });
+  return { ...d, brut };
+}
+/** Entrées qu'aucune garde ne lit : vide, JSON illisible, autre chose qu'un objet, `tool_input` absent ou d'un autre type. */
+const ILLISIBLES = ['', '{"tool_input":', 'null', '[]', '"Bash"', {}, { tool_name: 'Bash' }, { tool_input: null }, { tool_input: 'git push --force origin x' }, { tool_input: ['git', 'status'] }];
+
+test('garde-commandes refuse une entrée illisible ou une commande qui n’est pas une chaîne, et laisse passer l’entrée de Bash', () => {
+  const g = gardes();
+  for (const entree of [...ILLISIBLES, { tool_name: 'Bash', tool_input: {} }, { tool_input: { command: 42 } }, { tool_input: { command: ['git', 'push', '--force', 'origin', 'x'] } }, { tool_input: { command: null } }, { tool_input: { cmd: 'git status' } }]) {
+    const r = g.brut('garde-commandes', entree);
+    refuse(r, `garde-commandes : ${JSON.stringify(entree)}`);
+    assert.match(r.stderr, /entrée de hook illisible/);
+  }
+  passe(g.brut('garde-commandes', { hook_event_name: 'PreToolUse', tool_name: 'Bash', tool_input: { command: 'git status', description: 'État', timeout: 120000, run_in_background: false } }));
+  refuse(g.brut('garde-commandes', { tool_name: 'Bash', tool_input: { command: 'git push --force origin x' } }));
+});
+
+test('garde-fichiers refuse une entrée illisible ou un chemin absent, vide ou d’un autre type, et laisse passer Edit, Write, MultiEdit, NotebookEdit', () => {
+  const g = gardes();
+  for (const entree of [...ILLISIBLES, { tool_name: 'Write', tool_input: { content: 'x' } }, { tool_input: { file_path: 42 } }, { tool_input: { file_path: ['README.md'] } }, { tool_input: { file_path: '' } }, { tool_input: { notebook_path: {} } }]) {
+    const r = g.brut('garde-fichiers', entree);
+    refuse(r, `garde-fichiers : ${JSON.stringify(entree)}`);
+    assert.match(r.stderr, /entrée de hook illisible/);
+  }
+  const dans = (chemin) => join(g.travail, chemin);
+  for (const entree of [
+    { tool_name: 'Edit', tool_input: { file_path: dans('README.md'), old_string: 'jouet', new_string: 'x', replace_all: false } },
+    { tool_name: 'Write', tool_input: { file_path: dans('docs/a.md'), content: 'x\n' } },
+    { tool_name: 'MultiEdit', tool_input: { file_path: dans('README.md'), edits: [{ old_string: 'jouet', new_string: 'x' }] } },
+    { tool_name: 'NotebookEdit', tool_input: { notebook_path: dans('n.ipynb'), cell_id: 'a', new_source: 'x' } },
+    { tool_name: 'Write', tool_input: { file_path: join(g.racine, 'hors-du-depot.md'), content: 'x\n' } },
+  ])
+    passe(g.brut('garde-fichiers', entree), entree.tool_name);
+  refuse(g.brut('garde-fichiers', { tool_name: 'Write', tool_input: { file_path: dans('.env'), content: 'x' } }));
+  refuse(g.brut('garde-fichiers', { tool_name: 'NotebookEdit', tool_input: { notebook_path: dans('pnpm-lock.yaml'), new_source: 'x' } }));
+});

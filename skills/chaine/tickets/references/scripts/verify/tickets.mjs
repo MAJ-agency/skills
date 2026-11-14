@@ -9,7 +9,7 @@
  * Règles, sur chaque `docs/**\/issues/*.issue.md` suivi par git (règles pures : tickets-regles.mjs) :
  *   1. `Status:` ∈ vocabulaire fermé (docs/agents/triage-labels.md) ;
  *   2. `Blocked by:` ne cite que des tickets qui existent ;
- *   3. `Sujet:` de la forme `sujet/<kebab>` ;
+ *   3. `Sujet:` : une ou plusieurs valeurs `sujet/<kebab>` séparées par des virgules ;
  *   0. les fiches docs/agents/issue-tracker.md et triage-labels.md sont celles du skill `tickets`
  *      (sections « Réserver un ticket », « Un ticket prêt pour agent », « Archivage » ; valeurs
  *      `en cours — <branche>` et `Fait — PR #<n>`) : rejouer setup-matt-pocock-skills les écrase,

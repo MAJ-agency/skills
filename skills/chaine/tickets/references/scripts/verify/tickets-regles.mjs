@@ -5,6 +5,7 @@
  * Vocabulaire de `Status:` : `docs/agents/triage-labels.md`. Format « prêt pour agent » :
  * `docs/agents/chaine-de-production.md` § 3. Tout changement passe d'abord par ces fichiers.
  */
+import { nomsDeSujets } from '../docs/ligne-sujet.mjs';
 import { TICKET, identifiantDeLaSpec, identifiantDuTicket, estArchive, lireIdentifiant, litteral, dossierDuContexte, REGLE } from '../docs/identifiants.mjs';
 
 export { identifiantDuTicket as identifiant, estArchive };
@@ -533,7 +534,8 @@ const phaseValide = (v) => /^(1-grilling|2-decoupage|3-specs-en-fusion|4-vague-[
 
 /**
  * Contrôle de la fiche d'une carte de chantier (`*.map.md` portant une ligne `Sujet:`). Une carte
- * sans ligne `Sujet:` n'est pas une carte de chantier : ignorée (`carte: false`).
+ * sans ligne `Sujet:` n'est pas une carte de chantier : ignorée (`carte: false`). Une carte peut couvrir
+ * plusieurs sujets (`Sujet: sujet/a, sujet/b`) ; un ticket n'en nomme qu'un.
  * La fiche nomme `Responsable:` (une personne, jamais un identifiant de session) et `Conducteur:` (la
  * session qui mène le chantier) ; `Architecte:` (la session du programme) est facultative.
  * `ficheGelee` : carte d'avant ces deux lignes, gelée dans la clé `fiches` de la dette ; pour elle
@@ -546,8 +548,11 @@ export function controlerCarte({ nom, texte, ficheGelee = false, plafonds = null
   if (!sujet) return { carte: false, erreurs: [] };
   const erreurs = [];
   const corps = sections(lignes);
-  if (!/^sujet\/[a-z0-9]+(?:-[a-z0-9]+)*$/.test(sujet.valeur))
-    erreurs.push({ ligne: sujet.ligne, message: `carte ${nom} : Sujet « ${sujet.valeur} » : attendu \`sujet/<nom-en-kebab>\`` });
+  if (!nomsDeSujets(sujet.valeur))
+    erreurs.push({
+      ligne: sujet.ligne,
+      message: `carte ${nom} : Sujet « ${sujet.valeur} » : attendu \`sujet/<nom-en-kebab>\`, ou plusieurs séparés par des virgules (\`sujet/a, sujet/b\`)`,
+    });
   if (!corps.has('Fiche')) erreurs.push({ ligne: 1, message: `carte ${nom} : section \`## Fiche\` absente` });
   const phase = chercher(lignes, PHASE);
   if (!phase || !phaseValide(phase.valeur))
