@@ -490,7 +490,7 @@ const RAISON_OUTIL_FUSION =
 const RAISON_OUTIL_MISE_A_JOUR =
   "mettre à jour par un outil GitHub une PR dont la tête est un sujet, develop, main ou la branche par défaut, ou dont la tête ne se lit pas : jamais, l'outil écrirait sur cette branche. Un sujet se rafraîchit par sujet.sh rafraichir (le capitaine) ; une branche de travail se met à jour par l'outil, ou par git merge puis un push ordinaire.";
 const RAISON_GH_ECRIT =
-  "écrire par `gh` une branche, un fichier ou une règle de branche (gh api en écriture vers git/refs, contents, merges, merge-upstream, pulls/<n>/merge ou update-branch, branches/<b>/protection, rulesets, une mutation GraphQL ou une requête illisible, gh pr merge, gh pr close --delete-branch, gh repo sync, gh alias set ou import) : jamais à la main. On pousse sa branche par git push, une PR se fusionne par le capitaine (passer.sh, sujet.sh fusionner), un sujet ne s'écrit que par sujet.sh ; une PR se met à jour par l'outil update_pull_request_branch, ou par git merge puis un push ordinaire.";
+  "écrire par `gh` une branche, un fichier ou une règle de branche (gh api en écriture vers git/refs, contents, merges, merge-upstream, pulls/<n>/merge ou update-branch, branches/<b>/protection ou rename, rulesets, une mutation GraphQL ou une requête illisible, gh pr merge, gh pr update-branch, gh pr close --delete-branch, gh repo sync, gh alias set ou import) : jamais à la main. On pousse sa branche par git push, une PR se fusionne par le capitaine (passer.sh, sujet.sh fusionner), un sujet ne s'écrit que par sujet.sh ; une PR se met à jour par l'outil update_pull_request_branch, ou par git merge puis un push ordinaire.";
 
 /** Outils GitHub d'écriture, par nom court (après le dernier `__`) : leur paramètre `branch` porte la branche visée. */
 export const OUTILS_GITHUB_ECRITURE = ['push_files', 'create_or_update_file', 'delete_file', 'create_branch'];
@@ -531,7 +531,7 @@ export function decisionOutilGithub(outil, entree = {}, { brancheParDefaut = nul
 /** Options de `gh api` suivies d'une valeur séparée. */
 const OPTIONS_GH_API_A_VALEUR = new Set(['-X', '--method', '-f', '--raw-field', '-F', '--field', '-H', '--header', '--input', '-q', '--jq', '-t', '--template', '--hostname', '--cache', '-p', '--preview']);
 /** Routes REST qui écrivent une branche, un fichier ou une règle de branche, en écriture. */
-const CHEMIN_GH_ECRIT = /(^|\/)(git\/refs(\/|$)|contents(\/|$)|merges$|merge-upstream$|pulls\/[^/]+\/(merge|update-branch|ccr\/auto_merge)$|branches\/[^/]+\/protection(\/|$)|rulesets(\/|$))/;
+const CHEMIN_GH_ECRIT = /(^|\/)(git\/refs(\/|$)|contents(\/|$)|merges$|merge-upstream$|pulls\/[^/]+\/(merge|update-branch|ccr\/auto_merge)$|branches\/[^/]+\/protection(\/|$)|branches\/.+\/rename$|rulesets(\/|$))/;
 
 /**
  * Vrai si la commande écrit une branche, un fichier ou une règle de branche par `gh` : `gh pr merge`,
@@ -556,7 +556,7 @@ export function ecritParGh(commande) {
         if (mots[k] === '-R' || mots[k] === '--repo' || mots[k] === '--hostname') k++;
         else if (!mots[k].startsWith('-')) pos.push(mots[k]);
       }
-      if ((pos[0] === 'pr' && pos[1] === 'merge') || (pos[0] === 'repo' && pos[1] === 'sync')) return true;
+      if ((pos[0] === 'pr' && (pos[1] === 'merge' || pos[1] === 'update-branch')) || (pos[0] === 'repo' && pos[1] === 'sync')) return true;
       if (pos[0] === 'alias' && (pos[1] === 'set' || pos[1] === 'import')) return true;
       if (pos[0] === 'pr' && pos[1] === 'close' && mots.some((mot) => /^(-[a-zA-Z]*d[a-zA-Z]*|--delete-branch)(=.*)?$/.test(mot))) return true;
       if (pos[0] !== 'api') return false;
@@ -590,8 +590,8 @@ export function ecritParGh(commande) {
       if (routes.some((r) => /(^|\/)graphql$/.test(r)) && (/\bmutation\b/i.test(suite) || /query=@|--input|[$]/.test(segment))) return true;
       if (/(^|\/)graphql$/.test(route)) return false;
       const ecrit = (methode ?? (champs ? 'POST' : 'GET')) !== 'GET';
-      // Un chemin qui ne se lit pas (variable, substitution, encodé) pourrait viser une branche : refusé en écriture.
-      return ecrit && chemin !== null && (/[$%]/.test(chemin) || routes.some((r) => CHEMIN_GH_ECRIT.test(r)));
+      // Un chemin qui ne se lit pas (variable, substitution, encodé, segment `..`) pourrait viser une branche : refusé en écriture.
+      return ecrit && chemin !== null && (/[$%]/.test(chemin) || /(^|\/)\.\.(\/|$|[?#])/.test(chemin) || routes.some((r) => CHEMIN_GH_ECRIT.test(r)));
     });
   });
 }
