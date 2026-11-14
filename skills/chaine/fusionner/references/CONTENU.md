@@ -26,7 +26,7 @@ Une seule boucle à la fois, arrêtée d'un geste. Cas vécu : le capitaine arr�
 
 ## `scripts/veille.sh`
 
-La veille : `boucle.sh` s'arrête sur `FILE VIDE`, et une PR étiquetée ensuite n'était vue par personne (cas vécu : une file restée pleine jusqu'à ce qu'on prévienne le capitaine à la main). La veille lance la boucle, sonde `file.sh` toutes les 2 min et la relance dès qu'une PR devient prête ou rouge, ou qu'une PR mise de côté sans CI reçoit sa CI ; elle s'arrête d'elle-même sous la limite de 2 h d'une tâche de fond (`VEILLE FINIE`) ou avec la boucle (`VEILLE ARRÊTÉE`), ce qui réveille le capitaine.
+La veille : `boucle.sh` s'arrête sur `FILE VIDE`, et une PR étiquetée ensuite n'était vue par personne (cas vécu : une file restée pleine jusqu'à ce qu'on prévienne le capitaine à la main). La veille lance la boucle, sonde `file.sh` toutes les 2 min et la relance dès qu'une PR devient prête ou rouge, ou qu'une PR mise de côté sans CI reçoit sa CI, ou qu'une PR renvoyée ou relancée par la boucle revient dans la file ; elle s'arrête d'elle-même sous la limite de 2 h d'une tâche de fond (`VEILLE FINIE`) ou avec la boucle (`VEILLE ARRÊTÉE`), ce qui réveille le capitaine.
 
 ## `scripts/renvoyer.sh`, `refus.sh`, `proprietaire.sh`
 

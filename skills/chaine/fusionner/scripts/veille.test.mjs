@@ -21,14 +21,21 @@ const VEILLE = new URL("./veille.sh", import.meta.url).pathname;
 // initiale exclue) : la durée (1 min) n'est qu'un garde-fou, aucun test ne dépend de l'horloge.
 function veilleJouet(
   etats,
-  { rcBoucle = 0, sondes = etats.length - 1, args = ["--pause", "0.2", "--duree", "1", "--sondes", String(sondes)] } = {},
+  { rcBoucle = 0, sorties = [], sondes = etats.length - 1, args = ["--pause", "0.2", "--duree", "1", "--sondes", String(sondes)] } = {},
 ) {
   const dir = mkdtempSync(join(tmpdir(), "veille-"));
   copyFileSync(VEILLE, join(dir, "veille.sh"));
   writeFileSync(
     join(dir, "boucle.sh"),
-    `#!/usr/bin/env bash\necho boucle >> "${dir}/lancements"\nexit ${rcBoucle}\n`,
+    `#!/usr/bin/env bash
+echo boucle >> "${dir}/lancements"
+k=$(cat "${dir}/k" 2>/dev/null || echo 0)
+echo $((k+1)) > "${dir}/k"
+[ ! -f "${dir}/sortie.$k" ] || cat "${dir}/sortie.$k"
+exit ${rcBoucle}
+`,
   );
+  sorties.forEach((o, i) => writeFileSync(join(dir, `sortie.${i}`), o));
   writeFileSync(
     join(dir, "file.sh"),
     `#!/usr/bin/env bash
@@ -111,4 +118,47 @@ test("--sondes 2 : la veille s'arrête après deux sondes (lecture initiale + 2 
   assert.match(r.stdout, /^VEILLE FINIE \d\d:\d\d$/m);
   assert.equal(r.compte, 3);
   assert.equal(r.lancements, 1);
+});
+
+test("PR renvoyée par la boucle puis ré-étiquetée avant la sonde : boucle relancée", () => {
+  const r = veilleJouet([prete(130), prete(130), prete(130)], {
+    sorties: ["[#130] RENVOI : sans section « Revue de ticket »\n"],
+    sondes: 2,
+  });
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(r.lancements, 2);
+});
+
+test("PR renvoyée par une boucle relancée, puis ré-étiquetée : boucle relancée de nouveau", () => {
+  const r = veilleJouet(["", prete(131), prete(131), prete(131)], {
+    sorties: ["", "[#131] RENVOI : titre trop long\n"],
+    sondes: 3,
+  });
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(r.lancements, 3);
+});
+
+test("jobs rouges relancés par la boucle, de nouveau rouges à la sonde : boucle relancée", () => {
+  const rouge = "31\tCI rouge : qualite\t\n";
+  const r = veilleJouet([rouge, rouge, rouge], {
+    sorties: ["[#31] RELANCE des jobs rouges (qualite)\n"],
+    sondes: 2,
+  });
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(r.lancements, 2);
+});
+
+test("PR sautée par la boucle, renvoi d'une autre : pas de relance en rond", () => {
+  const r = veilleJouet([prete(32), prete(32), prete(32)], {
+    sorties: ["[#32] DÉBUT 11:53\n[#32] sortie=7 11:53\n[#40] RENVOI : conflit\n"],
+    sondes: 2,
+  });
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(r.lancements, 1);
+});
+
+test("les lignes que la veille lit sont celles qu'écrivent renvoyer.sh et boucle.sh", () => {
+  const lire = (f) => readFileSync(new URL(`./${f}`, import.meta.url), "utf8");
+  assert.ok(lire("renvoyer.sh").includes('echo "[#$N] RENVOI : '));
+  assert.ok(lire("boucle.sh").includes('echo "[#$n] RELANCE des jobs rouges'));
 });
