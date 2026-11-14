@@ -10,7 +10,7 @@
 #
 # Le push passe sous les hooks git, comme celui d'une session : jamais en les sautant. Il ne porte que
 # `origin/main`, déjà sur le distant : rien de neuf ne part, et le pre-push du socle (`husky/pre-push`)
-# conclut alors qu'il n'a rien à contrôler. Un `.husky/pre-push` antérieur au socle 6.1.1 jouerait
+# conclut alors qu'il n'a rien à contrôler. Un `.husky/pre-push` antérieur au socle 7.0.1 jouerait
 # `pnpm check` sur l'arbre de travail et refuserait ce push (`coverage-diff` cherche `origin/develop`,
 # la branche créée) : le reposer depuis le socle, jamais le sauter.
 # Pourquoi pas l'API GitHub (`POST git/refs`) : le proxy des sessions cloud la refuse (403), comme
@@ -41,7 +41,7 @@ tete_distante main ||
   sortir 4 "main absente du distant : pousser main d'abord (le socle de la chaîne arrive après le premier push)"
 rapatrier main
 git push -q origin origin/main:refs/heads/develop ||
-  sortir 5 "push refusé : droits d'écriture sur le dépôt ? Un .husky/pre-push antérieur au socle 6.1.1 refuse aussi ce push : reposer le hook (husky/pre-push du socle), jamais le sauter. Sinon l'admin crée develop depuis main (docs/agents/chaine-admin.md)"
+  sortir 5 "push refusé : droits d'écriture sur le dépôt ? Un .husky/pre-push antérieur au socle 7.0.1 refuse aussi ce push : reposer le hook (husky/pre-push du socle), jamais le sauter. Sinon l'admin crée develop depuis main (docs/agents/chaine-admin.md)"
 rapatrier develop
 echo "develop créée sur le distant depuis main ($(git rev-parse --short origin/develop)) et rapatriée"
 echo "branche par défaut et protection : à l'admin (docs/agents/chaine-admin.md)"
