@@ -30,7 +30,7 @@ exit 1
 `;
 // Sans les GIT_* hérités (sous un hook git, ils visent le vrai dépôt) ni NODE_TEST_CONTEXT : avec lui, le
 // `node --test` enfant rend ses résultats au parent au lieu de les jouer et de sortir non nul.
-// Plancher du nombre de tests que l'enfant joue (173 à l'écriture) : sous lui, le garde ne jouait rien.
+// Plancher du nombre de tests que l'enfant joue (plus de 170 à l'écriture) : sous lui, le garde ne jouait rien.
 const PLANCHER = 150;
 const env = () =>
   Object.fromEntries(Object.entries(process.env).filter(([cle]) => !cle.startsWith("GIT_") && cle !== "NODE_TEST_CONTEXT"));
