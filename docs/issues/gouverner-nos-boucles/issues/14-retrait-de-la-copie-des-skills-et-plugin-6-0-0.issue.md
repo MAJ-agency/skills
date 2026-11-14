@@ -57,7 +57,7 @@ Lignes de `origin/main` à `809d62e` (2026-11-14, plugin 5.0.2), toutes relues. 
 
 ### 6. La version — `.claude-plugin/plugin.json`
 
-Ligne 3 : `"version": "6.0.0"`. Règle du `README.md`, « Ajouter un skill », étape 4 (ligne 180) : « majeure quand un skill existant change de contrat ». Les deux tickets en changent : l'architecte perd le verdict `passer-la-main`, `plafonds.mjs` refuse le rôle `architecte`, le socle de la chaîne ne pose plus le gate `skills-recopies` ni le refus d'éditer `.claude/skills/`, et le contrat `gatesRapides` perd une entrée. Précédent : le ticket 8, `4.2.0` vers `5.0.0`. Une seule montée, dans ce ticket, comme les tickets 5 à 8 (`A-1`) : le ticket 13 ne la touche pas.
+Ligne 3 : `"version": "6.0.0"`. Règle du `README.md`, « Ajouter un skill », étape 4 (ligne 180) : « Patch pour une correction, mineure pour un skill ou un gabarit ajouté, majeure quand un skill existant change de contrat ». La majeure tient à ce ticket seul : le socle de la chaîne ne pose plus le gate `skills-recopies` ni le refus d'éditer `.claude/skills/`, le contrat `gatesRapides` de `.claude/chaine.json` perd une entrée, et les projets qui recevaient la copie par PR (workflow et commande de copie retirés) ne la reçoivent plus ; un projet qui comptait sur l'un d'eux doit l'apprendre par la version. Le ticket 13 change la consigne de lecture des skills sans retirer de contrat ; il n'a plus de part sur les plafonds (sortie le 2026-11-14 vers une autre session), et la version n'en dépend pas. Précédent : le ticket 8, `4.2.0` vers `5.0.0`. Une seule montée, dans ce ticket, comme les tickets 5 à 8 (`A-1`) : le ticket 13 ne la touche pas.
 
 **Le déclenchement du workflow.** `recopier-skills.yml` se lance sur un push de `main` qui touche `.claude-plugin/plugin.json`. GitHub lit les workflows dans le commit poussé : le squash de ce ticket monte la version **et** supprime le fichier du workflow, donc aucun workflow de recopie n'existe à ce commit et rien ne se lance. C'est la raison de monter la version ici et non au ticket 13 : un ticket 13 qui l'aurait montée aurait lancé la recopie, qui, avec le secret `RECOPIE_TOKEN`, aurait rouvert sur `anchorpost` la PR d'une copie que `P-24` retire (et échoué sur `iroki-monorepo`). La version doit donc arriver dans le même commit que la suppression : ne pas la monter dans un commit à part poussé avant.
 
@@ -81,7 +81,7 @@ Ligne 3 : `"version": "6.0.0"`. Règle du `README.md`, « Ajouter un skill », �
 
 ## Vérification
 
-- `pnpm test` vert. À `809d62e` : **410 tests** (joué le 2026-11-14 dans un arbre détaché). Ce ticket en retire 26, tous de la copie (13 de `recopier-skills.test.mjs`, 9 de `skills-recopies.test.mjs`, 4 du workflow de recopie dans `depot.test.mjs`), réécrit celui du refus de `regles.test.mjs` et en ajoute 1 (le `.gitignore`) : **385** attendus après le ticket 13, qui n'en change pas le nombre. Aucun test désactivé ; aucun autre retiré.
+- `pnpm test` vert. À `809d62e` : **410 tests** (joué le 2026-11-14 dans un arbre détaché). Ce ticket en retire 26, tous de la copie (13 de `recopier-skills.test.mjs`, 9 de `skills-recopies.test.mjs`, 4 du workflow de recopie dans `depot.test.mjs`), réécrit celui du refus de `regles.test.mjs` et en ajoute 1 (le `.gitignore`) : **385** attendus après le ticket 13, qui n'en change pas le nombre, plus ceux que la session des plafonds aurait ajoutés si elle a fusionné avant. Aucun test désactivé ; aucun autre retiré.
 - Ce dépôt n'a pas de gate des tickets : ce ticket n'est contrôlé que par sa relecture.
 - La PR vise `main`. La session part de `origin/main` avec le ticket 13 fusionné, lit ce ticket sur la branche `claude/compassionate-euler-st84s9`, ne le modifie pas, et écrit à l'architecte dès sa PR livrée (ouverte, hors brouillon), sans attendre ni les contrôles ni la fusion.
 
@@ -91,7 +91,9 @@ Ligne 3 : `"version": "6.0.0"`. Règle du `README.md`, « Ajouter un skill », �
 - Les dépôts de projet : le retrait de la copie d'`anchorpost` (PR 121 : `.claude/skills/<nom>/`, le manifeste, ses exclusions d'`eslint` et de `prettier`, le gate `skills-recopies`, le refus du hook), la première copie d'`iroki-monorepo` qui n'a plus lieu (`P-23` se reprend), le `.gitignore` de chaque projet.
 - `fedora` : son lot se reprend après `P-24`, par d'autres tickets.
 - Le point d'extension de `sujet.sh` qui appelle un script du projet (`A-41`).
+- **Les plafonds et le passage de main de l'architecte, du conducteur et des filles** (`P-25` et la refonte des contrôles de session), menés par une autre session : ce ticket ne touche ni `skills/chaine/chantier/SKILL.md`, ni `plafonds.mjs` et son banc, ni les trois fichiers du gate `tickets`. Il partage avec elle deux fichiers, à des lignes distinctes : `R/chaine.json`, dont il ne retire que la ligne 19 et la virgule de la ligne 18 (pas le `$comment` de la ligne 2), et `R/CONTENU.md`, dont il ne change que la ligne 13 (pas la ligne 5).
 
 ## Comments
 
 - 2026-11-14 — Écrit après `P-24` et `P-25`, en même temps que la réécriture du ticket 13 : le retrait de la copie en est sorti pour tenir sous vingt fichiers par ticket. Dix-huit fichiers, dont huit supprimés.
+- 2026-11-14 — La justification de la 6.0.0 ne s'appuie plus sur l'architecte sans plafond (`passer-la-main`, rôle `architecte` refusé par `plafonds.mjs`), sorti du ticket 13 vers la session qui reprend les contrôles de session : la majeure tient au gate `skills-recopies`, au refus du hook et au service de copie retirés. Version inchangée ; les deux fichiers partagés avec cette session sont nommés sous « Hors périmètre ».
