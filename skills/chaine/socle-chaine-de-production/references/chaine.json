@@ -15,6 +15,7 @@
     "scripts/verify/tickets.mjs",
     "scripts/verify/budget-contexte.mjs",
     "scripts/verify/references-agent.mjs",
-    "scripts/verify/settings-json.mjs"
+    "scripts/verify/settings-json.mjs",
+    "scripts/verify/skills-recopies.mjs"
   ]
 }

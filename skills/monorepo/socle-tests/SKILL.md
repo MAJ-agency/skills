@@ -22,7 +22,7 @@ Une seule, avec sa recommandation : **les seuils de couverture du diff**. _(Reco
 
 ## Étape 2 — poser
 
-1. **Dépendances** (demander avant : le hook d'agent le fait aussi) : `pnpm add -D @vitest/eslint-plugin -w`, puis `pnpm add -D @vitest/coverage-v8@<version de vitest> --filter <chaque paquet qui teste>`. `fast-check` et Stryker s'installent au premier usage, pas ici.
+1. **Dépendances** (les prévoir sur la ligne `Dépendances:` du ticket : le hook d'agent refuse le reste) : `pnpm add -D @vitest/eslint-plugin -w`, puis `pnpm add -D @vitest/coverage-v8@<version de vitest> --filter <chaque paquet qui teste>`. `fast-check` et Stryker s'installent au premier usage, pas ici.
 2. **Le lint des tests** : `references/racine/eslint.tests.mjs` → `eslint.tests.mjs` à la racine. Le `eslint.config.mjs` du socle monorepo le charge s'il existe ; sur un dépôt antérieur, ajouter avant `...brickRules` :
    ```js
    ...(existsSync(join(root, "eslint.tests.mjs")) ? (await import(pathToFileURL(join(root, "eslint.tests.mjs")).href)).default : []),

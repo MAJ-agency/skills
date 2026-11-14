@@ -98,3 +98,14 @@ test('commande de hook hors scripts/agent/ (graphify) : acceptée', () => {
   s.hooks.PreToolUse.push({ matcher: 'Bash|Grep', hooks: [{ type: 'command', command: 'graphify hook-guard search' }] });
   assert.deepEqual(ecarts(s), []);
 });
+
+test('une entrée allow qui autorise une dépendance ou un push illisible est un écart, un joker de pnpm n’en est pas un', () => {
+  const avec = (entree) => {
+    const s = reglesValides();
+    s.permissions.allow.push(entree);
+    return ecarts(s);
+  };
+  assert.ok(avec('Bash(pnpm add zod)').some((m) => /« Bash\(pnpm add zod\) » autorise ce que les hooks refusent/.test(m)));
+  assert.ok(avec('Bash(git push --all:*)').some((m) => /autorise ce que les hooks refusent/.test(m)));
+  assert.deepEqual(avec('Bash(pnpm:*)'), []);
+});

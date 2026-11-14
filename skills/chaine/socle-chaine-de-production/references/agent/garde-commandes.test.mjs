@@ -42,39 +42,46 @@ const lancer = ({ travail, bin, script }, command) =>
     input: JSON.stringify({ tool_input: { command } }),
     encoding: 'utf8',
   });
-const demande = (r) => /"permissionDecision":"ask"/.test(r.stdout);
+/** La commande est refusée : code 2, la raison sur la sortie d'erreur. */
+const refuse = (r, message) => {
+  assert.equal(r.status, 2, message ?? r.stdout);
+  assert.notEqual(r.stderr.trim(), '', message);
+};
+/** La commande passe : code 0, rien sur la sortie d'erreur. */
+const passe = (r, message) => {
+  assert.equal(r.status, 0, message ?? r.stderr);
+  assert.equal(r.stderr, '', message);
+};
 
-test('ticket du sujet avec Dépendances: `leaflet` → pnpm add leaflet passe, zod demande', () => {
+test('ticket du sujet avec Dépendances: `leaflet` → pnpm add leaflet passe, zod est refusé', () => {
   const d = depot('Dépendances: `leaflet`');
-  const r = lancer(d, 'pnpm add leaflet@1.9.4');
-  assert.equal(r.status, 0, r.stderr);
-  assert.equal(demande(r), false, r.stdout);
-  assert.equal(demande(lancer(d, 'pnpm add leaflet zod')), true);
+  passe(lancer(d, 'pnpm add leaflet@1.9.4'));
+  refuse(lancer(d, 'pnpm add leaflet zod'));
 });
 
-test('ticket modifié dans l’arbre de travail ou sur la branche, pas sur le sujet → demander', () => {
+test('ticket modifié dans l’arbre de travail ou sur la branche, pas sur le sujet → refusé', () => {
   const d = depot('Modèle: sonnet');
   writeFileSync(join(d.travail, TICKET), ticket('Dépendances: `leaflet`'));
-  assert.equal(demande(lancer(d, 'pnpm add leaflet')), true, 'arbre de travail');
+  refuse(lancer(d, 'pnpm add leaflet'), 'arbre de travail');
   d.git('commit', '-qam', "je m'autorise");
   d.git('push', '-q', 'origin', 'HEAD:refs/heads/feat/spec-all-demo-1-01-carte');
-  assert.equal(demande(lancer(d, 'pnpm add leaflet')), true, 'branche de la session');
+  refuse(lancer(d, 'pnpm add leaflet'), 'branche de la session');
 });
 
-test('ref locale du sujet déplacée sans que origin la porte → demander', () => {
+test('ref locale du sujet déplacée sans que origin la porte → refusé', () => {
   const d = depot('Modèle: sonnet');
   writeFileSync(join(d.travail, TICKET), ticket('Dépendances: `leaflet`'));
   d.git('commit', '-qam', "je m'autorise");
   d.git('update-ref', 'refs/remotes/origin/sujet/demo', 'HEAD');
-  assert.equal(demande(lancer(d, 'pnpm add leaflet')), true);
+  refuse(lancer(d, 'pnpm add leaflet'));
 });
 
-test('hors d’une branche de ticket : demander, comme avant', () => {
+test('hors d’une branche de ticket : refusé, comme avant', () => {
   const d = depot('Dépendances: `leaflet`');
   d.git('checkout', '-q', '-b', 'docs/relecture');
-  assert.equal(demande(lancer(d, 'pnpm add leaflet')), true);
+  refuse(lancer(d, 'pnpm add leaflet'));
   d.git('checkout', '-q', '--detach');
-  assert.equal(demande(lancer(d, 'pnpm add leaflet')), true);
+  refuse(lancer(d, 'pnpm add leaflet'));
 });
 
 test('ticket sur deux sujets : seuls les paquets que toutes ses copies prévoient passent', () => {
@@ -85,8 +92,8 @@ test('ticket sur deux sujets : seuls les paquets que toutes ses copies prévoien
   d.git('push', '-q', 'origin', 'HEAD:refs/heads/sujet/autre');
   d.git('fetch', '-q', 'origin');
   d.git('checkout', '-q', 'feat/spec-all-demo-1-01-carte');
-  assert.equal(demande(lancer(d, 'pnpm add leaflet')), false);
-  assert.equal(demande(lancer(d, 'pnpm add zod')), true);
+  passe(lancer(d, 'pnpm add leaflet'));
+  refuse(lancer(d, 'pnpm add zod'));
 });
 
 test('écrire la ligne puis pousser soi-même sur le sujet est refusé à l’étape push', () => {
@@ -100,18 +107,18 @@ test('écrire la ligne puis pousser soi-même sur le sujet est refusé à l’é
   // Les formes qui contournaient la première version : refspec cité, `git -C`, `git` par son chemin.
   for (const commande of ['git push origin "HEAD:refs/heads/sujet/demo"', 'git -C . push origin HEAD:sujet/demo', '/usr/bin/git push origin HEAD:sujet/demo'])
     assert.equal(lancer(d, commande).status, 2, commande);
-  assert.equal(demande(lancer(d, 'pnpm add zod')), true);
+  refuse(lancer(d, 'pnpm add zod'));
 });
 
 test('un .npmrc ou un pnpm-workspace.yaml qui diffère de develop, même hors de l’index, suspend le laissez-passer', () => {
   for (const fichier of ['.npmrc', 'pnpm-workspace.yaml']) {
     const d = depot('Dépendances: `leaflet`');
-    assert.equal(demande(lancer(d, 'pnpm add leaflet')), false, 'avant : le paquet prévu passe');
+    passe(lancer(d, 'pnpm add leaflet'), 'avant : le paquet prévu passe');
     writeFileSync(join(d.travail, fichier), 'registry=https://registre.example/\n');
-    assert.equal(demande(lancer(d, 'pnpm add leaflet')), true, `${fichier} non suivi dans l’arbre de travail`);
+    refuse(lancer(d, 'pnpm add leaflet'), `${fichier} non suivi dans l’arbre de travail`);
     d.git('add', fichier);
     d.git('commit', '-qm', 'registre');
-    assert.equal(demande(lancer(d, 'pnpm add leaflet')), true, `${fichier} commité sur la branche`);
+    refuse(lancer(d, 'pnpm add leaflet'), `${fichier} commité sur la branche`);
   }
 });
 
@@ -124,16 +131,20 @@ test('toutes les formes de push vers un sujet sont refusées, sujet.sh carte pas
   }
   d.git('checkout', '-q', '-b', 'sujet/local', 'origin/sujet/demo');
   assert.equal(lancer(d, 'git push').status, 2, 'git push nu depuis une branche sujet/…');
-  assert.equal(demande(lancer(d, 'git push origin "$REF"')), true, 'refspec illisible');
+  refuse(lancer(d, 'git push origin "$REF"'), 'refspec illisible');
   const ok = lancer(d, 'bash scripts/chaine/sujet.sh carte x');
   assert.equal(ok.status, 0, ok.stderr);
-  assert.equal(demande(ok), false, ok.stdout);
+  passe(ok, ok.stdout);
 });
 
-test('scripts/docs/identifiants.mjs absent : le hook ne tombe pas, il demande et garde ses refus', () => {
+test('scripts/docs/identifiants.mjs absent : le hook ne tombe pas, il refuse la dépendance et garde ses refus', () => {
   const d = depot('Dépendances: `leaflet`', { avecIdentifiants: false });
-  const r = lancer(d, 'pnpm add leaflet');
-  assert.equal(r.status, 0, r.stderr);
-  assert.equal(demande(r), true);
+  refuse(lancer(d, 'pnpm add leaflet'));
   assert.equal(lancer(d, 'git push --force origin x').status, 2);
+});
+
+test('la sortie standard ne porte jamais permissionDecision, commande refusée ou non', () => {
+  const d = depot('Dépendances: `leaflet`');
+  for (const commande of ['pnpm add zod', 'pnpm add leaflet', 'git push origin "$REF"', 'git push --force origin x', 'pnpm check'])
+    assert.doesNotMatch(lancer(d, commande).stdout, /permissionDecision/, commande);
 });

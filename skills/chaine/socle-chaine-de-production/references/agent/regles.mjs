@@ -25,6 +25,9 @@ export const CHAINE = lireJson(new URL('../../.claude/chaine.json', import.meta.
 /** Index générés : `[{ chemin, commande }]`, `*` = un segment de chemin. */
 export const INDEX_GENERES = lireJson(new URL('../docs/index-generes.json', import.meta.url))?.index ?? [];
 
+/** Manifeste de la copie des skills de la chaîne (`.claude/skills/maj-skills.json`), `null` s'il est absent ou illisible. */
+export const MANIFESTE_SKILLS = lireJson(new URL('../../.claude/skills/maj-skills.json', import.meta.url));
+
 /**
  * Fichiers générés : ils se régénèrent, ils ne s'éditent pas. Chemin (`*` = un segment) → commande.
  * Les index de `INDEX_GENERES` y sont tous, plus le lockfile.
@@ -40,13 +43,30 @@ const cheminDuMotif = (motif) => new RegExp(`^${motif.replace(/[.+?^${}()|[\]\\]
 /**
  * Refus d'éditer un fichier, ou `null` si l'édition est permise.
  * @param {string} chemin chemin relatif à la racine du dépôt
- * @param {{ migrationExistante: (chemin: string) => boolean, migrations?: string }} contexte
+ * @param {{ migrationExistante: (chemin: string) => boolean, migrations?: string, skillsRecopies?: string[], versionSkills?: string }} contexte
  *   `migrations` : dossier des migrations (défaut : `CHAINE.migrations`, sinon `apps/api/src/db/migrations/`)
+ *   `skillsRecopies` : noms des skills recopiés (défaut : `skills` du manifeste, sinon `[]`) ; vide, rien n'est protégé
+ *   `versionSkills` : version de la copie (défaut : `version` du manifeste, sinon `?`)
  */
-export function refusEdition(chemin, { migrationExistante, migrations = CHAINE.migrations ?? 'apps/api/src/db/migrations/' }) {
+export function refusEdition(
+  chemin,
+  {
+    migrationExistante,
+    migrations = CHAINE.migrations ?? 'apps/api/src/db/migrations/',
+    skillsRecopies = Array.isArray(MANIFESTE_SKILLS?.skills) ? MANIFESTE_SKILLS.skills : [],
+    versionSkills = MANIFESTE_SKILLS?.version ?? '?',
+  },
+) {
   const c = chemin.replace(/\\/g, '/').replace(/^\.\//, '');
   const genere = Object.keys(FICHIERS_GENERES).find((motif) => cheminDuMotif(motif).test(c));
   if (genere) return `${c} est généré : le régénérer avec « ${FICHIERS_GENERES[genere]} ».`;
+  if (skillsRecopies.length > 0) {
+    const skill = /^\.claude\/skills\/([^/]+)\//.exec(c)?.[1];
+    const dansLaCopie = c === '.claude/skills/maj-skills.json' || (skill !== undefined && skillsRecopies.includes(skill));
+    if (dansLaCopie) {
+      return `${c} est une copie des skills de la chaîne (maj-skills ${versionSkills}) : elle ne se modifie pas dans ce projet. Modifier le skill dans MAJ-agency/skills ; la copie arrive par PR.`;
+    }
+  }
   const nom = c.split('/').pop() ?? '';
   if (/^\.env(\..+)?$/.test(nom) && nom !== '.env.example') {
     return `${c} : fichier d'environnement local, jamais édité par un agent (secrets). Modifier .env.example.`;
@@ -69,7 +89,7 @@ const COMMANDES_INTERDITES = [
 ];
 
 const RAISON_DEPENDANCE =
-  "Nouvelle dépendance : vérifier qu'elle existe depuis longtemps, ses mainteneurs, ses téléchargements, et qu'aucun code interne ne suffit. Un paquet prévu par la ligne `Dépendances:` du ticket, sur le sujet, passe sans question.";
+  "Dépendance nouvelle refusée : elle n'est pas sur la ligne `Dépendances:` du ticket, lue sur le sujet (ou cette ligne ne se lit pas : origin injoignable, option qui change la source, `.npmrc` modifié, ticket hors sujet, branche sans ticket). Écris à qui a lancé ta session, ton conducteur dans un chantier : le paquet, pourquoi, ce qu'il remplace. C'est lui qui l'accorde, en complétant la ligne sur le sujet. Un paquet prévu par cette ligne passe.";
 
 /** Options de pnpm suivies d'une valeur, qu'il ne faut pas prendre pour un paquet. */
 const OPTIONS_A_VALEUR = new Set(['--filter', '-F', '--dir', '-C', '--reporter', '--loglevel', '--store-dir', '--modules-dir', '--lockfile-dir', '--network-concurrency', '--child-concurrency']);
@@ -89,7 +109,7 @@ export const nomDuPaquet = (specification) => {
 /**
  * Options de `pnpm add` qui ne changent ni la source ni la cible de l'installation : seules celles-ci
  * laissent passer un paquet prévu. `--registry`, `--config.*`, `--global`, `-C`/`--dir` (qui lit le
- * `.npmrc` d'un autre dossier)… demandent toujours.
+ * `.npmrc` d'un autre dossier)… sont toujours refusées.
  */
 const OPTIONS_SANS_RISQUE = new Set(['-D', '--save-dev', '-P', '--save-prod', '-O', '--save-optional', '-E', '--save-exact', '--save-peer', '-w', '--workspace-root', '--filter', '-F', '--prefer-offline', '--offline']);
 
@@ -150,7 +170,7 @@ export function sansTexte(commande) {
 const RAISON_PUSH_SUJET =
   "un sujet ne se pousse jamais à la main, quelle que soit la branche : seul sujet.sh y écrit (demarrer, rafraichir, fusionner, livrer, carte). Sans ce refus, une session écrirait elle-même la ligne `Dépendances:` qui l'autorise. Pour la carte : `bash scripts/chaine/sujet.sh carte <nom>`.";
 const RAISON_PUSH_ILLISIBLE =
-  "git push dont la destination ne se lit pas (variable, substitution, motif, --all, --mirror) : elle pourrait viser un sujet. L'écrire en clair ; pour la carte : `bash scripts/chaine/sujet.sh carte <nom>`.";
+  "git push dont la destination ne se lit pas (variable, substitution, motif, --all, --mirror) : elle pourrait viser un sujet. Écris le refspec en clair ; pour la carte : `bash scripts/chaine/sujet.sh carte <nom>`.";
 
 /** La commande sans ses corps de heredoc ni ses guillemets : un refspec cité se lit comme un refspec nu. */
 function sansGuillemets(commande) {
@@ -234,17 +254,18 @@ export function pushSansRefspec(commande) {
 }
 
 /**
- * Décision sur une commande shell : `{ decision: 'refuser' | 'demander', raison }`, ou `null`.
+ * Décision sur une commande shell : `{ decision: 'refuser', raison }`, ou `null`. Le hook ne demande
+ * jamais rien à un humain : ce qu'il ne laisse pas passer, il le refuse et dit quoi faire.
  * @param {{ dependancesPrevues?: () => string[] | null, brancheCourante?: () => string | null }} [contexte]
  *   Tout `git push` vers un `sujet/…` est refusé, quelle que soit la branche courante : un sujet ne
  *   s'écrit que par `sujet.sh`, sans quoi la session écrirait elle-même la ligne qui l'autorise. Un
  *   `git push` sans refspec, ou vers `HEAD`, depuis une branche `sujet/…` (`brancheCourante`, lue
  *   une fois au plus) l'est aussi ; un refspec illisible (variable, substitution, motif, `--all`)
- *   demande.
+ *   l'est aussi.
  *   `dependancesPrevues` : paquets de la ligne `Dépendances:` du ticket de la branche, lue sur le
  *   sujet (`null` si introuvable) ; appelée seulement si la commande ajoute un paquet. Une commande
  *   passe sans question quand chacun de ses paquets y figure et qu'aucune option ne change la source
- *   (`--registry`, `--config.*`) ; un seul paquet absent ou une telle option, et elle demande.
+ *   (`--registry`, `--config.*`) ; un seul paquet absent ou une telle option, et elle est refusée.
  */
 export function decisionCommande(commande, { dependancesPrevues = () => null, brancheCourante = () => null } = {}) {
   const code = sansTexte(commande);
@@ -253,14 +274,14 @@ export function decisionCommande(commande, { dependancesPrevues = () => null, br
   const courante = () => (branche === undefined ? (branche = brancheCourante()) : branche);
   if (pousseSurUnSujet(commande, courante)) return { decision: 'refuser', raison: RAISON_PUSH_SUJET };
   if (pushSansRefspec(commande) && (courante() ?? '').startsWith('sujet/')) return { decision: 'refuser', raison: RAISON_PUSH_SUJET };
-  if (pushIllisible(commande)) return { decision: 'demander', raison: RAISON_PUSH_ILLISIBLE };
+  if (pushIllisible(commande)) return { decision: 'refuser', raison: RAISON_PUSH_ILLISIBLE };
   const liste = ajouts(code);
   if (liste.length === 0) return null;
   const sansRisque = liste.every(({ options }) => options.every((o) => OPTIONS_SANS_RISQUE.has(o)));
   const prevues = sansRisque ? dependancesPrevues() : null;
   const paquets = liste.flatMap((a) => a.paquets);
   if (Array.isArray(prevues) && paquets.every((p) => prevues.includes(p))) return null;
-  return { decision: 'demander', raison: RAISON_DEPENDANCE };
+  return { decision: 'refuser', raison: RAISON_DEPENDANCE };
 }
 
 /** Un fichier que le hook d'après-édition passe à Prettier puis ESLint. */
