@@ -22,3 +22,12 @@ test("nomsDeSujets accepte un nom sans préfixe quand le lecteur le tolère (cou
   assert.deepEqual(nomsDeSujets("a, sujet/b", { prefixeFacultatif: true }), ["a", "b"]);
   assert.equal(nomsDeSujets("sujet/a sujet/b", { prefixeFacultatif: true }), null);
 });
+
+test("nomsDeSujets lit les blancs comme l'awk de sujet.sh : espaces et tabulations autour, rien d'autre en tête ni autour d'une virgule", () => {
+  assert.deepEqual(nomsDeSujets("sujet/a,\tsujet/b"), ["a", "b"]);
+  assert.deepEqual(nomsDeSujets("sujet/a, sujet/b\f"), ["a", "b"], "fin de ligne : [[:space:]] de l'awk");
+  assert.deepEqual(nomsDeSujets("sujet/a, sujet/b\v"), ["a", "b"]);
+  for (const mal of ["sujet/a, sujet/b ", " sujet/a", "sujet/a, sujet/b", "sujet/a ,\fsujet/b", "\fsujet/a", "\vsujet/a"]) {
+    assert.equal(nomsDeSujets(mal), null, JSON.stringify(mal));
+  }
+});
