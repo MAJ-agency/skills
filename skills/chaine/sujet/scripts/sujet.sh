@@ -9,7 +9,9 @@
 #                         base de la future PR (sujet/<nom>, ou develop si le ticket n'a pas de sujet)
 #                         refuse (4) un ticket dont la spec n'est pas sur cette base, ou dont un
 #                         `Blocked by:` n'y est pas fait (Status resolved/Fait/done) ; une branche
-#                         qui a déjà des commits partis de develop reçoit la commande de rebase
+#                         qui a déjà des commits partis de develop reste intacte et reçoit la suite
+#                         qui les reprend sur une branche neuve partie du sujet (cherry-pick, jamais
+#                         de rebase ni de push forcé)
 #   ouvrir <nom> [--specs <pr>]
 #                         crée sujet/<nom> depuis develop, sans protection de branche ;
 #                         `--specs` recible sur le sujet la PR de specs du lot
@@ -368,9 +370,17 @@ Ne pas partir de la branche de specs : attendre sa fusion (ou \`sujet.sh ouvrir 
     # Aucun commit propre : la branche repart du sujet (les modifications non commitées suivent).
     git switch -q -C "$courante" "origin/$branche"
   else
-    echo "$courante porte déjà des commits partis de develop. Pour la placer sur le sujet (branche à soi) :"
-    echo "  git rebase --onto origin/$branche origin/develop && git push --force-with-lease"
-    sortir 4 "puis relancer demarrer"
+    # Jamais de rebase ni de push forcé : les commits passent sur une branche neuve, l'ancienne reste.
+    local neuve="$courante-sur-sujet"
+    echo "$courante porte déjà des commits partis de develop : on ne la rebase pas, on ne pousse jamais en force."
+    echo "Reprendre ses commits sur une branche neuve partie du sujet (arbre de travail propre d'abord) :"
+    echo "  git switch --no-track -c $neuve origin/$branche"
+    echo "  git cherry-pick --no-merges origin/develop..$courante"
+    echo "  git push -u origin $neuve"
+    echo "En conflit : résoudre, git add, git cherry-pick --continue (ou --abort : rien n'est perdu, l'ancienne branche reste ; après --abort, $neuve existe déjà : la reprendre par git switch $neuve, pas par -c)."
+    echo "Ouvrir la PR de $neuve vers $branche ; fermer celle de $courante en citant la nouvelle."
+    echo "$courante reste sur origin, intacte : sa suppression n'est pas un geste de session."
+    sortir 4 "puis relancer demarrer depuis $neuve"
   fi
   echo "base=$branche"
   echo "$courante part de $branche ($(git rev-parse --short "origin/$branche")) : la PR vise $branche,"

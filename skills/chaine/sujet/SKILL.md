@@ -22,7 +22,7 @@ Le sujet se **déclare au découpage** : `Sujet: sujet/<nom>` en tête de la spe
 ## Session de travail
 
 1. **Réserver** le ticket : `docs/agents/issue-tracker.md` § « Réserver un ticket ».
-2. **Avant le premier commit** : `bash scripts/chaine/sujet.sh demarrer <ticket|nom>`, qui place la branche sur le sujet du ticket et affiche `base=…` (`develop` : le ticket n'a pas de sujet). Ses refus (sortie 4) et leur raison sont dans l'en-tête de `sujet.sh` : spec pas encore sur la base, `Blocked by:` pas fait, branche partie d'une branche de specs. Cas vécu : douze PR en conflit au squash de leurs specs.
+2. **Avant le premier commit** : `bash scripts/chaine/sujet.sh demarrer <ticket|nom>`, qui place la branche sur le sujet du ticket et affiche `base=…` (`develop` : le ticket n'a pas de sujet). Ses refus (sortie 4) et leur raison sont dans l'en-tête de `sujet.sh` : spec pas encore sur la base, `Blocked by:` pas fait, branche partie d'une branche de specs. Cas vécu : douze PR en conflit au squash de leurs specs. Une branche qui a déjà des commits partis de develop n'est ni rebasée ni poussée en force : `demarrer` la laisse intacte et affiche la suite qui reprend ses commits sur une branche neuve partie du sujet (`git switch --no-track -c`, `git cherry-pick --no-merges`, `git push -u`) ; la PR de l'ancienne branche se ferme en citant la nouvelle.
 3. La PR vise la base affichée. Son titre suit Conventional Commits, car il deviendra un commit de develop, et tient en 120 caractères avec ` (#n)`. Label `à-fusionner` et PR jamais empilée : `CLAUDE.md` § « Fusion vers `develop` : une file, un capitaine » ; la suite d'un travail repart du sujet.
 
 ## Capitaine (automatique)
@@ -51,6 +51,6 @@ Avec le réglage « Automatically delete head branches » du dépôt (liste de l
 
 ## Ne jamais
 
-- Rebaser ou pousser en force une branche de sujet, ou y pousser à la main : la carte passe par `sujet.sh carte <nom>`.
+- Rebaser une branche de sujet, pousser en force une branche, quelle qu'elle soit (la sienne comprise), ou pousser à la main sur un sujet : la carte passe par `sujet.sh carte <nom>`.
 - Fusionner une sous-PR dont un check exigé est rouge ou en cours.
 - Regrouper une série non déclarée sans l'accord de l'utilisateur, ou mettre un correctif de démo dans un sujet.

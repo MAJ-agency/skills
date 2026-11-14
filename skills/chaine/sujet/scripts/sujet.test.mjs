@@ -93,6 +93,63 @@ test("demarrer refuse un ticket dont la spec n’est que sur une branche de spec
   assert.match(r.stdout, /ni sur develop ni sur un sujet/);
 });
 
+// Branche de ticket partie de develop, deux commits, déjà poussée, alors que le ticket déclare un
+// sujet qui a avancé ; develop a avancé aussi, et la branche l'a fusionné (commit de merge).
+const TRAVAIL = "feat/spec-all-dem-1-01-travail";
+function brancheParteDeDevelop() {
+  const d = sujetAvecTickets("—");
+  d.git("switch", "-q", "-c", "tmp", "origin/sujet/demo");
+  d.ecrire("sujet.txt", "sujet\n");
+  d.commit("feat: le sujet avance");
+  d.git("push", "-q", "origin", "HEAD:sujet/demo");
+  d.git("switch", "-q", "-c", TRAVAIL, "origin/develop");
+  d.ecrire("a.txt", "a\n");
+  d.commit("feat: a");
+  d.git("switch", "-q", "-c", "tmp2", "origin/develop");
+  d.ecrire("develop.txt", "develop\n");
+  d.commit("feat: develop avance");
+  d.git("push", "-q", "origin", "HEAD:develop");
+  d.git("fetch", "-q", "origin");
+  d.git("switch", "-q", TRAVAIL);
+  d.git("merge", "-q", "--no-edit", "origin/develop");
+  d.ecrire("b.txt", "b\n");
+  d.commit("feat: b");
+  d.git("push", "-q", "-u", "origin", `HEAD:refs/heads/${TRAVAIL}`);
+  return d;
+}
+
+test("demarrer d'une branche poussée partie de develop : refus 4, consigne sans rebase ni push forcé, branche intacte", () => {
+  const d = brancheParteDeDevelop();
+  const avant = { tete: d.git("rev-parse", "HEAD"), distante: d.git("ls-remote", "--heads", "origin", TRAVAIL) };
+  const r = demarrer(d, "SPEC_ALL_DEM-1.01");
+  assert.equal(r.status, 4, r.stdout + r.stderr);
+  assert.doesNotMatch(r.stdout, /\brebase\b.*origin|--force|push -f|\+HEAD|reset --hard|--amend/);
+  assert.match(r.stdout, /^ {2}git switch --no-track -c feat\/spec-all-dem-1-01-travail-sur-sujet origin\/sujet\/demo$/m);
+  assert.match(r.stdout, /^ {2}git cherry-pick --no-merges origin\/develop\.\.feat\/spec-all-dem-1-01-travail$/m);
+  assert.match(r.stdout, /^ {2}git push -u origin feat\/spec-all-dem-1-01-travail-sur-sujet$/m);
+  assert.match(r.stdout, /^En conflit : résoudre, git add, git cherry-pick --continue \(ou --abort : rien n'est perdu, l'ancienne branche reste ; après --abort, feat\/spec-all-dem-1-01-travail-sur-sujet existe déjà : la reprendre par git switch feat\/spec-all-dem-1-01-travail-sur-sujet, pas par -c\)\.$/m);
+  assert.equal(d.git("rev-parse", "HEAD"), avant.tete);
+  assert.equal(d.git("rev-parse", "--abbrev-ref", "HEAD"), TRAVAIL);
+  assert.equal(d.git("ls-remote", "--heads", "origin", TRAVAIL), avant.distante);
+});
+
+test("la consigne de demarrer, jouée telle quelle, reprend les commits sur une branche neuve partie du sujet", () => {
+  const d = brancheParteDeDevelop();
+  const distante = d.git("ls-remote", "--heads", "origin", TRAVAIL);
+  const consigne = demarrer(d, "SPEC_ALL_DEM-1.01").stdout.split("\n").filter((l) => l.startsWith("  git "));
+  assert.equal(consigne.length, 3, consigne.join("\n"));
+  d.git(...consigne[0].trim().split(/\s+/).slice(1));
+  assert.throws(() => d.git("rev-parse", "--abbrev-ref", "@{u}"), undefined, "la branche neuve ne suit pas le sujet");
+  for (const ligne of consigne.slice(1)) d.git(...ligne.trim().split(/\s+/).slice(1));
+  assert.equal(d.git("rev-parse", "--abbrev-ref", "@{u}"), `origin/${TRAVAIL}-sur-sujet`);
+  const r = demarrer(d, "SPEC_ALL_DEM-1.01");
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /^base=sujet\/demo$/m);
+  assert.equal(d.git("log", "--format=%s", "origin/sujet/demo..HEAD"), "feat: b\nfeat: a");
+  assert.equal(d.git("rev-parse", "HEAD"), d.git("rev-parse", `origin/${TRAVAIL}-sur-sujet`));
+  assert.equal(d.git("ls-remote", "--heads", "origin", TRAVAIL), distante);
+});
+
 test("ouvrir crée le sujet par git push et ne tente aucun appel de protection", () => {
   const d = depotJouet();
   const r = d.lancer(SCRIPT, "ouvrir", "demo");

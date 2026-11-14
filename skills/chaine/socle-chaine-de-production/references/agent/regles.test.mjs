@@ -25,7 +25,7 @@ test('refusEdition refuse le lockfile et les fichiers .env, laisse .env.example'
 
 test('decisionCommande refuse le push forcé, --no-verify, le push direct sur develop/main, le rebase d’un sujet', () => {
   assert.equal(decisionCommande('git push --force origin feat/x').decision, 'refuser');
-  assert.equal(decisionCommande('git push --force-with-lease origin feat/x'), null);
+  assert.equal(decisionCommande('git push --force-with-lease origin feat/x').decision, 'refuser');
   assert.equal(decisionCommande('git commit --no-verify -m x').decision, 'refuser');
   assert.equal(decisionCommande('git push origin develop').decision, 'refuser');
   assert.equal(decisionCommande('git push origin HEAD:main').decision, 'refuser');
@@ -78,6 +78,42 @@ test('ticket introuvable (contexte null ou vide) : refusé ; les refus restent',
   let lu = false;
   decisionCommande('pnpm install --frozen-lockfile', { dependancesPrevues: () => (lu = true) });
   assert.equal(lu, false, 'le ticket ne se lit que si la commande ajoute un paquet');
+});
+
+test('tout push forcé est refusé, sur toute branche et sous toute forme ; la consigne de sujet.sh demarrer passe', () => {
+  for (const commande of [
+    'git push --force origin feat/x',
+    'git push -f origin feat/x',
+    'git push -uf origin feat/x',
+    'git push --force-with-lease',
+    'git push --force-with-lease origin feat/x',
+    'git push --force-with-lease=feat/x:abc123 origin feat/x',
+    'git push --force-w origin feat/x',
+    'git push --force-if-includes --force-with-lease origin feat/x',
+    'git push origin +HEAD:feat/x',
+    'git push origin "+HEAD:feat/x"',
+    'git push origin +feat/x',
+    'git -C . push --force-with-lease origin feat/x',
+    'timeout 5 git push origin +HEAD:feat/x',
+    'git rebase --onto origin/sujet/demo origin/develop && git push --force-with-lease',
+    'git push \\\n  --force origin feat/x',
+    'git push origin feat/x \\\n  -f',
+    'F=--force; git push $F origin feat/x',
+    "git push $'--force' origin feat/x",
+  ]) {
+    const d = decisionCommande(commande, { brancheCourante: () => 'feat/spec-all-demo-1-01-travail' });
+    assert.equal(d?.decision, 'refuser', commande);
+  }
+  assert.match(decisionCommande('git push --force-with-lease origin feat/x').raison, /cherry-pick/);
+  for (const commande of [
+    'git switch --no-track -c feat/spec-all-demo-1-01-travail-sur-sujet origin/sujet/demo',
+    'git cherry-pick --no-merges origin/develop..feat/spec-all-demo-1-01-travail',
+    'git push -u origin feat/spec-all-demo-1-01-travail-sur-sujet',
+    'git push --follow-tags origin feat/x',
+    'git push --no-force-with-lease origin feat/x',
+    'git commit -m "jamais git push --force"',
+  ])
+    assert.equal(decisionCommande(commande, { brancheCourante: () => 'feat/spec-all-demo-1-01-travail' }), null, commande);
 });
 
 test('un push vers un sujet est refusé, quelle que soit la branche et la forme de la commande', () => {
