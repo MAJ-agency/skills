@@ -68,7 +68,6 @@ export function refusEdition(
 const COMMANDES_INTERDITES = [
   [/(^|[;&|]\s*|\s)npm\s+(i|install|ci|add|uninstall|update)\b/, 'npm : le gestionnaire du projet est pnpm.'],
   [/(^|[;&|]\s*|\s)yarn(\s|$)/, 'yarn : le gestionnaire du projet est pnpm.'],
-  [/\bgit\s+push\b[^;&|]*\s(--force(?!-with-lease)|-f)(\s|$)/, "git push --force : interdit (réécrit l'historique partagé). --force-with-lease sur sa propre branche seulement."],
   [/\bgit\s+(commit|push)\b[^;&|]*\s--no-verify\b/, "--no-verify : les hooks git sont le pare-feu local — corriger ce qu'ils signalent."],
   [/\bgit\s+push\b[^;&|]*[\s:](develop|main)(\s|$)/, 'pousser sur develop ou main : jamais directement, une PR passe par le capitaine de fusion.'],
   [/\bgit\s+(rebase|reset\s+--hard)\b[^;&|]*\b(origin\/)?(develop|main|sujet\/)/, 'rebase ou reset --hard sur une branche partagée : jamais ; un sujet se rafraîchit par merge (sujet.sh rafraichir).'],
@@ -155,6 +154,8 @@ export function sansTexte(commande) {
 
 const RAISON_PUSH_SUJET =
   "un sujet ne se pousse jamais à la main, quelle que soit la branche : seul sujet.sh y écrit (demarrer, rafraichir, fusionner, livrer, carte). Sans ce refus, une session écrirait elle-même la ligne `Dépendances:` qui l'autorise. Pour la carte : `bash scripts/chaine/sujet.sh carte <nom>`.";
+const RAISON_PUSH_FORCE =
+  "push forcé (--force, --force-with-lease, --force-if-includes, -f, refspec +…) : jamais, sur aucune branche, la sienne comprise (il réécrit un historique publié). Une branche à reprendre se refait : branche neuve, `git cherry-pick`, nouvelle PR.";
 const RAISON_PUSH_ILLISIBLE =
   "git push dont la destination ne se lit pas (variable, substitution, motif, --all, --mirror) : elle pourrait viser un sujet. Écris le refspec en clair ; pour la carte : `bash scripts/chaine/sujet.sh carte <nom>`.";
 
@@ -191,6 +192,7 @@ function pushs(commande) {
       const positionnels = [];
       let tout = false;
       let remoteEnOption = false;
+      let force = false;
       for (let k = j + 1; k < mots.length; k++) {
         const mot = mots[k];
         if (!mot.startsWith('-')) {
@@ -198,10 +200,12 @@ function pushs(commande) {
           continue;
         }
         if (/^--(all|mirror|branches)$/.test(mot)) tout = true;
+        if (/^(--for[a-z-]*(=.*)?|-[a-zA-Z]*f[a-zA-Z]*)$/.test(mot)) force = true;
         if (/^--repo(=|$)/.test(mot)) remoteEnOption = true;
         if (OPTIONS_PUSH_A_VALEUR.has(mot)) k++;
       }
-      return [{ refspecs: remoteEnOption ? positionnels : positionnels.slice(1), tout }];
+      const refspecs = remoteEnOption ? positionnels : positionnels.slice(1);
+      return [{ refspecs, tout, force: force || refspecs.some((refspec) => refspec.startsWith('+')) }];
     });
 }
 
@@ -234,6 +238,13 @@ export function pushIllisible(commande) {
   );
 }
 
+/**
+ * Vrai si un `git push` de la commande force : `--force`, `--force-with-lease`, `--force-if-includes`,
+ * leurs abréviations (`--force-w`), avec ou sans valeur, `-f` seul ou groupé (`-uf`), ou un refspec
+ * `+…`, cité ou non. Aucune branche n'en est exemptée : les règles du produit interdisent tout push forcé.
+ */
+export const pousseEnForce = (commande) => pushs(commande).some(({ force }) => force);
+
 /** Vrai si un `git push` de la commande n'a aucun refspec : il pousse la branche courante vers son amont. */
 export function pushSansRefspec(commande) {
   return pushs(commande).some(({ refspecs }) => refspecs.length === 0);
@@ -260,6 +271,7 @@ export function decisionCommande(commande, { dependancesPrevues = () => null, br
   const courante = () => (branche === undefined ? (branche = brancheCourante()) : branche);
   if (pousseSurUnSujet(commande, courante)) return { decision: 'refuser', raison: RAISON_PUSH_SUJET };
   if (pushSansRefspec(commande) && (courante() ?? '').startsWith('sujet/')) return { decision: 'refuser', raison: RAISON_PUSH_SUJET };
+  if (pousseEnForce(commande)) return { decision: 'refuser', raison: RAISON_PUSH_FORCE };
   if (pushIllisible(commande)) return { decision: 'refuser', raison: RAISON_PUSH_ILLISIBLE };
   const liste = ajouts(code);
   if (liste.length === 0) return null;

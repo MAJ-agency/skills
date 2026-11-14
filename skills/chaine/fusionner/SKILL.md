@@ -80,7 +80,7 @@ Compte rendu à l'utilisateur : PR fusionnées, avec squash et arbre vérifié ;
 
 - Fusionner une PR sans label, même verte, ou celle d'un autre membre de l'équipe qui ne l'a pas étiquetée lui-même.
 - Résoudre un conflit de code à la place de la session propriétaire. Les index générés font exception : ils se régénèrent.
-- Rebaser ou pousser en force la branche d'une autre session.
+- Rebaser la branche d'une autre session, ou pousser en force une branche, quelle qu'elle soit (la sienne comprise).
 - Contourner la protection de develop avec les droits admin.
 
 ## Enseignements
