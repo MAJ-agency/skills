@@ -286,12 +286,16 @@ export function lireCheminsSensibles(texte) {
 }
 
 /** Valeurs par défaut des plafonds (A-9 ; P-3, amendée le 2026-11-14) : les mêmes que dit `chantier/SKILL.md` § 6. */
-const PLAFONDS_PAR_DEFAUT = { contexteFille: 400000, coutFille: 20, contextePilote: 400000, renvoisParPR: 3 };
+const PLAFONDS_PAR_DEFAUT = { contexteFille: 400000, contextePilote: 400000, renvoisParPR: 3 };
+
+/** Clés d'avant, qu'un contrat déjà posé peut encore porter : acceptées telles quelles, et ignorées. */
+const PLAFONDS_ABANDONNES = new Set(['coutFille']);
 
 /**
  * `plafonds` du contrat `.claude/chaine.json`. `texte` null : pas de contrat, aucun plafond contrôlé
  * (`null`). Contrat sans la clé : les valeurs par défaut. Clé mal formée, comme un contrat illisible :
- * lève (le gate échoue fermé).
+ * lève (le gate échoue fermé). `coutFille`, le seuil de coût d'une fille abandonné le 2026-11-14, est
+ * ignoré quelle que soit sa valeur : seul le contexte se juge.
  */
 export function lirePlafonds(texte) {
   if (texte === null) return null;
@@ -305,12 +309,15 @@ export function lirePlafonds(texte) {
   if (p === undefined) return { ...PLAFONDS_PAR_DEFAUT };
   if (typeof p !== 'object' || p === null || Array.isArray(p))
     throw new Error('.claude/chaine.json : `plafonds` doit être un objet');
+  const lus = {};
   for (const [cle, v] of Object.entries(p)) {
+    if (PLAFONDS_ABANDONNES.has(cle)) continue;
     if (!(cle in PLAFONDS_PAR_DEFAUT)) throw new Error(`.claude/chaine.json : plafonds.${cle} inconnu`);
     if (typeof v !== 'number' || !Number.isFinite(v) || v <= 0)
       throw new Error(`.claude/chaine.json : plafonds.${cle} doit être un nombre strictement positif`);
+    lus[cle] = v;
   }
-  return { ...PLAFONDS_PAR_DEFAUT, ...p };
+  return { ...PLAFONDS_PAR_DEFAUT, ...lus };
 }
 
 const cellulesDe = (ligne) => ligne.trim().replace(/^\||\|$/g, '').split('|').map((c) => c.trim());
@@ -329,15 +336,10 @@ export function contexteEnTokens(texte) {
   return Number(m[1].replace(/\s/g, '')) * (m[2] ? 1000 : 1);
 }
 
-/** Coût `2,20` ou `2.20` → nombre ; autre forme → null (la lecture de `couts.mjs`, `montant`). */
-const coutEnDollars = (texte) => {
-  const t = texte.trim().replace(/\s/g, '').replace(',', '.');
-  return /^\d+(\.\d+)?$/.test(t) ? Number(t) : null;
-};
-
 /**
  * Plafonds de `## Coût` : une ligne dont le rôle est jugé (`fille`, `conducteur` ; pas `architecte`, P-25) qui
- * atteint son plafond (l'égalité compte) exige une ligne dans `## Dépassements` pour la même session.
+ * atteint son plafond de contexte (l'égalité compte) exige une ligne dans `## Dépassements` pour la même
+ * session. Le coût ne se juge pas : la colonne « Coût $ » n'est pas lue ici.
  * Tout autre rôle n'est pas jugé ; une cellule « Contexte max » vide, `—`, `à relever` ou au gabarit
  * non plus ; toute autre forme illisible sur un rôle jugé est une erreur de la carte.
  */
@@ -349,7 +351,7 @@ function plafondsDeLaCarte({ nom, lignes, corps, plafonds }) {
       .filter((s) => !NON_RELEVE.test(s)),
   );
   for (const { ligne, cellules } of lignesDeTableau(lignes, corps.get('Coût'))) {
-    const [role = '', ticket = '', session = '', , contexte = '', cout = ''] = cellules;
+    const [role = '', ticket = '', session = '', , contexte = ''] = cellules;
     const r = role.toLowerCase();
     const fille = r === 'fille';
     if (!fille && r !== 'conducteur') continue; // l'architecte n'a pas de plafond (P-25)
@@ -363,15 +365,6 @@ function plafondsDeLaCarte({ nom, lignes, corps, plafonds }) {
       const plafond = fille ? plafonds.contexteFille : plafonds.contextePilote;
       if (tokens >= plafond) mesures.push(`contexte ${tokens} tokens ≥ plafond ${plafond}`);
     }
-    let dollars = null;
-    if (fille && !NON_RELEVE.test(cout)) {
-      dollars = coutEnDollars(cout);
-      if (dollars === null) {
-        erreurs.push({ ligne, message: `carte ${nom} : \`## Coût\`, ligne ${role}/${ticket} : « Coût $ » « ${cout} » illisible (attendu un montant : \`2,20\`)` });
-        continue;
-      }
-    }
-    if (dollars !== null && dollars >= plafonds.coutFille) mesures.push(`coût ${dollars} $ ≥ plafond ${plafonds.coutFille} $`);
     if (mesures.length === 0 || (session && couvertes.has(session))) continue;
     erreurs.push({
       ligne,

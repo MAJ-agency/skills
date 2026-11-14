@@ -80,7 +80,7 @@ Puis, dans le corps, quatre sections que la fille lit au lieu de chercher :
 
 Le gate `tickets` (`pnpm check:tickets`, `scripts/verify/tickets.mjs`) refuse un ticket `ready-for-agent` sans `Modèle:`, sans l'une de ces quatre sections, ou dont `Fichiers chauds:` touche un motif de `cheminsSensibles` sans `Label: contre-revue` (l'ancienne valeur `Label: architecte` a le même effet et reste acceptée) ; les tickets prêts d'avant l'installation du gate sont gelés dans `scripts/verify/tickets-dette.json`, qui ne reçoit jamais d'entrée nouvelle. Gabarit : `docs/agents/gabarits/ticket.issue.md`.
 
-Taille : un jour au plus, une quinzaine de fichiers. Une fille qui atteint 400 k tokens de contexte ou 20 $ est signalée (contrôlé par le conducteur à chaque réveil), jamais interrompue : c'est le signe d'un ticket mal découpé, le signalement remonte au produit (par l'architecte dans un programme), qui décide ce qu'il veut faire, et la ligne va dans `## Dépassements` de la carte.
+Taille : un jour au plus, une quinzaine de fichiers. Une fille qui atteint 400 k tokens de contexte est signalée (contrôlé par le conducteur à chaque réveil), jamais interrompue : c'est le signe d'un ticket mal découpé, le signalement remonte au produit (par l'architecte dans un programme), qui décide ce qu'il veut faire, et la ligne va dans `## Dépassements` de la carte.
 
 ## 4. Branches et fichiers chauds
 
