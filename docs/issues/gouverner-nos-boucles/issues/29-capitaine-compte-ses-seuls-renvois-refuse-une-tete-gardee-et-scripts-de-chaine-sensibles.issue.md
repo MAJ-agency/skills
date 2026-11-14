@@ -1,6 +1,6 @@
 # Le capitaine ne compte que ses propres renvois, ne pousse jamais sur une tête gardée, et ses scripts, les hooks git et la CI deviennent des chemins sensibles, correctif du plugin
 
-Status: ready-for-agent
+Status: Fait — PR #88
 Type: défaut
 Label: contre-revue
 Modèle: sonnet — le code, les tests et les textes sont donnés entiers ou en remplacements exacts, joués sur une copie jetable (voir « Où ») ; rien n'est à concevoir. La revue passe `/security-review`.
