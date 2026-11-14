@@ -1,6 +1,6 @@
 # Les bancs de la chaîne n'héritent plus de l'environnement du capitaine : le dépôt jouet retire `PASSER_*`, `BOUCLE_*`, `PRE_PUSH_*`, `REVUE_*` avec les `GIT_*`
 
-Status: ready-for-agent
+Status: Fait — PR #87
 Type: défaut
 Label: contre-revue
 Modèle: sonnet — un remplacement exact dans `depot-jouet.mjs`, un fichier de test donné entier, deux phrases de documentation et la version ; tout est joué sur une copie jetable de `origin/main` (voir « Vérification ») ; rien n'est à concevoir.
