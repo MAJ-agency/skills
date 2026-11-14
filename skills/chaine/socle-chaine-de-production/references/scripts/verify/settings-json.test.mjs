@@ -1,17 +1,19 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { ecartsSettings } from './settings-json-regles.mjs';
+import { ecartsSettings, MATCHER_GITHUB } from './settings-json-regles.mjs';
 
 const hook = (script) => [
   { hooks: [{ type: 'command', command: `node "$D"/scripts/agent/${script}` }] },
 ];
+const garde = (script) => ({ hooks: [{ type: 'command', command: `node "$D"/scripts/agent/${script}`, timeout: 30, onFailure: 'block' }] });
 const reglesValides = () => ({
   permissions: { allow: ['Bash(pnpm check)', 'Bash(git push -u origin:*)'] },
   hooks: {
     SessionStart: hook('demarrage.mjs'),
     PreToolUse: [
-      { matcher: 'Edit|Write|MultiEdit|NotebookEdit', ...hook('garde-fichiers.mjs')[0] },
-      { matcher: 'Bash', ...hook('garde-commandes.mjs')[0] },
+      { matcher: 'Edit|Write|MultiEdit|NotebookEdit', ...garde('garde-fichiers.mjs') },
+      { matcher: 'Bash', ...garde('garde-commandes.mjs') },
+      { matcher: MATCHER_GITHUB, ...garde('garde-github.mjs') },
     ],
     PostToolUse: hook('apres-edition.mjs'),
     Stop: hook('fin-de-tour.mjs'),
@@ -85,6 +87,40 @@ test('PreToolUse sans le matcheur Bash', () => {
   const s = reglesValides();
   s.hooks.PreToolUse = s.hooks.PreToolUse.slice(0, 1);
   assert.ok(ecarts(s).some((m) => /sans matcheur « Bash »/.test(m)));
+});
+
+test('PreToolUse sans le matcheur des outils GitHub d’écriture', () => {
+  const s = reglesValides();
+  s.hooks.PreToolUse = s.hooks.PreToolUse.slice(0, 2);
+  assert.ok(ecarts(s).some((m) => m.includes(`sans matcheur « ${MATCHER_GITHUB} »`)));
+});
+
+test('une garde affaiblie est un écart : sans "onFailure": "block", sans timeout d’au plus 60 s, en arrière-plan, remplacée, neutralisée, ou déplacée sous un autre matcheur, ou tous les hooks coupés', () => {
+  const affaiblies = {
+    'onFailure absent': (s) => delete s.hooks.PreToolUse[2].hooks[0].onFailure,
+    'onFailure continue': (s) => (s.hooks.PreToolUse[1].hooks[0].onFailure = 'continue'),
+    'onFailure Block': (s) => (s.hooks.PreToolUse[0].hooks[0].onFailure = 'Block'),
+    async: (s) => (s.hooks.PreToolUse[2].hooks[0].async = true),
+    asyncRewake: (s) => (s.hooks.PreToolUse[1].hooks[0].asyncRewake = true),
+    'commande remplacée par true': (s) => (s.hooks.PreToolUse[2].hooks[0].command = 'true'),
+    'timeout absent': (s) => delete s.hooks.PreToolUse[2].hooks[0].timeout,
+    'timeout 600': (s) => (s.hooks.PreToolUse[1].hooks[0].timeout = 600),
+    'timeout en texte': (s) => (s.hooks.PreToolUse[0].hooks[0].timeout = '30'),
+    'commande suivie de || true': (s) => (s.hooks.PreToolUse[2].hooks[0].command += ' || true'),
+    'commande en commentaire': (s) => (s.hooks.PreToolUse[2].hooks[0].command = 'true # node "$D"/scripts/agent/garde-github.mjs'),
+    'commande qui cite le script sans le lancer': (s) => (s.hooks.PreToolUse[1].hooks[0].command = 'echo scripts/agent/garde-commandes.mjs'),
+    'hook de type prompt': (s) => (s.hooks.PreToolUse[0].hooks[0].type = 'prompt'),
+    'disableAllHooks à la racine': (s) => (s.disableAllHooks = true),
+    'garde déplacée sous Bash': (s) => {
+      s.hooks.PreToolUse[1].hooks.push(s.hooks.PreToolUse[2].hooks[0]);
+      s.hooks.PreToolUse[2].hooks = [{ type: 'command', command: 'true', onFailure: 'block' }];
+    },
+  };
+  for (const [nom, affaiblir] of Object.entries(affaiblies)) {
+    const s = reglesValides();
+    affaiblir(s);
+    assert.ok(ecarts(s).length > 0, nom);
+  }
 });
 
 test('commande de hook vers un fichier absent', () => {

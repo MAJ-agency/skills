@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /** Hook PreToolUse (Bash) : commandes interdites (le hook refuse et dit quoi faire, il ne demande jamais rien à un humain). */
 import { execFileSync } from 'node:child_process';
-import { lireEntree, RACINE } from './entree.mjs';
+import { brancheParDefaut, lireEntree, RACINE } from './entree.mjs';
 import { decisionCommande, lireDependances } from './regles.mjs';
 
 // Grammaire des identifiants du skill `socle-monorepo` : le ticket d'une branche (`feat/spec-all-soc-1-04-hook`
@@ -59,7 +59,7 @@ function dependancesPrevues() {
 }
 
 const commande = lireEntree().tool_input?.command ?? '';
-const d = decisionCommande(commande, { dependancesPrevues, brancheCourante });
+const d = decisionCommande(commande, { dependancesPrevues, brancheCourante, brancheParDefaut });
 if (d) {
   process.stderr.write(`${d.raison}\n`);
   process.exit(2);

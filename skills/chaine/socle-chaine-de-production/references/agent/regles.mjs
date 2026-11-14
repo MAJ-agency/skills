@@ -154,14 +154,60 @@ export function sansTexte(commande) {
 
 const RAISON_PUSH_SUJET =
   "un sujet ne se pousse jamais à la main, quelle que soit la branche : seul sujet.sh y écrit (demarrer, rafraichir, fusionner, livrer, carte). Sans ce refus, une session écrirait elle-même la ligne `Dépendances:` qui l'autorise. Pour la carte : `bash scripts/chaine/sujet.sh carte <nom>`.";
+const RAISON_PUSH_GARDEE =
+  "pousser sur develop, main ou la branche par défaut, sous quelque graphie que ce soit (refs/heads/develop, heads/main, majuscules) : jamais directement, une PR passe par le capitaine de fusion.";
 const RAISON_PUSH_FORCE =
   "push forcé (--force, --force-with-lease, --force-if-includes, -f, refspec +…) : jamais, sur aucune branche, la sienne comprise (il réécrit un historique publié). Une branche à reprendre se refait : branche neuve, `git cherry-pick`, nouvelle PR.";
 const RAISON_PUSH_ILLISIBLE =
   "git push dont la destination ne se lit pas (variable, substitution, motif, --all, --mirror) : elle pourrait viser un sujet. Écris le refspec en clair ; pour la carte : `bash scripts/chaine/sujet.sh carte <nom>`.";
 
-/** La commande sans ses corps de heredoc ni ses guillemets : un refspec cité se lit comme un refspec nu. */
+/**
+ * La commande sans ses corps de heredoc, ses guillemets ni ses barres obliques inverses, lignes continuées
+ * recollées : un refspec cité se lit comme un refspec nu, `\git` comme `git`, `gh pr \⏎ merge` comme
+ * `gh pr merge`. Tous les lecteurs de commandes (`pushs`, `ecritParGh`) partent de ce texte.
+ */
 function sansGuillemets(commande) {
-  return commande.replace(/<<-?\s*(['"]?)(\w+)\1[^\n]*\n[\s\S]*?\n\s*\2(?=\s|$)/g, '<<heredoc').replace(/["']/g, '');
+  return commande
+    .replace(/<<-?\s*(['"]?)(\w+)\1[^\n]*\n[\s\S]*?\n\s*\2(?=\s|$)/g, '<<heredoc')
+    .replace(/\\\r?\n/g, ' ')
+    .replace(/["'\\]/g, '');
+}
+
+/** Mot qui remplace une substitution dans la commande englobante : il porte `$`, donc se lit illisible. */
+const SUBSTITUTION = '$SUBSTITUTION';
+/**
+ * Le dernier découpage : `decisionCommande` lit la même commande six fois (sujet, branche gardée, push
+ * nu, force, illisible, `gh`) ; `sansGuillemets`, dont le motif de here-doc coûte, n'y passe qu'une fois.
+ */
+let dernierDecoupage = { commande: null, segments: [] };
+
+/**
+ * Les segments d'une commande shell, utilitaire commun des lecteurs de commandes (`pushs`, `ecritParGh`,
+ * et `appelsGit` du ticket 28) : `{ segment, suite }`, où `suite` est le texte de la source du segment à
+ * partir de lui. La commande passe d'abord par `sansGuillemets` (`\git` s'y lit `git`). Chaque
+ * substitution, `$(…)` ou entre accents graves, est extraite des plus intérieures aux plus extérieures et
+ * lue comme une source à part, puis remplacée dans la commande englobante par `SUBSTITUTION` :
+ * `git -C "$(pwd)" push origin HEAD:sujet/x` se lit `git -C $SUBSTITUTION push origin HEAD:sujet/x`.
+ * Chaque source se découpe sur `;`, `&`, `|`, saut de ligne et sous-shell `( … )`.
+ * @param {string} commande la commande telle que l'outil Bash la reçoit
+ * @returns {readonly { segment: string, suite: string }[]} figé : le dernier découpage est gardé pour la commande suivante identique
+ */
+export function segmentsDeCommande(commande) {
+  if (dernierDecoupage.commande === commande) return dernierDecoupage.segments;
+  const decouper = (source) =>
+    [...source.matchAll(/[^;&|\n()]+/g)].filter(([segment]) => segment.trim()).map(({ 0: segment, index }) => ({ segment, suite: source.slice(index) }));
+  // Des accents graves échappés (`echo \`git push …\``) sont une substitution imbriquée : lus comme `$(…)` avant
+  // que `sansGuillemets` retire les barres obliques inverses.
+  let reste = sansGuillemets(commande.replace(/\\`([^`]*?)\\`/g, '$($1)')).replace(/`([^`]*)`/g, '$($1)');
+  const segments = [];
+  for (let m = /\$\(([^()]*)\)/.exec(reste); m; m = /\$\(([^()]*)\)/.exec(reste)) {
+    segments.push(...decouper(m[1]));
+    const apres = reste.slice(m.index + m[0].length);
+    // Suivi d'une espace si un mot y est collé : `$(true)git push …` exécute `git push …`.
+    reste = reste.slice(0, m.index) + SUBSTITUTION + (/^[^\s;&|()]/.test(apres) ? ' ' : '') + apres;
+  }
+  dernierDecoupage = { commande, segments: Object.freeze([...segments, ...decouper(reste)].map((s) => Object.freeze(s))) };
+  return dernierDecoupage.segments;
 }
 
 /** Options de `git` placées avant la sous-commande et suivies d'une valeur (`git -C .. push`). */
@@ -179,12 +225,8 @@ const OPTIONS_PUSH_A_VALEUR = new Set(['-o', '--push-option', '--repo', '--recei
  * pas un push.
  */
 function pushs(commande) {
-  return sansGuillemets(commande)
-    .replace(/\\\r?\n/g, ' ')
-    .replace(/\\(.)/g, '$1')
-    .replace(/`/g, '$(')
-    .split(/[;&|\n()]+/)
-    .flatMap((segment) => {
+  return segmentsDeCommande(commande)
+    .flatMap(({ segment }) => {
       const mots = segment.trim().split(/\s+/);
       const i = mots.findIndex((mot) => /(^|\/)git$/.test(mot));
       if (i < 0) return [];
@@ -231,7 +273,23 @@ function destination(refspec, brancheCourante) {
  * une autre branche courante, ou `git` derrière un préfixe comme `timeout 5`).
  */
 export function pousseSurUnSujet(commande, brancheCourante = () => null) {
-  return pushs(commande).some(({ refspecs }) => refspecs.some((refspec) => /^(refs\/heads\/)?sujet\//.test(destination(refspec, brancheCourante))));
+  return pushs(commande).some(({ refspecs }) => refspecs.some((refspec) => (nomDeBranche(destination(refspec, brancheCourante)) ?? '').startsWith('sujet/')));
+}
+
+/**
+ * Vrai si un `git push` de la commande écrit une branche gardée (`brancheGardee` : sujet, `develop`,
+ * `main`, branche par défaut), sous toutes ses graphies (`HEAD:refs/heads/develop`, `HEAD:heads/develop`,
+ * `HEAD:DEVELOP`), ou pousse sans refspec, ou vers `HEAD`, depuis une telle branche. Une destination
+ * vide (branche courante inconnue) n'est pas lue ici. `develop:feat/x` écrit `feat/x` : il passe.
+ */
+export function pousseSurUneBrancheGardee(commande, brancheCourante = () => null, brancheParDefaut = () => null) {
+  let parDefaut;
+  const defaut = () => (parDefaut === undefined ? (parDefaut = brancheParDefaut()) : parDefaut);
+  // `develop`, `main` et les sujets se lisent sans la branche par défaut : elle n'est demandée que pour un autre nom.
+  const gardee = (b) => Boolean(b) && b !== 'HEAD' && (brancheGardee(b) || brancheGardee(b, defaut()));
+  return pushs(commande).some(({ refspecs }) =>
+    refspecs.length === 0 ? gardee(brancheCourante()) : refspecs.some((refspec) => gardee(destination(refspec, brancheCourante))),
+  );
 }
 
 /**
@@ -270,14 +328,16 @@ export function pushSansRefspec(commande) {
  *   passe sans question quand chacun de ses paquets y figure et qu'aucune option ne change la source
  *   (`--registry`, `--config.*`) ; un seul paquet absent ou une telle option, et elle est refusée.
  */
-export function decisionCommande(commande, { dependancesPrevues = () => null, brancheCourante = () => null } = {}) {
+export function decisionCommande(commande, { dependancesPrevues = () => null, brancheCourante = () => null, brancheParDefaut = () => null } = {}) {
   const code = sansTexte(commande);
   for (const [motif, raison] of COMMANDES_INTERDITES) if (motif.test(code)) return { decision: 'refuser', raison };
   let branche;
   const courante = () => (branche === undefined ? (branche = brancheCourante()) : branche);
   if (pousseSurUnSujet(commande, courante)) return { decision: 'refuser', raison: RAISON_PUSH_SUJET };
   if (pushSansRefspec(commande) && (courante() ?? '').startsWith('sujet/')) return { decision: 'refuser', raison: RAISON_PUSH_SUJET };
+  if (pousseSurUneBrancheGardee(commande, courante, brancheParDefaut)) return { decision: 'refuser', raison: RAISON_PUSH_GARDEE };
   if (pousseEnForce(commande)) return { decision: 'refuser', raison: RAISON_PUSH_FORCE };
+  if (ecritParGh(commande)) return { decision: 'refuser', raison: RAISON_GH_ECRIT };
   if (pushIllisible(commande)) return { decision: 'refuser', raison: RAISON_PUSH_ILLISIBLE };
   const liste = ajouts(code);
   if (liste.length === 0) return null;
@@ -291,3 +351,130 @@ export function decisionCommande(commande, { dependancesPrevues = () => null, br
 /** Un fichier que le hook d'après-édition passe à Prettier puis ESLint. */
 export const lintable = (chemin) =>
   /\.(ts|tsx|mjs|js)$/.test(chemin) && !/(^|\/)(node_modules|dist|\.next|\.expo|coverage|\.turbo)\//.test(chemin);
+
+/**
+ * Nom d'une branche tel que GitHub le lira, ou `null` s'il porte des blancs autour (`" develop"`) :
+ * barres doublées réduites, préfixes `refs/`, `heads/`, `remotes/` et `origin/` retirés (dans le doute,
+ * `origin/develop` se lit `develop`), en minuscules.
+ */
+export function nomDeBranche(branche) {
+  const brute = String(branche ?? '');
+  if (brute.trim() !== brute) return null;
+  return brute
+    .replace(/\/{2,}/g, '/')
+    .replace(/^\/+/, '')
+    .replace(/^((refs|heads|remotes|origin)\/)+/i, '')
+    .toLowerCase();
+}
+
+/**
+ * Branche gardée : un sujet (`sujet/…`), `develop`, `main`, la branche par défaut du dépôt, ou un nom
+ * vide ou entouré de blancs. Une session n'y écrit jamais elle-même : le capitaine par ses scripts, le
+ * conducteur par `sujet.sh`. Une seule définition pour `git push`, `gh` et les outils GitHub.
+ */
+export function brancheGardee(branche, brancheParDefaut = null) {
+  const b = nomDeBranche(branche);
+  if (!b) return true;
+  const parDefaut = nomDeBranche(brancheParDefaut);
+  return b.startsWith('sujet/') || b === 'develop' || b === 'main' || (Boolean(parDefaut) && b === parDefaut);
+}
+
+const RAISON_OUTIL_ECRIT =
+  "écrire par un outil GitHub (push_files, create_or_update_file, delete_file, create_branch) sur un sujet, develop, main ou la branche par défaut : jamais. Un sujet ne s'écrit que par sujet.sh, sans quoi une session écrirait elle-même la ligne `Dépendances:` qui l'autorise ; develop et main ne reçoivent que des PR fusionnées par le capitaine. Écrire sur sa branche de travail, puis ouvrir une PR ; pour la carte : `bash scripts/chaine/sujet.sh carte <nom>`.";
+const RAISON_OUTIL_FUSION =
+  "fusionner par un outil GitHub une PR dont la base est un sujet, develop, main ou la branche par défaut, ou dont la base ne se lit pas : jamais. Le capitaine fusionne par ses scripts (passer.sh, sujet.sh fusionner), qui vérifient les contrôles exigés.";
+const RAISON_OUTIL_MISE_A_JOUR =
+  "mettre à jour par un outil GitHub une PR dont la tête est un sujet, develop, main ou la branche par défaut, ou dont la tête ne se lit pas : jamais, l'outil écrirait sur cette branche. Un sujet se rafraîchit par sujet.sh rafraichir (le capitaine) ; une branche de travail se met à jour par l'outil, ou par git merge puis un push ordinaire.";
+const RAISON_GH_ECRIT =
+  "écrire par `gh` une branche, un fichier ou une règle de branche (gh api en écriture vers git/refs, contents, merges, merge-upstream, pulls/<n>/merge ou update-branch, branches/<b>/protection, rulesets, une mutation GraphQL ou une requête illisible, gh pr merge, gh pr close --delete-branch, gh repo sync, gh alias set ou import) : jamais à la main. On pousse sa branche par git push, une PR se fusionne par le capitaine (passer.sh, sujet.sh fusionner), un sujet ne s'écrit que par sujet.sh ; une PR se met à jour par l'outil update_pull_request_branch, ou par git merge puis un push ordinaire.";
+
+/** Outils GitHub d'écriture, par nom court (après le dernier `__`) : leur paramètre `branch` porte la branche visée. */
+export const OUTILS_GITHUB_ECRITURE = ['push_files', 'create_or_update_file', 'delete_file', 'create_branch'];
+/** Outils GitHub de fusion, par nom court : ils ne portent que `pullNumber`, la base se lit à part. */
+export const OUTILS_GITHUB_FUSION = ['merge_pull_request', 'enable_pr_auto_merge'];
+/** Outil GitHub de mise à jour d'une PR, par nom court : il écrit sur la tête de la PR, qui se lit à part. */
+export const OUTILS_GITHUB_MISE_A_JOUR = ['update_pull_request_branch'];
+/** Les sept outils que garde `garde-github`, et rien d'autre. */
+export const OUTILS_GITHUB_GARDES = [...OUTILS_GITHUB_ECRITURE, ...OUTILS_GITHUB_FUSION, ...OUTILS_GITHUB_MISE_A_JOUR];
+
+/**
+ * Décision sur un appel d'outil MCP (hook `garde-github`) : `{ decision: 'refuser', raison }` ou `null`.
+ * Le serveur se reconnaît au nom court de l'outil, quel que soit son préfixe (`mcp__github__`, ou un
+ * serveur nommé autrement par le projet). Une branche absente, vide ou qui n'est pas un texte se lit
+ * comme gardée : l'API écrirait sur la branche par défaut.
+ * @param {string} outil nom complet de l'outil (`mcp__github__push_files`)
+ * @param {Record<string, unknown>} entree `tool_input`
+ * @param {{ brancheParDefaut?: string | null, refsDeLaPr?: (entree: Record<string, unknown>) => { tete: string, base: string } | null }} [contexte]
+ *   `refsDeLaPr` : la tête et la base de la PR visée (`null` si elles ne se lisent pas), appelée pour une
+ *   fusion ou une mise à jour seulement ; une fusion regarde la base, une mise à jour la tête.
+ */
+export function decisionOutilGithub(outil, entree = {}, { brancheParDefaut = null, refsDeLaPr = () => null } = {}) {
+  const court = String(outil).split('__').pop();
+  if (OUTILS_GITHUB_ECRITURE.includes(court)) {
+    const branche = entree?.branch;
+    return typeof branche !== 'string' || brancheGardee(branche, brancheParDefaut) ? { decision: 'refuser', raison: RAISON_OUTIL_ECRIT } : null;
+  }
+  if (OUTILS_GITHUB_FUSION.includes(court)) {
+    return brancheGardee(refsDeLaPr(entree)?.base, brancheParDefaut) ? { decision: 'refuser', raison: RAISON_OUTIL_FUSION } : null;
+  }
+  if (OUTILS_GITHUB_MISE_A_JOUR.includes(court)) {
+    return brancheGardee(refsDeLaPr(entree)?.tete, brancheParDefaut) ? { decision: 'refuser', raison: RAISON_OUTIL_MISE_A_JOUR } : null;
+  }
+  return null;
+}
+
+/** Options de `gh api` suivies d'une valeur séparée. */
+const OPTIONS_GH_API_A_VALEUR = new Set(['-X', '--method', '-f', '--raw-field', '-F', '--field', '-H', '--header', '--input', '-q', '--jq', '-t', '--template', '--hostname', '--cache', '-p', '--preview']);
+/** Routes REST qui écrivent une branche, un fichier ou une règle de branche, en écriture. */
+const CHEMIN_GH_ECRIT = /(^|\/)(git\/refs(\/|$)|contents(\/|$)|merges$|merge-upstream$|pulls\/[^/]+\/(merge|update-branch|ccr\/auto_merge)$|branches\/[^/]+\/protection(\/|$)|rulesets(\/|$))/;
+
+/**
+ * Vrai si la commande écrit une branche, un fichier ou une règle de branche par `gh` : `gh pr merge`,
+ * `gh pr close -d`, `gh repo sync`, `gh alias set` et `gh alias import` (avec ou sans `-R`/`--repo`,
+ * avant ou après la sous-commande) ; `gh api` vers une route de `CHEMIN_GH_ECRIT`, ou vers un chemin
+ * illisible (variable, substitution, encodé), avec une méthode autre que GET (explicite, ou implicite : un
+ * champ `-f`/`-F` ou `--input` fait un POST) ; `gh api graphql` (ou la route `/graphql`) dont la requête,
+ * cherchée dans la commande à partir de `gh`, est une mutation ou ne se lit pas (`query=@fichier`,
+ * `--input`, variable).
+ */
+export function ecritParGh(commande) {
+  return segmentsDeCommande(commande).some(({ segment, suite }) => {
+    const mots = segment.trim().split(/\s+/);
+    // Seul le premier programme du segment compte : `git commit -m "gh pr merge 3"` n'est pas une fusion.
+    const i = mots.findIndex((mot) => /(^|\/)(gh|git)$/.test(mot));
+    if (i < 0 || !/(^|\/)gh$/.test(mots[i])) return false;
+    // Positionnels après `gh`, sans `-R`, `--repo`, `--hostname` ni leur valeur : `gh -R o/r pr merge 3` est `pr merge`.
+    const pos = [];
+    for (let k = i + 1; k < mots.length; k++) {
+      if (mots[k] === '-R' || mots[k] === '--repo' || mots[k] === '--hostname') k++;
+      else if (!mots[k].startsWith('-')) pos.push(mots[k]);
+    }
+    if ((pos[0] === 'pr' && pos[1] === 'merge') || (pos[0] === 'repo' && pos[1] === 'sync')) return true;
+    if (pos[0] === 'alias' && (pos[1] === 'set' || pos[1] === 'import')) return true;
+    if (pos[0] === 'pr' && pos[1] === 'close' && mots.some((mot) => /^(-d|--delete-branch)$/.test(mot))) return true;
+    if (pos[0] !== 'api') return false;
+    let chemin = null;
+    let methode = null;
+    let champs = false;
+    for (let k = mots.indexOf('api', i + 1) + 1; k < mots.length; k++) {
+      const mot = mots[k];
+      if (!mot.startsWith('-')) {
+        chemin ??= mot;
+        continue;
+      }
+      const [option, valeurJointe] = mot.split(/=(.*)/s);
+      const valeur = valeurJointe ?? (OPTIONS_GH_API_A_VALEUR.has(option) ? mots[++k] : undefined);
+      if (option === '-X' || option === '--method') methode = String(valeur ?? '').toUpperCase();
+      else if (/^-X./.test(mot)) methode = mot.slice(2).toUpperCase();
+      if (['-f', '--raw-field', '-F', '--field', '--input'].includes(option)) champs = true;
+    }
+    // Route lue comme gh l'enverra : hôte, barres de tête, de fin, doublées et `./` retirés, en minuscules.
+    const route = (chemin ?? '').replace(/^[a-z]+:\/\/[^/]+/i, '').replace(/\/(\.\/)+/g, '/').replace(/\/{2,}/g, '/').replace(/^\/+|\/+$/g, '').split('?')[0].toLowerCase();
+    // La mutation se cherche de `gh` à la fin de la commande : ni avant (un message de commit), ni bornée au
+    // segment (la découpe sur `(` couperait `query A { a(x: 1) } mutation B { … }`).
+    if (/(^|\/)graphql$/.test(route)) return /\bmutation\b/i.test(suite) || /query=@|--input|[$]/.test(segment);
+    const ecrit = (methode ?? (champs ? 'POST' : 'GET')) !== 'GET';
+    // Un chemin qui ne se lit pas (variable, substitution, encodé) pourrait viser une branche : refusé en écriture.
+    return ecrit && chemin !== null && (/[$%]/.test(chemin) || CHEMIN_GH_ECRIT.test(route));
+  });
+}
