@@ -9,7 +9,16 @@ Le skill ne peut pas le faire : l'API GitHub refuse ces réglages depuis une ses
 - [ ] **Check `zizmor` exigé** sur `develop` et `main`, à côté de `qualite` et `test-db`, dès que son premier run a tourné.
 - [ ] **Les sept labels** : `bash scripts/github/labels.sh` depuis un poste où `gh` est authentifié (`--liste` pour les lire).
 - [ ] **Secrets et variables de la CI**, selon l'hébergement choisi.
-- [ ] **Environnement cloud Claude Code** (réglage du compte, pas du dépôt : menu de l'environnement dans la barre de titre d'une session cloud, puis Edit → Setup script). Pour que chaque session trouve sa base allumée sans Docker, ajouter au script de démarrage, `<dépôt>` étant le dossier du clone :
+- [ ] **Environnement cloud Claude Code** (réglage du compte, pas du dépôt : menu de l'environnement dans la barre de titre d'une session cloud, puis Edit → Setup script). Pour que chaque session, fille comprise, ait les skills de la chaîne, le script installe le plugin depuis GitHub et le met à jour à chaque démarrage :
+
+  ```bash
+  claude plugin marketplace add MAJ-agency/skills || true
+  claude plugin install maj-skills@maj || true
+  claude plugin marketplace update maj || true
+  claude plugin update maj-skills@maj || true
+  ```
+
+  Pour que chaque session trouve sa base allumée sans Docker, ajouter **ensuite** au script de démarrage, `<dépôt>` étant le dossier du dépôt :
   `for depot in */; do if [ -f "${depot}scripts/db/demarrer-local.sh" ]; then bash "${depot}scripts/db/demarrer-local.sh" || true; fi; done`
   (le script de démarrage part du dossier qui contient les clones ; la boucle sert tous les dépôts de l'environnement).
 

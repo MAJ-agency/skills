@@ -221,16 +221,17 @@ test('le démarrage signale graphify quand CLAUDE.md le demande et que la comman
   }
 });
 
-test('le démarrage signale les skills de la chaîne absents de la session, avec le remède', async () => {
+test('le démarrage signale les skills de la chaîne absents, avec les lignes du script de l’environnement', async () => {
   const { signalementsDemarrage, pluginInstalle } = await import('./demarrage.mjs');
   const absents = [null, '', '{', 'null', '[]', JSON.stringify({ version: 2 }), JSON.stringify({ plugins: { 'mattpocock-skills@mattpocock': [] } }), JSON.stringify({ plugins: { 'maj-skills@autre': [] } })];
   for (const pluginsInstalles of absents) {
     const s = signalementsDemarrage({ ...depotPret, pluginsInstalles });
     assert.equal(s.length, 1, `fichier ${JSON.stringify(pluginsInstalles)} : un signalement`);
     assert.match(s[0], /skills de la chaîne absents/);
-    assert.match(s[0], /add_repo/);
-    assert.match(s[0], /MAJ-agency\/skills/);
-    assert.match(s[0], /§ 5, étape 5/);
+    for (const ligne of ['claude plugin marketplace add MAJ-agency/skills', 'claude plugin install maj-skills@maj', 'claude plugin marketplace update maj', 'claude plugin update maj-skills@maj', '§ 5, étape 5', 's’arrêter']) {
+      assert.ok(s[0].includes(ligne), `contient ${ligne}`);
+    }
+    assert.doesNotMatch(s[0], /add_repo|clone/);
     assert.equal(pluginInstalle(pluginsInstalles), false);
   }
   assert.equal(pluginInstalle(PLUGINS), true);

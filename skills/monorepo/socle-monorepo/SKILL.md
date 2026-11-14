@@ -81,7 +81,13 @@ claude plugin marketplace add mattpocock/skills
 claude plugin install mattpocock-skills@mattpocock
 claude plugin marketplace add MAJ-agency/skills
 claude plugin install maj-skills@maj
+claude plugin marketplace update mattpocock
+claude plugin update mattpocock-skills@mattpocock
+claude plugin marketplace update maj
+claude plugin update maj-skills@maj
 ```
+
+Dans le script de configuration cloud, les huit lignes se jouent à chaque démarrage, chacune suivie de `|| true` : le hook de démarrage de la chaîne signale un plugin absent.
 
 `superpowers` (`anthropics/claude-plugins-official`) reste optionnel : `grilling.md` cite `superpowers:brainstorming` pour la classification de l'effort, rien ne l'exige.
 
