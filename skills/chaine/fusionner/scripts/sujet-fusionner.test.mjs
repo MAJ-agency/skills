@@ -4,7 +4,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 // Posé dans un projet, depot-jouet.mjs est à côté (scripts/chaine/) ; dans le plugin, il est dans le skill sujet.
 const { depotJouet, script: scriptDe } = await import(
@@ -459,4 +459,85 @@ test("fusionner : une PR de mise à jour sans liste lisible des index régénér
   const r3 = sansPirate.d.lancer(SUJET, "fusionner", "81");
   assert.equal(r3.status, 4, r3.stdout + r3.stderr);
   assert.match(r3.stdout, /hors des fichiers en conflit.*SPEC_ALL_DEM-1-demo\.01\.issue\.md/);
+});
+
+// Une sous-PR qui change ce que la chaîne exécute (CI, hooks git et d'agent, install) ou du code d'une autre casse,
+// sans section de revue : avant, squashée dans le sujet (sortie 0), puis exécutée par le capitaine au rafraîchissement.
+test("fusionner : une sous-PR qui touche la configuration de la chaîne ou du code d'une autre casse sans section de revue sort en 4, sans squash", () => {
+  for (const f of [".github/workflows/ci.yml", ".husky/pre-push", ".claude/settings.json", "package.json", ".npmrc", "Apps/api/x.ts", "docs/lint-staged.config.mjs", "tools/x.mjs"]) {
+    const { d } = sousPrEnConflit("aucun");
+    d.branche("chore/x", "origin/sujet/lot", { [f]: "x\n" }, "chore: x");
+    d.git("switch", "-q", "--detach", "origin/develop");
+    d.github({ pulls: [{ number: 80, title: "chore: x", head: "chore/x", base: "sujet/lot", labels: ["à-fusionner"], body: "Rien.\n" }] });
+    const r = d.lancer(SUJET, "fusionner", "80");
+    assert.equal(r.status, 4, `${f} : ${r.stdout}${r.stderr}`);
+    assert.match(r.stdout, /sans section « Revue de ticket » ni « Revue adversariale »/, f);
+    assert.ok(!ecritures(d).some((e) => e.startsWith("PUT ")), `${f} : aucun squash`);
+  }
+});
+
+// Un index généré remplacé par un lien symbolique absolu vers un fichier hors du dépôt : la sous-PR (docs seule)
+// entrait sans revue, et le `rafraichir` suivant du capitaine régénérait l'index à travers le lien.
+test("fusionner : une sous-PR qui remplace un index généré par un lien symbolique sort en 4 ; rafraichir ne régénère jamais à travers un lien déjà dans le sujet", () => {
+  const { d } = sousPrEnConflit("aucun");
+  const dehors = join(d.racine, "dehors.txt");
+  writeFileSync(dehors, "à moi\n");
+  const lien = (branche, depuis) => {
+    d.git("switch", "-q", "-C", branche, depuis);
+    d.ecrire(`${ADR}/ADR_ALL_ARC-2-b.md`, "# 2\n");
+    d.git("rm", "-q", `${ADR}/README.md`);
+    symlinkSync(dehors, join(d.travail, `${ADR}/README.md`));
+    d.git("add", "-A");
+    d.git("commit", "-q", "-m", "docs(adr): ADR 2");
+  };
+  lien("docs/lien", "origin/sujet/lot");
+  d.git("push", "-q", "origin", "HEAD:refs/heads/docs/lien");
+  d.git("fetch", "-q", "origin");
+  d.git("switch", "-q", "--detach", "origin/develop");
+  d.github({ pulls: [{ number: 80, title: "docs(adr): ADR 2", head: "docs/lien", base: "sujet/lot", labels: ["à-fusionner"], body: "Rien.\n" }] });
+  const r = d.lancer(SUJET, "fusionner", "80");
+  assert.equal(r.status, 4, r.stdout + r.stderr);
+  assert.match(r.stdout, /#80 lien symbolique sur un index généré ou son dossier : docs\/adr\/README\.md/);
+  assert.ok(!ecritures(d).some((e) => e.startsWith("PUT ")), "aucun squash");
+  // Le même lien déjà dans le sujet (entré avant cette version), develop qui avance : rafraichir abandonne.
+  lien("sujet/lot", "origin/sujet/lot");
+  d.git("push", "-q", "origin", "HEAD:refs/heads/sujet/lot");
+  d.branche("develop", "origin/develop", { "docs/autre.md": "autre\n" }, "docs: autre (#39)");
+  d.git("switch", "-q", "--detach", "origin/develop");
+  const sujetAvant = d.git("rev-parse", "origin/sujet/lot");
+  const r2 = d.lancer(SUJET, "rafraichir", "lot");
+  assert.equal(r2.status, 3, r2.stdout + r2.stderr);
+  assert.match(r2.stderr, /lien symbolique sur un index généré ou son dossier : docs\/adr\/README\.md/);
+  assert.equal(readFileSync(dehors, "utf8"), "à moi\n", "rien d'écrit hors du dépôt");
+  d.git("fetch", "-q", "origin");
+  assert.equal(d.git("rev-parse", "origin/sujet/lot"), sujetAvant, "sujet inchangé");
+  assert.equal(d.git("status", "--porcelain"), "");
+});
+
+// Le contrat d'une sous-PR se lit sur son sujet : un chemin sensible que le sujet déclare (et develop pas encore)
+// exige la revue d'une sous-PR qui le touche.
+test("fusionner : un chemin sensible du projet, lu dans le chaine.json du sujet, exige la revue d'une sous-PR", () => {
+  const { d } = sousPrEnConflit("aucun");
+  d.branche("sujet/lot", "origin/sujet/lot", { ".claude/chaine.json": JSON.stringify({ cheminsSensibles: ["infra/**"] }) }, "chore: contrat du lot");
+  d.branche("infra/x", "origin/sujet/lot", { "infra/main.tf": "x\n" }, "chore: infra");
+  d.git("switch", "-q", "--detach", "origin/develop");
+  d.github({ pulls: [{ number: 80, title: "chore: infra", head: "infra/x", base: "sujet/lot", labels: ["à-fusionner"], body: "Rien.\n" }] });
+  const r = d.lancer(SUJET, "fusionner", "80");
+  assert.equal(r.status, 4, r.stdout + r.stderr);
+  assert.match(r.stdout, /sans section « Revue de ticket » ni « Revue adversariale ».*\(infra\/main\.tf\)/);
+  assert.ok(!ecritures(d).some((e) => e.startsWith("PUT ")), "aucun squash");
+});
+
+// Un sujet en retard sur develop : develop déclare `infra/**` après le départ du sujet. Le contrat du sujet ne le
+// porte pas encore, celui de develop si : une sous-PR qui touche infra/ exige la revue.
+test("fusionner : un chemin sensible déclaré par develop après le départ du sujet exige la revue d'une sous-PR", () => {
+  const { d } = sousPrEnConflit("aucun");
+  d.branche("develop", "origin/develop", { ".claude/chaine.json": JSON.stringify({ cheminsSensibles: ["infra/**"] }) }, "chore: contrat (#41)");
+  d.branche("infra/x", "origin/sujet/lot", { "infra/main.tf": "x\n" }, "chore: infra");
+  d.git("switch", "-q", "--detach", "origin/develop");
+  d.github({ pulls: [{ number: 80, title: "chore: infra", head: "infra/x", base: "sujet/lot", labels: ["à-fusionner"], body: "Rien.\n" }] });
+  const r = d.lancer(SUJET, "fusionner", "80");
+  assert.equal(r.status, 4, r.stdout + r.stderr);
+  assert.match(r.stdout, /sans section « Revue de ticket » ni « Revue adversariale ».*\(infra\/main\.tf\)/);
+  assert.ok(!ecritures(d).some((e) => e.startsWith("PUT ")), "aucun squash");
 });
