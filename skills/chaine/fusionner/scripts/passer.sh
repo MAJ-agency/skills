@@ -52,8 +52,12 @@ N=${1:?usage : passer.sh <numéro de PR>}
 if [ -z "${PASSER_OUTILS:-}" ]; then
   copie=$(mktemp "${TMPDIR:-/tmp}/passer.XXXXXX")
   cp "$0" "$copie"
-  PASSER_OUTILS=$(cd "$(dirname "$0")" && pwd) exec bash "$copie" "$@"
+  PASSER_COPIE=$copie PASSER_OUTILS=$(cd "$(dirname "$0")" && pwd) exec bash "$copie" "$@"
 fi
+# La copie se retire dès qu'elle tourne (bash la garde ouverte, elle reste lisible jusqu'au bout) :
+# sinon chaque PR passée laisse un passer.XXXXXX dans le dossier temporaire du capitaine.
+case ${PASSER_COPIE:-} in "${TMPDIR:-/tmp}"/passer.*/*) ;; "${TMPDIR:-/tmp}"/passer.*) rm -f "$PASSER_COPIE" ;; esac
+unset PASSER_COPIE
 . "$PASSER_OUTILS/github.sh"
 cd "$(git rev-parse --show-toplevel)"
 

@@ -2,9 +2,13 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+const { dossierTemporaire } = await import(
+  existsSync(new URL("./depot-jouet.mjs", import.meta.url))
+    ? "./depot-jouet.mjs"
+    : "../../sujet/scripts/depot-jouet.mjs"
+);
 // Posé dans un projet, le gate est dans scripts/verify/ ; dans le plugin, le dépôt jouet du skill tickets le pose.
 const GATE_POSE = new URL("../verify/tickets-regles.mjs", import.meta.url);
 const chargerGate = existsSync(GATE_POSE)
@@ -41,7 +45,7 @@ const TABLE = [
 ]; 
 
 function dossierAvec(contrat) {
-  const d = mkdtempSync(join(tmpdir(), "sens-"));
+  const d = dossierTemporaire("sens-");
   if (contrat !== undefined) {
     mkdirSync(join(d, ".claude"));
     writeFileSync(join(d, ".claude/chaine.json"), contrat);
