@@ -1,10 +1,9 @@
 // diff-revue.sh : le diff relu, refusé si la base n'a pas pu être rapatriée ou si le diff est vide.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { existsSync, mkdtempSync, readFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-const { depotJouet } = await import(
+const { depotJouet, dossierTemporaire } = await import(
   existsSync(new URL("./depot-jouet.mjs", import.meta.url))
     ? "./depot-jouet.mjs"
     : "../../sujet/scripts/depot-jouet.mjs"
@@ -16,7 +15,7 @@ const SCRIPT = new URL("./diff-revue.sh", import.meta.url).pathname;
 function jouetAvecBranche() {
   const d = depotJouet();
   d.branche("feat/x", "origin/develop", { "src/a.ts": "export const a = 1;\n", "docs/adr/README.md": "- ADR_x\n" });
-  const dir = mkdtempSync(join(tmpdir(), "revue-"));
+  const dir = dossierTemporaire("revue-");
   const revue = (...args) => d.lancer("-c", `REVUE_DIR=${dir} bash ${SCRIPT} ${args.join(" ")}`);
   return { d, dir, revue };
 }
@@ -58,7 +57,7 @@ test("diff-revue : un diff vide sort en 1 et écrase l'ancien diff.patch", () =>
 test("diff-revue : un diff fait d'un seul index généré est vide et sort en 1", () => {
   const d = depotJouet();
   d.branche("feat/index", "origin/develop", { "docs/adr/README.md": "- ADR_x\n" });
-  const dir = mkdtempSync(join(tmpdir(), "revue-"));
+  const dir = dossierTemporaire("revue-");
   const r = d.lancer("-c", `REVUE_DIR=${dir} bash ${SCRIPT} origin/develop`);
   assert.equal(r.status, 1);
   assert.match(r.stderr, /diff vide/);

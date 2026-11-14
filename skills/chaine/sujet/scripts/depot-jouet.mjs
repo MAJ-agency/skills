@@ -10,16 +10,44 @@ import {
   mkdirSync,
   mkdtempSync,
   readFileSync,
+  rmSync,
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
+import { dirname, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 // Les scripts de la chaîne et le faux gh appellent jq : sans lui, chaque test échouerait sur
 // « jq: command not found », noyé dans ses traces. Un seul message, une fois par fichier de test.
 if (spawnSync('jq', ['--version']).error)
   throw new Error('jq est requis par les scripts de la chaîne et leurs bancs : sudo apt install jq (ou brew install jq)');
+
+// Dossiers temporaires du banc, retirés à la sortie du processus : `node --test` joue un fichier de
+// test par processus, et chaque dépôt jouet pèse environ un mégaoctet. `GARDER_JOUETS=1` les garde
+// pour les lire après un échec, et dit combien. Un signal d'arrêt (délai dépassé, Ctrl-C, `kill`
+// du groupe) passe par `process.exit`, donc par `exit` ; seul `SIGKILL` ne peut pas être intercepté.
+const A_RETIRER = [];
+process.on('exit', () => {
+  if (process.env.GARDER_JOUETS) {
+    if (A_RETIRER.length) console.error(`GARDER_JOUETS : ${A_RETIRER.length} dossier(s) gardé(s) sous ${tmpdir()}, dont ${A_RETIRER[0]}`);
+    return;
+  }
+  for (const dossier of A_RETIRER) {
+    try {
+      rmSync(dossier, { recursive: true, force: true, maxRetries: 3, retryDelay: 50 });
+    } catch {
+      /* au pire il reste : la sortie du banc ne doit jamais échouer pour un dossier */
+    }
+  }
+});
+for (const [signal, code] of [['SIGINT', 130], ['SIGTERM', 143], ['SIGHUP', 129]]) process.on(signal, () => process.exit(code));
+/** Crée un dossier temporaire que la sortie du processus retire. */
+export function dossierTemporaire(prefixe) {
+  const dossier = resolve(mkdtempSync(join(tmpdir(), prefixe)));
+  if (!dossier.startsWith(resolve(tmpdir()) + sep)) throw new Error(`dossierTemporaire : ${dossier} est hors de ${tmpdir()}`);
+  A_RETIRER.push(dossier);
+  return dossier;
+}
 
 const ICI = dirname(fileURLToPath(import.meta.url));
 // Racine des skills de la chaîne : <skills>/chaine/<skill>/scripts/<nom>.
@@ -82,7 +110,7 @@ const CHAINE = [
 ];
 
 export function depotJouet() {
-  const racine = mkdtempSync(join(tmpdir(), 'jouet-'));
+  const racine = dossierTemporaire('jouet-');
   const origine = join(racine, 'origine.git');
   const travail = join(racine, 'travail');
   const bin = join(racine, 'bin');

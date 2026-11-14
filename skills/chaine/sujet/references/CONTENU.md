@@ -14,6 +14,8 @@ Le banc d'essai partagé avec `fusionner` : un `origin` nu local, un clone de tr
 
 Le dépôt jouet retire de l'environnement hérité les variables de la chaîne, par préfixe (`GIT_`, `PASSER_`, `BOUCLE_`, `PRE_PUSH_`, `REVUE_`) : depuis que `passer.sh` pousse sous le pre-push, les bancs tournent sous le capitaine, et le `passer.sh` d'un banc lisait les outils du vrai capitaine (`PASSER_OUTILS`), sa boucle remplaçait la copie du vrai capitaine (`BOUCLE_COPIE`) et sautait ses PR (`BOUCLE_SAUTEES`). Cas vécu : une mise à jour de PR refusée par dix tests rouges sous le capitaine. `scripts/environnement-des-bancs.test.mjs` rejoue une boucle du jouet sous ces variables piégées.
 
+Les dossiers que le banc crée sont retirés à la sortie de son processus (`node --test` joue un fichier par processus) : `depotJouet()` et `dossierTemporaire(prefixe)`, que les bancs appellent à la place de `mkdtempSync(join(tmpdir(), …))`. Un dépôt jouet pèse environ un mégaoctet : sans retrait, des centaines de dossiers par pre-push remplissaient le disque d'un capitaine. `GARDER_JOUETS=1` les garde pour lire un échec et dit combien. Posé, `passer.sh` retire aussi sa copie temporaire dès qu'elle tourne.
+
 ## `scripts/sujet.test.mjs`
 
 Les garde-fous de `demarrer`, `ouvrir` sans protection, le regroupement des séries et des piles, la livraison automatique, avec le contexte `ALL` et un autre ; l'ancienne forme (`SOC-1.01`) n'est plus lue. Un sujet sans carte est reconnu livré sur le commit de merge que `passer.sh` écrit vraiment, une fois sa branche supprimée, jamais sur un message forgé pour le test ; `sujet/demo` ne reconnaît pas `sujet/demo-2`.
