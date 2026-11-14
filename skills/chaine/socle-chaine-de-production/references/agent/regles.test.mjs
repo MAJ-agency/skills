@@ -232,7 +232,7 @@ test('le démarrage signale les skills de la chaîne absents, avec les lignes du
     const s = signalementsDemarrage({ ...depotPret, pluginsInstalles });
     assert.equal(s.length, 1, `fichier ${JSON.stringify(pluginsInstalles)} : un signalement`);
     assert.match(s[0], /skills de la chaîne absents/);
-    for (const ligne of ['claude plugin marketplace add MAJ-agency/skills', 'claude plugin install maj-skills@maj', 'claude plugin marketplace update maj', 'claude plugin update maj-skills@maj', '§ 5, étape 5', 's’arrêter']) {
+    for (const ligne of ['claude plugin marketplace add MAJ-agency/skills', 'claude plugin install maj-skills@maj', 'claude plugin marketplace update maj', 'claude plugin update maj-skills@maj', '§ 5, étape 5', 's’arrêter', '~/.claude/plugins/marketplaces/maj/skills/', 'Si l’installation échoue']) {
       assert.ok(s[0].includes(ligne), `contient ${ligne}`);
     }
     assert.doesNotMatch(s[0], /add_repo|clone/);
