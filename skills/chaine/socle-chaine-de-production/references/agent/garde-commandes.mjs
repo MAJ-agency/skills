@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /** Hook PreToolUse (Bash) : commandes interdites (le hook refuse et dit quoi faire, il ne demande jamais rien à un humain). */
 import { execFileSync } from 'node:child_process';
-import { brancheParDefaut, lireEntree, RACINE } from './entree.mjs';
+import { brancheParDefaut, lireToolInput, RACINE } from './entree.mjs';
 import { decisionCommande, lireDependances } from './regles.mjs';
 
 // Grammaire des identifiants du skill `socle-monorepo` : le ticket d'une branche (`feat/spec-all-soc-1-04-hook`
@@ -58,7 +58,12 @@ function dependancesPrevues() {
   }
 }
 
-const commande = lireEntree().tool_input?.command ?? '';
+// Entrée illisible, ou `command` qui n'est pas une chaîne : refusé, la garde échoue fermée.
+const commande = lireToolInput()?.command;
+if (typeof commande !== 'string') {
+  process.stderr.write('entrée de hook illisible (tool_input.command, une chaîne, attendue) : refusé\n');
+  process.exit(2);
+}
 const d = decisionCommande(commande, { dependancesPrevues, brancheCourante, brancheParDefaut });
 if (d) {
   process.stderr.write(`${d.raison}\n`);
