@@ -114,6 +114,16 @@ test("l'ancien usage et un type inconnu sont refusés, sortie 2", () => {
   }
 });
 
+test('le numéro sort nu, sans couleur, même avec FORCE_COLOR=1', () => {
+  const d = depotJouet({ fichiers: FICHIERS });
+  const r = spawnSync(process.execPath, [SCRIPT, 'RULE', 'ALL', 'LIC'], {
+    cwd: d.travail,
+    env: { ...ENV, PATH: d.bin, PROJET_RACINE: d.travail, FORCE_COLOR: '1' },
+    encoding: 'utf8',
+  });
+  assert.equal(r.stdout, '4\n');
+});
+
 test('plusGrandSurBranches : git injecté, branche illisible ignorée', () => {
   const git = (args) => {
     if (args[0] === 'for-each-ref') return 'origin/sujet/a\norigin/docs/b\n';

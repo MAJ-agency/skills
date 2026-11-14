@@ -38,7 +38,7 @@ Trois gabarits, numérotés à l'installation par `next-id.mjs ADR ALL ARC` : la
 
 ## Les fragments — `fragments/`
 
-Ce que le socle ajoute aux fichiers de la racine : la section « Fusion vers `develop` » et deux lignes de routage dans `CLAUDE.md`, les commandes et l'arborescence dans `README.md`.
+Ce que le socle ajoute aux fichiers de la racine : la section « Fusion vers `develop` » et deux lignes de routage dans `CLAUDE.md`, les commandes, l'arborescence et le prérequis `jq` dans `README.md`.
 
 ## Ce qu'un admin fait à la main — `admin.md`
 

@@ -50,7 +50,7 @@ const walk = (dir) => {
 };
 walk(join(ROOT, 'docs'));
 max = Math.max(max, plusGrandSurBranches(numeroDe));
-console.log(max + 1);
+process.stdout.write(`${max + 1}\n`);
 console.error(
   'Branches origin/sujet/* et origin/docs/* lues sans fetch : faire `git fetch origin` si le dernier date.',
 );

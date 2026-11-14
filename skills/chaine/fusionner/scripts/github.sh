@@ -8,6 +8,8 @@
 # depuis le remote `origin`.
 # =============================================================================
 DEPOT='repos/{owner}/{repo}'
+# Tout script de la chaîne qui appelle le binaire jq source ce fichier : la garde est ici, une seule fois.
+command -v jq >/dev/null || { echo "ARRÊT : jq est requis par les scripts de la chaîne : sudo apt install jq (ou brew install jq)" >&2; exit 69; }
 # Identifiants de la convention `tickets` (SPEC_ALL_SOC-1, SPEC_ALL_SOC-1.03 ; `spec-all-soc-1-03` dans
 # une branche) : la grammaire (type, contexte, trigramme) ne s'écrit pas en shell. Lire un identifiant
 # dans un titre de PR, une branche ou un nom de fichier passe par identifiant.mjs, à côté de ce

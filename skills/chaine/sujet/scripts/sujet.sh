@@ -71,7 +71,7 @@
 # `fusionner`, `rafraichir`, `relancer`, `livrer` : 5 la branche a bougé pendant l'écriture, relancer
 # `fusionner` encore : la sous-PR a bougé pendant sa mise à jour (reprise au tour suivant) · 8 conflit
 # avec le sujet sur des index générés seuls : branche mise à jour (index régénérés) et poussée, CI
-# relancée, aucun squash
+# relancée, aucun squash · 69 jq absent du poste
 # Tout passe par l'API REST (`gh api`) : GraphQL est refusé depuis les sessions cloud. Depuis la
 # racine du dépôt ; sans argument, affiche cette aide.
 # =============================================================================
@@ -474,7 +474,7 @@ fusionner() {
   [ -z "$(gel_de "$base")" ] || sortir 7 "#$n : $base est gelé (Gel: $(gel_de "$base")) : sous-PR laissée dans la file"
   titre=$(jq -r .title <<<"$pr")
   sommet=$(jq -r .head.sha <<<"$pr")
-  longueur=$(node -e 'console.log([...process.argv[1]].length)' "$titre (#$n)")
+  longueur=$(node -e 'console.log(String([...process.argv[1]].length))' "$titre (#$n)")
   [ "$longueur" -le 120 ] || sortir 4 "sujet du squash à $longueur caractères (> 120) : raccourcir le titre"
   # Le commit entre tel quel dans develop à la livraison : commitlint dès maintenant.
   printf '%s\n' "$titre (#$n)" | pnpm exec commitlint >/dev/null 2>&1 ||

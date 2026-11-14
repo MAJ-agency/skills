@@ -3,6 +3,7 @@
 // intacte ; sans conflit, squash comme avant. Dépôt jouet et faux `gh` : aucun réseau.
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 // Posé dans un projet, depot-jouet.mjs est à côté (scripts/chaine/) ; dans le plugin, il est dans le skill sujet.
 const { depotJouet, script: scriptDe } = await import(
@@ -100,6 +101,17 @@ test("fusionner : sans conflit, squash comme avant", () => {
   assert.match(r.stdout, /#80 fusionnée dans sujet\/lot/);
   d.git("fetch", "-q", "origin");
   assert.equal(d.git("rev-parse", "origin/docs/sous"), sommet, "branche de la sous-PR intacte");
+  assert.ok(ecritures(d).includes("PUT pulls/80/merge"));
+});
+
+test("fusionner : FORCE_COLOR=1 dans l'environnement ne fait refuser aucun titre", () => {
+  const { d } = sousPrEnConflit("aucun");
+  const r = spawnSync("bash", [SUJET, "fusionner", "80"], {
+    cwd: d.travail,
+    env: { ...d.env, FORCE_COLOR: "1" },
+    encoding: "utf8",
+  });
+  assert.equal(r.status, 0, r.stdout + r.stderr);
   assert.ok(ecritures(d).includes("PUT pulls/80/merge"));
 });
 

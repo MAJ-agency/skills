@@ -171,6 +171,8 @@ skills/
       references/      la méthode : familles de défauts, grilles, gabarit de l'inventaire
 ```
 
+Les bancs (`pnpm test`, joués aussi par la CI) demandent Node ≥ 22, `git` et `jq` (`sudo apt install jq` ou `brew install jq`) ; sans `jq`, chaque banc de la chaîne échoue sur une ligne qui le dit.
+
 ## Ajouter un skill
 
 1. Créer `skills/<categorie>/<nom>/SKILL.md`, avec un frontmatter `name` + `description`. La description décide **quand** le skill se déclenche : y mettre les branches, pas une paraphrase du titre.
