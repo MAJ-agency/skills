@@ -4,4 +4,40 @@
 # Les suites qui exigent Postgres (`*.db.spec.ts`, script test:db) restent en
 # CI, avec le service. Un hook se contourne (--no-verify) : c'est pourquoi la
 # CI rejoue la même commande. Voir docs/methode/pare-feu-ci.md.
+#
+# Les scripts de la chaîne (capitaine, sujet, develop) poussent sous ce hook,
+# jamais en le sautant. Il lit son entrée une fois, en tête : une ligne par ref
+# poussée, `<ref locale> <sha local> <ref distante> <sha distant>`. Quand rien
+# de neuf ne part, il n'a rien à contrôler et sort 0 : chaque ligne est une
+# suppression (sha nul) ou un commit dont `git rev-list <sha> --not --remotes`
+# ne rend rien (déjà sur une ref de suivi distant, sous quelque nom). Entrée
+# vide, ligne illisible, erreur de git : il contrôle. Jamais de sortie 0 par défaut.
+# Limite : un commit déjà sur une branche suivie du distant passe sans contrôle
+# local ; la CI exigée le rejoue sur la PR.
+PRE_PUSH_REFS=$(cat)
+export PRE_PUSH_REFS
+
+rien_de_neuf() {
+  lues=0
+  while read -r locale sha ref distant reste; do
+    [ -n "$locale$sha$ref$distant$reste" ] || continue
+    [ -n "$distant" ] || return 1
+    case $sha in
+      *[!0]*) ;;
+      *) lues=$((lues + 1)); continue ;;
+    esac
+    git cat-file -e "$sha^{commit}" 2>/dev/null || return 1
+    neuf=$(git rev-list -n 1 "$sha" --not --remotes 2>/dev/null) || return 1
+    [ -z "$neuf" ] || return 1
+    lues=$((lues + 1))
+  done <<EOF_REFS
+$PRE_PUSH_REFS
+EOF_REFS
+  [ "$lues" -ge 1 ]
+}
+if rien_de_neuf; then exit 0; fi
+
+# Sous un `git worktree`, git exporte GIT_DIR (et GIT_INDEX_FILE) au hook : les bancs qui font un
+# `git init` jouet y écriraient dans le dépôt réel. Voir docs/agents/pieges.md.
+unset GIT_DIR GIT_INDEX_FILE
 pnpm run check
