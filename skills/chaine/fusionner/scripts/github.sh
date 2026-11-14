@@ -15,12 +15,24 @@ command -v jq >/dev/null || { echo "ARRÊT : jq est requis par les scripts de la
 # dans un titre de PR, une branche ou un nom de fichier passe par identifiant.mjs, à côté de ce
 # fichier, qui importe `scripts/docs/identifiants.mjs` (commandes : son en-tête). Le shell ne fait que
 # Renvois d'une PR (A-10) : chaque commentaire de renvoyer.sh porte cette marque, invisible (un
-# commentaire HTML). Le compte se lit sur la PR elle-même : aucun label nouveau.
+# commentaire HTML). Le compte se lit sur la PR elle-même : aucun label nouveau. Seuls comptent les
+# commentaires du compte qui tient le capitaine (`gh api user`, lu une fois : file.sh le garde dans
+# LOGIN_CAPITAINE, `?` s'il est illisible) : la marque recopiée par un autre compte ne met pas la PR
+# en attente d'un humain.
 MARQUE_RENVOI='<!-- renvoi-capitaine -->'
-# Lecture impossible : 0 sur la sortie, dit sur la sortie d'erreur (un seul nombre, jamais deux).
+# Commentaires illisibles : 0 sur la sortie, dit sur la sortie d'erreur (un seul nombre, jamais deux).
+# Compte du capitaine illisible : le plafond (la PR attend un humain), dit sur la sortie d'erreur ;
+# le frein des renvois ne se lâche jamais faute de savoir qui renvoie.
 renvois_de() {
-  local lus
-  if lus=$(gh api --paginate "$DEPOT/issues/$1/comments?per_page=100" --jq '.[] | select(.body | contains("<!-- renvoi-capitaine -->")) | 1'); then
+  local lus login=${LOGIN_CAPITAINE:-}
+  [ -n "$login" ] || login=$(gh api user --jq .login 2>/dev/null) || login=''
+  if ! [[ "$login" =~ ^[A-Za-z0-9][A-Za-z0-9-]*(\[bot\])?$ ]]; then
+    [ -n "${LOGIN_CAPITAINE:-}" ] ||
+      echo "renvois de #$1 : compte du capitaine illisible (gh api user), compté au plafond : la PR attend un humain" >&2
+    plafond_renvois
+    return
+  fi
+  if lus=$(gh api --paginate "$DEPOT/issues/$1/comments?per_page=100" --jq ".[] | select(.user.login == \"$login\" and (.body | contains(\"<!-- renvoi-capitaine -->\"))) | 1"); then
     printf '%s\n' "$lus" | grep -c . || true
   else
     echo "renvois de #$1 : commentaires illisibles, compte 0" >&2
@@ -115,6 +127,12 @@ uri() { jq -rn --arg s "$1" '$s | @uri'; }
 # PR en JSON REST (`state` open/closed, `draft`, `labels[].name`, `base.ref`, `head.ref`,
 # `head.sha`, `title`).
 pr_json() { gh api "$DEPOT/pulls/$1"; }
+
+# Tête de PR gardée : `develop`, `main`, ou la branche par défaut du dépôt (2e argument, lu dans le
+# JSON de la PR : `base.repo.default_branch`). Le capitaine pousse la mise à jour d'une PR sur sa tête :
+# jamais sur celles-ci (« jamais de push sur la branche par défaut »). La livraison d'un sujet
+# (`sujet/<nom>` vers develop) n'en est pas une : la mettre à jour avec develop est le chemin prévu.
+tete_gardee() { [ "$1" = develop ] || [ "$1" = main ] || { [ -n "${2:-}" ] && [ "$1" = "$2" ]; }; }
 
 # Sommet (dernier commit) de la branche d'une PR.
 pr_sommet() { gh api "$DEPOT/pulls/$1" --jq .head.sha; }

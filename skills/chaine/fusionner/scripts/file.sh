@@ -46,6 +46,12 @@ SUJET=$outils/sujet.sh
 [ -f "$SUJET" ] || SUJET=$outils/../../sujet/scripts/sujet.sh
 cd "$(git rev-parse --show-toplevel)"
 plafond=$(plafond_renvois)
+# Compte du capitaine, lu une fois pour toute la file (renvois_de) ; illisible : dit une fois ici.
+LOGIN_CAPITAINE=$(gh api user --jq .login 2>/dev/null) || LOGIN_CAPITAINE=''
+if [ -z "$LOGIN_CAPITAINE" ]; then
+  echo "compte du capitaine illisible (gh api user) : chaque PR se lit au plafond de renvois et attend un humain" >&2
+  LOGIN_CAPITAINE='?' # dit une fois : renvois_de rend le plafond sans relire ni redire
+fi
 
 prs=$(gh api --paginate "$DEPOT/pulls?state=open&per_page=100" --jq '.[] | {number, title, draft,
   head: .head.ref, sommet: .head.sha, base: .base.ref, labels: [.labels[].name]}' | jq -s .)

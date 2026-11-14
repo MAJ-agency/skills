@@ -2,7 +2,8 @@
 // son nom est celui de son dossier, et aucun SKILL.md ne dépasse le budget de 200 lignes
 // que le socle impose aux projets (`budget-contexte.mjs`), et un skill marqué `disable-model-invocation` ne se charge que par sa commande en tête d'un prompt de lancement.
 import assert from "node:assert/strict";
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { execFileSync } from "node:child_process";
 import { join } from "node:path";
 import { test } from "node:test";
@@ -205,6 +206,36 @@ test("le gabarit .gitignore laisse commiter les skills propres au projet", () =>
   const l = lignes(readFileSync(join(RACINE, GITIGNORE), "utf8"));
   assert.ok(l.includes("!.claude/skills/"), `${GITIGNORE} : !.claude/skills/ attendu`);
   assert.ok(l.indexOf("!.claude/skills/") > l.indexOf(".claude/*"), `${GITIGNORE} : !.claude/skills/ vient après .claude/*`);
+});
+
+// Les gardes de la chaîne passent par le régime sensible de la revue (`/security-review`) : le gabarit
+// du contrat les nomme, lu par le script même de la revue adversariale.
+test("le gabarit .claude/chaine.json range les gardes de la chaîne parmi les chemins sensibles", () => {
+  const dossier = mkdtempSync(join(tmpdir(), "chaine-json-"));
+  mkdirSync(join(dossier, ".claude"));
+  copyFileSync(join(RACINE, "skills/chaine/socle-chaine-de-production/references/chaine.json"), join(dossier, ".claude/chaine.json"));
+  const gardes = [
+    "scripts/agent/regles.mjs",
+    "scripts/chaine/passer.sh",
+    "scripts/chaine/chemins-sensibles.mjs",
+    "scripts/chaine/diff-revue.sh",
+    ".husky/pre-push",
+    ".husky/pre-commit",
+    "scripts/docs/identifiants.mjs",
+    ".claude/settings.json",
+    ".github/workflows/ci.yml",
+    ".github/actions/setup/action.yml",
+  ];
+  try {
+    const sortie = execFileSync("node", [join(RACINE, "skills/chaine/revue-adversariale/scripts/chemins-sensibles.mjs")], {
+      cwd: dossier,
+      input: `${gardes.join("\n")}\napps/api/src/main.ts\n`,
+      encoding: "utf8",
+    });
+    assert.deepEqual(sortie.trim().split("\n").map((l) => l.split("\t")[0]), gardes);
+  } finally {
+    rmSync(dossier, { recursive: true, force: true });
+  }
 });
 
 // Un script du plugin ne saute jamais un hook git (« jamais --no-verify ») : les scripts que le plugin

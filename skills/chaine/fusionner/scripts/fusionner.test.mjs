@@ -401,6 +401,36 @@ test("file.sh : une PR renvoyée autant de fois que le plafond est montrée huma
   assert.deepEqual(d.journal(), [], "file.sh ne fait que lire");
 });
 
+test("renvois : seuls les commentaires du compte du capitaine comptent ; compte illisible, la PR attend un humain", () => {
+  const d = depotJouet();
+  for (const b of ["feat/a", "feat/b"]) d.branche(b, "origin/develop", { [`${b}.md`]: `${b}\n` });
+  // La marque recopiée par un autre compte : trois fois sur #56, une fois sur #57 après deux vrais renvois.
+  const autre = { auteur: "un-autre-compte", body: renvoi };
+  d.github({
+    exiges: ["qualite"],
+    checks: { "*": { qualite: "SUCCESS" } },
+    pulls: [
+      pr(56, "feat/a", { commentaires: [autre, autre, autre] }),
+      pr(57, "feat/b", { commentaires: [renvoi, autre, renvoi] }),
+    ],
+  });
+  const etats = () => d.lancer(script("file.sh")).stdout.trim().split("\n").map((l) => l.split("\t").slice(0, 2).join(" "));
+  assert.deepEqual(etats(), ["56 prête", "57 prête"]);
+  const r56 = d.lancer(script("renvoyer.sh"), "56", "x");
+  assert.equal(r56.status, 0, r56.stdout + r56.stderr);
+  assert.doesNotMatch(r56.stdout, /attend un humain/);
+  assert.match(d.lancer(script("renvoyer.sh"), "57", "x").stdout, /^\[#57\] RENVOI 3 sur 3 : la PR attend un humain$/m);
+  // Compte du capitaine illisible : le frein ne se lâche pas, chaque PR attend un humain, et on le dit.
+  const e = depotJouet();
+  e.branche("feat/c", "origin/develop", { "feat/c.md": "c\n" });
+  e.branche("feat/d", "origin/develop", { "feat/d.md": "d\n" });
+  e.github({ compteIllisible: true, exiges: ["qualite"], checks: { "*": { qualite: "SUCCESS" } }, pulls: [pr(58, "feat/c"), pr(59, "feat/d")] });
+  const r = e.lancer(script("file.sh"));
+  assert.equal(r.status, 0, r.stderr);
+  assert.deepEqual(r.stdout.trim().split("\n").map((l) => l.split("\t").slice(0, 2).join(" ")), ["58 humain", "59 humain"]);
+  assert.equal(r.stderr.match(/compte du capitaine illisible \(gh api user\)/g)?.length, 1, r.stderr);
+});
+
 test("boucle.sh : une PR à l'état humain n'est ni passée, ni relancée, ni renvoyée", () => {
   const d = depotJouet();
   d.publierChaine();
@@ -437,6 +467,64 @@ test("passer.sh : titre au-delà de 120 caractères = sortie 4 (à renvoyer) ; b
   const brouillon = d.lancer(script("passer.sh"), "61");
   assert.equal(brouillon.status, 7, brouillon.stdout + brouillon.stderr);
   assert.deepEqual(d.journal(), []);
+});
+
+test("passer.sh : une PR dont la tête est develop, main ou la branche par défaut est refusée (sortie 4) sans rien pousser", () => {
+  const d = depotJouet();
+  d.branche("main", "origin/develop", { "docs/m.md": "m\n" }, "docs: main");
+  d.branche("trunk", "origin/develop", { "docs/t.md": "t\n" }, "docs: trunk");
+  d.branche("develop", "origin/develop", { "docs/d.md": "d\n" }, "docs: develop");
+  d.git("switch", "-q", "--detach", "origin/develop");
+  d.github({
+    brancheParDefaut: "trunk",
+    exiges: ["qualite"],
+    checks: { "*": { [PERIMETRE]: "SUCCESS", qualite: "SUCCESS" } },
+    pulls: [pr(70, "main"), pr(71, "trunk"), pr(72, "develop", { base: "main" })],
+  });
+  const avant = d.git("ls-remote", "origin");
+  for (const [n, tete] of [["70", "main"], ["71", "trunk"], ["72", "develop"]]) {
+    const r = d.lancer(script("passer.sh"), n);
+    assert.equal(r.status, 4, `#${n} : ${r.stdout}${r.stderr}`);
+    assert.match(r.stdout, new RegExp(`tête de la PR = ${tete}, branche gardée .* le capitaine n'y pousse jamais`));
+  }
+  assert.equal(d.git("ls-remote", "origin"), avant);
+  assert.deepEqual(d.journal(), []);
+});
+
+test("sujet.sh fusionner et relancer : une sous-PR dont la tête est develop, main ou un sujet est refusée (sortie 4) sans rien pousser", () => {
+  const d = depotJouet();
+  d.branche("sujet/lot", "origin/develop", { "a.md": "a\n" }, "feat(demo): a (#1)");
+  d.branche("sujet/autre", "origin/develop", { "o.md": "o\n" }, "feat(demo): o (#2)");
+  d.branche("main", "origin/develop", { "m.md": "m\n" }, "docs: main");
+  d.git("switch", "-q", "--detach", "origin/develop");
+  const sous = (number, head) => ({ number, title: "feat(demo): x", head, base: "sujet/lot", labels: ["à-fusionner"] });
+  d.github({ exiges: ["qualite"], checks: { "*": { qualite: "SUCCESS" } }, pulls: [sous(73, "develop"), sous(74, "main"), sous(75, "sujet/autre")] });
+  const avant = d.git("ls-remote", "origin");
+  for (const geste of ["fusionner", "relancer"])
+    for (const n of ["73", "74", "75"]) {
+      const r = d.lancer(scriptDe("sujet", "sujet.sh"), geste, n);
+      assert.equal(r.status, 4, `${geste} #${n} : ${r.stdout}${r.stderr}`);
+      assert.match(r.stdout, /branche gardée .* le capitaine n'y pousse jamais/);
+    }
+  assert.equal(d.git("ls-remote", "origin"), avant);
+  assert.deepEqual(d.journal(), []);
+});
+
+test("boucle.sh : une sous-PR sans CI dont la tête est gardée est renvoyée avec le motif de relancer, rien n'est poussé", () => {
+  const d = depotJouet();
+  d.publierChaine();
+  d.branche("sujet/lot", "origin/develop", { "lot.md": "lot\n" });
+  d.git("switch", "-q", "--detach", "origin/develop");
+  d.github({ exiges: ["qualite"], checks: {}, pulls: [pr(76, "develop", { base: "sujet/lot", title: "feat(demo): x" })] });
+  const avant = d.git("ls-remote", "origin");
+  const r = d.lancer(script("boucle.sh"));
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /\[#76\] RENVOI : #76 : tête develop, branche gardée/);
+  assert.deepEqual(d.etat().pulls[0].labels, ["fusion-bloquée"]);
+  const commentaire = d.journal().find((e) => e.methode === "POST" && e.route === "issues/76/comments");
+  assert.ok(commentaire, `commentaire de renvoi posté : ${JSON.stringify(d.journal())}`);
+  assert.match(commentaire.champs.body, /tête develop, branche gardée/);
+  assert.equal(d.git("ls-remote", "origin"), avant);
 });
 
 test("refus.sh : renvoie la PR avec le dernier motif de la sortie, préfixe retiré", () => {

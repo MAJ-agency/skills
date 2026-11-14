@@ -66,7 +66,7 @@
 #
 # Sorties : 0 fait · 2 conflit · 3 checks rouges ou en cours, ou fusion, commit ou push refusé par un hook git
 # (sa sortie sur stderr : la lire, corriger, jamais en sautant le hook ; le pre-push contrôle l'arbre de travail) · 4 refus corrigeable par l'auteur (sa
-# dernière ligne est le motif, `fusionner` : titre, commitlint, revue, base) · 6 arbre de travail pas
+# dernière ligne est le motif, `fusionner` : titre, commitlint, revue, base ; `fusionner` et `relancer` : tête gardée, develop, main, la branche par défaut ou un sujet) · 6 arbre de travail pas
 # propre (`fusionner`, `rafraichir`, `regrouper`, `relancer` : à nettoyer par qui lance, jamais un renvoi de la PR,
 # comme la sortie 6 de passer.sh) · 7 `fusionner` d'une PR fermée, en brouillon ou d'un sujet gelé (rien à
 # corriger : sautée) · 9 `carte <nom>` refusée, ou `geler`/`degeler` dont le push échoue deux fois (rien n'est poussé)
@@ -471,6 +471,16 @@ mettre_a_jour_sous_pr() {
   sortir 8 "#$n mise à jour avec $base (index régénérés), CI relancée"
 }
 
+# Sous-PR dont la tête est develop, main, la branche par défaut ou un sujet : mettre_a_jour_sous_pr et
+# relancer y pousseraient la fusion du sujet. Une sous-PR part d'une branche de travail : sortie 4.
+refuser_tete_gardee() {
+  local tete
+  tete=$(jq -r .head.ref <<<"$2")
+  if tete_gardee "$tete" "$(jq -r '.base.repo.default_branch // ""' <<<"$2")" || [[ "$tete" == sujet/* ]]; then
+    sortir 4 "#$1 : tête $tete, branche gardée (develop, main, la branche par défaut ou un sujet) : le capitaine n'y pousse jamais ; ouvrir la sous-PR depuis une branche de travail"
+  fi
+}
+
 fusionner() {
   local n=${1:?numéro de la sous-PR}
   local pr base titre sommet longueur
@@ -479,6 +489,7 @@ fusionner() {
   [ "$(jq -r .draft <<<"$pr")" = false ] || sortir 7 "#$n est en brouillon"
   base=$(jq -r .base.ref <<<"$pr")
   [[ "$base" == sujet/* ]] || sortir 4 "#$n vise $base, pas une branche sujet/ : elle passe par le capitaine"
+  refuser_tete_gardee "$n" "$pr"
   # Sujet gelé : rien à corriger côté auteur (7), jamais 4 qui renverrait la PR à sa session.
   git fetch -q origin "+refs/heads/$base:refs/remotes/origin/$base" 2>/dev/null || true
   [ -z "$(gel_de "$base")" ] || sortir 7 "#$n : $base est gelé (Gel: $(gel_de "$base")) : sous-PR laissée dans la file"
@@ -631,6 +642,7 @@ relancer() {
   base=$(jq -r .base.ref <<<"$pr")
   tete=$(jq -r .head.ref <<<"$pr")
   [[ "$base" == sujet/* ]] || sortir 4 "#$n vise $base, pas un sujet"
+  refuser_tete_gardee "$n" "$pr"
   [ -z "$(git status --porcelain)" ] || sortir 6 "arbre de travail pas propre : committer ou ranger d'abord, puis relancer (rien à corriger côté PR)"
   git fetch -q origin "$base" "$tete"
   git switch -q --detach "origin/$tete"
