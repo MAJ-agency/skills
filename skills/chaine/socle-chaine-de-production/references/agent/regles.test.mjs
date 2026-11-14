@@ -2,14 +2,24 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { ajouteUneDependance, decisionCommande, lireDependances, paquetsAjoutes, pousseSurUnSujet, refusEdition, sansTexte, lintable } from './regles.mjs';
 
-const livree = { migrationExistante: () => true, migrations: 'apps/api/src/db/migrations/' };
-const nouvelle = { migrationExistante: () => false, migrations: 'apps/api/src/db/migrations/' };
+// Les clés de la copie des skills sont toujours passées : posé dans un projet, ce test y trouve un vrai manifeste.
+const copie = { skillsRecopies: ['chantier'], versionSkills: '5.0.2' };
+const livree = { migrationExistante: () => true, migrations: 'apps/api/src/db/migrations/', ...copie };
+const nouvelle = { migrationExistante: () => false, migrations: 'apps/api/src/db/migrations/', ...copie };
 
 test('refusEdition refuse une migration déjà livrée et laisse écrire une nouvelle', () => {
   const m = 'apps/api/src/db/migrations/202611041200-care-plan.ts';
   assert.match(refusEdition(m, livree), /ne se modifie jamais/);
   assert.equal(refusEdition(m, nouvelle), null);
   assert.match(refusEdition('apps/api/prisma/migrations/2026_x/migration.sql', { ...livree, migrations: 'apps/api/prisma/migrations' }), /ne se modifie jamais/);
+});
+
+test('refusEdition refuse la copie des skills de la chaîne, pas un skill propre au projet', () => {
+  const refus = (c) => `${c} est une copie des skills de la chaîne (maj-skills 5.0.2) : elle ne se modifie pas dans ce projet. Modifier le skill dans MAJ-agency/skills ; la copie arrive par PR.`;
+  for (const c of ['.claude/skills/chantier/SKILL.md', '.claude/skills/maj-skills.json']) assert.equal(refusEdition(c, nouvelle), refus(c));
+  assert.equal(refusEdition('.claude/skills/parcours-federation/SKILL.md', nouvelle), null);
+  assert.equal(refusEdition('.claude/skills/chantier-bis/x.md', nouvelle), null);
+  for (const c of ['.claude/skills/chantier/SKILL.md', '.claude/skills/maj-skills.json']) assert.equal(refusEdition(c, { ...nouvelle, skillsRecopies: [] }), null);
 });
 
 test('refusEdition refuse le lockfile et les fichiers .env, laisse .env.example', () => {
@@ -30,9 +40,9 @@ test('decisionCommande refuse le push forcé, --no-verify, le push direct sur de
   assert.equal(decisionCommande('npm install').decision, 'refuser');
 });
 
-test('une dépendance nouvelle demande, une réinstallation ne demande pas', () => {
-  assert.equal(decisionCommande('pnpm add zod').decision, 'demander');
-  assert.equal(decisionCommande('pnpm --filter @x/api add -D vitest').decision, 'demander');
+test('une dépendance nouvelle est refusée, une réinstallation passe', () => {
+  assert.equal(decisionCommande('pnpm add zod').decision, 'refuser');
+  assert.equal(decisionCommande('pnpm --filter @x/api add -D vitest').decision, 'refuser');
   assert.equal(decisionCommande('pnpm install --frozen-lockfile 2>&1 | tail -3'), null);
   assert.equal(ajouteUneDependance('pnpm install'), false);
 });
@@ -53,22 +63,22 @@ test('un paquet prévu par le ticket passe sans question, avec ou sans version',
   assert.equal(decisionCommande('pnpm --filter @x/web add -D @types/leaflet@^1', ctx), null);
 });
 
-test('un paquet prévu et un non prévu, un alias ou une option de source : la commande entière demande', () => {
+test('un paquet prévu et un non prévu, un alias ou une option de source : la commande entière est refusée', () => {
   const ctx = prevus(['leaflet']);
-  assert.equal(decisionCommande('pnpm add leaflet zod', ctx).decision, 'demander');
-  assert.equal(decisionCommande('pnpm add leaflet && pnpm add zod', ctx).decision, 'demander');
-  assert.equal(decisionCommande('pnpm add leaflet@npm:autre', ctx).decision, 'demander');
+  assert.equal(decisionCommande('pnpm add leaflet zod', ctx).decision, 'refuser');
+  assert.equal(decisionCommande('pnpm add leaflet && pnpm add zod', ctx).decision, 'refuser');
+  assert.equal(decisionCommande('pnpm add leaflet@npm:autre', ctx).decision, 'refuser');
   for (const option of ['--registry=https://x.example', '--registry https://x.example', '--config.registry=x', '-g'])
-    assert.equal(decisionCommande(`pnpm add leaflet ${option}`, ctx).decision, 'demander', option);
+    assert.equal(decisionCommande(`pnpm add leaflet ${option}`, ctx).decision, 'refuser', option);
   for (const commande of ['pnpm -C /tmp/x add leaflet', 'pnpm --dir=/tmp/x add leaflet', 'npm_config_registry=https://x.example pnpm add leaflet', 'NPM_CONFIG_REGISTRY=x pnpm add leaflet', 'env pnpm add leaflet'])
-    assert.equal(decisionCommande(commande, ctx).decision, 'demander', commande);
+    assert.equal(decisionCommande(commande, ctx).decision, 'refuser', commande);
   assert.equal(decisionCommande('pnpm add -E --filter=@x/web leaflet', ctx), null);
 });
 
-test('ticket introuvable (contexte null ou vide) : demander ; les refus restent', () => {
-  assert.equal(decisionCommande('pnpm add leaflet', prevus(null)).decision, 'demander');
-  assert.equal(decisionCommande('pnpm add leaflet', prevus([])).decision, 'demander');
-  assert.equal(decisionCommande('pnpm add leaflet').decision, 'demander');
+test('ticket introuvable (contexte null ou vide) : refusé ; les refus restent', () => {
+  assert.equal(decisionCommande('pnpm add leaflet', prevus(null)).decision, 'refuser');
+  assert.equal(decisionCommande('pnpm add leaflet', prevus([])).decision, 'refuser');
+  assert.equal(decisionCommande('pnpm add leaflet').decision, 'refuser');
   assert.equal(decisionCommande('npm install leaflet', prevus(['leaflet'])).decision, 'refuser');
   assert.equal(decisionCommande('yarn add leaflet', prevus(['leaflet'])).decision, 'refuser');
   let lu = false;
@@ -98,8 +108,8 @@ test('un push vers un sujet est refusé, quelle que soit la branche et la forme 
   assert.equal(decisionCommande('git push -u origin feat/spec-all-soc-1-04-hook', ticket), null);
   assert.equal(decisionCommande('git push', ticket), null, 'sans refspec depuis une branche de ticket');
   assert.equal(decisionCommande('git push origin feat/x', { brancheCourante: () => 'sujet/demo' }), null, 'depuis le sujet, un refspec explicite vers une autre branche passe');
-  assert.equal(decisionCommande('b=sujet/demo; git push origin HEAD:$b', ticket)?.decision, 'demander', 'refspec illisible : on demande');
-  assert.equal(decisionCommande('git push origin HEAD:$(cat cible)', ticket)?.decision, 'demander');
+  assert.equal(decisionCommande('b=sujet/demo; git push origin HEAD:$b', ticket)?.decision, 'refuser', 'refspec illisible : on refuse');
+  assert.equal(decisionCommande('git push origin HEAD:$(cat cible)', ticket)?.decision, 'refuser');
   assert.equal(pousseSurUnSujet('git commit -m x && git push origin HEAD:sujet/x'), true);
   assert.equal(pousseSurUnSujet('git push origin feat/sujet-x'), false);
   assert.equal(pousseSurUnSujet('git commit -m "voir git push origin HEAD:sujet/x plus tard"'), false, 'un texte cité qui parle d’un push n’est pas un push');
@@ -148,7 +158,7 @@ test('un git push nu, ou vers HEAD, depuis une branche sujet/… est refusé', (
   assert.equal(decisionCommande('git push', sur(null)), null, 'branche inconnue');
 });
 
-test('un refspec illisible (variable, substitution, motif, --all, --mirror) demande confirmation', () => {
+test('un refspec illisible (variable, substitution, motif, --all, --mirror) est refusé', () => {
   for (const commande of [
     'git push origin "$REF"',
     'git push origin HEAD:$BRANCHE',
@@ -159,7 +169,7 @@ test('un refspec illisible (variable, substitution, motif, --all, --mirror) dema
     'git push --mirror origin',
     'git push origin $SRC:feat/x',
   ])
-    assert.equal(decisionCommande(commande)?.decision, 'demander', commande);
+    assert.equal(decisionCommande(commande)?.decision, 'refuser', commande);
 });
 
 test('ce qui n’écrit pas sur un sujet passe, sujet.sh carte compris', () => {
