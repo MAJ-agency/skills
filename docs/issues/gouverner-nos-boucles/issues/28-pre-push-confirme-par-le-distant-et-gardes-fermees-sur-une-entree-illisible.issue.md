@@ -1,6 +1,6 @@
 # Le pre-push ne se laisse plus dire « rien de neuf » par une ref fabriquée ni ne passe aux bancs les variables du capitaine, et les gardes de commandes et de fichiers refusent une entrée qu'elles ne lisent pas, correctif du plugin
 
-Status: ready-for-agent
+Status: Fait — PR #91
 Type: défaut
 Label: contre-revue
 Modèle: sonnet — le gabarit du hook, les deux gardes, leur module d'entrée, les tests et les phrases sont donnés entiers ou en remplacements exacts, joués sur une copie jetable de `cadb4e5` (voir « Vérification ») ; rien n'est à concevoir. La revue passe `/security-review`.
@@ -365,6 +365,7 @@ Pour la session :
 
 ## Comments
 
+- 2026-11-14 — **Fait** : PR 91, fusionnée `436c96e`, plugin 7.8.1. Contre-relue non conforme une fois : une ref de remplacement (`git replace`, `refs/replace/`, `GIT_REPLACE_REF_BASE`) faisait encore sauter le contrôle et le commit neuf arrivait sur le distant ; corrigé dans ce ticket par `export GIT_NO_REPLACE_OBJECTS=1` et un leurre de plus au test ; `pushInsteadOf` et greffes locales ajoutés aux limites. Restent au ticket 34 : `git push origin :`, `--config-env`, et ce qui passe par un hook sauté.
 - 2026-11-14 — Instruit sur `8c670e5` (plugin 7.5.0) : trous reproduits (pre-push : sortie 0 sous trois leurres).
 - 2026-11-14 — Deux relectures (agent neuf, puis le relecteur) sur la version longue, rebasée sur `ea7ea67` (439 sur 439) ; leurs correctifs du pre-push et de ses tests sont repris ici sans changement.
 - 2026-11-14 — Relu par un agent neuf : prêt, aucune bloquante. Rejoué : 460 sur 460, quatre rouges sans le code, pre-push sous `dash -eu` sur 30 cas dont leurres, URL, motifs, `--upload-pack`, distant injoignable ; gardes fermées sur entrée vide, illisible, `{}`, `null`. Portés : la limite du `pushurl` dans `CONTENU.md`, la ligne vide de tête des blocs. Non vérifié par lui : `/security-review`, Husky réel, charge réelle de `NotebookEdit`.
