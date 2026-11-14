@@ -30,14 +30,14 @@ Lignes de `origin/main` à `809d62e` (2026-11-14, plugin 5.0.2), toutes relues. 
 
 `garde-fichiers.mjs` (ligne 24) appelle `refusEdition(chemin, { migrationExistante })` sans clé de la copie : il ne change pas.
 
-- `regles.mjs` : lignes 28 et 29 (`MANIFESTE_SKILLS`) supprimées ; dans la JSDoc de `refusEdition` (lignes 46 à 49), le type du second argument redevient `{ migrationExistante: (chemin: string) => boolean, migrations?: string }` et les lignes `skillsRecopies` et `versionSkills` partent ; lignes 56 et 57 (les deux valeurs par défaut) et 63 à 69 (le bloc du refus) supprimées. Plus rien sous `.claude/skills/` n'est refusé.
+- `regles.mjs` : lignes 28 et 29 (`MANIFESTE_SKILLS` et sa JSDoc) supprimées, et une seule des deux lignes vides qui les entourent (27 et 30), pour ne pas en laisser deux de suite ; dans la JSDoc de `refusEdition` (lignes 46 à 49), le type du second argument redevient `{ migrationExistante: (chemin: string) => boolean, migrations?: string }` et les lignes `skillsRecopies` et `versionSkills` partent ; lignes 56 et 57 (les deux valeurs par défaut) et 63 à 69 (le bloc du refus) supprimées. Plus rien sous `.claude/skills/` n'est refusé.
 - `regles.test.mjs` : ligne 5 (le commentaire) et ligne 6 (`copie`) supprimées ; lignes 7 et 8, `livree` et `nouvelle` sans `...copie`. Le test des lignes 17 à 23 devient « refusEdition laisse éditer .claude/skills : les skills du plugin vivent hors du dépôt, ceux du projet sont à lui » : `refusEdition` rend `null` pour `.claude/skills/chantier/SKILL.md`, `.claude/skills/maj-skills.json` et `.claude/skills/parcours-federation/SKILL.md`, avec `nouvelle`.
 
 ### 3. Le gate `skills-recopies` dans ce que pose le socle
 
 - `R/chaine.json` : ligne 19 (`"scripts/verify/skills-recopies.mjs"`) supprimée, et la virgule de la ligne 18. `fin-de-tour.mjs` ne joue que les gates qui existent : un projet qui l'avait posé n'est pas cassé.
 - `skills/chaine/socle-chaine-de-production/SKILL.md`, ligne 37 (le point « 4 ter », script `check:skills` et étape de `scripts/check.mjs` comprises) supprimée. Le gabarit `scripts/check.mjs` de `socle-monorepo` ne porte pas cette étape (`git grep -n "check:skills" 809d62e` ne rend que cette ligne) : rien d'autre à retirer.
-- `R/CONTENU.md`, ligne 13 : « , d'une migration déjà livrée et de la copie des skills de la chaîne que nomme `.claude/skills/maj-skills.json` ; le gate `skills-recopies` (`scripts/verify/skills-recopies.mjs`) contrôle cette copie contre son manifeste. » devient « et d'une migration déjà livrée. »
+- `R/CONTENU.md`, ligne 13 : « , d'une migration déjà livrée et de la copie des skills de la chaîne que nomme `.claude/skills/maj-skills.json` ; le gate `skills-recopies` (`scripts/verify/skills-recopies.mjs`) contrôle cette copie contre son manifeste. » devient « `.env` et d'une migration déjà livrée. » : le passage entier se lit alors « … l'édition d'un index généré, du lockfile, d'un `.env` et d'une migration déjà livrée. Les règles sont des fonctions pures … » (la virgule avant « d'une migration » et le tout suivant, jusqu'à « son manifeste. », sont remplacés, sans espace manquante)
 - `R/fragments/claude-md-fusion.md`, ligne 10 : « , ainsi que l'édition de la copie des skills de la chaîne, sous .claude/skills : une modification se fait dans MAJ-agency/skills, la copie arrive par PR » supprimé ; la phrase finit à « (le conducteur l'accorde en complétant cette ligne). »
 - `R/docs-agents/pieges.md` et `R/docs-agents/chaine-de-production.md` : aucune mention de la copie à `809d62e` (le ticket 12 les avait touchés pour le hook qui ne demande plus) ; rien à faire.
 
@@ -52,7 +52,7 @@ Lignes de `origin/main` à `809d62e` (2026-11-14, plugin 5.0.2), toutes relues. 
 
 - Ligne 4, le commentaire devient : `# les fiches de règles chargées par chemin, le contrat de la chaîne et les skills propres au projet sont du dépôt (ceux du plugin vivent hors du dépôt)`.
 - Après la ligne 6 (`!.claude/chaine.json`) : `!.claude/skills/`.
-- `M/CONTENU.md`, ligne 28 : la phrase dit aussi que `.claude/skills/` est du dépôt, pour les skills propres au projet (`P-21`).
+- `M/CONTENU.md`, ligne 28 : la ligne à `809d62e` est : « - **`gitignore`** — stocké sans point pour ne pas s'appliquer au dépôt du skill ; ignore `graphify-out/` (graphe local, reconstruit en continu) et `.husky/*.local` (gardes de la machine). » Elle devient : « - **`gitignore`** — stocké sans point pour ne pas s'appliquer au dépôt du skill ; ignore `graphify-out/` (graphe local, reconstruit en continu), `.husky/*.local` (gardes de la machine) et tout `.claude/` sauf `settings.json`, `rules/`, `chaine.json` et `skills/` (les skills propres au projet, `P-21`, sont du dépôt ; ceux du plugin vivent hors du dépôt). »
 - `eslint.config.mjs` et `.prettierignore` du gabarit : rien à exclure, plus de copie. Un skill propre au projet est lint et formaté comme le reste.
 
 ### 6. La version — `.claude-plugin/plugin.json`
@@ -60,6 +60,8 @@ Lignes de `origin/main` à `809d62e` (2026-11-14, plugin 5.0.2), toutes relues. 
 Ligne 3 : `"version": "6.0.0"`. Règle du `README.md`, « Ajouter un skill », étape 4 (ligne 180) : « Patch pour une correction, mineure pour un skill ou un gabarit ajouté, majeure quand un skill existant change de contrat ». La majeure tient à ce ticket seul : le socle de la chaîne ne pose plus le gate `skills-recopies` ni le refus d'éditer `.claude/skills/`, le contrat `gatesRapides` de `.claude/chaine.json` perd une entrée, et les projets qui recevaient la copie par PR (workflow et commande de copie retirés) ne la reçoivent plus ; un projet qui comptait sur l'un d'eux doit l'apprendre par la version. Le ticket 13 change la consigne de lecture des skills sans retirer de contrat ; il n'a plus de part sur les plafonds (sortie le 2026-11-14 vers une autre session), et la version n'en dépend pas. Précédent : le ticket 8, `4.2.0` vers `5.0.0`. Une seule montée, dans ce ticket, comme les tickets 5 à 8 (`A-1`) : le ticket 13 ne la touche pas.
 
 **Le déclenchement du workflow.** `recopier-skills.yml` se lance sur un push de `main` qui touche `.claude-plugin/plugin.json`. GitHub lit les workflows dans le commit poussé : le squash de ce ticket monte la version **et** supprime le fichier du workflow, donc aucun workflow de recopie n'existe à ce commit et rien ne se lance. C'est la raison de monter la version ici et non au ticket 13 : un ticket 13 qui l'aurait montée aurait lancé la recopie, qui, avec le secret `RECOPIE_TOKEN`, aurait rouvert sur `anchorpost` la PR d'une copie que `P-24` retire (et échoué sur `iroki-monorepo`). La version doit donc arriver dans le même commit que la suppression : ne pas la monter dans un commit à part poussé avant.
+
+**Risque de séquencement.** Si une autre session (celle qui refait les contrôles de session) fusionne sur `main` un commit qui touche `.claude-plugin/plugin.json` avant ce ticket, `recopier-skills.yml` se déclenche encore : il échoue à sa première étape si le secret `RECOPIE_TOKEN` n'existe pas, sinon il ouvre des PR de recopie dans les projets. Consigne : avant de sortir sa PR du brouillon, la session de ce ticket vérifie la version portée par `origin/main` (`git show origin/main:.claude-plugin/plugin.json`). Si elle n'est plus 5.0.2 : elle garde 6.0.0 si la version de `main` est inférieure, sinon elle l'écrit à l'architecte et s'arrête.
 
 ## Décisions
 
@@ -87,6 +89,7 @@ Ligne 3 : `"version": "6.0.0"`. Règle du `README.md`, « Ajouter un skill », �
 
 ## Hors périmètre
 
+- **Le séquencement avec la session des contrôles de session** : si elle fusionne avant ce ticket un commit qui touche `.claude-plugin/plugin.json`, le workflow de recopie se déclenche encore ; la consigne est au point 6, « Risque de séquencement ».
 - Le secret `RECOPIE_TOKEN` de ce dépôt et le jeton qu'il porte : à supprimer et révoquer par l'admin après la fusion (réglage GitHub, pas un fichier).
 - Les dépôts de projet : le retrait de la copie d'`anchorpost` (PR 121 : `.claude/skills/<nom>/`, le manifeste, ses exclusions d'`eslint` et de `prettier`, le gate `skills-recopies`, le refus du hook), la première copie d'`iroki-monorepo` qui n'a plus lieu (`P-23` se reprend), le `.gitignore` de chaque projet.
 - `fedora` : son lot se reprend après `P-24`, par d'autres tickets.
@@ -97,3 +100,4 @@ Ligne 3 : `"version": "6.0.0"`. Règle du `README.md`, « Ajouter un skill », �
 
 - 2026-11-14 — Écrit après `P-24` et `P-25`, en même temps que la réécriture du ticket 13 : le retrait de la copie en est sorti pour tenir sous vingt fichiers par ticket. Dix-huit fichiers, dont huit supprimés.
 - 2026-11-14 — La justification de la 6.0.0 ne s'appuie plus sur l'architecte sans plafond (`passer-la-main`, rôle `architecte` refusé par `plafonds.mjs`), sorti du ticket 13 vers la session qui reprend les contrôles de session : la majeure tient au gate `skills-recopies`, au refus du hook et au service de copie retirés. Version inchangée ; les deux fichiers partagés avec cette session sont nommés sous « Hors périmètre ».
+- 2026-11-14 — Relu par un agent neuf, corrections reportées : texte final exact de `R/CONTENU.md:13` et de `M/CONTENU.md:28`, une seule ligne vide à retirer dans `regles.mjs`, et le risque de séquencement avec la session des contrôles de session (consigne sur la version de `origin/main`).
