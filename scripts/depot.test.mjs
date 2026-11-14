@@ -314,3 +314,45 @@ test("aucun SKILL.md ne demande la commande d'un skill marqué, que le modèle n
   );
   assert.deepEqual(fautes, [], `lire le fichier du skill, jamais l'invoquer : ${fautes.join(" ; ")}`);
 });
+
+// Une session part de l'instantané de son environnement, avec la version du plugin qu'il porte, et une
+// mise à jour en cours de session ne recharge pas ses skills (documentation de Claude Code, pages des
+// environnements cloud et du chargement des plugins) : chaque prompt de lancement fait se mettre à
+// niveau la session, et le fichier du marketplace fait foi quand les versions diffèrent.
+const MISE_A_NIVEAU = [
+  "claude plugin marketplace update maj",
+  "claude plugin update maj-skills@maj",
+  "~/.claude/plugins/marketplaces/maj/.claude-plugin/plugin.json",
+  "c'est le fichier du marketplace qui fait foi",
+  "sans l'outil Skill",
+  "la version que tu suis",
+];
+const blocsPrompt = (texte) => blocsTexte(texte).filter((b) => b.includes("architecte : <session_id de cette session>"));
+const manquesMiseANiveau = (bloc) => MISE_A_NIVEAU.filter((m) => !bloc.includes(m));
+const DIT_A_CHAQUE_DEMARRAGE = /à chaque démarrage|au démarrage de toute session/;
+const TEXTES_DE_LANCEMENT = ["README.md", LANCEMENT, "skills/chaine/architecte/SKILL.md", "skills/chaine/architecte/references/CONTENU.md"];
+
+test("lecteurs de la mise à niveau : entrées piégées", () => {
+  const deuxBlocs = "```text\nConducteur, architecte : <session_id de cette session>.\n```\n```text\nLe produit : « … »\n```\n";
+  assert.deepEqual(blocsPrompt(deuxBlocs), ["Conducteur, architecte : <session_id de cette session>.\n"], "le bloc des consignes du produit n'est pas un prompt");
+  assert.deepEqual(manquesMiseANiveau(MISE_A_NIVEAU.join(" ; ")), []);
+  assert.deepEqual(manquesMiseANiveau("claude plugin marketplace update maj"), MISE_A_NIVEAU.slice(1));
+  assert.deepEqual(manquesMiseANiveau("C'est le fichier du marketplace qui fait foi"), MISE_A_NIVEAU, "la phrase exacte, casse comprise");
+  assert.equal(DIT_A_CHAQUE_DEMARRAGE.test("le met à jour à chaque démarrage"), true);
+  assert.equal(DIT_A_CHAQUE_DEMARRAGE.test("puis le met à jour, au démarrage de toute session"), true);
+  assert.equal(DIT_A_CHAQUE_DEMARRAGE.test("ce script ne se rejoue pas à chaque session"), false);
+});
+
+test("chaque prompt de lancement fait se mettre à niveau la session, et le fichier du marketplace fait foi", () => {
+  const blocs = blocsPrompt(readFileSync(join(RACINE, LANCEMENT), "utf8"));
+  assert.equal(blocs.length, 3, `${LANCEMENT} : trois blocs de prompt (conducteur, capitaine, session de ticket)`);
+  const fautes = blocs.flatMap((b, i) => manquesMiseANiveau(b).map((m) => `bloc ${i + 1} : « ${m} » absent`));
+  assert.deepEqual(fautes, [], `${LANCEMENT} : ${fautes.join(" ; ")}`);
+});
+
+test("aucun texte de lancement n'affirme que le plugin se met à jour à chaque démarrage de session", () => {
+  const fautes = TEXTES_DE_LANCEMENT.flatMap((f) =>
+    lignes(readFileSync(join(RACINE, f), "utf8")).flatMap((l, i) => (DIT_A_CHAQUE_DEMARRAGE.test(l) ? [`${f}:${i + 1}`] : [])),
+  );
+  assert.deepEqual(fautes, [], `une session part de l'instantané de son environnement : ${fautes.join(" ; ")}`);
+});
