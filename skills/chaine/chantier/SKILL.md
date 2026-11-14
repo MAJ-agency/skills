@@ -71,7 +71,7 @@ Le capitaine squashe la PR de cadrage dans le sujet dès sa CI légère verte. *
 
 Pour chaque ticket de la vague, `create_session` :
 
-- `title` : `<Projet> <chantier> — <identifiant> <objet court>` ; `tags` : `["chantier:<nom>"]` ; `source_url` : le dépôt ; `source_revision` : `sujet/<nom>` ; `model` : celui du ticket.
+- `title` : `<Projet> <chantier> — <identifiant> <objet court>` ; `tags` : `["chantier:<nom>"]` ; `source_url` : le dépôt ; `source_revision` : `sujet/<nom>` ; `model` : celui du ticket ; `permission_mode` : `"auto"`.
 - `prompt` : le gabarit de `docs/agents/chaine-de-production.md` § 5, cité par renvoi et non recopié. La ligne de situation particulière n'y figure que s'il y en a une, et **ne redit jamais une règle** : le régime de livraison se lit sur `Label:` dans l'en-tête du ticket, jamais sur le prompt (cas vécu : un prompt qui annonçait une contre-revue sur un ticket sans `Label:` a fait deviner son régime à la fille, et trois sessions ont perdu du temps).
 
 Chaque fille écrit au conducteur (`send_message`) si elle est bloquée, et dès sa PR livrée, sans attendre ni les contrôles ni la fusion : ses cinq lignes de rendu, avec les décisions qu'elle attend de lui (ADR proposée, dépendance, règle à trancher), aussi écrites sous `## Comments` du ticket et dans la PR.
