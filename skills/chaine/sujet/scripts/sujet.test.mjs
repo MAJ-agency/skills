@@ -127,7 +127,7 @@ test("demarrer d'une branche poussée partie de develop : refus 4, consigne sans
   assert.match(r.stdout, /^ {2}git switch --no-track -c feat\/spec-all-dem-1-01-travail-sur-sujet origin\/sujet\/demo$/m);
   assert.match(r.stdout, /^ {2}git cherry-pick --no-merges origin\/develop\.\.feat\/spec-all-dem-1-01-travail$/m);
   assert.match(r.stdout, /^ {2}git push -u origin feat\/spec-all-dem-1-01-travail-sur-sujet$/m);
-  assert.match(r.stdout, /^En conflit : résoudre, git add, git cherry-pick --continue \(ou --abort : rien n'est perdu, l'ancienne branche reste\)\.$/m);
+  assert.match(r.stdout, /^En conflit : résoudre, git add, git cherry-pick --continue \(ou --abort : rien n'est perdu, l'ancienne branche reste ; après --abort, feat\/spec-all-dem-1-01-travail-sur-sujet existe déjà : la reprendre par git switch feat\/spec-all-dem-1-01-travail-sur-sujet, pas par -c\)\.$/m);
   assert.equal(d.git("rev-parse", "HEAD"), avant.tete);
   assert.equal(d.git("rev-parse", "--abbrev-ref", "HEAD"), TRAVAIL);
   assert.equal(d.git("ls-remote", "--heads", "origin", TRAVAIL), avant.distante);

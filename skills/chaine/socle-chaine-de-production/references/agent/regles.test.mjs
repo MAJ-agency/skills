@@ -96,6 +96,10 @@ test('tout push forcé est refusé, sur toute branche et sous toute forme ; la c
     'git -C . push --force-with-lease origin feat/x',
     'timeout 5 git push origin +HEAD:feat/x',
     'git rebase --onto origin/sujet/demo origin/develop && git push --force-with-lease',
+    'git push \\\n  --force origin feat/x',
+    'git push origin feat/x \\\n  -f',
+    'F=--force; git push $F origin feat/x',
+    "git push $'--force' origin feat/x",
   ]) {
     const d = decisionCommande(commande, { brancheCourante: () => 'feat/spec-all-demo-1-01-travail' });
     assert.equal(d?.decision, 'refuser', commande);

@@ -377,7 +377,7 @@ Ne pas partir de la branche de specs : attendre sa fusion (ou \`sujet.sh ouvrir 
     echo "  git switch --no-track -c $neuve origin/$branche"
     echo "  git cherry-pick --no-merges origin/develop..$courante"
     echo "  git push -u origin $neuve"
-    echo "En conflit : résoudre, git add, git cherry-pick --continue (ou --abort : rien n'est perdu, l'ancienne branche reste)."
+    echo "En conflit : résoudre, git add, git cherry-pick --continue (ou --abort : rien n'est perdu, l'ancienne branche reste ; après --abort, $neuve existe déjà : la reprendre par git switch $neuve, pas par -c)."
     echo "Ouvrir la PR de $neuve vers $branche ; fermer celle de $courante en citant la nouvelle."
     echo "$courante reste sur origin, intacte : sa suppression n'est pas un geste de session."
     sortir 4 "puis relancer demarrer depuis $neuve"

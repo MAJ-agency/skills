@@ -180,6 +180,8 @@ const OPTIONS_PUSH_A_VALEUR = new Set(['-o', '--push-option', '--repo', '--recei
  */
 function pushs(commande) {
   return sansGuillemets(commande)
+    .replace(/\\\r?\n/g, ' ')
+    .replace(/\\(.)/g, '$1')
     .replace(/`/g, '$(')
     .split(/[;&|\n()]+/)
     .flatMap((segment) => {
@@ -193,19 +195,23 @@ function pushs(commande) {
       let tout = false;
       let remoteEnOption = false;
       let force = false;
+      let illisible = false;
       for (let k = j + 1; k < mots.length; k++) {
         const mot = mots[k];
+        if (/[$`]/.test(mot)) illisible = true;
         if (!mot.startsWith('-')) {
           positionnels.push(mot);
           continue;
         }
         if (/^--(all|mirror|branches)$/.test(mot)) tout = true;
+        // Git accepte les abréviations non ambiguës (`--force-w`, `--force-wi`, `--force-i`) ; `--for…` les couvre
+        // toutes, et refuse aussi `--forc`, que git rejette comme ambigu : prudence sans coût.
         if (/^(--for[a-z-]*(=.*)?|-[a-zA-Z]*f[a-zA-Z]*)$/.test(mot)) force = true;
         if (/^--repo(=|$)/.test(mot)) remoteEnOption = true;
         if (OPTIONS_PUSH_A_VALEUR.has(mot)) k++;
       }
       const refspecs = remoteEnOption ? positionnels : positionnels.slice(1);
-      return [{ refspecs, tout, force: force || refspecs.some((refspec) => refspec.startsWith('+')) }];
+      return [{ refspecs, tout, illisible, force: force || refspecs.some((refspec) => refspec.startsWith('+')) }];
     });
 }
 
@@ -234,7 +240,7 @@ export function pousseSurUnSujet(commande, brancheCourante = () => null) {
  */
 export function pushIllisible(commande) {
   return pushs(commande).some(
-    ({ refspecs, tout }) => tout || refspecs.some((refspec) => /[$`]/.test(refspec) || /[*?[{]/.test(destination(refspec, () => null))),
+    ({ refspecs, tout, illisible }) => tout || illisible || refspecs.some((refspec) => /[$`]/.test(refspec) || /[*?[{]/.test(destination(refspec, () => null))),
   );
 }
 
