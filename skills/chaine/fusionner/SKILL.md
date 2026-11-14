@@ -50,7 +50,7 @@ mkdir -p <scratchpad>/outils && cp scripts/chaine/*.sh scripts/chaine/identifian
 bash <scratchpad>/outils/veille.sh > <scratchpad>/veille.log 2>&1   # --pause <s> (120), --duree <min> (110) ; --sondes <n> n'existe que pour les tests
 ```
 
-`boucle.sh` s'arrête sur `FILE VIDE` : une PR étiquetée ensuite ne serait vue par personne. `veille.sh` lance la boucle, puis sonde `file.sh` toutes les 2 min (une lecture GitHub, aucune CI) et relance la boucle dès qu'une PR est « prête » ou « CI rouge » sans l'avoir été à la sonde précédente : une PR que la boucle vient de sauter ne la relance pas en rond. Une PR mise de côté « sans CI » la relance quand sa CI apparaît. « CI en cours », « attend », « bloquée » et brouillon ne relancent rien. Journal : `VEILLE <hh:mm> : file vide` au plus toutes les 10 min.
+`boucle.sh` s'arrête sur `FILE VIDE` : une PR étiquetée ensuite ne serait vue par personne. `veille.sh` lance la boucle, puis sonde `file.sh` toutes les 2 min (une lecture GitHub, aucune CI) et relance la boucle dès qu'une PR est « prête » ou « CI rouge » sans l'avoir été à la sonde précédente : une PR que la boucle vient de sauter ne la relance pas en rond. Une PR que la boucle a renvoyée ou dont elle a relancé les jobs rouges, revenue avant la sonde suivante, la relance (cas vécu : PR renvoyée, corrigée en une minute, restée invisible). Une PR mise de côté « sans CI » la relance quand sa CI apparaît. « CI en cours », « attend », « bloquée » et brouillon ne relancent rien. Journal : `VEILLE <hh:mm> : file vide` au plus toutes les 10 min.
 
 La veille s'arrête d'elle-même, et sa fin réveille la session :
 
