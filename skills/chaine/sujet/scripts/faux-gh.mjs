@@ -172,7 +172,7 @@ function repondre() {
   }
   if ((m = route.match(/^pulls\/(\d+)$/))) {
     if (methode === "PATCH")
-      Object.assign(pr(m[1]), champs.base ? { base: champs.base } : {});
+      Object.assign(pr(m[1]), champs.base ? { base: champs.base } : {}, champs.state ? { state: champs.state } : {});
     return versRest(pr(m[1]));
   }
   if ((m = route.match(/^pulls\/(\d+)\/merge$/)) && methode === "PUT")

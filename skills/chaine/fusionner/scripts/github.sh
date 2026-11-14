@@ -117,6 +117,13 @@ index_generes_regex() {
   index_generes | jq -Rrs 'split("\n") | map(select(. != "") | gsub("\\."; "\\.") | gsub("\\*"; "[^/]+"))
     | "^(" + join("|") + ")$"'
 }
+# Ceux qui ont une `commande`, de même : régénérés, donc écrasés à chaque mise à jour. Un index sans
+# commande (chaîne nue de la liste) n'est jamais régénéré : `sujet.sh` (PR de mise à jour) et `passer.sh`
+# (livraison intermédiaire) ne le dispensent pas sur sa seule place dans la liste.
+index_regeneres_regex() {
+  index_json | jq -r '.index[] | objects | select((.commande // "") != "") | .chemin' |
+    jq -Rrs 'split("\n") | map(select(. != "") | gsub("\\."; "\\.") | gsub("\\*"; "[^/]+")) | "^(" + join("|") + ")$"'
+}
 # Indexe les index générés modifiés, ajoutés ou supprimés (un motif sans fichier n'est pas une erreur).
 ajouter_index() {
   local f

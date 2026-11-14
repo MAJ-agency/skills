@@ -23,7 +23,8 @@
 # Une sous-PR en conflit avec son sujet sur des index générés seuls n'est pas renvoyée : `sujet.sh
 # fusionner` la met à jour, régénère et pousse (sortie 8, MISE À JOUR) ; elle repasse CI verte.
 # Un conflit est annulé et signalé (SUJET EN CONFLIT), jamais résolu ici : une session le
-# résout avec `sujet.sh rafraichir <nom>`.
+# résout dans une PR de mise à jour (en-tête de sujet.sh), que `sujet.sh fusionner` fait entrer par
+# avance rapide.
 # Un sujet « prêt à livrer » (plus de sous-PR, tickets faits) est livré par `sujet.sh
 # livrer-prets` (LIVRÉ), sauf label `sujet-manuel` sur une de ses sous-PR. La PR finale passe
 # par un commit de merge (passer.sh) : develop garde un commit par sous-PR.
@@ -243,7 +244,7 @@ rafraichir_sujets() {
     case "${PIPESTATUS[0]}" in
       0) ;;
       6) echo "[sujet/$nom] PAS PROPRE : worktree du capitaine à nettoyer, sujet laissé tel quel (aucun conflit)" ;;
-      *) echo "[sujet/$nom] SUJET EN CONFLIT avec develop : à résoudre par une session (sujet.sh rafraichir $nom)" ;;
+      *) echo "[sujet/$nom] SUJET EN CONFLIT avec develop : à résoudre par une session, PR de mise à jour vers sujet/$nom (en-tête de sujet.sh)" ;;
     esac
   done
   git switch -q --detach origin/develop 2>/dev/null || true
@@ -297,6 +298,8 @@ traiter_sujets() {
           6) echo "[#$n] PAS PROPRE : worktree du capitaine à nettoyer, sous-PR laissée dans la file (aucun renvoi)" ;;
           7) echo "[#$n] sous-PR non éligible (fermée ou en brouillon)" ;;
           8) echo "[#$n] MISE À JOUR avec ${etat%% :*} (index régénérés), CI relancée" ;;
+          # PR de mise à jour : un outil du capitaine en échec, rien que la session puisse corriger.
+          11) echo "[#$n] ÉCHEC DU CAPITAINE : sous-PR laissée dans la file (aucun renvoi), cause ci-dessus" ;;
           *) echo "[#$n] sous-PR non éligible (sortie $rc)" ;;
         esac ;;
     esac
