@@ -179,6 +179,7 @@ test('pre-push du socle : une ref de suivi fabriquée sur place, ou un distant n
     (d) => d.git('update-ref', 'refs/remotes/leurre/x', 'HEAD'),
     (d) => d.git('update-ref', 'refs/remotes/origin/leurre', 'HEAD'),
     (d) => d.git('fetch', '-q', '.', 'HEAD:refs/remotes/origin/leurre'),
+    (d) => d.git('replace', '--graft', d.git('rev-parse', 'origin/main'), 'HEAD'),
   ];
   for (const [i, leurre] of leurres.entries()) {
     const d = depotJouet();

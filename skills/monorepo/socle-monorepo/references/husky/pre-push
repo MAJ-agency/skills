@@ -20,6 +20,9 @@
 # au distant : en interactif, une seconde authentification peut être demandée.
 PRE_PUSH_REFS=$(cat)
 export PRE_PUSH_REFS
+# Les remplacements (`git replace`, `refs/replace/`, `GIT_REPLACE_REF_BASE`) ne doivent pas faire croire au
+# hook que le distant connaît un commit que le push enverra : `rev-list` les suit, l'envoi non.
+export GIT_NO_REPLACE_OBJECTS=1
 
 rien_de_neuf() {
   # Le distant par son nom (`origin`) : une URL ou un motif ne nomme aucune ref de suivi.
