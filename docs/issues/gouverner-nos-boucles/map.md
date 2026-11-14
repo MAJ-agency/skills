@@ -202,11 +202,11 @@ Vague 1 fusionnée le 2026-11-13 par le capitaine de `skills` (`main` à `8eb1c9
 | `session_017ZgEwLww17C2j11mzEBFVh` | ticket   | sonde 21-2 (lecture du fichier d'un skill marqué) | 0,21 | 95 315 |
 | `session_017ZgEwHfaQfgX2GcdaTDfCk` | ticket   | sonde 21-3 (refus de l'outil Skill) | 0,16 | 86 764 |
 | `session_017ZgEwHAiLLbFoACAkeWR3V` | ticket   | sonde 23 (mise à jour du plugin en cours de session) | 0,28 | 102 596 |
-| `session_017ZgEwHHsSouZ33moguaNDJ` | ticket   | 23 (lancée le 2026-11-14 à 13 h 10 UTC) | 0 | 0 |
+| `session_017ZgEwHHsSouZ33moguaNDJ` | ticket   | 23 (PR 83 de `skills`, fusionnée, plugin 7.4.1) | 0,62 | 131 882 |
 | `session_017ZgEwHr7fkwbLgj7ApReUP` | ticket   | sonde 23-1 (gabarit du conducteur ; coût non relevé, session archivée avant la fin de son tour) | 0 | 0 |
 | `session_017ZgEwLKXzCsKPWZUZiukeB` | ticket   | sonde 23-2 (gabarit d'une session de ticket ; coût non relevé) | 0 | 0 |
 | `session_017ZgEwMGM2DtxkFfALfSbPo` | ticket   | sonde 23-3 (`/reload-plugins` en tête du prompt ; aucun tour du modèle) | 0 | 64 451 |
-| `session_017ZgEwLERehR7TnRxbBsfDH` | ticket   | 24 (lancée le 2026-11-14 à 13 h 29 UTC) | 0 | 0 |
+| `session_017ZgEwLERehR7TnRxbBsfDH` | ticket   | 24 (PR 84 de `skills`, fusionnée `8c670e5`, plugin 7.5.0) | 1,03 | 150 918 |
 | `session_017ZgEwJW5CB9AnK1x9r48fv` | ticket   | `SPEC_ALL_SOC-1.15` (lancée le 2026-11-14 à 14 h 38 UTC) | 0 | 0 |
 | `session_017ZgEwL2oAmAYcYXYobxLWp` | ticket   | `SPEC_ALL_SOC-1.22` (lancée le 2026-11-14 à 14 h 38 UTC) | 0 | 0 |
 
