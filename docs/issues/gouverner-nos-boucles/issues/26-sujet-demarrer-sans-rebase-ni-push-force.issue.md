@@ -1,6 +1,6 @@
 # `sujet.sh demarrer` ne prescrit plus de rebase ni de push forcé, et le hook d'agent refuse tout push forcé, version corrective du plugin
 
-Status: ready-for-agent
+Status: Fait — PR #86
 Type: défaut
 Label: contre-revue
 Modèle: sonnet — la cause est établie, le remède, les tests et les textes sont donnés entiers ou mot pour mot, joués sur une copie jetable (voir « Où ») ; rien n'est à concevoir.
