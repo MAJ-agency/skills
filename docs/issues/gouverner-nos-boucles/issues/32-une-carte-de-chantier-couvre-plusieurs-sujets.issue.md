@@ -1,6 +1,6 @@
 # Une carte de chantier peut couvrir plusieurs sujets : `Sujet: sujet/a, sujet/b, sujet/c` est lue partout, le gate l'admet, et `demarrer` refuse un ticket qui en nomme plusieurs
 
-Status: ready-for-agent
+Status: Fait — PR #90
 Type: défaut
 Label: contre-revue
 Modèle: sonnet — le code est donné en diffs et en fichiers entiers, joué sur une copie jetable de `origin/main` (voir « Vérification ») ; deux lectures communes (JS, shell), cinq lecteurs qui les appellent, dix tests donnés mot pour mot ; rien n'est à concevoir.
@@ -616,4 +616,5 @@ Pour la session :
 
 ## Comments
 
+- 2026-11-14 — **Fait** : PR 90, fusionnée `ce61357`, plugin 7.8.0. Contre-relue conforme ; une retouche : le JS lit les blancs comme l'awk (espace insécable, saut de page et tabulation verticale refusés en tête et autour d'une virgule). Pas de section de `CONTENU.md` pour `ligne-sujet.mjs`, comme pour `couts.mjs`.
 - 2026-11-14 — Instruit sur `cadb4e5` (plugin 7.7.0). Fait reproduit et plus large que rapporté : sur la carte à trois sujets, le gate refuse, `geler` ne peut pas geler, `carte <nom>` refuse. Remède joué dans le plugin (466/466). La décision de l'architecte (admise partout) tient ; deux points non bloquants (décisions 6 et 7), **acceptés par l'architecte** : la carte partagée vit en trois copies, une par branche de sujet, et sa phase `6-nettoyage` ou `fini` donne tous ses sujets pour livrés, donc ne se pose qu'après la livraison du dernier. Relecture : prêt après corrections mineures, aucune bloquante ; le shell et le JS lisent pareil sur 96 cas (hors tiret final ou double, que le gate refuse avant).
