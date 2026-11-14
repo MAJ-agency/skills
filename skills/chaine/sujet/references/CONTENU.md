@@ -12,6 +12,8 @@ Ce qui vient du projet : l'identifiant de ticket (`SPEC_ALL_SOC-1.03` dans un ti
 
 Le banc d'essai partagé avec `fusionner` : un `origin` nu local, un clone de travail, et en tête de PATH un faux `gh` qui répond à `gh api` depuis un état JSON et fusionne pour de vrai dans le dépôt nu, un faux `pnpm` et un `sleep` immédiat. Aucun réseau. Le faux `gh` sérialise ses appels (verrou, écriture atomique de l'état) : `boucle.sh` lance `file.sh | while …`, dont les lectures croisent les écritures de `renvoyer.sh`, et GitHub, lui, ne perd aucune écriture. `scripts/faux-gh.test.mjs` : 25 écritures et 25 lectures concurrentes, aucune écriture perdue, aucun état tronqué.
 
+Le dépôt jouet retire de l'environnement hérité les variables de la chaîne, par préfixe (`GIT_`, `PASSER_`, `BOUCLE_`, `PRE_PUSH_`, `REVUE_`) : depuis que `passer.sh` pousse sous le pre-push, les bancs tournent sous le capitaine, et le `passer.sh` d'un banc lisait les outils du vrai capitaine (`PASSER_OUTILS`), sa boucle remplaçait la copie du vrai capitaine (`BOUCLE_COPIE`) et sautait ses PR (`BOUCLE_SAUTEES`). Cas vécu : une mise à jour de PR refusée par dix tests rouges sous le capitaine. `scripts/environnement-des-bancs.test.mjs` rejoue une boucle du jouet sous ces variables piégées.
+
 ## `scripts/sujet.test.mjs`
 
 Les garde-fous de `demarrer`, `ouvrir` sans protection, le regroupement des séries et des piles, la livraison automatique, avec le contexte `ALL` et un autre ; l'ancienne forme (`SOC-1.01`) n'est plus lue. Un sujet sans carte est reconnu livré sur le commit de merge que `passer.sh` écrit vraiment, une fois sa branche supprimée, jamais sur un message forgé pour le test ; `sujet/demo` ne reconnaît pas `sujet/demo-2`.
