@@ -78,7 +78,7 @@ export function signalementsDemarrage(etat) {
   }
   if (!pluginInstalle(etat.pluginsInstalles)) {
     signalements.push(
-      `démarrage : skills de la chaîne absents de la session (plugin ${PLUGIN_CHAINE} non installé) — le script de l’environnement doit l’installer et le mettre à jour à chaque démarrage : claude plugin marketplace add MAJ-agency/skills ; claude plugin install maj-skills@maj ; claude plugin marketplace update maj ; claude plugin update maj-skills@maj (docs/agents/chaine-de-production.md § 5, étape 5) ; le dire à qui a lancé la session et s’arrêter, sans contourner`,
+      `démarrage : skills de la chaîne absents de la session (plugin ${PLUGIN_CHAINE} non installé) — les installer soi-même : claude plugin marketplace add MAJ-agency/skills ; claude plugin install maj-skills@maj ; puis lire le skill sous ~/.claude/plugins/marketplaces/maj/skills/ (installé en cours de session, il n’entre pas dans la liste des skills). Le script de l’environnement doit l’installer et le mettre à jour à chaque démarrage : claude plugin marketplace add MAJ-agency/skills ; claude plugin install maj-skills@maj ; claude plugin marketplace update maj ; claude plugin update maj-skills@maj (docs/agents/chaine-de-production.md § 5, étape 5). Si l’installation échoue : le dire à qui a lancé la session et s’arrêter, sans contourner`,
     );
   }
   return signalements;
