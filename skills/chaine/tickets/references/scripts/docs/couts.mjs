@@ -18,6 +18,7 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { lireTicket } from "./identifiants.mjs";
+import { nomsDeSujets } from "./ligne-sujet.mjs";
 
 export const REGISTRE = "docs/agents/couts.md";
 
@@ -40,12 +41,15 @@ const cellules = (ligne) =>
     .map((c) => c.trim());
 
 /**
- * Une carte → son chantier, sa phase, ses lignes de coût et ses lignes illisibles. Une ligne
+ * Une carte → son chantier, sa phase, ses lignes de coût et ses lignes illisibles. Le chantier est
+ * le sujet de la carte, ou tous ses sujets séparés par `, ` quand elle en couvre plusieurs ; une
+ * ligne `Sujet:` mal formée donne le nom du fichier. Une ligne
  * sans montant (gabarit, relevé à venir, cellule vide) est ignorée sans bruit ; une ligne dont la
  * cellule porte autre chose est rendue dans `illisibles` (`{ cout, ligne }`) : `--verify` la refuse.
  */
 export function lireCarte(chemin, texte) {
-  const sujet = /^Sujet:[ \t]*(?:sujet\/)?(\S+)/m.exec(texte);
+  const sujet = /^Sujet:[ \t]*(.*)$/m.exec(texte);
+  const sujets = sujet && nomsDeSujets(sujet[1], { prefixeFacultatif: true });
   const phase = /^Phase:[ \t]*(\S.*)$/m.exec(texte);
   const section = /^## Coût[ \t]*\n([\s\S]*?)(?=^## |(?![\s\S]))/m.exec(texte);
   const lignes = [];
@@ -69,7 +73,8 @@ export function lireCarte(chemin, texte) {
   }
   return {
     chemin,
-    chantier: sujet ? sujet[1] : chemin.replace(/^.*\//, "").replace(/\.map\.md$/, ""),
+    // Une carte à plusieurs sujets : tous, dans l'ordre. Le nom ne sert que de libellé au registre.
+    chantier: sujets ? sujets.join(", ") : chemin.replace(/^.*\//, "").replace(/\.map\.md$/, ""),
     phase: phase ? phase[1].trim() : "—",
     lignes,
     illisibles,

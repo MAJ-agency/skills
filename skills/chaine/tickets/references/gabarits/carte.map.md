@@ -2,6 +2,8 @@
 
 Sujet: sujet/{{nom}}
 
+<!-- Un chantier sur plusieurs sujets : une seule ligne, valeurs séparées par des virgules (sujet/a, sujet/b). -->
+
 ## Fiche
 
 Phase: 1-grilling
