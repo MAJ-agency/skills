@@ -9,16 +9,23 @@
 # jamais en le sautant. Il lit son entrée une fois, en tête : une ligne par ref
 # poussée, `<ref locale> <sha local> <ref distante> <sha distant>`. Quand rien
 # de neuf ne part, il n'a rien à contrôler et sort 0 : chaque ligne est une
-# suppression (sha nul) ou un commit dont `git rev-list <sha> --not --remotes`
-# ne rend rien (déjà sur une ref de suivi distant, sous quelque nom). Entrée
-# vide, ligne illisible, erreur de git : il contrôle. Jamais de sortie 0 par défaut.
-# Limite : un commit déjà sur une branche suivie du distant passe sans contrôle
-# local ; la CI exigée le rejoue sur la PR.
+# suppression (sha nul) ou un commit déjà connu du distant visé (`$1`), lu deux
+# fois : sur ses refs de suivi (`git rev-list <sha> --not --remotes=<distant>`),
+# puis sur ses branches réelles (`git ls-remote --heads`), car une ref de suivi
+# se fabrique sur place (`git update-ref refs/remotes/…`, `git fetch .`). Entrée
+# vide, ligne illisible, distant nommé par une URL ou un motif, distant
+# injoignable, erreur de git : il contrôle. Jamais de sortie 0 par défaut.
+# Limites : un commit déjà sur une branche du distant passe sans contrôle local ;
+# la CI exigée le rejoue sur la PR. `git ls-remote` ouvre une seconde connexion
+# au distant : en interactif, une seconde authentification peut être demandée.
 PRE_PUSH_REFS=$(cat)
 export PRE_PUSH_REFS
 
 rien_de_neuf() {
+  # Le distant par son nom (`origin`) : une URL ou un motif ne nomme aucune ref de suivi.
+  case $1 in '' | */* | *:* | *[*?[]*) return 1 ;; esac
   lues=0
+  commits=''
   while read -r locale sha ref distant reste; do
     [ -n "$locale$sha$ref$distant$reste" ] || continue
     [ -n "$distant" ] || return 1
@@ -27,17 +34,28 @@ rien_de_neuf() {
       *) lues=$((lues + 1)); continue ;;
     esac
     git cat-file -e "$sha^{commit}" 2>/dev/null || return 1
-    neuf=$(git rev-list -n 1 "$sha" --not --remotes 2>/dev/null) || return 1
+    neuf=$(git rev-list -n 1 "$sha" --not --remotes="$1" 2>/dev/null) || return 1
     [ -z "$neuf" ] || return 1
+    commits="$commits $sha"
     lues=$((lues + 1))
   done <<EOF_REFS
 $PRE_PUSH_REFS
 EOF_REFS
-  [ "$lues" -ge 1 ]
+  [ "$lues" -ge 1 ] || return 1
+  [ -n "$commits" ] || return 0
+  # Les refs de suivi disent « déjà là » : le distant le confirme, ou l'on contrôle.
+  branches=$(git ls-remote --heads -- "$1" 2>/dev/null) || return 1
+  for sha in $commits; do
+    neuf=$(printf '%s\n' "$branches" | sed -n 's/^\([0-9a-f]\{40,\}\)[[:space:]].*/^\1/p' |
+      git rev-list --ignore-missing --stdin -n 1 "$sha" 2>/dev/null) || return 1
+    [ -z "$neuf" ] || return 1
+  done
 }
-if rien_de_neuf; then exit 0; fi
+if rien_de_neuf "${1-}"; then exit 0; fi
 
 # Sous un `git worktree`, git exporte GIT_DIR (et GIT_INDEX_FILE) au hook : les bancs qui font un
-# `git init` jouet y écriraient dans le dépôt réel. Voir docs/agents/pieges.md.
-unset GIT_DIR GIT_INDEX_FILE
+# `git init` jouet y écriraient dans le dépôt réel. Voir docs/agents/pieges.md. Les variables du
+# capitaine (passer.sh, boucle.sh) ne passent pas non plus aux bancs : elles leur feraient jouer les
+# outils et le verrou du capitaine. PRE_PUSH_REFS reste : la couverture du diff la lit.
+unset GIT_DIR GIT_INDEX_FILE PASSER_OUTILS BOUCLE_COPIE BOUCLE_SAUTEES BOUCLE_ATTENTE BOUCLE_VERROU_PID
 pnpm run check

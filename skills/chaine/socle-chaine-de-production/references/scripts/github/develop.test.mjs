@@ -174,6 +174,47 @@ test('pre-push du socle : entrée vide ou illisible, il contrôle (jamais de sor
   assert.deepEqual(pnpmJoue(d), ['run check']);
 });
 
+test('pre-push du socle : une ref de suivi fabriquée sur place, ou un distant nommé par son URL, ne dispense pas du contrôle', () => {
+  const leurres = [
+    (d) => d.git('update-ref', 'refs/remotes/leurre/x', 'HEAD'),
+    (d) => d.git('update-ref', 'refs/remotes/origin/leurre', 'HEAD'),
+    (d) => d.git('fetch', '-q', '.', 'HEAD:refs/remotes/origin/leurre'),
+  ];
+  for (const [i, leurre] of leurres.entries()) {
+    const d = depotJouet();
+    writeFileSync(join(d.travail, 'neuf.md'), 'neuf\n');
+    d.git('add', '-A');
+    d.git('commit', '-q', '-m', 'chore: neuf');
+    leurre(d);
+    const r = spawnSync('git', ['push', '-q', 'origin', 'HEAD:refs/heads/essai'], { cwd: d.travail, env: d.env, encoding: 'utf8' });
+    assert.notEqual(r.status, 0, `leurre ${i} : ${r.stderr}`);
+    assert.deepEqual(pnpmJoue(d), ['run check'], `leurre ${i}`);
+    assert.deepEqual(Object.keys(d.tetes()), ['refs/heads/main'], `leurre ${i}`);
+  }
+  // Un commit déjà sur le distant, mais le distant nommé par son URL : aucune ref de suivi ne le nomme.
+  const d = depotJouet();
+  const url = d.git('remote', 'get-url', 'origin');
+  const sha = d.git('rev-parse', 'HEAD');
+  const r = spawnSync('sh', [d.hook, url, url], { cwd: d.travail, env: d.env, input: `HEAD ${sha} refs/heads/x ${'0'.repeat(40)}\n`, encoding: 'utf8' });
+  assert.equal(r.status, 1, r.stderr);
+  assert.deepEqual(pnpmJoue(d), ['run check']);
+});
+
+test('pre-push du socle : les contrôles ne voient pas les variables du capitaine, et voient PRE_PUSH_REFS', () => {
+  const d = depotJouet();
+  const vu = join(d.racine, 'env.log');
+  writeFileSync(join(d.racine, 'bin', 'pnpm'), `#!/bin/sh\nenv | grep -E '^(PASSER_OUTILS|BOUCLE_[A-Z_]+|PRE_PUSH_REFS)=' | sort >> ${JSON.stringify(vu)}\nexit 0\n`);
+  writeFileSync(join(d.travail, 'neuf.md'), 'neuf\n');
+  d.git('add', '-A');
+  d.git('commit', '-q', '-m', 'chore: neuf');
+  const capitaine = { PASSER_OUTILS: '/capitaine/outils', BOUCLE_COPIE: '/capitaine/copie', BOUCLE_SAUTEES: ' 12 ', BOUCLE_ATTENTE: ' 13 ', BOUCLE_VERROU_PID: '4242' };
+  const r = spawnSync('git', ['push', '-q', 'origin', 'HEAD:refs/heads/essai'], { cwd: d.travail, env: { ...d.env, ...capitaine }, encoding: 'utf8' });
+  assert.equal(r.status, 0, r.stderr);
+  const lignes = readFileSync(vu, 'utf8').trim().split('\n');
+  assert.equal(lignes.length, 2, lignes.join('\n'));
+  for (const l of lignes) assert.match(l, /^PRE_PUSH_REFS=HEAD [0-9a-f]{40} refs\/heads\/essai 0{40}$/);
+});
+
 test('pre-push du socle : supprimer une branche distante ne joue rien', () => {
   const d = depotJouet();
   d.git('push', '-q', 'origin', 'HEAD:refs/heads/x');

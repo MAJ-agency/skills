@@ -11,6 +11,17 @@ export function lireEntree() {
   }
 }
 
+/**
+ * `tool_input` de l'entrée JSON d'une garde PreToolUse, ou `null` s'il ne se lit pas : entrée vide, JSON
+ * illisible, autre chose qu'un objet, `tool_input` absent ou autre chose qu'un objet. Une garde refuse sur
+ * `null` : elle échoue fermée. `lireEntree`, qui rend `{}`, reste celle des hooks qui ne gardent rien.
+ */
+export function lireToolInput() {
+  const objet = (v) => typeof v === 'object' && v !== null && !Array.isArray(v);
+  const entree = lireEntree();
+  return objet(entree) && objet(entree.tool_input) ? entree.tool_input : null;
+}
+
 /** Racine du dépôt : celle que Claude Code annonce, sinon celle de ce script. */
 export const RACINE = process.env.CLAUDE_PROJECT_DIR ?? new URL('../..', import.meta.url).pathname;
 
