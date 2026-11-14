@@ -369,7 +369,7 @@ test('gh en écriture vers une branche, un fichier ou une règle de branche est 
     assert.equal(decisionCommande(commande), null, commande);
 });
 
-test('contournements relevés pendant le ticket 27 : champ gh collé ou route après un champ à blancs, $\'git\', casse, programme caché derrière un mot en /git, branche en ./, substitution parenthésée, -n et --no-veri… de git commit, mot cité seul', () => {
+test('contournements relevés pendant le ticket 27 : champ gh collé ou route après un champ à blancs, $\'git\', casse, programme caché derrière un mot en /git, séparateur cité, branche en ./ ou à barre finale, substitution parenthésée, -n et --no-veri… de git commit, mot cité seul', () => {
   const ctx = { brancheCourante: () => 'feat/x' };
   const sujet = 'sujet/x';
   const nv = '--no-verify';
@@ -399,10 +399,24 @@ test('contournements relevés pendant le ticket 27 : champ gh collé ou route ap
     `sudo -u git git push origin HEAD:${sujet}`,
     'X=/a/git gh pr merge 5',
     'sudo -u git gh api -X PUT repos/o/r/pulls/5/merge',
+    `./a=b/git push origin HEAD:${sujet}`,
+    '/tmp/a=b/git push --force origin feat/x',
+    'env --chdir=/w/git git push --force origin feat/x',
+    'gh api -f message="fix(api): x" -X PUT repos/o/r/contents/a.md',
+    'gh api -f commit_title="a; b" -X PUT repos/o/r/pulls/3/merge',
+    'gh api --jq ".a | .b" -X PUT repos/o/r/pulls/3/merge',
+    'gh -R "o/r;x" pr merge 3',
+    'git -c user.name="a;b" push --force origin feat/x',
+    `git -c user.name="A (B)" push origin HEAD:${sujet}`,
+    'git commit -m x --no-verif',
   ])
     assert.equal(decisionCommande(commande, ctx)?.decision, 'refuser', commande);
-  for (const branch of ['./develop', './main', `./${sujet}`, 'feat/../develop', 'feat/%2e%2e/main', 'feat/x\u0000'])
+  for (const branch of ['./develop', './main', `./${sujet}`, 'feat/../develop', 'feat/%2e%2e/main', 'feat/x\u0000', 'develop/', 'main/', 'develop//', './feat/x', 'feat/./x'])
     assert.equal(decisionOutilGithub('mcp__github__push_files', { branch }, {})?.decision, 'refuser', JSON.stringify(branch));
+  for (const branch of ['develop/', './feat/x', 'feat/./x'])
+    assert.match(decisionOutilGithub('mcp__github__push_files', { branch }, {})?.raison ?? '', /nom de branche illisible/, branch);
+  for (const commande of ['git push origin HEAD:./feat/x', 'git push origin HEAD:feat/./x'])
+    assert.match(decisionCommande(commande, ctx)?.raison ?? '', /nom de branche illisible/, commande);
   assert.equal(decisionOutilGithub('mcp__github__push_files', { branch: 'feat/x.y' }, {}), null);
   for (const commande of [
     `git commit -m "jamais ${nv}"`,
@@ -410,6 +424,8 @@ test('contournements relevés pendant le ticket 27 : champ gh collé ou route ap
     'git commit -m x -- docs/a.md',
     'gh api -X POST repos/o/r/issues/3/comments -f body="voir graphql et contents"',
     'echo $((1+2)) && git push -u origin feat/x',
+    'git merge --no-verify-signatures origin/develop',
+    'git pull --no-verify-signatures',
   ])
     assert.equal(decisionCommande(commande, ctx), null, commande);
 });

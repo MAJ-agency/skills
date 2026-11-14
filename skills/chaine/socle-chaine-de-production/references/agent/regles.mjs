@@ -68,7 +68,9 @@ export function refusEdition(
 const COMMANDES_INTERDITES = [
   [/(^|[;&|]\s*|\s)npm\s+(i|install|ci|add|uninstall|update)\b/i, 'npm : le gestionnaire du projet est pnpm.'],
   [/(^|[;&|]\s*|\s)yarn(\s|$)/i, 'yarn : le gestionnaire du projet est pnpm.'],
-  [/\bgit\s+(commit|push|merge|am|rebase)\b[^;&|]*\s--no-veri[a-z]*\b/i, "--no-verify : les hooks git sont le pare-feu local — corriger ce qu'ils signalent."],
+  [/\bgit\s+(commit|push)\b[^;&|]*\s--no-verify\b/i, "--no-verify : les hooks git sont le pare-feu local — corriger ce qu'ils signalent."],
+  // Ses abréviations (`--no-veri`, `--no-verif`) ; `--no-verify-signatures`, option de `merge` et `pull`, passe.
+  [/\bgit\s+(commit|push|merge|am|rebase)\b[^;&|]*\s--no-veri(fy?)?(?![\w-])/i, "--no-verify : les hooks git sont le pare-feu local — corriger ce qu'ils signalent."],
   // `git commit -n` est `--no-verify`, seul ou groupé (`-nm`, `-an`).
   [/\bgit\s+commit\b[^;&|]*\s-[a-z]*n[a-z]*(\s|$)/i, "-n de git commit (--no-verify) : les hooks git sont le pare-feu local — corriger ce qu'ils signalent."],
   [/\bgit\s+push\b[^;&|]*[\s:](develop|main)(\s|$)/i, 'pousser sur develop ou main : jamais directement, une PR passe par le capitaine de fusion.'],
@@ -156,6 +158,8 @@ export function sansTexte(commande) {
 
 const RAISON_PUSH_SUJET =
   "un sujet ne se pousse jamais à la main, quelle que soit la branche : seul sujet.sh y écrit (demarrer, rafraichir, fusionner, livrer, carte). Sans ce refus, une session écrirait elle-même la ligne `Dépendances:` qui l'autorise. Pour la carte : `bash scripts/chaine/sujet.sh carte <nom>`.";
+const RAISON_NOM_ILLISIBLE =
+  "nom de branche illisible (segment . ou .., %, barre finale, caractère de contrôle, blancs autour) : un client d'URL le résout, il pourrait viser un sujet, develop ou main. Écris le nom en clair ; pour la carte : `bash scripts/chaine/sujet.sh carte <nom>`.";
 const RAISON_PUSH_GARDEE =
   "pousser sur develop, main ou la branche par défaut, sous quelque graphie que ce soit (refs/heads/develop, heads/main, majuscules) : jamais directement, une PR passe par le capitaine de fusion.";
 const RAISON_PUSH_FORCE =
@@ -215,6 +219,17 @@ let dernierDecoupage = { commande: null, segments: [] };
  */
 export function segmentsDeCommande(commande) {
   if (dernierDecoupage.commande === commande) return dernierDecoupage.segments;
+  // Un séparateur cité n'en est pas un (`-f message="fix(api): x"`, `-c user.name="a;b"`) : la commande se lit en
+  // plus avec les séparateurs et les blancs de ses textes cités neutralisés (hors texte à substitution, lu comme
+  // avant). Une lecture en plus : rien de ce que la première refuse ne passe.
+  const cites = commande.replace(/'[^']*'|"(?:[^"\\$`]|\\[^$`])*"/g, (cite) => cite.replace(/[;&|()\s]/g, '_'));
+  const segments = Object.freeze([...lireSegments(commande), ...(cites === commande ? [] : lireSegments(cites))].map((x) => Object.freeze(x)));
+  dernierDecoupage = { commande, segments };
+  return segments;
+}
+
+/** Le découpage d'une lecture de `segmentsDeCommande`. */
+function lireSegments(commande) {
   const decouper = (source) =>
     [...source.matchAll(/[^;&|\n()]+/g)].filter(([segment]) => segment.trim()).map(({ 0: segment, index }) => ({ segment, suite: source.slice(index) }));
   // Des accents graves échappés (`echo \`git push …\``) sont une substitution imbriquée : lus comme `$(…)` avant
@@ -232,8 +247,7 @@ export function segmentsDeCommande(commande) {
   // `git -c a.b=$((1)) push …` serait coupé avant `push`.
   const aplatie = sansSubstitutionsParenthesees(reste);
   const enPlus = aplatie === reste ? [] : decouper(aplatie);
-  dernierDecoupage = { commande, segments: Object.freeze([...segments, ...decouper(reste), ...enPlus].map((s) => Object.freeze(s))) };
-  return dernierDecoupage.segments;
+  return [...segments, ...decouper(reste), ...enPlus];
 }
 
 /** Options de `git` placées avant la sous-commande et suivies d'une valeur (`git -C .. push`). */
@@ -242,11 +256,12 @@ const OPTIONS_GIT_A_VALEUR = new Set(['-C', '-c', '--git-dir', '--work-tree', '-
 const OPTIONS_PUSH_A_VALEUR = new Set(['-o', '--push-option', '--repo', '--receive-pack', '--exec']);
 
 /**
- * Index du programme d'un segment : le premier mot que `motif` reconnaît, hors affectation (`X=/a/git`)
- * et hors valeur d'option suivie du vrai programme (`env -C /w/git git …`, `sudo -u git gh …`) ; -1 sinon.
+ * Index du programme d'un segment : le premier mot que `motif` reconnaît, hors affectation (`X=/a/git`),
+ * option (`--chdir=/w/git`) et valeur d'option suivie du vrai programme (`env -C /w/git git …`,
+ * `sudo -u git gh …`) ; un chemin qui contient `=` (`./a=b/git`) reste un programme ; -1 sinon.
  */
 function indexDuProgramme(mots, motif) {
-  return mots.findIndex((mot, k) => motif.test(mot) && !mot.includes('=') && !motif.test(mots[k + 1] ?? ''));
+  return mots.findIndex((mot, k) => motif.test(mot) && !/^(-|[A-Za-z_]\w*=)/.test(mot) && !motif.test(mots[k + 1] ?? ''));
 }
 
 /**
@@ -308,6 +323,16 @@ function destination(refspec, brancheCourante) {
  */
 export function pousseSurUnSujet(commande, brancheCourante = () => null) {
   return pushs(commande).some(({ refspecs }) => refspecs.some((refspec) => (nomDeBranche(destination(refspec, brancheCourante)) ?? '').startsWith('sujet/')));
+}
+
+/** Vrai si un `git push` de la commande vise un nom que `nomDeBranche` ne lit pas (`./feat/x`, `feat/./x`, `develop/`). */
+export function pousseVersUnNomIllisible(commande, brancheCourante = () => null) {
+  return pushs(commande).some(({ refspecs }) =>
+    refspecs.some((refspec) => {
+      const cible = destination(refspec, brancheCourante);
+      return Boolean(cible) && cible !== 'HEAD' && nomDeBranche(cible) === null;
+    }),
+  );
 }
 
 /**
@@ -372,6 +397,7 @@ export function decisionCommande(commande, { dependancesPrevues = () => null, br
   const courante = () => (branche === undefined ? (branche = brancheCourante()) : branche);
   if (pousseSurUnSujet(commande, courante)) return { decision: 'refuser', raison: RAISON_PUSH_SUJET };
   if (pushSansRefspec(commande) && (courante() ?? '').startsWith('sujet/')) return { decision: 'refuser', raison: RAISON_PUSH_SUJET };
+  if (pousseVersUnNomIllisible(commande, courante)) return { decision: 'refuser', raison: RAISON_NOM_ILLISIBLE };
   if (pousseSurUneBrancheGardee(commande, courante, brancheParDefaut)) return { decision: 'refuser', raison: RAISON_PUSH_GARDEE };
   if (pousseEnForce(commande)) return { decision: 'refuser', raison: RAISON_PUSH_FORCE };
   if (ecritParGh(commande)) return { decision: 'refuser', raison: RAISON_GH_ECRIT };
@@ -410,9 +436,9 @@ export const lintable = (chemin) =>
 export function nomDeBranche(branche) {
   const brute = String(branche ?? '');
   if (brute.trim() !== brute) return null;
-  // Un segment `.` ou `..`, un `%` ou un caractère de contrôle : un client d'URL le résout ou le décode
+  // Un segment `.` ou `..`, un `%`, un caractère de contrôle ou une barre finale : un client d'URL le résout ou le décode
   // (`./develop` se lit `develop` chez GitHub) ; le nom ne se lit pas, il est gardé.
-  if (brute.split('/').some((s) => s === '.' || s === '..') || /[%\x00-\x1f\x7f]/.test(brute)) return null;
+  if (brute.split('/').some((s) => s === '.' || s === '..') || /[%\x00-\x1f\x7f]|\/$/.test(brute)) return null;
   return brute
     .replace(/\/{2,}/g, '/')
     .replace(/^\/+/, '')
@@ -465,6 +491,7 @@ export function decisionOutilGithub(outil, entree = {}, { brancheParDefaut = nul
   const court = String(outil).split('__').pop();
   if (OUTILS_GITHUB_ECRITURE.includes(court)) {
     const branche = entree?.branch;
+    if (typeof branche === 'string' && branche !== '' && nomDeBranche(branche) === null) return { decision: 'refuser', raison: RAISON_NOM_ILLISIBLE };
     return typeof branche !== 'string' || brancheGardee(branche, brancheParDefaut) ? { decision: 'refuser', raison: RAISON_OUTIL_ECRIT } : null;
   }
   if (OUTILS_GITHUB_FUSION.includes(court)) {
