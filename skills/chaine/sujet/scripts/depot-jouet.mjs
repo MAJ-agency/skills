@@ -16,6 +16,11 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+// Les scripts de la chaîne et le faux gh appellent jq : sans lui, chaque test échouerait sur
+// « jq: command not found », noyé dans ses traces. Un seul message, une fois par fichier de test.
+if (spawnSync('jq', ['--version']).error)
+  throw new Error('jq est requis par les scripts de la chaîne et leurs bancs : sudo apt install jq (ou brew install jq)');
+
 const ICI = dirname(fileURLToPath(import.meta.url));
 // Racine des skills de la chaîne : <skills>/chaine/<skill>/scripts/<nom>.
 export const SKILLS = dirname(dirname(ICI));

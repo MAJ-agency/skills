@@ -43,6 +43,7 @@
 #      retrouver qui a fusionné (`gh api 'repos/{owner}/{repo}/pulls?state=closed&sort=updated&direction=desc'`,
 #      celles qui ont un `merged_at`) et lui rappeler la règle
 #   6  worktree du capitaine pas propre → le nettoyer (rien d'une autre session n'y vit), relancer
+#   69 jq absent du poste → l'installer (sudo apt install jq), relancer
 # Usage : bash scripts/chaine/passer.sh <numéro>
 # =============================================================================
 set -euo pipefail
@@ -76,7 +77,7 @@ tete=$(champ .head.ref)
 titre=$(champ .title)
 # Sujet du squash trop long : vu avant la CI, pas après. #479 et #454, nuit du 14/10 : un passage
 # complet (mise à jour, push, ~14 min de checks) perdu chacune pour un titre à 124 et 122 caractères.
-longueur=$(node -e 'console.log([...process.argv[1]].length)' "$titre (#$N)")
+longueur=$(node -e 'console.log(String([...process.argv[1]].length))' "$titre (#$N)")
 [ "$longueur" -le 120 ] || sortir 4 "sujet du squash à $longueur caractères (> 120) : raccourcir le titre de la PR"
 # Clone superficiel (sessions cloud : `--depth`) : les commits de develop au-delà de la profondeur
 # n'y sont pas vus comme ancêtres. Merge-base faux, donc mise à jour et corps du squash faux. Cas
@@ -287,7 +288,7 @@ esac
 
 # ── 6. Squash ───────────────────────────────────────────────────────────────
 sujet="$titre (#$N)"
-longueur=$(node -e 'console.log([...process.argv[1]].length)' "$sujet")
+longueur=$(node -e 'console.log(String([...process.argv[1]].length))' "$sujet")
 [ "$longueur" -le 120 ] || sortir 4 "sujet du squash à $longueur caractères (> 120) : raccourcir le titre de la PR"
 # Branche de sujet (ou livraison intermédiaire `livraison/*`) : commit de merge, qui garde un commit par sous-PR ; le corps
 # les liste, puis nomme le sujet (`Sujet: sujet/<nom>`, que `sujet.sh livre` cherche dans develop une

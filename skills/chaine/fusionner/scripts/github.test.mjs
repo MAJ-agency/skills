@@ -4,7 +4,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, mkdirSync } from "node:fs";
+import { join } from "node:path";
 // Posé dans un projet, depot-jouet.mjs est à côté (scripts/chaine/) ; dans le plugin, il est dans le skill sujet.
 const { depotJouet, script } = await import(
   existsSync(new URL("./depot-jouet.mjs", import.meta.url))
@@ -87,4 +88,21 @@ test("regenerer_index montre la sortie d’une commande de régénération en é
   assert.equal(r.status, 1, r.stdout + r.stderr);
   assert.ok(r.stderr.includes(`[${commande}] base injoignable`), r.stderr);
   assert.ok(r.stderr.includes(`[${commande}] detail`), r.stderr);
+});
+
+test("jq absent : github.sh s'arrête dès qu'on le source, sortie 69, une ligne qui dit quoi installer", () => {
+  const d = depotJouet();
+  const bash = spawnSync("sh", ["-c", "command -v bash"], { encoding: "utf8" }).stdout.trim();
+  const vide = join(d.racine, "vide");
+  mkdirSync(vide);
+  const r = spawnSync(bash, ["-c", `source ${GITHUB}; echo suite`], {
+    cwd: d.travail,
+    env: { ...d.env, PATH: vide },
+    encoding: "utf8",
+  });
+  assert.equal(r.status, 69, r.stdout + r.stderr);
+  assert.equal(r.stdout, "");
+  assert.equal(r.stderr.trim().split("\n").length, 1, r.stderr);
+  assert.match(r.stderr, /jq est requis/);
+  assert.match(r.stderr, /sudo apt install jq/);
 });

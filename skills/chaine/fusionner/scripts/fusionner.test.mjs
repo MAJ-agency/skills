@@ -3,6 +3,7 @@
 // `gh` de depot-jouet.mjs, qui fusionne pour de vrai dans le dépôt nu ; aucun réseau.
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -278,6 +279,20 @@ test("passer.sh : un check rouge non exigé ne retient pas la fusion", () => {
   const r = d.lancer(script("passer.sh"), "32");
   assert.equal(r.status, 0, r.stdout + r.stderr);
   assert.match(r.stdout, /déjà à jour avec develop/);
+  assert.deepEqual(ecritures(d), [
+    "PUT pulls/32/merge",
+    "DELETE issues/32/labels/%C3%A0-fusionner",
+  ]);
+});
+
+test("passer.sh : FORCE_COLOR=1 dans l'environnement du capitaine ne fait refuser aucun titre", () => {
+  const d = checksRouges(["qualite"]);
+  const r = spawnSync("bash", [script("passer.sh"), "32"], {
+    cwd: d.travail,
+    env: { ...d.env, FORCE_COLOR: "1" },
+    encoding: "utf8",
+  });
+  assert.equal(r.status, 0, r.stdout + r.stderr);
   assert.deepEqual(ecritures(d), [
     "PUT pulls/32/merge",
     "DELETE issues/32/labels/%C3%A0-fusionner",
