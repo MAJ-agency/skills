@@ -46,3 +46,5 @@ Lignes de `origin/main` à `0a39329` (2026-11-13).
 - La PR vise `main`. La session part de `origin/main`, lit ce ticket sur la branche `claude/compassionate-euler-st84s9`, ne le modifie pas, et écrit à l'architecte dès sa PR livrée (ouverte, hors brouillon), sans attendre ni les contrôles ni la fusion.
 
 ## Comments
+
+- 2026-11-14, architecte — La surface « `.claude/settings.json` du dépôt » est retirée du ticket (décision A-31 de la carte) : le mode « auto » a refusé cette édition à la session (« Self-Modification »). La PR se livre sans elle ; les trois autres surfaces et la vérification ne changent pas.
