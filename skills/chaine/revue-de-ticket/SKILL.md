@@ -18,7 +18,7 @@ Le `code-review` de Matt Pocock relit « standards » et « spec » en deux sous
 
 - **Obligatoire** avant de sortir du brouillon une PR qui réalise un ticket et touche du code ou ce que la chaîne exécute (la liste de `revue-exigee.mjs`, skill `fusionner` : `apps/`, `packages/`, `scripts/`, `e2e/`, un segment à point, un fichier de la racine hors Markdown, un `package.json`, un fichier exécutable ou un nom de configuration à toute profondeur, un `CLAUDE.md` ou `CLAUDE.local.md`, `docs/agents/`, le fichier des critères, un chemin sensible du contrat de la base) ; refaite pour une PR renvoyée (`fusion-bloquée`) dont la correction touche du code.
 - **Axe Règles seul** (`revue-adversariale`) pour une PR de code sans ticket (correctif isolé, outillage) : la section de PR le dit.
-- **Non requise** pour une PR de documentation seule.
+- **Non requise** pour une PR de documentation seule (hors `docs/agents/`, `CLAUDE.md`, `CLAUDE.local.md`, dossier à point, fichier exécutable ou de configuration : la liste ci-dessus).
 
 ## Étape 1 — préparer
 
