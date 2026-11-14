@@ -580,7 +580,7 @@ export function controlerCarte({ nom, texte, ficheGelee = false, plafonds = null
   if (migrations && !formeMigrations(migrations.valeur))
     erreurs.push({
       ligne: migrations.ligne,
-      message: `carte ${nom} : \`Migrations:\` « ${migrations.valeur} » : attendu des horodatages de 12 chiffres (AAAAMMJJHHMM) séparés par des virgules, ou « — »`,
+      message: `carte ${nom} : \`Migrations:\` « ${migrations.valeur} » : attendu des horodatages de 12 chiffres (AAAAMMJJHHMM) ou de 14 (AAAAMMJJHHMMSS, Prisma) séparés par des virgules, ou « — »`,
     });
   return { carte: true, erreurs };
 }
@@ -591,7 +591,7 @@ export function ficheNommeResponsableEtConducteur(texte) {
   return [RESPONSABLE, CONDUCTEUR].every((motif) => (chercher(lignes, motif)?.valeur ?? '') !== '');
 }
 
-const formeMigrations = (v) => v === '—' || v === '' || v.split(',').every((h) => /^\d{12}$/.test(h.trim()));
+const formeMigrations = (v) => v === '—' || v === '' || v.split(',').every((h) => /^\d{12}(\d{2})?$/.test(h.trim()));
 
 /** Horodatages de migration réservés par une carte (ligne `Migrations:`) ; aucun si « — » ou ligne absente. */
 export function migrationsReservees(texte) {

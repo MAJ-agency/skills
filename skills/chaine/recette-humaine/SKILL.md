@@ -27,7 +27,7 @@ Les gates relisent un fichier, la revue adversariale relit un diff. Aucun des de
 Sortie : `docs/recette/<module>/inventaire.md`, sections numérotées comme le gabarit (`methode.md` § « Gabarit »).
 
 1. **Sources** : specs, ADR, registre, code (`fichier:ligne`), prototype. Base notée en tête (`develop` à `<sha>`).
-2. **Rôles** : qui touche au module, avec le droit qui ouvre chaque geste (le catalogue de rôles de `packages/contracts`).
+2. **Rôles** : qui touche au module, avec le droit qui ouvre chaque geste (le catalogue de rôles du projet, que nomment les règles du chemin ; `packages/contracts` dans le socle).
 3. **Objets et états** : l'objet central et ses satellites ; états, transitions, et pour chaque transition qui la fait et ce qu'elle déclenche (événement, courriel, file).
 4. **Table état × geste** de l'objet central : une ligne par état, une colonne par geste humain, chaque case « permis / refusé (code) / ? ». Les `?` sont des trous.
 5. **Surfaces** par objet : chaque écran, courriel, PDF, export, endpoint public qui montre l'objet, avec son libellé et sa source de données.
@@ -51,11 +51,11 @@ Le produit relit l'inventaire, tranche ou reporte les `T-n`, retire ou ajoute de
 
 ## Phase 3 — tests de recette (`--phase tests`)
 
-- Emplacements de `.claude/rules/tests.md`. Nom : `recette.<sujet>.db.spec.ts` ou `recette.<sujet>.spec.ts` à côté du code, `tests/recette-<sujet>.spec.ts` pour un parcours. En tête de fichier : le numéro de test de l'inventaire, la famille, l'invariant.
+- Emplacements de `.claude/rules/tests.md`. Nom : `recette.<sujet>.db.spec.ts` ou `recette.<sujet>.spec.ts` à côté du code, `recette-<sujet>.spec.ts` dans le dossier des parcours de `.claude/rules/tests.md` pour un parcours. En tête de fichier : le numéro de test de l'inventaire, la famille, l'invariant.
 - **Un test écrit l'attendu de l'inventaire, jamais le comportement observé.** Un test rouge est un défaut confirmé, pas un test à ajuster.
-- **Rouge = `it.skip` avec ticket**, sur la ligne au-dessus : `// skip: <TICKET> — <raison>` (`it.skip.each` pour une table). Le correctif retire le `skip` sans changer l'attendu. Un ticket `Fait` dont le `skip` est encore là est une dette à retirer dans la PR du correctif.
+- **Rouge = `it.skip` avec ticket**, dans la directive de test désactivé que `.claude/rules/tests.md` exige, sur la ligne au-dessus (dans le socle : `// eslint-disable-next-line vitest/no-disabled-tests -- skip: <TICKET> <raison>`) ; `it.skip.each` pour une table. Le correctif retire le `skip` sans changer l'attendu. Un ticket `Fait` dont le `skip` est encore là est une dette à retirer dans la PR du correctif.
 - **Pas d'identifiant de règle** du registre dans un titre de test de recette : le registre le lirait comme une preuve.
-- **Un invariant se lit au catalogue partagé** (`packages/contracts`), pas à l'écran comme texte ; lire un fichier source comme texte reste l'exception, et le test dit alors ce qu'il cherche.
+- **Un invariant se lit au catalogue partagé** (le paquet de contrats partagés du projet ; `packages/contracts` dans le socle), pas à l'écran comme texte ; lire un fichier source comme texte reste l'exception, et le test dit alors ce qu'il cherche.
 - Un test qui clignote est une course réelle jusqu'à preuve du contraire : le rejouer trois fois et en faire un défaut.
 - Bilan dans l'inventaire, § 14 : cas, rouges, verts, intermittents, et le défaut que chaque rouge confirme.
 
