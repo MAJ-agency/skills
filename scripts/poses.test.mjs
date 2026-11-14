@@ -3,7 +3,7 @@
 // skills posés, pas dans une liste recopiée : un script ajouté à l'un d'eux est posé ici aussi.
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { chmodSync, copyFileSync, mkdirSync, mkdtempSync, readdirSync, rmSync } from "node:fs";
+import { chmodSync, copyFileSync, mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
@@ -21,10 +21,13 @@ const POSES = [
   ["skills/chaine/tickets/references/scripts/verify", "scripts/verify"],
 ];
 // Fichiers de la racine du projet que les bancs posés lisent (socle-monorepo, TABLE-RACINE.md).
-const RACINE_PROJET = [
-  ["skills/monorepo/socle-monorepo/references/husky/pre-commit", ".husky/pre-commit"],
-  ["skills/monorepo/socle-monorepo/references/racine/commitlint.config.mjs", "commitlint.config.mjs"],
-];
+const RACINE_PROJET = [["skills/monorepo/socle-monorepo/references/racine/commitlint.config.mjs", "commitlint.config.mjs"]];
+// Le pre-commit d'un projet n'est pas le gabarit, et le dépôt jouet ne peut pas le faire tourner (il appelle
+// les scripts et les dépendances du projet) : celui du garde refuse tout, un banc posé qui le joue tombe.
+const PRE_COMMIT_PROJET = `#!/bin/sh
+echo "pre-commit du projet : un banc posé ne le joue pas" >&2
+exit 1
+`;
 // Sans les GIT_* hérités (sous un hook git, ils visent le vrai dépôt) ni NODE_TEST_CONTEXT : avec lui, le
 // `node --test` enfant rend ses résultats au parent au lieu de les jouer et de sortir non nul.
 // Plancher du nombre de tests que l'enfant joue (173 à l'écriture) : sous lui, le garde ne jouait rien.
@@ -46,6 +49,8 @@ test("les bancs posés à plat sous scripts/chaine/ tournent hors du plugin", { 
     for (const [dossier, vers] of POSES)
       for (const nom of readdirSync(join(RACINE, dossier))) poser(`${dossier}/${nom}`, `${vers}/${nom}`);
     for (const [source, destination] of RACINE_PROJET) poser(source, destination);
+    mkdirSync(join(projet, ".husky"));
+    writeFileSync(join(projet, ".husky/pre-commit"), PRE_COMMIT_PROJET, { mode: 0o755 });
     const bancs = readdirSync(join(projet, "scripts/chaine"))
       .filter((n) => n.endsWith(".test.mjs"))
       .sort()

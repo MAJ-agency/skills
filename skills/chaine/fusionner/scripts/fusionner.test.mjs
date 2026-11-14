@@ -741,24 +741,23 @@ test("boucle.sh : une sous-PR d'un sujet gelé n'est ni fusionnée, ni renvoyée
 });
 
 // =============================================================================
-// Les scripts passent sous les hooks git du projet : jamais de saut (`--no-verify`). Le jouet reçoit des
-// hooks qui journalisent leur nom et refusent sur demande (un fichier `refus.<hook>` dans la racine du
-// jouet), le vrai `pre-commit` du socle avec un faux `npx` et un faux `pnpm` qui journalisent la
-// présence de GIT_INDEX_FILE, et un `commit-msg` qui applique `ignores` du vrai commitlint.config.mjs.
+// Les scripts passent sous les hooks git : jamais de saut (`--no-verify`). Le jouet reçoit des hooks de
+// banc, écrits ici, qui journalisent leur nom et refusent sur demande (un fichier `refus.<hook>` dans la
+// racine du jouet) : `pre-commit`, `pre-push`, et un `commit-msg` qui applique `ignores` du
+// commitlint.config.mjs. Le contenu du `pre-commit` du socle (ordre de lint-staged et du `unset`) est
+// prouvé contre le gabarit par scripts/pre-commit-socle.test.mjs du plugin, jamais posé : le hook d'un
+// projet appelle ce que le jouet n'a pas (ses scripts, ses dépendances), il ne s'y joue pas.
 // =============================================================================
-// Posé dans un projet (depot-jouet.mjs à côté), les scripts passent sous le hook et la configuration de la
-// racine du projet ; dans le plugin, sous ceux du socle. Un fichier absent fait échouer ces tests, jamais les sauter.
+// Posé dans un projet (depot-jouet.mjs à côté), commitlint.config.mjs est celui de la racine du projet ;
+// dans le plugin, celui du socle. Absent, ces tests échouent sur une ligne qui le nomme, jamais sautés.
 const POSE = existsSync(new URL("./depot-jouet.mjs", import.meta.url));
-const [PRE_COMMIT, COMMITLINT] = (
-  POSE
-    ? ["../../.husky/pre-commit", "../../commitlint.config.mjs"]
-    : ["../../../monorepo/socle-monorepo/references/husky/pre-commit", "../../../monorepo/socle-monorepo/references/racine/commitlint.config.mjs"]
-).map((chemin) => fileURLToPath(new URL(chemin, import.meta.url)));
-const MANQUANT = [PRE_COMMIT, COMMITLINT].find((f) => !existsSync(f));
+const COMMITLINT = fileURLToPath(
+  new URL(POSE ? "../../commitlint.config.mjs" : "../../../monorepo/socle-monorepo/references/racine/commitlint.config.mjs", import.meta.url),
+);
 const REFUS = /pre-push jouet : refus/;
 
-function hooks(d) {
-  if (MANQUANT) assert.fail(`fichier manquant : ${MANQUANT} (posé par socle-monorepo) ; les tests sous les hooks en ont besoin`);
+function hooks(d, commitlint = COMMITLINT) {
+  if (!existsSync(commitlint)) assert.fail(`fichier manquant : ${commitlint} (posé par socle-monorepo) ; les tests sous les hooks en ont besoin`);
   const dir = join(d.racine, "hooks");
   const journal = join(d.racine, "hooks.log");
   const J = JSON.stringify(journal);
@@ -769,29 +768,18 @@ function hooks(d) {
   };
   const refuse = (nom) =>
     `if [ -e ${JSON.stringify(join(d.racine, `refus.${nom}`))} ]; then echo "${nom} jouet : refus" >&2; exit 1; fi`;
+  poser("pre-commit", `echo pre-commit >> ${J}\n${refuse("pre-commit")}`);
   poser("pre-push", `echo pre-push >> ${J}\n${refuse("pre-push")}`);
   writeFileSync(
     join(dir, "commit-msg.mjs"),
     `import { readFileSync } from "node:fs";
-const { default: config } = await import(${JSON.stringify(COMMITLINT)});
+const { default: config } = await import(${JSON.stringify(commitlint)});
 const msg = readFileSync(process.argv[2], "utf8");
-if (config.ignores.some((f) => f(msg))) process.exit(0);
+if ((config.ignores ?? [(m) => /^Merge /.test(m)]).some((f) => f(msg))) process.exit(0);
 if (!/^(feat|fix|docs|chore|refactor|test)(\\([a-z-]+\\))?: .+/.test(msg)) { console.error("commit-msg jouet : message refusé"); process.exit(1); }
 `,
   );
   poser("commit-msg", `echo commit-msg >> ${J}\n${refuse("commit-msg")}\nexec node "$(dirname "$0")/commit-msg.mjs" "$1"`);
-  writeFileSync(join(dir, "pre-commit"), readFileSync(PRE_COMMIT, "utf8"));
-  chmodSync(join(dir, "pre-commit"), 0o755);
-  const outil = (nom, corps) => {
-    writeFileSync(join(d.racine, "bin", nom), `#!/bin/sh\n${corps}\n`);
-    chmodSync(join(d.racine, "bin", nom), 0o755);
-  };
-  outil("npx", `echo "lint-staged GIT_INDEX_FILE=\${GIT_INDEX_FILE-absent}" >> ${J}`);
-  outil(
-    "pnpm",
-    `cat > /dev/null\necho "pnpm $*" >> ${JSON.stringify(join(d.racine, "faux-gh", "pnpm.log"))}\n` +
-      `[ "$1 $2" != "run check:commit" ] || echo "check:commit GIT_INDEX_FILE=\${GIT_INDEX_FILE-absent}" >> ${J}`,
-  );
   d.git("config", "core.hooksPath", dir);
   const lire = () => (existsSync(journal) ? readFileSync(journal, "utf8").trim().split("\n") : []);
   const refuser = (nom) => writeFileSync(join(d.racine, `refus.${nom}`), "");
@@ -800,16 +788,15 @@ if (!/^(feat|fix|docs|chore|refactor|test)(\\([a-z-]+\\))?: .+/.test(msg)) { con
 const distant = (d) => d.git("ls-remote", "origin");
 const sansFusion = (d) => assert.throws(() => d.git("rev-parse", "-q", "--verify", "MERGE_HEAD"), "aucune fusion en cours");
 
-test("passer.sh : un conflit d'index conclu sous les hooks (pre-commit, commit-msg, pre-push) ; lint-staged voit GIT_INDEX_FILE, check:commit non", () => {
+test("passer.sh : un conflit d'index conclu sous les hooks (pre-commit, commit-msg, pre-push)", () => {
   const d = conflitIndex();
   const h = hooks(d);
   const r = d.lancer(script("passer.sh"), "30");
   assert.equal(r.status, 0, r.stdout + r.stderr);
   const lus = h.lire();
+  assert.ok(lus.includes("pre-commit"), "pre-commit joué sur le commit de fusion");
   assert.ok(lus.includes("commit-msg"), "commit-msg joué sur le commit de fusion");
   assert.ok(lus.includes("pre-push"), "pre-push joué");
-  assert.ok(lus.some((l) => /^lint-staged GIT_INDEX_FILE=(?!absent)/.test(l)), `lint-staged a vu GIT_INDEX_FILE : ${lus}`);
-  assert.ok(lus.includes("check:commit GIT_INDEX_FILE=absent"), `check:commit ne l'a pas vu : ${lus}`);
   assert.match(d.git("log", "-1", "--format=%s", "origin/develop"), /^docs\(adr\): ADR 2 \(#30\)$/);
 });
 
@@ -849,6 +836,31 @@ test("passer.sh : un commit-msg qui refuse la fusion sans conflit donne la sorti
   assert.equal(distant(d), avant);
 });
 
+test("passer.sh : un pre-commit qui refuse le commit de fusion donne la sortie 3, sa sortie sur stderr, sans fusion en cours, distant inchangé", () => {
+  const d = conflitIndex();
+  const h = hooks(d);
+  h.refuser("pre-commit");
+  const avant = distant(d);
+  const r = d.lancer(script("passer.sh"), "30");
+  assert.equal(r.status, 3, r.stdout + r.stderr);
+  assert.match(r.stderr, /pre-commit jouet : refus/);
+  sansFusion(d);
+  assert.equal(d.git("status", "--porcelain"), "");
+  assert.equal(distant(d), avant);
+  assert.equal(h.pushes(), 0, "rien n'est poussé");
+});
+
+test("passer.sh : un commitlint.config.mjs sans ignores laisse passer le commit de fusion du capitaine", () => {
+  const d = conflitIndex();
+  const sansIgnores = join(d.racine, "commitlint.config.mjs");
+  writeFileSync(sansIgnores, "export default { extends: ['@commitlint/config-conventional'] };\n");
+  const h = hooks(d, sansIgnores);
+  const r = d.lancer(script("passer.sh"), "30");
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.ok(h.lire().includes("commit-msg"), "commit-msg joué sur le commit de fusion");
+  assert.match(d.git("log", "-1", "--format=%s", "origin/develop"), /^docs\(adr\): ADR 2 \(#30\)$/);
+});
+
 // Sous-PR #80 et sujet/lot qui ajoutent chacun une ADR : conflit sur l'index seul.
 function sousPrConflitIndex() {
   const d = depotJouet();
@@ -880,8 +892,7 @@ test("sujet.sh fusionner : une sous-PR en conflit d'index passe sous les hooks (
   const r = d.lancer(scriptDe("sujet", "sujet.sh"), "fusionner", "80");
   assert.equal(r.status, 8, r.stdout + r.stderr);
   const lus = h.lire();
-  for (const attendu of ["commit-msg", "pre-push", "check:commit GIT_INDEX_FILE=absent"]) assert.ok(lus.includes(attendu), `${attendu} : ${lus}`);
-  assert.ok(lus.some((l) => /^lint-staged GIT_INDEX_FILE=(?!absent)/.test(l)));
+  for (const attendu of ["pre-commit", "commit-msg", "pre-push"]) assert.ok(lus.includes(attendu), `${attendu} : ${lus}`);
 
   const refus = sousPrConflitIndex();
   hooks(refus).refuser("pre-push");
