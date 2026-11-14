@@ -266,6 +266,17 @@ function indexDuProgramme(mots, motif) {
   return mots.findIndex((mot, k) => candidat(mot) && !candidat(mots[k + 1] ?? ''));
 }
 
+/** Le découpage d'avant `segmentsDeCommande`, tel quel : guillemets retirés, accents graves lus `$(`, coupé sur `(` et `)`. */
+function segmentsDAvant(commande) {
+  return commande
+    .replace(/<<-?\s*(['"]?)(\w+)\1[^\n]*\n[\s\S]*?\n\s*\2(?=\s|$)/g, '<<heredoc')
+    .replace(/["']/g, '')
+    .replace(/\\\r?\n/g, ' ')
+    .replace(/\\(.)/g, '$1')
+    .replace(/`/g, '$(')
+    .split(/[;&|\n()]+/);
+}
+
 /**
  * Les index où lire le programme d'un segment : celui d'`indexDuProgramme`, et le premier mot que `exact`
  * reconnaît (la lecture d'avant, à la casse exacte), pour que rien de ce qu'elle refusait ne passe.
@@ -284,8 +295,10 @@ function lecturesDuProgramme(mots, motif, exact) {
  * pas un push.
  */
 function pushs(commande) {
-  return segmentsDeCommande(commande)
-    .flatMap(({ segment }) => {
+  // Le découpage de `segmentsDeCommande`, et en plus celui d'avant (texte qui suit une substitution lu comme un
+  // segment à part : `sudo -u git $(true) git push …`), pour que rien de ce qu'il refusait ne passe.
+  return [...segmentsDeCommande(commande).map(({ segment }) => segment), ...segmentsDAvant(commande)]
+    .flatMap((segment) => {
       const mots = segment.trim().split(/\s+/);
       // Deux lectures du programme : la prudente, et celle d'avant (premier `git` à la casse exacte), pour que
       // rien de ce qu'elle refusait ne passe (`sudo -u GIT -H git push …`).
@@ -567,7 +580,7 @@ export function ecritParGh(commande) {
       }
       // Route lue comme gh l'enverra : hôte, barres de tête, de fin, doublées et `./` retirés, requête et fragment
     // (`#…`, jamais envoyé) coupés, en minuscules.
-      const routeDe = (c) => c.replace(/^[a-z]+:\/\/[^/]+/i, '').replace(/\/(\.\/)+/g, '/').replace(/\/{2,}/g, '/').replace(/^\/+|\/+$/g, '').split(/[?#]/)[0].toLowerCase();
+      const routeDe = (c) => c.replace(/^[a-z]+:\/\/[^/]+/i, '').replace(/\/(\.\/)+/g, '/').replace(/\/{2,}/g, '/').split(/[?#]/)[0].replace(/^\/+|\/+$/g, '').toLowerCase();
       const route = routeDe(chemin ?? '');
       // Un champ cité à blancs placé avant la route (`-f message="add file" … repos/…/contents/a`) laisse des mots
       // devant elle : chaque positionnel qui a la forme d'une route (`repos/…`, `graphql`, une URL) compte aussi.
