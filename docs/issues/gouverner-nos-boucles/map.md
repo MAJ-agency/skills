@@ -168,6 +168,17 @@ Relevé du 2026-11-13 à 10 h 50 UTC. Le ticket 5 (opus, 22 fichiers) a coûté 
 
 Repère pour la question des plafonds : une session de ticket démarre déjà au-delà de 100 000 tokens (consignes, skills, `CLAUDE.md`) ; un plafond à 300 000 laisse donc moins de 200 000 tokens de travail.
 
+## Demandes d'autorisation relevées (P-19, travail 4 : du 2026-11-13 au 2026-11-20)
+
+Méthode : à chaque suivi, `list_sessions` puis, pour toute session « blocked », la ligne `needs_action` ; une session en mode « auto » qui s'arrête sur un refus du classifieur se lit par `list_events` (`kinds: ["assistant"]`). Une ligne par demande : la date, le dépôt, l'outil, le mode de la session, ce qu'il en est advenu.
+
+| Date | Dépôt | Outil | Mode de la session | Suite |
+| --- | --- | --- | --- | --- |
+| 2026-11-13 | `skills` | `send_message` (écrire à l'architecte) | aucun mode donné au lancement | session du ticket 9 bloquée trois heures ; le produit a autorisé à la main |
+| 2026-11-13 | `fedora` | `send_message` | lancée par un autre lot (`passation-2026-11-13`), mode non relevé | session « autoriser d'office les outils de la chaîne » en attente d'approbation depuis 23 h 55 UTC, vue le 2026-11-14 à 0 h 15 |
+| 2026-11-13 | `iroki-monorepo` | `send_message` | lancée par un autre lot, mode non relevé | capitaine de fusion d'`iroki-monorepo` en attente d'approbation depuis 23 h 20 UTC, PR 568 à fusionner |
+| 2026-11-14 | `skills` | `Edit` sur `.claude/settings.json` du dépôt | « auto » | refus du classifieur (« Self-Modification »), pas de demande au produit ; surface retirée du ticket 10 (A-31) |
+
 ## Fog
 
 - _(tranché, P-1)_ **Vocabulaire des rôles [terme].** Les cartes des deux premiers chantiers nomment « Conducteur » la session qui parle seule au produit et « Architecte » la session qui déroule le skill `chantier`. Le produit emploie les deux mots dans l'autre sens (12/11). Question 1 du tour 1.
