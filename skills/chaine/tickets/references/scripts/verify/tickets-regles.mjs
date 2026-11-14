@@ -285,8 +285,8 @@ export function lireCheminsSensibles(texte) {
   return liste;
 }
 
-/** Valeurs par défaut des plafonds (A-9, P-3) : les mêmes que `chantier/scripts/plafonds.mjs`. */
-const PLAFONDS_PAR_DEFAUT = { contexteFille: 300000, coutFille: 20, contextePilote: 400000, renvoisParPR: 3 };
+/** Valeurs par défaut des plafonds (A-9 ; P-3, amendée le 2026-11-14) : les mêmes que `chantier/scripts/plafonds.mjs`. */
+const PLAFONDS_PAR_DEFAUT = { contexteFille: 400000, coutFille: 20, contextePilote: 400000, renvoisParPR: 3 };
 
 /**
  * `plafonds` du contrat `.claude/chaine.json`. `texte` null : pas de contrat, aucun plafond contrôlé
@@ -336,7 +336,7 @@ const coutEnDollars = (texte) => {
 };
 
 /**
- * Plafonds de `## Coût` : une ligne dont le rôle est jugé (`fille`, `conducteur`, `architecte`) qui
+ * Plafonds de `## Coût` : une ligne dont le rôle est jugé (`fille`, `conducteur` ; pas `architecte`, P-25) qui
  * atteint son plafond (l'égalité compte) exige une ligne dans `## Dépassements` pour la même session.
  * Tout autre rôle n'est pas jugé ; une cellule « Contexte max » vide, `—`, `à relever` ou au gabarit
  * non plus ; toute autre forme illisible sur un rôle jugé est une erreur de la carte.
@@ -352,7 +352,7 @@ function plafondsDeLaCarte({ nom, lignes, corps, plafonds }) {
     const [role = '', ticket = '', session = '', , contexte = '', cout = ''] = cellules;
     const r = role.toLowerCase();
     const fille = r === 'fille';
-    if (!fille && r !== 'conducteur' && r !== 'architecte') continue;
+    if (!fille && r !== 'conducteur') continue; // l'architecte n'a pas de plafond (P-25)
     const mesures = [];
     if (!NON_RELEVE.test(contexte)) {
       const tokens = contexteEnTokens(contexte);
@@ -375,7 +375,7 @@ function plafondsDeLaCarte({ nom, lignes, corps, plafonds }) {
     if (mesures.length === 0 || (session && couvertes.has(session))) continue;
     erreurs.push({
       ligne,
-      message: `carte ${nom} : \`## Coût\`, session ${session || '(sans identifiant)'} (${role}) : ${mesures.join(' ; ')}, sans ligne dans \`## Dépassements\` pour cette session (décision du produit : découper, relancer ou accepter par écrit)`,
+      message: `carte ${nom} : \`## Coût\`, session ${session || '(sans identifiant)'} (${role}) : ${mesures.join(' ; ')}, sans ligne dans \`## Dépassements\` pour cette session (le plafond se signale au produit, sa décision s'y écrit)`,
     });
   }
   return erreurs;

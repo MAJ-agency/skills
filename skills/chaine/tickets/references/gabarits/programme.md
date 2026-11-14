@@ -13,7 +13,6 @@ Objectif: {{une phrase}}
 Dépôts: {{les dépôts du programme, et ce que chacun reçoit}}
 Source: {{chemin de l'entrée brute (passation, notes, artefact) — ni spec ni décision}}
 Capitaines: {{par dépôt : session_id, ou « absent »}}
-Plafond de l'architecte: {{contextePilote de .claude/chaine.json, 400 000 tokens par défaut ; relevé par get_session à chaque fin d'étape}}
 
 ## Chantiers
 
@@ -43,7 +42,7 @@ Décisions de l'architecte (choix techniques, sans effet sur ce que voit un util
 
 ## Passation
 
-{{Écrite avant de passer la main : où en est chaque chantier, ce qui attend le produit, les questions posées sans réponse, les sessions en vie (conducteurs, capitaines) à prévenir, et l'environnement à ouvrir pour la session de suite (dépôts, droit de pousser).}}
+{{Écrite quand le produit décide de changer d'architecte : où en est chaque chantier, ce qui attend le produit, les questions posées sans réponse, les sessions en vie (conducteurs, capitaines) à prévenir, et l'environnement à ouvrir pour la session de suite (dépôts, droit de pousser).}}
 
 ## Journal
 

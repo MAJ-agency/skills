@@ -1,14 +1,18 @@
 // =============================================================================
-// Plafonds de session : le conducteur (et l'architecte, à chaque fin d'étape) ne juge pas lui-même
-// si une session a dépassé son plafond, il passe ses relevés à ce script et suit le verdict.
+// Plafonds de session : le conducteur ne juge pas lui-même si une session a dépassé son plafond,
+// il passe ses relevés à ce script et suit le verdict.
 //
-// Règle (A-9, P-3) : rôle `fille` → `interrompre` dès que le contexte atteint `contexteFille` ou que
-// le coût atteint `coutFille` ; rôles `conducteur` et `architecte` → `passer-la-main` dès que le
-// contexte atteint `contextePilote` ; sinon `ok`. Un plafond est atteint dès l'égalité.
+// Un plafond ne coupe rien : il se signale, et le produit décide. Aucune session n'est interrompue
+// ni relayée d'office. Deux verdicts seulement, `ok` et `signaler`.
+// Règle (A-9 ; P-3, amendée par le produit le 2026-11-14) : rôle `fille` → `signaler` dès que le
+// contexte atteint `contexteFille` ou que le coût atteint `coutFille` ; rôle `conducteur` →
+// `signaler` dès que le contexte atteint `contextePilote` ; sinon `ok`. Un plafond est atteint dès
+// l'égalité. Rôle `architecte` → toujours `ok` : l'architecte n'a pas de plafond de session (P-25),
+// le produit décide seul quand on en change. Qui reçoit le signalement : `chantier/SKILL.md` § 6.
 // Les valeurs viennent de `plafonds` dans .claude/chaine.json ; sans fichier ou sans cette clé, les
-// valeurs par défaut (300000, 20, 400000, 3). Clé présente mais mal formée : sortie 2.
+// valeurs par défaut (400000, 20, 400000, 3). Clé présente mais mal formée : sortie 2.
 //
-// Usage : echo '[{"session":"s1","role":"fille","contexte":310000,"cout":4.2}]' | node plafonds.mjs
+// Usage : echo '[{"session":"s1","role":"fille","contexte":410000,"cout":4.2}]' | node plafonds.mjs
 //   entrée standard : liste JSON d'objets { session, role, contexte (tokens), cout (dollars) }.
 //   sortie : une ligne par session, `<session><TAB><verdict><TAB><motif>`.
 // Sortie 0 verdicts rendus · 2 entrée ou contrat illisible (rôle inconnu, mesure illisible, contrat
@@ -19,7 +23,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 
 export const PAR_DEFAUT = Object.freeze({
-  contexteFille: 300000,
+  contexteFille: 400000,
   coutFille: 20,
   contextePilote: 400000,
   renvoisParPR: 3,
@@ -66,16 +70,18 @@ export function juger({ role, contexte, cout }, plafonds = PAR_DEFAUT) {
       motifs.push(`contexte ${contexte} tokens ≥ plafond ${plafonds.contexteFille}`);
     if (cout >= plafonds.coutFille) motifs.push(`coût ${cout} $ ≥ plafond ${plafonds.coutFille} $`);
     return motifs.length
-      ? { verdict: "interrompre", motif: motifs.join(" ; ") }
+      ? { verdict: "signaler", motif: motifs.join(" ; ") }
       : { verdict: "ok", motif: "sous les plafonds de la fille" };
   }
-  if (role === "conducteur" || role === "architecte") {
+  if (role === "conducteur") {
     if (!(Number.isFinite(contexte) && contexte >= 0))
       throw new Error("mesure illisible : contexte est un nombre positif");
     return contexte >= plafonds.contextePilote
-      ? { verdict: "passer-la-main", motif: `contexte ${contexte} tokens ≥ plafond ${plafonds.contextePilote}` }
-      : { verdict: "ok", motif: "sous le plafond du pilote" };
+      ? { verdict: "signaler", motif: `contexte ${contexte} tokens ≥ plafond ${plafonds.contextePilote}` }
+      : { verdict: "ok", motif: "sous le plafond du conducteur" };
   }
+  // P-25 : l'architecte n'a pas de plafond de session, ses mesures ne sont pas lues.
+  if (role === "architecte") return { verdict: "ok", motif: "l'architecte n'a pas de plafond de session" };
   throw new Error(`rôle inconnu « ${role} » (fille, conducteur ou architecte)`);
 }
 

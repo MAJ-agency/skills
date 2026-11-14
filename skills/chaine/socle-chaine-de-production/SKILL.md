@@ -80,6 +80,6 @@ Remettre à l'humain **la liste de `chaine-admin.md`** : rien de la chaîne ne t
 | ------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------- |
 | « Je garde `main` comme branche d'intégration, c'est plus simple » | Le capitaine, les sujets et les scripts lisent `develop`. Deux conventions, c'est deux fois les tests.      |
 | « Je mets les règles de fusion dans un prompt, pas dans un hook »  | Un prompt se contourne, un hook non. Le push forcé a été vu deux fois avant le hook.                        |
-| « Je recopie les ADR de Fedora »                                   | Une ADR est une décision du projet, datée et signée. Le gabarit porte les faits ; le projet la fait sienne. |
+| « Je recopie les ADR d'un autre projet »                           | Une ADR est une décision du projet, datée et signée. Le gabarit porte les faits ; le projet la fait sienne. |
 | « J'ajoute un label de plus pour notre cas »                       | Les sept labels sont le protocole des skills. Un huitième n'est lu par personne.                            |
 | « La CI minimale ne suffit pas, j'écris les E2E tout de suite »    | Un E2E sans seed ni parcours est un job rouge. Ils arrivent avec le premier parcours.                       |

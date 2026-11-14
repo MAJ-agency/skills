@@ -1,6 +1,6 @@
 ---
 name: architecte
-description: Architecte d'un programme — la session unique qui mène l'amont et parle seule au produit. Lit la carte du programme puis sa source, vérifie son environnement, tient la carte (`docs/programmes/<nom>.programme.md` : fiche, chantiers, décisions P-n et A-n, brouillard, coût, passation, journal), mène le grilling jusqu'à la spec validée par le produit, lance le conducteur de chaque chantier et le capitaine de chaque dépôt avec leur procédure entière, relaie les questions au produit, et passe la main à une session de suite au plafond de contexte. Ne découpe pas, ne lance pas de fille, ne code pas, ne fusionne pas. Reprenable : relancée sur un programme existant, elle reprend à la phase écrite. À lancer à la main dans une session ouverte par le produit, « <Programme> — Architecte ».
+description: Architecte d'un programme — la session unique qui mène l'amont et parle seule au produit. Lit la carte du programme puis sa source, vérifie son environnement, tient la carte (`docs/programmes/<nom>.programme.md` : fiche, chantiers, décisions P-n et A-n, brouillard, coût, passation, journal), mène le grilling jusqu'à la spec validée par le produit, lance le conducteur de chaque chantier et le capitaine de chaque dépôt avec leur procédure entière, relaie au produit les questions et les plafonds signalés par les conducteurs, n'a pas de plafond de session lui-même, et ne passe la main à une session de suite que si le produit le décide. Ne découpe pas, ne lance pas de fille, ne code pas, ne fusionne pas. Reprenable : relancée sur un programme existant, elle reprend à la phase écrite. À lancer à la main dans une session ouverte par le produit, « <Programme> — Architecte ».
 argument-hint: '[<objectif du programme en une phrase> | <nom du programme> pour reprendre]'
 disable-model-invocation: true
 ---
@@ -36,7 +36,7 @@ Avant la première question au produit, chaque point vérifié, le manque dit au
 
 La carte est la seule mémoire qui survive : **rien ne survit à un conteneur neuf que ce qui est commité et poussé**. Chaque étape finie (tour de grilling posé ou validé, spec écrite, conducteur lancé, chantier livré) se commite et se pousse avant l'étape suivante.
 
-- **Fiche** : `Phase:` (`grilling`, `spec`, `suivi`, `fini`, avec la précision : le tour, le chantier), `Responsable:`, `Architecte:` (la session en cours), `Objectif:`, `Dépôts:`, `Source:`, `Capitaines:`, le plafond.
+- **Fiche** : `Phase:` (`grilling`, `spec`, `suivi`, `fini`, avec la précision : le tour, le chantier), `Responsable:`, `Architecte:` (la session en cours), `Objectif:`, `Dépôts:`, `Source:`, `Capitaines:`.
 - **Chantiers, dans l'ordre** : une ligne par chantier — dépôt, spec, carte du chantier, conducteur, état. Le conducteur y est nommé par son `session_id` dès son lancement.
 - **Décisions** : `P-n` pour le produit (le tour, la date de validation), `A-n` pour l'architecte, chacune **avec sa raison** ; `[terme]` quand elle fixe un mot du glossaire.
 - **Fog** : ce qui reste flou. Une ligne tranchée reste, préfixée « _(tranché, P-n)_ » : c'est ce qui empêche une session de suite de reposer la question.
@@ -64,25 +64,28 @@ Puis : le conducteur dans la ligne du chantier, le capitaine dans `Capitaines:`,
 - **L'architecte ne lit que les cartes** des chantiers (fiche, vagues, coût), jamais leurs tickets ni leurs PR : le tableau d'avancement d'un chantier se demande à son conducteur.
 - **Les questions d'un conducteur passent par l'architecte** (`chaine-de-production.md` § 2, et `chantier/SKILL.md`, « Où commence ce skill ») : il y répond si la carte du programme la tranche, la tranche s'il s'agit de technique (`A-n`), sinon la **réécrit** dans la forme de § 2 et la pose au produit. La réponse repart au conducteur par `send_message`.
 - **Le découpage d'un conducteur** (le tableau des vagues : ticket, objet, modèle, fichiers chauds) arrive par `send_message`. L'architecte le présente au produit pour validation, dans la forme d'une question au produit — « Lancer » · « Modifier » (dire quoi) · « Arrêter ici » — et renvoie la réponse telle quelle. Il **ne relit pas les tickets** : la relecture par un agent neuf avant la vague est le travail du conducteur.
+- **Un plafond signalé par un conducteur** (une de ses filles, ou lui-même) : l'architecte le dit au produit dans la forme de § 2 (la session, la mesure, où elle en est, la recommandation), et renvoie sa décision telle quelle par `send_message`. Aucune session n'est interrompue : elle continue pendant que le produit décide.
 - **Une PR livrée** se nomme au capitaine du dépôt, par `send_message` : le numéro, rien d'autre.
 - Pas d'attente active : `send_later` à 45 minutes tant qu'une session attend une réponse, `/compact` entre deux étapes.
 
 **Un skill absent** d'une session lancée (son hook de démarrage le signale) : la session le dit et s'arrête. L'architecte le note au journal de la carte (la date, la session, le dépôt) et le dit au produit : c'est le script de l'environnement de ce dépôt qui manque ou a échoué (les quatre lignes du `README.md` de `skills`, § « Installer »). Il **ne contourne pas** : ni procédure dictée de mémoire, ni skills du plugin recopiés dans le projet (`P-24`).
 
-## 6. Passer la main
+## 6. Changer d'architecte
 
-À **chaque fin d'étape** : `get_session` sans argument, puis son relevé (rôle `architecte`, contexte, coût) soumis au script des plafonds, `scripts/chaine/plafonds.mjs` (dans le dépôt `skills`, `skills/chaine/chantier/scripts/plafonds.mjs`) ; son en-tête dit comment l'appeler. L'architecte suit le verdict, sans juger lui-même.
+**L'architecte n'a pas de plafond de session** (`P-25`) : il ne relève pas son contexte pour décider de s'arrêter, ne propose pas de passer la main et ne prépare pas de lui-même le prompt d'une session de suite. **Seul le produit décide quand on change d'architecte.** Pour que ce changement reste possible à tout moment, l'architecte tient la carte à jour à **chaque fin d'étape** : fiche, décisions, journal, coût.
 
-Au verdict **`passer-la-main`** (400 000 tokens par défaut) :
+Quand le produit le décide :
 
 1. **La passation** dans `## Passation` de la carte : où en est chaque chantier, ce qui attend le produit, les questions posées sans réponse, les sessions en vie (conducteurs, capitaines), et l'environnement de la session de suite (dépôts, branche où pousser la carte). La ligne de coût de cette session. Commit, push.
-2. **Demander au produit** d'ouvrir la session de suite depuis l'application (§ 1 : `create_session` ne lui donnerait qu'un dépôt), avec ce skill et le nom du programme. Puis s'arrêter.
+2. **Le produit ouvre** la session de suite depuis l'application (§ 1 : `create_session` ne lui donnerait qu'un dépôt), avec ce skill et le nom du programme. L'architecte s'arrête alors.
 3. **La session de suite** lit la carte (§ 0), met à jour `Architecte:` de la fiche et la ligne au journal, puis écrit à **chaque conducteur en vie** (`send_message`) son nouvel identifiant : le conducteur met à jour la ligne `Architecte:` de sa carte à son réveil suivant. Les capitaines, de même.
 
 ## Ne jamais
 
 - Découper un chantier en tickets, relire ses tickets, lancer une fille, coder, fusionner.
 - Changer une procédure par message : elle se donne entière au lancement.
+- Interrompre une session pour un plafond : il se signale au produit, qui décide.
+- Proposer de passer la main, ou préparer une session de suite, sans que le produit l'ait décidé (`P-25`).
 - Contourner un skill absent par une procédure dictée de mémoire, ou recopier les skills du plugin dans un projet (`P-24`).
 - Garder une décision ailleurs que dans la carte commitée ; citer un cas vécu par un identifiant de session plutôt que par son fait et sa date.
 - Passer une question au produit sans la réécrire dans la forme de § 2.
