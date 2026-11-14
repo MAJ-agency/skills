@@ -56,10 +56,33 @@ test("aucun SKILL.md ne dépasse 200 lignes", () => {
 // Les lecteurs ci-dessous sont des fonctions pures, éprouvées sur des entrées piégées
 // (CRLF, dernière ligne sans fin de ligne, variante voisine qui ne doit pas correspondre).
 const CI = ".github/workflows/ci.yml";
+const RECOPIE = ".github/workflows/recopier-skills.yml";
 const workflow = () => readFileSync(join(RACINE, CI), "utf8");
+const workflows = () =>
+  readdirSync(join(RACINE, ".github/workflows"))
+    .filter((f) => /\.ya?ml$/.test(f))
+    .sort()
+    .map((f) => [`.github/workflows/${f}`, readFileSync(join(RACINE, ".github/workflows", f), "utf8")]);
 const lignes = (w) => w.split(/\r?\n/);
 
-const runAvecExpression = (w) => lignes(w).filter((l) => /^\s*(-\s+)?run:/.test(l) && l.includes("${{"));
+// Les lignes d'un `run:` qui portent une expression : la ligne de la clé, et le corps d'un bloc (`|`, `>`),
+// c'est-à-dire les lignes plus indentées que la clé, jusqu'au retour à son indentation.
+const runAvecExpression = (w) => {
+  const l = lignes(w);
+  const trouvees = [];
+  for (let i = 0; i < l.length; i++) {
+    const m = l[i].match(/^(\s*)(?:-\s+)?run:(.*)$/);
+    if (!m) continue;
+    if (l[i].includes("${{")) trouvees.push(l[i]);
+    if (!/^\s*[|>][+-]?\s*(#.*)?$/.test(m[2])) continue;
+    const indentCle = l[i].match(/^\s*/)[0].length + (/^\s*-\s+/.test(l[i]) ? l[i].match(/^\s*-\s+/)[0].length - l[i].match(/^\s*/)[0].length : 0);
+    for (let j = i + 1; j < l.length; j++) {
+      if (l[j].trim() !== "" && l[j].match(/^\s*/)[0].length <= indentCle) break;
+      if (l[j].includes("${{")) trouvees.push(l[j]);
+    }
+  }
+  return trouvees;
+};
 const actionsMalEpinglees = (w) =>
   [...w.matchAll(/^[ \t]*(?:-[ \t]+)?uses:[ \t]*(\S+)([^\r\n]*)$/gm)]
     .filter(([, ref, reste]) => !/^[\w.-]+\/[\w./-]+@[0-9a-f]{40}$/.test(ref) || !/#\s*v\d/.test(reste))
@@ -76,6 +99,13 @@ test("lecteurs du workflow : entrées piégées", () => {
   assert.equal(runAvecExpression("      - run: echo ${{ github.sha }}").length, 1);
   assert.equal(runAvecExpression("      - run: echo ok\r\n      - run: echo ${{ x }}\r\n").length, 1);
   assert.equal(runAvecExpression("      - run: pnpm test\r\n      - name: ${{ x }}").length, 0);
+  // corps d'un bloc : `|` et `>`, CRLF, fin de bloc au retour à l'indentation de la clé
+  assert.equal(runAvecExpression("      - run: |\n          echo ${{ x }}\n").length, 1);
+  assert.equal(runAvecExpression("      - run: >\r\n          echo a\r\n          ${{ x }}").length, 1);
+  assert.equal(runAvecExpression("        run: |-\n          echo ${{ x }}\n          echo ${{ y }}").length, 2);
+  assert.equal(runAvecExpression("      - run: |\n          echo ok\n        env:\n          A: ${{ x }}").length, 0);
+  assert.equal(runAvecExpression("      - run: |\n          echo ok\n      - name: ${{ x }}").length, 0);
+  assert.equal(runAvecExpression("        run: |\n          echo ok\n\n          echo ${{ x }}").length, 1);
   // empreinte : 39 et 41 caractères refusés, 40 acceptée, commentaire de version obligatoire
   assert.deepEqual(actionsMalEpinglees(`- uses: a/b@${SHA} # v1.0.0\r\n- uses: c/d@${SHA} # v2`), []);
   assert.deepEqual(actionsMalEpinglees(`- uses: a/b@${SHA.slice(1)} # v1`), ["a/b@" + SHA.slice(1)]);
@@ -97,16 +127,19 @@ test("lecteurs du workflow : entrées piégées", () => {
   assert.equal(aLigne("      - run: pnpm test", /^\s+types:/), false);
 });
 
-test("le workflow de contrôle n'écrit aucune expression dans un `run:`", () => {
-  const fautives = runAvecExpression(workflow());
-  assert.deepEqual(fautives, [], `${CI} : expression dans un run: — passer par env: ${fautives.join(" ; ")}`);
+test("aucun workflow n'écrit d'expression dans un `run:`", () => {
+  for (const [f, w] of workflows()) {
+    const fautives = runAvecExpression(w);
+    assert.deepEqual(fautives, [], `${f} : expression dans un run: — passer par env: ${fautives.join(" ; ")}`);
+  }
 });
 
-test("le workflow de contrôle n'utilise que des actions épinglées par empreinte", () => {
-  const w = workflow();
-  assert.ok(nombreActions(w) > 0, `${CI} : aucune action trouvée`);
-  const mal = actionsMalEpinglees(w);
-  assert.deepEqual(mal, [], `${CI} : action non épinglée par une empreinte de 40 caractères avec sa version en commentaire : ${mal.join(" ; ")}`);
+test("aucun workflow n'utilise que des actions épinglées par empreinte", () => {
+  for (const [f, w] of workflows()) {
+    assert.ok(nombreActions(w) > 0, `${f} : aucune action trouvée`);
+    const mal = actionsMalEpinglees(w);
+    assert.deepEqual(mal, [], `${f} : action non épinglée par une empreinte de 40 caractères avec sa version en commentaire : ${mal.join(" ; ")}`);
+  }
 });
 
 test("le workflow de contrôle se lance sur toute PR vers main et joue pnpm test", () => {
@@ -116,6 +149,48 @@ test("le workflow de contrôle se lance sur toute PR vers main et joue pnpm test
   assert.ok(!aLigne(w, /^\s+push:/), `${CI} : pas de déclencheur push`);
   assert.ok(commande(w, "pnpm install --frozen-lockfile"), `${CI} : installation figée attendue`);
   assert.ok(commande(w, "pnpm test"), `${CI} : pnpm test attendu`);
+});
+
+// Le workflow de recopie : deux déclencheurs, jeton en lecture seule, secret lu d'une seule façon.
+const declencheurs = (w) => [...w.matchAll(/^  ([\w_]+):/gm)].map((m) => m[1]).filter((k) => ["push", "pull_request", "pull_request_target", "workflow_dispatch", "schedule"].includes(k));
+const filtreChemin = (w) => /^on:\s*\r?\n(?:.*\r?\n)*?\s+paths:\s*\[\s*'\.claude-plugin\/plugin\.json'\s*\]/m.test(w);
+const permissionsLectureSeule = (w) => /^permissions:\s*\r?\n\s+contents:[ \t]*read[ \t]*(?:\r?\n(?![ \t])|(?![\s\S]))/m.test(w);
+const lignesSecret = (w) => lignes(w).filter((l) => l.includes("secrets."));
+const lignesSecretMalFormees = (w) => lignesSecret(w).filter((l) => !/^\s*(?:-\s+)?[\w-]+:\s*\$\{\{\s*secrets\.RECOPIE_TOKEN\s*\}\}\s*$/.test(l));
+
+test("lecteurs du workflow de recopie : entrées piégées", () => {
+  assert.deepEqual(declencheurs("on:\r\n  push:\r\n    branches: ['main']\r\n  workflow_dispatch:\r\n"), ["push", "workflow_dispatch"]);
+  assert.deepEqual(declencheurs("on:\n  pull_request:\n  workflow_dispatch:"), ["pull_request", "workflow_dispatch"]);
+  assert.equal(filtreChemin("on:\n  push:\n    paths: ['.claude-plugin/plugin.json']\n"), true);
+  assert.equal(filtreChemin("on:\n  push:\n    paths: ['.claude-plugin/plugin.json', 'x']\n"), false);
+  assert.equal(filtreChemin("on:\n  push:\n    paths: ['.claude-plugin/plugin.jsonx']\n"), false);
+  assert.equal(permissionsLectureSeule("permissions:\n  contents: read\njobs:\n"), true);
+  assert.equal(permissionsLectureSeule("permissions:\r\n  contents: read"), true);
+  assert.equal(permissionsLectureSeule("permissions:\n  contents: write\n"), false);
+  assert.equal(permissionsLectureSeule("permissions:\n  contents: read\n  pull-requests: write\n"), false);
+  assert.deepEqual(lignesSecretMalFormees("          token: ${{ secrets.RECOPIE_TOKEN }}\r\n"), []);
+  assert.deepEqual(lignesSecretMalFormees("          RECOPIE_TOKEN: ${{ secrets.RECOPIE_TOKEN }}"), []);
+  assert.equal(lignesSecretMalFormees("        run: echo ${{ secrets.RECOPIE_TOKEN }}").length, 1);
+  assert.equal(lignesSecretMalFormees("          token: ${{ secrets.AUTRE }}").length, 1);
+  assert.equal(lignesSecretMalFormees("          token: ${{ secrets.RECOPIE_TOKEN }} x").length, 1);
+});
+
+test("recopier-skills.yml : push sur main limité à plugin.json, workflow_dispatch, jamais pull_request", () => {
+  const w = readFileSync(join(RACINE, RECOPIE), "utf8");
+  assert.deepEqual(declencheurs(w), ["push", "workflow_dispatch"]);
+  assert.ok(filtreChemin(w), `${RECOPIE} : filtre paths: ['.claude-plugin/plugin.json'] attendu`);
+  assert.ok(!/pull_request/.test(w.replace(/^\s*#.*$/gm, "")), `${RECOPIE} : aucun pull_request`);
+});
+
+test("recopier-skills.yml : le jeton du workflow ne fait que lire", () => {
+  const w = readFileSync(join(RACINE, RECOPIE), "utf8");
+  assert.ok(permissionsLectureSeule(w), `${RECOPIE} : permissions réduit à contents: read`);
+});
+
+test("recopier-skills.yml : le secret n'apparaît que sous la forme `<clé>: ${{ secrets.RECOPIE_TOKEN }}`", () => {
+  const w = readFileSync(join(RACINE, RECOPIE), "utf8");
+  assert.ok(lignesSecret(w).length > 0, `${RECOPIE} : secret RECOPIE_TOKEN attendu`);
+  assert.deepEqual(lignesSecretMalFormees(w), []);
 });
 
 // La carte d'un programme : son gabarit porte les sections de la carte de chantier qu'elle partage,

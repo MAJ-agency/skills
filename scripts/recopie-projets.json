@@ -1,0 +1,7 @@
+{
+  "$comment": "Projets qui reçoivent la copie des skills de la chaîne. Ajouter un projet : docs/agents/recopie-des-skills.md.",
+  "projets": [
+    { "depot": "MAJ-agency/anchorpost", "branche": "develop" },
+    { "depot": "MAJ-agency/iroki-monorepo", "branche": "develop" }
+  ]
+}
