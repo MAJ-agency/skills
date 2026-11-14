@@ -1,11 +1,10 @@
 {
-  "$comment": "Contrat de la chaîne de production (skill socle-chaine-de-production). Lu par les skills tickets, sujet, fusionner, revue-adversariale, chantier et par scripts/agent/regles.mjs. Les branches sont fixes : develop intègre, main livre. `cheminsSensibles` part des gardes de la chaîne elle-même (les hooks, la convention d'identifiants qu'ils lisent, la configuration de l'agent) ; le projet y ajoute ses dossiers sensibles. `gatesRapides` : les gates que le hook de fin de tour rejoue sur le travail en cours (ceux qui existent). `plafonds` : les seuils qui se signalent (atteints dès l'égalité), sans jamais couper une session — `contexteFille` et `coutFille` pour une fille, `contextePilote` pour un conducteur (l'architecte n'a pas de plafond) : le signalement remonte au produit, qui décide ; `renvoisParPR` met une PR renvoyée autant de fois en attente d'un humain ; le conducteur les lit à chaque réveil (skill chantier, § 6) et le gate `tickets` les contrôle dans les cartes.",
+  "$comment": "Contrat de la chaîne de production (skill socle-chaine-de-production). Lu par les skills tickets, sujet, fusionner, revue-adversariale, chantier et par scripts/agent/regles.mjs. Les branches sont fixes : develop intègre, main livre. `cheminsSensibles` part des gardes de la chaîne elle-même (les hooks, la convention d'identifiants qu'ils lisent, la configuration de l'agent) ; le projet y ajoute ses dossiers sensibles. `gatesRapides` : les gates que le hook de fin de tour rejoue sur le travail en cours (ceux qui existent). `plafonds` : les seuils qui se signalent (atteints dès l'égalité), sans jamais couper une session — `contexteFille` pour une fille, `contextePilote` pour un conducteur, en tokens de contexte (le coût ne se juge pas ; l'architecte n'a pas de plafond) : le signalement remonte au produit, qui décide ; `renvoisParPR` met une PR renvoyée autant de fois en attente d'un humain ; le conducteur les lit à chaque réveil (skill chantier, § 6) et le gate `tickets` les contrôle dans les cartes.",
   "cheminsSensibles": ["scripts/agent/**", "scripts/docs/identifiants.mjs", ".claude/**"],
   "criteresRevue": "docs/agents/criteres-revue.md",
   "fillesParVague": 6,
   "plafonds": {
     "contexteFille": 400000,
-    "coutFille": 20,
     "contextePilote": 400000,
     "renvoisParPR": 3
   },

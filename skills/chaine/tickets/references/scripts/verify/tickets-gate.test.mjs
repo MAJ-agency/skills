@@ -180,20 +180,23 @@ test('scripts/docs/identifiants.mjs absent : sortie 2, la grammaire du socle nom
 test('gate complet : une fille au-delà du plafond sans dépassement écrit est refusée, la carte et la session nommées', () => {
   const carte = 'docs/features/socle/all/SPEC_ALL_SOC-1-socle.map.md';
   const cout = (suite = '') =>
-    `# Carte\n\nSujet: sujet/socle\n\n## Fiche\n\nPhase: 4-vague-1\nResponsable: Camille Martin\nConducteur: session_z\n\n## Coût\n\n| Rôle | Ticket | Session | Modèle | Contexte max | Coût $ |\n| --- | --- | --- | --- | --- | --- |\n| fille | SPEC_ALL_SOC-1.01 | session_f | sonnet | 174 k | 25,00 |\n${suite}`;
+    `# Carte\n\nSujet: sujet/socle\n\n## Fiche\n\nPhase: 4-vague-1\nResponsable: Camille Martin\nConducteur: session_z\n\n## Coût\n\n| Rôle | Ticket | Session | Modèle | Contexte max | Coût $ |\n| --- | --- | --- | --- | --- | --- |\n| fille | SPEC_ALL_SOC-1.01 | session_f | sonnet | 410 k | 25,00 |\n${suite}`;
   const d = depotJouet({ fichiers: { ...DETTE, '.claude/chaine.json': '{}\n', [carte]: cout() } });
   const r = lancer(d);
   assert.equal(r.status, 1);
-  assert.match(r.stderr, /SPEC_ALL_SOC-1-socle\.map\.md:\d+ : carte SPEC_ALL_SOC-1-socle\.map\.md : `## Coût`, session session_f \(fille\) : coût 25 \$ ≥ plafond 20 \$/);
-  writeFileSync(join(d.travail, carte), cout('\n## Dépassements\n\n| Session | Ticket | Mesure | Décision du produit | Date |\n| --- | --- | --- | --- | --- |\n| session_f | SPEC_ALL_SOC-1.01 | 25 $ | accepté | 2026-11-13 |\n'));
+  assert.match(r.stderr, /SPEC_ALL_SOC-1-socle\.map\.md:\d+ : carte SPEC_ALL_SOC-1-socle\.map\.md : `## Coût`, session session_f \(fille\) : contexte 410000 tokens ≥ plafond 400000/);
+  writeFileSync(join(d.travail, carte), cout('\n## Dépassements\n\n| Session | Ticket | Mesure | Décision du produit | Date |\n| --- | --- | --- | --- | --- |\n| session_f | SPEC_ALL_SOC-1.01 | 410 k | accepté | 2026-11-13 |\n'));
   d.git('add', '-A');
   const ok = lancer(d);
   assert.equal(ok.status, 0, ok.stderr);
   // Contrat mal formé : le gate échoue fermé ; sans contrat, aucun plafond.
-  writeFileSync(join(d.travail, '.claude/chaine.json'), '{"plafonds":{"coutFille":0}}\n');
+  writeFileSync(join(d.travail, '.claude/chaine.json'), '{"plafonds":{"contexteFille":0}}\n');
   const mal = lancer(d);
   assert.equal(mal.status, 1);
-  assert.match(mal.stderr, /plafonds\.coutFille/);
+  assert.match(mal.stderr, /plafonds\.contexteFille/);
+  // Un contrat posé avant l'abandon du seuil de coût porte encore `coutFille` : il passe.
+  writeFileSync(join(d.travail, '.claude/chaine.json'), '{"plafonds":{"coutFille":20}}\n');
+  assert.equal(lancer(d).status, 0);
   const sans = depotJouet({ fichiers: { ...DETTE, [carte]: cout() } });
   assert.equal(lancer(sans).status, 0);
 });

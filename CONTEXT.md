@@ -40,5 +40,5 @@ La personne nommée qui répond d'un chantier ou d'un programme.
 _Avoid_: sprint, lot
 
 **Plafond**:
-La limite de mémoire de travail ou de coût au-delà de laquelle une session est signalée au produit, qui décide ; elle n'est jamais interrompue pour cela.
+La limite de mémoire de travail au-delà de laquelle une session est signalée au produit, qui décide ; elle n'est jamais interrompue pour cela.
 _Avoid_: budget, quota
