@@ -285,7 +285,7 @@ export function lireCheminsSensibles(texte) {
   return liste;
 }
 
-/** Valeurs par défaut des plafonds (A-9 ; P-3, amendée le 2026-11-14) : les mêmes que `chantier/scripts/plafonds.mjs`. */
+/** Valeurs par défaut des plafonds (A-9 ; P-3, amendée le 2026-11-14) : les mêmes que dit `chantier/SKILL.md` § 6. */
 const PLAFONDS_PAR_DEFAUT = { contexteFille: 400000, coutFille: 20, contextePilote: 400000, renvoisParPR: 3 };
 
 /**
