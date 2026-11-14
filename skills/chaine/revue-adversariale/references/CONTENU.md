@@ -2,7 +2,7 @@
 
 ## `scripts/diff-revue.sh`
 
-Le diff relu, sans le lockfile, les index générés (lus dans `scripts/docs/index-generes.json`, vérifiés par leurs gates) ni les snapshots. Posé dans `scripts/chaine/` du projet : une session cloud le trouve sans connaître le chemin du plugin. Au-delà de 2 000 lignes, il le dit : un lot par zone, un sous-agent par lot.
+Le diff relu, sans le lockfile, les index générés (lus dans `scripts/docs/index-generes.json`, vérifiés par leurs gates) ni les snapshots. Posé dans `scripts/chaine/` du projet : une session cloud le trouve sans connaître le chemin du plugin. Au-delà de 2 000 lignes, il le dit : un lot par zone, un sous-agent par lot. Il sort en 1 sans rien relire quand la base `origin/…` ne se rapatrie pas (une revue sur une base périmée ne se voit pas) ou quand le diff est vide ; il ne fetche jamais une base locale. Banc : `diff-revue.test.mjs`, sur le dépôt jouet du skill `sujet`, qui reste dans le plugin.
 
 ## `scripts/chemins-sensibles.mjs`
 

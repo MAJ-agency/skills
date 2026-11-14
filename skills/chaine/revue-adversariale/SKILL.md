@@ -32,7 +32,7 @@ Elle ne remplace ni `pnpm check` ni les gates : ceux-ci attrapent ce qui se voit
 REVUE_DIR=<scratchpad>/revue bash scripts/chaine/diff-revue.sh [<base>] [<zone>…]
 ```
 
-Base par défaut `origin/develop` ; `origin/sujet/<nom>` pour une sous-PR de sujet. Le script écrit `diff.patch` et `stat.txt`, sans lockfile, index générés ni snapshots ; migrations, seeds et specs restent. Fini quand `diff.patch` existe, non vide, et que le sommet relu est connu (le script l'affiche).
+Base par défaut `origin/develop` ; `origin/sujet/<nom>` pour une sous-PR de sujet. Le script écrit `diff.patch` et `stat.txt`, sans lockfile, index générés ni snapshots ; migrations, seeds et specs restent. Fini quand `diff.patch` existe, non vide, et que le sommet relu est connu (le script l'affiche). Sortie 1 (base non rapatriée, ou diff vide) : le lire, ne lancer aucun sous-agent ; un lot de zone vide n'a pas de sous-agent.
 
 **Diff de plus de 2 000 lignes :** un lot par zone (`apps/api`, `apps/web`, `apps/mobile`, `packages` + `scripts`), passée en `<zone>` avec un `REVUE_DIR` par lot. Un sous-agent par lot, lancés en parallèle, mêmes critères.
 
