@@ -1,6 +1,6 @@
 /**
  * Règles des hooks Claude Code du projet (ADR « chaîne de production »), en fonctions pures : les
- * scripts de hook (garde-fichiers, garde-commandes) les appliquent, et `regles.test.mjs` les éprouve
+ * scripts de hook (garde-fichiers, garde-commandes, garde-github) les appliquent, et `regles.test.mjs` les éprouve
  * (`node --test scripts/agent/`, dans `pnpm check:tickets`).
  *
  * Ce que les règles disent « jamais » et qu'une consigne ne garantit pas : le hook le refuse avant
@@ -66,11 +66,13 @@ export function refusEdition(
 
 /** Commandes refusées : motif → raison. */
 const COMMANDES_INTERDITES = [
-  [/(^|[;&|]\s*|\s)npm\s+(i|install|ci|add|uninstall|update)\b/, 'npm : le gestionnaire du projet est pnpm.'],
-  [/(^|[;&|]\s*|\s)yarn(\s|$)/, 'yarn : le gestionnaire du projet est pnpm.'],
-  [/\bgit\s+(commit|push)\b[^;&|]*\s--no-verify\b/, "--no-verify : les hooks git sont le pare-feu local — corriger ce qu'ils signalent."],
-  [/\bgit\s+push\b[^;&|]*[\s:](develop|main)(\s|$)/, 'pousser sur develop ou main : jamais directement, une PR passe par le capitaine de fusion.'],
-  [/\bgit\s+(rebase|reset\s+--hard)\b[^;&|]*\b(origin\/)?(develop|main|sujet\/)/, 'rebase ou reset --hard sur une branche partagée : jamais ; un sujet se rafraîchit par merge (sujet.sh rafraichir).'],
+  [/(^|[;&|]\s*|\s)npm\s+(i|install|ci|add|uninstall|update)\b/i, 'npm : le gestionnaire du projet est pnpm.'],
+  [/(^|[;&|]\s*|\s)yarn(\s|$)/i, 'yarn : le gestionnaire du projet est pnpm.'],
+  [/\bgit\s+(commit|push|merge|am|rebase)\b[^;&|]*\s--no-veri[a-z]*\b/i, "--no-verify : les hooks git sont le pare-feu local — corriger ce qu'ils signalent."],
+  // `git commit -n` est `--no-verify`, seul ou groupé (`-nm`, `-an`).
+  [/\bgit\s+commit\b[^;&|]*\s-[a-z]*n[a-z]*(\s|$)/i, "-n de git commit (--no-verify) : les hooks git sont le pare-feu local — corriger ce qu'ils signalent."],
+  [/\bgit\s+push\b[^;&|]*[\s:](develop|main)(\s|$)/i, 'pousser sur develop ou main : jamais directement, une PR passe par le capitaine de fusion.'],
+  [/\bgit\s+(rebase|reset\s+--hard)\b[^;&|]*\b(origin\/)?(develop|main|sujet\/)/i, 'rebase ou reset --hard sur une branche partagée : jamais ; un sujet se rafraîchit par merge (sujet.sh rafraichir).'],
 ];
 
 const RAISON_DEPENDANCE =
@@ -175,6 +177,25 @@ function sansGuillemets(commande) {
 
 /** Mot qui remplace une substitution dans la commande englobante : il porte `$`, donc se lit illisible. */
 const SUBSTITUTION = '$SUBSTITUTION';
+/** Le texte où chaque `$(…)`, parenthèses équilibrées (non fermée : jusqu'à la fin), devient `SUBSTITUTION`. */
+function sansSubstitutionsParenthesees(texte) {
+  let sortie = '';
+  for (let i = 0; i < texte.length; i++) {
+    if (texte[i] !== '$' || texte[i + 1] !== '(') {
+      sortie += texte[i];
+      continue;
+    }
+    let j = i + 1;
+    for (let profondeur = 0; j < texte.length; j++) {
+      if (texte[j] === '(') profondeur++;
+      else if (texte[j] === ')' && --profondeur === 0) break;
+    }
+    sortie += SUBSTITUTION + (/^[^\s;&|()]/.test(texte.slice(j + 1)) ? ' ' : '');
+    i = j;
+  }
+  return sortie;
+}
+
 /**
  * Le dernier découpage : `decisionCommande` lit la même commande six fois (sujet, branche gardée, push
  * nu, force, illisible, `gh`) ; `sansGuillemets`, dont le motif de here-doc coûte, n'y passe qu'une fois.
@@ -206,7 +227,12 @@ export function segmentsDeCommande(commande) {
     // Suivi d'une espace si un mot y est collé : `$(true)git push …` exécute `git push …`.
     reste = reste.slice(0, m.index) + SUBSTITUTION + (/^[^\s;&|()]/.test(apres) ? ' ' : '') + apres;
   }
-  dernierDecoupage = { commande, segments: Object.freeze([...segments, ...decouper(reste)].map((s) => Object.freeze(s))) };
+  // Une substitution qui contient des parenthèses (`$( (pwd) )`, `$((1))`) n'est pas extraite et se découpe sur `(`
+  // et `)` comme avant ; la commande englobante se lit en plus avec chacune remplacée par `SUBSTITUTION` : sans quoi
+  // `git -c a.b=$((1)) push …` serait coupé avant `push`.
+  const aplatie = sansSubstitutionsParenthesees(reste);
+  const enPlus = aplatie === reste ? [] : decouper(aplatie);
+  dernierDecoupage = { commande, segments: Object.freeze([...segments, ...decouper(reste), ...enPlus].map((s) => Object.freeze(s))) };
   return dernierDecoupage.segments;
 }
 
@@ -228,11 +254,11 @@ function pushs(commande) {
   return segmentsDeCommande(commande)
     .flatMap(({ segment }) => {
       const mots = segment.trim().split(/\s+/);
-      const i = mots.findIndex((mot) => /(^|\/)git$/.test(mot));
+      const i = mots.findIndex((mot) => /(^|[/$])git$/i.test(mot));
       if (i < 0) return [];
       let j = i + 1;
       while (j < mots.length && mots[j].startsWith('-')) j += OPTIONS_GIT_A_VALEUR.has(mots[j]) ? 2 : 1;
-      if (mots[j] !== 'push') return [];
+      if (mots[j]?.toLowerCase() !== 'push') return [];
       const positionnels = [];
       let tout = false;
       let remoteEnOption = false;
@@ -330,7 +356,10 @@ export function pushSansRefspec(commande) {
  */
 export function decisionCommande(commande, { dependancesPrevues = () => null, brancheCourante = () => null, brancheParDefaut = () => null } = {}) {
   const code = sansTexte(commande);
-  for (const [motif, raison] of COMMANDES_INTERDITES) if (motif.test(code)) return { decision: 'refuser', raison };
+  // Aussi sur la commande aux mots dénudés : un mot cité seul (`"git"`, `$'git'`, `"--no-verify"`), des
+  // guillemets vides ou une barre oblique inverse dans un mot (`g''it`, `g\it`) ne cachent pas un motif.
+  const nu = sansTexte(motsDenudes(commande));
+  for (const [motif, raison] of COMMANDES_INTERDITES) if (motif.test(code) || motif.test(nu)) return { decision: 'refuser', raison };
   let branche;
   const courante = () => (branche === undefined ? (branche = brancheCourante()) : branche);
   if (pousseSurUnSujet(commande, courante)) return { decision: 'refuser', raison: RAISON_PUSH_SUJET };
@@ -346,6 +375,19 @@ export function decisionCommande(commande, { dependancesPrevues = () => null, br
   const paquets = liste.flatMap((a) => a.paquets);
   if (Array.isArray(prevues) && paquets.every((p) => prevues.includes(p))) return null;
   return { decision: 'refuser', raison: RAISON_DEPENDANCE };
+}
+
+/**
+ * La commande aux mots dénudés, pour les motifs de `COMMANDES_INTERDITES` : lignes continuées recollées,
+ * barres obliques inverses et guillemets vides retirés, un mot cité seul (sans blanc) sans ses guillemets ni
+ * le `$` d'une citation ANSI-C (`$'git'`). Un texte cité qui porte un blanc reste un texte.
+ */
+function motsDenudes(commande) {
+  return commande
+    .replace(/\\\r?\n/g, ' ')
+    .replace(/\\/g, '')
+    .replace(/(['"])\1/g, '')
+    .replace(/\$?(['"])([^\s'"$`]+)\1/g, '$2');
 }
 
 /** Un fichier que le hook d'après-édition passe à Prettier puis ESLint. */
@@ -441,8 +483,9 @@ export function ecritParGh(commande) {
   return segmentsDeCommande(commande).some(({ segment, suite }) => {
     const mots = segment.trim().split(/\s+/);
     // Seul le premier programme du segment compte : `git commit -m "gh pr merge 3"` n'est pas une fusion.
-    const i = mots.findIndex((mot) => /(^|\/)(gh|git)$/.test(mot));
-    if (i < 0 || !/(^|\/)gh$/.test(mots[i])) return false;
+    // `$'gh'` se lit `$gh` sans ses guillemets ; un système de fichiers insensible à la casse lance `GH`.
+    const i = mots.findIndex((mot) => /(^|[/$])(gh|git)$/i.test(mot));
+    if (i < 0 || !/(^|[/$])gh$/i.test(mots[i])) return false;
     // Positionnels après `gh`, sans `-R`, `--repo`, `--hostname` ni leur valeur : `gh -R o/r pr merge 3` est `pr merge`.
     const pos = [];
     for (let k = i + 1; k < mots.length; k++) {
@@ -454,27 +497,35 @@ export function ecritParGh(commande) {
     if (pos[0] === 'pr' && pos[1] === 'close' && mots.some((mot) => /^(-d|--delete-branch)$/.test(mot))) return true;
     if (pos[0] !== 'api') return false;
     let chemin = null;
+    const positionnels = [];
     let methode = null;
     let champs = false;
     for (let k = mots.indexOf('api', i + 1) + 1; k < mots.length; k++) {
       const mot = mots[k];
       if (!mot.startsWith('-')) {
         chemin ??= mot;
+        positionnels.push(mot);
         continue;
       }
       const [option, valeurJointe] = mot.split(/=(.*)/s);
       const valeur = valeurJointe ?? (OPTIONS_GH_API_A_VALEUR.has(option) ? mots[++k] : undefined);
       if (option === '-X' || option === '--method') methode = String(valeur ?? '').toUpperCase();
       else if (/^-X./.test(mot)) methode = mot.slice(2).toUpperCase();
-      if (['-f', '--raw-field', '-F', '--field', '--input'].includes(option)) champs = true;
+      // `-fcle=valeur` : un champ collé à son option fait un POST comme `-f cle=valeur`.
+      if (['-f', '--raw-field', '-F', '--field', '--input'].includes(option) || /^-[fF]./.test(option)) champs = true;
     }
     // Route lue comme gh l'enverra : hôte, barres de tête, de fin, doublées et `./` retirés, en minuscules.
-    const route = (chemin ?? '').replace(/^[a-z]+:\/\/[^/]+/i, '').replace(/\/(\.\/)+/g, '/').replace(/\/{2,}/g, '/').replace(/^\/+|\/+$/g, '').split('?')[0].toLowerCase();
+    const routeDe = (c) => c.replace(/^[a-z]+:\/\/[^/]+/i, '').replace(/\/(\.\/)+/g, '/').replace(/\/{2,}/g, '/').replace(/^\/+|\/+$/g, '').split('?')[0].toLowerCase();
+    const route = routeDe(chemin ?? '');
+    // Un champ cité à blancs placé avant la route (`-f message="add file" … repos/…/contents/a`) laisse des mots
+    // devant elle : chaque positionnel qui a la forme d'une route (`repos/…`, `graphql`, une URL) compte aussi.
+    const routes = [route, ...positionnels.slice(1).filter((p) => /^(\/?repos\/|\/?graphql$|[a-z]+:\/\/)/i.test(p)).map(routeDe)];
     // La mutation se cherche de `gh` à la fin de la commande : ni avant (un message de commit), ni bornée au
     // segment (la découpe sur `(` couperait `query A { a(x: 1) } mutation B { … }`).
-    if (/(^|\/)graphql$/.test(route)) return /\bmutation\b/i.test(suite) || /query=@|--input|[$]/.test(segment);
+    if (routes.some((r) => /(^|\/)graphql$/.test(r)) && (/\bmutation\b/i.test(suite) || /query=@|--input|[$]/.test(segment))) return true;
+    if (/(^|\/)graphql$/.test(route)) return false;
     const ecrit = (methode ?? (champs ? 'POST' : 'GET')) !== 'GET';
     // Un chemin qui ne se lit pas (variable, substitution, encodé) pourrait viser une branche : refusé en écriture.
-    return ecrit && chemin !== null && (/[$%]/.test(chemin) || CHEMIN_GH_ECRIT.test(route));
+    return ecrit && chemin !== null && (/[$%]/.test(chemin) || routes.some((r) => CHEMIN_GH_ECRIT.test(r)));
   });
 }

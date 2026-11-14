@@ -369,6 +369,43 @@ test('gh en écriture vers une branche, un fichier ou une règle de branche est 
     assert.equal(decisionCommande(commande), null, commande);
 });
 
+test('contournements relevés pendant le ticket 27 : champ gh collé ou route après un champ à blancs, $\'git\', casse, substitution parenthésée, -n et --no-veri… de git commit, mot cité seul', () => {
+  const ctx = { brancheCourante: () => 'feat/x' };
+  const sujet = 'sujet/x';
+  const nv = '--no-verify';
+  for (const commande of [
+    `gh api repos/o/r/git/refs -fref=refs/heads/${sujet} -fsha=abc`,
+    `gh api repos/o/r/git/refs -Fref=refs/heads/${sujet} -Fsha=abc`,
+    `gh api -X PUT -f message="add file" -f branch=${sujet} repos/o/r/contents/a.md`,
+    'gh api -f query="mutation { x }" graphql',
+    `$'git' push origin HEAD:${sujet}`,
+    '$"gh" pr merge 3',
+    'GIT push --force origin feat/x',
+    'Gh pr merge 3',
+    `git -c a.b=$((1)) push origin HEAD:${sujet}`,
+    'git -C "$( (pwd) )" push --force origin feat/x',
+    'gh -R $( (echo o/r) ) pr merge 3',
+    'git commit -n -m x',
+    'git commit -anm x',
+    'git commit -m x --no-veri',
+    `git merge ${nv} feat/y`,
+    `"git" commit ${nv} -m x`,
+    `g''it commit ${nv} -m x`,
+    `git commit "${nv}" -m x`,
+    `GIT commit ${nv} -m x`,
+    "'npm' install leaflet",
+  ])
+    assert.equal(decisionCommande(commande, ctx)?.decision, 'refuser', commande);
+  for (const commande of [
+    `git commit -m "jamais ${nv}"`,
+    'git commit --amend --no-edit',
+    'git commit -m x -- docs/a.md',
+    'gh api -X POST repos/o/r/issues/3/comments -f body="voir graphql et contents"',
+    'echo $((1+2)) && git push -u origin feat/x',
+  ])
+    assert.equal(decisionCommande(commande, ctx), null, commande);
+});
+
 test('lireDependances : la ligne d’en-tête, accents graves ou nus, — ou absente → []', () => {
   const ticket = (ligne) => `# X\n\nStatus: ready-for-agent\n${ligne}\n\n## Le besoin\n\nx\n`;
   assert.deepEqual(lireDependances(ticket('Dépendances: `leaflet`, `@types/leaflet`')), ['leaflet', '@types/leaflet']);
