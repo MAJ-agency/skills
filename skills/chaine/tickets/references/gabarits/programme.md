@@ -47,4 +47,4 @@ Décisions de l'architecte (choix techniques, sans effet sur ce que voit un util
 
 ## Journal
 
-- {{AAAA-MM-JJ}} — {{ce qui s'est passé : étape franchie, refus d'attache, incident}}
+- {{AAAA-MM-JJ}} — {{ce qui s'est passé : étape franchie, skill absent, incident}}

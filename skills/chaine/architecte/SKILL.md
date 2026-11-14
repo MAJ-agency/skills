@@ -25,7 +25,7 @@ Avant la première question au produit, chaque point vérifié, le manque dit au
 | Il faut                                                     | Vérifier                                                                                    |
 | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
 | les dépôts du programme (ligne `Dépôts:`)                   | un clone de chacun dans le dossier de travail (`git -C <dépôt> remote -v`)                  |
-| le clone de `MAJ-agency/skills`                             | `skills/chaine/architecte/SKILL.md` lisible dans le clone                                   |
+| les skills de la chaîne                                     | `/maj-skills:chantier` et `/maj-skills:fusionner` parmi les skills de la session (le plugin, installé par le script de l'environnement) |
 | `graphify`                                                  | `command -v graphify` ; le hook de démarrage signale aussi la commande ou le graphe absent  |
 | les outils de session                                       | `create_session`, `send_message`, `get_session`, `list_sessions`, `send_later` chargés (`ToolSearch` au besoin) |
 | l'outil GitHub MCP                                          | les outils `mcp__github__*` chargés ; pas de `gh` dans une session cloud                    |
@@ -41,7 +41,7 @@ La carte est la seule mémoire qui survive : **rien ne survit à un conteneur ne
 - **Décisions** : `P-n` pour le produit (le tour, la date de validation), `A-n` pour l'architecte, chacune **avec sa raison** ; `[terme]` quand elle fixe un mot du glossaire.
 - **Fog** : ce qui reste flou. Une ligne tranchée reste, préfixée « _(tranché, P-n)_ » : c'est ce qui empêche une session de suite de reposer la question.
 - **Coût** : une ligne par session que nulle carte de chantier ne compte (architectes successifs, capitaines lancés par l'architecte, sessions de ticket qu'il lance lui-même), relevée par `get_session` (`external_metadata.usage.cost_usd`, `context_usage.used_tokens`). Un conducteur et ses filles se comptent dans la carte de leur chantier : jamais deux fois.
-- **Passation** et **Journal** : § 6, et une ligne datée par étape, par refus d'attache, par incident.
+- **Passation** et **Journal** : § 6, et une ligne datée par étape, par skill absent, par incident.
 
 Une carte de programme se nomme `docs/programmes/<nom-en-kebab>.programme.md`, sans identifiant de la nomenclature, sans ligne `Sujet:` : le gate des cartes de chantier (`*.map.md`) ne la lit pas. Elle vit sur une branche de cadrage du programme (`docs/<nom>-programme`), poussée à chaque étape, avec une PR brouillon vers la branche d'intégration du dépôt qui la porte : elle y entre quand le produit le décide, par le capitaine.
 
@@ -53,7 +53,7 @@ Une carte de programme se nomme `docs/programmes/<nom-en-kebab>.programme.md`, s
 
 ## 4. Lancer un conducteur, un capitaine
 
-Un conducteur par chantier, un capitaine par dépôt (`chantier/SKILL.md` § 0, point 5, le cherche par `list_sessions` filtré sur `tags: ["role:capitaine"]`). Les deux se lancent par `create_session`, sur le dépôt du chantier, avec le prompt de [`references/lancement.md`](references/lancement.md) : court, par renvoi, il porte **la consigne d'attache des skills** et **le repli** si l'attache est refusée. Le lire avant d'écrire un prompt.
+Un conducteur par chantier, un capitaine par dépôt (`chantier/SKILL.md` § 0, point 5, le cherche par `list_sessions` filtré sur `tags: ["role:capitaine"]`). Les deux se lancent par `create_session`, sur le dépôt du chantier, avec le prompt de [`references/lancement.md`](references/lancement.md) : court, par renvoi, il porte **la consigne de lecture des skills** (le plugin installé par le script de l'environnement) et **le repli** si le skill est absent. Le lire avant d'écrire un prompt.
 
 **La procédure se donne en entier au lancement.** Un message à un conducteur ou à un capitaine ne fait ensuite que **nommer le travail** — la spec validée, les PR à traiter — et n'ajoute ni ne change jamais une règle. Une procédure qui doit changer se change dans le skill, puis la session se relance. Cas vécu, le 2026-11-13 : le premier capitaine de `skills` a refusé, à raison, d'ajouter la mise à jour de branche à sa procédure sur un simple message de l'architecte.
 
@@ -67,7 +67,7 @@ Puis : le conducteur dans la ligne du chantier, le capitaine dans `Capitaines:`,
 - **Une PR livrée** se nomme au capitaine du dépôt, par `send_message` : le numéro, rien d'autre.
 - Pas d'attente active : `send_later` à 45 minutes tant qu'une session attend une réponse, `/compact` entre deux étapes.
 
-**Un refus d'attache** (`add_repo` refusé à une session lancée) : la session le dit et s'arrête. L'architecte le note au journal de la carte (la date, la session, le dépôt), le dit au produit, et **ne contourne pas** : ni recopie des skills dans le projet, ni procédure dictée de mémoire. La recopie des skills ne se décide que si les refus se répètent : le journal les compte.
+**Un skill absent** d'une session lancée (son hook de démarrage le signale) : la session le dit et s'arrête. L'architecte le note au journal de la carte (la date, la session, le dépôt) et le dit au produit : c'est le script de l'environnement de ce dépôt qui manque ou a échoué (les quatre lignes du `README.md` de `skills`, § « Installer »). Il **ne contourne pas** : ni procédure dictée de mémoire, ni skills du plugin recopiés dans le projet (`P-24`).
 
 ## 6. Passer la main
 
@@ -83,6 +83,6 @@ Au verdict **`passer-la-main`** (400 000 tokens par défaut) :
 
 - Découper un chantier en tickets, relire ses tickets, lancer une fille, coder, fusionner.
 - Changer une procédure par message : elle se donne entière au lancement.
-- Contourner un refus d'attache, ou recopier les skills dans un projet sans que le produit l'ait décidé.
+- Contourner un skill absent par une procédure dictée de mémoire, ou recopier les skills du plugin dans un projet (`P-24`).
 - Garder une décision ailleurs que dans la carte commitée ; citer un cas vécu par un identifiant de session plutôt que par son fait et sa date.
 - Passer une question au produit sans la réécrire dans la forme de § 2.
