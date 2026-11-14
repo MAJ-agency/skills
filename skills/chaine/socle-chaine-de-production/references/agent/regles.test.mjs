@@ -12,6 +12,10 @@ test('refusEdition refuse une migration déjà livrée et laisse écrire une nou
   assert.match(refusEdition('apps/api/prisma/migrations/2026_x/migration.sql', { ...livree, migrations: 'apps/api/prisma/migrations' }), /ne se modifie jamais/);
 });
 
+test('refusEdition laisse éditer .claude/skills : les skills du plugin vivent hors du dépôt, ceux du projet sont à lui', () => {
+  for (const c of ['.claude/skills/chantier/SKILL.md', '.claude/skills/maj-skills.json', '.claude/skills/parcours-federation/SKILL.md']) assert.equal(refusEdition(c, nouvelle), null);
+});
+
 test('refusEdition refuse le lockfile et les fichiers .env, laisse .env.example', () => {
   assert.match(refusEdition('pnpm-lock.yaml', nouvelle), /pnpm install/);
   assert.match(refusEdition('apps/api/.env', nouvelle), /secrets/);

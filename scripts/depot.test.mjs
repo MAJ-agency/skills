@@ -57,9 +57,31 @@ test("aucun SKILL.md ne dépasse 200 lignes", () => {
 // (CRLF, dernière ligne sans fin de ligne, variante voisine qui ne doit pas correspondre).
 const CI = ".github/workflows/ci.yml";
 const workflow = () => readFileSync(join(RACINE, CI), "utf8");
+const workflows = () =>
+  readdirSync(join(RACINE, ".github/workflows"))
+    .filter((f) => /\.ya?ml$/.test(f))
+    .sort()
+    .map((f) => [`.github/workflows/${f}`, readFileSync(join(RACINE, ".github/workflows", f), "utf8")]);
 const lignes = (w) => w.split(/\r?\n/);
 
-const runAvecExpression = (w) => lignes(w).filter((l) => /^\s*(-\s+)?run:/.test(l) && l.includes("${{"));
+// Les lignes d'un `run:` qui portent une expression : la ligne de la clé, et le corps d'un bloc (`|`, `>`),
+// c'est-à-dire les lignes plus indentées que la clé, jusqu'au retour à son indentation.
+const runAvecExpression = (w) => {
+  const l = lignes(w);
+  const trouvees = [];
+  for (let i = 0; i < l.length; i++) {
+    const m = l[i].match(/^(\s*)(?:-\s+)?run:(.*)$/);
+    if (!m) continue;
+    if (l[i].includes("${{")) trouvees.push(l[i]);
+    if (!/^\s*[|>][+-]?\s*(#.*)?$/.test(m[2])) continue;
+    const indentCle = l[i].match(/^\s*/)[0].length + (/^\s*-\s+/.test(l[i]) ? l[i].match(/^\s*-\s+/)[0].length - l[i].match(/^\s*/)[0].length : 0);
+    for (let j = i + 1; j < l.length; j++) {
+      if (l[j].trim() !== "" && l[j].match(/^\s*/)[0].length <= indentCle) break;
+      if (l[j].includes("${{")) trouvees.push(l[j]);
+    }
+  }
+  return trouvees;
+};
 const actionsMalEpinglees = (w) =>
   [...w.matchAll(/^[ \t]*(?:-[ \t]+)?uses:[ \t]*(\S+)([^\r\n]*)$/gm)]
     .filter(([, ref, reste]) => !/^[\w.-]+\/[\w./-]+@[0-9a-f]{40}$/.test(ref) || !/#\s*v\d/.test(reste))
@@ -76,6 +98,13 @@ test("lecteurs du workflow : entrées piégées", () => {
   assert.equal(runAvecExpression("      - run: echo ${{ github.sha }}").length, 1);
   assert.equal(runAvecExpression("      - run: echo ok\r\n      - run: echo ${{ x }}\r\n").length, 1);
   assert.equal(runAvecExpression("      - run: pnpm test\r\n      - name: ${{ x }}").length, 0);
+  // corps d'un bloc : `|` et `>`, CRLF, fin de bloc au retour à l'indentation de la clé
+  assert.equal(runAvecExpression("      - run: |\n          echo ${{ x }}\n").length, 1);
+  assert.equal(runAvecExpression("      - run: >\r\n          echo a\r\n          ${{ x }}").length, 1);
+  assert.equal(runAvecExpression("        run: |-\n          echo ${{ x }}\n          echo ${{ y }}").length, 2);
+  assert.equal(runAvecExpression("      - run: |\n          echo ok\n        env:\n          A: ${{ x }}").length, 0);
+  assert.equal(runAvecExpression("      - run: |\n          echo ok\n      - name: ${{ x }}").length, 0);
+  assert.equal(runAvecExpression("        run: |\n          echo ok\n\n          echo ${{ x }}").length, 1);
   // empreinte : 39 et 41 caractères refusés, 40 acceptée, commentaire de version obligatoire
   assert.deepEqual(actionsMalEpinglees(`- uses: a/b@${SHA} # v1.0.0\r\n- uses: c/d@${SHA} # v2`), []);
   assert.deepEqual(actionsMalEpinglees(`- uses: a/b@${SHA.slice(1)} # v1`), ["a/b@" + SHA.slice(1)]);
@@ -97,16 +126,19 @@ test("lecteurs du workflow : entrées piégées", () => {
   assert.equal(aLigne("      - run: pnpm test", /^\s+types:/), false);
 });
 
-test("le workflow de contrôle n'écrit aucune expression dans un `run:`", () => {
-  const fautives = runAvecExpression(workflow());
-  assert.deepEqual(fautives, [], `${CI} : expression dans un run: — passer par env: ${fautives.join(" ; ")}`);
+test("aucun workflow n'écrit d'expression dans un `run:`", () => {
+  for (const [f, w] of workflows()) {
+    const fautives = runAvecExpression(w);
+    assert.deepEqual(fautives, [], `${f} : expression dans un run: — passer par env: ${fautives.join(" ; ")}`);
+  }
 });
 
-test("le workflow de contrôle n'utilise que des actions épinglées par empreinte", () => {
-  const w = workflow();
-  assert.ok(nombreActions(w) > 0, `${CI} : aucune action trouvée`);
-  const mal = actionsMalEpinglees(w);
-  assert.deepEqual(mal, [], `${CI} : action non épinglée par une empreinte de 40 caractères avec sa version en commentaire : ${mal.join(" ; ")}`);
+test("aucun workflow n'utilise que des actions épinglées par empreinte", () => {
+  for (const [f, w] of workflows()) {
+    assert.ok(nombreActions(w) > 0, `${f} : aucune action trouvée`);
+    const mal = actionsMalEpinglees(w);
+    assert.deepEqual(mal, [], `${f} : action non épinglée par une empreinte de 40 caractères avec sa version en commentaire : ${mal.join(" ; ")}`);
+  }
 });
 
 test("le workflow de contrôle se lance sur toute PR vers main et joue pnpm test", () => {
@@ -164,4 +196,12 @@ test("le gabarit de la carte de chantier porte `Gel:` dans sa fiche et la sectio
   const texte = readFileSync(join(RACINE, CARTE), "utf8");
   assert.ok(lignes(section(texte, "Fiche")).includes("Gel:"), `${CARTE} : la fiche porte la ligne Gel: vide`);
   assert.ok(titres(texte).includes("## Journal"), `${CARTE} : section ## Journal`);
+});
+
+// Un skill propre au projet (`P-21`) se commite sans `git add -f` : le gabarit ne l'ignore pas.
+const GITIGNORE = "skills/monorepo/socle-monorepo/references/racine/gitignore";
+test("le gabarit .gitignore laisse commiter les skills propres au projet", () => {
+  const l = lignes(readFileSync(join(RACINE, GITIGNORE), "utf8"));
+  assert.ok(l.includes("!.claude/skills/"), `${GITIGNORE} : !.claude/skills/ attendu`);
+  assert.ok(l.indexOf("!.claude/skills/") > l.indexOf(".claude/*"), `${GITIGNORE} : !.claude/skills/ vient après .claude/*`);
 });

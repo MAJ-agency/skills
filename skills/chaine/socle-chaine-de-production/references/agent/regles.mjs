@@ -43,7 +43,13 @@ const cheminDuMotif = (motif) => new RegExp(`^${motif.replace(/[.+?^${}()|[\]\\]
  * @param {{ migrationExistante: (chemin: string) => boolean, migrations?: string }} contexte
  *   `migrations` : dossier des migrations (défaut : `CHAINE.migrations`, sinon `apps/api/src/db/migrations/`)
  */
-export function refusEdition(chemin, { migrationExistante, migrations = CHAINE.migrations ?? 'apps/api/src/db/migrations/' }) {
+export function refusEdition(
+  chemin,
+  {
+    migrationExistante,
+    migrations = CHAINE.migrations ?? 'apps/api/src/db/migrations/',
+  },
+) {
   const c = chemin.replace(/\\/g, '/').replace(/^\.\//, '');
   const genere = Object.keys(FICHIERS_GENERES).find((motif) => cheminDuMotif(motif).test(c));
   if (genere) return `${c} est généré : le régénérer avec « ${FICHIERS_GENERES[genere]} ».`;
