@@ -70,7 +70,7 @@
 #
 # Sorties : 0 fait · 2 conflit · 3 checks rouges ou en cours, ou fusion, commit ou push refusé par un hook git
 # (sa sortie sur stderr : la lire, corriger, jamais en sautant le hook ; le pre-push contrôle l'arbre de travail) · 4 refus corrigeable par l'auteur (sa
-# dernière ligne est le motif, `fusionner` : titre, commitlint, revue, base ; `fusionner` et `relancer` : tête gardée, develop, main, la branche par défaut ou un sujet) · 6 arbre de travail pas
+# dernière ligne est le motif, `fusionner` : titre, commitlint, revue, lien symbolique sur un index généré, base ; `fusionner` et `relancer` : tête gardée, develop, main, la branche par défaut ou un sujet) · 6 arbre de travail pas
 # propre (`fusionner`, `rafraichir`, `regrouper`, `relancer` : à nettoyer par qui lance, jamais un renvoi de la PR,
 # comme la sortie 6 de passer.sh) · 7 `fusionner` d'une PR fermée, en brouillon ou d'un sujet gelé (rien à
 # corriger : sautée) · 9 `carte <nom>` refusée, ou `geler`/`degeler` dont le push échoue deux fois (rien n'est poussé)
@@ -667,7 +667,11 @@ fusionner() {
   else
     fichiers=$(git -c core.quotePath=false diff --no-renames --name-only "$(git merge-base "$sommet" "origin/$base")" "$sommet")
   fi
-  motif=$(printf '%s\n' "$fichiers" | node "$revue" "$(jq -r '.body // ""' <<<"$pr")" "$titre") || sortir 4 "#$n $motif"
+  # Le contrat (chemins sensibles, fichier des critères) se lit sur le sujet, jamais dans la sous-PR.
+  motif=$(printf '%s\n' "$fichiers" | node "$revue" "$(jq -r '.body // ""' <<<"$pr")" "$titre" "origin/$base") || sortir 4 "#$n $motif"
+  # Lien symbolique sur un index généré ou son dossier, que la PR ajoute ou change : la régénération du capitaine
+  # (mise à jour, avance, rafraichir) écrirait à travers lui.
+  motif=$(liens_sur_index "$sommet" "origin/$base") || sortir 4 "#$n $motif"
 
   # Checks exigés sur develop, lus sur le sommet de la sous-PR. Les E2E y sont sautés
   # (branche de sujet), donc comptés réussis : ils tournent sur la PR finale.

@@ -387,3 +387,15 @@ test("aucun texte de lancement n'affirme que le plugin se met à jour à chaque 
   );
   assert.deepEqual(fautes, [], `une session part de l'instantané de son environnement : ${fautes.join(" ; ")}`);
 });
+
+// Deux listes : la revue exigée par le capitaine (revue-exigee.mjs, fixe) et les chemins sensibles du contrat
+// (contre-revue et /security-review, que le projet allonge). Tout chemin sensible du gabarit exige aussi la revue.
+test("chaque chemin sensible du gabarit de .claude/chaine.json exige la revue au passage du capitaine", async () => {
+  const { exigeRevue } = await import(join(RACINE, "skills/chaine/fusionner/scripts/revue-exigee.mjs"));
+  const { cheminsSensibles } = JSON.parse(readFileSync(join(RACINE, "skills/chaine/socle-chaine-de-production/references/chaine.json"), "utf8"));
+  assert.ok(cheminsSensibles.length > 0);
+  for (const motif of cheminsSensibles) {
+    const exemple = (motif.endsWith("/") ? `${motif}x` : motif).replace(/\*\*/g, "x/y").replace(/\*/g, "x");
+    assert.equal(exigeRevue([exemple]), true, `${motif} (${exemple})`);
+  }
+});

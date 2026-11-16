@@ -35,7 +35,8 @@
 #   3  aucun check sur le sommet après 5 min : CI non déclenchée → ni fermeture-réouverture ni
 #      commit vide ; boucle.sh la met de côté jusqu'à la fusion suivante, qui la poussera
 #   4  refus que l'auteur peut corriger (migration plus ancienne que la dernière de develop,
-#      titre trop long, sans section « Revue adversariale », titre de code sur un diff docs seul) : la dernière ligne dit pourquoi ; boucle.sh renvoie
+#      titre trop long, sans section « Revue adversariale », titre de code sur un diff docs seul, lien
+#      symbolique sur un index généré) : la dernière ligne dit pourquoi ; boucle.sh renvoie
 #      la PR (refus.sh) avec ce motif, jamais de saut silencieux
 #   7  pas éligible, rien à corriger côté auteur (non ouverte, brouillon, sans `à-fusionner`,
 #      déjà `fusion-bloquée`, empilée sur une parente pas encore fusionnée) : la boucle la saute
@@ -102,7 +103,7 @@ origine=$(git rev-parse "origin/$tete")
 # sujet, hors de develop, dont la fusion avec le develop que la tête contient donne l'arbre de la
 # tête, aux index générés près. Sinon la PR repasse par le chemin ordinaire (revue exigée, squash).
 livraison_intermediaire() {
-  local nom=$1 d s attendu ecart hors regeneres
+  local nom=$1 d s attendu ecart hors regeneres motifs
   git fetch -q origin "sujet/$nom" 2>/dev/null || return 1
   d=$(git merge-base "$origine" origin/develop) || return 1
   for s in $(git merge-base --all "$origine" "origin/sujet/$nom" 2>/dev/null); do
@@ -117,11 +118,19 @@ livraison_intermediaire() {
     # Un index qui a une `commande` est régénéré : dispensé. Un index sans commande ne l'est que si son
     # blob au sommet est celui d'origin/develop (la version de develop prise au conflit par la mise à
     # jour) ; absent d'un côté, il diffère et va à la revue.
+    # Un index déclaré par motif, même avec une `commande`, ne l'est que sur un contenu déjà connu (celui de la
+    # fusion recalculée ou d'origin/develop) : sa régénération ne retire pas un fichier en trop sous le motif.
     # Liste illisible (fonction absente, jq en échec) : pas une livraison, la revue est exigée.
     regeneres=$(index_regeneres_regex) && [ -n "$regeneres" ] || return 1
+    motifs=$(index_regeneres_motifs_regex) && [ -n "$motifs" ] || return 1
     hors=$(printf '%s\n' "$ecart" | sed '/^$/d' | while IFS= read -r f; do
       if ! grep -qE "$GENERES" <<<"$f"; then
         printf '%s\n' "$f"
+      elif grep -qE "$motifs" <<<"$f"; then
+        a=$(git rev-parse -q --verify "$origine:$f" 2>/dev/null) || a=''
+        b=$(git rev-parse -q --verify "$attendu:$f" 2>/dev/null) || b=''
+        c=$(git rev-parse -q --verify "origin/develop:$f" 2>/dev/null) || c=''
+        [ -n "$a" ] && { [ "$a" = "$b" ] || [ "$a" = "$c" ]; } || printf '%s\n' "$f"
       elif ! grep -qE "$regeneres" <<<"$f"; then
         a=$(git rev-parse -q --verify "$origine:$f" 2>/dev/null) || a=''
         b=$(git rev-parse -q --verify "origin/develop:$f" 2>/dev/null) || b=''
@@ -156,12 +165,19 @@ else
   depart_pile=$(git merge-base "$origine" "$depart")
 fi
 
-# Revue adversariale (ADR « chaîne de production ») : exigée dès que le diff touche apps/, packages/ ou scripts/.
+# Revue adversariale (ADR « chaîne de production ») : exigée dès que le diff touche du code ou ce que la chaîne
+# exécute (revue-exigee.mjs : apps/, packages/, scripts/, e2e/, un segment à point, un fichier de la racine hors
+# Markdown, un package.json, un CLAUDE.md, docs/agents/), ou un chemin sensible et le fichier des critères du
+# contrat d'origin/develop, jamais de celui de la PR.
 # Une livraison de sujet en est dispensée : chaque sous-PR l'a passée (sujet.sh fusionner).
 if [ "$livraison_sujet" = 0 ]; then
-  motif=$(git -c core.quotePath=false diff --no-renames --name-only "$depart" "$origine" | node "$PASSER_OUTILS/revue-exigee.mjs" "$(champ '.body // ""')" "$titre") ||
+  motif=$(git -c core.quotePath=false diff --no-renames --name-only "$depart" "$origine" | node "$PASSER_OUTILS/revue-exigee.mjs" "$(champ '.body // ""')" "$titre" origin/develop) ||
     sortir 4 "$motif"
 fi
+
+# Lien symbolique sur un index généré ou son dossier, que la PR ajoute ou change (livraisons comprises) : la
+# régénération de l'étape 3 écrirait à travers lui. Refus que l'auteur corrige.
+motif=$(liens_sur_index "$origine" origin/develop) || sortir 4 "$motif"
 
 # Ordre des migrations : une migration ajoutée par la PR est strictement postérieure à la dernière
 # de develop, sinon le migrateur refuserait la livraison. Valable pour la livraison d'un sujet comme

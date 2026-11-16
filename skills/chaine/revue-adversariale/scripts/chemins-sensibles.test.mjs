@@ -149,3 +149,92 @@ test("la commande de l'étape 2 : git en échec dans le tube, avec pipefail, sor
   );
   assert.notEqual(r.status, 0);
 });
+
+test("CLI : un chemin que git cite entre guillemets, ou d'une autre casse, touche son motif ; une citation mal formée sort en 2", () => {
+  const d = dossierAvec(JSON.stringify({ cheminsSensibles: ["scripts/agent/**", ".claude/**", "src/paiement/"] }));
+  const entree = ['"scripts/agent/a\\"b.mjs"', '".claude/x\\tb"', '"src/paiement/r\\303\\251gl\\303\\251.ts"', "Scripts/Agent/a.mjs", ".Claude/settings.json", '"docs/a\\"b.md"'];
+  const r = lancer(d, `${entree.join("\n")}\n`);
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(
+    r.stdout,
+    `${entree[0]}\tscripts/agent/**\n${entree[1]}\t.claude/**\n${entree[2]}\tsrc/paiement/\n${entree[3]}\tscripts/agent/**\n${entree[4]}\t.claude/**\n`,
+  );
+  for (const mal of ['"scripts/agent/a.mjs', '"scripts/agent/a\\qb.mjs"']) {
+    const m = lancer(d, `${mal}\n`);
+    assert.equal(m.status, 2, mal);
+    assert.match(m.stderr, /illisible/, mal);
+  }
+});
+
+// Le contrat de la base s'ajoute à celui de l'arbre : une branche qui retire son chemin de chaine.json le garde
+// sensible (le label contre-revue et /security-review ne s'esquivent pas).
+test("CLI : le contrat de la base s'ajoute ; une branche qui retire un chemin sensible de chaine.json et le touche reste sensible", () => {
+  const d = dossierAvec(JSON.stringify({ cheminsSensibles: ["src/paiement/"] }));
+  const env = {
+    ...sansGit(),
+    GIT_CONFIG_GLOBAL: "/dev/null",
+    GIT_CONFIG_NOSYSTEM: "1",
+    GIT_AUTHOR_NAME: "t",
+    GIT_AUTHOR_EMAIL: "t@example.org",
+    GIT_COMMITTER_NAME: "t",
+    GIT_COMMITTER_EMAIL: "t@example.org",
+  };
+  const git = (...a) => execFileSync("git", a, { cwd: d, env, encoding: "utf8" });
+  git("init", "-q", "-b", "develop");
+  git("add", "-A");
+  git("commit", "-q", "-m", "contrat");
+  git("update-ref", "refs/remotes/origin/develop", "develop");
+  git("switch", "-q", "-c", "feat");
+  writeFileSync(join(d, ".claude/chaine.json"), JSON.stringify({ cheminsSensibles: [] }));
+  mkdirSync(join(d, "src/paiement"), { recursive: true });
+  writeFileSync(join(d, "src/paiement/x.ts"), "export const x = 1;\n");
+  writeFileSync(join(d, "a.md"), "a\n");
+  git("add", "-A");
+  git("commit", "-q", "-m", "retire le chemin");
+  const lancerIci = (...base) =>
+    spawnSync("node", [CLI, ...base], { cwd: d, env, input: "a.md\nsrc/paiement/x.ts\n", encoding: "utf8" });
+  for (const base of [[], ["origin/develop"]]) {
+    const r = lancerIci(...base);
+    assert.equal(r.status, 0, r.stderr);
+    assert.equal(r.stdout, "src/paiement/x.ts\tsrc/paiement/\n", `base ${base[0] ?? "par défaut"}`);
+  }
+  const illisible = lancerIci("nulle-part");
+  assert.equal(illisible.status, 0, illisible.stderr);
+  assert.deepEqual(
+    illisible.stdout.trim().split("\n").map((l) => l.replace(/\t\(base illisible : .*\)$/, "\t?")),
+    ["a.md\t?", "src/paiement/x.ts\t?"],
+    "base illisible : chaque chemin est sensible",
+  );
+});
+
+// Sans base donnée, une branche dont le ticket déclare un sujet lit le contrat de ce sujet.
+test("CLI : sans base donnée, le sujet du ticket de la branche fait la base", async () => {
+  const { depotJouet } = await import(
+    existsSync(new URL("./depot-jouet.mjs", import.meta.url)) ? "./depot-jouet.mjs" : "../../sujet/scripts/depot-jouet.mjs"
+  );
+  const d = depotJouet();
+  d.ecrire("docs/features/demo/all/SPEC_ALL_DEM-1-demo.spec.md", "# Démo\n\nSujet: sujet/lot\n");
+  d.commit("docs: spec");
+  d.git("push", "-q", "origin", "HEAD:develop");
+  d.git("fetch", "-q", "origin");
+  d.branche("sujet/lot", "origin/develop", { ".claude/chaine.json": JSON.stringify({ cheminsSensibles: ["infra/**"] }) }, "chore: contrat du lot");
+  d.git("switch", "-q", "-C", "feat/spec-all-dem-1-01-infra", "origin/sujet/lot");
+  d.ecrire(".claude/chaine.json", JSON.stringify({ cheminsSensibles: [] }));
+  d.ecrire("infra/main.tf", "x\n");
+  d.commit("chore: infra");
+  const r = spawnSync("node", [CLI], { cwd: d.travail, env: d.env, input: "infra/main.tf\n", encoding: "utf8" });
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(r.stdout, "infra/main.tf\tinfra/**\n");
+});
+
+// macOS écrit souvent les noms en NFD : un chemin NFD touche un motif NFC, et l'inverse.
+test("CLI : un chemin en NFD touche son motif en NFC, et l'inverse", () => {
+  const nfc = "src/paiement/réglé.ts".normalize("NFC");
+  const nfd = "src/paiement/réglé.ts".normalize("NFD");
+  assert.notEqual(nfc, nfd);
+  for (const [motif, chemin] of [[nfc, nfd], [nfd, nfc]]) {
+    const r = lancer(dossierAvec(JSON.stringify({ cheminsSensibles: [motif] })), `${chemin}\n`);
+    assert.equal(r.status, 0, r.stderr);
+    assert.equal(r.stdout, `${chemin}\t${motif}\n`);
+  }
+});
