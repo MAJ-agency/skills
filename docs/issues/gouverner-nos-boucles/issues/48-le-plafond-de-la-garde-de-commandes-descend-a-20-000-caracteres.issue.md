@@ -1,6 +1,6 @@
 # Le plafond de la garde de commandes descend à 20 000 caractères : sous 100 000, une option d'une lettre répétée la tenait 26 s, et le commentaire annonçait 8,2 s
 
-Status: ready-for-agent
+Status: Fait — PR #107
 Type: défaut
 Label: contre-revue
 Modèle: sonnet — une constante, une raison, un motif et deux phrases de documentation donnés mot pour mot (ancien, nouveau), quatre retouches du banc et trois tests ajoutés donnés entiers, la version ; tout est joué sur une copie jetable de `origin/main`, mutations comprises (voir « Vérification »). Rien à concevoir ; la revue passe `/security-review` (la garde de commandes).
