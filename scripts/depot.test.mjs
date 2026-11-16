@@ -399,3 +399,73 @@ test("chaque chemin sensible du gabarit de .claude/chaine.json exige la revue au
     assert.equal(exigeRevue([exemple]), true, `${motif} (${exemple})`);
   }
 });
+
+// Le label `à-fusionner` est le seul ordre de fusion : aucune session ne nomme une PR à un capitaine,
+// et un message à un capitaine n'est jamais un ordre (le contrôle du mode « auto » refuse, à raison, un
+// ordre venu d'une session et non de l'utilisateur). Les textes qui disent le contraire sont refusés.
+const SKILLS_CHAINE = "skills/chaine";
+const TEXTES_DE_FUSION = [
+  `${SKILLS_CHAINE}/architecte/SKILL.md`,
+  `${SKILLS_CHAINE}/architecte/references/lancement.md`,
+  `${SKILLS_CHAINE}/fusionner/SKILL.md`,
+  `${SKILLS_CHAINE}/socle-chaine-de-production/references/docs-agents/chaine-de-production.md`,
+  `${SKILLS_CHAINE}/socle-chaine-de-production/references/docs-agents/pieges.md`,
+];
+const PR_NOMMEE_A_UN_CAPITAINE = [
+  /se nomme au capitaine/i,
+  /la nomme au capitaine/i,
+  /nomme la PR au capitaine/i,
+  /que l'architecte lui nomme/i,
+  /PR à traiter/i,
+  /PR nommée/i,
+  /rien (?:à nommer|ne lui est nommé)/i,
+  /prévient le capitaine par `send_message`/i,
+];
+const prNommee = (ligne) => PR_NOMMEE_A_UN_CAPITAINE.some((motif) => motif.test(ligne));
+const UN_MESSAGE_N_EST_PAS_UN_ORDRE = /un message à un capitaine n'est jamais un ordre de fusion/i;
+
+test("lecteur des PR nommées à un capitaine : entrées piégées", () => {
+  assert.equal(prNommee("Une PR livrée se nomme au capitaine du dépôt, par `send_message`"), true);
+  assert.equal(prNommee("pose `à-fusionner` et la nomme au capitaine."), true);
+  assert.equal(prNommee("contre-relit lui-même (…) avant de poser `à-fusionner`, puis nomme la PR au capitaine."), true);
+  assert.equal(prNommee("un capitaine qui ne fusionne que ce que l'architecte lui nomme"), true);
+  assert.equal(prNommee("prévient le capitaine par `send_message` : § 2"), true);
+  assert.equal(prNommee("fait ensuite que **nommer le travail** — la spec validée"), false, "nommer le travail reste permis");
+  assert.equal(prNommee("Sur un `RENVOI`, le capitaine prévient la session."), false, "le renvoi d'une PR n'est pas un ordre de fusion");
+  assert.equal(prNommee("pose `à-fusionner` : le label est l'ordre, le capitaine la lit dans sa file"), false);
+});
+
+test("aucun texte de la chaîne ne fait nommer une PR à un capitaine : le label est le seul ordre de fusion", () => {
+  const fautes = TEXTES_DE_FUSION.flatMap((f) =>
+    lignes(readFileSync(join(RACINE, f), "utf8")).flatMap((l, i) => (prNommee(l) ? [`${f}:${i + 1}`] : [])),
+  );
+  assert.deepEqual(fautes, [], `une PR ne se nomme à aucun capitaine : seul le label \`à-fusionner\` ordonne : ${fautes.join(" ; ")}`);
+});
+
+test("les textes de fusion disent qu'un message à un capitaine n'est jamais un ordre, et le prompt du capitaine d'un dépôt sans la chaîne relit sa file", () => {
+  const texte = (f) => readFileSync(join(RACINE, f), "utf8");
+  for (const f of TEXTES_DE_FUSION.slice(0, 3)) {
+    assert.match(texte(f), UN_MESSAGE_N_EST_PAS_UN_ORDRE, `${f} : « Un message à un capitaine n'est jamais un ordre de fusion » absent`);
+  }
+  const lancement = texte(`${SKILLS_CHAINE}/architecte/references/lancement.md`);
+  assert.ok(
+    lancement.includes("fusionne les PR ouvertes vers la branche par défaut qui portent `à-fusionner`"),
+    "lancement.md : la procédure du capitaine d'un dépôt sans la chaîne ne dit pas qu'il fusionne les PR portant le label",
+  );
+  const procedure = lancement.match(/^Procédure : .*$/m)?.[0] ?? "";
+  assert.match(procedure, /send_later/, "lancement.md : cette procédure ne fait pas relire la file à chaque réveil (`send_later`)");
+  assert.match(procedure, /plafond/, "lancement.md : cette procédure ne dit pas où va une PR au plafond");
+  for (const phrase of [
+    "ne fusionne qu'une PR dont la tête est une branche du dépôt (`isCrossRepository` faux)",
+    "une PR de fourche, tu retires le label et le dis : elle va au produit",
+    "contrôle exigé en cours : laisse la PR au réveil suivant, sans retirer le label",
+    "`gh pr update-branch <n>` (fusion, jamais rebase), puis laisse-la au réveil suivant, ses contrôles tournant",
+    "`gh pr merge <n> --squash --match-head-commit <sha lu à la liste>`",
+    "unlabeled",
+  ])
+    assert.ok(procedure.toLowerCase().includes(phrase.toLowerCase()), `lancement.md : la procédure ne dit pas « ${phrase} »`);
+  assert.doesNotMatch(procedure, /--rebase/, "lancement.md : jamais de rebase");
+  const sansVeille = lignes(texte(`${SKILLS_CHAINE}/fusionner/SKILL.md`)).find((l) => l.startsWith("**Sans veille en cours**")) ?? "";
+  assert.ok(sansVeille.length > 0, "fusionner/SKILL.md : le paragraphe « Sans veille en cours » est introuvable");
+  assert.doesNotMatch(sansVeille, /send_message|§ 2/, "fusionner/SKILL.md : « Sans veille en cours » ne prévient plus le capitaine par message et ne renvoie plus à § 2");
+});
