@@ -1,16 +1,16 @@
 # `sujet.sh clore <nom>` supprime la branche d'un sujet livré, sans option de force : sommet contenu dans develop, aucune PR ouverte, carte livrée, sommet relu juste avant, refus du distant dit
 
 Status: ready-for-agent
-Type: feature
+Type: task
 Label: contre-revue
 Modèle: sonnet — la fonction, ses refus et ses codes sont donnés ci-dessous en diff ; le banc est donné entier, les textes mot pour mot ; tout est joué sur une copie jetable de `origin/main` (voir « Vérification ») ; rien n'est à concevoir. La revue passe `/security-review`.
-Blocked by: 40 (`skills/chaine/sujet/scripts/sujet.sh`), 41 (`skills/chaine/fusionner/SKILL.md`)
+Blocked by: 41 (`skills/chaine/fusionner/SKILL.md`)
 Dépendances: —
 Fichiers chauds: `skills/chaine/sujet/scripts/sujet.sh`, `skills/chaine/sujet/scripts/sujet-clore.test.mjs` (créé), `skills/chaine/sujet/SKILL.md`, `skills/chaine/sujet/references/CONTENU.md`, `skills/chaine/chantier/SKILL.md`, `skills/chaine/fusionner/SKILL.md`, `skills/chaine/socle-chaine-de-production/references/agent/regles.mjs`, `skills/chaine/socle-chaine-de-production/references/agent/regles.test.mjs`, `skills/chaine/socle-chaine-de-production/references/CONTENU.md`, `scripts/poses.test.mjs`, `.claude-plugin/plugin.json`
 
 ## Le besoin
 
-**Le fait.** Aucune voie ne supprime un sujet livré. `sujet.sh` n'a pas de commande de suppression ; la garde d'agent refuse `git push origin --delete sujet/x`, `git push origin :sujet/x` et `gh api -X DELETE …/git/refs/heads/sujet/x`, à raison (une session qui écrit sur un sujet s'autorise elle-même la ligne `Dépendances:`) ; un script, lui, n'est pas lu par la garde. GitHub supprime seul la tête d'une PR fusionnée (`delete_branch_on_merge`, constaté sur `fedora` #1909 : le sujet, tête de sa PR finale, a disparu). Reste ce que GitHub ne supprime pas : un sujet livré par une **livraison intermédiaire** (`livraison/<nom>-<date>`, `sujet.sh:795` : la PR part d'une branche jetable, le sujet survit) ou avant ce réglage. `chantier/SKILL.md:117` renvoie aujourd'hui ce reste « d'un poste local, jamais d'une session cloud, le proxy refuse la suppression ».
+**Le fait.** Aucune voie ne supprime un sujet livré. `sujet.sh` n'a pas de commande de suppression ; la garde d'agent refuse `git push origin --delete sujet/x`, `git push origin :sujet/x` et `gh api -X DELETE …/git/refs/heads/sujet/x`, à raison (une session qui écrit sur un sujet s'autorise elle-même la ligne `Dépendances:`) ; un script, lui, n'est pas lu par la garde. GitHub supprime seul la tête d'une PR fusionnée (`delete_branch_on_merge`, constaté sur `fedora` #1909 : le sujet, tête de sa PR finale, a disparu). Reste ce que GitHub ne supprime pas : un sujet livré par une **livraison intermédiaire** (`livraison/<nom>-<date>`, `sujet.sh:849` : la PR part d'une branche jetable, le sujet survit) ou avant ce réglage. `chantier/SKILL.md:117` renvoie aujourd'hui ce reste « d'un poste local, jamais d'une session cloud, le proxy refuse la suppression ».
 
 **La décision de l'architecte (A-49, `map.md`, 2026-11-16).** `sujet.sh clore <nom>` supprime une branche de sujet livrée, sans aucune option de force : refus si le sommet distant n'est pas contenu dans `origin/develop`, si une PR ouverte a le sujet pour base ou pour tête, ou si la carte ne le dit pas livré ; sommet relu juste avant la suppression ; refus du distant → sortie dite, « à jouer d'un poste local ». Raison : la garde refuse toute écriture sur `sujet/*` pour une session ; un script vérifié est la voie du skill, et l'intangible « jamais de push forcé » reste entier.
 
@@ -18,20 +18,20 @@ Quand le ticket est fait : sur le dépôt jouet, `sujet.sh clore demo` supprime 
 
 ## Où
 
-Base : `origin/main` à `76d90c7` (plugin **7.9.1**, **528 tests**). Les lignes ont été relevées le 2026-11-16 sur cette base ; la session les retrouve par leur texte (le ticket 40 déplace `sujet.sh`).
+Base : `origin/main` à `5ccead9` (plugin **7.10.0**, **597 tests**). Les lignes ont été relevées le 2026-11-16 sur `76d90c7`, puis relevées à nouveau sur `5ccead9` : la PR 99 (ticket 40) a ajouté une cinquantaine de lignes à `sujet.sh` (PR de mise à jour avec retouches) et changé le sens du code 3 (« checks rouges », les checks en cours passent en 5 pour `fusionner`) ; aucune des fonctions que `clore` emploie n'a changé. La session retrouve chaque ligne par son texte.
 
 ### Les faits, à la source
 
-- **`skills/chaine/sujet/scripts/sujet.sh`** : commandes décrites en en-tête (:7-70), codes de sortie (:71-82), aiguillage (:1111-1117, `case "$commande"`, le `*)` imprime l'en-tête et sort en 4). Aucune commande ne supprime. `livrer` (:771-806) : en livraison intermédiaire (carte avant `5-livraison`), la PR part de `livraison/<nom>-<date>` poussée par `pousser` (:791) et **le sujet survit**. `sujet_livre` (:225, quatre lectures de `origin/develop` par son nom court : un tag ou une branche locale du même nom la masquerait) : la carte lue sur `origin/develop`, `Phase: 6-nettoyage` ou `fini`, donne le sujet livré ; sans carte, la branche doit être absente **et** develop porter son commit de merge. `carte_sujet` (:1063) est le seul modèle d'un geste d'écriture d'une session sur un sujet.
+- **`skills/chaine/sujet/scripts/sujet.sh`** : commandes décrites en en-tête (:7-69), codes de sortie (:71-83), aiguillage (:1165-1171, `case "$commande"`, le `*)` imprime l'en-tête et sort en 4). Aucune commande ne supprime. `livrer` (:825-860) : en livraison intermédiaire (carte avant `5-livraison`), la PR part de `livraison/<nom>-<date>` poussée par `pousser` (:850) et **le sujet survit**. `sujet_livre` (:226, quatre lectures de `origin/develop` par son nom court : un tag ou une branche locale du même nom la masquerait) : la carte lue sur `origin/develop`, `Phase: 6-nettoyage` ou `fini`, donne le sujet livré ; sans carte, la branche doit être absente **et** develop porter son commit de merge. `carte_sujet` (:1117) est le seul modèle d'un geste d'écriture d'une session sur un sujet.
 - **`pousser`** (`fusionner/scripts/github.sh:107`) : `git push -q origin <refspec>` sous les hooks git, jamais en les sautant ; en échec, il relit le distant : sommet changé → sortie 5, sommet inchangé → sortie 3 (« refusé par le hook pre-push (ou le distant) »). Il ne passe aucune option, mais `clore` ne l'emploie pas (décision 13).
-- **GitHub** : `sujet.sh` n'interroge que `gh api` en REST (GraphQL est refusé depuis le cloud). `livrer` (:781) compte les PR ouvertes dont le sujet est la **base** : `gh api "$DEPOT/pulls?state=open&base=$(uri "$branche")"` ; l'idiome pour la **tête** existe dans `passer.sh:149` et `file.sh:146` : `…pulls?…&head={owner}:$(uri "$base")`. Dans les bancs, le faux `gh` (`faux-gh.mjs:151-158`) filtre `state`, `base` et `head` ; `--paginate` est déjà employé avec lui (`sujet.sh:839`, `:907`).
-- **La garde d'agent** (`socle-chaine-de-production/references/agent/regles.mjs`) : `RAISON_PUSH_SUJET` (:159), `pousseSurUnSujet` (:361), `decisionCommande` (:427, refus :435-436), routes `gh` en écriture (`CHEMIN_GH_ECRIT`, :546). Joué sur `fa7d3eb`, rejoué sur `76d90c7` : `git push origin --delete sujet/demo`, `git push origin :sujet/demo`, `git push origin :refs/heads/sujet/demo` sont refusés ; `bash scripts/chaine/sujet.sh clore demo` et `… clore demo --force` passent (la décision rend `null` : le hook ne lit pas ce que fait un script).
+- **GitHub** : `sujet.sh` n'interroge que `gh api` en REST (GraphQL est refusé depuis le cloud). `livrer` (:847) compte les PR ouvertes dont le sujet est la **base** : `gh api "$DEPOT/pulls?state=open&base=$(uri "$branche")"` ; l'idiome pour la **tête** existe dans `passer.sh:158` et `file.sh:146` : `…pulls?…&head={owner}:$(uri "$base")`. Dans les bancs, le faux `gh` (`faux-gh.mjs:151-158`) filtre `state`, `base` et `head` ; `--paginate` est déjà employé avec lui (`sujet.sh:909`, `:977`).
+- **La garde d'agent** (`socle-chaine-de-production/references/agent/regles.mjs`) : `RAISON_PUSH_SUJET` (:159), `pousseSurUnSujet` (:361), `decisionCommande` (:427, refus :435-436), routes `gh` en écriture (`CHEMIN_GH_ECRIT`, :546). Joué sur `fa7d3eb`, rejoué sur `76d90c7`, et sur `5ccead9` par les assertions de T13 (`regles.mjs` n'a pas changé entre les deux) : `git push origin --delete sujet/demo`, `git push origin :sujet/demo`, `git push origin :refs/heads/sujet/demo` sont refusés ; `bash scripts/chaine/sujet.sh clore demo` et `… clore demo --force` passent (la décision rend `null` : le hook ne lit pas ce que fait un script).
 - **Le pre-push du socle** (`skills/monorepo/socle-monorepo/references/husky/pre-push`) : il lit ses refs sur l'entrée standard ; une suppression a un sha local nul, `rien_de_neuf` la compte (`lues`) sans commit à contrôler, et sort 0 **sans jouer `pnpm run check`**. Joué sur un dépôt jetable avec un faux `pnpm` qui échoue : `git push origin :refs/heads/sujet/x` sort 0, le faux `pnpm` n'est pas appelé, la branche disparaît ; un push d'un commit neuf, lui, joue `pnpm run check` (et échoue). Une suppression passe donc le hook du socle ; le hook d'un projet qui ajoute ses propres contrôles peut la refuser : sortie 3.
 - **Le proxy des sessions cloud** : `chantier/SKILL.md:117` et `fusionner/SKILL.md:77` disent qu'il refuse la suppression. Non rejoué ici (voir « Vérification »).
 
 ### Ce que `sujet_livre` ne couvre pas
 
-Sans carte, `sujet_livre` répond « pas livré » tant que la branche existe (:225 et suivantes : la branche présente fait sortir 1) : **un sujet sans carte ne se clôt donc pas** par cette commande. C'est voulu : rien ne prouve alors qu'il est livré, hors le test d'ascendance, qui est nécessaire mais pas suffisant (un sujet dont le sommet est contenu dans develop parce qu'il n'a jamais rien porté, par exemple). Le reste se supprime d'un poste local, comme aujourd'hui.
+Sans carte, `sujet_livre` répond « pas livré » tant que la branche existe (:226 et suivantes : la branche présente fait sortir 1) : **un sujet sans carte ne se clôt donc pas** par cette commande. C'est voulu : rien ne prouve alors qu'il est livré, hors le test d'ascendance, qui est nécessaire mais pas suffisant (un sujet dont le sommet est contenu dans develop parce qu'il n'a jamais rien porté, par exemple). Le reste se supprime d'un poste local, comme aujourd'hui.
 
 ## Décisions
 
@@ -44,8 +44,8 @@ Sans carte, `sujet_livre` répond « pas livré » tant que la branche existe (:
 7. **Une suppression qui « réussit » mais laisse la branche** (un proxy qui avale la commande) : relue après le push, sortie 3, message « à jouer d'un poste local ».
 8. **La garde d'agent ne change pas de motif.** Elle refuse toujours `git push --delete`, `:sujet/…` et `gh api -X DELETE` ; seul le texte du refus (`RAISON_PUSH_SUJET`) cite `clore`, pour que la session qui s'est fait refuser trouve la voie. Un test le prouve, ainsi que le laissez-passer de `bash scripts/chaine/sujet.sh clore …`.
 9. **Qui l'appelle.** La session qui nettoie (`chantier/SKILL.md` § 7, point 4) ou l'architecte, à la main. Aucun automatisme : `boucle.sh` n'appelle pas `clore`.
-10. **Version : mineure** (`.claude-plugin/plugin.json:3`, 7.9.1 → 7.10.0 aujourd'hui, à recaler sur `origin/main` : 40 passe avant). Deux raisons, chacune suffit : une commande s'ajoute à un script que `poser` copie chez un projet, et un fichier de banc est ajouté à ce que `poser` copie (`sujet-clore.test.mjs`).
-11. **`Blocked by: 40, 41`** : 40 modifie `sujet.sh` ; 41 modifie `fusionner/SKILL.md`, que ce ticket touche aussi (ligne 77). La demande n'indiquait que 40 : 41 est ajouté pour ne pas ouvrir deux PR sur un même fichier de documentation dans la même vague.
+10. **Version : mineure** (`.claude-plugin/plugin.json:3`, 7.10.0 → 7.11.0 sur `5ccead9`). La version suit celle de `origin/main` à l'ouverture de la PR : la mineure plus un, patch à 0 (7.12.0 si la PR 98 du ticket 33, en correction, qui vise 7.11.0, est fusionnée avant ; le ticket 41, correctif, ne change que le troisième nombre). **Règle de repli** : si `main` bouge entre l'ouverture et la fusion, la session fusionne `origin/main` dans sa branche par un commit de fusion (jamais de rebase ni de push forcé), recalcule la version sur celle de `main`, puis vérifie la valeur après la fusion. Deux raisons pour une mineure, chacune suffit : une commande s'ajoute à un script que `poser` copie chez un projet, et un fichier de banc est ajouté à ce que `poser` copie (`sujet-clore.test.mjs`).
+11. **`Blocked by: 41`** : 41 modifie `fusionner/SKILL.md`, que ce ticket touche aussi (ligne 77 ; 41 change la ligne 62). Les deux s'appliquent l'un sur l'autre sans conflit (joué) : le blocage évite seulement deux PR ouvertes sur un même fichier de documentation dans la même vague. 40 (`sujet.sh`), qui bloquait aussi, est fait (PR 99).
 12. **Les références se lisent en toutes lettres.** `clore` ne lit jamais `origin/develop` ni `origin/sujet/<nom>` par leur nom court : un tag, ou une branche locale, nommé `origin/develop` passe devant `refs/remotes/origin/develop` dans la résolution des noms de git et ferait croire un sujet contenu dans develop. `clore` récupère les deux branches par un refspec explicite (`+refs/heads/develop:refs/remotes/origin/develop`, `+refs/heads/<branche>:refs/remotes/origin/<branche>`) et lit `refs/remotes/origin/develop` (ascendance, comptage), `refs/remotes/origin/<branche>^{commit}` (sommet) ; **`sujet_livre` aussi**, que `clore` appelle : ses quatre lectures de `origin/develop` passent à `refs/remotes/origin/develop` (même résultat hors masquage ; les commandes `livre`, `demarrer`, `regrouper` et `file.sh` en profitent). Test : un tag et une branche locale `origin/develop`, un tag `origin/sujet/demo`, posés pour masquer le distant, sur un sujet pas livré puis sur un sujet livré dont la carte de develop ne dit pas livré : refus (4) dans les deux cas.
 13. **La suppression est jouée par `clore`, pas par `pousser`, et le distant a le dernier mot.** Quel que soit le code du push, `clore` relit `origin` : branche absente → supprimée (« supprimée » si le push a réussi, « n'est plus sur origin » s'il a échoué : quelqu'un d'autre l'a retirée) ; sommet changé → 5 ; sommet inchangé → 3 (refusée ou sans effet) ; **relecture impossible → sortie 11, « suppression non confirmée »**, jamais « supprimée ». Une lecture qui échoue ne vaut jamais « branche absente ».
 14. **Un sujet rouvert sous le même nom ne se clôt pas d'ici** (limite assumée, non une exception). Une carte restée `fini` ou `6-nettoyage` sur develop est celle du chantier précédent ; un sujet rouvert sous le même nom (`ouvrir` crée `sujet/<nom>` depuis develop, sommet contenu dans develop d'emblée) passerait tous les autres contrôles et serait supprimé. `clore` exige donc que le sommet soit contenu dans le **premier commit des premiers parents de develop** où la carte est passée en `6-nettoyage` ou `fini` (`commit_carte_livree`) : le sommet d'un sujet livré est contenu dans sa livraison, puis dans la PR de documentation qui passe la carte, tandis que celui d'un sujet rouvert est postérieur. Refus (4), « à jouer d'un poste local ». Limite : un nom réutilisé et **livré deux fois** ne se clôt pas d'ici non plus (la première carte livrée est celle d'avant) ; la lecture est bornée aux commits de develop qui touchent la carte, et un historique de develop où la carte aurait été renommée n'est pas suivi (refus). Test des deux sens : sujet livré, carte livrée après la livraison par une PR de documentation, clôt ; develop avance, le nom est rouvert sans commit, refus.
@@ -69,11 +69,11 @@ Sans carte, `sujet_livre` répond « pas livré » tant que la branche existe (:
 
 ### 1. `skills/chaine/sujet/scripts/sujet.sh`
 
-Le diff, appliqué à `origin/main` (en-tête, codes de sortie, la fonction `clore` avant `carte_sujet`, l'aiguillage, l'usage) :
+Le diff, appliqué à `origin/main` `5ccead9` (en-tête, codes de sortie, `sujet_livre`, la fonction `clore` avant `carte_sujet`, l'aiguillage, l'usage) ; `git apply` le passe tel quel :
 
 ````diff
 diff --git a/skills/chaine/sujet/scripts/sujet.sh b/skills/chaine/sujet/scripts/sujet.sh
-index aedaab9..0a164a9 100755
+index 60281c4..ce10552 100755
 --- a/skills/chaine/sujet/scripts/sujet.sh
 +++ b/skills/chaine/sujet/scripts/sujet.sh
 @@ -67,6 +67,17 @@
@@ -92,9 +92,9 @@ index aedaab9..0a164a9 100755
 +#                         reste, et la sortie dit de la jouer d'un poste local. Sujet déjà absent : sortie 0. GitHub ou
 +#                         origin illisible, ou suppression non confirmée par une relecture de origin : 11
  #
- # Sorties : 0 fait · 2 conflit · 3 checks rouges ou en cours, ou fusion, commit ou push refusé par un hook git
+ # Sorties : 0 fait · 2 conflit · 3 checks rouges, ou fusion, commit ou push refusé par un hook git
  # (sa sortie sur stderr : la lire, corriger, jamais en sautant le hook ; le pre-push contrôle l'arbre de travail) · 4 refus corrigeable par l'auteur (sa
-@@ -79,7 +90,8 @@
+@@ -80,7 +91,8 @@
  # avec le sujet sur des index générés seuls : branche mise à jour (index régénérés) et poussée, CI
  # relancée, aucun squash · 11 `fusionner` d'une PR de mise à jour : échec côté capitaine (git sans
  # `merge-tree --write-tree`, dépendances, régénération, commit ou push refusé), rien à corriger côté PR,
@@ -104,7 +104,7 @@ index aedaab9..0a164a9 100755
  # Tout passe par l'API REST (`gh api`) : GraphQL est refusé depuis les sessions cloud. Depuis la
  # racine du dépôt ; sans argument, affiche cette aide.
  # =============================================================================
-@@ -226,14 +238,14 @@ sujet_livre() {
+@@ -227,14 +239,14 @@ sujet_livre() {
    local nom=${1#sujet/} f trouve='' phase
    git fetch -q origin develop 2>/dev/null || true
    while IFS= read -r f; do
@@ -123,14 +123,10 @@ index aedaab9..0a164a9 100755
      --grep "^Sujet: sujet/${nom}\$" --grep "^Merge pull request #[0-9]+ from [^ ]+/sujet/${nom}\$")" ]
  }
  
-@@ -1060,6 +1072,81 @@ carte_cite_le_sujet() {
+@@ -1114,6 +1126,77 @@ carte_cite_le_sujet() {
      END { exit !ok }'
  }
  
-+# `clore <nom>` : voir l'en-tête. Le seul geste de suppression d'une branche de sujet : la garde d'agent
-+# refuse `git push --delete` et `:sujet/…` à une session (elle ne voit pas ce script). Aucune écriture avant
-+# que tous les refus aient été levés, et jamais d'option de force : la suppression est un `git push` simple,
-+# sous les hooks, comme `pousser` pour tout le reste.
 +# Sommet de la branche `<branche>` sur origin (vide si elle n'y est pas) : le nom se compare en entier,
 +# `git ls-remote <motif>` fait correspondre la fin d'un nom.
 +sommet_distant() { git ls-remote origin "refs/heads/$1" | awk -v r="refs/heads/$1" '$2 == r { print $1 }'; }
@@ -205,7 +201,7 @@ index aedaab9..0a164a9 100755
  carte_sujet() {
    local nom=${1-} branche tete c f meta lignes n i=0 avant tmp
    shift || true
-@@ -1109,10 +1196,10 @@ commande=${1:-}
+@@ -1163,10 +1246,10 @@ commande=${1:-}
  shift || true
  if [ "$commande" = carte ] && [ $# -gt 0 ]; then carte_sujet "$@"; exit; fi
  case "$commande" in
@@ -222,7 +218,7 @@ index aedaab9..0a164a9 100755
 
 ### 2. Les textes, mot pour mot
 
-Chaque « Ancien » apparaît **une seule fois** dans son fichier à `76d90c7` ; si les tickets 40 ou 41 l'ont déplacé ou modifié, la session retrouve la phrase par son sens et applique le « Nouveau » à la même place. Aucun « Nouveau » ne contient son « Ancien », sauf **T3, T7 et T8**, des insertions dont l'ancre est répétée : à appliquer une fois.
+Chaque « Ancien » apparaît **une seule fois** dans son fichier à `5ccead9` (vérifié, seize sur seize ; et encore sur le ticket 41 appliqué) ; si une PR fusionnée depuis l'a déplacé ou modifié, la session retrouve la phrase par son sens et applique le « Nouveau » à la même place. Aucun « Nouveau » ne contient son « Ancien », sauf **T3, T7, T8 et T13**, des insertions dont l'ancre est répétée : à appliquer une fois.
 
 #### T1 — `skills/chaine/sujet/SKILL.md`, § « Commandes » (ligne des sorties)
 
@@ -410,6 +406,8 @@ la carte du chantier passe par `sujet.sh carte <nom>` et la suppression d'un suj
 
 #### T13 — `skills/chaine/socle-chaine-de-production/references/agent/regles.test.mjs`, test « un push vers un sujet est refusé, quelle que soit la branche et la forme de la commande »
 
+Une insertion avant la dernière assertion du test, qui reste telle quelle : aucune assertion n'est retirée ni réécrite.
+
 Ancien :
 
 ````text
@@ -425,7 +423,7 @@ Nouveau :
     assert.match(d.raison, /sujet\.sh clore <nom>/, `${commande} : le refus indique la voie de la suppression`);
   }
   assert.equal(decisionCommande('bash scripts/chaine/sujet.sh clore demo'), null, 'le script, lui, passe : le hook ne lit pas son contenu');
-  assert.equal(decisionCommande('git push origin HEAD:sujet/demo')?.decision, 'refuser', 'branche inconnue : refusé aussi (la suppression : voir la boucle ci-dessus)');
+  assert.equal(decisionCommande('git push origin HEAD:sujet/demo')?.decision, 'refuser', 'branche inconnue : refusé aussi');
 ````
 
 #### T14 — `scripts/poses.test.mjs` : le projet simulé reçoit le pre-push du socle (liste `RACINE_PROJET`)
@@ -814,7 +812,7 @@ test("la carte passée livrée par une PR de documentation après la livraison :
 | hook qui refuse : 3, branche intacte, « poste local » | « clore : un pre-push qui refuse donne la sortie 3, la branche reste » |
 | distant qui refuse (`pre-receive`) : 3, « poste local » | « clore : un distant qui refuse la suppression (protection de branche, proxy) donne la sortie 3 et « à jouer d'un poste local » » |
 | GitHub illisible : 11 | « clore : GitHub illisible donne la sortie 11, rien n'est supprimé » |
-| jamais de force dans le corps de la fonction | « le corps de clore n'emploie aucune option de force ni --delete, et son seul push est la suppression par refspec » |
+| jamais de force dans le corps de la fonction | « le corps de clore n'emploie aucune option de force, ni --delete, ni refspec « + » au push, et son seul push est la suppression par refspec » |
 | des références locales `origin/develop` (tag, branche) et `origin/sujet/demo` (tag) ne masquent pas le distant, y compris dans `sujet_livre` | « des références locales nommées origin/develop et origin/sujet/demo (tag, branche) ne masquent pas le distant : refus attendu » |
 | `GH_REPO` hérité n'envoie pas la lecture des PR ailleurs | « GH_REPO, hérité de l'environnement, n'envoie pas la lecture des PR ouvertes vers un autre dépôt » |
 | push en échec puis relecture impossible : 11 « suppression non confirmée » | « un push en échec suivi d'une relecture de origin impossible : sortie 11 « suppression non confirmée », jamais « supprimée » » |
@@ -827,11 +825,12 @@ test("la carte passée livrée par une PR de documentation après la livraison :
 
 ## Vérification
 
-Joué le 2026-11-16 dans un `git worktree` jetable de `76d90c7`, `TMPDIR` sous un dossier jetable, §§ 1 à 4 appliqués mot pour mot (le ticket 41 aussi, d'où le compte ci-dessous) :
+Joué le 2026-11-16 dans un `git worktree` jetable de `76d90c7`, puis rejoué dans un `git worktree` jetable de `5ccead9` (`TMPDIR` sous un dossier jetable), §§ 1 à 4 appliqués mot pour mot :
 
-- Sur `76d90c7` sans rien : **528 sur 528**.
-- Le banc du § 3 sur le `sujet.sh` de `76d90c7` : **dix-huit** `not ok`, zéro vert. Sept mutations jouées sur le code du § 1, chacune seule, chacune rouge : relecture du sommet retirée (course 1) ; contrôle des PR ouvertes retiré ; ascendance lue par `origin/develop` (masquage) ; `sujet_livre` lu par `origin/develop` (masquage) ; `env -u GH_REPO` retiré ; contrôle de la carte rouverte retiré ; relecture impossible traitée comme « branche absente ».
-- Avec le § 1 : dix-huit tests verts. Suite entière, tickets 41 et 42 appliqués ensemble : **549 sur 549** (528 + 3 + 18).
+- Sur `5ccead9` sans rien : **597 sur 597**.
+- Le banc du § 3 sur le `sujet.sh` de `5ccead9` : **dix-huit** `not ok`, zéro vert. T13 seul sur `regles.test.mjs` : un `not ok` (le test nommé au § 0), vert avec T11. Sans T14 à T16, `scripts/poses.test.mjs` échoue sur « pre-push du socle introuvable ». Sept mutations jouées sur le code du § 1, chacune seule, chacune rouge (rejouées sur `5ccead9`) : relecture du sommet retirée (course 1) ; contrôle des PR ouvertes retiré ; ascendance lue par `origin/develop` (masquage) ; `sujet_livre` lu par `origin/develop` (masquage) ; `env -u GH_REPO` retiré ; contrôle de la carte rouverte retiré ; relecture impossible traitée comme « branche absente ».
+- Avec le § 1 : dix-huit tests verts. Suite entière, ce ticket seul (version 7.11.0) : **615 sur 615** (597 + 18) ; tickets 41, 42 et 45 appliqués ensemble, dans cet ordre : **628 sur 628** (597 + 3 + 18 + 10), sans conflit. `git diff origin/main --stat` : les onze fichiers de « Fichiers chauds », rien d'autre ; `git diff origin/main -- '*.test.mjs' | grep -c "^-.*assert"` : 0 ; `regles.mjs` : une ligne changée.
+- **Avec la PR 98** (ticket 33, en correction, sommet `5746cab` fusionné avec `5ccead9`, sans commit) : T11 à T13 s'appliquent par leur texte (la PR 98 réécrit `regles.mjs`, `regles.test.mjs` et la ligne 13 de `socle-chaine-de-production/references/CONTENU.md`, mais chaque « Ancien » y est encore une fois ; un `git apply` du diff de ce ticket, lui, échoue sur cette ligne de `CONTENU.md` : appliquer T12 par son texte) ; `regles.test.mjs` 41 sur 41, suite entière avec les tickets 41, 42 et 45 : 641 sur 641. Si la PR 98 change encore avant ce ticket, la session rejoue T11 à T13 et ce test.
 - Pre-push du socle, joué sur un dépôt jetable avec un faux `pnpm` qui échoue : suppression seule, sortie 0, faux `pnpm` non appelé ; push d'un commit neuf, `pnpm run check` joué.
 - `bash -n skills/chaine/sujet/scripts/sujet.sh` : rien. `shellcheck` n'est pas installé sur le poste.
 
@@ -865,3 +864,4 @@ Pour la session :
 ## Comments
 
 - 2026-11-16 — Rédigé sur `fa7d3eb`, recalé sur `76d90c7` (plugin 7.9.1, 528 tests) après relecture (A-53) d'après le constat 5 et la décision A-49 de la carte. Code et bancs joués sur une copie jetable : banc rouge sur `main` (18 sur 18), vert avec le § 1. Écarts avec la demande : (1) « `sujet_livre` ou la phase de la carte » : un seul critère, `sujet_livre`, décision 2 ; (2) `Type: feature`, `Label: contre-revue` (script qui écrit sur le distant, texte d'un hook), `Blocked by: 40, 41` (décision 11) ; (3) le test du pre-push du socle ajoute une ligne au banc des poses (T14 à T16 du § 2) ; (4) la fenêtre de course n'est pas fermée, décision 5 ; (5) le texte du refus de `regles.mjs` cite `clore` (décision 8), non demandé. Après relecture : références en toutes lettres et `sujet_livre` corrigé (12), relecture de `origin` après le push et sortie 11 « suppression non confirmée » (13), sujet rouvert sous le même nom refusé, avec sa limite (14), `GH_REPO` ignoré (15), T13 rendu idempotent, « ni refspec `+` au push » (4).
+- 2026-11-16 — Remis à jour sur `5ccead9` (plugin 7.10.0, 597 tests ; PR 95 à 97 et 99 fusionnées) : le diff du § 1 refait sur le `sujet.sh` d'aujourd'hui (seul le contexte de la ligne des sorties avait changé, « 3 checks rouges » depuis la PR 99 ; le commentaire d'en-tête de `clore`, écrit deux fois, n'y est plus qu'une fois) ; les seize textes trouvés une fois chacun ; T13 réécrit en insertion (l'ancienne forme retirait une assertion, et le contrôle `grep -c "^-.*assert"` du ticket rendait 1) ; lignes de « Les faits » relevées à nouveau ; `Blocked by: 41` seul (40 fait, PR 99) ; version 7.11.0, mineure, avec la règle de repli (décision 10) ; `Type: task` (le gate des tickets n'admet pas `feature`). Joué : 18 rouges sur `5ccead9`, sept mutations rouges, 615 tests (597 + 18), 628 avec 41 et 45 ; avec la PR 98 au sommet `5746cab`, T11 à T13 s'appliquent par leur texte, 641 verts. Rien de PR 99 ne contredit ce ticket : `clore` n'emploie aucune fonction qu'elle a changée, et ses codes 3, 4, 5 et 11 gardent le sens des autres commandes.

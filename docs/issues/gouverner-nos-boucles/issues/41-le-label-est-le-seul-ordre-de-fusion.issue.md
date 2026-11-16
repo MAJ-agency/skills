@@ -3,13 +3,13 @@
 Status: ready-for-agent
 Type: task
 Modèle: sonnet — treize remplacements de documentation donnés mot pour mot (ancien, nouveau), un banc donné entier et joué sur une copie jetable de `origin/main` (voir « Vérification ») ; rien n'est à concevoir.
-Blocked by: 40 (`skills/chaine/fusionner/SKILL.md` : même fichier, lignes voisines)
+Blocked by: —
 Dépendances: —
 Fichiers chauds: `skills/chaine/architecte/SKILL.md`, `skills/chaine/architecte/references/lancement.md`, `skills/chaine/architecte/references/CONTENU.md`, `skills/chaine/fusionner/SKILL.md`, `skills/chaine/socle-chaine-de-production/references/docs-agents/chaine-de-production.md`, `skills/chaine/socle-chaine-de-production/references/docs-agents/pieges.md`, `scripts/depot.test.mjs`, `.claude-plugin/plugin.json`
 
 ## Le besoin
 
-**Le fait.** Un capitaine de `fedora`, lancé par l'architecte, a refusé de fusionner une PR qu'une autre session lui nommait par message (le 2026-11-15 ou 16 : la date exacte n'est pas établie). Le contrôle du mode « auto » refuse, à raison, un ordre qui vient d'une session et non de l'utilisateur. Le plugin dit pourtant le contraire en neuf endroits : « une PR livrée se nomme au capitaine, par `send_message` », « le capitaine ne fusionne que les PR que l'architecte lui nomme », « qui pose `à-fusionner` prévient le capitaine par `send_message` ». Le skill `fusionner` n'en a pas besoin : son capitaine lit sa file au label (`file.sh:82`, `passer.sh:76`) et exige un humain pour tout ce qui sort de la file (`fusionner/SKILL.md:60`, « Sur l'ordre d'un humain »). Le refus de `fedora` est donc cohérent avec le skill, pas avec les textes d'amont.
+**Le fait.** Un capitaine de `fedora`, lancé par l'architecte, a refusé de fusionner une PR qu'une autre session lui nommait par message (le 2026-11-15 ou 16 : la date exacte n'est pas établie). Le contrôle du mode « auto » refuse, à raison, un ordre qui vient d'une session et non de l'utilisateur. Le plugin dit pourtant le contraire en neuf endroits : « une PR livrée se nomme au capitaine, par `send_message` », « le capitaine ne fusionne que les PR que l'architecte lui nomme », « qui pose `à-fusionner` prévient le capitaine par `send_message` ». Le skill `fusionner` n'en a pas besoin : son capitaine lit sa file au label (`file.sh:82`, `passer.sh:77`) et exige un humain pour tout ce qui sort de la file (`fusionner/SKILL.md:60`, « Sur l'ordre d'un humain »). Le refus de `fedora` est donc cohérent avec le skill, pas avec les textes d'amont.
 
 **Pourquoi on ne s'appuie pas sur le classifieur.** La nomination a marché les 13 et 14 novembre, avec le capitaine de `skills` : le contrôle ne refuse pas toujours. Une procédure qui tient quand le contrôle est de bonne humeur n'est pas une procédure. Même cause que le cas du 2026-11-13 (`architecte/SKILL.md:60`) : un capitaine a refusé, à raison, d'élargir sa procédure sur un message.
 
@@ -29,11 +29,11 @@ Ticket de documentation seulement : aucun script, aucun hook ne change.
 
 ## Où
 
-Base : `origin/main` à `76d90c7` (plugin **7.9.1**, **528 tests**). Les lignes ont été relevées le 2026-11-16 sur cette base ; la session les retrouve par leur texte (le ticket 40 déplace `fusionner/SKILL.md`).
+Base : `origin/main` à `5ccead9` (plugin **7.10.0**, **597 tests**). Les lignes ont été relevées le 2026-11-16 sur `76d90c7`, puis revérifiées sur `5ccead9` : aucune n'a bougé. Entre les deux, les PR 95 à 97 et 99 (ticket 40) n'ont changé dans ces fichiers que deux lignes de `fusionner/SKILL.md` (14, l'étape 0 ; 60, le filtre du `Monitor`), aucune de celles qu'on remplace ; la session retrouve chaque ligne par son texte.
 
 ### Le relevé
 
-`git grep -nE "nomme|nommer|nommée|send_message" origin/main -- skills/chaine README.md CONTEXT.md`, puis lecture de chaque ligne. Les treize remplacements ci-dessous couvrent ce qui est à corriger ; rien d'autre ne l'est.
+`git grep -nE "nomme|nommer|nommée|send_message" origin/main -- skills/chaine README.md CONTEXT.md`, puis lecture de chaque ligne. Rejoué sur `5ccead9` : 159 lignes, les mêmes qu'à `76d90c7` à une près, sans rapport (`fusionner/references/CONTENU.md:51`, « le corps du merge nomme le sujet »). Les treize remplacements ci-dessous couvrent ce qui est à corriger ; rien d'autre ne l'est.
 
 | Texte | Ce qu'il dit | Verdict |
 | --- | --- | --- |
@@ -71,7 +71,7 @@ Base : `origin/main` à `76d90c7` (plugin **7.9.1**, **528 tests**). Les lignes 
 4. **Sans veille en cours** (R10, R13) : le capitaine relance sa veille, ou se réveille seul (`send_later`) et relit sa file. Qui pose `à-fusionner` ne lui écrit pas. Une PR étiquetée que rien ne fusionne signale un capitaine arrêté : `pieges.md:23` le dit déjà (« Un capitaine arrêté ne prévient personne : regarder la date de la dernière fusion »).
 5. **La date du cas de `fedora`** est écrite telle qu'elle a été rapportée : « le 2026-11-15 ou 16 ». La session ne la précise pas.
 6. **Pas de code.** Aucun hook ne lit un `send_message` : le texte libre d'un message ne se garde pas, et le contrôle du mode « auto » fait déjà ce travail. Le banc ne vérifie que la documentation.
-7. **Version : correctif** (`.claude-plugin/plugin.json:3`, 7.9.1 → 7.9.2 aujourd'hui). Elle se recale sur `origin/main` à la reprise : le ticket 40 passe avant et monte la mineure ; la session lit la version de `origin/main` et ajoute 1 au troisième nombre. Aucun fichier posé n'est ajouté, aucun format lu par un script ne change : pas de mineure.
+7. **Version : correctif** (`.claude-plugin/plugin.json:3`, 7.10.0 → 7.10.1 sur `5ccead9`). Aucun fichier posé n'est ajouté, aucun format lu par un script ne change : pas de mineure. La version suit celle de `origin/main` à l'ouverture de la PR : la session la lit et ajoute 1 au troisième nombre (7.11.1 si la PR 98 du ticket 33, en correction, qui vise 7.11.0, ou le ticket 42, mineur, est fusionnée avant ; 7.12.1 si les deux le sont). **Règle de repli** : si `main` bouge entre l'ouverture et la fusion, la session fusionne `origin/main` dans sa branche par un commit de fusion (jamais de rebase ni de push forcé), reprend la version de `main` plus un au troisième nombre, puis vérifie la valeur après la fusion (`git diff origin/main -- .claude-plugin/plugin.json` ne montre que `"version"`, un cran au-dessus).
 8. **Pas de `Label: contre-revue`** : aucun fichier de code, de hook, de CI ni de configuration n'est touché (`chemins sensibles` du gabarit de ticket). Le banc de `scripts/depot.test.mjs` est un test, et il est donné entier. PR ouverte hors brouillon, **sans `à-fusionner`** : l'architecte la lit (documentation du plugin) puis pose le label.
 9. PR vers `main`, titre `docs(chaine): le label à-fusionner est le seul ordre de fusion (plugin <version>)`. Commits sous les hooks, jamais `--no-verify`. Aucun test retiré, sauté ni assoupli.
 
@@ -162,7 +162,7 @@ Le jouer sur `origin/main` : `node --test scripts/depot.test.mjs` donne **deux**
 
 ### 1. Les treize remplacements, mot pour mot
 
-Chaque « Ancien » apparaît **une seule fois** dans son fichier à `76d90c7` ; si le ticket 40 l'a déplacé ou modifié, la session retrouve la phrase par son sens et applique le « Nouveau » à la même place. **R9 est une insertion** : l'ancre est le début du paragraphe « Les interdits… », le « Nouveau » la répète en dernier.
+Chaque « Ancien » apparaît **une seule fois** dans son fichier à `5ccead9` (vérifié, treize sur treize, aux lignes citées) ; si une PR fusionnée depuis l'a déplacé ou modifié, la session retrouve la phrase par son sens et applique le « Nouveau » à la même place. **R9 est une insertion** : l'ancre est le début du paragraphe « Les interdits… », le « Nouveau » la répète en dernier.
 
 #### R1 — `skills/chaine/architecte/SKILL.md:60`
 
@@ -354,7 +354,7 @@ le capitaine relance sa veille, ou se réveille seul (`send_later`) et relit sa 
 
 ### 2. La version
 
-`.claude-plugin/plugin.json:3` : le troisième nombre de la version de `origin/main`, plus un (7.9.1 → 7.9.2 si rien n'a bougé).
+`.claude-plugin/plugin.json:3` : le troisième nombre de la version de `origin/main`, plus un (7.10.0 → 7.10.1 si rien n'a bougé ; règle de repli : décision 7).
 
 ## Surfaces
 
@@ -368,15 +368,16 @@ le capitaine relance sa veille, ou se réveille seul (`send_later`) et relit sa 
 
 ## Vérification
 
-Joué le 2026-11-16 dans un `git worktree` jetable de `76d90c7`, `TMPDIR` sous un dossier jetable, §§ 0 et 1 appliqués mot pour mot :
+Joué le 2026-11-16 dans un `git worktree` jetable de `76d90c7`, puis rejoué dans un `git worktree` jetable de `5ccead9` (`TMPDIR` sous un dossier jetable), §§ 0 à 2 appliqués mot pour mot :
 
-- Sur `76d90c7` sans rien : **528 sur 528**.
-- Le banc du § 0 sur le texte de `76d90c7` : deux `not ok`, le lecteur « entrées piégées » vert.
-- Banc et remplacements : `node --test scripts/depot.test.mjs` vert, 25 tests ; la suite entière, jouée avec le ticket 42 appliqué en même temps : **549 sur 549** (528 + 3 + 18) ; ce ticket seul ajoute trois tests.
+- Sur `5ccead9` sans rien : **597 sur 597**.
+- Le banc du § 0 sur le texte de `5ccead9` : deux `not ok` (les deux tests nommés au § 0 ; le premier relève les dix lignes de R1 à R8, R10 et R13), le lecteur « entrées piégées » vert.
+- Banc, remplacements et version (7.10.1) : `node --test scripts/depot.test.mjs` vert, 25 tests ; la suite entière : **600 sur 600** (597 + 3) ; avec les tickets 42 et 45 appliqués en même temps, dans l'ordre 41, 42, 45 : **628 sur 628** (597 + 3 + 18 + 10), sans conflit.
+- `git diff origin/main --stat` : les huit fichiers de « Fichiers chauds », rien d'autre ; `git diff origin/main -- '*.test.mjs' | grep -c "^-.*assert"` : 0.
 - `grep -rnE "se nomme au capitaine|la nomme au capitaine|nomme la PR au capitaine|que l'architecte lui nomme|PR à traiter|PR nommée|prévient le capitaine par .send_message." skills README.md --exclude=veille.sh` : vide (`veille.sh:63`, un commentaire sur la liste de la veille, est gardé : voir « Gardé tel quel »).
 - Aucun `SKILL.md` ne dépasse 200 lignes (test existant du dépôt, vert).
 
-**Non joué** : les commandes `gh` de la procédure (`pr list --json`, `pr update-branch`, `pr merge --match-head-commit`, l'appel REST de la timeline) contre un vrai dépôt : la syntaxe est celle de `gh --help` (`gh pr merge`, `gh pr update-branch`, champs `--json` de `gh pr list`), l'événement `unlabeled` est celui de la documentation REST des événements de ticket ; un capitaine lancé avec le bloc R9 (aucun capitaine de `skills` n'est en vie le 2026-11-16) ; le comportement du contrôle du mode « auto » devant la nouvelle procédure.
+**Non joué** : les commandes `gh` de la procédure (`pr list --json`, `pr update-branch`, `pr merge --match-head-commit`, l'appel REST de la timeline) contre un vrai dépôt : la syntaxe est celle de `gh --help` (`gh pr merge`, `gh pr update-branch`, champs `--json` de `gh pr list`), l'événement `unlabeled` est celui de la documentation REST des événements de ticket ; un capitaine lancé avec le bloc R9 (le capitaine de `skills` en vie le 2026-11-16 a été lancé avec l'ancienne procédure, celle de la nomination : voir « Hors périmètre ») ; le comportement du contrôle du mode « auto » devant la nouvelle procédure.
 
 Pour la session :
 
@@ -387,12 +388,13 @@ Pour la session :
 
 ## Hors périmètre
 
-- **Le capitaine de `skills` n'existe plus** (aucun en vie, `map.md`, journal du 2026-11-16) : le prochain est lancé par l'architecte avec le bloc R9. Rien à relancer ici.
+- **Le capitaine de `skills` en vie** (celui qui a fusionné les PR 95 à 97 et 99 le 2026-11-16, `map.md`, journal) a reçu l'ancienne procédure : il ne fusionne que ce que l'architecte lui nomme, et la PR de ce ticket entrera encore ainsi. Une fois elle fusionnée, l'architecte le relance avec le bloc R9 : un message ne change pas sa procédure (`architecte/SKILL.md:60`). Rien à relancer par la session.
 - **Les dépôts de projet** : leur copie de `docs/agents/chaine-de-production.md` et de `pieges.md` se repose par `socle-chaine-de-production` ; c'est leur affaire.
 - **`CLAUDE.md` de `fedora`** et tout texte d'un autre dépôt.
 - **Un hook qui lirait les messages** : voir la décision 6.
-- **Les tickets 33 (garde de commandes), 40, 42, 43, 45** : aucun ne touche ces textes, sauf 40 (`fusionner/SKILL.md`, d'où le `Blocked by`) et 42, qui touche aussi `fusionner/SKILL.md` ligne 77 (autre phrase) : 42 passe après 41.
+- **Les tickets 33 (garde de commandes, PR 98 en correction), 42, 45** : aucun ne touche ces textes, sauf 42, qui touche aussi `fusionner/SKILL.md` ligne 77 (autre phrase, quinze lignes plus bas : les deux s'appliquent l'un sur l'autre sans conflit, joué) ; 42 garde `Blocked by: 41` et passe après. Les tickets 40 (PR 99) et 43 (PR 96) sont faits.
 
 ## Comments
 
 - 2026-11-16 — Rédigé sur `fa7d3eb`, recalé sur `76d90c7` (plugin 7.9.1, 528 tests) d'après les constats 4 et la décision A-48 de la carte. Joué sur une copie jetable : banc rouge sur `main`, vert avec les treize remplacements. Écarts avec la demande : (1) le renvoi de `fusionner/SKILL.md:62` vers `chaine-de-production.md` § 2 n'est pas mort, c'est la phrase du § 2 (ligne 39) qui est à corriger : R13 ; (2) `lancement.md:54` (« PR nommée ») trouvée par `grep` : R6 ; (3) pas de `Label: contre-revue` (documentation seule) ; (4) `Type: task`, le gate des tickets n'admet pas « évolution ».
+- 2026-11-16 — Remis à jour sur `5ccead9` (plugin 7.10.0, 597 tests ; PR 95 à 97 et 99 fusionnées) : les treize « Ancien » trouvés une fois chacun, aux mêmes lignes ; le relevé `git grep` rejoué, rien de neuf à corriger ; aucun texte de la PR 99 ne contredit ce ticket (elle n'a touché que les lignes 14 et 60 de `fusionner/SKILL.md`). Banc rouge sur `5ccead9` (deux `not ok`), vert avec les §§ 1 et 2 : 600 tests (597 + 3), 628 avec les tickets 42 et 45 appliqués après lui. `Blocked by:` vidé (40 fait, PR 99) ; version 7.10.1, avec la règle de repli (décision 7) ; `passer.sh:76` corrigé en `:77` ; « Hors périmètre » : le capitaine de `skills` en vie a l'ancienne procédure, à relancer avec R9 après la fusion de ce ticket.
