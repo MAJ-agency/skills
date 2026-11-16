@@ -619,7 +619,7 @@ test("fusionner : une retouche de formatage sous apps/ se juge comme une sous-PR
 test("fusionner : une retouche d'un fichier de configuration d'outil (.prettierrc, .npmrc, .pnpmfile.cjs, prettier.config.mjs) exige la revue, sans rien exécuter", () => {
   for (const fichier of [".prettierrc", ".npmrc", ".pnpmfile.cjs", "prettier.config.mjs"]) {
     const { d, sujet } = avecRetouche({ avantPush: retouche({ [fichier]: "{}\n" }, "chore: outillage") });
-    refusee(d, d.lancer(SUJET, "fusionner", "81"), sujet, new RegExp(`Revue.*${fichier.replace(/\./g, "\\.")}`));
+    refusee(d, d.lancer(SUJET, "fusionner", "81"), sujet, new RegExp(`Revue.*${fichier.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`));
     assert.doesNotMatch(pnpmJoue(d), /pnpm (install|exec prettier)/);
   }
 });
