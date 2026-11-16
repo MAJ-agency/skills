@@ -157,6 +157,11 @@ test('exigeRevue : la casse ne la contourne pas (Apps/, PACKAGES/, .GitHub/, Pac
   assert.equal(exigeRevue(['Docs/README.MD']), false);
 });
 
+// `ſ` (U+017F) se met en majuscule `S` : sur un système de fichiers qui replie la casse, `appſ/` est `apps/`.
+test('exigeRevue : la casse se replie aussi par la majuscule (ſ lu s)', () => {
+  for (const f of ['appſ/api/x.json', 'ſcripts/x.mjs']) assert.equal(exigeRevue([f]), true, f);
+});
+
 // Par l'espace de noms : sur une copie d'avant, sans `cheminLu`, ce seul test échoue.
 const cheminLu = (ligne) => revueExigee.cheminLu(ligne);
 test('cheminLu : décite un chemin comme git le cite, et une citation mal formée rend null', () => {
@@ -282,7 +287,7 @@ test('CLI : le contrat se lit dans la base ; une PR qui retire son chemin sensib
 // Une configuration d’outil lue par dossier (lint-staged, Prettier, ESLint prennent la plus proche) et tout fichier
 // de code exécutable, à toute profondeur : le capitaine les exécute à son pre-commit, même sous docs/.
 test('exigeRevue : un fichier exécutable et un nom de configuration l’exigent à toute profondeur ; le Markdown de docs/ non', () => {
-  for (const f of ['docs/prettier.config.mjs', 'docs/lint-staged.config.mjs', 'docs/x/eslint.config.mjs', 'infra/deploy.sh', 'tools/x.mjs', 'docs/design/proto/capture.mjs', 'docs/x/lintstagedrc', 'docs/x/prettierrc.json', 'outils/a.PY'])
+  for (const f of ['docs/prettier.config.mjs', 'docs/lint-staged.config.mjs', 'docs/x/eslint.config.mjs', 'infra/deploy.sh', 'tools/x.mjs', 'docs/design/proto/capture.mjs', 'docs/x/lintstagedrc', 'docs/x/prettierrc.json', 'outils/a.PY', 'docs/package.yaml', 'docs/package.yml', 'docs/x/package.json5'])
     assert.equal(exigeRevue([f]), true, f);
   for (const f of ['docs/a.md', 'docs/design/proto/ecran.html', 'docs/sources/note.txt']) assert.equal(exigeRevue([f]), false, f);
 });

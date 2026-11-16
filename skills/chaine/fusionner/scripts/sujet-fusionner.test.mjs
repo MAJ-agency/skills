@@ -464,7 +464,7 @@ test("fusionner : une PR de mise à jour sans liste lisible des index régénér
 // Une sous-PR qui change ce que la chaîne exécute (CI, hooks git et d'agent, install) ou du code d'une autre casse,
 // sans section de revue : avant, squashée dans le sujet (sortie 0), puis exécutée par le capitaine au rafraîchissement.
 test("fusionner : une sous-PR qui touche la configuration de la chaîne ou du code d'une autre casse sans section de revue sort en 4, sans squash", () => {
-  for (const f of [".github/workflows/ci.yml", ".husky/pre-push", ".claude/settings.json", "package.json", ".npmrc", "Apps/api/x.ts", "docs/lint-staged.config.mjs", "tools/x.mjs"]) {
+  for (const f of [".github/workflows/ci.yml", ".husky/pre-push", ".claude/settings.json", "package.json", ".npmrc", "Apps/api/x.ts", "docs/lint-staged.config.mjs", "tools/x.mjs", "docs/package.yaml", "docs/package.yml", "docs/x/package.json5"]) {
     const { d } = sousPrEnConflit("aucun");
     d.branche("chore/x", "origin/sujet/lot", { [f]: "x\n" }, "chore: x");
     d.git("switch", "-q", "--detach", "origin/develop");

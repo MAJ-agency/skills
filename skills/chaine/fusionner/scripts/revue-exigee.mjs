@@ -32,7 +32,7 @@ import { execFileSync } from 'node:child_process';
 //   - un fichier à la racine, hors Markdown : `package.json` (`prepare`, `postinstall`, les commandes des
 //     gates), `pnpm-lock.yaml`, `pnpm-workspace.yaml`, `turbo.json`, `tsconfig*.json`, `eslint.config.*`,
 //     `vitest.config.*`, `commitlint.config.*`, `playwright.config.*` ;
-//   - un `package.json` à toute profondeur : ses scripts tournent au `pnpm install` dès que l'espace de travail
+//   - un `package.json`, `package.json5`, `package.yaml` ou `package.yml` à toute profondeur : ses scripts tournent au `pnpm install` dès que l'espace de travail
 //     l'inclut.
 //   - ce que l'agent lit pour travailler et pour relire : un `CLAUDE.md` ou `CLAUDE.local.md` à toute profondeur,
 //     `docs/agents/` (sauf un index généré de la base déclaré en littéral avec une `commande`, que le capitaine
@@ -48,15 +48,15 @@ const EXECUTABLE = /\.(js|mjs|cjs|ts|mts|cts|jsx|tsx|sh|bash|zsh|py|rb|pl|ps1|ph
 const CONFIGURATION = /(^|\/)[^/]*\.config\.[^/]+$/;
 const RC = /(^|\/)\.?[^/]*rc(\.[^/]+)?$/;
 const CLAUDE_MD = /(^|\/)claude(\.local)?\.md$/;
-// Comparable : NFC (macOS écrit souvent en NFD) puis minuscules, pour les chemins comme pour les motifs.
-const comparable = (s) => s.normalize('NFC').toLowerCase();
+// Comparable : NFC (macOS écrit souvent en NFD), majuscules puis minuscules (`ſ` se lit `s`), pour les chemins comme pour les motifs.
+const comparable = (s) => s.normalize('NFC').toUpperCase().toLowerCase();
 const DOCS_AGENTS = /^docs\/agents\//;
 const CRITERES_DEFAUT = 'docs/agents/criteres-revue.md';
 /** Contexte d'une PR sans base lue : le plancher seul. */
 export const SANS_BASE = Object.freeze({ sensibles: [], criteres: [CRITERES_DEFAUT], generes: [], illisible: null });
 const SEGMENT_A_POINT = /(^|\/)\.(?!gitkeep$)/;
 const RACINE_HORS_MARKDOWN = /^[^/]+$/;
-const PACKAGE_JSON = /(^|\/)package\.json$/;
+const PACKAGE_JSON = /(^|\/)package\.(json|json5|ya?ml)$/;
 const ECHAPPEMENTS = { a: 7, b: 8, t: 9, n: 10, v: 11, f: 12, r: 13, '"': 34, '\\': 92 };
 
 /**

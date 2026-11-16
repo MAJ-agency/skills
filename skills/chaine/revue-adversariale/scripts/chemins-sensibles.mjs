@@ -63,7 +63,7 @@ const ECHAPPEMENTS = { a: 7, b: 8, t: 9, n: 10, v: 11, f: 12, r: 13, '"': 34, "\
 /** Ligne de git décitée et en minuscules, `null` si sa citation est mal formée (copie de `cheminLu`, revue-exigee.mjs). */
 function cheminLu(ligne) {
   const f = ligne.trim();
-  if (!f.startsWith('"')) return f.normalize("NFC").toLowerCase();
+  if (!f.startsWith('"')) return f.normalize("NFC").toUpperCase().toLowerCase();
   if (f.length < 2 || !f.endsWith('"')) return null;
   const car = [...f.slice(1, -1)];
   const octets = [];
@@ -81,7 +81,7 @@ function cheminLu(ligne) {
       i += 2;
     } else return null;
   }
-  return Buffer.from(octets).toString("utf8").normalize("NFC").toLowerCase();
+  return Buffer.from(octets).toString("utf8").normalize("NFC").toUpperCase().toLowerCase();
 }
 
 function lireMotifs(fichier = ".claude/chaine.json") {
@@ -157,7 +157,7 @@ try {
       console.log(`${chemin}\t(base illisible : ${deLaBase.illisible})`);
       continue;
     }
-    const motif = motifs.find((m) => motifSensibleTouche(lu, [m.normalize("NFC").toLowerCase()]) !== null);
+    const motif = motifs.find((m) => motifSensibleTouche(lu, [m.normalize("NFC").toUpperCase().toLowerCase()]) !== null);
     if (motif !== undefined) console.log(`${chemin}\t${motif}`);
   }
 } catch (e) {

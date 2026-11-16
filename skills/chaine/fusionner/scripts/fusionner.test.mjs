@@ -1234,7 +1234,7 @@ test("sujet.sh : un pre-push qui refuse donne 3 (geler : au premier essai, hook 
 
 // Ce que la chaîne exécute ou lit pour juger, et du code d'une autre casse : une PR vers develop qui les change,
 // sans section de revue, n'entre pas (avant : sortie 0, fusionnée sans revue).
-const CONFIGURATION_CHAINE = [".github/workflows/ci.yml", ".husky/pre-push", ".claude/settings.json", "package.json", "pnpm-lock.yaml", "Apps/api/x.ts", "docs/prettier.config.mjs", "infra/deploy.sh"];
+const CONFIGURATION_CHAINE = [".github/workflows/ci.yml", ".husky/pre-push", ".claude/settings.json", "package.json", "pnpm-lock.yaml", "Apps/api/x.ts", "docs/prettier.config.mjs", "infra/deploy.sh", "docs/package.yaml", "docs/package.yml", "docs/x/package.json5"];
 test("passer.sh : une PR qui touche la configuration de la chaîne (CI, hooks, agent, install) ou du code d'une autre casse sans section de revue n'est pas éligible", () => {
   for (const f of CONFIGURATION_CHAINE) {
     const d = depotJouet();
