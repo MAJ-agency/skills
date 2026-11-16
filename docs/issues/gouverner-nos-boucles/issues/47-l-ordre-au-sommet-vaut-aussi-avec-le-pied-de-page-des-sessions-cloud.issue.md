@@ -1,6 +1,6 @@
 # L'ordre au sommet vaut aussi avec le pied de page des sessions cloud : sinon un ordre posé par l'architecte ou réécrit par le capitaine ne vaut jamais
 
-Status: ready-for-agent
+Status: Fait — PR #105
 Type: défaut
 Modèle: sonnet — un remplacement de documentation et quatre changements du banc donnés mot pour mot, un test ajouté donné entier, le tout joué sur une copie jetable de `origin/main`, mutations comprises (voir « Vérification ») ; rien n'est à concevoir.
 Blocked by: —
