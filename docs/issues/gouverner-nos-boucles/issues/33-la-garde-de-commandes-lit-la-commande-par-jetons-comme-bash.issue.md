@@ -1,6 +1,6 @@
 # La garde de commandes lit la commande par jetons, de gauche à droite comme bash : un here-doc quoté qu'aucun shell ne lit n'est plus pris pour des commandes, et ce que bash exécute est lu
 
-Status: ready-for-agent
+Status: Fait — PR #98
 Type: défaut
 Label: contre-revue
 Modèle: opus — rien n'est donné en code hors des tests : il faut concevoir un lecteur de la syntaxe de bash (citations, here-docs, substitutions imbriquées, commandes composées) au cœur d'un hook de sécurité, où chaque écart avec bash est un contournement, puis rebrancher dessus des décideurs dont le comportement ne doit pas bouger ; la preuve est adverse (corpus et oracle bash), pas une liste de tests à verdir.
@@ -593,3 +593,4 @@ console.log(process.argv[3], c.length, 'car.', d?.decision ?? 'passe', `${Number
   - Pire cas mesuré : 71,9 s pour 300 030 caractères, au-delà du délai de 60 s du hook.
   - Le lecteur n'est pas prototypé : les décisions 4 et 5 se prouvent par le banc.
   - Le ticket 35 entre ici comme liste de cas (P4 à P8, G1, G4, R8 à R10, R14, R16, R32, R33, R46 à R53).
+- 2026-11-16 — Architecte. **Fait par la PR #98** (`main` à `a091baa`, plugin 7.12.0, 657 tests), après A-51 bis puis **A-51 ter** : la garde refuse l'union du lecteur par jetons et de la lecture de 7.9.x jouée sur la commande d'origine, monotone par construction ; plafond de 100 000 caractères testé avant toute lecture. A-51 ter amende ce ticket : la surface 1 et les cas P1 à P12 (« un here-doc à apostrophe ne fait plus refuser ») sont inversés — ils restent refusés comme sur `main`, et leur levée part au ticket 35 ; la décision 4 (corps relus par prudence soumis à `COMMANDES_INTERDITES` et aux dépendances) suit la contre-relecture (B3). Le test d'interface compte six mots (`git`, `-c`, `core.hooksPath=x`, `commit`, `-m`, `a b`), le texte « cinq dont un cité » est inexact. Trous communs à `main` (here-doc fermé par `EOF)` dans `$(…)`, here-strings détournés) : ticket 34.
