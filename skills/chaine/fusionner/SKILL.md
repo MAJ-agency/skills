@@ -74,7 +74,7 @@ Compte rendu à l'utilisateur : PR fusionnées, avec squash et arbre vérifié ;
 
 **Les filles d'un chantier, c'est leur conducteur qui les archive** (skill `chantier` § 6.6), après avoir relevé leur coût : le capitaine n'y touche pas. Il archive seulement une session « completed », sans PR ouverte, **sans tag `chantier:`**, qui n'organise aucun chantier. Jamais une session qui attend une réponse, ni une session active.
 
-**Branches fusionnées : supprimées par GitHub** (réglage « Automatically delete head branches », liste de l'admin). Les scripts ne suppriment rien : depuis le cloud, le proxy refuse la suppression.
+**Branches fusionnées : supprimées par GitHub** (réglage « Automatically delete head branches », liste de l'admin). Les scripts du capitaine ne suppriment rien ; seul `sujet.sh clore <nom>` supprime un sujet livré que GitHub a laissé (livraison intermédiaire, ou avant le réglage), et depuis le cloud le proxy peut refuser la suppression : sortie 3, à jouer d'un poste local.
 
 ## Ne jamais
 
