@@ -157,7 +157,7 @@ export function sansTexte(commande) {
 }
 
 const RAISON_PUSH_SUJET =
-  "un sujet ne se pousse jamais à la main, quelle que soit la branche : seul sujet.sh y écrit (demarrer, rafraichir, fusionner, livrer, carte). Sans ce refus, une session écrirait elle-même la ligne `Dépendances:` qui l'autorise. Pour la carte : `bash scripts/chaine/sujet.sh carte <nom>`.";
+  "un sujet ne se pousse jamais à la main, quelle que soit la branche : seul sujet.sh y écrit (demarrer, rafraichir, fusionner, livrer, carte, clore). Sans ce refus, une session écrirait elle-même la ligne `Dépendances:` qui l'autorise. Pour la carte : `bash scripts/chaine/sujet.sh carte <nom>` ; pour supprimer un sujet livré : `bash scripts/chaine/sujet.sh clore <nom>`.";
 const RAISON_NOM_ILLISIBLE =
   "nom de branche illisible (segment . ou .., %, barre finale, caractère de contrôle, blancs autour) : un client d'URL le résout, il pourrait viser un sujet, develop ou main. Écris le nom en clair ; pour la carte : `bash scripts/chaine/sujet.sh carte <nom>`.";
 const RAISON_PUSH_GARDEE =
