@@ -9,14 +9,14 @@
  * Règles, sur chaque `docs/**\/issues/*.issue.md` suivi par git (règles pures : tickets-regles.mjs) :
  *   1. `Status:` ∈ vocabulaire fermé (docs/agents/triage-labels.md) ;
  *   2. `Blocked by:` ne cite que des tickets qui existent ;
- *   3. `Sujet:` de la forme `sujet/<kebab>` ;
+ *   3. `Sujet:` : une ou plusieurs valeurs `sujet/<kebab>` séparées par des virgules ;
  *   0. les fiches docs/agents/issue-tracker.md et triage-labels.md sont celles du skill `tickets`
  *      (sections « Réserver un ticket », « Un ticket prêt pour agent », « Archivage » ; valeurs
  *      `en cours — <branche>` et `Fait — PR #<n>`) : rejouer setup-matt-pocock-skills les écrase,
  *   4. la fiche d'une carte de chantier (`docs/**\/*.map.md` à ligne `Sujet:`) : `Phase:`, `Responsable:`
  *      (une personne, pas un identifiant `session_…`), `Conducteur:`, `## Coût` dès `4-vague-1`, `## Rétro`
  *      à `fini` ; une ligne de `## Coût` au-delà du plafond de son rôle (`plafonds` de `.claude/chaine.json`,
- *      l'égalité compte : `fille` 300 k tokens ou 20 $, `conducteur` et `architecte` 400 k tokens) exige une
+ *      l'égalité compte : `fille` 400 k tokens, `conducteur` 400 k tokens, le coût ne se juge pas ; l'`architecte` n'a pas de plafond) exige une
  *      ligne de `## Dépassements` pour la même session (sans contrat, aucun plafond ; une carte gelée n'est pas
  *      jugée sur ses dépassements) ; `Architecte:` est facultative. Une carte d'avant ces deux lignes, gelée
  *      dans la clé `fiches` de la dette, écrite une seule fois (`--geler-fiches`), garde l'ancienne règle :

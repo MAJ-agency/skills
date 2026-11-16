@@ -75,6 +75,19 @@ test('carte de chantier : fiche, phase, responsable et conducteur, coût dès la
   assert.equal(controlerCarte({ nom: 'x.map.md', texte: '# sans sujet\n' }).carte, false);
 });
 
+test('une carte peut nommer plusieurs sujets séparés par des virgules ; une liste mal formée est refusée, le message dit la forme attendue', () => {
+  const carte = (sujet) => controlerCarte({ nom: 'c.map.md', texte: `# Carte\n\nSujet: ${sujet}\n\n## Fiche\n\nPhase: 2-decoupage\nResponsable: Camille Martin\nConducteur: session_y\n` });
+  assert.deepEqual(carte('sujet/a, sujet/b, sujet/c').erreurs, []);
+  assert.deepEqual(carte('sujet/a,sujet/b').erreurs, []);
+  for (const mal of ['sujet/a sujet/b', 'sujet/a,', 'sujet/a, b', 'sujet/A']) {
+    const erreurs = carte(mal).erreurs;
+    assert.equal(erreurs.length, 1, mal);
+    assert.match(erreurs[0].message, /carte c\.map\.md : Sujet « .* » : attendu `sujet\/<nom-en-kebab>`, ou plusieurs séparés par des virgules/, mal);
+    assert.equal(erreurs[0].ligne, 3);
+  }
+});
+
+
 const FICHE = (lignes) => `# Carte\n\nSujet: sujet/socle\n\n## Fiche\n\nPhase: 2-decoupage\n${lignes}`;
 
 test('une carte sans `Responsable:`, ou dont le responsable est un identifiant de session, est refusée, la ligne nommée', () => {
@@ -189,6 +202,14 @@ test('Migrations: de forme fausse est une erreur de la carte', () => {
   const r = controlerCarte({ nom: 'x.map.md', texte: carteAvec('2026-11-27') });
   assert.match(r.erreurs[0].message, /Migrations.*12 chiffres/);
   assert.equal(controlerCarte({ nom: 'x.map.md', texte: carteAvec('202611271000') }).erreurs.length, 0);
+});
+
+test('Migrations: accepte 12 ou 14 chiffres, rien d’autre', () => {
+  const ok = controlerCarte({ nom: 'x.map.md', texte: carteAvec('20261127100000') });
+  assert.equal(ok.erreurs.length, 0);
+  assert.deepEqual(migrationsReservees(carteAvec('20261127100000')), ['20261127100000']);
+  const ko = controlerCarte({ nom: 'x.map.md', texte: carteAvec('2026112710') });
+  assert.match(ko.erreurs[0].message, /12 chiffres.*14/);
 });
 
 test('deux cartes ouvertes qui réservent le même horodatage : écart ; une carte finie ne réserve plus', () => {
@@ -366,7 +387,7 @@ test("Surfaces : la lecture d'une cellule garde la sémantique de l'ancienne exp
   }
 });
 
-const PLAFONDS = { contexteFille: 300000, coutFille: 20, contextePilote: 400000, renvoisParPR: 3 };
+const PLAFONDS = { contexteFille: 400000, contextePilote: 400000, renvoisParPR: 3 };
 const COUT = (...lignes) =>
   `${FICHE('Responsable: Camille Martin\nConducteur: session_z\n')}\n## Coût\n\n| Rôle | Ticket | Session | Modèle | Contexte max | Coût $ |\n| ---- | ------ | ------- | ------ | ------------ | ------ |\n${lignes.join('\n')}\n`;
 const DEPASSEMENTS = (...lignes) =>
@@ -374,20 +395,23 @@ const DEPASSEMENTS = (...lignes) =>
 const juger = (texte, extra = {}) => controlerCarte({ nom: 'c.map.md', texte, plafonds: PLAFONDS, ...extra }).erreurs;
 
 test('une ligne de coût au-delà du plafond de son rôle est refusée sans ligne de dépassement pour sa session ; avec, elle passe', () => {
-  const fille = '| fille | SPEC_ALL_SOC-1.02 | session_f | sonnet | 310 k | 4,10 |';
+  const fille = '| fille | SPEC_ALL_SOC-1.02 | session_f | sonnet | 410 k | 4,10 |';
   const refus = juger(COUT(fille));
   assert.equal(refus.length, 1);
-  assert.match(refus[0].message, /session session_f \(fille\) : contexte 310000 tokens ≥ plafond 300000, sans ligne dans `## Dépassements`/);
+  assert.match(refus[0].message, /session session_f \(fille\) : contexte 410000 tokens ≥ plafond 400000, sans ligne dans `## Dépassements`/);
   assert.equal(refus[0].ligne, COUT(fille).split('\n').indexOf(fille) + 1);
-  assert.deepEqual(juger(COUT(fille) + DEPASSEMENTS('| session_f | SPEC_ALL_SOC-1.02 | 310 k | accepté par écrit | 2026-11-13 |')), []);
+  assert.deepEqual(juger(COUT(fille) + DEPASSEMENTS('| session_f | SPEC_ALL_SOC-1.02 | 410 k | accepté par écrit | 2026-11-13 |')), []);
   // Une ligne pour une autre session ne couvre pas celle-ci.
   assert.equal(juger(COUT(fille) + DEPASSEMENTS('| session_g | x | 1 | x | x |')).length, 1);
-  // Le coût seul, le plafond atteint à l'égalité, le pilote par son contexte.
-  assert.match(juger(COUT('| fille | t | s1 | sonnet | 100 k | 20,00 |'))[0].message, /coût 20 \$ ≥ plafond 20 \$/);
-  assert.equal(juger(COUT('| fille | t | s1 | sonnet | 299 999 | 19,99 |')).length, 0);
+  // Le coût ne se juge pas, même énorme ou illisible ; le plafond de contexte est atteint à l'égalité.
+  assert.equal(juger(COUT('| fille | t | s1 | sonnet | 100 k | 500,00 |', '| fille | t | s8 | sonnet | 100 k | beaucoup |')).length, 0);
+  assert.equal(juger(COUT('| fille | t | s1 | sonnet | 399 999 | 19,99 |')).length, 0);
+  assert.match(juger(COUT('| fille | t | s9 | sonnet | 400 000 | 1,00 |'))[0].message, /s9 \(fille\) : contexte 400000 tokens ≥ plafond 400000/);
   assert.match(juger(COUT('| conducteur | t | s2 | opus | 400 k | 50,00 |'))[0].message, /s2 \(conducteur\) : contexte 400000 tokens ≥ plafond 400000/);
-  assert.equal(juger(COUT('| architecte | t | s3 | opus | 399 k | 50,00 |')).length, 0);
-  // Un pilote n'est jugé que sur son contexte, un capitaine ou un rôle libre n'est pas jugé.
+  assert.equal(juger(COUT('| conducteur | t | s3 | opus | 399 k | 50,00 |')).length, 0);
+  // L'architecte n'a pas de plafond (P-25) : jamais jugé, même illisible.
+  assert.equal(juger(COUT('| architecte | t | s6 | opus | 900 k | 90,00 |', '| architecte | t | s7 | opus | beaucoup | 90,00 |')).length, 0);
+  // Un conducteur n'est jugé que sur son contexte, un capitaine ou un rôle libre n'est pas jugé.
   assert.equal(juger(COUT('| capitaine | t | s4 | opus | 900 k | 90,00 |', '| ticket | t | s5 | opus | 900 k | 90,00 |')).length, 0);
   // Sans contrat (plafonds null), rien n'est jugé.
   assert.deepEqual(controlerCarte({ nom: 'c.map.md', texte: COUT(fille) }).erreurs, []);
@@ -409,7 +433,7 @@ test('le contexte se lit en milliers (`174 k`), une cellule vide ou à relever n
 });
 
 test('une carte gelée d\'avant les rôles n\'est pas jugée sur ses dépassements', () => {
-  const ancienne = `${FICHE('Architecte: session_x\nConducteur: session_z\n')}\n## Coût\n\n| Rôle | Ticket | Session | Modèle | Contexte max | Coût $ |\n| --- | --- | --- | --- | --- | --- |\n| architecte | t | s | opus | 726 k (compactée) | 30,72 |\n`;
+  const ancienne = `${FICHE('Architecte: session_x\nConducteur: session_z\n')}\n## Coût\n\n| Rôle | Ticket | Session | Modèle | Contexte max | Coût $ |\n| --- | --- | --- | --- | --- | --- |\n| conducteur | t | s | opus | 726 k (compactée) | 30,72 |\n`;
   assert.deepEqual(juger(ancienne, { ficheGelee: true }), []);
   assert.equal(juger(ancienne).filter((e) => /Dépassements/.test(e.message)).length, 1);
 });
@@ -417,15 +441,16 @@ test('une carte gelée d\'avant les rôles n\'est pas jugée sur ses dépassemen
 test('plafonds : contrat absent → aucun ; sans clé → défauts ; mal formée → le gate échoue fermé', () => {
   assert.equal(lirePlafonds(null), null);
   assert.deepEqual(lirePlafonds('{}'), PLAFONDS);
-  assert.deepEqual(lirePlafonds('{"plafonds":{"coutFille":5}}'), { ...PLAFONDS, coutFille: 5 });
+  assert.deepEqual(lirePlafonds('{"plafonds":{"contexteFille":5}}'), { ...PLAFONDS, contexteFille: 5 });
+  // `coutFille`, seuil abandonné : un contrat déjà posé le porte encore, il est ignoré quelle que soit sa valeur.
+  assert.deepEqual(lirePlafonds('{"plafonds":{"coutFille":20,"contextePilote":9}}'), { ...PLAFONDS, contextePilote: 9 });
+  assert.deepEqual(lirePlafonds('{"plafonds":{"coutFille":"vingt"}}'), PLAFONDS);
   assert.throws(() => lirePlafonds('{ pas du json'), /illisible/);
   assert.throws(() => lirePlafonds('{"plafonds":3}'), /objet/);
-  assert.throws(() => lirePlafonds('{"plafonds":{"coutFille":"20"}}'), /coutFille/);
+  assert.throws(() => lirePlafonds('{"plafonds":{"contexteFille":"400000"}}'), /contexteFille/);
   assert.throws(() => lirePlafonds('{"plafonds":{"coutFile":20}}'), /inconnu/);
 });
 
-test('un coût de fille illisible est une erreur de la carte, jamais un dépassement ignoré', () => {
-  const erreur = juger(COUT('| fille | t | s | sonnet | 100 k | 25 $ |'));
-  assert.equal(erreur.length, 1);
-  assert.match(erreur[0].message, /« Coût \$ » « 25 \$ » illisible/);
+test('le coût d’une fille ne se juge plus ici : une cellule illisible relève de `couts.mjs --verify`, pas des plafonds', () => {
+  assert.deepEqual(juger(COUT('| fille | t | s | sonnet | 100 k | 25 $ |')), []);
 });

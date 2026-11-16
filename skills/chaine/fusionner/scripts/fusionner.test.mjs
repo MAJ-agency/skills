@@ -3,7 +3,10 @@
 // `gh` de depot-jouet.mjs, qui fusionne pour de vrai dans le dépôt nu ; aucun réseau.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { existsSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 // Posé dans un projet, depot-jouet.mjs est à côté (scripts/chaine/) ; dans le plugin, il est dans le skill sujet.
 const { depotJouet, script: scriptDe } = await import(
   existsSync(new URL("./depot-jouet.mjs", import.meta.url))
@@ -282,6 +285,20 @@ test("passer.sh : un check rouge non exigé ne retient pas la fusion", () => {
   ]);
 });
 
+test("passer.sh : FORCE_COLOR=1 dans l'environnement du capitaine ne fait refuser aucun titre", () => {
+  const d = checksRouges(["qualite"]);
+  const r = spawnSync("bash", [script("passer.sh"), "32"], {
+    cwd: d.travail,
+    env: { ...d.env, FORCE_COLOR: "1" },
+    encoding: "utf8",
+  });
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.deepEqual(ecritures(d), [
+    "PUT pulls/32/merge",
+    "DELETE issues/32/labels/%C3%A0-fusionner",
+  ]);
+});
+
 test("renvoyer.sh : pose fusion-bloquée, retire à-fusionner et commente la cause", () => {
   const d = depotJouet();
   d.branche("feat/renvoi", "origin/develop", { "docs/r.md": "r\n" });
@@ -384,6 +401,62 @@ test("file.sh : une PR renvoyée autant de fois que le plafond est montrée huma
   assert.deepEqual(d.journal(), [], "file.sh ne fait que lire");
 });
 
+test("renvois : seuls les commentaires du compte du capitaine comptent ; compte illisible, la PR attend un humain", () => {
+  const d = depotJouet();
+  for (const b of ["feat/a", "feat/b"]) d.branche(b, "origin/develop", { [`${b}.md`]: `${b}\n` });
+  // La marque recopiée par un autre compte : trois fois sur #56, une fois sur #57 après deux vrais renvois.
+  const autre = { auteur: "un-autre-compte", body: renvoi };
+  d.github({
+    exiges: ["qualite"],
+    checks: { "*": { qualite: "SUCCESS" } },
+    pulls: [
+      pr(56, "feat/a", { commentaires: [autre, autre, autre] }),
+      pr(57, "feat/b", { commentaires: [renvoi, autre, renvoi] }),
+    ],
+  });
+  const etats = () => d.lancer(script("file.sh")).stdout.trim().split("\n").map((l) => l.split("\t").slice(0, 2).join(" "));
+  assert.deepEqual(etats(), ["56 prête", "57 prête"]);
+  const r56 = d.lancer(script("renvoyer.sh"), "56", "x");
+  assert.equal(r56.status, 0, r56.stdout + r56.stderr);
+  assert.doesNotMatch(r56.stdout, /attend un humain/);
+  assert.match(d.lancer(script("renvoyer.sh"), "57", "x").stdout, /^\[#57\] RENVOI 3 sur 3 : la PR attend un humain$/m);
+  // Compte du capitaine illisible : le frein ne se lâche pas, chaque PR attend un humain, et on le dit.
+  const e = depotJouet();
+  e.branche("feat/c", "origin/develop", { "feat/c.md": "c\n" });
+  e.branche("feat/d", "origin/develop", { "feat/d.md": "d\n" });
+  e.github({ compteIllisible: true, exiges: ["qualite"], checks: { "*": { qualite: "SUCCESS" } }, pulls: [pr(58, "feat/c"), pr(59, "feat/d")] });
+  const r = e.lancer(script("file.sh"));
+  assert.equal(r.status, 0, r.stderr);
+  assert.deepEqual(r.stdout.trim().split("\n").map((l) => l.split("\t").slice(0, 2).join(" ")), ["58 humain", "59 humain"]);
+  assert.equal(r.stderr.match(/compte du capitaine illisible \(gh api user\)/g)?.length, 1, r.stderr);
+  // Un login mal formé (une espace) vaut un compte illisible : même message, une fois, même plafond.
+  const f = depotJouet();
+  f.branche("feat/e", "origin/develop", { "feat/e.md": "e\n" });
+  f.github({ capitaine: "un compte", exiges: ["qualite"], checks: { "*": { qualite: "SUCCESS" } }, pulls: [pr(60, "feat/e")] });
+  const m = f.lancer(script("file.sh"));
+  assert.equal(m.status, 0, m.stderr);
+  assert.deepEqual(m.stdout.trim().split("\n").map((l) => l.split("\t").slice(0, 2).join(" ")), ["60 humain"]);
+  assert.equal(m.stderr.match(/compte du capitaine illisible \(gh api user\)/g)?.length, 1, m.stderr);
+});
+
+test("renvois : LOGIN_CAPITAINE hérité de l'environnement n'est jamais lu, ni pour un autre compte ni pour « ? »", () => {
+  for (const herite of ["intrus", "?"]) {
+    const d = depotJouet();
+    d.branche("feat/f", "origin/develop", { "feat/f.md": "f\n" });
+    // Un renvoi du capitaine, deux recopiés par « intrus » : seul le premier compte.
+    d.github({
+      exiges: ["qualite"],
+      checks: { "*": { qualite: "SUCCESS" } },
+      pulls: [pr(61, "feat/f", { commentaires: [renvoi, { auteur: "intrus", body: renvoi }, { auteur: "intrus", body: renvoi }] })],
+    });
+    d.env.LOGIN_CAPITAINE = herite;
+    const r = d.lancer(script("renvoyer.sh"), "61", "x");
+    assert.equal(r.status, 0, r.stdout + r.stderr);
+    assert.match(r.stdout, /^\[#61\] RENVOI : x$/m, `LOGIN_CAPITAINE=${herite} : ${r.stdout}${r.stderr}`);
+    assert.doesNotMatch(r.stdout + r.stderr, /attend un humain|illisible/);
+  }
+});
+
 test("boucle.sh : une PR à l'état humain n'est ni passée, ni relancée, ni renvoyée", () => {
   const d = depotJouet();
   d.publierChaine();
@@ -420,6 +493,64 @@ test("passer.sh : titre au-delà de 120 caractères = sortie 4 (à renvoyer) ; b
   const brouillon = d.lancer(script("passer.sh"), "61");
   assert.equal(brouillon.status, 7, brouillon.stdout + brouillon.stderr);
   assert.deepEqual(d.journal(), []);
+});
+
+test("passer.sh : une PR dont la tête est develop, main ou la branche par défaut est refusée (sortie 4) sans rien pousser", () => {
+  const d = depotJouet();
+  d.branche("main", "origin/develop", { "docs/m.md": "m\n" }, "docs: main");
+  d.branche("trunk", "origin/develop", { "docs/t.md": "t\n" }, "docs: trunk");
+  d.branche("develop", "origin/develop", { "docs/d.md": "d\n" }, "docs: develop");
+  d.git("switch", "-q", "--detach", "origin/develop");
+  d.github({
+    brancheParDefaut: "trunk",
+    exiges: ["qualite"],
+    checks: { "*": { [PERIMETRE]: "SUCCESS", qualite: "SUCCESS" } },
+    pulls: [pr(70, "main"), pr(71, "trunk"), pr(72, "develop", { base: "main" })],
+  });
+  const avant = d.git("ls-remote", "origin");
+  for (const [n, tete] of [["70", "main"], ["71", "trunk"], ["72", "develop"]]) {
+    const r = d.lancer(script("passer.sh"), n);
+    assert.equal(r.status, 4, `#${n} : ${r.stdout}${r.stderr}`);
+    assert.match(r.stdout, new RegExp(`tête de la PR = ${tete}, branche gardée .* le capitaine n'y pousse jamais`));
+  }
+  assert.equal(d.git("ls-remote", "origin"), avant);
+  assert.deepEqual(d.journal(), []);
+});
+
+test("sujet.sh fusionner et relancer : une sous-PR dont la tête est develop, main ou un sujet est refusée (sortie 4) sans rien pousser", () => {
+  const d = depotJouet();
+  d.branche("sujet/lot", "origin/develop", { "a.md": "a\n" }, "feat(demo): a (#1)");
+  d.branche("sujet/autre", "origin/develop", { "o.md": "o\n" }, "feat(demo): o (#2)");
+  d.branche("main", "origin/develop", { "m.md": "m\n" }, "docs: main");
+  d.git("switch", "-q", "--detach", "origin/develop");
+  const sous = (number, head) => ({ number, title: "feat(demo): x", head, base: "sujet/lot", labels: ["à-fusionner"] });
+  d.github({ exiges: ["qualite"], checks: { "*": { qualite: "SUCCESS" } }, pulls: [sous(73, "develop"), sous(74, "main"), sous(75, "sujet/autre")] });
+  const avant = d.git("ls-remote", "origin");
+  for (const geste of ["fusionner", "relancer"])
+    for (const n of ["73", "74", "75"]) {
+      const r = d.lancer(scriptDe("sujet", "sujet.sh"), geste, n);
+      assert.equal(r.status, 4, `${geste} #${n} : ${r.stdout}${r.stderr}`);
+      assert.match(r.stdout, /branche gardée .* le capitaine n'y pousse jamais/);
+    }
+  assert.equal(d.git("ls-remote", "origin"), avant);
+  assert.deepEqual(d.journal(), []);
+});
+
+test("boucle.sh : une sous-PR sans CI dont la tête est gardée est renvoyée avec le motif de relancer, rien n'est poussé", () => {
+  const d = depotJouet();
+  d.publierChaine();
+  d.branche("sujet/lot", "origin/develop", { "lot.md": "lot\n" });
+  d.git("switch", "-q", "--detach", "origin/develop");
+  d.github({ exiges: ["qualite"], checks: {}, pulls: [pr(76, "develop", { base: "sujet/lot", title: "feat(demo): x" })] });
+  const avant = d.git("ls-remote", "origin");
+  const r = d.lancer(script("boucle.sh"));
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /\[#76\] RENVOI : #76 : tête develop, branche gardée/);
+  assert.deepEqual(d.etat().pulls[0].labels, ["fusion-bloquée"]);
+  const commentaire = d.journal().find((e) => e.methode === "POST" && e.route === "issues/76/comments");
+  assert.ok(commentaire, `commentaire de renvoi posté : ${JSON.stringify(d.journal())}`);
+  assert.match(commentaire.champs.body, /tête develop, branche gardée/);
+  assert.equal(d.git("ls-remote", "origin"), avant);
 });
 
 test("refus.sh : renvoie la PR avec le dernier motif de la sortie, préfixe retiré", () => {
@@ -627,6 +758,156 @@ test("passer.sh : un commit ajouté sur une livraison intermédiaire mise à jou
   assert.match(r.stdout, /sans section « Revue de ticket » ni « Revue adversariale »/);
 });
 
+// Les lectures `git diff --name-only` qui décident d'une dispense lisent sans détection des renommages :
+// un fichier déplacé ou supprimé derrière un renommage compte à son ancien chemin.
+const GARDE = "scripts/verify/gate-securite.mjs";
+// Chaque cas : le geste de la PR sur sa branche, partie de develop (qui porte la garde).
+const DISPENSES = {
+  "un script déplacé hors de scripts/": (d) => d.git("mv", GARDE, "docs/garde.md"),
+  "un fichier de code à nom accentué (chemin cité par git sans core.quotePath=false)": (d) => {
+    d.ecrire("apps/api/éligibilité.ts", "export const e = 1;\n");
+    d.git("add", "-A");
+  },
+};
+test("passer.sh : la revue exigée lit les chemins sans renommage ni guillemets (script déplacé hors de scripts/, code à nom accentué)", () => {
+  for (const [cas, geste] of Object.entries(DISPENSES)) {
+    const d = depotJouet();
+    d.ecrire(GARDE, "export const garde = true;\n");
+    d.commit("chore: garde");
+    d.git("push", "-q", "origin", "HEAD:develop");
+    d.git("fetch", "-q", "origin");
+    d.git("switch", "-q", "-C", "docs/deplace", "origin/develop");
+    geste(d);
+    d.git("commit", "-q", "-m", "docs: déplace la garde");
+    d.git("push", "-q", "origin", "HEAD:refs/heads/docs/deplace");
+    d.git("fetch", "-q", "origin");
+    d.git("switch", "-q", "--detach", "origin/develop");
+    d.github({
+      exiges: ["qualite"],
+      checks: { "*": { [PERIMETRE]: "SUCCESS", qualite: "SUCCESS" } },
+      pulls: [pr(31, "docs/deplace", { body: "Rien.\n" })],
+    });
+    const r = d.lancer(script("passer.sh"), "31");
+    assert.equal(r.status, 4, `${cas} : ${r.stdout}${r.stderr}`);
+    assert.match(r.stdout, /sans section « Revue de ticket » ni « Revue adversariale »/, cas);
+    assert.deepEqual(d.journal(), [], cas);
+  }
+});
+
+test("passer.sh : une livraison intermédiaire qui supprime un fichier derrière un index généré renommé repasse par la revue", () => {
+  const d = depotJouet();
+  // Un index généré par motif (`docs/generes/*.json`) : un chemin neuf sous ce motif est un index.
+  d.ecrire(
+    "scripts/docs/index-generes.json",
+    JSON.stringify({ index: [{ chemin: `${ADR}/README.md`, commande: "node scripts/docs/adr-index.mjs" }, "docs/generes/*.json"] }),
+  );
+  d.ecrire(GARDE, "export const garde = true;\n");
+  d.commit("chore: garde");
+  d.git("push", "-q", "origin", "HEAD:develop");
+  d.git("fetch", "-q", "origin");
+  d.branche("sujet/lot", "origin/develop", { "apps/api/lot.ts": "export const lot = 1;\n" });
+  d.git("switch", "-q", "-C", LIVRAISON, "origin/sujet/lot");
+  d.ecrire("docs/generes/garde.json", "export const garde = true;\n");
+  d.git("rm", "-q", GARDE);
+  d.commit("docs: index");
+  d.git("push", "-q", "origin", `HEAD:refs/heads/${LIVRAISON}`);
+  d.git("fetch", "-q", "origin");
+  d.git("switch", "-q", "--detach", "origin/develop");
+  d.github({
+    exiges: ["qualite"],
+    checks: { "*": { [PERIMETRE]: "SUCCESS", qualite: "SUCCESS" } },
+    pulls: [pr(40, LIVRAISON, { title: "feat(demo): livraison intermédiaire" })],
+  });
+  const r = d.lancer(script("passer.sh"), "40");
+  assert.equal(r.status, 4, r.stdout + r.stderr);
+  assert.match(r.stdout, /sans section « Revue de ticket » ni « Revue adversariale »/);
+  assert.deepEqual(d.journal(), []);
+});
+
+// Livraison intermédiaire d'un sujet qui change `docs/genere.json`, index généré sans `commande` (chaîne
+// nue de la liste) que develop change aussi. Le premier passage la met à jour avec develop : le conflit,
+// sur un index seul, prend la version de develop ; puis il s'arrête sur des checks rouges (sortie 3).
+// `apres(d)` agit ensuite sur la livraison, avant le second passage, checks verts.
+function livraisonIndexSansCommande(apres = () => {}) {
+  const d = depotJouet();
+  d.ecrire(
+    "scripts/docs/index-generes.json",
+    JSON.stringify({ index: [{ chemin: `${ADR}/README.md`, commande: "node scripts/docs/adr-index.mjs" }, "docs/genere.json"] }),
+  );
+  d.ecrire("docs/genere.json", "0\n");
+  d.commit("docs: index sans commande");
+  d.git("push", "-q", "origin", "HEAD:develop");
+  d.git("fetch", "-q", "origin");
+  d.branche("sujet/lot", "origin/develop", { "apps/api/lot.ts": "export const lot = 1;\n", "docs/genere.json": "sujet\n" });
+  d.git("push", "-q", "origin", `origin/sujet/lot:refs/heads/${LIVRAISON}`);
+  d.branche("develop", "origin/develop", { "docs/genere.json": "develop\n" }, "docs: genere (#39)");
+  d.git("switch", "-q", "--detach", "origin/develop");
+  d.github({
+    exiges: ["qualite"],
+    checks: { "*": { [PERIMETRE]: "SUCCESS", qualite: "FAILURE" } },
+    pulls: [pr(40, LIVRAISON, { title: "feat(demo): livraison intermédiaire" })],
+  });
+  const premier = d.lancer(script("passer.sh"), "40");
+  assert.equal(premier.status, 3, premier.stdout + premier.stderr);
+  assert.match(premier.stdout, /mise à jour poussée/);
+  d.git("fetch", "-q", "origin");
+  assert.equal(d.git("show", `origin/${LIVRAISON}:docs/genere.json`), "develop", "version de develop prise au conflit");
+  apres(d);
+  d.git("switch", "-q", "--detach", "origin/develop");
+  d.github({ checks: { "*": { [PERIMETRE]: "SUCCESS", qualite: "SUCCESS" } } });
+  return d;
+}
+
+test("passer.sh : une livraison intermédiaire dont un index sans commande est celui de develop reste une livraison (sans revue)", () => {
+  const d = livraisonIndexSansCommande();
+  const r = d.lancer(script("passer.sh"), "40");
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  d.git("fetch", "-q", "origin");
+  assert.equal(d.git("rev-list", "--parents", "-1", "origin/develop").split(" ").length, 3, "commit de merge : deux parents");
+});
+
+test("passer.sh : une livraison intermédiaire dont un index sans commande n'est pas celui de develop (autre contenu, ou retiré) repasse par la revue", () => {
+  const gestes = {
+    "autre contenu": (d) => d.branche(LIVRAISON, `origin/${LIVRAISON}`, { "docs/genere.json": '{"pirate":true}\n' }, "docs: genere"),
+    retiré: (d) => {
+      d.git("switch", "-q", "-C", LIVRAISON, `origin/${LIVRAISON}`);
+      d.git("rm", "-q", "docs/genere.json");
+      d.git("commit", "-q", "-m", "docs: genere retiré");
+      d.git("push", "-q", "origin", `HEAD:refs/heads/${LIVRAISON}`);
+    },
+  };
+  for (const [cas, geste] of Object.entries(gestes)) {
+    const d = livraisonIndexSansCommande(geste);
+    const avant = d.git("rev-parse", "origin/develop");
+    const r = d.lancer(script("passer.sh"), "40");
+    assert.equal(r.status, 4, `${cas} : ${r.stdout}${r.stderr}`);
+    assert.match(r.stdout, /sans section « Revue de ticket » ni « Revue adversariale »/, cas);
+    d.git("fetch", "-q", "origin");
+    assert.equal(d.git("rev-parse", "origin/develop"), avant, `${cas} : develop inchangé`);
+  }
+});
+
+// Les outils de la chaîne copiés dans un dossier du jouet, `github.sh` sans `index_regeneres_regex` : une
+// copie du capitaine plus ancienne que `sujet.sh` ou `passer.sh`. La liste des index régénérés ne se lit pas.
+function outilsSansRegeneres(d) {
+  const dossier = join(d.racine, "outils");
+  mkdirSync(dossier);
+  const outils = [["sujet", "sujet.sh"], ...["passer.sh", "github.sh", "revue-exigee.mjs", "migrations-ordre.mjs", "identifiant.mjs"].map((n) => ["fusionner", n])];
+  for (const [skill, nom] of outils) {
+    const texte = readFileSync(scriptDe(skill, nom), "utf8");
+    writeFileSync(join(dossier, nom), nom === "github.sh" ? texte.replace(/\nindex_regeneres_regex\(\) \{\n[\s\S]*?\n\}\n/, "\n") : texte);
+  }
+  assert.doesNotMatch(readFileSync(join(dossier, "github.sh"), "utf8"), /index_regeneres_regex\(\)/);
+  return dossier;
+}
+
+test("passer.sh : sans liste lisible des index régénérés, une livraison dont un index sans commande n'est pas celui de develop repasse par la revue", () => {
+  const d = livraisonIndexSansCommande((d) => d.branche(LIVRAISON, `origin/${LIVRAISON}`, { "docs/genere.json": '{"pirate":true}\n' }, "docs: genere"));
+  const r = d.lancer(join(outilsSansRegeneres(d), "passer.sh"), "40");
+  assert.equal(r.status, 4, r.stdout + r.stderr);
+  assert.match(r.stdout, /sans section « Revue de ticket » ni « Revue adversariale »/);
+});
+
 test("passer.sh : la livraison d'une branche sujet/ nomme son sujet dans le corps du commit de merge", () => {
   const d = depotJouet();
   d.branche("sujet/lot", "origin/develop", { "docs/lot.md": "lot\n" }, "docs(demo): lot (#41)");
@@ -721,4 +1002,232 @@ test("boucle.sh : une sous-PR d'un sujet gelé n'est ni fusionnée, ni renvoyée
     assert.ok(!ecrit.some((e) => e.includes(`/${n}`)), `aucune écriture sur #${n} : ${ecrit}`);
   assert.ok(!ecrit.some((e) => /^PATCH pulls/.test(e) && e.includes("/92")), "jamais reciblée");
   assert.match(r.stdout, /\tgelé$/m, "le tableau des sujets montre le verdict gelé");
+});
+
+// =============================================================================
+// Les scripts passent sous les hooks git : jamais de saut (`--no-verify`). Le jouet reçoit des hooks de
+// banc, écrits ici, qui journalisent leur nom et refusent sur demande (un fichier `refus.<hook>` dans la
+// racine du jouet) : `pre-commit`, `pre-push`, et un `commit-msg` qui applique `ignores` du
+// commitlint.config.mjs. Le contenu du `pre-commit` du socle (ordre de lint-staged et du `unset`) est
+// prouvé contre le gabarit par scripts/pre-commit-socle.test.mjs du plugin, jamais posé : le hook d'un
+// projet appelle ce que le jouet n'a pas (ses scripts, ses dépendances), il ne s'y joue pas.
+// =============================================================================
+// Posé dans un projet (depot-jouet.mjs à côté), commitlint.config.mjs est celui de la racine du projet ;
+// dans le plugin, celui du socle. Absent, ces tests échouent sur une ligne qui le nomme, jamais sautés.
+const POSE = existsSync(new URL("./depot-jouet.mjs", import.meta.url));
+const COMMITLINT = fileURLToPath(
+  new URL(POSE ? "../../commitlint.config.mjs" : "../../../monorepo/socle-monorepo/references/racine/commitlint.config.mjs", import.meta.url),
+);
+const REFUS = /pre-push jouet : refus/;
+
+function hooks(d, commitlint = COMMITLINT) {
+  if (!existsSync(commitlint)) assert.fail(`fichier manquant : ${commitlint} (posé par socle-monorepo) ; les tests sous les hooks en ont besoin`);
+  const dir = join(d.racine, "hooks");
+  const journal = join(d.racine, "hooks.log");
+  const J = JSON.stringify(journal);
+  mkdirSync(dir);
+  const poser = (nom, corps) => {
+    writeFileSync(join(dir, nom), `#!/bin/sh\n${corps}\n`);
+    chmodSync(join(dir, nom), 0o755);
+  };
+  const refuse = (nom) =>
+    `if [ -e ${JSON.stringify(join(d.racine, `refus.${nom}`))} ]; then echo "${nom} jouet : refus" >&2; exit 1; fi`;
+  poser("pre-commit", `echo pre-commit >> ${J}\n${refuse("pre-commit")}`);
+  poser("pre-push", `echo pre-push >> ${J}\n${refuse("pre-push")}`);
+  writeFileSync(
+    join(dir, "commit-msg.mjs"),
+    `import { readFileSync } from "node:fs";
+const { default: config } = await import(${JSON.stringify(commitlint)});
+const msg = readFileSync(process.argv[2], "utf8");
+if ((config.ignores ?? [(m) => /^Merge /.test(m)]).some((f) => f(msg))) process.exit(0);
+if (!/^(feat|fix|docs|chore|refactor|test)(\\([a-z-]+\\))?: .+/.test(msg)) { console.error("commit-msg jouet : message refusé"); process.exit(1); }
+`,
+  );
+  poser("commit-msg", `echo commit-msg >> ${J}\n${refuse("commit-msg")}\nexec node "$(dirname "$0")/commit-msg.mjs" "$1"`);
+  d.git("config", "core.hooksPath", dir);
+  const lire = () => (existsSync(journal) ? readFileSync(journal, "utf8").trim().split("\n") : []);
+  const refuser = (nom) => writeFileSync(join(d.racine, `refus.${nom}`), "");
+  return { lire, refuser, pushes: () => lire().filter((l) => l === "pre-push").length };
+}
+const distant = (d) => d.git("ls-remote", "origin");
+const sansFusion = (d) => assert.throws(() => d.git("rev-parse", "-q", "--verify", "MERGE_HEAD"), "aucune fusion en cours");
+
+test("passer.sh : un conflit d'index conclu sous les hooks (pre-commit, commit-msg, pre-push)", () => {
+  const d = conflitIndex();
+  const h = hooks(d);
+  const r = d.lancer(script("passer.sh"), "30");
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  const lus = h.lire();
+  assert.ok(lus.includes("pre-commit"), "pre-commit joué sur le commit de fusion");
+  assert.ok(lus.includes("commit-msg"), "commit-msg joué sur le commit de fusion");
+  assert.ok(lus.includes("pre-push"), "pre-push joué");
+  assert.match(d.git("log", "-1", "--format=%s", "origin/develop"), /^docs\(adr\): ADR 2 \(#30\)$/);
+});
+
+test("passer.sh : un pre-push qui refuse donne la sortie 3, sa sortie sur stderr, le distant inchangé et un worktree propre", () => {
+  const d = conflitIndex();
+  const h = hooks(d);
+  h.refuser("pre-push");
+  const avant = distant(d);
+  const r = d.lancer(script("passer.sh"), "30");
+  assert.equal(r.status, 3, r.stdout + r.stderr);
+  assert.match(r.stderr, REFUS, "la sortie du hook est visible");
+  assert.match(r.stderr, /jamais en sautant le hook/);
+  assert.doesNotMatch(r.stdout + r.stderr, /a bougé/);
+  assert.equal(distant(d), avant);
+  assert.equal(d.git("status", "--porcelain"), "");
+  assert.equal(h.pushes(), 1);
+});
+
+test("passer.sh : un commit-msg qui refuse la fusion sans conflit donne la sortie 3, sans fusion en cours", () => {
+  const d = depotJouet();
+  d.branche("feat/c", "origin/develop", { "c.md": "c\n" });
+  d.branche("develop", "origin/develop", { "x.md": "x\n" });
+  d.git("switch", "-q", "--detach", "origin/develop");
+  d.github({
+    exiges: ["qualite"],
+    checks: { "*": { [PERIMETRE]: "SUCCESS", qualite: "SUCCESS" } },
+    pulls: [pr(31, "feat/c")],
+  });
+  const h = hooks(d);
+  h.refuser("commit-msg");
+  const avant = distant(d);
+  const r = d.lancer(script("passer.sh"), "31");
+  assert.equal(r.status, 3, r.stdout + r.stderr);
+  assert.match(r.stderr, /commit-msg jouet : refus/);
+  sansFusion(d);
+  assert.equal(d.git("status", "--porcelain"), "");
+  assert.equal(distant(d), avant);
+});
+
+test("passer.sh : un pre-commit qui refuse le commit de fusion donne la sortie 3, sa sortie sur stderr, sans fusion en cours, distant inchangé", () => {
+  const d = conflitIndex();
+  const h = hooks(d);
+  h.refuser("pre-commit");
+  const avant = distant(d);
+  const r = d.lancer(script("passer.sh"), "30");
+  assert.equal(r.status, 3, r.stdout + r.stderr);
+  assert.match(r.stderr, /pre-commit jouet : refus/);
+  sansFusion(d);
+  assert.equal(d.git("status", "--porcelain"), "");
+  assert.equal(distant(d), avant);
+  assert.equal(h.pushes(), 0, "rien n'est poussé");
+});
+
+test("passer.sh : un commitlint.config.mjs sans ignores laisse passer le commit de fusion du capitaine", () => {
+  const d = conflitIndex();
+  const sansIgnores = join(d.racine, "commitlint.config.mjs");
+  writeFileSync(sansIgnores, "export default { extends: ['@commitlint/config-conventional'] };\n");
+  const h = hooks(d, sansIgnores);
+  const r = d.lancer(script("passer.sh"), "30");
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.ok(h.lire().includes("commit-msg"), "commit-msg joué sur le commit de fusion");
+  assert.match(d.git("log", "-1", "--format=%s", "origin/develop"), /^docs\(adr\): ADR 2 \(#30\)$/);
+});
+
+// Sous-PR #80 et sujet/lot qui ajoutent chacun une ADR : conflit sur l'index seul.
+function sousPrConflitIndex() {
+  const d = depotJouet();
+  d.ecrire(`${ADR}/ADR_ALL_ARC-1-a.md`, "# 1\n");
+  d.ecrire(`${ADR}/README.md`, index("ADR_ALL_ARC-1-a.md"));
+  d.commit("docs: adr 1");
+  d.git("push", "-q", "origin", "HEAD:develop");
+  d.git("fetch", "-q", "origin");
+  d.branche("docs/sous", "origin/develop", {
+    [`${ADR}/ADR_ALL_ARC-2-b.md`]: "# 2\n",
+    [`${ADR}/README.md`]: index("ADR_ALL_ARC-1-a.md", "ADR_ALL_ARC-2-b.md"),
+  });
+  d.branche("sujet/lot", "origin/develop", {
+    [`${ADR}/ADR_ALL_ARC-3-c.md`]: "# 3\n",
+    [`${ADR}/README.md`]: index("ADR_ALL_ARC-1-a.md", "ADR_ALL_ARC-3-c.md"),
+  });
+  d.git("switch", "-q", "--detach", "origin/develop");
+  d.github({
+    exiges: ["qualite"],
+    checks: { "*": { qualite: "SUCCESS" } },
+    pulls: [{ number: 80, title: "docs(adr): ADR 2", head: "docs/sous", base: "sujet/lot", labels: ["à-fusionner"], body: "## Revue de ticket\n\nRien de bloquant.\n" }],
+  });
+  return d;
+}
+
+test("sujet.sh fusionner : une sous-PR en conflit d'index passe sous les hooks (sortie 8) ; un pre-push qui refuse donne 3, pas 5", () => {
+  const d = sousPrConflitIndex();
+  const h = hooks(d);
+  const r = d.lancer(scriptDe("sujet", "sujet.sh"), "fusionner", "80");
+  assert.equal(r.status, 8, r.stdout + r.stderr);
+  const lus = h.lire();
+  for (const attendu of ["pre-commit", "commit-msg", "pre-push"]) assert.ok(lus.includes(attendu), `${attendu} : ${lus}`);
+
+  const refus = sousPrConflitIndex();
+  hooks(refus).refuser("pre-push");
+  const avant = distant(refus);
+  const x = refus.lancer(scriptDe("sujet", "sujet.sh"), "fusionner", "80");
+  assert.equal(x.status, 3, x.stdout + x.stderr);
+  assert.match(x.stdout + x.stderr, REFUS);
+  assert.equal(distant(refus), avant);
+});
+
+// Les cinq gestes de sujet.sh qui poussent : chacun un jouet prêt, sa commande, et le sort attendu.
+const CARTE_SUJET = "docs/features/demo/all/SPEC_ALL_DEM-1-demo.map.md";
+function sujetCarte() {
+  const d = depotJouet();
+  d.ecrire("docs/features/demo/all/SPEC_ALL_DEM-1-demo.spec.md", "# SPEC_ALL_DEM-1\n\nSujet: sujet/demo\n");
+  d.ecrire(CARTE_SUJET, "# carte\n\nSujet: sujet/demo\n\n## Fiche\n\nPhase: 4-vagues\n\n## Decisions-so-far\n\n- A-1 — x\n");
+  d.commit("docs: spec et carte");
+  d.git("push", "-q", "origin", "HEAD:develop");
+  d.branche("sujet/demo", "origin/develop", { "docs/x.md": "x\n" }, "feat(demo): x (#1)");
+  d.git("switch", "-q", "--detach", "origin/develop");
+  d.github({ pulls: [] });
+  return d;
+}
+const sujetEnRetard = () => {
+  const d = depotJouet();
+  d.branche("sujet/lot", "origin/develop", { "a.md": "a\n" }, "feat(demo): a (#1)");
+  d.branche("feat/s", "origin/sujet/lot", { "s.md": "s\n" });
+  d.branche("sujet/lot", "origin/sujet/lot", { "b.md": "b\n" }, "feat(demo): b (#2)");
+  d.git("switch", "-q", "--detach", "origin/develop");
+  return d;
+};
+const GESTES = {
+  ouvrir: () => ({ d: depotJouet(), args: ["ouvrir", "demo"] }),
+  "livrer intermédiaire": () => ({ d: sujetCarte(), args: ["livrer", "demo", "feat(demo): livraison intermédiaire"] }),
+  rafraichir: () => {
+    const d = depotJouet();
+    d.branche("sujet/lot", "origin/develop", { "a.md": "a\n" }, "feat(demo): a (#1)");
+    d.branche("develop", "origin/develop", { "b.md": "b\n" });
+    d.git("switch", "-q", "--detach", "origin/develop");
+    return { d, args: ["rafraichir", "lot"] };
+  },
+  relancer: () => {
+    const d = sujetEnRetard();
+    d.github({ pulls: [{ number: 50, title: "feat(demo): s", head: "feat/s", base: "sujet/lot", labels: [] }] });
+    return { d, args: ["relancer", "50"] };
+  },
+  geler: () => ({ d: sujetCarte(), args: ["geler", "demo", "le produit change d'avis"] }),
+};
+
+test("sujet.sh : ouvrir, livrer intermédiaire, rafraichir, relancer et geler réveillent le pre-push", () => {
+  for (const [nom, fabrique] of Object.entries(GESTES)) {
+    const { d, args } = fabrique();
+    const h = hooks(d);
+    const r = d.lancer(scriptDe("sujet", "sujet.sh"), ...args);
+    assert.equal(r.status, 0, `${nom} : ${r.stdout}${r.stderr}`);
+    assert.ok(h.pushes() >= 1, `${nom} : le pre-push n'a pas été joué`);
+  }
+});
+
+test("sujet.sh : un pre-push qui refuse donne 3 (geler : au premier essai, hook joué une fois, pas 9), distant inchangé, sortie du hook visible", () => {
+  for (const [nom, fabrique] of Object.entries(GESTES)) {
+    const { d, args } = fabrique();
+    const h = hooks(d);
+    h.refuser("pre-push");
+    const avant = distant(d);
+    const r = d.lancer(scriptDe("sujet", "sujet.sh"), ...args);
+    assert.equal(r.status, 3, `${nom} : ${r.stdout}${r.stderr}`);
+    assert.match(r.stdout + r.stderr, REFUS, `${nom} : sortie du hook`);
+    assert.equal(distant(d), avant, `${nom} : distant inchangé`);
+    if (nom === "geler") assert.equal(h.pushes(), 1, "pas de second essai");
+    if (nom === "livrer intermédiaire") assert.ok(!d.journal().some((e) => e.methode === "POST" && e.route === "pulls"), "aucune PR ouverte");
+    assert.equal(d.git("status", "--porcelain"), "", `${nom} : worktree propre`);
+  }
 });

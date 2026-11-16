@@ -6,7 +6,7 @@ Ces skills ne portent **aucune règle métier**. Ce sont des règles de configur
 
 ## Installer
 
-Le dépôt est **privé** : il faut un accès en lecture (membre de MAJ-agency, ou invité sur le dépôt) et un `git` authentifié sur GitHub (`gh auth login`, ou une clé SSH).
+Le dépôt est **public** : aucun accès à demander, aucune authentification GitHub pour installer.
 
 ```bash
 claude plugin marketplace add MAJ-agency/skills
@@ -20,13 +20,13 @@ claude plugin marketplace update maj
 claude plugin update maj-skills@maj
 ```
 
-**Dans un environnement cloud** (sessions Claude Code sur claude.ai), le script de configuration n'a pas d'identifiants GitHub : il ne peut pas cloner un dépôt privé. Ajouter `MAJ-agency/skills` aux **Dépôts** de l'environnement, à côté du projet ; la session le clone alors elle-même, et le script installe le plugin depuis ce dossier, toujours à la version du clone :
+**Dans un environnement cloud** (sessions Claude Code sur claude.ai), le script de configuration de l'environnement de chaque projet installe le plugin depuis GitHub et le met à jour. Il ne se rejoue pas à chaque session : l'environnement garde un instantané du disque pris à son dernier passage, et toute session, celles lancées par une autre comprises, part de cet instantané, avec la version du plugin qu'il porte ; le script ne repasse qu'à un changement du script ou des hôtes autorisés, ou à l'expiration de l'instantané (environ sept jours, documentation de Claude Code, page des environnements cloud). Une mise à jour jouée dans la session change les fichiers du marketplace, pas les skills déjà chargés : une session lancée par l'architecte se met à niveau en tête de son prompt (`skills/chaine/architecte/references/lancement.md`, § « La mise à niveau »). `install` ne touche pas à un plugin déjà présent.
 
 ```bash
-if [ -d skills ]; then
-  claude plugin marketplace add "$PWD/skills" || true
-  claude plugin install maj-skills@maj || true
-fi
+claude plugin marketplace add MAJ-agency/skills || true
+claude plugin install maj-skills@maj || true
+claude plugin marketplace update maj || true
+claude plugin update maj-skills@maj || true
 ```
 
 ## Les skills
@@ -83,8 +83,8 @@ Invocation : `/maj-skills:socle-mobile-expo`. Suppose la racine et les contrats 
 | [`revue-de-ticket`](skills/chaine/revue-de-ticket/SKILL.md)                       | Quand un ticket est « fini » : trois sous-agents vierges — règles (la revue adversariale), ticket (surfaces, décisions, règles et cas de bord, périmètre), documentation — une seule section de PR                                                              |
 | [`sujet`](skills/chaine/sujet/SKILL.md)                                           | Un lot de PR liées sur `sujet/<nom>` dès sa première PR, entré dans develop en une PR par un commit de merge ; `demarrer`, `etat`, `livrer`, `geler` / `degeler` (le gel d'un chantier)                                                                         |
 | [`fusionner`](skills/chaine/fusionner/SKILL.md)                                   | Le capitaine de fusion : la file `à-fusionner` passée une PR à la fois, les sous-PR dans leur sujet, les renvois comptés (au plafond, la PR attend un humain), les PR d'un sujet gelé laissées dans la file ; une seule session                                 |
-| [`architecte`](skills/chaine/architecte/SKILL.md)                                 | L'architecte d'un programme : seul à parler au produit, il tient la carte du programme, mène le grilling jusqu'à la spec validée, lance conducteurs et capitaines avec leur procédure entière, passe la main au plafond                                         |
-| [`chantier`](skills/chaine/chantier/SKILL.md)                                     | Le conducteur de chantier : depuis une spec validée, carte, tickets prêts pour agent, sujet, vagues de sessions filles, suivi sans attente active, rétro ; reprenable ; interrompt une fille au plafond, arrête un chantier gelé                                |
+| [`architecte`](skills/chaine/architecte/SKILL.md)                                 | L'architecte d'un programme : seul à parler au produit, il tient la carte du programme, mène le grilling jusqu'à la spec validée, lance sans lui demander conducteurs, capitaines et sessions de ticket prêtes, avec leur procédure entière et ses consignes, ouvre lui-même les PR de documentation, relaie les plafonds au produit                                   |
+| [`chantier`](skills/chaine/chantier/SKILL.md)                                     | Le conducteur de chantier : depuis une spec validée, carte, tickets prêts pour agent, sujet, vagues de sessions filles, suivi sans attente active, rétro ; reprenable ; signale un plafond sans rien couper, arrête un chantier gelé                            |
 | [`recette-humaine`](skills/chaine/recette-humaine/SKILL.md)                       | La recette d'un module en quatre phases, arrêt après l'inventaire pour que le produit tranche, tests rouges, tickets de défauts                                                                                                                                 |
 
 Invocation : `/maj-skills:socle-chaine-de-production` une fois par dépôt (depuis `socle-monorepo`, ou à la main ; `chantier` le réclame s'il manque), qui pose les scripts des quatre autres dans `scripts/chaine/` ; `/maj-skills:tickets` et `/maj-skills:revue-adversariale` au quotidien dans une session de travail ; `/maj-skills:sujet` au début de tout ticket ; `/maj-skills:architecte`, `/maj-skills:fusionner` et `/maj-skills:chantier` chacun dans une session dédiée (l'architecte dans une session ouverte par le produit) ; `/maj-skills:recette-humaine` sur un module livré.
@@ -152,7 +152,7 @@ skills/
       references/      scripts (docs/, verify/) et leurs tests, tracker, labels de triage, gabarits
     revue-adversariale/
       SKILL.md         poser, quand, le diff, les chemins sensibles, le sous-agent, trier, corriger
-      scripts/         diff-revue.sh
+      scripts/         diff-revue.sh, chemins-sensibles.mjs
       references/      critères du socle, prompt exact, section de PR
     sujet/
       SKILL.md         quand un sujet, session de travail, capitaine, livrer
@@ -161,16 +161,17 @@ skills/
       SKILL.md         la règle, REST seulement, mise en place, boucle, renvoyer, fin de passage
       scripts/         github.sh, identifiant.mjs, file.sh, passer.sh, boucle.sh, renvoyer.sh, refus.sh, proprietaire.sh, revue-exigee.mjs, migrations-ordre.mjs, les tests
     architecte/
-      SKILL.md         lire, vérifier l'environnement, la carte du programme, le grilling, lancer, suivre, passer la main
+      SKILL.md         lire, vérifier l'environnement, la carte du programme, le grilling, lancer, suivre, changer d'architecte
       references/      les prompts de lancement d'un conducteur et d'un capitaine
     chantier/
       SKILL.md         reprendre ou démarrer, setup, les six phases, le suivi à chaque réveil, l'arrêt d'un chantier
-      scripts/         plafonds.mjs (plafonds de session et de coût) et son banc
       references/      CONTENU.md
     recette-humaine/
       SKILL.md         quand, les règles du jeu, les quatre phases
       references/      la méthode : familles de défauts, grilles, gabarit de l'inventaire
 ```
+
+Les bancs (`pnpm test`, joués aussi par la CI) demandent Node ≥ 22, `git` et `jq` (`sudo apt install jq` ou `brew install jq`) ; sans `jq`, chaque banc de la chaîne échoue sur une ligne qui le dit.
 
 ## Ajouter un skill
 
@@ -180,6 +181,8 @@ skills/
 4. **Bumper `version` dans `.claude-plugin/plugin.json`** — c'est ce champ que `claude plugin update maj-skills@maj` compare : sans bump, aucun changement de contenu n'est détecté chez ceux qui ont installé le plugin. Patch pour une correction, mineure pour un skill ou un gabarit ajouté, majeure quand un skill existant change de contrat.
 
 Cette règle vaut pour **tout** changement de contenu, pas seulement l'ajout d'un skill.
+
+Un skill dont l'étape `poser` copie un dossier de scripts dans `scripts/chaine/` d'un projet ajoute ce dossier à `POSES` dans `scripts/poses.test.mjs` : le garde pose ses fichiers à plat et rejoue ses bancs hors du plugin. Un banc posé ne lit jamais l'arbre du plugin sans repli vers le fichier du projet.
 
 Ce qui dépasse une page va dans `references/`, atteint par un pointeur depuis `SKILL.md` — le corps du skill reste lisible, et les détails ne se chargent qu'au besoin.
 

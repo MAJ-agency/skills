@@ -3,6 +3,8 @@
 // GitHub est simulé par le faux `gh` du dépôt jouet ; aucun réseau.
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { chmodSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { depotJouet, script } from "./depot-jouet.mjs";
 
 const SCRIPT = script("sujet", "sujet.sh");
@@ -91,6 +93,63 @@ test("demarrer refuse un ticket dont la spec n’est que sur une branche de spec
   const r = demarrer(d, "SPEC_ALL_DEM-1.01");
   assert.equal(r.status, 4, r.stdout + r.stderr);
   assert.match(r.stdout, /ni sur develop ni sur un sujet/);
+});
+
+// Branche de ticket partie de develop, deux commits, déjà poussée, alors que le ticket déclare un
+// sujet qui a avancé ; develop a avancé aussi, et la branche l'a fusionné (commit de merge).
+const TRAVAIL = "feat/spec-all-dem-1-01-travail";
+function brancheParteDeDevelop() {
+  const d = sujetAvecTickets("—");
+  d.git("switch", "-q", "-c", "tmp", "origin/sujet/demo");
+  d.ecrire("sujet.txt", "sujet\n");
+  d.commit("feat: le sujet avance");
+  d.git("push", "-q", "origin", "HEAD:sujet/demo");
+  d.git("switch", "-q", "-c", TRAVAIL, "origin/develop");
+  d.ecrire("a.txt", "a\n");
+  d.commit("feat: a");
+  d.git("switch", "-q", "-c", "tmp2", "origin/develop");
+  d.ecrire("develop.txt", "develop\n");
+  d.commit("feat: develop avance");
+  d.git("push", "-q", "origin", "HEAD:develop");
+  d.git("fetch", "-q", "origin");
+  d.git("switch", "-q", TRAVAIL);
+  d.git("merge", "-q", "--no-edit", "origin/develop");
+  d.ecrire("b.txt", "b\n");
+  d.commit("feat: b");
+  d.git("push", "-q", "-u", "origin", `HEAD:refs/heads/${TRAVAIL}`);
+  return d;
+}
+
+test("demarrer d'une branche poussée partie de develop : refus 4, consigne sans rebase ni push forcé, branche intacte", () => {
+  const d = brancheParteDeDevelop();
+  const avant = { tete: d.git("rev-parse", "HEAD"), distante: d.git("ls-remote", "--heads", "origin", TRAVAIL) };
+  const r = demarrer(d, "SPEC_ALL_DEM-1.01");
+  assert.equal(r.status, 4, r.stdout + r.stderr);
+  assert.doesNotMatch(r.stdout, /\brebase\b.*origin|--force|push -f|\+HEAD|reset --hard|--amend/);
+  assert.match(r.stdout, /^ {2}git switch --no-track -c feat\/spec-all-dem-1-01-travail-sur-sujet origin\/sujet\/demo$/m);
+  assert.match(r.stdout, /^ {2}git cherry-pick --no-merges origin\/develop\.\.feat\/spec-all-dem-1-01-travail$/m);
+  assert.match(r.stdout, /^ {2}git push -u origin feat\/spec-all-dem-1-01-travail-sur-sujet$/m);
+  assert.match(r.stdout, /^En conflit : résoudre, git add, git cherry-pick --continue \(ou --abort : rien n'est perdu, l'ancienne branche reste ; après --abort, feat\/spec-all-dem-1-01-travail-sur-sujet existe déjà : la reprendre par git switch feat\/spec-all-dem-1-01-travail-sur-sujet, pas par -c\)\.$/m);
+  assert.equal(d.git("rev-parse", "HEAD"), avant.tete);
+  assert.equal(d.git("rev-parse", "--abbrev-ref", "HEAD"), TRAVAIL);
+  assert.equal(d.git("ls-remote", "--heads", "origin", TRAVAIL), avant.distante);
+});
+
+test("la consigne de demarrer, jouée telle quelle, reprend les commits sur une branche neuve partie du sujet", () => {
+  const d = brancheParteDeDevelop();
+  const distante = d.git("ls-remote", "--heads", "origin", TRAVAIL);
+  const consigne = demarrer(d, "SPEC_ALL_DEM-1.01").stdout.split("\n").filter((l) => l.startsWith("  git "));
+  assert.equal(consigne.length, 3, consigne.join("\n"));
+  d.git(...consigne[0].trim().split(/\s+/).slice(1));
+  assert.throws(() => d.git("rev-parse", "--abbrev-ref", "@{u}"), undefined, "la branche neuve ne suit pas le sujet");
+  for (const ligne of consigne.slice(1)) d.git(...ligne.trim().split(/\s+/).slice(1));
+  assert.equal(d.git("rev-parse", "--abbrev-ref", "@{u}"), `origin/${TRAVAIL}-sur-sujet`);
+  const r = demarrer(d, "SPEC_ALL_DEM-1.01");
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /^base=sujet\/demo$/m);
+  assert.equal(d.git("log", "--format=%s", "origin/sujet/demo..HEAD"), "feat: b\nfeat: a");
+  assert.equal(d.git("rev-parse", "HEAD"), d.git("rev-parse", `origin/${TRAVAIL}-sur-sujet`));
+  assert.equal(d.git("ls-remote", "--heads", "origin", TRAVAIL), distante);
 });
 
 test("ouvrir crée le sujet par git push et ne tente aucun appel de protection", () => {
@@ -693,4 +752,119 @@ test("geler : une raison contenant des séquences d'échappement littérales res
   const carte = d.git("show", `origin/sujet/demo:${CARTE_GEL}`);
   assert.match(carte, /^Gel: \d{4}-\d{2}-\d{2} — a\\nb\\tc \\\\ d$/m);
   assert.equal(d.git("diff", "--numstat", "origin/sujet/demo~1", "origin/sujet/demo").split("\t").slice(0, 2).join(","), "1,0");
+});
+
+// =============================================================================
+// Une carte de chantier peut couvrir plusieurs sujets : `Sujet: sujet/a, sujet/b, sujet/c`.
+// Chaque commande qui lit la carte d'un sujet la trouve quand l'une des valeurs le nomme.
+// =============================================================================
+const CARTE_MULTI = "docs/features/demo/all/SPEC_ALL_DEM-1-demo.map.md";
+const carteMulti = (ligne = "Sujet: sujet/a, sujet/b, sujet/c", phase = "4-vague-1", suite = "") =>
+  `# SPEC_ALL_DEM-1 — Carte\n\n${ligne}\n\n## Fiche\n\nPhase: ${phase}\nConducteur: session_y${suite}\n\n## Decisions-so-far\n\n- A-1 — x\n`;
+
+// Le faux `pnpm` du jouet ne formate rien : un « Prettier » identité, pour `carte <nom>`.
+function formateurIdentite(d) {
+  const fichier = join(d.racine, "bin", "pnpm");
+  writeFileSync(fichier, "#!/bin/sh\ncat\n");
+  chmodSync(fichier, 0o755);
+}
+
+// Trois sujets a, b, c, chacun avec la carte (trois valeurs sur sa ligne `Sujet:`) et un commit propre ;
+// la spec déclare `a`.
+function troisSujets(ligne) {
+  const d = depotJouet();
+  formateurIdentite(d);
+  d.ecrire(CARTE_MULTI, carteMulti(ligne));
+  d.ecrire(SPEC, "# SPEC_ALL_DEM-1\n\nSujet: sujet/a\n");
+  d.ecrire(ticket("01"), "# .01\n\nStatus: ready-for-agent\nBlocked by: —\n");
+  d.commit("docs: carte et spec");
+  d.git("push", "-q", "origin", "HEAD:develop", "HEAD:refs/heads/sujet/a", "HEAD:refs/heads/sujet/b", "HEAD:refs/heads/sujet/c");
+  for (const x of ["a", "b", "c"]) {
+    d.branche(`sujet/${x}`, `origin/sujet/${x}`, { [`src/${x}.ts`]: "export {};\n" }, `feat(demo): ${x} (#1)`);
+  }
+  d.git("switch", "-q", "--detach", "origin/develop");
+  return d;
+}
+
+test("geler, gel, degeler et etat trouvent la carte qui nomme plusieurs sujets et n'écrivent que sur la branche du sujet visé", () => {
+  const d = troisSujets();
+  const g = d.lancer(SCRIPT, "geler", "b", "pause");
+  assert.equal(g.status, 0, g.stdout + g.stderr);
+  assert.equal(d.lancer(SCRIPT, "gel", "b").status, 0);
+  assert.equal(d.lancer(SCRIPT, "gel", "a").status, 1, "la copie de la carte sur sujet/a n'est pas touchée");
+  assert.equal(d.lancer(SCRIPT, "gel", "c").status, 1);
+  assert.match(d.git("show", "origin/sujet/b:" + CARTE_MULTI), /^Gel: \d{4}-\d{2}-\d{2} — pause$/m);
+  assert.doesNotMatch(d.git("show", "origin/sujet/a:" + CARTE_MULTI), /^Gel:/m);
+  const etat = d.lancer(SCRIPT, "etat").stdout;
+  assert.match(etat, /^b\t.*\tgelé$/m);
+  assert.match(etat, /^a\t.*\ten cours$/m);
+  const r = d.lancer(SCRIPT, "degeler", "b");
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.equal(d.lancer(SCRIPT, "gel", "b").status, 1);
+});
+
+test("livre : une carte qui nomme plusieurs sujets les donne tous livrés en phase fini sur develop, aucun avant", () => {
+  const d = depotJouet();
+  d.ecrire(CARTE_MULTI, carteMulti(undefined, "4-vague-1"));
+  d.commit("docs: carte");
+  d.git("push", "-q", "origin", "HEAD:develop");
+  for (const x of ["a", "b", "c"]) assert.equal(d.lancer(SCRIPT, "livre", x).status, 1, `${x} : carte en phase 4`);
+  d.ecrire(CARTE_MULTI, carteMulti(undefined, "fini"));
+  d.commit("docs: carte finie");
+  d.git("push", "-q", "origin", "HEAD:develop");
+  for (const x of ["a", "b", "c"]) assert.equal(d.lancer(SCRIPT, "livre", x).status, 0, `${x} : carte finie`);
+  assert.equal(d.lancer(SCRIPT, "livre", "d").status, 1, "un sujet que la carte ne nomme pas");
+});
+
+test("livrer : la carte qui nomme plusieurs sujets, en phase 4 sur le sujet, donne une livraison intermédiaire", () => {
+  const d = depotJouet();
+  d.ecrire(SPEC, "# SPEC_ALL_DEM-1\n\nSujet: sujet/b\n");
+  d.commit("docs: spec");
+  d.git("push", "-q", "origin", "HEAD:develop");
+  d.branche("sujet/b", "origin/develop", { [CARTE_MULTI]: carteMulti(undefined, "4-vague-2") }, "docs(demo): carte (#1)");
+  d.git("switch", "-q", "--detach", "origin/develop");
+  d.github({ pulls: [] });
+  const r = d.lancer(SCRIPT, "livrer", "b", "feat(demo): livraison intermédiaire");
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(d.journal().find((e) => e.methode === "POST" && e.route === "pulls").champs.head, /^livraison\/b-\d{8}-\d{4}$/);
+});
+
+test("carte <nom> pousse la mise à jour d'une carte qui nomme plusieurs sujets, sur chacun des sujets qu'elle nomme, et refuse celui qu'elle ne nomme plus", () => {
+  const d = troisSujets();
+  for (const x of ["a", "b"]) {
+    d.git("switch", "-q", "-C", `docs/carte-${x}`, `origin/sujet/${x}`);
+    d.ecrire(CARTE_MULTI, carteMulti(undefined, "4-vague-1", `\nSessions: s-${x}`));
+    d.commit(`docs(demo): carte ${x}`);
+    const r = d.lancer(SCRIPT, "carte", x);
+    assert.equal(r.status, 0, r.stdout + r.stderr);
+    d.git("fetch", "-q", "origin");
+    assert.match(d.git("show", `origin/sujet/${x}:${CARTE_MULTI}`), new RegExp(`^Sessions: s-${x}$`, "m"));
+  }
+  assert.doesNotMatch(d.git("show", "origin/sujet/c:" + CARTE_MULTI), /Sessions/);
+  d.git("switch", "-q", "-C", "docs/carte-c", "origin/sujet/c");
+  d.ecrire(CARTE_MULTI, carteMulti("Sujet: sujet/a, sujet/b"));
+  d.commit("docs(demo): c retiré de la carte");
+  const refus = d.lancer(SCRIPT, "carte", "c");
+  assert.equal(refus.status, 9, refus.stdout + refus.stderr);
+  assert.match(refus.stdout, /plus exactement/);
+});
+
+test("demarrer refuse un ticket dont la ligne Sujet: nomme plusieurs sujets (sortie 4), le sien d'abord, sinon celle de sa spec", () => {
+  const d = depotJouet();
+  d.ecrire(SPEC, "# SPEC_ALL_DEM-1\n\nSujet: sujet/a, sujet/b\n");
+  d.ecrire(ticket("01"), "# .01\n\nStatus: ready-for-agent\nBlocked by: —\n");
+  d.ecrire(ticket("02"), "# .02\n\nStatus: ready-for-agent\nSujet: sujet/a\nBlocked by: —\n");
+  d.ecrire(ticket("03"), "# .03\n\nStatus: ready-for-agent\nSujet: sujet/a sujet/b\nBlocked by: —\n");
+  d.commit("docs: specs");
+  d.git("push", "-q", "origin", "HEAD:develop", "HEAD:refs/heads/sujet/a");
+  d.git("switch", "-q", "-c", "feat/spec-all-dem-1-01-travail", "origin/develop");
+  for (const nn of ["01", "03"]) {
+    const r = demarrer(d, `SPEC_ALL_DEM-1.${nn}`);
+    assert.equal(r.status, 4, nn + r.stdout + r.stderr);
+    assert.match(r.stdout, new RegExp(`SPEC_ALL_DEM-1\\.${nn} déclare plusieurs sujets \\(Sujet: sujet/a`));
+    assert.match(r.stdout, /un ticket se démarre sur un seul sujet/);
+  }
+  const propre = demarrer(d, "SPEC_ALL_DEM-1.02");
+  assert.equal(propre.status, 0, propre.stdout + propre.stderr);
+  assert.match(propre.stdout, /^base=sujet\/a$/m);
 });

@@ -12,7 +12,7 @@ Le `code-review` de Matt Pocock relit « standards » et « spec » en deux sous
 
 ## Étape 0 — poser (une fois par dépôt, `poser`)
 
-`scripts/contexte-ticket.mjs` et son test → `scripts/chaine/` (ils lisent `scripts/docs/identifiants.mjs`, posé par `socle-monorepo`). Le skill `revue-adversariale` est posé (`scripts/chaine/diff-revue.sh`, fichier de critères). Puis `docs/agents/issue-tracker.md` § Livrer et `docs/agents/chaine-de-production.md` § 5 nomment cette revue (les gabarits ≥ 3.2 la nomment déjà).
+`scripts/contexte-ticket.mjs` et son test → `scripts/chaine/` (ils lisent `scripts/docs/identifiants.mjs`, posé par `socle-monorepo`). Le skill `revue-adversariale` est posé (`scripts/chaine/diff-revue.sh` et `chemins-sensibles.mjs`, fichier de critères). Puis `docs/agents/issue-tracker.md` § Livrer et `docs/agents/chaine-de-production.md` § 5 nomment cette revue (les gabarits ≥ 3.2 la nomment déjà).
 
 ## Quand
 
@@ -27,7 +27,7 @@ REVUE_DIR=<scratchpad>/revue bash scripts/chaine/diff-revue.sh [<base>]
 node scripts/chaine/contexte-ticket.mjs <ID> > <scratchpad>/revue/contexte.md
 ```
 
-Base `origin/develop`, ou `origin/sujet/<nom>` pour une sous-PR de sujet. L'identifiant est celui de la branche (`feat/spec-all-soc-1-03-…` → `SPEC_ALL_SOC-1.03`). Un ticket dont `## Surfaces` est vide ou dont une règle de la ligne `Règles:` est « introuvable » dans le contexte : **s'arrêter**, c'est un défaut du ticket, à corriger dans le ticket avant de relire le code. Chemins sensibles : comme la revue adversariale (étape 2 de son SKILL).
+Base `origin/develop`, ou `origin/sujet/<nom>` pour une sous-PR de sujet. `diff-revue.sh` sort en 1 si la base ne se rapatrie pas ou si le diff est vide : s'arrêter et le lire, aucun sous-agent sur un diff vide. L'identifiant est celui de la branche (`feat/spec-all-soc-1-03-…` → `SPEC_ALL_SOC-1.03`). Un ticket dont `## Surfaces` est vide ou dont une règle de la ligne `Règles:` est « introuvable » dans le contexte : **s'arrêter**, c'est un défaut du ticket, à corriger dans le ticket avant de relire le code. Chemins sensibles : comme la revue adversariale (étape 2 de son SKILL).
 
 ## Étape 2 — trois sous-agents, en parallèle
 

@@ -34,7 +34,7 @@ La CLI est un paquet npm **privé** sur GitHub Packages. Comme une application s
    @maj-agency:registry=https://npm.pkg.github.com
    //npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}
    ```
-2. `pnpm add -Dw @maj-agency/anchorpost` (l'ajout d'une dépendance demande l'accord humain : le dire).
+2. `pnpm add -Dw @maj-agency/anchorpost` (le hook d'agent refuse une dépendance que la ligne `Dépendances:` du ticket ne prévoit pas : la prévoir dans le ticket).
 3. Dans `package.json` racine, deux scripts : `"anchorpost:index": "anchorpost index"` et `"anchorpost:check": "anchorpost check"`.
 4. Si `NODE_AUTH_TOKEN` manque dans la session, **ne pas inventer de valeur** : écrire la recette (étape 6) et continuer ; l'installation se finira sur un poste qui a la clé. Dans un environnement cloud de Claude, la clé est une network secret pour `npm.pkg.github.com` et la variable vaut une valeur factice que le proxy remplace.
 

@@ -18,7 +18,7 @@ Le _pourquoi_ de cette règle, avec ses alternatives écartées, vit dans [`ADR_
 | `TYPE`   | ce que c'est                                    | l'un des six types ci-dessous                     |
 | `CTX`    | le contexte, `ALL` pour ce qui vaut partout     | majuscules, `[A-Z][A-Z0-9]*` ; `ALL` toujours écrit |
 | `TRI`    | le **sujet**, pas le dossier                    | 2 à 4 lettres majuscules, du [registre](#registre-des-trigrammes) |
-| `n`      | la séquence, unique par type, contexte et trigramme | sans zéro de tête pour un document neuf ; un identifiant existant **ne se renomme pas**, même avec ses zéros (`LIC-05` chez Fedora), sauf pour résoudre une collision de sigles avant la première lecture par Anchorpost ([collision de sigles](#résoudre-une-collision-de-sigles)) |
+| `n`      | la séquence, unique par type, contexte et trigramme | sans zéro de tête pour un document neuf ; un identifiant existant **ne se renomme pas**, même avec ses zéros (`LIC-05`), sauf pour résoudre une collision de sigles avant la première lecture par Anchorpost ([collision de sigles](#résoudre-une-collision-de-sigles)) |
 | `NN`     | l'index d'un ticket dans sa spec                | deux chiffres                                     |
 
 Un tiret bas sépare le type, le contexte et le trigramme. Un tiret simple ne précède que le numéro. Aucune autre forme.
@@ -38,7 +38,7 @@ Un ticket n'a pas de type à lui : il n'existe pas sans sa spec (`SPEC_ALL_LIC-1
 
 ### Le contexte
 
-Un projet a des **contextes** : des partitions de ses règles et de ses features. `ALL` existe toujours : c'est le socle, ce qui vaut pour tout le projet. Un projet qui sert une seule organisation n'a que `ALL`, et l'écrit quand même : `RULE_ALL_LIC-3`, jamais `LIC-3`. Chez Fedora, chaque fédération est un contexte (`FNSMR`, `FFSA`). Un client n'est pas un contexte : un projet qui a plusieurs clients et un seul produit n'a que `ALL`.
+Un projet a des **contextes** : des partitions de ses règles et de ses features. `ALL` existe toujours : c'est le socle, ce qui vaut pour tout le projet. Un projet qui sert une seule organisation n'a que `ALL`, et l'écrit quand même : `RULE_ALL_LIC-3`, jamais `LIC-3`. Dans un projet qui sert plusieurs fédérations, chaque fédération est un contexte (`FNSMR`, `FFSA`). Un client n'est pas un contexte : un projet qui a plusieurs clients et un seul produit n'a que `ALL`.
 
 Le contexte s'écrit en majuscules dans l'identifiant et en minuscules dans les noms de dossiers (`all/`, `fnsmr/`). La liste des contextes d'un projet est dans son manifeste Anchorpost s'il en a un, sinon dans ce fichier, sous le registre des trigrammes.
 

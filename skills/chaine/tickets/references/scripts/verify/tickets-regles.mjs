@@ -5,6 +5,7 @@
  * Vocabulaire de `Status:` : `docs/agents/triage-labels.md`. Format « prêt pour agent » :
  * `docs/agents/chaine-de-production.md` § 3. Tout changement passe d'abord par ces fichiers.
  */
+import { nomsDeSujets } from '../docs/ligne-sujet.mjs';
 import { TICKET, identifiantDeLaSpec, identifiantDuTicket, estArchive, lireIdentifiant, litteral, dossierDuContexte, REGLE } from '../docs/identifiants.mjs';
 
 export { identifiantDuTicket as identifiant, estArchive };
@@ -248,6 +249,7 @@ function sections(lignes) {
   return corps;
 }
 
+// Ce moteur a une copie dans `revue-adversariale/scripts/chemins-sensibles.mjs`, gardée d'accord par son banc de parité.
 /**
  * Motif de chemin (`**` = tout, y compris zéro dossier avant `/` ; `*` = un segment) → expression
  * régulière. `scripts/agent/regles.mjs` n'expose qu'un moteur à `*` seul : il ne lit pas les `**` de
@@ -285,13 +287,17 @@ export function lireCheminsSensibles(texte) {
   return liste;
 }
 
-/** Valeurs par défaut des plafonds (A-9, P-3) : les mêmes que `chantier/scripts/plafonds.mjs`. */
-const PLAFONDS_PAR_DEFAUT = { contexteFille: 300000, coutFille: 20, contextePilote: 400000, renvoisParPR: 3 };
+/** Valeurs par défaut des plafonds (A-9 ; P-3, amendée le 2026-11-14) : les mêmes que dit `chantier/SKILL.md` § 6. */
+const PLAFONDS_PAR_DEFAUT = { contexteFille: 400000, contextePilote: 400000, renvoisParPR: 3 };
+
+/** Clés d'avant, qu'un contrat déjà posé peut encore porter : acceptées telles quelles, et ignorées. */
+const PLAFONDS_ABANDONNES = new Set(['coutFille']);
 
 /**
  * `plafonds` du contrat `.claude/chaine.json`. `texte` null : pas de contrat, aucun plafond contrôlé
  * (`null`). Contrat sans la clé : les valeurs par défaut. Clé mal formée, comme un contrat illisible :
- * lève (le gate échoue fermé).
+ * lève (le gate échoue fermé). `coutFille`, le seuil de coût d'une fille abandonné le 2026-11-14, est
+ * ignoré quelle que soit sa valeur : seul le contexte se juge.
  */
 export function lirePlafonds(texte) {
   if (texte === null) return null;
@@ -305,12 +311,15 @@ export function lirePlafonds(texte) {
   if (p === undefined) return { ...PLAFONDS_PAR_DEFAUT };
   if (typeof p !== 'object' || p === null || Array.isArray(p))
     throw new Error('.claude/chaine.json : `plafonds` doit être un objet');
+  const lus = {};
   for (const [cle, v] of Object.entries(p)) {
+    if (PLAFONDS_ABANDONNES.has(cle)) continue;
     if (!(cle in PLAFONDS_PAR_DEFAUT)) throw new Error(`.claude/chaine.json : plafonds.${cle} inconnu`);
     if (typeof v !== 'number' || !Number.isFinite(v) || v <= 0)
       throw new Error(`.claude/chaine.json : plafonds.${cle} doit être un nombre strictement positif`);
+    lus[cle] = v;
   }
-  return { ...PLAFONDS_PAR_DEFAUT, ...p };
+  return { ...PLAFONDS_PAR_DEFAUT, ...lus };
 }
 
 const cellulesDe = (ligne) => ligne.trim().replace(/^\||\|$/g, '').split('|').map((c) => c.trim());
@@ -329,15 +338,10 @@ export function contexteEnTokens(texte) {
   return Number(m[1].replace(/\s/g, '')) * (m[2] ? 1000 : 1);
 }
 
-/** Coût `2,20` ou `2.20` → nombre ; autre forme → null (la lecture de `couts.mjs`, `montant`). */
-const coutEnDollars = (texte) => {
-  const t = texte.trim().replace(/\s/g, '').replace(',', '.');
-  return /^\d+(\.\d+)?$/.test(t) ? Number(t) : null;
-};
-
 /**
- * Plafonds de `## Coût` : une ligne dont le rôle est jugé (`fille`, `conducteur`, `architecte`) qui
- * atteint son plafond (l'égalité compte) exige une ligne dans `## Dépassements` pour la même session.
+ * Plafonds de `## Coût` : une ligne dont le rôle est jugé (`fille`, `conducteur` ; pas `architecte`, P-25) qui
+ * atteint son plafond de contexte (l'égalité compte) exige une ligne dans `## Dépassements` pour la même
+ * session. Le coût ne se juge pas : la colonne « Coût $ » n'est pas lue ici.
  * Tout autre rôle n'est pas jugé ; une cellule « Contexte max » vide, `—`, `à relever` ou au gabarit
  * non plus ; toute autre forme illisible sur un rôle jugé est une erreur de la carte.
  */
@@ -349,10 +353,10 @@ function plafondsDeLaCarte({ nom, lignes, corps, plafonds }) {
       .filter((s) => !NON_RELEVE.test(s)),
   );
   for (const { ligne, cellules } of lignesDeTableau(lignes, corps.get('Coût'))) {
-    const [role = '', ticket = '', session = '', , contexte = '', cout = ''] = cellules;
+    const [role = '', ticket = '', session = '', , contexte = ''] = cellules;
     const r = role.toLowerCase();
     const fille = r === 'fille';
-    if (!fille && r !== 'conducteur' && r !== 'architecte') continue;
+    if (!fille && r !== 'conducteur') continue; // l'architecte n'a pas de plafond (P-25)
     const mesures = [];
     if (!NON_RELEVE.test(contexte)) {
       const tokens = contexteEnTokens(contexte);
@@ -363,19 +367,10 @@ function plafondsDeLaCarte({ nom, lignes, corps, plafonds }) {
       const plafond = fille ? plafonds.contexteFille : plafonds.contextePilote;
       if (tokens >= plafond) mesures.push(`contexte ${tokens} tokens ≥ plafond ${plafond}`);
     }
-    let dollars = null;
-    if (fille && !NON_RELEVE.test(cout)) {
-      dollars = coutEnDollars(cout);
-      if (dollars === null) {
-        erreurs.push({ ligne, message: `carte ${nom} : \`## Coût\`, ligne ${role}/${ticket} : « Coût $ » « ${cout} » illisible (attendu un montant : \`2,20\`)` });
-        continue;
-      }
-    }
-    if (dollars !== null && dollars >= plafonds.coutFille) mesures.push(`coût ${dollars} $ ≥ plafond ${plafonds.coutFille} $`);
     if (mesures.length === 0 || (session && couvertes.has(session))) continue;
     erreurs.push({
       ligne,
-      message: `carte ${nom} : \`## Coût\`, session ${session || '(sans identifiant)'} (${role}) : ${mesures.join(' ; ')}, sans ligne dans \`## Dépassements\` pour cette session (décision du produit : découper, relancer ou accepter par écrit)`,
+      message: `carte ${nom} : \`## Coût\`, session ${session || '(sans identifiant)'} (${role}) : ${mesures.join(' ; ')}, sans ligne dans \`## Dépassements\` pour cette session (le plafond se signale au produit, sa décision s'y écrit)`,
     });
   }
   return erreurs;
@@ -539,7 +534,8 @@ const phaseValide = (v) => /^(1-grilling|2-decoupage|3-specs-en-fusion|4-vague-[
 
 /**
  * Contrôle de la fiche d'une carte de chantier (`*.map.md` portant une ligne `Sujet:`). Une carte
- * sans ligne `Sujet:` n'est pas une carte de chantier : ignorée (`carte: false`).
+ * sans ligne `Sujet:` n'est pas une carte de chantier : ignorée (`carte: false`). Une carte peut couvrir
+ * plusieurs sujets (`Sujet: sujet/a, sujet/b`) ; un ticket n'en nomme qu'un.
  * La fiche nomme `Responsable:` (une personne, jamais un identifiant de session) et `Conducteur:` (la
  * session qui mène le chantier) ; `Architecte:` (la session du programme) est facultative.
  * `ficheGelee` : carte d'avant ces deux lignes, gelée dans la clé `fiches` de la dette ; pour elle
@@ -552,8 +548,11 @@ export function controlerCarte({ nom, texte, ficheGelee = false, plafonds = null
   if (!sujet) return { carte: false, erreurs: [] };
   const erreurs = [];
   const corps = sections(lignes);
-  if (!/^sujet\/[a-z0-9]+(?:-[a-z0-9]+)*$/.test(sujet.valeur))
-    erreurs.push({ ligne: sujet.ligne, message: `carte ${nom} : Sujet « ${sujet.valeur} » : attendu \`sujet/<nom-en-kebab>\`` });
+  if (!nomsDeSujets(sujet.valeur))
+    erreurs.push({
+      ligne: sujet.ligne,
+      message: `carte ${nom} : Sujet « ${sujet.valeur} » : attendu \`sujet/<nom-en-kebab>\`, ou plusieurs séparés par des virgules (\`sujet/a, sujet/b\`)`,
+    });
   if (!corps.has('Fiche')) erreurs.push({ ligne: 1, message: `carte ${nom} : section \`## Fiche\` absente` });
   const phase = chercher(lignes, PHASE);
   if (!phase || !phaseValide(phase.valeur))
@@ -587,7 +586,7 @@ export function controlerCarte({ nom, texte, ficheGelee = false, plafonds = null
   if (migrations && !formeMigrations(migrations.valeur))
     erreurs.push({
       ligne: migrations.ligne,
-      message: `carte ${nom} : \`Migrations:\` « ${migrations.valeur} » : attendu des horodatages de 12 chiffres (AAAAMMJJHHMM) séparés par des virgules, ou « — »`,
+      message: `carte ${nom} : \`Migrations:\` « ${migrations.valeur} » : attendu des horodatages de 12 chiffres (AAAAMMJJHHMM) ou de 14 (AAAAMMJJHHMMSS, Prisma) séparés par des virgules, ou « — »`,
     });
   return { carte: true, erreurs };
 }
@@ -598,7 +597,7 @@ export function ficheNommeResponsableEtConducteur(texte) {
   return [RESPONSABLE, CONDUCTEUR].every((motif) => (chercher(lignes, motif)?.valeur ?? '') !== '');
 }
 
-const formeMigrations = (v) => v === '—' || v === '' || v.split(',').every((h) => /^\d{12}$/.test(h.trim()));
+const formeMigrations = (v) => v === '—' || v === '' || v.split(',').every((h) => /^\d{12}(\d{2})?$/.test(h.trim()));
 
 /** Horodatages de migration réservés par une carte (ligne `Migrations:`) ; aucun si « — » ou ligne absente. */
 export function migrationsReservees(texte) {

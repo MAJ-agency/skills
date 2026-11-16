@@ -1,12 +1,12 @@
 #!/usr/bin/env node
-/** Hook PreToolUse (Bash) : commandes interdites ou soumises à l'humain. */
+/** Hook PreToolUse (Bash) : commandes interdites (le hook refuse et dit quoi faire, il ne demande jamais rien à un humain). */
 import { execFileSync } from 'node:child_process';
-import { lireEntree, RACINE } from './entree.mjs';
+import { brancheParDefaut, lireToolInput, RACINE } from './entree.mjs';
 import { decisionCommande, lireDependances } from './regles.mjs';
 
 // Grammaire des identifiants du skill `socle-monorepo` : le ticket d'une branche (`feat/spec-all-soc-1-04-hook`
 // → `SPEC_ALL_SOC-1.04`) et celui d'un fichier ne se lisent que par elle, aucune expression n'en est
-// recopiée ici. Absente, le hook garde ses refus et demande pour toute dépendance, au lieu de tomber
+// recopiée ici. Absente, le hook garde ses refus et refuse toute dépendance, au lieu de tomber
 // entier sur un module manquant.
 const identifiants = await import('../docs/identifiants.mjs').catch(() => null);
 
@@ -26,7 +26,7 @@ function brancheCourante() {
  * sur `origin/sujet/*`, jamais dans l'arbre de travail ni sur la branche de la session. Une copie
  * locale du sujet que `origin` ne porte pas (ref déplacée à la main) ne compte pas. Ticket présent
  * sur plusieurs sujets : seuls les paquets que toutes ses copies prévoient. Toute erreur, ou
- * `scripts/docs/identifiants.mjs` absent → `null`, donc « demander ».
+ * `scripts/docs/identifiants.mjs` absent → `null`, donc un refus.
  */
 function dependancesPrevues() {
   try {
@@ -34,7 +34,7 @@ function dependancesPrevues() {
     if (!id) return null;
     // Un paquet prévu ne passe sans question que si ce qui décide d'où il vient n'a pas bougé par
     // rapport à develop : un `.npmrc` ou un workspace modifié sur la branche, ou créé hors de l'index
-    // (que `git diff` ne voit pas), et on demande.
+    // (que `git diff` ne voit pas), et on refuse.
     const source = ['--', '.npmrc', 'pnpm-workspace.yaml'];
     if (git('diff', '--name-only', 'origin/develop', ...source) !== '' || git('ls-files', '--others', ...source) !== '') return null;
     const { estArchive, identifiantDuTicket } = identifiants;
@@ -48,7 +48,7 @@ function dependancesPrevues() {
     for (const ligne of git('for-each-ref', '--format=%(objectname) %(refname)', 'refs/remotes/origin/sujet/').split('\n').filter(Boolean)) {
       const [sha, ref] = ligne.split(' ');
       if (distants.get(ref.replace('refs/remotes/origin/', 'refs/heads/')) !== sha) continue;
-      for (const chemin of git('ls-tree', '-r', '--name-only', sha, 'docs/features').split('\n'))
+      for (const chemin of git('ls-tree', '-r', '-z', '--name-only', sha, 'docs').split('\0').filter(Boolean))
         if (!estArchive(chemin) && identifiantDuTicket(chemin.split('/').pop() ?? '') === id) copies.push(lireDependances(git('show', `${sha}:${chemin}`)));
     }
     if (copies.length === 0) return null;
@@ -58,12 +58,14 @@ function dependancesPrevues() {
   }
 }
 
-const commande = lireEntree().tool_input?.command ?? '';
-const d = decisionCommande(commande, { dependancesPrevues, brancheCourante });
-if (d?.decision === 'refuser') {
-  process.stderr.write(`${d.raison}\n`);
+// Entrée illisible, ou `command` qui n'est pas une chaîne : refusé, la garde échoue fermée.
+const commande = lireToolInput()?.command;
+if (typeof commande !== 'string') {
+  process.stderr.write('entrée de hook illisible (tool_input.command, une chaîne, attendue) : refusé\n');
   process.exit(2);
 }
-if (d?.decision === 'demander') {
-  process.stdout.write(JSON.stringify({ hookSpecificOutput: { hookEventName: 'PreToolUse', permissionDecision: 'ask', permissionDecisionReason: d.raison } }));
+const d = decisionCommande(commande, { dependancesPrevues, brancheCourante, brancheParDefaut });
+if (d) {
+  process.stderr.write(`${d.raison}\n`);
+  process.exit(2);
 }

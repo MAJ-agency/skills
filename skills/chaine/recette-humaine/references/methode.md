@@ -78,8 +78,8 @@ Colonnes attendues :
 | Type | Nom                    | Où                                                   | Ce qu'il prouve                                                                                   |
 | ---- | ---------------------- | ---------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
 | GF   | garde-fou              | `recette.<sujet>.db.spec.ts` à côté du repository    | Une transition, un refus, une écriture sous concurrence (base réelle)                            |
-| PN   | parcours               | `tests/recette-<sujet>.spec.ts`                      | Un geste humain de bout en bout (Playwright)                                                      |
-| IC   | invariant de cohérence | `recette.<sujet>.spec.ts` dans `apps/api`            | Deux surfaces disent la même chose : lu au catalogue partagé, jamais une application dans l'autre |
+| PN   | parcours               | `recette-<sujet>.spec.ts` dans le dossier des parcours de `.claude/rules/tests.md` | Un geste humain de bout en bout (Playwright)                                                      |
+| IC   | invariant de cohérence | `recette.<sujet>.spec.ts` dans `apps/api`, ou là où les règles du chemin rangent un test transverse | Deux surfaces disent la même chose : lu au catalogue partagé, jamais une application dans l'autre |
 
 Un test de concurrence lance les deux gestes par `Promise.allSettled`, puis compte ce qui est en base **et** vérifie la nature du refus (code d'erreur), pas seulement le nombre de succès.
 
@@ -93,7 +93,7 @@ Un défaut confirmé devient un ticket `Type: défaut`, au format « prêt pour 
 | Surface             | Preuve                                                                                     |
 | ------------------- | ------------------------------------------------------------------------------------------ |
 | refus à l'échéance  | `apps/api/src/licence/recette.licence.db.spec.ts` « refuse une licence expirée » |
-| écran de renouvellement | `tests/recette-licence.spec.ts` « affiche la date d'échéance », « propose le renouvellement » |
+| écran de renouvellement | `e2e/recette-licence.spec.ts` « affiche la date d'échéance », « propose le renouvellement » |
 ```
 
 - Le fichier de test entre accents graves (`*.spec.ts`, `*.test.ts`, `*.e2e-spec.ts`), puis le **titre exact** de chaque test entre « » ou "" ; plusieurs titres d'un même fichier se suivent, séparés par des virgules.

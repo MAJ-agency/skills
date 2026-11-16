@@ -21,6 +21,7 @@ Le code de ce dépôt est écrit, pour l'essentiel, par des sessions de l'assist
 5. **Un seul capitaine fusionne.** La file `à-fusionner` passe dans l'ordre, une PR à la fois, mise à jour avec `develop`, checks exigés attendus, squash vérifié. Ce qui casse revient à sa session avec `fusion-bloquée`. Personne d'autre ne fusionne ni ne remet une branche à jour.
 6. **`develop` intègre, `main` livre.** `develop` est protégée et exige une branche à jour ; `main` ne reçoit que des livraisons.
 7. **L'état du chantier vit hors du contexte du conducteur** : la carte et le tableau d'avancement. **Chaque incident nourrit la chaîne** : un renvoi ou un échec de vague donne un critère de revue, un gate ou une entrée de pièges.
+8. **Les gardes d'agent échouent fermées.** Les hooks `PreToolUse` (fichiers, `Bash`, outils GitHub d'écriture) refusent ce que les règles disent « jamais », d'après une seule définition de la branche gardée (un sujet, `develop`, `main`, la branche par défaut) ; chacun porte `"onFailure": "block"` et un `"timeout"` d'au plus 60 s, et le gate `settings-json` l'exige : une garde qui plante ou dépasse son délai bloque l'outil au lieu de le laisser passer. Cela impose Claude Code 2.1.295 au moins. Une garde vaut pour des sessions de bonne foi ; la frontière, ce sont les règles de dépôt côté GitHub.
 
 ## Alternatives écartées
 

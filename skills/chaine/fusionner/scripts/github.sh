@@ -8,17 +8,34 @@
 # depuis le remote `origin`.
 # =============================================================================
 DEPOT='repos/{owner}/{repo}'
+# Tout script de la chaîne qui appelle le binaire jq source ce fichier : la garde est ici, une seule fois.
+command -v jq >/dev/null || { echo "ARRÊT : jq est requis par les scripts de la chaîne : sudo apt install jq (ou brew install jq)" >&2; exit 69; }
 # Identifiants de la convention `tickets` (SPEC_ALL_SOC-1, SPEC_ALL_SOC-1.03 ; `spec-all-soc-1-03` dans
 # une branche) : la grammaire (type, contexte, trigramme) ne s'écrit pas en shell. Lire un identifiant
 # dans un titre de PR, une branche ou un nom de fichier passe par identifiant.mjs, à côté de ce
 # fichier, qui importe `scripts/docs/identifiants.mjs` (commandes : son en-tête). Le shell ne fait que
 # Renvois d'une PR (A-10) : chaque commentaire de renvoyer.sh porte cette marque, invisible (un
-# commentaire HTML). Le compte se lit sur la PR elle-même : aucun label nouveau.
+# commentaire HTML). Le compte se lit sur la PR elle-même : aucun label nouveau. Seuls comptent les
+# commentaires du compte qui tient le capitaine (`gh api user`, lu une fois : file.sh le garde dans
+# LOGIN_CAPITAINE, `?` s'il est illisible) : la marque recopiée par un autre compte ne met pas la PR
+# en attente d'un humain.
 MARQUE_RENVOI='<!-- renvoi-capitaine -->'
-# Lecture impossible : 0 sur la sortie, dit sur la sortie d'erreur (un seul nombre, jamais deux).
+unset LOGIN_CAPITAINE # posé par file.sh après ce fichier, jamais hérité de l'environnement
+# Login GitHub bien formé (utilisateur ou `app[bot]`) : seul un login de cette forme entre dans le filtre jq.
+login_valide() { [[ "${1:-}" =~ ^[A-Za-z0-9][A-Za-z0-9-]*(\[bot\])?$ ]]; }
+# Commentaires illisibles : 0 sur la sortie, dit sur la sortie d'erreur (un seul nombre, jamais deux).
+# Compte du capitaine illisible : le plafond (la PR attend un humain), dit sur la sortie d'erreur ;
+# le frein des renvois ne se lâche jamais faute de savoir qui renvoie.
 renvois_de() {
-  local lus
-  if lus=$(gh api --paginate "$DEPOT/issues/$1/comments?per_page=100" --jq '.[] | select(.body | contains("<!-- renvoi-capitaine -->")) | 1'); then
+  local lus login=${LOGIN_CAPITAINE:-}
+  [ -n "$login" ] || login=$(gh api user --jq .login 2>/dev/null) || login=''
+  if ! login_valide "$login"; then
+    [ -n "${LOGIN_CAPITAINE:-}" ] ||
+      echo "renvois de #$1 : compte du capitaine illisible (gh api user), compté au plafond : la PR attend un humain" >&2
+    plafond_renvois
+    return
+  fi
+  if lus=$(gh api --paginate "$DEPOT/issues/$1/comments?per_page=100" --jq ".[] | select(.user.login == \"$login\" and (.body | contains(\"<!-- renvoi-capitaine -->\"))) | 1"); then
     printf '%s\n' "$lus" | grep -c . || true
   else
     echo "renvois de #$1 : commentaires illisibles, compte 0" >&2
@@ -77,10 +94,35 @@ jouer_ou_dire() {
     return 1
   fi
 }
+# Pousse `<refspec>` sous les hooks git, jamais en les sautant. `<branche>` est la branche distante
+# visée, `<avant>` son sommet lu avant le push (vide pour une branche à créer). Sorties : 0 poussé ;
+# 5 la branche a bougé (ou le distant ne répond pas) ; 3 refusé par le hook pre-push (ou le distant),
+# sa sortie sur stderr, chaque ligne préfixée de la commande.
+pousser() {
+  local refspec=$1 branche=$2 avant=${3:-} apres
+  jouer_ou_dire "git push -q origin $(printf '%q' "$refspec")" && return 0
+  apres=$(git ls-remote origin "refs/heads/$branche" 2>/dev/null) || return 5
+  apres=${apres%%[[:space:]]*}
+  [ "$apres" = "$avant" ] || return 5
+  echo "push refusé par le hook pre-push (ou le distant) : sortie ci-dessus ; corriger, jamais en sautant le hook" >&2
+  return 3
+}
+# Après un `git merge` ou un `git commit` refusé (hook, fichier non suivi écrasé) : rend l'arbre comme
+# avant la fusion — `git merge --abort` si elle est en cours, sinon `git reset -q --hard`.
+annuler_fusion() {
+  if git rev-parse -q --verify MERGE_HEAD >/dev/null; then git merge --abort; else git reset -q --hard; fi
+}
 # Les mêmes en expression régulière pour `grep -E` (un chemin par ligne).
 index_generes_regex() {
   index_generes | jq -Rrs 'split("\n") | map(select(. != "") | gsub("\\."; "\\.") | gsub("\\*"; "[^/]+"))
     | "^(" + join("|") + ")$"'
+}
+# Ceux qui ont une `commande`, de même : régénérés, donc écrasés à chaque mise à jour. Un index sans
+# commande (chaîne nue de la liste) n'est jamais régénéré : `sujet.sh` (PR de mise à jour) et `passer.sh`
+# (livraison intermédiaire) ne le dispensent pas sur sa seule place dans la liste.
+index_regeneres_regex() {
+  index_json | jq -r '.index[] | objects | select((.commande // "") != "") | .chemin' |
+    jq -Rrs 'split("\n") | map(select(. != "") | gsub("\\."; "\\.") | gsub("\\*"; "[^/]+")) | "^(" + join("|") + ")$"'
 }
 # Indexe les index générés modifiés, ajoutés ou supprimés (un motif sans fichier n'est pas une erreur).
 ajouter_index() {
@@ -95,6 +137,12 @@ uri() { jq -rn --arg s "$1" '$s | @uri'; }
 # PR en JSON REST (`state` open/closed, `draft`, `labels[].name`, `base.ref`, `head.ref`,
 # `head.sha`, `title`).
 pr_json() { gh api "$DEPOT/pulls/$1"; }
+
+# Tête de PR gardée : `develop`, `main`, ou la branche par défaut du dépôt (2e argument, lu dans le
+# JSON de la PR : `base.repo.default_branch`). Le capitaine pousse la mise à jour d'une PR sur sa tête :
+# jamais sur celles-ci (« jamais de push sur la branche par défaut »). La livraison d'un sujet
+# (`sujet/<nom>` vers develop) n'en est pas une : la mettre à jour avec develop est le chemin prévu.
+tete_gardee() { [ "$1" = develop ] || [ "$1" = main ] || { [ -n "${2:-}" ] && [ "$1" = "$2" ]; }; }
 
 # Sommet (dernier commit) de la branche d'une PR.
 pr_sommet() { gh api "$DEPOT/pulls/$1" --jq .head.sha; }

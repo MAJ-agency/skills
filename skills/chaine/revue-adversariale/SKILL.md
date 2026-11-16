@@ -13,6 +13,8 @@ La session qui a écrit le code est la plus mal placée pour le relire. Un **sou
 | Source                                 | Destination                                                            |
 | -------------------------------------- | ---------------------------------------------------------------------- |
 | `scripts/diff-revue.sh`                | `scripts/chaine/diff-revue.sh` (exécutable)                            |
+| `scripts/chemins-sensibles.mjs`        | `scripts/chaine/chemins-sensibles.mjs`                                 |
+| `scripts/*.test.mjs`                   | `scripts/chaine/` (`diff-revue.test.mjs` lit `depot-jouet.mjs`, posé par `sujet poser` ; `chemins-sensibles.test.mjs` lit le gate `scripts/verify/tickets-regles.mjs`, posé par `tickets poser`) |
 | `references/criteres-socle.md`         | le fichier que `.claude/chaine.json` nomme (`criteresRevue`, défaut `docs/agents/criteres-revue.md`), **s'il n'existe pas** |
 
 Puis relire la liste : retirer `S3` en mono-tenant, `S13` sans second client ; ajouter sous « Critères du projet » un critère par ADR qui pose une règle de code. Un projet qui a déjà sa liste la garde.
@@ -31,17 +33,17 @@ Elle ne remplace ni `pnpm check` ni les gates : ceux-ci attrapent ce qui se voit
 REVUE_DIR=<scratchpad>/revue bash scripts/chaine/diff-revue.sh [<base>] [<zone>…]
 ```
 
-Base par défaut `origin/develop` ; `origin/sujet/<nom>` pour une sous-PR de sujet. Le script écrit `diff.patch` et `stat.txt`, sans lockfile, index générés ni snapshots ; migrations, seeds et specs restent. Fini quand `diff.patch` existe, non vide, et que le sommet relu est connu (le script l'affiche).
+Base par défaut `origin/develop` ; `origin/sujet/<nom>` pour une sous-PR de sujet. Le script écrit `diff.patch` et `stat.txt`, sans lockfile, index générés ni snapshots ; migrations, seeds et specs restent. Fini quand `diff.patch` existe, non vide, et que le sommet relu est connu (le script l'affiche). Sortie 1 (base non rapatriée, ou diff vide) : le lire, ne lancer aucun sous-agent ; un lot de zone vide n'a pas de sous-agent.
 
 **Diff de plus de 2 000 lignes :** un lot par zone (`apps/api`, `apps/web`, `apps/mobile`, `packages` + `scripts`), passée en `<zone>` avec un `REVUE_DIR` par lot. Un sous-agent par lot, lancés en parallèle, mêmes critères.
 
 ## Étape 2 — Chemins sensibles
 
 ```bash
-git diff --name-only <base>...HEAD | grep -E -f <(node -e 'for (const c of JSON.parse(require("fs").readFileSync(".claude/chaine.json","utf8")).cheminsSensibles) console.log("^" + c)')
+set -o pipefail; git -c core.quotepath=false diff --name-only --no-renames <base>...HEAD | node scripts/chaine/chemins-sensibles.mjs
 ```
 
-Les chemins sont ceux de `.claude/chaine.json` (`cheminsSensibles`) : authentification, droits, chiffrement, paiement, export. Une ligne au moins : lancer **en plus** la skill `/security-review` sur la branche. Ses constats suivent la même suite (étape 5).
+Les chemins sont ceux de `.claude/chaine.json` (`cheminsSensibles`) : authentification, droits, chiffrement, paiement, export. Les motifs se lisent comme le gate `tickets` (`**` tout, `*` un segment, `/` final un dossier). Sortie non nulle (contrat illisible, entrée vide, `git` en échec dans le tube) : la revue s'arrête et le dit ; le contrat ou la base se corrige. Script absent (projet posé avant cette version) : la revue s'arrête et le pose d'abord (étape 0), sans revenir à l'ancienne commande. Une ligne au moins : lancer **en plus** la skill `/security-review` sur la branche. Ses constats suivent la même suite (étape 5).
 
 ## Étape 3 — Lancer le sous-agent
 

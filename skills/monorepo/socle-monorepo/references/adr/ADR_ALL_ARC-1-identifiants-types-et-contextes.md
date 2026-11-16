@@ -29,7 +29,7 @@ La règle opérationnelle complète vit dans [`../methode/nomenclature.md`](../m
 - **Un marqueur sur la règle seule** (`R-LIC-3`). Résout la collision règle contre document, pas la collision entre contextes, et laisse les specs et les ADR se confondre.
 - **Le contexte en premier segment des specs seulement** (`ALL-ANC-1` spec, `ANC-1` règle, `ARC-11` ADR). Trois grammaires différentes pour trois objets, et une ADR de sujet (`BEN-1`) restait homonyme d'une règle.
 - **Ne pas écrire `ALL`** quand le projet n'a qu'un contexte. Économise cinq caractères et crée un doute à chaque lecture, et une migration le jour où un second contexte apparaît.
-- **Zéros de tête** pour un tri lexical. On ne trie pas les identifiants, on les cite ; Fedora garde les siens parce qu'un identifiant ne se renomme pas, un projet neuf n'en met pas.
+- **Zéros de tête** pour un tri lexical. On ne trie pas les identifiants, on les cite ; un projet existant garde les siens parce qu'un identifiant ne se renomme pas, un projet neuf n'en met pas.
 
 ## Conséquences
 

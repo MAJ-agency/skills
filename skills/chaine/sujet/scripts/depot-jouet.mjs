@@ -10,11 +10,45 @@ import {
   mkdirSync,
   mkdtempSync,
   readFileSync,
+  rmSync,
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
+import { dirname, join, parse, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+// Les scripts de la chaîne et le faux gh appellent jq : sans lui, chaque test échouerait sur
+// « jq: command not found », noyé dans ses traces. Un seul message, une fois par fichier de test.
+if (spawnSync('jq', ['--version']).error)
+  throw new Error('jq est requis par les scripts de la chaîne et leurs bancs : sudo apt install jq (ou brew install jq)');
+
+// Dossiers temporaires du banc, retirés à la sortie du processus : `node --test` joue un fichier de
+// test par processus, et chaque dépôt jouet pèse environ un mégaoctet. `GARDER_JOUETS=1` les garde
+// pour les lire après un échec, et dit combien. Un signal d'arrêt laisse les dossiers, comme `SIGKILL` :
+// un gestionnaire retarderait l'arrêt jusqu'à la fin du `spawnSync` en cours.
+const A_RETIRER = [];
+process.on('exit', () => {
+  if (process.env.GARDER_JOUETS) {
+    if (A_RETIRER.length) console.error(`GARDER_JOUETS : ${A_RETIRER.length} dossier(s) gardé(s) sous ${tmpdir()}, dont ${A_RETIRER[0]}`);
+    return;
+  }
+  for (const dossier of A_RETIRER) {
+    try {
+      rmSync(dossier, { recursive: true, force: true, maxRetries: 3, retryDelay: 50 });
+    } catch {
+      /* au pire il reste : la sortie du banc ne doit jamais échouer pour un dossier */
+    }
+  }
+});
+/** Crée un dossier temporaire que la sortie du processus retire. */
+export function dossierTemporaire(prefixe) {
+  const base = resolve(tmpdir());
+  if (base === parse(base).root) throw new Error(`dossierTemporaire : le dossier temporaire est la racine (${base})`);
+  const dossier = resolve(mkdtempSync(join(tmpdir(), prefixe)));
+  if (!dossier.startsWith(resolve(tmpdir()) + sep)) throw new Error(`dossierTemporaire : ${dossier} est hors de ${tmpdir()}`);
+  A_RETIRER.push(dossier);
+  return dossier;
+}
 
 const ICI = dirname(fileURLToPath(import.meta.url));
 // Racine des skills de la chaîne : <skills>/chaine/<skill>/scripts/<nom>.
@@ -26,10 +60,17 @@ export const script = (skill, nom) => {
   return existsSync(local) ? local : join(SKILLS, skill, 'scripts', nom);
 };
 
-// Sans les GIT_* hérités : sous le hook pre-push, GIT_DIR et GIT_INDEX_FILE visent le vrai dépôt,
-// et les commandes du dépôt jouet y écriraient (commit « initial » sur la branche poussée).
+// Sans les variables de la chaîne héritées. Sous le hook pre-push, GIT_DIR et GIT_INDEX_FILE visent
+// le vrai dépôt, et les commandes du dépôt jouet y écriraient (commit « initial » sur la branche
+// poussée). Sous le capitaine (passer.sh pousse sans sauter le hook), PASSER_OUTILS ferait lire au
+// passer.sh du jouet les outils du vrai capitaine, BOUCLE_COPIE ferait écraser sa copie par la boucle
+// du jouet, BOUCLE_SAUTEES et BOUCLE_ATTENTE y sauteraient des PR ; PRE_PUSH_REFS et REVUE_DIR sont
+// ceux du vrai push et de la vraie revue.
+const PREFIXES_CHAINE = ['GIT_', 'PASSER_', 'BOUCLE_', 'PRE_PUSH_', 'REVUE_'];
 const ENV_GIT = {
-  ...Object.fromEntries(Object.entries(process.env).filter(([cle]) => !cle.startsWith('GIT_'))),
+  ...Object.fromEntries(
+    Object.entries(process.env).filter(([cle]) => !PREFIXES_CHAINE.some((p) => cle.startsWith(p))),
+  ),
   GIT_CONFIG_GLOBAL: '/dev/null',
   GIT_CONFIG_NOSYSTEM: '1',
   GIT_AUTHOR_NAME: 'test',
@@ -70,7 +111,7 @@ const CHAINE = [
 ];
 
 export function depotJouet() {
-  const racine = mkdtempSync(join(tmpdir(), 'jouet-'));
+  const racine = dossierTemporaire('jouet-');
   const origine = join(racine, 'origine.git');
   const travail = join(racine, 'travail');
   const bin = join(racine, 'bin');

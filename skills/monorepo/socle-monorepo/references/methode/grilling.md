@@ -63,7 +63,7 @@ La recommandation n'est pas optionnelle : une question sans recommandation repor
 - **Une seule décision par question.** Deux décisions dans une question font une réponse qui n'en tranche aucune.
 - **Les choix techniques ne font pas une question.** Commande, outil, bibliothèque, forme d'un fichier de configuration, mécanisme interne : l'agent tranche par défaut prudent, l'écrit dans le ticket ou la carte, et l'humain peut le rouvrir d'un mot. Seules les décisions de standard et de métier lui remontent. La même règle, écrite pour la chaîne de production : `docs/agents/chaine-de-production.md` § « Une question au produit ».
 
-Cas vécu : une question écrite « `couverte` → dérivé (prouvée si une étiquette existe, sinon `à construire` + alerte santé) ; `configuree` → dérivé (`config[]` non vide et aucune preuve) ; … » a reçu « rien compris » et a coûté un tour entier. La même question, lisible : « Aujourd'hui Fedora écrit à la main que telle règle est couverte. Demain, c'est la machine qui le dit, en cherchant un test qui porte le nom de la règle. Une règle dite couverte sans un tel test apparaîtra comme un écart à corriger. D'accord ? »
+Cas vécu : une question écrite « `couverte` → dérivé (prouvée si une étiquette existe, sinon `à construire` + alerte santé) ; `configuree` → dérivé (`config[]` non vide et aucune preuve) ; … » a reçu « rien compris » et a coûté un tour entier. La même question, lisible : « Aujourd'hui le projet écrit à la main que telle règle est couverte. Demain, c'est la machine qui le dit, en cherchant un test qui porte le nom de la règle. Une règle dite couverte sans un tel test apparaîtra comme un écart à corriger. D'accord ? »
 
 ---
 

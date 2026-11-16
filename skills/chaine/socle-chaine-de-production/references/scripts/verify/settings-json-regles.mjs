@@ -12,10 +12,20 @@ const { decisionCommande } = await import(
   existsSync(new URL('../agent/regles.mjs', import.meta.url)) ? '../agent/regles.mjs' : '../../agent/regles.mjs'
 );
 
+/** Matcheur des outils GitHub d'écriture (hook `garde-github`). */
+export const MATCHER_GITHUB = '^mcp__.+__(push_files|create_or_update_file|delete_file|create_branch|merge_pull_request|enable_pr_auto_merge|update_pull_request_branch)$';
+
+/** Les gardes de PreToolUse : chaque matcheur exigé lance son script, qui échoue fermé. */
+export const GARDES = {
+  'Edit|Write|MultiEdit|NotebookEdit': 'scripts/agent/garde-fichiers.mjs',
+  Bash: 'scripts/agent/garde-commandes.mjs',
+  [MATCHER_GITHUB]: 'scripts/agent/garde-github.mjs',
+};
+
 /** Événements de hook exigés, avec les matcheurs que chacun doit porter. */
 export const HOOKS_EXIGES = {
   SessionStart: [],
-  PreToolUse: ['Edit|Write|MultiEdit|NotebookEdit', 'Bash'],
+  PreToolUse: Object.keys(GARDES),
   PostToolUse: [],
   Stop: [],
 };
@@ -46,7 +56,7 @@ function clesMalPlacees(noeud, chemin = []) {
 /** Commandes `command` d'un événement de hook, avec le matcheur qui les porte. */
 const commandes = (evenement) =>
   (Array.isArray(evenement) ? evenement : []).flatMap((groupe) =>
-    (groupe?.hooks ?? []).map((h) => ({ matcher: groupe.matcher, command: h?.command ?? '' })),
+    (groupe?.hooks ?? []).map((h) => ({ matcher: groupe.matcher, type: h?.type, command: h?.command ?? '', onFailure: h?.onFailure, timeout: h?.timeout, async: h?.async, asyncRewake: h?.asyncRewake })),
   );
 
 /**
@@ -111,6 +121,37 @@ export function ecartsSettings(texte, { fichierExiste }) {
           `ligne ${ligneEvenement} : \`hooks.${evenement}\` sans matcheur « ${matcher} ».`,
         );
       }
+    }
+  }
+  // Chaque garde est lancée par son matcheur, et échoue fermé : `"onFailure": "block"` (Claude Code
+  // 2.1.295 ou plus récent, page des hooks), un `"timeout"` d'au plus 60 s (le défaut est 600 s), jamais
+  // en arrière-plan (`async`, `asyncRewake` : la page dit `onFailure` sans effet sur un hook en
+  // arrière-plan). Sans quoi une garde qui plante, dépasse son délai ou a été remplacée laisserait passer
+  // l'outil.
+  // La garde se lance par la commande exacte du fragment (`node "$CLAUDE_PROJECT_DIR"/scripts/agent/…`),
+  // en hook `command` : `… || true`, `true # …`, `echo …` ou un hook `prompt` ne la lancent pas.
+  const lance = (l, script) => l.type === 'command' && new RegExp(`^node "\\$\\w+"/${script.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`).test(l.command.trim());
+  if (json?.disableAllHooks === true) {
+    ecarts.push(`ligne ${ligneDeCle(texte, 'disableAllHooks')} : \`disableAllHooks\` à \`true\` coupe toutes les gardes. Retirer la clé.`);
+  }
+  const lignesPre = commandes(hooks.PreToolUse);
+  for (const [matcher, script] of Object.entries(GARDES)) {
+    if (lignesPre.some((l) => l.matcher === matcher) && !lignesPre.some((l) => l.matcher === matcher && lance(l, script))) {
+      ecarts.push(`ligne ${ligneDeCle(texte, 'PreToolUse')} : \`hooks.PreToolUse\`, matcheur « ${matcher} », ne lance pas ${script}.`);
+    }
+  }
+  for (const { command, onFailure, timeout, async: fond, asyncRewake } of lignesPre) {
+    const garde = /scripts\/agent\/garde-[\w.-]+/.exec(command)?.[0];
+    if (!garde) continue;
+    const ligne = ligneDe(texte, new RegExp(garde.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+    if (onFailure !== 'block') {
+      ecarts.push(`ligne ${ligne} : \`hooks.PreToolUse\` lance ${garde} sans \`"onFailure": "block"\` : une garde qui plante ou dépasse son délai laisserait passer l'outil.`);
+    }
+    if (typeof timeout !== 'number' || !(timeout > 0 && timeout <= 60)) {
+      ecarts.push(`ligne ${ligne} : \`hooks.PreToolUse\` lance ${garde} sans \`"timeout"\` numérique d'au plus 60 s : avec \`"onFailure": "block"\`, le défaut de 600 s tiendrait la session dix minutes sur une garde bloquée.`);
+    }
+    if (fond === true || asyncRewake === true) {
+      ecarts.push(`ligne ${ligne} : \`hooks.PreToolUse\` lance ${garde} en arrière-plan (\`async\`) : il ne bloque plus rien.`);
     }
   }
   for (const [evenement, valeur] of Object.entries(hooks)) {

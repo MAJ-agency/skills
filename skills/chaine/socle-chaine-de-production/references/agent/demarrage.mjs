@@ -10,8 +10,8 @@
  * quand le projet a sa base (ticket « couche base de données »), avec la commande `db:test:prepare`.
  *
  * Deux signalements, sans action : `CLAUDE.md` demande graphify (il porte `graphify update`) et la
- * commande ou `graphify-out/graph.json` manque ; les skills de la chaîne ne sont pas installés dans
- * la session (une session créée par une autre ne reçoit que le dépôt du projet). Une erreur de
+ * commande ou `graphify-out/graph.json` manque ; le plugin des skills de la chaîne n'est pas installé
+ * dans la session (le script de l'environnement ne l'a pas installé). Une erreur de
  * lecture se tait : le hook ne signale que ce qu'il a pu lire, et sort toujours en 0.
  */
 import { spawnSync } from 'node:child_process';
@@ -78,7 +78,7 @@ export function signalementsDemarrage(etat) {
   }
   if (!pluginInstalle(etat.pluginsInstalles)) {
     signalements.push(
-      `démarrage : skills de la chaîne absents de la session (plugin ${PLUGIN_CHAINE} non installé) — attacher MAJ-agency/skills par add_repo, le cloner comme l’outil l’indique, puis lire le skill dans le clone (docs/agents/chaine-de-production.md § 5, étape 5) ; attache refusée : le dire à qui a lancé la session, sans contourner`,
+      `démarrage : skills de la chaîne absents de la session (plugin ${PLUGIN_CHAINE} non installé) — les installer soi-même : claude plugin marketplace add MAJ-agency/skills ; claude plugin install maj-skills@maj ; puis lire le skill sous ~/.claude/plugins/marketplaces/maj/skills/ (installé en cours de session, il n’entre pas dans la liste des skills). Le script de l’environnement doit l’installer et le mettre à jour à chaque démarrage : claude plugin marketplace add MAJ-agency/skills ; claude plugin install maj-skills@maj ; claude plugin marketplace update maj ; claude plugin update maj-skills@maj (docs/agents/chaine-de-production.md § 5, étape 5). Si l’installation échoue : le dire à qui a lancé la session et s’arrêter, sans contourner`,
     );
   }
   return signalements;

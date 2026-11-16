@@ -1,9 +1,10 @@
 .DS_Store
 .claude/*
 !.claude/settings.json
-# les fiches de règles chargées par chemin et le contrat de la chaîne sont du dépôt
+# les fiches de règles chargées par chemin, le contrat de la chaîne et les skills propres au projet sont du dépôt (ceux du plugin vivent hors du dépôt)
 !.claude/rules/
 !.claude/chaine.json
+!.claude/skills/
 
 # dependencies
 node_modules/

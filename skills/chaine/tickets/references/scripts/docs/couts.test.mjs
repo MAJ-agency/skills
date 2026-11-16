@@ -42,6 +42,15 @@ test("une carte rend son chantier, sa phase et ses seules lignes chiffrées", ()
   );
 });
 
+test("une carte à plusieurs sujets rend tous ses sujets, dans l'ordre, jamais le premier mot avec sa virgule", () => {
+  const ligne = [["fille", "SPEC_ALL_SOC-9.01", "s1", "sonnet", "200 k", "3,00"]];
+  const c = lireCarte("docs/f/all/SPEC_ALL_SOC-9-demo.map.md", carte("a, sujet/b, sujet/c", ligne));
+  assert.equal(c.chantier, "a, b, c");
+  assert.match(plat(enMarkdown([c])), /\| a, b, c \| 4-vague-2 \| 1 \| 1 \|/);
+  const mal = lireCarte("docs/f/all/SPEC_ALL_SOC-9-demo.map.md", carte("a sujet/b", ligne));
+  assert.equal(mal.chantier, "SPEC_ALL_SOC-9-demo", "une ligne mal formée donne le nom du fichier, pas un demi-nom");
+});
+
 test("le bilan compte les tickets distincts des filles et leur coût moyen, hors conducteur", () => {
   const c = lireCarte(
     "docs/f/all/SPEC_ALL_SOC-9-demo.map.md",

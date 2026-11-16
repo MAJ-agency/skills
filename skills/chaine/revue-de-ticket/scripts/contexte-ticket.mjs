@@ -16,7 +16,7 @@
  *
  * Où chaque type se cherche (`docs/methode/nomenclature.md`) :
  *   RULE           docs/metier/regles/<ctx>/<ID>.md, le contexte en minuscules, sans slug
- *   SPEC           docs/features/**\/<ID>-<slug>.spec.md
+ *   SPEC           docs/**\/<ID>-<slug>.spec.md, où qu'elle soit rangée (le nom porte l'identité)
  *   ticket         docs/**\/issues/<SPEC>-<slug>.<NN>.issue.md, archive comprise
  *   ADR, DSG, DOC  le fichier de docs/** dont le nom commence par `<ID>-` ; deux candidats ou plus
  *                  sont tous listés, aucun n'est choisi
@@ -88,11 +88,7 @@ if (!ticket) {
   process.exit(2);
 }
 const texteTicket = lire(ticket);
-const fichierSpec = docs.find(
-  (p) =>
-    rel(p).startsWith("docs/features/") &&
-    identifiantDeLaSpec(basename(p)) === spec,
-);
+const fichierSpec = docs.find((p) => identifiantDeLaSpec(basename(p)) === spec);
 const ligneSpec = fichierSpec
   ? lire(fichierSpec)
       .split("\n")
@@ -181,12 +177,8 @@ function document(code, lu) {
     };
   if (lu.type === "SPEC")
     return {
-      cherche: `docs/features/**/${code}-<slug>.spec.md`,
-      fichiers: docs.filter(
-        (p) =>
-          rel(p).startsWith("docs/features/") &&
-          identifiantDeLaSpec(basename(p)) === code,
-      ),
+      cherche: `docs/**/${code}-<slug>.spec.md`,
+      fichiers: docs.filter((p) => identifiantDeLaSpec(basename(p)) === code),
     };
   if (lu.type === "REQ") {
     const dossier = `docs/demandes/${dossierDuContexte(lu.contexte)}/`;
@@ -242,7 +234,7 @@ const out = [
   "",
   texteTicket.trim(),
   "",
-  `## Spec — ${fichierSpec ? rel(fichierSpec) : `introuvable : docs/features/**/${spec}-<slug>.spec.md`}`,
+  `## Spec — ${fichierSpec ? rel(fichierSpec) : `introuvable : docs/**/${spec}-<slug>.spec.md`}`,
   "",
   ...(ligneSpec.length
     ? ligneSpec.map((l) => l.trim())
