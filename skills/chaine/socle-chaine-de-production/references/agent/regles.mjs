@@ -1116,6 +1116,7 @@ class Lecteur {
         if (logique.length - k === h.delimiteur.length && logique.startsWith(h.delimiteur, k)) {
           h.corps = s.slice(debut, ligne);
           h.debutCorps = this.pos(debut);
+          h.debutTerminateur = this.pos(ligne);
           this.i = j < 0 ? s.length : j + 1;
           h.finCorps = this.pos(this.i);
           this.remplacer(debut - 1, fin, '');
@@ -1477,6 +1478,7 @@ function lectureIllisible(commande, motif) {
     lectures: Object.freeze(eclate.map(({ segment, mots }) => new Lecture(mots, segment, { suite: () => commande }, 0))),
     segments: Object.freeze(eclate.map(({ segment }) => Object.freeze({ segment, suite: commande }))),
     sansTexte: commande,
+    allegee: commande,
   });
 }
 
@@ -1758,6 +1760,7 @@ function lire(commande, avecRemplacements = false) {
   };
   let rendus = null;
   let vide = null;
+  let allegee = null;
   return Object.freeze({
     illisible: null,
     commandes: Object.freeze(commandes),
@@ -1773,7 +1776,33 @@ function lire(commande, avecRemplacements = false) {
       // Les citations ne sont relevées qu'à la demande : `decisionCommande` n'en a pas besoin.
       return (vide ??= lu.remplacements ? vider() : lire(commande, true).sansTexte);
     },
+    get allegee() {
+      return (allegee ??= alleger(commande, lu.heredocs));
+    },
   });
+}
+
+/**
+ * La commande allégée de ses corps de here-doc inertes (décision A-51 bis) : le texte de chaque corps que
+ * `lectureDuCorps` retire, dans la source de tête (positions exactes), est remplacé par une ligne vide ; le
+ * délimiteur, le terminateur et tout le reste demeurent (la ligne vide garde au here-doc la forme que la
+ * lecture de 7.9.x reconnaît). Un corps non quoté qui porte une expansion (`$`, accent grave) demeure entier :
+ * bash peut y exécuter quelque chose. Un corps lu comme des commandes, relu par prudence, ou
+ * lu dans une source dérivée (`-c`, `eval`, accents graves) n'est pas touché.
+ */
+function alleger(commande, heredocs) {
+  const retires = heredocs
+    .filter((h) => h.lecture === 'retire' && h.racine && h.debutTerminateur !== undefined && (h.quote || !/[$`]/.test(h.corps)))
+    .sort((a, b) => a.debutCorps - b.debutCorps);
+  if (!retires.length) return commande;
+  let texte = '';
+  let fin = 0;
+  for (const h of retires) {
+    if (h.debutCorps < fin) continue;
+    texte += commande.slice(fin, h.debutCorps) + '\n';
+    fin = h.debutTerminateur;
+  }
+  return texte + commande.slice(fin);
 }
 
 /** La commande sans son texte libre : corps de here-doc et textes cités vidés, lus par `lireCommande`. */
@@ -1953,8 +1982,18 @@ export function pushSansRefspec(commande) {
  *   passe sans question quand chacun de ses paquets y figure et qu'aucune option ne change la source
  *   (`--registry`, `--config.*`) ; un seul paquet absent ou une telle option, et elle est refusée.
  */
-export function decisionCommande(commande, { dependancesPrevues = () => null, brancheCourante = () => null, brancheParDefaut = () => null } = {}) {
+export function decisionCommande(commande, contexte = {}) {
   const lu = lireCommande(commande);
+  const decision = decisionDuLecteur(lu, commande, contexte);
+  if (decision || lu.illisible) return decision;
+  // L'union (A-51 bis) : ce que la lecture de 7.9.x refuse sur la commande allégée de ses corps inertes est refusé.
+  const allegee = lu.allegee;
+  if (allegee.length > TAILLE_MAX_LECTURE_7_9) return { decision: 'refuser', raison: RAISON_TROP_LONGUE };
+  return LECTURE_7_9.decisionCommande(allegee, contexte);
+}
+
+/** La décision du lecteur par jetons seul (ticket 33), sur une lecture de `lireCommande`. */
+function decisionDuLecteur(lu, commande, { dependancesPrevues = () => null, brancheCourante = () => null, brancheParDefaut = () => null } = {}) {
   // Ce que le lecteur ne sait pas lire est refusé avant tout autre refus : il ne devine pas.
   if (lu.illisible) return { decision: 'refuser', raison: RAISON_ILLISIBLE };
   // Chaque commande simple en lecture L3 : un mot cité seul (`"git"`, `$'git'`, `"--no-verify"`) se lit sans ses
@@ -2131,3 +2170,489 @@ export function ecritParGh(commande) {
     });
   });
 }
+
+/**
+ * Au-delà de cette taille de la commande allégée, la lecture de 7.9.x n'est pas jouée : la commande est
+ * refusée (échec fermé). Cette lecture coûte au carré sur certaines formes (accents graves, `$(…)` ou `git commit`
+ * répétés sans séparateur) ; sous ce seuil, son pire cas mesuré est de 8,2 s (99 000 caractères), sous le délai du hook.
+ */
+const TAILLE_MAX_LECTURE_7_9 = 100_000;
+
+export const RAISON_TROP_LONGUE =
+  "commande trop longue pour la garde (plus de 100 000 caractères hors corps de here-doc inertes) : elle est refusée plutôt que lue à moitié. Écris le texte long dans un fichier (git commit -F <fichier>, gh … --body-file <fichier>) ou découpe la commande.";
+
+/**
+ * La lecture de 7.9.x (décision A-51 bis), reprise telle quelle de `76d90c7` : `decisionCommande` la joue
+ * sur la commande allégée de ses corps de here-doc inertes (`lireCommande(…).allegee`), et refuse ce qu'elle
+ * refuse. Elle ne sert qu'à cette union : ses découpages par motifs lisent large, et rattrapent des formes
+ * imbriquées (`ssh h "bash -c '…'"`) que le lecteur par jetons laisse passer. Le corps d'un here-doc donné à un
+ * interprète, relu par prudence ou non quoté à substitution, reste dans la commande qu'elle lit. Les décideurs
+ * qu'elle partage avec le lecteur (`COMMANDES_INTERDITES`, raisons, options, `nomDeBranche`, `brancheGardee`,
+ * `CHEMIN_GH_ECRIT`) sont ceux du module ; ses découpages et ses mémoires vivent dans cette fermeture.
+ */
+export const LECTURE_7_9 = (() => {
+  /**
+   * Ce que rendait `texte.replace(/<<-?\s*(['"]?)(\w+)\1[^\n]*\n[\s\S]*?\n\s*\2(?=\s|$)/g, '<<heredoc')` dans
+   * 76d90c7, à l'identique, sans son coût : ce motif revenait en arrière sur chaque `\n\s*` pour chaque `<<`, au cube
+   * de la taille (37 s pour dix `<<A` et 20 000 sauts de ligne). Ici, chaque `<<` se lit une fois ; ses terminateurs
+   * possibles (un mot entier après un saut de ligne et des blancs, suivi d'un blanc ou de la fin) sont relevés une
+   * fois et cherchés par dichotomie. L'égalité avec le motif est prouvée par `regles.test.mjs`.
+   */
+  const BLANC = /\s/;
+  const MOT = /\w/;
+  function sansHeredocs79(s) {
+    if (!s.includes('<<')) return s;
+    const n = s.length;
+    const blanc = (i) => i < n && BLANC.test(s[i]);
+    const mot = (i) => i < n && MOT.test(s[i]);
+    // Les terminateurs possibles : après un saut de ligne et les blancs qui le suivent, un mot entier suivi d'un blanc ou
+    // de la fin. Pour chacun : la position b du mot, et le dernier saut de ligne de la suite de blancs qui le précède.
+    let termes = null;
+    const lesTermes = () => {
+      termes = new Map();
+      for (let i = 0; i < n; ) {
+        if (!blanc(i)) { i++; continue; }
+        let j = i, nl = -1;
+        while (j < n && BLANC.test(s[j])) { if (s[j] === '\n') nl = j; j++; }
+        if (nl >= 0 && mot(j)) {
+          let k = j;
+          while (mot(k)) k++;
+          if (k === n || blanc(k)) {
+            const w = s.slice(j, k);
+            let l = termes.get(w);
+            if (!l) termes.set(w, (l = { b: [], nl: [] }));
+            l.b.push(j); l.nl.push(nl);
+          }
+        }
+        i = j;
+      }
+    };
+    // Le premier terminateur `w` dont la suite de blancs porte un saut de ligne à partir de `depuis`.
+    const terminateur = (w, depuis) => {
+      if (termes === null) lesTermes();
+      const l = termes.get(w);
+      if (!l) return -1;
+      let lo = 0, hi = l.nl.length;
+      while (lo < hi) { const m = (lo + hi) >> 1; if (l.nl[m] >= depuis) hi = m; else lo = m + 1; }
+      return lo < l.nl.length ? l.b[lo] : -1;
+    };
+    let sortie = '';
+    let fin = 0;
+    for (let p = s.indexOf('<<'); p >= 0; p = s.indexOf('<<', p + 1)) {
+      let j = p + 2;
+      if (s[j] === '-') j++;
+      while (blanc(j)) j++;
+      const q = s[j] === "'" || s[j] === '"' ? s[j] : '';
+      const debut = j + q.length;
+      let we = debut;
+      while (mot(we)) we++;
+      if (we === debut) continue;
+      let bout = -1;
+      if (q) {
+        if (s[we] !== q) continue;
+        const z = s.indexOf('\n', we + 1);
+        if (z < 0) continue;
+        const b = terminateur(s.slice(debut, we), z + 1);
+        if (b >= 0) bout = b + (we - debut);
+      } else {
+        const z = s.indexOf('\n', we);
+        if (z < 0) continue;
+        for (let x = we; x > debut && bout < 0; x--) {
+          const b = terminateur(s.slice(debut, x), z + 1);
+          if (b >= 0) bout = b + (x - debut);
+        }
+      }
+      if (bout < 0) continue;
+      sortie += s.slice(fin, p) + '<<heredoc';
+      fin = bout;
+      p = bout - 1;
+    }
+    return fin === 0 ? s : sortie + s.slice(fin);
+  }
+
+  /** Chaque ajout de la commande (`pnpm add`, `pnpm install <paquet>`) : `{ paquets, options }`. */
+  function ajouts(code) {
+    const commandes = code.replace(/\d*(>>?|<)&?\s*[^\s;&|]*/g, ' ').split(/[;&|\n]+/);
+    return commandes.flatMap((commande) => {
+      const mots = commande.trim().split(/\s+/);
+      let i = mots.findIndex((mot) => /(^|\/)pnpm$/.test(mot));
+      if (i < 0) return [];
+      const positionnels = [];
+      // Ce qui précède pnpm (`npm_config_registry=… pnpm`, `env …`) peut changer la source.
+      const options = i > 0 ? ['(préfixe)'] : [];
+      for (i++; i < mots.length; i++) {
+        if (!mots[i].startsWith('-')) positionnels.push(mots[i]);
+        else {
+          options.push(mots[i].split('=')[0]);
+          if (OPTIONS_A_VALEUR.has(mots[i])) i++;
+        }
+      }
+      const [sousCommande, ...paquets] = positionnels;
+      return ['add', 'i', 'install'].includes(sousCommande) && paquets.length > 0 ? [{ paquets: paquets.map(nomDuPaquet), options }] : [];
+    });
+  }
+
+  /** La commande sans son texte libre : corps de heredoc et chaînes entre guillemets. */
+  function sansTexte(commande) {
+    return sansHeredocs79(commande)
+      .replace(/'[^']*'/g, "''")
+      .replace(/"(?:[^"\\]|\\.)*"/g, '""');
+  }
+
+  /**
+   * La commande sans ses corps de heredoc, ses guillemets ni ses barres obliques inverses, lignes continuées
+   * recollées : un refspec cité se lit comme un refspec nu, `\git` comme `git`, `gh pr \⏎ merge` comme
+   * `gh pr merge`. Tous les lecteurs de commandes (`pushs`, `ecritParGh`) partent de ce texte.
+   */
+  function sansGuillemets(commande) {
+    return sansHeredocs79(commande)
+      .replace(/\\\r?\n/g, ' ')
+      .replace(/["'\\]/g, '');
+  }
+
+  /** Mot qui remplace une substitution dans la commande englobante : il porte `$`, donc se lit illisible. */
+  const SUBSTITUTION = '$SUBSTITUTION';
+  /** Le texte où chaque `$(…)`, parenthèses équilibrées (non fermée : jusqu'à la fin), devient `SUBSTITUTION`. */
+  function sansSubstitutionsParenthesees(texte) {
+    let sortie = '';
+    for (let i = 0; i < texte.length; i++) {
+      if (texte[i] !== '$' || texte[i + 1] !== '(') {
+        sortie += texte[i];
+        continue;
+      }
+      let j = i + 1;
+      for (let profondeur = 0; j < texte.length; j++) {
+        if (texte[j] === '(') profondeur++;
+        else if (texte[j] === ')' && --profondeur === 0) break;
+      }
+      sortie += SUBSTITUTION + (/^[^\s;&|()]/.test(texte.slice(j + 1)) ? ' ' : '');
+      i = j;
+    }
+    return sortie;
+  }
+
+  /**
+   * Le dernier découpage : `decisionCommande` lit la même commande six fois (sujet, branche gardée, push
+   * nu, force, illisible, `gh`) ; `sansGuillemets`, dont le motif de here-doc coûte, n'y passe qu'une fois.
+   */
+  let dernierDecoupage = { commande: null, segments: [] };
+
+  /**
+   * Les segments d'une commande shell, utilitaire commun des lecteurs de commandes (`pushs`, `ecritParGh`,
+   * et `appelsGit` du ticket 28) : `{ segment, suite }`, où `suite` est le texte de la source du segment à
+   * partir de lui. La commande passe d'abord par `sansGuillemets` (`\git` s'y lit `git`). Chaque
+   * substitution, `$(…)` ou entre accents graves, est extraite des plus intérieures aux plus extérieures et
+   * lue comme une source à part, puis remplacée dans la commande englobante par `SUBSTITUTION` :
+   * `git -C "$(pwd)" push origin HEAD:sujet/x` se lit `git -C $SUBSTITUTION push origin HEAD:sujet/x`.
+   * Chaque source se découpe sur `;`, `&`, `|`, saut de ligne et sous-shell `( … )`.
+   * @param {string} commande la commande telle que l'outil Bash la reçoit
+   * @returns {readonly { segment: string, suite: string }[]} figé : le dernier découpage est gardé pour la commande suivante identique
+   */
+  function segmentsDeCommande(commande) {
+    if (dernierDecoupage.commande === commande) return dernierDecoupage.segments;
+    // Un séparateur cité n'en est pas un (`-f message="fix(api): x"`, `-c user.name="a;b"`) : la commande se lit en
+    // plus avec les séparateurs et les blancs de ses textes cités neutralisés (hors texte à substitution, lu comme
+    // avant). Une lecture en plus : rien de ce que la première refuse ne passe.
+    const cites = commande.replace(/'[^']*'|"(?:[^"\\$`]|\\[^$`])*"/g, (cite) => cite.replace(/[;&|()\s]/g, '_'));
+    const segments = Object.freeze([...lireSegments(commande), ...(cites === commande ? [] : lireSegments(cites))].map((x) => Object.freeze(x)));
+    dernierDecoupage = { commande, segments };
+    return segments;
+  }
+
+  /** Le découpage d'une lecture de `segmentsDeCommande`. */
+  function lireSegments(commande) {
+    const decouper = (source) =>
+      [...source.matchAll(/[^;&|\n()]+/g)].filter(([segment]) => segment.trim()).map(({ 0: segment, index }) => ({ segment, suite: source.slice(index) }));
+    // Des accents graves échappés (`echo \`git push …\``) sont une substitution imbriquée : lus comme `$(…)` avant
+    // que `sansGuillemets` retire les barres obliques inverses.
+    let reste = sansGuillemets(commande.replace(/\\`([^`]*?)\\`/g, '$($1)')).replace(/`([^`]*)`/g, '$($1)');
+    const segments = [];
+    for (let m = /\$\(([^()]*)\)/.exec(reste); m; m = /\$\(([^()]*)\)/.exec(reste)) {
+      segments.push(...decouper(m[1]));
+      const apres = reste.slice(m.index + m[0].length);
+      // Suivi d'une espace si un mot y est collé : `$(true)git push …` exécute `git push …`.
+      reste = reste.slice(0, m.index) + SUBSTITUTION + (/^[^\s;&|()]/.test(apres) ? ' ' : '') + apres;
+    }
+    // Une substitution qui contient des parenthèses (`$( (pwd) )`, `$((1))`) n'est pas extraite et se découpe sur `(`
+    // et `)` comme avant ; la commande englobante se lit en plus avec chacune remplacée par `SUBSTITUTION` : sans quoi
+    // `git -c a.b=$((1)) push …` serait coupé avant `push`.
+    const aplatie = sansSubstitutionsParenthesees(reste);
+    const enPlus = aplatie === reste ? [] : decouper(aplatie);
+    return [...segments, ...decouper(reste), ...enPlus];
+  }
+
+  /** Options de `git` placées avant la sous-commande et suivies d'une valeur (`git -C .. push`). */
+  const OPTIONS_GIT_A_VALEUR = new Set(['-C', '-c', '--git-dir', '--work-tree', '--namespace', '--exec-path', '--super-prefix', '--attr-source']);
+  /** Options de `git push` suivies d'une valeur séparée : cette valeur n'est ni le remote ni un refspec. */
+  const OPTIONS_PUSH_A_VALEUR = new Set(['-o', '--push-option', '--repo', '--receive-pack', '--exec']);
+
+  /**
+   * Index du programme d'un segment : le premier mot que `motif` reconnaît, hors affectation (`X=/a/git`),
+   * option (`--chdir=/w/git`) et valeur d'option suivie du vrai programme (`env -C /w/git git …`,
+   * `sudo -u git gh …`) ; un chemin qui contient `=` (`./a=b/git`) reste un programme ; -1 sinon.
+   */
+  function indexDuProgramme(mots, motif) {
+    // Le mot suivant ne compte que s'il pourrait être un programme : `git --work-tree=/x/git push` reste `git`.
+    const candidat = (mot) => motif.test(mot) && !/^(-|[A-Za-z_]\w*=)/.test(mot);
+    return mots.findIndex((mot, k) => candidat(mot) && !candidat(mots[k + 1] ?? ''));
+  }
+
+  /** Le découpage d'avant `segmentsDeCommande`, tel quel : guillemets retirés, accents graves lus `$(`, coupé sur `(` et `)`. */
+  function segmentsDAvant(commande) {
+    return sansHeredocs79(commande)
+      .replace(/["']/g, '')
+      .replace(/\\\r?\n/g, ' ')
+      .replace(/\\(.)/g, '$1')
+      .replace(/`/g, '$(')
+      .split(/[;&|\n()]+/);
+  }
+
+  /**
+   * Les index où lire le programme d'un segment : celui d'`indexDuProgramme`, et le premier mot que `exact`
+   * reconnaît (la lecture d'avant, à la casse exacte), pour que rien de ce qu'elle refusait ne passe.
+   */
+  function lecturesDuProgramme(mots, motif, exact) {
+    return [...new Set([indexDuProgramme(mots, motif), mots.findIndex((mot) => exact.test(mot))])].filter((i) => i >= 0);
+  }
+
+  /**
+   * Chaque `git push` de la commande, `git` nu ou par son chemin (`/usr/bin/git`), avec ou sans options
+   * (`git -C . push`, `git -c x=y push`), derrière n'importe quel préfixe (`timeout 5 git push`), dans
+   * un sous-shell ou une substitution (`(…)`, `$(…)`, accents graves) : ses refspecs, c'est-à-dire les
+   * positionnels après le remote (tous, si `--repo` porte le remote), et `tout` pour `--all`,
+   * `--mirror` ou `--branches`. Les guillemets sont retirés d'abord : `"HEAD:sujet/x"` vise le même sujet
+   * que `HEAD:sujet/x`. Seul le premier `git` d'un segment compte : `git commit -m "… git push …"` n'est
+   * pas un push.
+   */
+  function pushs(commande) {
+    if (derniersPushs.commande !== commande) derniersPushs = { commande, pushs: Object.freeze(lirePushs(commande)) };
+    return derniersPushs.pushs;
+  }
+
+  /**
+   * Les derniers `pushs` lus : `decisionCommande` les demande six fois pour la même commande (sujet, nom
+   * illisible, branche gardée, push nu, force, illisible) ; la lecture, qui coûte, n'est faite qu'une fois.
+   */
+  let derniersPushs = { commande: null, pushs: [] };
+
+  /** La lecture de `pushs`, sans mémoire. */
+  function lirePushs(commande) {
+    // Le découpage de `segmentsDeCommande`, et en plus celui d'avant (texte qui suit une substitution lu comme un
+    // segment à part : `sudo -u git $(true) git push …`), pour que rien de ce qu'il refusait ne passe.
+    return [...segmentsDeCommande(commande).map(({ segment }) => segment), ...segmentsDAvant(commande)]
+      .flatMap((segment) => {
+        const mots = segment.trim().split(/\s+/);
+        // Deux lectures du programme : la prudente, et celle d'avant (premier `git` à la casse exacte), pour que
+        // rien de ce qu'elle refusait ne passe (`sudo -u GIT -H git push …`).
+        return lecturesDuProgramme(mots, /(^|[/$])git$/i, /(^|\/)git$/).flatMap((i) => {
+          let j = i + 1;
+          while (j < mots.length && mots[j].startsWith('-')) j += OPTIONS_GIT_A_VALEUR.has(mots[j]) ? 2 : 1;
+          if (mots[j]?.toLowerCase() !== 'push') return [];
+          const positionnels = [];
+          let tout = false;
+          let remoteEnOption = false;
+          let force = false;
+          let illisible = false;
+          for (let k = j + 1; k < mots.length; k++) {
+            const mot = mots[k];
+            if (/[$`]/.test(mot)) illisible = true;
+            if (!mot.startsWith('-')) {
+              positionnels.push(mot);
+              continue;
+            }
+            if (/^--(all|mirror|branches)$/.test(mot)) tout = true;
+            // Git accepte les abréviations non ambiguës (`--force-w`, `--force-wi`, `--force-i`) ; `--for…` les couvre
+            // toutes, et refuse aussi `--forc`, que git rejette comme ambigu : prudence sans coût.
+            if (/^(--for[a-z-]*(=.*)?|-[a-zA-Z]*f[a-zA-Z]*)$/.test(mot)) force = true;
+            if (/^--repo(=|$)/.test(mot)) remoteEnOption = true;
+            if (OPTIONS_PUSH_A_VALEUR.has(mot)) k++;
+          }
+          const refspecs = remoteEnOption ? positionnels : positionnels.slice(1);
+          return [{ refspecs, tout, illisible, force: force || refspecs.some((refspec) => refspec.startsWith('+')) }];
+        });
+      });
+  }
+
+  /** La branche distante qu'écrit un refspec ; `HEAD` ou `@` seuls poussent la branche courante. */
+  function destination(refspec, brancheCourante) {
+    const cible = refspec.replace(/^\+/, '').split(':').pop() ?? '';
+    return cible === 'HEAD' || cible === '@' ? (brancheCourante() ?? '') : cible;
+  }
+
+  /**
+   * Vrai si un `git push` de la commande a pour destination une branche de sujet : `HEAD:sujet/x`,
+   * `HEAD:refs/heads/sujet/x`, `sujet/x` seul, cités ou non, ou `HEAD` depuis une branche `sujet/…`.
+   * Un sujet ne s'écrit que par `sujet.sh` (que le hook ne voit pas, il lance un script) : sans ce
+   * refus, une session écrirait elle-même, sur le sujet, la ligne `Dépendances:` qui l'autorise (faille
+   * relevée en contre-revue, puis en revue de sécurité : la première version ne refusait que depuis une
+   * branche de ticket, et laissait passer un refspec entre guillemets, `git -C`, `git` par son chemin,
+   * une autre branche courante, ou `git` derrière un préfixe comme `timeout 5`).
+   */
+  function pousseSurUnSujet(commande, brancheCourante = () => null) {
+    return pushs(commande).some(({ refspecs }) => refspecs.some((refspec) => (nomDeBranche(destination(refspec, brancheCourante)) ?? '').startsWith('sujet/')));
+  }
+
+  /** Vrai si un `git push` de la commande vise un nom que `nomDeBranche` ne lit pas (`./feat/x`, `feat/./x`, `develop/`). */
+  function pousseVersUnNomIllisible(commande, brancheCourante = () => null) {
+    return pushs(commande).some(({ refspecs }) =>
+      refspecs.some((refspec) => {
+        const cible = destination(refspec, brancheCourante);
+        return Boolean(cible) && cible !== 'HEAD' && nomDeBranche(cible) === null;
+      }),
+    );
+  }
+
+  /**
+   * Vrai si un `git push` de la commande écrit une branche gardée (`brancheGardee` : sujet, `develop`,
+   * `main`, branche par défaut), sous toutes ses graphies (`HEAD:refs/heads/develop`, `HEAD:heads/develop`,
+   * `HEAD:DEVELOP`), ou pousse sans refspec, ou vers `HEAD`, depuis une telle branche. Une destination
+   * vide (branche courante inconnue) n'est pas lue ici. `develop:feat/x` écrit `feat/x` : il passe.
+   */
+  function pousseSurUneBrancheGardee(commande, brancheCourante = () => null, brancheParDefaut = () => null) {
+    let parDefaut;
+    const defaut = () => (parDefaut === undefined ? (parDefaut = brancheParDefaut()) : parDefaut);
+    // `develop`, `main` et les sujets se lisent sans la branche par défaut : elle n'est demandée que pour un autre nom.
+    const gardee = (b) => Boolean(b) && b !== 'HEAD' && (brancheGardee(b) || brancheGardee(b, defaut()));
+    return pushs(commande).some(({ refspecs }) =>
+      refspecs.length === 0 ? gardee(brancheCourante()) : refspecs.some((refspec) => gardee(destination(refspec, brancheCourante))),
+    );
+  }
+
+  /**
+   * Vrai si un `git push` de la commande a un refspec qu'on ne peut pas lire : variable ou
+   * substitution, destination en motif (`refs/heads/*`), ou `--all`, `--mirror`, `--branches`.
+   */
+  function pushIllisible(commande) {
+    return pushs(commande).some(
+      ({ refspecs, tout, illisible }) => tout || illisible || refspecs.some((refspec) => /[$`]/.test(refspec) || /[*?[{]/.test(destination(refspec, () => null))),
+    );
+  }
+
+  /**
+   * Vrai si un `git push` de la commande force : `--force`, `--force-with-lease`, `--force-if-includes`,
+   * leurs abréviations (`--force-w`), avec ou sans valeur, `-f` seul ou groupé (`-uf`), ou un refspec
+   * `+…`, cité ou non. Aucune branche n'en est exemptée : les règles du produit interdisent tout push forcé.
+   */
+  const pousseEnForce = (commande) => pushs(commande).some(({ force }) => force);
+
+  /** Vrai si un `git push` de la commande n'a aucun refspec : il pousse la branche courante vers son amont. */
+  function pushSansRefspec(commande) {
+    return pushs(commande).some(({ refspecs }) => refspecs.length === 0);
+  }
+
+  /**
+   * Décision sur une commande shell : `{ decision: 'refuser', raison }`, ou `null`. Le hook ne demande
+   * jamais rien à un humain : ce qu'il ne laisse pas passer, il le refuse et dit quoi faire.
+   * @param {{ dependancesPrevues?: () => string[] | null, brancheCourante?: () => string | null }} [contexte]
+   *   Tout `git push` vers un `sujet/…` est refusé, quelle que soit la branche courante : un sujet ne
+   *   s'écrit que par `sujet.sh`, sans quoi la session écrirait elle-même la ligne qui l'autorise. Un
+   *   `git push` sans refspec, ou vers `HEAD`, depuis une branche `sujet/…` (`brancheCourante`, lue
+   *   une fois au plus) l'est aussi ; un refspec illisible (variable, substitution, motif, `--all`)
+   *   l'est aussi.
+   *   `dependancesPrevues` : paquets de la ligne `Dépendances:` du ticket de la branche, lue sur le
+   *   sujet (`null` si introuvable) ; appelée seulement si la commande ajoute un paquet. Une commande
+   *   passe sans question quand chacun de ses paquets y figure et qu'aucune option ne change la source
+   *   (`--registry`, `--config.*`) ; un seul paquet absent ou une telle option, et elle est refusée.
+   */
+  function decisionCommande(commande, { dependancesPrevues = () => null, brancheCourante = () => null, brancheParDefaut = () => null } = {}) {
+    const code = sansTexte(commande);
+    // Aussi sur la commande aux mots dénudés : un mot cité seul (`"git"`, `$'git'`, `"--no-verify"`), des
+    // guillemets vides ou une barre oblique inverse dans un mot (`g''it`, `g\it`) ne cachent pas un motif.
+    const nu = sansTexte(motsDenudes(commande));
+    for (const [motif, raison] of COMMANDES_INTERDITES) if (motif.test(code) || motif.test(nu)) return { decision: 'refuser', raison };
+    let branche;
+    const courante = () => (branche === undefined ? (branche = brancheCourante()) : branche);
+    if (pousseSurUnSujet(commande, courante)) return { decision: 'refuser', raison: RAISON_PUSH_SUJET };
+    if (pushSansRefspec(commande) && (courante() ?? '').startsWith('sujet/')) return { decision: 'refuser', raison: RAISON_PUSH_SUJET };
+    if (pousseVersUnNomIllisible(commande, courante)) return { decision: 'refuser', raison: RAISON_NOM_ILLISIBLE };
+    if (pousseSurUneBrancheGardee(commande, courante, brancheParDefaut)) return { decision: 'refuser', raison: RAISON_PUSH_GARDEE };
+    if (pousseEnForce(commande)) return { decision: 'refuser', raison: RAISON_PUSH_FORCE };
+    if (ecritParGh(commande)) return { decision: 'refuser', raison: RAISON_GH_ECRIT };
+    if (pushIllisible(commande)) return { decision: 'refuser', raison: RAISON_PUSH_ILLISIBLE };
+    const liste = ajouts(code);
+    if (liste.length === 0) return null;
+    const sansRisque = liste.every(({ options }) => options.every((o) => OPTIONS_SANS_RISQUE.has(o)));
+    const prevues = sansRisque ? dependancesPrevues() : null;
+    const paquets = liste.flatMap((a) => a.paquets);
+    if (Array.isArray(prevues) && paquets.every((p) => prevues.includes(p))) return null;
+    return { decision: 'refuser', raison: RAISON_DEPENDANCE };
+  }
+
+  /**
+   * La commande aux mots dénudés, pour les motifs de `COMMANDES_INTERDITES` : lignes continuées recollées,
+   * barres obliques inverses et guillemets vides retirés, un mot cité seul (sans blanc) sans ses guillemets ni
+   * le `$` d'une citation ANSI-C (`$'git'`). Un texte cité qui porte un blanc reste un texte.
+   */
+  function motsDenudes(commande) {
+    return commande
+      .replace(/\\\r?\n/g, ' ')
+      .replace(/\\/g, '')
+      .replace(/(['"])\1/g, '')
+      .replace(/\$?(['"])([^\s'"$`]+)\1/g, '$2');
+  }
+
+  /**
+   * Vrai si la commande écrit une branche, un fichier ou une règle de branche par `gh` : `gh pr merge`,
+   * `gh pr close -d`, `gh repo sync`, `gh alias set` et `gh alias import` (avec ou sans `-R`/`--repo`,
+   * avant ou après la sous-commande) ; `gh api` vers une route de `CHEMIN_GH_ECRIT`, ou vers un chemin
+   * illisible (variable, substitution, encodé), avec une méthode autre que GET (explicite, ou implicite : un
+   * champ `-f`/`-F` ou `--input` fait un POST) ; `gh api graphql` (ou la route `/graphql`) dont la requête,
+   * cherchée dans la commande à partir de `gh`, est une mutation ou ne se lit pas (`query=@fichier`,
+   * `--input`, variable).
+   */
+  function ecritParGh(commande) {
+    return segmentsDeCommande(commande).some(({ segment, suite }) => {
+      // `-i` est la seule option booléenne courte de `gh api` : `-iX PUT`, `-iXPUT`, `-ifk=v` se lisent `-X`, `-f`.
+      const mots = segment.trim().split(/\s+/).map((mot) => mot.replace(/^-i+(?=[XfF])/, '-'));
+      // Seul le premier programme du segment compte : `git commit -m "gh pr merge 3"` n'est pas une fusion.
+      // `$'gh'` se lit `$gh` sans ses guillemets ; un système de fichiers insensible à la casse lance `GH`.
+      return lecturesDuProgramme(mots, /(^|[/$])(gh|git)$/i, /(^|\/)(gh|git)$/).some((i) => {
+        if (!/(^|[/$])gh$/i.test(mots[i])) return false;
+        // Positionnels après `gh`, sans `-R`, `--repo`, `--hostname` ni leur valeur : `gh -R o/r pr merge 3` est `pr merge`.
+        const pos = [];
+        for (let k = i + 1; k < mots.length; k++) {
+          if (mots[k] === '-R' || mots[k] === '--repo' || mots[k] === '--hostname') k++;
+          else if (!mots[k].startsWith('-')) pos.push(mots[k]);
+        }
+        if ((pos[0] === 'pr' && (pos[1] === 'merge' || pos[1] === 'update-branch')) || (pos[0] === 'repo' && pos[1] === 'sync')) return true;
+        if (pos[0] === 'alias' && (pos[1] === 'set' || pos[1] === 'import')) return true;
+        if (pos[0] === 'pr' && pos[1] === 'close' && mots.some((mot) => /^(-[a-zA-Z]*d[a-zA-Z]*|--delete-branch)(=.*)?$/.test(mot))) return true;
+        if (pos[0] !== 'api') return false;
+        let chemin = null;
+        const positionnels = [];
+        let methode = null;
+        let champs = false;
+        for (let k = mots.indexOf('api', i + 1) + 1; k < mots.length; k++) {
+          const mot = mots[k];
+          if (!mot.startsWith('-')) {
+            chemin ??= mot;
+            positionnels.push(mot);
+            continue;
+          }
+          const [option, valeurJointe] = mot.split(/=(.*)/s);
+          const valeur = valeurJointe ?? (OPTIONS_GH_API_A_VALEUR.has(option) ? mots[++k] : undefined);
+          if (option === '-X' || option === '--method') methode = String(valeur ?? '').toUpperCase();
+          else if (/^-X./.test(mot)) methode = mot.slice(2).toUpperCase();
+          // `-fcle=valeur` : un champ collé à son option fait un POST comme `-f cle=valeur`.
+          if (['-f', '--raw-field', '-F', '--field', '--input'].includes(option) || /^-[fF]./.test(option)) champs = true;
+        }
+        // Route lue comme gh l'enverra : hôte, barres de tête, de fin, doublées et `./` retirés, requête et fragment
+      // (`#…`, jamais envoyé) coupés, en minuscules.
+        const routeDe = (c) => c.replace(/^[a-z]+:\/\/[^/]+/i, '').replace(/\/(\.\/)+/g, '/').replace(/\/{2,}/g, '/').split(/[?#]/)[0].replace(/^\/+|\/+$/g, '').toLowerCase();
+        const route = routeDe(chemin ?? '');
+        // Un champ cité à blancs placé avant la route (`-f message="add file" … repos/…/contents/a`) laisse des mots
+        // devant elle : chaque positionnel qui a la forme d'une route (`repos/…`, `graphql`, une URL) compte aussi.
+        const routes = [route, ...positionnels.slice(1).filter((p) => /^(\/?repos\/|\/?graphql$|[a-z]+:\/\/)/i.test(p)).map(routeDe)];
+        // La mutation se cherche de `gh` à la fin de la commande : ni avant (un message de commit), ni bornée au
+        // segment (la découpe sur `(` couperait `query A { a(x: 1) } mutation B { … }`).
+        if (routes.some((r) => /(^|\/)graphql$/.test(r)) && (/\bmutation\b/i.test(suite) || /query=@|--input|[$]/.test(segment))) return true;
+        if (/(^|\/)graphql$/.test(route)) return false;
+        const ecrit = (methode ?? (champs ? 'POST' : 'GET')) !== 'GET';
+        // Un chemin qui ne se lit pas (variable, substitution, encodé, segment `..`) pourrait viser une branche : refusé en écriture.
+        return ecrit && chemin !== null && (/[$%]/.test(chemin) || /(^|\/)\.\.(\/|$|[?#])/.test(chemin) || routes.some((r) => CHEMIN_GH_ECRIT.test(r)));
+      });
+    });
+  }
+
+  return Object.freeze({ decisionCommande, sansHeredocs79 });
+})();
