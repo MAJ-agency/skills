@@ -1,6 +1,6 @@
 # Le capitaine d'un dépôt sans la chaîne lie le label au sommet par un commentaire et n'agit que par les outils GitHub MCP : ni `gh`, ni timeline
 
-Status: ready-for-agent
+Status: Fait — PR #103
 Type: task
 Modèle: sonnet — neuf remplacements de documentation donnés mot pour mot (ancien, nouveau), un banc donné entier et joué sur une copie jetable de `origin/main`, mutations comprises (voir « Vérification ») ; rien n'est à concevoir.
 Blocked by: —
