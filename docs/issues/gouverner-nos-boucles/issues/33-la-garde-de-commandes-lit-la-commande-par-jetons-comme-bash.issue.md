@@ -206,6 +206,13 @@ Le cas d dépasse le délai du hook (60 s) : la garde est tuée et Bash bloqué 
     - Commits sous les hooks, jamais `--no-verify` ; aucun test retiré, sauté ou assoupli.
     - PR hors brouillon, sans `à-fusionner` (`Label: contre-revue`), un mot à l'architecte dès la PR livrée.
 
+12. **Précisions de l'architecte après la relecture du 2026-11-16** (elles complètent les décisions 4 et 5 et l'emportent sur elles en cas de doute) :
+   - **Un préfixe inconnu n'est jamais transparent.** Le consommateur se lit après les seuls préfixes nommés en décision 4 ; tout autre mot qui lance son argument (`exec`, `builtin`, `stdbuf`, `ionice`, `chroot`, `setsid`, `flock`, `unbuffer`…) ou tout programme inconnu en tête fait passer le corps en **relu par prudence**, jamais en retiré. Un test : `exec cat <<'EOF'` … `git push --force origin feat/x` … `EOF` est relu par prudence (refusé).
+   - **Une définition de fonction ou un `alias` compte comme un exécuteur**, où qu'il soit dans la commande entière : `f(){ cat; }; f <<'EOF'` et `alias c=bash; c <<'EOF'` ne retirent pas le corps. Un test pour chacun.
+   - **L3 se lit à partir du programme**, mots réservés et ouvertures de groupe retirés (`!`, `time` et ses options, `{`, `(`, `if`, `then`, `elif`, `else`, `do`, `while`, `until`, `case … in`), puis les affectations ; le décideur voit donc la même commande que bash lance. Un test par mot réservé de la liste, chacun suivi d'un `npm install x`, refusé.
+   - **Un tour d'attaques hors du ticket reste à faire, par la session** : le relecteur indépendant a été arrêté par un contrôle de sûreté avant de proposer ses propres commandes, et l'architecte ne l'a pas contourné. La session joue donc elle-même, à l'oracle, au moins vingt formes que ce ticket ne nomme pas (substitution de processus, here-string, `$'…'` à saut de ligne, ligne continuée par `\`, terminateur cité en partie `<<E"OF"` et `<<\EOF`, `coproc`, `case`, boucles, sous-shell, groupe) et les écrit dans la PR, avec leur verdict avant et après. Toute forme que bash exécute et que la branche laisse passer alors que `main` la refuse est une régression bloquante ; une forme qui passe déjà sur `main` est notée pour le ticket 34.
+   - Mineure : dans la table, G3 vaut un antislash suivi de `n` littéral ; le test fait foi.
+
 ### Remèdes écartés
 
 - **Retoucher les motifs** (correctif du ticket 35, balayage unique « here-doc qui se ferme ou texte cité ») : 32 régressions réelles sur le corpus de ce ticket, 23 231 sur celui du relecteur du 35. Décision de l'architecte après la PR 89 : plus de motifs dans `regles.mjs`.
