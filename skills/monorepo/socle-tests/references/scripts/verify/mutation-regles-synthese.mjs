@@ -10,9 +10,9 @@
  * Variable : `PROJET_RACINE` (racine du dépôt ; par défaut, deux dossiers au-dessus du script).
  * Pas de plancher en V1 : la synthèse nomme les assertions qui manquent, elle ne refuse rien.
  */
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, realpathSync } from "node:fs";
 import { join, relative, resolve, sep } from "node:path";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
 import { perimetreDuPaquet, racineDuDepot } from "./mutation-regles.mjs";
 
 export const RAPPORT_JSON = "reports/mutation/mutation.json";
@@ -96,4 +96,13 @@ export function texteDuPaquet(racine = racineDuDepot(), cwd = process.cwd()) {
   return synthese(p.regles, mutation, (c) => relative(racine, resolve(cwd, c)).split(sep).join("/"), p.ecartes, p.ailleurs);
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) process.stdout.write(texteDuPaquet());
+/** Vrai quand ce fichier est lancé en ligne de commande : lien symbolique, chemin à espace ou à accent, `--preserve-symlinks-main` compris. */
+function estPointEntree() {
+  try {
+    return realpathSync(fileURLToPath(import.meta.url)) === realpathSync(process.argv[1]);
+  } catch {
+    return false;
+  }
+}
+
+if (estPointEntree()) process.stdout.write(texteDuPaquet());
