@@ -224,10 +224,11 @@ Vague 1 fusionnée le 2026-11-13 par le capitaine de `skills` (`main` à `8eb1c9
 | `session_017ZgEwMSWxRL4cTaWA2byAC` | ticket   | 43 (PR 96 de `skills`, fusionnée `863723a`, plugin 7.9.3) | 1,59 | 135 586 |
 | `session_017ZgEwHnpiyPi2beZ3bc57d` | ticket   | 44 (PR 97 de `skills`, fusionnée `0860466`, plugin 7.9.4) | 2,71 | 191 423 |
 | `session_017ZgEwKTE4Z4d45Hq75sggw` | ticket   | 40 (PR 99 de `skills`, fusionnée `5ccead9`, plugin 7.10.0) | 5,96 | 288 383 |
-| `session_017ZgEwKtrSDy8cE4NjGkDNh` | ticket   | PR 98 (ticket 33), corrections (opus, lancée le 2026-11-16 à 16 h 47 UTC) | 0 | 0 |
+| `session_017ZgEwKtrSDy8cE4NjGkDNh` | ticket   | PR 98 (ticket 33), corrections (opus, lancée le 2026-11-16 à 16 h 47 UTC) | 17,99 | 356 827 |
 | `session_017ZgEwHVL1Z21sVnZ8L36Ua` | ticket   | 41 (PR 100 de `skills`, fusionnée `f28948f`, plugin 7.10.2) | 2,96 | 195 244 |
 | `session_017ZgEwJ7Sv1KF44poXSuHrj` | ticket   | 45 (PR 101 de `skills`, fusionnée `22ae4cd`, plugin 7.10.1) | 1,69 | 147 198 |
-| `session_017ZgEwJvQRShwMnebEH8wpA` | ticket   | PR 98 (ticket 33), union des deux lectures A-51 bis (opus, lancée le 2026-11-16 à 17 h 40 UTC) | 0 | 0 |
+| `session_017ZgEwJvQRShwMnebEH8wpA` | ticket   | PR 98 (ticket 33), union des deux lectures A-51 bis (opus, lancée le 2026-11-16 à 17 h 40 UTC) | 14,90 | 322 971 |
+| `session_017ZgEwLDJCV39LahQYxDg3B` | ticket   | PR 98 (ticket 33), union sur la commande d'origine A-51 ter (opus, lancée le 2026-11-16 à 18 h 20 UTC) | 0 | 0 |
 | `session_017ZgEwHXZTNm7Z93PDykKiA` | ticket   | 42 (lancée le 2026-11-16 à 18 h 10 UTC) | 0 | 0 |
 | `session_012xRpgb98uSwUKaaEst45iw` | architecte | session parallèle du 2026-11-16 (retours de `fedora`), arrêtée à 15 h 10 UTC ; sous-agents compris | 60,16 | 327 915 |
 | `session_017ZgEwH8k29dNtENWHwCNbn` | ticket   | 28 (PR 91 de `skills`, fusionnée `436c96e`, plugin 7.8.1) | 2,85 | 183 698 |
