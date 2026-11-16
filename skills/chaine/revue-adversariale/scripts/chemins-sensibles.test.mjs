@@ -238,3 +238,19 @@ test("CLI : un chemin en NFD touche son motif en NFC, et l'inverse", () => {
     assert.equal(r.stdout, `${chemin}\t${motif}\n`);
   }
 });
+
+test("un chemin décité qui porte un saut de ligne, \\r ou U+2028 touche encore son motif", () => {
+  const cas = [
+    ["**/secret/**", '"x\\ny/secret/k.md"'],
+    ["src/auth/**", '"src/auth/a\\nb.md"'],
+    ["src/auth/**", '"src/auth/a\\rb.md"'],
+    ["**/secret/**", '"x\\342\\200\\250y/secret/k.md"'],
+    ["**/secret/**", '"x\\342\\200\\251y/secret/k.md"'],
+    [".github/**", '".github/workflows/x\\342\\200\\250.yml"'],
+  ];
+  for (const [motif, cite] of cas) {
+    const r = lancer(dossierAvec(JSON.stringify({ cheminsSensibles: [motif] })), `${cite}\n`);
+    assert.equal(r.status, 0, r.stderr);
+    assert.match(r.stdout, new RegExp(`\\t${motif.replace(/[*/.]/g, "\\$&")}\\n$`), `${motif} / ${cite}`);
+  }
+});

@@ -333,3 +333,22 @@ test('lireBase : une base de sujet ajoute le contrat d’origin/develop (sujet e
   const casse = revueExigee.lireBase('origin/sujet/lot', (ref, chemin) => (ref === 'origin/develop' ? '{illisible' : lire(ref, chemin)));
   assert.match(casse.illisible ?? '', /origin\/develop/);
 });
+
+// Un nom de fichier peut porter un saut de ligne, `\r`, U+2028 ou U+2029 (git les cite : "x\ny", "\342\200\250") : `.` ne les
+// franchit pas sans le drapeau `s`, et le chemin échapperait au motif sensible, donc à la revue.
+test('exigeRevue : un chemin décité qui porte un saut de ligne ou U+2028 touche encore son motif sensible', async () => {
+  const gate = await chargerGate();
+  const cas = [
+    ['**/secret/**', '"x\\ny/secret/k.md"', 'x\ny/secret/k.md'],
+    ['src/auth/**', '"src/auth/a\\nb.md"', 'src/auth/a\nb.md'],
+    ['src/auth/**', '"src/auth/a\\rb.md"', 'src/auth/a\rb.md'],
+    ['**/secret/**', '"x\\342\\200\\250y/secret/k.md"', 'x y/secret/k.md'],
+    ['**/secret/**', '"x\\342\\200\\251y/secret/k.md"', 'x y/secret/k.md'],
+  ];
+  for (const [motif, cite, brut] of cas) {
+    const base = { ...revueExigee.SANS_BASE, sensibles: [motif] };
+    assert.equal(exigeRevue([cite], base), true, `${motif} / ${JSON.stringify(brut)}`);
+    assert.equal(gate.motifSensibleTouche(brut, [motif]), motif, `gate : ${motif} / ${JSON.stringify(brut)}`);
+  }
+  assert.equal(exigeRevue(['".github/workflows/x\\342\\200\\250.yml"']), true, 'CI avec U+2028 dans le nom');
+});
