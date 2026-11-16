@@ -883,10 +883,12 @@ test('ticket 33, contre-relecture C1 : ce qui suit un mot à expansion se relit 
   };
   const continuees = (n) => 'echo ' + '"$a" \\\n'.repeat(n) + `; ${F}`;
   const nus = (n) => 'echo ' + '$a '.repeat(n);
-  for (const [forme, attendu] of [[continuees, 'refuser'], [nus, undefined]]) {
-    mesure(forme(1000));
-    const petit = mesure(forme(10000));
-    const grand = mesure(forme(30000));
+  // Les tailles restent sous le plafond de 20 000 caractères : au-delà, la commande est refusée sans être lue.
+  for (const [forme, attendu, n] of [[continuees, 'refuser', 800], [nus, undefined, 2200]]) {
+    assert.ok(forme(3 * n).length <= 20000, `${forme(3 * n).length} caractères : au-delà du plafond`);
+    mesure(forme(n / 10));
+    const petit = mesure(forme(n));
+    const grand = mesure(forme(3 * n));
     assert.equal(grand.d, attendu);
     assert.ok(grand.s < 2, `${grand.s} s`);
     // Trois fois plus long : moins de six fois plus de temps et de mémoire (une croissance quadratique en ferait neuf).
@@ -1032,28 +1034,24 @@ test('A-51 bis : la lecture de 7.9.x rend ce que rendait son motif de here-doc, 
     if (s.replace(HD, '<<heredoc') !== sansHeredocs79(s)) ecarts.push(s);
   }
   assert.deepEqual(ecarts.slice(0, 5), []);
-  // Le cas qui coûtait au cube : dix « <<A » cités, 20 000 sauts de ligne (37 s avec le motif).
-  const c = "echo '" + '<<A '.repeat(10) + "'" + '\n'.repeat(20000) + 'echo ok';
+  // Le cas qui coûtait au cube : dix « <<A » cités, 19 900 sauts de ligne (37 s avec le motif pour 20 000), sous le plafond.
+  const c = "echo '" + '<<A '.repeat(10) + "'" + '\n'.repeat(19900) + 'echo ok';
+  assert.ok(c.length <= 20000, `${c.length} caractères : au-delà du plafond, la commande ne serait pas lue`);
   const t0 = Date.now();
   assert.equal(decisionCommande(c, CTX_33), null);
   assert.ok(Date.now() - t0 < 2000, `${Date.now() - t0} ms`);
 });
 
-test('A-51 ter : au-delà de 100 000 caractères, refus prudent ; en deçà, le pire cas mesuré reste sous 10 s', () => {
-  assert.deepEqual(decisionCommande('echo ' + 'x'.repeat(100001), CTX_33), { decision: 'refuser', raison: RAISON_TROP_LONGUE });
+test('A-51 ter : au-delà de 20 000 caractères, refus prudent, corps de here-doc compris', () => {
+  assert.deepEqual(decisionCommande('echo ' + 'x'.repeat(20001), CTX_33), { decision: 'refuser', raison: RAISON_TROP_LONGUE });
   // Le plafond compte toute la commande, corps de here-doc compris : un message plus long s'écrit dans un fichier.
-  assert.deepEqual(decisionCommande(`git commit -F - <<'EOF'\n${'fix\n'.repeat(25001)}EOF`, CTX_33), { decision: 'refuser', raison: RAISON_TROP_LONGUE });
-  assert.equal(decisionCommande(`git commit -F - <<'EOF'\n${'fix\n'.repeat(24000)}EOF`, CTX_33), null);
-  // La forme la plus coûteuse mesurée pour la lecture de 7.9.x : des accents graves collés, au carré de la taille
-  // (2,3 s pour 50 000 caractères et 8,2 s pour 99 000 sur le poste de mesure) ; jouée ici à 50 000.
-  const c = 'echo ' + '`a`'.repeat(16663);
-  const t0 = Date.now();
-  assert.equal(decisionCommande(c, CTX_33), null);
-  assert.ok(Date.now() - t0 < 10000, `${Date.now() - t0} ms`);
+  // `git commit -F - <<'EOF'`, son saut de ligne et `EOF` font 27 caractères, chaque ligne `fix` 4 : 20 003, puis 19 999.
+  assert.deepEqual(decisionCommande(`git commit -F - <<'EOF'\n${'fix\n'.repeat(4994)}EOF`, CTX_33), { decision: 'refuser', raison: RAISON_TROP_LONGUE });
+  assert.equal(decisionCommande(`git commit -F - <<'EOF'\n${'fix\n'.repeat(4993)}EOF`, CTX_33), null);
 });
 
 
-test('A-51 ter : le plafond se teste avant toute lecture — une commande de plus de 100 000 caractères est refusée vite', () => {
+test('A-51 ter : le plafond se teste avant toute lecture — une commande de plus de 20 000 caractères est refusée vite', () => {
   // La lecture par jetons est quadratique sur `git commit -m x ` répété : 122 s au-delà du délai du hook, avant le plafond.
   const c = 'git commit -m x '.repeat(62000) + '; npm install x';
   const t0 = Date.now();
@@ -1070,4 +1068,68 @@ test('A-51 ter : le contexte est lu une fois pour les deux lectures — un seul 
   };
   assert.equal(decisionCommande('pnpm add zod && git push', contexte), null);
   assert.deepEqual(appels, { dependancesPrevues: 1, brancheCourante: 1, brancheParDefaut: 1 });
+});
+
+// Le plafond (ticket 48) : les deux lectures coûtent au carré de la taille sur certaines formes, une option d'une lettre
+// répétée sans fin de mot en tête (26 s pour `gh pr close 1 -ddd…!` à 99 980 caractères, sous l'ancien plafond de
+// 100 000). À 20 000, le pire cas mesuré prend 1,2 s sur le poste de mesure ; le banc le borne à 10 s, marge pour une
+// machine chargée, sous le délai de 60 s du hook. Un caractère de plus, et la commande est refusée sans être lue.
+const PLAFOND = 20_000;
+const PIRES_CAS = [
+  ['gh pr close 1 -', 'd', '!'],
+  ['git commit -', 'n', '!'],
+  ['git commit -m x -', 'nN', '!'],
+  ['GIT commit -', 'n', '.'],
+  ['git push -', 'f', '!'],
+  ['', '`', ''],
+  ['x=', '`', ''],
+  ['echo ', '`a`', ''],
+  ['', 'git push ', ''],
+  ['', '$(a)', ')'],
+  ['echo ', '9', ''],
+];
+const pireCas = ([avant, motif, apres], n) => avant + motif.repeat(Math.ceil(n / motif.length)).slice(0, n - avant.length - apres.length) + apres;
+test('le plafond à 20 000 caractères : chaque pire cas mesuré se lit sous 10 s, et se refuse sans lecture à 20 001', () => {
+  assert.match(RAISON_TROP_LONGUE, /^commande trop longue pour la garde \(plus de 20 000 caractères\)/);
+  assert.match(RAISON_TROP_LONGUE, /Écris le texte long dans un fichier \(git commit -F <fichier>, gh … --body-file <fichier>\)/);
+  assert.equal(decisionCommande('echo ' + 'x'.repeat(PLAFOND - 5), CTX_33), null, 'au plafond : lue');
+  assert.deepEqual(decisionCommande('echo ' + 'x'.repeat(PLAFOND - 4), CTX_33), { decision: 'refuser', raison: RAISON_TROP_LONGUE }, 'un caractère de plus : refusée');
+  for (const cas of PIRES_CAS) {
+    const c = pireCas(cas, PLAFOND);
+    assert.equal(c.length, PLAFOND, JSON.stringify(cas));
+    const t0 = Date.now();
+    assert.equal(decisionCommande(c, CTX_33), null, JSON.stringify(cas));
+    assert.ok(Date.now() - t0 < 10000, `${JSON.stringify(cas)} : ${Date.now() - t0} ms à ${PLAFOND} caractères`);
+    const long = pireCas(cas, PLAFOND + 1);
+    assert.equal(long.length, PLAFOND + 1, JSON.stringify(cas));
+    const t1 = Date.now();
+    assert.deepEqual(decisionCommande(long, CTX_33), { decision: 'refuser', raison: RAISON_TROP_LONGUE }, JSON.stringify(cas));
+    assert.ok(Date.now() - t1 < 1000, `${JSON.stringify(cas)} : ${Date.now() - t1} ms pour refuser à ${PLAFOND + 1} caractères`);
+  }
+});
+
+// `ajouts(code)` de la lecture de 7.9.x retire les redirections par `(?<!\d)\d*(>>?|<)…` (ticket 48, repris
+// d'anchorpost) : sans `(?<!\d)`, chaque chiffre d'une longue suite relançait la recherche jusqu'au bout de la suite
+// (3,6 s pour `echo` et 99 995 chiffres). Le remplacement rendu est le même : une correspondance qui commencerait
+// après un chiffre commencerait déjà sur ce chiffre, et le caractère qui suit une correspondance n'est jamais un
+// chiffre (elle s'arrête sur un blanc, `;`, `&`, `|` ou la fin).
+test("ticket 48 : `ajouts(code)` de la lecture de 7.9.x ne relance pas sa recherche sur chaque chiffre, et rend le même remplacement", () => {
+  const AVANT = /\d*(>>?|<)&?\s*[^\s;&|]*/g;
+  const APRES = /(?<!\d)\d*(>>?|<)&?\s*[^\s;&|]*/g;
+  const ALPHA = ['1', '>', '<', '&', ' ', ';', '|', 'a'];
+  const ecarts = [];
+  const voir = (s, k) => {
+    if (s.replace(AVANT, ' ') !== s.replace(APRES, ' ')) ecarts.push(s);
+    if (k > 0) for (const c of ALPHA) voir(s + c, k - 1);
+  };
+  voir('', 6);
+  assert.deepEqual(ecarts.slice(0, 5), []);
+  const ctx = { dependancesPrevues: () => ['zod', 'x'], brancheCourante: () => 'feat/x', brancheParDefaut: () => 'develop' };
+  for (const c of ['pnpm add zod 2>/dev/null', 'pnpm add zod 12>x', 'pnpm add x2>y', 'pnpm add zod 1>&2', 'pnpm add zod 2>&1', 'pnpm add zod 99<in', 'pnpm add 2>x zod', 'pnpm add zod>x', 'pnpm add zod >>log 2>&1', 'pnpm add zod 2>err1 3>&-'])
+    assert.equal(LECTURE_7_9.decisionCommande(c, ctx), null, c);
+  assert.equal(LECTURE_7_9.decisionCommande('pnpm add react 2>/dev/null', ctx)?.decision, 'refuser');
+  // Hors plafond, la lecture de 7.9.x seule : linéaire sur une longue suite de chiffres.
+  const t0 = Date.now();
+  assert.equal(LECTURE_7_9.decisionCommande('echo ' + '9'.repeat(99995), CTX_33), null);
+  assert.ok(Date.now() - t0 < 1000, `${Date.now() - t0} ms pour 99 995 chiffres`);
 });
