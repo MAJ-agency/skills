@@ -926,7 +926,8 @@ class Lecteur {
           }
           this.echec('parenthèse inattendue');
         }
-        if (metacaractere(c)) break;
+        // `<(…)` et `>(…)` commencent un mot (substitution de processus), pas une redirection.
+        if (metacaractere(c) && !((c === '<' || c === '>') && s[this.i + 1] === '(')) break;
         const mot = this.lireMot();
         if (!cmd.mots.length && this.affectation(cmd, mot)) {
           elements.push(mot);

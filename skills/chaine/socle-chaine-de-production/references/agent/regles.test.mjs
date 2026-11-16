@@ -647,6 +647,13 @@ test('ticket 33 : ce que le lecteur ne sait pas lire est refusé avec RAISON_ILL
     assert.equal(decisionCommande(`${F}\n${c}`, CTX_33)?.raison, RAISON_ILLISIBLE, `${F} puis ${c}`);
   }
   assert.equal(lireCommande(F).illisible, null);
+  // Une substitution de processus est un mot, lu, pas une syntaxe inconnue.
+  for (const c of ['diff <(ls a) <(ls b)', 'tee >(wc -l) < f']) assert.equal(lireCommande(c).illisible, null, c);
+  assert.deepEqual(
+    lireCommande('cat <(git push --force origin feat/x)').commandes.map((k) => k.origine),
+    ['tete', 'substitution'],
+  );
+  assert.equal(decisionCommande('cat <(git push --force origin feat/x)', CTX_33)?.raison.startsWith('push forcé'), true);
 });
 
 test('ticket 33 : les trois lectures d’un corps de here-doc — retiré, lu comme des commandes, relu par prudence', () => {
