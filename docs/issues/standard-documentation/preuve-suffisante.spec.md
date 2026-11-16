@@ -73,7 +73,7 @@ Les dix familles (`RULE_ALL_ANC-28`) s'écrivent `limits`, `empty`, `invalid-inp
           "name": "Inviter un membre",
           "criticality": "high",
           "features": ["SPEC_ALL_ANC-1"],
-          "validation": { "date": "2026-11-20", "by": "Guillaume Jauffret" }
+          "validation": { "date": "2026-11-20", "by": "Camille Martin" }
         }
       ]
     }
