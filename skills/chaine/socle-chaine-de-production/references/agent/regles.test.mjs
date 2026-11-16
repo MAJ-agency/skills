@@ -817,6 +817,27 @@ test('ticket 33, contre-relecture B3 : un corps relu par prudence passe par tous
   assert.equal(decisionCommande("python3 - <<'EOF'\nprint(\"l'architecte : gh pr merge, gh repo sync\")\nEOF\n", CTX_33), null);
 });
 
+test('ticket 33, banc de monotonie : un texte cité lu en L2 qui commence une commande passe aussi par COMMANDES_INTERDITES et les dépendances', () => {
+  const NV = 'git commit --no-' + 'verify -m x';
+  for (const c of [
+    `bash -c 'python3 -c "import os; os.system('\\''${NV}'\\'')"'`,
+    `eval 'python3 -c "import os; os.system('\\''${NV}'\\'')"'`,
+    `trap 'python3 -c "import os; os.system('\\''${NV}'\\'')"' EXIT`,
+    `python3 -c 'import os; os.system("python3 -c '\\''import os; os.system(\\"${NV}\\")'\\''")'`,
+    `bash <(echo 'python3 -c "import os; os.system('\\''${NV}'\\'')"')`,
+    `set -- 'python3 -c "import os; os.system('\\''${NV}'\\'')"'; eval "$1"`,
+    `eval 'perl -e '\\''\`${NV}\`'\\'''`,
+    `python3 -c 'import os; os.system("${NV}")'`,
+    `perl -e 'system("npm install leftpad")'`,
+    `node -e 'require("child_process").execSync("pnpm add leftpad")'`,
+    `ruby -e '\`git rebase origin/develop\`'`,
+  ])
+    assert.equal(decisionCommande(c, CTX_33)?.decision, 'refuser', c);
+  // Le premier segment est la commande elle-même, lue en L3 : un message qui cite --no-verify ou npm install passe.
+  for (const c of ['git commit -m "fix: plus de --no-' + 'verify, jamais"', 'git commit -m "chore: npm install x refusé"', 'gh pr create --title "x" --body "pnpm add zod est refusé"'])
+    assert.equal(decisionCommande(c, CTX_33), null, c);
+});
+
 test('ticket 33, /security-review : un here-doc non quoté se ferme sur sa ligne logique, lignes continuées par \\ recollées, comme bash', () => {
   const P = 'git push -' + 'f origin feat/x';
   for (const c of [

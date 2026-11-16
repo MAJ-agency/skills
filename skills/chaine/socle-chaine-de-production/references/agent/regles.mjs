@@ -128,7 +128,10 @@ function ajouts(mots) {
  * Paquets qu'ajoute la commande (`pnpm add <paquet>`, `pnpm install <paquet>`), noms sans version.
  * Un chemin, une URL ou un alias reste tel quel : il ne figure dans aucune ligne `Dépendances:`.
  */
-export const paquetsAjoutes = (code) => lireCommande(code).textes.flatMap(ajouts).flatMap(({ paquets }) => paquets);
+export const paquetsAjoutes = (code) => {
+  const lu = lireCommande(code);
+  return [...lu.textes, ...lu.cites].flatMap(ajouts).flatMap(({ paquets }) => paquets);
+};
 
 /** Vrai si la commande ajoute un paquet (`pnpm add <paquet>`, `pnpm install <paquet>`). */
 export const ajouteUneDependance = (code) => paquetsAjoutes(code).length > 0;
@@ -1470,6 +1473,7 @@ function lectureIllisible(commande, motif) {
     heredocs: Object.freeze([]),
     prudences: Object.freeze([]),
     textes: Object.freeze(eclate.map(({ mots }) => mots)),
+    cites: Object.freeze([]),
     lectures: Object.freeze(eclate.map(({ segment, mots }) => new Lecture(mots, segment, { suite: () => commande }, 0))),
     segments: Object.freeze(eclate.map(({ segment }) => Object.freeze({ segment, suite: commande }))),
     sansTexte: commande,
@@ -1506,6 +1510,7 @@ function lectureIllisible(commande, motif) {
  *   heredocs: readonly { operateur: string, delimiteur: string | null, quote: boolean, corps: string, lecture: string }[],
  *   prudences: readonly { texte: string, segments: { segment: string, mots: string[] }[] }[],
  *   textes: readonly string[][],
+ *   cites: readonly string[][],
  *   lectures: readonly { mots: string[], segment: string, suite(): string }[],
  *   segments: readonly { segment: string, suite: string }[],
  *   sansTexte: string,
@@ -1523,6 +1528,8 @@ function lectureIllisible(commande, motif) {
  *   une partie citée porte un blanc ou un séparateur lu `""`, un mot à expansion lu par son texte (paramètres
  *   gardés, substitutions en `$SUBSTITUTION`) ; c'est ce que lisent `COMMANDES_INTERDITES` et
  *   les ajouts de dépendances. Les valeurs d'un tableau (`a=(git push -f)`) s'y lisent comme une commande.
+ * - `cites` : les segments de L2 (et de L2 dénudée) qui commencent dans un texte cité, après un séparateur qu'il
+ *   porte : `COMMANDES_INTERDITES` et les dépendances les lisent en plus de `textes`.
  * - `lectures` (L1 et L2) : ce que lisent les décideurs de `git push` et de `gh` — les mots de chaque commande
  *   simple (L1), sa lecture éclatée (L2 : valeurs jointes, recoupées sur les blancs et les séparateurs, puis
  *   relues dénudées, sans guillemets ni barres obliques inverses, accents graves coupant le segment), le
@@ -1589,6 +1596,7 @@ function lire(commande, avecRemplacements = false) {
   };
   const textes = [];
   const lectures = [];
+  const cites = [];
   // Les valeurs littérales affectées dans la commande (`F=--force; git push $F …`, `export X=…`), où qu'elles soient.
   const connues = new Map();
   for (const cmd of lu.commandes) {
@@ -1661,12 +1669,17 @@ function lire(commande, avecRemplacements = false) {
     // encore (`ruby -e '\`gh pr merge 1\`'`, `trap '\\git push -f' EXIT`, `perl -e 'system "git push -f"'`) sont
     // retirés, comme 7.9.x les retirait ; un accent grave y coupe le segment.
     const eclaterDeuxFois = (texte, f) => {
-      for (const { segment: s, mots: m } of eclater(texte)) f(s, m);
+      eclater(texte).forEach(({ segment: s, mots: m }, rang) => f(s, m, rang));
       const nu = denuder(texte);
-      if (nu !== texte) for (const { segment: s, mots: m } of eclater(nu)) f(s, m);
+      if (nu !== texte) eclater(nu).forEach(({ segment: s, mots: m }, rang) => f(s, m, rang));
     };
-    eclaterDeuxFois(textesDesElements.join(' '), (s, m) => {
+    eclaterDeuxFois(textesDesElements.join(' '), (s, m, rang) => {
       if (m.length !== l1.length || m.some((x, k) => x !== l1[k])) lectures.push(new Lecture(m, s, tete, debut));
+      // Un segment qui commence dans un texte cité (après un séparateur qu'il porte) est une commande qu'un
+      // interprète peut lancer (`python3 -c 'os.system("git commit --no-verify")'`, `eval '…'` imbriqués) :
+      // `COMMANDES_INTERDITES` et les dépendances le lisent aussi. Le premier segment est la commande elle-même,
+      // déjà lue en L3 : un message de commit qui cite `--no-verify` passe.
+      if (rang > 0) cites.push(m);
     });
     // Ce qui suit un mot à expansion se relit comme un début de commande : `sudo -u git $(true) git push …`.
     // Seul le premier segment de cette relecture est neuf (les suivants sont ceux de la lecture entière), et une
@@ -1751,6 +1764,7 @@ function lire(commande, avecRemplacements = false) {
     heredocs: Object.freeze([...lu.heredocs]),
     prudences: Object.freeze(prudences),
     textes: Object.freeze(textes),
+    cites: Object.freeze(cites),
     lectures: Object.freeze(lectures),
     get segments() {
       return (rendus ??= rendre());
@@ -1945,7 +1959,7 @@ export function decisionCommande(commande, { dependancesPrevues = () => null, br
   if (lu.illisible) return { decision: 'refuser', raison: RAISON_ILLISIBLE };
   // Chaque commande simple en lecture L3 : un mot cité seul (`"git"`, `$'git'`, `"--no-verify"`) se lit sans ses
   // guillemets, un texte cité qui porte un blanc ou un séparateur se lit `""`.
-  for (const mots of lu.textes) {
+  for (const mots of [...lu.textes, ...lu.cites]) {
     const code = mots.join(' ');
     // Chaque motif nomme npm, yarn ou git : un texte qui n'en porte aucun n'est pas relu motif par motif.
     if (!/npm|yarn|git/i.test(code)) continue;
@@ -1960,7 +1974,7 @@ export function decisionCommande(commande, { dependancesPrevues = () => null, br
   if (pousseEnForce(commande)) return { decision: 'refuser', raison: RAISON_PUSH_FORCE };
   if (ecritParGh(commande)) return { decision: 'refuser', raison: RAISON_GH_ECRIT };
   if (pushIllisible(commande)) return { decision: 'refuser', raison: RAISON_PUSH_ILLISIBLE };
-  const liste = lu.textes.flatMap(ajouts);
+  const liste = [...lu.textes, ...lu.cites].flatMap(ajouts);
   if (liste.length === 0) return null;
   const sansRisque = liste.every(({ options }) => options.every((o) => OPTIONS_SANS_RISQUE.has(o)));
   const prevues = sansRisque ? dependancesPrevues() : null;
