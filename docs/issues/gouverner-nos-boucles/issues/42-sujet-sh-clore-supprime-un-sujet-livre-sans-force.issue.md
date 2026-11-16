@@ -1,6 +1,6 @@
 # `sujet.sh clore <nom>` supprime la branche d'un sujet livré, sans option de force : sommet contenu dans develop, aucune PR ouverte, carte livrée, sommet relu juste avant, refus du distant dit
 
-Status: ready-for-agent
+Status: Fait — PR #102
 Type: task
 Label: contre-revue
 Modèle: sonnet — la fonction, ses refus et ses codes sont donnés ci-dessous en diff ; le banc est donné entier, les textes mot pour mot ; tout est joué sur une copie jetable de `origin/main` (voir « Vérification ») ; rien n'est à concevoir. La revue passe `/security-review`.
