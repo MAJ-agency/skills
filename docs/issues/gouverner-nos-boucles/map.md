@@ -232,7 +232,7 @@ Vague 1 fusionnée le 2026-11-13 par le capitaine de `skills` (`main` à `8eb1c9
 | `session_017ZgEwJ71NEXfvNKQEqLhUE` | ticket   | 46 (sonnet, lancée le 2026-11-16 à 19 h 13 UTC) | 2,26 | 161 556 |
 | `session_017ZgEwMiQguMZpmTmQstyVA` | ticket   | 47 (sonnet, lancée le 2026-11-16 à 19 h 40 UTC) | 1,57 | 133 349 |
 | `session_017ZgEwJpd9po35q1ZGDQaKh` | ticket   | 48 (sonnet, lancée le 2026-11-16 à 20 h 21 UTC) | 1,76 | 145 090 |
-| `session_017ZgEwMCmUHCDmt3CQFis1S` | ticket   | anchorpost SPEC_ALL_ANC-5.05 (sonnet, lancée le 2026-11-16 à 20 h 24 UTC) | 0 | 0 |
+| `session_017ZgEwMCmUHCDmt3CQFis1S` | ticket   | anchorpost SPEC_ALL_ANC-5.05 (sonnet, lancée le 2026-11-16 à 20 h 24 UTC) | 2,56 | 199 073 |
 | `session_017ZgEwJPSayZyvpen6B3Kxy` | ticket   | anchorpost SPEC_ALL_SOC-1.25 (sonnet, lancée le 2026-11-16 à 20 h 53 UTC) | 0 | 0 |
 | `session_017ZgEwHXZTNm7Z93PDykKiA` | ticket   | 42 (lancée le 2026-11-16 à 18 h 10 UTC) | 6,29 | 221 150 |
 | `session_012xRpgb98uSwUKaaEst45iw` | architecte | session parallèle du 2026-11-16 (retours de `fedora`), arrêtée à 15 h 10 UTC ; sous-agents compris | 60,16 | 327 915 |
@@ -754,3 +754,4 @@ La session de suite fait, dans cet ordre :
 - 2026-11-16 — 20 h 53 UTC. **Anchorpost #187 fusionnée** (`7359e1b`) : RULE_ALL_ANC-24 et -30 validées, SPEC_ALL_ANC-5 en `medium`, SPEC_ALL_SOC-1.25 `ready-for-agent` sur develop. **SPEC_ALL_SOC-1.25 lancé** : `session_017ZgEwJPSayZyvpen6B3Kxy` (sonnet), avec `regles.mjs` et `regles.test.mjs` pris de 7.12.3 (`c17f88b`, le `(?<!\d)` y est déjà).
 - 2026-11-16 — 20 h 57 UTC. **Anchorpost #188** : le produit a accordé la fusion de develop dans l'onglet de la session ; `2c0c4a4` (seul conflit, imports de `space.controller.spec.ts`, les deux gardés ; relu par l'architecte par `--remerge-diff`), 588 tests de l'API. **Label posé**, capitaine d'anchorpost prévenu. Ligne « Responsable » de la carte : laissée telle quelle (le nom est déjà public comme auteur du plugin, `plugin.json`, `marketplace.json`, `LICENSE`).
 - 2026-11-16 — 21 h 15 UTC. **Le produit fixe la criticité haute sur RULE_ALL_ANC-16** (« oui ») : anchorpost PR #193 (`criticality: high` dans la règle, décision inscrite, index régénéré : `high`, origine `declared`), label posé. **Anchorpost #191 (SPEC_ALL_SOC-1.25)** livrée (`da44cef` ; sources 7.12.3, fragment de `settings.json` accepté au premier essai, bancs 287/80/63/107) : contre-relecture lancée (agent neuf, opus) ; `CLAUDE.md` dira 7.12.3.
+- 2026-11-16 — 21 h 21 UTC. **Anchorpost #188 fusionnée** (`7d73359`) : SPEC_ALL_ANC-5.05 livré, session archivée (2,56 $). Architecte de « Projet » prévenu (réécriture de son ticket 7.12 ; fuite voisine des demandes signalée). #193 dans la file du capitaine d'anchorpost.
