@@ -16,7 +16,8 @@
 // Sortie 0 ordre bon · 1 refus, motif (fichier à renommer, horodatage libre suivant) sur la sortie.
 // =============================================================================
 import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, realpathSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 
 const FORMES = [/^(\d{12})-.+\.ts$/, /^(\d{14})_[^/]+$/];
 
@@ -102,7 +103,16 @@ export function refusEntre(base, tete, chaine = ".claude/chaine.json") {
   return controlerOrdre({ base: avant, ajoutees: liste(tete, d).filter((f) => !apres.has(f)) });
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+/** Vrai quand ce fichier est lancé en ligne de commande : lien symbolique, chemin à espace ou à accent, `--preserve-symlinks-main` compris. */
+function estPointEntree() {
+  try {
+    return realpathSync(fileURLToPath(import.meta.url)) === realpathSync(process.argv[1]);
+  } catch {
+    return false;
+  }
+}
+
+if (estPointEntree()) {
   const [base, tete] = process.argv.slice(2);
   if (!base || !tete) {
     console.error("usage : node migrations-ordre.mjs <réf base> <réf tête>");
