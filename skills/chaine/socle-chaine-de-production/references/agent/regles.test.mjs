@@ -809,6 +809,8 @@ test('ticket 33, contre-relecture B3 : un corps relu par prudence passe par tous
     "node - <<'EOF'\nrequire('child_process').execSync('npm install leftpad')\nEOF",
     "python3 - <<'EOF'\nimport os; os.system('pnpm add leftpad')\nEOF",
     "python3 - <<'EOF'\nimport os; os.system('git rebase origin/develop')\nEOF",
+    "python3 - <<'EOF'\nimport os; os.system('gh pr merge 12')\nEOF",
+    "node - <<'EOF'\nrequire('child_process').execSync('gh api -X PUT repos/o/r/pulls/1/merge')\nEOF",
   ])
     assert.equal(decisionCommande(c, CTX_33)?.decision, 'refuser', c);
   // G4 passe toujours : rien de gardé dans le corps.
