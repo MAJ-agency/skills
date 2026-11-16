@@ -1,6 +1,6 @@
 # Le label `à-fusionner` est le seul ordre de fusion : aucune session ne nomme une PR à un capitaine, et un message à un capitaine n'est jamais un ordre
 
-Status: ready-for-agent
+Status: Fait — PR #100
 Type: task
 Modèle: sonnet — treize remplacements de documentation donnés mot pour mot (ancien, nouveau), un banc donné entier et joué sur une copie jetable de `origin/main` (voir « Vérification ») ; rien n'est à concevoir.
 Blocked by: —
@@ -396,5 +396,6 @@ Pour la session :
 
 ## Comments
 
+- 2026-11-16 — **Fait** : PR 100, fusionnée `f28948f`, plugin 7.10.2. Contre-relue conforme avec réserves ; ajoutés : plafond relu avant fusion, label lié au sommet (un commit après la dernière pose empêche la fusion, sauf une fusion signée par GitHub, adresse `noreply@github.com`, second parent sur la branche par défaut), `isDraft` et `mergeStateStatus`. **Défaut relevé après fusion** : le bloc R9 suppose `gh` et la timeline, absents d'une session cloud → ticket 46 ; le capitaine de `skills` garde sa procédure d'avant d'ici là.
 - 2026-11-16 — Rédigé sur `fa7d3eb`, recalé sur `76d90c7` (plugin 7.9.1, 528 tests) d'après les constats 4 et la décision A-48 de la carte. Joué sur une copie jetable : banc rouge sur `main`, vert avec les treize remplacements. Écarts avec la demande : (1) le renvoi de `fusionner/SKILL.md:62` vers `chaine-de-production.md` § 2 n'est pas mort, c'est la phrase du § 2 (ligne 39) qui est à corriger : R13 ; (2) `lancement.md:54` (« PR nommée ») trouvée par `grep` : R6 ; (3) pas de `Label: contre-revue` (documentation seule) ; (4) `Type: task`, le gate des tickets n'admet pas « évolution ».
 - 2026-11-16 — Remis à jour sur `5ccead9` (plugin 7.10.0, 597 tests ; PR 95 à 97 et 99 fusionnées) : les treize « Ancien » trouvés une fois chacun, aux mêmes lignes ; le relevé `git grep` rejoué, rien de neuf à corriger ; aucun texte de la PR 99 ne contredit ce ticket (elle n'a touché que les lignes 14 et 60 de `fusionner/SKILL.md`). Banc rouge sur `5ccead9` (deux `not ok`), vert avec les §§ 1 et 2 : 600 tests (597 + 3), 628 avec les tickets 42 et 45 appliqués après lui. `Blocked by:` vidé (40 fait, PR 99) ; version 7.10.1, avec la règle de repli (décision 7) ; `passer.sh:76` corrigé en `:77` ; « Hors périmètre » : le capitaine de `skills` en vie a l'ancienne procédure, à relancer avec R9 après la fusion de ce ticket.
