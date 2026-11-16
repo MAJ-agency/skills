@@ -1,6 +1,6 @@
 # Un seul idiome de point d'entrée pour les scripts `.mjs` du plugin : `realpathSync(fileURLToPath(import.meta.url)) === realpathSync(process.argv[1])`, dans un `try`, et un banc qui lance chaque script par un lien symbolique (aussi sous `--preserve-symlinks-main`), un chemin à espace et un chemin à accent
 
-Status: ready-for-agent
+Status: Fait — PR #96
 Type: défaut
 Label: contre-revue
 Modèle: sonnet — une petite fonction identique collée dans sept scripts, deux ou trois imports par script, un fichier de test donné entier, une phrase de documentation et la version ; tout est joué sur une copie jetable de `origin/main` (voir « Vérification »). Rien à concevoir.
@@ -212,6 +212,7 @@ Dans une copie jetable de `origin/main` : `git worktree add --detach <dossier je
 
 ## Comments
 
+- 2026-11-16 — **Fait** : PR 96, fusionnée `863723a`, plugin 7.9.3. Contre-relue conforme (153 cas d'accès sur les sept scripts : lien absolu, relatif, chaîne, chemin à espace, NFC, NFD, `--preserve-symlinks-main` ; import seul silencieux). Reste au Fog : `new URL('../..', import.meta.url).pathname` dans d'autres scripts.
 - 2026-11-16 — Instruit sur `fa7d3eb` (plugin 7.9.0). Relevé : sept `argv[1]` dans les `.mjs`, aucun autre ; l'essai à la main et le banc donnent 13 rouges sur 28, puis 28 verts avec la fonction locale collée dans les sept scripts (joué sur une copie jetable, rien de poussé). `revue-exigee.mjs` est dans la PR 94 (ticket 39) : ce ticket l'attend. Correctif de référence : `fedora` #1935, `estPointEntree` de `scripts/ci/commits-a-relire.mjs`, qui a trouvé le défaut en l'écrivant et l'a signalé pour `migrations-ordre.mjs` et `revue-exigee.mjs`.
 - 2026-11-16 — Gravité : les deux scripts de garde (`revue-exigee`, `migrations-ordre`) échouent **ouverts** : un capitaine installé sous un chemin à accent ou à espace, ou atteint par un lien, ne contrôle plus ni la revue exigée ni l'ordre des migrations. Non rejoué de bout en bout (`passer.sh` dans un dépôt à chemin accentué) : à joindre à la contre-relecture si on veut la preuve complète.
 - 2026-11-16 (relecture) — Recalé sur `76d90c7` (7.9.1, 528 tests, PR 94 fusionnée : plus de blocage, `revue-exigee.mjs` importe `execFileSync`, `CHEMINS_CODE` n'existe plus, l'entrée est à la ligne 242, `passer.sh:174`/`:185`, `sujet.sh:784-785`). Idiome précisé par l'architecte : les deux membres résolus, ce qui couvre `--preserve-symlinks-main` et `NODE_OPTIONS` ; six accès au banc (42 cas), 13 rouges sur main.
