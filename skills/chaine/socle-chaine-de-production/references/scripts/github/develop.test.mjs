@@ -248,3 +248,21 @@ test('pre-push du socle : sous un git worktree, pnpm ne voit ni GIT_DIR ni GIT_I
   assert.equal(gitWt('rev-parse', 'HEAD'), sommet, 'aucun commit « jouet » sur la branche du worktree');
   assert.notEqual(d.git('config', '--get', 'core.bare'), 'true');
 });
+
+// La PR de mise à jour avec retouches (en-tête de sujet.sh) : la fusion seule ne passe pas un `pnpm check` rouge
+// sur ce que develop apporte, la fusion suivie de sa retouche, poussée d'un arbre propre à son sommet, passe. Le hook
+// juge l'arbre de travail, pas chaque commit qui part.
+test("pre-push du socle : il juge l'arbre de travail, le sommet poussé d'un arbre propre : la fusion seule est refusée, suivie de sa retouche elle passe", () => {
+  const d = depotJouet();
+  writeFileSync(join(d.racine, 'bin', 'pnpm'), '#!/bin/sh\n[ "$*" = "run check" ] || exit 0\n! grep -rqs --exclude-dir=.git NON_FORMATE .\n');
+  writeFileSync(join(d.travail, 'a.ts'), 'NON_FORMATE\n');
+  d.git('add', '-A');
+  d.git('commit', '-q', '-m', 'chore: fusion');
+  const seule = spawnSync('git', ['push', '-q', 'origin', 'HEAD:refs/heads/maj/lot'], { cwd: d.travail, env: d.env });
+  assert.notEqual(seule.status, 0, 'la fusion seule est refusée');
+  writeFileSync(join(d.travail, 'a.ts'), 'formaté\n');
+  d.git('commit', '-q', '-am', 'style: formate');
+  const avec = spawnSync('git', ['push', '-q', 'origin', 'HEAD:refs/heads/maj/lot'], { cwd: d.travail, env: d.env });
+  assert.equal(avec.status, 0, avec.stderr.toString());
+  assert.equal(d.tetes()['refs/heads/maj/lot'], d.git('rev-parse', 'HEAD'));
+});
