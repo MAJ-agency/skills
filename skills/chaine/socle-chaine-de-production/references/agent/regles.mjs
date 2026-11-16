@@ -280,6 +280,24 @@ function retirerCitations(brut) {
   return v;
 }
 
+/** Les caractères que la lecture L2 dénudée retire d'un texte (l'accent grave y coupe le segment). */
+const aDenuderDans = (texte) => texte.includes('"') || texte.includes("'") || texte.includes('\\') || texte.includes('`');
+/** Un texte sans ses guillemets ni ses barres obliques inverses, accents graves lus comme des `;` (lecture L2 dénudée). */
+function denuder(texte) {
+  if (!aDenuderDans(texte)) return texte;
+  let nu = '';
+  for (const c of texte) if (c === '`') nu += ';';
+  else if (c !== '"' && c !== "'" && c !== '\\') nu += c;
+  return nu;
+}
+/** Les caractères où `eclater` coupe un segment. */
+const separateurDeSegment = (c) => c === ';' || c === '&' || c === '|' || c === '(' || c === ')' || c === '\n';
+const premierSeparateur = (texte) => {
+  for (let i = 0; i < texte.length; i++) if (separateurDeSegment(texte[i])) return i;
+  return -1;
+};
+const aUnSeparateurDeSegment = (texte) => premierSeparateur(texte) >= 0;
+
 /** La lecture éclatée (L2) d'un texte : coupé sur `;`, `&`, `|`, `(`, `)` et le saut de ligne, puis sur les blancs. */
 function eclater(texte) {
   const segments = [];
@@ -892,7 +910,7 @@ class Lecteur {
 
   commandeSimple() {
     const s = this.src;
-    const cmd = { affectations: [], mots: [], redirections: [], heredocs: [], origine: this.origine, debut: this.pos(), profondeur: this.profondeur };
+    const cmd = { affectations: [], mots: [], redirections: [], heredocs: [], tableaux: [], origine: this.origine, debut: this.pos(), profondeur: this.profondeur };
     const elements = [];
     const cmdAvant = this.cmd;
     const motAvant = this.mot;
@@ -963,7 +981,9 @@ class Lecteur {
     if (b[j] !== '=') return false;
     cmd.affectations.push({ nom, mot });
     if (j === b.length - 1 && this.src[this.i] === '(') {
-      // Un tableau : `a=(x "y z" $(cmd))`, des mots, aucune commande.
+      // Un tableau : `a=(x "y z" $(cmd))`, des mots, aucune commande. Ses valeurs se relisent comme une commande
+      // (`a=(git push -f); "${a[@]}"` lance `git push -f`) : `lire` les donne à tous les décideurs.
+      const valeurs = [];
       this.i++;
       for (;;) {
         this.sauterLignes();
@@ -972,8 +992,11 @@ class Lecteur {
           this.i++;
           break;
         }
-        if (!this.lireMot()) this.echec('tableau illisible');
+        const valeur = this.lireMot();
+        if (!valeur) this.echec('tableau illisible');
+        valeurs.push(valeur);
       }
+      if (valeurs.length) cmd.tableaux.push(valeurs);
     }
     return true;
   }
@@ -1481,14 +1504,17 @@ function lectureIllisible(commande, motif) {
  *   mot en `contenu`.
  * - `heredocs` : tous les here-docs et here-strings, ceux d'une commande composée (`{ …; } <<EOF`, `done <<EOF`)
  *   compris, dans l'ordre de lecture, chacun avec sa lecture retenue.
- * - `prudences` : les corps relus par prudence, guillemets et barres obliques inverses retirés, en lecture L2.
+ * - `prudences` : les corps relus par prudence, guillemets et barres obliques inverses retirés, accents graves lus
+ *   comme des `;` ; chacun de leurs segments passe par tous les décideurs, comme un `textes` et une `lectures`.
  * - `textes` (L3) : les mots de chaque commande simple, mots réservés retirés, affectations gardées, un mot dont
  *   une partie citée porte un blanc ou un séparateur lu `""`, un mot à expansion lu par son texte (paramètres
  *   gardés, substitutions en `$SUBSTITUTION`) ; c'est ce que lisent `COMMANDES_INTERDITES` et
- *   les ajouts de dépendances.
+ *   les ajouts de dépendances. Les valeurs d'un tableau (`a=(git push -f)`) s'y lisent comme une commande.
  * - `lectures` (L1 et L2) : ce que lisent les décideurs de `git push` et de `gh` — les mots de chaque commande
- *   simple (L1), sa lecture éclatée (L2 : valeurs jointes, recoupées sur les blancs et les séparateurs), le
- *   texte qui suit chaque mot à expansion relu comme un début de commande, et les corps relus par prudence ;
+ *   simple (L1), sa lecture éclatée (L2 : valeurs jointes, recoupées sur les blancs et les séparateurs, puis
+ *   relues dénudées, sans guillemets ni barres obliques inverses, accents graves coupant le segment), le
+ *   texte qui suit chaque mot à expansion relu comme un début de commande (son premier segment, en temps
+ *   linéaire), les valeurs des tableaux, et les corps relus par prudence ;
  *   `suite()`, le source à partir de la commande, corps retirés exclus, commentaires compris.
  * - `segments` : le rendu de L2 seul (`segmentsDeCommande`), substitutions d'abord.
  * - `sansTexte` : la commande, textes cités vidés et corps de here-doc retirés (`sansTexte`).
@@ -1520,8 +1546,7 @@ function lire(commande, avecRemplacements = false) {
         if (h.profondeur + 1 > PROFONDEUR_MAX) throw new Illisible('imbrication trop profonde');
         new Lecteur(texte, lu, { profondeur: h.profondeur + 1, origine: 'corps', base: h.debutCorps ?? h.debut, exact: false }).lireSource();
       } else if (h.lecture === 'prudence') {
-        let texte = '';
-        for (const c of h.corps) if (c !== '"' && c !== "'" && c !== '\\') texte += c;
+        const texte = denuder(h.corps);
         prudences.push({ texte, segments: eclater(texte) });
       }
     }
@@ -1559,17 +1584,26 @@ function lire(commande, avecRemplacements = false) {
       const egal = m.valeur.indexOf('=');
       if (m.expansion || egal < 1) continue;
       const nom = m.valeur.slice(0, m.valeur[egal - 1] === '+' ? egal - 1 : egal);
-      connues.set(nom, [...(connues.get(nom) ?? []), m.valeur.slice(egal + 1)]);
+      const valeurs = connues.get(nom);
+      if (valeurs) valeurs.push(m.valeur.slice(egal + 1));
+      else connues.set(nom, [m.valeur.slice(egal + 1)]);
     }
   }
-  for (let n = 0; n < lu.commandes.length; n++) {
-    const cmd = lu.commandes[n];
-    const elements = lu.elements[n];
+  // Les relectures (après un mot à expansion) ont un budget linéaire : au-delà, la commande est illisible.
+  let budget = 16 * commande.length + 4096;
+  // Les décideurs de `git push` et de `gh` ne lisent qu'un segment qui nomme git ou gh : sans « g », rien à lire.
+  const lireMots = (m, debut) => {
+    const s = m.join(' ');
+    if (s.includes('g') || s.includes('G')) lectures.push(new Lecture(m, s, tete, debut));
+  };
+  /** Les mots d'une commande simple (ou les valeurs d'un tableau), en L1, L2 et L3. */
+  const lireElements = (elements, debut) => {
     const mots = [];
     const l3 = [];
     const l1 = [];
     let simple = true;
     let expansion = false;
+    let aDenuder = false;
     for (const e of elements) {
       if (typeof e === 'string') {
         simple = false;
@@ -1580,21 +1614,17 @@ function lire(commande, avecRemplacements = false) {
       l3.push(e.blancCite ? '""' : e.expansion ? e.texte : e.valeur);
       if (e.expansion) expansion = true;
       if (simple && aUnSeparateur(e.texte)) simple = false;
+      if (!aDenuder && aDenuderDans(e.texte)) aDenuder = true;
     }
     textes.push(l3);
-    const segment = l1.join(' ');
-    // Les décideurs de `git push` et de `gh` ne lisent qu'un segment qui nomme git ou gh : sans « g », rien à lire.
-    const lireMots = (m) => {
-      const s = m.join(' ');
-      if (s.includes('g') || s.includes('G')) lectures.push(new Lecture(m, s, tete, cmd.debut));
-    };
-    lireMots(l1);
+    lireMots(l1, debut);
     // La commande telle que bash la lance si ses expansions sont vides (`git $X push -f`), ou valent ce que la
     // commande leur a affecté (`X=--no-verify; git commit $X`) : des lectures en plus, jamais à la place.
     if (expansion) {
       const variantes = [];
       if (mots.some((m) => m.expansion && !m.litteral)) variantes.push(mots.filter((m) => !m.expansion || m.litteral));
       for (const m of mots) {
+        if (variantes.length >= 16) break;
         const nom = m.expansion ? parametreSeul(m.brut) : null;
         for (const v of (nom && connues.get(nom)) || VIDE) {
           if (variantes.length >= 16) break;
@@ -1604,22 +1634,71 @@ function lire(commande, avecRemplacements = false) {
       }
       for (const variante of variantes) {
         textes.push(variante.map((x) => (typeof x === 'string' ? (aUnSeparateur(x) ? '""' : x) : x.blancCite ? '""' : x.expansion ? x.texte : x.valeur)));
-        lireMots(variante.map((x) => (typeof x === 'string' ? x : x.valeur)));
+        lireMots(
+          variante.map((x) => (typeof x === 'string' ? x : x.valeur)),
+          debut,
+        );
       }
     }
-    // Sans blanc ni séparateur dans ses textes, la lecture éclatée est celle des mots : elle n'est pas refaite.
-    if (simple && !expansion) continue;
+    // Sans blanc, séparateur, guillemet, barre oblique inverse ni accent grave dans ses textes, la lecture éclatée
+    // est celle des mots : elle n'est pas refaite.
+    if (simple && !expansion && !aDenuder) return;
     const textesDesElements = elements.map((e) => (typeof e === 'string' ? e : e.texte));
-    for (const { segment: s, mots: m } of eclater(textesDesElements.join(' '))) if (m.length !== l1.length || m.some((x, k) => x !== l1[k])) lectures.push(new Lecture(m, s, tete, cmd.debut));
-    // Ce qui suit un mot à expansion se relit comme un début de commande : `sudo -u git $(true) git push …`.
-    elements.forEach((e, k) => {
-      if (typeof e === 'string' || !e.expansion) return;
-      for (const { segment: s, mots: m } of eclater([e.queue, ...textesDesElements.slice(k + 1)].join(' '))) lectures.push(new Lecture(m, s, tete, cmd.debut));
+    // L2, et L2 dénudée : les guillemets, barres obliques inverses et accents graves que les valeurs portent
+    // encore (`ruby -e '\`gh pr merge 1\`'`, `trap '\\git push -f' EXIT`, `perl -e 'system "git push -f"'`) sont
+    // retirés, comme 7.9.x les retirait ; un accent grave y coupe le segment.
+    const eclaterDeuxFois = (texte, f) => {
+      for (const { segment: s, mots: m } of eclater(texte)) f(s, m);
+      const nu = denuder(texte);
+      if (nu !== texte) for (const { segment: s, mots: m } of eclater(nu)) f(s, m);
+    };
+    eclaterDeuxFois(textesDesElements.join(' '), (s, m) => {
+      if (m.length !== l1.length || m.some((x, k) => x !== l1[k])) lectures.push(new Lecture(m, s, tete, debut));
     });
+    // Ce qui suit un mot à expansion se relit comme un début de commande : `sudo -u git $(true) git push …`.
+    // Seul le premier segment de cette relecture est neuf (les suivants sont ceux de la lecture entière), et une
+    // relecture qui ne voit ni « g » ni séparateur avant le mot à expansion suivant lit le même programme que
+    // celle-ci, avec moins de mots : elle n'est pas faite. Le temps reste linéaire.
+    let ouverte = false;
+    for (let k = 0; k < elements.length; k++) {
+      const e = elements[k];
+      const t = textesDesElements[k];
+      if (typeof e === 'string' || !e.expansion) {
+        if (ouverte && (t.includes('g') || t.includes('G') || aUnSeparateurDeSegment(t))) ouverte = false;
+        continue;
+      }
+      if (ouverte && !t.includes('g') && !t.includes('G') && !aUnSeparateurDeSegment(t)) continue;
+      ouverte = !e.queue.includes('g') && !e.queue.includes('G') && !aUnSeparateurDeSegment(e.queue);
+      let s = e.queue;
+      const coupe = premierSeparateur(s);
+      if (coupe >= 0) s = s.slice(0, coupe);
+      else
+        for (let j = k + 1; j < elements.length; j++) {
+          const u = textesDesElements[j];
+          if ((budget -= u.length + 1) < 0) return;
+          const c = premierSeparateur(u);
+          s += ' ' + (c < 0 ? u : u.slice(0, c));
+          if (c >= 0) break;
+        }
+      if ((budget -= s.length + 1) < 0) return;
+      eclaterDeuxFois(s, (seg, m) => lectures.push(new Lecture(m, seg, tete, debut)));
+    }
+  };
+  for (let n = 0; n < lu.commandes.length; n++) {
+    const cmd = lu.commandes[n];
+    lireElements(lu.elements[n], cmd.debut);
+    // Les valeurs d'un tableau (`a=(git push -f)`) : `"${a[@]}"` les lance comme une commande.
+    for (const valeurs of cmd.tableaux) lireElements(valeurs, cmd.debut);
+    if (budget < 0) return lectureIllisible(commande, 'commande trop coûteuse à lire');
   }
+  // Un corps relu par prudence passe par tous les décideurs : push et gh (L2), `COMMANDES_INTERDITES` et
+  // dépendances (ses segments, lus comme les mots d'une commande).
   for (const { texte, segments: s } of prudences) {
     const source = { suite: () => texte };
-    for (const { segment, mots } of s) lectures.push(new Lecture(mots, segment, source, 0));
+    for (const { segment, mots } of s) {
+      lectures.push(new Lecture(mots, segment, source, 0));
+      textes.push(mots);
+    }
   }
   // Le rendu de L2 (`segmentsDeCommande`) : les substitutions d'abord, des plus profondes aux moins profondes,
   // chacune dans l'ordre du source, puis les corps relus par prudence.

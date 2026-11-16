@@ -759,6 +759,84 @@ test('ticket 33 : formes trouvées par la session, que bash exécute — expansi
     assert.equal(decisionCommande(c, CTX_33)?.decision, 'refuser', c);
 });
 
+test('ticket 33, contre-relecture B1 : dans un texte cité, "git, \'git, `gh et \\git se lisent sans leurs guillemets, barres obliques inverses ni accents graves (lecture L2, comme 7.9.x)', () => {
+  const F = F_33;
+  for (const c of [
+    "ruby -e '`gh pr merge 12`'",
+    "trap '\\git push -f' EXIT",
+    "echo '\\git push -f' | sh",
+    `perl -e 'system "git push -f"'`,
+    `env -S '"git" push -f'`,
+    `python3 -c 'import os; os.system("${F}")'`,
+    `python3 -c "import os; os.system('${F}')"`,
+    `python3 -c 'import os; os.system("gh pr merge 12")'`,
+    `trap 'eval "git push origin +feat/x"' EXIT`,
+    `node -e 'require("child_process").execSync("git push -f")'`,
+    "bash <(echo '\\git push -f')",
+    "source <(echo '\\git push -f')",
+    "set -- '\\git push -f'; eval \"$1\"",
+    "script -qc '\\git push -f' /dev/null",
+    `ssh h "'git' push --force origin feat/x"`,
+    `ssh h "\\git push -f"`,
+    `su -c "'git' push -f" u`,
+    `su -c '"gh" pr merge 12' u`,
+    "php -r 'system(\"git push -f\");'",
+    "awk 'BEGIN{system(\"\\git push -f\")}'",
+  ])
+    assert.equal(decisionCommande(c, CTX_33)?.decision, 'refuser', c);
+});
+
+test('ticket 33, contre-relecture B2 : les valeurs affectées à un tableau se relisent — a=(git push -f); "${a[@]}" est refusé', () => {
+  for (const c of [
+    'a=(git push -f); "${a[@]}"',
+    'a=(git push -f); ${a[*]}',
+    'a+=(git push origin develop); "${a[@]}"',
+    'a=(gh pr merge 12); "${a[@]}"',
+    'a=(git commit --no-verify -m x); "${a[@]}"',
+    'a=(npm install leftpad); "${a[@]}"',
+    "a=('git' push -f); \"${a[@]}\"",
+  ])
+    assert.equal(decisionCommande(c, CTX_33)?.decision, 'refuser', c);
+  assert.equal(decisionCommande('a=(x y "z t"); echo "${a[@]}"', CTX_33), null);
+});
+
+test('ticket 33, contre-relecture B3 : un corps relu par prudence passe par tous les décideurs — push, gh, COMMANDES_INTERDITES, dépendances', () => {
+  for (const c of [
+    "bash -c 'cat > s.sh <<'\\''EOF'\\''\n# l'\\''x\ngit push --no-verify origin feat/x\nEOF\nbash s.sh'",
+    "eval \"python3 - <<'EOF'\nimport os; os.system(\\\"git commit --no-verify -m x\\\")\nEOF\"",
+    "python3 - <<'EOF'\nimport os; os.system(\"git commit --no-verify -m x\")\nEOF",
+    "python3 - <<'EOF'\nimport os; os.system('git commit -n -m x')\nEOF",
+    "node - <<'EOF'\nrequire('child_process').execSync('npm install leftpad')\nEOF",
+    "python3 - <<'EOF'\nimport os; os.system('pnpm add leftpad')\nEOF",
+    "python3 - <<'EOF'\nimport os; os.system('git rebase origin/develop')\nEOF",
+  ])
+    assert.equal(decisionCommande(c, CTX_33)?.decision, 'refuser', c);
+  // G4 passe toujours : rien de gardé dans le corps.
+  assert.equal(decisionCommande("python3 - <<'EOF'\nprint(\"l'architecte : gh pr merge, gh repo sync\")\nEOF\n", CTX_33), null);
+});
+
+test('ticket 33, contre-relecture C1 : ce qui suit un mot à expansion se relit en temps et mémoire linéaires', () => {
+  const F = F_33;
+  const mesure = (c) => {
+    const tas = process.memoryUsage().heapUsed;
+    const debut = process.hrtime.bigint();
+    const d = decisionCommande(c, CTX_33)?.decision;
+    return { d, s: Number(process.hrtime.bigint() - debut) / 1e9, mo: (process.memoryUsage().heapUsed - tas) / 2 ** 20 };
+  };
+  const continuees = (n) => 'echo ' + '"$a" \\\n'.repeat(n) + `; ${F}`;
+  const nus = (n) => 'echo ' + '$a '.repeat(n);
+  for (const [forme, attendu] of [[continuees, 'refuser'], [nus, undefined]]) {
+    mesure(forme(1000));
+    const petit = mesure(forme(10000));
+    const grand = mesure(forme(30000));
+    assert.equal(grand.d, attendu);
+    assert.ok(grand.s < 2, `${grand.s} s`);
+    // Trois fois plus long : moins de six fois plus de temps et de mémoire (une croissance quadratique en ferait neuf).
+    assert.ok(grand.s < 6 * petit.s + 0.2, `${petit.s} s puis ${grand.s} s`);
+    assert.ok(grand.mo < 200, `${grand.mo} Mo`);
+  }
+});
+
 test('lireDependances : la ligne d’en-tête, accents graves ou nus, — ou absente → []', () => {
   const ticket = (ligne) => `# X\n\nStatus: ready-for-agent\n${ligne}\n\n## Le besoin\n\nx\n`;
   assert.deepEqual(lireDependances(ticket('Dépendances: `leaflet`, `@types/leaflet`')), ['leaflet', '@types/leaflet']);
