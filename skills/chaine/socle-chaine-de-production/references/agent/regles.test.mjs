@@ -469,7 +469,7 @@ const ecarts = (commandes, attendu) => commandes.filter((c) => (decisionCommande
 
 // A-51 ter : la lecture de 7.9.x se joue sur la commande d'origine. Ces here-docs à apostrophe, que le lecteur par jetons
 // laisse passer, sont refusés comme sur main (contournement : `git commit -F <fichier>`, `--body-file`) ; leur levée est
-// un ticket à part.
+// le ticket 35.
 test('A-51 ter : un here-doc quoté lu par un consommateur inerte, avec une apostrophe, est refusé comme sur main (refus à tort de 7.9.x)', () => {
   const F = F_33;
   const commandes = [
