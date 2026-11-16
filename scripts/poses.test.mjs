@@ -21,7 +21,11 @@ const POSES = [
   ["skills/chaine/tickets/references/scripts/verify", "scripts/verify"],
 ];
 // Fichiers de la racine du projet que les bancs posés lisent (socle-monorepo, TABLE-RACINE.md).
-const RACINE_PROJET = [["skills/monorepo/socle-monorepo/references/racine/commitlint.config.mjs", "commitlint.config.mjs"]];
+const RACINE_PROJET = [
+  ["skills/monorepo/socle-monorepo/references/racine/commitlint.config.mjs", "commitlint.config.mjs"],
+  // Le pre-push du socle, que `sujet-clore.test.mjs` joue devant une suppression de branche.
+  ["skills/monorepo/socle-monorepo/references/husky/pre-push", ".husky/pre-push"],
+];
 // Le pre-commit d'un projet n'est pas le gabarit, et le dépôt jouet ne peut pas le faire tourner (il appelle
 // les scripts et les dépendances du projet) : celui du garde refuse tout, un banc posé qui le joue tombe.
 const PRE_COMMIT_PROJET = `#!/bin/sh
@@ -44,12 +48,12 @@ test("les bancs posés à plat sous scripts/chaine/ tournent hors du plugin", { 
       poses.set(destination, source);
       mkdirSync(join(projet, destination, ".."), { recursive: true });
       copyFileSync(join(RACINE, source), join(projet, destination));
-      if (/\.sh$|pre-commit$/.test(destination)) chmodSync(join(projet, destination), 0o755);
+      if (/\.sh$|pre-(commit|push)$/.test(destination)) chmodSync(join(projet, destination), 0o755);
     };
     for (const [dossier, vers] of POSES)
       for (const nom of readdirSync(join(RACINE, dossier))) poser(`${dossier}/${nom}`, `${vers}/${nom}`);
     for (const [source, destination] of RACINE_PROJET) poser(source, destination);
-    mkdirSync(join(projet, ".husky"));
+    mkdirSync(join(projet, ".husky"), { recursive: true });
     writeFileSync(join(projet, ".husky/pre-commit"), PRE_COMMIT_PROJET, { mode: 0o755 });
     const bancs = readdirSync(join(projet, "scripts/chaine"))
       .filter((n) => n.endsWith(".test.mjs"))

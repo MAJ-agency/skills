@@ -132,6 +132,12 @@ test('un push vers un sujet est refusé, quelle que soit la branche et la forme 
     'git push -o ci.skip origin HEAD:sujet/demo',
   ])
     assert.equal(decisionCommande(commande, ticket)?.decision, 'refuser', commande);
+  for (const commande of ['git push origin --delete sujet/demo', 'git push origin :sujet/demo', 'git push origin :refs/heads/sujet/demo']) {
+    const d = decisionCommande(commande);
+    assert.equal(d?.decision, 'refuser', commande);
+    assert.match(d.raison, /sujet\.sh clore <nom>/, `${commande} : le refus indique la voie de la suppression`);
+  }
+  assert.equal(decisionCommande('bash scripts/chaine/sujet.sh clore demo'), null, 'le script, lui, passe : le hook ne lit pas son contenu');
   assert.equal(decisionCommande('git push origin HEAD:sujet/demo')?.decision, 'refuser', 'branche inconnue : refusé aussi');
   assert.equal(decisionCommande('git push origin HEAD:sujet/demo', { brancheCourante: () => 'tmp' })?.decision, 'refuser', 'branche quelconque : refusé aussi');
   assert.equal(decisionCommande('git push origin sujet/demo', { brancheCourante: () => 'sujet/demo' })?.decision, 'refuser', 'même depuis le sujet : seul sujet.sh y écrit');

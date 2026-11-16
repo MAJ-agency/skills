@@ -67,6 +67,18 @@
 #   gel <nom>             lecture : écrit la valeur de `Gel:` (fiche de la carte sur origin/sujet/<nom>) et
 #                         sort en 0 si le sujet est gelé, 1 sinon. Toute valeur non vide gèle, datée ou non
 #                         (ligne écrite à la main dans l'éditeur de GitHub)
+#   clore <nom>           supprime `origin/sujet/<nom>`, un sujet livré, par `git push origin :refs/heads/sujet/<nom>` :
+#                         jamais d'option, jamais de force, pas de `--force-with-lease`. Refuse (4) tant que son
+#                         sommet n'est pas contenu dans `origin/develop`, qu'une PR ouverte l'a pour base ou pour
+#                         tête, ou que sa carte, lue sur develop, n'est pas en `6-nettoyage` ou `fini` (`sujet_livre` ;
+#                         un sujet sans carte ne se clôt pas), ou que son sommet est postérieur au passage de la carte
+#                         en `6-nettoyage` ou `fini` (sujet rouvert sous le même nom). Les références se lisent en
+#                         toutes lettres (`refs/remotes/origin/…`) ; aucun état local ne décide (objets de remplacement et greffes
+#                         ignorés, URL de push divergente refusée en 4, `gh` vise le dépôt de `origin`). Le sommet est relu juste
+#                         avant la suppression : s'il a bougé, sortie 5, rien n'est supprimé. Une suppression refusée
+#                         (hook pre-push, protection de branche, proxy d'une session cloud) sort en 3 : la branche
+#                         reste, et la sortie dit de la jouer d'un poste local. Sujet déjà absent : sortie 0. GitHub ou
+#                         origin illisible, ou suppression non confirmée par une relecture de origin : 11
 #
 # Sorties : 0 fait · 2 conflit · 3 checks rouges, ou fusion, commit ou push refusé par un hook git
 # (sa sortie sur stderr : la lire, corriger, jamais en sautant le hook ; le pre-push contrôle l'arbre de travail) · 4 refus corrigeable par l'auteur (sa
@@ -80,7 +92,8 @@
 # avec le sujet sur des index générés seuls : branche mise à jour (index régénérés) et poussée, CI
 # relancée, aucun squash · 11 `fusionner` d'une PR de mise à jour : échec côté capitaine (git sans
 # `merge-tree --write-tree`, dépendances, régénération, commit ou push refusé), rien à corriger côté PR,
-# aucun renvoi · 69 jq absent du poste
+# aucun renvoi · 11 `clore` : origin ou GitHub illisible, ou suppression non confirmée · `clore` : 3 suppression refusée par
+# un hook ou par le distant, 4 refus (pas livré, PR ouverte, carte, nom ou option), 5 le sommet a bougé · 69 jq absent du poste
 # Tout passe par l'API REST (`gh api`) : GraphQL est refusé depuis les sessions cloud. Depuis la
 # racine du dépôt ; sans argument, affiche cette aide.
 # =============================================================================
@@ -227,14 +240,14 @@ sujet_livre() {
   local nom=${1#sujet/} f trouve='' phase
   git fetch -q origin develop 2>/dev/null || true
   while IFS= read -r f; do
-    git show "origin/develop:$f" | carte_nomme_le_sujet "$nom" || continue
+    git show "refs/remotes/origin/develop:$f" | carte_nomme_le_sujet "$nom" || continue
     trouve=1
-    phase=$(git show "origin/develop:$f" | grep -m1 -E '^Phase ?:' | sed -E 's/^Phase ?: *//; s/[[:space:]]*$//') || true
+    phase=$(git show "refs/remotes/origin/develop:$f" | grep -m1 -E '^Phase ?:' | sed -E 's/^Phase ?: *//; s/[[:space:]]*$//') || true
     case "$phase" in 6-nettoyage* | fini*) return 0 ;; esac
-  done < <(git ls-tree -r --name-only origin/develop -- docs | grep -E '\.map\.md$' | grep -v '/gabarits/' || true)
+  done < <(git ls-tree -r --name-only refs/remotes/origin/develop -- docs | grep -E '\.map\.md$' | grep -v '/gabarits/' || true)
   [ -z "$trouve" ] || return 1
   git ls-remote --exit-code --heads origin "sujet/$nom" >/dev/null 2>&1 && return 1
-  [ -n "$(git log origin/develop --merges -1 --format=%H -E \
+  [ -n "$(git log refs/remotes/origin/develop --merges -1 --format=%H -E \
     --grep "^Sujet: sujet/${nom}\$" --grep "^Merge pull request #[0-9]+ from [^ ]+/sujet/${nom}\$")" ]
 }
 
@@ -1114,6 +1127,97 @@ carte_cite_le_sujet() {
     END { exit !ok }'
 }
 
+# Sommet de la branche `<branche>` sur origin (vide si elle n'y est pas) : le nom se compare en entier,
+# `git ls-remote <motif>` fait correspondre la fin d'un nom.
+sommet_distant() { git ls-remote origin "refs/heads/$1" | awk -v r="refs/heads/$1" '$2 == r { print $1 }'; }
+# Premier commit de develop (premiers parents) où la carte du sujet est en `6-nettoyage` ou `fini` ; vide
+# sinon. Le sommet d'un sujet livré est contenu dans ce commit : un sujet rouvert sous le même nom, après
+# la carte d'un chantier précédent, a un sommet plus récent.
+commit_carte_livree() {
+  local nom=$1 f c phase
+  while IFS= read -r f; do
+    git show "refs/remotes/origin/develop:$f" | carte_nomme_le_sujet "$nom" || continue
+    while IFS= read -r c; do
+      phase=$(git show "$c:$f" 2>/dev/null | grep -m1 -E '^Phase ?:' | sed -E 's/^Phase ?: *//; s/[[:space:]]*$//') || true
+      case "$phase" in 6-nettoyage* | fini*) printf '%s\n' "$c"; return 0 ;; esac
+    done < <(git log --first-parent --reverse --format=%H refs/remotes/origin/develop -- "$f")
+  done < <(git ls-tree -r --name-only refs/remotes/origin/develop -- docs | grep -E '\.map\.md$' | grep -v '/gabarits/' || true)
+}
+# `clore <nom>` : voir l'en-tête. Le seul geste de suppression d'une branche de sujet : la garde d'agent
+# refuse `git push --delete` et `:sujet/…` à une session (elle ne voit pas ce script). Aucune écriture avant
+# que tous les refus aient été levés, et jamais d'option de force : la suppression est un `git push` simple,
+# sous les hooks. Les références se lisent en toutes lettres (`refs/remotes/origin/…`) : un tag ou une
+# branche locale nommés `origin/develop` ne masquent pas le distant. Ni les objets de remplacement ni les
+# greffes ne sont lus, l'URL de push doit être celle de lecture, et `gh` vise le dépôt de `origin` posé
+# explicitement par `GH_REPO` (jamais un `upstream` ni le dépôt par défaut de `gh`).
+clore() {
+  local nom=${1-} branche sommet relu ouvertes statut ecart livree url chemin depot develop=refs/remotes/origin/develop
+  shift || true
+  [ $# -eq 0 ] || sortir 4 "clore ne prend que le nom du sujet ($*) : jamais d'option, jamais de push forcé"
+  [[ "$nom" != sujet/* ]] || sortir 4 "nom de sujet illisible : « $nom » : le nom se donne sans le préfixe sujet/ (clore ${nom#sujet/})"
+  [[ "$nom" =~ ^[a-z0-9][a-z0-9-]*$ ]] || sortir 4 "nom de sujet illisible : « $nom »"
+  branche="sujet/$nom"
+  # Aucune décision ne repose sur un état local du dépôt (objets de remplacement, greffes, URL de push, dépôt
+  # par défaut de gh) : ils ne se lisent pas, et la suppression part là où l'on a vérifié.
+  export GIT_NO_REPLACE_OBJECTS=1 GIT_GRAFT_FILE=/dev/null
+  url=$(git remote get-url origin 2>/dev/null) || sortir 11 "URL de origin illisible : rien n'est supprimé"
+  [ "$(git remote get-url --push --all origin 2>/dev/null)" = "$url" ] ||
+    sortir 4 "l'URL de push de origin diffère de son URL de lecture (pushurl, pushInsteadOf, plusieurs URL) : rien n'est supprimé, on ne supprime pas ailleurs que là où l'on a vérifié"
+  url=${url%/}; url=${url%.git}
+  chemin=$url
+  case $url in
+    *://*) chemin=${url#*://}; chemin=${chemin#*/} ;; # l'hôte n'est pas un owner
+    *@*:*) chemin=${url#*:} ;;
+  esac
+  [[ "$chemin" =~ ^(.*/)?([A-Za-z0-9._-]+)/([A-Za-z0-9._-]+)$ ]] ||
+    sortir 4 "l'URL de origin ne donne pas un owner/repo lisible (« $url ») : rien n'est supprimé"
+  depot="${BASH_REMATCH[2]}/${BASH_REMATCH[3]}"
+  relu=$(sommet_distant "$branche") || sortir 11 "origin injoignable : rien n'est supprimé"
+  [ -n "$relu" ] || sortir 0 "$branche n'existe pas sur origin : rien à clore"
+  git fetch -q origin "+refs/heads/develop:$develop" "+refs/heads/$branche:refs/remotes/origin/$branche" ||
+    sortir 11 "fetch de develop et de $branche en échec : rien n'est supprimé"
+  sommet=$(git rev-parse --verify "refs/remotes/origin/$branche^{commit}") ||
+    sortir 11 "refs/remotes/origin/$branche illisible : rien n'est supprimé"
+  statut=0
+  git merge-base --is-ancestor "$sommet" "$develop" || statut=$?
+  case $statut in
+    0) ;;
+    1) ecart=$(git rev-list --count "$develop..$sommet")
+       sortir 4 "$branche porte $ecart commit(s) absent(s) de develop : pas livré, rien n'est supprimé" ;;
+    *) sortir 11 "git merge-base en échec sur $branche et origin/develop : rien n'est supprimé" ;;
+  esac
+  sujet_livre "$nom" ||
+    sortir 4 "la carte de $nom, lue sur develop, ne le dit pas livré (Phase: 6-nettoyage ou fini) : rien n'est supprimé"
+  livree=$(commit_carte_livree "$nom")
+  { [ -n "$livree" ] && git merge-base --is-ancestor "$sommet" "$livree"; } ||
+    sortir 4 "le sommet de $branche est postérieur au passage de sa carte en 6-nettoyage ou fini (un sujet rouvert sous le même nom ?) : rien n'est supprimé, vérifier d'abord"
+  # Les PR ouvertes se lisent au plus près de la suppression, juste avant la relecture du sommet. Le dépôt est
+  # celui d'origin, posé explicitement : gh résoudrait sinon `{owner}/{repo}` sur GH_REPO, un remote `upstream`
+  # ou le dépôt par défaut de `gh repo set-default`.
+  ouvertes=$(
+    GH_REPO=$depot gh api --paginate "$DEPOT/pulls?state=open&per_page=100&base=$(uri "$branche")" --jq '.[].number' &&
+      GH_REPO=$depot gh api --paginate "$DEPOT/pulls?state=open&per_page=100&head={owner}:$(uri "$branche")" --jq '.[].number'
+  ) || sortir 11 "PR ouvertes de $branche illisibles (GitHub) : rien n'est supprimé"
+  [ -z "$ouvertes" ] || sortir 4 "des PR ouvertes ont $branche pour base ou pour tête (#$(sort -un <<<"$ouvertes" | paste -sd' ' - | sed 's/ / #/g')) : les fusionner ou les fermer avant de clore"
+  # Le sommet relu juste avant la suppression doit être celui qu'on a vérifié.
+  relu=$(sommet_distant "$branche") || sortir 11 "origin injoignable : rien n'est supprimé"
+  [ "$relu" = "$sommet" ] || sortir 5 "$branche a bougé pendant les vérifications : rien n'est supprimé, relancer"
+  statut=0
+  jouer_ou_dire "git push -q origin :refs/heads/$branche" || statut=$?
+  # Quel que soit le code du push, seul le distant dit ce qu'il est advenu.
+  relu=$(sommet_distant "$branche") ||
+    sortir 11 "suppression non confirmée : origin illisible après le push, relire avec git ls-remote --heads origin $branche"
+  git update-ref -d "refs/remotes/origin/$branche" 2>/dev/null || true
+  if [ -z "$relu" ]; then
+    if [ "$statut" -eq 0 ]; then echo "$branche supprimée (sommet ${sommet:0:12}, contenu dans origin/develop)"
+    else echo "$branche n'est plus sur origin (le push a échoué, la branche avait disparu entre-temps)"; fi
+  elif [ "$relu" != "$sommet" ]; then
+    sortir 5 "$branche a bougé pendant la suppression : rien n'est supprimé, relancer"
+  else
+    sortir 3 "suppression de $branche refusée ou sans effet (hook pre-push, protection de branche ou proxy : sortie ci-dessus). Si c'est le distant, à jouer d'un poste local : git push origin :refs/heads/$branche"
+  fi
+}
+
 carte_sujet() {
   local nom=${1-} branche tete c f meta lignes n i=0 avant tmp
   shift || true
@@ -1163,10 +1267,10 @@ commande=${1:-}
 shift || true
 if [ "$commande" = carte ] && [ $# -gt 0 ]; then carte_sujet "$@"; exit; fi
 case "$commande" in
-  demarrer | ouvrir | fusionner | rafraichir | livrer | relancer | series | regrouper | carte | etat | geler | degeler | gel) "$commande" "$@" ;;
+  demarrer | ouvrir | fusionner | rafraichir | livrer | relancer | series | regrouper | carte | etat | geler | degeler | gel | clore) "$commande" "$@" ;;
   de) sujet_du_ticket "${1:?ticket}" ;;
   livre) sujet_livre "${1:?nom du sujet}" ;;
   livrer-prets) livrer_prets "$@" ;;
   regrouper-series) regrouper_series "$@" ;;
-  *) sed -n '3,/^# =====/p' "$0" | sed '$d; s/^# \{0,1\}//'; sortir 4 "usage : sujet.sh demarrer <ticket|nom> | ouvrir <nom> [--specs <pr>] | fusionner <pr> | rafraichir <nom> | livrer <nom> <titre> | livrer-prets [--dry-run] | relancer <pr> | series | regrouper-series [--dry-run] | regrouper <nom> <pr>… | carte | carte <nom> | etat | geler <nom> \"<raison>\" | degeler <nom> | gel <nom> | de <ticket>" ;;
+  *) sed -n '3,/^# =====/p' "$0" | sed '$d; s/^# \{0,1\}//'; sortir 4 "usage : sujet.sh demarrer <ticket|nom> | ouvrir <nom> [--specs <pr>] | fusionner <pr> | rafraichir <nom> | livrer <nom> <titre> | livrer-prets [--dry-run] | relancer <pr> | series | regrouper-series [--dry-run] | regrouper <nom> <pr>… | carte | carte <nom> | etat | geler <nom> \"<raison>\" | degeler <nom> | gel <nom> | clore <nom> | de <ticket>" ;;
 esac
