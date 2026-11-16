@@ -218,9 +218,9 @@ Vague 1 fusionnée le 2026-11-13 par le capitaine de `skills` (`main` à `8eb1c9
 | `session_017ZgEwKtYKeuPV6GCVmXuns` | ticket   | 31 (PR 92 de `skills`, fusionnée `2826309`, plugin 7.8.2) | 2,08 | 175 109 |
 | `session_017ZgEwKwMEv5oFuYP3RmB5P` | ticket   | 36 (PR 93 de `skills`, fusionnée `fa7d3eb`, plugin 7.9.0) | 3,01 | 200 306 |
 | `session_017ZgEwJSDmewCi3UemvPCZf` | ticket   | 39 (lancée le 2026-11-14 à 23 h 43 UTC, PR 94 ; introuvable le 2026-11-16) | ? | ? |
-| `session_012xRpgcDg36HSxvjCmaYg1k` | ticket   | 39, corrections de la PR 94 (lancée le 2026-11-16 à 13 h 56 UTC) | 0 | 0 |
+| `session_012xRpgcDg36HSxvjCmaYg1k` | ticket   | 39, corrections : PR 95 de `skills` (7.9.2), livrée, label posé | à relever | à relever |
 | `session_012xRpgYbjisBfhWrDMa5kGJ` | ticket   | 33 (lancée le 2026-11-16 à 14 h 23 UTC, opus) | 0 | 0 |
-| `session_012xRpgb98uSwUKaaEst45iw` | architecte | session de suite du 2026-11-16 | en cours | en cours |
+| `session_012xRpgb98uSwUKaaEst45iw` | architecte | session parallèle du 2026-11-16 (retours de `fedora`), arrêtée à 15 h 10 UTC ; sous-agents compris | 60,16 | 327 915 |
 | `session_017ZgEwH8k29dNtENWHwCNbn` | ticket   | 28 (PR 91 de `skills`, fusionnée `436c96e`, plugin 7.8.1) | 2,85 | 183 698 |
 | `session_017ZgEwJW5CB9AnK1x9r48fv` | ticket   | `SPEC_ALL_SOC-1.15` (PR 136 d'`anchorpost`, fusionnée `8f604d7`) | 1,07 | 143 075 |
 | `session_017ZgEwL2oAmAYcYXYobxLWp` | ticket   | `SPEC_ALL_SOC-1.22` (PR 137 d'`anchorpost`, fusionnée `8691c7c`) | 1,91 | 156 442 |
@@ -656,3 +656,4 @@ La session de suite fait, dans cet ordre :
 - 2026-11-16 — 14 h 50 UTC. **Tickets 41 et 42 relus** (agent neuf, opus) : à compléter, un bloquant chacun — 41 : la procédure du capitaine sans chaîne butait sur la règle stricte de `main` (PR en retard après chaque fusion) et laissait fusionner une PR de fourche ; 42 : un tag local `origin/develop` faisait supprimer un sujet non livré. Décision A-53 ; corrections renvoyées au rédacteur.
 - 2026-11-16 — 15 h 00 UTC. **Tickets 43, 44, 45 relus** (agent neuf, opus ; les trois ensemble sur `76d90c7` : 572 tests verts). 43 prêt ; l'idiome d'A-50 est précisé en `realpathSync(fileURLToPath(import.meta.url)) === realpathSync(process.argv[1])` (couvre `--preserve-symlinks-main`). 44 : bloquant, le banc hérite de `GIT_*` et écrit dans le vrai dépôt quand un pre-push le lance depuis un worktree (reproduit) — **même défaut dans le banc de `fedora` #1935, à signaler à l'architecte de `fedora`**. 45 : bloquant, en CI la fusion d'essai de GitHub et un checkout superficiel annulent le correctif ; décision : la recette CI du gate fait le checkout de `head.sha` à profondeur 0 et récupère `origin/develop` ; test du tube rendu fiable. Corrections renvoyées au rédacteur.
 - 2026-11-16 — 15 h 05 UTC. **Le produit rend la main à l'architecte précédent.** Passation écrite (section « Passation », en tête) ; cette session s'arrête une fois les corrections des tickets 41 à 45 commitées.
+- 2026-11-16 — 15 h 10 UTC. Corrections des tickets 41 à 45 commitées (41 : 549 tests avec 42 ; 43, 44, 45 : 588 ensemble sur `76d90c7`, tous `ready-for-agent`, 45 bloqué par 40). **Fin de la session parallèle** `session_012xRpgb98uSwUKaaEst45iw` : 60,16 $, 327 915 tokens de contexte. L'architecte précédent reprend par la passation.
