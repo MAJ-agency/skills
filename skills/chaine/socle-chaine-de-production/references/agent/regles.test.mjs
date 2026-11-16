@@ -817,6 +817,28 @@ test('ticket 33, contre-relecture B3 : un corps relu par prudence passe par tous
   assert.equal(decisionCommande("python3 - <<'EOF'\nprint(\"l'architecte : gh pr merge, gh repo sync\")\nEOF\n", CTX_33), null);
 });
 
+test('ticket 33, /security-review : un here-doc non quoté se ferme sur sa ligne logique, lignes continuées par \\ recollées, comme bash', () => {
+  const P = 'git push -' + 'f origin feat/x';
+  for (const c of [
+    `cat <<EOF\nx\n\\\nEOF\n${P}\nEOF`,
+    `cat <<EOF\nx\nEOF\\\n\n${P}\nEOF`,
+    `cat <<EOF\nx\nE\\\nOF\n${P}\nEOF`,
+    `cat <<EOF\nx\n\\\n\\\nEOF\n${P}\nEOF`,
+    `git commit -F - <<EOF\nmsg\nEOF\\\n\ngit push origin main\nEOF`,
+    `cat <<EOF\nx\nE\\\nOF\ngh pr merge 1\nEOF`,
+    `cat <<EOF\nx\nE\\\nOF\nnpm i x\nEOF`,
+    `cat <<-EOF\nx\n\t\\\n\tEOF\n${P}\nEOF`,
+    `cat <<-EOF\nx\n\tE\\\nOF\n${P}\nEOF`,
+  ])
+    assert.equal(decisionCommande(c, CTX_33)?.decision, 'refuser', c);
+  // Ce que bash ne ferme pas reste un corps : `x\` + `EOF` se lit `xEOF`, `E\` + tabulation + `OF` se lit `E⇥OF`.
+  for (const c of [`cat <<EOF\nx\\\nEOF\n${P}\nEOF`, `cat <<-EOF\nx\nE\\\n\tOF\n${P}\nEOF`, `cat <<'EOF'\nx\\\n${P}\nEOF`]) {
+    const [h] = lireCommande(c).heredocs;
+    assert.ok(h.corps.includes(P), c);
+    assert.equal(decisionCommande(c, CTX_33), null, c);
+  }
+});
+
 test('ticket 33, contre-relecture C1 : ce qui suit un mot à expansion se relit en temps et mémoire linéaires', () => {
   const F = F_33;
   const mesure = (c) => {

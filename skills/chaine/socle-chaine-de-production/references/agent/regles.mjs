@@ -1085,25 +1085,38 @@ class Lecteur {
     this.attente = [];
     for (const h of attente) {
       const debut = this.i;
-      let suite = false;
       for (;;) {
         if (this.i >= s.length) this.echec('here-doc non fermé');
-        const j = s.indexOf('\n', this.i);
+        // La ligne logique : dans un corps non quoté, bash recolle une ligne qui finit par un nombre impair de
+        // barres obliques inverses à la suivante (la barre et le saut de ligne retirés), puis compare le tout au
+        // délimiteur, tabulations de tête retirées pour `<<-` : `\` puis `EOF`, `E\` puis `OF`, `EOF\` puis une
+        // ligne vide ferment le here-doc.
+        const ligne = this.i;
+        let logique = '';
+        let j;
+        for (;;) {
+          j = s.indexOf('\n', this.i);
+          const fin = j < 0 ? s.length : j;
+          let n = 0;
+          if (!h.quote) for (let x = fin - 1; x >= this.i && s[x] === '\\'; x--) n++;
+          if (n % 2 === 1 && j >= 0) {
+            logique += s.slice(this.i, fin - 1);
+            this.i = j + 1;
+            continue;
+          }
+          logique += s.slice(this.i, fin);
+          break;
+        }
         const fin = j < 0 ? s.length : j;
-        let k = this.i;
-        if (h.operateur === '<<-') while (s[k] === '\t') k++;
-        if (!suite && fin - k === h.delimiteur.length && s.startsWith(h.delimiteur, k)) {
-          h.corps = s.slice(debut, this.i);
+        let k = 0;
+        if (h.operateur === '<<-') while (logique[k] === '\t') k++;
+        if (logique.length - k === h.delimiteur.length && logique.startsWith(h.delimiteur, k)) {
+          h.corps = s.slice(debut, ligne);
           h.debutCorps = this.pos(debut);
           this.i = j < 0 ? s.length : j + 1;
           h.finCorps = this.pos(this.i);
           this.remplacer(debut - 1, fin, '');
           break;
-        }
-        if (!h.quote) {
-          let n = 0;
-          for (let x = fin - 1; x >= this.i && s[x] === '\\'; x--) n++;
-          suite = n % 2 === 1;
         }
         this.i = j < 0 ? s.length : j + 1;
       }
