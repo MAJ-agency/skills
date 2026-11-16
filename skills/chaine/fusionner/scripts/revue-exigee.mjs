@@ -101,7 +101,7 @@ function regexDuMotif(motif) {
     if (m === '*') return '[^/]*';
     return `\\${m}`;
   });
-  return new RegExp(`^${re}$`);
+  return new RegExp(`^${re}$`, 's');
 }
 /**
  * Contexte de la base : `cheminsSensibles` et `criteresRevue` de `.claude/chaine.json`, et les index générés
