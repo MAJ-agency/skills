@@ -1,6 +1,6 @@
 # Le job « Messages de commit » ne juge, sur une PR, que les commits absents de develop : `commits-a-relire.mjs` (report de `fedora` #1935), posé avec `fusionner` dans `scripts/chaine/`, appelé par l'étape de `ci.yml` du socle
 
-Status: ready-for-agent
+Status: Fait — PR #97
 Type: défaut
 Label: contre-revue
 Modèle: sonnet — un script et son banc donnés entiers (ils existent, éprouvés, sur `fedora`), une étape de `ci.yml` réécrite, quatre phrases de documentation et la version ; tout est joué sur une copie jetable de `origin/main` (voir « Vérification »). Rien à concevoir.
@@ -498,5 +498,6 @@ Dans une copie jetable de `origin/main` : `git worktree add --detach <dossier je
 
 ## Comments
 
+- 2026-11-16 — **Fait** : PR 97, fusionnée `0860466`, plugin 7.9.4. Contre-relue conforme avec réserves (13 scénarios adverses fermés ; banc isolé de `GIT_*`, vrai dépôt jamais écrit). Non joués : `zizmor`, le vrai `commitlint` sur stdin, la CI réelle d'un projet posé. Ferme le ticket 1 de `pose-du-socle`.
 - 2026-11-16 — Rédigé le jour même de la fusion de `fedora` #1935 (13 h 47 UTC). `needs-triage` : l'architecte décide du tri. Le script et son banc ont été retapés depuis le diff de la PR (écarts listés en décision 1), joués sur une copie de `fa7d3eb` : 8 verts sur 8 avec le script, rouge sans. La description de la PR (`filter: tree:0`) est périmée : c'est le diff de fusion qui fait foi.
 - 2026-11-16 (relecture) — Recalé sur `76d90c7` (7.9.1, 528 tests). Corrigé : le banc n'était pas isolé de `GIT_*` (rejoué : 8 rouges et écritures dans un dépôt leurre ; neuvième test ajouté, rouge sans l'isolation) ; idiome du point d'entrée aligné sur A-50 (deux chemins résolus, cas `--preserve-symlinks-main` au banc) ; commande `zizmor` écrite, après substitution des placeholders ; clôture du ticket 1 en `Fait — PR #<n>` ; paragraphe des bancs de `fusionner/references/CONTENU.md` nommé.
