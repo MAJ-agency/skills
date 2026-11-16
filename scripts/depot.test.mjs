@@ -479,8 +479,9 @@ test("le filtre de la timeline : pose puis commit → refus ; commit puis pose �
   const pose = { event: "labeled", label: { name: "à-fusionner" } };
   const retrait = { event: "unlabeled", label: { name: "à-fusionner" } };
   const commit = { event: "committed", parents: [{}], committer: { name: "Dev" }, message: "fix: suite" };
-  const fusionBase = { event: "committed", parents: [{}, {}], committer: { name: "GitHub" }, verification: { verified: true }, message: "Merge branch 'main' into x" };
-  const fusionFausse = { event: "committed", parents: [{}, {}], committer: { name: "GitHub" }, verification: { verified: false }, message: "Merge branch 'main' into x" };
+  const fusionBase = { event: "committed", parents: [{}, {}], committer: { name: "GitHub", email: "noreply@github.com" }, verification: { verified: true }, message: "Merge branch 'main' into x" };
+  const fusionFausse = { event: "committed", parents: [{}, {}], committer: { name: "GitHub", email: "noreply@github.com" }, verification: { verified: false }, message: "Merge branch 'main' into x" };
+  const fusionAutreCle = { event: "committed", parents: [{}, {}], committer: { name: "GitHub", email: "intrus@example.org" }, verification: { verified: true }, message: "Merge branch 'main' into x" };
   const fusionSansSignature = { event: "committed", parents: [{}, {}], committer: { name: "Dev" }, message: "Merge branch 'main' into x" };
   const poussee = { event: "head_ref_force_pushed" };
   const joue = (...pages) =>
@@ -492,6 +493,7 @@ test("le filtre de la timeline : pose puis commit → refus ; commit puis pose �
   assert.equal(joue([pose, poussee]), "sommet-bouge", "poussée forcée après la pose");
   assert.equal(joue([pose, fusionBase]), "fusion", "la fusion signée par GitHub (update-branch) ne compte pas");
   assert.equal(joue([pose, fusionFausse]), "sommet-bouge", "une fusion non vérifiée, même message, compte");
+  assert.equal(joue([pose, fusionAutreCle]), "sommet-bouge", "signée par un autre, nom GitHub, adresse autre : compte");
   assert.equal(joue([pose, fusionSansSignature]), "sommet-bouge", "une fusion sans signature de GitHub, même message, compte");
   assert.equal(joue([commit]), "sans-label", "aucune pose");
 });
