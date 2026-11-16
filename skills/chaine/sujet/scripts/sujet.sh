@@ -1151,7 +1151,7 @@ commit_carte_livree() {
 # greffes ne sont lus, l'URL de push doit être celle de lecture, et `gh` vise le dépôt de `origin` posé
 # explicitement par `GH_REPO` (jamais un `upstream` ni le dépôt par défaut de `gh`).
 clore() {
-  local nom=${1-} branche sommet relu ouvertes statut ecart livree url depot develop=refs/remotes/origin/develop
+  local nom=${1-} branche sommet relu ouvertes statut ecart livree url chemin depot develop=refs/remotes/origin/develop
   shift || true
   [ $# -eq 0 ] || sortir 4 "clore ne prend que le nom du sujet ($*) : jamais d'option, jamais de push forcé"
   [[ "$nom" != sujet/* ]] || sortir 4 "nom de sujet illisible : « $nom » : le nom se donne sans le préfixe sujet/ (clore ${nom#sujet/})"
@@ -1164,7 +1164,12 @@ clore() {
   [ "$(git remote get-url --push --all origin 2>/dev/null)" = "$url" ] ||
     sortir 4 "l'URL de push de origin diffère de son URL de lecture (pushurl, pushInsteadOf, plusieurs URL) : rien n'est supprimé, on ne supprime pas ailleurs que là où l'on a vérifié"
   url=${url%/}; url=${url%.git}
-  [[ "$url" =~ ^(.*[/:])?([A-Za-z0-9._-]+)/([A-Za-z0-9._-]+)$ ]] ||
+  chemin=$url
+  case $url in
+    *://*) chemin=${url#*://}; chemin=${chemin#*/} ;; # l'hôte n'est pas un owner
+    *@*:*) chemin=${url#*:} ;;
+  esac
+  [[ "$chemin" =~ ^(.*/)?([A-Za-z0-9._-]+)/([A-Za-z0-9._-]+)$ ]] ||
     sortir 4 "l'URL de origin ne donne pas un owner/repo lisible (« $url ») : rien n'est supprimé"
   depot="${BASH_REMATCH[2]}/${BASH_REMATCH[3]}"
   relu=$(sommet_distant "$branche") || sortir 11 "origin injoignable : rien n'est supprimé"

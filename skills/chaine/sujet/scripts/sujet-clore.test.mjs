@@ -398,3 +398,16 @@ test("les PR ouvertes se lisent juste avant la relecture finale du sommet, aprè
   assert.ok(place(/commit_carte_livree/) < place(/gh api/), "la carte avant la lecture des PR");
   assert.ok(place(/gh api/) < place(/a bougé pendant les vérifications/), "les PR avant la relecture du sommet");
 });
+
+test("une URL d'origin qui ne donne pas owner/repo (un seul segment après l'hôte) refuse en 4, rien n'est supprimé", () => {
+  for (const url of ["https://github.com/depot", "git@github.com:depot", "https://github.com/"]) {
+    const d = sujetLivre();
+    const avant = sommetDistant(d);
+    d.git("config", "remote.origin.url", url);
+    const r = clore(d, "demo");
+    assert.equal(r.status, 4, `${url} : ${sortie(r)}`);
+    assert.match(r.stdout, /owner\/repo lisible/, url);
+    d.git("config", "remote.origin.url", d.origine);
+    assert.equal(sommetDistant(d), avant, `${url} : rien supprimé`);
+  }
+});
