@@ -469,3 +469,27 @@ test("les textes de fusion disent qu'un message à un capitaine n'est jamais un 
   assert.ok(sansVeille.length > 0, "fusionner/SKILL.md : le paragraphe « Sans veille en cours » est introuvable");
   assert.doesNotMatch(sansVeille, /send_message|§ 2/, "fusionner/SKILL.md : « Sans veille en cours » ne prévient plus le capitaine par message et ne renvoie plus à § 2");
 });
+
+// Le capitaine d'un dépôt sans la chaîne ne fusionne pas une PR dont le sommet a bougé après la pose du label :
+// le filtre `jq` de sa procédure (lancement.md) est joué sur des timelines d'exemple.
+test("le filtre de la timeline : pose puis commit → refus ; commit puis pose → fusion ; fusion de la base → fusion", () => {
+  const procedure = readFileSync(join(RACINE, `${SKILLS_CHAINE}/architecte/references/lancement.md`), "utf8").match(/^Procédure : .*$/m)?.[0] ?? "";
+  const filtre = procedure.match(/jq -s '([^']+)'/)?.[1];
+  assert.ok(filtre, "lancement.md : le filtre `jq -s '…'` de la timeline est introuvable dans la procédure");
+  const pose = { event: "labeled", label: { name: "à-fusionner" } };
+  const retrait = { event: "unlabeled", label: { name: "à-fusionner" } };
+  const commit = { event: "committed", parents: [{}], committer: { name: "Dev" }, message: "fix: suite" };
+  const fusionBase = { event: "committed", parents: [{}, {}], committer: { name: "GitHub" }, message: "Merge branch 'main' into x" };
+  const fusionFausse = { event: "committed", parents: [{}, {}], committer: { name: "Dev" }, message: "Merge branch 'autre' into x" };
+  const poussee = { event: "head_ref_force_pushed" };
+  const joue = (...pages) =>
+    execFileSync("jq", ["-s", "-r", filtre], { input: pages.map((p) => JSON.stringify(p)).join("\n"), encoding: "utf8" }).trim();
+  assert.equal(joue([commit, pose]), "fusion", "commit puis pose");
+  assert.equal(joue([pose, commit]), "sommet-bouge", "pose puis commit");
+  assert.equal(joue([pose, retrait, commit, pose]), "fusion", "pose, retrait, commit, pose");
+  assert.equal(joue([pose], [commit]), "sommet-bouge", "pagination : le commit est sur la page suivante");
+  assert.equal(joue([pose, poussee]), "sommet-bouge", "poussée forcée après la pose");
+  assert.equal(joue([pose, fusionBase]), "fusion", "la fusion de la branche par défaut (update-branch) ne compte pas");
+  assert.equal(joue([pose, fusionFausse]), "sommet-bouge", "une fusion qui n'est pas celle de GitHub compte");
+  assert.equal(joue([commit]), "sans-label", "aucune pose");
+});
