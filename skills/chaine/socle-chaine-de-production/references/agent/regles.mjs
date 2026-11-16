@@ -1116,7 +1116,6 @@ class Lecteur {
         if (logique.length - k === h.delimiteur.length && logique.startsWith(h.delimiteur, k)) {
           h.corps = s.slice(debut, ligne);
           h.debutCorps = this.pos(debut);
-          h.debutTerminateur = this.pos(ligne);
           this.i = j < 0 ? s.length : j + 1;
           h.finCorps = this.pos(this.i);
           this.remplacer(debut - 1, fin, '');
@@ -1478,7 +1477,6 @@ function lectureIllisible(commande, motif) {
     lectures: Object.freeze(eclate.map(({ segment, mots }) => new Lecture(mots, segment, { suite: () => commande }, 0))),
     segments: Object.freeze(eclate.map(({ segment }) => Object.freeze({ segment, suite: commande }))),
     sansTexte: commande,
-    allegee: commande,
   });
 }
 
@@ -1760,7 +1758,6 @@ function lire(commande, avecRemplacements = false) {
   };
   let rendus = null;
   let vide = null;
-  let allegee = null;
   return Object.freeze({
     illisible: null,
     commandes: Object.freeze(commandes),
@@ -1776,33 +1773,7 @@ function lire(commande, avecRemplacements = false) {
       // Les citations ne sont relevées qu'à la demande : `decisionCommande` n'en a pas besoin.
       return (vide ??= lu.remplacements ? vider() : lire(commande, true).sansTexte);
     },
-    get allegee() {
-      return (allegee ??= alleger(commande, lu.heredocs));
-    },
   });
-}
-
-/**
- * La commande allégée de ses corps de here-doc inertes (décision A-51 bis) : le texte de chaque corps que
- * `lectureDuCorps` retire, dans la source de tête (positions exactes), est remplacé par une ligne vide ; le
- * délimiteur, le terminateur et tout le reste demeurent (la ligne vide garde au here-doc la forme que la
- * lecture de 7.9.x reconnaît). Un corps non quoté qui porte une expansion (`$`, accent grave) demeure entier :
- * bash peut y exécuter quelque chose. Un corps lu comme des commandes, relu par prudence, ou
- * lu dans une source dérivée (`-c`, `eval`, accents graves) n'est pas touché.
- */
-function alleger(commande, heredocs) {
-  const retires = heredocs
-    .filter((h) => h.lecture === 'retire' && h.racine && h.debutTerminateur !== undefined && (h.quote || !/[$`]/.test(h.corps)))
-    .sort((a, b) => a.debutCorps - b.debutCorps);
-  if (!retires.length) return commande;
-  let texte = '';
-  let fin = 0;
-  for (const h of retires) {
-    if (h.debutCorps < fin) continue;
-    texte += commande.slice(fin, h.debutCorps) + '\n';
-    fin = h.debutTerminateur;
-  }
-  return texte + commande.slice(fin);
 }
 
 /** La commande sans son texte libre : corps de here-doc et textes cités vidés, lus par `lireCommande`. */
@@ -1986,10 +1957,10 @@ export function decisionCommande(commande, contexte = {}) {
   const lu = lireCommande(commande);
   const decision = decisionDuLecteur(lu, commande, contexte);
   if (decision || lu.illisible) return decision;
-  // L'union (A-51 bis) : ce que la lecture de 7.9.x refuse sur la commande allégée de ses corps inertes est refusé.
-  const allegee = lu.allegee;
-  if (allegee.length > TAILLE_MAX_LECTURE_7_9) return { decision: 'refuser', raison: RAISON_TROP_LONGUE };
-  return LECTURE_7_9.decisionCommande(allegee, contexte);
+  // L'union (A-51 ter) : ce que la lecture de 7.9.x refuse sur la commande d'origine est refusé. Elle la lit
+  // entière, sans rien en retirer : tout refus de 7.9.x reste un refus de la garde, par construction.
+  if (commande.length > TAILLE_MAX_LECTURE_7_9) return { decision: 'refuser', raison: RAISON_TROP_LONGUE };
+  return LECTURE_7_9.decisionCommande(commande, contexte);
 }
 
 /** La décision du lecteur par jetons seul (ticket 33), sur une lecture de `lireCommande`. */
@@ -2172,21 +2143,22 @@ export function ecritParGh(commande) {
 }
 
 /**
- * Au-delà de cette taille de la commande allégée, la lecture de 7.9.x n'est pas jouée : la commande est
+ * Au-delà de cette taille de la commande, la lecture de 7.9.x n'est pas jouée : la commande est
  * refusée (échec fermé). Cette lecture coûte au carré sur certaines formes (accents graves, `$(…)` ou `git commit`
  * répétés sans séparateur) ; sous ce seuil, son pire cas mesuré est de 8,2 s (99 000 caractères), sous le délai du hook.
  */
 const TAILLE_MAX_LECTURE_7_9 = 100_000;
 
 export const RAISON_TROP_LONGUE =
-  "commande trop longue pour la garde (plus de 100 000 caractères hors corps de here-doc inertes) : elle est refusée plutôt que lue à moitié. Écris le texte long dans un fichier (git commit -F <fichier>, gh … --body-file <fichier>) ou découpe la commande.";
+  "commande trop longue pour la garde (plus de 100 000 caractères) : elle est refusée plutôt que lue à moitié. Écris le texte long dans un fichier (git commit -F <fichier>, gh … --body-file <fichier>) ou découpe la commande.";
 
 /**
- * La lecture de 7.9.x (décision A-51 bis), reprise telle quelle de `76d90c7` : `decisionCommande` la joue
- * sur la commande allégée de ses corps de here-doc inertes (`lireCommande(…).allegee`), et refuse ce qu'elle
- * refuse. Elle ne sert qu'à cette union : ses découpages par motifs lisent large, et rattrapent des formes
- * imbriquées (`ssh h "bash -c '…'"`) que le lecteur par jetons laisse passer. Le corps d'un here-doc donné à un
- * interprète, relu par prudence ou non quoté à substitution, reste dans la commande qu'elle lit. Les décideurs
+ * La lecture de 7.9.x (décisions A-51 bis et ter), reprise telle quelle de `76d90c7` : `decisionCommande` la
+ * joue sur la commande d'origine, sans rien en retirer, et refuse ce qu'elle refuse. L'union est ainsi au moins
+ * aussi stricte que 7.9.x par construction, refus à tort des here-docs à apostrophe compris (A-51 bis retirait
+ * les corps inertes ; retirer un corps change la façon dont 7.9.x apparie ses here-docs, et une commande que bash
+ * exécute passait). Ses découpages par motifs lisent large, et rattrapent des formes imbriquées
+ * (`ssh h "bash -c '…'"`) que le lecteur par jetons laisse passer. Les décideurs
  * qu'elle partage avec le lecteur (`COMMANDES_INTERDITES`, raisons, options, `nomDeBranche`, `brancheGardee`,
  * `CHEMIN_GH_ECRIT`) sont ceux du module ; ses découpages et ses mémoires vivent dans cette fermeture.
  */
