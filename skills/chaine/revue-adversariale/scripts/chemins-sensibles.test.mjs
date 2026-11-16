@@ -251,6 +251,6 @@ test("un chemin décité qui porte un saut de ligne, \\r ou U+2028 touche encore
   for (const [motif, cite] of cas) {
     const r = lancer(dossierAvec(JSON.stringify({ cheminsSensibles: [motif] })), `${cite}\n`);
     assert.equal(r.status, 0, r.stderr);
-    assert.match(r.stdout, new RegExp(`\\t${motif.replace(/[*/.]/g, "\\$&")}\\n$`), `${motif} / ${cite}`);
+    assert.match(r.stdout, new RegExp(`\\t${motif.replace(/[*/.\\]/g, "\\$&")}\\n$`), `${motif} / ${cite}`);
   }
 });
