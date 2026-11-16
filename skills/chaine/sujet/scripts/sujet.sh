@@ -18,9 +18,9 @@
 #   fusionner <pr>        squash d'une sous-PR dans son sujet : checks exigés verts sur son sommet,
 #                         titre qui passe commitlint
 #                         (lancé par le capitaine pour une sous-PR étiquetée `à-fusionner`) ;
-#                         PR de mise à jour (sa tête n'apporte que la fusion de develop dans le sujet, conflit
-#                         résolu) : entre par avance rapide, sans squash, si elle est exactement la résolution
-#                         (voir « PR de mise à jour » plus bas), sinon sortie 4
+#                         PR de mise à jour (la fusion de develop dans le sujet, conflit résolu, puis des
+#                         retouches) : entre par avance rapide, sans squash, si elle a cette forme (voir « PR de
+#                         mise à jour » plus bas), sinon sortie 4
 #   rafraichir <nom> [--abandon-si-conflit]
 #                         fusionne develop dans sujet/<nom> (jamais de rebase), index régénérés ;
 #                         `--abandon-si-conflit` (capitaine) annule la fusion au lieu de la laisser en cours
@@ -68,17 +68,18 @@
 #                         sort en 0 si le sujet est gelé, 1 sinon. Toute valeur non vide gèle, datée ou non
 #                         (ligne écrite à la main dans l'éditeur de GitHub)
 #
-# Sorties : 0 fait · 2 conflit · 3 checks rouges ou en cours, ou fusion, commit ou push refusé par un hook git
+# Sorties : 0 fait · 2 conflit · 3 checks rouges, ou fusion, commit ou push refusé par un hook git
 # (sa sortie sur stderr : la lire, corriger, jamais en sautant le hook ; le pre-push contrôle l'arbre de travail) · 4 refus corrigeable par l'auteur (sa
 # dernière ligne est le motif, `fusionner` : titre, commitlint, revue, lien symbolique sur un index généré, base ; `fusionner` et `relancer` : tête gardée, develop, main, la branche par défaut ou un sujet) · 6 arbre de travail pas
 # propre (`fusionner`, `rafraichir`, `regrouper`, `relancer` : à nettoyer par qui lance, jamais un renvoi de la PR,
 # comme la sortie 6 de passer.sh) · 7 `fusionner` d'une PR fermée, en brouillon ou d'un sujet gelé (rien à
 # corriger : sautée) · 9 `carte <nom>` refusée, ou `geler`/`degeler` dont le push échoue deux fois (rien n'est poussé)
 # `fusionner`, `rafraichir`, `relancer`, `livrer` : 5 la branche a bougé pendant l'écriture, relancer
-# `fusionner` encore : la sous-PR a bougé pendant sa mise à jour (reprise au tour suivant) · 8 conflit
+# `fusionner` encore : la sous-PR a bougé pendant sa mise à jour, ou ses checks sont encore en cours (reprise au
+# tour suivant, aucun renvoi : la PR reste dans la file tant que sa CI ne finit pas) · 8 conflit
 # avec le sujet sur des index générés seuls : branche mise à jour (index régénérés) et poussée, CI
 # relancée, aucun squash · 11 `fusionner` d'une PR de mise à jour : échec côté capitaine (git sans
-# `merge-tree --write-tree`, dépendances, régénération, commit ou push refusé), rien à corriger côté PR,
+# `merge-tree --write-tree`, dépendances, arbre du formateur, Prettier déclaré introuvable, régénération, commit ou push refusé), rien à corriger côté PR,
 # aucun renvoi · 69 jq absent du poste
 # Tout passe par l'API REST (`gh api`) : GraphQL est refusé depuis les sessions cloud. Depuis la
 # racine du dépôt ; sans argument, affiche cette aide.
@@ -532,43 +533,162 @@ refuser_tete_gardee() {
   fi
 }
 
-# PR de mise à jour d'un sujet : un conflit de code entre le sujet et develop, que `rafraichir` ne résout pas
-# (sortie 2) et qu'aucune session ne pousse (le hook refuse tout push vers sujet/…). Une session fille,
-# lancée pour ce geste, résout dans une branche de travail :
+# PR de mise à jour d'un sujet : develop fusionné dans le sujet par une session, quand le capitaine ne le peut pas
+# (`rafraichir`, sortie 2 : un conflit de code ; sortie 3 : une fusion sans conflit que les hooks refusent, par
+# exemple `pnpm check` rouge après la montée d'un formateur dans develop) et qu'aucune session ne pousse (le hook
+# refuse tout push vers sujet/…). Une session fille, lancée pour ce geste, la fait dans une branche de travail :
 #   git fetch origin develop sujet/<nom>
 #   git switch -c maj/<nom> origin/sujet/<nom>
-#   git merge origin/develop                 conflit résolu, puis `git add <fichiers résolus>` ; un index
-#                                            généré en conflit ne s'édite pas (le hook le refuse) :
-#                                            `git checkout --theirs -- <index>`, puis `git add <index>`, le
-#                                            capitaine le régénère
-#   git commit --no-edit                     message de git, sans ligne `Sujet:`
-#   git push origin HEAD:maj/<nom>, puis PR vers sujet/<nom>, titre `chore(sujet): met <nom> à jour avec
-#   develop`, étiquetée `à-fusionner`
-# Le capitaine la reconnaît : hors du sujet et de develop, sa tête n'apporte que des commits de fusion. Une
-# sous-PR qui porte un commit ordinaire garde le chemin ordinaire (sujet rafraîchi, puis squash).
+#   git merge origin/develop                 sans conflit, git committe la fusion ; sinon conflit résolu, puis
+#                                            `git add <fichiers résolus>` ; un index généré en conflit ne
+#                                            s'édite pas (le hook le refuse) : `git checkout --theirs -- <index>`,
+#                                            puis `git add <index>`, le capitaine le régénère
+#   pnpm install --frozen-lockfile --prefer-offline
+#                                            les outils de la fusion avant son commit : le pre-commit formate
+#                                            les fichiers qu'il indexe, avec le Prettier installé
+#   git commit --no-edit                     (conflit seulement) message de git, sans ligne `Sujet:`
+#   retouches                                commits ordinaires après la fusion, jamais une seconde fusion :
+#                                            ce que develop exige du sujet (`pnpm exec prettier --write <fichiers>`,
+#                                            en-têtes d'un ticket), message Conventional Commits sans ligne `Sujet:`
+#   git push origin HEAD:maj/<nom>           arbre propre : le pre-push joue `pnpm check` sur l'arbre de travail,
+#                                            le sommet, retouches comprises ; la fusion seule n'est jamais poussée.
+#                                            Il juge l'arbre de travail, pas ce qui part : `git push <sha>:maj/<nom>`
+#                                            depuis un autre arbre passe le hook ; seule la CI exigée sur le sommet,
+#                                            que `fusionner` lit, fait foi
+#   puis PR vers sujet/<nom>, titre `chore(sujet): met <nom> à jour avec develop`, étiquetée `à-fusionner`, une
+#   section « Retouches » (fichier, raison) pour le relecteur, que le capitaine ne lit jamais, et une section de
+#   revue si un fichier la demande (ci-dessous)
+# Le capitaine la reconnaît : hors du sujet et de develop, une fusion dont les deux parents sont hors de cette plage
+# (son premier commit). Une sous-PR dont la fusion vient après un commit ordinaire (le capitaine y a fusionné le
+# sujet) garde le chemin ordinaire (sujet rafraîchi, puis squash).
 est_mise_a_jour() {
-  [ -n "$(git rev-list --merges -n 1 "$1" "^origin/$2" ^origin/develop)" ] &&
-    [ -z "$(git rev-list --no-merges -n 1 "$1" "^origin/$2" ^origin/develop)" ]
+  local m
+  while IFS= read -r m; do
+    [ -n "$m" ] || continue
+    [ -n "$(git rev-list -n 1 "$m^@" "^origin/$2" ^origin/develop)" ] || return 0
+  done <<<"$(git rev-list --merges "$1" "^origin/$2" ^origin/develop)"
+  return 1
 }
 
-# Elle n'entre que si elle est exactement la résolution, sinon sortie 4 (motif à la session) : un seul
-# commit hors du sujet et de develop, son sommet ; un message sans ligne `Sujet:` ni `Merge pull request`
-# (`sujet_livre` les cherche dans les fusions de develop) ; une fusion à deux parents, le sommet du sujet
-# d'abord (avance rapide, et `livrer` lit le sujet par ses premiers parents), puis un commit de develop
-# absent du sujet ; un arbre qui ne s'écarte de la fusion recalculée (`git merge-tree`, git ≥ 2.38, comme
-# passer.sh) que sur les fichiers en conflit et les index régénérés. L'écart se lit sans détection des
-# renommages : un fichier supprimé derrière un chemin en conflit recréé compte. Rien d'autre n'entre par
-# cette voie : un fichier hors conflit (une ligne `Dépendances:`, du code) part en sous-PR, squashée comme
-# les autres. RESOLUTION : l'écart, index compris, et les fichiers en conflit, que lit la revue exigée.
-# Un outil du capitaine en échec (git sans `merge-tree --write-tree`) : sortie 11, rien à corriger côté PR.
+# Directives qui taisent un contrôle : un fichier qui en porte une de plus n'est jamais prouvé par le formateur.
+DIRECTIVES='prettier-ignore|eslint-disable|/\*[[:space:]]*eslint[[:space:]]|@ts-|istanbul[[:space:]]+ignore|[cv]8[[:space:]]+ignore|biome-ignore|Stryker[[:space:]]+disable'
+
+# pnpm joué dans le dossier du formateur (FORMATEUR, prouver_formatage), sans jamais remonter jusqu'à un dépôt git.
+formateur() { (cd "$FORMATEUR" && GIT_CEILING_DIRECTORIES=${FORMATEUR%/*} pnpm "$@"); }
+
+# Vrai si <après>:<f> est exactement ce que le formateur rend de <avant>:<f> : le fichier existe des deux côtés, en
+# fichier ordinaire de même mode, et ne porte aucune directive de plus. Les deux versions se lisent dans les objets
+# de git, jamais dans un arbre de travail.
+formate_comme() {
+  local avant=$1 apres=$2 f=$3 ma mb sortie
+  ma=$(git --literal-pathspecs ls-tree "$avant" -- "$f" | awk '{ print $1 }')
+  mb=$(git --literal-pathspecs ls-tree "$apres" -- "$f" | awk '{ print $1 }')
+  [ -n "$ma" ] && [ "$ma" = "$mb" ] && { [ "$ma" = 100644 ] || [ "$ma" = 100755 ]; } || return 1
+  [ "$(git cat-file blob "$apres:$f" | grep -cE "$DIRECTIVES" || true)" -le "$(git cat-file blob "$avant:$f" | grep -cE "$DIRECTIVES" || true)" ] ||
+    return 1
+  sortie=$(mktemp)
+  if git cat-file blob "$avant:$f" | formateur exec prettier --stdin-filepath "$f" >"$sortie" 2>/dev/null &&
+    git cat-file blob "$apres:$f" | cmp -s - "$sortie"; then
+    rm -f "$sortie"
+    return 0
+  fi
+  rm -f "$sortie"
+  return 1
+}
+
+# Le formateur du dépôt, joué pour prouver un formatage, sans rien extraire chez le capitaine. Son arbre, l'arbre
+# jugé : la fusion recalculée, chaque fichier en conflit pris dans la fusion de la PR (la résolution, jugée avant),
+# écrit dans un index temporaire (`read-tree`, `update-index --cacheinfo`), puis extrait de cet index par
+# `git checkout-index -a --prefix=<dossier>/` dans un dossier temporaire hors du dépôt (aucun hook ; `export-ignore`
+# et `export-subst` n'y agissent pas, les conversions de fin de ligne de l'arbre jugé si), où jouent
+# `pnpm install --ignore-scripts` et Prettier : aucun script de cycle de vie, même de l'arbre jugé (un greffon qui en
+# exige un ne marche pas, et le fichier va à la revue). Ni le worktree du capitaine ni aucune commande qui déclenche un hook (`switch`, `checkout`, `merge`,
+# `commit`) ne touchent cet arbre ni celui de la PR, et aucun hook n'est désactivé : on ne les déclenche pas. Rien de
+# ce que la PR écrit hors conflit ni aucune retouche n'y entre : une configuration, un greffon, un lockfile, un
+# `.husky/`, un `node_modules/` écrits par la PR ne s'exécutent jamais à leur propre jugement. Sa version : celle que
+# verrouille le sommet, car une retouche d'un lockfile ou d'un package.json ne dispense de rien. Aucune dispense (tout
+# reste à juger) : un dépôt sans `prettier` dans le package.json racine, un chemin que git cite entre guillemets, un
+# fichier en conflit qui n'est pas un fichier ordinaire dans la fusion de la PR.
+# Entrées : la fusion recalculée, la fusion, l'écart de la fusion hors conflit, les retouches (« commit<TAB>chemin »,
+# chaque fichier que chaque retouche touche), les fichiers en conflit. Sorties : HORS_NON, l'écart de la fusion que le
+# formateur ne prouve pas ; RETOUCHES_NON, les fichiers dont une retouche au moins n'est pas prouvée contre son parent.
+prouver_formatage() {
+  local n=$1 arbre=$2 m=$3 hors=$4 retouches=$5 conflits=$6 apres f c entree index
+  apres=$(cut -f2- <<<"$retouches" | sed '/^$/d' | sort -u)
+  HORS_NON=$hors
+  RETOUCHES_NON=$apres
+  ! grep -qE '(^|/)(package\.json|pnpm-lock\.yaml|pnpm-workspace\.yaml|\.npmrc|\.pnpmfile\.cjs)$' <<<"$hors"$'\n'"$apres" || return 0
+  ! grep -q '^"' <<<"$hors"$'\n'"$apres"$'\n'"$conflits" || return 0
+  FORMATEUR=$(mktemp -d)
+  index="$FORMATEUR.index"
+  local echec
+  echec() {
+    rm -rf "$FORMATEUR" "$index"
+    sortir 11 "$1, côté capitaine : #$n laissée dans la file"
+  }
+  GIT_INDEX_FILE=$index git read-tree "$arbre" || echec "arbre du formateur illisible"
+  while IFS= read -r f; do
+    [ -n "$f" ] || continue
+    entree=$(git --literal-pathspecs ls-tree "$m" -- "$f")
+    case $entree in
+      '') GIT_INDEX_FILE=$index git update-index --force-remove -- "$f" ;;
+      "100644 blob "* | "100755 blob "*)
+        GIT_INDEX_FILE=$index git update-index --add --cacheinfo "${entree%% *},$(cut -d ' ' -f3 <<<"${entree%%$'\t'*}"),$f" ;;
+      *) false ;;
+    esac || {
+      rm -rf "$FORMATEUR" "$index"
+      return 0
+    }
+  done <<<"$conflits"
+  GIT_INDEX_FILE=$index git checkout-index -a -q --prefix="$FORMATEUR/" || echec "arbre du formateur non extrait (git checkout-index)"
+  rm -f "$index"
+  if jq -e '(.devDependencies.prettier // .dependencies.prettier) | type == "string"' "$FORMATEUR/package.json" >/dev/null 2>&1; then
+    formateur install --frozen-lockfile --prefer-offline --ignore-scripts >/dev/null 2>&1 </dev/null || echec "pnpm install en échec"
+    formateur exec prettier --version >/dev/null 2>&1 </dev/null || echec "Prettier déclaré mais introuvable après pnpm install"
+    HORS_NON=''
+    while IFS= read -r f; do
+      if [ -n "$f" ] && ! formate_comme "$arbre" "$m" "$f"; then HORS_NON+="$f"$'\n'; fi
+    done <<<"$hors"
+    HORS_NON=$(sed '/^$/d' <<<"$HORS_NON")
+    # Chaque retouche contre son parent : une retouche intermédiaire entre telle quelle dans l'historique du sujet.
+    # Un fichier en conflit est déjà à juger.
+    RETOUCHES_NON=''
+    while IFS=$'\t' read -r c f; do
+      [ -n "$f" ] || continue
+      ! grep -qxF -- "$f" <<<"$conflits" || continue
+      formate_comme "$c^" "$c" "$f" || RETOUCHES_NON+="$f"$'\n'
+    done <<<"$retouches"
+    RETOUCHES_NON=$(sed '/^$/d' <<<"$RETOUCHES_NON" | sort -u)
+  fi
+  rm -rf "$FORMATEUR"
+}
+
+# Elle n'entre que si elle a cette forme, sinon sortie 4 (motif à la session) :
+#   - hors du sujet et de develop, une seule fusion, son premier commit, puis des retouches l'une après l'autre ;
+#   - la fusion : un message sans ligne `Sujet:` ni `Merge pull request` (`sujet_livre` les cherche dans les fusions de
+#     develop), deux parents, le sommet du sujet d'abord (avance rapide, et `livrer` lit le sujet par ses premiers
+#     parents), puis un commit de develop absent du sujet ; un arbre qui ne s'écarte de la fusion recalculée (`git
+#     merge-tree`, git ≥ 2.38, comme passer.sh) que sur les fichiers en conflit, les index régénérés et des fichiers
+#     que le formateur prouve (le pre-commit de la session formate ceux qu'il indexe) ;
+#   - chaque retouche : un message sans ces lignes, que commitlint accepte (il entre tel quel dans develop).
+# L'écart se lit sans détection des renommages : un fichier supprimé derrière un chemin en conflit recréé compte.
+# A_JUGER, que `fusionner` passe à la revue exigée avant toute exécution : l'écart de la fusion hors conflit et hors
+# index ôté, index compris, et les fichiers en conflit. MAJ_* : la fusion, la fusion recalculée, les fichiers en
+# conflit, l'écart hors conflit (HORS), les retouches commit par commit et leur union (APRES), que juger_retouches lit
+# après les checks. Un outil du capitaine en échec (git sans `merge-tree --write-tree`) : sortie 11, rien à corriger
+# côté PR.
 verifier_mise_a_jour() {
-  local n=$1 sommet=$2 base=$3 s p1 p2 reste fusion rc arbre conflits ecart hors regeneres
+  local n=$1 sommet=$2 base=$3 s c f p1 p2 reste fusion rc ecart regeneres fichiers
+  local -a chaine
   s=$(git rev-parse "origin/$base")
-  [ "$(git rev-list --count "$sommet" "^origin/$base" ^origin/develop)" = 1 ] ||
-    sortir 4 "#$n, PR de mise à jour : une seule fusion de develop dans $base, rien d'autre ; une correction part ensuite en sous-PR"
-  ! grep -qE '^(- )?\**Sujet ?:|^Merge pull request' <<<"$(git log -1 --format=%B "$sommet")" ||
+  mapfile -t chaine < <(git rev-list --first-parent "$sommet" "^origin/$base" ^origin/develop)
+  [ "$(git rev-list --merges --count "$sommet" "^origin/$base" ^origin/develop)" = 1 ] &&
+    [ "${#chaine[@]}" = "$(git rev-list --count "$sommet" "^origin/$base" ^origin/develop)" ] ||
+    sortir 4 "#$n, PR de mise à jour : une seule fusion de develop dans $base, son premier commit, puis des retouches l'une après l'autre ; jamais une seconde fusion"
+  MAJ_M=${chaine[-1]}
+  ! grep -qE '^(- )?\**Sujet ?:|^Merge pull request' <<<"$(git log -1 --format=%B "$MAJ_M")" ||
     sortir 4 "#$n, PR de mise à jour : le message de la fusion porte une ligne « Sujet: » ou « Merge pull request » : refaire la fusion avec le message de git"
-  read -r _ p1 p2 reste <<<"$(git rev-list --parents -n 1 "$sommet")"
+  read -r _ p1 p2 reste <<<"$(git rev-list --parents -n 1 "$MAJ_M")"
   [ -n "$p2" ] && [ -z "$reste" ] ||
     sortir 4 "#$n, PR de mise à jour : une fusion à deux parents, le sommet de $base puis develop"
   [ "$p1" = "$s" ] ||
@@ -576,23 +696,50 @@ verifier_mise_a_jour() {
   if ! git merge-base --is-ancestor "$p2" origin/develop || git merge-base --is-ancestor "$p2" "$s"; then
     sortir 4 "#$n, PR de mise à jour : le second parent n'est pas un commit de develop absent de $base"
   fi
+  MAJ_RETOUCHES=''
+  for c in "${chaine[@]:0:${#chaine[@]}-1}"; do
+    ! grep -qE '^(- )?\**Sujet ?:|^Merge pull request' <<<"$(git log -1 --format=%B "$c")" ||
+      sortir 4 "#$n, PR de mise à jour : la retouche $(git rev-parse --short "$c") porte une ligne « Sujet: » ou « Merge pull request » : la retirer du message"
+    git log -1 --format=%B "$c" | pnpm exec commitlint >/dev/null 2>&1 ||
+      sortir 4 "#$n, PR de mise à jour : message de la retouche $(git rev-parse --short "$c") refusé par commitlint (Conventional Commits) : il entre tel quel dans $base"
+    # Chaque fichier que la retouche touche, contre son parent : un fichier ajouté puis retiré compte.
+    fichiers=$(git -c core.quotePath=false diff --no-renames --name-only "$c^" "$c") ||
+      sortir 11 "#$n : diff de la retouche $(git rev-parse --short "$c") illisible, côté capitaine : PR laissée dans la file"
+    while IFS= read -r f; do
+      [ -z "$f" ] || MAJ_RETOUCHES+="$c"$'\t'"$f"$'\n'
+    done <<<"$fichiers"
+  done
+  MAJ_APRES=$(cut -f2- <<<"$MAJ_RETOUCHES" | sed '/^$/d' | sort -u)
   fusion=$(git -c core.quotePath=false merge-tree --write-tree --name-only --no-messages "$p1" "$p2") && rc=0 || rc=$?
   [ "$rc" -le 1 ] || sortir 11 "#$n : git merge-tree --write-tree en échec (git ≥ 2.38 requis), côté capitaine : PR laissée dans la file"
-  arbre=$(sed -n 1p <<<"$fusion")
-  conflits=$(sed -n '2,$p' <<<"$fusion")
-  ecart=$(git -c core.quotePath=false diff --no-renames --name-only "$arbre" "$sommet") ||
+  MAJ_ARBRE=$(sed -n 1p <<<"$fusion")
+  MAJ_CONFLITS=$(sed -n '2,$p' <<<"$fusion")
+  ecart=$(git -c core.quotePath=false diff --no-renames --name-only "$MAJ_ARBRE" "$MAJ_M") ||
     sortir 11 "#$n : diff de la résolution illisible, côté capitaine : PR laissée dans la file"
   # La liste des index régénérés illisible (fonction absente, jq en échec) : jamais une garde ouverte. Un projet
   # sans index généré a une liste vide, `^()$`, qui ne prend aucun chemin.
   regeneres=$(index_regeneres_regex) && [ -n "$regeneres" ] ||
     sortir 11 "#$n : liste des index régénérés illisible (index_regeneres_regex de github.sh), côté capitaine : PR laissée dans la file"
   # Un chemin cité par git (`"apps/a\"b.ts"`) l'est de même dans les deux listes : la comparaison tient.
-  hors=$(comm -23 <(printf '%s\n' "$ecart" | grep -Ev "$regeneres" | sed '/^$/d' | sort -u) <(printf '%s\n' "$conflits" | sort -u))
-  [ -z "$hors" ] ||
-    sortir 4 "#$n, PR de mise à jour : elle écrit hors des fichiers en conflit ($(tr '\n' ' ' <<<"$hors")) : elle n'apporte que la résolution, le reste part en sous-PR"
+  MAJ_HORS=$(comm -23 <(printf '%s\n' "$ecart" | grep -Ev "$regeneres" | sed '/^$/d' | sort -u) <(printf '%s\n' "$MAJ_CONFLITS" | sort -u))
   # La revue porte sur l'écart et sur les fichiers en conflit : un conflit modifier/supprimer ou binaire dont la
   # résolution garde la version du sujet ne fait aucun écart avec l'arbre recalculé, qui la porte déjà.
-  RESOLUTION=$(printf '%s\n%s\n' "$ecart" "$conflits" | sed '/^$/d' | sort -u)
+  A_JUGER=$(comm -23 <(printf '%s\n%s\n' "$ecart" "$MAJ_CONFLITS" | sed '/^$/d' | sort -u) <(printf '%s\n' "$MAJ_HORS" | sed '/^$/d' | sort -u))
+}
+
+# Après les checks et les liens sur les index : rien du dépôt ne s'exécute pour une PR qu'ils refusent. Le formateur
+# ne joue que si la PR en a besoin (un écart hors conflit dans la fusion, ou une retouche que la revue exigerait sans
+# section) ; puis la revue exigée juge la résolution et toute retouche qu'il ne prouve pas, comme une sous-PR. La
+# section « Retouches » du corps n'est jamais lue.
+juger_retouches() {
+  local n=$1 motif
+  if [ -z "$MAJ_HORS" ] && juger "$(printf '%s\n%s\n' "$A_JUGER" "$MAJ_APRES")" >/dev/null; then
+    return 0
+  fi
+  prouver_formatage "$n" "$MAJ_ARBRE" "$MAJ_M" "$MAJ_HORS" "$MAJ_RETOUCHES" "$MAJ_CONFLITS"
+  [ -z "$HORS_NON" ] ||
+    sortir 4 "#$n, PR de mise à jour : elle écrit hors des fichiers en conflit ($(tr '\n' ' ' <<<"$HORS_NON")) autre chose que le formatage : la fusion n'apporte que la résolution, le reste vient en retouche, dans un commit après elle"
+  motif=$(juger "$(printf '%s\n%s\n' "$A_JUGER" "$RETOUCHES_NON" | sed '/^$/d' | sort -u)") || sortir 4 "#$n $motif"
 }
 
 # Avance rapide du sujet jusqu'à la PR de mise à jour vérifiée : index régénérés et contrôlés sur son sommet
@@ -655,20 +802,23 @@ fusionner() {
     sortir 4 "titre refusé par commitlint (Conventional Commits) : $titre"
   # Revue adversariale (ADR « chaîne de production »), comme au passage vers develop : la livraison
   # du sujet en est dispensée, c'est donc ici qu'on l'exige.
-  local revue motif fichiers maj=''
+  local revue motif fichiers corps maj=''
   revue="$ici/revue-exigee.mjs"
   [ -f "$revue" ] || revue="$ici/../../fusionner/scripts/revue-exigee.mjs"
+  corps=$(jq -r '.body // ""' <<<"$pr")
+  # Le contrat (chemins sensibles, fichier des critères) se lit sur le sujet, jamais dans la sous-PR.
+  juger() { printf '%s\n' "$1" | node "$revue" "$corps" "$titre" "origin/$base"; }
   git fetch -q origin develop "$base" "$(jq -r .head.ref <<<"$pr")"
-  # PR de mise à jour : la revue porte sur la résolution seule, pas sur le develop qu'elle apporte.
+  # PR de mise à jour : la revue porte d'abord sur la résolution seule, pas sur le develop apporté ; ses retouches
+  # se jugent après les checks (juger_retouches).
   if est_mise_a_jour "$sommet" "$base"; then
     verifier_mise_a_jour "$n" "$sommet" "$base"
     maj=1
-    fichiers=$RESOLUTION
+    fichiers=$A_JUGER
   else
     fichiers=$(git -c core.quotePath=false diff --no-renames --name-only "$(git merge-base "$sommet" "origin/$base")" "$sommet")
   fi
-  # Le contrat (chemins sensibles, fichier des critères) se lit sur le sujet, jamais dans la sous-PR.
-  motif=$(printf '%s\n' "$fichiers" | node "$revue" "$(jq -r '.body // ""' <<<"$pr")" "$titre" "origin/$base") || sortir 4 "#$n $motif"
+  motif=$(juger "$fichiers") || sortir 4 "#$n $motif"
   # Lien symbolique sur un index généré ou son dossier, que la PR ajoute ou change : la régénération du capitaine
   # (mise à jour, avance, rafraichir) écrirait à travers lui.
   motif=$(liens_sur_index "$sommet" "origin/$base") || sortir 4 "#$n $motif"
@@ -687,8 +837,9 @@ fusionner() {
     esac
   done <<<"$requis"
   [ -z "$rouges" ] || sortir 3 "checks rouges sur #$n :$rouges"
-  [ "$attente" = 0 ] || sortir 3 "checks encore en cours sur #$n : attendre leur fin"
+  [ "$attente" = 0 ] || sortir 5 "checks encore en cours sur #$n : reprise au tour suivant, aucun renvoi (la PR reste dans la file tant que la CI ne finit pas)"
   if [ -n "$maj" ]; then
+    juger_retouches "$n"
     avancer_sujet "$n" "$base" "$sommet"
     return 0
   fi
@@ -763,7 +914,7 @@ rafraichir() {
   case $statut in
     0) ;;
     5) git reset -q --hard "origin/$branche"; sortir 5 "$branche a bougé pendant la mise à jour : relancer" ;;
-    *) abandonner "push refusé par le hook pre-push (ou le distant) : sortie ci-dessus" ;;
+    *) abandonner "push refusé par le hook pre-push (ou le distant) : sortie ci-dessus ; ce que develop apporte ne passe pas les contrôles du sujet, une PR de mise à jour avec retouches le corrige (en-tête de sujet.sh)" ;;
   esac
   echo "$branche à jour avec develop ($(git rev-parse --short HEAD))"
 }

@@ -24,7 +24,13 @@
 # fusionner` la met à jour, régénère et pousse (sortie 8, MISE À JOUR) ; elle repasse CI verte.
 # Un conflit est annulé et signalé (SUJET EN CONFLIT), jamais résolu ici : une session le
 # résout dans une PR de mise à jour (en-tête de sujet.sh), que `sujet.sh fusionner` fait entrer par
-# avance rapide.
+# avance rapide. Une fusion sans conflit refusée par un contrôle (hook, dépendances, gate des index, sortie 3)
+# est annulée de même et dite SUJET NON MIS À JOUR, jamais SUJET EN CONFLIT : un pre-push rouge sur ce que
+# develop apporte se corrige par une PR de mise à jour avec retouches. Une panne du capitaine (sortie 11) ou de
+# sujet.sh (69, 1) se dit SUJET NON MIS À JOUR aussi, à corriger chez le capitaine, jamais par une session.
+# Une sous-PR que `sujet.sh fusionner` refuse en sortie 3 (checks rouges, conflit avec le sujet, hook) est
+# renvoyée avec le motif de `sujet.sh` (refus.sh) ; des checks encore en cours sortent en 5 (REPRISE, aucun
+# renvoi) : la PR reste dans la file tant que sa CI ne finit pas.
 # Un sujet « prêt à livrer » (plus de sous-PR, tickets faits) est livré par `sujet.sh
 # livrer-prets` (LIVRÉ), sauf label `sujet-manuel` sur une de ses sous-PR. La PR finale passe
 # par un commit de merge (passer.sh) : develop garde un commit par sous-PR.
@@ -236,15 +242,22 @@ traiter_rouges() {
 # develop dans chaque sujet ni livré (sa PR vers develop, passer.sh la tient à jour) ni actif
 # (une sous-PR ouverte : la mise à jour la remettrait en conflit avec la nouvelle tête).
 rafraichir_sujets() {
-  local nom sous verdict
+  local nom sous verdict rc
   bash "$SUJET" etat 2>/dev/null | tail -n +2 | while IFS="$(printf '\t')" read -r nom _ _ sous _ verdict; do
     case "$verdict" in livré*) continue ;; esac
     [ "$sous" = "—" ] || continue
     bash "$SUJET" rafraichir "$nom" --abandon-si-conflit 2>&1 | sed "s#^#[sujet/$nom] #"
-    case "${PIPESTATUS[0]}" in
+    rc=${PIPESTATUS[0]}
+    case "$rc" in
       0) ;;
+      2) echo "[sujet/$nom] SUJET EN CONFLIT avec develop : à résoudre par une session, PR de mise à jour vers sujet/$nom (en-tête de sujet.sh)" ;;
+      5) echo "[sujet/$nom] sujet bougé pendant la mise à jour : repris au tour suivant" ;;
       6) echo "[sujet/$nom] PAS PROPRE : worktree du capitaine à nettoyer, sujet laissé tel quel (aucun conflit)" ;;
-      *) echo "[sujet/$nom] SUJET EN CONFLIT avec develop : à résoudre par une session, PR de mise à jour vers sujet/$nom (en-tête de sujet.sh)" ;;
+      # Aucun conflit : la fusion de develop est refusée par un contrôle (hook, dépendances, gate des index).
+      3) echo "[sujet/$nom] SUJET NON MIS À JOUR (sortie 3, aucun conflit) : cause ci-dessus ; un hook rouge sur ce que develop apporte (pre-push, formateur monté) se corrige par une PR de mise à jour avec retouches vers sujet/$nom (en-tête de sujet.sh)" ;;
+      # Rien qu'une session puisse corriger : un outil du capitaine, ou sujet.sh lui-même (69 : jq absent ; 1 : erreur).
+      11) echo "[sujet/$nom] SUJET NON MIS À JOUR (sortie 11, aucun conflit) : outil du capitaine en échec, cause ci-dessus : à corriger chez le capitaine, rien à faire par une session" ;;
+      *) echo "[sujet/$nom] SUJET NON MIS À JOUR (sortie $rc, aucun conflit) : erreur de sujet.sh (69 : jq absent du poste ; 1 : erreur inattendue), cause ci-dessus : à corriger chez le capitaine, rien à faire par une session" ;;
     esac
   done
   git switch -q --detach origin/develop 2>/dev/null || true
@@ -291,9 +304,10 @@ traiter_sujets() {
         rc=${PIPESTATUS[0]}
         case "$rc" in
           0) echo "[#$n] FUSIONNÉE dans ${etat%%:*}" ;;
-          3) bash "$outils/renvoyer.sh" "$n" "fusion dans ${etat%%:*} refusée par GitHub (conflit avec le sujet) : fusionner ${etat%%:*} dans la branche et le résoudre" ;;
+          # Checks rouges, conflit avec le sujet, hook : le motif est celui de sujet.sh, jamais un conflit supposé.
+          3) bash "$outils/refus.sh" "$n" "$sortie" 3 ;;
           4) bash "$outils/refus.sh" "$n" "$sortie" ;; # corrigeable (titre, revue, base) : renvoyée
-          5) echo "[#$n] sous-PR bougée pendant sa mise à jour : reprise au tour suivant" ;;
+          5) echo "[#$n] REPRISE au tour suivant (sous-PR ou sujet bougé, checks en cours), aucun renvoi" ;;
           # Worktree du capitaine sale : rien que l'auteur puisse corriger, jamais un renvoi.
           6) echo "[#$n] PAS PROPRE : worktree du capitaine à nettoyer, sous-PR laissée dans la file (aucun renvoi)" ;;
           7) echo "[#$n] sous-PR non éligible (fermée ou en brouillon)" ;;

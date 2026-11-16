@@ -190,7 +190,8 @@ test("sujet.sh fusionner : une sous-PR d'un sujet gelé sort en 7, jamais en 4, 
 // chacun une ADR (conflit sur l'index généré) ; develop touche aussi apps/a.ts, hors conflit. `base`,
 // `sujetEnPlus`, `developEnPlus` et `resolution` : { chemin: contenu }, `null` retire le fichier. La
 // branche maj/lot part de `depuis`, fusionne `fusion`, résout `conflit` et l'index (à la main et mal : la
-// régénération le refait), committe (`message`, sinon celui de git), puis `avantPush(d)` et le push ;
+// régénération le refait), committe (`message`, sinon celui de git), puis `avantPush(d)` (les retouches) et le push ;
+// `avantFusion(d)` agit sur maj/lot avant la fusion ;
 // `apres(d)` agit ensuite sur le distant.
 const TICKET = "docs/features/demo/all/issues/SPEC_ALL_DEM-1-demo.01.issue.md";
 const CARTE = "docs/features/demo/all/SPEC_ALL_DEM-1-demo.map.md";
@@ -209,6 +210,7 @@ function miseAJour({
   message = null,
   depuis = "origin/sujet/lot",
   fusion = "origin/develop",
+  avantFusion = () => {},
   avantPush = () => {},
   apres = () => {},
   body = "Met lot à jour avec develop.\n",
@@ -239,6 +241,7 @@ function miseAJour({
   d.git("push", "-q", "origin", "HEAD:develop");
   d.git("fetch", "-q", "origin");
   d.git("switch", "-q", "-C", "maj/lot", depuis);
+  avantFusion(d);
   const m = spawnSync("git", ["merge", "-q", "--no-edit", fusion], { cwd: d.travail, env: d.env, encoding: "utf8" });
   assert.equal(m.status, 1, "conflit attendu : " + m.stdout + m.stderr);
   appliquer(d, { [conflit]: "résolu\n", [`${ADR}/README.md`]: index("ADR_ALL_ARC-3-c.md"), ...resolution });
@@ -293,7 +296,7 @@ test("fusionner : une PR de mise à jour qui écrit hors des fichiers en conflit
   assert.deepEqual(ecritures(d), []);
 });
 
-test("fusionner : une PR de mise à jour d'une autre forme n'entre pas (sujet avancé, develop premier parent, revue, suppression cachée par un renommage, index sans commande, message forgé, chemin cité, conflit modifier/supprimer ou binaire, commit de plus)", () => {
+test("fusionner : une PR de mise à jour d'une autre forme n'entre pas (sujet avancé, develop premier parent, revue, suppression cachée par un renommage, index sans commande, message forgé, chemin cité, conflit modifier/supprimer ou binaire)", () => {
   const indexSansCommande = JSON.stringify({ index: [{ chemin: `${ADR}/README.md`, commande: "node scripts/docs/adr-index.mjs" }, "apps/genere.json"] });
   const cas = [
     [{ apres: (d) => d.branche("sujet/lot", "origin/sujet/lot", { "docs/autre.md": "autre\n" }, "docs: autre") }, 4, /premier parent.*sommet de sujet\/lot/],
@@ -326,7 +329,6 @@ test("fusionner : une PR de mise à jour d'une autre forme n'entre pas (sujet av
     // ne fait aucun écart ; la revue porte aussi sur les fichiers en conflit.
     [{ base: { "apps/api/legacy.ts": "export const l = 0;\n" }, sujetEnPlus: { "apps/api/legacy.ts": "export const l = 1;\n" }, developEnPlus: { "apps/api/legacy.ts": null } }, 4, /Revue/],
     [{ base: { "apps/img.bin": "\0base\n" }, sujetEnPlus: { "apps/img.bin": "\0sujet\n" }, developEnPlus: { "apps/img.bin": "\0develop\n" } }, 4, /Revue/],
-    [{ avantPush: (d) => (d.ecrire("docs/g.md", "g\n"), d.commit("docs: en plus")), body: "## Revue de ticket\n\nRien.\n" }, 2, /conflit avec develop sur sujet\/lot, fusion annulée/],
   ];
   for (const [options, sortie, motif] of cas) {
     const { d } = miseAJour(options);
@@ -540,4 +542,406 @@ test("fusionner : un chemin sensible déclaré par develop après le départ du 
   assert.equal(r.status, 4, r.stdout + r.stderr);
   assert.match(r.stdout, /sans section « Revue de ticket » ni « Revue adversariale ».*\(infra\/main\.tf\)/);
   assert.ok(!ecritures(d).some((e) => e.startsWith("PUT ")), "aucun squash");
+});
+
+// =============================================================================
+// PR de mise à jour avec retouches (ticket 40) : la fusion d'abord, puis des commits ordinaires. Un fichier
+// retouché n'entre sans revue que si le formateur du dépôt le prouve ; tout autre est jugé comme une sous-PR.
+// =============================================================================
+
+// Le faux `pnpm` du jouet ne formate rien. `formateur` le remplace : `exec prettier` joue `commande` sur l'entrée
+// standard (par défaut un « Prettier » de jouet : guillemets doubles en simples, espaces de fin retirés) et répond à
+// `--version` (sortie `version`) ; `exec commitlint` refuse une première ligne hors Conventional Commits ; le reste
+// lit son entrée. Chaque appel est journalisé. `PRETTIER` déclare Prettier dans le package.json de develop.
+const PRETTIER = { "package.json": '{ "devDependencies": { "prettier": "3.9.10" } }\n' };
+const JOUET_PRETTIER = `sed -e "s/\\"/'/g" -e 's/[[:space:]]*$//'`;
+function formateur(d, { commande = JOUET_PRETTIER, version = 0 } = {}) {
+  const f = join(d.racine, "bin", "pnpm");
+  writeFileSync(
+    f,
+    `#!/bin/sh
+echo "pnpm $*" >> ${JSON.stringify(join(d.racine, "faux-gh", "pnpm.log"))}
+case "$1 $2" in
+  "exec prettier") [ "$3" = --version ] && exit ${version}; ${commande} ;;
+  "exec commitlint") awk 'NR == 1 { l = $0 } END { exit !(l ~ /^[a-z]+(\\([^)]*\\))?!?: /) }' ;;
+  *) cat > /dev/null ;;
+esac
+`,
+  );
+  chmodSync(f, 0o755);
+}
+const pnpmJoue = (d) => {
+  const f = join(d.racine, "faux-gh", "pnpm.log");
+  return existsSync(f) ? readFileSync(f, "utf8") : "";
+};
+// Le sujet porte un fichier de code que le « Prettier » de develop ne laisse pas tel quel.
+const NON_FORMATE = { "apps/s.ts": 'export const s = "x";  \n' };
+const FORMATE = "export const s = 'x';\n";
+const retouche = (fichiers, message = "style: formate avec Prettier 3.9.10") => (d) => {
+  appliquer(d, fichiers);
+  d.commit(message);
+};
+function avecRetouche(options = {}) {
+  const r = miseAJour({ base: PRETTIER, sujetEnPlus: NON_FORMATE, ...options });
+  formateur(r.d, options.formateur);
+  return r;
+}
+const contient = (d, ancetre, tete) =>
+  spawnSync("git", ["merge-base", "--is-ancestor", ancetre, tete], { cwd: d.travail, env: d.env }).status === 0;
+const refusee = (d, r, avant, motif) => {
+  assert.equal(r.status, 4, r.stdout + r.stderr);
+  assert.match(r.stdout, motif);
+  assert.equal(sujetDistant(d), avant, "sujet inchangé");
+  assert.ok(!ecritures(d).some((e) => e.startsWith("PUT ") || e.startsWith("PATCH ")), ecritures(d).join());
+  assert.equal(d.git("status", "--porcelain"), "", "worktree du capitaine propre");
+  assert.equal(d.git("rev-parse", "HEAD"), d.git("rev-parse", "origin/develop"), "worktree rendu à develop");
+};
+
+test("fusionner : une retouche de formatage prouvée par le formateur entre sans revue, par avance rapide, la fusion puis la retouche dans le sujet", () => {
+  const { d, sommet, sujet } = avecRetouche({ avantPush: retouche({ "apps/s.ts": FORMATE }) });
+  const r = d.lancer(SUJET, "fusionner", "81");
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /#81 fusionnée dans sujet\/lot par avance rapide/);
+  const tete = sujetDistant(d);
+  assert.ok(contient(d, sommet, tete), "le sommet de la PR est dans le sujet, tel quel");
+  assert.equal(d.git("rev-parse", `${sommet}^^1`), sujet, "premier parent de la fusion : l'ancien sommet du sujet");
+  assert.equal(d.git("log", "-1", "--format=%s", sommet), "style: formate avec Prettier 3.9.10");
+  assert.equal(d.git("show", `${tete}:apps/s.ts`) + "\n", FORMATE);
+  assert.match(pnpmJoue(d), /pnpm exec prettier --stdin-filepath apps\/s\.ts/);
+  assert.ok(!ecritures(d).some((e) => e.startsWith("PUT ")), "aucun squash");
+  assert.equal(d.etat().pulls[0].state, "closed");
+  assert.equal(d.git("status", "--porcelain"), "");
+});
+
+test("fusionner : une retouche formatée autrement que par le formateur du dépôt exige la revue (sortie 4)", () => {
+  const { d, sujet } = avecRetouche({ avantPush: retouche({ "apps/s.ts": 'export const s = "x";\n' }) });
+  refusee(d, d.lancer(SUJET, "fusionner", "81"), sujet, /Revue.*apps\/s\.ts/);
+});
+
+test("fusionner : une retouche de formatage qui ajoute `// prettier-ignore` exige la revue (sortie 4)", () => {
+  const { d, sujet } = avecRetouche({ avantPush: retouche({ "apps/s.ts": `// prettier-ignore\n${FORMATE}` }) });
+  refusee(d, d.lancer(SUJET, "fusionner", "81"), sujet, /Revue.*apps\/s\.ts/);
+});
+
+// Garde indépendante de l'égalité : même un formateur qui écrirait la directive ne la fait pas entrer sans revue.
+test("fusionner : une directive de plus (eslint-disable) n'est jamais prouvée, même quand le formateur l'écrit", () => {
+  const ajoute = `{ printf '// eslint-disable-next-line\\n'; ${JOUET_PRETTIER}; }`;
+  const { d, sujet } = avecRetouche({
+    formateur: { commande: ajoute },
+    avantPush: retouche({ "apps/s.ts": `// eslint-disable-next-line\n${FORMATE}` }),
+  });
+  refusee(d, d.lancer(SUJET, "fusionner", "81"), sujet, /Revue.*apps\/s\.ts/);
+});
+
+test("fusionner : une retouche de code exige la revue, la section « Retouches » n'en dispense pas, une section de revue la fait entrer", () => {
+  const code = retouche({ "apps/s.ts": "export const s = 'y';\n" }, "fix(lot): s vaut y");
+  const retouches = "Met lot à jour avec develop.\n\n## Retouches\n\n- apps/s.ts : formatage Prettier 3.9.10\n";
+  const { d, sujet } = avecRetouche({ avantPush: code, body: retouches });
+  refusee(d, d.lancer(SUJET, "fusionner", "81"), sujet, /sans section « Revue de ticket » ni « Revue adversariale ».*apps\/s\.ts/);
+  const revue = avecRetouche({ avantPush: code, body: `${retouches}\n## Revue adversariale\n\nRien de bloquant.\n` });
+  const r = revue.d.lancer(SUJET, "fusionner", "81");
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.ok(contient(revue.d, revue.sommet, sujetDistant(revue.d)));
+});
+
+test("fusionner : une PR de mise à jour d'une autre forme que « la fusion, puis des retouches » n'entre pas (deux fusions, retouche puis seconde fusion, retouche avant la fusion, message de retouche forgé ou hors Conventional Commits)", () => {
+  // develop avance encore, et la session le fusionne une seconde fois.
+  const secondeFusion = (d) => {
+    d.git("switch", "-q", "--detach", "origin/develop");
+    d.ecrire("docs/d2.md", "d2\n");
+    d.commit("docs: develop encore");
+    d.git("push", "-q", "origin", "HEAD:develop");
+    d.git("fetch", "-q", "origin");
+    d.git("switch", "-q", "maj/lot");
+    d.git("merge", "-q", "--no-edit", "origin/develop");
+  };
+  const cas = [
+    [{ avantPush: secondeFusion }, 4, /une seule fusion de develop dans sujet\/lot, son premier commit/],
+    [{ avantPush: (d) => (retouche({ "apps/s.ts": FORMATE })(d), secondeFusion(d)) }, 4, /une seule fusion/],
+    // Un commit ordinaire avant la fusion : ce n'est pas une PR de mise à jour ; le chemin ordinaire juge tout le
+    // develop apporté (apps/a.ts).
+    [{ avantFusion: retouche({ "docs/avant.md": "avant\n" }, "docs: avant") }, 4, /sans section .*\(apps\/a\.ts\)/],
+    [{ avantPush: retouche({ "apps/s.ts": FORMATE }, "style: formate\n\nSujet: sujet/fantome") }, 4, /retouche [0-9a-f]+ porte une ligne « Sujet: »/],
+    [{ avantPush: retouche({ "apps/s.ts": FORMATE }, "formatage") }, 4, /retouche [0-9a-f]+ refusé par commitlint/],
+  ];
+  for (const [options, sortie, motif] of cas) {
+    const { d } = avecRetouche(options);
+    const avant = sujetDistant(d);
+    const r = d.lancer(SUJET, "fusionner", "81");
+    assert.equal(r.status, sortie, r.stdout + r.stderr);
+    assert.match(r.stdout, motif);
+    assert.equal(sujetDistant(d), avant, "sujet inchangé");
+    assert.ok(!ecritures(d).some((e) => e.startsWith("PUT ")), "aucun squash");
+    assert.equal(d.git("status", "--porcelain"), "");
+  }
+});
+
+test("fusionner : un dépôt sans Prettier dans son package.json ne dispense aucune retouche (revue exigée, aucun formateur joué)", () => {
+  const { d, sujet } = miseAJour({ sujetEnPlus: NON_FORMATE, avantPush: retouche({ "apps/s.ts": FORMATE }) });
+  formateur(d);
+  refusee(d, d.lancer(SUJET, "fusionner", "81"), sujet, /Revue.*apps\/s\.ts/);
+  assert.doesNotMatch(pnpmJoue(d), /exec prettier/);
+});
+
+// Comme une sous-PR : des en-têtes de ticket exigés par le gate (cas de fedora #1920) n'exigent pas de revue.
+test("fusionner : une retouche de documentation après la fusion entre sans revue ni formateur", () => {
+  const entete = "# SPEC_ALL_DEM-1.01\n\nStatus: en cours\nResponsable: session_a\nConducteur: session_b\nDépendances: —\n";
+  const { d, sommet } = miseAJour({ avantPush: retouche({ [TICKET]: entete }, "docs(demo): en-têtes exigés par le gate") });
+  formateur(d);
+  const r = d.lancer(SUJET, "fusionner", "81");
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.ok(contient(d, sommet, sujetDistant(d)));
+  assert.equal(d.git("show", `${sujetDistant(d)}:${TICKET}`) + "\n", entete);
+  assert.doesNotMatch(pnpmJoue(d), /exec prettier/);
+});
+
+// Le pre-commit de la session (lint-staged) formate dans la fusion les fichiers qu'il indexe (fedora #1918, #1919).
+test("fusionner : une fusion dont l'écart hors conflit est prouvé par le formateur entre ; un autre écart hors conflit reste refusé", () => {
+  const formee = avecRetouche({ resolution: { "apps/s.ts": FORMATE } });
+  const r = formee.d.lancer(SUJET, "fusionner", "81");
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.equal(formee.d.git("show", `${sujetDistant(formee.d)}:apps/s.ts`) + "\n", FORMATE);
+  for (const resolution of [{ "apps/s.ts": "export const s = 'y';\n" }, { [TICKET]: "# SPEC_ALL_DEM-1.01\n\nStatus: en cours\nDépendances: `paquet-pirate`\n" }]) {
+    const { d, sujet } = avecRetouche({ resolution, body: "## Revue adversariale\n\nRien.\n" });
+    refusee(d, d.lancer(SUJET, "fusionner", "81"), sujet, /hors des fichiers en conflit .* autre chose que le formatage/);
+  }
+});
+
+// Le formateur lit un fichier du dépôt (ici `docs/format.txt`, comme une configuration ou un greffon) : il est
+// joué sur la fusion recalculée, jamais sur ce que la PR écrit. Sinon la PR prouverait elle-même son code.
+test("fusionner : le formateur ne joue jamais un fichier que la PR écrit (règle de formatage réécrite dans une retouche ou dans la fusion)", () => {
+  const formateurDuDepot = { "docs/format.txt": `${JOUET_PRETTIER}\n` };
+  const pirate = { "docs/format.txt": "cat apps/s.ts\n", "apps/s.ts": "export const s = 'pirate';\n" };
+  const cas = [
+    [{ avantPush: retouche(pirate, "style: formate") }, /Revue.*apps\/s\.ts/],
+    // Joué sur la fusion de la PR, le formateur prouverait le code pirate : seul docs/format.txt resterait à juger.
+    [{ resolution: pirate }, /hors des fichiers en conflit \(apps\/s\.ts docs\/format\.txt \)/],
+  ];
+  for (const [options, motif] of cas) {
+    const { d, sujet } = avecRetouche({ base: { ...PRETTIER, ...formateurDuDepot }, formateur: { commande: "sh docs/format.txt" }, ...options });
+    refusee(d, d.lancer(SUJET, "fusionner", "81"), sujet, motif);
+  }
+});
+
+test("fusionner : rien d'autre n'est prouvé (mode changé, fichier créé ou supprimé, lockfile retouché, chemin cité par git)", () => {
+  const executable = (d) => {
+    appliquer(d, { "apps/s.ts": FORMATE });
+    chmodSync(join(d.travail, "apps/s.ts"), 0o755);
+    d.commit("style: formate");
+  };
+  const cas = [
+    [{ avantPush: executable }, /Revue.*apps\/s\.ts/],
+    [{ avantPush: retouche({ "apps/neuf.ts": "export const n = 'n';\n" }) }, /Revue.*apps\/neuf\.ts/],
+    [{ avantPush: retouche({ "apps/s.ts": null }) }, /Revue.*apps\/s\.ts/],
+    // Un lockfile retouché : le formateur n'est plus celui que verrouille le sommet, aucune dispense, même revue faite.
+    [{ resolution: { "apps/s.ts": FORMATE }, avantPush: retouche({ "pnpm-lock.yaml": "lockfileVersion: '9.0'\n" }, "chore: lockfile"), body: "## Revue adversariale\n\nRien.\n" }, /hors des fichiers en conflit/],
+    [{ sujetEnPlus: { 'apps/q"x.ts': 'export const q = "x";  \n' }, avantPush: retouche({ 'apps/q"x.ts': "export const q = 'x';\n" }) }, /Revue/],
+  ];
+  for (const [options, motif] of cas) {
+    const { d, sujet } = avecRetouche(options);
+    refusee(d, d.lancer(SUJET, "fusionner", "81"), sujet, motif);
+  }
+});
+
+test("fusionner : Prettier déclaré mais introuvable après pnpm install sort en 11 (côté capitaine), sans rien écrire", () => {
+  const { d, sujet } = avecRetouche({ formateur: { version: 1 }, avantPush: retouche({ "apps/s.ts": FORMATE }) });
+  const r = d.lancer(SUJET, "fusionner", "81");
+  assert.equal(r.status, 11, r.stdout + r.stderr);
+  assert.match(r.stdout, /Prettier déclaré mais introuvable/);
+  assert.equal(sujetDistant(d), sujet);
+  assert.deepEqual(ecritures(d), []);
+  assert.equal(d.git("status", "--porcelain"), "");
+});
+
+test("fusionner : des checks encore en cours sortent en 5 (reprise, aucun renvoi), des checks rouges en 3 avec leur nom", () => {
+  for (const [etat, sortie, motif] of [
+    ["IN_PROGRESS", 5, /checks encore en cours sur #81 : reprise au tour suivant/],
+    ["FAILURE", 3, /checks rouges sur #81 : qualite/],
+  ]) {
+    const { d, sujet } = miseAJour();
+    d.github({ checks: { "*": { qualite: etat } } });
+    const r = d.lancer(SUJET, "fusionner", "81");
+    assert.equal(r.status, sortie, r.stdout + r.stderr);
+    assert.match(r.stdout, motif);
+    assert.equal(sujetDistant(d), sujet);
+  }
+});
+
+// Un hook git du capitaine qui refuse tout push, posé après la publication des scripts.
+function prePushRefuse(d) {
+  const hooks = join(d.racine, "hooks");
+  mkdirSync(hooks, { recursive: true });
+  writeFileSync(join(hooks, "pre-push"), "#!/bin/sh\necho 'pnpm check rouge (formatage)' >&2\nexit 1\n");
+  chmodSync(join(hooks, "pre-push"), 0o755);
+  d.git("config", "core.hooksPath", hooks);
+}
+
+test("boucle.sh : une sous-PR que sujet.sh refuse en sortie 3 est renvoyée avec le motif de sujet.sh, jamais « conflit avec le sujet »", () => {
+  const { d } = sousPrEnConflit("index");
+  d.publierChaine();
+  prePushRefuse(d);
+  const r = d.lancer(BOUCLE);
+  assert.match(r.stdout, /RENVOI/, r.stdout + r.stderr);
+  const commentaire = d.etat().pulls[0].commentaires.at(-1);
+  assert.match(commentaire, /mise à jour de #80 refusée par le hook pre-push/);
+  assert.doesNotMatch(commentaire, /conflit avec le sujet/);
+});
+
+test("boucle.sh : un sujet dont la mise à jour est refusée par un hook se dit NON MIS À JOUR, jamais EN CONFLIT ; un vrai conflit reste SUJET EN CONFLIT", () => {
+  for (const conflit of [false, true]) {
+    const d = depotJouet();
+    d.ecrire("docs/f.md", "0\n");
+    d.commit("docs: base");
+    d.git("push", "-q", "origin", "HEAD:develop");
+    d.git("fetch", "-q", "origin");
+    d.branche("sujet/lot", "origin/develop", { [conflit ? "docs/f.md" : "docs/lot.md"]: "sujet\n" });
+    d.git("switch", "-q", "--detach", "origin/develop");
+    d.publierChaine();
+    d.branche("autre", "origin/develop", { "docs/f.md": "develop\n" });
+    d.git("push", "-q", "origin", "HEAD:develop");
+    d.git("fetch", "-q", "origin");
+    d.git("switch", "-q", "--detach", "origin/develop");
+    if (!conflit) prePushRefuse(d);
+    const r = d.lancer(BOUCLE);
+    if (conflit) assert.match(r.stdout, /\[sujet\/lot\] SUJET EN CONFLIT avec develop/, r.stdout + r.stderr);
+    else {
+      assert.match(r.stdout, /\[sujet\/lot\] SUJET NON MIS À JOUR \(sortie 3, aucun conflit\)/, r.stdout + r.stderr);
+      assert.doesNotMatch(r.stdout, /SUJET EN CONFLIT/);
+    }
+  }
+});
+
+// Relais de husky 9, simulé (la souche n'est pas dans le lockfile du plugin) : `core.hooksPath` vers un dossier dont
+// chaque hook joue `.husky/<hook>` tel qu'il est dans l'arbre de travail du capitaine, comme `.husky/_/h`. `observe` :
+// un chemin que chaque hook note dans `vu.log` s'il est alors dans l'arbre de travail.
+function relaisHusky(d, observe = null) {
+  const relais = join(d.racine, "relais-husky");
+  mkdirSync(relais, { recursive: true });
+  const note = observe ? `[ -e ${JSON.stringify(observe)} ] && echo "$(basename "$0")" >> ${JSON.stringify(join(d.racine, "vu.log"))}\n` : "";
+  for (const hook of ["post-checkout", "post-merge", "pre-commit", "post-commit"]) {
+    writeFileSync(join(relais, hook), `#!/bin/sh\n${note}h=".husky/$(basename "$0")"\n[ -f "$h" ] || exit 0\nexec sh -e "$h" "$@"\n`);
+    chmodSync(join(relais, hook), 0o755);
+  }
+  d.git("config", "core.hooksPath", relais);
+}
+const lu = (d, nom) => (existsSync(join(d.racine, nom)) ? readFileSync(join(d.racine, nom), "utf8") : "");
+
+// Relecture du 2026-11-16 (B1) : l'arbre de la PR n'est jamais extrait chez le capitaine, aucun hook ne se déclenche sur
+// lui. Sur 7.9.1, la même PR sort en 4 sans rien exécuter : la voie nouvelle ne doit rien exécuter de plus.
+test("fusionner : un hook (post-checkout, post-merge) que la fusion écrit hors conflit ne s'exécute jamais chez le capitaine, la PR sort en 4", () => {
+  const { d, sujet } = avecRetouche({
+    resolution: {
+      "apps/s.ts": FORMATE,
+      ".husky/post-checkout": "echo post-checkout >> ../piege.log\n",
+      ".husky/post-merge": "echo post-merge >> ../piege.log\n",
+    },
+  });
+  relaisHusky(d);
+  refusee(d, d.lancer(SUJET, "fusionner", "81"), sujet, /hors des fichiers en conflit \(\.husky\/post-checkout \.husky\/post-merge \) autre chose que le formatage/);
+  assert.match(pnpmJoue(d), /pnpm exec prettier --stdin-filepath apps\/s\.ts/, "le formateur a joué");
+  assert.equal(lu(d, "piege.log"), "", "aucun hook de la PR exécuté");
+});
+
+test("fusionner : un fichier sous node_modules/ que la fusion écrit hors conflit n'est jamais écrit dans le dépôt du capitaine, ni vu du formateur", () => {
+  const piege = "node_modules/.bin/prettier";
+  const { d, sujet } = avecRetouche({
+    resolution: { "apps/s.ts": FORMATE, [piege]: "#!/bin/sh\necho piege >> ../../../piege.log\n" },
+    formateur: { commande: `{ [ -e ${piege} ] && echo formateur >> ../vu.log; ${JOUET_PRETTIER}; }` },
+  });
+  relaisHusky(d, piege);
+  refusee(d, d.lancer(SUJET, "fusionner", "81"), sujet, /hors des fichiers en conflit \(node_modules\/\.bin\/prettier \)/);
+  assert.match(pnpmJoue(d), /pnpm exec prettier --stdin-filepath apps\/s\.ts/, "le formateur a joué");
+  assert.equal(lu(d, "vu.log"), "", "le fichier n'a jamais été dans l'arbre de travail du capitaine");
+  assert.ok(!existsSync(join(d.travail, piege)));
+});
+
+// L'arbre jugé s'extrait par `git checkout-index` : `export-ignore` d'un `.gitattributes` de l'arbre jugé, lu par
+// `git archive`, n'écarte pas la configuration du formateur.
+test("fusionner : un `.gitattributes` de l'arbre jugé qui porte `export-ignore` sur la configuration du formateur ne change pas la preuve", () => {
+  const base = { ...PRETTIER, "docs/format.txt": `${JOUET_PRETTIER}\n`, ".gitattributes": "docs/format.txt export-ignore\n" };
+  const { d, sommet } = avecRetouche({ base, formateur: { commande: "sh docs/format.txt" }, avantPush: retouche({ "apps/s.ts": FORMATE }) });
+  const r = d.lancer(SUJET, "fusionner", "81");
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.ok(contient(d, sommet, sujetDistant(d)));
+  assert.match(pnpmJoue(d), /pnpm exec prettier --stdin-filepath apps\/s\.ts/);
+});
+
+// Relecture du 2026-11-16 (B2) : une retouche intermédiaire entre telle quelle dans l'historique du sujet ; elle se
+// prouve contre son parent, et la revue juge l'union des fichiers touchés commit par commit.
+test("fusionner : chaque retouche se prouve contre son parent ; un fichier ajouté par une retouche puis retiré par une autre exige la revue", () => {
+  const cas = [
+    (d) => {
+      retouche({ "apps/pirate.ts": "export const p = 1;\n", ".github/workflows/x.yml": "on: push\n" }, "chore: ajoute")(d);
+      retouche({ "apps/pirate.ts": null, ".github/workflows/x.yml": null, "apps/s.ts": FORMATE })(d);
+    },
+    (d) => {
+      retouche({ "apps/pirate.ts": "export const p = 1;\n" }, "feat: pirate")(d);
+      retouche({ "apps/pirate.ts": null }, "chore: retire")(d);
+    },
+  ];
+  for (const avantPush of cas) {
+    const { d, sujet } = avecRetouche({ avantPush });
+    refusee(d, d.lancer(SUJET, "fusionner", "81"), sujet, /Revue.*\((\.github\/workflows\/x\.yml|apps\/pirate\.ts)\)/);
+  }
+});
+
+// Relecture du 2026-11-16 (mineure 1) : checks rouges ou lien sur un index, la PR est refusée sans que rien ne s'installe
+// ni ne formate.
+test("fusionner : une PR de mise à jour lit ses checks et ses liens sur les index avant toute preuve (rien installé, aucun formateur)", () => {
+  const lien = (d) => {
+    appliquer(d, { "apps/s.ts": FORMATE });
+    d.git("rm", "-q", `${ADR}/README.md`);
+    symlinkSync("../../README.md", join(d.travail, ADR, "README.md"));
+    d.commit("style: formate");
+  };
+  const cas = [
+    [retouche({ "apps/s.ts": FORMATE }), "FAILURE", 3, /checks rouges sur #81 : qualite/],
+    [lien, "SUCCESS", 4, /lien symbolique sur un index généré/],
+  ];
+  for (const [avantPush, etat, sortie, motif] of cas) {
+    const { d, sujet } = avecRetouche({ avantPush });
+    d.github({ checks: { "*": { qualite: etat } } });
+    const r = d.lancer(SUJET, "fusionner", "81");
+    assert.equal(r.status, sortie, r.stdout + r.stderr);
+    assert.match(r.stdout, motif);
+    assert.equal(sujetDistant(d), sujet);
+    assert.doesNotMatch(pnpmJoue(d), /pnpm (install|exec prettier)/);
+  }
+});
+
+// Relecture du 2026-11-16 (mineure 4) : une panne du capitaine ou de sujet.sh n'est pas un hook rouge à retoucher.
+test("boucle.sh : un sujet non mis à jour pour une panne du capitaine (sortie 11) ou une erreur de sujet.sh (69, 1) ne renvoie jamais à une PR de mise à jour", () => {
+  for (const [code, motif] of [
+    [11, /SUJET NON MIS À JOUR \(sortie 11, aucun conflit\) : outil du capitaine en échec.*rien à faire par une session/],
+    [69, /SUJET NON MIS À JOUR \(sortie 69, aucun conflit\) : erreur de sujet\.sh .* rien à faire par une session/],
+    [1, /SUJET NON MIS À JOUR \(sortie 1, aucun conflit\) : erreur de sujet\.sh .* rien à faire par une session/],
+  ]) {
+    const d = depotJouet();
+    d.ecrire("docs/f.md", "0\n");
+    d.commit("docs: base");
+    d.git("push", "-q", "origin", "HEAD:develop");
+    d.git("fetch", "-q", "origin");
+    d.branche("sujet/lot", "origin/develop", { "docs/lot.md": "sujet\n" });
+    d.git("switch", "-q", "--detach", "origin/develop");
+    d.publierChaine();
+    // Le sujet.sh que la boucle copie d'origin/develop sort en <code> dès `rafraichir`.
+    const s = d.lire("scripts/chaine/sujet.sh");
+    assert.ok(s.includes("\nrafraichir() {\n"));
+    d.ecrire("scripts/chaine/sujet.sh", s.replace("\nrafraichir() {\n", `\nrafraichir() {\n  echo "panne simulée" >&2\n  exit ${code}\n`));
+    d.commit("chore: sujet.sh en panne");
+    d.git("push", "-q", "origin", "HEAD:develop");
+    d.git("fetch", "-q", "origin");
+    const r = d.lancer(BOUCLE);
+    assert.match(r.stdout, motif, r.stdout + r.stderr);
+    assert.doesNotMatch(r.stdout, /retouches|SUJET EN CONFLIT/);
+  }
+});
+
+test("refus.sh : une sortie 3 sans motif lisible se dit « refusée en sortie 3 », jamais « sortie 4 »", () => {
+  const d = depotJouet();
+  d.branche("feat/x", "origin/develop", { "docs/x.md": "x\n" });
+  d.github({ pulls: [{ number: 63, title: "docs(demo): x", head: "feat/x", base: "sujet/lot", labels: ["à-fusionner"] }] });
+  const r = d.lancer(scriptDe("fusionner", "refus.sh"), "63", "absent.txt", "3");
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /RENVOI : refusée en sortie 3, voir le journal du capitaine/);
 });
