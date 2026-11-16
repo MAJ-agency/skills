@@ -546,28 +546,19 @@ test("fusionner : un chemin sensible déclaré par develop après le départ du 
 
 // =============================================================================
 // PR de mise à jour avec retouches (ticket 40) : la fusion d'abord, puis des commits ordinaires. Un fichier
-// retouché n'entre sans revue que si le formateur du dépôt le prouve ; tout autre est jugé comme une sous-PR.
+// retouché est jugé comme une sous-PR (revue exigée sur l'union des fichiers que chaque retouche touche) ; le capitaine
+// n'installe rien et ne joue aucun formateur (décision A-47 ter).
 // =============================================================================
 
-// Le faux `pnpm` du jouet ne formate rien. `formateur` le remplace : `exec prettier` joue `commande` sur l'entrée
-// standard (par défaut un « Prettier » de jouet : guillemets doubles en simples, espaces de fin retirés) et répond à
-// `--version` (sortie `version`) ; `exec commitlint` refuse une première ligne hors Conventional Commits ; le reste
-// lit son entrée. Chaque appel est journalisé. `PRETTIER` déclare Prettier dans le package.json de develop.
-const PRETTIER = { "package.json": '{ "devDependencies": { "prettier": "3.9.10" } }\n' };
-const JOUET_PRETTIER = `sed -e "s/\\"/'/g" -e 's/[[:space:]]*$//'`;
-// `config` : le fichier que `prettier --find-config-path` dit trouver (aucun par défaut : sortie 1, comme Prettier) ;
-// `installation` : la sortie de `pnpm install --frozen-lockfile`.
-function formateur(d, { commande = JOUET_PRETTIER, version = 0, config = "", installation = 0 } = {}) {
+// Le faux `pnpm` du jouet : `exec commitlint` refuse une première ligne hors Conventional Commits ; le reste lit son
+// entrée. Chaque appel est journalisé : un test peut dire que ni `install` ni `exec prettier` n'ont été joués.
+function fauxPnpm(d) {
   const f = join(d.racine, "bin", "pnpm");
   writeFileSync(
     f,
     `#!/bin/sh
 echo "pnpm $*" >> ${JSON.stringify(join(d.racine, "faux-gh", "pnpm.log"))}
 case "$1 $2" in
-  "exec prettier") [ "$3" = --version ] && exit ${version}
-    [ "$3" = --find-config-path ] && { ${config ? `echo ${JSON.stringify(config)}; exit 0` : "exit 1"}; }
-    ${commande} ;;
-  "install --frozen-lockfile") exit ${installation} ;;
   "exec commitlint") awk 'NR == 1 { l = $0 } END { exit !(l ~ /^[a-z]+(\\([^)]*\\))?!?: /) }' ;;
   *) cat > /dev/null ;;
 esac
@@ -587,8 +578,8 @@ const retouche = (fichiers, message = "style: formate avec Prettier 3.9.10") => 
   d.commit(message);
 };
 function avecRetouche(options = {}) {
-  const r = miseAJour({ base: PRETTIER, sujetEnPlus: NON_FORMATE, ...options });
-  formateur(r.d, options.formateur);
+  const r = miseAJour({ sujetEnPlus: NON_FORMATE, ...options });
+  fauxPnpm(r.d);
   return r;
 }
 const contient = (d, ancetre, tete) =>
@@ -602,99 +593,34 @@ const refusee = (d, r, avant, motif) => {
   assert.equal(d.git("rev-parse", "HEAD"), d.git("rev-parse", "origin/develop"), "worktree rendu à develop");
 };
 
-test("fusionner : une retouche de formatage prouvée par le formateur entre sans revue, par avance rapide, la fusion puis la retouche dans le sujet", () => {
-  const { d, sommet, sujet } = avecRetouche({ avantPush: retouche({ "apps/s.ts": FORMATE }) });
-  const r = d.lancer(SUJET, "fusionner", "81");
+test("fusionner : une retouche de formatage sous apps/ se juge comme une sous-PR (sortie 4 sans section de revue, avance rapide avec elle), sans pnpm install ni formateur", () => {
+  const formate = retouche({ "apps/s.ts": FORMATE });
+  const { d, sujet } = avecRetouche({ avantPush: formate });
+  refusee(d, d.lancer(SUJET, "fusionner", "81"), sujet, /sans section « Revue de ticket » ni « Revue adversariale ».*apps\/s\.ts/);
+  assert.doesNotMatch(pnpmJoue(d), /pnpm (install|exec prettier)/);
+  const revue = avecRetouche({ avantPush: formate, body: "Met lot à jour.\n\n## Revue de ticket\n\nRetouches relues.\n" });
+  const r = revue.d.lancer(SUJET, "fusionner", "81");
   assert.equal(r.status, 0, r.stdout + r.stderr);
   assert.match(r.stdout, /#81 fusionnée dans sujet\/lot par avance rapide/);
-  const tete = sujetDistant(d);
-  assert.ok(contient(d, sommet, tete), "le sommet de la PR est dans le sujet, tel quel");
-  assert.equal(d.git("rev-parse", `${sommet}^^1`), sujet, "premier parent de la fusion : l'ancien sommet du sujet");
-  assert.equal(d.git("log", "-1", "--format=%s", sommet), "style: formate avec Prettier 3.9.10");
-  assert.equal(d.git("show", `${tete}:apps/s.ts`) + "\n", FORMATE);
-  assert.match(pnpmJoue(d), /pnpm exec prettier --stdin-filepath apps\/s\.ts/);
-  assert.ok(!ecritures(d).some((e) => e.startsWith("PUT ")), "aucun squash");
-  assert.equal(d.etat().pulls[0].state, "closed");
-  assert.equal(d.git("status", "--porcelain"), "");
+  const tete = sujetDistant(revue.d);
+  assert.ok(contient(revue.d, revue.sommet, tete), "le sommet de la PR est dans le sujet, tel quel");
+  assert.equal(revue.d.git("rev-parse", `${revue.sommet}^^1`), revue.sujet, "premier parent de la fusion : l'ancien sommet du sujet");
+  assert.equal(revue.d.git("log", "-1", "--format=%s", revue.sommet), "style: formate avec Prettier 3.9.10");
+  assert.equal(revue.d.git("show", `${tete}:apps/s.ts`) + "\n", FORMATE);
+  // Le seul `pnpm install` est celui de `avancer_sujet` (index régénérés), sur le sommet déjà jugé : jamais de formateur.
+  assert.doesNotMatch(pnpmJoue(revue.d), /exec prettier|--ignore-scripts/);
+  assert.ok(!ecritures(revue.d).some((e) => e.startsWith("PUT ")), "aucun squash");
+  assert.equal(revue.d.etat().pulls[0].state, "closed");
+  assert.equal(revue.d.git("status", "--porcelain"), "");
 });
 
-test("fusionner : une retouche formatée autrement que par le formateur du dépôt exige la revue (sortie 4)", () => {
-  const { d, sujet } = avecRetouche({ avantPush: retouche({ "apps/s.ts": 'export const s = "x";\n' }) });
-  refusee(d, d.lancer(SUJET, "fusionner", "81"), sujet, /Revue.*apps\/s\.ts/);
-});
-
-test("fusionner : une retouche de formatage qui ajoute `// prettier-ignore` exige la revue (sortie 4)", () => {
-  const { d, sujet } = avecRetouche({ avantPush: retouche({ "apps/s.ts": `// prettier-ignore\n${FORMATE}` }) });
-  refusee(d, d.lancer(SUJET, "fusionner", "81"), sujet, /Revue.*apps\/s\.ts/);
-});
-
-// Garde indépendante de l'égalité : même un formateur qui écrirait la directive ne la fait pas entrer sans revue.
-test("fusionner : une directive de plus (eslint-disable) n'est jamais prouvée, même quand le formateur l'écrit", () => {
-  const ajoute = `{ printf '// eslint-disable-next-line\\n'; ${JOUET_PRETTIER}; }`;
-  const { d, sujet } = avecRetouche({
-    formateur: { commande: ajoute },
-    avantPush: retouche({ "apps/s.ts": `// eslint-disable-next-line\n${FORMATE}` }),
-  });
-  refusee(d, d.lancer(SUJET, "fusionner", "81"), sujet, /Revue.*apps\/s\.ts/);
-});
-
-test("fusionner : une directive de plus parmi celles des autres outils (oxlint, stylelint, tslint, global, NOLINT, deno-lint) n'est jamais prouvée", () => {
-  for (const directive of ["// oxlint-disable-next-line", "/* stylelint-disable */", "// tslint:disable", "/* global s */", "// NOLINT", "// deno-lint-ignore no-explicit-any"]) {
-    const { d, sujet } = avecRetouche({
-      formateur: { commande: `{ printf '${directive}\\n'; ${JOUET_PRETTIER}; }` },
-      avantPush: retouche({ "apps/s.ts": `${directive}\n${FORMATE}` }),
-    });
-    refusee(d, d.lancer(SUJET, "fusionner", "81"), sujet, /Revue.*apps\/s\.ts/);
-  }
-});
-
-// B1 : la configuration que Prettier lit ne doit renvoyer à aucun fichier que la revue ne regarde pas.
-const avecConfig = (config, fichier, contenu) =>
-  avecRetouche({
-    base: { ...PRETTIER, ...(fichier ? { [fichier]: contenu } : {}) },
-    formateur: { config },
-    avantPush: retouche({ "apps/s.ts": FORMATE }),
-  });
-
-test("fusionner : une configuration de Prettier qui renvoie à un autre fichier (chaîne), un module ou un greffon par chemin ne dispense pas : revue exigée", () => {
-  const cas = [
-    [".prettierrc", '"./config/prettier.json"\n'],
-    [".prettierrc", '{ "plugins": ["./config/plugin.mjs"] }\n'],
-    [".prettierrc.json", '{ "overrides": [{ "files": "*.ts", "options": { "plugins": ["../x.mjs"] } }] }\n'],
-    [".prettierrc.yaml", "singleQuote: true\n"],
-    ["prettier.config.mjs", "export default {};\n"],
-    [".prettierrc.js", "module.exports = {};\n"],
-  ];
-  for (const [fichier, contenu] of cas) {
-    const { d, sujet } = avecConfig(fichier, fichier, contenu);
-    refusee(d, d.lancer(SUJET, "fusionner", "81"), sujet, /Revue.*apps\/s\.ts/);
-  }
-});
-
-test("fusionner : une configuration de Prettier en ligne (objet JSON, `.prettierrc` ou clé `prettier` d'un package.json) reste dispensée", () => {
-  for (const [config, fichier, contenu] of [
-    [".prettierrc", ".prettierrc", '{ "singleQuote": true, "plugins": ["prettier-plugin-x"] }\n'],
-    [".prettierrc.json", ".prettierrc.json", '{ "singleQuote": true }\n'],
-  ]) {
-    const { d, sommet } = avecConfig(config, fichier, contenu);
-    const r = d.lancer(SUJET, "fusionner", "81");
-    assert.equal(r.status, 0, r.stdout + r.stderr);
-    assert.ok(contient(d, sommet, sujetDistant(d)));
-  }
-});
-
-test("fusionner : le dossier du formateur et son index partent à toute sortie, et un pnpm install en échec dit à qui la réparation revient (sortie 11)", () => {
-  for (const [options, attendu, motif] of [
-    [{ installation: 1 }, 11, /lockfile du sujet ou de develop est à réparer par une PR ordinaire, pas par la session de la PR de mise à jour/],
-    [{}, 0, /fusionnée/],
-  ]) {
-    const { d } = avecRetouche({ formateur: options, avantPush: retouche({ "apps/s.ts": FORMATE }) });
-    const tmp = mkdtempSync(join(d.racine, "tmp-"));
-    d.env.TMPDIR = tmp;
-    const r = d.lancer(SUJET, "fusionner", "81");
-    assert.equal(r.status, attendu, r.stdout + r.stderr);
-    assert.match(r.stdout, motif);
-    assert.deepEqual(readdirSync(tmp), [], "aucun reste dans TMPDIR");
+// Ce que la chaîne exécute ou lit (configuration de l'outil, npmrc, pnpmfile) exige la revue comme dans une sous-PR :
+// rien ne les joue, aucun formateur, aucun pnpm install pour juger.
+test("fusionner : une retouche d'un fichier de configuration d'outil (.prettierrc, .npmrc, .pnpmfile.cjs, prettier.config.mjs) exige la revue, sans rien exécuter", () => {
+  for (const fichier of [".prettierrc", ".npmrc", ".pnpmfile.cjs", "prettier.config.mjs"]) {
+    const { d, sujet } = avecRetouche({ avantPush: retouche({ [fichier]: "{}\n" }, "chore: outillage") });
+    refusee(d, d.lancer(SUJET, "fusionner", "81"), sujet, new RegExp(`Revue.*${fichier.replace(/\./g, "\\.")}`));
+    assert.doesNotMatch(pnpmJoue(d), /pnpm (install|exec prettier)/);
   }
 });
 
@@ -741,18 +667,11 @@ test("fusionner : une PR de mise à jour d'une autre forme que « la fusion, pui
   }
 });
 
-test("fusionner : un dépôt sans Prettier dans son package.json ne dispense aucune retouche (revue exigée, aucun formateur joué)", () => {
-  const { d, sujet } = miseAJour({ sujetEnPlus: NON_FORMATE, avantPush: retouche({ "apps/s.ts": FORMATE }) });
-  formateur(d);
-  refusee(d, d.lancer(SUJET, "fusionner", "81"), sujet, /Revue.*apps\/s\.ts/);
-  assert.doesNotMatch(pnpmJoue(d), /exec prettier/);
-});
-
 // Comme une sous-PR : des en-têtes de ticket exigés par le gate (cas de fedora #1920) n'exigent pas de revue.
-test("fusionner : une retouche de documentation après la fusion entre sans revue ni formateur", () => {
+test("fusionner : une retouche de documentation après la fusion entre sans revue, sans pnpm install ni formateur", () => {
   const entete = "# SPEC_ALL_DEM-1.01\n\nStatus: en cours\nResponsable: session_a\nConducteur: session_b\nDépendances: —\n";
   const { d, sommet } = miseAJour({ avantPush: retouche({ [TICKET]: entete }, "docs(demo): en-têtes exigés par le gate") });
-  formateur(d);
+  fauxPnpm(d);
   const r = d.lancer(SUJET, "fusionner", "81");
   assert.equal(r.status, 0, r.stdout + r.stderr);
   assert.ok(contient(d, sommet, sujetDistant(d)));
@@ -760,62 +679,18 @@ test("fusionner : une retouche de documentation après la fusion entre sans revu
   assert.doesNotMatch(pnpmJoue(d), /exec prettier/);
 });
 
-// Le pre-commit de la session (lint-staged) formate dans la fusion les fichiers qu'il indexe (fedora #1918, #1919).
-test("fusionner : une fusion dont l'écart hors conflit est prouvé par le formateur entre ; un autre écart hors conflit reste refusé", () => {
-  const formee = avecRetouche({ resolution: { "apps/s.ts": FORMATE } });
-  const r = formee.d.lancer(SUJET, "fusionner", "81");
-  assert.equal(r.status, 0, r.stdout + r.stderr);
-  assert.equal(formee.d.git("show", `${sujetDistant(formee.d)}:apps/s.ts`) + "\n", FORMATE);
-  for (const resolution of [{ "apps/s.ts": "export const s = 'y';\n" }, { [TICKET]: "# SPEC_ALL_DEM-1.01\n\nStatus: en cours\nDépendances: `paquet-pirate`\n" }]) {
+// Le pre-commit de la session formate parfois ce qu'il indexe dans la fusion (fedora #1918, #1919) : ce formatage ne
+// se prouve plus, la fusion n'apporte que la résolution ; la session le met dans une retouche, après elle.
+test("fusionner : une fusion qui écrit hors des fichiers en conflit est refusée (formatage compris), même avec une section de revue, sans rien exécuter", () => {
+  for (const resolution of [
+    { "apps/s.ts": FORMATE },
+    { "apps/s.ts": "export const s = 'y';\n" },
+    { [TICKET]: "# SPEC_ALL_DEM-1.01\n\nStatus: en cours\nDépendances: `paquet-pirate`\n" },
+  ]) {
     const { d, sujet } = avecRetouche({ resolution, body: "## Revue adversariale\n\nRien.\n" });
-    refusee(d, d.lancer(SUJET, "fusionner", "81"), sujet, /hors des fichiers en conflit .* autre chose que le formatage/);
+    refusee(d, d.lancer(SUJET, "fusionner", "81"), sujet, /hors des fichiers en conflit \(.*\) : la fusion n'apporte que la résolution/);
+    assert.doesNotMatch(pnpmJoue(d), /pnpm (install|exec prettier)/);
   }
-});
-
-// Le formateur lit un fichier du dépôt (ici `docs/format.txt`, comme une configuration ou un greffon) : il est
-// joué sur la fusion recalculée, jamais sur ce que la PR écrit. Sinon la PR prouverait elle-même son code.
-test("fusionner : le formateur ne joue jamais un fichier que la PR écrit (règle de formatage réécrite dans une retouche ou dans la fusion)", () => {
-  const formateurDuDepot = { "docs/format.txt": `${JOUET_PRETTIER}\n` };
-  const pirate = { "docs/format.txt": "cat apps/s.ts\n", "apps/s.ts": "export const s = 'pirate';\n" };
-  const cas = [
-    [{ avantPush: retouche(pirate, "style: formate") }, /Revue.*apps\/s\.ts/],
-    // Joué sur la fusion de la PR, le formateur prouverait le code pirate : seul docs/format.txt resterait à juger.
-    [{ resolution: pirate }, /hors des fichiers en conflit \(apps\/s\.ts docs\/format\.txt \)/],
-  ];
-  for (const [options, motif] of cas) {
-    const { d, sujet } = avecRetouche({ base: { ...PRETTIER, ...formateurDuDepot }, formateur: { commande: "sh docs/format.txt" }, ...options });
-    refusee(d, d.lancer(SUJET, "fusionner", "81"), sujet, motif);
-  }
-});
-
-test("fusionner : rien d'autre n'est prouvé (mode changé, fichier créé ou supprimé, lockfile retouché, chemin cité par git)", () => {
-  const executable = (d) => {
-    appliquer(d, { "apps/s.ts": FORMATE });
-    chmodSync(join(d.travail, "apps/s.ts"), 0o755);
-    d.commit("style: formate");
-  };
-  const cas = [
-    [{ avantPush: executable }, /Revue.*apps\/s\.ts/],
-    [{ avantPush: retouche({ "apps/neuf.ts": "export const n = 'n';\n" }) }, /Revue.*apps\/neuf\.ts/],
-    [{ avantPush: retouche({ "apps/s.ts": null }) }, /Revue.*apps\/s\.ts/],
-    // Un lockfile retouché : le formateur n'est plus celui que verrouille le sommet, aucune dispense, même revue faite.
-    [{ resolution: { "apps/s.ts": FORMATE }, avantPush: retouche({ "pnpm-lock.yaml": "lockfileVersion: '9.0'\n" }, "chore: lockfile"), body: "## Revue adversariale\n\nRien.\n" }, /hors des fichiers en conflit/],
-    [{ sujetEnPlus: { 'apps/q"x.ts': 'export const q = "x";  \n' }, avantPush: retouche({ 'apps/q"x.ts': "export const q = 'x';\n" }) }, /Revue/],
-  ];
-  for (const [options, motif] of cas) {
-    const { d, sujet } = avecRetouche(options);
-    refusee(d, d.lancer(SUJET, "fusionner", "81"), sujet, motif);
-  }
-});
-
-test("fusionner : Prettier déclaré mais introuvable après pnpm install sort en 11 (côté capitaine), sans rien écrire", () => {
-  const { d, sujet } = avecRetouche({ formateur: { version: 1 }, avantPush: retouche({ "apps/s.ts": FORMATE }) });
-  const r = d.lancer(SUJET, "fusionner", "81");
-  assert.equal(r.status, 11, r.stdout + r.stderr);
-  assert.match(r.stdout, /Prettier déclaré mais introuvable/);
-  assert.equal(sujetDistant(d), sujet);
-  assert.deepEqual(ecritures(d), []);
-  assert.equal(d.git("status", "--porcelain"), "");
 });
 
 test("fusionner : des checks encore en cours sortent en 5 (reprise, aucun renvoi), des checks rouges en 3 avec leur nom", () => {
@@ -896,44 +771,31 @@ const lu = (d, nom) => (existsSync(join(d.racine, nom)) ? readFileSync(join(d.ra
 test("fusionner : un hook (post-checkout, post-merge) que la fusion écrit hors conflit ne s'exécute jamais chez le capitaine, la PR sort en 4", () => {
   const { d, sujet } = avecRetouche({
     resolution: {
-      "apps/s.ts": FORMATE,
       ".husky/post-checkout": "echo post-checkout >> ../piege.log\n",
       ".husky/post-merge": "echo post-merge >> ../piege.log\n",
     },
   });
   relaisHusky(d);
-  refusee(d, d.lancer(SUJET, "fusionner", "81"), sujet, /hors des fichiers en conflit \(\.husky\/post-checkout \.husky\/post-merge \) autre chose que le formatage/);
-  assert.match(pnpmJoue(d), /pnpm exec prettier --stdin-filepath apps\/s\.ts/, "le formateur a joué");
+  refusee(d, d.lancer(SUJET, "fusionner", "81"), sujet, /hors des fichiers en conflit \(\.husky\/post-checkout \.husky\/post-merge \)/);
+  assert.doesNotMatch(pnpmJoue(d), /pnpm (install|exec prettier)/);
   assert.equal(lu(d, "piege.log"), "", "aucun hook de la PR exécuté");
 });
 
-test("fusionner : un fichier sous node_modules/ que la fusion écrit hors conflit n'est jamais écrit dans le dépôt du capitaine, ni vu du formateur", () => {
+test("fusionner : un fichier sous node_modules/ que la fusion écrit hors conflit n'est jamais écrit dans le dépôt du capitaine", () => {
   const piege = "node_modules/.bin/prettier";
   const { d, sujet } = avecRetouche({
-    resolution: { "apps/s.ts": FORMATE, [piege]: "#!/bin/sh\necho piege >> ../../../piege.log\n" },
-    formateur: { commande: `{ [ -e ${piege} ] && echo formateur >> ../vu.log; ${JOUET_PRETTIER}; }` },
+    resolution: { [piege]: "#!/bin/sh\necho piege >> ../../../piege.log\n" },
   });
   relaisHusky(d, piege);
   refusee(d, d.lancer(SUJET, "fusionner", "81"), sujet, /hors des fichiers en conflit \(node_modules\/\.bin\/prettier \)/);
-  assert.match(pnpmJoue(d), /pnpm exec prettier --stdin-filepath apps\/s\.ts/, "le formateur a joué");
+  assert.doesNotMatch(pnpmJoue(d), /pnpm (install|exec prettier)/);
   assert.equal(lu(d, "vu.log"), "", "le fichier n'a jamais été dans l'arbre de travail du capitaine");
   assert.ok(!existsSync(join(d.travail, piege)));
 });
 
-// L'arbre jugé s'extrait par `git checkout-index` : `export-ignore` d'un `.gitattributes` de l'arbre jugé, lu par
-// `git archive`, n'écarte pas la configuration du formateur.
-test("fusionner : un `.gitattributes` de l'arbre jugé qui porte `export-ignore` sur la configuration du formateur ne change pas la preuve", () => {
-  const base = { ...PRETTIER, "docs/format.txt": `${JOUET_PRETTIER}\n`, ".gitattributes": "docs/format.txt export-ignore\n" };
-  const { d, sommet } = avecRetouche({ base, formateur: { commande: "sh docs/format.txt" }, avantPush: retouche({ "apps/s.ts": FORMATE }) });
-  const r = d.lancer(SUJET, "fusionner", "81");
-  assert.equal(r.status, 0, r.stdout + r.stderr);
-  assert.ok(contient(d, sommet, sujetDistant(d)));
-  assert.match(pnpmJoue(d), /pnpm exec prettier --stdin-filepath apps\/s\.ts/);
-});
-
 // Relecture du 2026-11-16 (B2) : une retouche intermédiaire entre telle quelle dans l'historique du sujet ; elle se
 // prouve contre son parent, et la revue juge l'union des fichiers touchés commit par commit.
-test("fusionner : chaque retouche se prouve contre son parent ; un fichier ajouté par une retouche puis retiré par une autre exige la revue", () => {
+test("fusionner : la revue juge chaque retouche commit par commit ; un fichier ajouté par une retouche puis retiré par une autre exige la revue", () => {
   const cas = [
     (d) => {
       retouche({ "apps/pirate.ts": "export const p = 1;\n", ".github/workflows/x.yml": "on: push\n" }, "chore: ajoute")(d);
@@ -952,7 +814,7 @@ test("fusionner : chaque retouche se prouve contre son parent ; un fichier ajout
 
 // Relecture du 2026-11-16 (mineure 1) : checks rouges ou lien sur un index, la PR est refusée sans que rien ne s'installe
 // ni ne formate.
-test("fusionner : une PR de mise à jour lit ses checks et ses liens sur les index avant toute preuve (rien installé, aucun formateur)", () => {
+test("fusionner : une PR de mise à jour lit ses checks et ses liens sur les index avant de juger les retouches (rien installé, aucun formateur)", () => {
   const lien = (d) => {
     appliquer(d, { "apps/s.ts": FORMATE });
     d.git("rm", "-q", `${ADR}/README.md`);
