@@ -28,7 +28,7 @@ Cause : `coverage-diff.mjs:102-105` calcule `git merge-base <base> HEAD` puis `g
 
 ### Défaut 2, reproduit : le journal se coupe dans un tube
 
-Le script écrit par `console.log` (23 appels) et sort par `process.exit` (huit endroits sur `fa7d3eb` : `:75`, `:119`, `:130`, `:145`, `:216`, `:220`, `:252`, `:274`). Sur un tube, la sortie de `console.log` est asynchrone ; `process.exit` n'attend pas qu'elle soit vidée. Dépôt jouet, 6 000 fichiers neufs dans le diff, `--dry-run` : le fichier de sortie reçoit 6 006 lignes, **un tube lu lentement 834 lignes (64 Ko sur 467 Ko), un tube lu vite 5 533 lignes, un `spawnSync` avec tampon 15 Ko**. Le banc ci-dessous le joue avec 3 000 fichiers : **1 169 fichiers lus sur 3 000** avant correctif. Sur un diff d'une centaine de fichiers (un sujet de taille ordinaire ou une PR de mise à jour avant correction), le tableau final et le verdict dépassent les 64 Ko du tube : c'est le tableau, donc la ligne qui dit quel fichier est sous le seuil, qui disparaît. Même défaut que `fedora` a constaté sur `commitlint --verbose` (ticket 44).
+Le script écrit par `console.log` (23 appels) et sort par `process.exit` (huit endroits sur `fa7d3eb`, inchangés à `76d90c7` : `:75`, `:119`, `:130`, `:145`, `:216`, `:220`, `:252`, `:274`). Sur un tube, la sortie de `console.log` est asynchrone ; `process.exit` n'attend pas qu'elle soit vidée. Dépôt jouet, 6 000 fichiers neufs dans le diff, `--dry-run` : le fichier de sortie reçoit 6 006 lignes, **un tube lu lentement 834 lignes (64 Ko sur 467 Ko), un tube lu vite 5 533 lignes, un `spawnSync` avec tampon 15 Ko**. Le banc ci-dessous le joue avec 3 000 fichiers et **un tube lent** (le lecteur attend une seconde avant de lire, quand le script a fini d'écrire et sorti) : **830 fichiers lus sur 3 000, cinq fois sur cinq** avant correctif (rejoué cinq fois sur `76d90c7`, cinq rouges ; cinq verts avec le correctif). La sortie est coupée dès qu'elle dépasse le tube (64 Ko, soit quelques centaines de fichiers, liste et tableau compris) : c'est la fin, donc le tableau et la ligne qui dit quel fichier est sous le seuil, qui disparaît. Même défaut que `fedora` a constaté sur `commitlint --verbose` (ticket 44).
 
 ### La règle cible
 
@@ -36,7 +36,7 @@ Sur une PR de mise à jour (la forme de A-47 : la fusion de develop dans le suje
 
 ## Où
 
-Base : `origin/main` à `fa7d3eb`, plugin **7.9.0**, **499 tests**. La session retrouve chaque ancrage par son texte.
+Base : `origin/main` à `76d90c7` (PR 94 fusionnée), plugin **7.9.1**, **528 tests**. La session retrouve chaque ancrage par son texte.
 
 - `skills/monorepo/socle-tests/references/scripts/verify/coverage-diff.mjs` (276 lignes) : `baseAuto()` (`:89-102`), `BASE` (`:102`), `merge-base` (`:105`), la lecture du diff (`:134`), le journal (`:220`, `:252-274`) et ses `process.exit`.
 - `…/coverage-diff-regles.mjs` : **ne change pas**. Il porte les règles pures (`choisirBase`, `baseDepuisPush`, `verdict`), testées par `coverage-diff-regles.test.mjs` ; la détection d'une mise à jour parle à git, elle reste dans le script, comme le reste de l'orchestration.
@@ -49,20 +49,25 @@ Base : `origin/main` à `fa7d3eb`, plugin **7.9.0**, **499 tests**. La session r
 2. **Où la règle s'applique** : seulement quand la base retenue (`--base`, `--base-auto`, `PRE_PUSH_REFS`) est un `origin/sujet/*`. En `--base-auto`, une branche qui a la forme d'une mise à jour d'un sujet **choisit ce sujet**, même quand develop est aussi proche (la ligne ajoutée à `baseAuto`), sinon le pre-push d'une branche de mise à jour compterait tout le sujet (tableau du défaut 1, ligne 2).
 3. **L'arbre de comparaison** est celui de `git merge-tree --write-tree --no-messages <p1> <p2>` (git ≥ 2.38, déjà exigé par `sujet.sh`). Un conflit (sortie 1) rend aussi son arbre, avec les marques de conflit : le fichier résolu par l'auteur en diffère, donc il compte. Sortie autre que 0 ou 1 : la forme n'est pas reconnue, mesure d'avant.
 4. **Le journal par `writeSync`** : `console.log` devient `dire` (écriture synchrone sur la sortie standard, nouvelle tentative sur `EAGAIN`) ; les `process.exit` ne changent pas. Même remède que `commits-a-relire.mjs` de `fedora` #1935 (`writeSync`), sans sa dépendance à un code de sortie par `process.exitCode` : le script sort à de nombreux endroits.
-5. **Version** : correctif, patch du plugin (`7.9.1` à l'écriture, à recaler sur `main` : les tickets 39, 40, 43 et 44 la montent aussi).
+5. **Version** : correctif, patch du plugin (`7.9.2` à l'écriture, à recaler sur `main` : les tickets 40, 43 et 44 la montent aussi).
+6. **En CI, la recette du gate lit la tête de la PR, pas la fusion d'essai** (décision de l'architecte, 2026-11-16). `actions/checkout` met par défaut en `HEAD` la fusion d'essai de GitHub (`refs/pull/N/merge`), un commit de fusion dont le second parent est la tête de la PR : la forme d'une mise à jour (fusion de develop, sommet du sujet en premier parent) y est masquée, et un checkout superficiel (c'est celui du job `test-db` d'un projet, profondeur 1) n'a ni l'ascendance ni `origin/develop`. **`fusionRecalculee` ne reconnaît pas la fusion d'essai** : un test le garde (retombée sur la mesure d'avant, la plus stricte). C'est la recette qui change, par cette phrase, mot pour mot, ajoutée au préalable 4 de `skills/monorepo/socle-tests/SKILL.md` et à la section « Le gate `coverage-diff` » de `references/CONTENU.md` :
+
+   > En CI, le job qui joue `coverage-diff` fait le checkout de `github.event.pull_request.head.sha` avec `fetch-depth: 0` (jamais la fusion d'essai que GitHub met par défaut en `HEAD`, qui masque la forme d'une PR de mise à jour : la mesure retombe alors sur la base entière) et dispose d'`origin/develop` (`fetch-depth: 0` rapatrie toutes les branches ; sinon `git fetch origin develop`) ; il passe `--base origin/<cible de la PR>`.
+
+   **Le job du socle** : le `ci.yml` du socle de la chaîne n'a aucun job qui joue `coverage-diff` (`grep -n coverage-diff skills/chaine/socle-chaine-de-production/references/ci/ci.yml` ne rend rien), et son `qualite` a déjà `fetch-depth: 0` : rien à y changer. Si un projet ajoute le job, la phrase est sa recette. Les ADR et fiches du projet ne sont pas réécrits par ce ticket.
 
 ## À faire, dans l'ordre
 
 ### 0. Le banc d'abord, vu rouge sur `origin/main`
 
-Créer `skills/monorepo/socle-tests/references/scripts/verify/coverage-diff.test.mjs` avec le contenu ci-dessous, **mot pour mot**. Sur `origin/main` : **5 rouges sur 8** (les quatre cas de la PR de mise à jour et le tube) ; les trois autres (sous-PR du sujet, PR vers develop, sujet qui a avancé) sont verts et le restent : ils gardent la mesure d'avant.
+Créer `skills/monorepo/socle-tests/references/scripts/verify/coverage-diff.test.mjs` avec le contenu ci-dessous, **mot pour mot**. Sur `origin/main` : **5 rouges sur 9** (les quatre cas de la PR de mise à jour et le tube lent, ce dernier rouge **cinq fois sur cinq**, joué : `830 fichiers sur 3000`) ; les quatre autres (sous-PR du sujet, PR vers develop, sujet qui a avancé, fusion d'essai) sont verts et le restent : ils gardent la mesure d'avant.
 
 ```js
 // `node --test scripts/verify/coverage-diff.test.mjs` : ce que `coverage-diff.mjs` compte comme le diff, sur de vrais
 // dépôts git jetables (un distant nu, develop, un sujet), en `--dry-run` : Vitest n'est pas lancé. Une PR de mise
 // à jour d'un sujet (la fusion de develop dans le sujet, puis des retouches) ne mesure que l'écart du sommet à la
 // fusion recalculée ; partout ailleurs, la mesure est celle d'avant. Et le journal d'une longue sortie n'est pas
-// coupé quand il passe par un tube.
+// coupé quand il passe par un tube lent.
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
@@ -213,16 +218,34 @@ test("un sujet qui a avancé depuis la fusion : la forme n'est plus celle d'une 
   assert.ok(j.listes.includes("apps/api/src/d1.ts"), j.sortie);
 });
 
-test("une longue sortie lue par un tube n'est jamais coupée", () => {
+test("la fusion d'essai de GitHub (refs/pull/N/merge) n'est pas reconnue : la mesure est celle d'avant, la plus stricte", () => {
+  const r = depot();
+  // Le checkout par défaut d'un `pull_request` : un commit de fusion du sujet et de la tête de la PR (qui contient
+  // déjà le sujet). Son second parent n'est pas dans develop : la forme d'une mise à jour est masquée.
+  git(r, "checkout", "-q", "-b", "essai", "sujet/x");
+  git(r, "merge", "-q", "--no-ff", "-m", "Merge maj into sujet/x", "maj");
+  const j = jouer(r, ["--base", "origin/sujet/x"]);
+  assert.ok(j.listes.includes("apps/api/src/d1.ts"), j.sortie);
+  assert.doesNotMatch(j.sortie, /la fusion recalculée/);
+});
+
+// Une sortie longue lue par un tube lent : le lecteur ne commence à lire qu'après une seconde, quand le script a
+// fini d'écrire et sorti. Avec `console.log` puis `process.exit`, la sortie est coupée à chaque fois.
+test("une longue sortie lue par un tube lent n'est jamais coupée", () => {
   const r = depot();
   git(r, "checkout", "-q", "-b", "gros", "develop");
   const n = 3000;
   for (let i = 0; i < n; i++) ecrire(r, `apps/api/src/g/fichier-numero-${i}-avec-un-nom-assez-long.ts`, `export const v${i} = ${i};\n`);
   valider(r, "gros");
-  const j = jouer(r, ["--base", "origin/develop"]);
-  assert.equal(j.statut, 0);
-  assert.equal(j.listes.length, n, `${j.listes.length} fichiers sur ${n} : la sortie a été coupée`);
-  assert.match(j.brut, new RegExp(`--dry-run — ${n} fichier\\(s\\) à mesurer`));
+  const res = spawnSync("sh", ["-c", '"$0" "$@" | { sleep 1; cat; }', process.execPath, SCRIPT, "--dry-run", "--base", "origin/develop"], {
+    cwd: r,
+    env: { ...ENV, PROJET_RACINE: r },
+    encoding: "utf8",
+    maxBuffer: 64 * 1024 * 1024,
+  });
+  const lus = (res.stdout.match(/^ {3}• /gm) ?? []).length;
+  assert.equal(lus, n, `${lus} fichiers sur ${n} : la sortie a été coupée`);
+  assert.match(res.stdout, new RegExp(`--dry-run — ${n} fichier\\(s\\) à mesurer`));
 });
 ```
 
@@ -301,7 +324,8 @@ puis, dans la lecture du diff, `git("diff", "--name-status", "--diff-filter=ACMR
 
 ### 2. Les textes
 
-- `skills/monorepo/socle-tests/references/CONTENU.md`, section « Le gate `coverage-diff` » : une phrase après « La base est ce sur quoi le travail sera fusionné » : sur une PR de mise à jour d'un sujet (la fusion de develop, puis des retouches), seul l'écart du sommet à la fusion recalculée compte, jamais ce que develop apporte ; la sortie le dit (« la fusion recalculée de develop dans … ») ; toute autre forme se mesure comme avant. Une phrase sur le journal : écrit de façon synchrone, jamais coupé par un tube.
+- `skills/monorepo/socle-tests/references/CONTENU.md`, section « Le gate `coverage-diff` » : une phrase après « La base est ce sur quoi le travail sera fusionné » : sur une PR de mise à jour d'un sujet (la fusion de develop, puis des retouches), seul l'écart du sommet à la fusion recalculée compte, jamais ce que develop apporte ; la sortie le dit (« la fusion recalculée de develop dans … ») ; toute autre forme se mesure comme avant. Une phrase sur le journal : écrit de façon synchrone, jamais coupé par un tube. Une phrase sur la CI : la phrase exacte de la décision 6.
+- `skills/monorepo/socle-tests/SKILL.md`, **préalable 4** (celui qui dit où `coverage-diff` compare) : ajouter, à la suite, la phrase exacte de la décision 6.
 - `skills/monorepo/socle-tests/SKILL.md`, ligne de l'étape 4 (base par défaut et `--base-auto`) : « (une branche de mise à jour d'un sujet choisit ce sujet) ».
 - L'en-tête de `coverage-diff.mjs` (docstring, « Ce qu'il fait », point 1) : une ligne : « PR de mise à jour d'un sujet : le diff part de la fusion recalculée de develop dans le sujet ».
 
@@ -320,7 +344,9 @@ puis, dans la lecture du diff, `git("diff", "--name-status", "--diff-filter=ACMR
 | sous-PR du sujet inchangée | « hors mise à jour, rien ne change : une sous-PR du sujet compte ses fichiers contre le sujet » |
 | PR vers develop inchangée | « hors mise à jour, rien ne change : une PR vers develop compte ses fichiers contre develop » |
 | forme non reconnue : mesure d'avant | « un sujet qui a avancé depuis la fusion : la forme n'est plus celle d'une mise à jour, la mesure est celle d'avant » |
-| journal complet dans un tube | « une longue sortie lue par un tube n'est jamais coupée » |
+| journal complet dans un tube lent | « une longue sortie lue par un tube lent n'est jamais coupée » (rouge cinq fois sur cinq sans le correctif) |
+| la fusion d'essai de GitHub n'est pas reconnue : mesure d'avant | « la fusion d'essai de GitHub (refs/pull/N/merge) n'est pas reconnue : la mesure est celle d'avant, la plus stricte » |
+| la recette CI du gate dit de lire la tête, à profondeur complète | `grep -n 'head.sha' skills/monorepo/socle-tests/SKILL.md skills/monorepo/socle-tests/references/CONTENU.md` rend la phrase de la décision 6 aux deux endroits ; `grep -n 'coverage-diff' skills/chaine/socle-chaine-de-production/references/ci/ci.yml` ne rend rien (le job du socle n'existe pas : voir décision 6) |
 | les règles pures | `coverage-diff-regles.test.mjs`, inchangé et vert |
 | plus de `console.log` | `git grep -c 'console.log(' -- skills/monorepo/socle-tests/references/scripts/verify/coverage-diff.mjs` vaut 0 |
 | la version | `git diff origin/main -- .claude-plugin/plugin.json` ne montre que `"version"` |
@@ -329,15 +355,15 @@ puis, dans la lecture du diff, `git("diff", "--name-status", "--diff-filter=ACMR
 
 Dans une copie jetable de `origin/main` : `git worktree add --detach <dossier jetable> origin/main`, un `TMPDIR` privé (`export TMPDIR=<dossier jetable>/tmp && mkdir -p "$TMPDIR"`).
 
-- Le banc du § 0 seul sur `origin/main` : **5 rouges, 3 verts** (dont « 1169 fichiers sur 3000 : la sortie a été coupée »). Avec le § 1 : **8 verts sur 8** (joué le 2026-11-16 sur `fa7d3eb`).
-- `pnpm install --frozen-lockfile && pnpm test` : le compte de `origin/main` **plus 8** (499 + 8 = **507**), tout vert, sans test retiré ni sauté. `git diff origin/main --stat -- '*.test.mjs'` ne montre que le banc du § 0.
+- Le banc du § 0 seul sur `origin/main` : **5 rouges, 4 verts** (dont « 830 fichiers sur 3000 : la sortie a été coupée », **cinq fois sur cinq** : lancer cinq fois `node --test --test-name-pattern='tube lent' …`, cinq rouges attendus). Avec le § 1 : **9 verts sur 9**, et les cinq passes du test du tube verts (joué le 2026-11-16 sur `76d90c7`).
+- `pnpm install --frozen-lockfile && pnpm test` : le compte de `origin/main` **plus 9** (528 + 9 = **537**), tout vert, sans test retiré ni sauté. `git diff origin/main --stat -- '*.test.mjs'` ne montre que le banc du § 0.
 - `ls "$TMPDIR" | grep -c '^cov-'` vaut **0** après la passe : le banc retire ses dossiers.
 - Retirer la copie jetable à la fin (`git worktree remove --force`) et le `TMPDIR` privé.
 
 ## Ce qui n'a pas été établi
 
 - **La mesure Vitest elle-même** : tout est joué en `--dry-run`, donc sur la liste des fichiers que le script donnerait à `vitest related`. Les seuils, la couverture et la fusion des rapports ne changent pas.
-- **La CI d'un projet**. Le gabarit du socle (`ci.yml`) n'appelle pas `coverage-diff` ; un projet l'appelle (job « qui a la base », `--base origin/$BASE`). `actions/checkout` sur un `pull_request` met par défaut **la fusion d'essai** (`refs/pull/N/merge`) en `HEAD`, pas la tête de la PR : on n'a pas établi la forme de cette fusion pour une PR de mise à jour (la tête contient déjà le sommet du sujet). Si elle n'a pas la forme reconnue, le script retombe sur la mesure d'avant (plus stricte, jamais plus lâche) : le défaut resterait alors en CI et seul le pre-push serait corrigé. À vérifier sur un projet réel ; remède si besoin : `ref: ${{ github.event.pull_request.head.sha }}` au checkout du job.
+- **La CI réelle d'un projet** : la recette (décision 6) n'a pas été jouée sur un projet posé ; la forme de la fusion d'essai pour une mise à jour n'a pas été relevée sur GitHub (le test la fabrique, un commit de fusion `sujet` + tête). Si un projet constate que `head.sha` ne suffit pas, la phrase se corrige, pas le script.
 - Une PR de mise à jour qui précède le ticket 40 (la fusion seule, sans retouche) est déjà couverte : le cas « la fusion seule » du banc.
 
 ## Hors périmètre
@@ -348,3 +374,4 @@ Dans une copie jetable de `origin/main` : `git worktree add --detach <dossier je
 ## Comments
 
 - 2026-11-16 — Instruit sur `fa7d3eb` (plugin 7.9.0). Les deux défauts sont reproduits (voir « Le besoin »), le correctif et son banc sont joués sur une copie jetable : 5 rouges sur 8 avant, 8 verts sur 8 après, `coverage-diff-regles.test.mjs` vert. Le ticket 40 (A-47) n'est pas encore écrit : la forme reconnue est celle de la décision A-47 de la carte ; si le ticket 40 la précise autrement (par exemple l'ordre des parents), ajuster `fusionRecalculee` et les cas 1 à 4 du banc.
+- 2026-11-16 (relecture) — Recalé sur `76d90c7` (7.9.1, 528 tests ; le ticket 40 est écrit : la forme reconnue, première-parent = fusion à deux parents, sommet du sujet puis develop, puis des retouches linéaires, est la sienne). Corrigé : la CI (décision 6, phrase exacte, test de la fusion d'essai) ; le test du tube lit par un tube lent (`sleep 1`), rouge cinq fois sur cinq sans le correctif ; l'affirmation « une centaine de fichiers » retirée (non mesurée).

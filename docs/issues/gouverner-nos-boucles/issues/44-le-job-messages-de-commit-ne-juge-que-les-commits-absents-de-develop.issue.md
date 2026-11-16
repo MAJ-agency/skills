@@ -30,13 +30,13 @@ Rejoué ici sur un dépôt jouet (develop avec un commit `d2`, `sujet/x` parti a
 
 ## Où
 
-Base : `origin/main` à `fa7d3eb`, plugin **7.9.0**, **499 tests**. La session retrouve chaque ancrage par son texte.
+Base : `origin/main` à `76d90c7`, plugin **7.9.1**, **528 tests**. La session retrouve chaque ancrage par son texte.
 
 ### Ce que fait `fedora` (le diff de #1935)
 
 - `.github/workflows/ci.yml`, job `commits` (séparé de leurs autres jobs) : `fetch-depth: 0` (au lieu de 100), variable `HORS: ${{ github.event_name == 'pull_request' && 'origin/develop' || '' }}`, et `pnpm dlx --package=@commitlint/cli@… --package=@commitlint/config-conventional@… node scripts/ci/commits-a-relire.mjs --de "$DE" --a "$A" ${HORS:+--hors "$HORS"}` à la place de `commitlint --from "$DE" --to "$A" --verbose`.
 - `scripts/ci/commits-a-relire.mjs` (nouveau, 129 lignes) : `git rev-list --reverse <tête> ^<base> ^<hors>`, refus d'un clone superficiel (sortie 2), vérification des réfs, **un processus `commitlint` par commit** (message sur stdin), journal et récapitulatif par `writeSync`, point d'entrée `estPointEntree` (le correctif du ticket 43).
-- `scripts/ci/commits-a-relire.test.mjs` (nouveau, huit tests sur dépôt jouet, faux `commitlint` par la variable `COMMITLINT`).
+- `scripts/ci/commits-a-relire.test.mjs` (nouveau, huit tests sur dépôt jouet ; le report en compte neuf, voir la décision 1, faux `commitlint` par la variable `COMMITLINT`).
 - `scripts/check.sh` : le banc entre dans `pnpm check`.
 - Le ticket (`SPEC_ALL_INF-14-ci.17.issue.md`), l'index Anchorpost.
 
@@ -55,7 +55,7 @@ Base : `origin/main` à `fa7d3eb`, plugin **7.9.0**, **499 tests**. La session r
   ```
 
   `pnpm exec` met `node_modules/.bin` dans le `PATH` : le script y trouve le `commitlint` du projet (le même que `pnpm check:commit` et que le hook `commit-msg`), avec la configuration de la racine du projet. Le nom de l'étape et celui du job `qualite` ne changent pas : le check exigé reste le même.
-- **`CONTENU.md`** : `skills/chaine/fusionner/references/CONTENU.md` gagne une section `## scripts/commits-a-relire.mjs` (après `migrations-ordre.mjs`, ligne 39) ; `skills/chaine/socle-chaine-de-production/references/CONTENU.md`, section « La CI », gagne une phrase : l'étape « Messages de commit » ne juge que les commits absents de develop ; une PR de mise à jour ne relit pas develop.
+- **`CONTENU.md`** : `skills/chaine/fusionner/references/CONTENU.md` gagne une section `## scripts/commits-a-relire.mjs` (après `migrations-ordre.mjs`, ligne 41) ; sa section `## Les tests` (ligne 45), qui liste les bancs de `fusionner`, gagne `commits-a-relire.test.mjs` et ce qu'il joue (choix des commits d'une PR de mise à jour, clone superficiel refusé, point d'entrée par lien, banc isolé de `GIT_*`) ; `skills/chaine/socle-chaine-de-production/references/CONTENU.md`, section « La CI », gagne une phrase : l'étape « Messages de commit » ne juge que les commits absents de develop ; une PR de mise à jour ne relit pas develop.
 - **`fusionner/SKILL.md:14`** : `scripts/commits-a-relire.mjs` s'ajoute à la liste posée dans `scripts/chaine/`.
 
 ### Comment ce ticket s'accorde avec `pose-du-socle` n° 1
@@ -64,7 +64,7 @@ Base : `origin/main` à `fa7d3eb`, plugin **7.9.0**, **499 tests**. La session r
 
 Les deux s'emboîtent sans se contredire, **le second qui passe rebase** : ce ticket réécrit la même étape, avec **les mêmes noms `BASE_SHA` et `HEAD_SHA`** que le ticket 1, et n'y laisse aucune expression dans le `run:`. Donc :
 
-- si ce ticket passe d'abord, le ticket 1 n'a plus rien à faire sur cette étape ; sa surface « aucun `${{` dans un `run:` » doit être revérifiée (`grep -nE '^\s*run:.*\$\{\{' skills/**/ci/*.yml`, vide) et le ticket **fermé** avec la mention « fait par le n° 44 » ;
+- si ce ticket passe d'abord, le ticket 1 n'a plus rien à faire sur cette étape ; sa surface « aucun `${{` dans un `run:` » doit être revérifiée (`grep -nE '^\s*run:.*\$\{\{' skills/**/ci/*.yml`, vide) et le ticket **fermé** (`Status: Fait — PR #<n>`, n° de la PR de ce ticket, avec la mention « subsumé par le n° 44 » sous `## Comments`) ;
 - si le ticket 1 passe d'abord, ce ticket remplace la ligne `run:` du ticket 1 par celle ci-dessus et garde son `env:`.
 
 Aucun des deux ne **bloque** l'autre. La session de ce ticket lit le ticket 1 avant d'écrire, et le ferme si elle le subsume.
@@ -86,17 +86,17 @@ Aucun des deux ne **bloque** l'autre. La session de ce ticket lit le ticket 1 av
 
 ## Décisions
 
-1. **Un script, repris de `fedora` presque à l'identique**, donné entier ci-dessous. Écarts : (a) l'en-tête cite `scripts/chaine/` ; (b) le banc **retire ses dossiers temporaires** (`after` de `node:test`, convention du ticket 31 ; `fedora` n'en retire aucun) ; (c) `fileURLToPath(import.meta.url)` à la place de `import.meta.dirname` (plus portable) ; (d) pas de référence à un ticket de `fedora`.
+1. **Un script, repris de `fedora` presque à l'identique**, donné entier ci-dessous. Écarts : (a) l'en-tête cite `scripts/chaine/` ; (b) le banc **retire ses dossiers temporaires** (`after` de `node:test`, convention du ticket 31 ; `fedora` n'en retire aucun) ; (c) `fileURLToPath(import.meta.url)` à la place de `import.meta.dirname` (plus portable) ; (d) pas de référence à un ticket de `fedora` ; (e) **le banc est isolé du dépôt réel** : un `pre-push` lancé depuis un worktree exporte `GIT_DIR` (et `GIT_INDEX_FILE`), et le banc de `fedora` en héritait : rejoué avec un `GIT_DIR` visant un dépôt leurre, **8 rouges sur 8 et des écritures dans le leurre** (`user.email` et `user.name` du dépôt jetable écrits dans son `config`). Le banc retire donc `GIT_*` de `process.env` au chargement (les `git` que le module lance dans le processus, par `commitsAJuger`, comme ceux de `g()`, de `lancer()` et du `spawnSync` du point d'entrée), pose `GIT_CONFIG_GLOBAL=/dev/null` et `GIT_CONFIG_NOSYSTEM=1`, comme `depot-jouet.mjs` et `poses.test.mjs`, et un neuvième test le prouve : il rejoue le banc dans un processus enfant avec un `GIT_DIR` et un `GIT_INDEX_FILE` visant un dépôt leurre, et exige un code 0 et un leurre **inchangé** (fichiers, tailles, dates, `config` et `HEAD`). Sans le retrait, ce test est rouge (joué).
 2. **Sur une PR, toujours `--hors origin/develop`**, quelle que soit la base (décision de `fedora`, reprise).
 3. **Un clone superficiel est refusé**, sortie 2 : jamais une liste tronquée. Le job `qualite` clone à profondeur 0 ; le refus protège un projet qui réglerait autrement son checkout.
-4. **Le point d'entrée** suit l'idiome du ticket 43 (`pathToFileURL(realpathSync(…))` dans un `try`). Ce script le porte déjà, sous la forme exportée `estPointEntree(urlModule, chemin)` que son banc teste ; ce n'est pas la forme sans paramètre du ticket 43 : si 43 passe avant, la session peut aligner la forme (une ligne) et garder le test « point d'entrée » de ce banc, qui joue le script par un lien symbolique et un dossier à espace et accent. **Aucun ordre imposé** entre 43 et 44.
-5. **Version** : patch du plugin (`7.9.1` à l'écriture, à recaler sur `main` : les tickets 39, 40 et 43 la montent aussi).
+4. **Le point d'entrée** suit l'idiome A-50 du ticket 43 : les deux chemins résolus, `realpathSync(fileURLToPath(urlModule)) === realpathSync(chemin)`, dans un `try`, faux en cas d'erreur. Ce script le porte déjà, sous la forme exportée `estPointEntree(urlModule, chemin)` que son banc teste (ce n'est pas la forme sans paramètre du ticket 43, qui est locale à chaque script : l'écart est voulu, le banc appelle la fonction) ; le test « point d'entrée » joue le script par un lien symbolique, **sous `--preserve-symlinks-main`**, et depuis un dossier à espace et accent. La forme de `fedora` (`urlModule === pathToFileURL(realpathSync(chemin)).href`) y est rouge : elle sort en 0 sous le réglage. **Aucun ordre imposé** entre 43 et 44 ; le script du 43 ne le compte pas (il est écrit avec l'idiome, pas à ajouter à son banc).
+5. **Version** : patch du plugin (`7.9.2` à l'écriture, à recaler sur `main` : les tickets 40, 43 et 45 la montent aussi).
 
 ## À faire, dans l'ordre
 
 ### 0. Le banc d'abord, vu rouge sur `origin/main`
 
-Créer `skills/chaine/fusionner/scripts/commits-a-relire.test.mjs` avec le contenu ci-dessous, **mot pour mot**. Sans le script (§ 1), `node --test skills/chaine/fusionner/scripts/commits-a-relire.test.mjs` échoue à l'import : `ERR_MODULE_NOT_FOUND` (joué le 2026-11-16 sur `fa7d3eb`).
+Créer `skills/chaine/fusionner/scripts/commits-a-relire.test.mjs` avec le contenu ci-dessous, **mot pour mot**. Sans le script (§ 1), `node --test skills/chaine/fusionner/scripts/commits-a-relire.test.mjs` échoue à l'import : `ERR_MODULE_NOT_FOUND` (joué le 2026-11-16 sur `76d90c7`).
 
 ```js
 // `node --test scripts/chaine/commits-a-relire.test.mjs` : commits jugés par la CI, sur un dépôt jouet.
@@ -104,7 +104,7 @@ Créer `skills/chaine/fusionner/scripts/commits-a-relire.test.mjs` avec le conte
 import { after, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
-import { copyFileSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { copyFileSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -112,6 +112,16 @@ import { commitsAJuger, estPointEntree, lireArguments, principal } from './commi
 
 const ICI = dirname(fileURLToPath(import.meta.url));
 const LONG = `docs(x): ${'t'.repeat(122)}`; // 131 caractères, un ancien en-tête entré dans develop
+
+// Un environnement qui ne vise jamais le vrai dépôt : sous un hook git (un pre-push lancé depuis un worktree),
+// GIT_DIR, GIT_INDEX_FILE et leurs semblables sont exportés ; sans les retirer, chaque `git` du banc, ceux des
+// processus enfants comme ceux que le module lance dans ce processus (`commitsAJuger`), écrirait dans le dépôt
+// du développeur. Même précaution que `depot-jouet.mjs` et `poses.test.mjs`. NODE_TEST_CONTEXT : avec lui, un
+// `node --test` enfant rend ses résultats au parent au lieu de les jouer.
+for (const cle of Object.keys(process.env)) if (cle.startsWith('GIT_')) delete process.env[cle];
+process.env.GIT_CONFIG_GLOBAL = '/dev/null';
+process.env.GIT_CONFIG_NOSYSTEM = '1';
+const ENV_PROPRE = Object.fromEntries(Object.entries(process.env).filter(([cle]) => cle !== 'NODE_TEST_CONTEXT'));
 
 // Les dossiers du banc, retirés à la sortie (convention des bancs de la chaîne).
 const dossiers = [];
@@ -125,7 +135,7 @@ after(() => {
 });
 
 function g(cwd, ...args) {
-  return execFileSync('git', args, { cwd, encoding: 'utf8' }).trim();
+  return execFileSync('git', args, { cwd, encoding: 'utf8', env: ENV_PROPRE }).trim();
 }
 
 function commit(cwd, titre) {
@@ -169,7 +179,7 @@ function lancer(argv, cwd, env) {
   try {
     const sortie = execFileSync(process.execPath, [join(ICI, 'commits-a-relire.mjs'), ...argv], {
       cwd,
-      env: { ...process.env, ...env },
+      env: { ...ENV_PROPRE, ...env },
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'pipe'],
     });
@@ -248,7 +258,7 @@ test('réf introuvable ou usage invalide : sortie 2 expliquée', () => {
   assert.equal(principal(['--de'], j.r, j.env), 2);
 });
 
-test("point d'entrée : lancé par un lien symbolique, depuis un dossier à espace et accent, une plage fautive sort en 1", () => {
+test("point d'entrée : lancé par un lien symbolique (aussi sous --preserve-symlinks-main), depuis un dossier à espace et accent, une plage fautive sort en 1", () => {
   const j = depot();
   const dossierAccent = join(dossier('commits-a-relire-'), 'dossier à espace é');
   mkdirSync(dossierAccent);
@@ -256,23 +266,62 @@ test("point d'entrée : lancé par un lien symbolique, depuis un dossier à espa
   copyFileSync(join(ICI, 'commits-a-relire.mjs'), copie);
   const lien = join(dossierAccent, 'lien vers le script.mjs');
   symlinkSync(copie, lien);
-  for (const script of [copie, lien]) {
-    const r = spawnSync(process.execPath, [script, '--de', j.s1, '--a', j.maj], {
+  const acces = [
+    { script: copie, options: [] },
+    { script: lien, options: [] },
+    { script: lien, options: ['--preserve-symlinks-main'] },
+  ];
+  for (const { script, options } of acces) {
+    const r = spawnSync(process.execPath, [...options, script, '--de', j.s1, '--a', j.maj], {
       cwd: j.r,
-      env: { ...process.env, ...j.env },
+      env: { ...ENV_PROPRE, ...j.env },
       encoding: 'utf8',
     });
-    assert.equal(r.status, 1, `${script} : ${r.stdout}${r.stderr}`);
+    assert.equal(r.status, 1, `${options.join(' ')} ${script} : ${r.stdout}${r.stderr}`);
     assert.match(r.stdout, /1 message\(s\) refusé\(s\)/);
   }
   assert.equal(estPointEntree('file:///nulle/part.mjs', undefined), false);
   assert.equal(estPointEntree('file:///nulle/part.mjs', join(dossierAccent, 'absent.mjs')), false);
 });
+
+// Le contenu d'un dossier, fichiers et dates comprises : ce qui change quand un `git` y écrit.
+function empreinte(racine) {
+  const lignes = [];
+  const lire = (d) => {
+    for (const nom of readdirSync(d).sort()) {
+      const chemin = join(d, nom);
+      const st = statSync(chemin);
+      lignes.push(`${chemin} ${st.size} ${st.mtimeMs}`);
+      if (st.isDirectory()) lire(chemin);
+      else if (nom === 'config' || nom === 'HEAD') lignes.push(readFileSync(chemin, 'utf8'));
+    }
+  };
+  lire(racine);
+  return lignes.join('\n');
+}
+
+test('banc isolé : un GIT_DIR hérité (hook pre-push) ne fait écrire aucun git du banc dans le dépôt visé', () => {
+  if (process.env.BANC_ENFANT) return; // le banc rejoué plus bas ne se rejoue pas lui-même
+  const leurre = dossier('commits-a-relire-leurre-');
+  g(leurre, 'init', '-q', '--bare');
+  const avant = empreinte(leurre);
+  const r = spawnSync(process.execPath, ['--test', join(ICI, 'commits-a-relire.test.mjs')], {
+    env: {
+      ...Object.fromEntries(Object.entries(process.env).filter(([cle]) => cle !== 'NODE_TEST_CONTEXT')),
+      GIT_DIR: leurre,
+      GIT_INDEX_FILE: join(leurre, 'index-leurre'),
+      BANC_ENFANT: '1',
+    },
+    encoding: 'utf8',
+  });
+  assert.equal(r.status, 0, `${r.stdout}${r.stderr}`.slice(-2000));
+  assert.equal(empreinte(leurre), avant, 'le banc a écrit dans le dépôt visé par GIT_DIR');
+});
 ```
 
 ### 1. `skills/chaine/fusionner/scripts/commits-a-relire.mjs` (créé)
 
-Avec le contenu ci-dessous, **mot pour mot**. Le banc passe alors : **8 sur 8** (joué le 2026-11-16 sur une copie de `fa7d3eb`, `TMPDIR` privé vide ensuite : aucun dossier `commits-a-relire-*` laissé).
+Avec le contenu ci-dessous, **mot pour mot**. Le banc passe alors : **9 sur 9** (joué le 2026-11-16 sur une copie de `76d90c7`, `TMPDIR` privé vide ensuite : aucun dossier `commits-a-relire-*` laissé).
 
 ```js
 #!/usr/bin/env node
@@ -298,7 +347,7 @@ Avec le contenu ci-dessous, **mot pour mot**. Le banc passe alors : **8 sur 8** 
 // Sorties : 0 tous conformes, 1 au moins un refusé, 2 usage, réf introuvable ou clone superficiel.
 import { spawnSync } from 'node:child_process';
 import { realpathSync, writeSync } from 'node:fs';
-import { pathToFileURL } from 'node:url';
+import { fileURLToPath } from 'node:url';
 
 function git(args, cwd) {
   const r = spawnSync('git', args, { cwd, encoding: 'utf8' });
@@ -377,12 +426,11 @@ export function principal(argv, cwd = process.cwd(), env = process.env) {
   return 1;
 }
 
-// Point d'entrée comparé en URL du chemin réel : un lien symbolique, une espace ou un accent dans
-// le chemin ne doivent jamais laisser le script sortir en 0 sans avoir rien jugé.
+// Point d'entrée (idiome A-50 du plugin) : les deux chemins résolus, dans un `try`. Un lien symbolique, une espace,
+// un accent ou `--preserve-symlinks-main` ne doivent jamais laisser le script sortir en 0 sans rien juger.
 export function estPointEntree(urlModule, chemin) {
-  if (!chemin) return false;
   try {
-    return urlModule === pathToFileURL(realpathSync(chemin)).href;
+    return realpathSync(fileURLToPath(urlModule)) === realpathSync(chemin);
   } catch {
     return false;
   }
@@ -395,14 +443,23 @@ if (estPointEntree(import.meta.url, process.argv[1])) {
 
 ### 2. `skills/chaine/socle-chaine-de-production/references/ci/ci.yml`
 
-Remplacer l'étape « Messages de commit » (lignes 39-41) par celle de « Où » (avec `env:`). Le reste du fichier ne change pas. Puis `zizmor` sur le fichier (version épinglée du job `zizmor`) : aucune alerte `template-injection`.
+Remplacer l'étape « Messages de commit » (lignes 39-41) par celle de « Où » (avec `env:`). Le reste du fichier ne change pas. Puis `zizmor` (version épinglée du job : `pip install zizmor==1.31.0`), **après substitution des placeholders** du gabarit (`{{PROJET}}`, `{{PROJET_SNAKE}}`, `{{SCOPE}}`, que le YAML brut ne supporte pas) :
+
+```sh
+mkdir -p "$TMPDIR/ci/.github/workflows"
+sed -e 's/{{PROJET_SNAKE}}/jouet/g' -e 's/{{PROJET}}/jouet/g' -e 's/{{SCOPE}}/jouet/g' \
+  skills/chaine/socle-chaine-de-production/references/ci/ci.yml > "$TMPDIR/ci/.github/workflows/ci.yml"
+zizmor --offline --min-severity medium "$TMPDIR/ci/.github/workflows"
+```
+
+Attendu : « No findings to report » (joué sur `76d90c7`, avant et après : `main` n'avait aucune alerte à ce seuil, la nouvelle étape non plus ; zizmor 1.31.0 compte 6 alertes supprimées avant, 4 après : les deux expressions retirées du `run:`).
 
 ### 3. Les textes
 
 - `skills/chaine/fusionner/SKILL.md:14` : ajouter `scripts/commits-a-relire.mjs` à la liste des fichiers posés dans `scripts/chaine/`.
-- `skills/chaine/fusionner/references/CONTENU.md` : section `## scripts/commits-a-relire.mjs` après celle de `migrations-ordre.mjs` : ce qu'il juge (les commits de la tête absents de la base et de develop), pourquoi (une PR de mise à jour ne relit pas develop), le refus d'un clone superficiel, le journal complet, et que la CI du gabarit l'appelle.
+- `skills/chaine/fusionner/references/CONTENU.md` : section `## scripts/commits-a-relire.mjs` après celle de `migrations-ordre.mjs` (ligne 41), et, dans `## Les tests` (ligne 45), le nom du banc avec ce qu'il joue : ce qu'il juge (les commits de la tête absents de la base et de develop), pourquoi (une PR de mise à jour ne relit pas develop), le refus d'un clone superficiel, le journal complet, et que la CI du gabarit l'appelle.
 - `skills/chaine/socle-chaine-de-production/references/CONTENU.md`, section « La CI » : une phrase (voir « Où »).
-- `docs/issues/pose-du-socle/issues/1-…issue.md` : si ce ticket le subsume, `Status:` du n° 1 passe à `Fait — par le n° 44` (forme des tickets faits du dépôt) avec une ligne sous `## Comments`.
+- `docs/issues/pose-du-socle/issues/1-…issue.md` : si ce ticket le subsume, `Status:` du n° 1 passe à `Fait — PR #<n>`, **n° de la PR de ce ticket** (forme de clôture du dépôt : `Fait — PR #93`), avec une ligne sous `## Comments` : « subsumé par le n° 44 ».
 
 ### 4. La version : `.claude-plugin/plugin.json:3`
 
@@ -418,7 +475,8 @@ Remplacer l'étape « Messages de commit » (lignes 39-41) par celle de « Où �
 | PR vers develop et push inchangés | « PR vers develop : base = develop, la liste est celle de base..tête », « push (sans --hors) : la plage poussée, du plus ancien au plus récent » |
 | clone superficiel refusé | « clone superficiel : refusé en sortie 2, jamais une liste tronquée » |
 | réf introuvable, usage invalide | « réf introuvable ou usage invalide : sortie 2 expliquée » |
-| point d'entrée par lien symbolique, espace et accent | « point d'entrée : lancé par un lien symbolique, depuis un dossier à espace et accent, une plage fautive sort en 1 » |
+| point d'entrée par lien symbolique (aussi sous `--preserve-symlinks-main`), espace et accent | « point d'entrée : lancé par un lien symbolique (aussi sous --preserve-symlinks-main), depuis un dossier à espace et accent, une plage fautive sort en 1 » |
+| le banc n'écrit pas dans le dépôt réel (`GIT_DIR` hérité d'un hook) | « banc isolé : un GIT_DIR hérité (hook pre-push) ne fait écrire aucun git du banc dans le dépôt visé » |
 | le gabarit appelle le script | `grep -n "commits-a-relire" skills/chaine/socle-chaine-de-production/references/ci/ci.yml` rend l'étape ; aucun `${{` dans un `run:` du fichier |
 | le banc tourne posé à plat | `scripts/poses.test.mjs` « les bancs posés à plat sous scripts/chaine/ tournent hors du plugin » reste vert (il pose tout `skills/chaine/fusionner/scripts`) |
 | la version | `git diff origin/main -- .claude-plugin/plugin.json` ne montre que `"version"` |
@@ -427,10 +485,10 @@ Remplacer l'étape « Messages de commit » (lignes 39-41) par celle de « Où �
 
 Dans une copie jetable de `origin/main` : `git worktree add --detach <dossier jetable> origin/main`, un `TMPDIR` privé (`export TMPDIR=<dossier jetable>/tmp && mkdir -p "$TMPDIR"`).
 
-- Le banc du § 0 seul : **rouge** (`ERR_MODULE_NOT_FOUND`). Avec le § 1 : **8 verts sur 8**.
-- `pnpm install --frozen-lockfile && pnpm test` : le compte de `origin/main` **plus 8** (499 + 8 = **507**), tout vert, sans test retiré ni sauté. `git diff origin/main --stat -- '*.test.mjs'` ne montre que le banc du § 0.
+- Le banc du § 0 seul : **rouge** (`ERR_MODULE_NOT_FOUND`). Avec le § 1 : **9 verts sur 9**. Rejoué avec un `GIT_DIR` visant un dépôt leurre (`export GIT_DIR=<leurre>.git` avant `node --test`) : 9 verts et le leurre inchangé ; sans le retrait de `GIT_*` (la boucle `for (const cle of Object.keys(process.env))` supprimée), le neuvième test est rouge.
+- `pnpm install --frozen-lockfile && pnpm test` : le compte de `origin/main` **plus 9** (528 + 9 = **537**), tout vert, sans test retiré ni sauté. `git diff origin/main --stat -- '*.test.mjs'` ne montre que le banc du § 0.
 - `ls "$TMPDIR" | grep -c '^commits-a-relire'` vaut **0** après la passe.
-- `zizmor` sur `ci.yml` (§ 2). **Non joué ici** : la CI réelle d'un projet posé (`commitlint` du projet, `pnpm exec node …`) ; la session le dit dans sa PR, ou le joue sur un projet jetable si elle en a un. Le banc couvre le choix des commits ; ce que `commitlint` de la racine du projet refuse relève de sa configuration.
+- `zizmor` sur `ci.yml` (§ 2), joué après substitution. **Non joué ici** : la CI réelle d'un projet posé (`commitlint` du projet, `pnpm exec node …`) ; la session le dit dans sa PR, ou le joue sur un projet jetable si elle en a un. Le banc couvre le choix des commits ; ce que `commitlint` de la racine du projet refuse relève de sa configuration.
 - Retirer la copie jetable à la fin (`git worktree remove --force`) et le `TMPDIR` privé.
 
 ## Hors périmètre
@@ -441,3 +499,4 @@ Dans une copie jetable de `origin/main` : `git worktree add --detach <dossier je
 ## Comments
 
 - 2026-11-16 — Rédigé le jour même de la fusion de `fedora` #1935 (13 h 47 UTC). `needs-triage` : l'architecte décide du tri. Le script et son banc ont été retapés depuis le diff de la PR (écarts listés en décision 1), joués sur une copie de `fa7d3eb` : 8 verts sur 8 avec le script, rouge sans. La description de la PR (`filter: tree:0`) est périmée : c'est le diff de fusion qui fait foi.
+- 2026-11-16 (relecture) — Recalé sur `76d90c7` (7.9.1, 528 tests). Corrigé : le banc n'était pas isolé de `GIT_*` (rejoué : 8 rouges et écritures dans un dépôt leurre ; neuvième test ajouté, rouge sans l'isolation) ; idiome du point d'entrée aligné sur A-50 (deux chemins résolus, cas `--preserve-symlinks-main` au banc) ; commande `zizmor` écrite, après substitution des placeholders ; clôture du ticket 1 en `Fait — PR #<n>` ; paragraphe des bancs de `fusionner/references/CONTENU.md` nommé.
