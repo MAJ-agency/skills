@@ -73,7 +73,8 @@
 #                         tête, ou que sa carte, lue sur develop, n'est pas en `6-nettoyage` ou `fini` (`sujet_livre` ;
 #                         un sujet sans carte ne se clôt pas), ou que son sommet est postérieur au passage de la carte
 #                         en `6-nettoyage` ou `fini` (sujet rouvert sous le même nom). Les références se lisent en
-#                         toutes lettres (`refs/remotes/origin/…`) et `GH_REPO` est ignoré. Le sommet est relu juste
+#                         toutes lettres (`refs/remotes/origin/…`) ; aucun état local ne décide (objets de remplacement et greffes
+#                         ignorés, URL de push divergente refusée en 4, `gh` vise le dépôt de `origin`). Le sommet est relu juste
 #                         avant la suppression : s'il a bougé, sortie 5, rien n'est supprimé. Une suppression refusée
 #                         (hook pre-push, protection de branche, proxy d'une session cloud) sort en 3 : la branche
 #                         reste, et la sortie dit de la jouer d'un poste local. Sujet déjà absent : sortie 0. GitHub ou
@@ -1146,14 +1147,26 @@ commit_carte_livree() {
 # refuse `git push --delete` et `:sujet/…` à une session (elle ne voit pas ce script). Aucune écriture avant
 # que tous les refus aient été levés, et jamais d'option de force : la suppression est un `git push` simple,
 # sous les hooks. Les références se lisent en toutes lettres (`refs/remotes/origin/…`) : un tag ou une
-# branche locale nommés `origin/develop` ne masquent pas le distant. `gh` ne lit pas `GH_REPO` ici : les PR
-# ouvertes sont celles du dépôt de `origin`.
+# branche locale nommés `origin/develop` ne masquent pas le distant. Ni les objets de remplacement ni les
+# greffes ne sont lus, l'URL de push doit être celle de lecture, et `gh` vise le dépôt de `origin` posé
+# explicitement par `GH_REPO` (jamais un `upstream` ni le dépôt par défaut de `gh`).
 clore() {
-  local nom=${1-} branche sommet relu ouvertes statut ecart livree develop=refs/remotes/origin/develop
+  local nom=${1-} branche sommet relu ouvertes statut ecart livree url depot develop=refs/remotes/origin/develop
   shift || true
   [ $# -eq 0 ] || sortir 4 "clore ne prend que le nom du sujet ($*) : jamais d'option, jamais de push forcé"
+  [[ "$nom" != sujet/* ]] || sortir 4 "nom de sujet illisible : « $nom » : le nom se donne sans le préfixe sujet/ (clore ${nom#sujet/})"
   [[ "$nom" =~ ^[a-z0-9][a-z0-9-]*$ ]] || sortir 4 "nom de sujet illisible : « $nom »"
   branche="sujet/$nom"
+  # Aucune décision ne repose sur un état local du dépôt (objets de remplacement, greffes, URL de push, dépôt
+  # par défaut de gh) : ils ne se lisent pas, et la suppression part là où l'on a vérifié.
+  export GIT_NO_REPLACE_OBJECTS=1 GIT_GRAFT_FILE=/dev/null
+  url=$(git remote get-url origin 2>/dev/null) || sortir 11 "URL de origin illisible : rien n'est supprimé"
+  [ "$(git remote get-url --push --all origin 2>/dev/null)" = "$url" ] ||
+    sortir 4 "l'URL de push de origin diffère de son URL de lecture (pushurl, pushInsteadOf, plusieurs URL) : rien n'est supprimé, on ne supprime pas ailleurs que là où l'on a vérifié"
+  url=${url%/}; url=${url%.git}
+  [[ "$url" =~ ^(.*[/:])?([A-Za-z0-9._-]+)/([A-Za-z0-9._-]+)$ ]] ||
+    sortir 4 "l'URL de origin ne donne pas un owner/repo lisible (« $url ») : rien n'est supprimé"
+  depot="${BASH_REMATCH[2]}/${BASH_REMATCH[3]}"
   relu=$(sommet_distant "$branche") || sortir 11 "origin injoignable : rien n'est supprimé"
   [ -n "$relu" ] || sortir 0 "$branche n'existe pas sur origin : rien à clore"
   git fetch -q origin "+refs/heads/develop:$develop" "+refs/heads/$branche:refs/remotes/origin/$branche" ||
@@ -1168,16 +1181,19 @@ clore() {
        sortir 4 "$branche porte $ecart commit(s) absent(s) de develop : pas livré, rien n'est supprimé" ;;
     *) sortir 11 "git merge-base en échec sur $branche et origin/develop : rien n'est supprimé" ;;
   esac
-  ouvertes=$(
-    env -u GH_REPO gh api --paginate "$DEPOT/pulls?state=open&per_page=100&base=$(uri "$branche")" --jq '.[].number' &&
-      env -u GH_REPO gh api --paginate "$DEPOT/pulls?state=open&per_page=100&head={owner}:$(uri "$branche")" --jq '.[].number'
-  ) || sortir 11 "PR ouvertes de $branche illisibles (GitHub) : rien n'est supprimé"
-  [ -z "$ouvertes" ] || sortir 4 "des PR ouvertes ont $branche pour base ou pour tête (#$(sort -un <<<"$ouvertes" | paste -sd' ' - | sed 's/ / #/g')) : les fusionner ou les fermer avant de clore"
   sujet_livre "$nom" ||
     sortir 4 "la carte de $nom, lue sur develop, ne le dit pas livré (Phase: 6-nettoyage ou fini) : rien n'est supprimé"
   livree=$(commit_carte_livree "$nom")
   { [ -n "$livree" ] && git merge-base --is-ancestor "$sommet" "$livree"; } ||
-    sortir 4 "le sommet de $branche est postérieur au passage de sa carte en 6-nettoyage ou fini (un sujet rouvert sous le même nom ?) : rien n'est supprimé, à jouer d'un poste local"
+    sortir 4 "le sommet de $branche est postérieur au passage de sa carte en 6-nettoyage ou fini (un sujet rouvert sous le même nom ?) : rien n'est supprimé, vérifier d'abord"
+  # Les PR ouvertes se lisent au plus près de la suppression, juste avant la relecture du sommet. Le dépôt est
+  # celui d'origin, posé explicitement : gh résoudrait sinon `{owner}/{repo}` sur GH_REPO, un remote `upstream`
+  # ou le dépôt par défaut de `gh repo set-default`.
+  ouvertes=$(
+    GH_REPO=$depot gh api --paginate "$DEPOT/pulls?state=open&per_page=100&base=$(uri "$branche")" --jq '.[].number' &&
+      GH_REPO=$depot gh api --paginate "$DEPOT/pulls?state=open&per_page=100&head={owner}:$(uri "$branche")" --jq '.[].number'
+  ) || sortir 11 "PR ouvertes de $branche illisibles (GitHub) : rien n'est supprimé"
+  [ -z "$ouvertes" ] || sortir 4 "des PR ouvertes ont $branche pour base ou pour tête (#$(sort -un <<<"$ouvertes" | paste -sd' ' - | sed 's/ / #/g')) : les fusionner ou les fermer avant de clore"
   # Le sommet relu juste avant la suppression doit être celui qu'on a vérifié.
   relu=$(sommet_distant "$branche") || sortir 11 "origin injoignable : rien n'est supprimé"
   [ "$relu" = "$sommet" ] || sortir 5 "$branche a bougé pendant les vérifications : rien n'est supprimé, relancer"

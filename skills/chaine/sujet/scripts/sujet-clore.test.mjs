@@ -73,6 +73,9 @@ test("clore refuse en 4 un nom illisible, une option et un nom vide, sans rien s
     assert.equal(r.status, 4, `${JSON.stringify(args)} : ${sortie(r)}`);
   }
   assert.match(clore(d, "demo", "--force").stdout, /jamais d'option, jamais de push forcé/);
+  const prefixe = clore(d, "sujet/demo");
+  assert.equal(prefixe.status, 4, sortie(prefixe));
+  assert.match(prefixe.stdout, /sans le préfixe sujet\//);
   assert.equal(sommetDistant(d), avant, "rien supprimé");
 });
 
@@ -273,8 +276,8 @@ test("GH_REPO, hérité de l'environnement, n'envoie pas la lecture des PR ouver
   d.github({ pulls: [{ number: 7, title: "x", head: "feat/a", base: "sujet/demo", labels: [] }] });
   const gh = join(d.racine, "bin", "gh");
   const vrai = readFileSync(gh, "utf8").split("\n").find((l) => l.startsWith("exec "));
-  // Avec GH_REPO, ce `gh` répond comme le dépôt visé : aucune PR ouverte.
-  writeFileSync(gh, `#!/bin/sh\nif [ -n "$GH_REPO" ]; then echo ""; exit 0; fi\n${vrai}\n`);
+  // Avec GH_REPO=autre/depot, ce `gh` répond comme ce dépôt-là : aucune PR ouverte.
+  writeFileSync(gh, `#!/bin/sh\nif [ "$GH_REPO" = "autre/depot" ]; then echo ""; exit 0; fi\n${vrai}\n`);
   chmodSync(gh, 0o755);
   const r = spawnSync("bash", [SCRIPT, "clore", "demo"], { cwd: d.travail, env: { ...d.env, GH_REPO: "autre/depot" }, encoding: "utf8" });
   assert.equal(r.status, 4, sortie(r));
@@ -311,5 +314,87 @@ test("la carte passée livrée par une PR de documentation après la livraison :
   const r = clore(d, "demo");
   assert.equal(r.status, 4, sortie(r));
   assert.match(r.stdout, /postérieur au passage de sa carte/);
+  assert.match(r.stdout, /vérifier d'abord/);
+  assert.doesNotMatch(r.stdout, /poste local/, "un sujet rouvert n'est pas à supprimer d'un poste local");
   assert.equal(brancheLa(d), true, "le sujet rouvert est intact");
+});
+
+// Les décisions de `clore` ne reposent jamais sur un état local : dépôt des PR (remote `upstream`, `gh-resolved`),
+// objets de remplacement et greffes, URL de push divergente (A-53).
+test("les PR ouvertes se lisent sur le dépôt d'origin, malgré un remote upstream et un dépôt par défaut de gh", () => {
+  const d = sujetLivre();
+  const autre = join(d.racine, "amont.git");
+  d.git("init", "--bare", "-q", autre);
+  d.git("remote", "add", "upstream", autre);
+  d.git("config", "remote.origin.gh-resolved", "base");
+  const gh = join(d.racine, "bin", "gh");
+  const vrai = readFileSync(gh, "utf8").split("\n").find((l) => l.startsWith("exec "));
+  const journal = join(d.racine, "gh-repo.log");
+  writeFileSync(gh, `#!/bin/sh\necho "$GH_REPO" >> ${JSON.stringify(journal)}\n${vrai}\n`);
+  chmodSync(gh, 0o755);
+  d.github({ pulls: [{ number: 7, title: "x", head: "feat/a", base: "sujet/demo", labels: [] }] });
+  const r = clore(d, "demo");
+  assert.equal(r.status, 4, sortie(r));
+  const attendu = `${d.origine.split("/").at(-2)}/${d.origine.split("/").at(-1).replace(/\.git$/, "")}`;
+  const lus = readFileSync(journal, "utf8").trim().split("\n");
+  assert.ok(lus.length >= 1);
+  assert.deepEqual([...new Set(lus)], [attendu], "chaque appel gh vise le dépôt d'origin, posé explicitement");
+  assert.equal(brancheLa(d), true);
+});
+
+// Un sujet livré, puis un commit X poussé sur sa branche, que develop ne contient pas. Une greffe ou un objet
+// de remplacement local fait de X un parent du commit de la carte livrée : sans protection, `clore` supprime.
+function sujetAvanceAvecLocal() {
+  const d = sujetLivre({ apres: true });
+  d.git("switch", "-q", "-c", "x", "origin/sujet/demo");
+  d.ecrire("docs/y.md", "y\n");
+  d.commit("feat(demo): y (#3)");
+  const x = d.git("rev-parse", "HEAD");
+  d.git("push", "-q", "origin", "HEAD:refs/heads/sujet/demo");
+  d.git("switch", "-q", "--detach", "origin/develop");
+  const sommet = d.git("rev-parse", "refs/remotes/origin/develop");
+  const parent = d.git("rev-parse", `${sommet}^`);
+  return { d, x, sommet, parent };
+}
+
+test("un objet de remplacement local (git replace) ne fait pas supprimer un sujet non livré : refus en 4", () => {
+  const { d, x, sommet, parent } = sujetAvanceAvecLocal();
+  const faux = d.git("commit-tree", `${sommet}^{tree}`, "-p", parent, "-p", x, "-m", "remplacement");
+  d.git("replace", sommet, faux);
+  const r = clore(d, "demo");
+  assert.equal(r.status, 4, sortie(r));
+  assert.equal(sommetDistant(d), x, "le sujet avancé est intact");
+});
+
+test("une greffe locale (.git/info/grafts) ne fait pas supprimer un sujet non livré : refus en 4", () => {
+  const { d, x, sommet, parent } = sujetAvanceAvecLocal();
+  mkdirSync(join(d.travail, ".git", "info"), { recursive: true });
+  writeFileSync(join(d.travail, ".git", "info", "grafts"), `${sommet} ${parent} ${x}\n`);
+  const r = clore(d, "demo");
+  assert.equal(r.status, 4, sortie(r));
+  assert.equal(sommetDistant(d), x, "le sujet avancé est intact");
+});
+
+test("une URL de push qui diverge de l'URL de lecture (pushurl, pushInsteadOf) refuse en 4 : on ne supprime pas ailleurs que là où l'on a vérifié", () => {
+  for (const reglage of ["pushurl", "pushInsteadOf"]) {
+    const d = sujetLivre();
+    const autre = join(d.racine, "autre.git");
+    d.git("init", "--bare", "-q", autre);
+    if (reglage === "pushurl") d.git("config", "remote.origin.pushurl", autre);
+    else d.git("config", `url.${autre}.pushInsteadOf`, d.origine);
+    const avant = sommetDistant(d);
+    const r = clore(d, "demo");
+    assert.equal(r.status, 4, `${reglage} : ${sortie(r)}`);
+    assert.match(r.stdout, /URL de push/);
+    assert.equal(sommetDistant(d), avant, `${reglage} : rien supprimé`);
+  }
+});
+
+test("les PR ouvertes se lisent juste avant la relecture finale du sommet, après la carte", () => {
+  const corps = readFileSync(SCRIPT, "utf8").match(/^clore\(\) \{[\s\S]*?^\}/m)?.[0] ?? "";
+  const place = (motif) => corps.search(motif);
+  assert.ok(place(/sujet_livre "\$nom"/) >= 0 && place(/gh api/) >= 0);
+  assert.ok(place(/sujet_livre "\$nom"/) < place(/gh api/), "sujet_livre avant la lecture des PR");
+  assert.ok(place(/commit_carte_livree/) < place(/gh api/), "la carte avant la lecture des PR");
+  assert.ok(place(/gh api/) < place(/a bougé pendant les vérifications/), "les PR avant la relecture du sommet");
 });
