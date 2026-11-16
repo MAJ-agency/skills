@@ -15,9 +15,10 @@
  * lecture se tait : le hook ne signale que ce qu'il a pu lire, et sort toujours en 0.
  */
 import { spawnSync } from 'node:child_process';
-import { appendFileSync, existsSync, readFileSync, statSync } from 'node:fs';
+import { appendFileSync, existsSync, readFileSync, realpathSync, statSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { RACINE } from './entree.mjs';
 
 const ETAPES_ACTIVES = new Set(['fetch-develop', 'origin-head', 'install' /* , 'postgres', 'base-test' */]);
@@ -111,7 +112,16 @@ if (process.env.CLAUDE_ENV_FILE && existsSync(CA_SESSION_CLOUD) && !process.env.
   appendFileSync(process.env.CLAUDE_ENV_FILE, `export NODE_EXTRA_CA_CERTS=${CA_SESSION_CLOUD}\n`);
 }
 
-if (process.argv[1] && import.meta.url === `file://${process.argv[1]}`) {
+/** Vrai quand ce fichier est lancé en ligne de commande : lien symbolique, chemin à espace ou à accent, `--preserve-symlinks-main` compris. */
+function estPointEntree() {
+  try {
+    return realpathSync(fileURLToPath(import.meta.url)) === realpathSync(process.argv[1]);
+  } catch {
+    return false;
+  }
+}
+
+if (estPointEntree()) {
   const etat = {
     originDevelop: ok('git', ['rev-parse', '--verify', '-q', 'refs/remotes/origin/develop']),
     originHead: ok('git', ['rev-parse', '--verify', '-q', 'refs/remotes/origin/HEAD']),

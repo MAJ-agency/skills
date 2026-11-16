@@ -14,9 +14,9 @@
  *     ou si une cellule « Coût $ » n'est ni un montant ni une valeur attendue.
  */
 import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
 import { lireTicket } from "./identifiants.mjs";
 import { nomsDeSujets } from "./ligne-sujet.mjs";
 
@@ -171,7 +171,16 @@ export function enMarkdown(cartes) {
   return `${out.join("\n")}\n`;
 }
 
-if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
+/** Vrai quand ce fichier est lancé en ligne de commande : lien symbolique, chemin à espace ou à accent, `--preserve-symlinks-main` compris. */
+function estPointEntree() {
+  try {
+    return realpathSync(fileURLToPath(import.meta.url)) === realpathSync(process.argv[1]);
+  } catch {
+    return false;
+  }
+}
+
+if (estPointEntree()) {
   const racine = execFileSync("git", ["rev-parse", "--show-toplevel"], { encoding: "utf8" }).trim();
   const cartes = execFileSync("git", ["ls-files", "--full-name", ":/docs"], {
     encoding: "utf8",

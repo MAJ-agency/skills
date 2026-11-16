@@ -18,6 +18,8 @@
 // =============================================================================
 
 import { execFileSync } from 'node:child_process';
+import { realpathSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 
 // Ce qui exige la revue, lu sur le chemin décité, en NFC et en minuscules (`cheminLu`) :
 //   - le code : apps/, packages/, scripts/, e2e/ ;
@@ -101,7 +103,7 @@ function regexDuMotif(motif) {
     if (m === '*') return '[^/]*';
     return `\\${m}`;
   });
-  return new RegExp(`^${re}$`);
+  return new RegExp(`^${re}$`, 's');
 }
 /**
  * Contexte de la base : `cheminsSensibles` et `criteresRevue` de `.claude/chaine.json`, et les index générés
@@ -239,7 +241,16 @@ export function motifTitreSansCode({ titre, fichiers }) {
   return `titre « ${m[1]} » mais le diff ne contient que de la documentation (${liste.length} fichier(s) sous docs/) : le code est-il poussé ? Poser à-fusionner après le dernier push (le pre-push est long), ou retitrer en docs:`;
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+/** Vrai quand ce fichier est lancé en ligne de commande : lien symbolique, chemin à espace ou à accent, `--preserve-symlinks-main` compris. */
+function estPointEntree() {
+  try {
+    return realpathSync(fileURLToPath(import.meta.url)) === realpathSync(process.argv[1]);
+  } catch {
+    return false;
+  }
+}
+
+if (estPointEntree()) {
   const { readFileSync } = await import('node:fs');
   const fichiers = readFileSync(0, 'utf8').split('\n').filter(Boolean);
   const base = process.argv[4] ? lireBase(process.argv[4]) : SANS_BASE;
