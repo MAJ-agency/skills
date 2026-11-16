@@ -75,7 +75,13 @@ index_verifications() { index_json | jq -r '.index[] | objects | .verification /
 # commande ou d'un contrôle en échec part sur stderr, préfixée de sa commande (cas vécu : base
 # éteinte, `db:types` échouait sans un mot).
 regenerer_index() {
-  local c
+  local c motif
+  # Avant toute commande : un index (ou l'un de ses dossiers) en lien symbolique ferait écrire la commande à
+  # travers lui, hors du dépôt ou dans un autre fichier.
+  if ! motif=$(liens_sur_index); then
+    printf '%s\n' "$motif" >&2
+    return 1
+  fi
   while IFS= read -r c; do
     [ -n "$c" ] || continue
     jouer_ou_dire "$c" || return 1
@@ -123,6 +129,45 @@ index_generes_regex() {
 index_regeneres_regex() {
   index_json | jq -r '.index[] | objects | select((.commande // "") != "") | .chemin' |
     jq -Rrs 'split("\n") | map(select(. != "") | gsub("\\."; "\\.") | gsub("\\*"; "[^/]+")) | "^(" + join("|") + ")$"'
+}
+# Ceux qui ont une `commande` et sont déclarés par motif (`*`) : leur régénération réécrit les fichiers qu'elle
+# produit, sans retirer un fichier en trop sous le motif ni récrire un ancien. `passer.sh` (livraison
+# intermédiaire) ne les dispense que sur un contenu déjà connu.
+index_regeneres_motifs_regex() {
+  index_json | jq -r '.index[] | objects | select((.commande // "") != "" and (.chemin | contains("*"))) | .chemin' |
+    jq -Rrs 'split("\n") | map(select(. != "") | gsub("\\."; "\\.") | gsub("\\*"; "[^/]+")) | "^(" + join("|") + ")$"'
+}
+# Les dossiers d'un index généré (`docs/adr` pour `docs/adr/README.md`, motif compris), en expression régulière.
+index_dossiers_regex() {
+  index_generes | jq -Rrs 'split("\n") | map(select(. != "") | split("/") | . as $s | range(1; length) | $s[:.] | join("/"))
+    | map(gsub("\\."; "\\.") | gsub("\\*"; "[^/]+")) | "^(" + join("|") + ")$"'
+}
+# Liens symboliques sur un index généré, ou sur l'un de ses dossiers, dans l'arbre de `<commit>` (sans argument :
+# l'index git du worktree) ; avec `<base>`, ceux seulement que `<commit>` ajoute ou change par rapport à elle (un
+# lien déjà dans develop ne fait pas renvoyer toutes les PR : `regenerer_index` l'arrête). La régénération
+# écrirait à travers eux : hors du dépôt (lien absolu, ou relatif qui en sort) ou dans un autre fichier du dépôt
+# (worktree sale). Sortie 0 aucun ; 1 sinon, motif sur la sortie standard. Liste illisible (git, jq) : 1, jamais
+# une garde ouverte. Sans casse : sur un système de fichiers insensible à la casse, `Docs` est `docs`.
+liens_sur_index() {
+  local entrees deja='' liens generes dossiers l
+  if [ -n "${1:-}" ]; then
+    entrees=$(git -c core.quotePath=false ls-tree -r --full-tree "$1") || { echo "arbre de $1 illisible : liens symboliques non vérifiés"; return 1; }
+  else
+    entrees=$(git -c core.quotePath=false ls-files -s) || { echo "index git illisible : liens symboliques non vérifiés"; return 1; }
+  fi
+  if [ -n "${2:-}" ]; then
+    deja=$(git -c core.quotePath=false ls-tree -r --full-tree "$2" | awk -F '\t' '$1 ~ /^120000 /') || { echo "arbre de $2 illisible : liens symboliques non vérifiés"; return 1; }
+  fi
+  liens=$(comm -23 <(printf '%s\n' "$entrees" | awk -F '\t' '$1 ~ /^120000 /' | sort) <(printf '%s\n' "$deja" | sort) | cut -f2-)
+  [ -n "$liens" ] || return 0
+  generes=$(index_generes_regex) && dossiers=$(index_dossiers_regex) && [ -n "$generes" ] && [ -n "$dossiers" ] ||
+    { echo "liste des index générés illisible : liens symboliques non vérifiés"; return 1; }
+  while IFS= read -r l; do
+    if grep -qiE "$generes|$dossiers" <<<"$l"; then
+      echo "lien symbolique sur un index généré ou son dossier : $l ; la régénération écrirait à travers lui (hors du dépôt ou dans un autre fichier) : le remplacer par un fichier ordinaire, jamais un lien"
+      return 1
+    fi
+  done <<<"$liens"
 }
 # Indexe les index générés modifiés, ajoutés ou supprimés (un motif sans fichier n'est pas une erreur).
 ajouter_index() {

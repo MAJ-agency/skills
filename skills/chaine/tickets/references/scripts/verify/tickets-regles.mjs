@@ -265,7 +265,7 @@ function regexDuMotif(motif) {
     if (m === '*') return '[^/]*';
     return `\\${m}`;
   });
-  return new RegExp(`^${re}$`);
+  return new RegExp(`^${re}$`, 's');
 }
 
 /**

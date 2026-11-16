@@ -4,7 +4,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 // Posé dans un projet, depot-jouet.mjs est à côté (scripts/chaine/) ; dans le plugin, il est dans le skill sujet.
@@ -1230,4 +1230,200 @@ test("sujet.sh : un pre-push qui refuse donne 3 (geler : au premier essai, hook 
     if (nom === "livrer intermédiaire") assert.ok(!d.journal().some((e) => e.methode === "POST" && e.route === "pulls"), "aucune PR ouverte");
     assert.equal(d.git("status", "--porcelain"), "", `${nom} : worktree propre`);
   }
+});
+
+// Ce que la chaîne exécute ou lit pour juger, et du code d'une autre casse : une PR vers develop qui les change,
+// sans section de revue, n'entre pas (avant : sortie 0, fusionnée sans revue).
+const CONFIGURATION_CHAINE = [".github/workflows/ci.yml", ".husky/pre-push", ".claude/settings.json", "package.json", "pnpm-lock.yaml", "Apps/api/x.ts", "docs/prettier.config.mjs", "infra/deploy.sh", "docs/package.yaml", "docs/package.yml", "docs/x/package.json5"];
+test("passer.sh : une PR qui touche la configuration de la chaîne (CI, hooks, agent, install) ou du code d'une autre casse sans section de revue n'est pas éligible", () => {
+  for (const f of CONFIGURATION_CHAINE) {
+    const d = depotJouet();
+    d.branche("chore/x", "origin/develop", { [f]: "x\n" }, "chore: x");
+    d.git("switch", "-q", "--detach", "origin/develop");
+    d.github({
+      exiges: ["qualite"],
+      checks: { "*": { [PERIMETRE]: "SUCCESS", qualite: "SUCCESS" } },
+      pulls: [pr(31, "chore/x", { title: "chore: x", body: "Rien.\n" })],
+    });
+    const r = d.lancer(script("passer.sh"), "31");
+    assert.equal(r.status, 4, `${f} : ${r.stdout}${r.stderr}`);
+    assert.match(r.stdout, /sans section « Revue de ticket » ni « Revue adversariale »/, f);
+    assert.deepEqual(d.journal(), [], f);
+  }
+});
+
+// Le contrat d'origin/develop ajoute au plancher ses chemins sensibles et son fichier des critères ; ce que l'agent
+// lit (CLAUDE.md, docs/agents/) l'exige aussi. Une PR qui retire son chemin de chaine.json n'y échappe pas.
+test("passer.sh : un chemin sensible du projet, le fichier des critères, CLAUDE.md et docs/agents/ exigent la revue, même quand la PR retire le chemin de chaine.json", () => {
+  const cas = {
+    "chemin sensible du projet": (d) => d.ecrire("infra/main.tf", "x\n"),
+    "retiré de chaine.json par la PR": (d) => {
+      d.ecrire(".claude/chaine.json", JSON.stringify({ cheminsSensibles: [], criteresRevue: "docs/revue/criteres.md" }));
+      d.ecrire("infra/main.tf", "x\n");
+    },
+    "fichier des critères": (d) => d.ecrire("docs/revue/criteres.md", "S1 rien\n"),
+    "CLAUDE.md": (d) => d.ecrire("docs/CLAUDE.md", "x\n"),
+    "docs/agents/": (d) => d.ecrire("docs/agents/pieges.md", "x\n"),
+  };
+  for (const [nom, geste] of Object.entries(cas)) {
+    const d = depotJouet();
+    d.ecrire(".claude/chaine.json", JSON.stringify({ cheminsSensibles: ["infra/**"], criteresRevue: "docs/revue/criteres.md" }));
+    d.commit("chore: contrat");
+    d.git("push", "-q", "origin", "HEAD:develop");
+    d.git("fetch", "-q", "origin");
+    d.git("switch", "-q", "-C", "docs/x", "origin/develop");
+    geste(d);
+    d.commit("docs: x");
+    d.git("push", "-q", "origin", "HEAD:refs/heads/docs/x");
+    d.git("fetch", "-q", "origin");
+    d.git("switch", "-q", "--detach", "origin/develop");
+    d.github({
+      exiges: ["qualite"],
+      checks: { "*": { [PERIMETRE]: "SUCCESS", qualite: "SUCCESS" } },
+      pulls: [pr(31, "docs/x", { title: "docs: x", body: "Rien.\n" })],
+    });
+    const r = d.lancer(script("passer.sh"), "31");
+    assert.equal(r.status, 4, `${nom} : ${r.stdout}${r.stderr}`);
+    assert.match(r.stdout, /sans section « Revue de ticket » ni « Revue adversariale »/, nom);
+    assert.deepEqual(d.journal(), [], nom);
+  }
+});
+
+// Un index généré (docs/, entré sans revue) remplacé par un lien symbolique : la régénération écrivait à travers
+// lui, hors du dépôt (lien absolu) ou dans un autre fichier (lien relatif, worktree sale), en sortie 0.
+function prLienSurIndex(cible) {
+  const d = depotJouet();
+  writeFileSync(join(d.racine, "dehors.txt"), "à moi\n");
+  d.git("switch", "-q", "-C", "docs/lien", "origin/develop");
+  d.ecrire(`${ADR}/ADR_ALL_ARC-2-b.md`, "# 2\n");
+  d.git("rm", "-q", `${ADR}/README.md`);
+  symlinkSync(cible(d), join(d.travail, `${ADR}/README.md`));
+  d.git("add", "-A");
+  d.git("commit", "-q", "-m", "docs(adr): ADR 2");
+  d.git("push", "-q", "origin", "HEAD:refs/heads/docs/lien");
+  d.git("fetch", "-q", "origin");
+  d.git("switch", "-q", "--detach", "origin/develop");
+  d.github({
+    exiges: ["qualite"],
+    checks: { "*": { [PERIMETRE]: "SUCCESS", qualite: "SUCCESS" } },
+    pulls: [pr(31, "docs/lien", { title: "docs(adr): ADR 2", body: "Rien.\n" })],
+  });
+  return d;
+}
+test("passer.sh : un index généré remplacé par un lien symbolique (absolu ou relatif) est refusé (sortie 4), rien n'est écrit à travers lui", () => {
+  for (const [cas, cible] of [["absolu", (d) => join(d.racine, "dehors.txt")], ["relatif", () => "../../README.md"]]) {
+    const d = prLienSurIndex(cible);
+    const r = d.lancer(script("passer.sh"), "31");
+    assert.equal(r.status, 4, `${cas} : ${r.stdout}${r.stderr}`);
+    assert.match(r.stdout, /lien symbolique sur un index généré ou son dossier : docs\/adr\/README\.md/, cas);
+    assert.equal(readFileSync(join(d.racine, "dehors.txt"), "utf8"), "à moi\n", `${cas} : rien d'écrit hors du dépôt`);
+    assert.equal(d.lire("README.md"), "jouet\n", `${cas} : rien d'écrit dans un autre fichier`);
+    assert.equal(d.git("status", "--porcelain"), "", cas);
+    assert.deepEqual(d.journal(), [], cas);
+  }
+});
+
+// Le même lien déjà dans develop (entré avant cette version) : une PR qui ne le touche pas n'est pas renvoyée pour
+// lui, et la régénération s'arrête avant d'écrire (sortie 3, que la boucle porte au capitaine).
+test("passer.sh : un lien symbolique déjà dans develop sur un index généré arrête la régénération (sortie 3) sans renvoyer la PR, rien n'est écrit à travers lui", () => {
+  const d = depotJouet();
+  const dehors = join(d.racine, "dehors.txt");
+  writeFileSync(dehors, "à moi\n");
+  d.git("rm", "-q", `${ADR}/README.md`);
+  mkdirSync(join(d.travail, ADR), { recursive: true });
+  symlinkSync(dehors, join(d.travail, `${ADR}/README.md`));
+  d.commit("docs: lien");
+  d.git("push", "-q", "origin", "HEAD:develop");
+  d.git("fetch", "-q", "origin");
+  d.branche("docs/adr-2", "origin/develop", { [`${ADR}/ADR_ALL_ARC-2-b.md`]: "# 2\n" }, "docs(adr): ADR 2");
+  d.git("switch", "-q", "--detach", "origin/develop");
+  d.github({
+    exiges: ["qualite"],
+    checks: { "*": { [PERIMETRE]: "SUCCESS", qualite: "SUCCESS" } },
+    pulls: [pr(31, "docs/adr-2", { title: "docs(adr): ADR 2", body: "Rien.\n" })],
+  });
+  const r = d.lancer(script("passer.sh"), "31");
+  assert.equal(r.status, 3, r.stdout + r.stderr);
+  assert.match(r.stderr, /lien symbolique sur un index généré ou son dossier : docs\/adr\/README\.md/);
+  assert.equal(readFileSync(dehors, "utf8"), "à moi\n", "rien d'écrit hors du dépôt");
+  assert.ok(!ecritures(d).some((e) => e.startsWith("PUT ")), "aucune fusion");
+});
+
+// Livraison intermédiaire d'un projet dont un index est déclaré par motif, avec une `commande` (`apps/gen/*.ts`) :
+// la régénération réécrit `a.ts` et ne retire pas un fichier en trop. `geste(d)` agit sur la livraison.
+const GEN = "import { mkdirSync, writeFileSync } from 'node:fs';\nmkdirSync('apps/gen', { recursive: true });\nwriteFileSync('apps/gen/a.ts', 'export const a = 1;\\n');\n";
+function livraisonMotif(geste) {
+  const d = depotJouet();
+  d.ecrire("scripts/docs/gen.mjs", GEN);
+  d.ecrire(
+    "scripts/docs/index-generes.json",
+    JSON.stringify({ index: [{ chemin: `${ADR}/README.md`, commande: "node scripts/docs/adr-index.mjs" }, { chemin: "apps/gen/*.ts", commande: "node scripts/docs/gen.mjs" }] }),
+  );
+  d.ecrire("apps/gen/a.ts", "export const a = 1;\n");
+  d.ecrire("apps/gen/ancien.ts", "export const ancien = 1;\n");
+  d.commit("chore: index par motif");
+  d.git("push", "-q", "origin", "HEAD:develop");
+  d.git("fetch", "-q", "origin");
+  d.branche("sujet/lot", "origin/develop", { "docs/lot.md": "lot\n" });
+  d.git("switch", "-q", "-C", LIVRAISON, "origin/sujet/lot");
+  geste(d);
+  d.commit("docs: index");
+  d.git("push", "-q", "origin", `HEAD:refs/heads/${LIVRAISON}`);
+  d.git("fetch", "-q", "origin");
+  d.git("switch", "-q", "--detach", "origin/develop");
+  d.github({
+    exiges: ["qualite"],
+    checks: { "*": { [PERIMETRE]: "SUCCESS", qualite: "SUCCESS" } },
+    pulls: [pr(40, LIVRAISON, { title: "feat(demo): livraison intermédiaire" })],
+  });
+  return d;
+}
+test("passer.sh : une livraison intermédiaire qui ajoute ou réécrit un fichier sous un index déclaré par motif repasse par la revue", () => {
+  const gestes = {
+    "fichier en trop": (d) => d.ecrire("apps/gen/pirate.ts", "export const pirate = 1;\n"),
+    "ancien fichier réécrit": (d) => d.ecrire("apps/gen/ancien.ts", "export const pirate = 1;\n"),
+  };
+  for (const [cas, geste] of Object.entries(gestes)) {
+    const d = livraisonMotif(geste);
+    const avant = d.git("rev-parse", "origin/develop");
+    const r = d.lancer(script("passer.sh"), "40");
+    assert.equal(r.status, 4, `${cas} : ${r.stdout}${r.stderr}`);
+    assert.match(r.stdout, /sans section « Revue de ticket » ni « Revue adversariale »/, cas);
+    d.git("fetch", "-q", "origin");
+    assert.equal(d.git("rev-parse", "origin/develop"), avant, `${cas} : develop inchangé`);
+  }
+});
+
+// Garde de non-régression : le fichier sous le motif que la mise à jour a pris de develop (conflit sur un index seul,
+// `commande` qui ne le réécrit pas) reste dispensé. Une variante qui renverrait tout fichier sous un motif à la
+// revue la ferait sortir en 4.
+test("passer.sh : une livraison intermédiaire dont un fichier sous un index par motif est celui de develop reste une livraison (sans revue)", () => {
+  const d = depotJouet();
+  d.ecrire(
+    "scripts/docs/index-generes.json",
+    JSON.stringify({ index: [{ chemin: `${ADR}/README.md`, commande: "node scripts/docs/adr-index.mjs" }, { chemin: "docs/generes/*.json", commande: "true" }] }),
+  );
+  d.ecrire("docs/generes/a.json", "0\n");
+  d.commit("docs: index par motif");
+  d.git("push", "-q", "origin", "HEAD:develop");
+  d.git("fetch", "-q", "origin");
+  d.branche("sujet/lot", "origin/develop", { "apps/api/lot.ts": "export const lot = 1;\n", "docs/generes/a.json": "sujet\n" });
+  d.git("push", "-q", "origin", `origin/sujet/lot:refs/heads/${LIVRAISON}`);
+  d.branche("develop", "origin/develop", { "docs/generes/a.json": "develop\n" }, "docs: a (#39)");
+  d.git("switch", "-q", "--detach", "origin/develop");
+  d.github({
+    exiges: ["qualite"],
+    checks: { "*": { [PERIMETRE]: "SUCCESS", qualite: "FAILURE" } },
+    pulls: [pr(40, LIVRAISON, { title: "feat(demo): livraison intermédiaire" })],
+  });
+  const premier = d.lancer(script("passer.sh"), "40");
+  assert.equal(premier.status, 3, premier.stdout + premier.stderr);
+  assert.match(premier.stdout, /mise à jour poussée/);
+  d.git("fetch", "-q", "origin");
+  assert.equal(d.git("show", `origin/${LIVRAISON}:docs/generes/a.json`), "develop", "version de develop prise au conflit");
+  d.github({ checks: { "*": { [PERIMETRE]: "SUCCESS", qualite: "SUCCESS" } } });
+  const r = d.lancer(script("passer.sh"), "40");
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  d.git("fetch", "-q", "origin");
+  assert.equal(d.git("rev-list", "--parents", "-1", "origin/develop").split(" ").length, 3, "commit de merge : deux parents");
 });

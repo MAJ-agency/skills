@@ -10,9 +10,9 @@
  * Usage : node scripts/docs/vagues.mjs <SPEC|chemin de la spec> [--max N] [--json]
  */
 import { execFileSync } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, realpathSync } from 'node:fs';
 import { join } from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { fileURLToPath } from 'node:url';
 import { lireTicket } from './avancement-regles.mjs';
 import { estSpec, fichiersDeLaSpec, identifiantDuFichier } from './identifiants.mjs';
 
@@ -163,4 +163,13 @@ function principal() {
   else process.stdout.write(enMarkdown(spec, resultat));
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) principal();
+/** Vrai quand ce fichier est lancé en ligne de commande : lien symbolique, chemin à espace ou à accent, `--preserve-symlinks-main` compris. */
+function estPointEntree() {
+  try {
+    return realpathSync(fileURLToPath(import.meta.url)) === realpathSync(process.argv[1]);
+  } catch {
+    return false;
+  }
+}
+
+if (estPointEntree()) principal();

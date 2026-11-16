@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { ajouteUneDependance, decisionCommande, decisionOutilGithub, lireDependances, paquetsAjoutes, pousseSurUnSujet, refusEdition, sansTexte, segmentsDeCommande, lintable } from './regles.mjs';
+import { lireCommande, RAISON_ILLISIBLE, LECTURE_7_9, RAISON_TROP_LONGUE } from './regles.mjs';
 
 const livree = { migrationExistante: () => true, migrations: 'apps/api/src/db/migrations/' };
 const nouvelle = { migrationExistante: () => false, migrations: 'apps/api/src/db/migrations/' };
@@ -131,6 +132,12 @@ test('un push vers un sujet est refusé, quelle que soit la branche et la forme 
     'git push -o ci.skip origin HEAD:sujet/demo',
   ])
     assert.equal(decisionCommande(commande, ticket)?.decision, 'refuser', commande);
+  for (const commande of ['git push origin --delete sujet/demo', 'git push origin :sujet/demo', 'git push origin :refs/heads/sujet/demo']) {
+    const d = decisionCommande(commande);
+    assert.equal(d?.decision, 'refuser', commande);
+    assert.match(d.raison, /sujet\.sh clore <nom>/, `${commande} : le refus indique la voie de la suppression`);
+  }
+  assert.equal(decisionCommande('bash scripts/chaine/sujet.sh clore demo'), null, 'le script, lui, passe : le hook ne lit pas son contenu');
   assert.equal(decisionCommande('git push origin HEAD:sujet/demo')?.decision, 'refuser', 'branche inconnue : refusé aussi');
   assert.equal(decisionCommande('git push origin HEAD:sujet/demo', { brancheCourante: () => 'tmp' })?.decision, 'refuser', 'branche quelconque : refusé aussi');
   assert.equal(decisionCommande('git push origin sujet/demo', { brancheCourante: () => 'sujet/demo' })?.decision, 'refuser', 'même depuis le sujet : seul sujet.sh y écrit');
@@ -462,6 +469,432 @@ test('contournements relevés pendant le ticket 27 : champ gh collé ou route ap
     assert.equal(decisionCommande(commande, { brancheCourante: () => 'sujet/y' })?.decision, 'refuser', commande);
 });
 
+const CTX_33 = { brancheCourante: () => 'feat/x', brancheParDefaut: () => 'develop' };
+const F_33 = 'git push --force origin feat/x';
+const ecarts = (commandes, attendu) => commandes.filter((c) => (decisionCommande(c, CTX_33)?.decision ?? 'passe') !== attendu);
+
+// A-51 ter : la lecture de 7.9.x se joue sur la commande d'origine. Ces here-docs à apostrophe, que le lecteur par jetons
+// laisse passer, sont refusés comme sur main (contournement : `git commit -F <fichier>`, `--body-file`) ; leur levée est
+// le ticket 35.
+test('A-51 ter : un here-doc quoté lu par un consommateur inerte, avec une apostrophe, est refusé comme sur main (refus à tort de 7.9.x)', () => {
+  const F = F_33;
+  const commandes = [
+    "git commit -m \"$(cat <<'EOF'\nfix(chaine): le capitaine seul lance gh pr merge\n\nl'agent ne le lance pas\nEOF\n)\" && git log --format='%s' -1", // P1
+    `git commit -m "$(cat <<'EOF'\nfix: plus de ${F}\nl'agent\nEOF\n)"\necho 'ok'`, // P2
+    "git commit -m \"$(cat <<'EOF'\nfix: refuser git push origin main\n\nl'agent\nEOF\n)\" && git log --format='%h %s' -1", // P3
+    "git commit -F - <<'EOF'\nfix(chaine): le capitaine seul lance gh pr merge\nl'architecte ne le lance pas\nEOF\ngit log --format='%s' -1", // P4
+    `git commit -F - <<'EOF'\nfix: plus de ${F}\nl'architecte\nEOF\ngit log --format='%s' -1`, // P5
+    "git commit -F - <<-'EOF'\n\tfix: gh pr merge\n\tl'architecte\n\tEOF\necho 'fait'", // P6
+    "cat <<\"FIN\"\ngh pr merge 12\nl'architecte\nFIN\necho 'fait'", // P7
+    "cat <<'A' > a\ngh pr merge 1 ; l'un\nA\ncat <<'B' > b\nd'autre\nB\n", // P8
+    "cat > m <<'EOF'\nfix: gh pr merge\nl'agent\nEOF\ngit commit -F m && git log --format='%s' -1", // P9
+    `gh pr create --title "fix: l'agent" --body "$(cat <<'EOF'\n${F}\nl'architecte\nEOF\n)" && echo 'ok'`, // P10
+    `git commit -F - <<EOF\nfix: plus de ${F}\nl'agent\nEOF\necho 'ok'`, // P11
+    "git commit -F - <<\\EOF\nfix: gh pr merge\nl'agent\nEOF\necho 'ok'", // P12
+  ];
+  assert.deepEqual(ecarts(commandes, 'refuser'), []);
+  for (const c of commandes) assert.equal(LECTURE_7_9.decisionCommande(c, CTX_33)?.decision, 'refuser', c);
+});
+
+test('ticket 33 : ce qui passait passe encore (corps de PR, apostrophes, $\'…\', boucle, deux here-docs sur une ligne)', () => {
+  const commandes = [
+    "gh pr create --title \"x\" --body \"$(cat <<'EOF'\ngh pr merge\nl'architecte\nEOF\n)\"", // G1
+    "git commit -m \"fix: l'agent ne pousse pas\"", // G2
+    "git commit -m $'fix: l\\'agent\\n\\ncorps'", // G3
+    "python3 - <<'EOF'\nprint(\"l'architecte : gh pr merge, gh repo sync\")\nEOF\n", // G4
+    "git commit -m \"$(cat <<'EOF'\nfeat(x): le garde\n\nCorps : l'agent ne pousse pas.\nEOF\n)\"", // G5
+    "git commit -m \"$(cat <<'EOF'\nfix: l'agent\nEOF\n)\" && git push origin HEAD:feat/x", // G6
+    "cat > m <<'EOF'\nl'agent\nEOF", // G7
+    "git commit -m \"$(cat <<'EOF'\nfix: x\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\"", // G8
+    "git commit -m \"chore: npm install x refusé\"", // G9
+    "for f in a b; do echo \"$f\"; done && git log --format='%s' -1", // G10
+    "cat <<'A' <<'B'\nl'un : gh pr merge 1\nA\nd'autre\nB\necho 'ok'", // G11
+  ];
+  assert.deepEqual(ecarts(commandes, 'passe'), []);
+});
+
+test('ticket 33 : ce que bash exécute se lit — ligne d’ouverture, après le terminateur, corps donné à un shell, substitutions d’un corps non quoté ; l’illisible est refusé', () => {
+  const F = F_33;
+  const commandes = [
+    "git commit -m \"$(cat <<'EOF'\nl'agent\nEOF\n)\" --no-verify", // R1
+    "git commit -m \"$(cat <<'EOF'\nl'agent\nEOF\n)\" -n", // R2
+    `cat <<'EOF'\nl'agent\nEOF\n${F}`, // R3
+    `cat <<'EOF'\nl'x\nEOF\n; ${F}`, // R4
+    "git commit -m \"$(cat <<'EOF'\nl'agent\nEOF\n)\" && git push origin main", // R5
+    "git commit -m \"$(cat <<'EOF'\nl'agent\nEOF\n)\" || git push origin develop", // R6
+    "cat <<'EOF' > m\nl'agent\nEOF\ngit commit --no-verify -F m", // R7
+    "python3 - <<'EOF'\nprint(\"l'architecte : gh pr merge\")\nEOF\ngh pr merge 12", // R8
+    `cat <<EOF | ${F}\nl'architecte\nEOF\n`, // R9
+    "cat <<'EOF' ; gh pr merge 12\nx\nEOF\n", // R10
+    "cat <<'EOF' > m && git commit --no-verify -F m\nx\nEOF\n", // R11
+    "cat <<'EOF' ; npm install leftpad\nx\nEOF\n", // R12
+    "cat <<EOF ; git push -f origin feat/x\nx\nEOF\n", // R13
+    `echo "<<EOF" ; ${F}\ncat <<'EOF'\nx\nEOF\n`, // R14
+    "echo $'<<EOF'\ngit push -f\nl'x\nEOF\necho 'y'", // R15
+    "x=\"<<EOF\" | echo $(cat <<'EOF'\nz\nEOF\n)\ngh api -f message=\"fix(api): x\" -X PUT repos/o/r/contents/a.md", // R16
+    `# <<EOF\n${F}\nEOF`, // R17
+    `cat <<<EOF\n${F}\nEOF`, // R18
+    `echo $((1<<X))\n${F}\nX`, // R19
+    "cat <<EOF ; git push -f\n'\nEOF\necho 'fin'", // R20
+    `bash <<'EOF'\n${F}\nEOF`, // R21
+    "bash -s <<'EOF'\n# l'agent\ngit commit --no-verify -m x\nEOF", // R22
+    "cat <<'EOF' | sh\ngit push origin main\nEOF", // R23
+    `source /dev/stdin <<'EOF'\n${F}\nEOF`, // R24
+    `python3 - <<'EOF'\nimport os; os.system("${F}")\nEOF`, // R25
+    `eval "$(cat <<'EOF'\n${F}\nEOF\n)"`, // R26
+    `sh -c "$(cat <<'EOF'\n${F}\nEOF\n)"`, // R27
+    `python3 -c "$(cat <<'EOF'\nimport os; os.system('${F}')\nEOF\n)"`, // R28
+    "cat <<EOF\nl'agent $(git push -f origin feat/x)\nEOF", // R29
+    "cat <<EOF\nl'agent `git push -f origin feat/x`\nEOF", // R30
+    "cat <<'EOF'\nl'architecte\nEOF\ngit -c user.name=\"a;b\" push --force origin feat/x\ncat <<'EOF'\nl'architecte\nEOF\n", // R31
+    `cat <<'EOF'\nl'architecte\n${F}`, // R32
+    `cat <<'EOF'\nl'architecte\nEOFX\n${F}`, // R33
+    `cat <<'EOF' > s.sh\n# l'agent\n${F}\nEOF\nbash s.sh && echo 'ok'`, // R34
+    "git commit -m \"l'agent\" --no-verify", // R35
+    "git commit -m $'l\\'agent' --no-verify", // R36
+    "echo l\\'x; git push origin main", // R37
+    `echo "${F}"`, // R38
+    "echo \"gh pr merge 12\"", // R39
+    "eval \"git push -f origin feat/x\"", // R40
+    "git commit -m \"--no-verify\"", // R41
+    `echo "$x <<EOF" ; ${F}\ncat <<'EOF'\nx\nEOF\n`, // R42
+    `cat <<A <<B ; ${F}\nx\nA\ny\nB\n`, // R43
+    `echo \\<<EOF ; ${F}\ncat <<'EOF'\nx\nEOF\n`, // R44
+    "git commit -m \"fix: l'architecte ; gh pr merge\"", // R45
+    `cat <<'EOF'\nfix: gh pr merge\nl'architecte\nEOF\n${F}`, // R46
+    "cat <<'EOF'\nl'architecte\nEOF\ngit -c user.name=\"a;b\" push --force origin feat/x", // R47
+    "cat <<'EOF'\nl'architecte\nEOF\ngh api -f message=\"fix(api): x\" -X PUT repos/o/r/contents/a.md", // R48
+    `echo "<<EOF" ; ${F}`, // R49
+    `echo '<<EOF' && ${F}`, // R50
+    "echo \"<<X\" ; gh api -X PUT repos/o/r/pulls/1/merge", // R51
+    "echo '<<EOF' | echo $(cat <<'EOF'\nz\nEOF\n) | git -c user.name=\"a;b\" push --force origin feat/x", // R52
+    "<<'EOF' echo $(cat <<'EOF'\nz\nEOF\n) ; gh api -f message=\"fix(api): x\" -X PUT repos/o/r/contents/a.md\n\tEOF", // R53
+  ];
+  assert.deepEqual(ecarts(commandes, 'refuser'), []);
+});
+
+test('ticket 33 : lireCommande rend les affectations, les mots, les here-strings et les here-docs de chaque commande simple, dans l’ordre du source', () => {
+  const lu = lireCommande('HUSKY=0 git -c core.hooksPath=x commit -m "a b" <<<"c"');
+  assert.equal(lu.illisible, null);
+  assert.equal(lu.commandes.length, 1);
+  const [cmd] = lu.commandes;
+  assert.deepEqual(
+    cmd.affectations.map(({ nom, mot }) => [nom, mot.brut]),
+    [['HUSKY', 'HUSKY=0']],
+  );
+  assert.deepEqual(
+    cmd.mots.map(({ valeur, cite, expansion }) => [valeur, cite, expansion]),
+    [
+      ['git', false, false],
+      ['-c', false, false],
+      ['core.hooksPath=x', false, false],
+      ['commit', false, false],
+      ['-m', false, false],
+      ['a b', true, false],
+    ],
+  );
+  assert.deepEqual(
+    cmd.heredocs.map(({ operateur, corps }) => [operateur, corps]),
+    [['<<<', 'c']],
+  );
+  assert.equal(cmd.origine, 'tete');
+  const deux = lireCommande("cat <<'EOF' ; npm install x\nl'a\nEOF\ngit log");
+  assert.equal(deux.illisible, null);
+  assert.deepEqual(
+    deux.commandes.map(({ origine, mots }) => [origine, mots.map((m) => m.valeur).join(' ')]),
+    [
+      ['tete', 'cat'],
+      ['tete', 'npm install x'],
+      ['tete', 'git log'],
+    ],
+  );
+  assert.deepEqual(
+    deux.commandes[0].heredocs.map(({ operateur, delimiteur, quote, corps, lecture }) => ({ operateur, delimiteur, quote, corps, lecture })),
+    [{ operateur: '<<', delimiteur: 'EOF', quote: true, corps: "l'a\n", lecture: 'retire' }],
+  );
+  assert.match(decisionCommande("cat <<'EOF' ; npm install x\nl'a\nEOF\ngit log").raison, /^npm/);
+  // L'origine : substitution, sous-shell, chaîne -c, eval.
+  assert.deepEqual(
+    lireCommande('echo "$(pwd)"; (git status); bash -c "git log"; eval "git diff"').commandes.map(({ origine, mots }) => [origine, mots[0].valeur]),
+    [
+      ['tete', 'echo'],
+      ['substitution', 'pwd'],
+      ['sous-shell', 'git'],
+      ['tete', 'bash'],
+      ['-c', 'git'],
+      ['tete', 'eval'],
+      ['eval', 'git'],
+    ],
+  );
+});
+
+test('ticket 33 : ce que le lecteur ne sait pas lire est refusé avec RAISON_ILLISIBLE, avant tout autre refus', () => {
+  const F = 'git push --force origin feat/x';
+  const illisibles = [
+    "cat <<'EOF'\nx", // here-doc qui ne se ferme pas
+    "git commit -m \"$(cat <<'EOF'\nx\nEOF)\"", // fermé seulement en fin de substitution
+    "cat <<'EOF'\nx\nEOF;\n", // terminateur suivi d'un autre caractère
+    "cat <<'EOF'\nx\n  EOF\n", // terminateur précédé d'espaces
+    'echo "a', // guillemet double non fermé
+    "echo 'a", // apostrophe non fermée
+    "echo $'a", // citation ANSI-C non fermée
+    'echo $(a', // substitution non fermée
+    'echo `a', // accents graves non fermés
+    'echo ${a', // expansion non fermée
+    '{ a; ', // groupe non fermé
+    '(a', // sous-shell non fermé
+    'if a; then b', // commande composée non fermée
+    "cat <<'EOF'\nx\nEOF\n; git log", // opérateur là où bash veut une commande (R4)
+    'a &&', // && sans commande
+    'echo a)', // syntaxe inconnue : parenthèse fermante sans ouvrante
+    'a (b)', // syntaxe inconnue : parenthèse dans une commande
+    'echo ' + '$(echo '.repeat(40) + 'x' + ')'.repeat(40), // imbrication au-delà de la borne
+  ];
+  for (const c of illisibles) {
+    assert.notEqual(lireCommande(c).illisible, null, c);
+    assert.equal(decisionCommande(c)?.raison, RAISON_ILLISIBLE, c);
+    // Avant tout autre refus : un push forcé lisible dans la même commande ne change pas la raison.
+    assert.equal(decisionCommande(`${F}\n${c}`, CTX_33)?.raison, RAISON_ILLISIBLE, `${F} puis ${c}`);
+  }
+  assert.equal(lireCommande(F).illisible, null);
+  // Une substitution de processus est un mot, lu, pas une syntaxe inconnue.
+  for (const c of ['diff <(ls a) <(ls b)', 'tee >(wc -l) < f']) assert.equal(lireCommande(c).illisible, null, c);
+  assert.deepEqual(
+    lireCommande('cat <(git push --force origin feat/x)').commandes.map((k) => k.origine),
+    ['tete', 'substitution'],
+  );
+  assert.equal(decisionCommande('cat <(git push --force origin feat/x)', CTX_33)?.raison.startsWith('push forcé'), true);
+});
+
+test('ticket 33 : les trois lectures d’un corps de here-doc — retiré, lu comme des commandes, relu par prudence', () => {
+  const F = F_33;
+  const corps = (c) => lireCommande(c).heredocs.map((h) => h.lecture);
+  // Retiré : consommateur inerte, aucun exécuteur ; le corps n'est pas lu, même s'il cite un push forcé.
+  const retire = `git commit -F - <<'EOF'\nfix: plus de ${F}\nl'agent\nEOF`;
+  assert.deepEqual(corps(retire), ['retire']);
+  assert.deepEqual(
+    lireCommande(retire).commandes.map((k) => k.origine),
+    ['tete'],
+  );
+  assert.equal(decisionCommande(retire, CTX_33), null);
+  // Retiré, non quoté : ses substitutions restent lues comme des commandes.
+  const substitution = "cat <<EOF\nl'agent $(git push -f origin feat/x)\nEOF";
+  assert.deepEqual(corps(substitution), ['retire']);
+  assert.deepEqual(
+    lireCommande(substitution).commandes.map((k) => [k.origine, k.mots.map((m) => m.valeur).join(' ')]),
+    [
+      ['tete', 'cat'],
+      ['substitution', 'git push -f origin feat/x'],
+    ],
+  );
+  assert.equal(decisionCommande(substitution, CTX_33)?.decision, 'refuser');
+  // Lu comme des commandes : le corps va à un shell.
+  for (const c of [`bash <<'EOF'\n${F}\nEOF`, `cat <<'EOF' | sh\n${F}\nEOF`, `eval "$(cat <<'EOF'\n${F}\nEOF\n)"`, `sh -c "$(cat <<'EOF'\n${F}\nEOF\n)"`, `{ bash; } <<'EOF'\n${F}\nEOF`]) {
+    assert.ok(corps(c).includes('commandes'), c);
+    assert.ok(
+      lireCommande(c).commandes.some((k) => k.origine === 'corps' && k.mots.map((m) => m.valeur).join(' ') === F),
+      c,
+    );
+    assert.equal(decisionCommande(c, CTX_33)?.decision, 'refuser', c);
+  }
+  assert.equal(decisionCommande("bash -s <<'EOF'\ngit commit --no-verify -m x\nEOF")?.decision, 'refuser', 'le corps lu passe aussi par COMMANDES_INTERDITES');
+  // Relu par prudence : consommateur qui n'est ni inerte ni un shell, préfixe inconnu, fonction, alias, exécuteur présent.
+  for (const c of [
+    `python3 - <<'EOF'\nimport os; os.system("${F}")\nEOF`,
+    `exec cat <<'EOF'\n${F}\nEOF`,
+    `stdbuf -o0 cat <<'EOF'\n${F}\nEOF`,
+    `f(){ cat; }; f <<'EOF'\n${F}\nEOF`,
+    `alias c=bash; c <<'EOF'\n${F}\nEOF`,
+    `cat <<'EOF' > s.sh\n# l'agent\n${F}\nEOF\nbash s.sh`,
+  ]) {
+    assert.ok(corps(c).includes('prudence'), c);
+    assert.ok(
+      lireCommande(c).prudences.some(({ segments }) => segments.some(({ mots }) => mots.join(' ') === F)),
+      c,
+    );
+    assert.equal(decisionCommande(c, CTX_33)?.decision, 'refuser', c);
+  }
+  // La prudence lit le texte du corps comme 7.9.0 lisait un texte cité : un appel coupé par une virgule passe.
+  assert.deepEqual(corps("python3 - <<'EOF'\nprint(\"l'architecte : gh pr merge, gh repo sync\")\nEOF\n"), ['prudence']);
+  assert.equal(decisionCommande("python3 - <<'EOF'\nprint(\"l'architecte : gh pr merge, gh repo sync\")\nEOF\n", CTX_33), null);
+});
+
+test('ticket 33 : chaque mot réservé est retiré avant les décideurs — npm install x derrière lui est refusé', () => {
+  for (const c of [
+    '! npm install x',
+    'time npm install x',
+    'time -p npm install x',
+    '{ npm install x; }',
+    '(npm install x)',
+    'if npm install x; then :; fi',
+    'if :; then npm install x; fi',
+    'if :; then :; elif npm install x; then :; fi',
+    'if :; then :; else npm install x; fi',
+    'for a in b; do npm install x; done',
+    'while npm install x; do :; done',
+    'until npm install x; do :; done',
+    'case a in a) npm install x;; esac',
+    'case a in (a) npm install x;; esac',
+  ])
+    assert.match(decisionCommande(c)?.raison ?? '', /^npm/, c);
+});
+
+test('ticket 33 : le lecteur est linéaire — 30 000 lignes « cat <<EOF » non fermées sont refusées en moins de 5 s', () => {
+  const c = 'cat <<EOF\n'.repeat(30000) + 'git push --force origin feat/x';
+  const debut = process.hrtime.bigint();
+  assert.equal(decisionCommande(c, CTX_33)?.decision, 'refuser');
+  assert.ok(Number(process.hrtime.bigint() - debut) / 1e9 < 5);
+});
+
+test('ticket 33 : formes trouvées par la session, que bash exécute — expansion vide ou affectée, substitution de processus, here-string, ligne continuée, préfixe inconnu devant un shell', () => {
+  const F = F_33;
+  for (const c of [
+    'GH=gh; $GH pr merge 3',
+    'GIT=git; $GIT commit --no-verify -m x',
+    'X=--no-verify; git commit $X -m x',
+    'git $SUB push -f origin feat/x',
+    'export B=main; git push origin "$B"',
+    `source <(cat <<'EOF'\n${F}\nEOF\n)`,
+    "bash <<< 'git commit --no-verify -m x'",
+    `eval $'echo a\\n${F}'`,
+    "$'\\x67it' push --force origin feat/x",
+    `g\\\nit push --force origin feat/x`,
+    "cat <<'EOF' && git push \\\n  --force origin feat/x\nl'x\nEOF",
+    "{ bash; } <<'EOF'\ngit commit --no-verify -m x\nEOF",
+    "exec bash <<'EOF'\ngit commit --no-verify -m x\nEOF",
+    `stdbuf -o0 bash <<'EOF'\n${F}\nEOF`,
+    `cat <<EOF\n\${x:-$(${F})}\nEOF`,
+    `source /dev/stdin <<< "$(cat <<'EOF'\n${F}\nEOF\n)"`,
+  ])
+    assert.equal(decisionCommande(c, CTX_33)?.decision, 'refuser', c);
+});
+
+test('ticket 33, contre-relecture B1 : dans un texte cité, "git, \'git, `gh et \\git se lisent sans leurs guillemets, barres obliques inverses ni accents graves (lecture L2, comme 7.9.x)', () => {
+  const F = F_33;
+  for (const c of [
+    "ruby -e '`gh pr merge 12`'",
+    "trap '\\git push -f' EXIT",
+    "echo '\\git push -f' | sh",
+    `perl -e 'system "git push -f"'`,
+    `env -S '"git" push -f'`,
+    `python3 -c 'import os; os.system("${F}")'`,
+    `python3 -c "import os; os.system('${F}')"`,
+    `python3 -c 'import os; os.system("gh pr merge 12")'`,
+    `trap 'eval "git push origin +feat/x"' EXIT`,
+    `node -e 'require("child_process").execSync("git push -f")'`,
+    "bash <(echo '\\git push -f')",
+    "source <(echo '\\git push -f')",
+    "set -- '\\git push -f'; eval \"$1\"",
+    "script -qc '\\git push -f' /dev/null",
+    `ssh h "'git' push --force origin feat/x"`,
+    `ssh h "\\git push -f"`,
+    `su -c "'git' push -f" u`,
+    `su -c '"gh" pr merge 12' u`,
+    "php -r 'system(\"git push -f\");'",
+    "awk 'BEGIN{system(\"\\git push -f\")}'",
+  ])
+    assert.equal(decisionCommande(c, CTX_33)?.decision, 'refuser', c);
+});
+
+test('ticket 33, contre-relecture B2 : les valeurs affectées à un tableau se relisent — a=(git push -f); "${a[@]}" est refusé', () => {
+  for (const c of [
+    'a=(git push -f); "${a[@]}"',
+    'a=(git push -f); ${a[*]}',
+    'a+=(git push origin develop); "${a[@]}"',
+    'a=(gh pr merge 12); "${a[@]}"',
+    'a=(git commit --no-verify -m x); "${a[@]}"',
+    'a=(npm install leftpad); "${a[@]}"',
+    "a=('git' push -f); \"${a[@]}\"",
+  ])
+    assert.equal(decisionCommande(c, CTX_33)?.decision, 'refuser', c);
+  assert.equal(decisionCommande('a=(x y "z t"); echo "${a[@]}"', CTX_33), null);
+});
+
+test('ticket 33, contre-relecture B3 : un corps relu par prudence passe par tous les décideurs — push, gh, COMMANDES_INTERDITES, dépendances', () => {
+  for (const c of [
+    "bash -c 'cat > s.sh <<'\\''EOF'\\''\n# l'\\''x\ngit push --no-verify origin feat/x\nEOF\nbash s.sh'",
+    "eval \"python3 - <<'EOF'\nimport os; os.system(\\\"git commit --no-verify -m x\\\")\nEOF\"",
+    "python3 - <<'EOF'\nimport os; os.system(\"git commit --no-verify -m x\")\nEOF",
+    "python3 - <<'EOF'\nimport os; os.system('git commit -n -m x')\nEOF",
+    "node - <<'EOF'\nrequire('child_process').execSync('npm install leftpad')\nEOF",
+    "python3 - <<'EOF'\nimport os; os.system('pnpm add leftpad')\nEOF",
+    "python3 - <<'EOF'\nimport os; os.system('git rebase origin/develop')\nEOF",
+    "python3 - <<'EOF'\nimport os; os.system('gh pr merge 12')\nEOF",
+    "node - <<'EOF'\nrequire('child_process').execSync('gh api -X PUT repos/o/r/pulls/1/merge')\nEOF",
+  ])
+    assert.equal(decisionCommande(c, CTX_33)?.decision, 'refuser', c);
+  // G4 passe toujours : rien de gardé dans le corps.
+  assert.equal(decisionCommande("python3 - <<'EOF'\nprint(\"l'architecte : gh pr merge, gh repo sync\")\nEOF\n", CTX_33), null);
+});
+
+test('ticket 33, banc de monotonie : un texte cité lu en L2 qui commence une commande passe aussi par COMMANDES_INTERDITES et les dépendances', () => {
+  const NV = 'git commit --no-' + 'verify -m x';
+  for (const c of [
+    `bash -c 'python3 -c "import os; os.system('\\''${NV}'\\'')"'`,
+    `eval 'python3 -c "import os; os.system('\\''${NV}'\\'')"'`,
+    `trap 'python3 -c "import os; os.system('\\''${NV}'\\'')"' EXIT`,
+    `python3 -c 'import os; os.system("python3 -c '\\''import os; os.system(\\"${NV}\\")'\\''")'`,
+    `bash <(echo 'python3 -c "import os; os.system('\\''${NV}'\\'')"')`,
+    `set -- 'python3 -c "import os; os.system('\\''${NV}'\\'')"'; eval "$1"`,
+    `eval 'perl -e '\\''\`${NV}\`'\\'''`,
+    `python3 -c 'import os; os.system("${NV}")'`,
+    `perl -e 'system("npm install leftpad")'`,
+    `node -e 'require("child_process").execSync("pnpm add leftpad")'`,
+    `ruby -e '\`git rebase origin/develop\`'`,
+  ])
+    assert.equal(decisionCommande(c, CTX_33)?.decision, 'refuser', c);
+  // Le premier segment est la commande elle-même, lue en L3 : un message qui cite --no-verify ou npm install passe.
+  for (const c of ['git commit -m "fix: plus de --no-' + 'verify, jamais"', 'git commit -m "chore: npm install x refusé"', 'gh pr create --title "x" --body "pnpm add zod est refusé"'])
+    assert.equal(decisionCommande(c, CTX_33), null, c);
+});
+
+test('ticket 33, /security-review : un here-doc non quoté se ferme sur sa ligne logique, lignes continuées par \\ recollées, comme bash', () => {
+  const P = 'git push -' + 'f origin feat/x';
+  for (const c of [
+    `cat <<EOF\nx\n\\\nEOF\n${P}\nEOF`,
+    `cat <<EOF\nx\nEOF\\\n\n${P}\nEOF`,
+    `cat <<EOF\nx\nE\\\nOF\n${P}\nEOF`,
+    `cat <<EOF\nx\n\\\n\\\nEOF\n${P}\nEOF`,
+    `git commit -F - <<EOF\nmsg\nEOF\\\n\ngit push origin main\nEOF`,
+    `cat <<EOF\nx\nE\\\nOF\ngh pr merge 1\nEOF`,
+    `cat <<EOF\nx\nE\\\nOF\nnpm i x\nEOF`,
+    `cat <<-EOF\nx\n\t\\\n\tEOF\n${P}\nEOF`,
+    `cat <<-EOF\nx\n\tE\\\nOF\n${P}\nEOF`,
+  ])
+    assert.equal(decisionCommande(c, CTX_33)?.decision, 'refuser', c);
+  // Ce que bash ne ferme pas reste un corps : `x\` + `EOF` se lit `xEOF`, `E\` + tabulation + `OF` se lit `E⇥OF`.
+  for (const c of [`cat <<EOF\nx\\\nEOF\n${P}\nEOF`, `cat <<-EOF\nx\nE\\\n\tOF\n${P}\nEOF`, `cat <<'EOF'\nx\\\n${P}\nEOF`]) {
+    const [h] = lireCommande(c).heredocs;
+    assert.ok(h.corps.includes(P), c);
+  }
+  // A-51 ter : la lecture de 7.9.x, jouée sur la commande d'origine, ferme le premier au `EOF` qui suit `x\` et
+  // refuse ce qu'elle croit voir après, comme sur main ; les deux autres passent.
+  assert.equal(decisionCommande(`cat <<EOF\nx\\\nEOF\n${P}\nEOF`, CTX_33)?.decision, 'refuser');
+  for (const c of [`cat <<-EOF\nx\nE\\\n\tOF\n${P}\nEOF`, `cat <<'EOF'\nx\\\n${P}\nEOF`]) assert.equal(decisionCommande(c, CTX_33), null, c);
+});
+
+test('ticket 33, contre-relecture C1 : ce qui suit un mot à expansion se relit en temps et mémoire linéaires', () => {
+  const F = F_33;
+  const mesure = (c) => {
+    const tas = process.memoryUsage().heapUsed;
+    const debut = process.hrtime.bigint();
+    const d = decisionCommande(c, CTX_33)?.decision;
+    return { d, s: Number(process.hrtime.bigint() - debut) / 1e9, mo: (process.memoryUsage().heapUsed - tas) / 2 ** 20 };
+  };
+  const continuees = (n) => 'echo ' + '"$a" \\\n'.repeat(n) + `; ${F}`;
+  const nus = (n) => 'echo ' + '$a '.repeat(n);
+  for (const [forme, attendu] of [[continuees, 'refuser'], [nus, undefined]]) {
+    mesure(forme(1000));
+    const petit = mesure(forme(10000));
+    const grand = mesure(forme(30000));
+    assert.equal(grand.d, attendu);
+    assert.ok(grand.s < 2, `${grand.s} s`);
+    // Trois fois plus long : moins de six fois plus de temps et de mémoire (une croissance quadratique en ferait neuf).
+    assert.ok(grand.s < 6 * petit.s + 0.2, `${petit.s} s puis ${grand.s} s`);
+    assert.ok(grand.mo < 200, `${grand.mo} Mo`);
+  }
+});
+
 test('lireDependances : la ligne d’en-tête, accents graves ou nus, — ou absente → []', () => {
   const ticket = (ligne) => `# X\n\nStatus: ready-for-agent\n${ligne}\n\n## Le besoin\n\nx\n`;
   assert.deepEqual(lireDependances(ticket('Dépendances: `leaflet`, `@types/leaflet`')), ['leaflet', '@types/leaflet']);
@@ -531,4 +964,110 @@ test('un dépôt prêt ne signale rien', async () => {
 test('lintable : le code TypeScript et les scripts, jamais les sorties de build ni node_modules', () => {
   for (const f of ['apps/api/src/a.ts', 'apps/web/src/b.tsx', 'scripts/verify/c.mjs', 'd.js']) assert.equal(lintable(f), true, f);
   for (const f of ['README.md', 'package.json', 'apps/web/.next/x.js', 'node_modules/x/y.ts', 'apps/api/dist/main.js', 'coverage/lcov.ts']) assert.equal(lintable(f), false, f);
+});
+
+// A-51 bis et ter : la garde refuse l'union du lecteur par jetons et de la lecture de 7.9.x, jouée sur la commande
+// d'origine, sans rien en retirer.
+test('A-51 bis : l’union refuse ce que la lecture de 7.9.x refusait en citations imbriquées, et que bash lance', () => {
+  for (const c of [
+    'echo "$(ssh h "git commit --no-verify -m x")"',
+    'echo "$(ssh h "git commit -n -m x")"',
+    'echo "$(ssh h "git rebase origin/sujet/x")"',
+    "git commit -F - <<'EOF'\nfix: l'agent ne lance pas gh pr merge\nEOF\nnice -n 5 git push",
+    "cat <<EOF\nl'agent\nEOF\necho \"$(ssh h \"git commit --no-verify -m x\")\"",
+  ])
+    assert.equal(decisionCommande(c, CTX_33)?.decision, 'refuser', c);
+});
+
+test('A-51 ter, /security-review de 83d3e01 : un corps retiré changeait l’appariement des here-docs de 7.9.x — refusé', () => {
+  // Dans `$(…)`, bash ferme le here-doc sur `EOF )` et lance le push ; le lecteur par jetons y voit encore le corps.
+  // La lecture de 7.9.x, sur la commande d'origine, voit le push et refuse ; sur la commande allégée (A-51 bis), le
+  // corps retiré déplaçait son appariement et la commande passait.
+  for (const c of [
+    `x=$(cat <<'EOF'\nl'a\nEOF )\n${F_33}\nEOF\n)`,
+    `x=$(cat <<EOF\nl'a\nEOF )\n${F_33}\nEOF\n)`,
+    `x=$(cat <<-'EOF'\nl'a\nEOF )\n${F_33}\nEOF\n)`,
+  ])
+    assert.equal(decisionCommande(c, CTX_33)?.decision, 'refuser', c);
+});
+
+test('A-51 ter : monotone par construction — tout refus de la lecture de 7.9.x sur la commande d’origine est un refus de la garde', () => {
+  const F = F_33;
+  const enveloppes = [(b) => b, (b) => `ssh h "${b}"`, (b) => `ssh h "bash -c '${b}'"`, (b) => `su -c "sh -c '${b}'"`, (b) => `sudo sh -c "eval '${b}'"`, (b) => `eval "eval '${b}'"`,
+    (b) => `echo "$(ssh h "${b}")"`, (b) => `bash -c "python3 -c 'import os; os.system(\\"${b}\\")'"`, (b) => `x=$(${b})`, (b) => `trap "sh -c '${b}'" EXIT`, (b) => `env -S "sh -c '${b}'"`];
+  const bases = [F, 'gh pr merge 12', 'git commit --no-verify -m x', 'git commit -n -m x', 'npm install leftpad', 'pnpm add zod', 'git push origin main', "git -c user.name='a;b' push -f", 'git rebase origin/develop', 'gh api -X PUT repos/o/r/pulls/1/merge'];
+  const autour = [(x) => x, (x) => `cat <<EOF\nl'agent $(echo y)\nEOF\n${x}`, (x) => `python3 - <<'EOF'\nprint("l'a")\nEOF\n${x}`, (x) => `${x} # l'x`, (x) => `echo l\\'x; ${x}`,
+    (x) => `git commit -F - <<'EOF'\nfix: l'agent\nEOF\n${x}`, (x) => `x=$(cat <<'EOF'\nl'a\nEOF )\n${x}\nEOF\n)`];
+  let vus = 0;
+  const ecarts = [];
+  for (const e of enveloppes) for (const b of bases) for (const a of autour) {
+    const c = a(e(b));
+    if (LECTURE_7_9.decisionCommande(c, CTX_33)?.decision !== 'refuser') continue;
+    vus++;
+    if (decisionCommande(c, CTX_33)?.decision !== 'refuser') ecarts.push(c);
+  }
+  assert.ok(vus > 400, `${vus}`);
+  assert.deepEqual(ecarts, []);
+});
+
+test('A-51 bis : la lecture de 7.9.x rend ce que rendait son motif de here-doc, sans son coût', () => {
+  const HD = /<<-?\s*(['"]?)(\w+)\1[^\n]*\n[\s\S]*?\n\s*\2(?=\s|$)/g;
+  const { sansHeredocs79 } = LECTURE_7_9;
+  const ALPHA = ['<', '-', ' ', '\n', "'", '"', 'E', 'F', '\t'];
+  const ecarts = [];
+  // Exhaustif : toutes les chaînes de six caractères sur cet alphabet, après « << » et après « x << ».
+  const rec = (s, k) => {
+    if (s.replace(HD, '<<heredoc') !== sansHeredocs79(s)) ecarts.push(s);
+    if (k > 0) for (const c of ALPHA) rec(s + c, k - 1);
+  };
+  rec('<<', 6);
+  rec('x <<', 5);
+  // Tirages longs, graine fixe.
+  let x = 7;
+  const h = (m) => (x = (x * 1103515245 + 12345) % 2147483648) % m;
+  const FR = ['<<', '<<-', "<<'EOF'", '<<"EOF"', '<<EOF', 'EOF', 'EO', 'EOFX', '\n', ' ', '\t', "'", '"', 'x', ';', ' ', '\r', ' ', 'A', '<<A', 'A\n', '_'];
+  for (let t = 0; t < 50000; t++) {
+    let s = '';
+    for (let k = 1 + h(25); k > 0; k--) s += FR[h(FR.length)];
+    if (s.replace(HD, '<<heredoc') !== sansHeredocs79(s)) ecarts.push(s);
+  }
+  assert.deepEqual(ecarts.slice(0, 5), []);
+  // Le cas qui coûtait au cube : dix « <<A » cités, 20 000 sauts de ligne (37 s avec le motif).
+  const c = "echo '" + '<<A '.repeat(10) + "'" + '\n'.repeat(20000) + 'echo ok';
+  const t0 = Date.now();
+  assert.equal(decisionCommande(c, CTX_33), null);
+  assert.ok(Date.now() - t0 < 2000, `${Date.now() - t0} ms`);
+});
+
+test('A-51 ter : au-delà de 100 000 caractères, refus prudent ; en deçà, le pire cas mesuré reste sous 10 s', () => {
+  assert.deepEqual(decisionCommande('echo ' + 'x'.repeat(100001), CTX_33), { decision: 'refuser', raison: RAISON_TROP_LONGUE });
+  // Le plafond compte toute la commande, corps de here-doc compris : un message plus long s'écrit dans un fichier.
+  assert.deepEqual(decisionCommande(`git commit -F - <<'EOF'\n${'fix\n'.repeat(25001)}EOF`, CTX_33), { decision: 'refuser', raison: RAISON_TROP_LONGUE });
+  assert.equal(decisionCommande(`git commit -F - <<'EOF'\n${'fix\n'.repeat(24000)}EOF`, CTX_33), null);
+  // La forme la plus coûteuse mesurée pour la lecture de 7.9.x : des accents graves collés, au carré de la taille
+  // (2,3 s pour 50 000 caractères et 8,2 s pour 99 000 sur le poste de mesure) ; jouée ici à 50 000.
+  const c = 'echo ' + '`a`'.repeat(16663);
+  const t0 = Date.now();
+  assert.equal(decisionCommande(c, CTX_33), null);
+  assert.ok(Date.now() - t0 < 10000, `${Date.now() - t0} ms`);
+});
+
+
+test('A-51 ter : le plafond se teste avant toute lecture — une commande de plus de 100 000 caractères est refusée vite', () => {
+  // La lecture par jetons est quadratique sur `git commit -m x ` répété : 122 s au-delà du délai du hook, avant le plafond.
+  const c = 'git commit -m x '.repeat(62000) + '; npm install x';
+  const t0 = Date.now();
+  assert.deepEqual(decisionCommande(c, CTX_33), { decision: 'refuser', raison: RAISON_TROP_LONGUE });
+  assert.ok(Date.now() - t0 < 2000, `${Date.now() - t0} ms`);
+});
+
+test('A-51 ter : le contexte est lu une fois pour les deux lectures — un seul appel de chaque', () => {
+  const appels = { dependancesPrevues: 0, brancheCourante: 0, brancheParDefaut: 0 };
+  const contexte = {
+    dependancesPrevues: () => (appels.dependancesPrevues++, ['zod']),
+    brancheCourante: () => (appels.brancheCourante++, 'feat/x'),
+    brancheParDefaut: () => (appels.brancheParDefaut++, 'develop'),
+  };
+  assert.equal(decisionCommande('pnpm add zod && git push', contexte), null);
+  assert.deepEqual(appels, { dependancesPrevues: 1, brancheCourante: 1, brancheParDefaut: 1 });
 });
