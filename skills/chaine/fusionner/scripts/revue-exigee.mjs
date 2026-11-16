@@ -174,7 +174,8 @@ function lireGit(ref, chemin) {
 /** Premier chemin du diff qui exige la revue, tel que git l'écrit, ou `null`. `base` : `lireBase`, ou `SANS_BASE`. */
 export function cheminExige(fichiers, base = SANS_BASE) {
   const sensibles = base.sensibles.map((m) => regexDuMotif(comparable(m)));
-  const generes = new Set(base.generes.map((g) => comparable(g.replace(/^\.\//, ''))));
+  // Exception de `docs/agents/` : le chemin exact de l'index (NFC, sans repli de casse), jamais un autre fichier qui se replie dessus.
+  const generes = new Set(base.generes.map((g) => g.replace(/^\.\//, '').normalize('NFC')));
   const criteres = new Set(base.criteres.map((c) => comparable(c.replace(/^\.\//, ''))));
   return (
     fichiers.find((f) => {
@@ -192,7 +193,7 @@ export function cheminExige(fichiers, base = SANS_BASE) {
         RC.test(c) ||
         CLAUDE_MD.test(c) ||
         criteres.has(c) ||
-        (DOCS_AGENTS.test(c) && !generes.has(c)) ||
+        (DOCS_AGENTS.test(c) && !(!f.trim().startsWith('"') && generes.has(f.trim().normalize('NFC')))) ||
         sensibles.some((re) => re.test(c))
       );
     }) ?? null

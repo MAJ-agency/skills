@@ -315,6 +315,9 @@ test('lireBase : seul un index littéral à commande sort de docs/agents/ ; cha�
   assert.equal(base.illisible, null);
   assert.equal(exigeRevue(['docs/agents/couts.md'], base), false, 'littéral à commande');
   for (const f of ['docs/agents/nu.md', 'docs/agents/a.json', 'docs/agents/sans.md']) assert.equal(exigeRevue([f], base), true, f);
+  // L'exception est le chemin exact (NFC), sans repli de casse : un autre fichier qui se replie dessus l'exige.
+  for (const f of ['docs/agents/COUTS.md', 'docs/agents/Couts.md', 'docs/agents/coutſ.md']) assert.equal(exigeRevue([f], base), true, f);
+  assert.equal(exigeRevue(['docs/agents/COUTS.md', 'docs/agents/couts.md'], base), true);
 });
 
 // Un sujet en retard sur develop : le contrat de develop s’ajoute au sien.
