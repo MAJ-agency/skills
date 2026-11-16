@@ -1,6 +1,6 @@
 # `coverage-diff` sur une PR de mise à jour d'un sujet ne mesure que l'écart du sommet à la fusion recalculée de develop, et son journal n'est plus coupé quand il passe par un tube
 
-Status: ready-for-agent
+Status: Fait — PR #101
 Type: défaut
 Label: contre-revue
 Modèle: sonnet — une fonction et trois remplacements de ligne dans `coverage-diff.mjs`, un remplacement mécanique de `console.log` par une fonction, un fichier de test donné entier, trois textes donnés mot pour mot (ancien, nouveau) et la version ; tout est joué sur une copie jetable de `origin/main` (voir « Vérification »). Rien à concevoir.
@@ -424,6 +424,7 @@ Dans une copie jetable de `origin/main` : `git worktree add --detach <dossier je
 
 ## Comments
 
+- 2026-11-16 — **Fait** : PR 101, fusionnée `22ae4cd`, plugin 7.10.1. Contre-relue conforme (13 scénarios adverses dont une fusion à code caché : aucun fichier de code changé n'échappe à la mesure ; replis fermés). Test du tube lent réécrit sans shell pour une alerte CodeQL (rouge 5/5 sur l'ancien script).
 - 2026-11-16 — Instruit sur `fa7d3eb` (plugin 7.9.0). Les deux défauts sont reproduits (voir « Le besoin »), le correctif et son banc sont joués sur une copie jetable : 5 rouges sur 8 avant, 8 verts sur 8 après, `coverage-diff-regles.test.mjs` vert. Le ticket 40 (A-47) n'est pas encore écrit : la forme reconnue est celle de la décision A-47 de la carte ; si le ticket 40 la précise autrement (par exemple l'ordre des parents), ajuster `fusionRecalculee` et les cas 1 à 4 du banc.
 - 2026-11-16 (relecture) — Recalé sur `76d90c7` (7.9.1, 528 tests ; le ticket 40 est écrit : la forme reconnue, première-parent = fusion à deux parents, sommet du sujet puis develop, puis des retouches linéaires, est la sienne). Corrigé : la CI (décision 6, phrase exacte, test de la fusion d'essai) ; le test du tube lit par un tube lent (`sleep 1`), rouge cinq fois sur cinq sans le correctif ; l'affirmation « une centaine de fichiers » retirée (non mesurée).
 - 2026-11-16 — Remis à jour sur `5ccead9` (plugin 7.10.0, 597 tests ; PR 99 fusionnée avec A-47 ter) : `coverage-diff.mjs` n'a pas changé, les cinq remplacements du § 1 s'appliquent tels quels ; l'intention tient, A-47 ter la confirme (les retouches se jugent comme une sous-PR : `coverage-diff` les mesure toutes, formatage compris) ; ajoutés la décision 7 et un dixième test (retouche de formatage d'un fichier de develop : comptée, modifiée et non neuve), rouge sur `main` ; le § 2, en prose, réécrit en trois textes mot pour mot (T1 à T3), « ligne de l'étape 4 » corrigé en préalable 4 ; `Blocked by:` vidé (40 fait) ; version 7.10.1 avec la règle de repli. Joué : 6 rouges sur 10 sur `main` cinq fois sur cinq, 10 verts avec le correctif, 607 tests (597 + 10), 628 avec 41 et 42 ; `TMPDIR` sans dossier `cov-` après la passe.
