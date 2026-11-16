@@ -1052,3 +1052,22 @@ test('A-51 ter : au-delà de 100 000 caractères, refus prudent ; en deçà, le 
   assert.ok(Date.now() - t0 < 10000, `${Date.now() - t0} ms`);
 });
 
+
+test('A-51 ter : le plafond se teste avant toute lecture — une commande de plus de 100 000 caractères est refusée vite', () => {
+  // La lecture par jetons est quadratique sur `git commit -m x ` répété : 122 s au-delà du délai du hook, avant le plafond.
+  const c = 'git commit -m x '.repeat(62000) + '; npm install x';
+  const t0 = Date.now();
+  assert.deepEqual(decisionCommande(c, CTX_33), { decision: 'refuser', raison: RAISON_TROP_LONGUE });
+  assert.ok(Date.now() - t0 < 2000, `${Date.now() - t0} ms`);
+});
+
+test('A-51 ter : le contexte est lu une fois pour les deux lectures — un seul appel de chaque', () => {
+  const appels = { dependancesPrevues: 0, brancheCourante: 0, brancheParDefaut: 0 };
+  const contexte = {
+    dependancesPrevues: () => (appels.dependancesPrevues++, ['zod']),
+    brancheCourante: () => (appels.brancheCourante++, 'feat/x'),
+    brancheParDefaut: () => (appels.brancheParDefaut++, 'develop'),
+  };
+  assert.equal(decisionCommande('pnpm add zod && git push', contexte), null);
+  assert.deepEqual(appels, { dependancesPrevues: 1, brancheCourante: 1, brancheParDefaut: 1 });
+});

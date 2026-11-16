@@ -1954,13 +1954,32 @@ export function pushSansRefspec(commande) {
  *   (`--registry`, `--config.*`) ; un seul paquet absent ou une telle option, et elle est refusée.
  */
 export function decisionCommande(commande, contexte = {}) {
+  // Le plafond avant toute lecture : la lecture par jetons, comme celle de 7.9.x, coûte au carré sur certaines formes
+  // (`git commit -m x ` répété) ; au-delà, la commande est refusée sans être lue, bien avant le délai du hook.
+  if (commande.length > TAILLE_MAX_LECTURE_7_9) return { decision: 'refuser', raison: RAISON_TROP_LONGUE };
+  // Le contexte (lectures du dépôt : `git ls-remote`, ticket) est lu une fois au plus, pour les deux lectures.
+  const memoire = {};
+  for (const cle of ['dependancesPrevues', 'brancheCourante', 'brancheParDefaut'])
+    if (typeof contexte[cle] === 'function') memoire[cle] = uneFois(contexte[cle]);
   const lu = lireCommande(commande);
-  const decision = decisionDuLecteur(lu, commande, contexte);
+  const decision = decisionDuLecteur(lu, commande, memoire);
   if (decision || lu.illisible) return decision;
   // L'union (A-51 ter) : ce que la lecture de 7.9.x refuse sur la commande d'origine est refusé. Elle la lit
   // entière, sans rien en retirer : tout refus de 7.9.x reste un refus de la garde, par construction.
-  if (commande.length > TAILLE_MAX_LECTURE_7_9) return { decision: 'refuser', raison: RAISON_TROP_LONGUE };
-  return LECTURE_7_9.decisionCommande(commande, contexte);
+  return LECTURE_7_9.decisionCommande(commande, memoire);
+}
+
+/** `f` appelée une fois au plus : les appels suivants rendent la même valeur. */
+function uneFois(f) {
+  let lue = false;
+  let valeur;
+  return () => {
+    if (!lue) {
+      valeur = f();
+      lue = true;
+    }
+    return valeur;
+  };
 }
 
 /** La décision du lecteur par jetons seul (ticket 33), sur une lecture de `lireCommande`. */
@@ -2143,8 +2162,8 @@ export function ecritParGh(commande) {
 }
 
 /**
- * Au-delà de cette taille de la commande, la lecture de 7.9.x n'est pas jouée : la commande est
- * refusée (échec fermé). Cette lecture coûte au carré sur certaines formes (accents graves, `$(…)` ou `git commit`
+ * Au-delà de cette taille de la commande, aucune lecture n'est jouée (ni le lecteur par jetons, ni celle de 7.9.x) :
+ * la commande est refusée (échec fermé). La lecture de 7.9.x coûte au carré sur certaines formes (accents graves, `$(…)` ou `git commit`
  * répétés sans séparateur) ; sous ce seuil, son pire cas mesuré est de 8,2 s (99 000 caractères), sous le délai du hook.
  */
 const TAILLE_MAX_LECTURE_7_9 = 100_000;
