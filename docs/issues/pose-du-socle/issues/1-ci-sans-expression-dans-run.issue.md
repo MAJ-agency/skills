@@ -1,6 +1,6 @@
 # `ci.yml` du gabarit de la chaîne : plus d'expression `${{ }}` dans un `run:`
 
-Status: ready-for-agent
+Status: Fait — PR #97
 Type: task
 
 `skills/chaine/socle-chaine-de-production/references/ci/ci.yml`, étape « Messages de commit » (ligne 41 sur `main`) :
@@ -39,3 +39,4 @@ Ce qui entre dans la commande : `github.event.pull_request.base.sha` et `head.sh
 ## Comments
 
 - 2026-11-10 — Ouvert par l'architecte du lot `standard-documentation` sur le relevé de la pose du ticket `5`. Risque vérifié : seules deux empreintes de commit entrent dans la commande.
+- 2026-11-16 — Subsumé par le n° 44 : l'étape « Messages de commit » passe `BASE_SHA` et `HEAD_SHA` par `env:` et ne garde aucune expression `${{ }}` dans un `run:` (vérifié : `grep -rnE '^\s*run:.*\$\{\{' skills --include=*.yml` est vide).

@@ -26,7 +26,7 @@ Créée sur le distant depuis `origin/main`, une fois, puis rapatriée : la couv
 
 ## La CI — `ci/ci.yml`
 
-Deux jobs exigés par la protection de `develop` : `qualite` et `test-db`. Un brouillon ne lance rien. Les E2E s'ajoutent en job séparé quand ils existent.
+Deux jobs exigés par la protection de `develop` : `qualite` et `test-db`. Un brouillon ne lance rien. L'étape « Messages de commit » ne juge que les commits de la tête absents de la base et de `origin/develop` (`scripts/chaine/commits-a-relire.mjs`, posé avec `fusionner`) : une PR de mise à jour d'un sujet ne relit pas develop, et une PR de develop vers main n'en juge aucun. Les E2E s'ajoutent en job séparé quand ils existent.
 
 ## La méthode — `docs-agents/chaine-de-production.md`
 
