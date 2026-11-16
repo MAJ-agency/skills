@@ -3,7 +3,7 @@
 Status: ready-for-agent
 Type: évolution
 Label: contre-revue
-Modèle: sonnet — un patch donné mot pour mot (`sujet.sh`, `boucle.sh`, `refus.sh`, deux bancs, six textes) et la version ; tout est joué sur une copie jetable de `origin/main` à `76d90c7` (voir « Vérification ») ; rien n'est à concevoir : le jugement que le ticket demandait (le formateur joué sur quel arbre, dans quel ordre avec la revue exigée) est tranché ici et gardé par des tests qui rougissent sous chaque variante écartée. La revue passe `/security-review` en plus de la revue de ticket : une dispense de revue nouvelle, et du code du dépôt joué par le capitaine avant la revue.
+Modèle: sonnet — un patch donné mot pour mot (`sujet.sh`, `boucle.sh`, `refus.sh`, deux bancs, six textes) et la version ; tout est joué sur une copie jetable de `origin/main` à `0860466` (voir « Vérification ») ; rien n'est à concevoir : le jugement que le ticket demandait (le formateur joué sur quel arbre, extrait comment sans rien exécuter, dans quel ordre avec la revue exigée et les checks) est tranché ici et gardé par des tests qui rougissent sous chaque variante écartée. La revue passe `/security-review` en plus de la revue de ticket : une dispense de revue nouvelle, et du code du dépôt (l'arbre déjà jugé) joué par le capitaine.
 Blocked by: 39 (PR #94, fusionnée dans `main` à `76d90c7` le 2026-11-16 : `revue-exigee.mjs` et l'appel de `sujet.sh fusionner` que ce ticket reprend)
 Dépendances: —
 Fichiers chauds: `skills/chaine/sujet/scripts/sujet.sh`, `skills/chaine/fusionner/scripts/boucle.sh`, `skills/chaine/fusionner/scripts/refus.sh`, `skills/chaine/fusionner/scripts/sujet-fusionner.test.mjs`, `skills/chaine/socle-chaine-de-production/references/scripts/github/develop.test.mjs`, `skills/chaine/sujet/SKILL.md`, `skills/chaine/sujet/references/CONTENU.md`, `skills/chaine/fusionner/SKILL.md`, `skills/chaine/fusionner/references/CONTENU.md`, `skills/chaine/socle-chaine-de-production/references/CONTENU.md`, `skills/chaine/chantier/SKILL.md`, `.claude-plugin/plugin.json`
@@ -23,13 +23,13 @@ Les règles du produit, intangibles :
 
 > jamais `--no-verify`, jamais de push forcé ni de réécriture, jamais de fusion avec un contrôle exigé rouge, jamais de test sauté ou assoupli, jamais de push sur la branche par défaut
 
-Quand le ticket est fait : une session fille fait la fusion de develop dans une branche partie du sujet, puis des retouches, commits ordinaires, et pousse le tout d'un seul push (le pre-push juge l'arbre de travail, le sommet). Le capitaine vérifie la fusion comme aujourd'hui, en admettant en plus dans son écart hors conflit les fichiers que le formateur prouve (le pre-commit de la session formate ce qu'il indexe). Il fait entrer **sans revue** un fichier retouché que le formateur du dépôt prouve : sa version au sommet est exactement ce que Prettier, à la version que verrouille le sommet, rend de sa version dans la fusion, sans directive de plus. Tout autre fichier retouché est jugé comme une sous-PR. Le tout entre par avance rapide. La boucle renvoie une sortie 3 de `sujet.sh fusionner` avec son vrai motif, ne renvoie plus une PR dont les checks tournent encore, et dit `SUJET NON MIS À JOUR` d'un sujet que les hooks refusent sans conflit.
+Quand le ticket est fait : une session fille fait la fusion de develop dans une branche partie du sujet, puis des retouches, commits ordinaires, et pousse le tout d'un seul push (le pre-push juge l'arbre de travail, le sommet). Le capitaine vérifie la fusion comme aujourd'hui, en admettant en plus dans son écart hors conflit les fichiers que le formateur prouve (le pre-commit de la session formate ce qu'il indexe). Il fait entrer **sans revue** un fichier retouché que le formateur du dépôt prouve : à chaque retouche qui le touche, sa version est exactement ce que Prettier, à la version que verrouille le sommet, rend de sa version au commit d'avant, sans directive de plus ; le formateur joue sur l'arbre déjà jugé, extrait hors du dépôt, après les checks, sans qu'aucun hook ne se déclenche. Tout autre fichier retouché est jugé comme une sous-PR. Le tout entre par avance rapide. La boucle renvoie une sortie 3 de `sujet.sh fusionner` avec son vrai motif, ne renvoie plus une PR dont les checks tournent encore, et dit `SUJET NON MIS À JOUR` d'un sujet que les hooks refusent sans conflit.
 
 ## Où
 
-Base : `origin/main` à `76d90c7` (PR 94, ticket 39 fusionné), plugin **7.9.1**, **528 tests** (suite entière, script `test` de `package.json`). L'arbre de `76d90c7` est celui de la branche de la PR 94 (`3c68695`), où le patch a été joué. La session retrouve chaque ancrage par son texte. `S` abrège `skills/chaine/sujet/scripts/sujet.sh`, `B` abrège `skills/chaine/fusionner/scripts/boucle.sh`, `T` abrège `skills/chaine/fusionner/scripts/sujet-fusionner.test.mjs`.
+Base : `origin/main` à `0860466`, plugin **7.9.4**, **581 tests** (suite entière, script `test` de `package.json`). Depuis `76d90c7` (PR 94, ticket 39, 7.9.1), les PR 95 (7.9.2), 96 (7.9.3) et 97 (7.9.4) sont entrées ; seule la 97 touche des fichiers chauds, trois textes (`fusionner/SKILL.md:14`, le paragraphe « Les tests » de `fusionner/references/CONTENU.md`, désormais `:51`, et `socle-chaine-de-production/references/CONTENU.md:29`), hors des lignes que ce ticket cite : le code et les bancs sont ceux de `76d90c7`, et les lignes citées valent sur les deux. Le patch suit le paragraphe des tests de `0860466` : il s'applique sur `0860466`, plus sur `76d90c7` ni `863723a`. La session retrouve chaque ancrage par son texte. `S` abrège `skills/chaine/sujet/scripts/sujet.sh`, `B` abrège `skills/chaine/fusionner/scripts/boucle.sh`, `T` abrège `skills/chaine/fusionner/scripts/sujet-fusionner.test.mjs`.
 
-### Les faits, à la source (relus sur `76d90c7` ; ceux de la carte, `S:549-596`, `S:663-665`, `B:247`, `B:294`, `T:287`, sont aux mêmes lignes sur `fa7d3eb`)
+### Les faits, à la source (relus sur `76d90c7`, lignes identiques sur `0860466` ; ceux de la carte, `S:549-596`, `S:663-665`, `B:247`, `B:294`, `T:287`, sont aux mêmes lignes sur `fa7d3eb`)
 
 - **`S:549-552`, `est_mise_a_jour`** : PR de mise à jour si sa tête, hors du sujet et de develop, n'apporte que des fusions, au moins une. Une retouche (un commit ordinaire) la fait passer au chemin ordinaire : revue exigée sur tout le develop apporté, puis `rafraichir --abandon-si-conflit`, puis squash.
 - **`S:564-596`, `verifier_mise_a_jour`** : un seul commit hors du sujet et de develop (`:567`) ; écart à la fusion recalculée hors conflits et hors index régénérés → sortie 4 (`:590-592`). `RESOLUTION` (`:595`) part à la revue exigée.
@@ -40,7 +40,8 @@ Base : `origin/main` à `76d90c7` (PR 94, ticket 39 fusionné), plugin **7.9.1**
 - **`T:287`** (« écrit hors des fichiers en conflit (ligne Dépendances:) ») et **`T:296-341`** (« d'une autre forme ») ; le dernier cas de la liste (`T:329`, « commit de plus ») attend la sortie 2 d'une fusion suivie d'un commit de documentation : c'est exactement ce que A-47 ouvre (décision 10).
 - **Le pre-push du socle** (`skills/monorepo/socle-monorepo/references/husky/pre-push`, dernière ligne) joue `pnpm run check` **sur l'arbre de travail**, pas sur chaque commit poussé : sorti de `rien_de_neuf`, il ne lit jamais les shas qui partent. Poussée d'un arbre propre à son sommet, la branche est jugée à son sommet, retouches comprises ; aucun commit intermédiaire n'est jugé seul. Banc ajouté (§ 0, `develop.test.mjs`). La phrase de `socle-chaine-de-production/references/CONTENU.md:25` qui dit d'un pre-push antérieur à 7.0.1 qu'il « jouerait `pnpm check` sur l'arbre de travail — pas ce qui part » laisse croire que le hook actuel juge ce qui part : il juge l'arbre de travail lui aussi (Hors périmètre).
 - **Le pre-commit du socle** (`husky/pre-commit`) joue `lint-staged` (`prettier --write`, et `eslint --fix` chez `fedora`) sur les fichiers indexés. Dans une fusion à conflit, ce sont tous les fichiers que develop change et ceux résolus : ils sont reformatés **dans le commit de fusion** (joué : § « Reproduit », 2).
-- **Comment la chaîne joue déjà les outils du projet** : `S` lance `pnpm exec commitlint` (titre, `:654`), `pnpm exec prettier --stdin-filepath` (`ecrire_gel` `:318`, `carte_sujet` `:1096`, sur le `node_modules` présent), et `pnpm install --frozen-lockfile --prefer-offline` sur le sommet détaché avant toute régénération (`mettre_a_jour_sous_pr`, `avancer_sujet`, `rafraichir`) ; `passer.sh:237` de même. Le Prettier « verrouillé au sommet » est donc `pnpm exec prettier` après `pnpm install --frozen-lockfile` dans le worktree du capitaine.
+- **Comment la chaîne joue déjà les outils du projet** : `S` lance `pnpm exec commitlint` (titre, `:654`), `pnpm exec prettier --stdin-filepath` (`ecrire_gel` `:318`, `carte_sujet` `:1096`, sur le `node_modules` présent), et `pnpm install --frozen-lockfile --prefer-offline` sur le sommet détaché avant toute régénération (`mettre_a_jour_sous_pr`, `avancer_sujet`, `rafraichir`) ; `passer.sh:237` de même. Tous jouent dans le worktree du capitaine, sur un arbre déjà jugé (develop, le sujet, un sommet aux checks verts) ; la preuve de ce ticket n'y extrait jamais la PR (décision 5).
+- **Les hooks git du socle** (`socle-monorepo`, husky 9, `prepare: husky`) : `core.hooksPath=.husky/_`, dont le relais joue `.husky/<hook>` tel qu'il est dans l'arbre de travail. Tout `git switch`, `git checkout` (même `checkout <arbre> -- <fichier>`), `git merge` ou `git commit` déclenche donc les hooks que l'arbre extrait porte. Relecture du 2026-11-16 (B1) : le premier état de ce ticket extrayait la fusion de la PR dans le worktree du capitaine (`git switch --detach <fusion>`, puis `git checkout <arbre> -- <f>`), et un `.husky/post-checkout` écrit hors conflit s'y exécutait avant toute preuve, là où `main` sort en 4 sans rien exécuter ; un fichier suivi sous `node_modules/` y était extrait de même.
 - **Un dépôt sans Prettier** : `carte_sujet` y refuse toute carte (la sortie vide de `prettier` ne vaut pas le fichier). Ici, aucune dispense : tout est jugé comme aujourd'hui.
 
 ### Reproduit
@@ -52,7 +53,7 @@ Base : `origin/main` à `76d90c7` (PR 94, ticket 39 fusionné), plugin **7.9.1**
 
    Avec ce ticket : #1918 et #1919 entrent telles quelles, sans revue pour le formatage (la résolution de leur conflit de code reste revue) ; #1920 met ses en-têtes dans une retouche après la fusion : la carte et le ticket entrent sans revue, `docs/agents/couts.md` l'exige (liste de la PR 94).
 2. **Le pre-commit formate dans la fusion** (copie jetable, `lint-staged` 15.2.10 et `prettier` 3.3.3 réels) : sujet et develop changent `a.ts` loin l'un de l'autre et `c.md` en conflit ; `git merge` puis `git commit --no-edit` sous un pre-commit `lint-staged` : `a.ts`, fusionné sans conflit, est réécrit par Prettier dans le commit de fusion. Sur `76d90c7`, une telle PR sort en 4 (« elle écrit hors des fichiers en conflit (a.ts) »), et la session ne peut pas l'éviter sans sauter le hook.
-3. **Dépôt jouet, sur `76d90c7`** : une fusion suivie d'une retouche de formatage d'`apps/s.ts` part au chemin ordinaire et sort en 4 (« … touche du code … (apps/a.ts) », le code apporté par develop) ; une fusion suivie d'une retouche de documentation sort en 4 de même sans section de revue, et en 2 avec (le `rafraichir --abandon-si-conflit` du chemin ordinaire retombe sur le conflit : `T:329`). Les quinze tests nouveaux de `T` sont rouges (§ 0).
+3. **Dépôt jouet, sur `76d90c7`** : une fusion suivie d'une retouche de formatage d'`apps/s.ts` part au chemin ordinaire et sort en 4 (« … touche du code … (apps/a.ts) », le code apporté par develop) ; une fusion suivie d'une retouche de documentation sort en 4 de même sans section de revue, et en 2 avec (le `rafraichir --abandon-si-conflit` du chemin ordinaire retombe sur le conflit : `T:329`). Les vingt et un tests nouveaux de `T` sont rouges (§ 0).
 
 ## Décisions
 
@@ -65,29 +66,31 @@ Base : `origin/main` à `76d90c7` (PR 94, ticket 39 fusionné), plugin **7.9.1**
 3. **La preuve** (`formate_comme`). Un fichier est prouvé quand :
    - il existe avant et après, en fichier ordinaire de même mode (`100644` ou `100755`, pas un lien) ;
    - sa version après est **octet pour octet** la sortie de `pnpm exec prettier --stdin-filepath <chemin>` appliqué à sa version avant ;
-   - il ne porte **aucune directive de plus** qu'avant : `prettier-ignore`, `eslint-disable`, `/* eslint `, `@ts-`, `istanbul ignore`, `c8 ignore`, `v8 ignore`, `biome-ignore`, `Stryker disable` (lignes comptées). Prettier n'écrit pas de commentaire : la garde est indépendante de l'égalité, et un test la prouve avec un formateur qui écrirait la directive (décision de rédaction : la liste au-delà des trois de A-47).
+   - il ne porte **aucune directive de plus** qu'avant : `prettier-ignore`, `eslint-disable`, `/* eslint `, `@ts-`, `istanbul ignore`, `c8 ignore`, `v8 ignore`, `biome-ignore`, `Stryker disable` (lignes comptées). Prettier n'écrit pas de commentaire : la garde est indépendante de l'égalité, et un test la prouve avec un formateur qui écrirait la directive (la liste va au-delà des trois de A-47 : retenue par l'architecte, A-47 bis, carte, journal du 2026-11-16).
 
-   « Avant », pour une retouche : sa version dans la fusion ; pour l'écart de la fusion elle-même : sa version dans la fusion recalculée. Un fichier en conflit n'est jamais prouvé : il est dans la résolution, jugée par chemin comme aujourd'hui.
-4. **La preuve vaut aussi pour l'écart de la fusion** (décision de rédaction, à valider : A-47 dit « vérifiée comme aujourd'hui »). Le pre-commit de la session formate dans le commit de fusion les fichiers qu'il indexe (reproduit, 2, et `fedora` #1918, #1919) : sans cela, la voie refuserait le cas même qui l'a fait naître. Seul le formatage prouvé y entre en plus ; tout autre écart hors conflit reste refusé (sortie 4, test « fusion … un autre écart hors conflit reste refusé » : ligne `Dépendances:`, code), **même avec une section de revue**. Le reste va dans une retouche, après la fusion.
-5. **Sur quel arbre joue le formateur** (décision de rédaction). Le worktree du capitaine, détaché sur la fusion, chaque fichier qu'elle écrit hors conflit remis à sa version de la fusion recalculée : **l'arbre du sujet et de develop, plus la résolution des conflits**. Puis `pnpm install --frozen-lockfile --prefer-offline`. Ni une retouche, ni un écart de la fusion ne s'exécutent donc à leur propre jugement : une configuration de Prettier, un greffon, un fichier qu'un greffon lit, un lockfile ou un `package.json` écrits par la PR ne changent pas le formateur qui les juge. Joué sur le sommet, une PR qui réécrit une règle de formatage lue par le greffon (`docs/format.txt` : `cat apps/s.ts`) prouverait n'importe quel code (test « le formateur ne joue jamais un fichier que la PR écrit », rouge sous cette variante). **« À la version verrouillée du sommet »** (A-47) : une retouche d'un `package.json`, de `pnpm-lock.yaml`, `pnpm-workspace.yaml`, `.npmrc` ou `.pnpmfile.cjs` supprime toute dispense, ce qui fait du Prettier de l'arbre du formateur celui que verrouille le sommet chaque fois qu'il dispense.
-6. **Ordre : la revue exigée de la résolution d'abord**. Avant tout formateur, la résolution (écart de la fusion hors formatage, index compris, et fichiers en conflit) passe `revue-exigee.mjs` (base `origin/<sujet>`, comme la PR 94) ; sinon sortie 4, sans rien exécuter, comme aujourd'hui. Le formateur ne joue **que si la PR en a besoin** : un fichier hors conflit dans la fusion, ou une retouche que la revue exigerait sans section. Une PR qui a sa section de revue, ou dont les retouches ne touchent que de la documentation, entre sans qu'aucun Prettier ne tourne (test « retouche de documentation »). Ce qui s'exécute alors (`pnpm install`, Prettier) vient du sujet, de develop ou d'une résolution déjà jugée : la même classe que `rafraichir`, et que `avancer_sujet` après les checks.
-7. **Tout autre fichier retouché est jugé comme une sous-PR** : `revue-exigee.mjs` reçoit la résolution et les retouches non prouvées, avec le corps et la base de la PR (chemins sensibles du `chaine.json` de la base compris, PR 94). Une retouche de documentation hors `docs/agents/` n'exige pas de revue, une ligne `Dépendances:` d'un ticket non plus : exactement comme une sous-PR, qui l'écrit aujourd'hui sans revue. Les chemins sensibles déclenchent `/security-review` chez la session qui fait sa revue, comme pour toute sous-PR (`revue-adversariale`). Le relecteur lit `git show --remerge-diff <fusion>` et `git diff <fusion> <sommet>`.
+   « Avant », pour une retouche : sa version au parent de cette retouche, et **chaque** retouche qui touche le fichier doit le prouver, car chacune entre telle quelle dans l'historique du sujet, puis de develop (relecture du 2026-11-16, B2) ; pour l'écart de la fusion elle-même : sa version dans la fusion recalculée. Un fichier en conflit n'est jamais prouvé : il est dans la résolution, jugée par chemin comme aujourd'hui.
+4. **La preuve vaut aussi pour l'écart de la fusion** (retenue par l'architecte : A-47 bis, carte, journal du 2026-11-16 ; A-47 dit « vérifiée comme aujourd'hui »). Le pre-commit de la session formate dans le commit de fusion les fichiers qu'il indexe (reproduit, 2, et `fedora` #1918, #1919) : sans cela, la voie refuserait le cas même qui l'a fait naître. Seul le formatage prouvé y entre en plus ; tout autre écart hors conflit reste refusé (sortie 4, test « fusion … un autre écart hors conflit reste refusé » : ligne `Dépendances:`, code), **même avec une section de revue**. Le reste va dans une retouche, après la fusion.
+5. **Sur quel arbre joue le formateur, et comment** (l'arbre retenu par l'architecte, A-47 bis ; la manière décidée après la relecture du 2026-11-16, B1). **L'arbre jugé** : la fusion recalculée (`git merge-tree`), chaque fichier en conflit pris dans la fusion de la PR ; c'est l'arbre du sujet et de develop plus la résolution des conflits, déjà passée à la revue exigée (décision 6). Il se construit **sans checkout** : un index temporaire (`GIT_INDEX_FILE`), `git read-tree <fusion recalculée>`, chaque fichier en conflit par `git update-index --cacheinfo` (`--force-remove` s'il est absent de la fusion), `git write-tree` ; puis il s'extrait par `git archive <arbre> | tar -x -C <dossier>` dans un dossier temporaire hors du dépôt, où `pnpm install --frozen-lockfile --prefer-offline --ignore-scripts` installe ses outils et où Prettier joue (`GIT_CEILING_DIRECTORIES` : aucun dépôt git n'y est trouvé). Le worktree du capitaine n'est jamais touché par la preuve, et aucune commande qui déclenche un hook (`switch`, `checkout`, `merge`, `commit`) ne tourne sur un arbre qui porte un fichier non jugé ; les hooks ne sont jamais désactivés (ni `core.hooksPath`, ni `--no-verify`, ni `HUSKY=0`) : on ne les déclenche pas. Ni une retouche, ni un écart de la fusion ne s'exécutent donc à leur propre jugement : une configuration de Prettier, un greffon, un fichier qu'un greffon lit, un lockfile, un `package.json`, un `.husky/<hook>`, un `node_modules/` écrits par la PR ne changent pas le formateur qui les juge et ne tournent jamais. `--ignore-scripts` : l'installation du formateur ne joue aucun script de cycle de vie, même de l'arbre jugé. Un fichier en conflit qui n'est pas un fichier ordinaire dans la fusion (lien, dossier) : aucune dispense. Joué sur le sommet ou sur la fusion de la PR, une règle de formatage réécrite par la PR (`docs/format.txt` : `cat apps/s.ts`) prouverait n'importe quel code (test « le formateur ne joue jamais un fichier que la PR écrit », rouge sous ces deux variantes) ; extraite dans le worktree du capitaine, la fusion y exécutait son `.husky/post-checkout` (tests « un hook … ne s'exécute jamais » et « node_modules », rouges sous cette variante). **« À la version verrouillée du sommet »** (A-47) : une retouche d'un `package.json`, de `pnpm-lock.yaml`, `pnpm-workspace.yaml`, `.npmrc` ou `.pnpmfile.cjs` supprime toute dispense, ce qui fait du Prettier de l'arbre du formateur celui que verrouille le sommet chaque fois qu'il dispense.
+6. **Ordre : rien du dépôt ne s'exécute avant la revue de la résolution, les liens et les checks** (l'ordre revue puis formateur retenu par l'architecte, A-47 bis ; les checks avant toute preuve, relecture du 2026-11-16, mineure 1). D'abord la forme (décision 1, commitlint du capitaine), puis la résolution (écart de la fusion hors conflit ôté, index compris, et fichiers en conflit) passe `revue-exigee.mjs` (base `origin/<sujet>`, comme la PR 94) : sinon sortie 4. Puis `liens_sur_index`, puis les checks exigés (rouges : 3 ; en cours : 5). Seulement ensuite le formateur (`juger_retouches`), et **seulement si la PR en a besoin** : un fichier hors conflit dans la fusion, ou une retouche que la revue exigerait sans section. Une PR qui a sa section de revue, ou dont les retouches ne touchent que de la documentation, entre sans qu'aucun Prettier ne tourne (test « retouche de documentation ») ; une PR refusée en 3 ou en 4 n'a rien installé ni formaté (test « checks et liens avant toute preuve »). Ce qui s'exécute alors (`pnpm install --ignore-scripts`, Prettier, sa configuration, ses greffons) vient du sujet, de develop ou d'une résolution déjà jugée : la même classe que `rafraichir`, et que `avancer_sujet` après les checks.
+7. **Tout autre fichier retouché est jugé comme une sous-PR** : `revue-exigee.mjs` reçoit la résolution et **l'union des fichiers que chaque retouche touche sans preuve**, commit par commit (`git diff --no-renames --name-only <c>^ <c>` pour chaque retouche `c` ; un fichier ajouté par l'une puis retiré par une autre compte : relecture du 2026-11-16, B2), avec le corps et la base de la PR (chemins sensibles du `chaine.json` de la base compris, PR 94). Une retouche de documentation hors `docs/agents/` n'exige pas de revue, une ligne `Dépendances:` d'un ticket non plus : exactement comme une sous-PR, qui l'écrit aujourd'hui sans revue. Les chemins sensibles déclenchent `/security-review` chez la session qui fait sa revue, comme pour toute sous-PR (`revue-adversariale`). Le relecteur lit `git show --remerge-diff <fusion>` et `git log -p --first-parent <fusion>..<sommet>` : chaque retouche, pas le seul diff du sommet.
 8. **La section « Retouches » du corps** (fichier, raison) est pour le relecteur ; aucun script ne la lit. Test : une retouche de code avec cette section, sans section de revue, sort en 4.
-9. **Aucune dispense** : un dépôt sans `prettier` dans `devDependencies` ou `dependencies` du `package.json` racine (de l'arbre du formateur), un chemin que git cite entre guillemets, un fichier créé, supprimé, de mode changé, un binaire (Prettier échoue), un fichier que `.prettierignore` écarte (Prettier le rend tel quel : il n'a pas changé, ou il n'est pas prouvé). Prettier déclaré mais introuvable après `pnpm install`, ou l'installation en échec : **sortie 11** (côté capitaine, sans renvoi, comme les autres outils du capitaine). Le formatage d'un `.md` (tableaux réalignés) ou d'un `.yml` est réputé sans effet, comme A-47 le prend.
+9. **Aucune dispense** : un dépôt sans `prettier` dans `devDependencies` ou `dependencies` du `package.json` racine (de l'arbre du formateur), un chemin que git cite entre guillemets (écart, retouche ou conflit), un fichier en conflit qui n'est pas un fichier ordinaire dans la fusion, un fichier créé, supprimé, de mode changé, un binaire (Prettier échoue), un fichier que `.prettierignore` écarte (Prettier le rend tel quel : il n'a pas changé, ou il n'est pas prouvé). Prettier déclaré mais introuvable après `pnpm install`, l'installation en échec, ou l'arbre du formateur illisible ou non extrait (`git archive`, `tar`) : **sortie 11** (côté capitaine, sans renvoi, comme les autres outils du capitaine). Le formatage d'un `.md` (tableaux réalignés) ou d'un `.yml` est réputé sans effet, comme A-47 le prend.
 10. **Un test existant change, un seul** : le dernier cas de « d'une autre forme » (`T:329`, fusion suivie d'un commit `docs/g.md`, sortie 2 attendue) est retiré de la liste, parce que A-47 fait entrer cette PR ; le test nouveau « une retouche de documentation après la fusion entre sans revue ni formateur » le remplace et en dit l'inverse. Ce n'est pas un test assoupli : le comportement change par décision. Le test `T:296` perd « commit de plus » de son titre. Les autres tests existants passent sans changement.
-11. **L'impasse du pre-push** : la recette fait pousser la fusion **et** ses retouches d'un seul `git push origin HEAD:maj/<nom>`, d'un arbre propre. Le pre-push joue `pnpm check` sur l'arbre de travail, c'est-à-dire le sommet : la fusion seule n'est jamais jugée seule, ni poussée. Avant le commit d'une fusion à conflit, `pnpm install --frozen-lockfile --prefer-offline` installe les outils de la fusion : sans lui, le pre-commit reformaterait les fichiers de develop avec le Prettier du sujet (l'ancien), et la fusion sortirait en 4. Une fusion sans conflit, git la committe sans pre-commit. Banc : `develop.test.mjs`, « il juge l'arbre de travail » (vert dès `main` : il fixe le fait sur lequel la recette repose).
+11. **L'impasse du pre-push** : la recette fait pousser la fusion **et** ses retouches d'un seul `git push origin HEAD:maj/<nom>`, d'un arbre propre. Le pre-push joue `pnpm check` sur l'arbre de travail, c'est-à-dire le sommet : la fusion seule n'est jamais jugée seule, ni poussée. Avant le commit d'une fusion à conflit, `pnpm install --frozen-lockfile --prefer-offline` installe les outils de la fusion : sans lui, le pre-commit reformaterait les fichiers de develop avec le Prettier du sujet (l'ancien), et la fusion sortirait en 4. Une fusion sans conflit, git la committe sans pre-commit. Banc : `develop.test.mjs`, « il juge l'arbre de travail » (vert dès `main` : il fixe le fait sur lequel la recette repose). Il juge l'arbre de travail, **pas ce qui part** : un `git push <sha>:maj/<nom>` depuis un autre arbre passe le hook sur ce que l'arbre de travail porte. La recette le dit (en-tête de `sujet.sh`, `sujet/SKILL.md`) ; seule la CI exigée, que `fusionner` lit sur le sommet de la PR, fait foi (relecture du 2026-11-16, mineure 5).
 12. **Les deux motifs faux de la boucle** :
-    - `B:294` : la sortie 3 de `sujet.sh fusionner` passe par `refus.sh`, qui renvoie avec la dernière ligne de `sujet.sh` (checks rouges et leur nom, conflit avec le sujet hors index, hook), jamais un conflit supposé ;
-    - des checks **encore en cours** (`S:690`) sortent en **5** (« reprise au tour suivant, aucun renvoi ») au lieu de 3 : un renvoi coûte un des trois renvois du plafond, pour une CI qui n'a pas fini ;
-    - `B:247` : `rafraichir_sujets` lit la sortie : 2 → `SUJET EN CONFLIT` (inchangé) ; 5 → sujet bougé, repris au tour suivant ; 6 → `PAS PROPRE` (inchangé) ; toute autre → `SUJET NON MIS À JOUR (sortie n, aucun conflit)`, avec la voie de la PR de mise à jour avec retouches ;
+    - `B:294` : la sortie 3 de `sujet.sh fusionner` passe par `refus.sh`, qui renvoie avec la dernière ligne de `sujet.sh` (checks rouges et leur nom, conflit avec le sujet hors index, hook), jamais un conflit supposé ; `refus.sh` reçoit le code en troisième argument, et son repli dit « refusée en sortie 3 », plus « sortie 4 » (relecture du 2026-11-16, mineure 4) ;
+    - des checks **encore en cours** (`S:690`) sortent en **5** (« reprise au tour suivant, aucun renvoi ») au lieu de 3 : un renvoi coûte un des trois renvois du plafond, pour une CI qui n'a pas fini. La PR reste dans la file tant que sa CI ne finit pas, sans bruit : `file.sh` la montre `sujet/<nom> : CI en cours` et la boucle ne la passe pas ; une CI bloquée la garde ainsi, c'est au capitaine de la voir (relecture du 2026-11-16, mineure 6) ;
+    - `B:247` : `rafraichir_sujets` lit la sortie : 2 → `SUJET EN CONFLIT` (inchangé) ; 5 → sujet bougé, repris au tour suivant ; 6 → `PAS PROPRE` (inchangé) ; 3 → `SUJET NON MIS À JOUR (sortie 3, aucun conflit)`, avec la voie de la PR de mise à jour avec retouches ; 11 → `SUJET NON MIS À JOUR (sortie 11, aucun conflit)` : outil du capitaine en échec, à corriger chez lui, rien à faire par une session ; toute autre (69 : jq absent ; 1 : erreur inattendue) → `SUJET NON MIS À JOUR (sortie n, aucun conflit)` : erreur de `sujet.sh`, à corriger chez le capitaine, jamais la voie des retouches (relecture du 2026-11-16, mineure 4) ;
     - le message de `rafraichir` sur un push refusé par le pre-push (`S:766`) nomme la même voie.
 13. **Monotonie**. Rien de ce que la chaîne refuse aujourd'hui ne devient possible, sauf ce que A-47 ouvre, et seulement cela :
     - un fichier de code ou de configuration dont la machine prouve qu'il n'est que le formatage, par le formateur de l'arbre déjà jugé, entre sans section de revue ;
     - des commits ordinaires entrent dans le sujet sans squash, chacun passé par commitlint ;
     - tout le reste d'une retouche passe le jugement d'une sous-PR, que la chaîne accepte déjà.
 
-    Les écritures dans le sujet restent un `git push` simple (`avancer_sujet`, inchangé), jamais forcé, sous les hooks ; le sujet qui bouge laisse la PR dehors (sortie 5). Les hooks d'agent ne changent pas.
-14. **Version : mineure**, **7.11.0** visée (une voie nouvelle de `fusionner`). La session prend la version de `origin/main` à l'ouverture de la PR et monte le deuxième chiffre (7.9.1 aujourd'hui → 7.10.0 si rien n'entre avant ; 7.11.0 si une autre mineure prend 7.10.0 d'abord). Si une autre PR du plugin entre pendant ce temps, fusionner `main` dans la branche (commit de fusion, ni rebase ni push forcé) et prendre la mineure qui suit la sienne.
+    Rien de non jugé ne s'exécute chez le capitaine : la preuve n'extrait aucun arbre dans son worktree, ne déclenche aucun hook et n'en désactive aucun (décision 5), et ne joue qu'après la revue de la résolution, les liens et les checks (décision 6). Chaque commit qui entre est jugé : une retouche se prouve contre son parent, et la revue lit l'union des fichiers que les retouches touchent, commit par commit (décision 7). Joué à la relecture du 2026-11-16 : une PR que `main` refuse en 4 sans rien exécuter (un `.husky/post-checkout` écrit hors conflit) le reste, toujours sans rien exécuter ; une retouche intermédiaire non revue (code et workflow ajoutés par l'une, retirés par la suivante) n'entre plus.
+
+    Les écritures dans le sujet restent un `git push` simple (`avancer_sujet`, inchangé), jamais forcé, sous les hooks, sur un sommet dont chaque fichier est jugé ou prouvé ; le sujet qui bouge laisse la PR dehors (sortie 5). Les hooks d'agent ne changent pas.
+14. **Version : mineure**, **7.10.0** visée (une voie nouvelle de `fusionner`) : la mineure qui suit `origin/main` à l'ouverture de la PR (7.9.4 au 2026-11-16, après les PR 95 à 97). Le ticket 33, mineure aussi, peut entrer avant : alors la suivante (7.11.0). Repli : si une PR du plugin entre pendant ce temps, fusionner `main` dans la branche (`git merge origin/main`, un commit de fusion, ni rebase ni push forcé) et prendre la mineure qui suit la sienne ; un correctif entré entre-temps (7.9.5) ne change pas la mineure visée.
 
 ### Remèdes écartés
 
@@ -97,6 +100,9 @@ Base : `origin/main` à `76d90c7` (PR 94, ticket 39 fusionné), plugin **7.9.1**
 - **`prettier --check` sur les fichiers retouchés** : il dit qu'un fichier est formaté, pas qu'il n'a changé que par formatage ; une retouche de code formatée passerait.
 - **Retouches en sous-PR squashée** : la filiation de develop se perd (ticket 36), et c'est ce qui a mené `fedora` à fusionner à la main.
 - **Admettre plusieurs fusions** : #1921 et #1922 réécrivent le sujet ; une seule fusion garde la vérification par `merge-tree`.
+- **Extraire la fusion dans le worktree du capitaine** (premier état du ticket : `git switch --detach <fusion>`, puis chaque fichier hors conflit remis à la fusion recalculée par `git checkout <arbre> -- <f>`) : le `switch` et chaque `checkout` déclenchent `post-checkout`, que le relais de husky joue tel que la PR l'écrit, et un `node_modules/` suivi y est extrait (relecture du 2026-11-16, B1 ; tests « un hook … », « node_modules »).
+- **Taire les hooks pendant la preuve** (`core.hooksPath`, `--no-verify`, `HUSKY=0`) : interdit ; la preuve ne les déclenche pas.
+- **Prouver le seul écart de la fusion au sommet** (premier état du ticket) : une retouche intermédiaire non revue entre dans l'historique du sujet, et un `git revert` de la suivante la remettrait (relecture du 2026-11-16, B2 ; test « chaque retouche se prouve contre son parent »).
 - **Garder la fusion stricte** (A-47 à la lettre) : le pre-commit de la session y met le formatage hors conflit, sans contournement permis (reproduit, 2) ; la voie refuserait #1918 et #1919 telles qu'elles sont.
 - **Une sortie nouvelle pour les checks en cours** : 5 dit déjà « reprise au tour suivant », et la boucle la traite sans renvoi.
 
@@ -104,11 +110,11 @@ Base : `origin/main` à `76d90c7` (PR 94, ticket 39 fusionné), plugin **7.9.1**
 
 ### 0. Les tests d'abord, vus rouges
 
-Sur `origin/main` (`76d90c7`) :
+Sur `origin/main` (`0860466` ; `76d90c7` et `863723a` donnent le même compte dans `T`) :
 
 1. appliquer la partie « tests » du patch (§ 1.a) : les blocs `diff` du § 1.a dans un fichier, puis `git apply --index` ;
 2. jouer `node --test skills/chaine/fusionner/scripts/sujet-fusionner.test.mjs skills/chaine/socle-chaine-de-production/references/scripts/github/develop.test.mjs` ;
-3. voir **quinze `not ok`**, tous dans `T` (les quinze tests nouveaux), et les vingt-deux autres de `T` verts, le cas retiré compris ; `develop.test.mjs` vert (onze sur onze, son test nouveau compris : il fixe le fait du pre-push) ;
+3. voir **vingt et un `not ok`**, tous dans `T` (les vingt et un tests nouveaux), et les vingt-deux autres de `T` verts, le cas retiré compris ; `develop.test.mjs` vert (onze sur onze, son test nouveau compris : il fixe le fait du pre-push) ;
 4. **puis** seulement appliquer le reste.
 
 Les tests nouveaux de `T`, et leur rouge sur `main` :
@@ -130,20 +136,26 @@ Les tests nouveaux de `T`, et leur rouge sur `main` :
 | checks en cours → 5, rouges → 3 | `IN_PROGRESS` → 5 « reprise » ; `FAILURE` → 3 « checks rouges sur #81 : qualite » | 3 pour les deux |
 | boucle : sortie 3 renvoyée avec le motif de `sujet.sh` | sous-PR en conflit d'index, pre-push du capitaine qui refuse → commentaire « mise à jour de #80 refusée par le hook pre-push », jamais « conflit avec le sujet » | « conflit avec le sujet » |
 | boucle : `SUJET NON MIS À JOUR` / `SUJET EN CONFLIT` | sujet sans conflit, pre-push qui refuse → « SUJET NON MIS À JOUR (sortie 3, aucun conflit) » ; sujet en conflit → « SUJET EN CONFLIT » | « SUJET EN CONFLIT » pour les deux |
+| un hook écrit hors conflit ne s'exécute jamais (B1) | relais de husky simulé (`core.hooksPath` vers un dossier dont chaque hook joue `.husky/<hook>` de l'arbre de travail) ; la fusion formate `apps/s.ts` et écrit `.husky/post-checkout`, `.husky/post-merge` → 4 « hors des fichiers en conflit (.husky/post-checkout .husky/post-merge ) autre chose que le formatage », formateur joué, aucun hook de la PR exécuté | 4, autre motif, sans formateur ; premier état du ticket : `post-checkout` exécuté |
+| `node_modules/` hors conflit jamais extrait (B1) | la fusion écrit `node_modules/.bin/prettier` → 4, le fichier jamais vu dans l'arbre de travail du capitaine (noté par chaque hook) ni dans le dossier du formateur | 4, autre motif, sans formateur ; premier état : extrait par le `switch` |
+| chaque retouche contre son parent (B2) | retouche 1 ajoute `apps/pirate.ts` et `.github/workflows/x.yml`, retouche 2 les retire et formate `apps/s.ts` → 4 ; `apps/pirate.ts` ajouté puis retiré, rien d'autre → 4 | 4 sur `apps/a.ts` (chemin ordinaire) ; premier état : 0 |
+| checks et liens lus avant toute preuve (mineure 1) | retouche de formatage, checks `FAILURE` → 3 ; retouche qui formate et remplace l'index par un lien → 4 « lien symbolique » ; dans les deux cas ni `pnpm install` ni Prettier joués | 4 sur `apps/a.ts` ; premier état : formateur joué avant les checks |
+| boucle : panne du capitaine ou de `sujet.sh` (mineure 4) | le `sujet.sh` publié sort en 11, 69, puis 1 dès `rafraichir` → « SUJET NON MIS À JOUR (sortie n, aucun conflit) », « outil du capitaine » ou « erreur de sujet.sh », « rien à faire par une session », jamais « retouches » | « SUJET EN CONFLIT » ; premier état : la voie des retouches pour les trois |
+| `refus.sh` : le repli nomme la sortie (mineure 4) | sortie illisible, code 3 → « refusée en sortie 3 » | « refusée en sortie 4 » |
 
 Et dans `develop.test.mjs` : « pre-push du socle : il juge l'arbre de travail … la fusion seule est refusée, suivie de sa retouche elle passe » (vert sur `main`).
 
-Compte : **seize tests nouveaux** (quinze dans `T`, un dans `develop.test.mjs`), un cas retiré d'un test existant ; **544 tests** attendus (528 + 16).
+Compte : **vingt-deux tests nouveaux** (vingt et un dans `T`, un dans `develop.test.mjs`), un cas retiré d'un test existant ; **603 tests** attendus (581 + 22 sur `0860466`). Les six tests de la relecture (B1, B2, mineures 1 et 4) sont rouges aussi contre les scripts du premier état du ticket.
 
 ### 1. Le patch, mot pour mot
 
-Les blocs `diff` des §§ 1.a, 1.b et 2, mis bout à bout, forment un patch qui s'applique sur `76d90c7` par `git apply --index` (vérifié : `git apply --cached --check` de ces blocs extraits du ticket, sur l'arbre de `origin/main`). Il ne touche ni `plugin.json` (§ 3) ni les hooks d'agent. Les tests d'abord (§ 0), puis le reste.
+Les blocs `diff` des §§ 1.a, 1.b et 2, mis bout à bout, forment un patch qui s'applique sur `0860466` par `git apply --index` (vérifié : `git apply --check`, puis `git apply --index`, de ces blocs extraits du ticket, sur un worktree jetable de `0860466` ; l'arbre obtenu est celui où la suite a été jouée). Il ne touche ni `plugin.json` (§ 3) ni les hooks d'agent. Les tests d'abord (§ 0), puis le reste.
 
 #### 1.a Les bancs
 
 ```diff
 diff --git a/skills/chaine/fusionner/scripts/sujet-fusionner.test.mjs b/skills/chaine/fusionner/scripts/sujet-fusionner.test.mjs
-index 3f8936f..fd6375a 100644
+index 3f8936f..86fc6a4 100644
 --- a/skills/chaine/fusionner/scripts/sujet-fusionner.test.mjs
 +++ b/skills/chaine/fusionner/scripts/sujet-fusionner.test.mjs
 @@ -190,7 +190,8 @@ test("sujet.sh fusionner : une sous-PR d'un sujet gelé sort en 7, jamais en 4,
@@ -189,7 +201,7 @@ index 3f8936f..fd6375a 100644
    ];
    for (const [options, sortie, motif] of cas) {
      const { d } = miseAJour(options);
-@@ -541,3 +543,269 @@ test("fusionner : un chemin sensible déclaré par develop après le départ du
+@@ -541,3 +543,394 @@ test("fusionner : un chemin sensible déclaré par develop après le départ du
    assert.match(r.stdout, /sans section « Revue de ticket » ni « Revue adversariale ».*\(infra\/main\.tf\)/);
    assert.ok(!ecritures(d).some((e) => e.startsWith("PUT ")), "aucun squash");
  });
@@ -364,7 +376,8 @@ index 3f8936f..fd6375a 100644
 +  const pirate = { "docs/format.txt": "cat apps/s.ts\n", "apps/s.ts": "export const s = 'pirate';\n" };
 +  const cas = [
 +    [{ avantPush: retouche(pirate, "style: formate") }, /Revue.*apps\/s\.ts/],
-+    [{ resolution: pirate }, /hors des fichiers en conflit/],
++    // Joué sur la fusion de la PR, le formateur prouverait le code pirate : seul docs/format.txt resterait à juger.
++    [{ resolution: pirate }, /hors des fichiers en conflit \(apps\/s\.ts docs\/format\.txt \)/],
 +  ];
 +  for (const [options, motif] of cas) {
 +    const { d, sujet } = avecRetouche({ base: { ...PRETTIER, ...formateurDuDepot }, formateur: { commande: "sh docs/format.txt" }, ...options });
@@ -459,6 +472,130 @@ index 3f8936f..fd6375a 100644
 +    }
 +  }
 +});
++
++// Relais de husky 9, simulé (la souche n'est pas dans le lockfile du plugin) : `core.hooksPath` vers un dossier dont
++// chaque hook joue `.husky/<hook>` tel qu'il est dans l'arbre de travail du capitaine, comme `.husky/_/h`. `observe` :
++// un chemin que chaque hook note dans `vu.log` s'il est alors dans l'arbre de travail.
++function relaisHusky(d, observe = null) {
++  const relais = join(d.racine, "relais-husky");
++  mkdirSync(relais, { recursive: true });
++  const note = observe ? `[ -e ${JSON.stringify(observe)} ] && echo "$(basename "$0")" >> ${JSON.stringify(join(d.racine, "vu.log"))}\n` : "";
++  for (const hook of ["post-checkout", "post-merge", "pre-commit", "post-commit"]) {
++    writeFileSync(join(relais, hook), `#!/bin/sh\n${note}h=".husky/$(basename "$0")"\n[ -f "$h" ] || exit 0\nexec sh -e "$h" "$@"\n`);
++    chmodSync(join(relais, hook), 0o755);
++  }
++  d.git("config", "core.hooksPath", relais);
++}
++const lu = (d, nom) => (existsSync(join(d.racine, nom)) ? readFileSync(join(d.racine, nom), "utf8") : "");
++
++// Relecture du 2026-11-16 (B1) : l'arbre de la PR n'est jamais extrait chez le capitaine, aucun hook ne se déclenche sur
++// lui. Sur 7.9.1, la même PR sort en 4 sans rien exécuter : la voie nouvelle ne doit rien exécuter de plus.
++test("fusionner : un hook (post-checkout, post-merge) que la fusion écrit hors conflit ne s'exécute jamais chez le capitaine, la PR sort en 4", () => {
++  const { d, sujet } = avecRetouche({
++    resolution: {
++      "apps/s.ts": FORMATE,
++      ".husky/post-checkout": "echo post-checkout >> ../piege.log\n",
++      ".husky/post-merge": "echo post-merge >> ../piege.log\n",
++    },
++  });
++  relaisHusky(d);
++  refusee(d, d.lancer(SUJET, "fusionner", "81"), sujet, /hors des fichiers en conflit \(\.husky\/post-checkout \.husky\/post-merge \) autre chose que le formatage/);
++  assert.match(pnpmJoue(d), /pnpm exec prettier --stdin-filepath apps\/s\.ts/, "le formateur a joué");
++  assert.equal(lu(d, "piege.log"), "", "aucun hook de la PR exécuté");
++});
++
++test("fusionner : un fichier sous node_modules/ que la fusion écrit hors conflit n'est jamais écrit dans le dépôt du capitaine, ni vu du formateur", () => {
++  const piege = "node_modules/.bin/prettier";
++  const { d, sujet } = avecRetouche({
++    resolution: { "apps/s.ts": FORMATE, [piege]: "#!/bin/sh\necho piege >> ../../../piege.log\n" },
++    formateur: { commande: `{ [ -e ${piege} ] && echo formateur >> ../vu.log; ${JOUET_PRETTIER}; }` },
++  });
++  relaisHusky(d, piege);
++  refusee(d, d.lancer(SUJET, "fusionner", "81"), sujet, /hors des fichiers en conflit \(node_modules\/\.bin\/prettier \)/);
++  assert.match(pnpmJoue(d), /pnpm exec prettier --stdin-filepath apps\/s\.ts/, "le formateur a joué");
++  assert.equal(lu(d, "vu.log"), "", "le fichier n'a jamais été dans l'arbre de travail du capitaine");
++  assert.ok(!existsSync(join(d.travail, piege)));
++});
++
++// Relecture du 2026-11-16 (B2) : une retouche intermédiaire entre telle quelle dans l'historique du sujet ; elle se
++// prouve contre son parent, et la revue juge l'union des fichiers touchés commit par commit.
++test("fusionner : chaque retouche se prouve contre son parent ; un fichier ajouté par une retouche puis retiré par une autre exige la revue", () => {
++  const cas = [
++    (d) => {
++      retouche({ "apps/pirate.ts": "export const p = 1;\n", ".github/workflows/x.yml": "on: push\n" }, "chore: ajoute")(d);
++      retouche({ "apps/pirate.ts": null, ".github/workflows/x.yml": null, "apps/s.ts": FORMATE })(d);
++    },
++    (d) => {
++      retouche({ "apps/pirate.ts": "export const p = 1;\n" }, "feat: pirate")(d);
++      retouche({ "apps/pirate.ts": null }, "chore: retire")(d);
++    },
++  ];
++  for (const avantPush of cas) {
++    const { d, sujet } = avecRetouche({ avantPush });
++    refusee(d, d.lancer(SUJET, "fusionner", "81"), sujet, /Revue.*\((\.github\/workflows\/x\.yml|apps\/pirate\.ts)\)/);
++  }
++});
++
++// Relecture du 2026-11-16 (mineure 1) : checks rouges ou lien sur un index, la PR est refusée sans que rien ne s'installe
++// ni ne formate.
++test("fusionner : une PR de mise à jour lit ses checks et ses liens sur les index avant toute preuve (rien installé, aucun formateur)", () => {
++  const lien = (d) => {
++    appliquer(d, { "apps/s.ts": FORMATE });
++    d.git("rm", "-q", `${ADR}/README.md`);
++    symlinkSync("../../README.md", join(d.travail, ADR, "README.md"));
++    d.commit("style: formate");
++  };
++  const cas = [
++    [retouche({ "apps/s.ts": FORMATE }), "FAILURE", 3, /checks rouges sur #81 : qualite/],
++    [lien, "SUCCESS", 4, /lien symbolique sur un index généré/],
++  ];
++  for (const [avantPush, etat, sortie, motif] of cas) {
++    const { d, sujet } = avecRetouche({ avantPush });
++    d.github({ checks: { "*": { qualite: etat } } });
++    const r = d.lancer(SUJET, "fusionner", "81");
++    assert.equal(r.status, sortie, r.stdout + r.stderr);
++    assert.match(r.stdout, motif);
++    assert.equal(sujetDistant(d), sujet);
++    assert.doesNotMatch(pnpmJoue(d), /pnpm (install|exec prettier)/);
++  }
++});
++
++// Relecture du 2026-11-16 (mineure 4) : une panne du capitaine ou de sujet.sh n'est pas un hook rouge à retoucher.
++test("boucle.sh : un sujet non mis à jour pour une panne du capitaine (sortie 11) ou une erreur de sujet.sh (69, 1) ne renvoie jamais à une PR de mise à jour", () => {
++  for (const [code, motif] of [
++    [11, /SUJET NON MIS À JOUR \(sortie 11, aucun conflit\) : outil du capitaine en échec.*rien à faire par une session/],
++    [69, /SUJET NON MIS À JOUR \(sortie 69, aucun conflit\) : erreur de sujet\.sh .* rien à faire par une session/],
++    [1, /SUJET NON MIS À JOUR \(sortie 1, aucun conflit\) : erreur de sujet\.sh .* rien à faire par une session/],
++  ]) {
++    const d = depotJouet();
++    d.ecrire("docs/f.md", "0\n");
++    d.commit("docs: base");
++    d.git("push", "-q", "origin", "HEAD:develop");
++    d.git("fetch", "-q", "origin");
++    d.branche("sujet/lot", "origin/develop", { "docs/lot.md": "sujet\n" });
++    d.git("switch", "-q", "--detach", "origin/develop");
++    d.publierChaine();
++    // Le sujet.sh que la boucle copie d'origin/develop sort en <code> dès `rafraichir`.
++    const s = d.lire("scripts/chaine/sujet.sh");
++    assert.ok(s.includes("\nrafraichir() {\n"));
++    d.ecrire("scripts/chaine/sujet.sh", s.replace("\nrafraichir() {\n", `\nrafraichir() {\n  echo "panne simulée" >&2\n  exit ${code}\n`));
++    d.commit("chore: sujet.sh en panne");
++    d.git("push", "-q", "origin", "HEAD:develop");
++    d.git("fetch", "-q", "origin");
++    const r = d.lancer(BOUCLE);
++    assert.match(r.stdout, motif, r.stdout + r.stderr);
++    assert.doesNotMatch(r.stdout, /retouches|SUJET EN CONFLIT/);
++  }
++});
++
++test("refus.sh : une sortie 3 sans motif lisible se dit « refusée en sortie 3 », jamais « sortie 4 »", () => {
++  const d = depotJouet();
++  d.branche("feat/x", "origin/develop", { "docs/x.md": "x\n" });
++  d.github({ pulls: [{ number: 63, title: "docs(demo): x", head: "feat/x", base: "sujet/lot", labels: ["à-fusionner"] }] });
++  const r = d.lancer(scriptDe("fusionner", "refus.sh"), "63", "absent.txt", "3");
++  assert.equal(r.status, 0, r.stdout + r.stderr);
++  assert.match(r.stdout, /RENVOI : refusée en sortie 3, voir le journal du capitaine/);
++});
 diff --git a/skills/chaine/socle-chaine-de-production/references/scripts/github/develop.test.mjs b/skills/chaine/socle-chaine-de-production/references/scripts/github/develop.test.mjs
 index 08a4e44..19e3f35 100644
 --- a/skills/chaine/socle-chaine-de-production/references/scripts/github/develop.test.mjs
@@ -491,23 +628,25 @@ index 08a4e44..19e3f35 100644
 
 ```diff
 diff --git a/skills/chaine/fusionner/scripts/boucle.sh b/skills/chaine/fusionner/scripts/boucle.sh
-index cb62d66..8ee9577 100755
+index cb62d66..1bfc5dc 100755
 --- a/skills/chaine/fusionner/scripts/boucle.sh
 +++ b/skills/chaine/fusionner/scripts/boucle.sh
-@@ -24,7 +24,11 @@
+@@ -24,7 +24,13 @@
  # fusionner` la met à jour, régénère et pousse (sortie 8, MISE À JOUR) ; elle repasse CI verte.
  # Un conflit est annulé et signalé (SUJET EN CONFLIT), jamais résolu ici : une session le
  # résout dans une PR de mise à jour (en-tête de sujet.sh), que `sujet.sh fusionner` fait entrer par
 -# avance rapide.
-+# avance rapide. Une fusion sans conflit refusée par un contrôle (hook, dépendances, gate des index) est
-+# annulée de même et dite SUJET NON MIS À JOUR, jamais SUJET EN CONFLIT : un pre-push rouge sur ce que
-+# develop apporte se corrige par une PR de mise à jour avec retouches.
++# avance rapide. Une fusion sans conflit refusée par un contrôle (hook, dépendances, gate des index, sortie 3)
++# est annulée de même et dite SUJET NON MIS À JOUR, jamais SUJET EN CONFLIT : un pre-push rouge sur ce que
++# develop apporte se corrige par une PR de mise à jour avec retouches. Une panne du capitaine (sortie 11) ou de
++# sujet.sh (69, 1) se dit SUJET NON MIS À JOUR aussi, à corriger chez le capitaine, jamais par une session.
 +# Une sous-PR que `sujet.sh fusionner` refuse en sortie 3 (checks rouges, conflit avec le sujet, hook) est
-+# renvoyée avec le motif de `sujet.sh` (refus.sh) ; des checks encore en cours sortent en 5 (REPRISE).
++# renvoyée avec le motif de `sujet.sh` (refus.sh) ; des checks encore en cours sortent en 5 (REPRISE, aucun
++# renvoi) : la PR reste dans la file tant que sa CI ne finit pas.
  # Un sujet « prêt à livrer » (plus de sous-PR, tickets faits) est livré par `sujet.sh
  # livrer-prets` (LIVRÉ), sauf label `sujet-manuel` sur une de ses sous-PR. La PR finale passe
  # par un commit de merge (passer.sh) : develop garde un commit par sous-PR.
-@@ -236,15 +240,19 @@ traiter_rouges() {
+@@ -236,15 +242,22 @@ traiter_rouges() {
  # develop dans chaque sujet ni livré (sa PR vers develop, passer.sh la tient à jour) ni actif
  # (une sous-PR ouverte : la mise à jour la remettrait en conflit avec la nouvelle tête).
  rafraichir_sujets() {
@@ -526,17 +665,20 @@ index cb62d66..8ee9577 100755
        6) echo "[sujet/$nom] PAS PROPRE : worktree du capitaine à nettoyer, sujet laissé tel quel (aucun conflit)" ;;
 -      *) echo "[sujet/$nom] SUJET EN CONFLIT avec develop : à résoudre par une session, PR de mise à jour vers sujet/$nom (en-tête de sujet.sh)" ;;
 +      # Aucun conflit : la fusion de develop est refusée par un contrôle (hook, dépendances, gate des index).
-+      *) echo "[sujet/$nom] SUJET NON MIS À JOUR (sortie $rc, aucun conflit) : cause ci-dessus ; un hook rouge sur ce que develop apporte (pre-push, formateur monté) se corrige par une PR de mise à jour avec retouches vers sujet/$nom (en-tête de sujet.sh)" ;;
++      3) echo "[sujet/$nom] SUJET NON MIS À JOUR (sortie 3, aucun conflit) : cause ci-dessus ; un hook rouge sur ce que develop apporte (pre-push, formateur monté) se corrige par une PR de mise à jour avec retouches vers sujet/$nom (en-tête de sujet.sh)" ;;
++      # Rien qu'une session puisse corriger : un outil du capitaine, ou sujet.sh lui-même (69 : jq absent ; 1 : erreur).
++      11) echo "[sujet/$nom] SUJET NON MIS À JOUR (sortie 11, aucun conflit) : outil du capitaine en échec, cause ci-dessus : à corriger chez le capitaine, rien à faire par une session" ;;
++      *) echo "[sujet/$nom] SUJET NON MIS À JOUR (sortie $rc, aucun conflit) : erreur de sujet.sh (69 : jq absent du poste ; 1 : erreur inattendue), cause ci-dessus : à corriger chez le capitaine, rien à faire par une session" ;;
      esac
    done
    git switch -q --detach origin/develop 2>/dev/null || true
-@@ -291,9 +299,10 @@ traiter_sujets() {
+@@ -291,9 +304,10 @@ traiter_sujets() {
          rc=${PIPESTATUS[0]}
          case "$rc" in
            0) echo "[#$n] FUSIONNÉE dans ${etat%%:*}" ;;
 -          3) bash "$outils/renvoyer.sh" "$n" "fusion dans ${etat%%:*} refusée par GitHub (conflit avec le sujet) : fusionner ${etat%%:*} dans la branche et le résoudre" ;;
 +          # Checks rouges, conflit avec le sujet, hook : le motif est celui de sujet.sh, jamais un conflit supposé.
-+          3) bash "$outils/refus.sh" "$n" "$sortie" ;;
++          3) bash "$outils/refus.sh" "$n" "$sortie" 3 ;;
            4) bash "$outils/refus.sh" "$n" "$sortie" ;; # corrigeable (titre, revue, base) : renvoyée
 -          5) echo "[#$n] sous-PR bougée pendant sa mise à jour : reprise au tour suivant" ;;
 +          5) echo "[#$n] REPRISE au tour suivant (sous-PR ou sujet bougé, checks en cours), aucun renvoi" ;;
@@ -544,20 +686,37 @@ index cb62d66..8ee9577 100755
            6) echo "[#$n] PAS PROPRE : worktree du capitaine à nettoyer, sous-PR laissée dans la file (aucun renvoi)" ;;
            7) echo "[#$n] sous-PR non éligible (fermée ou en brouillon)" ;;
 diff --git a/skills/chaine/fusionner/scripts/refus.sh b/skills/chaine/fusionner/scripts/refus.sh
-index 5a8439d..89c4e9e 100755
+index 5a8439d..a5f3edf 100755
 --- a/skills/chaine/fusionner/scripts/refus.sh
 +++ b/skills/chaine/fusionner/scripts/refus.sh
-@@ -1,6 +1,7 @@
+@@ -1,16 +1,19 @@
  #!/usr/bin/env bash
  # =============================================================================
 -# Renvoie une PR refusée en sortie 4 (skill `fusionner`) : motif = dernière ligne de la sortie du
 +# Renvoie une PR refusée en sortie 4 (skill `fusionner`), ou par `sujet.sh fusionner` en sortie 3 (checks rouges,
 +# conflit avec le sujet, hook) : motif = dernière ligne de la sortie du
  # script qui a refusé (préfixe « [#n] » retiré), transmis tel quel à renvoyer.sh. Sans motif
- # lisible : « refusée en sortie 4, voir le journal du capitaine ». Un refus transitoire ou sans
- # correction possible sort en 7 de passer.sh et sujet.sh : il ne passe jamais ici.
+-# lisible : « refusée en sortie 4, voir le journal du capitaine ». Un refus transitoire ou sans
+-# correction possible sort en 7 de passer.sh et sujet.sh : il ne passe jamais ici.
++# lisible : « refusée en sortie <code>, voir le journal du capitaine » (code : 4 sans troisième
++# argument). Un refus transitoire ou sans correction possible sort en 7 de passer.sh et sujet.sh : il
++# ne passe jamais ici.
+ #
+-# Usage : bash scripts/chaine/refus.sh <numéro> <fichier de la sortie>
++# Usage : bash scripts/chaine/refus.sh <numéro> <fichier de la sortie> [<code de sortie>]
+ # =============================================================================
+ set -euo pipefail
+-N=${1:?usage : refus.sh <numéro> <fichier>}
++N=${1:?usage : refus.sh <numéro> <fichier> [<code>]}
+ fichier=${2:?fichier de la sortie manquant}
++code=${3:-4}
+ outils=$(cd "$(dirname "$0")" && pwd)
+ motif=$(grep -v '^[[:space:]]*$' "$fichier" 2>/dev/null | tail -1 | sed -E 's/^\[#[0-9]+\] //; s/[.[:space:]]+$//' || true)
+-[ -n "$motif" ] || motif="refusée en sortie 4, voir le journal du capitaine"
++[ -n "$motif" ] || motif="refusée en sortie $code, voir le journal du capitaine"
+ bash "$outils/renvoyer.sh" "$N" "$motif"
 diff --git a/skills/chaine/sujet/scripts/sujet.sh b/skills/chaine/sujet/scripts/sujet.sh
-index aedaab9..06d553d 100755
+index aedaab9..e374a46 100755
 --- a/skills/chaine/sujet/scripts/sujet.sh
 +++ b/skills/chaine/sujet/scripts/sujet.sh
 @@ -18,9 +18,9 @@
@@ -587,15 +746,15 @@ index aedaab9..06d553d 100755
  # `fusionner`, `rafraichir`, `relancer`, `livrer` : 5 la branche a bougé pendant l'écriture, relancer
 -# `fusionner` encore : la sous-PR a bougé pendant sa mise à jour (reprise au tour suivant) · 8 conflit
 +# `fusionner` encore : la sous-PR a bougé pendant sa mise à jour, ou ses checks sont encore en cours (reprise au
-+# tour suivant, aucun renvoi) · 8 conflit
++# tour suivant, aucun renvoi : la PR reste dans la file tant que sa CI ne finit pas) · 8 conflit
  # avec le sujet sur des index générés seuls : branche mise à jour (index régénérés) et poussée, CI
  # relancée, aucun squash · 11 `fusionner` d'une PR de mise à jour : échec côté capitaine (git sans
 -# `merge-tree --write-tree`, dépendances, régénération, commit ou push refusé), rien à corriger côté PR,
-+# `merge-tree --write-tree`, dépendances, Prettier déclaré introuvable, régénération, commit ou push refusé), rien à corriger côté PR,
++# `merge-tree --write-tree`, dépendances, arbre du formateur, Prettier déclaré introuvable, régénération, commit ou push refusé), rien à corriger côté PR,
  # aucun renvoi · 69 jq absent du poste
  # Tout passe par l'API REST (`gh api`) : GraphQL est refusé depuis les sessions cloud. Depuis la
  # racine du dépôt ; sans argument, affiche cette aide.
-@@ -532,43 +533,128 @@ refuser_tete_gardee() {
+@@ -532,43 +533,161 @@ refuser_tete_gardee() {
    fi
  }
  
@@ -629,7 +788,10 @@ index aedaab9..06d553d 100755
 +#                                            ce que develop exige du sujet (`pnpm exec prettier --write <fichiers>`,
 +#                                            en-têtes d'un ticket), message Conventional Commits sans ligne `Sujet:`
 +#   git push origin HEAD:maj/<nom>           arbre propre : le pre-push joue `pnpm check` sur l'arbre de travail,
-+#                                            le sommet, retouches comprises ; la fusion seule n'est jamais poussée
++#                                            le sommet, retouches comprises ; la fusion seule n'est jamais poussée.
++#                                            Il juge l'arbre de travail, pas ce qui part : `git push <sha>:maj/<nom>`
++#                                            depuis un autre arbre passe le hook ; seule la CI exigée sur le sommet,
++#                                            que `fusionner` lit, fait foi
 +#   puis PR vers sujet/<nom>, titre `chore(sujet): met <nom> à jour avec develop`, étiquetée `à-fusionner`, une
 +#   section « Retouches » (fichier, raison) pour le relecteur, que le capitaine ne lit jamais, et une section de
 +#   revue si un fichier la demande (ci-dessous)
@@ -660,8 +822,12 @@ index aedaab9..06d553d 100755
 +# Directives qui taisent un contrôle : un fichier qui en porte une de plus n'est jamais prouvé par le formateur.
 +DIRECTIVES='prettier-ignore|eslint-disable|/\*[[:space:]]*eslint[[:space:]]|@ts-|istanbul[[:space:]]+ignore|[cv]8[[:space:]]+ignore|biome-ignore|Stryker[[:space:]]+disable'
 +
-+# Vrai si <après>:<f> est exactement ce que le Prettier installé dans l'arbre de travail rend de <avant>:<f> : le
-+# fichier existe des deux côtés, en fichier ordinaire de même mode, et ne porte aucune directive de plus.
++# pnpm joué dans le dossier du formateur (FORMATEUR, prouver_formatage), sans jamais remonter jusqu'à un dépôt git.
++formateur() { (cd "$FORMATEUR" && GIT_CEILING_DIRECTORIES=${FORMATEUR%/*} pnpm "$@"); }
++
++# Vrai si <après>:<f> est exactement ce que le formateur rend de <avant>:<f> : le fichier existe des deux côtés, en
++# fichier ordinaire de même mode, et ne porte aucune directive de plus. Les deux versions se lisent dans les objets
++# de git, jamais dans un arbre de travail.
 +formate_comme() {
 +  local avant=$1 apres=$2 f=$3 ma mb sortie
 +  ma=$(git --literal-pathspecs ls-tree "$avant" -- "$f" | awk '{ print $1 }')
@@ -670,7 +836,7 @@ index aedaab9..06d553d 100755
 +  [ "$(git cat-file blob "$apres:$f" | grep -cE "$DIRECTIVES" || true)" -le "$(git cat-file blob "$avant:$f" | grep -cE "$DIRECTIVES" || true)" ] ||
 +    return 1
 +  sortie=$(mktemp)
-+  if git cat-file blob "$avant:$f" | pnpm exec prettier --stdin-filepath "$f" >"$sortie" 2>/dev/null &&
++  if git cat-file blob "$avant:$f" | formateur exec prettier --stdin-filepath "$f" >"$sortie" 2>/dev/null &&
 +    git cat-file blob "$apres:$f" | cmp -s - "$sortie"; then
 +    rm -f "$sortie"
 +    return 0
@@ -679,45 +845,70 @@ index aedaab9..06d553d 100755
 +  return 1
 +}
 +
-+# Le formateur du dépôt, joué pour prouver un formatage. Son arbre : la fusion, chaque fichier qu'elle écrit hors
-+# conflit remis à sa version de la fusion recalculée ; rien de ce qui est jugé ne s'exécute à son propre jugement
-+# (configuration, greffon, lockfile). Sa version : celle que verrouille le sommet, car une retouche d'un lockfile ou
-+# d'un package.json ne dispense de rien. Aucune dispense (PROUVES vide) : un dépôt sans `prettier` dans le
-+# package.json racine, un chemin que git cite entre guillemets. PROUVES : « avant<TAB>chemin » prouvés, `avant`
-+# valant `fusion` (écart de la fusion à la fusion recalculée) ou `retouche` (de la fusion au sommet).
++# Le formateur du dépôt, joué pour prouver un formatage, sans rien extraire chez le capitaine. Son arbre, l'arbre
++# jugé : la fusion recalculée, chaque fichier en conflit pris dans la fusion de la PR (la résolution, jugée avant),
++# écrit par un index temporaire (`read-tree`, `update-index --cacheinfo`, `write-tree`), puis extrait par
++# `git archive | tar -x` dans un dossier temporaire hors du dépôt, où jouent `pnpm install --ignore-scripts` et
++# Prettier. Ni le worktree du capitaine ni aucune commande qui déclenche un hook (`switch`, `checkout`, `merge`,
++# `commit`) ne touchent cet arbre ni celui de la PR, et aucun hook n'est désactivé : on ne les déclenche pas. Rien de
++# ce que la PR écrit hors conflit ni aucune retouche n'y entre : une configuration, un greffon, un lockfile, un
++# `.husky/`, un `node_modules/` écrits par la PR ne s'exécutent jamais à leur propre jugement. Sa version : celle que
++# verrouille le sommet, car une retouche d'un lockfile ou d'un package.json ne dispense de rien. Aucune dispense (tout
++# reste à juger) : un dépôt sans `prettier` dans le package.json racine, un chemin que git cite entre guillemets, un
++# fichier en conflit qui n'est pas un fichier ordinaire dans la fusion de la PR.
++# Entrées : la fusion recalculée, la fusion, l'écart de la fusion hors conflit, les retouches (« commit<TAB>chemin »,
++# chaque fichier que chaque retouche touche), les fichiers en conflit. Sorties : HORS_NON, l'écart de la fusion que le
++# formateur ne prouve pas ; RETOUCHES_NON, les fichiers dont une retouche au moins n'est pas prouvée contre son parent.
 +prouver_formatage() {
-+  local n=$1 arbre=$2 m=$3 sommet=$4 hors=$5 apres=$6 ecart=$7 conflits=$8 f
-+  PROUVES=''
++  local n=$1 arbre=$2 m=$3 hors=$4 retouches=$5 conflits=$6 apres f c entree index juge
++  apres=$(cut -f2- <<<"$retouches" | sed '/^$/d' | sort -u)
++  HORS_NON=$hors
++  RETOUCHES_NON=$apres
 +  ! grep -qE '(^|/)(package\.json|pnpm-lock\.yaml|pnpm-workspace\.yaml|\.npmrc|\.pnpmfile\.cjs)$' <<<"$hors"$'\n'"$apres" || return 0
-+  ! grep -q '^"' <<<"$ecart"$'\n'"$apres" || return 0
-+  [ -z "$(git status --porcelain)" ] || sortir 6 "arbre de travail pas propre : committer ou ranger d'abord, puis relancer (rien à corriger côté PR)"
++  ! grep -q '^"' <<<"$hors"$'\n'"$apres"$'\n'"$conflits" || return 0
++  FORMATEUR=$(mktemp -d)
++  index="$FORMATEUR.index"
 +  local echec
 +  echec() {
-+    git reset -q --hard
-+    git switch -q --detach origin/develop
++    rm -rf "$FORMATEUR" "$index"
 +    sortir 11 "$1, côté capitaine : #$n laissée dans la file"
 +  }
-+  git switch -q --detach "$m"
++  GIT_INDEX_FILE=$index git read-tree "$arbre" || echec "arbre du formateur illisible"
 +  while IFS= read -r f; do
-+    [ -n "$f" ] && ! grep -qxF -- "$f" <<<"$conflits" || continue
-+    if git cat-file -e "$arbre:$f" 2>/dev/null; then
-+      git --literal-pathspecs checkout -q "$arbre" -- "$f" || echec "arbre du formateur illisible ($f)"
-+    else
-+      git --literal-pathspecs rm -q -f -- "$f" >/dev/null || echec "arbre du formateur illisible ($f)"
-+    fi
-+  done <<<"$ecart"
-+  if jq -e '(.devDependencies.prettier // .dependencies.prettier) | type == "string"' package.json >/dev/null 2>&1; then
-+    pnpm install --frozen-lockfile --prefer-offline >/dev/null 2>&1 </dev/null || echec "pnpm install en échec"
-+    pnpm exec prettier --version >/dev/null 2>&1 </dev/null || echec "Prettier déclaré mais introuvable après pnpm install"
++    [ -n "$f" ] || continue
++    entree=$(git --literal-pathspecs ls-tree "$m" -- "$f")
++    case $entree in
++      '') GIT_INDEX_FILE=$index git update-index --force-remove -- "$f" ;;
++      "100644 blob "* | "100755 blob "*)
++        GIT_INDEX_FILE=$index git update-index --add --cacheinfo "${entree%% *},$(cut -d ' ' -f3 <<<"${entree%%$'\t'*}"),$f" ;;
++      *) false ;;
++    esac || {
++      rm -rf "$FORMATEUR" "$index"
++      return 0
++    }
++  done <<<"$conflits"
++  juge=$(GIT_INDEX_FILE=$index git write-tree) || echec "arbre du formateur illisible"
++  rm -f "$index"
++  git archive "$juge" | tar -x -C "$FORMATEUR" || echec "arbre du formateur non extrait (git archive, tar)"
++  if jq -e '(.devDependencies.prettier // .dependencies.prettier) | type == "string"' "$FORMATEUR/package.json" >/dev/null 2>&1; then
++    formateur install --frozen-lockfile --prefer-offline --ignore-scripts >/dev/null 2>&1 </dev/null || echec "pnpm install en échec"
++    formateur exec prettier --version >/dev/null 2>&1 </dev/null || echec "Prettier déclaré mais introuvable après pnpm install"
++    HORS_NON=''
 +    while IFS= read -r f; do
-+      [ -n "$f" ] && formate_comme "$arbre" "$m" "$f" && PROUVES+="fusion"$'\t'"$f"$'\n'
++      if [ -n "$f" ] && ! formate_comme "$arbre" "$m" "$f"; then HORS_NON+="$f"$'\n'; fi
 +    done <<<"$hors"
-+    while IFS= read -r f; do
-+      [ -n "$f" ] && ! grep -qxF -- "$f" <<<"$conflits" && formate_comme "$m" "$sommet" "$f" && PROUVES+="retouche"$'\t'"$f"$'\n'
-+    done <<<"$apres"
++    HORS_NON=$(sed '/^$/d' <<<"$HORS_NON")
++    # Chaque retouche contre son parent : une retouche intermédiaire entre telle quelle dans l'historique du sujet.
++    # Un fichier en conflit est déjà à juger.
++    RETOUCHES_NON=''
++    while IFS=$'\t' read -r c f; do
++      [ -n "$f" ] || continue
++      ! grep -qxF -- "$f" <<<"$conflits" || continue
++      formate_comme "$c^" "$c" "$f" || RETOUCHES_NON+="$f"$'\n'
++    done <<<"$retouches"
++    RETOUCHES_NON=$(sed '/^$/d' <<<"$RETOUCHES_NON" | sort -u)
 +  fi
-+  git reset -q --hard
-+  git switch -q --detach origin/develop
++  rm -rf "$FORMATEUR"
 +}
 +
 +# Elle n'entre que si elle a cette forme, sinon sortie 4 (motif à la session) :
@@ -729,13 +920,14 @@ index aedaab9..06d553d 100755
 +#     que le formateur prouve (le pre-commit de la session formate ceux qu'il indexe) ;
 +#   - chaque retouche : un message sans ces lignes, que commitlint accepte (il entre tel quel dans develop).
 +# L'écart se lit sans détection des renommages : un fichier supprimé derrière un chemin en conflit recréé compte.
-+# A_JUGER, que lit la revue exigée : l'écart de la fusion hors formatage prouvé, index compris, les fichiers en conflit,
-+# et tout fichier retouché que le formateur ne prouve pas, jugé comme une sous-PR. La section « Retouches » du corps
-+# n'est jamais lue. Avant tout formateur, la résolution passe la revue exigée : rien de non jugé ne s'exécute.
-+# Un outil du capitaine en échec (git sans `merge-tree --write-tree`, pnpm install) : sortie 11, rien à corriger côté PR.
++# A_JUGER, que `fusionner` passe à la revue exigée avant toute exécution : l'écart de la fusion hors conflit et hors
++# index ôté, index compris, et les fichiers en conflit. MAJ_* : la fusion, la fusion recalculée, les fichiers en
++# conflit, l'écart hors conflit (HORS), les retouches commit par commit et leur union (APRES), que juger_retouches lit
++# après les checks. Un outil du capitaine en échec (git sans `merge-tree --write-tree`) : sortie 11, rien à corriger
++# côté PR.
  verifier_mise_a_jour() {
 -  local n=$1 sommet=$2 base=$3 s p1 p2 reste fusion rc arbre conflits ecart hors regeneres
-+  local n=$1 sommet=$2 base=$3 s m c p1 p2 reste fusion rc arbre conflits ecart hors apres regeneres motif non
++  local n=$1 sommet=$2 base=$3 s c f p1 p2 reste fusion rc ecart regeneres fichiers
 +  local -a chaine
    s=$(git rev-parse "origin/$base")
 -  [ "$(git rev-list --count "$sommet" "^origin/$base" ^origin/develop)" = 1 ] ||
@@ -745,59 +937,73 @@ index aedaab9..06d553d 100755
 +  [ "$(git rev-list --merges --count "$sommet" "^origin/$base" ^origin/develop)" = 1 ] &&
 +    [ "${#chaine[@]}" = "$(git rev-list --count "$sommet" "^origin/$base" ^origin/develop)" ] ||
 +    sortir 4 "#$n, PR de mise à jour : une seule fusion de develop dans $base, son premier commit, puis des retouches l'une après l'autre ; jamais une seconde fusion"
-+  m=${chaine[-1]}
-+  ! grep -qE '^(- )?\**Sujet ?:|^Merge pull request' <<<"$(git log -1 --format=%B "$m")" ||
++  MAJ_M=${chaine[-1]}
++  ! grep -qE '^(- )?\**Sujet ?:|^Merge pull request' <<<"$(git log -1 --format=%B "$MAJ_M")" ||
      sortir 4 "#$n, PR de mise à jour : le message de la fusion porte une ligne « Sujet: » ou « Merge pull request » : refaire la fusion avec le message de git"
 -  read -r _ p1 p2 reste <<<"$(git rev-list --parents -n 1 "$sommet")"
-+  read -r _ p1 p2 reste <<<"$(git rev-list --parents -n 1 "$m")"
++  read -r _ p1 p2 reste <<<"$(git rev-list --parents -n 1 "$MAJ_M")"
    [ -n "$p2" ] && [ -z "$reste" ] ||
      sortir 4 "#$n, PR de mise à jour : une fusion à deux parents, le sommet de $base puis develop"
    [ "$p1" = "$s" ] ||
-@@ -576,23 +662,39 @@ verifier_mise_a_jour() {
+@@ -576,23 +695,50 @@ verifier_mise_a_jour() {
    if ! git merge-base --is-ancestor "$p2" origin/develop || git merge-base --is-ancestor "$p2" "$s"; then
      sortir 4 "#$n, PR de mise à jour : le second parent n'est pas un commit de develop absent de $base"
    fi
++  MAJ_RETOUCHES=''
 +  for c in "${chaine[@]:0:${#chaine[@]}-1}"; do
 +    ! grep -qE '^(- )?\**Sujet ?:|^Merge pull request' <<<"$(git log -1 --format=%B "$c")" ||
 +      sortir 4 "#$n, PR de mise à jour : la retouche $(git rev-parse --short "$c") porte une ligne « Sujet: » ou « Merge pull request » : la retirer du message"
 +    git log -1 --format=%B "$c" | pnpm exec commitlint >/dev/null 2>&1 ||
 +      sortir 4 "#$n, PR de mise à jour : message de la retouche $(git rev-parse --short "$c") refusé par commitlint (Conventional Commits) : il entre tel quel dans $base"
++    # Chaque fichier que la retouche touche, contre son parent : un fichier ajouté puis retiré compte.
++    fichiers=$(git -c core.quotePath=false diff --no-renames --name-only "$c^" "$c") ||
++      sortir 11 "#$n : diff de la retouche $(git rev-parse --short "$c") illisible, côté capitaine : PR laissée dans la file"
++    while IFS= read -r f; do
++      [ -z "$f" ] || MAJ_RETOUCHES+="$c"$'\t'"$f"$'\n'
++    done <<<"$fichiers"
 +  done
++  MAJ_APRES=$(cut -f2- <<<"$MAJ_RETOUCHES" | sed '/^$/d' | sort -u)
    fusion=$(git -c core.quotePath=false merge-tree --write-tree --name-only --no-messages "$p1" "$p2") && rc=0 || rc=$?
    [ "$rc" -le 1 ] || sortir 11 "#$n : git merge-tree --write-tree en échec (git ≥ 2.38 requis), côté capitaine : PR laissée dans la file"
-   arbre=$(sed -n 1p <<<"$fusion")
-   conflits=$(sed -n '2,$p' <<<"$fusion")
+-  arbre=$(sed -n 1p <<<"$fusion")
+-  conflits=$(sed -n '2,$p' <<<"$fusion")
 -  ecart=$(git -c core.quotePath=false diff --no-renames --name-only "$arbre" "$sommet") ||
-+  ecart=$(git -c core.quotePath=false diff --no-renames --name-only "$arbre" "$m") ||
++  MAJ_ARBRE=$(sed -n 1p <<<"$fusion")
++  MAJ_CONFLITS=$(sed -n '2,$p' <<<"$fusion")
++  ecart=$(git -c core.quotePath=false diff --no-renames --name-only "$MAJ_ARBRE" "$MAJ_M") ||
      sortir 11 "#$n : diff de la résolution illisible, côté capitaine : PR laissée dans la file"
-+  apres=$(git -c core.quotePath=false diff --no-renames --name-only "$m" "$sommet") ||
-+    sortir 11 "#$n : diff des retouches illisible, côté capitaine : PR laissée dans la file"
    # La liste des index régénérés illisible (fonction absente, jq en échec) : jamais une garde ouverte. Un projet
    # sans index généré a une liste vide, `^()$`, qui ne prend aucun chemin.
    regeneres=$(index_regeneres_regex) && [ -n "$regeneres" ] ||
      sortir 11 "#$n : liste des index régénérés illisible (index_regeneres_regex de github.sh), côté capitaine : PR laissée dans la file"
    # Un chemin cité par git (`"apps/a\"b.ts"`) l'est de même dans les deux listes : la comparaison tient.
-   hors=$(comm -23 <(printf '%s\n' "$ecart" | grep -Ev "$regeneres" | sed '/^$/d' | sort -u) <(printf '%s\n' "$conflits" | sort -u))
+-  hors=$(comm -23 <(printf '%s\n' "$ecart" | grep -Ev "$regeneres" | sed '/^$/d' | sort -u) <(printf '%s\n' "$conflits" | sort -u))
 -  [ -z "$hors" ] ||
 -    sortir 4 "#$n, PR de mise à jour : elle écrit hors des fichiers en conflit ($(tr '\n' ' ' <<<"$hors")) : elle n'apporte que la résolution, le reste part en sous-PR"
++  MAJ_HORS=$(comm -23 <(printf '%s\n' "$ecart" | grep -Ev "$regeneres" | sed '/^$/d' | sort -u) <(printf '%s\n' "$MAJ_CONFLITS" | sort -u))
    # La revue porte sur l'écart et sur les fichiers en conflit : un conflit modifier/supprimer ou binaire dont la
    # résolution garde la version du sujet ne fait aucun écart avec l'arbre recalculé, qui la porte déjà.
 -  RESOLUTION=$(printf '%s\n%s\n' "$ecart" "$conflits" | sed '/^$/d' | sort -u)
-+  A_JUGER=$(comm -23 <(printf '%s\n%s\n' "$ecart" "$conflits" | sed '/^$/d' | sort -u) <(printf '%s\n' "$hors" | sed '/^$/d' | sort -u))
-+  motif=$(juger "$A_JUGER") || sortir 4 "#$n $motif"
-+  if [ -z "$hors" ] && juger "$(printf '%s\n%s\n' "$A_JUGER" "$apres")" >/dev/null; then
-+    A_JUGER=$(printf '%s\n%s\n' "$A_JUGER" "$apres" | sed '/^$/d' | sort -u)
++  A_JUGER=$(comm -23 <(printf '%s\n%s\n' "$ecart" "$MAJ_CONFLITS" | sed '/^$/d' | sort -u) <(printf '%s\n' "$MAJ_HORS" | sed '/^$/d' | sort -u))
++}
++
++# Après les checks et les liens sur les index : rien du dépôt ne s'exécute pour une PR qu'ils refusent. Le formateur
++# ne joue que si la PR en a besoin (un écart hors conflit dans la fusion, ou une retouche que la revue exigerait sans
++# section) ; puis la revue exigée juge la résolution et toute retouche qu'il ne prouve pas, comme une sous-PR. La
++# section « Retouches » du corps n'est jamais lue.
++juger_retouches() {
++  local n=$1 motif
++  if [ -z "$MAJ_HORS" ] && juger "$(printf '%s\n%s\n' "$A_JUGER" "$MAJ_APRES")" >/dev/null; then
 +    return 0
 +  fi
-+  prouver_formatage "$n" "$arbre" "$m" "$sommet" "$hors" "$apres" "$ecart" "$conflits"
-+  non=$(comm -23 <(printf '%s\n' "$hors" | sed '/^$/d' | sort -u) <(printf '%s' "$PROUVES" | awk -F '\t' '$1 == "fusion" { print $2 }' | sort -u))
-+  [ -z "$non" ] ||
-+    sortir 4 "#$n, PR de mise à jour : elle écrit hors des fichiers en conflit ($(tr '\n' ' ' <<<"$non")) autre chose que le formatage : la fusion n'apporte que la résolution, le reste vient en retouche, dans un commit après elle"
-+  A_JUGER=$(printf '%s\n%s\n' "$A_JUGER" "$(comm -23 <(printf '%s\n' "$apres" | sed '/^$/d' | sort -u) <(printf '%s' "$PROUVES" | awk -F '\t' '$1 == "retouche" { print $2 }' | sort -u))" | sed '/^$/d' | sort -u)
++  prouver_formatage "$n" "$MAJ_ARBRE" "$MAJ_M" "$MAJ_HORS" "$MAJ_RETOUCHES" "$MAJ_CONFLITS"
++  [ -z "$HORS_NON" ] ||
++    sortir 4 "#$n, PR de mise à jour : elle écrit hors des fichiers en conflit ($(tr '\n' ' ' <<<"$HORS_NON")) autre chose que le formatage : la fusion n'apporte que la résolution, le reste vient en retouche, dans un commit après elle"
++  motif=$(juger "$(printf '%s\n%s\n' "$A_JUGER" "$RETOUCHES_NON" | sed '/^$/d' | sort -u)") || sortir 4 "#$n $motif"
  }
  
  # Avance rapide du sujet jusqu'à la PR de mise à jour vérifiée : index régénérés et contrôlés sur son sommet
-@@ -655,20 +757,22 @@ fusionner() {
+@@ -655,20 +801,23 @@ fusionner() {
      sortir 4 "titre refusé par commitlint (Conventional Commits) : $titre"
    # Revue adversariale (ADR « chaîne de production »), comme au passage vers develop : la livraison
    # du sujet en est dispensée, c'est donc ici qu'on l'exige.
@@ -810,7 +1016,8 @@ index aedaab9..06d553d 100755
 +  juger() { printf '%s\n' "$1" | node "$revue" "$corps" "$titre" "origin/$base"; }
    git fetch -q origin develop "$base" "$(jq -r .head.ref <<<"$pr")"
 -  # PR de mise à jour : la revue porte sur la résolution seule, pas sur le develop qu'elle apporte.
-+  # PR de mise à jour : la revue porte sur la résolution et les retouches non prouvées, pas sur le develop apporté.
++  # PR de mise à jour : la revue porte d'abord sur la résolution seule, pas sur le develop apporté ; ses retouches
++  # se jugent après les checks (juger_retouches).
    if est_mise_a_jour "$sommet" "$base"; then
      verifier_mise_a_jour "$n" "$sommet" "$base"
      maj=1
@@ -825,16 +1032,18 @@ index aedaab9..06d553d 100755
    # Lien symbolique sur un index généré ou son dossier, que la PR ajoute ou change : la régénération du capitaine
    # (mise à jour, avance, rafraichir) écrirait à travers lui.
    motif=$(liens_sur_index "$sommet" "origin/$base") || sortir 4 "#$n $motif"
-@@ -687,7 +791,7 @@ fusionner() {
+@@ -687,8 +836,9 @@ fusionner() {
      esac
    done <<<"$requis"
    [ -z "$rouges" ] || sortir 3 "checks rouges sur #$n :$rouges"
 -  [ "$attente" = 0 ] || sortir 3 "checks encore en cours sur #$n : attendre leur fin"
-+  [ "$attente" = 0 ] || sortir 5 "checks encore en cours sur #$n : reprise au tour suivant, aucun renvoi"
++  [ "$attente" = 0 ] || sortir 5 "checks encore en cours sur #$n : reprise au tour suivant, aucun renvoi (la PR reste dans la file tant que la CI ne finit pas)"
    if [ -n "$maj" ]; then
++    juger_retouches "$n"
      avancer_sujet "$n" "$base" "$sommet"
      return 0
-@@ -763,7 +867,7 @@ rafraichir() {
+   fi
+@@ -763,7 +913,7 @@ rafraichir() {
    case $statut in
      0) ;;
      5) git reset -q --hard "origin/$branche"; sortir 5 "$branche a bougé pendant la mise à jour : relancer" ;;
@@ -847,7 +1056,7 @@ index aedaab9..06d553d 100755
 
 ### 2. Les textes, mot pour mot
 
-Dans le même patch (`git apply --index` du § 1 les porte) ; donnés ici à part pour la relecture. Six fichiers : `sujet/SKILL.md` (sorties, recette et règle, `:34`), `fusionner/SKILL.md:60` (filtre du `Monitor`, PR de mise à jour, sortie 3, `SUJET NON MIS À JOUR`), `sujet/references/CONTENU.md:9` (la voie et ses raisons), `fusionner/references/CONTENU.md:47` (les bancs), `socle-chaine-de-production/references/CONTENU.md:25` (le banc du pre-push), `chantier/SKILL.md:96` (le conducteur lance la fille aussi sur une sortie 3). L'en-tête de `sujet.sh` (recette, sorties 3, 5 et 11), celui de `boucle.sh` et celui de `refus.sh` sont dans le § 1.b.
+Dans le même patch (`git apply --index` du § 1 les porte) ; donnés ici à part pour la relecture. Six fichiers : `sujet/SKILL.md` (sorties, recette et règle, `:34`), `fusionner/SKILL.md:60` (filtre du `Monitor`, PR de mise à jour, sortie 3, `SUJET NON MIS À JOUR`), `sujet/references/CONTENU.md:9` (la voie et ses raisons), `fusionner/references/CONTENU.md:51` (les bancs), `socle-chaine-de-production/references/CONTENU.md:25` (le banc du pre-push), `chantier/SKILL.md:96` (le conducteur lance la fille aussi sur une sortie 3). L'en-tête de `sujet.sh` (recette, sorties 3, 5 et 11), celui de `boucle.sh` et celui de `refus.sh` sont dans le § 1.b.
 
 ```diff
 diff --git a/skills/chaine/chantier/SKILL.md b/skills/chaine/chantier/SKILL.md
@@ -864,7 +1073,7 @@ index c7f1d32..e643692 100644
  
  ## Arrêter un chantier
 diff --git a/skills/chaine/fusionner/SKILL.md b/skills/chaine/fusionner/SKILL.md
-index c675b4e..ff28ff8 100644
+index 3acaf8e..5908c8e 100644
 --- a/skills/chaine/fusionner/SKILL.md
 +++ b/skills/chaine/fusionner/SKILL.md
 @@ -57,7 +57,7 @@ La veille s'arrête d'elle-même, et sa fin réveille la session :
@@ -872,22 +1081,22 @@ index c675b4e..ff28ff8 100644
  - **`VEILLE ARRÊTÉE`** : la boucle est sortie en code non nul (`ARRÊT` : gates, install, CI bloquée), et la veille avec le même code. Traiter le cas (suite par code : en-tête de `passer.sh`), puis relancer la veille. Sortie 9 : une autre boucle tient le verrou, ne rien relancer avant de savoir laquelle ; sortie 10 : arrêt demandé, `--reprendre` quand on veut repartir.
  
 -Suivre le journal avec un `Monitor` filtré sur `VEILLE FINIE|VEILLE ARRÊTÉE|FUSIONNÉE|MISE À JOUR|sortie=|ARRÊT|conflit|rouges|RELANCE|RENVOI|REGROUPÉE|RECIBLÉE|SUJET EN CONFLIT|LIVRÉ|REFUS|PAS PROPRE|ÉCHEC DU CAPITAINE`. La boucle traite seule les sorties 2 à 5 de `passer.sh` et la CI rouge (une relance, puis renvoi) ; un refus corrigeable (sortie 4 : titre trop long ou refusé par commitlint, revue adversariale absente, base hors `sujet/`, tête gardée : `develop`, `main`, la branche par défaut, ou un sujet pour une sous-PR ; sortie 4 de `sujet.sh relancer` comprise) renvoie la PR avec son motif (`refus.sh`) ; une PR non éligible sans correction possible (sortie 7 : fermée, brouillon, sans label, déjà `fusion-bloquée`, empilée sur une parente non fusionnée) est sautée sans bruit. Un worktree du capitaine pas propre n'est jamais un renvoi : sortie 6 de `passer.sh` (arrêt) comme de `sujet.sh fusionner`, `relancer`, `rafraichir` ou `regrouper` (`PAS PROPRE`, sous-PR laissée dans la file) ; le nettoyer, puis relancer. Une livraison de sujet, tête `sujet/<nom>` ou `livraison/<nom>-<date>`, passe avant `prio:haute`. Une sous-PR en conflit avec son sujet **sur des index générés seuls** n'est pas renvoyée : `sujet.sh fusionner` la met à jour, régénère et pousse (sortie 8, `MISE À JOUR`) ; elle repasse au tour suivant, CI verte. Une PR de mise à jour d'un sujet (sa tête n'apporte que la fusion de develop, conflit résolu par une session fille : en-tête de `sujet.sh`) entre par avance rapide, sans squash, et le capitaine la ferme (`FUSIONNÉE`) ; d'une autre forme, elle est renvoyée avec son motif (sortie 4) ; un échec de ses outils (git sans `merge-tree --write-tree`, dépendances, régénération, push refusé) sort en 11, `ÉCHEC DU CAPITAINE`, sans renvoi : le capitaine lit la cause et la corrige chez lui. Sur un `RENVOI`, le capitaine prévient la session. Les renvois se comptent sur la PR (marque invisible dans chaque commentaire de `renvoyer.sh`, comptée seulement sous le compte qui tient le capitaine, `gh api user` ; ce compte illisible, toute PR se lit au plafond, et `file.sh` le dit une fois) : au plafond (`plafonds.renvoisParPR`, 3), le commentaire et la ligne `RENVOI n sur 3` disent que la PR attend un humain, et `file.sh` la montre `humain` : ni passée, ni relancée, ni renvoyée. Une PR d'un sujet gelé (`Gel:` de sa carte : sous-PR, livraison ou PR à recibler) se lit `gelée`, avant `humain`, et reçoit le même traitement ; `sujet.sh fusionner` d'une telle sous-PR sort en 7. Le gel se lève d'une ligne (`sujet.sh degeler`). Sur l'ordre d'un humain, le capitaine la passe à la main (`passer.sh <n>`, ou `sujet.sh fusionner <n>` pour une sous-PR) ; le compte ne se remet pas à zéro.
-+Suivre le journal avec un `Monitor` filtré sur `VEILLE FINIE|VEILLE ARRÊTÉE|FUSIONNÉE|MISE À JOUR|sortie=|ARRÊT|conflit|rouges|RELANCE|RENVOI|REGROUPÉE|RECIBLÉE|SUJET EN CONFLIT|SUJET NON MIS À JOUR|REPRISE|LIVRÉ|REFUS|PAS PROPRE|ÉCHEC DU CAPITAINE`. La boucle traite seule les sorties 2 à 5 de `passer.sh` et la CI rouge (une relance, puis renvoi) ; un refus corrigeable (sortie 4 : titre trop long ou refusé par commitlint, revue adversariale absente, base hors `sujet/`, tête gardée : `develop`, `main`, la branche par défaut, ou un sujet pour une sous-PR ; sortie 4 de `sujet.sh relancer` comprise) renvoie la PR avec son motif (`refus.sh`) ; une PR non éligible sans correction possible (sortie 7 : fermée, brouillon, sans label, déjà `fusion-bloquée`, empilée sur une parente non fusionnée) est sautée sans bruit. Un worktree du capitaine pas propre n'est jamais un renvoi : sortie 6 de `passer.sh` (arrêt) comme de `sujet.sh fusionner`, `relancer`, `rafraichir` ou `regrouper` (`PAS PROPRE`, sous-PR laissée dans la file) ; le nettoyer, puis relancer. Une livraison de sujet, tête `sujet/<nom>` ou `livraison/<nom>-<date>`, passe avant `prio:haute`. Une sous-PR en conflit avec son sujet **sur des index générés seuls** n'est pas renvoyée : `sujet.sh fusionner` la met à jour, régénère et pousse (sortie 8, `MISE À JOUR`) ; elle repasse au tour suivant, CI verte. Une PR de mise à jour d'un sujet (la fusion de develop par une session fille, puis ses retouches : en-tête de `sujet.sh`) entre par avance rapide, sans squash, et le capitaine la ferme (`FUSIONNÉE`) ; un fichier retouché n'y entre sans revue que si le formateur du dépôt le prouve, tout autre est jugé comme une sous-PR ; d'une autre forme, elle est renvoyée avec son motif (sortie 4) ; un échec de ses outils (git sans `merge-tree --write-tree`, dépendances, Prettier déclaré introuvable, régénération, push refusé) sort en 11, `ÉCHEC DU CAPITAINE`, sans renvoi : le capitaine lit la cause et la corrige chez lui. Une sous-PR que `sujet.sh fusionner` refuse en sortie 3 (checks rouges, conflit avec le sujet, hook) est renvoyée avec le motif de `sujet.sh`, jamais un conflit supposé ; des checks encore en cours sortent en 5 (`REPRISE`, aucun renvoi). Un sujet dont la mise à jour avec develop est refusée sans conflit (hook, dépendances, gate des index) se dit `SUJET NON MIS À JOUR`, pas `SUJET EN CONFLIT`. Sur un `RENVOI`, le capitaine prévient la session. Les renvois se comptent sur la PR (marque invisible dans chaque commentaire de `renvoyer.sh`, comptée seulement sous le compte qui tient le capitaine, `gh api user` ; ce compte illisible, toute PR se lit au plafond, et `file.sh` le dit une fois) : au plafond (`plafonds.renvoisParPR`, 3), le commentaire et la ligne `RENVOI n sur 3` disent que la PR attend un humain, et `file.sh` la montre `humain` : ni passée, ni relancée, ni renvoyée. Une PR d'un sujet gelé (`Gel:` de sa carte : sous-PR, livraison ou PR à recibler) se lit `gelée`, avant `humain`, et reçoit le même traitement ; `sujet.sh fusionner` d'une telle sous-PR sort en 7. Le gel se lève d'une ligne (`sujet.sh degeler`). Sur l'ordre d'un humain, le capitaine la passe à la main (`passer.sh <n>`, ou `sujet.sh fusionner <n>` pour une sous-PR) ; le compte ne se remet pas à zéro.
++Suivre le journal avec un `Monitor` filtré sur `VEILLE FINIE|VEILLE ARRÊTÉE|FUSIONNÉE|MISE À JOUR|sortie=|ARRÊT|conflit|rouges|RELANCE|RENVOI|REGROUPÉE|RECIBLÉE|SUJET EN CONFLIT|SUJET NON MIS À JOUR|REPRISE|LIVRÉ|REFUS|PAS PROPRE|ÉCHEC DU CAPITAINE`. La boucle traite seule les sorties 2 à 5 de `passer.sh` et la CI rouge (une relance, puis renvoi) ; un refus corrigeable (sortie 4 : titre trop long ou refusé par commitlint, revue adversariale absente, base hors `sujet/`, tête gardée : `develop`, `main`, la branche par défaut, ou un sujet pour une sous-PR ; sortie 4 de `sujet.sh relancer` comprise) renvoie la PR avec son motif (`refus.sh`) ; une PR non éligible sans correction possible (sortie 7 : fermée, brouillon, sans label, déjà `fusion-bloquée`, empilée sur une parente non fusionnée) est sautée sans bruit. Un worktree du capitaine pas propre n'est jamais un renvoi : sortie 6 de `passer.sh` (arrêt) comme de `sujet.sh fusionner`, `relancer`, `rafraichir` ou `regrouper` (`PAS PROPRE`, sous-PR laissée dans la file) ; le nettoyer, puis relancer. Une livraison de sujet, tête `sujet/<nom>` ou `livraison/<nom>-<date>`, passe avant `prio:haute`. Une sous-PR en conflit avec son sujet **sur des index générés seuls** n'est pas renvoyée : `sujet.sh fusionner` la met à jour, régénère et pousse (sortie 8, `MISE À JOUR`) ; elle repasse au tour suivant, CI verte. Une PR de mise à jour d'un sujet (la fusion de develop par une session fille, puis ses retouches : en-tête de `sujet.sh`) entre par avance rapide, sans squash, et le capitaine la ferme (`FUSIONNÉE`) ; un fichier retouché n'y entre sans revue que si le formateur du dépôt le prouve à chaque retouche qui le touche, joué hors du worktree du capitaine sur l'arbre déjà jugé et après les checks, tout autre est jugé comme une sous-PR ; d'une autre forme, elle est renvoyée avec son motif (sortie 4) ; un échec de ses outils (git sans `merge-tree --write-tree`, dépendances, arbre du formateur, Prettier déclaré introuvable, régénération, push refusé) sort en 11, `ÉCHEC DU CAPITAINE`, sans renvoi : le capitaine lit la cause et la corrige chez lui. Une sous-PR que `sujet.sh fusionner` refuse en sortie 3 (checks rouges, conflit avec le sujet, hook) est renvoyée avec le motif de `sujet.sh`, jamais un conflit supposé ; des checks encore en cours sortent en 5 (`REPRISE`, aucun renvoi : la PR reste dans la file tant que sa CI ne finit pas). Un sujet dont la mise à jour avec develop est refusée sans conflit se dit `SUJET NON MIS À JOUR`, pas `SUJET EN CONFLIT` : un hook, des dépendances ou le gate des index (sortie 3) se corrigent par une PR de mise à jour avec retouches, une panne du capitaine (sortie 11) ou de `sujet.sh` (69, 1) chez le capitaine, jamais par une session. Sur un `RENVOI`, le capitaine prévient la session. Les renvois se comptent sur la PR (marque invisible dans chaque commentaire de `renvoyer.sh`, comptée seulement sous le compte qui tient le capitaine, `gh api user` ; ce compte illisible, toute PR se lit au plafond, et `file.sh` le dit une fois) : au plafond (`plafonds.renvoisParPR`, 3), le commentaire et la ligne `RENVOI n sur 3` disent que la PR attend un humain, et `file.sh` la montre `humain` : ni passée, ni relancée, ni renvoyée. Une PR d'un sujet gelé (`Gel:` de sa carte : sous-PR, livraison ou PR à recibler) se lit `gelée`, avant `humain`, et reçoit le même traitement ; `sujet.sh fusionner` d'une telle sous-PR sort en 7. Le gel se lève d'une ligne (`sujet.sh degeler`). Sur l'ordre d'un humain, le capitaine la passe à la main (`passer.sh <n>`, ou `sujet.sh fusionner <n>` pour une sous-PR) ; le compte ne se remet pas à zéro.
  
  **Sans veille en cours** (capitaine démarré avant que `veille.sh` soit posé, veille arrêtée et pas encore relancée), qui pose `à-fusionner` prévient le capitaine par `send_message` : `docs/agents/chaine-de-production.md` § 2.
  
 diff --git a/skills/chaine/fusionner/references/CONTENU.md b/skills/chaine/fusionner/references/CONTENU.md
-index e7c3b53..56b5274 100644
+index 800fb2f..b0a0ab6 100644
 --- a/skills/chaine/fusionner/references/CONTENU.md
 +++ b/skills/chaine/fusionner/references/CONTENU.md
-@@ -44,4 +44,4 @@ L'ordre des migrations à l'arrivée dans develop : une migration ajoutée (pré
+@@ -48,4 +48,4 @@ Les messages de commit jugés par la CI, jumeau du hook `commit-msg` : `node scr
  
  ## Les tests
  
--`fusionner.test.mjs` et `revue-exigee.test.mjs`, sur le dépôt jouet du skill `sujet` : ordre de la file, conflit d'index régénéré, conflit de code jamais résolu, pile dont la parente est squashée, checks exigés rouges ou non exigés, renvoi, titre trop long, boucle qui renvoie et saute, revue exigée lue sans renommage ni guillemets (script déplacé hors de `scripts/`, code à nom accentué), livraison intermédiaire dont une suppression se cache derrière un index généré ajouté renvoyée à la revue, livraison dont un index sans `commande` est celui de develop dispensée, d'un autre contenu ou retiré renvoyée à la revue, et de même quand la liste des index régénérés ne se lit pas ; `revue-exigee.test.mjs` : un chemin de code cité entre guillemets par git exige la revue, la configuration que la chaîne exécute ou lit aussi, la casse ne la contourne pas, `cheminLu` décite comme git cite, rien de ce que la règle d'avant exigeait n'en est dispensé, `CLAUDE.md`, `CLAUDE.local.md`, `docs/agents/` et le fichier des critères l'exigent (un index généré littéral à `commande` de `docs/agents/` non, une chaîne nue ou un motif si), un fichier exécutable et un nom de configuration à toute profondeur l'exigent, un chemin NFD touche son motif NFC, une base de sujet ajoute le contrat de develop, un chemin sensible lu dans la base l'exige, un contrat de base illisible l'exige pour tout chemin, la parité avec le gate, et la CLI qui lit le contrat dans la base, pas dans la PR ; `fusionner.test.mjs` encore : une PR vers develop qui touche la configuration de la chaîne ou du code d'une autre casse sans section de revue renvoyée, de même pour un chemin sensible du projet (même retiré de `chaine.json` par la PR), le fichier des critères, un `CLAUDE.md` et `docs/agents/`, un index généré remplacé par un lien symbolique (absolu ou relatif) refusé sans rien écrire à travers lui, le même lien déjà dans develop qui arrête la régénération (sortie 3) sans renvoyer la PR, une livraison intermédiaire qui ajoute ou réécrit un fichier sous un index déclaré par motif renvoyée à la revue, et dont un tel fichier est celui de develop dispensée. `identifiant.test.mjs` : chaque commande du point d'entrée, l'ancienne forme refusée, la grammaire trouvée dans chaque disposition et la sortie 6 sans elle. `github.test.mjs` : les contrôles de `regenerer_index` (ordre, dédoublonnage, échec qui annule `rafraichir`). `fusionner.test.mjs` encore : la livraison intermédiaire mise à jour puis relancée reste un commit de merge, un commit ajouté dessus la renvoie à la revue, le corps du merge nomme le sujet ; les scripts sous les hooks git du jouet (aucun saut) : `passer.sh` sur un conflit d'index sous des hooks de banc (pre-commit, commit-msg, pre-push), un pre-commit, un pre-push ou un commit-msg qui refuse (sortie 3, sortie du hook sur stderr, distant inchangé) ; le contenu du `pre-commit` du socle (lint-staged lit l'index, `check:commit` ne voit ni `GIT_DIR` ni `GIT_INDEX_FILE`, depuis un worktree) est éprouvé contre le gabarit par `scripts/pre-commit-socle.test.mjs` du plugin, qui n'est pas posé ; `sujet.sh` (`fusionner`, `ouvrir`, `livrer` intermédiaire, `rafraichir`, `relancer`, `geler`) qui réveille le pre-push et sort en 3 quand il refuse. `sujet-fusionner.test.mjs` : la sous-PR en conflit sur un index mise à jour (sortie 8), le conflit de code renvoyé, la boucle qui ne renvoie pas, le worktree du capitaine pas propre (sortie 6, aucun renvoi) ; la PR de mise à jour d'un sujet entrée par avance rapide (develop en second parent, index régénérés, aucun squash, PR fermée), refusée (sortie 4, sujet inchangé) quand elle écrit hors des fichiers en conflit (ligne `Dépendances:`, suppression cachée derrière un renommage, index sans commande), quand le sujet a avancé, quand develop est son premier parent, quand son message porte une ligne `Sujet:` ou `Merge pull request` ou quand sa résolution de code n'a pas de revue (chemin cité par git, conflit modifier/supprimer ou binaire gardé compris), d'un sujet gelé (sortie 7), jamais poussée sur un sujet qui bouge (sortie 5, le commit de l'autre session reste), un git sans `merge-tree --write-tree` (sortie 11, la boucle ne la renvoie pas), une liste des index régénérés illisible (sortie 11) et un projet sans index généré (rien n'y est dispensé), passée par la boucle (`FUSIONNÉE`) ; une sous-PR qui déplace un script hors de `scripts/` exige la revue ; une sous-PR qui touche la configuration de la chaîne ou du code d'une autre casse sans section de revue sort en 4, une sous-PR qui remplace un index généré par un lien symbolique sort en 4, et `rafraichir` ne régénère jamais à travers un lien déjà dans le sujet (sortie 3, rien d'écrit hors du dépôt) ; un chemin sensible lu dans le `chaine.json` du sujet exige la revue d'une sous-PR, et de même un chemin que develop déclare après le départ du sujet. `boucle-outils.test.mjs`, sur des scripts de remplacement publiés sur le develop du jouet : un script modifié sur develop pendant la boucle joué au tour suivant, `boucle.sh` modifié relancée une seule fois, la copie du worktree jamais jouée, `origin/develop` introuvable arrêtée sans rien jouer, la grammaire copiée à côté des outils et son absence arrêtée (6) ; seconde boucle refusée (9), y compris après l'`exec` de relance, `--arreter` pendant un tour (143, fichier posé, aucun second passage), fichier d'arrêt lu à chaque tour et avant `livrer-prets` (10), relance refusée tant qu'il existe, `--reprendre` (et refusé pendant qu'une boucle tient le verrou), trappe qui remet propre un worktree en pleine fusion, orphelins d'une boucle tuée par `kill -9` arrêtés par le groupe noté, option inconnue (64) ; les autres suites de la boucle publient les vrais scripts par `publierChaine()`. `migrations-ordre.test.mjs` : la règle (horodatage, pas de 10 minutes qui passe l'heure, le jour et l'année, refus et horodatage proposé), la forme Prisma à 14 chiffres (règle et CLI), `passer.sh` qui refuse sans fusionner, `sujet.sh livrer` qui n'ouvre aucune PR. `veille.test.mjs`, avec des doublures de `boucle.sh` et `file.sh` : relance sur une PR prête ou rouge, pas sur « CI en cours », une seule relance pour une PR sautée, PR sans CI reprise, `VEILLE FINIE`, `VEILLE ARRÊTÉE`.
-+`fusionner.test.mjs` et `revue-exigee.test.mjs`, sur le dépôt jouet du skill `sujet` : ordre de la file, conflit d'index régénéré, conflit de code jamais résolu, pile dont la parente est squashée, checks exigés rouges ou non exigés, renvoi, titre trop long, boucle qui renvoie et saute, revue exigée lue sans renommage ni guillemets (script déplacé hors de `scripts/`, code à nom accentué), livraison intermédiaire dont une suppression se cache derrière un index généré ajouté renvoyée à la revue, livraison dont un index sans `commande` est celui de develop dispensée, d'un autre contenu ou retiré renvoyée à la revue, et de même quand la liste des index régénérés ne se lit pas ; `revue-exigee.test.mjs` : un chemin de code cité entre guillemets par git exige la revue, la configuration que la chaîne exécute ou lit aussi, la casse ne la contourne pas, `cheminLu` décite comme git cite, rien de ce que la règle d'avant exigeait n'en est dispensé, `CLAUDE.md`, `CLAUDE.local.md`, `docs/agents/` et le fichier des critères l'exigent (un index généré littéral à `commande` de `docs/agents/` non, une chaîne nue ou un motif si), un fichier exécutable et un nom de configuration à toute profondeur l'exigent, un chemin NFD touche son motif NFC, une base de sujet ajoute le contrat de develop, un chemin sensible lu dans la base l'exige, un contrat de base illisible l'exige pour tout chemin, la parité avec le gate, et la CLI qui lit le contrat dans la base, pas dans la PR ; `fusionner.test.mjs` encore : une PR vers develop qui touche la configuration de la chaîne ou du code d'une autre casse sans section de revue renvoyée, de même pour un chemin sensible du projet (même retiré de `chaine.json` par la PR), le fichier des critères, un `CLAUDE.md` et `docs/agents/`, un index généré remplacé par un lien symbolique (absolu ou relatif) refusé sans rien écrire à travers lui, le même lien déjà dans develop qui arrête la régénération (sortie 3) sans renvoyer la PR, une livraison intermédiaire qui ajoute ou réécrit un fichier sous un index déclaré par motif renvoyée à la revue, et dont un tel fichier est celui de develop dispensée. `identifiant.test.mjs` : chaque commande du point d'entrée, l'ancienne forme refusée, la grammaire trouvée dans chaque disposition et la sortie 6 sans elle. `github.test.mjs` : les contrôles de `regenerer_index` (ordre, dédoublonnage, échec qui annule `rafraichir`). `fusionner.test.mjs` encore : la livraison intermédiaire mise à jour puis relancée reste un commit de merge, un commit ajouté dessus la renvoie à la revue, le corps du merge nomme le sujet ; les scripts sous les hooks git du jouet (aucun saut) : `passer.sh` sur un conflit d'index sous des hooks de banc (pre-commit, commit-msg, pre-push), un pre-commit, un pre-push ou un commit-msg qui refuse (sortie 3, sortie du hook sur stderr, distant inchangé) ; le contenu du `pre-commit` du socle (lint-staged lit l'index, `check:commit` ne voit ni `GIT_DIR` ni `GIT_INDEX_FILE`, depuis un worktree) est éprouvé contre le gabarit par `scripts/pre-commit-socle.test.mjs` du plugin, qui n'est pas posé ; `sujet.sh` (`fusionner`, `ouvrir`, `livrer` intermédiaire, `rafraichir`, `relancer`, `geler`) qui réveille le pre-push et sort en 3 quand il refuse. `sujet-fusionner.test.mjs` : la sous-PR en conflit sur un index mise à jour (sortie 8), le conflit de code renvoyé, la boucle qui ne renvoie pas, le worktree du capitaine pas propre (sortie 6, aucun renvoi) ; la PR de mise à jour d'un sujet entrée par avance rapide (develop en second parent, index régénérés, aucun squash, PR fermée), refusée (sortie 4, sujet inchangé) quand elle écrit hors des fichiers en conflit (ligne `Dépendances:`, suppression cachée derrière un renommage, index sans commande), quand le sujet a avancé, quand develop est son premier parent, quand son message porte une ligne `Sujet:` ou `Merge pull request` ou quand sa résolution de code n'a pas de revue (chemin cité par git, conflit modifier/supprimer ou binaire gardé compris), d'un sujet gelé (sortie 7), jamais poussée sur un sujet qui bouge (sortie 5, le commit de l'autre session reste), un git sans `merge-tree --write-tree` (sortie 11, la boucle ne la renvoie pas), une liste des index régénérés illisible (sortie 11) et un projet sans index généré (rien n'y est dispensé), passée par la boucle (`FUSIONNÉE`) ; ses retouches (ticket 40) : une retouche de formatage prouvée entre sans revue, formatée autrement, avec `prettier-ignore` ou une directive que le formateur écrirait, de code (même avec une section « Retouches »), créée, supprimée, de mode changé, à chemin cité ou dans un dépôt sans Prettier exige la revue, une section de revue fait entrer une retouche de code, une retouche de documentation entre sans formateur, deux fusions, une retouche avant la fusion ou au message forgé ou hors Conventional Commits refusées, une fusion formatée hors conflit entre et tout autre écart de la fusion reste refusé, un lockfile retouché ne dispense de rien, le formateur ne joue jamais un fichier que la PR écrit (règle de formatage réécrite), Prettier déclaré introuvable sort en 11 ; des checks en cours sortent en 5 et des checks rouges en 3 ; la boucle renvoie une sortie 3 avec le motif de `sujet.sh` et dit `SUJET NON MIS À JOUR` d'un sujet refusé par un hook, `SUJET EN CONFLIT` d'un vrai conflit ; une sous-PR qui déplace un script hors de `scripts/` exige la revue ; une sous-PR qui touche la configuration de la chaîne ou du code d'une autre casse sans section de revue sort en 4, une sous-PR qui remplace un index généré par un lien symbolique sort en 4, et `rafraichir` ne régénère jamais à travers un lien déjà dans le sujet (sortie 3, rien d'écrit hors du dépôt) ; un chemin sensible lu dans le `chaine.json` du sujet exige la revue d'une sous-PR, et de même un chemin que develop déclare après le départ du sujet. `boucle-outils.test.mjs`, sur des scripts de remplacement publiés sur le develop du jouet : un script modifié sur develop pendant la boucle joué au tour suivant, `boucle.sh` modifié relancée une seule fois, la copie du worktree jamais jouée, `origin/develop` introuvable arrêtée sans rien jouer, la grammaire copiée à côté des outils et son absence arrêtée (6) ; seconde boucle refusée (9), y compris après l'`exec` de relance, `--arreter` pendant un tour (143, fichier posé, aucun second passage), fichier d'arrêt lu à chaque tour et avant `livrer-prets` (10), relance refusée tant qu'il existe, `--reprendre` (et refusé pendant qu'une boucle tient le verrou), trappe qui remet propre un worktree en pleine fusion, orphelins d'une boucle tuée par `kill -9` arrêtés par le groupe noté, option inconnue (64) ; les autres suites de la boucle publient les vrais scripts par `publierChaine()`. `migrations-ordre.test.mjs` : la règle (horodatage, pas de 10 minutes qui passe l'heure, le jour et l'année, refus et horodatage proposé), la forme Prisma à 14 chiffres (règle et CLI), `passer.sh` qui refuse sans fusionner, `sujet.sh livrer` qui n'ouvre aucune PR. `veille.test.mjs`, avec des doublures de `boucle.sh` et `file.sh` : relance sur une PR prête ou rouge, pas sur « CI en cours », une seule relance pour une PR sautée, PR sans CI reprise, `VEILLE FINIE`, `VEILLE ARRÊTÉE`.
+-`commits-a-relire.test.mjs`, sur un dépôt jouet et un faux `commitlint` : le choix des commits d'une PR de mise à jour (le vieux titre de develop ne la rougit plus, sans `--hors` il la rougit, un commit fautif propre à la PR reste refusé), une PR vers develop et un push inchangés, le clone superficiel refusé, une réf introuvable ou un usage invalide, le point d'entrée par lien symbolique (aussi sous `--preserve-symlinks-main`, dossier à espace et accent), et le banc isolé de `GIT_*` (un `GIT_DIR` hérité d'un hook ne fait écrire aucun `git` dans le dépôt visé). `fusionner.test.mjs` et `revue-exigee.test.mjs`, sur le dépôt jouet du skill `sujet` : ordre de la file, conflit d'index régénéré, conflit de code jamais résolu, pile dont la parente est squashée, checks exigés rouges ou non exigés, renvoi, titre trop long, boucle qui renvoie et saute, revue exigée lue sans renommage ni guillemets (script déplacé hors de `scripts/`, code à nom accentué), livraison intermédiaire dont une suppression se cache derrière un index généré ajouté renvoyée à la revue, livraison dont un index sans `commande` est celui de develop dispensée, d'un autre contenu ou retiré renvoyée à la revue, et de même quand la liste des index régénérés ne se lit pas ; `revue-exigee.test.mjs` : un chemin de code cité entre guillemets par git exige la revue, la configuration que la chaîne exécute ou lit aussi, la casse ne la contourne pas, `cheminLu` décite comme git cite, rien de ce que la règle d'avant exigeait n'en est dispensé, `CLAUDE.md`, `CLAUDE.local.md`, `docs/agents/` et le fichier des critères l'exigent (un index généré littéral à `commande` de `docs/agents/` non, une chaîne nue ou un motif si), un fichier exécutable et un nom de configuration à toute profondeur l'exigent, un chemin NFD touche son motif NFC, une base de sujet ajoute le contrat de develop, un chemin sensible lu dans la base l'exige, un contrat de base illisible l'exige pour tout chemin, la parité avec le gate, et la CLI qui lit le contrat dans la base, pas dans la PR ; `fusionner.test.mjs` encore : une PR vers develop qui touche la configuration de la chaîne ou du code d'une autre casse sans section de revue renvoyée, de même pour un chemin sensible du projet (même retiré de `chaine.json` par la PR), le fichier des critères, un `CLAUDE.md` et `docs/agents/`, un index généré remplacé par un lien symbolique (absolu ou relatif) refusé sans rien écrire à travers lui, le même lien déjà dans develop qui arrête la régénération (sortie 3) sans renvoyer la PR, une livraison intermédiaire qui ajoute ou réécrit un fichier sous un index déclaré par motif renvoyée à la revue, et dont un tel fichier est celui de develop dispensée. `identifiant.test.mjs` : chaque commande du point d'entrée, l'ancienne forme refusée, la grammaire trouvée dans chaque disposition et la sortie 6 sans elle. `github.test.mjs` : les contrôles de `regenerer_index` (ordre, dédoublonnage, échec qui annule `rafraichir`). `fusionner.test.mjs` encore : la livraison intermédiaire mise à jour puis relancée reste un commit de merge, un commit ajouté dessus la renvoie à la revue, le corps du merge nomme le sujet ; les scripts sous les hooks git du jouet (aucun saut) : `passer.sh` sur un conflit d'index sous des hooks de banc (pre-commit, commit-msg, pre-push), un pre-commit, un pre-push ou un commit-msg qui refuse (sortie 3, sortie du hook sur stderr, distant inchangé) ; le contenu du `pre-commit` du socle (lint-staged lit l'index, `check:commit` ne voit ni `GIT_DIR` ni `GIT_INDEX_FILE`, depuis un worktree) est éprouvé contre le gabarit par `scripts/pre-commit-socle.test.mjs` du plugin, qui n'est pas posé ; `sujet.sh` (`fusionner`, `ouvrir`, `livrer` intermédiaire, `rafraichir`, `relancer`, `geler`) qui réveille le pre-push et sort en 3 quand il refuse. `sujet-fusionner.test.mjs` : la sous-PR en conflit sur un index mise à jour (sortie 8), le conflit de code renvoyé, la boucle qui ne renvoie pas, le worktree du capitaine pas propre (sortie 6, aucun renvoi) ; la PR de mise à jour d'un sujet entrée par avance rapide (develop en second parent, index régénérés, aucun squash, PR fermée), refusée (sortie 4, sujet inchangé) quand elle écrit hors des fichiers en conflit (ligne `Dépendances:`, suppression cachée derrière un renommage, index sans commande), quand le sujet a avancé, quand develop est son premier parent, quand son message porte une ligne `Sujet:` ou `Merge pull request` ou quand sa résolution de code n'a pas de revue (chemin cité par git, conflit modifier/supprimer ou binaire gardé compris), d'un sujet gelé (sortie 7), jamais poussée sur un sujet qui bouge (sortie 5, le commit de l'autre session reste), un git sans `merge-tree --write-tree` (sortie 11, la boucle ne la renvoie pas), une liste des index régénérés illisible (sortie 11) et un projet sans index généré (rien n'y est dispensé), passée par la boucle (`FUSIONNÉE`) ; une sous-PR qui déplace un script hors de `scripts/` exige la revue ; une sous-PR qui touche la configuration de la chaîne ou du code d'une autre casse sans section de revue sort en 4, une sous-PR qui remplace un index généré par un lien symbolique sort en 4, et `rafraichir` ne régénère jamais à travers un lien déjà dans le sujet (sortie 3, rien d'écrit hors du dépôt) ; un chemin sensible lu dans le `chaine.json` du sujet exige la revue d'une sous-PR, et de même un chemin que develop déclare après le départ du sujet. `boucle-outils.test.mjs`, sur des scripts de remplacement publiés sur le develop du jouet : un script modifié sur develop pendant la boucle joué au tour suivant, `boucle.sh` modifié relancée une seule fois, la copie du worktree jamais jouée, `origin/develop` introuvable arrêtée sans rien jouer, la grammaire copiée à côté des outils et son absence arrêtée (6) ; seconde boucle refusée (9), y compris après l'`exec` de relance, `--arreter` pendant un tour (143, fichier posé, aucun second passage), fichier d'arrêt lu à chaque tour et avant `livrer-prets` (10), relance refusée tant qu'il existe, `--reprendre` (et refusé pendant qu'une boucle tient le verrou), trappe qui remet propre un worktree en pleine fusion, orphelins d'une boucle tuée par `kill -9` arrêtés par le groupe noté, option inconnue (64) ; les autres suites de la boucle publient les vrais scripts par `publierChaine()`. `migrations-ordre.test.mjs` : la règle (horodatage, pas de 10 minutes qui passe l'heure, le jour et l'année, refus et horodatage proposé), la forme Prisma à 14 chiffres (règle et CLI), `passer.sh` qui refuse sans fusionner, `sujet.sh livrer` qui n'ouvre aucune PR. `veille.test.mjs`, avec des doublures de `boucle.sh` et `file.sh` : relance sur une PR prête ou rouge, pas sur « CI en cours », une seule relance pour une PR sautée, PR sans CI reprise, `VEILLE FINIE`, `VEILLE ARRÊTÉE`.
++`commits-a-relire.test.mjs`, sur un dépôt jouet et un faux `commitlint` : le choix des commits d'une PR de mise à jour (le vieux titre de develop ne la rougit plus, sans `--hors` il la rougit, un commit fautif propre à la PR reste refusé), une PR vers develop et un push inchangés, le clone superficiel refusé, une réf introuvable ou un usage invalide, le point d'entrée par lien symbolique (aussi sous `--preserve-symlinks-main`, dossier à espace et accent), et le banc isolé de `GIT_*` (un `GIT_DIR` hérité d'un hook ne fait écrire aucun `git` dans le dépôt visé). `fusionner.test.mjs` et `revue-exigee.test.mjs`, sur le dépôt jouet du skill `sujet` : ordre de la file, conflit d'index régénéré, conflit de code jamais résolu, pile dont la parente est squashée, checks exigés rouges ou non exigés, renvoi, titre trop long, boucle qui renvoie et saute, revue exigée lue sans renommage ni guillemets (script déplacé hors de `scripts/`, code à nom accentué), livraison intermédiaire dont une suppression se cache derrière un index généré ajouté renvoyée à la revue, livraison dont un index sans `commande` est celui de develop dispensée, d'un autre contenu ou retiré renvoyée à la revue, et de même quand la liste des index régénérés ne se lit pas ; `revue-exigee.test.mjs` : un chemin de code cité entre guillemets par git exige la revue, la configuration que la chaîne exécute ou lit aussi, la casse ne la contourne pas, `cheminLu` décite comme git cite, rien de ce que la règle d'avant exigeait n'en est dispensé, `CLAUDE.md`, `CLAUDE.local.md`, `docs/agents/` et le fichier des critères l'exigent (un index généré littéral à `commande` de `docs/agents/` non, une chaîne nue ou un motif si), un fichier exécutable et un nom de configuration à toute profondeur l'exigent, un chemin NFD touche son motif NFC, une base de sujet ajoute le contrat de develop, un chemin sensible lu dans la base l'exige, un contrat de base illisible l'exige pour tout chemin, la parité avec le gate, et la CLI qui lit le contrat dans la base, pas dans la PR ; `fusionner.test.mjs` encore : une PR vers develop qui touche la configuration de la chaîne ou du code d'une autre casse sans section de revue renvoyée, de même pour un chemin sensible du projet (même retiré de `chaine.json` par la PR), le fichier des critères, un `CLAUDE.md` et `docs/agents/`, un index généré remplacé par un lien symbolique (absolu ou relatif) refusé sans rien écrire à travers lui, le même lien déjà dans develop qui arrête la régénération (sortie 3) sans renvoyer la PR, une livraison intermédiaire qui ajoute ou réécrit un fichier sous un index déclaré par motif renvoyée à la revue, et dont un tel fichier est celui de develop dispensée. `identifiant.test.mjs` : chaque commande du point d'entrée, l'ancienne forme refusée, la grammaire trouvée dans chaque disposition et la sortie 6 sans elle. `github.test.mjs` : les contrôles de `regenerer_index` (ordre, dédoublonnage, échec qui annule `rafraichir`). `fusionner.test.mjs` encore : la livraison intermédiaire mise à jour puis relancée reste un commit de merge, un commit ajouté dessus la renvoie à la revue, le corps du merge nomme le sujet ; les scripts sous les hooks git du jouet (aucun saut) : `passer.sh` sur un conflit d'index sous des hooks de banc (pre-commit, commit-msg, pre-push), un pre-commit, un pre-push ou un commit-msg qui refuse (sortie 3, sortie du hook sur stderr, distant inchangé) ; le contenu du `pre-commit` du socle (lint-staged lit l'index, `check:commit` ne voit ni `GIT_DIR` ni `GIT_INDEX_FILE`, depuis un worktree) est éprouvé contre le gabarit par `scripts/pre-commit-socle.test.mjs` du plugin, qui n'est pas posé ; `sujet.sh` (`fusionner`, `ouvrir`, `livrer` intermédiaire, `rafraichir`, `relancer`, `geler`) qui réveille le pre-push et sort en 3 quand il refuse. `sujet-fusionner.test.mjs` : la sous-PR en conflit sur un index mise à jour (sortie 8), le conflit de code renvoyé, la boucle qui ne renvoie pas, le worktree du capitaine pas propre (sortie 6, aucun renvoi) ; la PR de mise à jour d'un sujet entrée par avance rapide (develop en second parent, index régénérés, aucun squash, PR fermée), refusée (sortie 4, sujet inchangé) quand elle écrit hors des fichiers en conflit (ligne `Dépendances:`, suppression cachée derrière un renommage, index sans commande), quand le sujet a avancé, quand develop est son premier parent, quand son message porte une ligne `Sujet:` ou `Merge pull request` ou quand sa résolution de code n'a pas de revue (chemin cité par git, conflit modifier/supprimer ou binaire gardé compris), d'un sujet gelé (sortie 7), jamais poussée sur un sujet qui bouge (sortie 5, le commit de l'autre session reste), un git sans `merge-tree --write-tree` (sortie 11, la boucle ne la renvoie pas), une liste des index régénérés illisible (sortie 11) et un projet sans index généré (rien n'y est dispensé), passée par la boucle (`FUSIONNÉE`) ; ses retouches (ticket 40) : une retouche de formatage prouvée entre sans revue, chaque retouche prouvée contre son parent (un fichier ajouté par l'une puis retiré par une autre exige la revue), un hook (`post-checkout`, `post-merge`) ou un `node_modules/` écrit hors conflit par la fusion jamais extrait ni exécuté chez le capitaine (relais de husky simulé), checks et liens sur les index lus avant toute preuve (rien installé, aucun formateur pour une PR refusée en 3 ou en 4), formatée autrement, avec `prettier-ignore` ou une directive que le formateur écrirait, de code (même avec une section « Retouches »), créée, supprimée, de mode changé, à chemin cité ou dans un dépôt sans Prettier exige la revue, une section de revue fait entrer une retouche de code, une retouche de documentation entre sans formateur, deux fusions, une retouche avant la fusion ou au message forgé ou hors Conventional Commits refusées, une fusion formatée hors conflit entre et tout autre écart de la fusion reste refusé, un lockfile retouché ne dispense de rien, le formateur ne joue jamais un fichier que la PR écrit (règle de formatage réécrite), Prettier déclaré introuvable sort en 11 ; des checks en cours sortent en 5 et des checks rouges en 3 ; la boucle renvoie une sortie 3 avec le motif de `sujet.sh` et dit `SUJET NON MIS À JOUR` d'un sujet refusé par un hook, `SUJET EN CONFLIT` d'un vrai conflit, et ne renvoie jamais à une PR de mise à jour une panne du capitaine (11) ou de `sujet.sh` (69, 1) ; `refus.sh` sans motif lisible nomme la sortie reçue (3), jamais 4 ; une sous-PR qui déplace un script hors de `scripts/` exige la revue ; une sous-PR qui touche la configuration de la chaîne ou du code d'une autre casse sans section de revue sort en 4, une sous-PR qui remplace un index généré par un lien symbolique sort en 4, et `rafraichir` ne régénère jamais à travers un lien déjà dans le sujet (sortie 3, rien d'écrit hors du dépôt) ; un chemin sensible lu dans le `chaine.json` du sujet exige la revue d'une sous-PR, et de même un chemin que develop déclare après le départ du sujet. `boucle-outils.test.mjs`, sur des scripts de remplacement publiés sur le develop du jouet : un script modifié sur develop pendant la boucle joué au tour suivant, `boucle.sh` modifié relancée une seule fois, la copie du worktree jamais jouée, `origin/develop` introuvable arrêtée sans rien jouer, la grammaire copiée à côté des outils et son absence arrêtée (6) ; seconde boucle refusée (9), y compris après l'`exec` de relance, `--arreter` pendant un tour (143, fichier posé, aucun second passage), fichier d'arrêt lu à chaque tour et avant `livrer-prets` (10), relance refusée tant qu'il existe, `--reprendre` (et refusé pendant qu'une boucle tient le verrou), trappe qui remet propre un worktree en pleine fusion, orphelins d'une boucle tuée par `kill -9` arrêtés par le groupe noté, option inconnue (64) ; les autres suites de la boucle publient les vrais scripts par `publierChaine()`. `migrations-ordre.test.mjs` : la règle (horodatage, pas de 10 minutes qui passe l'heure, le jour et l'année, refus et horodatage proposé), la forme Prisma à 14 chiffres (règle et CLI), `passer.sh` qui refuse sans fusionner, `sujet.sh livrer` qui n'ouvre aucune PR. `veille.test.mjs`, avec des doublures de `boucle.sh` et `file.sh` : relance sur une PR prête ou rouge, pas sur « CI en cours », une seule relance pour une PR sautée, PR sans CI reprise, `VEILLE FINIE`, `VEILLE ARRÊTÉE`.
 diff --git a/skills/chaine/socle-chaine-de-production/references/CONTENU.md b/skills/chaine/socle-chaine-de-production/references/CONTENU.md
-index e8338d0..de6addb 100644
+index 8b0c6c5..43b38ef 100644
 --- a/skills/chaine/socle-chaine-de-production/references/CONTENU.md
 +++ b/skills/chaine/socle-chaine-de-production/references/CONTENU.md
 @@ -22,7 +22,7 @@ Les sept mots du protocole entre les skills, créés en REST, idempotent. Un pro
@@ -900,7 +1109,7 @@ index e8338d0..de6addb 100644
  ## La CI — `ci/ci.yml`
  
 diff --git a/skills/chaine/sujet/SKILL.md b/skills/chaine/sujet/SKILL.md
-index d057efb..474b14d 100644
+index d057efb..7d40636 100644
 --- a/skills/chaine/sujet/SKILL.md
 +++ b/skills/chaine/sujet/SKILL.md
 @@ -31,7 +31,7 @@ Le sujet se **déclare au découpage** : `Sujet: sujet/<nom>` en tête de la spe
@@ -908,12 +1117,12 @@ index d057efb..474b14d 100644
  ## Commandes
  
 -Chaque commande, son effet et ses sorties : en-tête de `sujet.sh` ; `sujet.sh` sans argument affiche l'aide. Sorties : 0 fait · 2 conflit · 3 checks rouges ou en cours · 4 refus corrigeable par l'auteur · 6 arbre de travail pas propre (`fusionner`, `rafraichir`, `regrouper`, `relancer` : à nettoyer par qui lance, jamais un renvoi de la PR) · 7 sautée · 9 `carte <nom>` refusée, ou `geler`/`degeler` dont le push échoue deux fois. `fusionner` a deux sorties de plus : 5, la sous-PR a bougé pendant sa mise à jour (reprise au tour suivant) ; 8, la sous-PR était en conflit avec son sujet **sur des index générés seuls** — le capitaine a fusionné le sujet dans sa branche (merge, avance rapide, jamais de force), régénéré les index, poussé : CI relancée, aucun squash, la boucle la laisse dans la file (`MISE À JOUR`). Un conflit hors index reste un renvoi (sortie 3). Un conflit de code entre le sujet et develop (`rafraichir`, sortie 2 ; `SUJET EN CONFLIT` de la boucle) ne se pousse pas : une session fille, lancée pour ce geste (jamais le conducteur ni le capitaine), le résout dans une **PR de mise à jour** : `git fetch origin develop sujet/<nom>`, `git switch -c maj/<nom> origin/sujet/<nom>`, `git merge origin/develop`, conflit résolu puis `git add <fichiers résolus>` (un index généré en conflit ne s'édite pas : `git checkout --theirs -- <index>`, puis `git add <index>`, le capitaine le régénère), `git commit --no-edit`, push de la branche, PR vers `sujet/<nom>` titrée `chore(sujet): met <nom> à jour avec develop`, `à-fusionner`. `fusionner` la fait entrer par avance rapide, sans squash : la filiation de develop reste, et le capitaine ferme la PR en nommant le sommet. Elle n'entre que si elle n'apporte que cette fusion (message de git, sans ligne `Sujet:`), le sommet du sujet en premier parent et en second un commit de develop absent du sujet, et n'écrit que dans les fichiers en conflit (et les index qui ont une `commande`, régénérés) ; sinon sortie 4, motif à la session. Sa revue exigée porte sur ce qu'elle écrit et sur les fichiers en conflit (`git show --remerge-diff <sommet>`) : comme pour une sous-PR, la liste est celle de `revue-exigee.mjs` (skill `fusionner`) : une résolution qui n'y est pas (une ligne `Gel:` ou `Dépendances:` en conflit, un Markdown de `docs/`) n'en exige pas. Un sujet qui bouge pendant l'avance la laisse dehors (sortie 5, rien d'écrasé, jamais de force) ; un échec côté capitaine (git, dépendances, régénération, push) sort en 11, sans renvoi.
-+Chaque commande, son effet et ses sorties : en-tête de `sujet.sh` ; `sujet.sh` sans argument affiche l'aide. Sorties : 0 fait · 2 conflit · 3 checks rouges · 4 refus corrigeable par l'auteur · 6 arbre de travail pas propre (`fusionner`, `rafraichir`, `regrouper`, `relancer` : à nettoyer par qui lance, jamais un renvoi de la PR) · 7 sautée · 9 `carte <nom>` refusée, ou `geler`/`degeler` dont le push échoue deux fois. `fusionner` a deux sorties de plus : 5, la sous-PR a bougé pendant sa mise à jour ou ses checks sont encore en cours (reprise au tour suivant, aucun renvoi) ; 8, la sous-PR était en conflit avec son sujet **sur des index générés seuls** — le capitaine a fusionné le sujet dans sa branche (merge, avance rapide, jamais de force), régénéré les index, poussé : CI relancée, aucun squash, la boucle la laisse dans la file (`MISE À JOUR`). Un conflit hors index reste un renvoi (sortie 3). Un conflit de code entre le sujet et develop (`rafraichir`, sortie 2 ; `SUJET EN CONFLIT` de la boucle), ou une fusion sans conflit que les hooks refusent (sortie 3 ; `SUJET NON MIS À JOUR` : un `pnpm check` rouge sur ce que develop apporte, un formateur monté), ne se pousse pas : une session fille, lancée pour ce geste (jamais le conducteur ni le capitaine), la fait dans une **PR de mise à jour** : `git fetch origin develop sujet/<nom>`, `git switch -c maj/<nom> origin/sujet/<nom>`, `git merge origin/develop`, conflit résolu puis `git add <fichiers résolus>` (un index généré en conflit ne s'édite pas : `git checkout --theirs -- <index>`, puis `git add <index>`, le capitaine le régénère), `pnpm install --frozen-lockfile --prefer-offline` (le pre-commit formate avec le Prettier installé), `git commit --no-edit` ; puis les **retouches**, des commits ordinaires après la fusion, jamais une seconde fusion (`pnpm exec prettier --write <fichiers>`, en-têtes exigés par un gate), messages Conventional Commits sans ligne `Sujet:` ; push de la branche d'un arbre propre (le pre-push joue `pnpm check` sur l'arbre de travail : le sommet, retouches comprises ; la fusion seule n'est jamais poussée), PR vers `sujet/<nom>` titrée `chore(sujet): met <nom> à jour avec develop`, une section « Retouches » (fichier, raison) pour le relecteur, `à-fusionner`. `fusionner` la fait entrer par avance rapide, sans squash : la filiation de develop reste, et le capitaine ferme la PR en nommant le sommet. Elle n'entre que si son premier commit hors du sujet et de develop est la fusion, seule (message de git, sans ligne `Sujet:`), le sommet du sujet en premier parent et en second un commit de develop absent du sujet, et que la fusion n'écrit que dans les fichiers en conflit, les index qui ont une `commande` (régénérés) et des fichiers que le formateur prouve ; sinon sortie 4, motif à la session. Un fichier retouché entre **sans revue** s'il est prouvé : sa version au sommet est exactement ce que Prettier, à la version que verrouille le sommet, rend de sa version dans la fusion, sans directive de plus (`prettier-ignore`, `eslint-disable`, `@ts-…`) ; le formateur est joué par le capitaine sur la fusion recalculée et la résolution des conflits, jamais sur ce que la PR écrit, et un dépôt sans `prettier` dans son `package.json` n'a aucune dispense. Tout autre fichier retouché est jugé comme une sous-PR. La section « Retouches » n'est jamais lue pour dispenser. Sa revue exigée porte sur la résolution, sur les fichiers en conflit (`git show --remerge-diff <fusion>`) et sur les retouches non prouvées (`git diff <fusion> <sommet>`) : comme pour une sous-PR, la liste est celle de `revue-exigee.mjs` (skill `fusionner`) : une résolution ou une retouche qui n'y est pas (une ligne `Gel:` ou `Dépendances:`, un Markdown de `docs/`) n'en exige pas. Un sujet qui bouge pendant l'avance la laisse dehors (sortie 5, rien d'écrasé, jamais de force) ; un échec côté capitaine (git, dépendances, Prettier déclaré introuvable, régénération, push) sort en 11, sans renvoi.
++Chaque commande, son effet et ses sorties : en-tête de `sujet.sh` ; `sujet.sh` sans argument affiche l'aide. Sorties : 0 fait · 2 conflit · 3 checks rouges · 4 refus corrigeable par l'auteur · 6 arbre de travail pas propre (`fusionner`, `rafraichir`, `regrouper`, `relancer` : à nettoyer par qui lance, jamais un renvoi de la PR) · 7 sautée · 9 `carte <nom>` refusée, ou `geler`/`degeler` dont le push échoue deux fois. `fusionner` a deux sorties de plus : 5, la sous-PR a bougé pendant sa mise à jour ou ses checks sont encore en cours (reprise au tour suivant, aucun renvoi : la PR reste dans la file tant que sa CI ne finit pas) ; 8, la sous-PR était en conflit avec son sujet **sur des index générés seuls** — le capitaine a fusionné le sujet dans sa branche (merge, avance rapide, jamais de force), régénéré les index, poussé : CI relancée, aucun squash, la boucle la laisse dans la file (`MISE À JOUR`). Un conflit hors index reste un renvoi (sortie 3). Un conflit de code entre le sujet et develop (`rafraichir`, sortie 2 ; `SUJET EN CONFLIT` de la boucle), ou une fusion sans conflit que les hooks refusent (sortie 3 ; `SUJET NON MIS À JOUR` : un `pnpm check` rouge sur ce que develop apporte, un formateur monté), ne se pousse pas : une session fille, lancée pour ce geste (jamais le conducteur ni le capitaine), la fait dans une **PR de mise à jour** : `git fetch origin develop sujet/<nom>`, `git switch -c maj/<nom> origin/sujet/<nom>`, `git merge origin/develop`, conflit résolu puis `git add <fichiers résolus>` (un index généré en conflit ne s'édite pas : `git checkout --theirs -- <index>`, puis `git add <index>`, le capitaine le régénère), `pnpm install --frozen-lockfile --prefer-offline` (le pre-commit formate avec le Prettier installé), `git commit --no-edit` ; puis les **retouches**, des commits ordinaires après la fusion, jamais une seconde fusion (`pnpm exec prettier --write <fichiers>`, en-têtes exigés par un gate), messages Conventional Commits sans ligne `Sujet:` ; push de la branche d'un arbre propre (le pre-push joue `pnpm check` sur l'arbre de travail : le sommet, retouches comprises ; la fusion seule n'est jamais poussée ; il juge l'arbre de travail, pas ce qui part : un `git push <sha>:maj/<nom>` depuis un autre arbre passe le hook, seule la CI exigée sur le sommet fait foi), PR vers `sujet/<nom>` titrée `chore(sujet): met <nom> à jour avec develop`, une section « Retouches » (fichier, raison) pour le relecteur, `à-fusionner`. `fusionner` la fait entrer par avance rapide, sans squash : la filiation de develop reste, et le capitaine ferme la PR en nommant le sommet. Elle n'entre que si son premier commit hors du sujet et de develop est la fusion, seule (message de git, sans ligne `Sujet:`), le sommet du sujet en premier parent et en second un commit de develop absent du sujet, et que la fusion n'écrit que dans les fichiers en conflit, les index qui ont une `commande` (régénérés) et des fichiers que le formateur prouve ; sinon sortie 4, motif à la session. Un fichier retouché entre **sans revue** s'il est prouvé : sa version au sommet est exactement ce que Prettier, à la version que verrouille le sommet, rend de sa version dans la fusion, sans directive de plus (`prettier-ignore`, `eslint-disable`, `@ts-…`) ; le formateur est joué par le capitaine sur l'arbre jugé (la fusion recalculée et la résolution des conflits), jamais sur ce que la PR écrit, après les checks exigés, sans rien extraire dans son worktree ni déclencher aucun hook (index temporaire, `git archive` vers un dossier hors du dépôt) ; chaque retouche se prouve contre son parent, et un fichier qu'une retouche touche sans preuve est jugé, même retiré par une autre ; un dépôt sans `prettier` dans son `package.json` n'a aucune dispense. Tout autre fichier retouché est jugé comme une sous-PR. La section « Retouches » n'est jamais lue pour dispenser. Sa revue exigée porte sur la résolution, sur les fichiers en conflit (`git show --remerge-diff <fusion>`) et sur les retouches non prouvées (`git log -p --first-parent <fusion>..<sommet>`, commit par commit) : comme pour une sous-PR, la liste est celle de `revue-exigee.mjs` (skill `fusionner`) : une résolution ou une retouche qui n'y est pas (une ligne `Gel:` ou `Dépendances:`, un Markdown de `docs/`) n'en exige pas. Un sujet qui bouge pendant l'avance la laisse dehors (sortie 5, rien d'écrasé, jamais de force) ; un échec côté capitaine (git, dépendances, Prettier déclaré introuvable, régénération, push) sort en 11, sans renvoi.
  
  ## Geler un chantier (`geler`, `degeler`, `gel`)
  
 diff --git a/skills/chaine/sujet/references/CONTENU.md b/skills/chaine/sujet/references/CONTENU.md
-index 4dc72d8..a47652b 100644
+index 4dc72d8..b0425ce 100644
 --- a/skills/chaine/sujet/references/CONTENU.md
 +++ b/skills/chaine/sujet/references/CONTENU.md
 @@ -6,7 +6,7 @@ Une commande par geste : `demarrer`, `ouvrir`, `fusionner`, `rafraichir`, `livre
@@ -921,7 +1130,7 @@ index 4dc72d8..a47652b 100644
  `carte <nom>` est, avec `geler` et `degeler` (qui ne changent que la ligne `Gel:` de la carte, par plomberie et sans force), le seul geste d'écriture d'une session sur un sujet, car le hook d'agent refuse tout `git push` vers `sujet/…` : sans ce refus, une session écrirait elle-même la ligne `Dépendances:` qui l'autorise. La commande ne laisse passer que des mises à jour en place de la carte qui déclare déjà ce sujet (statut `M`, mode 100644, un seul fichier par commit, ligne `Sujet:` qui nomme ce sujet avant et après, seul ou parmi plusieurs, Prettier passé) et pousse le sommet qu'elle a vérifié, sans force ; tout le reste sort en 9. Cas vécu : un commit pouvait créer sur le sujet une seconde carte que `phase_carte` aurait lue la première, ou réécrire la carte d'un autre sujet pour citer celui-ci.
  
 -La PR de mise à jour (`fusionner`) fait entrer dans un sujet la résolution d'un conflit de code avec develop : `rafraichir` s'arrête sur ce conflit (sortie 2), la session ne pousse pas le sujet, et le squash d'une telle PR perdait la filiation de develop. Elle passe par le capitaine, comme toute sous-PR (gel, titre, revue, checks exigés), puis entre par un `git push` simple du sommet de la PR sur le sujet (avance rapide), et le capitaine ferme la PR. La forme est vérifiée : un seul commit hors du sujet et de develop, au message sans ligne `Sujet:` ni `Merge pull request` (`sujet_livre` les lit dans les fusions de develop), une fusion dont le premier parent est le sommet du sujet et le second un commit de develop, un arbre qui ne s'écarte de la fusion recalculée par `git merge-tree` (git ≥ 2.38, comme `passer.sh`) que sur les fichiers en conflit et les index générés qui ont une `commande` (régénérés, donc écrasés ; un index sans commande ne l'est jamais). L'écart se lit sans détection des renommages : sinon un conflit renommage/renommage laissait recréer le chemin d'origine avec le contenu d'un script de garde et supprimer ce script, la suppression cachée derrière le chemin recréé. La revue exigée lit l'écart et les fichiers en conflit : un conflit modifier/supprimer ou binaire dont la résolution garde la version du sujet ne fait aucun écart. Une liste des index régénérés illisible sort en 11, jamais une garde ouverte. Elle n'ouvre rien que `fusionner` n'ouvrait : une sous-PR aux checks verts et revue entrait déjà, squashée, avec un contenu quelconque ; la PR de mise à jour n'apporte que develop et la résolution des fichiers en conflit, et un sujet qui bouge refuse son push (sortie 5). Un outil du capitaine en échec sort en 11 : la boucle le dit (`ÉCHEC DU CAPITAINE`) et ne renvoie pas la PR, car le conseil d'un renvoi (« fusionner le sujet dans la branche ») lui ferait une seconde fusion, refusée ensuite. Le hook d'agent ne change pas : il ne lit pas le `git push` de `sujet.sh`, et refuse toujours le push d'une session vers `sujet/…`. Pas d'option `rafraichir --depuis <branche>` : le hook la laisserait lancer par toute session, sans checks ni revue. La revue exigée d'une sous-PR se lit de même sans renommage et sans guillemets (`core.quotePath=false`) : un script déplacé hors de `scripts/`, ou un fichier de code à nom accentué, que git citait entre guillemets, l'exigent ; un chemin que git cite encore (`"`, `\`, tabulation, saut de ligne) est pris par `revue-exigee.mjs`, qui admet le guillemet de tête.
-+La PR de mise à jour (`fusionner`) fait entrer dans un sujet la résolution d'un conflit de code avec develop : `rafraichir` s'arrête sur ce conflit (sortie 2), la session ne pousse pas le sujet, et le squash d'une telle PR perdait la filiation de develop. Elle passe par le capitaine, comme toute sous-PR (gel, titre, revue, checks exigés), puis entre par un `git push` simple du sommet de la PR sur le sujet (avance rapide), et le capitaine ferme la PR. La forme est vérifiée : un seul commit hors du sujet et de develop, au message sans ligne `Sujet:` ni `Merge pull request` (`sujet_livre` les lit dans les fusions de develop), une fusion dont le premier parent est le sommet du sujet et le second un commit de develop, un arbre qui ne s'écarte de la fusion recalculée par `git merge-tree` (git ≥ 2.38, comme `passer.sh`) que sur les fichiers en conflit et les index générés qui ont une `commande` (régénérés, donc écrasés ; un index sans commande ne l'est jamais). L'écart se lit sans détection des renommages : sinon un conflit renommage/renommage laissait recréer le chemin d'origine avec le contenu d'un script de garde et supprimer ce script, la suppression cachée derrière le chemin recréé. La revue exigée lit l'écart et les fichiers en conflit : un conflit modifier/supprimer ou binaire dont la résolution garde la version du sujet ne fait aucun écart. Une liste des index régénérés illisible sort en 11, jamais une garde ouverte. Elle n'ouvre rien que `fusionner` n'ouvrait : une sous-PR aux checks verts et revue entrait déjà, squashée, avec un contenu quelconque ; la PR de mise à jour n'apporte que develop et la résolution des fichiers en conflit, et un sujet qui bouge refuse son push (sortie 5). Un outil du capitaine en échec sort en 11 : la boucle le dit (`ÉCHEC DU CAPITAINE`) et ne renvoie pas la PR, car le conseil d'un renvoi (« fusionner le sujet dans la branche ») lui ferait une seconde fusion, refusée ensuite. Le hook d'agent ne change pas : il ne lit pas le `git push` de `sujet.sh`, et refuse toujours le push d'une session vers `sujet/…`. Pas d'option `rafraichir --depuis <branche>` : le hook la laisserait lancer par toute session, sans checks ni revue. Depuis 7.11.0, la fusion peut être suivie de **retouches** (décision A-47 du programme « gouverner nos boucles ») : après la montée d'un outil ou d'un gate dans develop, la fusion seule ne passe pas le pre-push, et les retouches en sous-PR squashée perdraient la filiation. Le premier commit hors du sujet et de develop reste la fusion, seule, vérifiée comme avant ; son écart hors conflit n'admet en plus que des fichiers que le formateur prouve, car le pre-commit de la session (lint-staged) formate dans la fusion les fichiers qu'il indexe (vu sur `fedora` #1918 et #1919). Les retouches suivent, commits ordinaires, chacune au message sans ligne `Sujet:` ni `Merge pull request` et accepté par commitlint, puisqu'elle entre telle quelle. Un fichier retouché entre sans revue s'il est prouvé par la machine : sa version au sommet est exactement ce que `pnpm exec prettier --stdin-filepath` rend de sa version dans la fusion (de la fusion recalculée pour l'écart de la fusion), fichier présent des deux côtés, même mode, aucune directive de plus. Le formateur est joué dans le worktree du capitaine, détaché sur la fusion dont chaque fichier écrit hors conflit est remis à la fusion recalculée, après `pnpm install --frozen-lockfile` : ni une configuration, ni un greffon, ni un lockfile écrits par la PR ne s'exécutent à leur propre jugement, et la version est celle que verrouille le sommet (un lockfile ou un `package.json` retouché, et aucune dispense). Il ne joue qu'après la revue exigée de la résolution, et seulement quand la PR en a besoin (un fichier hors conflit dans la fusion, ou une retouche que la revue exigerait sans section). Un dépôt sans `prettier` dans son `package.json` racine, ou un chemin que git cite entre guillemets : aucune dispense. Tout autre fichier retouché est jugé comme une sous-PR (`revue-exigee.mjs` sur le diff de la fusion au sommet, chemins sensibles compris) ; la section « Retouches » du corps de PR est pour le relecteur, jamais lue. Sortie 3 de `fusionner` (checks rouges, conflit, hook) : la boucle renvoie avec le motif de `sujet.sh` ; checks encore en cours : sortie 5, sans renvoi. Une mise à jour du sujet refusée sans conflit : `SUJET NON MIS À JOUR`. La revue exigée d'une sous-PR se lit de même sans renommage et sans guillemets (`core.quotePath=false`) : un script déplacé hors de `scripts/`, ou un fichier de code à nom accentué, que git citait entre guillemets, l'exigent ; un chemin que git cite encore (`"`, `\`, tabulation, saut de ligne) est pris par `revue-exigee.mjs`, qui admet le guillemet de tête.
++La PR de mise à jour (`fusionner`) fait entrer dans un sujet la résolution d'un conflit de code avec develop : `rafraichir` s'arrête sur ce conflit (sortie 2), la session ne pousse pas le sujet, et le squash d'une telle PR perdait la filiation de develop. Elle passe par le capitaine, comme toute sous-PR (gel, titre, revue, checks exigés), puis entre par un `git push` simple du sommet de la PR sur le sujet (avance rapide), et le capitaine ferme la PR. La forme est vérifiée : un seul commit hors du sujet et de develop, au message sans ligne `Sujet:` ni `Merge pull request` (`sujet_livre` les lit dans les fusions de develop), une fusion dont le premier parent est le sommet du sujet et le second un commit de develop, un arbre qui ne s'écarte de la fusion recalculée par `git merge-tree` (git ≥ 2.38, comme `passer.sh`) que sur les fichiers en conflit et les index générés qui ont une `commande` (régénérés, donc écrasés ; un index sans commande ne l'est jamais). L'écart se lit sans détection des renommages : sinon un conflit renommage/renommage laissait recréer le chemin d'origine avec le contenu d'un script de garde et supprimer ce script, la suppression cachée derrière le chemin recréé. La revue exigée lit l'écart et les fichiers en conflit : un conflit modifier/supprimer ou binaire dont la résolution garde la version du sujet ne fait aucun écart. Une liste des index régénérés illisible sort en 11, jamais une garde ouverte. Elle n'ouvre rien que `fusionner` n'ouvrait : une sous-PR aux checks verts et revue entrait déjà, squashée, avec un contenu quelconque ; la PR de mise à jour n'apporte que develop et la résolution des fichiers en conflit, et un sujet qui bouge refuse son push (sortie 5). Un outil du capitaine en échec sort en 11 : la boucle le dit (`ÉCHEC DU CAPITAINE`) et ne renvoie pas la PR, car le conseil d'un renvoi (« fusionner le sujet dans la branche ») lui ferait une seconde fusion, refusée ensuite. Le hook d'agent ne change pas : il ne lit pas le `git push` de `sujet.sh`, et refuse toujours le push d'une session vers `sujet/…`. Pas d'option `rafraichir --depuis <branche>` : le hook la laisserait lancer par toute session, sans checks ni revue. La fusion peut être suivie de **retouches** (décision A-47 du programme « gouverner nos boucles ») : après la montée d'un outil ou d'un gate dans develop, la fusion seule ne passe pas le pre-push, et les retouches en sous-PR squashée perdraient la filiation. Le premier commit hors du sujet et de develop reste la fusion, seule, vérifiée comme avant ; son écart hors conflit n'admet en plus que des fichiers que le formateur prouve, car le pre-commit de la session (lint-staged) formate dans la fusion les fichiers qu'il indexe (vu sur `fedora` #1918 et #1919). Les retouches suivent, commits ordinaires, chacune au message sans ligne `Sujet:` ni `Merge pull request` et accepté par commitlint, puisqu'elle entre telle quelle. Un fichier retouché entre sans revue s'il est prouvé par la machine : à chaque retouche qui le touche, sa version est exactement ce que `pnpm exec prettier --stdin-filepath` rend de sa version au commit d'avant (la fusion recalculée pour l'écart de la fusion), fichier présent des deux côtés, même mode, aucune directive de plus. Chaque retouche entre telle quelle dans l'historique du sujet, puis de develop : une preuve sur le seul écart de la fusion au sommet laissait entrer sans revue une retouche intermédiaire (du code ajouté par l'une, retiré par la suivante, qu'un `git revert` remettrait). Le formateur joue sur l'arbre jugé, la fusion recalculée plus la résolution des conflits, écrit par un index temporaire (`read-tree`, `update-index --cacheinfo`, `write-tree`) et extrait par `git archive | tar -x` dans un dossier temporaire hors du dépôt, où `pnpm install --frozen-lockfile --ignore-scripts` installe ses outils : rien n'est extrait dans le worktree du capitaine et aucune commande qui déclenche un hook (`switch`, `checkout`, `merge`, `commit`) ne touche un arbre qui porte un fichier non jugé ; les hooks ne sont jamais désactivés, ils ne sont pas déclenchés. Un premier état extrayait la fusion de la PR dans le worktree (`git switch`) : un `.husky/post-checkout` écrit hors conflit s'y exécutait, relayé par husky, avant toute preuve, là où la même PR sortait en 4 sans rien exécuter. Ni une configuration, ni un greffon, ni un lockfile, ni un `node_modules/` écrits par la PR ne s'exécutent donc à leur propre jugement, et la version est celle que verrouille le sommet (un lockfile ou un `package.json` retouché, et aucune dispense). Il ne joue qu'après la revue exigée de la résolution, les checks exigés et les liens sur les index (une PR refusée en 3 ou en 4 n'exécute rien), et seulement quand la PR en a besoin (un fichier hors conflit dans la fusion, ou une retouche que la revue exigerait sans section). Un dépôt sans `prettier` dans son `package.json` racine, ou un chemin que git cite entre guillemets : aucune dispense. Tout autre fichier retouché est jugé comme une sous-PR (`revue-exigee.mjs` sur l'union des fichiers que chaque retouche touche, chemins sensibles compris) ; la section « Retouches » du corps de PR est pour le relecteur, jamais lue. Sortie 3 de `fusionner` (checks rouges, conflit, hook) : la boucle renvoie avec le motif de `sujet.sh` ; checks encore en cours : sortie 5, sans renvoi, la PR reste dans la file tant que sa CI ne finit pas. Une mise à jour du sujet refusée sans conflit : `SUJET NON MIS À JOUR` (un hook, sortie 3 : la PR de mise à jour avec retouches ; un outil du capitaine, sortie 11, ou une erreur de `sujet.sh` : à corriger chez le capitaine). Le pre-push de la session juge l'arbre de travail, pas ce qui part : un `git push <sha>:maj/<nom>` depuis un autre arbre passe le hook ; seule la CI exigée sur le sommet, que `fusionner` lit, fait foi. La revue exigée d'une sous-PR se lit de même sans renommage et sans guillemets (`core.quotePath=false`) : un script déplacé hors de `scripts/`, ou un fichier de code à nom accentué, que git citait entre guillemets, l'exigent ; un chemin que git cite encore (`"`, `\`, tabulation, saut de ligne) est pris par `revue-exigee.mjs`, qui admet le guillemet de tête.
  
  Ce qui vient du projet : l'identifiant de ticket (`SPEC_ALL_SOC-1.03` dans un titre de PR ou un nom de fichier, `spec-all-soc-1-03` dans une branche), lu par `identifiant.mjs` du skill `fusionner`, qui importe la grammaire de `scripts/docs/identifiants.mjs` (skill `socle-monorepo`) : `sujet.sh` n'écrit plus la grammaire (type, contexte, trigramme), il ne fait que retirer l'index `.NN` d'un identifiant déjà lu et chercher un fichier par son identifiant littéral, les index générés et leurs commandes (`scripts/docs/index-generes.json`), la branche d'intégration `develop`.
  
@@ -929,7 +1138,7 @@ index 4dc72d8..a47652b 100644
 
 ### 3. La version : `.claude-plugin/plugin.json:3`
 
-`"version": "7.9.1"` → la mineure suivante de `origin/main` à l'ouverture de la PR (décision 14 ; **7.11.0** visée).
+`"version": "7.9.4"` → la mineure suivante de `origin/main` à l'ouverture de la PR (décision 14 ; **7.10.0** visée, 7.11.0 si le ticket 33 entre avant).
 
 ## Surfaces
 
@@ -938,6 +1147,9 @@ index 4dc72d8..a47652b 100644
 | `est_mise_a_jour` : la fusion au pied de la plage | tests « autre forme » (commit avant la fusion), « retouche de formatage prouvée » |
 | `verifier_mise_a_jour` : une fusion, en premier, retouches commitlintées | test « autre forme » |
 | `formate_comme` : égalité, mode, directives | tests « formaté autrement », « prettier-ignore », « directive », « rien d'autre n'est prouvé » |
+| `prouver_formatage` : arbre jugé sans checkout (index temporaire, `git archive` hors du dépôt), aucun hook déclenché | tests « un hook … ne s'exécute jamais », « node_modules », « le formateur ne joue jamais… » |
+| `prouver_formatage` : chaque retouche contre son parent, union commit par commit | test « chaque retouche se prouve contre son parent » |
+| `juger_retouches` après `liens_sur_index` et les checks | test « checks et liens avant toute preuve » |
 | `prouver_formatage` : arbre du formateur, sans Prettier, lockfile, chemin cité, 11 | tests « le formateur ne joue jamais… », « sans Prettier », « rien d'autre », « introuvable » |
 | écart de la fusion prouvé | test « fusion formatée hors conflit » |
 | ordre : résolution jugée avant tout formateur ; formateur seulement au besoin | tests existants « autre forme » (`apps/x.ts` en conflit : 4 sans Prettier) et « retouche de documentation » (aucun Prettier joué) |
@@ -945,29 +1157,32 @@ index 4dc72d8..a47652b 100644
 | `S:690` checks en cours → 5 | test « checks en cours » |
 | `B:294` motif de `sujet.sh` | test « boucle : sortie 3 » |
 | `B:247` `SUJET NON MIS À JOUR` | test « boucle : SUJET NON MIS À JOUR » |
+| `B:247` sorties 11, 69, 1 ; repli de `refus.sh` | tests « boucle : panne du capitaine », « refus.sh : sortie 3 » |
 | la recette : un push, le sommet jugé | `develop.test.mjs`, « il juge l'arbre de travail » |
 | textes | relecture du § 2 contre le code |
 
 ## Vérification
 
-- Joué le 2026-11-16 sur un worktree jetable de la branche de la PR 94 (`3c68695`, même arbre que `76d90c7`) :
-  - § 0 : quinze `not ok` dans `T`, vingt-deux verts ; `develop.test.mjs` onze sur onze ;
-  - patch entier : `sujet-fusionner.test.mjs` 37 sur 37, `develop.test.mjs` 11 sur 11, suite entière **544 sur 544** (528 + 16) ;
-  - mutations, chacune rougit un test nouveau (`git apply --check` du patch sur `76d90c7` : propre) : formateur joué sur le sommet au lieu de l'arbre de la fusion recalculée (« le formateur ne joue jamais… ») ; garde des directives retirée (« directive de plus ») ; condition du lockfile retirée (« rien d'autre n'est prouvé ») ; `est_mise_a_jour` d'avant (« retouche de formatage prouvée ») ; `B:294` d'avant (« boucle : sortie 3 »).
+- Premier état joué le 2026-11-16 sur la branche de la PR 94 (`3c68695`, même arbre que `76d90c7`) ; état corrigé après relecture joué le 2026-11-16 sur un worktree jetable de `origin/main` à `863723a` (7.9.3), puis rejoué à `0860466` (7.9.4, PR 97 entrée pendant la correction) :
+  - § 0 : vingt et un `not ok` dans `T`, vingt-deux verts ; `develop.test.mjs` onze sur onze ;
+  - patch entier : `sujet-fusionner.test.mjs` 43 sur 43, `develop.test.mjs` 11 sur 11, suite entière **594 sur 594** (572 + 22) sur `863723a`, **603 sur 603** (581 + 22) sur `0860466` ;
+  - tests de ce patch, scripts du premier état : les six tests de la relecture `not ok`, les trente-sept autres verts ;
+  - mutations, chacune rougit un test nouveau : formateur joué sur l'arbre de la fusion de la PR au lieu de l'arbre jugé (« le formateur ne joue jamais… ») ; garde des directives retirée (« directive de plus ») ; condition du lockfile retirée (« rien d'autre n'est prouvé ») ; et, du premier état (vu par son rédacteur) : formateur joué sur le sommet, `est_mise_a_jour` d'avant (« retouche de formatage prouvée »), `B:294` d'avant (« boucle : sortie 3 ») ; du premier état encore (scripts entiers) : la fusion extraite dans le worktree (« un hook … », « node_modules »), la preuve sur le seul diff de la fusion au sommet (« chaque retouche … »), le formateur avant les checks (« checks et liens … ») ;
+  - husky : la souche n'est pas dans le lockfile du plugin ; les bancs simulent son relais (`core.hooksPath` vers un dossier dont chaque hook joue `.husky/<hook>` de l'arbre de travail, comme `.husky/_/h` de husky 9). Aucun hook n'est désactivé.
 - La session rejoue : `git apply --check`, § 0 (rouges), patch, `node --test` des deux bancs, puis la suite entière ; `bash -n` sur `sujet.sh`, `boucle.sh`, `refus.sh` ; `shellcheck` si présent.
 - La revue de ticket (`revue-de-ticket`) puis `/security-review`, qui joue au moins les attaques ci-dessous.
 
 ### Attaques que la contre-relecture jouera
 
-1. **Le formateur sous influence** : une retouche ou l'écart de la fusion réécrit `.prettierrc`, `prettier.config.*`, `.prettierignore`, `.editorconfig`, un greffon déclaré par chemin, un fichier que ce greffon lit, un `package.json` (clé `prettier`), le lockfile, `.npmrc`, `.pnpmfile.cjs` : rien de cela n'entre dans l'arbre du formateur (décision 5) ; vérifier que la remise à la fusion recalculée couvre tout `ecart` hors conflit, et qu'une retouche n'est jamais dans l'arbre.
+1. **Le formateur sous influence** : une retouche ou l'écart de la fusion réécrit `.prettierrc`, `prettier.config.*`, `.prettierignore`, `.editorconfig`, un greffon déclaré par chemin, un fichier que ce greffon lit, un `package.json` (clé `prettier`), le lockfile, `.npmrc`, `.pnpmfile.cjs`, `.gitattributes` (`export-ignore`, `export-subst`, lus par `git archive`) : rien de cela n'entre dans l'arbre jugé (décision 5) ; vérifier qu'il ne prend que la fusion recalculée et les fichiers en conflit de la fusion, et qu'une retouche n'y est jamais.
 2. **Un conflit sur l'outillage** : la résolution d'un conflit sur `.prettierrc.mjs` ou le lockfile entre dans l'arbre du formateur ; elle est jugée avant (décision 6) : sans section de revue, sortie 4 sans rien exécuter (cas existant `apps/x.ts`, à rejouer sur `.prettierrc.mjs` et `pnpm-lock.yaml`).
 3. **Une directive** sous une autre graphie (`/*eslint-disable*/`, `// @ts-expect-error`, `/* istanbul ignore next */`, `<!-- prettier-ignore -->` en Markdown) ; un formateur qui en écrirait une.
 4. **Un changement de sens que Prettier « prouve »** : guillemets dans un JSON à clés dupliquées, un Markdown dont le formatage change le rendu, un YAML à ancres ; dire ce qui reste au relecteur.
 5. **La forme** : octopus, fusion de `maj/` avec elle-même, une retouche qui est une fusion vide, une fusion dont le second parent est le sujet, la première-parent qui ne couvre pas la plage, un message de retouche `Merge pull request #n from o/sujet/x` sur un commit ordinaire.
 6. **Les chemins** : guillemets de git, espace, `:` de tête (pathspec magique), `--literal-pathspecs` sur `ls-tree`, `checkout` et `rm` ; un fichier qui est un dossier d'un côté.
-7. **L'état du worktree du capitaine** : chaque sortie de `prouver_formatage` (6, 11, retour normal) le rend propre et détaché sur `origin/develop` ; un `pnpm install` qui écrit des fichiers non suivis.
-8. **Le pre-push juge l'arbre de travail** : une session qui pousse `<sha>:maj/<nom>` d'un arbre à un autre sommet passe le hook ; seule la CI exigée sur le sommet fait foi (`fusionner` la lit), dire si cela suffit.
-9. **La boucle** : `refus.sh` sur une sortie 3 dont la dernière ligne vient de stderr (un hook bavard), qui donnerait un motif illisible ; la sortie 5 « checks en cours » qui ne finit jamais (CI bloquée) : la PR reste dans la file sans bruit.
+7. **Rien d'extrait, rien de déclenché** : la preuve ne touche jamais le worktree du capitaine (ni `switch`, ni `checkout`, ni `merge`, ni `commit`), aucun hook ne joue (relais de husky réel si possible, sinon simulé comme les bancs) et aucun n'est désactivé ; le dossier et l'index temporaires sont retirés à chaque sortie (11, retour normal, aucune dispense) ; `pnpm install --ignore-scripts` dans le dossier ne joue aucun script ; un `tar` qui suivrait un lien de l'arbre jugé hors du dossier.
+8. **Le pre-push juge l'arbre de travail** (décision 11) : une session qui pousse `<sha>:maj/<nom>` depuis un autre arbre passe le hook ; seule la CI exigée sur le sommet fait foi (`fusionner` la lit) : vérifier qu'aucune voie ne fait entrer un sommet sans ses checks verts.
+9. **La boucle** : `refus.sh` sur une sortie 3 dont la dernière ligne vient de stderr (un hook bavard), qui donnerait un motif illisible ; la sortie 5 « checks en cours » qui ne finit jamais (CI bloquée) laisse la PR dans la file sans bruit (décision 12) : dire si le capitaine la voit.
 10. **Monotonie** : une sous-PR ordinaire d'aujourd'hui (fusion du sujet par le capitaine, commit avant la fusion) ne prend jamais la voie nouvelle ; une branche partie du sujet qui fusionne develop puis code la prend, et ses commits entrent sans squash, jugés comme une sous-PR : dire si cela suffit.
 
 ## Hors périmètre
@@ -977,9 +1192,10 @@ index 4dc72d8..a47652b 100644
 - **#1921 et #1922** (réécritures du sujet en plusieurs fusions) : refusées, sortie 4.
 - **La phrase de `socle-chaine-de-production/references/CONTENU.md:25`** sur le pre-push antérieur à 7.0.1 (« pas ce qui part ») : le hook actuel ne juge pas non plus ce qui part ; à reformuler au ticket qui touchera ce paragraphe.
 - **`coverage-diff`** sur une PR de mise à jour : ticket 45, qui lit la même forme (première-parent, la fusion d'abord).
-- **Le coût** : un Prettier par fichier (un processus `node` chacun) ; après une montée de formateur (121 fichiers chez `fedora`), une minute environ au capitaine. Un seul appel par lot reste possible plus tard.
+- **Le coût** : un Prettier par fichier et par retouche qui le touche (un processus `node` chacun) ; après une montée de formateur (121 fichiers chez `fedora`), une minute environ au capitaine ; en plus, l'arbre jugé extrait et un `pnpm install --ignore-scripts` complet dans un dossier neuf (depuis le magasin de pnpm), chaque fois que le formateur joue. Un seul appel par lot reste possible plus tard.
+- **`.gitattributes` de l'arbre jugé** : `git archive` applique `export-ignore` et `export-subst` ; une configuration ainsi écartée fait jouer Prettier sans elle (au pire une preuve qui échoue, ou un formatage par défaut d'un fichier jugé). L'arbre est déjà jugé ; à reprendre si le cas se présente.
 
 ## Comments
 
-- 2026-11-16 — Instruit sur `fa7d3eb`, joué sur la branche de la PR 94 (`3c68695`), devenue `main` à `76d90c7` pendant l'instruction (même arbre). Faits de la carte revérifiés, lignes comprises ; `fedora` #1918 à #1920 relues à la source et rejouées contre Prettier 3.9.10 ; le pre-commit `lint-staged` réel rejoué sur une copie jetable. Décisions de rédaction à valider par l'architecte : la preuve étendue à l'écart de la fusion (4), l'arbre du formateur (5), l'ordre revue puis formateur (6), la liste des directives (3), les checks en cours en sortie 5 (12), commitlint sur chaque retouche (1).
-</content>
+- 2026-11-16 — Instruit sur `fa7d3eb`, joué sur la branche de la PR 94 (`3c68695`), devenue `main` à `76d90c7` pendant l'instruction (même arbre). Faits de la carte revérifiés, lignes comprises ; `fedora` #1918 à #1920 relues à la source et rejouées contre Prettier 3.9.10 ; le pre-commit `lint-staged` réel rejoué sur une copie jetable. Décisions de rédaction retenues par l'architecte (A-47 bis, carte, journal du 2026-11-16) : la preuve étendue à l'écart de la fusion (4), l'arbre du formateur (5), l'ordre revue puis formateur (6), la liste des directives (3), les checks en cours en sortie 5 (12), commitlint sur chaque retouche (1).
+- 2026-11-16 — Corrigé après relecture (agent neuf, opus, sur `76d90c7` : « pas prêt », deux bloquantes jouées), par un correcteur, le rédacteur n'étant plus joignable ; décisions de l'architecte (journal du 2026-11-16). B1 : l'arbre du formateur se construit sans checkout (index temporaire, `write-tree`, `git archive` vers un dossier hors du dépôt, `pnpm install --ignore-scripts`), aucun hook déclenché ni désactivé (décision 5). B2 : chaque retouche se prouve contre son parent, la revue juge l'union des fichiers touchés commit par commit (décisions 3, 7). Mineures : checks et liens lus avant toute preuve (`juger_retouches`, décision 6) ; version 7.10.0 et repli (14) ; restes de rédaction retirés ; `rafraichir_sujets` dit 11, 69 et 1 sans la voie des retouches, `refus.sh` nomme la sortie reçue (12) ; le pre-push juge l'arbre de travail, pas ce qui part (11) ; la sortie 5 laisse la PR dans la file (12). Six tests nouveaux, vus rouges contre le premier état avant le remède ; le test « le formateur ne joue jamais… » resserré (il ne mordait pas sur l'arbre de la fusion de la PR). Rejoué sur `863723a` (7.9.3) puis sur `0860466` (7.9.4 ; la PR 97 a changé le paragraphe des tests de `fusionner/references/CONTENU.md`, que le patch suit désormais) : 21 rouges dans `T` sans le code, 603 sur 603 avec. Relais de husky simulé dans les bancs (la souche n'est pas dans le lockfile du plugin).
