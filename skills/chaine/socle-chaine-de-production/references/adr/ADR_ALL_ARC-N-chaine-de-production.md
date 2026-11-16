@@ -38,6 +38,6 @@ Le coût d'un ticket se rapproche du coût de son code. Les consignes ne diverge
 
 Mode d'emploi : `docs/agents/chaine-de-production.md`. Skills : `chantier`, `tickets`, `revue-adversariale`, `fusionner`. Contrat du projet : `.claude/chaine.json`.
 
-## Amendements
+## Amendements du grill (16/11/2026)
 
-- 2026-11-16 — point 4 : « Toute PR de code » devient « Toute PR qui touche du code, ou ce que la chaîne exécute ou lit (liste de `revue-exigee.mjs`) ». Raison : la revue exigée ne voyait que `apps/`, `packages/` et `scripts/`, alors que la CI, les hooks, la configuration de l'agent et `docs/agents/` pilotent ce que le capitaine exécute (PR 94, plugin 7.9.1).
+- Point 4 : « Toute PR de code » devient « Toute PR qui touche du code, ou ce que la chaîne exécute ou lit (liste de `revue-exigee.mjs`) ». Raison : la revue exigée ne voyait que `apps/`, `packages/` et `scripts/`, alors que la CI, les hooks, la configuration de l'agent et `docs/agents/` pilotent ce que le capitaine exécute (PR MAJ-agency/skills#94, plugin maj-skills 7.9.1).
