@@ -4,7 +4,7 @@
 // fusion recalculée ; partout ailleurs, la mesure est celle d'avant. Et le journal d'une longue sortie n'est pas
 // coupé quand il passe par un tube lent.
 import assert from "node:assert/strict";
-import { execFileSync, spawnSync } from "node:child_process";
+import { execFileSync, spawn, spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -175,19 +175,25 @@ test("la fusion d'essai de GitHub (refs/pull/N/merge) n'est pas reconnue : la me
 
 // Une sortie longue lue par un tube lent : le lecteur ne commence à lire qu'après une seconde, quand le script a
 // fini d'écrire et sorti. Avec `console.log` puis `process.exit`, la sortie est coupée à chaque fois.
-test("une longue sortie lue par un tube lent n'est jamais coupée", () => {
+test("une longue sortie lue par un tube lent n'est jamais coupée", async () => {
   const r = depot();
   git(r, "checkout", "-q", "-b", "gros", "develop");
   const n = 3000;
   for (let i = 0; i < n; i++) ecrire(r, `apps/api/src/g/fichier-numero-${i}-avec-un-nom-assez-long.ts`, `export const v${i} = ${i};\n`);
   valider(r, "gros");
-  const res = spawnSync("sh", ["-c", '"$0" "$@" | { sleep 1; cat; }', process.execPath, SCRIPT, "--dry-run", "--base", "origin/develop"], {
+  // Sans shell : le script écrit dans un tube, que ce processus ne lit qu'après une seconde.
+  const enfant = spawn(process.execPath, [SCRIPT, "--dry-run", "--base", "origin/develop"], {
     cwd: r,
     env: { ...ENV, PROJET_RACINE: r },
-    encoding: "utf8",
-    maxBuffer: 64 * 1024 * 1024,
+    stdio: ["ignore", "pipe", "ignore"],
   });
-  const lus = (res.stdout.match(/^ {3}• /gm) ?? []).length;
+  const fini = new Promise((resolve) => enfant.on("close", resolve));
+  await new Promise((resolve) => setTimeout(resolve, 1000));
+  let sortie = "";
+  enfant.stdout.setEncoding("utf8");
+  for await (const morceau of enfant.stdout) sortie += morceau;
+  await fini;
+  const lus = (sortie.match(/^ {3}• /gm) ?? []).length;
   assert.equal(lus, n, `${lus} fichiers sur ${n} : la sortie a été coupée`);
-  assert.match(res.stdout, new RegExp(`--dry-run — ${n} fichier\\(s\\) à mesurer`));
+  assert.match(sortie, new RegExp(`--dry-run — ${n} fichier\\(s\\) à mesurer`));
 });
