@@ -4,7 +4,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { chmodSync, existsSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 // Posé dans un projet, depot-jouet.mjs est à côté (scripts/chaine/) ; dans le plugin, il est dans le skill sujet.
 const { depotJouet, script: scriptDe } = await import(
@@ -555,14 +555,19 @@ test("fusionner : un chemin sensible déclaré par develop après le départ du 
 // lit son entrée. Chaque appel est journalisé. `PRETTIER` déclare Prettier dans le package.json de develop.
 const PRETTIER = { "package.json": '{ "devDependencies": { "prettier": "3.9.10" } }\n' };
 const JOUET_PRETTIER = `sed -e "s/\\"/'/g" -e 's/[[:space:]]*$//'`;
-function formateur(d, { commande = JOUET_PRETTIER, version = 0 } = {}) {
+// `config` : le fichier que `prettier --find-config-path` dit trouver (aucun par défaut : sortie 1, comme Prettier) ;
+// `installation` : la sortie de `pnpm install --frozen-lockfile`.
+function formateur(d, { commande = JOUET_PRETTIER, version = 0, config = "", installation = 0 } = {}) {
   const f = join(d.racine, "bin", "pnpm");
   writeFileSync(
     f,
     `#!/bin/sh
 echo "pnpm $*" >> ${JSON.stringify(join(d.racine, "faux-gh", "pnpm.log"))}
 case "$1 $2" in
-  "exec prettier") [ "$3" = --version ] && exit ${version}; ${commande} ;;
+  "exec prettier") [ "$3" = --version ] && exit ${version}
+    [ "$3" = --find-config-path ] && { ${config ? `echo ${JSON.stringify(config)}; exit 0` : "exit 1"}; }
+    ${commande} ;;
+  "install --frozen-lockfile") exit ${installation} ;;
   "exec commitlint") awk 'NR == 1 { l = $0 } END { exit !(l ~ /^[a-z]+(\\([^)]*\\))?!?: /) }' ;;
   *) cat > /dev/null ;;
 esac
@@ -631,6 +636,66 @@ test("fusionner : une directive de plus (eslint-disable) n'est jamais prouvée, 
     avantPush: retouche({ "apps/s.ts": `// eslint-disable-next-line\n${FORMATE}` }),
   });
   refusee(d, d.lancer(SUJET, "fusionner", "81"), sujet, /Revue.*apps\/s\.ts/);
+});
+
+test("fusionner : une directive de plus parmi celles des autres outils (oxlint, stylelint, tslint, global, NOLINT, deno-lint) n'est jamais prouvée", () => {
+  for (const directive of ["// oxlint-disable-next-line", "/* stylelint-disable */", "// tslint:disable", "/* global s */", "// NOLINT", "// deno-lint-ignore no-explicit-any"]) {
+    const { d, sujet } = avecRetouche({
+      formateur: { commande: `{ printf '${directive}\\n'; ${JOUET_PRETTIER}; }` },
+      avantPush: retouche({ "apps/s.ts": `${directive}\n${FORMATE}` }),
+    });
+    refusee(d, d.lancer(SUJET, "fusionner", "81"), sujet, /Revue.*apps\/s\.ts/);
+  }
+});
+
+// B1 : la configuration que Prettier lit ne doit renvoyer à aucun fichier que la revue ne regarde pas.
+const avecConfig = (config, fichier, contenu) =>
+  avecRetouche({
+    base: { ...PRETTIER, ...(fichier ? { [fichier]: contenu } : {}) },
+    formateur: { config },
+    avantPush: retouche({ "apps/s.ts": FORMATE }),
+  });
+
+test("fusionner : une configuration de Prettier qui renvoie à un autre fichier (chaîne), un module ou un greffon par chemin ne dispense pas : revue exigée", () => {
+  const cas = [
+    [".prettierrc", '"./config/prettier.json"\n'],
+    [".prettierrc", '{ "plugins": ["./config/plugin.mjs"] }\n'],
+    [".prettierrc.json", '{ "overrides": [{ "files": "*.ts", "options": { "plugins": ["../x.mjs"] } }] }\n'],
+    [".prettierrc.yaml", "singleQuote: true\n"],
+    ["prettier.config.mjs", "export default {};\n"],
+    [".prettierrc.js", "module.exports = {};\n"],
+  ];
+  for (const [fichier, contenu] of cas) {
+    const { d, sujet } = avecConfig(fichier, fichier, contenu);
+    refusee(d, d.lancer(SUJET, "fusionner", "81"), sujet, /Revue.*apps\/s\.ts/);
+  }
+});
+
+test("fusionner : une configuration de Prettier en ligne (objet JSON, `.prettierrc` ou clé `prettier` d'un package.json) reste dispensée", () => {
+  for (const [config, fichier, contenu] of [
+    [".prettierrc", ".prettierrc", '{ "singleQuote": true, "plugins": ["prettier-plugin-x"] }\n'],
+    [".prettierrc.json", ".prettierrc.json", '{ "singleQuote": true }\n'],
+  ]) {
+    const { d, sommet } = avecConfig(config, fichier, contenu);
+    const r = d.lancer(SUJET, "fusionner", "81");
+    assert.equal(r.status, 0, r.stdout + r.stderr);
+    assert.ok(contient(d, sommet, sujetDistant(d)));
+  }
+});
+
+test("fusionner : le dossier du formateur et son index partent à toute sortie, et un pnpm install en échec dit à qui la réparation revient (sortie 11)", () => {
+  for (const [options, attendu, motif] of [
+    [{ installation: 1 }, 11, /lockfile du sujet ou de develop est à réparer par une PR ordinaire, pas par la session de la PR de mise à jour/],
+    [{}, 0, /fusionnée/],
+  ]) {
+    const { d } = avecRetouche({ formateur: options, avantPush: retouche({ "apps/s.ts": FORMATE }) });
+    const tmp = mkdtempSync(join(d.racine, "tmp-"));
+    d.env.TMPDIR = tmp;
+    const r = d.lancer(SUJET, "fusionner", "81");
+    assert.equal(r.status, attendu, r.stdout + r.stderr);
+    assert.match(r.stdout, motif);
+    assert.deepEqual(readdirSync(tmp), [], "aucun reste dans TMPDIR");
+  }
 });
 
 test("fusionner : une retouche de code exige la revue, la section « Retouches » n'en dispense pas, une section de revue la fait entrer", () => {

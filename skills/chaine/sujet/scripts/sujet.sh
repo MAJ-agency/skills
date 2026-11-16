@@ -571,10 +571,33 @@ est_mise_a_jour() {
 }
 
 # Directives qui taisent un contrôle : un fichier qui en porte une de plus n'est jamais prouvé par le formateur.
-DIRECTIVES='prettier-ignore|eslint-disable|/\*[[:space:]]*eslint[[:space:]]|@ts-|istanbul[[:space:]]+ignore|[cv]8[[:space:]]+ignore|biome-ignore|Stryker[[:space:]]+disable'
+DIRECTIVES='prettier-ignore|eslint-disable|/\*[[:space:]]*eslint[[:space:]]|@ts-|istanbul[[:space:]]+ignore|[cv]8[[:space:]]+ignore|biome-ignore|Stryker[[:space:]]+disable|oxlint-disable|stylelint-disable|tslint:disable|/\*[[:space:]]*global[[:space:]]|NOLINT|deno-lint-ignore'
 
 # pnpm joué dans le dossier du formateur (FORMATEUR, prouver_formatage), sans jamais remonter jusqu'à un dépôt git.
 formateur() { (cd "$FORMATEUR" && GIT_CEILING_DIRECTORIES=${FORMATEUR%/*} pnpm "$@"); }
+
+# Vrai si la configuration que Prettier lit pour <f>, dans le dossier du formateur, est un fichier en ligne : un
+# `.prettierrc`, `.prettierrc.json` ou un `package.json` (clé `prettier`) qui est un objet JSON, sans greffon par
+# chemin. Ces noms sont des chemins que la revue exige (point, `package.json`) ; une configuration qui renvoie à un
+# autre fichier (une chaîne), un module (`prettier.config.*`, `.prettierrc.js`), du YAML ou du TOML, ou un greffon par
+# chemin ferait lire ou jouer un fichier sous un chemin que rien ne revoit : pas de dispense. Prettier lui-même dit
+# quelle configuration il trouve (`--find-config-path`) ; `.editorconfig` et `.prettierignore` sont des fichiers à
+# point, revus de même. Sans configuration trouvée, Prettier joue ses défauts.
+config_en_ligne() {
+  local cfg filtre
+  cfg=$(formateur exec prettier --find-config-path "$1" 2>/dev/null </dev/null) || cfg=''
+  [ -n "$cfg" ] || return 0
+  cfg=${cfg#"$FORMATEUR"/}
+  case $cfg in /* | ../* | */../* | *$'\n'*) return 1 ;; esac
+  [ -f "$FORMATEUR/$cfg" ] && [ ! -L "$FORMATEUR/$cfg" ] || return 1
+  case ${cfg##*/} in
+    .prettierrc | .prettierrc.json) filtre='.' ;;
+    package.json) filtre='.prettier' ;;
+    *) return 1 ;;
+  esac
+  jq -e "($filtre | type == \"object\") and ([$filtre | .. | objects | .plugins? // empty | .[]? | strings |
+    select(test(\"^[./~]\") or test(\"^[A-Za-z]:\"))] | length == 0)" "$FORMATEUR/$cfg" >/dev/null 2>&1
+}
 
 # Vrai si <après>:<f> est exactement ce que le formateur rend de <avant>:<f> : le fichier existe des deux côtés, en
 # fichier ordinaire de même mode, et ne porte aucune directive de plus. Les deux versions se lisent dans les objets
@@ -586,6 +609,7 @@ formate_comme() {
   [ -n "$ma" ] && [ "$ma" = "$mb" ] && { [ "$ma" = 100644 ] || [ "$ma" = 100755 ]; } || return 1
   [ "$(git cat-file blob "$apres:$f" | grep -cE "$DIRECTIVES" || true)" -le "$(git cat-file blob "$avant:$f" | grep -cE "$DIRECTIVES" || true)" ] ||
     return 1
+  config_en_ligne "$f" || return 1
   sortie=$(mktemp)
   if git cat-file blob "$avant:$f" | formateur exec prettier --stdin-filepath "$f" >"$sortie" 2>/dev/null &&
     git cat-file blob "$apres:$f" | cmp -s - "$sortie"; then
@@ -619,11 +643,14 @@ prouver_formatage() {
   RETOUCHES_NON=$apres
   ! grep -qE '(^|/)(package\.json|pnpm-lock\.yaml|pnpm-workspace\.yaml|\.npmrc|\.pnpmfile\.cjs)$' <<<"$hors"$'\n'"$apres" || return 0
   ! grep -q '^"' <<<"$hors"$'\n'"$apres"$'\n'"$conflits" || return 0
-  FORMATEUR=$(mktemp -d)
-  index="$FORMATEUR.index"
+  # Un dossier privé (mktemp -d) porte l'arbre et l'index : aucun chemin prévisible, tout part à toute sortie.
+  PROUVE=$(mktemp -d)
+  trap 'rm -rf "$PROUVE"' EXIT
+  FORMATEUR="$PROUVE/arbre"
+  index="$PROUVE/index"
   local echec
   echec() {
-    rm -rf "$FORMATEUR" "$index"
+    rm -rf "$PROUVE"
     sortir 11 "$1, côté capitaine : #$n laissée dans la file"
   }
   GIT_INDEX_FILE=$index git read-tree "$arbre" || echec "arbre du formateur illisible"
@@ -636,14 +663,16 @@ prouver_formatage() {
         GIT_INDEX_FILE=$index git update-index --add --cacheinfo "${entree%% *},$(cut -d ' ' -f3 <<<"${entree%%$'\t'*}"),$f" ;;
       *) false ;;
     esac || {
-      rm -rf "$FORMATEUR" "$index"
+      rm -rf "$PROUVE"
+      trap - EXIT
       return 0
     }
   done <<<"$conflits"
   GIT_INDEX_FILE=$index git checkout-index -a -q --prefix="$FORMATEUR/" || echec "arbre du formateur non extrait (git checkout-index)"
   rm -f "$index"
   if jq -e '(.devDependencies.prettier // .dependencies.prettier) | type == "string"' "$FORMATEUR/package.json" >/dev/null 2>&1; then
-    formateur install --frozen-lockfile --prefer-offline --ignore-scripts >/dev/null 2>&1 </dev/null || echec "pnpm install en échec"
+    formateur install --frozen-lockfile --prefer-offline --ignore-scripts >/dev/null 2>&1 </dev/null ||
+      echec "pnpm install --frozen-lockfile en échec sur l'arbre jugé : le lockfile du sujet ou de develop est à réparer par une PR ordinaire, pas par la session de la PR de mise à jour"
     formateur exec prettier --version >/dev/null 2>&1 </dev/null || echec "Prettier déclaré mais introuvable après pnpm install"
     HORS_NON=''
     while IFS= read -r f; do
@@ -660,7 +689,8 @@ prouver_formatage() {
     done <<<"$retouches"
     RETOUCHES_NON=$(sed '/^$/d' <<<"$RETOUCHES_NON" | sort -u)
   fi
-  rm -rf "$FORMATEUR"
+  rm -rf "$PROUVE"
+  trap - EXIT
 }
 
 # Elle n'entre que si elle a cette forme, sinon sortie 4 (motif à la session) :
