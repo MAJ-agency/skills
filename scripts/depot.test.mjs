@@ -456,12 +456,33 @@ test("les textes de fusion disent qu'un message à un capitaine n'est jamais un 
   assert.match(procedure, /send_later/, "lancement.md : cette procédure ne fait pas relire la file à chaque réveil (`send_later`)");
   assert.match(procedure, /plafond/, "lancement.md : cette procédure ne dit pas où va une PR au plafond");
   for (const phrase of [
-    "ne fusionne qu'une PR dont la tête est une branche du dépôt (`isCrossRepository` faux)",
-    "une PR de fourche, tu retires le label et le dis : elle va au produit",
+    "ne fusionne qu'une PR dont la tête est une branche du dépôt (`head.repo.full_name` égal au dépôt) ; une PR de fourche, tu retires le label et le dis : elle va au produit.",
     "contrôle exigé en cours : laisse la PR au réveil suivant, sans retirer le label",
-    "`gh pr update-branch <n>` (fusion, jamais rebase), puis laisse-la au réveil suivant, ses contrôles tournant",
-    "`gh pr merge <n> --squash --match-head-commit <sha lu à la liste>`",
-    "unlabeled",
+    "`update_pull_request_branch` avec `expectedHeadSha` = P (fusion, jamais rebase) ; refusée ou en échec, tu n'écris aucun ordre",
+    "`merge_pull_request` avec `expectedHeadSha` = P et `merge_method` `squash`, jamais `rebase` ;",
+    "le sha complet (40 caractères hexadécimaux, en minuscules)",
+    "ou qui abrège le sha, n'en est pas un",
+    "L'ordre est le dernier commentaire `à-fusionner au sommet <sha>` qui suit ton dernier renvoi",
+    "Trois de tes renvois ou plus sur la PR : elle est au plafond, tu ne la fusionnes pas",
+    "Si P n'est pas le `head.sha` que tu viens de lire",
+    "s'il a exactement deux parents, P puis un commit de la branche par défaut",
+    "s'il est signé par GitHub (`commit.verification.verified` vrai, `commit.committer.email` égal à `noreply@github.com`)",
+    "tu écris toi-même `à-fusionner au sommet <head.sha>`, sans renvoi, et tu laisses la PR au réveil suivant ;",
+    "(présent dans `list_commits`, `sha` la branche par défaut, `perPage` 100, première page)",
+    "`author_association` est `OWNER`, `MEMBER` ou `COLLABORATOR` et dont `updated_at` est égal à `created_at`",
+    "`get_check_runs`, toutes pages lues",
+    "seuls comptent les statuts de la liste `statuses` : une liste vide n'est pas un contrôle en cours",
+    "un contrôle rouge (conclusion `failure`, `cancelled`, `timed_out` ou `action_required`, statut `failure` ou `error`) : renvoie",
+    "Tous terminés et verts (`success`, `neutral`, `skipped`) : fusion par",
+    "Base (`base.ref`, lue à ce réveil) autre que la branche par défaut : la PR n'est pas à toi",
+    "Tu ne poses jamais `fusion-bloquée`",
+    "`get_comments`",
+    "`draft`",
+    "`mergeable_state` `dirty` (conflit) : renvoie, motif le conflit.",
+    "`unknown` : laisse la PR au réveil suivant, sans retirer le label.",
+    "si ces champs manquent à la lecture, tu ne fusionnes rien et tu le dis au produit.",
+    "Un renvoi édité (un commentaire d'un de ces comptes, de la forme d'un renvoi, dont `updated_at` diffère de `created_at`) : tu ne fusionnes pas la PR et tu le dis au produit.",
+    "`à-fusionner retiré par le capitaine : le sommet a bougé après le label : relire le delta, puis reposer le label et le commentaire`",
   ])
     assert.ok(procedure.toLowerCase().includes(phrase.toLowerCase()), `lancement.md : la procédure ne dit pas « ${phrase} »`);
   assert.doesNotMatch(procedure, /--rebase/, "lancement.md : jamais de rebase");
@@ -470,30 +491,175 @@ test("les textes de fusion disent qu'un message à un capitaine n'est jamais un 
   assert.doesNotMatch(sansVeille, /send_message|§ 2/, "fusionner/SKILL.md : « Sans veille en cours » ne prévient plus le capitaine par message et ne renvoie plus à § 2");
 });
 
-// Le capitaine d'un dépôt sans la chaîne ne fusionne pas une PR dont le sommet a bougé après la pose du label :
-// le filtre `jq` de sa procédure (lancement.md) est joué sur des timelines d'exemple.
-test("le filtre de la timeline : pose puis commit → refus ; commit puis pose → fusion ; fusion signée par GitHub → fusion ; même message non signé → refus", () => {
-  const procedure = readFileSync(join(RACINE, `${SKILLS_CHAINE}/architecte/references/lancement.md`), "utf8").match(/^Procédure : .*$/m)?.[0] ?? "";
-  const filtre = procedure.match(/jq -s '([^']+)'/)?.[1];
-  assert.ok(filtre, "lancement.md : le filtre `jq -s '…'` de la timeline est introuvable dans la procédure");
-  const pose = { event: "labeled", label: { name: "à-fusionner" } };
-  const retrait = { event: "unlabeled", label: { name: "à-fusionner" } };
-  const commit = { event: "committed", parents: [{}], committer: { name: "Dev" }, message: "fix: suite" };
-  const fusionBase = { event: "committed", parents: [{}, {}], committer: { name: "GitHub", email: "noreply@github.com" }, verification: { verified: true }, message: "Merge branch 'main' into x" };
-  const fusionFausse = { event: "committed", parents: [{}, {}], committer: { name: "GitHub", email: "noreply@github.com" }, verification: { verified: false }, message: "Merge branch 'main' into x" };
-  const fusionAutreCle = { event: "committed", parents: [{}, {}], committer: { name: "GitHub", email: "intrus@example.org" }, verification: { verified: true }, message: "Merge branch 'main' into x" };
-  const fusionSansSignature = { event: "committed", parents: [{}, {}], committer: { name: "Dev" }, message: "Merge branch 'main' into x" };
-  const poussee = { event: "head_ref_force_pushed" };
-  const joue = (...pages) =>
-    execFileSync("jq", ["-s", "-r", filtre], { input: pages.map((p) => JSON.stringify(p)).join("\n"), encoding: "utf8" }).trim();
-  assert.equal(joue([commit, pose]), "fusion", "commit puis pose");
-  assert.equal(joue([pose, commit]), "sommet-bouge", "pose puis commit");
-  assert.equal(joue([pose, retrait, commit, pose]), "fusion", "pose, retrait, commit, pose");
-  assert.equal(joue([pose], [commit]), "sommet-bouge", "pagination : le commit est sur la page suivante");
-  assert.equal(joue([pose, poussee]), "sommet-bouge", "poussée forcée après la pose");
-  assert.equal(joue([pose, fusionBase]), "fusion", "la fusion signée par GitHub (update-branch) ne compte pas");
-  assert.equal(joue([pose, fusionFausse]), "sommet-bouge", "une fusion non vérifiée, même message, compte");
-  assert.equal(joue([pose, fusionAutreCle]), "sommet-bouge", "signée par un autre, nom GitHub, adresse autre : compte");
-  assert.equal(joue([pose, fusionSansSignature]), "sommet-bouge", "une fusion sans signature de GitHub, même message, compte");
-  assert.equal(joue([commit]), "sans-label", "aucune pose");
+// Le capitaine d'un dépôt sans la chaîne agit par les outils GitHub MCP, sans lecture de timeline : le label est lié
+// au sommet par un commentaire d'une forme exacte, et ses renvois, d'une autre forme exacte, se comptent pour le
+// plafond ; seuls comptent les commentaires non édités d'un compte de confiance, et un renvoi édité arrête la PR. Les formes, la longueur du sha et
+// les associations admises sont lues dans la procédure (lancement.md) et jouées sur des fils de commentaires d'exemple.
+const PROCEDURE_SANS_CHAINE = () =>
+  readFileSync(join(RACINE, `${SKILLS_CHAINE}/architecte/references/lancement.md`), "utf8").match(/^Procédure : .*$/m)?.[0] ?? "";
+const FORME_ORDRE = "`à-fusionner au sommet <sha>`";
+const formesDuCapitaine = (procedure) => ({
+  ordre: procedure.match(/`(à-fusionner au sommet) <sha>`/)?.[1],
+  renvoi: procedure.match(/commence exactement par `(à-fusionner retiré par le capitaine : )`/)?.[1],
+  longueur: Number(procedure.match(/le sha complet \((\d+) caractères hexadécimaux/)?.[1]),
+  associations: procedure.match(/`author_association` est ((?:`[A-Z_]+`(?:, | ou )?)+)/)?.[1].match(/[A-Z_]+/g) ?? [],
+});
+const formesLues = () => {
+  const formes = formesDuCapitaine(PROCEDURE_SANS_CHAINE());
+  assert.equal(formes.ordre, "à-fusionner au sommet", "lancement.md : la forme `à-fusionner au sommet <sha>` est introuvable dans la procédure");
+  assert.ok(formes.renvoi, "lancement.md : la forme des renvois (« commence exactement par `à-fusionner retiré par le capitaine : ` ») est introuvable");
+  assert.ok(formes.longueur > 0, "lancement.md : la longueur du sha complet est introuvable dans la procédure");
+  assert.ok(formes.associations.length > 0, "lancement.md : les `author_association` admises sont introuvables dans la procédure");
+  return formes;
+};
+// Ce que le capitaine lit dans les commentaires d'une PR, dans l'ordre de GitHub : le sha du dernier ordre qui suit
+// son dernier renvoi (blancs de bord retirés, sha complet en minuscules, rien d'autre), et le compte de ses renvois ;
+// un commentaire d'une autre association est sauté ; un commentaire édité aussi, mais un renvoi édité est relevé.
+const lireFil = ({ ordre, renvoi, longueur, associations }, fil) => {
+  const motif = new RegExp(`^${ordre} ([0-9a-f]{${longueur}})$`);
+  let sha = null;
+  let renvois = 0;
+  let renvoiEdite = false;
+  for (const c of fil) {
+    if (!associations.includes(c.author_association)) continue;
+    const t = c.body.trim();
+    if (c.updated_at !== c.created_at) {
+      if (t.startsWith(renvoi)) renvoiEdite = true;
+      continue;
+    }
+    if (t.startsWith(renvoi)) {
+      renvois += 1;
+      sha = null;
+    } else sha = t.match(motif)?.[1] ?? sha;
+  }
+  return { sha, renvois, renvoiEdite };
+};
+// La garde de la mise à jour, sans état : la tête n'est pas l'ordre, mais c'est la fusion faite par GitHub de l'ordre
+// et d'un commit de la branche par défaut, signée par GitHub.
+const miseAJourParGithub = (sha, sommet, commitsDeLaBase) =>
+  sommet?.parents?.length === 2 &&
+  sommet.parents[0].sha === sha &&
+  commitsDeLaBase.includes(sommet.parents[1].sha) &&
+  sommet.commit?.verification?.verified === true &&
+  sommet.commit?.committer?.email === "noreply@github.com";
+const decider = (formes, fil, tete, sommet = null, commitsDeLaBase = []) => {
+  const { sha, renvois, renvoiEdite } = lireFil(formes, fil);
+  if (renvoiEdite) return "renvoi-edite";
+  if (renvois >= 3) return "plafond";
+  if (sha === null) return "sommet-bouge";
+  if (sha === tete) return "fusion";
+  return miseAJourParGithub(sha, sommet, commitsDeLaBase) ? "reecrire-l-ordre" : "sommet-bouge";
+};
+const A = "a".repeat(40);
+const B = "0123456789abcdef0123456789abcdef01234567";
+const T = "fedcba9876543210fedcba9876543210fedcba98";
+const BASE = "b".repeat(40);
+const dit = (body, { association = "MEMBER", edite = false } = {}) => ({
+  body,
+  author_association: association,
+  created_at: "2026-11-16T18:00:00Z",
+  updated_at: edite ? "2026-11-16T18:05:00Z" : "2026-11-16T18:00:00Z",
+});
+
+test("le commentaire au sommet : le dernier de la forme fait foi, sha complet, d'un compte de confiance, jamais édité", () => {
+  const formes = formesLues();
+  const ordre = (sha) => dit(`à-fusionner au sommet ${sha}`);
+  assert.equal(decider(formes, [ordre(A)], A), "fusion", "un ordre au sommet lu");
+  assert.equal(decider(formes, [dit(`\nà-fusionner au sommet ${A}\n`)], A), "fusion", "blancs de bord retirés");
+  assert.equal(decider(formes, [ordre(A), dit("relu, merci"), ordre(B)], B), "fusion", "le dernier ordre fait foi");
+  assert.equal(decider(formes, [ordre(A), ordre(B)], A), "sommet-bouge", "un ordre plus ancien ne vaut plus");
+  assert.equal(decider(formes, [ordre(A)], B), "sommet-bouge", "sha de l'ordre différent de la tête");
+  assert.equal(decider(formes, [], A), "sommet-bouge", "label sans commentaire");
+  for (const association of ["OWNER", "MEMBER", "COLLABORATOR"])
+    assert.equal(decider(formes, [dit(`à-fusionner au sommet ${A}`, { association })], A), "fusion", association);
+  for (const association of ["NONE", "CONTRIBUTOR", "FIRST_TIMER", "FIRST_TIME_CONTRIBUTOR", "MANNEQUIN"])
+    assert.equal(decider(formes, [dit(`à-fusionner au sommet ${A}`, { association })], A), "sommet-bouge", `un ordre de ${association} ne vaut rien`);
+  assert.equal(decider(formes, [ordre(B), dit(`à-fusionner au sommet ${A}`, { association: "NONE" })], A), "sommet-bouge", "un ordre étranger ne remplace pas le dernier ordre");
+  assert.equal(decider(formes, [dit(`à-fusionner au sommet ${A}`, { edite: true })], A), "sommet-bouge", "un ordre édité ne vaut rien");
+  for (const voisin of [
+    `à-fusionner au sommet ${A.slice(0, 7)}`,
+    `à-fusionner au sommet ${A.toUpperCase()}`,
+    `à-fusionner au sommet ${A} merci`,
+    `> à-fusionner au sommet ${A}`,
+    `\`à-fusionner au sommet ${A}\``,
+    `à-fusionner au sommet \`${A}\``,
+    `à-fusionner  au sommet ${A}`,
+    `À-fusionner au sommet ${A}`,
+    `a-fusionner au sommet ${A}`,
+    `à-fusionner au sommet ${A}\nsuite`,
+    `à-fusionner au sommet ${A}0`,
+  ])
+    assert.equal(decider(formes, [dit(voisin)], A), "sommet-bouge", `forme voisine prise pour un ordre : ${JSON.stringify(voisin)}`);
+});
+
+test("le plafond : les renvois du capitaine se comptent dans le fil, un renvoi délie l'ordre qui le précède", () => {
+  const formes = formesLues();
+  const ordre = (sha) => dit(`à-fusionner au sommet ${sha}`);
+  const renvoi = (motif, options) => dit(`${formes.renvoi}${motif}`, options);
+  assert.equal(decider(formes, [ordre(A), renvoi("contrôle rouge : bancs")], A), "sommet-bouge", "label reposé sans nouveau commentaire");
+  assert.equal(decider(formes, [ordre(A), renvoi("conflit"), ordre(A)], A), "fusion", "label et commentaire reposés");
+  assert.equal(decider(formes, [renvoi("a"), renvoi("b"), ordre(A)], A), "fusion", "deux renvois : sous le plafond");
+  assert.equal(decider(formes, [renvoi("a"), renvoi("b"), renvoi("c"), ordre(A)], A), "plafond", "trois renvois : au produit");
+  assert.equal(decider(formes, [renvoi("a"), renvoi("b"), renvoi("c", { association: "NONE" }), ordre(A)], A), "fusion", "un renvoi d'un compte étranger ne compte pas");
+  assert.equal(decider(formes, [ordre(A), renvoi("c", { edite: true }), ordre(A)], A), "renvoi-edite", "un renvoi édité arrête la PR : au produit");
+  assert.equal(decider(formes, [ordre(A), renvoi("c", { association: "NONE", edite: true })], A), "fusion", "un renvoi édité d'un compte étranger est sauté");
+  assert.equal(decider(formes, [ordre(A), dit(`à-fusionner au sommet ${B}`, { edite: true })], A), "fusion", "un ordre édité est sauté, il n'arrête rien");
+  assert.equal(
+    decider(formes, [dit("à-fusionner retiré : a"), dit("à-fusionner retiré par le capitaine a"), dit("Retiré par le capitaine : b"), ordre(A)], A),
+    "fusion",
+    "une forme voisine de renvoi ne compte pas",
+  );
+  assert.equal(lireFil(formes, [ordre(A), ordre(B)]).renvois, 0, "l'ordre réécrit par le capitaine après une mise à jour n'est pas un renvoi");
+});
+
+test("la garde de la mise à jour, sans état : la tête n'est pas l'ordre, mais la fusion signée par GitHub de l'ordre et de la branche par défaut", () => {
+  const formes = formesLues();
+  const fil = [dit(`à-fusionner au sommet ${A}`)];
+  const sommet = (parents, { verified = true, email = "noreply@github.com" } = {}) => ({
+    sha: T,
+    parents: parents.map((sha) => ({ sha })),
+    commit: { verification: { verified }, committer: { email } },
+  });
+  const base = [BASE];
+  assert.equal(decider(formes, fil, T, sommet([A, BASE]), base), "reecrire-l-ordre", "mise à jour faite par GitHub : l'ordre se réécrit à la tête, sans renvoi");
+  assert.equal(decider(formes, [...fil, dit(`à-fusionner au sommet ${T}`)], T), "fusion", "au réveil suivant, l'ordre réécrit vaut");
+  assert.equal(decider(formes, fil, T, sommet([BASE, A]), base), "sommet-bouge", "parents dans l'autre ordre");
+  assert.equal(decider(formes, fil, T, sommet([B, BASE]), base), "sommet-bouge", "premier parent autre que l'ordre");
+  assert.equal(decider(formes, fil, T, sommet([A, B]), base), "sommet-bouge", "second parent absent de la branche par défaut");
+  assert.equal(decider(formes, fil, T, sommet([A]), base), "sommet-bouge", "un commit poussé sur l'ordre");
+  assert.equal(decider(formes, fil, T, sommet([A, BASE, B]), base), "sommet-bouge", "trois parents");
+  assert.equal(decider(formes, fil, T, sommet([A, BASE], { verified: false }), base), "sommet-bouge", "fusion non signée");
+  assert.equal(decider(formes, fil, T, sommet([A, BASE], { email: "intrus@example.org" }), base), "sommet-bouge", "signée, mais committer autre que GitHub");
+  assert.equal(decider(formes, fil, T, null, base), "sommet-bouge", "sommet illisible");
+});
+
+test("le capitaine d'un dépôt sans la chaîne n'a ni `gh` ni timeline, et le commentaire au sommet n'est le geste que du dépôt sans la chaîne", () => {
+  const procedure = PROCEDURE_SANS_CHAINE();
+  assert.doesNotMatch(procedure, /`gh[ `]|gh api|gh pr|timeline|\bjq\b|isCrossRepository|mergeStateStatus/, "lancement.md : la procédure cite encore `gh`, la timeline ou leurs champs");
+  const textes = [`${SKILLS_CHAINE}/architecte/SKILL.md`, `${SKILLS_CHAINE}/architecte/references/lancement.md`];
+  for (const f of textes) assert.ok(readFileSync(join(RACINE, f), "utf8").includes(FORME_ORDRE), `${f} : le commentaire ${FORME_ORDRE} n'y est pas`);
+  const horsDuDepotSansChaine = [...textes, `${SKILLS_CHAINE}/architecte/references/CONTENU.md`].flatMap((f) =>
+    lignes(readFileSync(join(RACINE, f), "utf8")).flatMap((l, i) =>
+      l.includes(FORME_ORDRE) && !l.startsWith("Procédure : ") && !/sans la chaîne|sans `?\.claude\/chaine\.json/.test(l) ? [`${f}:${i + 1}`] : [],
+    ),
+  );
+  assert.deepEqual(horsDuDepotSansChaine, [], `le commentaire au sommet ne se dit que pour un dépôt sans la chaîne : ${horsDuDepotSansChaine.join(" ; ")}`);
+  for (const f of TEXTES_DE_FUSION.slice(2))
+    assert.ok(!readFileSync(join(RACINE, f), "utf8").includes("à-fusionner au sommet"), `${f} : texte d'un dépôt à la chaîne, le commentaire au sommet n'y a pas sa place`);
+  const lancement = readFileSync(join(RACINE, `${SKILLS_CHAINE}/architecte/references/lancement.md`), "utf8");
+  const ticket = lancement.split("## La session d'un ticket hors chantier")[1]?.match(/```text\n([\s\S]*?)```/)?.[1] ?? "";
+  const commentaire = ticket.indexOf(FORME_ORDRE);
+  const label = ticket.indexOf("puis poser `à-fusionner`", commentaire);
+  assert.ok(commentaire >= 0 && label > commentaire, "lancement.md : le prompt d'une session de ticket ne fait pas écrire le commentaire au sommet, puis poser le label");
+  assert.ok(ticket.includes("puis poser `à-fusionner` ; avec `Label: contre-revue`, ni l'un ni l'autre."), "lancement.md : le prompt d'une session de ticket ne dit plus qu'avec `Label: contre-revue` la session ne pose ni le commentaire ni le label");
+});
+
+test("aucun texte du plugin ne fait lire la timeline d'une PR ni fusionner par `gh pr merge`", () => {
+  const md = readdirSync(join(RACINE, "skills"), { recursive: true }).filter((f) => f.endsWith(".md"));
+  const fautes = md.flatMap((f) =>
+    lignes(readFileSync(join(RACINE, "skills", f), "utf8")).flatMap((l, i) =>
+      /\/timeline\b|relis la timeline|--match-head-commit|gh pr update-branch <n>|gh pr merge <n>/.test(l) ? [`skills/${f}:${i + 1}`] : [],
+    ),
+  );
+  assert.deepEqual(fautes, [], `une session cloud n'a pas \`gh\` et l'outil GitHub MCP ne lit pas la timeline : ${fautes.join(" ; ")}`);
 });
