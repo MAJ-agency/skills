@@ -1,6 +1,6 @@
 # La revue exigée couvre ce que la chaîne exécute, ni la casse ni les guillemets ne la contournent, et le capitaine ne régénère jamais un index à travers un lien symbolique
 
-Status: ready-for-agent
+Status: Fait — PR #94
 Type: task
 Label: contre-revue
 Modèle: sonnet — deux patchs donnés mot pour mot (code, tests), quatorze remplacements de documentation et la version. Tout est joué sur une copie jetable de `origin/main` (voir « Vérification ») ; rien n'est à concevoir.
@@ -1649,6 +1649,7 @@ Pour la session :
 
 ## Comments
 
+- 2026-11-16 — **Fait** : PR 94, fusionnée `76d90c7`, plugin 7.9.1. Contre-relue non conforme une fois : `package.yaml`/`yml`/`json5` imbriqués entraient sans revue (exécutés par lint-staged) ; corrigé, avec le repli de casse de `ſ`, CODEOWNERS explicite, et l'exception d'index de `docs/agents/` au chemin exact (relevée par `/security-review`). Limite écrite : fichiers sans extension, `Dockerfile`/`Makefile` imbriqués, YAML sous `docs/`, langages hors socle.
 - 2026-11-15 — **Décision de l'architecte** sur la question du motif `/*` de CODEOWNERS (prend-il les dossiers de la racine ?) : non établi ici ; la recommandation de `admin.md` le dit et demande d'essayer le fichier sur un dépôt d'essai avant de l'appliquer (GitHub signale les erreurs de CODEOWNERS dans l'interface du fichier) ; la session de ce ticket ajoute cette phrase à `admin.md`. Pas de nouvelle relecture du ticket : la contre-relecture de la PR jouera ses propres attaques.
 - 2026-11-14 — **Porté après la relecture adversaire** (agent neuf ; rejoué sur un worktree neuf de `fa7d3eb`, ticket appliqué mot pour mot) : B1, fichier exécutable et nom de configuration (`*.config.*`, `*rc`, `*rc.*`) à toute profondeur (décision 4) ; M1, une base de sujet ajoute le contrat d'`origin/develop` dans les deux scripts (décision 2) ; M2, NFC des deux côtés dans les deux scripts (décisions 5 et 8) ; M3, exception d'index de `docs/agents/` aux seules entrées littérales à `commande` (décision 3) ; M4, `admin.md` précisé (identité des sessions, approbations non retirées, CODEOWNERS sensible à la casse et qui suit le plancher, « Do not allow bypassing ») ; M5, `CLAUDE.local.md`. Joué : 527 sur 527 (499 + 28), vingt-six rouges sur `main`, les deux gardes vertes dès `main`. Coût : 23 sur 33 inchangé dans le projet mesuré ; un second projet du socle porte 60 fichiers que B1 fait entrer dans la revue (`docs/design/proto/`, `tests/`). Version : 7.9.1 tient.
 - 2026-11-14 — **Décision de l'architecte** : l'exception de `chemins-sensibles.mjs` hors dépôt git ou sans `origin/develop` (contrat de la branche seul, dit sur la sortie d'erreur) est acceptée : la garde qui tient contre une PR est celle du capitaine (`revue-exigee.mjs` lu par `passer.sh` et `sujet.sh`, qui ont toujours leur base) ; `chemins-sensibles.mjs` sert la session de bonne foi.
