@@ -10,7 +10,7 @@ Deux listes fermées, comme celle de la revue adversariale : le relecteur ne ren
 
 ## Les prompts — `prompt-ticket.md`, `prompt-documentation.md`
 
-Un sous-agent par axe, en contexte vierge, en lecture seule, sans l'historique de la session. Celui de l'axe Ticket reçoit le contexte du ticket ; celui de l'axe Documentation ne reçoit que le diff et lit la documentation lui-même. L'axe Règles est la revue adversariale, inchangée, qui ne reçoit ni ticket ni intention.
+Un sous-agent par axe, en contexte vierge, en lecture seule, sans l'historique de la session. Celui de l'axe Ticket reçoit le contexte du ticket ; celui de l'axe Documentation reçoit le diff et la section `## Criticité` de la PR, et lit la documentation lui-même. L'axe Règles est la revue adversariale, inchangée, qui ne reçoit ni ticket ni intention.
 
 ## La section de PR — `section-pr.md`
 
