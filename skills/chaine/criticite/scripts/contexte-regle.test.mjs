@@ -143,6 +143,8 @@ test("ligneNomme : même tolérance que le gate tickets (`**Règles:**`, `- Règ
   assert.equal(ligneNomme("Règles: RULE_ALL_LIC-3.03", ["Règles"], id), false, "RULE_ALL_LIC-3.03 n'est pas RULE_ALL_LIC-3");
   assert.equal(ligneNomme("Règles: RULE_ALL_LIC-3-slug", ["Règles"], id), false, "RULE_ALL_LIC-3-slug n'est pas RULE_ALL_LIC-3");
   assert.equal(ligneNomme("Texte Règles: RULE_ALL_LIC-3", ["Règles"], id), false, "la clé commence la ligne");
+  assert.equal(ligneNomme("# T\r\n\r\n## Où\r\n\r\nRègles: RULE_ALL_LIC-3\r\n", ["Règles"], id), false, "après la première section, en CRLF");
+  assert.equal(ligneNomme("# T\r\nRègles: RULE_ALL_LIC-3\r\n## Où\r\n", ["Règles"], id), true, "avant la première section, en CRLF");
   assert.equal(ligneNomme("Prouve: RULE_ALL_LIC-3.2fa", ["Prouve"], id), true, "un cas dont l'identifiant commence par un chiffre compte pour la règle");
   assert.equal(ligneNomme("Prouve: RULE_ALL_LIC-3.2", ["Prouve"], id), false, ".2 seul : la forme d'un ticket");
   assert.equal(ligneNomme("Règles: RULE_ALL_LIC-3.03, RULE_ALL_LIC-3", ["Règles"], id), true, "la règle nue, après un identifiant de ticket");
