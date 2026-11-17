@@ -25,7 +25,7 @@ Ticket de documentation, d'un script de skill et de banc : aucun hook ne change,
 
 ## Où
 
-Base : `origin/main` à `c17f88b` (PR 107 du ticket 48 fusionnée, plugin **7.12.3**, **665 tests**). La session retrouve chaque « Ancien » par son texte ; chacun y apparaît une seule fois.
+Base : `origin/main` à `86daaee` (PR 108 du ticket 50, CODEOWNERS, fusionnée, plugin **7.13.0**, **696 tests**). La session retrouve chaque « Ancien » par son texte ; chacun y apparaît une seule fois.
 
 | Texte | Ce qu'il dit | Verdict |
 | --- | --- | --- |
@@ -36,13 +36,13 @@ Base : `origin/main` à `c17f88b` (PR 107 du ticket 48 fusionnée, plugin **7.12
 | `skills/chaine/tickets/references/agents/issue-tracker.md:48` (« Quand un skill dit « publier vers le tracker » ») | « Une règle → …, `candidate`. » | R4 : de même |
 | `skills/chaine/anchorpost/references/rules/anchorpost.md:27` (« Qui écrit quoi ») | la validation écrite par un humain | R5 : le fichier à l'étape de la spec ; la criticité fixée par un agent ; `by: agent` ; monter, jamais baisser ; la session qui code ; `notApplicableFamilies` hors du skill ; la forme et le pivot 3 |
 | `skills/chaine/tickets/references/gabarits/regle.md:20` (après `# code:`) | — | R6 : `criticality`, `cases`, `notApplicableFamilies`, en commentaire |
-| `.claude-plugin/plugin.json:37` et `:3` | la liste des skills ; 7.12.3 | R7 : le skill déclaré ; R8 : 7.13.0 |
+| `.claude-plugin/plugin.json:37` et `:3` | la liste des skills ; 7.13.0 | R7 : le skill déclaré ; R8 : 7.14.0 |
 | `skills/monorepo/socle-monorepo/references/scripts/verify/references-agent-integrees.json:7` | les skills qualifiés qu'accepte le gate `references-agent` d'un projet ; `maj-skills:anchorpost` y manque | R9 : `maj-skills:anchorpost` et `maj-skills:criticite` |
 | `README.md:82`, `:90`, `:153` | le tableau des skills de `chaine/`, l'invocation, l'arbre | R10 à R12 |
 | `skills/monorepo/socle-monorepo/references/racine/CLAUDE.md:44` | la liste des skills de la chaîne posée dans le `CLAUDE.md` d'un projet | R13 |
 | `skills/chaine/anchorpost/SKILL.md:102` (« Étape 5 — la fiche d'écriture ») | la fiche copiée | R14 : la liste du gate du projet complétée |
 | `skills/chaine/revue-de-ticket/references/criteres-documentation.md`, `prompt-documentation.md`, `CONTENU.md`, `SKILL.md:40` | sept critères de l'axe Documentation ; le relecteur reçoit le diff seul | R15 à R21 : `D8`, la section `## Criticité` de la PR et l'index reçus ou lus par le relecteur |
-| `scripts/points-d-entree.test.mjs:24` (`SCRIPTS`) | les scripts du plugin qui se jouent en ligne de commande | § 0 c : `contexte-regle` |
+| `scripts/points-d-entree.test.mjs:25` (`SCRIPTS`) | les scripts du plugin qui se jouent en ligne de commande | § 0 c : `contexte-regle` |
 | fin de `scripts/depot.test.mjs` | — | § 0 a : six tests |
 
 ### Les endroits où le plugin liste ses skills, relevés
@@ -78,8 +78,8 @@ Chaque projet garde **sa propre copie** de `scripts/verify/references-agent-inte
 12. **Le gabarit `regle.md`** gagne les trois clés en commentaire, chacune avec « à partir de l'index au pivot 3 (CLI Anchorpost 2.0.0) » ; elles restent commentées, comme `exception`, `epics` ou `code`, parce qu'un projet au pivot 2 copie ce gabarit et que son schéma strict les refuserait. Aucune commande de projet n'est écrite en dur : « la commande d'index du projet, celle que nomme `scripts/docs/index-generes.json` » et « le gate Anchorpost du projet » (Anchorpost lui-même n'a pas `pnpm anchorpost:index`).
 13. **`maj-skills:anchorpost` et `maj-skills:criticite` entrent dans `references-agent-integrees.json`** du plugin, et la repose les ajoute à la liste d'un projet (« Repose dans un projet », R14). Le test du § 0 exige chaque skill de `plugin.json` dans cette liste et au tableau du README : un oubli futur rougit.
 14. **Le banc lit le texte et le tient** : il exige, à plat (blancs et sauts de ligne réduits à une espace), chaque section entière du skill et sa description, chaque paragraphe de son prompt, et des passages longs, d'un seul tenant, des textes qui disent qui rédige une règle, de la revue de ticket, de la repose et du gabarit. Une phrase glissée au milieu d'un passage exigé le rompt (« lecteur à plat », quatrième assertion). Le script a son banc propre (§ 0 b). Il exige aussi que la description du skill tienne en 1 024 caractères au plus et ne porte aucun « : » suivi d'une espace. **Limite avouée** : une phrase ajoutée entre deux passages exigés (en fin de section du skill, entre deux paragraphes du prompt, ou hors des passages des autres textes) passe ; c'est ce que la relecture appelle M5 et M8. Aucun test existant n'est retiré, sauté ni assoupli.
-15. **Version : mineure** (`.claude-plugin/plugin.json:3`, 7.12.3 → **7.13.0** sur `c17f88b`) : un skill ajouté (`README.md`, « Ajouter un skill », étape 4 : « mineure pour un skill ou un gabarit ajouté »). **Règle de repli** : si `main` bouge entre l'ouverture et la fusion, la session fusionne `origin/main` dans sa branche par un commit de fusion (jamais de rebase ni de push forcé), reprend la version de `main` plus un au deuxième nombre, troisième à zéro, puis vérifie la valeur après la fusion (`git diff origin/main -- .claude-plugin/plugin.json` ne montre que `"version"` et la ligne du skill). La ligne `criticite ≥ 7.13` de R13 suit la version retenue.
-16. **Pas de `Label: contre-revue`** : aucun fichier de `cheminsSensibles` (gabarit `socle-chaine-de-production/references/chaine.json` : `scripts/agent/**`, `scripts/chaine/**`, `.husky/**`, `.github/workflows/**`, `.github/actions/**`, `scripts/docs/identifiants.mjs`, `.claude/**`) n'est touché ; le script du skill vit sous `skills/chaine/criticite/scripts/`, pas sous `scripts/chaine/`. PR vers `main`, hors brouillon, **sans `à-fusionner`** : l'architecte la lit (documentation du plugin), puis la fait entrer. Titre `feat(chaine): le skill de criticité, et la session qui écrit la spec rédige la règle (plugin <version>)`. Commits sous les hooks, jamais `--no-verify`.
+15. **Version : mineure** (`.claude-plugin/plugin.json:3`, 7.13.0 → **7.14.0** sur `86daaee`) : un skill ajouté (`README.md`, « Ajouter un skill », étape 4 : « mineure pour un skill ou un gabarit ajouté »). **Règle de repli** : si `main` bouge entre l'ouverture et la fusion, la session fusionne `origin/main` dans sa branche par un commit de fusion (jamais de rebase ni de push forcé), reprend la version de `main` plus un au deuxième nombre, troisième à zéro, puis vérifie la valeur après la fusion (`git diff origin/main -- .claude-plugin/plugin.json` ne montre que `"version"` et la ligne du skill). La ligne `criticite ≥ 7.14` de R13 suit la version retenue.
+16. **Pas de `Label: contre-revue`** : aucun fichier de `cheminsSensibles` (gabarit `socle-chaine-de-production/references/chaine.json` : `scripts/agent/**`, `scripts/chaine/**`, `scripts/github/**`, `.husky/**`, `.github/workflows/**`, `.github/actions/**`, `scripts/docs/identifiants.mjs`, `.claude/**`) n'est touché ; le script du skill vit sous `skills/chaine/criticite/scripts/`, pas sous `scripts/chaine/` ni `scripts/github/`, et ne se pose dans aucun projet : il n'a rien à faire dans `cheminsSensibles` ni dans le `.github/CODEOWNERS` qu'un projet en génère, et `POSES`, `FICHIERS_POSES` de `scripts/poses.test.mjs` ne le nomment pas. PR vers `main`, hors brouillon, **sans `à-fusionner`** : l'architecte la lit (documentation du plugin), puis la fait entrer. Titre `feat(chaine): le skill de criticité, et la session qui écrit la spec rédige la règle (plugin <version>)`. Commits sous les hooks, jamais `--no-verify`.
 
 ### Remèdes écartés
 
@@ -101,7 +101,7 @@ Trois gestes, le banc avant le texte qu'il tient.
 
 #### 0 a — `scripts/depot.test.mjs`
 
-Après le dernier test (« le plafond de la garde de commandes : CONTENU.md du socle de la chaîne dit 20 000 caractères, le pire cas mesuré et le contournement par un fichier »), une ligne vide, puis, rien d'autre :
+Après le dernier test (« le dernier repli du banc de CODEOWNERS redit les cheminsSensibles du gabarit », ajouté par la PR 108), une ligne vide, puis, rien d'autre :
 
 ````js
 // Le skill de criticité (ticket 49) : la criticité d'une règle est fixée par un agent, dans un sous-agent en contexte
@@ -451,7 +451,7 @@ test("en ligne de commande : un identifiant, la sortie est le message ; usage, r
 });
 `````
 
-#### 0 c — `scripts/points-d-entree.test.mjs:24`, la liste `SCRIPTS`
+#### 0 c — `scripts/points-d-entree.test.mjs:25`, la liste `SCRIPTS`
 
 Ancien :
 
@@ -468,9 +468,9 @@ Nouveau :
 
 Le jouer sur `origin/main` :
 
-- `node --test scripts/depot.test.mjs` donne **cinq** `not ok` sur 38 : « le skill de criticité : … » (`ENOENT` : `skills/chaine/criticite/SKILL.md`) ; « qui rédige une règle, et quand : … » (passages absents de `architecte/SKILL.md`) ; « la trace : … » (passages absents de `criteres-documentation.md`) ; « le gabarit de règle porte … » (aucune ligne « # criticality: ») ; « chaque skill du plugin a sa ligne au README … » (le skill n'est pas déclaré ; joué sans cette première assertion, il rougit aussi sur `maj-skills:anchorpost`, absent de la liste du gate). « lecteur à plat : entrées piégées » est vert : il éprouve le lecteur.
+- `node --test scripts/depot.test.mjs` donne **cinq** `not ok` sur 39 : « le skill de criticité : … » (`ENOENT` : `skills/chaine/criticite/SKILL.md`) ; « qui rédige une règle, et quand : … » (passages absents de `architecte/SKILL.md`) ; « la trace : … » (passages absents de `criteres-documentation.md`) ; « le gabarit de règle porte … » (aucune ligne « # criticality: ») ; « chaque skill du plugin a sa ligne au README … » (le skill n'est pas déclaré ; joué sans cette première assertion, il rougit aussi sur `maj-skills:anchorpost`, absent de la liste du gate). « lecteur à plat : entrées piégées » est vert : il éprouve le lecteur.
 - `node --test skills/chaine/criticite/scripts/contexte-regle.test.mjs` : un `not ok` sur 1, le fichier entier (`ERR_MODULE_NOT_FOUND` : `contexte-regle.mjs` absent).
-- `node --test scripts/points-d-entree.test.mjs` : six `not ok` sur 48, les six accès de « contexte-regle agit quand on le lance » (« muet » : le script est absent).
+- `node --test scripts/points-d-entree.test.mjs` : six `not ok` sur 54, les six accès de « contexte-regle agit quand on le lance » (« muet » : le script est absent).
 
 ### 1. Le skill, quatre fichiers nouveaux, mot pour mot
 
@@ -875,7 +875,7 @@ if (estPointEntree()) {
 
 ### 2. Les remplacements, mot pour mot
 
-Chaque « Ancien » apparaît **une seule fois** à `c17f88b`. Si une PR fusionnée depuis l'a modifié, la session le retrouve par son sens et applique le « Nouveau » à la même place.
+Chaque « Ancien » apparaît **une seule fois** à `86daaee`. Si une PR fusionnée depuis l'a modifié, la session le retrouve par son sens et applique le « Nouveau » à la même place.
 
 #### R1 — `skills/chaine/architecte/SKILL.md:54`
 
@@ -988,13 +988,13 @@ Nouveau :
 Ancien :
 
 ````json
-  "version": "7.12.3",
+  "version": "7.13.0",
 ````
 
 Nouveau :
 
 ````json
-  "version": "7.13.0",
+  "version": "7.14.0",
 ````
 
 #### R9 — `skills/monorepo/socle-monorepo/references/scripts/verify/references-agent-integrees.json:7`
@@ -1071,7 +1071,7 @@ Ancien :
 Nouveau :
 
 ````text
-`fusionner`, `architecte`, `chantier`, `recette-humaine`, `criticite` (plugin ≥ 3.2 ; `architecte` ≥ 5.0 ; `criticite` ≥ 7.13)
+`fusionner`, `architecte`, `chantier`, `recette-humaine`, `criticite` (plugin ≥ 3.2 ; `architecte` ≥ 5.0 ; `criticite` ≥ 7.14)
 ````
 
 #### R14 — `skills/chaine/anchorpost/SKILL.md:102`
@@ -1228,7 +1228,7 @@ PR — selon la liste fermée de critères ci-dessous et elle seule.
 
 ### 3. La version
 
-R8 : 7.12.3 → 7.13.0 si rien n'a bougé ; règle de repli : décision 15.
+R8 : 7.13.0 → 7.14.0 si rien n'a bougé ; règle de repli : décision 15.
 
 ## Surfaces
 
@@ -1247,11 +1247,11 @@ R8 : 7.12.3 → 7.13.0 si rien n'a bougé ; règle de repli : décision 15.
 
 ## Vérification
 
-Joué le 2026-11-17 dans un `git worktree` jetable de `c17f88b` (`TMPDIR` sous un dossier jetable), §§ 0 à 3 appliqués mot pour mot, puis le worktree retiré :
+Joué le 2026-11-17 dans un `git worktree` jetable de `86daaee` (`TMPDIR` sous un dossier jetable), §§ 0 à 3 appliqués mot pour mot, puis le worktree retiré :
 
-- Sur `c17f88b` sans rien : `pnpm install --frozen-lockfile && pnpm test`, **665 sur 665**.
-- Le banc du § 0 sur le texte de `c17f88b` : les rouges nommés au § 0.
-- Banc, skill, remplacements et version (7.13.0) : `node --test scripts/depot.test.mjs` vert, 38 tests ; la suite entière : **693 sur 693** (665 + 28 : 6 tests du banc, 16 du script, 6 accès de `points-d-entree`).
+- Sur `86daaee` sans rien : `pnpm install --frozen-lockfile && pnpm test`, **696 sur 696**.
+- Le banc du § 0 sur le texte de `86daaee` : les rouges nommés au § 0.
+- Banc, skill, remplacements et version (7.14.0) : `node --test scripts/depot.test.mjs` vert, 39 tests ; la suite entière : **724 sur 724** (696 + 28 : 6 tests du banc, 16 du script, 6 accès de `points-d-entree`).
 - **Mutations**, chacune jouée seule sur le texte corrigé, puis le texte remis, sous `node --test scripts/depot.test.mjs skills/chaine/criticite/scripts/contexte-regle.test.mjs` (plus `scripts/points-d-entree.test.mjs` pour une mutation du script) : chacune fait rougir au moins un test. **147 mutations sur 147.** Une phrase glissée entre deux passages exigés reste verte (décision 14) : elle n'est pas dans la liste. La liste :
 
 1. SKILL : la citation sans « dans le doute, il rend le niveau supérieur »
@@ -1435,3 +1435,4 @@ Pour la session :
 - (remplacé par le commentaire du 2026-11-17 plus bas : seul l'index au pivot 3 compte) 2026-11-17 — Corrigé après relecture (relecteur neuf, puis décisions de l'architecte). (B1) un agent écrit toujours `by: agent`, dans le skill, la fiche et le gabarit (`<clé de roles>`, plus « Prénom Nom ») ; (B2) la section `## Criticité` obligatoire dans tous les cas, avec chaque sortie brute, la relance qui garde le plus haut niveau, un cas retiré ou passé en technique seulement avec sa raison, une règle non classée relevée par la revue de ticket (critère `D8` nouveau, section reçue par le relecteur, gravité bloquante) ; (B3) le message du sous-agent fabriqué par un script du skill (`contexte-regle.mjs` et son banc : en-tête et commentaires HTML retirés, spec au mot près), la spec entière lue comme une donnée, aucun outil ; (B4) le prompt calé sur `RULE_ALL_ANC-28` pour la règle basse ; le skill lancé à toute création ou tout changement d'énoncé d'une règle, quelle que soit la session ; la fiche dit ce que la session qui code ne touche pas ; la portée calée sur `RULE_ALL_ANC-27`, le doute vers `business` ; `CONTENU.md` nomme la source et la date des définitions ; les commandes du projet nommées par leur rôle ; l'index en `"3"` est le critère, la version de la CLI un indice ; la forme `{ level, by, reason }` dans la fiche et le gabarit ; l'architecte classe les règles avant de passer le chantier au conducteur ; la section « Repose dans un projet » et la phrase de l'étape 5 du skill `anchorpost` ; le banc exige des passages d'un seul tenant. Rejoué sur une copie jetable : cinq, un et six rouges au § 0, 78 mutations sur 78 rouges, 685 sur 685.
 - 2026-11-17 — Seconde correction, après une seconde relecture « pas prêt » (`A-56` de la carte). Décision de fond : sans index au pivot 3, le skill ne classe rien, il le dit et s'arrête ; la proposition dans la PR disparaît partout ; « classée » veut dire les clés dans le fichier et les sorties dans la section ; `D8` ne vaut qu'au pivot 3, lu dans l'index ; seul l'index compte, la version de la CLI n'est plus lue. Puis : sauter le skill est bloquant, sans « laissé avec une raison » ; le `kind`, le `scope` et le sens d'un cas rendu ne changent qu'avec leur raison (skill, fiche, `D8`) ; le script prend le seul identifiant de la règle et trouve lui-même le fichier et les specs (`Règles:`, ou `Règles:` et `Prouve:` d'un ticket), sans nom de projet, avec BOM, titre sur une ligne, commentaire de fin de ligne, titre plié refusé, `mkdir -p` dans le skill, et il reste dans le dossier du skill ; la section porte la commande jouée, et ses sorties vont en commentaires au-delà de 65 536 caractères ; deux sorties hors format donnent le plus haut niveau apparu, `high` à défaut, jamais « à classer » ; sortir une règle du `Règles:` d'une feature est le geste d'une personne ; `notApplicableFamilies` n'est écrit que par le skill ; l'intro des critères et la mission de l'axe Documentation nomment la section ; la criticité d'une feature fixée par un agent passe hors périmètre ; le banc exige chaque section du skill, sa description et chaque paragraphe du prompt, et avoue sa limite. Rejoué sur une copie jetable : cinq, un et six rouges au § 0, 119 mutations sur 119, 690 sur 690.
 - 2026-11-17 — Troisième correction, après une troisième relecture « pas prêt » (application conforme, 690 sur 690). `D8` regarde tout geste sur la criticité (règle créée ou réénoncée, `criticality`, `cases` ou `notApplicableFamilies` écrits ou changés, règle retirée d'une ligne `Règles:`), et une PR qui touche ces clés porte toujours la section, dans `D8`, son prompt, le skill et la fiche ; la fiche dit aussi qu'une session qui code ne retire pas une règle d'une ligne `Règles:` ; après deux sorties hors format, un `low` sans raison ne compte pas et la raison de procédure ne vaut jamais pour un `low` (étape 4, « Ne jamais », `D8`). Puis : la description du skill sans « : » suivi d'une espace, en 1 024 caractères au plus, le déclencheur dans la première phrase, tenus par le banc ; le script refuse un nom à caractère de contrôle, ne suit aucun lien (spec ignorée et nommée, règle refusée), lit la racine dans le dossier courant sans `PROJET_RACINE`, teste la casse par `nomExact` et une spec à commentaire HTML ; le skill dit quand lancer le script et qu'un refus hors convention l'arrête ; tout changement de `scope` sans raison est interdit ; le gabarit dit les familles comme le prompt ; l'arbre du README suit le pivot 3 ; `<criticité>` vient de la description de la PR telle que GitHub la rend. Rejoué sur une copie jetable : cinq, un et six rouges au § 0, 147 mutations sur 147, 693 sur 693.
+- 2026-11-17 — Recalé sur `86daaee` (PR 108, CODEOWNERS, plugin 7.13.0, 696 tests) : la version passe à 7.14.0 (R8, R13, décision 15, § 3) ; R8 part de `"version": "7.13.0"` ; le banc s'ajoute après le test de CODEOWNERS, devenu le dernier ; `scripts/github/**` rejoint la liste des chemins sensibles citée en décision 16. Les autres « Ancien » s'appliquent tels quels. Rejoué sur une copie jetable : cinq, un et six rouges au § 0, 724 sur 724, 147 mutations sur 147.
