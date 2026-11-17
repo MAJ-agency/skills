@@ -1435,7 +1435,7 @@ test("passer.sh : une livraison intermédiaire dont un fichier sous un index par
 // commentaire marqué : la PR « attend un humain » jusqu'à une approbation plus récente.
 const MOTIF_PROPRIETAIRE = /attend l'approbation d'un propriétaire \(CODEOWNERS\) : sautée sans renvoi, reprise au tour suivant/;
 const MARQUE_ATTENTE = "<!-- attente-revue-capitaine -->";
-const CODEOWNERS = "# propriétaires de la chaîne\n* @Proprietaire @maj/Securite\n/docs/ @maj/docs # commentaire @pas-un-proprietaire\n";
+const CODEOWNERS = "# propriétaires de la chaîne\n* @Proprietaire @exemple/Securite\n/docs/ @exemple/docs # commentaire @pas-un-proprietaire\n";
 
 function attenteProprietaire(etat = {}, { codeowners = CODEOWNERS, chemin = ".github/CODEOWNERS" } = {}) {
   const d = depotJouet();
@@ -1600,4 +1600,31 @@ test("boucle.sh : les PR qui attendent un propriétaire sont sautées sans renvo
   assert.doesNotMatch(encore.stdout, /\[#72\] DÉBUT/);
   assert.deepEqual(ecrit(), ["PUT pulls/71/merge", "DELETE issues/71/labels/%C3%A0-fusionner", "PUT pulls/72/merge", "POST issues/72/comments"], "rien de plus au tour suivant");
   assert.equal(d.git("ls-remote", "origin", "refs/heads/feat/seul").split(/\s/)[0], tete, "rien poussé sur #72");
+});
+
+test("file.sh : une CI rouge prime sur « attend un humain » : la PR marquée est relancée puis renvoyée comme une autre", () => {
+  const { d } = attenteProprietaire({
+    checks: { "*": { qualite: "SUCCESS" }, "#72": { qualite: "FAILURE" } },
+    pulls: [pr(72, "feat/seul", { commentaires: [commentaireAttente("2026-11-17T10:00:00Z")] })],
+  });
+  assert.deepEqual(etats(d), ["72 CI rouge : qualite"]);
+  assert.equal(d.lancer(script("file.sh"), "--rouges").stdout, "72\tqualite\n");
+  d.github({ checks: { "*": { qualite: "SUCCESS" }, "#72": { qualite: "IN_PROGRESS" } } });
+  assert.deepEqual(etats(d), ["72 attend un humain"], "CI en cours : l'attente reste");
+});
+
+test("passer.sh : commentaire d'attente impossible à poser après un refus de fusion pour revue : sortie 5 (arrêt), pas 7 ; la boucle retente une fois puis s'arrête", () => {
+  const { d } = attenteProprietaire({ commentairesRefuses: true, pulls: [pr(72, "feat/seul", { approbationManquante: true })] });
+  const r = d.lancer(script("passer.sh"), "72");
+  assert.equal(r.status, 5, r.stdout + r.stderr);
+  assert.match(r.stdout, /commentaire d'attente non posé/);
+  assert.deepEqual(ecritures(d), ["PUT pulls/72/merge", "POST issues/72/comments"]);
+  assert.deepEqual(d.etat().pulls[0].labels, ["à-fusionner"]);
+  const e = attenteProprietaire({ commentairesRefuses: true, pulls: [pr(72, "feat/seul", { approbationManquante: true })] }).d;
+  e.publierChaine();
+  const b = e.lancer(script("boucle.sh"));
+  assert.equal(b.status, 5, b.stdout + b.stderr);
+  assert.match(b.stdout, /\[#72\] a bougé, second essai/);
+  assert.match(b.stdout, /ARRÊT sur #72 \(sortie 5\)/);
+  assert.equal(ecritures(e).filter((x) => x === "PUT pulls/72/merge").length, 2, "deux essais, pas un par tour");
 });

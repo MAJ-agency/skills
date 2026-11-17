@@ -27,7 +27,8 @@
 #   attend un humain    GitHub a refusé sa fusion faute d'approbation d'un propriétaire (passer.sh l'a dit par un
 #                       commentaire marqué, MARQUE_ATTENTE de github.sh) et aucune revue APPROVED n'est plus récente
 #                       que ce commentaire : ni passée, ni relancée, ni renvoyée, ni mise à jour (au plus une CI par
-#                       nouvelle approbation). Vient après « gelée » et « humain », avant les états de CI. Compte du
+#                       nouvelle approbation). Vient après « gelée » et « humain » ; une CI rouge prime (« CI rouge » :
+#                       relancée, puis renvoyée, comme une autre ; la marque reste jusqu'à l'approbation). Compte du
 #                       capitaine illisible : fermé, comme les renvois. Le compte des renvois n'est pas touché
 #   humain              PR déjà renvoyée autant de fois que le plafond (`plafonds.renvoisParPR`, 3 ; les
 #                       renvois se comptent par leur marque, github.sh) : ni passée, ni relancée, ni renvoyée.
@@ -145,7 +146,9 @@ jq -r '.[] | select(any(.labels[]; . == "à-fusionner")) | [
     elif [ "$(renvois_de "$n")" -ge "$plafond" ]; then
       etat='humain'
     elif attend_humain "$n"; then
-      etat='attend un humain'
+      # Une CI rouge prime, comme sur « attend un propriétaire » : relancée, puis renvoyée, comme une autre.
+      etat=$(ci_de)
+      if [[ "$etat" == 'CI rouge'* ]]; then [[ "$base" != sujet/* ]] || etat="$base : $etat"; else etat='attend un humain'; fi
     elif [[ "$base" == sujet/* ]]; then
       etat="$base : $(ci_de)"
     elif [ "$base" = develop ] && [ -n "$sujet_ticket" ] && [ "$hors_sujet" = false ]; then

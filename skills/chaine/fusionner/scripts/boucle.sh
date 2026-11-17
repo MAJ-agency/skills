@@ -7,7 +7,8 @@
 # (refus.sh) ; une PR non éligible sans correction possible (sortie 7, dont « attend un propriétaire » :
 # CODEOWNERS) est sautée sans renvoi ; une PR sans CI déclenchée (sortie 3, déjà à jour,
 # rien à pousser) est mise de côté jusqu'à la prochaine fusion, dont la mise à jour la poussera
-# et lancera sa CI. La sortie 5 (develop ou la PR a bougé)
+# et lancera sa CI. La sortie 5 (develop ou la PR a bougé, ou commentaire d'attente d'un propriétaire impossible
+# à poser : passer.sh)
 # a droit à un second essai. Un conflit (sortie 2) renvoie la PR ; des checks rouges au
 # passage (sortie 3) la laissent rouge dans la file : relance au tour suivant, puis renvoi.
 # Tout autre code arrête la boucle (gates des registres, install, CI bloquée) : le capitaine

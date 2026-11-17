@@ -14,6 +14,7 @@
 //               met d'office les propriétaires CODEOWNERS et les retire quand ils approuvent
 //   PR.approbationManquante  sur une base de `revueProprietaires`, la fusion est refusée (405, « Waiting on code
 //               owner review ») : l'approbation d'un propriétaire manque (le faux ne lit pas CODEOWNERS)
+//   commentairesRefuses  tout commentaire posé est refusé (403)
 //   PR.revues   revues de la PR (`pulls/<n>/reviews`) : [{ state, submitted_at, auteur }]
 //   PR.commentaires  un corps seul reçoit un `created_at` d'office, croissant avec son rang ; un objet porte le sien
 // Le sommet d'une PR est lu dans le dépôt nu ($FAUX_GH_ORIGINE), comme GitHub. Chaque écriture
@@ -206,6 +207,7 @@ function repondre() {
     return [];
   }
   if ((m = route.match(/^issues\/(\d+)\/comments$/)) && methode === "POST") {
+    if (etat.commentairesRefuses) echec("gh: Resource not accessible by integration (HTTP 403)");
     (pr(m[1]).commentaires ??= []).push(champs.body);
     return { id: 1 };
   }
