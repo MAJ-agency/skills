@@ -10,6 +10,7 @@
  * migrations) et `scripts/docs/index-generes.json` (les fichiers générés et leur commande).
  */
 import { readFileSync } from 'node:fs';
+import { posix } from 'node:path';
 
 const lireJson = (url) => {
   try {
@@ -38,6 +39,15 @@ export const FICHIERS_GENERES = Object.fromEntries([
 const cheminDuMotif = (motif) => new RegExp(`^${motif.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '[^/]+')}$`);
 
 /**
+ * CODEOWNERS, aux trois places où GitHub le lit (`.github/`, la racine, `docs/` ; la casse ignorée : un système de
+ * fichiers insensible à la casse écrit `.GitHub/codeowners` au même endroit). Il se génère depuis `.claude/chaine.json`
+ * (`scripts/github/codeowners.mjs`, ADR « CODEOWNERS ») : une seule source, que le gate `codeowners` compare.
+ */
+const CODEOWNERS = /^(\.github\/|docs\/)?codeowners$/i;
+const RAISON_CODEOWNERS = (c) =>
+  `${c} ne s'édite pas : il est généré depuis .claude/chaine.json. Modifier \`cheminsSensibles\` ou \`proprietaires\` dans .claude/chaine.json, puis régénérer avec « pnpm codeowners » (node scripts/github/codeowners.mjs --ecrire) ; le gate \`codeowners\` refuse tout écart (ADR « CODEOWNERS »).`;
+
+/**
  * Refus d'éditer un fichier, ou `null` si l'édition est permise.
  * @param {string} chemin chemin relatif à la racine du dépôt
  * @param {{ migrationExistante: (chemin: string) => boolean, migrations?: string }} contexte
@@ -50,7 +60,9 @@ export function refusEdition(
     migrations = CHAINE.migrations ?? 'apps/api/src/db/migrations/',
   },
 ) {
-  const c = chemin.replace(/\\/g, '/').replace(/^\.\//, '');
+  // Normalisé avant toute comparaison : `.github//CODEOWNERS`, `.github/./CODEOWNERS` ou `docs/../CODEOWNERS` visent le même fichier.
+  const c = posix.normalize(chemin.replace(/\\/g, '/')).replace(/^(\.\/)+/, '');
+  if (CODEOWNERS.test(c)) return RAISON_CODEOWNERS(c);
   const genere = Object.keys(FICHIERS_GENERES).find((motif) => cheminDuMotif(motif).test(c));
   if (genere) return `${c} est généré : le régénérer avec « ${FICHIERS_GENERES[genere]} ».`;
   const nom = c.split('/').pop() ?? '';
@@ -2163,13 +2175,18 @@ export function ecritParGh(commande) {
 
 /**
  * Au-delà de cette taille de la commande, aucune lecture n'est jouée (ni le lecteur par jetons, ni celle de 7.9.x) :
- * la commande est refusée (échec fermé). La lecture de 7.9.x coûte au carré sur certaines formes (accents graves, `$(…)` ou `git commit`
- * répétés sans séparateur) ; sous ce seuil, son pire cas mesuré est de 8,2 s (99 000 caractères), sous le délai du hook.
+ * la commande est refusée (échec fermé). Les deux lectures coûtent au carré de la taille sur certaines formes : une option
+ * d'une lettre répétée sans fin de mot (`gh pr close 1 -ddd…!`, `git commit -nnn…!`, `git push -fff…!`, que des motifs
+ * comme `-[a-zA-Z]*d[a-zA-Z]*` relisent pour chaque lettre), des accents graves, `$(…)` ou `git push ` répétés. Mesuré
+ * le 2026-11-16 (ticket 48, quatre cœurs, un processus neuf par mesure, comme le hook) : à 20 000 caractères, le pire cas
+ * est de 1,2 s (`gh pr close 1 -ddd…!`), 2,5 s avec deux fois plus de processus que de cœurs ; sous l'ancien plafond de
+ * 100 000, la même forme prenait 26 s à 99 980 caractères. Le délai du hook est de 60 s ; `regles.test.mjs` borne le
+ * pire cas à 10 s.
  */
-const TAILLE_MAX_LECTURE_7_9 = 100_000;
+const TAILLE_MAX_LECTURE_7_9 = 20_000;
 
 export const RAISON_TROP_LONGUE =
-  "commande trop longue pour la garde (plus de 100 000 caractères) : elle est refusée plutôt que lue à moitié. Écris le texte long dans un fichier (git commit -F <fichier>, gh … --body-file <fichier>) ou découpe la commande.";
+  "commande trop longue pour la garde (plus de 20 000 caractères) : elle est refusée plutôt que lue à moitié. Écris le texte long dans un fichier (git commit -F <fichier>, gh … --body-file <fichier>) ou découpe la commande.";
 
 /**
  * La lecture de 7.9.x (décisions A-51 bis et ter), reprise telle quelle de `76d90c7` : `decisionCommande` la
@@ -2261,9 +2278,13 @@ export const LECTURE_7_9 = (() => {
     return fin === 0 ? s : sortie + s.slice(fin);
   }
 
-  /** Chaque ajout de la commande (`pnpm add`, `pnpm install <paquet>`) : `{ paquets, options }`. */
+  /**
+   * Chaque ajout de la commande (`pnpm add`, `pnpm install <paquet>`) : `{ paquets, options }`. Le `(?<!\d)` (ticket 48,
+   * repris d'anchorpost) évite de relancer la recherche sur chaque chiffre d'une longue suite, sans changer le
+   * remplacement : une redirection qui commencerait après un chiffre commence déjà sur lui (preuve : `regles.test.mjs`).
+   */
   function ajouts(code) {
-    const commandes = code.replace(/\d*(>>?|<)&?\s*[^\s;&|]*/g, ' ').split(/[;&|\n]+/);
+    const commandes = code.replace(/(?<!\d)\d*(>>?|<)&?\s*[^\s;&|]*/g, ' ').split(/[;&|\n]+/);
     return commandes.flatMap((commande) => {
       const mots = commande.trim().split(/\s+/);
       let i = mots.findIndex((mot) => /(^|\/)pnpm$/.test(mot));

@@ -1427,3 +1427,204 @@ test("passer.sh : une livraison intermédiaire dont un fichier sous un index par
   d.git("fetch", "-q", "origin");
   assert.equal(d.git("rev-list", "--parents", "-1", "origin/develop").split(" ").length, 3, "commit de merge : deux parents");
 });
+
+// Revue des propriétaires (CODEOWNERS, « Require review from Code Owners » sur la base) : une PR qui
+// l'attend n'est ni rouge ni bloquée. file.sh la montre « attend un propriétaire », le capitaine la saute
+// sans la renvoyer et la reprend au tour suivant, une fois approuvée. Seuls comptent les propriétaires du
+// CODEOWNERS de la base, demandés comme relecteurs. Une fusion refusée faute d'approbation laisse un
+// commentaire marqué : la PR « attend un humain » jusqu'à une approbation plus récente.
+const MOTIF_PROPRIETAIRE = /attend l'approbation d'un propriétaire \(CODEOWNERS\) : sautée sans renvoi, reprise au tour suivant/;
+const MARQUE_ATTENTE = "<!-- attente-revue-capitaine -->";
+const CODEOWNERS = "# propriétaires de la chaîne\n* @Proprietaire @exemple/Securite\n/docs/ @exemple/docs # commentaire @pas-un-proprietaire\n";
+
+function attenteProprietaire(etat = {}, { codeowners = CODEOWNERS, chemin = ".github/CODEOWNERS" } = {}) {
+  const d = depotJouet();
+  if (codeowners !== null) {
+    d.ecrire(chemin, codeowners);
+    d.commit("chore: CODEOWNERS");
+    d.git("push", "-q", "origin", "HEAD:develop");
+    d.git("fetch", "-q", "origin");
+  }
+  const sommets = {};
+  for (const b of ["feat/proprio", "feat/libre", "feat/seul"]) sommets[b] = d.branche(b, "origin/develop", { [`docs/${b}.md`]: `${b}\n` });
+  d.git("switch", "-q", "--detach", "origin/develop");
+  d.github({
+    exiges: ["qualite"],
+    checks: { "*": { qualite: "SUCCESS" } },
+    revueProprietaires: ["develop"],
+    pulls: [
+      pr(70, "feat/proprio", { relecteurs: ["proprietaire"] }),
+      pr(71, "feat/libre"),
+    ],
+    ...etat,
+  });
+  return { d, sommets };
+}
+const etats = (d) =>
+  d.lancer(script("file.sh")).stdout.trim().split("\n").map((l) => l.split("\t").slice(0, 2).join(" "));
+
+test("file.sh : une PR vers develop qui attend un propriétaire se lit « attend un propriétaire », et ni --next ni --rouges ne la rendent", () => {
+  const { d } = attenteProprietaire();
+  assert.deepEqual(etats(d), ["70 attend un propriétaire", "71 prête"]);
+  assert.equal(d.lancer(script("file.sh"), "--next").stdout, "71\n");
+  assert.equal(d.lancer(script("file.sh"), "--rouges").stdout, "");
+  assert.deepEqual(d.journal(), [], "file.sh ne fait que lire");
+});
+
+test("file.sh : seul un propriétaire du CODEOWNERS de la base fait attendre — utilisateur, puis équipe (casse ignorée), jamais un relecteur demandé à la main", () => {
+  const { d } = attenteProprietaire({ pulls: [pr(70, "feat/proprio", { relecteurs: ["quelqu-un", "pas-un-proprietaire"] })] });
+  assert.deepEqual(etats(d), ["70 prête"], "relecteur demandé à la main, hors CODEOWNERS (ni en commentaire)");
+  d.github({ pulls: [pr(70, "feat/proprio", { relecteurs: ["PROPRIETAIRE"] })] });
+  assert.deepEqual(etats(d), ["70 attend un propriétaire"]);
+  d.github({ pulls: [pr(70, "feat/proprio", { equipes: ["securite"] })] });
+  assert.deepEqual(etats(d), ["70 attend un propriétaire"]);
+  d.github({ pulls: [pr(70, "feat/proprio", { equipes: ["autre-equipe"] })] });
+  assert.deepEqual(etats(d), ["70 prête"]);
+  d.github({ protectionClassique: true, pulls: [pr(70, "feat/proprio", { relecteurs: ["proprietaire"] })] });
+  assert.deepEqual(etats(d), ["70 attend un propriétaire"], "ancienne protection de branche");
+});
+
+test("file.sh : CODEOWNERS lu comme GitHub (racine, puis docs/) ; absent de la base, aucun propriétaire connu : prête", () => {
+  for (const chemin of ["CODEOWNERS", "docs/CODEOWNERS"]) {
+    const { d } = attenteProprietaire({}, { chemin });
+    assert.deepEqual(etats(d), ["70 attend un propriétaire", "71 prête"], chemin);
+  }
+  const { d } = attenteProprietaire({}, { codeowners: null });
+  assert.deepEqual(etats(d), ["70 prête", "71 prête"]);
+});
+
+test("file.sh : approuvée (relecteurs retirés par GitHub), la PR revient prête ; sans la règle sur la base, un propriétaire demandé ne retient rien", () => {
+  const { d } = attenteProprietaire();
+  d.github({ pulls: [pr(70, "feat/proprio", { relecteurs: [] }), pr(71, "feat/libre")] });
+  assert.deepEqual(etats(d), ["70 prête", "71 prête"]);
+  d.github({ revueProprietaires: [], pulls: [pr(70, "feat/proprio", { relecteurs: ["proprietaire"] })] });
+  assert.deepEqual(etats(d), ["70 prête"]);
+  d.github({ revueProprietaires: ["main"] });
+  assert.deepEqual(etats(d), ["70 prête"], "la règle de main ne vaut pas pour une PR vers develop");
+});
+
+test("file.sh : une CI rouge reste « CI rouge » même quand la PR attend un propriétaire ; en cours, elle attend le propriétaire", () => {
+  const { d } = attenteProprietaire({ checks: { "*": { qualite: "SUCCESS" }, "#70": { qualite: "FAILURE" } } });
+  assert.deepEqual(etats(d), ["70 CI rouge : qualite", "71 prête"]);
+  assert.equal(d.lancer(script("file.sh"), "--rouges").stdout, "70\tqualite\n");
+  d.github({ checks: { "*": { qualite: "SUCCESS" }, "#70": { qualite: "IN_PROGRESS" } } });
+  assert.deepEqual(etats(d), ["70 attend un propriétaire", "71 prête"]);
+});
+
+test("passer.sh : une PR qui attend un propriétaire sort en 7 avant toute mise à jour : rien poussé, commenté ni étiqueté", () => {
+  const { d, sommets } = attenteProprietaire();
+  const r = d.lancer(script("passer.sh"), "70");
+  assert.equal(r.status, 7, r.stdout + r.stderr);
+  assert.match(r.stdout, MOTIF_PROPRIETAIRE);
+  assert.deepEqual(d.journal(), []);
+  assert.equal(d.git("ls-remote", "origin", "refs/heads/feat/proprio").split(/\s/)[0], sommets["feat/proprio"]);
+});
+
+test("passer.sh : une fusion refusée faute d'approbation d'un propriétaire sort en 7, pas en 5, commente avec la marque et garde le label ; relancé, il sort en 7 sans rien écrire", () => {
+  const { d } = attenteProprietaire({ pulls: [pr(72, "feat/seul", { approbationManquante: true })] });
+  const r = d.lancer(script("passer.sh"), "72");
+  assert.equal(r.status, 7, r.stdout + r.stderr);
+  assert.match(r.stdout, MOTIF_PROPRIETAIRE);
+  assert.doesNotMatch(r.stdout, /fusion refusée \(develop ou la PR a bougé\)/);
+  assert.deepEqual(ecritures(d), ["PUT pulls/72/merge", "POST issues/72/comments"]);
+  const [commentaire] = d.etat().pulls[0].commentaires;
+  assert.ok(commentaire.includes(MARQUE_ATTENTE), commentaire);
+  assert.match(commentaire, /GitHub a refusé la fusion : l'approbation d'un propriétaire \(CODEOWNERS\) manque\. Le capitaine ne met plus cette PR à jour avant une nouvelle approbation\./);
+  assert.match(commentaire, /\n\n---\n_Generated by \[Claude Code\]\(https:\/\/claude\.ai\/code\)_$/);
+  assert.deepEqual(d.etat().pulls[0].labels, ["à-fusionner"]);
+  assert.deepEqual(etats(d), ["72 attend un humain"]);
+  const encore = d.lancer(script("passer.sh"), "72");
+  assert.equal(encore.status, 7, encore.stdout + encore.stderr);
+  assert.match(encore.stdout, /attend un humain/);
+  assert.deepEqual(ecritures(d), ["PUT pulls/72/merge", "POST issues/72/comments"], "rien de plus");
+});
+
+const commentaireAttente = (created_at, auteur = "capitaine") => ({
+  auteur,
+  created_at,
+  body: `${MARQUE_ATTENTE}\nGitHub a refusé la fusion.\n`,
+});
+
+test("file.sh : « attend un humain » jusqu'à une approbation plus récente que le dernier commentaire marqué ; une approbation plus ancienne ou un autre avis ne suffit pas ; la marque d'un autre compte ne compte pas", () => {
+  const { d } = attenteProprietaire({
+    pulls: [pr(72, "feat/seul", { commentaires: [commentaireAttente("2026-11-17T10:00:00Z")], revues: [{ state: "APPROVED", submitted_at: "2026-11-17T09:00:00Z" }, { state: "COMMENTED", submitted_at: "2026-11-17T11:00:00Z" }] })],
+  });
+  assert.deepEqual(etats(d), ["72 attend un humain"]);
+  assert.equal(d.lancer(script("file.sh"), "--next").stdout, "");
+  assert.equal(d.lancer(script("file.sh"), "--rouges").stdout, "");
+  d.github({
+    pulls: [pr(72, "feat/seul", { commentaires: [commentaireAttente("2026-11-17T10:00:00Z"), commentaireAttente("2026-11-17T12:00:00Z")], revues: [{ state: "APPROVED", submitted_at: "2026-11-17T11:00:00Z" }] })],
+  });
+  assert.deepEqual(etats(d), ["72 attend un humain"], "approbation antérieure au dernier commentaire marqué");
+  d.github({
+    pulls: [pr(72, "feat/seul", { commentaires: [commentaireAttente("2026-11-17T10:00:00Z")], revues: [{ state: "APPROVED", submitted_at: "2026-11-17T11:00:00Z" }] })],
+  });
+  assert.deepEqual(etats(d), ["72 prête"], "nouvelle approbation : évaluation normale");
+  d.github({ pulls: [pr(72, "feat/seul", { commentaires: [commentaireAttente("2026-11-17T10:00:00Z", "intrus")] })] });
+  assert.deepEqual(etats(d), ["72 prête"], "marque écrite par un autre compte : ignorée");
+  d.github({ pulls: [pr(72, "feat/seul", { commentaires: [commentaireAttente("2026-11-17T10:00:00Z")] })], compteIllisible: true });
+  const r = d.lancer(script("file.sh"));
+  assert.match(r.stdout, /^72\thumain/m, "compte illisible : fermé, comme les renvois");
+  const p = d.lancer(script("passer.sh"), "72");
+  assert.equal(p.status, 7, p.stdout + p.stderr);
+  assert.match(p.stdout, /attend un humain/);
+  assert.match(p.stderr, /compte du capitaine illisible/);
+  assert.equal(d.journal().length, 0);
+});
+
+test("boucle.sh : les PR qui attendent un propriétaire sont sautées sans renvoi ni relance, une PR prête passe ; au tour suivant, rien n'est poussé sur celle qui attend un humain", () => {
+  const { d } = attenteProprietaire();
+  d.publierChaine();
+  d.github({
+    pulls: [
+      pr(70, "feat/proprio", { relecteurs: ["proprietaire"] }),
+      pr(71, "feat/libre"),
+      pr(72, "feat/seul", { approbationManquante: true }),
+    ],
+  });
+  const r = d.lancer(script("boucle.sh"));
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /FILE VIDE/);
+  assert.match(r.stdout, /\[#71\] FUSIONNÉE/);
+  assert.match(r.stdout, /\[#72\] sortie=7/);
+  assert.doesNotMatch(r.stdout, /\[#70\] (DÉBUT|RENVOI)/);
+  const ecrit = () => ecritures(d).filter((e) => /^(PUT|POST|DELETE|PATCH) (pulls|issues|actions)/.test(e));
+  assert.deepEqual(ecrit(), ["PUT pulls/71/merge", "DELETE issues/71/labels/%C3%A0-fusionner", "PUT pulls/72/merge", "POST issues/72/comments"]);
+  const etatFinal = d.etat();
+  for (const n of [70, 72]) assert.deepEqual(etatFinal.pulls.find((x) => x.number === n).labels, ["à-fusionner"], `#${n} garde son label`);
+  assert.equal(etatFinal.pulls.find((x) => x.number === 70).commentaires, undefined, "#70 n'est pas commentée");
+  d.git("fetch", "-q", "origin");
+  const tete = d.git("rev-parse", "origin/feat/seul");
+  const encore = d.lancer(script("boucle.sh"));
+  assert.equal(encore.status, 0, encore.stdout + encore.stderr);
+  assert.doesNotMatch(encore.stdout, /\[#72\] DÉBUT/);
+  assert.deepEqual(ecrit(), ["PUT pulls/71/merge", "DELETE issues/71/labels/%C3%A0-fusionner", "PUT pulls/72/merge", "POST issues/72/comments"], "rien de plus au tour suivant");
+  assert.equal(d.git("ls-remote", "origin", "refs/heads/feat/seul").split(/\s/)[0], tete, "rien poussé sur #72");
+});
+
+test("file.sh : une CI rouge prime sur « attend un humain » : la PR marquée est relancée puis renvoyée comme une autre", () => {
+  const { d } = attenteProprietaire({
+    checks: { "*": { qualite: "SUCCESS" }, "#72": { qualite: "FAILURE" } },
+    pulls: [pr(72, "feat/seul", { commentaires: [commentaireAttente("2026-11-17T10:00:00Z")] })],
+  });
+  assert.deepEqual(etats(d), ["72 CI rouge : qualite"]);
+  assert.equal(d.lancer(script("file.sh"), "--rouges").stdout, "72\tqualite\n");
+  d.github({ checks: { "*": { qualite: "SUCCESS" }, "#72": { qualite: "IN_PROGRESS" } } });
+  assert.deepEqual(etats(d), ["72 attend un humain"], "CI en cours : l'attente reste");
+});
+
+test("passer.sh : commentaire d'attente impossible à poser après un refus de fusion pour revue : sortie 5 (arrêt), pas 7 ; la boucle retente une fois puis s'arrête", () => {
+  const { d } = attenteProprietaire({ commentairesRefuses: true, pulls: [pr(72, "feat/seul", { approbationManquante: true })] });
+  const r = d.lancer(script("passer.sh"), "72");
+  assert.equal(r.status, 5, r.stdout + r.stderr);
+  assert.match(r.stdout, /commentaire d'attente non posé/);
+  assert.deepEqual(ecritures(d), ["PUT pulls/72/merge", "POST issues/72/comments"]);
+  assert.deepEqual(d.etat().pulls[0].labels, ["à-fusionner"]);
+  const e = attenteProprietaire({ commentairesRefuses: true, pulls: [pr(72, "feat/seul", { approbationManquante: true })] }).d;
+  e.publierChaine();
+  const b = e.lancer(script("boucle.sh"));
+  assert.equal(b.status, 5, b.stdout + b.stderr);
+  assert.match(b.stdout, /\[#72\] a bougé, second essai/);
+  assert.match(b.stdout, /ARRÊT sur #72 \(sortie 5\)/);
+  assert.equal(ecritures(e).filter((x) => x === "PUT pulls/72/merge").length, 2, "deux essais, pas un par tour");
+});

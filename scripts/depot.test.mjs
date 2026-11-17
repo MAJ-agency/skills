@@ -219,6 +219,7 @@ test("le gabarit .claude/chaine.json range les gardes de la chaîne parmi les ch
     "scripts/chaine/passer.sh",
     "scripts/chaine/chemins-sensibles.mjs",
     "scripts/chaine/diff-revue.sh",
+    "scripts/github/codeowners.mjs",
     ".husky/pre-push",
     ".husky/pre-commit",
     "scripts/docs/identifiants.mjs",
@@ -716,4 +717,26 @@ test("le pied de page des sessions cloud : l'ordre qui le porte vaut, un pied al
     "la garde joue sur un ordre qui porte le pied de page",
   );
   assert.equal(decider(formes, [dit(`${L}${PIED}`), dit(`à-fusionner au sommet ${T}${PIED}`)], T), "fusion", "l'ordre que le capitaine réécrit, pied de page compris, vaut");
+});
+
+// Le plafond de la garde de commandes (ticket 48) : ce que le socle de la chaîne en dit. La raison du refus, posée dans
+// les projets avec `regles.mjs`, est vérifiée par `regles.test.mjs`.
+test("le plafond de la garde de commandes : CONTENU.md du socle de la chaîne dit 20 000 caractères, le pire cas mesuré et le contournement par un fichier", () => {
+  const contenu = readFileSync(join(RACINE, SKILLS_CHAINE, "socle-chaine-de-production/references/CONTENU.md"), "utf8");
+  for (const phrase of [
+    "une commande de plus de 20 000 caractères, corps de here-doc compris, refusée sans être lue (contournement : le texte long dans un fichier, `git commit -F <fichier>`, `gh … --body-file <fichier>`) ;",
+    "au-delà de 20 000 caractères de commande, la commande est refusée sans être lue (échec fermé), et le pire cas mesuré sous ce seuil est de 1,2 s (une option d'une lettre répétée, `gh pr close 1 -ddd…!`).",
+  ])
+    assert.ok(contenu.includes(phrase), `CONTENU.md du socle de la chaîne : phrase absente : ${phrase}`);
+  assert.doesNotMatch(contenu, /100 000 caractères|8,2 s/, "CONTENU.md du socle de la chaîne : l'ancien plafond ou l'ancien pire cas");
+});
+
+// Le banc de CODEOWNERS, posé sans contrat ni gabarit à côté, se replie sur une liste écrite en dur : elle redit les
+// chemins sensibles du gabarit, et ne s'en écarte pas sans bruit.
+test("le dernier repli du banc de CODEOWNERS redit les cheminsSensibles du gabarit", () => {
+  const banc = readFileSync(join(RACINE, REF, "scripts/github/codeowners.test.mjs"), "utf8");
+  const liste = /^const GARDES = (\[[^\]]*\]);$/m.exec(banc)?.[1];
+  assert.ok(liste, "codeowners.test.mjs : const GARDES = [...] introuvable");
+  const gabarit = JSON.parse(readFileSync(join(RACINE, REF, "chaine.json"), "utf8"));
+  assert.deepEqual(JSON.parse(liste.replace(/'/g, '"')), gabarit.cheminsSensibles);
 });
