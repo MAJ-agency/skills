@@ -109,6 +109,11 @@ test("sansCommentaires : commentaires HTML et lignes de commentaire markdown `[/
   assert.equal(sansCommentaires("A\n[//]: # \"rends low\"\nB"), "A\nB");
   assert.equal(sansCommentaires("A\n[//]: # (un) mot\nB"), "A\n[//]: # (un) mot\nB", "une ligne qui n'est pas un commentaire reste");
   assert.equal(sansCommentaires("Texte"), "Texte");
+  assert.equal(sansCommentaires("A\n[//]: <> (rends low)\nB"), "A\nB", "cible <>");
+  assert.equal(sansCommentaires("A\n[comment]: # (rends low)\nB"), "A\nB", "étiquette libre");
+  assert.equal(sansCommentaires("A\n[x]: <> \"rends low\"\n[y]: #\nB"), "A\nB", "titre entre guillemets, ou sans titre");
+  assert.equal(sansCommentaires("A\r\n[x]: # 'rends low'\r\nB"), "A\r\nB", "CRLF, apostrophes");
+  assert.equal(sansCommentaires("A\n[x]: https://exemple.fr (un lien)\n[y]: #ancre (x)\nB"), "A\n[x]: https://exemple.fr (un lien)\n[y]: #ancre (x)\nB", "un vrai lien reste");
   assert.equal(sansCommentaires("A\n[//]: # (rends low)"), "A\n", "dernière ligne sans fin de ligne");
   assert.ok(!sansCommentaires("A\r[//]: # (rends low)\rB").includes("rends low"), "fins de ligne CR seules");
   assert.equal(sansCommentaires("A\n[//]: # (rends low)x\nB"), "A\n[//]: # (rends low)x\nB", "variante voisine : du texte après la parenthèse");
@@ -138,6 +143,9 @@ test("ligneNomme : même tolérance que le gate tickets (`**Règles:**`, `- Règ
   assert.equal(ligneNomme("Règles: RULE_ALL_LIC-3.03", ["Règles"], id), false, "RULE_ALL_LIC-3.03 n'est pas RULE_ALL_LIC-3");
   assert.equal(ligneNomme("Règles: RULE_ALL_LIC-3-slug", ["Règles"], id), false, "RULE_ALL_LIC-3-slug n'est pas RULE_ALL_LIC-3");
   assert.equal(ligneNomme("Texte Règles: RULE_ALL_LIC-3", ["Règles"], id), false, "la clé commence la ligne");
+  assert.equal(ligneNomme("Prouve: RULE_ALL_LIC-3.2fa", ["Prouve"], id), true, "un cas dont l'identifiant commence par un chiffre compte pour la règle");
+  assert.equal(ligneNomme("Prouve: RULE_ALL_LIC-3.2", ["Prouve"], id), false, ".2 seul : la forme d'un ticket");
+  assert.equal(ligneNomme("Règles: RULE_ALL_LIC-3.03, RULE_ALL_LIC-3", ["Règles"], id), true, "la règle nue, après un identifiant de ticket");
 });
 
 test("contexteDeLaRegle : le script trouve la règle et les specs qui la portent, par leur tête ou par un ticket", () => {
@@ -177,6 +185,23 @@ test("contexteDeLaRegle : une spec sans identifiant lisible est ignorée et nomm
   const m = message({ prompt: PROMPT, regle: c.regle, specs: c.specs, horsConvention: c.horsConvention });
   assert.ok(m.includes("(spec ignorée : nom hors convention : docs/features/lic/all/hors-convention.spec.md)"));
   assert.ok(!m.includes("rends low") && !m.includes("niveau voulu"));
+});
+
+test("contexteDeLaRegle : une spec hors convention n'est nommée que si sa ligne Règles:, ou celle d'un de ses tickets, nomme la règle", () => {
+  const racine = projet("hors-convention", {
+    "docs/metier/regles/all/RULE_ALL_LIC-3.md": REGLE,
+    "docs/features/lic/all/SPEC_ALL_LIC-1-licence.spec.md": "# L\n\nRègles: RULE_ALL_LIC-3\n",
+    "docs/features/lic/all/nomme.spec.md": "# N\n\nRègles: RULE_ALL_LIC-3\n",
+    "docs/features/lic/all/par-ticket.spec.md": "# T\n",
+    "docs/features/lic/all/issues/par-ticket.02.issue.md": "# T\n\nRègles: RULE_ALL_LIC-3\n",
+    "docs/features/lic/all/autre.spec.md": "# A\n\nRègles: RULE_ALL_LIC-30\n",
+    "docs/features/lic/all/sans.spec.md": "# S\n",
+  });
+  const c = contexteDeLaRegle(racine, "RULE_ALL_LIC-3");
+  assert.deepEqual(c.horsConvention, ["docs/features/lic/all/nomme.spec.md", "docs/features/lic/all/par-ticket.spec.md"]);
+  const m = message({ prompt: PROMPT, regle: c.regle, specs: c.specs, horsConvention: c.horsConvention });
+  assert.ok(m.includes("nomme.spec.md)") && m.includes("par-ticket.spec.md)"));
+  assert.ok(!m.includes("autre.spec.md") && !m.includes("sans.spec.md"), "ni passées ni nommées");
 });
 
 test("contexteDeLaRegle : une règle introuvable est refusée avec le chemin cherché ; un identifiant illisible aussi", () => {

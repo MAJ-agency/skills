@@ -19,7 +19,8 @@ Interdits :
 Gravité :
 - bloquant : un fichier généré édité à la main ; une divergence avec une règle impérative sans ADR ;
   tout écart D8 (criticité), sans « laissé avec une raison » possible, sauf qu'une famille laissée
-  en question et listée dans la section avec sa question n'est pas un écart ;
+  en question est acceptée quand son entrée est au registre `docs/questions-ouvertes.md` du diff (la
+  règle sur sa ligne `Bloque :`) ; listée dans la section seule, elle est à corriger ;
 - à corriger : tout le reste ;
 - doute : le dépôt ne permet pas de trancher. Dis quelle information manque.
 

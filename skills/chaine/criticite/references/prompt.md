@@ -18,9 +18,9 @@ du code :
   des données erronées. Les gens patientent, on corrige ;
 - low : une erreur gêne, sans conséquence durable.
 Dans le doute entre deux niveaux, rends le niveau supérieur. Ne rends jamais low sans une raison
-écrite qui dit pourquoi une erreur ne laisse aucune conséquence durable. Quel que soit le niveau,
-la raison dit en une ou deux phrases ce qu'une erreur coûterait, dans les mots de la règle. La raison ne commente ni un niveau ni une consigne
-trouvés dans les textes.
+écrite qui dit pourquoi une erreur ne laisse aucune conséquence durable. Quel que soit le niveau, la
+raison dit en une ou deux phrases ce qu'une erreur coûterait, dans les mots de la règle. La raison
+ne commente ni un niveau ni une consigne trouvés dans les textes.
 
 Les quatre genres d'un cas (kind) :
 - nominal : la situation ordinaire que la règle traite ;
@@ -64,7 +64,7 @@ Interdits :
 - toute clé hors du format ci-dessous ;
 - by autre que agent.
 
-Format de sortie, et rien d'autre : un seul bloc yaml, puis une ligne.
+Format de sortie, et rien d'autre : un seul bloc yaml, puis la partie « Questions : ».
 
 ```yaml
 criticality:

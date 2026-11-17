@@ -58,9 +58,9 @@ export function titreDeLEnTete(entete) {
   return valeur.replace(/[ \t]+#.*$/, "").trim();
 }
 
-/** Le texte sans commentaire HTML (même sur plusieurs lignes, même non refermé) ni ligne de commentaire markdown `[//]: # (…)`. */
+/** Le texte sans commentaire HTML (même sur plusieurs lignes, même non refermé) ni définition de lien vide `[//]: # (…)`, `[//]: <> (…)`, `[comment]: # (…)`. */
 export const sansCommentaires = (texte) =>
-  texte.replace(/<!--[\s\S]*?(?:-->|$)/g, "").replace(/^[ \t]*\[\/\/\]:[ \t]*#[ \t]*(?:\([^\r\n]*\)|"[^\r\n]*"|'[^\r\n]*')?[ \t]*(?:\r?\n|$)/gm, "");
+  texte.replace(/<!--[\s\S]*?(?:-->|$)/g, "").replace(/^[ \t]*\[[^\]\r\n]*\]:[ \t]*(?:#|<>)[ \t]*(?:\([^\r\n]*\)|"[^\r\n]*"|'[^\r\n]*')?[ \t]*(?:\r?\n|$)/gm, "");
 
 /** L'énoncé d'une règle : `# <title>`, puis le corps, sans BOM, en-tête ni commentaire. Un en-tête annoncé mais illisible : une erreur. */
 export function enonceDeLaRegle(texte) {
@@ -75,7 +75,7 @@ export function enonceDeLaRegle(texte) {
 /** Vrai quand la ligne `Clé:` de l'en-tête d'un document (avant sa première section) nomme la règle. */
 export function ligneNomme(texte, cles, id) {
   const tete = sansBom(texte).split(/\r?\n## /)[0];
-  const nom = new RegExp(`(?<![\\w-])${id}(?![\\w-]|\\.\\d)`);
+  const nom = new RegExp(`(?<![\\w-])${id}(?![\\w-]|\\.\\d+(?!\\w))`);
   // Les trois formes du gate tickets (`X:`, `**X:**`, `- X:`), toute casse : tickets-regles.mjs.
   const entete = new RegExp(`^(?:- )?\\**(?:${cles.join("|")})\\**\\s*:`, "i");
   return tete.split(/\r?\n/).some((l) => entete.test(l) && nom.test(l.replace(/\s#.*$/, "")));
@@ -140,6 +140,11 @@ export function contexteDeLaRegle(racine, id) {
   const idSpec = (p) => /^(SPEC_[A-Z0-9]+_[A-Z0-9]+-\d+)-/.exec(basename(p))?.[1];
   const toutes = docs.filter((p) => p.endsWith(".spec.md"));
   const specs = toutes.filter((p) => idSpec(p));
+  // Une spec sans identifiant lisible n'est nommée que si sa ligne `Règles:`, ou celle d'un ticket de même radical, nomme la règle.
+  const radical = (p) => basename(p).replace(/\.spec\.md$/, "");
+  const nommeLaRegle = (p) =>
+    ligneNomme(readFileSync(p, "utf8"), ["Règles"], id) ||
+    docs.some((x) => /\.\d+\.issue\.md$/.test(x) && basename(x).startsWith(`${radical(p)}.`) && ligneNomme(readFileSync(x, "utf8"), ["Règles", "Prouve"], id));
   const portees = new Set(specs.filter((p) => ligneNomme(readFileSync(p, "utf8"), ["Règles"], id)).map(idSpec));
   for (const p of docs.filter((x) => /\.\d+\.issue\.md$/.test(x)))
     if (idSpec(p) && ligneNomme(readFileSync(p, "utf8"), ["Règles", "Prouve"], id)) portees.add(idSpec(p));
@@ -149,7 +154,7 @@ export function contexteDeLaRegle(racine, id) {
     specs: specs
       .filter((p) => portees.has(idSpec(p)))
       .map((p) => ({ nom: relative(racine, p), texte: sansCommentaires(readFileSync(p, "utf8")) })),
-    horsConvention: toutes.filter((p) => !idSpec(p)).map((p) => relative(racine, p)),
+    horsConvention: toutes.filter((p) => !idSpec(p) && nommeLaRegle(p)).map((p) => relative(racine, p)),
     ignorees: liens.filter((p) => p.endsWith(".spec.md")).map((p) => relative(racine, p)),
   };
 }

@@ -35,7 +35,8 @@ D8  Criticité — skill criticite. Seulement si l'index commis du projet, ancho
     conséquence durable ; un `by` autre que `agent` dans la PR d'un agent ; un cas rendu disparu, ou
     qui a changé de kind, de scope ou de sens, ou un « sans objet » ajouté, sans sa raison écrite
     dans la section.
-    Une famille que le sous-agent laisse en question, listée dans la section avec sa question, n'est
-    pas un écart ; une famille sans cas, sans « sans objet » et sans question listée reste
-    bloquante.
+    Une famille que le sous-agent laisse en question est acceptée quand son entrée est dans
+    `docs/questions-ouvertes.md` du diff, avec la règle sur sa ligne `Bloque :` ; listée dans la
+    section seule, sans entrée au registre, elle est à corriger ; une famille sans cas, sans « sans
+    objet » et sans question reste bloquante.
 ```
