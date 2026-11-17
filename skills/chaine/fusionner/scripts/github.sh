@@ -228,18 +228,68 @@ revue_proprietaires_exigee() {
     'any(.[]; .type == "pull_request" and .parameters.require_code_owner_review == true)' 2>/dev/null)" = true ] && return 0
   [ "$(gh api "$DEPOT/branches/$b/protection/required_pull_request_reviews" --jq '.require_code_owner_reviews == true' 2>/dev/null)" = true ]
 }
-# La PR (son JSON REST sur l'entrée standard, d'un `pulls/<n>` ou d'une ligne de la liste `pulls`) a encore des
-# relecteurs demandés (`requested_reviewers`, `requested_teams`) : GitHub y met d'office les propriétaires
+# Propriétaires du CODEOWNERS de `<base>`, lu sur `origin/<base>` dans l'ordre de GitHub (`.github/CODEOWNERS`, puis
+# `CODEOWNERS`, puis `docs/CODEOWNERS`) : un par ligne, en minuscules, `u:<login>` pour `@login`, `t:<slug>` pour
+# `@org/slug`. Commentaires et motifs ignorés. Fichier illisible : aucun propriétaire connu (rien ne fait attendre ;
+# le refus de fusion de GitHub le rattrape, passer.sh, étape 6).
+proprietaires_de() {
+  local f
+  for f in .github/CODEOWNERS CODEOWNERS docs/CODEOWNERS; do
+    git cat-file -e "origin/$1:$f" 2>/dev/null || continue
+    git show "origin/$1:$f" | sed 's/#.*//' | awk '{ for (i = 2; i <= NF; i++) print $i }' | tr 'A-Z' 'a-z' |
+      sed -n 's#^@[^/]*/\(..*\)$#t:\1#p; s#^@\([^/][^/]*\)$#u:\1#p'
+    return 0
+  done
+}
+# Relecteurs demandés d'une PR (son JSON REST, d'un `pulls/<n>` ou d'une ligne de la liste `pulls`), sous la forme
+# de `proprietaires_de`, séparés par des virgules (`-` sans aucun) : GitHub y met d'office les propriétaires
 # CODEOWNERS des fichiers touchés, et les retire quand ils approuvent.
-relecteurs_demandes() { jq -e '((.requested_reviewers // []) + (.requested_teams // []) | length) > 0' >/dev/null; }
-# Une PR attend l'approbation d'un propriétaire : sa base exige la revue des propriétaires et des relecteurs
-# restent demandés. Ni rouge ni bloquée : le capitaine la saute sans la renvoyer et la reprend au tour suivant.
-# Il ne demande ni ne donne l'approbation, et ne contourne jamais la règle.
+demandes_jq='([.requested_reviewers[]?.login | "u:" + ascii_downcase] + [.requested_teams[]?.slug | "t:" + ascii_downcase]
+  | if length == 0 then "-" else join(",") end)'
+# Un des relecteurs demandés (`<demandes>`, forme de `demandes_jq`) est un propriétaire (`<propriétaires>`, une ligne
+# chacun) : seuls comptent les propriétaires du CODEOWNERS ; un relecteur demandé à la main n'en est pas un.
+proprietaire_demande() {
+  [ "$1" != - ] && [ -n "$2" ] && grep -qxFf <(printf '%s\n' "$2") <(tr ',' '\n' <<<"$1")
+}
+# Une PR attend l'approbation d'un propriétaire : sa base exige la revue des propriétaires et un propriétaire du
+# CODEOWNERS de la base reste demandé. Ni rouge ni bloquée : le capitaine la saute sans la renvoyer et la reprend
+# au tour suivant. Il ne demande ni ne donne l'approbation, et ne contourne jamais la règle.
 attend_proprietaire() { # <json de la PR>
-  relecteurs_demandes <<<"$1" && revue_proprietaires_exigee "$(jq -r .base.ref <<<"$1")"
+  local base demandes
+  base=$(jq -r .base.ref <<<"$1")
+  demandes=$(jq -r "$demandes_jq" <<<"$1")
+  [ "$demandes" != - ] || return 1
+  proprietaire_demande "$demandes" "$(proprietaires_de "$base")" && revue_proprietaires_exigee "$base"
 }
 # Message d'un refus de fusion de GitHub qui tient à la revue (approbation d'un propriétaire, revue exigée).
 refus_pour_revue() { grep -qiE 'code owner|approving review|review is required|reviews? required' <<<"$1"; }
+# Attente d'un humain (plafond des mises à jour sans approbation) : après un refus de fusion faute de revue, le
+# capitaine commente la PR avec cette marque, invisible, et ne la met plus à jour tant qu'aucune revue `APPROVED`
+# n'est plus récente que le dernier commentaire marqué : au plus une CI par nouvelle approbation. Seuls comptent les
+# commentaires du compte du capitaine (comme MARQUE_RENVOI). Le compte des renvois n'est pas touché.
+MARQUE_ATTENTE='<!-- attente-revue-capitaine -->'
+TEXTE_ATTENTE="GitHub a refusé la fusion : l'approbation d'un propriétaire (CODEOWNERS) manque. Le capitaine ne met plus cette PR à jour avant une nouvelle approbation."
+# Sortie 0 : la PR attend un humain. Compte du capitaine illisible : 0 aussi (fermé, comme `renvois_de`), dit sur la
+# sortie d'erreur sauf si file.sh l'a déjà dit (`LOGIN_CAPITAINE=?`). Commentaires illisibles : 1 (comme les renvois,
+# compte 0), dit sur la sortie d'erreur. Revues lues seulement si la marque existe ; illisibles : 0 (fermé).
+attend_humain() {
+  local login=${LOGIN_CAPITAINE:-} dernier
+  [ -n "$login" ] || login=$(gh api user --jq .login 2>/dev/null) || login=''
+  if ! login_valide "$login"; then
+    [ -n "${LOGIN_CAPITAINE:-}" ] ||
+      echo "attente de #$1 : compte du capitaine illisible (gh api user) : la PR attend un humain" >&2
+    return 0
+  fi
+  if ! dernier=$(gh api --paginate "$DEPOT/issues/$1/comments?per_page=100" --jq ".[] | select(.user.login == \"$login\" and (.body | contains(\"$MARQUE_ATTENTE\"))) | .created_at" 2>/dev/null); then
+    echo "attente de #$1 : commentaires illisibles, lue sans attente" >&2
+    return 1
+  fi
+  dernier=$(printf '%s\n' "$dernier" | grep . | sort | tail -n 1)
+  [ -n "$dernier" ] || return 1
+  local approuvee
+  approuvee=$(gh api --paginate "$DEPOT/pulls/$1/reviews?per_page=100" --jq ".[] | select(.state == \"APPROVED\" and (.submitted_at // \"\") > \"$dernier\") | 1" 2>/dev/null) || return 0
+  [ -z "$approuvee" ]
+}
 MOTIF_PROPRIETAIRE="attend l'approbation d'un propriétaire (CODEOWNERS) : sautée sans renvoi, reprise au tour suivant"
 
 poser_label() { gh api -X POST "$DEPOT/issues/$1/labels" -f "labels[]=$2" >/dev/null; }

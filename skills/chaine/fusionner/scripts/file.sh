@@ -19,10 +19,16 @@
 #                       sur « humain », qui revient au dégel
 #   attend un propriétaire
 #                       base = develop, la règle de develop exige la revue des propriétaires (« Require review
-#                       from Code Owners », CODEOWNERS) et des relecteurs restent demandés (GitHub y met d'office
-#                       les propriétaires et les retire quand ils approuvent) : ni rouge ni bloquée. Ni passée, ni
+#                       from Code Owners ») et un propriétaire du CODEOWNERS de develop reste demandé comme relecteur
+#                       (GitHub les demande d'office et les retire quand ils approuvent ; un relecteur demandé à la
+#                       main qui n'est pas propriétaire ne compte pas ; CODEOWNERS absent : aucun) : ni rouge ni bloquée. Ni passée, ni
 #                       relancée, ni renvoyée ; « prête » au tour suivant, une fois approuvée. Une CI rouge prime :
 #                       « CI rouge », l'auteur corrige pendant que le propriétaire relit
+#   attend un humain    GitHub a refusé sa fusion faute d'approbation d'un propriétaire (passer.sh l'a dit par un
+#                       commentaire marqué, MARQUE_ATTENTE de github.sh) et aucune revue APPROVED n'est plus récente
+#                       que ce commentaire : ni passée, ni relancée, ni renvoyée, ni mise à jour (au plus une CI par
+#                       nouvelle approbation). Vient après « gelée » et « humain », avant les états de CI. Compte du
+#                       capitaine illisible : fermé, comme les renvois. Le compte des renvois n'est pas touché
 #   humain              PR déjà renvoyée autant de fois que le plafond (`plafonds.renvoisParPR`, 3 ; les
 #                       renvois se comptent par leur marque, github.sh) : ni passée, ni relancée, ni renvoyée.
 #                       Un humain décide, puis le capitaine la passe à la main (passer.sh <n>)
@@ -61,7 +67,7 @@ fi
 
 prs=$(gh api --paginate "$DEPOT/pulls?state=open&per_page=100" --jq '.[] | {number, title, draft,
   head: .head.ref, sommet: .head.sha, base: .base.ref, labels: [.labels[].name],
-  demandes: (((.requested_reviewers // []) + (.requested_teams // [])) | length > 0)}' | jq -s .)
+  demandes: '"$demandes_jq"'}' | jq -s .)
 ouvertes=$(jq -r '.[] | "\(.head) \(.number)"' <<<"$prs")
 # Checks exigés, lus dans la protection de develop (comme passer.sh) : un check d'un autre
 # workflow, non exigé, ne retient pas la file.
@@ -138,6 +144,8 @@ jq -r '.[] | select(any(.labels[]; . == "à-fusionner")) | [
       etat='gelée'
     elif [ "$(renvois_de "$n")" -ge "$plafond" ]; then
       etat='humain'
+    elif attend_humain "$n"; then
+      etat='attend un humain'
     elif [[ "$base" == sujet/* ]]; then
       etat="$base : $(ci_de)"
     elif [ "$base" = develop ] && [ -n "$sujet_ticket" ] && [ "$hors_sujet" = false ]; then
@@ -145,12 +153,13 @@ jq -r '.[] | select(any(.labels[]; . == "à-fusionner")) | [
     elif [ "$base" = develop ]; then
       # Sans CI (workflow pas déclenché) : le push du capitaine la lancera.
       etat=$(ci_de)
-      # Revue des propriétaires : la règle de develop se lit une fois pour toute la file.
-      if [ "$demandes" = true ] && [[ "$etat" != 'CI rouge'* ]]; then
-        if [ -z "${proprietaires_develop:-}" ]; then
-          if revue_proprietaires_exigee develop; then proprietaires_develop=oui; else proprietaires_develop=non; fi
+      # Revue des propriétaires : la règle et le CODEOWNERS de develop se lisent une fois pour toute la file.
+      if [ "$demandes" != - ] && [[ "$etat" != 'CI rouge'* ]]; then
+        if [ -z "${proprietaires_develop+lu}" ]; then
+          proprietaires_develop=$(proprietaires_de develop)
+          if [ -n "$proprietaires_develop" ] && ! revue_proprietaires_exigee develop; then proprietaires_develop=''; fi
         fi
-        [ "$proprietaires_develop" = non ] || etat='attend un propriétaire'
+        ! proprietaire_demande "$demandes" "$proprietaires_develop" || etat='attend un propriétaire'
       fi
     else
       parente=$(printf '%s\n' "$ouvertes" | awk -v b="$base" '$1 == b { print $2 }')

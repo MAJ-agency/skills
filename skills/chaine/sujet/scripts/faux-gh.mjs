@@ -10,10 +10,12 @@
 //   exiges      checks exigés de develop ; runs : workflow_runs par PR (« #12 »)
 //   revueProprietaires  branches dont la règle de PR exige la revue des propriétaires (« Require review
 //               from Code Owners ») : ruleset `pull_request`, ou ancienne protection avec `protectionClassique`
-//   PR.relecteurs / PR.equipes  relecteurs demandés (`requested_reviewers`, `requested_teams`) : GitHub y
-//               met d'office les propriétaires CODEOWNERS et les retire quand ils approuvent. Sur une base de
-//               `revueProprietaires`, la fusion est refusée (405) tant qu'il en reste, ou si `approbationManquante`
-//               (seul propriétaire = l'auteur, aucun relecteur demandé)
+//   PR.relecteurs / PR.equipes  relecteurs demandés (`requested_reviewers` logins, `requested_teams` slugs) : GitHub y
+//               met d'office les propriétaires CODEOWNERS et les retire quand ils approuvent
+//   PR.approbationManquante  sur une base de `revueProprietaires`, la fusion est refusée (405, « Waiting on code
+//               owner review ») : l'approbation d'un propriétaire manque (le faux ne lit pas CODEOWNERS)
+//   PR.revues   revues de la PR (`pulls/<n>/reviews`) : [{ state, submitted_at, auteur }]
+//   PR.commentaires  un corps seul reçoit un `created_at` d'office, croissant avec son rang ; un objet porte le sien
 // Le sommet d'une PR est lu dans le dépôt nu ($FAUX_GH_ORIGINE), comme GitHub. Chaque écriture
 // (méthode autre que GET) est appliquée à l'état et journalisée dans $FAUX_GH/journal.jsonl.
 // =============================================================================
@@ -123,6 +125,8 @@ function versRest(pr) {
     requested_teams: (pr.equipes ?? []).map((slug) => ({ slug })),
   };
 }
+// Date d'un commentaire sans date, par son rang : 2026-11-17T12:00:00Z, puis une seconde de plus par rang.
+const dateDuRang = (i) => new Date(Date.UTC(2026, 10, 17, 12, 0, i)).toISOString().replace(/\.000Z$/, "Z");
 function pr(n) {
   return (
     etat.pulls.find((p) => p.number === Number(n)) ??
@@ -209,9 +213,11 @@ function repondre() {
   if ((m = route.match(/^issues\/(\d+)\/comments$/)) && methode === "GET")
     return (pr(m[1]).commentaires ?? []).map((c, i) =>
       typeof c === "string"
-        ? { id: i + 1, body: c, user: { login: etat.capitaine ?? "capitaine" } }
-        : { id: i + 1, body: c.body, user: { login: c.auteur } },
+        ? { id: i + 1, body: c, user: { login: etat.capitaine ?? "capitaine" }, created_at: dateDuRang(i) }
+        : { id: i + 1, body: c.body, user: { login: c.auteur ?? etat.capitaine ?? "capitaine" }, created_at: c.created_at ?? dateDuRang(i) },
     );
+  if ((m = route.match(/^pulls\/(\d+)\/reviews$/)) && methode === "GET")
+    return (pr(m[1]).revues ?? []).map((r, i) => ({ id: i + 1, state: r.state, submitted_at: r.submitted_at, user: { login: r.auteur ?? "relecteur" } }));
   if (route === "user" && methode === "GET")
     return etat.compteIllisible
       ? echec("gh: Resource not accessible by integration (HTTP 403)")
@@ -284,10 +290,7 @@ function fusionner(
     commit_message: corps,
   },
 ) {
-  if (
-    (etat.revueProprietaires ?? []).includes(p.base) &&
-    ((p.relecteurs ?? []).length > 0 || (p.equipes ?? []).length > 0 || p.approbationManquante)
-  )
+  if ((etat.revueProprietaires ?? []).includes(p.base) && p.approbationManquante)
     echec("gh: Waiting on code owner review from @proprietaire. (HTTP 405)");
   if (ref(p.head) !== sha) echec("gh: Head branch was modified (HTTP 409)");
   const base = ref(p.base);
