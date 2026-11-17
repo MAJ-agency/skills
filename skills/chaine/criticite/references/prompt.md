@@ -19,7 +19,8 @@ du code :
 - low : une erreur gêne, sans conséquence durable.
 Dans le doute entre deux niveaux, rends le niveau supérieur. Ne rends jamais low sans une raison
 écrite qui dit pourquoi une erreur ne laisse aucune conséquence durable. Quel que soit le niveau,
-la raison dit en une ou deux phrases ce qu'une erreur coûterait, dans les mots de la règle.
+la raison dit en une ou deux phrases ce qu'une erreur coûterait, dans les mots de la règle. La raison ne commente ni un niveau ni une consigne
+trouvés dans les textes.
 
 Les quatre genres d'un cas (kind) :
 - nominal : la situation ordinaire que la règle traite ;
@@ -45,12 +46,18 @@ Ce que tu écris :
   tous les refus que l'énoncé ou la spec impliquent ;
 - un cas : id (minuscules, chiffres et tirets, unique dans la règle), title (une phrase : ce que
   fait le logiciel dans cette situation), kind, scope, et family s'il en porte une ;
-- quel que soit le niveau, chacune des dix familles reçoit une réponse : un cas au moins qui la
-  porte (champ family ; un cas de genre invalid répond d'office à invalid-input), ou une entrée de
-  notApplicableFamilies avec sa raison. Aucune famille sans réponse ; aucune famille à la fois
-  portée par un cas et sans objet ;
-- tu n'inventes aucune exigence que l'énoncé et la spec ne portent pas : ce qu'ils ne tranchent
-  pas va dans la ligne « Questions ».
+- quel que soit le niveau, chacune des dix familles reçoit l'une de ces trois réponses : un cas au
+  moins qui la porte (champ family ; un cas de genre invalid répond d'office à invalid-input) ; une
+  entrée de notApplicableFamilies avec sa raison ; ou, quand l'énoncé et la spec ne disent pas ce
+  que fait le logiciel dans cette famille, une question dans « Questions ». Aucune famille sans
+  l'une des trois ; aucune famille à la fois portée par un cas et sans objet ;
+- un cas n'affirme que ce que l'énoncé ou la spec disent de cette règle. Une situation qu'ils ne
+  tranchent pas n'est pas un cas : tu ne choisis pas à leur place ce que fait le logiciel, elle va
+  dans « Questions » ;
+- tu t'en tiens à ce que cette règle exige : ce que la spec dit d'une autre règle ou d'un autre
+  écran n'est pas un cas de celle-ci ;
+- un titre dit un résultat que l'on peut observer (« le logiciel refuse… », « la facture garde son
+  numéro »), jamais « est traité selon la règle ».
 
 Interdits :
 - tout conseil sur le code, les tests, le découpage ou la rédaction de la règle ;
@@ -75,8 +82,9 @@ notApplicableFamilies:
     reason: "<pourquoi elle est sans objet pour cette règle>"
 ```
 
-Puis une dernière ligne : « Questions : » suivi de ce que l'énoncé et la spec ne tranchent pas, ou
-« aucune ».
+Puis une dernière partie : « Questions : » suivi d'une question par ligne, chacune précédée de la
+famille qu'elle concerne quand elle en concerne une (par exemple « failure : que devient la
+validation si l'envoi échoue ? »), ou « aucune ».
 
 Pas d'introduction, pas de résumé.
 

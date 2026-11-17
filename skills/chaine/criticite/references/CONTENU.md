@@ -19,4 +19,6 @@ Les définitions sont copiées des règles d'Anchorpost, qui fixent le standard,
 - la portée, métier ou technique : `RULE_ALL_ANC-27` ;
 - ce qu'une règle doit déclarer selon son niveau, et les dix familles : `RULE_ALL_ANC-28`.
 
+Une famille peut rester en question : un essai réel du skill, joué sur une règle d'exemple, a rendu 20 à 26 cas, différents d'une passe à l'autre, dont des comportements que ni l'énoncé ni la spec ne portaient ; le prompt ne fabrique donc pas de réponse à une famille que les textes ne tranchent pas.
+
 Quand l'une de ces règles est amendée, la copie se met à jour par un ticket du plugin. Aucun projet n'a aujourd'hui ses propres niveaux : le prompt n'a pas de place pour d'autres définitions.
