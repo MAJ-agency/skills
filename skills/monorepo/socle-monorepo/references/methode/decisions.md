@@ -145,7 +145,7 @@ Principe directeur, non négociable :
 | **3 — Assemblage visuel**   | Anchorpost, qui lit l'index `anchorpost/anchorpost.json` (couche 1) et les documents du manifeste (couche 2) | lecture à chaque push | aucun calcul côté site : il lit l'index commis |
 
 - Les générateurs de la couche 1 doivent être **déterministes** (tri stable, aucun horodatage dans la sortie) — sinon le gate clignote et on apprend à l'ignorer.
-- **Jamais d'auto-merge de prose.** Un LLM _propose_, il ne _décide_ pas. De la doc narrative auto-générée sans relecture produit du plausible-mais-faux, noie le signal et érode la confiance.
+- **Jamais d'auto-merge de prose.** Un LLM _propose_, il ne _décide_ pas. Une seule exception, décidée par le produit : la criticité d'une règle, ses cas attendus et ses réponses aux dix familles sont fixés par un agent (skill `criticite`, sous-agent en contexte vierge) ; l'humain les revoit après coup et les corrige par une PR ; un agent peut monter un niveau, jamais le baisser. De la doc narrative auto-générée sans relecture produit du plausible-mais-faux, noie le signal et érode la confiance.
 - **Une doc qui vit ailleurs que le dépôt est une doc qui ment.** Un SaaS de doc (Notion, Confluence) reste une vitrine de diffusion, jamais la source de vérité.
 - **Public cible : la reprise.** La page d'accueil de la doc est une porte d'entrée « reprendre ce projet », pas un sommaire. L'objectif : qu'une équipe qui reprend dans deux ou trois ans comprenne _pourquoi_ chaque choix a été fait sans rejouer les débats.
 - **Garde-fou données personnelles** : ne jamais envoyer de PII ni de fixture à données personnelles à un assistant LLM. Le contexte se limite au diff de code et aux docs techniques.

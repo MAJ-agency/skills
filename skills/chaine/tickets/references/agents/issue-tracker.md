@@ -45,7 +45,7 @@ Créer un nouveau fichier sous `docs/features/<feature>/` (créer les dossiers s
 
 - Une spec → `<ctx>/SPEC_<CTX>_<TRI>-<n>-<nom>.spec.md` avec `n` donné par `next-id.mjs SPEC <CTX> <TRI>`.
 - Un ticket → `<ctx>/issues/SPEC_<CTX>_<TRI>-<n>-<nom-de-la-spec>.<NN>.issue.md`, `NN` = prochain index libre pour cette spec, `Type:` posé.
-- Une règle → `docs/metier/regles/<ctx>/RULE_<CTX>_<TRI>-<n>.md`, `candidate`.
+- Une règle → `docs/metier/regles/<ctx>/RULE_<CTX>_<TRI>-<n>.md`, `candidate`, écrite par la session qui écrit la spec qui la porte, à l'étape de la spec, après le grilling (l'architecte d'un programme, le conducteur au cadrage d'un chantier, ou la session qui la publie). Toute session qui crée un fichier de règle ou change son énoncé, celle qui code comprise, lance le skill `criticite` sur cette règle, avant tout code : si l'index du projet est au pivot 3, elle la classe et porte la commande jouée et chaque sortie brute dans la section `## Criticité` de sa PR ; sinon le skill s'arrête.
 - Une demande → `docs/demandes/<ctx>/REQ_<CTX>_<TRI>-<n>-<slug>.md`, `needs-triage`.
 
 ## Quand un skill dit « récupérer le ticket »
