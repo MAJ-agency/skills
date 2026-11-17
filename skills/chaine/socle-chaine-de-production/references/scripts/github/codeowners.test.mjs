@@ -15,10 +15,12 @@ const lisible = (url) => {
   const f = fileURLToPath(url);
   return existsSync(f) ? JSON.parse(readFileSync(f, 'utf8')) : null;
 };
-const GABARIT = lisible(new URL('../../.claude/chaine.json', import.meta.url)) ??
-  lisible(new URL('../../chaine.json', import.meta.url)) ?? {
-    cheminsSensibles: ['scripts/agent/**', 'scripts/chaine/**', 'scripts/github/**', '.husky/**', '.github/workflows/**', '.github/actions/**', 'scripts/docs/identifiants.mjs', '.claude/**'],
-  };
+/** Les gardes de la chaîne, dernier repli : égal aux `cheminsSensibles` du gabarit (scripts/depot.test.mjs du plugin). */
+const GARDES = ['scripts/agent/**', 'scripts/chaine/**', 'scripts/github/**', '.husky/**', '.github/workflows/**', '.github/actions/**', 'scripts/docs/identifiants.mjs', '.claude/**'];
+const GABARIT_DU_PLUGIN = lisible(new URL('../../chaine.json', import.meta.url));
+const GABARIT = lisible(new URL('../../.claude/chaine.json', import.meta.url)) ?? GABARIT_DU_PLUGIN ?? { cheminsSensibles: GARDES };
+/** Un chemin que ni le gabarit ni un projet ne déclarent : l'ajouter change toujours CODEOWNERS. */
+const CHEMIN_AJOUTE = 'apps/banc-codeowners/sensible/';
 const contrat = (plus = {}) => ({ ...GABARIT, proprietaires: ['@alice', '@exemple/relecteurs'], ...plus });
 
 test('chaque chemin sensible du gabarit, CODEOWNERS et chaine.json appartiennent aux propriétaires, ancrés à la racine', () => {
@@ -107,7 +109,7 @@ test('le gate : CODEOWNERS régénéré → OK ; un chemin sensible ajouté sans
     const ok = jouer(d);
     assert.equal(ok.status, 0, ok.stderr);
     assert.match(ok.stdout, /codeowners : OK/);
-    writeFileSync(join(d, '.claude/chaine.json'), JSON.stringify(contrat({ cheminsSensibles: [...GABARIT.cheminsSensibles, 'apps/api/src/auth/'] })));
+    writeFileSync(join(d, '.claude/chaine.json'), JSON.stringify(contrat({ cheminsSensibles: [...GABARIT.cheminsSensibles, CHEMIN_AJOUTE] })));
     const rouge = jouer(d);
     assert.equal(rouge.status, 1);
     assert.ok(rouge.stderr.includes(COMMANDE), rouge.stderr);
@@ -130,7 +132,7 @@ test('le gate : CODEOWNERS édité à la main → rouge ; contrat illisible ou s
   } finally {
     rmSync(d, { recursive: true, force: true });
   }
-  for (const chaine of ['{ pas du json', { ...GABARIT }]) {
+  for (const chaine of ['{ pas du json', { ...GABARIT, proprietaires: [] }]) {
     const e = projet(chaine);
     try {
       const r = jouer(e, '--ecrire');

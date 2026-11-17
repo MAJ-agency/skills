@@ -13,8 +13,7 @@ import { fileURLToPath } from 'node:url';
 const ICI = dirname(fileURLToPath(import.meta.url));
 const SCRIPT = join(ICI, 'develop.sh');
 // Le pre-push du socle : à côté dans le plugin (`references/`), à sa place dans le dépôt du plugin.
-// Le pre-push du socle : dans le plugin, le gabarit de socle-monorepo ; posé dans un projet (`scripts/github/`), le sien.
-const HOOK_SOCLE = [join(ICI, '../../../../../monorepo/socle-monorepo/references/husky/pre-push'), join(ICI, '../../.husky/pre-push')].find((f) => existsSync(f)) ?? join(ICI, '../../.husky/pre-push');
+const HOOK_SOCLE = join(ICI, '../../../../../monorepo/socle-monorepo/references/husky/pre-push');
 
 // Sans les GIT_* hérités : sous un hook pre-push, GIT_DIR et GIT_INDEX_FILE visent le vrai dépôt.
 const ENV = {
