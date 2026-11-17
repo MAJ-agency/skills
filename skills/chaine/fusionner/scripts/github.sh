@@ -217,6 +217,31 @@ checks_exiges() {
   gh api "$DEPOT/branches/develop/protection/required_status_checks" --jq '.contexts' 2>/dev/null || echo '[]'
 }
 
+# Revue des propriétaires exigée sur `<base>` (« Require review from Code Owners », ADR « CODEOWNERS » du projet) :
+# d'abord les rulesets (`rules/branches/<base>`, règle `pull_request` avec `require_code_owner_review`), sinon
+# l'ancienne protection de branche. Illisible ou absente : non (sortie 1) — la fusion refusée par GitHub le
+# rattrape (passer.sh, étape 6).
+revue_proprietaires_exigee() {
+  local b
+  b=$(uri "$1")
+  [ "$(gh api "$DEPOT/rules/branches/$b" --jq \
+    'any(.[]; .type == "pull_request" and .parameters.require_code_owner_review == true)' 2>/dev/null)" = true ] && return 0
+  [ "$(gh api "$DEPOT/branches/$b/protection/required_pull_request_reviews" --jq '.require_code_owner_reviews == true' 2>/dev/null)" = true ]
+}
+# La PR (son JSON REST sur l'entrée standard, d'un `pulls/<n>` ou d'une ligne de la liste `pulls`) a encore des
+# relecteurs demandés (`requested_reviewers`, `requested_teams`) : GitHub y met d'office les propriétaires
+# CODEOWNERS des fichiers touchés, et les retire quand ils approuvent.
+relecteurs_demandes() { jq -e '((.requested_reviewers // []) + (.requested_teams // []) | length) > 0' >/dev/null; }
+# Une PR attend l'approbation d'un propriétaire : sa base exige la revue des propriétaires et des relecteurs
+# restent demandés. Ni rouge ni bloquée : le capitaine la saute sans la renvoyer et la reprend au tour suivant.
+# Il ne demande ni ne donne l'approbation, et ne contourne jamais la règle.
+attend_proprietaire() { # <json de la PR>
+  relecteurs_demandes <<<"$1" && revue_proprietaires_exigee "$(jq -r .base.ref <<<"$1")"
+}
+# Message d'un refus de fusion de GitHub qui tient à la revue (approbation d'un propriétaire, revue exigée).
+refus_pour_revue() { grep -qiE 'code owner|approving review|review is required|reviews? required' <<<"$1"; }
+MOTIF_PROPRIETAIRE="attend l'approbation d'un propriétaire (CODEOWNERS) : sautée sans renvoi, reprise au tour suivant"
+
 poser_label() { gh api -X POST "$DEPOT/issues/$1/labels" -f "labels[]=$2" >/dev/null; }
 # Un label déjà absent n'est pas une erreur (404).
 retirer_label() { gh api -X DELETE "$DEPOT/issues/$1/labels/$(uri "$2")" >/dev/null 2>&1 || true; }

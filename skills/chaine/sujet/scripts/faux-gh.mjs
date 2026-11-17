@@ -8,6 +8,12 @@
 //   brancheParDefaut  branche par défaut du dépôt (défaut « main »), dans `base.repo.default_branch`
 //   checks      états par PR (« #12 ») ou pour tout commit (« * ») : { nom: SUCCESS | FAILURE | IN_PROGRESS… }
 //   exiges      checks exigés de develop ; runs : workflow_runs par PR (« #12 »)
+//   revueProprietaires  branches dont la règle de PR exige la revue des propriétaires (« Require review
+//               from Code Owners ») : ruleset `pull_request`, ou ancienne protection avec `protectionClassique`
+//   PR.relecteurs / PR.equipes  relecteurs demandés (`requested_reviewers`, `requested_teams`) : GitHub y
+//               met d'office les propriétaires CODEOWNERS et les retire quand ils approuvent. Sur une base de
+//               `revueProprietaires`, la fusion est refusée (405) tant qu'il en reste, ou si `approbationManquante`
+//               (seul propriétaire = l'auteur, aucun relecteur demandé)
 // Le sommet d'une PR est lu dans le dépôt nu ($FAUX_GH_ORIGINE), comme GitHub. Chaque écriture
 // (méthode autre que GET) est appliquée à l'état et journalisée dans $FAUX_GH/journal.jsonl.
 // =============================================================================
@@ -113,6 +119,8 @@ function versRest(pr) {
     labels: (pr.labels ?? []).map((name) => ({ name })),
     base: { ref: pr.base, repo: { default_branch: etat.brancheParDefaut ?? "main" } },
     head: { ref: pr.head, sha: pr.sha ?? ref(pr.head) ?? "0".repeat(40) },
+    requested_reviewers: (pr.relecteurs ?? []).map((login) => ({ login })),
+    requested_teams: (pr.equipes ?? []).map((slug) => ({ slug })),
   };
 }
 function pr(n) {
@@ -219,19 +227,32 @@ function repondre() {
   if (route.match(/^commits\/[0-9a-f]+\/status$/)) return { statuses: [] };
   // Checks exigés : par ruleset (le cas nominal), ou par l'ancienne protection de branche quand
   // le dépôt jouet le déclare (`protectionClassique`) — l'autre forme répond alors comme GitHub.
-  if (route === "rules/branches/develop")
-    return etat.protectionClassique
-      ? []
-      : [
-          {
-            type: "required_status_checks",
-            parameters: {
-              required_status_checks: (etat.exiges ?? []).map((context) => ({
-                context,
-              })),
+  // Revue des propriétaires : une règle `pull_request` du ruleset sur les branches de `revueProprietaires`.
+  if ((m = route.match(/^rules\/branches\/([^/]+)$/))) {
+    const branche = decodeURIComponent(m[1]);
+    if (etat.protectionClassique) return [];
+    return [
+      ...(branche === "develop"
+        ? [
+            {
+              type: "required_status_checks",
+              parameters: {
+                required_status_checks: (etat.exiges ?? []).map((context) => ({
+                  context,
+                })),
+              },
             },
-          },
-        ];
+          ]
+        : []),
+      ...((etat.revueProprietaires ?? []).includes(branche)
+        ? [{ type: "pull_request", parameters: { require_code_owner_review: true, required_approving_review_count: 1 } }]
+        : []),
+    ];
+  }
+  if ((m = route.match(/^branches\/([^/]+)\/protection\/required_pull_request_reviews$/)))
+    return etat.protectionClassique && (etat.revueProprietaires ?? []).includes(decodeURIComponent(m[1]))
+      ? { require_code_owner_reviews: true, required_approving_review_count: 1 }
+      : echec("gh: Branch not protected (HTTP 404)");
   if (route === "branches/develop/protection/required_status_checks")
     return etat.protectionClassique
       ? { contexts: etat.exiges ?? [] }
@@ -263,6 +284,11 @@ function fusionner(
     commit_message: corps,
   },
 ) {
+  if (
+    (etat.revueProprietaires ?? []).includes(p.base) &&
+    ((p.relecteurs ?? []).length > 0 || (p.equipes ?? []).length > 0 || p.approbationManquante)
+  )
+    echec("gh: Waiting on code owner review from @proprietaire. (HTTP 405)");
   if (ref(p.head) !== sha) echec("gh: Head branch was modified (HTTP 409)");
   const base = ref(p.base);
   const parents =

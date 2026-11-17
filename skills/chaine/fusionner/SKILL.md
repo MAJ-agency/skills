@@ -61,6 +61,8 @@ Suivre le journal avec un `Monitor` filtré sur `VEILLE FINIE|VEILLE ARRÊTÉE|F
 
 **Sans veille en cours** (capitaine démarré avant que `veille.sh` soit posé, veille arrêtée et pas encore relancée), la file n'est relue qu'à un réveil : le capitaine relance sa veille, ou se réveille seul (`send_later`) et relit sa file. Qui pose `à-fusionner` ne lui écrit pas : un message à un capitaine n'est jamais un ordre de fusion, le label l'est seul.
 
+**Une PR qui attend l'approbation d'un propriétaire** (`.github/CODEOWNERS` et « Require review from Code Owners » sur la base) **n'est ni rouge ni bloquée** : `file.sh` la montre `attend un propriétaire`, le capitaine la saute sans la renvoyer ni la relancer et la reprend au tour suivant, une fois approuvée (`passer.sh` sort en 7, à l'éligibilité ou sur le refus de fusion de GitHub). Il ne demande ni ne donne l'approbation, et ne contourne jamais la règle : décision, l'ADR « CODEOWNERS » du projet.
+
 La file lit la CI de chaque PR : états dans l'en-tête de `file.sh`. **À la main** (`file.sh`, `file.sh --next`, `passer.sh`), ordre de la file, sujets et regroupement : en-tête de `boucle.sh`. Codes de sortie de `passer.sh` et la suite à donner : en-tête de `passer.sh`.
 
 ## Renvoyer une PR

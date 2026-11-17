@@ -39,7 +39,9 @@
 #      symbolique sur un index généré) : la dernière ligne dit pourquoi ; boucle.sh renvoie
 #      la PR (refus.sh) avec ce motif, jamais de saut silencieux
 #   7  pas éligible, rien à corriger côté auteur (non ouverte, brouillon, sans `à-fusionner`,
-#      déjà `fusion-bloquée`, empilée sur une parente pas encore fusionnée) : la boucle la saute
+#      déjà `fusion-bloquée`, empilée sur une parente pas encore fusionnée, ou qui attend l'approbation d'un
+#      propriétaire : CODEOWNERS et « Require review from Code Owners » sur la base, vu à l'éligibilité ou au refus
+#      de fusion de GitHub) : la boucle la saute sans renvoi et la reprend au tour suivant
 #   5  develop ou la PR a bougé en route → relancer. develop a bougé sans le capitaine :
 #      retrouver qui a fusionné (`gh api 'repos/{owner}/{repo}/pulls?state=closed&sort=updated&direction=desc'`,
 #      celles qui ont un `merged_at`) et lui rappeler la règle
@@ -76,6 +78,9 @@ champ() { jq -r "$1" <<<"$pr"; }
 labels=",$(champ '[.labels[].name] | join(",")'),"
 case "$labels" in *,à-fusionner,*) ;; *) sortir 7 "sans le label à-fusionner" ;; esac
 case "$labels" in *,fusion-bloquée,*) sortir 7 "label fusion-bloquée" ;; esac
+# Revue des propriétaires (CODEOWNERS) attendue : ni rouge ni bloquée, rien à corriger côté auteur. Vu avant la
+# mise à jour : une CI pour rien sinon, à chaque tour, jusqu'à l'approbation.
+! attend_proprietaire "$pr" || sortir 7 "$MOTIF_PROPRIETAIRE"
 
 base=$(champ .base.ref)
 tete=$(champ .head.ref)
@@ -341,13 +346,25 @@ else
   methode=squash
   corps() { git log --no-merges --reverse --format='%B' "$depart..$origine"; }
 fi
+refus_fusion=$(mktemp)
+trap 'rm -f "$refus_fusion"' EXIT
 # Requête passée sur l'entrée standard : un corps long dépasserait la taille maximale d'un
 # argument. `sha` : GitHub refuse la fusion si le sommet n'est plus celui testé.
 corps |
   jq -Rs --arg sha "$sommet" --arg titre "$sujet" --arg methode "$methode" \
     '{merge_method: $methode, sha: $sha, commit_title: $titre, commit_message: .}' |
-  gh api -X PUT "$DEPOT/pulls/$N/merge" --input - >/dev/null ||
+  gh api -X PUT "$DEPOT/pulls/$N/merge" --input - >/dev/null 2>"$refus_fusion" || {
+  # Refus faute d'approbation d'un propriétaire (relecteurs demandés, ou seul propriétaire = l'auteur, que
+  # GitHub ne demande pas) : sortie 7, jamais 5, que la boucle relancerait puis arrêterait.
+  message=$(cat "$refus_fusion")
+  printf '%s\n' "$message" >&2
+  if refus_pour_revue "$message" || attend_proprietaire "$(pr_json "$N" 2>/dev/null || echo '{}')"; then
+    git switch -q --detach origin/develop
+    git branch -q -D "capitaine/$N" 2>/dev/null || true
+    sortir 7 "$MOTIF_PROPRIETAIRE"
+  fi
   sortir 5 "fusion refusée (develop ou la PR a bougé), relancer"
+}
 
 git fetch -q origin develop
 # Pas de `exit` dans awk : sous pipefail, git log tué par SIGPIPE ferait sortir le script en 141.

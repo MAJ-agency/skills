@@ -162,3 +162,12 @@ test("les lignes que la veille lit sont celles qu'écrivent renvoyer.sh et boucl
   assert.ok(lire("renvoyer.sh").includes('echo "[#$N] RENVOI : '));
   assert.ok(lire("boucle.sh").includes('echo "[#$n] RELANCE des jobs rouges'));
 });
+
+test("PR qui attend un propriétaire : pas de relance ; approuvée (prête), boucle relancée", () => {
+  const attend = `31\tattend un propriétaire\t\n`;
+  const r = veilleJouet([attend, attend], { sondes: 2 });
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(r.lancements, 1);
+  const r2 = veilleJouet([attend, attend, prete(31)]);
+  assert.equal(r2.lancements, 2);
+});

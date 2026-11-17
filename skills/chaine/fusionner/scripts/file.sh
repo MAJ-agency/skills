@@ -17,6 +17,12 @@
 #   gelée               PR d'un sujet gelé (`Gel:` non vide dans sa carte, `sujet.sh gel`) : sous-PR, PR à recibler
 #                       ou livraison du sujet. Ni passée, ni relancée, ni renvoyée, ni reciblée ; le gel prime
 #                       sur « humain », qui revient au dégel
+#   attend un propriétaire
+#                       base = develop, la règle de develop exige la revue des propriétaires (« Require review
+#                       from Code Owners », CODEOWNERS) et des relecteurs restent demandés (GitHub y met d'office
+#                       les propriétaires et les retire quand ils approuvent) : ni rouge ni bloquée. Ni passée, ni
+#                       relancée, ni renvoyée ; « prête » au tour suivant, une fois approuvée. Une CI rouge prime :
+#                       « CI rouge », l'auteur corrige pendant que le propriétaire relit
 #   humain              PR déjà renvoyée autant de fois que le plafond (`plafonds.renvoisParPR`, 3 ; les
 #                       renvois se comptent par leur marque, github.sh) : ni passée, ni relancée, ni renvoyée.
 #                       Un humain décide, puis le capitaine la passe à la main (passer.sh <n>)
@@ -54,7 +60,8 @@ if ! login_valide "$LOGIN_CAPITAINE"; then
 fi
 
 prs=$(gh api --paginate "$DEPOT/pulls?state=open&per_page=100" --jq '.[] | {number, title, draft,
-  head: .head.ref, sommet: .head.sha, base: .base.ref, labels: [.labels[].name]}' | jq -s .)
+  head: .head.ref, sommet: .head.sha, base: .base.ref, labels: [.labels[].name],
+  demandes: (((.requested_reviewers // []) + (.requested_teams // [])) | length > 0)}' | jq -s .)
 ouvertes=$(jq -r '.[] | "\(.head) \(.number)"' <<<"$prs")
 # Checks exigés, lus dans la protection de develop (comme passer.sh) : un check d'un autre
 # workflow, non exigé, ne retient pas la file.
@@ -86,10 +93,11 @@ jq -r '.[] | select(any(.labels[]; . == "à-fusionner")) | [
     .number, .sommet, .base, .draft,
     any(.labels[]; . == "fusion-bloquée"),
     any(.labels[]; . == "hors-sujet"),
+    .demandes,
     .head, .title
   ] | @tsv' <<<"$prs" |
   sort -t "$(printf '\t')" -k1,1n -k2,2n |
-  while IFS="$(printf '\t')" read -r prio n sommet base brouillon bloquee hors_sujet tete titre; do
+  while IFS="$(printf '\t')" read -r prio n sommet base brouillon bloquee hors_sujet demandes tete titre; do
     ci_de() {
       local ci
       ci=$(checks_commit "$sommet" | jq -Rnr --argjson requis "$requis" "$ci_jq")
@@ -137,6 +145,13 @@ jq -r '.[] | select(any(.labels[]; . == "à-fusionner")) | [
     elif [ "$base" = develop ]; then
       # Sans CI (workflow pas déclenché) : le push du capitaine la lancera.
       etat=$(ci_de)
+      # Revue des propriétaires : la règle de develop se lit une fois pour toute la file.
+      if [ "$demandes" = true ] && [[ "$etat" != 'CI rouge'* ]]; then
+        if [ -z "${proprietaires_develop:-}" ]; then
+          if revue_proprietaires_exigee develop; then proprietaires_develop=oui; else proprietaires_develop=non; fi
+        fi
+        [ "$proprietaires_develop" = non ] || etat='attend un propriétaire'
+      fi
     else
       parente=$(printf '%s\n' "$ouvertes" | awk -v b="$base" '$1 == b { print $2 }')
       if [ -n "$parente" ]; then

@@ -4,7 +4,8 @@
 # Avant chaque passage, une PR dont la CI est rouge sur son sommet (`file.sh --rouges`) voit
 # ses jobs rouges relancés une fois (instabilité), puis est renvoyée s'ils retombent.
 # Un refus corrigeable par l'auteur (sortie 4 : titre, revue…) renvoie la PR avec son motif
-# (refus.sh) ; une PR non éligible sans correction possible (sortie 7) est sautée ; une PR sans CI déclenchée (sortie 3, déjà à jour,
+# (refus.sh) ; une PR non éligible sans correction possible (sortie 7, dont « attend un propriétaire » :
+# CODEOWNERS) est sautée sans renvoi ; une PR sans CI déclenchée (sortie 3, déjà à jour,
 # rien à pousser) est mise de côté jusqu'à la prochaine fusion, dont la mise à jour la poussera
 # et lancera sa CI. La sortie 5 (develop ou la PR a bougé)
 # a droit à un second essai. Un conflit (sortie 2) renvoie la PR ; des checks rouges au
@@ -382,7 +383,7 @@ while :; do
       # Refus que l'auteur peut corriger (titre, revue adversariale…) : la session est prévenue
       # avec le motif, la PR ne reste pas en file muette (#1414). Sautée si le renvoi échoue.
       bash "$outils/refus.sh" "$n" "$sortie" || sautees="$sautees$n " ;;
-    7) sautees="$sautees$n " ;; # rien à corriger côté auteur (empilée, brouillon, déjà renvoyée)
+    7) sautees="$sautees$n " ;; # rien à corriger côté auteur (empilée, brouillon, déjà renvoyée, attend un propriétaire)
     *) echo "ARRÊT sur #$n (sortie $rc)"; exit "$rc" ;;
   esac
 done
