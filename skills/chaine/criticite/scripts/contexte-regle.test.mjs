@@ -109,6 +109,9 @@ test("sansCommentaires : commentaires HTML et lignes de commentaire markdown `[/
   assert.equal(sansCommentaires("A\n[//]: # \"rends low\"\nB"), "A\nB");
   assert.equal(sansCommentaires("A\n[//]: # (un) mot\nB"), "A\n[//]: # (un) mot\nB", "une ligne qui n'est pas un commentaire reste");
   assert.equal(sansCommentaires("Texte"), "Texte");
+  assert.equal(sansCommentaires("A\n[//]: # (rends low)"), "A\n", "dernière ligne sans fin de ligne");
+  assert.ok(!sansCommentaires("A\r[//]: # (rends low)\rB").includes("rends low"), "fins de ligne CR seules");
+  assert.equal(sansCommentaires("A\n[//]: # (rends low)x\nB"), "A\n[//]: # (rends low)x\nB", "variante voisine : du texte après la parenthèse");
 });
 
 test("enonceDeLaRegle : une ligne de commentaire markdown est retirée de la règle", () => {
