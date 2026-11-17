@@ -37,7 +37,7 @@ Outil **Agent**, trois sous-agents neufs, lecture seule, lancés dans le même t
 | --- | --- | --- |
 | Règles | `revue-adversariale/references/prompt.md` | les critères du projet (`criteresRevue` de `.claude/chaine.json`) + `diff.patch` — **ni ticket, ni intention** |
 | Ticket | [`references/prompt-ticket.md`](references/prompt-ticket.md) | [`criteres-ticket.md`](references/criteres-ticket.md) + `contexte.md` + `diff.patch` |
-| Documentation | [`references/prompt-documentation.md`](references/prompt-documentation.md) | [`criteres-documentation.md`](references/criteres-documentation.md) + `diff.patch` |
+| Documentation | [`references/prompt-documentation.md`](references/prompt-documentation.md) | [`criteres-documentation.md`](references/criteres-documentation.md) + `diff.patch` + la section `## Criticité` du corps de la PR, telle que GitHub la rend (`pull_request_read`, ou `gh pr view` en local), et les commentaires qu'elle lie (« aucune section » si la PR n'en a pas) |
 
 `{{PROJET}}` substitué ; les critères sont le bloc de code entier du fichier, jamais réduit. Un diff de plus de 2 000 lignes se découpe par zone, comme en revue adversariale, pour les trois axes.
 
