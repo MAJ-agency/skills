@@ -99,7 +99,7 @@ Ce que `check` refuse est une liste fermée, portée par le paquet : un fichier 
 
 ## Étape 5 — la fiche d'écriture
 
-Copier [`references/rules/anchorpost.md`](references/rules/anchorpost.md) vers `.claude/rules/anchorpost.md`. Chargée dès qu'un agent touche `docs/**` ou `anchorpost/**`, elle dit comment écrire pour être lu : une règle par fichier, qui écrit quoi, l'étiquette des tests, les en-têtes des tickets, l'index qu'on ne touche pas. Puis le fragment [`references/fragments/claude-md-routing.md`](references/fragments/claude-md-routing.md) au-dessus du marqueur `<!-- socle:routing -->` de `CLAUDE.md`, et [`references/fragments/readme-ou-vit-quoi.md`](references/fragments/readme-ou-vit-quoi.md) dans la zone correspondante du `README.md`.
+Copier [`references/rules/anchorpost.md`](references/rules/anchorpost.md) vers `.claude/rules/anchorpost.md`. Chargée dès qu'un agent touche `docs/**` ou `anchorpost/**`, elle dit comment écrire pour être lu : une règle par fichier, qui écrit quoi, l'étiquette des tests, les en-têtes des tickets, l'index qu'on ne touche pas. La fiche cite `maj-skills:criticite` par son nom qualifié : si le projet a `scripts/verify/references-agent-integrees.json` (gate `references-agent`), y ajouter `maj-skills:criticite` et `maj-skills:anchorpost` à la liste `skills-plugins` s'ils y manquent, sans quoi ce gate rougit. Puis le fragment [`references/fragments/claude-md-routing.md`](references/fragments/claude-md-routing.md) au-dessus du marqueur `<!-- socle:routing -->` de `CLAUDE.md`, et [`references/fragments/readme-ou-vit-quoi.md`](references/fragments/readme-ou-vit-quoi.md) dans la zone correspondante du `README.md`.
 
 ## Étape 6 — la recette de l'administrateur
 
