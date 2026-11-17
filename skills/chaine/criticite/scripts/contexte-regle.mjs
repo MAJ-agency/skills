@@ -15,7 +15,7 @@
  * sans en-tête est acceptée : son corps seul.
  * Les specs : toute `*.spec.md` sous `docs/` dont la ligne `Règles:` de l'en-tête nomme la règle, ou
  * dont un ticket (`<SPEC>-<slug>.<NN>.issue.md`, archive comprise) la nomme dans sa ligne `Règles:` ou
- * `Prouve:`. Les specs passent, au mot près, pas les tickets. Aucune : « aucune spec ne déclare
+ * `Prouve:`. Les specs passent au mot près, leurs commentaires (HTML, ou ligne `[//]: # (…)`) retirés, pas les tickets. Aucune : « aucune spec ne déclare
  * cette règle ».
  * Aucun lien symbolique n'est suivi : une spec qui en est un est ignorée, et le message le dit ; une
  * règle qui en est un, ou dont un dossier en est un, est refusée. Un nom de fichier qui porte un
@@ -23,13 +23,18 @@
  *
  * Usage : node <dossier du skill>/scripts/contexte-regle.mjs <RULE_<CTX>_<TRI>-<n>>   (depuis la racine du projet)
  * Racine : le dossier courant, sans variable d'environnement.
- * Sorties : 0 · 2 usage, règle introuvable ou lien, nom illisible, titre illisible, ou prompt sans ses marques.
+ * Sorties : 0 · 2 usage, règle introuvable ou lien, nom illisible, en-tête ou titre illisible, contexte de plus de 300 000
+ * caractères, ou prompt sans ses marques.
  */
 import { existsSync, lstatSync, readFileSync, readdirSync, realpathSync } from "node:fs";
 import { basename, dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const EN_TETE = /^---\r?\n([\s\S]*?)\r?\n---[ \t]*(?:\r?\n|$)/;
+const EN_TETE = /^---[ \t]*\r?\n([\s\S]*?)\r?\n---[ \t]*(?:\r?\n|$)/;
+/** Un fichier dont la première ligne non vide est `---` annonce un en-tête YAML. */
+const OUVRE_UN_EN_TETE = /^\s*---[ \t]*(?:\r|\n|$)/;
+/** Au-delà, le contexte rendu est refusé : la session ne tronque rien à la main. */
+export const PLAFOND = 300000;
 const IDENTIFIANT = /^RULE_([A-Z0-9]+)_([A-Z0-9]+)-(\d+)$/;
 export const AUCUNE_SPEC = "aucune spec ne déclare cette règle";
 
@@ -53,22 +58,27 @@ export function titreDeLEnTete(entete) {
   return valeur.replace(/[ \t]+#.*$/, "").trim();
 }
 
-/** L'énoncé d'une règle : `# <title>`, puis le corps, sans BOM, en-tête ni commentaire HTML. */
+/** Le texte sans commentaire HTML (même sur plusieurs lignes, même non refermé) ni ligne de commentaire markdown `[//]: # (…)`. */
+export const sansCommentaires = (texte) =>
+  texte.replace(/<!--[\s\S]*?(?:-->|$)/g, "").replace(/^[ \t]*\[\/\/\]:[ \t]*#[ \t]*(?:\([^\r\n]*\)|"[^\r\n]*"|'[^\r\n]*')?[ \t]*(?:\r?\n|$)/gm, "");
+
+/** L'énoncé d'une règle : `# <title>`, puis le corps, sans BOM, en-tête ni commentaire. Un en-tête annoncé mais illisible : une erreur. */
 export function enonceDeLaRegle(texte) {
   const t = sansBom(texte);
   const m = EN_TETE.exec(t);
+  if (!m && OUVRE_UN_EN_TETE.test(t)) throw new Error("en-tête illisible : `---` en première ligne non vide, mais jamais refermé par `---` (ni ligne vide avant l'ouverture, ni fins de ligne CR seules)");
   const titre = m ? titreDeLEnTete(m[1]) : null;
-  const corps = (m ? t.slice(m[0].length) : t).replace(/<!--[\s\S]*?(?:-->|$)/g, "").trim();
+  const corps = sansCommentaires(m ? t.slice(m[0].length) : t).trim();
   return titre ? `# ${titre}\n\n${corps}`.trimEnd() : corps;
 }
 
 /** Vrai quand la ligne `Clé:` de l'en-tête d'un document (avant sa première section) nomme la règle. */
 export function ligneNomme(texte, cles, id) {
   const tete = sansBom(texte).split(/\r?\n## /)[0];
-  const nom = new RegExp(`(?<![\\w-])${id}(?!\\w)`);
-  return tete
-    .split(/\r?\n/)
-    .some((l) => cles.some((c) => new RegExp(`^${c}\\s*:`).test(l)) && nom.test(l.replace(/\s#.*$/, "")));
+  const nom = new RegExp(`(?<![\\w-])${id}(?![\\w-]|\\.\\d)`);
+  // Les trois formes du gate tickets (`X:`, `**X:**`, `- X:`), toute casse : tickets-regles.mjs.
+  const entete = new RegExp(`^(?:- )?\\**(?:${cles.join("|")})\\**\\s*:`, "i");
+  return tete.split(/\r?\n/).some((l) => entete.test(l) && nom.test(l.replace(/\s#.*$/, "")));
 }
 
 /** Un texte dans une clôture plus longue que toute suite d'accents graves qu'il porte : rendu entier. */
@@ -78,14 +88,15 @@ export function cloture(texte) {
 }
 
 /** Le message entier : le prompt, l'énoncé et les specs, chacun dans sa clôture ; les specs ignorées, nommées. */
-export function message({ prompt, regle, specs, ignorees = [] }) {
+export function message({ prompt, regle, specs, ignorees = [], horsConvention = [] }) {
   const morceaux = prompt.split("<règle>");
   const suite = morceaux.length === 2 ? morceaux[1].split("<spec>") : [];
   if (suite.length !== 2) throw new Error("prompt sans ses marques : une seule <règle>, puis une seule <spec>");
   const texteSpecs = specs.length
     ? specs.map(({ nom, texte }) => `${nom} :\n\n${cloture(texte)}`).join("\n\n")
     : AUCUNE_SPEC;
-  const notes = ignorees.map((nom) => `\n\n(spec ignorée, lien symbolique : ${nom})`).join("");
+  const notes = ignorees.map((nom) => `\n\n(spec ignorée, lien symbolique : ${nom})`).join("") +
+    horsConvention.map((nom) => `\n\n(spec ignorée : nom hors convention : ${nom})`).join("");
   return morceaux[0] + cloture(enonceDeLaRegle(regle)) + suite[0] + texteSpecs + notes + suite[1];
 }
 
@@ -126,17 +137,19 @@ export function contexteDeLaRegle(racine, id) {
   if (lstatSync(chemin).isSymbolicLink() || realpathSync(chemin) !== join(realpathSync(racine), rel))
     throw new Error(`règle refusée, lien symbolique sur son chemin : ${rel}`);
   const { fichiers: docs, liens } = parcourir(join(racine, "docs"));
-  const specs = docs.filter((p) => p.endsWith(".spec.md"));
   const idSpec = (p) => /^(SPEC_[A-Z0-9]+_[A-Z0-9]+-\d+)-/.exec(basename(p))?.[1];
+  const toutes = docs.filter((p) => p.endsWith(".spec.md"));
+  const specs = toutes.filter((p) => idSpec(p));
   const portees = new Set(specs.filter((p) => ligneNomme(readFileSync(p, "utf8"), ["Règles"], id)).map(idSpec));
   for (const p of docs.filter((x) => /\.\d+\.issue\.md$/.test(x)))
-    if (ligneNomme(readFileSync(p, "utf8"), ["Règles", "Prouve"], id)) portees.add(idSpec(p));
+    if (idSpec(p) && ligneNomme(readFileSync(p, "utf8"), ["Règles", "Prouve"], id)) portees.add(idSpec(p));
   return {
     chemin,
     regle: readFileSync(chemin, "utf8"),
     specs: specs
       .filter((p) => portees.has(idSpec(p)))
-      .map((p) => ({ nom: relative(racine, p), texte: readFileSync(p, "utf8") })),
+      .map((p) => ({ nom: relative(racine, p), texte: sansCommentaires(readFileSync(p, "utf8")) })),
+    horsConvention: toutes.filter((p) => !idSpec(p)).map((p) => relative(racine, p)),
     ignorees: liens.filter((p) => p.endsWith(".spec.md")).map((p) => relative(racine, p)),
   };
 }
@@ -161,8 +174,15 @@ if (estPointEntree()) {
   const prompt = join(dirname(fileURLToPath(import.meta.url)), "../references/prompt.md");
   if (!existsSync(prompt)) sortir(`contexte-regle : prompt introuvable : ${prompt}`);
   try {
-    const { regle, specs, ignorees } = contexteDeLaRegle(process.cwd(), id);
-    process.stdout.write(`${message({ prompt: readFileSync(prompt, "utf8"), regle, specs, ignorees })}\n`);
+    const { regle, specs, ignorees, horsConvention } = contexteDeLaRegle(process.cwd(), id);
+    const texte = message({ prompt: readFileSync(prompt, "utf8"), regle, specs, ignorees, horsConvention });
+    if (texte.length > PLAFOND)
+      sortir(
+        `contexte-regle : contexte trop long : ${texte.length} caractères (plafond ${PLAFOND}) ; règle : ${regle.length} caractères` +
+          specs.map((s) => `\n${s.nom} : ${s.texte.length} caractères`).join("") +
+          "\nrien n'est tronqué : la session s'arrête et le dit",
+      );
+    process.stdout.write(`${texte}\n`);
   } catch (e) {
     sortir(`contexte-regle : ${e.message}`);
   }

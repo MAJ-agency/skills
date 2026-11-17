@@ -84,6 +84,6 @@ Règle :
 
 <règle>
 
-Spec qui la porte :
+Spec ou specs qui la portent :
 
 <spec>
