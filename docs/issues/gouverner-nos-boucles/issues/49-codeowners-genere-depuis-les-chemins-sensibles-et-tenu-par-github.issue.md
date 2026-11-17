@@ -1,6 +1,6 @@
 # CODEOWNERS se génère depuis les chemins sensibles et GitHub le fait respecter : un chemin sensible est relu par un humain
 
-Status: Fait — PR à venir
+Status: Fait — PR #108
 Type: task
 Modèle: opus — une conception (source unique, propriétaires, place du fichier, détection de l'attente par le capitaine) et des textes de sécurité à tenir justes ; le reste est mécanique.
 Blocked by: —
