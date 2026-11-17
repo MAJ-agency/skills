@@ -219,6 +219,7 @@ test("le gabarit .claude/chaine.json range les gardes de la chaîne parmi les ch
     "scripts/chaine/passer.sh",
     "scripts/chaine/chemins-sensibles.mjs",
     "scripts/chaine/diff-revue.sh",
+    "scripts/github/codeowners.mjs",
     ".husky/pre-push",
     ".husky/pre-commit",
     "scripts/docs/identifiants.mjs",

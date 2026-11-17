@@ -25,7 +25,7 @@ test('refusEdition refuse le lockfile et les fichiers .env, laisse .env.example'
 });
 
 test('refusEdition refuse CODEOWNERS à ses trois places, toute casse : modifier chaine.json, puis régénérer', () => {
-  for (const c of ['.github/CODEOWNERS', './.github/CODEOWNERS', 'CODEOWNERS', 'docs/CODEOWNERS', '.GitHub/codeowners', '.github\\CODEOWNERS']) {
+  for (const c of ['.github/CODEOWNERS', './.github/CODEOWNERS', 'CODEOWNERS', 'docs/CODEOWNERS', '.GitHub/codeowners', '.github\\CODEOWNERS', '.github//CODEOWNERS', '.github/./CODEOWNERS', 'docs/../CODEOWNERS', 'apps/../.github/CODEOWNERS', './/docs/CODEOWNERS', '.github/workflows/../CODEOWNERS']) {
     const refus = refusEdition(c, nouvelle);
     assert.match(refus ?? '', /\.claude\/chaine\.json/, c);
     assert.match(refus, /cheminsSensibles/, c);

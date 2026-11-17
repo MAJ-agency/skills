@@ -19,6 +19,7 @@ const POSES = [
   ["skills/monorepo/socle-monorepo/references/scripts/docs", "scripts/docs"],
   ["skills/chaine/tickets/references/scripts/docs", "scripts/docs"],
   ["skills/chaine/tickets/references/scripts/verify", "scripts/verify"],
+  ["skills/chaine/socle-chaine-de-production/references/scripts/github", "scripts/github"],
 ];
 // Fichiers de la racine du projet que les bancs posés lisent (socle-monorepo, TABLE-RACINE.md).
 const RACINE_PROJET = [
@@ -55,10 +56,12 @@ test("les bancs posés à plat sous scripts/chaine/ tournent hors du plugin", { 
     for (const [source, destination] of RACINE_PROJET) poser(source, destination);
     mkdirSync(join(projet, ".husky"), { recursive: true });
     writeFileSync(join(projet, ".husky/pre-commit"), PRE_COMMIT_PROJET, { mode: 0o755 });
-    const bancs = readdirSync(join(projet, "scripts/chaine"))
-      .filter((n) => n.endsWith(".test.mjs"))
-      .sort()
-      .map((n) => join("scripts/chaine", n));
+    // Les bancs posés à plat dans scripts/chaine/ et scripts/github/ (socle de la chaîne : CODEOWNERS, develop).
+    const bancs = ["scripts/chaine", "scripts/github"].flatMap((dossier) =>
+      readdirSync(join(projet, dossier))
+        .filter((n) => n.endsWith(".test.mjs"))
+        .sort()
+        .map((n) => join(dossier, n)));
     const r = spawnSync(process.execPath, ["--test", "--test-reporter=spec", ...bancs], {
       cwd: projet,
       env: env(),

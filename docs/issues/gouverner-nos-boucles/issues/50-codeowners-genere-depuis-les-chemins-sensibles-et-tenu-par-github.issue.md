@@ -10,7 +10,7 @@ Label: contre-revue
 
 ## Le besoin
 
-**Décision du produit (Guillaume, 2026-11-17).** Les projets posés par `socle-chaine-de-production` ont un `.github/CODEOWNERS` réellement utilisé et respecté : un humain approuve toute PR qui touche un chemin sensible.
+**Décision du produit (2026-11-17).** Les projets posés par `socle-chaine-de-production` ont un `.github/CODEOWNERS` réellement utilisé et respecté : un humain approuve toute PR qui touche un chemin sensible.
 
 **Le fait.** Sur `main` à `c17f88b` (plugin 7.12.3), `admin.md` du socle **recommande** un CODEOWNERS écrit à la main, sur un plancher plus large que les chemins sensibles, « non posé par défaut ». Rien ne le génère, rien ne vérifie qu'il suit `cheminsSensibles`, une session peut l'éditer, et le capitaine ne sait pas qu'une PR peut attendre une approbation : refusée à la fusion (405), elle sortait en 5, puis la boucle s'arrêtait au second essai.
 
@@ -30,8 +30,12 @@ Quand le ticket est fait :
 2. **Un script, deux modes** : `scripts/github/codeowners.mjs` (gate sans argument, `--ecrire` pour régénérer ; `pnpm codeowners`, `check:codeowners`, gate rapide de fin de tour). Sortie 1 écart, 2 contrat qui ne se dit pas en CODEOWNERS (rien d'écrit).
 3. **Motifs traduits à l'identique ou refusés** : ancrés par `/` ; `?`, `[…]`, `!`, `#`, `\`, blancs et `/` initial refusés, jamais approchés.
 4. **CODEOWNERS n'est pas un index généré** : le capitaine ne le régénère pas de lui-même et `diff-revue.sh` ne l'exclut pas du diff relu. Refus dédié dans `refusEdition`, aux trois places que GitHub lit, sans casse.
-5. **Le capitaine** lit l'attente en REST : règle de PR de la base avec `require_code_owner_review` (ruleset, sinon ancienne protection) et, parmi les relecteurs encore demandés, les seuls propriétaires du CODEOWNERS de la base (décision de l'architecte du 17/11) ; état `attend un propriétaire` dans `file.sh`, sortie 7 de `passer.sh` (sautée, sans renvoi). Plafond (même décision) : un refus de fusion faute de revue pose un commentaire marqué, puis la PR se lit `attend un humain` et n'est plus remise à jour tant qu'aucune revue approuvée nouvelle n'est arrivée. Une PR vers `main` n'est vue qu'au refus de fusion : accepté, noté dans l'ADR.
-6. **Le plancher large de l'ancienne recommandation n'est plus dans CODEOWNERS** : la source unique est `cheminsSensibles` ; un projet qui veut ce plancher l'y écrit (confirmé par l'architecte le 17/11). « Required approvals » à 0, à vérifier sur une PR d'essai au premier dépôt posé.
+5. **Le capitaine** lit l'attente en REST : règle de PR de la base avec `require_code_owner_review` (ruleset, sinon ancienne protection) et, parmi les relecteurs encore demandés, les seuls propriétaires du CODEOWNERS de la base (décision confirmée par l'architecte du plugin à la contre-relecture du 17/11) ; état `attend un propriétaire` dans `file.sh`, sortie 7 de `passer.sh` (sautée, sans renvoi). Plafond (même source) : un refus de fusion faute de revue pose un commentaire marqué, puis la PR se lit `attend un humain` et n'est plus remise à jour tant qu'aucune revue approuvée nouvelle n'est arrivée. Une PR vers `main` n'est vue qu'au refus de fusion : accepté, noté dans l'ADR.
+6. **Le plancher large de l'ancienne recommandation n'est plus dans CODEOWNERS** : la source unique est `cheminsSensibles` ; un projet qui veut ce plancher l'y écrit (confirmé par l'architecte du plugin pour cette PR ; l'extension au-delà des chemins sensibles n'est pas tranchée et viendra par une décision à part). « Required approvals » à 0, à vérifier sur une PR d'essai au premier dépôt posé.
 7. **Version : mineure**, 7.12.3 → 7.13.0 (une pièce nouvelle posée, une clé de contrat nouvelle).
 
 ## Comments
+
+### Contre-relecture de l'architecte du plugin (2026-11-17, sommet `260c96c`)
+
+Corrigé dans la même PR : un `**` qui n'est pas un segment entier est refusé (GitHub le lit `*`) ; motifs dégénérés (`.`, `..`, `//`, `~`) et courriels refusés ; le banc de CODEOWNERS lit le contrat du projet et tourne posé (`scripts/poses.test.mjs`, avec `develop.test.mjs`) ; `scripts/github/**` entre dans les chemins sensibles du gabarit ; `refusEdition` normalise le chemin ; `admin.md` ne range plus la revue des propriétaires parmi les cases sans condition, dit qu'une approbation vaut pour le sommet approuvé, et liste les vérifications de la PR d'essai (« Required approvals » à 0, relecteurs demandés d'office, texte du refus 405) ; le capitaine : une CI rouge prime sur « attend un humain », et un commentaire d'attente qui ne se pose pas arrête la boucle (sortie 5) au lieu de faire repasser la PR à chaque tour. Ticket renuméroté 50 (le 49 est pris dans la carte).

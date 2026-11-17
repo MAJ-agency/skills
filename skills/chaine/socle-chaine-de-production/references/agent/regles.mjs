@@ -10,6 +10,7 @@
  * migrations) et `scripts/docs/index-generes.json` (les fichiers générés et leur commande).
  */
 import { readFileSync } from 'node:fs';
+import { posix } from 'node:path';
 
 const lireJson = (url) => {
   try {
@@ -59,7 +60,8 @@ export function refusEdition(
     migrations = CHAINE.migrations ?? 'apps/api/src/db/migrations/',
   },
 ) {
-  const c = chemin.replace(/\\/g, '/').replace(/^\.\//, '');
+  // Normalisé avant toute comparaison : `.github//CODEOWNERS`, `.github/./CODEOWNERS` ou `docs/../CODEOWNERS` visent le même fichier.
+  const c = posix.normalize(chemin.replace(/\\/g, '/')).replace(/^(\.\/)+/, '');
   if (CODEOWNERS.test(c)) return RAISON_CODEOWNERS(c);
   const genere = Object.keys(FICHIERS_GENERES).find((motif) => cheminDuMotif(motif).test(c));
   if (genere) return `${c} est généré : le régénérer avec « ${FICHIERS_GENERES[genere]} ».`;

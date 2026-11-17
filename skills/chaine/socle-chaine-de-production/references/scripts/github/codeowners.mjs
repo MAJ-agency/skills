@@ -29,18 +29,33 @@ export const TOUJOURS = [FICHIER, CONTRAT];
  * Un motif de `cheminsSensibles` (moteur du gate `tickets` : relatif à la racine, `**` = tout, `*` = un
  * segment, `/` final = un dossier) que CODEOWNERS dit à l'identique, une fois ancré par `/`. Refusés : ce
  * que GitHub lit autrement (`?` et `[…]` y sont des jokers, `!` une négation qu'il ne prend pas, `#` un
- * commentaire, `\` un échappement, un blanc une fin de motif) et un motif ancré ou vide, qui ne touche rien.
+ * commentaire, `\` un échappement, un blanc une fin de motif, `**` hors d'un segment entier un simple `*`),
+ * et un motif dégénéré (ancré, vide, `//`, un segment `.` ou `..`, `~`), qui ne touche rien ou pas ce qu'il dit.
  */
 export function motifCodeowners(motif) {
   if (typeof motif !== 'string' || motif.trim() === '') return { erreur: 'motif vide' };
   if (motif.startsWith('/')) return { erreur: `« ${motif} » : un chemin sensible est relatif à la racine, sans « / » initial` };
-  if (/[\s?[\]!#\\]/.test(motif))
-    return { erreur: `« ${motif} » : blanc, « ? », « [ ] », « ! », « # » ou « \\ » ne se disent pas à l'identique dans CODEOWNERS` };
-  return { motif: `/${motif.replace(/^\.\//, '')}` };
+  if (/[\s?[\]!#\\~]/.test(motif))
+    return { erreur: `« ${motif} » : blanc, « ? », « [ ] », « ! », « # », « \\ » ou « ~ » ne se disent pas à l'identique dans CODEOWNERS` };
+  const relatif = motif.replace(/^\.\//, '');
+  const segments = relatif.split('/');
+  // Le dernier segment vide est le « / » final d'un dossier ; un autre segment vide est un « // ».
+  if (segments.slice(0, -1).includes('') || relatif === '')
+    return { erreur: `« ${motif} » : « // » ou motif vide, qui ne désigne aucun chemin` };
+  if (segments.some((g) => g === '.' || g === '..'))
+    return { erreur: `« ${motif} » : un segment « . » ou « .. » ne se lit pas comme un chemin du dépôt` };
+  // Pour GitHub comme pour gitignore, un `**` qui n'est pas un segment entier vaut un simple `*` : `**.sh` y serait
+  // la racine seule, là où la chaîne lit tous les `.sh`. Le gate serait vert, le chemin pas protégé.
+  if (segments.some((g) => g.includes('**') && g !== '**'))
+    return { erreur: `« ${motif} » : « ** » n'est lu à l'identique par GitHub que comme un segment entier (« **/x », « a/**/b », « a/** »)` };
+  return { motif: `/${relatif}` };
 }
 
-/** Un propriétaire que GitHub accepte : `@utilisateur`, `@organisation/équipe` ou une adresse de courriel. */
-export const PROPRIETAIRE = /^(@[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?(?:\/[A-Za-z0-9][A-Za-z0-9._-]*)?|[^\s@]+@[^\s@]+\.[^\s@]+)$/;
+/**
+ * Un propriétaire : `@utilisateur` ou `@organisation/équipe`. GitHub accepte aussi un courriel, mais le capitaine
+ * (`proprietaires_de`, skill `fusionner`) ne lit que les comptes : un courriel ferait attendre une PR sans qu'il le voie.
+ */
+export const PROPRIETAIRE = /^@[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?(?:\/[A-Za-z0-9][A-Za-z0-9._-]*)?$/;
 
 /**
  * Le texte attendu de CODEOWNERS pour un contrat, ou ses erreurs.
@@ -55,7 +70,7 @@ export function genererCodeowners(chaine) {
     erreurs.push('proprietaires : au moins un propriétaire attendu (`@utilisateur`, `@organisation/équipe`) ; deux humains si les sessions publient sous le compte d’un humain (ADR « CODEOWNERS »)');
   else
     for (const p of proprietaires)
-      if (typeof p !== 'string' || !PROPRIETAIRE.test(p)) erreurs.push(`proprietaires : « ${p} » n'est ni @utilisateur, ni @organisation/équipe, ni une adresse`);
+      if (typeof p !== 'string' || !PROPRIETAIRE.test(p)) erreurs.push(`proprietaires : « ${p} » n'est ni @utilisateur ni @organisation/équipe${typeof p === 'string' && p.includes('@') && !p.startsWith('@') ? ' (un courriel : le capitaine ne le lit pas)' : ''}`);
   const motifs = [];
   for (const m of [...(Array.isArray(sensibles) ? sensibles : []), ...TOUJOURS]) {
     const lu = motifCodeowners(m);
