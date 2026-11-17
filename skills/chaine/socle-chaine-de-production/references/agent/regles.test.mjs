@@ -24,6 +24,19 @@ test('refusEdition refuse le lockfile et les fichiers .env, laisse .env.example'
   assert.equal(refusEdition('apps/api/src/main.ts', nouvelle), null);
 });
 
+test('refusEdition refuse CODEOWNERS à ses trois places, toute casse : modifier chaine.json, puis régénérer', () => {
+  for (const c of ['.github/CODEOWNERS', './.github/CODEOWNERS', 'CODEOWNERS', 'docs/CODEOWNERS', '.GitHub/codeowners', '.github\\CODEOWNERS']) {
+    const refus = refusEdition(c, nouvelle);
+    assert.match(refus ?? '', /\.claude\/chaine\.json/, c);
+    assert.match(refus, /cheminsSensibles/, c);
+    assert.match(refus, /pnpm codeowners/, c);
+    assert.match(refus, /node scripts\/github\/codeowners\.mjs --ecrire/, c);
+    assert.ok(refus.indexOf('chaine.json') < refus.indexOf('régénérer'), `${c} : chaine.json d'abord, la régénération ensuite`);
+  }
+  for (const c of ['.claude/chaine.json', '.github/CODEOWNERS.md', 'apps/web/CODEOWNERS', '.github/workflows/ci.yml', 'docs/agents/CODEOWNERS'])
+    assert.equal(refusEdition(c, nouvelle), null, c);
+});
+
 test('decisionCommande refuse le push forcé, --no-verify, le push direct sur develop/main, le rebase d’un sujet', () => {
   assert.equal(decisionCommande('git push --force origin feat/x').decision, 'refuser');
   assert.equal(decisionCommande('git push --force-with-lease origin feat/x').decision, 'refuser');
