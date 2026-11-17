@@ -10,6 +10,7 @@
  * migrations) et `scripts/docs/index-generes.json` (les fichiers générés et leur commande).
  */
 import { readFileSync } from 'node:fs';
+import { posix } from 'node:path';
 
 const lireJson = (url) => {
   try {
@@ -38,6 +39,15 @@ export const FICHIERS_GENERES = Object.fromEntries([
 const cheminDuMotif = (motif) => new RegExp(`^${motif.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '[^/]+')}$`);
 
 /**
+ * CODEOWNERS, aux trois places où GitHub le lit (`.github/`, la racine, `docs/` ; la casse ignorée : un système de
+ * fichiers insensible à la casse écrit `.GitHub/codeowners` au même endroit). Il se génère depuis `.claude/chaine.json`
+ * (`scripts/github/codeowners.mjs`, ADR « CODEOWNERS ») : une seule source, que le gate `codeowners` compare.
+ */
+const CODEOWNERS = /^(\.github\/|docs\/)?codeowners$/i;
+const RAISON_CODEOWNERS = (c) =>
+  `${c} ne s'édite pas : il est généré depuis .claude/chaine.json. Modifier \`cheminsSensibles\` ou \`proprietaires\` dans .claude/chaine.json, puis régénérer avec « pnpm codeowners » (node scripts/github/codeowners.mjs --ecrire) ; le gate \`codeowners\` refuse tout écart (ADR « CODEOWNERS »).`;
+
+/**
  * Refus d'éditer un fichier, ou `null` si l'édition est permise.
  * @param {string} chemin chemin relatif à la racine du dépôt
  * @param {{ migrationExistante: (chemin: string) => boolean, migrations?: string }} contexte
@@ -50,7 +60,9 @@ export function refusEdition(
     migrations = CHAINE.migrations ?? 'apps/api/src/db/migrations/',
   },
 ) {
-  const c = chemin.replace(/\\/g, '/').replace(/^\.\//, '');
+  // Normalisé avant toute comparaison : `.github//CODEOWNERS`, `.github/./CODEOWNERS` ou `docs/../CODEOWNERS` visent le même fichier.
+  const c = posix.normalize(chemin.replace(/\\/g, '/')).replace(/^(\.\/)+/, '');
+  if (CODEOWNERS.test(c)) return RAISON_CODEOWNERS(c);
   const genere = Object.keys(FICHIERS_GENERES).find((motif) => cheminDuMotif(motif).test(c));
   if (genere) return `${c} est généré : le régénérer avec « ${FICHIERS_GENERES[genere]} ».`;
   const nom = c.split('/').pop() ?? '';

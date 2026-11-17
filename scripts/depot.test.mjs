@@ -219,6 +219,7 @@ test("le gabarit .claude/chaine.json range les gardes de la chaîne parmi les ch
     "scripts/chaine/passer.sh",
     "scripts/chaine/chemins-sensibles.mjs",
     "scripts/chaine/diff-revue.sh",
+    "scripts/github/codeowners.mjs",
     ".husky/pre-push",
     ".husky/pre-commit",
     "scripts/docs/identifiants.mjs",
@@ -728,4 +729,14 @@ test("le plafond de la garde de commandes : CONTENU.md du socle de la chaîne di
   ])
     assert.ok(contenu.includes(phrase), `CONTENU.md du socle de la chaîne : phrase absente : ${phrase}`);
   assert.doesNotMatch(contenu, /100 000 caractères|8,2 s/, "CONTENU.md du socle de la chaîne : l'ancien plafond ou l'ancien pire cas");
+});
+
+// Le banc de CODEOWNERS, posé sans contrat ni gabarit à côté, se replie sur une liste écrite en dur : elle redit les
+// chemins sensibles du gabarit, et ne s'en écarte pas sans bruit.
+test("le dernier repli du banc de CODEOWNERS redit les cheminsSensibles du gabarit", () => {
+  const banc = readFileSync(join(RACINE, REF, "scripts/github/codeowners.test.mjs"), "utf8");
+  const liste = /^const GARDES = (\[[^\]]*\]);$/m.exec(banc)?.[1];
+  assert.ok(liste, "codeowners.test.mjs : const GARDES = [...] introuvable");
+  const gabarit = JSON.parse(readFileSync(join(RACINE, REF, "chaine.json"), "utf8"));
+  assert.deepEqual(JSON.parse(liste.replace(/'/g, '"')), gabarit.cheminsSensibles);
 });

@@ -1,6 +1,6 @@
 # Chaîne de production : qui fait quoi, du cadrage à develop
 
-Mode d'emploi des sessions de l'assistant de développement quand plusieurs travaillent en parallèle. Décision et raisons : `{{ADR_CHAINE}}`. Branches de sujet : `{{ADR_SUJET}}`. Contrat du projet : `.claude/chaine.json`.
+Mode d'emploi des sessions de l'assistant de développement quand plusieurs travaillent en parallèle. Décision et raisons : `{{ADR_CHAINE}}`. Branches de sujet : `{{ADR_SUJET}}`. CODEOWNERS : `{{ADR_CODEOWNERS}}`. Contrat du projet : `.claude/chaine.json`.
 
 **Pour lancer un chantier : `/maj-skills:chantier <objectif>`** dans une session neuve, celle du conducteur de chantier (un programme de plusieurs chantiers se lance par `/maj-skills:architecte`). Elle pose les questions de setup, écrit la fiche dans la carte et déroule ce fichier phase par phase ; relancée avec le nom du sujet, elle reprend à la phase en cours.
 
@@ -81,6 +81,8 @@ Puis, dans le corps, quatre sections que la fille lit au lieu de chercher :
 | `## Vérification` | commandes ciblées avant `pnpm check` (typecheck du paquet, specs nommées), index à régénérer, specs de garde à compléter                                                     | trois `pnpm check` complets pour un typecheck rouge     |
 
 Le gate `tickets` (`pnpm check:tickets`, `scripts/verify/tickets.mjs`) refuse un ticket `ready-for-agent` sans `Modèle:`, sans l'une de ces quatre sections, ou dont `Fichiers chauds:` touche un motif de `cheminsSensibles` sans `Label: contre-revue` (l'ancienne valeur `Label: architecte` a le même effet et reste acceptée) ; les tickets prêts d'avant l'installation du gate sont gelés dans `scripts/verify/tickets-dette.json`, qui ne reçoit jamais d'entrée nouvelle. Gabarit : `docs/agents/gabarits/ticket.issue.md`.
+
+**Chemin sensible = relu par un humain, tenu par GitHub.** Un motif de `cheminsSensibles` appartient aux `proprietaires` de `.claude/chaine.json` dans `.github/CODEOWNERS`, généré (`pnpm codeowners`, jamais à la main : `garde-fichiers` refuse l'édition et le gate `codeowners` tout écart) ; sur `develop` et `main`, GitHub exige l'approbation d'un propriétaire, et le capitaine attend sans renvoyer (`attend un propriétaire`). Une session n'approuve rien et ne contourne rien. Décision : `{{ADR_CODEOWNERS}}`.
 
 Taille : un jour au plus, une quinzaine de fichiers. Une fille qui atteint 400 k tokens de contexte est signalée (contrôlé par le conducteur à chaque réveil), jamais interrompue : c'est le signe d'un ticket mal découpé, le signalement remonte au produit (par l'architecte dans un programme), qui décide ce qu'il veut faire, et la ligne va dans `## Dépassements` de la carte.
 
