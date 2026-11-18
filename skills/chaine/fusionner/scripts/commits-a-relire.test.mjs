@@ -8,6 +8,8 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { commitsAJuger, estPointEntree, lireArguments, principal } from './commits-a-relire.mjs';
+// Posé dans un projet, depot-jouet.mjs est à côté (scripts/chaine/) ; dans le plugin, il est dans le skill sujet.
+const { environnementDeBanc } = await import(existsSync(new URL('./depot-jouet.mjs', import.meta.url)) ? './depot-jouet.mjs' : '../../sujet/scripts/depot-jouet.mjs');
 
 const ICI = dirname(fileURLToPath(import.meta.url));
 const LONG = `docs(x): ${'t'.repeat(122)}`; // 131 caractères, un ancien en-tête entré dans develop
@@ -17,7 +19,10 @@ const LONG = `docs(x): ${'t'.repeat(122)}`; // 131 caractères, un ancien en-tê
 // processus enfants comme ceux que le module lance dans ce processus (`commitsAJuger`), écrirait dans le dépôt
 // du développeur. Même précaution que `depot-jouet.mjs` et `poses.test.mjs`. NODE_TEST_CONTEXT : avec lui, un
 // `node --test` enfant rend ses résultats au parent au lieu de les jouer.
-for (const cle of Object.keys(process.env)) if (cle.startsWith('GIT_')) delete process.env[cle];
+// Le filtre est celui de `environnementDeBanc` (depot-jouet.mjs) ; seul NODE_TEST_CONTEXT reste dans ce processus.
+const SANS = environnementDeBanc();
+for (const cle of Object.keys(process.env)) if (!(cle in SANS) && cle !== 'NODE_TEST_CONTEXT') delete process.env[cle];
+process.env.NO_COLOR = '1';
 process.env.GIT_CONFIG_GLOBAL = '/dev/null';
 process.env.GIT_CONFIG_NOSYSTEM = '1';
 const ENV_PROPRE = Object.fromEntries(Object.entries(process.env).filter(([cle]) => cle !== 'NODE_TEST_CONTEXT'));
@@ -206,7 +211,7 @@ test('banc isolé : un GIT_DIR hérité (hook pre-push) ne fait écrire aucun gi
   const avant = empreinte(leurre);
   const r = spawnSync(process.execPath, ['--test', join(ICI, 'commits-a-relire.test.mjs')], {
     env: {
-      ...Object.fromEntries(Object.entries(process.env).filter(([cle]) => cle !== 'NODE_TEST_CONTEXT')),
+      ...ENV_PROPRE,
       GIT_DIR: leurre,
       GIT_INDEX_FILE: join(leurre, 'index-leurre'),
       BANC_ENFANT: '1',

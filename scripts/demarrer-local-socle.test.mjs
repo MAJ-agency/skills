@@ -7,7 +7,7 @@ import { createServer } from "node:net";
 import { join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { dossierTemporaire } from "../skills/chaine/sujet/scripts/depot-jouet.mjs";
+import { dossierTemporaire, environnementDeBanc } from "../skills/chaine/sujet/scripts/depot-jouet.mjs";
 
 const SQUELETTE = fileURLToPath(new URL("../skills/backend/socle-nest-hexagonal/references/squelette/", import.meta.url));
 
@@ -69,7 +69,7 @@ esac`,
   outil(fakes, "id", 'echo 1000');
   writeFileSync(join(tmp, "locales.txt"), `${locales}\n`);
   outil(fakes, "locale", `cat ${JSON.stringify(join(tmp, "locales.txt"))}`);
-  const env = Object.fromEntries(Object.entries(process.env).filter(([k]) => !k.startsWith("GIT_")));
+  const env = environnementDeBanc();
   const r = spawnSync("bash", [join(projet, "scripts", "db", "demarrer-local.sh")], {
     encoding: "utf8",
     env: {

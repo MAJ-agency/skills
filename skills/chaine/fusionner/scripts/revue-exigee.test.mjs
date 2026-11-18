@@ -249,7 +249,7 @@ test('CLI : le contrat se lit dans la base ; une PR qui retire son chemin sensib
   const { dossierTemporaire } = jouet;
   const d = dossierTemporaire('revue-base-');
   const env = {
-    ...Object.fromEntries(Object.entries(process.env).filter(([cle]) => !cle.startsWith('GIT_'))),
+    ...jouet.environnementDeBanc(),
     GIT_CONFIG_GLOBAL: '/dev/null',
     GIT_CONFIG_NOSYSTEM: '1',
     GIT_AUTHOR_NAME: 't',

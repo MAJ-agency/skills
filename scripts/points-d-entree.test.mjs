@@ -9,9 +9,10 @@ import { tmpdir } from "node:os";
 import { basename, dirname, join } from "node:path";
 import { after, test } from "node:test";
 import { fileURLToPath } from "node:url";
+import { environnementDeBanc } from "../skills/chaine/sujet/scripts/depot-jouet.mjs";
 
 const RACINE = join(dirname(fileURLToPath(import.meta.url)), "..");
-const SANS_GIT = Object.fromEntries(Object.entries(process.env).filter(([c]) => !c.startsWith("GIT_") && c !== "NODE_TEST_CONTEXT"));
+const SANS_GIT = environnementDeBanc();
 
 // Un script, ce qu'on lui donne et la preuve qu'il a agi (sa sortie propre, pas le code 0 d'un script muet).
 const SCRIPTS = [
