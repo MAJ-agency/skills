@@ -237,7 +237,7 @@ export function suiteSurBaseCible(fichier, specs, alias, existe) {
       const [avant, apres] = etoile === -1 ? [motif, null] : [motif.slice(0, etoile), motif.slice(etoile + 1)];
       if (etoile === -1 ? spec !== motif : !spec.startsWith(avant) || !spec.endsWith(apres)) return [];
       const capture = etoile === -1 ? "" : spec.slice(avant.length, spec.length - apres.length);
-      return cibles.map((c) => normaliser(c.replace("*", capture)));
+      return cibles.map((c) => normaliser(c.split("*").join(capture)));
     });
   };
   return specs.some(({ chemin, source }) =>

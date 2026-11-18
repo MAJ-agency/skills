@@ -302,6 +302,11 @@ test("suiteSurBaseCible : un import relatif ou par alias du fichier, de son doss
   assert.equal(cible('import { x } from "zod";'), false);
   // sans alias lisible, seuls les imports relatifs comptent
   assert.equal(cible('import { R } from "@u/users.repository";', undefined, fichier, []), false);
+  // une cible à deux `*` : chaque `*` reçoit la capture, et `$&` n'est pas un motif de remplacement
+  const deuxEtoiles = [{ motif: "@v/*", cibles: ["src/*/*"] }];
+  assert.equal(cible('import { R } from "@v/users/users.repository";', undefined, fichier, deuxEtoiles), false);
+  assert.equal(cible('import { R } from "@v/users";', undefined, "src/users/users.ts", deuxEtoiles), true);
+  assert.equal(cible('import { R } from "@v/$&";', undefined, "src/$&/$&.ts", deuxEtoiles), true);
   // aucune spec
   assert.equal(suiteSurBaseCible(fichier, [], alias, existe), false);
   // fins de ligne CRLF, dernière ligne sans fin de ligne
