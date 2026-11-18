@@ -1,0 +1,197 @@
+# La garde de commandes lit la sous-commande de git après ses options globales, et refuse toute façon de sauter les hooks git : reprise du ticket 34 de « gouverner nos boucles »
+
+Status: ready-for-agent
+Type: défaut
+Modèle: opus — une garde de sécurité, sur le lecteur par jetons de 7.12.0 qu'il faut comprendre avant d'y ajouter quoi que ce soit ; une dizaine de familles de contournement, chacune avec ses faux refus à éviter ; `/security-review` obligatoire. Une erreur laisse une session sauter les hooks git dans tous les projets.
+Blocked by: —
+Dépendances: — (aucune dépendance nouvelle)
+Fichiers chauds: `skills/chaine/socle-chaine-de-production/references/agent/regles.mjs`, `skills/chaine/socle-chaine-de-production/references/agent/regles.test.mjs`, `skills/chaine/socle-chaine-de-production/references/agent/garde-commandes.test.mjs`, `skills/chaine/socle-chaine-de-production/references/CONTENU.md`, `skills/chaine/socle-chaine-de-production/references/fragments/claude-md-fusion.md`, `.claude-plugin/plugin.json`, `NOTES-DE-VERSION.md`
+Label: contre-revue
+
+Spec : [`../remontees-iroki.spec.md`](../remontees-iroki.spec.md), ticket 17 (point D16, décision `A-28` ; `A-34` pour la note). Source : [`../sources/2026-11-18-remontees-iroki.md`](../sources/2026-11-18-remontees-iroki.md), point 16. Matière reprise : [`../../gouverner-nos-boucles/issues/34-hooks-git-que-l-agent-ne-desactive-pas-ref-de-suivi-et-push-matching.issue.md`](../../gouverner-nos-boucles/issues/34-hooks-git-que-l-agent-ne-desactive-pas-ref-de-suivi-et-push-matching.issue.md), **à lire en entier** (ses tables, ses décisions, ses tests, ses limites). Programme : [`../../../programmes/capitaine-a-jour-et-teste.programme.md`](../../../programmes/capitaine-a-jour-et-teste.programme.md) (`A-17`, `A-18`). Base : `origin/main` à `4a45634` (plugin **7.15.0**, **738 tests** ; `regles.test.mjs` 53 tests, `garde-commandes.test.mjs` 15). Faits relus et rejoués à la source le 2026-11-18 ; les écarts avec la spec et avec le ticket 34 sont sous `## Comments`.
+
+## Le besoin
+
+**Le défaut.** La garde de commandes refuse `--no-verify` par des motifs (`COMMANDES_INTERDITES`, `regles.mjs:80-90`) qui exigent la sous-commande juste après `git`. Une option globale de git placée avant elle (`-C`, `-c`, `--git-dir`, `--config-env`…) la cache. Et rien ne refuse les autres façons de sauter les hooks git : `HUSKY=0`, `core.hooksPath` posé par `-c`, par `GIT_CONFIG_*` ou par `git config`, un `include.path`.
+
+**Rejoué sur 7.15.0** (`decisionCommande` de `4a45634`, branche courante `feat/x`, branche par défaut `develop`) :
+
+- les cinq contournements de la spec **passent** : `git -C . commit --no-verify -m x`, `git -c core.hooksPath=/dev/null commit -m x`, `GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.hooksPath GIT_CONFIG_VALUE_0=/dev/null git commit -m x`, `git config core.hooksPath /dev/null`, `git --config-env core.hooksPath=VIDE commit -m x` ;
+- sur 72 commandes « à refuser » (les tests du ticket 34, ses refs de suivi, son push « matching », et les refus des bancs d'Iroki #652), **60 passent**. Seules 12 sont refusées, dont `git --git-dir .git push --no-verify …` par hasard : le motif lit `git` dans `.git` ;
+- `git --config-env user.name=HOME push origin HEAD:sujet/demo` passe le refus des sujets : `--config-env` n'est pas une option à valeur (`OPTIONS_GIT_A_VALEUR`, `regles.mjs:1809`), et sa valeur est prise pour la sous-commande (ticket 34, constaté sur un dépôt jouet) ;
+- `git push origin :` passe, alors qu'il pousse toute branche de même nom, `develop` comprise (ticket 34, joué) ;
+- sur 37 commandes « à laisser », 35 passent ; les deux faux refus connus (`git commit -m "--no-verify"`, `git commit -mn`) sont toujours là.
+
+Iroki l'a corrigé chez lui (`SPEC_ALL_SOC-4.70`, #652), sur sa garde à expressions. Le plugin lit les commandes par jetons depuis 7.12.0 (ticket 33, PR #98) : le correctif se **réécrit** sur ce lecteur.
+
+**Quand le ticket est fait :**
+
+1. Chaque appel de git se lit par ses mots : options globales (avec leurs valeurs, opaques ou non), puis sous-commande, puis arguments. Une seule fonction, partagée par la lecture des `git push` existante et par les refus nouveaux.
+2. Sont refusés, sous un seul message « hooks git » : `--no-verify` (et ses abréviations) et `-n` derrière n'importe quelles options globales ; `git pull --no-verify` et `git am -n` ; `core.hooksPath` et les `include` posés par `-c` ou `--config-env`, écrits ou retirés par `git config` ; `HUSKY`, `GIT_CONFIG_PARAMETERS` et `GIT_CONFIG_COUNT` affectés.
+3. `git update-ref` vers `refs/remotes/` est refusé, sous son propre message.
+4. `--config-env` est une option globale à valeur : un push vers un sujet derrière lui est refusé.
+5. Le push « matching » (`git push <distant> :`) est refusé comme une destination illisible.
+6. Rien de ce que 7.15.0 refuse ne passe, et les commandes ordinaires de la chaîne passent toujours.
+7. Le plugin prend une version, et `NOTES-DE-VERSION.md` dit ce qu'un projet repose.
+
+## Où
+
+`ag/` abrège `skills/chaine/socle-chaine-de-production/references/agent/`. Lignes relues sur `4a45634`.
+
+| Fichier | Lignes | Ce qu'on y fait |
+| --- | --- | --- |
+| `ag/regles.mjs` | 80-90 | `COMMANDES_INTERDITES` **ne change pas** : aucun motif n'est retiré ni assoupli. Les refus nouveaux s'ajoutent ailleurs ; la monotonie tient par construction. |
+| idem | 166-185 | Deux raisons nouvelles, `RAISON_HOOKS_GIT` et `RAISON_REF_DE_SUIVI` (texte en Décision 6). |
+| idem | 1809 | `--config-env` entre dans `OPTIONS_GIT_A_VALEUR`. |
+| idem | après 1828 (`lecturesDuProgramme`) | `appelsGit(lectures)` : pour chaque mot de programme git d'une lecture (`lecturesDuProgramme(mots, /(^|[/$])git$/i, /(^|\/)git$/)`, comme `lirePushs`), rend `{ globales: [{ option, valeur }], sous, args }`. Décision 1. |
+| idem | 1853-1885 (`lirePushs`) | La boucle des options globales (l. 1859-1860) passe par `appelsGit` : une seule lecture des options pour le push et pour les refus nouveaux. |
+| idem | 1936-1941 (`pushIllisible`) | Un refspec `:` ou `+:` est illisible (Décision 5). |
+| idem | après 1947 | Les prédicats nouveaux, exportés et testés un par un : `sauteLesHooks(commande)`, `ecritUneRefDeSuivi(commande)` (Décisions 2 à 4). |
+| idem | 1998-2026 (`decisionDuLecteur`) | Après le refus des `COMMANDES_INTERDITES` (l. 2003-2008) et avant celui des sujets (l. 2011) : `sauteLesHooks` → `RAISON_HOOKS_GIT`, puis `ecritUneRefDeSuivi` → `RAISON_REF_DE_SUIVI`. |
+| `ag/regles.test.mjs` | fin | Les bancs (voir « Ordre de travail »). |
+| `ag/garde-commandes.test.mjs` | fin | Un banc de bout en bout par le hook (voir « Ordre de travail »). |
+| `skills/chaine/socle-chaine-de-production/references/CONTENU.md` | 13 | La liste des refus de `garde-commandes` gagne les familles nouvelles ; la seconde « Restent hors de sa lecture » perd ce que le ticket ferme (`git am -n`, `git pull --no-verify`, `HUSKY=0`, l'option de `git` avant la sous-commande, les hooks coupés par la configuration, le push « matching », la ref de suivi fabriquée) et garde ce qui reste (Hors périmètre). |
+| `skills/chaine/socle-chaine-de-production/references/fragments/claude-md-fusion.md` | 10 | « refusent tout push forcé, `--no-verify`, … » devient « refusent tout push forcé, `--no-verify` et toute autre façon de sauter les hooks git (`HUSKY=0`, `core.hooksPath`, `git commit -n`), … ». |
+| Version | — | `.claude-plugin/plugin.json:3`, `NOTES-DE-VERSION.md` (voir « La version et la note »). |
+
+Appelant réel : `ag/garde-commandes.mjs` (le hook `PreToolUse` sur `Bash` des projets) appelle `decisionCommande` (`regles.mjs:1968-1983`), qui joue `decisionDuLecteur`, puis l'union avec la lecture de 7.9.x (`LECTURE_7_9`, l. 1981). Rien d'autre ne change dans cette union.
+
+**Le lecteur à connaître avant d'écrire** : `lireCommande` (`regles.mjs:1499-1562`) rend `commandes` (chaque commande simple, avec ses `affectations` `{ nom, mot }` et ses `mots`, substitutions comprises), `textes` et `cites` (lus par `COMMANDES_INTERDITES`), et `lectures` (L1 et L2, lues par `pushs`). Relevé sur `4a45634` :
+
+- dans `lectures`, `$(pwd)`, `` `…` ``, `${x:-a b}` et `<(…)` sont un seul mot, `$SUBSTITUTION` ;
+- `/tmp/mon\ dossier` et `"core.hooksPath=/a b"` sont un seul mot en L1, coupé en L2 ; `core."hooksPath"=/x` et `core.hooks\Path=/x` se lisent `core.hooksPath=/x` ;
+- `export HUSKY=0` n'a aucune lecture (aucun `git`), mais figure dans `commandes`, avec les mots `export` et `HUSKY=0`.
+
+**Références, à réécrire et jamais à copier** :
+
+- le ticket 34, ses Décisions 1 à 5, ses tests (§ « Les tests de l'ancien 28 ») et ses limites, écrits sur la lecture par motifs ; le code de l'ancien 28 (`git show 362f7f4:docs/issues/gouverner-nos-boucles/issues/28-pre-push-confirme-par-le-distant-et-hooks-git-que-l-agent-ne-desactive-pas.issue.md`, § 3) en donne le comportement, pas la forme ;
+- Iroki, `SPEC_ALL_SOC-4.70`, PR #652 (`f3cbc5a5`, sur `develop`), garde à expressions : `scripts/agent/regles.mjs` (`sansOptionsGlobalesGit`, `motsOpaques`, `optionsGitIllisibles`, `ecritHooksPath`, `poseHooksPath`) ; ses bancs, `scripts/agent/regles.test.mjs`, tests titrés « SPEC_ALL_SOC-4.70 — … ». Ses listes de commandes deviennent nos bancs, à quatre décisions près (`## Comments`).
+
+Règles à lire : le ticket 34 en entier ; `regles.mjs` l. 1495-1562 (contrat de `lireCommande`), l. 1800-1960 (lecture des push), l. 1960-2026 (décision) ; `regles.test.mjs` l. 1-60 (forme des tests).
+
+## Décisions
+
+Tenues : `A-28` (le ticket 34 repris ici, les cas d'Iroki et les cinq contournements comme bancs, réécrit sur la lecture par jetons) ; les Décisions 1 à 4 du ticket 34. Le ticket tranche ses questions ouvertes (« À trancher au triage ») ci-dessous.
+
+1. **`appelsGit(lectures)`**, sur les mots de chaque lecture, comme `lirePushs` :
+   - après le mot de programme, tant qu'un mot commence par `-` : c'est une option globale. Une option de `OPTIONS_GIT_A_VALEUR` (avec `--config-env`) prend le mot suivant pour valeur, quel qu'il soit, opaque compris (`$SUBSTITUTION`) ; `--opt=valeur` est une option à valeur collée ; toute autre est sans valeur (`-p`, `-P`, `--bare`, `--no-pager`, `--paginate`, `--no-replace-objects`, `--literal-pathspecs`, `--no-optional-locks`, et une option inconnue, que git refusera de toute façon) ;
+   - le mot suivant est la sous-commande, en minuscules ; s'il porte `$` ou un accent grave, elle est **illisible** (`git $(echo commit) …`) ;
+   - le reste, ce sont les arguments.
+
+   Un refus sur l'une des lectures suffit : `/tmp/mon dossier`, entier en L1, se lit juste au moins une fois. Seul le premier `git` d'un segment compte, comme pour `pushs` : `git commit -m "… git config core.hooksPath x"` n'est pas un `git config`.
+2. **`sauteLesHooks`** est vrai si un appel de git :
+   - a pour sous-commande `commit`, `push`, `merge`, `am`, `rebase` ou `pull`, ou une sous-commande illisible, et un argument qui est `--no-verify` ou l'une de ses abréviations (`a.length >= 9 && '--no-verify'.startsWith(a.toLowerCase())`) ; `--no-verify-signatures` passe ;
+   - a pour sous-commande `commit`, `am` ou une sous-commande illisible, et un groupe d'options courtes qui porte `n` avant la première lettre à valeur (`commit` : `mFcCtuS` ; `am` : `CpS`) : `-n`, `-nm`, `-anm`, `-qn` refusés ; `-am x` et `-mn` passent ici (le second reste refusé par l'union, voir Hors périmètre) ; `git push -n` (`--dry-run`) passe ;
+   - porte une option globale `-c` ou `--config-env` dont la clé (avant le premier `=`, comparée sans casse) est `core.hookspath`, `include.path` ou `includeif.<…>.path`, **quelle que soit la sous-commande** (décision 2 du ticket 34) ;
+   - est un `git config` qui écrit, vide ou retire l'une de ces clés, ou retire ou renomme la section `core`. Lecture des arguments, guillemets déjà retirés par le lecteur :
+     - lecture, qui passe : une action de lecture **avant** la clé (`--get`, `--get-all`, `--get-regexp`, `--get-urlmatch`, `--list`, `-l`, ou les formes `get`, `list`), ou la clé seule ;
+     - options neutres, qui ne changent rien : `--global`, `--local`, `--system`, `--worktree`, `--show-origin`, `--show-scope`, `--null`, `-z`, `--name-only`, `--includes`, `--no-includes`, et, avec leur valeur, `--file`, `-f`, `--blob`, `--type`, `--default`, `--comment` ;
+     - écriture, qui est refusée : `--add`, `--replace-all`, `--unset`, `--unset-all`, `--remove-section core`, `--rename-section core …`, `-e`, `--edit`, les formes `set`, `unset`, `remove-section`, `rename-section`, deux positionnels ou plus (clé et valeur, vide comprise : `""`), et **toute option inconnue** devant la clé, qui ferme l'exemption de lecture (`git config --comment get core.hooksPath /x` est une écriture) ;
+   - ou si une commande simple de `lireCommande(commande).commandes` affecte `HUSKY`, `GIT_CONFIG_PARAMETERS` ou `GIT_CONFIG_COUNT`, quelle que soit la valeur : en position d'affectation (`HUSKY=0 git commit`, `HUSKY=0` seul sur sa ligne), ou comme argument de `export`, `declare`, `typeset`, `readonly`, `local` ou `env`. En argument d'un autre programme, ces mots passent (`echo HUSKY=0`, `grep -rn HUSKY=0 .husky`, `git log --grep HUSKY=0`).
+3. **`ecritUneRefDeSuivi`** est vrai pour un `git update-ref` dont la première ref positionnelle (après `-d`, `-m <msg>`, `--no-deref`, `--create-reflog`) commence par `refs/remotes/`, et pour tout `git update-ref --stdin` : son entrée ne se lit pas (décision 1 du ticket 34 ; question « refus utile ? » tranchée : oui, `ticket-libre.mjs`, `next-id-branches.mjs` et `coverage-diff --base-auto` lisent encore ces refs). `git update-ref -d refs/heads/tmp` passe.
+4. **`--config-env`** : dans `OPTIONS_GIT_A_VALEUR`, donc lu par `pushs` aussi. `git --config-env user.name=HOME push origin HEAD:sujet/demo` est refusé par la raison des sujets.
+5. **Le push « matching »** entre dans ce ticket (question tranchée) : un refspec `:` ou `+:` rend `pushIllisible` vrai (`RAISON_PUSH_ILLISIBLE`, inchangée). `push.default=matching` porté par la configuration reste hors de lecture.
+6. **Les messages**, à garder tels quels (les bancs les lisent) :
+   - `RAISON_HOOKS_GIT` : « hooks git sautés (--no-verify, -n, HUSKY=0, core.hooksPath, include.path, GIT_CONFIG_*) : ils sont le pare-feu local, corriger ce qu'ils signalent. Un banc installe ses hooks dans son dépôt jouet par son script, jamais par une commande de session. »
+   - `RAISON_REF_DE_SUIVI` : « une ref de suivi (refs/remotes/…) ne se fabrique pas : des scripts de la chaîne la lisent comme l'état du distant. `git fetch origin` la met à jour. »
+7. **Ordre dans `decisionDuLecteur`** : les `COMMANDES_INTERDITES` d'abord (leur raison reste celle d'aujourd'hui pour ce qu'ils refusent déjà), puis `sauteLesHooks`, puis `ecritUneRefDeSuivi`, puis les push comme aujourd'hui.
+8. **La fille tranche seule**, par défaut prudent, et le note sous `## Comments` : la forme interne d'`appelsGit` et des prédicats, la liste exacte des options neutres de `git config` si git en a d'autres (une option non listée est une écriture : c'est le défaut prudent), le découpage des tests. Elle ne tranche **pas** : la monotonie (aucun motif retiré), le refus de `-c core.hooksPath` avant toute sous-commande, le refus de `git config --unset core.hooksPath`, les messages.
+
+## Ordre de travail (TDD)
+
+Une branche de travail partie d'`origin/main`. Chaque test est vu rouge avant le code qui le rend vert. Commits sous les hooks, jamais `--no-verify`. Ce dépôt n'a pas de garde d'agent (`.claude/settings.json` ne porte que les hooks de graphify) : la session qui édite `regles.mjs` ne se bloque pas elle-même. Sa description de PR et ses messages citeront `HUSKY=0` ou `git config core.hooksPath` : ils passent par un fichier (`git commit -F <fichier>`, `gh pr create --body-file <fichier>` ou l'outil GitHub MCP), comme le ticket 34 le dit.
+
+### 1. Les bancs, vus rouges sur `main`
+
+Dans `ag/regles.test.mjs`, avec `const enBranche = { brancheCourante: () => 'feat/x', brancheParDefaut: () => 'develop' }`. Chaque test liste ses commandes ; un refus vérifie `decision === 'refuser'` **et** la raison attendue (motif `/hooks git/`, `/refs\/remotes/`, ou la raison des sujets). Titres à garder tels quels :
+
+1. « ticket 17 : les cinq contournements joués sur 7.15.0 sont refusés » — les cinq commandes du « Besoin ».
+2. « ticket 17 : --no-verify et -n se lisent après les options globales de git, valeur opaque comprise » — `git -C . commit --no-verify -m x`, `git --git-dir=.git push --no-verify origin feat/a`, `git --work-tree=. commit --no-verify -m x`, `git -c a=b commit -n -m x`, `git -C /tmp/w -c a=b merge --no-verify feat/a`, `git --no-pager -c a=b rebase --no-veri main`, `git -p --bare am --no-verify x.patch`, `git --namespace=n --exec-path=/x commit --no-verify -m x`, `git --attr-source HEAD commit --no-verify -m x`, `git --foo=bar commit -nm x`, `/usr/bin/git -C "$(pwd)" commit --no-verify -m x`, `git -c user.name='a b' commit --no-verify -m x`, `git -C $(git rev-parse --show-toplevel) commit --no-verify -m x`, `git -c a=$(echo 1) commit -n -m x`, ``git -C `dirname $PWD/x` push --no-verify origin feat/a``, `git -C /tmp/mon\ dossier commit --no-verify -m x`, `git -C $((1 + 2)) commit --no-verify -m x`, `git -C ${x:-a b} commit --no-verify -m x`, `git -C $(pwd) commit -n -m x`, `git $(echo commit) --no-verify -m x`, `cat <<< 'git commit --no-verify -m x' | bash`, `sh -c "$(cat <<< 'git commit --no-verify -m x')"`.
+3. « ticket 17 : git pull --no-verify et git am -n sont refusés ; --no-verify-signatures et git push -n passent ».
+4. « ticket 17 : core.hooksPath et include posés par -c ou --config-env sont refusés avant toute sous-commande » — les formes du ticket 34 et d'Iroki (`git -c "core.hooksPath=/a b" commit`, ``git -c core."hooksPath"=/tmp/h commit``, `git -c 'core.hooks'Path=/x commit`, `git -c core.hooks\Path=/x commit`, `git -c a=b -c core.hooksPath=/x rebase main`, `git -c core.hooksPath=/x checkout feat/a`, `git -c core.hooksPath=/x status`, `git --config-env=core.hooksPath=HP commit -m x`, `git -c include.path=/tmp/x.cfg commit -m x`, `git -c includeIf.gitdir:/x/.path=/tmp/x.cfg commit -m x`).
+5. « ticket 17 : git config qui écrit, vide ou retire core.hooksPath ou un include est refusé ; la lecture passe » — à refuser : la ligne « `core.hooksPath` écrit par `git config` » du tableau du ticket 34, plus `git config include.path /tmp/x.cfg`, `git config --add core.hooksPath /tmp`, `git -C . config core.hooksPath /tmp`, `git config core."hooksPath" /x`, `git config core.hooksPath list`, `git config --comment get core.hooksPath /tmp/h`, `git config --comment=get core.hooksPath /tmp/h`, `git config --inconnue --get core.hooksPath /tmp/h`, `git config -e`. À laisser : `git config --get core.hooksPath`, `git config get core.hooksPath`, `git config core.hooksPath`, `git config --global core.hooksPath`, `git config --list`, `git config -l`, `git config --show-origin --get core.hooksPath`, `git config --comment x --get core.hooksPath`, `git config --file x.cfg get core.hooksPath`, `git config --get include.path`, `git config --get-urlmatch core.hooksPath https://example.org`, `git config user.name x`.
+6. « ticket 17 : HUSKY, GIT_CONFIG_PARAMETERS et GIT_CONFIG_COUNT affectés ou exportés sont refusés ; en argument, ils passent » — à refuser : la ligne « `HUSKY` affecté » du tableau du ticket 34 (`HUSKY=0⏎git commit -m x` compris), et la ligne `GIT_CONFIG_*` ; à laisser : `echo HUSKY=0`, `grep -rn HUSKY=0 .husky`, `git log --grep HUSKY=0`, `if grep -q HUSKY=0 f; then echo oui; fi`, `MY_HUSKY=0 pnpm test`, `HUSKY_GIT_PARAMS=x git commit -m x`, `GIT_CONFIG_NOSYSTEM=1 git commit -m x`.
+7. « ticket 17 : git update-ref vers refs/remotes est refusé ; une branche locale passe » — les quatre refus du ticket 34, `git update-ref --stdin <<<"update refs/remotes/origin/x HEAD"` ; à laisser : `git update-ref -d refs/heads/tmp`.
+8. « ticket 17 : --config-env prend sa valeur, un push vers un sujet derrière lui est refusé » — `git --config-env user.name=HOME push origin HEAD:sujet/demo`, raison des sujets.
+9. « ticket 17 : le push matching est refusé comme une destination illisible » — `git push origin :`, `git push origin : `, `git push -u origin :`.
+10. « ticket 17 : les commandes ordinaires de la chaîne passent toujours » — le banc d'Iroki (#652, « le banc : les commandes ordinaires de la chaîne passent toujours, chaque forme avec sa source »), noms de tickets retirés, et la liste « À laisser passer » du ticket 34, chacune avec sa source en commentaire.
+11. « ticket 17 : chaque refus du ticket, coupé en ligne continuée à chaque espace, reste un refus » — généré depuis les listes à refuser des tests 1 à 9 (`\` puis saut de ligne à la place de chaque espace hors des guillemets), comme le contrôle « lignes continuées » du ticket 34.
+
+Plus les tests unitaires d'`appelsGit` (options globales, valeur opaque, sous-commande illisible, premier `git` du segment seul). Tous les tests 1 à 9 sont **rouges sur `main`** (chacun a au moins une commande qui passe aujourd'hui) ; le 10 est vert sur `main` et le reste.
+
+Dans `ag/garde-commandes.test.mjs`, sur le modèle de ses tests : « ticket 17 : le hook refuse git -C . commit --no-verify et dit hooks git » (entrée JSON du hook, sortie de refus, raison).
+
+### 2. Le code
+
+Dans l'ordre : `OPTIONS_GIT_A_VALEUR`, `appelsGit` et `lirePushs` (tous les tests existants restent verts), `pushIllisible`, `sauteLesHooks`, `ecritUneRefDeSuivi`, les raisons, `decisionDuLecteur`. Puis les textes (`CONTENU.md:13`, `claude-md-fusion.md:10`).
+
+### 3. La version et la note
+
+- `.claude-plugin/plugin.json:3` : **mineure ou patch selon `README.md:186`, sur la version de `main` au moment de la livraison**. Ici, une garde qui refuse davantage, sans contrat changé : un patch suffit ; une mineure si l'architecte juge que les commandes refusées changent ce qu'une session peut faire. Si `main` a bougé pendant le travail, fusionner `origin/main` dans la branche par un commit de merge (jamais de rebase ni de push forcé), prendre le numéro suivant celui de `main`, et le reporter dans la note.
+- `NOTES-DE-VERSION.md` : une note **en tête**, sous le titre du fichier. Si le fichier n'existe pas encore sur `main` (le ticket 1 le crée), le créer avec l'en-tête que le ticket 1 donne, recopié tel quel. La note :
+
+  ```markdown
+  ## <version> — <date de la PR>
+
+  ### Ce qui change
+
+  La garde de commandes lit la sous-commande de git après ses options globales (`-C`, `-c`, `--git-dir`, `--config-env`…), valeurs opaques comprises. Elle refuse toute façon de sauter les hooks git : `--no-verify` et `-n` derrière une option globale, `git pull --no-verify`, `git am -n`, `core.hooksPath` ou un `include` posé par `-c`, `--config-env` ou `git config` (`--unset` compris), `HUSKY`, `GIT_CONFIG_PARAMETERS` et `GIT_CONFIG_COUNT` affectés. Elle refuse aussi une ref de suivi fabriquée (`git update-ref refs/remotes/…`) et le push « matching » (`git push origin :`).
+
+  ### Ce qu'un projet fait pour en profiter
+
+  1. Mettre à jour le plugin : `claude plugin marketplace update maj`, puis `claude plugin update maj-skills@maj`, puis redémarrer Claude Code.
+  2. Dans une PR du projet, recopier `regles.mjs` et `regles.test.mjs` depuis `~/.claude/plugins/marketplaces/maj/skills/chaine/socle-chaine-de-production/references/agent/` vers `scripts/agent/`, **d'un seul coup** : copie à côté, `node --check`, `node -e "import('./scripts/agent/<copie>')"`, puis `mv`. Un `regles.mjs` à moitié écrit fait refuser toute commande de la session. `scripts/agent/**` est un chemin sensible : contre-revue et `/security-review`.
+  3. Recopier la ligne « Hooks d'agent » du fragment `claude-md-fusion.md` dans `CLAUDE.md`, si le projet l'a gardée telle quelle.
+  4. `node --test scripts/agent/*.test.mjs` : vert.
+
+  **Iroki** : sa garde lit encore les commandes par expressions (avant 7.12.0). Reposer `regles.mjs` du plugin remplace sa lecture et son correctif #652 : le passage à la lecture par jetons en est le préalable (spec, Hors périmètre). Rejouer ses bancs « SPEC_ALL_SOC-4.70 » contre le fichier du plugin avant de retirer les siens. Quatre de ses décisions changent : `git config --unset core.hooksPath`, `git -c core.hooksPath=/x status` et `GIT_CONFIG_COUNT=…` d'une autre clé deviennent des refus ; `git -C <(…) commit -m x`, qu'il refuse comme illisible, passe (il est lu, et ne saute rien).
+  ```
+
+## Surfaces
+
+| Surface | Preuve |
+| --- | --- |
+| Les cinq contournements de la spec | `skills/chaine/socle-chaine-de-production/references/agent/regles.test.mjs` « ticket 17 : les cinq contournements joués sur 7.15.0 sont refusés » |
+| `--no-verify` et `-n` après les options globales, valeur opaque, sous-commande illisible, here-string donnée à un shell | idem, « ticket 17 : --no-verify et -n se lisent après les options globales de git, valeur opaque comprise » |
+| `pull` et `am` | idem, « ticket 17 : git pull --no-verify et git am -n sont refusés ; --no-verify-signatures et git push -n passent » |
+| `-c` et `--config-env` | idem, « ticket 17 : core.hooksPath et include posés par -c ou --config-env sont refusés avant toute sous-commande » |
+| `git config` | idem, « ticket 17 : git config qui écrit, vide ou retire core.hooksPath ou un include est refusé ; la lecture passe » |
+| Affectations d'environnement | idem, « ticket 17 : HUSKY, GIT_CONFIG_PARAMETERS et GIT_CONFIG_COUNT affectés ou exportés sont refusés ; en argument, ils passent » |
+| Refs de suivi | idem, « ticket 17 : git update-ref vers refs/remotes est refusé ; une branche locale passe » |
+| `--config-env` devant un push vers un sujet | idem, « ticket 17 : --config-env prend sa valeur, un push vers un sujet derrière lui est refusé » |
+| Push « matching » | idem, « ticket 17 : le push matching est refusé comme une destination illisible » |
+| Pas de faux refus nouveau | idem, « ticket 17 : les commandes ordinaires de la chaîne passent toujours » |
+| Lignes continuées | idem, « ticket 17 : chaque refus du ticket, coupé en ligne continuée à chaque espace, reste un refus » |
+| Le hook de bout en bout | `skills/chaine/socle-chaine-de-production/references/agent/garde-commandes.test.mjs` « ticket 17 : le hook refuse git -C . commit --no-verify et dit hooks git » |
+| Monotonie | les 53 tests existants de `regles.test.mjs` et les 15 de `garde-commandes.test.mjs`, inchangés |
+
+## Vérification
+
+1. Ciblée : `node --test skills/chaine/socle-chaine-de-production/references/agent/regles.test.mjs skills/chaine/socle-chaine-de-production/references/agent/garde-commandes.test.mjs` (68 tests avant).
+2. `pnpm test` complet : le nombre de `main` au départ (**738** sur `4a45634`), plus les tests ajoutés, zéro échec. Aucun test retiré, sauté ni assoupli ; aucun motif de `COMMANDES_INTERDITES` retiré.
+3. **Non-régression des laissez-passer**, jouée une fois et collée dans la PR : un script jetable extrait chaque commande `git …` des blocs `bash` et des spans de code des `SKILL.md` et des `references/**/*.md` du plugin, retire celles qu'un texte présente comme interdites, et joue `decisionCommande` sur `4a45634` puis sur la branche. Toute commande refusée par la branche et pas par `main` est nommée dans la PR, avec sa raison : soit un contournement (gardé), soit un faux refus (corrigé avant la livraison).
+4. **Mutations**, chacune jouée sur une copie jetable, vue rouge, puis annulée, listées dans la PR : `appelsGit` ne saute plus les options globales (test 2) ; `--config-env` retiré de `OPTIONS_GIT_A_VALEUR` (test 8) ; l'exemption de lecture de `git config` acceptée après une option inconnue (test 5) ; une affectation lue seulement en tête de commande, pas derrière `export` (test 6).
+5. `graphify update .`
+6. **Revue de ticket** (`/maj-skills:revue-de-ticket`, trois sous-agents), section `## Revue de ticket` dans le corps de la PR.
+7. **`/security-review`, obligatoire** : la garde est un chemin sensible du gabarit (`scripts/agent/**`), et chez Iroki elle a trouvé deux contournements que deux contre-revues n'avaient pas vus. Son rendu va dans une section `## Sécurité` de la PR, chaque constat suivi de son test.
+8. **Livraison sur ce dépôt.** Il n'a ni `develop` ni `.claude/chaine.json`, et aucun capitaine : le produit fusionne (fiche du programme, `Capitaines:`).
+   - La session ouvre une PR vers `main`, hors brouillon, titrée `fix(chaine): la garde lit git après ses options globales et refuse de sauter les hooks (plugin <version>)`. Le titre tient en 120 caractères avec ` (#n)`.
+   - Le ticket porte `Label: contre-revue` : la session ne pose **ni** le commentaire `à-fusionner au sommet <sha>` **ni** le label (`architecte/references/lancement.md:76`). Elle écrit à l'architecte (`send_message`) dès la PR livrée.
+   - L'architecte contre-relit par un sous-agent. Puis il écrit sur la PR le commentaire `à-fusionner au sommet <sha>` (le sha complet du sommet relu) et pose `à-fusionner` (`lancement.md:80`). Le produit fusionne.
+   - Dans la PR, le ticket passe à `Status: Fait — PR #<n>` ; le ticket 34 de `gouverner-nos-boucles` passe à `Status: Fait — PR #<n> (ticket 17 de capitaine-a-jour-et-teste)`.
+
+## Hors périmètre
+
+- **Ticket 18** : `git commit --amend` refusé (`A-30`), la garde qui ne peut pas charger `regles.mjs` (`A-29`), `/security-review` vérifié par le capitaine (`A-31`).
+- Les deux faux refus de la PR 89 (`git commit -m "--no-verify"`, `git commit -mn`) : l'union avec la lecture de 7.9.x (`regles.mjs:1976-1981`) les refuse, et elle ne change pas ici.
+- Le here-doc fermé par `EOF)` dans une substitution (commentaire du 2026-11-16 au ticket 34) : c'est le lecteur de 7.12.0, pas la lecture de git ; rejoué sur 7.15.0, il passe encore. À un ticket du lecteur (voir `## Comments`).
+- Ce qui reste hors de lecture, écrit dans `CONTENU.md` : `bash -c` d'une chaîne construite, un alias git, `GIT_CONFIG_GLOBAL` ou `GIT_CONFIG_SYSTEM` vers un fichier, `push.default=matching` porté par la configuration, `rm -rf .husky/_`, l'édition de `.husky/*`, un script lancé par la session, `git fetch . X:refs/remotes/…`, `git push . X:refs/remotes/…`, `git symbolic-ref refs/remotes/…`.
+- Le passage de la garde d'Iroki à la lecture par jetons.
+
+## Comments
+
+- 2026-11-18 — Ticket écrit par un sous-agent de l'architecte : `regles.mjs` de `4a45634` rejoué sur les listes du ticket 34 et sur les bancs d'Iroki #652 (`f3cbc5a5`). Écarts avec la spec et le ticket 34 :
+  - Spec : les cinq contournements de D16 sont exacts, tous rejoués. Le ticket 34 est bien `needs-triage` et débloqué (le ticket 33 est `Fait — PR #98`, plugin 7.12.0).
+  - Ticket 34 : ses trois questions « à trancher » le sont ici (push « matching » dedans, refus des refs de suivi, faux refus de la PR 89 hors périmètre). Le trou du here-doc `EOF)`, que l'architecte y avait ajouté le 2026-11-16, n'est pas repris : il relève du lecteur. Les here-strings données à un shell (`cat <<< '…' | bash`) le sont : elles tombent avec la lecture de git sur `lectures` (test 2).
+  - Iroki #652 diverge du ticket 34 sur quatre points, tranchés pour le ticket 34 et par défaut prudent : `git config --unset core.hooksPath` passe chez Iroki, alors que retirer la clé rend `.git/hooks`, sans les hooks de husky ; `git -c core.hooksPath=/x status` passe chez Iroki, sans usage légitime ; `GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=gc.autoDetach …` passe chez Iroki, alors qu'une session n'a jamais à le taper (`boucle.sh` le pose dans un script, que la garde ne lit pas) ; `git -C <(echo a b) commit -m x`, refusé chez Iroki comme illisible, passe ici, parce qu'il est lu et ne saute rien.
+  - Les « trois outils de la relecture » du ticket 34 (la table de 135 commandes, la non-régression de 4 464 variantes) ne sont pas dans le dépôt. Le ticket les remplace par les tests 1 à 11 et par la Vérification 3.
