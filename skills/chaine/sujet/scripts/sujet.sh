@@ -489,51 +489,58 @@ recibler_specs() {
   fi
 }
 
-# Sous-PR en conflit avec son sujet sur des index générés seuls (deux sous-PR qui régénèrent le même
-# `openapi.json`, cas vécu) : un index ne se fusionne jamais à la main, le capitaine met la branche à
-# jour (merge, avance rapide, jamais de force : la branche appartient à une autre session), régénère,
-# pousse, et sort en 8 ; la CI repart, la sous-PR repasse au tour suivant. Sans conflit : rien n'est
-# touché. Conflit hors index : annulé, sortie 3 (renvoi), branche intacte.
+# Sous-PR en retard sur son sujet (règle d'ascendance, `ascendance` de github.sh : `retard` ou `conflit-index`),
+# documentation comprise : le capitaine met la branche à jour (merge, avance rapide, jamais de force : la branche
+# appartient à une autre session), régénère les index (un index ne se fusionne jamais à la main : en conflit, la
+# version du sujet, puis la régénération fait foi), committe et pousse ; `SOMMET_POUSSE` est le nouveau sommet, dont
+# l'appelant attend la CI. Conflit hors index : annulé, sortie 3 (renvoi), branche intacte.
 mettre_a_jour_sous_pr() {
-  local n=$1 base=$2 tete=$3 conflits autres sortie statut
+  local n=$1 base=$2 tete=$3 conflits autres sortie statut avant fusion_en_cours=0
   [ -z "$(git status --porcelain)" ] || sortir 6 "arbre de travail pas propre : committer ou ranger d'abord, puis relancer (rien à corriger côté PR)"
-  git switch -q -C "capitaine/$n" "origin/$tete"
-  if sortie=$(git merge -q --no-edit "origin/$base" 2>&1); then
-    git switch -q --detach origin/develop # fusion propre : rien à pousser, le squash suit
-    return 0
-  fi
-  conflits=$(git diff --name-only --diff-filter=U)
-  if [ -z "$conflits" ]; then # aucun fichier en conflit : un refus (hook commit-msg, fichier non suivi écrasé)
-    printf '%s\n' "$sortie" >&2
-    annuler_fusion
-    git switch -q --detach origin/develop
-    sortir 3 "fusion de $base dans #$n refusée par un hook git ou un fichier non suivi : sortie ci-dessus ; corriger, jamais en sautant le hook"
-  fi
-  autres=$(printf '%s\n' "$conflits" | grep -Ev "$GENERES" || true)
-  if [ -n "$autres" ]; then
-    annuler_fusion
-    git switch -q --detach origin/develop
-    sortir 3 "fusion refusée par GitHub (conflit avec $base hors index générés : $(tr '\n' ' ' <<<"$autres")) : renvoi"
-  fi
-  # shellcheck disable=SC2086
-  git checkout --theirs -- $conflits && git add -- $conflits
+  git fetch -q origin "+refs/heads/$tete:refs/remotes/origin/$tete"
+  avant=$(git rev-parse "origin/$tete")
+  git switch -q -C "capitaine/$n" "$avant"
   local echec
   echec() {
     git merge --abort 2>/dev/null || git reset -q --hard
     git switch -q --detach origin/develop
     sortir 3 "$1 : mise à jour de #$n avec $base annulée"
   }
+  if ! sortie=$(git merge -q --no-edit "origin/$base" 2>&1); then
+    fusion_en_cours=1
+    conflits=$(git diff --name-only --diff-filter=U)
+    if [ -z "$conflits" ]; then # aucun fichier en conflit : un refus (hook commit-msg, fichier non suivi écrasé)
+      printf '%s\n' "$sortie" >&2
+      annuler_fusion
+      git switch -q --detach origin/develop
+      sortir 3 "fusion de $base dans #$n refusée par un hook git ou un fichier non suivi : sortie ci-dessus ; corriger, jamais en sautant le hook"
+    fi
+    autres=$(printf '%s\n' "$conflits" | grep -Ev "$GENERES" || true)
+    if [ -n "$autres" ]; then
+      annuler_fusion
+      git switch -q --detach origin/develop
+      sortir 3 "fusion refusée par GitHub (conflit avec $base hors index générés : $(tr '\n' ' ' <<<"$autres")) : renvoi"
+    fi
+    # shellcheck disable=SC2086
+    git checkout --theirs -- $conflits && git add -- $conflits
+  fi
   pnpm install --frozen-lockfile --prefer-offline >/dev/null 2>&1 || echec "pnpm install en échec"
   regenerer_index || echec "gate des index/registres en échec"
-  jouer_ou_dire "git commit -q --no-edit" || echec "commit refusé par un hook git (sortie ci-dessus)"
-  pousser "HEAD:refs/heads/$tete" "$tete" "$(git rev-parse "origin/$tete")" && statut=0 || statut=$?
+  if [ "$fusion_en_cours" = 1 ]; then
+    jouer_ou_dire "git commit -q --no-edit" || echec "commit refusé par un hook git (sortie ci-dessus)"
+  elif ! git diff --cached --quiet; then
+    jouer_ou_dire "git commit -q -m 'docs: régénère les index après mise à jour avec $base'" ||
+      echec "commit refusé par un hook git (sortie ci-dessus)"
+  fi
+  pousser "HEAD:refs/heads/$tete" "$tete" "$avant" && statut=0 || statut=$?
   if [ "$statut" != 0 ]; then
     git switch -q --detach origin/develop
     [ "$statut" = 5 ] || sortir 3 "mise à jour de #$n refusée par le hook pre-push (ou le distant) : sortie ci-dessus"
     sortir 5 "la sous-PR #$n a bougé : mise à jour non poussée, la boucle la reprendra"
   fi
+  SOMMET_POUSSE=$(git rev-parse HEAD)
   git switch -q --detach origin/develop
-  sortir 8 "#$n mise à jour avec $base (index régénérés), CI relancée"
+  echo "#$n en retard sur $base : mise à jour poussée ($(git rev-parse --short "$SOMMET_POUSSE")), attente de la CI"
 }
 
 # Sous-PR dont la tête est develop, main, la branche par défaut ou un sujet : mettre_a_jour_sous_pr et
@@ -739,40 +746,93 @@ fusionner() {
   # (mise à jour, avance, rafraichir) écrirait à travers lui.
   motif=$(liens_sur_index "$sommet" "origin/$base") || sortir 4 "#$n $motif"
 
-  # Checks exigés sur develop, lus sur le sommet de la sous-PR. Les E2E y sont sautés
-  # (branche de sujet), donc comptés réussis : ils tournent sur la PR finale.
-  local requis etats rouges='' attente=0 nom c
-  requis=$(checks_exiges | jq -r '.[]')
-  etats=$(checks_commit "$sommet")
-  while IFS= read -r nom; do
-    c=$(printf '%s\n' "$etats" | awk -F '\t' -v n="$nom" '$1 == n { c = $2 } END { print c }')
-    case "$c" in
-      SUCCESS | SKIPPED | NEUTRAL) ;;
-      FAILURE | CANCELLED | TIMED_OUT | ACTION_REQUIRED | STARTUP_FAILURE | ERROR) rouges="$rouges $nom ;" ;;
-      *) attente=1 ;;
-    esac
-  done <<<"$requis"
-  [ -z "$rouges" ] || sortir 3 "checks rouges sur #$n :$rouges"
-  [ "$attente" = 0 ] || sortir 5 "checks encore en cours sur #$n : reprise au tour suivant, aucun renvoi (la PR reste dans la file tant que la CI ne finit pas)"
+  local tete
+  tete=$(jq -r .head.ref <<<"$pr")
+  # PR de mise à jour : la lecture unique des checks, puis l'avance rapide, refusée si le sujet a bougé
+  # (avancer_sujet) : l'ascendance y tient déjà.
   if [ -n "$maj" ]; then
+    # Checks exigés sur develop, lus sur le sommet de la sous-PR. Les E2E y sont sautés
+    # (branche de sujet), donc comptés réussis : ils tournent sur la PR finale.
+    local requis etats rouges='' attente=0 nom c
+    requis=$(checks_exiges | jq -r '.[]')
+    etats=$(checks_commit "$sommet")
+    while IFS= read -r nom; do
+      c=$(printf '%s\n' "$etats" | awk -F '\t' -v n="$nom" '$1 == n { c = $2 } END { print c }')
+      case "$c" in
+        SUCCESS | SKIPPED | NEUTRAL) ;;
+        FAILURE | CANCELLED | TIMED_OUT | ACTION_REQUIRED | STARTUP_FAILURE | ERROR) rouges="$rouges $nom ;" ;;
+        *) attente=1 ;;
+      esac
+    done <<<"$requis"
+    [ -z "$rouges" ] || sortir 3 "checks rouges sur #$n :$rouges"
+    [ "$attente" = 0 ] || sortir 5 "checks encore en cours sur #$n : reprise au tour suivant, aucun renvoi (la PR reste dans la file tant que la CI ne finit pas)"
     juger_retouches "$n"
     avancer_sujet "$n" "$base" "$sommet"
     return 0
   fi
 
-  git fetch -q origin develop "$base" "$(jq -r .head.ref <<<"$pr")"
+  # Le capitaine peut avoir à mettre la sous-PR à jour : arbre propre d'abord (6, rien à corriger côté PR).
+  [ -z "$(git status --porcelain)" ] || sortir 6 "arbre de travail pas propre : committer ou ranger d'abord, puis relancer (rien à corriger côté PR)"
+  git fetch -q origin develop "$base" "$tete"
   # La sous-PR contient du develop plus récent que son sujet (capitaine passé dessus, branche
   # repartie du sommet de develop) : le squash l'embarquerait. Le sujet est d'abord rafraîchi.
   if ! git merge-base --is-ancestor "$(git merge-base "$sommet" origin/develop)" "origin/$base"; then
     rafraichir "${base#sujet/}" --abandon-si-conflit
     git fetch -q origin "$base"
   fi
-  mettre_a_jour_sous_pr "$n" "$base" "$(jq -r .head.ref <<<"$pr")"
-  git log --no-merges --reverse --format='%B' "$(git merge-base "$sommet" "origin/$base")..$sommet" |
+  # Règle d'ascendance (skill `fusionner`, « La règle d'ascendance ») : la sous-PR n'entre que testée sur l'état du
+  # sujet où elle entre, documentation comprise. Premier contrôle avant toute lecture de checks : un conflit se renvoie
+  # sans attendre la CI ; une sous-PR en retard est mise à jour et poussée, et c'est la CI du nouveau sommet qui compte.
+  # Puis trois tours au plus : attendre la CI du sommet, relire le sujet, contrôler ; squash sur `à-jour` seulement.
+  local verdict pousse=0 tour rouges statut
+  controler() {
+    verdict=$(ascendance "$sommet" "origin/$base") ||
+      sortir 11 "#$n : contrôle d'ascendance illisible (ascendance de github.sh, cause ci-dessus), côté capitaine : sous-PR laissée dans la file"
+    case ${verdict%%$'\n'*} in
+      à-jour | retard | conflit-index) ;;
+      conflit) sortir 3 "fusion refusée par GitHub (conflit avec $base hors index générés : $(sed -n '2,$p' <<<"$verdict" | tr '\n' ' ')) : renvoi" ;;
+      *) sortir 11 "#$n : contrôle d'ascendance illisible (verdict « ${verdict%%$'\n'*} »), côté capitaine : sous-PR laissée dans la file" ;;
+    esac
+  }
+  mettre_a_jour() {
+    mettre_a_jour_sous_pr "$n" "$base" "$tete"
+    sommet=$SOMMET_POUSSE
+    pousse=1
+  }
+  controler
+  [ "${verdict%%$'\n'*}" = à-jour ] || mettre_a_jour
+  for tour in 1 2 3; do
+    rouges=$(attendre_ci "$n" "$sommet") && statut=0 || statut=$?
+    case $statut in
+      0) ;;
+      1) sortir 3 "checks rouges sur #$n :$(awk -F ' : ' '{ sub(/^ +/, "", $1); printf " %s ;", $1 }' <<<"$rouges")" ;;
+      *)
+        [ "$pousse" = 0 ] ||
+          sortir 8 "#$n : mise à jour avec $base poussée, CI pas finie : repasse au tour suivant (aucun renvoi)"
+        sortir 5 "checks encore en cours sur #$n : reprise au tour suivant, aucun renvoi (la PR reste dans la file tant que la CI ne finit pas)" ;;
+    esac
+    [ "$(pr_sommet "$n")" = "$sommet" ] || sortir 5 "la sous-PR #$n a reçu un push pendant la CI : reprise au tour suivant, aucun renvoi"
+    git fetch -q origin "$base"
+    controler
+    [ "${verdict%%$'\n'*}" != à-jour ] || break
+    [ "$tour" -lt 3 ] || sortir 5 "$base a bougé trois fois pendant la CI de #$n : reprise au tour suivant, aucun renvoi"
+    echo "$base a bougé pendant la CI : nouvelle mise à jour ($tour sur 2)"
+    mettre_a_jour
+  done
+
+  local squash
+  squash=$(git log --no-merges --reverse --format='%B' "$(git merge-base "$sommet" "origin/$base")..$sommet" |
     jq -Rs --arg sha "$sommet" --arg titre "$titre (#$n)" \
       '{merge_method: "squash", sha: $sha, commit_title: $titre, commit_message: .}' |
-    gh api -X PUT "$DEPOT/pulls/$n/merge" --input - >/dev/null ||
+    gh api -X PUT "$DEPOT/pulls/$n/merge" --input - --jq .sha) ||
     sortir 3 "fusion refusée par GitHub (sommet bougé, conflit avec $base ?)"
+  # Arbre du squash = arbre testé : le sha de la réponse du PUT ; un écart (ou un squash introuvable) sort en 12.
+  git fetch -q origin "$base"
+  squash=$(sed -n 1p <<<"$squash")
+  git cat-file -e "$squash^{commit}" 2>/dev/null || squash=''
+  if [ -z "$squash" ] || [ "$(git rev-parse "$squash^{tree}")" != "$(git rev-parse "$sommet^{tree}")" ]; then
+    sortir 12 "$(signaler_arbre_different "$n" "$sommet" "$squash")"
+  fi
   echo "#$n fusionnée dans $base"
 }
 
