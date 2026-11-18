@@ -71,7 +71,7 @@ Décisions de l'architecte :
 | ticket | 12 | session_012xRpgZRkibUK1CA2XDumRw | sonnet | — | — |
 | ticket | 17 | session_012xRpgbyvYBRavfo3t7tSRy | opus | — | — |
 | ticket | 6 | session_012xRpgYLyDnCAE8DMZWu3s5 | sonnet | — | — |
-| ticket | 5 | session_012xRpgZ61a6Z3tAxnLE1XtH | sonnet | — | — |
+| ticket | 5 | session_012xRpgZ61a6Z3tAxnLE1XtH | sonnet | 186 928 | 2,98 |
 | ticket | 8 | session_012xRpgb2wqPnXRgEHTvthK3 | opus | — | — |
 | capitaine | — | session_012xRpgcWjwiV8xVUSzzEy9L | sonnet | — | — |
 
@@ -136,3 +136,4 @@ Demande du produit, 2026-11-18, recopiée telle quelle (relevée sur `MAJ-agency
 - 2026-11-18 — 20 h 06 UTC. PR 119 (`1f0fd71`, A-50) : cinquième contre-relecture adversariale **conforme** (28 variantes de motif refusées, commandes ordinaires vertes) ; prête, attend son tour (A-48). Les trois limites restantes sont nommées hors périmètre, la CI pour frontière.
 - 2026-11-18 — 20 h 13 UTC. **PR 111 fusionnée** (squash `88fe501`), arbre identique au sommet ordonné `48ba644`, vérifié ; la branche distante a été supprimée par GitHub, la branche de cadrage repart de `main` (deux commits du journal repris). Tickets 1, 15 et 19 passés à « Fait » ; leurs décisions de session restent dans le corps de leurs PR (115, 112, 113).
 - 2026-11-18 — 20 h 35 UTC. **PR 116 fusionnée** (squash `22b2d49`, 7.18.1), arbre identique, vérifié ; ticket 10 fait, session archivée (2,11 $). Signal à la PR 117 (7.18.2).
+- 2026-11-18 — 20 h 57 UTC. **PR 117 fusionnée** (squash `6fc652d`, 7.18.2), arbre identique, vérifié ; ticket 5 fait, session archivée (2,98 $). Signal à la PR 114 (7.18.3).

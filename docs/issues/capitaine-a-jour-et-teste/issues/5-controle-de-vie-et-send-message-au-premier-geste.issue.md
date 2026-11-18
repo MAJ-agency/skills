@@ -1,6 +1,6 @@
 # Une session coupée se voit dans l'heure : contrôle de vie de l'architecte et du conducteur, `send_message` au premier geste, contexte lu par `get_session`
 
-Status: ready-for-agent
+Status: Fait — PR #117
 Type: défaut
 Modèle: sonnet — du texte de skills, chaque phrase donnée ou cadrée ici, et des bancs de texte sur le modèle de ceux de `scripts/depot.test.mjs` ; aucun script.
 Blocked by: — (aucun fichier du capitaine ; mais `.claude-plugin/plugin.json` et `NOTES-DE-VERSION.md` changent à chaque ticket, et `chantier/SKILL.md` § 6 est touché par le ticket 1 : partir d'`origin/main` au moment du lancement, et ne pas partir en même temps que le ticket 1 ni que le ticket 4)
