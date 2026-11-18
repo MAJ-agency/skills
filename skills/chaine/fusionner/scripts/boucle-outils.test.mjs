@@ -456,3 +456,71 @@ exit 0
   // Ni la sous-PR, ni la suite du tour (livrer-prets) que jouerait une boucle restée sourde au sous-shell.
   assert.deepEqual(lu(), [], r.stdout + r.stderr);
 });
+
+// --- GitHub illisible (ticket 9) : une sortie 5 est une pause, jamais un arrêt ; une file illisible n'est pas vide ---
+test("une sortie 5 de passer.sh met la boucle en pause, puis elle reprend : jamais d'ARRÊT", () => {
+  const { d, publier, lu } = jouet();
+  publier({
+    "file.sh": `#!/usr/bin/env bash
+[ "$1" = --rouges ] && exit 0
+grep -q '^fini' "$TRACE" 2>/dev/null || printf '41\\tprête\\n'
+exit 0
+`,
+    "passer.sh": `#!/usr/bin/env bash
+n=$(grep -c '^passer' "$TRACE" 2>/dev/null)
+echo "passer $((\${n:-0} + 1))" >> "$TRACE"
+if [ "\${n:-0}" -lt 3 ]; then echo "[#41] GitHub illisible pendant l'attente de la CI : pause, puis reprise"; exit 5; fi
+echo fini >> "$TRACE"
+exit 0
+`,
+  });
+  const r = d.lancer(BOUCLE);
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.deepEqual(lu(), ["passer 1", "passer 2", "passer 3", "passer 4", "fini"], r.stdout + r.stderr);
+  assert.match(r.stdout, /\[#41\] PAUSE \d\d:\d\d \(sortie 5\) : \[#41\] GitHub illisible pendant l'attente de la CI : pause, puis reprise, reprise dans 120 s/);
+  assert.doesNotMatch(r.stdout + r.stderr, /ARRÊT/);
+  assert.match(r.stdout, /FILE VIDE/);
+});
+
+test("file.sh en 5 : PAUSE, puis la PR passe au tour suivant ; jamais FILE VIDE sur un échec", () => {
+  const { d, publier, lu } = jouet({ BOUCLE_PAUSE: "7" });
+  const appels = join(d.racine, "file-appels.log");
+  d.env.APPELS = appels;
+  // Appels du tour : `--rouges` (traiter_rouges), sans argument (traiter_sujets), sans argument (la lecture du tour) :
+  // la panne porte sur la lecture sans argument qui suit celle de traiter_sujets, au premier tour.
+  publier({
+    "file.sh": `#!/usr/bin/env bash
+echo "file $*" >> "$APPELS"
+[ "$1" = --rouges ] && exit 0
+if [ "$(grep -cx 'file ' "$APPELS")" = 2 ]; then echo "GitHub illisible (pulls) : gh en échec" >&2; exit 5; fi
+grep -q '^passer' "$TRACE" 2>/dev/null || printf '41\\tprête\\n'
+exit 0
+`,
+    "passer.sh": passerSh(1),
+  });
+  const r = d.lancer(BOUCLE);
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.deepEqual(lu(), ["passer v1"], r.stdout + r.stderr);
+  const pause = r.stdout.indexOf("PAUSE");
+  assert.ok(pause >= 0, r.stdout);
+  assert.match(r.stdout, /PAUSE \d\d:\d\d \(file\.sh, sortie 5\) : file illisible, reprise dans 7 s/);
+  assert.ok(pause < r.stdout.indexOf("[#41] DÉBUT"), "la pause, puis le passage");
+  assert.equal(r.stdout.split("FILE VIDE").length, 2, "FILE VIDE une fois, à la fin");
+  assert.ok(r.stdout.indexOf("FILE VIDE") > r.stdout.indexOf("[#41] DÉBUT"));
+});
+
+test("file.sh en échec hors 5 : ARRÊT, sortie 6, jamais FILE VIDE", () => {
+  const { d, publier, lu } = jouet();
+  publier({
+    "file.sh": `#!/usr/bin/env bash
+[ "$1" = --rouges ] && exit 0
+exit 1
+`,
+    "passer.sh": passerSh(1),
+  });
+  const r = d.lancer(BOUCLE);
+  assert.equal(r.status, 6, r.stdout + r.stderr);
+  assert.match(r.stdout + r.stderr, /ARRÊT : file\.sh en échec \(sortie 1\)/);
+  assert.doesNotMatch(r.stdout, /FILE VIDE/);
+  assert.deepEqual(lu(), []);
+});

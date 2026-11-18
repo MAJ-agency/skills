@@ -717,7 +717,8 @@ test("fusionner : des checks encore en cours sortent en 5 (reprise, aucun renvoi
 function prePushRefuse(d) {
   const hooks = join(d.racine, "hooks");
   mkdirSync(hooks, { recursive: true });
-  writeFileSync(join(hooks, "pre-push"), "#!/bin/sh\necho 'pnpm check rouge (formatage)' >&2\nexit 1\n");
+  // La trace de husky 9 (`.husky/_/h`), comme le hook d'un projet : sans elle, le refus se lit comme celui du distant.
+  writeFileSync(join(hooks, "pre-push"), "#!/bin/sh\necho 'pnpm check rouge (formatage)' >&2\necho 'husky - pre-push script failed (code 1)'\nexit 1\n");
   chmodSync(join(hooks, "pre-push"), 0o755);
   d.git("config", "core.hooksPath", hooks);
 }
@@ -977,4 +978,32 @@ test("fusionner : une sous-PR en retard qui a bougé depuis sa lecture n'est ni 
   assert.match(r.stdout, /la sous-PR #80 a bougé depuis sa lecture/);
   assert.equal(d.git("ls-remote", "origin", "refs/heads/feat/sous").split("\t")[0], pousse, "rien n'est poussé");
   assert.equal(misesAJour(d, 80).length, 0, "aucun PUT");
+});
+
+// GitHub illisible (ticket 9) : une lecture refusée pendant `fusionner` sort en 5 (REPRISE dans la boucle), jamais un
+// état (« checks encore en cours » lus sur une panne, « aucun check exigé ») ni un renvoi.
+test("sujet.sh fusionner : GitHub illisible pendant l'attente de la CI de la sous-PR : sortie 5 (REPRISE), aucun renvoi", () => {
+  for (const panne of [
+    { route: "/check-runs", fois: 40, sortie: "" },
+    { route: "/check-runs", fois: 40, sortie: '{"message":"Server Error"}', code: 0, erreur: "" },
+    { route: "^rules/branches/develop$", fois: 5 },
+    { route: "^pulls/80$", fois: 1 },
+  ]) {
+    const { d, sommet } = sousPrEnConflit("aucun");
+    d.github({ pannes: [panne] });
+    const r = d.lancer(SUJET, "fusionner", "80");
+    assert.equal(r.status, 5, `${panne.route} : ${r.stdout}${r.stderr}`);
+    assert.match(r.stdout, /GitHub illisible/, panne.route);
+    assert.match(r.stderr, /GitHub illisible \(/, panne.route);
+    assert.deepEqual(d.journal(), [], `${panne.route} : ni squash, ni label, ni commentaire`);
+    d.git("fetch", "-q", "origin");
+    assert.equal(d.git("rev-parse", "origin/docs/sous"), sommet);
+  }
+  // PR de mise à jour : sa lecture unique des checks, de même.
+  const { d, sujet } = miseAJour();
+  d.github({ checks: { "*": { qualite: "SUCCESS" } }, pannes: [{ route: "/check-runs", fois: 3 }] });
+  const r = d.lancer(SUJET, "fusionner", "81");
+  assert.equal(r.status, 5, r.stdout + r.stderr);
+  assert.match(r.stdout, /GitHub illisible/);
+  assert.equal(sujetDistant(d), sujet);
 });

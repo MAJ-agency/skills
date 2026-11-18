@@ -29,6 +29,12 @@
 //   commentairesRefuses  tout commentaire posé est refusé (403)
 //   PR.revues   revues de la PR (`pulls/<n>/reviews`) : [{ state, submitted_at, auteur }]
 //   PR.commentaires  un corps seul reçoit un `created_at` d'office, croissant avec son rang ; un objet porte le sien
+//   pannes      GitHub en panne pour des lectures : [{ route, fois, sortie, erreur, code }]. `route` est une expression
+//               rationnelle sur le chemin sans `repos/{owner}/{repo}/` (requête comprise) ; `sortie` ce que `gh` écrit
+//               sur la sortie standard (défaut : rien), `erreur` sur la sortie d'erreur (défaut « gh: Bad Gateway
+//               (HTTP 502) »), `code` le code de sortie (défaut 1). Une lecture (`GET`) dont le chemin correspond à la
+//               première panne restante qui le prend y répond, puis décompte `fois` (défaut 1) ; à zéro, la panne sort
+//               de l'état. Les écritures ne sont jamais en panne
 // Le sommet d'une PR est lu dans le dépôt nu ($FAUX_GH_ORIGINE), comme GitHub. Chaque écriture
 // (méthode autre que GET) est appliquée à l'état et journalisée dans $FAUX_GH/journal.jsonl.
 // Fusion (`PUT pulls/<n>/merge`), comme GitHub : refusée si la tête n'est plus `sha` (409) ; l'arbre du commit de
@@ -190,6 +196,22 @@ const TERMINES = new Set([
   "ACTION_REQUIRED",
   "STARTUP_FAILURE",
 ]);
+
+// Panne de GitHub sur une lecture : la réponse de la panne, telle quelle (aucun filtre `--jq`, comme `gh` sur une
+// erreur HTTP), décomptée.
+function panne() {
+  if (methode !== "GET" || !Array.isArray(etat.pannes)) return;
+  const relatif = chemin.replace(/^repos\/\{owner\}\/\{repo\}\//, "");
+  const i = etat.pannes.findIndex((p) => new RegExp(p.route).test(relatif));
+  if (i < 0) return;
+  const p = etat.pannes[i];
+  p.fois = (p.fois ?? 1) - 1;
+  if (p.fois <= 0) etat.pannes.splice(i, 1);
+  sauver();
+  process.stdout.write(p.sortie ?? "");
+  process.stderr.write(`${p.erreur ?? "gh: Bad Gateway (HTTP 502)"}\n`);
+  process.exit(p.code ?? 1);
+}
 
 function repondre() {
   const [route, requete = ""] = chemin
@@ -368,6 +390,7 @@ function fusionner(
   return { merged: true, sha: commit };
 }
 
+panne();
 const reponse = repondre();
 sauver();
 const json = JSON.stringify(reponse);

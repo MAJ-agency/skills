@@ -1030,8 +1030,10 @@ function hooks(d, commitlint = COMMITLINT) {
     writeFileSync(join(dir, nom), `#!/bin/sh\n${corps}\n`);
     chmodSync(join(dir, nom), 0o755);
   };
+  // Un refus écrit aussi la trace de husky 9 (`.husky/_/h`), comme le hook d'un projet : sans elle, un refus du
+  // pre-push se lit comme un refus du distant (pousser, github.sh).
   const refuse = (nom) =>
-    `if [ -e ${JSON.stringify(join(d.racine, `refus.${nom}`))} ]; then echo "${nom} jouet : refus" >&2; exit 1; fi`;
+    `if [ -e ${JSON.stringify(join(d.racine, `refus.${nom}`))} ]; then echo "${nom} jouet : refus" >&2; echo "husky - ${nom} script failed (code 1)"; exit 1; fi`;
   poser("pre-commit", `echo pre-commit >> ${J}\n${refuse("pre-commit")}`);
   poser("pre-push", `echo pre-push >> ${J}\n${refuse("pre-push")}`);
   writeFileSync(
@@ -1614,20 +1616,20 @@ test("file.sh : une CI rouge prime sur « attend un humain » : la PR marquée e
   assert.deepEqual(etats(d), ["72 attend un humain"], "CI en cours : l'attente reste");
 });
 
-test("passer.sh : commentaire d'attente impossible à poser après un refus de fusion pour revue : sortie 5 (arrêt), pas 7 ; la boucle retente une fois puis s'arrête", () => {
+test("passer.sh : commentaire d'attente impossible à poser après un refus de fusion pour revue : sortie 3 (arrêt), pas 7 ; la boucle s'arrête sans le repasser", () => {
   const { d } = attenteProprietaire({ commentairesRefuses: true, pulls: [pr(72, "feat/seul", { approbationManquante: true })] });
   const r = d.lancer(script("passer.sh"), "72");
-  assert.equal(r.status, 5, r.stdout + r.stderr);
+  assert.equal(r.status, 3, r.stdout + r.stderr);
   assert.match(r.stdout, /commentaire d'attente non posé/);
   assert.deepEqual(ecritures(d), ["PUT pulls/72/merge", "POST issues/72/comments"]);
   assert.deepEqual(d.etat().pulls[0].labels, ["à-fusionner"]);
   const e = attenteProprietaire({ commentairesRefuses: true, pulls: [pr(72, "feat/seul", { approbationManquante: true })] }).d;
   e.publierChaine();
   const b = e.lancer(script("boucle.sh"));
-  assert.equal(b.status, 5, b.stdout + b.stderr);
-  assert.match(b.stdout, /\[#72\] a bougé, second essai/);
-  assert.match(b.stdout, /ARRÊT sur #72 \(sortie 5\)/);
-  assert.equal(ecritures(e).filter((x) => x === "PUT pulls/72/merge").length, 2, "deux essais, pas un par tour");
+  assert.equal(b.status, 3, b.stdout + b.stderr);
+  assert.match(b.stdout, /ARRÊT sur #72 \(sortie 3\)/);
+  assert.doesNotMatch(b.stdout, /second essai|PAUSE/);
+  assert.equal(ecritures(e).filter((x) => x === "PUT pulls/72/merge").length, 1, "un essai : la boucle ne le repasse pas");
 });
 
 // ── Règle d'ascendance : la cible qui bouge pendant la CI, l'arbre du squash différent de l'arbre testé ──────────
@@ -1845,4 +1847,128 @@ test("cible qui bouge pendant la CI, clone --single-branch : sujet.sh relit le s
   assert.equal(r.status, 0, r.stdout + r.stderr);
   assert.match(r.stdout, /sujet\/lot a bougé pendant la CI : nouvelle mise à jour \(1 sur 2\)/);
   assert.equal(d.git("merge-base", "--is-ancestor", vers, shaDe(d, 80)), "", "jamais squashée sur l'ancien sujet");
+});
+
+// ── GitHub illisible et refus du pre-push (ticket 9) ─────────────────────────────────────────────────────────────
+// Une panne de GitHub n'est jamais un état : le script qui lisait sort en 5 (pause de la boucle). Un push refusé se
+// classe par la trace de husky : refus du hook, la PR est renvoyée avec la sortie du hook ; sans trace, refus du
+// distant, la boucle s'arrête (passer.sh) ou sujet.sh sort en 11, sans renvoi.
+function prSimple() {
+  const d = depotJouet();
+  d.branche("feat/simple", "origin/develop", { "docs/simple.md": "s\n" });
+  d.git("switch", "-q", "--detach", "origin/develop");
+  d.github({ exiges: ["qualite"], checks: { "*": { qualite: "SUCCESS" } }, pulls: [pr(33, "feat/simple")] });
+  return d;
+}
+
+test("passer.sh : une panne de GitHub pendant l'attente de la CI sort en 5, jamais « CI non déclenchée »", () => {
+  const d = prSimple();
+  d.github({ pannes: [{ route: "/check-runs", fois: 40, sortie: "" }] });
+  const r = d.lancer(script("passer.sh"), "33");
+  assert.equal(r.status, 5, r.stdout + r.stderr);
+  assert.match(r.stdout, /GitHub illisible pendant l'attente de la CI : pause, puis reprise/);
+  assert.match(r.stderr, /GitHub illisible \(.*check-runs/);
+  assert.doesNotMatch(r.stdout, /CI non déclenchée/);
+  assert.deepEqual(d.journal(), [], "ni fusion ni label");
+});
+
+test("passer.sh : la PR illisible sort en 5 avant toute écriture", () => {
+  const d = prSimple();
+  d.github({ pannes: [{ route: "^pulls/33$", sortie: "<html>502</html>" }] });
+  const r = d.lancer(script("passer.sh"), "33");
+  assert.equal(r.status, 5, r.stdout + r.stderr);
+  assert.match(r.stdout, /GitHub illisible/);
+  assert.deepEqual(d.journal(), []);
+});
+
+test("file.sh : GitHub illisible, sortie 5 et rien sur la sortie standard", () => {
+  for (const panne of [
+    { route: "^pulls\\?" },
+    { route: "^rules/branches/develop$", sortie: '{"message":"Server Error"}', code: 0, erreur: "" },
+    { route: "/check-runs", sortie: "" },
+  ]) {
+    const d = prSimple();
+    d.github({ pulls: [pr(33, "feat/simple"), pr(34, "feat/simple", { title: "docs(demo): autre" })], pannes: [{ fois: 9, ...panne }] });
+    for (const args of [[], ["--next"], ["--rouges"]]) {
+      const r = d.lancer(script("file.sh"), ...args);
+      assert.equal(r.status, 5, `${panne.route} ${args} : ${r.stdout}${r.stderr}`);
+      assert.equal(r.stdout, "", `${panne.route} ${args}`);
+      assert.match(r.stderr, /GitHub illisible/);
+    }
+  }
+});
+
+// Le hook écrit une URL à identifiants : le commentaire, public, ne la porte jamais.
+const HOOK_URL = "https://capitaine:jeton-secret@exemple.test/depot.git";
+function prePushRefuse(d, trace = true) {
+  const h = hooks(d);
+  writeFileSync(
+    join(d.racine, "hooks", "pre-push"),
+    `#!/bin/sh\necho pre-push >> ${JSON.stringify(join(d.racine, "hooks.log"))}\necho "pnpm check : \\\`tsc\\\` rouge sur apps/x.ts" >&2\necho "fetch ${HOOK_URL} refusé" >&2\n${trace ? 'echo "husky - pre-push script failed (code 1)"\n' : ""}exit 1\n`,
+  );
+  chmodSync(join(d.racine, "hooks", "pre-push"), 0o755);
+  return h;
+}
+
+test("un pre-push refusé avec la trace de husky : passer.sh sort en 3, la boucle renvoie la PR avec la sortie du hook et passe à la suivante", () => {
+  const d = conflitIndex();
+  d.publierChaine();
+  d.branche("docs/autre", "origin/develop", { "docs/autre.md": "a\n" });
+  d.git("switch", "-q", "--detach", "origin/develop");
+  d.github({ pulls: [pr(30, "docs/adr-deux", { title: "docs(adr): ADR 2" }), pr(31, "docs/autre")] });
+  prePushRefuse(d);
+  const seul = d.lancer(script("passer.sh"), "30");
+  assert.equal(seul.status, 3, seul.stdout + seul.stderr);
+  assert.match(seul.stdout, /push refusé par le hook pre-push : sortie ci-dessus ; corriger, jamais en sautant le hook/);
+  assert.doesNotMatch(seul.stdout + seul.stderr, /jeton-secret/);
+
+  const b = d.lancer(script("boucle.sh"));
+  assert.equal(b.status, 0, b.stdout + b.stderr);
+  assert.doesNotMatch(b.stdout, /ARRÊT/);
+  assert.match(b.stdout, /\[#30\] RENVOI : le pre-push refuse le push de la mise à jour avec develop/);
+  assert.match(b.stdout, /\[#31\] DÉBUT/, "la suivante passe");
+  const commentaire = d.etat().pulls.find((x) => x.number === 30).commentaires.at(-1);
+  assert.match(commentaire, /le pre-push refuse le push de la mise à jour avec develop\. Sortie du hook : /);
+  assert.match(commentaire, /pnpm check : tsc rouge sur apps\/x\.ts/, "la ligne du hook, accents graves retirés");
+  assert.match(commentaire, /https:\/\/\*\*\*@exemple\.test/);
+  assert.doesNotMatch(commentaire, /jeton-secret/);
+  assert.doesNotMatch(commentaire, /\[git push/, "préfixe retiré");
+  assert.deepEqual(d.etat().pulls.find((x) => x.number === 30).labels, ["fusion-bloquée"]);
+});
+
+test("un push refusé sans trace de husky : échec fermé, passer.sh en 3 « push refusé par le distant », la boucle s'arrête sans renvoyer ; sujet.sh en 11", () => {
+  const refusDistant = (d) => {
+    writeFileSync(join(d.origine, "hooks", "pre-receive"), `#!/bin/sh\necho "règle du dépôt : ${HOOK_URL}" >&2\nexit 1\n`);
+    chmodSync(join(d.origine, "hooks", "pre-receive"), 0o755);
+  };
+  const d = conflitIndex();
+  d.publierChaine();
+  refusDistant(d);
+  const r = d.lancer(script("passer.sh"), "30");
+  assert.equal(r.status, 3, r.stdout + r.stderr);
+  assert.match(r.stdout, /push refusé par le distant \(règle de dépôt, droit, panne ou coupure ; aucune trace du hook pre-push\) : sortie ci-dessus/);
+  assert.doesNotMatch(r.stdout + r.stderr, /jeton-secret/);
+  const b = d.lancer(script("boucle.sh"));
+  assert.equal(b.status, 3, b.stdout + b.stderr);
+  assert.match(b.stdout, /ARRÊT sur #30 \(sortie 3\)/);
+  assert.doesNotMatch(b.stdout, /RENVOI/);
+  assert.deepEqual(d.journal().filter((e) => e.methode !== "GET"), [], "aucun renvoi, aucun label");
+  // Un pre-push sans husky (aucune trace) : refus du distant, de même.
+  const sansTrace = conflitIndex();
+  prePushRefuse(sansTrace, false);
+  assert.match(sansTrace.lancer(script("passer.sh"), "30").stdout, /push refusé par le distant/);
+
+  const gestes = { ...GESTES, fusionner: () => ({ d: sousPrConflitIndex(), args: ["fusionner", "80"] }) };
+  for (const [nom, fabrique] of Object.entries(gestes)) {
+    const { d: s, args } = fabrique();
+    refusDistant(s);
+    const avant = distant(s);
+    const x = s.lancer(scriptDe("sujet", "sujet.sh"), ...args);
+    assert.equal(x.status, 11, `${nom} : ${x.stdout}${x.stderr}`);
+    assert.match(x.stdout, /push refusé par le distant, sans trace du hook/, nom);
+    assert.doesNotMatch(x.stdout + x.stderr, /jeton-secret/, nom);
+    assert.equal(distant(s), avant, `${nom} : distant inchangé`);
+    assert.equal(s.git("status", "--porcelain"), "", `${nom} : worktree propre`);
+    sansFusion(s);
+  }
 });
