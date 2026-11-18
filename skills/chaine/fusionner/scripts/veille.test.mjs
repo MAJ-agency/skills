@@ -1,36 +1,60 @@
 // Veille du capitaine (veille.sh) : boucle.sh et file.sh sont des doublures dans un dossier
-// d'outils jouet, où veille.sh est copié (il les cherche à côté de lui). Aucun réseau, aucun gh.
+// d'outils jouet, où veille.sh est copié (il les cherche à côté de lui). Aucun réseau, aucun gh :
+// le seul `origin` est un dépôt nu du jouet, que la veille lit pour `preparerCapitaine`.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   chmodSync,
   copyFileSync,
   existsSync,
+  mkdirSync,
   mkdtempSync,
   readFileSync,
   writeFileSync,
 } from "node:fs";
-import { spawnSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 const VEILLE = new URL("./veille.sh", import.meta.url).pathname;
 
+// Variables de git et de la chaîne héritées retirées : sous un hook, GIT_DIR viserait le vrai dépôt,
+// et un BOUCLE_* du capitaine fausserait la doublure.
+const ENV = {
+  ...Object.fromEntries(
+    Object.entries(process.env).filter(([cle]) => !cle.startsWith("GIT_") && !cle.startsWith("BOUCLE_") && !cle.startsWith("VEILLE_")),
+  ),
+  GIT_CONFIG_GLOBAL: "/dev/null",
+  GIT_CONFIG_NOSYSTEM: "1",
+  GIT_AUTHOR_NAME: "test",
+  GIT_AUTHOR_EMAIL: "test@example.org",
+  GIT_COMMITTER_NAME: "test",
+  GIT_COMMITTER_EMAIL: "test@example.org",
+};
+
+// Jouet de la veille : un dossier d'outils (veille.sh copiée, doublures de boucle.sh et file.sh), un
+// dépôt nu `origine.git` dont le develop porte, si `contrat` est donné, `.claude/chaine.json`, et son
+// clone `clone/`, le worktree du capitaine, passé en `cwd` : la veille n'écrit jamais dans le dépôt du
+// plugin. Les traces (lancements, `trace`, échéance notée) vivent hors du clone, qui reste propre.
 // `etats` : la table de file.sh renvoyée à la sonde n (0 = lecture initiale), la dernière se répète.
-// Chaque test borne la veille par `sondes` (le nombre d'états qu'il veut voir consommer, lecture
-// initiale exclue) : la durée (1 min) n'est qu'un garde-fou, aucun test ne dépend de l'horloge.
-function veilleJouet(
-  etats,
-  { rcBoucle = 0, sorties = [], sondes = etats.length - 1, args = ["--pause", "0.2", "--duree", "1", "--sondes", String(sondes)] } = {},
-) {
+// `apresLancement` : du shell joué par la doublure de boucle.sh, `$k` valant le rang du lancement.
+function creerJouet(etats, { rcBoucle = 0, sorties = [], contrat, apresLancement = "", boot = "boot-1" } = {}) {
   const dir = mkdtempSync(join(tmpdir(), "veille-"));
+  const clone = join(dir, "clone");
+  const origine = join(dir, "origine.git");
+  const trace = join(dir, "trace");
+  const fichierBoot = join(dir, "boot_id");
+  if (boot !== null) writeFileSync(fichierBoot, `${boot}\n`);
   copyFileSync(VEILLE, join(dir, "veille.sh"));
   writeFileSync(
     join(dir, "boucle.sh"),
     `#!/usr/bin/env bash
 echo boucle >> "${dir}/lancements"
+echo boucle >> "${trace}"
+echo "\${BOUCLE_ECHEANCE-absente}" > "${dir}/echeance"
 k=$(cat "${dir}/k" 2>/dev/null || echo 0)
 echo $((k+1)) > "${dir}/k"
+${apresLancement}
 [ ! -f "${dir}/sortie.$k" ] || cat "${dir}/sortie.$k"
 exit ${rcBoucle}
 `,
@@ -50,13 +74,51 @@ cat "$f"
   etats.forEach((e, i) => {
     writeFileSync(join(dir, i === etats.length - 1 ? "etat.last" : `etat.${i}`), e);
   });
-  const r = spawnSync("bash", [join(dir, "veille.sh"), ...args], { encoding: "utf8" });
-  const journal = join(dir, "lancements");
-  const lancements = existsSync(journal)
-    ? readFileSync(journal, "utf8").trim().split("\n").length
-    : 0;
-  const compte = Number(readFileSync(join(dir, "compte"), "utf8"));
-  return { ...r, lancements, compte };
+  const git = (...a) => execFileSync("git", a, { cwd: clone, env: ENV, encoding: "utf8" }).trim();
+  execFileSync("git", ["init", "-q", "--bare", "-b", "develop", origine], { env: ENV });
+  execFileSync("git", ["clone", "-q", origine, clone], { env: ENV, stdio: "ignore" });
+  writeFileSync(join(clone, "README.md"), "jouet\n");
+  if (contrat !== undefined) {
+    mkdirSync(join(clone, ".claude"));
+    writeFileSync(join(clone, ".claude/chaine.json"), typeof contrat === "string" ? contrat : JSON.stringify(contrat));
+  }
+  git("add", "-A");
+  git("commit", "-q", "-m", "initial");
+  git("push", "-q", "origin", "HEAD:develop");
+  // `avant` : une commande qui enveloppe la veille (`flock <verrou>` pour un verrou tenu pendant qu'elle tourne).
+  const lancer = (args, env = {}, avant = []) => {
+    const [cmd, ...pre] = [...avant, "bash"];
+    const r = spawnSync(cmd, [...pre, join(dir, "veille.sh"), ...args], {
+      cwd: clone,
+      env: { ...ENV, VEILLE_BOOT_ID: fichierBoot, ...env },
+      encoding: "utf8",
+    });
+    const lire = (f) => (existsSync(join(dir, f)) ? readFileSync(join(dir, f), "utf8").trim() : "");
+    const lancements = lire("lancements") ? lire("lancements").split("\n").length : 0;
+    const compte = Number(lire("compte") || 0);
+    const lignes = lire("trace") ? lire("trace").split("\n") : [];
+    return { ...r, lancements, compte, trace: lignes, echeance: lire("echeance") };
+  };
+  // Publie un contrat sur le develop d'origine depuis le clone (il peut citer `trace`, connue ici seulement).
+  const publier = (c) => {
+    mkdirSync(join(clone, ".claude"), { recursive: true });
+    writeFileSync(join(clone, ".claude/chaine.json"), JSON.stringify(c));
+    git("add", "-A");
+    git("commit", "-q", "-m", "chaine: contrat");
+    git("push", "-q", "origin", "HEAD:develop");
+  };
+  const garde = join(clone, ".git", "capitaine-boot-id");
+  return { dir, clone, trace, fichierBoot, garde, git, lancer, publier };
+}
+
+// Chaque test borne la veille par `sondes` (le nombre d'états qu'il veut voir consommer, lecture
+// initiale exclue) : la durée (1 min) n'est qu'un garde-fou. Seuls dépendent de l'horloge, de quelques
+// secondes, « durée écoulée » et les deux bancs de l'échéance (`VEILLE_LIMITE`).
+function veilleJouet(
+  etats,
+  { sondes = etats.length - 1, args = ["--pause", "0.2", "--duree", "1", "--sondes", String(sondes)], env, ...jouet } = {},
+) {
+  return creerJouet(etats, jouet).lancer(args, env);
 }
 
 const prete = (n) => `${n}\tprête\t\n`;
@@ -170,4 +232,212 @@ test("PR qui attend un propriétaire : pas de relance ; approuvée (prête), bou
   assert.equal(r.lancements, 1);
   const r2 = veilleJouet([attend, attend, prete(31)]);
   assert.equal(r2.lancements, 2);
+});
+
+// --- Préparation du capitaine (`preparerCapitaine`) et échéance (limite de 2 h d'une tâche de fond) ---
+
+const contratPrep = (trace, mot = "prep") => ({ preparerCapitaine: `echo ${mot} >> "${trace}"` });
+const ARGS = (sondes) => ["--pause", "0.2", "--duree", "1", "--sondes", String(sondes)];
+
+test("préparation jouée avant le premier lancement, boot_id gardé ; veille relancée sur le même boot : pas rejouée", () => {
+  const j = creerJouet([""]);
+  j.publier(contratPrep(j.trace));
+  const r = j.lancer(ARGS(1));
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.deepEqual(r.trace, ["prep", "boucle"]);
+  assert.match(r.stdout, /^VEILLE \d\d:\d\d : préparation \(« echo prep/m);
+  assert.match(r.stdout, /^VEILLE \d\d:\d\d : préparation réussie$/m);
+  assert.equal(readFileSync(j.garde, "utf8").trim(), "boot-1");
+  const r2 = j.lancer(ARGS(1));
+  assert.equal(r2.status, 0, r2.stdout + r2.stderr);
+  assert.deepEqual(r2.trace, ["prep", "boucle", "boucle"]);
+  assert.doesNotMatch(r2.stdout, /préparation/);
+});
+
+test("boot_id changé entre deux lancements de la boucle : préparation rejouée avant le lancement suivant", () => {
+  const j = creerJouet(["", prete(31)]);
+  j.publier(contratPrep(j.trace));
+  // Au premier lancement, la machine « redémarre » : le boot_id change.
+  writeFileSync(
+    join(j.dir, "boucle.sh"),
+    readFileSync(join(j.dir, "boucle.sh"), "utf8").replace(
+      'echo $((k+1)) > ',
+      `[ "$k" != 0 ] || echo boot-2 > "${j.fichierBoot}"\necho $((k+1)) > `,
+    ),
+  );
+  const r = j.lancer(ARGS(1));
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.deepEqual(r.trace, ["prep", "boucle", "prep", "boucle"]);
+  assert.equal(readFileSync(j.garde, "utf8").trim(), "boot-2");
+});
+
+test("préparation en échec : VEILLE ARRÊTÉE, sortie 13, boucle jamais lancée, boot_id non écrit", () => {
+  const r0 = creerJouet([""], { contrat: { preparerCapitaine: "echo base perdue; exit 7" } });
+  const r = r0.lancer(ARGS(1));
+  assert.equal(r.status, 13, r.stdout + r.stderr);
+  assert.match(
+    r.stdout,
+    /^VEILLE ARRÊTÉE \d\d:\d\d : préparation du capitaine en échec \(sortie 7 de « echo base perdue; exit 7 »\) : aucune fusion/m,
+  );
+  assert.match(r.stdout, /^base perdue$/m, "la sortie de la commande est dans le journal");
+  assert.equal(r.lancements, 0);
+  assert.ok(!existsSync(r0.garde), "boot_id non écrit");
+});
+
+test("sans clé preparerCapitaine : rien n'est joué ; contrat illisible ou clé non textuelle : sortie 13 sans lancer la boucle", () => {
+  for (const contrat of [undefined, {}, { preparerCapitaine: "" }]) {
+    const r = veilleJouet([""], { contrat, sondes: 1 });
+    assert.equal(r.status, 0, r.stdout + r.stderr);
+    assert.equal(r.lancements, 1);
+    assert.doesNotMatch(r.stdout, /préparation/);
+  }
+  for (const contrat of ["{ pas du json", "[1]", { preparerCapitaine: 3 }, { preparerCapitaine: null }]) {
+    const r = veilleJouet([""], { contrat, sondes: 1 });
+    assert.equal(r.status, 13, `${JSON.stringify(contrat)} : ${r.stdout}${r.stderr}`);
+    assert.match(r.stdout, /^VEILLE ARRÊTÉE \d\d:\d\d : contrat illisible : préparation inconnue/m);
+    assert.equal(r.lancements, 0);
+  }
+});
+
+test("boot_id illisible : préparation jouée au démarrage, une ligne le dit, pas de nouvelle préparation entre deux lancements", () => {
+  const j = creerJouet(["", prete(31)], { boot: null });
+  j.publier(contratPrep(j.trace));
+  const r = j.lancer(ARGS(1));
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.deepEqual(r.trace, ["prep", "boucle", "boucle"]);
+  assert.equal(r.stdout.match(/boot_id illisible, préparation jouée à chaque démarrage de la veille/g)?.length, 1);
+  // Une veille relancée rejoue la préparation : sans boot_id, rien ne dit que la machine n'a pas redémarré.
+  const r2 = j.lancer(ARGS(0));
+  assert.deepEqual(r2.trace, ["prep", "boucle", "boucle", "prep", "boucle"]);
+});
+
+test("défauts : durée 75 min, marge 40 min, et BOUCLE_ECHEANCE transmise à la boucle", () => {
+  const avant = Math.floor(Date.now() / 1000);
+  const r = veilleJouet([""], { args: ["--pause", "0.2", "--sondes", "0"] });
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /^VEILLE \d\d:\d\d : durée 75 min, aucun passage après \d\d:\d\d \(marge 40 min\)$/m);
+  const echeance = Number(r.echeance);
+  assert.ok(Number.isInteger(echeance), `échéance notée : ${r.echeance}`);
+  assert.ok(Math.abs(echeance - (avant + 80 * 60)) <= 5, `échéance ${echeance}, attendue ${avant + 80 * 60}`);
+});
+
+test("--marge invalide (non entière, 120 ou plus) : sortie 64, un message qui nomme --marge ; --duree décimale acceptée", () => {
+  for (const marge of ["1.5", "120", "200", "abc", "-1", ""]) {
+    const r = veilleJouet([""], { args: ["--marge", marge, "--sondes", "0"] });
+    assert.equal(r.status, 64, `--marge ${marge} : ${r.stdout}${r.stderr}`);
+    assert.match(r.stderr, /--marge/);
+    assert.equal(r.lancements, 0);
+  }
+  for (const duree of ["0", "abc", "-2"]) {
+    const r = veilleJouet([""], { args: ["--duree", duree, "--sondes", "0"] });
+    assert.equal(r.status, 64, `--duree ${duree} : ${r.stdout}${r.stderr}`);
+    assert.match(r.stderr, /--duree/);
+  }
+  const ok = veilleJouet([""], { args: ["--pause", "0.2", "--duree", "0.04", "--marge", "119", "--sondes", "0"] });
+  assert.equal(ok.status, 0, ok.stdout + ok.stderr);
+  assert.match(ok.stdout, /durée 0\.04 min, aucun passage après \d\d:\d\d \(marge 119 min\)/);
+});
+
+test("preparerCapitaine se lit sur origin/develop, jamais dans l'arbre de travail : la commande d'une branche de PR n'est pas jouée", () => {
+  const j = creerJouet([""]);
+  j.publier(contratPrep(j.trace));
+  // Le worktree est laissé sur le code d'une PR, qui nomme sa propre commande.
+  j.git("switch", "-q", "-c", "capitaine/42");
+  writeFileSync(join(j.clone, ".claude/chaine.json"), JSON.stringify(contratPrep(j.trace, "PR")));
+  j.git("commit", "-q", "-am", "feat: une PR");
+  const r = j.lancer(ARGS(0));
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.deepEqual(r.trace, ["prep", "boucle"]);
+  assert.equal(j.git("rev-parse", "HEAD"), j.git("rev-parse", "origin/develop"));
+  assert.equal(spawnSync("git", ["symbolic-ref", "-q", "HEAD"], { cwd: j.clone, env: ENV }).status, 1, "HEAD détachée");
+
+  // Worktree sale : rien n'est joué, la veille s'arrête.
+  const s = creerJouet([""]);
+  s.publier(contratPrep(s.trace));
+  writeFileSync(join(s.clone, "brouillon.txt"), "reste d'un passage\n");
+  const rs = s.lancer(ARGS(0));
+  assert.equal(rs.status, 13, rs.stdout + rs.stderr);
+  assert.match(rs.stdout, /^VEILLE ARRÊTÉE \d\d:\d\d : worktree du capitaine pas propre : préparation non jouée/m);
+  assert.deepEqual(rs.trace, []);
+});
+
+test("échéance passée : plus de relance de la boucle", () => {
+  // Limite de 3 s, marge 0 : l'échéance tombe pendant le premier lancement, qui dure 3,5 s.
+  const r = veilleJouet(["", prete(31)], {
+    apresLancement: '[ "$k" != 0 ] || /bin/sleep 3.5',
+    args: ["--pause", "0.2", "--duree", "1", "--marge", "0", "--sondes", "3"],
+    env: { VEILLE_LIMITE: "0.05" },
+  });
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.equal(r.lancements, 1);
+  assert.match(r.stdout, /^VEILLE FINIE \d\d:\d\d \(échéance\)$/m);
+});
+
+test("--duree au-delà de limite - marge : VEILLE FINIE (échéance) avant la fin de la durée", () => {
+  const debut = Date.now();
+  const r = veilleJouet([""], {
+    args: ["--pause", "0.2", "--duree", "1", "--marge", "0"],
+    env: { VEILLE_LIMITE: "0.1" },
+  });
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /^VEILLE FINIE \d\d:\d\d \(échéance\)$/m);
+  assert.ok(Date.now() - debut < 30000, "finie à l'échéance (6 s), pas à la durée (60 s)");
+});
+
+test("fetch passager en échec, projet sans preparerCapitaine : la veille repart au second essai, la boucle est lancée", () => {
+  // Un `git` du PATH fait échouer le premier `fetch`, puis passe la main au vrai ; `sleep` est immédiat.
+  const j = creerJouet([""], { boot: null });
+  const bin = join(j.dir, "bin");
+  mkdirSync(bin);
+  const vraiGit = execFileSync("sh", ["-c", "command -v git"], { encoding: "utf8" }).trim();
+  writeFileSync(
+    join(bin, "git"),
+    `#!/bin/sh\nif [ "$1" = fetch ] && [ ! -e "${j.dir}/fetch-raté" ]; then touch "${j.dir}/fetch-raté"; exit 1; fi\nexec "${vraiGit}" "$@"\n`,
+  );
+  writeFileSync(join(bin, "sleep"), "#!/bin/sh\n:\n");
+  chmodSync(join(bin, "git"), 0o755);
+  chmodSync(join(bin, "sleep"), 0o755);
+  const r = j.lancer(["--pause", "0.2", "--duree", "1", "--sondes", "0"], { PATH: `${bin}:${process.env.PATH}` });
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.ok(existsSync(join(j.dir, "fetch-raté")), "le premier fetch a bien échoué");
+  assert.equal(r.lancements, 1);
+  // Sans clé, aucune ligne de préparation, même sans boot_id lisible.
+  assert.doesNotMatch(r.stdout, /préparation|boot_id/);
+});
+
+test("une boucle tient le verrou : préparation non jouée, sortie 13, worktree laissé tel quel", () => {
+  const j = creerJouet([""]);
+  j.publier(contratPrep(j.trace));
+  j.git("switch", "-q", "-c", "capitaine/7");
+  const verrou = join(j.clone, ".git", "boucle.verrou");
+  // `flock <verrou> bash veille.sh` : le verrou est tenu par un autre descripteur pendant toute la veille.
+  const r = j.lancer(ARGS(0), {}, ["flock", verrou]);
+  assert.equal(r.status, 13, r.stdout + r.stderr);
+  assert.match(r.stdout, /^VEILLE ARRÊTÉE \d\d:\d\d : une boucle tient le verrou/m);
+  assert.deepEqual(r.trace, []);
+  assert.equal(j.git("symbolic-ref", "--short", "HEAD"), "capitaine/7", "worktree non détaché");
+});
+
+test("démon lancé par la préparation (`(exec sleep 15) &`) : la boucle obtient le verrou (`flock -n`)", () => {
+  // Un démon (PostgreSQL de demarrer-local.sh) qui hériterait du descripteur du verrou le garderait après la
+  // préparation, et chaque boucle sortirait en 9. Le démon écrit son pid ; sa sortie ne tient pas le tube du banc.
+  const j = creerJouet([""]);
+  const pid = join(j.dir, "demon.pid");
+  j.publier({ preparerCapitaine: `(exec sleep 15 >/dev/null 2>&1 </dev/null) & echo $! > "${pid}"` });
+  const verrou = join(j.clone, ".git", "boucle.verrou");
+  writeFileSync(
+    join(j.dir, "boucle.sh"),
+    readFileSync(join(j.dir, "boucle.sh"), "utf8").replace(
+      "echo boucle >> ",
+      `if flock -n "${verrou}" true; then echo "verrou libre" >> "${j.trace}"; else echo "verrou tenu" >> "${j.trace}"; fi\necho boucle >> `,
+    ),
+  );
+  try {
+    const r = j.lancer(ARGS(0));
+    assert.equal(r.status, 0, r.stdout + r.stderr);
+    assert.ok(existsSync(pid), "le démon a été lancé");
+    assert.deepEqual(r.trace, ["verrou libre", "boucle"], r.stdout + r.stderr);
+  } finally {
+    if (existsSync(pid)) spawnSync("kill", [readFileSync(pid, "utf8").trim()]);
+  }
 });

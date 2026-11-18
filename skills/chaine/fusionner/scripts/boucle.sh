@@ -75,6 +75,14 @@
 # `reset --hard`, puis `switch --detach origin/develop` ; le worktree du capitaine ne porte rien
 # d'autre), sortie 143 (TERM) ou 130 (INT). Option inconnue : sortie 64. `flock` (util-linux) requis.
 #
+# Échéance. La veille (`veille.sh`) pose `BOUCLE_ECHEANCE` (secondes depuis l'époque Unix) : au-delà,
+# un passage commencé ne finirait pas avant la limite de 2 h de la tâche de fond qui la porte. La boucle
+# la vérifie en tête de tour, avant chaque `passer` et avant chaque `sujet.sh fusionner` ; passé
+# l'échéance, plus aucun passage : `ÉCHÉANCE <hh:mm> : …, file laissée`, sortie 0, sans le
+# rafraîchissement de fin des sujets. Rien n'est alors en cours, aucune PR n'est touchée. Posée mais pas
+# un entier positif : sortie 64, aucune lecture GitHub. Absente (boucle lancée à la main) : rien ne
+# change. L'`exec` de relance garde l'environnement, donc l'échéance.
+#
 # Usage, depuis le worktree du capitaine (plus de copie manuelle à faire) :
 #   bash scripts/chaine/boucle.sh > <journal> 2>&1
 #   bash scripts/chaine/boucle.sh --arreter     pose le fichier d'arrêt, termine la boucle en cours
@@ -179,6 +187,16 @@ verifier_arret() {
   [ ! -e "$ARRET" ] || { echo "ARRÊT demandé ($ARRET, posé le $(cat "$ARRET" 2>/dev/null)) : '--reprendre' pour relancer" >&2; exit 10; }
 }
 verifier_arret
+# Échéance de la veille (en-tête). Dans le sous-shell du tube de `traiter_sujets`, `exit` ne sort que du
+# sous-shell : il sort en ECHEANCE_TUBE, que la boucle relit après le tube (PIPESTATUS).
+ECHEANCE_TUBE=86
+if [ -n "${BOUCLE_ECHEANCE+x}" ] && ! [[ "$BOUCLE_ECHEANCE" =~ ^[1-9][0-9]*$ ]]; then
+  echo "ARRÊT : BOUCLE_ECHEANCE (« $BOUCLE_ECHEANCE ») n'est pas un entier positif (secondes depuis l'époque Unix, posées par veille.sh)" >&2
+  exit 64
+fi
+echeance_passee() { [ -n "${BOUCLE_ECHEANCE:-}" ] && [ "$(date +%s)" -ge "$BOUCLE_ECHEANCE" ]; }
+finir_echeance() { echo "ÉCHÉANCE $(date +%H:%M) : plus de passage avant la fin de la veille, file laissée"; exit 0; }
+verifier_echeance() { ! echeance_passee || finir_echeance; }
 # Signal en plein passage : worktree remis propre (fusion commitée ou non, index régénérés).
 arret_signal() {
   echo "[boucle] signal reçu : worktree remis propre, arrêt" >&2
@@ -306,6 +324,8 @@ traiter_sujets() {
           6) echo "[#$n] PAS PROPRE : worktree du capitaine à nettoyer, sous-PR laissée dans la file (aucun renvoi)" ;;
         esac ;;
       sujet/*': prête')
+        # Passé l'échéance, aucun `sujet.sh fusionner` (il peut attendre une CI) : le code remonte du sous-shell.
+        ! echeance_passee || exit "$ECHEANCE_TUBE"
         bash "$SUJET" fusionner "$n" 2>&1 | tee "$sortie" | sed "s#^#[\#$n] #"
         rc=${PIPESTATUS[0]}
         case "$rc" in
@@ -329,6 +349,7 @@ traiter_sujets() {
   done
   rc=${PIPESTATUS[1]}
   [ "$rc" != 12 ] || exit 12
+  [ "$rc" != "$ECHEANCE_TUBE" ] || finir_echeance
   # Sujets finis : PR finale ouverte, elle entre dans la file au tour suivant.
   verifier_arret
   bash "$SUJET" livrer-prets 2>&1 | sed 's#^#[sujets] #; s#PR \(\#[0-9]*\) ouverte#LIVRÉ : PR \1 ouverte#'
@@ -340,6 +361,7 @@ sortie=$(mktemp)
 trap 'rm -f "$sortie"' EXIT
 passer() {
   verifier_arret
+  verifier_echeance
   bash "$outils/passer.sh" "$1" 2>&1 | tee "$sortie"
   return "${PIPESTATUS[0]}"
 }
@@ -350,6 +372,7 @@ attente_fusion=${BOUCLE_ATTENTE:- }
 rafraichir_sujets
 while :; do
   verifier_arret
+  verifier_echeance
   rafraichir_outils "$@"
   traiter_rouges
   traiter_sujets
