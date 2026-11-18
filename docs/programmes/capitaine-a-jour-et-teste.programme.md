@@ -70,7 +70,8 @@ Décisions de l'architecte :
 | ticket | 10 | session_012xRpgbJm6pUqbrixWZ1a5w | sonnet | 161 993 | 2,11 |
 | ticket | 12 | session_012xRpgZRkibUK1CA2XDumRw | sonnet | — | — |
 | ticket | 17 | session_012xRpgbyvYBRavfo3t7tSRy | opus | — | — |
-| ticket | 6 | session_012xRpgYLyDnCAE8DMZWu3s5 | sonnet | — | — |
+| ticket | 6 | session_012xRpgYLyDnCAE8DMZWu3s5 | sonnet | 207 235 | 3,18 |
+| ticket | 13 | session_012xRpgYZHPVc6BJ87qfJom5 | sonnet | — | — |
 | ticket | 5 | session_012xRpgZ61a6Z3tAxnLE1XtH | sonnet | 186 928 | 2,98 |
 | ticket | 8 | session_012xRpgb2wqPnXRgEHTvthK3 | opus | — | — |
 | capitaine | — | session_012xRpgcWjwiV8xVUSzzEy9L | sonnet | — | — |
@@ -137,3 +138,4 @@ Demande du produit, 2026-11-18, recopiée telle quelle (relevée sur `MAJ-agency
 - 2026-11-18 — 20 h 13 UTC. **PR 111 fusionnée** (squash `88fe501`), arbre identique au sommet ordonné `48ba644`, vérifié ; la branche distante a été supprimée par GitHub, la branche de cadrage repart de `main` (deux commits du journal repris). Tickets 1, 15 et 19 passés à « Fait » ; leurs décisions de session restent dans le corps de leurs PR (115, 112, 113).
 - 2026-11-18 — 20 h 35 UTC. **PR 116 fusionnée** (squash `22b2d49`, 7.18.1), arbre identique, vérifié ; ticket 10 fait, session archivée (2,11 $). Signal à la PR 117 (7.18.2).
 - 2026-11-18 — 20 h 57 UTC. **PR 117 fusionnée** (squash `6fc652d`, 7.18.2), arbre identique, vérifié ; ticket 5 fait, session archivée (2,98 $). Signal à la PR 114 (7.18.3).
+- 2026-11-18 — 21 h 40 UTC. PR 114 renvoyée par le capitaine pour une alerte CodeQL haute (`js/incomplete-sanitization` sur un `replace("*", …)`), corrigée (`f6b0543`), CodeQL vert. **PR 118 fusionnée** (squash `cf1c521`, 7.19.0), arbre identique, vérifié ; ticket 6 fait, session archivée (3,18 $). Signal à la PR 114 (7.19.1). Ticket 13 lancé (débloqué par 1 et 6) : session_012xRpgYZHPVc6BJ87qfJom5.
