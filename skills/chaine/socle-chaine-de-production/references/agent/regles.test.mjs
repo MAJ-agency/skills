@@ -1563,6 +1563,13 @@ test('ticket 17 : recherche adversariale — chaque contournement trouvé sur le
       // Une affectation possible derrière un préfixe, et un nom porté par une variable.
       'X=GIT_CONFIG_COUNT=1; env "$X" GIT_CONFIG_KEY_0=core.hooksPath GIT_CONFIG_VALUE_0=/dev/null git commit -am x',
       'declare -n r=GIT_CONFIG_COUNT; export r=1',
+      // Revue de ticket, axe Règles : la durée de `timeout` derrière une option, la priorité de `chrt`.
+      'timeout -s KILL 5 env HUSKY=0 git commit -m x',
+      'timeout -k 1 5 env GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.hooksPath GIT_CONFIG_VALUE_0=/dev/null git commit -m x',
+      'chrt 10 env HUSKY=0 git commit -m x',
+      // Revue de ticket, axe Règles : un mot `git-…` placé avant le programme interne ne le masque pas.
+      'env -C /tmp/git-w /usr/lib/git-core/git-commit -anm x',
+      'sudo -u git-bot /usr/lib/git-core/git-commit -anm x',
       // Les programmes internes de git : `git-commit` est git commit.
       '/usr/lib/git-core/git-commit -anm x',
       '"$(git --exec-path)/git-commit" -anm x',
@@ -1579,8 +1586,8 @@ test('ticket 17 : recherche adversariale — chaque contournement trouvé sur le
   // Une expansion non citée dans une option globale peut y écrire `-c alias.…`, devant toute sous-commande.
   refusees(["X='. -c alias.zz=!git${IFS}commit${IFS}-anm${IFS}x'; git -C $X zz", 'git -C {.,-c,core.hooksPath=/dev/null} commit -am x', 'git -C $dir status', "p='git commit -anm y'; git -c core.pager=\"$p\" log"], /hooks git|argument de git illisible/);
   // Le push par un programme interne vers un sujet était déjà ouvert sur main.
-  refusees(['/usr/lib/git-core/git-push origin HEAD:sujet/x'], SUJET);
+  refusees(['/usr/lib/git-core/git-push origin HEAD:sujet/x', 'env -C /tmp/git-w /usr/lib/git-core/git-push origin HEAD:sujet/x'], SUJET);
   refusees(['git-push origin :', 'git -c remote.origin.mirror=true push origin', 'git push {origin,HEAD:sujet/x}'], PUSH_ILLISIBLE);
   // Une substitution de processus rend un seul chemin : elle n'est pas découpée, elle passe en valeur (Iroki la refusait).
-  passent(['git -C <(echo a b) commit -m x', 'git commit -m x -- -*', 'set -euo pipefail', 'set -x', 'git -C "$X" push origin feat/x', 'man git-commit', 'git -c core.pager=cat log -1', 'git -c core.pager="less -FRX" log', 'git reset HEAD@{1}', 'git commit -m x -- {a,b}.ts']);
+  passent(['git -C <(echo a b) commit -m x', 'git commit -m x -- -*', 'set -euo pipefail', 'set -x', 'git -C "$X" push origin feat/x', 'man git-commit', 'git -c core.pager=cat log -1', 'timeout 5 git commit -m "fix -n"', 'timeout --foreground 5 pnpm test', 'sudo -u "$u" git status', 'git -c core.pager="less -FRX" log', 'git reset HEAD@{1}', 'git commit -m x -- {a,b}.ts']);
 });

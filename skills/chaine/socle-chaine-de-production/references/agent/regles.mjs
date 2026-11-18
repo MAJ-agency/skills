@@ -1912,9 +1912,13 @@ export function appelsGit(lectures) {
  * globales. Le premier mot du segment qui en nomme un compte.
  */
 const PROGRAMME_INTERNE = /(^|\/)git-([a-z][a-z-]*)$/i;
+/** Les préfixes qui prennent un positionnel avant le programme : la durée de `timeout`, la priorité de `chrt`. */
+const PREFIXES_A_POSITIONNEL = new Set(['timeout', 'chrt']);
 function appelsInternes(mots) {
-  const k = mots.findIndex((mot) => PROGRAMME_INTERNE.test(mot));
-  return k < 0 ? [] : [{ i: k, j: k, globales: [], sous: PROGRAMME_INTERNE.exec(mots[k])[2].toLowerCase(), args: mots.slice(k + 1), interne: true }];
+  // Chaque mot qui en nomme un : une valeur d'option placée avant (`env -C /tmp/git-w …`) ne masque pas le vrai.
+  return mots.flatMap((mot, k) =>
+    PROGRAMME_INTERNE.test(mot) ? [{ i: k, j: k, globales: [], sous: PROGRAMME_INTERNE.exec(mot)[2].toLowerCase(), args: mots.slice(k + 1), interne: true }] : [],
+  );
 }
 
 /** Les mots d'un appel interne (`git-commit -n`) relus comme `git commit -n`, pour `lireAppel`. */
@@ -2349,8 +2353,10 @@ function affecteLesHooks(cmd) {
     return false;
   }
   if (PREFIXES_A_AFFECTATIONS.has(programme)) {
-    // La valeur d'une option du préfixe (`sudo -u x`, `nice -n 5`) ou la durée de `timeout` se saute.
-    let valeur = programme === 'timeout';
+    // La valeur d'une option du préfixe (`sudo -u x`, `nice -n 5`) se saute, puis la durée de `timeout` ou la
+    // priorité de `chrt`, même derrière des options (`timeout -s KILL 5 env …`).
+    let valeur = false;
+    let positionnels = PREFIXES_A_POSITIONNEL.has(programme) ? 1 : 0;
     for (let k = 1; k < W.length; k++) {
       const w = W[k];
       const nom = nomAffecte(w);
@@ -2358,8 +2364,11 @@ function affecteLesHooks(cmd) {
         if (VARIABLE_HOOKS.test(nom)) return true;
         valeur = false;
       } else if (w.vue.startsWith('-')) valeur = true;
-      else if (!w.expansion && PREFIXES_A_AFFECTATIONS.has(nomDeBase(w.valeur))) valeur = nomDeBase(w.valeur) === 'timeout';
-      else if (valeur) valeur = false;
+      else if (!w.expansion && PREFIXES_A_AFFECTATIONS.has(nomDeBase(w.valeur))) {
+        valeur = false;
+        positionnels = PREFIXES_A_POSITIONNEL.has(nomDeBase(w.valeur)) ? 1 : 0;
+      } else if (valeur) valeur = false;
+      else if (positionnels > 0) positionnels--;
       // `env "$X" git …` : l'expansion peut être une affectation.
       else return w.expansion;
     }
