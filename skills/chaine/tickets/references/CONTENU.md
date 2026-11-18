@@ -1,6 +1,6 @@
 # Ce que contient le skill tickets, et pourquoi
 
-## Ce que le skill exige : `scripts/docs/identifiants.mjs`, `next-id.mjs`, `next-id-branches.mjs`, `pr-ouvertes.mjs`
+## Ce que le skill exige : `scripts/docs/identifiants.mjs`, `next-id.mjs`, `next-id-branches.mjs`, `pr-ouvertes.mjs`, `environnement-de-banc.mjs`
 
 La grammaire `<TYPE>_<CTX>_<TRI>-<n>` en un seul module, la numérotation et la lecture des PR ouvertes, posées par `socle-monorepo` (son `references/CONTENU.md`) : les gates de la racine et de `socle-tests` la lisent aussi, sans dépendre de ce skill. Tous les scripts ci-dessous l'importent (`./identifiants.mjs`, `../docs/identifiants.mjs`) ; aucun n'écrit la grammaire de son côté.
 

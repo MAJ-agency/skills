@@ -191,6 +191,8 @@ Cette règle vaut pour **tout** changement de contenu, pas seulement l'ajout d'u
 
 Un skill dont l'étape `poser` copie un dossier de scripts dans `scripts/chaine/` d'un projet ajoute ce dossier à `POSES` dans `scripts/poses.test.mjs` : le garde pose ses fichiers à plat et rejoue ses bancs hors du plugin. Un banc posé ne lit jamais l'arbre du plugin sans repli vers le fichier du projet.
 
+Un banc ne recopie jamais le filtre des variables `GIT_*` : il importe `environnementDeBanc()` (`scripts/docs/environnement-de-banc.mjs` du socle, réexporté par `depot-jouet.mjs`), qui retire aussi `FORCE_COLOR` et pose `NO_COLOR=1`. `scripts/un-seul-environnement-de-banc.test.mjs` refuse toute copie.
+
 Ce qui dépasse une page va dans `references/`, atteint par un pointeur depuis `SKILL.md` — le corps du skill reste lisible, et les détails ne se chargent qu'au besoin.
 
 > **Les liens à l'intérieur de `references/` ne résolvent pas dans ce dépôt, et c'est normal.** Ce sont des gabarits : leurs chemins relatifs visent le **projet généré**, pas l'arborescence du skill. Les cliquer depuis GitHub donne des 404 sans que rien ne soit cassé. Ce qui doit résoudre ici, ce sont les liens du `README.md`, des `SKILL.md` et de leurs `CONTENU.md`.

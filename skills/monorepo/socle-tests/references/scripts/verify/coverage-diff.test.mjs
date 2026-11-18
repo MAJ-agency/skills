@@ -5,15 +5,21 @@
 // coupé quand il passe par un tube lent.
 import assert from "node:assert/strict";
 import { execFileSync, spawn, spawnSync } from "node:child_process";
-import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { after, test } from "node:test";
 import { fileURLToPath } from "node:url";
 
 const ICI = dirname(fileURLToPath(import.meta.url));
+// Posé dans un projet, le module est dans scripts/docs/ ; dans le plugin, dans le skill `socle-monorepo`.
+const { environnementDeBanc } = await import(
+  existsSync(join(ICI, "../docs/environnement-de-banc.mjs"))
+    ? "../docs/environnement-de-banc.mjs"
+    : "../../../../socle-monorepo/references/scripts/docs/environnement-de-banc.mjs"
+);
 const SCRIPT = join(ICI, "coverage-diff.mjs");
-const ENV = Object.fromEntries(Object.entries(process.env).filter(([c]) => !c.startsWith("GIT_") && c !== "NODE_TEST_CONTEXT" && c !== "PRE_PUSH_REFS"));
+const ENV = environnementDeBanc();
 
 const dossiers = [];
 const dossier = (prefixe) => {

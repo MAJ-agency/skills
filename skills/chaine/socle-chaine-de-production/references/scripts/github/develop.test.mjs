@@ -9,6 +9,7 @@ import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileS
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { environnementDeBanc } from '../../../../sujet/scripts/depot-jouet.mjs';
 
 const ICI = dirname(fileURLToPath(import.meta.url));
 const SCRIPT = join(ICI, 'develop.sh');
@@ -17,7 +18,7 @@ const HOOK_SOCLE = join(ICI, '../../../../../monorepo/socle-monorepo/references/
 
 // Sans les GIT_* hérités : sous un hook pre-push, GIT_DIR et GIT_INDEX_FILE visent le vrai dépôt.
 const ENV = {
-  ...Object.fromEntries(Object.entries(process.env).filter(([cle]) => !cle.startsWith('GIT_'))),
+  ...environnementDeBanc(),
   GIT_CONFIG_GLOBAL: '/dev/null',
   GIT_CONFIG_NOSYSTEM: '1',
   GIT_AUTHOR_NAME: 'test',
