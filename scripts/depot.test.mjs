@@ -877,3 +877,136 @@ test("chaque skill du plugin a sa ligne au README et passe le gate references-ag
   assert.deepEqual(refuses, [], `references-agent-integrees.json : skills que le gate d'un projet refuserait : ${refuses.join(", ")}`);
   assert.ok(readme.includes("    criticite/\n"), "README.md : le skill de criticité dans l'arbre du dépôt");
 });
+
+// Le critère T3 de la revue de ticket (ticket 52, décision du produit P-38) : pour une règle qui déclare ses cas, dans un
+// projet dont l'index Anchorpost est au pivot 3, le relecteur ne recompte pas les cas, la CLI le fait ; il vérifie ce que
+// la machine ne juge pas, puis lit ce qu'elle a compté. Pour toute autre règle, l'ancien contrôle reste. Le banc tient
+// les deux branches, les trois vérifications, la lecture de l'index, la phrase qui passera la main au relecteur
+// indépendant, et l'absence de tout décompte demandé au relecteur dans la branche « cas déclarés ». Même lecture à plat
+// que le banc du skill de criticité, même limite : une phrase glissée entre deux passages exigés passe, même contraire.
+const REVUE_DE_TICKET = `${SKILLS_CHAINE}/revue-de-ticket`;
+const CRITERES_TICKET = `${REVUE_DE_TICKET}/references/criteres-ticket.md`;
+const CAS_DECLARES = "Branche « cas déclarés »";
+const SANS_CAS_DECLARES = "Branche « sans cas déclarés »";
+const DECOMPTE = /au moins un test|ont chacun un cas|chaque cas (attendu|déclaré)[^.;:]* a (sa|une) preuve|tous les cas (attendus|déclarés) (sont couverts|ont (leur|une) preuve)/i;
+// Le critère T3, à plat, coupé en trois : sa tête, puis ses deux branches. null s'il manque, si l'une de ses branches
+// manque ou est écrite deux fois, ou si elles ne sont pas dans cet ordre.
+const critereT3 = (texte) => {
+  const bloc = texte.match(/^T3 {2}[\s\S]*?(?=^T4 {2})/m);
+  if (!bloc) return null;
+  const [tete, ...declares] = plat(bloc[0]).split(CAS_DECLARES);
+  if (declares.length !== 1 || tete.includes(SANS_CAS_DECLARES)) return null;
+  const [branche, ...sans] = declares[0].split(SANS_CAS_DECLARES);
+  if (sans.length !== 1) return null;
+  return { tete, declares: branche, sans: sans[0] };
+};
+const exigerDans = (ou, texte, phrases) => {
+  const absentes = phrases.filter((p) => !texte.includes(plat(p)));
+  assert.deepEqual(absentes, [], `${ou} : passages absents : ${absentes.join(" | ")}`);
+};
+const lireT3 = () => {
+  const t3 = critereT3(readFileSync(join(RACINE, CRITERES_TICKET), "utf8"));
+  assert.ok(t3, `${CRITERES_TICKET} : le critère T3, entre « T3 » et « T4 », avec ses deux branches, « cas déclarés » puis « sans cas déclarés »`);
+  return t3;
+};
+// Une version « a.b.c » vaut au moins « x.y.z ».
+const auMoins = (version, plancher) => {
+  const [a, b] = [version, plancher].map((v) => v.split(".").map(Number));
+  for (let i = 0; i < 3; i += 1) if (a[i] !== b[i]) return a[i] > b[i];
+  return true;
+};
+
+test("lecteurs du critère T3 : entrées piégées", () => {
+  const t3 = (corps) => `T2  x\nT3  Tête. ${corps}\nT4  y\n`;
+  assert.deepEqual(critereT3(t3(`${CAS_DECLARES} — a.\n    ${SANS_CAS_DECLARES} — b.`)), { tete: "T3 Tête. ", declares: " — a. ", sans: " — b. " });
+  assert.equal(critereT3("T2  x\nT4  y\n"), null, "sans T3");
+  assert.equal(critereT3(t3("un seul contrôle")), null, "sans branche");
+  assert.equal(critereT3(t3(`${CAS_DECLARES} — a.`)), null, "sans la branche « sans cas déclarés »");
+  assert.equal(critereT3(t3(`${SANS_CAS_DECLARES} — b.`)), null, "sans la branche « cas déclarés »");
+  assert.equal(critereT3(t3(`${SANS_CAS_DECLARES} — b. ${CAS_DECLARES} — a.`)), null, "branches dans le désordre");
+  assert.equal(critereT3(t3(`${CAS_DECLARES} — a. ${CAS_DECLARES} — a. ${SANS_CAS_DECLARES} — b.`)), null, "une branche écrite deux fois");
+  assert.equal(DECOMPTE.test("chaque cas déclaré de la règle a sa preuve"), true, "un décompte demandé au relecteur");
+  assert.equal(DECOMPTE.test("Chaque cas attendu a une preuve"), true, "un décompte en tête de phrase");
+  assert.equal(DECOMPTE.test("Tous les cas déclarés sont couverts"), true, "un décompte dit autrement");
+  assert.equal(DECOMPTE.test("La règle a AU MOINS UN TEST"), true, "sans égard à la casse");
+  assert.equal(DECOMPTE.test("tant qu'un cas déclaré n'a pas sa preuve"), false, "ce que dit la CLI n'est pas un décompte demandé au relecteur");
+  assert.equal(DECOMPTE.test("elle écrit `proven: false` sur chaque cas déclaré qui n'a pas sa preuve au niveau exigé"), false, "ce qu'écrit la CLI non plus");
+  assert.equal(auMoins("7.15.0", "7.15.0"), true);
+  assert.equal(auMoins("7.14.9", "7.15.0"), false, "une mineure en dessous");
+  assert.equal(auMoins("7.100.0", "7.15.0"), true, "des nombres, pas des chaînes");
+  assert.equal(auMoins("8.0.0", "7.15.0"), true);
+});
+
+test("T3, branche « cas déclarés » : index au pivot 3 et règle qui déclare ses cas, le relecteur ne recompte pas, il vérifie ce que la machine ne juge pas et lit ce qu'elle a compté", () => {
+  const { tete, declares } = lireT3();
+  exigerDans("T3, tête", tete, [
+    "T3 Règles citées et leurs preuves — registre de règles, `.claude/rules/tests.md` § Règles. Les règles sont celles de la ligne `Règles:` du ticket (« Règles du ticket » du contexte ; à défaut de ligne, chaque règle que le ticket cite). Deux branches, choisies règle par règle, quelle que soit la criticité de la règle.",
+  ]);
+  exigerDans("T3, branche « cas déclarés »", declares, [
+    "— seulement si l'index commis du projet, anchorpost/anchorpost.json, porte \"schema\": \"3\" (le relecteur lit ce champ dans l'index, jamais dans ce que disent le ticket ou la PR) et si l'en-tête de la règle, rendu dans « Règles du ticket », déclare au moins un cas sous `cases`.",
+    "Le relecteur ne recompte pas les cas, la CLI Anchorpost le fait : elle écrit `proven: false` sur chaque cas déclaré qui n'a pas sa preuve au niveau exigé. Il vérifie ce que la machine ne juge pas, (a) à (c), sur chaque test du diff qui porte l'étiquette d'un cas de la règle (`[RULE_ALL_FAC-3#montant-nul]` : l'identifiant de la règle, `#`, celui du cas ; portée par un `describe`, elle vaut pour les tests qu'il contient) et sur chaque preuve que l'entrée de la règle range dans un fichier de cas, puis il lit ce que la machine a compté, (d), dans l'entrée de la règle sous `rules` de l'index de la branche relue (par sa `key`) :",
+    "(a) ce que le test affirme correspond au titre du cas : le relecteur lit l'assertion, pas le nom ; un test étiqueté d'un refus qui n'affirme pas le refus est un écart ; une preuve écrite dans un fichier de cas (`cas/*.json`, entrées `regle` et `cas`) n'affirme rien si aucun test du diff ou du dépôt ne lit ce fichier : c'est un écart ;",
+    "(b) le genre de test convient au code que le cas exerce, selon les catégories de `.claude/rules/tests.md` : un calcul pur se prouve par un test unitaire, et par un test de propriétés s'il porte un invariant chiffré ; une requête, par un test sur base réelle, jamais sur une base simulée ; un refus ou une entrée invalide d'une règle moyenne ou haute (`criticality.level` de l'entrée vaut `medium` ou `high`), exigés à la frontière de l'API (niveau `P1`), par un test qui passe par la route ; le cas normal d'une règle haute (`high`), exigé de bout en bout (niveau `P2`), par un vrai parcours. Le niveau exigé, la CLI le compte ; le niveau qu'elle donne à un test se lit dans `proofs[].level` de l'entrée : un test qui porte un niveau qu'il n'a pas (un `P1` qui ne passe pas par la route, un `P2` qui n'est pas un parcours) est un écart ;",
+    "(c) un cas dit technique l'est vraiment : chaque cas `scope: technical` qu'un test du diff étiquette, ou que le diff ajoute ou modifie dans le fichier de la règle, est une situation que seule l'équipe voit (une saisie vide, un doublon, deux actions simultanées) ; s'il est une décision du métier (un refus, une exception que la MOA reconnaîtrait), c'est un écart : il échappe à la validation de la MOA ;",
+    "(d) ce que la CLI a compté : une de ces règles dont un cas de `cases` porte `proven: false` est un écart, quel que soit `realisation.status` (`partial` si elle a des preuves, `to-build` ou `configured` si elle n'en a aucune : `proofs` est alors vide) ; `missing.reason` dit pourquoi : `no-proof`, aucune preuve ne nomme le cas, ou `level-too-low`, ses preuves sont d'un niveau trop bas. Le relecteur ne refait pas le compte : il lit celui de l'index. L'écart ne tombe que pour un cas qu'un autre ticket porte, aux cinq conditions réunies : le ticket relu nomme ce ticket ; il est « trouvé » dans « Identifiants cités » du contexte, sans « (archivé) », et n'est pas le ticket relu ; il est ouvert, son `Status:` n'est ni `Fait` ni `wontfix` ; sa ligne `Règles:` cite la règle ; ni la mention ni cette ligne `Règles:` ne sont ajoutées par le diff relu. Le relecteur rend alors « cas <règle>#<id> porté par <ticket> », pour la section de PR. Un index que le diff n'a pas régénéré est un écart de T5, pour le seul index que (d) lit : il se régénère, et l'axe Ticket seul se rejoue. Ses signes : une de ces règles absente de `rules` ; un test étiqueté du diff dont le titre manque aux `proofs` de la règle ; des `id` de cas qui diffèrent entre l'en-tête de la règle et son entrée.",
+    "Un cas de bord que l'énoncé de la règle dit et qu'aucun cas de `cases` ne porte est un écart, et qu'une famille soit dite sans objet n'y change rien : le cas se dit, la session ne l'écrit pas elle-même ; son test, étiqueté de la règle sans nom de cas, est dû dans le diff.",
+    "Un test qui porte un identifiant de règle, avec ou sans cas, qu'il ne prouve pas est un écart.",
+  ]);
+  assert.ok(!DECOMPTE.test(declares), "T3, branche « cas déclarés » : aucun décompte n'est demandé au relecteur, la CLI compte");
+  assert.ok(!/étage/.test(declares), "T3, branche « cas déclarés » : un seul mot pour le niveau d'une preuve");
+});
+
+test("T3, branche « sans cas déclarés » : pour toute autre règle, l'ancien contrôle reste", () => {
+  const { sans } = lireT3();
+  exigerDans("T3, branche « sans cas déclarés »", sans, [
+    "— toute autre règle : index absent ou d'un autre schéma, ou en-tête sans aucun cas sous `cases`. La règle a au moins un test qui porte son identifiant entre crochets en tête du nom (`[RULE_ALL_FAC-3]`), ou sur le `describe` qui le contient ; les cas de bord que la règle énonce (limite, zéro, dépassement, chevauchement, passage à minuit, montant nul ou négatif, doublon) ont chacun un cas ; un test qui porte un identifiant de règle qu'il ne prouve pas est un écart.",
+  ]);
+});
+
+test("l'axe Ticket lit dans l'index le schéma et l'entrée des règles du ticket, et son prompt porte les deux branches : ce qu'il peut lire, l'étiquette de cas, ce qu'il ne recompte pas, les gravités, le cas laissé à un autre ticket", () => {
+  exiger(CRITERES_TICKET, [
+    "chaque fichier de règle tel que le dépôt l'écrit, en-tête YAML compris — puis les identifiants cités ailleurs, chacun trouvé ou introuvable) et le **diff**, et lit dans l'index commis du projet, `anchorpost/anchorpost.json`, s'il existe, le champ `schema` et l'entrée `rules` de chaque règle du ticket.",
+  ]);
+  exiger(`${REVUE_DE_TICKET}/references/prompt-ticket.md`, [
+    "Tu travailles en lecture seule. Pour vérifier un point, tu peux lire : les fichiers entiers touchés par le diff, les tests, le glossaire et les règles du dépôt ; le code qu'un test du diff exerce, quand le diff ne le touche pas ; un fichier `cas/*.json` hors du diff qu'une preuve cite ; dans l'index anchorpost/anchorpost.json, le champ `schema` et l'entrée `rules` de chaque règle du ticket ; l'en-tête du ticket que le ticket relu nomme pour porter un cas (critère T3, (d)). Rien d'autre. Tu ne modifies rien, tu ne lances aucune commande qui écrit.",
+    "Ta seule mission : trouver les ÉCARTS entre le diff et le ticket — une surface sans test, une décision non tenue, une règle citée sans test ou sans ses cas de bord, une preuve de cas qui n'affirme pas ce que le titre du cas promet, un test qui porte un niveau qu'il n'a pas, un cas dit technique qui est une décision du métier, un cas déclaré que l'index dit non prouvé, un cas de bord de l'énoncé qu'aucun cas déclaré ne porte, du code hors ticket — selon la liste fermée de critères ci-dessous et elle seule.",
+    "Il prouve un cas attendu de la règle quand l'étiquette nomme ce cas après un `#` (`[RULE_ALL_LIC-3#seconde-licence]`), sur le test ou sur un `describe` qui le contient : les cas d'une règle sont la clé `cases` de son en-tête, dans « Règles du ticket ». Tu ne recomptes pas les cas d'une règle qui les déclare, quand l'index du projet porte \"schema\": \"3\" : la CLI Anchorpost le fait ; tu juges ce qu'elle ne juge pas, et tu lis dans l'index ce qu'elle a compté (critère T3), quelle que soit la criticité de la règle. Les règles que T3 regarde sont celles de « Règles du ticket » dans le contexte ; celles d'« Identifiants cités » sont du contexte, pas une liste à prouver.",
+    "- bloquant : une surface du ticket sans aucun test, une décision tranchée contredite par le code ; dans les deux branches de T3, une règle citée sans aucune preuve qui la nomme (aux cas déclarés : `proofs` vide dans son entrée de l'index) ; pour une règle aux cas déclarés, une preuve de cas qui n'affirme pas ce que le titre du cas promet, un fichier de cas que rien ne lit, un test qui porte un niveau qu'il n'a pas, un cas dit technique qui est une décision du métier, un cas `proven: false` que ce ticket porte (un test du diff l'étiquette, ou la table « Surfaces » l'annonce) ; un index que le diff n'a pas régénéré (T5) ;",
+    "- à corriger : un cas de bord qu'une règle sans cas déclarés énonce, sans cas de test ; pour une règle aux cas déclarés, tout autre cas `proven: false`, un cas de bord que l'énoncé dit et qu'aucun cas déclaré ne porte, le test de ce cas de bord s'il manque au diff, un genre de test qui ne convient pas au code sans que son niveau en dépende ; un fichier hors « Où » non justifié, un statut ou un commentaire de ticket manquant ;",
+    "- ou, s'il n'y a rien : « aucun écart » - puis une ligne par cas non prouvé que T3 (d) laisse à un autre ticket : « cas <règle>#<id> porté par <ticket> » - puis une dernière ligne : « Critères non concernés : T… ».",
+  ]);
+});
+
+test("qui joue T3 : la phrase qui passera la main au relecteur indépendant, hors du bloc des critères, les lignes de la section de PR, et ce que la session fait autour de la revue", () => {
+  exiger(CRITERES_TICKET, [
+    "**Qui joue `T3`.** Pour une PR qui touche une règle moyenne ou haute, ce contrôle revient à un relecteur indépendant de l'auteur, que le plugin ne pose pas encore. Tant qu'il n'est pas posé, l'axe Ticket garde ce contrôle pour toutes les criticités, et la section de PR le dit en une ligne : « Contrôle des preuves joué par la revue de ticket, faute de relecteur indépendant ». Le critère est écrit pour que ce relecteur le reprenne tel quel. Ce paragraphe reste hors du bloc : le sous-agent de l'axe Ticket ne reçoit que le bloc, et ne saute aucune règle pour sa criticité.",
+  ]);
+  const blocs = blocsTexte(readFileSync(join(RACINE, CRITERES_TICKET), "utf8"));
+  assert.equal(blocs.length, 1, `${CRITERES_TICKET} : un seul bloc de critères, celui que reçoit le sous-agent`);
+  assert.ok(!/relecteur indépendant/.test(plat(blocs[0])), `${CRITERES_TICKET} : le bloc que reçoit le sous-agent ne lui dit pas qu'un autre jouera ce contrôle`);
+  exiger(`${REVUE_DE_TICKET}/references/section-pr.md`, [
+    "- Contrôle des preuves joué par la revue de ticket, faute de relecteur indépendant (critère `T3`, toutes criticités) - Cas laissés à un autre ticket (`T3`, (d)) : cas `<règle>#<id>` porté par `<ticket>` | aucun",
+  ]);
+  exiger(`${REVUE_DE_TICKET}/SKILL.md`, [
+    "**Les index générés d'abord** : avant tout sous-agent, jouer le gate de chaque index généré du projet (`scripts/docs/index-generes.json` ; pour l'index Anchorpost, le gate Anchorpost du projet). Un index périmé arrête la revue ici : il se régénère par sa commande, et ce n'est aucun des deux tours de l'étape 4.",
+    "4. Deux constats de `T3` ne se corrigent pas en entier dans la session : un cas dit technique jugé métier, et un cas de bord de l'énoncé qu'aucun cas déclaré ne porte. Elle ne change ni le `scope` ni le titre d'un cas (fiche `.claude/rules/anchorpost.md`), et n'en écrit aucun sous `cases` : cela seul attend le skill `criticite`. Le test du cas de bord, étiqueté de la règle sans nom de cas, se livre dans la PR. Le constat reste dans la section de PR et la session le dit au conducteur du chantier (sans chantier, au produit) ; le premier, bloquant, garde la PR en brouillon. 5. Si le relecteur de l'axe Ticket voit malgré l'étape 1 un index que le diff n'a pas régénéré (`T5`, les signes de `T3` (d)), l'index se régénère par sa commande, puis l'axe Ticket seul se rejoue. Ce n'est aucun des deux tours.",
+    "Sa ligne « Contrôle des preuves » dit qui a joué `T3` : la revue de ticket, pour toutes les criticités, tant que le relecteur indépendant d'une règle moyenne ou haute n'est pas posé ([`references/criteres-ticket.md`](references/criteres-ticket.md), « Qui joue `T3` »). Sa ligne « Cas laissés à un autre ticket » reprend chaque « cas … porté par … » que l'axe Ticket a rendu, ou « aucun ».",
+  ]);
+  exiger(`${REVUE_DE_TICKET}/references/CONTENU.md`, [
+    "la ligne `Règles:`, liste fermée des règles dont `T3` relit les preuves, et chaque fichier `docs/metier/regles/<ctx>/RULE_<CTX>_<TRI>-<n>.md` rendu tel quel, en-tête YAML compris : c'est là que le relecteur lit si une règle déclare ses cas (clé `cases`) —",
+    "règles citées et leurs preuves (`T3`, deux branches, choisies règle par règle : si l'index du projet est au pivot 3 et que la règle déclare ses cas, le relecteur ne recompte pas les cas, la CLI Anchorpost le fait, et il vérifie ce que la machine ne juge pas — ce que le test affirme correspond au titre du cas, le genre de test convient au code, un cas dit technique l'est vraiment — puis il lit dans l'index ce qu'elle a compté : une règle citée dont un cas déclaré porte `proven: false` est un écart, qu'elle ait des preuves ou non, sauf pour un cas qu'un autre ticket, encore ouvert, porte, à cinq conditions que l'auteur ne remplit pas seul ; un cas de bord que l'énoncé dit et qu'aucun cas déclaré ne porte est un écart aussi, et son test reste dû ; sinon, l'ancien contrôle reste — un test étiqueté par règle, un cas par cas de bord énoncé),",
+    "Celui de l'axe Ticket reçoit le contexte du ticket, et lit lui-même, dans l'index du projet, le champ `schema` et l'entrée `rules` de chaque règle du ticket, jamais ce qu'en disent le ticket ou la PR ; ce qu'il peut lire est une liste fermée, écrite dans son prompt ;",
+    "Sa ligne « Contrôle des preuves » dit qui a joué `T3`. Pour une PR qui touche une règle moyenne ou haute, ce contrôle revient à un relecteur indépendant de l'auteur, que le plugin ne pose pas encore : tant qu'il n'est pas posé, l'axe Ticket le garde pour toutes les criticités, et la ligne le dit (« Contrôle des preuves joué par la revue de ticket, faute de relecteur indépendant »). Le jour où ce relecteur est posé, cette ligne et le paragraphe « Qui joue `T3` » de `criteres-ticket.md` lui passent la main. Sa ligne « Cas laissés à un autre ticket » garde visible chaque cas non prouvé que `T3` (d) laisse à un autre ticket.",
+  ]);
+});
+
+test("ce que T3 suppose autour de lui : le critère T5 auquel (d) renvoie, le commentaire du script qui rend les règles, la version du plugin", () => {
+  exiger(CRITERES_TICKET, [
+    "T5 Vérification — ticket § « Vérification ». Les commandes ciblées du ticket ont un équivalent vert dans le diff (specs nommées présentes, index régénérés, specs de garde complétées).",
+  ]);
+  exiger(`${REVUE_DE_TICKET}/scripts/contexte-ticket.mjs`, [
+    "* 3. « Règles du ticket » : la ligne `Règles:` de l'en-tête, la liste fermée des règles dont l'axe * Ticket (`T3`) relit les preuves, puis chaque fichier de règle rendu tel quel, en-tête YAML * compris (c'est là que se lit si une règle déclare ses cas, clé `cases`) ;",
+  ]);
+  const { version } = JSON.parse(readFileSync(join(RACINE, ".claude-plugin/plugin.json"), "utf8"));
+  assert.ok(auMoins(version, "7.15.0"), `.claude-plugin/plugin.json : version ${version} ; le critère T3 à deux branches est celui du plugin 7.15.0 et des suivants`);
+});
