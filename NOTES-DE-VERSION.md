@@ -2,6 +2,20 @@
 
 La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque projet par `poser` : une version publiée ne change rien chez un projet qui ne les repose pas. Chaque note dit ce qui change, puis ce qu'un projet fait pour en profiter.
 
+## 7.22.0 — 2026-11-18
+
+### Ce qui change
+
+`next-id.mjs` fait un `fetch`, puis lit l'arbre de travail, `origin/develop`, tous les `origin/sujet/*` et `origin/docs/*`, et les fichiers des PR ouvertes (`scripts/docs/pr-ouvertes.mjs`, la lecture de `ticket-libre.mjs`). Il numérote aussi les tickets d'une spec : `node scripts/docs/next-id.mjs SPEC_ALL_SOC-4` rend le prochain index sur deux chiffres. Sans `gh`, le numéro sort, et la sortie d'erreur dit comment lire les PR ouvertes par l'outil GitHub MCP.
+
+### Ce qu'un projet fait pour en profiter
+
+1. Mettre à jour le plugin : `claude plugin marketplace update maj`, puis `claude plugin update maj-skills@maj`, puis redémarrer Claude Code (session cloud : `lancement.md` § « La mise à niveau »).
+2. Reposer, dans une PR du projet : `/maj-skills:socle-monorepo` pour `scripts/docs/next-id.mjs`, `next-id-branches.mjs` et `next-id.test.mjs` (la ligne `references/scripts/docs/*` de `TABLE-RACINE.md` ; `pr-ouvertes.mjs` est arrivé avec la version du ticket 6). Aucune clé de contrat.
+3. Numéroter un ticket par `next-id.mjs <SPEC>`, puis le réserver aussitôt (branche et PR brouillon).
+
+**Iroki**, hors du plugin : ses deux `SPEC_ALL_SOC-4.78` et ses deux `ADR_ALL_ARC-18` se renomment chez lui ; la repose de ces scripts suffit ensuite.
+
 ## 7.21.0 — 2026-11-18
 
 ### Ce qui change

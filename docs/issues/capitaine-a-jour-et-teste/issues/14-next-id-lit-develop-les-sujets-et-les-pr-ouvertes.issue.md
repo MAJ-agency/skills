@@ -1,6 +1,6 @@
 # `next-id` lit develop, tous les sujets et les PR ouvertes après un fetch, et numérote aussi les tickets d'une spec
 
-Status: ready-for-agent
+Status: Fait — PR #<n>
 Type: défaut
 Modèle: sonnet — un script de numérotation à étendre sur le module de lecture des PR ouvertes du ticket 6 (`pr-ouvertes.mjs`), un mode de plus sur la grammaire existante (`fichiersDeLaSpec`), et des bancs sur le dépôt jouet du script ; aucune conception au-delà de ce que le ticket tranche.
 Blocked by: 6, 13 (le module `pr-ouvertes.mjs`, `A-14`, que ce ticket réutilise ; l'environnement de banc de `next-id.test.mjs`, que le 13 pose : `A-43`)
@@ -165,3 +165,9 @@ Les 7 tests existants restent verts, `plusGrandSurBranches` compris (l. 127), et
   - **Sortie 0 sans `gh`**, contre la sortie 3 de `ticket-libre.mjs` : `migrer-tickets.mjs:82` appelle `next-id` par `execFileSync`, qu'une sortie non nulle fait lever.
   - **Fichiers chauds partagés avec le ticket 13** (`next-id.test.mjs`, `TABLE-RACINE.md`) : tranché (`A-42`, `A-43`), le 13 passe avant.
 - 2026-11-18 — Retouché après relecture (`A-43`) : bloqué par 6 et 13, avec « Ce que le ticket 13 aura changé » ; `develop` n'est nommé dans le fetch que s'il existe (banc 8 bis) ; banc 1 sur la spec `SOC-2` du jeu de données ; Décision 6 corrigée (le gate ne compare que les numéros de spec, deux `.NN` d'une même spec ne sont pas refusés) ; Décision 5 : nom de base lu par `identifiantDuTicket` puis `lireTicket`, jamais par `fichiersDeLaSpec`.
+- 2026-11-18 — Choix de la session (base `fad725d`, plugin 7.21.0 → 7.22.0) :
+  - Le `fetch` est joué par `next-id.mjs` (fonction `fetcher`), `plusGrandSurBranches` reste sans réseau. `ls-remote --exit-code` : sortie 2 = develop absent (pas une erreur) ; toute autre erreur = « fetch impossible : copies locales lues ».
+  - Dépôt sans `develop` : un `origin/develop` local resté d'un fetch ancien n'est pas élagué (le refspec n'y touche pas) et reste lu. Cas marginal, non traité.
+  - Mode ticket : `numeroDe` est la seule fonction de lecture, sur le nom de base, pour l'arbre, les branches et les fichiers de PR ; au-delà de 99, sortie 2.
+  - Mutation de l'archive : le premier banc 5 ne la voyait pas (la PR portait le plus grand index) ; une assertion sans PR (`12`) l'y rend rouge.
+  - `pr-ouvertes.mjs`, `ticket-libre.mjs` et leurs bancs inchangés.

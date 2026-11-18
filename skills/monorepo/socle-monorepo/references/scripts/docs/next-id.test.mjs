@@ -38,12 +38,49 @@ function depotJouet({ fichiers = {}, branches = [] } = {}) {
   const bin = join(racine, 'bin');
   mkdirSync(bin);
   for (const outil of ['git', 'node']) symlinkSync(execFileSync('which', [outil], { encoding: 'utf8' }).trim(), join(bin, outil));
-  return { racine, travail, bin, git };
+  // Faux `gh` : répond aux deux appels de `lirePrOuvertes` depuis `gh.json` du banc ; sort en 1 quand
+  // ce fichier manque (gh indisponible). Sans `faux-gh.mjs` : le socle pose ce banc sans la chaîne.
+  writeFileSync(
+    join(bin, 'gh'),
+    `#!/usr/bin/env node
+import { readFileSync } from 'node:fs';
+let d;
+try { d = JSON.parse(readFileSync(process.env.FAUX_GH, 'utf8')); } catch { process.exit(1); }
+const chemin = process.argv[4] ?? '';
+const fichiers = /pulls\\/(\\d+)\\/files/.exec(chemin);
+if (fichiers) {
+  const pr = d.prs.find((p) => p.numero === Number(fichiers[1]));
+  console.log((pr?.fichiers ?? []).map((f) => f.join('\\t')).join('\\n'));
+} else {
+  console.log(d.prs.map((p) => [p.numero, p.tete, p.brouillon ?? false, p.titre ?? 't'].join('\\t')).join('\\n'));
+}
+`,
+    { mode: 0o755 },
+  );
+  const prOuvertes = (prs) => writeFileSync(join(racine, 'gh.json'), JSON.stringify({ prs }));
+  // L'autre session : un second clone du même dépôt nu, qui pousse sans que `travail` le sache.
+  const autre = join(racine, 'autre');
+  const gitAutre = (...args) => execFileSync('git', args, { cwd: autre, env: ENV, encoding: 'utf8' });
+  const autreSession = (branche, chemin, depart = 'develop') => {
+    try {
+      execFileSync('git', ['clone', '-q', origine, autre], { env: ENV, stdio: 'ignore' });
+    } catch {
+      // déjà cloné
+    }
+    gitAutre('fetch', '-q', 'origin');
+    gitAutre('checkout', '-q', '-B', branche, `origin/${depart}`);
+    mkdirSync(dirname(join(autre, chemin)), { recursive: true });
+    writeFileSync(join(autre, chemin), '# x\n');
+    gitAutre('add', '-A');
+    gitAutre('commit', '-q', '-m', 'docs: x');
+    gitAutre('push', '-q', 'origin', `HEAD:refs/heads/${branche}`);
+  };
+  return { racine, origine, travail, bin, git, prOuvertes, autreSession };
 }
 
 const SCRIPT = new URL('./next-id.mjs', import.meta.url).pathname;
-const lancer = ({ travail, bin }, ...args) =>
-  spawnSync(process.execPath, [SCRIPT, ...args], { cwd: travail, env: { ...ENV, PATH: bin, PROJET_RACINE: travail }, encoding: 'utf8' });
+const lancer = ({ travail, bin, racine }, ...args) =>
+  spawnSync(process.execPath, [SCRIPT, ...args], { cwd: travail, env: { ...ENV, PATH: bin, PROJET_RACINE: travail, FAUX_GH: join(racine, 'gh.json') }, encoding: 'utf8' });
 const prochain = (d, ...args) => {
   const r = lancer(d, ...args);
   assert.equal(r.status, 0, r.stderr);
@@ -133,4 +170,104 @@ test('plusGrandSurBranches : git injecté, branche illisible ignorée', () => {
   };
   assert.equal(plusGrandSurBranches((nom) => (nom === 'RULE_ALL_LIC-7.md' ? 7 : null), git), 7);
   assert.equal(plusGrandSurBranches(() => null, () => { throw new Error('pas de git'); }), 0);
+});
+
+const SOC2 = { 'docs/features/socle/all/SPEC_ALL_SOC-2-x.spec.md': '# x\n' };
+const specSur = (n) => `docs/features/y/all/SPEC_ALL_SOC-${n}-y.spec.md`;
+const ticket = (spec, nn, dossier = 'issues') => `docs/features/y/all/${dossier}/SPEC_ALL_SOC-${spec}-y.${nn}.issue.md`;
+
+test('une spec entrée dans develop après la dernière lecture compte : next-id fait un fetch et lit origin/develop', () => {
+  const d = depotJouet({ fichiers: SOC2 });
+  d.autreSession('develop', specSur(3));
+  assert.equal(prochain(d, 'SPEC', 'ALL', 'SOC'), '4');
+});
+
+test('un sujet ouvert par une autre session après la dernière lecture compte', () => {
+  const d = depotJouet({ fichiers: SOC2 });
+  d.autreSession('sujet/y', specSur(7));
+  assert.equal(prochain(d, 'SPEC', 'ALL', 'SOC'), '8');
+});
+
+test('une spec que seule une PR ouverte ajoute compte', () => {
+  const d = depotJouet({ fichiers: SOC2 });
+  d.prOuvertes([
+    { numero: 12, tete: 'feat/z', brouillon: true, fichiers: [['added', specSur(5), '']] },
+    { numero: 13, tete: 'feat/w', fichiers: [['removed', specSur(40), ''], ['renamed', specSur(41), specSur(42)]] },
+  ]);
+  const r = lancer(d, 'SPEC', 'ALL', 'SOC');
+  assert.equal(r.stdout, '42\n', "un fichier retiré ne compte pas, l'ancien chemin d'un renommage non plus");
+  d.prOuvertes([{ numero: 12, tete: 'feat/z', brouillon: true, fichiers: [['added', specSur(5), '']] }]);
+  const r2 = lancer(d, 'SPEC', 'ALL', 'SOC');
+  assert.equal(r2.stdout, '6\n');
+  assert.doesNotMatch(r2.stderr, /non lues/, 'tout a été lu : rien à dire');
+});
+
+test('gh indisponible : le numéro sort, sortie 0, et la sortie d\'erreur dit comment lire les PR ouvertes par l\'outil GitHub MCP', () => {
+  const d = depotJouet({ fichiers: SOC2 });
+  const r = lancer(d, 'SPEC', 'ALL', 'SOC');
+  assert.equal(r.status, 0);
+  assert.equal(r.stdout, '3\n');
+  assert.match(r.stderr, /PR ouvertes non lues \(gh indisponible\)/);
+  assert.match(r.stderr, /list_pull_requests/);
+  assert.match(r.stderr, /pull_request_read get_files/);
+  assert.match(r.stderr, /Réserver aussitôt/);
+});
+
+test('tickets : next-id SPEC_ALL_SOC-4 rend le prochain index sur deux chiffres, lu dans l\'arbre, develop, les sujets, les PR ouvertes et l\'archive', () => {
+  const d = depotJouet({ fichiers: { ...SOC2, [specSur(4)]: '# x\n', [ticket(4, '01')]: '# x\n' } });
+  writeFileSync(join(d.travail, ticket(4, '03')), '# x\n');
+  writeFileSync(join(d.travail, ticket(5, '20')), '# autre spec\n');
+  writeFileSync(join(d.travail, ticket(40, '30')), '# autre spec, même préfixe\n');
+  d.autreSession('sujet/y', ticket(4, '07'));
+  d.autreSession('develop', ticket(4, '11', 'issues/archive'));
+  d.prOuvertes([{ numero: 9, tete: 'feat/t', fichiers: [['added', ticket(4, '12'), '']] }]);
+  assert.equal(prochain(d, 'SPEC_ALL_SOC-4'), '13');
+  d.prOuvertes([]);
+  assert.equal(prochain(d, 'SPEC_ALL_SOC-4'), '12', "sans la PR, l'index archivé sur develop (.11) est le plus grand");
+  d.prOuvertes([{ numero: 9, tete: 'feat/t', fichiers: [['added', ticket(4, '12'), '']] }]);
+  assert.equal(prochain(d, 'spec_all_soc-4'), '13', 'la casse est indifférente');
+  assert.equal(prochain(d, 'SPEC_ALL_SOC-6'), '01', 'une spec sans ticket');
+  assert.equal(prochain(d, 'SPEC_ALL_SOC-99'), '01', 'une spec introuvable : pas une erreur');
+});
+
+test('tickets : au-delà de 99, sortie 2 et le message de découpage', () => {
+  const d = depotJouet({ fichiers: { [ticket(4, '99')]: '# x\n' } });
+  const r = lancer(d, 'SPEC_ALL_SOC-4');
+  assert.equal(r.status, 2);
+  assert.equal(r.stdout, '');
+  assert.match(r.stderr, /plus d'index libre dans SPEC_ALL_SOC-4 : découper une nouvelle spec/);
+  assert.equal(prochain(d, 'SPEC_ALL_SOC-5'), '01');
+});
+
+test('fetch en échec : copies locales lues, numéro rendu, la sortie d\'erreur le dit', () => {
+  const d = depotJouet({ fichiers: SOC2 });
+  d.autreSession('sujet/y', specSur(7));
+  d.git('fetch', '-q', 'origin');
+  d.git('remote', 'set-url', 'origin', join(d.racine, 'absent.git'));
+  const r = lancer(d, 'SPEC', 'ALL', 'SOC');
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(r.stdout, '8\n');
+  assert.match(r.stderr, /fetch impossible : copies locales lues/);
+});
+
+test('dépôt sans develop : le fetch ne nomme pas develop, les sujets et les docs sont lus, le numéro sort', () => {
+  const d = depotJouet({ fichiers: SOC2 });
+  d.git('push', '-q', 'origin', 'HEAD:refs/heads/main');
+  d.autreSession('sujet/z', specSur(9), 'main');
+  execFileSync('git', ['update-ref', '-d', 'refs/heads/develop'], { cwd: d.origine, env: ENV });
+  const r = lancer(d, 'SPEC', 'ALL', 'SOC');
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(r.stdout, '10\n');
+  assert.doesNotMatch(r.stderr, /fetch impossible/);
+});
+
+test('un sujet supprimé du distant ne garde pas son numéro pris', () => {
+  const d = depotJouet({ fichiers: SOC2 });
+  d.autreSession('sujet/z', specSur(9));
+  d.autreSession('autre/w', specSur(30));
+  d.git('fetch', '-q', 'origin');
+  assert.equal(prochain(d, 'SPEC', 'ALL', 'SOC'), '10');
+  d.git('push', '-q', 'origin', '--delete', 'sujet/z');
+  assert.equal(prochain(d, 'SPEC', 'ALL', 'SOC'), '3', 'sujet/z élagué : son numéro est libre');
+  assert.ok(d.git('rev-parse', '--verify', 'refs/remotes/origin/autre/w').trim(), "autre/w n'est pas élagué");
 });
