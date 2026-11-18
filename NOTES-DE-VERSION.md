@@ -2,6 +2,16 @@
 
 La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque projet par `poser` : une version publiée ne change rien chez un projet qui ne les repose pas. Chaque note dit ce qui change, puis ce qu'un projet fait pour en profiter.
 
+## 7.21.0 — 2026-11-18
+
+### Ce qui change
+
+Deux modules neufs à côté des scripts du capitaine, avec leurs bancs : `verdict.mjs`, le lecteur du verdict d'une relecture indépendante, et `decision-relecteur.mjs`, la décision du Relecteur, une fonction pure. Rien ne les appelle encore : ils préparent la relecture indépendante. L'étape 0 de `fusionner` (`poser`) les nomme, pour qu'un projet qui repose ne reçoive pas leurs bancs sans eux.
+
+### Ce qu'un projet fait pour en profiter
+
+Rien d'obligatoire : aucun script déjà posé ne change, aucun capitaine à relancer. Un projet qui rejoue `/maj-skills:fusionner poser` reçoit en plus les deux modules et leurs bancs sous `scripts/chaine/`.
+
 ## 7.20.0 — 2026-11-18
 
 ### Ce qui change
