@@ -74,7 +74,7 @@ Décisions de l'architecte :
 | ticket | 6 | session_012xRpgYLyDnCAE8DMZWu3s5 | sonnet | 207 235 | 3,18 |
 | ticket | 13 | session_012xRpgYZHPVc6BJ87qfJom5 | sonnet | 194 669 | 3,06 |
 | ticket | 9 | session_012xRpgcJxHH8VpXnvZFLcAG | opus | — | — |
-| ticket | 14 | session_012xRpgZCHrKAsSDyAM9MBy8 | sonnet | — | — |
+| ticket | 14 | session_012xRpgZCHrKAsSDyAM9MBy8 | sonnet | 171 523 | 2,50 |
 | ticket | 5 | session_012xRpgZ61a6Z3tAxnLE1XtH | sonnet | 186 928 | 2,98 |
 | ticket | 8 | session_012xRpgb2wqPnXRgEHTvthK3 | opus | 327 602 | 17,89 |
 | ticket | 18 | session_012xRpgZurfcXHuBBqAMFitE | opus | — | — |
@@ -150,3 +150,4 @@ Demande du produit, 2026-11-18, recopiée telle quelle (relevée sur `MAJ-agency
 - 2026-11-18 — 23 h 12 UTC. **PR 119 fusionnée** (squash `8f8cfd9`, 7.21.1), arbre identique au sommet ordonné `b8ccb91`, vérifié ; ticket 17 fait (statut posé dans la PR), session archivée (627 343 tokens, 32,97 $). Contre-relecture de la PR 123 **conforme** (828 tests, bancs rouges sur main), trois mineures (banc d'élagage qui ne prouve rien, refspec de develop sans destination, documents posés absents de la note) ; signal donné (7.22.0). Ticket 18 lancé : session_012xRpgZurfcXHuBBqAMFitE (opus, depuis `8f8cfd9`).
 - 2026-11-18 — 23 h 20 UTC. PR 123 : trois mineures corrigées (`9ac4944`), `main` fusionnée, 7.22.0, 860 tests ; delta relu (contient `main`, refspec de develop, élagage, note). **Ordre `à-fusionner au sommet a5ea183…` et label posés.** PR 124 (A-51 appliquée, `befc5f7`) en contre-relecture adversariale.
 - 2026-11-18 — 23 h 30 UTC. Contre-relecture de la PR 124 : **non conforme**, un bloquant (la boucle classe une sortie 3 sur des phrases cherchées dans toute la sortie de `passer.sh`, sortie du hook comprise : un titre de banc reposé dans le pre-push fait perdre le renvoi et l'arrêt), trois mineures (relecture illisible → 5, A-51 précisée ; `relancer` propage 5 par `set -e` ; deux sorties non masquées). Renvoyé à la session.
+- 2026-11-18 — 23 h 40 UTC. **PR 123 fusionnée** (squash `289323c`, 7.22.0), arbre identique au sommet ordonné `a5ea183`, vérifié ; ticket 14 fait (statut posé dans la PR), session archivée (2,50 $). Rien d'étiqueté ; la PR 124 corrige B1 et M1–M3 (482 000 tokens, 25,48 $) ; ticket 18 en revue de ticket.
