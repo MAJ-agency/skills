@@ -40,7 +40,7 @@ Un mot, un sens. Ces termes entrent dans `CONTEXT.md` avec le lot 3.
 
 ## Décisions de conception (architecte)
 
-Numérotées dans la suite de la carte ; elles remplacent celles des deux premières versions. Les décisions `A-104` à `A-117`, du 2026-11-18, sont à la fin de cette section ; une décision qu'elles touchent garde son numéro et dit « amendée en sixième version ».
+Numérotées dans la suite de la carte ; elles remplacent celles des deux premières versions. Les décisions `A-104` à `A-119`, du 2026-11-18, sont à la fin de cette section ; une décision qu'elles touchent garde son numéro et dit « amendée en sixième version ».
 
 ### Fichiers sensibles
 
@@ -241,6 +241,12 @@ Prises par l'architecte sur le rapport de vérification (`relecture-independante
   - L'entrée du calcul est contrôlée : une liste de fichiers qui n'a pas la forme attendue, ou qui nomme un chemin absent du départ comme de la tête, est illisible ; l'appelant la produit sans détection de renommage.
   - **Le ticket se lit aussi sur la tête de la PR** : un ticket que la PR crée elle-même est vu.
   - **Un ticket sans ligne `Règles:` hérite de celle de sa spec** ; un ticket qui porte `Règles: —` dit lui-même qu'il n'en réalise aucune, et sa spec n'est alors pas lue. Raison : dans le doute, deux relectures, et le conducteur garde un moyen écrit de dire « aucune ».
+- `A-118` — **Un verdict modifié après coup ne s'efface jamais au profit d'un verdict plus ancien de la même session** (amende `A-80`, relevé par la session du ticket 58 à la livraison). Pour une session et un tour, si son commentaire de verdict le plus récent est écarté parce que modifié, ou illisible, la lecture de cette session pour ce tour est `incomplet`. Raison : une faute de frappe corrigée dans un refus faisait reparaître la validation antérieure de la même session. Un verdict ancien modifié, suivi d'un verdict plus récent intact, ne change rien. Pour le lot 5a : le capitaine tient l'étiquette et le tour validé, pas le plafond, que le Relecteur tient seul. Pour le lot 4 : l'exécutant d'un geste ne renvoie pas des lignes déjà écrites quand un passage se rejoue.
+- `A-119` — **« Même contenu propre » : quatre règles de structure, après le second tour de la relecture adversariale** (amende `A-106` et `A-114`). Trois faux « même » nouveaux ont été reproduits après les premières corrections : on ne bouche plus cas par cas.
+  - **Un dépôt propre pour calculer.** Les calculs se font dans un dépôt nu jetable qui emprunte les objets du dépôt réel, sans configuration d'utilisateur ni de système, sans variable d'environnement de git héritée. Ni la configuration du dépôt, ni ses attributs locaux, ni ses greffes, ni ses objets remplacés ne pèsent. S'il ne se crée pas : « illisible ».
+  - **Quelle fusion compte comme une mise à jour.** Son second parent est sur la ligne des premiers parents de la cible (il a été un jour son sommet) et n'est pas un ancêtre de son premier parent. Raison : une fusion fabriquée avec une branche latérale déjà entrée dans la cible créait un conflit exprès sur un index sans commande et faisait perdre une ligne à la cible.
+  - **« Même » se prouve.** Le calcul compte les commits de V à T et ceux qu'il a examinés et acceptés : « même » ne sort que si les deux nombres sont égaux et si chaque étape a rendu un succès explicite. Toute commande en échec, toute lecture vide, toute écriture refusée : « illisible ».
+  - **Aucun attribut dans la fusion calculée.** Elle est la fusion à trois voies nue ; une fusion réelle faite sous un pilote (`merge=ours`, `merge=union`) s'en écarte et donne « différent ». Limite écrite : un projet qui emploie un tel pilote verra ses PR relues après chaque mise à jour qui touche le fichier. Git 2.41 au moins est exigé, dit par un message clair et un code d'outil manquant.
 
 ## Les lots
 
