@@ -963,3 +963,18 @@ test("retard de documentation seule : mis à jour et retesté, vers develop (str
   assert.equal(shaFusionne(d, 40), second);
   assert.ok(d.etat().lectures[premier] >= 1 && d.etat().lectures[second] >= 2, "une CI par sommet");
 });
+
+// La sous-PR a reçu un push après sa lecture : ces commits n'ont été ni revus ni contrôlés. Le capitaine ne les met pas
+// à jour ni ne les pousse : sortie 5, rien n'est poussé, la sous-PR est rejugée au tour suivant.
+test("fusionner : une sous-PR en retard qui a bougé depuis sa lecture n'est ni mise à jour ni poussée (sortie 5)", () => {
+  const { d, ancien } = sousPrEnRetard({ "apps/a.ts": "export const a = 1;\n" });
+  const pousse = d.branche("feat/sous", "origin/feat/sous", { "apps/cache.ts": "export const x = 1;\n" });
+  d.git("switch", "-q", "--detach", "origin/develop");
+  // GitHub rend encore l'ancien sommet (lecture faite avant le push de la session).
+  d.github({ pulls: d.etat().pulls.map((p) => ({ ...p, sha: ancien })) });
+  const r = d.lancer(SUJET, "fusionner", "80");
+  assert.equal(r.status, 5, r.stdout + r.stderr);
+  assert.match(r.stdout, /la sous-PR #80 a bougé depuis sa lecture/);
+  assert.equal(d.git("ls-remote", "origin", "refs/heads/feat/sous").split("\t")[0], pousse, "rien n'est poussé");
+  assert.equal(misesAJour(d, 80).length, 0, "aucun PUT");
+});

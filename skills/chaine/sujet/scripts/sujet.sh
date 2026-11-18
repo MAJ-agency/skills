@@ -498,12 +498,16 @@ recibler_specs() {
 # documentation comprise : le capitaine met la branche à jour (merge, avance rapide, jamais de force : la branche
 # appartient à une autre session), régénère les index (un index ne se fusionne jamais à la main : en conflit, la
 # version du sujet, puis la régénération fait foi), committe et pousse ; `SOMMET_POUSSE` est le nouveau sommet, dont
-# l'appelant attend la CI. Conflit hors index : annulé, sortie 3 (renvoi), branche intacte.
+# l'appelant attend la CI. Conflit hors index : annulé, sortie 3 (renvoi), branche intacte. La branche part du sommet
+# déjà jugé (`<sommet>`) : une tête qui a bougé depuis porte des commits ni revus, ni contrôlés (liens sur les index,
+# commitlint) : sortie 5, rien n'est poussé, la sous-PR est rejugée au tour suivant.
 mettre_a_jour_sous_pr() {
-  local n=$1 base=$2 tete=$3 conflits autres sortie statut avant fusion_en_cours=0
+  local n=$1 base=$2 tete=$3 juge=$4 conflits autres sortie statut avant fusion_en_cours=0
   [ -z "$(git status --porcelain)" ] || sortir 6 "arbre de travail pas propre : committer ou ranger d'abord, puis relancer (rien à corriger côté PR)"
   git fetch -q origin "+refs/heads/$tete:refs/remotes/origin/$tete"
   avant=$(git rev-parse "origin/$tete")
+  [ "$avant" = "$juge" ] ||
+    sortir 5 "la sous-PR #$n a bougé depuis sa lecture ($(git rev-parse --short "$juge") jugé, $(git rev-parse --short "$avant") sur sa branche) : rien n'est poussé, reprise au tour suivant, aucun renvoi"
   git switch -q -C "capitaine/$n" "$avant"
   local echec
   echec() {
@@ -800,7 +804,7 @@ fusionner() {
     esac
   }
   mettre_a_jour() {
-    mettre_a_jour_sous_pr "$n" "$base" "$tete"
+    mettre_a_jour_sous_pr "$n" "$base" "$tete" "$sommet"
     sommet=$SOMMET_POUSSE
     pousse=1
   }

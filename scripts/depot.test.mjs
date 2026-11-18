@@ -1011,16 +1011,32 @@ test("ce que T3 suppose autour de lui : le critère T5 auquel (d) renvoie, le co
   assert.ok(auMoins(version, "7.15.0"), `.claude-plugin/plugin.json : version ${version} ; le critère T3 à deux branches est celui du plugin 7.15.0 et des suivants`);
 });
 
+// Première note de NOTES-DE-VERSION.md : son titre (`## <titre>`, ni `###`, ni `##titre`) et les titres `### …` de son
+// corps, jusqu'à la note suivante. Fins de ligne CRLF admises, dernière ligne sans fin de ligne comprise. null sans note.
+const premiereNote = (texte) => {
+  const lignes = texte.split(/\r?\n/);
+  const debut = lignes.findIndex((l) => /^## \S/.test(l));
+  if (debut < 0) return null;
+  const fin = lignes.findIndex((l, i) => i > debut && /^## \S/.test(l));
+  const corps = lignes.slice(debut + 1, fin < 0 ? undefined : fin);
+  return { titre: lignes[debut].slice(3).trim(), sections: corps.filter((l) => /^### \S/.test(l)).map((l) => l.trim()) };
+};
+
+test("lecteur de NOTES-DE-VERSION.md : entrées piégées", () => {
+  assert.deepEqual(premiereNote("# Notes\r\n\r\n## 7.16.0 — d\r\n\r\n### Ce qui change\r\n\r\n## 7.15.0\r\n### Vieux"), { titre: "7.16.0 — d", sections: ["### Ce qui change"] });
+  assert.deepEqual(premiereNote("## 7.16.0\n### Ce qui change"), { titre: "7.16.0", sections: ["### Ce qui change"] }, "dernière ligne sans fin de ligne");
+  assert.equal(premiereNote("# Notes\n### 7.16.0\n##7.16.0\n"), null, "ni `###` ni `##titre` ne sont une note");
+  assert.deepEqual(premiereNote("## 7.16.0\n####  Ce qui change\n###Ce qui change\n").sections, [], "ni `####` ni `###titre` ne sont une section");
+});
+
 test("la règle d'ascendance du plugin 7.16.0 : version, note de version en tête, renvoi du README, une sous-PR étiquetée à la fois", () => {
   const { version } = JSON.parse(readFileSync(join(RACINE, ".claude-plugin/plugin.json"), "utf8"));
   assert.ok(auMoins(version, "7.16.0"), `.claude-plugin/plugin.json : version ${version} ; la règle d'ascendance est celle du plugin 7.16.0 et des suivants`);
-  const notes = readFileSync(join(RACINE, "NOTES-DE-VERSION.md"), "utf8");
-  const titres = [...notes.matchAll(/^## (.*)$/gm)];
-  assert.ok(titres.length > 0, "NOTES-DE-VERSION.md : au moins une note, titrée `## <version> — <date>`");
-  assert.ok(titres[0][1].startsWith(version), `NOTES-DE-VERSION.md : la première note (« ${titres[0][1]} ») commence par la version de plugin.json, ${version}`);
-  const premiere = notes.slice(titres[0].index, titres[1]?.index ?? notes.length);
+  const note = premiereNote(readFileSync(join(RACINE, "NOTES-DE-VERSION.md"), "utf8"));
+  assert.ok(note, "NOTES-DE-VERSION.md : au moins une note, titrée `## <version> — <date>`");
+  assert.ok(note.titre.startsWith(version), `NOTES-DE-VERSION.md : la première note (« ${note.titre} ») commence par la version de plugin.json, ${version}`);
   for (const section of ["### Ce qui change", "### Ce qu'un projet fait pour en profiter"])
-    assert.ok(premiere.includes(section), `NOTES-DE-VERSION.md : la note ${version} porte « ${section} »`);
+    assert.ok(note.sections.includes(section), `NOTES-DE-VERSION.md : la note ${version} porte « ${section} »`);
   assert.ok(readFileSync(join(RACINE, "README.md"), "utf8").includes("NOTES-DE-VERSION.md"), "README.md renvoie à NOTES-DE-VERSION.md");
   exiger(`${SKILLS_CHAINE}/fusionner/SKILL.md`, ["une seule sous-PR porte `à-fusionner` à la fois"]);
 });

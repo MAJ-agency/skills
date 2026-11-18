@@ -1787,3 +1787,24 @@ test("arbre du squash différent de l'arbre testé : sortie 12, commentaire, ARR
   assert.match(x.stdout, /ARRÊT sur #41 \(sortie 12\)/);
   assert.equal(fusionsDe(b, 42).length, 0, "la boucle s'arrête avant #42");
 });
+
+test("cible qui bouge pendant la CI : mise à jour reprise, deux fois au plus — le sujet qui bouge trois fois fait sortir sujet.sh en 5, sans squash", () => {
+  const d = depotJouet();
+  d.branche("sujet/lot", "origin/develop", { "docs/lot.md": "lot\n" }, "feat(lot): lot (#1)");
+  d.branche("feat/sous", "origin/sujet/lot", { "docs/sous.md": "sous\n" });
+  const vers = [];
+  for (let i = 0; i < 3; i++)
+    vers.push(d.branche("ailleurs", i ? "origin/ailleurs" : "origin/sujet/lot", { [`apps/b${i}.ts`]: `export const b${i} = ${i};\n` }, `feat(lot): b${i} (#${i + 2})`));
+  d.git("switch", "-q", "--detach", "origin/develop");
+  d.github({
+    exiges: ["qualite"],
+    checks: { "*": { qualite: "SUCCESS" } },
+    pendantCi: vers.map((v) => ({ lectures: 2, branche: "sujet/lot", vers: v })),
+    pulls: [{ number: 80, title: "docs(lot): sous", head: "feat/sous", base: "sujet/lot", labels: ["à-fusionner"], body: "## Revue de ticket\n\nRien.\n" }],
+  });
+  const r = d.lancer(SUJET_SH, "fusionner", "80");
+  assert.equal(r.status, 5, r.stdout + r.stderr);
+  assert.match(r.stdout, /nouvelle mise à jour \(2 sur 2\)/);
+  assert.match(r.stdout, /sujet\/lot a bougé trois fois pendant la CI de #80/);
+  assert.equal(fusionsDe(d, 80).length, 0, "aucun PUT");
+});
