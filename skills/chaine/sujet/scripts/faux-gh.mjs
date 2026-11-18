@@ -27,7 +27,8 @@
 //   PR.approbationManquante  sur une base de `revueProprietaires`, la fusion est refusée (405, « Waiting on code
 //               owner review ») : l'approbation d'un propriétaire manque (le faux ne lit pas CODEOWNERS)
 //   commentairesRefuses  tout commentaire posé est refusé (403)
-//   PR.refusFusion  message d'un refus de fusion durable (`gh: … (HTTP 405)`) : le `PUT pulls/<n>/merge` le rend, code 1
+//   PR.refusFusion  message d'un refus de fusion (`gh: … (HTTP 405)`) : le `PUT pulls/<n>/merge` le rend, code 1, après
+//               `avantFusion` (une fusion concurrente, puis le refus)
 //   PR.revues   revues de la PR (`pulls/<n>/reviews`) : [{ state, submitted_at, auteur }]
 //   PR.commentaires  un corps seul reçoit un `created_at` d'office, croissant avec son rang ; un objet porte le sien
 //   pannes      GitHub en panne pour des lectures : [{ route, fois, sortie, erreur, code }]. `route` est une expression
@@ -362,12 +363,12 @@ function fusionner(
 ) {
   if ((etat.revueProprietaires ?? []).includes(p.base) && p.approbationManquante)
     echec("gh: Waiting on code owner review from @proprietaire. (HTTP 405)");
-  if (p.refusFusion) echec(p.refusFusion);
   if (ref(p.head) !== sha) echec("gh: Head branch was modified (HTTP 409)");
   if (etat.avantFusion) {
     git("update-ref", `refs/heads/${etat.avantFusion.branche}`, etat.avantFusion.vers);
     delete etat.avantFusion;
   }
+  if (p.refusFusion) echec(p.refusFusion);
   const base = ref(p.base);
   const ancetre = spawnSync("git", ["--git-dir", ORIGINE, "merge-base", "--is-ancestor", base, sha]).status === 0;
   if ((etat.strict ?? []).includes(p.base) && !ancetre)

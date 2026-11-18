@@ -2022,3 +2022,37 @@ test("passer.sh : une fusion refusée durablement par GitHub sort en 3 et la bou
   assert.doesNotMatch(b.stdout, /PAUSE/);
   assert.equal(fusionsDe(d, 33).length, 1, "un seul essai");
 });
+
+// Décision A-51 : un refus durable n'arrête la boucle que si develop n'a pas bougé entre le test et la fusion. Un 405
+// « Repository rule violations found » d'une branche devenue en retard (develop avancé juste avant la fusion) est une
+// course : sortie 5, le tour suivant remet à jour et reteste.
+test("passer.sh : un refus de fusion 405 après un develop qui a bougé sort en 5 (course) ; le même 405 sans develop bougé, en 3", () => {
+  const REGLE = "gh: Repository rule violations found (HTTP 405)";
+  const d = prSimple();
+  const concurrent = d.branche("concurrent", "origin/develop", { "apps/c.ts": "c\n" });
+  d.git("switch", "-q", "--detach", "origin/develop");
+  d.github({ pulls: [pr(33, "feat/simple", { refusFusion: REGLE })], avantFusion: { branche: "develop", vers: concurrent } });
+  const course = d.lancer(script("passer.sh"), "33");
+  assert.equal(course.status, 5, course.stdout + course.stderr);
+  assert.match(course.stdout, /develop a bougé entre le test et la fusion/);
+  assert.equal(d.git("status", "--porcelain"), "");
+  const f = prSimple();
+  f.github({ pulls: [pr(33, "feat/simple", { refusFusion: REGLE })] });
+  const durable = f.lancer(script("passer.sh"), "33");
+  assert.equal(durable.status, 3, durable.stdout + durable.stderr);
+  assert.match(durable.stdout, /fusion refusée par GitHub, ni pour la revue ni pour une branche qui a bougé/);
+});
+
+// Décision A-51 : une lecture refusée durablement (401, 403) reste une pause (A-21), mais la ligne PAUSE nomme la route
+// et le code HTTP de la cause, pour qu'un humain le voie.
+test("boucle.sh : la ligne PAUSE donne la route et le code HTTP de la cause (file.sh et passer.sh)", () => {
+  const d = prSimple();
+  d.publierChaine();
+  // Lectures des checks : traiter_rouges, traiter_sujets et la lecture du tour échouent (PAUSE de la file) ; au tour
+  // suivant, traiter_rouges échoue encore, puis la file se lit et la PR passe.
+  d.github({ pannes: [{ route: "/check-runs", fois: 4, erreur: "gh: Bad credentials (HTTP 401)" }] });
+  const r = d.lancer(script("boucle.sh"));
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /PAUSE \d\d:\d\d \(file\.sh, sortie 5\) : file illisible ; cause : GitHub illisible \(repos\/\{owner\}\/\{repo\}\/commits\/[0-9a-f]{40}\/check-runs\?per_page=100\) : gh en échec \(code 1\) : gh: Bad credentials \(HTTP 401\), reprise dans 120 s/);
+  assert.match(r.stdout, /\[#33\] FUSIONNÉE/);
+});

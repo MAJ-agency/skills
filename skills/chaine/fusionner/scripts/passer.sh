@@ -61,7 +61,10 @@
 #   5  GitHub illisible (lire_github : réponse vide, non JSON, corps d'erreur ou code non nul), à la lecture de la PR,
 #      de sa parente ou pendant l'attente de la CI : la boucle se met en pause (PAUSE) puis reprend, jamais un arrêt
 #   3  fusion refusée par GitHub pour une autre raison que la revue ou une branche qui a bougé (droit du compte, règle
-#      du dépôt, méthode de fusion interdite : un refus durable) : la boucle s'arrête (ARRÊT) → lire le message, traiter
+#      du dépôt, méthode de fusion interdite : un refus durable) : la boucle s'arrête (ARRÊT) → lire le message, traiter.
+#      Avant, develop relu et la règle d'ascendance rejouée (décision A-51) : si develop n'est plus ancêtre du sommet
+#      testé (il a bougé entre le test et la fusion, un 405 « Repository rule violations » d'une branche devenue en
+#      retard), c'est une course : sortie 5
 #   3  contrôle d'ascendance illisible (réf absente, git en échec) : la boucle s'arrête → lire la cause, relancer
 #   5  develop a bougé trois fois pendant la CI (deux reprises de la mise à jour déjà jouées) → relancer
 #   5  develop ou la PR a bougé en route → relancer. develop a bougé sans le capitaine :
@@ -408,6 +411,15 @@ corps |
   # `gh` écrit `gh: <message> (HTTP <code>)`, ou `gh: HTTP <code>` sans message dans le corps (cli/cli, pkg/cmd/api).
   if grep -qiE 'HTTP (409|5[0-9]{2})([^0-9]|$)|branch was modified|not up to date' <<<"$message" || ! grep -qE 'HTTP [0-9]{3}([^0-9]|$)' <<<"$message"; then
     sortir 5 "fusion refusée (develop ou la PR a bougé, ou GitHub en panne), relancer"
+  fi
+  # Décision A-51 : avant d'arrêter la boucle, develop relu et la règle d'ascendance rejouée sur le sommet testé. Develop
+  # qui n'est plus ancêtre du sommet testé a bougé entre le test et la fusion (un 405 « Repository rule violations » d'une
+  # branche devenue en retard) : une course, sortie 5, le tour suivant remet à jour et reteste. Illisible : 3, fermé.
+  if git_masque fetch -q origin "+refs/heads/develop:refs/remotes/origin/develop" &&
+    verdict=$(ascendance "$sommet" origin/develop) && [ "${verdict%%$'\n'*}" != à-jour ]; then
+    git switch -q --detach origin/develop
+    git branch -q -D "capitaine/$N" 2>/dev/null || true
+    sortir 5 "fusion refusée par GitHub, mais develop a bougé entre le test et la fusion (${verdict%%$'\n'*}) : relancer, le tour suivant remet à jour et reteste"
   fi
   git switch -q --detach origin/develop
   git branch -q -D "capitaine/$N" 2>/dev/null || true

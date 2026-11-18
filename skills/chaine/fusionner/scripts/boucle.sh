@@ -214,7 +214,15 @@ trap 'arret_signal 130' INT
 # Pause sur GitHub illisible (sortie 5) : `BOUCLE_PAUSE` secondes, entier, 120 par défaut (la sonde de la veille).
 PAUSE=${BOUCLE_PAUSE:-120}
 [[ "$PAUSE" =~ ^[0-9]+$ ]] || PAUSE=120
-mettre_en_pause() { echo "$1 $(date +%H:%M) $2, reprise dans $PAUSE s"; sleep "$PAUSE"; }
+# La ligne PAUSE nomme la cause : la dernière ligne `GitHub illisible (<route>) : <cause>` de lire_github lue dans `<fichier>`
+# (route et code HTTP tels que gh les écrit, `(HTTP 401)` d'un jeton expiré compris : décision A-51).
+cause_lue() { grep -a 'GitHub illisible (' "$1" 2>/dev/null | tail -n 1 | tr -d '\r'; }
+mettre_en_pause() { # <préfixe> <motif> [<fichier où lire la cause>]
+  local cause=''
+  [ -z "${3:-}" ] || cause=$(cause_lue "$3")
+  echo "$1 $(date +%H:%M) $2${cause:+ ; cause : $cause}, reprise dans $PAUSE s"
+  sleep "$PAUSE"
+}
 
 arret_outils() { echo "ARRÊT : $1 : jouer des scripts périmés est pire qu'attendre, le capitaine traite puis relance" >&2; exit 6; }
 
@@ -379,7 +387,8 @@ extrait_hook() {
 
 # Sortie de passer.sh gardée pour lire la cause (fichiers en conflit, checks rouges).
 sortie=$(mktemp)
-trap 'rm -f "$sortie"' EXIT
+erreurs_file=$(mktemp)
+trap 'rm -f "$sortie" "$erreurs_file"' EXIT
 passer() {
   verifier_arret
   verifier_echeance
@@ -399,10 +408,11 @@ while :; do
   traiter_sujets
   # La file se lit avec son code : illisible (5), une pause puis le tour suivant ; un autre échec arrête la boucle.
   # Jamais FILE VIDE sur un échec.
-  liste=$(bash "$outils/file.sh") && rc=0 || rc=$?
+  liste=$(bash "$outils/file.sh" 2>"$erreurs_file") && rc=0 || rc=$?
+  cat "$erreurs_file" >&2
   case "$rc" in
     0) ;;
-    5) mettre_en_pause PAUSE "(file.sh, sortie 5) : file illisible"; continue ;;
+    5) mettre_en_pause PAUSE "(file.sh, sortie 5) : file illisible" "$erreurs_file"; continue ;;
     *) echo "ARRÊT : file.sh en échec (sortie $rc) : le capitaine traite, puis relance"; exit 6 ;;
   esac
   n=$(printf '%s\n' "$liste" | awk -F '\t' -v s="$sautees$attente_fusion" '!t && $2 ~ /^prête/ && $2 !~ /sur sujet\// && index(s, " " $1 " ") == 0 { print $1; t = 1 }')
@@ -426,7 +436,7 @@ while :; do
   case "$rc" in
     0) attente_fusion=' ' ;;
     # Develop ou la PR a bougé deux fois, ou GitHub illisible : pause, puis le tour suivant. Jamais un arrêt.
-    5) mettre_en_pause "[#$n] PAUSE" "(sortie 5) : $(grep -v '^[[:space:]]*$' "$sortie" | tail -n 1)" ;;
+    5) mettre_en_pause "[#$n] PAUSE" "(sortie 5) : $(grep -v '^[[:space:]]*$' "$sortie" | tail -n 1)" "$sortie" ;;
     2)
       fichiers=$(awk '/conflit avec develop hors index générés/ { f = 1; next } f && /^  / { sub(/^  /, ""); printf "%s`%s`", (n++ ? ", " : ""), $0 }' "$sortie")
       # Renvoyée, la PR perd `à-fusionner` : elle sort de la file d'elle-même et y revient,
