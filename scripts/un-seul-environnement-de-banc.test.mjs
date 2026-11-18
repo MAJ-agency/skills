@@ -31,3 +31,12 @@ test("un seul environnement de banc : aucun banc ne recopie le filtre des variab
     .sort();
   assert.deepEqual(fautifs, [], `copies du filtre GIT_* à remplacer par environnementDeBanc() : ${fautifs.join(", ")}`);
 });
+
+test("le motif de copie : guillemets simples ou doubles, fin de ligne CRLF ou absente ; pas les voisins", () => {
+  for (const ligne of ["c.startsWith('GIT_')", 'c.startsWith("GIT_")', "x.startsWith( 'GIT_' )\r\n", "!k.startsWith('GIT_')"]) {
+    assert.ok(COPIE.test(ligne), ligne);
+  }
+  for (const ligne of ["c.startsWith('GIT_CONFIG')", 'c.startsWith("MON_GIT_")', "c.endsWith('GIT_')", "// GIT_ en commentaire"]) {
+    assert.equal(COPIE.test(ligne), false, ligne);
+  }
+});
