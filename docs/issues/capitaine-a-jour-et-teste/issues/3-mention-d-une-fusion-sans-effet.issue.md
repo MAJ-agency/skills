@@ -2,7 +2,7 @@
 
 Status: ready-for-agent
 Type: défaut
-Modèle: opus — une fonction partagée qui juge un diff contre une expression lue dans le contrat, branchée sur les cinq fusions jouées par les scripts du capitaine sans changer leur chemin (hooks, conflits, avance rapide), et une décision à tenir contre la lettre de la spec (Décision 3).
+Modèle: opus — une fonction partagée qui juge un diff contre une expression lue dans le contrat, branchée sur les quatre fusions jouées par les scripts du capitaine sans changer leur chemin (hooks, conflits, avance rapide), et une décision à tenir contre la lettre de la spec (Décision 3).
 Blocked by: 1 (`passer.sh`, `sujet.sh` et `github.sh` sont des fichiers chauds du ticket 1, qui restructure leurs fusions en boucle : partir de `main` après sa fusion)
 Dépendances: — (aucune dépendance nouvelle)
 Fichiers chauds: `skills/chaine/fusionner/scripts/github.sh`, `skills/chaine/fusionner/scripts/github.test.mjs`, `skills/chaine/fusionner/scripts/passer.sh`, `skills/chaine/sujet/scripts/sujet.sh`, `skills/chaine/fusionner/scripts/fusionner.test.mjs`, `skills/chaine/fusionner/scripts/sujet-fusionner.test.mjs`, `skills/chaine/socle-chaine-de-production/references/chaine.json`, `skills/chaine/socle-chaine-de-production/references/CONTENU.md`, `skills/chaine/fusionner/SKILL.md`, `skills/chaine/fusionner/references/CONTENU.md`, `scripts/depot.test.mjs`, `.claude-plugin/plugin.json`, `NOTES-DE-VERSION.md`
@@ -25,15 +25,14 @@ Spec : [`../capitaine-a-jour-et-teste.spec.md`](../capitaine-a-jour-et-teste.spe
 
 `fus/` abrège `skills/chaine/fusionner/scripts/`, `suj/` abrège `skills/chaine/sujet/scripts/`, `socle/` abrège `skills/chaine/socle-chaine-de-production/references/`. Lignes relues sur `4a45634` ; le ticket 1 déplace `passer.sh` et `sujet.sh` : retrouver chaque fusion par son motif `git merge -q --no-edit`.
 
-**Les cinq fusions jouées par un script** (`grep -n 'git merge -q --no-edit'`), et les commits qui concluent une fusion en conflit :
+**Les quatre fusions jouées par un script** (`grep -n 'git merge -q --no-edit'`, sur `4a45634` puis sur la PR 115 du ticket 1, `2fdeb77`), et les commits qui concluent une fusion en conflit ; l'avance rapide d'`avancer_sujet` n'en est pas une :
 
-| Fichier | Lignes (`4a45634`) | Fusion | Après le ticket 1 |
+| Fichier | Lignes (`4a45634` ; PR 115) | Fusion | Après le ticket 1 |
 | --- | --- | --- | --- |
-| `fus/passer.sh` | 202 ; commit 253-264 (`git commit -q --no-edit`, l. 254) | `origin/develop` dans `capitaine/<n>` (tête de la PR) | dans la boucle de trois tours (sa Décision 2), même commande |
-| `suj/sujet.sh` | 501 ; commit 528 | `origin/<sujet>` dans `capitaine/<n>` (`mettre_a_jour_sous_pr`) | même commande ; une fusion propre régénère, committe et pousse (sa Décision 4) |
-| `suj/sujet.sh` | 797 ; commit 821-822 | `origin/develop` dans `sujet/<nom>` (`rafraichir`) | inchangé |
-| `suj/sujet.sh` | 885 | `origin/<sujet>` dans la tête d'une sous-PR (`relancer`) | le ticket 2 la remplace par `mettre_a_jour_sous_pr` ; si le ticket 2 n'est pas encore fusionné, la traiter ici aussi |
-| `suj/sujet.sh` | `avancer_sujet` (l. 667-698) | aucune fusion : avance rapide | hors du ticket |
+| `fus/passer.sh` | 202 ; PR 115 : 220 ; commit 253-264 (`git commit -q --no-edit`, l. 254) | `origin/develop` dans `capitaine/<n>` (tête de la PR) | dans la boucle de trois tours (sa Décision 2), même commande |
+| `suj/sujet.sh` | 501 ; PR 115 : 518 ; commit 528 | `origin/<sujet>` dans `capitaine/<n>` (`mettre_a_jour_sous_pr`) | même commande ; une fusion propre régénère, committe et pousse (sa Décision 4) |
+| `suj/sujet.sh` | 797 ; PR 115 : 866 ; commit 821-822 | `origin/develop` dans `sujet/<nom>` (`rafraichir`) | inchangé |
+| `suj/sujet.sh` | 885 ; PR 115 : 954 | `origin/<sujet>` dans la tête d'une sous-PR (`relancer`) | le ticket 2 la remplace par `mettre_a_jour_sous_pr` ; si le ticket 2 n'est pas encore fusionné, la traiter ici aussi |
 
 | Fichier | Lignes | Ce qu'on y fait |
 | --- | --- | --- |
@@ -42,7 +41,7 @@ Spec : [`../capitaine-a-jour-et-teste.spec.md`](../capitaine-a-jour-et-teste.spe
 | `fus/github.test.mjs` | modèle : les tests qui sourcent `github.sh` sur le dépôt jouet (l. 1-37), comme ceux d'`ascendance` (ticket 1) | Les verdicts de `mentions_de_fusion`. |
 | `fus/passer.sh` | 202 | `git merge -q --no-edit origin/develop` devient `fusionner_avec origin/develop`. Le reste du chemin (refus sans fichier en conflit, l. 204-210 ; conflits, l. 211-247 ; commit, l. 253-264) ne change pas : en conflit, le message passé par `-m` est déjà dans `MERGE_MSG`, que `git commit -q --no-edit` (l. 254) reprend. |
 | `fus/passer.sh` | 25-26 (en-tête) | Une phrase : les fusions du capitaine portent la mention de `fusionsSansEffet` quand elle s'applique (skill `fusionner`). |
-| `suj/sujet.sh` | 501, 797, (885) | Même remplacement. |
+| `suj/sujet.sh` | 501, 797, (885) ; PR 115 : 518, 866, (954) | Même remplacement. |
 | `suj/sujet.sh` | 83-96 (en-tête, sorties) | Rien : aucune sortie nouvelle. |
 | `socle/chaine.json` | clé nouvelle, `$comment` (l. 2) | `"fusionsSansEffet": []`, et dans le `$comment` : « `fusionsSansEffet` : les fichiers qu'un hook du projet garde (une migration exigée, par exemple), avec l'expression des lignes sans effet (`grep -E`) et la mention que le capitaine écrit dans son commit de fusion quand la fusion ne leur apporte que de telles lignes (skill `fusionner`) ». |
 | `socle/CONTENU.md` | 5 (§ « Le contrat ») | « Sept clés » devient « Huit clés » ; la clé, et sa raison : le hook appartient au projet, le plugin ne connaît ni Prisma ni la mention ; une clé générique, vérifiée par diff. |
@@ -68,10 +67,10 @@ Tenues : `A-8` (une clé de contrat générique, vérifiée par diff ; gabarit v
    - `mentions_de_fusion <réf>` : appelée avant la fusion, la branche à fusionner sur `HEAD`.
      - Le contrat se lit sur `origin/develop` (`git show origin/develop:.claude/chaine.json`), **jamais** dans l'arbre de travail : le worktree du capitaine porte alors la branche d'une PR, et une PR ne s'accorde pas elle-même une mention.
      - L'arbre de la fusion : `git merge-tree --write-tree --no-messages HEAD <réf>`, première ligne (git ≥ 2.38, déjà employé par `passer.sh:125`). En conflit, `merge-tree` sort en 1 mais donne l'arbre : seuls les fichiers en conflit y portent des marqueurs, et un `fichier` de la liste en conflit sera renvoyé de toute façon (conflit hors index).
-     - Pour chaque entrée : `git diff -U0 --no-renames HEAD <arbre> -- <fichier>`, lignes qui commencent par `+` ou `-`, hors en-têtes `+++ ` et `--- `, premier caractère retiré. Aucune ligne : rien. Toutes conformes à `lignesSansEffet` (`grep -E`) : `mention` sur la sortie standard. Sinon : sur la sortie d'erreur, `fusion sans mention : <fichier> porte un changement réel (lignes hors de lignesSansEffet) ; les hooks du projet jugent le commit`.
-     - Entrée mal formée (champ manquant ou non textuel, expression que `grep -E` refuse, `mention` vide, sur plusieurs lignes, ou qui commence par `Sujet:` ou `Merge pull request`, que `sujet_livre` lit dans les fusions de develop) : aucune mention pour elle, le motif sur la sortie d'erreur. Contrat absent, illisible ou sans la clé : rien, en silence. La fonction sort toujours en 0 : elle n'arrête jamais une fusion, les hooks jugent.
+     - Pour chaque entrée : `git diff --no-textconv --no-ext-diff --no-color -U0 --no-renames HEAD <arbre> -- ":(literal)<fichier>"` (le chemin est lu tel quel : un `*` ou un `:` du contrat ne fait pas un motif), puis les seules lignes qui suivent le premier `@@` (`sed -n '/^@@/,$p'`) et commencent par `+` ou `-`, premier caractère retiré. Un filtre « hors `+++ ` et `--- ` » appliqué à tout le diff écarterait une ligne retirée qui commence par `-- ` ou ajoutée qui commence par `++ ` : l'en-tête se coupe par sa position, jamais par son texte. Aucune ligne : rien. Toutes conformes à `lignesSansEffet`, ligne entière (`grep -xE`) : `mention` sur la sortie standard. Sinon : sur la sortie d'erreur, `fusion sans mention : <fichier> porte un changement réel (lignes hors de lignesSansEffet) ; les hooks du projet jugent le commit`.
+     - Entrée mal formée (champ manquant ou non textuel, expression que `grep -E` refuse, `mention` vide, sur plusieurs lignes, qui commence par `Sujet:` ou `Merge pull request`, que `sujet_livre` lit dans les fusions de develop, ou par `#`, qu'un `commit.cleanup=strip` retirerait du message) : aucune mention pour elle, le motif sur la sortie d'erreur. Contrat absent, illisible ou sans la clé : rien, en silence. La fonction sort toujours en 0 : elle n'arrête jamais une fusion, les hooks jugent.
    - `fusionner_avec <réf>` : `git merge -q --no-edit <réf>` quand `mentions_de_fusion` ne rend rien ; sinon `git merge -q --no-edit -m "Merge remote-tracking branch '<réf>' into <branche courante>" -m "<mention 1>" …`, soit le message par défaut de git suivi des mentions (toutes les réfs fusionnées par les scripts sont des `origin/…`). Elle rend le code et les sorties de `git merge`, sans rien en changer.
-   - Raisons : une seule lecture du contrat et une seule règle, pour cinq fusions ; le chemin de chaque appelant reste le sien (refus de hook, conflits, avance rapide). Le premier paragraphe reste celui de git, `Merge remote-tracking branch '…'`, que commitlint ignore (`ignores` du gabarit, `socle-monorepo/references/racine/commitlint.config.mjs:35`, qui n'ignore que `Merge pull request`, `Merge branch` et `Merge remote-tracking branch` : un `Merge origin/develop into …` serait refusé). Pas de `git merge --no-commit` suivi d'un `git commit` : sur une fusion propre, il ferait jouer au capitaine le `pre-commit` du projet (lint-staged), que `git merge` ne joue pas aujourd'hui, et le formatage entrerait dans la fusion.
+   - Raisons : une seule lecture du contrat et une seule règle, pour quatre fusions ; le chemin de chaque appelant reste le sien (refus de hook, conflits, avance rapide). Le premier paragraphe reste celui de git, `Merge remote-tracking branch '…'`, que commitlint ignore (`ignores` du gabarit, `socle-monorepo/references/racine/commitlint.config.mjs:35`, qui n'ignore que `Merge pull request`, `Merge branch` et `Merge remote-tracking branch` : un `Merge origin/develop into …` serait refusé). Pas de `git merge --no-commit` suivi d'un `git commit` : sur une fusion propre, il ferait jouer au capitaine le `pre-commit` du projet (lint-staged), que `git merge` ne joue pas aujourd'hui, et le formatage entrerait dans la fusion.
 2. **La mention n'est que du texte du commit.** Le capitaine n'écrit rien d'autre, ne crée aucune migration et ne touche à aucun fichier. Une fusion en avance rapide ne crée pas de commit : rien à mentionner.
 3. **Un changement réel n'arrête pas le script** (écart avec la lettre d'`A-8`, voir `## Comments`). La fonction le dit sur la sortie d'erreur et n'ajoute aucune mention ; le commit passe sous les hooks du projet, comme aujourd'hui. Un hook qui refuse sort par le chemin existant (sortie 3, sa sortie sur stderr). Raison : un changement réel de `schema.prisma` arrive dans develop avec sa migration, et le commit de fusion porte les deux ; s'arrêter à chaque fois bloquerait toutes les PR après chaque migration.
 4. **La fille tranche seule**, par défaut prudent, et le note sous `## Comments` : le nom des variables, le texte exact du motif d'une entrée mal formée. Elle ne tranche **pas** : la lecture du contrat sur `origin/develop`, l'absence de `--no-commit`, la Décision 3.
@@ -88,7 +87,10 @@ Une branche de travail partie d'`origin/main`, ticket 1 fusionné. Chaque banc e
 - develop y apporte un modèle : rien sur la sortie standard, la sortie d'erreur nomme le fichier ;
 - develop ne touche pas le fichier : rien, en silence ;
 - contrat sans la clé, ou absent : rien, en silence ;
-- entrée mal formée (expression refusée par `grep -E`, mention sur deux lignes, mention `Sujet: sujet/x`) : rien, motif sur la sortie d'erreur ;
+- develop retire du fichier une ligne qui commence par `-- ` ou y ajoute une ligne qui commence par `++ ` (hors de `lignesSansEffet`) : rien sur la sortie standard, la sortie d'erreur nomme le fichier (un filtre d'en-têtes appliqué à tout le diff les aurait écartées et aurait donné la mention) ;
+- une ligne qui ne correspond à l'expression qu'en partie (`// x` suivi de code, contre `^[[:space:]]*(//.*)?$` sans ancre) : changement réel (`grep -xE`) ;
+- entrée mal formée (expression refusée par `grep -E`, mention sur deux lignes, mention `Sujet: sujet/x`, mention `# x`) : rien, motif sur la sortie d'erreur ;
+- un `fichier` qui contient un caractère de motif (`prisma/*.prisma`) : lu comme un chemin littéral, il ne correspond à aucun fichier, rien ;
 - un contrat de l'arbre de travail qui porte l'entrée, absent d'`origin/develop` : rien (le contrat de la PR ne compte pas).
 
 **Rouge sur `main`** : la fonction n'existe pas.
@@ -198,3 +200,4 @@ Ils restent verts sans changer : `fusionner.test.mjs:1055` (conflit d'index sous
   - **Pas de `--no-commit`** : sur une fusion propre, `git merge` ne joue pas le `pre-commit` du projet ; `git merge --no-commit` suivi de `git commit` le jouerait (lint-staged, formatage entré dans la fusion, déjà vu sur `fedora` #1918 et #1919). D'où `git merge -m`.
   - **Le contrat se lit sur `origin/develop`** : la spec ne disait pas où. Le worktree du capitaine porte la branche de la PR pendant la fusion.
   - **`relancer`** (`sujet.sh:885`) : la spec la citait ; le ticket 2 la fait passer par `mettre_a_jour_sous_pr`. Si le ticket 2 n'est pas fusionné au lancement de celui-ci, la fusion de `relancer` passe aussi par `fusionner_avec`.
+- 2026-11-18 — Repris après une relecture neuve (« pas prêt »), décision de l'architecte : le diff ne se lit qu'après le premier `@@` (une ligne `-- ` ou `++ ` du contenu n'est plus prise pour un en-tête), avec son cas au banc ; `grep -xE` ; `git diff --no-textconv --no-ext-diff --no-color` ; `fichier` lu comme chemin littéral (`:(literal)`) ; `mention` qui commence par `#` refusée ; quatre fusions, et non cinq (`passer.sh:220`, `sujet.sh:518`, `:866`, `:954` sur la PR 115).
