@@ -71,7 +71,9 @@ Décisions de l'architecte :
 | ticket | 12 | session_012xRpgZRkibUK1CA2XDumRw | sonnet | 219 891 | 3,43 |
 | ticket | 17 | session_012xRpgbyvYBRavfo3t7tSRy | opus | — | — |
 | ticket | 6 | session_012xRpgYLyDnCAE8DMZWu3s5 | sonnet | 207 235 | 3,18 |
-| ticket | 13 | session_012xRpgYZHPVc6BJ87qfJom5 | sonnet | — | — |
+| ticket | 13 | session_012xRpgYZHPVc6BJ87qfJom5 | sonnet | 194 669 | 3,06 |
+| ticket | 9 | session_012xRpgcJxHH8VpXnvZFLcAG | opus | — | — |
+| ticket | 14 | session_012xRpgZCHrKAsSDyAM9MBy8 | sonnet | — | — |
 | ticket | 5 | session_012xRpgZ61a6Z3tAxnLE1XtH | sonnet | 186 928 | 2,98 |
 | ticket | 8 | session_012xRpgb2wqPnXRgEHTvthK3 | opus | 327 602 | 17,89 |
 | capitaine | — | session_012xRpgcWjwiV8xVUSzzEy9L | sonnet | — | — |
@@ -141,3 +143,4 @@ Demande du produit, 2026-11-18, recopiée telle quelle (relevée sur `MAJ-agency
 - 2026-11-18 — 21 h 40 UTC. PR 114 renvoyée par le capitaine pour une alerte CodeQL haute (`js/incomplete-sanitization` sur un `replace("*", …)`), corrigée (`f6b0543`), CodeQL vert. **PR 118 fusionnée** (squash `cf1c521`, 7.19.0), arbre identique, vérifié ; ticket 6 fait, session archivée (3,18 $). Signal à la PR 114 (7.19.1). Ticket 13 lancé (débloqué par 1 et 6) : session_012xRpgYZHPVc6BJ87qfJom5.
 - 2026-11-18 — 22 h 00 UTC. **PR 114 fusionnée** (squash `e45a504`, 7.19.1), arbre identique, vérifié ; ticket 12 fait, session archivée (3,43 $). Signal à la PR 120 (7.20.0). PR 121 (ticket 13) livrée, contre-relecture conforme (790 tests, aussi sous pseudo-terminal), quatre retouches demandées ; elle passera après la 120.
 - 2026-11-18 — 22 h 35 UTC. **PR 120 fusionnée** (squash `085d7d4`, 7.20.0), arbre identique, vérifié ; ticket 8 fait, session archivée (17,89 $). Signal à la PR 121 (7.21.0). Ticket 9 lancé (débloqué par 8).
+- 2026-11-18 — 22 h 50 UTC. **PR 121 fusionnée** (squash `fad725d`, 7.21.0), arbre identique, vérifié ; ticket 13 fait (statut posé dans la PR), session archivée (3,06 $). Signal à la PR 119 (7.21.1). Ticket 14 lancé (débloqué par 6 et 13).
