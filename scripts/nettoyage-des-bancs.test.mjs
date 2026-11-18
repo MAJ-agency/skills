@@ -9,17 +9,17 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { environnementDeBanc } from "../skills/chaine/sujet/scripts/depot-jouet.mjs";
 
 const RACINE = fileURLToPath(new URL("..", import.meta.url));
 const JOUET_SUJET = join(RACINE, "skills/chaine/sujet/scripts/depot-jouet.mjs");
 const JOUET_TICKETS = join(RACINE, "skills/chaine/tickets/references/scripts/docs/depot-jouet.mjs");
 
-// Sans les GIT_* hérités (sous un hook git, ils visent le vrai dépôt), ni NODE_TEST_CONTEXT (l'enfant
-// rendrait ses résultats au parent au lieu de les jouer), ni GARDER_JOUETS (il garde les dossiers).
+// L'environnement des bancs (sans GIT_* ni NODE_TEST_CONTEXT), et sans GARDER_JOUETS (il garde les dossiers),
+// propre à ce banc.
 const envEnfant = (temporaire, plus = {}) => ({
-  ...Object.fromEntries(
-    Object.entries(process.env).filter(([cle]) => !cle.startsWith("GIT_") && cle !== "NODE_TEST_CONTEXT" && cle !== "GARDER_JOUETS"),
-  ),
+  ...environnementDeBanc(),
+  GARDER_JOUETS: undefined,
   TMPDIR: temporaire,
   ...plus,
 });

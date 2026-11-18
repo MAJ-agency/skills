@@ -38,7 +38,7 @@ Le dossier de contexte s'écrit en minuscules (`all/`, `fnsmr/`) et **existe tou
 
 ## Étape 1 — poser (`poser`)
 
-Dans un dépôt dont la racine est posée (`pnpm-workspace.yaml` présent) et qui porte la grammaire du socle (`scripts/docs/identifiants.mjs`, `next-id.mjs`, `next-id-branches.mjs` et `pr-ouvertes.mjs`). L'un des quatre manque : s'arrêter, et poser `/maj-skills:socle-monorepo` d'abord. Ce skill ne pose pas ces quatre fichiers, et ne les remplace pas.
+Dans un dépôt dont la racine est posée (`pnpm-workspace.yaml` présent) et qui porte la grammaire du socle (`scripts/docs/identifiants.mjs`, `next-id.mjs`, `next-id-branches.mjs`, `pr-ouvertes.mjs` et `environnement-de-banc.mjs`). L'un des cinq manque : s'arrêter, et poser `/maj-skills:socle-monorepo` d'abord. Ce skill ne pose pas ces cinq fichiers, et ne les remplace pas.
 
 | Source                                    | Destination                                   |
 | ----------------------------------------- | --------------------------------------------- |
