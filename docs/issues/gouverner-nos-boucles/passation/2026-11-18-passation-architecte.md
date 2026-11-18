@@ -56,7 +56,7 @@ Elles sont du produit, citées telles quelles quand elles sont entre guillemets.
   | Architecte de l'onglet « Projet » (Anchorpost, `SPEC_ALL_ANC-8`) | `session_017ZgEwKQwehe4LJedJqfDRT` | non vérifié |
   | Architecte de Fedora et d'Iroki (chaîne) | `session_017ZgEwK58YLUSzpFyS44qpW` | non vérifié |
   | Architecte du programme « Fedora solidité et validations » (mutation) | `session_017ZgEwLBjSKAPzZHHMkADib` | non vérifié |
-  | Session du ticket 52 (`skills`) | `session_017ZgEwKC5z9pHAoJ4aYjiJy` | terminée, à archiver après la fusion de la PR 110 |
+  | Session du ticket 52 (`skills`) | `session_017ZgEwKC5z9pHAoJ4aYjiJy` | terminée et archivée (2,82 $) |
   | Fille de `.27` (scanner) | `session_017ZgEwKb3MwXGicR95bsvM7` | non vérifié, sans doute arrêtée comme le conducteur |
   | Fille de `.35` | `session_017ZgEwJ4xag88xq5ux4y1j7` | en échec depuis 00 h 40 UTC |
 
@@ -71,7 +71,7 @@ Elles sont du produit, citées telles quelles quand elles sont entre guillemets.
 **Plugin `maj-skills`.**
 
 - 7.13.0 (PR 108) : CODEOWNERS généré depuis les chemins sensibles. 7.14.0 (PR 109, ticket 49) : le skill `criticite`, le critère `D8`, « qui rédige une règle ». `main` est à `fa30c30`, 732 tests.
-- **Ticket 52 (P-38), le critère `T3` de la revue de ticket** : écrit en quatre versions, relu deux fois par un agent neuf chargé de trouver une PR que l'ancien critère refusait et que le nouveau laisserait passer. Codé par la PR 110 (sommet `5142d9f6e4671b179f23b628a754720c4d32a5ad`, 738 tests, 158 mutations rouges). Contre-relecture : la PR est le ticket mot pour mot. **Essai réel** : un dépôt jouet à sept défauts plantés et deux leurres, deux sous-agents en contexte vierge, sept défauts sur sept chacun. **Ordre de fusion donné** (commentaires et label posés).
+- **Ticket 52 (P-38), le critère `T3` de la revue de ticket** : écrit en quatre versions, relu deux fois par un agent neuf chargé de trouver une PR que l'ancien critère refusait et que le nouveau laisserait passer. Codé par la PR 110 (sommet `5142d9f6e4671b179f23b628a754720c4d32a5ad`, 738 tests, 158 mutations rouges). Contre-relecture : la PR est le ticket mot pour mot. **Essai réel** : un dépôt jouet à sept défauts plantés et deux leurres, deux sous-agents en contexte vierge, sept défauts sur sept chacun. **Fusionnée le 18 novembre** (`main` à `4a45634`, plugin 7.15.0).
 
 **Anchorpost, la preuve suffisante (`SPEC_ALL_ANC-5`).**
 
@@ -89,11 +89,11 @@ Elles sont du produit, citées telles quelles quand elles sont entre guillemets.
 
 ## 5. L'état exact à la passation, et ce qui bloque
 
-**Le blocage principal.** La session du conducteur est en échec depuis le 2026-11-18 à 01 h 12 UTC. Son enregistrement dit : limite hebdomadaire atteinte (`rateLimitType: seven_day`), levée le 2026-11-23 à 01 h UTC, sans dépassement payant activé. Elle tournait sur le modèle opus et avait coûté 203,09 $ à ce moment. La fille de `.35` est en échec aussi. Le capitaine de `skills`, sur un autre modèle, fonctionne. **Tout le chantier de la preuve suffisante est donc arrêté**, et le produit ne le sait pas encore : c'est la première chose à lui dire (voir § 7, question 1).
+**Le blocage principal.** La session du conducteur est en échec depuis le 2026-11-18 à 01 h 12 UTC. Son enregistrement dit : limite hebdomadaire atteinte (`rateLimitType: seven_day`), levée le 2026-11-23 à 01 h UTC, sans dépassement payant activé. Elle tournait sur le modèle opus et avait coûté 203,09 $ à ce moment. La fille de `.35` est en échec aussi. Le capitaine de `skills`, sur un autre modèle, fonctionne ; mais l'enregistrement de la session du ticket 52, sur ce même autre modèle, portait déjà à 00 h 35 UTC un avertissement sur la même limite de sept jours : elle pourrait valoir pour tout le compte. **Tout le chantier de la preuve suffisante est donc arrêté**, et le produit ne le sait pas encore : c'est la première chose à lui dire (voir § 7, question 1).
 
 **Branches.**
 
-- `skills` : `main` à `fa30c30` (7.14.0).
+- `skills` : `main` à `4a45634` (7.15.0, 738 tests).
 - Anchorpost `develop` : `c1f375d`.
 - Anchorpost `sujet/preuve-suffisante-cas` : `929478b` (`.40` fusionné).
 
@@ -101,7 +101,7 @@ Elles sont du produit, citées telles quelles quand elles sont entre guillemets.
 
 | PR | Objet | État | À faire |
 | --- | --- | --- | --- |
-| `skills` 110 | ticket 52, critère `T3`, plugin 7.15.0 | label et ordre posés, capitaine relancé à 07 h 41 UTC | à la fusion : vérifier que l'arbre de `main` est celui de `5142d9f`, marquer le ticket 52 « Fait » avec un commentaire daté, noter le coût de `session_017ZgEwKC5z9pHAoJ4aYjiJy` dans la carte (`get_session`, `usage.cost_usd`), l'archiver, prévenir les architectes des projets de la 7.15.0 |
+| `skills` 110 | ticket 52, critère `T3`, plugin 7.15.0 | **fusionnée** à 07 h 44 UTC (`main` à `4a45634`), arbre vérifié, ticket marqué « Fait », coût noté, session archivée, architectes des projets prévenus | rien ; reste le ticket 53 (§ 6, point 16) |
 | Anchorpost #253 | `.27`, le scanner | sommet `6e99c0d`, **sans label** | voir ci-dessous |
 | Anchorpost #274 | doc : `.38` prêt pour agent, `.34` précisé | `fusion-bloquée` : conflit avec #273 sur le ticket `.34` | c'est une PR du conducteur : fusionner le sujet dans sa branche en gardant les deux retouches, régénérer l'index, retirer `fusion-bloquée`, remettre `à-fusionner` |
 | Anchorpost #275 | doc : critère de revue `P4` (la lecture des preuves reste linéaire) | `fusion-bloquée`, cause non lue | lire le commentaire du capitaine, corriger |
@@ -122,7 +122,7 @@ Elles sont du produit, citées telles quelles quand elles sont entre guillemets.
 1. Lis la carte (§ 3), puis vérifie sur GitHub l'état des quatre PR du § 5.
 2. Écris aux sessions vivantes que tu es le nouvel architecte.
 3. Dis au produit le blocage de la limite hebdomadaire et pose-lui la question 1 du § 7.
-4. Suis la PR 110 de `skills` jusqu'à sa fusion, puis fais les gestes de clôture.
+4. La PR 110 de `skills` est fusionnée et close : rien à faire, sinon t'assurer que la carte le dit.
 5. Ajoute au journal de la carte une entrée de reprise.
 
 **Preuve suffisante (dès qu'un conducteur tourne).**
