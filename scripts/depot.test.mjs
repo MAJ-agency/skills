@@ -389,6 +389,67 @@ test("aucun texte de lancement n'affirme que le plugin se met à jour à chaque 
   assert.deepEqual(fautes, [], `une session part de l'instantané de son environnement : ${fautes.join(" ; ")}`);
 });
 
+// Ticket 5 du programme capitaine-a-jour-et-teste : chaque session lancée charge send_message en premier
+// geste, une ligne « Commits » interdit l'amend, et l'architecte comme le conducteur relèvent leurs sessions.
+const GABARIT_FILLE = `skills/chaine/socle-chaine-de-production/references/docs-agents/chaine-de-production.md`;
+const promptsLances = () => [
+  ...blocsPrompt(readFileSync(join(RACINE, LANCEMENT), "utf8")).map((b, i) => [`${LANCEMENT} bloc ${i + 1}`, b]),
+  ...blocsTexte(readFileSync(join(RACINE, GABARIT_FILLE), "utf8"))
+    .filter((b) => b.startsWith("Session fille du chantier"))
+    .map((b) => ["gabarit d'une fille", b]),
+];
+const INTANGIBLES_MAIN =
+  "Intangibles : jamais --no-verify ; jamais de push forcé ni de réécriture d'historique ; jamais de fusion avec un contrôle exigé rouge ; jamais de test sauté ou assoupli ; jamais de push sur la branche par défaut ; une dépendance nouvelle attend l'accord humain.";
+const sectionEntre = (texte, debut, fin) => {
+  const i = texte.search(debut);
+  const j = texte.slice(i + 1).search(fin);
+  assert.ok(i >= 0 && j >= 0, `section ${debut} … ${fin} introuvable`);
+  return texte.slice(i, i + 1 + j);
+};
+
+test("chaque prompt lancé charge send_message en premier geste, avant la ligne Version :", () => {
+  const prompts = promptsLances();
+  assert.equal(prompts.length, 4, "trois blocs de lancement et le gabarit d'une fille");
+  const fautes = prompts.flatMap(([nom, bloc]) => {
+    const l = lignes(bloc);
+    const outils = l.findIndex((x) => x.startsWith("Outils : "));
+    const version = l.findIndex((x) => x.startsWith("Version : "));
+    const f = [];
+    if (outils < 0 || !l[outils].includes("select:mcp__claude-code-remote__send_message")) f.push(`${nom} : ligne « Outils : » absente`);
+    else if (version >= 0 && version < outils) f.push(`${nom} : « Version : » avant « Outils : »`);
+    return f;
+  });
+  assert.deepEqual(fautes, [], fautes.join(" ; "));
+});
+
+test("jamais d'amend : une ligne Commits juste après les intangibles, la même dans lancement.md et dans le gabarit d'une fille ; les intangibles restent ceux du produit", () => {
+  const apres = (texte) => {
+    const l = lignes(texte);
+    const i = l.findIndex((x) => x.startsWith("Intangibles : "));
+    assert.ok(i >= 0, "ligne Intangibles absente");
+    return [l[i], l[i + 1] ?? ""];
+  };
+  const [intL, comL] = apres(sectionEntre(readFileSync(join(RACINE, LANCEMENT), "utf8"), /^## Les consignes du produit/m, /^## Après le lancement/m));
+  const [intG, comG] = apres(readFileSync(join(RACINE, GABARIT_FILLE), "utf8"));
+  assert.equal(intL, INTANGIBLES_MAIN);
+  assert.equal(intG, INTANGIBLES_MAIN);
+  assert.ok(comL.startsWith("Commits : ") && comL.includes("`git commit --amend`"), "lancement.md : ligne « Commits : » après les intangibles");
+  assert.equal(comG, comL, "la ligne « Commits : » du gabarit est celle de lancement.md");
+});
+
+test("l'architecte et le conducteur relèvent leurs sessions dans l'heure, sans filtre tags, et lisent le contexte par get_session", () => {
+  const archi = sectionEntre(lire("skills/chaine/architecte"), /^## 5\./m, /^## 6\./m);
+  const chantier = readFileSync(join(RACINE, "skills/chaine/chantier/SKILL.md"), "utf8");
+  const suivi = sectionEntre(chantier, /^## 6\./m, /^## 7\./m);
+  const commun = ["get_session", "connection_status", "session_status", "rate_limit_info.status", "resetsAt", "60 minutes"];
+  const manques = [
+    ...commun.filter((p) => !archi.includes(p)).map((p) => `architecte § 5 : « ${p} »`),
+    ...[...commun, "jamais dans ce qu'elle annonce", "role:capitaine"].filter((p) => !suivi.includes(p)).map((p) => `chantier § 6 : « ${p} »`),
+    ...lignes(chantier).flatMap((l, i) => (/`list_sessions` filtré/.test(l) || /tags: \[/.test(l) ? [`chantier/SKILL.md:${i + 1} : filtre tags`] : [])),
+  ];
+  assert.deepEqual(manques, [], manques.join(" ; "));
+});
+
 // Deux listes : la revue exigée par le capitaine (revue-exigee.mjs, fixe) et les chemins sensibles du contrat
 // (contre-revue et /security-review, que le projet allonge). Tout chemin sensible du gabarit exige aussi la revue.
 test("chaque chemin sensible du gabarit de .claude/chaine.json exige la revue au passage du capitaine", async () => {
