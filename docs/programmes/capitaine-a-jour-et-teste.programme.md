@@ -47,6 +47,7 @@ Décisions de l'architecte :
 
 | Rôle | Ticket | Session | Modèle | Contexte max | Coût $ |
 | ---- | ------ | ------- | ------ | ------------ | ------ |
+| ticket | 1 | session_012xRpgccroQauUaW3RGm1QW | opus | — | — |
 
 ## Passation
 
@@ -77,3 +78,4 @@ Demande du produit, 2026-11-18, recopiée telle quelle (relevée sur `MAJ-agency
 - 2026-11-18 — 18 h 15 UTC. Spec du chantier 2 validée (P-5). Ticket 1 écrit (`26e72b2`, rédacteur opus) : code de sortie 12 ; écart majeur relevé : vers `develop`, le réglage « à jour » de GitHub interdit de fusionner une PR en retard, même de documentation (P-3 ne vaut que vers un sujet) — question au produit.
 - 2026-11-18 — 18 h 40 UTC. Relecture neuve du ticket 1 : « pas prêt », un bloquant (lecture du réglage « à jour » d'une branche non protégée) et dix mineures. Le produit tranche P-6 (jamais de PR en retard sans retest) : le bloquant et trois mineures tombent avec l'exception de la documentation. Spec 1 mise à jour (A-1 à A-4) ; ticket 1 renvoyé à son rédacteur.
 - 2026-11-18 — 18 h 55 UTC. Ticket 1 repris (`eb7fedc`) : P-6 appliquée, mineures portées, fonction d'ascendance dans `github.sh` (sans CLI nouvelle) ; A-35. Seconde relecture par le même relecteur, sur le delta.
+- 2026-11-18 — 18 h 50 UTC (horloge de la plateforme : 17 h 49 UTC). Seconde relecture du ticket 1 : « prêt », trois mineures portées par l'architecte (`360db7f`). **Session du ticket 1 lancée** : session_012xRpgccroQauUaW3RGm1QW (opus, depuis `main` `4a45634`, 7.16.0 visée ; premier geste : charger `send_message`, A-12 appliquée d'avance).
