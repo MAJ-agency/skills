@@ -58,3 +58,16 @@ Relayé par l'architecte de Fedora (`session_017ZgEwK58YLUSzpFyS44qpW`) le 2026-
 À porter au premier tour : le produit veut approuver lui-même ; or toutes les sessions écrivent sous son compte, et GitHub refuse qu'un auteur approuve sa propre PR. La question à lui poser n'est donc plus « qui approuve », mais « sous quel compte les agents écrivent-ils, pour que votre approbation compte ».
 
 Suite relayée à 15 h 32 UTC par la même session : elle a proposé au produit (1) un compte GitHub dédié aux agents, recommandé, ou (2) un refus de fusion sans sa validation, contournable par un administrateur. Réponse du produit, citée : « nan trop compliqué ta solution. » Elle lui explique une variante sans seconde identité : une validation par un label que les hooks refusent aux agents et que le capitaine exige sur un chemin sensible ; elle tient face à une session de bonne foi, pas face à une PR hostile. Rien n'est posé ni tranché : la décision reste au grilling du chantier 3. À retenir pour le premier tour : le produit écarte ce qui lui paraît compliqué ; lui présenter une seule voie, en une phrase, avec ce qu'elle ne couvre pas.
+
+## Ajout du 2026-11-18, 15 h 40 UTC — la proposition du produit, relayée
+
+Relayée à 15 h 35 UTC par la même session, citée : « il faut une solution telle que le skill chantier donne à la session fille les chemins de fichiers sensibles et qu'en cas de modification d'un de ses fichiers, le chantier demande l'autorisation au produit (donc moi ou [la seconde personne]) de modifier ce fichier. Plus simple nan ? »
+
+Lecture de la session qui relaie, sans engagement du produit : le mécanisme de la ligne `Dépendances:`. Le ticket porterait une ligne (par exemple `Sensibles:`) avec les chemins accordés, qui les a accordés et la date ; le conducteur ne la remplit qu'après l'accord ; le hook refuse l'édition d'un chemin sensible absent de cette ligne, lue sur le sujet ; la contre-revue reste sur le contenu. L'accord porte sur l'intention, avant le code, pas sur le diff.
+
+Lecture de l'architecte du programme, à confirmer au grilling (ouvert ici le 2026-11-18, skills `grilling` puis `domain-modeling` chargés, une question à la fois comme le produit le demande) :
+
+- Ce que la proposition règle : plus de dépendance à une seconde personne, plus de seconde identité GitHub, rien à activer chez GitHub. L'accord peut se donner une fois, à la validation du découpage, pour tous les tickets d'un chantier.
+- Ce qu'elle ne règle pas : personne d'humain ne lit le contenu de la modification ; c'est un agent qui écrit le nom de qui a accordé (même faiblesse que `by:`) ; elle tient face à une session de bonne foi, pas face à une PR hostile.
+- Scénario à poser : depuis `SPEC_ALL_ANC-5.39`, le code du juge de la CLI est chemin sensible ; presque tous les tickets restants de la preuve suffisante y touchent. Avec un accord par PR, le produit serait sollicité à chaque ticket ; avec un accord au découpage, une fois.
+- Conséquence sur l'arbre : A6 (la personne nommée et son accord) et le périmètre de CODEOWNERS (P-41) se reformulent ; CODEOWNERS resterait un fichier d'information, sans réglage GitHub exigé.
