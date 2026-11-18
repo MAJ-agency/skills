@@ -285,8 +285,11 @@ test("suiteSurBaseCible : un import relatif ou par alias du fichier, de son doss
   assert.equal(cible('const m = await import("./users.repository");'), true);
   // le dossier à index, sans fichier frère
   assert.equal(cible('import { x } from "../users";', "src/other/o.db.spec.ts"), true);
-  // le module voisin du dossier
+  // le module du dossier (convention Nest : users/users.module), ou le module voisin du dossier
+  assert.equal(cible('import { M } from "./users.module";'), true);
+  assert.equal(cible('import { M } from "../users/users.module";', "src/other/o.db.spec.ts"), true);
   assert.equal(cible('import { M } from "../users.module";', "src/other/o.db.spec.ts"), true);
+  assert.equal(cible('import { M } from "./lots.module";'), false);
   // un type n'est pas exécuté
   assert.equal(cible('import type { R } from "./users.repository";'), false);
   assert.equal(cible('export type { R } from "./users.repository";'), false);

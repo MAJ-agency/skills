@@ -273,6 +273,7 @@ test("avec DATABASE_URL, le même fichier non couvert échoue, sans avertissemen
   const j = jouerReel(r, ["--base", "origin/develop"], { DATABASE_URL: "postgres://x" });
   assert.equal(j.statut, 1, j.sortie);
   assert.doesNotMatch(j.sortie, /AVERTISSEMENT|⚠/);
+  assert.match(j.sortie, /✖ apps\/api\/src\/repo\.ts/);
 });
 
 test("sous GitHub Actions sans DATABASE_URL, aucun avertissement : le fichier échoue", () => {

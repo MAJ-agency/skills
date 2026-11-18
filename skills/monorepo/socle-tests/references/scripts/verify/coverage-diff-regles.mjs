@@ -216,7 +216,7 @@ const sansExtension = (c) => c.replace(/\.(?:[cm]?[jt]sx?)$/, "");
  * `compilerOptions.paths` du `tsconfig.json` du paquet, `[{ motif: "@x/*", cibles: ["src/x/*"] }]`
  * (vide si illisible : seuls les imports relatifs comptent) ; `existe(chemin)` dit si un fichier
  * existe. Le fichier est ciblé par un import de lui-même, de son dossier s'il porte un `index.*`
- * et qu'aucun fichier frère `<dossier>.ts` n'existe, ou du `<dossier>.module` voisin.
+ * et qu'aucun fichier frère `<dossier>.ts` n'existe, ou du module du dossier (`<dossier>/<dossier>.module`, convention Nest) ou du `<dossier>.module` voisin.
  */
 export function suiteSurBaseCible(fichier, specs, alias, existe) {
   const dossier = fichier.split("/").slice(0, -1).join("/");
@@ -242,7 +242,8 @@ export function suiteSurBaseCible(fichier, specs, alias, existe) {
         return (
           sans === cible ||
           (sans === dossier && index && !frere) ||
-          sans === `${dossier}.module`
+          sans === `${dossier}.module` ||
+          sans === `${dossier}/${dossier.split("/").at(-1)}.module`
         );
       }),
     ),

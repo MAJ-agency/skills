@@ -338,6 +338,8 @@ for (const [pkg, fs] of parPaquet) {
     suites += db.suites;
   }
   suitesTotal += suites;
+  const specsSurBase = sansBase ? suitesSurBase(pkg) : [];
+  const aliasPaquet = sansBase ? aliasDuPaquet(pkg) : [];
   dire(`   ↳ ${suites} suite(s) liée(s)`);
   for (const f of fs) {
     const entree = rapport[join(ROOT, f)];
@@ -347,7 +349,7 @@ for (const [pkg, fs] of parPaquet) {
     const surBase =
       problemes.length > 0 &&
       sansBase &&
-      suiteSurBaseCible(relative(pkg, f), suitesSurBase(pkg), aliasDuPaquet(pkg), (c) => existsSync(join(ROOT, pkg, c)));
+      suiteSurBaseCible(relative(pkg, f), specsSurBase, aliasPaquet, (c) => existsSync(join(ROOT, pkg, c)));
     lignesTableau.push({ f, nouveau, m, problemes: surBase ? [] : problemes, avertissement: surBase ? problemes : [] });
   }
 }
