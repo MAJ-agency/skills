@@ -67,7 +67,8 @@ esac`,
   const fakes = join(tmp, "fakes");
   outil(fakes, "docker", "exit 1");
   outil(fakes, "id", 'echo 1000');
-  outil(fakes, "locale", `printf '%s\\n' "$LOCALES_JOUET"`);
+  writeFileSync(join(tmp, "locales.txt"), `${locales}\n`);
+  outil(fakes, "locale", `cat ${JSON.stringify(join(tmp, "locales.txt"))}`);
   const env = Object.fromEntries(Object.entries(process.env).filter(([k]) => !k.startsWith("GIT_")));
   const r = spawnSync("bash", [join(projet, "scripts", "db", "demarrer-local.sh")], {
     encoding: "utf8",
@@ -76,7 +77,6 @@ esac`,
       PATH: `${fakes}:${process.env.PATH}`,
       PG_RACINE: join(tmp, "pg"),
       PGDATA_LOCAL: donnees,
-      LOCALES_JOUET: locales,
       ENC_BASE: encBase,
       ENC_SERVEUR: encServeur,
     },
@@ -141,4 +141,13 @@ test("demarrer-local du socle : base existante en UTF8, rien n'est recréé", as
   const { r, appels } = await jouer({ existante: true, encBase: "UTF8" });
   assert.equal(r.status, 0, r.stderr + r.stdout);
   assert.ok(!appels.some((l) => /^(initdb|createdb) /.test(l)), `rien recréé : ${appels}`);
+});
+
+test("demarrer-local du socle : locale C.UTF-8 présente en tête d'une longue liste, pas de repli à tort (SIGPIPE sous pipefail)", async () => {
+  const locales = ["C.utf8", ...Array.from({ length: 30000 }, (_, i) => `xx_${i}.utf8`)].join("\n");
+  const { r, appels } = await jouer({ locales });
+  assert.equal(r.status, 0, r.stderr + r.stdout);
+  const initdb = appels.find((l) => l.startsWith("initdb "));
+  assert.match(initdb, /--locale=C\.UTF-8/);
+  assert.doesNotMatch(r.stdout, /repli/);
 });

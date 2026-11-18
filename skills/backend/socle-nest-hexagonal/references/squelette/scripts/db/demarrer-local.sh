@@ -146,7 +146,9 @@ if [ ! -f "$donnees/PG_VERSION" ]; then
   # --encoding=UTF8 échoue sous une locale d'un autre encodage : la locale accompagne l'encodage.
   locale_utf8=${PG_LOCALE_UTF8:-C.UTF-8}
   normaliser() { tr 'A-Z' 'a-z' | sed 's/utf-8/utf8/'; }
-  if locale -a 2>/dev/null | normaliser | grep -qxF "$(printf '%s' "$locale_utf8" | normaliser)"; then
+  # Liste lue en entier avant la recherche : `grep -q` sortirait tôt, et pipefail verrait le SIGPIPE.
+  locales_connues=$(locale -a 2>/dev/null | normaliser || true)
+  if grep -qxF "$(printf '%s' "$locale_utf8" | normaliser)" <<<"$locales_connues"; then
     option_locale="--locale=$locale_utf8"
   else
     option_locale="--no-locale"
