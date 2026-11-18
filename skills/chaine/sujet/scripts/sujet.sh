@@ -15,9 +15,12 @@
 #   ouvrir <nom> [--specs <pr>]
 #                         crée sujet/<nom> depuis develop, sans protection de branche ;
 #                         `--specs` recible sur le sujet la PR de specs du lot
-#   fusionner <pr>        squash d'une sous-PR dans son sujet : checks exigés verts sur son sommet,
-#                         titre qui passe commitlint
-#                         (lancé par le capitaine pour une sous-PR étiquetée `à-fusionner`) ;
+#   fusionner <pr>        squash d'une sous-PR dans son sujet : titre qui passe commitlint, revue exigée, puis la
+#                         règle d'ascendance (`ascendance` de github.sh) : en conflit avec le sujet hors index, renvoi
+#                         avant toute CI ; en retard, documentation comprise, ou en conflit d'index seul, mise à jour
+#                         avec le sujet et poussée ; puis, trois tours au plus : CI exigée attendue sur le sommet
+#                         (`attendre_ci`), sujet relu, contrôle refait, squash sur `à-jour` seulement, et arbre du squash
+#                         comparé à l'arbre testé (lancé par le capitaine pour une sous-PR étiquetée `à-fusionner`) ;
 #                         PR de mise à jour (la fusion de develop dans le sujet, conflit résolu, puis des
 #                         retouches) : entre par avance rapide, sans squash, si elle a cette forme (voir « PR de
 #                         mise à jour » plus bas), sinon sortie 4
@@ -87,10 +90,12 @@
 # comme la sortie 6 de passer.sh) · 7 `fusionner` d'une PR fermée, en brouillon ou d'un sujet gelé (rien à
 # corriger : sautée) · 9 `carte <nom>` refusée, ou `geler`/`degeler` dont le push échoue deux fois (rien n'est poussé)
 # `fusionner`, `rafraichir`, `relancer`, `livrer` : 5 la branche a bougé pendant l'écriture, relancer
-# `fusionner` encore : la sous-PR a bougé pendant sa mise à jour, ou ses checks sont encore en cours (reprise au
-# tour suivant, aucun renvoi : la PR reste dans la file tant que sa CI ne finit pas) · 8 conflit
-# avec le sujet sur des index générés seuls : branche mise à jour (index régénérés) et poussée, CI
-# relancée, aucun squash · 11 `fusionner` d'une PR de mise à jour : échec côté capitaine (git sans
+# `fusionner` encore : la sous-PR a bougé pendant sa mise à jour, ses checks sont encore en cours après l'attente sur un
+# sommet que le capitaine n'a pas poussé, ou le sujet a bougé trois fois pendant la CI (reprise au tour suivant, aucun
+# renvoi : la PR reste dans la file tant que sa CI ne finit pas) · 8 `fusionner` : sous-PR mise à jour avec son sujet et
+# poussée, CI pas finie : aucun squash, repasse au tour suivant · 12 `fusionner` : arbre du squash ≠ arbre testé :
+# commentaire marqué sur la PR, `à-fusionner` retiré, la boucle s'arrête · 11 `fusionner` d'une sous-PR : contrôle
+# d'ascendance illisible, côté capitaine, aucun renvoi · 11 `fusionner` d'une PR de mise à jour : échec côté capitaine (git sans
 # `merge-tree --write-tree`, dépendances, régénération, commit ou push refusé), rien à corriger côté PR,
 # aucun renvoi · 11 `clore` : origin ou GitHub illisible, ou suppression non confirmée · `clore` : 3 suppression refusée par
 # un hook ou par le distant, 4 refus (pas livré, PR ouverte, carte, nom ou option), 5 le sommet a bougé · 69 jq absent du poste
