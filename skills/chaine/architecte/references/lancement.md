@@ -84,7 +84,7 @@ L'architecte y tient la place du conducteur : il reçoit les questions et le mes
 
 ## Les consignes du produit, dans chaque prompt
 
-Deux lignes du produit, suivies de la ligne « Commits : », recopiées dans le prompt de toute session que l'architecte lance, conducteur, capitaine ou session de ticket (le gabarit d'une fille de chantier, `chaine-de-production.md` § 5, les porte déjà) :
+Deux lignes du produit, recopiées telles quelles, puis la ligne « Commits : » de l'architecte, dans le prompt de toute session que l'architecte lance, conducteur, capitaine ou session de ticket (le gabarit d'une fille de chantier, `chaine-de-production.md` § 5, les porte déjà) :
 
 ```text
 Le produit : « arrête de me demander des autorisations fais tout ce qu'il faut pour avancer » et « Les seules questions auxquelles je dois répondre sont des décisions techniques ou métier pas des autorisations que je ne fais qu'accepter de toute façon. »
