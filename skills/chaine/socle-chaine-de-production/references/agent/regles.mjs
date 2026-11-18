@@ -2012,7 +2012,7 @@ export function pushIllisible(commande) {
     pushs(commande).some(
       // `git push origin :` (« matching ») pousse toute branche de même nom, develop comprise : la destination ne s'y lit pas.
       ({ refspecs, tout, illisible }) => tout || illisible || refspecs.some((refspec) => refspec === ':' || refspec === '+:' || /[$`]/.test(refspec) || /[*?[{]/.test(destination(refspec, () => null))),
-    ) || lireGit(lireCommande(commande)).push
+    ) || lireGit(lireCommande(commande), commande).push
   );
 }
 
@@ -2475,7 +2475,7 @@ const lecturesDeGit = new WeakMap();
  * `debut`, même programme au même rang, mêmes mots jusqu'à la sous-commande comprise) se lit sur son texte : un
  * texte cité qui porte une commande git refusée est refusé (Décision 6 bis du ticket 17).
  */
-function lireGit(lu) {
+function lireGit(lu, commande = '') {
   let r = lecturesDeGit.get(lu);
   if (r) return r;
   r = { hooks: false, argument: false, ref: false, push: false, rebase: false, relectures: [] };
@@ -2497,29 +2497,54 @@ function lireGit(lu) {
       }
     }
   }
-  // Les tableaux affectés dans la commande (`G=(git commit)`, `G[0]=git`), chaque affectation gardée : un tableau en
-  // position de programme (`"${G[@]}" --no-verify …`) se relit avec ses valeurs (A-47).
-  const tableaux = new Map();
-  const ajouter = (nom, valeurs) => tableaux.set(nom, [...(tableaux.get(nom) ?? []), valeurs]);
+  // Les définitions des variables et tableaux de la commande (A-49) : une seule affectation simple (`G=(git commit)`,
+  // `G=git`) se relit ; `G+=…`, `G[i]=…`, `declare`, `read`, `mapfile`, `printf -v`, `for G in …` comptent comme des
+  // affectations qui ne se lisent pas.
+  const definitions = new Map();
+  const definir = (nom, d) => definitions.set(nom, [...(definitions.get(nom) ?? []), d]);
   for (const cmd of lu.commandes) {
-    // Chaque valeur gardée par son texte source (guillemets compris), relu tel quel ; une expansion ne se lit pas.
-    for (const t of cmd.tableaux) if (t.nom) ajouter(t.nom, t.map((m) => (m.expansion ? null : m.brut)));
     for (const { nom, mot } of cmd.affectations) {
-      const indice = /^[A-Za-z_]\w*\[(\d+)\]\+?=/.exec(mot.brut);
-      const egal = mot.valeur.indexOf('=');
-      const valeur = mot.expansion ? null : mot.brut.slice(mot.brut.indexOf('=') + 1);
-      if (indice) {
-        const liste = tableaux.get(nom)?.at(-1) ?? [];
-        liste[Number(indice[1])] = valeur;
-        tableaux.set(nom, [...(tableaux.get(nom)?.slice(0, -1) ?? []), liste]);
-      } else if (!/^[A-Za-z_]\w*\+?=\($/.test(mot.brut) && egal > 0) ajouter(nom, [valeur]);
+      const tableau = cmd.tableaux.find((t) => t.nom === nom);
+      if (/^[A-Za-z_]\w*(\[|\+=)/.test(mot.brut)) definir(nom, { simple: false });
+      else if (tableau) definir(nom, { simple: true, tableau: true, valeurs: tableau.map((m) => (m.expansion ? null : m.valeur)) });
+      else definir(nom, { simple: true, tableau: false, valeurs: [mot.expansion ? null : mot.valeur.slice(mot.valeur.indexOf('=') + 1)] });
     }
+    const [tete, ...suite] = cmd.mots;
+    if (tete && !tete.expansion && (DECLARATIONS.has(tete.valeur) || ['read', 'mapfile', 'readarray', 'printf', 'let', 'getopts', 'unset'].includes(tete.valeur)))
+      for (const w of suite.map(motExact)) {
+        const nom = nomAffecte(w) ?? (w.expansion ? null : w.valeur);
+        if (nom && /^[A-Za-z_]\w*$/.test(nom)) definir(nom, { simple: false });
+      }
   }
+  for (const [, , nom] of commande.matchAll(/(^|[^\w])(?:for|select)\s+([A-Za-z_]\w*)/g)) definir(nom, { simple: false });
+  /** Les mots que bash fait d'une expansion nue d'une variable à définition unique et simple, ou `null`. */
+  const nue = /^("?)\$(?:\{([A-Za-z_]\w*)(\[[@*]\])?\}|([A-Za-z_]\w*))("?)$/;
+  const citer = (v) => "'" + v.replace(/'/g, "'\\''") + "'";
+  const remplacer = (m) => {
+    const e = nue.exec(m.brut);
+    if (!e || e[1] !== e[5]) return null;
+    const nom = e[2] ?? e[4];
+    const defs = definitions.get(nom);
+    if (!defs || defs.length !== 1 || !defs[0].simple || defs[0].valeurs.includes(null)) return null;
+    const { valeurs, tableau } = defs[0];
+    const cite = e[1] === '"';
+    const tous = e[3] !== undefined;
+    const elements = tous || !tableau ? valeurs : valeurs.slice(0, 1);
+    if (cite) return e[3] === '[@]' ? elements.map(citer) : [citer(elements.join(' '))];
+    return [elements.join(' ')];
+  };
   for (const cmd of lu.commandes) {
     if (affecteLesHooks(cmd)) r.hooks = true;
     // `hash -p /usr/bin/git g` : `g` devient git, et la garde ne lit pas `g`.
     const [tete, ...suite] = cmd.mots;
     if (tete && !tete.expansion && tete.valeur === 'hash' && suite.some((m) => m.expansion || /^-[A-Za-z]*p/.test(m.valeur))) r.hooks = true;
+    // Une variable ou un tableau à définition unique et simple, en expansion nue (programme ou argument) : la commande
+    // se relit avec ses valeurs, à la place de sa lecture (`args=(-m "msg"); git commit "${args[@]}"`).
+    const remplaces = cmd.mots.map(remplacer);
+    if (remplaces.some(Boolean)) {
+      r.relectures.push([...cmd.affectations.map((a) => a.mot.brut), ...cmd.mots.flatMap((m, k) => remplaces[k] ?? [m.brut])].join(' '));
+      continue;
+    }
     const W = [...cmd.affectations.map((a) => a.mot), ...cmd.mots].map(motExact);
     const valeurs = W.map((w) => w.valeur);
     const premier = cmd.mots[0];
@@ -2546,20 +2571,14 @@ function lireGit(lu) {
     const candidats = new Set();
     const p = cmd.affectations.length + programme(cmd.mots).k;
     if (W[p]?.expansion) {
-      // Un tableau ou une variable en position de programme : la commande se relit avec chaque valeur connue ;
-      // un tableau sans valeur lisible est un programme illisible.
+      // Un tableau ou une variable en position de programme (A-49) : relu plus haut s'il est nu et défini une fois,
+      // simplement ; nu mais défini autrement, ou un paramètre positionnel ou spécial (`"$@"`, `$*`, `$1`, `${!x}`), ou
+      // une expansion à opérateur sur un nom (`${G[@]:1}`, `${G[@]/x/i}`, `${G:-git}`), il est illisible : refus.
       const brut = cmd.mots[p - cmd.affectations.length].brut;
-      const ref = /^"?\$\{?([A-Za-z_]\w*)(\[(@|\*|\d+)\])?\}?"?$/.exec(brut);
-      const variantes = ref ? tableaux.get(ref[1]) : null;
-      if (ref && variantes) {
-        const reste = cmd.mots.slice(p - cmd.affectations.length + 1).map((m) => m.brut);
-        for (const liste of variantes) {
-          const choisis = ref[3] === undefined || /^\d+$/.test(ref[3]) ? [liste[Number(ref[3] ?? 0)]] : liste.filter((v) => v !== undefined);
-          if (choisis.some((v) => v === null || v === undefined)) r.hooks = true;
-          else r.relectures.push([...choisis, ...reste].join(' '));
-        }
-      } else if (ref && ref[2]) r.hooks = true;
-      // Sans valeurs connues, le programme à expansion se lit comme git (B1).
+      const e = nue.exec(brut);
+      if (e && (definitions.has(e[2] ?? e[4]) || e[3] !== undefined)) r.hooks = true;
+      else if (!e && /\$\{?[@*!#0-9]|\$\{[A-Za-z_]\w*(\[[^\]]*\])?[:/#%^,@]/.test(brut)) r.hooks = true;
+      // Sans définition dans la commande, le programme à expansion se lit comme git (B1).
       else candidats.add(p);
     }
     W.forEach((w, k) => {
@@ -2602,11 +2621,11 @@ function lireGit(lu) {
 }
 
 /** Vrai si la commande saute les hooks git : `--no-verify`, `-n`, `core.hooksPath`, `include`, `alias.*`, `HUSKY`, `GIT_CONFIG_*`… */
-export const sauteLesHooks = (commande) => lireGit(lireCommande(commande)).hooks;
+export const sauteLesHooks = (commande) => lireGit(lireCommande(commande), commande).hooks;
 /** Vrai si un argument de git porte une expansion là où git peut lire une option (Décision 0 du ticket 17). */
-export const argumentDeGitIllisible = (commande) => lireGit(lireCommande(commande)).argument;
+export const argumentDeGitIllisible = (commande) => lireGit(lireCommande(commande), commande).argument;
 /** Vrai si la commande fabrique une ref de suivi : `git update-ref refs/remotes/…`, `git update-ref --stdin`. */
-export const ecritUneRefDeSuivi = (commande) => lireGit(lireCommande(commande)).ref;
+export const ecritUneRefDeSuivi = (commande) => lireGit(lireCommande(commande), commande).ref;
 
 /**
  * Décision sur une commande shell : `{ decision: 'refuser', raison }`, ou `null`. Le hook ne demande
@@ -2665,7 +2684,7 @@ function decisionDuLecteur(lu, commande, { dependancesPrevues = () => null, bran
   }
   // Les appels de git (ticket 17) : hooks sautés, argument illisible, ref de suivi fabriquée, puis ce que git
   // lancera comme une commande (`git rebase -x …`, `-c core.pager=…`), relu comme une commande de la session.
-  const git = lireGit(lu);
+  const git = lireGit(lu, commande);
   if (git.hooks) return { decision: 'refuser', raison: RAISON_HOOKS_GIT };
   if (git.argument) return { decision: 'refuser', raison: RAISON_ARGUMENT_ILLISIBLE };
   if (git.ref) return { decision: 'refuser', raison: RAISON_REF_DE_SUIVI };

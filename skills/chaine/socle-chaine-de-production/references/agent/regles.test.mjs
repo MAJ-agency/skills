@@ -1210,17 +1210,18 @@ const T17_OPTIONS_GLOBALES = [
   'git -C . commit -a -u --no-verify -m x',
 ];
 const T17_ARGUMENTS_A_EXPANSION = [
-  'X=--no-verify; git -C . commit $X -m x',
   'git -C . commit $(echo --no-verify) -m x',
-  'X=-n; git -C . commit $X -m x',
-  "m='x --no-verify'; git -C . commit -am $m",
   "X='x -c core.hooksPath=/dev/null'; git -c user.name=$X commit -am y",
   'git -C $(pwd) commit -m x',
 ];
+// Une variable définie une fois, simplement, dans la commande, en expansion nue, se relit avec sa valeur (A-49) : le
+// refus porte alors la raison de ce qu'elle cache.
+const T17_VARIABLES_RELUES = ['X=--no-verify; git -C . commit $X -m x', 'X=-n; git -C . commit $X -m x', "m='x --no-verify'; git -C . commit -am $m"];
 test('ticket 17 : --no-verify et -n se lisent après les options globales de git, valeur opaque comprise', () => {
   refusees(T17_OPTIONS_GLOBALES, HOOKS);
   // Un argument à expansion là où git peut lire une option (A-38), une expansion non citée dans une valeur (A-40).
   refusees(T17_ARGUMENTS_A_EXPANSION, ARGUMENT);
+  refusees(T17_VARIABLES_RELUES, HOOKS);
   // La forme citée passe : l'expansion est dans une valeur, entière.
   passent(['git -C "$(pwd)" commit -m x']);
 });
@@ -1497,6 +1498,7 @@ test('ticket 17 : chaque refus du ticket, coupé en ligne continuée à chaque e
     ...T17_CINQ,
     ...T17_OPTIONS_GLOBALES,
     ...T17_ARGUMENTS_A_EXPANSION,
+    ...T17_VARIABLES_RELUES,
     ...T17_PULL_AM,
     ...T17_CONFIG_GLOBALE,
     ...T17_GIT_CONFIG,
@@ -1594,7 +1596,9 @@ test('ticket 17 : recherche adversariale — chaque contournement trouvé sur le
 
 test('ticket 17 : /security-review — chaque contournement confirmé sur un dépôt jouet est refusé', () => {
   // `"$@"`, `"${a[@]}"` : un mot par élément, même entre guillemets doubles.
-  refusees(['set -- x --no-verify; git commit -m "$@"', 'a=(z --no-verify); git commit -m "${a[@]}"', 'set -- . -c core.hooksPath=/dev/null; git -C "$@" commit -m y'], ARGUMENT);
+  refusees(['set -- x --no-verify; git commit -m "$@"', 'set -- . -c core.hooksPath=/dev/null; git -C "$@" commit -m y'], ARGUMENT);
+  // Un tableau défini une fois, simplement, se relit avec ses valeurs (A-49) : le --no-verify qu'il cache est lu.
+  refusees(['a=(z --no-verify); git commit -m "${a[@]}"'], HOOKS);
   // Ouvert sur main aussi : la sous-commande push portée par `"$@"`.
   refusees(['set -- . push --no-verify -f origin HEAD:develop; git -C "$@"'], /hooks git|argument de git illisible|destination ne se lit pas/);
   refusees(
@@ -1887,4 +1891,12 @@ test('ticket 17 : seconde contre-relecture (A-47) — un tableau ou hash -p en p
   refuseesQuelleQueSoitLaRaison(["G=(git commit); \"${G[@]}\" --no-verify -am x", "G=(git commit); \"${G[@]}\" -n -am x", "G=(git commit); ${G[@]} --no-verify -am x", "G[0]=git; G[1]=commit; \"${G[@]}\" -n -am x", "G=(git); \"${G[@]}\" commit -n -am x", "G=(git commit -n); ${G[*]} -am x", "\"${H[@]}\" commit -am x", "hash -p /usr/bin/git g; g commit -n -am x"]);
   refusees(['G=(git push -q); "${G[@]}" origin HEAD:sujet/z'], SUJET);
   passent(["G=(git status); \"${G[@]}\"", "a=(pnpm test); \"${a[@]}\"", "hash -r", "G=(git commit); \"${G[@]}\" -m \"fix -n\"", "G=(git commit); \"${G[@]}\" -m \"$msg\""]);
+});
+
+test('ticket 17 : troisième contre-relecture (A-49) — tableau modifié, opérateur d’expansion ou paramètres positionnels en programme', () => {
+  refuseesQuelleQueSoitLaRaison(["G=(git); G+=(commit); \"${G[@]}\" -n -am x", "G=(git status); G[1]=commit; \"${G[@]}\" -n -am x", "G=(git commit x); \"${G[@]:0:2}\" -n -am x", "G=(git commit x); \"${G[@]:1}\" -n -am x", "G=(git commit); \"${G[@]/#/}\" -n -am x", "G=(gxt commit); \"${G[@]/x/i}\" -n -am x", "set -- git commit; \"$@\" -n -am x"]);
+  refusees(['set -- git push -q; "$@" origin HEAD:sujet/w'], HOOKS);
+  // Un tableau à définition unique et simple, en expansion nue, se relit aussi en argument.
+  passent(["args=(-m \"msg\"); git commit \"${args[@]}\"", "args=(-m \"fix -n\"); git commit \"${args[@]}\"", "f=x.md; git add \"$f\"", "G=(git status); \"${G[@]}\""]);
+  refusees(['args=(-n -m x); git commit "${args[@]}"'], HOOKS);
 });
