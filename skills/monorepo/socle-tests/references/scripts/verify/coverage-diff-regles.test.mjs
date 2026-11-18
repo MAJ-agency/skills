@@ -11,6 +11,7 @@ import {
   decisionSansBase,
   exemption,
   fusionner,
+  importsDe,
   inScope,
   metriques,
   plages,
@@ -334,4 +335,14 @@ test("aliasDeTsconfig : commentaires, virgules finales, CRLF et chemins à `*/` 
   assert.deepEqual(aliasDeTsconfig('{"compilerOptions":{"baseUrl":"src","paths":{"@a":["a.ts"]}}}'), [{ motif: "@a", cibles: ["src/a.ts"] }]);
   assert.deepEqual(aliasDeTsconfig('{"compilerOptions":{}}'), []);
   assert.deepEqual(aliasDeTsconfig("pas du json"), []);
+});
+
+test("importsDe et aliasDeTsconfig : une entrée pathologique se lit en temps linéaire", () => {
+  const debut = Date.now();
+  const gros = "import type " + "a ".repeat(100000) + "\n" + "from ".repeat(50000) + " ".repeat(100000);
+  assert.deepEqual(importsDe(gros), []);
+  assert.deepEqual(importsDe('import type { A } from "./a";\nimport { B } from "./b";'), ["./b"]);
+  assert.deepEqual(aliasDeTsconfig('{"compilerOptions":{"paths":{"@a":["a"' + ",".repeat(100000) + "]}}}"), []);
+  assert.deepEqual(aliasDeTsconfig("/*" + "/*".repeat(100000)), []);
+  assert.ok(Date.now() - debut < 2000, `${Date.now() - debut} ms : la lecture n'est pas linéaire`);
 });

@@ -188,13 +188,18 @@ export function choisirBase(candidats) {
  * et un `export type … from` ne comptent pas, un type n'est pas exécuté.
  */
 export function importsDe(source) {
-  const sansTypes = source.replace(
-    /\b(?:import|export)\s+type\s+(?:\{[^}]*\}|\*\s+as\s+\w+|\w+)\s+from\s*["'][^"']+["']/g,
-    "",
-  );
   const trouves = [];
-  for (const m of sansTypes.matchAll(/\bfrom\s*["']([^"']+)["']|\bimport\s*["']([^"']+)["']|\bimport\s*\(\s*["']([^"']+)["']\s*\)/g)) {
-    trouves.push(m[1] ?? m[2] ?? m[3]);
+  // Deux motifs sans retour arrière : `from "…"` (statique) et `import "…"` ou `import("…")`.
+  for (const m of source.matchAll(/\bfrom\s*(["'])([^"'\r\n]+)\1|\bimport\s*\(?\s*(["'])([^"'\r\n]+)\3/g)) {
+    if (m[2] !== undefined) {
+      // Le type se lit sur l'instruction : du dernier `import` ou `export` qui précède, jusqu'à `from`.
+      const avant = source.slice(0, m.index);
+      const instruction = avant.slice(Math.max(avant.lastIndexOf("import"), avant.lastIndexOf("export")));
+      if (/^(?:import|export)\s+type\s/.test(instruction)) continue;
+      trouves.push(m[2]);
+    } else {
+      trouves.push(m[4]);
+    }
   }
   return trouves;
 }
@@ -279,10 +284,7 @@ export function referenceDuDiff({ base, mergeBase, mergeBaseDevelop, fusion, dev
  */
 export function aliasDeTsconfig(texte) {
   try {
-    const chaine = '"(?:[^"\\\\]|\\\\.)*"';
-    const sansCommentaires = texte.replace(new RegExp(`(${chaine})|\\/\\/[^\\r\\n]*|\\/\\*[\\s\\S]*?\\*\\/`, "g"), (_, c) => c ?? "");
-    const json = sansCommentaires.replace(new RegExp(`(${chaine})|,(\\s*[}\\]])`, "g"), (_, c, fin) => c ?? fin);
-    const opts = JSON.parse(json).compilerOptions ?? {};
+    const opts = JSON.parse(retirerCommentairesEtVirgules(texte)).compilerOptions ?? {};
     const racine = (opts.baseUrl ?? ".").replace(/^\.\/?/, "").replace(/\/$/, "");
     return Object.entries(opts.paths ?? {}).map(([motif, cibles]) => ({
       motif,
@@ -291,4 +293,32 @@ export function aliasDeTsconfig(texte) {
   } catch {
     return [];
   }
+}
+
+/** JSONC → JSON en un seul parcours (linéaire) : ni commentaire ni virgule finale hors d'une chaîne. */
+function retirerCommentairesEtVirgules(texte) {
+  let sortie = "";
+  for (let i = 0; i < texte.length; ) {
+    const c = texte[i];
+    if (c === '"') {
+      let j = i + 1;
+      while (j < texte.length && texte[j] !== '"') j += texte[j] === "\\" ? 2 : 1;
+      sortie += texte.slice(i, j + 1);
+      i = j + 1;
+    } else if (c === "/" && texte[i + 1] === "/") {
+      while (i < texte.length && texte[i] !== "\n" && texte[i] !== "\r") i++;
+    } else if (c === "/" && texte[i + 1] === "*") {
+      const fin = texte.indexOf("*/", i + 2);
+      i = fin === -1 ? texte.length : fin + 2;
+    } else if (c === ",") {
+      let j = i + 1;
+      while (j < texte.length && " \t\r\n".includes(texte[j])) j++;
+      if (texte[j] !== "}" && texte[j] !== "]") sortie += c;
+      i++;
+    } else {
+      sortie += c;
+      i++;
+    }
+  }
+  return sortie;
 }
