@@ -24,7 +24,7 @@ Spec : [`../capitaine-a-jour-et-teste.spec.md`](../capitaine-a-jour-et-teste.spe
 1. L'architecte et le conducteur relèvent l'état de leurs sessions en vie au plus toutes les 60 minutes, par `get_session`, et signalent une session coupée.
 2. Toute session lancée (conducteur, capitaine, session de ticket, fille de chantier) charge `send_message` en premier geste. Sans lui, elle le dit dans sa première réponse et s'arrête.
 3. Le contexte d'une session se lit par `get_session`, jamais dans ce qu'elle annonce.
-4. Les intangibles cités dans chaque prompt portent « jamais de `git commit --amend` ».
+4. Chaque prompt porte, juste après la ligne « Intangibles », une ligne à part : « Commits : jamais `git commit --amend` ; une correction est un commit de plus. »
 
 ## Où
 
@@ -36,12 +36,12 @@ Spec : [`../capitaine-a-jour-et-teste.spec.md`](../capitaine-a-jour-et-teste.spe
 | `skills/chaine/architecte/SKILL.md` | 30 (§ 1, « les outils de session ») | Rien : `get_session`, `send_later` et `send_message` y sont déjà. |
 | `skills/chaine/architecte/references/lancement.md` | 11 (§ « La mise à niveau ») | « jouée avant tout autre geste, hors l'installation du repli » → « jouée juste après le chargement de `send_message` (ligne « Outils : »), avant tout autre geste, hors l'installation du repli ». |
 | `skills/chaine/architecte/references/lancement.md` | 19-29, 42-50, 70-78 (les trois blocs de prompt) | Une ligne « Outils : » juste après la ligne du rôle (l. 21, 44, 71), texte exact en Décision 2. Dans la ligne « Version : » de chaque bloc (l. 24, 47, 73), « avant tout autre geste, hors l'installation de la ligne « Skills : » » → « juste après la ligne « Outils : », avant tout autre geste, hors l'installation de la ligne « Skills : » ». |
-| `skills/chaine/architecte/references/lancement.md` | 88 (l'intangible) | « jamais de push forcé ni de réécriture d'historique » → « jamais de push forcé ni de réécriture d'historique (ni `git commit --amend`) ». Le même texte, mot pour mot, que `chaine-de-production.md:108`. |
+| `skills/chaine/architecte/references/lancement.md` | 82-91 (§ « Les consignes du produit, dans chaque prompt ») | La ligne « Intangibles » (l. 88) **ne change pas** : elle est citée mot pour mot, avec la ligne qui la précède. Juste après elle, dans le même bloc, une ligne à part : « Commits : jamais `git commit --amend` ; une correction est un commit de plus. » Le texte d'avant le bloc (l. 84) et celui d'après (l. 91) disent que cette troisième ligne est de l'architecte (`A-30`, `A-41`), pas une citation du produit, et qu'elle se recopie elle aussi dans chaque prompt. Dans les trois blocs de prompt, le repère « `<les deux lignes des consignes du produit, telles quelles>` » (l. 26, 48, 74) devient « `<les deux lignes des consignes du produit, telles quelles, puis la ligne « Commits : »>` ». |
 | `skills/chaine/architecte/references/lancement.md` | 95-102 (§ « Après le lancement ») | Après le point du `send_later` à 20 minutes (l. 98) : « Puis la session entre dans le contrôle de vie (`SKILL.md` § 5) tant que la carte la nomme en vie. Un premier message « send_message absent » se lit au relevé de 20 minutes (`list_events`) : l'architecte relance la session une fois, puis le dit au produit. » |
 | `skills/chaine/chantier/SKILL.md` | 87 (§ 6, point 1) | Le relevé des filles s'étend au capitaine du dépôt (les sessions `role:capitaine`) et aux quatre signes de la Décision 1. Le réveil reste à 45 minutes (§ 6, point 0 bis), sous les 60 de `A-11`. |
 | `skills/chaine/chantier/SKILL.md` | 88 (§ 6, point 1 bis) | Une phrase en tête : « Le contexte d'une session se lit par `get_session` (`context_usage.used_tokens`), jamais dans ce qu'elle annonce : une session a annoncé 330 000 tokens pour 446 000 relevés. » |
 | `skills/chaine/chantier/SKILL.md` | 72-75 (§ 5, prompt des filles) | Rien : le prompt cite le gabarit de `chaine-de-production.md` § 5, qui porte la ligne « Outils : ». |
-| `socle/docs-agents/chaine-de-production.md` | 103-110 (gabarit du prompt d'une fille) | La ligne « Outils : » après la deuxième ligne (« Ticket : … Base : … »), texte en Décision 2, « moi » y devenant « ton conducteur ». L'intangible (l. 108) reçoit le même ajout que `lancement.md:88`. |
+| `socle/docs-agents/chaine-de-production.md` | 103-110 (gabarit du prompt d'une fille) | La ligne « Outils : » après la deuxième ligne (« Ticket : … Base : … »), texte en Décision 2, « moi » y devenant « ton conducteur ». La ligne « Intangibles » (l. 108) ne change pas ; la ligne « Commits : » de `lancement.md` la suit, mot pour mot. |
 | `socle/docs-agents/chaine-de-production.md` | 114-123 (déroulé) | Un paragraphe après l'étape 4 (« Coder ») : « **Jamais d'amend.** Une correction est un commit de plus, jamais `git commit --amend`, même sur un commit pas encore poussé : le sommet annoncé, contre-relu ou étiqueté doit rester dans l'historique, et un amend déjà poussé ne repart que par un push forcé, que le hook refuse. » (Réécrit de celui d'Iroki, l. 124 de son fichier.) |
 | `scripts/depot.test.mjs` | après les tests des prompts de lancement (l. 378-391) | Trois tests (Surfaces). Pas à la fin du fichier : le ticket 1 y ajoute le sien. |
 | Version | voir « La version et la note » | `.claude-plugin/plugin.json:3`, `NOTES-DE-VERSION.md`. |
@@ -65,9 +65,11 @@ Tenues : `A-11` (relevé `get_session` à 60 minutes par `send_later`, tant que 
    - **Les quatre signes**, lus dans la réponse de `get_session` :
      - `status_bucket` qui finit par `FAILED` (la réponse porte `SESSION_STATUS_BUCKET_FAILED`) ;
      - `connection_status` égal à `disconnected` ;
-     - `external_metadata.rate_limit_info.status` autre que `allowed`. `allowed_warning` se note au journal une fois par session, sans signalement : la session travaille encore ;
+     - `external_metadata.rate_limit_info.status` autre que `allowed`, `allowed_warning` compris : une alerte d'usage, pas une coupure (Décision 1, « Le signalement ») ;
      - `updated_at` vieux de plus de 60 minutes alors que `status_bucket` finit par `WORKING`.
-   - **Le signalement** : une ligne au journal de la carte (date, session, rôle, signe), puis, dans la forme de `chaine-de-production.md` § 2, au produit (par l'architecte, qui reçoit aussi ceux du conducteur dans un programme). Le besoin en une phrase, sans terme technique (« le capitaine de `fedora` est arrêté depuis 14 h 10 : sa limite d'usage est atteinte »), la recommandation d'abord. Une session déjà signalée pour le même signe ne l'est pas de nouveau.
+   - **Le signalement** : toujours une ligne au journal de la carte (date, session, rôle, signe), puis au produit (par l'architecte, qui reçoit aussi ceux du conducteur dans un programme) :
+     - **une coupure** (`FAILED`, `disconnected`, silence d'une heure) se signale toujours, dans la forme de `chaine-de-production.md` § 2 : le besoin en une phrase, sans terme technique (« le capitaine de `fedora` est arrêté depuis 14 h 10 »), la recommandation d'abord ;
+     - **une alerte d'usage** (`rate_limit_info.status` autre que `allowed`, `allowed_warning` compris) se dit au produit en une ligne (« le conducteur de `fedora` approche de sa limite d'usage, levée à <heure de `resetsAt`> »), **une fois par période de limite** : une seconde alerte de la même session ne se redit que si `rate_limit_info.resetsAt` a changé.
    - Rien n'est relancé ni interrompu sans le produit : relancer une session prête reste un geste sans question (`architecte/SKILL.md` § 7), mais une session coupée par la limite d'usage ne se relance pas avant sa levée.
 2. **La ligne « Outils : »**, identique dans les trois blocs de `lancement.md` :
 
@@ -76,7 +78,7 @@ Tenues : `A-11` (relevé `get_session` à 60 minutes par `send_later`, tant que 
    ```
 
    Dans le gabarit d'une fille, « je le verrai à mon relevé » devient « ton conducteur le verra à son relevé ». Raison du premier geste : la ligne « Version : » finit par un `send_message` à qui a lancé la session ; sans l'outil, ce message se perd.
-3. **L'intangible.** L'ajout entre dans la ligne qui existe, mot pour mot dans les deux fichiers, plutôt qu'une ligne de plus : « Intangibles » est déjà la liste citée dans chaque prompt (`architecte/SKILL.md:89`), et le produit a validé `A-30` (`P-5`). Le paragraphe « Jamais d'amend » du gabarit en donne la raison.
+3. **« Jamais d'amend », une ligne à part** (`A-41`). La ligne « Intangibles » est citée mot pour mot par le produit avec la ligne qui la précède (`lancement.md:91`, `architecte/SKILL.md:89`) : elle ne reçoit rien. La ligne « Commits : jamais `git commit --amend` ; une correction est un commit de plus. » vient juste après elle, identique dans `lancement.md` et dans le gabarit de `chaine-de-production.md` § 5. Le paragraphe « Jamais d'amend » du gabarit en donne la raison.
 4. **La fille tranche seule**, par défaut prudent, et le note sous `## Comments` : le mot à mot des phrases non données ici, tant qu'elles portent la règle. Elle ne tranche **pas** : la ligne « Outils : » (Décision 2), les quatre signes, les 60 minutes.
 
 ## Ordre de travail (TDD)
@@ -88,7 +90,7 @@ Une branche de travail partie d'`origin/main` au lancement. Chaque banc est vu r
 Dans `scripts/depot.test.mjs`, avec `blocsPrompt` (l. 362, les trois blocs de `lancement.md`), `blocsTexte` (l. 309, pour le gabarit de `chaine-de-production.md`), `lignes` (l. 67) et `exiger` (l. 751-755 ; les tests tournent après le chargement du module, un test placé plus haut peut l'appeler) :
 
 1. **« chaque prompt lancé charge send_message en premier geste, avant la ligne Version : »**. Pour chacun des trois blocs de `lancement.md` et pour le gabarit de `chaine-de-production.md` § 5 : une ligne qui commence par `Outils : ` et contient `select:mcp__claude-code-remote__send_message`, placée avant la ligne `Version : ` quand le bloc en a une. **Rouge sur `main`** : aucune ligne « Outils : ».
-2. **« les intangibles sont les mêmes dans lancement.md et dans le gabarit d'une fille, et refusent git commit --amend »**. La ligne `Intangibles : …` de `lancement.md` et celle de `chaine-de-production.md`, égales, contiennent `` `git commit --amend` ``. **Rouge sur `main`** : l'amend manque.
+2. **« jamais d'amend : une ligne Commits juste après les intangibles, la même dans lancement.md et dans le gabarit d'une fille ; les intangibles restent ceux du produit »**. Dans le bloc des consignes de `lancement.md` et dans le gabarit de `chaine-de-production.md` § 5 : la ligne qui suit `Intangibles : …` commence par `Commits : ` et contient `` `git commit --amend` ``, égale dans les deux fichiers ; les deux lignes `Intangibles : …` restent égales et ne contiennent pas `amend`. **Rouge sur `main`** : la ligne « Commits : » manque.
 3. **« l'architecte et le conducteur relèvent leurs sessions dans l'heure, et lisent le contexte par get_session »**. `exiger` sur `architecte/SKILL.md` et `chantier/SKILL.md` : `get_session`, `connection_status`, `rate_limit_info.status`, `60 minutes` ; sur `chantier/SKILL.md` en plus : « jamais dans ce qu'elle annonce », `role:capitaine` au § 6. **Rouge sur `main`** : ces passages manquent.
 
 Les tests existants des prompts (l. 316-390 : commande en tête, mise à niveau) restent verts : la ligne « Outils : » ne nomme aucun skill marqué et n'ôte aucune phrase de `MISE_A_NIVEAU`.
@@ -107,15 +109,15 @@ Ceux du tableau « Où », dans l'ordre : `lancement.md`, `chaine-de-production.
 
   ### Ce qui change
 
-  L'architecte et le conducteur relèvent l'état de leurs sessions au plus toutes les 60 minutes (échec, déconnexion, limite d'usage, silence d'une heure) et signalent une session coupée. Toute session lancée charge `send_message` en premier geste, et s'arrête en le disant s'il manque. Le contexte d'une session se lit par `get_session`, jamais dans ce qu'elle annonce. Les intangibles cités dans chaque prompt refusent `git commit --amend`.
+  L'architecte et le conducteur relèvent l'état de leurs sessions au plus toutes les 60 minutes (échec, déconnexion, limite d'usage, silence d'une heure) et signalent une session coupée. Toute session lancée charge `send_message` en premier geste, et s'arrête en le disant s'il manque. Le contexte d'une session se lit par `get_session`, jamais dans ce qu'elle annonce. Chaque prompt porte, juste après les intangibles, la ligne « Commits : jamais `git commit --amend` ». Une alerte d'usage d'une session se dit au produit une fois par période de limite.
 
   ### Ce qu'un projet fait pour en profiter
 
   1. Mettre à jour le plugin : `claude plugin marketplace update maj`, puis `claude plugin update maj-skills@maj`, puis redémarrer Claude Code (session cloud : `lancement.md` § « La mise à niveau »). Les skills `architecte` et `chantier` et les prompts de lancement viennent avec le plugin : rien à reposer pour eux.
-  2. Dans une PR du projet, reporter dans `docs/agents/chaine-de-production.md` (posé par `socle-chaine-de-production`, que le projet a pu amender) les trois changements du gabarit, § 5 : la ligne « Outils : » du prompt d'une fille, l'ajout à la ligne « Intangibles », et le paragraphe « Jamais d'amend » après l'étape 4.
+  2. Dans une PR du projet, reporter dans `docs/agents/chaine-de-production.md` (posé par `socle-chaine-de-production`, que le projet a pu amender) les trois changements du gabarit, § 5 : la ligne « Outils : » du prompt d'une fille, la ligne « Commits : » juste après « Intangibles » (qui ne change pas), et le paragraphe « Jamais d'amend » après l'étape 4.
   3. Un conducteur ou un architecte en cours reprend ces règles à sa prochaine session ; aucun capitaine à relancer.
 
-  **Iroki** : son `docs/agents/chaine-de-production.md` porte déjà le paragraphe « Jamais d'amend » (l. 124, #634) ; il reçoit la ligne « Outils : » et l'ajout à « Intangibles ».
+  **Iroki** : son `docs/agents/chaine-de-production.md` porte déjà le paragraphe « Jamais d'amend » (l. 124, #634) ; il reçoit la ligne « Outils : » et la ligne « Commits : ».
   ```
 
 ## Surfaces
@@ -123,7 +125,7 @@ Ceux du tableau « Où », dans l'ordre : `lancement.md`, `chaine-de-production.
 | Surface | Preuve |
 | --- | --- |
 | `send_message` au premier geste, dans les trois blocs et le gabarit | `scripts/depot.test.mjs` « chaque prompt lancé charge send_message en premier geste, avant la ligne Version : » |
-| Intangibles identiques, amend refusé | `scripts/depot.test.mjs` « les intangibles sont les mêmes dans lancement.md et dans le gabarit d'une fille, et refusent git commit --amend » |
+| Ligne « Commits : » après les intangibles, intangibles inchangés | `scripts/depot.test.mjs` « jamais d'amend : une ligne Commits juste après les intangibles, la même dans lancement.md et dans le gabarit d'une fille ; les intangibles restent ceux du produit » |
 | Contrôle de vie et contexte lu par `get_session` | `scripts/depot.test.mjs` « l'architecte et le conducteur relèvent leurs sessions dans l'heure, et lisent le contexte par get_session » |
 | Prompts : commande en tête, mise à niveau | `scripts/depot.test.mjs` l. 316-390 (inchangés) |
 
@@ -133,7 +135,7 @@ Ceux du tableau « Où », dans l'ordre : `lancement.md`, `chaine-de-production.
 2. `pnpm test` complet : le nombre de `main` au départ, plus les trois tests ajoutés, zéro échec. Aucun test retiré, sauté ni assoupli.
 3. **Mutations**, chacune jouée sur une copie jetable, vue rouge, puis annulée, listées dans la PR avec les tests qui ont rougi :
    - la ligne « Outils : » d'un seul bloc déplacée après « Version : » : le banc 1 rougit ;
-   - l'amend retiré de l'intangible de `lancement.md` seulement : le banc 2 rougit.
+   - la ligne « Commits : » retirée de `lancement.md` seulement, ou l'amend glissé dans la ligne « Intangibles » : le banc 2 rougit.
 4. Relire à plat les trois blocs de `lancement.md` : la première ligne d'un conducteur et d'un capitaine reste la commande seule (`lancement.md:3`).
 5. `graphify update .`
 6. **Revue de ticket** (`/maj-skills:revue-de-ticket`, trois sous-agents), section `## Revue de ticket` dans le corps de la PR.
@@ -155,7 +157,8 @@ Ceux du tableau « Où », dans l'ordre : `lancement.md`, `chaine-de-production.
 - 2026-11-18 — Ticket écrit par un sous-agent de l'architecte, sources relues sur `4a45634`, et sur `develop` d'Iroki (`e3dbd235`) pour le paragraphe d'amend. Écarts avec la spec et choix à confirmer :
   - **Conducteur à 45 minutes, pas 60** : son réveil (`chantier/SKILL.md` § 6, point 0 bis) est déjà de 45 minutes ; le relevé s'y joint, plutôt qu'un second réveil à 60.
   - **L'architecte relève aussi les sessions de ticket hors chantier** qu'il lance : `A-11` ne nommait que conducteurs et capitaines. Ce programme-ci en lance plusieurs, et l'architecte y tient la place du conducteur.
-  - **`allowed_warning`** : lu le 2026-11-18 dans la réponse de `get_session` d'une session qui travaillait. `A-11` (« différent de `allowed` ») le signalerait à chaque relevé ; le ticket le note une fois au journal, sans signalement.
+  - **`allowed_warning`** : lu le 2026-11-18 dans la réponse de `get_session` d'une session qui travaillait. Tranché par l'architecte (`A-41`) : toute valeur autre que `allowed` se dit au produit en une ligne, une fois par période de limite (`resetsAt`), et se note au journal ; une coupure se signale toujours.
   - **`status_bucket`** se lit préfixé (`SESSION_STATUS_BUCKET_WORKING`), et non `working` comme l'écrit `chantier/SKILL.md:87` : la Décision 1 compare la fin de la valeur.
   - **« Avant tout autre geste »** : la ligne « Version : » de chaque bloc le disait déjà d'elle-même. Le ticket la place juste après « Outils : », sans quoi les deux lignes se contrediraient.
-  - **L'amend dans la ligne « Intangibles »** plutôt qu'une ligne nouvelle : la liste est celle de `P-28` (programme « gouverner nos boucles »), que `A-30`, validée par le produit (`P-5`), complète. **À confirmer par l'architecte** ; sinon, une ligne « Commits : jamais `git commit --amend` » après « Intangibles », dans les mêmes fichiers.
+  - **L'amend hors de la ligne « Intangibles »** : tranché par l'architecte (`A-41`), la ligne « Intangibles » est citée mot pour mot par le produit avec celle qui la précède ; « Commits : » vient juste après, à part.
+- 2026-11-18 — Repris après `A-41` (architecte) : amend sur une ligne à part, alerte d'usage dite au produit une fois par période de limite. Retenus tels quels : réveil du conducteur à 45 minutes, sessions de ticket hors chantier relevées par l'architecte, « Version : » juste après « Outils : ».
