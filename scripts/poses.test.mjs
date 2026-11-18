@@ -8,6 +8,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
+import { environnementDeBanc } from "../skills/chaine/sujet/scripts/depot-jouet.mjs";
 
 const RACINE = fileURLToPath(new URL("..", import.meta.url));
 // [dossier source dans le plugin, dossier de destination dans le projet]
@@ -43,10 +44,9 @@ exit 1
 // `node --test` enfant rend ses résultats au parent au lieu de les jouer et de sortir non nul.
 // Plancher du nombre de tests que l'enfant joue (plus de 170 à l'écriture) : sous lui, le garde ne jouait rien.
 const PLANCHER = 150;
-const env = () =>
-  Object.fromEntries(Object.entries(process.env).filter(([cle]) => !cle.startsWith("GIT_") && cle !== "NODE_TEST_CONTEXT"));
+const env = () => environnementDeBanc();
 
-test("les bancs posés à plat sous scripts/chaine/ tournent hors du plugin", { timeout: 320_000 }, () => {
+test("les bancs posés à plat sous scripts/chaine/ tournent hors du plugin", { timeout: 620_000 }, () => {
   const projet = mkdtempSync(join(tmpdir(), "poses-"));
   try {
     const poses = new Map();
@@ -72,7 +72,7 @@ test("les bancs posés à plat sous scripts/chaine/ tournent hors du plugin", { 
       cwd: projet,
       env: env(),
       encoding: "utf8",
-      timeout: 300_000,
+      timeout: 600_000,
     });
     const sortie = (r.stdout + r.stderr).trim();
     const echecs = sortie.split("\n").filter((l) => /^\s*✖/.test(l) || /\bnot ok\b/.test(l));

@@ -4,13 +4,14 @@ import { mkdirSync, mkdtempSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { test } from 'node:test';
+import { environnementDeBanc } from './environnement-de-banc.mjs';
 import { plusGrandSurBranches } from './next-id-branches.mjs';
 
 // Dépôt jouet : un `origin` nu local avec `develop`, un clone de travail, un PATH réduit à `git` et
 // `node`. Écrit ici plutôt qu'importé : le socle pose ce banc sans la chaîne, donc sans le
 // `depot-jouet.mjs` du skill `tickets`. Sans les GIT_* hérités : sous un hook git, ils visent le vrai dépôt.
 const ENV = {
-  ...Object.fromEntries(Object.entries(process.env).filter(([cle]) => !cle.startsWith('GIT_'))),
+  ...environnementDeBanc(),
   GIT_CONFIG_GLOBAL: '/dev/null',
   GIT_CONFIG_NOSYSTEM: '1',
   GIT_AUTHOR_NAME: 'test',
@@ -118,7 +119,7 @@ test('le numéro sort nu, sans couleur, même avec FORCE_COLOR=1', () => {
   const d = depotJouet({ fichiers: FICHIERS });
   const r = spawnSync(process.execPath, [SCRIPT, 'RULE', 'ALL', 'LIC'], {
     cwd: d.travail,
-    env: { ...ENV, PATH: d.bin, PROJET_RACINE: d.travail, FORCE_COLOR: '1' },
+    env: { ...ENV, PATH: d.bin, PROJET_RACINE: d.travail, FORCE_COLOR: '1', NO_COLOR: undefined },
     encoding: 'utf8',
   });
   assert.equal(r.stdout, '4\n');

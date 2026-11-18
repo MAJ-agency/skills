@@ -2,6 +2,7 @@
 apps/mobile/             le client mobile Expo
   CLAUDE.md              ⚠️ règles impératives mobile — à lire avant tout code
   docs/MOBILE_GUIDELINES.md   le pourquoi des règles, avec exemples
+  docs/MOBILE_CI.md           les parcours sur appareil en CI, la méthode
   eslint.rules.mjs       frontières entre features, jeton hors Keychain interdit, StyleSheet interdit
   app/                   routes Expo Router UNIQUEMENT
   src/

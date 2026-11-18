@@ -16,11 +16,15 @@
 #      gates avant de pousser (une règle qui cite un test disparu de develop → sortie 3).
 #   4. Pousse en avance rapide, sous les hooks du projet (jamais --no-verify) : le pre-push
 #      joue `pnpm check` ; la CI exigée le rejoue et la fusion l'attend.
-#   5. Attend les checks exigés du nouveau sommet (aucun check au bout de 5 min → sortie 3).
+#   5. Attend les checks exigés du nouveau sommet (aucun check au bout de 5 min → sortie 3 ; `attendre_ci`).
+#   5 bis. Contrôle d'ascendance, juste avant la fusion : `git fetch` de develop, puis `ascendance` (github.sh).
+#      `à-jour` : squash du sommet testé. `retard` ou `conflit-index` (develop a bougé pendant la CI, documentation
+#      comprise) : nouveau tour (étapes 2 à 5), deux reprises au plus, puis sortie 5. `conflit` : sortie 2 (renvoi).
+#      Illisible : sortie 3. Le capitaine ne s'en remet pas au réglage « strict » de GitHub.
 #   6. Squash lié au sommet testé (`sha`) — commit de merge pour une branche sujet/ ou une
 #      livraison intermédiaire `livraison/<nom>-<date>`, reconnue aussi après sa mise à jour
 #      avec develop (étape 4) : son arbre est celui d'un sommet du sujet fusionné avec develop —,
-#      puis vérifie arbre(fusion) = arbre testé.
+#      puis vérifie arbre(fusion) = arbre testé (sha de la fusion lu dans la réponse du PUT) ; un écart sort en 12.
 #
 # Les fusions, commits et push du capitaine passent sous les hooks git du projet, comme ceux d'une
 # session. Un refus de hook sort en 3, sa sortie sur stderr : le lire, corriger, jamais --no-verify.
@@ -46,10 +50,15 @@
 #      au tour suivant
 #   5  fusion refusée faute d'approbation d'un propriétaire et commentaire d'attente impossible à poser : la boucle
 #      retente une fois puis s'arrête (ARRÊT, sortie 5) → lire la cause (droits du compte du capitaine), relancer
+#   3  contrôle d'ascendance illisible (réf absente, git en échec) : la boucle s'arrête → lire la cause, relancer
+#   5  develop a bougé trois fois pendant la CI (deux reprises de la mise à jour déjà jouées) → relancer
 #   5  develop ou la PR a bougé en route → relancer. develop a bougé sans le capitaine :
 #      retrouver qui a fusionné (`gh api 'repos/{owner}/{repo}/pulls?state=closed&sort=updated&direction=desc'`,
 #      celles qui ont un `merged_at`) et lui rappeler la règle
 #   6  worktree du capitaine pas propre → le nettoyer (rien d'une autre session n'y vit), relancer
+#   12 fusionnée, mais arbre du squash ≠ arbre testé (ou squash introuvable) : commentaire marqué
+#      `<!-- arbre-different-capitaine -->` sur la PR, `à-fusionner` retiré, ligne `ARBRE DIFFÉRENT` ; la boucle
+#      s'arrête (ARRÊT), le capitaine le dit à son lanceur, un humain examine (`git diff <sommet testé> <squash>`)
 #   69 jq absent du poste → l'installer (sudo apt install jq), relancer
 # Usage : bash scripts/chaine/passer.sh <numéro>
 # =============================================================================
@@ -196,145 +205,141 @@ motif=$(liens_sur_index "$origine" origin/develop) || sortir 4 "$motif"
 # pour une PR directe ; les sous-PR vers un sujet passent par sujet.sh, hors de ce contrôle.
 motif=$(node "$PASSER_OUTILS/migrations-ordre.mjs" origin/develop "$origine") || sortir 4 "$motif"
 
-# ── 2. Mise à jour avec develop ─────────────────────────────────────────────
-git switch -q -C "capitaine/$N" "$origine"
-fusion_en_cours=0
-if ! sortie_merge=$(git merge -q --no-edit origin/develop 2>&1); then
-  conflits=$(git diff --name-only --diff-filter=U)
-  # Sans fichier en conflit, c'est un refus (hook commit-msg, fichier non suivi écrasé), pas une fusion en cours.
-  if [ -z "$conflits" ]; then
-    printf '%s\n' "$sortie_merge" >&2
+# ── 2 à 5 bis. Mise à jour, index, push, CI, puis contrôle d'ascendance ───────
+# Trois tours au plus. Un tour met la PR à jour avec develop (2), régénère les index (3), pousse (4), attend la CI
+# exigée du sommet (5), puis relit develop et contrôle l'ascendance (5 bis, `ascendance` de github.sh) : la PR
+# n'entre que testée sur l'état de develop où elle entre, jamais sur la foi du réglage « strict » de GitHub. Develop
+# qui a bougé pendant la CI (retard, ou conflit sur les seuls index générés) : nouveau tour, deux reprises au plus,
+# puis sortie 5. Aucune exception pour la documentation.
+tour=0
+while :; do
+  tour=$((tour + 1))
+  # ── 2. Mise à jour avec develop ───────────────────────────────────────────
+  git switch -q -C "capitaine/$N" "$origine"
+  fusion_en_cours=0
+  if ! sortie_merge=$(git merge -q --no-edit origin/develop 2>&1); then
+    conflits=$(git diff --name-only --diff-filter=U)
+    # Sans fichier en conflit, c'est un refus (hook commit-msg, fichier non suivi écrasé), pas une fusion en cours.
+    if [ -z "$conflits" ]; then
+      printf '%s\n' "$sortie_merge" >&2
+      annuler_fusion
+      git switch -q --detach origin/develop
+      sortir 3 "fusion de develop refusée (hook git ou fichier non suivi) : sortie ci-dessus ; corriger, jamais en sautant le hook"
+    fi
+    autres=$(printf '%s\n' "$conflits" | grep -Ev "$GENERES" || true)
+    # Pile : le squash de la parente masque l'ascendance, d'où un conflit sur tout fichier que
+    # la pile touche. Comme un rebase --onto : si develop a la version du départ de la pile, la
+    # version de la PR fait foi ; si c'est la PR qui l'a gardée (une PR sœur, fusionnée avant,
+    # l'a modifié dans develop), la version de develop fait foi. Sinon, vrai conflit.
+    if [ -n "$autres" ] && [ -n "${depart_pile:-}" ]; then
+      reste=''
+      for f in $autres; do
+        v_dev=$(git rev-parse -q --verify "origin/develop:$f" 2>/dev/null || echo absent)
+        v_pile=$(git rev-parse -q --verify "$depart_pile:$f" 2>/dev/null || echo absent)
+        v_pr=$(git rev-parse -q --verify "$origine:$f" 2>/dev/null || echo absent)
+        if [ "$v_dev" = "$v_pile" ]; then
+          git checkout --ours -- "$f" && git add -- "$f"
+          log "conflit de pile résolu : $f (develop = départ de la pile, version de la PR gardée)"
+        elif [ "$v_pr" = "$v_pile" ]; then
+          if [ "$v_dev" = absent ]; then git rm -q -- "$f"; else git checkout --theirs -- "$f" && git add -- "$f"; fi
+          log "conflit de pile résolu : $f (PR = départ de la pile, version de develop gardée)"
+        else
+          reste="$reste $f"
+        fi
+      done
+      autres=$(printf '%s\n' $reste)
+    fi
+    if [ -n "$autres" ]; then
+      git merge --abort
+      log "conflit avec develop hors index générés :"
+      printf '  %s\n' $autres
+      exit 2
+    fi
+    # Index générés : n'importe quel côté, la régénération ci-dessous fait foi.
+    generes=$(printf '%s\n' "$conflits" | grep -E "$GENERES" || true)
+    if [ -n "$generes" ]; then
+      git checkout --theirs -- $generes
+      git add -- $generes
+    fi
+    fusion_en_cours=1
+  fi
+  # Les générateurs tournent sur les dépendances de la branche mise à jour.
+  pnpm install --frozen-lockfile --prefer-offline >/dev/null 2>&1 || sortir 3 "pnpm install en échec après mise à jour"
+
+  # ── 3. Index régénérés ──────────────────────────────────────────────────────
+  regenerer_index || sortir 3 "régénération des index en échec après mise à jour (scripts/docs/index-generes.json)"
+  if [ "$fusion_en_cours" = 1 ]; then
+    commande_commit="git commit -q --no-edit" # conclut la fusion, comme `git merge` sans conflit
+  elif ! git diff --cached --quiet; then
+    commande_commit="git commit -q -m 'docs: régénère les index après mise à jour avec develop'"
+  else
+    commande_commit=
+  fi
+  if [ -n "$commande_commit" ] && ! jouer_ou_dire "$commande_commit"; then
     annuler_fusion
     git switch -q --detach origin/develop
-    sortir 3 "fusion de develop refusée (hook git ou fichier non suivi) : sortie ci-dessus ; corriger, jamais en sautant le hook"
+    sortir 3 "commit refusé par un hook git (commit-msg, pre-commit) : sortie ci-dessus ; corriger, jamais en sautant le hook"
   fi
-  autres=$(printf '%s\n' "$conflits" | grep -Ev "$GENERES" || true)
-  # Pile : le squash de la parente masque l'ascendance, d'où un conflit sur tout fichier que
-  # la pile touche. Comme un rebase --onto : si develop a la version du départ de la pile, la
-  # version de la PR fait foi ; si c'est la PR qui l'a gardée (une PR sœur, fusionnée avant,
-  # l'a modifié dans develop), la version de develop fait foi. Sinon, vrai conflit.
-  if [ -n "$autres" ] && [ -n "${depart_pile:-}" ]; then
-    reste=''
-    for f in $autres; do
-      v_dev=$(git rev-parse -q --verify "origin/develop:$f" 2>/dev/null || echo absent)
-      v_pile=$(git rev-parse -q --verify "$depart_pile:$f" 2>/dev/null || echo absent)
-      v_pr=$(git rev-parse -q --verify "$origine:$f" 2>/dev/null || echo absent)
-      if [ "$v_dev" = "$v_pile" ]; then
-        git checkout --ours -- "$f" && git add -- "$f"
-        log "conflit de pile résolu : $f (develop = départ de la pile, version de la PR gardée)"
-      elif [ "$v_pr" = "$v_pile" ]; then
-        if [ "$v_dev" = absent ]; then git rm -q -- "$f"; else git checkout --theirs -- "$f" && git add -- "$f"; fi
-        log "conflit de pile résolu : $f (PR = départ de la pile, version de develop gardée)"
-      else
-        reste="$reste $f"
-      fi
-    done
-    autres=$(printf '%s\n' $reste)
-  fi
-  if [ -n "$autres" ]; then
-    git merge --abort
-    log "conflit avec develop hors index générés :"
-    printf '  %s\n' $autres
-    exit 2
-  fi
-  # Index générés : n'importe quel côté, la régénération ci-dessous fait foi.
-  generes=$(printf '%s\n' "$conflits" | grep -E "$GENERES" || true)
-  if [ -n "$generes" ]; then
-    git checkout --theirs -- $generes
-    git add -- $generes
-  fi
-  fusion_en_cours=1
-fi
-# Les générateurs tournent sur les dépendances de la branche mise à jour.
-pnpm install --frozen-lockfile --prefer-offline >/dev/null 2>&1 || sortir 3 "pnpm install en échec après mise à jour"
-
-# ── 3. Index régénérés ──────────────────────────────────────────────────────
-regenerer_index || sortir 3 "régénération des index en échec après mise à jour (scripts/docs/index-generes.json)"
-if [ "$fusion_en_cours" = 1 ]; then
-  commande_commit="git commit -q --no-edit" # conclut la fusion, comme `git merge` sans conflit
-elif ! git diff --cached --quiet; then
-  commande_commit="git commit -q -m 'docs: régénère les index après mise à jour avec develop'"
-else
-  commande_commit=
-fi
-if [ -n "$commande_commit" ] && ! jouer_ou_dire "$commande_commit"; then
-  annuler_fusion
-  git switch -q --detach origin/develop
-  sortir 3 "commit refusé par un hook git (commit-msg, pre-commit) : sortie ci-dessus ; corriger, jamais en sautant le hook"
-fi
 
 
-# ── 4. Push en avance rapide ────────────────────────────────────────────────
-sommet=$(git rev-parse HEAD)
-if [ "$base" != develop ]; then
-  # Recibler AVANT de pousser : la CI exigée ne se déclenche que sur une PR vers develop.
-  gh api -X PATCH "$DEPOT/pulls/$N" -f base=develop >/dev/null
-  log "reciblée sur develop (parente #$parente fusionnée)"
-fi
-if [ "$sommet" != "$origine" ]; then
-  pousser "HEAD:refs/heads/$tete" "$tete" "$origine" && statut=0 || statut=$?
+  # ── 4. Push en avance rapide ────────────────────────────────────────────────
+  sommet=$(git rev-parse HEAD)
+  if [ "$tour" = 1 ] && [ "$base" != develop ]; then
+    # Recibler AVANT de pousser : la CI exigée ne se déclenche que sur une PR vers develop. Une fois : au tour
+    # suivant, la PR vise déjà develop.
+    gh api -X PATCH "$DEPOT/pulls/$N" -f base=develop >/dev/null
+    log "reciblée sur develop (parente #$parente fusionnée)"
+  fi
+  if [ "$sommet" != "$origine" ]; then
+    pousser "HEAD:refs/heads/$tete" "$tete" "$origine" && statut=0 || statut=$?
+    case $statut in
+      0) ;;
+      5) sortir 5 "push refusé : la branche a bougé, relancer" ;;
+      *)
+        git switch -q --detach origin/develop
+        sortir 3 "push refusé par le hook pre-push (ou le distant) : sortie ci-dessus ; corriger, jamais en sautant le hook"
+        ;;
+    esac
+    log "mise à jour poussée ($(git rev-parse --short HEAD))"
+  else
+    log "déjà à jour avec develop"
+  fi
+
+  # ── 5. Checks exigés du nouveau sommet ────────────────────────────────────
+  # Aucun check sur le sommet au bout de 5 min : la CI n'a pas été déclenchée. Cas vécu, #479 la
+  # nuit du 14/10 : reciblée sur develop après sa mise à jour, sans nouveau push ; le reciblage ne
+  # déclenche pas `pull_request`. Le reciblage passe désormais avant le push, mais une branche
+  # déjà à jour n'en demande aucun. Le capitaine ne ferme ni ne rouvre la PR pour relancer la CI,
+  # et ne pousse pas de commit vide : il s'arrête, la décision revient à l'humain ou à la session.
+  rouges=$(attendre_ci "$N" "$sommet") && statut=0 || statut=$?
   case $statut in
     0) ;;
-    5) sortir 5 "push refusé : la branche a bougé, relancer" ;;
-    *)
-      git switch -q --detach origin/develop
-      sortir 3 "push refusé par le hook pre-push (ou le distant) : sortie ci-dessus ; corriger, jamais en sautant le hook"
-      ;;
+    1) sortir 3 "checks exigés rouges :"$'\n'"${rouges%$'\n'}" ;;
+    2) sortir 3 "aucun check sur le sommet après 5 min : CI non déclenchée (un push de la session propriétaire la lancera)" ;;
+    *) sortir 3 "checks exigés toujours en attente après 60 min" ;;
   esac
-  log "mise à jour poussée ($(git rev-parse --short HEAD))"
-else
-  log "déjà à jour avec develop"
-fi
+  [ "$(pr_sommet "$N")" = "$sommet" ] || sortir 5 "la PR a reçu un push pendant la CI, relancer"
 
-# ── 5. Checks exigés du nouveau sommet ──────────────────────────────────────
-for _ in $(seq 1 60); do
-  [ "$(pr_sommet "$N")" = "$sommet" ] && break
-  sleep 5
+  # ── 5 bis. Contrôle d'ascendance, juste avant la fusion ───────────────────
+  # Refspec explicite : un clone `--single-branch` (ou au refspec restreint) ne met pas à jour origin/develop
+  # sur un simple `git fetch origin develop`, et le contrôle jugerait une cible périmée.
+  git fetch -q origin "+refs/heads/develop:refs/remotes/origin/develop"
+  verdict=$(ascendance "$sommet" origin/develop) ||
+    sortir 3 "contrôle d'ascendance illisible (ascendance de github.sh, cause ci-dessus) : la PR n'entre pas sans lui"
+  case ${verdict%%$'\n'*} in
+    à-jour) break ;;
+    retard | conflit-index)
+      [ "$tour" -lt 3 ] || sortir 5 "develop a bougé trois fois pendant la CI, relancer"
+      log "develop a bougé pendant la CI : nouvelle mise à jour ($tour sur 2)"
+      origine=$sommet ;;
+    conflit)
+      git switch -q --detach origin/develop
+      log "conflit avec develop hors index générés :"
+      sed -n '2,$p' <<<"$verdict" | sed 's/^/  /'
+      exit 2 ;;
+    *) sortir 3 "contrôle d'ascendance illisible (verdict « ${verdict%%$'\n'*} ») : la PR n'entre pas sans lui" ;;
+  esac
 done
-# Un check exigé au moins est apparu sur le sommet : la CI a démarré.
-attendre_checks() {
-  local requis
-  requis=$(checks_exiges | jq -r '.[]')
-  for _ in $(seq 1 "$1"); do
-    # Pas de `grep -q` : sous pipefail, `gh` tué par SIGPIPE ferait échouer le test.
-    [ "$(checks_commit "$sommet" | awk -F '\t' -v r="$requis" 'BEGIN { n = split(r, t, "\n"); for (i = 1; i <= n; i++) if (t[i] != "") e[t[i]] = 1 } ($1 in e) { v = 1 } END { print v + 0 }')" = 1 ] && return 0
-    sleep 10
-  done
-  return 1
-}
-# Aucun check sur le sommet au bout de 5 min : la CI n'a pas été déclenchée. Cas vécu, #479 la
-# nuit du 14/10 : reciblée sur develop après sa mise à jour, sans nouveau push ; le reciblage ne
-# déclenche pas `pull_request`. Le reciblage passe désormais avant le push, mais une branche
-# déjà à jour n'en demande aucun. Le capitaine ne ferme ni ne rouvre la PR pour relancer la CI,
-# et ne pousse pas de commit vide : il s'arrête, la décision revient à l'humain ou à la session.
-attendre_checks 30 || sortir 3 "aucun check sur le sommet après 5 min : CI non déclenchée (un push de la session propriétaire la lancera)"
-# Liste lue dans la protection de develop : les checks du sommet ne montrent que ceux déjà
-# créés, et un check de synthèse (qui attend toute une matrice) n'apparaît qu'en fin de matrice.
-requis=$(checks_exiges | jq -r '.[]')
-verdict=''
-for _ in $(seq 1 120); do # 60 min au plus
-  etats=$(checks_commit "$sommet")
-  attente=0
-  rouges=''
-  while IFS= read -r nom; do
-    c=$(printf '%s\n' "$etats" | awk -F '\t' -v n="$nom" '$1 == n { c = $2 } END { print c }')
-    case "$c" in
-      SUCCESS | SKIPPED | NEUTRAL) ;;
-      FAILURE | CANCELLED | TIMED_OUT | ACTION_REQUIRED | STARTUP_FAILURE | ERROR) rouges="$rouges
-  $nom : $c" ;;
-      *) attente=1 ;;
-    esac
-  done <<<"$requis"
-  if [ -n "$rouges" ]; then verdict=rouge; break; fi
-  if [ "$attente" = 0 ]; then verdict=vert; break; fi
-  sleep 30
-done
-case "$verdict" in
-  vert) ;;
-  rouge) sortir 3 "checks exigés rouges :$rouges" ;;
-  *) sortir 3 "checks exigés toujours en attente après 60 min" ;;
-esac
-[ "$(pr_sommet "$N")" = "$sommet" ] || sortir 5 "la PR a reçu un push pendant la CI, relancer"
 
 # ── 6. Squash ───────────────────────────────────────────────────────────────
 sujet="$titre (#$N)"
@@ -354,13 +359,14 @@ else
   corps() { git log --no-merges --reverse --format='%B' "$depart..$origine"; }
 fi
 refus_fusion=$(mktemp)
-trap 'rm -f "$refus_fusion"' EXIT
+reponse_fusion=$(mktemp)
+trap 'rm -f "$refus_fusion" "$reponse_fusion"' EXIT
 # Requête passée sur l'entrée standard : un corps long dépasserait la taille maximale d'un
 # argument. `sha` : GitHub refuse la fusion si le sommet n'est plus celui testé.
 corps |
   jq -Rs --arg sha "$sommet" --arg titre "$sujet" --arg methode "$methode" \
     '{merge_method: $methode, sha: $sha, commit_title: $titre, commit_message: .}' |
-  gh api -X PUT "$DEPOT/pulls/$N/merge" --input - >/dev/null 2>"$refus_fusion" || {
+  gh api -X PUT "$DEPOT/pulls/$N/merge" --input - --jq .sha >"$reponse_fusion" 2>"$refus_fusion" || {
   # Refus faute d'approbation d'un propriétaire (un propriétaire du CODEOWNERS demandé, ou seul propriétaire = l'auteur, que
   # GitHub ne demande pas) : sortie 7, jamais 5, que la boucle relancerait puis arrêterait.
   message=$(cat "$refus_fusion")
@@ -378,15 +384,22 @@ corps |
   sortir 5 "fusion refusée (develop ou la PR a bougé), relancer"
 }
 
-git fetch -q origin develop
-# Pas de `exit` dans awk : sous pipefail, git log tué par SIGPIPE ferait sortir le script en 141.
-# --first-parent : les commits d'une branche de sujet (un par sous-PR) n'y figurent pas.
-squash=$(git log --first-parent origin/develop -n 30 --format='%H %s' | awk -v s="(#$N)" '!t && index($0, s) == length($0) - length(s) + 1 { print $1; t = 1 }')
-if [ -n "$squash" ] && [ "$(git rev-parse "$squash^{tree}")" = "$(git rev-parse "$sommet^{tree}")" ]; then
-  log "FUSIONNÉE : $(git rev-parse --short "$squash"), arbre = arbre testé"
-else
-  log "FUSIONNÉE, mais arbre du squash ≠ arbre testé : à examiner"
+git fetch -q origin "+refs/heads/develop:refs/remotes/origin/develop"
+# Le squash : le `sha` de la réponse du PUT, sinon cherché dans develop par son sujet.
+squash=$(sed -n 1p "$reponse_fusion")
+git cat-file -e "$squash^{commit}" 2>/dev/null || squash=''
+if [ -z "$squash" ]; then
+  # Pas de `exit` dans awk : sous pipefail, git log tué par SIGPIPE ferait sortir le script en 141.
+  # --first-parent : les commits d'une branche de sujet (un par sous-PR) n'y figurent pas.
+  squash=$(git log --first-parent origin/develop -n 30 --format='%H %s' | awk -v s="(#$N)" '!t && index($0, s) == length($0) - length(s) + 1 { print $1; t = 1 }')
 fi
+if [ -z "$squash" ] || [ "$(git rev-parse "$squash^{tree}")" != "$(git rev-parse "$sommet^{tree}")" ]; then
+  # Le code entré n'est pas celui que la CI a jugé (ou le squash est introuvable) : sortie 12, ARRÊT de la boucle.
+  git switch -q --detach origin/develop
+  git branch -q -D "capitaine/$N" 2>/dev/null || true
+  sortir 12 "$(signaler_arbre_different "$N" "$sommet" "$squash")"
+fi
+log "FUSIONNÉE : $(git rev-parse --short "$squash"), arbre = arbre testé"
 # Le label ne reste que sur ce qui attend : GitHub peut lister la PR ouverte quelques secondes encore.
 retirer_label "$N" à-fusionner
 git switch -q --detach origin/develop

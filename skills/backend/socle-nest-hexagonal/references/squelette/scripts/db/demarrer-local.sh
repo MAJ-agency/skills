@@ -9,6 +9,14 @@
 #
 # Port, base, utilisateur et mot de passe sont lus dans le service `postgres` de compose.yaml :
 # une seule source. Idempotent, et sûr si deux sessions l'appellent en même temps (verrou).
+#
+# Encodage. La base est toujours créée en UTF8 (`initdb --encoding=UTF8`, `createdb -E UTF8 -T template0`) :
+# sur une machine en locale C/POSIX, PostgreSQL choisit sinon SQL_ASCII, et `normalize(…)` échoue. Une
+# base ou un serveur déjà existant qui n'est pas en UTF8 est refusé (sortie 6) avec les commandes pour le
+# recréer ; le script ne supprime jamais rien lui-même. Locale : PG_LOCALE_UTF8 (C.UTF-8 par défaut) si
+# `locale -a` la connaît, sinon --no-locale (l'encodage reste UTF8).
+# Sorties : 2 compose.yaml illisible, 3 aucun PostgreSQL local, 4 serveur ou port en conflit, 5 base qui ne
+# répond pas après démarrage, 6 base ou serveur existant hors UTF8.
 # Usage : bash scripts/db/demarrer-local.sh
 #   Appelé par le script de démarrage de l'environnement cloud ; à relancer à la main après une
 #   reprise de session (le serveur ne survit pas au conteneur). Voir docs/agents/pieges.md.
@@ -71,7 +79,32 @@ fi
 prete() { PGPASSWORD=$mot_de_passe "$bin/psql" -h 127.0.0.1 -p "$port" -U "$utilisateur" -d "$base" -tAc 'SELECT 1' >/dev/null 2>&1; }
 port_ouvert() { (exec 3<>"/dev/tcp/127.0.0.1/$port") 2>/dev/null; }
 
+# Encodage d'une base ($1), lu sur la base `postgres` ; vide si la base n'existe pas.
+encodage_de() {
+  PGPASSWORD=$mot_de_passe "$bin/psql" -h 127.0.0.1 -p "$port" -U "$utilisateur" -d postgres -tAc \
+    "SELECT pg_encoding_to_char(encoding) FROM pg_database WHERE datname = '$1'" 2>/dev/null | head -n 1 || true
+}
+# En root, les commandes à copier passent par l'utilisateur postgres, comme `en_pg`.
+prefixe_pg() { if [ "$(id -u)" = 0 ]; then printf 'runuser -u postgres -- '; fi; }
+derniere_ligne_refus() {
+  echo "  bash scripts/db/demarrer-local.sh"
+  echo "  puis rejouer les migrations du projet"
+}
+verifier_base_utf8() {
+  local enc
+  enc=$(encodage_de "$base")
+  if [ -n "$enc" ] && [ "$enc" != "UTF8" ]; then
+    {
+      echo "demarrer-local : base $base en $enc : la recréer (la base locale est jetable : rien à sauvegarder). Commandes :"
+      echo "  PGPASSWORD=$mot_de_passe $bin/psql -h 127.0.0.1 -p $port -U $utilisateur -d postgres -c 'DROP DATABASE $base'"
+      derniere_ligne_refus
+    } >&2
+    exit 6
+  fi
+}
+
 if prete; then
+  verifier_base_utf8
   echo "demarrer-local : la base « $base » répond déjà sur le port $port"
   exit 0
 fi
@@ -82,6 +115,7 @@ donnees=${PGDATA_LOCAL:-/var/tmp/$base-pg}
 exec 9>"$donnees.lock"
 flock 9
 if prete; then
+  verifier_base_utf8
   echo "demarrer-local : la base « $base » répond déjà sur le port $port"
   exit 0
 fi
@@ -109,7 +143,18 @@ if [ ! -f "$donnees/PG_VERSION" ]; then
   trap 'rm -f "$mdp"' EXIT
   printf '%s\n' "$mot_de_passe" >"$mdp"
   [ "$(id -u)" = 0 ] && chown postgres "$mdp"
-  en_pg "$bin/initdb" -D "$donnees" -U "$utilisateur" --pwfile="$mdp" -A scram-sha-256 >/dev/null
+  # --encoding=UTF8 échoue sous une locale d'un autre encodage : la locale accompagne l'encodage.
+  locale_utf8=${PG_LOCALE_UTF8:-C.UTF-8}
+  normaliser() { tr 'A-Z' 'a-z' | sed 's/utf-8/utf8/'; }
+  # Liste lue en entier avant la recherche : `grep -q` sortirait tôt, et pipefail verrait le SIGPIPE.
+  locales_connues=$(locale -a 2>/dev/null | normaliser || true)
+  if grep -qxF "$(printf '%s' "$locale_utf8" | normaliser)" <<<"$locales_connues"; then
+    option_locale="--locale=$locale_utf8"
+  else
+    option_locale="--no-locale"
+    echo "demarrer-local : locale $locale_utf8 absente de ce système, repli sur --no-locale (encodage UTF8 conservé)"
+  fi
+  en_pg "$bin/initdb" -D "$donnees" -U "$utilisateur" --pwfile="$mdp" -A scram-sha-256 --encoding=UTF8 "$option_locale" >/dev/null
   rm -f "$mdp"
 fi
 
@@ -124,8 +169,21 @@ fi
 # `9>&-` : le serveur ne doit pas hériter du verrou, sinon il le garde ouvert et bloque le prochain appel.
 en_pg "$bin/pg_ctl" -D "$donnees" -o "-p $port -k /tmp" -l "$donnees/journal.log" start -w >/dev/null 9>&-
 
-if ! prete; then
-  PGPASSWORD=$mot_de_passe "$bin/createdb" -h 127.0.0.1 -p "$port" -U "$utilisateur" "$base"
+# Un serveur déjà initialisé dans un autre encodage : ses bases en héritent, on ne le répare pas ici.
+enc_serveur=$(encodage_de template1)
+if [ -n "$enc_serveur" ] && [ "$enc_serveur" != "UTF8" ]; then
+  {
+    echo "demarrer-local : serveur $donnees initialisé en $enc_serveur : l'arrêter et supprimer $donnees (la base locale est jetable : rien à sauvegarder). Commandes :"
+    echo "  $(prefixe_pg)$bin/pg_ctl -D $donnees stop"
+    echo "  $(prefixe_pg)rm -rf $donnees"
+    derniere_ligne_refus
+  } >&2
+  exit 6
 fi
+
+if ! prete; then
+  PGPASSWORD=$mot_de_passe "$bin/createdb" -h 127.0.0.1 -p "$port" -U "$utilisateur" -E UTF8 -T template0 "$base"
+fi
+verifier_base_utf8
 prete || { echo "demarrer-local : la base « $base » ne répond pas après démarrage ; voir $donnees/journal.log" >&2; exit 5; }
 echo "demarrer-local : base « $base » allumée sans Docker sur le port $port ($donnees)"

@@ -22,8 +22,12 @@
 # sujet non livré SANS sous-PR ouverte : bouger la tête d'un sujet sous ses sous-PR les remettait
 # en conflit avant leur passage (cas vécu). Un sujet actif est mis à jour par sa livraison
 # (passer.sh) ou par `sujet.sh fusionner` quand une sous-PR apporte du develop plus récent.
-# Une sous-PR en conflit avec son sujet sur des index générés seuls n'est pas renvoyée : `sujet.sh
-# fusionner` la met à jour, régénère et pousse (sortie 8, MISE À JOUR) ; elle repasse CI verte.
+# Règle d'ascendance (skill `fusionner`) : une sous-PR en retard sur son sujet (documentation comprise), ou en
+# conflit avec lui sur des index générés seuls, n'est pas renvoyée : `sujet.sh fusionner` la met à jour, régénère,
+# pousse et attend la CI du nouveau sommet, puis la squashe ; si cette CI ne finit pas, sortie 8 (MISE À JOUR) :
+# elle repasse au tour suivant. Arbre du squash ≠ arbre testé, vers un sujet (`sujet.sh`, sortie 12) comme vers
+# develop (`passer.sh`, sortie 12) : la PR porte le commentaire, la boucle s'arrête (ARRÊT, sortie 12) et le
+# capitaine le dit à son lanceur.
 # Un conflit est annulé et signalé (SUJET EN CONFLIT), jamais résolu ici : une session le
 # résout dans une PR de mise à jour (en-tête de sujet.sh), que `sujet.sh fusionner` fait entrer par
 # avance rapide. Une fusion sans conflit refusée par un contrôle (hook, dépendances, gate des index, sortie 3)
@@ -70,6 +74,14 @@
 # passage en cours (TERM, puis KILL) : la trappe remet le worktree propre (`git merge --abort` ou
 # `reset --hard`, puis `switch --detach origin/develop` ; le worktree du capitaine ne porte rien
 # d'autre), sortie 143 (TERM) ou 130 (INT). Option inconnue : sortie 64. `flock` (util-linux) requis.
+#
+# Échéance. La veille (`veille.sh`) pose `BOUCLE_ECHEANCE` (secondes depuis l'époque Unix) : au-delà,
+# un passage commencé ne finirait pas avant la limite de 2 h de la tâche de fond qui la porte. La boucle
+# la vérifie en tête de tour, avant chaque `passer` et avant chaque `sujet.sh fusionner` ; passé
+# l'échéance, plus aucun passage : `ÉCHÉANCE <hh:mm> : …, file laissée`, sortie 0, sans le
+# rafraîchissement de fin des sujets. Rien n'est alors en cours, aucune PR n'est touchée. Posée mais pas
+# un entier positif : sortie 64, aucune lecture GitHub. Absente (boucle lancée à la main) : rien ne
+# change. L'`exec` de relance garde l'environnement, donc l'échéance.
 #
 # Usage, depuis le worktree du capitaine (plus de copie manuelle à faire) :
 #   bash scripts/chaine/boucle.sh > <journal> 2>&1
@@ -175,6 +187,16 @@ verifier_arret() {
   [ ! -e "$ARRET" ] || { echo "ARRÊT demandé ($ARRET, posé le $(cat "$ARRET" 2>/dev/null)) : '--reprendre' pour relancer" >&2; exit 10; }
 }
 verifier_arret
+# Échéance de la veille (en-tête). Dans le sous-shell du tube de `traiter_sujets`, `exit` ne sort que du
+# sous-shell : il sort en ECHEANCE_TUBE, que la boucle relit après le tube (PIPESTATUS).
+ECHEANCE_TUBE=86
+if [ -n "${BOUCLE_ECHEANCE+x}" ] && ! [[ "$BOUCLE_ECHEANCE" =~ ^[1-9][0-9]*$ ]]; then
+  echo "ARRÊT : BOUCLE_ECHEANCE (« $BOUCLE_ECHEANCE ») n'est pas un entier positif (secondes depuis l'époque Unix, posées par veille.sh)" >&2
+  exit 64
+fi
+echeance_passee() { [ -n "${BOUCLE_ECHEANCE:-}" ] && [ "$(date +%s)" -ge "$BOUCLE_ECHEANCE" ]; }
+finir_echeance() { echo "ÉCHÉANCE $(date +%H:%M) : plus de passage avant la fin de la veille, file laissée"; exit 0; }
+verifier_echeance() { ! echeance_passee || finir_echeance; }
 # Signal en plein passage : worktree remis propre (fusion commitée ou non, index régénérés).
 arret_signal() {
   echo "[boucle] signal reçu : worktree remis propre, arrêt" >&2
@@ -302,6 +324,8 @@ traiter_sujets() {
           6) echo "[#$n] PAS PROPRE : worktree du capitaine à nettoyer, sous-PR laissée dans la file (aucun renvoi)" ;;
         esac ;;
       sujet/*': prête')
+        # Passé l'échéance, aucun `sujet.sh fusionner` (il peut attendre une CI) : le code remonte du sous-shell.
+        ! echeance_passee || exit "$ECHEANCE_TUBE"
         bash "$SUJET" fusionner "$n" 2>&1 | tee "$sortie" | sed "s#^#[\#$n] #"
         rc=${PIPESTATUS[0]}
         case "$rc" in
@@ -313,13 +337,19 @@ traiter_sujets() {
           # Worktree du capitaine sale : rien que l'auteur puisse corriger, jamais un renvoi.
           6) echo "[#$n] PAS PROPRE : worktree du capitaine à nettoyer, sous-PR laissée dans la file (aucun renvoi)" ;;
           7) echo "[#$n] sous-PR non éligible (fermée ou en brouillon)" ;;
-          8) echo "[#$n] MISE À JOUR avec ${etat%% :*} (index régénérés), CI relancée" ;;
+          8) echo "[#$n] MISE À JOUR avec ${etat%% :*} poussée, CI pas finie : repasse au tour suivant" ;;
+          # Arbre du squash ≠ arbre testé : arrêt. Le `while` tourne dans le sous-shell du tube : le code remonte
+          # après lui (PIPESTATUS), et la boucle sort en 12.
+          12) echo "ARRÊT sur #$n (sortie 12) : arbre du squash ≠ arbre testé"; exit 12 ;;
           # PR de mise à jour : un outil du capitaine en échec, rien que la session puisse corriger.
           11) echo "[#$n] ÉCHEC DU CAPITAINE : sous-PR laissée dans la file (aucun renvoi), cause ci-dessus" ;;
           *) echo "[#$n] sous-PR non éligible (sortie $rc)" ;;
         esac ;;
     esac
   done
+  rc=${PIPESTATUS[1]}
+  [ "$rc" != 12 ] || exit 12
+  [ "$rc" != "$ECHEANCE_TUBE" ] || finir_echeance
   # Sujets finis : PR finale ouverte, elle entre dans la file au tour suivant.
   verifier_arret
   bash "$SUJET" livrer-prets 2>&1 | sed 's#^#[sujets] #; s#PR \(\#[0-9]*\) ouverte#LIVRÉ : PR \1 ouverte#'
@@ -331,6 +361,7 @@ sortie=$(mktemp)
 trap 'rm -f "$sortie"' EXIT
 passer() {
   verifier_arret
+  verifier_echeance
   bash "$outils/passer.sh" "$1" 2>&1 | tee "$sortie"
   return "${PIPESTATUS[0]}"
 }
@@ -341,6 +372,7 @@ attente_fusion=${BOUCLE_ATTENTE:- }
 rafraichir_sujets
 while :; do
   verifier_arret
+  verifier_echeance
   rafraichir_outils "$@"
   traiter_rouges
   traiter_sujets
@@ -385,6 +417,8 @@ while :; do
       # avec le motif, la PR ne reste pas en file muette (#1414). Sautée si le renvoi échoue.
       bash "$outils/refus.sh" "$n" "$sortie" || sautees="$sautees$n " ;;
     7) sautees="$sautees$n " ;; # rien à corriger côté auteur (empilée, brouillon, déjà renvoyée, attend un propriétaire)
+    # Fusionnée, mais le code entré n'est pas celui que la CI a jugé : passer.sh a commenté la PR ; un humain examine.
+    12) echo "ARRÊT sur #$n (sortie 12) : arbre du squash ≠ arbre testé"; exit 12 ;;
     *) echo "ARRÊT sur #$n (sortie $rc)"; exit "$rc" ;;
   esac
 done

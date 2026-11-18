@@ -20,6 +20,8 @@ claude plugin marketplace update maj
 claude plugin update maj-skills@maj
 ```
 
+Ce qu'un projet fait après une mise à jour, version par version : [`NOTES-DE-VERSION.md`](NOTES-DE-VERSION.md).
+
 **Dans un environnement cloud** (sessions Claude Code sur claude.ai), le script de configuration de l'environnement de chaque projet installe le plugin depuis GitHub et le met à jour. Il ne se rejoue pas à chaque session : l'environnement garde un instantané du disque pris à son dernier passage, et toute session, celles lancées par une autre comprises, part de cet instantané, avec la version du plugin qu'il porte ; le script ne repasse qu'à un changement du script ou des hôtes autorisés, ou à l'expiration de l'instantané (environ sept jours, documentation de Claude Code, page des environnements cloud). Une mise à jour jouée dans la session change les fichiers du marketplace, pas les skills déjà chargés : une session lancée par l'architecte se met à niveau en tête de son prompt (`skills/chaine/architecte/references/lancement.md`, § « La mise à niveau »). `install` ne touche pas à un plugin déjà présent.
 
 ```bash
@@ -183,11 +185,13 @@ Les bancs (`pnpm test`, joués aussi par la CI) demandent Node ≥ 22, `git` et 
 1. Créer `skills/<categorie>/<nom>/SKILL.md`, avec un frontmatter `name` + `description`. La description décide **quand** le skill se déclenche : y mettre les branches, pas une paraphrase du titre.
 2. Ajouter `"./skills/<categorie>/<nom>"` au tableau `skills` de `.claude-plugin/plugin.json`.
 3. Ajouter une ligne au tableau ci-dessus.
-4. **Bumper `version` dans `.claude-plugin/plugin.json`** — c'est ce champ que `claude plugin update maj-skills@maj` compare : sans bump, aucun changement de contenu n'est détecté chez ceux qui ont installé le plugin. Patch pour une correction, mineure pour un skill ou un gabarit ajouté, majeure quand un skill existant change de contrat.
+4. **Bumper `version` dans `.claude-plugin/plugin.json`** — c'est ce champ que `claude plugin update maj-skills@maj` compare : sans bump, aucun changement de contenu n'est détecté chez ceux qui ont installé le plugin. Patch pour une correction, mineure pour un skill ou un gabarit ajouté, majeure quand un skill existant change de contrat. Écrire sa note en tête de `NOTES-DE-VERSION.md` (« Ce qui change », « Ce qu'un projet fait pour en profiter »).
 
 Cette règle vaut pour **tout** changement de contenu, pas seulement l'ajout d'un skill.
 
 Un skill dont l'étape `poser` copie un dossier de scripts dans `scripts/chaine/` d'un projet ajoute ce dossier à `POSES` dans `scripts/poses.test.mjs` : le garde pose ses fichiers à plat et rejoue ses bancs hors du plugin. Un banc posé ne lit jamais l'arbre du plugin sans repli vers le fichier du projet.
+
+Un banc ne recopie jamais le filtre des variables `GIT_*` : il importe `environnementDeBanc()` (`scripts/docs/environnement-de-banc.mjs` du socle, réexporté par `depot-jouet.mjs`), qui retire aussi `FORCE_COLOR` et pose `NO_COLOR=1`. `scripts/un-seul-environnement-de-banc.test.mjs` refuse toute copie.
 
 Ce qui dépasse une page va dans `references/`, atteint par un pointeur depuis `SKILL.md` — le corps du skill reste lisible, et les détails ne se chargent qu'au besoin.
 

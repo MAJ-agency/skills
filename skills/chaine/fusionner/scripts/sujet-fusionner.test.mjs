@@ -19,7 +19,9 @@ const ADR = "docs/adr";
 const index = (...adr) => adr.map((f) => `- ${f}\n`).join("");
 const ecritures = (d) => d.journal().map((e) => `${e.methode} ${e.route}`);
 
-// Le sujet ajoute l'ADR 3, la sous-PR #80 l'ADR 2 (ou, avec `fichier`, un fichier de code en conflit).
+// Le sujet ajoute l'ADR 3, la sous-PR #80 l'ADR 2 (ou, avec `fichier`, un fichier de code en conflit). Sans
+// conflit (« aucun »), la sous-PR part du sujet : elle est à jour (le cas en retard est le banc « retard de
+// documentation seule »). Checks : verts sur l'ancien sommet seul (par son sha) ; sans conflit, sur tout commit.
 function sousPrEnConflit(conflit) {
   const d = depotJouet();
   d.ecrire(`${ADR}/ADR_ALL_ARC-1-a.md`, "# 1\n");
@@ -28,13 +30,15 @@ function sousPrEnConflit(conflit) {
   d.commit("docs: adr 1");
   d.git("push", "-q", "origin", "HEAD:develop");
   d.git("fetch", "-q", "origin");
-  const sommet = d.branche(
-    "docs/sous",
-    "origin/develop",
-    conflit === "code"
-      ? { "docs/f.md": "sous\n" }
-      : { [`${ADR}/ADR_ALL_ARC-2-b.md`]: "# 2\n", [`${ADR}/README.md`]: index("ADR_ALL_ARC-1-a.md", "ADR_ALL_ARC-2-b.md") },
-  );
+  const sous = () =>
+    d.branche(
+      "docs/sous",
+      conflit === "aucun" ? "origin/sujet/lot" : "origin/develop",
+      conflit === "code"
+        ? { "docs/f.md": "sous\n" }
+        : { [`${ADR}/ADR_ALL_ARC-2-b.md`]: "# 2\n", [`${ADR}/README.md`]: index("ADR_ALL_ARC-1-a.md", "ADR_ALL_ARC-2-b.md") },
+    );
+  const avant = conflit === "aucun" ? null : sous();
   d.branche(
     "sujet/lot",
     "origin/develop",
@@ -47,10 +51,11 @@ function sousPrEnConflit(conflit) {
           }
         : { "docs/autre.md": "autre\n" },
   );
+  const sommet = avant ?? sous();
   d.git("switch", "-q", "--detach", "origin/develop");
   d.github({
     exiges: ["qualite"],
-    checks: { "*": { qualite: "SUCCESS" } },
+    checks: conflit === "aucun" ? { "*": { qualite: "SUCCESS" } } : { [sommet]: { qualite: "SUCCESS" } },
     pulls: [
       {
         number: 80,
@@ -69,7 +74,8 @@ test("fusionner : conflit sur un index généré seul, la branche est mise à jo
   const { d, sommet } = sousPrEnConflit("index");
   const r = d.lancer(SUJET, "fusionner", "80");
   assert.equal(r.status, 8, r.stdout + r.stderr);
-  assert.match(r.stdout, /#80 mise à jour avec sujet\/lot \(index régénérés\), CI relancée/);
+  assert.match(r.stdout, /#80 en retard sur sujet\/lot : mise à jour poussée \([0-9a-f]+\), attente de la CI/);
+  assert.match(r.stdout, /#80 : mise à jour avec sujet\/lot poussée, CI pas finie : repasse au tour suivant/);
   d.git("fetch", "-q", "origin");
   const tete = d.git("rev-parse", "origin/docs/sous");
   assert.notEqual(tete, sommet, "la branche de la sous-PR a avancé");
@@ -95,7 +101,7 @@ test("fusionner : conflit hors index, sortie 3 et branche de la sous-PR intacte"
   assert.equal(d.git("status", "--porcelain"), "", "fusion annulée");
 });
 
-test("fusionner : sans conflit, squash comme avant", () => {
+test("fusionner : sans conflit et à jour, squash comme avant, branche intacte", () => {
   const { d, sommet } = sousPrEnConflit("aucun");
   const r = d.lancer(SUJET, "fusionner", "80");
   assert.equal(r.status, 0, r.stdout + r.stderr);
@@ -109,7 +115,7 @@ test("fusionner : FORCE_COLOR=1 dans l'environnement ne fait refuser aucun titre
   const { d } = sousPrEnConflit("aucun");
   const r = spawnSync("bash", [SUJET, "fusionner", "80"], {
     cwd: d.travail,
-    env: { ...d.env, FORCE_COLOR: "1" },
+    env: { ...d.env, FORCE_COLOR: "1", NO_COLOR: undefined },
     encoding: "utf8",
   });
   assert.equal(r.status, 0, r.stdout + r.stderr);
@@ -121,7 +127,7 @@ test("boucle.sh : la sortie 8 ne renvoie pas la PR (MISE À JOUR, aucun label ni
   d.publierChaine();
   const r = d.lancer(BOUCLE);
   assert.equal(r.status, 0, r.stdout + r.stderr);
-  assert.match(r.stdout, /\[#80\] MISE À JOUR avec sujet\/lot \(index régénérés\), CI relancée/);
+  assert.match(r.stdout, /\[#80\] MISE À JOUR avec sujet\/lot poussée, CI pas finie : repasse au tour suivant/);
   assert.doesNotMatch(r.stdout, /RENVOI/);
   assert.ok(
     !ecritures(d).some((e) => /issues\/80\/(labels|comments)/.test(e)),
@@ -871,4 +877,104 @@ test("refus.sh : une sortie 3 sans motif lisible se dit « refusée en sortie 3 
   const r = d.lancer(scriptDe("fusionner", "refus.sh"), "63", "absent.txt", "3");
   assert.equal(r.status, 0, r.stdout + r.stderr);
   assert.match(r.stdout, /RENVOI : refusée en sortie 3, voir le journal du capitaine/);
+});
+
+// ── Règle d'ascendance : une sous-PR en retard sur son sujet n'entre qu'après mise à jour et retest ──────────────
+// Le défaut vécu sur `fedora` (2026-11-18) : #1968 et #1979 squashées en retard sur leur sujet, chacune avec le même
+// import ; la combinaison « sous-PR + dernier sujet » n'avait jamais été testée.
+const misesAJour = (d, n) => d.journal().filter((e) => e.methode === "PUT" && e.route === `pulls/${n}/merge`);
+const shaFusionne = (d, n) => JSON.parse(misesAJour(d, n)[0].entree).sha;
+
+// #80 part du sujet ; le sujet reçoit ensuite `fichiersSujet`. L'ancien sommet est vert par son sha ; tout autre
+// commit lit `etatNouveau` (une liste se consomme par sha : en cours, puis vert).
+function sousPrEnRetard(fichiersSujet, etatNouveau = ["IN_PROGRESS", "SUCCESS"]) {
+  const d = depotJouet();
+  d.branche("sujet/lot", "origin/develop", { "docs/lot.md": "lot\n" }, "feat(lot): lot (#1)");
+  const ancien = d.branche("feat/sous", "origin/sujet/lot", { "docs/sous.md": "sous\n" });
+  const sujet = d.branche("sujet/lot", "origin/sujet/lot", fichiersSujet, "feat(lot): a (#2)");
+  d.git("switch", "-q", "--detach", "origin/develop");
+  d.github({
+    exiges: ["qualite"],
+    checks: { [ancien]: { qualite: "SUCCESS" }, "*": { qualite: etatNouveau } },
+    pulls: [
+      {
+        number: 80,
+        title: "docs(lot): sous",
+        head: "feat/sous",
+        base: "sujet/lot",
+        labels: ["à-fusionner"],
+        body: "## Revue de ticket\n\nRien de bloquant.\n",
+      },
+    ],
+  });
+  return { d, ancien, sujet };
+}
+
+function verifierMiseAJourPuisSquash(d, ancien, sujet, r) {
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /#80 en retard sur sujet\/lot : mise à jour poussée \([0-9a-f]+\), attente de la CI/);
+  assert.match(r.stdout, /#80 fusionnée dans sujet\/lot/);
+  d.git("fetch", "-q", "origin");
+  const nouveau = d.git("rev-parse", "origin/feat/sous");
+  assert.equal(d.git("rev-parse", `${nouveau}^1`), ancien, "premier parent : l'ancien sommet");
+  assert.equal(d.git("rev-parse", `${nouveau}^2`), sujet, "second parent : le sujet");
+  assert.equal(shaFusionne(d, 80), nouveau, "le PUT porte le nouveau sommet, testé");
+  assert.equal(d.git("rev-parse", "origin/sujet/lot^{tree}"), d.git("rev-parse", `${nouveau}^{tree}`), "arbre du squash = arbre testé");
+  assert.ok(d.etat().lectures[nouveau] >= 2, "la CI du nouveau sommet a été attendue (en cours, puis verte)");
+}
+
+test("sous-PR en retard de code : mise à jour, CI attendue sur le nouveau sommet, puis squash", () => {
+  const { d, ancien, sujet } = sousPrEnRetard({ "apps/a.ts": "export const a = 1;\n" });
+  verifierMiseAJourPuisSquash(d, ancien, sujet, d.lancer(SUJET, "fusionner", "80"));
+
+  // Le nouveau sommet est rouge : sortie 3, aucun squash.
+  const rouge = sousPrEnRetard({ "apps/a.ts": "export const a = 1;\n" }, "FAILURE");
+  const x = rouge.d.lancer(SUJET, "fusionner", "80");
+  assert.equal(x.status, 3, x.stdout + x.stderr);
+  assert.match(x.stdout, /checks rouges sur #80 : qualite ;/);
+  assert.equal(misesAJour(rouge.d, 80).length, 0, "aucun PUT");
+});
+
+test("retard de documentation seule : mis à jour et retesté", () => {
+  const { d, ancien, sujet } = sousPrEnRetard({ "docs/guide.md": "guide\n" });
+  verifierMiseAJourPuisSquash(d, ancien, sujet, d.lancer(SUJET, "fusionner", "80"));
+});
+
+test("retard de documentation seule : mis à jour et retesté, vers develop (strict), develop qui reçoit un Markdown pendant la CI", () => {
+  const d = depotJouet();
+  const premier = d.branche("docs/guide", "origin/develop", { "docs/guide.md": "guide\n" });
+  const markdown = d.branche("ailleurs", "origin/develop", { "docs/autre.md": "autre\n" });
+  d.git("switch", "-q", "--detach", "origin/develop");
+  d.github({
+    exiges: ["qualite"],
+    strict: ["develop"],
+    checks: { "*": { qualite: "SUCCESS" } },
+    pendantCi: [{ lectures: 1, branche: "develop", vers: markdown }],
+    pulls: [{ number: 40, title: "docs(demo): guide", head: "docs/guide", base: "develop", labels: ["à-fusionner"] }],
+  });
+  const r = d.lancer(scriptDe("fusionner", "passer.sh"), "40");
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /develop a bougé pendant la CI : nouvelle mise à jour \(1 sur 2\)/);
+  assert.match(r.stdout, /FUSIONNÉE : [0-9a-f]+, arbre = arbre testé/);
+  d.git("fetch", "-q", "origin");
+  const second = d.git("rev-parse", "origin/docs/guide");
+  assert.equal(d.git("rev-parse", `${second}^1`), premier);
+  assert.equal(d.git("rev-parse", `${second}^2`), markdown, "seconde mise à jour : le Markdown de develop");
+  assert.equal(shaFusionne(d, 40), second);
+  assert.ok(d.etat().lectures[premier] >= 1 && d.etat().lectures[second] >= 2, "une CI par sommet");
+});
+
+// La sous-PR a reçu un push après sa lecture : ces commits n'ont été ni revus ni contrôlés. Le capitaine ne les met pas
+// à jour ni ne les pousse : sortie 5, rien n'est poussé, la sous-PR est rejugée au tour suivant.
+test("fusionner : une sous-PR en retard qui a bougé depuis sa lecture n'est ni mise à jour ni poussée (sortie 5)", () => {
+  const { d, ancien } = sousPrEnRetard({ "apps/a.ts": "export const a = 1;\n" });
+  const pousse = d.branche("feat/sous", "origin/feat/sous", { "apps/cache.ts": "export const x = 1;\n" });
+  d.git("switch", "-q", "--detach", "origin/develop");
+  // GitHub rend encore l'ancien sommet (lecture faite avant le push de la session).
+  d.github({ pulls: d.etat().pulls.map((p) => ({ ...p, sha: ancien })) });
+  const r = d.lancer(SUJET, "fusionner", "80");
+  assert.equal(r.status, 5, r.stdout + r.stderr);
+  assert.match(r.stdout, /la sous-PR #80 a bougé depuis sa lecture/);
+  assert.equal(d.git("ls-remote", "origin", "refs/heads/feat/sous").split("\t")[0], pousse, "rien n'est poussé");
+  assert.equal(misesAJour(d, 80).length, 0, "aucun PUT");
 });
