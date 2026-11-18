@@ -262,15 +262,35 @@ const CLOTURE = /^\s{0,3}(```|~~~)/;
  * finale ou de la fin de ligne (`\b` ne vaut rien après `é` en JavaScript). Lue en NFC, sans casse.
  */
 const LIGNE_SECURITE = /^\s*[-*+]\s+`?\/security-review`?\s*:\s*lancée(?=[\s(.,;:!?…]|$)/iu;
+/** Un gabarit recopié sans choisir : la branche « non requise » laissée, ou les chemins laissés en `…`. */
+const GABARIT_NON_REMPLI = /\|\s*non requise|…|\.\.\./iu;
 
 /**
  * Vrai si une ligne « - `/security-review` : lancée » se tient dans une section « Revue de ticket » ou « Revue
- * adversariale » : après son titre, avant le titre suivant de niveau égal ou supérieur, hors bloc de code.
+ * adversariale » : après son titre, avant le titre suivant de niveau égal ou supérieur, hors bloc de code et hors
+ * commentaire HTML (`<!-- … -->`, sur une ou plusieurs lignes, non fermé compris), et remplie (ni « | non requise »
+ * ni `…` laissés du gabarit).
  */
 export function aLigneSecurite(corps) {
   let dansBloc = false;
+  let dansCommentaire = false;
   let niveau = 0;
-  for (const brute of (corps ?? '').normalize('NFC').split(/\r?\n/)) {
+  for (const ligneLue of (corps ?? '').normalize('NFC').split(/\r?\n/)) {
+    let brute = ligneLue;
+    if (!dansBloc) {
+      if (dansCommentaire) {
+        const fin = brute.indexOf('-->');
+        if (fin < 0) continue;
+        brute = brute.slice(fin + 3);
+        dansCommentaire = false;
+      }
+      brute = brute.replace(/<!--[\s\S]*?-->/g, '');
+      const ouvre = brute.indexOf('<!--');
+      if (ouvre >= 0) {
+        brute = brute.slice(0, ouvre);
+        dansCommentaire = true;
+      }
+    }
     if (CLOTURE.test(brute)) {
       dansBloc = !dansBloc;
       continue;
@@ -286,7 +306,7 @@ export function aLigneSecurite(corps) {
       if (titre[1].length <= niveau) niveau = 0;
       continue;
     }
-    if (niveau > 0 && LIGNE_SECURITE.test(brute)) return true;
+    if (niveau > 0 && LIGNE_SECURITE.test(brute) && !GABARIT_NON_REMPLI.test(brute)) return true;
   }
   return false;
 }

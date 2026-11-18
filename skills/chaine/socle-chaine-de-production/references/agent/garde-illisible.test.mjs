@@ -17,6 +17,17 @@ const source = (f) => readFileSync(new URL(f, import.meta.url), 'utf8');
 const CASSES = {
   tronque: (texte) => texte.slice(0, Math.floor(texte.length / 2)),
   leve: (texte) => `throw new Error('boum à l’évaluation');\n${texte}`,
+  // Contre-relecture (B1) : des modules qui se chargent sans erreur de syntaxe, mais sans les exports que lisent les hooks.
+  coupeAvantExport: (texte) => texte.slice(0, texte.indexOf('\nexport ') + 1),
+  exportsRetires: (texte) => texte.replace(/^export (?=(async |function|const|let|class))/gm, ''),
+  vide: () => '',
+  coupeAvantDecisionCommande: (texte) => texte.slice(0, texte.indexOf('export function decisionCommande')),
+  // Une fonction de décision qui lève à l'appel : le filet `uncaughtException` des gardes.
+  leveALAppel: (texte) =>
+    ['decisionCommande', 'refusEdition', 'decisionOutilGithub'].reduce(
+      (t, nom) => `${t.replace(`export function ${nom}(`, `export function ${nom}Avant(`)}\nexport function ${nom}() { throw new Error('boum à l’appel'); }\n`,
+      texte,
+    ),
 };
 
 /** Un dépôt jouet qui porte `scripts/agent/` ; `casse` : `{ fichier, facon }`, ou rien pour un dossier sain. */
@@ -55,6 +66,9 @@ const lancer = (racine, hook, donnees = entree(racine, hook)) =>
 function ditCommentSortir(r, hook, fichier, contexte) {
   const message = r.stderr;
   assert.match(message, new RegExp(`^${hook.replace('.mjs', '')} : scripts/agent/${fichier.replace('.', '\\.')} ne se charge pas \\(`), contexte);
+  // Une garde refuse ; un hook qui ne garde rien est sauté, il ne refuse rien lui-même.
+  if (GARDES.includes(hook)) assert.ok(message.includes('tout outil est refusé tant qu'), `${contexte}\n${message}`);
+  else assert.ok(message.includes('ce hook est sauté') && !message.includes('tout outil est refusé'), `${contexte}\n${message}`);
   assert.ok(message.includes('git checkout origin/develop -- scripts/agent/'), `${contexte} : la commande de restauration manque\n${message}`);
   assert.ok(message.includes('dernier commit où les gardes se chargent'), `${contexte} : le dernier commit sain manque\n${message}`);
   assert.ok(message.includes('jamais en contournant la garde'), `${contexte}\n${message}`);
@@ -133,5 +147,48 @@ test('ticket 18 : regles.mjs sain : les gardes décident comme avant', () => {
     const r = lancer(racine, hook);
     assert.equal(r.status, 0, `${hook} : ${r.stderr}`);
     assert.doesNotMatch(r.stderr, /ne se charge pas/, hook);
+  }
+});
+
+test('ticket 18 (contre-relecture B1) : un module qui se charge sans ses exports (coupé en fin de ligne avant un export, exports retirés, vide) : les gardes refusent (sortie 2), jamais 1', () => {
+  for (const fichier of MODULES)
+    for (const facon of ['coupeAvantExport', 'exportsRetires', 'vide']) {
+      const racine = jouet({ fichier, facon });
+      const casse = join(racine, 'scripts/agent', fichier);
+      assert.equal(spawnSync(process.execPath, ['--check', casse]).status, 0, `${fichier} ${facon} : sans erreur de syntaxe`);
+      for (const hook of GARDES) {
+        const contexte = `${hook}, ${fichier} ${facon}`;
+        const r = lancer(racine, hook);
+        assert.equal(r.status, 2, `${contexte} : ${r.stderr}`);
+        ditCommentSortir(r, hook, fichier, contexte);
+        assert.match(r.stderr, /export \w+ absent/, contexte);
+      }
+      const sansGarde = fichier === 'entree.mjs' ? [...SANS_GARDE, 'demarrage.mjs'] : SANS_GARDE;
+      for (const hook of sansGarde) {
+        const contexte = `${hook}, ${fichier} ${facon}`;
+        const r = lancer(racine, hook);
+        assert.equal(r.status, 0, `${contexte} : ${r.stderr}`);
+        ditCommentSortir(r, hook, fichier, contexte);
+      }
+    }
+  // Le cas rejoué par la contre-relecture : regles.mjs coupé juste avant `export function decisionCommande`.
+  const racine = jouet({ fichier: 'regles.mjs', facon: 'coupeAvantDecisionCommande' });
+  for (const command of ['git push --force origin develop', 'git commit --amend -m x', 'git commit --no-verify -m x', 'git status']) {
+    const r = lancer(racine, 'garde-commandes.mjs', { tool_input: { command } });
+    assert.equal(r.status, 2, `${command} : ${r.stderr}`);
+    ditCommentSortir(r, 'garde-commandes.mjs', 'regles.mjs', command);
+  }
+});
+
+test('ticket 18 (contre-relecture B1) : une erreur inattendue dans une garde la fait refuser (sortie 2), jamais 1, sans trace de pile', () => {
+  const racine = jouet({ fichier: 'regles.mjs', facon: 'leveALAppel' });
+  assert.equal(spawnSync(process.execPath, ['--check', join(racine, 'scripts/agent/regles.mjs')]).status, 0);
+  for (const hook of GARDES) {
+    const r = lancer(racine, hook);
+    assert.equal(r.status, 2, `${hook} : ${r.stderr}`);
+    assert.match(r.stderr, new RegExp(`^${hook.replace('.mjs', '')} : erreur inattendue \\(boum à l’appel\\) : tout outil est refusé`), hook);
+    assert.ok(r.stderr.includes('git checkout origin/develop -- scripts/agent/'), hook);
+    assert.doesNotMatch(r.stderr, /^\s+at /m, `${hook} : trace de pile\n${r.stderr}`);
+    assert.equal(r.stderr.trimEnd().split('\n').length, 1, hook);
   }
 });

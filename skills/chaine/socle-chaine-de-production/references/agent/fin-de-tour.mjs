@@ -11,16 +11,31 @@ import { execFileSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 
-// Ticket 18 : les modules de la garde se chargent en dynamique protégé, avant toute autre chose. Un module cassé
-// (tronqué, ou qui lève à son évaluation) ne fait pas tomber le hook sur une trace de Node : il le dit sur la sortie d'erreur et sort en 0 (ce hook ne garde rien ; un `Stop` en sortie 2 bouclerait la session)
-// et dit comment sortir. Le code est ici, et pas dans un module commun, qui pourrait être cassé lui aussi.
-const charger = (fichier) =>
-  import(`./${fichier}`).catch((e) => {
-    process.stderr.write(`fin-de-tour : scripts/agent/${fichier} ne se charge pas (${String(e?.message ?? e).split('\n')[0]}) : tout outil est refusé tant qu'il n'est pas restauré, la garde ne s'ouvre jamais sur un fichier cassé. La session s'arrête et le dit à qui l'a lancée ; un humain restaure scripts/agent/ depuis un terminal, depuis le dernier commit où les gardes se chargent, jamais en contournant la garde : git checkout origin/develop -- scripts/agent/ si develop est sain, sinon git checkout <commit> -- scripts/agent/\n`);
-    process.exit(0);
-  });
-const { lireEntree, RACINE } = await charger('entree.mjs');
-const { CHAINE } = await charger('regles.mjs');
+// Ticket 18 : les modules du hook se chargent en dynamique protégé, avant toute autre chose, et chaque nom lu est
+// vérifié : un module cassé (tronqué, qui lève à son évaluation, ou qui se charge sans l'export attendu) fait sauter
+// le hook, le dit en une ligne qui dit comment sortir, et sort en 0 (un `Stop` en sortie 2 bouclerait la session). Le code est ici, et pas dans un
+// module commun, qui pourrait être cassé lui aussi.
+/** Comment sortir : jamais en contournant la garde. */
+const RESTAURER =
+  "La session s'arrête et le dit à qui l'a lancée ; un humain restaure scripts/agent/ depuis un terminal, depuis le dernier commit où les gardes se chargent, jamais en contournant la garde : git checkout origin/develop -- scripts/agent/ si develop est sain, sinon git checkout <commit> -- scripts/agent/";
+const cause = (e) => String(e?.message ?? e).split('\n')[0];
+const echec = (fichier, raison) => {
+  process.stderr.write(`fin-de-tour : scripts/agent/${fichier} ne se charge pas (${raison}) : ce hook est sauté, et les gardes refusent tout outil tant qu'il n'est pas restauré. ${RESTAURER}\n`);
+  process.exit(0);
+};
+/** Le module, chaque nom de `attendus` présent avec son type (`function`, `string`, `object`), ou l'échec. */
+const charger = async (fichier, attendus) => {
+  let m;
+  try {
+    m = await import(`./${fichier}`);
+  } catch (e) {
+    return echec(fichier, cause(e));
+  }
+  for (const [nom, type] of Object.entries(attendus)) if (typeof m[nom] !== type || m[nom] === null) return echec(fichier, `export ${nom} absent ou qui n'est pas ${type === 'object' ? 'un objet' : type === 'string' ? 'une chaîne' : 'une fonction'}`);
+  return m;
+};
+const { lireEntree, RACINE } = await charger('entree.mjs', { lireEntree: 'function', RACINE: 'string' });
+const { CHAINE } = await charger('regles.mjs', { CHAINE: 'object' });
 
 if (lireEntree().stop_hook_active) process.exit(0);
 

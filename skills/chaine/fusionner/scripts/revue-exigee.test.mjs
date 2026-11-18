@@ -437,3 +437,16 @@ test('ticket 18 : la CLI renvoie le motif de la ligne après celui de la section
   assert.match(titre.stdout, /titre « feat »/, 'la ligne présente : le motif du titre');
   assert.equal(lancer(avecLigne(LIGNE), 'docs: x', 'docs/securite/a.md\n').status, 0);
 });
+
+test('ticket 18 (contre-relecture) : un gabarit recopié sans choisir, ou la ligne dans un commentaire HTML, ne comptent pas', () => {
+  const refusee = (corps, contexte) => assert.notEqual(revueExigee.motifSansSecurite({ corps, fichiers: ['infra/main.tf'], base: INFRA }), null, contexte);
+  refusee(avecLigne('- `/security-review` : lancée (chemins : …) | non requise'), 'gabarit recopié tel quel');
+  refusee(avecLigne('- `/security-review` : lancée (chemins : infra/main.tf) | non requise'), 'les deux branches laissées');
+  refusee(avecLigne('- `/security-review` : lancée (chemins : …)'), 'chemins non remplis');
+  refusee(avecLigne('- `/security-review` : lancée (chemins : ...)'), 'chemins non remplis, trois points');
+  refusee(avecLigne(`<!-- ${LIGNE} -->`), 'commentaire HTML sur une ligne');
+  refusee(avecLigne(`<!--\n${LIGNE}\n-->`), 'commentaire HTML sur plusieurs lignes');
+  refusee(avecLigne(`<!--\n${LIGNE}`), 'commentaire HTML non fermé');
+  assert.equal(revueExigee.motifSansSecurite({ corps: avecLigne(`<!-- note -->\n${LIGNE}`), fichiers: ['infra/main.tf'], base: INFRA }), null, 'après un commentaire fermé');
+  assert.equal(revueExigee.motifSansSecurite({ corps: avecLigne(`${LIGNE} <!-- relue -->`), fichiers: ['infra/main.tf'], base: INFRA }), null, 'commentaire après la ligne');
+});

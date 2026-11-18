@@ -249,6 +249,8 @@ const EXCEPTIONS_SAUT = [
   `${REF}/agent/regles.test.mjs`,
   // Le banc du hook de bout en bout (ticket 17 de capitaine-a-jour-et-teste) cite les sauts qu'il fait refuser.
   `${REF}/agent/garde-commandes.test.mjs`,
+  // Le banc de la garde illisible (ticket 18) rejoue une commande qui saute les hooks sur un regles.mjs cassé : elle est refusée.
+  `${REF}/agent/garde-illisible.test.mjs`,
   `${REF}/scripts/verify/settings-json.test.mjs`,
   "scripts/depot.test.mjs",
 ];
@@ -1110,13 +1112,17 @@ test("la consigne d'écriture d'un seul coup est dans le gabarit, et le paragrap
   const gabarit = readFileSync(join(RACINE, GABARIT_FILLE), "utf8");
   const amend = lignes(gabarit).find((l) => l.includes("**Jamais d'amend.**"));
   assert.ok(amend, "paragraphe « Jamais d'amend » absent");
-  assert.ok(amend.trimEnd().endsWith("La garde (`garde-commandes`) le refuse."), "le paragraphe « Jamais d'amend » finit par la garde qui le refuse");
+  assert.ok(amend.trimEnd().endsWith("La garde (`garde-commandes`) refuse l'un et l'autre."), "le paragraphe « Jamais d'amend » finit par la garde qui refuse l'amend et le push forcé");
+  assert.equal(amend.match(/refuse/g).length, 1, "le refus n'est dit qu'une fois");
   const seulCoup = lignes(gabarit).find((l) => l.includes("**Un fichier que les gardes chargent s'écrit d'un seul coup.**"));
   assert.ok(seulCoup, "consigne « s'écrit d'un seul coup » absente");
-  for (const attendu of ["node --check <copie>", "import('<copie>')", "jamais une suite d'`Edit`", "git checkout origin/develop -- scripts/agent/", "dernier commit où les gardes se chargent", "jamais en contournant la garde"])
+  for (const attendu of ["node --check <copie>", "import('<copie>')", "Object.keys(m)", "aucun nom ne manque", "jamais une suite d'`Edit`", "git checkout origin/develop -- scripts/agent/", "dernier commit où les gardes se chargent", "jamais en contournant la garde"])
     assert.ok(seulCoup.includes(attendu), `consigne d'écriture : « ${attendu} » manque`);
   const fragment = readFileSync(join(RACINE, "skills/chaine/socle-chaine-de-production/references/fragments/claude-md-fusion.md"), "utf8");
   assert.ok(lignes(fragment).find((l) => l.startsWith("- **Hooks d'agent**"))?.includes("`git commit --amend`"), "la ligne « Hooks d'agent » du fragment nomme l'amend");
+  // Aucun gabarit ne conseille de couper les hooks pour sortir d'une garde cassée (contre-relecture du ticket 18).
+  for (const doc of ["skills/chaine/socle-chaine-de-production/references/docs-agents/pieges.md", "skills/chaine/socle-chaine-de-production/references/CONTENU.md", GABARIT_FILLE])
+    assert.ok(!readFileSync(join(RACINE, doc), "utf8").includes(`claude --settings '{"disableAllHooks"`), `${doc} conseille de relancer avec disableAllHooks`);
 });
 
 test("ticket 18 : la ligne /security-review des deux gabarits de section se lit « lancée » par le capitaine", async () => {

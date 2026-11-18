@@ -2,16 +2,35 @@
 /** Hook PreToolUse (Bash) : commandes interdites (le hook refuse et dit quoi faire, il ne demande jamais rien à un humain). */
 import { execFileSync } from 'node:child_process';
 
-// Ticket 18 : les modules de la garde se chargent en dynamique protégé, avant toute autre chose. Un module cassé
-// (tronqué, ou qui lève à son évaluation) ne fait pas tomber le hook sur une trace de Node : il refuse l'outil (sortie 2)
-// et dit comment sortir. Le code est ici, et pas dans un module commun, qui pourrait être cassé lui aussi.
-const charger = (fichier) =>
-  import(`./${fichier}`).catch((e) => {
-    process.stderr.write(`garde-commandes : scripts/agent/${fichier} ne se charge pas (${String(e?.message ?? e).split('\n')[0]}) : tout outil est refusé tant qu'il n'est pas restauré, la garde ne s'ouvre jamais sur un fichier cassé. La session s'arrête et le dit à qui l'a lancée ; un humain restaure scripts/agent/ depuis un terminal, depuis le dernier commit où les gardes se chargent, jamais en contournant la garde : git checkout origin/develop -- scripts/agent/ si develop est sain, sinon git checkout <commit> -- scripts/agent/\n`);
-    process.exit(2);
-  });
-const { brancheParDefaut, lireToolInput, RACINE } = await charger('entree.mjs');
-const { decisionCommande, lireDependances } = await charger('regles.mjs');
+// Ticket 18 : la garde ne s'ouvre jamais. Ses modules se chargent en dynamique protégé, avant toute autre chose, et
+// chaque nom lu est vérifié : un module cassé (tronqué, qui lève à son évaluation, ou qui se charge sans l'export
+// attendu) fait refuser l'outil (sortie 2) en une ligne qui dit comment sortir. Filet : toute autre erreur non
+// rattrapée refuse aussi, jamais la sortie 1 d'une trace de Node. Le code est ici, et pas dans un module commun, qui
+// pourrait être cassé lui aussi.
+/** Comment sortir : jamais en contournant la garde. */
+const RESTAURER =
+  "La session s'arrête et le dit à qui l'a lancée ; un humain restaure scripts/agent/ depuis un terminal, depuis le dernier commit où les gardes se chargent, jamais en contournant la garde : git checkout origin/develop -- scripts/agent/ si develop est sain, sinon git checkout <commit> -- scripts/agent/";
+const cause = (e) => String(e?.message ?? e).split('\n')[0];
+const refuser = (texte) => {
+  process.stderr.write(`garde-commandes : ${texte}\n`);
+  process.exit(2);
+};
+process.on('uncaughtException', (e) => refuser(`erreur inattendue (${cause(e)}) : tout outil est refusé, la garde ne s'ouvre jamais sur une erreur. ${RESTAURER}`));
+process.on('unhandledRejection', (e) => refuser(`erreur inattendue (${cause(e)}) : tout outil est refusé, la garde ne s'ouvre jamais sur une erreur. ${RESTAURER}`));
+const echec = (fichier, raison) => refuser(`scripts/agent/${fichier} ne se charge pas (${raison}) : tout outil est refusé tant qu'il n'est pas restauré, la garde ne s'ouvre jamais sur un fichier cassé. ${RESTAURER}`);
+/** Le module, chaque nom de `attendus` présent avec son type (`function`, `string`, `object`), ou l'échec. */
+const charger = async (fichier, attendus) => {
+  let m;
+  try {
+    m = await import(`./${fichier}`);
+  } catch (e) {
+    return echec(fichier, cause(e));
+  }
+  for (const [nom, type] of Object.entries(attendus)) if (typeof m[nom] !== type || m[nom] === null) return echec(fichier, `export ${nom} absent ou qui n'est pas ${type === 'object' ? 'un objet' : type === 'string' ? 'une chaîne' : 'une fonction'}`);
+  return m;
+};
+const { brancheParDefaut, lireToolInput, RACINE } = await charger('entree.mjs', { brancheParDefaut: 'function', lireToolInput: 'function', RACINE: 'string' });
+const { decisionCommande, lireDependances } = await charger('regles.mjs', { decisionCommande: 'function', lireDependances: 'function' });
 
 // Grammaire des identifiants du skill `socle-monorepo` : le ticket d'une branche (`feat/spec-all-soc-1-04-hook`
 // → `SPEC_ALL_SOC-1.04`) et celui d'un fichier ne se lisent que par elle, aucune expression n'en est
