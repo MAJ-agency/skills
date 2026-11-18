@@ -1,6 +1,6 @@
 # `next-id` lit develop, tous les sujets et les PR ouvertes après un fetch, et numérote aussi les tickets d'une spec
 
-Status: Fait — PR #<n>
+Status: Fait — PR #123
 Type: défaut
 Modèle: sonnet — un script de numérotation à étendre sur le module de lecture des PR ouvertes du ticket 6 (`pr-ouvertes.mjs`), un mode de plus sur la grammaire existante (`fichiersDeLaSpec`), et des bancs sur le dépôt jouet du script ; aucune conception au-delà de ce que le ticket tranche.
 Blocked by: 6, 13 (le module `pr-ouvertes.mjs`, `A-14`, que ce ticket réutilise ; l'environnement de banc de `next-id.test.mjs`, que le 13 pose : `A-43`)
@@ -148,7 +148,7 @@ Les 7 tests existants restent verts, `plusGrandSurBranches` compris (l. 127), et
    - La session ouvre une PR vers `main`, hors brouillon, titrée `fix(tickets): next-id lit develop, les sujets et les PR ouvertes, et numérote les tickets (plugin <version>)`. Le titre tient en 120 caractères avec ` (#n)`.
    - Le ticket porte `Label: contre-revue` : la session ne pose **ni** le commentaire `à-fusionner au sommet <sha>` **ni** le label (`architecte/references/lancement.md:76`). Elle écrit à l'architecte (`send_message`) dès la PR livrée.
    - L'architecte contre-relit par un sous-agent. Puis il écrit sur la PR le commentaire `à-fusionner au sommet <sha>` (le sha complet du sommet relu) et pose `à-fusionner` (`lancement.md:80`). Le produit fusionne.
-   - Dans la PR, le ticket passe à `Status: Fait — PR #<n>`.
+   - Dans la PR, le ticket passe à `Status: Fait — PR #123`.
 
 ## Hors périmètre
 
