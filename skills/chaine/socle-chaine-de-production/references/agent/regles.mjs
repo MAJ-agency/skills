@@ -510,6 +510,7 @@ class Lecteur {
       this.apresExpansion = false;
     }
     if (v) mot.litteral = true;
+    if (!cite) mot.nu += v;
     mot.valeur += v;
     mot.texte += v;
     if (mot.queue !== null) mot.queue += v;
@@ -524,8 +525,10 @@ class Lecteur {
    * de commande se lit `$SUBSTITUTION`, suivie d'un blanc si le mot continue ; un paramètre (`$x`, `${…}`)
    * garde son texte, comme 7.9.0 le lisait : `GH=gh; $GH pr merge 3` reste refusé.
    */
-  exp(brut) {
+  exp(brut, cite = false) {
     const mot = this.mot;
+    if (!mot.expansion) mot.prefixe = mot.valeur;
+    if (!cite) mot.nonCitee = true;
     mot.expansion = true;
     mot.queue = '';
     if (brut === undefined) {
@@ -1212,26 +1215,26 @@ class Lecteur {
         if (fin >= 0) {
           this.plonger(() => this.arithmetique(this.i + 3, fin));
           this.i = fin + 2;
-          b.exp();
+          b.exp(undefined, cite);
           return;
         }
       }
       this.i += 2;
       this.substitution();
-      b.exp();
+      b.exp(undefined, cite);
     } else if (n === '{') {
       const debut = this.i;
       this.i += 2;
       this.plonger(() => this.accolade());
-      b.exp(s.slice(debut, this.i));
+      b.exp(s.slice(debut, this.i), cite);
     } else if (debutDeNom(n ?? '')) {
       const debut = this.i;
       this.i += 2;
       while (suiteDeNom(s[this.i] ?? '')) this.i++;
-      b.exp(s.slice(debut, this.i));
+      b.exp(s.slice(debut, this.i), cite);
     } else if (n !== undefined && '0123456789@*#?$!-'.includes(n)) {
       this.i += 2;
-      b.exp(s.slice(this.i - 2, this.i));
+      b.exp(s.slice(this.i - 2, this.i), cite);
     } else {
       b.lit('$', cite);
       this.i++;
@@ -1308,7 +1311,7 @@ class Lecteur {
       } else if (c === '$') this.dollar(b, true);
       else if (c === '`') {
         this.accentsGraves(true);
-        b.exp();
+        b.exp(undefined, true);
       } else {
         b.lit(c, true);
         this.i++;
@@ -1350,7 +1353,7 @@ class Lecteur {
   lireMot() {
     const s = this.src;
     const debut = this.i;
-    const mot = { valeur: '', expansion: false, brut: '', cite: false, texte: '', blancCite: false, queue: null, litteral: false, debut };
+    const mot = { valeur: '', expansion: false, brut: '', cite: false, texte: '', blancCite: false, queue: null, litteral: false, debut, prefixe: null, nonCitee: false, nu: '' };
     const precedent = this.mot;
     const apresAvant = this.apresExpansion;
     this.mot = mot;
@@ -1364,7 +1367,8 @@ class Lecteur {
           if (n !== '(') break;
           this.i += 2;
           this.substitution();
-          b.exp();
+          // Une substitution de processus rend un seul chemin (`/dev/fd/63`) : bash ne la découpe pas.
+          b.exp(undefined, true);
         } else if (metacaractere(c)) break;
         else if (c === '\\') {
           if (n === '\n') this.i += 2;
@@ -1449,15 +1453,20 @@ function lectureDuCorps(h, { executeur, unShell }) {
 }
 
 /**
- * Une lecture d'une commande simple, pour les décideurs de `git push` et de `gh` : ses mots, son texte, et
- * `suite()`, le source à partir de cette commande.
+ * Une lecture d'une commande simple, pour les décideurs de `git push`, de `gh` et des appels de git : ses mots,
+ * son texte, le `debut` de la commande simple qu'elle relit, et `suite()`, le source à partir de cette commande.
+ * `appariable` : faux pour une lecture qui ne relit pas les mots d'une commande simple (valeurs d'un tableau,
+ * corps relu par prudence, commande illisible), jamais appariée à une commande (`appelsGit`). `exacte` : la
+ * lecture L1, les mots mêmes de la commande simple.
  */
 class Lecture {
-  constructor(mots, segment, source, debut) {
+  constructor(mots, segment, source, debut, { appariable = true, exacte = false } = {}) {
     this.mots = mots;
     this.segment = segment;
     this.source = source;
     this.debut = debut;
+    this.appariable = appariable;
+    this.exacte = exacte;
   }
 
   suite() {
@@ -1486,7 +1495,7 @@ function lectureIllisible(commande, motif) {
     prudences: Object.freeze([]),
     textes: Object.freeze(eclate.map(({ mots }) => mots)),
     cites: Object.freeze([]),
-    lectures: Object.freeze(eclate.map(({ segment, mots }) => new Lecture(mots, segment, { suite: () => commande }, 0))),
+    lectures: Object.freeze(eclate.map(({ segment, mots }) => new Lecture(mots, segment, { suite: () => commande }, 0, { appariable: false }))),
     segments: Object.freeze(eclate.map(({ segment }) => Object.freeze({ segment, suite: commande }))),
     sansTexte: commande,
   });
@@ -1523,15 +1532,17 @@ function lectureIllisible(commande, motif) {
  *   prudences: readonly { texte: string, segments: { segment: string, mots: string[] }[] }[],
  *   textes: readonly string[][],
  *   cites: readonly string[][],
- *   lectures: readonly { mots: string[], segment: string, suite(): string }[],
+ *   lectures: readonly { mots: string[], segment: string, debut: number, appariable: boolean, exacte: boolean, suite(): string }[],
  *   segments: readonly { segment: string, suite: string }[],
  *   sansTexte: string,
  * }}
  * - `commandes` : les commandes simples, dans l'ordre du source ; `debut`, leur position dans la commande
  *   (celle du mot ou du corps qui les porte, pour un accent grave, un `-c`, un `eval` ou un corps `<<-`). Un
- *   `Mot` : `{ valeur, expansion, brut, cite }` — `valeur` sans guillemets, `$SUBSTITUTION` s'il porte une
- *   expansion ; `brut`, son texte dans la source ; `cite`, s'il a une partie citée. Un here-string porte son
- *   mot en `contenu`.
+ *   `Mot` : `{ valeur, expansion, brut, cite, prefixe, nonCitee, nu }` — `valeur` sans guillemets,
+ *   `$SUBSTITUTION` s'il porte une expansion ; `brut`, son texte dans la source ; `cite`, s'il a une partie citée ;
+ *   `prefixe`, le texte littéral avant sa première expansion (`user.name=` pour `user.name="$n"`) ; `nonCitee`,
+ *   s'il porte une expansion hors de guillemets doubles (bash la découpe en mots) ; `nu`, ses parties littérales
+ *   non citées (où bash lit un motif ou des accolades). Un here-string porte son mot en `contenu`.
  * - `heredocs` : tous les here-docs et here-strings, ceux d'une commande composée (`{ …; } <<EOF`, `done <<EOF`)
  *   compris, dans l'ordre de lecture, chacun avec sa lecture retenue.
  * - `prudences` : les corps relus par prudence, guillemets et barres obliques inverses retirés, accents graves lus
@@ -1546,7 +1557,9 @@ function lectureIllisible(commande, motif) {
  *   simple (L1), sa lecture éclatée (L2 : valeurs jointes, recoupées sur les blancs et les séparateurs, puis
  *   relues dénudées, sans guillemets ni barres obliques inverses, accents graves coupant le segment), le
  *   texte qui suit chaque mot à expansion relu comme un début de commande (son premier segment, en temps
- *   linéaire), les valeurs des tableaux, et les corps relus par prudence ;
+ *   linéaire), les valeurs des tableaux, et les corps relus par prudence ; `debut`, celui de la commande simple
+ *   relue ; `appariable`, faux pour les valeurs d'un tableau et les corps relus par prudence (ils ne relisent
+ *   pas les mots d'une commande simple) ; `exacte`, vrai pour L1 ;
  *   `suite()`, le source à partir de la commande, corps retirés exclus, commentaires compris.
  * - `segments` : le rendu de L2 seul (`segmentsDeCommande`), substitutions d'abord.
  * - `sansTexte` : la commande, textes cités vidés et corps de here-doc retirés (`sansTexte`).
@@ -1625,12 +1638,12 @@ function lire(commande, avecRemplacements = false) {
   // Les relectures (après un mot à expansion) ont un budget linéaire : au-delà, la commande est illisible.
   let budget = 16 * commande.length + 4096;
   // Les décideurs de `git push` et de `gh` ne lisent qu'un segment qui nomme git ou gh : sans « g », rien à lire.
-  const lireMots = (m, debut) => {
+  const lireMots = (m, debut, options) => {
     const s = m.join(' ');
-    if (s.includes('g') || s.includes('G')) lectures.push(new Lecture(m, s, tete, debut));
+    if (s.includes('g') || s.includes('G')) lectures.push(new Lecture(m, s, tete, debut, options));
   };
-  /** Les mots d'une commande simple (ou les valeurs d'un tableau), en L1, L2 et L3. */
-  const lireElements = (elements, debut) => {
+  /** Les mots d'une commande simple (ou les valeurs d'un tableau, `appariable` faux), en L1, L2 et L3. */
+  const lireElements = (elements, debut, appariable = true) => {
     const mots = [];
     const l3 = [];
     const l1 = [];
@@ -1650,7 +1663,7 @@ function lire(commande, avecRemplacements = false) {
       if (!aDenuder && aDenuderDans(e.texte)) aDenuder = true;
     }
     textes.push(l3);
-    lireMots(l1, debut);
+    lireMots(l1, debut, { appariable, exacte: appariable });
     // La commande telle que bash la lance si ses expansions sont vides (`git $X push -f`), ou valent ce que la
     // commande leur a affecté (`X=--no-verify; git commit $X`) : des lectures en plus, jamais à la place.
     if (expansion) {
@@ -1670,6 +1683,7 @@ function lire(commande, avecRemplacements = false) {
         lireMots(
           variante.map((x) => (typeof x === 'string' ? x : x.valeur)),
           debut,
+          { appariable },
         );
       }
     }
@@ -1686,7 +1700,7 @@ function lire(commande, avecRemplacements = false) {
       if (nu !== texte) eclater(nu).forEach(({ segment: s, mots: m }, rang) => f(s, m, rang));
     };
     eclaterDeuxFois(textesDesElements.join(' '), (s, m, rang) => {
-      if (m.length !== l1.length || m.some((x, k) => x !== l1[k])) lectures.push(new Lecture(m, s, tete, debut));
+      if (m.length !== l1.length || m.some((x, k) => x !== l1[k])) lectures.push(new Lecture(m, s, tete, debut, { appariable }));
       // Un segment qui commence dans un texte cité (après un séparateur qu'il porte) est une commande qu'un
       // interprète peut lancer (`python3 -c 'os.system("git commit --no-verify")'`, `eval '…'` imbriqués) :
       // `COMMANDES_INTERDITES` et les dépendances le lisent aussi. Le premier segment est la commande elle-même,
@@ -1719,14 +1733,14 @@ function lire(commande, avecRemplacements = false) {
           if (c >= 0) break;
         }
       if ((budget -= s.length + 1) < 0) return;
-      eclaterDeuxFois(s, (seg, m) => lectures.push(new Lecture(m, seg, tete, debut)));
+      eclaterDeuxFois(s, (seg, m) => lectures.push(new Lecture(m, seg, tete, debut, { appariable })));
     }
   };
   for (let n = 0; n < lu.commandes.length; n++) {
     const cmd = lu.commandes[n];
     lireElements(lu.elements[n], cmd.debut);
     // Les valeurs d'un tableau (`a=(git push -f)`) : `"${a[@]}"` les lance comme une commande.
-    for (const valeurs of cmd.tableaux) lireElements(valeurs, cmd.debut);
+    for (const valeurs of cmd.tableaux) lireElements(valeurs, cmd.debut, false);
     if (budget < 0) return lectureIllisible(commande, 'commande trop coûteuse à lire');
   }
   // Un corps relu par prudence passe par tous les décideurs : push et gh (L2), `COMMANDES_INTERDITES` et
@@ -1734,7 +1748,7 @@ function lire(commande, avecRemplacements = false) {
   for (const { texte, segments: s } of prudences) {
     const source = { suite: () => texte };
     for (const { segment, mots } of s) {
-      lectures.push(new Lecture(mots, segment, source, 0));
+      lectures.push(new Lecture(mots, segment, source, 0, { appariable: false }));
       textes.push(mots);
     }
   }
@@ -1805,8 +1819,12 @@ export function segmentsDeCommande(commande) {
   return lireCommande(commande).segments;
 }
 
-/** Options de `git` placées avant la sous-commande et suivies d'une valeur (`git -C .. push`). */
-const OPTIONS_GIT_A_VALEUR = new Set(['-C', '-c', '--git-dir', '--work-tree', '--namespace', '--exec-path', '--super-prefix', '--attr-source']);
+/**
+ * Options de `git` placées avant la sous-commande et suivies d'une valeur (`git -C .. push`). `--config-env`
+ * en est (ticket 17) : sans lui, sa valeur était prise pour la sous-commande, et `git --config-env k=V push
+ * origin HEAD:sujet/x` passait le refus des sujets.
+ */
+const OPTIONS_GIT_A_VALEUR = new Set(['-C', '-c', '--git-dir', '--work-tree', '--namespace', '--exec-path', '--super-prefix', '--attr-source', '--config-env']);
 /** Options de `git push` suivies d'une valeur séparée : cette valeur n'est ni le remote ni un refspec. */
 const OPTIONS_PUSH_A_VALEUR = new Set(['-o', '--push-option', '--repo', '--receive-pack', '--exec']);
 
@@ -1849,16 +1867,65 @@ function pushs(commande) {
  */
 let derniersPushs = { commande: null, pushs: [] };
 
+/**
+ * L'appel de git dont le programme est en `i` dans `mots` : ses options globales (`-C`, `-c`, `--git-dir`,
+ * `--config-env`…), chacune avec sa valeur (le mot suivant pour une option de `OPTIONS_GIT_A_VALEUR`, quel
+ * qu'il soit, opaque compris ; ce qui suit le `=` d'une forme collée ; `null` sinon), l'index `j` de la
+ * sous-commande, la sous-commande en minuscules (`null` si elle manque ou porte `$` ou un accent grave), et
+ * les arguments.
+ * @param {readonly string[]} mots
+ * @param {number} i
+ */
+function appelDeGit(mots, i) {
+  const globales = [];
+  let j = i + 1;
+  while (j < mots.length && mots[j].startsWith('-')) {
+    const option = mots[j];
+    if (OPTIONS_GIT_A_VALEUR.has(option)) {
+      globales.push({ option, valeur: mots[j + 1] ?? null });
+      j += 2;
+    } else {
+      const egal = option.indexOf('=');
+      globales.push(egal > 0 ? { option: option.slice(0, egal), valeur: option.slice(egal + 1) } : { option, valeur: null });
+      j++;
+    }
+  }
+  const mot = mots[j];
+  const sous = mot === undefined || /[$`]/.test(mot) ? null : mot.toLowerCase();
+  return { i, j, globales, sous, args: mots.slice(j + 1) };
+}
+
+/**
+ * Chaque appel de git des lectures (`lireCommande(…).lectures`) : `{ globales, sous, args, i, j, lecture }`
+ * (`appelDeGit`). Le programme se lit comme pour `pushs` : `git` nu ou par son chemin, derrière un préfixe, et
+ * seul le premier `git` d'un segment compte (`git commit -m "… git config …"` n'est pas un `git config`).
+ */
+export function appelsGit(lectures) {
+  return lectures.flatMap((lecture) =>
+    !/git/i.test(lecture.segment) ? [] : [...lecturesDuProgramme(lecture.mots, /(^|[/$])git$/i, /(^|\/)git$/).map((i) => appelDeGit(lecture.mots, i)), ...appelsInternes(lecture.mots)].map((appel) => ({ ...appel, lecture })),
+  );
+}
+
+/**
+ * Les programmes internes de git (`/usr/lib/git-core/git-commit`, `"$(git --exec-path)/git-push"`, ou
+ * `git-commit` quand ce dossier est dans le `PATH`) : git lui-même, sous-commande comprise, sans options
+ * globales. Le premier mot du segment qui en nomme un compte.
+ */
+const PROGRAMME_INTERNE = /(^|\/)git-([a-z][a-z-]*)$/i;
+function appelsInternes(mots) {
+  const k = mots.findIndex((mot) => PROGRAMME_INTERNE.test(mot));
+  return k < 0 ? [] : [{ i: k, j: k, globales: [], sous: PROGRAMME_INTERNE.exec(mots[k])[2].toLowerCase(), args: mots.slice(k + 1), interne: true }];
+}
+
+/** Les mots d'un appel interne (`git-commit -n`) relus comme `git commit -n`, pour `lireAppel`. */
+const commeGit = (W, i, sous) => [...W.slice(0, i), motDuTexte('git'), { ...W[i], valeur: sous, vue: sous }, ...W.slice(i + 1)];
+
 /** La lecture de `pushs`, sans mémoire, sur les mots des lectures. */
 function lirePushs(lectures) {
-  return lectures.flatMap(({ mots, segment }) =>
-    !/git/i.test(segment) ? [] :
-    // Deux lectures du programme : la prudente, et celle d'avant (premier `git` à la casse exacte), pour que
-    // rien de ce qu'elle refusait ne passe (`sudo -u GIT -H git push …`).
-    lecturesDuProgramme(mots, /(^|[/$])git$/i, /(^|\/)git$/).flatMap((i) => {
-      let j = i + 1;
-      while (j < mots.length && mots[j].startsWith('-')) j += OPTIONS_GIT_A_VALEUR.has(mots[j]) ? 2 : 1;
-      if (mots[j]?.toLowerCase() !== 'push') return [];
+  // Deux lectures du programme (`appelsGit`) : la prudente, et celle d'avant (premier `git` à la casse exacte),
+  // pour que rien de ce qu'elle refusait ne passe (`sudo -u GIT -H git push …`).
+  return appelsGit(lectures).flatMap(({ j, sous, lecture: { mots } }) => {
+      if (sous !== 'push') return [];
       const positionnels = [];
       let tout = false;
       let remoteEnOption = false;
@@ -1880,8 +1947,7 @@ function lirePushs(lectures) {
       }
       const refspecs = remoteEnOption ? positionnels : positionnels.slice(1);
       return [{ refspecs, tout, illisible, force: force || refspecs.some((refspec) => refspec.startsWith('+')) }];
-    }),
-  );
+  });
 }
 
 /** La branche distante qu'écrit un refspec ; `HEAD` ou `@` seuls poussent la branche courante. */
@@ -1934,8 +2000,11 @@ export function pousseSurUneBrancheGardee(commande, brancheCourante = () => null
  * substitution, destination en motif (`refs/heads/*`), ou `--all`, `--mirror`, `--branches`.
  */
 export function pushIllisible(commande) {
-  return pushs(commande).some(
-    ({ refspecs, tout, illisible }) => tout || illisible || refspecs.some((refspec) => /[$`]/.test(refspec) || /[*?[{]/.test(destination(refspec, () => null))),
+  return (
+    pushs(commande).some(
+      // `git push origin :` (« matching ») pousse toute branche de même nom, develop comprise : la destination ne s'y lit pas.
+      ({ refspecs, tout, illisible }) => tout || illisible || refspecs.some((refspec) => refspec === ':' || refspec === '+:' || /[$`]/.test(refspec) || /[*?[{]/.test(destination(refspec, () => null))),
+    ) || lireGit(lireCommande(commande)).push
   );
 }
 
@@ -1950,6 +2019,454 @@ export const pousseEnForce = (commande) => pushs(commande).some(({ force }) => f
 export function pushSansRefspec(commande) {
   return pushs(commande).some(({ refspecs }) => refspecs.length === 0);
 }
+
+// ——— Les appels de git : hooks sautés, arguments illisibles, refs de suivi (ticket 17) ————————————————————
+
+export const RAISON_HOOKS_GIT =
+  "hooks git sautés (--no-verify, -n, HUSKY=0, core.hooksPath, include.path, alias.*, GIT_CONFIG_*) : ils sont le pare-feu local, corriger ce qu'ils signalent. Un banc installe ses hooks dans son dépôt jouet par son script, jamais par une commande de session.";
+export const RAISON_ARGUMENT_ILLISIBLE =
+  'argument de git illisible (variable ou substitution là où git peut lire une option) : écris-le en clair. Une expansion n\'est admise que dans une valeur : `-m "$msg"`, `--author="$a"`.';
+export const RAISON_REF_DE_SUIVI =
+  'une ref de suivi (refs/remotes/…) ne se fabrique pas : des scripts de la chaîne la lisent comme l\'état du distant. `git fetch origin` la met à jour.';
+
+/**
+ * Les options des sous-commandes qui font un commit ou lancent un hook, relevées sur `git <sous-commande> -h`
+ * (git 2.43) : courtes à valeur obligatoire (reste du groupe ou mot suivant), courtes à valeur facultative (reste
+ * du groupe seulement : `-uno`, `-S<clé>`), longues à valeur obligatoire (mot suivant, ou collée). Une longue à
+ * valeur facultative (`--gpg-sign[=<clé>]`) ne prend jamais le mot suivant : elle n'est pas listée. Une option
+ * absente des listes est sans valeur, le mot suivant est lu : c'est le défaut prudent.
+ */
+const OPTIONS_DE_SOUS_COMMANDE = {
+  commit: { obligatoires: 'mFcCt', facultatives: 'uS', longues: new Set(['--message', '--file', '--reuse-message', '--reedit-message', '--template', '--author', '--date', '--fixup', '--squash', '--cleanup', '--trailer', '--pathspec-from-file']) },
+  am: { obligatoires: 'Cp', facultatives: 'S', longues: new Set(['--directory', '--exclude', '--include', '--whitespace', '--patch-format', '--resolvemsg', '--quoted-cr']) },
+  merge: { obligatoires: 'mFsX', facultatives: 'S', longues: new Set(['--message', '--file', '--strategy', '--strategy-option', '--cleanup', '--into-name']) },
+  rebase: { obligatoires: 'CsXx', facultatives: 'Sr', longues: new Set(['--onto', '--strategy', '--strategy-option', '--exec', '--whitespace']) },
+  pull: { obligatoires: 'sXo', facultatives: 'Srj', longues: new Set(['--strategy', '--strategy-option', '--cleanup', '--upload-pack', '--depth', '--shallow-since', '--shallow-exclude', '--deepen', '--refmap', '--server-option', '--negotiation-tip']) },
+  push: { obligatoires: 'o', facultatives: '', longues: OPTIONS_PUSH_A_VALEUR },
+};
+
+/** Les clés de configuration qui coupent ou déplacent les hooks, ou font d'un nom une autre commande (comparées en minuscules). */
+const CLE_HOOKS = /^(core\.hookspath|include\.path|includeif\..*\.path|alias\..*)$/;
+/** Les clés qui portent la destination d'un push : la commande ne la dit plus. */
+const CLE_PUSH = /^(push\.default|remote\.pushdefault|remote\..+\.(push|mirror)|branch\..+\.pushremote)$/;
+/** Les clés dont la valeur est une commande que git lance par un shell : la valeur se relit comme une commande. */
+const CLE_COMMANDE = /^(core\.(editor|pager|sshcommand|fsmonitor|askpass)|sequence\.editor|pager\..+|diff\.external|diff\..+\.(command|textconv)|merge\..+\.driver|filter\..+\.(clean|smudge|process)|gpg\.(.+\.)?program|credential\.(.+\.)?helper|interactive\.difffilter|(diff|merge)tool\..+\.cmd)$/;
+const sectionHooks = (s) => /^(core|include|includeif|alias)(\.|$)/.test(s);
+const sectionPush = (s) => /^(push|remote|branch)(\.|$)/.test(s);
+/** `git config` : options sans effet sur ce qu'il fait, sans valeur puis avec valeur (séparée ou collée). */
+const CONFIG_NEUTRES = new Set(['--global', '--local', '--system', '--worktree', '--show-origin', '--show-scope', '--null', '-z', '--name-only', '--includes', '--no-includes']);
+const CONFIG_NEUTRES_A_VALEUR = new Set(['--file', '-f', '--blob', '--type', '--default', '--comment']);
+const CONFIG_LECTURES = new Set(['--get', '--get-all', '--get-regexp', '--get-urlmatch', '--list', '-l']);
+const CONFIG_ECRITURES = new Set(['--add', '--replace-all', '--unset', '--unset-all']);
+const CONFIG_SECTIONS = new Set(['--remove-section', '--rename-section']);
+const CONFIG_MODES = new Set(['get', 'list', 'set', 'unset', 'remove-section', 'rename-section', 'edit']);
+
+/** Les variables d'environnement qui coupent les hooks : husky lit `HUSKY`, git lit sa configuration dans les deux autres. */
+const VARIABLE_HOOKS = /^(HUSKY|GIT_CONFIG_PARAMETERS|GIT_CONFIG_COUNT)$/;
+const nomNuGarde = (nom) => VARIABLE_HOOKS.test(nom) || nom.startsWith('GIT_CONFIG_');
+/** Les préfixes qui lancent un programme et acceptent des affectations `NOM=…` avant lui. */
+const PREFIXES_A_AFFECTATIONS = new Set(['env', 'sudo', 'doas', 'nohup', 'exec', 'command', 'nice', 'time', 'timeout', 'stdbuf', 'setsid', 'ionice', 'chrt']);
+const DECLARATIONS = new Set(['export', 'declare', 'typeset', 'readonly', 'local']);
+
+/** Un mot exact d'une commande simple (un `Mot` du lecteur), vu par la lecture des appels de git. */
+const motExact = (m) => ({ valeur: m.valeur, vue: m.expansion ? (m.prefixe ?? '') + SUBSTITUTION : m.valeur, expansion: m.expansion, prefixe: m.prefixe ?? '', nonCitee: m.nonCitee, nu: m.nu ?? '' });
+/** Un mot d'une lecture (une chaîne) : ses expansions ne se jugent pas, il n'en reste que le texte. */
+const motDuTexte = (s) => ({ valeur: s, vue: s, expansion: /[$`]/.test(s), prefixe: '', nonCitee: false, nu: '' });
+const aExpansion = (texte) => /[$`]/.test(texte);
+/** Le nom d'un mot `NOM=…` (`HUSKY=0`, `HUSKY="$x"`, `HUSKY+=x`), ou `null`. */
+const nomAffecte = (w) => /^([A-Za-z_][A-Za-z0-9_]*)(\[[^\]]*\])?\+?=/.exec(w.expansion ? w.prefixe : w.valeur)?.[1] ?? null;
+
+/**
+ * L'appel de git dont le programme est en `i` dans `W` (des mots de `motExact` ou de `motDuTexte`), porté dans
+ * le recueil `r` : `hooks`, `argument`, `ref`, `push` (vrais pour un refus), et `relectures` (les valeurs que git
+ * lancera comme des commandes). Sur les mots exacts (`exacte`), une expansion n'est admise que dans une valeur,
+ * citée (Décision 0 du ticket 17) ; sur le texte d'une lecture non appariée, seuls les noms se jugent.
+ */
+function lireAppel(W, i, exacte, r) {
+  // Un motif de chemin ou d'accolades non cité (`*`, `?`, `[`, `{a,b}`) : bash en fait d'autres mots, comme d'une
+  // expansion non citée (`git {-c,core.hooksPath=/x} commit`).
+  const motif = (w) => exacte && (/[*?[]/.test(w.nu) || (w.nu.includes('{') && (w.nu.includes(',') || w.nu.includes('..'))));
+  const libre = (w) => exacte && ((w.expansion && w.nonCitee) || motif(w));
+  let j = i + 1;
+  let globaleLibre = false;
+  let nomIllisible = false;
+  const cles = [];
+  for (; j < W.length && W[j].vue.startsWith('-'); j++) {
+    const w = W[j];
+    const v = w.vue;
+    if (OPTIONS_GIT_A_VALEUR.has(v)) {
+      const valeur = W[++j];
+      if (!valeur) break;
+      if (libre(valeur)) globaleLibre = true;
+      if (v === '-c' || v === '--config-env') cles.push({ option: v, texte: valeur.vue, w: valeur });
+      continue;
+    }
+    const egal = v.indexOf('=');
+    if (aExpansion(egal > 0 ? v.slice(0, egal) : v) || (egal < 0 && motif(w))) nomIllisible = true;
+    if (egal > 0) {
+      if (libre(w)) globaleLibre = true;
+      if (v.slice(0, egal) === '--config-env') cles.push({ option: '--config-env', texte: v.slice(egal + 1), w });
+    }
+  }
+  const ws = W[j];
+  if (!ws) {
+    if (nomIllisible || globaleLibre) r.hooks = true;
+    return;
+  }
+  // Une sous-commande à expansion est illisible : `git $(echo commit) …` (Décision 0).
+  if (aExpansion(ws.vue) || motif(ws)) {
+    r.hooks = true;
+    return;
+  }
+  const sous = ws.vue.toLowerCase();
+  const enPush = sous === 'push';
+  if (nomIllisible) r[enPush ? 'push' : 'hooks'] = true;
+  // Une expansion non citée dans la valeur d'une option globale peut y écrire une seconde option (`-C $X` où X
+  // vaut `. -c alias.x=…`), devant n'importe quelle sous-commande : l'appel est illisible.
+  if (globaleLibre) r[enPush ? 'push' : 'argument'] = true;
+  for (const { option, texte, w } of cles) {
+    const egal = texte.indexOf('=');
+    const cle = (egal < 0 ? texte : texte.slice(0, egal)).toLowerCase();
+    if (aExpansion(cle) || motif(w)) {
+      r[enPush ? 'push' : 'hooks'] = true;
+      continue;
+    }
+    if (CLE_HOOKS.test(cle)) r.hooks = true;
+    else if (enPush && CLE_PUSH.test(cle)) r.push = true;
+    else if (CLE_COMMANDE.test(cle)) {
+      const valeur = egal < 0 ? '' : texte.slice(egal + 1);
+      // `--config-env` lit sa valeur dans l'environnement : la commande ne se lit pas.
+      if (option === '--config-env' || (exacte && w.expansion) || aExpansion(valeur)) r.argument = true;
+      else if (exacte) r.relectures.push(valeur);
+    }
+  }
+  const args = W.slice(j + 1);
+  if (OPTIONS_DE_SOUS_COMMANDE[sous]) lireOptions(sous, args, { exacte, motif, libre }, r);
+  else if (sous === 'config') lireConfig(args, { exacte, motif, libre }, r);
+  else if (sous === 'update-ref') lireUpdateRef(args, { exacte, motif }, r);
+}
+
+/** Les arguments de `commit`, `am`, `merge`, `rebase`, `pull` ou `push` : `--no-verify`, `-n`, les expansions. */
+function lireOptions(sous, args, { exacte, motif, libre }, r) {
+  const { obligatoires, facultatives, longues } = OPTIONS_DE_SOUS_COMMANDE[sous];
+  const nNeVerifiePas = sous === 'commit' || sous === 'am';
+  const enPush = sous === 'push';
+  const nom = enPush ? 'push' : 'hooks';
+  const valeur = enPush ? 'push' : 'argument';
+  // `git rebase -x <commande>` lance la commande par un shell à chaque commit : elle se relit.
+  const relire = (w, texte = w?.valeur) => {
+    if (sous !== 'rebase' || !w || !exacte) return;
+    if (w.expansion) r.argument = true;
+    else r.relectures.push(texte);
+  };
+  for (let k = 0; k < args.length; k++) {
+    const w = args[k];
+    const v = w.vue;
+    // Après `--`, des chemins : git ne les lit plus comme des options.
+    if (v === '--') break;
+    if (v.startsWith('-') && v !== '-') {
+      if (v.startsWith('--')) {
+        const egal = v.indexOf('=');
+        const long = egal < 0 ? v : v.slice(0, egal);
+        if (aExpansion(long) || (egal < 0 && motif(w))) {
+          if (exacte) r[nom] = true;
+          continue;
+        }
+        // `--no-verify` et ses abréviations : git accepte toute abréviation non ambiguë (`--no-veri` ; pour `am`, qui
+        // n'a pas de `--verbose`, `--no-v` déjà). `--no-verify-signatures` n'en est pas une.
+        if (long.length >= 6 && '--no-verify'.startsWith(long.toLowerCase())) r.hooks = true;
+        // `--exec` et ses abréviations (`--exe`, `--ex`) : git les accepte, la commande se relit.
+        const exec = long.length >= 4 && '--exec'.startsWith(long);
+        if (egal >= 0) {
+          if (libre(w)) r[valeur] = true;
+          if (exec) relire(w, v.slice(egal + 1));
+        } else if (longues.has(long) || (sous === 'rebase' && exec)) {
+          const suivant = args[++k];
+          if (suivant && libre(suivant)) r[valeur] = true;
+          if (exec) relire(suivant);
+        }
+        continue;
+      }
+      // Un groupe d'options courtes : `-n` avant la première lettre à valeur ; après elle, la valeur.
+      // Un motif parmi les lettres (`-*`, `-[n]`, `-{n,}`) : bash en fait d'autres mots, un fichier `-n` suffit.
+      if (motif(w)) {
+        r[nom] = true;
+        continue;
+      }
+      const lettres = exacte && w.expansion ? w.prefixe : v;
+      // Un caractère qui n'est ni lettre ni chiffre avant la première lettre à valeur : git refuse le groupe
+      // (« unknown switch », sortie 129, rien n'est fait), il ne saute aucun hook (`git commit -n!`).
+      const finDesNoms = [...lettres].findIndex((l, c) => c > 0 && (obligatoires.includes(l) || facultatives.includes(l)));
+      if (/[^A-Za-z0-9]/.test(lettres.slice(1, finDesNoms < 0 ? lettres.length : finDesNoms))) continue;
+      let valeurPrise = false;
+      for (let c = 1; c < lettres.length; c++) {
+        const l = lettres[c];
+        if (l === 'n' && nNeVerifiePas) r.hooks = true;
+        const obligatoire = obligatoires.includes(l);
+        if (!obligatoire && !facultatives.includes(l)) continue;
+        valeurPrise = true;
+        const colle = c < lettres.length - 1 || (exacte && w.expansion);
+        if (colle) {
+          if (libre(w)) r[valeur] = true;
+          if (l === 'x') relire(w, v.slice(c + 1));
+        } else if (obligatoire) {
+          const suivant = args[++k];
+          if (suivant && libre(suivant)) r[valeur] = true;
+          if (l === 'x') relire(suivant);
+        }
+        break;
+      }
+      // Une expansion ou un motif parmi les lettres : un nom d'option illisible (`-$(echo n)`).
+      if (!valeurPrise && exacte && (w.expansion || motif(w))) r[nom] = true;
+      continue;
+    }
+    // Un positionnel à expansion : git peut le lire comme une option (A-38). Pour `push`, `lirePushs` le refuse aussi.
+    if (exacte && (w.expansion || motif(w))) r[valeur] = true;
+  }
+}
+
+/**
+ * `git config` : refusé s'il écrit, vide ou retire une clé de `CLE_HOOKS` (ou de `CLE_PUSH`, refus de push
+ * illisible), retire ou renomme une section gardée, ou ouvre l'éditeur. Une action de lecture avant la clé, ou la
+ * clé seule, passe ; une option inconnue devant la clé ferme l'exemption de lecture.
+ */
+function lireConfig(args, { motif, libre }, r) {
+  let lecture = false;
+  let inconnue = false;
+  let ecriture = false;
+  let section = false;
+  const positionnels = [];
+  let modeLisible = true;
+  for (let k = 0; k < args.length; k++) {
+    const w = args[k];
+    const v = w.vue;
+    if (v === '--') {
+      positionnels.push(...args.slice(k + 1));
+      break;
+    }
+    if (!v.startsWith('-') || v === '-') {
+      if (!positionnels.length && inconnue) modeLisible = false;
+      positionnels.push(w);
+      continue;
+    }
+    const egal = v.startsWith('--') ? v.indexOf('=') : -1;
+    const option = egal > 0 ? v.slice(0, egal) : v;
+    if (aExpansion(option) || motif(w)) {
+      r.hooks = true;
+      continue;
+    }
+    if (CONFIG_NEUTRES.has(option)) continue;
+    if (CONFIG_NEUTRES_A_VALEUR.has(option)) {
+      if (egal < 0) k++;
+    } else if (CONFIG_LECTURES.has(option)) {
+      if (!positionnels.length && !inconnue) lecture = true;
+    } else if (CONFIG_ECRITURES.has(option)) ecriture = true;
+    else if (CONFIG_SECTIONS.has(option)) section = true;
+    else if (option === '-e' || option === '--edit') {
+      r.hooks = true;
+      return;
+    } else inconnue = true;
+  }
+  let reste = positionnels;
+  let mode = null;
+  if (reste.length && !reste[0].expansion && CONFIG_MODES.has(reste[0].vue)) {
+    mode = reste[0].vue;
+    reste = reste.slice(1);
+  }
+  if (mode === 'edit') {
+    r.hooks = true;
+    return;
+  }
+  if (section || mode === 'remove-section' || mode === 'rename-section') {
+    const renomme = mode === 'rename-section' || args.some((w) => w.vue === '--rename-section');
+    for (const w of reste) {
+      const s = w.vue.toLowerCase();
+      if (aExpansion(s) || motif(w) || sectionHooks(s)) r.hooks = true;
+      else if (renomme && sectionPush(s)) r.push = true;
+    }
+    return;
+  }
+  const [cle, ...valeurs] = reste;
+  if (!cle) return;
+  if ((lecture || ((mode === 'get' || mode === 'list') && modeLisible)) && !ecriture) return;
+  // Une clé à expansion est un nom illisible (Décision 0) ; la lecture, ci-dessus, l'admet.
+  if (aExpansion(cle.vue) || motif(cle)) {
+    r.hooks = true;
+    return;
+  }
+  if (!ecriture && mode !== 'set' && mode !== 'unset' && valeurs.length === 0) return;
+  const nom = cle.vue.toLowerCase();
+  if (CLE_HOOKS.test(nom)) r.hooks = true;
+  else if (CLE_PUSH.test(nom)) r.push = true;
+  else if (CLE_COMMANDE.test(nom) && valeurs[0]) {
+    if (valeurs[0].expansion) r.argument = true;
+    else r.relectures.push(valeurs[0].valeur);
+  }
+  if (valeurs.some(libre)) r.argument = true;
+}
+
+/** `git update-ref` vers `refs/remotes/…`, ou `--stdin` (son entrée ne se lit pas) : une ref de suivi fabriquée. */
+function lireUpdateRef(args, { exacte, motif }, r) {
+  for (let k = 0; k < args.length; k++) {
+    const w = args[k];
+    const v = w.vue;
+    if (v !== '--' && v.startsWith('-') && v !== '-') {
+      if (v === '-m') k++;
+      else if (v.length >= 3 && '--stdin'.startsWith(v)) {
+        r.ref = true;
+        return;
+      }
+      continue;
+    }
+    const ref = v === '--' ? args[k + 1] : w;
+    if (!ref) return;
+    if (exacte && (ref.expansion || motif(ref))) r.argument = true;
+    else if (/^refs\/+remotes\//i.test(ref.vue)) r.ref = true;
+    return;
+  }
+}
+
+/**
+ * Vrai si la commande simple affecte ou exporte `HUSKY`, `GIT_CONFIG_PARAMETERS` ou `GIT_CONFIG_COUNT` : en
+ * position d'affectation, en mot `NOM=…` derrière un préfixe qui lance un programme (`env`, `sudo`, `exec`…),
+ * en argument d'une déclaration (`export`, `declare`…, `NOM=…` ou nom nu, `GIT_CONFIG_*` nu compris), de
+ * `read`, de `printf -v` ou de `let`. En argument d'un autre programme, ces mots passent (`echo HUSKY=0`).
+ */
+function affecteLesHooks(cmd) {
+  if (cmd.affectations.some((a) => VARIABLE_HOOKS.test(a.nom))) return true;
+  const W = cmd.mots.map(motExact);
+  const premier = W[0];
+  if (!premier || premier.expansion) return false;
+  const programme = nomDeBase(premier.valeur);
+  // `set -a` (`allexport`) exporte toute variable affectée ensuite, par `((…))`, `${X:=…}`, `for X in …` : la
+  // garde ne lit pas ces affectations-là, l'option elle-même est refusée.
+  if (programme === 'set' || programme === 'shopt') {
+    for (let k = 1; k < W.length; k++) {
+      const v = W[k].vue;
+      if (v === '--') break;
+      if (W[k].expansion || /^-[A-Za-z]*a/.test(v) || (/^[-+]?o?allexport$/.test(v) && /^-[A-Za-z]*o/.test(W[k - 1]?.vue ?? '')) || v === '-oallexport') return true;
+    }
+    return false;
+  }
+  if (PREFIXES_A_AFFECTATIONS.has(programme)) {
+    // La valeur d'une option du préfixe (`sudo -u x`, `nice -n 5`) ou la durée de `timeout` se saute.
+    let valeur = programme === 'timeout';
+    for (let k = 1; k < W.length; k++) {
+      const w = W[k];
+      const nom = nomAffecte(w);
+      if (nom) {
+        if (VARIABLE_HOOKS.test(nom)) return true;
+        valeur = false;
+      } else if (w.vue.startsWith('-')) valeur = true;
+      else if (!w.expansion && PREFIXES_A_AFFECTATIONS.has(nomDeBase(w.valeur))) valeur = nomDeBase(w.valeur) === 'timeout';
+      else if (valeur) valeur = false;
+      // `env "$X" git …` : l'expansion peut être une affectation.
+      else return w.expansion;
+    }
+    return false;
+  }
+  let p = 0;
+  while (W[p] && !W[p].expansion && (W[p].valeur === 'builtin' || W[p].valeur === 'command')) p++;
+  const d = W[p]?.expansion ? null : W[p]?.valeur;
+  const args = W.slice(p + 1);
+  if (DECLARATIONS.has(d) || d === 'let') {
+    for (const w of args) {
+      if (!w.expansion && (w.valeur.startsWith('-') || w.valeur.startsWith('+'))) continue;
+      const nom = nomAffecte(w);
+      if (nom) {
+        // `declare -n r=HUSKY` : `r` devient HUSKY.
+        if (VARIABLE_HOOKS.test(nom) || (!w.expansion && nomNuGarde(w.valeur.slice(w.valeur.indexOf('=') + 1)))) return true;
+      } else if (w.expansion || (d !== 'let' && nomNuGarde(w.valeur))) return true;
+    }
+    return false;
+  }
+  if (d === 'read') {
+    for (let k = 0; k < args.length; k++) {
+      const w = args[k];
+      if (!w.expansion && w.valeur.startsWith('-')) {
+        // `-p <invite>`, `-d <délimiteur>`… : la valeur se saute ; celle de `-a` est un nom.
+        const derniere = w.valeur[w.valeur.length - 1];
+        if (w.valeur.length === 2 && 'dinNptu'.includes(derniere)) k++;
+        continue;
+      }
+      if (w.expansion || nomNuGarde(w.valeur)) return true;
+    }
+    return false;
+  }
+  if (d === 'printf') {
+    for (let k = 0; k < args.length; k++) {
+      const w = args[k];
+      if (w.expansion || !w.valeur.startsWith('-v')) continue;
+      const nom = w.valeur === '-v' ? args[k + 1] : motDuTexte(w.valeur.slice(2));
+      if (nom && (nom.expansion || nomNuGarde(nom.valeur))) return true;
+    }
+  }
+  return false;
+}
+
+/** La même lecture sur le texte d'une lecture non appariée (texte cité, corps relu, here-string) : prudente. */
+function affecteLesHooksDansLeTexte(mots) {
+  let declaration = false;
+  for (const m of mots) {
+    if (/^(HUSKY|GIT_CONFIG_PARAMETERS|GIT_CONFIG_COUNT)(\[[^\]]*\])?\+?=/.test(m)) return true;
+    if (declaration && nomNuGarde(m)) return true;
+    if (DECLARATIONS.has(m) || m === 'read' || m === 'printf' || m === 'let') declaration = true;
+  }
+  return false;
+}
+
+const lecturesDeGit = new WeakMap();
+/**
+ * Les appels de git d'une lecture de `lireCommande`, et les affectations qui coupent les hooks : `{ hooks,
+ * argument, ref, push, relectures }`. Chaque commande simple se lit sur ses mots exacts ; chaque lecture
+ * (L2, variantes, corps relus, textes cités) qui n'est pas appariée à une commande simple qui porte ce git (même
+ * `debut`, même programme au même rang, mêmes mots jusqu'à la sous-commande comprise) se lit sur son texte : un
+ * texte cité qui porte une commande git refusée est refusé (Décision 6 bis du ticket 17).
+ */
+function lireGit(lu) {
+  let r = lecturesDeGit.get(lu);
+  if (r) return r;
+  r = { hooks: false, argument: false, ref: false, push: false, relectures: [] };
+  const exacts = [];
+  const programmeGit = /(^|[/$])git$/i;
+  const programmeExact = /(^|\/)git$/;
+  for (const cmd of lu.commandes) {
+    if (affecteLesHooks(cmd)) r.hooks = true;
+    const W = [...cmd.affectations.map((a) => a.mot), ...cmd.mots].map(motExact);
+    const valeurs = W.map((w) => w.valeur);
+    if (!/git/i.test(valeurs.join(' '))) continue;
+    for (const i of lecturesDuProgramme(valeurs, programmeGit, programmeExact)) {
+      exacts.push({ debut: cmd.debut, i, tete: valeurs.slice(0, appelDeGit(valeurs, i).j + 1) });
+      lireAppel(W, i, true, r);
+    }
+    // Un programme interne (`git-commit`) se lit comme `git commit`, sans options globales.
+    for (const { i, sous } of appelsInternes(valeurs)) {
+      exacts.push({ debut: cmd.debut, i, tete: valeurs.slice(0, i + 1) });
+      lireAppel(commeGit(W, i, sous), i, true, r);
+    }
+  }
+  for (const lecture of lu.lectures) {
+    if (lecture.exacte) continue;
+    let apparieeAGit = false;
+    for (const { i, j, sous, interne } of appelsGit([lecture])) {
+      const tete = lecture.mots.slice(0, j + 1);
+      const appariee = lecture.appariable && exacts.some((e) => e.debut === lecture.debut && e.i === i && e.tete.length === tete.length && e.tete.every((m, k) => m === tete[k]));
+      const W = lecture.mots.map(motDuTexte);
+      if (appariee) apparieeAGit = true;
+      else lireAppel(interne ? commeGit(W, i, sous) : W, i, false, r);
+    }
+    if (!apparieeAGit && affecteLesHooksDansLeTexte(lecture.mots)) r.hooks = true;
+  }
+  lecturesDeGit.set(lu, r);
+  return r;
+}
+
+/** Vrai si la commande saute les hooks git : `--no-verify`, `-n`, `core.hooksPath`, `include`, `alias.*`, `HUSKY`, `GIT_CONFIG_*`… */
+export const sauteLesHooks = (commande) => lireGit(lireCommande(commande)).hooks;
+/** Vrai si un argument de git porte une expansion là où git peut lire une option (Décision 0 du ticket 17). */
+export const argumentDeGitIllisible = (commande) => lireGit(lireCommande(commande)).argument;
+/** Vrai si la commande fabrique une ref de suivi : `git update-ref refs/remotes/…`, `git update-ref --stdin`. */
+export const ecritUneRefDeSuivi = (commande) => lireGit(lireCommande(commande)).ref;
 
 /**
  * Décision sur une commande shell : `{ decision: 'refuser', raison }`, ou `null`. Le hook ne demande
@@ -2005,6 +2522,17 @@ function decisionDuLecteur(lu, commande, { dependancesPrevues = () => null, bran
     // Chaque motif nomme npm, yarn ou git : un texte qui n'en porte aucun n'est pas relu motif par motif.
     if (!/npm|yarn|git/i.test(code)) continue;
     for (const [motif, raison] of COMMANDES_INTERDITES) if (motif.test(code)) return { decision: 'refuser', raison };
+  }
+  // Les appels de git (ticket 17) : hooks sautés, argument illisible, ref de suivi fabriquée, puis ce que git
+  // lancera comme une commande (`git rebase -x …`, `-c core.pager=…`), relu comme une commande de la session.
+  const git = lireGit(lu);
+  if (git.hooks) return { decision: 'refuser', raison: RAISON_HOOKS_GIT };
+  if (git.argument) return { decision: 'refuser', raison: RAISON_ARGUMENT_ILLISIBLE };
+  if (git.ref) return { decision: 'refuser', raison: RAISON_REF_DE_SUIVI };
+  for (const texte of git.relectures) {
+    const relue = lire(texte);
+    const decision = decisionDuLecteur(relue, texte, { dependancesPrevues, brancheCourante, brancheParDefaut });
+    if (decision) return decision;
   }
   let branche;
   const courante = () => (branche === undefined ? (branche = brancheCourante()) : branche);

@@ -247,6 +247,8 @@ const REF = "skills/chaine/socle-chaine-de-production/references";
 const EXCEPTIONS_SAUT = [
   `${REF}/agent/regles.mjs`,
   `${REF}/agent/regles.test.mjs`,
+  // Le banc du hook de bout en bout (ticket 17 de capitaine-a-jour-et-teste) cite les sauts qu'il fait refuser.
+  `${REF}/agent/garde-commandes.test.mjs`,
   `${REF}/scripts/verify/settings-json.test.mjs`,
   "scripts/depot.test.mjs",
 ];
