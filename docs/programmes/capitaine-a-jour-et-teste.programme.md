@@ -45,6 +45,7 @@ Décisions de l'architecte :
 - A-42 — Tickets 8 à 18 : échéance absolue transmise par la veille à la boucle, aucun passage après la 80ᵉ minute (8) ; le masquage des URL d'Iroki (`masquer_url`, SOC-4.52) entre au ticket 9, réécrit pour le plugin, sinon reposer `github.sh` chez Iroki retirerait un masquage ; `pousser` rend 4 sur un échec non classé (9) ; ticket 13 avant le 14 (14) ; `pr-titre` dans un workflow à part, `sujet.sh a-juger` partagé avec le capitaine (16) ; import protégé dans les cinq hooks qui chargent `regles.mjs` ou `entree.mjs` (18). Raison : prudence, et aucune régression chez Iroki à la repose.
 - A-43 — Tickets 11, 14, 16, 18 : la livraison intermédiaire ne se dispense jamais sur son nom, le check `pr-titre` appelle `livraison_intermediaire` extraite de `passer.sh` (une seule règle, celle du capitaine) ; ordre : 11 avant 16, 18 avant 16, 13 avant 14 ; `next-id` ne nomme `develop` que s'il existe. Raison : relecture neuve du 2026-11-18.
 - A-44 — Ticket 6 : une branche dont la PR est fermée compte encore si sa tête diffère du `head.sha` de cette PR (amendement de la Décision 2 du ticket, retenu contre la revue de la session). Raison : sans lui, une session qui repousse une branche abandonnée du même nom réserve sans que personne le voie.
+- A-45 — Ticket 17 : une expansion non citée dans la valeur de `-C` est refusée (`git -C $dir status` ; la forme citée passe), et un glob ou des accolades non cités valent une expansion non citée (`git commit -m x src/*.ts` refusé, `-- src/*.ts` passe). Raison : `X='. -c alias.zz=…'; git -C $X zz` saute les hooks ; le refus coûte un jeu de guillemets.
 - A-18 — Ordre : le lot 1 du chantier 1 (règle d'ascendance) d'abord, puis le groupe A d'Iroki (capitaine), puis le reste ; les lots sans fichier chaud partent en parallèle. Raison : le lot 1 corrige des fusions non testées ; le groupe A rend le capitaine disponible ; les deux touchent les mêmes scripts.
 
 ## Fog
@@ -64,6 +65,8 @@ Décisions de l'architecte :
 | ticket | 17 | session_012xRpgbyvYBRavfo3t7tSRy | opus | — | — |
 | ticket | 6 | session_012xRpgYLyDnCAE8DMZWu3s5 | sonnet | — | — |
 | ticket | 5 | session_012xRpgZ61a6Z3tAxnLE1XtH | sonnet | — | — |
+| ticket | 8 | session_012xRpgb2wqPnXRgEHTvthK3 | opus | — | — |
+| capitaine | — | session_012xRpgcWjwiV8xVUSzzEy9L | sonnet | — | — |
 
 ## Passation
 
@@ -114,3 +117,4 @@ Demande du produit, 2026-11-18, recopiée telle quelle (relevée sur `MAJ-agency
 - 2026-11-18 — 19 h 10 UTC. PR 117 (ticket 5) conforme ; une retouche de formulation demandée (`lancement.md:87`). PR 111 (documentation du programme) sortie du brouillon, commentaire `à-fusionner au sommet 1aa25f71…` et label posés.
 - 2026-11-18 — 19 h 12 UTC. PR 117 retouchée (`7155ccd`) : prête. PR 118 (ticket 6) : code conforme (747 tests, mutations rouges, mineure 5 codée et juste, A-44) ; reste sa note de version, à écrire en reprenant `main` après la 115. PR 115 : `mergeable_state` clean, CI verte, attend le produit.
 - 2026-11-18 — 19 h 14 UTC. Premier lancement d'un capitaine sur `skills` refusé par le classifieur du mode « Auto » (une session qui fusionne dans `main`). Le produit : « t'as besoin de mon accord là ? » puis « mais tu es un architecte toi nan ? ». Relancé : session_012xRpgcWjwiV8xVUSzzEy9L.
+- 2026-11-18 — 19 h 17 UTC. **PR 115 fusionnée** par le capitaine (squash `59b8233`, `main` en 7.16.0) ; arbre du squash identique à l'arbre testé (`5fd6b28`), vérifié par l'architecte. Ticket 1 fait. PR 111 renvoyée par le capitaine (sommet bougé après l'ordre : la carte avait reçu des commits) ; ordre reposé au sommet `a7ab1ea`, la carte ne se pousse plus avant sa fusion. Signal donné à la PR 112 (reprise de `main`, 7.17.0). Ticket 8 lancé : session_012xRpgb2wqPnXRgEHTvthK3. PR 119 (ticket 17, 757 tests, recherche adversariale) livrée, en contre-relecture adversariale ; A-45. Incident signalé par sa session : un `git commit -anm x` joué par erreur dans son dépôt de travail (sans hook), annulé par `git reset --soft` avant tout push.
