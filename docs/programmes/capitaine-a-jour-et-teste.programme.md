@@ -70,13 +70,14 @@ Décisions de l'architecte :
 | ticket | 19 | session_012xRpgbEBkwAzwZSDmB3KtH | sonnet | — | archivée |
 | ticket | 10 | session_012xRpgbJm6pUqbrixWZ1a5w | sonnet | 161 993 | 2,11 |
 | ticket | 12 | session_012xRpgZRkibUK1CA2XDumRw | sonnet | 219 891 | 3,43 |
-| ticket | 17 | session_012xRpgbyvYBRavfo3t7tSRy | opus | — | — |
+| ticket | 17 | session_012xRpgbyvYBRavfo3t7tSRy | opus | 627 343 | 32,97 |
 | ticket | 6 | session_012xRpgYLyDnCAE8DMZWu3s5 | sonnet | 207 235 | 3,18 |
 | ticket | 13 | session_012xRpgYZHPVc6BJ87qfJom5 | sonnet | 194 669 | 3,06 |
 | ticket | 9 | session_012xRpgcJxHH8VpXnvZFLcAG | opus | — | — |
 | ticket | 14 | session_012xRpgZCHrKAsSDyAM9MBy8 | sonnet | — | — |
 | ticket | 5 | session_012xRpgZ61a6Z3tAxnLE1XtH | sonnet | 186 928 | 2,98 |
 | ticket | 8 | session_012xRpgb2wqPnXRgEHTvthK3 | opus | 327 602 | 17,89 |
+| ticket | 18 | session_012xRpgZurfcXHuBBqAMFitE | opus | — | — |
 | capitaine | — | session_012xRpgcWjwiV8xVUSzzEy9L | sonnet | — | — |
 
 ## Passation
@@ -146,3 +147,4 @@ Demande du produit, 2026-11-18, recopiée telle quelle (relevée sur `MAJ-agency
 - 2026-11-18 — 22 h 35 UTC. **PR 120 fusionnée** (squash `085d7d4`, 7.20.0), arbre identique, vérifié ; ticket 8 fait, session archivée (17,89 $). Signal à la PR 121 (7.21.0). Ticket 9 lancé (débloqué par 8).
 - 2026-11-18 — 22 h 50 UTC. **PR 121 fusionnée** (squash `fad725d`, 7.21.0), arbre identique, vérifié ; ticket 13 fait (statut posé dans la PR), session archivée (3,06 $). Signal à la PR 119 (7.21.1). Ticket 14 lancé (débloqué par 6 et 13).
 - 2026-11-18 — 23 h 10 UTC. PR 124 (ticket 9, `6b52730`) livrée, en conflit avec main (attend son tour). Quatre questions tranchées (A-51) ; correction de la garde de course demandée avant la contre-relecture. PR 119 toujours étiquetée, non fusionnée ; contre-relecture de la PR 123 en cours.
+- 2026-11-18 — 23 h 12 UTC. **PR 119 fusionnée** (squash `8f8cfd9`, 7.21.1), arbre identique au sommet ordonné `b8ccb91`, vérifié ; ticket 17 fait (statut posé dans la PR), session archivée (627 343 tokens, 32,97 $). Contre-relecture de la PR 123 **conforme** (828 tests, bancs rouges sur main), trois mineures (banc d'élagage qui ne prouve rien, refspec de develop sans destination, documents posés absents de la note) ; signal donné (7.22.0). Ticket 18 lancé : session_012xRpgZurfcXHuBBqAMFitE (opus, depuis `8f8cfd9`).
