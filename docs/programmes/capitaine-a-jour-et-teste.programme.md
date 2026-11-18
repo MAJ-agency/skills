@@ -60,6 +60,7 @@ Décisions de l'architecte :
 - Procédure du capitaine d'un dépôt sans la chaîne (`architecte/references/lancement.md`) : la garde « mise à jour signée par GitHub » suppose un `get_commit` qui rend parents et `verification` ; l'outil GitHub MCP de la session du capitaine ne les rend pas (constat du 2026-11-18, PR 111 renvoyée deux fois). À corriger dans `lancement.md` par un ticket de ce programme ou du suivant.
 
 - Le « catalogue des gates » absent du gabarit des index générés : aucun générateur de ce catalogue n'existe dans le plugin (relevé du 2026-11-18). À retrouver chez `fedora` (quel fichier, quel script) avant d'en faire un index du gabarit.
+- Boucle du capitaine (PR 124) : une ligne `[#n] …` écrite en arrière-plan par un hook du projet après le `sortir` de `passer.sh` peut changer le classement d'une sortie 3, et la cause affichée dans `PAUSE` peut être forgée. Limite connue, un hook étant du code du projet ; remède possible : un fichier de verdict écrit par `sortir` et lu par la boucle.
 - Le squash de `fedora` accepté malgré « strict » : hypothèse d'un compte qui contourne la règle, non vérifiée ; sans effet une fois le lot 1 livré.
 
 ## Coût
@@ -154,3 +155,4 @@ Demande du produit, 2026-11-18, recopiée telle quelle (relevée sur `MAJ-agency
 - 2026-11-18 — 23 h 40 UTC. **PR 123 fusionnée** (squash `289323c`, 7.22.0), arbre identique au sommet ordonné `a5ea183`, vérifié ; ticket 14 fait (statut posé dans la PR), session archivée (2,50 $). Rien d'étiqueté ; la PR 124 corrige B1 et M1–M3 (482 000 tokens, 25,48 $) ; ticket 18 en revue de ticket.
 - 2026-11-18 — 23 h 39 UTC. PR 122 d'un autre programme (`gouverner-nos-boucles`, lot 3a de la relecture indépendante) fusionnée par le capitaine (squash `d5b1561`, 7.23.0). La suivante de ce programme prendra la version d'après 7.23.0.
 - 2026-11-18 — 23 h 55 UTC. PR 125 (ticket 18, `4588545`) livrée ; contre-relecture **non conforme** : un bloquant (export manquant → sortie 1, A-52), quatre mineures ; renvoyée. PR 124 corrigée (`0a15fed`), contre-relecture du delta en cours.
+- 2026-11-18 — 23 h 59 UTC. Contre-relecture du delta de la PR 124 (`0a15fed`) **conforme** (834 tests, B1 rejoué contre des lignes forgées) ; deux mineures notées au Fog. Signal donné : fusion de `main` (`d5b1561`, 7.23.0), version 7.24.0.
