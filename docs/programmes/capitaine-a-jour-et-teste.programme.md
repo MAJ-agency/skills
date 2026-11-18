@@ -4,7 +4,7 @@ Le capitaine de fusion ne fait plus entrer une PR dont la combinaison « PR + de
 
 ## Fiche
 
-Phase: spec — relevé à la source des défauts, puis spec du chantier 1
+Phase: spec — spec du chantier 1 écrite, à valider par le produit
 Responsable: Guillaume Jauffret
 Architecte: session_012xRpgbiXqFh3uGnL8yRbGh (ouverte par le produit le 2026-11-18 à 16 h 40 UTC, mode « Auto », dépôts `anchorpost` et `skills`)
 Objectif: un capitaine qui vérifie l'ascendance avant chaque fusion (vers `develop` comme vers un sujet), un ticket par défaut voisin, une version du plugin publiée avec sa note de version.
@@ -16,7 +16,7 @@ Capitaines: `skills` : à lancer quand la première PR est prête.
 
 | n°  | Chantier | Dépôt | Spec | Carte | Conducteur | État |
 | --- | -------- | ----- | ---- | ----- | ---------- | ---- |
-| 1   | Règle d'ascendance du capitaine, puis défauts voisins | `skills` | à écrire | à écrire | — | spec |
+| 1   | Règle d'ascendance du capitaine, puis défauts voisins | `skills` | [`capitaine-a-jour-et-teste.spec.md`](../issues/capitaine-a-jour-et-teste/capitaine-a-jour-et-teste.spec.md) | à écrire par le conducteur | — | spec écrite le 2026-11-18, à valider |
 
 ## Decisions-so-far
 
@@ -26,7 +26,12 @@ Décisions du produit :
 
 Décisions de l'architecte :
 
+- A-1 à A-16 — écrites, avec leur raison, dans la spec du chantier 1 (`## Décisions de conception`) : règle d'ascendance en une fonction partagée ; clé `cheminsDeCode` (sans elle, tout retard compte comme du code) ; contrôle juste avant l'appel de fusion ; écart d'arbre = arrêt ; `sujet.sh fusionner` met à jour et attend la CI ; faux GitHub « strict » d'abord ; conflit lu avant les checks ; clé `fusionsSansEffet` ; file restreinte par label, base ou titre ; verrou par commentaire marqué ; contrôle de vie à 60 minutes ; `send_message` au premier geste ; contexte lu par `get_session` ; `ticket-libre.mjs` lit les fichiers des PR ouvertes ; ligne 8 ; 7.16.0 et `NOTES-DE-VERSION.md`.
+
 ## Fog
+
+- Le « catalogue des gates » absent du gabarit des index générés : aucun générateur de ce catalogue n'existe dans le plugin (relevé du 2026-11-18). À retrouver chez `fedora` (quel fichier, quel script) avant d'en faire un index du gabarit.
+- Le squash de `fedora` accepté malgré « strict » : hypothèse d'un compte qui contourne la règle, non vérifiée ; sans effet une fois le lot 1 livré.
 
 ## Coût
 
@@ -54,3 +59,4 @@ Demande du produit, 2026-11-18, recopiée telle quelle (relevée sur `MAJ-agency
 > **Défauts voisins.** (1) PR en conflit sans CI : `sujet.sh fusionner` sort en 5 sans fin, `file.sh` affiche « prête (sans CI) », `sujet.sh relancer` s'arrête sur tout conflit ; une heure perdue sur #1969. (2) Fusion qui apporte un commentaire de `schema.prisma` : le hook `commit-msg` exige une migration ou `[sans-migration: raison]`, la mise à jour par script sort en 3 ; vérifier par diff que seul un commentaire arrive, écrire la mention, sinon s'arrêter. (3) Deux capitaines sur un dépôt prennent les mêmes PR : restreindre la file (label de programme, sujet ou famille de tickets) et verrou visible sur la PR pendant un passage. (4) Capitaine ou conducteur coupé (limite d'usage) sans que personne le voie, cinq heures : contrôle périodique de l'architecte. (5) Fille démarrée sans `send_message` : son prompt le vérifie au premier message. (6) Contexte sous-estimé par la session (330 000 annoncés, 446 000 réels) : le conducteur lit `get_session` (skill `chantier`). (7) Même numéro de ticket pris par deux sessions (`SPEC_ALL_INF-26.45`) : `ticket-libre.mjs` ne lit pas les arbres des PR ouvertes. (8) Toujours vrais : `sujet.sh livrer` pose toujours `à-fusionner` et passe par `gh api` ; `sujet.sh demarrer` refuse à tort (SIGPIPE sous `pipefail`) ; `github.sh:216` « integer expression expected » ; faux positif de `ticket-libre.mjs` sur le titre d'une PR fermée ; le catalogue des gates manque au gabarit des index générés.
 >
 > **Attendu.** Un ticket par défaut dans `MAJ-agency/skills`, le correctif de la règle d'ascendance en premier, une version du plugin publiée, et une note de version qui dit ce qu'un projet doit faire pour en profiter.
+- 2026-11-18 — 17 h 05 UTC. Relevé à la source rendu (sous-agent, `4a45634`) : défauts confirmés sauf le 2 (le hook `sans-migration` est celui du projet) et le 6 (déjà mesuré par `get_session`) ; le catalogue des gates n'a de générateur dans aucun skill. Spec du chantier 1 écrite, A-1 à A-16 ; présentée au produit pour validation.
