@@ -97,8 +97,16 @@ cat "$f"
     const lignes = lire("trace") ? lire("trace").split("\n") : [];
     return { ...r, lancements, compte, trace: lignes, echeance: lire("echeance") };
   };
+  // Publie un contrat sur le develop d'origine depuis le clone (il peut citer `trace`, connue ici seulement).
+  const publier = (c) => {
+    mkdirSync(join(clone, ".claude"), { recursive: true });
+    writeFileSync(join(clone, ".claude/chaine.json"), JSON.stringify(c));
+    git("add", "-A");
+    git("commit", "-q", "-m", "chaine: contrat");
+    git("push", "-q", "origin", "HEAD:develop");
+  };
   const garde = join(clone, ".git", "capitaine-boot-id");
-  return { dir, clone, trace, fichierBoot, garde, git, lancer };
+  return { dir, clone, trace, fichierBoot, garde, git, lancer, publier };
 }
 
 // Chaque test borne la veille par `sondes` (le nombre d'états qu'il veut voir consommer, lecture
@@ -221,4 +229,154 @@ test("PR qui attend un propriétaire : pas de relance ; approuvée (prête), bou
   assert.equal(r.lancements, 1);
   const r2 = veilleJouet([attend, attend, prete(31)]);
   assert.equal(r2.lancements, 2);
+});
+
+// --- Préparation du capitaine (`preparerCapitaine`) et échéance (limite de 2 h d'une tâche de fond) ---
+
+const contratPrep = (trace, mot = "prep") => ({ preparerCapitaine: `echo ${mot} >> "${trace}"` });
+const ARGS = (sondes) => ["--pause", "0.2", "--duree", "1", "--sondes", String(sondes)];
+
+test("préparation jouée avant le premier lancement, boot_id gardé ; veille relancée sur le même boot : pas rejouée", () => {
+  const j = creerJouet([""]);
+  j.publier(contratPrep(j.trace));
+  const r = j.lancer(ARGS(1));
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.deepEqual(r.trace, ["prep", "boucle"]);
+  assert.match(r.stdout, /^VEILLE \d\d:\d\d : préparation \(« echo prep/m);
+  assert.match(r.stdout, /^VEILLE \d\d:\d\d : préparation réussie$/m);
+  assert.equal(readFileSync(j.garde, "utf8").trim(), "boot-1");
+  const r2 = j.lancer(ARGS(1));
+  assert.equal(r2.status, 0, r2.stdout + r2.stderr);
+  assert.deepEqual(r2.trace, ["prep", "boucle", "boucle"]);
+  assert.doesNotMatch(r2.stdout, /préparation/);
+});
+
+test("boot_id changé entre deux lancements de la boucle : préparation rejouée avant le lancement suivant", () => {
+  const j = creerJouet(["", prete(31)]);
+  j.publier(contratPrep(j.trace));
+  // Au premier lancement, la machine « redémarre » : le boot_id change.
+  writeFileSync(
+    join(j.dir, "boucle.sh"),
+    readFileSync(join(j.dir, "boucle.sh"), "utf8").replace(
+      'echo $((k+1)) > ',
+      `[ "$k" != 0 ] || echo boot-2 > "${j.fichierBoot}"\necho $((k+1)) > `,
+    ),
+  );
+  const r = j.lancer(ARGS(1));
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.deepEqual(r.trace, ["prep", "boucle", "prep", "boucle"]);
+  assert.equal(readFileSync(j.garde, "utf8").trim(), "boot-2");
+});
+
+test("préparation en échec : VEILLE ARRÊTÉE, sortie 13, boucle jamais lancée, boot_id non écrit", () => {
+  const r0 = creerJouet([""], { contrat: { preparerCapitaine: "echo base perdue; exit 7" } });
+  const r = r0.lancer(ARGS(1));
+  assert.equal(r.status, 13, r.stdout + r.stderr);
+  assert.match(
+    r.stdout,
+    /^VEILLE ARRÊTÉE \d\d:\d\d : préparation du capitaine en échec \(sortie 7 de « echo base perdue; exit 7 »\) : aucune fusion/m,
+  );
+  assert.match(r.stdout, /^base perdue$/m, "la sortie de la commande est dans le journal");
+  assert.equal(r.lancements, 0);
+  assert.ok(!existsSync(r0.garde), "boot_id non écrit");
+});
+
+test("sans clé preparerCapitaine : rien n'est joué ; contrat illisible ou clé non textuelle : sortie 13 sans lancer la boucle", () => {
+  for (const contrat of [undefined, {}, { preparerCapitaine: "" }]) {
+    const r = veilleJouet([""], { contrat, sondes: 1 });
+    assert.equal(r.status, 0, r.stdout + r.stderr);
+    assert.equal(r.lancements, 1);
+    assert.doesNotMatch(r.stdout, /préparation/);
+  }
+  for (const contrat of ["{ pas du json", "[1]", { preparerCapitaine: 3 }, { preparerCapitaine: null }]) {
+    const r = veilleJouet([""], { contrat, sondes: 1 });
+    assert.equal(r.status, 13, `${JSON.stringify(contrat)} : ${r.stdout}${r.stderr}`);
+    assert.match(r.stdout, /^VEILLE ARRÊTÉE \d\d:\d\d : contrat illisible : préparation inconnue/m);
+    assert.equal(r.lancements, 0);
+  }
+});
+
+test("boot_id illisible : préparation jouée au démarrage, une ligne le dit, pas de nouvelle préparation entre deux lancements", () => {
+  const j = creerJouet(["", prete(31)], { boot: null });
+  j.publier(contratPrep(j.trace));
+  const r = j.lancer(ARGS(1));
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.deepEqual(r.trace, ["prep", "boucle", "boucle"]);
+  assert.equal(r.stdout.match(/boot_id illisible, préparation jouée à chaque démarrage de la veille/g)?.length, 1);
+  // Une veille relancée rejoue la préparation : sans boot_id, rien ne dit que la machine n'a pas redémarré.
+  const r2 = j.lancer(ARGS(0));
+  assert.deepEqual(r2.trace, ["prep", "boucle", "boucle", "prep", "boucle"]);
+});
+
+test("défauts : durée 75 min, marge 40 min, et BOUCLE_ECHEANCE transmise à la boucle", () => {
+  const avant = Math.floor(Date.now() / 1000);
+  const r = veilleJouet([""], { args: ["--pause", "0.2", "--sondes", "0"] });
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /^VEILLE \d\d:\d\d : durée 75 min, aucun passage après \d\d:\d\d \(marge 40 min\)$/m);
+  const echeance = Number(r.echeance);
+  assert.ok(Number.isInteger(echeance), `échéance notée : ${r.echeance}`);
+  assert.ok(Math.abs(echeance - (avant + 80 * 60)) <= 5, `échéance ${echeance}, attendue ${avant + 80 * 60}`);
+});
+
+test("--marge invalide (non entière, 120 ou plus) : sortie 64, un message qui nomme --marge ; --duree décimale acceptée", () => {
+  for (const marge of ["1.5", "120", "200", "abc", "-1", ""]) {
+    const r = veilleJouet([""], { args: ["--marge", marge, "--sondes", "0"] });
+    assert.equal(r.status, 64, `--marge ${marge} : ${r.stdout}${r.stderr}`);
+    assert.match(r.stderr, /--marge/);
+    assert.equal(r.lancements, 0);
+  }
+  for (const duree of ["0", "abc", "-2"]) {
+    const r = veilleJouet([""], { args: ["--duree", duree, "--sondes", "0"] });
+    assert.equal(r.status, 64, `--duree ${duree} : ${r.stdout}${r.stderr}`);
+    assert.match(r.stderr, /--duree/);
+  }
+  const ok = veilleJouet([""], { args: ["--pause", "0.2", "--duree", "0.04", "--marge", "119", "--sondes", "0"] });
+  assert.equal(ok.status, 0, ok.stdout + ok.stderr);
+  assert.match(ok.stdout, /durée 0\.04 min, aucun passage après \d\d:\d\d \(marge 119 min\)/);
+});
+
+test("preparerCapitaine se lit sur origin/develop, jamais dans l'arbre de travail : la commande d'une branche de PR n'est pas jouée", () => {
+  const j = creerJouet([""]);
+  j.publier(contratPrep(j.trace));
+  // Le worktree est laissé sur le code d'une PR, qui nomme sa propre commande.
+  j.git("switch", "-q", "-c", "capitaine/42");
+  writeFileSync(join(j.clone, ".claude/chaine.json"), JSON.stringify(contratPrep(j.trace, "PR")));
+  j.git("commit", "-q", "-am", "feat: une PR");
+  const r = j.lancer(ARGS(0));
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.deepEqual(r.trace, ["prep", "boucle"]);
+  assert.equal(j.git("rev-parse", "HEAD"), j.git("rev-parse", "origin/develop"));
+  assert.equal(spawnSync("git", ["symbolic-ref", "-q", "HEAD"], { cwd: j.clone, env: ENV }).status, 1, "HEAD détachée");
+
+  // Worktree sale : rien n'est joué, la veille s'arrête.
+  const s = creerJouet([""]);
+  s.publier(contratPrep(s.trace));
+  writeFileSync(join(s.clone, "brouillon.txt"), "reste d'un passage\n");
+  const rs = s.lancer(ARGS(0));
+  assert.equal(rs.status, 13, rs.stdout + rs.stderr);
+  assert.match(rs.stdout, /^VEILLE ARRÊTÉE \d\d:\d\d : worktree du capitaine pas propre : préparation non jouée/m);
+  assert.deepEqual(rs.trace, []);
+});
+
+test("échéance passée : plus de relance de la boucle", () => {
+  // Limite de 3 s, marge 0 : l'échéance tombe pendant le premier lancement, qui dure 3,5 s.
+  const r = veilleJouet(["", prete(31)], {
+    apresLancement: '[ "$k" != 0 ] || /bin/sleep 3.5',
+    args: ["--pause", "0.2", "--duree", "1", "--marge", "0", "--sondes", "3"],
+    env: { VEILLE_LIMITE: "0.05" },
+  });
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.equal(r.lancements, 1);
+  assert.match(r.stdout, /^VEILLE FINIE \d\d:\d\d \(échéance\)$/m);
+});
+
+test("--duree au-delà de limite - marge : VEILLE FINIE (échéance) avant la fin de la durée", () => {
+  const debut = Date.now();
+  const r = veilleJouet([""], {
+    args: ["--pause", "0.2", "--duree", "1", "--marge", "0"],
+    env: { VEILLE_LIMITE: "0.1" },
+  });
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /^VEILLE FINIE \d\d:\d\d \(échéance\)$/m);
+  assert.ok(Date.now() - debut < 30000, "finie à l'échéance (6 s), pas à la durée (60 s)");
 });
