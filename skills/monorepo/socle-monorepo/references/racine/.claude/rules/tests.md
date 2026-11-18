@@ -26,8 +26,18 @@ Le critère de séparation est **le besoin d'infrastructure**, pas la couche : u
 - **Tester le comportement, pas l'implémentation.** Un test qui casse à un refactor sans changement de comportement est un test à réécrire.
 - **Jamais la base mockée dans un repository.** Le mapping ligne ↔ modèle, l'atomicité et l'idempotence se prouvent contre une vraie base. Les ports, eux, se mockent dans les tests de cas d'usage.
 - **AAA, un sujet par test, mocks neufs** : `afterEach(() => vi.clearAllMocks())`. Mocks partagés dans `@test/mocks/`.
-- **Déterministe** : pas de `setTimeout` pour attendre, on attend une promesse ou une condition ; pas de date système, l'horloge est un port ; pas d'ordre de tests qui compte.
+- **Déterministe** : pas de `setTimeout` pour attendre, on attend une promesse ou une condition ; pas de date système, l'horloge est un port (voir « Le jour et l'heure ») ; pas d'ordre de tests qui compte.
 - **Un test qui clignote est un bug** jusqu'à preuve du contraire : le rejouer trois fois, puis ouvrir un ticket, jamais un `retry`.
+
+## Le jour et l'heure
+
+Un test qui dépend du jour, de la date ou de l'heure casse selon le moment du run s'il lit l'horloge de la machine ou le jour UTC. Trois règles :
+
+- **Le jour se lit dans le fuseau du métier, par l'horloge injectée.** Le fuseau du métier est une constante du domaine (un nom IANA), jamais celui de la machine, ni UTC par défaut. Le code reçoit l'instant de l'horloge injectée (le port `IClock` du socle Nest, ou son équivalent), ou le jour en paramètre, jamais `new Date()`. `toISOString().slice(0, 10)` rend le jour UTC, faux entre minuit et l'écart du fuseau.
+- **Un test crée ses données au lieu de lire celles du seed partagé.** Le seed dépend du jour où il a tourné : un test qui y cherche « aujourd'hui » ou une année écrite en dur casse quand la date change. Ce qui dépend du jour se crée dans le test, à partir de l'instant posé ; une année attendue s'écrit comme une forme (`\d{4}`), jamais comme une valeur.
+- **Un banc tourne avec une horloge posée.** Le code qui dépend de l'heure se joue aux instants qui cassent, dans le fuseau du métier : en journée, juste avant et juste après minuit, et les jours de changement d'heure. Jamais seulement à l'heure du run. Un seed relatif au jour prend l'instant en paramètre, pour qu'un test puisse le poser.
+
+Gabarit : `docs/agents/gabarits/exemple.jour-metier.spec.ts`.
 
 ## Tests creux — interdits
 

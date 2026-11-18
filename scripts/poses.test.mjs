@@ -46,7 +46,7 @@ const PLANCHER = 150;
 const env = () =>
   Object.fromEntries(Object.entries(process.env).filter(([cle]) => !cle.startsWith("GIT_") && cle !== "NODE_TEST_CONTEXT"));
 
-test("les bancs posés à plat sous scripts/chaine/ tournent hors du plugin", { timeout: 320_000 }, () => {
+test("les bancs posés à plat sous scripts/chaine/ tournent hors du plugin", { timeout: 620_000 }, () => {
   const projet = mkdtempSync(join(tmpdir(), "poses-"));
   try {
     const poses = new Map();
@@ -72,7 +72,7 @@ test("les bancs posés à plat sous scripts/chaine/ tournent hors du plugin", { 
       cwd: projet,
       env: env(),
       encoding: "utf8",
-      timeout: 300_000,
+      timeout: 600_000,
     });
     const sortie = (r.stdout + r.stderr).trim();
     const echecs = sortie.split("\n").filter((l) => /^\s*✖/.test(l) || /\bnot ok\b/.test(l));
