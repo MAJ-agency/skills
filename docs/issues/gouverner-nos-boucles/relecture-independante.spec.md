@@ -40,7 +40,7 @@ Un mot, un sens. Ces termes entrent dans `CONTEXT.md` avec le lot 3.
 
 ## Décisions de conception (architecte)
 
-Numérotées dans la suite de la carte ; elles remplacent celles des deux premières versions. Les décisions `A-104` à `A-119`, du 2026-11-18, sont à la fin de cette section ; une décision qu'elles touchent garde son numéro et dit « amendée en sixième version ».
+Numérotées dans la suite de la carte ; elles remplacent celles des deux premières versions. Les décisions `A-104` à `A-122`, du 2026-11-18, sont à la fin de cette section ; une décision qu'elles touchent garde son numéro et dit « amendée en sixième version ».
 
 ### Fichiers sensibles
 
@@ -247,6 +247,7 @@ Prises par l'architecte sur le rapport de vérification (`relecture-independante
   - **Quelle fusion compte comme une mise à jour.** Son second parent est sur la ligne des premiers parents de la cible (il a été un jour son sommet) et n'est pas un ancêtre de son premier parent. Raison : une fusion fabriquée avec une branche latérale déjà entrée dans la cible créait un conflit exprès sur un index sans commande et faisait perdre une ligne à la cible.
   - **« Même » se prouve.** Le calcul compte les commits de V à T et ceux qu'il a examinés et acceptés : « même » ne sort que si les deux nombres sont égaux et si chaque étape a rendu un succès explicite. Toute commande en échec, toute lecture vide, toute écriture refusée : « illisible ».
   - **Aucun attribut dans la fusion calculée.** Elle est la fusion à trois voies nue ; une fusion réelle faite sous un pilote (`merge=ours`, `merge=union`) s'en écarte et donne « différent ». Limite écrite : un projet qui emploie un tel pilote verra ses PR relues après chaque mise à jour qui touche le fichier. Git 2.41 au moins est exigé, dit par un message clair et un code d'outil manquant.
+- `A-122` — **« Double relecture exigée », après le second tour de sa relecture adversariale** (amende `A-113` et `A-117`). Le calcul prend la règle du dépôt propre d'`A-119` : toutes ses lectures git se font dans un dépôt nu jetable qui emprunte les objets du dépôt réel, sans configuration ni variable d'environnement héritée ; des greffes ou un dossier git hérité faisaient rendre « non exigée » pour une règle montée à haute. Le lecteur d'en-tête n'ouvre une chaîne entre guillemets qu'en tête de valeur (une apostrophe de texte faisait lire un niveau plus bas), et se vérifie contre une vraie bibliothèque sur un grand nombre d'en-têtes, hors du dépôt. Le contrôle de l'entrée admet les chemins présents sur la cible et sur `develop` : une PR de mise à jour d'un sujet qui supprime un fichier venu de `develop` n'est plus « illisible ». Une ligne `Règles:` vide est ignorée (seule `Règles: —` dit « aucune ») ; la puce étoile est lue ; la spec d'un ticket se cherche dans tous les arbres où le ticket se cherche. Un banc neuf suit la garde « un seul environnement de banc » entrée dans `main` en 7.21.0.
 
 ## Les lots
 
