@@ -16,7 +16,7 @@ Spec : [`../capitaine-a-jour-et-teste.spec.md`](../capitaine-a-jour-et-teste.spe
 
 - **`livrer` étiquette lui-même** la PR de livraison (`sujet.sh:870-871`, `poser_label "$n" à-fusionner`). Une livraison qui touche un chemin sensible doit attendre la contre-revue (remontée A5 d'Iroki) : le label part avant. Et `livrer` ouvre la PR par `gh api` : dans une session cloud sans `gh` utilisable, la commande échoue sans rien dire d'utile. Pire : la vérification des sous-PR ouvertes (l. 848-849) lit une réponse vide comme « des sous-PR visent encore `sujet/<nom>` » (sortie 4, motif faux).
 - **`demarrer` refuse à tort** un ticket dont le bloquant est fait. `fait_sur` (l. 189) lit le statut par `git show | grep -m1 | grep -qiE`, sous `set -o pipefail` (l. 100) : sur un fichier plus long que le tampon d'un tube, `grep -m1` s'arrête au premier statut, `git show` reçoit SIGPIPE, le tube sort en 141, et le bloquant passe pour « pas encore fait ». Rejoué le 2026-11-18 sur un fichier de 1 Mo : 141 à chaque essai.
-- **`github.sh:216`** (« integer expression expected ») : absorbé par le ticket 9 (Décision 3).
+- **`github.sh:216`** (« integer expression expected ») : absorbé par le ticket 9 (la Décision 1 (`lire_github`) et la ligne `checks_exiges` (`github.sh:212-218`) du tableau « Où » du ticket 9, prouvées par son banc 2).
 
 **Quand le ticket est fait** :
 
@@ -162,7 +162,7 @@ Tests existants rejoués sans changement : `sujet.test.mjs:319` (dry-run), `:344
 
 ## Hors périmètre
 
-- `github.sh:216` : ticket 9 (Décision 3).
+- `github.sh:216` : ticket 9 (la Décision 1 (`lire_github`) et la ligne `checks_exiges` (`github.sh:212-218`) du tableau « Où » du ticket 9, prouvées par son banc 2).
 - Le catalogue des gates absent du gabarit des index générés : `## Fog` de la carte du programme, tant que sa source n'est pas retrouvée chez `fedora`.
 - Le refus du pre-push classé par la trace de husky (`A-22`), qui touche aussi `livrer` : ticket 9.
 - Les autres gestes de `sujet.sh` qui appellent `gh` (`ouvrir --specs`, `regrouper`, `clore`) : `recibler_specs` (l. 483-490) a déjà son repli MCP ; les autres sont des gestes du capitaine.
@@ -171,7 +171,7 @@ Tests existants rejoués sans changement : `sujet.test.mjs:319` (dry-run), `:344
 
 - 2026-11-18 — Ticket écrit par un sous-agent de l'architecte, sources relues sur `4a45634`, et sur `develop` d'Iroki (`e3dbd235`). Écarts avec la spec et choix à confirmer :
   - **`livrer-prets` étiquette toujours** : `A-15` dit « `livrer` ne pose plus `à-fusionner` », sans parler de `livrer-prets`, qui l'appelle (l. 1112). Sans label, ses livraisons ne seraient fusionnées par personne. Le ticket garde le label pour le seul geste du capitaine (`ETIQUETER=1`). **À confirmer par l'architecte** ; l'autre voie (le conducteur pose le label de chaque livraison) changerait `chantier/SKILL.md` § 7.
-  - **`github.sh:216` absorbé par le ticket 9** (Décision 3), au lieu d'être « validé avant comparaison » ici : la spec du chantier 2 place ce lot après le ticket 9 (« Les lots 2 à 4 et 7 du chantier 1 se placent après le ticket 9 »), qui réécrit la fonction entière. Le ticket 9, écrit en parallèle, le dit aussi de son côté et en porte le banc.
+  - **`github.sh:216` absorbé par le ticket 9** (la Décision 1 (`lire_github`) et la ligne `checks_exiges` (`github.sh:212-218`) du tableau « Où » du ticket 9, prouvées par son banc 2), au lieu d'être « validé avant comparaison » ici : la spec du chantier 2 place ce lot après le ticket 9 (« Les lots 2 à 4 et 7 du chantier 1 se placent après le ticket 9 »), qui réécrit la fonction entière. Le ticket 9, écrit en parallèle, le dit aussi de son côté et en porte le banc.
   - **Code 14** : `grep -E '(sortir|exit|return) 1[2-9]'` ne rend rien dans `sujet.sh` sur `4a45634` ; le 12 est pris par le ticket 1 (arbre du squash différent), le 13 par le ticket 8 (préparation du capitaine en échec, `veille.sh`), le 10 signifie « arrêt demandé » dans `boucle.sh`. Un code distinct dans toute la chaîne évite qu'un `VEILLE ARRÊTÉE` ou une ligne du skill se lise de deux façons.
   - **Une lecture GitHub en échec dans `livrer` vaut « sans `gh` »** : la spec ne le disait pas ; aujourd'hui elle donne un motif faux (« des sous-PR visent encore »).
   - **Le fichier vit sous `<git-common-dir>`**, pas dans l'arbre de travail : un fichier non suivi dans l'arbre ferait refuser le prochain geste du capitaine (« arbre de travail pas propre », sortie 6).
