@@ -15,7 +15,7 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, parse, resolve, sep } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 // Les scripts de la chaîne et le faux gh appellent jq : sans lui, chaque test échouerait sur
 // « jq: command not found », noyé dans ses traces. Un seul message, une fois par fichier de test.
@@ -60,17 +60,16 @@ export const script = (skill, nom) => {
   return existsSync(local) ? local : join(SKILLS, skill, 'scripts', nom);
 };
 
-// Sans les variables de la chaîne héritées. Sous le hook pre-push, GIT_DIR et GIT_INDEX_FILE visent
-// le vrai dépôt, et les commandes du dépôt jouet y écriraient (commit « initial » sur la branche
-// poussée). Sous le capitaine (passer.sh pousse sans sauter le hook), PASSER_OUTILS ferait lire au
-// passer.sh du jouet les outils du vrai capitaine, BOUCLE_COPIE ferait écraser sa copie par la boucle
-// du jouet, BOUCLE_SAUTEES et BOUCLE_ATTENTE y sauteraient des PR ; PRE_PUSH_REFS et REVUE_DIR sont
-// ceux du vrai push et de la vraie revue.
-const PREFIXES_CHAINE = ['GIT_', 'PASSER_', 'BOUCLE_', 'PRE_PUSH_', 'REVUE_'];
+// L'environnement des bancs (sans GIT_*, sans FORCE_COLOR, sans les variables du capitaine, avec
+// NO_COLOR=1) est défini une fois, dans `scripts/docs/environnement-de-banc.mjs` du socle : posé dans un
+// projet, il est à côté de scripts/chaine/ ; dans le plugin, dans le skill `socle-monorepo`. Il n'est pas
+// défini ici : des bancs sont posés sans la chaîne, et ce module exige `jq` à l'import.
+const ENVIRONNEMENT = [join(ICI, '../docs/environnement-de-banc.mjs'), join(SKILLS, '../monorepo/socle-monorepo/references/scripts/docs/environnement-de-banc.mjs')].find(existsSync);
+if (!ENVIRONNEMENT) throw new Error('environnement-de-banc.mjs introuvable : reposer scripts/docs/ du socle (socle-monorepo)');
+export const { environnementDeBanc } = await import(pathToFileURL(ENVIRONNEMENT).href);
+
 const ENV_GIT = {
-  ...Object.fromEntries(
-    Object.entries(process.env).filter(([cle]) => !PREFIXES_CHAINE.some((p) => cle.startsWith(p))),
-  ),
+  ...environnementDeBanc(),
   GIT_CONFIG_GLOBAL: '/dev/null',
   GIT_CONFIG_NOSYSTEM: '1',
   GIT_AUTHOR_NAME: 'test',

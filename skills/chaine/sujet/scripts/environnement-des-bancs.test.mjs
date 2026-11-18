@@ -77,3 +77,32 @@ test(
     }
   },
 );
+
+// Sous un terminal, `node --test` pose FORCE_COLOR=1 : un enfant de banc en hérite et sa sortie porte des
+// séquences ANSI. Même scénario enfant que ci-dessus : depot-jouet.mjs lit process.env à son chargement.
+const SCENARIO_COULEUR = `
+import { depotJouet } from ${JSON.stringify(DEPOT_JOUET)};
+import { spawnSync } from "node:child_process";
+const d = depotJouet();
+const enfant = spawnSync(process.execPath, ["-e", "console.log(4)"], { env: d.env, encoding: "utf8" });
+console.log(JSON.stringify({ force: d.env.FORCE_COLOR ?? null, noColor: d.env.NO_COLOR ?? null, sortie: enfant.stdout }));
+`;
+
+function sousCouleurHeritee() {
+  const r = spawnSync(process.execPath, ["--input-type=module", "-e", SCENARIO_COULEUR], {
+    env: { ...process.env, FORCE_COLOR: "1", NO_COLOR: undefined },
+    encoding: "utf8",
+  });
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  return JSON.parse(r.stdout.trim().split("\n").at(-1));
+}
+
+test("sous FORCE_COLOR=1 hérité (node --test sous un terminal), l'environnement du dépôt jouet n'a pas FORCE_COLOR et porte NO_COLOR=1", () => {
+  const { force, noColor } = sousCouleurHeritee();
+  assert.equal(force, null);
+  assert.equal(noColor, "1");
+});
+
+test("un enfant d'un banc ne rend aucune séquence ANSI quand le banc hérite de FORCE_COLOR=1", () => {
+  assert.equal(sousCouleurHeritee().sortie, "4\n");
+});

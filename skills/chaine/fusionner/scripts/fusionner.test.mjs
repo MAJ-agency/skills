@@ -289,7 +289,7 @@ test("passer.sh : FORCE_COLOR=1 dans l'environnement du capitaine ne fait refuse
   const d = checksRouges(["qualite"]);
   const r = spawnSync("bash", [script("passer.sh"), "32"], {
     cwd: d.travail,
-    env: { ...d.env, FORCE_COLOR: "1" },
+    env: { ...d.env, FORCE_COLOR: "1", NO_COLOR: undefined },
     encoding: "utf8",
   });
   assert.equal(r.status, 0, r.stdout + r.stderr);

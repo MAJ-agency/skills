@@ -16,14 +16,15 @@ import { execFileSync, spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
+// Posé dans un projet, depot-jouet.mjs est à côté (scripts/chaine/) ; dans le plugin, il est dans le skill sujet.
+const { environnementDeBanc } = await import(existsSync(new URL("./depot-jouet.mjs", import.meta.url)) ? "./depot-jouet.mjs" : "../../sujet/scripts/depot-jouet.mjs");
+
 const VEILLE = new URL("./veille.sh", import.meta.url).pathname;
 
 // Variables de git et de la chaîne héritées retirées : sous un hook, GIT_DIR viserait le vrai dépôt,
 // et un BOUCLE_* du capitaine fausserait la doublure.
 const ENV = {
-  ...Object.fromEntries(
-    Object.entries(process.env).filter(([cle]) => !cle.startsWith("GIT_") && !cle.startsWith("BOUCLE_") && !cle.startsWith("VEILLE_")),
-  ),
+  ...Object.fromEntries(Object.entries(environnementDeBanc()).filter(([cle]) => !cle.startsWith("VEILLE_"))),
   GIT_CONFIG_GLOBAL: "/dev/null",
   GIT_CONFIG_NOSYSTEM: "1",
   GIT_AUTHOR_NAME: "test",

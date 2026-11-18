@@ -209,7 +209,7 @@ Ce n'est pas une question à poser : c'est une étape, visible dans le diff. Ce 
 
 1. Identifier le **type**, le **contexte** et le **sujet**.
 2. Chercher le trigramme dans le registre. S'il n'y figure pas, le créer.
-3. Prendre le prochain numéro : `node scripts/docs/next-id.mjs RULE ALL LIC` (le script lit l'arbre et les branches de sujet non fusionnées).
+3. Prendre le prochain numéro : `node scripts/docs/next-id.mjs RULE ALL LIC` (le script fait un fetch, puis lit l'arbre, `origin/develop`, les branches de sujet et de cadrage non fusionnées et les fichiers des PR ouvertes ; `next-id.mjs SPEC_ALL_SOC-4` rend l'index du prochain ticket).
 4. Créer le fichier dans le dossier de son type et de son contexte, d'après le gabarit de `docs/agents/gabarits/`.
 
 ---
