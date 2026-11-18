@@ -1,36 +1,60 @@
 // Veille du capitaine (veille.sh) : boucle.sh et file.sh sont des doublures dans un dossier
-// d'outils jouet, où veille.sh est copié (il les cherche à côté de lui). Aucun réseau, aucun gh.
+// d'outils jouet, où veille.sh est copié (il les cherche à côté de lui). Aucun réseau, aucun gh :
+// le seul `origin` est un dépôt nu du jouet, que la veille lit pour `preparerCapitaine`.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   chmodSync,
   copyFileSync,
   existsSync,
+  mkdirSync,
   mkdtempSync,
   readFileSync,
   writeFileSync,
 } from "node:fs";
-import { spawnSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 const VEILLE = new URL("./veille.sh", import.meta.url).pathname;
 
+// Variables de git et de la chaîne héritées retirées : sous un hook, GIT_DIR viserait le vrai dépôt,
+// et un BOUCLE_* du capitaine fausserait la doublure.
+const ENV = {
+  ...Object.fromEntries(
+    Object.entries(process.env).filter(([cle]) => !cle.startsWith("GIT_") && !cle.startsWith("BOUCLE_") && !cle.startsWith("VEILLE_")),
+  ),
+  GIT_CONFIG_GLOBAL: "/dev/null",
+  GIT_CONFIG_NOSYSTEM: "1",
+  GIT_AUTHOR_NAME: "test",
+  GIT_AUTHOR_EMAIL: "test@example.org",
+  GIT_COMMITTER_NAME: "test",
+  GIT_COMMITTER_EMAIL: "test@example.org",
+};
+
+// Jouet de la veille : un dossier d'outils (veille.sh copiée, doublures de boucle.sh et file.sh), un
+// dépôt nu `origine.git` dont le develop porte, si `contrat` est donné, `.claude/chaine.json`, et son
+// clone `clone/`, le worktree du capitaine, passé en `cwd` : la veille n'écrit jamais dans le dépôt du
+// plugin. Les traces (lancements, `trace`, échéance notée) vivent hors du clone, qui reste propre.
 // `etats` : la table de file.sh renvoyée à la sonde n (0 = lecture initiale), la dernière se répète.
-// Chaque test borne la veille par `sondes` (le nombre d'états qu'il veut voir consommer, lecture
-// initiale exclue) : la durée (1 min) n'est qu'un garde-fou, aucun test ne dépend de l'horloge.
-function veilleJouet(
-  etats,
-  { rcBoucle = 0, sorties = [], sondes = etats.length - 1, args = ["--pause", "0.2", "--duree", "1", "--sondes", String(sondes)] } = {},
-) {
+// `apresLancement` : du shell joué par la doublure de boucle.sh, `$k` valant le rang du lancement.
+function creerJouet(etats, { rcBoucle = 0, sorties = [], contrat, apresLancement = "", boot = "boot-1" } = {}) {
   const dir = mkdtempSync(join(tmpdir(), "veille-"));
+  const clone = join(dir, "clone");
+  const origine = join(dir, "origine.git");
+  const trace = join(dir, "trace");
+  const fichierBoot = join(dir, "boot_id");
+  if (boot !== null) writeFileSync(fichierBoot, `${boot}\n`);
   copyFileSync(VEILLE, join(dir, "veille.sh"));
   writeFileSync(
     join(dir, "boucle.sh"),
     `#!/usr/bin/env bash
 echo boucle >> "${dir}/lancements"
+echo boucle >> "${trace}"
+echo "\${BOUCLE_ECHEANCE-absente}" > "${dir}/echeance"
 k=$(cat "${dir}/k" 2>/dev/null || echo 0)
 echo $((k+1)) > "${dir}/k"
+${apresLancement}
 [ ! -f "${dir}/sortie.$k" ] || cat "${dir}/sortie.$k"
 exit ${rcBoucle}
 `,
@@ -50,13 +74,40 @@ cat "$f"
   etats.forEach((e, i) => {
     writeFileSync(join(dir, i === etats.length - 1 ? "etat.last" : `etat.${i}`), e);
   });
-  const r = spawnSync("bash", [join(dir, "veille.sh"), ...args], { encoding: "utf8" });
-  const journal = join(dir, "lancements");
-  const lancements = existsSync(journal)
-    ? readFileSync(journal, "utf8").trim().split("\n").length
-    : 0;
-  const compte = Number(readFileSync(join(dir, "compte"), "utf8"));
-  return { ...r, lancements, compte };
+  const git = (...a) => execFileSync("git", a, { cwd: clone, env: ENV, encoding: "utf8" }).trim();
+  execFileSync("git", ["init", "-q", "--bare", "-b", "develop", origine], { env: ENV });
+  execFileSync("git", ["clone", "-q", origine, clone], { env: ENV, stdio: "ignore" });
+  writeFileSync(join(clone, "README.md"), "jouet\n");
+  if (contrat !== undefined) {
+    mkdirSync(join(clone, ".claude"));
+    writeFileSync(join(clone, ".claude/chaine.json"), typeof contrat === "string" ? contrat : JSON.stringify(contrat));
+  }
+  git("add", "-A");
+  git("commit", "-q", "-m", "initial");
+  git("push", "-q", "origin", "HEAD:develop");
+  const lancer = (args, env = {}) => {
+    const r = spawnSync("bash", [join(dir, "veille.sh"), ...args], {
+      cwd: clone,
+      env: { ...ENV, VEILLE_BOOT_ID: fichierBoot, ...env },
+      encoding: "utf8",
+    });
+    const lire = (f) => (existsSync(join(dir, f)) ? readFileSync(join(dir, f), "utf8").trim() : "");
+    const lancements = lire("lancements") ? lire("lancements").split("\n").length : 0;
+    const compte = Number(lire("compte") || 0);
+    const lignes = lire("trace") ? lire("trace").split("\n") : [];
+    return { ...r, lancements, compte, trace: lignes, echeance: lire("echeance") };
+  };
+  const garde = join(clone, ".git", "capitaine-boot-id");
+  return { dir, clone, trace, fichierBoot, garde, git, lancer };
+}
+
+// Chaque test borne la veille par `sondes` (le nombre d'états qu'il veut voir consommer, lecture
+// initiale exclue) : la durée (1 min) n'est qu'un garde-fou, aucun test ne dépend de l'horloge.
+function veilleJouet(
+  etats,
+  { sondes = etats.length - 1, args = ["--pause", "0.2", "--duree", "1", "--sondes", String(sondes)], env, ...jouet } = {},
+) {
+  return creerJouet(etats, jouet).lancer(args, env);
 }
 
 const prete = (n) => `${n}\tprête\t\n`;
