@@ -25,7 +25,7 @@ Chaque section suit le même ordre : le symptôme vécu, la règle, l'extrait, c
 
 **Symptôme.** Le `pm clear` de `clearState` retire la tâche de l'app de façon asynchrone et peut tuer le processus que Maestro vient de lancer. Dans le tampon `events` : `am_kill … remove task` juste après `am_proc_start`, sans `am_proc_bound`.
 
-**Règle.** Chaque parcours commence par un sous-flux commun (`e2e/commons/cold-start.yaml`) : attendre l'écran d'entrée 30 s ; sinon relancer **une fois** l'activité (`launchApp` avec `stopApp: false`, sans `clearState`) ; puis attendre 60 s. Aucune commande du parcours n'est rejouée : ce n'est pas un `retry`. La relance laisse un marqueur (un `evalScript` qui écrit une ligne), que le workflow compte à chaque run (« relances : N »), avec le nombre de lancements de l'app lu dans `events`. Au-delà d'une relance par run en moyenne, c'est un défaut à reprendre, pas un réglage à tolérer.
+**Règle.** Chaque parcours commence par un sous-flux commun (`e2e/commons/cold-start.yaml`) : attendre l'écran d'entrée 30 s ; sinon relancer **une fois** l'activité (`launchApp` avec `stopApp: false`, sans `clearState`) ; puis attendre 60 s. Aucune commande du parcours n'est rejouée : ce n'est pas un `retry`. La relance laisse un marqueur (un `evalScript` qui écrit une ligne), que le workflow compte à chaque run (« relances : N ») dans les journaux de Maestro (lignes `JsConsole:` de `--debug-output` et de `~/.maestro/tests/`, pas dans `events`), avec le nombre de lancements de l'app lu dans `events`. Au-delà d'une relance par run en moyenne, c'est un défaut à reprendre, pas un réglage à tolérer.
 
 ```yaml
 # e2e/commons/cold-start.yaml
@@ -33,6 +33,11 @@ appId: ${APP_ID}
 ---
 - launchApp:
     clearState: true
+- extendedWaitUntil:
+    visible:
+      id: home-screen
+    timeout: 30000
+    optional: true
 - runFlow:
     when:
       notVisible:
@@ -58,9 +63,9 @@ appId: ${APP_ID}
 **Règle.** Le script de l'émulateur pose `hide_error_dialogs` juste avant Maestro, relit la valeur et imprime la fenêtre au premier plan. Le réglage cache aussi les dialogues de l'app : **le point 4 est donc obligatoire avec lui**, sinon un ANR de l'app ne se voit plus.
 
 ```sh
-adb shell settings put global hide_error_dialogs 1
-adb shell settings get global hide_error_dialogs
-adb shell dumpsys window | grep mCurrentFocus
+timeout 20 adb shell settings put global hide_error_dialogs 1
+timeout 20 adb shell settings get global hide_error_dialogs
+timeout 20 adb shell dumpsys window | grep mCurrentFocus
 ```
 
 **Quand ça casse.** Un parcours vert mais lent, ou un écran masqué : `mCurrentFocus` dit quelle fenêtre tient le premier plan.

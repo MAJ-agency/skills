@@ -18,7 +18,7 @@ const exiger = (chemin, phrases) => {
 test("mobile en CI : la référence porte les sept points, le ticket gabarit 15 y renvoie, et rien d'un projet n'y entre", () => {
   assert.ok(existsSync(join(RACINE, REFERENCE)), `${REFERENCE} : absent`);
   const texte = readFileSync(join(RACINE, REFERENCE), "utf8");
-  for (const jeton of ["cores: 4", "ram-size: 4096M", "stopApp: false", "hide_error_dialogs", "am_anr", "am_crash", "events", "timeout-minutes", "paths"]) {
+  for (const jeton of ["cores: 4", "ram-size: 4096M", "stopApp: false", "hide_error_dialogs", "am_anr", "am_crash", "events", "timeout-minutes", "paths", "timeout: 30000", "optional: true"]) {
     assert.ok(texte.includes(jeton), `${REFERENCE} : « ${jeton} » absent`);
   }
   exiger(REFERENCE, [
