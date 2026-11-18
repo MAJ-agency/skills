@@ -23,7 +23,7 @@ Une PR peut entrer alors que la combinaison « PR + dernier état de la branche 
 ## Ce qui change, vu par le produit
 
 - **Aucune PR n'entre sans avoir été testée sur l'état de la branche où elle entre.** Cela vaut vers `develop` comme vers un sujet. Le capitaine le vérifie juste avant de fusionner, et compare après coup ce qui est entré à ce qui a été testé. Sans exception (`P-6`) : même un retard de documentation fait mettre à jour la PR et la retester. Un écart découvert après la fusion arrête le capitaine et se signale.
-- **Une sous-PR en retard de code est mise à jour et retestée par le capitaine**, plus jamais squashée telle quelle. Le conducteur n'étiquette qu'une sous-PR de code à la fois par sujet : sinon, chacune remet la suivante en retard et la CI repasse à chaque fois.
+- **Une sous-PR en retard est mise à jour et retestée par le capitaine**, plus jamais squashée telle quelle. Le conducteur n'étiquette qu'une sous-PR à la fois par sujet (`A-35`) : sinon, chacune remet la suivante en retard et la CI repasse à chaque fois.
 - **Une PR en conflit ne bloque plus personne en silence.** Un conflit limité aux index générés est résolu par le capitaine. Tout autre conflit est renvoyé à sa session.
 - **Le nombre de capitaines sur un dépôt n'a plus d'importance** (`P-2`) : ils prennent tous la même file, et une PR en cours de passage porte un commentaire qui la réserve au capitaine qui la traite.
 - **Une session coupée se voit dans l'heure** : l'architecte et le conducteur relèvent l'état de leurs sessions à intervalle fixe et le disent au produit.
@@ -92,7 +92,7 @@ Un ticket par lot, sous `docs/issues/capitaine-a-jour-et-teste/issues/`, numéro
 
 | Lot | Objet | Décisions | Bloqué par |
 | --- | ----- | --------- | ---------- |
-| 1 | Règle d'ascendance vers `develop` et vers un sujet, comparaison des arbres, faux GitHub « strict » et checks par commit, `SKILL.md` de `fusionner` et sa référence (dont « une sous-PR de code étiquetée à la fois par sujet »), `NOTES-DE-VERSION.md` ouvert, 7.16.0 | A-1 à A-6, A-16 | — |
+| 1 | Règle d'ascendance vers `develop` et vers un sujet, comparaison des arbres, faux GitHub « strict » et checks par commit, `SKILL.md` de `fusionner` et sa référence (dont « une sous-PR étiquetée à la fois par sujet »), `NOTES-DE-VERSION.md` ouvert, 7.16.0 | A-1 à A-6, A-16 | — |
 | 2 | PR en conflit : conflit lu avant les checks, `relancer` sur index, `file.sh` « en conflit » | A-7 | 1 |
 | 3 | Mention d'une fusion sans effet (`fusionsSansEffet`) | A-8 | 1 |
 | 4 | Verrou du passage, plusieurs capitaines sur la même file | A-9, A-10 | 1 |
