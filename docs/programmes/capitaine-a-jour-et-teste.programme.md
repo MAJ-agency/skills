@@ -10,7 +10,7 @@ Architecte: session_012xRpgbiXqFh3uGnL8yRbGh (ouverte par le produit le 2026-11-
 Objectif: un capitaine qui vérifie l'ascendance avant chaque fusion (vers `develop` comme vers un sujet), un ticket par défaut voisin, une version du plugin publiée avec sa note de version.
 Dépôts: `MAJ-agency/iroki-monorepo` (lecture seule : source des correctifs à remonter), `MAJ-agency/skills` (le plugin `maj-skills` : skills `fusionner`, `sujet`, `tickets`, `chantier`, `architecte`, `socle-chaine-de-production`) ; les projets (`fedora` d'abord) le reçoivent par la mise à jour du plugin.
 Source: la demande du produit du 2026-11-18, recopiée dans `## Source` ci-dessous ; les remontées d'Iroki du même jour, [`../issues/capitaine-a-jour-et-teste/sources/2026-11-18-remontees-iroki.md`](../issues/capitaine-a-jour-et-teste/sources/2026-11-18-remontees-iroki.md) — entrées brutes, ni spec ni décision.
-Capitaines: `skills` : aucun ; le produit fusionne les PR de `skills` (« Guillaume fusionne », remontées d'Iroki du 2026-11-18).
+Capitaines: `skills` : session_012xRpgcWjwiV8xVUSzzEy9L (lancé le 2026-11-18 à 19 h 14 UTC, sonnet, mode « auto », tag `role:capitaine`, procédure d'un dépôt sans la chaîne) ; avant lui, le produit fusionnait.
 
 ## Chantiers
 
@@ -113,3 +113,4 @@ Demande du produit, 2026-11-18, recopiée telle quelle (relevée sur `MAJ-agency
 - 2026-11-18 — 19 h 05 UTC. Seconde relecture : tickets 8 et 9 prêts. Mineures du 8 à donner au lancement : cloner le dépôt jouet dans un sous-dossier passé en `cwd` et écrire la trace hors du clone (sinon le worktree est sale) ; ne fetcher `origin/develop` que si une préparation est due (`boot_id` d'abord), pour ne pas arrêter la veille d'un projet sans `preparerCapitaine` sur un fetch passager ; le message du worktree sale commence par `VEILLE ARRÊTÉE <hh:mm> :`. **Les 19 tickets sont écrits et relus.**
 - 2026-11-18 — 19 h 10 UTC. PR 117 (ticket 5) conforme ; une retouche de formulation demandée (`lancement.md:87`). PR 111 (documentation du programme) sortie du brouillon, commentaire `à-fusionner au sommet 1aa25f71…` et label posés.
 - 2026-11-18 — 19 h 12 UTC. PR 117 retouchée (`7155ccd`) : prête. PR 118 (ticket 6) : code conforme (747 tests, mutations rouges, mineure 5 codée et juste, A-44) ; reste sa note de version, à écrire en reprenant `main` après la 115. PR 115 : `mergeable_state` clean, CI verte, attend le produit.
+- 2026-11-18 — 19 h 14 UTC. Premier lancement d'un capitaine sur `skills` refusé par le classifieur du mode « Auto » (une session qui fusionne dans `main`). Le produit : « t'as besoin de mon accord là ? » puis « mais tu es un architecte toi nan ? ». Relancé : session_012xRpgcWjwiV8xVUSzzEy9L.
