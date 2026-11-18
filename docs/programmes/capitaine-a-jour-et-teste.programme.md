@@ -60,6 +60,7 @@ Décisions de l'architecte :
 | ticket | 10 | session_012xRpgbJm6pUqbrixWZ1a5w | sonnet | — | — |
 | ticket | 12 | session_012xRpgZRkibUK1CA2XDumRw | sonnet | — | — |
 | ticket | 17 | session_012xRpgbyvYBRavfo3t7tSRy | opus | — | — |
+| ticket | 6 | session_012xRpgYLyDnCAE8DMZWu3s5 | sonnet | — | — |
 
 ## Passation
 
@@ -100,3 +101,4 @@ Demande du produit, 2026-11-18, recopiée telle quelle (relevée sur `MAJ-agency
 - 2026-11-18 — 18 h 29 UTC. Ticket 17 repris une quatrième fois (`d2cfedd`, A-40). **Session lancée** sans cinquième relecture : session_012xRpgbyvYBRavfo3t7tSRy (opus, depuis `main`) ; la recherche adversariale sur dépôt jouet à hook témoin est dans sa Vérification, puis `/security-review` et la contre-relecture de l'architecte. Raison : chaque relecture trouvait une variante de plus ; la recherche par la session qui code, sur le code réel, la remplace.
 - 2026-11-18 — 18 h 35 UTC. Tickets 2 à 7 écrits (`46a1f00`, rédacteur opus). A-41. Relectures neuves lancées (2-3-4 et 6-7) ; ticket 5 repris sur deux choix.
 - 2026-11-18 — 18 h 45 UTC. Tickets 8, 9, 11, 14, 16 et 18 écrits (`8ea5b84`) ; ticket 5 repris (`bf95c39`). A-42. Tous les tickets des deux chantiers sont écrits ; relectures neuves en cours pour 2 à 9, 11, 14, 16, 18.
+- 2026-11-18 — 18 h 55 UTC. Contre-relectures : PR 115 conforme (trois corrections demandées : refspec explicite des fetch de la cible, délai d'un banc, banc à checks par sha) ; PR 116 non conforme (dernier commit jamais poussé, défaut SIGPIPE reproduit). Relectures : ticket 5 pas prêt (faux positifs du contrôle de vie, filtre par tag refusé) renvoyé ; tickets 6 et 7 prêts. Ticket 6 lancé ; ticket 13 bloqué par 1 et 6.
