@@ -50,3 +50,9 @@ D. Régimes : clé `regimes` de `chaine.json`, ADR ; règle candidate dans ancho
 - Pas gardé : `docs/metier/regles/**`, les specs, les tickets. Aucun hook de `scripts/agent/` ne regarde `by`.
 - Pistes à porter au produit, avec le périmètre de CODEOWNERS (P-41) : (a) les fichiers de règle entrent dans le périmètre des propriétaires ; (b) un hook d'agent refuse l'écriture d'un `by:` autre que `agent` (garde légère, contournable par une commande) ; (c) les deux.
 - (soir, suite) Le code du juge (`compare`, `proofs`, `check`, `build`, `repo`, schéma) devient chemin sensible (A-63, ticket .39). Aujourd'hui : contre-revue. Avec CODEOWNERS (P-41) : chaque PR sur ces chemins attendrait un propriétaire humain. Question au produit : mêmes chemins pour « contre-revue » et pour « propriétaire », ou deux listes ?
+
+## Ajout du 2026-11-18, 15 h 32 UTC — une contrainte du produit
+
+Relayé par l'architecte de Fedora (`session_017ZgEwK58YLUSzpFyS44qpW`) le 2026-11-18 à 15 h 31 UTC, à confirmer avec le produit pendant le grilling, puisque ce n'est pas dit à l'architecte du programme : à la proposition « donner un compte propre aux agents, pour ne pas dépendre de la seconde personne propriétaire à chaque PR sensible », le produit a répondu qu'il ne peut pas attendre la validation de cette seconde personne sur CODEOWNERS, et qu'il doit pouvoir, lui, en tant qu'admin du compte de l'organisation, valider les modifications des fichiers sensibles. Deux faits joints, non vérifiés ici : Anchorpost n'a ni CODEOWNERS ni PR qui en pose un, et le réglage GitHub « Require review from Code Owners » n'est activé nulle part.
+
+À porter au premier tour : le produit veut approuver lui-même ; or toutes les sessions écrivent sous son compte, et GitHub refuse qu'un auteur approuve sa propre PR. La question à lui poser n'est donc plus « qui approuve », mais « sous quel compte les agents écrivent-ils, pour que votre approbation compte ».
