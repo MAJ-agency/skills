@@ -376,3 +376,83 @@ exit 0
   assert.equal(r.status, 10, r.stdout + r.stderr);
   assert.deepEqual(lu(), [], "livrer-prets n'a pas tourné");
 });
+
+// --- Échéance transmise par la veille (`BOUCLE_ECHEANCE`) : aucun passage ne commence après elle ---
+
+const maintenant = () => Math.floor(Date.now() / 1000);
+// `sujet.sh` de remplacement : note `fusionner` et `livrer-prets` ; `regrouper-series` (premier appel
+// du tour) dort `dort` secondes la première fois, pour que l'échéance tombe pendant le tour.
+const sujetSh = (dort = 0) => `#!/usr/bin/env bash
+case "$1" in
+  regrouper-series) [ ${dort} = 0 ] || [ -e "$TRACE.dormi" ] || { touch "$TRACE.dormi"; /bin/sleep ${dort}; } ;;
+  fusionner) echo "fusionner $2" >> "$TRACE" ;;
+  livrer-prets) echo "livrer-prets" >> "$TRACE" ;;
+esac
+exit 0
+`;
+
+test("échéance passée : ÉCHÉANCE, sortie 0, aucun passage", () => {
+  const { d, publier, lu } = jouet({ BOUCLE_ECHEANCE: String(maintenant() - 1) });
+  publier({ "file.sh": fileSh(1, 1), "passer.sh": passerSh(1) });
+  const r = d.lancer(BOUCLE);
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /^ÉCHÉANCE \d\d:\d\d : plus de passage avant la fin de la veille, file laissée$/m);
+  assert.doesNotMatch(r.stdout, /FILE VIDE/, "pas de fin de boucle ordinaire (rafraîchissement sauté)");
+  assert.deepEqual(lu(), []);
+});
+
+test("échéance atteinte entre deux passages : le premier passe, pas le second", () => {
+  // L'échéance tombe pendant le premier passage, qui dort au-delà (10 s de marge pour le démarrage de la
+  // boucle) ; ce banc et les deux suivants dépendent de l'horloge, de quelques secondes.
+  const { d, publier, lu } = jouet({ BOUCLE_ECHEANCE: String(maintenant() + 10) });
+  publier({
+    "file.sh": fileSh(1, 2),
+    "passer.sh": passerSh(1, `[ "$(grep -c '^passer' "$TRACE")" -gt 1 ] || /bin/sleep 11`),
+  });
+  const r = d.lancer(BOUCLE);
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.deepEqual(lu(), ["passer v1"], r.stdout + r.stderr);
+  assert.match(r.stdout, /^ÉCHÉANCE \d\d:\d\d/m);
+});
+
+test("échéance atteinte pendant le tour, après sa tête : aucun passer lancé", () => {
+  // La tête du tour est passée avant l'échéance ; elle tombe pendant `regrouper-series` : seul le contrôle
+  // qui précède `passer` l'arrête.
+  const { d, publier, lu } = jouet({ BOUCLE_ECHEANCE: String(maintenant() + 10) });
+  publier({ "file.sh": fileSh(1, 1), "passer.sh": passerSh(1), "sujet.sh": sujetSh(11) });
+  const r = d.lancer(BOUCLE);
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /^ÉCHÉANCE \d\d:\d\d/m);
+  assert.deepEqual(lu().filter((l) => l.startsWith("passer")), [], r.stdout + r.stderr);
+});
+
+test("BOUCLE_ECHEANCE illisible : sortie 64, aucun passage", () => {
+  for (const valeur of ["demain", "", "12.5", "0", "-3"]) {
+    const { d, publier, lu } = jouet({ BOUCLE_ECHEANCE: valeur });
+    publier({ "file.sh": fileSh(1, 1), "passer.sh": passerSh(1) });
+    const r = d.lancer(BOUCLE);
+    assert.equal(r.status, 64, `« ${valeur} » : ${r.stdout}${r.stderr}`);
+    assert.match(r.stderr, /BOUCLE_ECHEANCE/);
+    assert.deepEqual(lu(), []);
+  }
+});
+
+test("échéance avant une sous-PR : la boucle s'arrête sur ÉCHÉANCE, sans lancer sujet.sh fusionner", () => {
+  const { d, publier, lu } = jouet({ BOUCLE_ECHEANCE: String(maintenant() + 10) });
+  publier({
+    "file.sh": `#!/usr/bin/env bash
+[ "$1" = --rouges ] && exit 0
+printf '41\\tsujet/x : prête\\n'
+# La PR suivante vers develop, prête tant qu'aucun passer n'a tourné (une boucle sourde la passerait).
+[ "$(grep -c '^passer' "$TRACE" 2>/dev/null)" -ge 1 ] || printf '42\\tprête\\n'
+exit 0
+`,
+    "passer.sh": passerSh(1),
+    "sujet.sh": sujetSh(11),
+  });
+  const r = d.lancer(BOUCLE);
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /^ÉCHÉANCE \d\d:\d\d/m);
+  // Ni la sous-PR, ni la suite du tour (livrer-prets) que jouerait une boucle restée sourde au sous-shell.
+  assert.deepEqual(lu(), [], r.stdout + r.stderr);
+});
