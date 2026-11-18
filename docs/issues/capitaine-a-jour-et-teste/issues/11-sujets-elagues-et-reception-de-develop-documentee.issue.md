@@ -3,7 +3,7 @@
 Status: ready-for-agent
 Type: défaut
 Modèle: sonnet — un `--prune` limité à un refspec, une ligne d'avertissement, un message de refus réécrit et une section de skill tirée d'un paragraphe existant, sur le modèle du correctif d'Iroki et de ses bancs ; aucune conception.
-Blocked by: 9 et 7 (`skills/chaine/sujet/scripts/sujet.sh` et `skills/chaine/fusionner/scripts/sujet-fusionner.test.mjs` sont des fichiers chauds des deux, après le ticket 1 : partir de `main` après leur fusion)
+Blocked by: 9 et 7 (`skills/chaine/sujet/scripts/sujet.sh` et `skills/chaine/fusionner/scripts/sujet-fusionner.test.mjs` sont des fichiers chauds des deux, après le ticket 1 : partir de `main` après leur fusion). Le ticket 16 passe après celui-ci (`sujet.sh` partagé, `A-43`).
 Dépendances: — (aucune dépendance nouvelle)
 Fichiers chauds: `skills/chaine/sujet/scripts/sujet.sh`, `skills/chaine/sujet/scripts/sujet-refs.test.mjs`, `skills/chaine/fusionner/scripts/sujet-fusionner.test.mjs`, `skills/chaine/sujet/SKILL.md`, `skills/chaine/sujet/references/CONTENU.md`, `scripts/depot.test.mjs`, `.claude-plugin/plugin.json`, `NOTES-DE-VERSION.md`
 Label: contre-revue
@@ -177,4 +177,5 @@ Dans `scripts/depot.test.mjs`, un test : « sujet/SKILL.md a la section Recevoir
 - 2026-11-18 — Ticket écrit par un sous-agent de l'architecte, après relecture de `sujet.sh`, `sujet/SKILL.md`, `refus.sh` et des bancs sur `4a45634`, et du correctif d'Iroki #643 (`2ed7be6f`). Écarts avec la spec et choix à confirmer :
   - **« Refs locales lues sans fetch (l. 119, 129, 144-154, 394) »** : dans le plugin, chacune de ces lectures suit déjà, dans le même processus, le fetch de `carte` (`sujet_du_ticket` → `carte` pour `demarrer`, l. 158 ; `etat`, l. 1031 ; `livrer_prets`, l. 1087 ; `declarations_multiples` et `carte_lue` ne sont appelées qu'après lui). Le constat vaut pour les scripts d'Iroki, qui ont divergé. Il reste deux trous : pas d'élagage, et un fetch en échec muet ; le ticket les ferme, et le banc 3 garde l'ordre « fetch, puis lecture » commande par commande.
   - **A6, « la règle n'est écrite que dans l'en-tête du script »** : elle est aussi dans `sujet/SKILL.md:34`, mais au milieu d'un paragraphe de 600 mots, sans corps type. Le ticket la sort dans une section.
-  - **Fichiers chauds partagés avec le ticket 16**, qui ajoute à `sujet.sh` une commande `a-juger` : les deux tickets touchent des fonctions différentes ; l'architecte ordonne 11 et 16, tous deux après le 9.
+  - **Fichiers chauds partagés avec le ticket 16**, qui ajoute à `sujet.sh` une commande `a-juger` : tranché (`A-43`), le 16 passe après celui-ci.
+- 2026-11-18 — Retouché après relecture (`A-43`) : le ticket 16 passe après celui-ci.

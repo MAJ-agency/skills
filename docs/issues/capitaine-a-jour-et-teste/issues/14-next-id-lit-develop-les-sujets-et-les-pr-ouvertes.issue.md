@@ -3,7 +3,7 @@
 Status: ready-for-agent
 Type: défaut
 Modèle: sonnet — un script de numérotation à étendre sur le module de lecture des PR ouvertes du ticket 6 (`pr-ouvertes.mjs`), un mode de plus sur la grammaire existante (`fichiersDeLaSpec`), et des bancs sur le dépôt jouet du script ; aucune conception au-delà de ce que le ticket tranche.
-Blocked by: 6 (le module `pr-ouvertes.mjs`, `A-14`, que ce ticket réutilise)
+Blocked by: 6, 13 (le module `pr-ouvertes.mjs`, `A-14`, que ce ticket réutilise ; l'environnement de banc de `next-id.test.mjs`, que le 13 pose : `A-43`)
 Dépendances: — (aucune dépendance nouvelle)
 Fichiers chauds: `skills/monorepo/socle-monorepo/references/scripts/docs/next-id.mjs`, `skills/monorepo/socle-monorepo/references/scripts/docs/next-id-branches.mjs`, `skills/monorepo/socle-monorepo/references/scripts/docs/next-id.test.mjs`, `skills/monorepo/socle-monorepo/references/TABLE-RACINE.md`, `skills/chaine/tickets/SKILL.md`, `.claude-plugin/plugin.json`, `NOTES-DE-VERSION.md`
 Label: contre-revue
@@ -41,6 +41,8 @@ Spec : [`../remontees-iroki.spec.md`](../remontees-iroki.spec.md), ticket 14 (po
 
 **Ce que le ticket 6 aura changé** (à relire sur `main` avant de commencer ; [`6-ticket-libre-lit-les-fichiers-des-pr-ouvertes.issue.md`](6-ticket-libre-lit-les-fichiers-des-pr-ouvertes.issue.md), Décisions 1 et 3) : un module `sm/pr-ouvertes.mjs`, posé par `socle-monorepo` dans `scripts/docs/`, avec `lirePrOuvertes({ gh = ghReel, fichiers = true } = {})`, qui rend `{ verifiees: true, prs: [{ numero, tete, brouillon, titre, fichiers: [{ chemin, ancien, statut }] }] }`, ou `{ verifiees: false }` si `gh` manque ou échoue à un appel quelconque, jamais une liste partielle, et rien sur la console ; `ticket-libre.mjs` l'importe ; `tk/depot-jouet.mjs` le copie (`DU_SOCLE`) ; `TABLE-RACINE.md:14` le nomme. Un fichier de PR compte quand son statut est `added`, `modified`, `renamed`, `copied` ou `changed` ; un `removed`, ou l'ancien chemin d'un renommage, ne compte pas.
 
+**Ce que le ticket 13 aura changé** (à relire sur `main` avant de commencer ; [`13-un-seul-environnement-de-banc.issue.md`](13-un-seul-environnement-de-banc.issue.md)) : un module `sm/environnement-de-banc.mjs`, avec `environnementDeBanc(base = process.env)` (une copie sans `GIT_*`, sans `FORCE_COLOR` ni `NODE_TEST_CONTEXT`, sans les variables de la chaîne, avec `NO_COLOR=1`) ; `next-id.test.mjs` l'importe (`./environnement-de-banc.mjs`) au lieu de son filtre recopié (l. 9-20 sur `4a45634`), et le test « le numéro sort nu » (l. 117-125) s'y appuie. Le second clone et le faux `gh` de ce ticket partent de cet environnement, `PATH` réduit compris.
+
 Appelants réels :
 
 - `next-id.mjs` : les sessions (skill `tickets`, l. 61) ; `migrer-tickets.mjs:82`, par `execFileSync` (une sortie non nulle y lève : la sortie reste 0 sans `gh`) ; le message du gate `tickets` (`tickets.mjs:131`) le cite.
@@ -56,18 +58,18 @@ Tenues (spec et programme) : `A-26` (fetch, `origin/develop`, tous les `origin/s
 
 Précisions du ticket :
 
-1. **Le fetch** : `git fetch -q --prune origin develop '+refs/heads/sujet/*:refs/remotes/origin/sujet/*' '+refs/heads/docs/*:refs/remotes/origin/docs/*'`, depuis `PROJET_RACINE`. L'élagage ne vise que ces refspecs (comme `sujet.sh carte`, ticket 11) : un sujet supprimé ne garde pas un numéro « pris » à tort, et rien d'autre n'est élagué. En échec : les refs locales sont lues, et la sortie d'erreur le dit (« fetch impossible : copies locales lues »). Le numéro sort quand même.
+1. **Le fetch** : `git fetch -q --prune origin [develop] '+refs/heads/sujet/*:refs/remotes/origin/sujet/*' '+refs/heads/docs/*:refs/remotes/origin/docs/*'`, depuis `PROJET_RACINE`. `develop` n'est nommé que s'il existe sur le distant (`git ls-remote --exit-code --heads origin develop`) : un dépôt sans `develop` (posé par le socle avant la chaîne, ou ce dépôt-ci) ferait échouer tout le fetch sur une ref absente ; `origin/develop` absent n'est alors pas lu, sans message d'erreur. L'élagage ne vise que ces refspecs (comme `sujet.sh carte`, ticket 11) : un sujet supprimé ne garde pas un numéro « pris » à tort, et rien d'autre n'est élagué. En échec : les refs locales sont lues, et la sortie d'erreur le dit (« fetch impossible : copies locales lues »). Le numéro sort quand même.
 2. **Le module des PR ouvertes est celui du ticket 6, inchangé** : `lirePrOuvertes()` (avec ses fichiers), dans `sm/`, à côté de `next-id.mjs` (`A-41` : `next-id.mjs` est posé par le socle seul, avant et sans le skill `tickets`). Ce ticket ne le modifie pas ; un besoin de plus se note sous `## Comments` et se porte au module, avec son test (`sm/pr-ouvertes.test.mjs`).
 3. **Ce que `next-id` en lit** : pour chaque PR ouverte, brouillons compris, le `chemin` de chaque fichier dont le `statut` est `added`, `modified`, `renamed`, `copied` ou `changed` (la règle du ticket 6, Décision 3), jamais l'`ancien`. Le nom de fichier se lit par la même fonction que pour l'arbre (`numeroDe`, ou la forme ticket). `{ verifiees: false }` : la Décision 4.
 4. **Sans `gh`** : sortie 0, le numéro sur la sortie standard (calculé sur les sources git), et sur la sortie d'erreur :
 
    > `PR ouvertes non lues (gh indisponible) : une PR ouverte peut déjà porter ce numéro. Par l'outil GitHub MCP : list_pull_requests (state open), puis pull_request_read get_files pour chacune ; prendre le suivant d'un numéro qu'un de leurs fichiers porte. Réserver aussitôt (branche et PR brouillon).`
 5. **Le mode ticket**, `next-id <SPEC>` :
-   - les fichiers qui comptent : ceux que `fichiersDeLaSpec(<spec>)` reconnaît (`…/<SPEC>-<slug>.<NN>.issue.md`, `identifiants.mjs:175`), archive comprise (`issues/archive/` : un index archivé reste pris), aux mêmes sources que le mode spec ;
+   - les fichiers qui comptent : ceux dont le **nom de base** (`chemin.split('/').pop()`) se lit par `identifiantDuTicket` (`identifiants.mjs:86-89`, `SPEC_ALL_SOC-4-x.03.issue.md` → `SPEC_ALL_SOC-4.03`), puis par `lireTicket` (`:61-66`), dont la spec est celle demandée ; jamais par `fichiersDeLaSpec`, qui exige un `/` devant le nom et ne lit donc pas un nom de base. Archive comprise (`issues/archive/` : un index archivé reste pris), aux mêmes sources que le mode spec ;
    - la sortie : le plus grand `NN` trouvé, plus un, sur deux chiffres (`01` quand la spec n'a pas encore de ticket) ;
    - au-delà de `99` (la grammaire `TICKET`, `identifiants.mjs:37`, n'a que deux chiffres) : sortie 2, « plus d'index libre dans <SPEC> : découper une nouvelle spec » ;
    - une spec introuvable à toutes les sources n'est pas une erreur : `01`.
-6. **La fenêtre qui reste** : deux sessions qui lancent `next-id` dans la même minute, avant que l'une ait poussé sa PR brouillon, prennent encore le même numéro. Le ticket ne la ferme pas ; la consigne de réserver aussitôt (Décision 4, `tickets/SKILL.md:61`) la réduit, et le gate `tickets` refuse un identifiant porté deux fois (`tickets.mjs:131`).
+6. **La fenêtre qui reste** : deux sessions qui lancent `next-id` dans la même minute, avant que l'une ait poussé sa PR brouillon, prennent encore le même numéro. Le ticket ne la ferme pas ; la consigne de réserver aussitôt (Décision 4, `tickets/SKILL.md:61`) la réduit. Le gate `tickets` refuse une **spec** portée par deux fichiers (`tickets.mjs:127-131`), mais pas deux tickets `.NN` d'une même spec : `identifiantsEnDouble` (`tickets-regles.mjs:186-198`) range les tickets sous le numéro de leur spec. Deux `.NN` en double se heurtent au mieux en conflit add/add, quand ils portent le même nom de fichier ; sous deux slugs, rien ne les arrête.
 7. **La fille tranche seule**, par défaut prudent, et le note sous `## Comments` : la forme interne du module et de son appel, le découpage des bancs, le texte de l'usage. Elle ne tranche **pas** : les sources lues, la place du module dans le socle, la sortie 0 sans `gh`, les deux chiffres et l'archive comptée.
 
 ## Ordre de travail (TDD)
@@ -82,13 +84,14 @@ Dans `sm/next-id.test.mjs`, `depotJouet` gagne un second clone du même dépôt 
 
 Titres à garder tels quels :
 
-1. « une spec entrée dans develop après la dernière lecture compte : next-id fait un fetch et lit origin/develop » — l'autre clone pousse `SPEC_ALL_SOC-3-x.spec.md` sur `develop` ; le clone de travail, en retard, rend `4`. **Rouge sur `main`** : `3`.
+1. « une spec entrée dans develop après la dernière lecture compte : next-id fait un fetch et lit origin/develop » — le jeu de données part d'une seule spec, `SPEC_ALL_SOC-2-x.spec.md`, dans l'arbre et sur `develop` ; l'autre clone pousse `SPEC_ALL_SOC-3-y.spec.md` sur `develop` ; le clone de travail, en retard, rend `4`. **Rouge sur `main`** : `3`.
 2. « un sujet ouvert par une autre session après la dernière lecture compte » — l'autre clone pousse une spec sur `sujet/y`. **Rouge sur `main`**.
 3. « une spec que seule une PR ouverte ajoute compte » — le faux `gh` liste une PR dont les fichiers portent `docs/features/x/all/SPEC_ALL_SOC-5-x.spec.md` ; rend `6`. **Rouge sur `main`**.
 4. « gh indisponible : le numéro sort, sortie 0, et la sortie d'erreur dit comment lire les PR ouvertes par l'outil GitHub MCP ». **Rouge sur `main`** (aucune ligne).
 5. « tickets : next-id SPEC_ALL_SOC-4 rend le prochain index sur deux chiffres, lu dans l'arbre, develop, les sujets, les PR ouvertes et l'archive » — un `.03` dans l'arbre, un `.07` sur un sujet, un `.11` archivé sur develop, un `.12` dans une PR ouverte : `13` ; une spec sans ticket : `01`. **Rouge sur `main`** (forme refusée, sortie 2).
 6. « tickets : au-delà de 99, sortie 2 et le message de découpage ».
 7. « fetch en échec : copies locales lues, numéro rendu, la sortie d'erreur le dit ».
+8 bis. « dépôt sans develop : le fetch ne nomme pas develop, les sujets et les docs sont lus, le numéro sort » — le dépôt nu n'a que `main` et une branche `sujet/z` porteuse d'une spec ; la sortie d'erreur ne dit pas « fetch impossible ».
 8. « un sujet supprimé du distant ne garde pas son numéro pris » — non-régression de l'élagage limité : `sujet/z` supprimé du dépôt nu, sa spec n'est plus comptée ; une branche `autre/w` n'est pas élaguée.
 
 Les 7 tests existants restent verts, `plusGrandSurBranches` compris (l. 127), et ceux de `pr-ouvertes.test.mjs` et `ticket-libre.test.mjs` (ticket 6) aussi, sans changement.
@@ -129,6 +132,7 @@ Les 7 tests existants restent verts, `plusGrandSurBranches` compris (l. 127), et
 | Mode ticket, archive, deux chiffres | idem, « tickets : next-id SPEC_ALL_SOC-4 rend le prochain index sur deux chiffres, lu dans l'arbre, develop, les sujets, les PR ouvertes et l'archive » |
 | Au-delà de 99 | idem, « tickets : au-delà de 99, sortie 2 et le message de découpage » |
 | Fetch en échec | idem, « fetch en échec : copies locales lues, numéro rendu, la sortie d'erreur le dit » |
+| Dépôt sans `develop` | idem, « dépôt sans develop : le fetch ne nomme pas develop, les sujets et les docs sont lus, le numéro sort » |
 | Élagage limité | idem, « un sujet supprimé du distant ne garde pas son numéro pris » |
 | Module partagé inchangé | `skills/monorepo/socle-monorepo/references/scripts/docs/pr-ouvertes.test.mjs` et `skills/chaine/tickets/references/scripts/docs/ticket-libre.test.mjs` (ticket 6), inchangés et verts |
 | Scripts posés dans un projet | `scripts/poses.test.mjs` |
@@ -159,4 +163,5 @@ Les 7 tests existants restent verts, `plusGrandSurBranches` compris (l. 127), et
   - **Spec exacte** sur C14 (`next-id-branches.mjs:13-37` : ni fetch, ni `origin/develop`, ni PR ouvertes ; aucun outil pour un `.NN`). Il lit déjà `origin/docs/*`, que la spec ne nommait pas : gardé.
   - **Ticket 6 écrit en parallèle** (`46a1f00`) : il place `pr-ouvertes.mjs` dans `socle-monorepo` (`A-41`) et en donne la forme (`lirePrOuvertes`) ; ce ticket la reprend telle quelle et ne touche ni le module, ni `ticket-libre.mjs`, ni `tk/depot-jouet.mjs`.
   - **Sortie 0 sans `gh`**, contre la sortie 3 de `ticket-libre.mjs` : `migrer-tickets.mjs:82` appelle `next-id` par `execFileSync`, qu'une sortie non nulle fait lever.
-  - **Fichiers chauds partagés avec le ticket 13** (`next-id.test.mjs`, `TABLE-RACINE.md`), qui pose l'environnement de banc dans le socle : comme le 6 (« jamais en même temps que le ticket 13 »), à ordonner par l'architecte, 13 d'abord de préférence (ce ticket écrit un second clone et un faux `gh` dans le même banc).
+  - **Fichiers chauds partagés avec le ticket 13** (`next-id.test.mjs`, `TABLE-RACINE.md`) : tranché (`A-42`, `A-43`), le 13 passe avant.
+- 2026-11-18 — Retouché après relecture (`A-43`) : bloqué par 6 et 13, avec « Ce que le ticket 13 aura changé » ; `develop` n'est nommé dans le fetch que s'il existe (banc 8 bis) ; banc 1 sur la spec `SOC-2` du jeu de données ; Décision 6 corrigée (le gate ne compare que les numéros de spec, deux `.NN` d'une même spec ne sont pas refusés) ; Décision 5 : nom de base lu par `identifiantDuTicket` puis `lireTicket`, jamais par `fichiersDeLaSpec`.
