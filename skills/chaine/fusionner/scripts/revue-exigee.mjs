@@ -6,6 +6,9 @@
 // « Revue de ticket » ou « Revue adversariale » : un titre Markdown hors bloc de code. Règles pures, testées par revue-exigee.test.mjs ; la CLI sert
 // passer.sh et sujet.sh.
 //
+// Une PR qui touche un chemin sensible de la base (`cheminsSensibles`, ou tout chemin si le contrat est illisible)
+// porte de plus, dans cette section, la ligne « - `/security-review` : lancée » (ticket 18, `motifSansSecurite`).
+//
 // Garde-fou ajouté le 20/10 (#844, #939) : une PR dont le titre annonce du code (feat, fix…)
 // mais dont le diff ne contient que de la documentation est refusée. Cas vécu : la session pose
 // `à-fusionner` pendant que son pre-push, long, n'a pas encore poussé le code ; la boucle squashe
@@ -229,6 +232,77 @@ export function motifSansRevue({ corps, fichiers, base = SANS_BASE }) {
   return `sans section « Revue de ticket » ni « Revue adversariale » dans la description alors que la PR touche du code ou ce que la chaîne exécute (${chemin.trim()}) : lancer le skill revue-de-ticket (ou revue-adversariale pour une PR sans ticket)`;
 }
 
+/**
+ * Ticket 18 : premier chemin du diff qui touche un chemin sensible de la base (`base.sensibles`, avec le moteur de
+ * `cheminExige` : sans casse ni forme NFD), tel que git l'écrit, ou `null`. Base illisible : chaque chemin est
+ * sensible, comme `chemins-sensibles.mjs` le rend alors ; une citation mal formée aussi (prudence de `cheminExige`).
+ * Sans contrat, aucun chemin sensible.
+ */
+export function cheminSensible(fichiers, base = SANS_BASE) {
+  const sensibles = base.sensibles.map((m) => regexDuMotif(comparable(m)));
+  return (
+    fichiers.find((f) => {
+      if (f.trim() === '') return false;
+      if (base.illisible !== null) return true;
+      if (sensibles.length === 0) return false;
+      const c = cheminLu(f);
+      return c === null || sensibles.some((re) => re.test(c));
+    }) ?? null
+  );
+}
+
+/** Un titre de section « Revue de ticket » ou « Revue adversariale » : son niveau (le nombre de `#`). */
+const TITRE_REVUE = /^\s{0,3}(#{1,6})\s+revue (adversariale|de ticket)\b/i;
+const TITRE = /^\s{0,3}(#{1,6})(\s|$)/;
+const CLOTURE = /^\s{0,3}(```|~~~)/;
+/**
+ * La ligne des gabarits (`section-pr.md` de revue-de-ticket et revue-adversariale), telle qu'ils l'écrivent :
+ * « - `/security-review` : lancée (chemins : …) ». Puce `-`, `*` ou `+` ; accents graves facultatifs ; blancs libres
+ * (insécables compris) autour des deux-points ; « lancée » suivi d'un blanc, d'une parenthèse, d'une ponctuation
+ * finale ou de la fin de ligne (`\b` ne vaut rien après `é` en JavaScript). Lue en NFC, sans casse.
+ */
+const LIGNE_SECURITE = /^\s*[-*+]\s+`?\/security-review`?\s*:\s*lancée(?=[\s(.,;:!?…]|$)/iu;
+
+/**
+ * Vrai si une ligne « - `/security-review` : lancée » se tient dans une section « Revue de ticket » ou « Revue
+ * adversariale » : après son titre, avant le titre suivant de niveau égal ou supérieur, hors bloc de code.
+ */
+export function aLigneSecurite(corps) {
+  let dansBloc = false;
+  let niveau = 0;
+  for (const brute of (corps ?? '').normalize('NFC').split(/\r?\n/)) {
+    if (CLOTURE.test(brute)) {
+      dansBloc = !dansBloc;
+      continue;
+    }
+    if (dansBloc) continue;
+    const revue = TITRE_REVUE.exec(brute);
+    if (revue) {
+      niveau = revue[1].length;
+      continue;
+    }
+    const titre = TITRE.exec(brute);
+    if (titre) {
+      if (titre[1].length <= niveau) niveau = 0;
+      continue;
+    }
+    if (niveau > 0 && LIGNE_SECURITE.test(brute)) return true;
+  }
+  return false;
+}
+
+/**
+ * Ticket 18 (`A-31`) : une PR qui touche un chemin sensible porte, dans sa section de revue, la ligne
+ * « `/security-review` : lancée ». Motif de non-éligibilité, ou `null`. La ligne est déclarative : elle se voit et
+ * se renvoie, elle ne se prouve pas. Jouée après `motifSansRevue` : une PR sans section reçoit d'abord ce motif-là.
+ */
+export function motifSansSecurite({ corps, fichiers, base = SANS_BASE }) {
+  const chemin = cheminSensible(fichiers, base);
+  if (chemin === null || aLigneSecurite(corps)) return null;
+  const ou = base.illisible !== null ? `${chemin.trim()} ; le ${base.illisible} : tout chemin est sensible` : chemin.trim();
+  return `section de revue sans la ligne « /security-review : lancée » alors que la PR touche un chemin sensible (${ou}) : lancer la skill /security-review sur ce sommet, puis écrire la ligne dans la section`;
+}
+
 const TYPES_AVEC_CODE = /^(feat|fix|refactor|perf)(\([^)]*\))?!?:/;
 
 /** Le titre annonce du code alors que le diff ne contient que de la documentation ? */
@@ -256,6 +330,7 @@ if (estPointEntree()) {
   const base = process.argv[4] ? lireBase(process.argv[4]) : SANS_BASE;
   const motif =
     motifSansRevue({ corps: process.argv[2] ?? '', fichiers, base }) ??
+    motifSansSecurite({ corps: process.argv[2] ?? '', fichiers, base }) ??
     motifTitreSansCode({ titre: process.argv[3] ?? '', fichiers });
   if (motif) {
     process.stdout.write(`${motif}\n`);

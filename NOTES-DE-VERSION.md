@@ -2,6 +2,22 @@
 
 La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque projet par `poser` : une version publiée ne change rien chez un projet qui ne les repose pas. Chaque note dit ce qui change, puis ce qu'un projet fait pour en profiter.
 
+## 7.22.0 — 2026-11-18
+
+### Ce qui change
+
+Une garde d'agent qui ne peut pas charger `regles.mjs` ou `entree.mjs` refuse l'outil et dit comment sortir, en une ligne sans trace de Node : la session s'arrête et le dit à qui l'a lancée ; un humain restaure `scripts/agent/` depuis le dernier commit où les gardes se chargent (`git checkout origin/develop -- scripts/agent/` si develop est sain), jamais en contournant la garde. Les six hooks qui chargent ces modules sont couverts (`garde-commandes`, `garde-fichiers`, `garde-github`, qui refusent ; `apres-edition`, `fin-de-tour`, `demarrage`, qui disent la même chose et sortent en 0). Le gabarit `chaine-de-production.md` dit d'écrire un tel fichier d'un seul coup. La garde refuse `git commit --amend`, sous ses abréviations (`--am`, `--ame`, `--amen`) et derrière toute option globale de git ; `git commit -m "--amend"` et `--fixup=amend:<sha>` passent ; le paragraphe « Jamais d'amend » du gabarit le dit. Le capitaine renvoie une PR qui touche un chemin sensible sans la ligne « `/security-review` : lancée » dans sa section de revue (`revue-exigee.mjs`, `motifSansSecurite` ; contrat de la base illisible : tout chemin est sensible).
+
+### Ce qu'un projet fait pour en profiter
+
+1. Mettre à jour le plugin : `claude plugin marketplace update maj`, puis `claude plugin update maj-skills@maj`, puis redémarrer Claude Code (session cloud : `lancement.md` § « La mise à niveau »).
+2. Dans une PR du projet, recopier depuis `~/.claude/plugins/marketplaces/maj/skills/chaine/socle-chaine-de-production/references/agent/` vers `scripts/agent/` : `garde-commandes.mjs`, `garde-fichiers.mjs`, `garde-github.mjs`, `apres-edition.mjs`, `fin-de-tour.mjs`, `demarrage.mjs`, `regles.mjs`, `regles.test.mjs`, `garde-illisible.test.mjs`, **chacun d'un seul coup** : copie à côté, `node --check`, import, puis `mv`. `scripts/agent/**` est un chemin sensible : contre-revue et `/security-review`.
+3. Reposer `/maj-skills:fusionner poser` (`revue-exigee.mjs`). Toute PR du projet qui touche un chemin sensible porte désormais la ligne « `/security-review` : lancée » dans sa section de revue : le dire aux sessions en cours, et relancer le capitaine une fois la PR entrée dans develop.
+4. Recopier dans `docs/agents/chaine-de-production.md` le paragraphe « Un fichier que les gardes chargent s'écrit d'un seul coup » et la dernière phrase du paragraphe « Jamais d'amend » du gabarit, et la ligne « Hooks d'agent » du fragment `claude-md-fusion.md` dans `CLAUDE.md`, si le projet les a gardées telles quelles.
+5. `node --test scripts/agent/*.test.mjs scripts/chaine/revue-exigee.test.mjs` : vert.
+
+**Iroki**, hors du plugin : ses consignes « Jamais d'amend » (#634) et « s'écrit d'un seul coup » (#653, `docs/agents/chaine-de-production.md:124`, `:126`) sont couvertes par ce gabarit et par la garde ; sa garde lit encore les commandes par expressions, et la repose de `regles.mjs` suppose son passage à la lecture par jetons (ticket 17).
+
 ## 7.21.1 — 2026-11-18
 
 ### Ce qui change

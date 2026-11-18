@@ -1,8 +1,17 @@
 #!/usr/bin/env node
 /** Hook PreToolUse (Bash) : commandes interdites (le hook refuse et dit quoi faire, il ne demande jamais rien à un humain). */
 import { execFileSync } from 'node:child_process';
-import { brancheParDefaut, lireToolInput, RACINE } from './entree.mjs';
-import { decisionCommande, lireDependances } from './regles.mjs';
+
+// Ticket 18 : les modules de la garde se chargent en dynamique protégé, avant toute autre chose. Un module cassé
+// (tronqué, ou qui lève à son évaluation) ne fait pas tomber le hook sur une trace de Node : il refuse l'outil (sortie 2)
+// et dit comment sortir. Le code est ici, et pas dans un module commun, qui pourrait être cassé lui aussi.
+const charger = (fichier) =>
+  import(`./${fichier}`).catch((e) => {
+    process.stderr.write(`garde-commandes : scripts/agent/${fichier} ne se charge pas (${String(e?.message ?? e).split('\n')[0]}) : tout outil est refusé tant qu'il n'est pas restauré, la garde ne s'ouvre jamais sur un fichier cassé. La session s'arrête et le dit à qui l'a lancée ; un humain restaure scripts/agent/ depuis un terminal, depuis le dernier commit où les gardes se chargent, jamais en contournant la garde : git checkout origin/develop -- scripts/agent/ si develop est sain, sinon git checkout <commit> -- scripts/agent/\n`);
+    process.exit(2);
+  });
+const { brancheParDefaut, lireToolInput, RACINE } = await charger('entree.mjs');
+const { decisionCommande, lireDependances } = await charger('regles.mjs');
 
 // Grammaire des identifiants du skill `socle-monorepo` : le ticket d'une branche (`feat/spec-all-soc-1-04-hook`
 // → `SPEC_ALL_SOC-1.04`) et celui d'un fichier ne se lisent que par elle, aucune expression n'en est

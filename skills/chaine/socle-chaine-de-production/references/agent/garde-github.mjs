@@ -8,8 +8,17 @@
  * outil hors des sept de son matcher) est refusée : il échoue fermé.
  */
 import { execFileSync } from 'node:child_process';
-import { brancheParDefaut, lireEntree, RACINE } from './entree.mjs';
-import { decisionOutilGithub, OUTILS_GITHUB_GARDES } from './regles.mjs';
+
+// Ticket 18 : les modules de la garde se chargent en dynamique protégé, avant toute autre chose. Un module cassé
+// (tronqué, ou qui lève à son évaluation) ne fait pas tomber le hook sur une trace de Node : il refuse l'outil (sortie 2)
+// et dit comment sortir. Le code est ici, et pas dans un module commun, qui pourrait être cassé lui aussi.
+const charger = (fichier) =>
+  import(`./${fichier}`).catch((e) => {
+    process.stderr.write(`garde-github : scripts/agent/${fichier} ne se charge pas (${String(e?.message ?? e).split('\n')[0]}) : tout outil est refusé tant qu'il n'est pas restauré, la garde ne s'ouvre jamais sur un fichier cassé. La session s'arrête et le dit à qui l'a lancée ; un humain restaure scripts/agent/ depuis un terminal, depuis le dernier commit où les gardes se chargent, jamais en contournant la garde : git checkout origin/develop -- scripts/agent/ si develop est sain, sinon git checkout <commit> -- scripts/agent/\n`);
+    process.exit(2);
+  });
+const { brancheParDefaut, lireEntree, RACINE } = await charger('entree.mjs');
+const { decisionOutilGithub, OUTILS_GITHUB_GARDES } = await charger('regles.mjs');
 
 /** Un nom de dépôt ou de propriétaire : chaîne de `[\w.-]`, qui ne commence pas par un point. */
 const nomGithub = (v) => typeof v === 'string' && /^(?!\.)[\w.-]+$/.test(v);

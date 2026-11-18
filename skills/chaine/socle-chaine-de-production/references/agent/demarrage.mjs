@@ -19,7 +19,16 @@ import { appendFileSync, existsSync, readFileSync, realpathSync, statSync } from
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { RACINE } from './entree.mjs';
+
+// Ticket 18 : les modules de la garde se chargent en dynamique protégé, avant toute autre chose. Un module cassé
+// (tronqué, ou qui lève à son évaluation) ne fait pas tomber le hook sur une trace de Node : il le dit sur la sortie d'erreur et sort en 0 (ce hook ne garde rien)
+// et dit comment sortir. Le code est ici, et pas dans un module commun, qui pourrait être cassé lui aussi.
+const charger = (fichier) =>
+  import(`./${fichier}`).catch((e) => {
+    process.stderr.write(`demarrage : scripts/agent/${fichier} ne se charge pas (${String(e?.message ?? e).split('\n')[0]}) : tout outil est refusé tant qu'il n'est pas restauré, la garde ne s'ouvre jamais sur un fichier cassé. La session s'arrête et le dit à qui l'a lancée ; un humain restaure scripts/agent/ depuis un terminal, depuis le dernier commit où les gardes se chargent, jamais en contournant la garde : git checkout origin/develop -- scripts/agent/ si develop est sain, sinon git checkout <commit> -- scripts/agent/\n`);
+    process.exit(0);
+  });
+const { RACINE } = await charger('entree.mjs');
 
 const ETAPES_ACTIVES = new Set(['fetch-develop', 'origin-head', 'install' /* , 'postgres', 'base-test' */]);
 const PG = { host: process.env.PGHOST ?? 'localhost', port: process.env.PGPORT ?? '5432' };
