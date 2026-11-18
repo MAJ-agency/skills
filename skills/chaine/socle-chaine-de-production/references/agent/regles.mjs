@@ -529,6 +529,8 @@ class Lecteur {
     const mot = this.mot;
     if (!mot.expansion) mot.prefixe = mot.valeur;
     if (!cite) mot.nonCitee = true;
+    // `"$@"`, `"${a[@]}"`, `"${!p@}"` : un mot par élément, même entre guillemets doubles.
+    if (brut !== undefined && (brut === '$@' || (brut.startsWith('${') && brut.includes('@')))) mot.nonCitee = true;
     mot.expansion = true;
     mot.queue = '';
     if (brut === undefined) {
@@ -2269,7 +2271,18 @@ function lireConfig(args, { motif, libre }, r) {
     else if (option === '-e' || option === '--edit') {
       r.hooks = true;
       return;
-    } else inconnue = true;
+    } else {
+      inconnue = true;
+      // git accepte toute abréviation non ambiguë d'une option longue (`--unset-a`, `--remove-sec`) : une option qui
+      // en abrège une d'écriture, de section ou d'édition en prend l'effet (plusieurs à la fois si elle est ambiguë).
+      const abrege = (liste) => option.startsWith('--') && option.length >= 4 && [...liste].some((o) => o.startsWith(option));
+      if (abrege(CONFIG_ECRITURES)) ecriture = true;
+      if (abrege(CONFIG_SECTIONS)) section = true;
+      if (abrege(['--edit'])) {
+        r.hooks = true;
+        return;
+      }
+    }
   }
   let reste = positionnels;
   let mode = null;
@@ -2282,7 +2295,7 @@ function lireConfig(args, { motif, libre }, r) {
     return;
   }
   if (section || mode === 'remove-section' || mode === 'rename-section') {
-    const renomme = mode === 'rename-section' || args.some((w) => w.vue === '--rename-section');
+    const renomme = mode === 'rename-section' || args.some((w) => w.vue.length >= 4 && '--rename-section'.startsWith(w.vue));
     for (const w of reste) {
       const s = w.vue.toLowerCase();
       if (aExpansion(s) || motif(w) || sectionHooks(s)) r.hooks = true;
@@ -2298,7 +2311,8 @@ function lireConfig(args, { motif, libre }, r) {
     r.hooks = true;
     return;
   }
-  if (!ecriture && mode !== 'set' && mode !== 'unset' && valeurs.length === 0) return;
+  // La clé seule se lit, sauf derrière une option inconnue : elle peut être une écriture que la garde ne connaît pas.
+  if (!ecriture && !inconnue && mode !== 'set' && mode !== 'unset' && valeurs.length === 0) return;
   const nom = cle.vue.toLowerCase();
   if (CLE_HOOKS.test(nom)) r.hooks = true;
   else if (CLE_PUSH.test(nom)) r.push = true;
@@ -2339,16 +2353,29 @@ function lireUpdateRef(args, { exacte, motif }, r) {
 function affecteLesHooks(cmd) {
   if (cmd.affectations.some((a) => VARIABLE_HOOKS.test(a.nom))) return true;
   const W = cmd.mots.map(motExact);
+  // Derrière un lanceur hors de la liste (`taskset 1 env HUSKY=0 git …`, `flock f env …`) : un `env` n'importe où
+  // suivi d'une affectation gardée, ou une affectation gardée placée avant le programme git.
+  const programmeGit = W.findIndex((w) => !w.expansion && (/(^|\/)git$/i.test(w.valeur) || PROGRAMME_INTERNE.test(w.valeur)));
+  for (let k = 0; k < W.length; k++) {
+    if (programmeGit >= 0 && k < programmeGit && VARIABLE_HOOKS.test(nomAffecte(W[k]) ?? '')) return true;
+    if (W[k].expansion || nomDeBase(W[k].valeur) !== 'env') continue;
+    for (let e = k + 1; e < W.length; e++) {
+      const nom = nomAffecte(W[e]);
+      if (nom && VARIABLE_HOOKS.test(nom)) return true;
+      if (!nom && !W[e].vue.startsWith('-') && !(['-u', '-C', '--unset', '--chdir'].includes(W[e - 1].vue))) break;
+    }
+  }
   const premier = W[0];
   if (!premier || premier.expansion) return false;
   const programme = nomDeBase(premier.valeur);
   // `set -a` (`allexport`) exporte toute variable affectée ensuite, par `((…))`, `${X:=…}`, `for X in …` : la
-  // garde ne lit pas ces affectations-là, l'option elle-même est refusée.
+  // garde ne lit pas ces affectations-là, l'option elle-même est refusée, comme `set -k` (`keyword`).
   if (programme === 'set' || programme === 'shopt') {
     for (let k = 1; k < W.length; k++) {
       const v = W[k].vue;
       if (v === '--') break;
-      if (W[k].expansion || /^-[A-Za-z]*a/.test(v) || (/^[-+]?o?allexport$/.test(v) && /^-[A-Za-z]*o/.test(W[k - 1]?.vue ?? '')) || v === '-oallexport') return true;
+      // `set -k` (`keyword`) fait de tout mot `NOM=…` de la commande une variable d'environnement, même après git.
+      if (W[k].expansion || /^-[A-Za-z]*[ak]/.test(v) || (/^(allexport|keyword)$/.test(v) && /^-[A-Za-z]*o/.test(W[k - 1]?.vue ?? '')) || /^-o(allexport|keyword)$/.test(v)) return true;
     }
     return false;
   }

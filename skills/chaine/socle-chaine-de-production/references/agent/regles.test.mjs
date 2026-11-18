@@ -1591,3 +1591,29 @@ test('ticket 17 : recherche adversariale — chaque contournement trouvé sur le
   // Une substitution de processus rend un seul chemin : elle n'est pas découpée, elle passe en valeur (Iroki la refusait).
   passent(['git -C <(echo a b) commit -m x', 'git commit -m x -- -*', 'set -euo pipefail', 'set -x', 'git -C "$X" push origin feat/x', 'man git-commit', 'git -c core.pager=cat log -1', 'timeout 5 git commit -m "fix -n"', 'timeout --foreground 5 pnpm test', 'sudo -u "$u" git status', 'git -c core.pager="less -FRX" log', 'git reset HEAD@{1}', 'git commit -m x -- {a,b}.ts']);
 });
+
+test('ticket 17 : /security-review — chaque contournement confirmé sur un dépôt jouet est refusé', () => {
+  // `"$@"`, `"${a[@]}"` : un mot par élément, même entre guillemets doubles.
+  refusees(['set -- x --no-verify; git commit -m "$@"', 'a=(z --no-verify); git commit -m "${a[@]}"', 'set -- . -c core.hooksPath=/dev/null; git -C "$@" commit -m y'], ARGUMENT);
+  // Ouvert sur main aussi : la sous-commande push portée par `"$@"`.
+  refusees(['set -- . push --no-verify -f origin HEAD:develop; git -C "$@"'], /hooks git|argument de git illisible|destination ne se lit pas/);
+  refusees(
+    [
+      // `set -k` : tout `NOM=…` de la commande va dans l'environnement, même après git.
+      'set -k; git commit --allow-empty -m x GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.hooksPath GIT_CONFIG_VALUE_0=/dev/null',
+      'set -o keyword; git commit -m x HUSKY=0',
+      // Un lanceur hors de la liste des préfixes.
+      'taskset 1 env GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.hooksPath GIT_CONFIG_VALUE_0=/dev/null git commit -m w',
+      'flock /tmp/l env HUSKY=0 git commit -m v',
+      'taskset 1 env HUSKY=0 git commit -m x',
+      'flock /tmp/l env HUSKY=0 bash scripts/chaine/passer.sh 12',
+      // Les abréviations des options de git config.
+      'git config --unset-a core.hooksPath',
+      'git config --remove-sec core',
+      'git config --rename-sec core x',
+    ],
+    HOOKS,
+  );
+  refusees(['git config --unset-a remote.origin.push', 'git config --rename-sec hacks remote.origin'], PUSH_ILLISIBLE);
+  passent(['git commit -m "$*"', 'git -C "${dir}" status', 'git config --show-origin core.hooksPath', 'env -u X pnpm test', 'set -euo pipefail; git status', 'echo "$@"']);
+});
