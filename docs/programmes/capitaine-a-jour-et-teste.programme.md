@@ -49,6 +49,10 @@ Décisions de l'architecte :
 | Rôle | Ticket | Session | Modèle | Contexte max | Coût $ |
 | ---- | ------ | ------- | ------ | ------------ | ------ |
 | ticket | 1 | session_012xRpgccroQauUaW3RGm1QW | opus | — | — |
+| ticket | 15 | session_012xRpga1QnWvr6a2oT2ptow | sonnet | — | — |
+| ticket | 19 | session_012xRpgbEBkwAzwZSDmB3KtH | sonnet | — | — |
+| ticket | 10 | session_012xRpgbJm6pUqbrixWZ1a5w | sonnet | — | — |
+| ticket | 12 | session_012xRpgZRkibUK1CA2XDumRw | sonnet | — | — |
 
 ## Passation
 
@@ -81,3 +85,4 @@ Demande du produit, 2026-11-18, recopiée telle quelle (relevée sur `MAJ-agency
 - 2026-11-18 — 18 h 55 UTC. Ticket 1 repris (`eb7fedc`) : P-6 appliquée, mineures portées, fonction d'ascendance dans `github.sh` (sans CLI nouvelle) ; A-35. Seconde relecture par le même relecteur, sur le delta.
 - 2026-11-18 — 18 h 50 UTC (horloge de la plateforme : 17 h 49 UTC). Seconde relecture du ticket 1 : « prêt », trois mineures portées par l'architecte (`360db7f`). **Session du ticket 1 lancée** : session_012xRpgccroQauUaW3RGm1QW (opus, depuis `main` `4a45634`, 7.16.0 visée ; premier geste : charger `send_message`, A-12 appliquée d'avance).
 - 2026-11-18 — 19 h 00 UTC. Tickets 10, 12, 13, 15, 17 et 19 écrits (`ab76f55`, rédacteur opus ; ticket 34 de `gouverner-nos-boucles` marqué repris par le 17 ; 60 commandes sur 72 « à refuser » passent la garde de 7.15.0). A-36 ; ticket 13 bloqué par le 1. Relectures neuves lancées.
+- 2026-11-18 — 18 h 11 UTC. Relectures neuves : tickets 10, 12, 13, 15 et 19 « prêts » (mineures seules, données aux sessions dans leur prompt). Sessions lancées depuis `main` : 15 (session_012xRpga1QnWvr6a2oT2ptow), 19 (session_012xRpgbEBkwAzwZSDmB3KtH), 10 (session_012xRpgbJm6pUqbrixWZ1a5w), 12 (session_012xRpgZRkibUK1CA2XDumRw), sonnet. Le 13 attend la fusion du 1. Relecture du 17 en cours ; rédaction des tickets 2 à 9, 11, 14, 16 et 18 en cours.
