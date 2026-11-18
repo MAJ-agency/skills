@@ -23,7 +23,7 @@ Capitaines: `skills` : à lancer quand la première PR est prête.
 Décisions du produit :
 
 - P-1 — (2026-11-18, demande d'ouverture) Avant toute fusion, le capitaine vérifie l'ascendance du sommet de la cible dans le sommet testé ; règle en trois cas (à jour ; retard de documentation seule ; tout autre retard), conflit hors index renvoyé ; chemins « de code » lus dans `.claude/chaine.json`. Un ticket par défaut, le correctif d'ascendance en premier, une version publiée, une note de version qui dit ce qu'un projet doit faire.
-- P-2 — (2026-11-18) Plusieurs capitaines sur un même dépôt restent possibles : « parfois Jordan et moi on a chacun notre capitaine alors qu'on travaille sur le même repo ». La file d'un capitaine se restreint (auteur, label, base, titre), un verrou visible protège chaque passage.
+- P-2 — (2026-11-18) Plusieurs capitaines sur un même dépôt restent possibles (« parfois Jordan et moi on a chacun notre capitaine »), et leur nombre n'a pas d'importance (« c'est pas gênant d'avoir 1 ou 3 capitaines lancé en même temps sur le même repo en fait on s'en fiche nan ? ») : pas de filtre de file, un verrou visible par PR contre le travail en double.
 - P-3 — (2026-11-18) Une PR dont le retard ne porte que de la documentation et des index générés entre sans nouvelle CI (cas 2a), après contrôle de la liste des fichiers et de l'arbre fusionné.
 
 Décisions de l'architecte :
@@ -63,3 +63,4 @@ Demande du produit, 2026-11-18, recopiée telle quelle (relevée sur `MAJ-agency
 > **Attendu.** Un ticket par défaut dans `MAJ-agency/skills`, le correctif de la règle d'ascendance en premier, une version du plugin publiée, et une note de version qui dit ce qu'un projet doit faire pour en profiter.
 - 2026-11-18 — 17 h 05 UTC. Relevé à la source rendu (sous-agent, `4a45634`) : défauts confirmés sauf le 2 (le hook `sans-migration` est celui du projet) et le 6 (déjà mesuré par `get_session`) ; le catalogue des gates n'a de générateur dans aucun skill. Spec du chantier 1 écrite, A-1 à A-16 ; présentée au produit pour validation.
 - 2026-11-18 — 17 h 20 UTC. Le produit demande pourquoi la spec parle du nombre de capitaines et de l'exception de documentation ; réponses : P-2 (plusieurs capitaines, un par personne) et P-3 (pas de nouvelle CI pour un retard de documentation). Filtre `--auteur` ajouté à A-9.
+- 2026-11-18 — 17 h 30 UTC. P-2 amendé par le produit : le nombre de capitaines n'a pas d'importance ; A-9 réécrit (plus de filtres de file, verrou seul).

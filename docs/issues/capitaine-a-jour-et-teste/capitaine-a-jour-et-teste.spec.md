@@ -26,7 +26,7 @@ Une PR peut entrer alors que la combinaison « PR + dernier état de la branche 
 - **Aucune PR n'entre sans avoir été testée sur l'état de la branche où elle entre.** Cela vaut vers `develop` comme vers un sujet. Le capitaine le vérifie juste avant de fusionner, et compare après coup ce qui est entré à ce qui a été testé. Une seule exception (`P-3`) : quand le retard ne porte que de la documentation, la PR entre sans nouvelle CI. Un écart découvert après la fusion arrête le capitaine et se signale.
 - **Une sous-PR en retard de code est mise à jour et retestée par le capitaine**, plus jamais squashée telle quelle. Le conducteur n'étiquette qu'une sous-PR de code à la fois par sujet : sinon, chacune remet la suivante en retard et la CI repasse à chaque fois.
 - **Une PR en conflit ne bloque plus personne en silence.** Un conflit limité aux index générés est résolu par le capitaine. Tout autre conflit est renvoyé à sa session.
-- **Plusieurs capitaines peuvent vivre sur un même dépôt** (`P-2`), un par personne qui pilote, chacun sur sa part de la file, et une PR en cours de passage porte un commentaire qui le dit.
+- **Le nombre de capitaines sur un dépôt n'a plus d'importance** (`P-2`) : ils prennent tous la même file, et une PR en cours de passage porte un commentaire qui la réserve au capitaine qui la traite.
 - **Une session coupée se voit dans l'heure** : l'architecte et le conducteur relèvent l'état de leurs sessions à intervalle fixe et le disent au produit.
 - **Chaque version du plugin a sa note**, qui dit ce qu'un projet doit faire pour en profiter.
 
@@ -61,12 +61,12 @@ Une PR peut entrer alors que la combinaison « PR + dernier état de la branche 
 
   `file.sh` lit l'état de fusion de la PR et affiche « en conflit » au lieu de « prête (sans CI) ». Raison : GitHub ne lance pas la CI d'une PR en conflit, donc lire les checks d'abord tourne en rond.
 - `A-8` — **Clé de contrat `fusionsSansEffet`**, une liste d'entrées `{ "fichier", "lignesSansEffet", "mention" }`. Elle s'applique quand un commit de fusion joué par un script apporte un changement à `fichier` (diff entre le sommet de la branche avant la fusion et le résultat). Si chaque ligne ajoutée ou retirée correspond à l'expression `lignesSansEffet` (un commentaire, une ligne vide), le script ajoute `mention` au message du commit. Sinon, il s'arrête en disant quel fichier porte un changement réel. Le gabarit la laisse vide ; la note de version donne l'entrée de `schema.prisma` pour un projet Prisma. Raison : le hook appartient au projet, le plugin ne connaît ni Prisma ni la mention. Une clé générique, vérifiée par diff, fait ce que demande le produit sans écrire un projet en dur dans le plugin.
-- `A-9` — **La file d'un capitaine se restreint par quatre filtres, cumulables** (`P-2` : plusieurs capitaines sur un même dépôt, un par personne qui pilote, par exemple Guillaume et Jordan sur `fedora`) : l'auteur de la PR (`--auteur`, utile quand chacun publie sous son compte), le label (`--label`), la branche de base (`--base`, un motif) et l'identifiant du ticket dans le titre (`--titre`, une expression). `file.sh`, `veille.sh` et `boucle.sh` les lisent, et le prompt de lancement d'un capitaine (`lancement.md`) les nomme. Raison : le produit a proposé les trois derniers, et l'auteur départage deux personnes sans aucun geste ; aucun ne demande de geste nouveau aux sessions, sauf le label, et le lanceur choisit celui qui sépare ses programmes.
+- `A-9` — **Le nombre de capitaines sur un dépôt n'a pas d'importance, et la file ne se filtre pas** (`P-2`). Deux capitaines ne peuvent plus faire entrer une PR non testée : la règle d'ascendance (`A-1` à `A-4`) le garantit, quel que soit le nombre. Le seul risque qui reste est le travail en double, quand deux capitaines prennent la même PR en même temps : double mise à jour, push refusé, et un renvoi à tort à la session. Le verrou de `A-10` le supprime. Avec lui, la règle « un seul `role:capitaine` actif » de `fusionner/SKILL.md` disparaît. Raison : un filtre de file demanderait un réglage à chaque lancement, sans rien ajouter à la sûreté.
 - `A-10` — **Le verrou d'un passage est un commentaire marqué sur la PR**. Le commentaire est visible (« passage du capitaine `<id>` depuis `<heure>` ») et porte une marque invisible `<!-- capitaine:passage <id> -->`. Le script le pose au début du passage, puis relit les commentaires :
   - si une marque d'un autre capitaine, plus ancienne, sans marque de fin et datée de moins de 90 minutes, existe, il supprime la sienne et saute la PR ;
   - à toute sortie, il édite son commentaire en « passage terminé ».
 
-  L'identifiant vient de `CAPITAINE_ID`, la session du capitaine, exigé quand un filtre est posé. Avec un filtre, la règle « un seul `role:capitaine` actif » devient « un seul par filtre ». Raisons :
+  L'identifiant vient de `CAPITAINE_ID`, la session du capitaine, toujours exigé. Raisons :
   - les sessions d'une même personne publient sous le même compte, donc l'auteur d'un label ne départage pas deux de ses capitaines ;
   - l'ordre des commentaires, lui, départage deux capitaines arrivés à la même seconde ;
   - un label de plus changerait les sept labels du socle.
@@ -101,7 +101,7 @@ Un ticket par lot, sous `docs/issues/capitaine-a-jour-et-teste/issues/`, numéro
 | 1 | Règle d'ascendance vers `develop` et vers un sujet, comparaison des arbres, faux GitHub « strict » et checks par commit, clé `cheminsDeCode`, `SKILL.md` de `fusionner` et sa référence (dont « une sous-PR de code étiquetée à la fois par sujet »), `NOTES-DE-VERSION.md` ouvert, 7.16.0 | A-1 à A-6, A-16 | — |
 | 2 | PR en conflit : conflit lu avant les checks, `relancer` sur index, `file.sh` « en conflit » | A-7 | 1 |
 | 3 | Mention d'une fusion sans effet (`fusionsSansEffet`) | A-8 | 1 |
-| 4 | File restreinte et verrou du passage | A-9, A-10 | 1 |
+| 4 | Verrou du passage, plusieurs capitaines sur la même file | A-9, A-10 | 1 |
 | 5 | Contrôle de vie, `send_message` au premier geste, contexte lu par `get_session` (texte des skills `architecte`, `chantier`, `socle-chaine-de-production`) | A-11 à A-13 | — |
 | 6 | `ticket-libre.mjs` : fichiers des PR ouvertes, branches de PR fermées | A-14 | — |
 | 7 | Ligne 8 : `livrer`, `fait_sur`, `github.sh:216` | A-15 | 1 |
