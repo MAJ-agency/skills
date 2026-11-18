@@ -1,6 +1,6 @@
 /**
  * Les PR ouvertes du dépôt et leurs fichiers, lues par `gh api` (REST : `gh pr list` passe par
- * GraphQL, refusé depuis les sessions cloud). `ticket-libre.mjs` et `next-id` la partagent : un
+ * GraphQL, refusé depuis les sessions cloud). `ticket-libre.mjs` l'utilise, `next-id` la réutilisera : un
  * ticket ou une spec que la PR d'une autre session ajoute n'est visible ni sur develop ni sur
  * une branche de sujet, et ni son titre ni sa branche ne portent toujours l'identifiant
  * (`SPEC_ALL_INF-26.45` a été pris deux fois).
