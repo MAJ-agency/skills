@@ -10,7 +10,7 @@ Fichiers chauds: `skills/chaine/fusionner/scripts/meme-contenu.sh` (créé), `sk
 
 ## Le besoin
 
-Ce ticket réalise le lot 3b de la spec [`relecture-independante.spec.md`](../relecture-independante.spec.md) (sixième version) : ses décisions `A-81` et `A-106`, sous les règles de `A-108` et dans l'ordre de `A-109`.
+Ce ticket réalise le lot 3b de la spec [`relecture-independante.spec.md`](../relecture-independante.spec.md) (sixième version) : ses décisions `A-81` et `A-106`, sous les règles de `A-108` et dans l'ordre de `A-109`. Les choix que la spec ne portait pas ont été tranchés par l'architecte le 2026-11-18, décision `A-112` : ils sont marqués ainsi dans « Décisions ».
 
 **Ce qui manque.** En régime 8, un verdict de relecture porte sur un sommet, V. Le capitaine met à jour et reteste toute PR en retard sur sa cible, jusqu'à trois fois par passage (plugin 7.16.0) : le sommet qu'il fusionne, T, est un commit qu'il a écrit lui-même. Deux lecteurs devront dire si le verdict de V vaut encore pour T : le Relecteur à chaque réveil (`A-85`, règles 2 et 3, lot 4) et le capitaine à ses deux contrôles (`A-105`, lot 5a). `A-81` veut un seul calcul, écrit une fois, à côté des scripts du capitaine. Il n'existe pas. Ce ticket l'écrit et l'éprouve ; **il ne le branche nulle part** : ni `passer.sh`, ni `sujet.sh`, ni aucun skill ne l'appelle encore.
 
@@ -23,14 +23,14 @@ Ce ticket réalise le lot 3b de la spec [`relecture-independante.spec.md`](../re
 >
 > Tout autre commit : « différent » ; V absent de cette ligne : « différent ».
 
-**Ce que `main` a déjà, et pourquoi le calcul ne le reprend pas.** Lu sur `origin/main` à `99a6214` (plugin 7.18.0). Les fichiers de la chaîne y sont ceux de `1c4acb1` (7.17.0), le commit que la spec et le rapport de vérification citent : `git diff 1c4acb1 99a6214 -- skills/chaine scripts/depot.test.mjs scripts/poses.test.mjs scripts/points-d-entree.test.mjs README.md` est vide. `main` a encore avancé pendant l'écriture, à `22b2d49` (7.18.1) : le même diff y est vide aussi.
+**Ce que `main` a déjà, et pourquoi le calcul ne le reprend pas.** Lu sur `origin/main` à `99a6214` (plugin 7.18.0). Les fichiers de la chaîne y sont ceux de `1c4acb1` (7.17.0), le commit que la spec et le rapport de vérification citent : `git diff 1c4acb1 99a6214 -- skills/chaine scripts/depot.test.mjs scripts/poses.test.mjs scripts/points-d-entree.test.mjs README.md` est vide. **La base de ce ticket est `origin/main` à `22b2d49` (plugin 7.18.1)**, relue après `git fetch origin main` : `main` y est arrivé pendant l'écriture, et le même diff y est vide aussi.
 
 - Les deux sortes de commits que le capitaine écrit sur la branche d'une PR : la fusion de la cible (`skills/chaine/fusionner/scripts/passer.sh:220`, `skills/chaine/sujet/scripts/sujet.sh:518`), conclue par `git commit --no-edit` quand un index était en conflit, après `git checkout --theirs` sur lui et la régénération (`passer.sh:261`, `:272` ; `sujet.sh:534`, `:539`) ; et, quand la fusion était propre et qu'un index change à la régénération, un commit à part, `docs: régénère les index après mise à jour avec …` (`passer.sh:274`, `sujet.sh:541`).
 - `verifier_mise_a_jour` (`sujet.sh:618`) juge déjà une fusion contre celle qu'elle recalcule de ses deux parents : c'est l'esprit du calcul. Mais elle lit la liste des index par l'arbre de travail d'abord, joue `commitlint`, et sort par `sortir`.
 - `livraison_intermediaire` (`passer.sh:126`) applique les trois classes d'index. Mais elle lit la liste par `index_json` (`skills/chaine/fusionner/scripts/github.sh:64`), **l'arbre de travail d'abord**, et compare un index au **sommet courant** d'`origin/develop` (`passer.sh:153`, `:157`). `A-81` interdit l'un et `A-106` l'autre.
 - `ascendance` (`github.sh:138`) est le modèle : paramétrée par des réfs, elle lit la liste sur la cible (`git show "$cible:scripts/docs/index-generes.json"`), et ne rend jamais un verdict par défaut quand une lecture échoue.
 
-**Ce qui a été joué pour écrire ce ticket** (2026-11-18, copie jetable de `origin/main` à `99a6214`, git 2.43.0, jq 1.7, Node 22.23.4) : le script de l'annexe A et le banc de l'annexe B, 28 tests verts en environ 15 s (13 à 18 selon la charge) ; les 18 mutations de « Vérification », toutes tuées ; la suite entière du dépôt avec les deux fichiers ajoutés (793 tests, tous verts, sur les fichiers définitifs). Enfin, sur `22b2d49`, le banc a été rejoué depuis les seules annexes de ce ticket, extraites du fichier : mêmes empreintes, 28 tests verts. **Les deux cas que la définition par M jugeait mal** (rapport `relecture-independante.verif-716.md`, § 2.2, limites 3 et 4) ont été remontés à l'identique des dépôts du rapport et **rendent « même »** avec la définition pas à pas, comme `A-106` l'affirme : cas 8 et 9 ci-dessous. Le montage du cas 8 est prouvé dans le banc (la fusion directe de V avec la cible n'a pas l'arbre de T), celui du cas 9 aussi (`git merge-base --all` rend deux bases). À savoir sur le cas 8 : T2 ne porte plus le changement que la PR faisait sur `f`, la cible l'ayant annulé ; « même » y dit que rien d'autre que des fusions de la cible n'a été écrit depuis V, pas que la PR apporte encore tout ce que V apportait. C'est ce qu'`A-106` demande.
+**Ce qui a été joué pour écrire ce ticket** (2026-11-18, copie jetable de `origin/main` à `99a6214`, git 2.43.0, jq 1.7, Node 22.23.4) : le script de l'annexe A et le banc de l'annexe B, 28 tests verts en environ 15 s (13 à 18 selon la charge) ; les 18 mutations de « Vérification », toutes tuées ; la suite entière du dépôt avec les deux fichiers ajoutés (793 tests, tous verts, sur les fichiers définitifs). Enfin, sur `22b2d49`, le banc a été rejoué depuis les seules annexes de ce ticket, extraites du fichier : mêmes empreintes, 28 tests verts. **Les deux cas que la définition par M jugeait mal** (rapport `relecture-independante.verif-716.md`, § 2.2, limites 3 et 4) ont été remontés à l'identique des dépôts du rapport et **rendent « même »** avec la définition pas à pas, comme `A-106` l'affirme : cas 8 et 9 ci-dessous. Le montage du cas 8 est prouvé dans le banc (la fusion directe de V avec la cible n'a pas l'arbre de T), celui du cas 9 aussi (`git merge-base --all` rend deux bases). À savoir sur le cas 8 : T2 ne porte plus le changement que la PR faisait sur `f`, la cible l'ayant annulé ; « même » y dit que rien d'autre que des fusions de la cible n'a été écrit depuis V, pas que la PR apporte encore tout ce que V apportait. C'est ce qu'`A-106` demande, et `A-112` le confirme (Décision 8, i).
 
 ## Où
 
@@ -47,7 +47,7 @@ Aucun autre fichier. `skills/chaine/sujet/scripts/depot-jouet.mjs` n'est pas mod
 
 ### 1. La forme : un script bash exécuté, pas un module
 
-`skills/chaine/fusionner/scripts/meme-contenu.sh`, posé en `scripts/chaine/meme-contenu.sh`. Il s'exécute (`bash …/meme-contenu.sh`), il ne se source pas : ses variables et son `exit` ne touchent pas l'appelant. Raisons :
+Confirmée par `A-112`. `skills/chaine/fusionner/scripts/meme-contenu.sh`, posé en `scripts/chaine/meme-contenu.sh`. Il s'exécute (`bash …/meme-contenu.sh`), il ne se source pas : ses variables et son `exit` ne touchent pas l'appelant. Raisons :
 
 - **Il est posé sans toucher à aucun fichier existant.** L'étape `poser` de `fusionner` copie `scripts/*.sh` et « les tests `scripts/*.test.mjs` » par motif, mais les `.mjs` **un par un, par leur nom** (`skills/chaine/fusionner/SKILL.md:14`). Un calcul `.mjs` neuf ne serait pas posé tant que cette ligne ne le nomme pas, alors que son banc le serait : le banc posé tomberait chez le projet. `fusionner/SKILL.md` est un fichier chaud de l'autre programme ; ce lot n'écrit que des fichiers neufs (`A-109`). Un `.sh` et son `.test.mjs` passent par les deux motifs.
 - Ses trois appelants sont en bash ou lancent des commandes : `passer.sh` (`bash "$PASSER_OUTILS/meme-contenu.sh" …`), `sujet.sh` (`bash "$ici/meme-contenu.sh" …`, avec le repli vers `fusionner/scripts/` que `sujet.sh:738-739` fait déjà pour `revue-exigee.mjs`), et le Relecteur, qui lit GitHub par `github.sh` (`A-83`). La copie de travail de la boucle prend tout `scripts/chaine` d'`origin/develop` (`skills/chaine/fusionner/scripts/boucle.sh:203`) : le script y sera sans rien ajouter.
@@ -60,7 +60,7 @@ Aucun autre fichier. `skills/chaine/sujet/scripts/depot-jouet.mjs` n'est pas mod
 bash scripts/chaine/meme-contenu.sh <V> <T> <B>
 ```
 
-Depuis un dépôt git (nu ou non). Trois arguments, pas un de moins.
+Depuis un dépôt git (nu ou non). Trois arguments, pas un de moins. `<B>` est un nom de branche : confirmé par `A-112`.
 
 | Entrée | Forme | Sens |
 | ------ | ----- | ---- |
@@ -81,7 +81,7 @@ Sortie standard, **écrite en dernier et d'un seul bloc**, deux lignes : le verd
 | 21 | `illisible` | le script ne peut pas conclure : usage, dépôt, clone superficiel, `origin/<B>` absente, T introuvable, liste des index mal formée, une commande git en échec |
 | 69 | `illisible` | `jq` absent du poste (le code de toute la chaîne, `github.sh:12`) |
 
-**Seul le code 0 vaut « même ».** Tout autre code que 0 et 20 se lit « illisible », y compris un code que ce tableau ne nomme pas (signal, erreur de bash) : une lecture en échec ne vaut jamais « même » (`A-106`). Les codes 20 et 21 ne sont pris par aucun script de la chaîne : relevé sur `main`, les `.sh` de `skills/chaine` sortent en 0 à 12, 64 et 69 (dont 12 dans `passer.sh` et `sujet.sh`, 8 et 11 dans `sujet.sh fusionner`, que le rapport, § 3.4 point 6, interdit de réemployer). Les lots 4 et 5a diront ce que l'appelant fait de « illisible » ; ce n'est pas ici.
+Les quatre codes sont confirmés par `A-112`. **Seul le code 0 vaut « même ».** Tout autre code que 0 et 20 se lit « illisible », y compris un code que ce tableau ne nomme pas (signal, erreur de bash) : une lecture en échec ne vaut jamais « même » (`A-106`). Les codes 20 et 21 ne sont pris par aucun script de la chaîne : relevé sur `main`, les `.sh` de `skills/chaine` sortent en 0 à 12, 64 et 69 (dont 12 dans `passer.sh` et `sujet.sh`, 8 et 11 dans `sujet.sh fusionner`, que le rapport, § 3.4 point 6, interdit de réemployer). Les lots 4 et 5a diront ce que l'appelant fait de « illisible » ; ce n'est pas ici.
 
 ### 4. L'ordre des lectures
 
@@ -131,22 +131,24 @@ Une « entrée » d'arbre est le couple mode et blob (`git ls-tree`). « Ordinai
 
 Ce que ce tableau fixe, et d'où il vient :
 
-- **Le contenu connu est celui du second parent** (`A-106` : « celui de son second parent, la cible qu'elle fusionne, ou celui de la fusion calculée ; jamais le sommet courant de la cible »). « Ou celui de la fusion calculée » ne demande aucun code : un chemin n'est dans l'écart que si son entrée n'est pas celle de la fusion calculée. C'est le cas ordinaire du capitaine : en conflit, il prend le côté de la cible (`git checkout --theirs`), et un index sans commande n'est pas régénéré ensuite.
+- **Le contenu connu est celui du second parent** (`A-106` : « celui de son second parent, la cible qu'elle fusionne, ou celui de la fusion calculée ; jamais le sommet courant de la cible »). « Ou celui de la fusion calculée » ne demande aucun code : un chemin n'est dans l'écart que si son entrée n'est pas celle de la fusion calculée. `A-112` retire ces mots d'`A-106`. C'est le cas ordinaire du capitaine : en conflit, il prend le côté de la cible (`git checkout --theirs`), et un index sans commande n'est pas régénéré ensuite.
 - **Classes 2 et 3 ont donc la même règle** dans une fusion : c'est déjà vrai de `livraison_intermediaire`, à ceci près qu'elle compare au sommet courant.
 - **Absent n'est pas un contenu connu** pour les classes 2 et 3 (`passer.sh:154`, `:158` ; son commentaire : « absent d'un côté, il diffère et va à la revue »).
 - Le calcul ne joue aucune commande et ne régénère rien : il ne sait pas si un index régénéré est à jour.
 
-### 8. Ce que la spec ne dit pas, et le choix fait
+### 8. Ce que la spec ne disait pas : tranché par `A-112`
 
-Chacun est du côté sûr (« différent » ou « illisible »), sauf (c), qui ne change aucun contenu. L'architecte peut en décider autrement ; la session ne le fait pas seule.
+La sixième version de la spec ne portait pas ces points. L'architecte les a tranchés le 2026-11-18 (`A-112`) : (a) à (e), (h) et (i) sont ses décisions ; (f) et (g) sont des choix d'écriture de ce ticket. Chacun est du côté sûr (« différent » ou « illisible »), sauf (c) et (i), où aucun contenu propre n'a changé. La session ne revient sur aucun.
 
-- **(a) Un index sans commande, ou sous motif, qui change dans un commit à un parent.** `A-106` ne donne le « contenu connu » que pour une fusion. Choix : aucun contenu connu, donc `différent`. Le capitaine n'écrit jamais ce commit pour un index sans commande. Pour un index sous motif, voir « Ce qui n'a pas été établi », point 1.
-- **(b) Un index dispensé qui devient un lien symbolique** (ou un sous-module) : `différent`. La spec ne le dit pas ; `liens_sur_index` (`github.sh:196`) existe parce que la régénération écrirait à travers lui.
-- **(c) Un commit vide** entre V et T : `même`.
-- **(d) Un clone superficiel** : `illisible`, avec la commande (`git fetch --unshallow origin`). Sur un historique tronqué, la ligne des premiers parents s'arrête sans le dire et la base d'une fusion calculée peut manquer. `passer.sh:111` et `sujet.sh:113` complètent déjà leur clone avant de juger ; une session cloud part d'un clone superficiel (`passer.sh:108`), et le Relecteur devra faire de même (lot 4).
-- **(e) V introuvable** : `différent` (`A-81`), alors que T introuvable, cible absente et liste illisible donnent `illisible` (`A-106`, « une lecture en échec »). Raison : après une réécriture de la branche, V n'est plus atteignable d'aucune réf et un clone neuf ne l'aura jamais ; `illisible` y serait un état sans fin.
+- **(a) Un index sans commande, ou sous motif, qui change dans un commit à un parent.** `A-106` ne donne le « contenu connu » que pour une fusion. Aucun contenu connu, donc `différent` (`A-112`). Le capitaine n'écrit jamais ce commit pour un index sans commande. Pour un index sous motif, voir (h).
+- **(b) Un index dispensé qui devient un lien symbolique** (ou un sous-module) : `différent` (`A-112`). La spec ne le disait pas ; `liens_sur_index` (`github.sh:196`) existe parce que la régénération écrirait à travers lui.
+- **(c) Un commit vide** entre V et T : `même` (`A-112`).
+- **(d) Un clone superficiel** : `illisible` (`A-112`), avec la commande (`git fetch --unshallow origin`). Sur un historique tronqué, la ligne des premiers parents s'arrête sans le dire et la base d'une fusion calculée peut manquer. `passer.sh:111` et `sujet.sh:113` complètent déjà leur clone avant de juger ; une session cloud part d'un clone superficiel (`passer.sh:108`), et le Relecteur devra faire de même (lot 4).
+- **(e) V introuvable** : `différent` (`A-81`, `A-112`), alors que T introuvable, cible absente et liste illisible donnent `illisible` (`A-106`, « une lecture en échec »). Raison : après une réécriture de la branche, V n'est plus atteignable d'aucune réf et un clone neuf ne l'aura jamais ; `illisible` y serait un état sans fin.
 - **(f) Les caractères d'un chemin de la liste.** `github.sh` n'échappe que `.` et `*` en bâtissant ses expressions régulières (`:123`, `:176`) : un chemin de la liste qui porte `(`, `+` ou `[` y vaut autre chose que lui-même. Ici tout caractère autre que `*` est pris à la lettre. Écart assumé avec `github.sh`, qui n'est pas touché.
 - **(g) Les chemins se lisent sans `-z`**, `core.quotePath=false`, comme sur `main` : un nom de fichier à saut de ligne, guillemet ou barre oblique inverse arrive cité par git, sur une ligne, et ne touche aucune entrée de la liste. Lu avec `-z` puis ligne à ligne, un fichier nommé `docs/adr/README.md⏎docs/adr/README.md` passerait pour un index (cas 24, mutation 17).
+- **(h) Un index déclaré par motif, récrit d'un contenu nouveau par une régénération : `différent`, et la relecture de plus est acceptée** (`A-112`). Dans une fusion, son entrée n'est celle du second parent que si la régénération n'y a rien changé ; dans le commit d'index à part, il n'a aucun contenu connu (a). Une PR dont le capitaine régénère ainsi un index sous motif perd donc son verdict. Raisons de l'architecte : le calcul ne peut pas rejouer la commande qui a produit le fichier, donc il ne distingue pas une régénération d'une retouche ; l'erreur est du seul côté sûr ; et le cas est rare, le gabarit du plugin ne déclarant aucun motif. `A-112` amende la dernière phrase d'`A-81` : « garde son verdict, sauf un index sous motif récrit d'un contenu nouveau ». Un index sans commande n'est pas concerné : le capitaine ne le régénère pas, et en conflit il prend le contenu de la cible (cas 6).
+- **(i) La cible annule un changement que la PR faisait aussi : `même`, alors que T ne porte plus ce changement** (`A-112`, cas 8). C'est juste : le contenu propre de la PR n'a pas changé, c'est la cible qui l'a défait, et la CI du sommet fusionné juge le résultat.
 
 ### 9. Le script ne s'arrête pas sur une erreur : il lit chaque statut
 
@@ -285,16 +287,15 @@ Le cas n est le n-ième test du banc, dans l'ordre du fichier.
 
 ## Ce qui n'a pas été établi
 
-1. **Un index sous motif que la régénération récrit d'un contenu nouveau donne « différent ».** C'est la classe 3 telle qu'`A-81` la pose (« seulement sur un contenu déjà connu »), mais cela contredit, pour ces index-là, la dernière phrase d'`A-81` (« une PR que le capitaine a mise à jour […] garde donc son verdict ») : la PR sera relue une fois de plus. Et un projet dont la liste ne porte que des chaînes nues n'a aucun index de la classe « régénéré » : ses index ne sont dispensés que dans une fusion, au contenu de la cible fusionnée. Le gabarit du plugin ne déclare aucun motif. Non tranché ici : c'est à l'architecte de dire si la relecture de plus est acceptée.
-2. **La fusion calculée contre la fusion réelle, quand la configuration de fusion diffère** entre le poste qui a fusionné et celui qui calcule : pilotes de fusion de `.gitattributes`, renormalisation des fins de ligne, `merge.renames`. L'égalité des arbres de `git merge` et de `git merge-tree --write-tree` n'a été jouée que sur les dépôts jouets, sous la configuration par défaut. Un seul essai hors banc : un renommage fusionné par défaut, puis jugé avec `merge.renames=false` chez qui calcule, rend « même » encore. Le reste n'est pas joué ; un écart donnerait « différent », du côté sûr.
-3. **Le `pre-commit` d'un projet sur une fusion que le capitaine conclut** (rapport § 2.2, limite 5) : rejoué ici par une fusion amendée (cas 15), pas par un vrai `lint-staged`.
-4. **Le conflit de pile résolu par `passer.sh`** (même limite) : rejoué par un choix de côté à la main (cas 14), pas par `passer.sh` sur une vraie pile.
-5. **Une sous-PR d'un sujet mise à jour deux fois par `sujet.sh fusionner`** : le cas 12 n'en joue qu'une (sortie 8). Les deux mises à jour de suite sont jouées par `passer.sh` (cas 11) et par l'aide du banc (cas 5).
-6. **git < 2.38 et bash 3.2** (macOS) : le script n'emploie ni `mapfile` ni `tac`, mais il n'a été joué que sous git 2.43.0 et bash 5.2.21.
-7. **Un historique très long** (des dizaines de milliers de commits sur la ligne des premiers parents de T) : une seule commande `git rev-list` la lit ; non mesuré.
-8. **Les cas 11 et 12 dépendent de l'appel de `passer.sh` et de `sujet.sh fusionner`** tels qu'ils sont sur `main`. Un ticket de l'autre programme qui change cet appel (son ticket 4 rend `CAPITAINE_ID` obligatoire) devra les garder verts ; ils passent par `d.lancer` et `d.env`, donc par l'environnement que `depot-jouet.mjs` donnera alors. Non essayé contre ces tickets, qui ne sont pas sur `main`.
-9. **Ce que l'appelant fait de « illisible »** (pause, renvoi, nouvel essai) : lots 4 et 5a.
-10. **La marge du plafond de 600 s** : le test des bancs posés à plat n'a pas été mesuré sans ce banc. Sous charge il a pris 443 s, banc compris ; ce plafond ne dépend pas de ce ticket, mais un lot suivant qui ajoute un banc long le trouvera proche.
+1. **La fusion calculée contre la fusion réelle, quand la configuration de fusion diffère** entre le poste qui a fusionné et celui qui calcule : pilotes de fusion de `.gitattributes`, renormalisation des fins de ligne, `merge.renames`. L'égalité des arbres de `git merge` et de `git merge-tree --write-tree` n'a été jouée que sur les dépôts jouets, sous la configuration par défaut. Un seul essai hors banc : un renommage fusionné par défaut, puis jugé avec `merge.renames=false` chez qui calcule, rend « même » encore. Le reste n'est pas joué ; un écart donnerait « différent », du côté sûr.
+2. **Le `pre-commit` d'un projet sur une fusion que le capitaine conclut** (rapport § 2.2, limite 5) : rejoué ici par une fusion amendée (cas 15), pas par un vrai `lint-staged`.
+3. **Le conflit de pile résolu par `passer.sh`** (même limite) : rejoué par un choix de côté à la main (cas 14), pas par `passer.sh` sur une vraie pile.
+4. **Une sous-PR d'un sujet mise à jour deux fois par `sujet.sh fusionner`** : le cas 12 n'en joue qu'une (sortie 8). Les deux mises à jour de suite sont jouées par `passer.sh` (cas 11) et par l'aide du banc (cas 5).
+5. **git < 2.38 et bash 3.2** (macOS) : le script n'emploie ni `mapfile` ni `tac`, mais il n'a été joué que sous git 2.43.0 et bash 5.2.21.
+6. **Un historique très long** (des dizaines de milliers de commits sur la ligne des premiers parents de T) : une seule commande `git rev-list` la lit ; non mesuré.
+7. **Les cas 11 et 12 dépendent de l'appel de `passer.sh` et de `sujet.sh fusionner`** tels qu'ils sont sur `main`. Un ticket de l'autre programme qui change cet appel (son ticket 4 rend `CAPITAINE_ID` obligatoire) devra les garder verts ; ils passent par `d.lancer` et `d.env`, donc par l'environnement que `depot-jouet.mjs` donnera alors. Non essayé contre ces tickets, qui ne sont pas sur `main`.
+8. **Ce que l'appelant fait de « illisible »** (pause, renvoi, nouvel essai) : lots 4 et 5a.
+9. **La marge du plafond de 600 s** : le test des bancs posés à plat n'a pas été mesuré sans ce banc. Sous charge il a pris 443 s, banc compris ; ce plafond ne dépend pas de ce ticket, mais un lot suivant qui ajoute un banc long le trouvera proche.
 
 ## Hors périmètre
 
@@ -307,6 +308,7 @@ Le cas n est le n-ième test du banc, dans l'ordre du fichier.
 ## Comments
 
 - 2026-11-18 — Ticket écrit et joué sur une copie jetable d'`origin/main` à `99a6214` (plugin 7.18.0 ; la spec et le rapport citent `1c4acb1`, 7.17.0 : `main` a avancé depuis, jusqu'à `22b2d49`, 7.18.1, sans toucher un fichier de la chaîne). Joué : le banc (28 tests), les 18 mutations, la suite entière, puis le banc seul sur `22b2d49` depuis les annexes. Non joué : ce que liste « Ce qui n'a pas été établi ».
+- 2026-11-18 — Décisions de l'architecte portées au ticket (`A-112`) : un index sous motif récrit d'un contenu nouveau donne « différent », la relecture de plus est acceptée ; les choix du rédacteur sont confirmés (commit à un parent, lien symbolique, clone superficiel, commit vide, V introuvable, forme `.sh`, `<B>` nom de branche, codes 0, 20, 21 et 69, cas 8). Base relue : `origin/main` à `22b2d49` (7.18.1). Ni le script ni le banc ne changent, leurs empreintes non plus : rien n'a été rejoué.
 
 ## Annexe A — `skills/chaine/fusionner/scripts/meme-contenu.sh`
 
