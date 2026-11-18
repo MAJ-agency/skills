@@ -67,7 +67,7 @@ Décisions de l'architecte :
 | ticket | 1 | session_012xRpgccroQauUaW3RGm1QW | opus | 366 067 | 16,15 |
 | ticket | 15 | session_012xRpga1QnWvr6a2oT2ptow | sonnet | 159 784 | 2,00 |
 | ticket | 19 | session_012xRpgbEBkwAzwZSDmB3KtH | sonnet | — | archivée |
-| ticket | 10 | session_012xRpgbJm6pUqbrixWZ1a5w | sonnet | — | — |
+| ticket | 10 | session_012xRpgbJm6pUqbrixWZ1a5w | sonnet | 161 993 | 2,11 |
 | ticket | 12 | session_012xRpgZRkibUK1CA2XDumRw | sonnet | — | — |
 | ticket | 17 | session_012xRpgbyvYBRavfo3t7tSRy | opus | — | — |
 | ticket | 6 | session_012xRpgYLyDnCAE8DMZWu3s5 | sonnet | — | — |
@@ -135,3 +135,4 @@ Demande du produit, 2026-11-18, recopiée telle quelle (relevée sur `MAJ-agency
 - 2026-11-18 — 20 h 00 UTC. PR 120 : banc du verrou ajouté (`da59b1c`), prête, attend son tour. PR 119 (`1b12cc4`, liste blanche) : quatrième contre-relecture, 44 formes nouvelles refusées, aucun refus à tort ; dernier bloquant (motif dans le programme), A-50.
 - 2026-11-18 — 20 h 06 UTC. PR 119 (`1f0fd71`, A-50) : cinquième contre-relecture adversariale **conforme** (28 variantes de motif refusées, commandes ordinaires vertes) ; prête, attend son tour (A-48). Les trois limites restantes sont nommées hors périmètre, la CI pour frontière.
 - 2026-11-18 — 20 h 13 UTC. **PR 111 fusionnée** (squash `88fe501`), arbre identique au sommet ordonné `48ba644`, vérifié ; la branche distante a été supprimée par GitHub, la branche de cadrage repart de `main` (deux commits du journal repris). Tickets 1, 15 et 19 passés à « Fait » ; leurs décisions de session restent dans le corps de leurs PR (115, 112, 113).
+- 2026-11-18 — 20 h 35 UTC. **PR 116 fusionnée** (squash `22b2d49`, 7.18.1), arbre identique, vérifié ; ticket 10 fait, session archivée (2,11 $). Signal à la PR 117 (7.18.2).
