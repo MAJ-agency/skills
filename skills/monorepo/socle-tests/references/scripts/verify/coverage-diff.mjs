@@ -55,6 +55,7 @@ import { tmpdir } from "node:os";
 import { join, relative, resolve } from "node:path";
 import {
   BASE_DEFAUT,
+  aliasDeTsconfig,
   SEUILS,
   baseDepuisPush,
   choisirBase,
@@ -306,33 +307,28 @@ function suitesSurBase(pkg) {
 }
 function aliasDuPaquet(pkg) {
   try {
-    const brut = readFileSync(join(ROOT, pkg, "tsconfig.json"), "utf8").replace(/^\s*\/\/.*$/gm, "").replace(/\/\*[\s\S]*?\*\//g, "");
-    const opts = JSON.parse(brut.replace(/,(\s*[}\]])/g, "$1")).compilerOptions ?? {};
-    const racine = (opts.baseUrl ?? ".").replace(/^\.\/?/, "");
-    return Object.entries(opts.paths ?? {}).map(([motif, cibles]) => ({
-      motif,
-      cibles: cibles.map((c) => `${racine ? `${racine}/` : ""}${c.replace(/^\.\//, "")}`),
-    }));
+    return aliasDeTsconfig(readFileSync(join(ROOT, pkg, "tsconfig.json"), "utf8"));
   } catch {
-    return []; // tsconfig illisible : seuls les imports relatifs comptent
+    return []; // tsconfig absent : seuls les imports relatifs comptent
   }
 }
 
+const aConfigBase = (pkg) => existsSync(join(ROOT, pkg, "vitest.db.config.ts"));
+// Sans base locale (jamais sous GitHub Actions, qui doit l'avoir), les suites sur base ne sont pas jouées.
+const paquetsSansBase = process.env.DATABASE_URL || process.env.GITHUB_ACTIONS === "true" ? [] : [...parPaquet.keys()].filter(aConfigBase);
+if (paquetsSansBase.length) {
+  dire(
+    `\n  ⚠ suites sur base non jouées (*.db.spec.ts) : DATABASE_URL absente (${paquetsSansBase.join(", ")}). ` +
+      `Un fichier que seules elles ciblent est seulement signalé, jugé par la CI avec Postgres.`,
+  );
+}
 const lignesTableau = [];
 let suitesTotal = 0;
 const debut = Date.now();
 for (const [pkg, fs] of parPaquet) {
-  const aConfigBase = existsSync(join(ROOT, pkg, "vitest.db.config.ts"));
-  const avecBase = aConfigBase && Boolean(process.env.DATABASE_URL);
-  // Sans base locale (jamais sous GitHub Actions, qui doit l'avoir), les suites sur base ne sont pas jouées.
-  const sansBase = aConfigBase && !process.env.DATABASE_URL && process.env.GITHUB_ACTIONS !== "true";
+  const avecBase = aConfigBase(pkg) && Boolean(process.env.DATABASE_URL);
+  const sansBase = paquetsSansBase.includes(pkg);
   dire(`\n── ${pkg} : ${fs.length} fichier(s)${avecBase ? ", suites sans base puis sur base" : ""}`);
-  if (sansBase) {
-    dire(
-      `  ⚠ suites sur base non jouées (*.db.spec.ts) : DATABASE_URL absente (${pkg}). ` +
-        `Un fichier que seules elles ciblent est seulement signalé, jugé par la CI avec Postgres.`,
-    );
-  }
   for (const f of fs) dire(`   • ${f}${statuts.get(f) === "A" ? " (nouveau)" : ""}`);
   if (DRY_RUN) continue;
   let { rapport, suites } = mesurer(pkg, fs, null);

@@ -188,9 +188,10 @@ export function choisirBase(candidats) {
  * et un `export type … from` ne comptent pas, un type n'est pas exécuté.
  */
 export function importsDe(source) {
-  const sansTypes = source
-    .replace(/\b(?:import|export)\s+type\b[^;]*?\bfrom\s*["'][^"']+["']/g, "")
-    .replace(/\b(?:import|export)\s+type\b\s*\{[^}]*\}\s*from\s*["'][^"']+["']/g, "");
+  const sansTypes = source.replace(
+    /\b(?:import|export)\s+type\s+(?:\{[^}]*\}|\*\s+as\s+\w+|\w+)\s+from\s*["'][^"']+["']/g,
+    "",
+  );
   const trouves = [];
   for (const m of sansTypes.matchAll(/\bfrom\s*["']([^"']+)["']|\bimport\s*["']([^"']+)["']|\bimport\s*\(\s*["']([^"']+)["']\s*\)/g)) {
     trouves.push(m[1] ?? m[2] ?? m[3]);
@@ -267,4 +268,26 @@ export function referenceDuDiff({ base, mergeBase, mergeBaseDevelop, fusion, dev
     return { reference: mergeBaseDevelop, sorte: "develop", note: null };
   }
   return { reference: mergeBase, sorte: "base", note: null };
+}
+
+/**
+ * Les `compilerOptions.paths` d'un `tsconfig.json` (JSON avec commentaires et virgules finales),
+ * `[{ motif, cibles }]` relatifs au paquet (`baseUrl` compris). Texte illisible : `[]`, seuls les
+ * imports relatifs comptent. Les commentaires et les virgules ne se cherchent jamais dans une
+ *  chaîne : un chemin à étoile puis barre n'ouvre pas un commentaire.
+ */
+export function aliasDeTsconfig(texte) {
+  try {
+    const chaine = '"(?:[^"\\\\]|\\\\.)*"';
+    const sansCommentaires = texte.replace(new RegExp(`(${chaine})|\\/\\/[^\\r\\n]*|\\/\\*[\\s\\S]*?\\*\\/`, "g"), (_, c) => c ?? "");
+    const json = sansCommentaires.replace(new RegExp(`(${chaine})|,(\\s*[}\\]])`, "g"), (_, c, fin) => c ?? fin);
+    const opts = JSON.parse(json).compilerOptions ?? {};
+    const racine = (opts.baseUrl ?? ".").replace(/^\.\/?/, "").replace(/\/$/, "");
+    return Object.entries(opts.paths ?? {}).map(([motif, cibles]) => ({
+      motif,
+      cibles: cibles.map((c) => `${racine ? `${racine}/` : ""}${c.replace(/^\.\//, "")}`),
+    }));
+  } catch {
+    return [];
+  }
 }

@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 import {
+  aliasDeTsconfig,
   baseDepuisPush,
   choisirBase,
   decisionSansBase,
@@ -299,6 +300,12 @@ test("suiteSurBaseCible : un import relatif ou par alias du fichier, de son doss
   assert.equal(cible('import { R } from "@u/users.repository";', undefined, fichier, []), false);
   // aucune spec
   assert.equal(suiteSurBaseCible(fichier, [], alias, existe), false);
+  // fins de ligne CRLF, dernière ligne sans fin de ligne
+  assert.equal(cible('import { R } from "./users.repository";\r\nR;'), true);
+  assert.equal(cible('import { R } from "./users.repository"'), true);
+  // un alias de type sans point-virgule ne masque pas l'import qui le suit
+  assert.equal(cible('export type X = Y\nimport { R } from "./users.repository"\n'), true);
+  assert.equal(cible('import type * as T from "./users.repository";'), false);
 });
 
 test("referenceDuDiff : la fusion recalculée gagne ; base develop inchangée ; develop illisible, la base et la note ; HEAD contient develop et la base non, develop ; sinon la base", () => {
@@ -315,4 +322,13 @@ test("referenceDuDiff : la fusion recalculée gagne ; base develop inchangée ; 
   assert.deepEqual(ref({ headContientDevelop: true }), { reference: "ddd", sorte: "develop", note: null });
   assert.deepEqual(ref({ headContientDevelop: true, baseContientDevelop: true }), { reference: mb, sorte: "base", note: null });
   assert.deepEqual(ref({}), { reference: mb, sorte: "base", note: null });
+});
+
+test("aliasDeTsconfig : commentaires, virgules finales, CRLF et chemins à `*/` ; illisible, aucun alias", () => {
+  const texte =
+    '{\r\n  // commentaire\r\n  "compilerOptions": {\r\n    "baseUrl": "./",\r\n    /* bloc */ "paths": { "@x/*": ["src/*/index", "src/x/*",], },\r\n  },\r\n}';
+  assert.deepEqual(aliasDeTsconfig(texte), [{ motif: "@x/*", cibles: ["src/*/index", "src/x/*"] }]);
+  assert.deepEqual(aliasDeTsconfig('{"compilerOptions":{"baseUrl":"src","paths":{"@a":["a.ts"]}}}'), [{ motif: "@a", cibles: ["src/a.ts"] }]);
+  assert.deepEqual(aliasDeTsconfig('{"compilerOptions":{}}'), []);
+  assert.deepEqual(aliasDeTsconfig("pas du json"), []);
 });
