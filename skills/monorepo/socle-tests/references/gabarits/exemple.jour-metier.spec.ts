@@ -12,6 +12,12 @@ import { businessDay } from "./business-day";
 
 type Clock = { now(): Date };
 
+// Le lendemain d'un jour `AAAA-MM-JJ`, par le calendrier (UTC n'y sert que de calendrier sans changement d'heure).
+const nextCalendarDay = (day: string): string => {
+  const [year, month, date] = day.split("-").map(Number);
+  return new Date(Date.UTC(year, month - 1, date + 1)).toISOString().slice(0, 10);
+};
+
 // Fuseau d'exemple, loin d'UTC et à changement d'heure. À REMPLACER par la constante du domaine
 // du projet (le fuseau du métier, un nom IANA), jamais par celui de la machine.
 const EXAMPLE_TIME_ZONE = "Pacific/Auckland";
@@ -45,16 +51,19 @@ describe("businessDay", () => {
   });
 
   // Point 2 : la donnée se crée dans le test, relative au jour de l'horloge posée ; la référence
-  // s'assert par sa forme, jamais par l'année du jour.
-  it("should create its own due date relative to the clock's day instead of reading the seed", () => {
-    const clock: Clock = { now: () => new Date("2026-07-11T11:45:00Z") }; // 23:45 locale
+  // s'assert par sa forme, jamais par l'année du jour. « Demain » se calcule sur le calendrier, pas
+  // en ajoutant 24 heures : un jour de changement d'heure ne dure pas 24 heures.
+  it.each([
+    { label: "an ordinary evening", instant: "2026-07-11T11:45:00Z", expectedDue: "2026-07-12" }, // 23:45 locale
+    { label: "the eve of the clock change", instant: "2026-09-26T11:45:00Z", expectedDue: "2026-09-27" }, // 23:45 locale
+  ])("should create its own due date relative to the clock's day on $label, instead of reading the seed", ({ instant, expectedDue }) => {
+    const clock: Clock = { now: () => new Date(instant) };
     const today = businessDay(clock.now(), EXAMPLE_TIME_ZONE);
-    const tomorrow = businessDay(new Date(clock.now().getTime() + 24 * 3_600_000), EXAMPLE_TIME_ZONE);
+    const quote = { reference: `Q-${today.slice(0, 4)}-0001`, dueDay: nextCalendarDay(today) };
     // Ici la donnée est construite sur place pour la démonstration ; dans un vrai test, `quote` vient
     // du code testé (ex. `createQuote(clock, …)`), et c'est sa référence que la forme contrôle.
-    const quote = { reference: `Q-${today.slice(0, 4)}-0001`, dueDay: tomorrow };
 
-    expect(quote.dueDay).toBe("2026-07-12");
+    expect(quote.dueDay).toBe(expectedDue);
     expect(quote.reference).toMatch(/^Q-\d{4}-\d{4}$/);
   });
 });

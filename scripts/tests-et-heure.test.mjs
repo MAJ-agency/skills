@@ -30,6 +30,8 @@ test("tests et heure : la fiche des tests porte la règle en trois points, socle
   exiger(GABARIT, ["EXAMPLE_TIME_ZONE", "clock", "it.each"]);
   exiger(`${SOCLE_TESTS}/SKILL.md`, ["exemple.jour-metier.spec.ts"]);
   exiger(`${SOCLE_TESTS}/references/CONTENU.md`, ["exemple.jour-metier.spec.ts"]);
+  // « Demain » ne s'écrit pas « + 24 heures » : faux la veille d'un changement d'heure.
+  assert.doesNotMatch(lire(GABARIT), /24\s*\*\s*3_?600_?000/, "le gabarit calcule « demain » en ajoutant 24 heures");
   // Aucun nom propre à un projet, ni fuseau réel hors celui d'exemple.
   for (const chemin of [FICHE, GABARIT]) {
     const texte = lire(chemin);
