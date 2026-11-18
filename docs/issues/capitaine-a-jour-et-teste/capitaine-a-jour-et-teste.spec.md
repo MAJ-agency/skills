@@ -1,6 +1,6 @@
 # Capitaine à jour et testé — spec du chantier 1
 
-Programme : [`../../programmes/capitaine-a-jour-et-teste.programme.md`](../../programmes/capitaine-a-jour-et-teste.programme.md). Décisions du produit : `P-1` à `P-3` (2026-11-18). État : **à valider par le produit**, puis remise au conducteur, qui découpe un ticket par lot ci-dessous, le lot 1 en premier.
+Programme : [`../../programmes/capitaine-a-jour-et-teste.programme.md`](../../programmes/capitaine-a-jour-et-teste.programme.md). Décisions du produit : `P-1` à `P-3` (2026-11-18). État : **validée par le produit le 2026-11-18** (`P-4`) ; un ticket par lot ci-dessous, le lot 1 en premier, lancés par l'architecte (`A-17`).
 
 ## Le problème
 
