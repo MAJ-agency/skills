@@ -224,3 +224,14 @@ test('garde-fichiers refuse une entrée illisible ou un chemin absent, vide ou d
   refuse(g.brut('garde-fichiers', { tool_name: 'Write', tool_input: { file_path: dans('.env'), content: 'x' } }));
   refuse(g.brut('garde-fichiers', { tool_name: 'NotebookEdit', tool_input: { notebook_path: dans('pnpm-lock.yaml'), new_source: 'x' } }));
 });
+
+test('ticket 17 : le hook refuse git -C . commit --no-verify et dit hooks git', () => {
+  const g = gardes();
+  for (const command of ['git -C . commit --no-verify -m x', 'git -c core.hooksPath=/dev/null commit -m x', 'HUSKY=0 git commit -m x']) {
+    const r = g.brut('garde-commandes', { tool_name: 'Bash', tool_input: { command } });
+    refuse(r, command);
+    assert.match(r.stderr, /hooks git sautés/, command);
+    assert.doesNotMatch(r.stdout, /permissionDecision/, command);
+  }
+  passe(g.brut('garde-commandes', { tool_name: 'Bash', tool_input: { command: 'git commit -m "fix -n option"' } }));
+});
