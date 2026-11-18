@@ -790,35 +790,124 @@ test("entrées fausses : des commentaires illisibles lèvent LectureIllisible, u
 
 // --- A-118 : ajouté par la session du ticket 58, sur décision de l'architecte après la livraison -------------
 
-test("A-118 — un verdict modifié après coup ne s'efface jamais au profit d'un verdict plus ancien de la même session : la session se lit `incomplet`", () => {
+test("A-118 — un verdict modifié ne peut qu'aggraver ou laisser, jamais adoucir : le refus d'avant tient, le validé d'avant se lit `incomplet`", () => {
   const base = [DEMANDE(), D(1, V1, ['r1'])];
+  const modifie = (tour, session, mot, options) => ({ corps: verdict(tour, session, mot, options), edite: true });
   const RELANCE = { regle: 5, geste: 'reecrire', tour: 1, sommet: V1, sessions: ['r1'], session: 'r1' };
-  // Un refus édité après un validé : le validé ne reparaît pas.
-  const refusEdite = fil(...base, verdict(1, 'r1', 'validé'), { corps: verdict(1, 'r1', 'refusé'), edite: true });
-  assert.deepEqual(joue({ commentaires: refusEdite }), RELANCE);
-  assert.equal(tourValide(pr({ commentaires: refusEdite })), null, 'le capitaine ne voit pas de tour validé');
-  assert.deepEqual(joue({ commentaires: refusEdite, etiquettes: ['à-fusionner'] }), { regle: 3, geste: 'etiqueter', poser: 'à-relire', retirer: ['à-fusionner'], lignes: LIGNES('PR 12 : relecture incomplète') });
-  // Un validé édité après un refus : ni validé, ni le refus d'avant.
-  const valideEdite = fil(...base, verdict(1, 'r1', 'refusé'), { corps: verdict(1, 'r1', 'validé'), edite: true });
-  assert.deepEqual(joue({ commentaires: valideEdite }), RELANCE);
-  assert.equal(tourValide(pr({ commentaires: valideEdite })), null);
-  assert.equal(comptes({ commentaires: valideEdite }), 0);
-  // Un ancien verdict édité, puis un verdict plus récent intact : le plus récent juge.
-  assert.equal(joue({ commentaires: fil(...base, { corps: verdict(1, 'r1', 'refusé'), edite: true }, verdict(1, 'r1', 'validé')) }).poser, 'à-fusionner');
-  assert.equal(joue({ commentaires: fil(...base, { corps: verdict(1, 'r1', 'validé'), edite: true }, verdict(1, 'r1', 'refusé')) }).poser, 'à-reprendre');
-  assert.equal(joue({ commentaires: fil(...base, verdict(1, 'r1', 'validé'), { corps: verdict(1, 'r1', 'refusé'), edite: true }, verdict(1, 'r1', 'validé')) }).poser, 'à-fusionner');
+  const REPRENDRE = { regle: 4, geste: 'etiqueter', poser: 'à-reprendre', retirer: ['à-relire'], lignes: LIGNES('verdict écrit sur la PR 12 : refusé') };
+  const lecture = (commentaires, champs = {}) => {
+    const e = pr({ commentaires, ...champs });
+    return tours(lireMarques(e.commentaires), e).at(-1);
+  };
+
+  // Un `validé` intact, puis un verdict modifié de la même session : `incomplet`, le validé ne reparaît pas.
+  for (const mot of ['refusé', 'validé', 'incomplet']) {
+    const fil1 = fil(...base, verdict(1, 'r1', 'validé'), modifie(1, 'r1', mot));
+    assert.deepEqual(joue({ commentaires: fil1 }), RELANCE, mot);
+    assert.equal(tourValide(pr({ commentaires: fil1 })), null, mot);
+    assert.deepEqual(joue({ commentaires: fil1, etiquettes: ['à-fusionner'] }), { regle: 3, geste: 'etiqueter', poser: 'à-relire', retirer: ['à-fusionner'], lignes: LIGNES('PR 12 : relecture incomplète') }, mot);
+  }
+  // Cette lecture ne garde rien de l'ancien verdict : ni sommet, ni bloquants, ni ligne de sécurité.
+  const lue = lecture(fil(...base, verdict(1, 'r1', 'validé', { securite: 'lancée' }), modifie(1, 'r1', 'refusé')), { sensible: true }).verdicts.r1;
+  assert.deepEqual([lue.verdict, lue.sommet, lue.bloquants, lue.securite, lue.illisible, lue.rang], ['incomplet', null, null, null, true, 3]);
+  // Un `incomplet` intact, puis un verdict modifié : `incomplet`.
+  assert.deepEqual(joue({ commentaires: fil(...base, verdict(1, 'r1', 'incomplet'), modifie(1, 'r1', 'validé')) }), RELANCE);
+
+  // Un `refusé` intact, puis un verdict modifié de la même session : le refus tient, quel que soit le mot modifié.
+  for (const mot of ['refusé', 'validé', 'incomplet']) {
+    const fil2 = fil(...base, verdict(1, 'r1', 'refusé'), modifie(1, 'r1', mot));
+    assert.deepEqual(joue({ commentaires: fil2 }), REPRENDRE, mot);
+    assert.equal(lecture(fil2).etat, 'refuse', mot);
+    assert.equal(comptes({ commentaires: fil2 }), 1, mot);
+    assert.equal(tourValide(pr({ commentaires: fil2 })), null, mot);
+  }
+  // Le refus tient encore quand la session est relancée, puis remplacée, et que la remplaçante valide.
+  const remplacee = fil(...base, verdict(1, 'r1', 'refusé'), modifie(1, 'r1', 'refusé'), D(1, V1, ['r1'], 'relance', 'r1'), { corps: D(1, V1, ['r2'], 'remplace', 'r1'), a: 200 }, verdict(1, 'r2', 'validé'));
+  assert.deepEqual(joue({ commentaires: remplacee, maintenant: DEBUT + 4 * H }), REPRENDRE);
+  assert.equal(tourValide(pr({ commentaires: remplacee })), null);
+  assert.equal(comptes({ commentaires: remplacee }), 1);
+  // … quand la session était déjà remplacée au moment où son refus est modifié ;
+  const dejaRemplacee = fil(...base, verdict(1, 'r1', 'refusé'), D(1, V1, ['r2'], 'remplace', 'r1'), modifie(1, 'r1', 'validé'), verdict(1, 'r2', 'validé'));
+  assert.deepEqual(joue({ commentaires: dejaRemplacee }), REPRENDRE);
+  assert.equal(tourValide(pr({ commentaires: dejaRemplacee })), null);
+  // … quand deux sessions sont nommées pour un seul verdict exigé, et à deux verdicts exigés.
+  const deux = fil(DEMANDE(), D(1, V1, ['r1', 'r2']), verdict(1, 'r1', 'refusé'), modifie(1, 'r1', 'refusé'), verdict(1, 'r2', 'validé'));
+  assert.deepEqual(joue({ commentaires: deux }), REPRENDRE);
+  assert.equal(tourValide(pr({ commentaires: deux })), null);
+  assert.deepEqual(joue({ commentaires: deux, exiges: 2 }).lignes, LIGNES('verdict écrit sur la PR 12 : refusé, double'));
+  assert.equal(tourValide(pr({ commentaires: deux, exiges: 2 })), null);
+  // Un troisième refus suivi d'un verdict modifié : le plafond, pas une relance.
+  const refus = (k, v) => [DEMANDE(v), D(k, v, ['r1']), verdict(k, 'r1', 'refusé', { sommet: v })];
+  const troisieme = joue({ commentaires: fil(...refus(1, V1), ...refus(2, V2), ...refus(3, V3), modifie(3, 'r1', 'validé', { sommet: V3 })), tete: V3 });
+  assert.deepEqual([troisieme.regle, troisieme.geste], [1, 'plafonner']);
+  // Un arbitrage écarté vise le refus qui tient, pas le verdict modifié qui le suit.
+  assert.equal(joue({ commentaires: fil(...base, verdict(1, 'r1', 'refusé'), ECARTE, modifie(1, 'r1', 'validé'), DEMANDE()) }).geste, 'distribuer');
+
+  // Un ancien verdict modifié, puis un verdict plus récent intact : le plus récent juge.
+  assert.equal(joue({ commentaires: fil(...base, modifie(1, 'r1', 'refusé'), verdict(1, 'r1', 'validé')) }).poser, 'à-fusionner');
+  assert.equal(joue({ commentaires: fil(...base, modifie(1, 'r1', 'validé'), verdict(1, 'r1', 'refusé')) }).poser, 'à-reprendre');
+  assert.equal(joue({ commentaires: fil(...base, verdict(1, 'r1', 'validé'), modifie(1, 'r1', 'refusé'), verdict(1, 'r1', 'validé')) }).poser, 'à-fusionner');
   // La relance tracée, la session rend un verdict neuf : la suite reprend.
-  const relance = [...base, verdict(1, 'r1', 'validé'), { corps: verdict(1, 'r1', 'refusé'), edite: true }, D(1, V1, ['r1'], 'relance', 'r1')];
+  const relance = [...base, verdict(1, 'r1', 'validé'), modifie(1, 'r1', 'refusé'), D(1, V1, ['r1'], 'relance', 'r1')];
   assert.equal(joue({ commentaires: fil(...relance) }).raison, 'attente');
   assert.equal(joue({ commentaires: fil(...relance, verdict(1, 'r1', 'refusé')) }).poser, 'à-reprendre');
   // Seul le verdict modifié d'un compte qui compte, pour cette session et ce tour, retire quelque chose.
   const valide = [...base, verdict(1, 'r1', 'validé')];
-  assert.equal(joue({ commentaires: fil(...valide, { corps: verdict(1, 'r1', 'refusé'), edite: true, de: 'NONE' }) }).poser, 'à-fusionner', "un compte sans droit n'annule pas un verdict");
-  assert.equal(joue({ commentaires: fil(...valide, { corps: verdict(1, 'r2', 'refusé'), edite: true }) }).poser, 'à-fusionner', "le verdict modifié d'une autre session");
-  assert.equal(joue({ commentaires: fil(...valide, { corps: verdict(2, 'r1', 'refusé'), edite: true }) }).poser, 'à-fusionner', "le verdict modifié d'un autre tour");
-  // À deux verdicts exigés : la session au verdict modifié ne compte plus, l'autre reste.
-  const double = fil(DEMANDE(), D(1, V1, ['r1', 'r2']), verdict(1, 'r1', 'validé'), verdict(1, 'r2', 'validé'), { corps: verdict(1, 'r2', 'refusé'), edite: true });
+  assert.equal(joue({ commentaires: fil(...valide, { ...modifie(1, 'r1', 'refusé'), de: 'NONE' }) }).poser, 'à-fusionner', "un compte sans droit n'annule pas un verdict");
+  assert.equal(joue({ commentaires: fil(...valide, modifie(1, 'r2', 'refusé')) }).poser, 'à-fusionner', "le verdict modifié d'une autre session");
+  assert.equal(joue({ commentaires: fil(...valide, modifie(2, 'r1', 'refusé')) }).poser, 'à-fusionner', "le verdict modifié d'un autre tour");
+  // À deux verdicts exigés : la session au validé suivi d'un verdict modifié ne compte plus, l'autre reste.
+  const double = fil(DEMANDE(), D(1, V1, ['r1', 'r2']), verdict(1, 'r1', 'validé'), verdict(1, 'r2', 'validé'), modifie(1, 'r2', 'refusé'));
   assert.deepEqual(joue({ commentaires: double, exiges: 2 }), { regle: 5, geste: 'reecrire', tour: 1, sommet: V1, sessions: ['r1', 'r2'], session: 'r2' });
-  // Un verdict modifié sans verdict antérieur reste écarté, comme toute marque modifiée (A-85, A-108).
-  assert.equal(joue({ commentaires: fil(...base, { corps: verdict(1, 'r1', 'validé'), edite: true }) }).raison, 'attente');
+  // Un verdict modifié sans verdict antérieur de la session reste écarté, la session est attendue (A-85, A-108).
+  assert.equal(joue({ commentaires: fil(...base, modifie(1, 'r1', 'validé')) }).raison, 'attente');
+  assert.equal(joue({ commentaires: fil(...base, modifie(1, 'r1', 'refusé')) }).raison, 'attente');
+});
+
+test("A-118 — un verdict que rien ne rattache, plus récent que la dernière distribution du dernier tour, est une lecture illisible ; plus ancien, il reste écarté", () => {
+  const base = [DEMANDE(), D(1, V1, ['r1']), verdict(1, 'r1', 'validé')];
+  const perdu = verdict(1, 'r1', 'refusé').replace('Session: r1', 'Session: la mienne');
+  const CAUSE = 'commentaire 103 : verdict que rien ne rattache à un tour et à une session';
+  const ILL = { regle: null, geste: 'illisible', commentaire: `${TEXTE_ILLISIBLE}${CAUSE}`, lignes: [{ a: 'architecte', session: null, texte: `PR 12 : lecture illisible : ${CAUSE}` }] };
+  // Un refus abîmé (modifié, sa session ne se lit plus) après un validé intact : jamais `à-fusionner` en silence.
+  for (const corps of [{ corps: perdu, edite: true }, perdu, verdict(1, 'r1', 'refusé').replace('Tour: 1', 'Tour: un'), '<!-- relecture:verdict -->']) {
+    assert.deepEqual(joue({ commentaires: fil(...base, corps) }), ILL, JSON.stringify(corps));
+    assert.deepEqual(joue({ commentaires: fil(...base, corps), etiquettes: ['à-fusionner'] }), ILL, JSON.stringify(corps));
+    assert.throws(() => tourValide(pr({ commentaires: fil(...base, corps) })), LectureIllisible, JSON.stringify(corps));
+    assert.throws(() => lireMarques(fil(...base, corps)), LectureIllisible, JSON.stringify(corps));
+    assert.deepEqual(sommetsDesTours(fil(...base, corps)), [V1]);
+  }
+  // Tracé, il ne se rejoue pas ; il se périme comme les autres.
+  const trace = fil(...base, { corps: perdu, edite: true }, `${TEXTE_ILLISIBLE}${CAUSE}`);
+  assert.deepEqual(joue({ commentaires: trace }), { regle: null, geste: 'rien', raison: 'illisible-signale' });
+  assert.deepEqual(joue({ commentaires: trace, maintenant: DEBUT + 9 * H }), ILL);
+  // Le premier fautif est nommé, marque presque à la forme ou verdict perdu, par rang.
+  assert.equal(joue({ commentaires: fil(...base, { corps: perdu, edite: true }, `${TEXTE_PANNE}.`) }).commentaire, `${TEXTE_ILLISIBLE}${CAUSE}`);
+  assert.equal(joue({ commentaires: fil(...base, `${TEXTE_PANNE}.`, { corps: perdu, edite: true }) }).commentaire, `${TEXTE_ILLISIBLE}commentaire 103 : préfixe « ${TEXTE_PANNE} » sans la forme de sa marque`);
+  // Plus ancien que la dernière distribution du dernier tour : écarté, comme avant.
+  assert.equal(joue({ commentaires: fil(DEMANDE(), { corps: perdu, edite: true }, perdu, D(1, V1, ['r1']), verdict(1, 'r1', 'validé')) }).poser, 'à-fusionner');
+  assert.equal(joue({ commentaires: fil(...base, perdu, D(1, V1, ['r1'], 'relance', 'r1')) }).poser, 'à-fusionner', 'une distribution du tour, plus récente, le laisse derrière elle');
+  assert.equal(joue({ commentaires: fil(...base, perdu, DEMANDE(V2), D(2, V2, ['r1'])), tete: V2 }).raison, 'attente', 'un tour neuf aussi');
+  assert.equal(joue({ commentaires: fil(DEMANDE(), perdu) }).regle, 6, 'sans aucune distribution, rien à protéger');
+  // D'un compte sans droit, il ne compte pour rien.
+  for (const hors of [{ de: 'NONE' }, { de: 'NONE', edite: true }]) assert.equal(joue({ commentaires: fil(...base, { corps: perdu, ...hors }) }).poser, 'à-fusionner', JSON.stringify(hors));
+});
+
+test("A-118 — une clé venue de l'entrée n'est jamais lue sur un prototype : session nommée `constructor`, table héritée", () => {
+  for (const nom of ['constructor', 'toString', 'valueOf', 'hasOwnProperty']) {
+    const distribue = fil(DEMANDE(), D(1, V1, [nom]));
+    assert.deepEqual(joue({ commentaires: distribue }), { regle: 5, geste: 'rien', raison: 'attente', attendues: [nom], echeance: DEBUT + 60_000 + 2 * H }, nom);
+    assert.equal(joue({ commentaires: distribue, sessions: {} }).raison, 'attente', nom);
+    assert.equal(tourValide(pr({ commentaires: distribue })), null, nom);
+    assert.equal(joue({ commentaires: fil(DEMANDE(), D(1, V1, [nom]), verdict(1, nom, 'validé')) }).poser, 'à-fusionner', nom);
+  }
+  const valide = fil(DEMANDE(), D(1, V1, ['r1']), verdict(1, 'r1', 'validé'));
+  // « Même contenu propre » hérité : ni « même », ni « illisible ».
+  assert.equal(joue({ commentaires: valide, tete: T, memeContenu: Object.create({ [V1]: true }) }).regle, 6);
+  assert.equal(tourValide(pr({ commentaires: valide, tete: T, memeContenu: Object.create({ [V1]: true }) })), null);
+  assert.equal(joue({ commentaires: valide, tete: T, memeContenu: Object.create({ [V1]: ILLISIBLE }) }).regle, 6);
+  const deuxTours = fil(DEMANDE(), D(1, V1, ['r1']), verdict(1, 'r1', 'validé'), D(2, T, ['r1']), verdict(2, 'r1', 'refusé', { sommet: T }));
+  assert.equal(tourValide(pr({ commentaires: deuxTours, tete: T2, memeContenu: Object.assign(Object.create({ [T]: false }), { [V1]: true }) })), null, 'une réponse héritée pour un tour plus récent est une clé qui manque');
+  // L'état hérité d'une session n'est pas un état connu.
+  assert.equal(joue({ commentaires: fil(DEMANDE(), D(1, V1, ['r1'])), sessions: Object.create({ r1: 'morte' }) }).raison, 'attente');
 });

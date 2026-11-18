@@ -20,9 +20,15 @@
 // lecture illisible. « Plus récent » veut dire « de rang supérieur dans le tableau reçu » ; les dates ne
 // servent qu'aux délais, comparées à `maintenant`, la seule source de temps.
 //
-// Un commentaire modifié après sa création est écarté, à une exception près (A-118) : un verdict modifié ne
-// s'efface jamais au profit d'un verdict plus ancien de la même session. Quand le verdict le plus récent d'une
-// session pour un tour a été modifié, sa lecture pour ce tour est `incomplet`, jamais le verdict précédent.
+// Un commentaire modifié après sa création est écarté, à deux exceptions près (A-118).
+//   - Un verdict modifié ne peut qu'aggraver ou laisser, jamais adoucir. Quand le verdict le plus récent d'une
+//     session pour un tour a été modifié, sa lecture pour ce tour dépend de son verdict intact le plus récent
+//     pour ce tour : `refusé`, le refus tient ; `validé` ou `incomplet`, la lecture est `incomplet` ; aucun, le
+//     verdict modifié reste écarté et la session est attendue.
+//   - Un verdict d'un compte qui compte que rien ne rattache (`Tour:` ou `Session:` illisible), intact ou
+//     modifié, plus récent que la dernière distribution du dernier tour, est une lecture illisible : un refus
+//     abîmé ne disparaît pas sans bruit. Plus ancien que cette distribution, il reste écarté.
+// Les tables indexées par une clé venue de l'entrée (session, sommet) ne lisent jamais une clé héritée.
 //
 // Module pur : aucun point d'entrée, aucune horloge, aucun import hors verdict.mjs.
 // =============================================================================
@@ -123,8 +129,9 @@ const PREFIXE_TRACE = 'Lecture illisible';
  *             illisibles: { id, rang, date, texte: string }[], presque: { id, rang, date, prefixe: string }[],
  *             dernier: number }}
  *   `verdictsModifies` : les verdicts d'un compte qui compte, modifiés après leur création, dont `Tour:` et
- *   `Session:` se lisent encore : ils ne valent aucun verdict, mais empêchent un verdict plus ancien de la même
- *   session de valoir à leur place (A-118) ; `arbitragesEcartes` : un par commentaire qui écarte au moins un bloquant ; `illisibles` : les traces,
+ *   `Session:` se lisent encore : ils ne valent aucun verdict, mais empêchent un `validé` plus ancien de la même
+ *   session de valoir à leur place (A-118) ; `presque` porte aussi, avec `verdict: true`, les verdicts que rien
+ *   ne rattache, plus récents que la dernière distribution du dernier tour ; `arbitragesEcartes` : un par commentaire qui écarte au moins un bloquant ; `illisibles` : les traces,
  *   `texte` leur première ligne ; `presque` : vide hors `tolerant` ; `dernier` : le rang du plus récent
  *   commentaire à marque ou presque à la forme, traces d'illisible exclues, -1 s'il n'y en a pas.
  * @throws {LectureIllisible}  commentaires que `retenir` ne lit pas ; et, hors `tolerant`, toute marque
@@ -133,9 +140,14 @@ const PREFIXE_TRACE = 'Lecture illisible';
 export function lireMarques(commentaires, options = {}) {
   const m = { verdicts: [], verdictsModifies: [], distributions: [], demandes: [], plafonds: [], decisions: [], arbitragesEcartes: [], pannes: [], illisibles: [], presque: [], dernier: -1 };
   const { retenus, ecartes } = retenir(commentaires);
+  const presque = [];
+  // Les verdicts d'un compte qui compte que rien ne rattache : `Tour:` ou `Session:` ne se lit pas.
+  const perdus = [];
   for (const { id, rang, date, motif, corps } of ecartes) {
     const v = motif === 'edite' ? lireVerdict(corps) : null;
-    if (v !== null && v.tour !== null && v.session !== null) m.verdictsModifies.push({ id, rang, date, tour: v.tour, session: v.session });
+    if (v === null) continue;
+    if (v.tour !== null && v.session !== null) m.verdictsModifies.push({ id, rang, date, tour: v.tour, session: v.session });
+    else perdus.push({ id, rang, date, modifie: true });
   }
   for (const { id, rang, date, corps } of retenus) {
     const place = { id, rang, date };
@@ -143,6 +155,7 @@ export function lireMarques(commentaires, options = {}) {
     if (v !== null) {
       // Un verdict que rien ne rattache (Tour ou Session illisible) est écarté, mais reste un commentaire à marque.
       if (v.tour !== null && v.session !== null) m.verdicts.push({ ...place, ...v });
+      else perdus.push({ ...place, modifie: false });
       m.dernier = rang;
       continue;
     }
@@ -158,13 +171,25 @@ export function lireMarques(commentaires, options = {}) {
     m.dernier = rang;
     const lu = marque.lire(corps);
     if (lu) for (const [liste, valeur] of Object.entries(lu)) m[liste].push({ ...valeur, ...place });
-    else if (options.tolerant) m.presque.push({ ...place, prefixe: marque.prefixe.trimEnd() });
-    else throw new LectureIllisible(causePresque({ ...place, prefixe: marque.prefixe.trimEnd() }));
+    else presque.push({ ...place, prefixe: marque.prefixe.trimEnd() });
   }
+  // Un verdict perdu plus récent que la dernière distribution du dernier tour : illisible, jamais écarté en silence.
+  const distribuee = distributionsParTour(m).at(-1)?.[1].at(-1).rang ?? Infinity;
+  for (const { id, rang, date, modifie } of perdus) {
+    if (rang < distribuee) continue;
+    presque.push({ id, rang, date, prefixe: 'verdict', verdict: true });
+    if (modifie) m.dernier = Math.max(m.dernier, rang);
+  }
+  presque.sort((a, b) => a.rang - b.rang);
+  if (presque.length > 0 && !options.tolerant) throw new LectureIllisible(causePresque(presque[0]));
+  m.presque = presque;
   return m;
 }
 
-const causePresque = ({ id, rang, prefixe }) => `commentaire ${id ?? `de rang ${rang}`} : préfixe « ${prefixe} » sans la forme de sa marque`;
+const causePresque = ({ id, rang, prefixe, verdict = false }) =>
+  `commentaire ${id ?? `de rang ${rang}`} : ${verdict ? 'verdict que rien ne rattache à un tour et à une session' : `préfixe « ${prefixe} » sans la forme de sa marque`}`;
+// La valeur d'une table reçue pour une clé venue de l'entrée, jamais une clé héritée.
+const propre = (table, cle) => (Object.hasOwn(table, cle) ? table[cle] : undefined);
 const CAUSE_DOUBLE = '« double relecture exigée » illisible';
 const causeMeme = (sommet) => `« même contenu propre » illisible pour le sommet ${sommet}`;
 
@@ -224,19 +249,21 @@ export function tours(marques, contexte) {
       const duTour = (x) => x.tour === numero && x.session === session && x.rang > nommee && x.rang < cloture;
       const v = marques.verdicts.findLast(duTour);
       if (v === undefined) return null;
-      // Un verdict plus récent de la session, modifié après coup : ni lui ni le précédent ne vaut (A-118).
+      const compte = compter(v);
+      // Un verdict plus récent de la session, modifié après coup, ne peut qu'aggraver ou laisser (A-118) : le
+      // refus d'avant tient ; un `validé` ou un `incomplet` d'avant se lit `incomplet`, sans rien de l'ancien.
       const modifie = marques.verdictsModifies.findLast((x) => duTour(x) && x.rang > v.rang);
-      if (modifie !== undefined) return { ...v, ...modifie, verdict: 'incomplet', illisible: true, defauts: ['verdict plus récent de la session modifié après sa création'] };
-      return compter(v);
+      if (modifie === undefined || compte.verdict === 'refusé') return compte;
+      return { ...modifie, verdict: 'incomplet', sommet: null, bloquants: null, securite: null, illisible: true, defauts: ['verdict plus récent de la session modifié après sa création'] };
     };
-    const verdicts = {};
+    const verdicts = Object.create(null);
     for (const s of sessions) {
       const v = dernierVerdict(s);
       if (v !== null) verdicts[s] = v;
     }
     // Tout `refusé` d'une session distribuée pour ce tour compte contre lui, remplacée ou non.
     const refus = [...new Set(distributions.flatMap((d) => d.sessions))].map(dernierVerdict).filter((v) => v !== null && v.verdict === 'refusé');
-    const surLaTete = sommet === tete || memeContenu[sommet] === true;
+    const surLaTete = sommet === tete || propre(memeContenu, sommet) === true;
     const valides = sessions.filter((s) => verdicts[s]?.verdict === 'validé').length;
     const etat = refus.length > 0 ? 'refuse' : valides >= exiges ? 'valide' : surLaTete ? 'en-cours' : 'abandonne';
     const nonCompte = distributions.some((d) => d.mention === MENTION_ARBITRAGE);
@@ -248,8 +275,8 @@ export function tours(marques, contexte) {
 // tour plus récent n'a pas de réponse booléenne dans la table : une lecture manquante, personne ne juge.
 function tourQuiJuge(lesTours, tete, memeContenu) {
   for (const t of [...lesTours].reverse()) {
-    if (t.sommet === tete || memeContenu[t.sommet] === true) return t;
-    if (memeContenu[t.sommet] !== false) return null;
+    if (t.sommet === tete || propre(memeContenu, t.sommet) === true) return t;
+    if (propre(memeContenu, t.sommet) !== false) return null;
   }
   return null;
 }
@@ -271,7 +298,7 @@ function verifierContexte(e) {
 // La première cause d'illisible d'un calcul reçu, ou `null`.
 function causeDesCalculs(marques, { tete, exiges, memeContenu = {} }) {
   if (exiges === ILLISIBLE) return CAUSE_DOUBLE;
-  const sommet = distributionsParTour(marques).map(([, ds]) => ds[0].sommet).find((s) => s !== tete && memeContenu[s] === ILLISIBLE);
+  const sommet = distributionsParTour(marques).map(([, ds]) => ds[0].sommet).find((s) => s !== tete && propre(memeContenu, s) === ILLISIBLE);
   return sommet === undefined ? null : causeMeme(sommet);
 }
 
@@ -398,13 +425,13 @@ export function decider(etat) {
     if (sessions.length < exiges) return geste('completer', { manque: exiges - sessions.length });
     const attendues = sessions.filter((s) => verdicts[s]?.verdict !== 'validé');
     const relance = (s) => distributions.findLast((d) => d.mention === 'relance' && d.cible === s) ?? null;
-    const horsService = (s) => connues[s] === 'morte' || connues[s] === 'plafond';
+    const horsService = (s) => propre(connues, s) === 'morte' || propre(connues, s) === 'plafond';
     const aRelancer = attendues.find((s) => verdicts[s] !== undefined && relance(s) === null && !horsService(s));
     if (aRelancer !== undefined) return geste('reecrire', { session: aRelancer });
     // « Depuis » : la relance de la session, sinon la distribution qui l'a nommée la première dans ce tour.
     const depuis = (s) => Date.parse((relance(s) ?? distributions.find((d) => d.sessions.includes(s))).date);
     const panne = (s) => {
-      if (horsService(s)) return connues[s];
+      if (horsService(s)) return propre(connues, s);
       if (verdicts[s] !== undefined && verdicts[s].rang > relance(s).rang) return 'incomplet-deux-fois';
       return maintenant - depuis(s) > delaiMs ? 'muette' : null;
     };
