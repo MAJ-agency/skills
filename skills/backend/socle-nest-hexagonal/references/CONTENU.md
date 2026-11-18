@@ -24,7 +24,7 @@ Ce qui démarre, et pourquoi c'est là plutôt qu'ailleurs.
 - **`tsconfig.arch.json`** — compile `domain/` + `application/` **sans** `infrastructure/`. Si ça casse, une dépendance pointe dans le mauvais sens.
 - **`packages/contracts`** n'est pas ici : il est posé par `socle-contrats`, l'API le consomme (`ErrorDto` dans le document OpenAPI) — et le charge **en direct** par Node depuis `dist/` (`openapi:check`, `main.js`), d'où `rewriteRelativeImportExtensions` dans `tsconfig.json` : la seule option qui admette les ré-exports `.ts` du barrel dans un programme qui émet (`allowImportingTsExtensions` exige `noEmit`).
 - **`compose.yaml`** — PostgreSQL sur **5433**, pas 5432 : pour ne pas entrer en conflit avec une instance locale. Fichier de racine, mais posé par ce skill : c'est l'API qui en a besoin.
-- **`scripts/db/demarrer-local.sh`** — allume cette base, avec ou sans Docker : il lit port et identifiants dans `compose.yaml`, ne fait rien si la base répond, passe par Docker s'il est là, sinon par le PostgreSQL de la machine (session cloud). Le script de démarrage de l'environnement cloud l'appelle (`socle-chaine-de-production`, `admin.md`).
+- **`scripts/db/demarrer-local.sh`** — allume cette base, avec ou sans Docker : il lit port et identifiants dans `compose.yaml`, ne fait rien si la base répond, passe par Docker s'il est là, sinon par le PostgreSQL de la machine (session cloud). Il crée sa base en UTF8 (une base en `SQL_ASCII` fait échouer `normalize(…)`), et refuse une base ou un serveur existant qui ne l'est pas, en donnant les commandes pour le recréer (sortie 6). Le script de démarrage de l'environnement cloud l'appelle (`socle-chaine-de-production`, `admin.md`).
 
 ## Règles à portée de chemins — `rules/`
 
