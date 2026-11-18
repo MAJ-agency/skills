@@ -39,7 +39,7 @@ export function dossierTemporaire(prefixe) {
 
 const ICI = dirname(fileURLToPath(import.meta.url));
 /** La grammaire et la numérotation, posées par `socle-monorepo` à `scripts/docs/`, pas par ce skill. */
-const DU_SOCLE = ['identifiants.mjs', 'next-id.mjs', 'next-id-branches.mjs'];
+const DU_SOCLE = ['identifiants.mjs', 'next-id.mjs', 'next-id-branches.mjs', 'pr-ouvertes.mjs'];
 // Dans le plugin, elles vivent dans le skill `socle-monorepo` : skills/monorepo/socle-monorepo/.
 const SOCLE = join(ICI, '../../../../../monorepo/socle-monorepo/references/scripts/docs');
 let pose;
