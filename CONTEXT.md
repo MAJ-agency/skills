@@ -46,3 +46,7 @@ _Avoid_: branche protégée (réglage côté GitHub)
 **Plafond**:
 La limite de mémoire de travail au-delà de laquelle une session est signalée au produit, qui décide ; elle n'est jamais interrompue pour cela.
 _Avoid_: budget, quota
+
+**Règle d'ascendance**:
+La vérification, juste avant chaque fusion, que la PR a été testée sur l'état de la branche où elle entre ; une PR en retard est mise à jour et retestée, sans exception.
+_Avoid_: « à jour » au sens du réglage de GitHub

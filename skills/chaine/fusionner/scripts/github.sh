@@ -123,6 +123,51 @@ index_generes_regex() {
   index_generes | jq -Rrs 'split("\n") | map(select(. != "") | gsub("\\."; "\\.") | gsub("\\*"; "[^/]+"))
     | "^(" + join("|") + ")$"'
 }
+# Règle d'ascendance (skill `fusionner`, « La règle d'ascendance ») : `<testé>` a-t-il été testé sur l'état de `<cible>` ?
+# Une seule fonction pour passer.sh (vers develop) et sujet.sh (vers un sujet) : deux copies de la règle avaient
+# divergé, et des PR en retard sur leur cible sont entrées sans que leur combinaison avec elle soit jamais testée
+# (`fedora`, 2026-11-18). Aucune exception pour la documentation : une PR en retard est mise à jour et retestée.
+# Ligne 1, le verdict :
+#   à-jour         <cible> est ancêtre de <testé> : la fusion porte l'arbre testé ;
+#   retard         sinon, et `git merge-tree --write-tree` (git ≥ 2.38) fusionne sans conflit ;
+#   conflit-index  conflit limité aux index générés déclarés dans `scripts/docs/index-generes.json` de <cible>
+#                  (jamais l'arbre de travail : la liste de la PR ne décide pas) ;
+#   conflit        tout autre conflit.
+# Pour un conflit, puis les fichiers en conflit, un par ligne. Sortie 0 avec un verdict ; 1 si elle ne peut pas
+# conclure (réf absente, git ou liste en échec), motif sur la sortie d'erreur : jamais un `à-jour` par défaut.
+ascendance() {
+  local teste=${1:-} cible=${2:-} rc sortie fichiers liste regex hors
+  if ! git rev-parse -q --verify "$teste^{commit}" >/dev/null 2>&1 || ! git rev-parse -q --verify "$cible^{commit}" >/dev/null 2>&1; then
+    echo "ascendance : « $teste » ou « $cible » introuvable" >&2
+    return 1
+  fi
+  git merge-base --is-ancestor "$cible" "$teste" && rc=0 || rc=$?
+  case $rc in
+    0) echo à-jour; return 0 ;;
+    1) ;;
+    *) echo "ascendance : git merge-base --is-ancestor en échec ($rc)" >&2; return 1 ;;
+  esac
+  sortie=$(git -c core.quotePath=false merge-tree --write-tree --name-only --no-messages "$teste" "$cible" 2>&1) && rc=0 || rc=$?
+  case $rc in
+    0) echo retard; return 0 ;;
+    1) ;;
+    *) printf 'ascendance : git merge-tree --write-tree en échec (git ≥ 2.38 requis) : %s\n' "$sortie" >&2; return 1 ;;
+  esac
+  fichiers=$(sed -n '2,$p' <<<"$sortie" | sed '/^$/d' | sort -u)
+  [ -n "$fichiers" ] || { echo "ascendance : conflit sans fichier en conflit, illisible" >&2; return 1; }
+  if git cat-file -e "$cible:scripts/docs/index-generes.json" 2>/dev/null; then
+    liste=$(git show "$cible:scripts/docs/index-generes.json") || { echo "ascendance : liste des index générés de $cible illisible" >&2; return 1; }
+  else
+    liste='{"index":[]}'
+  fi
+  regex=$(jq -r '.index[] | if type == "string" then . else .chemin end' <<<"$liste" 2>/dev/null |
+    jq -Rrs 'split("\n") | map(select(. != "") | gsub("\\."; "\\.") | gsub("\\*"; "[^/]+")) | "^(" + join("|") + ")$"') &&
+    [ -n "$regex" ] || { echo "ascendance : liste des index générés de $cible illisible" >&2; return 1; }
+  hors=$(grep -Ev "$regex" <<<"$fichiers" || true)
+  if [ -z "$hors" ]; then echo conflit-index; else echo conflit; fi
+  printf '%s\n' "$fichiers"
+}
+
 # Ceux qui ont une `commande`, de même : régénérés, donc écrasés à chaque mise à jour. Un index sans
 # commande (chaîne nue de la liste) n'est jamais régénéré : `sujet.sh` (PR de mise à jour) et `passer.sh`
 # (livraison intermédiaire) ne le dispensent pas sur sa seule place dans la liste.
@@ -215,6 +260,69 @@ checks_exiges() {
     '[.[] | select(.type == "required_status_checks") | .parameters.required_status_checks[].context] | unique' 2>/dev/null || echo '[]')
   if [ "$(jq 'length' <<<"$regles")" -gt 0 ]; then printf '%s\n' "$regles"; return; fi
   gh api "$DEPOT/branches/develop/protection/required_status_checks" --jq '.contexts' 2>/dev/null || echo '[]'
+}
+
+# Attend la CI exigée de `<sommet>`, la tête de la PR `<pr>` : le sommet sur la PR (5 min au plus), un check exigé
+# apparu (5 min), puis le verdict de tous (60 min). Liste des exigés lue dans la protection de develop : les checks du
+# sommet ne montrent que ceux déjà créés, et un check de synthèse (qui attend toute une matrice) n'apparaît qu'en fin
+# de matrice. Partagée par passer.sh et sujet.sh. Retours : 0 vert ; 1 rouge, la liste sur la sortie standard, une
+# ligne « ␣␣nom : ÉTAT » par check ; 2 aucun check exigé apparu au bout de 5 min (CI non déclenchée) ; 3 encore en
+# attente après 60 min.
+attendre_ci() {
+  local n=$1 sommet=$2 requis etats rouges attente nom c vu
+  for _ in $(seq 1 60); do
+    [ "$(pr_sommet "$n")" = "$sommet" ] && break
+    sleep 5
+  done
+  requis=$(checks_exiges | jq -r '.[]')
+  vu=0
+  for _ in $(seq 1 30); do
+    # Pas de `grep -q` : sous pipefail, `gh` tué par SIGPIPE ferait échouer le test.
+    [ "$(checks_commit "$sommet" | awk -F '\t' -v r="$requis" 'BEGIN { n = split(r, t, "\n"); for (i = 1; i <= n; i++) if (t[i] != "") e[t[i]] = 1 } ($1 in e) { v = 1 } END { print v + 0 }')" = 1 ] && { vu=1; break; }
+    sleep 10
+  done
+  [ "$vu" = 1 ] || return 2
+  for _ in $(seq 1 120); do # 60 min au plus
+    etats=$(checks_commit "$sommet")
+    attente=0
+    rouges=''
+    while IFS= read -r nom; do
+      c=$(printf '%s\n' "$etats" | awk -F '\t' -v n="$nom" '$1 == n { c = $2 } END { print c }')
+      case "$c" in
+        SUCCESS | SKIPPED | NEUTRAL) ;;
+        FAILURE | CANCELLED | TIMED_OUT | ACTION_REQUIRED | STARTUP_FAILURE | ERROR) rouges="$rouges  $nom : $c"$'\n' ;;
+        *) attente=1 ;;
+      esac
+    done <<<"$requis"
+    if [ -n "$rouges" ]; then printf '%s' "$rouges"; return 1; fi
+    [ "$attente" = 1 ] || return 0
+    sleep 30
+  done
+  return 3
+}
+
+# Arbre du squash ≠ arbre testé, vu après une fusion acceptée par GitHub (passer.sh, sujet.sh) : le code entré n'est
+# pas celui que la CI a jugé. Une fusion ne se défait pas d'elle-même : le script qui a fusionné commente la PR (il a
+# les deux arbres), retire `à-fusionner`, écrit la ligne `ARBRE DIFFÉRENT`, et sort en 12 ; la boucle s'arrête, le
+# capitaine le dit à son lanceur. Le commentaire manqué est dit, la sortie reste 12.
+MARQUE_ARBRE='<!-- arbre-different-capitaine -->'
+signaler_arbre_different() { # <pr> <sommet testé> <squash> (squash vide : introuvable)
+  local n=$1 teste=$2 squash=${3:-} a_teste a_squash ecart corps
+  a_teste=$(git rev-parse "$teste^{tree}" 2>/dev/null) || a_teste='?'
+  if [ -n "$squash" ]; then
+    a_squash=$(git rev-parse "$squash^{tree}" 2>/dev/null) || a_squash='?'
+    ecart=$(git -c core.quotePath=false diff --no-renames --name-only "$teste" "$squash" 2>/dev/null | sed 's/^/- `/; s/$/`/') ||
+      ecart='(diff illisible)'
+  else
+    squash='introuvable'
+    a_squash='?'
+    ecart='(squash introuvable dans la branche cible)'
+  fi
+  corps=$(printf '%s\nLe capitaine a fusionné cette PR, mais **arbre du squash ≠ arbre testé** : le code entré n'"'"'est pas celui que la CI a jugé.\n\n- squash : `%s` (arbre `%s`)\n- sommet testé : `%s` (arbre `%s`)\n\nFichiers qui diffèrent (`git diff --name-only %s %s`) :\n\n%s\n\nLa boucle du capitaine s'"'"'est arrêtée : une fusion ne se défait pas d'"'"'elle-même, un humain examine (`git diff %s %s`).\n\n---\n_Generated by [Claude Code](https://claude.ai/code)_' \
+    "$MARQUE_ARBRE" "$squash" "$a_squash" "$teste" "$a_teste" "$teste" "$squash" "${ecart:-(aucun)}" "$teste" "$squash")
+  commenter "$n" "$corps" || echo "#$n : commentaire « arbre du squash ≠ arbre testé » NON posé (gh refusé) : le poser à la main" >&2
+  retirer_label "$n" à-fusionner
+  echo "ARBRE DIFFÉRENT : #$n, squash $squash (arbre $a_squash) ≠ sommet testé $teste (arbre $a_teste) : arbre du squash ≠ arbre testé, la boucle s'arrête, un humain examine"
 }
 
 # Revue des propriétaires exigée sur `<base>` (« Require review from Code Owners », ADR « CODEOWNERS » du projet) :

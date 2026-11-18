@@ -6,7 +6,19 @@
 //               `commentaires` : [corps], écrits par le compte du capitaine, ou { auteur, body } d'un autre compte
 //   capitaine   compte que rend `gh api user` (défaut « capitaine ») ; compteIllisible : `user` répond 403
 //   brancheParDefaut  branche par défaut du dépôt (défaut « main »), dans `base.repo.default_branch`
-//   checks      états par PR (« #12 ») ou pour tout commit (« * ») : { nom: SUCCESS | FAILURE | IN_PROGRESS… }
+//   checks      états par commit (clé = sha complet), par PR (« #12 », la tête courante de la PR seule) ou pour
+//               tout commit (« * »), dans cet ordre de priorité : { nom: SUCCESS | FAILURE | IN_PROGRESS… }. Un état
+//               peut être une liste (`["IN_PROGRESS", "SUCCESS"]`), consommée par sha : le faux compte les lectures
+//               des `check-runs` de chaque commit (`lectures[<sha>]`) et rend l'élément de ce rang, le dernier une
+//               fois la liste épuisée ; deux sommets qui lisent la même entrée « * » ont chacun leur compte
+//   strict      branches où GitHub exige une PR à jour (« Require branches to be up to date ») : la fusion d'une PR
+//               dont la base n'est pas ancêtre de `sha` répond 405 « Head branch is not up to date with the base
+//               branch ». Sans la clé, aucune branche n'est stricte. Aucun script ne lit ce réglage
+//   pendantCi   déplacements de branche pendant la CI, joués dans l'ordre : [{ lectures, branche, vers }]. À la
+//               `lectures`-ième lecture des `check-runs` (tous commits) depuis le déplacement précédent, le faux
+//               joue `update-ref refs/heads/<branche> <vers>` dans le dépôt nu, puis retire le déplacement
+//   avantFusion { branche, vers } : joué au `PUT pulls/<n>/merge` avant le contrôle « strict » et le calcul de
+//               l'arbre, puis retiré : une fusion concurrente que GitHub a acceptée
 //   exiges      checks exigés de develop ; runs : workflow_runs par PR (« #12 »)
 //   revueProprietaires  branches dont la règle de PR exige la revue des propriétaires (« Require review
 //               from Code Owners ») : ruleset `pull_request`, ou ancienne protection avec `protectionClassique`
@@ -19,6 +31,9 @@
 //   PR.commentaires  un corps seul reçoit un `created_at` d'office, croissant avec son rang ; un objet porte le sien
 // Le sommet d'une PR est lu dans le dépôt nu ($FAUX_GH_ORIGINE), comme GitHub. Chaque écriture
 // (méthode autre que GET) est appliquée à l'état et journalisée dans $FAUX_GH/journal.jsonl.
+// Fusion (`PUT pulls/<n>/merge`), comme GitHub : refusée si la tête n'est plus `sha` (409) ; l'arbre du commit de
+// squash ou de merge est celui de `git merge-tree --write-tree <base> <sha>` (l'arbre du sommet quand la base en est
+// ancêtre) ; en conflit, 405 « Pull Request is not mergeable ». La réponse est `{ merged: true, sha }`.
 // =============================================================================
 import { execFileSync, spawnSync } from "node:child_process";
 import {
@@ -85,9 +100,17 @@ while (args.length) {
   } else chemin = a;
 }
 
+// Un refus garde ce que l'appel a déjà joué (un `avantFusion` consommé, des lectures comptées), comme GitHub.
 function echec(message, code = 1) {
+  sauver();
   process.stderr.write(`${message}\n`);
   process.exit(code);
+}
+function sauver() {
+  // Écriture atomique : un lecteur qui n'est pas un appel du faux (les bancs lisent etat.json pour
+  // leurs assertions) ne voit jamais un état tronqué.
+  writeFileSync(`${FICHIER}.${process.pid}`, JSON.stringify(etat, null, 2));
+  renameSync(`${FICHIER}.${process.pid}`, FICHIER);
 }
 function git(...a) {
   return execFileSync("git", ["--git-dir", ORIGINE, ...a], {
@@ -134,9 +157,28 @@ function pr(n) {
     echec(`gh: Not Found (HTTP 404) pulls/${n}`)
   );
 }
+// Checks d'un commit : sa clé (sha complet), sinon celle de la PR dont il est la tête, sinon « * ». Une liste se lit
+// au rang de la lecture de ce commit (le dernier élément une fois la liste épuisée).
 function checksDe(sha) {
   const p = etat.pulls.find((x) => versRest(x).head.sha === sha);
-  return (p && etat.checks?.[`#${p.number}`]) ?? etat.checks?.["*"] ?? {};
+  const entree = etat.checks?.[sha] ?? (p && etat.checks?.[`#${p.number}`]) ?? etat.checks?.["*"] ?? {};
+  etat.lectures ??= {};
+  const rang = etat.lectures[sha] ?? 0;
+  etat.lectures[sha] = rang + 1;
+  return Object.fromEntries(
+    Object.entries(entree).map(([nom, e]) => [nom, Array.isArray(e) ? e[Math.min(rang, e.length - 1)] : e]),
+  );
+}
+// Cible qui bouge pendant la CI : le premier déplacement de `pendantCi` se joue à sa `lectures`-ième lecture des
+// check-runs depuis le déplacement précédent.
+function deplacerPendantCi() {
+  const suivant = etat.pendantCi?.[0];
+  if (!suivant) return;
+  etat.lecturesPendantCi = (etat.lecturesPendantCi ?? 0) + 1;
+  if (etat.lecturesPendantCi < suivant.lectures) return;
+  git("update-ref", `refs/heads/${suivant.branche}`, suivant.vers);
+  etat.pendantCi.shift();
+  etat.lecturesPendantCi = 0;
 }
 const TERMINES = new Set([
   "SUCCESS",
@@ -225,7 +267,9 @@ function repondre() {
       ? echec("gh: Resource not accessible by integration (HTTP 403)")
       : { login: etat.capitaine ?? "capitaine" };
   if ((m = route.match(/^commits\/([0-9a-f]+)\/check-runs$/))) {
-    const runs = Object.entries(checksDe(m[1])).map(([name, e], i) =>
+    const lus = checksDe(m[1]);
+    deplacerPendantCi();
+    const runs = Object.entries(lus).map(([name, e], i) =>
       TERMINES.has(e)
         ? { id: i + 1, name, status: "completed", conclusion: e.toLowerCase() }
         : { id: i + 1, name, status: e.toLowerCase(), conclusion: null },
@@ -282,7 +326,8 @@ function repondre() {
   echec(`faux gh : route non simulée ${methode} ${chemin}`);
 }
 
-// Fusion dans le dépôt nu, comme GitHub : refusée si le sommet n'est plus `sha`.
+// Fusion dans le dépôt nu, comme GitHub : refusée si le sommet n'est plus `sha`, si la base est stricte et pas
+// ancêtre de `sha`, ou en conflit ; l'arbre est celui de la fusion de la base et du sommet.
 function fusionner(
   p,
   {
@@ -295,12 +340,25 @@ function fusionner(
   if ((etat.revueProprietaires ?? []).includes(p.base) && p.approbationManquante)
     echec("gh: Waiting on code owner review from @proprietaire. (HTTP 405)");
   if (ref(p.head) !== sha) echec("gh: Head branch was modified (HTTP 409)");
+  if (etat.avantFusion) {
+    git("update-ref", `refs/heads/${etat.avantFusion.branche}`, etat.avantFusion.vers);
+    delete etat.avantFusion;
+  }
   const base = ref(p.base);
+  const ancetre = spawnSync("git", ["--git-dir", ORIGINE, "merge-base", "--is-ancestor", base, sha]).status === 0;
+  if ((etat.strict ?? []).includes(p.base) && !ancetre)
+    echec("gh: Head branch is not up to date with the base branch (HTTP 405)");
+  const essai = spawnSync("git", ["--git-dir", ORIGINE, "merge-tree", "--write-tree", "--no-messages", base, sha], {
+    encoding: "utf8",
+  });
+  if (essai.status === 1) echec("gh: Pull Request is not mergeable (HTTP 405)");
+  if (essai.status !== 0) throw new Error(`faux gh : git merge-tree en échec : ${essai.stderr}`);
+  const arbre = essai.stdout.split("\n")[0].trim();
   const parents =
     methodeFusion === "merge" ? ["-p", base, "-p", sha] : ["-p", base];
   const commit = git(
     "commit-tree",
-    `${sha}^{tree}`,
+    arbre,
     ...parents,
     "-m",
     `${titre}\n\n${corps}`,
@@ -311,10 +369,7 @@ function fusionner(
 }
 
 const reponse = repondre();
-// Écriture atomique : un lecteur qui n'est pas un appel du faux (les bancs lisent etat.json pour
-// leurs assertions) ne voit jamais un état tronqué.
-writeFileSync(`${FICHIER}.${process.pid}`, JSON.stringify(etat, null, 2));
-renameSync(`${FICHIER}.${process.pid}`, FICHIER);
+sauver();
 const json = JSON.stringify(reponse);
 if (jqExpr === null) process.stdout.write(`${json}\n`);
 else {
