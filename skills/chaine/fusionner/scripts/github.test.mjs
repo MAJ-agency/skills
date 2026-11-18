@@ -106,3 +106,81 @@ test("jq absent : github.sh s'arrête dès qu'on le source, sortie 69, une ligne
   assert.match(r.stderr, /jq est requis/);
   assert.match(r.stderr, /sudo apt install jq/);
 });
+
+// `ascendance <testé> <cible>` : la règle d'ascendance, partagée par passer.sh et sujet.sh. Quatre verdicts ; une
+// réf absente ne conclut jamais `à-jour`.
+const ascendance = (d, teste, cible) =>
+  spawnSync("bash", ["-c", `source ${GITHUB}; ascendance "$1" "$2"`, "_", teste, cible], {
+    cwd: d.travail,
+    env: d.env,
+    encoding: "utf8",
+  });
+const ADR = "docs/adr";
+// develop ajoute l'ADR 1 ; `pr` part d'avant et apporte `fichiersPr` ; develop reçoit ensuite `fichiersCible`.
+function ascendanceJouet(fichiersPr, fichiersCible) {
+  const d = depotJouet();
+  d.ecrire("docs/f.md", "0\n");
+  d.commit("docs: f");
+  d.git("push", "-q", "origin", "HEAD:develop");
+  d.git("fetch", "-q", "origin");
+  const teste = d.branche("feat/pr", "origin/develop", fichiersPr);
+  if (fichiersCible) d.branche("develop", "origin/develop", fichiersCible);
+  d.git("switch", "-q", "--detach", "origin/develop");
+  return { d, teste };
+}
+
+test("ascendance : la cible est ancêtre du sommet testé, à-jour", () => {
+  const { d, teste } = ascendanceJouet({ "docs/x.md": "x\n" });
+  const r = ascendance(d, teste, "origin/develop");
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(r.stdout, "à-jour\n");
+});
+
+test("ascendance : la cible a avancé sans conflit, retard (même pour de la documentation seule)", () => {
+  const { d, teste } = ascendanceJouet({ "docs/x.md": "x\n" }, { "docs/guide.md": "g\n" });
+  const r = ascendance(d, teste, "origin/develop");
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(r.stdout, "retard\n");
+});
+
+test("ascendance : conflit sur un index généré seul, conflit-index avec le fichier", () => {
+  const { d, teste } = ascendanceJouet(
+    { [`${ADR}/ADR_ALL_ARC-2-b.md`]: "# 2\n", [`${ADR}/README.md`]: "- ADR_ALL_ARC-2-b.md\n" },
+    { [`${ADR}/ADR_ALL_ARC-3-c.md`]: "# 3\n", [`${ADR}/README.md`]: "- ADR_ALL_ARC-3-c.md\n" },
+  );
+  const r = ascendance(d, teste, "origin/develop");
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(r.stdout, `conflit-index\n${ADR}/README.md\n`);
+});
+
+test("ascendance : conflit hors index générés, conflit avec les fichiers", () => {
+  const { d, teste } = ascendanceJouet(
+    { "docs/f.md": "pr\n", [`${ADR}/README.md`]: "- pr\n" },
+    { "docs/f.md": "develop\n", [`${ADR}/README.md`]: "- develop\n" },
+  );
+  const r = ascendance(d, teste, "origin/develop");
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(r.stdout, `conflit\n${ADR}/README.md\ndocs/f.md\n`);
+});
+
+test("ascendance : la liste des index se lit sur la cible, jamais dans l'arbre de travail", () => {
+  const { d, teste } = ascendanceJouet({ "docs/f.md": "pr\n" }, { "docs/f.md": "develop\n" });
+  // L'arbre de travail déclare docs/f.md index généré : la cible, elle, ne le déclare pas.
+  declarer(d, [{ chemin: "docs/f.md", commande: "true" }]);
+  const r = ascendance(d, teste, "origin/develop");
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(r.stdout, "conflit\ndocs/f.md\n");
+});
+
+test("ascendance : une réf absente sort en 1, motif sur la sortie d'erreur, jamais à-jour", () => {
+  const { d, teste } = ascendanceJouet({ "docs/x.md": "x\n" });
+  for (const [a, b] of [
+    [teste, "origin/absente"],
+    ["0".repeat(40), "origin/develop"],
+  ]) {
+    const r = ascendance(d, a, b);
+    assert.equal(r.status, 1, r.stdout);
+    assert.equal(r.stdout, "");
+    assert.match(r.stderr, /introuvable/);
+  }
+});
