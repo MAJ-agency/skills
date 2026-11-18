@@ -1007,3 +1007,24 @@ test("sujet.sh fusionner : GitHub illisible pendant l'attente de la CI de la sou
   assert.match(r.stdout, /GitHub illisible/);
   assert.equal(sujetDistant(d), sujet);
 });
+
+// Contre-relecture (M2, M3) : `relancer` sort en 5, explicitement, sur une PR illisible ; le refus de fusion que relaie
+// `sujet.sh fusionner` est masqué.
+test("sujet.sh relancer : PR illisible, sortie 5 sans rien pousser ; fusionner : refus de fusion relayé masqué", () => {
+  const { d, sommet } = sousPrEnConflit("aucun");
+  d.github({ pannes: [{ route: "^pulls/80$", fois: 1 }] });
+  const r = d.lancer(SUJET, "relancer", "80");
+  assert.equal(r.status, 5, r.stdout + r.stderr);
+  assert.match(r.stdout, /GitHub illisible/);
+  d.git("fetch", "-q", "origin");
+  assert.equal(d.git("rev-parse", "origin/docs/sous"), sommet);
+
+  const e = sousPrEnConflit("aucun").d;
+  const etat = e.etat();
+  etat.pulls[0].refusFusion = "gh: refus, voir https://x:jeton-secret@exemple.test/regles (HTTP 405)";
+  e.github(etat);
+  const f = e.lancer(SUJET, "fusionner", "80");
+  assert.equal(f.status, 3, f.stdout + f.stderr);
+  assert.match(f.stderr, /https:\/\/\*\*\*@exemple\.test/);
+  assert.doesNotMatch(f.stdout + f.stderr, /jeton-secret/);
+});

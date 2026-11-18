@@ -216,7 +216,8 @@ PAUSE=${BOUCLE_PAUSE:-120}
 [[ "$PAUSE" =~ ^[0-9]+$ ]] || PAUSE=120
 # La ligne PAUSE nomme la cause : la dernière ligne `GitHub illisible (<route>) : <cause>` de lire_github lue dans `<fichier>`
 # (route et code HTTP tels que gh les écrit, `(HTTP 401)` d'un jeton expiré compris : décision A-51).
-cause_lue() { grep -a 'GitHub illisible (' "$1" 2>/dev/null | tail -n 1 | tr -d '\r'; }
+# Ancrée en début de ligne : lire_github l'écrit ainsi, et une sortie de hook relayée est préfixée `[git push …]`.
+cause_lue() { grep -a '^GitHub illisible (' "$1" 2>/dev/null | tail -n 1 | tr -d '\r'; }
 mettre_en_pause() { # <préfixe> <motif> [<fichier où lire la cause>]
   local cause=''
   [ -z "${3:-}" ] || cause=$(cause_lue "$3")
@@ -339,6 +340,7 @@ traiter_sujets() {
           2) bash "$outils/renvoyer.sh" "$n" "conflit avec ${etat%%:*} : fusionner ${etat%%:*} dans la branche et le résoudre" ;;
           4) bash "$outils/refus.sh" "$n" "$sortie" ;; # tête gardée : renvoyée avec le motif
           6) echo "[#$n] PAS PROPRE : worktree du capitaine à nettoyer, sous-PR laissée dans la file (aucun renvoi)" ;;
+          5) echo "[#$n] REPRISE au tour suivant (sous-PR bougée ou GitHub illisible), aucun renvoi" ;;
           # Push refusé par le distant, sans trace du hook : côté capitaine ou du distant, jamais un renvoi.
           11) echo "[#$n] ÉCHEC DU CAPITAINE : sous-PR laissée dans la file (aucun renvoi), cause ci-dessus" ;;
         esac ;;
@@ -380,7 +382,7 @@ traiter_sujets() {
 # « ; », coupées à 1 500 caractères, repassées par masquer_url : le commentaire est public.
 extrait_hook() {
   local extrait
-  extrait=$(awk '/push refusé par le hook pre-push/ { exit } /^\[git push [^]]*\] / { sub(/^\[git push [^]]*\] /, ""); l[++n] = $0 }
+  extrait=$(awk '/^push refusé par le hook pre-push/ { exit } /^\[git push [^]]*\] / { sub(/^\[git push [^]]*\] /, ""); l[++n] = $0 }
     END { for (i = (n > 8 ? n - 7 : 1); i <= n; i++) printf "%s%s", (i > (n > 8 ? n - 7 : 1) ? " ; " : ""), l[i] }' "$1" | tr -d '`\r')
   node -e 'process.stdout.write([...process.argv[1]].slice(0, 1500).join(""))' "$extrait" | masquer_url
 }
@@ -432,25 +434,29 @@ while :; do
     passer "$n"
     rc=$?
   fi
+  # La dernière ligne de passer.sh, préfixée `[#<n>] ` (son `sortir`) : seule elle décide de la suite.
+  derniere=$(grep -a "^\[#$n\] " "$sortie" | tail -n 1 | tr -d '\r')
   echo "[#$n] sortie=$rc $(date +%H:%M)"
   case "$rc" in
     0) attente_fusion=' ' ;;
     # Develop ou la PR a bougé deux fois, ou GitHub illisible : pause, puis le tour suivant. Jamais un arrêt.
-    5) mettre_en_pause "[#$n] PAUSE" "(sortie 5) : $(grep -v '^[[:space:]]*$' "$sortie" | tail -n 1)" "$sortie" ;;
+    5) mettre_en_pause "[#$n] PAUSE" "(sortie 5) : $derniere" "$sortie" ;;
     2)
-      fichiers=$(awk '/conflit avec develop hors index générés/ { f = 1; next } f && /^  / { sub(/^  /, ""); printf "%s`%s`", (n++ ? ", " : ""), $0 }' "$sortie")
+      fichiers=$(awk -v d="[#$n] conflit avec develop hors index générés" 'index($0, d) == 1 { f = 1; next } f && /^  / { sub(/^  /, ""); printf "%s`%s`", (n++ ? ", " : ""), $0 }' "$sortie")
       # Renvoyée, la PR perd `à-fusionner` : elle sort de la file d'elle-même et y revient,
       # dans ce même tour, dès que sa session la corrige. Sautée seulement si le renvoi échoue.
       bash "$outils/renvoyer.sh" "$n" "conflit avec develop à la mise à jour (hors index générés et hors règle de pile) : $fichiers. Fusionner develop dans la branche et le résoudre" ||
         sautees="$sautees$n " ;;
     3)
-      if grep -q 'checks exigés rouges' "$sortie"; then
+      # Classée sur la dernière ligne `[#<n>] ` (le `sortir` de passer.sh), jamais sur un motif cherché dans toute la
+      # sortie : celle d'un hook relayée peut porter ces messages (un pre-push qui joue les bancs en écrit les titres).
+      if [[ "$derniere" == "[#$n] checks exigés rouges"* ]]; then
         # Rouge sur le sommet poussé : `traiter_rouges` relance, puis renvoie au second échec.
         echo "[#$n] checks rouges au passage : relance au prochain tour"
-      elif grep -q 'CI non déclenchée' "$sortie"; then
+      elif [[ "$derniere" == *"CI non déclenchée"* ]]; then
         echo "[#$n] sans CI : de côté jusqu'à la prochaine fusion"
         attente_fusion="$attente_fusion$n "
-      elif grep -q 'push refusé par le hook pre-push' "$sortie"; then
+      elif [[ "$derniere" == "[#$n] push refusé par le hook pre-push"* ]]; then
         # Trace de husky : le hook refuse la mise à jour, la PR est à corriger. Renvoyée avec la sortie du hook ;
         # sautée si le renvoi échoue. Un refus du distant (sans trace) tombe dans l'ARRÊT ci-dessous.
         bash "$outils/renvoyer.sh" "$n" "le pre-push refuse le push de la mise à jour avec develop. Sortie du hook : $(extrait_hook "$sortie")" ||

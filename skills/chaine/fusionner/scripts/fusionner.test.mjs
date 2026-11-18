@@ -2056,3 +2056,77 @@ test("boucle.sh : la ligne PAUSE donne la route et le code HTTP de la cause (fil
   assert.match(r.stdout, /PAUSE \d\d:\d\d \(file\.sh, sortie 5\) : file illisible ; cause : GitHub illisible \(repos\/\{owner\}\/\{repo\}\/commits\/[0-9a-f]{40}\/check-runs\?per_page=100\) : gh en échec \(code 1\) : gh: Bad credentials \(HTTP 401\), reprise dans 120 s/);
   assert.match(r.stdout, /\[#33\] FUSIONNÉE/);
 });
+
+// Contre-relecture (B1) : la sortie d'un hook relayée peut porter les messages que la boucle classe (un pre-push qui joue
+// les bancs reposés en écrit les titres). La boucle classe une sortie 3 sur la dernière ligne `[#<n>] ` de passer.sh,
+// jamais sur un motif cherché dans toute la sortie.
+const TITRES_PIEGES = [
+  "ok 12 - passer.sh : une panne de GitHub pendant l'attente de la CI sort en 5, jamais « CI non déclenchée »",
+  "ok 13 - passer.sh : checks exigés rouges : liste",
+  "push refusé par le hook pre-push : sortie ci-dessus ; corriger, jamais en sautant le hook",
+  "GitHub illisible (repos/x/y/pulls) : gh en échec (code 1) : gh: HTTP 502",
+];
+function hookTitres(d, { refuse, trace }) {
+  hooks(d);
+  const lignes = TITRES_PIEGES.map((t) => `echo ${JSON.stringify(t)} >&2`).join("\n");
+  writeFileSync(
+    join(d.racine, "hooks", "pre-push"),
+    `#!/bin/sh\n${lignes}\n${refuse ? `${trace ? 'echo "husky - pre-push script failed (code 1)"\n' : ""}exit 1` : "exit 0"}\n`,
+  );
+  chmodSync(join(d.racine, "hooks", "pre-push"), 0o755);
+}
+test("boucle.sh : une sortie 3 se classe sur la dernière ligne de passer.sh, jamais sur la sortie du hook relayée", () => {
+  // Échéance à une minute : une régression qui repasse la PR à chaque tour finit sur ÉCHÉANCE (sortie 0), rouge, au
+  // lieu de tourner sans fin.
+  const borner = (d) => { d.env.BOUCLE_ECHEANCE = String(Math.floor(Date.now() / 1000) + 60); };
+  // Pre-push refusé avec la trace, qui écrit « CI non déclenchée » : renvoi, jamais « de côté ».
+  const a = conflitIndex();
+  a.publierChaine();
+  borner(a);
+  hookTitres(a, { refuse: true, trace: true });
+  const ra = a.lancer(script("boucle.sh"));
+  assert.equal(ra.status, 0, ra.stdout + ra.stderr);
+  assert.match(ra.stdout, /\[#30\] RENVOI : le pre-push refuse le push/);
+  assert.doesNotMatch(ra.stdout, /sans CI : de côté|checks rouges au passage/);
+  const commentaire = a.etat().pulls[0].commentaires.at(-1);
+  assert.match(commentaire, /GitHub illisible \(repos\/x\/y\/pulls\)/, "l'extrait garde les lignes du hook");
+
+  // Pre-push refusé sans trace : refus du distant, ARRÊT.
+  const b = conflitIndex();
+  b.publierChaine();
+  borner(b);
+  hookTitres(b, { refuse: true, trace: false });
+  const rb = b.lancer(script("boucle.sh"));
+  assert.equal(rb.status, 3, rb.stdout + rb.stderr);
+  assert.match(rb.stdout, /ARRÊT sur #30 \(sortie 3\)/);
+  assert.doesNotMatch(rb.stdout, /RENVOI|sans CI : de côté|checks rouges au passage/);
+
+  // Pre-push vert qui écrit tous ces titres, puis refus du distant : ARRÊT, sans renvoi.
+  const c = conflitIndex();
+  c.publierChaine();
+  borner(c);
+  hookTitres(c, { refuse: false });
+  writeFileSync(join(c.origine, "hooks", "pre-receive"), "#!/bin/sh\necho 'règle du dépôt' >&2\nexit 1\n");
+  chmodSync(join(c.origine, "hooks", "pre-receive"), 0o755);
+  const rc = c.lancer(script("boucle.sh"));
+  assert.equal(rc.status, 3, rc.stdout + rc.stderr);
+  assert.match(rc.stdout, /ARRÊT sur #30 \(sortie 3\)/);
+  assert.doesNotMatch(rc.stdout, /RENVOI|sans CI : de côté|checks rouges au passage/);
+  assert.deepEqual(c.journal().filter((e) => e.methode !== "GET"), [], "aucun renvoi, aucun label");
+});
+
+// A-51 précisée (M1) : develop illisible à la relecture qui suit un refus de fusion : sortie 5 (une coupure passagère
+// n'arrête pas la boucle), jamais 3.
+test("passer.sh : refus de fusion 405, develop avancé puis illisible à la relecture : sortie 5", () => {
+  const d = prSimple();
+  const concurrent = d.branche("concurrent", "origin/develop", { "apps/c.ts": "c\n" });
+  d.git("switch", "-q", "--detach", "origin/develop");
+  d.github({
+    pulls: [pr(33, "feat/simple", { refusFusion: "gh: Repository rule violations found (HTTP 405)" })],
+    avantFusion: { branche: "develop", vers: concurrent },
+    origineCasseeAuRefus: true,
+  });
+  const r = d.lancer(script("passer.sh"), "33");
+  assert.equal(r.status, 5, r.stdout + r.stderr);
+  assert.match(r.stdout, /develop illisible à la relecture/);
+});

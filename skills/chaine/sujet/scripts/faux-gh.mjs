@@ -29,6 +29,7 @@
 //   commentairesRefuses  tout commentaire posé est refusé (403)
 //   PR.refusFusion  message d'un refus de fusion (`gh: … (HTTP 405)`) : le `PUT pulls/<n>/merge` le rend, code 1, après
 //               `avantFusion` (une fusion concurrente, puis le refus)
+//   origineCasseeAuRefus  au refus de `PR.refusFusion`, le dépôt nu est renommé : la relecture de develop échoue
 //   PR.revues   revues de la PR (`pulls/<n>/reviews`) : [{ state, submitted_at, auteur }]
 //   PR.commentaires  un corps seul reçoit un `created_at` d'office, croissant avec son rang ; un objet porte le sien
 //   pannes      GitHub en panne pour des lectures : [{ route, fois, sortie, erreur, code }]. `route` est une expression
@@ -368,7 +369,11 @@ function fusionner(
     git("update-ref", `refs/heads/${etat.avantFusion.branche}`, etat.avantFusion.vers);
     delete etat.avantFusion;
   }
-  if (p.refusFusion) echec(p.refusFusion);
+  if (p.refusFusion) {
+    // Le dépôt nu devient injoignable : la relecture de develop qui suit le refus échoue (une coupure).
+    if (etat.origineCasseeAuRefus) renameSync(ORIGINE, `${ORIGINE}.casse`);
+    echec(p.refusFusion);
+  }
   const base = ref(p.base);
   const ancetre = spawnSync("git", ["--git-dir", ORIGINE, "merge-base", "--is-ancestor", base, sha]).status === 0;
   if ((etat.strict ?? []).includes(p.base) && !ancetre)

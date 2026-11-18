@@ -89,7 +89,7 @@
 # propre (`fusionner`, `rafraichir`, `regrouper`, `relancer` : à nettoyer par qui lance, jamais un renvoi de la PR,
 # comme la sortie 6 de passer.sh) · 7 `fusionner` d'une PR fermée, en brouillon ou d'un sujet gelé (rien à
 # corriger : sautée) · 9 `carte <nom>` refusée, ou `geler`/`degeler` dont le push échoue deux fois (rien n'est poussé)
-# `fusionner`, `rafraichir`, `relancer`, `livrer` : 5 la branche a bougé pendant l'écriture, relancer
+# `fusionner`, `rafraichir`, `relancer`, `livrer` : 5 la branche a bougé pendant l'écriture, relancer ; `relancer` : 5 aussi sur une PR illisible (GitHub)
 # `fusionner` encore : la sous-PR a bougé pendant sa mise à jour, ses checks sont encore en cours après l'attente sur un
 # sommet que le capitaine n'a pas poussé, ou le sujet a bougé trois fois pendant la CI (reprise au tour suivant, aucun
 # renvoi : la PR reste dans la file tant que sa CI ne finit pas), ou GitHub illisible (lire_github de github.sh : réponse
@@ -843,12 +843,18 @@ fusionner() {
     mettre_a_jour
   done
 
-  local squash
+  local squash refus
+  refus=$(mktemp)
+  # Le refus de GitHub, relayé, passe par masquer_url (Décision 10).
   squash=$(git log --no-merges --reverse --format='%B' "$(git merge-base "$sommet" "origin/$base")..$sommet" |
     jq -Rs --arg sha "$sommet" --arg titre "$titre (#$n)" \
       '{merge_method: "squash", sha: $sha, commit_title: $titre, commit_message: .}' |
-    gh api -X PUT "$DEPOT/pulls/$n/merge" --input - --jq .sha) ||
+    gh api -X PUT "$DEPOT/pulls/$n/merge" --input - --jq .sha 2>"$refus") || {
+    masquer_url <"$refus" >&2
+    rm -f "$refus"
     sortir 3 "fusion refusée par GitHub (sommet bougé, conflit avec $base ?)"
+  }
+  rm -f "$refus"
   # Arbre du squash = arbre testé : le sha de la réponse du PUT ; un écart (ou un squash introuvable) sort en 12.
   git_masque fetch -q origin "+refs/heads/$base:refs/remotes/origin/$base"
   squash=$(sed -n 1p <<<"$squash")
@@ -963,7 +969,7 @@ livrer() {
 
 relancer() {
   local n=${1:?numéro de la sous-PR} pr base tete sortie statut
-  pr=$(pr_json "$n")
+  pr=$(pr_json "$n") || sortir 5 "#$n : GitHub illisible à la lecture de la PR (cause ci-dessus) : reprise au tour suivant, aucun renvoi"
   base=$(jq -r .base.ref <<<"$pr")
   tete=$(jq -r .head.ref <<<"$pr")
   [[ "$base" == sujet/* ]] || sortir 4 "#$n vise $base, pas un sujet"
@@ -1225,7 +1231,7 @@ carte_cite_le_sujet() {
 
 # Sommet de la branche `<branche>` sur origin (vide si elle n'y est pas) : le nom se compare en entier,
 # `git ls-remote <motif>` fait correspondre la fin d'un nom.
-sommet_distant() { git ls-remote origin "refs/heads/$1" | awk -v r="refs/heads/$1" '$2 == r { print $1 }'; }
+sommet_distant() { git_masque ls-remote origin "refs/heads/$1" | awk -v r="refs/heads/$1" '$2 == r { print $1 }'; }
 # Premier commit de develop (premiers parents) où la carte du sujet est en `6-nettoyage` ou `fini` ; vide
 # sinon. Le sommet d'un sujet livré est contenu dans ce commit : un sujet rouvert sous le même nom, après
 # la carte d'un chantier précédent, a un sommet plus récent.
