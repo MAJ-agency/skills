@@ -3,7 +3,7 @@
 Status: ready-for-agent
 Type: défaut
 Modèle: sonnet — une fonction pure de dix lignes, puis onze remplacements mécaniques dans des bancs, chacun avec son chemin d'import posé ou plugin ; le seul piège est l'import d'un banc posé sans la chaîne, tranché ci-dessous.
-Blocked by: —
+Blocked by: 1 (`skills/chaine/sujet/scripts/depot-jouet.mjs` est un fichier chaud du ticket 1 : partir de main après sa fusion)
 Dépendances: — (aucune dépendance nouvelle)
 Fichiers chauds: `skills/chaine/sujet/scripts/depot-jouet.mjs`, `skills/chaine/sujet/scripts/environnement-des-bancs.test.mjs`, `skills/monorepo/socle-monorepo/references/scripts/docs/environnement-de-banc.mjs`, `skills/monorepo/socle-monorepo/references/scripts/docs/environnement-de-banc.test.mjs`, `skills/monorepo/socle-monorepo/references/scripts/docs/next-id.test.mjs`, `skills/monorepo/socle-monorepo/references/TABLE-RACINE.md`, `skills/chaine/tickets/references/scripts/docs/depot-jouet.mjs`, `skills/chaine/tickets/references/scripts/docs/avancement.test.mjs`, `skills/chaine/fusionner/scripts/commits-a-relire.test.mjs`, `skills/chaine/fusionner/scripts/revue-exigee.test.mjs`, `skills/chaine/fusionner/scripts/fusionner.test.mjs`, `skills/chaine/fusionner/scripts/sujet-fusionner.test.mjs`, `skills/chaine/revue-adversariale/scripts/chemins-sensibles.test.mjs`, `skills/chaine/socle-chaine-de-production/references/scripts/github/develop.test.mjs`, `skills/monorepo/socle-tests/references/scripts/verify/coverage-diff.test.mjs`, `scripts/nettoyage-des-bancs.test.mjs`, `scripts/points-d-entree.test.mjs`, `scripts/poses.test.mjs`, `scripts/un-seul-environnement-de-banc.test.mjs`, `.claude-plugin/plugin.json`, `NOTES-DE-VERSION.md`
 Label: contre-revue
