@@ -1,6 +1,6 @@
 # La garde de commandes lit la sous-commande de git après ses options globales, et refuse toute façon de sauter les hooks git : reprise du ticket 34 de « gouverner nos boucles »
 
-Status: ready-for-agent
+Status: Fait — PR #119
 Type: défaut
 Modèle: opus — une garde de sécurité, sur le lecteur par jetons de 7.12.0 qu'il faut comprendre avant d'y ajouter quoi que ce soit ; une dizaine de familles de contournement, chacune avec ses faux refus à éviter ; `/security-review` obligatoire. Une erreur laisse une session sauter les hooks git dans tous les projets.
 Blocked by: —
@@ -263,3 +263,32 @@ Dans l'ordre : `OPTIONS_GIT_A_VALEUR`, `appelsGit` et `lirePushs` (tous les test
   - Limites nommées : `tee git <<< '…' | bash` (lecteur, déjà ouvert sur `main`), `… | xargs git … commit` (arguments venus de l'entrée). Le contrat de `lireCommande` est à corriger : il ne nomme pas le `debut` des lectures.
 - 2026-11-18 — Troisième reprise, décision de l'architecte `A-39`, après une troisième relecture (sommet `9994096`). Rejoué sur `4a45634` : `git -c "$(echo core.hooksPath=/dev/null)" commit -m x`, `git -c "core.$(echo hooksPath)=/x" commit -m x`, `git --config-env "$(echo core.hooksPath)=HOME" commit -m x`, `git -c "$(echo alias.ci=commit --no-verify)" ci -m x`, `git -c "$(echo remote.origin.push=HEAD:sujet/d)" push origin` et `git config "$(echo core.hooksPath)" /dev/null` passent (le premier crée un commit sans hook). La famille se ferme par un principe, Décision 0 : une expansion n'est admise que dans une valeur, jamais dans un nom. Le refus d'un positionnel à expansion (`A-38`) prend sa propre raison, `RAISON_ARGUMENT_ILLISIBLE`. Les formes collées à valeur à expansion (`--message="$m"`, `--author="$a"`, `-c user.name="$n"`) passent sur `main` et passent après.
 - 2026-11-18 — Quatrième reprise, décision de l'architecte `A-40`, après une quatrième relecture (sommet `048650d`) qui a créé deux commits sans hook. Rejoué sur `4a45634` : `m='x --no-verify'; git -C . commit -am $m`, `X='x -c core.hooksPath=/dev/null'; git -c user.name=$X commit -am y`, `git -C . commit -u --no-verify -m x` et `git -C . commit -S --no-verify -m x` passent. Une expansion n'est admise dans une valeur que citée (Décision 0) ; une option à valeur facultative ne prend jamais le mot suivant (Décision 1, tableau relevé sur `git <sous-commande> -h` de git 2.43, `-C` d'`am` à valeur séparée compris). La Vérification gagne une recherche adversariale sur un dépôt à hook témoin, jouée par la session elle-même.
+- 2026-11-18 — Réalisé par la PR #119 (plugin 7.21.1). Choix faits par défaut ou au-delà des Décisions, et décisions de l'architecte pendant les contre-relectures :
+  - Forme interne : `appelsGit`, `appelDeGit` et `appelsInternes` lisent les chaînes ; `lireGit`, `lireAppel`, `lireOptions`, `lireConfig`, `lireUpdateRef` et `affecteLesHooks` lisent les mots exacts. Le lecteur marque chaque mot de `prefixe`, `nonCitee` et `nu`. Une `Lecture` porte `appariable` et `exacte`, et le contrat de `lireCommande` nomme le `debut` des lectures.
+  - Abréviations de `--no-verify` à partir de 6 caractères, pas de 9 : `git am --no-v` est accepté par git (am n'a pas de `--verbose`).
+  - Sections et clés gardées en plus :
+    - la section `alias` au renommage ;
+    - `remote.*.mirror` parmi les clés de destination de push ;
+    - les sections `push`, `remote.*` et `branch.*`, renommées, mènent à un push illisible.
+  - Une commande que git lance par un shell, tapée dans la commande, se relit comme une commande de la session : `rebase -x` / `--exec` et leurs abréviations, `core.editor`, `core.pager`, `pager.*`, `sequence.editor`…
+  - Les programmes internes de git (`git-commit`, `git-push`…) se lisent comme `git <sous-commande>`, chaque mot qui en nomme un, et le push vers un sujet par `git-push` (ouvert sur main) est fermé.
+  - Un groupe d'options courtes qui porte un caractère ni lettre ni chiffre avant sa première lettre à valeur ne compte pas : git le refuse (sortie 129).
+  - Une substitution de processus n'est pas découpée par bash : elle est admise en valeur.
+  - Après `--`, les arguments de `commit`, `am`, `merge`, `rebase` et `pull` ne se lisent plus.
+  - Refus prudents nouveaux :
+    - `export $(cat .env)`, `env "$X" …`, `set -a` et `set -k` ;
+    - un texte cité qui porte `HUSKY=0` ;
+    - `git update-ref` avec une ref à expansion.
+  - `/security-review` : `"$@"` et `"${a[@]}"` comptent comme non cités, `set -k` est refusé, un `env` derrière tout lanceur est lu, et les options abrégées de `git config` prennent l'effet de l'option qu'elles abrègent.
+  - A-45 :
+    - `git -C $dir status` est refusé : la Décision 0 est corrigée, une expansion non citée dans la valeur de toute option globale est refusée devant toute sous-commande ;
+    - un motif ou des accolades non cités valent une expansion non citée ;
+    - un programme à expansion se lit comme git ;
+    - la chaîne d'`env -S` et les alias se relisent ;
+    - une variante qui retire `"$d"` ne fait plus juger la sous-commande illisible ;
+    - le banc d'Iroki est repris, divergences nommées ;
+    - le rebase ou `reset --hard` d'une branche partagée se lit derrière les options globales.
+  - A-47 : un tableau en position de programme se relit avec ses valeurs, et `hash -p` est refusé.
+  - A-49 : liste blanche. Seule une variable ou un tableau à affectation unique et simple, en expansion nue, se relit, en programme comme en argument ; le reste est refusé en programme.
+  - A-50 : un motif non cité dans le programme est refusé.
+  - Limites restantes, la CI pour frontière, écrites dans `CONTENU.md` : `>> .git/config`, `xargs`, la plomberie (`commit-tree`), une commande lancée par git depuis l'environnement, le lien symbolique vers git.
