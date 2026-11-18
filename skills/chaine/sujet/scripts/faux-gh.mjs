@@ -35,7 +35,7 @@
 //               sur la sortie standard (défaut : rien), `erreur` sur la sortie d'erreur (défaut « gh: Bad Gateway
 //               (HTTP 502) »), `code` le code de sortie (défaut 1). Une lecture (`GET`) dont le chemin correspond à la
 //               première panne restante qui le prend y répond, puis décompte `fois` (défaut 1) ; à zéro, la panne sort
-//               de l'état. Les écritures ne sont jamais en panne
+//               de l'état. `brute: true` écrit `erreur` sans fin de ligne. Les écritures ne sont jamais en panne
 // Le sommet d'une PR est lu dans le dépôt nu ($FAUX_GH_ORIGINE), comme GitHub. Chaque écriture
 // (méthode autre que GET) est appliquée à l'état et journalisée dans $FAUX_GH/journal.jsonl.
 // Fusion (`PUT pulls/<n>/merge`), comme GitHub : refusée si la tête n'est plus `sha` (409) ; l'arbre du commit de
@@ -210,7 +210,7 @@ function panne() {
   if (p.fois <= 0) etat.pannes.splice(i, 1);
   sauver();
   process.stdout.write(p.sortie ?? "");
-  process.stderr.write(`${p.erreur ?? "gh: Bad Gateway (HTTP 502)"}\n`);
+  process.stderr.write(`${p.erreur ?? "gh: Bad Gateway (HTTP 502)"}${p.brute ? "" : "\n"}`);
   process.exit(p.code ?? 1);
 }
 

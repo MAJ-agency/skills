@@ -402,11 +402,11 @@ corps |
       sortir 3 "fusion refusée faute d'approbation d'un propriétaire (CODEOWNERS) et commentaire d'attente non posé : sans lui, la PR repasserait à chaque tour ; lire la cause (droits du compte du capitaine), relancer"
     sortir 7 "$MOTIF_PROPRIETAIRE"
   fi
-  # La branche ou develop a bougé (409, « not up to date »), ou GitHub en panne (5xx, aucun code HTTP) : sortie 5, la
+  # La branche ou develop a bougé (409, « Head/Base branch was modified », « not up to date »), ou GitHub en panne (5xx, aucun code HTTP) : sortie 5, la
   # boucle se met en pause puis reprend. Tout autre refus (droit, règle du dépôt, méthode de fusion interdite) est
   # durable : sortie 3, la boucle s'arrête, au lieu de refaire mise à jour et CI à chaque tour, en pause sans fin.
   # `gh` écrit `gh: <message> (HTTP <code>)`, ou `gh: HTTP <code>` sans message dans le corps (cli/cli, pkg/cmd/api).
-  if grep -qE 'HTTP (409|5[0-9]{2})([^0-9]|$)|not up to date' <<<"$message" || ! grep -qE 'HTTP [0-9]{3}([^0-9]|$)' <<<"$message"; then
+  if grep -qiE 'HTTP (409|5[0-9]{2})([^0-9]|$)|branch was modified|not up to date' <<<"$message" || ! grep -qE 'HTTP [0-9]{3}([^0-9]|$)' <<<"$message"; then
     sortir 5 "fusion refusée (develop ou la PR a bougé, ou GitHub en panne), relancer"
   fi
   git switch -q --detach origin/develop

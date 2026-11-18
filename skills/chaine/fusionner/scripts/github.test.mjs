@@ -238,6 +238,9 @@ test("lire_github refuse une réponse vide, non JSON, porteuse de message ou à 
   // Une sortie d'erreur en CRLF reste un 404.
   d.github({ pannes: [{ route: "protection/required_status_checks$", erreur: "gh: Branch not protected (HTTP 404)\r" }] });
   assert.equal(fonction(d, `lire_github "$1" --absent '[]'`, "repos/{owner}/{repo}/branches/develop/protection/required_status_checks").stdout, "[]\n");
+  // Une dernière ligne sans fin de ligne reste un 404.
+  d.github({ pannes: [{ route: "protection/required_status_checks$", erreur: "gh: Branch not protected (HTTP 404)", brute: true }] });
+  assert.equal(fonction(d, `lire_github "$1" --absent '[]'`, "repos/{owner}/{repo}/branches/develop/protection/required_status_checks").stdout, "[]\n");
   // Un 404 sans message dans le corps : `gh: HTTP 404`.
   d.github({ pannes: [{ route: "protection/required_status_checks$", erreur: "gh: HTTP 404" }] });
   assert.equal(fonction(d, `lire_github "$1" --absent '[]'`, "repos/{owner}/{repo}/branches/develop/protection/required_status_checks").stdout, "[]\n");

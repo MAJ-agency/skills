@@ -1989,22 +1989,28 @@ test("un push refusé sans trace de husky : échec fermé, passer.sh en 3 « pus
 // Un refus de fusion durable (droit, règle du dépôt, méthode interdite) n'est pas « la branche a bougé » : sortie 3, la
 // boucle s'arrête au lieu de refaire mise à jour et CI à chaque tour, en pause sans fin. 409 ou panne : sortie 5.
 test("passer.sh : une fusion refusée durablement par GitHub sort en 3 et la boucle s'arrête ; branche bougée ou panne : 5", () => {
-  for (const [message, attendu] of [
-    ["gh: Merge commits are not allowed on this repository. (HTTP 405)", 3],
-    ["gh: Resource not accessible by integration (HTTP 403)", 3],
-    ["gh: Repository rule violations found (HTTP 422)", 3],
-    ["gh: HTTP 403", 3],
-    ["gh: HTTP 502", 5],
-    ["gh: Head branch was modified. Review and try the merge again. (HTTP 409)", 5],
-    ["gh: Head branch is not up to date with the base branch (HTTP 405)", 5],
-    ["gh: Bad Gateway (HTTP 502)", 5],
-    ["error connecting to api.github.com", 5],
+  const DURABLE = /fusion refusée par GitHub, ni pour la revue ni pour une branche qui a bougé/;
+  const BOUGEE = /fusion refusée \(develop ou la PR a bougé, ou GitHub en panne\), relancer/;
+  for (const [message, attendu, motif] of [
+    ["gh: Merge commits are not allowed on this repository. (HTTP 405)", 3, DURABLE],
+    ["gh: Resource not accessible by integration (HTTP 403)", 3, DURABLE],
+    ["gh: Repository rule violations found (HTTP 422)", 3, DURABLE],
+    ["gh: HTTP 403", 3, DURABLE],
+    ["gh: HTTP 4030", 5, BOUGEE], // pas un code HTTP : lu comme une panne
+    ["gh: Head branch was modified. Review and try the merge again. (HTTP 409)", 5, BOUGEE],
+    ["gh: Base branch was modified. Review and try the merge again. (HTTP 405)", 5, BOUGEE],
+    ["gh: Head branch is not up to date with the base branch (HTTP 405)", 5, BOUGEE],
+    ["gh: Bad Gateway (HTTP 502)", 5, BOUGEE],
+    ["gh: Bad Gateway (HTTP 502)\r", 5, BOUGEE],
+    ["gh: Resource not accessible by integration (HTTP 403)\r", 3, DURABLE],
+    ["gh: HTTP 502", 5, BOUGEE],
+    ["error connecting to api.github.com", 5, BOUGEE],
   ]) {
     const d = prSimple();
     d.github({ pulls: [pr(33, "feat/simple", { refusFusion: message })] });
     const r = d.lancer(script("passer.sh"), "33");
-    assert.equal(r.status, attendu, `${message} : ${r.stdout}${r.stderr}`);
-    if (attendu === 3) assert.match(r.stdout, /fusion refusée par GitHub, ni pour la revue ni pour une branche qui a bougé/);
+    assert.equal(r.status, attendu, `${JSON.stringify(message)} : ${r.stdout}${r.stderr}`);
+    assert.match(r.stdout, motif, JSON.stringify(message));
     assert.equal(d.git("status", "--porcelain"), "");
   }
   const d = prSimple();
