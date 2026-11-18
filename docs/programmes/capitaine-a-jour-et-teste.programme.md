@@ -4,19 +4,20 @@ Le capitaine de fusion ne fait plus entrer une PR dont la combinaison « PR + de
 
 ## Fiche
 
-Phase: spec — spec du chantier 1 écrite, à valider par le produit
+Phase: suivi — chantier 1 validé le 2026-11-18, tickets à écrire ; chantier 2 (remontées d'Iroki) en relevé à la source
 Responsable: Guillaume Jauffret
 Architecte: session_012xRpgbiXqFh3uGnL8yRbGh (ouverte par le produit le 2026-11-18 à 16 h 40 UTC, mode « Auto », dépôts `anchorpost` et `skills`)
 Objectif: un capitaine qui vérifie l'ascendance avant chaque fusion (vers `develop` comme vers un sujet), un ticket par défaut voisin, une version du plugin publiée avec sa note de version.
-Dépôts: `MAJ-agency/skills` (le plugin `maj-skills` : skills `fusionner`, `sujet`, `tickets`, `chantier`, `architecte`, `socle-chaine-de-production`) ; les projets (`fedora` d'abord) le reçoivent par la mise à jour du plugin.
-Source: la demande du produit du 2026-11-18, dans le message d'ouverture de cette session, recopiée dans `## Source` ci-dessous — entrée brute, ni spec ni décision.
-Capitaines: `skills` : à lancer quand la première PR est prête.
+Dépôts: `MAJ-agency/iroki-monorepo` (lecture seule : source des correctifs à remonter), `MAJ-agency/skills` (le plugin `maj-skills` : skills `fusionner`, `sujet`, `tickets`, `chantier`, `architecte`, `socle-chaine-de-production`) ; les projets (`fedora` d'abord) le reçoivent par la mise à jour du plugin.
+Source: la demande du produit du 2026-11-18, recopiée dans `## Source` ci-dessous ; les remontées d'Iroki du même jour, [`../issues/capitaine-a-jour-et-teste/sources/2026-11-18-remontees-iroki.md`](../issues/capitaine-a-jour-et-teste/sources/2026-11-18-remontees-iroki.md) — entrées brutes, ni spec ni décision.
+Capitaines: `skills` : aucun ; le produit fusionne les PR de `skills` (« Guillaume fusionne », remontées d'Iroki du 2026-11-18).
 
 ## Chantiers
 
 | n°  | Chantier | Dépôt | Spec | Carte | Conducteur | État |
 | --- | -------- | ----- | ---- | ----- | ---------- | ---- |
-| 1   | Règle d'ascendance du capitaine, puis défauts voisins | `skills` | [`capitaine-a-jour-et-teste.spec.md`](../issues/capitaine-a-jour-et-teste/capitaine-a-jour-et-teste.spec.md) | à écrire par le conducteur | — | spec écrite le 2026-11-18, à valider |
+| 1   | Règle d'ascendance du capitaine, puis défauts voisins | `skills` | [`capitaine-a-jour-et-teste.spec.md`](../issues/capitaine-a-jour-et-teste/capitaine-a-jour-et-teste.spec.md) | sans carte de chantier (A-17) | l'architecte (A-17) | validée le 2026-11-18 (P-4) |
+| 2   | Remontées d'Iroki (capitaine, sujets, contrôles, gardes d'agent, mobile en CI) | `skills` | à écrire | — | l'architecte (A-17) | relevé à la source |
 
 ## Decisions-so-far
 
@@ -25,10 +26,13 @@ Décisions du produit :
 - P-1 — (2026-11-18, demande d'ouverture) Avant toute fusion, le capitaine vérifie l'ascendance du sommet de la cible dans le sommet testé ; règle en trois cas (à jour ; retard de documentation seule ; tout autre retard), conflit hors index renvoyé ; chemins « de code » lus dans `.claude/chaine.json`. Un ticket par défaut, le correctif d'ascendance en premier, une version publiée, une note de version qui dit ce qu'un projet doit faire.
 - P-2 — (2026-11-18) Plusieurs capitaines sur un même dépôt restent possibles (« parfois Jordan et moi on a chacun notre capitaine »), et leur nombre n'a pas d'importance (« c'est pas gênant d'avoir 1 ou 3 capitaines lancé en même temps sur le même repo en fait on s'en fiche nan ? ») : pas de filtre de file, un verrou visible par PR contre le travail en double.
 - P-3 — (2026-11-18) Une PR dont le retard ne porte que de la documentation et des index générés entre sans nouvelle CI (cas 2a), après contrôle de la liste des fichiers et de l'arbre fusionné.
+- P-4 — (2026-11-18) Spec du chantier 1 validée : « labcer » (Lancer).
 
 Décisions de l'architecte :
 
 - A-1 à A-16 — écrites, avec leur raison, dans la spec du chantier 1 (`## Décisions de conception`) : règle d'ascendance en une fonction partagée ; clé `cheminsDeCode` (sans elle, tout retard compte comme du code) ; contrôle juste avant l'appel de fusion ; écart d'arbre = arrêt ; `sujet.sh fusionner` met à jour et attend la CI ; faux GitHub « strict » d'abord ; conflit lu avant les checks ; clé `fusionsSansEffet` ; file restreinte par label, base ou titre ; verrou par commentaire marqué ; contrôle de vie à 60 minutes ; `send_message` au premier geste ; contexte lu par `get_session` ; `ticket-libre.mjs` lit les fichiers des PR ouvertes ; ligne 8 ; 7.16.0 et `NOTES-DE-VERSION.md`.
+- A-17 — Pas de conducteur ni de sujet : chaque ticket est une session hors chantier, écrite par un sous-agent, relue par un agent neuf, lancée par l'architecte, une à la fois sur les fichiers chauds du capitaine (`github.sh`, `passer.sh`, `sujet.sh`, `veille.sh`, `boucle.sh`). Raison : `skills` n'a ni `develop` ni les scripts de sujet ; c'est la pratique des programmes précédents sur ce dépôt.
+- A-18 — Ordre : le lot 1 du chantier 1 (règle d'ascendance) d'abord, puis le groupe A d'Iroki (capitaine), puis le reste ; les lots sans fichier chaud partent en parallèle. Raison : le lot 1 corrige des fusions non testées ; le groupe A rend le capitaine disponible ; les deux touchent les mêmes scripts.
 
 ## Fog
 
@@ -64,3 +68,4 @@ Demande du produit, 2026-11-18, recopiée telle quelle (relevée sur `MAJ-agency
 - 2026-11-18 — 17 h 05 UTC. Relevé à la source rendu (sous-agent, `4a45634`) : défauts confirmés sauf le 2 (le hook `sans-migration` est celui du projet) et le 6 (déjà mesuré par `get_session`) ; le catalogue des gates n'a de générateur dans aucun skill. Spec du chantier 1 écrite, A-1 à A-16 ; présentée au produit pour validation.
 - 2026-11-18 — 17 h 20 UTC. Le produit demande pourquoi la spec parle du nombre de capitaines et de l'exception de documentation ; réponses : P-2 (plusieurs capitaines, un par personne) et P-3 (pas de nouvelle CI pour un retard de documentation). Filtre `--auteur` ajouté à A-9.
 - 2026-11-18 — 17 h 30 UTC. P-2 amendé par le produit : le nombre de capitaines n'a pas d'importance ; A-9 réécrit (plus de filtres de file, verrou seul).
+- 2026-11-18 — 17 h 40 UTC. Spec du chantier 1 validée (P-4). Remontées du conducteur d'Iroki reçues par le produit (21 points, groupes A à E), recopiées dans `sources/` ; `iroki-monorepo` attaché en lecture et cloné. Chantier 2 ouvert ; A-17, A-18.
