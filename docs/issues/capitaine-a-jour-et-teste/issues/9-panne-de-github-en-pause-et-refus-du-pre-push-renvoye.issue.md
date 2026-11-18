@@ -26,7 +26,8 @@ Spec : [`../remontees-iroki.spec.md`](../remontees-iroki.spec.md), ticket 9 (poi
 1. Toute lecture GitHub qui décide d'un état ou d'une fusion passe par **une seule fonction** de `github.sh`, qui refuse une réponse vide, non JSON, ou porteuse d'un `message` d'erreur. Ce refus devient la **sortie 5** du script qui lisait.
 2. La boucle traite 5 comme une **pause** : elle attend, puis reprend au tour suivant. Une sortie 5 ne l'arrête plus jamais, et une file illisible n'est plus une file vide.
 3. Un push refusé se classe par la **trace de husky** : `husky - pre-push script failed (code N)` donne 3, et la PR est renvoyée à sa session avec la sortie du hook ; tout autre refus donne 4 dans `pousser`, un échec fermé, jamais un renvoi. La règle vaut pour chaque appel de `pousser`, dans `passer.sh` comme dans `sujet.sh`.
-4. Le plugin prend une version, et `NOTES-DE-VERSION.md` dit ce qu'un projet repose.
+4. Toute sortie de git ou de hook que les scripts du capitaine relaient (sortie d'erreur, journal, commentaire de PR) passe par `masquer_url` : une URL à identifiants n'y paraît jamais (`A-42`, `SPEC_ALL_SOC-4.52` d'Iroki).
+5. Le plugin prend une version, et `NOTES-DE-VERSION.md` dit ce qu'un projet repose.
 
 ## Où
 
@@ -39,12 +40,14 @@ Spec : [`../remontees-iroki.spec.md`](../remontees-iroki.spec.md), ticket 9 (poi
 | idem | 202-207 | `checks_commit` : les deux lectures (`check-runs`, `status`) par `lire_github` ; refus → 5, jamais « aucun check ». |
 | idem | 212-218 | `checks_exiges` : les règles (`rules/branches/develop`) par `lire_github`, qui doit rendre un tableau ; puis, s'il est vide, l'ancienne protection par `lire_github --absent '[]'` (un 404 « Branch not protected » est une réponse, pas une panne). Toute autre erreur → 5. La comparaison de la l. 216 ne lit plus qu'un nombre validé : le défaut `github.sh:216` du lot 7 tombe ici. |
 | idem | `attendre_ci` (ajoutée par le ticket 1 après la l. 218) | Un code de retour de plus, **5** : GitHub illisible pendant l'attente. Jamais lu comme « encore en attente » ni comme « aucun check ». |
+| idem | 95-102 (`jouer_ou_dire`), et une fonction voisine | `masquer_url` (filtre : `://<tout sauf / @ et blanc>@` devient `://***@`) et `git_masque <args>` (joue `git`, sa sortie d'erreur passée par `masquer_url`, même code de sortie) ; `jouer_ou_dire` masque la sortie qu'il relaie et celle qu'il rend (Décision 10). |
 | idem | 103-115 (`pousser`) | Classement du refus (Décision 3) : 0 poussé ; 5 la branche a bougé ou le distant ne répond pas (inchangé) ; 3 la trace de husky est dans la sortie de ce push ; 4 tout autre refus. En-tête de la fonction réécrit. |
 | `fus/passer.sh` | 28-53 (en-tête) | Sorties : 3 « push refusé par le hook pre-push » (renvoyé par la boucle) et 3 « push refusé par le distant » (arrêt) ; 5 « GitHub illisible » (pause) ; la l. 47-48 (commentaire d'attente impossible) passe de 5 à 3. |
 | idem | 75 (`pr=$(pr_json …)`), 170-171 (parente d'une pile) | Une lecture refusée sort en 5, explicitement (`|| sortir 5 …`), jamais par `set -e`. |
 | idem | 274-284 (push), et chaque push de la boucle de mise à jour du ticket 1 | `pousser` 3 → `sortir 3 "push refusé par le hook pre-push : sortie ci-dessus ; corriger, jamais en sautant le hook"` ; 4 → `sortir 3 "push refusé par le distant (règle de dépôt, droit, panne ou coupure ; aucune trace du hook pre-push) : sortie ci-dessus"` ; 5 inchangé. |
 | idem | 289-336 (attentes, déplacées par le ticket 1 dans `attendre_ci`) | `attendre_ci` 5 → `sortir 5 "GitHub illisible pendant l'attente de la CI : pause, puis reprise"`. |
 | idem | 374-375 | Commentaire d'attente impossible : `sortir 3` (message inchangé) au lieu de 5 : la boucle l'arrête par sa branche `3)` finale, sans relance en rond. |
+| idem | 102-103 (fetch), 206 (`sortie_merge`), 367 (refus de fusion de GitHub) | Sorties de git et de GitHub relayées : `git_masque fetch …`, `printf '%s\n' "$sortie_merge" \| masquer_url >&2`, idem pour `$message` (Décision 10). |
 | `fus/file.sh` | 69-71, 75, 110, 173 | Les lectures de la file (`pulls`), des checks exigés, des checks d'un sommet et de la base d'une parente passent par `lire_github`. Un refus : rien sur la sortie standard (les lignes se rassemblent, puis s'écrivent d'un coup), le motif sur la sortie d'erreur, sortie 5. `gh api user` (l. 63) et les lectures qui ont déjà leur repli écrit (`renvois_de`, `attend_humain`, `revue_proprietaires_exigee`, `proprietaires_de`) ne changent pas. |
 | `fus/boucle.sh` | 1-35 (en-tête) | 5 = pause, jamais un arrêt ; le refus du pre-push renvoyé ; le refus du distant arrêté. |
 | idem | 347 | La file se lit avec son code : 5 → `PAUSE` puis tour suivant ; un autre code non nul → `ARRÊT : file.sh en échec (sortie <k>)`, sortie 6 ; jamais `FILE VIDE` sur un échec. |
@@ -53,6 +56,7 @@ Spec : [`../remontees-iroki.spec.md`](../remontees-iroki.spec.md), ticket 9 (poi
 | `suj/sujet.sh` | 83-96 (en-tête) | Sortie 11 élargie : « push refusé par le distant sans trace du hook pre-push (tout geste qui pousse), ou outil du capitaine en échec : aucun renvoi » ; sortie 5 de `fusionner` : aussi « GitHub illisible ». |
 | idem | 341-347 (`ecrire_gel`), 468-473 (`ouvrir`), 529-533 (`mettre_a_jour_sous_pr`), 685-690 (`avancer_sujet`), 829-834 (`rafraichir`), 863-868 (`livrer`), 896-901 (`relancer`) | Chaque `pousser` : 3 garde son message de hook et sa sortie 3 ; 4 → sortie 11 (« push refusé par le distant, sans trace du hook : côté capitaine ou du distant, rien à corriger côté PR ») ; `rafraichir` annule d'abord la fusion, comme `abandonner`. |
 | idem | `fusionner` (l. 703, 744-745 sur `main` ; l'attente du ticket 1) | `pr_json`, `checks_exiges`, `checks_commit` ou `attendre_ci` refusés → sortie 5, explicitement. |
+| idem | 108 (fetch `--unshallow`), 501-507, 797-801, 885-887 (sorties de `git merge` relayées), et chaque `git fetch` qui n'est pas déjà muet | `git_masque` et `masquer_url`, comme dans `passer.sh` (Décision 10). |
 | `suj/faux-gh.mjs` | 1-21, 64-91 | `pannes` (Décision 5), documentée dans l'en-tête. |
 | `suj/faux-gh.test.mjs` | — | Un test pour `pannes`. |
 | Bancs | voir « Ordre de travail » | `fus/github.test.mjs`, `fus/fusionner.test.mjs`, `fus/sujet-fusionner.test.mjs`, `fus/boucle-outils.test.mjs`. |
@@ -77,7 +81,7 @@ Règles à lire : `fusionner/SKILL.md` § « Boucle » (l. 40-66), l'en-tête de
 
 ## Décisions
 
-Tenues (spec et programme) : `A-21` (une seule lecture, qui refuse le vide, le non-JSON et le `message`, sortie 5, la boucle en pause et jamais arrêtée par 5), `A-22` (trace de husky → 3 et renvoi avec la sortie du hook ; tout autre échec → 4, échec fermé ; chaque appel de `pousser`), `A-34`.
+Tenues (spec et programme) : `A-42` (`masquer_url` d'Iroki entre ici, réécrit pour le plugin ; `pousser` rend 4 sur un échec non classé), `A-21` (une seule lecture, qui refuse le vide, le non-JSON et le `message`, sortie 5, la boucle en pause et jamais arrêtée par 5), `A-22` (trace de husky → 3 et renvoi avec la sortie du hook ; tout autre échec → 4, échec fermé ; chaque appel de `pousser`), `A-34`.
 
 Précisions du ticket :
 
@@ -90,7 +94,7 @@ Précisions du ticket :
 3. **`pousser`** classe sur la sortie de **ce** push seulement (capturée, puis écrite sur la sortie d'erreur préfixée de la commande, comme `jouer_ou_dire`) : la trace est une ligne `^husky - pre-push script failed \(code [0-9]+\)$`, écrite par le `.husky/_/h` de husky 9 (`^9.1.7`, `socle-monorepo/references/racine/package.json:32`). Le contrôle « la branche a bougé » passe avant (inchangé, l. 110-112). Une trace présente donne 3, son absence 4, avec la ligne `push refusé par le distant (ou échec sans trace du hook pre-push) : sortie ci-dessus` sur la sortie d'erreur.
 4. **Le renvoi d'un refus du pre-push**, dans la branche `3)` de la boucle, quand la sortie de `passer.sh` porte `push refusé par le hook pre-push` :
    - la cause passée à `renvoyer.sh` est « le pre-push refuse le push de la mise à jour avec develop. Sortie du hook : `<extrait>` » ;
-   - l'extrait : les huit dernières lignes préfixées `[git push …]` qui précèdent ce message, préfixe retiré, accents graves retirés, jointes par ` ; `, coupées à 1 500 caractères, et toute URL à identifiants masquée (`://<quoi que ce soit sans / ni @>@` devient `://***@`) : le commentaire est public ;
+   - l'extrait : les huit dernières lignes préfixées `[git push …]` qui précèdent ce message, préfixe retiré, accents graves retirés, jointes par ` ; `, coupées à 1 500 caractères ; elles ont déjà passé `masquer_url` (Décision 10), et la boucle les y repasse avant de commenter : le commentaire est public ;
    - renvoi en échec : la PR est sautée (`sautees`), comme pour les autres renvois.
 
    Une sortie de `passer.sh` qui porte `push refusé par le distant` tombe dans la branche finale : `ARRÊT`.
@@ -98,7 +102,12 @@ Précisions du ticket :
 6. **La pause** : `BOUCLE_PAUSE` secondes (défaut 120, comme la sonde de la veille), par `sleep` (le faux des bancs le rend immédiat), puis `continue` : le tour suivant relit l'arrêt, l'échéance du ticket 8 et les scripts de develop. Aucune limite au nombre de pauses : c'est la veille, bornée, qui finit.
 7. **Le commentaire d'attente impossible** (`passer.sh:374-375`) sort en 3 au lieu de 5. Sans cela, la boucle, qui ne s'arrête plus sur 5, le repasserait à chaque tour ; la raison de l'arrêt (droits du compte du capitaine) demande un humain.
 8. **Les messages lus par les bancs et la boucle** (à garder tels quels) : `GitHub illisible`, `PAUSE`, `push refusé par le hook pre-push`, `push refusé par le distant`, `ÉCHEC DU CAPITAINE`, et ceux du ticket 1 (`checks exigés rouges`, `CI non déclenchée`, `FUSIONNÉE : <sha>, arbre = arbre testé`).
-9. **La fille tranche seule**, par défaut prudent, et le note sous `## Comments` : la forme interne de `lire_github` et de `pousser`, la façon de rassembler les lignes de `file.sh`, le découpage des bancs, et les autres lectures `gh api` directes de `sujet.sh` qui décident d'une écriture (chacune passe par `lire_github` si son repli actuel ouvre une garde ; elle les liste). Elle ne tranche **pas** : le code 5 pour toute lecture refusée, la pause sans arrêt, la trace de husky comme seule preuve d'un refus du hook, le renvoi avec l'extrait, l'arrêt sur un refus du distant, la sortie 3 du commentaire d'attente.
+10. **`masquer_url`** (`A-42`, réécrit d'Iroki `SPEC_ALL_SOC-4.52`, `scripts/chaine/github.sh:207-214` d'`origin/develop`, sans en copier la forme) :
+    - `masquer_url` lit son entrée standard et remplace toute URL à identifiants, `scheme://<utilisateur[:jeton]>@hôte…`, par `scheme://***@hôte…` (`sed -E 's#://[^/@[:space:]]*@#://***@#g'`) ;
+    - `jouer_ou_dire` masque la sortie qu'il relaie sur la sortie d'erreur ; `pousser` classe donc une sortie déjà masquée (la trace de husky n'a pas d'URL) ;
+    - `git_masque <args>` joue `git <args>`, passe sa sortie d'erreur par `masquer_url`, et rend le code de git : les `git fetch` et `git push` de `passer.sh` et `sujet.sh` dont la sortie d'erreur n'est pas déjà jetée (`2>/dev/null`) passent par lui ; les sorties de `git merge` capturées puis relayées (`passer.sh:206`, `sujet.sh:507`, `:801`, `:887`) et le refus de fusion de GitHub (`passer.sh:367`) passent par `masquer_url` ;
+    - rien n'est masqué de ce que git lit : seule la sortie relayée change.
+11. **La fille tranche seule**, par défaut prudent, et le note sous `## Comments` : la forme interne de `lire_github` et de `pousser`, la façon de rassembler les lignes de `file.sh`, le découpage des bancs, et les autres lectures `gh api` directes de `sujet.sh` qui décident d'une écriture (chacune passe par `lire_github` si son repli actuel ouvre une garde ; elle les liste). Elle ne tranche **pas** : le code 5 pour toute lecture refusée, la pause sans arrêt, la trace de husky comme seule preuve d'un refus du hook, le renvoi avec l'extrait, l'arrêt sur un refus du distant, la sortie 3 du commentaire d'attente.
 
 ## Ordre de travail (TDD)
 
@@ -112,13 +121,15 @@ Une branche de travail partie d'`origin/main`, tickets 1 et 8 fusionnés. Chaque
 
 Dans `fus/github.test.mjs`, sur le modèle de `regenerer_index` (l. 1-37) :
 
-1. « lire_github refuse une réponse vide, non JSON ou porteuse de message : sortie 5 ; un JSON valide passe ; --absent rend son défaut sur un 404 seulement ».
+1. « lire_github refuse une réponse vide, non JSON, porteuse de message ou à code non nul : sortie 5 ; un JSON valide passe ; --absent rend son défaut sur un 404 seulement » — le code non nul est celui d'un 502 : `pannes` à `code: 1`, `erreur: "gh: Bad Gateway (HTTP 502)"`, sortie standard vide puis HTML.
+1 bis. « pousser rend 4 sur un push refusé sans trace de husky, 3 avec la trace, 5 quand la branche a bougé » — `pousser` joué par `source github.sh` sur le dépôt jouet : un hook `pre-receive` du dépôt nu qui refuse sans trace (4), un pre-push de banc qui écrit la trace (3), un push après un déplacement de la branche distante (5).
+1 ter. « masquer_url : le jeton d'un hook distant est masqué dans ce que relaient jouer_ou_dire, pousser et git_masque, et le code de git est gardé » — sur le modèle de `scripts/chaine/github.test.mjs:217-234` d'Iroki : un `pre-receive` du dépôt nu écrit `refus : https://x:jeton-secret@exemple.test/regles` ; la sortie d'erreur porte `https://***@exemple.test/regles` et jamais `jeton-secret` ; un fetch réussi par `git_masque` ne dit rien et rend 0. **Rouge sur `main`** : le jeton paraît, et `git_masque` n'existe pas.
 2. « checks_exiges : une panne n'est jamais « aucun check exigé » (sortie 5) ; des règles vides et une protection absente rendent [] ; une réponse qui n'est pas un tableau sort en 5 ».
 3. « checks_commit : un corps vide ou une erreur sort en 5, jamais une liste vide ».
 
 Dans `fus/fusionner.test.mjs`, titres à garder tels quels :
 
-4. « passer.sh : une panne de GitHub pendant l'attente de la CI sort en 5, jamais « CI non déclenchée » » — `pannes` sur `commits/<sha>/check-runs`, corps vide. **Rouge sur `main`** : sortie 3, `CI non déclenchée`.
+4. « passer.sh : une panne de GitHub pendant l'attente de la CI sort en 5, jamais « CI non déclenchée » » — `pannes` sur `commits/<sha>/check-runs`, corps vide, `fois` 31 au moins (`attendre_checks` lit 30 fois avant de conclure « CI non déclenchée », `passer.sh:298-310`) ; après le ticket 1, autant que l'attente d'`attendre_ci` en lit. **Rouge sur `main`** : sortie 3, `CI non déclenchée`.
 5. « file.sh : GitHub illisible, sortie 5 et rien sur la sortie standard » — `pannes` sur `pulls`. **Rouge sur `main`** : sortie 1.
 6. « un pre-push refusé avec la trace de husky : passer.sh sort en 3, la boucle renvoie la PR avec la sortie du hook et passe à la suivante » — le commentaire porte la ligne du hook et pas la trace d'une URL à identifiants (le hook en écrit une). **Rouge sur `main`** : `ARRÊT sur #<n> (sortie 3)`.
 7. « un push refusé sans trace de husky : échec fermé, passer.sh en 3 « push refusé par le distant », la boucle s'arrête sans renvoyer ; sujet.sh en 11 » — pour `sujet.sh`, chacun des gestes de `GESTES` (l. 1191-1207) et `fusionner`. **Rouge sur `main`** : message et codes d'aujourd'hui.
@@ -127,7 +138,7 @@ Dans `fus/fusionner.test.mjs`, titres à garder tels quels :
 Dans `fus/boucle-outils.test.mjs`, sur des scripts de remplacement publiés sur le develop du jouet (modèle l. 18-55) :
 
 9. « une sortie 5 de passer.sh met la boucle en pause, puis elle reprend : jamais d'ARRÊT » — `passer.sh` sort en 5 trois fois, puis 0 : la trace porte quatre passages, la sortie `PAUSE`, aucun `ARRÊT`. **Rouge sur `main`** : `ARRÊT sur #<n> (sortie 5)` au second.
-10. « file.sh en 5 : PAUSE, puis la PR passe au tour suivant ; jamais FILE VIDE sur un échec » — `file.sh` sort en 5 une fois, puis annonce une PR. **Rouge sur `main`** : `FILE VIDE` au premier tour.
+10. « file.sh en 5 : PAUSE, puis la PR passe au tour suivant ; jamais FILE VIDE sur un échec » — le `file.sh` de remplacement compte ses appels : `traiter_rouges` (`--rouges`, l. 225) et `traiter_sujets` (l. 274) l'appellent avant la lecture de la l. 347 ; la panne porte sur l'appel **sans argument qui suit celui de `traiter_sujets`** dans le tour (le troisième du tour, ou le premier repéré par une trace des arguments), puis il annonce une PR. **Rouge sur `main`** : `FILE VIDE` au premier tour.
 
 Dans `fus/sujet-fusionner.test.mjs` :
 
@@ -165,7 +176,7 @@ Tests existants qui changent de fixture, chacun gardé et listé dans la PR :
 
   ### Ce qui change
 
-  Une panne de GitHub (réponse vide, non JSON, ou corps d'erreur) n'est plus lue comme un état : le script qui lisait sort en 5, et la boucle du capitaine se met en pause (`PAUSE`) puis reprend, sans jamais s'arrêter sur 5 ; une file illisible n'est plus une file vide. Un push refusé par le pre-push (trace de husky 9 `husky - pre-push script failed`) renvoie la PR à sa session avec la sortie du hook ; un refus sans cette trace (règle du dépôt, droit, coupure) arrête la boucle (`passer.sh`) ou sort en 11 (`sujet.sh`), sans renvoi. Un commentaire d'attente d'un propriétaire impossible à poser arrête la boucle en sortie 3.
+  Une panne de GitHub (réponse vide, non JSON, ou corps d'erreur) n'est plus lue comme un état : le script qui lisait sort en 5, et la boucle du capitaine se met en pause (`PAUSE`) puis reprend, sans jamais s'arrêter sur 5 ; une file illisible n'est plus une file vide. Un push refusé par le pre-push (trace de husky 9 `husky - pre-push script failed`) renvoie la PR à sa session avec la sortie du hook ; un refus sans cette trace (règle du dépôt, droit, coupure) arrête la boucle (`passer.sh`) ou sort en 11 (`sujet.sh`), sans renvoi. Un commentaire d'attente d'un propriétaire impossible à poser arrête la boucle en sortie 3. Toute sortie de git ou de hook relayée par les scripts du capitaine (journal, commentaire de PR) masque les URL à identifiants (`masquer_url`, `git_masque`).
 
   ### Ce qu'un projet fait pour en profiter
 
@@ -174,7 +185,7 @@ Tests existants qui changent de fixture, chacun gardé et listé dans la PR :
   3. Vérifier que `.husky/pre-push` est lancé par husky 9 (`.husky/_/h`, posé par `pnpm install`) : sans la trace de husky, un refus du hook se lit comme un refus du distant et arrête le capitaine.
   4. Relancer le capitaine une fois cette PR entrée dans develop : `bash scripts/chaine/boucle.sh --arreter`, nouvelle copie dans `<scratchpad>/outils`, puis `veille.sh` relancée.
 
-  **Iroki**, hors du plugin : ses scripts portent leur propre correctif de A4 (#633 : `pousser` en 3 ou 4 par `DERNIERE_SORTIE`, `scripts/chaine/github.sh:127-155` ; le renvoi de `boucle.sh:540-545` ; `passer.sh:254-262` ; le banc `boucle-pre-push-refuse.test.mjs`), que la repose remplace. Son `jouer_ou_dire` masque les URL à identifiants dans toute sortie relayée (`masquer_url`, `SPEC_ALL_SOC-4.52`, `github.sh:207`) : le plugin ne le fait que pour l'extrait du renvoi ; reposer `github.sh` retire ce masquage ailleurs, à remonter au plugin avant la repose.
+  **Iroki**, hors du plugin : ses scripts portent leur propre correctif de A4 (#633 : `pousser` en 3 ou 4 par `DERNIERE_SORTIE`, `scripts/chaine/github.sh:127-155` ; le renvoi de `boucle.sh:540-545` ; `passer.sh:254-262` ; le banc `boucle-pre-push-refuse.test.mjs`), que la repose remplace. Son masquage des URL à identifiants (`masquer_url`, `git_masque`, `SPEC_ALL_SOC-4.52`, `github.sh:207-214`) est désormais celui du plugin : la repose le garde ; rejouer son banc « SPEC_ALL_SOC-4.52 » contre le `github.sh` du plugin avant de retirer le sien.
   ```
 
 ## Surfaces
@@ -182,7 +193,7 @@ Tests existants qui changent de fixture, chacun gardé et listé dans la PR :
 | Surface | Preuve |
 | --- | --- |
 | Faux GitHub en panne | `skills/chaine/sujet/scripts/faux-gh.test.mjs`, test de `pannes` |
-| `lire_github` : vide, non JSON, `message`, 404 avec défaut | `skills/chaine/fusionner/scripts/github.test.mjs`, bancs 1 à 3 |
+| `lire_github` : vide, non JSON, `message`, 502, 404 avec défaut ; `pousser` en 3, 4, 5 ; `masquer_url` et `git_masque` | `skills/chaine/fusionner/scripts/github.test.mjs`, bancs 1, 1 bis, 1 ter, 2 et 3 |
 | `passer.sh` : panne pendant l'attente → 5 | `skills/chaine/fusionner/scripts/fusionner.test.mjs` « passer.sh : une panne de GitHub pendant l'attente de la CI sort en 5, jamais « CI non déclenchée » » |
 | `file.sh` illisible → 5, rien sur la sortie standard | idem, « file.sh : GitHub illisible, sortie 5 et rien sur la sortie standard » |
 | Refus du hook → renvoi avec l'extrait | idem, « un pre-push refusé avec la trace de husky : passer.sh sort en 3, la boucle renvoie la PR avec la sortie du hook et passe à la suivante » |
@@ -199,7 +210,7 @@ Tests existants qui changent de fixture, chacun gardé et listé dans la PR :
    - `node --test skills/chaine/fusionner/scripts/fusionner.test.mjs skills/chaine/fusionner/scripts/sujet-fusionner.test.mjs skills/chaine/fusionner/scripts/boucle-outils.test.mjs` ;
    - `bash -n` sur chaque script touché.
 2. `pnpm test` complet : le nombre de `main` au départ, plus les tests ajoutés, zéro échec. Aucun test retiré, sauté ni assoupli ; chaque fixture réécrite nommée dans la PR.
-3. **Mutations**, chacune jouée sur une copie jetable, vue rouge, puis annulée, listées dans la PR : `lire_github` accepte une sortie vide (bancs 1, 4) ; `lire_github` ne regarde plus `message` (banc 1) ; `pousser` rend 3 sans trace (banc 7) ; la boucle remet `*)` sur 5 (banc 9) ; `file.sh` écrit ses lignes avant la fin (banc 5) ; `attendre_ci` rend « en attente » sur une panne (banc 4).
+3. **Mutations**, chacune jouée sur une copie jetable, vue rouge, puis annulée, listées dans la PR : `jouer_ou_dire` ne passe plus par `masquer_url` (banc 1 ter) ; `git_masque` jette le code de git (banc 1 ter) ; `lire_github` accepte une sortie vide (bancs 1, 4) ; `lire_github` ne regarde plus `message` (banc 1) ; `pousser` rend 3 sans trace (banc 7) ; la boucle remet `*)` sur 5 (banc 9) ; `file.sh` écrit ses lignes avant la fin (banc 5) ; `attendre_ci` rend « en attente » sur une panne (banc 4).
 4. `graphify update .`
 5. **Revue de ticket** (`/maj-skills:revue-de-ticket`, trois sous-agents), section `## Revue de ticket` dans le corps de la PR. Puis `/security-review` : les scripts du capitaine sont des chemins sensibles du gabarit (`scripts/chaine/**`), et ce ticket écrit sur une PR une sortie de hook ; son rendu va dans une section `## Sécurité`.
 6. **Livraison sur ce dépôt.** Il n'a ni `develop` ni `.claude/chaine.json`, et aucun capitaine : le produit fusionne (fiche du programme, `Capitaines:`).
@@ -212,7 +223,6 @@ Tests existants qui changent de fixture, chacun gardé et listé dans la PR :
 
 - **Lot 7 du chantier 1** : ce ticket absorbe `github.sh:216` (`checks_exiges` ne compare plus qu'un nombre validé, Décision 1 et tableau). Le ticket 7 ([`7-livrer-sans-label-et-fait-sur-sans-sigpipe.issue.md`](7-livrer-sans-label-et-fait-sur-sans-sigpipe.issue.md), écrit en parallèle) garde `sujet.sh livrer` et `fait_sur`, et renvoie `github.sh:216` ici (il cite une « Décision 3 » : c'est la Décision 1 et la ligne `checks_exiges` du tableau, avec le banc 2).
 - Les lots 2 à 4 (conflit lu avant les checks, `fusionsSansEffet`, verrou du passage) : après ce ticket, un à la fois sur les mêmes fichiers.
-- Le masquage des URL à identifiants dans toute sortie relayée (`masquer_url` d'Iroki) : seul l'extrait du renvoi est masqué ici.
 - La veille (`veille.sh`) : elle saute déjà une sonde dont la lecture échoue (`etat_file`, l. 82-85) ; la boucle ne lui rend plus jamais 5.
 - La repose dans les projets : chacun la fait d'après la note de version.
 
@@ -224,3 +234,4 @@ Tests existants qui changent de fixture, chacun gardé et listé dans la PR :
   - **Un refus du hook n'est pas toujours la faute de la PR** : un environnement du capitaine cassé (la base absente d'Iroki) fait aussi échouer le pre-push, avec la trace de husky. Le ticket 8 (`preparerCapitaine`) réduit ce cas ; le renvoi reste celui que `A-22` décide.
   - **Fichiers chauds partagés avec le ticket 13** (`fusionner.test.mjs`, `sujet-fusionner.test.mjs`) : 13 est bloqué par le ticket 1 seulement ; l'architecte ordonne 9 et 13.
   - **`file.sh` et la boucle** : la spec ne nommait que la l. 347. `traiter_rouges` et `traiter_sujets` lisent aussi `file.sh` dans un tube ; une file illisible les laisse sans rien faire, ce qui est sûr, et le tour principal fait la pause.
+- 2026-11-18 — Repris après une relecture neuve (« pas prêt », un bloquant) : `A-42` fait entrer `masquer_url` ici (Décision 10 : `jouer_ou_dire`, donc la sortie que classe `pousser`, et les sorties de git relayées par `passer.sh` et `sujet.sh`, par `git_masque`), avec le banc 1 ter sur le modèle de `github.test.mjs:217` d'Iroki et sa mutation ; la ligne du Hors périmètre est retirée et la note d'Iroki corrigée. Banc 10 : la panne porte sur l'appel de `file.sh` qui suit celui de `traiter_sujets` ; banc 4 : `fois` ≥ 31 ; banc 1 : le 502 nommé ; banc 1 bis : `pousser` testé directement (3, 4, 5).
