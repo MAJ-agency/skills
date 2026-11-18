@@ -63,7 +63,7 @@ function fetcher() {
     let develop = [];
     try {
       git('ls-remote', '--exit-code', '--heads', 'origin', 'develop');
-      develop = ['develop'];
+      develop = ['+refs/heads/develop:refs/remotes/origin/develop'];
     } catch (e) {
       if (e.status !== 2) throw e; // 2 : le distant répond, develop n'y est pas
       // Sa copie locale d'un fetch ancien n'est plus lue : le distant ne l'a plus.

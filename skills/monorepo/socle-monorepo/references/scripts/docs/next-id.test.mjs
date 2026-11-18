@@ -269,7 +269,23 @@ test('un sujet supprimé du distant ne garde pas son numéro pris', () => {
   d.autreSession('autre/w', specSur(30));
   d.git('fetch', '-q', 'origin');
   assert.equal(prochain(d, 'SPEC', 'ALL', 'SOC'), '10');
-  d.git('push', '-q', 'origin', '--delete', 'sujet/z');
+  // supprimée dans le dépôt nu : le clone de travail garde son origin/sujet/z, seul `--prune` l'efface
+  execFileSync('git', ['update-ref', '-d', 'refs/heads/sujet/z'], { cwd: d.origine, env: ENV });
   assert.equal(prochain(d, 'SPEC', 'ALL', 'SOC'), '3', 'sujet/z élagué : son numéro est libre');
   assert.ok(d.git('rev-parse', '--verify', 'refs/remotes/origin/autre/w').trim(), "autre/w n'est pas élagué");
+});
+
+test('un clone --single-branch : develop est fetché avec sa destination, origin/develop est à jour', () => {
+  const d = depotJouet({ fichiers: SOC2 });
+  d.git('push', '-q', 'origin', 'HEAD:refs/heads/main');
+  const mince = join(d.racine, 'mince');
+  // sa configuration ne suit que main : sans destination, develop n'ira que dans FETCH_HEAD
+  execFileSync('git', ['clone', '-q', '--single-branch', '-b', 'main', d.origine, mince], { env: ENV });
+  d.autreSession('develop', specSur(3));
+  const r = spawnSync(process.execPath, [SCRIPT, 'SPEC', 'ALL', 'SOC'], {
+    cwd: mince,
+    env: { ...ENV, PATH: d.bin, PROJET_RACINE: mince, FAUX_GH: join(d.racine, 'gh.json') },
+    encoding: 'utf8',
+  });
+  assert.equal(r.stdout, '4\n', r.stderr);
 });
