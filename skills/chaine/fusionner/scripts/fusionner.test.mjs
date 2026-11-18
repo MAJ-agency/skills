@@ -1862,14 +1862,17 @@ function prSimple() {
 }
 
 test("passer.sh : une panne de GitHub pendant l'attente de la CI sort en 5, jamais « CI non déclenchée »", () => {
-  const d = prSimple();
-  d.github({ pannes: [{ route: "/check-runs", fois: 40, sortie: "" }] });
-  const r = d.lancer(script("passer.sh"), "33");
-  assert.equal(r.status, 5, r.stdout + r.stderr);
-  assert.match(r.stdout, /GitHub illisible pendant l'attente de la CI : pause, puis reprise/);
-  assert.match(r.stderr, /GitHub illisible \(.*check-runs/);
-  assert.doesNotMatch(r.stdout, /CI non déclenchée/);
-  assert.deepEqual(d.journal(), [], "ni fusion ni label");
+  // Un 502 au corps vide, puis un 200 au corps vide : ni l'un ni l'autre n'est « aucun check ».
+  for (const panne of [{ sortie: "" }, { sortie: "", code: 0, erreur: "" }]) {
+    const d = prSimple();
+    d.github({ pannes: [{ route: "/check-runs", fois: 40, ...panne }] });
+    const r = d.lancer(script("passer.sh"), "33");
+    assert.equal(r.status, 5, `${JSON.stringify(panne)} : ${r.stdout}${r.stderr}`);
+    assert.match(r.stdout, /GitHub illisible pendant l'attente de la CI : pause, puis reprise/);
+    assert.match(r.stderr, /GitHub illisible \(.*check-runs/);
+    assert.doesNotMatch(r.stdout, /CI non déclenchée/);
+    assert.deepEqual(d.journal(), [], "ni fusion ni label");
+  }
 });
 
 test("passer.sh : la PR illisible sort en 5 avant toute écriture", () => {
@@ -1896,6 +1899,14 @@ test("file.sh : GitHub illisible, sortie 5 et rien sur la sortie standard", () =
       assert.match(r.stderr, /GitHub illisible/);
     }
   }
+  // Une PR lisible d'abord, puis une PR dont les checks sont en panne : sa ligne, déjà calculée, n'est pas écrite.
+  const d = prSimple();
+  const autre = d.branche("feat/autre", "origin/develop", { "docs/autre.md": "a\n" });
+  d.git("switch", "-q", "--detach", "origin/develop");
+  d.github({ pulls: [pr(33, "feat/simple"), pr(34, "feat/autre")], pannes: [{ route: `commits/${autre}/check-runs`, fois: 9, sortie: "" }] });
+  const r = d.lancer(script("file.sh"));
+  assert.equal(r.status, 5, r.stdout + r.stderr);
+  assert.equal(r.stdout, "", "la ligne de #33 n'est pas écrite avant la panne de #34");
 });
 
 // Le hook écrit une URL à identifiants : le commentaire, public, ne la porte jamais.
