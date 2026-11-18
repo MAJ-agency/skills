@@ -1,6 +1,6 @@
 # Un seul environnement de banc : sans `GIT_*` ni `FORCE_COLOR`, avec `NO_COLOR=1`, importé par chaque banc au lieu de onze filtres recopiés
 
-Status: ready-for-agent
+Status: Fait — PR #121
 Type: défaut
 Modèle: sonnet — une fonction pure de dix lignes, puis onze remplacements mécaniques dans des bancs, chacun avec son chemin d'import posé ou plugin ; le seul piège est l'import d'un banc posé sans la chaîne, tranché ci-dessous.
 Blocked by: 1, 6 (le ticket 6 partage `tickets/references/scripts/docs/depot-jouet.mjs` et `TABLE-RACINE.md` ; `skills/chaine/sujet/scripts/depot-jouet.mjs` est un fichier chaud du ticket 1 : partir de main après sa fusion)
