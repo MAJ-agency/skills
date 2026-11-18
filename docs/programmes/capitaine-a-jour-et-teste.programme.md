@@ -68,7 +68,7 @@ Décisions de l'architecte :
 | ticket | 15 | session_012xRpga1QnWvr6a2oT2ptow | sonnet | 159 784 | 2,00 |
 | ticket | 19 | session_012xRpgbEBkwAzwZSDmB3KtH | sonnet | — | archivée |
 | ticket | 10 | session_012xRpgbJm6pUqbrixWZ1a5w | sonnet | 161 993 | 2,11 |
-| ticket | 12 | session_012xRpgZRkibUK1CA2XDumRw | sonnet | — | — |
+| ticket | 12 | session_012xRpgZRkibUK1CA2XDumRw | sonnet | 219 891 | 3,43 |
 | ticket | 17 | session_012xRpgbyvYBRavfo3t7tSRy | opus | — | — |
 | ticket | 6 | session_012xRpgYLyDnCAE8DMZWu3s5 | sonnet | 207 235 | 3,18 |
 | ticket | 13 | session_012xRpgYZHPVc6BJ87qfJom5 | sonnet | — | — |
@@ -139,3 +139,4 @@ Demande du produit, 2026-11-18, recopiée telle quelle (relevée sur `MAJ-agency
 - 2026-11-18 — 20 h 35 UTC. **PR 116 fusionnée** (squash `22b2d49`, 7.18.1), arbre identique, vérifié ; ticket 10 fait, session archivée (2,11 $). Signal à la PR 117 (7.18.2).
 - 2026-11-18 — 20 h 57 UTC. **PR 117 fusionnée** (squash `6fc652d`, 7.18.2), arbre identique, vérifié ; ticket 5 fait, session archivée (2,98 $). Signal à la PR 114 (7.18.3).
 - 2026-11-18 — 21 h 40 UTC. PR 114 renvoyée par le capitaine pour une alerte CodeQL haute (`js/incomplete-sanitization` sur un `replace("*", …)`), corrigée (`f6b0543`), CodeQL vert. **PR 118 fusionnée** (squash `cf1c521`, 7.19.0), arbre identique, vérifié ; ticket 6 fait, session archivée (3,18 $). Signal à la PR 114 (7.19.1). Ticket 13 lancé (débloqué par 1 et 6) : session_012xRpgYZHPVc6BJ87qfJom5.
+- 2026-11-18 — 22 h 00 UTC. **PR 114 fusionnée** (squash `e45a504`, 7.19.1), arbre identique, vérifié ; ticket 12 fait, session archivée (3,43 $). Signal à la PR 120 (7.20.0). PR 121 (ticket 13) livrée, contre-relecture conforme (790 tests, aussi sous pseudo-terminal), quatre retouches demandées ; elle passera après la 120.
