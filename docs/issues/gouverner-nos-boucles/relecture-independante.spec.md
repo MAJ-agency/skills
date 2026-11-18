@@ -162,7 +162,7 @@ Deux défauts de la chaîne relevés le 2026-11-18, qui ont leurs tickets à par
 
 ## À dire au produit
 
-1. **Une PR de l'architecte** : l'arbitre d'un bloquant contesté, et qui décide au plafond, c'est le produit (`A-88`, `A-89`). De même, sans programme, pour une PR du conducteur. À confirmer.
+1. **Une PR de l'architecte** : l'arbitre d'un bloquant contesté, et qui décide au plafond, c'est le produit (`A-88`, `A-89`) : décidé (`P-61`). De même, sans programme, pour une PR du conducteur.
 2. **La livraison d'un sujet n'a pas de relecture propre** : décidé (`P-60`), sans vérification ajoutée au capitaine.
 3. **Chaque repose du plugin touche des fichiers sensibles** : elle lui demandera son accord, une fois, sur la liste de ces fichiers (`P-47`). Pour information.
 4. **Le passage à la 8 n'arrête aucun projet** : un chantier ouvert finit sous l'ancien régime, et passe au nouveau quand le capitaine y reporte `develop` (`A-99`). Pour information.
