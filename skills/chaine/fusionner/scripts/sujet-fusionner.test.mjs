@@ -115,7 +115,7 @@ test("fusionner : FORCE_COLOR=1 dans l'environnement ne fait refuser aucun titre
   const { d } = sousPrEnConflit("aucun");
   const r = spawnSync("bash", [SUJET, "fusionner", "80"], {
     cwd: d.travail,
-    env: { ...d.env, FORCE_COLOR: "1" },
+    env: { ...d.env, FORCE_COLOR: "1", NO_COLOR: undefined },
     encoding: "utf8",
   });
   assert.equal(r.status, 0, r.stdout + r.stderr);
