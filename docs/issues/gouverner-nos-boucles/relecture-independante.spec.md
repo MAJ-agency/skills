@@ -40,7 +40,7 @@ Un mot, un sens. Ces termes entrent dans `CONTEXT.md` avec le lot 3.
 
 ## Décisions de conception (architecte)
 
-Numérotées dans la suite de la carte ; elles remplacent celles des deux premières versions. Les décisions `A-104` à `A-116`, du 2026-11-18, sont à la fin de cette section ; une décision qu'elles touchent garde son numéro et dit « amendée en sixième version ».
+Numérotées dans la suite de la carte ; elles remplacent celles des deux premières versions. Les décisions `A-104` à `A-117`, du 2026-11-18, sont à la fin de cette section ; une décision qu'elles touchent garde son numéro et dit « amendée en sixième version ».
 
 ### Fichiers sensibles
 
@@ -228,6 +228,13 @@ Prises par l'architecte sur le rapport de vérification (`relecture-independante
   - **Limite écrite, confirmée sûre** : un refus écarté par arbitrage reste compté au plafond. C'est une alerte de trop, jamais une de moins.
 
   Chaque attaque est devenue un cas du banc, avec sa mutation.
+- `A-117` — **Ce que la relecture adversariale du ticket 60 a cassé** (amende `A-82` et `A-113`). Quatre faux « non exigée » reproduits, tous fermés, chaque attaque devenue un cas du banc.
+  - Le calcul se place à la racine du dépôt et n'obéit à aucun réglage du dépôt, de l'utilisateur ou du dossier courant, comme « même contenu propre » (`A-114`) ; les références se lisent en entier (`refs/remotes/origin/…`).
+  - Les lignes `Règles:` et `Relecture:` se reconnaissent par le motif que le gate `tickets` emploie déjà (gras, puce, casse) : une ligne que le gate lit ne peut pas échapper au calcul.
+  - Le lecteur d'en-tête YAML retire le commentaire de chaque ligne et refuse une clé en double ; un index à deux entrées de même clé est illisible ; les chemins de `code` sont normalisés.
+  - L'entrée du calcul est contrôlée : une liste de fichiers qui n'a pas la forme attendue, ou qui nomme un chemin absent du départ comme de la tête, est illisible ; l'appelant la produit sans détection de renommage.
+  - **Le ticket se lit aussi sur la tête de la PR** : un ticket que la PR crée elle-même est vu.
+  - **Un ticket sans ligne `Règles:` hérite de celle de sa spec** ; un ticket qui porte `Règles: —` dit lui-même qu'il n'en réalise aucune, et sa spec n'est alors pas lue. Raison : dans le doute, deux relectures, et le conducteur garde un moyen écrit de dire « aucune ».
 
 ## Les lots
 
