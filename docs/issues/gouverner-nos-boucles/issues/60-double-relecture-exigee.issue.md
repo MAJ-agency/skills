@@ -10,15 +10,15 @@ Fichiers chauds: `.claude-plugin/plugin.json`, `NOTES-DE-VERSION.md`. Deux fichi
 
 ## Le besoin
 
-Ce ticket réalise le lot 3c de la spec `docs/issues/gouverner-nos-boucles/relecture-independante.spec.md` (sixième version) : la décision `A-82`, pour la décision du produit `P-56` (« Règle de criticité haute : deux relectures indépendantes, et un message d'information au produit, sans que la PR l'attende ») et pour `A-90`.
+Ce ticket réalise le lot 3c de la spec `docs/issues/gouverner-nos-boucles/relecture-independante.spec.md` (sixième version, `A-110` et `A-111` compris) : la décision `A-82`, pour la décision du produit `P-56` (« Règle de criticité haute : deux relectures indépendantes, et un message d'information au produit, sans que la PR l'attende ») et pour `A-90`.
 
 **La décision.** `A-82`, mot pour mot :
 
 > **« Double relecture exigée », un seul calcul**, de même. Une PR l'exige quand son ticket porte la ligne `Relecture: double`, ou quand son diff touche le fichier d'une règle de criticité haute ou un fichier que le champ `code:` de cette règle nomme. Le niveau se lit sur la base **et** sur la tête de la PR (une PR qui monte elle-même une règle à haute est vue) : dans l'index Anchorpost du dépôt quand il en a un, qui porte le niveau effectif, criticité reçue d'une feature comprise — le ticket nomme le champ après lecture du schéma pivot, aucun lecteur n'existe aujourd'hui dans le plugin ; sinon dans l'en-tête des fichiers de règle (`criticality`, valeur `high`, sous ses deux formes), qui ne voit pas une criticité reçue d'une feature. `code:` est facultatif : une PR sans ticket qui touche le code d'une règle haute sans champ `code:` n'est pas vue, c'est écrit dans les limites. Le calcul tourne depuis la copie de travail de la boucle du capitaine, qui n'a que `scripts/chaine` et `scripts/docs/identifiants.mjs`, repris d'`origin/develop` à chaque tour, et aucune dépendance (amendée en sixième version) : il lit l'en-tête YAML des règles sans bibliothèque, son lecteur de règles vit sous `scripts/chaine`, et c'est la version de `develop` qui juge une sous-PR. La ligne `Relecture: double` se lit sur la base de la PR, par l'identifiant du ticket de sa branche. Le Relecteur et le capitaine refont tous deux ce calcul au moment de décider : le nombre écrit dans une distribution n'est qu'une information.
 
-Et `A-90` : « Une règle montée à haute après un tour validé à un seul verdict : le tour redevient en cours, et la règle 5 lui ajoute une session. » `A-106` donne la règle des lectures que ce calcul reprend : « Une lecture en échec ne vaut jamais « même » » ; ici, jamais « non exigée ».
+Et `A-90` : « Une règle montée à haute après un tour validé à un seul verdict : le tour redevient en cours, et la règle 5 lui ajoute une session. » (`A-110` dit ce que le Relecteur fait alors de l'étiquette.) `A-106` donne la règle des lectures que ce calcul reprend : « Une lecture en échec ne vaut jamais « même » » ; ici, jamais « non exigée ».
 
-**Le fait, sur `origin/main` à `99a6214`** (plugin 7.18.0) :
+**Le fait, sur `origin/main` à `22b2d49`** (plugin 7.18.1) :
 
 - Aucun script du plugin ne lit la criticité d'une règle. `contexte-ticket.mjs` (revue de ticket) et `contexte-regle.mjs` (skill `criticite`) rendent un fichier de règle tel quel, sans lire son en-tête ; `mutation-regles.mjs` (socle-tests) lit dans l'index le champ `code` des règles prouvées, au schéma "2", mais il se pose sous `scripts/verify/`, que la copie de travail de la boucle ne porte pas.
 - Personne n'appelle encore ce calcul : ses deux appelants sont le Relecteur (lot 4) et le capitaine (lot 5a), qui lui passeront, eux, le diff qu'ils jugent.
@@ -27,7 +27,7 @@ Et `A-90` : « Une règle montée à haute après un tour validé à un seul ver
 
 ## Où
 
-Base : `origin/main` à `99a6214` (plugin **7.18.0**). `main` a avancé depuis le `1c4acb1` de la spec (PR 113, socle mobile) sans toucher un fichier de la chaîne. La session relit `main` avant de partir.
+Base : `origin/main` à `22b2d49` (plugin **7.18.1**). `main` a avancé depuis le `1c4acb1` de la spec (PR 113, 111 et 116 : socle mobile, documents de l'autre programme, `demarrer-local`), la dernière fois pendant l'écriture de ce ticket, sans toucher un fichier de la chaîne : les repères de ligne ci-dessous sont les mêmes à `99a6214` et à `22b2d49`. La session relit `main` avant de partir.
 
 | Fichier | Ce qui change |
 | --- | --- |
@@ -40,7 +40,7 @@ Aucun autre fichier : la vérification le montre par une commande.
 
 ### Lus, non modifiés
 
-- `skills/chaine/fusionner/scripts/boucle.sh:54-60` et `:194-221` (`rafraichir_outils`) : à chaque tour, `git archive origin/develop scripts/chaine` (`:203`) puis `scripts/docs/identifiants.mjs` (`:207`), extraits dans `<git-common-dir>/boucle-outils`. Rien d'autre n'y est : ni `scripts/verify/`, ni `scripts/docs/` hors la grammaire, ni `node_modules`, ni `docs/`, ni `anchorpost/`.
+- `skills/chaine/fusionner/scripts/boucle.sh:54-60` et `:194-220` (`rafraichir_outils`) : à chaque tour, `git archive origin/develop scripts/chaine` (`:203`) puis `scripts/docs/identifiants.mjs` (`:207`), extraits dans `<git-common-dir>/boucle-outils`. Rien d'autre n'y est : ni `scripts/verify/`, ni `scripts/docs/` hors la grammaire, ni `node_modules`, ni `docs/`, ni `anchorpost/`.
 - `skills/chaine/fusionner/scripts/identifiant.mjs:27-29` : la grammaire des identifiants cherchée en trois endroits (`../docs/`, à côté, puis dans le plugin). Le calcul fait de même.
 - `skills/chaine/fusionner/scripts/revue-exigee.mjs:70` (`cheminLu`, les guillemets de `git diff --name-only`), `:165` (`lireGit`, la lecture d'une réf).
 - `skills/chaine/revue-de-ticket/scripts/contexte-ticket.mjs:52-53`, `:73`, `:104`, `:134` (ci-dessous).
@@ -131,10 +131,10 @@ Tenues de la spec : `A-82`, `A-90`, `A-106` (les lectures), `A-108` (les règles
 12. **La ligne `Relecture:`** se lit dans l'en-tête du ticket, sur la base, à la forme que le ticket 55 fixe (`Relecture: double`, un commentaire ` # …` pouvant suivre). Proposé, pour ce que la spec ne dit pas : une ligne d'une autre valeur est « illisible » (le gate la refusera une fois le ticket 55 entré, elle ne se devine pas) ; un ticket que la base ne porte pas donne une remarque et aucune cause (la PR ne s'ajoute ni ne se retire la ligne : seule la base est lue) ; un ticket archivé n'est pas lu ; deux fichiers pour un même ticket : « illisible ».
 13. **« Illisible » n'est jamais « non exigée », et une cause établie suffit** (proposé pour la seconde moitié). Chaque lecture (les lignes du diff, le ticket, la base, la tête) est jouée à part ; une réf introuvable, un index qui n'est pas du JSON ou d'un autre schéma, un en-tête que le lecteur ne comprend pas, une ligne du diff mal citée sont des lectures en échec. Si une cause est établie malgré elles, la réponse est « exigée », et les échecs sont dits ; sinon, un seul échec donne « illisible ».
 14. **Le lecteur d'en-tête ne lit que trois clés de premier niveau** (`criticality`, `code`, `validation`) et refuse ce qu'il ne comprend pas : pas d'en-tête, une clé écrite deux fois, une ligne de première colonne qui n'est ni une clé ni un commentaire, un niveau hors `low`, `medium`, `high`, un `code` qui n'est pas une liste. Il lit la forme nue, le bloc, le mappage et la liste en ligne, même pliés sur plusieurs lignes par un formateur ; une clé imbriquée (`extensions.<projet>.criticality`) ou commentée n'est pas la clé. Un statut qu'il ne comprend pas laisse la règle en vigueur. **Lecture en temps linéaire** : l'en-tête d'une PR est une entrée que son auteur écrit.
-15. **Aucun import d'un autre script de la chaîne.** `cheminDuDiff` est la copie de `cheminLu` de `revue-exigee.mjs`, que deux tickets de l'autre programme récrivent autour (16 et 18) ; le banc garde la parité, comme `revue-exigee.test.mjs` le fait pour `regexDuMotif`.
-16. **Fichiers neufs seuls** (`A-109`). Ne sont pas touchés, et le ticket le dit pour qui les écrira : la ligne du calcul dans `fusionner/references/CONTENU.md` et dans `scripts/points-d-entree.test.mjs` (la spec : « au plus tard avec 3d »), **et deux textes que la spec ne nomme pas** : la liste de l'étape 0 de `fusionner/SKILL.md:14`, qui nomme un à un les `.mjs` à poser, et l'arbre du `README.md:169`. Aucun test de `main` n'exige qu'un script de `fusionner/scripts/` soit listé quelque part (suite jouée avec les deux fichiers : verte) ; `commits-a-relire.mjs`, autre ligne de commande du même dossier, n'est pas non plus dans `points-d-entree.test.mjs`. En attendant, **le banc prouve lui-même le point d'entrée** (lien symbolique, `--preserve-symlinks-main`, dossier à espace et à accent), et **la note de version dit le geste** : l'étape 0 fait suivre tous les `*.test.mjs`, donc le banc partirait sans son module.
-17. **Banc court** : 22 tests, moins de 2 secondes ; le calcul se joue sur des arbres en mémoire, quatre tests seulement montent un dépôt git. Il est rejoué, posé à plat, par `scripts/poses.test.mjs` (plafond de 600 s pour l'ensemble, `:75`) : il ne lit jamais l'arbre du plugin, et prend la grammaire là où le module l'a trouvée (`GRAMMAIRE`).
-18. **Version : mineure** (7.18.0 → **7.19.0** sur `99a6214`) : un script de plus dans un skill. **Règle de repli** : les tickets 58 et 59 prennent une version en même temps. Si `main` bouge entre l'ouverture et la fusion, la session fusionne `origin/main` dans sa branche par un commit de fusion (jamais de rebase ni de push forcé), reprend la version de `main` plus un au deuxième nombre, troisième à zéro, remonte sa note en tête avec ce numéro, puis vérifie (`git diff origin/main -- .claude-plugin/plugin.json` ne montre que `"version"`).
+15. **Aucun import d'un autre script de la chaîne.** `cheminDuDiff` est la copie de `cheminLu` de `revue-exigee.mjs`, un fichier que deux tickets de l'autre programme récrivent (16 et 18) ; le banc garde la parité, comme `revue-exigee.test.mjs` le fait pour `regexDuMotif`.
+16. **Fichiers neufs seuls** (`A-109`). Ne sont pas touchés, et le ticket le dit pour qui les écrira : la ligne du calcul dans `fusionner/references/CONTENU.md` et dans `scripts/points-d-entree.test.mjs` (la spec : « au plus tard avec 3d ») ; la liste de l'étape 0 de `fusionner/SKILL.md:14`, qui nomme un à un les `.mjs` qu'un projet copie (`A-111` : « le premier lot qui appelle ces modules depuis un script posé (lot 4 ou 5a) y écrit leur ligne » ; la phrase vise les deux modules du lot 3a, la même règle est prise ici pour ce fichier) ; et l'arbre du `README.md:169`, que la spec ne nomme pas. Aucun test de `main` n'exige qu'un script de `fusionner/scripts/` soit listé quelque part (suite jouée avec les deux fichiers : verte) ; `commits-a-relire.mjs`, autre ligne de commande du même dossier, n'est pas non plus dans `points-d-entree.test.mjs`. En attendant, **le banc prouve lui-même le point d'entrée** (lien symbolique, `--preserve-symlinks-main`, dossier à espace et à accent), et **la note de version dit le geste** : l'étape 0 fait suivre tous les `*.test.mjs`, donc à la repose d'un projet le banc partirait sans son module, et tomberait à l'import.
+17. **Banc court** : 22 tests, environ 1,5 s sur le poste d'essai ; le calcul se joue sur des arbres en mémoire, quatre tests seulement montent un dépôt git. Il est rejoué, posé à plat, par `scripts/poses.test.mjs` (plafond de 600 s pour l'ensemble, `:75`) : il ne lit jamais l'arbre du plugin, et prend la grammaire là où le module l'a trouvée (`GRAMMAIRE`).
+18. **Version : mineure** (7.18.1 → **7.19.0** sur `22b2d49`) : un script de plus dans un skill. **Règle de repli** : les tickets 58 et 59 prennent une version en même temps. Si `main` bouge entre l'ouverture et la fusion, la session fusionne `origin/main` dans sa branche par un commit de fusion (jamais de rebase ni de push forcé), reprend la version de `main` plus un au deuxième nombre, troisième à zéro, remonte sa note en tête avec ce numéro, puis vérifie (`git diff origin/main -- .claude-plugin/plugin.json` ne montre que `"version"`).
 19. **`Label: contre-revue`** : le fichier se pose sous `scripts/chaine/`, chemin sensible du gabarit de `.claude/chaine.json`, et il gardera l'entrée des PR. PR vers `main`, hors brouillon, **sans `à-fusionner`** : l'architecte la contre-relit, puis la fait entrer. Titre `feat(chaine): double relecture exigée, un calcul et son lecteur de règles et d'index (plugin <version>)`. Commits sous les hooks, jamais `--no-verify`.
 
 ### Remèdes écartés
@@ -154,7 +154,7 @@ Tenues de la spec : `A-82`, `A-90`, `A-106` (les lectures), `A-108` (les règles
 
 ### § 0 — Partir de `main`
 
-`git fetch origin main`, une branche depuis `origin/main`. Relever la version de `.claude-plugin/plugin.json` : si ce n'est plus 7.18.0, la version et la note du § 3 suivent la règle de repli (décision 18).
+`git fetch origin main`, une branche depuis `origin/main`. Relever la version de `.claude-plugin/plugin.json` : si ce n'est plus 7.18.1, la version et la note du § 3 suivent la règle de repli (décision 18).
 
 ### § 1 — Le banc d'abord, vu rouge
 
@@ -1091,9 +1091,9 @@ if (estPointEntree()) {
 
 ### § 3 — La version et la note
 
-`.claude-plugin/plugin.json:3` : `"version": "7.18.0"` devient `"version": "7.19.0"` (règle de repli : décision 18).
+`.claude-plugin/plugin.json:3` : `"version": "7.18.1"` devient `"version": "7.19.0"` (règle de repli : décision 18).
 
-`NOTES-DE-VERSION.md` : cette note, entre le paragraphe d'introduction et `## 7.18.0 — 2026-11-18`, avec la date du jour de la livraison :
+`NOTES-DE-VERSION.md` : cette note, entre le paragraphe d'introduction et `## 7.18.1 — 2026-11-18`, avec la date du jour de la livraison :
 
 ````markdown
 ## 7.19.0 — 2026-11-18
@@ -1145,18 +1145,18 @@ Le skill `fusionner` porte un calcul nouveau, `scripts/double-relecture.mjs` : i
 
 ### Pour la session
 
-1. `pnpm install --frozen-lockfile && pnpm test` : la suite entière, verte. Sur `99a6214`, **BASE tests** sans ces fichiers, **787** avec (BASE + 22).
-2. `node --test skills/chaine/fusionner/scripts/double-relecture.test.mjs` : 22 sur 22, en moins de 2 secondes.
+1. `pnpm install --frozen-lockfile && pnpm test` : la suite entière, verte. Sur `22b2d49`, **772 tests** sans ces fichiers, **794** avec (772 + 22).
+2. `node --test skills/chaine/fusionner/scripts/double-relecture.test.mjs` : 22 sur 22, en deux secondes environ.
 3. `git diff --stat origin/main` : quatre fichiers, deux neufs et deux modifiés ; `git diff origin/main -- .claude-plugin/plugin.json` ne montre que `"version"`.
 4. Le banc posé à plat : il est rejoué par `scripts/poses.test.mjs` dans la suite du point 1 ; pour le voir seul, copier les deux fichiers et `revue-exigee.mjs` dans `<dossier>/scripts/chaine/`, `skills/monorepo/socle-monorepo/references/scripts/docs/identifiants.mjs` dans `<dossier>/scripts/docs/`, puis `node --test <dossier>/scripts/chaine/double-relecture.test.mjs`.
 5. Les mutations : le script ci-dessous sur ce dossier posé à plat, `python3 <fichier> <dossier>/scripts/chaine` : **55 rouges sur 55**. Il remet le fichier après chaque mutation.
 
 ### Ce qui a été joué en écrivant ce ticket
 
-Le 2026-11-18, dans un clone jetable de `origin/main` à `99a6214`, sous un `TMPDIR` privé. Les trois blocs de ce ticket (banc, module, mutations) ont été relus par un script qui les tire du texte et les rejoue : ce qui suit est le résultat de ce texte, pas d'un brouillon.
+Le 2026-11-18, dans deux clones jetables de `origin/main`, à `99a6214` puis à `22b2d49` quand `main` a bougé, sous un `TMPDIR` privé. Les trois blocs de ce ticket (banc, module, mutations) ont été relus par un script qui les tire du texte et les rejoue : ce qui suit est le résultat de ce texte, pas d'un brouillon.
 
 - Le banc : 22 sur 22, environ 1,5 s, dans l'arbre du plugin et posé à plat ; rien ne reste dans le dossier temporaire ; vert aussi sous un `GIT_DIR` hérité d'un hook.
-- La suite entière : 787 sur 787 avec les deux fichiers, la version 7.19.0 et sa note (BASE sur `99a6214` seul, joué à part) ; le banc y est rejoué posé à plat par `scripts/poses.test.mjs`, dont le test dure 4 minutes sur les 10 de son plafond. Une première version des deux fichiers avait passé la même suite sans la version ni la note : aucun test de `main` n'exige qu'un script de `fusionner/scripts/` soit listé.
+- La suite entière : 794 sur 794 à `22b2d49` avec les deux fichiers, la version 7.19.0 et sa note ; 772 sur 772 à `22b2d49` sans rien ; 787 sur 787 à `99a6214` avec eux. Le banc y est rejoué posé à plat par `scripts/poses.test.mjs`, dont le test a duré de 3 à 5 minutes sur les 10 de son plafond. Une première version des deux fichiers avait passé la même suite sans la version ni la note (785 sur 785 à `99a6214`) : aucun test de `main` n'exige qu'un script de `fusionner/scripts/` soit listé.
 - Les mutations : 55 rouges sur 55, après un passage témoin vert.
 - **Sur des données réelles, en lecture seule.** Le lecteur d'en-tête a lu les 1 923 fichiers de règle de trois dépôts réels sans un refus, et y trouve, règle par règle, le même ensemble de chemins `code` et le même statut que leur index (1 923 entrées comparées ; l'index trie `code`, l'en-tête garde son ordre). La ligne de commande, lancée depuis la copie posée à plat, a jugé dans le dépôt d'Anchorpost le diff de `origin/develop` (index au pivot 2, criticité nue) à `origin/sujet/preuve-suffisante-cas` (pivot 3, criticité en bloc), 293 fichiers : « exigée », par le fichier de la règle haute lu sur la base et par quatre fichiers de son `code` lus sur la tête, en 0,2 s ; sans le fichier de la règle, « exigée » encore par le `code` ; avec `README.md` seul, « non exigée ». Sur le plus gros des trois dépôts (un index de plus d'un millier de règles), une réponse prend moins de 0,2 s.
 
@@ -1164,7 +1164,7 @@ Non joué : aucun appelant n'existe, donc ni le Relecteur ni le capitaine n'ont 
 
 ### Le script des mutations
 
-Chaque mutation est jouée seule : le module est changé, le banc est lancé, le module est remis. Elle est « rouge » si le banc échoue. Le script s'arrête si le banc est rouge sans mutation, ou si un « ancien » ne se trouve pas exactement une fois.
+Chaque mutation est jouée seule : le module est changé, le banc est lancé, le module est remis. Elle est « rouge » si le banc échoue. Le script refuse de partir si le banc est rouge sans mutation ; il nomme toute mutation restée verte, et tout « ancien » qui ne se trouve pas exactement une fois dans le module ; il sort en 0 si toutes sont rouges.
 
 ````python
 # Mutations du calcul « double relecture exigée ». Usage : python3 mutations.py <dossier scripts/chaine posé à plat>
@@ -1266,7 +1266,7 @@ Ce que la spec laisse ambigu, contradictoire ou sans réponse pour ce lot, et le
 10. **Que faire d'« illisible ».** La spec donne à la fonction de décision un « nombre de verdicts exigés » (`A-85`) : « exigée » vaut 2, « non exigée » vaut 1, et « illisible » n'a pas de nombre. Elle ne dit ni ce que fait le Relecteur (attendre, distribuer à deux, le dire à quelqu'un), ni si le capitaine renvoie ou s'arrête. Aux lots 4 et 5a. De même pour la moitié « une cause établie suffit » de la décision 13.
 11. **Un diff vide** rend « non exigée » (hors `Relecture: double`). Le calcul ne sait pas distinguer une PR sans fichier d'un `git diff` en échec chez l'appelant ; et la PR de mise à jour d'un sujet sans conflit a bien une liste vide à juger. Non tranché : refuser une liste vide ici bloquerait ce dernier cas.
 12. **Une criticité fixée sur une feature** (`featureCriticality` du manifeste) monte des règles sans toucher ni leur fichier ni leur code : la PR qui l'écrit n'a qu'une relecture, à la lettre d'`A-82`. La spec ne le dit pas.
-13. **La pose.** La spec renvoie « au plus tard à 3d » la ligne du `CONTENU.md` et de `points-d-entree.test.mjs` ; elle ne nomme ni la liste de l'étape 0 de `fusionner/SKILL.md`, qui décide de ce qu'un projet copie, ni l'arbre du `README.md`. Tant que cette liste ne nomme pas le fichier, un projet qui repose reçoit le banc sans le module ; seule la note de version le dit (décision 16). La sortie la plus étroite, si l'architecte la préfère à l'attente : un mot ajouté à `fusionner/SKILL.md:14`, fichier chaud de l'autre programme.
+13. **La pose.** La spec renvoie « au plus tard à 3d » la ligne du `CONTENU.md` et de `points-d-entree.test.mjs`, et `A-111` renvoie au lot 4 ou 5a la liste de l'étape 0 de `fusionner/SKILL.md` pour les deux modules du lot 3a ; elle ne nomme pas ce fichier-ci dans cette phrase, ni l'arbre du `README.md`. Et elle ne voit pas ceci : l'étape 0 fait suivre **tous** les `scripts/*.test.mjs`, donc un projet qui repose entre-temps reçoit le banc sans le module (cela vaut aussi pour les bancs du lot 3a). Choix : la même règle qu'`A-111`, et la note de version dit le geste (décision 16). La sortie la plus étroite, si l'architecte la préfère à l'attente : un mot ajouté à `fusionner/SKILL.md:14`, fichier chaud de l'autre programme.
 14. **Les codes 20, 21 et 22** sont libres sur `main` ; les tickets 58 et 59, écrits en même temps, n'ont pas été accordés avec celui-ci sur ce point.
 
 ## Hors périmètre
@@ -1280,4 +1280,4 @@ Ce que la spec laisse ambigu, contradictoire ou sans réponse pour ce lot, et le
 
 ## Comments
 
-- 2026-11-18 — Écrit par un agent rédacteur sur la sixième version de la spec et sur `origin/main` à `99a6214`, module et banc joués (« Vérification »). Pas encore relu par un agent neuf. Sept choix proposés là où la spec ne tranche pas (décisions 6, 8, 9, 10, 11, 12, 13), quatorze points dans « Ce qui n'a pas été établi ».
+- 2026-11-18 — Écrit par un agent rédacteur sur la sixième version de la spec (lue à `a662c4d`, puis ses amendements `A-110` et `A-111`, lus dans l'arbre de travail avant leur commit : ils ne changent pas `A-82`) et sur `origin/main` à `22b2d49`, module et banc joués (« Vérification »). Pas encore relu par un agent neuf. Sept choix proposés là où la spec ne tranche pas (décisions 6, 8, 9, 10, 11, 12, 13), quatorze points dans « Ce qui n'a pas été établi ».

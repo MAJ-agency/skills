@@ -89,13 +89,18 @@ Ce que le ticket précise. Là où la spec se taisait, le rédacteur avait chois
 
     Les sessions se parcourent dans l'ordre où la dernière distribution du tour les nomme : la première à relancer, sinon la première en panne. Une session qui a rendu `validé` n'est plus regardée. L'état connu (`morte`, `plafond`) passe avant le délai, et donne sa `cause`. *Confirmé par l'architecte, `A-111` : la mention `(relance <identifiant>)`, le second `incomplet` qui vaut une panne, un seul remplacement par tour toutes sessions confondues, et « rien » après `Relecture en panne` jusqu'à un fait nouveau (un verdict, une tête qui change, une distribution).*
 15. **L'état des sessions n'est demandé que par la règle 5** (`A-85`, « Qui fait quoi »). `sessions` est facultatif : sans lui la fonction décide sur les seuls délais, et son « rien » d'attente nomme les sessions dont l'état changerait la réponse (`attendues`). Les règles 4 et 6, qui distribuent « aux mêmes sessions quand elles vivent », rendent ces sessions en `preferees` : c'est le Relecteur, en créant ou en réemployant les sessions (un geste du modèle), qui regarde si elles vivent. *Confirmé par l'architecte, `A-111`.*
-16. **La règle 3 se décide par cause** (`A-110`, de l'architecte, sur l'histoire H14). Une PR qui porte `à-fusionner` sans tour validé pour le contenu de sa tête, selon son dernier tour (le plus grand numéro) :
+16. **La règle 3 se décide par cause** (`A-110`, de l'architecte, sur l'histoire H14 ; ses causes (b) et (c) précisées par lui le même jour). Une PR qui porte `à-fusionner` sans tour validé pour le contenu de sa tête, selon son dernier tour (le plus grand numéro) :
     - (a) **le contenu a changé** : le dernier tour ne porte pas sur le contenu de la tête, ou la PR n'a aucun tour. `etiqueter` `à-reprendre`, la ligne « le contenu a changé depuis le verdict » ;
-    - (b) **un refus tardif** : le dernier tour porte sur le contenu de la tête et il est `refuse`. `etiqueter` `à-reprendre`, avec **la ligne du refus**, celle de la règle 4. La règle 3 ne rend jamais `plafonner` ni `distribuer` ;
-    - (c) **le tour est redevenu en cours**, sans changement de contenu ni refus : le dernier tour porte sur le contenu de la tête et il est `en-cours` (double relecture devenue exigée, `A-90` ; verdict relu `incomplet`, `A-107`, ou illisible). `etiqueter` **`à-relire`** : c'est le Relecteur qui la pose, l'auteur n'a rien à corriger. La ligne dit la cause : `PR <n> : relecture incomplète` quand un des verdicts du tour se lit `incomplet`, sinon `PR <n> : une seconde relecture est exigée : règle passée à haute`. La règle 5 complète ou relance **au passage suivant** (un seul geste par appel), sans rien de l'auteur.
+    - (b) **un refus tardif** : le dernier tour porte sur le contenu de la tête et il est `refuse`. **La règle 3 ne rend rien elle-même : la suite est celle de la règle 4**, dont chaque geste retire `à-fusionner` (`regle: 4`). Si ce tour est le troisième compté, c'est `plafonner`, pas un quatrième tour, même si l'auteur pousse ensuite ; sinon `etiqueter` `à-reprendre`, avec la ligne du refus. Le plafond ne se décide qu'à un endroit. Sur une PR encore `à-fusionner`, la règle 4 ne distribue pas la reprise après arbitrage : `à-reprendre` d'abord, la reprise attend que l'auteur ait redemandé la relecture (`A-88`) ;
+    - (c) **le tour est en cours**, sans changement de contenu ni refus : le dernier tour porte sur le contenu de la tête et il est `en-cours`. `etiqueter` **`à-relire`** : c'est le Relecteur qui la pose, l'auteur n'a rien à corriger. La ligne dit le fait, jamais une ligne fausse ; la première qui vaut, dans cet ordre :
+        1. ``PR <n> : étiquette `à-fusionner` posée sans relecture validée`` quand le tour n'a jamais été validé : aucune session que le tour nomme n'y a jamais rendu un `validé` sur son sommet (tous ses verdicts de ce tour, pas seulement le dernier, pris tels qu'écrits). L'étiquette a été posée par un autre que le Relecteur, ce qu'`A-84` interdit ;
+        2. `PR <n> : relecture incomplète` quand un des verdicts du tour se lit `incomplet` (`A-107`, verdict illisible, dernier verdict `incomplet`) ;
+        3. `PR <n> : une seconde relecture est exigée : règle passée à haute` sinon (`A-90`).
 
-    Les règles 1, 2, 4 et 6 restent à la lettre de la spec. Raison d'`A-110` : à la lettre, la règle 3 envoyait `à-reprendre` et une ligne fausse à un auteur qui n'a rien à reprendre ; mais `à-fusionner` ne peut pas rester pendant la seconde relecture, le capitaine refait le calcul et renverrait la PR.
-17. **Les lignes** (à qui écrire, et quoi) font partie du geste : celles d'un verdict ne partent donc qu'à un changement d'étiquette (`etiqueter`, `plafonner`), celle de la panne qu'avec son commentaire. Les destinataires `auteur` et `conducteur` se lisent dans la dernière demande `À relire` de la PR (`null` sans elle, ou pour `—`) ; `architecte` est toujours `null`, le Relecteur le connaît. Textes : ceux de la spec pour le verdict (`verdict écrit sur la PR <n> : validé`, `… : refusé`, suivis de `, double` quand `exiges` vaut 2 ou plus) et pour la règle 3 (`PR <n> : le contenu a changé depuis le verdict : redemander la relecture`) ; d'`A-110` pour la règle 3, causes (b) et (c) (décision 16) ; du rédacteur pour la règle 1 (`PR <n> : décision de plafond attendue`), le plafond (`PR <n> : plafond atteint au troisième tour refusé, décision attendue`) et la panne (`PR <n> : relecture en panne`). Au plafond, l'auteur reçoit la ligne du refus. *Confirmé par l'architecte, `A-111`.*
+      La règle 5 complète ou relance **au passage suivant** (un seul geste par appel), sans rien de l'auteur.
+
+    Les règles 1, 2 et 6 restent à la lettre de la spec ; la règle 4 aussi, à la restriction de (b) près. Raison d'`A-110` : à la lettre, la règle 3 envoyait `à-reprendre` et une ligne fausse à un auteur qui n'a rien à reprendre ; mais `à-fusionner` ne peut pas rester pendant la seconde relecture, le capitaine refait le calcul et renverrait la PR.
+17. **Les lignes** (à qui écrire, et quoi) font partie du geste : celles d'un verdict ne partent donc qu'à un changement d'étiquette (`etiqueter`, `plafonner`), celle de la panne qu'avec son commentaire. Les destinataires `auteur` et `conducteur` se lisent dans la dernière demande `À relire` de la PR (`null` sans elle, ou pour `—`) ; `architecte` est toujours `null`, le Relecteur le connaît. Textes : ceux de la spec pour le verdict (`verdict écrit sur la PR <n> : validé`, `… : refusé`, suivis de `, double` quand `exiges` vaut 2 ou plus) et pour la règle 3 (`PR <n> : le contenu a changé depuis le verdict : redemander la relecture`) ; d'`A-110` pour la règle 3, cause (c) (décision 16) ; du rédacteur pour la règle 1 (`PR <n> : décision de plafond attendue`), le plafond (`PR <n> : plafond atteint au troisième tour refusé, décision attendue`) et la panne (`PR <n> : relecture en panne`). Au plafond, l'auteur reçoit la ligne du refus. *Confirmé par l'architecte, `A-111`.*
 18. **Hors file, la fonction ne lit rien.** Une PR qui ne porte ni `à-relire` ni `à-fusionner`, ou une livraison de sujet (branche de tête `sujet/…` ou `livraison/…`) sans `à-relire` : « rien », sans lire les commentaires. Le régime de la PR (`A-97`) et la liste des PR (`A-99`) sont à l'appelant.
 19. **Version** : la **mineure** suivante de celle de `main` au moment de livrer (7.19.0 si `main` est encore en 7.18.1). Ce n'est pas un correctif : rien n'est corrigé, deux modules et leurs contrats s'ajoutent, sur lesquels trois lots s'appuieront.
 20. **La session tranche seule**, et le note sous `## Comments` : les noms internes (tout ce qui n'est pas exporté), le découpage en fonctions, le texte des `defauts` et des messages d'erreur (les bancs n'en lisent que des mots : voir leurs expressions régulières). Elle ne tranche **pas** : les noms et les formes exportés, les formes des commentaires, l'ordre des règles, les textes des lignes. Un banc qui lui semble faux : elle s'arrête et l'écrit à l'architecte, elle ne le retouche pas.
@@ -545,7 +550,7 @@ test("H17 — PR écrite en régime 7 dont la base passe en 8 : `à-fusionner` s
 
 // --- Sixième version -------------------------------------------------------------------------------------------
 
-test("A-110 — la règle 3 se décide par cause : contenu changé (a), refus tardif (b), tour redevenu en cours sans changement ni refus (c)", () => {
+test("A-110 — la règle 3 se décide par cause : contenu changé (a), refus tardif renvoyé à la règle 4, plafond compris (b), tour en cours sans changement ni refus, trois lignes selon le fait (c)", () => {
   const AF = ['à-fusionner'];
   const CHANGE = LIGNES('PR 12 : le contenu a changé depuis le verdict : redemander la relecture');
   const valide = [DEMANDE(), D(1, V1, ['r1']), verdict(1, 'r1', 'validé')];
@@ -554,22 +559,54 @@ test("A-110 — la règle 3 se décide par cause : contenu changé (a), refus ta
   assert.deepEqual(joue({ commentaires: fil(...valide), etiquettes: AF, tete: T, exiges: 2, sensible: true }).lignes, CHANGE, 'le contenu changé passe avant toute autre cause');
   // (a) aussi quand la tête n'a aucun tour : `à-fusionner` posée sans relecture.
   assert.deepEqual(joue({ commentaires: fil(DEMANDE()), etiquettes: AF }), { regle: 3, geste: 'etiqueter', poser: 'à-reprendre', retirer: AF, lignes: CHANGE });
-  // (b) Un `refusé` arrivé après la validation : `à-reprendre`, avec la ligne du refus, pas celle du contenu changé.
+  // (b) Un `refusé` arrivé après la validation : la règle 3 ne décide rien elle-même, la suite est celle de tout tour refusé
+  // (règle 4) : `à-fusionner` retirée, `à-reprendre`, la ligne du refus, pas celle du contenu changé.
   const tardif = fil(...valide, verdict(1, 'r1', 'refusé'));
-  assert.deepEqual(joue({ commentaires: tardif, etiquettes: AF }), { regle: 3, geste: 'etiqueter', poser: 'à-reprendre', retirer: AF, lignes: LIGNES('verdict écrit sur la PR 12 : refusé') });
+  assert.deepEqual(joue({ commentaires: tardif, etiquettes: AF }), { regle: 4, geste: 'etiqueter', poser: 'à-reprendre', retirer: AF, lignes: LIGNES('verdict écrit sur la PR 12 : refusé') });
   assert.deepEqual(joue({ commentaires: tardif, etiquettes: AF, tete: T, memeContenu: { [V1]: true } }).lignes, LIGNES('verdict écrit sur la PR 12 : refusé'), 'la tête a bougé sans changer de contenu : toujours le refus');
   const tardifDouble = fil(DEMANDE(), D(1, V1, ['r1', 'r2']), verdict(1, 'r1', 'validé'), verdict(1, 'r2', 'validé'), verdict(1, 'r2', 'refusé'));
   assert.deepEqual(joue({ commentaires: tardifDouble, etiquettes: AF, exiges: 2 }).lignes, LIGNES('verdict écrit sur la PR 12 : refusé, double'));
-  // (c) Double relecture devenue exigée : le Relecteur pose lui-même `à-relire`, et dit la vraie cause.
+  // (b) Le refus tardif est le troisième tour compté : c'est le plafond, décidé au seul endroit qui le décide, et aucun
+  // quatrième tour ne part, même si l'auteur pousse ensuite.
+  const troisieme = [
+    DEMANDE(), D(1, V1, ['r1']), verdict(1, 'r1', 'refusé'),
+    DEMANDE(V2), D(2, V2, ['r1']), verdict(2, 'r1', 'refusé', { sommet: V2 }),
+    DEMANDE(V3), D(3, V3, ['r1']), verdict(3, 'r1', 'validé', { sommet: V3 }), verdict(3, 'r1', 'refusé', { sommet: V3 }),
+  ];
+  assert.deepEqual(joue({ commentaires: fil(...troisieme), etiquettes: AF, tete: V3 }), {
+    regle: 4,
+    geste: 'plafonner',
+    commentaire: TEXTE_PLAFOND,
+    poser: 'à-reprendre',
+    retirer: AF,
+    lignes: [
+      { a: 'auteur', session: 'session_auteur', texte: 'verdict écrit sur la PR 12 : refusé' },
+      { a: 'conducteur', session: 'session_conducteur', texte: 'PR 12 : plafond atteint au troisième tour refusé, décision attendue' },
+      { a: 'architecte', session: null, texte: 'PR 12 : plafond atteint au troisième tour refusé, décision attendue' },
+    ],
+  });
+  const pousse = joue({ commentaires: fil(...troisieme, TEXTE_PLAFOND, DEMANDE(V4)), tete: V4 });
+  assert.deepEqual([pousse.regle, pousse.geste, pousse.poser], [1, 'etiqueter', 'à-reprendre'], 'après le plafond, une poussée ne fait pas partir un quatrième tour');
+  // (b) Un arbitrage écarté sur une PR encore `à-fusionner` : `à-reprendre` d'abord ; la reprise non comptée attend la demande de l'auteur.
+  const arbitre = fil(...valide, verdict(1, 'r1', 'refusé'), ECARTE);
+  assert.deepEqual(joue({ commentaires: arbitre, etiquettes: AF }), { regle: 4, geste: 'etiqueter', poser: 'à-reprendre', retirer: AF, lignes: LIGNES('verdict écrit sur la PR 12 : refusé') });
+  assert.deepEqual(joue({ commentaires: arbitre }), { regle: 4, geste: 'distribuer', tour: 2, sommet: V1, nombre: 1, preferees: ['r1'], mention: MENTION_ARBITRAGE });
+  // (c), première ligne. Double relecture devenue exigée : le Relecteur pose lui-même `à-relire`, et dit la vraie cause.
   const exigee = { regle: 3, geste: 'etiqueter', poser: 'à-relire', retirer: AF, lignes: LIGNES('PR 12 : une seconde relecture est exigée : règle passée à haute') };
   assert.deepEqual(joue({ commentaires: fil(...valide), etiquettes: AF, exiges: 2 }), exigee);
   assert.deepEqual(joue({ commentaires: fil(DEMANDE(), D(1, V1, ['r1', 'r2']), verdict(1, 'r1', 'validé')), etiquettes: AF, exiges: 2 }), exigee, 'la seconde session est nommée mais n\'a rien rendu');
-  // (c) Verdict relu `incomplet` : chemin devenu sensible, ou dernier verdict de la session illisible.
+  // (c), deuxième ligne. Un verdict du tour se lit `incomplet` : chemin devenu sensible, ou dernier verdict de la session illisible.
   const incomplete = { regle: 3, geste: 'etiqueter', poser: 'à-relire', retirer: AF, lignes: LIGNES('PR 12 : relecture incomplète') };
   assert.deepEqual(joue({ commentaires: fil(...valide), etiquettes: AF, sensible: true }), incomplete);
   assert.deepEqual(joue({ commentaires: fil(...valide, verdict(1, 'r1', 'incomplet')), etiquettes: AF }), incomplete);
   assert.deepEqual(joue({ commentaires: fil(...valide, verdict(1, 'r1', 'validé').replace('Verdict: validé', 'Verdict: ok')), etiquettes: AF }), incomplete);
   assert.deepEqual(joue({ commentaires: fil(...valide), etiquettes: AF, exiges: 2, sensible: true }), incomplete, 'les deux causes à la fois : la relecture incomplète se dit d\'abord');
+  // (c), troisième ligne. Le tour n'a jamais été validé : l'étiquette a été posée par un autre que le Relecteur.
+  const jamais = { regle: 3, geste: 'etiqueter', poser: 'à-relire', retirer: AF, lignes: LIGNES('PR 12 : étiquette `à-fusionner` posée sans relecture validée') };
+  assert.deepEqual(joue({ commentaires: fil(DEMANDE(), D(1, V1, ['r1'])), etiquettes: AF }), jamais, 'aucun verdict');
+  assert.deepEqual(joue({ commentaires: fil(DEMANDE(), D(1, V1, ['r1']), verdict(1, 'r1', 'incomplet')), etiquettes: AF }), jamais, "un seul verdict, `incomplet` : jamais validé se dit avant incomplet");
+  assert.deepEqual(joue({ commentaires: fil(DEMANDE(), D(1, V1, ['r1', 'r2'])), etiquettes: AF, exiges: 2 }), jamais, 'deux exigés, aucun verdict : pas « règle passée à haute »');
+  assert.deepEqual(joue({ commentaires: fil(DEMANDE(), D(1, V1, ['r1']), verdict(1, 'orpheline', 'validé'), verdict(1, 'r1', 'validé', { sommet: V2 })), etiquettes: AF }), jamais, "le `validé` d'une session non nommée, ou sur un autre sommet, n'a jamais validé le tour");
   // (c), la suite : `à-relire` posée, la règle 5 relance ou complète au passage suivant, sans rien de l'auteur.
   assert.deepEqual(joue({ commentaires: fil(...valide), sensible: true }), { regle: 5, geste: 'reecrire', tour: 1, sommet: V1, sessions: ['r1'], session: 'r1' });
   assert.equal(joue({ commentaires: fil(...valide), exiges: 2 }).geste, 'completer');
@@ -676,9 +713,11 @@ test("les règles sont ordonnées : pour chaque couple de voisines, un état où
   assert.equal(joue({ commentaires: fil(...troisRefus, TEXTE_PLAFOND), tete: V3, etiquettes: ['à-fusionner'] }).regle, 1);
   // 2 avant 3 : `à-fusionner` sur un tour validé pour ce contenu ne devient pas `à-reprendre`.
   assert.equal(joue({ commentaires: fil(DEMANDE(), D(1, V1, ['r1']), verdict(1, 'r1', 'validé')), etiquettes: ['à-fusionner'] }).regle, 2);
-  // 3 avant 4 : `à-fusionner` et un troisième refus tardif : `à-reprendre` et la ligne du refus, pas de plafond à ce passage.
+  // 2 avant 3, encore : le tour validé pour ce contenu n'est pas le dernier ; la règle 3 ne lit que le dernier tour, la règle 2 les lit tous.
+  assert.deepEqual(joue({ commentaires: fil(DEMANDE(), D(1, V1, ['r1']), verdict(1, 'r1', 'validé'), D(2, V2, ['r1'])), etiquettes: ['à-fusionner'] }), RIEN_EN_PLACE(2));
+  // 3 et 4 ne se recouvrent pas : sur un tour refusé, la règle 3 renvoie à la règle 4, qui seule décide du plafond.
   const refusTardif = joue({ commentaires: fil(...troisRefus), tete: V3, etiquettes: ['à-fusionner'] });
-  assert.deepEqual([refusTardif.regle, refusTardif.geste, refusTardif.poser], [3, 'etiqueter', 'à-reprendre']);
+  assert.deepEqual([refusTardif.regle, refusTardif.geste, refusTardif.retirer], [4, 'plafonner', ['à-fusionner']]);
   // 3 avant 5 : `à-fusionner` sur un tour en cours, `à-relire` d'abord ; la règle 5 ne joue qu'au passage suivant.
   const enCours = joue({ commentaires: fil(DEMANDE(), D(1, V1, ['r1'])), etiquettes: ['à-fusionner'], maintenant: iso(DEBUT + 9 * H) });
   assert.deepEqual([enCours.regle, enCours.geste, enCours.poser], [3, 'etiqueter', 'à-relire']);
@@ -911,7 +950,7 @@ export function decider(etat) {}
 | `'rien'` | 5 | `raison: 'attente'`, `attendues` (identifiants), `echeance` (ISO, l'instant où la plus ancienne devient muette) | il attend ; il peut demander l'état des `attendues` et rappeler la fonction avec `sessions` |
 | `'rien'` | 5 | `raison: 'panne-signalee'` | rien |
 | `'etiqueter'` | 1, 2, 3 ou 4 | `poser` (`à-reprendre`, `à-fusionner`, ou `à-relire` pour la règle 3, cause c), `retirer` (celles des quatre en place, hors `poser`, dans l'ordre d'`ETIQUETTES`), `lignes` | pose `poser`, puis retire `retirer`, puis écrit les lignes |
-| `'plafonner'` | 4 | `commentaire: TEXTE_PLAFOND`, `poser: 'à-reprendre'`, `retirer`, `lignes` | écrit le commentaire, puis comme `etiqueter` |
+| `'plafonner'` | 4 | `commentaire: TEXTE_PLAFOND`, `poser: 'à-reprendre'`, `retirer` (dont `à-fusionner` après un refus tardif), `lignes` | écrit le commentaire, puis comme `etiqueter` |
 | `'distribuer'` | 4 ou 6 | `tour` (le plus grand numéro, plus un), `sommet` (`tete`), `nombre` (`exiges`), `preferees` (les sessions du dernier tour), `mention` (`MENTION_ARBITRAGE` pour la règle 4, `null` pour la 6) | réemploie les `preferees` qui vivent, crée les autres, puis écrit la distribution |
 | `'completer'` | 5 | `tour`, `sommet`, `sessions`, `manque` | crée `manque` session(s), écrit la distribution `(complète)` |
 | `'reecrire'` | 5 | `tour`, `sommet`, `sessions`, `session` | écrit à `session`, puis écrit la distribution `(relance <session>)` |
@@ -924,8 +963,8 @@ Une ligne est `{ a: 'auteur' | 'conducteur' | 'architecte', session: <identifian
 
 1. un `Plafond — décision attendue` plus récent que toute décision de plafond : `etiqueter` `à-reprendre` ;
 2. un tour `valide` qui porte sur le contenu de la tête : `etiqueter` `à-fusionner` ;
-3. la PR porte `à-fusionner` : par cause (décision 16). Le dernier tour ne porte pas sur le contenu de la tête, ou il n'y en a pas : `etiqueter` `à-reprendre`, ligne du contenu changé. Il porte sur le contenu de la tête et il est `refuse` : `etiqueter` `à-reprendre`, ligne du refus. Il porte sur le contenu de la tête et il est `en-cours` : `etiqueter` `à-relire`, ligne de la cause ;
-4. le dernier tour (le plus grand numéro) porte sur le contenu de la tête et il est `refuse` : s'il est compté et que les tours comptés sont trois ou plus, `plafonner` ; sinon, un bloquant écarté plus récent que le plus récent des verdicts de ce tour, `distribuer` avec la mention ; sinon `etiqueter` `à-reprendre` ;
+3. la PR porte `à-fusionner` : par cause (décision 16). Le dernier tour ne porte pas sur le contenu de la tête, ou il n'y en a pas : `etiqueter` `à-reprendre`, ligne du contenu changé. Il porte sur le contenu de la tête et il est `en-cours` : `etiqueter` `à-relire`, l'une des trois lignes. Il porte sur le contenu de la tête et il est `refuse` : la règle 3 ne rend rien, la règle 4 suit ;
+4. le dernier tour (le plus grand numéro) porte sur le contenu de la tête et il est `refuse` : s'il est compté et que les tours comptés sont trois ou plus, `plafonner` ; sinon, la PR ne porte pas `à-fusionner` et un bloquant écarté est plus récent que le plus récent des verdicts de ce tour, `distribuer` avec la mention ; sinon `etiqueter` `à-reprendre` ;
 5. le dernier tour porte sur le contenu de la tête et il est `en-cours` : décision 14 ;
 6. sinon `distribuer`, sans mention.
 
@@ -977,7 +1016,7 @@ Les cas de la sixième version, dans le même banc :
 | Cas | Entrée | Sortie attendue |
 | --- | --- | --- |
 | `A-107` | PR `sensible`, verdict `validé` sans ligne `/security-review:`, ou avec `non requise` | le verdict se lit `incomplet` : règle 5, `reecrire` ; `tourValide` rend `null` ; avec `à-fusionner`, règle 3, cause (c) : `à-relire`, « PR 12 : relecture incomplète ». Un `refusé` sans la ligne se lit `incomplet` lui aussi. Avec `lancée` : `à-fusionner`, ou `à-reprendre` pour un refus. Hors chemin sensible, la ligne n'est pas exigée |
-| `A-110` | PR `à-fusionner`, tour 1 validé par r1 sur V1, puis : (a) tête T sans « même contenu propre », ou aucun tour ; (b) un `refusé` de r1 après son `validé` (aussi : tête déplacée mais « même », et à deux verdicts) ; (c) `exiges` 2, ou la seconde session nommée mais muette ; (c) PR devenue `sensible`, ou dernier verdict `incomplet`, ou illisible ; les deux causes à la fois ; puis le même fil avec `à-relire` | (a) `à-reprendre`, ligne du contenu changé, même si d'autres causes s'y ajoutent ; (b) `à-reprendre`, ligne « verdict écrit sur la PR 12 : refusé » (« , double » à deux) ; (c) `à-relire`, « une seconde relecture est exigée : règle passée à haute » ; (c) `à-relire`, « relecture incomplète », qui se dit d'abord quand les deux causes sont là ; puis règle 5 : `reecrire`, ou `completer`. `tourValide` rend `null` dans tous ces cas |
+| `A-110` | PR `à-fusionner`, tour 1 validé par r1 sur V1, puis : (a) tête T sans « même contenu propre », ou aucun tour ; (b) un `refusé` de r1 après son `validé` (aussi : tête déplacée mais « même », et à deux verdicts) ; (b) ce refus tardif est le troisième tour compté, puis l'auteur pousse V4 et repose `à-relire` ; (b) un arbitrage écarté après le refus tardif, PR encore `à-fusionner`, puis `à-relire` ; (c) `exiges` 2, ou la seconde session nommée mais muette ; (c) PR devenue `sensible`, ou dernier verdict `incomplet`, ou illisible, ou les deux causes à la fois ; (c) tour sans aucun verdict, ou au seul verdict `incomplet`, ou à deux exigés sans verdict, ou au seul `validé` d'une session non nommée ou sur un autre sommet ; puis le même fil avec `à-relire` | (a) règle 3, `à-reprendre`, ligne du contenu changé, même si d'autres causes s'y ajoutent ; (b) **règle 4**, `à-reprendre`, retirer `à-fusionner`, ligne « verdict écrit sur la PR 12 : refusé » (« , double » à deux) ; (b) règle 4, `plafonner`, retirer `à-fusionner` ; puis règle 1, `à-reprendre` : aucun quatrième tour ; (b) règle 4, `à-reprendre`, pas de reprise ; puis règle 4, `distribuer` non compté ; (c) règle 3, `à-relire`, « une seconde relecture est exigée : règle passée à haute » ; (c) `à-relire`, « relecture incomplète » ; (c) `à-relire`, « étiquette `à-fusionner` posée sans relecture validée », qui se dit avant les deux autres ; puis règle 5 : `reecrire`, ou `completer`. `tourValide` rend `null` dans tous ces cas |
 | `A-85`, `A-108` | le commentaire de passage d'un capitaine, posé puis réédité ; un verdict, une distribution, un plafond, un arbitrage édités ou d'un compte `NONE` ou `CONTRIBUTOR` ; huit formes voisines d'une distribution ; un arbitrage cité, sans raison, glissé dans une contestation, ou maintenu ; deux formes voisines du plafond | aucun ne compte |
 | `A-106` | des commentaires illisibles (`null`, une chaîne, un objet d'erreur, un commentaire sans ses champs) ; un verdict illisible | `LectureIllisible`, pour `decider`, `tourValide` et `sommetsDesTours` ; le verdict illisible ne valide jamais, et, dernier de sa session, il ne laisse pas valoir le `validé` qui le précède |
 | l'instant | `Date.now` et `new Date()` piégés ; l'échéance exacte, une milliseconde après, cinq ans après ; `maintenant` absent, `null`, un texte, un nombre, un objet `Date` | `attente`, `remplacer`, `remplacer` ; `TypeError` |
@@ -996,80 +1035,83 @@ Les cas de la sixième version, dans le même banc :
 
 ## Vérification
 
-Joué deux fois le 2026-11-18, chaque fois sur un clone jetable de `origin/main`, sous Node 22.23, puis le clone retiré : le premier rendu sur `99a6214` (7.18.0) ; puis, après `A-110` et `A-111`, sur un clone neuf à `22b2d49` (7.18.1). Les deux modules y ont été écrits d'après le contrat ci-dessus (145 et 272 lignes) ; les deux bancs du § 0 sont, à l'octet près, ceux qui ont tourné. Ce qui suit est le second rejeu.
+Joué trois fois le 2026-11-18, chaque fois sur un clone jetable neuf de `origin/main`, sous Node 22.23, puis le clone retiré : le premier rendu sur `99a6214` (7.18.0) ; après `A-110` et `A-111`, sur `22b2d49` (7.18.1) ; puis, sur `22b2d49` encore, après les quatre précisions de l'architecte (le refus tardif renvoyé à la règle 4, les trois lignes de la cause c). Les deux modules y ont été écrits d'après le contrat ci-dessus (145 et 281 lignes) ; les deux bancs du § 0 sont, à l'octet près, ceux qui ont tourné. Ce qui suit est le troisième rejeu.
 
-- Le banc du premier rendu, joué sur la règle 3 par cause avant d'être retouché : un seul rouge, H14, comme attendu.
 - Les deux bancs : **33 sur 33**, en moins d'une seconde.
 - La suite entière (`pnpm install --frozen-lockfile && pnpm test`), les quatre fichiers ajoutés, la version montée à 7.19.0 et la note écrite : **805 sur 805**, dont `scripts/poses.test.mjs`, qui rejoue les deux bancs posés à plat. `git status` : quatre fichiers neufs, deux modifiés, rien d'autre.
-- **59 mutations**, chacune jouée seule sur une copie des quatre fichiers ; **chacune fait rougir au moins un test** (à droite, les tests rouges ; « verdict » et « verdict illisible » sont des tests de `verdict.test.mjs`, les autres de `decision-relecteur.test.mjs`) :
+- **63 mutations**, chacune jouée seule sur une copie des quatre fichiers ; **chacune fait rougir au moins un test** (à droite, les tests rouges ; « verdict » et « verdict illisible » sont des tests de `verdict.test.mjs`, les autres de `decision-relecteur.test.mjs`) :
 
   1. règles 1 et 2 interverties → les règles sont ordonnées
-  2. règles 2 et 3 interverties → H1, H14, H16, les règles sont ordonnées
-  3. règles 3 et 4 interverties → A-110, les règles sont ordonnées
-  4. règle 3 sans cause : toujours `à-reprendre` et la ligne du contenu changé → H14, A-110, A-107, les règles sont ordonnées
-  5. règle 3 (a) : un contenu changé repart en relecture → A-110
+  2. règles 2 et 3 interverties → les règles sont ordonnées
+  3. règle 3 sans cause : toujours `à-reprendre` et la ligne du contenu changé → H14, A-110, A-107, les règles sont ordonnées
+  4. règle 3 (a) : un contenu changé ne reçoit plus `à-reprendre` → H16, A-110
+  5. règle 3 (b) : elle pose `à-reprendre` elle-même, le plafond est manqué → A-110, les règles sont ordonnées
   6. règle 3 (b) : un refus tardif repart en relecture → A-110, les règles sont ordonnées
-  7. règle 3 (b) : un refus tardif reçoit la ligne du contenu changé → A-110
+  7. règle 4 : la reprise après arbitrage part sur une PR encore `à-fusionner` → A-110
   8. règle 3 (c) : `à-reprendre` au lieu de `à-relire` → H14, A-110, A-107, les règles sont ordonnées
-  9. règle 3 (c) : les deux causes interverties → H14, A-110, A-107
-  10. règle 3 (c) : un verdict relu `incomplet` passe pour une seconde relecture exigée → A-110, A-107
-  11. règles 4 et 5 : un tour refusé où une session manque encore reste « en cours » → H7, les règles sont ordonnées
-  12. règles 5 et 6 : un tour sans verdict reste « en cours » quand la tête a changé de contenu → H9
-  13. règle 4 sans « porte sur le contenu de la tête » → H2, H3, H5, H6, H11
-  14. règle 4 : la reprise après arbitrage avant le plafond → les règles sont ordonnées
-  15. règle 4 : l'arbitrage écarté compte même plus ancien que le dernier verdict → H4
-  16. règle 4 : un arbitrage maintenu vaut écarté → H5, A-85, A-108
-  17. règle 5 : relancer avant de compléter → les règles sont ordonnées
-  18. règle 5 : remplacer avant de relancer → les règles sont ordonnées
-  19. règle 5 : la relance tracée est ignorée → H13
-  20. règle 5 : une session morte est relancée → H13
-  21. règle 5 : remplacement sans limite par tour → H8
-  22. règle 5 : la panne déjà signalée se réécrit → H8
-  23. règle 5 : muette à l'échéance exacte → H8, l'instant est une entrée
-  24. règle 5 : `relecture.delai` ignoré → H8
-  25. règle 5 : l'horloge de la remplaçante part de la première distribution → H7, H8, H13
-  26. règle 5 : l'état d'une session n'est pas lu → H4, H13
-  27. l'horloge est lue → l'instant est une entrée
-  28. le geste « rien » retiré → H1, H14, H16
-  29. « rien » dès que l'étiquette voulue est en place, même à côté d'une autre → H1, A-110
-  30. un verdict écrit après la distribution du tour suivant rouvre son tour → H9
-  31. une reprise après arbitrage est comptée → H4
-  32. la décision de plafond ne remet pas le compte à zéro → H11
-  33. plafond au quatrième tour → H11, les règles sont ordonnées
-  34. plafond au deuxième tour → H11
-  35. règle 1 : un plafond plus ancien que la décision compte encore → H11
-  36. `sensible` ignoré → A-110, A-107
-  37. `non requise` accepté sur un chemin sensible → A-107
-  38. un verdict sur un autre sommet que celui du tour est pris tel quel → verdicts d'un tour
-  39. le verdict d'une session remplacée compte → H7, H8
-  40. le verdict d'une session jamais nommée compte → H7, H8, H12
-  41. le premier verdict d'une session fait foi, pas le dernier → H13, A-110, verdicts d'un tour
-  42. le nombre exigé se lit dans la distribution → H14, A-110
-  43. « même contenu propre » : toute valeur vraie vaut « même » → H16
-  44. « même contenu propre » : absent vaut « même » → H2, H3, H5, H6, H9, H11, H16, A-110
-  45. une livraison de sujet est regardée sans `à-relire` → la file
-  46. une PR sans `à-relire` ni `à-fusionner` est regardée → H2, H10, H11, H15, entrées fausses
-  47. « double » jamais dit → H7, H14, A-110
-  48. une distribution du même numéro sur un autre sommet entre dans le tour → verdicts d'un tour
-  49. un commentaire édité est retenu → A-85, A-108, verdict
-  50. un commentaire d'un compte sans droit est retenu → A-85, A-108, verdict
-  51. un champ absent ne lève plus → verdict
-  52. le pied de page des sessions cloud n'est plus retiré → distribution, verdict
-  53. la marque cherchée partout dans le corps → verdict
-  54. verdict illisible écarté au lieu de `incomplet` → verdict illisible
-  55. validé avec des bloquants accepté → verdicts d'un tour, verdict illisible, verdict
-  56. refusé sans bloquant accepté → verdict illisible
-  57. l'ordre des lignes de l'en-tête n'est plus jugé → verdict illisible
-  58. sha abrégé accepté → verdict illisible
-  59. l'ordre de création n'est plus vérifié → verdict
+  9. règle 3 (c) : « jamais validé » n'est plus dit → A-110
+  10. règle 3 (c) : « jamais validé » jugé sur toute session, nommée ou non → A-110
+  11. règle 3 (c) : « jamais validé » jugé sans le sommet du tour → A-110
+  12. règle 3 (c) : « relecture incomplète » dite avant « jamais validé » → A-110
+  13. règle 3 (c) : un verdict relu `incomplet` passe pour une seconde relecture exigée → A-110, A-107
+  14. règle 3 (c) : « seconde relecture » et « relecture incomplète » interverties → H14, A-110, A-107
+  15. règles 4 et 5 : un tour refusé où une session manque encore reste « en cours » → H7, les règles sont ordonnées
+  16. règles 5 et 6 : un tour sans verdict reste « en cours » quand la tête a changé de contenu → H9
+  17. règle 4 sans « porte sur le contenu de la tête » → H2, H3, H5, H6, H11
+  18. règle 4 : la reprise après arbitrage avant le plafond → les règles sont ordonnées
+  19. règle 4 : l'arbitrage écarté compte même plus ancien que le dernier verdict → H4
+  20. règle 4 : un arbitrage maintenu vaut écarté → H5, A-85, A-108
+  21. règle 5 : relancer avant de compléter → les règles sont ordonnées
+  22. règle 5 : remplacer avant de relancer → les règles sont ordonnées
+  23. règle 5 : la relance tracée est ignorée → H13
+  24. règle 5 : une session morte est relancée → H13
+  25. règle 5 : remplacement sans limite par tour → H8
+  26. règle 5 : la panne déjà signalée se réécrit → H8
+  27. règle 5 : muette à l'échéance exacte → H8, l'instant est une entrée
+  28. règle 5 : `relecture.delai` ignoré → H8
+  29. règle 5 : l'horloge de la remplaçante part de la première distribution → H7, H8, H13
+  30. règle 5 : l'état d'une session n'est pas lu → H4, H13
+  31. l'horloge est lue → l'instant est une entrée
+  32. le geste « rien » retiré → H1, H14, H16, les règles sont ordonnées
+  33. « rien » dès que l'étiquette voulue est en place, même à côté d'une autre → H1, A-110
+  34. un verdict écrit après la distribution du tour suivant rouvre son tour → H9
+  35. une reprise après arbitrage est comptée → H4
+  36. la décision de plafond ne remet pas le compte à zéro → H11
+  37. plafond au quatrième tour → H11, A-110, les règles sont ordonnées
+  38. plafond au deuxième tour → H11
+  39. règle 1 : un plafond plus ancien que la décision compte encore → H11
+  40. `sensible` ignoré → A-110, A-107
+  41. `non requise` accepté sur un chemin sensible → A-107
+  42. un verdict sur un autre sommet que celui du tour est pris tel quel → A-110, verdicts d'un tour
+  43. le verdict d'une session remplacée compte → H7, H8
+  44. le verdict d'une session jamais nommée compte → H7, H8, H12, A-110
+  45. le premier verdict d'une session fait foi, pas le dernier → H13, A-110, verdicts d'un tour
+  46. le nombre exigé se lit dans la distribution → H14, A-110
+  47. « même contenu propre » : toute valeur vraie vaut « même » → H16
+  48. « même contenu propre » : absent vaut « même » → H2, H3, H5, H6, H9, H11, H16, A-110
+  49. une livraison de sujet est regardée sans `à-relire` → la file
+  50. une PR sans `à-relire` ni `à-fusionner` est regardée → H2, H10, H11, H15, entrées fausses
+  51. « double » jamais dit → H7, H14, A-110
+  52. une distribution du même numéro sur un autre sommet entre dans le tour → verdicts d'un tour
+  53. un commentaire édité est retenu → A-85, A-108, verdict
+  54. un commentaire d'un compte sans droit est retenu → A-85, A-108, verdict
+  55. un champ absent ne lève plus → verdict
+  56. le pied de page des sessions cloud n'est plus retiré → distribution, verdict
+  57. la marque cherchée partout dans le corps → verdict
+  58. verdict illisible écarté au lieu de `incomplet` → verdict illisible
+  59. validé avec des bloquants accepté → verdicts d'un tour, verdict illisible, verdict
+  60. refusé sans bloquant accepté → verdict illisible
+  61. l'ordre des lignes de l'en-tête n'est plus jugé → verdict illisible
+  62. sha abrégé accepté → verdict illisible
+  63. l'ordre de création n'est plus vérifié → verdict
 
-  Une mutation n'a pas de sens ici et n'est pas dans la liste : « intervertir les règles 4 et 5 » ou « 5 et 6 » en gardant leurs conditions, puisque ces conditions s'excluent (un tour est `refuse`, ou `en-cours`, ou ne porte pas sur le contenu de la tête). Ce qui les départage est l'état du tour : ce sont les mutations « règles 4 et 5 » et « règles 5 et 6 » de la liste, qui changent cet état.
+  Trois mutations n'ont pas de sens ici et ne sont pas dans la liste : « intervertir les règles 3 et 4 », « 4 et 5 » ou « 5 et 6 » en gardant leurs conditions, puisque ces conditions s'excluent (le dernier tour est `refuse`, ou `en-cours`, ou ne porte pas sur le contenu de la tête ; sur un tour refusé la règle 3 renvoie à la règle 4). Ce qui les départage est la cause ou l'état du tour : ce sont les mutations « règle 3 (b) », « règles 4 et 5 » et « règles 5 et 6 » de la liste.
 
 Pour la session :
 
 1. Le § 0 : rouge (modules introuvables). Le § 1 : 7 sur 7. Le § 2 : 33 sur 33.
 2. `pnpm install --frozen-lockfile && pnpm test` : vert, **le compte de `origin/main` plus 33**.
-3. Les mutations ci-dessus, chacune seule puis retirée (les trente-cinq premières portent sur les règles, dont sept sur la règle 3 par cause ; les treize suivantes sur les définitions du tour et de la file ; les onze dernières sur le lecteur) ; chacune rougit. Une mutation qui reste verte sur son module : elle le dit sous `## Comments`, avec la ligne en cause (un contrôle fait deux fois, par exemple), sans toucher aux bancs.
+3. Les mutations ci-dessus, chacune seule puis retirée (les trente-neuf premières portent sur les règles, dont douze sur la règle 3 par cause ; les treize suivantes sur les définitions du tour et de la file ; les onze dernières sur le lecteur) ; chacune rougit. Une mutation qui reste verte sur son module : elle le dit sous `## Comments`, avec la ligne en cause (un contrôle fait deux fois, par exemple), sans toucher aux bancs.
 4. `git diff origin/main --stat` : six fichiers, dont quatre neufs. `grep -nE "Date\.now|new Date\(\)|process\.|node:" skills/chaine/fusionner/scripts/verdict.mjs skills/chaine/fusionner/scripts/decision-relecteur.mjs` ne rend rien.
 5. Revue de ticket (ses trois axes), sa section dans le corps de la PR ; `/security-review` : les deux modules seront posés sous `scripts/chaine/`, chemin sensible des projets, et décident de ce qui reçoit `à-fusionner`.
 6. La PR vise `main`, hors brouillon, **sans `à-fusionner`** (`Label: contre-revue`) ; la session écrit à l'architecte dès sa PR livrée. Elle lit ce ticket sur la branche de documentation du programme, sans le modifier.
@@ -1081,9 +1123,8 @@ Les seize points où la spec se taisait ou se contredisait sont tranchés (`A-11
 **Des limites connues, écrites, que ce ticket ne ferme pas.**
 
 - **Un refus entre le push et la distribution suivante** (décision 11, limite écrite dans `A-111`) : il donne le même fil qu'un refus suivi d'une correction (H2) ; il compte.
-- **Un refus tardif qui serait le troisième tour compté** (règle 3, cause b) : la règle 3 pose `à-reprendre` sans écrire `Plafond — décision attendue`. Si l'auteur redemande sans pousser, la règle 4 écrit le plafond ; **s'il pousse d'abord, la règle 6 distribue un quatrième tour** et le plafond ne tombe qu'à son refus, un tour trop tard. Les deux suites ont été jouées à la main sur les modules du rédacteur, hors banc ; non tranché : `A-110` dit « `à-reprendre` posé, avec la ligne du refus ».
-- **La cause (c) sur un tour qui n'a jamais été validé** : une `à-fusionner` posée à la main pendant une relecture en cours revient à `à-relire`, ce qui est juste, avec la ligne « une seconde relecture est exigée : règle passée à haute », qui ne l'est pas. Les commentaires ne disent pas si le tour a été validé un jour.
-- **`A-84` dit que seul l'auteur pose `à-relire`** : la cause (c) en est l'exception, écrite dans `A-110` ; le tableau d'`A-84` n'a pas été retouché. Après ce geste la PR porte `à-relire` sans nouveau commentaire `À relire` : ce que fait alors le réveil de secours de l'auteur (`A-86`) n'a pas été rejoué.
+- **« Jamais validé » se juge sur ce que les commentaires disent** (règle 3, cause c) : aucune session du tour n'y a jamais rendu de `validé`. Le nombre exigé au moment où l'étiquette a été posée n'est écrit nulle part. Deux cas restent donc mal dits : un tour à deux verdicts exigés depuis le début, où un autre que le Relecteur pose `à-fusionner` après le premier `validé`, reçoit « une seconde relecture est exigée : règle passée à haute », alors que la règle n'a pas changé ; et un `validé` devenu `incomplet` pour une autre raison que celles d'`A-107` se dit « relecture incomplète » sans dire laquelle. Le geste, lui, est juste dans les deux cas (`à-relire`).
+- **Après le geste de la cause (c)**, la PR porte `à-relire` sans nouveau commentaire `À relire` : ce que fait alors le réveil de secours de l'auteur (`A-86`) n'a pas été rejoué.
 
 **Ce qui n'a pas été vérifié.**
 
@@ -1108,3 +1149,4 @@ Les seize points où la spec se taisait ou se contredisait sont tranchés (`A-11
 
 - 2026-11-18 — Ticket écrit par un sous-agent de l'architecte, après lecture de la spec en entier (sixième version), du rapport de vérification (§ 2.4, § 3.4), de la quatrième relecture, des tickets 52 et 56 pour la forme, et, sur `origin/main`, de `scripts/depot.test.mjs`, `scripts/poses.test.mjs`, `scripts/points-d-entree.test.mjs`, `scripts/nettoyage-des-bancs.test.mjs`, `NOTES-DE-VERSION.md`, `README.md`, `fusionner/SKILL.md` (étape 0). Les deux modules et les deux bancs ont été écrits et joués sur un clone jetable (« Vérification ») ; seuls les bancs sont donnés ici. `main` était à `99a6214` (7.18.0) à l'écriture, une version après le commit que la spec cite. Seize points où la spec se tait ou se contredit sont listés dans « Ce qui n'a pas été établi », chacun avec le choix joué ; le quatrième (H14 contre `A-90`) est le seul où une histoire et une décision de la spec ne disent pas la même chose.
 - 2026-11-18 — Repris après les décisions de l'architecte sur les seize points : `A-110` (la règle 3 se décide par cause : décision 16, contrat du § 2, H14 qui rend maintenant `à-relire`, un test `A-110` de plus, sept mutations de plus) et `A-111` (les quinze autres confirmés tels quels, marqués dans les décisions ; deux décisions ajoutées, 21 et 22). « Ce qui n'a pas été établi » ne garde que les limites et ce qui n'est pas vérifié ; deux limites y sont nouvelles (le plafond qui peut tomber un tour trop tard après un refus tardif, la ligne de la cause (c) sur un tour jamais validé). Rejoué sur un clone neuf de `origin/main` à `22b2d49` (7.18.1) : voir « Vérification ». La spec porte `A-110` et `A-111`, et les amendements d'`A-80`, `A-85` et `A-90`.
+- 2026-11-18 — Repris une seconde fois, sur les quatre limites tranchées par l'architecte. (1) Refus tardif : la cause (b) de la règle 3 ne pose plus rien, elle renvoie à la règle 4, qui retire `à-fusionner`, plafond compris ; test du troisième tour compté (plafond, aucun quatrième tour après une poussée) et de l'arbitrage sur une PR encore `à-fusionner` ; l'interversion des règles 3 et 4 n'est plus une mutation, leurs conditions s'excluent. (2) Cause (c) : trois lignes selon le fait, un test par ligne. (3) et (4) sont dans la spec : le tableau d'`A-84`, et le lot 5a qui attend le ticket 8 s'il écrit l'étape 0 de `fusionner/SKILL.md` (vérifié dans les tickets de l'autre programme : aucun ne touche cette étape, les tickets 2, 3, 4, 8 et 9 tiennent le fichier). Rejoué sur un clone neuf : voir « Vérification ».
