@@ -22,8 +22,12 @@
 # sujet non livré SANS sous-PR ouverte : bouger la tête d'un sujet sous ses sous-PR les remettait
 # en conflit avant leur passage (cas vécu). Un sujet actif est mis à jour par sa livraison
 # (passer.sh) ou par `sujet.sh fusionner` quand une sous-PR apporte du develop plus récent.
-# Une sous-PR en conflit avec son sujet sur des index générés seuls n'est pas renvoyée : `sujet.sh
-# fusionner` la met à jour, régénère et pousse (sortie 8, MISE À JOUR) ; elle repasse CI verte.
+# Règle d'ascendance (skill `fusionner`) : une sous-PR en retard sur son sujet (documentation comprise), ou en
+# conflit avec lui sur des index générés seuls, n'est pas renvoyée : `sujet.sh fusionner` la met à jour, régénère,
+# pousse et attend la CI du nouveau sommet, puis la squashe ; si cette CI ne finit pas, sortie 8 (MISE À JOUR) :
+# elle repasse au tour suivant. Arbre du squash ≠ arbre testé, vers un sujet (`sujet.sh`, sortie 12) comme vers
+# develop (`passer.sh`, sortie 12) : la PR porte le commentaire, la boucle s'arrête (ARRÊT, sortie 12) et le
+# capitaine le dit à son lanceur.
 # Un conflit est annulé et signalé (SUJET EN CONFLIT), jamais résolu ici : une session le
 # résout dans une PR de mise à jour (en-tête de sujet.sh), que `sujet.sh fusionner` fait entrer par
 # avance rapide. Une fusion sans conflit refusée par un contrôle (hook, dépendances, gate des index, sortie 3)
@@ -313,13 +317,18 @@ traiter_sujets() {
           # Worktree du capitaine sale : rien que l'auteur puisse corriger, jamais un renvoi.
           6) echo "[#$n] PAS PROPRE : worktree du capitaine à nettoyer, sous-PR laissée dans la file (aucun renvoi)" ;;
           7) echo "[#$n] sous-PR non éligible (fermée ou en brouillon)" ;;
-          8) echo "[#$n] MISE À JOUR avec ${etat%% :*} (index régénérés), CI relancée" ;;
+          8) echo "[#$n] MISE À JOUR avec ${etat%% :*} poussée, CI pas finie : repasse au tour suivant" ;;
+          # Arbre du squash ≠ arbre testé : arrêt. Le `while` tourne dans le sous-shell du tube : le code remonte
+          # après lui (PIPESTATUS), et la boucle sort en 12.
+          12) echo "ARRÊT sur #$n (sortie 12) : arbre du squash ≠ arbre testé"; exit 12 ;;
           # PR de mise à jour : un outil du capitaine en échec, rien que la session puisse corriger.
           11) echo "[#$n] ÉCHEC DU CAPITAINE : sous-PR laissée dans la file (aucun renvoi), cause ci-dessus" ;;
           *) echo "[#$n] sous-PR non éligible (sortie $rc)" ;;
         esac ;;
     esac
   done
+  rc=${PIPESTATUS[1]}
+  [ "$rc" != 12 ] || exit 12
   # Sujets finis : PR finale ouverte, elle entre dans la file au tour suivant.
   verifier_arret
   bash "$SUJET" livrer-prets 2>&1 | sed 's#^#[sujets] #; s#PR \(\#[0-9]*\) ouverte#LIVRÉ : PR \1 ouverte#'
@@ -385,6 +394,8 @@ while :; do
       # avec le motif, la PR ne reste pas en file muette (#1414). Sautée si le renvoi échoue.
       bash "$outils/refus.sh" "$n" "$sortie" || sautees="$sautees$n " ;;
     7) sautees="$sautees$n " ;; # rien à corriger côté auteur (empilée, brouillon, déjà renvoyée, attend un propriétaire)
+    # Fusionnée, mais le code entré n'est pas celui que la CI a jugé : passer.sh a commenté la PR ; un humain examine.
+    12) echo "ARRÊT sur #$n (sortie 12) : arbre du squash ≠ arbre testé"; exit 12 ;;
     *) echo "ARRÊT sur #$n (sortie $rc)"; exit "$rc" ;;
   esac
 done
