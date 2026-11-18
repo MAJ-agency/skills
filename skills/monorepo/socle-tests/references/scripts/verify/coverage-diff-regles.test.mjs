@@ -13,6 +13,8 @@ import {
   inScope,
   metriques,
   plages,
+  referenceDuDiff,
+  suiteSurBaseCible,
   verdict,
 } from "./coverage-diff-regles.mjs";
 
@@ -265,4 +267,52 @@ test("la base : un sujet qui a avancé depuis la création de la branche reste l
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
+});
+
+test("suiteSurBaseCible : un import relatif ou par alias du fichier, de son dossier à index ou de son module voisin cible le fichier ; un import de type, d'un autre fichier ou d'un dossier qui a un fichier frère ne le cible pas", () => {
+  const fichier = "src/users/users.repository.ts";
+  const alias = [{ motif: "@u/*", cibles: ["src/users/*"] }];
+  const presents = new Set(["src/users/index.ts", "src/lots/index.ts", "src/lots.ts"]);
+  const existe = (c) => presents.has(c);
+  const cible = (source, chemin = "src/users/users.db.spec.ts", f = fichier, a = alias) =>
+    suiteSurBaseCible(f, [{ chemin, source }], a, existe);
+  // le fichier lui-même, relatif ou par alias, avec ou sans extension
+  assert.equal(cible('import { R } from "./users.repository";'), true);
+  assert.equal(cible('import { R } from "./users.repository.js";'), true);
+  assert.equal(cible('import { R } from "@u/users.repository";'), true);
+  assert.equal(cible('import "./users.repository";'), true);
+  assert.equal(cible('const m = await import("./users.repository");'), true);
+  // le dossier à index, sans fichier frère
+  assert.equal(cible('import { x } from "../users";', "src/other/o.db.spec.ts"), true);
+  // le module voisin du dossier
+  assert.equal(cible('import { M } from "../users.module";', "src/other/o.db.spec.ts"), true);
+  // un type n'est pas exécuté
+  assert.equal(cible('import type { R } from "./users.repository";'), false);
+  assert.equal(cible('export type { R } from "./users.repository";'), false);
+  // un autre fichier
+  assert.equal(cible('import { x } from "./autre";'), false);
+  // un dossier qui a un fichier frère `lots.ts` : l'import vise ce fichier, pas l'index
+  assert.equal(cible('import { x } from "../lots";', "src/other/o.db.spec.ts", "src/lots/index.ts"), false);
+  // un paquet extérieur n'est pas le fichier
+  assert.equal(cible('import { x } from "zod";'), false);
+  // sans alias lisible, seuls les imports relatifs comptent
+  assert.equal(cible('import { R } from "@u/users.repository";', undefined, fichier, []), false);
+  // aucune spec
+  assert.equal(suiteSurBaseCible(fichier, [], alias, existe), false);
+});
+
+test("referenceDuDiff : la fusion recalculée gagne ; base develop inchangée ; develop illisible, la base et la note ; HEAD contient develop et la base non, develop ; sinon la base", () => {
+  const base = { base: "origin/sujet/x", fusion: null, developLisible: true, headContientDevelop: false, baseContientDevelop: false };
+  const mb = "mmm";
+  const ref = (o) => referenceDuDiff({ ...base, mergeBase: mb, mergeBaseDevelop: "ddd", ...o });
+  assert.deepEqual(ref({ fusion: "tree", headContientDevelop: true }), { reference: "tree", sorte: "fusion", note: null });
+  assert.deepEqual(ref({ base: "origin/develop", headContientDevelop: true }), { reference: mb, sorte: "base", note: null });
+  assert.deepEqual(ref({ developLisible: false }), {
+    reference: mb,
+    sorte: "base",
+    note: "origin/develop illisible : diff lu contre origin/sujet/x, sans repli",
+  });
+  assert.deepEqual(ref({ headContientDevelop: true }), { reference: "ddd", sorte: "develop", note: null });
+  assert.deepEqual(ref({ headContientDevelop: true, baseContientDevelop: true }), { reference: mb, sorte: "base", note: null });
+  assert.deepEqual(ref({}), { reference: mb, sorte: "base", note: null });
 });

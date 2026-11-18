@@ -13,6 +13,12 @@
  *   1. Fichiers du diff (`git diff <merge-base(base, HEAD)>`, index et arbre de travail
  *      compris, fichiers non suivis compris), filtrés sur le code (`coverage-diff-regles.mjs`).
  *      PR de mise à jour d'un sujet : le diff part de la fusion recalculée de develop dans le sujet.
+ *      Autre forme de réception de develop (fusion dont le premier parent est develop, retouche avant
+ *      la fusion, sujet qui a avancé, fusion d'essai de GitHub) : quand HEAD contient `origin/develop`
+ *      et que la base non, le diff part du merge-base de develop et de HEAD, et la sortie le dit. Limite :
+ *      le travail propre du sujet qui n'est pas dans develop est alors remesuré, c'est plus que l'écart
+ *      à la fusion, jamais moins ; la fusion recalculée reste la mesure la plus juste quand elle s'applique.
+ *      `origin/develop` illisible : pas de repli, une note le dit.
  *      Base introuvable et distant sans aucune branche (`git ls-remote --heads origin` vide) :
  *      premier push d'un dépôt neuf, rien à comparer, sortie 0 ; sinon sortie 2, en disant où la
  *      base manque (à rapatrier du distant, absente du distant aussi, distant muet).
@@ -20,7 +26,10 @@
  *      rapport istanbul `coverage-final.json`, `coverage.all` pour qu'un fichier qu'aucune
  *      suite ne charge apparaisse à zéro. Si le paquet a un `vitest.db.config.ts` et que
  *      `DATABASE_URL` est définie, les suites sur base sont jouées aussi et les deux rapports
- *      additionnés : un repository n'est prouvé que contre Postgres.
+ *      additionnés : un repository n'est prouvé que contre Postgres. Sans `DATABASE_URL` (et hors GitHub
+ *      Actions), elles ne sont pas jouées : un fichier en échec qu'une suite `*.db.spec.ts` du paquet cible
+ *      (import relatif ou alias du tsconfig, lu dans les sources) passe en avertissement, `⚠`, sortie 0 s'il
+ *      n'y a pas d'autre échec ; la CI, qui a Postgres, le juge.
  *   3. Verdict par fichier (seuils de `coverage-diff-regles.mjs`) :
  *        - fichier modifié sous 80 % de lignes OU 70 % de branches   → échec
  *        - fichier NOUVEAU sous 90 % de lignes (branches : 70 %)      → échec
@@ -55,6 +64,8 @@ import {
   inScope,
   metriques,
   plages,
+  referenceDuDiff,
+  suiteSurBaseCible,
   verdict,
 } from "./coverage-diff-regles.mjs";
 
@@ -171,8 +182,25 @@ try {
 }
 // PR de mise à jour : on compare le sommet à la fusion recalculée, pas à la base.
 const fusion = /^origin\/sujet\//.test(String(BASE)) ? fusionRecalculee(BASE) : null;
-const REFERENCE = fusion ?? mergeBase;
-const COMPARE_A = fusion ? `la fusion recalculée de develop dans ${BASE} (${fusion.slice(0, 8)})` : `${BASE} (${mergeBase.slice(0, 8)})`;
+// Réception de develop d'une autre forme : HEAD contient develop et la base non, on lit contre develop.
+const developLisible = gitOk("rev-parse", "--verify", "--quiet", `${BASE_DEFAUT}^{commit}`) !== null;
+const contient = (ref) => gitOk("merge-base", "--is-ancestor", BASE_DEFAUT, ref) !== null;
+const { reference: REFERENCE, sorte, note } = referenceDuDiff({
+  base: BASE,
+  mergeBase,
+  mergeBaseDevelop: developLisible ? gitOk("merge-base", BASE_DEFAUT, "HEAD") : null,
+  fusion,
+  developLisible,
+  headContientDevelop: developLisible && contient("HEAD"),
+  baseContientDevelop: developLisible && contient(BASE),
+});
+const COMPARE_A =
+  sorte === "fusion"
+    ? `la fusion recalculée de develop dans ${BASE} (${fusion.slice(0, 8)})`
+    : sorte === "develop"
+      ? `${BASE_DEFAUT} (${REFERENCE.slice(0, 8)}), HEAD contient develop et ${BASE} non : le code que develop apporte n'est pas remesuré`
+      : `${BASE} (${mergeBase.slice(0, 8)})`;
+if (note) dire(`coverage-diff: ${note}`);
 
 /** fichier → 'A' (nouveau) | 'M' (modifié). */
 const statuts = new Map();
@@ -268,12 +296,43 @@ function mesurer(pkg, fichiersDuPaquet, config) {
   return { rapport, suites: Number(suites) || 0 };
 }
 
+/** Les suites sur base (`*.db.spec.ts`) du paquet, suivies ou non, hors ignorées ; leur source, et les alias du tsconfig. */
+function suitesSurBase(pkg) {
+  const liste = gitOk("ls-files", "--cached", "--others", "--exclude-standard", "--", pkg) ?? "";
+  return liste
+    .split("\n")
+    .filter((f) => /\.db\.spec\.tsx?$/.test(f) && existsSync(join(ROOT, f)))
+    .map((f) => ({ chemin: relative(pkg, f), source: readFileSync(join(ROOT, f), "utf8") }));
+}
+function aliasDuPaquet(pkg) {
+  try {
+    const brut = readFileSync(join(ROOT, pkg, "tsconfig.json"), "utf8").replace(/^\s*\/\/.*$/gm, "").replace(/\/\*[\s\S]*?\*\//g, "");
+    const opts = JSON.parse(brut.replace(/,(\s*[}\]])/g, "$1")).compilerOptions ?? {};
+    const racine = (opts.baseUrl ?? ".").replace(/^\.\/?/, "");
+    return Object.entries(opts.paths ?? {}).map(([motif, cibles]) => ({
+      motif,
+      cibles: cibles.map((c) => `${racine ? `${racine}/` : ""}${c.replace(/^\.\//, "")}`),
+    }));
+  } catch {
+    return []; // tsconfig illisible : seuls les imports relatifs comptent
+  }
+}
+
 const lignesTableau = [];
 let suitesTotal = 0;
 const debut = Date.now();
 for (const [pkg, fs] of parPaquet) {
-  const avecBase = existsSync(join(ROOT, pkg, "vitest.db.config.ts")) && Boolean(process.env.DATABASE_URL);
+  const aConfigBase = existsSync(join(ROOT, pkg, "vitest.db.config.ts"));
+  const avecBase = aConfigBase && Boolean(process.env.DATABASE_URL);
+  // Sans base locale (jamais sous GitHub Actions, qui doit l'avoir), les suites sur base ne sont pas jouées.
+  const sansBase = aConfigBase && !process.env.DATABASE_URL && process.env.GITHUB_ACTIONS !== "true";
   dire(`\n── ${pkg} : ${fs.length} fichier(s)${avecBase ? ", suites sans base puis sur base" : ""}`);
+  if (sansBase) {
+    dire(
+      `  ⚠ suites sur base non jouées (*.db.spec.ts) : DATABASE_URL absente (${pkg}). ` +
+        `Un fichier que seules elles ciblent est seulement signalé, jugé par la CI avec Postgres.`,
+    );
+  }
   for (const f of fs) dire(`   • ${f}${statuts.get(f) === "A" ? " (nouveau)" : ""}`);
   if (DRY_RUN) continue;
   let { rapport, suites } = mesurer(pkg, fs, null);
@@ -288,7 +347,12 @@ for (const [pkg, fs] of parPaquet) {
     const entree = rapport[join(ROOT, f)];
     const m = entree ? metriques(entree) : null;
     const nouveau = statuts.get(f) === "A";
-    lignesTableau.push({ f, nouveau, m, problemes: verdict(m, { nouveau, seuils }) });
+    const problemes = verdict(m, { nouveau, seuils });
+    const surBase =
+      problemes.length > 0 &&
+      sansBase &&
+      suiteSurBaseCible(relative(pkg, f), suitesSurBase(pkg), aliasDuPaquet(pkg), (c) => existsSync(join(ROOT, pkg, c)));
+    lignesTableau.push({ f, nouveau, m, problemes: surBase ? [] : problemes, avertissement: surBase ? problemes : [] });
   }
 }
 
@@ -303,13 +367,16 @@ const largeur = Math.max(7, ...lignesTableau.map((r) => r.f.length));
 dire(`\n${"fichier".padEnd(largeur)} | lignes  | branches | fonctions | lignes non couvertes`);
 dire(`${"-".repeat(largeur)}-|---------|----------|-----------|---------------------`);
 for (const r of lignesTableau) {
-  const marque = r.problemes.length ? "✖" : "✔";
+  const marque = r.problemes.length ? "✖" : r.avertissement.length ? "⚠" : "✔";
   const nc = r.m?.nonCouvertes?.length ? plages(r.m.nonCouvertes) : "";
   dire(`${r.f.padEnd(largeur)} | ${fmt(r.m?.lignes)} | ${fmt(r.m?.branches)}  | ${fmt(r.m?.fonctions)}   | ${nc} ${marque}${r.nouveau ? " (nouveau)" : ""}`);
 }
 const echecs = lignesTableau.filter((r) => r.problemes.length);
 dire(`\ncoverage-diff: ${lignesTableau.length} fichier(s) mesuré(s), ${suitesTotal} suite(s), ${Math.round((Date.now() - debut) / 1000)} s`);
 for (const r of echecs) dire(`  ✖ ${r.f} : ${r.problemes.join(" ; ")}`);
+for (const r of lignesTableau.filter((x) => x.avertissement.length)) {
+  dire(`  AVERTISSEMENT ${r.f} : couverture non mesurée sans base : la CI la juge avec Postgres (${r.avertissement.join(" ; ")})`);
+}
 if (echecs.length) {
   dire(
     "  → écrire la suite qui exécute ces lignes (nominal, limites, erreurs), ou exempter avec\n" +

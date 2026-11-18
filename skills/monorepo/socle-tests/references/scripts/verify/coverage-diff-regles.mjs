@@ -182,3 +182,89 @@ export function choisirBase(candidats) {
   );
   return tri[0]?.ref ?? BASE_DEFAUT;
 }
+
+/**
+ * Les imports qu'une source exécute : `from "…"`, `import "…"` et `import("…")`. Un `import type`
+ * et un `export type … from` ne comptent pas, un type n'est pas exécuté.
+ */
+export function importsDe(source) {
+  const sansTypes = source
+    .replace(/\b(?:import|export)\s+type\b[^;]*?\bfrom\s*["'][^"']+["']/g, "")
+    .replace(/\b(?:import|export)\s+type\b\s*\{[^}]*\}\s*from\s*["'][^"']+["']/g, "");
+  const trouves = [];
+  for (const m of sansTypes.matchAll(/\bfrom\s*["']([^"']+)["']|\bimport\s*["']([^"']+)["']|\bimport\s*\(\s*["']([^"']+)["']\s*\)/g)) {
+    trouves.push(m[1] ?? m[2] ?? m[3]);
+  }
+  return trouves;
+}
+
+const normaliser = (chemin) => {
+  const sortie = [];
+  for (const part of chemin.split("/")) {
+    if (part === "" || part === ".") continue;
+    if (part === "..") sortie.pop();
+    else sortie.push(part);
+  }
+  return sortie.join("/");
+};
+const sansExtension = (c) => c.replace(/\.(?:[cm]?[jt]sx?)$/, "");
+
+/**
+ * Une suite sur base (`*.db.spec.ts`) du paquet cible-t-elle ce fichier ? Lu dans les sources,
+ * jamais mesuré. Chemins relatifs au paquet. `specs` : `[{ chemin, source }]` ; `alias` : les
+ * `compilerOptions.paths` du `tsconfig.json` du paquet, `[{ motif: "@x/*", cibles: ["src/x/*"] }]`
+ * (vide si illisible : seuls les imports relatifs comptent) ; `existe(chemin)` dit si un fichier
+ * existe. Le fichier est ciblé par un import de lui-même, de son dossier s'il porte un `index.*`
+ * et qu'aucun fichier frère `<dossier>.ts` n'existe, ou du `<dossier>.module` voisin.
+ */
+export function suiteSurBaseCible(fichier, specs, alias, existe) {
+  const dossier = fichier.split("/").slice(0, -1).join("/");
+  const cible = sansExtension(fichier);
+  const frere = ["ts", "tsx"].some((e) => existe(`${dossier}.${e}`));
+  const index = ["ts", "tsx", "js", "mjs"].some((e) => existe(`${dossier}/index.${e}`));
+  const resoudre = (spec, chemin) => {
+    if (spec.startsWith(".")) {
+      return [normaliser(`${chemin.split("/").slice(0, -1).join("/")}/${spec}`)];
+    }
+    return alias.flatMap(({ motif, cibles }) => {
+      const etoile = motif.indexOf("*");
+      const [avant, apres] = etoile === -1 ? [motif, null] : [motif.slice(0, etoile), motif.slice(etoile + 1)];
+      if (etoile === -1 ? spec !== motif : !spec.startsWith(avant) || !spec.endsWith(apres)) return [];
+      const capture = etoile === -1 ? "" : spec.slice(avant.length, spec.length - apres.length);
+      return cibles.map((c) => normaliser(c.replace("*", capture)));
+    });
+  };
+  return specs.some(({ chemin, source }) =>
+    importsDe(source).some((spec) =>
+      resoudre(spec, chemin).some((r) => {
+        const sans = sansExtension(r);
+        return (
+          sans === cible ||
+          (sans === dossier && index && !frere) ||
+          sans === `${dossier}.module`
+        );
+      }),
+    ),
+  );
+}
+
+/**
+ * Ce contre quoi le diff se lit. `fusion` (l'arbre de la fusion recalculée d'une PR de mise à
+ * jour) gagne. Sinon, base `origin/develop` : la base. `origin/develop` illisible : la base,
+ * avec une note. HEAD contient `origin/develop` et la base non (réception de develop dont la
+ * forme n'est pas celle d'une mise à jour) : le merge-base de develop et de HEAD, pour que le
+ * code que develop apporte ne soit pas remesuré. Sinon la base. Le critère est le contenu, jamais
+ * le nom de la branche. Rend `{ reference, sorte, note }`, `sorte` valant `fusion`, `develop`
+ * ou `base`.
+ */
+export function referenceDuDiff({ base, mergeBase, mergeBaseDevelop, fusion, developLisible, headContientDevelop, baseContientDevelop }) {
+  if (fusion) return { reference: fusion, sorte: "fusion", note: null };
+  if (base === BASE_DEFAUT) return { reference: mergeBase, sorte: "base", note: null };
+  if (!developLisible) {
+    return { reference: mergeBase, sorte: "base", note: `${BASE_DEFAUT} illisible : diff lu contre ${base}, sans repli` };
+  }
+  if (headContientDevelop && !baseContientDevelop) {
+    return { reference: mergeBaseDevelop, sorte: "develop", note: null };
+  }
+  return { reference: mergeBase, sorte: "base", note: null };
+}
