@@ -1,6 +1,6 @@
 # La relecture que l'auteur ne contrôle pas — spec du chantier 3
 
-Programme : [`map.md`](map.md) (« gouverner nos boucles »). Décisions du produit : `P-47` à `P-58` de la carte, prises le 2026-11-18 dans le grilling du chantier 3 (skills `grilling` puis `domain-modeling`, une question à la fois). Elles amendent `P-6` et remplacent `P-41`. État : spec écrite, à faire relire par un agent neuf, puis à découper en tickets.
+Programme : [`map.md`](map.md) (« gouverner nos boucles »). Décisions du produit : `P-47` à `P-58` de la carte, prises le 2026-11-18 dans le grilling du chantier 3 (skills `grilling` puis `domain-modeling`, une question à la fois). Elles amendent `P-6` et remplacent `P-41`. État : **première version, pas prête.** Relue par un agent neuf le 2026-11-18 : huit bloquants et quinze points à corriger, dans [`relecture-independante.relecture-1.md`](relecture-independante.relecture-1.md). Aucun ne rouvre une décision du produit ; trois ajouts sont à lui dire (qui arbitre une PR de l'architecte, le modèle des sessions de relecture, l'exemption des livraisons de sujet). À reprendre avant tout découpage.
 
 ## Le problème
 
