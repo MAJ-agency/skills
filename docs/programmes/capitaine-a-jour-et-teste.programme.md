@@ -59,7 +59,7 @@ Décisions de l'architecte :
 | Rôle | Ticket | Session | Modèle | Contexte max | Coût $ |
 | ---- | ------ | ------- | ------ | ------------ | ------ |
 | ticket | 1 | session_012xRpgccroQauUaW3RGm1QW | opus | 366 067 | 16,15 |
-| ticket | 15 | session_012xRpga1QnWvr6a2oT2ptow | sonnet | — | — |
+| ticket | 15 | session_012xRpga1QnWvr6a2oT2ptow | sonnet | 159 784 | 2,00 |
 | ticket | 19 | session_012xRpgbEBkwAzwZSDmB3KtH | sonnet | — | — |
 | ticket | 10 | session_012xRpgbJm6pUqbrixWZ1a5w | sonnet | — | — |
 | ticket | 12 | session_012xRpgZRkibUK1CA2XDumRw | sonnet | — | — |
@@ -121,3 +121,4 @@ Demande du produit, 2026-11-18, recopiée telle quelle (relevée sur `MAJ-agency
 - 2026-11-18 — 19 h 17 UTC. **PR 115 fusionnée** par le capitaine (squash `59b8233`, `main` en 7.16.0) ; arbre du squash identique à l'arbre testé (`5fd6b28`), vérifié par l'architecte. Ticket 1 fait. PR 111 renvoyée par le capitaine (sommet bougé après l'ordre : la carte avait reçu des commits) ; ordre reposé au sommet `a7ab1ea`, la carte ne se pousse plus avant sa fusion. Signal donné à la PR 112 (reprise de `main`, 7.17.0). Ticket 8 lancé : session_012xRpgb2wqPnXRgEHTvthK3. PR 119 (ticket 17, 757 tests, recherche adversariale) livrée, en contre-relecture adversariale ; A-45. Incident signalé par sa session : un `git commit -anm x` joué par erreur dans son dépôt de travail (sans hook), annulé par `git reset --soft` avant tout push.
 - 2026-11-18 — 19 h 22 UTC. PR 112 reprise sur `main` (7.17.0, `18e6d04`), delta relu, ordre et label posés. Le produit demande d'archiver les sessions terminées : session du ticket 1 archivée (366 067 tokens, 16,15 $) ; les autres sessions du programme ont encore une étape (reprise de `main` ou contre-relecture) ; celles des programmes Fedora et Iroki ne sont pas à cet architecte, non touchées.
 - 2026-11-18 — 19 h 25 UTC. Contre-relecture adversariale de la PR 119 : non conforme, trois bloquants (expansion dans le mot de programme ; `env -S` et alias ; régression sur six formes citées), A-46 ; corrections et banc d'Iroki envoyés à la session.
+- 2026-11-18 — 19 h 38 UTC. **PR 112 fusionnée** (squash `1c4acb1`, 7.17.0), arbre identique à l'arbre testé, vérifié. Ticket 15 fait, session archivée (2,00 $). Signal donné à la PR 113 (7.18.0). PR 111 mise à jour par GitHub sur `main`, le capitaine la reprend.
