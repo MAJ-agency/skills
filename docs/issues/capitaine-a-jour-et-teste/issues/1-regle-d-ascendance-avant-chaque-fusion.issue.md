@@ -61,7 +61,7 @@ Règles à lire : `fusionner/SKILL.md` en entier, et l'en-tête de `suj/sujet.sh
 
 ## Décisions
 
-Tenues (spec et programme) : `P-1` (la règle, conflit hors index renvoyé), `P-6` (aucune exception pour la documentation, remplace `P-3`), `A-1` à `A-6`, `A-16`. Rappel en une ligne chacune, puis ce que le ticket précise.
+Tenues (spec et programme) : `P-1` (la règle, conflit hors index renvoyé), `P-6` (aucune exception pour la documentation, remplace `P-3`), `A-1` à `A-6`, `A-16`, `A-35` (une sous-PR étiquetée à la fois par sujet). Rappel en une ligne chacune, puis ce que le ticket précise.
 
 - `A-1` : une seule fonction, partagée par `passer.sh` et `sujet.sh` ; quatre verdicts, fondés sur `git merge-base --is-ancestor` et un essai de fusion.
 - `A-2` : aucune exception pour la documentation, donc ni clé de contrat, ni tri du retard, ni lecture du réglage « à jour » de GitHub.
@@ -79,7 +79,8 @@ Précisions du ticket :
      - `à-jour` si `git merge-base --is-ancestor <cible> <testé>` réussit ;
      - sinon, la fonction essaie `git merge-tree --write-tree --name-only --no-messages <testé> <cible>` (git ≥ 2.38, déjà exigé par `passer.sh:125`) ;
      - une fusion propre donne `retard` ;
-     - un conflit dont tous les fichiers sont des index générés déclarés donne `conflit-index` ;
+     - `merge-tree` sort en 1 sur un conflit, et tout autre code non nul est une erreur, donc la sortie 1 de la fonction ;
+     - un conflit dont tous les fichiers sont des index générés déclarés donne `conflit-index` ; la liste des index se lit sur la cible (`git show <cible>:scripts/docs/index-generes.json`), jamais dans l'arbre de travail ;
      - tout autre conflit donne `conflit`.
    - Sortie 0 avec un verdict. Sortie 1 si la fonction ne peut pas conclure (réf absente, git en échec), avec le motif sur la sortie d'erreur ; ce n'est jamais un `à-jour` par défaut.
    - Une sortie 1 fait sortir `passer.sh` en 3 (« contrôle d'ascendance illisible », la boucle s'arrête), et `sujet.sh` en 11 (côté capitaine, aucun renvoi).
@@ -335,4 +336,4 @@ Tests existants qui changent de sens ou de fixture, chacun gardé et listé dans
     - fixtures réécrites des tests à sortie 8 (M7) ;
     - fichiers chauds complétés ; sans CLI nouvelle, `points-d-entree.test.mjs` ne change pas (M8) ;
     - part de `A-7` réalisée ici (M10).
-  - **Écart avec la spec** : la spec garde « une sous-PR de code à la fois par sujet ». Avec `P-6`, une sous-PR de documentation remet elle aussi les autres en retard, et aucun outil ne sépare plus le code de la documentation : le ticket dit « une sous-PR à la fois ». Si l'architecte veut garder « de code », il faut un tri par le conducteur, que `P-6` a retiré.
+  - « Une sous-PR à la fois par sujet » : tenu par `A-35` (carte), spec alignée.
