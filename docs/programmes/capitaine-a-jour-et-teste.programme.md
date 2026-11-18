@@ -65,7 +65,7 @@ Décisions de l'architecte :
 | ---- | ------ | ------- | ------ | ------------ | ------ |
 | ticket | 1 | session_012xRpgccroQauUaW3RGm1QW | opus | 366 067 | 16,15 |
 | ticket | 15 | session_012xRpga1QnWvr6a2oT2ptow | sonnet | 159 784 | 2,00 |
-| ticket | 19 | session_012xRpgbEBkwAzwZSDmB3KtH | sonnet | — | — |
+| ticket | 19 | session_012xRpgbEBkwAzwZSDmB3KtH | sonnet | — | archivée |
 | ticket | 10 | session_012xRpgbJm6pUqbrixWZ1a5w | sonnet | — | — |
 | ticket | 12 | session_012xRpgZRkibUK1CA2XDumRw | sonnet | — | — |
 | ticket | 17 | session_012xRpgbyvYBRavfo3t7tSRy | opus | — | — |
@@ -130,3 +130,4 @@ Demande du produit, 2026-11-18, recopiée telle quelle (relevée sur `MAJ-agency
 - 2026-11-18 — 19 h 45 UTC. PR 119 corrigée (`f44bdcf`, 766 tests, 27 mutations) ; seconde contre-relecture : B1 à B3 et M1 fermés, aucun refus à tort nouveau ; un bloquant restant (tableau en position de programme), A-47, renvoyé.
 - 2026-11-18 — 19 h 45 UTC. PR 111 renvoyée une seconde fois par le capitaine : sommet `814a150` mis à jour par GitHub, que son `get_commit` ne permet pas de prouver. A-48 (une PR étiquetée à la fois, `main` fusionnée par l'auteur avant le label) ; défaut de la procédure noté au Fog. PR 113 reprise sur `main` (7.18.0, `2541c5b`), relue, étiquetée. PR 120 (ticket 8, 780 tests) livrée, en contre-relecture.
 - 2026-11-18 — 19 h 55 UTC. PR 119 (`5a92159`, A-47) : troisième contre-relecture non conforme (tableaux modifiés, `set --`) ; A-49, liste blanche.
+- 2026-11-18 — 19 h 52 UTC. **PR 113 fusionnée** (squash `99a6214`, 7.18.0), arbre identique, vérifié ; ticket 19 fait, session archivée. `main` fusionnée dans la branche de la PR 111 par l'architecte (A-48), ordre posé sur le nouveau sommet.
