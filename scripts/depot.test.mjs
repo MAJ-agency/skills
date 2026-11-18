@@ -1010,3 +1010,17 @@ test("ce que T3 suppose autour de lui : le critère T5 auquel (d) renvoie, le co
   const { version } = JSON.parse(readFileSync(join(RACINE, ".claude-plugin/plugin.json"), "utf8"));
   assert.ok(auMoins(version, "7.15.0"), `.claude-plugin/plugin.json : version ${version} ; le critère T3 à deux branches est celui du plugin 7.15.0 et des suivants`);
 });
+
+test("la règle d'ascendance du plugin 7.16.0 : version, note de version en tête, renvoi du README, une sous-PR étiquetée à la fois", () => {
+  const { version } = JSON.parse(readFileSync(join(RACINE, ".claude-plugin/plugin.json"), "utf8"));
+  assert.ok(auMoins(version, "7.16.0"), `.claude-plugin/plugin.json : version ${version} ; la règle d'ascendance est celle du plugin 7.16.0 et des suivants`);
+  const notes = readFileSync(join(RACINE, "NOTES-DE-VERSION.md"), "utf8");
+  const titres = [...notes.matchAll(/^## (.*)$/gm)];
+  assert.ok(titres.length > 0, "NOTES-DE-VERSION.md : au moins une note, titrée `## <version> — <date>`");
+  assert.ok(titres[0][1].startsWith(version), `NOTES-DE-VERSION.md : la première note (« ${titres[0][1]} ») commence par la version de plugin.json, ${version}`);
+  const premiere = notes.slice(titres[0].index, titres[1]?.index ?? notes.length);
+  for (const section of ["### Ce qui change", "### Ce qu'un projet fait pour en profiter"])
+    assert.ok(premiere.includes(section), `NOTES-DE-VERSION.md : la note ${version} porte « ${section} »`);
+  assert.ok(readFileSync(join(RACINE, "README.md"), "utf8").includes("NOTES-DE-VERSION.md"), "README.md renvoie à NOTES-DE-VERSION.md");
+  exiger(`${SKILLS_CHAINE}/fusionner/SKILL.md`, ["une seule sous-PR porte `à-fusionner` à la fois"]);
+});
