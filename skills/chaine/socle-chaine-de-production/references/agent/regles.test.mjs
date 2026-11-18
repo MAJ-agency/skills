@@ -1882,3 +1882,9 @@ test('ticket 17 : contre-relecture de l’architecte — programme à expansion,
   ]);
   passent(['git -C "$X" push origin feat/x', '"$EDITOR" fichier.md', 'alias ll="ls -l"; ll', 'env -S "pnpm test"']);
 });
+
+test('ticket 17 : seconde contre-relecture (A-47) — un tableau ou hash -p en position de programme', () => {
+  refuseesQuelleQueSoitLaRaison(["G=(git commit); \"${G[@]}\" --no-verify -am x", "G=(git commit); \"${G[@]}\" -n -am x", "G=(git commit); ${G[@]} --no-verify -am x", "G[0]=git; G[1]=commit; \"${G[@]}\" -n -am x", "G=(git); \"${G[@]}\" commit -n -am x", "G=(git commit -n); ${G[*]} -am x", "\"${H[@]}\" commit -am x", "hash -p /usr/bin/git g; g commit -n -am x"]);
+  refusees(['G=(git push -q); "${G[@]}" origin HEAD:sujet/z'], SUJET);
+  passent(["G=(git status); \"${G[@]}\"", "a=(pnpm test); \"${a[@]}\"", "hash -r", "G=(git commit); \"${G[@]}\" -m \"fix -n\"", "G=(git commit); \"${G[@]}\" -m \"$msg\""]);
+});

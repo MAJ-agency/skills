@@ -1016,6 +1016,8 @@ class Lecteur {
         if (!valeur) this.echec('tableau illisible');
         valeurs.push(valeur);
       }
+      // Le nom du tableau, pour qu'un `"${a[@]}"` en position de programme se relise avec ses valeurs.
+      valeurs.nom = nom;
       if (valeurs.length) cmd.tableaux.push(valeurs);
     }
     return true;
@@ -2495,8 +2497,29 @@ function lireGit(lu) {
       }
     }
   }
+  // Les tableaux affectés dans la commande (`G=(git commit)`, `G[0]=git`), chaque affectation gardée : un tableau en
+  // position de programme (`"${G[@]}" --no-verify …`) se relit avec ses valeurs (A-47).
+  const tableaux = new Map();
+  const ajouter = (nom, valeurs) => tableaux.set(nom, [...(tableaux.get(nom) ?? []), valeurs]);
+  for (const cmd of lu.commandes) {
+    // Chaque valeur gardée par son texte source (guillemets compris), relu tel quel ; une expansion ne se lit pas.
+    for (const t of cmd.tableaux) if (t.nom) ajouter(t.nom, t.map((m) => (m.expansion ? null : m.brut)));
+    for (const { nom, mot } of cmd.affectations) {
+      const indice = /^[A-Za-z_]\w*\[(\d+)\]\+?=/.exec(mot.brut);
+      const egal = mot.valeur.indexOf('=');
+      const valeur = mot.expansion ? null : mot.brut.slice(mot.brut.indexOf('=') + 1);
+      if (indice) {
+        const liste = tableaux.get(nom)?.at(-1) ?? [];
+        liste[Number(indice[1])] = valeur;
+        tableaux.set(nom, [...(tableaux.get(nom)?.slice(0, -1) ?? []), liste]);
+      } else if (!/^[A-Za-z_]\w*\+?=\($/.test(mot.brut) && egal > 0) ajouter(nom, [valeur]);
+    }
+  }
   for (const cmd of lu.commandes) {
     if (affecteLesHooks(cmd)) r.hooks = true;
+    // `hash -p /usr/bin/git g` : `g` devient git, et la garde ne lit pas `g`.
+    const [tete, ...suite] = cmd.mots;
+    if (tete && !tete.expansion && tete.valeur === 'hash' && suite.some((m) => m.expansion || /^-[A-Za-z]*p/.test(m.valeur))) r.hooks = true;
     const W = [...cmd.affectations.map((a) => a.mot), ...cmd.mots].map(motExact);
     const valeurs = W.map((w) => w.valeur);
     const premier = cmd.mots[0];
@@ -2522,7 +2545,23 @@ function lireGit(lu) {
     const vues = W.map((w) => w.vue);
     const candidats = new Set();
     const p = cmd.affectations.length + programme(cmd.mots).k;
-    if (W[p]?.expansion) candidats.add(p);
+    if (W[p]?.expansion) {
+      // Un tableau ou une variable en position de programme : la commande se relit avec chaque valeur connue ;
+      // un tableau sans valeur lisible est un programme illisible.
+      const brut = cmd.mots[p - cmd.affectations.length].brut;
+      const ref = /^"?\$\{?([A-Za-z_]\w*)(\[(@|\*|\d+)\])?\}?"?$/.exec(brut);
+      const variantes = ref ? tableaux.get(ref[1]) : null;
+      if (ref && variantes) {
+        const reste = cmd.mots.slice(p - cmd.affectations.length + 1).map((m) => m.brut);
+        for (const liste of variantes) {
+          const choisis = ref[3] === undefined || /^\d+$/.test(ref[3]) ? [liste[Number(ref[3] ?? 0)]] : liste.filter((v) => v !== undefined);
+          if (choisis.some((v) => v === null || v === undefined)) r.hooks = true;
+          else r.relectures.push([...choisis, ...reste].join(' '));
+        }
+      } else if (ref && ref[2]) r.hooks = true;
+      // Sans valeurs connues, le programme à expansion se lit comme git (B1).
+      else candidats.add(p);
+    }
     W.forEach((w, k) => {
       if (w.expansion && SOUS_GARDEES.has(appelDeGit(vues, k).sous ?? '')) candidats.add(k);
     });
