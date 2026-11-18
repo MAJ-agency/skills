@@ -1,6 +1,6 @@
 # Une panne de GitHub met le capitaine en pause, et un refus du pre-push renvoie la PR au lieu d'arrêter la boucle
 
-Status: en cours — fix/9-panne-github-pre-push
+Status: Fait — PR #124
 Type: défaut
 Modèle: opus — une lecture GitHub unique à faire passer par toutes les lectures qui décident d'une fusion, sans s'en remettre à `set -e` (perdu sous `||` et dans les sous-shells), un code de sortie qui change de sens dans la boucle, et un classement des refus de push qui renvoie une PR à sa session ou arrête le capitaine ; une erreur vide la file, fusionne sur une lecture fausse ou renvoie à tort.
 Blocked by: 8 (`skills/chaine/fusionner/scripts/boucle.sh`, `skills/chaine/fusionner/SKILL.md`, `.claude-plugin/plugin.json` et `NOTES-DE-VERSION.md` sont des fichiers chauds du ticket 8, lui-même après le ticket 1 : partir de `main` après leur fusion)
