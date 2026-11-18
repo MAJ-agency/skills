@@ -2,6 +2,8 @@
 
 Ce texte est le prompt à donner à la session qui reprend le rôle. Il se suffit à lui-même, mais **la carte du programme fait foi** : en cas d'écart entre ce texte et la carte, c'est la carte qui a raison, et en cas d'écart entre la carte et GitHub, c'est GitHub.
 
+> **Mise à jour du 2026-11-18, 15 h 30 UTC.** Le produit a finalement écrit « reprend » à l'architecte sortant : il n'y a pas eu de changement de session. Ce texte reste la mémoire de l'état du matin. Depuis : la chaîne d'Anchorpost est repartie sur un autre modèle (décision A-65 de la carte) avec un nouveau capitaine `session_017ZgEwHF4GrsRFeyucHBA1Z` et un nouveau conducteur `session_017ZgEwLW3G5A96TaZakNxjP` ; les sessions arrêtées par la limite hebdomadaire sont archivées. Le journal de la carte fait foi.
+
 ---
 
 ## 1. Ton rôle
