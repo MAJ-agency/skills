@@ -15,6 +15,7 @@ La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque pro
 3. Numéroter un ticket par `next-id.mjs <SPEC>`, puis le réserver aussitôt (branche et PR brouillon).
 
 **Iroki**, hors du plugin : ses deux `SPEC_ALL_SOC-4.78` et ses deux `ADR_ALL_ARC-18` se renomment chez lui ; la repose de ces scripts suffit ensuite.
+
 ## 7.21.1 — 2026-11-18
 
 ### Ce qui change
