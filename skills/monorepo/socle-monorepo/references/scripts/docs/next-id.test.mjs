@@ -252,12 +252,14 @@ test('fetch en échec : copies locales lues, numéro rendu, la sortie d\'erreur 
 
 test('dépôt sans develop : le fetch ne nomme pas develop, les sujets et les docs sont lus, le numéro sort', () => {
   const d = depotJouet({ fichiers: SOC2 });
+  d.autreSession('develop', specSur(30));
+  d.git('fetch', '-q', 'origin'); // la copie locale d'origin/develop porte la spec 30
   d.git('push', '-q', 'origin', 'HEAD:refs/heads/main');
   d.autreSession('sujet/z', specSur(9), 'main');
   execFileSync('git', ['update-ref', '-d', 'refs/heads/develop'], { cwd: d.origine, env: ENV });
   const r = lancer(d, 'SPEC', 'ALL', 'SOC');
   assert.equal(r.status, 0, r.stderr);
-  assert.equal(r.stdout, '10\n');
+  assert.equal(r.stdout, '10\n', "la copie d'origin/develop, disparue du distant, n'est plus lue");
   assert.doesNotMatch(r.stderr, /fetch impossible/);
 });
 

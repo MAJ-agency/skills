@@ -66,6 +66,12 @@ function fetcher() {
       develop = ['develop'];
     } catch (e) {
       if (e.status !== 2) throw e; // 2 : le distant répond, develop n'y est pas
+      // Sa copie locale d'un fetch ancien n'est plus lue : le distant ne l'a plus.
+      try {
+        git('update-ref', '-d', 'refs/remotes/origin/develop');
+      } catch {
+        // pas de copie
+      }
     }
     git('fetch', '-q', '--prune', 'origin', ...develop, ...refspecs);
     return true;
