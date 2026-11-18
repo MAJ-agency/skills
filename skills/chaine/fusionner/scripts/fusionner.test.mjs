@@ -1650,7 +1650,8 @@ function cibleQuiBouge(deplacements) {
   d.github({
     exiges: ["qualite"],
     strict: ["develop"],
-    checks: { "*": { qualite: "SUCCESS" } },
+    // En cours, puis vert, compté par sha : une CI lue sur l'ancien sommet se voit dans `lectures`.
+    checks: { "*": { qualite: ["IN_PROGRESS", "SUCCESS"] } },
     pendantCi: vers.map((v) => ({ lectures: 2, branche: "develop", vers: v })),
     pulls: [pr(40, "feat/b")],
   });
@@ -1666,7 +1667,11 @@ test("cible qui bouge pendant la CI : mise à jour reprise, deux fois au plus", 
   assert.match(r.stdout, /FUSIONNÉE : [0-9a-f]+, arbre = arbre testé/);
   d.git("fetch", "-q", "origin");
   const second = d.git("rev-parse", "origin/feat/b");
-  assert.equal(d.git("rev-parse", `${second}^1^1`), origine, "deux poussées sur la branche de la PR");
+  const premier = d.git("rev-parse", `${second}^1`);
+  assert.equal(d.git("rev-parse", `${premier}^1`), origine, "deux poussées sur la branche de la PR");
+  const lectures = d.etat().lectures;
+  assert.equal(lectures[origine], undefined, "jamais de CI lue sur l'ancien sommet, en retard");
+  assert.ok(lectures[premier] >= 2 && lectures[second] >= 2, `CI attendue sur chaque sommet poussé : ${JSON.stringify(lectures)}`);
   assert.equal(shaDe(d, 40), second, "le PUT porte le second sommet");
   assert.equal(d.git("merge-base", "--is-ancestor", vers[0], second), "", "le second sommet contient le nouveau develop");
 
@@ -1807,4 +1812,37 @@ test("cible qui bouge pendant la CI : mise à jour reprise, deux fois au plus �
   assert.match(r.stdout, /nouvelle mise à jour \(2 sur 2\)/);
   assert.match(r.stdout, /sujet\/lot a bougé trois fois pendant la CI de #80/);
   assert.equal(fusionsDe(d, 80).length, 0, "aucun PUT");
+});
+
+// Clone `--single-branch` (refspec qui ne couvre pas la cible) : un simple `git fetch origin <cible>` ne met pas à jour
+// origin/<cible>, et le contrôle d'ascendance jugerait une cible périmée. Les scripts relisent la cible par un refspec
+// explicite.
+const refspecRestreint = (d, branche) => d.git("config", "remote.origin.fetch", `+refs/heads/${branche}:refs/remotes/origin/${branche}`);
+
+test("cible qui bouge pendant la CI, clone --single-branch : passer.sh relit develop par un refspec explicite", () => {
+  const { d, vers } = cibleQuiBouge(1);
+  refspecRestreint(d, "feat/b");
+  const r = d.lancer(script("passer.sh"), "40");
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /develop a bougé pendant la CI : nouvelle mise à jour \(1 sur 2\)/);
+  assert.equal(d.git("merge-base", "--is-ancestor", vers[0], shaDe(d, 40)), "", "le sommet fusionné contient le develop qui a bougé");
+});
+
+test("cible qui bouge pendant la CI, clone --single-branch : sujet.sh relit le sujet par un refspec explicite", () => {
+  const d = depotJouet();
+  d.branche("sujet/lot", "origin/develop", { "docs/lot.md": "lot\n" }, "feat(lot): lot (#1)");
+  d.branche("feat/sous", "origin/sujet/lot", { "docs/sous.md": "sous\n" });
+  const vers = d.branche("ailleurs", "origin/sujet/lot", { "apps/b.ts": "export const b = 1;\n" }, "feat(lot): b (#2)");
+  d.git("switch", "-q", "--detach", "origin/develop");
+  refspecRestreint(d, "feat/sous");
+  d.github({
+    exiges: ["qualite"],
+    checks: { "*": { qualite: "SUCCESS" } },
+    pendantCi: [{ lectures: 2, branche: "sujet/lot", vers }],
+    pulls: [{ number: 80, title: "docs(lot): sous", head: "feat/sous", base: "sujet/lot", labels: ["à-fusionner"], body: "## Revue de ticket\n\nRien.\n" }],
+  });
+  const r = d.lancer(SUJET_SH, "fusionner", "80");
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /sujet\/lot a bougé pendant la CI : nouvelle mise à jour \(1 sur 2\)/);
+  assert.equal(d.git("merge-base", "--is-ancestor", vers, shaDe(d, 80)), "", "jamais squashée sur l'ancien sujet");
 });

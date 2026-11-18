@@ -321,7 +321,9 @@ while :; do
   [ "$(pr_sommet "$N")" = "$sommet" ] || sortir 5 "la PR a reçu un push pendant la CI, relancer"
 
   # ── 5 bis. Contrôle d'ascendance, juste avant la fusion ───────────────────
-  git fetch -q origin develop
+  # Refspec explicite : un clone `--single-branch` (ou au refspec restreint) ne met pas à jour origin/develop
+  # sur un simple `git fetch origin develop`, et le contrôle jugerait une cible périmée.
+  git fetch -q origin "+refs/heads/develop:refs/remotes/origin/develop"
   verdict=$(ascendance "$sommet" origin/develop) ||
     sortir 3 "contrôle d'ascendance illisible (ascendance de github.sh, cause ci-dessus) : la PR n'entre pas sans lui"
   case ${verdict%%$'\n'*} in
@@ -382,7 +384,7 @@ corps |
   sortir 5 "fusion refusée (develop ou la PR a bougé), relancer"
 }
 
-git fetch -q origin develop
+git fetch -q origin "+refs/heads/develop:refs/remotes/origin/develop"
 # Le squash : le `sha` de la réponse du PUT, sinon cherché dans develop par son sujet.
 squash=$(sed -n 1p "$reponse_fusion")
 git cat-file -e "$squash^{commit}" 2>/dev/null || squash=''

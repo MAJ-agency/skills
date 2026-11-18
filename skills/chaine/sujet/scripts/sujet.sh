@@ -821,7 +821,8 @@ fusionner() {
         sortir 5 "checks encore en cours sur #$n : reprise au tour suivant, aucun renvoi (la PR reste dans la file tant que la CI ne finit pas)" ;;
     esac
     [ "$(pr_sommet "$n")" = "$sommet" ] || sortir 5 "la sous-PR #$n a reçu un push pendant la CI : reprise au tour suivant, aucun renvoi"
-    git fetch -q origin "$base"
+    # Refspec explicite : un clone `--single-branch` ne met pas à jour origin/<sujet> sur un simple fetch.
+    git fetch -q origin "+refs/heads/$base:refs/remotes/origin/$base"
     controler
     [ "${verdict%%$'\n'*}" != à-jour ] || break
     [ "$tour" -lt 3 ] || sortir 5 "$base a bougé trois fois pendant la CI de #$n : reprise au tour suivant, aucun renvoi"
@@ -836,7 +837,7 @@ fusionner() {
     gh api -X PUT "$DEPOT/pulls/$n/merge" --input - --jq .sha) ||
     sortir 3 "fusion refusée par GitHub (sommet bougé, conflit avec $base ?)"
   # Arbre du squash = arbre testé : le sha de la réponse du PUT ; un écart (ou un squash introuvable) sort en 12.
-  git fetch -q origin "$base"
+  git fetch -q origin "+refs/heads/$base:refs/remotes/origin/$base"
   squash=$(sed -n 1p <<<"$squash")
   git cat-file -e "$squash^{commit}" 2>/dev/null || squash=''
   if [ -z "$squash" ] || [ "$(git rev-parse "$squash^{tree}")" != "$(git rev-parse "$sommet^{tree}")" ]; then
