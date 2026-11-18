@@ -1,6 +1,6 @@
 # Capitaine à jour et testé — spec du chantier 1
 
-Programme : [`../../programmes/capitaine-a-jour-et-teste.programme.md`](../../programmes/capitaine-a-jour-et-teste.programme.md). Décisions du produit : `P-1` à `P-3` (2026-11-18). État : **validée par le produit le 2026-11-18** (`P-4`) ; un ticket par lot ci-dessous, le lot 1 en premier, lancés par l'architecte (`A-17`).
+Programme : [`../../programmes/capitaine-a-jour-et-teste.programme.md`](../../programmes/capitaine-a-jour-et-teste.programme.md). Décisions du produit : `P-1`, `P-2`, `P-4` et `P-6` (2026-11-18 ; `P-3` remplacée par `P-6`). État : **validée par le produit le 2026-11-18** (`P-4`) ; un ticket par lot ci-dessous, le lot 1 en premier, lancés par l'architecte (`A-17`).
 
 ## Le problème
 
@@ -12,7 +12,6 @@ Une PR peut entrer alors que la combinaison « PR + dernier état de la branche 
 
 - **Vers un sujet.** `suj/sujet.sh` `fusionner` lit les checks une fois sur le sommet de la sous-PR (l. 742-756), sans attente. `mettre_a_jour_sous_pr` (l. 497-537) ne pousse rien quand la fusion du sujet est propre (l. 501-503) : elle ne pousse que sur un conflit limité aux index générés. Le squash se fait ensuite sur l'ancien sommet (l. 771-775). Aucune CI ne tourne sur un push vers `sujet/**` : `socle/ci/ci.yml` ne déclenche `push` que sur `develop` et `main`.
 - **Vers `develop`.** `fus/passer.sh` met la PR à jour au début de son passage (l. 202) et attend sa CI (l. 289-336). Ensuite, il ne revérifie que le sommet de la PR (l. 337), jamais `develop`. Le `sha` passé à l'API de fusion (l. 363) ne protège que la tête de la PR. Après le squash, un arbre différent de l'arbre testé produit seulement le log « à examiner » ; le script sort en 0 (l. 381-393).
-- **Le contrat.** `socle/chaine.json` n'a aucune clé qui sépare le code de la documentation. Le tri de la revue exigée est écrit en dur dans `fus/revue-exigee.mjs:48-61`.
 - **Les bancs.** Le faux GitHub (`suj/faux-gh.mjs`) n'applique pas « strict » : sa fusion (l. 285-310) ne refuse que si la tête a bougé. Ses checks sont rangés par PR, pas par commit (`checksDe`, l. 137).
 - **Défauts voisins.**
   - Confirmés : 1 (`file.sh:83-90` et `:113`, `boucle.sh:296-303`, `sujet.sh:885-892`), 3 (`file.sh:96` ne filtre que sur le label ; le verrou `boucle.sh:59-62` est local au clone), 4 (`architecte/SKILL.md:73`, `chantier/SKILL.md:23` et `:87`), 5 (`chaine-de-production.md` § 5, `lancement.md:72-77`), 7 (`tickets/references/scripts/docs/ticket-libre.mjs:88-99` ne lit que le titre et la branche des PR ouvertes).
@@ -23,7 +22,7 @@ Une PR peut entrer alors que la combinaison « PR + dernier état de la branche 
 
 ## Ce qui change, vu par le produit
 
-- **Aucune PR n'entre sans avoir été testée sur l'état de la branche où elle entre.** Cela vaut vers `develop` comme vers un sujet. Le capitaine le vérifie juste avant de fusionner, et compare après coup ce qui est entré à ce qui a été testé. Une seule exception (`P-3`) : quand le retard ne porte que de la documentation, la PR entre sans nouvelle CI. Un écart découvert après la fusion arrête le capitaine et se signale.
+- **Aucune PR n'entre sans avoir été testée sur l'état de la branche où elle entre.** Cela vaut vers `develop` comme vers un sujet. Le capitaine le vérifie juste avant de fusionner, et compare après coup ce qui est entré à ce qui a été testé. Sans exception (`P-6`) : même un retard de documentation fait mettre à jour la PR et la retester. Un écart découvert après la fusion arrête le capitaine et se signale.
 - **Une sous-PR en retard de code est mise à jour et retestée par le capitaine**, plus jamais squashée telle quelle. Le conducteur n'étiquette qu'une sous-PR de code à la fois par sujet : sinon, chacune remet la suivante en retard et la CI repasse à chaque fois.
 - **Une PR en conflit ne bloque plus personne en silence.** Un conflit limité aux index générés est résolu par le capitaine. Tout autre conflit est renvoyé à sa session.
 - **Le nombre de capitaines sur un dépôt n'a plus d'importance** (`P-2`) : ils prennent tous la même file, et une PR en cours de passage porte un commentaire qui la réserve au capitaine qui la traite.
@@ -32,27 +31,22 @@ Une PR peut entrer alors que la combinaison « PR + dernier état de la branche 
 
 ## Décisions de conception (architecte)
 
-- `A-1` — **La règle d'ascendance est une seule fonction, partagée par `passer.sh` et `sujet.sh`**, dans `github.sh` ou un module Node testé à part. Elle prend le sommet testé et la cible, et rend l'un de quatre verdicts : `à-jour`, `retard-doc`, `retard-code`, `conflit` (avec, pour un conflit, s'il est limité aux index générés). Elle lit le retard par `git diff --name-only <testé>...<cible>`, jamais à l'œil. Raison : deux copies de la règle divergeraient, et c'est exactement ce qui s'est passé entre `passer.sh` et `sujet.sh`.
-- `A-2` — **Clé de contrat `cheminsDeCode`** dans `.claude/chaine.json`. C'est une liste de motifs, avec la syntaxe de `cheminsSensibles`. Le gabarit la remplit : `apps/**`, `packages/**`, `scripts/**`, `e2e/**`, `.github/**`, `.husky/**`, `.claude/**`, `**/package.json`, `pnpm-lock.yaml`, `**/*.config.*`, `**/tsconfig*.json`, et les fichiers rc. Un fichier du retard est « de documentation » s'il remplit les deux conditions suivantes :
-  - il est un index généré déclaré, ou un fichier `*.md`, `*.mdx` ou `*.txt` ;
-  - il n'est couvert par aucun motif de `cheminsDeCode`.
-
-  **Sans la clé, tout retard compte comme du code** : la PR est mise à jour et retestée. La clé se lit dans le contrat de la cible (`git show <cible>:.claude/chaine.json`), jamais dans l'arbre de la PR, pour la raison écrite dans `revue-exigee.mjs` : une PR ne doit pas pouvoir retirer elle-même un chemin. Raisons :
-  - le produit veut la liste dans le contrat ;
-  - la forme d'un fichier de documentation, ajoutée à la liste, protège d'un dossier de code que le contrat aurait oublié ;
-  - le défaut strict ne coûte qu'une CI de plus, jamais une PR entrée sans test.
+- `A-1` — **La règle d'ascendance est une seule fonction, partagée par `passer.sh` et `sujet.sh`**, dans `github.sh` ou un module Node testé à part. Elle prend le sommet testé et la cible, et rend l'un de quatre verdicts : `à-jour`, `retard`, `conflit-index` (conflit limité aux index générés), `conflit`. Elle se fonde sur `git merge-base --is-ancestor` et sur un essai de fusion, jamais sur une lecture à l'œil. Raison : deux copies de la règle divergeraient, et c'est exactement ce qui s'est passé entre `passer.sh` et `sujet.sh`.
+- `A-2` — **Aucune exception pour la documentation** (`P-6`, qui remplace `P-3`) : tout retard, quels que soient ses fichiers, fait mettre à jour la PR et attendre sa CI. Il n'y a donc ni clé `cheminsDeCode`, ni tri du retard, ni lecture du réglage « à jour » de GitHub. Raisons :
+  - plusieurs contrôles du dépôt lisent la documentation (gate des tickets, index Anchorpost, identifiants), donc une combinaison non testée peut casser même sans code ;
+  - une seule règle partout, sans réglage par projet ;
+  - le coût se limite à une CI de plus quand le retard n'est que de la documentation.
 - `A-3` — **Le contrôle se fait juste avant l'appel de fusion**, après un `git fetch` de la cible, et non plus seulement au début du passage. Selon le verdict :
   - `à-jour` : fusion ;
-  - `retard-doc` : l'arbre attendu se calcule localement (fusion du sommet testé avec la cible, index régénérés), puis fusion ;
-  - `retard-code` : le script reprend la mise à jour et l'attente de la CI, deux fois au plus dans un même passage. Au-delà, il sort en 5, et la boucle relance comme aujourd'hui ;
+  - `retard` ou `conflit-index` : le script reprend la mise à jour et l'attente de la CI, deux fois au plus dans un même passage. Au-delà, il sort en 5, et la boucle relance comme aujourd'hui ;
   - `conflit` hors index : renvoi (`fusion-bloquée`), sans résolution.
 
   Raison : la cible bouge pendant l'attente de la CI (cas vécu le 2026-11-18).
-- `A-4` — **Après le squash, l'arbre du squash est comparé à l'arbre attendu** : l'arbre du sommet testé, ou celui calculé en `A-3` pour un retard de documentation. Un écart devient une **sortie dédiée** (un code non utilisé aujourd'hui). La boucle la traite en ARRÊT : elle écrit sur la PR le commentaire « arbre du squash ≠ arbre testé », avec les deux arbres et la liste des fichiers qui diffèrent, puis s'arrête. Le capitaine le dit à son lanceur. Raison : une fusion ne se défait pas d'elle-même, il faut un humain ; aujourd'hui l'écart n'est qu'un log que personne ne lit.
-- `A-5` — **`sujet.sh fusionner` suit la même règle et attend la CI lui-même.** L'attente de `passer.sh` (apparition du nouveau sommet, apparition des checks exigés, verdict) passe dans `github.sh`, et les deux scripts l'appellent. Le cas `retard-code` d'une sous-PR fait donc trois choses : fusionner le sujet dans la branche de la sous-PR, régénérer les index et pousser ; attendre la CI de la PR sur ce sommet ; refaire le contrôle, puis squasher. La sortie 8 actuelle (« mise à jour poussée, repasser plus tard ») ne sert plus que si l'attente dépasse son délai. Raison : le produit veut que le capitaine fasse la mise à jour lui-même, et la CI d'une PR vers `sujet/**` est la seule qui teste « sous-PR + sujet ».
+- `A-4` — **Après le squash, l'arbre du squash est comparé à l'arbre attendu** : l'arbre du sommet testé. Un écart devient une **sortie dédiée** (un code non utilisé aujourd'hui). La boucle la traite en ARRÊT : elle écrit sur la PR le commentaire « arbre du squash ≠ arbre testé », avec les deux arbres et la liste des fichiers qui diffèrent, puis s'arrête. Le capitaine le dit à son lanceur. Raison : une fusion ne se défait pas d'elle-même, il faut un humain ; aujourd'hui l'écart n'est qu'un log que personne ne lit.
+- `A-5` — **`sujet.sh fusionner` suit la même règle et attend la CI lui-même.** L'attente de `passer.sh` (apparition du nouveau sommet, apparition des checks exigés, verdict) passe dans `github.sh`, et les deux scripts l'appellent. Le cas `retard` d'une sous-PR fait donc trois choses : fusionner le sujet dans la branche de la sous-PR, régénérer les index et pousser ; attendre la CI de la PR sur ce sommet ; refaire le contrôle, puis squasher. La sortie 8 actuelle (« mise à jour poussée, repasser plus tard ») ne sert plus que si l'attente dépasse son délai. Raison : le produit veut que le capitaine fasse la mise à jour lui-même, et la CI d'une PR vers `sujet/**` est la seule qui teste « sous-PR + sujet ».
 - `A-6` — **Les bancs d'abord : le faux GitHub apprend « strict » et range ses checks par commit.** Sans cela, aucun banc ne peut montrer le défaut. Les quatre bancs demandés par le produit sont exigés dans le ticket du lot 1, chacun vu rouge sur `main` :
   - sous-PR en retard de code refusée puis mise à jour ;
-  - retard de documentation accepté ;
+  - retard de documentation seule : mis à jour et retesté lui aussi ;
   - cible qui bouge pendant la CI ;
   - arbre du squash différent de l'arbre testé.
 - `A-7` — **Un conflit se détecte avant la lecture des checks** (défaut 1). `sujet.sh fusionner` et `relancer` essaient d'abord la fusion localement :
@@ -98,7 +92,7 @@ Un ticket par lot, sous `docs/issues/capitaine-a-jour-et-teste/issues/`, numéro
 
 | Lot | Objet | Décisions | Bloqué par |
 | --- | ----- | --------- | ---------- |
-| 1 | Règle d'ascendance vers `develop` et vers un sujet, comparaison des arbres, faux GitHub « strict » et checks par commit, clé `cheminsDeCode`, `SKILL.md` de `fusionner` et sa référence (dont « une sous-PR de code étiquetée à la fois par sujet »), `NOTES-DE-VERSION.md` ouvert, 7.16.0 | A-1 à A-6, A-16 | — |
+| 1 | Règle d'ascendance vers `develop` et vers un sujet, comparaison des arbres, faux GitHub « strict » et checks par commit, `SKILL.md` de `fusionner` et sa référence (dont « une sous-PR de code étiquetée à la fois par sujet »), `NOTES-DE-VERSION.md` ouvert, 7.16.0 | A-1 à A-6, A-16 | — |
 | 2 | PR en conflit : conflit lu avant les checks, `relancer` sur index, `file.sh` « en conflit » | A-7 | 1 |
 | 3 | Mention d'une fusion sans effet (`fusionsSansEffet`) | A-8 | 1 |
 | 4 | Verrou du passage, plusieurs capitaines sur la même file | A-9, A-10 | 1 |
@@ -110,6 +104,5 @@ Les lots 1 à 4 et 7 touchent `fus/github.sh`, `fus/passer.sh` et `suj/sujet.sh`
 
 ## Hors périmètre
 
-- Faire lire `cheminsDeCode` par `revue-exigee.mjs` à la place de son tri écrit en dur. Le rapprochement est souhaitable, mais il change la revue exigée de tous les projets : ce sera un ticket à part, après le lot 1.
 - La repose dans les projets (`fedora`, `anchorpost`, `iroki-monorepo`) : chacun la fait par sa propre session, d'après la note de version.
 - Vérifier sur `fedora` pourquoi GitHub a accepté un squash que « strict » aurait dû refuser. L'hypothèse est un compte qui contourne la règle. Le lot 1 rend la question sans effet, puisque le capitaine vérifie lui-même.
