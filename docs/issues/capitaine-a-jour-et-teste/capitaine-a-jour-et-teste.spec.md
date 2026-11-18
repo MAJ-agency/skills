@@ -1,6 +1,6 @@
 # Capitaine à jour et testé — spec du chantier 1
 
-Programme : [`../../programmes/capitaine-a-jour-et-teste.programme.md`](../../programmes/capitaine-a-jour-et-teste.programme.md). Décision du produit : `P-1` (2026-11-18). État : **à valider par le produit**, puis remise au conducteur, qui découpe un ticket par lot ci-dessous, le lot 1 en premier.
+Programme : [`../../programmes/capitaine-a-jour-et-teste.programme.md`](../../programmes/capitaine-a-jour-et-teste.programme.md). Décisions du produit : `P-1` à `P-3` (2026-11-18). État : **à valider par le produit**, puis remise au conducteur, qui découpe un ticket par lot ci-dessous, le lot 1 en premier.
 
 ## Le problème
 
@@ -23,10 +23,10 @@ Une PR peut entrer alors que la combinaison « PR + dernier état de la branche 
 
 ## Ce qui change, vu par le produit
 
-- **Aucune PR n'entre sans avoir été testée sur l'état de la branche où elle entre.** Cela vaut vers `develop` comme vers un sujet. Le capitaine le vérifie juste avant de fusionner, et compare après coup ce qui est entré à ce qui a été testé. Une seule exception : quand le retard ne porte que de la documentation, la PR entre sans nouvelle CI. Un écart découvert après la fusion arrête le capitaine et se signale.
+- **Aucune PR n'entre sans avoir été testée sur l'état de la branche où elle entre.** Cela vaut vers `develop` comme vers un sujet. Le capitaine le vérifie juste avant de fusionner, et compare après coup ce qui est entré à ce qui a été testé. Une seule exception (`P-3`) : quand le retard ne porte que de la documentation, la PR entre sans nouvelle CI. Un écart découvert après la fusion arrête le capitaine et se signale.
 - **Une sous-PR en retard de code est mise à jour et retestée par le capitaine**, plus jamais squashée telle quelle. Le conducteur n'étiquette qu'une sous-PR de code à la fois par sujet : sinon, chacune remet la suivante en retard et la CI repasse à chaque fois.
 - **Une PR en conflit ne bloque plus personne en silence.** Un conflit limité aux index générés est résolu par le capitaine. Tout autre conflit est renvoyé à sa session.
-- **Deux capitaines peuvent vivre sur un même dépôt**, chacun sur sa part de la file, et une PR en cours de passage porte un commentaire qui le dit.
+- **Plusieurs capitaines peuvent vivre sur un même dépôt** (`P-2`), un par personne qui pilote, chacun sur sa part de la file, et une PR en cours de passage porte un commentaire qui le dit.
 - **Une session coupée se voit dans l'heure** : l'architecte et le conducteur relèvent l'état de leurs sessions à intervalle fixe et le disent au produit.
 - **Chaque version du plugin a sa note**, qui dit ce qu'un projet doit faire pour en profiter.
 
@@ -61,13 +61,13 @@ Une PR peut entrer alors que la combinaison « PR + dernier état de la branche 
 
   `file.sh` lit l'état de fusion de la PR et affiche « en conflit » au lieu de « prête (sans CI) ». Raison : GitHub ne lance pas la CI d'une PR en conflit, donc lire les checks d'abord tourne en rond.
 - `A-8` — **Clé de contrat `fusionsSansEffet`**, une liste d'entrées `{ "fichier", "lignesSansEffet", "mention" }`. Elle s'applique quand un commit de fusion joué par un script apporte un changement à `fichier` (diff entre le sommet de la branche avant la fusion et le résultat). Si chaque ligne ajoutée ou retirée correspond à l'expression `lignesSansEffet` (un commentaire, une ligne vide), le script ajoute `mention` au message du commit. Sinon, il s'arrête en disant quel fichier porte un changement réel. Le gabarit la laisse vide ; la note de version donne l'entrée de `schema.prisma` pour un projet Prisma. Raison : le hook appartient au projet, le plugin ne connaît ni Prisma ni la mention. Une clé générique, vérifiée par diff, fait ce que demande le produit sans écrire un projet en dur dans le plugin.
-- `A-9` — **La file d'un capitaine se restreint par trois filtres, cumulables** : le label (`--label`), la branche de base (`--base`, un motif) et l'identifiant du ticket dans le titre (`--titre`, une expression). `file.sh`, `veille.sh` et `boucle.sh` les lisent, et le prompt de lancement d'un capitaine (`lancement.md`) les nomme. Raison : le produit a proposé les trois ; aucun ne demande de geste nouveau aux sessions, sauf le label, et le lanceur choisit celui qui sépare ses programmes.
+- `A-9` — **La file d'un capitaine se restreint par quatre filtres, cumulables** (`P-2` : plusieurs capitaines sur un même dépôt, un par personne qui pilote, par exemple Guillaume et Jordan sur `fedora`) : l'auteur de la PR (`--auteur`, utile quand chacun publie sous son compte), le label (`--label`), la branche de base (`--base`, un motif) et l'identifiant du ticket dans le titre (`--titre`, une expression). `file.sh`, `veille.sh` et `boucle.sh` les lisent, et le prompt de lancement d'un capitaine (`lancement.md`) les nomme. Raison : le produit a proposé les trois derniers, et l'auteur départage deux personnes sans aucun geste ; aucun ne demande de geste nouveau aux sessions, sauf le label, et le lanceur choisit celui qui sépare ses programmes.
 - `A-10` — **Le verrou d'un passage est un commentaire marqué sur la PR**. Le commentaire est visible (« passage du capitaine `<id>` depuis `<heure>` ») et porte une marque invisible `<!-- capitaine:passage <id> -->`. Le script le pose au début du passage, puis relit les commentaires :
   - si une marque d'un autre capitaine, plus ancienne, sans marque de fin et datée de moins de 90 minutes, existe, il supprime la sienne et saute la PR ;
   - à toute sortie, il édite son commentaire en « passage terminé ».
 
   L'identifiant vient de `CAPITAINE_ID`, la session du capitaine, exigé quand un filtre est posé. Avec un filtre, la règle « un seul `role:capitaine` actif » devient « un seul par filtre ». Raisons :
-  - toutes les sessions publient sous le même compte, donc l'auteur d'un label ne départage personne ;
+  - les sessions d'une même personne publient sous le même compte, donc l'auteur d'un label ne départage pas deux de ses capitaines ;
   - l'ordre des commentaires, lui, départage deux capitaines arrivés à la même seconde ;
   - un label de plus changerait les sept labels du socle.
 - `A-11` — **Contrôle de vie périodique** (défaut 4). Tant que la carte nomme une session en vie (un conducteur ou un capitaine pour l'architecte ; ses filles et son capitaine pour le conducteur), un `send_later` à 60 minutes relance un relevé `get_session` de chacune. Les cas suivants vont au produit dans la forme de `chaine-de-production.md` § 2 :
