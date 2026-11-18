@@ -16,7 +16,7 @@ Un plancher global de couverture ne voit pas un fichier neuf à 0 % : 10 % du d�
 
 ## Les gabarits — `gabarits/`
 
-`exemple.property.spec.ts` : la forme d'un test de propriétés `fast-check`, oracle indépendant en entiers, budget de tirages. `stryker.config.mjs` : la mutation du noyau critique sous Vitest, périmètre vide et plancher à zéro jusqu'à la première mesure.
+`exemple.property.spec.ts` : la forme d'un test de propriétés `fast-check`, oracle indépendant en entiers, budget de tirages.  `exemple.jour-metier.spec.ts` : le jour et l'heure d'un test, en trois points (le jour du fuseau du métier par une horloge injectée, des données créées par le test, un banc à horloge posée aux instants qui cassent), pour que la règle « Le jour et l'heure » de la fiche des tests se lise sur un exemple ; son fuseau est un fuseau d'exemple à remplacer. `stryker.config.mjs` : la mutation du noyau critique sous Vitest, périmètre vide et plancher à zéro jusqu'à la première mesure.
 
 ## La mutation des règles prouvées — `scripts/verify/mutation-regles.mjs`, `gabarits/stryker.regles.config.mjs`, `ci/mutation.yml`
 
