@@ -1,100 +1,147 @@
 # La relecture que l'auteur ne contrôle pas — spec du chantier 3
 
-Programme : [`map.md`](map.md) (« gouverner nos boucles »). Décisions du produit : `P-47` à `P-58` de la carte, prises le 2026-11-18 dans le grilling du chantier 3 (skills `grilling` puis `domain-modeling`, une question à la fois). Elles amendent `P-6` et remplacent `P-41`. État : **première version, pas prête.** Relue par un agent neuf le 2026-11-18 : huit bloquants et quinze points à corriger, dans [`relecture-independante.relecture-1.md`](relecture-independante.relecture-1.md). Aucun ne rouvre une décision du produit ; trois ajouts sont à lui dire (qui arbitre une PR de l'architecte, le modèle des sessions de relecture, l'exemption des livraisons de sujet). À reprendre avant tout découpage.
+Programme : [`map.md`](map.md) (« gouverner nos boucles »). Décisions du produit : `P-47` à `P-53` et `P-55` à `P-58` de la carte, prises le 2026-11-18 dans le grilling du chantier 3. Elles amendent `P-6` et `P-38` et remplacent `P-41`. État : **deuxième version**, reprise sur la relecture d'un agent neuf ([`relecture-independante.relecture-1.md`](relecture-independante.relecture-1.md) : huit bloquants, quinze points à corriger) ; à faire relire une seconde fois, puis à découper. Deux points restent à confirmer par le produit (fin de ce document).
 
 ## Le problème
 
-Aujourd'hui, la session qui code un ticket lance elle-même ses relecteurs, trie leurs constats et écrit la section de revue de sa PR (`revue-de-ticket/SKILL.md`, étapes 2 à 5). Le capitaine ne vérifie que la présence d'un titre « Revue… » (`fusionner/scripts/revue-exigee.mjs`). Le conducteur contre-relit les PR à chemin sensible par un sous-agent (`chantier/SKILL.md` § 5), dans son propre contexte, et il a écrit le ticket contre lequel il juge. Les PR de documentation du conducteur et de l'architecte (tickets, règles, specs) ne sont relues par personne d'indépendant.
+Aujourd'hui, la session qui code un ticket lance elle-même ses relecteurs, trie leurs constats et écrit la section de revue de sa PR (`revue-de-ticket/SKILL.md`, étapes 2 à 5). Le capitaine vérifie, pour les chemins de la liste `exigeRevue`, la présence d'un titre « Revue… » dans le corps de la PR (`fusionner/scripts/revue-exigee.mjs`). Le conducteur contre-relit les PR à chemin sensible par un sous-agent (`chantier/SKILL.md` § 6, point 5), dans son propre contexte, et il a écrit le ticket contre lequel il juge. Les PR de documentation du conducteur et de l'architecte (tickets, règles, specs) ne sont relues par personne d'indépendant.
 
-Faits vécus les 17 et 18 novembre : une revue de ticket et une contre-revue du conducteur ont rendu « aucun écart » là où un relecteur indépendant a trouvé six régressions qui laissaient les tests verts (Anchorpost #239) ; la contre-relecture de l'architecte a encore trouvé des zéros muets après celle du conducteur (#277) ; un conducteur a atteint son plafond de contexte en cinquante minutes ; le fichier CODEOWNERS, posé le 17, aurait fait dépendre chaque PR sensible d'une seconde personne, parce que toutes les sessions écrivent sous le compte du produit et que GitHub refuse qu'un auteur approuve sa propre PR.
+Le fichier CODEOWNERS, posé le 2026-11-17, ferait dépendre chaque PR sensible d'une seconde personne : toutes les sessions écrivent sous le compte du produit, et GitHub refuse qu'un auteur approuve sa propre PR.
 
 ## Ce qui change, vu par le produit
 
-- **Fichiers sensibles** (`P-47`, `P-48`, `P-49`) : l'accord du produit est demandé **avant** d'y toucher, une fois, quand il valide le découpage d'un chantier. Le conducteur dit quels fichiers, pourquoi, et ce qui va y changer. L'accord est noté sur le ticket ; sans lui, la machine refuse la modification. Aucun blocage par GitHub ; le fichier CODEOWNERS disparaît.
-- **Toute PR a une relecture indépendante** (`P-51`), quel que soit son auteur : session qui code, conducteur ou architecte. **La session qui code ne se relit plus** (`P-52`).
-- **Un Relecteur par dépôt** (`P-55`) aiguille les relectures : il lance une session de relecture par PR. Il ne transporte jamais les défauts, ne les résume pas, n'arbitre rien. Le verdict s'écrit sur la PR.
+- **Fichiers sensibles** (`P-47`, `P-48`, `P-49`) : l'accord du produit est demandé **avant** d'y toucher, une fois, quand il valide le découpage d'un chantier. Le conducteur dit quels fichiers, pourquoi, et ce qui va y changer. Sans l'accord noté, la machine refuse la modification. Aucun blocage par GitHub ; le fichier CODEOWNERS disparaît.
+- **Toute PR a une relecture indépendante** (`P-51`), quel que soit son auteur. **La session qui code ne se relit plus** (`P-52`).
+- **Un Relecteur par dépôt** (`P-55`) aiguille : il lance une session de relecture par PR. Il ne transporte jamais les constats, ne les résume pas, n'arbitre rien. Le verdict s'écrit sur la PR.
 - **Un skill unique de relecture** (`P-55`) choisit les contrôles selon ce que la PR contient.
-- **Le capitaine ne relit rien** (`P-50`) : son script vérifie que le verdict porte sur la version à fusionner et ne laisse aucun défaut bloquant.
-- **Trois allers-retours au plus** (`P-53`) : au-delà, l'architecte tranche si la cause est technique et informe le produit ; il ne lui pose une question que si la cause est métier.
+- **Le capitaine ne relit rien** (`P-50`) : son script vérifie que le verdict porte sur ce qu'il fusionne.
+- **Trois allers-retours au plus** (`P-53`) : au-delà, l'architecte tranche si la cause est technique et informe le produit ; il ne lui pose une question que si elle est métier.
 - **Règle de criticité haute** (`P-56`) : deux relectures indépendantes, et un message d'information au produit, sans que la PR l'attende.
 - **Le bilan de fin de chantier est supprimé** (`P-57`).
-- **Le signal d'un verdict** (`P-58`) : une étiquette sur la PR, un message d'une ligne du Relecteur à l'auteur et au conducteur (l'endroit où lire, jamais le contenu), et un réveil de secours chez l'auteur.
+- **Le signal d'un verdict** (`P-58`) : une étiquette sur la PR, un message d'une ligne à l'auteur et au conducteur (où lire, jamais le contenu), un réveil de secours chez l'auteur.
+
+## Vocabulaire
+
+Un mot, un sens. Ces termes entrent dans `CONTEXT.md` avec le premier lot.
+
+| Terme | Sens | Ne pas dire |
+| --- | --- | --- |
+| **Relecteur** | la session qui aiguille les relectures d'un dépôt ; elle ne relit rien | « relecteur » pour autre chose |
+| **session de relecture** | la session lancée par le Relecteur pour relire une PR | relecteur |
+| **axe** | un sous-agent en contexte vierge lancé par la session de relecture, avec une liste fermée de critères | relecteur, revue |
+| **constat** | ce qu'un axe relève, avec sa gravité : **bloquant**, **mineur**, **doute** | défaut, « à corriger » |
+| **verdict** | le commentaire de la session de relecture ; il vaut **validé** ou **refusé** | « à corriger » |
+| **tour** | une demande de relecture et le verdict qui y répond | aller-retour |
+| **contestation**, **arbitrage** | l'auteur conteste un constat ; un arbitre le maintient ou l'écarte | — |
+| **décision de plafond** | ce que décide l'architecte au troisième verdict refusé | arbitrage |
+| **étiquette** | un label GitHub | label, dans la prose |
+| **auteur** | la session qui a écrit la PR | propriétaire |
 
 ## Décisions de conception (architecte)
 
-Numérotées dans la suite de la carte.
+Numérotées dans la suite de la carte. `A-73` à `A-92` de la première version sont remplacées par celles-ci.
 
 ### Fichiers sensibles
 
-- `A-73` — **La ligne `Sensibles:` du ticket.** En-tête de ticket, sur le modèle de `Dépendances:` : les chemins sensibles (`cheminsSensibles` de `.claude/chaine.json`) que le ticket modifiera, puis qui a accordé et quand. Forme : `Sensibles: scripts/chaine/passer.sh, .claude/chaine.json — accord du produit, 2026-11-18`, ou `Sensibles: —`. Elle se lit **sur le sujet** (ou sur `develop` hors sujet), jamais sur la branche de travail : une session ne s'accorde rien à elle-même.
-- `A-74` — **La demande d'accord est un tableau du découpage.** La carte du chantier gagne une section `## Fichiers sensibles` : une ligne par fichier (ticket, chemin, pourquoi, ce qui y change). Le conducteur l'écrit au découpage ; l'architecte la soumet au produit avec le découpage ; le conducteur ne remplit les lignes `Sensibles:` qu'après l'accord. Un fichier sensible découvert en route : la session s'arrête, écrit au conducteur, qui remonte à l'architecte, qui pose la question au produit avec les mêmes trois éléments. Hors chantier, l'architecte fait le tout.
-- `A-75` — **Deux gardes mécaniques.** Le hook d'édition (`scripts/agent/`) refuse l'écriture d'un chemin sensible absent de la ligne `Sensibles:` du ticket de la branche. `passer.sh` renvoie une PR dont le diff touche un chemin sensible que la ligne du ticket, lue sur la base, ne nomme pas. Une PR sans ticket qui touche un chemin sensible est renvoyée.
-- `A-76` — **CODEOWNERS sort du plugin.** Retirés : le générateur `scripts/github/codeowners.mjs` et son test, son gate, la clé `proprietaires` de `chaine.json`, les états « attend un propriétaire » du capitaine et `proprietaire.sh`, l'entrée de `gatesRapides`. L'ADR « CODEOWNERS » est marquée remplacée par celle de ce chantier. La repose retire `.github/CODEOWNERS` quand il porte l'en-tête du générateur. Le réglage « Require review from Code Owners » n'est demandé nulle part.
+- `A-73` — **La ligne `Sensibles:`**, en en-tête d'un ticket et dans la fiche d'une carte de chantier. Elle nomme des chemins exacts ou des motifs, tous sous un chemin sensible (`cheminsSensibles` de `.claude/chaine.json`), puis qui a accordé et quand : `Sensibles: scripts/chaine/passer.sh, scripts/chaine/passer*.test.mjs — accord de <nom>, 2026-11-18`, ou `Sensibles: —`. La ligne d'un ticket couvre la branche de ce ticket. Celle de la fiche couvre la branche de cadrage du chantier (`docs/<nom>-cadrage`), qui n'a pas de ticket et où le plugin fait écrire `.claude/chaine.json`.
+- `A-74` — **Où elle se lit.** Sur `origin/sujet/*`, comme `Dépendances:` (`agent/garde-commandes.mjs`) : jamais dans l'arbre de travail ni sur la branche de la session. Pour un ticket sans sujet (correctif isolé), sur `origin/develop` : le ticket y entre d'abord, par une PR de documentation. La fiche de la carte arrive sur le sujet par `sujet.sh carte`, le seul geste qui écrit un sujet sans PR. Une branche de mise à jour d'un sujet (`maj/<nom>`) est couverte par l'union des lignes des tickets du sujet et de la fiche.
+- `A-75` — **La demande d'accord est un tableau de la carte**, section `## Fichiers sensibles` : une ligne par fichier (ticket ou « cadrage », chemin, pourquoi, ce qui y change). Le conducteur l'écrit au découpage ; l'architecte la soumet au produit avec le découpage (sans programme, le conducteur la soumet lui-même) ; les lignes `Sensibles:` ne sont remplies qu'après l'accord. Un fichier découvert en route : la session s'arrête et l'écrit au conducteur, qui obtient l'accord par la même voie, puis ajoute le chemin par une PR de documentation vers le sujet, relue comme les autres.
+- `A-76` — **Trois gardes mécaniques**, qui lisent la même ligne : le hook d'édition (`agent/garde-fichiers.mjs`, `regles.mjs`) refuse l'écriture d'un chemin sensible que la ligne ne couvre pas ; `sujet.sh fusionner` (sous-PR) et `passer.sh` (PR vers `develop`) renvoient une PR dont le diff touche un chemin sensible non couvert. Une livraison de sujet n'y repasse pas : ses sous-PR l'ont été une à une. Une PR sans ticket ni carte qui touche un chemin sensible est renvoyée.
+- `A-77` — **CODEOWNERS sort du plugin.** Retirés : `scripts/github/codeowners.mjs` et son test, son gate et l'entrée de `gatesRapides`, la clé `proprietaires`, le refus d'éditer CODEOWNERS dans `regles.mjs`, les états « attend un propriétaire » et « attend un humain » qui en viennent (`fusionner/scripts/github.sh`, `file.sh`, `passer.sh`, `boucle.sh` et leurs tests), la case correspondante d'`admin.md` (ses sous-règles « pas de push forcé » et « aucune liste de contournement » restent, dans la protection de branche). **`proprietaire.sh` reste** : il retrouve la session auteur d'une PR et n'a aucun lien avec CODEOWNERS. L'ADR « CODEOWNERS » est marquée remplacée. La repose retire `.github/CODEOWNERS` quand il porte l'en-tête du générateur.
 
-### Le skill unique et le verdict
+### Le skill `relecture` et le verdict
 
-- `A-77` — **Un skill `relecture`** (`skills/chaine/relecture/`), joué par une session de relecture, jamais par l'auteur. Il lit le diff de la PR contre sa base et choisit ses axes par ce que le diff contient :
+- `A-78` — **Un skill `relecture`** (`skills/chaine/relecture/`), joué par une session de relecture, jamais par l'auteur. Il lit le diff de la PR contre sa base et choisit ses axes :
 
-  | La PR contient | Axes |
+  | Le diff contient | Axes |
   | --- | --- |
-  | du code, avec un ticket | Règles, Ticket, Documentation (les trois axes actuels de `revue-de-ticket`) |
-  | du code, sans ticket | Règles |
+  | un chemin de la liste `exigeRevue` (`revue-exigee.mjs`), avec un ticket | Règles, Ticket, Documentation |
+  | un chemin de cette liste, sans ticket | Règles |
+  | un chemin sensible | en plus : la ligne `Sensibles:` couvre chaque chemin touché ; `/security-review`, comme `revue-adversariale` le fait aujourd'hui |
   | des tickets, une spec, une carte | Tickets : format prêt pour agent, paraphrase de la spec, décision laissée ouverte, référence morte, surface sans preuve, fichier chaud en double dans une vague |
   | une règle métier, une criticité, le glossaire | Règles métier : critère `D8`, cas et familles, criticité et sa raison, vocabulaire |
-  | un chemin sensible | en plus : la ligne `Sensibles:` du ticket couvre chaque chemin touché |
+  | toute autre documentation (ADR, README, méthode, planches) | Documentation |
 
-  Chaque axe reste un sous-agent en contexte vierge, lancé par la session de relecture, contre une liste fermée de critères. Les fichiers de critères de `revue-de-ticket` et de `revue-adversariale` deviennent les références de `relecture` ; ces deux skills ne se lancent plus seuls. `T3` est joué par la session de relecture pour toutes les criticités (fin de la précision provisoire de `P-38`).
-- `A-78` — **Le verdict est un commentaire de la PR**, écrit par la session de relecture, de forme fixe : une marque invisible, `Sommet relu:` (sha de 40 caractères), `Verdict:` (`validé` ou `à corriger`), `Bloquants:` (nombre), `Tour:` (n sur 3), `Session:` (l'identifiant de la session de relecture), puis les constats (identifiant, gravité, critère, fichier et ligne, constat, et pour un bloquant le test qui l'aurait attrapé). Un axe en échec s'écrit « non exécuté », jamais « aucun constat ». La session de relecture ne modifie aucun fichier et ne pousse rien.
-- `A-79` — **Trois étiquettes font l'état.** `à-relire` : posée par l'auteur quand sa PR est prête. `à-corriger` : posée par la session de relecture avec un verdict « à corriger ». `à-fusionner` : posée par la session de relecture avec un verdict « validé » ; l'auteur ne la pose plus jamais. Deux étiquettes nouvelles (`à-relire`, `à-corriger`), à créer par l'administrateur (`admin.md`).
-- `A-80` — **Contester.** L'auteur répond sur la PR : `Contesté: <identifiant> — <raison>`, et sonne le conducteur (l'architecte hors chantier). L'arbitre écrit `Arbitrage: <identifiant> maintenu` ou `écarté — <raison>`. Un constat écarté ne bloque plus. L'arbitre n'est jamais l'auteur : pour une PR du conducteur, l'architecte ; pour une PR de l'architecte, une seconde session de relecture, puis le produit si le désaccord tient et qu'il est métier.
-- `A-81` — **Le plafond de trois tours se compte sur la PR**, aux verdicts « à corriger ». Au troisième, le Relecteur ne lance plus de relecture ; il sonne le conducteur et l'architecte ; la PR montre l'état « arbitrage » dans la file. L'architecte écrit sa décision sur la PR (ticket récrit ou découpé, désaccord tranché) ; ce commentaire rouvre un tour.
+  Un diff qui relève de plusieurs lignes reçoit l'union de leurs axes. Les fichiers de critères de `revue-de-ticket` et de `revue-adversariale` deviennent des références de `relecture` ; ces deux skills cessent d'être des points d'entrée (retirés de `plugin.json`, de leur `poser` et des tests qui les connaissent). `T3` est joué par la session de relecture pour toutes les criticités : la précision provisoire de `P-38` (« Qui joue `T3` ») tombe.
+- `A-79` — **La session de relecture trie avant d'écrire.** Elle relit chaque constat d'un axe dans le code, ligne ouverte : sans critère cité, ou faux, il est écarté, et le verdict dit combien et pourquoi en une phrase chacun. C'est le tri que l'auteur faisait ; il passe au relecteur. Elle ne modifie aucun fichier et ne pousse rien.
+- `A-80` — **Le verdict est un commentaire de la PR**, de forme fixe, que la machine lit : une marque invisible ; `Sommet relu:` (sha de 40 caractères) ; `Verdict:` (`validé` ou `refusé`) ; `Bloquants:` (nombre) ; `Session:` (l'identifiant de la session de relecture) ; puis les constats (gravité, critère, fichier et ligne, constat, et pour un bloquant le test qui l'aurait attrapé). `validé` veut dire aucun bloquant ; les mineurs et les doutes y figurent, l'auteur en fait ce qu'il juge. Un axe en échec s'écrit « non exécuté » et le verdict est alors `refusé`, jamais « aucun constat ». Le lecteur tolère le pied de page que les sessions cloud ajoutent à leurs commentaires.
 
-### Le Relecteur
+### Le Relecteur et les étiquettes
 
-- `A-82` — **Un rôle, un skill, une session par dépôt.** Skill `skills/chaine/relecteur/`, lancé par l'architecte en même temps que le capitaine (`architecte/references/lancement.md` gagne son gabarit ; hors programme, par qui lance le capitaine), tag `role:relecteur`. Sa consigne vient du gabarit mot pour mot : aucune ligne de situation n'y change une règle de relecture.
-- `A-83` — **Sans mémoire.** Tout son état est sur les PR : les étiquettes, et un commentaire `Relecture lancée — Session: <identifiant>` qu'il pose au premier lancement. À chaque réveil (une veille, comme le capitaine) il liste les PR ouvertes qui portent `à-relire`, toutes bases confondues. Pour chacune : pas de session de relecture connue, il en lance une ; une session connue, il lui envoie une ligne (« PR n, nouveau sommet, tour k ») ; une session connue mais morte ou au plafond de contexte, il en lance une autre et le note sur la PR. Tombé, il se relance en une minute et reprend la file.
-- `A-84` — **Il ne lit pas les verdicts pour les redire.** La session de relecture, son verdict posé, lui écrit une ligne. Il sonne alors l'auteur (la session nommée par la ligne `Claude-Session:` du sommet) et le conducteur du sujet (ligne `Conducteur:` de la carte ; l'architecte hors chantier) : « verdict écrit sur la PR n : à corriger » ou « validé ». Jamais un constat, jamais un résumé. Il n'arbitre rien.
-- `A-85` — **Le modèle d'une session de relecture** est au moins celui de l'auteur ; clé `relecture.modele` de `chaine.json`. Le Relecteur archive la session de relecture quand la PR est fusionnée ou fermée ; le conducteur archive la fille, comme aujourd'hui.
-- `A-86` — **Criticité haute : deux sessions.** Quand le dépôt a un index Anchorpost en version 3 et que `anchorpost compare --json` dit que la PR touche une règle haute, le Relecteur lance deux sessions de relecture qui ne se connaissent pas. Les deux verdicts doivent être « validé ». Il envoie à l'architecte trois lignes pour le produit : la règle, ce qui change, les deux verdicts. Un ticket peut aussi demander la double relecture par une ligne `Relecture: double`.
+- `A-81` — **Un rôle, un skill, une session par dépôt.** Skill `skills/chaine/relecteur/`, lancé par l'architecte en même temps que le capitaine (gabarit dans `architecte/references/lancement.md` ; sans programme, par qui lance le capitaine). Sa consigne vient du gabarit mot pour mot. Il se tague `role:relecteur` et s'inscrit sur la ligne `Relecteurs:` de la carte du programme (ou de la carte du chantier, sans programme) ; `chantier` vérifie qu'un Relecteur tourne, comme il le fait pour le capitaine. Un second Relecteur qui trouve cette ligne tenue par une session vivante s'arrête.
+- `A-82` — **Le Relecteur est le seul à écrire les étiquettes de relecture, hors la demande.** Deux étiquettes nouvelles, `à-relire` et `à-reprendre`, ajoutées à `labels.sh` et à `admin.md`.
 
-### Le capitaine, les sessions qui codent, le conducteur
+  | État de la PR | Étiquette | Qui la fait passer | Vers |
+  | --- | --- | --- | --- |
+  | prête à être relue | `à-relire` | **l'auteur** la pose, avec un commentaire `À relire — Session: <la sienne> — Conducteur: <celle du conducteur, ou —>` | en relecture |
+  | en relecture | aucune des trois | **le Relecteur** retire `à-relire` et écrit `Relecture — tour k — sommet <sha> — sessions <…> — verdicts exigés <n>` | verdict |
+  | verdict `refusé` | `à-reprendre` | **le Relecteur**, sur la ligne que lui écrit la session de relecture | prête à être relue, après correction |
+  | tous les verdicts exigés `validé`, et la tête toujours au `Sommet relu` | `à-fusionner` | **le Relecteur** | le capitaine |
+  | renvoyée par le capitaine | `fusion-bloquée` | le capitaine la pose ; **l'auteur** la retire en reposant `à-relire` | prête à être relue |
 
-- `A-87` — **`revue-exigee.mjs` lit le verdict.** Une PR passe si son dernier verdict est « validé », sans bloquant, et si son `Sommet relu` est la tête, ou un ancêtre de la tête dont tous les commits suivants sont des mises à jour avec la base sans diff propre (la lecture de `commits-a-relire.mjs`). Sinon : renvoi, avec le motif. Exemptées : les PR que le capitaine fabrique lui-même (mise à jour d'un sujet, livraison d'un sujet), qui n'apportent que des sommets déjà relus. Le capitaine ne lance rien et ne juge aucun contenu.
-- `A-88` — **La session qui code** (`chaine-de-production.md` § 5) : l'étape « revue de ticket » devient « demander la relecture » — dernier push, PR hors brouillon, étiquette `à-relire`, une ligne au conducteur, un réveil de secours. Sur `à-corriger` : lire le verdict sur la PR, corriger (chaque bloquant avec son test), pousser, reposer `à-relire`. Elle ne pose jamais `à-fusionner` et ne lance aucun relecteur.
-- `A-89` — **Le conducteur** ne contre-relit plus (`chantier/SKILL.md` § 5) et ne relaie aucun constat. Il arbitre une contestation, compte sur les verdicts, et agit au troisième tour. `Label: contre-revue` n'a plus d'effet ; le gate garde la valeur lisible sur les tickets existants. Ses propres PR (cadrage, tickets) passent par `à-relire` comme les autres.
-- `A-90` — **Le bilan sort du plugin.** L'obligation d'une section `## Rétro` non vide pour passer une carte à `fini` est retirée du gate et de `chantier/SKILL.md` § 7. Un incident donne un ticket au moment où il arrive. La ligne de coût d'un ticket, dans la carte, peut noter son nombre de tours.
+  L'auteur ne pose plus jamais `à-fusionner` ; `renvoyer.sh` et `sujet.sh livrer` changent leur message et leur geste en conséquence. La tête a bougé pendant la relecture : le Relecteur ne pose rien, il redistribue le tour sur la nouvelle tête, sans le compter. Qui écrit une étiquette relit la liste après l'avoir écrite (`issue_write` remplace la liste entière).
+- `A-83` — **Sans mémoire.** Tout son état est sur les PR : les étiquettes et son commentaire `Relecture — tour k…`, qui dit quelles sessions relisent. À chaque réveil (une veille, comme le capitaine) il liste les PR ouvertes qui portent `à-relire`, toutes bases confondues, hors sujet gelé (`Gel:`). Pas de session de relecture connue pour la PR : il en lance une. Une session connue : il lui écrit une ligne (« PR n, tour k, sommet »). Une session morte ou au plafond de contexte : il en lance une autre, le note sur la PR, et le dit au conducteur.
+- `A-84` — **Il ne lit pas un verdict pour le redire.** La session de relecture, son verdict écrit, lui écrit une ligne. Il met l'étiquette, puis écrit une ligne à l'auteur et au conducteur nommés par le commentaire `À relire` : « verdict écrit sur la PR n : refusé » ou « validé ». Jamais un constat, jamais un résumé. Il n'arbitre rien. Si le diff propre de la PR n'a pas changé depuis son dernier verdict validé (un renvoi du capitaine pour un conflit d'index ou un contrôle instable), il repose `à-fusionner` sans nouveau tour.
+- `A-85` — **Le coût et l'archivage.** Une session de relecture a le rôle `relecture` dans `## Coût` (gate `tickets`, `couts.mjs`). Qui archive l'auteur archive aussi les sessions de relecture de la PR, lues sur elle, et note leur coût : le conducteur pour ses filles, l'auteur lui-même pour une PR du conducteur ou de l'architecte. Le modèle d'une session de relecture est celui de la clé `relecture.modele` de `chaine.json`.
 
-### Passage
+### Contester, plafonner
 
-- `A-91` — **Version 8.0.0**, puis une repose par dépôt (Anchorpost, Fedora, Iroki), faite par l'architecte de chaque projet : labels créés, Relecteur lancé, gabarits et documents remplacés, `.github/CODEOWNERS` retiré. D'ici là, les chantiers en cours gardent les règles de la 7.
-- `A-92` — **Le dépôt `skills`**, qui n'a pas la chaîne, reçoit la même règle par la procédure de son capitaine : un Relecteur dont la procédure est dans le prompt, et l'ordre `à-fusionner au sommet <sha>` écrit par la session de relecture au lieu de l'architecte. Dernier lot.
+- `A-86` — **Contester.** L'auteur répond sur la PR, `Contesté — <fichier et ligne, critère> — <raison>`, et écrit une ligne à l'arbitre. L'arbitre écrit `Arbitrage — … — maintenu` ou `écarté — <raison>`. L'auteur repose `à-relire` ; la session de relecture rend un nouveau verdict où un constat écarté ne compte plus, reconnu par son critère et son lieu. L'arbitre n'est jamais l'auteur : pour une PR d'une fille, le conducteur ; pour une PR du conducteur, l'architecte (sans programme, le produit) ; pour une PR de l'architecte, **le produit**, à qui l'architecte porte le désaccord, ou qu'il évite en corrigeant.
+- `A-87` — **Le plafond** se compte aux commentaires `Relecture — tour k` du Relecteur depuis la dernière décision de plafond. Au troisième verdict `refusé`, le Relecteur ne distribue plus : il l'écrit sur la PR et écrit une ligne au conducteur et à l'architecte (sans programme, au conducteur, qui va au produit si la cause est métier). L'architecte écrit sa `Décision de plafond — …` sur la PR (ticket récrit ou découpé, désaccord tranché) ; le compte repart de un. Ce plafond n'est pas celui des renvois du capitaine (`renvoisParPR`), qui reste tel quel pour ses propres renvois.
+
+### Criticité haute
+
+- `A-88` — **`Relecture: double`**, ligne d'en-tête d'un ticket. Le gate `tickets` l'exige quand une règle citée par la ligne `Règles:` a une criticité haute dans son fichier de règle. Le Relecteur lit cette ligne sur la base de la PR, lance deux sessions de relecture et écrit « verdicts exigés 2 ». Chacune ne lit pas le verdict de l'autre. `à-fusionner` n'est posée que si les deux sont `validé` ; un seul `refusé` donne `à-reprendre` et un seul tour. Le message d'information au produit part du conducteur, qui connaît le ticket, par l'architecte : la règle, ce qui change, les deux verdicts. Le Relecteur n'écrit rien de tel.
+
+### Le capitaine
+
+- `A-89` — **`revue-exigee.mjs` lit les verdicts**, au moment où il juge l'éligibilité, c'est-à-dire avant sa propre mise à jour de la PR, comme aujourd'hui. Il lit le dernier commentaire `Relecture — tour k` : le nombre de verdicts exigés et les sessions. Pour chacune, il veut un verdict `validé` sans bloquant. Le `Sommet relu` doit être la tête, **ou une version dont le diff propre est le même que celui de la tête, aux index générés près** : la notion que `passer.sh` (`livraison_intermediaire`) et `sujet.sh` (`verifier_mise_a_jour`) calculent déjà. Une PR que le capitaine a lui-même mise à jour au passage précédent reste donc valable. Sinon : renvoi, avec le motif. Toute PR est concernée, documentation comprise.
+- `A-90` — **Deux cas seulement ne demandent pas de verdict** : le report de `develop` dans un sujet par le capitaine (`sujet.sh rafraichir`, un push sans PR), et la livraison d'un sujet, reconnue comme aujourd'hui (elle n'apporte que des sommets déjà entrés par des sous-PR relues, fusionnés avec `develop`, aux index générés près). **La PR de mise à jour d'un sujet, ouverte par une session, n'est pas exemptée** : elle porte une résolution de conflit et passe par `à-relire`.
+
+### Les sessions qui codent, le conducteur, l'architecte
+
+- `A-91` — **La session qui code** (`chaine-de-production.md` § 5) : l'étape « revue de ticket » devient « demander la relecture » — dernier push, PR hors brouillon, commentaire `À relire` et étiquette, une ligne au conducteur, un réveil de secours. Sur `à-reprendre` : lire le verdict sur la PR, corriger chaque bloquant avec son test, pousser, reposer `à-relire`. Elle ne lance aucun relecteur et ne pose jamais `à-fusionner`.
+- `A-92` — **Le conducteur** ne contre-relit plus et ne relaie aucun constat. Il arbitre les contestations de ses filles et reçoit les plafonds. `Label: contre-revue` n'a plus d'effet : le gate cesse de l'exiger et garde la valeur lisible sur les tickets existants ; `lancement.md` ne fait plus livrer « selon la ligne `Label:` ». Ses propres PR passent par `à-relire`.
+- `A-93` — **Le bilan sort du plugin** : l'obligation d'une section `## Rétro` non vide pour passer une carte à `fini` est retirée du gate, de `chantier/SKILL.md`, des gabarits et de leurs tests. Un incident donne un ticket au moment où il arrive.
+- `A-94` — **Une ADR « relecture indépendante et accord des fichiers sensibles »** remplace l'ADR « CODEOWNERS » et amende les points de l'ADR de la chaîne qui décrivent la revue par l'auteur et la contre-revue.
+
+### Passage de la 7 à la 8
+
+- `A-95` — **Deux temps.** D'abord des lots qui ajoutent sans rien changer au régime : le skill `relecture`, le skill `relecteur`, le lecteur de verdict, les étiquettes, la ligne `Sensibles:` acceptée par le gate sans être exigée. Puis **un seul lot de bascule**, fusionné en dernier, version 8.0.0 : tout ce qui change le comportement des sessions et du capitaine.
+- `A-96` — **La clé `relecture` de `.claude/chaine.json` est l'interrupteur.** Elle est posée par la repose. Les skills que les sessions lisent dans le marketplace (`chantier`, `architecte`, `fusionner`, `sujet`, `tickets`) portent, depuis la bascule, une ligne de tête : sans cette clé, le dépôt n'est pas reposé en 8, la session s'arrête et le dit à l'architecte, qui fait la repose d'abord. Une session lancée entre la bascule et la repose d'un projet ne mélange donc pas un skill de la 8 avec des scripts posés de la 7. La repose de chaque projet est préparée avant la bascule, en PR brouillon, et fusionnée dans la foulée.
+- `A-97` — **Le dépôt `skills`**, qui n'a pas la chaîne, reçoit la même règle par les procédures données dans les prompts de son capitaine et de son Relecteur : l'ordre `à-fusionner au sommet <sha>` est écrit par le Relecteur quand le verdict est validé, au lieu de la session qui livre. Dernier lot.
 
 ## Les lots
 
-1. **Fichiers sensibles** (`A-73` à `A-75`) : gabarit de ticket, gate `tickets`, hook d'édition, `passer.sh`, section de la carte, `chantier` (découpage), `architecte` (la demande au produit).
-2. **Retrait de CODEOWNERS** (`A-76`).
-3. **Skill `relecture` et verdict** (`A-77`, `A-78`, `A-80`) : le skill, ses prompts, les critères « Tickets » et « Règles métier », le format du verdict et son lecteur testé.
-4. **Le Relecteur** (`A-79`, `A-81` à `A-85`) : skill, scripts de file et de veille, gabarit de lancement, labels au socle et dans `admin.md`.
-5. **Le capitaine** (`A-87`) : `revue-exigee.mjs`, l'état « arbitrage » de la file.
-6. **Sessions qui codent, conducteur, architecte** (`A-88`, `A-89`) : `chaine-de-production.md`, `chantier`, `architecte`, `tickets`.
-7. **Criticité haute** (`A-86`).
-8. **Bilan supprimé** (`A-90`).
-9. **Repose et `skills`** (`A-91`, `A-92`).
+Les lots qui touchent les mêmes fichiers se suivent ; seuls 1 et 2 peuvent aller de front avec 3 et 4, qui n'écrivent que des fichiers neufs.
 
-Les lots 3 et 4 se suivent ; 5 dépend de 3 ; 6 dépend de 4 et 5 ; 1, 2 et 8 sont indépendants.
+1. **Retrait de CODEOWNERS** (`A-77`). Fichiers : `socle/scripts/github/codeowners*`, `socle/chaine.json`, `socle/agent/regles.mjs` et son test, `fusionner/scripts/{github,passer,file,boucle}.sh`, `fusionner.test.mjs`, `veille.test.mjs`, `sujet/scripts/faux-gh.mjs`, `fusionner/SKILL.md` et son `CONTENU.md`, `socle/SKILL.md` et son `CONTENU.md`, `admin.md`, `fragments/claude-md-fusion.md`, `chaine-de-production.md`, `chantier/SKILL.md`, `README.md`, `scripts/{depot,poses,points-d-entree}.test.mjs`.
+2. **Fichiers sensibles** (`A-73` à `A-76`, `A-94`), après 1 : gabarits `ticket.issue.md` et `carte.map.md`, gate `tickets-regles.mjs`, `agent/garde-fichiers.mjs` et `regles.mjs`, `revue-adversariale/scripts/chemins-sensibles.mjs`, `sujet.sh` (`fusionner`), `passer.sh`, `chantier` (découpage), `architecte` (la demande au produit), `chaine-de-production.md` § 3, l'ADR.
+3. **Skill `relecture`, verdict et son lecteur** (`A-78` à `A-80`) : fichiers neufs, plus `plugin.json`, `README.md`, `CONTEXT.md`, `socle-monorepo/.../references-agent-integrees.json`.
+4. **Skill `relecteur`** (`A-81` à `A-88`) : fichiers neufs (skill, file, veille, gabarit de lancement), plus `labels.sh`, `admin.md`, `gabarits/programme.md` (ligne `Relecteurs:`).
+5. **Bascule, version 8.0.0** (`A-89` à `A-93`, `A-95`, `A-96`), après 1 à 4 : `revue-exigee.mjs`, `passer.sh`, `sujet.sh` (éligibilité, `livrer`), `renvoyer.sh`, `github.sh`, leurs tests et `depot-jouet.mjs` ; `chaine-de-production.md` (rôles, § 5), `chantier`, `architecte`, `lancement.md`, `fusionner/SKILL.md`, `sujet/SKILL.md`, `tickets` (`issue-tracker.md`, `avancement.mjs`, gate : `Label:`, `Relecture: double`, `## Rétro`, rôle `relecture`), `couts.mjs`, `fragments/claude-md-fusion.md`, `socle-monorepo/.../racine/CLAUDE.md` et `methode/conception.md`, `pieges.md`, `criticite/SKILL.md`, `recette-humaine/SKILL.md` ; `revue-de-ticket` et `revue-adversariale` retirés des points d'entrée. Ce lot se découpe en tickets qui se suivent sur une même branche de travail et n'entre dans `main` qu'entier.
+6. **Repose** dans Anchorpost, Fedora et Iroki (leurs architectes), préparée avant la bascule.
+7. **`skills` lui-même** (`A-97`).
 
 ## Ce que cette spec ne ferme pas
 
-- **Toutes les sessions écrivent sous le compte du produit.** Une étiquette, un verdict, une ligne `Sensibles:` peuvent être écrits par n'importe quelle session : les gardes tiennent face à une session de bonne foi qui suit son skill, pas face à une PR hostile. La frontière contre une PR hostile reste la protection de GitHub décrite dans `admin.md`.
-- **C'est un agent qui écrit le nom de qui a accordé** un fichier sensible. Rien ne prouve l'accord, sinon la conversation du produit avec l'architecte.
-- **Le Relecteur est un point de passage** : arrêté, plus aucune PR n'est relue. Il se relance sans rien perdre ; une PR étiquetée `à-relire` que rien ne relit signale un Relecteur arrêté (`pieges.md`).
-- **Le coût** : une session de relecture par PR, deux pour une règle haute. La relecture lancée par l'auteur et la contre-revue du conducteur disparaissent en échange.
-- **Le ticket contre lequel on relit peut être faux** : il est maintenant relu lui aussi avant d'entrer, par l'axe « Tickets ».
+- **Toutes les sessions écrivent sous le compte du produit.** Une étiquette, un verdict, une ligne `Sensibles:` peuvent être écrits par n'importe quelle session : ces gardes tiennent face à une session de bonne foi qui suit son skill, pas face à une PR hostile. Le retrait de CODEOWNERS retire la seule protection de GitHub qui visait ce cas ; il reste la protection de branche (contrôles exigés, pas de push forcé, pas de liste de contournement).
+- **C'est un agent qui écrit le nom de qui a accordé** un fichier sensible. Rien ne prouve l'accord, sinon la conversation du produit.
+- **Le Relecteur est un point de passage** : arrêté, plus aucune PR n'est relue. Il se relance sans rien perdre ; une PR `à-relire` que rien ne relit signale un Relecteur arrêté (`pieges.md`).
+- **Le coût** : une session de relecture par PR, deux pour une règle haute ; chaque correction rouvre la CI entière, la PR n'étant plus en brouillon.
+- **Deux sessions de relecture d'une même PR peuvent lire le verdict l'une de l'autre** : la consigne l'interdit, rien ne l'empêche.
+- **Une PR sans ticket qui touche le code d'une règle haute** n'a qu'une relecture : la double relecture se déclenche par le ticket.
+- **À sonder avant le lot 4** : qu'une session réveillée par le message d'une autre accepte de poser une étiquette (le mode « auto » a déjà refusé un ordre venu d'une session, `lancement.md`). Si elle refuse, le Relecteur pose l'étiquette à la lecture du verdict lors de sa veille, sans message.
 
 ## Hors périmètre
 
-Deux défauts de la chaîne relevés le 18 novembre, qui auront leurs tickets à part : `chantier` § 6 donne `sujet.sh rafraichir` au conducteur alors que c'est le geste du capitaine (`A-69`) ; une PR en retard dont seul un index généré est périmé une fois fusionnée avec la base part au renvoi alors que `passer.sh` sait la réparer. Et l'identité des sessions (un compte propre aux agents), écartée par le produit comme trop compliquée.
+Deux défauts de la chaîne relevés le 2026-11-18, qui ont leurs tickets à part : `chantier` § 6 donne `sujet.sh rafraichir` au conducteur alors que c'est le geste du capitaine (`A-69`) ; une PR en retard dont seul un index généré est périmé une fois fusionnée avec la base part au renvoi alors que `passer.sh` sait la réparer. Et un compte propre aux agents, écarté par le produit comme trop compliqué.
+
+## À confirmer par le produit
+
+1. **Qui arbitre une PR de l'architecte** : personne d'autre que le produit (`A-86`). L'architecte corrige, ou lui porte le désaccord.
+2. **La livraison d'un sujet n'a pas de relecture propre** (`A-90`) : elle ne contient que des PR déjà relues une à une. C'est la seule exception à « toutes les PR ».
 
 ## Vérification d'ensemble
 
-Sur un dépôt jouet monté avec les vrais outils : une PR de code avec un défaut planté reçoit `à-corriger`, puis `à-fusionner` après correction, sans que la session qui code ait lancé un relecteur ; le capitaine refuse une PR dont le verdict porte sur un sommet périmé, et une PR sans verdict ; un fichier sensible hors de la ligne `Sensibles:` est refusé par le hook et par `passer.sh` ; trois verdicts « à corriger » arrêtent la boucle ; une PR de tickets passe par l'axe « Tickets » ; un Relecteur relancé à neuf reprend la file sans rien demander à personne.
+Sur un dépôt jouet monté avec les vrais outils, et pour ce qui demande de vraies sessions, sur une copie d'un dépôt réel : une PR de code avec un bloquant planté reçoit `à-reprendre`, puis `à-fusionner` après correction, sans que son auteur ait lancé un relecteur ; le capitaine refuse une PR sans verdict, une PR dont le diff propre a changé depuis le verdict, et passe une PR qu'il a lui-même mise à jour ; une sous-PR qui touche un chemin sensible hors de sa ligne `Sensibles:` est refusée par le hook et par `sujet.sh fusionner` ; trois verdicts refusés arrêtent la distribution ; une PR `Relecture: double` n'entre pas avec un seul verdict validé ; une PR de tickets passe par l'axe « Tickets » ; un Relecteur relancé à neuf reprend la file ; un conducteur lancé sur un dépôt sans la clé `relecture` s'arrête et le dit.
