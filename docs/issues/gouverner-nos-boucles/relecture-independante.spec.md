@@ -40,7 +40,7 @@ Un mot, un sens. Ces termes entrent dans `CONTEXT.md` avec le lot 3.
 
 ## Décisions de conception (architecte)
 
-Numérotées dans la suite de la carte ; elles remplacent celles des deux premières versions. Les décisions `A-104` à `A-113`, du 2026-11-18, sont à la fin de cette section ; une décision qu'elles touchent garde son numéro et dit « amendée en sixième version ».
+Numérotées dans la suite de la carte ; elles remplacent celles des deux premières versions. Les décisions `A-104` à `A-114`, du 2026-11-18, sont à la fin de cette section ; une décision qu'elles touchent garde son numéro et dit « amendée en sixième version ».
 
 ### Fichiers sensibles
 
@@ -203,6 +203,13 @@ Prises par l'architecte sur le rapport de vérification (`relecture-independante
   - **« Illisible », pour les deux calculs** (`A-106`, `A-82`) : le Relecteur ne distribue ni ne valide, écrit une fois sur la PR une ligne tracée qui dit la cause, et prévient l'architecte ; le capitaine saute la PR sans la renvoyer, son auteur n'y pouvant rien. Lots 4 et 5a.
   - **Codes de sortie des deux calculs en ligne de commande**, accordés : 0 pour la réponse qui ne demande rien (« même », « non exigée »), 20 pour l'autre (« différent », « exigée »), 21 pour « illisible », 69 pour un outil manquant.
   - **La pose.** L'étape 0 de `fusionner/SKILL.md` pose tous les `.sh`, nomme les `.mjs` un à un, et fait suivre tous les bancs : un projet qui reposerait entre deux lots recevrait un banc sans son module. Les tickets 58 et 60 ajoutent donc chacun le nom de ses modules à cette liste (un mot), en plus de leurs fichiers neufs ; le ticket 59, un `.sh`, n'en a pas besoin. Cela remplace, pour eux, le renvoi d'`A-111` aux lots 4 et 5a. `fusionner/SKILL.md` est écrit aussi par l'autre programme : partir de `main`, reprendre `main` avant de livrer, ne changer que ce mot.
+- `A-114` — **Ce que la relecture adversariale du ticket 59 a cassé, et la règle qui le ferme** (amende `A-106`). Deux faux « même » et un « illisible » manqué ont été reproduits sur dépôts jouets.
+  - **Dans une fusion, un index sans commande ou sous motif n'est dispensé que s'il est en conflit dans la fusion calculée**, et son contenu doit alors être celui du second parent ; hors conflit, il se juge comme tout fichier. Raison : une fusion fabriquée dont le second parent est un ancêtre ancien de la cible faisait reculer un tel index en silence, et le squash perdait le contenu de la cible.
+  - **Le calcul compare des arbres par des commandes à options explicites, depuis la racine du dépôt, sans obéir à la configuration** du dépôt, de l'utilisateur ou du dossier courant (sous-modules ignorés par réglage, chemins relatifs, objets remplacés, chemins entre guillemets). Raison : un réglage de `git diff` suffisait à cacher un changement de sous-module ou d'un fichier hors du dossier courant.
+  - **Toute lecture vide ou en échec vaut « illisible »**, outil absent compris, jamais « même ». Les arguments se valident, et la dernière ligne de la sortie est le seul verdict.
+  - **Limite écrite** : un index à commande est dispensé quel que soit son contenu ; sans contrôle de cet index en CI, une retouche après le verdict n'est vue par personne. C'est déjà vrai de la revue d'aujourd'hui, qui exclut les index générés.
+
+  Chaque attaque devient un cas du banc. Le ticket repasse devant son relecteur avant de partir.
 
 ## Les lots
 
