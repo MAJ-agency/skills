@@ -1617,3 +1617,268 @@ test('ticket 17 : /security-review — chaque contournement confirmé sur un dé
   refusees(['git config --unset-a remote.origin.push', 'git config --rename-sec hacks remote.origin'], PUSH_ILLISIBLE);
   passent(['git commit -m "$*"', 'git -C "${dir}" status', 'git config --show-origin core.hooksPath', 'env -u X pnpm test', 'set -euo pipefail; git status', 'echo "$@"']);
 });
+
+// ——— Le banc d'Iroki (#652), repris : chaque forme gardée, chaque divergence nommée avec sa décision ———
+
+/** Chaque commande est refusée, quelle qu'en soit la raison (les raisons d'Iroki ne sont pas celles du plugin). */
+function refuseesQuelleQueSoitLaRaison(commandes) {
+  for (const c of commandes) assert.equal(decisionCommande(c, enBranche)?.decision, 'refuser', `devrait être refusée : ${c}`);
+}
+
+test('banc repris : --no-verify refusé derrière les options globales', () => {
+  refuseesQuelleQueSoitLaRaison([
+    "git -C . commit --no-verify -m x",
+    "git --git-dir=.git push --no-verify origin feat/a",
+    "git --git-dir .git push --no-verify origin feat/a",
+    "git --work-tree=. commit --no-verify -m x",
+    "git -c a=b commit -n -m x",
+    "git -C /tmp/w -c a=b merge --no-verify feat/a",
+    "git --no-pager -c a=b rebase --no-veri main",
+    "git -p --bare am --no-verify x.patch",
+    "git --namespace=n --exec-path=/x commit --NO-VERIFY -m x",
+    "git --attr-source HEAD commit --no-verify -m x",
+    "git --foo=bar commit -nm x",
+    "/usr/bin/git -C \"$(pwd)\" commit --no-verify -m x",
+    "git -c user.name='a b' commit --no-verify -m x",
+  ]);
+});
+
+test('banc repris : push sur develop ou main, rebase ou reset --hard d’une branche partagée, derrière les options globales', () => {
+  refuseesQuelleQueSoitLaRaison([
+    "git -C . push origin develop",
+    "git -c a=b push origin HEAD:main",
+    "git --no-pager rebase origin/develop",
+    "git -C /tmp/w reset --hard origin/sujet/x",
+  ]);
+  passent(['git reset --hard origin/feat/x', 'git rebase origin/feat/y']);
+});
+
+test('banc repris : core.hooksPath refusé par -c, par l’environnement ou par git config', () => {
+  refuseesQuelleQueSoitLaRaison([
+    "git -c core.hooksPath=/dev/null commit -m x",
+    "git -c core.hookspath=/dev/null push origin feat/a",
+    "git -c \"core.hooksPath=/dev/null\" commit -m x",
+    "git -c \"core.hooksPath=/a b\" commit -m x",
+    "git -C . -c core.hooksPath=/dev/null merge feat/a",
+    "git -c a=b -c core.hooksPath=/x rebase main",
+    "git -c core.hooksPath=/x am x.patch",
+    "git -c core.hooksPath=/x cherry-pick abc",
+    "git -c core.hooksPath=/x revert abc",
+    "git -c core.hooksPath=/x pull origin develop",
+    "git -c core.hooksPath=/x checkout feat/a",
+    "git -C . -c core.hooksPath=/x switch --detach origin/develop",
+    "git --config-env=core.hooksPath=HP commit -m x",
+    "GIT_CONFIG_PARAMETERS=\"'core.hooksPath=/dev/null'\" git commit -m x",
+    "GIT_CONFIG_PARAMETERS=\"'core.hooksPath=/dev/null'\" git push origin feat/a",
+    "export GIT_CONFIG_PARAMETERS=\"'core.hooksPath=/dev/null'\"; git commit -m x",
+    "GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.hooksPath GIT_CONFIG_VALUE_0=/dev/null git commit -m x",
+    "env GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.hookspath GIT_CONFIG_VALUE_0=/x git push origin feat/a",
+    "git config core.hooksPath /tmp",
+    "git config --local core.hooksPath /tmp",
+    "git config --global core.hooksPath /tmp",
+    "git config \"core.hooksPath\" /tmp",
+    "git -C . config core.hooksPath /tmp",
+    "git config set core.hooksPath /tmp",
+    "git config --add core.hooksPath /tmp",
+  ]);
+});
+
+test('banc repris : ce qui parle de core.hooksPath sans le poser passe', () => {
+  passent([
+    "git config --get core.hooksPath",
+    "git config get core.hooksPath",
+    "git commit -m \"refuse git -c core.hooksPath=/x commit\"",
+    "git commit -m \"GIT_CONFIG_PARAMETERS et git config core.hooksPath /tmp\"",
+    "git config user.name x",
+    "GIT_CONFIG_NOSYSTEM=1 git commit -m x",
+  ]);
+  // Divergences (ticket 34, décisions 2 ; A-37) : retirer la clé rend .git/hooks sans husky ; -c core.hooksPath
+  // n'a aucun usage légitime, quelle que soit la sous-commande ; GIT_CONFIG_COUNT n'a jamais à être tapé par une session.
+  refuseesQuelleQueSoitLaRaison([
+    "git config --unset core.hooksPath",
+    "git -c core.hooksPath=/x status",
+    "git -c core.hooksPath=/x log",
+    "GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=gc.autoDetach GIT_CONFIG_VALUE_0=false git commit -m x",
+  ]);
+});
+
+test('banc repris : les commandes ordinaires de la chaîne passent toujours', () => {
+  passent([
+    "git -C /tmp/worktree status",
+    "git -C /tmp/worktree log --oneline -5",
+    "git -C /tmp/worktree diff origin/develop...HEAD --stat",
+    "git -C /tmp/worktree rev-parse --abbrev-ref HEAD",
+    "git -C \"$w\" reflog --format=%gs",
+    "git -c color.ui=false log",
+    "git -c core.quotepath=false diff",
+    "git -c core.quotePath=false ls-tree -r --full-tree origin/develop",
+    "git -c core.quotePath=false ls-files -s",
+    "git -C . commit -m x",
+    "git -C . commit -am x",
+    "git --no-pager log",
+    "git --no-pager diff --stat",
+    "bash scripts/chaine/sujet.sh demarrer SPEC_ALL_DEMO-1.01",
+    "bash scripts/chaine/sujet.sh rafraichir demo",
+    "bash scripts/chaine/passer.sh 12",
+    "git push -u origin feat/spec-all-demo-1-01-x",
+    "git merge --no-ff origin/develop",
+    "git merge -q --no-edit origin/develop",
+    "git fetch --prune origin develop",
+    "git fetch -q --prune origin develop",
+    "git fetch origin sujet/demo",
+    "git fetch",
+    "git switch --detach origin/develop",
+    "git status",
+    "git log --first-parent origin/develop -n 30 --format=%s",
+    "git diff --name-only --diff-filter=U",
+    "git -C /tmp/worktree log -1",
+    "git -C /tmp/worktree diff",
+    "git -C /tmp/worktree fetch origin develop",
+    "git -C /tmp/worktree switch --detach origin/develop",
+    "git ls-remote --heads origin feat/x",
+    "git merge-base --is-ancestor origin/develop HEAD",
+    "git merge --abort",
+    "git checkout --theirs -- docs/x.md",
+    "git cherry-pick --no-merges origin/develop..HEAD",
+    "git branch --show-current",
+    "git commit -q --no-edit",
+    "git add -A -- docs",
+    "git config user.name x",
+    "git -c user.name=x -c user.email=y commit -m x",
+  ]);
+});
+
+test('banc repris : git config, seule une action de lecture placée avant la clé exempte ; guillemets et barres obliques lus', () => {
+  refuseesQuelleQueSoitLaRaison([
+    "git config core.hooksPath list",
+    "git config core.hooksPath get",
+    "git config core.hooksPath unset",
+    "git config core.hooksPath /z --show-origin",
+    "git config core.hooksPath /w -l",
+    "git config core.hooksPath /w --get",
+    "git config --show-origin core.hooksPath /w",
+    "git config core.hooksPath ''",
+    "git -c core.\"hooksPath\"=/tmp/h commit -m x",
+    "git -c 'core.hooks'Path=/x commit -m x",
+    "git -c core.hooks\\Path=/x commit -m x",
+    "git -c \"core.hooks\\Path=/x\" commit -m x",
+    "git config core.\"hooksPath\" /x",
+    "git config core.hooks\\Path /x",
+    "GIT_CONFIG_PARAMETERS=\"'core.hooks'\\''Path=/x'\" git commit -m x",
+  ]);
+  passent([
+    "git config --get core.hooksPath",
+    "git config --list",
+    "git config -l",
+    "git config --show-origin --get core.hooksPath",
+    "git config --global --get core.hooksPath",
+    "git config get core.hooksPath",
+    "git config core.hooksPath",
+    "git config --global core.hooksPath",
+    "git commit -m \"x\" -m\"y\"",
+    "git -c core.pager=cat commit -m \"core.hooksPath\"",
+  ]);
+  // Divergences : `git config --unset core.hooksPath` est refusé (ticket 34) ; `GIT_CONFIG_KEY_0=…` sans
+  // `GIT_CONFIG_COUNT` est inerte (git ne lit les clés qu'avec le compte), il passe.
+  refuseesQuelleQueSoitLaRaison(['git config --unset core.hooksPath']);
+  passent([
+    "GIT_CONFIG_KEY_0=core.hooks\"Path\" git commit -m x",
+    "GIT_CONFIG_KEY_0='core.hooksPath' git commit -m x",
+  ]);
+});
+
+test('banc repris : une valeur non citée à blancs de -C ou -c ne cache plus la sous-commande', () => {
+  refuseesQuelleQueSoitLaRaison([
+    "git -C $(git rev-parse --show-toplevel) commit --no-verify -m x",
+    "git -c a=$(echo 1) commit -n -m x",
+    "git -C `dirname $PWD/x` push --no-verify origin feat/a",
+    "git -C /tmp/mon\\ dossier commit --no-verify -m x",
+    "git -C $(git rev-parse --show-toplevel) -c core.hooksPath=/dev/null commit -m x",
+    "git -C $(git rev-parse --show-toplevel) config core.hooksPath /tmp",
+    "git -C $(cd a && git rev-parse $(pwd)) commit --no-verify -m x",
+    "git -C $((1 + 2)) commit --no-verify -m x",
+    "git -C ${x:-a b} commit --no-verify -m x",
+    "git -C $(pwd) push origin develop",
+    "git -C $(pwd) rebase origin/develop",
+  ]);
+  passent([
+    "git -C \"$racine\" log",
+    "git -C \"$racine\" diff \"$base...HEAD\" --stat -- docs",
+    "git -C \"$w\" rev-parse --abbrev-ref HEAD",
+    "git -C /tmp/mon\\ dossier status",
+    "git -C <(echo a b) status",
+    "git -C <(echo a b) log --oneline",
+  ]);
+  // Divergences (A-40, A-45) : une expansion non citée dans la valeur d'une option globale est refusée devant toute
+  // sous-commande (elle peut y écrire `-c alias.…`) ; la forme citée passe.
+  refusees([
+    "git -C $(pwd) status",
+    "git -C $(git rev-parse --show-toplevel) status",
+    "git -C $(git rev-parse --show-toplevel) log --oneline -5",
+    "git -C ${x:-a b} status",
+    "git -C ${x:-a b} diff --stat",
+    "git -C ${x:-a b} commit -m x",
+    "git -C $(pwd) commit -m x",
+    "git -C $(pwd) fetch origin develop",
+  ], ARGUMENT);
+  // Divergence : une substitution de processus rend un seul chemin, lu et sans effet sur les hooks : elle passe.
+  passent([
+    "git -C <(echo a b) commit -m x",
+    "git -C <(echo a b) push origin feat/a",
+  ]);
+});
+
+test('banc repris : git config --comment ne fait pas passer une écriture pour une lecture', () => {
+  refuseesQuelleQueSoitLaRaison([
+    "git config --comment get core.hooksPath /tmp/h",
+    "git config --comment list core.hooksPath /tmp/h",
+    "git config --comment=get core.hooksPath /tmp/h",
+    "git config --inconnue get core.hooksPath /tmp/h",
+    "git config --inconnue --get core.hooksPath /tmp/h",
+    "git config -e get core.hooksPath /tmp/h",
+  ]);
+  passent([
+    "git config --get core.hooksPath",
+    "git config --global --get core.hooksPath",
+    "git config --show-origin --get core.hooksPath",
+    "git config --comment x --get core.hooksPath",
+    "git config --file x.cfg get core.hooksPath",
+    "git config get core.hooksPath",
+  ]);
+});
+
+test('ticket 17 : contre-relecture de l’architecte — programme à expansion, env -S, accolades, alias, et variantes citées', () => {
+  // B1 : un programme à expansion se lit comme git (A-45).
+  refusees([
+    "$(echo git) commit --no-verify -am x",
+    "`echo git` commit --no-verify -am x",
+    "\"$(command -v git)\" commit --no-verify -am x",
+    "${G-git} commit --no-verify -am x",
+    "${G:=git} commit --no-verify -am x",
+    "${G:-git} -c core.hooksPath=/dev/null commit -am x",
+    "G=gi; ${G}t commit -n -am x",
+    "${G:-git} commit --no-verify -m x",
+  ], HOOKS);
+  refusees([
+    "$(echo git) push origin HEAD:sujet/x",
+    "$g push origin HEAD:sujet/x",
+  ], PUSH_ILLISIBLE);
+  // B2 : env -S et --split-string, accolades devant le programme, alias définis dans la commande.
+  refusees([
+    "env -S'GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.hooksPath GIT_CONFIG_VALUE_0=/dev/null' git commit -am x",
+    "env --split-string='git -c core.hooksPath=/dev/null commit -am x'",
+    "env GIT_CONFIG_{COUNT=1,KEY_0=core.hooksPath,VALUE_0=/dev/null} git commit -am x",
+    "shopt -s expand_aliases; alias g='git commit --no-verify'; g -am x",
+  ], HOOKS);
+  refusees(['shopt -s expand_aliases; alias g=git; g push origin HEAD:sujet/y'], SUJET);
+  // B3 : régression de la première livraison, des formes citées refusées sous « hooks git ».
+  passent([
+    "git -C \"$d\" commit -m \"fix: $x\"",
+    "git -C \"$d\" add \"$f.md\"",
+    "git -C \"$d\" checkout \"feat/$b\"",
+    "git -C \"$d\" diff --stat \"origin/$base...HEAD\"",
+    "git -C \"$(pwd)\" log \"$b..HEAD\"",
+    "git -C \"$racine\" diff \"$base...HEAD\" --stat -- docs",
+  ]);
+  passent(['git -C "$X" push origin feat/x', '"$EDITOR" fichier.md', 'alias ll="ls -l"; ll', 'env -S "pnpm test"']);
+});

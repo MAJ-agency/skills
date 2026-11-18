@@ -2031,7 +2031,13 @@ export function pushSansRefspec(commande) {
 export const RAISON_HOOKS_GIT =
   "hooks git sautés (--no-verify, -n, HUSKY=0, core.hooksPath, include.path, alias.*, GIT_CONFIG_*) : ils sont le pare-feu local, corriger ce qu'ils signalent. Un banc installe ses hooks dans son dépôt jouet par son script, jamais par une commande de session.";
 export const RAISON_ARGUMENT_ILLISIBLE =
-  'argument de git illisible (variable ou substitution là où git peut lire une option) : écris-le en clair. Une expansion n\'est admise que dans une valeur : `-m "$msg"`, `--author="$a"`.';
+  'argument de git illisible (variable, substitution ou motif non cité là où git peut lire une option) : écris-le en clair. Une expansion n\'est admise que dans une valeur : `-m "$msg"`, `--author="$a"` ; des chemins à motif vont après `--` : `git commit -m x -- src/*.ts`.';
+/** Le refus de `COMMANDES_INTERDITES` pour un rebase ou un `reset --hard` d'une branche partagée, repris derrière les options globales. */
+const RAISON_REBASE_PARTAGE = 'rebase ou reset --hard sur une branche partagée : jamais ; un sujet se rafraîchit par merge (sujet.sh rafraichir).';
+/** Les sous-commandes qu'un programme à expansion suivi d'elles fait lire comme un appel de git. */
+const SOUS_GARDEES = new Set(['commit', 'am', 'merge', 'rebase', 'pull', 'push', 'config', 'update-ref', 'reset']);
+/** Un mot exact qui porte un motif ou des accolades non cités. */
+const motifExact = (w) => /[*?[]/.test(w.nu ?? '') || ((w.nu ?? '').includes('{') && ((w.nu ?? '').includes(',') || (w.nu ?? '').includes('..')));
 export const RAISON_REF_DE_SUIVI =
   'une ref de suivi (refs/remotes/…) ne se fabrique pas : des scripts de la chaîne la lisent comme l\'état du distant. `git fetch origin` la met à jour.';
 
@@ -2088,7 +2094,7 @@ const nomAffecte = (w) => /^([A-Za-z_][A-Za-z0-9_]*)(\[[^\]]*\])?\+?=/.exec(w.ex
  * lancera comme des commandes). Sur les mots exacts (`exacte`), une expansion n'est admise que dans une valeur,
  * citée (Décision 0 du ticket 17) ; sur le texte d'une lecture non appariée, seuls les noms se jugent.
  */
-function lireAppel(W, i, exacte, r) {
+function lireAppel(W, i, exacte, r, { sousLue = false } = {}) {
   // Un motif de chemin ou d'accolades non cité (`*`, `?`, `[`, `{a,b}`) : bash en fait d'autres mots, comme d'une
   // expansion non citée (`git {-c,core.hooksPath=/x} commit`).
   const motif = (w) => exacte && (/[*?[]/.test(w.nu) || (w.nu.includes('{') && (w.nu.includes(',') || w.nu.includes('..'))));
@@ -2119,9 +2125,11 @@ function lireAppel(W, i, exacte, r) {
     if (nomIllisible || globaleLibre) r.hooks = true;
     return;
   }
-  // Une sous-commande à expansion est illisible : `git $(echo commit) …` (Décision 0).
+  // Une sous-commande à expansion est illisible : `git $(echo commit) …` (Décision 0). Sur une lecture non appariée
+  // d'un git que les mots exacts lisent (`sousLue` : une variante qui a retiré `"$d"` de `git -C "$d" add "$f"`),
+  // ce n'est pas une sous-commande : la lecture exacte en juge.
   if (aExpansion(ws.vue) || motif(ws)) {
-    r.hooks = true;
+    if (!sousLue) r.hooks = true;
     return;
   }
   const sous = ws.vue.toLowerCase();
@@ -2147,6 +2155,9 @@ function lireAppel(W, i, exacte, r) {
     }
   }
   const args = W.slice(j + 1);
+  // `git --no-pager rebase origin/develop`, `git -C /tmp/w reset --hard origin/sujet/x` : le motif de
+  // `COMMANDES_INTERDITES` veut la sous-commande juste après `git`.
+  if ((sous === 'rebase' || (sous === 'reset' && args.some((w) => w.vue === '--hard'))) && args.some((w) => /\b(origin\/)?(develop|main|sujet\/)/i.test(w.vue))) r.rebase = true;
   if (OPTIONS_DE_SOUS_COMMANDE[sous]) lireOptions(sous, args, { exacte, motif, libre }, r);
   else if (sous === 'config') lireConfig(args, { exacte, motif, libre }, r);
   else if (sous === 'update-ref') lireUpdateRef(args, { exacte, motif }, r);
@@ -2360,6 +2371,8 @@ function affecteLesHooks(cmd) {
     if (programmeGit >= 0 && k < programmeGit && VARIABLE_HOOKS.test(nomAffecte(W[k]) ?? '')) return true;
     if (W[k].expansion || nomDeBase(W[k].valeur) !== 'env') continue;
     for (let e = k + 1; e < W.length; e++) {
+      // `env GIT_CONFIG_{COUNT=1,KEY_0=…}` : bash en fait des affectations que la garde ne lit pas.
+      if (motifExact(W[e])) return true;
       const nom = nomAffecte(W[e]);
       if (nom && VARIABLE_HOOKS.test(nom)) return true;
       if (!nom && !W[e].vue.startsWith('-') && !(['-u', '-C', '--unset', '--chdir'].includes(W[e - 1].vue))) break;
@@ -2386,6 +2399,7 @@ function affecteLesHooks(cmd) {
     let positionnels = PREFIXES_A_POSITIONNEL.has(programme) ? 1 : 0;
     for (let k = 1; k < W.length; k++) {
       const w = W[k];
+      if (motifExact(w)) return true;
       const nom = nomAffecte(w);
       if (nom) {
         if (VARIABLE_HOOKS.test(nom)) return true;
@@ -2462,14 +2476,63 @@ const lecturesDeGit = new WeakMap();
 function lireGit(lu) {
   let r = lecturesDeGit.get(lu);
   if (r) return r;
-  r = { hooks: false, argument: false, ref: false, push: false, relectures: [] };
+  r = { hooks: false, argument: false, ref: false, push: false, rebase: false, relectures: [] };
   const exacts = [];
   const programmeGit = /(^|[/$])git$/i;
   const programmeExact = /(^|\/)git$/;
+  // Les alias définis dans la commande (`alias g='git commit --no-verify'`) : leur valeur se relit, et une commande
+  // qui appelle l'un d'eux se relit, l'alias remplacé par sa valeur.
+  const aliases = new Map();
+  for (const cmd of lu.commandes) {
+    const [premier, ...reste] = cmd.mots;
+    if (!premier || premier.expansion || premier.valeur !== 'alias') continue;
+    for (const m of reste) {
+      const egal = m.valeur.indexOf('=');
+      if (m.expansion) r.argument = true;
+      else if (egal > 0) {
+        aliases.set(m.valeur.slice(0, egal), m.valeur.slice(egal + 1));
+        r.relectures.push(m.valeur.slice(egal + 1));
+      }
+    }
+  }
   for (const cmd of lu.commandes) {
     if (affecteLesHooks(cmd)) r.hooks = true;
     const W = [...cmd.affectations.map((a) => a.mot), ...cmd.mots].map(motExact);
     const valeurs = W.map((w) => w.valeur);
+    const premier = cmd.mots[0];
+    if (premier && !premier.expansion && aliases.has(premier.valeur)) r.relectures.push([aliases.get(premier.valeur), ...cmd.mots.slice(1).map((m) => m.valeur)].join(' '));
+    // `env -S '…'`, `env -S'…'`, `env --split-string=…` : la chaîne est découpée en mots puis lancée, avec ce qui suit.
+    for (let k = 0; k < W.length; k++) {
+      if (W[k].expansion || nomDeBase(W[k].valeur) !== 'env') continue;
+      for (let e = k + 1; e < W.length && W[e].vue.startsWith('-'); e++) {
+        const v = W[e].vue;
+        const court = /^-[A-Za-z]*S/.exec(v);
+        const long = v.startsWith('--') && v.length >= 4 && '--split-string'.startsWith(v.split('=')[0]);
+        if (!court && !long) continue;
+        const colle = court ? v.slice(court[0].length) : v.includes('=') ? v.slice(v.indexOf('=') + 1) : '';
+        const porteur = colle ? W[e] : W[e + 1];
+        if (!porteur) break;
+        if (porteur.expansion) r.argument = true;
+        else r.relectures.push([colle || porteur.valeur, ...W.slice(colle ? e + 1 : e + 2).map((w) => w.valeur)].join(' '));
+        break;
+      }
+    }
+    // Un programme à expansion (`$(echo git) commit`, `${G:-git} -c … commit`, `sudo $g push …`) : lu comme git,
+    // ses arguments jugés comme ceux de git ; un push y est illisible (sa destination n'est pas lue).
+    const vues = W.map((w) => w.vue);
+    const candidats = new Set();
+    const p = cmd.affectations.length + programme(cmd.mots).k;
+    if (W[p]?.expansion) candidats.add(p);
+    W.forEach((w, k) => {
+      if (w.expansion && SOUS_GARDEES.has(appelDeGit(vues, k).sous ?? '')) candidats.add(k);
+    });
+    // Un mot à expansion placé après un git lisible en est une valeur ou un argument (`git -C "$d" push …`).
+    const premierGit = Math.min(...lecturesDuProgramme(valeurs, programmeGit, programmeExact), ...appelsInternes(valeurs).map(({ i }) => i), Infinity);
+    for (const k of [...candidats].filter((k) => k < premierGit)) {
+      exacts.push({ debut: cmd.debut, i: k, tete: valeurs.slice(0, appelDeGit(valeurs, k).j + 1) });
+      lireAppel(W, k, true, r);
+      if (appelDeGit(vues, k).sous === 'push') r.push = true;
+    }
     if (!/git/i.test(valeurs.join(' '))) continue;
     for (const i of lecturesDuProgramme(valeurs, programmeGit, programmeExact)) {
       exacts.push({ debut: cmd.debut, i, tete: valeurs.slice(0, appelDeGit(valeurs, i).j + 1) });
@@ -2488,8 +2551,10 @@ function lireGit(lu) {
       const tete = lecture.mots.slice(0, j + 1);
       const appariee = lecture.appariable && exacts.some((e) => e.debut === lecture.debut && e.i === i && e.tete.length === tete.length && e.tete.every((m, k) => m === tete[k]));
       const W = lecture.mots.map(motDuTexte);
+      // Le même git (même `debut`, même rang) lu sur les mots exacts : sa sous-commande y est lue.
+      const sousLue = lecture.appariable && exacts.some((e) => e.debut === lecture.debut && e.i === i);
       if (appariee) apparieeAGit = true;
-      else lireAppel(interne ? commeGit(W, i, sous) : W, i, false, r);
+      else lireAppel(interne ? commeGit(W, i, sous) : W, i, false, r, { sousLue });
     }
     if (!apparieeAGit && affecteLesHooksDansLeTexte(lecture.mots)) r.hooks = true;
   }
@@ -2565,6 +2630,7 @@ function decisionDuLecteur(lu, commande, { dependancesPrevues = () => null, bran
   if (git.hooks) return { decision: 'refuser', raison: RAISON_HOOKS_GIT };
   if (git.argument) return { decision: 'refuser', raison: RAISON_ARGUMENT_ILLISIBLE };
   if (git.ref) return { decision: 'refuser', raison: RAISON_REF_DE_SUIVI };
+  if (git.rebase) return { decision: 'refuser', raison: RAISON_REBASE_PARTAGE };
   for (const texte of git.relectures) {
     const relue = lire(texte);
     const decision = decisionDuLecteur(relue, texte, { dependancesPrevues, brancheCourante, brancheParDefaut });
