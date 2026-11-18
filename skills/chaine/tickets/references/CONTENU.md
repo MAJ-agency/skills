@@ -1,12 +1,12 @@
 # Ce que contient le skill tickets, et pourquoi
 
-## Ce que le skill exige : `scripts/docs/identifiants.mjs`, `next-id.mjs`, `next-id-branches.mjs`
+## Ce que le skill exige : `scripts/docs/identifiants.mjs`, `next-id.mjs`, `next-id-branches.mjs`, `pr-ouvertes.mjs`
 
-La grammaire `<TYPE>_<CTX>_<TRI>-<n>` en un seul module, et la numérotation, posées par `socle-monorepo` (son `references/CONTENU.md`) : les gates de la racine et de `socle-tests` la lisent aussi, sans dépendre de ce skill. Tous les scripts ci-dessous l'importent (`./identifiants.mjs`, `../docs/identifiants.mjs`) ; aucun n'écrit la grammaire de son côté.
+La grammaire `<TYPE>_<CTX>_<TRI>-<n>` en un seul module, la numérotation et la lecture des PR ouvertes, posées par `socle-monorepo` (son `references/CONTENU.md`) : les gates de la racine et de `socle-tests` la lisent aussi, sans dépendre de ce skill. Tous les scripts ci-dessous l'importent (`./identifiants.mjs`, `../docs/identifiants.mjs`) ; aucun n'écrit la grammaire de son côté.
 
 ## `ticket-libre.mjs`
 
-Trois sources croisées avant de commencer : la ligne `Status:` sur `develop` et sur chaque sujet, les branches distantes qui portent le slug, les PR ouvertes. Sans `gh` authentifié (session cloud), il ne conclut pas et donne la recherche MCP à faire : un « libre » faux coûte un ticket codé deux fois.
+Trois sources croisées avant de commencer : la ligne `Status:` sur `develop` et sur chaque sujet, les branches distantes qui portent le slug, les PR ouvertes. Une PR ouverte prend le ticket par son titre, sa branche **ou ses fichiers** : `SPEC_ALL_INF-26.45` a été pris deux fois, la PR de la première session ajoutait le fichier du ticket sans citer l'identifiant (`pr-ouvertes.mjs`, `pulls/<n>/files` en REST). Une branche dont la seule PR est fermée ne prend plus le ticket : abandonner, c'est fermer la PR, mais une session cloud ne peut pas supprimer la branche. Une branche sans PR compte (réservation avant la PR brouillon), et une branche dont la tête n'est plus celle de sa PR fermée aussi. Sans `gh` authentifié (session cloud), il ne conclut pas et donne les recherches MCP à faire : un « libre » faux coûte un ticket codé deux fois.
 
 ## `vagues.mjs`
 

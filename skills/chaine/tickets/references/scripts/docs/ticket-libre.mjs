@@ -8,10 +8,15 @@
  * session l'a commencé. Le script croise donc trois sources :
  *   1. la ligne `Status:` du ticket sur origin/develop et sur chaque branche `sujet/*`, où un
  *      ticket peut vivre avant develop (Fait, en cours, wontfix → pris) ;
- *   2. les branches distantes dont le nom porte l'identifiant (`feat/spec-all-soc-1-03-…`) ;
- *   3. les PR ouvertes dont le titre porte l'identifiant ou dont la branche le porte
- *      (`gh api`, REST). Sans `gh` authentifié (session cloud), le script ne conclut pas : il
- *      donne la recherche `search_pull_requests` à faire par l'outil GitHub MCP.
+ *   2. les branches distantes dont le nom porte l'identifiant (`feat/spec-all-soc-1-03-…`), sauf
+ *      celles dont la seule PR est fermée : abandonner un ticket ferme la PR, mais une session
+ *      cloud ne peut pas supprimer la branche. Une branche sans PR compte (réservation avant la
+ *      PR brouillon) ;
+ *   3. les PR ouvertes dont le titre porte l'identifiant, dont la branche le porte, ou dont les
+ *      fichiers ajoutent ou modifient celui du ticket (`pr-ouvertes.mjs`, `gh api` en REST :
+ *      `SPEC_ALL_INF-26.45` a été pris deux fois, sa PR ne le citait ni dans le titre ni dans la
+ *      branche). Sans `gh` authentifié (session cloud), le script ne conclut pas : il donne les
+ *      recherches à faire par l'outil GitHub MCP.
  *
  * Usage : node scripts/docs/ticket-libre.mjs SPEC_ALL_SOC-1.03
  * Sorties : 0 libre · 1 pris (le script dit par qui ; ticket archivé compris) · 2 usage ou ticket introuvable
@@ -19,6 +24,7 @@
  */
 import { execFileSync } from 'node:child_process';
 import { branchePorte, estArchive, fichierDuTicket, lireTicket, texteCite } from './identifiants.mjs';
+import { lirePrOuvertes, prDeBranche } from './pr-ouvertes.mjs';
 
 const id = (process.argv[2] ?? '').toUpperCase();
 if (!lireTicket(id)) {
@@ -76,45 +82,65 @@ const statuts = trouves.map(({ ref, f }) => {
   return { nom: ref.replace(/^origin\//, ''), status };
 });
 
-// 2. Branches distantes portant l'identifiant.
+// 2. et 3. Les PR ouvertes d'abord : une branche qui est la tête d'une PR ouverte compte par elle.
+const ouvertes = lirePrOuvertes();
+const prVerifiees = ouvertes.verifiees;
+const infos = [];
+const surRepli = [];
+const tetes = new Set((ouvertes.prs ?? []).map((p) => p.tete));
+
+// 2. Branches distantes portant l'identifiant (sauf celles dont la seule PR est fermée).
 const branches = git('ls-remote', '--heads', 'origin')
   .split('\n')
-  .map((l) => l.split('\trefs/heads/')[1])
-  .filter((b) => b && dansBranche(b));
-for (const b of branches) pris.push(`branche distante : ${b}`);
+  .map((l) => l.split('\trefs/heads/').reverse())
+  .filter(([b]) => b && dansBranche(b));
+for (const [b, sha] of branches) {
+  const pr = tetes.has(b) ? 'ouverte' : prDeBranche(b, { tete: sha });
+  if (pr === 'fermee') infos.push(`branche d'une PR fermée, ignorée : ${b}`);
+  else if (pr === null) {
+    pris.push(`branche distante : ${b} (PR non vérifiée)`);
+    surRepli.push(b);
+  } else pris.push(`branche distante : ${b}`);
+}
 
-// 3. PR ouvertes (REST : `gh pr list` passe par GraphQL, refusé depuis les sessions cloud).
-let prVerifiees = true;
-try {
-  const lignes = execFileSync(
-    'gh',
-    ['api', '--paginate', 'repos/{owner}/{repo}/pulls?state=open&per_page=100', '--jq', '.[] | [.number, .head.ref, .draft, .title] | @tsv'],
-    { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] },
-  );
-  for (const ligne of lignes.split('\n').filter(Boolean)) {
-    const [num, ref, draft, titre] = ligne.split('\t');
-    if (texteCite(titre, id) || dansBranche(ref)) {
-      pris.push(`PR #${num}${draft === 'true' ? ' (brouillon)' : ''} : ${titre} [${ref}]`);
-    }
+// 3. PR ouvertes : titre, branche, ou fichiers du ticket (ajoutés, modifiés, renommés, copiés).
+const prend = ({ statut, chemin }) =>
+  statut !== 'removed' && motif.test(`/${chemin}`) && !estArchive(`/${chemin}`);
+for (const pr of ouvertes.prs ?? []) {
+  const fichiers = pr.fichiers.filter(prend);
+  const par = fichiers.length
+    ? ` — ${fichiers.map((f) => `${f.statut === 'added' ? 'ajoute' : 'modifie'} ${f.chemin}`).join(', ')}`
+    : '';
+  if (texteCite(pr.titre, id) || dansBranche(pr.tete) || fichiers.length) {
+    pris.push(`PR #${pr.numero}${pr.brouillon ? ' (brouillon)' : ''} : ${pr.titre} [${pr.tete}]${par}`);
   }
-} catch {
-  prVerifiees = false;
 }
 
 console.log(`${id} — ${fichier}`);
 for (const { nom, status } of statuts.filter((s, i) => i === 0 || s.status !== statuts[0].status))
   console.log(`Status sur ${nom} : ${status}`);
+for (const i of infos) console.log(i);
+const depot = () => git('remote', 'get-url', 'origin').trim().replace(/\.git$/, '').split('/').slice(-2);
 if (pris.length) {
   console.log(`\nPRIS — ne pas commencer :`);
   for (const p of pris) console.log(`  - ${p}`);
+  if (surRepli.length) {
+    const [o, r] = depot();
+    console.log(`\nBranche sans vérification de sa PR (gh indisponible) : si toutes ses PR sont fermées, elle ne prend pas le ticket.`);
+    for (const b of surRepli) console.log(`  ${b} : list_pull_requests(owner: "${o}", repo: "${r}", head: "${o}:${b}", state: "all")`);
+  }
   process.exit(1);
 }
 if (!prVerifiees) {
-  const depot = git('remote', 'get-url', 'origin').trim().replace(/\.git$/, '').split('/').slice(-2);
+  const [o, r] = depot();
   console.log(
     `\nPR NON VÉRIFIÉES (gh indisponible) : statut et branches libres, mais une PR ouverte peut déjà le prendre.
-Chercher par l'outil GitHub MCP avant de commencer :
-  search_pull_requests(owner: "${depot[0]}", repo: "${depot[1]}", query: "${id} is:open")
+Chercher par l'outil GitHub MCP avant de commencer, sur des PR ouvertes seulement :
+  search_pull_requests(owner: "${o}", repo: "${r}", query: "${id} is:open")
+    → ne retenir que la PR dont le titre ou la branche porte l'identifiant entier (pas ${id}0, pas la spec seule)
+  list_pull_requests(owner: "${o}", repo: "${r}", state: "open")
+    → pour chaque PR : pull_request_read(method: "get_files", owner: "${o}", repo: "${r}", pullNumber: <n>)
+      le ticket est pris si elle ajoute ou modifie un fichier nommé ${id.replace(/\.\d+$/, '')}-<slug>.${id.split('.').pop()}.issue.md hors de issues/archive/
 Aucun résultat → libre : le réserver tout de suite (branche + PR brouillon, docs/agents/issue-tracker.md).`,
   );
   process.exit(3);
