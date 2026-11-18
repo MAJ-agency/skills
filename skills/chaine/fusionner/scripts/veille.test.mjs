@@ -417,3 +417,27 @@ test("une boucle tient le verrou : préparation non jouée, sortie 13, worktree 
   assert.deepEqual(r.trace, []);
   assert.equal(j.git("symbolic-ref", "--short", "HEAD"), "capitaine/7", "worktree non détaché");
 });
+
+test("démon lancé par la préparation (`(exec sleep 15) &`) : la boucle obtient le verrou (`flock -n`)", () => {
+  // Un démon (PostgreSQL de demarrer-local.sh) qui hériterait du descripteur du verrou le garderait après la
+  // préparation, et chaque boucle sortirait en 9. Le démon écrit son pid ; sa sortie ne tient pas le tube du banc.
+  const j = creerJouet([""]);
+  const pid = join(j.dir, "demon.pid");
+  j.publier({ preparerCapitaine: `(exec sleep 15 >/dev/null 2>&1 </dev/null) & echo $! > "${pid}"` });
+  const verrou = join(j.clone, ".git", "boucle.verrou");
+  writeFileSync(
+    join(j.dir, "boucle.sh"),
+    readFileSync(join(j.dir, "boucle.sh"), "utf8").replace(
+      "echo boucle >> ",
+      `if flock -n "${verrou}" true; then echo "verrou libre" >> "${j.trace}"; else echo "verrou tenu" >> "${j.trace}"; fi\necho boucle >> `,
+    ),
+  );
+  try {
+    const r = j.lancer(ARGS(0));
+    assert.equal(r.status, 0, r.stdout + r.stderr);
+    assert.ok(existsSync(pid), "le démon a été lancé");
+    assert.deepEqual(r.trace, ["verrou libre", "boucle"], r.stdout + r.stderr);
+  } finally {
+    if (existsSync(pid)) spawnSync("kill", [readFileSync(pid, "utf8").trim()]);
+  }
+});
