@@ -402,7 +402,8 @@ test("échéance passée : ÉCHÉANCE, sortie 0, aucun passage", () => {
 });
 
 test("échéance atteinte entre deux passages : le premier passe, pas le second", () => {
-  // Seul banc qui dépend de l'horloge, de quelques secondes : le premier passage dort au-delà de l'échéance.
+  // L'échéance tombe pendant le premier passage, qui dort au-delà (10 s de marge pour le démarrage de la
+  // boucle) ; ce banc et les deux suivants dépendent de l'horloge, de quelques secondes.
   const { d, publier, lu } = jouet({ BOUCLE_ECHEANCE: String(maintenant() + 10) });
   publier({
     "file.sh": fileSh(1, 2),

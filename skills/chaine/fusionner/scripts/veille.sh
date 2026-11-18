@@ -25,12 +25,14 @@
 # `/proc/sys/kernel/random/boot_id` (`VEILLE_BOOT_ID` le remplace, pour les bancs seulement). Le
 # `boot_id` de la dernière préparation réussie est gardé dans `<git-common-dir>/capitaine-boot-id` :
 # égal au courant, rien n'est lu ni joué. Sinon, et seulement alors, la veille lit le contrat sur
-# `origin/develop` (`git fetch`, puis `git show`), JAMAIS dans l'arbre de travail : un passage
+# `origin/develop` (`git fetch`, trois essais, puis `git show`), JAMAIS dans l'arbre de travail : un passage
 # interrompu y laisse le code d'une PR, qui ferait jouer sa propre commande. Pour la même raison, elle
 # exige un worktree propre et le détache sur `origin/develop` avant de jouer `sh -c "<commande>"`,
 # depuis la racine du worktree, entrée sur /dev/null, sortie dans le journal, sans délai imposé.
 # Fichier ou clé absents, chaîne vide : rien n'est joué. Sans `boot_id` lisible (macOS), la préparation
 # se joue à chaque démarrage de la veille, jamais entre deux lancements de la boucle.
+# La préparation tient le verrou de la boucle (`boucle.verrou`) : une boucle encore vivante (orpheline)
+# n'a pas son worktree changé de branche sous elle ; verrou tenu : sortie 13.
 # Tant que la préparation n'a pas réussi, aucune boucle n'est lancée, donc rien n'est fusionné :
 # préparation en échec, worktree pas propre, origin/develop ou contrat illisibles arrêtent la veille
 # en sortie 13, « VEILLE ARRÊTÉE <hh:mm> : … », jamais une préparation sautée.
@@ -86,21 +88,26 @@ echeance_passee() { [ "$(date +%s)" -ge "$echeance" ]; }
 
 # Préparation du capitaine (en-tête). `prepare_pour` : le boot (ou « illisible ») pour lequel cette
 # veille a déjà lu le contrat, ou préparé : plus rien à lire ni à jouer tant qu'il ne change pas.
-GARDE="$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null)/capitaine-boot-id"
+COMMUN=$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null)
+GARDE="$COMMUN/capitaine-boot-id"
+VERROU="$COMMUN/boucle.verrou"
 prepare_pour=""
 arreter_preparation() { echo "VEILLE ARRÊTÉE $(heure) : $1"; exit 13; }
 preparer_si_besoin() {
   local boot cle contrat type commande racine rc
+  local essai lu
   boot=$(cat "${VEILLE_BOOT_ID:-/proc/sys/kernel/random/boot_id}" 2>/dev/null | tr -d '[:space:]')
   cle=${boot:-illisible}
   [ "$cle" != "$prepare_pour" ] || return 0
-  if [ -n "$boot" ]; then
-    # Même machine depuis la dernière préparation réussie : rien à lire, aucun fetch.
-    [ "$boot" != "$(cat "$GARDE" 2>/dev/null)" ] || { prepare_pour=$cle; return 0; }
-  else
-    echo "VEILLE $(heure) : boot_id illisible, préparation jouée à chaque démarrage de la veille"
-  fi
-  git fetch -q origin develop 2>/dev/null && git rev-parse --verify -q origin/develop >/dev/null ||
+  # Même machine depuis la dernière préparation réussie : rien à lire, aucun fetch.
+  [ -z "$boot" ] || [ "$boot" != "$(cat "$GARDE" 2>/dev/null)" ] || { prepare_pour=$cle; return 0; }
+  # Trois essais, comme la boucle (sortie 6 au troisième) : un fetch passager n'arrête pas la veille.
+  lu=""
+  for essai in 1 2 3; do
+    git fetch -q origin develop 2>/dev/null && { lu=1; break; }
+    [ "$essai" = 3 ] || sleep $((essai * 5))
+  done
+  [ -n "$lu" ] && git rev-parse --verify -q origin/develop >/dev/null ||
     arreter_preparation "origin/develop illisible : préparation inconnue ; aucune fusion, relancer la veille"
   if ! git cat-file -e origin/develop:.claude/chaine.json 2>/dev/null; then
     prepare_pour=$cle; return 0
@@ -114,14 +121,21 @@ preparer_si_besoin() {
     *) arreter_preparation "contrat illisible : préparation inconnue (preparerCapitaine de .claude/chaine.json n'est pas une chaîne : $type) ; aucune fusion" ;;
   esac
   [ -n "$commande" ] || { prepare_pour=$cle; return 0; }
+  # Le worktree est celui de la boucle : la préparation tient son verrou (`boucle.verrou`, en-tête de
+  # boucle.sh), sur le descripteur 8, qu'elle ferme avant de lancer la boucle et que la commande n'hérite pas.
+  command -v flock >/dev/null || arreter_preparation "flock (util-linux) requis : préparation non jouée"
+  exec 8>>"$VERROU"
+  flock -n 8 || arreter_preparation "une boucle tient le verrou ($VERROU) : préparation non jouée ; « boucle.sh --arreter », puis relancer la veille"
   [ -z "$(git status --porcelain 2>/dev/null)" ] && git rev-parse --verify -q HEAD >/dev/null ||
     arreter_preparation "worktree du capitaine pas propre : préparation non jouée ; le nettoyer, puis relancer la veille"
   git switch -q --detach origin/develop 2>/dev/null ||
     arreter_preparation "worktree du capitaine non détaché sur origin/develop : préparation non jouée"
   racine=$(git rev-parse --show-toplevel)
+  [ -n "$boot" ] || echo "VEILLE $(heure) : boot_id illisible, préparation jouée à chaque démarrage de la veille"
   echo "VEILLE $(heure) : préparation (« $commande »)"
-  (cd "$racine" && sh -c "$commande" </dev/null 2>&1)
+  (cd "$racine" && sh -c "$commande" </dev/null 2>&1 8>&-)
   rc=$?
+  exec 8>&-
   [ "$rc" = 0 ] ||
     arreter_preparation "préparation du capitaine en échec (sortie $rc de « $commande ») : aucune fusion ; corriger l'environnement, puis relancer la veille"
   if [ -n "$boot" ]; then

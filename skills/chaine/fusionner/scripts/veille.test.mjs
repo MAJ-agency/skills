@@ -85,8 +85,10 @@ cat "$f"
   git("add", "-A");
   git("commit", "-q", "-m", "initial");
   git("push", "-q", "origin", "HEAD:develop");
-  const lancer = (args, env = {}) => {
-    const r = spawnSync("bash", [join(dir, "veille.sh"), ...args], {
+  // `avant` : une commande qui enveloppe la veille (`flock <verrou>` pour un verrou tenu pendant qu'elle tourne).
+  const lancer = (args, env = {}, avant = []) => {
+    const [cmd, ...pre] = [...avant, "bash"];
+    const r = spawnSync(cmd, [...pre, join(dir, "veille.sh"), ...args], {
       cwd: clone,
       env: { ...ENV, VEILLE_BOOT_ID: fichierBoot, ...env },
       encoding: "utf8",
@@ -110,7 +112,8 @@ cat "$f"
 }
 
 // Chaque test borne la veille par `sondes` (le nombre d'états qu'il veut voir consommer, lecture
-// initiale exclue) : la durée (1 min) n'est qu'un garde-fou, aucun test ne dépend de l'horloge.
+// initiale exclue) : la durée (1 min) n'est qu'un garde-fou. Seuls dépendent de l'horloge, de quelques
+// secondes, « durée écoulée » et les deux bancs de l'échéance (`VEILLE_LIMITE`).
 function veilleJouet(
   etats,
   { sondes = etats.length - 1, args = ["--pause", "0.2", "--duree", "1", "--sondes", String(sondes)], env, ...jouet } = {},
@@ -379,4 +382,38 @@ test("--duree au-delà de limite - marge : VEILLE FINIE (échéance) avant la fi
   assert.equal(r.status, 0, r.stdout + r.stderr);
   assert.match(r.stdout, /^VEILLE FINIE \d\d:\d\d \(échéance\)$/m);
   assert.ok(Date.now() - debut < 30000, "finie à l'échéance (6 s), pas à la durée (60 s)");
+});
+
+test("fetch passager en échec, projet sans preparerCapitaine : la veille repart au second essai, la boucle est lancée", () => {
+  // Un `git` du PATH fait échouer le premier `fetch`, puis passe la main au vrai ; `sleep` est immédiat.
+  const j = creerJouet([""], { boot: null });
+  const bin = join(j.dir, "bin");
+  mkdirSync(bin);
+  const vraiGit = execFileSync("sh", ["-c", "command -v git"], { encoding: "utf8" }).trim();
+  writeFileSync(
+    join(bin, "git"),
+    `#!/bin/sh\nif [ "$1" = fetch ] && [ ! -e "${j.dir}/fetch-raté" ]; then touch "${j.dir}/fetch-raté"; exit 1; fi\nexec "${vraiGit}" "$@"\n`,
+  );
+  writeFileSync(join(bin, "sleep"), "#!/bin/sh\n:\n");
+  chmodSync(join(bin, "git"), 0o755);
+  chmodSync(join(bin, "sleep"), 0o755);
+  const r = j.lancer(["--pause", "0.2", "--duree", "1", "--sondes", "0"], { PATH: `${bin}:${process.env.PATH}` });
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.ok(existsSync(join(j.dir, "fetch-raté")), "le premier fetch a bien échoué");
+  assert.equal(r.lancements, 1);
+  // Sans clé, aucune ligne de préparation, même sans boot_id lisible.
+  assert.doesNotMatch(r.stdout, /préparation|boot_id/);
+});
+
+test("une boucle tient le verrou : préparation non jouée, sortie 13, worktree laissé tel quel", () => {
+  const j = creerJouet([""]);
+  j.publier(contratPrep(j.trace));
+  j.git("switch", "-q", "-c", "capitaine/7");
+  const verrou = join(j.clone, ".git", "boucle.verrou");
+  // `flock <verrou> bash veille.sh` : le verrou est tenu par un autre descripteur pendant toute la veille.
+  const r = j.lancer(ARGS(0), {}, ["flock", verrou]);
+  assert.equal(r.status, 13, r.stdout + r.stderr);
+  assert.match(r.stdout, /^VEILLE ARRÊTÉE \d\d:\d\d : une boucle tient le verrou/m);
+  assert.deepEqual(r.trace, []);
+  assert.equal(j.git("symbolic-ref", "--short", "HEAD"), "capitaine/7", "worktree non détaché");
 });
