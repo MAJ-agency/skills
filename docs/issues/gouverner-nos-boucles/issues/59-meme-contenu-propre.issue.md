@@ -23,14 +23,14 @@ Ce ticket réalise le lot 3b de la spec [`relecture-independante.spec.md`](../re
 >
 > Tout autre commit : « différent » ; V absent de cette ligne : « différent ».
 
-**Ce que `main` a déjà, et pourquoi le calcul ne le reprend pas.** Lu sur `origin/main` à `99a6214` (plugin 7.18.0). Les fichiers de la chaîne y sont ceux de `1c4acb1` (7.17.0), le commit que la spec et le rapport de vérification citent : `git diff 1c4acb1 99a6214 -- skills/chaine scripts/depot.test.mjs scripts/poses.test.mjs scripts/points-d-entree.test.mjs README.md` est vide.
+**Ce que `main` a déjà, et pourquoi le calcul ne le reprend pas.** Lu sur `origin/main` à `99a6214` (plugin 7.18.0). Les fichiers de la chaîne y sont ceux de `1c4acb1` (7.17.0), le commit que la spec et le rapport de vérification citent : `git diff 1c4acb1 99a6214 -- skills/chaine scripts/depot.test.mjs scripts/poses.test.mjs scripts/points-d-entree.test.mjs README.md` est vide. `main` a encore avancé pendant l'écriture, à `22b2d49` (7.18.1) : le même diff y est vide aussi.
 
 - Les deux sortes de commits que le capitaine écrit sur la branche d'une PR : la fusion de la cible (`skills/chaine/fusionner/scripts/passer.sh:220`, `skills/chaine/sujet/scripts/sujet.sh:518`), conclue par `git commit --no-edit` quand un index était en conflit, après `git checkout --theirs` sur lui et la régénération (`passer.sh:261`, `:272` ; `sujet.sh:534`, `:539`) ; et, quand la fusion était propre et qu'un index change à la régénération, un commit à part, `docs: régénère les index après mise à jour avec …` (`passer.sh:274`, `sujet.sh:541`).
 - `verifier_mise_a_jour` (`sujet.sh:618`) juge déjà une fusion contre celle qu'elle recalcule de ses deux parents : c'est l'esprit du calcul. Mais elle lit la liste des index par l'arbre de travail d'abord, joue `commitlint`, et sort par `sortir`.
 - `livraison_intermediaire` (`passer.sh:126`) applique les trois classes d'index. Mais elle lit la liste par `index_json` (`skills/chaine/fusionner/scripts/github.sh:64`), **l'arbre de travail d'abord**, et compare un index au **sommet courant** d'`origin/develop` (`passer.sh:153`, `:157`). `A-81` interdit l'un et `A-106` l'autre.
 - `ascendance` (`github.sh:138`) est le modèle : paramétrée par des réfs, elle lit la liste sur la cible (`git show "$cible:scripts/docs/index-generes.json"`), et ne rend jamais un verdict par défaut quand une lecture échoue.
 
-**Ce qui a été joué pour écrire ce ticket** (2026-11-18, copie jetable de `origin/main` à `99a6214`, git 2.43.0, jq 1.7, Node 22.23.4) : le script de l'annexe A et le banc de l'annexe B, 28 tests verts en une quinzaine de s (13 à 18 selon la charge) ; les 18 mutations de « Vérification », toutes tuées ; la suite entière du dépôt avec les deux fichiers ajoutés (793 tests, tous verts, sur les fichiers définitifs). **Les deux cas que la définition par M jugeait mal** (rapport `relecture-independante.verif-716.md`, § 2.2, limites 3 et 4) ont été remontés à l'identique des dépôts du rapport et **rendent « même »** avec la définition pas à pas, comme `A-106` l'affirme : cas 8 et 9 ci-dessous. Le montage du cas 8 est prouvé dans le banc (la fusion directe de V avec la cible n'a pas l'arbre de T), celui du cas 9 aussi (`git merge-base --all` rend deux bases).
+**Ce qui a été joué pour écrire ce ticket** (2026-11-18, copie jetable de `origin/main` à `99a6214`, git 2.43.0, jq 1.7, Node 22.23.4) : le script de l'annexe A et le banc de l'annexe B, 28 tests verts en environ 15 s (13 à 18 selon la charge) ; les 18 mutations de « Vérification », toutes tuées ; la suite entière du dépôt avec les deux fichiers ajoutés (793 tests, tous verts, sur les fichiers définitifs). Enfin, sur `22b2d49`, le banc a été rejoué depuis les seules annexes de ce ticket, extraites du fichier : mêmes empreintes, 28 tests verts. **Les deux cas que la définition par M jugeait mal** (rapport `relecture-independante.verif-716.md`, § 2.2, limites 3 et 4) ont été remontés à l'identique des dépôts du rapport et **rendent « même »** avec la définition pas à pas, comme `A-106` l'affirme : cas 8 et 9 ci-dessous. Le montage du cas 8 est prouvé dans le banc (la fusion directe de V avec la cible n'a pas l'arbre de T), celui du cas 9 aussi (`git merge-base --all` rend deux bases). À savoir sur le cas 8 : T2 ne porte plus le changement que la PR faisait sur `f`, la cible l'ayant annulé ; « même » y dit que rien d'autre que des fusions de la cible n'a été écrit depuis V, pas que la PR apporte encore tout ce que V apportait. C'est ce qu'`A-106` demande.
 
 ## Où
 
@@ -160,7 +160,7 @@ Les commits du capitaine sont écrits de deux façons : par une aide du banc, `m
 
 ### 11. Version et note
 
-La mineure suivante de la version de `main` au moment de livrer (7.19.0 si `main` est encore en 7.18.0 : un script ajouté, `README.md` « Ajouter un skill », point 4). La note, en tête de `NOTES-DE-VERSION.md`, à la forme des précédentes (`## <version> — <date>`, « ### Ce qui change », « ### Ce qu'un projet fait pour en profiter » : `scripts/depot.test.mjs:1032-1041` exige que la première note commence par la version de `plugin.json` et porte ces deux titres) :
+La mineure suivante de la version de `main` au moment de livrer (7.19.0 tant que `main` porte une 7.18.x : un script ajouté, `README.md` « Ajouter un skill », point 4). La note, en tête de `NOTES-DE-VERSION.md`, à la forme des précédentes (`## <version> — <date>`, « ### Ce qui change », « ### Ce qu'un projet fait pour en profiter » : `scripts/depot.test.mjs:1032-1041` exige que la première note commence par la version de `plugin.json` et porte ces deux titres) :
 
 - « Ce qui change » : `fusionner` porte `scripts/meme-contenu.sh` et son banc. Le calcul dit si deux sommets d'une PR ne sont séparés que par des fusions de la cible et des commits d'index générés ; sorties 0 « même », 20 « différent », 21 « illisible ». Rien ne l'appelle encore : il prépare la relecture indépendante.
 - « Ce qu'un projet fait pour en profiter » : mettre à jour le plugin ; rien d'autre. Le script et son banc arrivent dans `scripts/chaine/` à la prochaine fois que le projet rejoue `/maj-skills:fusionner poser` ; aucun script de la boucle ne change, le capitaine ne se relance pas.
@@ -233,8 +233,8 @@ Montage commun : le cas 2 (V, T, une fusion propre).
 
 ## Surfaces
 
-| Surface | Preuve (titre du test dans `meme-contenu.test.mjs`) |
-| ------- | --------------------------------------------------- |
+| Surface | Preuve (cas du banc `meme-contenu.test.mjs`) |
+| ------- | -------------------------------------------- |
 | `même` quand V est T, sans lire la cible | cas 1 |
 | une fusion de la cible, arbre de la fusion calculée de ses deux parents | cas 2, 5, 14, 15 |
 | le second parent est un ancêtre de `origin/<B>`, et `<B>` est la base de la PR | cas 9, 12, 16 |
@@ -255,7 +255,7 @@ Le cas n est le n-ième test du banc, dans l'ordre du fichier.
 
 ## Vérification
 
-1. `node --test skills/chaine/fusionner/scripts/meme-contenu.test.mjs` : 28 tests verts (une quinzaine de s à l'écriture, dont environ 5 s pour les cas 11 et 12).
+1. `node --test skills/chaine/fusionner/scripts/meme-contenu.test.mjs` : 28 tests verts (environ 15 s à l'écriture, dont environ 5 s pour les cas 11 et 12).
 2. **Les mutations**, chacune appliquée seule à `meme-contenu.sh`, le banc rejoué, puis retirée. Chacune doit rougir au moins le test nommé ; toutes ont été jouées à l'écriture, et toutes sont tuées.
 
    | n° | Mutation | Test qui rougit, au moins |
@@ -285,7 +285,7 @@ Le cas n est le n-ième test du banc, dans l'ordre du fichier.
 
 ## Ce qui n'a pas été établi
 
-1. **Un index sous motif que la régénération récrit d'un contenu nouveau donne « différent ».** C'est la classe 3 telle qu'`A-81` la pose (« seulement sur un contenu déjà connu »), mais cela contredit, pour ces index-là, la dernière phrase d'`A-81` (« une PR que le capitaine a mise à jour […] garde donc son verdict ») : la PR sera relue une fois de plus. De même, pour un projet dont la liste ne porte que des chaînes nues, aucun index n'est de la classe « régénéré ». Le gabarit du plugin ne déclare aucun motif. Non tranché ici : c'est à l'architecte de dire si la relecture de plus est acceptée.
+1. **Un index sous motif que la régénération récrit d'un contenu nouveau donne « différent ».** C'est la classe 3 telle qu'`A-81` la pose (« seulement sur un contenu déjà connu »), mais cela contredit, pour ces index-là, la dernière phrase d'`A-81` (« une PR que le capitaine a mise à jour […] garde donc son verdict ») : la PR sera relue une fois de plus. Et un projet dont la liste ne porte que des chaînes nues n'a aucun index de la classe « régénéré » : ses index ne sont dispensés que dans une fusion, au contenu de la cible fusionnée. Le gabarit du plugin ne déclare aucun motif. Non tranché ici : c'est à l'architecte de dire si la relecture de plus est acceptée.
 2. **La fusion calculée contre la fusion réelle, quand la configuration de fusion diffère** entre le poste qui a fusionné et celui qui calcule : pilotes de fusion de `.gitattributes`, renormalisation des fins de ligne, `merge.renames`. L'égalité des arbres de `git merge` et de `git merge-tree --write-tree` n'a été jouée que sur les dépôts jouets, sous la configuration par défaut. Un seul essai hors banc : un renommage fusionné par défaut, puis jugé avec `merge.renames=false` chez qui calcule, rend « même » encore. Le reste n'est pas joué ; un écart donnerait « différent », du côté sûr.
 3. **Le `pre-commit` d'un projet sur une fusion que le capitaine conclut** (rapport § 2.2, limite 5) : rejoué ici par une fusion amendée (cas 15), pas par un vrai `lint-staged`.
 4. **Le conflit de pile résolu par `passer.sh`** (même limite) : rejoué par un choix de côté à la main (cas 14), pas par `passer.sh` sur une vraie pile.
@@ -306,7 +306,7 @@ Le cas n est le n-ième test du banc, dans l'ordre du fichier.
 
 ## Comments
 
-- 2026-11-18 — Ticket écrit et joué sur une copie jetable d'`origin/main` à `99a6214` (plugin 7.18.0 ; la spec et le rapport citent `1c4acb1`, 7.17.0 : `main` a avancé d'une PR depuis, qui ne touche aucun fichier de la chaîne). Joué : le banc (28 tests), les 18 mutations, la suite entière. Non joué : ce que liste « Ce qui n'a pas été établi ».
+- 2026-11-18 — Ticket écrit et joué sur une copie jetable d'`origin/main` à `99a6214` (plugin 7.18.0 ; la spec et le rapport citent `1c4acb1`, 7.17.0 : `main` a avancé depuis, jusqu'à `22b2d49`, 7.18.1, sans toucher un fichier de la chaîne). Joué : le banc (28 tests), les 18 mutations, la suite entière, puis le banc seul sur `22b2d49` depuis les annexes. Non joué : ce que liste « Ce qui n'a pas été établi ».
 
 ## Annexe A — `skills/chaine/fusionner/scripts/meme-contenu.sh`
 
