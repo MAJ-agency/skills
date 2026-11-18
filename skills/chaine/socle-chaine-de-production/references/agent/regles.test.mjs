@@ -1900,3 +1900,8 @@ test('ticket 17 : troisième contre-relecture (A-49) — tableau modifié, opér
   passent(["args=(-m \"msg\"); git commit \"${args[@]}\"", "args=(-m \"fix -n\"); git commit \"${args[@]}\"", "f=x.md; git add \"$f\"", "G=(git status); \"${G[@]}\""]);
   refusees(['args=(-n -m x); git commit "${args[@]}"'], HOOKS);
 });
+
+test('ticket 17 : quatrième contre-relecture (A-50) — un motif non cité dans le programme', () => {
+  refusees(["/usr/bin/g[i]t commit -n -am x", "/usr/bin/gi[t] commit --no-verify -am x", "G=/usr/bin/g[i]t; $G -c core.hooksPath=/dev/null commit -am x", "G=/usr/bin/g[i]t; $G push origin HEAD:sujet/v", "sudo /usr/bin/g?t commit -am x"], HOOKS);
+  passent(['G="/usr/bin/git"; "$G" status', 'git commit -m x -- src/*.ts']);
+});

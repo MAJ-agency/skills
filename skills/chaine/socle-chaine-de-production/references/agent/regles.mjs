@@ -2567,9 +2567,15 @@ function lireGit(lu, commande = '') {
     }
     // Un programme à expansion (`$(echo git) commit`, `${G:-git} -c … commit`, `sudo $g push …`) : lu comme git,
     // ses arguments jugés comme ceux de git ; un push y est illisible (sa destination n'est pas lue).
-    const vues = W.map((w) => w.vue);
     const candidats = new Set();
+    const vues = W.map((w) => w.vue);
     const p = cmd.affectations.length + programme(cmd.mots).k;
+    // Un motif non cité dans le programme (`/usr/bin/g[i]t`, `gi?`, `{git,x}`), ou devant une sous-commande gardée
+    // derrière un préfixe (`sudo /usr/bin/g[i]t commit`) : bash le remplace par un nom que la garde ne lit pas (A-50).
+    if (W[p] && motifExact(W[p])) r.hooks = true;
+    W.forEach((w, k) => {
+      if (motifExact(w) && SOUS_GARDEES.has(appelDeGit(vues, k).sous ?? '')) r.hooks = true;
+    });
     if (W[p]?.expansion) {
       // Un tableau ou une variable en position de programme (A-49) : relu plus haut s'il est nu et défini une fois,
       // simplement ; nu mais défini autrement, ou un paramètre positionnel ou spécial (`"$@"`, `$*`, `$1`, `${!x}`), ou
