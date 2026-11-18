@@ -57,6 +57,7 @@ Décisions de l'architecte :
 | ticket | 19 | session_012xRpgbEBkwAzwZSDmB3KtH | sonnet | — | — |
 | ticket | 10 | session_012xRpgbJm6pUqbrixWZ1a5w | sonnet | — | — |
 | ticket | 12 | session_012xRpgZRkibUK1CA2XDumRw | sonnet | — | — |
+| ticket | 17 | session_012xRpgbyvYBRavfo3t7tSRy | opus | — | — |
 
 ## Passation
 
@@ -94,3 +95,4 @@ Demande du produit, 2026-11-18, recopiée telle quelle (relevée sur `MAJ-agency
 - 2026-11-18 — 18 h 30 UTC. PR 112 (ticket 15), 113 (ticket 19) et 114 (ticket 12, 7.15.1) livrées, en contre-relecture. Seconde relecture du ticket 17 : un bloquant neuf (argument à expansion), A-38, ticket renvoyé.
 - 2026-11-18 — 18 h 40 UTC. PR 112 conforme (contre-relecture), deux mineures corrigées (`42f323c`), relues par l'architecte ; attend l'entrée de la PR 115 pour passer en 7.17.0. PR 115 (ticket 1, 761 tests) livrée, en contre-relecture adversariale. Troisième relecture du ticket 17 : un bloquant de même famille (clé de configuration par expansion) ; A-39, principe général.
 - 2026-11-18 — 18 h 50 UTC. PR 113 corrigée (`c581778`), relue par l'architecte : prête, attend la 115. PR 116 (ticket 10, 7.15.1, 745 tests) livrée, en contre-relecture. Quatrième relecture du ticket 17 : deux bloquants (expansion non citée ; lettres à valeur facultative) ; A-40.
+- 2026-11-18 — 18 h 29 UTC. Ticket 17 repris une quatrième fois (`d2cfedd`, A-40). **Session lancée** sans cinquième relecture : session_012xRpgbyvYBRavfo3t7tSRy (opus, depuis `main`) ; la recherche adversariale sur dépôt jouet à hook témoin est dans sa Vérification, puis `/security-review` et la contre-relecture de l'architecte. Raison : chaque relecture trouvait une variante de plus ; la recherche par la session qui code, sur le code réel, la remplace.
