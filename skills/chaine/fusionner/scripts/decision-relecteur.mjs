@@ -20,6 +20,10 @@
 // lecture illisible. « Plus récent » veut dire « de rang supérieur dans le tableau reçu » ; les dates ne
 // servent qu'aux délais, comparées à `maintenant`, la seule source de temps.
 //
+// Un commentaire modifié après sa création est écarté, à une exception près (A-118) : un verdict modifié ne
+// s'efface jamais au profit d'un verdict plus ancien de la même session. Quand le verdict le plus récent d'une
+// session pour un tour a été modifié, sa lecture pour ce tour est `incomplet`, jamais le verdict précédent.
+//
 // Module pur : aucun point d'entrée, aucune horloge, aucun import hors verdict.mjs.
 // =============================================================================
 
@@ -113,20 +117,27 @@ const PREFIXE_TRACE = 'Lecture illisible';
  * @param {import('./verdict.mjs').Commentaire[]} commentaires  TOUS les commentaires de la PR, dans l'ordre de création
  * @param {{ tolerant?: boolean }} [options]  `tolerant` : les marques presque à la forme sont rendues dans
  *   `presque` au lieu de lever
- * @returns {{ verdicts: object[], distributions: object[],
+ * @returns {{ verdicts: object[], verdictsModifies: { id, rang, date, tour: number, session: string }[], distributions: object[],
  *             demandes: { id, rang, date, sommet: string, auteur: string|null, conducteur: string|null }[],
  *             plafonds: object[], decisions: object[], arbitragesEcartes: object[], pannes: object[],
  *             illisibles: { id, rang, date, texte: string }[], presque: { id, rang, date, prefixe: string }[],
  *             dernier: number }}
- *   `arbitragesEcartes` : un par commentaire qui écarte au moins un bloquant ; `illisibles` : les traces,
+ *   `verdictsModifies` : les verdicts d'un compte qui compte, modifiés après leur création, dont `Tour:` et
+ *   `Session:` se lisent encore : ils ne valent aucun verdict, mais empêchent un verdict plus ancien de la même
+ *   session de valoir à leur place (A-118) ; `arbitragesEcartes` : un par commentaire qui écarte au moins un bloquant ; `illisibles` : les traces,
  *   `texte` leur première ligne ; `presque` : vide hors `tolerant` ; `dernier` : le rang du plus récent
  *   commentaire à marque ou presque à la forme, traces d'illisible exclues, -1 s'il n'y en a pas.
  * @throws {LectureIllisible}  commentaires que `retenir` ne lit pas ; et, hors `tolerant`, toute marque
  *   presque à la forme
  */
 export function lireMarques(commentaires, options = {}) {
-  const m = { verdicts: [], distributions: [], demandes: [], plafonds: [], decisions: [], arbitragesEcartes: [], pannes: [], illisibles: [], presque: [], dernier: -1 };
-  for (const { id, rang, date, corps } of retenir(commentaires).retenus) {
+  const m = { verdicts: [], verdictsModifies: [], distributions: [], demandes: [], plafonds: [], decisions: [], arbitragesEcartes: [], pannes: [], illisibles: [], presque: [], dernier: -1 };
+  const { retenus, ecartes } = retenir(commentaires);
+  for (const { id, rang, date, motif, corps } of ecartes) {
+    const v = motif === 'edite' ? lireVerdict(corps) : null;
+    if (v !== null && v.tour !== null && v.session !== null) m.verdictsModifies.push({ id, rang, date, tour: v.tour, session: v.session });
+  }
+  for (const { id, rang, date, corps } of retenus) {
     const place = { id, rang, date };
     const v = lireVerdict(corps);
     if (v !== null) {
@@ -210,8 +221,13 @@ export function tours(marques, contexte) {
     // Le dernier verdict d'une session pour ce tour, écrit après la distribution qui l'a nommée la première.
     const dernierVerdict = (session) => {
       const nommee = distributions.find((d) => d.sessions.includes(session)).rang;
-      const v = marques.verdicts.findLast((x) => x.tour === numero && x.session === session && x.rang > nommee && x.rang < cloture);
-      return v === undefined ? null : compter(v);
+      const duTour = (x) => x.tour === numero && x.session === session && x.rang > nommee && x.rang < cloture;
+      const v = marques.verdicts.findLast(duTour);
+      if (v === undefined) return null;
+      // Un verdict plus récent de la session, modifié après coup : ni lui ni le précédent ne vaut (A-118).
+      const modifie = marques.verdictsModifies.findLast((x) => duTour(x) && x.rang > v.rang);
+      if (modifie !== undefined) return { ...v, ...modifie, verdict: 'incomplet', illisible: true, defauts: ['verdict plus récent de la session modifié après sa création'] };
+      return compter(v);
     };
     const verdicts = {};
     for (const s of sessions) {

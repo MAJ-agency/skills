@@ -787,3 +787,38 @@ test("entrées fausses : des commentaires illisibles lèvent LectureIllisible, u
   // Hors file, les commentaires ne sont pas lus : rien, sans erreur.
   assert.deepEqual(joue({ etiquettes: [], commentaires: [] }), HORS_FILE);
 });
+
+// --- A-118 : ajouté par la session du ticket 58, sur décision de l'architecte après la livraison -------------
+
+test("A-118 — un verdict modifié après coup ne s'efface jamais au profit d'un verdict plus ancien de la même session : la session se lit `incomplet`", () => {
+  const base = [DEMANDE(), D(1, V1, ['r1'])];
+  const RELANCE = { regle: 5, geste: 'reecrire', tour: 1, sommet: V1, sessions: ['r1'], session: 'r1' };
+  // Un refus édité après un validé : le validé ne reparaît pas.
+  const refusEdite = fil(...base, verdict(1, 'r1', 'validé'), { corps: verdict(1, 'r1', 'refusé'), edite: true });
+  assert.deepEqual(joue({ commentaires: refusEdite }), RELANCE);
+  assert.equal(tourValide(pr({ commentaires: refusEdite })), null, 'le capitaine ne voit pas de tour validé');
+  assert.deepEqual(joue({ commentaires: refusEdite, etiquettes: ['à-fusionner'] }), { regle: 3, geste: 'etiqueter', poser: 'à-relire', retirer: ['à-fusionner'], lignes: LIGNES('PR 12 : relecture incomplète') });
+  // Un validé édité après un refus : ni validé, ni le refus d'avant.
+  const valideEdite = fil(...base, verdict(1, 'r1', 'refusé'), { corps: verdict(1, 'r1', 'validé'), edite: true });
+  assert.deepEqual(joue({ commentaires: valideEdite }), RELANCE);
+  assert.equal(tourValide(pr({ commentaires: valideEdite })), null);
+  assert.equal(comptes({ commentaires: valideEdite }), 0);
+  // Un ancien verdict édité, puis un verdict plus récent intact : le plus récent juge.
+  assert.equal(joue({ commentaires: fil(...base, { corps: verdict(1, 'r1', 'refusé'), edite: true }, verdict(1, 'r1', 'validé')) }).poser, 'à-fusionner');
+  assert.equal(joue({ commentaires: fil(...base, { corps: verdict(1, 'r1', 'validé'), edite: true }, verdict(1, 'r1', 'refusé')) }).poser, 'à-reprendre');
+  assert.equal(joue({ commentaires: fil(...base, verdict(1, 'r1', 'validé'), { corps: verdict(1, 'r1', 'refusé'), edite: true }, verdict(1, 'r1', 'validé')) }).poser, 'à-fusionner');
+  // La relance tracée, la session rend un verdict neuf : la suite reprend.
+  const relance = [...base, verdict(1, 'r1', 'validé'), { corps: verdict(1, 'r1', 'refusé'), edite: true }, D(1, V1, ['r1'], 'relance', 'r1')];
+  assert.equal(joue({ commentaires: fil(...relance) }).raison, 'attente');
+  assert.equal(joue({ commentaires: fil(...relance, verdict(1, 'r1', 'refusé')) }).poser, 'à-reprendre');
+  // Seul le verdict modifié d'un compte qui compte, pour cette session et ce tour, retire quelque chose.
+  const valide = [...base, verdict(1, 'r1', 'validé')];
+  assert.equal(joue({ commentaires: fil(...valide, { corps: verdict(1, 'r1', 'refusé'), edite: true, de: 'NONE' }) }).poser, 'à-fusionner', "un compte sans droit n'annule pas un verdict");
+  assert.equal(joue({ commentaires: fil(...valide, { corps: verdict(1, 'r2', 'refusé'), edite: true }) }).poser, 'à-fusionner', "le verdict modifié d'une autre session");
+  assert.equal(joue({ commentaires: fil(...valide, { corps: verdict(2, 'r1', 'refusé'), edite: true }) }).poser, 'à-fusionner', "le verdict modifié d'un autre tour");
+  // À deux verdicts exigés : la session au verdict modifié ne compte plus, l'autre reste.
+  const double = fil(DEMANDE(), D(1, V1, ['r1', 'r2']), verdict(1, 'r1', 'validé'), verdict(1, 'r2', 'validé'), { corps: verdict(1, 'r2', 'refusé'), edite: true });
+  assert.deepEqual(joue({ commentaires: double, exiges: 2 }), { regle: 5, geste: 'reecrire', tour: 1, sommet: V1, sessions: ['r1', 'r2'], session: 'r2' });
+  // Un verdict modifié sans verdict antérieur reste écarté, comme toute marque modifiée (A-85, A-108).
+  assert.equal(joue({ commentaires: fil(...base, { corps: verdict(1, 'r1', 'validé'), edite: true }) }).raison, 'attente');
+});
