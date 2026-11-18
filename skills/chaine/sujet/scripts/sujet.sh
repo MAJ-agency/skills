@@ -1355,7 +1355,7 @@ carte_sujet() {
     i=$((i + 1))
   done
   rm -rf "$tmp"
-  git push -q origin "$tete:refs/heads/$branche" || refuser "le push sur $branche a échoué (jamais de force : relancer après un fetch)"
+  git_masque push -q origin "$tete:refs/heads/$branche" || refuser "le push sur $branche a échoué (jamais de force : relancer après un fetch)"
   echo "carte poussée : $i commit(s) sur $branche"
 }
 

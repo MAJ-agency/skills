@@ -60,6 +60,8 @@
 #      s'arrête (ARRÊT, sortie 3), sans le repasser → lire la cause (droits du compte du capitaine), relancer
 #   5  GitHub illisible (lire_github : réponse vide, non JSON, corps d'erreur ou code non nul), à la lecture de la PR,
 #      de sa parente ou pendant l'attente de la CI : la boucle se met en pause (PAUSE) puis reprend, jamais un arrêt
+#   3  fusion refusée par GitHub pour une autre raison que la revue ou une branche qui a bougé (droit du compte, règle
+#      du dépôt, méthode de fusion interdite : un refus durable) : la boucle s'arrête (ARRÊT) → lire le message, traiter
 #   3  contrôle d'ascendance illisible (réf absente, git en échec) : la boucle s'arrête → lire la cause, relancer
 #   5  develop a bougé trois fois pendant la CI (deux reprises de la mise à jour déjà jouées) → relancer
 #   5  develop ou la PR a bougé en route → relancer. develop a bougé sans le capitaine :
@@ -400,7 +402,16 @@ corps |
       sortir 3 "fusion refusée faute d'approbation d'un propriétaire (CODEOWNERS) et commentaire d'attente non posé : sans lui, la PR repasserait à chaque tour ; lire la cause (droits du compte du capitaine), relancer"
     sortir 7 "$MOTIF_PROPRIETAIRE"
   fi
-  sortir 5 "fusion refusée (develop ou la PR a bougé), relancer"
+  # La branche ou develop a bougé (409, « not up to date »), ou GitHub en panne (5xx, aucun code HTTP) : sortie 5, la
+  # boucle se met en pause puis reprend. Tout autre refus (droit, règle du dépôt, méthode de fusion interdite) est
+  # durable : sortie 3, la boucle s'arrête, au lieu de refaire mise à jour et CI à chaque tour, en pause sans fin.
+  # `gh` écrit `gh: <message> (HTTP <code>)`, ou `gh: HTTP <code>` sans message dans le corps (cli/cli, pkg/cmd/api).
+  if grep -qE 'HTTP (409|5[0-9]{2})([^0-9]|$)|not up to date' <<<"$message" || ! grep -qE 'HTTP [0-9]{3}([^0-9]|$)' <<<"$message"; then
+    sortir 5 "fusion refusée (develop ou la PR a bougé, ou GitHub en panne), relancer"
+  fi
+  git switch -q --detach origin/develop
+  git branch -q -D "capitaine/$N" 2>/dev/null || true
+  sortir 3 "fusion refusée par GitHub, ni pour la revue ni pour une branche qui a bougé (droit du compte, règle du dépôt, méthode de fusion) : message ci-dessus ; la boucle s'arrête, un humain lit la cause"
 }
 
 git_masque fetch -q origin "+refs/heads/develop:refs/remotes/origin/develop"

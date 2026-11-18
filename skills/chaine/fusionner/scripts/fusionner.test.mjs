@@ -1915,7 +1915,7 @@ function prePushRefuse(d, trace = true) {
   const h = hooks(d);
   writeFileSync(
     join(d.racine, "hooks", "pre-push"),
-    `#!/bin/sh\necho pre-push >> ${JSON.stringify(join(d.racine, "hooks.log"))}\necho "pnpm check : \\\`tsc\\\` rouge sur apps/x.ts" >&2\necho "fetch ${HOOK_URL} refusé" >&2\n${trace ? 'echo "husky - pre-push script failed (code 1)"\n' : ""}exit 1\n`,
+    `#!/bin/sh\necho pre-push >> ${JSON.stringify(join(d.racine, "hooks.log"))}\necho "pnpm check : \\\`tsc\\\` rouge sur apps/x.ts" >&2\nprintf 'ligne windows\\r\\n' >&2\necho "fetch ${HOOK_URL} refusé" >&2\n${trace ? 'echo "husky - pre-push script failed (code 1)"\n' : ""}exit 1\n`,
   );
   chmodSync(join(d.racine, "hooks", "pre-push"), 0o755);
   return h;
@@ -1944,6 +1944,8 @@ test("un pre-push refusé avec la trace de husky : passer.sh sort en 3, la boucl
   assert.match(commentaire, /https:\/\/\*\*\*@exemple\.test/);
   assert.doesNotMatch(commentaire, /jeton-secret/);
   assert.doesNotMatch(commentaire, /\[git push/, "préfixe retiré");
+  assert.match(commentaire, /ligne windows ;/);
+  assert.doesNotMatch(commentaire, /\r/, "fin de ligne CRLF retirée");
   assert.deepEqual(d.etat().pulls.find((x) => x.number === 30).labels, ["fusion-bloquée"]);
 });
 
@@ -1982,4 +1984,35 @@ test("un push refusé sans trace de husky : échec fermé, passer.sh en 3 « pus
     assert.equal(s.git("status", "--porcelain"), "", `${nom} : worktree propre`);
     sansFusion(s);
   }
+});
+
+// Un refus de fusion durable (droit, règle du dépôt, méthode interdite) n'est pas « la branche a bougé » : sortie 3, la
+// boucle s'arrête au lieu de refaire mise à jour et CI à chaque tour, en pause sans fin. 409 ou panne : sortie 5.
+test("passer.sh : une fusion refusée durablement par GitHub sort en 3 et la boucle s'arrête ; branche bougée ou panne : 5", () => {
+  for (const [message, attendu] of [
+    ["gh: Merge commits are not allowed on this repository. (HTTP 405)", 3],
+    ["gh: Resource not accessible by integration (HTTP 403)", 3],
+    ["gh: Repository rule violations found (HTTP 422)", 3],
+    ["gh: HTTP 403", 3],
+    ["gh: HTTP 502", 5],
+    ["gh: Head branch was modified. Review and try the merge again. (HTTP 409)", 5],
+    ["gh: Head branch is not up to date with the base branch (HTTP 405)", 5],
+    ["gh: Bad Gateway (HTTP 502)", 5],
+    ["error connecting to api.github.com", 5],
+  ]) {
+    const d = prSimple();
+    d.github({ pulls: [pr(33, "feat/simple", { refusFusion: message })] });
+    const r = d.lancer(script("passer.sh"), "33");
+    assert.equal(r.status, attendu, `${message} : ${r.stdout}${r.stderr}`);
+    if (attendu === 3) assert.match(r.stdout, /fusion refusée par GitHub, ni pour la revue ni pour une branche qui a bougé/);
+    assert.equal(d.git("status", "--porcelain"), "");
+  }
+  const d = prSimple();
+  d.publierChaine();
+  d.github({ pulls: [pr(33, "feat/simple", { refusFusion: "gh: Merge commits are not allowed on this repository. (HTTP 405)" })] });
+  const b = d.lancer(script("boucle.sh"));
+  assert.equal(b.status, 3, b.stdout + b.stderr);
+  assert.match(b.stdout, /ARRÊT sur #33 \(sortie 3\)/);
+  assert.doesNotMatch(b.stdout, /PAUSE/);
+  assert.equal(fusionsDe(d, 33).length, 1, "un seul essai");
 });

@@ -235,6 +235,14 @@ test("lire_github refuse une réponse vide, non JSON, porteuse de message ou à 
   const absent = fonction(d, `lire_github "$1" --absent '[]'`, "repos/{owner}/{repo}/branches/develop/protection/required_status_checks");
   assert.equal(absent.status, 0, absent.stderr);
   assert.equal(absent.stdout, "[]\n");
+  // Une sortie d'erreur en CRLF reste un 404.
+  d.github({ pannes: [{ route: "protection/required_status_checks$", erreur: "gh: Branch not protected (HTTP 404)\r" }] });
+  assert.equal(fonction(d, `lire_github "$1" --absent '[]'`, "repos/{owner}/{repo}/branches/develop/protection/required_status_checks").stdout, "[]\n");
+  // Un 404 sans message dans le corps : `gh: HTTP 404`.
+  d.github({ pannes: [{ route: "protection/required_status_checks$", erreur: "gh: HTTP 404" }] });
+  assert.equal(fonction(d, `lire_github "$1" --absent '[]'`, "repos/{owner}/{repo}/branches/develop/protection/required_status_checks").stdout, "[]\n");
+  d.github({ pannes: [{ route: "protection/required_status_checks$", erreur: "gh: HTTP 4040" }] });
+  assert.equal(fonction(d, `lire_github "$1" --absent '[]'`, "repos/{owner}/{repo}/branches/develop/protection/required_status_checks").status, 5, "4040 n'est pas un 404");
   d.github({ pannes: [{ route: "protection/required_status_checks$" }] });
   const panne = fonction(d, `lire_github "$1" --absent '[]'`, "repos/{owner}/{repo}/branches/develop/protection/required_status_checks");
   assert.equal(panne.status, 5, panne.stdout + panne.stderr);
@@ -288,6 +296,19 @@ test("pousser rend 4 sur un push refusé sans trace de husky, 3 avec la trace, 5
   bouge.commit("docs: autre");
   const cinq = pousser(bouge, "HEAD:refs/heads/feat/q", "feat/q", avant);
   assert.equal(cinq.status, 5, cinq.stdout + cinq.stderr);
+
+  // Fin de ligne CRLF (hook écrit sous Windows) : encore la trace. Variantes voisines (autre hook, texte après la
+  // parenthèse, trace citée au milieu d'une ligne) : jamais la trace.
+  for (const [ligne, attendu] of [
+    ["printf 'husky - pre-push script failed (code 1)\\r\\n'", 3],
+    [`echo "husky - pre-commit script failed (code 1)"`, 4],
+    [`echo "husky - pre-push script failed (code 1) ailleurs"`, 4],
+    [`echo "voir : husky - pre-push script failed (code 1)"`, 4],
+  ]) {
+    const v = depotJouet();
+    hookLocal(v, `${ligne}\nexit 1`);
+    assert.equal(pousser(v, "HEAD:refs/heads/feat/p", "feat/p").status, attendu, ligne);
+  }
 });
 
 test("masquer_url : le jeton d'un hook distant est masqué dans ce que relaient jouer_ou_dire, pousser et git_masque, et le code de git est gardé", () => {

@@ -126,7 +126,8 @@ pousser() {
   apres=$(git ls-remote origin "refs/heads/$branche" 2>/dev/null) || return 5
   apres=${apres%%[[:space:]]*}
   [ "$apres" = "$avant" ] || return 5
-  if grep -qE '^husky - pre-push script failed \(code [0-9]+\)$' <<<"$SORTIE_JOUEE"; then
+  # Une fin de ligne CRLF (hook écrit sous Windows) reste une trace.
+  if grep -qE $'^husky - pre-push script failed \\(code [0-9]+\\)\r?$' <<<"$SORTIE_JOUEE"; then
     echo "push refusé par le hook pre-push : sortie ci-dessus ; corriger, jamais en sautant le hook" >&2
     return 3
   fi
@@ -250,7 +251,7 @@ uri() { jq -rn --arg s "$1" '$s | @uri'; }
 # `--paginate` concatène des pages : chacune doit se lire), ou une page qui est un objet portant `message` au premier
 # niveau (le corps d'erreur de GitHub ; un tableau d'objets n'est jamais refusé pour un champ imbriqué). Un 502 lu comme
 # une file vide, « aucun check exigé » ou « CI non déclenchée » : c'est ce que ce refus empêche.
-# `--absent <défaut>` : un refus dont la sortie d'erreur porte `(HTTP 404)` rend `<défaut>`, code 0 (protection absente).
+# `--absent <défaut>` : un refus dont la sortie d'erreur porte `HTTP 404` rend `<défaut>`, code 0 (protection absente).
 # Rend la réponse brute ; le filtre jq reste chez l'appelant. Chaque appelant teste le code et sort en 5 lui-même :
 # jamais `set -e`, perdu sous `||`, dans un `if` ou une substitution.
 lire_github() {
@@ -267,7 +268,8 @@ lire_github() {
   erreur=$(mktemp)
   sortie=$(gh api ${paginer[@]+"${paginer[@]}"} "$route" 2>"$erreur" </dev/null) || rc=$?
   if [ "$rc" != 0 ]; then
-    if [ "$avec_absent" = 1 ] && grep -q '(HTTP 404)' "$erreur"; then
+    # `gh: <message> (HTTP 404)`, ou `gh: HTTP 404` quand le corps n'a pas de message (cli/cli, pkg/cmd/api/api.go).
+    if [ "$avec_absent" = 1 ] && grep -qE 'HTTP 404([^0-9]|$)' "$erreur"; then
       rm -f "$erreur"
       printf '%s\n' "$absent"
       return 0

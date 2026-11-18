@@ -373,7 +373,7 @@ traiter_sujets() {
 extrait_hook() {
   local extrait
   extrait=$(awk '/push refusé par le hook pre-push/ { exit } /^\[git push [^]]*\] / { sub(/^\[git push [^]]*\] /, ""); l[++n] = $0 }
-    END { for (i = (n > 8 ? n - 7 : 1); i <= n; i++) printf "%s%s", (i > (n > 8 ? n - 7 : 1) ? " ; " : ""), l[i] }' "$1" | tr -d '`')
+    END { for (i = (n > 8 ? n - 7 : 1); i <= n; i++) printf "%s%s", (i > (n > 8 ? n - 7 : 1) ? " ; " : ""), l[i] }' "$1" | tr -d '`\r')
   node -e 'process.stdout.write([...process.argv[1]].slice(0, 1500).join(""))' "$extrait" | masquer_url
 }
 
