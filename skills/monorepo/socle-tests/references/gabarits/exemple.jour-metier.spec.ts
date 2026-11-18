@@ -50,6 +50,8 @@ describe("businessDay", () => {
     const clock: Clock = { now: () => new Date("2026-07-11T11:45:00Z") }; // 23:45 locale
     const today = businessDay(clock.now(), EXAMPLE_TIME_ZONE);
     const tomorrow = businessDay(new Date(clock.now().getTime() + 24 * 3_600_000), EXAMPLE_TIME_ZONE);
+    // Ici la donnée est construite sur place pour la démonstration ; dans un vrai test, `quote` vient
+    // du code testé (ex. `createQuote(clock, …)`), et c'est sa référence que la forme contrôle.
     const quote = { reference: `Q-${today.slice(0, 4)}-0001`, dueDay: tomorrow };
 
     expect(quote.dueDay).toBe("2026-07-12");
