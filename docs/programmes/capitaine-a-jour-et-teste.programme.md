@@ -83,7 +83,7 @@ Décisions de l'architecte :
 | ticket | 18 | session_012xRpgZurfcXHuBBqAMFitE | opus | 407 806 | 19,19 |
 | ticket | 7 | session_012xRpgZAedd2xzkqRc9YBYv | sonnet | 191 702 | 2,70 |
 | ticket | 2 | session_012xRpgbmxxvZr3pZbLZccCN | opus | — | — |
-| ticket | 11 | session_012xRpga69nMFgKEzuT4rE8A | sonnet | — | — |
+| ticket | 11 | session_012xRpga69nMFgKEzuT4rE8A | sonnet | 203 660 | 3,14 |
 | capitaine | — | session_012xRpgcWjwiV8xVUSzzEy9L | sonnet | — | — |
 
 ## Passation
@@ -177,3 +177,4 @@ Demande du produit, 2026-11-18, recopiée telle quelle (relevée sur `MAJ-agency
 - 2026-11-19 — 02 h 12 UTC. PR 129 corrigée (`50edb17`, refspecs explicites dans la recette, banc de la recette jouée sur clone `--single-branch`, 939 tests, CodeQL vert), delta relu par l'architecte : signal donné (main `20b18c6`, 7.26.1). PR 128 corrigée (`b2e23db`, 944 tests), contre-relecture du delta en cours ; passera après la 129 (7.27.0).
 - 2026-11-19 — 02 h 20 UTC. Contre-relecture du delta de la PR 128 (`b2e23db`) **conforme** ; une mineure portée (entrée standard partagée par la boucle de `traiter_sujets` : `</dev/null` sur ses appels) ; une autre notée au Fog (`pousser` et une trace forgée par un hook vert).
 - 2026-11-19 — 02 h 25 UTC. PR 129 : `main` fusionnée (`20b18c6`, trois conflits, deux côtés gardés), 7.26.1, 957 tests, quatre checks verts ; delta relu (contient `main`, même diff qu'au sommet relu). **Ordre `à-fusionner au sommet 0c97eb7…` et label posés.** PR 128 : mineure m1 portée (`9adcbc9`, `</dev/null` sur le corps de la boucle des sujets, banc rouge avant, 945 tests), delta relu ; attend la 129 (7.27.0).
+- 2026-11-19 — 02 h 32 UTC. **PR 129 fusionnée** (squash `bb3314a`, 7.26.1), arbre identique au sommet ordonné `0c97eb7`, vérifié ; ticket 11 fait, session archivée (3,14 $). Signal à la PR 128 (7.27.0). Après elle : tickets 16 et 3 en parallèle, puis 4.
