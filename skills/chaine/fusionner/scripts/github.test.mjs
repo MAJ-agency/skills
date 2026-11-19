@@ -470,6 +470,68 @@ test("prendre_passage : un epoch en retard ne date jamais une marque avant sa po
   assert.match(rafraichie.motif, /depuis 2026-11-17T11:50:01Z/);
 });
 
+// Décision pure du verrou, lue par `lecteur` (son id et son `created_at`) sur `lus` (une page de commentaires).
+const decisionPassage = (lus, cree, mien = 7002) => {
+  const d = depotJouet();
+  const r = spawnSync("bash", ["-c", `source ${GITHUB}; jq -cs --arg moi capitaine-banc --argjson mien ${mien} --arg cree ${cree} "$FILTRE_PASSAGE"`], {
+    cwd: d.travail,
+    env: d.env,
+    encoding: "utf8",
+    input: JSON.stringify(lus),
+  });
+  assert.equal(r.status, 0, r.stderr);
+  return JSON.parse(r.stdout);
+};
+const autre = (body, created_at = "2026-11-17T10:00:00Z") => ({ id: 7001, body, author_association: "OWNER", created_at, updated_at: created_at });
+const iso = (epoch) => new Date(epoch * 1000).toISOString().replace(".000Z", "Z");
+
+test("FILTRE_PASSAGE : un epoch en avance est ignoré tant qu'il le reste pour le lecteur, puis compte ; une marque figée posée par une horloge en avance revit jusqu'à E + 90 min (décision A-55)", () => {
+  // Créée à C = 10:00, epoch E = C + 2 h (horloge en avance de 2 heures), jamais rafraîchie ensuite.
+  const C = le17(10, 0, 0);
+  const E = C + 7200;
+  const lus = [autre(marque("autre", false, E), iso(C))];
+  const tenu = (lecteur) => decisionPassage(lus, iso(lecteur)).tenu;
+  assert.equal(tenu(C + 30 * 60), `autre ${iso(C)}`, "lue à C + 30 min : E ignoré (en avance de plus de 5 min), datée par sa création, tenue");
+  assert.equal(tenu(C + 91 * 60), null, "lue à C + 91 min : E encore ignoré, la création a plus de 90 min, libre");
+  assert.equal(tenu(C + 116 * 60), `autre ${iso(E)}`, "lue à C + 116 min : E à moins de 5 min du lecteur, compte, la marque revit, tenue");
+  assert.equal(tenu(E + 91 * 60), null, "lue à E + 91 min : libre, jamais de gel");
+});
+
+test("FILTRE_PASSAGE : un epoch de plus de 40 caractères ou vide ne fait jamais ignorer la marque, datée par son created_at", () => {
+  const cree = "2026-11-17T12:00:01Z";
+  const long = "1".repeat(41);
+  assert.equal(decisionPassage([autre(marque("autre", false, long), "2026-11-17T11:59:00Z")], cree).tenu, "autre 2026-11-17T11:59:00Z", "epoch de 41 caractères, marque récente : tenue");
+  assert.equal(decisionPassage([autre(marque("autre", false, "x".repeat(500)), "2026-11-17T11:59:00Z")], cree).tenu, "autre 2026-11-17T11:59:00Z", "epoch de 500 caractères : tenue");
+  // Epoch vide : la marque porte deux espaces avant `-->`.
+  assert.equal(decisionPassage([autre("x\n<!-- capitaine:passage autre  -->", "2026-11-17T11:59:00Z")], cree).tenu, "autre 2026-11-17T11:59:00Z", "epoch vide, marque récente : tenue");
+  assert.equal(decisionPassage([autre("x\n<!-- capitaine:passage autre  -->", "2026-11-17T10:30:01Z")], cree).tenu, null, "epoch vide, créée il y a 90 minutes : libre");
+  assert.equal(decisionPassage([autre(marque("autre", false, long), "2026-11-17T10:30:01Z")], cree).tenu, null, "epoch de 41 caractères, créée il y a 90 minutes : libre");
+  // Les siennes aussi : une ancienne marque au long epoch reste à terminer.
+  assert.deepEqual(decisionPassage([autre(marque("capitaine-banc", false, long))], cree).anciens, [7001], "sienne au long epoch : à terminer");
+});
+
+test("epoch_passage : PASSAGE_HORLOGE_BANC n'est honorée que sous le faux GitHub des bancs (FAUX_GH posé et non vide) ; sans lui, l'horloge réelle et un avertissement par appel", () => {
+  const d = depotJouet();
+  const jouer = (env) => spawnSync("bash", ["-c", `set -euo pipefail; source ${GITHUB}; epoch_passage; epoch_passage`], { cwd: d.travail, env, encoding: "utf8" });
+  const banc = jouer(d.env);
+  assert.equal(banc.status, 0, banc.stderr);
+  assert.deepEqual(banc.stdout.split("\n").filter(Boolean), [d.env.PASSAGE_HORLOGE_BANC, d.env.PASSAGE_HORLOGE_BANC], "sous le faux : l'horloge des bancs");
+  assert.equal(banc.stderr, "");
+  for (const faux of [undefined, ""]) {
+    const env = { ...d.env, PASSAGE_HORLOGE_BANC: "1000" };
+    if (faux === undefined) delete env.FAUX_GH;
+    else env.FAUX_GH = faux;
+    const avant = Math.floor(Date.now() / 1000);
+    const r = jouer(env);
+    const apres = Math.floor(Date.now() / 1000);
+    assert.equal(r.status, 0, r.stderr);
+    const lus = r.stdout.split("\n").filter(Boolean).map(Number);
+    assert.equal(lus.length, 2, r.stdout);
+    for (const e of lus) assert.ok(e >= avant && e <= apres, `FAUX_GH ${JSON.stringify(faux)} : horloge réelle, lu ${e}`);
+    assert.deepEqual(r.stderr.split("\n").filter(Boolean), Array(2).fill("verrou du passage : PASSAGE_HORLOGE_BANC ignorée hors des bancs (FAUX_GH absent), horloge de la machine"), "un avertissement par appel");
+  }
+});
+
 test("prendre_passage : commentaire non posé (écriture refusée) : 2 ; commentaires illisibles après la pose (panne de lecture) : 3, son commentaire retiré ; jamais un passage sans verrou", () => {
   const d = depotJouet();
   d.github({ pulls: [{ number: 7, title: "t", base: "develop", head: "x", labels: [] }], commentairesRefuses: true });

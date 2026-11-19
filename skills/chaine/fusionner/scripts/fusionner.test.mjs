@@ -4,7 +4,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { chmodSync, existsSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, readdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 // Posé dans un projet, depot-jouet.mjs est à côté (scripts/chaine/) ; dans le plugin, il est dans le skill sujet.
@@ -2570,8 +2570,31 @@ test("finir_passage : une pose lancée sans id connu et une relecture en panne s
   d.github({ pulls: [pr(7, "x")], pannes: [{ route: "^issues/7/comments" }] });
   const r = spawnSync("bash", ["-c", `source ${script("github.sh")}; PASSAGE_PR=7 PASSAGE_POSE_LANCEE=1; finir_passage; echo "rc=$?"`], { cwd: d.travail, env: d.env, encoding: "utf8" });
   assert.match(r.stdout, /^rc=0$/m, r.stdout + r.stderr);
-  assert.deepEqual(r.stderr.split("\n").filter(Boolean), ["verrou du passage : commentaire de #7 non terminé (relecture impossible : GitHub illisible (repos/{owner}/{repo}/issues/7/comments?per_page=100) : gh en échec (code 1) : gh: Bad Gateway (HTTP 502)), il expirera en 90 minutes"]);
+  assert.deepEqual(r.stderr.split("\n").filter(Boolean), ["verrou du passage : commentaire de #7 non terminé (relecture impossible : GitHub illisible (repos/{owner}/{repo}/issues/7/comments?per_page=100) : gh en échec (code 1) : gh: Bad Gateway (HTTP 502)), il expirera 90 minutes après sa dernière date comptée"]);
   assert.deepEqual(d.journal(), [], "rien d'écrit");
+});
+
+// ── Seconde contre-relecture (2026-11-19), C-A : la trappe ne sort jamais en échec sous `set -euo pipefail` ────────
+// Une marque d'un compte de l'organisation au `created_at` illisible : `lire_github` réussit, le filtre échoue, la
+// sortie d'erreur de la relecture est vide (grep rendait 1, et la trappe sortait en 1 sans rien dire).
+const marqueDateIllisible = { body: "x\n<!-- capitaine:passage autre 1795435000 -->", association: "MEMBER", created_at: "pas-une-date" };
+test("finir_passage sous set -euo pipefail : relecture lue mais filtre en échec (date illisible), une ligne « non terminé », sortie 0", () => {
+  const d = depotJouet();
+  d.github({ pulls: [pr(7, "x", { commentaires: [marqueDateIllisible] })] });
+  const r = spawnSync("bash", ["-c", `set -euo pipefail; source ${script("github.sh")}; PASSAGE_PR=7 PASSAGE_POSE_LANCEE=1; finir_passage; echo "rc=$?"`], { cwd: d.travail, env: d.env, encoding: "utf8" });
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /^rc=0$/m, r.stdout + r.stderr);
+  assert.deepEqual(r.stderr.split("\n").filter(Boolean), ["verrou du passage : commentaire de #7 non terminé (relecture impossible : commentaires illisibles), il expirera 90 minutes après sa dernière date comptée"]);
+  assert.deepEqual(d.journal().filter((e) => e.methode !== "GET"), [], "rien d'écrit");
+});
+test("passer.sh : POST du verrou refusé et relecture de la trappe au filtre en échec (date illisible) : sortie 3 inchangée, ligne « non terminé », aucun fichier temporaire laissé", () => {
+  const { d, avant, sommet } = prVerrou({ commentairesRefuses: "capitaine:passage", pulls: [pr(40, "docs/verrou", { commentaires: [marqueDateIllisible] })] });
+  const r = spawnSync("bash", [script("passer.sh"), "40"], { cwd: d.travail, env: d.env, encoding: "utf8" });
+  assert.equal(r.status, 3, r.stdout + r.stderr);
+  assert.match(r.stdout.trim().split("\n").at(-1), /verrou du passage non posé \(cause ci-dessus\) : la PR ne passe pas sans lui/, r.stdout + r.stderr);
+  assert.match(r.stderr, /^verrou du passage : commentaire de #40 non terminé \(relecture impossible : commentaires illisibles\), il expirera 90 minutes après sa dernière date comptée$/m, r.stderr);
+  assert.equal(sommet(), avant, "rien n'est poussé");
+  assert.deepEqual(readdirSync(d.racine).filter((f) => f.startsWith("tmp.")), [], "aucun fichier temporaire laissé (la trappe a fini)");
 });
 
 // ── L'epoch des marques éprouvé de bout en bout (C3) : l'horloge des scripts suit les dates du faux ─────────────────
