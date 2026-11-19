@@ -1086,11 +1086,11 @@ test("A-125 : un objet illisible à la base de la fusion n'est pas un conflit : 
   pousser(d, "develop", { "apps/a.ts": "cible\n" });
   const T = miseAJour(d, "feat/a", "develop", rien); // conflit sur apps/a.ts, conclu du côté de la cible
   estDifferent(juger(d, V, T), /apps\/a\.ts/);
-  // L'arbre de la base de fusion disparaît : git merge-tree l'écrit sur sa sortie d'erreur et sort en 1, comme
-  // pour un conflit.
+  // L'arbre de la base de fusion disparaît : git 2.43 l'écrit sur sa sortie d'erreur et sort en 1, comme pour un
+  // conflit ; un git plus récent (2.56) sort en 128. Les deux se lisent « illisible ».
   const arbre = d.git("rev-parse", `${base}^{tree}`);
   const objet = join(d.git("rev-parse", "--path-format=absolute", "--git-path", "objects"), arbre.slice(0, 2), arbre.slice(2));
   assert.ok(existsSync(objet), "l'arbre de la base est un objet libre du clone");
   rmSync(objet);
-  estIllisible(juger(d, V, T), /^git merge-tree --write-tree a écrit une erreur sur [0-9a-f]{9}$/);
+  estIllisible(juger(d, V, T), /^git merge-tree --write-tree (a écrit une erreur|en échec \(128\)) sur [0-9a-f]{9}$/);
 });
