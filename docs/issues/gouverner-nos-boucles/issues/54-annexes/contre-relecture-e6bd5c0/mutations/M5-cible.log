@@ -1,0 +1,79 @@
+TAP version 13
+# warning: You appear to have cloned an empty repository.
+# warning: You appear to have cloned an empty repository.
+# warning: You appear to have cloned an empty repository.
+# warning: You appear to have cloned an empty repository.
+# warning: You appear to have cloned an empty repository.
+# warning: You appear to have cloned an empty repository.
+# warning: You appear to have cloned an empty repository.
+# warning: You appear to have cloned an empty repository.
+# warning: You appear to have cloned an empty repository.
+# warning: You appear to have cloned an empty repository.
+# warning: You appear to have cloned an empty repository.
+# warning: You appear to have cloned an empty repository.
+# warning: You appear to have cloned an empty repository.
+# warning: You appear to have cloned an empty repository.
+# warning: You appear to have cloned an empty repository.
+# Subtest: file.sh : sous-PR de sujet, livraisons de sujet (sujet/ et livraison intermédiaire), prio:haute, puis numéro ; CI en cours et rouge signalées
+ok 1 - file.sh : sous-PR de sujet, livraisons de sujet (sujet/ et livraison intermédiaire), prio:haute, puis numéro ; CI en cours et rouge signalées
+  ---
+  duration_ms: 7709.644676
+  type: 'test'
+  ...
+# Subtest: file.sh : une PR sans CI que GitHub dit en conflit se lit prête (en conflit), vers develop comme vers un sujet ; état inconnu : prête (sans CI)
+ok 2 - file.sh : une PR sans CI que GitHub dit en conflit se lit prête (en conflit), vers develop comme vers un sujet ; état inconnu : prête (sans CI)
+  ---
+  duration_ms: 3304.973713
+  type: 'test'
+  ...
+# Subtest: file.sh : une PR renvoyée autant de fois que le plafond est montrée humain, et ni --next ni --rouges ne la rendent
+ok 3 - file.sh : une PR renvoyée autant de fois que le plafond est montrée humain, et ni --next ni --rouges ne la rendent
+  ---
+  duration_ms: 3430.853045
+  type: 'test'
+  ...
+# Subtest: file.sh : PR dont le ticket déclare un sujet livré (carte Phase: fini) classée directe, sans écriture
+ok 4 - file.sh : PR dont le ticket déclare un sujet livré (carte Phase: fini) classée directe, sans écriture
+  ---
+  duration_ms: 1245.649108
+  type: 'test'
+  ...
+# Subtest: file.sh : sujet en cours (Phase: 4-code) — PR toujours reciblée sur le sujet
+ok 5 - file.sh : sujet en cours (Phase: 4-code) — PR toujours reciblée sur le sujet
+  ---
+  duration_ms: 1116.576418
+  type: 'test'
+  ...
+# Subtest: file.sh : la sous-PR, la PR à recibler et la livraison d'un sujet gelé sont gelées, et ni --next ni --rouges ne les rendent
+ok 6 - file.sh : la sous-PR, la PR à recibler et la livraison d'un sujet gelé sont gelées, et ni --next ni --rouges ne les rendent
+  ---
+  duration_ms: 8362.206951
+  type: 'test'
+  ...
+# Subtest: file.sh : le gel prime sur « humain » (renvoi_de non appelé), qui revient au dégel
+ok 7 - file.sh : le gel prime sur « humain » (renvoi_de non appelé), qui revient au dégel
+  ---
+  duration_ms: 4421.623696
+  type: 'test'
+  ...
+# Subtest: file.sh : GitHub illisible, sortie 5 et rien sur la sortie standard
+ok 8 - file.sh : GitHub illisible, sortie 5 et rien sur la sortie standard
+  ---
+  duration_ms: 4324.233523
+  type: 'test'
+  ...
+# Subtest: boucle.sh : la ligne PAUSE donne la route et le code HTTP de la cause (file.sh et passer.sh)
+ok 9 - boucle.sh : la ligne PAUSE donne la route et le code HTTP de la cause (file.sh et passer.sh)
+  ---
+  duration_ms: 9882.988733
+  type: 'test'
+  ...
+1..9
+# tests 9
+# suites 0
+# pass 9
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 44817.221538

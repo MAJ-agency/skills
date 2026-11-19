@@ -1,0 +1,162 @@
+TAP version 13
+# warning: You appear to have cloned an empty repository.
+# warning: You appear to have cloned an empty repository.
+# warning: You appear to have cloned an empty repository.
+# warning: You appear to have cloned an empty repository.
+# warning: You appear to have cloned an empty repository.
+# warning: You appear to have cloned an empty repository.
+# warning: You appear to have cloned an empty repository.
+# warning: You appear to have cloned an empty repository.
+# warning: You appear to have cloned an empty repository.
+# warning: You appear to have cloned an empty repository.
+# warning: You appear to have cloned an empty repository.
+# warning: You appear to have cloned an empty repository.
+# warning: You appear to have cloned an empty repository.
+# Subtest: file.sh : sous-PR de sujet, livraisons de sujet (sujet/ et livraison intermédiaire), prio:haute, puis numéro ; CI en cours et rouge signalées
+ok 1 - file.sh : sous-PR de sujet, livraisons de sujet (sujet/ et livraison intermédiaire), prio:haute, puis numéro ; CI en cours et rouge signalées
+  ---
+  duration_ms: 8179.196666
+  type: 'test'
+  ...
+# Subtest: file.sh : une PR sans CI que GitHub dit en conflit se lit prête (en conflit), vers develop comme vers un sujet ; état inconnu : prête (sans CI)
+ok 2 - file.sh : une PR sans CI que GitHub dit en conflit se lit prête (en conflit), vers develop comme vers un sujet ; état inconnu : prête (sans CI)
+  ---
+  duration_ms: 2699.900534
+  type: 'test'
+  ...
+# Subtest: file.sh : une PR renvoyée autant de fois que le plafond est montrée humain, et ni --next ni --rouges ne la rendent
+ok 3 - file.sh : une PR renvoyée autant de fois que le plafond est montrée humain, et ni --next ni --rouges ne la rendent
+  ---
+  duration_ms: 2367.005215
+  type: 'test'
+  ...
+# Subtest: file.sh : PR dont le ticket déclare un sujet livré (carte Phase: fini) classée directe, sans écriture
+not ok 4 - file.sh : PR dont le ticket déclare un sujet livré (carte Phase: fini) classée directe, sans écriture
+  ---
+  duration_ms: 765.875259
+  type: 'test'
+  location: '<dossier du contre-relecteur>/mut/skills/chaine/fusionner/scripts/fusionner.test.mjs:698:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    The input did not match the regular expression /^80\tprête\t.*\tsujet livré : lot$/m. Input:
+    
+    '80\tprête\t\t\n'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual: |-
+    80	prête		
+    
+  operator: 'match'
+  stack: |-
+    TestContext.<anonymous> (file://<dossier du contre-relecteur>/mut/skills/chaine/fusionner/scripts/fusionner.test.mjs:702:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    node:internal/test_runner/test:981:31
+    node:internal/process/task_queues:149:7
+    AsyncResource.runInAsyncScope (node:async_hooks:214:14)
+    AsyncResource.runMicrotask (node:internal/process/task_queues:146:8)
+  ...
+# Subtest: file.sh : sujet en cours (Phase: 4-code) — PR toujours reciblée sur le sujet
+not ok 5 - file.sh : sujet en cours (Phase: 4-code) — PR toujours reciblée sur le sujet
+  ---
+  duration_ms: 743.0805
+  type: 'test'
+  location: '<dossier du contre-relecteur>/mut/skills/chaine/fusionner/scripts/fusionner.test.mjs:716:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    The input did not match the regular expression /^80\tvers sujet\/lot\t/m. Input:
+    
+    '80\tprête\t\t\n'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual: |-
+    80	prête		
+    
+  operator: 'match'
+  stack: |-
+    TestContext.<anonymous> (file://<dossier du contre-relecteur>/mut/skills/chaine/fusionner/scripts/fusionner.test.mjs:720:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    node:internal/test_runner/test:981:31
+    node:internal/process/task_queues:149:7
+    AsyncResource.runInAsyncScope (node:async_hooks:214:14)
+    AsyncResource.runMicrotask (node:internal/process/task_queues:146:8)
+  ...
+# Subtest: file.sh : la sous-PR, la PR à recibler et la livraison d'un sujet gelé sont gelées, et ni --next ni --rouges ne les rendent
+not ok 6 - file.sh : la sous-PR, la PR à recibler et la livraison d'un sujet gelé sont gelées, et ni --next ni --rouges ne les rendent
+  ---
+  duration_ms: 1628.413295
+  type: 'test'
+  location: '<dossier du contre-relecteur>/mut/skills/chaine/fusionner/scripts/fusionner.test.mjs:1019:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly deep-equal:
+    + actual - expected
+    
+      {
+        '90': 'gelée',
+    +   '91': 'prête',
+    +   '92': 'prête',
+    -   '91': 'gelée',
+    -   '92': 'gelée',
+        '93': 'prête',
+    +   '94': 'prête'
+    -   '94': 'gelée'
+      }
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    90: 'gelée'
+    91: 'gelée'
+    92: 'gelée'
+    93: 'prête'
+    94: 'gelée'
+  actual:
+    90: 'gelée'
+    91: 'prête'
+    92: 'prête'
+    93: 'prête'
+    94: 'prête'
+  operator: 'deepStrictEqual'
+  stack: |-
+    TestContext.<anonymous> (file://<dossier du contre-relecteur>/mut/skills/chaine/fusionner/scripts/fusionner.test.mjs:1022:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+  ...
+# Subtest: file.sh : le gel prime sur « humain » (renvoi_de non appelé), qui revient au dégel
+ok 7 - file.sh : le gel prime sur « humain » (renvoi_de non appelé), qui revient au dégel
+  ---
+  duration_ms: 3251.005452
+  type: 'test'
+  ...
+# Subtest: file.sh : GitHub illisible, sortie 5 et rien sur la sortie standard
+ok 8 - file.sh : GitHub illisible, sortie 5 et rien sur la sortie standard
+  ---
+  duration_ms: 3040.642877
+  type: 'test'
+  ...
+# Subtest: boucle.sh : la ligne PAUSE donne la route et le code HTTP de la cause (file.sh et passer.sh)
+ok 9 - boucle.sh : la ligne PAUSE donne la route et le code HTTP de la cause (file.sh et passer.sh)
+  ---
+  duration_ms: 6752.969257
+  type: 'test'
+  ...
+1..9
+# tests 9
+# suites 0
+# pass 6
+# fail 3
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 29829.141089

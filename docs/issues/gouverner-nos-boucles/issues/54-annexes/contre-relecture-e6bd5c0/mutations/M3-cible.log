@@ -1,0 +1,75 @@
+TAP version 13
+# warning: You appear to have cloned an empty repository.
+# warning: You appear to have cloned an empty repository.
+# warning: You appear to have cloned an empty repository.
+# warning: You appear to have cloned an empty repository.
+# warning: You appear to have cloned an empty repository.
+# warning: You appear to have cloned an empty repository.
+# warning: You appear to have cloned an empty repository.
+# warning: You appear to have cloned an empty repository.
+# warning: You appear to have cloned an empty repository.
+# warning: You appear to have cloned an empty repository.
+# warning: You appear to have cloned an empty repository.
+# Subtest: boucle.sh : une PR à l'état humain n'est ni passée, ni relancée, ni renvoyée
+ok 1 - boucle.sh : une PR à l'état humain n'est ni passée, ni relancée, ni renvoyée
+  ---
+  duration_ms: 2338.742528
+  type: 'test'
+  ...
+# Subtest: boucle.sh : une sous-PR sans CI dont la tête est gardée est renvoyée avec le motif de relancer, rien n'est poussé
+ok 2 - boucle.sh : une sous-PR sans CI dont la tête est gardée est renvoyée avec le motif de relancer, rien n'est poussé
+  ---
+  duration_ms: 3613.053087
+  type: 'test'
+  ...
+# Subtest: boucle.sh : sous-PR et PR vers develop à titre trop long renvoyées avec le motif ; brouillon sauté sans écriture
+ok 3 - boucle.sh : sous-PR et PR vers develop à titre trop long renvoyées avec le motif ; brouillon sauté sans écriture
+  ---
+  duration_ms: 6159.210172
+  type: 'test'
+  ...
+# Subtest: boucle.sh : sujet livré — hors-sujet posé, ni branche créée ni reciblage
+ok 4 - boucle.sh : sujet livré — hors-sujet posé, ni branche créée ni reciblage
+  ---
+  duration_ms: 5138.771964
+  type: 'test'
+  ...
+# Subtest: boucle.sh : une sous-PR d'un sujet gelé n'est ni fusionnée, ni renvoyée, ni reciblée
+ok 5 - boucle.sh : une sous-PR d'un sujet gelé n'est ni fusionnée, ni renvoyée, ni reciblée
+  ---
+  duration_ms: 9059.593597
+  type: 'test'
+  ...
+# Subtest: boucle.sh : la ligne PAUSE donne la route et le code HTTP de la cause (file.sh et passer.sh)
+ok 6 - boucle.sh : la ligne PAUSE donne la route et le code HTTP de la cause (file.sh et passer.sh)
+  ---
+  duration_ms: 7085.992488
+  type: 'test'
+  ...
+# Subtest: boucle.sh : une sortie 3 se classe sur la dernière ligne de passer.sh, jamais sur la sortie du hook relayée
+ok 7 - boucle.sh : une sortie 3 se classe sur la dernière ligne de passer.sh, jamais sur la sortie du hook relayée
+  ---
+  duration_ms: 13590.53555
+  type: 'test'
+  ...
+# Subtest: boucle.sh, veille.sh, passer.sh et sujet.sh fusionner refusent de démarrer sans CAPITAINE_ID, sortie 64, rien d'écrit sur GitHub ; boucle.sh --arreter marche sans lui ; relancer à la main ne pose aucun verrou
+ok 8 - boucle.sh, veille.sh, passer.sh et sujet.sh fusionner refusent de démarrer sans CAPITAINE_ID, sortie 64, rien d'écrit sur GitHub ; boucle.sh --arreter marche sans lui ; relancer à la main ne pose aucun verrou
+  ---
+  duration_ms: 1182.095733
+  type: 'test'
+  ...
+# Subtest: boucle.sh : une PR que passer.sh rend en 7 (en passage chez un autre capitaine) est sautée sans renvoi ni arrêt, la suivante passe
+ok 9 - boucle.sh : une PR que passer.sh rend en 7 (en passage chez un autre capitaine) est sautée sans renvoi ni arrêt, la suivante passe
+  ---
+  duration_ms: 12092.323563
+  type: 'test'
+  ...
+1..9
+# tests 9
+# suites 0
+# pass 9
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 61213.794643
