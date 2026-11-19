@@ -1,6 +1,6 @@
 # La règle d'ascendance avant chaque fusion : aucune PR n'entre sans avoir été testée sur l'état de la branche où elle entre
 
-Status: ready-for-agent
+Status: Fait — PR #115
 Type: task
 Modèle: opus — une fonction partagée à concevoir (quatre verdicts), deux scripts de fusion à restructurer en boucle (mise à jour, CI, contrôle), un faux GitHub à rendre fidèle avant tout banc, et des textes de sécurité du capitaine à tenir justes ; une erreur fait entrer du code non testé dans tous les projets.
 Blocked by: —

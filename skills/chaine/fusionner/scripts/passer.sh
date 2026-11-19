@@ -57,8 +57,10 @@
 #      propriétaire : CODEOWNERS et « Require review from Code Owners » sur la base, vu à l'éligibilité ou au refus
 #      de fusion de GitHub, qui fait poser un commentaire marqué ; ou qui attend un humain : fusion déjà refusée
 #      ainsi, aucune revue APPROVED plus récente que ce commentaire) : la boucle la saute sans renvoi et la reprend
-#      au tour suivant ; ou en passage chez un autre capitaine (son commentaire marqué `<!-- capitaine:passage <id> -->`,
-#      sans fin, de moins de 90 minutes, posé avant le sien), sautée sans renvoi ; ou qui n'est plus éligible une fois le
+#      au tour suivant ; ou en passage chez un autre capitaine (son commentaire marqué `<!-- capitaine:passage <id> <epoch> -->`,
+#      sans fin, daté de moins de 90 minutes, le plus tard de son epoch, s'il n'est pas en avance de plus de 5 minutes
+#      sur le sien, et de sa création ; jamais de gel : FILTRE_PASSAGE de github.sh ; posé avant le sien), sautée
+#      sans renvoi ; ou qui n'est plus éligible une fois le
 #      verrou pris (relue : fermée, label retiré, sommet changé)
 #   3  fusion refusée faute d'approbation d'un propriétaire et commentaire d'attente impossible à poser : la boucle
 #      s'arrête (ARRÊT, sortie 3), sans le repasser → lire la cause (droits du compte du capitaine), relancer
@@ -79,15 +81,16 @@
 #   12 fusionnée, mais arbre du squash ≠ arbre testé (ou squash introuvable) : commentaire marqué
 #      `<!-- arbre-different-capitaine -->` sur la PR, `à-fusionner` retiré, ligne `ARBRE DIFFÉRENT` ; la boucle
 #      s'arrête (ARRÊT), le capitaine le dit à son lanceur, un humain examine (`git diff <sommet testé> <squash>`)
-#   3  verrou du passage illisible (commentaire non posé, commentaires illisibles) : la boucle s'arrête, jamais un
-#      passage sans verrou → lire la cause, relancer
+#   3  verrou du passage non posé (écriture du commentaire refusée) : la boucle s'arrête, jamais un passage sans
+#      verrou → lire la cause, relancer ; commentaires illisibles à sa relecture : 5 (panne, pause puis reprise)
 #   64 CAPITAINE_ID absent ou mal formé (l'id de la session du capitaine, `^[A-Za-z0-9_-]{1,100}$`), aucune lecture
 #      GitHub → le donner en préfixe de la commande (skill fusionner, « Mise en place »)
 #   69 jq absent du poste → l'installer (sudo apt install jq), relancer
 #
 # Verrou du passage (plusieurs capitaines sur la même file) : une fois la PR jugée éligible, `prendre_passage` (github.sh)
 # pose sur elle le commentaire « Passage du capitaine <id> », relit la PR, et une seule trappe EXIT le termine à toute
-# sortie, TERM compris (`boucle.sh --arreter`) ; il est rafraîchi au début de chaque tour (étapes 2 à 5 bis).
+# sortie, TERM et INT compris (`boucle.sh --arreter`), même pendant sa pose ou sa relecture ; il est rafraîchi au
+# début de chaque tour (étapes 2 à 5 bis).
 # Usage : bash scripts/chaine/passer.sh <numéro>
 # =============================================================================
 set -euo pipefail
@@ -197,18 +200,22 @@ motif=$(liens_sur_index "$origine" origin/develop) || sortir 4 "$motif"
 motif=$(node "$PASSER_OUTILS/migrations-ordre.mjs" origin/develop "$origine") || sortir 4 "$motif"
 
 # ── Verrou du passage ───────────────────────────────────────────────────────
-# Après l'éligibilité, avant toute écriture : un autre capitaine qui tient la PR la fait sauter sans renvoi (7) ;
-# un verrou illisible arrête (3), jamais un passage sans lui.
+# Après l'éligibilité, avant toute écriture : un autre capitaine qui tient la PR la fait sauter sans renvoi (7) ; une
+# lecture refusée est une panne (5) ; un commentaire non posé arrête (3) ; jamais un passage sans verrou.
+# Une seule trappe, posée AVANT le verrou : un TERM ou un INT pendant sa pose ou sa relecture le termine (finir_passage
+# ne fait rien sans commentaire ; un signal pendant le POST, réponse perdue, lui fait relire les commentaires et terminer
+# les marques vivantes du capitaine). Une seconde trappe remplacerait la première. TERM et INT passent par `exit`, donc
+# par elle.
+trap 'finir_passage; rm -f "${refus_fusion:-}" "${reponse_fusion:-}"' EXIT
+trap 'exit 143' TERM
+trap 'exit 130' INT
 prendre_passage "$N" && statut=0 || statut=$?
 case $statut in
   0) ;;
   1) sortir 7 "$PASSAGE_MOTIF" ;;
-  *) sortir 3 "verrou du passage illisible (cause ci-dessus) : la PR ne passe pas sans lui" ;;
+  3) sortir 5 "GitHub illisible à la lecture du verrou du passage (cause ci-dessus) : pause, puis reprise" ;;
+  *) sortir 3 "verrou du passage non posé (cause ci-dessus) : la PR ne passe pas sans lui" ;;
 esac
-# Une seule trappe : une seconde remplacerait la première. TERM et INT passent par `exit`, donc par elle.
-trap 'finir_passage; rm -f "${refus_fusion:-}" "${reponse_fusion:-}"' EXIT
-trap 'exit 143' TERM
-trap 'exit 130' INT
 # L'éligibilité a été lue avant le verrou : un autre capitaine a pu finir son passage entre les deux (PR fusionnée,
 # label retiré, renvoyée). La PR relue doit l'être encore, au même sommet.
 pr_relu=$(pr_json "$N") || sortir 5 "GitHub illisible à la relecture de la PR, verrou pris (cause ci-dessus) : pause, puis reprise"

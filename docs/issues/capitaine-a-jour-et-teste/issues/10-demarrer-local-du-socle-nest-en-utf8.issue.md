@@ -1,6 +1,6 @@
 # Le gabarit `demarrer-local.sh` du socle Nest crée sa base en UTF8, et refuse une base qui ne l'est pas
 
-Status: ready-for-agent
+Status: Fait — PR #116
 Type: défaut
 Modèle: sonnet — un script shell court à corriger sur un modèle existant (le correctif d'Iroki, à réécrire), et un banc à faux binaires sur le patron de `scripts/pre-commit-socle.test.mjs` ; aucune conception.
 Blocked by: —

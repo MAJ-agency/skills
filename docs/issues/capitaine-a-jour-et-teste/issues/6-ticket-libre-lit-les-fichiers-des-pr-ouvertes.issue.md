@@ -1,6 +1,6 @@
 # `ticket-libre.mjs` lit les fichiers des PR ouvertes, et oublie les branches des PR fermées
 
-Status: ready-for-agent
+Status: Fait — PR #118
 Type: défaut
 Modèle: sonnet — un module de lecture à injection (le modèle est `next-id-branches.mjs`), trois règles écrites ici, et des bancs sur le dépôt jouet du skill `tickets` avec un faux `gh` écrit par le test.
 Blocked by: — (aucun fichier du capitaine ; mais `.claude-plugin/plugin.json` et `NOTES-DE-VERSION.md` changent à chaque ticket, et `tickets/references/scripts/docs/depot-jouet.mjs` et `TABLE-RACINE.md` sont aussi touchés par le ticket 13 : partir d'`origin/main` au moment du lancement, jamais en même temps que le ticket 13)
