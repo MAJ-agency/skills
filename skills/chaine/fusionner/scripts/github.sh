@@ -92,26 +92,47 @@ regenerer_index() {
   done < <(index_verifications)
   ajouter_index
 }
-# Joue une commande ; en échec, sa sortie part sur stderr, chaque ligne préfixée de la commande.
+# URL à identifiants (`scheme://utilisateur[:jeton]@hôte…`) masquée dans un texte lu sur l'entrée standard :
+# `scheme://***@hôte…`. Toute sortie de git ou d'un hook que les scripts du capitaine relaient (sortie d'erreur,
+# journal, commentaire de PR) passe par ici (A-42) : un jeton d'un remote ou d'un hook distant n'y paraît jamais.
+masquer_url() { sed -E 's#://[^/@[:space:]]*@#://***@#g'; }
+# Joue `git <args>`, sa sortie d'erreur passée par masquer_url, sa sortie standard telle quelle ; rend le code de git.
+git_masque() {
+  { git "$@" 2>&1 1>&3 3>&- | masquer_url >&2; return "${PIPESTATUS[0]}"; } 3>&1
+}
+# Joue une commande ; en échec, sa sortie (masquée) part sur stderr, chaque ligne préfixée de la commande.
+# SORTIE_JOUEE garde la sortie masquée de la dernière commande jouée, que `pousser` classe.
+SORTIE_JOUEE=''
 jouer_ou_dire() {
-  local l sortie
-  if ! sortie=$(sh -c "$1" 2>&1); then
-    while IFS= read -r l; do printf '[%s] %s\n' "$1" "$l" >&2; done <<<"$sortie"
-    return 1
-  fi
+  local l sortie rc=0
+  sortie=$(sh -c "$1" 2>&1) || rc=$?
+  SORTIE_JOUEE=$(printf '%s\n' "$sortie" | masquer_url)
+  [ "$rc" != 0 ] || return 0
+  while IFS= read -r l; do printf '[%s] %s\n' "$1" "$l" >&2; done <<<"$SORTIE_JOUEE"
+  return 1
 }
 # Pousse `<refspec>` sous les hooks git, jamais en les sautant. `<branche>` est la branche distante
-# visée, `<avant>` son sommet lu avant le push (vide pour une branche à créer). Sorties : 0 poussé ;
-# 5 la branche a bougé (ou le distant ne répond pas) ; 3 refusé par le hook pre-push (ou le distant),
-# sa sortie sur stderr, chaque ligne préfixée de la commande.
+# visée, `<avant>` son sommet lu avant le push (vide pour une branche à créer). La sortie de ce push
+# part sur stderr, masquée, chaque ligne préfixée de la commande. Sorties :
+#   0 poussé ;
+#   5 la branche a bougé, ou le distant ne répond pas à la relecture ;
+#   3 refusé par le hook pre-push : la trace de husky 9 (`husky - pre-push script failed (code N)`, écrite par
+#     `.husky/_/h`, en début de ligne : jamais un « remote: » du distant) est dans la sortie de CE push ; la PR
+#     est à corriger ;
+#   4 tout autre refus (règle du dépôt, droit, proxy, coupure, hook sans husky) : échec fermé, jamais un renvoi.
 pousser() {
   local refspec=$1 branche=$2 avant=${3:-} apres
   jouer_ou_dire "git push -q origin $(printf '%q' "$refspec")" && return 0
   apres=$(git ls-remote origin "refs/heads/$branche" 2>/dev/null) || return 5
   apres=${apres%%[[:space:]]*}
   [ "$apres" = "$avant" ] || return 5
-  echo "push refusé par le hook pre-push (ou le distant) : sortie ci-dessus ; corriger, jamais en sautant le hook" >&2
-  return 3
+  # Une fin de ligne CRLF (hook écrit sous Windows) reste une trace.
+  if grep -qE $'^husky - pre-push script failed \\(code [0-9]+\\)\r?$' <<<"$SORTIE_JOUEE"; then
+    echo "push refusé par le hook pre-push : sortie ci-dessus ; corriger, jamais en sautant le hook" >&2
+    return 3
+  fi
+  echo "push refusé par le distant (ou échec sans trace du hook pre-push) : sortie ci-dessus" >&2
+  return 4
 }
 # Après un `git merge` ou un `git commit` refusé (hook, fichier non suivi écrasé) : rend l'arbre comme
 # avant la fusion — `git merge --abort` si elle est en cours, sinon `git reset -q --hard`.
@@ -224,9 +245,54 @@ ajouter_index() {
 # Chaîne encodée pour un segment d'URL (nom de label, nom de branche).
 uri() { jq -rn --arg s "$1" '$s | @uri'; }
 
+# Lecture GitHub qui décide d'un état ou d'une fusion (A-21) : la seule. `gh api [--paginate] <route>`, sa sortie
+# standard, sa sortie d'erreur et son code gardés. Refus, sortie 5, motif `GitHub illisible (<route>) : <cause>` sur la
+# sortie d'erreur, rien sur la sortie standard : un code non nul, une sortie vide, une sortie qui n'est pas du JSON (un
+# `--paginate` concatène des pages : chacune doit se lire), ou une page qui est un objet portant `message` au premier
+# niveau (le corps d'erreur de GitHub ; un tableau d'objets n'est jamais refusé pour un champ imbriqué). Un 502 lu comme
+# une file vide, « aucun check exigé » ou « CI non déclenchée » : c'est ce que ce refus empêche.
+# `--absent <défaut>` : un refus dont la sortie d'erreur porte `HTTP 404` rend `<défaut>`, code 0 (protection absente).
+# Rend la réponse brute ; le filtre jq reste chez l'appelant. Chaque appelant teste le code et sort en 5 lui-même :
+# jamais `set -e`, perdu sous `||`, dans un `if` ou une substitution.
+lire_github() {
+  local route=${1:?route} paginer=() absent='' avec_absent=0 sortie erreur rc=0 cause=''
+  shift
+  while [ $# -gt 0 ]; do
+    case $1 in
+      --paginate) paginer=(--paginate) ;;
+      --absent) avec_absent=1; absent=${2-}; shift ;;
+      *) echo "lire_github : option inconnue $1" >&2; return 64 ;;
+    esac
+    shift
+  done
+  erreur=$(mktemp)
+  sortie=$(gh api ${paginer[@]+"${paginer[@]}"} "$route" 2>"$erreur" </dev/null) || rc=$?
+  if [ "$rc" != 0 ]; then
+    # `gh: <message> (HTTP 404)`, ou `gh: HTTP 404` quand le corps n'a pas de message (cli/cli, pkg/cmd/api/api.go).
+    if [ "$avec_absent" = 1 ] && grep -qE 'HTTP 404([^0-9]|$)' "$erreur"; then
+      rm -f "$erreur"
+      printf '%s\n' "$absent"
+      return 0
+    fi
+    cause="gh en échec (code $rc) : $(grep . "$erreur" | tail -n 1 | masquer_url)"
+  elif [ -z "${sortie//[[:space:]]/}" ]; then
+    cause='réponse vide'
+  elif ! jq -s . >/dev/null 2>&1 <<<"$sortie"; then
+    cause='réponse qui n'"'"'est pas du JSON'
+  elif [ "$(jq -s 'any(.[]; type == "object" and has("message"))' <<<"$sortie")" != false ]; then
+    cause="corps d'erreur de GitHub : $(jq -rs 'map(select(type == "object" and has("message")) | .message | tostring) | first' <<<"$sortie" | masquer_url)"
+  fi
+  rm -f "$erreur"
+  if [ -n "$cause" ]; then
+    printf 'GitHub illisible (%s) : %s\n' "$route" "$cause" >&2
+    return 5
+  fi
+  printf '%s\n' "$sortie"
+}
+
 # PR en JSON REST (`state` open/closed, `draft`, `labels[].name`, `base.ref`, `head.ref`,
-# `head.sha`, `title`).
-pr_json() { gh api "$DEPOT/pulls/$1"; }
+# `head.sha`, `title`). Illisible : sortie 5.
+pr_json() { lire_github "$DEPOT/pulls/$1"; }
 
 # Tête de PR gardée : `develop`, `main`, ou la branche par défaut du dépôt (2e argument, lu dans le
 # JSON de la PR : `base.repo.default_branch`). Le capitaine pousse la mise à jour d'une PR sur sa tête :
@@ -234,8 +300,14 @@ pr_json() { gh api "$DEPOT/pulls/$1"; }
 # (`sujet/<nom>` vers develop) n'en est pas une : la mettre à jour avec develop est le chemin prévu.
 tete_gardee() { [ "$1" = develop ] || [ "$1" = main ] || { [ -n "${2:-}" ] && [ "$1" = "$2" ]; }; }
 
-# Sommet (dernier commit) de la branche d'une PR.
-pr_sommet() { gh api "$DEPOT/pulls/$1" --jq .head.sha; }
+# Sommet (dernier commit) de la branche d'une PR. Illisible, ou pas un sha : sortie 5.
+pr_sommet() {
+  local j s
+  j=$(pr_json "$1") || return 5
+  s=$(jq -r '.head.sha // ""' <<<"$j" 2>/dev/null) || s=''
+  [[ "$s" =~ ^[0-9a-f]{40}$ ]] || { echo "GitHub illisible ($DEPOT/pulls/$1) : sommet absent de la réponse" >&2; return 5; }
+  printf '%s\n' "$s"
+}
 
 # Checks d'un commit, une ligne « nom<TAB>état » par check, états au format de
 # `statusCheckRollup` : conclusion en majuscules (SUCCESS, FAILURE, SKIPPED…) pour un check
@@ -245,21 +317,33 @@ pr_sommet() { gh api "$DEPOT/pulls/$1" --jq .head.sha; }
 # laissent deux du même nom, et l'API ne remplace que le relancement d'un même run. Cas vécu :
 # #700, checks annulés lus à la place de leurs successeurs verts.
 checks_commit() {
-  gh api --paginate "$DEPOT/commits/$1/check-runs?per_page=100" | jq -rs '[.[].check_runs[]]
+  local runs statuts lignes
+  runs=$(lire_github "$DEPOT/commits/$1/check-runs?per_page=100" --paginate) || return 5
+  statuts=$(lire_github "$DEPOT/commits/$1/status") || return 5
+  # Une forme inattendue (champ absent) est une panne aussi : rien n'est écrit avant que tout soit lu.
+  lignes=$(jq -rs '[.[].check_runs[]]
     | group_by(.name) | map(max_by(.id))[]
-    | "\(.name)\t\(if .status == "completed" then (.conclusion // "" | ascii_upcase) else (.status | ascii_upcase) end)"'
-  gh api "$DEPOT/commits/$1/status" --jq '.statuses[] | "\(.context)\t\(.state | ascii_upcase)"'
+    | "\(.name)\t\(if .status == "completed" then (.conclusion // "" | ascii_upcase) else (.status | ascii_upcase) end)"' <<<"$runs" 2>/dev/null &&
+    jq -r '.statuses[] | "\(.context)\t\(.state | ascii_upcase)"' <<<"$statuts" 2>/dev/null) ||
+    { echo "GitHub illisible ($DEPOT/commits/$1) : checks d'une forme inattendue" >&2; return 5; }
+  [ -z "$lignes" ] || printf '%s\n' "$lignes"
 }
 
 # Checks exigés sur develop, en tableau JSON. D'abord les rulesets (`rules/branches/develop` :
-# ce que GitHub recommande, et ce que pose admin.md), sinon l'ancienne protection de branche,
-# qui répond 404 « Branch not protected » quand seul un ruleset protège la branche.
+# ce que GitHub recommande, et ce que pose admin.md), qui doivent rendre un tableau ; s'ils n'exigent rien,
+# l'ancienne protection de branche, qui répond 404 « Branch not protected » quand seul un ruleset protège la
+# branche : une réponse, pas une panne. Toute autre erreur, ou une forme inattendue : sortie 5, jamais « aucun
+# check exigé ».
 checks_exiges() {
-  local regles
-  regles=$(gh api "$DEPOT/rules/branches/develop" --jq \
-    '[.[] | select(.type == "required_status_checks") | .parameters.required_status_checks[].context] | unique' 2>/dev/null || echo '[]')
-  if [ "$(jq 'length' <<<"$regles")" -gt 0 ]; then printf '%s\n' "$regles"; return; fi
-  gh api "$DEPOT/branches/develop/protection/required_status_checks" --jq '.contexts' 2>/dev/null || echo '[]'
+  local regles protection
+  regles=$(lire_github "$DEPOT/rules/branches/develop") || return 5
+  regles=$(jq -c 'if type == "array" then [.[] | select(.type == "required_status_checks") | .parameters.required_status_checks[].context] | unique
+    else error("pas un tableau") end' <<<"$regles" 2>/dev/null) ||
+    { echo "GitHub illisible ($DEPOT/rules/branches/develop) : réponse qui n'est pas un tableau de règles" >&2; return 5; }
+  if [ "$regles" != '[]' ]; then printf '%s\n' "$regles"; return 0; fi
+  protection=$(lire_github "$DEPOT/branches/develop/protection/required_status_checks" --absent '{"contexts":[]}') || return 5
+  jq -c 'if type == "object" and ((.contexts // []) | type) == "array" then (.contexts // []) else error("forme inattendue") end' <<<"$protection" 2>/dev/null ||
+    { echo "GitHub illisible ($DEPOT/branches/develop/protection/required_status_checks) : forme inattendue" >&2; return 5; }
 }
 
 # Attend la CI exigée de `<sommet>`, la tête de la PR `<pr>` : le sommet sur la PR (5 min au plus), un check exigé
@@ -267,23 +351,27 @@ checks_exiges() {
 # sommet ne montrent que ceux déjà créés, et un check de synthèse (qui attend toute une matrice) n'apparaît qu'en fin
 # de matrice. Partagée par passer.sh et sujet.sh. Retours : 0 vert ; 1 rouge, la liste sur la sortie standard, une
 # ligne « ␣␣nom : ÉTAT » par check ; 2 aucun check exigé apparu au bout de 5 min (CI non déclenchée) ; 3 encore en
-# attente après 60 min.
+# attente après 60 min ; 5 GitHub illisible pendant l'attente (lire_github, motif sur la sortie d'erreur) : jamais lu
+# comme « encore en attente » ni comme « aucun check ».
 attendre_ci() {
-  local n=$1 sommet=$2 requis etats rouges attente nom c vu
+  local n=$1 sommet=$2 requis etats rouges attente nom c vu s
   for _ in $(seq 1 60); do
-    [ "$(pr_sommet "$n")" = "$sommet" ] && break
+    s=$(pr_sommet "$n") || return 5
+    [ "$s" = "$sommet" ] && break
     sleep 5
   done
-  requis=$(checks_exiges | jq -r '.[]')
+  requis=$(checks_exiges) || return 5
+  requis=$(jq -r '.[]' <<<"$requis")
   vu=0
   for _ in $(seq 1 30); do
+    etats=$(checks_commit "$sommet") || return 5
     # Pas de `grep -q` : sous pipefail, `gh` tué par SIGPIPE ferait échouer le test.
-    [ "$(checks_commit "$sommet" | awk -F '\t' -v r="$requis" 'BEGIN { n = split(r, t, "\n"); for (i = 1; i <= n; i++) if (t[i] != "") e[t[i]] = 1 } ($1 in e) { v = 1 } END { print v + 0 }')" = 1 ] && { vu=1; break; }
+    [ "$(printf '%s\n' "$etats" | awk -F '\t' -v r="$requis" 'BEGIN { n = split(r, t, "\n"); for (i = 1; i <= n; i++) if (t[i] != "") e[t[i]] = 1 } ($1 in e) { v = 1 } END { print v + 0 }')" = 1 ] && { vu=1; break; }
     sleep 10
   done
   [ "$vu" = 1 ] || return 2
   for _ in $(seq 1 120); do # 60 min au plus
-    etats=$(checks_commit "$sommet")
+    etats=$(checks_commit "$sommet") || return 5
     attente=0
     rouges=''
     while IFS= read -r nom; do

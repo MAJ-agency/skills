@@ -2,7 +2,7 @@
 
 La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque projet par `poser` : une version publiée ne change rien chez un projet qui ne les repose pas. Chaque note dit ce qui change, puis ce qu'un projet fait pour en profiter.
 
-## 7.22.0 — 2026-11-18
+## 7.25.0 — 2026-11-19
 
 ### Ce qui change
 
@@ -17,6 +17,45 @@ Une garde d'agent qui ne peut pas charger `regles.mjs` ou `entree.mjs` (ou qui l
 5. `node --test scripts/agent/*.test.mjs scripts/chaine/revue-exigee.test.mjs` : vert.
 
 **Iroki**, hors du plugin : ses consignes « Jamais d'amend » (#634) et « s'écrit d'un seul coup » (#653, `docs/agents/chaine-de-production.md:124`, `:126`) sont couvertes par ce gabarit et par la garde ; sa garde lit encore les commandes par expressions, et la repose de `regles.mjs` suppose son passage à la lecture par jetons (ticket 17).
+
+## 7.24.0 — 2026-11-18
+
+### Ce qui change
+
+Une panne de GitHub (réponse vide, non JSON, ou corps d'erreur) n'est plus lue comme un état : le script qui lisait sort en 5, et la boucle du capitaine se met en pause (`PAUSE`) puis reprend, sans jamais s'arrêter sur 5 ; une file illisible n'est plus une file vide. Un push refusé par le pre-push (trace de husky 9 `husky - pre-push script failed`) renvoie la PR à sa session avec la sortie du hook ; un refus sans cette trace (règle du dépôt, droit, coupure) arrête la boucle (`passer.sh`) ou sort en 11 (`sujet.sh`), sans renvoi. Un commentaire d'attente d'un propriétaire impossible à poser arrête la boucle en sortie 3, de même qu'une fusion refusée durablement par GitHub (droit du compte, règle du dépôt, méthode de fusion interdite) ; une fusion refusée parce que la branche ou develop a bougé (règle d'ascendance rejouée avant d'arrêter), ou par une panne, reste en 5. La ligne `PAUSE` nomme la route et le code HTTP de la cause (un `(HTTP 401)` de jeton expiré se voit au journal). Toute sortie de git ou de hook relayée par les scripts du capitaine (journal, commentaire de PR) masque les URL à identifiants (`masquer_url`, `git_masque`).
+
+### Ce qu'un projet fait pour en profiter
+
+1. Mettre à jour le plugin : `claude plugin marketplace update maj`, puis `claude plugin update maj-skills@maj`, puis redémarrer Claude Code (session cloud : `lancement.md` § « La mise à niveau »).
+2. Reposer les scripts, dans une PR du projet : `/maj-skills:fusionner poser`, puis `/maj-skills:sujet poser` (`github.sh`, `passer.sh`, `boucle.sh`, `file.sh`, `sujet.sh`, `faux-gh.mjs` et leurs bancs). Aucune clé de contrat.
+3. Vérifier que `.husky/pre-push` est lancé par husky 9 (`.husky/_/h`, posé par `pnpm install`) : sans la trace de husky, un refus du hook se lit comme un refus du distant et arrête le capitaine.
+4. Relancer le capitaine une fois cette PR entrée dans develop : `bash scripts/chaine/boucle.sh --arreter`, nouvelle copie dans `<scratchpad>/outils`, puis `veille.sh` relancée.
+
+**Iroki**, hors du plugin : ses scripts portent leur propre correctif de A4 (#633 : `pousser` en 3 ou 4 par `DERNIERE_SORTIE`, `scripts/chaine/github.sh:127-155` ; le renvoi de `boucle.sh:540-545` ; `passer.sh:254-262` ; le banc `boucle-pre-push-refuse.test.mjs`), que la repose remplace. Son masquage des URL à identifiants (`masquer_url`, `git_masque`, `SPEC_ALL_SOC-4.52`, `github.sh:207-214`) est désormais celui du plugin : la repose le garde ; rejouer son banc « SPEC_ALL_SOC-4.52 » contre le `github.sh` du plugin avant de retirer le sien.
+
+## 7.23.0 — 2026-11-18
+
+### Ce qui change
+
+Deux modules neufs à côté des scripts du capitaine, avec leurs bancs : `verdict.mjs`, le lecteur du verdict d'une relecture indépendante, et `decision-relecteur.mjs`, la décision du Relecteur, une fonction pure. Rien ne les appelle encore : ils préparent la relecture indépendante. L'étape 0 de `fusionner` (`poser`) les nomme, pour qu'un projet qui repose ne reçoive pas leurs bancs sans eux.
+
+### Ce qu'un projet fait pour en profiter
+
+Rien d'obligatoire : aucun script déjà posé ne change, aucun capitaine à relancer. Un projet qui rejoue `/maj-skills:fusionner poser` reçoit en plus les deux modules et leurs bancs sous `scripts/chaine/`.
+
+## 7.22.0 — 2026-11-18
+
+### Ce qui change
+
+`next-id.mjs` fait un `fetch`, puis lit l'arbre de travail, `origin/develop`, tous les `origin/sujet/*` et `origin/docs/*`, et les fichiers des PR ouvertes (`scripts/docs/pr-ouvertes.mjs`, la lecture de `ticket-libre.mjs`). Il numérote aussi les tickets d'une spec : `node scripts/docs/next-id.mjs SPEC_ALL_SOC-4` rend le prochain index sur deux chiffres. Sans `gh`, le numéro sort, et la sortie d'erreur dit comment lire les PR ouvertes par l'outil GitHub MCP.
+
+### Ce qu'un projet fait pour en profiter
+
+1. Mettre à jour le plugin : `claude plugin marketplace update maj`, puis `claude plugin update maj-skills@maj`, puis redémarrer Claude Code (session cloud : `lancement.md` § « La mise à niveau »).
+2. Reposer, dans une PR du projet : `/maj-skills:socle-monorepo` pour `scripts/docs/next-id.mjs`, `next-id-branches.mjs` et `next-id.test.mjs` (la ligne `references/scripts/docs/*` de `TABLE-RACINE.md` ; `pr-ouvertes.mjs` est arrivé avec la version du ticket 6). Aucune clé de contrat. Reposer aussi les documents que la PR change : `docs/methode/nomenclature.md` (socle-monorepo), et, de socle-chaine-de-production, `docs/agents/pieges.md` et le fragment `readme-commandes.md` (le § commandes du README).
+3. Numéroter un ticket par `next-id.mjs <SPEC>`, puis le réserver aussitôt (branche et PR brouillon).
+
+**Iroki**, hors du plugin : ses deux `SPEC_ALL_SOC-4.78` et ses deux `ADR_ALL_ARC-18` se renomment chez lui ; la repose de ces scripts suffit ensuite.
 
 ## 7.21.1 — 2026-11-18
 

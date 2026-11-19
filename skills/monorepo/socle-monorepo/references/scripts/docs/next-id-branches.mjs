@@ -1,9 +1,9 @@
 /**
- * Plus grand n déjà pris sur les branches distantes `origin/sujet/*` et `origin/docs/*`, pour le type,
+ * Plus grand n déjà pris sur `origin/develop` et les branches distantes `origin/sujet/*` et `origin/docs/*`, pour le type,
  * le contexte et le trigramme que lit `numeroDe` (nom de fichier → numéro, ou `null` ; next-id.mjs).
  * Une spec écrite sur une branche de sujet ou de cadrage reste invisible de l'arbre de travail jusqu'à
- * sa fusion : deux specs ont reçu le même numéro le jour où on ne lisait que l'arbre. Sans `fetch` ;
- * une branche illisible est ignorée. `git` est injecté pour les tests.
+ * sa fusion : deux specs ont reçu le même numéro le jour où on ne lisait que l'arbre. Sans réseau : le
+ * `fetch` est celui de l'appelant (next-id.mjs) ; une branche illisible est ignorée. `git` est injecté pour les tests.
  */
 import { execFileSync } from 'node:child_process';
 
@@ -16,6 +16,7 @@ export function plusGrandSurBranches(numeroDe, git = gitReel) {
     refs = git([
       'for-each-ref',
       '--format=%(refname:short)',
+      'refs/remotes/origin/develop',
       'refs/remotes/origin/sujet',
       'refs/remotes/origin/docs',
     ])
