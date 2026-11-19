@@ -1161,6 +1161,13 @@ test("une déclaration ambiguë ne dispense pas : chemin déclaré deux fois, ou
       const V = pousser(d, "feat/a", { "apps/a.ts": "a\n" });
       estDifferent(juger(d, V, pousser(d, "feat/a", { [DB]: "1\n" })), ambigu);
     }
+    // Sur la cible seulement : V récrit la liste, où l'index n'est plus déclaré qu'une fois.
+    {
+      const d = depotJouet();
+      declarer(d, liste);
+      const V = pousser(d, "feat/a", { [LISTE]: JSON.stringify({ index: [ADR_CMD, CMD] }) });
+      estDifferent(juger(d, V, pousser(d, "feat/a", { [DB]: "1\n" })), ambigu);
+    }
     // Sur T seulement : la cible déclare l'index une fois, V récrit la liste.
     {
       const d = depotJouet();
