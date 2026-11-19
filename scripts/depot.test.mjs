@@ -1106,6 +1106,19 @@ test("la règle d'ascendance du plugin 7.16.0 : version, note de version en têt
   exiger(`${SKILLS_CHAINE}/fusionner/SKILL.md`, ["une seule sous-PR porte `à-fusionner` à la fois"]);
 });
 
+test("sujet/SKILL.md a la section Recevoir develop dans un sujet, avec son corps type", () => {
+  const skill = readFileSync(join(RACINE, `${SKILLS_CHAINE}/sujet/SKILL.md`), "utf8");
+  // Le corps type contient lui-même des titres `## ` : la section va jusqu'au titre suivant hors bloc de code.
+  const debut = skill.indexOf("\n## Recevoir develop dans un sujet\n");
+  assert.ok(debut >= 0, "sujet/SKILL.md : section « Recevoir develop dans un sujet » absente");
+  const section = skill.slice(debut).split("\n## Geler un chantier")[0];
+  assert.ok(plat(section).includes("une seule fusion"), "la section dit « une seule fusion »");
+  const bloc = section.match(/```markdown\n([\s\S]*?)```/);
+  assert.ok(bloc, "la section porte le corps type dans un bloc de code");
+  for (const titre of ["## Réception de develop", "## Retouches", "## Revue de ticket"])
+    assert.ok(bloc[1].includes(titre), `le corps type porte « ${titre} »`);
+});
+
 // Ticket 18 : un fichier que les gardes chargent s'écrit d'un seul coup ; la garde refuse l'amend, et le gabarit le
 // dit ; la ligne « /security-review : lancée » des deux gabarits de section est celle que le capitaine lit.
 test("la consigne d'écriture d'un seul coup est dans le gabarit, et le paragraphe Jamais d'amend dit que la garde le refuse", () => {
