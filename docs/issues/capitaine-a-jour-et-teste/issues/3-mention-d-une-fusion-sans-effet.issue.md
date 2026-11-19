@@ -1,6 +1,6 @@
 # La mention d'une fusion sans effet : une clé de contrat `fusionsSansEffet`, que le capitaine écrit dans ses commits de fusion
 
-Status: Fait — PR #<n>
+Status: Fait — PR #131
 Type: défaut
 Modèle: opus — une fonction partagée qui juge un diff contre une expression lue dans le contrat, branchée sur les quatre fusions jouées par les scripts du capitaine sans changer leur chemin (hooks, conflits, avance rapide), et une décision à tenir contre la lettre de la spec (Décision 3).
 Blocked by: 1 (`passer.sh`, `sujet.sh` et `github.sh` sont des fichiers chauds du ticket 1, qui restructure leurs fusions en boucle : partir de `main` après sa fusion)
