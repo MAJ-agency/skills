@@ -7,6 +7,10 @@
 # État de chaque PR :
 #   prête               base = develop, checks exigés verts sur son sommet
 #   prête (sans CI)     base = develop, aucun check sur le sommet : le passage la lancera
+#   prête (en conflit)  aucun check exigé sur le sommet, et GitHub dit la PR en conflit avec sa base (`mergeable_state`
+#                       `dirty`, lu sur la PR seule) : GitHub ne lance pas la CI d'une PR qu'il ne sait pas fusionner.
+#                       Présentée à `passer.sh` (vers develop) ou à `sujet.sh relancer` (vers un sujet), qui résolvent
+#                       un conflit d'index et renvoient tout autre conflit avec ses fichiers
 #   CI en cours         base = develop, un check exigé n'a pas encore conclu : attendue
 #   CI rouge : <checks> base = develop, un check exigé a échoué : boucle.sh relance les jobs
 #                       rouges une fois, puis renvoie la PR s'ils retombent
@@ -36,7 +40,7 @@
 #   sujet/<nom> : …     sous-PR d'une branche de sujet , mêmes états de CI que
 #                       ci-dessus (« sujet/x : prête », « sujet/x : CI rouge : … ») ; une sous-PR
 #                       prête passe en premier : squash dans le sujet (`sujet.sh fusionner`), sans
-#                       mise à jour ni E2E, quelques secondes. Sans CI : `sujet.sh relancer`.
+#                       mise à jour ni E2E, quelques secondes. Sans CI ou en conflit : `sujet.sh relancer`.
 #   vers sujet/<nom>    vise develop, mais son ticket déclare `Sujet: sujet/<nom>` : boucle.sh la
 #                       recible (`sujet.sh regrouper`), sauf label `hors-sujet`
 #   (4e colonne « sujet livré : <nom> » : le ticket déclare un sujet déjà livré ; la PR est classée
@@ -48,7 +52,7 @@
 # légère est verte.
 #
 # GitHub illisible (lire_github de github.sh : réponse vide, non JSON, corps d'erreur ou code non nul) à la lecture des
-# PR ouvertes, des checks exigés, des checks d'un sommet ou de la base d'une parente : rien sur la sortie standard (les
+# PR ouvertes, des checks exigés, des checks d'un sommet, d'une PR sans CI (`mergeable_state`) ou de la base d'une parente : rien sur la sortie standard (les
 # lignes se rassemblent, puis s'écrivent d'un coup), le motif sur la sortie d'erreur, sortie 5. Une file illisible
 # n'est jamais une file vide : boucle.sh se met en pause (PAUSE) et relit au tour suivant.
 #
@@ -124,7 +128,11 @@ while IFS="$(printf '\t')" read -r prio n sommet base brouillon bloquee hors_suj
     ci=$(printf '%s' "$etats" | jq -Rnr --argjson requis "$requis" "$ci_jq")
     case "$ci" in
       vert) echo 'prête' ;;
-      'sans CI') echo 'prête (sans CI)' ;;
+      # GitHub ne lance pas la CI d'une PR qu'il ne sait pas fusionner : `mergeable_state` (lecture de la PR, seule
+      # réponse qui le porte) dit si elle est en conflit. `null` ou `unknown` (pas encore calculé) : sans CI.
+      'sans CI')
+        etats=$(pr_json "$n") || return 5
+        if [ "$(jq -r '.mergeable_state // ""' <<<"$etats")" = dirty ]; then echo 'prête (en conflit)'; else echo 'prête (sans CI)'; fi ;;
       rouge*) echo "CI $ci" ;;
       *) echo 'CI en cours' ;;
     esac

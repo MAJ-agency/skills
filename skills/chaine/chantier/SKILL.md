@@ -109,7 +109,7 @@ Un chantier se gèle d'une ligne : `Gel:` de la fiche de la carte (non vide, gel
 
 ## 7. Phase 5 — livraison et rétro (`Phase: 5-livraison`), phase 6 — nettoyage (`Phase: 6-nettoyage`, puis `Phase: fini`)
 
-1. Tous les tickets `Fait` : le capitaine livre le sujet (`sujet.sh livrer-prets`), commit de merge vers develop. Échéance proche ou sujet « VIEUX » : proposer au produit `sujet.sh livrer <nom> "<titre>"`.
+1. Tous les tickets `Fait` : le capitaine livre le sujet (`sujet.sh livrer-prets`), commit de merge vers develop. Échéance proche ou sujet « VIEUX » : proposer au produit `sujet.sh livrer <nom> "<titre>"` ; la PR s'ouvre sans `à-fusionner`, que le conducteur pose après sa contre-revue si elle touche un chemin sensible (§ 6, point 5), sinon tout de suite.
 2. Rétro dans la carte, section `## Rétro` :
    - **Coût** : section `## Coût` (source du registre `docs/agents/couts.md`, index généré), une ligne par session (`get_session` : `external_metadata.usage.cost_usd`, `context_usage.used_tokens`, `last_served_model`) — filles du tag `chantier:<nom>` relevées à chaque fin de vague, puis capitaine et cette session-ci (rôle `conducteur`) en fin de chantier. Puis le total, le coût moyen par ticket et le rapport conducteur / filles, comparés aux repères de `chaine-de-production.md` § 6.
    - **Incidents** : chaque renvoi ou vague ratée donne une ligne de `docs/agents/pieges.md`, un critère de `revue-adversariale` ou un ticket de gate. Un incident vécu deux fois sans gate est signalé au produit.

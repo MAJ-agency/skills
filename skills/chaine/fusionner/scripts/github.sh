@@ -189,6 +189,101 @@ ascendance() {
   printf '%s\n' "$fichiers"
 }
 
+# Fusion sans effet (skill `fusionner`, « Fusion sans effet ») : un hook du projet garde un fichier (une migration
+# exigée sur `schema.prisma`, par exemple) ; quand une fusion jouée par le capitaine ne lui apporte que des lignes
+# sans effet, son commit porte la mention que le hook attend. `mentions_de_fusion <réf>`, appelée avant la fusion
+# de <réf> dans HEAD, écrit une mention par ligne sur la sortie standard. Le contrat (`fusionsSansEffet` de
+# `.claude/chaine.json`) se lit sur origin/develop, jamais dans l'arbre de travail : une PR ne s'accorde pas
+# elle-même une mention. Le diff va de HEAD à l'arbre de la fusion (`git merge-tree`, git ≥ 2.38) ; ses lignes
+# ajoutées ou retirées, lues après le premier `@@` (un en-tête se coupe par sa position, jamais par son texte),
+# doivent toutes correspondre en entier à `lignesSansEffet` (`grep -xE`). Changement réel, entrée mal formée, arbre
+# illisible : aucune mention, le motif sur la sortie d'erreur ; contrat absent, illisible ou sans la clé : rien, en
+# silence. Sortie toujours 0 : la fonction n'arrête jamais une fusion, les hooks du projet jugent le commit.
+mentions_de_fusion() {
+  local ref=${1:-} contrat nombre i motif fichier expr mention arbre='' diff lignes rc trouvees=''
+  contrat=$(git show origin/develop:.claude/chaine.json 2>/dev/null) || return 0
+  nombre=$(jq -r 'if type != "object" or (has("fusionsSansEffet") | not) then 0
+    elif (.fusionsSansEffet | type) == "array" then .fusionsSansEffet | length else "pas une liste" end' <<<"$contrat" 2>/dev/null) || return 0
+  if [ "$nombre" = "pas une liste" ]; then
+    echo "fusion sans mention : fusionsSansEffet n'est pas une liste (contrat d'origin/develop)" >&2
+    return 0
+  fi
+  for ((i = 0; i < nombre; i++)); do
+    # Le motif d'une entrée mal formée, vide pour une entrée bien formée. Un caractère de contrôle (fin de ligne
+    # comprise) n'entre ni dans un chemin, ni dans une expression (`grep -E` en ferait plusieurs), ni dans une mention.
+    motif=$(jq -r --argjson i "$i" '.fusionsSansEffet[$i] as $e
+      | def texte(f): ($e | f | type) == "string" and ($e | f) != "";
+      def controle(f): $e | f | explode | any(. < 32 or . == 127);
+      if ($e | type) != "object" then "entrée qui n'"'"'est pas un objet"
+      elif texte(.fichier) | not then "fichier manquant, vide ou non textuel"
+      elif controle(.fichier) then "fichier à caractère de contrôle"
+      elif texte(.lignesSansEffet) | not then "lignesSansEffet manquante, vide ou non textuelle"
+      elif controle(.lignesSansEffet) then "lignesSansEffet sur plusieurs lignes ou à caractère de contrôle"
+      elif texte(.mention) | not then "mention manquante, vide ou non textuelle"
+      elif controle(.mention) then "mention sur plusieurs lignes ou à caractère de contrôle"
+      elif $e.mention | startswith("Sujet:") then "mention qui commence par « Sujet: » (sujet_livre la lirait dans develop)"
+      elif $e.mention | startswith("Merge pull request") then "mention qui commence par « Merge pull request » (sujet_livre la lirait dans develop)"
+      elif $e.mention | startswith("#") then "mention qui commence par « # » (commit.cleanup=strip la retirerait)"
+      else "" end' <<<"$contrat" 2>/dev/null) || motif="entrée illisible"
+    if [ -z "$motif" ]; then
+      fichier=$(jq -r --argjson i "$i" '.fusionsSansEffet[$i].fichier' <<<"$contrat")
+      expr=$(jq -r --argjson i "$i" '.fusionsSansEffet[$i].lignesSansEffet' <<<"$contrat")
+      mention=$(jq -r --argjson i "$i" '.fusionsSansEffet[$i].mention' <<<"$contrat")
+      # L'expression se valide avant usage : `grep -E` sort en 2 sur une expression qu'il refuse.
+      grep -qE -- "$expr" </dev/null 2>/dev/null && rc=0 || rc=$?
+      [ "$rc" -le 1 ] || motif="expression refusée par grep -E"
+    fi
+    if [ -n "$motif" ]; then
+      printf 'fusionsSansEffet[%s] ignorée : %s\n' "$i" "$motif" >&2
+      continue
+    fi
+    if [ -z "$arbre" ]; then
+      # En conflit, `merge-tree` sort en 1 mais donne l'arbre : seuls les fichiers en conflit y portent des marqueurs.
+      # `|| true` : sous `pipefail`, la sortie 1 d'un conflit ferait sortir l'appelant (`set -e`) ; l'arbre se vérifie après.
+      arbre=$(git merge-tree --write-tree --no-messages HEAD "$ref" 2>/dev/null | sed -n 1p) || true
+      if ! git rev-parse -q --verify "$arbre^{tree}" >/dev/null 2>&1; then
+        echo "fusion sans mention : arbre de la fusion de « $ref » illisible (git ≥ 2.38 requis) ; les hooks du projet jugent le commit" >&2
+        return 0
+      fi
+    fi
+    if ! diff=$(git diff --no-textconv --no-ext-diff --no-color -U0 --no-renames HEAD "$arbre" -- ":(literal)$fichier" 2>/dev/null); then
+      printf 'fusion sans mention : diff de %s illisible ; les hooks du projet jugent le commit\n' "$fichier" >&2
+      continue
+    fi
+    lignes=$(sed -n '/^@@/,$p' <<<"$diff" | grep -E '^[-+]' || true)
+    [ -n "$lignes" ] || continue
+    # Sans tube : `grep -q` sort à la première ligne non conforme, et sous `pipefail` le SIGPIPE de l'écrivain
+    # ferait lire « toutes conformes » à l'appelant (passer.sh, sujet.sh).
+    lignes=$(sed 's/^.//' <<<"$lignes")
+    if grep -qvxE -- "$expr" <<<"$lignes"; then
+      printf 'fusion sans mention : %s porte un changement réel (lignes hors de lignesSansEffet) ; les hooks du projet jugent le commit\n' "$fichier" >&2
+      continue
+    fi
+    trouvees+="$mention"$'\n'
+  done
+  [ -z "$trouvees" ] || printf '%s' "$trouvees" | awk '!vu[$0]++'
+  return 0
+}
+# Fusionne <réf> dans HEAD comme `git merge -q --no-edit <réf>`, avec les mentions de `mentions_de_fusion` : le
+# message par défaut de git (`Merge remote-tracking branch '<réf>' into <branche>`, que commitlint ignore), puis une
+# mention par paragraphe. Rend le code et les sorties de `git merge`, sans rien en changer : le chemin de chaque
+# appelant (refus de hook, conflits, avance rapide) reste le sien ; en conflit, le message est dans MERGE_MSG, que
+# `git commit --no-edit` reprend. Les avis de `mentions_de_fusion` partent sur le descripteur 3 s'il est ouvert
+# (l'appelant qui capture la sortie de git l'y relie : `3>&2 2>&1`), sinon sur la sortie d'erreur.
+fusionner_avec() {
+  local ref=${1:?réf à fusionner} mentions branche m
+  local -a messages
+  if { true >&3; } 2>/dev/null; then mentions=$(mentions_de_fusion "$ref" 2>&3); else mentions=$(mentions_de_fusion "$ref"); fi
+  if [ -z "$mentions" ]; then
+    git merge -q --no-edit "$ref"
+    return
+  fi
+  branche=$(git symbolic-ref -q --short HEAD) || branche=HEAD
+  messages=(-m "Merge remote-tracking branch '$ref' into $branche")
+  while IFS= read -r m; do messages+=(-m "$m"); done <<<"$mentions"
+  git merge -q --no-edit "${messages[@]}" "$ref"
+}
+
 # Ceux qui ont une `commande`, de même : régénérés, donc écrasés à chaque mise à jour. Un index sans
 # commande (chaîne nue de la liste) n'est jamais régénéré : `sujet.sh` (PR de mise à jour) et `passer.sh`
 # (livraison intermédiaire) ne le dispensent pas sur sa seule place dans la liste.
@@ -202,6 +297,59 @@ index_regeneres_regex() {
 index_regeneres_motifs_regex() {
   index_json | jq -r '.index[] | objects | select((.commande // "") != "" and (.chemin | contains("*"))) | .chemin' |
     jq -Rrs 'split("\n") | map(select(. != "") | gsub("\\."; "\\.") | gsub("\\*"; "[^/]+")) | "^(" + join("|") + ")$"'
+}
+# Livraison intermédiaire (`livraison/<nom>-<AAAAMMJJ-HHMM>`) : `livraison_intermediaire <nom> <sommet>`, sortie 0 si
+# la tête est prouvée livraison du sujet, 1 sinon. Une seule règle pour passer.sh (après son `git fetch` du sujet) et
+# `sujet.sh est-livraison` (le check `pr-titre` du socle, ticket 16) : sur les refs déjà là (origin/develop,
+# origin/sujet/<nom>), sans fetch ni appel GitHub ; origin/sujet/<nom> absent, 1.
+# Le nom de branche seul ne suffit pas (il dispense de la revue) : `sujet/<nom>` doit exister, et la
+# livraison n'apporter qu'un sommet du sujet fusionné avec develop. La contenance du sommet dans le
+# sujet ne suffit pas non plus : l'étape 4 pousse sur la livraison sa fusion avec develop, qu'aucun
+# sujet ne contient, et au passage suivant (checks rouges relancés, sortie 5) la livraison passait
+# pour une PR ordinaire (revue exigée, puis squash). Critère : un ancêtre commun de la tête et du
+# sujet, hors de develop, dont la fusion avec le develop que la tête contient donne l'arbre de la
+# tête, aux index générés près. Sinon la PR repasse par le chemin ordinaire (revue exigée, squash).
+livraison_intermediaire() {
+  local nom=$1 origine=$2 d s attendu ecart hors regeneres motifs generes
+  git rev-parse -q --verify "refs/remotes/origin/sujet/$nom^{commit}" >/dev/null || return 1
+  git rev-parse -q --verify "$origine^{commit}" >/dev/null || return 1
+  # Liste des index générés calculée ici, jamais héritée d'un appelant ; illisible : pas une livraison.
+  generes=$(index_generes_regex) && [ -n "$generes" ] || return 1
+  d=$(git merge-base "$origine" origin/develop) || return 1
+  for s in $(git merge-base --all "$origine" "origin/sujet/$nom" 2>/dev/null); do
+    ! git merge-base --is-ancestor "$s" origin/develop || continue
+    # Arbre de la fusion, même en conflit (sortie 1) : un conflit hors index y laisse ses marqueurs,
+    # donc un écart avec la tête.
+    attendu=$(git merge-tree --write-tree --no-messages "$s" "$d" 2>/dev/null | sed -n 1p) || true
+    [ -n "$attendu" ] || continue
+    # Un `git diff` en échec n'est jamais une dispense : on ne conclut que sur un diff lu.
+    # Sans détection des renommages : une suppression ne se cache pas derrière un index généré ajouté.
+    ecart=$(git -c core.quotePath=false diff --no-renames --name-only "$attendu" "$origine") || continue
+    # Un index qui a une `commande` est régénéré : dispensé. Un index sans commande ne l'est que si son
+    # blob au sommet est celui d'origin/develop (la version de develop prise au conflit par la mise à
+    # jour) ; absent d'un côté, il diffère et va à la revue.
+    # Un index déclaré par motif, même avec une `commande`, ne l'est que sur un contenu déjà connu (celui de la
+    # fusion recalculée ou d'origin/develop) : sa régénération ne retire pas un fichier en trop sous le motif.
+    # Liste illisible (fonction absente, jq en échec) : pas une livraison, la revue est exigée.
+    regeneres=$(index_regeneres_regex) && [ -n "$regeneres" ] || return 1
+    motifs=$(index_regeneres_motifs_regex) && [ -n "$motifs" ] || return 1
+    hors=$(printf '%s\n' "$ecart" | sed '/^$/d' | while IFS= read -r f; do
+      if ! grep -qE "$generes" <<<"$f"; then
+        printf '%s\n' "$f"
+      elif grep -qE "$motifs" <<<"$f"; then
+        a=$(git rev-parse -q --verify "$origine:$f" 2>/dev/null) || a=''
+        b=$(git rev-parse -q --verify "$attendu:$f" 2>/dev/null) || b=''
+        c=$(git rev-parse -q --verify "origin/develop:$f" 2>/dev/null) || c=''
+        [ -n "$a" ] && { [ "$a" = "$b" ] || [ "$a" = "$c" ]; } || printf '%s\n' "$f"
+      elif ! grep -qE "$regeneres" <<<"$f"; then
+        a=$(git rev-parse -q --verify "$origine:$f" 2>/dev/null) || a=''
+        b=$(git rev-parse -q --verify "origin/develop:$f" 2>/dev/null) || b=''
+        [ -n "$a" ] && [ "$a" = "$b" ] || printf '%s\n' "$f"
+      fi
+    done)
+    [ -n "$hors" ] || return 0
+  done
+  return 1
 }
 # Les dossiers d'un index généré (`docs/adr` pour `docs/adr/README.md`, motif compris), en expression régulière.
 index_dossiers_regex() {

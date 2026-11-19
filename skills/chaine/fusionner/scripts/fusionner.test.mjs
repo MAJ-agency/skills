@@ -340,6 +340,17 @@ test("renvoyer.sh : pose fusion-bloquée, retire à-fusionner et commente la cau
   assert.doesNotMatch(commentaire.champs.body, /attend un humain/);
 });
 
+test("renvoyer.sh : le refus « plusieurs fusions » d'une PR de mise à jour dit de la refaire dans une nouvelle PR, pas de remettre le label", () => {
+  const d = depotJouet();
+  d.branche("maj/lot", "origin/develop", { "docs/r.md": "r\n" });
+  d.github({ pulls: [pr(41, "maj/lot")] });
+  const r = d.lancer(script("renvoyer.sh"), "41", "#41, PR de mise à jour : une seule fusion de develop dans sujet/lot, jamais une seconde fusion. Refaire la réception");
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  const commentaire = d.journal().find((e) => e.route === "issues/41/comments");
+  assert.match(commentaire.champs.body, /ouvrir une nouvelle PR vers le sujet et fermer celle-ci/);
+  assert.doesNotMatch(commentaire.champs.body, /remettre `à-fusionner`/);
+});
+
 const MARQUE = "<!-- renvoi-capitaine -->";
 const renvoi = `**Renvoyée par le capitaine de fusion** : x.\n\n${MARQUE}\n`;
 
@@ -375,6 +386,42 @@ test("renvoyer.sh : au troisième renvoi, le commentaire dit que la PR attend un
   assert.equal(rm.status, 0, rm.stdout + rm.stderr);
   assert.match(rm.stderr, /valeur par défaut 3/);
   assert.match(rm.stdout, /attend un humain/);
+});
+
+// GitHub ne lance pas la CI d'une PR qu'il ne sait pas fusionner : sans CI et `mergeable_state` « dirty », elle est
+// « prête (en conflit) » ; état pas encore calculé (`null`, `unknown`) ou PR propre : « prête (sans CI) ».
+test("file.sh : une PR sans CI que GitHub dit en conflit se lit prête (en conflit), vers develop comme vers un sujet ; état inconnu : prête (sans CI)", () => {
+  const d = depotJouet();
+  d.branche("sujet/lot", "origin/develop", { "docs/s.md": "lot\n" });
+  d.branche("feat/s", "origin/develop", { "docs/s.md": "sous\n" });
+  for (const b of ["feat/a", "feat/b", "feat/c", "feat/d"]) d.branche(b, "origin/develop", { "docs/d.md": `${b}\n` });
+  d.branche("develop", "origin/develop", { "docs/d.md": "develop\n" });
+  d.branche("feat/propre", "origin/develop", { "docs/p.md": "p\n" });
+  d.git("switch", "-q", "--detach", "origin/develop");
+  d.github({
+    exiges: ["qualite"],
+    checks: { "#95": { qualite: "SUCCESS" } },
+    pulls: [
+      pr(90, "feat/a"),
+      pr(91, "feat/propre"),
+      pr(92, "feat/b", { mergeableState: null }),
+      pr(93, "feat/c", { mergeableState: "unknown" }),
+      pr(94, "feat/s", { base: "sujet/lot", title: "feat(demo): s" }),
+      pr(95, "feat/d"),
+    ],
+  });
+  const etats = Object.fromEntries(
+    d.lancer(script("file.sh")).stdout.trim().split("\n").map((l) => l.split("\t").slice(0, 2)),
+  );
+  assert.deepEqual(etats, {
+    90: "prête (en conflit)",
+    91: "prête (sans CI)",
+    92: "prête (sans CI)",
+    93: "prête (sans CI)",
+    94: "sujet/lot : prête (en conflit)",
+    95: "prête",
+  });
+  assert.deepEqual(d.journal(), [], "file.sh ne fait que lire");
 });
 
 test("file.sh : une PR renvoyée autant de fois que le plafond est montrée humain, et ni --next ni --rouges ne la rendent", () => {
@@ -1660,6 +1707,39 @@ function cibleQuiBouge(deplacements) {
   return { d, origine, vers };
 }
 
+// Contre-relecture (M1) : develop rejoint pendant la CI un commit en conflit mixte (code et index généré) ; le contrôle
+// d'ascendance d'avant le squash ne nomme que le fichier hors index.
+test("passer.sh : conflit mixte avec develop après la CI, seuls les fichiers hors index générés sont listés", () => {
+  const d = depotJouet();
+  d.ecrire(`${ADR}/ADR_ALL_ARC-1-a.md`, "# 1\n");
+  d.ecrire(`${ADR}/README.md`, index("ADR_ALL_ARC-1-a.md"));
+  d.commit("docs: adr 1");
+  d.git("push", "-q", "origin", "HEAD:develop");
+  d.git("fetch", "-q", "origin");
+  d.branche("docs/m", "origin/develop", {
+    "docs/m.md": "pr\n",
+    [`${ADR}/ADR_ALL_ARC-2-b.md`]: "# 2\n",
+    [`${ADR}/README.md`]: index("ADR_ALL_ARC-1-a.md", "ADR_ALL_ARC-2-b.md"),
+  });
+  const vers = d.branche("ailleurs", "origin/develop", {
+    "docs/m.md": "develop\n",
+    [`${ADR}/ADR_ALL_ARC-3-c.md`]: "# 3\n",
+    [`${ADR}/README.md`]: index("ADR_ALL_ARC-1-a.md", "ADR_ALL_ARC-3-c.md"),
+  });
+  d.git("switch", "-q", "--detach", "origin/develop");
+  d.github({
+    exiges: ["qualite"],
+    checks: { "*": { [PERIMETRE]: ["IN_PROGRESS", "SUCCESS"], qualite: ["IN_PROGRESS", "SUCCESS"] } },
+    pendantCi: [{ lectures: 2, branche: "develop", vers }],
+    pulls: [pr(41, "docs/m", { title: "docs(adr): ADR 2" })],
+  });
+  const r = d.lancer(script("passer.sh"), "41");
+  assert.equal(r.status, 2, r.stdout + r.stderr);
+  assert.match(r.stdout, /conflit avec develop hors index générés :\n {2}docs\/m\.md\n?/);
+  assert.doesNotMatch(r.stdout, /^ {2}docs\/adr\/README\.md$/m);
+  assert.equal(fusionsDe(d, 41).length, 0, "aucun PUT");
+});
+
 test("cible qui bouge pendant la CI : mise à jour reprise, deux fois au plus", () => {
   const { d, origine, vers } = cibleQuiBouge(1);
   const r = d.lancer(script("passer.sh"), "40");
@@ -2129,4 +2209,80 @@ test("passer.sh : refus de fusion 405, develop avancé puis illisible à la rele
   const r = d.lancer(script("passer.sh"), "33");
   assert.equal(r.status, 5, r.stdout + r.stderr);
   assert.match(r.stdout, /develop illisible à la relecture/);
+});
+
+// ── Fusion sans effet (ticket 3 de capitaine-a-jour-et-teste, A-8) : un `commit-msg` de banc, comme celui de `fedora`,
+// refuse un commit qui touche le schéma Prisma sans migration ni `[sans-migration:` dans son message. Les commits de
+// fixture se font avant la pose des hooks. ─────────────────────────────────────────────────────────────────────────
+const SCHEMA = "prisma/schema.prisma";
+const MENTION = "[sans-migration: commentaire seul, apporté par une mise à jour du capitaine]";
+const CONTRAT = { fusionsSansEffet: [{ fichier: SCHEMA, lignesSansEffet: "^[[:space:]]*(//.*)?$", mention: MENTION }] };
+const BASE_SCHEMA = "model A {\n  id Int\n}\n";
+const MIGRATION_PRISMA = /commit-msg prisma jouet : migration ou \[sans-migration: <raison>\] exigée/;
+function hookPrisma(d) {
+  const hook = join(d.racine, "hooks", "commit-msg");
+  const corps = readFileSync(hook, "utf8").replace(
+    "#!/bin/sh\n",
+    `#!/bin/sh
+f=$(git diff --cached --name-only)
+if printf '%s\\n' "$f" | grep -qx '${SCHEMA}' && ! printf '%s\\n' "$f" | grep -q '^prisma/migrations/' && ! grep -qF '[sans-migration:' "$1"; then
+  echo "commit-msg prisma jouet : migration ou [sans-migration: <raison>] exigée" >&2; exit 1
+fi
+`,
+  );
+  writeFileSync(hook, corps);
+}
+// develop porte le schéma (et le contrat, sauf `contrat: null`) ; #32 en part, puis develop reçoit `develop`.
+function schemaJouet(develop, contrat = CONTRAT) {
+  const d = depotJouet();
+  d.ecrire(SCHEMA, BASE_SCHEMA);
+  if (contrat !== null) d.ecrire(".claude/chaine.json", JSON.stringify(contrat));
+  d.commit("chore: schéma et contrat");
+  d.git("push", "-q", "origin", "HEAD:develop");
+  d.git("fetch", "-q", "origin");
+  d.branche("feat/s", "origin/develop", { "s.md": "s\n" });
+  d.branche("develop", "origin/develop", develop, "docs(db): commentaire du schéma [sans-migration: commentaire]");
+  d.git("switch", "-q", "--detach", "origin/develop");
+  d.github({
+    exiges: ["qualite"],
+    checks: { "*": { [PERIMETRE]: "SUCCESS", qualite: "SUCCESS" } },
+    pulls: [pr(32, "feat/s")],
+  });
+  hooks(d);
+  hookPrisma(d);
+  return d;
+}
+const fusionDeLaPr = (d) => {
+  d.git("fetch", "-q", "origin");
+  return d.git("log", "-1", "--format=%B", "origin/feat/s");
+};
+
+test("passer.sh : develop n'apporte qu'un commentaire au schéma, la fusion porte la mention du contrat et passe le commit-msg", () => {
+  const d = schemaJouet({ [SCHEMA]: `// note\n${BASE_SCHEMA}` });
+  const r = d.lancer(script("passer.sh"), "32");
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout + r.stderr, /FUSIONNÉE/);
+  assert.equal(fusionDeLaPr(d), `Merge remote-tracking branch 'origin/develop' into capitaine/32\n\n${MENTION}`);
+});
+
+test("passer.sh : sans fusionsSansEffet, la même fusion est refusée par le hook comme avant", () => {
+  const d = schemaJouet({ [SCHEMA]: `// note\n${BASE_SCHEMA}` }, null);
+  const avant = distant(d);
+  const r = d.lancer(script("passer.sh"), "32");
+  assert.equal(r.status, 3, r.stdout + r.stderr);
+  assert.match(r.stderr, MIGRATION_PRISMA);
+  sansFusion(d);
+  assert.equal(d.git("status", "--porcelain"), "");
+  assert.equal(distant(d), avant);
+});
+
+test("passer.sh : un changement réel du schéma, venu avec sa migration, entre sans mention, et le capitaine le dit", () => {
+  const d = schemaJouet({
+    [SCHEMA]: `${BASE_SCHEMA}model B {\n  id Int\n}\n`,
+    "prisma/migrations/1_b/migration.sql": "CREATE TABLE b ();\n",
+  });
+  const r = d.lancer(script("passer.sh"), "32");
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stderr, /fusion sans mention : prisma\/schema\.prisma porte un changement réel/);
+  assert.doesNotMatch(fusionDeLaPr(d), /sans-migration/);
 });

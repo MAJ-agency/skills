@@ -2,17 +2,134 @@
 
 La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque projet par `poser` : une version publiée ne change rien chez un projet qui ne les repose pas. Chaque note dit ce qui change, puis ce qu'un projet fait pour en profiter.
 
-## 7.25.0 — 2026-11-19
+## 7.30.0 — 2026-11-19
 
 ### Ce qui change
 
-`fusionner` porte un script neuf et son banc, `scripts/meme-contenu.sh` et `scripts/meme-contenu.test.mjs`. Le calcul dit si deux sommets d'une PR, celui d'un verdict de relecture et celui qu'on juge, ne sont séparés que par des fusions de la cible et des commits d'index générés : `bash scripts/chaine/meme-contenu.sh <V> <T> <B>`, sorties 0 « même », 20 « différent », 21 « illisible » (69 quand un outil manque). Seul un index à `commande`, de chemin littéral, déclaré tel sur la cible et au sommet jugé, est dispensé ; un index sans commande ou déclaré par motif se juge comme tout fichier. Une fusion dont le conflit porte sur autre chose qu'un tel index n'est jamais « même » : le capitaine ne résout aucun conflit de code. Il demande **git ≥ 2.41** (`--attr-source`), bash ≥ 4, `jq`, `mktemp` et `rm`, et un dossier temporaire où écrire ; il ne lit pas le réseau et n'écrit rien dans le dépôt. Rien ne l'appelle encore : il prépare la relecture indépendante.
+`fusionner` porte un script neuf et son banc, `scripts/meme-contenu.sh` et `scripts/meme-contenu.test.mjs`. Le calcul dit si deux sommets d'une PR, celui d'un verdict de relecture et celui qu'on juge, ne sont séparés que par des fusions de la cible et des commits d'index générés : `bash scripts/chaine/meme-contenu.sh <V> <T> <B>`, sorties 0 « même », 20 « différent », 21 « illisible » (69 quand un outil manque). Seul un index à `commande`, de chemin littéral, déclaré tel sur la cible et au sommet jugé, est dispensé ; un index sans commande, déclaré par motif, déclaré plus d'une fois ou couvert aussi par un motif se juge comme tout fichier, et le fichier de la liste des index toujours. Une fusion dont le conflit porte sur autre chose qu'un tel index n'est jamais « même » : le capitaine ne résout aucun conflit de code. Il demande **git ≥ 2.41** (`--attr-source`), bash ≥ 4, `jq`, `mktemp` et `rm`, et un dossier temporaire où écrire ; il ne lit pas le réseau et n'écrit rien dans le dépôt. Rien ne l'appelle encore : il prépare la relecture indépendante.
 
 ### Ce qu'un projet fait pour en profiter
 
 Mettre à jour le plugin ; rien d'autre aujourd'hui : aucun script de la boucle ne change, le capitaine ne se relance pas. Le script et son banc arrivent dans `scripts/chaine/` à la prochaine fois que le projet rejoue `/maj-skills:fusionner poser`.
 
 À prévoir pour la suite : **un poste de capitaine ou de Relecteur dont le git est plus ancien que 2.41 rendra « illisible » (sortie 69) à chaque appel**. Relever `git --version` sur ces postes avant que le capitaine et le Relecteur n'appellent ce calcul. De même, **dans un dépôt superficiel** (le clone d'une session cloud, profondeur 50 par défaut), le calcul rend « illisible » et sa raison dit le remède, `git fetch --unshallow origin` : il n'approfondit rien lui-même, c'est à qui l'appelle de le faire une fois avant.
+
+## 7.29.1 — 2026-11-19
+
+### Ce qui change
+
+Le capitaine d'un dépôt sans la chaîne (`architecte/references/lancement.md`, bloc « Procédure : ») renvoie une PR en retard sur la branche par défaut (`mergeable_state` `behind`) au lieu de la mettre à jour : commentaire `à-fusionner retiré par le capitaine : en retard sur <branche par défaut> : …`, label retiré, et le renvoi compte dans le plafond de trois. La garde « mise à jour signée par GitHub » (lecture du sommet par `get_commit`) disparaît : le serveur GitHub MCP d'une session cloud ne rend ni les parents ni `verification`, le capitaine ne pouvait pas la prouver et renvoyait toute PR mise à jour par GitHub (PR 111, 2026-11-18). Un sommet qui n'est pas celui de l'ordre est renvoyé, sans exception ; le capitaine n'appelle plus jamais la mise à jour de branche. Les gardes d'agent du socle ne changent pas.
+
+### Ce qu'un projet fait pour en profiter
+
+1. Mettre à jour le plugin : `claude plugin marketplace update maj`, puis `claude plugin update maj-skills@maj`, puis redémarrer Claude Code (session cloud : `lancement.md` § « La mise à niveau »).
+2. Un capitaine sans la chaîne déjà lancé garde l'ancienne procédure jusqu'à sa relance : le relancer avec le prompt de `lancement.md`.
+3. Une session qui reçoit le renvoi « en retard » fusionne elle-même la branche par défaut dans sa branche (commit de merge, jamais de rebase), pousse, attend la CI, puis repose le label et le commentaire au nouveau sommet.
+
+## 7.29.0 — 2026-11-19
+
+### Ce qui change
+
+Clé de contrat facultative `fusionsSansEffet` (`.claude/chaine.json`) : pour chaque fichier qu'un hook du projet garde, l'expression des lignes sans effet et la mention à écrire. Quand une fusion jouée par le capitaine (mise à jour d'une PR avec develop, d'un sujet avec develop, d'une sous-PR avec son sujet) n'apporte à ce fichier que de telles lignes, son commit de fusion porte la mention, et le hook du projet le laisse passer. Un changement réel n'a pas de mention : le capitaine le dit, et le hook juge comme avant.
+
+### Ce qu'un projet fait pour en profiter
+
+1. Mettre à jour le plugin : `claude plugin marketplace update maj`, puis `claude plugin update maj-skills@maj`, puis redémarrer Claude Code (session cloud : `lancement.md` § « La mise à niveau »).
+2. Reposer les scripts, dans une PR du projet : `/maj-skills:fusionner poser`, puis `/maj-skills:sujet poser`.
+3. Si un hook du projet exige une mention sur un fichier, ajouter la clé à `.claude/chaine.json`, dans la même PR (le capitaine la lit sur develop). Pour un projet Prisma dont le `commit-msg` exige une migration ou `[sans-migration: <raison>]` :
+
+   ```json
+   "fusionsSansEffet": [
+     {
+       "fichier": "prisma/schema.prisma",
+       "lignesSansEffet": "^[[:space:]]*(//.*)?$",
+       "mention": "[sans-migration: commentaire seul, apporté par une mise à jour du capitaine]"
+     }
+   ]
+   ```
+
+   Le chemin du schéma est celui du projet ; l'expression est celle de `grep -E` (POSIX étendue : `[[:space:]]`, jamais `\s`), et chaque ligne ajoutée ou retirée doit lui correspondre en entier.
+4. Relancer le capitaine une fois cette PR entrée dans develop : la boucle prend les scripts de develop au tour suivant ; la veille tourne sur une copie : `bash scripts/chaine/boucle.sh --arreter`, nouvelle copie dans `<scratchpad>/outils`, puis `veille.sh` relancée (skill `fusionner` § « Boucle »).
+
+**Iroki** : son `.husky/commit-msg` n'exige aucune mention de migration ; rien à ajouter au contrat. Reposer `passer.sh`, `sujet.sh` et `github.sh` remplace ses versions, qui ont divergé (`github.sh` de 549 lignes) : la repose est celle de 7.16.0, cette version n'en ajoute pas.
+
+**Fedora** (où le défaut a été vécu) : ajouter à `.claude/chaine.json` l'entrée de l'étape 3, avec le chemin de son schéma. Son hook `sans-migration` doit lire **tout** le message de commit : la mention est au deuxième paragraphe, après la ligne `Merge remote-tracking branch '…' into …` de git ; un hook qui ne lit que la première ligne ne la voit pas.
+
+Une session qui reçoit develop dans un sujet (PR de mise à jour, après un `rafraichir` refusé) fusionne par `bash -c '. scripts/chaine/github.sh && fusionner_avec origin/develop'` au lieu de `git merge origin/develop` : sa fusion porte la même mention (skill `sujet`, « Recevoir develop dans un sujet »).
+
+## 7.28.0 — 2026-11-19
+
+### Ce qui change
+
+Le socle de la chaîne pose un check `PR titre` (`.github/workflows/pr-titre.yml`, `scripts/github/pr-titre.mjs`), non exigé : à l'ouverture d'une PR vers `develop` ou un sujet, à chaque retouche de son titre ou de son corps et à chaque push, il montre ce que le capitaine refusera (sujet du squash trop long, commitlint pour une sous-PR, section de revue absente, ligne `/security-review` absente sur un chemin sensible, titre de code sur de la documentation seule). Il juge avec les fonctions du capitaine (`revue-exigee.mjs`, `sujet.sh a-juger`, `sujet.sh est-livraison`) : une PR de réception de `develop` dans un sujet se reconnaît à sa forme et se juge sur sa résolution et ses retouches ; une tête `livraison/…` n'est dispensée de revue que sur la preuve du capitaine, jamais sur son nom.
+
+### Ce qu'un projet fait pour en profiter
+
+1. Mettre à jour le plugin : `claude plugin marketplace update maj`, puis `claude plugin update maj-skills@maj`, puis redémarrer Claude Code (session cloud : `lancement.md` § « La mise à niveau »).
+2. Dans une PR du projet : `/maj-skills:fusionner poser` et `/maj-skills:sujet poser` (`revue-exigee.mjs`, `github.sh`, `passer.sh`, `sujet.sh` et leurs bancs), puis, de `/maj-skills:socle-chaine-de-production`, les étapes 4 ter (`scripts/github/pr-titre.mjs` et son banc) et 6 (`.github/workflows/pr-titre.yml`). `.github/workflows/**` et `scripts/github/**` sont des chemins sensibles : contre-revue et `/security-review`. Aucune clé de contrat.
+3. Ne pas ajouter `PR titre` aux checks exigés de `develop` : le capitaine reste le juge.
+4. Relancer le capitaine une fois cette PR entrée dans develop (`passer.sh` et `github.sh` changent, sans changer de comportement) : `bash scripts/chaine/boucle.sh --arreter`, nouvelle copie dans `<scratchpad>/outils`, puis `veille.sh` relancée.
+
+**Iroki**, hors du plugin : son `scripts/ci/pr-titre.mjs` et son `.github/workflows/pr-titre.yml` (#628, et sa voie de réception, #539) sont à remplacer par ceux du socle ; sa voie `chore/<nom>-recoit-develop`, reconnue par le nom de branche, n'existe pas dans le plugin, qui reconnaît une PR de réception à sa forme (une seule fusion de `develop`, son premier commit, puis des retouches). Ses PR de réception qui n'ont pas cette forme seront refusées par le check comme par le capitaine du plugin.
+
+## 7.27.0 — 2026-11-19
+
+### Ce qui change
+
+Une PR sans CI que GitHub dit en conflit se lit « prête (en conflit) » dans la file du capitaine, au lieu de « prête (sans CI) ». Une sous-PR dans cet état passe par `sujet.sh relancer`, qui lit désormais la règle d'ascendance avant toute fusion : un conflit limité aux index générés est mis à jour (index régénérés, poussé, CI relancée), tout autre conflit est renvoyé à sa session avec la liste des fichiers hors index générés (de même pour `passer.sh`), et une mise à jour que le pre-push refuse est renvoyée avec la sortie du hook.
+
+### Ce qu'un projet fait pour en profiter
+
+1. Mettre à jour le plugin : `claude plugin marketplace update maj`, puis `claude plugin update maj-skills@maj`, puis redémarrer Claude Code (session cloud : `lancement.md` § « La mise à niveau »).
+2. Reposer les scripts, dans une PR du projet : `/maj-skills:fusionner poser`, puis `/maj-skills:sujet poser`.
+3. Relancer le capitaine une fois cette PR entrée dans develop : la boucle prend les scripts de develop au tour suivant ; la veille et son `file.sh` tournent sur une copie : `bash scripts/chaine/boucle.sh --arreter`, nouvelle copie dans `<scratchpad>/outils`, puis `veille.sh` relancée (skill `fusionner` § « Boucle »).
+
+**Iroki** : son `file.sh` signale déjà ce cas par une note au titre (« [conflit avec la base, aucun check : mise à jour par le passage] », `file.sh:18-23` et `:155`), et son `relancer` résout déjà un conflit d'index (SPEC_ALL_SOC-4.28, SPEC_ALL_SOC-4.41), avec d'autres codes (6 outillage, 8 index régénérés, 9 push refusé). Reposer remplace ses deux scripts par ceux du plugin et perd ses ajouts locaux (`file.sh` diffère de 231 lignes, `sujet.sh` de 1 820) : son conducteur reporte ce changement à la main, ou repose puis reporte ses ajouts, et rejoue ses bancs propres (`file-mobile-e2e.test.mjs`, `file-ticket-titre.test.mjs`).
+
+## 7.26.1 — 2026-11-19
+
+### Ce qui change
+
+`sujet.sh` élague les refs `origin/sujet/*` d'un sujet supprimé du distant (`git fetch --prune` limité aux sujets) : `etat`, `carte`, `de`, `demarrer` et `livrer-prets` ne le lisent plus ; un fetch en échec se dit. Le refus d'une PR de mise à jour faite en plusieurs fusions donne la recette pour la refaire (fetch à refspecs explicites, qui marche dans un clone `--single-branch`), et son renvoi dit de la refaire dans une nouvelle PR, et `sujet/SKILL.md` a une section « Recevoir develop dans un sujet » (recette, corps type de la PR avec « Retouches » et « Revue de ticket »).
+
+### Ce qu'un projet fait pour en profiter
+
+1. Mettre à jour le plugin : `claude plugin marketplace update maj`, puis `claude plugin update maj-skills@maj`, puis redémarrer Claude Code (session cloud : `lancement.md` § « La mise à niveau »).
+2. Reposer les scripts, dans une PR du projet : `/maj-skills:sujet poser` (`sujet.sh`, `sujet-refs.test.mjs`), puis `/maj-skills:fusionner poser` (`boucle.sh`, `renvoyer.sh`). Aucune clé de contrat.
+3. Relancer le capitaine une fois cette PR entrée dans develop : la boucle prend `sujet.sh` de develop au tour suivant ; la veille, elle, appelle `file.sh` de sa copie : nouvelle copie dans `<scratchpad>/outils`, puis `veille.sh` relancée.
+
+**Iroki**, hors du plugin : son `sujet.sh` a divergé (voie `recevoir` et contrôle de `chore/<nom>-recoit-develop`) ; il ne repose pas `sujet.sh` du plugin, qui effacerait cette voie. Son correctif #643 (`scripts/chaine/sujet.sh:142-147`) équivaut à l'élagage ; il ne lui manque que l'avertissement d'un fetch en échec, à reporter à la main.
+
+## 7.26.0 — 2026-11-19
+
+### Ce qui change
+
+Une garde d'agent qui ne peut pas charger `regles.mjs` ou `entree.mjs` (ou qui le charge sans l'export attendu) refuse l'outil et dit comment sortir, en une ligne sans trace de Node, et toute autre erreur non rattrapée d'une garde refuse aussi, comme toute sortie autre que 0 ou 2 (jamais la sortie 1, ni le 13 d'un `await` qui ne se résout pas) : la session s'arrête et le dit à qui l'a lancée ; un humain restaure `scripts/agent/` depuis le dernier commit où les gardes se chargent (`git checkout origin/develop -- scripts/agent/` si develop est sain), jamais en contournant la garde. Les six hooks qui chargent ces modules sont couverts (`garde-commandes`, `garde-fichiers`, `garde-github`, qui refusent ; `apres-edition`, `fin-de-tour`, `demarrage`, qui disent que le hook est sauté et sortent en 0). Le gabarit `chaine-de-production.md` dit d'écrire un tel fichier d'un seul coup, par un seul geste : la copie préparée et vérifiée hors du dépôt (`node --check`, l'import qui rend chaque export de la version en place), puis `cp <copie> scripts/agent/<fichier>`. La garde refuse `git commit --amend`, sous ses abréviations (`--am`, `--ame`, `--amen`) et derrière toute option globale de git ; `git commit -m "--amend"` et `--fixup=amend:<sha>` passent ; le paragraphe « Jamais d'amend » du gabarit le dit. Le capitaine renvoie une PR qui touche un chemin sensible sans la ligne « `/security-review` : lancée » dans sa section de revue (`revue-exigee.mjs`, `motifSansSecurite` ; contrat de la base illisible : tout chemin est sensible) ; la ligne n'est lue ni dans un bloc de code, ni dans un commentaire HTML, ni recopiée du gabarit sans choisir (« | non requise » ou « / non requise » laissés, parenthèse « (chemins : …) » vide ou en `…`).
+
+### Ce qu'un projet fait pour en profiter
+
+1. Mettre à jour le plugin : `claude plugin marketplace update maj`, puis `claude plugin update maj-skills@maj`, puis redémarrer Claude Code (session cloud : `lancement.md` § « La mise à niveau »).
+2. Dans une PR du projet, recopier depuis `~/.claude/plugins/marketplaces/maj/skills/chaine/socle-chaine-de-production/references/agent/` vers `scripts/agent/` : `garde-commandes.mjs`, `garde-fichiers.mjs`, `garde-github.mjs`, `apres-edition.mjs`, `fin-de-tour.mjs`, `demarrage.mjs`, `regles.mjs`, `regles.test.mjs`, `garde-illisible.test.mjs`, **chacun d'un seul coup**, comme le dit le gabarit : la copie hors du dépôt (scratchpad), `node --check`, l'import qui rend chaque export de la version en place, puis un seul `cp` sur `scripts/agent/<fichier>`. `scripts/agent/**` est un chemin sensible : contre-revue et `/security-review`.
+3. Reposer `/maj-skills:fusionner poser` (`revue-exigee.mjs`). Toute PR du projet qui touche un chemin sensible porte désormais la ligne « `/security-review` : lancée » dans sa section de revue : le dire aux sessions en cours, et relancer le capitaine une fois la PR entrée dans develop.
+4. Recopier dans `docs/agents/pieges.md` la puce « Une garde d'agent cassée refuse tout outil » (l'ancienne conseillait `disableAllHooks`), dans `docs/agents/chaine-de-production.md` le paragraphe « Un fichier que les gardes chargent s'écrit d'un seul coup » et la dernière phrase du paragraphe « Jamais d'amend » du gabarit, et la ligne « Hooks d'agent » du fragment `claude-md-fusion.md` dans `CLAUDE.md`, si le projet les a gardées telles quelles.
+5. `node --test scripts/agent/*.test.mjs scripts/chaine/revue-exigee.test.mjs` : vert.
+
+**Iroki**, hors du plugin : ses consignes « Jamais d'amend » (#634) et « s'écrit d'un seul coup » (#653, `docs/agents/chaine-de-production.md:124`, `:126`) sont couvertes par ce gabarit et par la garde ; sa garde lit encore les commandes par expressions, et la repose de `regles.mjs` suppose son passage à la lecture par jetons (ticket 17).
+
+## 7.25.0 — 2026-11-19
+
+### Ce qui change
+
+`sujet.sh livrer` ouvre la PR de livraison sans `à-fusionner` : la session qui livre le pose après la relecture de la PR (contre-revue si elle touche un chemin sensible). `livrer-prets`, le geste du capitaine, étiquette toujours ses livraisons. Sans `gh` utilisable (session cloud), `livrer` écrit le titre et le corps dans un fichier, sort en 14 et donne les appels de l'outil GitHub MCP, avec la cause lue (`gh` absent, compte illisible, POST refusé) ; une livraison intermédiaire ne pousse pas sa branche jetable sans `gh`, et la retire si le POST est refusé. `sujet.sh demarrer` ne refuse plus un ticket dont le bloquant est fait dans un fichier long (SIGPIPE).
+
+### Ce qu'un projet fait pour en profiter
+
+1. Mettre à jour le plugin : `claude plugin marketplace update maj`, puis `claude plugin update maj-skills@maj`, puis redémarrer Claude Code (session cloud : `lancement.md` § « La mise à niveau »).
+2. Reposer les scripts, dans une PR du projet : `/maj-skills:sujet poser` (et `/maj-skills:fusionner poser` si la version précédente n'a pas été reposée).
+3. Dans la même PR, reporter dans `docs/agents/chaine-de-production.md` (§ 2, point 6) la précision du gabarit : la PR d'une livraison intermédiaire s'ouvre sans `à-fusionner`.
+4. Relancer le capitaine une fois cette PR entrée dans develop (`livrer-prets` est joué par la boucle, qui prend les scripts de develop au tour suivant ; rien à recopier pour la veille).
+
+**Iroki** : sa remontée A5 (le label posé avant la contre-revue) est corrigée ici. Son `sujet.sh` a divergé de 1 820 lignes : son `fait_sur` est déjà corrigé (`scripts/chaine/sujet.sh`, SOC-4.25), rien à reporter de ce côté ; son `livrer` porte en plus une comparaison e2e (`pas_pire_que_reference`) et les brouillons, absents du skill : reposer `sujet.sh` les ferait perdre, son conducteur reporte donc à la main le retrait du label dans `livrer`, `ETIQUETER=1` dans `livrer_prets` et la sortie 14.
 
 ## 7.24.0 — 2026-11-18
 

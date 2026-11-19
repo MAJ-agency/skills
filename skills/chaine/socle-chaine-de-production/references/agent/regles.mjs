@@ -2040,6 +2040,11 @@ const RAISON_REBASE_PARTAGE = 'rebase ou reset --hard sur une branche partagée 
 const SOUS_GARDEES = new Set(['commit', 'am', 'merge', 'rebase', 'pull', 'push', 'config', 'update-ref', 'reset']);
 /** Un mot exact qui porte un motif ou des accolades non cités. */
 const motifExact = (w) => /[*?[]/.test(w.nu ?? '') || ((w.nu ?? '').includes('{') && ((w.nu ?? '').includes(',') || (w.nu ?? '').includes('..')));
+/** Ticket 18 : un amend réécrit le sommet qu'une session a annoncé, qu'un relecteur a contre-relu ou qu'un ordre lie. */
+export const RAISON_AMEND =
+  'git commit --amend : jamais, même sur un commit pas encore poussé. Le sommet annoncé, contre-relu ou lié par « à-fusionner au sommet <sha> » doit rester dans l\'historique, et un amend poussé ne repart que par un push forcé. Une correction est un nouveau commit.';
+/** `--amend` ou l'une de ses abréviations, que git accepte (`--am`, `--ame`, `--amen`) : aucune autre option longue de `commit` ne commence par `--am`. */
+const estAmend = (long) => long.length >= 4 && '--amend'.startsWith(long.toLowerCase());
 export const RAISON_REF_DE_SUIVI =
   'une ref de suivi (refs/remotes/…) ne se fabrique pas : des scripts de la chaîne la lisent comme l\'état du distant. `git fetch origin` la met à jour.';
 
@@ -2131,7 +2136,13 @@ function lireAppel(W, i, exacte, r, { sousLue = false } = {}) {
   // d'un git que les mots exacts lisent (`sousLue` : une variante qui a retiré `"$d"` de `git -C "$d" add "$f"`),
   // ce n'est pas une sous-commande : la lecture exacte en juge.
   if (aExpansion(ws.vue) || motif(ws)) {
-    if (!sousLue) r.hooks = true;
+    if (!sousLue) {
+      r.hooks = true;
+      // Ticket 18 : une sous-commande illisible suivie de `--amend` (`git $(echo commit) --amend`) est lue comme un
+      // amend, avant `--` ; les valeurs d'options ne se lisent pas ici, la prudence l'emporte.
+      const fin = W.findIndex((w, k) => k > j && w.vue === '--');
+      if (W.slice(j + 1, fin < 0 ? W.length : fin).some((w) => !w.expansion && estAmend(w.vue.split('=')[0]))) r.amend = true;
+    }
     return;
   }
   const sous = ws.vue.toLowerCase();
@@ -2194,6 +2205,8 @@ function lireOptions(sous, args, { exacte, motif, libre }, r) {
         // `--no-verify` et ses abréviations : git accepte toute abréviation non ambiguë (`--no-veri` ; pour `am`, qui
         // n'a pas de `--verbose`, `--no-v` déjà). `--no-verify-signatures` n'en est pas une.
         if (long.length >= 6 && '--no-verify'.startsWith(long.toLowerCase())) r.hooks = true;
+        // Ticket 18 : `--amend` et ses abréviations réécrivent le sommet.
+        if (sous === 'commit' && estAmend(long)) r.amend = true;
         // `--exec` et ses abréviations (`--exe`, `--ex`) : git les accepte, la commande se relit.
         const exec = long.length >= 4 && '--exec'.startsWith(long);
         if (egal >= 0) {
@@ -2478,7 +2491,7 @@ const lecturesDeGit = new WeakMap();
 function lireGit(lu, commande = '') {
   let r = lecturesDeGit.get(lu);
   if (r) return r;
-  r = { hooks: false, argument: false, ref: false, push: false, rebase: false, relectures: [] };
+  r = { hooks: false, argument: false, ref: false, push: false, rebase: false, amend: false, relectures: [] };
   const exacts = [];
   const programmeGit = /(^|[/$])git$/i;
   const programmeExact = /(^|\/)git$/;
@@ -2632,6 +2645,8 @@ export const sauteLesHooks = (commande) => lireGit(lireCommande(commande), comma
 export const argumentDeGitIllisible = (commande) => lireGit(lireCommande(commande), commande).argument;
 /** Vrai si la commande fabrique une ref de suivi : `git update-ref refs/remotes/…`, `git update-ref --stdin`. */
 export const ecritUneRefDeSuivi = (commande) => lireGit(lireCommande(commande), commande).ref;
+/** Vrai si un appel de git réécrit le dernier commit : `git commit --amend`, ses abréviations, derrière toute option globale (ticket 18). */
+export const amendeUnCommit = (commande) => lireGit(lireCommande(commande), commande).amend;
 
 /**
  * Décision sur une commande shell : `{ decision: 'refuser', raison }`, ou `null`. Le hook ne demande
@@ -2691,6 +2706,9 @@ function decisionDuLecteur(lu, commande, { dependancesPrevues = () => null, bran
   // Les appels de git (ticket 17) : hooks sautés, argument illisible, ref de suivi fabriquée, puis ce que git
   // lancera comme une commande (`git rebase -x …`, `-c core.pager=…`), relu comme une commande de la session.
   const git = lireGit(lu, commande);
+  // Ticket 18 : l'amend avant les hooks, pour que `git $(echo commit) --amend` (sous-commande illisible, refusée
+  // aussi comme hooks sautés) dise l'amend ; les deux refusent, seul le message change.
+  if (git.amend) return { decision: 'refuser', raison: RAISON_AMEND };
   if (git.hooks) return { decision: 'refuser', raison: RAISON_HOOKS_GIT };
   if (git.argument) return { decision: 'refuser', raison: RAISON_ARGUMENT_ILLISIBLE };
   if (git.ref) return { decision: 'refuser', raison: RAISON_REF_DE_SUIVI };
