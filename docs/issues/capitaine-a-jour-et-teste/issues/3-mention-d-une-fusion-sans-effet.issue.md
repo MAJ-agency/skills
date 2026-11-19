@@ -2,7 +2,7 @@
 
 Status: Fait — PR #131
 Type: défaut
-Modèle: opus — une fonction partagée qui juge un diff contre une expression lue dans le contrat, branchée sur les quatre fusions jouées par les scripts du capitaine sans changer leur chemin (hooks, conflits, avance rapide), et une décision à tenir contre la lettre de la spec (Décision 3).
+Modèle: opus — une fonction partagée qui juge un diff contre une expression lue dans le contrat, branchée sur les fusions jouées par les scripts du capitaine (quatre au départ du ticket, trois sur `main` à la livraison : `## Comments`) sans changer leur chemin (hooks, conflits, avance rapide), et une décision à tenir contre la lettre de la spec (Décision 3).
 Blocked by: 1 (`passer.sh`, `sujet.sh` et `github.sh` sont des fichiers chauds du ticket 1, qui restructure leurs fusions en boucle : partir de `main` après sa fusion)
 Dépendances: — (aucune dépendance nouvelle)
 Fichiers chauds: `skills/chaine/fusionner/scripts/github.sh`, `skills/chaine/fusionner/scripts/github.test.mjs`, `skills/chaine/fusionner/scripts/passer.sh`, `skills/chaine/sujet/scripts/sujet.sh`, `skills/chaine/fusionner/scripts/fusionner.test.mjs`, `skills/chaine/fusionner/scripts/sujet-fusionner.test.mjs`, `skills/chaine/socle-chaine-de-production/references/chaine.json`, `skills/chaine/socle-chaine-de-production/references/CONTENU.md`, `skills/chaine/fusionner/SKILL.md`, `skills/chaine/fusionner/references/CONTENU.md`, `scripts/depot.test.mjs`, `.claude-plugin/plugin.json`, `NOTES-DE-VERSION.md`
@@ -208,3 +208,4 @@ Ils restent verts sans changer : `fusionner.test.mjs:1055` (conflit d'index sous
   - **Arbre de fusion illisible** (git < 2.38) : aucune mention, motif sur la sortie d'erreur, sortie 0 ; la fusion suit son chemin.
   - **Mentions identiques** de deux entrées : écrites une fois.
   - **Mineure de la relecture** : le banc de la ligne entière porte une expression sans ancre (`[[:space:]]*//.*|}`) et une ligne `model B { // x` qui ne doit pas correspondre ; la mutation « `grep -E` sans `-x` » le rend rouge.
+- 2026-11-19 — Contre-relecture de l'architecte (conforme), mineures portées : `|| true` sur l'arbre de `merge-tree` (sous `pipefail`, une fusion en conflit ailleurs faisait sortir l'appelant), avec son banc ; note de version (`github.sh` d'Iroki de 549 lignes, paragraphe **Fedora** : le hook lit tout le message) ; la recette de la PR de mise à jour d'un sujet par une session (`sujet/SKILL.md`, en-tête et sortie 4 de `sujet.sh`) fusionne par `fusionner_avec`, avec son banc ; « quatre fusions » de la ligne `Modèle:` harmonisé avec les trois de main.

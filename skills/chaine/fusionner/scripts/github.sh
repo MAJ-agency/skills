@@ -239,7 +239,8 @@ mentions_de_fusion() {
     fi
     if [ -z "$arbre" ]; then
       # En conflit, `merge-tree` sort en 1 mais donne l'arbre : seuls les fichiers en conflit y portent des marqueurs.
-      arbre=$(git merge-tree --write-tree --no-messages HEAD "$ref" 2>/dev/null | sed -n 1p)
+      # `|| true` : sous `pipefail`, la sortie 1 d'un conflit ferait sortir l'appelant (`set -e`) ; l'arbre se vérifie après.
+      arbre=$(git merge-tree --write-tree --no-messages HEAD "$ref" 2>/dev/null | sed -n 1p) || true
       if ! git rev-parse -q --verify "$arbre^{tree}" >/dev/null 2>&1; then
         echo "fusion sans mention : arbre de la fusion de « $ref » illisible (git ≥ 2.38 requis) ; les hooks du projet jugent le commit" >&2
         return 0

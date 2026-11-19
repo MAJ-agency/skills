@@ -431,6 +431,20 @@ test("mentions_de_fusion : un changement réel suivi de plus de lignes qu'un tub
   verdict(mentions(d), "", REEL);
 });
 
+test("mentions_de_fusion : la fusion en conflit sur un autre fichier donne la mention, sortie 0 sous set -euo pipefail", () => {
+  const d = depotJouet();
+  d.ecrire(SCHEMA, BASE_SCHEMA);
+  d.ecrire("docs/f.md", "0\n");
+  d.ecrire(".claude/chaine.json", JSON.stringify({ fusionsSansEffet: [ENTREE] }));
+  d.commit("chore: schéma, contrat et f");
+  d.git("push", "-q", "origin", "HEAD:develop");
+  d.git("fetch", "-q", "origin");
+  d.branche("feat/pr", "origin/develop", { "docs/f.md": "pr\n" });
+  d.branche("develop", "origin/develop", { "docs/f.md": "develop\n", [SCHEMA]: `// note\n${BASE_SCHEMA}` });
+  d.git("switch", "-q", "feat/pr");
+  verdict(mentions(d), `${MENTION}\n`, "");
+});
+
 test("mentions_de_fusion : develop ne touche pas le fichier, rien, en silence", () => {
   const d = mentionsJouet({ "docs/x.md": "x\n" });
   verdict(mentions(d), "", "");

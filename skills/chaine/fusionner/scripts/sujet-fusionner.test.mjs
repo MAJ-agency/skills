@@ -1288,3 +1288,16 @@ test("rafraichir et fusionner : la mention vaut aussi pour develop dans un sujet
   s.git("fetch", "-q", "origin");
   assert.equal(s.git("log", "-1", "--format=%B", "origin/feat/sous"), `Merge remote-tracking branch 'origin/sujet/lot' into capitaine/80\n\n${MENTION}`);
 });
+
+test("PR de mise à jour d'un sujet : la fusion de develop par une session, jouée par la recette (fusionner_avec), porte la mention et passe le commit-msg", () => {
+  const d = schemaSujetJouet();
+  d.publierChaine();
+  d.branche("sujet/lot", "origin/develop", { "docs/lot.md": "lot\n" });
+  d.branche("develop", "origin/develop", { [SCHEMA]: "// note\nmodel A {\n  id Int\n}\n" }, "docs(db): note [sans-migration: commentaire]");
+  d.git("switch", "-q", "-c", "maj/lot", "origin/sujet/lot");
+  commitMsgPrisma(d);
+  // La commande de la recette (skill sujet, « Recevoir develop dans un sujet », et en-tête de sujet.sh).
+  const r = spawnSync("bash", ["-c", ". scripts/chaine/github.sh && fusionner_avec origin/develop"], { cwd: d.travail, env: d.env, encoding: "utf8" });
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.equal(d.git("log", "-1", "--format=%B"), `Merge remote-tracking branch 'origin/develop' into maj/lot\n\n${MENTION}`);
+});

@@ -596,7 +596,10 @@ refuser_tete_gardee() {
 #                                            refspecs explicites : un clone `--single-branch` (tout clone superficiel)
 #                                            ne crée ni ne met à jour origin/sujet/<nom> sur un simple `git fetch origin develop sujet/<nom>`
 #   git switch -c maj/<nom> origin/sujet/<nom>
-#   git merge origin/develop                 sans conflit, git committe la fusion ; sinon conflit résolu, puis
+#   bash -c '. scripts/chaine/github.sh && fusionner_avec origin/develop'
+#                                            `git merge origin/develop`, avec la mention de `fusionsSansEffet` quand
+#                                            elle s'applique (le hook qui a refusé `rafraichir` refuserait la fusion nue) ;
+#                                            sans conflit, git committe la fusion ; sinon conflit résolu, puis
 #                                            `git add <fichiers résolus>` ; un index généré en conflit ne
 #                                            s'édite pas (le hook le refuse) : `git checkout --theirs -- <index>`,
 #                                            puis `git add <index>`, le capitaine le régénère
@@ -650,7 +653,7 @@ verifier_mise_a_jour() {
   mapfile -t chaine < <(git rev-list --first-parent "$sommet" "^origin/$base" ^origin/develop)
   [ "$(git rev-list --merges --count "$sommet" "^origin/$base" ^origin/develop)" = 1 ] &&
     [ "${#chaine[@]}" = "$(git rev-list --count "$sommet" "^origin/$base" ^origin/develop)" ] ||
-    sortir 4 "#$n, PR de mise à jour : une seule fusion de develop dans $base, son premier commit, puis des retouches l'une après l'autre ; jamais une seconde fusion. Refaire la réception depuis le sujet à jour, en une seule fusion : git fetch origin '+refs/heads/develop:refs/remotes/origin/develop' '+refs/heads/$base:refs/remotes/origin/$base' ; git switch -c maj/${base#sujet/}-2 origin/$base ; git merge origin/develop (conflits résolus dans cette fusion) ; retouches en commits après elle ; nouvelle PR vers $base, puis fermer celle-ci (skill sujet, « Recevoir develop dans un sujet »)"
+    sortir 4 "#$n, PR de mise à jour : une seule fusion de develop dans $base, son premier commit, puis des retouches l'une après l'autre ; jamais une seconde fusion. Refaire la réception depuis le sujet à jour, en une seule fusion : git fetch origin '+refs/heads/develop:refs/remotes/origin/develop' '+refs/heads/$base:refs/remotes/origin/$base' ; git switch -c maj/${base#sujet/}-2 origin/$base ; bash -c '. scripts/chaine/github.sh && fusionner_avec origin/develop' (conflits résolus dans cette fusion) ; retouches en commits après elle ; nouvelle PR vers $base, puis fermer celle-ci (skill sujet, « Recevoir develop dans un sujet »)"
   MAJ_M=${chaine[-1]}
   ! grep -qE '^(- )?\**Sujet ?:|^Merge pull request' <<<"$(git log -1 --format=%B "$MAJ_M")" ||
     sortir 4 "#$n, PR de mise à jour : le message de la fusion porte une ligne « Sujet: » ou « Merge pull request » : refaire la fusion avec le message de git"

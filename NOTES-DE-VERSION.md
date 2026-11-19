@@ -27,7 +27,11 @@ Clé de contrat facultative `fusionsSansEffet` (`.claude/chaine.json`) : pour ch
    Le chemin du schéma est celui du projet ; l'expression est celle de `grep -E` (POSIX étendue : `[[:space:]]`, jamais `\s`), et chaque ligne ajoutée ou retirée doit lui correspondre en entier.
 4. Relancer le capitaine une fois cette PR entrée dans develop : la boucle prend les scripts de develop au tour suivant ; la veille tourne sur une copie : `bash scripts/chaine/boucle.sh --arreter`, nouvelle copie dans `<scratchpad>/outils`, puis `veille.sh` relancée (skill `fusionner` § « Boucle »).
 
-**Iroki** : son `.husky/commit-msg` n'exige aucune mention de migration ; rien à ajouter au contrat. Reposer `passer.sh`, `sujet.sh` et `github.sh` remplace ses versions, qui ont divergé (`github.sh` de 539 lignes) : la repose est celle de 7.16.0, cette version n'en ajoute pas.
+**Iroki** : son `.husky/commit-msg` n'exige aucune mention de migration ; rien à ajouter au contrat. Reposer `passer.sh`, `sujet.sh` et `github.sh` remplace ses versions, qui ont divergé (`github.sh` de 549 lignes) : la repose est celle de 7.16.0, cette version n'en ajoute pas.
+
+**Fedora** (où le défaut a été vécu) : ajouter à `.claude/chaine.json` l'entrée de l'étape 3, avec le chemin de son schéma. Son hook `sans-migration` doit lire **tout** le message de commit : la mention est au deuxième paragraphe, après la ligne `Merge remote-tracking branch '…' into …` de git ; un hook qui ne lit que la première ligne ne la voit pas.
+
+Une session qui reçoit develop dans un sujet (PR de mise à jour, après un `rafraichir` refusé) fusionne par `bash -c '. scripts/chaine/github.sh && fusionner_avec origin/develop'` au lieu de `git merge origin/develop` : sa fusion porte la même mention (skill `sujet`, « Recevoir develop dans un sujet »).
 
 ## 7.27.0 — 2026-11-19
 
