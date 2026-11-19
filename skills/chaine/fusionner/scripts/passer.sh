@@ -133,53 +133,9 @@ git_masque fetch -q origin develop "$tete"
 ! attend_proprietaire "$pr" || sortir 7 "$MOTIF_PROPRIETAIRE"
 origine=$(git rev-parse "origin/$tete")
 
-# Livraison de sujet : tête `sujet/<nom>`, ou livraison intermédiaire `livraison/<nom>-<AAAAMMJJ-HHMM>`.
-# Le nom de branche seul ne suffit pas (il dispense de la revue) : `sujet/<nom>` doit exister, et la
-# livraison n'apporter qu'un sommet du sujet fusionné avec develop. La contenance du sommet dans le
-# sujet ne suffit pas non plus : l'étape 4 pousse sur la livraison sa fusion avec develop, qu'aucun
-# sujet ne contient, et au passage suivant (checks rouges relancés, sortie 5) la livraison passait
-# pour une PR ordinaire (revue exigée, puis squash). Critère : un ancêtre commun de la tête et du
-# sujet, hors de develop, dont la fusion avec le develop que la tête contient donne l'arbre de la
-# tête, aux index générés près. Sinon la PR repasse par le chemin ordinaire (revue exigée, squash).
-livraison_intermediaire() {
-  local nom=$1 d s attendu ecart hors regeneres motifs
-  git fetch -q origin "sujet/$nom" 2>/dev/null || return 1
-  d=$(git merge-base "$origine" origin/develop) || return 1
-  for s in $(git merge-base --all "$origine" "origin/sujet/$nom" 2>/dev/null); do
-    ! git merge-base --is-ancestor "$s" origin/develop || continue
-    # Arbre de la fusion, même en conflit (sortie 1) : un conflit hors index y laisse ses marqueurs,
-    # donc un écart avec la tête.
-    attendu=$(git merge-tree --write-tree --no-messages "$s" "$d" 2>/dev/null | sed -n 1p) || true
-    [ -n "$attendu" ] || continue
-    # Un `git diff` en échec n'est jamais une dispense : on ne conclut que sur un diff lu.
-    # Sans détection des renommages : une suppression ne se cache pas derrière un index généré ajouté.
-    ecart=$(git -c core.quotePath=false diff --no-renames --name-only "$attendu" "$origine") || continue
-    # Un index qui a une `commande` est régénéré : dispensé. Un index sans commande ne l'est que si son
-    # blob au sommet est celui d'origin/develop (la version de develop prise au conflit par la mise à
-    # jour) ; absent d'un côté, il diffère et va à la revue.
-    # Un index déclaré par motif, même avec une `commande`, ne l'est que sur un contenu déjà connu (celui de la
-    # fusion recalculée ou d'origin/develop) : sa régénération ne retire pas un fichier en trop sous le motif.
-    # Liste illisible (fonction absente, jq en échec) : pas une livraison, la revue est exigée.
-    regeneres=$(index_regeneres_regex) && [ -n "$regeneres" ] || return 1
-    motifs=$(index_regeneres_motifs_regex) && [ -n "$motifs" ] || return 1
-    hors=$(printf '%s\n' "$ecart" | sed '/^$/d' | while IFS= read -r f; do
-      if ! grep -qE "$GENERES" <<<"$f"; then
-        printf '%s\n' "$f"
-      elif grep -qE "$motifs" <<<"$f"; then
-        a=$(git rev-parse -q --verify "$origine:$f" 2>/dev/null) || a=''
-        b=$(git rev-parse -q --verify "$attendu:$f" 2>/dev/null) || b=''
-        c=$(git rev-parse -q --verify "origin/develop:$f" 2>/dev/null) || c=''
-        [ -n "$a" ] && { [ "$a" = "$b" ] || [ "$a" = "$c" ]; } || printf '%s\n' "$f"
-      elif ! grep -qE "$regeneres" <<<"$f"; then
-        a=$(git rev-parse -q --verify "$origine:$f" 2>/dev/null) || a=''
-        b=$(git rev-parse -q --verify "origin/develop:$f" 2>/dev/null) || b=''
-        [ -n "$a" ] && [ "$a" = "$b" ] || printf '%s\n' "$f"
-      fi
-    done)
-    [ -n "$hors" ] || return 0
-  done
-  return 1
-}
+# Livraison de sujet : tête `sujet/<nom>`, ou livraison intermédiaire `livraison/<nom>-<AAAAMMJJ-HHMM>`, prouvée
+# par sa forme (`livraison_intermediaire` de github.sh, sur origin/sujet/<nom> rapatrié ici) : le nom de branche seul
+# ne dispense jamais de la revue.
 livraison_sujet=0
 nom_sujet=''
 if [[ "$tete" == sujet/* ]]; then
@@ -187,7 +143,11 @@ if [[ "$tete" == sujet/* ]]; then
   nom_sujet=${tete#sujet/}
 elif [[ "$tete" =~ ^livraison/(.+)-[0-9]{8}-[0-9]{4}$ ]]; then
   nom_sujet=${BASH_REMATCH[1]}
-  if livraison_intermediaire "$nom_sujet"; then livraison_sujet=1; else nom_sujet=''; fi
+  if git fetch -q origin "sujet/$nom_sujet" 2>/dev/null && livraison_intermediaire "$nom_sujet" "$origine"; then
+    livraison_sujet=1
+  else
+    nom_sujet=''
+  fi
 fi
 
 # Point de départ des commits propres à la PR (corps du squash).

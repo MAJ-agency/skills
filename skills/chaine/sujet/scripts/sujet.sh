@@ -63,6 +63,16 @@
 #                         formaté par Prettier. Une branche en retard
 #                         rattrape le sujet par `git merge --ff-only` ; historique divergent, commit de
 #                         fusion ou option (jamais de push forcé) : sortie 9, rien n'est poussé
+#   a-juger <sommet> <base> [<pr>]
+#                         lecture (check `pr-titre` du socle), sans appel GitHub ni réseau : les fichiers que `fusionner`
+#                         juge avant les checks, un par ligne (le diff depuis le départ du sujet, ou la résolution d'une PR
+#                         de mise à jour) ; pour une PR de mise à jour, une ligne vide puis ceux qu'il juge après (résolution
+#                         et retouches) ; refus de forme d'une PR de mise à jour : 4 et son motif ; refs absentes ou clone
+#                         superficiel : 11
+#   est-livraison <tête> <sommet>
+#                         lecture (check `pr-titre`), sans appel GitHub ni réseau : 0 livraison de sujet prouvée (tête
+#                         `sujet/<nom>` au sommet d'origin/sujet/<nom>, ou livraison intermédiaire que `livraison_intermediaire` de github.sh reconnaît,
+#                         comme passer.sh), 1 PR ordinaire (revue exigée), 11 refs absentes ou clone superficiel
 #   carte (sans argument) « ticket<TAB>sujet » pour chaque ticket qui déclare un sujet (develop et sujets)
 #   de <ticket>           sujet d'un ticket
 #   etat                  tableau des sujets ouverts : avance, retard, sous-PR, tickets, verdict
@@ -123,8 +133,15 @@ if [ -f "$ici/github.sh" ]; then . "$ici/github.sh"; else . "$ici/../../fusionne
 cd "$(git rev-parse --show-toplevel)"
 
 sortir() { echo "$2"; exit "$1"; }
-# Clone superficiel : merge-base faux (même parade que passer.sh).
-[ "$(git rev-parse --is-shallow-repository)" = false ] || git_masque fetch -q --unshallow origin
+# Clone superficiel : merge-base faux (même parade que passer.sh). Les lectures du check `pr-titre` (`a-juger`,
+# `est-livraison`) n'appellent pas le réseau : sur un clone superficiel, elles sortent en 11.
+case ${1:-} in
+  a-juger | est-livraison)
+    [ "$(git rev-parse --is-shallow-repository)" = false ] ||
+      sortir 11 "clone superficiel : merge-base faux ; git fetch --unshallow d'abord (actions/checkout : fetch-depth: 0)"
+    ;;
+  *) [ "$(git rev-parse --is-shallow-repository)" = false ] || git_masque fetch -q --unshallow origin ;;
+esac
 
 GENERES=$(index_generes_regex) # scripts/docs/index-generes.json ; regenerer_index : github.sh
 
@@ -745,6 +762,65 @@ avancer_sujet() {
   echo "#$n fusionnée dans $base par avance rapide (mise à jour avec develop, $(git rev-parse --short "$sommet"))"
 }
 
+# Les fichiers que la revue exigée juge, avant les checks, pour la sous-PR <n> au sommet <sommet> vers <base> (sujet/<nom>,
+# refs origin/<base> et origin/develop déjà là) : PR de mise à jour (`est_mise_a_jour`), sa résolution (`A_JUGER`, après
+# `verifier_mise_a_jour`, qui sort en 4 sur une autre forme et pose aussi `MAJ_APRES`) ; sinon le diff depuis le point de
+# départ de la sous-PR sur le sujet. Pose `FICHIERS_JUGES`, et `MAJ` (1 pour une PR de mise à jour, vide sinon). Une
+# seule lecture pour `fusionner` et `a-juger` (le check `pr-titre` du socle, ticket 16).
+fichiers_a_juger() {
+  local n=$1 sommet=$2 base=$3
+  MAJ=''
+  if est_mise_a_jour "$sommet" "$base"; then
+    verifier_mise_a_jour "$n" "$sommet" "$base"
+    MAJ=1
+    FICHIERS_JUGES=$A_JUGER
+  else
+    FICHIERS_JUGES=$(git -c core.quotePath=false diff --no-renames --name-only "$(git merge-base "$sommet" "origin/$base")" "$sommet")
+  fi
+}
+
+# `a-juger <sommet> <base> [<n>]` : lecture, sans appel GitHub ni réseau. Écrit, un par ligne, les fichiers que
+# `fusionner` passe à la revue exigée avant les checks : le diff depuis le départ du sujet, ou, pour une PR de mise à
+# jour, sa résolution (`A_JUGER`) ; pour une PR de mise à jour seulement, une ligne vide puis la liste qu'il juge après
+# les checks, l'union de la résolution et des retouches (`A_JUGER` et `MAJ_APRES`, `juger_retouches`). git n'écrit jamais
+# un chemin vide : la ligne vide ne sépare que les deux listes. Refus de forme d'une PR de mise à jour : sortie 4, motif
+# de `verifier_mise_a_jour`. Refs absentes : 11.
+a_juger() {
+  local sommet=${1:?sommet de la PR} base=${2:?base de la PR (sujet/<nom>)} n=${3:-?}
+  [[ "$base" == sujet/* ]] || sortir 4 "a-juger : $base n'est pas une branche sujet/ (une PR vers develop se lit par git diff depuis le merge-base)"
+  git rev-parse -q --verify "refs/remotes/origin/develop^{commit}" >/dev/null &&
+    git rev-parse -q --verify "refs/remotes/origin/$base^{commit}" >/dev/null ||
+    sortir 11 "refs absentes : origin/develop ou origin/$base introuvable, fetch d'abord"
+  sommet=$(git rev-parse -q --verify "$sommet^{commit}") || sortir 11 "refs absentes : sommet $1 introuvable, fetch d'abord"
+  MAJ_APRES=''
+  fichiers_a_juger "$n" "$sommet" "$base"
+  printf '%s\n' "$FICHIERS_JUGES" | sed '/^$/d' | sort -u
+  [ -z "$MAJ" ] || { echo; printf '%s\n%s\n' "$A_JUGER" "$MAJ_APRES" | sed '/^$/d' | sort -u; }
+}
+
+# `est-livraison <tête> <sommet>` : lecture, sans appel GitHub ni réseau, pour une PR vers develop. Sortie 0 : livraison
+# de sujet prouvée (tête `sujet/<nom>` dont le sommet est celui d'origin/sujet/<nom>, ou tête `livraison/<nom>-<AAAAMMJJ-HHMM>` que
+# `livraison_intermediaire` de github.sh reconnaît, comme passer.sh) ; 1 : PR ordinaire, revue exigée ; 11 : refs
+# absentes (origin/develop, le sommet, ou origin/sujet/<nom> d'une tête sujet/).
+est_livraison() {
+  local tete=${1:?tête de la PR} sommet=${2:?sommet de la PR} nom
+  git rev-parse -q --verify "refs/remotes/origin/develop^{commit}" >/dev/null ||
+    sortir 11 "refs absentes : origin/develop introuvable, fetch d'abord"
+  sommet=$(git rev-parse -q --verify "$sommet^{commit}") || sortir 11 "refs absentes : sommet $2 introuvable, fetch d'abord"
+  if [[ "$tete" == sujet/* ]]; then
+    git rev-parse -q --verify "refs/remotes/origin/$tete^{commit}" >/dev/null ||
+      sortir 11 "refs absentes : origin/$tete introuvable, fetch d'abord"
+    # Un sommet étranger sous le nom du sujet n'est pas sa livraison : PR ordinaire, revue exigée.
+    [ "$sommet" = "$(git rev-parse "refs/remotes/origin/$tete^{commit}")" ] || exit 1
+    exit 0
+  fi
+  if [[ "$tete" =~ ^livraison/(.+)-[0-9]{8}-[0-9]{4}$ ]]; then
+    nom=${BASH_REMATCH[1]}
+    livraison_intermediaire "$nom" "$sommet" && exit 0
+  fi
+  exit 1
+}
+
 fusionner() {
   local n=${1:?numéro de la sous-PR}
   local pr base titre sommet longueur
@@ -775,13 +851,9 @@ fusionner() {
   git_masque fetch -q origin develop "$base" "$(jq -r .head.ref <<<"$pr")"
   # PR de mise à jour : la revue porte d'abord sur la résolution seule, pas sur le develop apporté ; ses retouches
   # se jugent après les checks (juger_retouches).
-  if est_mise_a_jour "$sommet" "$base"; then
-    verifier_mise_a_jour "$n" "$sommet" "$base"
-    maj=1
-    fichiers=$A_JUGER
-  else
-    fichiers=$(git -c core.quotePath=false diff --no-renames --name-only "$(git merge-base "$sommet" "origin/$base")" "$sommet")
-  fi
+  fichiers_a_juger "$n" "$sommet" "$base"
+  maj=$MAJ
+  fichiers=$FICHIERS_JUGES
   motif=$(juger "$fichiers") || sortir 4 "#$n $motif"
   # Lien symbolique sur un index généré ou son dossier, que la PR ajoute ou change : la régénération du capitaine
   # (mise à jour, avance, rafraichir) écrirait à travers lui.
@@ -1454,6 +1526,8 @@ case "$commande" in
   de) sujet_du_ticket "${1:?ticket}" ;;
   livre) sujet_livre "${1:?nom du sujet}" ;;
   livrer-prets) livrer_prets "$@" ;;
+  a-juger) a_juger "$@" ;;
+  est-livraison) est_livraison "$@" ;;
   regrouper-series) regrouper_series "$@" ;;
-  *) sed -n '3,/^# =====/p' "$0" | sed '$d; s/^# \{0,1\}//'; sortir 4 "usage : sujet.sh demarrer <ticket|nom> | ouvrir <nom> [--specs <pr>] | fusionner <pr> | rafraichir <nom> | livrer <nom> <titre> | livrer-prets [--dry-run] | relancer <pr> | series | regrouper-series [--dry-run] | regrouper <nom> <pr>… | carte | carte <nom> | etat | geler <nom> \"<raison>\" | degeler <nom> | gel <nom> | clore <nom> | de <ticket>" ;;
+  *) sed -n '3,/^# =====/p' "$0" | sed '$d; s/^# \{0,1\}//'; sortir 4 "usage : sujet.sh demarrer <ticket|nom> | ouvrir <nom> [--specs <pr>] | fusionner <pr> | rafraichir <nom> | livrer <nom> <titre> | livrer-prets [--dry-run] | relancer <pr> | series | regrouper-series [--dry-run] | regrouper <nom> <pr>… | carte | carte <nom> | etat | geler <nom> \"<raison>\" | degeler <nom> | gel <nom> | clore <nom> | de <ticket> | a-juger <sommet> <base> [<pr>] | est-livraison <tête> <sommet>" ;;
 esac
