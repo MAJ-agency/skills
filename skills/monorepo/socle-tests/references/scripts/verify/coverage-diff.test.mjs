@@ -5,15 +5,21 @@
 // coupé quand il passe par un tube lent.
 import assert from "node:assert/strict";
 import { execFileSync, spawn, spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { after, test } from "node:test";
 import { fileURLToPath } from "node:url";
 
 const ICI = dirname(fileURLToPath(import.meta.url));
+// Posé dans un projet, le module est dans scripts/docs/ ; dans le plugin, dans le skill `socle-monorepo`.
+const { environnementDeBanc } = await import(
+  existsSync(join(ICI, "../docs/environnement-de-banc.mjs"))
+    ? "../docs/environnement-de-banc.mjs"
+    : "../../../../socle-monorepo/references/scripts/docs/environnement-de-banc.mjs"
+);
 const SCRIPT = join(ICI, "coverage-diff.mjs");
-const ENV = Object.fromEntries(Object.entries(process.env).filter(([c]) => !c.startsWith("GIT_") && c !== "NODE_TEST_CONTEXT" && c !== "PRE_PUSH_REFS"));
+const ENV = environnementDeBanc();
 
 const dossiers = [];
 const dossier = (prefixe) => {
@@ -74,6 +80,52 @@ function jouer(r, args, env = {}) {
   });
   const listes = (res.stdout.match(/^ {3}• (\S+)/gm) ?? []).map((l) => l.replace(/^ {3}• /, ""));
   return { statut: res.status, sortie: res.stdout + res.stderr, listes, brut: res.stdout };
+}
+
+// Sans `--dry-run` : le faux Vitest du dépôt jouet est lancé. DATABASE_URL et GITHUB_ACTIONS sont retirées de
+// l'environnement, sauf quand un test les pose : la machine qui joue le banc peut les porter.
+function jouerReel(r, args, env = {}) {
+  const { DATABASE_URL: _d, GITHUB_ACTIONS: _g, ...propre } = ENV;
+  const res = spawnSync(process.execPath, [SCRIPT, ...args], {
+    cwd: r,
+    env: { ...propre, PROJET_RACINE: r, ...env },
+    encoding: "utf8",
+  });
+  return { statut: res.status, sortie: res.stdout + res.stderr };
+}
+
+// Un faux Vitest : pour chaque fichier de `related`, une entrée istanbul à zéro dans le dossier du rapport, et la
+// ligne « Test Files » que le script lit. Le paquet porte un `vitest.db.config.ts` ; node_modules est ignoré.
+const FAUX_VITEST = `#!/usr/bin/env node
+const fs = require("node:fs");
+const path = require("node:path");
+const args = process.argv.slice(2);
+const dir = args.find((a) => a.startsWith("--coverage.reportsDirectory=")).split("=")[1];
+const fichiers = args.slice(1, args.indexOf("--run"));
+const rapport = {};
+for (const f of fichiers) {
+  const abs = path.resolve(process.cwd(), f);
+  rapport[abs] = {
+    statementMap: { 0: { start: { line: 1 } } }, s: { 0: 0 },
+    fnMap: { 0: {} }, f: { 0: 0 }, branchMap: {}, b: {},
+  };
+}
+fs.writeFileSync(path.join(dir, "coverage-final.json"), JSON.stringify(rapport));
+console.log(" Test Files  1 passed (1)");
+`;
+
+/** Une branche de travail avec un fichier neuf `repo.ts` jamais exécuté, et ce que `specDb` dit de lui. */
+function depotSuiteSurBase({ specDb = true } = {}) {
+  const r = depot();
+  git(r, "checkout", "-q", "-b", "feat/db", "develop");
+  ecrire(r, ".gitignore", "node_modules\n");
+  ecrire(r, "apps/api/vitest.db.config.ts", "export default {};\n");
+  ecrire(r, "apps/api/node_modules/.bin/vitest", FAUX_VITEST);
+  chmodSync(join(r, "apps/api/node_modules/.bin/vitest"), 0o755);
+  ecrire(r, "apps/api/src/repo.ts", "export const repo = 1;\n");
+  if (specDb) ecrire(r, "apps/api/src/repo.db.spec.ts", 'import { repo } from "./repo";\nrepo;\n');
+  valider(r, "repo");
+  return r;
 }
 
 test("PR de mise à jour, la fusion seule : aucun fichier de develop ne compte", () => {
@@ -150,7 +202,7 @@ test("hors mise à jour, rien ne change : une PR vers develop compte ses fichier
   assert.deepEqual(j.listes, ["apps/api/src/z.ts"]);
 });
 
-test("un sujet qui a avancé depuis la fusion : la forme n'est plus celle d'une mise à jour, la mesure est celle d'avant", () => {
+test("un sujet qui a avancé depuis la fusion : plus de fusion recalculée, repli sur origin/develop, les fichiers de develop ne comptent plus", () => {
   const r = depot();
   git(r, "checkout", "-q", "sujet/x");
   ecrire(r, "apps/api/src/avance.ts", "export const avance = 1;\n");
@@ -159,18 +211,82 @@ test("un sujet qui a avancé depuis la fusion : la forme n'est plus celle d'une 
   git(r, "checkout", "-q", "maj");
   git(r, "fetch", "-q", "origin");
   const j = jouer(r, ["--base", "origin/sujet/x"]);
-  assert.ok(j.listes.includes("apps/api/src/d1.ts"), j.sortie);
+  assert.doesNotMatch(j.sortie, /la fusion recalculée/);
+  assert.ok(!j.listes.includes("apps/api/src/d1.ts"), j.sortie);
+  assert.ok(j.listes.includes("apps/api/src/s.ts"), j.sortie);
+  assert.match(j.sortie, /HEAD contient develop/);
 });
 
-test("la fusion d'essai de GitHub (refs/pull/N/merge) n'est pas reconnue : la mesure est celle d'avant, la plus stricte", () => {
+test("la fusion d'essai de GitHub (refs/pull/N/merge) n'est pas une mise à jour reconnue : repli sur origin/develop", () => {
   const r = depot();
   // Le checkout par défaut d'un `pull_request` : un commit de fusion du sujet et de la tête de la PR (qui contient
   // déjà le sujet). Son second parent n'est pas dans develop : la forme d'une mise à jour est masquée.
   git(r, "checkout", "-q", "-b", "essai", "sujet/x");
   git(r, "merge", "-q", "--no-ff", "-m", "Merge maj into sujet/x", "maj");
   const j = jouer(r, ["--base", "origin/sujet/x"]);
-  assert.ok(j.listes.includes("apps/api/src/d1.ts"), j.sortie);
+  assert.ok(!j.listes.includes("apps/api/src/d1.ts"), j.sortie);
   assert.doesNotMatch(j.sortie, /la fusion recalculée/);
+});
+
+test("réception de develop dont la fusion a develop pour premier parent : lue contre origin/develop, aucun fichier de develop ne compte", () => {
+  const r = depot();
+  git(r, "checkout", "-q", "-b", "recu", "develop");
+  git(r, "merge", "-q", "--no-ff", "-m", "Merge sujet/x into develop", "sujet/x");
+  const j = jouer(r, ["--base", "origin/sujet/x"]);
+  assert.deepEqual(j.listes, ["apps/api/src/s.ts"], j.sortie);
+  assert.match(j.sortie, /HEAD contient develop/);
+});
+
+test("réception de develop précédée d'une retouche : lue contre origin/develop", () => {
+  const r = depot();
+  git(r, "checkout", "-q", "-b", "retouche", "sujet/x");
+  ecrire(r, "apps/api/src/retouche.ts", "export const retouche = 1;\n");
+  valider(r, "retouche");
+  git(r, "merge", "-q", "--no-ff", "-m", "chore: fusionne develop dans sujet/x", "develop");
+  const j = jouer(r, ["--base", "origin/sujet/x"]);
+  assert.ok(j.listes.includes("apps/api/src/retouche.ts"), j.sortie);
+  assert.ok(!j.listes.includes("apps/api/src/d1.ts"), j.sortie);
+});
+
+test("origin/develop illisible : pas de repli, la sortie le dit", () => {
+  const r = depot();
+  git(r, "checkout", "-q", "-b", "essai", "sujet/x");
+  git(r, "merge", "-q", "--no-ff", "-m", "Merge maj into sujet/x", "maj");
+  git(r, "update-ref", "-d", "refs/remotes/origin/develop");
+  const j = jouer(r, ["--base", "origin/sujet/x"]);
+  assert.match(j.sortie, /origin\/develop illisible/);
+});
+
+test("sans DATABASE_URL, un fichier que seule une suite sur base cible passe en avertissement, sortie 0", () => {
+  const r = depotSuiteSurBase();
+  const j = jouerReel(r, ["--base", "origin/develop"]);
+  assert.equal(j.statut, 0, j.sortie);
+  assert.match(j.sortie, /⚠ suites sur base non jouées \(\*\.db\.spec\.ts\) : DATABASE_URL absente \(apps\/api\)/);
+  assert.match(j.sortie, /AVERTISSEMENT apps\/api\/src\/repo\.ts : couverture non mesurée sans base : la CI la juge avec Postgres \(/);
+  assert.match(j.sortie, /repo\.ts.*⚠/);
+});
+
+test("sans DATABASE_URL, un fichier non couvert qu'aucune suite sur base ne cible échoue, comme avant", () => {
+  const r = depotSuiteSurBase({ specDb: false });
+  const j = jouerReel(r, ["--base", "origin/develop"]);
+  assert.equal(j.statut, 1, j.sortie);
+  assert.doesNotMatch(j.sortie, /AVERTISSEMENT/);
+  assert.match(j.sortie, /✖ apps\/api\/src\/repo\.ts/);
+});
+
+test("avec DATABASE_URL, le même fichier non couvert échoue, sans avertissement", () => {
+  const r = depotSuiteSurBase();
+  const j = jouerReel(r, ["--base", "origin/develop"], { DATABASE_URL: "postgres://x" });
+  assert.equal(j.statut, 1, j.sortie);
+  assert.doesNotMatch(j.sortie, /AVERTISSEMENT|⚠/);
+  assert.match(j.sortie, /✖ apps\/api\/src\/repo\.ts/);
+});
+
+test("sous GitHub Actions sans DATABASE_URL, aucun avertissement : le fichier échoue", () => {
+  const r = depotSuiteSurBase();
+  const j = jouerReel(r, ["--base", "origin/develop"], { GITHUB_ACTIONS: "true" });
+  assert.equal(j.statut, 1, j.sortie);
+  assert.doesNotMatch(j.sortie, /AVERTISSEMENT|⚠/);
 });
 
 // Une sortie longue lue par un tube lent : le lecteur ne commence à lire qu'après une seconde, quand le script a

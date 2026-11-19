@@ -8,8 +8,9 @@
  * Ordre de la sortie :
  *   1. le ticket, tel quel ;
  *   2. sa ligne de spec (la ligne qui cite le ticket, ou la ligne de table `| <NN> |`) ;
- *   3. « Règles du ticket » : la ligne `Règles:` de l'en-tête, la liste fermée que l'axe Ticket (`T3`)
- *      doit trouver prouvée, puis chaque fichier de règle rendu tel quel, en-tête YAML compris ;
+ *   3. « Règles du ticket » : la ligne `Règles:` de l'en-tête, la liste fermée des règles dont l'axe
+ *      Ticket (`T3`) relit les preuves, puis chaque fichier de règle rendu tel quel, en-tête YAML
+ *      compris (c'est là que se lit si une règle déclare ses cas, clé `cases`) ;
  *   4. « Identifiants cités » : le reste du corps et la ligne de spec (règles, ADR, specs, tickets,
  *      design, guides, demandes).
  * Chaque identifiant est marqué trouvé ou introuvable, avec le chemin cherché.

@@ -8,6 +8,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
+import { environnementDeBanc } from "../skills/chaine/sujet/scripts/depot-jouet.mjs";
 
 const RACINE = fileURLToPath(new URL("..", import.meta.url));
 // [dossier source dans le plugin, dossier de destination dans le projet]
@@ -21,11 +22,13 @@ const POSES = [
   ["skills/chaine/tickets/references/scripts/verify", "scripts/verify"],
 ];
 // Fichiers posés un à un, et non par dossier : de `references/scripts/github/`, le socle de la chaîne ne pose que
-// CODEOWNERS et son banc (étape 4 ter) ; `develop.sh` part seul, sans son banc (étape 9).
+// CODEOWNERS et le check `PR titre`, avec leurs bancs (étape 4 ter) ; `develop.sh` part seul, sans son banc (étape 9).
 const SOCLE_GITHUB = "skills/chaine/socle-chaine-de-production/references/scripts/github";
 const FICHIERS_POSES = [
   [`${SOCLE_GITHUB}/codeowners.mjs`, "scripts/github/codeowners.mjs"],
   [`${SOCLE_GITHUB}/codeowners.test.mjs`, "scripts/github/codeowners.test.mjs"],
+  [`${SOCLE_GITHUB}/pr-titre.mjs`, "scripts/github/pr-titre.mjs"],
+  [`${SOCLE_GITHUB}/pr-titre.test.mjs`, "scripts/github/pr-titre.test.mjs"],
 ];
 // Fichiers de la racine du projet que les bancs posés lisent (socle-monorepo, TABLE-RACINE.md).
 const RACINE_PROJET = [
@@ -43,10 +46,9 @@ exit 1
 // `node --test` enfant rend ses résultats au parent au lieu de les jouer et de sortir non nul.
 // Plancher du nombre de tests que l'enfant joue (plus de 170 à l'écriture) : sous lui, le garde ne jouait rien.
 const PLANCHER = 150;
-const env = () =>
-  Object.fromEntries(Object.entries(process.env).filter(([cle]) => !cle.startsWith("GIT_") && cle !== "NODE_TEST_CONTEXT"));
+const env = () => environnementDeBanc();
 
-test("les bancs posés à plat sous scripts/chaine/ tournent hors du plugin", { timeout: 320_000 }, () => {
+test("les bancs posés à plat sous scripts/chaine/ tournent hors du plugin", { timeout: 620_000 }, () => {
   const projet = mkdtempSync(join(tmpdir(), "poses-"));
   try {
     const poses = new Map();
@@ -62,7 +64,7 @@ test("les bancs posés à plat sous scripts/chaine/ tournent hors du plugin", { 
     for (const [source, destination] of [...FICHIERS_POSES, ...RACINE_PROJET]) poser(source, destination);
     mkdirSync(join(projet, ".husky"), { recursive: true });
     writeFileSync(join(projet, ".husky/pre-commit"), PRE_COMMIT_PROJET, { mode: 0o755 });
-    // Les bancs posés à plat dans scripts/chaine/ et scripts/github/ (socle de la chaîne : CODEOWNERS).
+    // Les bancs posés à plat dans scripts/chaine/ et scripts/github/ (socle de la chaîne : CODEOWNERS, PR titre).
     const bancs = ["scripts/chaine", "scripts/github"].flatMap((dossier) =>
       readdirSync(join(projet, dossier))
         .filter((n) => n.endsWith(".test.mjs"))
@@ -72,7 +74,7 @@ test("les bancs posés à plat sous scripts/chaine/ tournent hors du plugin", { 
       cwd: projet,
       env: env(),
       encoding: "utf8",
-      timeout: 300_000,
+      timeout: 600_000,
     });
     const sortie = (r.stdout + r.stderr).trim();
     const echecs = sortie.split("\n").filter((l) => /^\s*✖/.test(l) || /\bnot ok\b/.test(l));

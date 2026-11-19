@@ -4,7 +4,7 @@ import { chmodSync, mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
-import { module, script } from './depot-jouet.mjs';
+import { ENV, module, script } from './depot-jouet.mjs';
 
 const { avancement, enMarkdown, etat, lireTicket, prDuTicket } = await module('docs/avancement-regles.mjs');
 
@@ -82,15 +82,7 @@ test('sortie Markdown et PR non vérifiées sans gh', () => {
 
 test('gh en échec : avancement sans PR, ligne search_pull_requests, sortie 3', () => {
   const racine = mkdtempSync(join(tmpdir(), 'avancement-'));
-  const env = {
-    ...Object.fromEntries(Object.entries(process.env).filter(([cle]) => !cle.startsWith('GIT_'))),
-    GIT_CONFIG_GLOBAL: '/dev/null',
-    GIT_CONFIG_NOSYSTEM: '1',
-    GIT_AUTHOR_NAME: 't',
-    GIT_AUTHOR_EMAIL: 't@t',
-    GIT_COMMITTER_NAME: 't',
-    GIT_COMMITTER_EMAIL: 't@t',
-  };
+  const env = ENV;
   const git = (cwd, ...args) => execFileSync('git', args, { cwd, env, encoding: 'utf8' });
   const origine = join(racine, 'origine.git');
   const travail = join(racine, 'travail');

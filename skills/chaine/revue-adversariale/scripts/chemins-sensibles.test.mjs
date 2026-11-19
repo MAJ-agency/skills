@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-const { dossierTemporaire } = await import(
+const { dossierTemporaire, environnementDeBanc } = await import(
   existsSync(new URL("./depot-jouet.mjs", import.meta.url))
     ? "./depot-jouet.mjs"
     : "../../sujet/scripts/depot-jouet.mjs"
@@ -16,8 +16,7 @@ const chargerGate = existsSync(GATE_POSE)
   : async () => (await import("../../tickets/references/scripts/docs/depot-jouet.mjs")).module("verify/tickets-regles.mjs");
 
 const CLI = new URL("./chemins-sensibles.mjs", import.meta.url).pathname;
-const sansGit = () =>
-  Object.fromEntries(Object.entries(process.env).filter(([cle]) => !cle.startsWith("GIT_")));
+const sansGit = () => environnementDeBanc();
 
 // [motif, chemin, touché]
 const TABLE = [

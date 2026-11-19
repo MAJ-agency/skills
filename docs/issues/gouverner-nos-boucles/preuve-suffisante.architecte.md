@@ -4,18 +4,18 @@ Carte de l'architecte B du programme « gouverner nos boucles », ouverte le 202
 
 ## Fiche
 
-Phase: suivi — en attente de l'entrée « PASSATION AU COMPTE SUIVANT » de la carte du chantier (« la main est libre »)
+Phase: suivi — conducteur et capitaine de ce compte lancés le 2026-11-19 ; premier geste : la mise à jour du sujet avec `develop`, puis `.45`
 Architecte: `session_01BxuG2zBnGe6UCP6cqG1F1E` (depuis le 2026-11-19, 08 h 52 UTC)
 Objectif: mener le chantier `SPEC_ALL_ANC-5` (la preuve suffisante) jusqu'à sa livraison dans `develop`, puis la publication de la CLI 2.0.0.
 Dépôts: `MAJ-agency/anchorpost` ; `MAJ-agency/skills` pour cette carte seule.
 Source: la passation ci-dessus ; la carte du chantier, `docs/features/anchorpost/all/SPEC_ALL_ANC-5-preuve-suffisante.map.md`, branche `sujet/preuve-suffisante-cas` d'Anchorpost.
-Capitaines: `skills` — `session_01BxuG2zz5bdN5uN8N7j4ztk` (depuis le 2026-11-19, 09 h 14 UTC, procédure d'un dépôt sans la chaîne) ; Anchorpost — aucun de ce compte encore.
+Capitaines: Anchorpost — `session_01BxuG32bZp5xNjwqVZ9U8Fo` (depuis le 2026-11-19, 09 h 44 UTC). `skills` — `session_01BxuG2zz5bdN5uN8N7j4ztk`, archivé le 2026-11-19 après la fusion de la PR 133.
 
 ## Chantiers
 
 | Chantier | Dépôt | Spec | Conducteur | État |
 | --- | --- | --- | --- | --- |
-| La preuve suffisante | `MAJ-agency/anchorpost` | `SPEC_ALL_ANC-5` | aucun de ce compte encore | le premier compte finit #318 ; #316 entrée dans le sujet (`b3984ff`) |
+| La preuve suffisante | `MAJ-agency/anchorpost` | `SPEC_ALL_ANC-5` | `session_01BxuG2zwaHUkcBNJS6VVwiz` (depuis le 2026-11-19, 09 h 44 UTC) | 36 tickets faits sur 54 ; sujet en conflit avec `develop`, à mettre à jour d'abord |
 
 ## Décisions
 
@@ -30,8 +30,10 @@ Capitaines: `skills` — `session_01BxuG2zz5bdN5uN8N7j4ztk` (depuis le 2026-11-1
 | Session | Rôle | Relevé |
 | --- | --- | --- |
 | `session_01BxuG2zBnGe6UCP6cqG1F1E` | architecte B | 0,24 $ à 08 h 54 UTC le 2026-11-19 |
-| `session_01BxuG32z1RUgo3HduKXzDCG` | ticket, `skills` PR 133 | lancée à 08 h 55 UTC |
-| `session_01BxuG2zz5bdN5uN8N7j4ztk` | capitaine de `skills` | lancée à 09 h 14 UTC |
+| `session_01BxuG32z1RUgo3HduKXzDCG` | ticket, `skills` PR 133 | 2,39 $, 132 163 tokens, archivée |
+| `session_01BxuG2zz5bdN5uN8N7j4ztk` | capitaine de `skills` | 3,71 $, 151 810 tokens, archivé |
+| `session_01BxuG32bZp5xNjwqVZ9U8Fo` | capitaine d'Anchorpost | lancé à 09 h 44 UTC |
+| sous-agent | contre-relecture de la PR 133 | 321 089 tokens |
 
 ## Passation
 
@@ -45,3 +47,5 @@ Rien encore.
 - 2026-11-19, 09 h 20 UTC — le produit, à « veux-tu que j'arrête le capitaine de `skills` une fois la PR 133 fusionnée ? » : « oui ». À faire dès la fusion lue sur GitHub : archiver `session_01BxuG2zz5bdN5uN8N7j4ztk`.
 - 2026-11-19, 09 h 20 UTC — contre-relecture de la PR 133 au sommet `848bc6c15af53a0b629f52863f5b778531f41f70` par un sous-agent neuf : aucun bloquant, 1072 tests rejoués verts, fusion de main sans perte d'un côté ni de l'autre. Lu sur GitHub avant l'ordre : `head.sha` égal, `mergeable_state` `clean`, quatre contrôles verts. Commentaire `à-fusionner au sommet 848bc6c…` écrit, label `à-fusionner` posé. Une PR 134 est apparue dans la file, sans label.
 - 2026-11-19 — écarts de la contre-relecture laissés à un ticket de suite, à passer à l'architecte A par le produit (le plugin est son périmètre) : (1) `sujet.sh` prend le verrou avant ses contrôles sans effet (ascendance de `relancer`, arbre pas propre, checks en cours) : un commentaire « terminé » de plus par tour sur une PR qui n'avance pas ; (2) les trappes de `passer.sh` et de `sujet.sh` sont posées après `prendre_passage` : un TERM pendant la pose laisse un verrou vivant jusqu'à 90 minutes pour les autres capitaines ; (3) `fusionner/SKILL.md` dit qu'une PR sautée « revient au tour suivant », la boucle la range pour toute sa durée. Doutes : un verrou illisible arrête la boucle (sortie 3) quand toute autre lecture illisible est une pause ; `sujet.sh` passe le JSON entier de la PR en argument de `jq` (échec au-delà d'environ 128 Ko) ; `relancer` avec `CAPITAINE_ID` refuse désormais un brouillon ou une PR `fusion-bloquée` ; l'étape 3 de la note de version omet `--reprendre` après `--arreter`.
+- 2026-11-19, 09 h 43 UTC — PR 133 de `skills` fusionnée à 09 h 31 UTC (`a3c2a7c` sur main, plugin 7.31.0) : lu sur GitHub, arbre de main identique au sommet relu `848bc6c`. Capitaine de `skills` et session de ticket archivés (accord du produit de 09 h 20). Marketplace de cette session mis à jour en 7.31.0 ; `lancement.md` inchangé depuis 7.30.0.
+- 2026-11-19, 09 h 44 UTC — entrée « PASSATION AU COMPTE SUIVANT … la main est libre » lue dans la carte du chantier au sommet `8082189` de `sujet/preuve-suffisante-cas`. Lancés sur Anchorpost, modèle `claude-fable-5-2`, mode « auto », gabarits de `lancement.md` : le capitaine `session_01BxuG32bZp5xNjwqVZ9U8Fo`, puis le conducteur `session_01BxuG2zwaHUkcBNJS6VVwiz` avec les consignes de `passation/2026-11-19-consignes-conducteur.md` dans sa ligne « Situation ». Un autre architecte de ce compte (programme « onglet-projet », `session_01BxuG33BUVsBFzQhEfvKWhV`) s'appuie sur le même capitaine et attend la livraison de la preuve suffisante dans `develop` pour la livraison 2 de la refonte « Registre » : à prévenir à cette livraison.

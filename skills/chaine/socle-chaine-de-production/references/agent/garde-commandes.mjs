@@ -1,8 +1,45 @@
 #!/usr/bin/env node
 /** Hook PreToolUse (Bash) : commandes interdites (le hook refuse et dit quoi faire, il ne demande jamais rien à un humain). */
 import { execFileSync } from 'node:child_process';
-import { brancheParDefaut, lireToolInput, RACINE } from './entree.mjs';
-import { decisionCommande, lireDependances } from './regles.mjs';
+
+// Ticket 18 : la garde ne s'ouvre jamais. Ses modules se chargent en dynamique protégé, avant toute autre chose, et
+// chaque nom lu est vérifié : un module cassé (tronqué, qui lève à son évaluation, ou qui se charge sans l'export
+// attendu) fait refuser l'outil (sortie 2) en une ligne qui dit comment sortir. Filet : toute autre erreur non
+// rattrapée refuse aussi, jamais la sortie 1 d'une trace de Node. Le code est ici, et pas dans un module commun, qui
+// pourrait être cassé lui aussi.
+/** Comment sortir : jamais en contournant la garde. */
+const RESTAURER =
+  "La session s'arrête et le dit à qui l'a lancée ; un humain restaure scripts/agent/ depuis un terminal, depuis le dernier commit où les gardes se chargent, jamais en contournant la garde : git checkout origin/develop -- scripts/agent/ si develop est sain, sinon git checkout <commit> -- scripts/agent/";
+const cause = (e) => String(e?.message ?? e).split('\n')[0];
+const refuser = (texte) => {
+  process.stderr.write(`garde-commandes : ${texte}\n`);
+  process.exit(2);
+};
+process.on('uncaughtException', (e) => refuser(`erreur inattendue (${cause(e)}) : tout outil est refusé, la garde ne s'ouvre jamais sur une erreur. ${RESTAURER}`));
+process.on('unhandledRejection', (e) => refuser(`erreur inattendue (${cause(e)}) : tout outil est refusé, la garde ne s'ouvre jamais sur une erreur. ${RESTAURER}`));
+// Dernier filet : toute sortie autre que 0 (permis) ou 2 (refusé), comme le 13 d'un `await` de premier niveau qui ne se
+// résout jamais, devient un refus. Claude Code ne refuse l'outil que sur la sortie 2 ; sur une sortie 1 ou un signal, il
+// le bloque si le hook porte `"onFailure": "block"` (le fragment `settings-hooks.json` le pose), et le laisse passer
+// sinon (un projet qui n'a pas reposé le fragment) : d'où ce filet, qui ne dépend pas du réglage.
+process.on('exit', (code) => {
+  if (code === 0 || code === 2) return;
+  process.stderr.write(`garde-commandes : sortie ${code} inattendue (await jamais résolu ou erreur de Node) : tout outil est refusé, la garde ne s'ouvre jamais sur une erreur. ${RESTAURER}\n`);
+  process.exitCode = 2;
+});
+const echec = (fichier, raison) => refuser(`scripts/agent/${fichier} ne se charge pas (${raison}) : tout outil est refusé tant qu'il n'est pas restauré, la garde ne s'ouvre jamais sur un fichier cassé. ${RESTAURER}`);
+/** Le module, chaque nom de `attendus` présent avec son type (`function`, `string`, `object`), ou l'échec. */
+const charger = async (fichier, attendus) => {
+  let m;
+  try {
+    m = await import(`./${fichier}`);
+  } catch (e) {
+    return echec(fichier, cause(e));
+  }
+  for (const [nom, type] of Object.entries(attendus)) if (typeof m[nom] !== type || m[nom] === null) return echec(fichier, `export ${nom} absent ou qui n'est pas ${type === 'object' ? 'un objet' : type === 'string' ? 'une chaîne' : 'une fonction'}`);
+  return m;
+};
+const { brancheParDefaut, lireToolInput, RACINE } = await charger('entree.mjs', { brancheParDefaut: 'function', lireToolInput: 'function', RACINE: 'string' });
+const { decisionCommande, lireDependances } = await charger('regles.mjs', { decisionCommande: 'function', lireDependances: 'function' });
 
 // Grammaire des identifiants du skill `socle-monorepo` : le ticket d'une branche (`feat/spec-all-soc-1-04-hook`
 // → `SPEC_ALL_SOC-1.04`) et celui d'un fichier ne se lisent que par elle, aucune expression n'en est
