@@ -48,8 +48,8 @@ exit 1
 // `node --test` enfant rend ses résultats au parent au lieu de les jouer et de sortir non nul.
 // Plancher du nombre de tests que l'enfant joue (plus de 170 à l'écriture) : sous lui, le garde ne jouait rien.
 const PLANCHER = 150;
-// Une tranche : au plus TAILLE noms distincts (fusionner.test.mjs : 100 noms lus, dix tranches et un reste, où tournent
-// ses 16 tests écrits en boucle) ; PARALLELE tranches à la fois, comme `node --test` joue ses fichiers.
+// Une tranche : au plus TAILLE noms distincts (fusionner.test.mjs : 91 noms lus, dix tranches et un reste, où tournent
+// ses tests écrits en boucle) ; PARALLELE tranches à la fois, comme `node --test` joue ses fichiers.
 const TAILLE = 10;
 const PARALLELE = Math.max(2, availableParallelism() - 1);
 const env = () => environnementDeBanc();

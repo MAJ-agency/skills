@@ -971,6 +971,22 @@ test("le gabarit de règle porte `criticality`, `cases` et `notApplicableFamilie
   assert.deepEqual(absentes, [], `${GABARIT_REGLE} : familles absentes : ${absentes.join(", ")}`);
 });
 
+// Ticket 62 : les deux gardes qui lisent les textes de `skills/`. `criticality` montrée en ligne, que le mappage soit
+// sur la ligne de la clé ou replié par un formateur sur la suivante ; un nom de test anglais à la manière `should …`,
+// en tête d'un `it`/`test` (étiquettes, `.each(…)` et `.each\`…\`` compris, quelle que soit la casse) ou donné en modèle.
+const CRITICITE_EN_LIGNE = /criticality:[ \t]*(?:\r?\n[ \t]*)?\{/;
+const NOM_ANGLAIS = /\b(it|test)(\.each(\([\s\S]*?\)|`[\s\S]*?`))?\(\s*["'`](\[[^\]]*\]\s*)*(should\b|<behaviou?r>)|`should [<[]|names `should|\(`should /i;
+test("les deux gardes de textes du ticket 62 voient les formes piégées, et pas leurs voisines", () => {
+  for (const t of ["criticality: { level: high }", "criticality:\n  {\n    level: high,\n  }", "criticality:\r\n  {\r\n", "x\ncriticality: {"])
+    assert.ok(CRITICITE_EN_LIGNE.test(t), JSON.stringify(t));
+  for (const t of ["criticality:\n  level: high", "criticality: high", "# criticality: à partir de l'index", "criticality:\n\n  level: { x }"])
+    assert.ok(!CRITICITE_EN_LIGNE.test(t), JSON.stringify(t));
+  for (const t of ["it('should x')", 'it("Should x")', "test(`[RULE_ALL_A-1] SHOULD x`)", "it.each([1])('should %i')", "it.each`\n a | b\n`('should $a')", "x\r\n  it('should y')", 'test("[RULE_ALL_X-2] <behaviour>", …)', "names `should [behavior]`"])
+    assert.ok(NOM_ANGLAIS.test(t), JSON.stringify(t));
+  for (const t of ["it('refuse x quand y')", "it('shoulder')", "// on should pas", "test('[RULE_ALL_A-1] doit refuser')"])
+    assert.ok(!NOM_ANGLAIS.test(t), JSON.stringify(t));
+});
+
 // Ticket 62 : un formateur (Prettier) replie un mappage en ligne trop long, et le lecteur d'en-têtes de « double
 // relecture exigée » (A-143) refuse certaines formes repliées. Le gabarit montre `criticality` en bloc, une clé par
 // ligne : décommentée, la forme se lit comme `{ level, by, reason }` (yaml, CLI Anchorpost), et rien ne la replie.
@@ -990,8 +1006,8 @@ test("le gabarit de règle montre `criticality` en bloc, une clé par ligne ; au
     for (const e of readdirSync(join(RACINE, dossier), { withFileTypes: true })) {
       const chemin = `${dossier}/${e.name}`;
       if (e.isDirectory()) parcourir(chemin);
-      else if (!/^skills\/chaine\/fusionner\/scripts\/double-relecture/.test(chemin))
-        lignes(readFileSync(join(RACINE, chemin), "utf8")).forEach((l, n) => /criticality:\s*\{/.test(l) && enLigne.push(`${chemin}:${n + 1}`));
+      else if (!/^skills\/chaine\/fusionner\/scripts\/double-relecture/.test(chemin) && CRITICITE_EN_LIGNE.test(readFileSync(join(RACINE, chemin), "utf8")))
+        enLigne.push(chemin);
     }
   };
   parcourir("skills");
@@ -1007,8 +1023,6 @@ test("les noms de tests montrés par le plugin sont en français, comme le veut 
     "`it('[RULE_ALL_LIC-2] refuse une seconde licence quand la saison en a déjà une')`",
   ]);
   exiger("skills/monorepo/socle-monorepo/references/adr/ADR_ALL_ARC-4-langue-des-identifiants-de-code.md", ["noms de tests (qui citent les règles du registre, `<TRI>-<N>`)"]);
-  // Un nom de test anglais à la manière `should …`, en tête d'un `it`/`test` (étiquettes comprises) ou donné en modèle.
-  const ANGLAIS = /\b(it|test)(\.each\([\s\S]*?\))?\(\s*["'`](\[[^\]]*\]\s*)*(should\b|<behaviou?r>)|`should [<[]|names `should|\(`should /;
   const fautes = [];
   const parcourir = (dossier) => {
     for (const e of readdirSync(join(RACINE, dossier), { withFileTypes: true })) {
@@ -1017,7 +1031,7 @@ test("les noms de tests montrés par le plugin sont en français, comme le veut 
       // Le banc des tests creux rejoue un cas réel observé (« should create »), gardé tel quel : le gate ne lit pas la langue.
       else if (chemin !== "skills/monorepo/socle-tests/references/scripts/verify/tests-creux.test.mjs" && /\.(md|ts|tsx|mjs|js)$/.test(e.name)) {
         const texte = readFileSync(join(RACINE, chemin), "utf8");
-        if (ANGLAIS.test(texte)) fautes.push(chemin);
+        if (NOM_ANGLAIS.test(texte)) fautes.push(chemin);
       }
     }
   };
