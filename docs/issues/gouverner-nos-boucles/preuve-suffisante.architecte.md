@@ -4,7 +4,7 @@ Carte de l'architecte B du programme « gouverner nos boucles », ouverte le 202
 
 ## Fiche
 
-Phase: suivi — conducteur et capitaine de ce compte lancés le 2026-11-19 ; premier geste : la mise à jour du sujet avec `develop`, puis `.45`
+Phase: suivi — relève 2 du conducteur lancée le 2026-11-19 à 14 h 42 UTC ; en cours : #324 (tickets `.55`, `.56`, `.57`), `.54` (#325), puis `.57` avant `.19`
 Architecte: `session_01BxuG2zBnGe6UCP6cqG1F1E` (depuis le 2026-11-19, 08 h 52 UTC)
 Objectif: mener le chantier `SPEC_ALL_ANC-5` (la preuve suffisante) jusqu'à sa livraison dans `develop`, puis la publication de la CLI 2.0.0.
 Dépôts: `MAJ-agency/anchorpost` ; `MAJ-agency/skills` pour cette carte seule.
@@ -15,7 +15,7 @@ Capitaines: Anchorpost — `session_01BxuG32bZp5xNjwqVZ9U8Fo` (depuis le 2026-11
 
 | Chantier | Dépôt | Spec | Conducteur | État |
 | --- | --- | --- | --- | --- |
-| La preuve suffisante | `MAJ-agency/anchorpost` | `SPEC_ALL_ANC-5` | `session_01BxuG2zwaHUkcBNJS6VVwiz` (depuis le 2026-11-19, 09 h 44 UTC) | 36 tickets faits sur 54 ; sujet en conflit avec `develop`, à mettre à jour d'abord |
+| La preuve suffisante | `MAJ-agency/anchorpost` | `SPEC_ALL_ANC-5` | `session_01BxuG2zP4RpAu97AuHPdSR8` (depuis le 2026-11-19, 14 h 42 UTC ; avant lui `session_01BxuG2zwaHUkcBNJS6VVwiz`, de 09 h 44 à 14 h 45, archivé) | 38 tickets faits ; sujet à jour avec `develop` ; `.54` en brouillon ; trois tickets de suite (`.55`, `.56`, `.57`) à entrer |
 
 ## Décisions
 
@@ -24,6 +24,7 @@ Capitaines: Anchorpost — `session_01BxuG32bZp5xNjwqVZ9U8Fo` (depuis le 2026-11
 - `A-202` — 2026-11-19. #322 (`.53`) s'étiquette au sommet `f2ba443`, après l'entrée de #323 ; un ticket de suite, avec `.47`, porte dans l'ordre : (a) `test.skip("raison")` nu au premier niveau d'un fichier Playwright, lu comme un test sauté alors que Playwright sauterait le fichier — fausse preuve possible, antérieure à la PR, à rejouer contre le vrai Playwright et à fermer avant la livraison intermédiaire et la CLI 2.0.0 ; (b) une classe en corps qui porte un bloc `static`, un `extends` à appel ou un nom calculé redevient une forme non lue, avec alerte (`A-66`) ; (c) les deux mutations survivantes de `titleOf`. Raison : (b) et (c) sont du côté sûr, `.47` passe sur les mêmes fichiers juste après, et (a) n'est pas introduit par la PR.
 - `A-203` — 2026-11-19. Ticket `.54` : le refus d'un chemin de `code` à caractère de contrôle se pose dans `check` seul, pas dans le schéma v3 ; le ticket est amendé dans sa PR. Raison : depuis `.45`, une règle de la base dont l'en-tête est refusé par le schéma sort en silence de l'index que `compare` construit ; mettre ce refus au schéma ajouterait un motif à ce trou, du côté non sûr. L'étiquette `[RULE_ALL_ANC-29]` prescrite par le ticket sur le test du schéma est retirée : ce test ne prouve pas la règle.
 - `A-204` — 2026-11-19. Le trou général a son ticket, `Label: contre-revue`, à faire avant `.19`, donc avant la livraison intermédiaire et la CLI 2.0.0 : `compare` lit d'un en-tête de règle refusé sur la base les seuls champs qu'il juge (identifiant, statut de validation, criticité, son auteur, sa date), sur le modèle du manifeste refusé « lu clé à clé » ; si même eux ne se lisent pas, écart `base-unreadable` qui nomme le fichier, jamais accepté. `anchorpost index` et `check` ne changent pas. Raison : le juge ne se trompe que du côté sûr (`A-66`), et une PR qui répare l'en-tête doit pouvoir passer, ce qu'un écart systématique empêcherait à chaque durcissement du schéma. Fait lu à la source : `apps/cli/src/read/rules/rules.ts:53-58` et `apps/cli/src/build/build-index.ts:43-48` sur le sujet.
+- `A-205` — 2026-11-19. Ticket `.57` (`A-204`), ses deux points ouverts : la lecture tolérante d'un en-tête de règle refusé vaut à la base comme à la tête, pour les seuls champs jugés ; une tête qui garde le même en-tête refusé n'est pas un `rule-removed`, et `check` reste celui qui signale l'en-tête refusé. Si même ces champs ne se lisent pas : `rule-removed` à la tête ; à la base, `base-unreadable` qui nomme le fichier, sortie 1 en enforce. Raison : sans cela chaque PR d'un dépôt à en-tête refusé sortirait un écart qui n'est pas le sien, et le juge resterait pourtant du côté sûr sur la criticité lue.
 
 ## Fog
 
@@ -33,10 +34,10 @@ Capitaines: Anchorpost — `session_01BxuG32bZp5xNjwqVZ9U8Fo` (depuis le 2026-11
 
 | Session | Rôle | Relevé |
 | --- | --- | --- |
-| `session_01BxuG2zBnGe6UCP6cqG1F1E` | architecte B | 18,03 $, 261 991 tokens à 11 h 05 UTC le 2026-11-19 |
+| `session_01BxuG2zBnGe6UCP6cqG1F1E` | architecte B | 22,77 $, 344 674 tokens à 14 h 37 UTC le 2026-11-19 |
 | `session_01BxuG32z1RUgo3HduKXzDCG` | ticket, `skills` PR 133 | 2,39 $, 132 163 tokens, archivée |
 | `session_01BxuG2zz5bdN5uN8N7j4ztk` | capitaine de `skills` | 3,71 $, 151 810 tokens, archivé |
-| `session_01BxuG32bZp5xNjwqVZ9U8Fo` | capitaine d'Anchorpost | 3,13 $, 143 190 tokens à 12 h 17 UTC |
+| `session_01BxuG32bZp5xNjwqVZ9U8Fo` | capitaine d'Anchorpost | 3,23 $, 144 277 tokens à 14 h 37 UTC |
 | sous-agent | contre-relecture de la PR 133 | 321 089 tokens |
 
 ## Passation
@@ -62,3 +63,6 @@ Rien encore.
 - 2026-11-19, 12 h 11 UTC — #323 (`.45`) fusionnée dans le sujet (`5d9d162`) : lu sur le dépôt, `apps/cli/src` identique au sommet relu `d859c19`. Fille de `.45` archivée (14,81 $, 292 466 tokens : au-dessus de la consigne de 250 000, sans l'avoir dit). #322 (`.53`) étiquetée à 12 h 13 au sommet `f2ba4430`. `.54` lancée à 12 h 08 (`session_01BxuG31Y99mmxJ32YVoQWMb`). Tickets de suite `.55` (`A-201`) et `.56` (`A-202`) écrits, PR #324, à entrer après #322 ; `.56` rejoue le cas Playwright hors dépôt, sans dépendance ajoutée. Conducteur : 222 835 tokens relevés (il s'estimait à 245 000), 18,62 $ ; relève à 280 000.
 - 2026-11-19, 12 h 18 UTC — relevé. #322 (`.53`) fusionnée dans le sujet (`ccbeaa1`) : lu sur le dépôt, `apps/cli/src/proofs` et `apps/cli/test` identiques au sommet relu `f2ba443`. Capitaine en vie, connecté, quota `allowed`. `.45` et `.53` faits : 38 tickets sur 56 avec `.55` et `.56` à entrer (#324).
 - 2026-11-19, 12 h 40 UTC — deux questions de la fille de `.54` (`session_01BxuG31Y99mmxJ32YVoQWMb`), passées par le conducteur, tranchées : `A-203` et `A-204`. Le trou qu'elles révèlent (une règle à l'en-tête refusé sur la base disparaît sans écart de ce que `compare` juge, depuis `.45`) est du côté non sûr : son ticket passe avant `.19`. Conducteur à environ 232 000 tokens, plugin 7.31.1 de son côté.
+- 2026-11-19, 14 h 40 UTC — COUPURE par la limite d'usage du compte (fenêtre de 5 heures, levée à 13 h 50 UTC) : la fille de `.54` arrêtée à 12 h 41, le conducteur à 12 h 53, le capitaine à 13 h 26, tous `FAILED` et `disconnected` ; cette session aussi (processus relancé, reprise à 14 h 36 sur un mot du produit, « Try again »). Rien de perdu sur le dépôt : sujet à `ccbeaa1`, #325 (`.54`) en brouillon au sommet `c51590f`, #324 (tickets `.55`, `.56`) ouverte sans label. Quota relu `allowed`, fenêtre suivante levée à 18 h 50 UTC. Relevés : conducteur 254 146 tokens et 22,69 $ ; fille de `.54` 327 449 tokens et 16,88 $ (au-dessus de sa consigne de 250 000). Capitaine et conducteur réveillés par message ; relève du conducteur décidée (254 000 sur 280 000) : il écrit l'entrée « RELÈVE DU CONDUCTEUR » et pousse la carte, le conducteur de suite part à son message.
+- 2026-11-19, 14 h 45 UTC — relève du conducteur. L'ancien (`session_01BxuG2zwaHUkcBNJS6VVwiz`, 254 146 tokens, 22,69 $) a écrit l'entrée « RELÈVE DU CONDUCTEUR » (sommet `91fcbfc` du sujet) et s'est arrêté ; archivé. Le ticket d'`A-204` est écrit, `.57`, dans #324 avec `.55` et `.56` ; #324 a son contrôle `qualite` rouge et un commit de retard. Fille de `.53` archivée (25,02 $, 306 634 tokens, au-dessus de 250 000 sans l'avoir dit ; comptée dans la carte du chantier). Conducteur de suite lancé : `session_01BxuG2zP4RpAu97AuHPdSR8`, mêmes consignes, plus `A-205` et l'ordre #324, `.54`, `.57`. Capitaine reparti à 14 h 37.
+- 2026-11-19, 14 h 47 UTC — alerte d'usage lue sur l'ancien conducteur à son archivage (26,30 $ et 266 756 tokens au final) : `rateLimitType` `seven_day_overage_included`, statut `allowed_warning`, levée le 2026-11-22 à 19 h 00 UTC. Dite au produit une fois ; ne pas la redire avant un changement.
