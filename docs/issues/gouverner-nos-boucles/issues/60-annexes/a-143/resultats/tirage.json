@@ -1,0 +1,22 @@
+{
+ "graine": "41",
+ "tirages": 300000,
+ "generateurs": [
+  "soupe",
+  "mutant",
+  "lignes",
+  "cible"
+ ],
+ "lus par le module": 5289,
+ "refusés par le module": 294711,
+ "dangers": 1881,
+ "comptes": {
+  "X3-meme-lecture-hors-schema-strict": 1881
+ },
+ "parGen": {
+  "cible/X3-meme-lecture-hors-schema-strict": 797,
+  "mutant/X3-meme-lecture-hors-schema-strict": 632,
+  "soupe/X3-meme-lecture-hors-schema-strict": 440,
+  "lignes/X3-meme-lecture-hors-schema-strict": 12
+ }
+}
