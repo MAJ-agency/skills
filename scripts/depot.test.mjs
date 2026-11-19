@@ -972,7 +972,7 @@ test("le gabarit de règle porte `criticality`, `cases` et `notApplicableFamilie
     assert.deepEqual(lignes(entete).filter((l) => new RegExp(`^\\s*${cle}:`).test(l)), [], `${GABARIT_REGLE} : ${cle} reste en commentaire`);
   }
   exiger(GABARIT_REGLE, [
-    "# criticality: à partir de l'index au pivot 3 (CLI Anchorpost 2.0.0) ; en bloc, une clé par ligne, que nul formateur ne replie ; la forme nue (criticality: high) est celle d'avant, qu'on n'écrit plus ; fixée par le skill `criticite` à l'écriture de la règle, avant tout code ; un agent écrit toujours by: agent, une clé de `roles` du manifeste n'est écrite que par la personne elle-même ; reason obligatoire pour low ; un agent ne la baisse jamais # level: medium # low | medium | high # by: agent # agent | <clé de roles> # reason: \"…\" # entre guillemets",
+    "# criticality: à partir de l'index au pivot 3 (CLI Anchorpost 2.0.0) ; en bloc, une clé par ligne, que nul formateur ne replie ; la forme nue (criticality: high) est celle d'avant, qu'on n'écrit plus ; fixée par le skill `criticite` à l'écriture de la règle, avant tout code ; un agent écrit toujours by: agent, une clé de `roles` du manifeste n'est écrite que par la personne elle-même ; reason obligatoire pour low ; un agent ne la baisse jamais # level: medium # low | medium | high # by: agent # agent | <clé de roles> # reason: \"…\" # entre guillemets ; sans eux, une virgule ou « : » coupe la raison",
     "# cases: à partir de l'index au pivot 3 (CLI Anchorpost 2.0.0) ; les cas attendus, rendus par le skill `criticite` # - { id: {{id-du-cas}}, title: …, kind: nominal | edge | invalid | refusal, scope: business | technical, family: … } family facultatif",
     "# notApplicableFamilies: à partir de l'index au pivot 3 (CLI Anchorpost 2.0.0) ; chaque famille sans cas, avec sa raison ; le skill `criticite` répond aux dix familles quel que soit le niveau, et une réponse par famille est obligatoire dès medium ; écrite par le skill `criticite` seul ; la réponse est un cas, un « sans objet » motivé, ou une question ouverte au registre `docs/questions-ouvertes.md` ; le gate Anchorpost signale une famille sans réponse ; en `enforce`, il la refuse, sauf quand une question ouverte bloque la règle : la règle reste alors « partielle » jusqu'à la réponse # - { family: limits | empty | invalid-input | duplicate | ordering | time | permissions | rare-state | volume | failure, reason: … }",
   ]);
@@ -991,7 +991,7 @@ test("le gabarit de règle montre `criticality` en bloc, une clé par ligne ; au
   const bloc = [];
   for (let j = i + 1; j < entete.length && /^# {3}\S/.test(entete[j]); j++) bloc.push(entete[j].slice(4));
   assert.deepEqual(bloc.map((l) => l.split(":")[0]), ["level", "by", "reason"], `${GABARIT_REGLE} : sous « # criticality: », une clé par ligne, retrait de deux espaces`);
-  assert.match(bloc[0], /^level: medium +# low \| medium \| high$/);
+  assert.match(bloc[0], /^level: medium # low \| medium \| high$/, "une seule espace avant le commentaire : la forme que Prettier rend");
   assert.match(bloc[1], /^by: agent +# /);
   assert.match(bloc[2], /^reason: "…" +# /, "reason entre guillemets : une raison qui porte « : » reste un texte");
   // Ailleurs dans le plugin : la forme en ligne n'est montrée nulle part (le lecteur de la PR 134 la teste, lui).
@@ -1014,11 +1014,11 @@ test("les noms de tests montrés par le plugin sont en français, comme le veut 
   const FICHE_TESTS = "skills/monorepo/socle-monorepo/references/racine/.claude/rules/tests.md";
   exiger(FICHE_TESTS, [
     "- **Le nom dit le comportement, en français** (c'est de la prose, `ADR_ALL_ARC-4`) : `describe('<Sujet>')` puis `it('<comportement> quand <condition>')`, au présent de l'indicatif : `it('refuse une seconde licence quand la saison en a déjà une')`.",
-    "`it('[RULE_ALL_LIC-2] refuse une seconde licence dans la même saison')`",
+    "`it('[RULE_ALL_LIC-2] refuse une seconde licence quand la saison en a déjà une')`",
   ]);
   exiger("skills/monorepo/socle-monorepo/references/adr/ADR_ALL_ARC-4-langue-des-identifiants-de-code.md", ["noms de tests (qui citent les règles du registre, `<TRI>-<N>`)"]);
   // Un nom de test anglais à la manière `should …`, en tête d'un `it`/`test` (étiquettes comprises) ou donné en modèle.
-  const ANGLAIS = /\b(it|test)(\.each\([\s\S]*?\))?\(\s*["'`](\[[^\]]*\]\s*)*should\b|`should [<[]|names `should|\(`should /;
+  const ANGLAIS = /\b(it|test)(\.each\([\s\S]*?\))?\(\s*["'`](\[[^\]]*\]\s*)*(should\b|<behaviou?r>)|`should [<[]|names `should|\(`should /;
   const fautes = [];
   const parcourir = (dossier) => {
     for (const e of readdirSync(join(RACINE, dossier), { withFileTypes: true })) {

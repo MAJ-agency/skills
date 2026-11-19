@@ -8,12 +8,23 @@
 // un test écrit autrement, n'est pas lu : il tourne dans la tranche de reste, jouée avec `--test-skip-pattern` sur
 // tous les noms lus. Une tranche se joue avec `--test-name-pattern` sur ses noms (Node 22 : un test qui ne répond pas
 // au motif ne tourne pas, ses sous-tests non plus ; un test qui y répond tourne avec ses sous-tests).
+//
+// Seuls les tests de premier niveau sont comptés. Un sous-test (`t.test(…)`, `it` d'un `describe`) dont le nom égale
+// un nom lu serait sauté par la tranche de reste sans être vu : un banc qui en écrit se joue entier, jamais découpé.
 
 const NOM = /^test\(\s*(?:"((?:[^"\\\n]|\\["\\'`])*)"|'((?:[^'\\\n]|\\["\\'`])*)'|`((?:[^`\\$\n]|\\["\\'`]|\$(?!\{))*)`)\s*,/gm;
 
 /** Les noms des tests du fichier que la lecture reconnaît, dans l'ordre, doublons compris. */
 export function nomsDesTests(source) {
   return [...source.matchAll(NOM)].map((m) => (m[1] ?? m[2] ?? m[3]).replace(/\\(.)/g, "$1"));
+}
+
+// Un sous-test : `<param>.test("…"` (un nom littéral en premier argument), ou `describe`, `suite`, `it` appelés.
+const SOUS_TEST = /\b\w+\.test\(\s*["'`]|\b(?:describe|suite|it)\s*\(/;
+
+/** Le banc écrit-il des sous-tests ? Alors il se joue entier. */
+export function aDesSousTests(source) {
+  return SOUS_TEST.test(source);
 }
 
 /** Le motif qui répond à ces noms, et à eux seuls : ancré, chaque caractère lu à la lettre. */
@@ -23,12 +34,12 @@ export function motif(noms) {
 
 /**
  * Les travaux d'un banc : `{ banc, args, noms, sorte }`, `args` étant ce qui suit `node --test` et ses rapporteurs.
- * Au plus `taille` noms lus : le banc entier (`entier`). Au-delà : une `tranche` par paquet de `taille` noms distincts, puis le
+ * Au plus `taille` noms distincts lus, ou `entier` vrai (banc à sous-tests) : le banc entier (`entier`). Au-delà : une `tranche` par paquet de `taille` noms distincts, puis le
  * `reste`, qui saute tous les noms lus.
  */
-export function travaux(banc, noms, taille) {
+export function travaux(banc, noms, taille, { entier = false } = {}) {
   if (!Number.isInteger(taille) || taille < 1) throw new Error(`travaux : taille ${taille} : attendu un entier ≥ 1`);
-  if (noms.length <= taille) return [{ banc, args: [banc], noms, sorte: "entier" }];
+  if (entier || new Set(noms).size <= taille) return [{ banc, args: [banc], noms, sorte: "entier" }];
   // Un nom porté par deux tests répond deux fois au même motif : il va, avec tous ses doublons, dans une seule tranche.
   const distincts = [...new Set(noms)];
   const liste = [];

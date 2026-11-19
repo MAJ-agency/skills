@@ -1307,3 +1307,27 @@ test("le dépôt d'un autre propriétaire : illisible ; déclaré sûr (`safe.di
   assert.equal(parXdg(vide, `[safe]\n\tdirectory = "x\\n${reel}"\n\tdirectory = *\n`, null), "refusé", "une valeur à saut de ligne");
   assert.equal(parXdg(vide, `[safe]\n\tdirectory = "${reel}\\n"\n`, null), "refusé", "une valeur que suit un saut de ligne n'est pas le chemin");
 });
+
+test("un dépôt nu trouvé sans --git-dir, sous `safe.bareRepository = explicit` : refusé comme git le refuse, jamais lu (constat de relecture du ticket 62)", () => {
+  const { d, V, T } = retard();
+  const dossier = dossierTemporaire("nu-");
+  const globale = join(dossier, "gitconfig");
+  const systeme = join(dossier, "systeme");
+  const juge = (globaleDit, env = {}) => {
+    writeFileSync(globale, globaleDit);
+    return juger(d, V, T, "develop", { cwd: d.origine, env: { ...d.env, GIT_CONFIG_GLOBAL: globale, ...env } });
+  };
+  // Le témoin : le dépôt nu se lit, et c'est la cible absente qui le fait refuser plus loin.
+  estIllisible(juge(""), /^origin\/develop introuvable/);
+  estIllisible(juge("[safe]\n\tbareRepository = all\n"), /^origin\/develop introuvable/);
+  const refus = /^pas dans un dépôt git$/;
+  estIllisible(juge("[safe]\n\tbareRepository = explicit\n"), refus);
+  // La dernière valeur vaut, dans l'ordre de git : le système, puis l'utilisateur.
+  writeFileSync(systeme, "[safe]\n\tbareRepository = explicit\n");
+  estIllisible(juge("[safe]\n\tbareRepository = all\n", { GIT_CONFIG_SYSTEM: systeme, GIT_CONFIG_NOSYSTEM: undefined }), /^origin\/develop introuvable/);
+  estIllisible(juge("", { GIT_CONFIG_SYSTEM: systeme, GIT_CONFIG_NOSYSTEM: undefined }), refus);
+  // Dans le doute, `explicit` : GIT_CONFIG_COUNT ou GIT_CONFIG_PARAMETERS présente, ou une valeur à saut de ligne.
+  estIllisible(juge("", { GIT_CONFIG_COUNT: "0" }), refus);
+  estIllisible(juge("", { GIT_CONFIG_PARAMETERS: "'core.x=1'" }), refus);
+  estIllisible(juge('[safe]\n\tbareRepository = "all\\nall"\n'), refus);
+});

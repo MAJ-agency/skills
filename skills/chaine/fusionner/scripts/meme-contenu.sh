@@ -48,7 +48,9 @@
 # lirait pas le fichier XDG quand `~/.gitconfig` existe). Ne vaut qu'une valeur égale à la racine du dépôt (le
 # premier dossier, en remontant du dossier courant sans lien symbolique, qui porte `.git`), caractère pour caractère,
 # ou `*` ; une valeur vide efface celles qui la précèdent ; une ligne d'une autre forme, ou `GIT_CONFIG_COUNT` ou
-# `GIT_CONFIG_PARAMETERS` dans l'environnement : rien n'est admis. Le calcul lit moins que git, jamais plus.
+# `GIT_CONFIG_PARAMETERS` dans l'environnement : rien n'est admis. De même pour `safe.bareRepository` (un dépôt nu trouvé
+# sans `--git-dir` est refusé sous `explicit`) : sa dernière valeur est reportée, et `explicit` dans le doute. Le
+# calcul lit moins que git, jamais plus.
 # Un dépôt partiel (`--filter` : `remote.<nom>.promisor` ou `extensions.partialclone` dans sa configuration) est
 # `illisible`, et la raison le dit : le dépôt propre ne télécharge aucun objet manquant.
 #
@@ -109,47 +111,70 @@ version=$(git version 2>/dev/null) || rendre 69 illisible "git version en échec
 [ "${BASH_REMATCH[1]}" -gt 2 ] || { [ "${BASH_REMATCH[1]}" = 2 ] && [ "${BASH_REMATCH[2]}" -ge 41 ]; } ||
   rendre 69 illisible "git ≥ 2.41 requis, ici ${BASH_REMATCH[1]}.${BASH_REMATCH[2]}"
 
-# ── safe.directory (A-135, A-143) : la racine du dépôt, si l'utilisateur ou le poste l'a déclarée sûre ─────────
-# La racine est celle que git compare : le premier dossier, en remontant, qui porte `.git`.
+# ── safe.directory et safe.bareRepository (A-135, A-143) : ce que l'utilisateur ou le poste dit de ce dépôt ───
+# Les déclarations d'une clé, lues par git lui-même, hors de tout dépôt (`cd /`), avec les seules variables qui disent
+# où vit la configuration, dans son ordre : DECLARES (une valeur vide efface les précédentes, comme pour git), et
+# LISIBLE=1, ou 0 si une ligne n'est ni `system` ni `global` (la suite d'une valeur à saut de ligne) ou si git a
+# échoué autrement que par « aucune valeur » (sortie 1). Le point final garde les sauts de ligne de la fin.
+declarations() { # <clé>
+  local lu rc reste l TAB=$'\t'
+  DECLARES=() LISIBLE=1
+  lu=$(
+    for kv in ${LIEU[@]+"${LIEU[@]}"}; do export "${kv%%=*}=${kv#*=}"; done
+    cd / && git config --show-scope --includes --get-all "$1" 2>/dev/null && printf .
+  ) && rc=0 || rc=$?
+  if [ "$rc" != 0 ]; then
+    # Sortie 1 de `git config` : aucune valeur. Toute autre : rien n'est lisible.
+    [ "$rc" = 1 ] && [ -z "$lu" ] || LISIBLE=0
+    return 0
+  fi
+  [[ "$lu" == *. ]] || { LISIBLE=0; return 0; }
+  reste=${lu%.}
+  while [ "$LISIBLE" = 1 ] && [[ "$reste" == *$'\n'* ]]; do
+    l=${reste%%$'\n'*} reste=${reste#*$'\n'}
+    if [[ "$l" =~ ^(system|global)"$TAB"(.*)$ ]]; then
+      if [ -z "${BASH_REMATCH[2]}" ]; then DECLARES=(); else DECLARES+=("${BASH_REMATCH[2]}"); fi
+    else LISIBLE=0; fi
+  done
+  [ -z "$reste" ] || LISIBLE=0
+}
+# safe.directory : la racine est celle que git compare, le premier dossier, en remontant, qui porte `.git`. Seule
+# vaut une valeur égale à elle, ou `*` ; rien n'est admis si une déclaration est illisible, ou si GIT_CONFIG_COUNT ou
+# GIT_CONFIG_PARAMETERS est dans l'environnement (une remise à zéro peut s'y trouver).
 sur=''
 racine=$(pwd -P 2>/dev/null) && [[ "$racine" == /* ]] || racine=''
 while [ -n "$racine" ] && ! [ -e "${racine%/}/.git" ]; do
   if [ "$racine" = / ]; then racine=''; else racine=${racine%/*}; racine=${racine:-/}; fi
 done
 if [ -n "$racine" ] && [ "$parametres" = 0 ]; then
-  # Lues par git lui-même, hors de tout dépôt, avec les seules variables qui disent où vit cette configuration ; le
-  # point final garde les sauts de ligne de la fin. Aucune déclaration, ou git en échec : rien n'est admis (la
-  # première lecture du dépôt dira s'il est refusé).
-  lu=$(
-    for kv in ${LIEU[@]+"${LIEU[@]}"}; do export "${kv%%=*}=${kv#*=}"; done
-    cd / && git config --show-scope --includes --get-all safe.directory 2>/dev/null && printf .
-  ) || lu=''
-  declares=() admis=1 TAB=$'\t'
-  [[ "$lu" == *. ]] || admis=0
-  reste=${lu%.}
-  while [ "$admis" = 1 ] && [[ "$reste" == *$'\n'* ]]; do
-    l=${reste%%$'\n'*} reste=${reste#*$'\n'}
-    # Une ligne d'une autre portée, ou la suite d'une valeur à saut de ligne : rien n'est admis.
-    if [[ "$l" =~ ^(system|global)"$TAB"(.*)$ ]]; then
-      # Comme git : une valeur vide efface les déclarations qui la précèdent.
-      if [ -z "${BASH_REMATCH[2]}" ]; then declares=(); else declares+=("${BASH_REMATCH[2]}"); fi
-    else admis=0; fi
-  done
-  [ -z "$reste" ] || admis=0
-  if [ "$admis" = 1 ]; then
-    for v in ${declares[@]+"${declares[@]}"}; do
+  declarations safe.directory
+  if [ "$LISIBLE" = 1 ]; then
+    for v in ${DECLARES[@]+"${DECLARES[@]}"}; do
       if [ "$v" = '*' ] || [ "$v" = "$racine" ]; then sur=$racine; fi
     done
   fi
 fi
-# Les lectures du dépôt réel : sans configuration d'utilisateur ni de poste, sauf la déclaration de ce dépôt.
+# safe.bareRepository : git refuse un dépôt nu trouvé sans `--git-dir` quand elle vaut `explicit`. Sa dernière valeur
+# est reportée telle quelle ; une lecture illisible, ou GIT_CONFIG_COUNT ou GIT_CONFIG_PARAMETERS présente (où elle
+# peut valoir `explicit`) : `explicit`. Le calcul lit moins que git, jamais plus.
+nu=''
+if [ "$parametres" = 1 ]; then nu=explicit
+else
+  declarations safe.bareRepository
+  if [ "$LISIBLE" = 0 ]; then nu=explicit; elif [ "${#DECLARES[@]}" -gt 0 ]; then nu=${DECLARES[${#DECLARES[@]} - 1]}; fi
+fi
+REPORTS=()
+[ -z "$sur" ] || REPORTS+=(safe.directory "$sur")
+[ -z "$nu" ] || REPORTS+=(safe.bareRepository "$nu")
+# Les lectures du dépôt réel : sans configuration d'utilisateur ni de poste, sauf ces deux reports.
 r() {
-  if [ -n "$sur" ]; then
-    GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_SYSTEM=/dev/null GIT_CONFIG_NOSYSTEM=1 \
-      GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=safe.directory GIT_CONFIG_VALUE_0="$sur" git "$@"
-  else
-    GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_SYSTEM=/dev/null GIT_CONFIG_NOSYSTEM=1 git "$@"
-  fi
+  local -a vars=(GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_SYSTEM=/dev/null GIT_CONFIG_NOSYSTEM=1 "GIT_CONFIG_COUNT=$((${#REPORTS[@]} / 2))")
+  local i
+  for ((i = 0; i < ${#REPORTS[@]} / 2; i++)); do vars+=("GIT_CONFIG_KEY_$i=${REPORTS[2 * i]}" "GIT_CONFIG_VALUE_$i=${REPORTS[2 * i + 1]}"); done
+  (
+    export "${vars[@]}"
+    exec git "$@"
+  )
 }
 
 # ── Le dépôt réel : où sont ses objets, le sha de la cible, s'il est superficiel ou partiel. Rien d'autre. ──────

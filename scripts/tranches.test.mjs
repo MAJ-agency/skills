@@ -7,7 +7,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
-import { couverture, motif, nomsDesTests, RAPPORTEUR, travaux } from "./tranches.mjs";
+import { aDesSousTests, couverture, motif, nomsDesTests, RAPPORTEUR, travaux } from "./tranches.mjs";
 
 test("les noms se lisent aux `test(` de début de ligne, nom littéral suivi d'une virgule", () => {
   const source = [
@@ -28,6 +28,13 @@ test("les noms se lisent aux `test(` de début de ligne, nom littéral suivi d'u
   assert.deepEqual(nomsDesTests(source), ["double", "simple", "gabarit sans substitution", 'échappés : " \\ fin', "l'apostrophe", "deux fois", "deux fois"]);
 });
 
+test("un banc qui écrit des sous-tests est reconnu : il se jouera entier", () => {
+  for (const s of ['await t.test("enfant", () => {});', "describe('suite', () => {});", "  it(`cas`, () => {});", 'suite("s", () => {});', "await contexte.test('x', () => {});"])
+    assert.ok(aDesSousTests(s), s);
+  for (const s of ['test("seul", () => {});', "if (/^x/.test(ligne)) {}", "const ok = MOTIF.test(nom);", 'assert.ok(re.test(nom), "édit");', "const split = (x) => x;"])
+    assert.ok(!aDesSousTests(s), s);
+});
+
 test("le motif d'une liste de noms est ancré et lit chaque caractère à la lettre", () => {
   const noms = ["a.b", "x (y) [z] {1} * + ? ^ $ | \\ /", "préfixe", "deux fois", "deux fois"];
   const re = new RegExp(motif(noms));
@@ -42,6 +49,10 @@ test("un banc court se joue entier ; un banc long en tranches de `taille` noms, 
   assert.deepEqual(t[0].args, [`--test-name-pattern=${motif(["a", "b"])}`, "b.test.mjs"]);
   assert.deepEqual(t[3].args, [`--test-skip-pattern=${motif(["a", "b", "c", "d", "e"])}`, "b.test.mjs"]);
   assert.throws(() => travaux("b.test.mjs", ["a"], 0), /taille/);
+  // Le seuil compte les noms distincts : trois tests de deux noms tiennent dans une tranche de deux.
+  assert.deepEqual(travaux("b.test.mjs", ["a", "a", "b"], 2).map((x) => x.sorte), ["entier"]);
+  // Un banc à sous-tests se joue entier, quelle que soit sa taille.
+  assert.deepEqual(travaux("b.test.mjs", ["a", "b", "c"], 1, { entier: true }).map((x) => x.sorte), ["entier"]);
   // Deux tests de même nom répondent au même motif : ils vont ensemble dans une seule tranche.
   const doubles = travaux("b.test.mjs", ["a", "d", "b", "d"], 1);
   assert.deepEqual(doubles.map((x) => [x.sorte, x.noms]), [["tranche", ["a"]], ["tranche", ["d", "d"]], ["tranche", ["b"]], ["reste", ["a", "d", "b", "d"]]]);

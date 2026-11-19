@@ -11,7 +11,7 @@ import { fileURLToPath } from "node:url";
 import { environnementDeBanc } from "../skills/chaine/sujet/scripts/depot-jouet.mjs";
 import { spawn } from "node:child_process";
 import { availableParallelism } from "node:os";
-import { couverture, nomsDesTests, RAPPORTEUR, travaux } from "./tranches.mjs";
+import { aDesSousTests, couverture, nomsDesTests, RAPPORTEUR, travaux } from "./tranches.mjs";
 
 const RACINE = fileURLToPath(new URL("..", import.meta.url));
 // [dossier source dans le plugin, dossier de destination dans le projet]
@@ -49,9 +49,10 @@ exit 1
 // `node --test` enfant rend ses résultats au parent au lieu de les jouer et de sortir non nul.
 // Plancher du nombre de tests que l'enfant joue (plus de 170 à l'écriture) : sous lui, le garde ne jouait rien.
 const PLANCHER = 150;
-// Une tranche : au plus TAILLE noms de tests (fusionner.test.mjs, 116 tests, en douze) ; PARALLELE tranches à la fois.
+// Une tranche : au plus TAILLE noms distincts (fusionner.test.mjs : 100 noms lus, dix tranches et un reste, où tournent
+// ses 16 tests écrits en boucle) ; PARALLELE tranches à la fois, comme `node --test` joue ses fichiers.
 const TAILLE = 10;
-const PARALLELE = Math.max(2, availableParallelism());
+const PARALLELE = Math.max(2, availableParallelism() - 1);
 const env = () => environnementDeBanc();
 
 test("les bancs posés à plat sous scripts/chaine/ tournent hors du plugin", { timeout: 620_000 }, async () => {
@@ -77,12 +78,16 @@ test("les bancs posés à plat sous scripts/chaine/ tournent hors du plugin", { 
         .sort()
         .map((n) => join(dossier, n)));
     // Ticket 62 : `node --test` joue les tests d'un fichier l'un après l'autre, et `fusionner.test.mjs` (322 s sur 324
-    // pour tous les bancs) fixait seul la durée de ce test. Chaque banc se joue en tranches d'au plus TAILLE noms,
-    // chacune par son processus, PARALLELE à la fois, les plus gros bancs d'abord ; la couverture prouve que chaque
-    // test a tourné exactement une fois, ceux que la lecture des noms ne reconnaît pas compris (tranche de reste).
+    // pour tous les bancs) fixait seul la durée de ce test. Chaque banc se joue en tranches d'au plus TAILLE noms
+    // distincts, chacune par son processus, PARALLELE à la fois, les plus gros bancs d'abord ; la couverture prouve que
+    // chaque test de premier niveau a tourné exactement une fois, ceux que la lecture des noms ne reconnaît pas compris
+    // (tranche de reste). Un banc qui écrit des sous-tests se joue entier.
     writeFileSync(join(projet, "rapporteur-tranches.mjs"), RAPPORTEUR);
     const liste = bancs
-      .map((banc) => travaux(banc, nomsDesTests(readFileSync(join(projet, banc), "utf8")), TAILLE))
+      .map((banc) => {
+        const source = readFileSync(join(projet, banc), "utf8");
+        return travaux(banc, nomsDesTests(source), TAILLE, { entier: aDesSousTests(source) });
+      })
       .sort((a, b) => b.length - a.length)
       .flat();
     const jouer = (t, i) =>

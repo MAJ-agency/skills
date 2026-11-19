@@ -19,9 +19,9 @@ sources:
 #   - { key: {{clé.de.configuration}}, value: {{valeur attendue}} }   une règle qui déclare des clés et n'a pas de test est « configurée »
 # code: [ apps/api/src/…/fichier.ts ]   fichiers de code qui réalisent la règle, chemins depuis la racine ; périmètre de la mutation par règle (`socle-tests`)
 # criticality:   à partir de l'index au pivot 3 (CLI Anchorpost 2.0.0) ; en bloc, une clé par ligne, que nul formateur ne replie ; la forme nue (criticality: high) est celle d'avant, qu'on n'écrit plus ; fixée par le skill `criticite` à l'écriture de la règle, avant tout code ; un agent écrit toujours by: agent, une clé de `roles` du manifeste n'est écrite que par la personne elle-même ; reason obligatoire pour low ; un agent ne la baisse jamais
-#   level: medium   # low | medium | high
-#   by: agent   # agent | <clé de roles>
-#   reason: "…"   # entre guillemets
+#   level: medium # low | medium | high
+#   by: agent # agent | <clé de roles>
+#   reason: "…" # entre guillemets ; sans eux, une virgule ou « : » coupe la raison
 # cases:   à partir de l'index au pivot 3 (CLI Anchorpost 2.0.0) ; les cas attendus, rendus par le skill `criticite`
 #   - { id: {{id-du-cas}}, title: …, kind: nominal | edge | invalid | refusal, scope: business | technical, family: … }   family facultatif
 # notApplicableFamilies:   à partir de l'index au pivot 3 (CLI Anchorpost 2.0.0) ; chaque famille sans cas, avec sa raison ; le skill `criticite` répond aux dix familles quel que soit le niveau, et une réponse par famille est obligatoire dès medium ; écrite par le skill `criticite` seul ; la réponse est un cas, un « sans objet » motivé, ou une question ouverte au registre `docs/questions-ouvertes.md` ; le gate Anchorpost signale une famille sans réponse ; en `enforce`, il la refuse, sauf quand une question ouverte bloque la règle : la règle reste alors « partielle » jusqu'à la réponse
