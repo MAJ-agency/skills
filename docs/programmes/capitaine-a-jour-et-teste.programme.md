@@ -84,8 +84,9 @@ Décisions de l'architecte :
 | ticket | 7 | session_012xRpgZAedd2xzkqRc9YBYv | sonnet | 191 702 | 2,70 |
 | ticket | 2 | session_012xRpgbmxxvZr3pZbLZccCN | opus | 410 377 | 17,29 |
 | ticket | 11 | session_012xRpga69nMFgKEzuT4rE8A | sonnet | 203 660 | 3,14 |
-| ticket | 16 | session_012xRpgXvNcXsnHhWX6PyPB3 | opus | — | — |
+| ticket | 16 | session_012xRpgXvNcXsnHhWX6PyPB3 | opus | 329 735 | 13,30 |
 | ticket | 3 | session_012xRpga1obGxgaKzsZHF9ts | opus | — | — |
+| ticket | 4 | session_012xRpgYoUfHC1w29vDGPWPG | opus | — | — |
 | capitaine | — | session_012xRpgcWjwiV8xVUSzzEy9L | sonnet | — | — |
 
 ## Passation
@@ -184,3 +185,4 @@ Demande du produit, 2026-11-18, recopiée telle quelle (relevée sur `MAJ-agency
 - 2026-11-19 — 02 h 53 UTC. **PR 128 fusionnée** (squash `3b42387`, `main` en 7.27.0 ; le titre du squash dit encore « plugin 7.26.0 », titre de PR non mis à jour par la session : écart cosmétique, l'historique ne se réécrit pas), arbre identique au sommet ordonné `1436297`, vérifié ; ticket 2 fait. Tickets 16 (session_012xRpgXvNcXsnHhWX6PyPB3) et 3 (session_012xRpga1obGxgaKzsZHF9ts), opus, lancés en parallèle depuis `3b42387`.
 - 2026-11-19 — 03 h 25 UTC. PR 130 (ticket 16, `6d763dc`) livrée ; contre-relecture **conforme** (981 tests, parité rejouée contre le vrai capitaine sur six motifs, workflow sûr, zizmor muet) ; deux mineures demandées avant l'ordre (un écart de parité : réception titrée `fix` à résolution de documentation ; `est-livraison` sans comparaison du sommet).
 - 2026-11-19 — 03 h 35 UTC. PR 130 : deux mineures corrigées (`2c1c248`, `a-juger` rend la résolution puis l'union, `est-livraison` compare le sommet, 982 tests, checks verts), delta relu ; branche déjà sur `main` (`3b42387`) en 7.28.0. **Ordre `à-fusionner au sommet 2c1c248…` et label posés.** PR 131 (ticket 3, `2141545`, 985 tests) livrée, en contre-relecture ; prendra 7.29.0 après la 130.
+- 2026-11-19 — 03 h 37 UTC. **PR 130 fusionnée** (squash `03e4d64`, 7.28.0), arbre identique au sommet ordonné `2c1c248`, vérifié ; ticket 16 fait, session archivée (13,30 $). Ticket 4, le dernier, lancé : session_012xRpgYoUfHC1w29vDGPWPG (opus, depuis `03e4d64`). PR 131 en contre-relecture, prendra 7.29.0.
