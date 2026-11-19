@@ -75,11 +75,12 @@ Décisions de l'architecte :
 | ticket | 17 | session_012xRpgbyvYBRavfo3t7tSRy | opus | 627 343 | 32,97 |
 | ticket | 6 | session_012xRpgYLyDnCAE8DMZWu3s5 | sonnet | 207 235 | 3,18 |
 | ticket | 13 | session_012xRpgYZHPVc6BJ87qfJom5 | sonnet | 194 669 | 3,06 |
-| ticket | 9 | session_012xRpgcJxHH8VpXnvZFLcAG | opus | — | — |
+| ticket | 9 | session_012xRpgcJxHH8VpXnvZFLcAG | opus | 510 319 | 29,01 |
 | ticket | 14 | session_012xRpgZCHrKAsSDyAM9MBy8 | sonnet | 171 523 | 2,50 |
 | ticket | 5 | session_012xRpgZ61a6Z3tAxnLE1XtH | sonnet | 186 928 | 2,98 |
 | ticket | 8 | session_012xRpgb2wqPnXRgEHTvthK3 | opus | 327 602 | 17,89 |
 | ticket | 18 | session_012xRpgZurfcXHuBBqAMFitE | opus | — | — |
+| ticket | 7 | session_012xRpgZAedd2xzkqRc9YBYv | sonnet | — | — |
 | capitaine | — | session_012xRpgcWjwiV8xVUSzzEy9L | sonnet | — | — |
 
 ## Passation
@@ -159,3 +160,4 @@ Demande du produit, 2026-11-18, recopiée telle quelle (relevée sur `MAJ-agency
 - 2026-11-19 — 00 h 03 UTC. PR 124 : `main` fusionnée (`8d60750`, conflits de version seuls, étape 0 de la PR 122 gardée), 7.24.0, 926 tests ; delta relu (contient `main`, même diff qu'au sommet conforme). **Ordre `à-fusionner au sommet 0ed0f90…` et label posés.**
 - 2026-11-19 — 00 h 15 UTC. Contre-relecture du delta de la PR 125 (`39aa1eb`) **conforme** (866 tests, 25 casses de module : refus ou délai, jamais ouvert sauf code écrit pour ouvrir) ; trois mineures demandées (faux refus sur des points de suspension, `cp` ou `Write`, commentaire inexact des gardes), à faire pendant le passage de la PR 124.
 - 2026-11-19 — 00 h 21 UTC. PR 125 : trois mineures corrigées (`7c8e95c`, 867 tests), delta relu par l'architecte : prête ; attend la fusion de la PR 124 pour reprendre `main` et prendre la version suivante.
+- 2026-11-19 — 00 h 23 UTC. **PR 124 fusionnée** (squash `ebe60ee`, 7.24.0), arbre identique au sommet ordonné `0ed0f90`, vérifié ; ticket 9 fait (statut posé dans la PR), session archivée (510 319 tokens, 29,01 $). Signal à la PR 125 (7.25.0). Ticket 7 lancé : session_012xRpgZAedd2xzkqRc9YBYv (sonnet, depuis `ebe60ee`).
