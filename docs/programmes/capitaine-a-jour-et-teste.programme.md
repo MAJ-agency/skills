@@ -87,9 +87,9 @@ Décisions de l'architecte :
 | ticket | 11 | session_012xRpga69nMFgKEzuT4rE8A | sonnet | 203 660 | 3,14 |
 | ticket | 16 | session_012xRpgXvNcXsnHhWX6PyPB3 | opus | 329 735 | 13,30 |
 | ticket | 3 | session_012xRpga1obGxgaKzsZHF9ts | opus | 279 719 | 11,64 |
-| ticket | 4 | session_012xRpgYoUfHC1w29vDGPWPG | opus | — | — |
+| ticket | 4 | session_012xRpgYoUfHC1w29vDGPWPG | opus | 515 829 | 42,49 |
 | ticket | 20 | session_012xRpgc3qSdPZDRvhki7Z3B | sonnet | 163 189 | 2,28 |
-| capitaine | — | session_012xRpgcWjwiV8xVUSzzEy9L | sonnet | — | — |
+| capitaine | — | session_012xRpgcWjwiV8xVUSzzEy9L | sonnet | 557 162 | 10,10 |
 
 ## Passation
 
@@ -200,3 +200,4 @@ Demande du produit, 2026-11-18, recopiée telle quelle (relevée sur `MAJ-agency
 - 2026-11-19 — 04 h 50 UTC. Contre-relecture de la PR 133 : **non conforme**, un bloquant (lecture du verrou en échec → sortie 3 puis ARRÊT de la boucle ; A-53), trois mineures (trappe posée après la prise, deux mutations sans banc, âge par `updated_at` → epoch dans le corps). Renvoyée, avec la fusion de `main` (7.30.0) d'un même geste.
 - 2026-11-19 — 09 h 35 UTC. Après une coupure de cette session (04 h 53 → 09 h 32), constat : la PR 126 d'un autre programme est entrée (`f58ccad`, 7.30.0), puis **la PR 133 a été fusionnée** (`a3c2a7c`, 7.31.0) sur un ordre `à-fusionner au sommet 848bc6c…` posé à 09 h 20 par une session hors de ce programme (session_01BxuG32z1RUgo3HduKXzDCG, introuvable par `get_session`), qui avait elle-même fusionné `main` dans la branche : **sans les corrections de la contre-relecture non conforme** (B1 : lecture du verrou en échec → 3 au lieu de 5 ; trappe ; deux bancs ; âge par `updated_at`). Écart à A-48, signalé au produit. Rien de dangereux n'est entré : la panne arrête la boucle (échec fermé) au lieu de la mettre en pause. Correctif : la session du ticket 4 reporte ses corrections (`8143efb`) sur une branche neuve depuis `a3c2a7c`, 7.31.1, nouvelle PR à contre-relire.
 - 2026-11-19 — 10 h 05 UTC. PR 135 (correction du ticket 4, `f96565d`, 7.31.1, 1076 tests, checks verts) livrée ; sa contre-relecture s'est arrêtée sur la **limite de dépense du compte** (HTTP 429, remise à zéro annoncée le 2026-11-20 à 18 h UTC). Programme en pause : aucune session lancée, contrôles de vie suspendus ; reprise prévue après la remise à zéro (contre-relecture de la 135, ordre et label, PR de documentation, compte rendu).
+- 2026-11-19 — 10 h 20 UTC. Passation écrite (`capitaine-a-jour-et-teste.passation.md`) pour une session d'un autre compte. Sessions du ticket 4 (42,49 $) et du capitaine (10,10 $) archivées à la demande du produit, tâche de reprise supprimée ; l'architecte s'arrête ici.

@@ -35,7 +35,7 @@
 
 ### 2. Faire fusionner
 
-- **Rien ne fusionne seul.** Le capitaine de ce dépôt est une session du compte du produit (`session_012xRpgcWjwiV8xVUSzzEy9L`, procédure « dépôt sans la chaîne » de `skills/chaine/architecte/references/lancement.md`), arrêtée elle aussi par la limite. À la remise à zéro, il reprend la file seul. D'ici là, deux voies : le produit fusionne à la main ; ou ton compte lance son propre capitaine avec le prompt de `lancement.md` (bloc « Procédure : », à jour depuis la PR 132). Le produit a tranché (P-2) : plusieurs capitaines sur un dépôt est un usage normal.
+- **Rien ne fusionne seul.** Le capitaine de ce dépôt (session du compte du produit) est **archivé**, comme toutes les sessions du programme. Deux voies : le produit fusionne à la main, ou ton compte lance son propre capitaine avec le prompt de `skills/chaine/architecte/references/lancement.md` (bloc « Procédure : », à jour depuis la PR 132). Le produit a tranché (P-2) : plusieurs capitaines sur un dépôt est un usage normal.
 - Après chaque fusion, vérifier que l'arbre du squash est celui du sommet ordonné : `git rev-parse origin/main^{tree}` doit égaler `git rev-parse <sommet>^{tree}`.
 
 ### 3. PR de documentation du programme
@@ -62,7 +62,7 @@ Le produit (Guillaume) a demandé ceci : un ticket par défaut, le correctif d'a
 - **Fedora** : ajouter l'entrée `fusionsSansEffet` de `schema.prisma` dans `.claude/chaine.json`, et faire lire au hook `sans-migration` tout le message de commit (note 7.29.0) ;
 - les limites connues, au Fog de la carte : une ligne forgée par un hook en arrière-plan dans la boucle ; une trace husky forgée par un hook vert ; le catalogue des gates de Fedora, toujours à retrouver ;
 - les deux points ouverts : qui a posé l'ordre de la PR 133 ; la branche `ticket/4-plusieurs-capitaines-verrou`, recréée par erreur, sans PR, à supprimer par quelqu'un qui en a le droit ;
-- le coût des sessions de tickets, environ 220 $ (tableau Coût de la carte).
+- le coût des sessions de tickets, environ 265 $ (tableau Coût de la carte), plus 10 $ de capitaine.
 
 ## Règles à tenir
 
@@ -80,4 +80,4 @@ Elles viennent du produit et de la chaîne ; les reprendre telles quelles dans t
 
 ## À ne pas oublier
 
-- Dans le compte de départ, une tâche programmée (`trig_011Vqhap67e8a8EcUxDtie6w`) réveillera l'architecte d'origine le 2026-11-20 à 18 h 10 UTC pour reprendre ces mêmes étapes. Si ta session a fini avant, écris l'état dans le Journal de la carte : l'architecte le lira et ne refera rien. Sinon, préviens le produit, pour qu'il supprime la tâche ou te laisse finir.
+- L'architecte d'origine, ses sessions de tickets et son capitaine sont archivés, et sa tâche de reprise est supprimée : personne d'autre ne reprendra ces étapes. Écris ton avancement dans le Journal de la carte.
