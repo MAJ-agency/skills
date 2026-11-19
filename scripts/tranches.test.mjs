@@ -77,21 +77,35 @@ test("la couverture : chaque nom lu a tourné exactement une fois, dans sa tranc
   assert.match(couverture(entier, [["a", "deux"]]).join("\n"), /« deux » a tourné 1 fois, attendu 2/);
 });
 
+// Onze tests : des noms à caractères de motif, un préfixe d'un autre, un doublon, un nom calculé, un nom concaténé.
+const BANC_JOUET = `import { appendFileSync, readFileSync } from "node:fs";
+import { test } from "node:test";
+const { journal } = JSON.parse(readFileSync(new URL("./jouet.json", import.meta.url), "utf8"));
+const noter = (t) => appendFileSync(journal, t.name + "\\n");
+test("un", noter);
+test("deux (2) [b]", noter);
+test("trois.*", noter);
+test("un préfixe", noter);
+test("un préfixe et sa suite", noter);
+test("double", noter);
+test("double", noter);
+test("six", noter);
+test("sept", noter);
+const dyn = "dynamique";
+test(\`\${dyn}\`, noter);
+test("con" + "caténé", noter);
+`;
+
 test("un vrai banc joué tranche par tranche : chaque test tourne une fois, ceux que la lecture ne nomme pas compris", () => {
   const dossier = mkdtempSync(join(tmpdir(), "tranches-"));
   try {
     const journal = join(dossier, "journal");
     writeFileSync(join(dossier, "rapporteur.mjs"), RAPPORTEUR);
-    const banc = [
-      'import { appendFileSync } from "node:fs";',
-      'import { test } from "node:test";',
-      `const noter = (n) => appendFileSync(${JSON.stringify(journal)}, n + "\\n");`,
-      ...["un", "deux (2) [b]", "trois.*", "un préfixe", "un préfixe et sa suite", "double", "double", "six", "sept"].map((n) => `test(${JSON.stringify(n)}, () => noter(${JSON.stringify(n)}));`),
-      'const dyn = "dynamique";',
-      "test(`${dyn}`, () => noter(dyn));",
-      'test("con" + "caténé", () => noter("concaténé"));',
-    ].join("\n");
-    writeFileSync(join(dossier, "jouet.test.mjs"), banc);
+    // Le banc jouet est un texte constant, sans aucune valeur interpolée (A-157) : le chemin du journal se lit dans
+    // un fichier JSON posé à côté de lui, et chaque test note son propre nom.
+    writeFileSync(join(dossier, "jouet.json"), JSON.stringify({ journal }));
+    writeFileSync(join(dossier, "jouet.test.mjs"), BANC_JOUET);
+    const banc = BANC_JOUET;
     const noms = nomsDesTests(banc);
     assert.equal(noms.length, 9, "les neuf noms littéraux sont lus, pas les deux autres");
     const t = travaux("jouet.test.mjs", noms, 3);
