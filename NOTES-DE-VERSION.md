@@ -2,7 +2,7 @@
 
 La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque projet par `poser` : une version publiée ne change rien chez un projet qui ne les repose pas. Chaque note dit ce qui change, puis ce qu'un projet fait pour en profiter.
 
-## 7.34.0 — 2026-11-19
+## 7.35.0 — 2026-11-19
 
 ### Ce qui change
 
@@ -22,6 +22,25 @@ Dans le dépôt du plugin seulement : `scripts/poses.test.mjs` joue les bancs po
 2. Reposer les scripts de la chaîne, dans une PR du projet : `/maj-skills:fusionner poser` (`meme-contenu.sh`, `double-relecture.mjs` et leurs bancs). Un poste qui déclare un dépôt d'un autre propriétaire par `dossier/*` le déclare par son chemin (`git config --global --add safe.directory <chemin>`).
 3. Reporter dans le projet, par une PR, la ligne « Le nom dit le comportement » de `.claude/rules/tests.md`, ses exemples et ceux de `docs/agents/gabarits/` ; les tests déjà écrits en anglais se renomment à leur prochaine retouche, rien ne les refuse.
 4. Une règle qui porte `criticality` en ligne peut être réécrite en bloc à sa prochaine retouche (`level`, `by`, `reason` entre guillemets, une clé par ligne).
+
+## 7.34.0 — 2026-11-19
+
+### Ce qui change
+
+CODEOWNERS sort du plugin (décision du produit du 2026-11-18) : GitHub ne bloque plus aucune PR sur les chemins sensibles. Le socle ne pose plus `.github/CODEOWNERS`, ni son générateur `scripts/github/codeowners.mjs`, ni le gate `check:codeowners` ; le gabarit de `.claude/chaine.json` n'a plus de clé `proprietaires` ni de gate rapide sous `scripts/github/` ; `garde-fichiers` ne refuse plus l'édition de CODEOWNERS, et normalise toujours le chemin avant de juger le lockfile, un `.env` ou une migration livrée. Le capitaine n'attend plus personne : les états « attend un propriétaire » et « attend un humain » (fusion refusée faute d'approbation) sortent de `file.sh`, `passer.sh`, `boucle.sh` et `github.sh`. **Un refus de fusion de GitHub faute de revue approuvée est désormais un refus durable comme un autre : `passer.sh` sort en 3 et la boucle s'arrête**, au lieu d'attendre l'approbation. La PR refusée garde `à-fusionner` et sa place dans la file : tant que la règle demeure, chaque lancement de la boucle s'arrête de nouveau sur elle, et les PR vers `develop` placées après elle attendent ; le capitaine ne retire pas son label, le dit à son lanceur, et un humain lève la règle (skill `fusionner`, « Devant un refus durable de fusion »). L'état `humain` du plafond des renvois ne change pas. Le socle pose trois ADR ; le gabarit de l'ADR « CODEOWNERS » reste dans le plugin, marqué retiré. La liste de l'admin dit de ne pas cocher « Require review from Code Owners », tient « Required approvals » à 0 (une approbation exigée arrête désormais le capitaine), et garde « Block force pushes », « Restrict deletions » et « aucune liste de contournement ». Plus aucun texte ne donne la protection des branches de GitHub pour frontière contre une PR hostile : aucune de ses règles n'arrête ce qu'un compte de confiance fait entrer. Les chemins sensibles, la contre-revue et `/security-review` ne changent pas ; ce qui prendra la place de CODEOWNERS, l'accord du produit donné avant de toucher un fichier sensible, arrive avec la relecture indépendante.
+
+### Ce qu'un projet fait pour en profiter
+
+Un projet qui ne repose rien ne voit rien changer : ses scripts sont des copies, son CODEOWNERS et son gate marchent comme avant.
+
+1. Mettre à jour le plugin : `claude plugin marketplace update maj`, puis `claude plugin update maj-skills@maj`, puis redémarrer Claude Code (session cloud : `lancement.md` § « La mise à niveau »).
+2. Un projet qui n'a jamais reçu CODEOWNERS (pas de `scripts/github/codeowners.mjs`) : rien d'autre à faire.
+3. Un projet qui l'a reçu (posé ou reposé depuis le plugin 7.13.0) suit, dans une seule PR vers `develop`, la marche à suivre `socle-chaine-de-production/references/retrait-codeowners.md`. **Aucun `poser` ne fait ce retrait.** Elle retire `.github/CODEOWNERS` seulement si sa première ligne est celle du générateur (`# Généré depuis .claude/chaine.json (cheminsSensibles, proprietaires) : ne pas éditer.`) : un CODEOWNERS écrit à la main reste, et se dit à qui a lancé la session. Elle retire aussi le générateur, son banc, les scripts `codeowners` et `check:codeowners`, la clé `proprietaires` et le gate rapide du contrat, repose `scripts/agent/` et les scripts du capitaine, corrige `CLAUDE.md`, la méthode et la liste de l'admin, et marque retirée l'ADR « CODEOWNERS » du projet.
+4. **À l'admin, avant que la PR du retrait entre dans `develop` : décocher « Require review from Code Owners » sur `develop` et `main` si elle l'était, et tenir « Required approvals » à 0.** La boucle en marche n'attend aucune relance : au tour qui suit l'entrée de cette PR, elle prend les scripts du capitaine de `develop` (même sans le reste du retrait) et n'attend plus personne. Une revue encore exigée l'arrête alors (`ARRÊT`, sortie 3) sur la première PR de la file dont GitHub refuse la fusion, après l'avoir mise à jour avec `develop` (une CI), et de nouveau à chaque relance tant que la règle demeure : règle cochée, la première PR qui touche un chemin possédé sans qu'un propriétaire l'ait approuvée (une PR déjà approuvée passe) ; « Required approvals » à 1 ou plus, toute PR non approuvée, qu'elle touche ou non un chemin possédé.
+5. **Avant que la PR du retrait entre dans `develop`, les PR qui attendaient une revue.** Relever avec l'ancien `file.sh` (le nouveau les montre `prête`) les PR « attend un propriétaire » ou « attend un humain » : la règle décochée, le capitaine reposé les fusionne sans la relecture qu'elles attendaient. Les faire relire, ou leur retirer `à-fusionner`. Le commentaire `<!-- attente-revue-capitaine -->` que l'ancien capitaine y a laissé n'est plus lu (ni attente ni renvoi) et peut être supprimé.
+6. Relancer la veille de chaque capitaine une fois cette PR entrée dans `develop` (skill `fusionner` § « Mise en place ») : la boucle en marche a déjà pris les nouveaux scripts, la veille garde sa copie de `file.sh` jusqu'à sa relance.
+
+Un projet peut reposer `scripts/agent/` et les scripts du capitaine avant de retirer le fichier : son gate `check:codeowners` reste vert tant que son contrat garde `proprietaires` et que son générateur est là.
 
 ## 7.33.0 — 2026-11-19
 

@@ -106,7 +106,7 @@ Relevé sur le calcul du ticket 60 (PR 134), qui partage avec `meme-contenu.sh` 
 
 ### Version
 
-15. Un comportement change pour un projet (`meme-contenu.sh` refuse `dossier/*` et nomme le clone partiel ; la fiche de tests change) : le deuxième nombre, sur la version de `main` au moment de livrer. La suivante de `main` au moment de livrer : `main` repris deux fois par fusion (`6087604`, PR 139, 7.32.0 ; puis `d4fe426`, PR 134, 7.33.0), donc **7.34.0** ; la PR 138, qui annonce aussi un numéro, reprendra `main` si elle entre après.
+15. Un comportement change pour un projet (`meme-contenu.sh` refuse `dossier/*` et nomme le clone partiel ; la fiche de tests change) : le deuxième nombre, sur la version de `main` au moment de livrer. La suivante de `main` au moment de livrer : `main` repris trois fois par fusion (`6087604`, PR 139, 7.32.0 ; `d4fe426`, PR 134, 7.33.0 ; `5d05f4b`, PR 138, 7.34.0), donc **7.35.0** ; une PR qui entrerait avant celle-ci la ferait reprendre `main` encore.
 
 ## Cas de test
 

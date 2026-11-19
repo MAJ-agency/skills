@@ -1,8 +1,12 @@
 # ADR_ALL_ARC-{{N}} — Un chemin sensible est relu par un humain, et c'est GitHub qui le tient : CODEOWNERS se génère depuis `cheminsSensibles`
 
-- Statut : **accepté**
+- Statut : **retirée** par la décision du produit du 2026-11-18 (`P-49` de la carte « gouverner nos boucles » du plugin `maj-skills`) ; gardée pour mémoire
 - Date : {{DATE}}
 - Portée : `.github/CODEOWNERS`, `.claude/chaine.json`, la protection de `develop` et de `main`, le capitaine de fusion
+
+## Retrait
+
+Le produit a retiré cette décision le 2026-11-18 : pas de blocage par GitHub sur les fichiers sensibles, et le fichier CODEOWNERS disparaît. Toutes les sessions publient sous le compte du produit, et GitHub refuse qu'un auteur approuve sa propre PR : chaque PR sensible dépendait d'une seconde personne. Sortent du projet `.github/CODEOWNERS`, `scripts/github/codeowners.mjs` et son gate, la clé `proprietaires` de `.claude/chaine.json`, le refus d'éditer CODEOWNERS, et l'attente d'un propriétaire par le capitaine ; « Require review from Code Owners » ne se coche sur aucun dépôt. Restent `cheminsSensibles`, la contre-revue et `/security-review` sur ces chemins ({{ADR_CHAINE}}), et la protection des branches (`docs/agents/chaine-admin.md`). La suite de ce document est la décision retirée, telle qu'elle était.
 
 ## Contexte
 
