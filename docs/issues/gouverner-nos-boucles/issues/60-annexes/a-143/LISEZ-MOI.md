@@ -58,4 +58,4 @@ Des 119 977 en-têtes intacts de `presque-plie.mjs`, aucun n'est refusé par le 
 npm install prettier@3.10.1 && for f in prettier/entrees/*.md; do npx prettier $f; done
 ```
 
-Lues par le lecteur : toutes les sorties, sauf `en-ligne-nu.md` (un texte nu à virgule, coupé en deux entrées dont la seconde n'a pas de valeur) et `en-bloc.prose-wrap-always.md` (une chaîne pliée sur deux lignes), hors liste, donc « illisible ». Les sorties de `en-ligne.md` et d'`imbrique.md` sont recopiées dans le banc.
+Lues par le lecteur au sommet `06f75d4` (troisième forme admise, `A-151`) : toutes les sorties, aux réglages par défaut comme au réglage du socle (`printWidth: 100`, `trailingComma: all`, sous lequel `nue.md` et `en-ligne.md` prennent la troisième forme, le flux seul sur la ligne qui suit sa clé), sauf `en-ligne-nu.md` (un texte nu à virgule, coupé en deux entrées dont la seconde n'a pas de valeur) et `en-bloc.prose-wrap-always.md` (une chaîne pliée sur deux lignes), hors liste, donc « illisible ». Au sommet `d5fdcea`, la troisième forme était refusée (contre-relecture du même jour, `A-151`). Les sorties de `en-ligne.md` et d'`imbrique.md` sont recopiées dans le banc.
