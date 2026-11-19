@@ -1,6 +1,6 @@
 # `sujet.sh livrer` n'étiquette plus et sait faire sans `gh`, `fait_sur` lit tout le flux
 
-Status: ready-for-agent
+Status: Fait — PR #127
 Type: défaut
 Modèle: sonnet — deux corrections locales de `sujet.sh`, chacune décidée ici avec sa sortie et son message, et des bancs sur le modèle de ceux de `sujet.test.mjs`.
 Blocked by: 1 (`sujet.sh` et le faux GitHub sont des fichiers chauds du ticket 1 : partir de `main` après sa fusion)
@@ -175,3 +175,12 @@ Tests existants rejoués sans changement : `sujet.test.mjs:319` (dry-run), `:344
   - **Code 14** : `grep -E '(sortir|exit|return) 1[2-9]'` ne rend rien dans `sujet.sh` sur `4a45634` ; le 12 est pris par le ticket 1 (arbre du squash différent), le 13 par le ticket 8 (préparation du capitaine en échec, `veille.sh`), le 10 signifie « arrêt demandé » dans `boucle.sh`. Un code distinct dans toute la chaîne évite qu'un `VEILLE ARRÊTÉE` ou une ligne du skill se lise de deux façons.
   - **Une lecture GitHub en échec dans `livrer` vaut « sans `gh` »** : la spec ne le disait pas ; aujourd'hui elle donne un motif faux (« des sous-PR visent encore »).
   - **Le fichier vit sous `<git-common-dir>`**, pas dans l'arbre de travail : un fichier non suivi dans l'arbre ferait refuser le prochain geste du capitaine (« arbre de travail pas propre », sortie 6).
+- 2026-11-19 — Fille (session du ticket 7), choix tenus ou tranchés prudemment :
+  - Partie de `origin/main` `ebe60ee` (plugin 7.24.0) ; version livrée : **7.25.0** (mineure : sortie 14 nouvelle).
+  - `ETIQUETER=1` posé par `livrer_prets` seul ; `livrer` sans lui n'étiquette jamais. Code 14, fichier sous `<git-common-dir>/livraison-<nom>.md`, lecture en échec = « sans gh » : tenus comme décidés.
+  - « `gh` utilisable » = `command -v gh` et `gh api user --jq .login` non vide ; la lecture des sous-PR garde `gh api … --jq length` validé `^[0-9]+$` (lecture isolée dans `livrer`, qui sort en 14 plutôt qu'en 5 : le ticket décide que l'échec vaut « sans gh »). Elle ne passe pas par `lire_github`, qui sortirait en 5 : ce serait contredire la Décision 1 ; à contre-lire.
+  - `POST pulls` refusé : sortie de `gh` relayée sur stderr par `masquer_url`, puis fichier et 14.
+  - Appelé par `livrer-prets` sans `gh` : la sortie 14 interrompt la boucle des sujets (le capitaine a `gh`) ; non traité.
+  - Banc ajouté en plus des quatre : lecture des sous-PR vide avec `gh` connecté (panne simulée), rouge sous la mutation « lecture non validée » (le banc 3, `compteIllisible`, ne l'atteint pas : `user` échoue avant).
+  - Mutations jouées, toutes rouges : `fait_sur` en `grep -m1 | grep -q` (banc SIGPIPE) ; label posé sans `ETIQUETER` (banc « sans à-fusionner ») ; `livrer_prets` sans `ETIQUETER=1` (« livrer-prets ouvre la PR… » et « livrer refuse un sujet gelé… ») ; sous-PR non validées comme nombre (banc de lecture vide).
+  - Contre-relecture de l'architecte, mineures reprises : branche jetable non poussée quand `gh` est déjà inutilisable (poussée puis retirée si le POST est refusé) ; cause lue dans le libellé (`gh absent`, `compte illisible (…)`, `POST refusé (…)`), sortie de `gh` masquée ; fichier d'erreur par `mktemp` ; note Iroki (son `fait_sur` est déjà corrigé, son `livrer` porte e2e et brouillons) ; sortie 14 rangée dans l'ordre. Option `refusPost` ajoutée au faux `gh`.

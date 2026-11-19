@@ -5,6 +5,7 @@
 //   pulls       PR { number, title, body, draft, state, labels: [noms], base, head, merged_at, commentaires }
 //               `commentaires` : [corps], écrits par le compte du capitaine, ou { auteur, body } d'un autre compte
 //   capitaine   compte que rend `gh api user` (défaut « capitaine ») ; compteIllisible : `user` répond 403
+//   refusPost   message d'un refus du `POST pulls` (`gh: … (HTTP 422)`), code 1
 //   brancheParDefaut  branche par défaut du dépôt (défaut « main »), dans `base.repo.default_branch`
 //   checks      états par commit (clé = sha complet), par PR (« #12 », la tête courante de la PR seule) ou pour
 //               tout commit (« * »), dans cet ordre de priorité : { nom: SUCCESS | FAILURE | IN_PROGRESS… }. Un état
@@ -239,6 +240,7 @@ function repondre() {
       .map(versRest);
   }
   if (methode === "POST" && route === "pulls") {
+    if (etat.refusPost) return echec(etat.refusPost);
     const n = Math.max(0, ...etat.pulls.map((p) => p.number)) + 1;
     etat.pulls.push({
       number: n,
