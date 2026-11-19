@@ -4,7 +4,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { chmodSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { appendFileSync, chmodSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 // Posé dans un projet, depot-jouet.mjs est à côté (scripts/chaine/) ; dans le plugin, il est dans le skill sujet.
 const { depotJouet, dossierTemporaire, script } = await import(
@@ -1093,4 +1093,94 @@ test("A-125 : un objet illisible à la base de la fusion n'est pas un conflit : 
   assert.ok(existsSync(objet), "l'arbre de la base est un objet libre du clone");
   rmSync(objet);
   estIllisible(juger(d, V, T), /^git merge-tree --write-tree (a écrit une erreur|en échec \(128\)) sur [0-9a-f]{9}$/);
+});
+
+// ── Retouches du second tour de contre-relecture ────────────────────────────────────────────────────────────
+test("un `alternates` périmé du dépôt réel n'est pas une erreur de la fusion calculée ; un objet illisible le reste", () => {
+  const d = depotJouet();
+  const base = d.git("rev-parse", "origin/develop");
+  const V = pousser(d, "feat/a", { "apps/a.ts": "a\n" });
+  pousser(d, "develop", { "docs/b.md": "b\n" });
+  const T = miseAJour(d, "feat/a", "develop", rien);
+  estMeme(juger(d, V, T), /1 fusion/);
+  // Le dépôt réel emprunte des objets à un dossier disparu : git l'écrit sur la sortie d'erreur de chaque commande.
+  const objets = d.git("rev-parse", "--path-format=absolute", "--git-path", "objects");
+  const arbre = d.git("rev-parse", `${base}^{tree}`);
+  const objet = join(objets, arbre.slice(0, 2), arbre.slice(2));
+  mkdirSync(join(objets, "info"), { recursive: true });
+  appendFileSync(join(objets, "info", "alternates"), `${join(d.racine, "disparu", "objects")}\n`);
+  const bruit = spawnSync("git", ["cat-file", "-e", `${T}^{commit}`], { cwd: d.travail, env: d.env, encoding: "utf8" });
+  assert.deepEqual([bruit.status, bruit.stderr !== ""], [0, true], "git réussit et l'écrit sur sa sortie d'erreur");
+  estMeme(juger(d, V, T), /1 fusion/);
+  // Avec ce bruit de fond, l'arbre de la base de fusion qui disparaît reste « illisible ».
+  assert.ok(existsSync(objet), "l'arbre de la base est un objet libre du clone");
+  rmSync(objet);
+  estIllisible(juger(d, V, T), /^git merge-tree --write-tree (a écrit une erreur|en échec \(128\)) sur [0-9a-f]{9}$/);
+});
+
+test("la liste des index ne se dispense jamais elle-même, même déclarée index à commande", () => {
+  const d = depotJouet();
+  const DB = "apps/api/src/generated/db.ts";
+  const liste = [ADR_CMD, { chemin: DB, commande: "true" }, { chemin: LISTE, commande: "true" }];
+  declarer(d, liste);
+  const V = pousser(d, "feat/a", { "apps/a.ts": "a\n" });
+  // Les autres index à commande restent dispensés.
+  estMeme(juger(d, V, pousser(d, "feat/a", { [DB]: "1\n" })), /1 commit\(s\) d'index/);
+  // La liste récrite après V, quoi qu'elle devienne : avec une entrée de plus, de moins, ou la même autrement écrite.
+  const recrites = [[...liste, { chemin: "apps/a.ts", commande: "true" }], liste.slice(0, 2), liste];
+  recrites.forEach((recrite, i) => {
+    const W = pousser(d, `feat/liste-${i}`, { "apps/a.ts": "a\n" });
+    const X = pousser(d, `feat/liste-${i}`, { [LISTE]: JSON.stringify({ index: recrite }, null, 2) });
+    estDifferent(juger(d, W, X), /scripts\/docs\/index-generes\.json, la liste des index, ne se dispense jamais elle-même$/);
+  });
+  // Et dans une fusion : la cible et la PR récrivent la liste, le conflit est conclu du côté de la cible.
+  const W = pousser(d, "feat/conflit", { [LISTE]: JSON.stringify({ index: [...liste, "docs/pr.md"] }) });
+  pousser(d, "develop", { [LISTE]: JSON.stringify({ index: [...liste, "docs/cible.md"] }) });
+  const X = miseAJour(d, "feat/conflit", "develop", rien);
+  assert.equal(parents(d, X).length, 2);
+  estDifferent(juger(d, W, X), /scripts\/docs\/index-generes\.json/);
+});
+
+test("une déclaration ambiguë ne dispense pas : chemin déclaré deux fois, ou couvert aussi par un motif, sur la cible ou sur T", () => {
+  const DB = "apps/api/src/generated/db.ts";
+  const CMD = { chemin: DB, commande: "true" };
+  const ambigues = [
+    [ADR_CMD, CMD, DB], // un doublon sans commande à côté de l'entrée à commande
+    [ADR_CMD, DB, CMD],
+    [ADR_CMD, CMD, { chemin: DB }],
+    [ADR_CMD, CMD, { chemin: DB, commande: "false" }], // deux entrées à commande
+    [ADR_CMD, CMD, "apps/api/src/generated/*"], // couvert aussi par un motif sans commande
+    [ADR_CMD, CMD, "apps/api/*/generated/db.ts"],
+  ];
+  const ambigu = /apps\/api\/src\/generated\/db\.ts est déclaré plus d'une fois, ou couvert aussi par un motif, sur origin\/develop ou sur T : il se juge comme tout fichier$/;
+  for (const liste of ambigues) {
+    // Sur la cible (et sur T, qui part d'elle).
+    {
+      const d = depotJouet();
+      declarer(d, liste);
+      const V = pousser(d, "feat/a", { "apps/a.ts": "a\n" });
+      estDifferent(juger(d, V, pousser(d, "feat/a", { [DB]: "1\n" })), ambigu);
+    }
+    // Sur T seulement : la cible déclare l'index une fois, V récrit la liste.
+    {
+      const d = depotJouet();
+      declarer(d, [ADR_CMD, CMD]);
+      const V = pousser(d, "feat/a", { [LISTE]: JSON.stringify({ index: liste }) });
+      estDifferent(juger(d, V, pousser(d, "feat/a", { [DB]: "1\n" })), ambigu);
+    }
+  }
+  // Un motif à commande qui couvre le chemin : la classe « motif » d'avant, toujours « différent ».
+  {
+    const d = depotJouet();
+    declarer(d, [ADR_CMD, CMD, { chemin: "apps/api/src/generated/*", commande: "true" }]);
+    const V = pousser(d, "feat/a", { "apps/a.ts": "a\n" });
+    estDifferent(juger(d, V, pousser(d, "feat/a", { [DB]: "1\n" })), /index sans commande ou déclaré par motif/);
+  }
+  // Témoin : déclaré une seule fois, à côté d'un motif qui ne le couvre pas et d'un doublon d'un autre chemin.
+  {
+    const d = depotJouet();
+    declarer(d, [ADR_CMD, CMD, "apps/web/generated/*", "docs/x.md", "docs/x.md"]);
+    const V = pousser(d, "feat/a", { "apps/a.ts": "a\n" });
+    estMeme(juger(d, V, pousser(d, "feat/a", { [DB]: "1\n" })), /1 commit\(s\) d'index/);
+  }
 });

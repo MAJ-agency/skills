@@ -22,7 +22,8 @@
 # Les index générés sont ceux de `origin/<B>:scripts/docs/index-generes.json` (fichier absent : aucun). **Seul un
 # index à `commande`, de chemin littéral, déclaré tel sur la cible et sur T, est dispensé** (son contenu se
 # régénère), absent ou fichier ordinaire, jamais lien symbolique ni sous-module. Un chemin déclaré ne porte aucun
-# caractère de contrôle (liste mal formée sinon). Un index sans `commande`, ou déclaré par motif (`*`), se juge comme tout
+# caractère de contrôle (liste mal formée sinon). Un chemin déclaré plus d'une fois, ou couvert aussi par un motif,
+# n'est pas dispensé ; le fichier de la liste ne l'est jamais, quoi qu'il déclare. Un index sans `commande`, ou déclaré par motif (`*`), se juge comme tout
 # fichier, dans une fusion comme dans un commit à un parent : en écart, `différent`. Un chemin que git cite (il
 # commence par un guillemet : caractère de contrôle, guillemet ou barre oblique inverse dans le nom) n'est jamais
 # un index.
@@ -112,7 +113,9 @@ HOME="$maison" XDG_CONFIG_HOME="$maison" GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_
   git init -q --bare --template= "$propre/depot" >/dev/null 2>&1 || illisible "dépôt propre impossible à créer sous le dossier temporaire"
 printf '%s\n' "$objets" >"$propre/depot/objects/info/alternates" 2>/dev/null || illisible "dépôt propre impossible à écrire sous le dossier temporaire"
 VIDE=$(p hash-object -w -t tree --stdin </dev/null 2>/dev/null) && [[ "$VIDE" =~ $SHA ]] || illisible "dépôt propre impossible à écrire sous le dossier temporaire"
-p cat-file -e "$T^{commit}" 2>/dev/null || illisible "T introuvable dans ce dépôt : $T"
+# Le bruit de fond : ce qu'une commande qui réussit écrit sur sa sortie d'erreur dans ce dépôt (rien, ou
+# l'avertissement d'un `alternates` périmé du dépôt réel). La sortie d'erreur de `git merge-tree` lui sera comparée.
+BRUIT=$(p cat-file -e "$T^{commit}" 2>&1) || illisible "T introuvable dans ce dépôt : $T"
 [ "$V" != "$T" ] || meme "V est T"
 
 superficiel=$(git rev-parse --is-shallow-repository 2>/dev/null) || illisible "git rev-parse --is-shallow-repository en échec"
@@ -150,9 +153,13 @@ FORME='def net: . != "" and (explode | all(. >= 32 and . != 127));
 REGEX='def lettre: gsub("(?<c>[\\[\\]\\\\.^$+?(){}|])"; "\\\(.c)");
   def regex: map(split("*") | map(lettre) | join("[^/]+")) | "^(" + join("|") + ")$";
   def liste: [.index[] | if type == "string" then {chemin: ., commande: ""} else {chemin, commande: (.commande // "")} end];
+  def litteraux: map(select(.commande != "" and (.chemin | contains("*") | not)) | .chemin);
+  # Sans ambiguïté : un chemin littéral à commande, déclaré une seule fois dans sa liste, qu aucun motif ne couvre.
+  def surs: . as $l | (map(select(.chemin | contains("*")) | .chemin) | if length == 0 then null else regex end) as $m |
+    litteraux | map(select(. as $c | ([$l[] | select(.chemin == $c)] | length) == 1 and ($m == null or ($c | test($m) | not))));
   (liste | (map(.chemin) | regex), (map(select(.commande != "") | .chemin) | regex),
-    (map(select(.commande != "" and (.chemin | contains("*"))) | .chemin) | regex)),
-  ($t[0] | liste | map(select(.commande != "" and (.chemin | contains("*") | not)) | .chemin) | regex)'
+    (map(select(.commande != "" and (.chemin | contains("*"))) | .chemin) | regex), (surs | regex)),
+  ($t[0] | liste | (litteraux | regex), (surs | regex))'
 # La liste d'un commit, écrite dans un fichier du dépôt propre et relue dans sa forme. Absente : liste vide.
 lire_liste() { # <commit> <fichier> <qui>
   local lu forme
@@ -175,19 +182,23 @@ lire_liste "$cible" "$LISTE" "origin/$B"
 lire_liste "$T" "$LISTE_T" "T ($(court "$T"))"
 sortie=$(jq -r --slurpfile t "$LISTE_T" "$REGEX" "$LISTE" 2>/dev/null) || illisible "scripts/docs/index-generes.json de origin/$B : liste des index illisible"
 decouper "$sortie"
-[ "${#LIGNES[@]}" = 4 ] || illisible "scripts/docs/index-generes.json de origin/$B : liste des index illisible"
+[ "${#LIGNES[@]}" = 6 ] || illisible "scripts/docs/index-generes.json de origin/$B : liste des index illisible"
 for r in "${LIGNES[@]}"; do
   [[ "$r" == '^('*')$' ]] || illisible "scripts/docs/index-generes.json de origin/$B : liste des index illisible"
 done
-GENERES=${LIGNES[0]} REGENERES=${LIGNES[1]} MOTIFS=${LIGNES[2]} REGENERES_T=${LIGNES[3]}
+GENERES=${LIGNES[0]} REGENERES=${LIGNES[1]} MOTIFS=${LIGNES[2]} SURS=${LIGNES[3]} REGENERES_T=${LIGNES[4]} SURS_T=${LIGNES[5]}
 
-# Classe d'un chemin, dans l'ordre de `livraison_intermediaire` : hors, motif, sans-commande, puis retiré (à
-# commande sur la cible, plus sur T), régénéré. Seule la dernière est dispensée.
+# Classe d'un chemin : la liste elle-même (jamais dispensée, quoi qu'elle déclare), puis, dans l'ordre de
+# `livraison_intermediaire`, hors, motif, sans-commande ; puis retiré (à commande sur la cible, plus sur T), ambigu
+# (déclaré plus d'une fois, ou couvert aussi par un motif, sur la cible ou sur T), régénéré. Seule la dernière est
+# dispensée.
 classe() {
-  if [[ "$1" == '"'* ]] || ! [[ "$1" =~ $GENERES ]]; then echo hors
+  if [ "$1" = scripts/docs/index-generes.json ]; then echo liste
+  elif [[ "$1" == '"'* ]] || ! [[ "$1" =~ $GENERES ]]; then echo hors
   elif [[ "$1" =~ $MOTIFS ]]; then echo motif
   elif ! [[ "$1" =~ $REGENERES ]]; then echo sans-commande
   elif ! [[ "$1" =~ $REGENERES_T ]]; then echo retiré
+  elif ! [[ "$1" =~ $SURS ]] || ! [[ "$1" =~ $SURS_T ]]; then echo ambigu
   else echo régénéré; fi
 }
 ordinaire() { [ "$1" = 100644 ] || [ "$1" = 100755 ]; }
@@ -227,8 +238,10 @@ for c in "${chemin[@]}"; do
     # S4 : la fusion à trois voies nue, sans aucun attribut.
     sortie=$(p --attr-source="$VIDE" merge-tree --write-tree --name-only --no-messages "$p1" "$p2" 2>"$ERREURS") && rc=0 || rc=$?
     [ "$rc" -le 1 ] || illisible "git merge-tree --write-tree en échec ($rc) sur $(court "$c")"
-    # Un vrai conflit n'écrit rien sur la sortie d'erreur : un objet illisible, si, et sort en 1 lui aussi.
-    [ -e "$ERREURS" ] && [ ! -s "$ERREURS" ] || illisible "git merge-tree --write-tree a écrit une erreur sur $(court "$c")"
+    # Un vrai conflit n'écrit rien de plus que le bruit de fond sur la sortie d'erreur : un objet illisible, si, et
+    # sort en 1 lui aussi.
+    [ -e "$ERREURS" ] && ecrit=$(<"$ERREURS") && [ "$ecrit" = "$BRUIT" ] ||
+      illisible "git merge-tree --write-tree a écrit une erreur sur $(court "$c")"
     decouper "$sortie"
     depart=${LIGNES[0]:-}
     [[ "$depart" =~ $SHA ]] || illisible "arbre de la fusion calculée de $(court "$c") illisible"
@@ -256,6 +269,8 @@ for c in "${chemin[@]}"; do
         different "$sorte : $f, index sans commande ou déclaré par motif, se juge comme tout fichier"
         ;;
       retiré) different "$sorte : $f, index à commande de origin/$B, n'est plus déclaré à commande sur T" ;;
+      ambigu) different "$sorte : $f est déclaré plus d'une fois, ou couvert aussi par un motif, sur origin/$B ou sur T : il se juge comme tout fichier" ;;
+      liste) different "$sorte : $f, la liste des index, ne se dispense jamais elle-même" ;;
       *) illisible "classe de $f illisible" ;;
     esac
     juges=$((juges + 1))
