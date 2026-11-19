@@ -870,3 +870,38 @@ test("S3 : une ligne des premiers parents tronquée, ou un compte qui ne dit pas
   fauxGit(d, `for a in "$@"; do [ "$a" = --count ] && { echo 1; exit 0; }; done`);
   estIllisible(juger(d, V, T), /compte des commits de V à T incohérent/);
 });
+
+// Ajouté après l'annexe B du ticket 59, sur décision de l'architecte : le chemin voisin d'un index.
+test("le chemin voisin d'un index à commande n'est jamais pris pour lui : chaque caractère du chemin déclaré se lit à la lettre", () => {
+  const d = depotJouet();
+  // Des index à commande dont le nom porte un caractère que l'expression régulière lirait autrement.
+  const speciaux = ["gen/a+b.md", "gen/c[12].md", "gen/d(e).md", "gen/fx?.md", "gen/g{2}.md", "gen/h|i.md", "gen/j^k$.md"];
+  declarer(d, [ADR_CMD, ...speciaux.map((chemin) => ({ chemin, commande: "true" }))]);
+  const V = pousser(d, "feat/a", { "apps/a.ts": "a\n" });
+  // Chacun de ces noms est bien un index : un commit qui ne touche qu'eux garde le verdict.
+  const T = pousser(d, "feat/a", { [`${ADR}/README.md`]: index("ADR_1.md"), ...Object.fromEntries(speciaux.map((chemin) => [chemin, "x\n"])) });
+  estMeme(juger(d, V, T), /0 fusion\(s\) de origin\/develop, 1 commit\(s\) d'index/);
+  // Leurs voisins, non : le point, le plus, les crochets, les parenthèses, le point d'interrogation, les
+  // accolades, la barre, puis un chemin préfixé, suffixé, ou rangé ailleurs.
+  const voisins = [
+    `${ADR}/READMExmd`,
+    "gen/aab.md",
+    "gen/a+bxmd",
+    "gen/c1.md",
+    "gen/de.md",
+    "gen/f.md",
+    "gen/gg.md",
+    "gen/h",
+    "i.md",
+    "gen/jk.md",
+    `${ADR}/README.md.bak`,
+    `x${ADR}/README.md`,
+    `autre/${ADR}/README.md`,
+    `${ADR}/sous/README.md`,
+  ];
+  voisins.forEach((voisin, i) => {
+    const W = pousser(d, `feat/voisin-${i}`, { [voisin]: "x\n" }, V);
+    assert.equal(d.git("diff", "--name-only", V, W), voisin, "le commit ne touche que le voisin");
+    estDifferent(juger(d, V, W), new RegExp(`: ${voisin.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} n'est pas un index généré de origin/develop$`));
+  });
+});
