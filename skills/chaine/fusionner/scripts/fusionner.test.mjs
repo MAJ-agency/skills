@@ -1901,6 +1901,9 @@ test("passer.sh : une fusion refusée durablement par GitHub sort en 3 et la bou
     assert.equal(d.git("status", "--porcelain"), "");
     // Après un refus durable : rien d'écrit sur la PR hors le verrou du passage, son label gardé ; et le capitaine ne
     // reste pas sur sa branche de passage (tête détachée sur develop, branche supprimée).
+    // Le message exact de GitHub, que le capitaine rapporte à son lanceur (skill `fusionner`, « Devant un refus durable
+    // de fusion ») : sur la sortie d'erreur de passer.sh.
+    if (attendu === 3) assert.ok(r.stderr.split(/\r?\n/).includes(message.trimEnd()), `${JSON.stringify(message)} : le message exact de GitHub sur la sortie d'erreur\n${r.stderr}`);
     if (attendu === 3) assert.deepEqual([ecritures(d), d.etat().pulls[0].labels], [["PUT pulls/33/merge"], ["à-fusionner"]], `${JSON.stringify(message)} : rien d'écrit sur la PR hors le verrou du passage, label gardé`);
     if (attendu === 3) assert.deepEqual([d.git("rev-parse", "--abbrev-ref", "HEAD"), d.git("rev-parse", "HEAD"), d.git("branch", "--list", "capitaine/33")], ["HEAD", d.git("rev-parse", "origin/develop"), ""], JSON.stringify(message));
   }
@@ -1912,14 +1915,50 @@ test("passer.sh : une fusion refusée durablement par GitHub sort en 3 et la bou
   assert.equal(f.status, 3, f.stdout);
   assert.match(f.stdout.split("\n").filter(Boolean).at(-1), DURABLE, `la dernière ligne de 2>&1 est le verdict\n${f.stdout}`);
   assert.ok(fondu.journal().some((x) => x.methode === "PATCH" && /<!-- capitaine:fin -->/.test(x.champs?.body ?? "")), "le verrou du passage a été terminé par la trappe");
+  // La boucle : un refus durable l'arrête sur la PR refusée, faute de revue comprise (ticket 54 : plus d'attente, ni
+  // « de côté »), et la PR suivante de la file n'est pas fusionnée.
+  for (const message of [
+    "gh: Merge commits are not allowed on this repository. (HTTP 405)",
+    "gh: Waiting on code owner review from @exemple. (HTTP 405)",
+    "gh: At least 1 approving review is required by reviewers with write access. (HTTP 405)",
+  ]) {
+    const d = prSimple();
+    d.publierChaine();
+    d.branche("feat/suivante", "origin/develop", { "docs/suivante.md": "n\n" });
+    d.git("switch", "-q", "--detach", "origin/develop");
+    d.github({ pulls: [pr(33, "feat/simple", { refusFusion: message }), pr(34, "feat/suivante")] });
+    const b = d.lancer(script("boucle.sh"));
+    assert.equal(b.status, 3, `${JSON.stringify(message)} : ${b.stdout}${b.stderr}`);
+    assert.match(b.stdout, /ARRÊT sur #33 \(sortie 3\)/, JSON.stringify(message));
+    assert.doesNotMatch(b.stdout, /PAUSE|de côté|\[#34\]/, JSON.stringify(message));
+    assert.equal(fusionsDe(d, 33).length, 1, `${JSON.stringify(message)} : un seul essai`);
+    assert.equal(fusionsDe(d, 34).length, 0, `${JSON.stringify(message)} : la PR suivante n'est pas fusionnée`);
+    assert.deepEqual(d.etat().pulls.map((p) => p.labels), [["à-fusionner"], ["à-fusionner"]], JSON.stringify(message));
+  }
+});
+
+// Ce que la version d'avant laisse sur une PR (ticket 54, contre-relecture C5) : le commentaire d'attente marqué, posé
+// sous le compte du capitaine, et un relecteur demandé. Plus rien ne les lit : la PR est prête, passe, est fusionnée, et
+// ses renvois restent à 0.
+test("file.sh, passer.sh, boucle.sh : une PR qui porte l'ancien commentaire d'attente et un relecteur demandé est prête et fusionnée, sans renvoi", () => {
+  const attente = "GitHub a refusé la fusion : l'approbation d'un propriétaire (CODEOWNERS) manque. Le capitaine ne met plus cette PR à jour avant une nouvelle approbation.\n\n<!-- attente-revue-capitaine -->\n";
   const d = prSimple();
   d.publierChaine();
-  d.github({ pulls: [pr(33, "feat/simple", { refusFusion: "gh: Merge commits are not allowed on this repository. (HTTP 405)" })] });
+  d.github({ pulls: [pr(33, "feat/simple", { commentaires: [attente], relecteurs: ["proprietaire"], equipes: ["relecteurs"] })] });
+  const lue = spawnSync("gh", ["api", "repos/{owner}/{repo}/pulls/33", "--jq", "[.requested_reviewers[].login, .requested_teams[].slug]"], { cwd: d.travail, env: d.env, encoding: "utf8" });
+  assert.deepEqual(JSON.parse(lue.stdout), ["proprietaire", "relecteurs"], `le faux rend les relecteurs demandés\n${lue.stderr}`);
+  const f = d.lancer(script("file.sh"));
+  assert.equal(f.status, 0, f.stderr);
+  assert.deepEqual(f.stdout.trim().split("\n").map((l) => l.split("\t").slice(0, 2).join(" ")), ["33 prête"]);
+  const renvois = () => spawnSync("bash", ["-c", `source ${script("github.sh")}; renvois_de 33`], { cwd: d.travail, env: d.env, encoding: "utf8" });
+  assert.equal(renvois().stdout, "0\n", renvois().stderr);
   const b = d.lancer(script("boucle.sh"));
-  assert.equal(b.status, 3, b.stdout + b.stderr);
-  assert.match(b.stdout, /ARRÊT sur #33 \(sortie 3\)/);
-  assert.doesNotMatch(b.stdout, /PAUSE/);
-  assert.equal(fusionsDe(d, 33).length, 1, "un seul essai");
+  assert.equal(b.status, 0, b.stdout + b.stderr);
+  assert.match(b.stdout, /\[#33\] FUSIONNÉE/);
+  assert.doesNotMatch(b.stdout, /RENVOI|attend|sautée/);
+  assert.equal(fusionsDe(d, 33).length, 1);
+  assert.equal(renvois().stdout, "0\n", "aucun renvoi");
+  assert.deepEqual(ecritures(d).filter((e) => /^(POST|PATCH|DELETE) issues\/(\d+\/)?comments/.test(e)), [], "aucun commentaire hors le passage");
 });
 
 // Décision A-51 : un refus durable n'arrête la boucle que si develop n'a pas bougé entre le test et la fusion. Un 405

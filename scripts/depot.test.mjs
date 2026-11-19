@@ -1272,7 +1272,14 @@ const DISENT_LE_RETRAIT = new Map([
       "for (const c of ['.github/CODEOWNERS', 'CODEOWNERS', 'docs/CODEOWNERS']) assert.equal(refusEdition(c, nouvelle), null, c);",
     ],
   ],
-  [`${FUSIONNER}/scripts/fusionner.test.mjs`, ['["gh: Waiting on code owner review from @exemple. (HTTP 405)", 3, DURABLE],']],
+  [
+    `${FUSIONNER}/scripts/fusionner.test.mjs`,
+    [
+      '["gh: Waiting on code owner review from @exemple. (HTTP 405)", 3, DURABLE],',
+      '    "gh: Waiting on code owner review from @exemple. (HTTP 405)",\n    "gh: At least 1 approving review',
+      '  const attente = "GitHub a refusé la fusion : l\'approbation d\'un propriétaire (CODEOWNERS) manque. Le capitaine ne met plus cette PR à jour avant une nouvelle approbation.\\n\\n<!-- attente-revue-capitaine -->\\n";',
+    ],
+  ],
 ]);
 const DE_CODEOWNERS = /code[ _-]?owners?|\bproprietaires\b|attend(ent)? un propriétaire|approbation d['’]un propriétaire|revue des propriétaires|propriétaires? du code|chemin possédé|tenu par GitHub|attente-revue-capitaine|attend_humain/i;
 const deCodeowners = (ligne) => DE_CODEOWNERS.test(ligne);
@@ -1339,9 +1346,9 @@ test("le socle retire CODEOWNERS d'un projet déjà posé : le fichier seulement
     "1. **Le fichier.** `head -n 1 .github/CODEOWNERS` rend `# Généré depuis .claude/chaine.json (cheminsSensibles, proprietaires) : ne pas éditer.` : c'est la copie du générateur, `git rm .github/CODEOWNERS`. Toute autre première ligne : le fichier est celui du projet, le laisser et le dire à qui a lancé la session. Un `CODEOWNERS` à la racine ou sous `docs/` n'a jamais été généré : ne pas y toucher.",
     "2. **Le générateur et son gate.** `git rm scripts/github/codeowners.mjs scripts/github/codeowners.test.mjs` ; retirer de `package.json` les scripts `codeowners` et `check:codeowners`, de `scripts/check.mjs` l'étape `check:codeowners`,",
     "3. **Le contrat.** Dans `.claude/chaine.json` : retirer la clé `proprietaires` et l'entrée `scripts/github/codeowners.mjs` de `gatesRapides`, reprendre le `$comment` de `references/chaine.json`. `cheminsSensibles` ne change pas.",
-    "Relancer chaque capitaine une fois cette PR entrée dans `develop`.",
+    "La boucle en marche prend ces scripts de `develop` au tour qui suit l'entrée de cette PR, sans relance ; relancer ensuite la veille de chaque capitaine, qui garde sa copie de `file.sh` jusque-là.",
     "6. **L'ADR.** L'ADR « CODEOWNERS » du projet garde son numéro et son texte : sa ligne `Statut` devient celle de `references/adr/ADR_ALL_ARC-N-codeowners.md`, et la section « Retrait » de ce gabarit s'y ajoute, placeholders substitués. Ce gabarit ne se pose plus dans un projet neuf.",
-    "7. **À l'admin.** Décocher « Require review from Code Owners » sur `develop` et `main` si elle l'était, et tenir « Required approvals » à 0 : une session ne le peut pas.",
+    "7. **À l'admin, avant que cette PR entre dans `develop`.** Décocher « Require review from Code Owners » sur `develop` et `main` si elle l'était, et tenir « Required approvals » à 0 : une session ne le peut pas.",
   ]);
   const adr = readFileSync(join(RACINE, ADR_CODEOWNERS), "utf8");
   assert.ok(lignes(adr).includes("- Statut : **retirée** par la décision du produit du 2026-11-18 (`P-49` de la carte « gouverner nos boucles » du plugin `maj-skills`) ; gardée pour mémoire"), `${ADR_CODEOWNERS} : la ligne Statut dit le retrait`);
@@ -1375,7 +1382,9 @@ test("sans CODEOWNERS : une fusion refusée faute de revue arrête la boucle et 
   ]);
   exiger(`${FUSIONNER}/references/CONTENU.md`, ["tout autre refus (droit du compte, règle du dépôt, revue exigée, méthode de fusion interdite) est durable et sort en 3", "une fusion refusée durablement par GitHub en 3, faute de revue approuvée comprise (la boucle s'arrête),"]);
   exiger(RETRAIT_CODEOWNERS, [
-    "il s'arrête sur ce refus (`passer.sh`, sortie 3, `ARRÊT`), et le dit.",
+    "il met à jour avec `develop` (une CI) la première PR de la file dont GitHub refuse la fusion, puis s'arrête sur ce refus (`passer.sh`, sortie 3, `ARRÊT`), et le dit.",
+    "Règle cochée, c'est la première PR qui touche un chemin possédé sans qu'un propriétaire l'ait approuvée (une PR déjà approuvée passe) ; « Required approvals » à 1 ou plus, toute PR que personne d'autre que son auteur n'a approuvée, qu'elle touche ou non un chemin possédé.",
+    "Avant que cette PR entre, relever avec l'ancien `file.sh` (le nouveau les montre `prête`) les PR « attend un propriétaire » ou « attend un humain » : la règle décochée, le capitaine reposé les fusionne sans la relecture qu'elles attendaient ; les faire relire, ou leur retirer `à-fusionner`.",
     "La PR refusée garde `à-fusionner` et sa place dans la file : tant que la cause demeure, chaque lancement de la boucle s'arrête de nouveau sur elle, et aucune PR vers `develop` placée après elle ne passe.",
     "Le capitaine ne retire pas ce label et n'écrit rien sur la PR, hors le commentaire de passage que `passer.sh` pose et termine ; il le dit à son lanceur (au produit hors programme), avec le message exact de GitHub, et un humain lève la règle du dépôt.",
   ]);

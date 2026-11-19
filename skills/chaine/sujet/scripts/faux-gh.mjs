@@ -21,6 +21,8 @@
 //   avantFusion { branche, vers } : joué au `PUT pulls/<n>/merge` avant le contrôle « strict » et le calcul de
 //               l'arbre, puis retiré : une fusion concurrente que GitHub a acceptée
 //   exiges      checks exigés de develop ; runs : workflow_runs par PR (« #12 »)
+//   PR.relecteurs / PR.equipes  relecteurs demandés (`requested_reviewers` logins, `requested_teams` slugs), comme GitHub
+//               les rend : plus rien de la chaîne ne les lit, un banc vérifie qu'ils ne font rien attendre
 //   commentairesRefuses  `true` : tout commentaire posé est refusé (403) ; une chaîne : ceux dont le corps correspond à
 //               cette expression rationnelle seulement (un commentaire refusé, celui du verrou du passage posé)
 //   PR.refusFusion  message d'un refus de fusion (`gh: … (HTTP 405)`) : le `PUT pulls/<n>/merge` le rend, code 1, après
@@ -162,6 +164,8 @@ function versRest(pr) {
     labels: (pr.labels ?? []).map((name) => ({ name })),
     base: { ref: pr.base, repo: { default_branch: etat.brancheParDefaut ?? "main" } },
     head: { ref: pr.head, sha: pr.sha ?? ref(pr.head) ?? "0".repeat(40) },
+    requested_reviewers: (pr.relecteurs ?? []).map((login) => ({ login })),
+    requested_teams: (pr.equipes ?? []).map((slug) => ({ slug })),
   };
 }
 // Date d'un commentaire sans date, par son rang : 2026-11-17T12:00:00Z, puis une seconde de plus par rang.
