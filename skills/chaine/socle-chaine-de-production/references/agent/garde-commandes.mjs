@@ -17,6 +17,13 @@ const refuser = (texte) => {
 };
 process.on('uncaughtException', (e) => refuser(`erreur inattendue (${cause(e)}) : tout outil est refusé, la garde ne s'ouvre jamais sur une erreur. ${RESTAURER}`));
 process.on('unhandledRejection', (e) => refuser(`erreur inattendue (${cause(e)}) : tout outil est refusé, la garde ne s'ouvre jamais sur une erreur. ${RESTAURER}`));
+// Dernier filet : toute sortie autre que 0 (permis) ou 2 (refusé), comme le 13 d'un `await` de premier niveau qui ne se
+// résout jamais, devient un refus. Claude Code laisse passer l'outil sur toute autre sortie.
+process.on('exit', (code) => {
+  if (code === 0 || code === 2) return;
+  process.stderr.write(`garde-commandes : sortie ${code} inattendue (await jamais résolu ou erreur de Node) : tout outil est refusé, la garde ne s'ouvre jamais sur une erreur. ${RESTAURER}\n`);
+  process.exitCode = 2;
+});
 const echec = (fichier, raison) => refuser(`scripts/agent/${fichier} ne se charge pas (${raison}) : tout outil est refusé tant qu'il n'est pas restauré, la garde ne s'ouvre jamais sur un fichier cassé. ${RESTAURER}`);
 /** Le module, chaque nom de `attendus` présent avec son type (`function`, `string`, `object`), ou l'échec. */
 const charger = async (fichier, attendus) => {

@@ -21,6 +21,8 @@ const CASSES = {
   coupeAvantExport: (texte) => texte.slice(0, texte.indexOf('\nexport ') + 1),
   exportsRetires: (texte) => texte.replace(/^export (?=(async |function|const|let|class))/gm, ''),
   vide: () => '',
+  // Un `await` de premier niveau qui ne se résout jamais : Node sort en 13, sans passer par `uncaughtException`.
+  attendSansFin: (texte) => `await new Promise(() => {});\n${texte}`,
   coupeAvantDecisionCommande: (texte) => texte.slice(0, texte.indexOf('export function decisionCommande')),
   // Une fonction de décision qui lève à l'appel : le filet `uncaughtException` des gardes.
   leveALAppel: (texte) =>
@@ -190,5 +192,17 @@ test('ticket 18 (contre-relecture B1) : une erreur inattendue dans une garde la 
     assert.ok(r.stderr.includes('git checkout origin/develop -- scripts/agent/'), hook);
     assert.doesNotMatch(r.stderr, /^\s+at /m, `${hook} : trace de pile\n${r.stderr}`);
     assert.equal(r.stderr.trimEnd().split('\n').length, 1, hook);
+  }
+});
+
+test('ticket 18 (contre-relecture) : un module dont l’await de premier niveau ne se résout jamais : les gardes refusent (sortie 2), jamais 13', () => {
+  for (const fichier of MODULES) {
+    const racine = jouet({ fichier, facon: 'attendSansFin' });
+    for (const hook of GARDES) {
+      const r = lancer(racine, hook);
+      assert.equal(r.status, 2, `${hook}, ${fichier} : ${r.stderr}`);
+      assert.match(r.stderr, new RegExp(`${hook.replace('.mjs', '')} : sortie 13 inattendue .*tout outil est refusé`), hook);
+      assert.ok(r.stderr.includes('git checkout origin/develop -- scripts/agent/'), hook);
+    }
   }
 });
