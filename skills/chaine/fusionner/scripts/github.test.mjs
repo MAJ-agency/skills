@@ -384,7 +384,7 @@ test("checks_commit : un corps vide ou une erreur sort en 5, jamais une liste vi
 // Verrou du passage (ticket 4 de capitaine-a-jour-et-teste) : `prendre_passage` pose son commentaire, relit, et ne
 // cède qu'à la marque vivante d'un autre capitaine posée avant la sienne, d'un compte de l'organisation, de moins de
 // 90 minutes. `finir_passage` termine le sien et ses propres marques d'un passage tué.
-// Marque d'un autre capitaine : sans epoch (une marque d'avant 7.30.0, datée par son created_at), ou datée dans son corps.
+// Marque d'un autre capitaine : sans epoch (une marque de 7.31.0, datée par son created_at), ou datée dans son corps.
 const marque = (id, fin = false, epoch = null) => `Passage du capitaine \`${id}\`.\n<!-- capitaine:passage ${id}${epoch === null ? "" : ` ${epoch}`} -->${fin ? "\n<!-- capitaine:fin -->" : ""}`;
 // Secondes depuis l'époque Unix d'une heure du 2026-11-17 (UTC), le jour des dates du faux.
 const le17 = (h, m, s) => Date.UTC(2026, 10, 17, h, m, s) / 1000;
@@ -427,6 +427,9 @@ test("prendre_passage : une marque vivante d'un autre capitaine, posée avant, p
   // Sans epoch lisible : abandonnée 90 minutes après son created_at.
   libre([{ body: marque("autre"), created_at: "2026-11-17T10:30:01Z", updated_at: "2026-11-17T12:00:00Z" }], "sans epoch, créée il y a 90 minutes");
   assert.equal(passage([{ body: marque("autre"), created_at: "2026-11-17T10:30:02Z" }]).rc, 1, "sans epoch, créée il y a 89 min 59 s : vivante");
+  // Un epoch dans le futur (plus de 5 minutes après la création du sien, à 12:00:01) ne compte pas : datée par son created_at.
+  libre([{ body: marque("autre", false, le17(12, 5, 2)), created_at: "2026-11-17T10:00:00Z" }], "epoch dans le futur, créée il y a 2 heures");
+  assert.equal(passage([{ body: marque("autre", false, le17(12, 5, 1)), created_at: "2026-11-17T10:00:00Z" }]).rc, 1, "epoch 5 minutes en avance : admis");
   libre([{ body: marque("autre"), association: "NONE" }], "compte hors de l'organisation");
   for (const association of ["MEMBER", "COLLABORATOR"]) assert.equal(passage([{ body: marque("autre"), association }]).rc, 1, association);
   // Du même capitaine (passage précédent tué) : ne prend pas, et se termine avec le sien.

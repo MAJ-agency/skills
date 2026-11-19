@@ -107,7 +107,7 @@
 # propre (`fusionner`, `rafraichir`, `regrouper`, `relancer` : à nettoyer par qui lance, jamais un renvoi de la PR,
 # comme la sortie 6 de passer.sh) · 7 `fusionner` d'une PR fermée, en brouillon ou d'un sujet gelé (rien à
 # corriger : sautée) ; 7 aussi pour `fusionner` et `relancer` d'une sous-PR en passage chez un autre capitaine (son
-# commentaire marqué `<!-- capitaine:passage <id> -->`, verrou du passage de github.sh), ou qui n'est plus éligible une fois
+# commentaire marqué `<!-- capitaine:passage <id> <epoch> -->`, verrou du passage de github.sh), ou qui n'est plus éligible une fois
 # le verrou pris · 64 `fusionner` sans CAPITAINE_ID ou avec un CAPITAINE_ID mal formé ; `relancer` avec un CAPITAINE_ID mal
 # formé (sans lui, joué à la main par la session propriétaire : aucun verrou posé, et il le dit) · 9 `carte <nom>` refusée, ou `geler`/`degeler` dont le push échoue deux fois (rien n'est poussé)
 # 14 `livrer` : `gh` inutilisable ou lecture GitHub en échec, PR non ouverte, fichier de livraison écrit (ouvrir par l'outil GitHub MCP)

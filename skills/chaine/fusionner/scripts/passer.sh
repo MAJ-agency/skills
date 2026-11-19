@@ -57,8 +57,8 @@
 #      propriétaire : CODEOWNERS et « Require review from Code Owners » sur la base, vu à l'éligibilité ou au refus
 #      de fusion de GitHub, qui fait poser un commentaire marqué ; ou qui attend un humain : fusion déjà refusée
 #      ainsi, aucune revue APPROVED plus récente que ce commentaire) : la boucle la saute sans renvoi et la reprend
-#      au tour suivant ; ou en passage chez un autre capitaine (son commentaire marqué `<!-- capitaine:passage <id> -->`,
-#      sans fin, de moins de 90 minutes, posé avant le sien), sautée sans renvoi ; ou qui n'est plus éligible une fois le
+#      au tour suivant ; ou en passage chez un autre capitaine (son commentaire marqué `<!-- capitaine:passage <id> <epoch> -->`,
+#      sans fin, daté par son epoch de moins de 90 minutes, posé avant le sien), sautée sans renvoi ; ou qui n'est plus éligible une fois le
 #      verrou pris (relue : fermée, label retiré, sommet changé)
 #   3  fusion refusée faute d'approbation d'un propriétaire et commentaire d'attente impossible à poser : la boucle
 #      s'arrête (ARRÊT, sortie 3), sans le repasser → lire la cause (droits du compte du capitaine), relancer

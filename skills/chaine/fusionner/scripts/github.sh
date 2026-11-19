@@ -675,15 +675,18 @@ corps_passage() { # <« depuis … » ou « terminé à … »> [fin]
 # `tenu` « <autre> <date> » de la plus ancienne marque vivante d'un autre capitaine posée avant la sienne, ou null (date :
 # l'epoch du corps, sinon `created_at`) ;
 # `anciens` les ids de ses propres marques vivantes d'un passage précédent (tué), que finir_passage termine.
-# Une date illisible fait échouer jq : le verrou est alors illisible, jamais libre.
+# Une date illisible fait échouer jq : le verrou est alors illisible, jamais libre. Un epoch dans le futur de plus de
+# 5 minutes par rapport au `created_at` du sien (horloge très en avance, valeur fausse) ne compte pas : la marque est
+# datée par son `created_at`, et le verrou ne vit jamais plus de 90 minutes sans nouvelles.
 # shellcheck disable=SC2016
 FILTRE_PASSAGE='def marque: [.body | match("<!-- capitaine:passage ([A-Za-z0-9_-]{1,100})(?: ([0-9]{1,12}))? -->"; "g") | .captures] | first;
-  [.[][] | select(.author_association == "OWNER" or .author_association == "MEMBER" or .author_association == "COLLABORATOR")
+  ($cree | fromdateiso8601) as $t
+  | [.[][] | select(.author_association == "OWNER" or .author_association == "MEMBER" or .author_association == "COLLABORATOR")
     | select((.body | contains("<!-- capitaine:fin -->")) | not)
     | marque as $c | select($c != null)
-    | {id, m: $c[0].string, date: (if $c[1].string then ($c[1].string | tonumber) else (.created_at | fromdateiso8601) end)}
+    | (if $c[1].string then ($c[1].string | tonumber) else null end) as $e
+    | {id, m: $c[0].string, date: (if $e != null and $e <= $t + 300 then $e else (.created_at | fromdateiso8601) end)}
     | select(.id != $mien)] as $vivantes
-  | ($cree | fromdateiso8601) as $t
   | { tenu: ([$vivantes[] | select(.m != $moi and .id < $mien and .date > $t - 5400)]
         | sort_by(.id) | first | if . == null then null else "\(.m) \(.date | todate)" end),
       anciens: [$vivantes[] | select(.m == $moi) | .id] }'
@@ -734,7 +737,7 @@ retirer_passage() {
   fi
   PASSAGE_COMMENTAIRE=''
 }
-# Rafraîchit le commentaire au début de chaque tour d'attente de la CI (le PATCH met à jour `updated_at`, l'âge du
+# Rafraîchit le commentaire au début de chaque tour d'attente de la CI (le PATCH réécrit l'epoch de la marque, l'âge du
 # verrou). En échec : une ligne sur la sortie d'erreur, le passage continue (au pire le verrou expire : travail en
 # double, jamais une fusion non testée).
 rafraichir_passage() {

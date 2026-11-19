@@ -56,5 +56,5 @@ La vérification, juste avant chaque fusion, que la PR a été testée sur l'ét
 _Avoid_: « à jour » au sens du réglage de GitHub
 
 **Verrou du passage**:
-Le commentaire marqué `<!-- capitaine:passage <id> -->` qu'un capitaine pose sur une PR au début de son passage et termine à sa sortie : un autre capitaine saute la PR tant qu'il vit (90 minutes au plus sans rafraîchissement). Il évite le travail en double, la règle d'ascendance garde la sûreté. En code : `prendre_passage`, `rafraichir_passage`, `finir_passage` (`github.sh`), signés par `CAPITAINE_ID`.
+Le commentaire marqué `<!-- capitaine:passage <id> <epoch> -->` qu'un capitaine pose sur une PR au début de son passage et termine à sa sortie : un autre capitaine saute la PR tant qu'il vit (90 minutes au plus depuis l'epoch de la marque, réécrit à chaque rafraîchissement). Il évite le travail en double, la règle d'ascendance garde la sûreté. En code : `prendre_passage`, `rafraichir_passage`, `finir_passage` (`github.sh`), signés par `CAPITAINE_ID`.
 _Avoid_: verrou de la boucle (le `flock`, local à un clone)

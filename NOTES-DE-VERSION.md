@@ -10,7 +10,7 @@ Correctifs du verrou du passage de 7.31.0 (contre-relecture du ticket 4 de `capi
 
 - **Une lecture refusée du verrou est une panne** : des commentaires illisibles à sa relecture (502, réponse vide ou d'erreur) font sortir `passer.sh` et `sujet.sh fusionner` ou `relancer` en 5 (`PAUSE`, `REPRISE`), jamais en 3 ou 11 ; seul un commentaire qui ne se pose pas (écriture refusée) garde 3 (`ARRÊT`) et 11 (`ÉCHEC DU CAPITAINE`).
 - **La trappe est posée avant le verrou** : un TERM (`boucle.sh --arreter`) pendant la pose ou la relecture termine le commentaire, au lieu de laisser un verrou vivant 90 minutes.
-- **L'âge du verrou se lit dans la marque** : `<!-- capitaine:passage <id> <epoch> -->`, epoch réécrit à chaque rafraîchissement ; `updated_at` ne sert plus. Une marque de 7.31.0, sans epoch, vit 90 minutes depuis sa création.
+- **L'âge du verrou se lit dans la marque** : `<!-- capitaine:passage <id> <epoch> -->`, epoch réécrit à chaque rafraîchissement ; `updated_at` ne sert plus. Une marque de 7.31.0, sans epoch, vit 90 minutes depuis sa création. Un epoch de plus de 5 minutes dans le futur ne compte pas (la marque est alors datée par sa création) : le verrou ne vit jamais plus de 90 minutes sans nouvelles.
 
 Aucune clé, aucune sortie nouvelle pour un projet.
 
