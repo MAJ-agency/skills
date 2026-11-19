@@ -380,3 +380,114 @@ test("checks_commit : un corps vide ou une erreur sort en 5, jamais une liste vi
     assert.equal(r.stdout, "", JSON.stringify(panne));
   }
 });
+
+// ── `mentions_de_fusion <réf>` (ticket 3 de capitaine-a-jour-et-teste, A-8) : la mention qu'un commit de fusion du
+// capitaine porte quand la fusion n'apporte à un fichier gardé par un hook du projet que des lignes sans effet. Le
+// contrat se lit sur origin/develop, jamais dans l'arbre de travail ; la fonction sort toujours en 0. ───────────────
+const SCHEMA = "prisma/schema.prisma";
+const MENTION = "[sans-migration: commentaire seul, apporté par une mise à jour]";
+const ENTREE = { fichier: SCHEMA, lignesSansEffet: "^[[:space:]]*(//.*)?$", mention: MENTION };
+const BASE_SCHEMA = "model A {\n  id Int\n}\n-- sql\n";
+const mentions = (d, ref = "origin/develop") =>
+  spawnSync("bash", ["-c", `source ${GITHUB}; mentions_de_fusion "$1"`, "_", ref], {
+    cwd: d.travail,
+    env: d.env,
+    encoding: "utf8",
+  });
+// develop porte le schéma et, sauf `contrat: null`, le contrat ; `feat/pr` en part (HEAD), puis develop reçoit `develop`.
+function mentionsJouet(develop, contrat = { fusionsSansEffet: [ENTREE] }) {
+  const d = depotJouet();
+  d.ecrire(SCHEMA, BASE_SCHEMA);
+  if (contrat !== null) d.ecrire(".claude/chaine.json", JSON.stringify(contrat));
+  d.commit("chore: schéma et contrat");
+  d.git("push", "-q", "origin", "HEAD:develop");
+  d.git("fetch", "-q", "origin");
+  d.branche("feat/pr", "origin/develop", { "docs/pr.md": "pr\n" });
+  d.branche("develop", "origin/develop", develop);
+  d.git("switch", "-q", "feat/pr");
+  return d;
+}
+const verdict = (r, stdout, stderr) => {
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.equal(r.stdout, stdout, r.stderr);
+  if (stderr instanceof RegExp) assert.match(r.stderr, stderr);
+  else assert.equal(r.stderr, stderr);
+};
+const REEL = /fusion sans mention : prisma\/schema\.prisma porte un changement réel \(lignes hors de lignesSansEffet\) ; les hooks du projet jugent le commit/;
+
+test("mentions_de_fusion : develop n'apporte qu'un commentaire et une ligne vide au fichier, la mention, sortie 0", () => {
+  const d = mentionsJouet({ [SCHEMA]: `// note\n\n${BASE_SCHEMA}` });
+  verdict(mentions(d), `${MENTION}\n`, "");
+});
+
+test("mentions_de_fusion : develop y apporte un modèle, rien sur la sortie standard, la sortie d'erreur nomme le fichier", () => {
+  const d = mentionsJouet({ [SCHEMA]: `${BASE_SCHEMA}// B\nmodel B {\n  id Int\n}\n` });
+  verdict(mentions(d), "", REEL);
+});
+
+test("mentions_de_fusion : develop ne touche pas le fichier, rien, en silence", () => {
+  const d = mentionsJouet({ "docs/x.md": "x\n" });
+  verdict(mentions(d), "", "");
+});
+
+test("mentions_de_fusion : contrat sans la clé, ou absent, rien, en silence", () => {
+  for (const contrat of [{ migrations: "prisma/migrations/" }, null]) {
+    const d = mentionsJouet({ [SCHEMA]: `// note\n${BASE_SCHEMA}` }, contrat);
+    verdict(mentions(d), "", "");
+  }
+});
+
+test("mentions_de_fusion : une ligne retirée qui commence par « -- » ou ajoutée qui commence par « ++ » est un changement réel (l'en-tête du diff se coupe par sa position)", () => {
+  for (const schema of [`// note\nmodel A {\n  id Int\n}\n`, `// note\n${BASE_SCHEMA}++ x\n`]) {
+    const d = mentionsJouet({ [SCHEMA]: schema });
+    verdict(mentions(d), "", REEL);
+  }
+});
+
+test("mentions_de_fusion : une ligne qui ne correspond à l'expression qu'en partie est un changement réel (ligne entière, grep -xE)", () => {
+  // Expression sans ancre : « model B { // x » y correspond en partie, jamais en entier.
+  const d = mentionsJouet(
+    { [SCHEMA]: `// note\n${BASE_SCHEMA}model B { // x\n}\n` },
+    { fusionsSansEffet: [{ ...ENTREE, lignesSansEffet: "[[:space:]]*//.*|}" }] },
+  );
+  verdict(mentions(d), "", REEL);
+  // La même expression, sur un commentaire seul : la mention.
+  const c = mentionsJouet({ [SCHEMA]: `// note\n${BASE_SCHEMA}` }, { fusionsSansEffet: [{ ...ENTREE, lignesSansEffet: "[[:space:]]*//.*|}" }] });
+  verdict(mentions(c), `${MENTION}\n`, "");
+});
+
+test("mentions_de_fusion : une entrée mal formée ne donne aucune mention, son motif sur la sortie d'erreur", () => {
+  const casDe = [
+    [{ ...ENTREE, lignesSansEffet: "(" }, /expression refusée par grep -E/],
+    [{ ...ENTREE, lignesSansEffet: "a\nb" }, /lignesSansEffet sur plusieurs lignes/],
+    [{ ...ENTREE, mention: "[sans-migration: a]\n[b]" }, /mention sur plusieurs lignes/],
+    [{ ...ENTREE, mention: "Sujet: sujet/x" }, /mention qui commence par « Sujet: »/],
+    [{ ...ENTREE, mention: "Merge pull request #1" }, /mention qui commence par « Merge pull request »/],
+    [{ ...ENTREE, mention: "# x" }, /mention qui commence par « # »/],
+    [{ ...ENTREE, mention: "" }, /mention manquante, vide ou non textuelle/],
+    [{ fichier: SCHEMA, mention: MENTION }, /lignesSansEffet manquante, vide ou non textuelle/],
+    [{ ...ENTREE, fichier: 3 }, /fichier manquant, vide ou non textuel/],
+    ["prisma/schema.prisma", /entrée qui n'est pas un objet/],
+  ];
+  for (const [entree, motif] of casDe) {
+    const d = mentionsJouet({ [SCHEMA]: `// note\n${BASE_SCHEMA}` }, { fusionsSansEffet: [entree] });
+    const r = mentions(d);
+    verdict(r, "", motif);
+    assert.match(r.stderr, /^fusionsSansEffet\[0\] ignorée : /, JSON.stringify(entree));
+  }
+  const d = mentionsJouet({ [SCHEMA]: `// note\n${BASE_SCHEMA}` }, { fusionsSansEffet: ENTREE });
+  verdict(mentions(d), "", /fusionsSansEffet n'est pas une liste/);
+});
+
+test("mentions_de_fusion : un fichier à caractère de motif est lu comme un chemin littéral, rien", () => {
+  const d = mentionsJouet({ [SCHEMA]: `// note\n${BASE_SCHEMA}` }, { fusionsSansEffet: [{ ...ENTREE, fichier: "prisma/*.prisma" }] });
+  verdict(mentions(d), "", "");
+});
+
+test("mentions_de_fusion : le contrat de l'arbre de travail ne compte pas, seul celui d'origin/develop", () => {
+  const d = mentionsJouet({ [SCHEMA]: `// note\n${BASE_SCHEMA}` }, null);
+  // La PR s'accorde la mention : son contrat porte l'entrée, origin/develop n'en a aucun.
+  d.ecrire(".claude/chaine.json", JSON.stringify({ fusionsSansEffet: [ENTREE] }));
+  d.commit("chore: contrat de la PR");
+  verdict(mentions(d), "", "");
+});

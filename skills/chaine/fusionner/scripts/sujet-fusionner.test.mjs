@@ -1224,3 +1224,67 @@ test("sujet.sh relancer : PR illisible, sortie 5 sans rien pousser ; fusionner :
   assert.match(f.stderr, /https:\/\/\*\*\*@exemple\.test/);
   assert.doesNotMatch(f.stdout + f.stderr, /jeton-secret/);
 });
+
+// ── Fusion sans effet (ticket 3 de capitaine-a-jour-et-teste, A-8) : develop dans un sujet (`rafraichir`) et un sujet
+// dans une sous-PR (`mettre_a_jour_sous_pr`) portent la mention du contrat d'origin/develop, sous un `commit-msg` de
+// banc qui refuse un commit touchant le schéma sans migration ni `[sans-migration:`. ─────────────────────────────────
+const SCHEMA = "prisma/schema.prisma";
+const MENTION = "[sans-migration: commentaire seul, apporté par une mise à jour du capitaine]";
+const CONTRAT = { fusionsSansEffet: [{ fichier: SCHEMA, lignesSansEffet: "^[[:space:]]*(//.*)?$", mention: MENTION }] };
+function commitMsgPrisma(d) {
+  const dir = join(d.racine, "hooks-prisma");
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(
+    join(dir, "commit-msg"),
+    `#!/bin/sh
+f=$(git diff --cached --name-only)
+if printf '%s\\n' "$f" | grep -qx '${SCHEMA}' && ! printf '%s\\n' "$f" | grep -q '^prisma/migrations/' && ! grep -qF '[sans-migration:' "$1"; then
+  echo "commit-msg prisma jouet : migration ou [sans-migration: <raison>] exigée" >&2; exit 1
+fi
+`,
+  );
+  chmodSync(join(dir, "commit-msg"), 0o755);
+  d.git("config", "core.hooksPath", dir);
+}
+function schemaSujetJouet() {
+  const d = depotJouet();
+  d.ecrire(SCHEMA, "model A {\n  id Int\n}\n");
+  d.ecrire(".claude/chaine.json", JSON.stringify(CONTRAT));
+  d.commit("chore: schéma et contrat");
+  d.git("push", "-q", "origin", "HEAD:develop");
+  d.git("fetch", "-q", "origin");
+  return d;
+}
+
+test("rafraichir et fusionner : la mention vaut aussi pour develop dans un sujet et pour un sujet dans une sous-PR", () => {
+  // develop dans un sujet.
+  const d = schemaSujetJouet();
+  d.branche("sujet/lot", "origin/develop", { "docs/lot.md": "lot\n" });
+  d.branche("develop", "origin/develop", { [SCHEMA]: "// note\nmodel A {\n  id Int\n}\n" }, "docs(db): note [sans-migration: commentaire]");
+  d.git("switch", "-q", "--detach", "origin/develop");
+  commitMsgPrisma(d);
+  const r = d.lancer(SUJET, "rafraichir", "lot");
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  d.git("fetch", "-q", "origin");
+  assert.equal(d.git("log", "-1", "--format=%B", "origin/sujet/lot"), `Merge remote-tracking branch 'origin/develop' into sujet/lot\n\n${MENTION}`);
+
+  // Un sujet dans une sous-PR en retard sur lui.
+  const s = schemaSujetJouet();
+  s.branche("sujet/lot", "origin/develop", { "docs/lot.md": "lot\n" }, "feat(lot): lot (#1)");
+  const ancien = s.branche("feat/sous", "origin/sujet/lot", { "docs/sous.md": "sous\n" });
+  s.branche("sujet/lot", "origin/sujet/lot", { [SCHEMA]: "// note\nmodel A {\n  id Int\n}\n" }, "docs(db): note [sans-migration: commentaire] (#2)");
+  s.git("switch", "-q", "--detach", "origin/develop");
+  s.github({
+    exiges: ["qualite"],
+    checks: { [ancien]: { qualite: "SUCCESS" }, "*": { qualite: "SUCCESS" } },
+    pulls: [
+      { number: 80, title: "docs(lot): sous", head: "feat/sous", base: "sujet/lot", labels: ["à-fusionner"], body: "## Revue de ticket\n\nRien de bloquant.\n" },
+    ],
+  });
+  commitMsgPrisma(s);
+  const f = s.lancer(SUJET, "fusionner", "80");
+  assert.equal(f.status, 0, f.stdout + f.stderr);
+  assert.match(f.stdout, /#80 en retard sur sujet\/lot : mise à jour poussée/);
+  s.git("fetch", "-q", "origin");
+  assert.equal(s.git("log", "-1", "--format=%B", "origin/feat/sous"), `Merge remote-tracking branch 'origin/sujet/lot' into capitaine/80\n\n${MENTION}`);
+});

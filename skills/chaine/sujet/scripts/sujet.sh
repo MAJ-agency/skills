@@ -539,7 +539,7 @@ mettre_a_jour_sous_pr() {
     git switch -q --detach origin/develop
     sortir 3 "$1 : mise à jour de #$n avec $base annulée"
   }
-  if ! sortie=$(git merge -q --no-edit "origin/$base" 2>&1); then
+  if ! sortie=$(fusionner_avec "origin/$base" 3>&2 2>&1); then
     fusion_en_cours=1
     conflits=$(git diff --name-only --diff-filter=U)
     if [ -z "$conflits" ]; then # aucun fichier en conflit : un refus (hook commit-msg, fichier non suivi écrasé)
@@ -903,7 +903,7 @@ rafraichir() {
     sortir 3 "$1 : fusion de develop dans $branche annulée, à corriger par une session sur le sujet"
   }
   local sortie statut
-  if ! sortie=$(git merge -q --no-edit origin/develop 2>&1); then
+  if ! sortie=$(fusionner_avec origin/develop 3>&2 2>&1); then
     local conflits autres
     conflits=$(git diff --name-only --diff-filter=U)
     if [ -z "$conflits" ]; then # aucun fichier en conflit : un refus (hook commit-msg, fichier non suivi écrasé)
