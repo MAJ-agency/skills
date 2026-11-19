@@ -38,7 +38,10 @@ jobs:
         run: node scripts/chaine/migrations-ordre.mjs origin/develop HEAD
       - name: Messages de commit
         if: github.event_name == 'pull_request'
-        run: pnpm exec commitlint --from ${{ github.event.pull_request.base.sha }} --to ${{ github.event.pull_request.head.sha }}
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: pnpm exec node scripts/chaine/commits-a-relire.mjs --de "$BASE_SHA" --a "$HEAD_SHA" --hors origin/develop
   test-db:
     if: github.event_name == 'push' || !github.event.pull_request.draft
     runs-on: ubuntu-24.04

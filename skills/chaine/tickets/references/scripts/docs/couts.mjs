@@ -2,7 +2,7 @@
 /**
  * Registre des coûts de production, généré depuis les cartes de chantier.
  *
- * Pourquoi. Le coût d'une session ne se lit que par `get_session`. L'architecte le relève dans la
+ * Pourquoi. Le coût d'une session ne se lit que par `get_session`. Le conducteur le relève dans la
  * section `## Coût` de sa carte (`docs/agents/chaine-de-production.md` § 6). Le coût de production
  * restait donc éparpillé, une carte par chantier. Ce script les agrège en un seul registre :
  * `docs/agents/couts.md`. C'est un index généré (`scripts/docs/index-generes.json`) : le capitaine
@@ -10,12 +10,15 @@
  * ne s'y marchent pas dessus. La carte reste la seule source.
  *
  * Usage : node scripts/docs/couts.mjs [--verify]
- *   --verify : n'écrit rien, sort en 1 si le registre n'est pas à jour.
+ *   --verify : n'écrit rien, sort en 1 si le registre n'est pas à jour
+ *     ou si une cellule « Coût $ » n'est ni un montant ni une valeur attendue.
  */
 import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
+import { lireTicket } from "./identifiants.mjs";
+import { nomsDeSujets } from "./ligne-sujet.mjs";
 
 export const REGISTRE = "docs/agents/couts.md";
 
@@ -38,14 +41,19 @@ const cellules = (ligne) =>
     .map((c) => c.trim());
 
 /**
- * Une carte → son chantier, sa phase et ses lignes de coût. Une ligne sans montant lisible
- * (gabarit, relevé à venir) est ignorée.
+ * Une carte → son chantier, sa phase, ses lignes de coût et ses lignes illisibles. Le chantier est
+ * le sujet de la carte, ou tous ses sujets séparés par `, ` quand elle en couvre plusieurs ; une
+ * ligne `Sujet:` mal formée donne le nom du fichier. Une ligne
+ * sans montant (gabarit, relevé à venir, cellule vide) est ignorée sans bruit ; une ligne dont la
+ * cellule porte autre chose est rendue dans `illisibles` (`{ cout, ligne }`) : `--verify` la refuse.
  */
 export function lireCarte(chemin, texte) {
-  const sujet = /^Sujet:[ \t]*(?:sujet\/)?(\S+)/m.exec(texte);
+  const sujet = /^Sujet:[ \t]*(.*)$/m.exec(texte);
+  const sujets = sujet && nomsDeSujets(sujet[1], { prefixeFacultatif: true });
   const phase = /^Phase:[ \t]*(\S.*)$/m.exec(texte);
-  const section = /^## Coût\s*\n([\s\S]*?)(?=^## |(?![\s\S]))/m.exec(texte);
+  const section = /^## Coût[ \t]*\n([\s\S]*?)(?=^## |(?![\s\S]))/m.exec(texte);
   const lignes = [];
+  const illisibles = [];
   if (section) {
     const table = section[1].split("\n").filter((l) => l.trim().startsWith("|"));
     for (const l of table.slice(2)) {
@@ -56,9 +64,7 @@ export function lireCarte(chemin, texte) {
         // Un gabarit, un relevé à venir ou une cellule vide sont attendus ; tout le reste est une
         // ligne mal écrite qui fausserait le total sans bruit.
         if (cout && !/^\{\{.*\}\}$|^—$|^à relever$/i.test(cout)) {
-          console.error(
-            `couts : ${chemin} — coût illisible « ${cout} », ligne ignorée : ${l.trim()}`,
-          );
+          illisibles.push({ cout, ligne: l.trim() });
         }
         continue;
       }
@@ -67,14 +73,23 @@ export function lireCarte(chemin, texte) {
   }
   return {
     chemin,
-    chantier: sujet ? sujet[1] : chemin.replace(/^.*\//, "").replace(/\.map\.md$/, ""),
+    // Une carte à plusieurs sujets : tous, dans l'ordre. Le nom ne sert que de libellé au registre.
+    chantier: sujets ? sujets.join(", ") : chemin.replace(/^.*\//, "").replace(/\.map\.md$/, ""),
     phase: phase ? phase[1].trim() : "—",
     lignes,
+    illisibles,
   };
 }
 
+/** Les messages d'erreur des lignes illisibles de toutes les cartes, une carte et une ligne par message. */
+export function messagesIllisibles(cartes) {
+  return cartes.flatMap((c) =>
+    c.illisibles.map((i) => `couts : ${c.chemin} — coût illisible « ${i.cout} », ligne ignorée : ${i.ligne}`),
+  );
+}
+
 const somme = (lignes) => lignes.reduce((s, l) => s + l.cout, 0);
-const estTicket = (t) => /^[A-Z][A-Z0-9]*-\d+\.\d{2}$/.test(t);
+const estTicket = (t) => lireTicket(t) !== null;
 
 /** Bilan d'un chantier : total, part des filles, tickets distincts et moyenne par ticket. */
 export function bilan(carte) {
@@ -156,7 +171,16 @@ export function enMarkdown(cartes) {
   return `${out.join("\n")}\n`;
 }
 
-if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
+/** Vrai quand ce fichier est lancé en ligne de commande : lien symbolique, chemin à espace ou à accent, `--preserve-symlinks-main` compris. */
+function estPointEntree() {
+  try {
+    return realpathSync(fileURLToPath(import.meta.url)) === realpathSync(process.argv[1]);
+  } catch {
+    return false;
+  }
+}
+
+if (estPointEntree()) {
   const racine = execFileSync("git", ["rev-parse", "--show-toplevel"], { encoding: "utf8" }).trim();
   const cartes = execFileSync("git", ["ls-files", "--full-name", ":/docs"], {
     encoding: "utf8",
@@ -165,10 +189,18 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
     .split("\n")
     .filter((f) => f.endsWith(".map.md") && !f.includes("/gabarits/"))
     .map((f) => lireCarte(f, readFileSync(join(racine, f), "utf8")));
+  const illisibles = messagesIllisibles(cartes);
+  for (const m of illisibles) console.error(m);
   const attendu = enMarkdown(cartes);
   const cible = join(racine, REGISTRE);
   if (process.argv.includes("--verify")) {
     const actuel = existsSync(cible) ? readFileSync(cible, "utf8") : "";
+    if (illisibles.length) {
+      console.error(
+        `couts : ${illisibles.length} coût(s) illisible(s) — corriger la carte (un montant, \`à relever\`, \`—\` ou rien)`,
+      );
+      process.exit(1);
+    }
     if (actuel !== attendu) {
       console.error(`couts : ${REGISTRE} n'est pas à jour — node scripts/docs/couts.mjs`);
       process.exit(1);

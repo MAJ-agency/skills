@@ -4,7 +4,7 @@
 
 > **⚠️ Squelette technique, aucun métier.** Les services démarrent, la configuration est en place et les gardes de qualité mordent — mais **aucun domaine n'est modélisé** : pas d'entité, pas de use case, pas de base. Le glossaire (`GLOSSARY.md`) se construit au grilling.
 >
-> **Ce qui reste à faire et ce qui reste à trancher est déposé en tickets** dans [`docs/features/socle/issues/`](docs/features/socle/issues/). Commencer par `1-modeliser-le-domaine` : presque tout en dépend.
+> **Ce qui reste à faire et ce qui reste à trancher est déposé en tickets** dans [`docs/features/socle/all/issues/`](docs/features/socle/all/issues/). Commencer par `SPEC_ALL_SOC-1.01` : presque tout en dépend.
 
 ---
 
@@ -70,7 +70,7 @@ docs/                    TOUTE la documentation, triée par thème (l'arbre comp
     regles/              registre des règles métier — identifiants stables, candidate → validée
     reference/           référence fonctionnelle : le produit tel qu'il est
     reunions/            comptes rendus datés
-  features/<slug>/       le travail en cours : <slug>.spec.md + issues/<N>-<titre>.issue.md
+  features/<f>/<ctx>/    le travail en cours : SPEC_<CTX>_<TRI>-<n>-<slug>.spec.md + issues/….<NN>.issue.md
   methode/               comment on travaille (grilling, décisions, nomenclature, conception, CI)
   agents/                configuration des skills (tracker, labels, domaine)
   sources/               documents bruts fournis en entrée — pas de la spec
@@ -124,7 +124,7 @@ pnpm check
 ### Puis lire, dans cet ordre
 
 1. Ce fichier — tu y es.
-2. [`docs/features/socle/issues/`](docs/features/socle/issues/) — ce qui reste à faire et à trancher.
+2. [`docs/features/socle/all/issues/`](docs/features/socle/all/issues/) — ce qui reste à faire et à trancher.
 <!-- socle:lire-ensuite -->
 
 ## Les règles à suivre

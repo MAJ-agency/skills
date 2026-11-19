@@ -2,7 +2,7 @@
 
 ## `manifest.json`
 
-Le squelette du manifeste, écrit à la main par un humain et jamais généré après `init`. Il porte ce que les sources ne disent pas : le nom et le pitch du projet, ses publics, ses contextes (identifiant, nom, chemin des sources quand il sort de la convention, plancher), ses regroupements EPIC facultatifs, les documents à rendre tels quels, la table nom → rôle. Clés en anglais, comme le schéma pivot d'Anchorpost (`ANC-2`, version 2) : un seul vocabulaire des fichiers du projet jusqu'à l'écran.
+Le squelette du manifeste, écrit à la main par un humain et jamais généré après `init`. Il porte ce que les sources ne disent pas : le nom et le pitch du projet, ses publics, ses contextes (identifiant, nom, chemin des sources quand il sort de la convention, plancher), ses regroupements EPIC facultatifs (un domaine qu'aucun ne liste va dans « Technique », avec un avertissement ; `@maj-agency/anchorpost` ≥ 1.1.0), les documents à rendre tels quels, la table nom → rôle. Clés en anglais, comme le schéma pivot d'Anchorpost (`ANC-2`, version 2) : un seul vocabulaire des fichiers du projet jusqu'à l'écran.
 
 ## `rules/anchorpost.md`
 
@@ -14,7 +14,7 @@ Un relais d'une ligne vers `pnpm anchorpost:check`, pour que `.claude/chaine.jso
 
 ## `adr/ADR_ALL_ARC-N-index-anchorpost.md`
 
-La décision pour le projet : son index est commis dans son dépôt, généré et vérifié par un paquet privé, lu par Anchorpost sans calcul ; la CLI reste hors ligne. Les alternatives écartées (calcul côté serveur, scripts copiés, paquet public) sont celles du grilling d'Anchorpost (`ARC-11`, `ARC-13` de ce dépôt-là), reprises ici pour que le projet n'ait pas à les rejouer.
+La décision pour le projet : son index est commis dans son dépôt, généré et vérifié par un paquet privé, lu par Anchorpost sans calcul ; la CLI reste hors ligne. Les alternatives écartées (calcul côté serveur, scripts copiés, paquet public) sont celles du grilling d'Anchorpost (`ARC-11`, `ARC-13` de ce dépôt-là, sous sa forme d'avant le standard tant qu'il n'a pas migré), reprises ici pour que le projet n'ait pas à les rejouer.
 
 ## `fragments/`
 

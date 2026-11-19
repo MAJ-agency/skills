@@ -6,7 +6,7 @@ Ces skills ne portent **aucune règle métier**. Ce sont des règles de configur
 
 ## Installer
 
-Le dépôt est **privé** : il faut un accès en lecture (membre de MAJ-agency, ou invité sur le dépôt) et un `git` authentifié sur GitHub (`gh auth login`, ou une clé SSH).
+Le dépôt est **public** : aucun accès à demander, aucune authentification GitHub pour installer.
 
 ```bash
 claude plugin marketplace add MAJ-agency/skills
@@ -20,13 +20,15 @@ claude plugin marketplace update maj
 claude plugin update maj-skills@maj
 ```
 
-**Dans un environnement cloud** (sessions Claude Code sur claude.ai), le script de configuration n'a pas d'identifiants GitHub : il ne peut pas cloner un dépôt privé. Ajouter `MAJ-agency/skills` aux **Dépôts** de l'environnement, à côté du projet ; la session le clone alors elle-même, et le script installe le plugin depuis ce dossier, toujours à la version du clone :
+Ce qu'un projet fait après une mise à jour, version par version : [`NOTES-DE-VERSION.md`](NOTES-DE-VERSION.md).
+
+**Dans un environnement cloud** (sessions Claude Code sur claude.ai), le script de configuration de l'environnement de chaque projet installe le plugin depuis GitHub et le met à jour. Il ne se rejoue pas à chaque session : l'environnement garde un instantané du disque pris à son dernier passage, et toute session, celles lancées par une autre comprises, part de cet instantané, avec la version du plugin qu'il porte ; le script ne repasse qu'à un changement du script ou des hôtes autorisés, ou à l'expiration de l'instantané (environ sept jours, documentation de Claude Code, page des environnements cloud). Une mise à jour jouée dans la session change les fichiers du marketplace, pas les skills déjà chargés : une session lancée par l'architecte se met à niveau en tête de son prompt (`skills/chaine/architecte/references/lancement.md`, § « La mise à niveau »). `install` ne touche pas à un plugin déjà présent.
 
 ```bash
-if [ -d skills ]; then
-  claude plugin marketplace add "$PWD/skills" || true
-  claude plugin install maj-skills@maj || true
-fi
+claude plugin marketplace add MAJ-agency/skills || true
+claude plugin install maj-skills@maj || true
+claude plugin marketplace update maj || true
+claude plugin update maj-skills@maj || true
 ```
 
 ## Les skills
@@ -74,19 +76,21 @@ Invocation : `/maj-skills:socle-mobile-expo`. Suppose la racine et les contrats 
 
 ### `chaine/`
 
-| Skill                                                                             | Ce qu'il fait                                                                                                                                                                                                        |
-| --------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [`socle-chaine-de-production`](skills/chaine/socle-chaine-de-production/SKILL.md) | Pose ce que supposent les skills de la chaîne : `develop` intègre et `main` livre, les sept labels, les hooks d'agent, le contrat `.claude/chaine.json`, les index générés, une CI minimale, la méthode et trois ADR |
-| [`tickets`](skills/chaine/tickets/SKILL.md)                                       | La convention des specs et tickets (`SOC-1`, `SOC-1.03`), les scripts qui la lisent (numéro suivant, ticket libre, vagues, avancement, archivage, gate) et la migration d'un dépôt                                   |
+| Skill                                                                             | Ce qu'il fait                                                                                                                                                                                                                                                   |
+| --------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`socle-chaine-de-production`](skills/chaine/socle-chaine-de-production/SKILL.md) | Pose ce que supposent les skills de la chaîne : `develop` intègre et `main` livre, les sept labels, les hooks d'agent, le contrat `.claude/chaine.json`, les index générés, une CI minimale, un `.github/CODEOWNERS` généré depuis les chemins sensibles, la méthode et quatre ADR |
+| [`tickets`](skills/chaine/tickets/SKILL.md)                                       | La convention des specs et tickets (`SPEC_ALL_SOC-1`, `SPEC_ALL_SOC-1.03`), les scripts qui la lisent (numéro suivant, ticket libre, vagues, avancement, archivage, gate) et la migration d'un dépôt                                                            |
 | [`anchorpost`](skills/chaine/anchorpost/SKILL.md)                                 | Branche un dépôt sur Anchorpost, le site qui montre à la MOA les règles, les preuves, les défauts et les demandes lus dans la documentation : la CLI privée, le manifeste, l'index généré et son gate, la fiche d'écriture, la recette d'installation de la clé |
-| [`revue-adversariale`](skills/chaine/revue-adversariale/SKILL.md)                 | Avant `à-fusionner` : un sous-agent vierge, le diff seul, une liste fermée de critères (quatorze du socle, plus ceux du projet), une section de PR                                                                   |
-| [`revue-de-ticket`](skills/chaine/revue-de-ticket/SKILL.md)                       | Quand un ticket est « fini » : trois sous-agents vierges — règles (la revue adversariale), ticket (surfaces, décisions, règles et cas de bord, périmètre), documentation — une seule section de PR                   |
-| [`sujet`](skills/chaine/sujet/SKILL.md)                                           | Un lot de PR liées sur `sujet/<nom>` dès sa première PR, entré dans develop en une PR par un commit de merge ; `demarrer`, `etat`, `livrer`                                                                          |
-| [`fusionner`](skills/chaine/fusionner/SKILL.md)                                   | Le capitaine de fusion : la file `à-fusionner` passée une PR à la fois, les sous-PR dans leur sujet, les renvois ; une seule session                                                                                 |
-| [`chantier`](skills/chaine/chantier/SKILL.md)                                     | L'architecte : grilling, carte, specs et tickets prêts pour agent, sujet, vagues de sessions filles, suivi sans attente active, rétro ; reprenable                                                                   |
-| [`recette-humaine`](skills/chaine/recette-humaine/SKILL.md)                       | La recette d'un module en quatre phases, arrêt après l'inventaire pour que le produit tranche, tests rouges, tickets de défauts                                                                                      |
+| [`criticite`](skills/chaine/criticite/SKILL.md)                                   | La criticité d'une règle à sa création ou au changement de son énoncé, avant tout code : un sous-agent vierge, dont le message est fabriqué par un script, rend le niveau et sa raison, les cas attendus et les dix familles ; jamais « basse » sans raison, le niveau supérieur dans le doute, un agent écrit `by: agent` et ne baisse jamais un niveau ; la commande et chaque sortie brute dans la PR ; sans index au pivot 3, il s'arrête |
+| [`revue-adversariale`](skills/chaine/revue-adversariale/SKILL.md)                 | Avant `à-fusionner` : un sous-agent vierge, le diff seul, une liste fermée de critères (vingt et un du socle, plus ceux du projet), une section de PR                                                                                                           |
+| [`revue-de-ticket`](skills/chaine/revue-de-ticket/SKILL.md)                       | Quand un ticket est « fini » : trois sous-agents vierges — règles (la revue adversariale), ticket (surfaces, décisions, règles et cas de bord, périmètre), documentation — une seule section de PR                                                              |
+| [`sujet`](skills/chaine/sujet/SKILL.md)                                           | Un lot de PR liées sur `sujet/<nom>` dès sa première PR, entré dans develop en une PR par un commit de merge ; `demarrer`, `etat`, `livrer`, `geler` / `degeler` (le gel d'un chantier)                                                                         |
+| [`fusionner`](skills/chaine/fusionner/SKILL.md)                                   | Le capitaine de fusion : la file `à-fusionner` passée une PR à la fois, les sous-PR dans leur sujet, les renvois comptés (au plafond, la PR attend un humain), les PR d'un sujet gelé laissées dans la file ; plusieurs capitaines peuvent tenir la même file |
+| [`architecte`](skills/chaine/architecte/SKILL.md)                                 | L'architecte d'un programme : seul à parler au produit, il tient la carte du programme, mène le grilling jusqu'à la spec validée, lance sans lui demander conducteurs, capitaines et sessions de ticket prêtes, avec leur procédure entière et ses consignes, ouvre lui-même les PR de documentation, relaie les plafonds au produit                                   |
+| [`chantier`](skills/chaine/chantier/SKILL.md)                                     | Le conducteur de chantier : depuis une spec validée, carte, tickets prêts pour agent, sujet, vagues de sessions filles, suivi sans attente active, rétro ; reprenable ; signale un plafond sans rien couper, arrête un chantier gelé                            |
+| [`recette-humaine`](skills/chaine/recette-humaine/SKILL.md)                       | La recette d'un module en quatre phases, arrêt après l'inventaire pour que le produit tranche, tests rouges, tickets de défauts                                                                                                                                 |
 
-Invocation : `/maj-skills:socle-chaine-de-production` une fois par dépôt (depuis `socle-monorepo`, ou à la main ; `chantier` le réclame s'il manque), qui pose les scripts des quatre autres dans `scripts/chaine/` ; `/maj-skills:tickets` et `/maj-skills:revue-adversariale` au quotidien dans une session de travail ; `/maj-skills:sujet` au début de tout ticket ; `/maj-skills:fusionner` et `/maj-skills:chantier` chacun dans une session dédiée ; `/maj-skills:recette-humaine` sur un module livré.
+Invocation : `/maj-skills:socle-chaine-de-production` une fois par dépôt (depuis `socle-monorepo`, ou à la main ; `chantier` le réclame s'il manque), qui pose les scripts des quatre autres dans `scripts/chaine/` ; `/maj-skills:tickets` et `/maj-skills:revue-adversariale` au quotidien dans une session de travail ; `/maj-skills:criticite` à toute création d'un fichier de règle et à tout changement de son énoncé, quelle que soit la session ; `/maj-skills:sujet` au début de tout ticket ; `/maj-skills:architecte`, `/maj-skills:fusionner` et `/maj-skills:chantier` chacun dans une session dédiée (l'architecte dans une session ouverte par le produit) ; `/maj-skills:recette-humaine` sur un module livré.
 
 **La racine est une seule source.** `socle-monorepo` la pose ; un skill de service n'écrit que dans `apps/<service>/`, ses paquets, et des fragments insérés dans les zones `<!-- socle:… -->` de `README.md` et `CLAUDE.md`. Ses règles de lint vivent dans `apps/<service>/eslint.rules.mjs`, chargé par l'ESLint racine.
 
@@ -102,7 +106,7 @@ Invocation : `/maj-skills:socle-chaine-de-production` une fois par dépôt (depu
 
 **Une méthode écrite.** Cinq documents qui font autorité : comment interroger un plan (grilling), quand écrire une ADR, comment nommer un document, comment concevoir un module profond, quels invariants la machine doit garantir.
 
-**Une documentation structurée.** Tout sous `docs/`, trié par thème — ADR, architecture, métier, features. Nomenclature `<TRI>-<N>-<slug>.md` (sans zéro de tête) avec registre de trigrammes, pour qu'une référence ne casse jamais au déplacement d'un fichier.
+**Une documentation structurée.** Tout sous `docs/`, trié par thème — ADR, architecture, métier, features. Nomenclature `<TYPE>_<CTX>_<TRI>-<n>-<slug>.md` (`ADR_ALL_ARC-2`, `SPEC_ALL_SOC-1`, `RULE_ALL_LIC-3` ; six types, le contexte `ALL` toujours écrit, sans zéro de tête) avec registre de trigrammes, pour qu'une référence ne casse jamais au déplacement d'un fichier.
 
 **L'outillage agent installé** (par `socle-monorepo`). graphify avec ses hooks, les skills Matt Pocock et superpowers, et la configuration `docs/agents/` produite en invoquant `setup-matt-pocock-skills` — pas recopiée à la main.
 
@@ -137,43 +141,57 @@ skills/
   frontend/
     socle-web-next/
       SKILL.md         le processus, en trois étapes
-      references/      squelette du client, règles front, ADR WEB-1, fragments, tickets web
+      references/      squelette du client, règles front, ADR_ALL_WEB-1, fragments, tickets web
   mobile/
     socle-mobile-expo/
       SKILL.md         le processus, en trois étapes
-      references/      squelette Expo, règles mobile, ADR MOB-1, fragments, tickets mobile
+      references/      squelette Expo, règles mobile, ADR_ALL_MOB-1, fragments, tickets mobile
   chaine/
     socle-chaine-de-production/
       SKILL.md         le processus, en quatre étapes
-      references/      contrat, index générés, hooks d'agent, labels, CI, méthode, trois ADR, fragments, liste admin
+      references/      contrat, index générés, hooks d'agent, labels, CI, CODEOWNERS et son gate, méthode, quatre ADR, fragments, liste admin
     tickets/
       SKILL.md         la convention, poser, au quotidien, migrer
       references/      scripts (docs/, verify/) et leurs tests, tracker, labels de triage, gabarits
+    criticite/
+      SKILL.md         quand, l'index au pivot 3, le message du sous-agent, tracer, retenir ou corriger, relancer
+      scripts/         contexte-regle.mjs (le message du sous-agent) et son banc
+      references/      le prompt exact du sous-agent, la source des définitions
     revue-adversariale/
       SKILL.md         poser, quand, le diff, les chemins sensibles, le sous-agent, trier, corriger
-      scripts/         diff-revue.sh
+      scripts/         diff-revue.sh, chemins-sensibles.mjs
       references/      critères du socle, prompt exact, section de PR
     sujet/
       SKILL.md         quand un sujet, session de travail, capitaine, livrer
       scripts/         sujet.sh, le dépôt jouet et le faux gh, les tests
     fusionner/
       SKILL.md         la règle, REST seulement, mise en place, boucle, renvoyer, fin de passage
-      scripts/         github.sh, file.sh, passer.sh, boucle.sh, renvoyer.sh, refus.sh, proprietaire.sh, revue-exigee.mjs, migrations-ordre.mjs, les tests
+      scripts/         github.sh, identifiant.mjs, file.sh, passer.sh, boucle.sh, renvoyer.sh, refus.sh, proprietaire.sh, revue-exigee.mjs, migrations-ordre.mjs, commits-a-relire.mjs, les tests
+    architecte/
+      SKILL.md         lire, vérifier l'environnement, la carte du programme, le grilling, lancer, suivre, changer d'architecte
+      references/      les prompts de lancement d'un conducteur et d'un capitaine
     chantier/
-      SKILL.md         reprendre ou démarrer, setup, les six phases, le suivi à chaque réveil
+      SKILL.md         reprendre ou démarrer, setup, les six phases, le suivi à chaque réveil, l'arrêt d'un chantier
+      references/      CONTENU.md
     recette-humaine/
       SKILL.md         quand, les règles du jeu, les quatre phases
       references/      la méthode : familles de défauts, grilles, gabarit de l'inventaire
 ```
+
+Les bancs (`pnpm test`, joués aussi par la CI) demandent Node ≥ 22, `git` et `jq` (`sudo apt install jq` ou `brew install jq`) ; sans `jq`, chaque banc de la chaîne échoue sur une ligne qui le dit.
 
 ## Ajouter un skill
 
 1. Créer `skills/<categorie>/<nom>/SKILL.md`, avec un frontmatter `name` + `description`. La description décide **quand** le skill se déclenche : y mettre les branches, pas une paraphrase du titre.
 2. Ajouter `"./skills/<categorie>/<nom>"` au tableau `skills` de `.claude-plugin/plugin.json`.
 3. Ajouter une ligne au tableau ci-dessus.
-4. **Bumper `version` dans `.claude-plugin/plugin.json`** — c'est ce champ que `claude plugin update maj-skills@maj` compare : sans bump, aucun changement de contenu n'est détecté chez ceux qui ont installé le plugin. Patch pour une correction, mineure pour un skill ou un gabarit ajouté, majeure quand un skill existant change de contrat.
+4. **Bumper `version` dans `.claude-plugin/plugin.json`** — c'est ce champ que `claude plugin update maj-skills@maj` compare : sans bump, aucun changement de contenu n'est détecté chez ceux qui ont installé le plugin. Patch pour une correction, mineure pour un skill ou un gabarit ajouté, majeure quand un skill existant change de contrat. Écrire sa note en tête de `NOTES-DE-VERSION.md` (« Ce qui change », « Ce qu'un projet fait pour en profiter »).
 
 Cette règle vaut pour **tout** changement de contenu, pas seulement l'ajout d'un skill.
+
+Un skill dont l'étape `poser` copie un dossier de scripts dans `scripts/chaine/` d'un projet ajoute ce dossier à `POSES` dans `scripts/poses.test.mjs` : le garde pose ses fichiers à plat et rejoue ses bancs hors du plugin. Un banc posé ne lit jamais l'arbre du plugin sans repli vers le fichier du projet.
+
+Un banc ne recopie jamais le filtre des variables `GIT_*` : il importe `environnementDeBanc()` (`scripts/docs/environnement-de-banc.mjs` du socle, réexporté par `depot-jouet.mjs`), qui retire aussi `FORCE_COLOR` et pose `NO_COLOR=1`. `scripts/un-seul-environnement-de-banc.test.mjs` refuse toute copie.
 
 Ce qui dépasse une page va dans `references/`, atteint par un pointeur depuis `SKILL.md` — le corps du skill reste lisible, et les détails ne se chargent qu'au besoin.
 

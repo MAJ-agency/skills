@@ -1,6 +1,6 @@
 # `socle-tests` : le workflow de mutation hebdomadaire et le périmètre « règles prouvées » depuis l'index
 
-Status: ready-for-agent
+Status: resolved
 Type: task
 Blocked by: 5
 
@@ -36,7 +36,18 @@ Un projet du socle suivi par Anchorpost peut lancer, sans rien écrire, la mutat
 
 `pnpm test` ; sur un projet posé avec Anchorpost, `pnpm --filter <api> mutation:regles` liste le périmètre.
 
+## Answer
+
+- **Le périmètre** : `references/scripts/verify/mutation-regles.mjs` exporte `perimetre(index, existe)`, pure, qui rend `{ fichiers, regles, ecartes, raison? }` (`regles` : règle → fichiers retenus, pour la synthèse ; `ecartes` porte un `motif` en plus de `{ regle, chemin }`). Il lit l'index commis `anchorpost/anchorpost.json` lui-même, sans importer `@maj-agency/anchorpost` : schéma `"2"`, règles dont `realisation.status` vaut `proven`, union de leurs `code`. Index absent, illisible, d'un autre schéma ou sans règle prouvée : périmètre vide, `raison` dite, sortie 0. Écarté et signalé : un chemin absent du dépôt (c'est `anchorpost check` qui le refuse), hors du dépôt (absolu, `..`, octet nul, lien symbolique qui sort), ou hors périmètre de la mutation (test, `.d.ts`, contrôleur, module, dto, gabarit, migration, types générés, `main.ts`, autre langage). Une clé de règle est portée telle que l'index l'écrit, zéros compris ; aucun identifiant n'est analysé, donc aucune expression locale.
+- **Les points d'entrée** : `mutation-regles.mjs --list` (périmètre du dépôt, un fichier par ligne sur stdout, écarts et raison sur stderr) et `--lancer` (depuis un paquet : Stryker sur les fichiers du paquet ; périmètre vide, rien n'est lancé) ; `mutation-regles-synthese.mjs` (`synthese()`, la synthèse par règle en Markdown : règle → fichiers → survivants, puis le hors périmètre ; « pas de rapport » si le passage a été interrompu).
+- **La configuration** : `references/gabarits/stryker.regles.config.mjs` hérite de la configuration du noyau, `break: 0`, fichier incrémental séparé, reporter `json`, `STRYKER_MUTATE` pour un essai local ; son `mutate` vient de `perimetreDuPaquet()` (import de la fonction, pas d'appel shell), avec les globs échappés (`[id].ts`). Une configuration **par paquet qui teste** : les configurations Vitest sont par paquet ; les fichiers d'une règle d'un autre paquet se mutent par la configuration de cet autre paquet.
+- **Le workflow** : `references/ci/mutation.yml` : `workflow_dispatch` avec `cible: noyau | regles` (défaut `noyau`), `schedule` le dimanche à 03 h 43 UTC sur `regles`, `permissions: contents: read`, `timeout-minutes: 120`, `concurrency` sans annulation, la cible par `env:` (aucune expression `${{ }}` dans un `run:`), actions épinglées par empreinte, étape de synthèse `always()` vers `$GITHUB_STEP_SUMMARY`.
+- **Les documents** : gabarit `regle.md` (`# code:` après `config`), `decisions.md` § registre (le champ y entre, et quitte l'exemple des `extensions`), `skills/chaine/anchorpost/SKILL.md` (une phrase, et le refus d'un chemin de `code` absent), `socle-tests` (`SKILL.md` étapes 2, 3 et 6, `CONTENU.md`), ADR « score de mutation » (le noyau reste à la demande, les règles se mesurent chaque semaine, sans plancher). `nomenclature.md` ne liste aucun champ d'en-tête : rien n'y change.
+- **Fedora** : mécanique reprise de `fedora@4bca7dc`, lue par le conducteur (workflow, filtres, configuration, synthèse) ; rien de métier ni de fédération n'est repris, rien n'est écrit dans fedora.
+- **Vérification** : `pnpm test` 311 verts ; sur un projet jouet, `--list` avec et sans index, et un vrai Stryker de bout en bout (synthèse par règle, fichier `[id].ts` compris).
+
 ## Comments
 
 - 2026-11-10 — Ouvert à la clôture du grilling (ticket `1`), à la question de l'humain « est-ce qu'on l'implémente côté Iroki ? ».
 - 2026-11-10 — Décision du produit, relayée par le conducteur : le champ `code` entre au standard, facultatif, comme le recommandait le ticket. `## Où` et `## Décisions` mis à jour, specs Anchorpost et Fedora alignées dans la même PR ; ticket passé `ready-for-agent`, bloqué par `5` (même `SKILL.md` de `socle-tests`, ADR renommées par le `5`). Architecte.
+- 2026-11-10 — Résolu : périmètre pur lu dans l'index, `--list` et `--lancer`, configuration Stryker par paquet, workflow `mutation.yml` hebdomadaire, champ `code` au gabarit, au registre et au skill Anchorpost ; `pnpm test` 311 verts. mécanique reprise de `fedora@4bca7dc`, lue par le conducteur.

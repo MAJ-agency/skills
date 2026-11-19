@@ -33,7 +33,9 @@ S6  Typage — apps/api/CLAUDE.md, apps/web/CLAUDE.md. Aucun any (ni as any, ni 
 S7  Tests — .claude/rules/tests.md. Un repository se teste contre un vrai Postgres ; un cas d'usage
     avec ses ports mockés ; une route a son test de refus (401, 403, 404 hors périmètre) ; aucun test
     creux (sans assertion, toBeDefined seul, assertion sous condition, skip sans ticket, setTimeout) ;
-    un test qui couvre une règle du registre porte son identifiant.
+    un test qui couvre une règle du registre porte son identifiant entre crochets en tête de son nom
+    ([RULE_<CTX>_<TRI>-<n>], plusieurs permis, un sur un describe vaut pour ses tests), jamais un
+    test de recette.
 S8  Injection — apps/api/CLAUDE.md § « Dependency injection ». Tout provider nouveau ou nouvellement
     injecté est fourni dans chaque graphe qui le consomme (AppModule, et le graphe d'un worker s'il
     existe) ; un port est injecté par son token ; pas de forwardRef ni de dépendance circulaire
@@ -45,10 +47,10 @@ S9  Concurrence et idempotence — apps/api/CLAUDE.md § « Invariants ». Une r
 S10 Configuration et secrets — apps/api/CLAUDE.md § « Frozen architecture decisions ». L'environnement
     est lu par le schéma Zod de config, jamais par process.env ailleurs ; aucun secret, aucune URL
     d'environnement en dur ; une variable nouvelle est déclarée dans .env.example.
-S11 Langue des identifiants — ARC-4, GLOSSARY.md. Identifiants en anglais, d'après les noms en code du
+S11 Langue des identifiants — ADR_ALL_ARC-4, GLOSSARY.md. Identifiants en anglais, d'après les noms en code du
     glossaire ; prose, messages et textes d'interface en français ; un terme du domaine nouveau sans
     entrée au glossaire est un écart. Hors règle : les scripts posés par le plugin maj-skills
-    (scripts/docs, verify, chaine, agent, github), copies verbatim en français (ARC-4 § exception).
+    (scripts/docs, verify, chaine, agent, github), copies verbatim en français (ADR_ALL_ARC-4 § exception).
 S12 Clients web et mobile — apps/web/CLAUDE.md, apps/mobile/CLAUDE.md. Une route est mince et délègue
     à une feature ; aucun import entre features (hors dette déclarée) ; sens unique lib → components →
     features → app ; un seul client HTTP ; un formulaire valide par le schéma partagé ; l'état serveur
@@ -58,6 +60,36 @@ S13 Parité web et mobile (si les deux existent) — une évolution d'un client 
 S14 Chemins sensibles — .claude/chaine.json (cheminsSensibles). Un diff qui introduit du code
     d'authentification, de droits, de chiffrement, de paiement ou d'export de données hors des chemins
     déclarés est un écart : le chemin manque à la liste, et /security-review n'a pas tourné.
+S15 Appels sortants et jetons délégués — cas vécu : anchorpost PR 7 et PR 13. Une valeur venue
+    d'un appelant et placée dans l'URL d'une API externe est validée par un motif fermé ou encodée
+    comme un seul segment : elle ne peut pas sortir de la ressource visée (ni /, ni .., ni ?, ni #) ;
+    un jeton délégué à un tiers ou à un client porte la portée et la durée que l'appel exige, jamais
+    celles du compte entier.
+S16 Événements externes et corps entrants — cas vécu : anchorpost PR 24 (complète S9). Un état
+    dérivé d'événements externes (webhook, file, synchronisation) est le même quel que soit leur
+    ordre d'arrivée : il compare un horodatage ou une version de la source, jamais « le dernier reçu
+    gagne » ; une route qui reçoit un corps externe fixe une limite de taille à la mesure de ce
+    qu'elle attend, pas celle du framework par défaut.
+S17 Suppression après conversion — cas vécu : anchorpost PR 57. Une conversion (format, import,
+    déplacement, migration de données) ne supprime que les éléments qu'elle a écrits avec succès :
+    la liste supprimée est celle des éléments convertis, jamais un motif, un dossier ou une table
+    entière ; un élément non reconnu reste en place et est signalé.
+S18 Artefact publié — cas vécu : anchorpost PR 54. Ce qui est publié (paquet, image, archive,
+    étiquette) est l'artefact construit et vérifié, pris tel quel ou contrôlé par son empreinte,
+    jamais reconstruit après les vérifications ; un essai (dry-run, préversion, CI de PR) ne publie
+    ni n'étiquette rien sous le numéro d'une vraie version.
+S19 Expressions régulières sur un fichier — cas vécu : anchorpost, livraison de la PR 63 (ticket
+    .27). Toute expression régulière ajoutée ou modifiée qui lit le contenu d'un fichier a dans le
+    diff un test sur une entrée piégée : fin de ligne CRLF, dernière ligne sans fin de ligne, et la
+    variante la plus proche qui ne doit pas correspondre.
+S20 Réécriture du dépôt et chemins sensibles — cas vécu : anchorpost PR 85. Une commande ou un
+    script qui réécrit des fichiers du dépôt (codemod, renommage, régénération, migration de
+    convention) exclut les chemins de cheminsSensibles (.claude/chaine.json), ou nomme dans sa sortie
+    chacun de ceux qu'il modifie ; un tel chemin réécrit sans être nommé est un écart.
+S21 Migration rejouable — cas vécu : anchorpost PR 96. Une migration ou un script déclaré
+    rejouable a un test qui le joue une seconde fois sur son propre résultat et constate qu'il ne
+    change rien, y compris sur une chaîne (A → B puis B → C ne fait pas passer A à C au second
+    passage) et un échange (A ↔ B ne revient pas à l'état de départ).
 ```
 
 ## Critères du projet

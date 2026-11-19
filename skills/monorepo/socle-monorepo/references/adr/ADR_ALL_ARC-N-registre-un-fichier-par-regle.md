@@ -18,7 +18,7 @@ Un troisième point n'était tenu nulle part : le statut « implémentée » ét
 
 **Deux statuts distincts.** La **validation** est écrite par un humain : `candidate`, `validated`, `rejected`, `obsolete`, avec la date, qui, et la raison pour un rejet ou une obsolescence. Aucune machine n'écrit `validated`. La **réalisation** est **calculée**, jamais écrite : `proven` quand au moins un test porte l'identifiant de la règle entre crochets dans son nom, avec le niveau du test (P0, P1, P2) ; `configured` quand la règle déclare des clés de configuration et n'a pas de test ; `to-build` sinon. Deux exceptions seulement s'écrivent à la main, avec leur raison : `not-applicable` et `contradiction`.
 
-**Une règle n'est jamais supprimée** : elle devient `rejected` ou `obsolete`. **Un identifiant ne se renomme jamais.**
+**Une règle n'est jamais supprimée** : elle devient `rejected` ou `obsolete`. **Un identifiant ne se renomme pas**, sauf pour résoudre une collision de sigles avant la première lecture par Anchorpost.
 
 **Les liens sont typés et déclarés dans l'en-tête** (`replaces`, `refines`, `contradicts`, `parameterized-by`, `blocked-by`), et `instanceOf` désigne la règle de socle qu'un contexte instancie. Une question ouverte (`docs/questions-ouvertes.md`) dont la ligne `Bloque :` cite une règle la marque « a une question ouverte », sans toucher à ses statuts.
 
@@ -29,7 +29,7 @@ Le gabarit d'une règle : `docs/agents/gabarits/regle.md`. La forme de l'étique
 ## Alternatives écartées
 
 - **Le tableau markdown durci** (un gabarit de colonnes imposé). Une ligne ne porte pas une liste de sources ou de liens, un `|` dans l'énoncé casse la ligne, et le conflit entre sessions reste.
-- **Un JSON par contexte** (la forme Fedora). Éprouvé sur 1 682 règles, mais l'énoncé long en chaîne JSON et le fichier unique comme point de conflit l'ont écarté ; Fedora migre par une commande, contexte par contexte.
+- **Un JSON par contexte** (la forme d'un projet antérieur). Éprouvé sur 1 682 règles, mais l'énoncé long en chaîne JSON et le fichier unique comme point de conflit l'ont écarté ; ce projet migre par une commande, contexte par contexte.
 - **Un fichier YAML pur par règle.** L'énoncé en chaîne multi-lignes perd le rendu markdown sur GitHub, et l'indentation d'une longue chaîne est le piège classique d'un agent. L'en-tête YAML garde la structure, le corps garde la prose.
 - **Écrire la réalisation à la main.** C'est ce qui mentait. Ce qui se calcule se calcule.
 - **Une règle en statut « question ».** Une règle validée reste validée quand on s'interroge dessus ; la question est un indicateur en plus, pas un statut.

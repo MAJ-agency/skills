@@ -12,13 +12,24 @@
  * Ce qu'il fait.
  *   1. Fichiers du diff (`git diff <merge-base(base, HEAD)>`, index et arbre de travail
  *      compris, fichiers non suivis compris), filtrés sur le code (`coverage-diff-regles.mjs`).
+ *      PR de mise à jour d'un sujet : le diff part de la fusion recalculée de develop dans le sujet.
+ *      Autre forme de réception de develop (fusion dont le premier parent est develop, retouche avant
+ *      la fusion, sujet qui a avancé, fusion d'essai de GitHub) : quand HEAD contient `origin/develop`
+ *      et que la base non, le diff part du merge-base de develop et de HEAD, et la sortie le dit. Limite :
+ *      le travail propre du sujet qui n'est pas dans develop est alors remesuré, c'est plus que l'écart
+ *      à la fusion, jamais moins ; la fusion recalculée reste la mesure la plus juste quand elle s'applique.
+ *      `origin/develop` illisible : pas de repli, une note le dit.
  *      Base introuvable et distant sans aucune branche (`git ls-remote --heads origin` vide) :
- *      premier push d'un dépôt neuf, rien à comparer, sortie 0 ; sinon sortie 2.
+ *      premier push d'un dépôt neuf, rien à comparer, sortie 0 ; sinon sortie 2, en disant où la
+ *      base manque (à rapatrier du distant, absente du distant aussi, distant muet).
  *   2. Par paquet, `vitest related <fichiers>` sous couverture v8 (`@vitest/coverage-v8`),
  *      rapport istanbul `coverage-final.json`, `coverage.all` pour qu'un fichier qu'aucune
  *      suite ne charge apparaisse à zéro. Si le paquet a un `vitest.db.config.ts` et que
  *      `DATABASE_URL` est définie, les suites sur base sont jouées aussi et les deux rapports
- *      additionnés : un repository n'est prouvé que contre Postgres.
+ *      additionnés : un repository n'est prouvé que contre Postgres. Sans `DATABASE_URL` (et hors GitHub
+ *      Actions), elles ne sont pas jouées : un fichier en échec qu'une suite `*.db.spec.ts` du paquet cible
+ *      (import relatif ou alias du tsconfig, lu dans les sources) passe en avertissement, `⚠`, sortie 0 s'il
+ *      n'y a pas d'autre échec ; la CI, qui a Postgres, le juge.
  *   3. Verdict par fichier (seuils de `coverage-diff-regles.mjs`) :
  *        - fichier modifié sous 80 % de lignes OU 70 % de branches   → échec
  *        - fichier NOUVEAU sous 90 % de lignes (branches : 70 %)      → échec
@@ -39,11 +50,12 @@
  * Sorties : 0 OK (ou distant vide au premier push) · 1 un fichier sous les seuils ou jamais exécuté, ou des tests rouges · 2 usage, base introuvable.
  */
 import { execFileSync, spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, relative, resolve } from "node:path";
 import {
   BASE_DEFAUT,
+  aliasDeTsconfig,
   SEUILS,
   baseDepuisPush,
   choisirBase,
@@ -55,8 +67,26 @@ import {
   messageEchec,
   metriques,
   plages,
+  referenceDuDiff,
+  suiteSurBaseCible,
   verdict,
 } from "./coverage-diff-regles.mjs";
+
+/**
+ * Le journal, écrit d'un bloc synchrone sur la sortie standard : `console.log` suivi de `process.exit` coupe une
+ * sortie longue lue par un tube (le tube n'est pas vidé à la sortie). EAGAIN (tube plein, descripteur non
+ * bloquant) : on réessaie.
+ */
+function dire(texte = "") {
+  const octets = Buffer.from(`${texte}\n`);
+  for (let ecrit = 0; ecrit < octets.length; ) {
+    try {
+      ecrit += writeSync(1, octets, ecrit);
+    } catch (e) {
+      if (e.code !== "EAGAIN") throw e;
+    }
+  }
+}
 
 const ROOT = resolve(process.env.PROJET_RACINE ?? new URL("../..", import.meta.url).pathname);
 const args = process.argv.slice(2);
@@ -72,7 +102,7 @@ const seuils = {
   lignesNouveau: SEUILS.lignesNouveau,
 };
 if (Number.isNaN(seuils.lignes) || Number.isNaN(seuils.branches)) {
-  console.log("coverage-diff: seuils invalides (--seuil-lignes, --seuil-branches)");
+  dire("coverage-diff: seuils invalides (--seuil-lignes, --seuil-branches)");
   process.exit(2);
 }
 
@@ -86,6 +116,26 @@ const gitOk = (...a) => {
   }
 };
 
+/**
+ * PR de mise à jour d'un sujet (la fusion de develop dans le sujet, puis des retouches) : le premier commit de
+ * HEAD hors de `sujet` est une fusion à deux parents, le sommet du sujet puis un commit de develop absent du sujet.
+ * Rend l'arbre de la fusion recalculée par git (`merge-tree`, git >= 2.38), à qui on compare le sommet : seules les
+ * retouches et les conflits résolus comptent, pas ce que develop apporte. Null si HEAD n'a pas cette forme, ou si
+ * git ne sait pas la recalculer : la mesure est alors celle d'avant, plus stricte, jamais plus lâche.
+ */
+function fusionRecalculee(sujet) {
+  const sommet = gitOk("rev-parse", "--verify", "--quiet", `${sujet}^{commit}`);
+  if (!sommet) return null;
+  const premier = (gitOk("rev-list", "--first-parent", "--reverse", `${sommet}..HEAD`) ?? "").split("\n")[0];
+  if (!premier) return null;
+  const [, p1, p2, reste] = (gitOk("rev-list", "--parents", "-n", "1", premier) ?? "").split(" ");
+  if (p1 !== sommet || !p2 || reste) return null;
+  if (gitOk("merge-base", "--is-ancestor", p2, BASE_DEFAUT) === null) return null;
+  if (gitOk("merge-base", "--is-ancestor", p2, sommet) !== null) return null;
+  const r = spawnSync("git", ["merge-tree", "--write-tree", "--no-messages", p1, p2], { cwd: ROOT, encoding: "utf8" });
+  return r.status === 0 || r.status === 1 ? r.stdout.split("\n")[0] || null : null;
+}
+
 /** Ce sur quoi le travail sera fusionné (voir `choisirBase`) : jamais develop par défaut. */
 function baseAuto() {
   const head = gitOk("rev-parse", "HEAD");
@@ -94,6 +144,9 @@ function baseAuto() {
   const refs = (gitOk("for-each-ref", "--format=%(refname:short)", "refs/remotes/origin/sujet") ?? "")
     .split("\n")
     .filter(Boolean);
+  // Une branche de mise à jour d'un sujet se mesure contre ce sujet, même à égalité de distance avec develop.
+  const sujetMisAJour = refs.find((ref) => fusionRecalculee(ref));
+  if (sujetMisAJour) return sujetMisAJour;
   const candidats = [BASE_DEFAUT, ...refs]
     .filter((ref) => gitOk("rev-parse", "--verify", "--quiet", ref) !== null)
     .map((ref) => ({ ref, distance: Number(gitOk("rev-list", "--count", `${ref}..HEAD`)) }));
@@ -111,18 +164,50 @@ try {
   try {
     tetesDistantes = git("ls-remote", "--heads", "origin");
   } catch {
-    tetesDistantes = null; // pas de distant, ou injoignable : la base manque vraiment
+    tetesDistantes = null; // pas de distant, ou injoignable : on ne sait rien de lui
   }
-  if (decisionSansBase(tetesDistantes) === "premier-push") {
-    console.log(`coverage-diff: dépôt distant vide, premier push — rien à comparer (la base « ${BASE} » naîtra avec la chaîne)`);
+  const branche = String(BASE).replace(/^origin\//, ""); // `--base` sans valeur : BASE est undefined, sortie 2 comme avant
+  const decision = decisionSansBase(tetesDistantes, branche);
+  if (decision === "premier-push") {
+    dire(`coverage-diff: dépôt distant vide, premier push — rien à comparer (la base « ${BASE} » naîtra avec la chaîne)`);
     process.exit(0);
   }
-  console.log(`coverage-diff: référence de base « ${BASE} » introuvable (git fetch origin develop ?)`);
+  const conseil = {
+    "base-a-fetcher": `elle existe sur le distant : git fetch origin ${branche}`,
+    "base-absente":
+      `le distant a des branches mais pas celle-là : la créer` +
+      (branche === "develop" ? ` depuis main (bash scripts/github/develop.sh quand le socle de la chaîne est posé)` : "") +
+      `, ou passer --base <branche>`,
+    "distant-muet": `et le distant ne répond pas : git fetch origin ${branche} quand il répond`,
+  }[decision];
+  dire(`coverage-diff: référence de base « ${BASE} » introuvable en local — ${conseil}`);
   process.exit(2);
 }
+// PR de mise à jour : on compare le sommet à la fusion recalculée, pas à la base.
+const fusion = /^origin\/sujet\//.test(String(BASE)) ? fusionRecalculee(BASE) : null;
+// Réception de develop d'une autre forme : HEAD contient develop et la base non, on lit contre develop.
+const developLisible = gitOk("rev-parse", "--verify", "--quiet", `${BASE_DEFAUT}^{commit}`) !== null;
+const contient = (ref) => gitOk("merge-base", "--is-ancestor", BASE_DEFAUT, ref) !== null;
+const { reference: REFERENCE, sorte, note } = referenceDuDiff({
+  base: BASE,
+  mergeBase,
+  mergeBaseDevelop: developLisible ? gitOk("merge-base", BASE_DEFAUT, "HEAD") : null,
+  fusion,
+  developLisible,
+  headContientDevelop: developLisible && contient("HEAD"),
+  baseContientDevelop: developLisible && contient(BASE),
+});
+const COMPARE_A =
+  sorte === "fusion"
+    ? `la fusion recalculée de develop dans ${BASE} (${fusion.slice(0, 8)})`
+    : sorte === "develop"
+      ? `${BASE_DEFAUT} (${REFERENCE.slice(0, 8)}), HEAD contient develop et ${BASE} non : le code que develop apporte n'est pas remesuré`
+      : `${BASE} (${mergeBase.slice(0, 8)})`;
+if (note) dire(`coverage-diff: ${note}`);
+
 /** fichier → 'A' (nouveau) | 'M' (modifié). */
 const statuts = new Map();
-for (const ligne of git("diff", "--name-status", "--diff-filter=ACMR", mergeBase).split("\n")) {
+for (const ligne of git("diff", "--name-status", "--diff-filter=ACMR", REFERENCE).split("\n")) {
   if (!ligne) continue;
   const [statut, ...chemins] = ligne.split("\t");
   statuts.set(chemins.at(-1), statut.startsWith("A") ? "A" : "M");
@@ -131,8 +216,8 @@ for (const f of git("ls-files", "--others", "--exclude-standard").split("\n")) i
 
 const fichiers = [...statuts.keys()].filter((f) => inScope(f) && existsSync(join(ROOT, f))).sort();
 if (fichiers.length === 0) {
-  console.log(`coverage-diff: aucun fichier de code dans le diff par rapport à ${BASE} (${mergeBase.slice(0, 8)})`);
-  console.log("coverage-diff: OK");
+  dire(`coverage-diff: aucun fichier de code dans le diff par rapport à ${COMPARE_A}`);
+  dire("coverage-diff: OK");
   process.exit(0);
 }
 
@@ -156,15 +241,15 @@ for (const f of aMesurer) {
   if (!aVitest(pkg)) nonMesurables.push(f);
   else parPaquet.set(pkg, [...(parPaquet.get(pkg) ?? []), f]);
 }
-console.log(
-  `coverage-diff: base ${BASE} (${mergeBase.slice(0, 8)}) — ${fichiers.length} fichier(s) de code dans le diff` +
+dire(
+  `coverage-diff: base ${COMPARE_A} — ${fichiers.length} fichier(s) de code dans le diff` +
     `${exemptes.length ? `, ${exemptes.length} exempté(s)` : ""}${nonMesurables.length ? `, ${nonMesurables.length} non mesurable(s)` : ""}`,
 );
-console.log(
+dire(
   `  seuils : modifié ≥ ${seuils.lignes} % lignes et ≥ ${seuils.branches} % branches ; nouveau ≥ ${Math.max(seuils.lignesNouveau, seuils.lignes)} % lignes`,
 );
-for (const e of exemptes) console.log(`  ⤷ exempté : ${e.f} — ${e.raison}`);
-for (const f of nonMesurables) console.log(`  ⤷ non mesurable : ${f} (le paquet ${paquetDe(f)} n'a pas de suite Vitest — trou connu)`);
+for (const e of exemptes) dire(`  ⤷ exempté : ${e.f} — ${e.raison}`);
+for (const f of nonMesurables) dire(`  ⤷ non mesurable : ${f} (le paquet ${paquetDe(f)} n'a pas de suite Vitest — trou connu)`);
 
 // ── 3. Vitest par paquet ───────────────────────────────────────────────────────────────
 const vitestBin = (pkg) => {
@@ -209,23 +294,49 @@ function mesurer(pkg, fichiersDuPaquet, config) {
   rmSync(dir, { recursive: true, force: true });
   if (r.status !== 0) {
     if (/MISSING DEPENDENCY/.test(r.stderr + r.stdout)) {
-      console.log(`  ✖ ${pkg} : @vitest/coverage-v8 manque — pnpm add -D @vitest/coverage-v8 --filter <paquet>`);
+      dire(`  ✖ ${pkg} : @vitest/coverage-v8 manque — pnpm add -D @vitest/coverage-v8 --filter <paquet>`);
       process.exit(2);
     }
-    console.log(`  ✖ ${pkg} : des tests échouent (code ${r.status}) — corriger avant de mesurer`);
-    console.log((r.stdout + r.stderr).split("\n").filter((l) => /FAIL|Error|✗|×/.test(l)).slice(0, 20).join("\n"));
+    dire(`  ✖ ${pkg} : des tests échouent (code ${r.status}) — corriger avant de mesurer`);
+    dire((r.stdout + r.stderr).split("\n").filter((l) => /FAIL|Error|✗|×/.test(l)).slice(0, 20).join("\n"));
     process.exit(1);
   }
   return { rapport, suites: compterSuites(r.stdout + r.stderr) };
 }
 
+/** Les suites sur base (`*.db.spec.ts`) du paquet, suivies ou non, hors ignorées ; leur source, et les alias du tsconfig. */
+function suitesSurBase(pkg) {
+  const liste = gitOk("ls-files", "--cached", "--others", "--exclude-standard", "--", pkg) ?? "";
+  return liste
+    .split("\n")
+    .filter((f) => /\.db\.spec\.tsx?$/.test(f) && existsSync(join(ROOT, f)))
+    .map((f) => ({ chemin: relative(pkg, f), source: readFileSync(join(ROOT, f), "utf8") }));
+}
+function aliasDuPaquet(pkg) {
+  try {
+    return aliasDeTsconfig(readFileSync(join(ROOT, pkg, "tsconfig.json"), "utf8"));
+  } catch {
+    return []; // tsconfig absent : seuls les imports relatifs comptent
+  }
+}
+
+const aConfigBase = (pkg) => existsSync(join(ROOT, pkg, "vitest.db.config.ts"));
+// Sans base locale (jamais sous GitHub Actions, qui doit l'avoir), les suites sur base ne sont pas jouées.
+const paquetsSansBase = process.env.DATABASE_URL || process.env.GITHUB_ACTIONS === "true" ? [] : [...parPaquet.keys()].filter(aConfigBase);
+if (paquetsSansBase.length) {
+  dire(
+    `\n  ⚠ suites sur base non jouées (*.db.spec.ts) : DATABASE_URL absente (${paquetsSansBase.join(", ")}). ` +
+      `Un fichier que seules elles ciblent est seulement signalé, jugé par la CI avec Postgres.`,
+  );
+}
 const lignesTableau = [];
 let suitesTotal = 0;
 const debut = Date.now();
 for (const [pkg, fs] of parPaquet) {
-  const avecBase = existsSync(join(ROOT, pkg, "vitest.db.config.ts")) && Boolean(process.env.DATABASE_URL);
-  console.log(`\n── ${pkg} : ${fs.length} fichier(s)${avecBase ? ", suites sans base puis sur base" : ""}`);
-  for (const f of fs) console.log(`   • ${f}${statuts.get(f) === "A" ? " (nouveau)" : ""}`);
+  const avecBase = aConfigBase(pkg) && Boolean(process.env.DATABASE_URL);
+  const sansBase = paquetsSansBase.includes(pkg);
+  dire(`\n── ${pkg} : ${fs.length} fichier(s)${avecBase ? ", suites sans base puis sur base" : ""}`);
+  for (const f of fs) dire(`   • ${f}${statuts.get(f) === "A" ? " (nouveau)" : ""}`);
   if (DRY_RUN) continue;
   let { rapport, suites } = mesurer(pkg, fs, null);
   if (avecBase) {
@@ -234,35 +345,45 @@ for (const [pkg, fs] of parPaquet) {
     suites += db.suites;
   }
   suitesTotal += suites;
-  console.log(`   ↳ ${suites} suite(s) liée(s)`);
+  const specsSurBase = sansBase ? suitesSurBase(pkg) : [];
+  const aliasPaquet = sansBase ? aliasDuPaquet(pkg) : [];
+  dire(`   ↳ ${suites} suite(s) liée(s)`);
   for (const f of fs) {
     const entree = rapport[join(ROOT, f)];
     const m = entree ? metriques(entree) : null;
     const nouveau = statuts.get(f) === "A";
-    lignesTableau.push({ f, nouveau, m, problemes: verdict(m, { nouveau, seuils }) });
+    const problemes = verdict(m, { nouveau, seuils });
+    const surBase =
+      problemes.length > 0 &&
+      sansBase &&
+      suiteSurBaseCible(relative(pkg, f), specsSurBase, aliasPaquet, (c) => existsSync(join(ROOT, pkg, c)));
+    lignesTableau.push({ f, nouveau, m, problemes: surBase ? [] : problemes, avertissement: surBase ? problemes : [] });
   }
 }
 
 if (DRY_RUN) {
-  console.log(`\ncoverage-diff: --dry-run — ${aMesurer.length} fichier(s) à mesurer ; Vitest non lancé`);
+  dire(`\ncoverage-diff: --dry-run — ${aMesurer.length} fichier(s) à mesurer ; Vitest non lancé`);
   process.exit(0);
 }
 
 // ── 4. Tableau et verdict ──────────────────────────────────────────────────────────────
 const fmt = (v) => (v === null || v === undefined ? "    n/a" : `${String(v).padStart(5)} %`);
 const largeur = Math.max(7, ...lignesTableau.map((r) => r.f.length));
-console.log(`\n${"fichier".padEnd(largeur)} | lignes  | branches | fonctions | lignes non couvertes`);
-console.log(`${"-".repeat(largeur)}-|---------|----------|-----------|---------------------`);
+dire(`\n${"fichier".padEnd(largeur)} | lignes  | branches | fonctions | lignes non couvertes`);
+dire(`${"-".repeat(largeur)}-|---------|----------|-----------|---------------------`);
 for (const r of lignesTableau) {
-  const marque = r.problemes.length ? "✖" : "✔";
+  const marque = r.problemes.length ? "✖" : r.avertissement.length ? "⚠" : "✔";
   const nc = r.m?.nonCouvertes?.length ? plages(r.m.nonCouvertes) : "";
-  console.log(`${r.f.padEnd(largeur)} | ${fmt(r.m?.lignes)} | ${fmt(r.m?.branches)}  | ${fmt(r.m?.fonctions)}   | ${nc} ${marque}${r.nouveau ? " (nouveau)" : ""}`);
+  dire(`${r.f.padEnd(largeur)} | ${fmt(r.m?.lignes)} | ${fmt(r.m?.branches)}  | ${fmt(r.m?.fonctions)}   | ${nc} ${marque}${r.nouveau ? " (nouveau)" : ""}`);
 }
 const echecs = lignesTableau.filter((r) => r.problemes.length);
-console.log(`\ncoverage-diff: ${lignesTableau.length} fichier(s) mesuré(s), ${suitesTotal} suite(s), ${Math.round((Date.now() - debut) / 1000)} s`);
-for (const r of echecs) console.log(`  ✖ ${r.f} : ${r.problemes.join(" ; ")}`);
+dire(`\ncoverage-diff: ${lignesTableau.length} fichier(s) mesuré(s), ${suitesTotal} suite(s), ${Math.round((Date.now() - debut) / 1000)} s`);
+for (const r of echecs) dire(`  ✖ ${r.f} : ${r.problemes.join(" ; ")}`);
+for (const r of lignesTableau.filter((x) => x.avertissement.length)) {
+  dire(`  AVERTISSEMENT ${r.f} : couverture non mesurée sans base : la CI la juge avec Postgres (${r.avertissement.join(" ; ")})`);
+}
 if (echecs.length) {
-  console.log(
+  dire(
     "  → écrire la suite qui exécute ces lignes (nominal, limites, erreurs), ou exempter avec\n" +
       "    `// coverage-diff: ignore — <raison>` en tête de fichier si le fichier n'est pas testable en unitaire.\n" +
       "    Repository : les suites *.db.spec.ts comptent quand DATABASE_URL est définie (compose.yaml en local).",
@@ -270,4 +391,4 @@ if (echecs.length) {
   console.log(messageEchec(echecs));
   process.exit(1);
 }
-console.log("coverage-diff: OK");
+dire("coverage-diff: OK");

@@ -7,7 +7,7 @@ import { spawn, spawnSync } from "node:child_process";
 import assert from "node:assert/strict";
 import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-const { depotJouet, script: scriptDe } = await import(
+const { depotJouet, script: scriptDe, GRAMMAIRE } = await import(
   existsSync(new URL("./depot-jouet.mjs", import.meta.url))
     ? "./depot-jouet.mjs"
     : "../../sujet/scripts/depot-jouet.mjs"
@@ -41,8 +41,11 @@ function jouet(extraEnv = {}) {
     d.git("push", "-q", "origin", "HEAD:develop");
     d.git("fetch", "-q", "origin");
   };
+  // La boucle copie aussi la grammaire des identifiants d'origin/develop, à côté de scripts/chaine/.
+  d.ecrire("scripts/docs/identifiants.mjs", readFileSync(GRAMMAIRE, "utf8"));
   publier({
     "github.sh": readFileSync(scriptDe("fusionner", "github.sh"), "utf8"),
+    "identifiant.mjs": readFileSync(scriptDe("fusionner", "identifiant.mjs"), "utf8"),
     "boucle.sh": readFileSync(BOUCLE, "utf8"),
     "sujet.sh": "#!/usr/bin/env bash\nexit 0\n",
     "renvoyer.sh": "#!/usr/bin/env bash\nexit 0\n",
@@ -106,6 +109,26 @@ test("origin/develop introuvable : arrêt avec un message clair, aucun script jo
   assert.notEqual(r.status, 0);
   assert.match(r.stderr, /origin\/develop/);
   assert.deepEqual(lu(), []);
+});
+
+test("scripts/docs/identifiants.mjs absent de develop : arrêt (6), aucun script joué ; présent, il est copié à côté des outils", () => {
+  const { d, publier, lu } = jouet();
+  publier({ "file.sh": fileSh(1, 1), "passer.sh": passerSh(1) });
+  const copie = join(d.racine, "copie");
+  d.env.BOUCLE_COPIE = copie;
+  const ok = d.lancer(BOUCLE);
+  assert.equal(ok.status, 0, ok.stdout + ok.stderr);
+  assert.equal(existsSync(join(copie, "scripts/docs/identifiants.mjs")), true);
+  // identifiant.mjs de la copie trouve la grammaire copiée (../docs/), hors de tout dépôt.
+  const lu1 = spawnSync("node", [join(copie, "scripts/chaine/identifiant.mjs"), "slug", "SPEC_ALL_SOC-1.03"], { cwd: d.racine, encoding: "utf8" });
+  assert.equal(lu1.stdout.trim(), "spec-all-soc-1-03", lu1.stderr);
+  d.git("rm", "-q", "scripts/docs/identifiants.mjs");
+  publier({}, "chore: sans la grammaire");
+  writeFileSync(d.env.TRACE, "");
+  const r = d.lancer(BOUCLE);
+  assert.equal(r.status, 6, r.stdout + r.stderr);
+  assert.match(r.stderr, /ARRÊT : scripts\/docs\/identifiants\.mjs absent d'origin\/develop/);
+  assert.deepEqual(lu(), [""]);
 });
 
 // --- Instance unique et arrêt d'un geste -----------------------------------------------------------
@@ -352,4 +375,153 @@ exit 0
   const r = d.lancer(BOUCLE);
   assert.equal(r.status, 10, r.stdout + r.stderr);
   assert.deepEqual(lu(), [], "livrer-prets n'a pas tourné");
+});
+
+// --- Échéance transmise par la veille (`BOUCLE_ECHEANCE`) : aucun passage ne commence après elle ---
+
+const maintenant = () => Math.floor(Date.now() / 1000);
+// `sujet.sh` de remplacement : note `fusionner` et `livrer-prets` ; `regrouper-series` (premier appel
+// du tour) dort `dort` secondes la première fois, pour que l'échéance tombe pendant le tour.
+const sujetSh = (dort = 0) => `#!/usr/bin/env bash
+case "$1" in
+  regrouper-series) [ ${dort} = 0 ] || [ -e "$TRACE.dormi" ] || { touch "$TRACE.dormi"; /bin/sleep ${dort}; } ;;
+  fusionner) echo "fusionner $2" >> "$TRACE" ;;
+  livrer-prets) echo "livrer-prets" >> "$TRACE" ;;
+esac
+exit 0
+`;
+
+test("échéance passée : ÉCHÉANCE, sortie 0, aucun passage", () => {
+  const { d, publier, lu } = jouet({ BOUCLE_ECHEANCE: String(maintenant() - 1) });
+  publier({ "file.sh": fileSh(1, 1), "passer.sh": passerSh(1) });
+  const r = d.lancer(BOUCLE);
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /^ÉCHÉANCE \d\d:\d\d : plus de passage avant la fin de la veille, file laissée$/m);
+  assert.doesNotMatch(r.stdout, /FILE VIDE/, "pas de fin de boucle ordinaire (rafraîchissement sauté)");
+  assert.deepEqual(lu(), []);
+});
+
+test("échéance atteinte entre deux passages : le premier passe, pas le second", () => {
+  // L'échéance tombe pendant le premier passage, qui dort au-delà (10 s de marge pour le démarrage de la
+  // boucle) ; ce banc et les deux suivants dépendent de l'horloge, de quelques secondes.
+  const { d, publier, lu } = jouet({ BOUCLE_ECHEANCE: String(maintenant() + 10) });
+  publier({
+    "file.sh": fileSh(1, 2),
+    "passer.sh": passerSh(1, `[ "$(grep -c '^passer' "$TRACE")" -gt 1 ] || /bin/sleep 11`),
+  });
+  const r = d.lancer(BOUCLE);
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.deepEqual(lu(), ["passer v1"], r.stdout + r.stderr);
+  assert.match(r.stdout, /^ÉCHÉANCE \d\d:\d\d/m);
+});
+
+test("échéance atteinte pendant le tour, après sa tête : aucun passer lancé", () => {
+  // La tête du tour est passée avant l'échéance ; elle tombe pendant `regrouper-series` : seul le contrôle
+  // qui précède `passer` l'arrête.
+  const { d, publier, lu } = jouet({ BOUCLE_ECHEANCE: String(maintenant() + 10) });
+  publier({ "file.sh": fileSh(1, 1), "passer.sh": passerSh(1), "sujet.sh": sujetSh(11) });
+  const r = d.lancer(BOUCLE);
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /^ÉCHÉANCE \d\d:\d\d/m);
+  assert.deepEqual(lu().filter((l) => l.startsWith("passer")), [], r.stdout + r.stderr);
+});
+
+test("BOUCLE_ECHEANCE illisible : sortie 64, aucun passage", () => {
+  for (const valeur of ["demain", "", "12.5", "0", "-3"]) {
+    const { d, publier, lu } = jouet({ BOUCLE_ECHEANCE: valeur });
+    publier({ "file.sh": fileSh(1, 1), "passer.sh": passerSh(1) });
+    const r = d.lancer(BOUCLE);
+    assert.equal(r.status, 64, `« ${valeur} » : ${r.stdout}${r.stderr}`);
+    assert.match(r.stderr, /BOUCLE_ECHEANCE/);
+    assert.deepEqual(lu(), []);
+  }
+});
+
+test("échéance avant une sous-PR : la boucle s'arrête sur ÉCHÉANCE, sans lancer sujet.sh fusionner", () => {
+  const { d, publier, lu } = jouet({ BOUCLE_ECHEANCE: String(maintenant() + 10) });
+  publier({
+    "file.sh": `#!/usr/bin/env bash
+[ "$1" = --rouges ] && exit 0
+printf '41\\tsujet/x : prête\\n'
+# La PR suivante vers develop, prête tant qu'aucun passer n'a tourné (une boucle sourde la passerait).
+[ "$(grep -c '^passer' "$TRACE" 2>/dev/null)" -ge 1 ] || printf '42\\tprête\\n'
+exit 0
+`,
+    "passer.sh": passerSh(1),
+    "sujet.sh": sujetSh(11),
+  });
+  const r = d.lancer(BOUCLE);
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /^ÉCHÉANCE \d\d:\d\d/m);
+  // Ni la sous-PR, ni la suite du tour (livrer-prets) que jouerait une boucle restée sourde au sous-shell.
+  assert.deepEqual(lu(), [], r.stdout + r.stderr);
+});
+
+// --- GitHub illisible (ticket 9) : une sortie 5 est une pause, jamais un arrêt ; une file illisible n'est pas vide ---
+test("une sortie 5 de passer.sh met la boucle en pause, puis elle reprend : jamais d'ARRÊT", () => {
+  const { d, publier, lu } = jouet();
+  publier({
+    "file.sh": `#!/usr/bin/env bash
+[ "$1" = --rouges ] && exit 0
+grep -q '^fini' "$TRACE" 2>/dev/null || printf '41\\tprête\\n'
+exit 0
+`,
+    "passer.sh": `#!/usr/bin/env bash
+n=$(grep -c '^passer' "$TRACE" 2>/dev/null)
+echo "passer $((\${n:-0} + 1))" >> "$TRACE"
+if [ "\${n:-0}" -lt 3 ]; then echo "GitHub illisible (repos/{owner}/{repo}/commits/abc/check-runs?per_page=100) : gh en échec (code 1) : gh: Bad credentials (HTTP 401)" >&2; echo "[#41] GitHub illisible pendant l'attente de la CI : pause, puis reprise"; exit 5; fi
+echo fini >> "$TRACE"
+exit 0
+`,
+  });
+  const r = d.lancer(BOUCLE);
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.deepEqual(lu(), ["passer 1", "passer 2", "passer 3", "passer 4", "fini"], r.stdout + r.stderr);
+  // La ligne PAUSE nomme la route et le code HTTP de la cause (décision A-51).
+  assert.match(r.stdout, /\[#41\] PAUSE \d\d:\d\d \(sortie 5\) : \[#41\] GitHub illisible pendant l'attente de la CI : pause, puis reprise ; cause : GitHub illisible \(repos\/\{owner\}\/\{repo\}\/commits\/abc\/check-runs\?per_page=100\) : gh en échec \(code 1\) : gh: Bad credentials \(HTTP 401\), reprise dans 120 s/);
+  assert.doesNotMatch(r.stdout + r.stderr, /ARRÊT/);
+  assert.match(r.stdout, /FILE VIDE/);
+});
+
+test("file.sh en 5 : PAUSE, puis la PR passe au tour suivant ; jamais FILE VIDE sur un échec", () => {
+  const { d, publier, lu } = jouet({ BOUCLE_PAUSE: "7" });
+  const appels = join(d.racine, "file-appels.log");
+  d.env.APPELS = appels;
+  // Appels du tour : `--rouges` (traiter_rouges), sans argument (traiter_sujets), sans argument (la lecture du tour) :
+  // la panne porte sur la lecture sans argument qui suit celle de traiter_sujets, au premier tour.
+  publier({
+    "file.sh": `#!/usr/bin/env bash
+echo "file $*" >> "$APPELS"
+[ "$1" = --rouges ] && exit 0
+if [ "$(grep -cx 'file ' "$APPELS")" = 2 ]; then echo "GitHub illisible (pulls) : gh en échec" >&2; exit 5; fi
+grep -q '^passer' "$TRACE" 2>/dev/null || printf '41\\tprête\\n'
+exit 0
+`,
+    "passer.sh": passerSh(1),
+  });
+  const r = d.lancer(BOUCLE);
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.deepEqual(lu(), ["passer v1"], r.stdout + r.stderr);
+  const pause = r.stdout.indexOf("PAUSE");
+  assert.ok(pause >= 0, r.stdout);
+  assert.match(r.stdout, /PAUSE \d\d:\d\d \(file\.sh, sortie 5\) : file illisible ; cause : GitHub illisible \(pulls\) : gh en échec, reprise dans 7 s/);
+  assert.ok(pause < r.stdout.indexOf("[#41] DÉBUT"), "la pause, puis le passage");
+  assert.equal(r.stdout.split("FILE VIDE").length, 2, "FILE VIDE une fois, à la fin");
+  assert.ok(r.stdout.indexOf("FILE VIDE") > r.stdout.indexOf("[#41] DÉBUT"));
+});
+
+test("file.sh en échec hors 5 : ARRÊT, sortie 6, jamais FILE VIDE", () => {
+  const { d, publier, lu } = jouet();
+  publier({
+    "file.sh": `#!/usr/bin/env bash
+[ "$1" = --rouges ] && exit 0
+exit 1
+`,
+    "passer.sh": passerSh(1),
+  });
+  const r = d.lancer(BOUCLE);
+  assert.equal(r.status, 6, r.stdout + r.stderr);
+  assert.match(r.stdout + r.stderr, /ARRÊT : file\.sh en échec \(sortie 1\)/);
+  assert.doesNotMatch(r.stdout, /FILE VIDE/);
+  assert.deepEqual(lu(), []);
 });

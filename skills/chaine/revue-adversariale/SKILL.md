@@ -13,15 +13,17 @@ La session qui a écrit le code est la plus mal placée pour le relire. Un **sou
 | Source                                 | Destination                                                            |
 | -------------------------------------- | ---------------------------------------------------------------------- |
 | `scripts/diff-revue.sh`                | `scripts/chaine/diff-revue.sh` (exécutable)                            |
+| `scripts/chemins-sensibles.mjs`        | `scripts/chaine/chemins-sensibles.mjs` (lit le contrat de la base par `revue-exigee.mjs`, et le sujet de la branche par `identifiant.mjs` et `sujet.sh`, posés à côté par `fusionner` et `sujet`) |
+| `scripts/*.test.mjs`                   | `scripts/chaine/` (`diff-revue.test.mjs` lit `depot-jouet.mjs`, posé par `sujet poser` ; `chemins-sensibles.test.mjs` lit le gate `scripts/verify/tickets-regles.mjs`, posé par `tickets poser`) |
 | `references/criteres-socle.md`         | le fichier que `.claude/chaine.json` nomme (`criteresRevue`, défaut `docs/agents/criteres-revue.md`), **s'il n'existe pas** |
 
 Puis relire la liste : retirer `S3` en mono-tenant, `S13` sans second client ; ajouter sous « Critères du projet » un critère par ADR qui pose une règle de code. Un projet qui a déjà sa liste la garde.
 
 ## Quand
 
-- **Obligatoire**, avant `à-fusionner`, pour une PR qui touche `apps/`, `packages/` ou `scripts/` ; refaite pour une PR renvoyée (`fusion-bloquée`) dont la correction touche du code hors index générés.
-- **Avec `/security-review`** si le diff touche un chemin sensible (étape 2).
-- **Non requise** pour une PR de documentation seule (`docs/`, `*.md`) : la section de PR le dit en une ligne.
+- **Obligatoire**, avant `à-fusionner`, pour une PR qui touche du code ou ce que la chaîne exécute : `apps/`, `packages/`, `scripts/`, `e2e/`, un chemin dont un segment commence par un point (`.github/`, `.husky/`, `.claude/`, `.npmrc`), un fichier de la racine hors Markdown (`package.json`, `pnpm-lock.yaml`, `turbo.json`, les configurations d'outils), un `package.json` (ou `package.json5`, `package.yaml`, `package.yml`), un fichier exécutable ou un nom de configuration à toute profondeur (`*.mjs`, `*.sh`, `*.config.*`, `*rc`), un `CLAUDE.md` ou `CLAUDE.local.md`, `docs/agents/`, le fichier des critères, un chemin sensible du contrat de la base, quelle que soit la casse (`revue-exigee.mjs`, skill `fusionner`) ; refaite pour une PR renvoyée (`fusion-bloquée`) dont la correction touche du code hors index générés.
+- **Avec `/security-review`** si le diff touche un chemin sensible (étape 2). Le capitaine le vérifie : une PR qui touche un chemin sensible du contrat de la base (tout chemin si le contrat est illisible) sans la ligne « `/security-review` : lancée » dans sa section de revue est renvoyée (`revue-exigee.mjs`, `motifSansSecurite`).
+- **Non requise** pour une PR de documentation seule (`docs/` hors `docs/agents/` et hors fichier exécutable ou de configuration, `*.md` hors `CLAUDE.md`, `CLAUDE.local.md` et d'un dossier à point) : la section de PR le dit en une ligne.
 
 Elle ne remplace ni `pnpm check` ni les gates : ceux-ci attrapent ce qui se voit à la syntaxe ; la revue vise ce qu'ils ne voient pas, un périmètre filtré par le mauvais paramètre, un `select` qui ramène une colonne d'un autre tenant, un port appelé hors transaction.
 
@@ -31,17 +33,17 @@ Elle ne remplace ni `pnpm check` ni les gates : ceux-ci attrapent ce qui se voit
 REVUE_DIR=<scratchpad>/revue bash scripts/chaine/diff-revue.sh [<base>] [<zone>…]
 ```
 
-Base par défaut `origin/develop` ; `origin/sujet/<nom>` pour une sous-PR de sujet. Le script écrit `diff.patch` et `stat.txt`, sans lockfile, index générés ni snapshots ; migrations, seeds et specs restent. Fini quand `diff.patch` existe, non vide, et que le sommet relu est connu (le script l'affiche).
+Base par défaut `origin/develop` ; `origin/sujet/<nom>` pour une sous-PR de sujet. Le script écrit `diff.patch` et `stat.txt`, sans lockfile, index générés ni snapshots ; migrations, seeds et specs restent. Fini quand `diff.patch` existe, non vide, et que le sommet relu est connu (le script l'affiche). Sortie 1 (base non rapatriée, ou diff vide) : le lire, ne lancer aucun sous-agent ; un lot de zone vide n'a pas de sous-agent.
 
 **Diff de plus de 2 000 lignes :** un lot par zone (`apps/api`, `apps/web`, `apps/mobile`, `packages` + `scripts`), passée en `<zone>` avec un `REVUE_DIR` par lot. Un sous-agent par lot, lancés en parallèle, mêmes critères.
 
 ## Étape 2 — Chemins sensibles
 
 ```bash
-git diff --name-only <base>...HEAD | grep -E -f <(node -e 'for (const c of JSON.parse(require("fs").readFileSync(".claude/chaine.json","utf8")).cheminsSensibles) console.log("^" + c)')
+set -o pipefail; git -c core.quotepath=false diff --name-only --no-renames <base>...HEAD | node scripts/chaine/chemins-sensibles.mjs <base>
 ```
 
-Les chemins sont ceux de `.claude/chaine.json` (`cheminsSensibles`) : authentification, droits, chiffrement, paiement, export. Une ligne au moins : lancer **en plus** la skill `/security-review` sur la branche. Ses constats suivent la même suite (étape 5).
+Les chemins sont ceux de `.claude/chaine.json` (`cheminsSensibles`) : authentification, droits, chiffrement, paiement, export. Les motifs se lisent comme le gate `tickets` (`**` tout, `*` un segment, `/` final un dossier) ; un chemin que git cite entre guillemets est décité, en NFC, et la casse ne compte pas. Les motifs du contrat de `<base>` (et, pour un sujet, d'`origin/develop`) (la même qu'à l'étape 1) s'ajoutent à ceux de la branche : une branche qui retire son chemin de `chaine.json` reste sensible. Sans `<base>`, le script prend le sujet du ticket de la branche s'il en déclare un, sinon `origin/develop`. Une base qui ne se lit pas rend chaque chemin sensible (`(base illisible : …)`) : lancer `/security-review`, et corriger la base. Sortie non nulle (contrat illisible, entrée vide, `git` en échec dans le tube) : la revue s'arrête et le dit ; le contrat ou la base se corrige. Script absent (projet posé avant cette version) : la revue s'arrête et le pose d'abord (étape 0), sans revenir à l'ancienne commande. Une ligne au moins : lancer **en plus** la skill `/security-review` sur la branche. Ses constats suivent la même suite (étape 5), et la section de PR porte la ligne « `/security-review` : lancée (chemins : …) » : sans elle, le capitaine renvoie la PR.
 
 ## Étape 3 — Lancer le sous-agent
 

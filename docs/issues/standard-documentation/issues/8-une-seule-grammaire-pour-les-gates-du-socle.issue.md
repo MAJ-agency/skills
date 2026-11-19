@@ -1,6 +1,6 @@
 # Une seule grammaire pour les gates du socle : `identifiants.mjs` passe dans `socle-monorepo`
 
-Status: ready-for-agent
+Status: resolved
 Type: task
 Blocked by: 5
 
@@ -34,6 +34,14 @@ Depuis le ticket `2`, les scripts du skill `tickets` et de la chaîne lisent les
 
 `pnpm test` à la racine (tous les bancs, total noté dans la PR) ; le grep ci-dessus.
 
+## Answer
+
+- **Trois modules changent de propriétaire** : `identifiants.mjs`, `next-id.mjs`, `next-id-branches.mjs` et leurs tests (`identifiants.test.mjs`, `next-id.test.mjs`, qui teste aussi `next-id-branches`) passent par `git mv` sous `skills/monorepo/socle-monorepo/references/scripts/docs/`. `socle-monorepo` pose `references/scripts/docs/*` à `scripts/docs/` (la copie croisée depuis `tickets` disparaît) ; `tickets` ne les pose plus, les exige à l'étape 1, et son gate `tickets.mjs` sort en 2 en nommant la grammaire quand elle manque. `next-id.test.mjs` porte son propre dépôt jouet : le socle le pose sans la chaîne.
+- **Les trois gates** importent `../docs/identifiants.mjs` : `references-agent.mjs` (`identifiantDuTicket` sur le nom de fichier), `references-agent-regles.mjs` (`ticketsCites` pour un ticket cité, `identifiantsCites` pour un document nommé avant un `§`), `tests-creux.mjs` (un cas désactivé porte une spec ou un ticket de la grammaire ; l'ancienne forme et une règle ne comptent pas ; sans grammaire, sortie 2). Plus aucune expression d'identifiant locale.
+- **Les bancs** : les tests de `tickets` jouent leurs scripts par `script()` et `module()` de `depot-jouet.mjs` (dans un projet, `scripts/` tel quel ; dans le plugin, une copie où la grammaire du socle est posée à côté) ; `tests-creux.test.mjs` joue une copie posée ; `depot-jouet.mjs` du skill `sujet`, `identifiant.mjs` (repli plugin), `identifiant.test.mjs`, `contexte-ticket.test.mjs`, `garde-commandes.test.mjs` visent `socle-monorepo`.
+- Hors périmètre, nécessaire à la pose de vérification : `references/agents/issue-tracker.md` de `tickets` citait `docs/agents/chaine-de-production.md` comme un chemin, rouge pour `references-agent` sans le socle de la chaîne (déjà rouge au sommet `a050988`) ; la phrase nomme le fichier et le skill qui le pose.
+
 ## Comments
 
 - 2026-11-10 — Ouvert par l'architecte sur le constat de la fille du ticket `2` (PR #36) : trois gates hors du skill `tickets` gardaient l'ancienne grammaire. Bloqué par `5` : le `3` et le `4` importent `identifiants.mjs`, le `5` touche les mêmes `SKILL.md`.
+- 2026-11-10 — Résolu : trois modules sous `socle-monorepo`, trois gates sur `identifiants.mjs`, `pnpm test` 278 verts ; cinq passages au sommet `a050988` verts, l'instabilité signalée n'est pas reproduite.

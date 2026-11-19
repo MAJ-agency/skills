@@ -17,7 +17,7 @@ Deux autres besoins sont venus d'Anchorpost. Une règle appartient à un **conte
 - Le type dit **ce que c'est** : `RULE_ALL_ANC-1` et `SPEC_ALL_ANC-1` coexistent sans se confondre, et aucun trigramme n'a dû être renommé.
 - Le contexte dit **pour qui** : `RULE_FNSMR_LIC-05` et `RULE_FFSA_LIC-05` sont deux règles. `ALL` s'écrit toujours, même dans un projet à un seul contexte.
 - Le trigramme dit **de quoi ça parle**, et vient toujours du registre de `nomenclature.md`. `ARC` reste le trigramme des décisions transverses.
-- Le numéro est unique par type, contexte et trigramme. Un identifiant existant **ne se renomme jamais**, même s'il porte des zéros de tête.
+- Le numéro est unique par type, contexte et trigramme. Un identifiant existant **ne se renomme pas**, même s'il porte des zéros de tête, sauf pour résoudre une collision de sigles avant la première lecture par Anchorpost.
 - **Le nom du fichier porte l'identifiant complet.** Un `grep` trouve tout.
 - **Le dossier de contexte existe toujours** (`docs/metier/regles/all/`, `docs/features/<feature>/all/`), même dans un projet à un seul contexte.
 
@@ -29,7 +29,7 @@ La règle opérationnelle complète vit dans [`../methode/nomenclature.md`](../m
 - **Un marqueur sur la règle seule** (`R-LIC-3`). Résout la collision règle contre document, pas la collision entre contextes, et laisse les specs et les ADR se confondre.
 - **Le contexte en premier segment des specs seulement** (`ALL-ANC-1` spec, `ANC-1` règle, `ARC-11` ADR). Trois grammaires différentes pour trois objets, et une ADR de sujet (`BEN-1`) restait homonyme d'une règle.
 - **Ne pas écrire `ALL`** quand le projet n'a qu'un contexte. Économise cinq caractères et crée un doute à chaque lecture, et une migration le jour où un second contexte apparaît.
-- **Zéros de tête** pour un tri lexical. On ne trie pas les identifiants, on les cite ; Fedora garde les siens parce qu'un identifiant ne se renomme pas, un projet neuf n'en met pas.
+- **Zéros de tête** pour un tri lexical. On ne trie pas les identifiants, on les cite ; un projet existant garde les siens parce qu'un identifiant ne se renomme pas, un projet neuf n'en met pas.
 
 ## Conséquences
 

@@ -1,6 +1,6 @@
 # apps/mobile — imperative rules
 
-Expo client of the {{TITRE}}. Read this file **entirely** before writing mobile code. What is shared with the API lives in `packages/CLAUDE.md`; the API's rules in `apps/api/CLAUDE.md`; the web client's in `apps/web/CLAUDE.md`. The *why*: `apps/mobile/docs/MOBILE_GUIDELINES.md`.
+Expo client of the {{TITRE}}. Read this file **entirely** before writing mobile code. What is shared with the API lives in `packages/CLAUDE.md`; the API's rules in `apps/api/CLAUDE.md`; the web client's in `apps/web/CLAUDE.md`. The *why*: `apps/mobile/docs/MOBILE_GUIDELINES.md`. Device flows in CI (emulator, cold start, diagnostics, `paths` filter): read `apps/mobile/docs/MOBILE_CI.md` before writing or touching that workflow.
 
 ## Golden rule — same architecture as the web client
 
@@ -20,7 +20,7 @@ app/                                 ←  features/, components/, lib/
 
 ## Living reference
 
-**Identifiers are English and generic (`ARC-4`)** — files, screens, hooks, props, Keychain keys, DTO fields — using the code names of `GLOSSARY.md`; user-facing text and comments are French.
+**Identifiers are English and generic (`ADR_ALL_ARC-4`)** — files, screens, hooks, props, Keychain keys, DTO fields — using the code names of `GLOSSARY.md`; user-facing text and comments are French.
 
 `features/health` is a labelled placeholder. **The first real feature becomes the living reference**: before creating another one, read it entirely and reproduce its shape — and keep it in step with its web twin when the feature exists on both clients.
 
@@ -31,10 +31,10 @@ app/                                 ←  features/, components/, lib/
 - **Same endpoints as the web.** **NEVER** a `/mobile/*` route on the API to duplicate an existing one. A contract change is expand/contract: a mobile app does not update by force.
 - Biometrics, offline caches, push: **not** in the socle. Each is a ticket with its own security review.
 <!-- ══ TENANT-B ══ -->
-- **Tenant (`ARC-2`)**: the client **NEVER** sends a `tenantId` — not in a header, not in a body. The session (the access token) carries it. A tenant switch re-issues the tokens, then `queryClient.clear()`; **NEVER** keep tenant data cached across a switch, on device least of all.
+- **Tenant (`ADR_ALL_ARC-2`)**: the client **NEVER** sends a `tenantId` — not in a header, not in a body. The session (the access token) carries it. A tenant switch re-issues the tokens, then `queryClient.clear()`; **NEVER** keep tenant data cached across a switch, on device least of all.
 <!-- ══ /TENANT-B ══ -->
 <!-- ══ ROLES-B ══ -->
-- **Roles (`ARC-2`)**: the current role comes from `/auth/me` through `lib/auth/`, typed by `RoleSchema` from `packages/contracts`. Hiding a screen or a button by role is **presentation**; the API alone decides. **NEVER** decode the token on device to read a role — call `/auth/me`.
+- **Roles (`ADR_ALL_ARC-2`)**: the current role comes from `/auth/me` through `lib/auth/`, typed by `RoleSchema` from `packages/contracts`. Hiding a screen or a button by role is **presentation**; the API alone decides. **NEVER** decode the token on device to read a role — call `/auth/me`.
 <!-- ══ /ROLES-B ══ -->
 
 ## API client and errors

@@ -4,7 +4,7 @@
 - Date : {{DATE}}
 - Portée : sécurité, API (`apps/api`) et ses clients
 
-> **Gabarit à sections par client.** Garder les sections des clients installés, supprimer les autres **et leurs marqueurs**. Sans aucun client, cette ADR n'existe pas : le ticket `3` reste ouvert.
+> **Gabarit à sections par client.** Garder les sections des clients installés, supprimer les autres **et leurs marqueurs**. Sans aucun client, cette ADR n'existe pas : le ticket `SPEC_ALL_SOC-1.03` reste ouvert.
 
 ## Contexte
 
@@ -15,19 +15,19 @@ La forme de l'authentification dépend de la nature du client — un navigateur 
 - **Mêmes endpoints `/auth/*` pour tous les clients.** Aucune route par client. Le client se déclare par l'en-tête **`X-Client-Type`** ; l'API adapte la **forme de la réponse**, pas la logique. **En-tête absent → navigateur** (la forme la plus contrainte) ; **valeur inconnue → `400`**. La forme ne se devine jamais depuis `User-Agent`.
 - **Une seule logique d'authentification** : Argon2id, JWT d'accès court signé avec liste blanche d'algorithmes, refresh opaque haché au repos avec rotation et détection de réutilisation (un rejeu révoque toute la famille, journalisé dans `audit_log`). Seule la forme de la réponse change par client.
 <!-- ══ CLIENT-WEB ══ -->
-- **Navigateur (`apps/web`) — session par cookies.** JWT d'accès dans un cookie **`__Host-`, httpOnly** ; **CSRF signed double-submit** (HMAC de l'identifiant de session, en-tête `X-CSRF-Token`, `Origin` exigé sur mutation) ; CORS avec `credentials`, origine unique égale à `CORS_ORIGIN`. Le client **ne voit jamais un jeton**. C'est la recette de `apps/api/CLAUDE.md` § _Invariants_ ; `WEB-1` dit comment le client la porte.
+- **Navigateur (`apps/web`) — session par cookies.** JWT d'accès dans un cookie **`__Host-`, httpOnly** ; **CSRF signed double-submit** (HMAC de l'identifiant de session, en-tête `X-CSRF-Token`, `Origin` exigé sur mutation) ; CORS avec `credentials`, origine unique égale à `CORS_ORIGIN`. Le client **ne voit jamais un jeton**. C'est la recette de `apps/api/CLAUDE.md` § _Invariants_ ; `ADR_ALL_WEB-1` dit comment le client la porte.
 <!-- ══ /CLIENT-WEB ══ -->
 <!-- ══ CLIENT-MOBILE ══ -->
-- **Mobile (`apps/mobile`) — session par jetons porteurs.** Avec `X-Client-Type: mobile`, la réponse d'authentification est **JSON** (`{ access, refresh }`) au lieu de `Set-Cookie` ; les appels portent `Authorization: Bearer` ; **ni cookie, ni CSRF** (pas d'origine, pas de navigateur). La garde CSRF ignore une requête Bearer mais **refuse (`400`) un Bearer accompagné d'un cookie de session** : pas de session mixte. Les jetons vivent dans le **Keychain** (`lib/secure-store.ts`), jamais en AsyncStorage (`MOB-1`). **Le contrat est expand/contract** : une application installée ne se met pas à jour de force ; on ajoute avant de retirer, et on retire après une période de recouvrement écrite dans la PR.
+- **Mobile (`apps/mobile`) — session par jetons porteurs.** Avec `X-Client-Type: mobile`, la réponse d'authentification est **JSON** (`{ access, refresh }`) au lieu de `Set-Cookie` ; les appels portent `Authorization: Bearer` ; **ni cookie, ni CSRF** (pas d'origine, pas de navigateur). La garde CSRF ignore une requête Bearer mais **refuse (`400`) un Bearer accompagné d'un cookie de session** : pas de session mixte. Les jetons vivent dans le **Keychain** (`lib/secure-store.ts`), jamais en AsyncStorage (`ADR_ALL_MOB-1`). **Le contrat est expand/contract** : une application installée ne se met pas à jour de force ; on ajoute avant de retirer, et on retire après une période de recouvrement écrite dans la PR.
 <!-- ══ /CLIENT-MOBILE ══ -->
-- **La session porte l'identité** — et, selon `ARC-2`, le tenant et le rôle — quel que soit le client. Rien de tout cela ne vient d'un en-tête ni d'un corps client.
+- **La session porte l'identité** — et, selon `ADR_ALL_ARC-2`, le tenant et le rôle — quel que soit le client. Rien de tout cela ne vient d'un en-tête ni d'un corps client.
 
 ## Alternatives écartées
 
 - **Jetons porteurs pour le navigateur aussi** — un jeton lisible par JavaScript est exposé au premier XSS ; le cookie httpOnly ne l'est pas.
 - **Cookies pour le mobile** — pas de jar fiable, pas de same-origin : une session fragile.
 - **Des routes séparées par client** (`/mobile/*`) — deux surfaces à documenter, tester et faire dériver, pour une différence qui tient à la forme de la réponse.
-- **Laisser la question ouverte** (le ticket `3` d'origine) — les clients sont installés : la question n'est plus ouverte, le ticket serait du bruit.
+- **Laisser la question ouverte** (le ticket `SPEC_ALL_SOC-1.03` d'origine) — les clients sont installés : la question n'est plus ouverte, le ticket serait du bruit.
 
 ## Conséquences
 
@@ -45,6 +45,6 @@ La forme de l'authentification dépend de la nature du client — un navigateur 
 
 ## Liens
 
-- `ARC-2` — ce que la session porte (tenant, rôle)
+- `ADR_ALL_ARC-2` — ce que la session porte (tenant, rôle)
 - Règles impératives : [`../../apps/api/CLAUDE.md`](../../apps/api/CLAUDE.md) § _Frozen architecture decisions_ et § _Invariants_
-- Tickets : `5-authentification` (API), puis le ticket de session de chaque client
+- Tickets : `SPEC_ALL_SOC-1.05` (API), puis le ticket de session de chaque client

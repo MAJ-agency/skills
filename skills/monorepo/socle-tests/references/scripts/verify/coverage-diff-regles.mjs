@@ -110,15 +110,20 @@ export function fusionner(a, b) {
 }
 
 /**
- * Décision quand la base est introuvable, d'après la sortie de `git ls-remote --heads origin` :
- * un distant sans aucune branche est un dépôt neuf à son premier push — rien à comparer, le
- * gate passe (`premier-push`) ; des branches, ou `ls-remote` en échec (`null`), et la base
- * manque vraiment (`base-absente`).
+ * Décision quand la base est introuvable en local, d'après la sortie de `git ls-remote --heads
+ * origin` et le nom de la branche de base. Un distant sans aucune branche est un dépôt neuf à son
+ * premier push — rien à comparer, le gate passe (`premier-push`). Tout le reste est un refus, qui
+ * dit où la base manque : le distant la liste, il suffit de la rapatrier (`base-a-fetcher`) ; il a
+ * des branches mais pas celle-là, elle n'existe encore nulle part (`base-absente`) ; `ls-remote`
+ * en échec (`null`), on ne sait rien du distant (`distant-muet`).
  */
-export function decisionSansBase(tetesDistantes) {
-  return typeof tetesDistantes === "string" && tetesDistantes.trim() === ""
-    ? "premier-push"
-    : "base-absente";
+export function decisionSansBase(tetesDistantes, branche = "develop") {
+  if (typeof tetesDistantes !== "string") return "distant-muet";
+  if (tetesDistantes.trim() === "") return "premier-push";
+  const listee = tetesDistantes
+    .split("\n")
+    .some((l) => l.trimEnd().endsWith(`\trefs/heads/${branche}`));
+  return listee ? "base-a-fetcher" : "base-absente";
 }
 
 /** Verdict d'un fichier : la liste de ses problèmes, vide s'il passe. */
@@ -197,4 +202,144 @@ export function choisirBase(candidats) {
       a.ref.localeCompare(b.ref),
   );
   return tri[0]?.ref ?? BASE_DEFAUT;
+}
+
+/**
+ * Les imports qu'une source exécute : `from "…"`, `import "…"` et `import("…")`. Un `import type`
+ * et un `export type … from` ne comptent pas, un type n'est pas exécuté.
+ */
+export function importsDe(source) {
+  const trouves = [];
+  // Deux motifs sans retour arrière : `from "…"` (statique) et `import "…"` ou `import("…")`.
+  for (const m of source.matchAll(/\bfrom\s*(["'])([^"'\r\n]+)\1|\bimport\s*\(?\s*(["'])([^"'\r\n]+)\3/g)) {
+    if (m[2] !== undefined) {
+      // Le type se lit sur l'instruction : du dernier `import` ou `export` qui précède, jusqu'à `from`.
+      const avant = source.slice(0, m.index);
+      const instruction = avant.slice(Math.max(avant.lastIndexOf("import"), avant.lastIndexOf("export")));
+      if (/^(?:import|export)\s+type\s/.test(instruction)) continue;
+      trouves.push(m[2]);
+    } else {
+      trouves.push(m[4]);
+    }
+  }
+  return trouves;
+}
+
+const normaliser = (chemin) => {
+  const sortie = [];
+  for (const part of chemin.split("/")) {
+    if (part === "" || part === ".") continue;
+    if (part === "..") sortie.pop();
+    else sortie.push(part);
+  }
+  return sortie.join("/");
+};
+const sansExtension = (c) => c.replace(/\.(?:[cm]?[jt]sx?)$/, "");
+
+/**
+ * Une suite sur base (`*.db.spec.ts`) du paquet cible-t-elle ce fichier ? Lu dans les sources,
+ * jamais mesuré. Chemins relatifs au paquet. `specs` : `[{ chemin, source }]` ; `alias` : les
+ * `compilerOptions.paths` du `tsconfig.json` du paquet, `[{ motif: "@x/*", cibles: ["src/x/*"] }]`
+ * (vide si illisible : seuls les imports relatifs comptent) ; `existe(chemin)` dit si un fichier
+ * existe. Le fichier est ciblé par un import de lui-même, de son dossier s'il porte un `index.*`
+ * et qu'aucun fichier frère `<dossier>.ts` n'existe, ou du module du dossier (`<dossier>/<dossier>.module`, convention Nest) ou du `<dossier>.module` voisin.
+ */
+export function suiteSurBaseCible(fichier, specs, alias, existe) {
+  const dossier = fichier.split("/").slice(0, -1).join("/");
+  const cible = sansExtension(fichier);
+  const frere = ["ts", "tsx"].some((e) => existe(`${dossier}.${e}`));
+  const index = ["ts", "tsx", "js", "mjs"].some((e) => existe(`${dossier}/index.${e}`));
+  const resoudre = (spec, chemin) => {
+    if (spec.startsWith(".")) {
+      return [normaliser(`${chemin.split("/").slice(0, -1).join("/")}/${spec}`)];
+    }
+    return alias.flatMap(({ motif, cibles }) => {
+      const etoile = motif.indexOf("*");
+      const [avant, apres] = etoile === -1 ? [motif, null] : [motif.slice(0, etoile), motif.slice(etoile + 1)];
+      if (etoile === -1 ? spec !== motif : !spec.startsWith(avant) || !spec.endsWith(apres)) return [];
+      const capture = etoile === -1 ? "" : spec.slice(avant.length, spec.length - apres.length);
+      return cibles.map((c) => normaliser(c.split("*").join(capture)));
+    });
+  };
+  return specs.some(({ chemin, source }) =>
+    importsDe(source).some((spec) =>
+      resoudre(spec, chemin).some((r) => {
+        const sans = sansExtension(r);
+        return (
+          sans === cible ||
+          (sans === dossier && index && !frere) ||
+          sans === `${dossier}.module` ||
+          sans === `${dossier}/${dossier.split("/").at(-1)}.module`
+        );
+      }),
+    ),
+  );
+}
+
+/**
+ * Ce contre quoi le diff se lit. `fusion` (l'arbre de la fusion recalculée d'une PR de mise à
+ * jour) gagne. Sinon, base `origin/develop` : la base. `origin/develop` illisible : la base,
+ * avec une note. HEAD contient `origin/develop` et la base non (réception de develop dont la
+ * forme n'est pas celle d'une mise à jour) : le merge-base de develop et de HEAD, pour que le
+ * code que develop apporte ne soit pas remesuré. Sinon la base. Le critère est le contenu, jamais
+ * le nom de la branche. Rend `{ reference, sorte, note }`, `sorte` valant `fusion`, `develop`
+ * ou `base`.
+ */
+export function referenceDuDiff({ base, mergeBase, mergeBaseDevelop, fusion, developLisible, headContientDevelop, baseContientDevelop }) {
+  if (fusion) return { reference: fusion, sorte: "fusion", note: null };
+  if (base === BASE_DEFAUT) return { reference: mergeBase, sorte: "base", note: null };
+  if (!developLisible) {
+    return { reference: mergeBase, sorte: "base", note: `${BASE_DEFAUT} illisible : diff lu contre ${base}, sans repli` };
+  }
+  if (headContientDevelop && !baseContientDevelop) {
+    return { reference: mergeBaseDevelop, sorte: "develop", note: null };
+  }
+  return { reference: mergeBase, sorte: "base", note: null };
+}
+
+/**
+ * Les `compilerOptions.paths` d'un `tsconfig.json` (JSON avec commentaires et virgules finales),
+ * `[{ motif, cibles }]` relatifs au paquet (`baseUrl` compris). Texte illisible : `[]`, seuls les
+ * imports relatifs comptent. Les commentaires et les virgules ne se cherchent jamais dans une
+ *  chaîne : un chemin à étoile puis barre n'ouvre pas un commentaire.
+ */
+export function aliasDeTsconfig(texte) {
+  try {
+    const opts = JSON.parse(retirerCommentairesEtVirgules(texte)).compilerOptions ?? {};
+    const racine = (opts.baseUrl ?? ".").replace(/^\.\/?/, "").replace(/\/$/, "");
+    return Object.entries(opts.paths ?? {}).map(([motif, cibles]) => ({
+      motif,
+      cibles: cibles.map((c) => `${racine ? `${racine}/` : ""}${c.replace(/^\.\//, "")}`),
+    }));
+  } catch {
+    return [];
+  }
+}
+
+/** JSONC → JSON en un seul parcours (linéaire) : ni commentaire ni virgule finale hors d'une chaîne. */
+function retirerCommentairesEtVirgules(texte) {
+  let sortie = "";
+  for (let i = 0; i < texte.length; ) {
+    const c = texte[i];
+    if (c === '"') {
+      let j = i + 1;
+      while (j < texte.length && texte[j] !== '"') j += texte[j] === "\\" ? 2 : 1;
+      sortie += texte.slice(i, j + 1);
+      i = j + 1;
+    } else if (c === "/" && texte[i + 1] === "/") {
+      while (i < texte.length && texte[i] !== "\n" && texte[i] !== "\r") i++;
+    } else if (c === "/" && texte[i + 1] === "*") {
+      const fin = texte.indexOf("*/", i + 2);
+      i = fin === -1 ? texte.length : fin + 2;
+    } else if (c === ",") {
+      let j = i + 1;
+      while (j < texte.length && " \t\r\n".includes(texte[j])) j++;
+      if (texte[j] !== "}" && texte[j] !== "]") sortie += c;
+      i++;
+    } else {
+      sortie += c;
+      i++;
+    }
+  }
+  return sortie;
 }

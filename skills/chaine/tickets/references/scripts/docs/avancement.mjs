@@ -3,13 +3,13 @@
  * Tableau d'avancement d'un chantier.
  *
  * Pourquoi. L'humain demandait l'avancement « en % » plusieurs fois par jour ; chaque réponse coûtait
- * un tour d'architecte sur un contexte de plusieurs centaines de milliers de tokens. L'état existe
+ * un tour du conducteur sur un contexte de plusieurs centaines de milliers de tokens. L'état existe
  * déjà : lignes `Status:` des tickets, PR et leurs labels. Ce script les croise en une commande.
  *
  * Tickets du chantier :
  *   - `sujet/<nom>` : sur la branche du sujet (develop s'il est livré), les tickets qui déclarent
  *     `Sujet: sujet/<nom>` et tous ceux d'une spec qui le déclare ;
- *   - `<spec>` (ex. `SOC-1`) : les tickets de la spec, lus sur son sujet s'il en a un ouvert.
+ *   - `<spec>` (ex. `SPEC_ALL_SOC-1`) : les tickets de la spec, lus sur son sujet s'il en a un ouvert.
  * PR : ouvertes et fermées (`gh api`, REST), rattachées par l'identifiant dans le titre ou le slug
  * dans la branche (comme `ticket-libre.mjs`) ; CI = check-runs du dernier commit d'une PR ouverte.
  * Sans `gh` : avancement sans PR ni CI, avec la recherche `search_pull_requests` à faire par
@@ -24,13 +24,18 @@ import {
   lireTicket,
   prDuTicket,
 } from "./avancement-regles.mjs";
-import { estSpec, identifiantDeLaSpec, specDuTicket } from "./identifiants.mjs";
+import {
+  estArchive,
+  estSpec,
+  identifiantDeLaSpec,
+  specDuTicket,
+} from "./identifiants.mjs";
 
 const arg = process.argv[2] ?? "";
 const json = process.argv.includes("--json");
 if (!/^sujet\/[a-z0-9-]+$/.test(arg) && !estSpec(arg)) {
   console.error(
-    "Usage : node scripts/docs/avancement.mjs <sujet/nom|SPEC> [--json]   (ex. sujet/socle, SOC-1)",
+    "Usage : node scripts/docs/avancement.mjs <sujet/nom|SPEC> [--json]   (ex. sujet/socle, SPEC_ALL_SOC-1)",
   );
   process.exit(2);
 }
@@ -64,7 +69,7 @@ const existe = (ref) => {
 const fichiers = (ref) =>
   git("ls-tree", "-r", "--name-only", ref, "docs")
     .split("\n")
-    .filter((f) => f && !f.includes("/issues/archive/"));
+    .filter((f) => f && !estArchive(f));
 const lireSur = (ref, f) => git("show", `${ref}:${f}`);
 const SUJET = /^(?:- )?\**Sujet\**\s*:\**\s*(sujet\/[a-z0-9-]+)/m;
 const specDe = (f) => identifiantDeLaSpec(f.split("/").pop());

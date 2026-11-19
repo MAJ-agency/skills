@@ -10,11 +10,45 @@ import {
   mkdirSync,
   mkdtempSync,
   readFileSync,
+  rmSync,
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { dirname, join, parse, resolve, sep } from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+
+// Les scripts de la chaîne et le faux gh appellent jq : sans lui, chaque test échouerait sur
+// « jq: command not found », noyé dans ses traces. Un seul message, une fois par fichier de test.
+if (spawnSync('jq', ['--version']).error)
+  throw new Error('jq est requis par les scripts de la chaîne et leurs bancs : sudo apt install jq (ou brew install jq)');
+
+// Dossiers temporaires du banc, retirés à la sortie du processus : `node --test` joue un fichier de
+// test par processus, et chaque dépôt jouet pèse environ un mégaoctet. `GARDER_JOUETS=1` les garde
+// pour les lire après un échec, et dit combien. Un signal d'arrêt laisse les dossiers, comme `SIGKILL` :
+// un gestionnaire retarderait l'arrêt jusqu'à la fin du `spawnSync` en cours.
+const A_RETIRER = [];
+process.on('exit', () => {
+  if (process.env.GARDER_JOUETS) {
+    if (A_RETIRER.length) console.error(`GARDER_JOUETS : ${A_RETIRER.length} dossier(s) gardé(s) sous ${tmpdir()}, dont ${A_RETIRER[0]}`);
+    return;
+  }
+  for (const dossier of A_RETIRER) {
+    try {
+      rmSync(dossier, { recursive: true, force: true, maxRetries: 3, retryDelay: 50 });
+    } catch {
+      /* au pire il reste : la sortie du banc ne doit jamais échouer pour un dossier */
+    }
+  }
+});
+/** Crée un dossier temporaire que la sortie du processus retire. */
+export function dossierTemporaire(prefixe) {
+  const base = resolve(tmpdir());
+  if (base === parse(base).root) throw new Error(`dossierTemporaire : le dossier temporaire est la racine (${base})`);
+  const dossier = resolve(mkdtempSync(join(tmpdir(), prefixe)));
+  if (!dossier.startsWith(resolve(tmpdir()) + sep)) throw new Error(`dossierTemporaire : ${dossier} est hors de ${tmpdir()}`);
+  A_RETIRER.push(dossier);
+  return dossier;
+}
 
 const ICI = dirname(fileURLToPath(import.meta.url));
 // Racine des skills de la chaîne : <skills>/chaine/<skill>/scripts/<nom>.
@@ -26,10 +60,16 @@ export const script = (skill, nom) => {
   return existsSync(local) ? local : join(SKILLS, skill, 'scripts', nom);
 };
 
-// Sans les GIT_* hérités : sous le hook pre-push, GIT_DIR et GIT_INDEX_FILE visent le vrai dépôt,
-// et les commandes du dépôt jouet y écriraient (commit « initial » sur la branche poussée).
+// L'environnement des bancs (sans GIT_*, sans FORCE_COLOR, sans les variables du capitaine, avec
+// NO_COLOR=1) est défini une fois, dans `scripts/docs/environnement-de-banc.mjs` du socle : posé dans un
+// projet, il est à côté de scripts/chaine/ ; dans le plugin, dans le skill `socle-monorepo`. Il n'est pas
+// défini ici : des bancs sont posés sans la chaîne, et ce module exige `jq` à l'import.
+const ENVIRONNEMENT = [join(ICI, '../docs/environnement-de-banc.mjs'), join(SKILLS, '../monorepo/socle-monorepo/references/scripts/docs/environnement-de-banc.mjs')].find(existsSync);
+if (!ENVIRONNEMENT) throw new Error('environnement-de-banc.mjs introuvable : reposer scripts/docs/ du socle (socle-monorepo)');
+export const { environnementDeBanc } = await import(pathToFileURL(ENVIRONNEMENT).href);
+
 const ENV_GIT = {
-  ...Object.fromEntries(Object.entries(process.env).filter(([cle]) => !cle.startsWith('GIT_'))),
+  ...environnementDeBanc(),
   GIT_CONFIG_GLOBAL: '/dev/null',
   GIT_CONFIG_NOSYSTEM: '1',
   GIT_AUTHOR_NAME: 'test',
@@ -42,9 +82,13 @@ const ENV_GIT = {
 // scripts/docs/index-generes.json déclare (le projet réel y met ses propres index).
 const ADR_INDEX = `import { existsSync, readdirSync, writeFileSync } from 'node:fs';
 if (!existsSync('docs/adr')) process.exit(0);
-writeFileSync('docs/adr/README.md', readdirSync('docs/adr').filter((f) => /^ARC-/.test(f)).sort().map((f) => '- ' + f + '\\n').join(''));
+writeFileSync('docs/adr/README.md', readdirSync('docs/adr').filter((f) => /^ADR_/.test(f)).sort().map((f) => '- ' + f + '\\n').join(''));
 `;
 const INDEX_GENERES = JSON.stringify({ index: [{ chemin: 'docs/adr/README.md', commande: 'node scripts/docs/adr-index.mjs' }] });
+
+// La grammaire des identifiants (skill `socle-monorepo`) : `scripts/docs/identifiants.mjs` dans un
+// projet, à côté de `scripts/chaine/` ; dans le plugin, dans le skill `socle-monorepo`.
+export const GRAMMAIRE = [join(ICI, '../docs/identifiants.mjs'), join(SKILLS, '../monorepo/socle-monorepo/references/scripts/docs/identifiants.mjs')].find(existsSync);
 
 // Scripts que la boucle appelle : [skill, nom]. Posés dans un projet, tous vivent dans scripts/chaine/.
 const CHAINE = [
@@ -56,6 +100,7 @@ const CHAINE = [
     'refus.sh',
     'proprietaire.sh',
     'github.sh',
+    'identifiant.mjs',
     'revue-exigee.mjs',
     'migrations-ordre.mjs',
   ].map((n) => ['fusionner', n]),
@@ -65,7 +110,7 @@ const CHAINE = [
 ];
 
 export function depotJouet() {
-  const racine = mkdtempSync(join(tmpdir(), 'jouet-'));
+  const racine = dossierTemporaire('jouet-');
   const origine = join(racine, 'origine.git');
   const travail = join(racine, 'travail');
   const bin = join(racine, 'bin');
@@ -88,6 +133,8 @@ export function depotJouet() {
     TMPDIR: racine,
     FAUX_GH: faux,
     FAUX_GH_ORIGINE: origine,
+    // Le capitaine exige l'id de sa session (verrou du passage) : posé d'office, un banc qui teste son absence le retire.
+    CAPITAINE_ID: 'capitaine-banc',
   };
   writeFileSync(join(faux, 'etat.json'), JSON.stringify({ pulls: [], checks: {}, exiges: [] }));
 
@@ -144,6 +191,8 @@ export function depotJouet() {
       const source = script(skill, nom);
       if (existsSync(source)) ecrire(`scripts/chaine/${nom}`, readFileSync(source, 'utf8'));
     }
+    // La boucle copie aussi la grammaire d'origin/develop : identifiant.mjs l'importe de ../docs/.
+    ecrire('scripts/docs/identifiants.mjs', readFileSync(GRAMMAIRE, 'utf8'));
     commit('chore(chaine): scripts de la chaîne');
     git('push', '-q', 'origin', 'HEAD:develop');
     git('fetch', '-q', 'origin');

@@ -1,7 +1,7 @@
 ---
 name: revue-de-ticket
 description: Revue d'une branche de ticket par trois sous-agents en contexte vierge, jouée par la session qui pense avoir fini, avant de sortir la PR du brouillon — axe Règles (la revue adversariale, diff seul contre les critères du projet), axe Ticket (surfaces prouvées, décisions tenues, règles citées avec leurs cas de bord, périmètre), axe Documentation (glossaire, registre, ADR, index générés, README, ticket) — puis une seule section de PR. À utiliser quand un ticket est « fini », quand on demande une « revue de ticket » ou « est-ce que ma branche est prête », et avant tout label à-fusionner. `poser` l'installe une fois dans le dépôt.
-argument-hint: 'poser | <SOC-1.03>'
+argument-hint: 'poser | <SPEC_ALL_SOC-1.03>'
 ---
 
 # Revue de ticket
@@ -12,13 +12,13 @@ Le `code-review` de Matt Pocock relit « standards » et « spec » en deux sous
 
 ## Étape 0 — poser (une fois par dépôt, `poser`)
 
-`scripts/contexte-ticket.mjs` et son test → `scripts/chaine/` (ils lisent `scripts/docs/identifiants.mjs`, posé par `tickets`). Le skill `revue-adversariale` est posé (`scripts/chaine/diff-revue.sh`, fichier de critères). Puis `docs/agents/issue-tracker.md` § Livrer et `docs/agents/chaine-de-production.md` § 5 nomment cette revue (les gabarits ≥ 3.2 la nomment déjà).
+`scripts/contexte-ticket.mjs` et son test → `scripts/chaine/` (ils lisent `scripts/docs/identifiants.mjs`, posé par `socle-monorepo`). Le skill `revue-adversariale` est posé (`scripts/chaine/diff-revue.sh` et `chemins-sensibles.mjs`, fichier de critères). Puis `docs/agents/issue-tracker.md` § Livrer et `docs/agents/chaine-de-production.md` § 5 nomment cette revue (les gabarits ≥ 3.2 la nomment déjà).
 
 ## Quand
 
-- **Obligatoire** avant de sortir du brouillon une PR qui réalise un ticket et touche `apps/`, `packages/` ou `scripts/` ; refaite pour une PR renvoyée (`fusion-bloquée`) dont la correction touche du code.
+- **Obligatoire** avant de sortir du brouillon une PR qui réalise un ticket et touche du code ou ce que la chaîne exécute (la liste de `revue-exigee.mjs`, skill `fusionner` : `apps/`, `packages/`, `scripts/`, `e2e/`, un segment à point, un fichier de la racine hors Markdown, un `package.json` (ou `package.json5`, `package.yaml`, `package.yml`), un fichier exécutable ou un nom de configuration à toute profondeur, un `CLAUDE.md` ou `CLAUDE.local.md`, `docs/agents/`, le fichier des critères, un chemin sensible du contrat de la base) ; refaite pour une PR renvoyée (`fusion-bloquée`) dont la correction touche du code.
 - **Axe Règles seul** (`revue-adversariale`) pour une PR de code sans ticket (correctif isolé, outillage) : la section de PR le dit.
-- **Non requise** pour une PR de documentation seule.
+- **Non requise** pour une PR de documentation seule (hors `docs/agents/`, `CLAUDE.md`, `CLAUDE.local.md`, dossier à point, fichier exécutable ou de configuration : la liste ci-dessus).
 
 ## Étape 1 — préparer
 
@@ -27,7 +27,7 @@ REVUE_DIR=<scratchpad>/revue bash scripts/chaine/diff-revue.sh [<base>]
 node scripts/chaine/contexte-ticket.mjs <ID> > <scratchpad>/revue/contexte.md
 ```
 
-Base `origin/develop`, ou `origin/sujet/<nom>` pour une sous-PR de sujet. L'identifiant est celui de la branche (`feat/soc-1-03-…` → `SOC-1.03`). Un ticket dont `## Surfaces` est vide ou dont une règle citée est « introuvable » dans le contexte : **s'arrêter**, c'est un défaut du ticket, à corriger dans le ticket avant de relire le code. Chemins sensibles : comme la revue adversariale (étape 2 de son SKILL).
+Base `origin/develop`, ou `origin/sujet/<nom>` pour une sous-PR de sujet. `diff-revue.sh` sort en 1 si la base ne se rapatrie pas ou si le diff est vide : s'arrêter et le lire, aucun sous-agent sur un diff vide. L'identifiant est celui de la branche (`feat/spec-all-soc-1-03-…` → `SPEC_ALL_SOC-1.03`). Un ticket dont `## Surfaces` est vide ou dont une règle de la ligne `Règles:` est « introuvable » dans le contexte : **s'arrêter**, c'est un défaut du ticket, à corriger dans le ticket avant de relire le code. Chemins sensibles : comme la revue adversariale (étape 2 de son SKILL). **Les index générés d'abord** : avant tout sous-agent, jouer le gate de chaque index généré du projet (`scripts/docs/index-generes.json` ; pour l'index Anchorpost, le gate Anchorpost du projet). Un index périmé arrête la revue ici : il se régénère par sa commande, et ce n'est aucun des deux tours de l'étape 4.
 
 ## Étape 2 — trois sous-agents, en parallèle
 
@@ -37,7 +37,7 @@ Outil **Agent**, trois sous-agents neufs, lecture seule, lancés dans le même t
 | --- | --- | --- |
 | Règles | `revue-adversariale/references/prompt.md` | les critères du projet (`criteresRevue` de `.claude/chaine.json`) + `diff.patch` — **ni ticket, ni intention** |
 | Ticket | [`references/prompt-ticket.md`](references/prompt-ticket.md) | [`criteres-ticket.md`](references/criteres-ticket.md) + `contexte.md` + `diff.patch` |
-| Documentation | [`references/prompt-documentation.md`](references/prompt-documentation.md) | [`criteres-documentation.md`](references/criteres-documentation.md) + `diff.patch` |
+| Documentation | [`references/prompt-documentation.md`](references/prompt-documentation.md) | [`criteres-documentation.md`](references/criteres-documentation.md) + `diff.patch` + la section `## Criticité` du corps de la PR, telle que GitHub la rend (`pull_request_read`, ou `gh pr view` en local), et les commentaires qu'elle lie (« aucune section » si la PR n'en a pas) |
 
 `{{PROJET}}` substitué ; les critères sont le bloc de code entier du fichier, jamais réduit. Un diff de plus de 2 000 lignes se découpe par zone, comme en revue adversariale, pour les trois axes.
 
@@ -48,12 +48,14 @@ Chaque constat est relu dans le code, ligne ouverte. **Sans critère cité** : �
 ## Étape 4 — corriger, répondre, relancer
 
 1. Bloquants corrigés, chacun avec le test qui l'aurait attrapé ; à corriger : corrigés, ou laissés avec une raison écrite ; doutes : une ligne de réponse chacun.
-2. Si une correction déborde des lignes signalées : nouveau tour, trois sous-agents neufs. **Deux tours au plus** ; au-delà, le dire à l'humain ou à l'architecte.
-3. Un bloquant de l'axe Ticket ouvert après deux tours : la PR reste en brouillon, le ticket repasse `en cours`, l'architecte est prévenu.
+2. Si une correction déborde des lignes signalées : nouveau tour, trois sous-agents neufs. **Deux tours au plus** ; au-delà, le dire au conducteur du chantier (sans chantier, au produit).
+3. Un bloquant de l'axe Ticket ouvert après deux tours : la PR reste en brouillon, le ticket repasse `en cours`, le conducteur est prévenu.
+4. Deux constats de `T3` ne se corrigent pas en entier dans la session : un cas dit technique jugé métier, et un cas de bord de l'énoncé qu'aucun cas déclaré ne porte. Elle ne change ni le `scope` ni le titre d'un cas (fiche `.claude/rules/anchorpost.md`), et n'en écrit aucun sous `cases` : cela seul attend le skill `criticite`. Le test du cas de bord, étiqueté de la règle sans nom de cas, se livre dans la PR. Le constat reste dans la section de PR et la session le dit au conducteur du chantier (sans chantier, au produit) ; le premier, bloquant, garde la PR en brouillon.
+5. Si le relecteur de l'axe Ticket voit malgré l'étape 1 un index que le diff n'a pas régénéré (`T5`, les signes de `T3` (d)), l'index se régénère par sa commande, puis l'axe Ticket seul se rejoue. Ce n'est aucun des deux tours.
 
 ## Étape 5 — la section de PR, puis le label
 
-Une seule section, [`references/section-pr.md`](references/section-pr.md), titre `## Revue de ticket` hors bloc de code, ajoutée au corps de la PR sans effacer ce qui y est (lire, concaténer, réécrire : `pull_request_read` puis `update_pull_request`). Elle remplace `## Revue adversariale` : le capitaine accepte l'un ou l'autre titre, et renvoie une PR de code qui n'a ni l'un ni l'autre. Puis `Status: Fait — PR #<n>`, PR hors brouillon après le dernier push, label `à-fusionner` (`docs/agents/issue-tracker.md` § Livrer).
+Une seule section, [`references/section-pr.md`](references/section-pr.md), titre `## Revue de ticket` hors bloc de code, ajoutée au corps de la PR sans effacer ce qui y est (lire, concaténer, réécrire : `pull_request_read` puis `update_pull_request`). Elle remplace `## Revue adversariale` : le capitaine accepte l'un ou l'autre titre, et renvoie une PR de code qui n'a ni l'un ni l'autre. Sa ligne « Contrôle des preuves » dit qui a joué `T3` : la revue de ticket, pour toutes les criticités, tant que le relecteur indépendant d'une règle moyenne ou haute n'est pas posé ([`references/criteres-ticket.md`](references/criteres-ticket.md), « Qui joue `T3` »). Sa ligne « Cas laissés à un autre ticket » reprend chaque « cas … porté par … » que l'axe Ticket a rendu, ou « aucun ». Sur une PR qui touche un chemin sensible, la ligne « `/security-review` : lancée » est exigée par le capitaine, qui renvoie la PR sans elle (`revue-exigee.mjs`). Puis `Status: Fait — PR #<n>`, PR hors brouillon après le dernier push, label `à-fusionner` (`docs/agents/issue-tracker.md` § Livrer).
 
 **Le relecteur humain** doit pouvoir expliquer le diff à partir de cette section et du ticket. S'il n'y arrive pas, il retire `à-fusionner` et pose sa question sur la PR.
 

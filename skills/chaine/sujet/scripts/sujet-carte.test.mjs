@@ -7,10 +7,10 @@ import { join } from "node:path";
 import { depotJouet, script } from "./depot-jouet.mjs";
 
 const SCRIPT = script("sujet", "sujet.sh");
-const CARTE = "docs/features/demo/DEM-1-demo.map.md";
-const AUTRE = "docs/features/autre/AUT-1-autre.map.md";
+const CARTE = "docs/features/demo/all/SPEC_ALL_DEM-1-demo.map.md";
+const AUTRE = "docs/features/autre/all/SPEC_ALL_AUT-1-autre.map.md";
 const carte = (sujet, suite = "") =>
-  `# DEM-1 — Carte\n\nSujet: sujet/${sujet}\n\n## Fiche\n\nPhase: 3${suite}\n`;
+  `# SPEC_ALL_DEM-1 — Carte\n\nSujet: sujet/${sujet}\n\n## Fiche\n\nPhase: 3${suite}\n`;
 
 // Le faux `pnpm` du jouet ne formate rien : `formateur` le remplace par un « Prettier » de jouet,
 // identité (tout est formaté) ou qui retire les espaces de fin de ligne.
@@ -171,7 +171,7 @@ test("plusieurs commits : un seul qui touche du code, et rien n'est poussé", ()
 
 test("refuse une carte créée sur le sujet : seule la carte existante se met à jour", () => {
   const d = depot();
-  d.ecrire("docs/features/demo/AAA-1-pirate.map.md", carte("demo", "\nPhase: 6-nettoyage"));
+  d.ecrire("docs/features/demo/all/SPEC_ALL_AAA-1-pirate.map.md", carte("demo", "\nPhase: 6-nettoyage"));
   d.commit("docs(demo): seconde carte");
   refusSansRienPousser(d, "création", /en place/);
 });
@@ -182,7 +182,7 @@ test("refuse la suppression et le renommage de la carte", () => {
   d.commit("docs(demo): suppression");
   refusSansRienPousser(d, "suppression", /en place/);
   const e = depot();
-  e.git("mv", CARTE, "docs/features/demo/DEM-1-renommee.map.md");
+  e.git("mv", CARTE, "docs/features/demo/all/SPEC_ALL_DEM-1-renommee.map.md");
   e.commit("docs(demo): renommage");
   refusSansRienPousser(e, "renommage", /autre chose/);
 });

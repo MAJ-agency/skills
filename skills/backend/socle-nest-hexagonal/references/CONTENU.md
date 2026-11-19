@@ -5,7 +5,7 @@ Inventaire des gabarits du socle API, avec la raison d'être de chacun. À lire 
 ## Règles back — `api/`
 
 - **`CLAUDE.md`** — les contraintes impératives, en anglais pour rester diffable : règle d'or des dépendances (`infrastructure → application → domain`), alias de chemins obligatoires, décisions gelées, règles par couche, invariants (concurrence, idempotence, authentification, journal d'audit), frontières de contrat, nommage des ports, injection par token, stratégie de test, definition of done, ordre de génération domain-first.
-- **`docs/ARCHITECTURE_GUIDELINES.md`** — le _pourquoi_, avec exemples de code et check-lists. Les exemples utilisent un domaine placeholder (`Request`, `Resource`) **explicitement étiqueté** : il illustre une forme, pas un métier. Identifiants en anglais, prose en français (`ARC-4`) — le gabarit montre la règle qu'il énonce.
+- **`docs/ARCHITECTURE_GUIDELINES.md`** — le _pourquoi_, avec exemples de code et check-lists. Les exemples utilisent un domaine placeholder (`Request`, `Resource`) **explicitement étiqueté** : il illustre une forme, pas un métier. Identifiants en anglais, prose en français (`ADR_ALL_ARC-4`) — le gabarit montre la règle qu'il énonce.
 
 ## Squelette de code — `squelette/`
 
@@ -24,7 +24,7 @@ Ce qui démarre, et pourquoi c'est là plutôt qu'ailleurs.
 - **`tsconfig.arch.json`** — compile `domain/` + `application/` **sans** `infrastructure/`. Si ça casse, une dépendance pointe dans le mauvais sens.
 - **`packages/contracts`** n'est pas ici : il est posé par `socle-contrats`, l'API le consomme (`ErrorDto` dans le document OpenAPI) — et le charge **en direct** par Node depuis `dist/` (`openapi:check`, `main.js`), d'où `rewriteRelativeImportExtensions` dans `tsconfig.json` : la seule option qui admette les ré-exports `.ts` du barrel dans un programme qui émet (`allowImportingTsExtensions` exige `noEmit`).
 - **`compose.yaml`** — PostgreSQL sur **5433**, pas 5432 : pour ne pas entrer en conflit avec une instance locale. Fichier de racine, mais posé par ce skill : c'est l'API qui en a besoin.
-- **`scripts/db/demarrer-local.sh`** — allume cette base, avec ou sans Docker : il lit port et identifiants dans `compose.yaml`, ne fait rien si la base répond, passe par Docker s'il est là, sinon par le PostgreSQL de la machine (session cloud). Le script de démarrage de l'environnement cloud l'appelle (`socle-chaine-de-production`, `admin.md`).
+- **`scripts/db/demarrer-local.sh`** — allume cette base, avec ou sans Docker : il lit port et identifiants dans `compose.yaml`, ne fait rien si la base répond, passe par Docker s'il est là, sinon par le PostgreSQL de la machine (session cloud). Il crée sa base en UTF8 (une base en `SQL_ASCII` fait échouer `normalize(…)`), et refuse une base ou un serveur existant qui ne l'est pas, en donnant les commandes pour le recréer (sortie 6). Le script de démarrage de l'environnement cloud l'appelle (`socle-chaine-de-production`, `admin.md`).
 
 ## Règles à portée de chemins — `rules/`
 
@@ -43,7 +43,7 @@ Le critère de découpe est le besoin d'infrastructure. `vitest.config.ts` exclu
 
 ## ADR — `adr/`
 
-- **`ARC-2`** — transactions et isolation, **à deux branches**. En garder une, supprimer l'autre. Une ADR qui laisse les deux options ouvertes n'a rien décidé.
+- **`ADR_ALL_ARC-2`** — transactions et isolation, **à deux branches**. En garder une, supprimer l'autre. Une ADR qui laisse les deux options ouvertes n'a rien décidé.
 
 ## Tickets — `tickets/`
 

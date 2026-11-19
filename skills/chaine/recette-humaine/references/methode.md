@@ -78,10 +78,27 @@ Colonnes attendues :
 | Type | Nom                    | Où                                                   | Ce qu'il prouve                                                                                   |
 | ---- | ---------------------- | ---------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
 | GF   | garde-fou              | `recette.<sujet>.db.spec.ts` à côté du repository    | Une transition, un refus, une écriture sous concurrence (base réelle)                            |
-| PN   | parcours               | `tests/recette-<sujet>.spec.ts`                      | Un geste humain de bout en bout (Playwright)                                                      |
-| IC   | invariant de cohérence | `recette.<sujet>.spec.ts` dans `apps/api`            | Deux surfaces disent la même chose : lu au catalogue partagé, jamais une application dans l'autre |
+| PN   | parcours               | `recette-<sujet>.spec.ts` dans le dossier des parcours de `.claude/rules/tests.md` | Un geste humain de bout en bout (Playwright)                                                      |
+| IC   | invariant de cohérence | `recette.<sujet>.spec.ts` dans `apps/api`, ou là où les règles du chemin rangent un test transverse | Deux surfaces disent la même chose : lu au catalogue partagé, jamais une application dans l'autre |
 
 Un test de concurrence lance les deux gestes par `Promise.allSettled`, puis compte ce qui est en base **et** vérifie la nature du refus (code d'erreur), pas seulement le nombre de succès.
+
+## Le ticket d'un défaut
+
+Un défaut confirmé devient un ticket `Type: défaut`, au format « prêt pour agent ». Sa ligne `Règles:` reprend les règles de l'inventaire, par leur identifiant complet (`Règles: RULE_ALL_LIC-3`). Son corps cite la ligne `D-n`. Sa section `## Surfaces` nomme le test rouge qui prouvera la correction, dans une colonne « Preuve » :
+
+```markdown
+## Surfaces
+
+| Surface             | Preuve                                                                                     |
+| ------------------- | ------------------------------------------------------------------------------------------ |
+| refus à l'échéance  | `apps/api/src/licence/recette.licence.db.spec.ts` « refuse une licence expirée » |
+| écran de renouvellement | `e2e/recette-licence.spec.ts` « affiche la date d'échéance », « propose le renouvellement » |
+```
+
+- Le fichier de test entre accents graves (`*.spec.ts`, `*.test.ts`, `*.e2e-spec.ts`), puis le **titre exact** de chaque test entre « » ou "" ; plusieurs titres d'un même fichier se suivent, séparés par des virgules.
+- Le titre est celui du premier argument de `it(…)` ou `test(…)`, caractère pour caractère : le gate le cherche littéralement. Un test de recette ne porte pas d'identifiant de règle dans son titre (`.claude/rules/tests.md`) : la règle est citée par la ligne `Règles:`.
+- Quand le ticket passe `Fait`, le gate refuse un test introuvable, et un test désactivé (`it.skip`, `test.skip`, `xit`, `it.todo`, ou sous un `describe.skip`) : il ne prouve rien.
 
 ## Ce qu'un premier passage a appris
 
