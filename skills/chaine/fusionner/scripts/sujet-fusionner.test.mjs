@@ -211,6 +211,27 @@ test("relancer : une sous-PR qui a bougé depuis sa lecture n'est ni jugée ni p
   assert.equal(d.git("ls-remote", "origin"), avant);
 });
 
+// Contre-relecture (m1) : la boucle `file.sh | while read` partageait son entrée standard avec ce qu'elle lance ; le
+// faux `pnpm` du jouet la lit (`cat > /dev/null`), comme tout outil qui lit l'entrée : après une mise à jour par
+// `relancer`, les sous-PR suivantes n'étaient plus traitées dans le tour.
+test("boucle.sh : deux sous-PR en conflit d'index, la première mise à jour par relancer sous un outil qui lit l'entrée, la seconde traitée dans le même tour", () => {
+  const { d, sommet } = sansChecks("index");
+  const autre = d.branche("docs/autre", "origin/develop", {
+    [`${ADR}/ADR_ALL_ARC-4-d.md`]: "# 4\n",
+    [`${ADR}/README.md`]: index("ADR_ALL_ARC-1-a.md", "ADR_ALL_ARC-4-d.md"),
+  });
+  d.git("switch", "-q", "--detach", "origin/develop");
+  const etat = d.etat();
+  etat.pulls.push({ ...etat.pulls[0], number: 81, title: "docs(adr): ADR 4", head: "docs/autre" });
+  d.github(etat);
+  d.publierChaine();
+  const r = d.lancer(BOUCLE);
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  d.git("fetch", "-q", "origin");
+  assert.equal(d.git("rev-parse", "origin/docs/sous^1"), sommet, "#80 mise à jour");
+  assert.equal(d.git("rev-parse", "origin/docs/autre^1"), autre, `#81 mise à jour dans le même tour : ${r.stdout}`);
+});
+
 // Contre-relecture (M1) : un conflit mixte ne nomme que les fichiers hors index générés ; l'index se régénère.
 test("relancer : conflit mixte (code et index généré), seuls les fichiers hors index sont listés", () => {
   const { d, sommet } = sansChecks("mixte");
