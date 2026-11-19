@@ -494,7 +494,7 @@ Nouveau :
 
 #### B8 — `skills/chaine/fusionner/scripts/fusionner.test.mjs`
 
-Le même test, dans sa boucle : après un refus durable (sortie 3), le worktree du capitaine est revenu sur `origin/develop`, tête détachée, et la branche de passage `capitaine/33` est supprimée. Aucun test ne le lisait : les deux lignes de `passer.sh` qui le font précèdent le message que S24 récrit (premier tour de relecture, mutation X8).
+Le même test, dans sa boucle : après un refus durable (sortie 3), le worktree du capitaine est revenu sur `origin/develop`, tête détachée, et la branche de passage `capitaine/33` est supprimée. Aucun test ne le lisait : les deux lignes de `passer.sh` qui le font précèdent le message que S24 récrit (premier tour de relecture, mutation X8). Et, après la boucle, un cas joué sorties fondues (`2>&1`) : le message du refus durable est la dernière ligne, rien ne s'écrit après lui, pas même depuis la trappe qui termine le verrou du passage (`boucle.sh` classe une sortie par `tail -n 1`, `refus.sh` prend la dernière ligne pour motif ; fait relevé à la contre-relecture de la PR 135).
 
 Ancien :
 
@@ -512,6 +512,14 @@ Nouveau :
     // Après un refus durable, le capitaine ne reste pas sur sa branche de passage : tête détachée sur develop, branche supprimée.
     if (attendu === 3) assert.deepEqual([d.git("rev-parse", "--abbrev-ref", "HEAD"), d.git("rev-parse", "HEAD"), d.git("branch", "--list", "capitaine/33")], ["HEAD", d.git("rev-parse", "origin/develop"), ""], JSON.stringify(message));
   }
+  // La dernière ligne de `2>&1` reste le verdict (boucle.sh la classe par `tail -n 1`, refus.sh la prend pour motif) :
+  // rien ne s'écrit après le message du refus durable, pas même depuis la trappe qui termine le verrou du passage.
+  const fondu = prSimple();
+  fondu.github({ pulls: [pr(33, "feat/simple", { refusFusion: "gh: At least 1 approving review is required by reviewers with write access. (HTTP 405)" })] });
+  const f = spawnSync("bash", ["-c", 'bash "$0" 33 2>&1', script("passer.sh")], { cwd: fondu.travail, env: fondu.env, encoding: "utf8" });
+  assert.equal(f.status, 3, f.stdout);
+  assert.match(f.stdout.split("\n").filter(Boolean).at(-1), DURABLE, `la dernière ligne de 2>&1 est le verdict\n${f.stdout}`);
+  assert.ok(fondu.journal().some((x) => x.methode === "PATCH" && /<!-- capitaine:fin -->/.test(x.champs?.body ?? "")), "le verrou du passage a été terminé par la trappe");
 ````
 
 #### B9 — `skills/chaine/fusionner/scripts/fusionner.test.mjs`
@@ -766,31 +774,34 @@ Lignes retirées, entières :
 
 #### S17 — `skills/chaine/fusionner/scripts/passer.sh`
 
-L'en-tête, sortie 7 : les deux attentes sortent ; ce que le ticket 4 de l'autre programme y a ajouté (le passage chez un autre capitaine, le verrou pris) reste, mot pour mot. La sortie 3 du commentaire d'attente sort avec elles.
+L'en-tête, sortie 7 : les deux attentes sortent. Le bloc s'arrête à la parenthèse qui ouvre « en passage chez un autre capitaine » : ce que les tickets du verrou du passage ont écrit après elle (ticket 4 de l'autre programme, puis sa contre-relecture, PR 135) n'est pas cité, et reste mot pour mot.
 
 Ancien :
 
 ````bash
-#   7  pas éligible, rien à corriger côté auteur (non ouverte, brouillon, sans `à-fusionner`,
 #      déjà `fusion-bloquée`, empilée sur une parente pas encore fusionnée, ou qui attend l'approbation d'un
 #      propriétaire : CODEOWNERS et « Require review from Code Owners » sur la base, vu à l'éligibilité ou au refus
 #      de fusion de GitHub, qui fait poser un commentaire marqué ; ou qui attend un humain : fusion déjà refusée
 #      ainsi, aucune revue APPROVED plus récente que ce commentaire) : la boucle la saute sans renvoi et la reprend
-#      au tour suivant ; ou en passage chez un autre capitaine (son commentaire marqué `<!-- capitaine:passage <id> -->`,
-#      sans fin, de moins de 90 minutes, posé avant le sien), sautée sans renvoi ; ou qui n'est plus éligible une fois le
-#      verrou pris (relue : fermée, label retiré, sommet changé)
-#   3  fusion refusée faute d'approbation d'un propriétaire et commentaire d'attente impossible à poser : la boucle
-#      s'arrête (ARRÊT, sortie 3), sans le repasser → lire la cause (droits du compte du capitaine), relancer
+#      au tour suivant ; ou en passage chez un autre capitaine (
 ````
 
 Nouveau :
 
 ````bash
-#   7  pas éligible, rien à corriger côté auteur (non ouverte, brouillon, sans `à-fusionner`,
 #      déjà `fusion-bloquée`, empilée sur une parente pas encore fusionnée) : la boucle la saute sans renvoi et la
-#      reprend au tour suivant ; ou en passage chez un autre capitaine (son commentaire marqué `<!-- capitaine:passage <id> -->`,
-#      sans fin, de moins de 90 minutes, posé avant le sien), sautée sans renvoi ; ou qui n'est plus éligible une fois le
-#      verrou pris (relue : fermée, label retiré, sommet changé)
+#      reprend au tour suivant ; ou en passage chez un autre capitaine (
+````
+
+#### S43 — `skills/chaine/fusionner/scripts/passer.sh`
+
+L'en-tête, la sortie 3 du commentaire d'attente : elle sort avec lui. (Bloc détaché de S17 au recalage sur `19eeb8e` : la PR 135 a récrit les lignes qui les séparaient. Son identifiant est le dernier des `S`, sa place est ici.)
+
+Lignes retirées, entières :
+
+````bash
+#   3  fusion refusée faute d'approbation d'un propriétaire et commentaire d'attente impossible à poser : la boucle
+#      s'arrête (ARRÊT, sortie 3), sans le repasser → lire la cause (droits du compte du capitaine), relancer
 ````
 
 #### S18 — `skills/chaine/fusionner/scripts/passer.sh`
