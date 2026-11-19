@@ -130,8 +130,13 @@ GENERES=$(index_generes_regex) # scripts/docs/index-generes.json ; regenerer_ind
 # identifiant.mjs, la grammaire du skill `tickets`).
 LIGNE_SUJET='^(- )?\**Sujet ?:\** *sujet/[a-z0-9][a-z0-9-]*'
 branches_sujet() { git for-each-ref --format='%(refname:short)' 'refs/remotes/origin/sujet/*'; }
+# `carte` rapatrie develop et les sujets, et élague les refs `origin/sujet/*` dont le sujet a été supprimé du
+# distant (`--prune` limité au refspec des sujets : ni origin/develop ni une autre ref distante). Chaque commande qui
+# lit `branches_sujet` appelle `carte` d'abord, dans le même processus. Un fetch en échec se dit sur la sortie
+# d'erreur, puis les refs locales sont lues : hors réseau, `etat` et la file répondent encore.
 carte() {
-  git fetch -q origin develop '+refs/heads/sujet/*:refs/remotes/origin/sujet/*' 2>/dev/null || true
+  git fetch -q --prune origin develop '+refs/heads/sujet/*:refs/remotes/origin/sujet/*' 2>/dev/null ||
+    echo "sujet.sh : fetch d'origin impossible : refs locales de develop et des sujets lues telles quelles (un sujet supprimé peut y paraître)" >&2
   carte_lue
 }
 # Un ticket ou une spec n'a qu'un sujet : la ligne `Sujet:` qui en nomme plusieurs
@@ -576,6 +581,7 @@ refuser_tete_gardee() {
   fi
 }
 
+# Recette et corps type de la PR : skill sujet, section « Recevoir develop dans un sujet ».
 # PR de mise à jour d'un sujet : develop fusionné dans le sujet par une session, quand le capitaine ne le peut pas
 # (`rafraichir`, sortie 2 : un conflit de code ; sortie 3 : une fusion sans conflit que les hooks refusent, par
 # exemple `pnpm check` rouge après la montée d'un formateur dans develop) et qu'aucune session ne pousse (le hook
@@ -636,7 +642,7 @@ verifier_mise_a_jour() {
   mapfile -t chaine < <(git rev-list --first-parent "$sommet" "^origin/$base" ^origin/develop)
   [ "$(git rev-list --merges --count "$sommet" "^origin/$base" ^origin/develop)" = 1 ] &&
     [ "${#chaine[@]}" = "$(git rev-list --count "$sommet" "^origin/$base" ^origin/develop)" ] ||
-    sortir 4 "#$n, PR de mise à jour : une seule fusion de develop dans $base, son premier commit, puis des retouches l'une après l'autre ; jamais une seconde fusion"
+    sortir 4 "#$n, PR de mise à jour : une seule fusion de develop dans $base, son premier commit, puis des retouches l'une après l'autre ; jamais une seconde fusion. Refaire la réception depuis le sujet à jour, en une seule fusion : git fetch origin develop $base ; git switch -c maj/${base#sujet/}-2 origin/$base ; git merge origin/develop (conflits résolus dans cette fusion) ; retouches en commits après elle ; nouvelle PR vers $base, puis fermer celle-ci (skill sujet, « Recevoir develop dans un sujet »)"
   MAJ_M=${chaine[-1]}
   ! grep -qE '^(- )?\**Sujet ?:|^Merge pull request' <<<"$(git log -1 --format=%B "$MAJ_M")" ||
     sortir 4 "#$n, PR de mise à jour : le message de la fusion porte une ligne « Sujet: » ou « Merge pull request » : refaire la fusion avec le message de git"
@@ -644,7 +650,7 @@ verifier_mise_a_jour() {
   [ -n "$p2" ] && [ -z "$reste" ] ||
     sortir 4 "#$n, PR de mise à jour : une fusion à deux parents, le sommet de $base puis develop"
   [ "$p1" = "$s" ] ||
-    sortir 4 "#$n, PR de mise à jour : le premier parent n'est pas le sommet de $base (le sujet a avancé, ou develop est le premier parent) : la refaire depuis origin/$base"
+    sortir 4 "#$n, PR de mise à jour : le premier parent n'est pas le sommet de $base (le sujet a avancé, ou develop est le premier parent) : la refaire depuis origin/$base (skill sujet, « Recevoir develop dans un sujet »)"
   if ! git merge-base --is-ancestor "$p2" origin/develop || git merge-base --is-ancestor "$p2" "$s"; then
     sortir 4 "#$n, PR de mise à jour : le second parent n'est pas un commit de develop absent de $base"
   fi

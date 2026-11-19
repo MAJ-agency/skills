@@ -342,6 +342,11 @@ test("fusionner : une PR de mise à jour d'une autre forme n'entre pas (sujet av
     const r = d.lancer(SUJET, "fusionner", "81");
     assert.equal(r.status, sortie, r.stdout + r.stderr);
     assert.match(r.stdout, motif);
+    if (options.avantPush && /une seule fusion de develop/.test(r.stdout)) {
+      const derniere = r.stdout.trim().split("\n").at(-1);
+      assert.match(derniere, /git switch -c maj\/lot-2 origin\/sujet\/lot/, "la dernière ligne (celle que refus.sh renvoie) porte la recette");
+      assert.match(derniere, /en une seule fusion/);
+    }
     assert.equal(sujetDistant(d), avant, "sujet inchangé");
     assert.ok(!ecritures(d).some((e) => e.startsWith("PUT ")), "aucun squash");
     assert.equal(d.git("status", "--porcelain"), "");
@@ -667,6 +672,11 @@ test("fusionner : une PR de mise à jour d'une autre forme que « la fusion, pui
     const r = d.lancer(SUJET, "fusionner", "81");
     assert.equal(r.status, sortie, r.stdout + r.stderr);
     assert.match(r.stdout, motif);
+    if (options.avantPush && /une seule fusion de develop/.test(r.stdout)) {
+      const derniere = r.stdout.trim().split("\n").at(-1);
+      assert.match(derniere, /git switch -c maj\/lot-2 origin\/sujet\/lot/, "la dernière ligne (celle que refus.sh renvoie) porte la recette");
+      assert.match(derniere, /en une seule fusion/);
+    }
     assert.equal(sujetDistant(d), avant, "sujet inchangé");
     assert.ok(!ecritures(d).some((e) => e.startsWith("PUT ")), "aucun squash");
     assert.equal(d.git("status", "--porcelain"), "");
