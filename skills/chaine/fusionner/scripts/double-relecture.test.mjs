@@ -594,6 +594,34 @@ test("l'en-tête d'une règle : une clé entre guillemets, une étiquette, une a
   assert.deepEqual(lu, { niveau: 'high', code: [CODE], enVigueur: true });
 });
 
+test("l'en-tête d'une règle : un trait interdit après une virgule, sur une ligne de continuation d'un mappage ou d'une liste pliés, rend l'en-tête « illisible » ; la profondeur des crochets et le scalaire en bloc se tiennent d'une ligne à l'autre, ni plus ni moins (A-133, A-140)", () => {
+  // Le trait n'est pas en tête de sa ligne : seule la profondeur de flux, tenue depuis la ligne qui ouvre le crochet,
+  // fait de ce qui suit la virgule une « tête ».
+  for (const [nom, lignes] of [
+    ['clé entre guillemets après une virgule, sur une ligne de continuation', 'criticality:\n  {\n    level: high, "by": agent,\n  }\n'],
+    ['ancre après une virgule, sur une ligne de continuation', 'criticality:\n  {\n    level: low, &a by: agent,\n  }\n'],
+    ['étiquette après une virgule, sur une ligne de continuation', 'criticality:\n  {\n    level: low, !!str by: agent,\n  }\n'],
+    // Le lire « low » serait le faux « non exigée » : une bibliothèque YAML refuse la clé en double, ou garde la dernière, `high`.
+    ['`"level": high` après une virgule, sur la deuxième ligne du mappage : jamais « low »', 'criticality: { level: low,\n  by: agent, "level": high }\n'],
+    ['chaîne non refermée sur sa ligne, après une virgule, dans une liste pliée', 'criticality: high\ncode:\n  [\n    a.ts, "b.ts\n    c.ts",\n  ]\n'],
+    // L'état tenu d'une ligne à l'autre, par ses bords.
+    ['un crochet fermant dans un texte, hors de tout flux, ne descend pas la profondeur sous zéro', 'note: a] b\ncriticality: { level: low, "level": high }\n'],
+    ["une ligne vide dans un mappage plié n'en remet pas la profondeur à zéro", 'criticality:\n  {\n    level: low,\n\n    by: a, "level": high\n  }\n'],
+    ["dans un flux, `|` n'ouvre pas un scalaire en bloc : la ligne suivante reste regardée", 'criticality:\n  {\n    r: |\n      , level: low, "level": high\n  }\n'],
+    ["la ligne de même retrait que celle qui ouvre un scalaire en bloc n'est plus du texte", 'note: |\n  texte\ncriticality: { level: low, "level": high }\n'],
+    ['le scalaire en bloc refermé, une ligne en retrait est de nouveau regardée', 'note: |\n  texte\ncriticality:\n  { level: low, "level": high }\n'],
+    ["un guillemet échappé ne ferme pas la chaîne : elle ne se ferme pas sur sa ligne", 'criticality: high\nnote: "a\\"\n  b"\n'],
+  ])
+    assert.throws(() => enTeteDeRegle(regle('RULE_ALL_FAC-16', { criticite: lignes })), Illisible, nom);
+  // Et ce qui reste lu : le texte d'un scalaire en bloc, après un flux refermé, après un crochet dans un texte, après `| # …`.
+  for (const [nom, lignes] of [
+    ['un scalaire en bloc après une liste en ligne refermée', 'criticality: high\nepics: [ a ]\nnote: |\n  "texte ouvert\n'],
+    ["un crochet ouvrant dans un texte, hors de tout flux, n'ouvre pas un flux", 'criticality: high\nnote: a[b\nautre: |\n  "texte ouvert\n'],
+    ['un commentaire après `|` ne cache pas le scalaire en bloc', 'criticality: high\nnote: | # un commentaire\n  "texte ouvert\n'],
+  ])
+    assert.deepEqual(enTeteDeRegle(regle('RULE_ALL_FAC-16', { criticite: lignes, code: CODE_BLOC })), { niveau: 'high', code: [CODE], enVigueur: true }, nom);
+});
+
 test("avec un index, les en-têtes des fichiers de règle sont lus aussi, à chaque référence : une règle est haute et comptée dès que l'une des deux lectures le dit, son `code` est l'union des deux (A-134)", () => {
   const fichier = { [R16]: regle('RULE_ALL_FAC-16', { criticite: HAUTE_BLOC, code: CODE_BLOC }) };
   const montages = {
