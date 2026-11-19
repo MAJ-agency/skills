@@ -63,6 +63,21 @@ test("demarrer accepte un bloquant fait même quand son fichier dépasse le tamp
   assert.match(r.stdout, /^base=sujet\/demo$/m);
 });
 
+test("demarrer : un Status en CRLF, sans fin de ligne finale, est lu ; « En cours — Fait » et un Status plus bas ne comptent pas", () => {
+  const essai = (contenu) => {
+    const d = sujetAvecTickets("01");
+    d.git("switch", "-q", "-c", "tmp", "origin/sujet/demo");
+    d.ecrire(ticket("01"), contenu);
+    d.commit("feat: .01");
+    d.git("push", "-q", "origin", "HEAD:sujet/demo");
+    d.git("switch", "-q", "feat/spec-all-dem-1-02-travail");
+    return demarrer(d, "SPEC_ALL_DEM-1.02");
+  };
+  assert.equal(essai("# .01\r\n\r\nStatus: Fait\r\nBlocked by: —").status, 0);
+  assert.equal(essai("# .01\n\nStatus: En cours — Fait demain\n").status, 4);
+  assert.equal(essai("# .01\n\nStatus: ready-for-agent\nStatus: Fait\n").status, 4);
+});
+
 test("demarrer lit les identifiants complets et ignore les parenthèses", () => {
   const d = sujetAvecTickets("— (SPEC_ALL_DEM-1.01 conseillé avant)");
   assert.equal(demarrer(d, "SPEC_ALL_DEM-1.02").status, 0);

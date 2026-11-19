@@ -997,6 +997,7 @@ livrer() {
 # travail : un fichier non suivi ferait refuser le geste suivant du capitaine, sortie 6). Sortie 14.
 livraison_sans_gh() {
   local nom=$1 tete=$2 titre=$3 corps=$4 fichier owner repo url
+  [[ "$nom" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]] || sortir 4 "nom de sujet « $nom » refusé pour le fichier de livraison (lettres, chiffres, point, tiret, souligné)"
   fichier="$(git rev-parse --path-format=absolute --git-common-dir)/livraison-$nom.md"
   printf '%s\n\n%s\n' "$titre" "$corps" >"$fichier"
   url=$(git remote get-url origin 2>/dev/null | masquer_url) || url=''
