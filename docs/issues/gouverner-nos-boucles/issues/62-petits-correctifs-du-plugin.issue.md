@@ -134,8 +134,16 @@ Le dépôt d'un autre propriétaire se monte sans droits : un `git` de banc, en 
 
 ## Vérification
 
-1. La suite entière, `pnpm test`, verte d'un seul tenant.
-2. Durée de `scripts/poses.test.mjs` seul, même poste, rien d'autre ne tourne : **324 s avant, 183 s après** (`user` 6 min 57 s, `sys` 2 min 22 s : le travail ne change pas).
+1. La suite entière, `pnpm test`, verte d'un seul tenant sur la branche : **1 116 tests, 0 échec, 6 min 21 s** (`main` à `6087604` : 1 104 tests, 6 min 39 s).
+2. Durée de `scripts/poses.test.mjs`, même poste à 4 cœurs, rien d'autre ne tourne :
+
+   | | seul | dans `pnpm test` entier |
+   | --- | --- | --- |
+   | `main` (`6087604`) | 324 s | 360 s |
+   | branche, 3 tranches à la fois (réglage livré) | 236 s | 279 s |
+   | branche, 4 tranches à la fois (premier essai) | 183 s | 236 s |
+
+   Le travail ne change pas (`user` + `sys` ≈ 9 min 20 s dans les trois cas). Le réglage livré suit le parallélisme par défaut de `node --test` (cœurs moins un), pour ne pas prendre aux autres bancs de la suite le processeur que leurs propres délais supposent ; quatre à la fois va plus vite, et la suite y est restée verte une fois.
 3. Mutations, chacune appliquée seule, le cas joué, le fichier restauré ; un passage témoin vert avant chaque série.
    - **Défaut 1** (`scripts/tranches.test.mjs`), 15 sur 15 rouges : le motif n'est plus ancré ; il ne lit plus à la lettre ; plus de tranche de reste ; le reste joue les noms au lieu de les sauter ; la couverture tolère un reste qui rejoue ; un compte faux ; un nom étranger dans une tranche ; les doublons répartis dans deux tranches ; un test en retrait lu comme un test du fichier ; un nom à substitution lu comme littéral ; le banc entier dès qu'il a un nom de trop ; le seuil qui compte les doublons ; un banc à sous-tests découpé ; `describe` qui n'est plus vu ; `<param>.test("…"` qui n'est plus vu.
    - **Défaut 2** (`depot.test.mjs`), 9 sur 9 rouges : le gabarit remontre la forme en ligne ; le mappage en ligne sur la ligne de la clé ; retrait de quatre espaces ; `reason` sans guillemets ; `by` retiré du bloc ; la prose ne dit plus « en bloc » ; la forme en ligne montrée dans la fiche Anchorpost ; la forme en ligne montrée par le skill `criticite` ; deux espaces avant le commentaire de `level`.
@@ -157,3 +165,17 @@ Le dépôt d'un autre propriétaire se monte sans droits : un `git` de banc, en 
 - Les dépôts déjà écrits chez les projets (règles en ligne, noms de tests en anglais) : la note dit quoi faire, rien n'est migré.
 
 ## Comments
+
+- 2026-11-19 — **Relecture du ticket, un seul tour (décision `P-65`)**, par un agent neuf, consigne « cherche à casser, pas à confirmer », sur le ticket et sur `main`. Verdict : « prêt après retouches », onze constats, tous portés :
+  1. version : `main` passé à `6087604` (7.32.0, PR 139) — `main` repris par fusion, 7.33.0 ;
+  2. un sous-test sauté sans être vu par la tranche de reste — un banc à sous-tests se joue entier (décision 2), et la couverture dit qu'elle ne compte que le premier niveau (décision 3) ;
+  3. la raison du gain sous charge était fausse — réécrite (décision 4), le banc mesuré dans `pnpm test` avant et après (Vérification 2), parallélisme ramené à celui de `node --test` ;
+  4. seuil en noms distincts dans le code, `fusionner.test.mjs` donne dix tranches et un reste, les bancs de `scripts/docs/` et `scripts/verify/` posés mais pas joués — corrigés ;
+  5. le fait du défaut 2 ne montrait pas la panne — rejoué contre `enTeteDeRegle` de la PR 134 : la forme que Prettier replie par défaut est lue, celle repliée avec `tabWidth: 4` et celle d'une raison nue à virgule sont illisibles, le bloc est lu ;
+  6. Prettier ramène à une espace celles qui précèdent un commentaire — le gabarit n'en met qu'une ; le passage du skill `criticite` est le point 5 de son étape 4 ;
+  7. `api/CLAUDE.md:219` donnait encore `<behaviour>` — traduit et gardé par le banc ; un seul exemple dans la fiche ; la phrase « chacun vu rouge » nuancée pour le cas des tests creux ;
+  8. **`safe.bareRepository`** : lu sans configuration, le dépôt réel aurait admis un dépôt nu que git refuse sous `explicit` — lue et reportée (décision 13 bis), un test et quatre mutations ; même trou dans `lecteurGit` de la PR 134, signalé à l'architecte ;
+  9. régression pour un appelant qui a `GIT_CONFIG_COUNT` ou `GIT_CONFIG_PARAMETERS` — écrite (décision 13) et dans la note ;
+  10. `dossier/*` dépend de la version de git — dit ;
+  11. l'ordre du contrôle du partiel, et `promisor = no` compté partiel — dits (décision 11).
+- 2026-11-19 — Choix tranchés prudemment par la session : le code a été prototypé avant le tour de relecture, puis retouché selon lui (la consigne voulait la relecture d'abord) ; un banc à sous-tests joué entier plutôt qu'une limite écrite ; trois tranches à la fois plutôt que quatre ; `explicit` dans le doute pour `safe.bareRepository`. `docs/agents/chaine-de-production.md` n'existe pas dans ce dépôt : seul `/maj-skills:revue-de-ticket` s'applique, joué avant la PR avec les scripts du plugin lui-même (ce dépôt n'a pas `scripts/chaine/`), critères du socle (pas de `.claude/chaine.json`). Le `Status:` reste `ready-for-agent` jusqu'à l'entrée de la PR : `Label: contre-revue`, ni label `à-fusionner` ni ordre au sommet.

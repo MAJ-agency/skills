@@ -13,7 +13,7 @@ Quatre petits correctifs (ticket 62 de `gouverner-nos-boucles`) :
 - **Le gabarit de règle montre `criticality` en bloc**, une clé par ligne (`level`, `by`, `reason` entre guillemets), forme qu'aucun formateur ne replie et que le lecteur d'en-têtes lit ; la forme en ligne `{ level, by, reason }` n'est plus montrée.
 - **Les noms de tests s'écrivent en français**, comme le veut l'ADR du socle sur la langue (`ADR_ALL_ARC-4`) : `.claude/rules/tests.md` demande `it('<comportement> quand <condition>')`, au présent, sans « should » ; ses exemples, la méthode du socle, la fiche Anchorpost, le gabarit de règle, les gabarits de tests (`exemple.jour-metier.spec.ts`, `exemple.property.spec.ts`) et le `CLAUDE.md` et les guides de l'API le disent de même. Aucun gate ne lisait l'ancienne forme.
 
-Dans le dépôt du plugin seulement : `scripts/poses.test.mjs` joue les bancs posés en tranches parallèles (`scripts/tranches.mjs`), chaque test exactement une fois ; seul, il passe de 324 s à 183 s, plafonds inchangés.
+Dans le dépôt du plugin seulement : `scripts/poses.test.mjs` joue les bancs posés en tranches parallèles (`scripts/tranches.mjs`), chaque test exactement une fois ; seul, il passe de 324 s à 236 s, et de 360 s à 279 s dans la suite entière, plafonds inchangés.
 
 ### Ce qu'un projet fait pour en profiter
 
