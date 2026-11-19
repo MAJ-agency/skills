@@ -29,10 +29,10 @@ Capitaines: Anchorpost — `session_01BxuG32bZp5xNjwqVZ9U8Fo` (depuis le 2026-11
 
 | Session | Rôle | Relevé |
 | --- | --- | --- |
-| `session_01BxuG2zBnGe6UCP6cqG1F1E` | architecte B | 0,24 $ à 08 h 54 UTC le 2026-11-19 |
+| `session_01BxuG2zBnGe6UCP6cqG1F1E` | architecte B | 18,03 $, 261 991 tokens à 11 h 05 UTC le 2026-11-19 |
 | `session_01BxuG32z1RUgo3HduKXzDCG` | ticket, `skills` PR 133 | 2,39 $, 132 163 tokens, archivée |
 | `session_01BxuG2zz5bdN5uN8N7j4ztk` | capitaine de `skills` | 3,71 $, 151 810 tokens, archivé |
-| `session_01BxuG32bZp5xNjwqVZ9U8Fo` | capitaine d'Anchorpost | 1,58 $, 128 965 tokens à 10 h 02 UTC |
+| `session_01BxuG32bZp5xNjwqVZ9U8Fo` | capitaine d'Anchorpost | 2,37 $, 136 260 tokens à 11 h 05 UTC |
 | sous-agent | contre-relecture de la PR 133 | 321 089 tokens |
 
 ## Passation
@@ -52,3 +52,4 @@ Rien encore.
 - 2026-11-19, 10 h 02 UTC — relevé. Capitaine d'Anchorpost et conducteur en vie, tous deux en plugin 7.31.0, quota `allowed`. Conducteur : 154 457 tokens et 2,71 $ (il s'estimait à 100 000 : son estime retarde, relève prévue à 280 000). Fille de mise à jour du sujet : `session_01BxuG33KTiAmyYJEAhaDokf`. `A-130` du conducteur, acceptée : la fusion de `develop` dans le sujet compile rouge sans conflit de texte (`list-space-defects.use-case.spec.ts`, types `v2.Feature` de `develop` contre `v3` du sujet) ; une PR préalable directe vers `develop`, #320, ne touche que ce fichier de test, sans changer d'assertion, et entre par le capitaine en `prio:haute` ; la mise à jour du sujet se refait ensuite. `.45` part après.
 - 2026-11-19, 10 h 35 UTC — #320 fusionnée dans `develop` (`e323464`), puis #321, la mise à jour du sujet avec `develop`, entrée dans `sujet/preuve-suffisante-cas` (`258aa4d`) : lu sur le dépôt, `develop` n'a plus aucun commit absent du sujet. Preuves 586 → 589 selon la vérification bornée du conducteur. La mention « agent » d'une criticité : gardée telle que le sujet l'a livrée ; lu à la source, elle n'est jamais rendue à côté de « à classer » (les deux appelants de `criticality-badge.tsx` ne la posent que sur un niveau fixé par un agent) ; l'architecte de « onglet-projet » la porte dans ses planches de la livraison 2 (#319), aucun ticket chez nous. Suite : `.45`.
 - 2026-11-19, 10 h 38 UTC — fille de la mise à jour du sujet (`session_01BxuG33KTiAmyYJEAhaDokf`, 6,72 $, 194 729 tokens, comptée dans la carte du chantier) archivée (`P-62`). Deux filles lancées par le conducteur à 10 h 35 : `.45` (`session_01BxuG343cWNFV8Tu9hc9xdr`) et `.53` (`session_01BxuG2z3tFgbZ8SQpqcr3ma`, scanner, porte aussi la limite `A-127` au README de la CLI). Les deux sont `Label: contre-revue` : contre-revue par sous-agent neuf du conducteur, puis lecture et accord de l'architecte avant tout label. `.54`, `.46`, `.38`, `.19` attendent `.45`.
+- 2026-11-19, 11 h 05 UTC — relevé. Capitaine d'Anchorpost : en vie, connecté, file vide, quota `allowed`. Conducteur : 186 368 tokens, 5,16 $, au repos depuis 10 h 38, réveil armé par lui à 11 h 21 ; `connection_status` `disconnected` alors qu'aucun tour n'est ouvert (au repos, pas en plein tour) : à relire après 11 h 21 avant de le dire coupé.
