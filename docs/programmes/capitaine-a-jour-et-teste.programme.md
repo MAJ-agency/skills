@@ -192,3 +192,4 @@ Demande du produit, 2026-11-18, recopiée telle quelle (relevée sur `MAJ-agency
 - 2026-11-19 — 03 h 53 UTC. Ticket 20 lancé : session_012xRpgc3qSdPZDRvhki7Z3B (sonnet, depuis `03e4d64`, ticket lu sur la branche de cadrage et porté dans sa PR).
 - 2026-11-19 — 03 h 58 UTC. PR 131 : quatre mineures portées (`fe02f50`), `main` fusionnée (`03e4d64`), 7.29.0, 1000 tests, checks verts ; delta relu (contient `main`, `merge-tree … || true`, `fusionner_avec` seule fusion). **Ordre `à-fusionner au sommet 4814f2a…` et label posés.**
 - 2026-11-19 — 04 h 00 UTC. **PR 131 fusionnée** (squash `6b34a12`, 7.29.0), arbre identique au sommet ordonné `4814f2a`, vérifié ; ticket 3 fait, session archivée (11,64 $). Restent les tickets 4 et 20.
+- 2026-11-19 — 04 h 05 UTC. PR 132 (ticket 20, `aaabe5b`, 983 tests, CodeQL vert) livrée ; relue par l'architecte (texte de procédure et banc seuls) : conforme. Signal donné (main `6b34a12`, 7.29.1), avant le ticket 4.
