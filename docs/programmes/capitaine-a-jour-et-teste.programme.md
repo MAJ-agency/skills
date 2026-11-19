@@ -4,7 +4,7 @@ Le capitaine de fusion ne fait plus entrer une PR dont la combinaison « PR + de
 
 ## Fiche
 
-Phase: suivi — chantier 1 validé le 2026-11-18, ticket 1 en écriture ; chantier 2 (remontées d'Iroki) validé le 2026-11-18
+Phase: fini — les deux chantiers livrés le 2026-11-19 (dernière PR : 135, `19eeb8e`, plugin 7.31.2)
 Responsable: Guillaume Jauffret
 Architecte: session_01BxuG31Smx1AQZtYS6Xurp3 (ouverte par le produit le 2026-11-19 à 10 h 32 UTC, depuis un autre compte, mode « Auto », dépôts `anchorpost` et `skills`) ; avant elle, session_012xRpgbiXqFh3uGnL8yRbGh (du 2026-11-18 à 16 h 40 au 2026-11-19 à 10 h 20 UTC, arrêtée par la limite de dépense de son compte)
 Objectif: un capitaine qui vérifie l'ascendance avant chaque fusion (vers `develop` comme vers un sujet), un ticket par défaut voisin, une version du plugin publiée avec sa note de version.
@@ -16,8 +16,8 @@ Capitaines: `skills` : session_01BxuG31zxCUvQGR2pND56zu (relancé sur le compte 
 
 | n°  | Chantier | Dépôt | Spec | Carte | Conducteur | État |
 | --- | -------- | ----- | ---- | ----- | ---------- | ---- |
-| 1   | Règle d'ascendance du capitaine, puis défauts voisins | `skills` | [`capitaine-a-jour-et-teste.spec.md`](../issues/capitaine-a-jour-et-teste/capitaine-a-jour-et-teste.spec.md) | sans carte de chantier (A-17) | l'architecte (A-17) | validée le 2026-11-18 (P-4) |
-| 2   | Remontées d'Iroki (capitaine, sujets, contrôles, gardes d'agent, mobile en CI) | `skills` | [`remontees-iroki.spec.md`](../issues/capitaine-a-jour-et-teste/remontees-iroki.spec.md) | — | l'architecte (A-17) | validée le 2026-11-18 (P-5) |
+| 1   | Règle d'ascendance du capitaine, puis défauts voisins | `skills` | [`capitaine-a-jour-et-teste.spec.md`](../issues/capitaine-a-jour-et-teste/capitaine-a-jour-et-teste.spec.md) | sans carte de chantier (A-17) | l'architecte (A-17) | livré le 2026-11-19 (tickets 1 à 20, PR 112 à 135, plugin 7.16.0 à 7.31.2) |
+| 2   | Remontées d'Iroki (capitaine, sujets, contrôles, gardes d'agent, mobile en CI) | `skills` | [`remontees-iroki.spec.md`](../issues/capitaine-a-jour-et-teste/remontees-iroki.spec.md) | — | l'architecte (A-17) | livré le 2026-11-19 |
 
 ## Decisions-so-far
 
@@ -94,6 +94,7 @@ Décisions de l'architecte :
 | ticket | 4 | session_012xRpgYoUfHC1w29vDGPWPG | opus | 515 829 | 42,49 |
 | ticket | 20 | session_012xRpgc3qSdPZDRvhki7Z3B | sonnet | 163 189 | 2,28 |
 | capitaine | — | session_012xRpgcWjwiV8xVUSzzEy9L | sonnet | 557 162 | 10,10 |
+| architecte (suite), avec ses sous-agents de contre-relecture et de correction de la PR 135 | 4 | session_01BxuG31Smx1AQZtYS6Xurp3 | opus | 209 167 | 20,58 (relevé le 2026-11-19 à 12 h 35 UTC) |
 
 ## Passation
 
@@ -211,3 +212,4 @@ Demande du produit, 2026-11-18, recopiée telle quelle (relevée sur `MAJ-agency
 - 2026-11-19 — 11 h 45 UTC. PR 136 entrée (`a018502`, 7.31.1), signalée par l'architecte de « gouverner nos boucles ». `main` fusionnée dans la 135 (`448db1e`, conflit de note résolu, version **7.31.2**, `pnpm test` 1096/1096). Seconde contre-relecture à `877a259` : **non conforme**, sûreté tenue (pannes en 5, signaux pendant le POST, exclusion à 2 et 3 capitaines rejoués). Trois écarts : C-A, `set -e` dans la trappe (sortie 1) ; C-B, un epoch du futur peut revivre (A-55, textes) ; C-C, horloge de banc sans garde. Corrections confiées à un sous-agent.
 - 2026-11-19 — 12 h 00 UTC. Corrections de la seconde contre-relecture à `0810b4a` (C-A, C-B, C-C, epoch long ou vide). Troisième contre-relecture, sur ce delta : conforme, à un défaut près (l'avertissement de l'horloge de banc pouvait devenir la dernière ligne classée par la boucle, après le verdict de `sujet.sh`). Corrigé à `5ea2933` (un seul avertissement au chargement de `github.sh`, banc rouge sur `0810b4a`, 1102 tests), diff relu à la source par l'architecte, ascendance sur `main` `a018502` vérifiée. Contrôles en cours ; l'ordre attend CodeQL vert.
 - 2026-11-19 — 12 h 12 UTC. PR 135 : quatre contrôles verts à `5ea2933` (bancs, CodeQL, Analyze ×2), `main` à `a018502`, aucune autre PR étiquetée. Ordre `à-fusionner au sommet 5ea2933b0311abc873079895576607c88fa87ec4` posé, puis le label. Fusion attendue du capitaine session_01BxuG31zxCUvQGR2pND56zu.
+- 2026-11-19 — 12 h 35 UTC. **PR 135 fusionnée** par le capitaine (`19eeb8e`, plugin 7.31.2) ; l'arbre de `main` est égal à celui du sommet ordonné `5ea2933` (`accb8e2`). L'architecte de « gouverner nos boucles » est prévenu, et sa PR 134 (7.32.0) peut passer. **Programme livré** : les 20 tickets et la correction du ticket 4 sont dans `main`, de 7.16.0 à 7.31.2. `main` est fusionnée dans la branche de cadrage, sans conflit. PR de documentation ouverte, compte rendu de fin au produit. Restent ouverts : qui a posé l'ordre de la PR 133, et la branche `ticket/4-plusieurs-capitaines-verrou`, sans PR, à supprimer.
