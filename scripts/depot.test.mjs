@@ -461,6 +461,73 @@ test("l'architecte et le conducteur relèvent leurs sessions dans l'heure, sans 
   assert.deepEqual(manques, [], manques.join(" ; "));
 });
 
+// Ticket 4 du programme capitaine-a-jour-et-teste (décision P-2 du produit) : plusieurs capitaines peuvent tenir la
+// même file, un verrou par passage. Aucun texte de la chaîne ne redit la règle d'un seul capitaine ; deux lignes
+// qu'aucun motif ne voit sont tenues en positif.
+const TEXTES_DES_CAPITAINES = [
+  "skills/chaine/fusionner/SKILL.md",
+  "skills/chaine/chantier/SKILL.md",
+  "skills/chaine/architecte/SKILL.md",
+  "skills/chaine/architecte/references/lancement.md",
+  "skills/chaine/socle-chaine-de-production/references/docs-agents/chaine-de-production.md",
+  "skills/chaine/socle-chaine-de-production/references/fragments/claude-md-fusion.md",
+  "skills/chaine/socle-chaine-de-production/references/adr/ADR_ALL_ARC-N-chaine-de-production.md",
+  "CONTEXT.md",
+  "README.md",
+];
+const UN_SEUL_CAPITAINE = /un seul capitaine|une seule session fusionne|UNE seule session|un pour le dépôt|ne doit rendre qu'(\*\*)?une|La session unique d'un dépôt/i;
+const redites = (fichier, texte) => lignes(texte).filter((l) => UN_SEUL_CAPITAINE.test(l)).map((l) => `${fichier} : ${l.slice(0, 80)}`);
+const TENUES_EN_POSITIF = [
+  ["skills/chaine/chantier/SKILL.md", "au moins une session active"],
+  ["skills/chaine/architecte/SKILL.md", "un capitaine au moins par dépôt"],
+];
+
+test("aucun texte de la chaîne ne redit la règle d'un seul capitaine", () => {
+  const fautes = TEXTES_DES_CAPITAINES.flatMap((f) => redites(f, readFileSync(join(RACINE, f), "utf8")));
+  assert.deepEqual(fautes, [], `règle d'un seul capitaine redite : ${fautes.join(" ; ")}`);
+  const manques = TENUES_EN_POSITIF.filter(([f, texte]) => !readFileSync(join(RACINE, f), "utf8").includes(texte)).map(([f, t]) => `${f} : « ${t} »`);
+  assert.deepEqual(manques, [], manques.join(" ; "));
+});
+
+test("aucun texte de la chaîne ne redit la règle d'un seul capitaine : entrées piégées, les onze lignes de 7.28.0 par fichier et texte", () => {
+  // Les lignes rouges sur main avant ce ticket, par fichier et extrait (sans numéro de ligne : ils bougent).
+  const rouges = [
+    ["skills/chaine/fusionner/SKILL.md", "À lancer dans UNE seule session, « Capitaine de fusion », jamais dans une session de travail."],
+    ["skills/chaine/fusionner/SKILL.md", "Un seul capitaine qui fait passer les PR une par une paie **exactement une CI par PR**"],
+    ["skills/chaine/fusionner/SKILL.md", "`list_sessions` filtré par ce tag ne doit rendre qu'**une** session active"],
+    ["skills/chaine/socle-chaine-de-production/references/docs-agents/chaine-de-production.md", "| Capitaine de fusion  | un pour le dépôt             |"],
+    ["skills/chaine/socle-chaine-de-production/references/docs-agents/chaine-de-production.md", "Les règles de branche (sujet dès la première PR, jamais de PR empilée, un seul capitaine)"],
+    ["skills/chaine/socle-chaine-de-production/references/fragments/claude-md-fusion.md", "**Une seule session fusionne** : le capitaine de fusion (skill `fusionner`)."],
+    ["skills/chaine/socle-chaine-de-production/references/adr/ADR_ALL_ARC-N-chaine-de-production.md", "# ADR_ALL_ARC-{{N}} — Chaîne de production : un rôle par session, un ticket prêt par fille, une revue adversariale avant la file, un seul capitaine"],
+    ["skills/chaine/socle-chaine-de-production/references/adr/ADR_ALL_ARC-N-chaine-de-production.md", "session fille (un ticket), capitaine de fusion (un pour le dépôt), relecteur adversaire (sous-agent)."],
+    ["skills/chaine/socle-chaine-de-production/references/adr/ADR_ALL_ARC-N-chaine-de-production.md", "5. **Un seul capitaine fusionne.** La file `à-fusionner` passe dans l'ordre, une PR à la fois"],
+    ["CONTEXT.md", "La session unique d'un dépôt qui fait entrer les PR prêtes dans la branche d'intégration, une par une."],
+    ["README.md", "les PR d'un sujet gelé laissées dans la file ; une seule session"],
+  ];
+  assert.equal(rouges.length, 11);
+  const vues = rouges.flatMap(([f, texte]) => redites(f, texte));
+  assert.equal(vues.length, 11, `chaque ligne rouge est vue : ${vues.join(" ; ")}`);
+  for (const [f] of rouges) assert.ok(TEXTES_DES_CAPITAINES.includes(f), `${f} est relu`);
+  // Les deux lignes tenues en positif, dans leur forme d'avant : aucun motif ne les voit, le positif seul les attrape.
+  const avant = [
+    ["skills/chaine/chantier/SKILL.md", "« tags filter is not currently available »), une session active."],
+    ["skills/chaine/architecte/SKILL.md", "Un conducteur par chantier, un capitaine par dépôt (`chantier/SKILL.md` § 0, point 5"],
+  ];
+  for (const [f, texte] of avant) {
+    assert.deepEqual(redites(f, texte), [], `${f} : aucun motif ne la voit`);
+    assert.ok(!texte.includes(TENUES_EN_POSITIF.find(([g]) => g === f)[1]), `${f} : le positif manque à l'ancienne ligne`);
+  }
+  // Fin de ligne CRLF, dernière ligne sans fin de ligne : la ligne est vue, une seule fois, sans le retour chariot.
+  assert.deepEqual(redites("x", "avant\r\nUn seul capitaine fusionne.\r\napres"), ["x : Un seul capitaine fusionne."]);
+  assert.deepEqual(redites("x", "avant\n5. **Un seul capitaine fusionne.**"), ["x : 5. **Un seul capitaine fusionne.**"]);
+  // Les variantes les plus proches qui ne doivent pas correspondre.
+  for (const proche of ["un capitaine au moins par dépôt", "une session dédiée", "un pour la file", "ne doit rendre que deux", "La session d'un dépôt"])
+    assert.deepEqual(redites("x", proche), [], proche);
+  // Ce que le ticket écrit à la place ne rougit pas.
+  for (const sain of ["plusieurs capitaines peuvent tenir la même file", "**Seuls les capitaines fusionnent** (skill `fusionner`)", "un ou plusieurs par dépôt (un verrou par PR)"])
+    assert.deepEqual(redites("x", sain), [], sain);
+});
+
 // Deux listes : la revue exigée par le capitaine (revue-exigee.mjs, fixe) et les chemins sensibles du contrat
 // (contre-revue et /security-review, que le projet allonge). Tout chemin sensible du gabarit exige aussi la revue.
 test("chaque chemin sensible du gabarit de .claude/chaine.json exige la revue au passage du capitaine", async () => {

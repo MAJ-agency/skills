@@ -20,7 +20,7 @@ Mode d'emploi de fond : `docs/agents/chaine-de-production.md` (rôles § 1, cycl
 2. **Carte trouvée** : lis sa section `## Fiche` (§ 1) et va à la phase indiquée par sa ligne `Phase:`. Ne repose aucune question déjà répondue.
 3. **Rien trouvé** : setup (§ 1).
 4. **Le terrain.** `.claude/chaine.json` absent → invoquer `/maj-skills:socle-chaine-de-production` (il pose aussi `tickets`) ; `scripts/verify/coverage-diff.mjs` absent → invoquer `/maj-skills:socle-tests`. Chacun ouvre une PR : elle passe au capitaine comme une PR de cadrage, et **aucune fille ne part avant sa fusion** — un chantier sans gates fait coder des filles que rien ne relit. Poser un socle est du cadrage, pas un ticket : le conducteur le fait lui-même.
-5. Vérifie qu'un capitaine tourne : `list_sessions` sans `tags`, puis garder les lignes dont `tags` contient `role:capitaine` (jamais par le titre ; le filtre `tags` est refusé à une session : « tags filter is not currently available »), une session active. Sinon, dis-le au produit (il en ouvre une avec le skill `fusionner`) ; on peut avancer jusqu'à la phase 3 sans lui.
+5. Vérifie qu'un capitaine tourne : `list_sessions` sans `tags`, puis garder les lignes dont `tags` contient `role:capitaine` (jamais par le titre ; le filtre `tags` est refusé à une session : « tags filter is not currently available »), au moins une session active (plusieurs sont permises). Sinon, dis-le au produit (il en ouvre une avec le skill `fusionner`) ; on peut avancer jusqu'à la phase 3 sans lui.
 
 ## 1. Setup : les questions
 

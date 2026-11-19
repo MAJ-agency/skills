@@ -133,6 +133,8 @@ export function depotJouet() {
     TMPDIR: racine,
     FAUX_GH: faux,
     FAUX_GH_ORIGINE: origine,
+    // Le capitaine exige l'id de sa session (verrou du passage) : posé d'office, un banc qui teste son absence le retire.
+    CAPITAINE_ID: 'capitaine-banc',
   };
   writeFileSync(join(faux, 'etat.json'), JSON.stringify({ pulls: [], checks: {}, exiges: [] }));
 

@@ -1,6 +1,6 @@
 ## Fusion vers `develop` : une file, un capitaine
 
-`develop` intègre, `main` livre. `develop` exige une PR à jour : chaque fusion remet les autres PR en retard. **Une seule session fusionne** : le capitaine de fusion (skill `fusionner`). Décision : `{{ADR_CHAINE}}`, `{{ADR_SUJET}}`.
+`develop` intègre, `main` livre. `develop` exige une PR à jour : chaque fusion remet les autres PR en retard. **Seuls les capitaines fusionnent** (skill `fusionner`) ; plusieurs peuvent tenir la même file, un commentaire marqué réserve à l'un la PR qu'il fait passer. Décision : `{{ADR_CHAINE}}`, `{{ADR_SUJET}}`.
 
 - **Réserver le ticket avant de coder** (sessions en parallèle) : `node scripts/docs/ticket-libre.mjs <identifiant>` « LIBRE », puis branche, commit `Status: en cours` et PR brouillon — `docs/agents/issue-tracker.md` § « Réserver un ticket ».
 - **Session de travail.** Avant le label, toute PR qui réalise un ticket passe la **revue de ticket** (skill `revue-de-ticket` : règles, ticket, documentation) ; une PR de code sans ticket, la **revue adversariale** seule. Dès la PR poussée et rien d'autre à faire : label `à-fusionner` (en session cloud, par l'outil GitHub MCP `issue_write`). **Ne pas attendre la CI.** `prio:haute` pour une démo, une recette ou un blocage. **Ne jamais fusionner soi-même, ni remettre la branche à jour avec `develop`.**
