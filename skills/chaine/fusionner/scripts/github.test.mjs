@@ -427,6 +427,10 @@ test("prendre_passage : une marque vivante d'un autre capitaine, posée avant, p
   // Sans epoch lisible : abandonnée 90 minutes après son created_at.
   libre([{ body: marque("autre"), created_at: "2026-11-17T10:30:01Z", updated_at: "2026-11-17T12:00:00Z" }], "sans epoch, créée il y a 90 minutes");
   assert.equal(passage([{ body: marque("autre"), created_at: "2026-11-17T10:30:02Z" }]).rc, 1, "sans epoch, créée il y a 89 min 59 s : vivante");
+  // Un epoch illisible : la marque compte, datée par son created_at.
+  assert.equal(passage([{ body: marque("autre", false, "1234567890123") }]).rc, 1, "epoch de 13 chiffres, marque récente : vivante");
+  assert.equal(passage([{ body: marque("autre", false, "demain") }]).rc, 1, "epoch en lettres, marque récente : vivante");
+  libre([{ body: marque("autre", false, "demain"), created_at: "2026-11-17T10:30:01Z" }], "epoch illisible, créée il y a 90 minutes");
   // Un epoch dans le futur (plus de 5 minutes après la création du sien, à 12:00:01) ne compte pas : datée par son created_at.
   libre([{ body: marque("autre", false, le17(12, 5, 2)), created_at: "2026-11-17T10:00:00Z" }], "epoch dans le futur, créée il y a 2 heures");
   assert.equal(passage([{ body: marque("autre", false, le17(12, 5, 1)), created_at: "2026-11-17T10:00:00Z" }]).rc, 1, "epoch 5 minutes en avance : admis");

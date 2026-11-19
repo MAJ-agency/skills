@@ -2449,6 +2449,11 @@ test("passer.sh et sujet.sh fusionner : la lecture du verrou refusée par GitHub
   const s = d.lancer(scriptDe("sujet", "sujet.sh"), "fusionner", "41");
   assert.equal(s.status, 5, s.stdout + s.stderr);
   assert.match(s.stdout, /#41 : GitHub illisible à la lecture du verrou du passage/);
+  // relancer partage verrouiller : la même panne, la même sortie.
+  d.github({ pannes: [{ route: "^issues/41/comments" }] });
+  const rl = d.lancer(scriptDe("sujet", "sujet.sh"), "relancer", "41");
+  assert.equal(rl.status, 5, rl.stdout + rl.stderr);
+  assert.match(rl.stdout, /#41 : GitHub illisible à la lecture du verrou du passage/);
 });
 
 test("passer.sh : un TERM pendant la relecture du verrou (gh lent) termine le commentaire posé, jamais un verrou laissé 90 minutes", { timeout: 120_000 }, async () => {

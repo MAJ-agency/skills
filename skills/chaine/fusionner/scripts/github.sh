@@ -675,16 +675,17 @@ corps_passage() { # <« depuis … » ou « terminé à … »> [fin]
 # `tenu` « <autre> <date> » de la plus ancienne marque vivante d'un autre capitaine posée avant la sienne, ou null (date :
 # l'epoch du corps, sinon `created_at`) ;
 # `anciens` les ids de ses propres marques vivantes d'un passage précédent (tué), que finir_passage termine.
-# Une date illisible fait échouer jq : le verrou est alors illisible, jamais libre. Un epoch dans le futur de plus de
+# Une date illisible fait échouer jq : le verrou est alors illisible, jamais libre. Un epoch illisible (lettres, plus de
+# 12 chiffres) laisse la marque datée par son `created_at`, jamais ignorée. Un epoch dans le futur de plus de
 # 5 minutes par rapport au `created_at` du sien (horloge très en avance, valeur fausse) ne compte pas : la marque est
 # datée par son `created_at`, et le verrou ne vit jamais plus de 90 minutes sans nouvelles.
 # shellcheck disable=SC2016
-FILTRE_PASSAGE='def marque: [.body | match("<!-- capitaine:passage ([A-Za-z0-9_-]{1,100})(?: ([0-9]{1,12}))? -->"; "g") | .captures] | first;
+FILTRE_PASSAGE='def marque: [.body | match("<!-- capitaine:passage ([A-Za-z0-9_-]{1,100})(?: ([^ ]{1,40}))? -->"; "g") | .captures] | first;
   ($cree | fromdateiso8601) as $t
   | [.[][] | select(.author_association == "OWNER" or .author_association == "MEMBER" or .author_association == "COLLABORATOR")
     | select((.body | contains("<!-- capitaine:fin -->")) | not)
     | marque as $c | select($c != null)
-    | (if $c[1].string then ($c[1].string | tonumber) else null end) as $e
+    | (if ($c[1].string // "" | test("^[0-9]{1,12}$")) then ($c[1].string | tonumber) else null end) as $e
     | {id, m: $c[0].string, date: (if $e != null and $e <= $t + 300 then $e else (.created_at | fromdateiso8601) end)}
     | select(.id != $mien)] as $vivantes
   | { tenu: ([$vivantes[] | select(.m != $moi and .id < $mien and .date > $t - 5400)]
