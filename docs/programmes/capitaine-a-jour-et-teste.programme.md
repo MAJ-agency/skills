@@ -87,7 +87,7 @@ Décisions de l'architecte :
 | ticket | 16 | session_012xRpgXvNcXsnHhWX6PyPB3 | opus | 329 735 | 13,30 |
 | ticket | 3 | session_012xRpga1obGxgaKzsZHF9ts | opus | 279 719 | 11,64 |
 | ticket | 4 | session_012xRpgYoUfHC1w29vDGPWPG | opus | — | — |
-| ticket | 20 | session_012xRpgc3qSdPZDRvhki7Z3B | sonnet | — | — |
+| ticket | 20 | session_012xRpgc3qSdPZDRvhki7Z3B | sonnet | 163 189 | 2,28 |
 | capitaine | — | session_012xRpgcWjwiV8xVUSzzEy9L | sonnet | — | — |
 
 ## Passation
@@ -194,3 +194,4 @@ Demande du produit, 2026-11-18, recopiée telle quelle (relevée sur `MAJ-agency
 - 2026-11-19 — 04 h 00 UTC. **PR 131 fusionnée** (squash `6b34a12`, 7.29.0), arbre identique au sommet ordonné `4814f2a`, vérifié ; ticket 3 fait, session archivée (11,64 $). Restent les tickets 4 et 20.
 - 2026-11-19 — 04 h 05 UTC. PR 132 (ticket 20, `aaabe5b`, 983 tests, CodeQL vert) livrée ; relue par l'architecte (texte de procédure et banc seuls) : conforme. Signal donné (main `6b34a12`, 7.29.1), avant le ticket 4.
 - 2026-11-19 — 04 h 15 UTC. PR 132 : `main` fusionnée (`6b34a12`), 7.29.1, 1000 tests, checks verts ; delta relu. **Ordre `à-fusionner au sommet 09efd7d…` et label posés.** Reste le ticket 4.
+- 2026-11-19 — 04 h 19 UTC. **PR 132 fusionnée** (squash `107507f`, 7.29.1), arbre identique au sommet ordonné `09efd7d`, vérifié ; ticket 20 fait, session archivée (2,28 $). Le capitaine garde sa procédure jusqu'à sa relance (sans effet ici : chaque session fusionne `main` avant le label, A-48). Reste le ticket 4.
