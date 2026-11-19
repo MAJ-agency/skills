@@ -286,40 +286,81 @@ jusqu'à la ligne, non comprise, qui commence par :
 
 #### B4 — `scripts/depot.test.mjs`
 
-Trois tests. `SKILLS_CHAINE`, `REF`, `lignes`, `titres`, `exiger`, `existsSync` et `execFileSync` existent déjà dans le fichier.
+Quatre tests. `SKILLS_CHAINE`, `REF`, `LANCEMENT`, `lignes`, `titres`, `exiger`, `existsSync`, `readdirSync` et `execFileSync` existent déjà dans le fichier.
 
 Ajouté à la fin du fichier, après une ligne vide :
 
 ````js
 // CODEOWNERS sort du plugin (ticket 54 ; décision du produit du 2026-11-18 : pas de blocage par GitHub sur les
 // fichiers sensibles, le fichier CODEOWNERS disparaît). Plus rien ne le génère, ne le garde ni ne l'attend : il
-// n'est plus nommé que là où le plugin dit qu'il est retiré (l'ADR gardée pour mémoire, la marche à suivre qui le
-// retire d'un projet déjà posé et son renvoi dans le skill, la liste de l'admin, le CONTENU.md du socle) et dans les
-// bancs qui le prouvent.
+// n'est plus nommé que là où le plugin dit qu'il est retiré, et dans les bancs qui le prouvent. La liste est fermée :
+// trois fichiers libres (`null` : l'ADR gardée pour mémoire, la marche à suivre qui le retire d'un projet déjà posé,
+// ce banc) et cinq fichiers qui ne le nomment que par les passages donnés ici, mot pour mot, chacun une fois. Hors de
+// ces passages, une mention y est une faute, comme dans tout autre fichier.
 const SOCLE_CHAINE = `${SKILLS_CHAINE}/socle-chaine-de-production`;
+const FUSIONNER = `${SKILLS_CHAINE}/fusionner`;
 const ADR_CODEOWNERS = `${REF}/adr/ADR_ALL_ARC-N-codeowners.md`;
 const RETRAIT_CODEOWNERS = `${REF}/retrait-codeowners.md`;
-const DISENT_LE_RETRAIT = [`${SOCLE_CHAINE}/SKILL.md`, RETRAIT_CODEOWNERS, `${REF}/CONTENU.md`, `${REF}/admin.md`, ADR_CODEOWNERS, `${REF}/agent/regles.test.mjs`, "scripts/depot.test.mjs"];
-const DE_CODEOWNERS = /codeowners|code[ _]owners?|\bproprietaires\b|attend un propriétaire|attente-revue-capitaine|attend_humain/i;
+const DISENT_LE_RETRAIT = new Map([
+  [ADR_CODEOWNERS, null],
+  [RETRAIT_CODEOWNERS, null],
+  ["scripts/depot.test.mjs", null],
+  [`${SOCLE_CHAINE}/SKILL.md`, ["Un projet posé depuis le plugin 7.13.0 peut porter un `.github/CODEOWNERS` généré, que le produit a retiré : [`references/retrait-codeowners.md`](references/retrait-codeowners.md)."]],
+  [
+    `${REF}/CONTENU.md`,
+    [
+      "Un quatrième, `ADR_ALL_ARC-N-codeowners.md`, est marqué retiré (décision du produit du 2026-11-18) et ne se pose plus : il ne sert qu'à mettre à jour l'ADR d'un projet qui l'a reçue. `retrait-codeowners.md` est la marche à suivre de ce retrait, lue depuis le skill et jamais posée.",
+      "« Require review from Code Owners » ne se coche pas",
+    ],
+  ],
+  [`${REF}/admin.md`, ["**sans** « Require review from Code Owners » (le produit l'a retirée le 2026-11-18 : aucun `.github/CODEOWNERS` n'est posé, et GitHub ne bloque aucune PR sur les chemins sensibles)"]],
+  [
+    `${REF}/agent/regles.test.mjs`,
+    [
+      "// CODEOWNERS n'est plus généré ni gardé (décision du produit, 2026-11-18) : plus rien ne refuse son édition.",
+      "for (const c of ['.github/CODEOWNERS', 'CODEOWNERS', 'docs/CODEOWNERS']) assert.equal(refusEdition(c, nouvelle), null, c);",
+    ],
+  ],
+  [`${FUSIONNER}/scripts/fusionner.test.mjs`, ['["gh: Waiting on code owner review from @exemple. (HTTP 405)", 3, DURABLE],']],
+]);
+const DE_CODEOWNERS = /codeowners|code[ _]owners?|\bproprietaires\b|attend un propriétaire|approbation d['’]un propriétaire|chemin possédé|tenu par GitHub|attente-revue-capitaine|attend_humain/i;
 const deCodeowners = (ligne) => DE_CODEOWNERS.test(ligne);
+// Les mentions fautives d'un fichier : ses passages admis doivent y être, une fois chacun ; eux retirés, plus aucune
+// ligne ne doit être reconnue par le lecteur.
+const mentionsFautives = (fichier, texte, passages = []) => {
+  const fautes = [];
+  for (const p of passages) {
+    const n = texte.split(p).length - 1;
+    if (n !== 1) fautes.push(`${fichier} : passage présent ${n} fois, attendu une : ${p.slice(0, 70)}…`);
+    texte = texte.split(p).join("");
+  }
+  lignes(texte).forEach((l, i) => deCodeowners(l) && fautes.push(`${fichier}:${i + 1}`));
+  return fautes;
+};
 
 test("lecteur des mentions de CODEOWNERS : entrées piégées", () => {
-  for (const l of [".github/CODEOWNERS", "pnpm codeowners", "« Require review from Code Owners »", "require_code_owner_review", "Waiting on code owner review", "`proprietaires` du contrat", "etat='attend un propriétaire'", "<!-- attente-revue-capitaine -->", "elif attend_humain \"$n\"; then", "{{ADR_CODEOWNERS}}"])
+  for (const l of [".github/CODEOWNERS", "pnpm codeowners", "« Require review from Code Owners »", "require_code_owner_review", "Waiting on code owner review", "`proprietaires` du contrat", "etat='attend un propriétaire'", "elle attend l'approbation d'un propriétaire humain", "attend l’approbation d’un propriétaire", "une PR qui touche un chemin possédé", "Chemin sensible = relu par un humain, tenu par GitHub", "<!-- attente-revue-capitaine -->", "elif attend_humain \"$n\"; then", "{{ADR_CODEOWNERS}}"])
     assert.equal(deCodeowners(l), true, l);
   // Ce qui reste : la session auteur d'une PR (proprietaire.sh), et l'attente d'un humain au plafond des renvois.
-  for (const l of ["bash scripts/chaine/proprietaire.sh <branche>", "worktree propriétaire", "Prévenir la session propriétaire", "RENVOI 3 sur 3 : la PR attend un humain", "etat='humain'", "le rôle propriétaire ne sert qu'aux migrations"])
+  for (const l of ["bash scripts/chaine/proprietaire.sh <branche>", "worktree propriétaire", "Prévenir la session propriétaire", "RENVOI 3 sur 3 : la PR attend un humain", "etat='humain'", "le rôle propriétaire ne sert qu'aux migrations", "une ressource possédée par un autre compte", "l'accord du produit, donné avant", "un manifeste validé par un humain"])
     assert.equal(deCodeowners(l), false, l);
+  // Un fichier de la liste fermée : son passage admis passe, une fois ; hors de lui, ou répété, la mention est une faute.
+  const admis = "**sans** « Require review from Code Owners »";
+  assert.deepEqual(mentionsFautives("f", `a\n- ${admis} ; b\n`, [admis]), []);
+  assert.deepEqual(mentionsFautives("f", `a\n- ${admis} ; puis cocher « Require review from Code Owners »\n`, [admis]), ["f:2"]);
+  assert.deepEqual(mentionsFautives("f", `a\n- ${admis}\npnpm codeowners\n`, [admis]), ["f:3"]);
+  assert.equal(mentionsFautives("f", `- ${admis}\n- ${admis}\n`, [admis]).length, 1, "passage répété");
+  assert.equal(mentionsFautives("f", "a\n- avec « Require review from Code Owners »\n", [admis]).length, 2, "passage absent, mention hors de lui");
+  assert.deepEqual(mentionsFautives("f", "a\n.github/CODEOWNERS\n"), ["f:2"]);
 });
 
 test("CODEOWNERS n'est plus nommé que là où le plugin dit qu'il est retiré", () => {
   const fichiers = execFileSync("git", ["ls-files", "--", "README.md", ".claude-plugin", "scripts", "skills"], { cwd: RACINE, encoding: "utf8" })
     .split("\n")
     .filter(Boolean);
-  const fautes = fichiers
-    .filter((f) => !DISENT_LE_RETRAIT.includes(f))
-    .flatMap((f) => lignes(readFileSync(join(RACINE, f), "utf8")).flatMap((l, i) => (deCodeowners(l) ? [`${f}:${i + 1}`] : [])));
+  const fautes = fichiers.filter((f) => DISENT_LE_RETRAIT.get(f) !== null).flatMap((f) => mentionsFautives(f, readFileSync(join(RACINE, f), "utf8"), DISENT_LE_RETRAIT.get(f)));
   assert.deepEqual(fautes, [], `CODEOWNERS est retiré du plugin (décision du produit, 2026-11-18) : ${fautes.join(" ; ")}`);
-  assert.ok(fichiers.length > 300 && DISENT_LE_RETRAIT.every((f) => fichiers.includes(f)), "le parcours lit le dépôt, et chaque fichier de la liste existe");
+  assert.ok(fichiers.length > 300 && [...DISENT_LE_RETRAIT.keys()].every((f) => fichiers.includes(f)), "le parcours lit le dépôt, et chaque fichier de la liste existe");
   for (const f of ["scripts/github/codeowners.mjs", "scripts/github/codeowners.test.mjs"]) assert.ok(!existsSync(join(RACINE, REF, f)), `${REF}/${f} : retiré`);
   const gabarit = JSON.parse(readFileSync(join(RACINE, REF, "chaine.json"), "utf8"));
   assert.equal("proprietaires" in gabarit, false, "le gabarit du contrat ne porte plus la clé `proprietaires`");
@@ -330,30 +371,64 @@ test("CODEOWNERS n'est plus nommé que là où le plugin dit qu'il est retiré",
   const ORDINAUX = ["première", "deuxième", "troisième", "quatrième", "cinquième", "sixième", "septième", "huitième", "neuvième", "dixième", "onzième", "douzième", "treizième"];
   const cles = Object.keys(gabarit).filter((c) => c !== "$comment").length;
   exiger(`${REF}/CONTENU.md`, [`${NOMBRES[cles - 1]} clés, et rien d'autre,`, `Une ${ORDINAUX[cles]}, facultative et absente du gabarit : \`preparerCapitaine\``]);
+  // Le compte des ADR que le socle pose est celui des gabarits de references/adr/, moins celui de CODEOWNERS, gardé
+  // pour mémoire : le skill, son CONTENU.md et le README disent ce nombre, et le skill nomme chaque gabarit posé.
+  const poses = readdirSync(join(RACINE, REF, "adr")).filter((f) => `${REF}/adr/${f}` !== ADR_CODEOWNERS);
+  const combien = NOMBRES[poses.length - 1];
+  exiger(`${SOCLE_CHAINE}/SKILL.md`, [`la méthode docs/agents/chaine-de-production.md et ${combien.toLowerCase()} ADR`, `\`node scripts/docs/next-id.mjs ADR ALL ARC\` ${combien.toLowerCase()} fois, de suite`, ...poses.map((f) => `${f}\``)]);
+  exiger(`${REF}/CONTENU.md`, [`${combien} gabarits, numérotés à l'installation`]);
+  exiger("README.md", [`une CI minimale, la méthode et ${combien.toLowerCase()} ADR |`, `labels, CI, méthode, ${combien.toLowerCase()} ADR, fragments, liste admin`]);
 });
 
 test("le socle retire CODEOWNERS d'un projet déjà posé : le fichier seulement s'il porte l'en-tête du générateur, l'ADR marquée retirée, la règle de GitHub jamais cochée", () => {
-  exiger(`${SOCLE_CHAINE}/SKILL.md`, [
-    "Un projet posé depuis le plugin 7.13.0 peut porter un `.github/CODEOWNERS` généré, que le produit a retiré : [`references/retrait-codeowners.md`](references/retrait-codeowners.md).",
-    "`node scripts/docs/next-id.mjs ADR ALL ARC` trois fois, de suite",
-  ]);
   exiger(RETRAIT_CODEOWNERS, [
     "Le produit les a retirés le 2026-11-18 : GitHub ne bloque aucune PR sur les chemins sensibles, et « Require review from Code Owners » ne se coche sur aucun dépôt.",
     "Aucun `poser` ne fait ce retrait : reposer un skill copie ses fichiers, sans retirer ceux qu'une version antérieure a posés.",
     "1. **Le fichier.** `head -n 1 .github/CODEOWNERS` rend `# Généré depuis .claude/chaine.json (cheminsSensibles, proprietaires) : ne pas éditer.` : c'est la copie du générateur, `git rm .github/CODEOWNERS`. Toute autre première ligne : le fichier est celui du projet, le laisser et le dire à qui a lancé la session. Un `CODEOWNERS` à la racine ou sous `docs/` n'a jamais été généré : ne pas y toucher.",
     "2. **Le générateur et son gate.** `git rm scripts/github/codeowners.mjs scripts/github/codeowners.test.mjs` ; retirer de `package.json` les scripts `codeowners` et `check:codeowners`, de `scripts/check.mjs` l'étape `check:codeowners`,",
     "3. **Le contrat.** Dans `.claude/chaine.json` : retirer la clé `proprietaires` et l'entrée `scripts/github/codeowners.mjs` de `gatesRapides`, reprendre le `$comment` de `references/chaine.json`. `cheminsSensibles` ne change pas.",
+    "Relancer chaque capitaine une fois cette PR entrée dans `develop`.",
     "6. **L'ADR.** L'ADR « CODEOWNERS » du projet garde son numéro et son texte : sa ligne `Statut` devient celle de `references/adr/ADR_ALL_ARC-N-codeowners.md`, et la section « Retrait » de ce gabarit s'y ajoute, placeholders substitués. Ce gabarit ne se pose plus dans un projet neuf.",
-    "7. **À l'admin.** Décocher « Require review from Code Owners » sur `develop` et `main` si elle l'était : une session ne le peut pas.",
+    "7. **À l'admin.** Décocher « Require review from Code Owners » sur `develop` et `main` si elle l'était, et tenir « Required approvals » à 0 : une session ne le peut pas.",
   ]);
   const adr = readFileSync(join(RACINE, ADR_CODEOWNERS), "utf8");
   assert.ok(lignes(adr).includes("- Statut : **retirée** par la décision du produit du 2026-11-18 (`P-49` de la carte « gouverner nos boucles » du plugin `maj-skills`) ; gardée pour mémoire"), `${ADR_CODEOWNERS} : la ligne Statut dit le retrait`);
   assert.ok(titres(adr).indexOf("## Retrait") === 0, `${ADR_CODEOWNERS} : la section « Retrait » vient en premier`);
+  assert.equal(titres(adr).filter((t) => t === "## Retrait").length, 1, `${ADR_CODEOWNERS} : une seule section « Retrait »`);
   exiger(`${REF}/admin.md`, [
     "« Require a pull request before merging », **sans** « Require review from Code Owners » (le produit l'a retirée le 2026-11-18 : aucun `.github/CODEOWNERS` n'est posé, et GitHub ne bloque aucune PR sur les chemins sensibles)",
+    "et avec **« Required approvals » à 0** (toutes les sessions publient sous un même compte, et GitHub ne laisse pas un auteur approuver sa propre PR : avec une approbation exigée, GitHub refuse la fusion de toute PR que personne d'autre n'a approuvée, et le capitaine s'arrête sur ce refus, `passer.sh` sortie 3)",
     "**« Restrict deletions »** ; « Do not allow bypassing the above settings », et **aucune liste de contournement** (« Bypass list » vide) : un administrateur qui contourne la règle la retire pour tous.",
+    "Pas de règle de PR sur `sujet/*` ni sur les branches de travail, où le capitaine et les sessions poussent sans PR : elle bloquerait la chaîne.",
     "- [ ] **« Block force pushes »** sur toutes les branches (Rulesets, cible `~ALL`), sans liste de contournement.",
   ]);
+});
+
+test("sans CODEOWNERS : une fusion refusée faute de revue arrête la boucle et le capitaine le dit sans toucher à la PR ; aucune règle de GitHub n'est plus donnée pour frontière contre une PR hostile", () => {
+  // Ce que devient un refus de fusion faute de revue (décision 6 du ticket 54) : un refus durable, et ce que le
+  // capitaine en fait, là où il le lit.
+  exiger(`${FUSIONNER}/SKILL.md`, [
+    "une fusion refusée durablement par GitHub (droit, règle du dépôt, revue exigée, méthode interdite) sort en 3 et l'arrête",
+    "**Devant un refus durable de fusion** (`ARRÊT`, `passer.sh` sortie 3, « fusion refusée par GitHub pour une autre raison qu'une branche qui a bougé » : droit du compte, règle du dépôt, revue exigée, méthode de fusion interdite), le capitaine ne peut rien.",
+    "La PR garde `à-fusionner` et sa place dans la file : tant que la cause demeure, chaque lancement de la boucle s'arrête de nouveau sur elle, et aucune PR vers develop placée après elle ne passe.",
+    "Il ne retire pas ce label, n'écrit rien sur la PR et ne la renvoie pas (son auteur n'y peut rien) ; il le dit à son lanceur (au produit hors programme), avec le message exact de GitHub. Un humain lève la règle du dépôt, puis le capitaine relance sa veille.",
+  ]);
+  exiger(`${FUSIONNER}/references/CONTENU.md`, ["tout autre refus (droit du compte, règle du dépôt, revue exigée, méthode de fusion interdite) est durable et sort en 3", "une fusion refusée durablement par GitHub en 3, faute de revue approuvée comprise (la boucle s'arrête),"]);
+  exiger(RETRAIT_CODEOWNERS, [
+    "il s'arrête sur ce refus (`passer.sh`, sortie 3, `ARRÊT`), et le dit.",
+    "La PR refusée garde `à-fusionner` et sa place dans la file : tant que la cause demeure, chaque lancement de la boucle s'arrête de nouveau sur elle, et aucune PR vers `develop` placée après elle ne passe.",
+    "Le capitaine ne retire pas ce label et n'écrit rien sur la PR ; il le dit à son lanceur (au produit hors programme), avec le message exact de GitHub, et un humain lève la règle du dépôt.",
+  ]);
+  // Une PR hostile : la protection des branches n'est plus donnée pour frontière, nulle part. Trois textes le disent.
+  exiger(`${REF}/admin.md`, ["Ce que ces règles ne tiennent pas : toutes les sessions écrivent sous le même compte, la revue exigée par le capitaine est écrite par la session, et le capitaine exécute ce qui entre (hooks git, `pnpm install`, `pnpm check`). Aucune n'arrête une PR hostile."]);
+  exiger(LANCEMENT, [
+    "Ni le commentaire ni le label ne tiennent contre une PR hostile venue d'un de ces comptes, et la protection des branches de GitHub non plus : les règles de `socle-chaine-de-production/references/admin.md` tiennent l'entrée par une PR, les checks exigés sur une branche à jour, le refus des pushs forcés et des suppressions de branche, et aucune n'arrête ce qu'un compte de confiance fait entrer (« Ce que ces règles ne tiennent pas »).",
+  ]);
+  exiger(`${FUSIONNER}/references/CONTENU.md`, [
+    "Contre une PR hostile venue d'un compte de confiance, rien n'arrête, ni dans la chaîne ni chez GitHub : la protection des branches (`admin.md` du socle) tient l'entrée par une PR, les checks exigés sur une branche à jour, le refus des pushs forcés et des suppressions de branche, pas ce qui entre (« Ce que ces règles ne tiennent pas »). Reste, pour borner ce qu'elle atteint, un capitaine sur un poste jetable, sans autre secret que son jeton GitHub.",
+  ]);
+  for (const f of [LANCEMENT, `${FUSIONNER}/references/CONTENU.md`])
+    for (const l of lignes(readFileSync(join(RACINE, f), "utf8")).filter((x) => /PR hostile/.test(x))) assert.doesNotMatch(l, /frontière/i, `${f} : plus de « frontière » contre une PR hostile chez GitHub`);
 });
 ````
 
@@ -375,7 +450,7 @@ Nouveau :
 
 #### B6 — `skills/chaine/fusionner/scripts/fusionner.test.mjs`
 
-Le même test reçoit un cas : un refus de GitHub faute de revue approuvée. Sur `main` il sort en 7, avec un commentaire d'attente ; il devient un refus durable comme un autre.
+Le même test reçoit deux cas : un refus de GitHub faute de revue approuvée, sous deux textes plausibles (une approbation exigée, la revue d'un propriétaire du code). Sur `main` ils sortent en 7, avec un commentaire d'attente ; ils deviennent des refus durables comme les autres. La ligne du second cas est la seule de ce fichier que le lecteur du banc reconnaît : elle est dans sa liste fermée, mot pour mot (B4, décision 11).
 
 Ancien :
 
@@ -387,8 +462,10 @@ Nouveau :
 
 ````js
     ["gh: HTTP 403", 3, DURABLE],
-    // Une revue exigée par une règle de GitHub n'est plus attendue (ticket 54) : un refus durable comme un autre.
+    // Une revue exigée par une règle de GitHub n'est plus attendue (ticket 54) : un refus durable comme un autre, quel
+    // que soit le texte du refus (une approbation exigée, la revue d'un propriétaire du code).
     ["gh: At least 1 approving review is required by reviewers with write access. (HTTP 405)", 3, DURABLE],
+    ["gh: Waiting on code owner review from @exemple. (HTTP 405)", 3, DURABLE],
 ````
 
 #### B7 — `skills/chaine/fusionner/scripts/fusionner.test.mjs`
@@ -405,6 +482,57 @@ Nouveau :
 
 ````js
   assert.match(durable.stdout, /fusion refusée par GitHub pour une autre raison qu'une branche qui a bougé/);
+````
+
+#### B8 — `skills/chaine/fusionner/scripts/fusionner.test.mjs`
+
+Le même test, dans sa boucle : après un refus durable (sortie 3), le worktree du capitaine est revenu sur `origin/develop`, tête détachée, et la branche de passage `capitaine/33` est supprimée. Aucun test ne le lisait : les deux lignes de `passer.sh` qui le font précèdent le message que S24 récrit (premier tour de relecture, mutation X8).
+
+Ancien :
+
+````js
+    assert.match(r.stdout, motif, JSON.stringify(message));
+    assert.equal(d.git("status", "--porcelain"), "");
+  }
+````
+
+Nouveau :
+
+````js
+    assert.match(r.stdout, motif, JSON.stringify(message));
+    assert.equal(d.git("status", "--porcelain"), "");
+    // Après un refus durable, le capitaine ne reste pas sur sa branche de passage : tête détachée sur develop, branche supprimée.
+    if (attendu === 3) assert.deepEqual([d.git("rev-parse", "--abbrev-ref", "HEAD"), d.git("rev-parse", "HEAD"), d.git("branch", "--list", "capitaine/33")], ["HEAD", d.git("rev-parse", "origin/develop"), ""], JSON.stringify(message));
+  }
+````
+
+#### B9 — `skills/chaine/fusionner/scripts/fusionner.test.mjs`
+
+Un test de remplacement. Le banc « boucle.sh : les PR qui attendent un propriétaire sont sautées sans renvoi ni relance… », que S28 retire, était le seul à prouver aussi que la boucle saute une PR que `passer.sh` rend en 7 et fait passer la suivante : cette branche de `boucle.sh` sert encore au brouillon, à l'empilée, à la PR déjà bloquée et au passage d'un autre capitaine. Le cas est repris sur ce dernier, avec les aides `prVerrou` et `marqueDe` du fichier. Il est vert dès l'écriture : la boucle se conduit déjà ainsi sur `main`.
+
+Ajouté à la fin du fichier, après une ligne vide :
+
+````js
+// La boucle saute une PR que passer.sh rend en 7 et fait passer la suivante. Le banc qui le prouvait est sorti avec
+// l'attente d'une approbation (ticket 54) : le cas est repris ici sur le passage d'un autre capitaine.
+test("boucle.sh : une PR que passer.sh rend en 7 (en passage chez un autre capitaine) est sautée sans renvoi ni arrêt, la suivante passe", () => {
+  const { d, avant, sommet } = prVerrou();
+  d.branche("docs/suivante", "origin/develop", { "docs/suivante.md": "s\n" });
+  d.git("switch", "-q", "--detach", "origin/develop");
+  d.publierChaine();
+  const e = d.etat();
+  e.pulls[0].commentaires = [marqueDe("capitaine-jordan")];
+  e.pulls.push(pr(41, "docs/suivante"));
+  d.github(e);
+  const r = d.lancer(script("boucle.sh"));
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /\[#40\] sortie=7/);
+  assert.match(r.stdout, /\[#41\] FUSIONNÉE/);
+  assert.match(r.stdout, /FILE VIDE/);
+  assert.doesNotMatch(r.stdout, /RENVOI|ARRÊT/);
+  const pr40 = d.etat().pulls.find((p) => p.number === 40);
+  assert.deepEqual([pr40.labels, pr40.merged_at ?? null, sommet()], [["à-fusionner"], null, avant], "#40 garde son label, n'est ni fusionnée ni poussée");
+});
 ````
 
 Après ces sept blocs, sur le texte d'`origin/main` à `a3c2a7c` : `node --test scripts/depot.test.mjs skills/chaine/socle-chaine-de-production/references/agent/regles.test.mjs` rend **144 tests, 3 rouges** : « CODEOWNERS n'est plus nommé que là où le plugin dit qu'il est retiré » (171 lignes dans 20 fichiers), « le socle retire CODEOWNERS d'un projet déjà posé… », « refusEdition normalise le chemin avant de juger… » (sur sa dernière assertion : l'édition de CODEOWNERS est encore refusée). « lecteur des mentions de CODEOWNERS : entrées piégées » est vert dès l'écriture. Et `node --test --test-name-pattern='fusion refusée durablement|refus de fusion 405' skills/chaine/fusionner/scripts/fusionner.test.mjs` rend **2 rouges** : les deux tests du refus durable.
@@ -1072,7 +1200,7 @@ test("le banc de CODEOWNERS posé passe dans un projet dont le contrat a ses pro
 
 ### § 3 — Les textes, mot pour mot
 
-`node "$TMPDIR/appliquer.mjs" "$TICKET" R N` applique les quarante et un blocs `R` et le bloc `N1`.
+`node "$TMPDIR/appliquer.mjs" "$TICKET" R N` applique les quarante-quatre blocs `R` et le bloc `N1`.
 
 #### R1 — `skills/chaine/fusionner/SKILL.md`
 
@@ -1516,7 +1644,7 @@ La protection des branches (dont « Block force pushes », « Restrict deletions
 
 #### R32 — `skills/chaine/socle-chaine-de-production/references/admin.md`
 
-La case « Protection de `develop` » dit de ne pas cocher la règle (décision 7).
+La case « Protection de `develop` » dit de ne pas cocher la règle, et garde « Required approvals » à 0 avec sa raison nouvelle : une approbation exigée arrête désormais le capitaine (décisions 6 et 7).
 
 Ancien :
 
@@ -1527,7 +1655,7 @@ Ancien :
 Nouveau :
 
 ````text
-« Require a pull request before merging », **sans** « Require review from Code Owners » (le produit l'a retirée le 2026-11-18 : aucun `.github/CODEOWNERS` n'est posé, et GitHub ne bloque aucune PR sur les chemins sensibles) ; « Require status checks to pass »
+« Require a pull request before merging », **sans** « Require review from Code Owners » (le produit l'a retirée le 2026-11-18 : aucun `.github/CODEOWNERS` n'est posé, et GitHub ne bloque aucune PR sur les chemins sensibles) et avec **« Required approvals » à 0** (toutes les sessions publient sous un même compte, et GitHub ne laisse pas un auteur approuver sa propre PR : avec une approbation exigée, GitHub refuse la fusion de toute PR que personne d'autre n'a approuvée, et le capitaine s'arrête sur ce refus, `passer.sh` sortie 3) ; « Require status checks to pass »
 ````
 
 #### R33 — `skills/chaine/socle-chaine-de-production/references/admin.md`
@@ -1681,6 +1809,56 @@ Nouveau :
 labels, CI, méthode, trois ADR, fragments, liste admin
 ````
 
+#### R42 — `skills/chaine/fusionner/SKILL.md`
+
+Ce que le capitaine fait devant un refus durable de fusion, là où il le lit (décision 6) : un alinéa de plus, avant « Sans veille en cours ». Le code ne change pas : l'alinéa dit ce que `boucle.sh` et `passer.sh` font déjà, et ce que le capitaine ne fait pas.
+
+Ancien :
+
+````text
+**Sans veille en cours** (capitaine démarré
+````
+
+Nouveau :
+
+````text
+**Devant un refus durable de fusion** (`ARRÊT`, `passer.sh` sortie 3, « fusion refusée par GitHub pour une autre raison qu'une branche qui a bougé » : droit du compte, règle du dépôt, revue exigée, méthode de fusion interdite), le capitaine ne peut rien. La PR garde `à-fusionner` et sa place dans la file : tant que la cause demeure, chaque lancement de la boucle s'arrête de nouveau sur elle, et aucune PR vers develop placée après elle ne passe. Il ne retire pas ce label, n'écrit rien sur la PR et ne la renvoie pas (son auteur n'y peut rien) ; il le dit à son lanceur (au produit hors programme), avec le message exact de GitHub. Un humain lève la règle du dépôt, puis le capitaine relance sa veille.
+
+**Sans veille en cours** (capitaine démarré
+````
+
+#### R43 — `skills/chaine/architecte/references/lancement.md`
+
+La « Limite » du capitaine d'un dépôt sans la chaîne renvoyait à la protection de GitHub comme à « la frontière contre une PR hostile » : c'était la case CODEOWNERS de la liste de l'admin, que R34 retire, et le titre cité n'existe plus dans `admin.md` depuis la 7.13.0. La phrase dit ce qui reste vrai : ce que ces règles tiennent, et qu'aucune n'arrête une PR hostile venue d'un compte de confiance.
+
+Ancien :
+
+````text
+Ni le commentaire ni le label ne tiennent contre une PR hostile venue d'un de ces comptes : la frontière reste la protection de GitHub recommandée dans `socle-chaine-de-production/references/admin.md` (« la frontière contre une PR hostile »).
+````
+
+Nouveau :
+
+````text
+Ni le commentaire ni le label ne tiennent contre une PR hostile venue d'un de ces comptes, et la protection des branches de GitHub non plus : les règles de `socle-chaine-de-production/references/admin.md` tiennent l'entrée par une PR, les checks exigés sur une branche à jour, le refus des pushs forcés et des suppressions de branche, et aucune n'arrête ce qu'un compte de confiance fait entrer (« Ce que ces règles ne tiennent pas »).
+````
+
+#### R44 — `skills/chaine/fusionner/references/CONTENU.md`
+
+« Ce que le capitaine exécute » : la même frontière, donnée pour « recommandation non posée par défaut » de la liste de l'admin. Le poste jetable reste ; la protection des branches n'est plus dite frontière.
+
+Ancien :
+
+````text
+Contre une PR hostile, la frontière n'est pas dans la chaîne : un capitaine sur un poste jetable, sans autre secret que son jeton GitHub, et la protection des branches chez GitHub (`admin.md` du socle, recommandation non posée par défaut).
+````
+
+Nouveau :
+
+````text
+Contre une PR hostile venue d'un compte de confiance, rien n'arrête, ni dans la chaîne ni chez GitHub : la protection des branches (`admin.md` du socle) tient l'entrée par une PR, les checks exigés sur une branche à jour, le refus des pushs forcés et des suppressions de branche, pas ce qui entre (« Ce que ces règles ne tiennent pas »). Reste, pour borner ce qu'elle atteint, un capitaine sur un poste jetable, sans autre secret que son jeton GitHub.
+````
+
 #### N1 — `skills/chaine/socle-chaine-de-production/references/retrait-codeowners.md`
 
 La marche à suivre du retrait dans un projet déjà posé (décision 8), lue depuis le skill (R11) et jamais posée.
@@ -1698,7 +1876,7 @@ Un projet posé ou reposé depuis le plugin 7.13.0 peut porter un `.github/CODEO
 4. **Les gardes et le capitaine.** Reposer `references/agent/*` (`SKILL.md`, étape 2, point 4) et les scripts du capitaine et des sujets (« Étape 0 — poser » du skill `fusionner`, puis `/maj-skills:sujet poser`) : `regles.mjs` ne refuse plus l'édition de CODEOWNERS, la file n'a plus d'état « attend un propriétaire ». Relancer chaque capitaine une fois cette PR entrée dans `develop`.
 5. **Les textes.** Retirer de `CLAUDE.md` la ligne « Chemin sensible = relu par un humain, tenu par GitHub » ; de `docs/agents/chaine-de-production.md`, le paragraphe du même nom et, dans son en-tête, « CODEOWNERS : » suivi de son ADR ; dans `docs/agents/chaine-admin.md`, reprendre la case « Protection de `develop` » de `references/admin.md` et remplacer la case « CODEOWNERS respecté » par sa case « Block force pushes » et le paragraphe qui la suit (les cases déjà cochées le restent).
 6. **L'ADR.** L'ADR « CODEOWNERS » du projet garde son numéro et son texte : sa ligne `Statut` devient celle de `references/adr/ADR_ALL_ARC-N-codeowners.md`, et la section « Retrait » de ce gabarit s'y ajoute, placeholders substitués. Ce gabarit ne se pose plus dans un projet neuf.
-7. **À l'admin.** Décocher « Require review from Code Owners » sur `develop` et `main` si elle l'était : une session ne le peut pas. Tant qu'elle reste cochée, GitHub refuse la fusion d'une PR qui touche un chemin possédé, et le capitaine reposé ne l'attend plus : il s'arrête sur ce refus (`passer.sh`, sortie 3, `ARRÊT`), et le dit.
+7. **À l'admin.** Décocher « Require review from Code Owners » sur `develop` et `main` si elle l'était, et tenir « Required approvals » à 0 : une session ne le peut pas. Tant qu'une revue reste exigée (la règle cochée : toute PR qui touche un chemin possédé ; une approbation exigée : toute PR que personne d'autre que son auteur n'a approuvée), GitHub refuse la fusion, et le capitaine reposé ne l'attend plus : il s'arrête sur ce refus (`passer.sh`, sortie 3, `ARRÊT`), et le dit. La PR refusée garde `à-fusionner` et sa place dans la file : tant que la cause demeure, chaque lancement de la boucle s'arrête de nouveau sur elle, et aucune PR vers `develop` placée après elle ne passe. Le capitaine ne retire pas ce label et n'écrit rien sur la PR ; il le dit à son lanceur (au produit hors programme), avec le message exact de GitHub, et un humain lève la règle du dépôt.
 
 Puis `pnpm check`. `git grep -il codeowners` ne rend plus que l'ADR, `docs/agents/chaine-admin.md` et `scripts/agent/regles.test.mjs` ; tout autre fichier est propre au projet : le dire à qui a lancé la session.
 ````
@@ -1744,13 +1922,21 @@ Donné entier. La session le tire de ce fichier par ses bornes (§ 0), vérifie 
 // Applique à l'arbre de travail courant les blocs « À faire » d'un ticket (ticket 54 : CODEOWNERS sort du plugin).
 // Usage, depuis la racine du dépôt : node appliquer.mjs <ticket.md> [<choix>…]
 //   sans choix, tous les blocs ; « B » (des lettres seules) : ceux dont l'identifiant commence par B ; « S12 » : ce bloc.
-// Tout ou rien : chaque bloc choisi est d'abord joué en mémoire ; au premier qui ne s'applique pas (texte absent ou
-// présent deux fois, bloc d'une autre taille ou d'une autre empreinte), rien n'est écrit, les blocs en cause sont
-// nommés, sortie 1. Sinon les fichiers sont écrits, les fichiers supprimés le sont par `git rm`, un fichier nouveau
-// est suivi par `git add`. Aucune dépendance.
+// Tout ou rien, en trois temps.
+// 1. Chaque bloc choisi est joué en mémoire. Est une faute un bloc qui ne s'applique pas (texte absent ou présent deux
+//    fois, bloc d'une autre taille ou d'une autre empreinte) et un bloc déjà appliqué (son texte « Nouveau » est en
+//    place et son « Ancien » absent, ou le rejouer doublerait un texte).
+// 2. Ce que l'écriture suppose est vérifié avant elle : la racine du dépôt, chaque fichier à supprimer suivi par git,
+//    aucun fichier nouveau ignoré, l'index de git non verrouillé, chaque fichier à écrire ouvert en écriture.
+//    À la moindre faute, rien n'est écrit, les blocs en cause sont nommés, sortie 1.
+// 3. L'index de git d'abord, en une seule commande (`git update-index` : les fichiers supprimés en sortent, le fichier
+//    nouveau y entre) : elle passe entière ou ne change rien, et rien n'est encore écrit sur le disque. Puis le
+//    disque : fichiers écrits, fichiers supprimés retirés. Une écriture interrompue là est dite, sortie 2.
+// Aucune dépendance.
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { accessSync, constants, existsSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { dirname } from "node:path";
 
 const [ticket, ...choix] = process.argv.slice(2);
 if (!ticket) {
@@ -1809,6 +1995,7 @@ for (let i = debut + 1; i < lignes.length; i++) {
   }
 }
 
+// 1. Les blocs, en mémoire.
 const occurrences = (texte, morceau) => texte.split(morceau).length - 1;
 const choisis = blocs.filter((b) => choix.length === 0 || choix.some((p) => (/^[A-Z]+$/.test(p) ? b.id.startsWith(p) : b.id === p)));
 const textes = new Map(); // fichier → contenu (null : supprimé)
@@ -1820,7 +2007,8 @@ for (const b of choisis) {
   const t = lire(b.fichier);
   const faute = (motif) => fautes.push(`${b.id} — ${b.fichier} : ${motif}`);
   if ("entier" in p) {
-    if (t !== null) faute("le fichier existe déjà");
+    if (t === `${p.entier}\n`) faute("déjà appliqué : le fichier existe, avec ce texte");
+    else if (t !== null) faute("le fichier existe déjà, avec un autre texte");
     else {
       textes.set(b.fichier, `${p.entier}\n`);
       nouveaux.push(b.fichier);
@@ -1828,7 +2016,7 @@ for (const b of choisis) {
     continue;
   }
   if (t === null) {
-    faute("fichier absent");
+    faute(b.supprime ? "déjà appliqué, ou fichier absent : il n'y a rien à supprimer" : "fichier absent");
     continue;
   }
   if (b.supprime) {
@@ -1837,19 +2025,23 @@ for (const b of choisis) {
     else textes.set(b.fichier, null);
   } else if ("ancien" in p && "nouveau" in p) {
     const n = occurrences(t, p.ancien);
-    if (n !== 1) faute(`« Ancien » trouvé ${n} fois, attendu une`);
+    // Déjà appliqué : « Nouveau » est en place et « Ancien » n'y est plus ; ou « Nouveau » contient « Ancien » (un texte
+    // ajouté à côté d'un repère gardé) et s'y trouve déjà : le rejouer l'ajouterait une seconde fois.
+    if (p.nouveau !== "" && t.includes(p.nouveau) && (n === 0 || p.nouveau.includes(p.ancien))) faute("déjà appliqué : « Nouveau » est en place");
+    else if (n !== 1) faute(`« Ancien » trouvé ${n} fois, attendu une`);
     else textes.set(b.fichier, t.replace(p.ancien, () => p.nouveau));
   } else if ("lignes" in p) {
     const morceau = `${p.lignes}\n`;
     const n = occurrences(`\n${t}`, `\n${morceau}`);
-    if (n !== 1) faute(`lignes à retirer trouvées ${n} fois, attendu une`);
+    if (n !== 1) faute(`lignes à retirer trouvées ${n} fois, attendu une${n === 0 ? " (déjà retirées ?)" : ""}`);
     else textes.set(b.fichier, `\n${t}`.replace(`\n${morceau}`, () => "\n").slice(1));
   } else if ("de" in p && "jusqua" in p) {
     const ls = t.split("\n");
     const commence = (prefixe) => (l) => l.trimStart().startsWith(prefixe);
     const departs = ls.flatMap((l, i) => (commence(p.de)(l) ? [i] : []));
     const arrivee = departs.length === 1 ? ls.findIndex((l, i) => i > departs[0] && commence(p.jusqua)(l)) : -1;
-    if (departs.length !== 1) faute(`première ligne du bloc trouvée ${departs.length} fois, attendu une`);
+    if (departs.length === 0 && "place" in p && t.includes(p.place)) faute("déjà appliqué : le texte « À la place » est en place");
+    else if (departs.length !== 1) faute(`première ligne du bloc trouvée ${departs.length} fois, attendu une${departs.length === 0 ? " (déjà retiré ?)" : ""}`);
     else if (arrivee < 0) faute("ligne de fin du bloc introuvable");
     else {
       const retire = ls.slice(departs[0], arrivee);
@@ -1858,20 +2050,65 @@ for (const b of choisis) {
       else textes.set(b.fichier, [...ls.slice(0, departs[0]), ...("place" in p ? p.place.split("\n") : []), ...ls.slice(arrivee)].join("\n"));
     }
   } else if ("fin" in p) {
-    if (t.includes(p.fin)) faute("texte déjà présent dans le fichier");
+    if (t.includes(p.fin)) faute("déjà appliqué : le texte est déjà dans le fichier");
     else textes.set(b.fichier, `${t.replace(/\n*$/, "\n")}\n${p.fin}\n`);
   } else faute(`bloc sans opération reconnue (${Object.keys(p).join(", ") || "aucune marque"})`);
 }
 if (choisis.length === 0) fautes.push("aucun bloc choisi");
+
+// 2. Ce que l'écriture suppose, vérifié avant elle.
+const git = (args, entree) => execFileSync("git", args, { encoding: "utf8", input: entree ?? "", stdio: ["pipe", "pipe", "pipe"] }).trim();
+const tente = (action) => {
+  try {
+    return action();
+  } catch (e) {
+    return e;
+  }
+};
+const supprimes = [...textes].filter(([, texte]) => texte === null).map(([f]) => f);
+const ecrits = [...textes].filter(([, texte]) => texte !== null);
+if (fautes.length === 0) {
+  const racine = tente(() => git(["rev-parse", "--show-toplevel"]));
+  if (racine instanceof Error || realpathSync(racine) !== realpathSync(".")) fautes.push("à lancer depuis la racine du dépôt git");
+  else {
+    for (const f of supprimes) if (tente(() => git(["ls-files", "--error-unmatch", "--", f])) instanceof Error) fautes.push(`${f} : à supprimer, mais git ne le suit pas`);
+    for (const f of nouveaux) if (!(tente(() => git(["check-ignore", "-q", "--", f])) instanceof Error)) fautes.push(`${f} : fichier nouveau, mais git l'ignore`);
+    const verrou = git(["rev-parse", "--git-path", "index.lock"]);
+    if (supprimes.length + nouveaux.length > 0 && existsSync(verrou)) fautes.push(`l'index de git est verrouillé (${verrou}) : un autre git tourne, ou son verrou est resté`);
+    for (const f of [...ecrits.map(([f]) => f), ...supprimes])
+      if (tente(() => accessSync(existsSync(f) ? f : dirname(f), constants.W_OK)) instanceof Error) fautes.push(`${f} : pas d'accès en écriture`);
+  }
+}
 if (fautes.length > 0) {
-  console.error(`${fautes.length} bloc(s) ne s'appliquent pas, rien n'est écrit :\n${fautes.map((f) => `  ${f}`).join("\n")}`);
+  console.error(`${fautes.length} faute(s), rien n'est écrit :\n${fautes.map((f) => `  ${f}`).join("\n")}`);
   process.exit(1);
 }
-for (const [fichier, texte] of textes) {
-  if (texte === null) execFileSync("git", ["rm", "-q", "--", fichier], { stdio: "inherit" });
-  else writeFileSync(fichier, texte);
+
+// 3. L'index d'abord, en une commande ; puis le disque.
+if (supprimes.length + nouveaux.length > 0) {
+  const index = ["update-index", "--add"];
+  for (const f of nouveaux) index.push("--cacheinfo", `100644,${git(["hash-object", "-w", "--path", f, "--stdin"], textes.get(f))},${f}`);
+  if (supprimes.length > 0) index.push("--force-remove", "--", ...supprimes);
+  const r = tente(() => git(index));
+  if (r instanceof Error) {
+    console.error(`git update-index a échoué, rien n'est écrit :\n${String(r.stderr ?? r.message).trim()}`);
+    process.exit(1);
+  }
 }
-if (nouveaux.length > 0) execFileSync("git", ["add", "--", ...nouveaux], { stdio: "inherit" });
+const faits = [];
+try {
+  for (const [fichier, texte] of ecrits) {
+    writeFileSync(fichier, texte);
+    faits.push(fichier);
+  }
+  for (const fichier of supprimes) {
+    rmSync(fichier);
+    faits.push(fichier);
+  }
+} catch (e) {
+  console.error(`ÉCRITURE INTERROMPUE après ${faits.length} fichier(s) sur ${textes.size} : ${e.message}\nDéjà écrits : ${faits.join(" ") || "aucun"}. L'arbre est à moitié écrit : ne pas relancer, l'écrire à l'architecte.`);
+  process.exit(2);
+}
 console.log(`${choisis.length} blocs appliqués (${choisis.map((b) => b.id).join(" ")}), ${textes.size} fichiers`);
 ````
 <!-- fin : appliquer.mjs -->
