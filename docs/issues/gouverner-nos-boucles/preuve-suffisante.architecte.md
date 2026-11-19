@@ -33,10 +33,10 @@ Capitaines: Anchorpost — `session_01BxuG32bZp5xNjwqVZ9U8Fo` (depuis le 2026-11
 
 | Session | Rôle | Relevé |
 | --- | --- | --- |
-| `session_01BxuG2zBnGe6UCP6cqG1F1E` | architecte B | 18,03 $, 261 991 tokens à 11 h 05 UTC le 2026-11-19 |
+| `session_01BxuG2zBnGe6UCP6cqG1F1E` | architecte B | 22,77 $, 344 674 tokens à 14 h 37 UTC le 2026-11-19 |
 | `session_01BxuG32z1RUgo3HduKXzDCG` | ticket, `skills` PR 133 | 2,39 $, 132 163 tokens, archivée |
 | `session_01BxuG2zz5bdN5uN8N7j4ztk` | capitaine de `skills` | 3,71 $, 151 810 tokens, archivé |
-| `session_01BxuG32bZp5xNjwqVZ9U8Fo` | capitaine d'Anchorpost | 3,13 $, 143 190 tokens à 12 h 17 UTC |
+| `session_01BxuG32bZp5xNjwqVZ9U8Fo` | capitaine d'Anchorpost | 3,23 $, 144 277 tokens à 14 h 37 UTC |
 | sous-agent | contre-relecture de la PR 133 | 321 089 tokens |
 
 ## Passation
@@ -62,3 +62,4 @@ Rien encore.
 - 2026-11-19, 12 h 11 UTC — #323 (`.45`) fusionnée dans le sujet (`5d9d162`) : lu sur le dépôt, `apps/cli/src` identique au sommet relu `d859c19`. Fille de `.45` archivée (14,81 $, 292 466 tokens : au-dessus de la consigne de 250 000, sans l'avoir dit). #322 (`.53`) étiquetée à 12 h 13 au sommet `f2ba4430`. `.54` lancée à 12 h 08 (`session_01BxuG31Y99mmxJ32YVoQWMb`). Tickets de suite `.55` (`A-201`) et `.56` (`A-202`) écrits, PR #324, à entrer après #322 ; `.56` rejoue le cas Playwright hors dépôt, sans dépendance ajoutée. Conducteur : 222 835 tokens relevés (il s'estimait à 245 000), 18,62 $ ; relève à 280 000.
 - 2026-11-19, 12 h 18 UTC — relevé. #322 (`.53`) fusionnée dans le sujet (`ccbeaa1`) : lu sur le dépôt, `apps/cli/src/proofs` et `apps/cli/test` identiques au sommet relu `f2ba443`. Capitaine en vie, connecté, quota `allowed`. `.45` et `.53` faits : 38 tickets sur 56 avec `.55` et `.56` à entrer (#324).
 - 2026-11-19, 12 h 40 UTC — deux questions de la fille de `.54` (`session_01BxuG31Y99mmxJ32YVoQWMb`), passées par le conducteur, tranchées : `A-203` et `A-204`. Le trou qu'elles révèlent (une règle à l'en-tête refusé sur la base disparaît sans écart de ce que `compare` juge, depuis `.45`) est du côté non sûr : son ticket passe avant `.19`. Conducteur à environ 232 000 tokens, plugin 7.31.1 de son côté.
+- 2026-11-19, 14 h 40 UTC — COUPURE par la limite d'usage du compte (fenêtre de 5 heures, levée à 13 h 50 UTC) : la fille de `.54` arrêtée à 12 h 41, le conducteur à 12 h 53, le capitaine à 13 h 26, tous `FAILED` et `disconnected` ; cette session aussi (processus relancé, reprise à 14 h 36 sur un mot du produit, « Try again »). Rien de perdu sur le dépôt : sujet à `ccbeaa1`, #325 (`.54`) en brouillon au sommet `c51590f`, #324 (tickets `.55`, `.56`) ouverte sans label. Quota relu `allowed`, fenêtre suivante levée à 18 h 50 UTC. Relevés : conducteur 254 146 tokens et 22,69 $ ; fille de `.54` 327 449 tokens et 16,88 $ (au-dessus de sa consigne de 250 000). Capitaine et conducteur réveillés par message ; relève du conducteur décidée (254 000 sur 280 000) : il écrit l'entrée « RELÈVE DU CONDUCTEUR » et pousse la carte, le conducteur de suite part à son message.
