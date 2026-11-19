@@ -103,4 +103,4 @@ Rien encore.
 - 2026-11-19, 22 h 41 UTC — #327 (`.57`) étiquetée au sommet `728f8b0` (fusion du sujet, phrase du README, un commentaire de code : vérifié sur le dépôt). Ticket du défaut GitHub : `.60`, PR #337. `A-217`. Ordre : #327, #337, #328, #335, #332, #336.
 - 2026-11-19, 22 h 43 UTC — `.14` livrée (#336, `2600d1c`) : `RULE_ALL_ANC-5` à 4 cas sur 5, le cinquième à `.60`, qui attend `.14` (fichier de configuration commun). `A-218`. Ordre des labels : #327, #337, #328, #336, #335, #332.
 - 2026-11-19, 22 h 54 UTC — #327 (`.57`) fusionnée dans le sujet (`b3628a9`), arbre identique au sommet étiqueté `728f8b0`, lu sur le dépôt : 42 tickets faits. Le lot compare, `.58`, `.19` et `.38` peuvent partir.
-- 2026-11-19, 23 h 00 UTC — lot compare lancé (`session_01BxuG2zDic87VuKtYkgSYSF`). `A-219`. Conducteur : 428 001 tokens et 34,55 \$ à 22 h 58 ; capitaine 5,76 \$.
+- 2026-11-19, 23 h 00 UTC — lot compare lancé (`session_01BxuG2zDic87VuKtYkgSYSF`). `A-219`. Conducteur : 428 001 tokens et 34,55 $ à 22 h 58 ; capitaine 5,76 $.
