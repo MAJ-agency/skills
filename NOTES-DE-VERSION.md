@@ -2,6 +2,37 @@
 
 La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque projet par `poser` : une version publiée ne change rien chez un projet qui ne les repose pas. Chaque note dit ce qui change, puis ce qu'un projet fait pour en profiter.
 
+## 7.29.0 — 2026-11-19
+
+### Ce qui change
+
+Clé de contrat facultative `fusionsSansEffet` (`.claude/chaine.json`) : pour chaque fichier qu'un hook du projet garde, l'expression des lignes sans effet et la mention à écrire. Quand une fusion jouée par le capitaine (mise à jour d'une PR avec develop, d'un sujet avec develop, d'une sous-PR avec son sujet) n'apporte à ce fichier que de telles lignes, son commit de fusion porte la mention, et le hook du projet le laisse passer. Un changement réel n'a pas de mention : le capitaine le dit, et le hook juge comme avant.
+
+### Ce qu'un projet fait pour en profiter
+
+1. Mettre à jour le plugin : `claude plugin marketplace update maj`, puis `claude plugin update maj-skills@maj`, puis redémarrer Claude Code (session cloud : `lancement.md` § « La mise à niveau »).
+2. Reposer les scripts, dans une PR du projet : `/maj-skills:fusionner poser`, puis `/maj-skills:sujet poser`.
+3. Si un hook du projet exige une mention sur un fichier, ajouter la clé à `.claude/chaine.json`, dans la même PR (le capitaine la lit sur develop). Pour un projet Prisma dont le `commit-msg` exige une migration ou `[sans-migration: <raison>]` :
+
+   ```json
+   "fusionsSansEffet": [
+     {
+       "fichier": "prisma/schema.prisma",
+       "lignesSansEffet": "^[[:space:]]*(//.*)?$",
+       "mention": "[sans-migration: commentaire seul, apporté par une mise à jour du capitaine]"
+     }
+   ]
+   ```
+
+   Le chemin du schéma est celui du projet ; l'expression est celle de `grep -E` (POSIX étendue : `[[:space:]]`, jamais `\s`), et chaque ligne ajoutée ou retirée doit lui correspondre en entier.
+4. Relancer le capitaine une fois cette PR entrée dans develop : la boucle prend les scripts de develop au tour suivant ; la veille tourne sur une copie : `bash scripts/chaine/boucle.sh --arreter`, nouvelle copie dans `<scratchpad>/outils`, puis `veille.sh` relancée (skill `fusionner` § « Boucle »).
+
+**Iroki** : son `.husky/commit-msg` n'exige aucune mention de migration ; rien à ajouter au contrat. Reposer `passer.sh`, `sujet.sh` et `github.sh` remplace ses versions, qui ont divergé (`github.sh` de 549 lignes) : la repose est celle de 7.16.0, cette version n'en ajoute pas.
+
+**Fedora** (où le défaut a été vécu) : ajouter à `.claude/chaine.json` l'entrée de l'étape 3, avec le chemin de son schéma. Son hook `sans-migration` doit lire **tout** le message de commit : la mention est au deuxième paragraphe, après la ligne `Merge remote-tracking branch '…' into …` de git ; un hook qui ne lit que la première ligne ne la voit pas.
+
+Une session qui reçoit develop dans un sujet (PR de mise à jour, après un `rafraichir` refusé) fusionne par `bash -c '. scripts/chaine/github.sh && fusionner_avec origin/develop'` au lieu de `git merge origin/develop` : sa fusion porte la même mention (skill `sujet`, « Recevoir develop dans un sujet »).
+
 ## 7.28.0 — 2026-11-19
 
 ### Ce qui change

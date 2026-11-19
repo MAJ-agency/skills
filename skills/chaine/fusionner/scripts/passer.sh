@@ -28,6 +28,8 @@
 #
 # Les fusions, commits et push du capitaine passent sous les hooks git du projet, comme ceux d'une
 # session. Un refus de hook sort en 3, sa sortie sur stderr : le lire, corriger, jamais --no-verify.
+# Les fusions du capitaine portent la mention de `fusionsSansEffet` (contrat d'origin/develop) quand elle
+# s'applique (`fusionner_avec`, github.sh ; skill `fusionner`, « Fusion sans effet »).
 # Un push refusé se classe par la trace de husky 9 (`pousser`, github.sh) : refus du hook pre-push (la boucle
 # renvoie la PR avec la sortie du hook), ou refus du distant (la boucle s'arrête). Toute lecture GitHub qui décide
 # passe par `lire_github` : une réponse vide, non JSON ou d'erreur sort en 5, jamais un état. Toute sortie de git ou
@@ -194,7 +196,7 @@ while :; do
   # ── 2. Mise à jour avec develop ───────────────────────────────────────────
   git switch -q -C "capitaine/$N" "$origine"
   fusion_en_cours=0
-  if ! sortie_merge=$(git merge -q --no-edit origin/develop 2>&1); then
+  if ! sortie_merge=$(fusionner_avec origin/develop 3>&2 2>&1); then
     conflits=$(git diff --name-only --diff-filter=U)
     # Sans fichier en conflit, c'est un refus (hook commit-msg, fichier non suivi écrasé), pas une fusion en cours.
     if [ -z "$conflits" ]; then
