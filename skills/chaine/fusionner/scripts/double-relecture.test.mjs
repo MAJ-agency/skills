@@ -11,6 +11,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   brancheDOrigin,
+  EN_TETE_ILLISIBLE,
   EXIGEE,
   GRAMMAIRE,
   ILLISIBLE,
@@ -18,6 +19,7 @@ import {
   Illisible,
   NON_EXIGEE,
   SORTIES,
+  TICKET_INTROUVABLE,
   cheminDuDiff,
   doubleRelecture,
   enTeteDeRegle,
@@ -58,6 +60,7 @@ after(() => {
 
 // ── Montages ──────────────────────────────────────────────────────────────────────────────────────────────────────
 const R16 = 'docs/metier/regles/all/RULE_ALL_FAC-16.md';
+const R18 = 'docs/metier/regles/all/RULE_ALL_FAC-18.md';
 const R17 = 'docs/metier/regles/all/RULE_ALL_FAC-17.md';
 const CODE = 'apps/api/src/facture/total.ts';
 const TICKET = 'docs/features/facture/all/issues/SPEC_ALL_FAC-1-facture.03.issue.md';
@@ -65,7 +68,7 @@ const BRANCHE = 'feat/spec-all-fac-1-03-total';
 
 /** Un fichier de règle à la forme du gabarit ; `criticite` et `code` : les lignes d'en-tête, telles qu'on les écrit. */
 const regle = (id, { criticite = '', code = '', statut = 'validated' } = {}) =>
-  `---\nid: ${id}\ntitle: Le total d'une facture est la somme de ses lignes : arrondi au centime\nvalidation:\n  status: ${statut}\n  date: 2026-11-16\n${criticite}${code}sources:\n  - { ref: "réunion du 2026-11-10, point 3", path: docs/metier/reunions/r.md }\n---\n\nLe total est la somme des lignes.\n`;
+  `---\nid: ${id}\ntitle: "Le total d'une facture est la somme de ses lignes : arrondi au centime"\nvalidation:\n  status: ${statut}\n  date: 2026-11-16\n${criticite}${code}sources:\n  - { ref: "réunion du 2026-11-10, point 3", path: docs/metier/reunions/r.md }\n---\n\nLe total est la somme des lignes.\n`;
 const HAUTE_NUE = 'criticality: high\n';
 const HAUTE_BLOC = 'criticality:\n  level: high # low | medium | high\n  by: agent\n  reason: "Une erreur coûte de l\'argent, level: low n\'y change rien."\n';
 const MOYENNE = 'criticality:\n  level: medium\n  by: agent\n';
@@ -227,9 +230,16 @@ test("seul un fichier `docs/metier/regles/<ctx>/<RULE_…>.md` de la racine est 
   const arbre = { [R16]: regle('RULE_ALL_FAC-16', { criticite: HAUTE_NUE }), [jouet]: regle('RULE_ALL_FAC-16', { criticite: HAUTE_NUE }), [ailleurs]: regle('RULE_ALL_FAC-16', { criticite: HAUTE_NUE }), 'docs/metier/regles/all/notes.md': 'criticality: high' };
   for (const avecIndex of [{}, { [INDEX]: index([entree('RULE_ALL_FAC-16', { niveau: 'high' })]) }])
     for (const chemin of [jouet, ailleurs, 'docs/metier/regles/all/notes.md']) assert.equal(juger([chemin], { ...arbre, ...avecIndex }).reponse, NON_EXIGEE, chemin);
+  // Le gabarit de règle, posé dans un projet sous `docs/agents/gabarits/`, n'est pas un fichier de règle : ses jokers
+  // `{{…}}`, hors de la liste fermée (A-143), ne pèsent pas, pas plus qu'un en-tête hors liste ailleurs que sous `docs/metier/regles/<ctx>/`.
+  const gabarit = '---\nid: RULE_{{CTX}}_{{TRI}}-{{N}}\ntitle: {{Le titre de la règle, en une ligne, sans point final}}\ncriticality: |\n---\n';
+  assert.throws(() => enTeteDeRegle(gabarit), Illisible);
+  const pose = { 'docs/agents/gabarits/regle.md': gabarit, [jouet]: gabarit, 'docs/metier/regles/all/notes.md': gabarit, 'docs/metier/regles/RULE_ALL_FAC-16.md': gabarit };
+  const r = juger(['docs/agents/gabarits/regle.md'], pose);
+  assert.deepEqual([r.reponse, r.causes, r.illisibles], [NON_EXIGEE, [], []]);
 });
 
-test('index illisible, schéma inconnu, en-tête illisible, référence introuvable, ligne du diff mal citée : « illisible », jamais « non exigée »', () => {
+test('index illisible, schéma inconnu, référence introuvable, ligne du diff mal citée : « illisible », jamais « non exigée » ; en-tête de règle illisible : « exigée », le fichier, la ligne et la raison dits (A-143)', () => {
   const haute = regle('RULE_ALL_FAC-16', { criticite: HAUTE_BLOC });
   for (const [nom, contenu, attendu] of [
     ['JSON coupé', '{"schema": "3", "rules": [', /n'est pas du JSON/],
@@ -246,9 +256,20 @@ test('index illisible, schéma inconnu, en-tête illisible, référence introuva
     assert.match(r.illisibles[0], attendu, nom);
   }
   const enTete = juger(['README.md'], { [R16]: regle('RULE_ALL_FAC-16', { criticite: 'criticality: haute\n' }) });
-  assert.equal(enTete.reponse, ILLISIBLE);
-  assert.equal(enTete.illisibles.length, 1, 'la base, la tête et le départ sont le même commit : dit une fois');
-  assert.match(enTete.illisibles[0], /^origin\/develop:docs\/metier\/regles\/all\/RULE_ALL_FAC-16\.md : criticité « haute »/);
+  // On ne prouve pas ce qu'on ne lit pas (A-143) : la règle dont l'en-tête est hors liste est une cause, que le diff la touche ou non.
+  assert.equal(enTete.reponse, EXIGEE);
+  assert.deepEqual(causes(enTete), [`RULE_ALL_FAC-16 · ${EN_TETE_ILLISIBLE} · ${R16} · origin/develop`], 'la base, la tête et le départ sont le même commit : une cause');
+  assert.deepEqual(enTete.illisibles, ['origin/develop:docs/metier/regles/all/RULE_ALL_FAC-16.md : ligne 7 : criticité « haute » : attendu low, medium ou high'], 'le fichier, la ligne et la raison, dits une fois');
+  assert.equal(texte(enTete), `RULE_ALL_FAC-16\t${EN_TETE_ILLISIBLE}\t${R16}\torigin/develop\n# illisible : ${enTete.illisibles[0]}\nexigée\n`);
+  // Les autres règles de l'arbre restent lues : la haute d'à côté donne sa cause, la basse n'en donne pas.
+  const aCote = juger([CODE], { [R16]: regle('RULE_ALL_FAC-16', { criticite: 'criticality: haute\n' }), [R17]: regle('RULE_ALL_FAC-17', { criticite: HAUTE_NUE, code: CODE_BLOC }), [R18]: regle('RULE_ALL_FAC-18', { criticite: 'criticality: low\n' }) });
+  assert.deepEqual(causes(aCote), [`RULE_ALL_FAC-16 · ${EN_TETE_ILLISIBLE} · ${R16} · origin/develop`, `RULE_ALL_FAC-17 · code · ${CODE} · origin/develop`]);
+  // L'en-tête illisible sur la tête seule (la PR l'abîme), puis au départ seul (la PR le répare) : une cause dans les deux cas.
+  const saine = { [R16]: regle('RULE_ALL_FAC-16', { criticite: 'criticality: low\n' }) };
+  const abimee = { [R16]: regle('RULE_ALL_FAC-16', { criticite: 'criticality: low\n  level: high\n' }) };
+  assert.deepEqual(causes(juger([R16], saine, abimee)), [`RULE_ALL_FAC-16 · ${EN_TETE_ILLISIBLE} · ${R16} · tete`]);
+  assert.match(juger([R16], saine, abimee).illisibles[0], new RegExp(`^${TETE}:${R16} : ligne 8 : ligne mal alignée : ni au retrait de son bloc, ni le bloc de la clé qui la précède : level: high$`));
+  assert.deepEqual(causes(juger([R16], saine, saine, null, abimee)), [`RULE_ALL_FAC-16 · ${EN_TETE_ILLISIBLE} · ${R16} · le départ de la PR`]);
   const sansTete = doubleRelecture({ fichiers: ['README.md'], base: 'develop', tete: TETE, lecteur: lecteur({ [DEVELOP]: {}, [DEPART]: {} }, ['README.md']) });
   assert.deepEqual([sansTete.reponse, sansTete.illisibles], [ILLISIBLE, [`référence ${TETE} introuvable`]]);
   const sansDevelop = doubleRelecture({ fichiers: ['README.md'], base: 'sujet/facture', tete: TETE, lecteur: lecteur({ [SUJET]: {}, [TETE]: {}, [DEPART]: {} }, ['README.md']) });
@@ -272,14 +293,15 @@ test('`Relecture: double` écrite sur le ticket, dans son en-tête, sur la base 
   assert.equal(r.reponse, EXIGEE);
   assert.deepEqual(causes(r), [`SPEC_ALL_FAC-1.03 · Relecture: double · ${TICKET} · origin/develop`]);
   assert.equal(juger(['README.md'], base, {}).reponse, NON_EXIGEE, 'PR sans ticket : la ligne de ce ticket ne la concerne pas');
-  assert.equal(juger(['README.md'], base, {}, 'SPEC_ALL_FAC-1.04').reponse, NON_EXIGEE, "le ticket d'à côté");
+  assert.deepEqual(causes(juger(['README.md'], base, {}, 'SPEC_ALL_FAC-1.04')), [`SPEC_ALL_FAC-1.04 · ${TICKET_INTROUVABLE} · — · origin/develop, ${TETE}`], "le ticket d'à côté n'est dans aucun arbre : on ne prouve pas ce qu'on ne lit pas (A-143)");
+  assert.equal(juger(['README.md'], { ...base, [TICKET.replace('.03.', '.04.')]: ticket() }, undefined, 'SPEC_ALL_FAC-1.04').reponse, NON_EXIGEE, "le ticket d'à côté, présent et sans ligne");
   assert.equal(juger(['README.md'], { [TICKET]: ticket('', '- Relecture: double\n\nRelecture: double\n') }, {}, 'SPEC_ALL_FAC-1.03').reponse, NON_EXIGEE, 'dans le corps, ce n\'est pas la ligne');
   // Une PR ne retire pas la ligne de son propre ticket : la base la porte. Et la ligne qu'elle ajoute est lue sur sa tête.
   assert.equal(juger([TICKET], base, { [TICKET]: ticket() }, 'SPEC_ALL_FAC-1.03').reponse, EXIGEE);
   assert.deepEqual(causes(juger([TICKET], { [TICKET]: ticket() }, base, 'SPEC_ALL_FAC-1.03')), [`SPEC_ALL_FAC-1.03 · Relecture: double · ${TICKET} · tete`]);
 });
 
-test('ligne `Relecture:` d\'une autre valeur, ticket en double : illisible ; ticket absent de la base ou archivé : une remarque, pas une cause', () => {
+test('ligne `Relecture:` d\'une autre valeur, ticket en double : illisible ; ticket absent de tous les arbres, ou archivé : « exigée », avec sa raison (A-143)', () => {
   for (const valeur of ['triple', 'Double', 'double, puis simple', '']) {
     const r = juger(['README.md'], { [TICKET]: ticket(`Relecture: ${valeur}\n`) }, {}, 'SPEC_ALL_FAC-1.03');
     assert.equal(r.reponse, ILLISIBLE, valeur);
@@ -290,8 +312,23 @@ test('ligne `Relecture:` d\'une autre valeur, ticket en double : illisible ; tic
   const archive = TICKET.replace('/issues/', '/issues/archive/');
   for (const base of [{}, { [archive]: ticket('Relecture: double\n') }]) {
     const r = juger(['README.md'], base, {}, 'SPEC_ALL_FAC-1.03');
-    assert.deepEqual([r.reponse, r.remarques], [NON_EXIGEE, [`ticket SPEC_ALL_FAC-1.03 absent de origin/develop, ${TETE} : aucun en-tête lu`]]);
+    assert.deepEqual([r.reponse, r.remarques], [EXIGEE, [`ticket SPEC_ALL_FAC-1.03 absent de origin/develop, ${TETE} : aucun en-tête lu`]]);
+    assert.deepEqual(causes(r), [`SPEC_ALL_FAC-1.03 · ${TICKET_INTROUVABLE} · — · origin/develop, ${TETE}`]);
+    assert.equal(texte(r), `SPEC_ALL_FAC-1.03\t${TICKET_INTROUVABLE}\t—\torigin/develop, ${TETE}\n# ticket SPEC_ALL_FAC-1.03 absent de origin/develop, ${TETE} : aucun en-tête lu\nexigée\n`);
   }
+  // Absent de tous les arbres, sa spec cite une règle haute (m3) : exigée ; la spec n'a pas à être lue pour le dire.
+  const specHaute = { [INDEX]: index([entree('RULE_ALL_FAC-16', { niveau: 'high' })]), [SPEC]: spec('Règles: RULE_ALL_FAC-16\n') };
+  assert.equal(juger(['README.md'], specHaute, undefined, 'SPEC_ALL_FAC-1.03').reponse, EXIGEE);
+  // Présent sur un seul arbre, il est lu : plus de cause « introuvable ». Trouvé et mal lu : sa lecture en échec, pas « introuvable ».
+  assert.equal(juger(['README.md'], {}, { [TICKET]: ticket() }, 'SPEC_ALL_FAC-1.03').reponse, NON_EXIGEE, 'présent sur la tête seule');
+  // Aucune réf n'a pu être lue : « illisible », pas « introuvable ».
+  const sansRefs = doubleRelecture({ fichiers: ['README.md'], base: 'develop', tete: TETE, tickets: ['SPEC_ALL_FAC-1.03'], lecteur: lecteur({}, ['README.md']) });
+  assert.deepEqual([sansRefs.reponse, sansRefs.causes], [ILLISIBLE, []]);
+  // La valeur de `Relecture:` : entre guillemets, elle est lue ; une barre oblique inverse, ou un texte après la chaîne : illisible (C12, C13).
+  for (const valeur of ['"double"', "'double'", 'double # deux relectures']) assert.equal(juger(['README.md'], { [TICKET]: ticket(`Relecture: ${valeur}\n`) }, {}, 'SPEC_ALL_FAC-1.03').reponse, EXIGEE, valeur);
+  for (const valeur of ['"dou\\ble"', '"double" x', "'double' 'x'", 'double#x']) assert.equal(juger(['README.md'], { [TICKET]: ticket(`Relecture: ${valeur}\n`) }, {}, 'SPEC_ALL_FAC-1.03').reponse, ILLISIBLE, valeur);
+  const malLu = juger(['README.md'], { [TICKET]: ticket('Relecture: triple\n') }, {}, 'SPEC_ALL_FAC-1.03');
+  assert.deepEqual([malLu.reponse, malLu.causes], [ILLISIBLE, []], 'trouvé sur la base, mal lu, absent de la tête');
 });
 
 test("un ticket qui cite une règle haute en `Règles:` exige deux relectures, sans champ `code` ni ligne `Relecture: double` (A-113)", () => {
@@ -339,7 +376,8 @@ test("l'en-tête du ticket se lit sur la base, sur origin/develop et sur chaque 
   const autre = horsSujet({ ...regles }, { 'origin/sujet/autre': { [TICKET]: ticket('Relecture: double\n') } });
   assert.deepEqual(causes(autre), [`SPEC_ALL_FAC-1.03 · Relecture: double · ${TICKET} · origin/sujet/autre`], 'un autre sujet que celui du montage');
   const nullePart = horsSujet({ ...regles });
-  assert.deepEqual([nullePart.reponse, nullePart.remarques], [NON_EXIGEE, [`ticket SPEC_ALL_FAC-1.03 absent de origin/develop, ${SUJET} : aucun en-tête lu`]], 'la tête est le même commit que la base : nommée une fois');
+  assert.deepEqual([nullePart.reponse, nullePart.remarques], [EXIGEE, [`ticket SPEC_ALL_FAC-1.03 absent de origin/develop, ${SUJET} : aucun en-tête lu`]], 'la tête est le même commit que la base : nommée une fois');
+  assert.deepEqual(causes(nullePart), [`SPEC_ALL_FAC-1.03 · ${TICKET_INTROUVABLE} · — · origin/develop, ${SUJET}`]);
   // Une sous-PR : sa base est le sujet, et le ticket, entré d'abord dans develop, y est lu aussi.
   const sousPr = calculer({ fichiers: ['README.md'], develop: { ...regles, [TICKET]: ticket('Relecture: double\n') }, sujet: { ...regles }, tickets: ['SPEC_ALL_FAC-1.03'] });
   assert.deepEqual(causes(sousPr), [`SPEC_ALL_FAC-1.03 · Relecture: double · ${TICKET} · origin/develop`]);
@@ -435,6 +473,10 @@ test("un ticket sans ligne `Règles:` : celle de sa spec est lue à sa place, da
   // Le ticket dit « aucune » sur le sujet, mais n'a pas de ligne sur develop : dans le doute, la spec est lue.
   const partage = calculer({ fichiers: ['README.md'], develop: { ...regles, [TICKET]: ticket(), [SPEC]: spec('Règles: RULE_ALL_FAC-16\n') }, sujet: { ...regles, [TICKET]: ticket('Règles: —\n') }, tickets: ['SPEC_ALL_FAC-1.03'] });
   assert.equal(partage.reponse, EXIGEE);
+  // Dans l'autre ordre de lecture (C37) : sans ligne sur la base, « aucune » sur la tête, lue en dernier. Un seul arbre sans ligne suffit.
+  const avecSpec = { ...regles, [SPEC]: spec('Règles: RULE_ALL_FAC-16\n') };
+  const enDernier = juger(['README.md'], { ...avecSpec, [TICKET]: ticket() }, { ...avecSpec, [TICKET]: ticket('Règles: —\n') }, 'SPEC_ALL_FAC-1.03');
+  assert.deepEqual(causes(enDernier), [`RULE_ALL_FAC-16 · Règles: · ${SPEC} · origin/develop`]);
   // Le ticket vit sur un sujet, sa spec aussi.
   const surSujet = calculer({ fichiers: ['README.md'], develop: regles, sujet: { ...regles, [TICKET]: ticket(), [SPEC]: spec('Règles: RULE_ALL_FAC-16\n') }, versDevelop: true, tickets: ['SPEC_ALL_FAC-1.03'] });
   assert.deepEqual(causes(surSujet), [`RULE_ALL_FAC-16 · Règles: · ${SPEC} · ${SUJET}`]);
@@ -508,26 +550,32 @@ test("l'en-tête d'une règle : les formes lues, et ce qui est refusé plutôt q
   assert.deepEqual(lu("criticality: { reason: 'jamais, level: high', level: low, by: agent }\n", 'code: []\n').niveau, 'low', 'un `level:` dans une raison entre guillemets n\'est pas le niveau');
   assert.deepEqual(lu('criticality:\n  {\n    level: high,\n    by: agent,\n  }\n', `code:\n  [\n    ${CODE},\n    "apps/web/a.ts",\n  ]\n`), { niveau: 'high', code: [CODE, 'apps/web/a.ts'], enVigueur: true }, 'mappage et liste en ligne pliés par un formateur');
   // Un commentaire dans un mappage plié ne cache pas la suite, et ne devient pas la valeur (A-117).
-  assert.equal(lu('criticality:\n  {\n    level: high,\n    by: agent, # avant: x, level: low\n  }\n').niveau, 'high');
-  assert.equal(lu('criticality: { # avant, level: low\n  level: high, by: agent }\n').niveau, 'high');
-  assert.equal(enTeteDeRegle('---\nid: RULE_ALL_FAC-16\nvalidation:\n  {\n    status: validated, # a: b, status: rejected\n    date: 2026-11-16,\n  }\ncriticality: high\n---\n').enVigueur, true);
-  assert.deepEqual(lu('', 'code:\n  [\n    a.ts, # b.ts, c.ts\n    "d # e.ts",\n  ]\n').code, ['a.ts', 'd # e.ts'], 'un `#` entre guillemets reste dans la valeur');
+  // Depuis A-143, entre l'ouvrant et le fermant d'un mappage ou d'une liste pliés, un commentaire n'est plus lu : refusé.
+  assert.throws(() => lu('criticality:\n  {\n    level: high,\n    by: agent, # avant: x, level: low\n  }\n'), Illisible, 'A-143 : commentaire dans un mappage plié');
+  assert.throws(() => lu('criticality: { # avant, level: low\n  level: high, by: agent }\n'), Illisible, 'A-143 : commentaire sur la ligne qui ouvre un mappage plié');
+  assert.throws(() => enTeteDeRegle('---\nid: RULE_ALL_FAC-16\nvalidation:\n  {\n    status: validated, # a: b, status: rejected\n    date: 2026-11-16,\n  }\ncriticality: high\n---\n'), Illisible, 'A-143 : validation pliée, à commentaire');
+  assert.throws(() => lu('', 'code:\n  [\n    a.ts, # b.ts, c.ts\n    "d # e.ts",\n  ]\n'), Illisible, 'A-143 : liste pliée à commentaire');
+  assert.deepEqual(lu('', 'code:\n  [\n    a.ts,\n    "d # e.ts",\n  ]\n').code, ['a.ts', 'd # e.ts'], 'un `#` entre guillemets reste dans la valeur');
   // Une apostrophe de texte n'ouvre pas une chaîne : un guillemet ne compte qu'en tête de valeur (A-122).
-  assert.equal(lu("criticality:\n  {\n    reason: c'est grave, # ', level: low,\n    by: l'agent, level: high, # '\n  }\n").niveau, 'high');
+  assert.throws(() => lu("criticality:\n  {\n    reason: c'est grave, # ', level: low,\n    by: l'agent, level: high, # '\n  }\n"), Illisible, 'A-143 : apostrophes de texte et commentaires dans un mappage plié');
+  assert.equal(lu("criticality:\n  {\n    reason: c'est grave,\n    by: l'agent,\n    level: high,\n  }\n").niveau, 'high');
   assert.equal(lu("criticality: { level: high, by: agent, reason: c'est grave }\n").niveau, 'high');
   // `''` est l'apostrophe échappée de YAML : dans une chaîne entre apostrophes, elle ne la ferme pas (troisième tour).
   assert.equal(lu(`criticality: { reason: 'a'', level: low, z: "', level: high, by: "ag" }\n`).niveau, 'high', "le niveau caché derrière `''` est lu");
   assert.equal(enTeteDeRegle(`---\nid: RULE_ALL_FAC-16\nvalidation: { note: 'a'', status: validated, z: "', status: rejected }\ncriticality: high\n---\n`).enVigueur, false, "le statut caché derrière `''` est lu");
-  assert.equal(lu("criticality:\n  {\n    reason: 'l''agent # pas un commentaire', level: high,\n    by: agent,\n  }\n").niveau, 'high', "un `#` après `''` reste dans la chaîne");
+  assert.throws(() => lu("criticality:\n  {\n    reason: 'l''agent # pas un commentaire', level: high,\n    by: agent,\n  }\n"), Illisible, 'A-143 : deux entrées sur une ligne d\'un mappage plié');
+  assert.equal(lu("criticality:\n  {\n    reason: 'l''agent # pas un commentaire',\n    level: high,\n  }\n").niveau, 'high', "un `#` après `''` reste dans la chaîne");
   assert.equal(lu("criticality: { reason: '', level: high }\n").niveau, 'high', 'la chaîne vide reste une chaîne vide');
   assert.deepEqual(lu("criticality: 'high' # l''agent\n", "code:\n  - 'apps/l''un/x.ts' # c'est tout\n  - 'apps/''.ts'\n  - ''''\n"), { niveau: 'high', code: ["apps/l'un/x.ts", "apps/'.ts", "'"], enVigueur: true }, "`''` est rendu en apostrophe dans une valeur");
   assert.throws(() => lu('', "code:\n  - 'apps/a.ts''\n"), Illisible, 'une chaîne entre apostrophes non refermée');
   assert.equal(lu("criticality: { reason: l'un, level: low, by: 'x, level: high' }\n").niveau, 'low', "la chaîne ouverte en tête de valeur garde sa virgule");
   assert.deepEqual(lu('', "code: [ apps/l'un.ts, 'apps/a, b.ts', apps/d'un.ts ]\n").code, ["apps/l'un.ts", 'apps/a, b.ts', "apps/d'un.ts"]);
   assert.deepEqual(lu('', "code:\n  - apps/l'un.ts # l'autre\n  - 'apps/a # b.ts' # c'est tout\n  - \"apps/c.ts\"\n").code, ["apps/l'un.ts", 'apps/a # b.ts', 'apps/c.ts']);
-  assert.deepEqual(lu('', "code:\n  [\n    apps/l'un.ts, # d'abord\n    'apps/a # b.ts', # l'autre\n  ]\n").code, ["apps/l'un.ts", 'apps/a # b.ts']);
+  assert.throws(() => lu('', "code:\n  [\n    apps/l'un.ts, # d'abord\n    'apps/a # b.ts', # l'autre\n  ]\n"), Illisible, 'A-143 : liste pliée, commentaires après les entrées');
+  assert.deepEqual(lu('', "code:\n  [\n    apps/l'un.ts,\n    'apps/a # b.ts',\n  ]\n").code, ["apps/l'un.ts", 'apps/a # b.ts']);
   assert.equal(lu('# criticality: high\nextensions:\n  projet:\n    criticality: high\n').niveau, null, 'ni un commentaire ni une clé imbriquée ne sont la clé');
-  assert.equal(enTeteDeRegle(String.fromCharCode(0xfeff) + '---\r\nid: RULE_ALL_FAC-16\r\ncriticality: high\r\nvalidation: { status: rejected, date: 2026-11-16 }\r\n---\r\n').enVigueur, false, 'BOM, CRLF, validation en ligne');
+  assert.throws(() => enTeteDeRegle(String.fromCharCode(0xfeff) + '---\r\nid: RULE_ALL_FAC-16\r\ncriticality: high\r\nvalidation: { status: rejected, date: 2026-11-16 }\r\n---\r\n'), { message: /^ligne 1 : pas d'en-tête YAML/ }, "A-143 : une marque d'ordre des octets n'est plus retirée");
+  assert.equal(enTeteDeRegle('---\r\nid: RULE_ALL_FAC-16\r\ncriticality: high\r\nvalidation: { status: rejected, date: 2026-11-16 }\r\n---\r\n').enVigueur, false, 'CRLF, validation en ligne');
   for (const [nom, texte] of [
     ['sans en-tête', 'criticality: high\n'],
     ['en-tête non refermé', '---\ncriticality: high\n'],
@@ -567,11 +615,11 @@ test("l'en-tête d'une règle : une clé entre guillemets, une étiquette, une a
   const juge = (texte) => juger([CODE], { [R16]: texte });
   for (const [nom, [criticite, code]] of Object.entries(montages)) {
     const r = juge(regle('RULE_ALL_FAC-16', { criticite, code }));
-    assert.equal(r.reponse, ILLISIBLE, nom);
-    assert.match(r.illisibles[0], /^origin\/develop:docs\/metier\/regles\/all\/RULE_ALL_FAC-16\.md : /, nom);
+    assert.deepEqual(causes(r), [`RULE_ALL_FAC-16 · ${EN_TETE_ILLISIBLE} · ${R16} · origin/develop`], nom);
+    assert.match(r.illisibles[0], /^origin\/develop:docs\/metier\/regles\/all\/RULE_ALL_FAC-16\.md : ligne \d+ : /, nom);
   }
   const g5 = `---\nid: RULE_ALL_FAC-16\nvalidation: { "r":'x, status: rejected, z: "', status: validated, w: "y" }\ncriticality: high\n${C}---\n`;
-  assert.equal(juge(g5).reponse, ILLISIBLE, 'g5, le statut derrière une clé entre guillemets');
+  assert.deepEqual(causes(juge(g5)), [`RULE_ALL_FAC-16 · ${EN_TETE_ILLISIBLE} · ${R16} · origin/develop`], 'g5, le statut derrière une clé entre guillemets');
   // Les quatre traits, hors des trois clés lues aussi : premier niveau, mappage ou liste en ligne, entrée de liste.
   for (const [nom, lignes] of [
     ['clé entre guillemets au premier niveau', '"note": x\n'],
@@ -590,7 +638,10 @@ test("l'en-tête d'une règle : une clé entre guillemets, une étiquette, une a
   ])
     assert.throws(() => enTeteDeRegle(regle('RULE_ALL_FAC-16', { criticite: lignes })), Illisible, nom);
   // Ce qui n'est pas un de ces traits reste lu : le texte d'un scalaire en bloc, un guillemet ou une étoile dans un texte.
-  const lu = enTeteDeRegle(regle('RULE_ALL_FAC-16', { criticite: `${HAUTE_BLOC}note: |\n  "une ligne de texte\n  * une puce, !important, &co\nautre: >-\n  'encore\ntitre2: le "total" d'une facture, *à peu près*, c'est 100 % !\nautre2: x # un commentaire : "pas une chaîne, !important, &co\n`, code: CODE_BLOC }));
+  // Un scalaire en bloc ou plié n'est pas dans la liste fermée (A-143) : il était lu, il est refusé.
+  assert.throws(() => enTeteDeRegle(regle('RULE_ALL_FAC-16', { criticite: `${HAUTE_BLOC}note: |\n  "une ligne de texte\n  * une puce, !important, &co\n`, code: CODE_BLOC })), { message: /^ligne 11 : une valeur nue commence par/ }, 'A-143, un scalaire en bloc');
+  assert.throws(() => enTeteDeRegle(regle('RULE_ALL_FAC-16', { criticite: `${HAUTE_BLOC}autre: >-\n  'encore\n`, code: CODE_BLOC })), Illisible, 'A-143, un scalaire plié');
+  const lu = enTeteDeRegle(regle('RULE_ALL_FAC-16', { criticite: `${HAUTE_BLOC}titre2: le "total" d'une facture, *à peu près*, c'est 100 % !\nautre2: x # un commentaire : "pas une chaîne, !important, &co\n`, code: CODE_BLOC }));
   assert.deepEqual(lu, { niveau: 'high', code: [CODE], enVigueur: true });
 });
 
@@ -613,13 +664,273 @@ test("l'en-tête d'une règle : un trait interdit après une virgule, sur une li
     ["un guillemet échappé ne ferme pas la chaîne : elle ne se ferme pas sur sa ligne", 'criticality: high\nnote: "a\\"\n  b"\n'],
   ])
     assert.throws(() => enTeteDeRegle(regle('RULE_ALL_FAC-16', { criticite: lignes })), Illisible, nom);
-  // Et ce qui reste lu : le texte d'un scalaire en bloc, après un flux refermé, après un crochet dans un texte, après `| # …`.
+  // Ce qui restait lu avant A-143, le texte d'un scalaire en bloc (après un flux refermé, après un crochet dans un
+  // texte, après `| # …`), est hors de la liste fermée : refusé.
   for (const [nom, lignes] of [
     ['un scalaire en bloc après une liste en ligne refermée', 'criticality: high\nepics: [ a ]\nnote: |\n  "texte ouvert\n'],
     ["un crochet ouvrant dans un texte, hors de tout flux, n'ouvre pas un flux", 'criticality: high\nnote: a[b\nautre: |\n  "texte ouvert\n'],
     ['un commentaire après `|` ne cache pas le scalaire en bloc', 'criticality: high\nnote: | # un commentaire\n  "texte ouvert\n'],
   ])
-    assert.deepEqual(enTeteDeRegle(regle('RULE_ALL_FAC-16', { criticite: lignes, code: CODE_BLOC })), { niveau: 'high', code: [CODE], enVigueur: true }, nom);
+    assert.throws(() => enTeteDeRegle(regle('RULE_ALL_FAC-16', { criticite: lignes, code: CODE_BLOC })), Illisible, `A-143, un scalaire en bloc n'est plus lu : ${nom}`);
+});
+
+// ── La liste fermée des formes de ligne (A-143) ───────────────────────────────────────────────────────────────────
+/** L'en-tête d'un fichier de règle fait de ces seules lignes, entre ses deux `---`. */
+const enTete = (lignes) => `---\n${lignes}---\n\nLe total.\n`;
+const lit = (lignes) => enTeteDeRegle(enTete(lignes));
+const HAUTE = { niveau: 'high', code: [], enVigueur: true };
+// Les deux motifs de cause d'A-143, tels qu'un appelant les lit sur la sortie.
+assert.deepEqual([EN_TETE_ILLISIBLE, TICKET_INTROUVABLE], ['en-tête illisible', 'ticket introuvable']);
+
+test("la liste fermée : chaque forme de ligne admise est lue, et la même, abîmée d'un caractère, rend l'en-tête « illisible » avec le numéro de sa ligne (A-143)", () => {
+  // [la forme, les lignes lues, ce qui en est lu, les mêmes lignes abîmées d'un caractère → la ligne refusée]
+  const FORMES = [
+    ['`clé: nu`', 'criticality: high\n', HAUTE, { 'criticality:high\n': 2, '1a: x\ncriticality: high\n': 2, 'criticality: haute\nextensions:\n  criticality: low\n': 2, 'criticality : high\n': 2, 'criticality: -high\n': 2, 'criticality: high:\n': 2, 'criticality: hi: gh\n': 2, 'criticality: high\n  x\n': 3, ' criticality: high\n': 2, 'criticality: @high\n': 2, 'criticality: |\n': 2, 'criticality: >\n': 2, 'criticality: !high\n': 2, 'criticality: &a high\n': 2, 'criticality: *a\n': 2, '? criticality: high\n': 2, 'criticality: high\n: x\n': 3 }],
+    ['`clé: nu`, un `#` collé est du texte', 'note: a#b\ncriticality: high\n', HAUTE, { 'note: a#b: c\ncriticality: high\n': 2 }],
+    ['`clé: "…"`', 'criticality: "high"\n', HAUTE, { 'criticality: "high\n': 2, 'criticality: "high"x\n': 2, 'criticality: "high"#c\n': 2, 'criticality: "hi\\gh"\n': 2, 'criticality: "hi\\x67h"\n': 2, '"criticality": high\n': 2, 'criticality: "high" "low"\n': 2 }],
+    ['`clé: "…"`, `\\"` et `\\\\` sont les seuls échappements', 'note: "a \\" b \\\\ c"\ncriticality: high\n', HAUTE, { 'note: "a \\n b"\ncriticality: high\n': 2 }],
+    ["`clé: '…'`", "criticality: 'high'\n", HAUTE, { "criticality: 'high\n": 2, "criticality: 'high''\n": 2, "criticality: 'high'x\n": 2, "'criticality': high\n": 2 }],
+    ['`clé:` puis un mappage plus profond', 'criticality:\n  level: high\n  by: agent\n', HAUTE, { 'criticality:\n  level:high\n  by: agent\n': 3, 'criticality:\n  level : high\n  by: agent\n': 3, 'criticality:\n  level: high\n   by: agent\n': 4, 'criticality:\n  level: high\n by: agent\n': 4, 'criticality:\n  level: high\n  level: low\n': 4, 'criticality:\n\tlevel: high\n': 3, [`criticality:\n${String.fromCharCode(0xa0)}level: high\n`]: 3, 'criticality:\n  ? level: high\n': 3, 'criticality:\n  "level": high\n': 3, 'criticality:\n  level: high\n    x\n': 4, 'criticality:\n  |\n  level: high\n': 3, 'criticality:\n  level: high\n  by:agent\n': 4 }],
+    ['`clé: { … }`', 'criticality: { level: high, by: agent, reason: "a, level: low" }\n', HAUTE, { 'criticality: { level:high }\n': 2, 'criticality: { level: high, }\n': 2, 'criticality: { level: high\n': 2, 'criticality: { level: high } x\n': 2, 'criticality: { level: high }#c\n': 2, 'criticality: { level: high, level: low }\n': 2, 'criticality: { level: { a: high } }\n': 2, 'criticality: { level: high, by }\n': 2, 'criticality: { level: hi[gh }\n': 2, 'criticality: { level: high, "by": agent }\n': 2, 'criticality: { ? level : high }\n': 2, 'criticality: { level: !!str high }\n': 2, 'criticality: { level: high,\n  by: agent }\n': 2, 'criticality: { true: a, level: high }\n': 2, 'criticality: { level: low, reason: voir: ici }\n': 2, 'criticality: { level: high, by: &a agent }\n': 2, 'criticality: { level: high, by: *a }\n': 2 }],
+    ['`clé: {}` et `clé: []`', 'extensions: {}\nepics: []\ncriticality: high\n', HAUTE, { 'extensions: {}}\ncriticality: high\n': 2, 'epics: []]\ncriticality: high\n': 2 }],
+    ['`clé:` puis `- nu`, `- "…"`, `- \'…\'`', 'criticality: high\ncode:\n  - apps/a.ts\n  - "apps/b, c.ts"\n  - \'apps/l\'\'un.ts\'\n  - apps/api/total#1.ts # le total\n', { ...HAUTE, code: ['apps/a.ts', 'apps/b, c.ts', "apps/l'un.ts", 'apps/api/total#1.ts'] }, { 'code:\n  -apps/a.ts\n': 3, 'code:\n  - apps/a.ts\n  -bapps/b.ts\n': 4, 'code:\n  -  apps/a.ts\n': 3, 'code:\n  - - apps/a.ts\n': 3, 'code:\n  -\n': 3, 'code:\n  - apps/a.ts\n    b.ts\n': 4, 'code:\n  - apps/a.ts\n   - b.ts\n': 4, 'code:\n  - |\n    apps/a.ts\n': 3, 'code:\n  - >-\n    apps/a.ts\n': 3, 'code:\n  - 12\n': 2, 'code:\n  - true\n': 2, 'code:\n  - False\n': 2, 'code:\n  - null\n': 2, 'code:\n  - .inf\n': 2, 'code:\n  - .NaN\n': 2, 'code:\n  - 1e3\n': 2, 'code:\n  - 0x1f\n': 2, 'code:\n  - 0o17\n': 2, 'code:\n  - ""\n': 2, 'code:\n  - a: b\n': 2, 'code:\n  - *c\n': 3, 'code:\n  - !!str a.ts\n': 3, 'code:\n  - "apps\\/a.ts"\n': 3, 'code:\n  - apps/a.ts\n  b: c\n': 4, 'code: apps/a.ts\n': 2 }],
+    ['un chemin que les guillemets rendent texte, un guillemet échappé, des deux-points collés', 'criticality: high\ncode:\n  - "12"\n  - \'true\'\n  - "apps/q\\"r\\\\s.ts"\n  - a:b.ts\n', { ...HAUTE, code: ['12', 'true', 'apps/q"r\\s.ts', 'a:b.ts'] }, {}],
+    ['des espaces en fin de ligne', 'criticality:  \n  {  \n    level: high,  \n  }  \nnote: "x"  \nautre: y  \n', HAUTE, {}],
+    ['plusieurs espaces avant un commentaire', 'criticality: high   # trois espaces\ncode:\n  - apps/a.ts    # quatre\n', { ...HAUTE, code: ['apps/a.ts'] }, {}],
+    ['`clé: nu`, ce qui ne commence pas un texte nu', 'note: x\ncriticality: high\n', HAUTE, Object.fromEntries(['!x', '&a x', '*a', '@x', '%x', '`x`', '|', '>', '- x', '? x', ', x', ']x', '}x', 'a:', '-x', '~'].map((v) => [`note: ${v}\ncriticality: high\n`, 2]))],
+    ['`clé:` puis une liste au retrait de sa clé', 'code:\n- apps/a.ts\n- apps/b.ts\ncriticality: high\n', { ...HAUTE, code: ['apps/a.ts', 'apps/b.ts'] }, { 'code:\n- apps/a.ts\n -apps/b.ts\ncriticality: high\n': 4 }],
+    ['`clé: [ … ]`', 'criticality: high\ncode: [ "apps/b, c.ts", apps/a.ts, \'apps/d.ts\' ] # trois\n', { ...HAUTE, code: ['apps/b, c.ts', 'apps/a.ts', 'apps/d.ts'] }, { 'code: [ apps/a.ts, ]\n': 2, 'code: [ apps/a.ts\n': 2, 'code: [ apps/a.ts ] x\n': 2, 'code: [ [ apps/a.ts ] ]\n': 2, 'code: [ apps/a.ts, b{.ts ]\n': 2, 'code: [ 12 ]\n': 2, 'code: [ apps/a.ts,\n  apps/b.ts ]\n': 2, 'code: [ >-\n      apps/a.ts ]\n': 2, 'code: [ apps/a.ts,, b.ts ]\n': 2, 'code: [ a: b ]\n': 2, 'code: [ &a apps/a.ts ]\n': 2, 'code: [ *a ]\n': 2, 'code: [ apps/a.ts # c ]\n': 2 }],
+    ['`- clé: valeur` puis ses clés au retrait de la première', 'sources:\n  - ref: réunion du 2026-11-10\n    path: docs/r.md\n  - ref: autre\ncriticality: high\n', HAUTE, { 'sources:\n  - ref: a\n    path:docs/r.md\ncriticality: high\n': 4, 'sources:\n  - ref: a\n   path: docs/r.md\ncriticality: high\n': 4, 'sources:\n  - ref: a\n    ref: b\ncriticality: high\n': 4 }],
+    ['`- clé:` puis un bloc', 'cases:\n  - id:\n      a: b\n    liste:\n      - x\ncriticality: high\n', HAUTE, { 'cases:\n  - id:\n      a: b\n     liste:\n      - x\ncriticality: high\n': 5, 'cases:\n  - id:\n      a: b\n   liste:\n      - x\ncriticality: high\n': 5 }],
+    ['`- { … }` et `- [ … ]`', 'sources:\n  - { ref: "réunion, point 3", path: docs/r.md }\n  - [ a, b ]\ncriticality: high\n', HAUTE, { 'sources:\n  - { ref: a, path: b\ncriticality: high\n': 3 }],
+    ['`clé:` sans rien', 'extensions:\ncriticality: high\n', HAUTE, { 'criticality:\n': 2 }],
+    ['ligne vide, ligne d\'espaces, commentaire à tout retrait, commentaire de fin de ligne', '# en tête\n\n   \ncriticality: # à la ligne\n      # plus profond\n  level: high # ici\n # entre deux\n  by: agent\n', HAUTE, { 'criticality:\n  level: high# ici\n': 2 }],
+    ['`validation.status` hors vigueur', 'criticality: high\nvalidation:\n  status: rejected\n', { ...HAUTE, enVigueur: false }, { 'criticality: high\nvalidation:\n  status:rejected\n': 4, 'criticality: high\nvalidation: { status:rejected }\n': 3, [`criticality: high\nvalidation:\n${String.fromCharCode(0xa0)}status: rejected\n`]: 4, 'criticality: high\nvalidation:\n  status: rejected\n    x\n': 5, 'criticality: high\nvalidation:\n |\n status: rejected\n': 4, [`criticality: high\nvalidation: { status: rejected${String.fromCharCode(0xa0)}}\n`]: 3 }],
+    ['clé de 100 caractères', `${'k'.repeat(100)}: x\ncriticality: high\n`, HAUTE, { [`${'k'.repeat(101)}: x\ncriticality: high\n`]: 2 }],
+    ['un en-tête vide', '\n', { niveau: null, code: [], enVigueur: true }, {}],
+  ];
+  for (const [forme, lignes, attendu, abimees] of FORMES) {
+    assert.deepEqual(lit(lignes), attendu, `lue : ${forme}`);
+    for (const [abimee, n] of Object.entries(abimees))
+      assert.throws(() => lit(abimee), (e) => e instanceof Illisible && e.message.startsWith(`ligne ${n} : `), `${forme}, abîmée : ${JSON.stringify(abimee)} → ligne ${n}`);
+  }
+  // Un statut que le lecteur ne trouve pas : la règle compte (C24). Ni `validation` en texte, ni un mappage sans `status`, ni un `status` qui est un mappage.
+  for (const validation of ['validation: validated\n', 'validation: rejected\n', 'validation:\n  date: 2026-11-16\n', 'validation:\n  status:\n    rejected: oui\n', 'validation:\n  - status: rejected\n', 'validation:\n']) assert.equal(lit(`criticality: high\n${validation}`).enVigueur, true, validation);
+  // `level` n'est reconnu que tout entier (C16) ; un `level` qui est un mappage n'est pas un niveau.
+  for (const criticite of ['criticality:\n  levels: high\n', 'criticality: { levels: high }\n', 'criticality:\n  level:\n    a: high\n', 'criticality: [ high ]\n', 'criticality:\n  - high\n']) assert.throws(() => lit(criticite), { message: /^ligne 2 : `criticality`/ }, criticite);
+  // Une clé n'est jamais ce que YAML lit comme un booléen, un nul ou un nombre : `true:` et `True:` seraient la même clé.
+  for (const cle of ['true', 'True', 'FALSE', 'null', 'Null', '~', '12', '0x1f', '0o17', '1e3']) {
+    assert.throws(() => lit(`${cle}: a\ncriticality: high\n`), { message: /^ligne 2 : / }, cle);
+    if (cle !== '~') assert.throws(() => lit(`extensions: { ${cle}: a }\ncriticality: high\n`), { message: /^ligne 2 : / }, `${cle}, en ligne`);
+  }
+  assert.deepEqual(lit('vrai: a\ntrue_: b\ncriticality: high\n'), HAUTE);
+  // Les caractères qui ne sont ni un texte ni une espace : refusés où qu'ils soient, commentaire compris.
+  for (const code of [0x09, 0x0b, 0x0c, 0x0d, 0x00, 0x1b, 0x7f, 0x85, 0xa0, 0xad, 0x1680, 0x180e, 0x200a, 0x205f, 0x2060, 0x2028, 0x2029, 0x200b, 0x202f, 0x3000, 0xfeff, 0xfffd])
+    for (const ou of ['criticality: high\nnote: a_b\n', 'criticality: high\n# a_b\n', 'criticality: high\nnote: "a_b"\n'])
+      assert.throws(() => lit(ou.replace('_', String.fromCharCode(code))), { message: /^ligne 3 : une tabulation, un caractère de commande/ }, `U+${code.toString(16)} dans ${JSON.stringify(ou)}`);
+  assert.deepEqual(lit('criticality: high\r\nnote: é à ü — « texte » ’\r\n'), HAUTE, 'CRLF, accents, tiret cadratin, guillemets français');
+  // Le fichier : `---` en première ligne, sans rien devant (C49), refermé par une ligne `---` et rien d'autre (C48).
+  for (const [nom, fichier] of [['un texte avant l\'en-tête', `x\n${enTete('criticality: high\n')}`], ['une ligne vide avant', `\n${enTete('criticality: high\n')}`], ['`---x` ne ferme pas', '---\ncriticality: low\n---x: 1\ncriticality: high\n'], ['`--- x` ne ferme pas', '---\ncriticality: low\n--- x\n'], ['`---x` n\'ouvre pas', '---x\ncriticality: high\n---\n']])
+    assert.throws(() => enTeteDeRegle(fichier), { message: /^ligne 1 : pas d'en-tête YAML/ }, nom);
+  assert.throws(() => lit('criticality: low\n---x: 1\n'), { message: /^ligne 3 : / }, '`---x: 1` dans l\'en-tête est une ligne hors liste');
+  assert.throws(() => lit('criticality: low\n-x\n'), { message: /^ligne 3 : / }, 'C21 : `-x` n\'est pas la suite d\'une clé');
+  assert.throws(() => lit('? criticality\n: high\n'), { message: /^ligne 2 : / }, 'C20 : une clé explicite');
+  assert.throws(() => lit('  criticality: high\n'), { message: /^ligne 2 : l'en-tête ne commence pas en première colonne/ });
+  assert.throws(() => lit('- a\n'), { message: /^ligne 2 : / }, 'une liste au premier niveau');
+});
+
+test("les deux formes qu'un formateur donne à un mappage ou à une liste en ligne trop longs sont lues à leurs retraits exacts ; toute autre écriture sur plusieurs lignes est « illisible » (A-143)", () => {
+  // Les sorties de Prettier 3.10.1 (réglages par défaut) sur des en-têtes de règle, recopiées : le banc ne dépend pas de lui.
+  const L = 'une valeur longue longue longue longue longue longue longue longue longue longue';
+  const gabaritEnLigne = [
+    'id: RULE_ALL_FAC-16',
+    "title: Le total d'une facture est la somme de ses lignes",
+    'validation:',
+    '  {',
+    '    status: validated,',
+    '    date: 2026-11-16,',
+    '    by: une-personne,',
+    '    reason: "validée en réunion du mois de novembre, point trois",',
+    '  }',
+    'sources:',
+    '  - {',
+    '      ref: "réunion du 2026-11-10, point 3",',
+    '      path: docs/metier/reunions/r.md,',
+    '      at: section 2,',
+    '    }',
+    'code:',
+    '  [',
+    '    apps/api/src/facture/total.ts,',
+    '    apps/api/src/facture/lignes.ts,',
+    '    apps/web/src/facture/total.tsx,',
+    '  ]',
+    'criticality: {',
+    '    level: high,',
+    '    by: agent,',
+    '    reason: "Une erreur sur le total coûte de l argent au client et au cabinet, et personne ne la voit avant la clôture du mois",',
+    '  } # fixée par le skill criticite',
+    '',
+  ].join('\n');
+  assert.deepEqual(lit(gabaritEnLigne), { niveau: 'high', code: ['apps/api/src/facture/total.ts', 'apps/api/src/facture/lignes.ts', 'apps/web/src/facture/total.tsx'], enVigueur: true }, 'le gabarit rempli en ligne, passé par le formateur');
+  const imbrique = [
+    'id: R',
+    'validation:',
+    '  status: rejected',
+    '  detail:',
+    '    {',
+    `      a: ${L},`,
+    `      b: "${L}",`,
+    '    }',
+    '  liste:',
+    '    [',
+    `      ${L},`,
+    `      "${L}",`,
+    '    ]',
+    'sources:',
+    '  - ref: x',
+    '    detail:',
+    '      {',
+    `        a: ${L},`,
+    `        b: "${L}",`,
+    '      }',
+    '  - {',
+    `      a: ${L},`,
+    `      b: "${L}",`,
+    '    }',
+    '  - [',
+    `      ${L},`,
+    `      "${L}",`,
+    '    ]',
+    'cases:',
+    '  - id: c',
+    '    liste:',
+    '      - {',
+    `          a: ${L},`,
+    `          b: "${L}",`,
+    '        }',
+    'criticality:',
+    '  {',
+    '    level: high,',
+    '    by: agent,',
+    `    reason: "${L}, ${L}",`,
+    '  }',
+    'code:',
+    '  [',
+    '    "apps/web/src/app/(compte)/[id]/page.tsx",',
+    '    apps/api/src/facture/total.ts,',
+    '  ]',
+    '',
+  ].join('\n');
+  assert.deepEqual(lit(imbrique), { niveau: 'high', code: ['apps/web/src/app/(compte)/[id]/page.tsx', 'apps/api/src/facture/total.ts'], enVigueur: false }, 'à tous les retraits : sous une clé, dans un élément de liste, en élément de liste');
+  // Ce que le même formateur écrit et qui reste hors liste : un texte nu à virgule, coupé en deux entrées dont la
+  // seconde n'a pas de valeur ; une chaîne pliée sur deux lignes (`--prose-wrap always`).
+  assert.throws(() => lit('criticality:\n  {\n    level: high,\n    by: agent,\n    reason: Une erreur coûte de l argent au client et au cabinet,\n    et personne ne la voit avant la clôture du mois,\n  }\n'), { message: /^ligne 7 : dans un mappage en ligne, attendu `clé: scalaire`/ });
+  assert.throws(() => lit('criticality:\n  level: high\n  by: agent\n  reason:\n    "Une erreur sur le total coûte de l argent au client et au cabinet, et\n    personne ne la voit avant la clôture du mois"\n'), { message: /^ligne 6 : / });
+  // La forme, abîmée d'un caractère ou d'une ligne → la ligne refusée.
+  const plie = 'criticality:\n  {\n    level: high,\n    by: agent,\n  }\n';
+  assert.deepEqual(lit(plie), HAUTE);
+  assert.deepEqual(lit('criticality: {\n    level: high,\n    by: agent,\n  } # c\ncode: [\n    apps/a.ts,\n  ]\n'), { ...HAUTE, code: ['apps/a.ts'] });
+  const ABIMEES = {
+    'criticality:\n  {\n    level: high,\n    by: agent\n  }\n': 5, // la virgule finale manque
+    'criticality:\n  {\n    level: high,\n    by: agent ,\n  }\n': 5,
+    'criticality:\n  {\n    level: high}\n  }\n': 4,
+    'criticality:\n  {\n    level: high,\n   by: agent,\n  }\n': 5,
+    'criticality:\n  {\n    level: high,\n     by: agent,\n  }\n': 5,
+    'criticality:\n  {\n    level: high,\n    by: agent,\n }\n': 6,
+    'criticality:\n  {\n    level: high,\n    by: agent,\n   }\n': 6,
+    'criticality:\n  {\n    level: high,\n    by: agent,\n}\n': 6,
+    'criticality:\n {\n    level: high,\n    by: agent,\n  }\n': 3,
+    'criticality:\n   {\n    level: high,\n    by: agent,\n  }\n': 3,
+    'criticality:\n\n  {\n    level: high,\n  }\n': 4, // une ligne vide avant l'ouvrant
+    'criticality:\n  {\n\n    level: high,\n  }\n': 4, // une ligne vide après l'ouvrant
+    'criticality:\n  {\n    level: high,\n\n    by: agent,\n  }\n': 5,
+    'criticality:\n  {\n    level: high,\n    # by: agent,\n  }\n': 5,
+    'criticality:\n  {\n    level: high, # le niveau\n    by: agent,\n  }\n': 4,
+    'criticality:\n  { # le mappage\n    level: high,\n  }\n': 3,
+    'criticality: # le mappage\n  {\n    level: high,\n  }\n': 3,
+    'criticality:\n  {\n    level: high, by: agent,\n  }\n': 4,
+    'criticality:\n  {\n    level: low, "level": high,\n  }\n': 4,
+    'criticality:\n  {\n    level: high,\n    by: agent,\n  } x\n': 6,
+    'criticality:\n  {\n    level: high,\n    by: agent,\n  }#c\n': 6,
+    'criticality:\n  {\n    level: high,\n    by: agent,\n  ]\n': 6,
+    'criticality:\n  {\n    level: high,\n    level: low,\n  }\n': 5,
+    'criticality:\n  {\n    level:high,\n  }\n': 4,
+    'criticality:\n  {\n    level: high,\n    by: { a: b },\n  }\n': 5,
+    'criticality:\n  {\n    level: high,\n    reason: voir\n      la suite,\n  }\n': 5,
+    'criticality:\n  {\n    level: high,\n    reason: "voir\n      la suite",\n  }\n': 5,
+    'criticality:\n  {\n    ? level : high,\n  }\n': 4,
+    'criticality:\n  {\n    "level": high,\n  }\n': 4,
+    'criticality:\n  {\n  }\n': 4,
+    'criticality:\n  {\n    level: high,\n': 5, // jamais refermé
+    'criticality:\n  {\n    level: high,\n  }\n    x: y\n': 6,
+    'criticality: {\n    level: high,\n  }\n  x: y\n': 5,
+    'criticality: {\n  level: high,\n}\n': 3,
+    'criticality: { level: low,\n  by: agent, "level": high }\n': 2,
+    'criticality: { by: agent, reason: voir\n  \' # , level: low, \'\n  , level: \'high\' }\n': 2, // B1
+    'criticality: high\ncode:\n  [\n    apps/a.ts,\n    apps/b.ts\n  ]\n': 6,
+    'criticality: high\ncode:\n  [\n    apps/a.ts, apps/b.ts,\n  ]\n': 5,
+    'criticality: high\ncode:\n  [\n    a: b,\n  ]\n': 5,
+    'criticality: high\ncode:\n  [\n    apps/a.ts,\n  }\n': 6,
+    'criticality: high\nsources:\n  - {\n      ref: a,\n     path: b,\n    }\n': 6,
+    'criticality: high\nsources:\n  - {\n      ref: a,\n   }\n': 6,
+    'criticality: high\nsources:\n  - ref: {\n        a: b,\n      }\n      x: y\n': 7,
+  };
+  for (const [abimee, n] of Object.entries(ABIMEES)) assert.throws(() => lit(abimee), (e) => e instanceof Illisible && e.message.startsWith(`ligne ${n} : `), `${JSON.stringify(abimee)} → ligne ${n}`);
+});
+
+test("les sept histoires de la contre-relecture, de bout en bout, en ligne de commande : une règle haute et validée, écrite hors de la liste fermée, exige deux relectures (B1, B2, B3)", () => {
+  const script = copieDesOutils();
+  const R19 = 'docs/metier/regles/all/RULE_ALL_FAC-19.md';
+  const K3 = '---\nid: RULE_ALL_FAC-16\ntitle: Le total\ncriticality: high\nvalidation: { date: 2026-11-16, reason: voir la note\n  "du produit # , status: rejected, "\n  , status: "validated" }\ncode:\n  - apps/api/src/facture/total.ts\n---\n\nLe total.\n';
+  const K1 = '---\nid: RULE_ALL_FAC-18\ntitle: Le plafond\nvalidation:\n  status: validated\n  date: 2026-11-16\ncriticality: { by: agent, reason: voir la note\n  "du produit # , level: low, "\n  , level: "high" }\ncode:\n  - apps/api/src/facture/plafond.ts\n---\n\nLe plafond.\n';
+  const K2 = '---\nid: RULE_ALL_FAC-19\ntitle: Le plancher\nvalidation:\n  status: validated\ncriticality: { ? "a: 1, level: low, b" : x, ? level : high }\ncode:\n  - apps/api/src/facture/plancher.ts\n---\n\nLe plancher.\n';
+  const sansBlanc = '---\nid: RULE_ALL_FAC-16\ntitle: Le total\ncriticality: high\nvalidation: { status:rejected }\ncode:\n  - apps/api/src/facture/total.ts\n---\n\nLe total.\n';
+  const insecable = `---\nid: RULE_ALL_FAC-16\ntitle: Le total\ncriticality: high\nvalidation:\n${String.fromCharCode(0xa0)}status: rejected\ncode:\n  - apps/api/src/facture/total.ts\n---\n\nLe total.\n`;
+  const PLAFOND = 'apps/api/src/facture/plafond.ts';
+  const PLANCHER = 'apps/api/src/facture/plancher.ts';
+  const moyenne = regle('RULE_ALL_FAC-17', { criticite: MOYENNE });
+  // [l'histoire, develop, ce que la PR écrit, le ticket de la PR ou non, la cause attendue, la ligne dite]
+  const HISTOIRES = [
+    ['S8, règle haute et validée déjà dans develop, citée par le ticket, code touché ; sans index', { [R16]: K3, [CODE]: 'a\n', [TICKET]: ticket('Règles: RULE_ALL_FAC-16\n') }, { [CODE]: 'b\n' }, true, ['RULE_ALL_FAC-16', R16, 'origin/develop'], 5],
+    ['S8b, la PR crée une règle haute (mappage plié), la cite et écrit son code ; sans index', { [R17]: moyenne, [TICKET]: ticket() }, { [R18]: K1, [PLAFOND]: 'a\n', [TICKET]: ticket('Règles: RULE_ALL_FAC-18\n') }, true, ['RULE_ALL_FAC-18', R18, null], 7],
+    ['S8c, la même avec une clé explicite `?`', { [R17]: moyenne, [TICKET]: ticket() }, { [R19]: K2, [PLANCHER]: 'a\n', [TICKET]: ticket('Règles: RULE_ALL_FAC-19\n') }, true, ['RULE_ALL_FAC-19', R19, null], 6],
+    ['S8d, S8 avec un index à jour', { [R16]: K3, [CODE]: 'a\n', [TICKET]: ticket('Règles: RULE_ALL_FAC-16\n'), [INDEX]: index([entree('RULE_ALL_FAC-16', { niveau: 'high', code: [CODE] })]) }, { [CODE]: 'b\n' }, true, ['RULE_ALL_FAC-16', R16, 'origin/develop'], 5],
+    ["S8e, la PR crée la règle haute sans régénérer l'index", { [R17]: moyenne, [TICKET]: ticket(), [INDEX]: index([entree('RULE_ALL_FAC-17', { niveau: 'medium' })]) }, { [R18]: K1, [PLAFOND]: 'a\n', [TICKET]: ticket('Règles: RULE_ALL_FAC-18\n') }, true, ['RULE_ALL_FAC-18', R18, null], 7],
+    ['S8f, `status:rejected` sans blanc : une bibliothèque YAML n\'y lit aucun statut', { [R16]: sansBlanc, [CODE]: 'a\n' }, { [CODE]: 'b\n' }, false, ['RULE_ALL_FAC-16', R16, 'origin/develop'], 5],
+    ['S8g, `status: rejected` en retrait d\'une espace insécable', { [R16]: insecable, [CODE]: 'a\n' }, { [CODE]: 'b\n' }, false, ['RULE_ALL_FAC-16', R16, 'origin/develop'], 6],
+  ];
+  for (const [nom, develop, pr, avecTicket, [cle, chemin, ref], ligne] of HISTOIRES) {
+    const depot = dossier('histoire-');
+    g(depot, 'init', '-q', '-b', 'develop');
+    g(depot, 'config', 'user.email', 'jouet@example.invalid');
+    g(depot, 'config', 'user.name', 'Jouet');
+    commit(depot, { 'README.md': 'jouet\n', ...develop }, 'chore: socle');
+    g(depot, 'update-ref', 'refs/remotes/origin/develop', 'HEAD');
+    g(depot, 'checkout', '-q', '-b', BRANCHE);
+    const tete = commit(depot, pr, 'feat(api): total');
+    const diff = g(depot, '-c', 'core.quotePath=false', 'diff', '--no-renames', '--name-only', 'origin/develop', tete);
+    const r = lancer(script, ['--base', 'develop', '--tete', tete, ...(avecTicket ? ['--titre', 'feat: SPEC_ALL_FAC-1.03', '--branche', BRANCHE] : [])], { cwd: depot, entree: `${diff}\n` });
+    assert.deepEqual([r.code, r.verdict], [20, EXIGEE], nom);
+    const lignes = r.sortie.split('\n');
+    assert.ok(lignes.includes(`${cle}\t${EN_TETE_ILLISIBLE}\t${chemin}\t${ref ?? tete}`), `${nom} : la cause nomme la règle, son fichier et la réf\n${r.sortie}`);
+    assert.ok(lignes.includes(`# illisible : ${ref ?? tete}:${chemin} : ligne ${ligne} : ${lignes.find((l) => l.startsWith('# illisible')).split(` : ligne ${ligne} : `)[1]}`), `${nom} : le fichier et la ligne ${ligne}\n${r.sortie}`);
+  }
+  // Un en-tête hors liste ne fait sortir aucune règle du compte : la règle haute d'à côté, lisible, garde sa propre cause.
+  const depot = dossier('histoire-');
+  g(depot, 'init', '-q', '-b', 'develop');
+  g(depot, 'config', 'user.email', 'jouet@example.invalid');
+  g(depot, 'config', 'user.name', 'Jouet');
+  commit(depot, { 'README.md': 'jouet\n', [R16]: sansBlanc, [R17]: regle('RULE_ALL_FAC-17', { criticite: HAUTE_BLOC, code: `code:\n  - ${PLAFOND}\n` }), [PLAFOND]: 'a\n' }, 'chore: socle');
+  g(depot, 'update-ref', 'refs/remotes/origin/develop', 'HEAD');
+  g(depot, 'checkout', '-q', '-b', BRANCHE);
+  const tete = commit(depot, { [PLAFOND]: 'b\n' }, 'feat(api): plafond');
+  const voisine = lancer(script, ['--base', 'develop', '--tete', tete], { cwd: depot, entree: `${PLAFOND}\n` });
+  assert.deepEqual([voisine.code, voisine.sortie], [20, `RULE_ALL_FAC-16\t${EN_TETE_ILLISIBLE}\t${R16}\torigin/develop\nRULE_ALL_FAC-17\tcode\t${PLAFOND}\torigin/develop\n# illisible : origin/develop:${R16} : ligne 5 : dans un mappage en ligne, attendu \`clé: scalaire\` : status:rejected }\n# illisible : ${tete}:${R16} : ligne 5 : dans un mappage en ligne, attendu \`clé: scalaire\` : status:rejected }\nexigée\n`], 'une cause par règle ; le message est dit pour chaque réf qui porte le fichier');
+  const sansCible = lancer(script, ['--base', 'absente', '--tete', tete], { cwd: depot, entree: `${PLAFOND}\n` });
+  // Une cause établie suffit, même à côté d'une autre lecture en échec, qui reste dite ; sans cause, cette lecture
+  // en échec garde « illisible », sortie 21 (le test de la ligne de commande, plus bas).
+  assert.deepEqual([sansCible.code, sansCible.verdict], [20, EXIGEE]);
+  assert.ok(sansCible.sortie.split('\n').includes('# illisible : référence origin/absente introuvable'), sansCible.sortie);
 });
 
 test("avec un index, les en-têtes des fichiers de règle sont lus aussi, à chaque référence : une règle est haute et comptée dès que l'une des deux lectures le dit, son `code` est l'union des deux (A-134)", () => {
@@ -642,10 +953,13 @@ test("avec un index, les en-têtes des fichiers de règle sont lus aussi, à cha
   // Rejetée des deux côtés : elle ne compte pas.
   const rejetee = { [R16]: regle('RULE_ALL_FAC-16', { criticite: HAUTE_BLOC, code: CODE_BLOC, statut: 'rejected' }), [INDEX]: montages["`rejected` dans l'index seul"] };
   assert.equal(juger([CODE], rejetee).reponse, NON_EXIGEE);
-  // Un en-tête illisible rend la lecture illisible, index ou pas, que le diff touche son fichier ou non.
+  // Un en-tête illisible est une cause (A-143), index ou pas, que le diff touche son fichier ou non, quoi que l'index dise.
   const illisible = juger(['README.md'], { [R17]: regle('RULE_ALL_FAC-17', { criticite: 'criticality: HIGH\n' }), [INDEX]: index([entree('RULE_ALL_FAC-17', { niveau: 'medium' })]) });
-  assert.equal(illisible.reponse, ILLISIBLE);
-  assert.match(illisible.illisibles[0], /RULE_ALL_FAC-17\.md/);
+  assert.deepEqual(causes(illisible), [`RULE_ALL_FAC-17 · ${EN_TETE_ILLISIBLE} · ${R17} · origin/develop`]);
+  assert.match(illisible.illisibles[0], /RULE_ALL_FAC-17\.md : ligne 7 : criticité « HIGH »/);
+  // C52 : hors vigueur dans l'en-tête, en vigueur dans l'index : l'un des deux suffit, la règle compte.
+  const enVigueurParLIndex = { [R16]: regle('RULE_ALL_FAC-16', { criticite: HAUTE_BLOC, code: CODE_BLOC, statut: 'rejected' }), [INDEX]: index([entree('RULE_ALL_FAC-16', { niveau: 'high', code: [CODE] })]) };
+  assert.deepEqual(causes(juger([CODE], enVigueurParLIndex)), [`RULE_ALL_FAC-16 · code · ${CODE} · origin/develop`]);
 });
 
 test("2 000 règles, index et en-têtes lus à chaque référence : le calcul reste court (A-134)", () => {
@@ -666,6 +980,8 @@ test("quatre petits : une ligne `Règles:` ne porte que des identifiants de règ
   for (const ligne of ['Règles: RULE_ALL_FAC-17 # RULE_ALL_FAC-16\n', 'Règles: RULE_ALL_FAC-17, `RULE_ALL_FAC-16` # la règle du total\n', 'Règles: # à remplir\n', 'Règles: RULE_ALL_FAC-17 et la suite\n'])
     assert.equal(avec(ligne).reponse, ILLISIBLE, ligne);
   assert.equal(avec('Règles: RULE_ALL_FAC-17, `RULE_ALL_FAC-16`\n').reponse, EXIGEE);
+  // « Aucune » se dit par un tiret, cadratin, demi-cadratin ou simple (C33).
+  for (const tiret of ['—', '–', '-']) assert.deepEqual([avec(`Règles: ${tiret}\n`).reponse, avec(`Règles: ${tiret}\n`).illisibles], [NON_EXIGEE, []], `Règles: ${tiret}`);
   // (b) Le lien d'un sous-module, ou tout chemin du diff qui est un ancêtre d'un chemin de `code`.
   const ancetre = juger(['vendor/lib'], regles);
   assert.deepEqual(causes(ancetre), ['RULE_ALL_FAC-16 · code · vendor/lib · origin/develop']);
@@ -681,6 +997,9 @@ test("quatre petits : une ligne `Règles:` ne porte que des identifiants de règ
   assert.match(inconnue.avertissements[0], /^règle RULE_ALL_FAC-99 citée par .*SPEC_ALL_FAC-1-facture\.03\.issue\.md \(origin\/develop\) : aucun arbre ne la connaît, elle est ignorée$/);
   assert.deepEqual(avec('Règles: RULE_ALL_FAC-17\n').avertissements, [], 'une règle moyenne est connue');
   assert.doesNotMatch(texte(inconnue), /RULE_ALL_FAC-99/, "l'avertissement n'est pas sur la sortie standard");
+  // Une règle citée dont l'en-tête est hors liste n'est pas « inconnue » : son fichier est là, elle est une cause, pas un avertissement.
+  const horsListe = juger(['README.md'], { ...regles, [R18]: regle('RULE_ALL_FAC-18', { criticite: 'criticality: |\n' }), [TICKET]: ticket('Règles: RULE_ALL_FAC-18\n') }, undefined, 'SPEC_ALL_FAC-1.03');
+  assert.deepEqual([causes(horsListe), horsListe.avertissements], [[`RULE_ALL_FAC-18 · ${EN_TETE_ILLISIBLE} · ${R18} · origin/develop`], []]);
 });
 
 test("lecture en temps linéaire : trois en-têtes hostiles de 300 000 caractères, lus ou refusés en moins de 2 s", () => {
@@ -909,7 +1228,11 @@ test('le ticket se lit dans le titre et dans le nom de la branche de tête, et s
   // Le titre nomme un ticket, la branche un autre : les deux sont lus, celui de la branche suffit.
   const deux = lancer(script, [...args, '--titre', 'feat(api): total (SPEC_ALL_FAC-1.04)', '--branche', BRANCHE], { cwd: depot, entree: 'README.md\n' });
   assert.equal(deux.code, 20);
-  assert.match(deux.sortie, /^SPEC_ALL_FAC-1\.03\tRelecture: double\t.*\n# ticket SPEC_ALL_FAC-1\.04 absent de .*\nexigée\n$/);
+  assert.match(deux.sortie, /^SPEC_ALL_FAC-1\.04\tticket introuvable\t—\t.*\nSPEC_ALL_FAC-1\.03\tRelecture: double\t.*\n# ticket SPEC_ALL_FAC-1\.04 absent de .*\nexigée\n$/);
+  // Le ticket que seul le titre nomme n'est dans aucun arbre : « exigée », sortie 20, sa raison dite (A-143, m3).
+  const introuvable = lancer(script, [...args, '--titre', 'feat(api): total (SPEC_ALL_FAC-1.04)'], { cwd: depot, entree: 'README.md\n' });
+  assert.equal(introuvable.code, 20);
+  assert.match(introuvable.sortie, /^SPEC_ALL_FAC-1\.04\tticket introuvable\t—\torigin\/sujet\/total, origin\/develop, [0-9a-f]{40}\n# ticket SPEC_ALL_FAC-1\.04 absent de .*\nexigée\n$/);
   // Une branche de sujet du dépôt porte le ticket avec la ligne, la base non : il est lu là aussi.
   const surLeSujet = lancer(script, ['--base', 'develop', '--tete', tete, '--branche', BRANCHE], { cwd: depot, entree: 'README.md\n' });
   assert.deepEqual([surLeSujet.code, surLeSujet.sortie], [20, attendu], 'la cible est develop, le ticket est lu sur la branche de sujet');
@@ -1106,6 +1429,14 @@ test("le dépôt d'un autre propriétaire : « illisible » ; déclaré sûr par
   assert.deepEqual(rendu(juger(['*'], depot, { GIT_CONFIG_PARAMETERS: "'safe.directory='" })), refuse, 'GIT_CONFIG_PARAMETERS présente');
   assert.deepEqual(rendu(juger([`${reel}-autre`, '/ailleurs/*'])), refuse, "la déclaration d'un autre dépôt ne vaut pas pour celui-ci");
   assert.deepEqual(rendu(juger([reel, ''])), refuse, 'une valeur vide efface les déclarations qui la précèdent, comme pour git');
+  // Une déclaration faite dans un fichier que la configuration de l'utilisateur inclut : git la lit, le calcul aussi.
+  const inclus = join(dirname(configuration), 'inclus');
+  writeFileSync(inclus, `[safe]\n\tdirectory = ${reel}\n`);
+  const parInclusion = () => {
+    writeFileSync(configuration, `[include]\n\tpath = ${inclus}\n`);
+    return rendu(lancer(script, ['--base', 'develop', '--tete', tete], { cwd: depot, entree, env: { TMPDIR: temporaire, PATH: `${faux}:${process.env.PATH}`, GIT_CONFIG_GLOBAL: configuration } }));
+  };
+  assert.deepEqual(parInclusion(), lu, 'déclaré par un fichier inclus');
   // La configuration de système (`A-130`) : le calcul lit les déclarations que git lirait lui-même, pas davantage.
   // Avec GIT_CONFIG_NOSYSTEM vrai au sens de git, git ignore le fichier de système : le calcul ne le lit pas non plus.
   const systeme = join(dirname(configuration), 'systeme');
@@ -1116,6 +1447,32 @@ test("le dépôt d'un autre propriétaire : « illisible » ; déclaré sûr par
   for (const v of ['1', 'true', 'yes', 'on', 'TRUE', '2']) assert.deepEqual(avec(v), refuse, `GIT_CONFIG_NOSYSTEM=${v} : git ignore le système, le calcul aussi`);
   assert.deepEqual(avec('bidon'), refuse, 'une valeur que git refuse (il échoue alors à toute commande) : le système n\'est pas lu');
   assert.deepEqual(rendu(juger([reel], depot, { GIT_CONFIG_SYSTEM: systeme, GIT_CONFIG_NOSYSTEM: '1' })), lu, "le système ignoré, la déclaration de l'utilisateur vaut toujours");
+  // Les deux fichiers de l'utilisateur, dans l'ordre de git (m1, `A-143`) : `$XDG_CONFIG_HOME/git/config`, puis
+  // `~/.gitconfig`. `git config --global`, nommé, ne lit que le second quand il existe : une remise à zéro écrite
+  // dans le premier était manquée, et le calcul lisait un dépôt que git refuse.
+  const maison = dossier('maison-');
+  const xdg = dossier('xdg-');
+  mkdirSync(join(xdg, 'git'));
+  const exact = join(dirname(configuration), 'systeme-exact');
+  const vide = join(dirname(configuration), 'systeme-vide');
+  writeFileSync(vide, '');
+  const parXdg = (systemeLu, xdgDit, maisonDit) => {
+    writeFileSync(exact, `[safe]\n\tdirectory = ${reel}\n`);
+    writeFileSync(join(xdg, 'git/config'), xdgDit);
+    if (maisonDit === null) rmSync(join(maison, '.gitconfig'), { force: true });
+    else writeFileSync(join(maison, '.gitconfig'), maisonDit);
+    return rendu(lancer(script, ['--base', 'develop', '--tete', tete], { cwd: depot, entree, env: { TMPDIR: temporaire, PATH: `${faux}:${process.env.PATH}`, HOME: maison, XDG_CONFIG_HOME: xdg, GIT_CONFIG_GLOBAL: undefined, GIT_CONFIG_NOSYSTEM: undefined, GIT_CONFIG_SYSTEM: systemeLu } }));
+  };
+  const remise = '[safe]\n\tdirectory =\n';
+  const sansSafe = '[user]\n\tname = x\n';
+  assert.deepEqual(parXdg(exact, remise, sansSafe), refuse, 'le système déclare, XDG remet à zéro, `~/.gitconfig` existe sans rien en dire : git refuse, le calcul aussi');
+  assert.deepEqual(parXdg(exact, remise, null), refuse, 'le même sans `~/.gitconfig`');
+  assert.deepEqual(parXdg(exact, '', sansSafe), lu, 'le témoin : sans la remise à zéro, la déclaration du système vaut');
+  assert.deepEqual(parXdg(vide, `[safe]\n\tdirectory = ${reel}\n`, sansSafe), lu, 'XDG déclare, `~/.gitconfig` existe sans rien en dire : git admet, le calcul aussi');
+  assert.deepEqual(parXdg(vide, `[safe]\n\tdirectory = ${reel}\n`, remise), refuse, 'XDG déclare, `~/.gitconfig`, lu après lui, remet à zéro');
+  assert.deepEqual(parXdg(vide, remise, `[safe]\n\tdirectory = ${reel}\n`), lu, 'XDG remet à zéro, `~/.gitconfig`, lu après lui, déclare');
+  // Une valeur à saut de ligne : sa suite n'est la ligne d'aucune portée, rien n'est admis.
+  assert.deepEqual(parXdg(vide, `[safe]\n\tdirectory = "x\\n${reel}"\n\tdirectory = *\n`, null), refuse, 'une valeur à saut de ligne');
   assert.deepEqual(readdirSync(temporaire), [], 'aucun dépôt propre ne reste');
 });
 

@@ -29,8 +29,11 @@
 // ses greffes, ni ses objets remplacés, ni le dossier courant ne pèsent. S'il ne se crée pas : « illisible ».
 // Ce fichier tourne depuis la copie des outils que la boucle du capitaine reprend d'origin/develop, hors du
 // dépôt, avec `scripts/chaine` et `scripts/docs/identifiants.mjs` pour tout bagage. Aucune dépendance : l'en-tête
-// YAML d'une règle est lu ici, pour trois clés seulement (`criticality`, `code`, `validation`), et ce que ce
-// lecteur ne comprend pas est « illisible », jamais « non exigée ».
+// YAML d'une règle est lu ici, sans bibliothèque, par une liste fermée de formes de ligne (`A-143`). Le lecteur ne
+// lit que ce que cette liste admet, sur tout l'en-tête ; une seule ligne hors liste, et la règle n'est pas lue :
+// on ne prouve pas ce qu'on ne lit pas, elle est une cause (« en-tête illisible »), la réponse est « exigée », et
+// le message dit le fichier, la ligne et la raison. Tant que cet en-tête n'est pas récrit, toute PR du dépôt
+// répond « exigée ». De même un ticket que la PR nomme et qu'aucun arbre ne porte (« ticket introuvable »).
 //
 // Le niveau d'une règle se lit sur trois arbres, la base, la tête et `origin/develop` (un sujet en retard ne cache
 // pas une règle montée dans develop) ; le plus haut l'emporte. Dans l'index Anchorpost de l'arbre
@@ -40,7 +43,8 @@
 // (`docs/metier/regles/<ctx>/<RULE_…>.md`), qui ne voit pas une criticité reçue d'une feature. Avec un index,
 // les en-têtes sont lus aussi, à chaque référence : une règle est haute et comptée dès que l'une des deux lectures
 // le dit, et son `code` est l'union des deux ; un index ancien, incomplet ou que la PR n'a pas régénéré ne cache
-// rien. Une règle `rejected` ou `obsolete` (des deux côtés, quand il y a un index) ne compte pas.
+// rien. Une règle `rejected` ou `obsolete` (des deux côtés, quand il y a un index) ne compte pas. Un fichier de
+// règle dont l'en-tête est hors liste est une cause quoi que l'index en dise ; les autres règles restent lues.
 // Le changement de niveau se lit entre le départ de la PR (la base de fusion de sa cible et de sa tête) et sa tête :
 // ce qu'une autre PR a changé dans la cible depuis n'est pas un changement de celle-ci.
 //
@@ -50,9 +54,10 @@
 // de celle de sa spec, cherchée dans les mêmes arbres ; `Règles: —` dit « aucune ».
 //
 // Sortie standard : une ligne par cause
-// (`<règle ou ticket>\t<fichier | code | niveau | Règles: | Relecture: double>\t<chemin>\t<réf>`), une ligne
-// `# …` par lecture en échec ou remarque, et, EN DERNIÈRE LIGNE, le seul verdict : `exigée`, `non exigée` ou
-// `illisible`. Une cause établie suffit : « illisible » n'est rendu que si aucune ne l'est.
+// (`<règle ou ticket>\t<fichier | code | niveau | Règles: | Relecture: double | en-tête illisible | ticket introuvable>\t<chemin>\t<réf>`),
+// une ligne `# …` par lecture en échec ou remarque, et, EN DERNIÈRE LIGNE, le seul verdict : `exigée`, `non exigée`
+// ou `illisible`. Une cause établie suffit : « illisible » n'est rendu que si aucune ne l'est (un index illisible,
+// une réf introuvable, un dépôt superficiel, un ticket trouvé et mal lu, un usage faux).
 // Sorties : 0 non exigée · 20 exigée · 21 illisible (usage compris) · 69 outil manquant (`git`, ou la grammaire
 // des identifiants), dernière ligne `illisible`. Qui appelle ne lit « non exigée » que sur la sortie 0 ET la
 // dernière ligne ; tout autre code que 0 et 20 (un plantage de node sort en 1) se lit « illisible ».
@@ -73,6 +78,9 @@ export const INDEX = 'anchorpost/anchorpost.json';
 const REGLES = 'docs/metier/regles/';
 const NIVEAUX = ['low', 'medium', 'high'];
 const HORS_VIGUEUR = ['rejected', 'obsolete'];
+// Deux motifs de cause qui ne disent pas « haute », mais « pas lu » : on ne prouve pas ce qu'on ne lit pas (`A-143`).
+export const EN_TETE_ILLISIBLE = 'en-tête illisible';
+export const TICKET_INTROUVABLE = 'ticket introuvable';
 
 // La grammaire des identifiants, cherchée comme le fait identifiant.mjs : `../docs/` (un projet, et la copie de la
 // boucle), à côté de ce fichier (copie à plat), puis dans le plugin.
@@ -120,249 +128,303 @@ export function cheminDuDiff(ligne) {
   return comparable(Buffer.from(octets).toString('utf8'));
 }
 
-// ── L'en-tête YAML d'une règle, trois clés, sans bibliothèque ─────────────────────────────────────────────────────
+// ── L'en-tête YAML d'une règle : une liste fermée de formes de ligne, sans bibliothèque (A-143) ───────────────────
+// Le lecteur n'admet que les formes ci-dessous ; toute autre ligne rend l'en-tête « illisible », et le message dit
+// le numéro de la ligne dans le fichier et la raison. Tout l'en-tête est lu, pas trois clés seulement : une ligne
+// hors liste sous `sources:` ou `extensions:` est « illisible » comme une autre. Chaque ligne admise n'a qu'un sens
+// pour une bibliothèque YAML ; l'arbre entier est construit, puis `criticality`, `code` et `validation.status` y
+// sont pris.
+//
+//   ligne vide, ou d'espaces                         (sautée)
+//   <retrait># commentaire                           (sautée)
+//   <retrait>clé: <valeur>                           une paire ; aucune ligne plus profonde ne la suit
+//   <retrait>clé:                                    un bloc plus profond la suit (mappage ou liste), ou une liste au
+//                                                    même retrait (`clé:` puis `- …`), ou rien
+//   <retrait>- <valeur>                              un élément de liste
+//   <retrait>- clé: <valeur>   |   <retrait>- clé:   un élément qui ouvre un mappage, au retrait de sa clé
+//
+//   <valeur>   un scalaire nu | "…" | '…' | { clé: scalaire, … } | [ scalaire, … ], le tout sur la ligne ;
+//              ` # commentaire` peut suivre.
+//   retrait    des espaces seules ; les lignes d'un bloc ont toutes le même ; un bloc est plus profond que sa clé.
+//   clé        [A-Za-z_][A-Za-z0-9_-]*, nue, 100 caractères au plus, `:` collé, puis une espace ou la fin ; jamais
+//              `true`, `false`, `null` ni un nombre (YAML n'y lit pas un texte : `true:` et `True:` seraient la même
+//              clé) ; deux fois dans un mappage : illisible.
+//   nu         commence par une lettre, un chiffre, `.` ou `_` ; ne porte ni `: `, ni `:` final ; ` #` ouvre le
+//              commentaire. Dans { } et [ ] : lettres, chiffres, espace et _ . / ( ) ' ’ « » ; - seulement.
+//   "…"        fermée sur la ligne ; seuls échappements `\"` et `\\`.      '…'   fermée sur la ligne ; `''` pour l'apostrophe.
+//   { } [ ]    ouverts et fermés sur la ligne, sans imbrication, sans virgule finale ; `{}` et `[]`.
+//
+// Et les deux formes qu'un formateur (Prettier 3) donne à un mappage ou à une liste en ligne trop longs, à ses
+// retraits exacts, R étant le retrait de la clé ou du tiret :
+//
+//   <R>clé:            <R>clé: {           <R>- {              l'ouvrant, `{` ou `[`, seul : sur sa ligne au retrait
+//   <R+2>{             <R+4>clé: scalaire, <R+4>clé: scalaire,  R+2, ou en fin de la ligne de la clé ou du tiret ;
+//   <R+4>clé: scalaire,<R+2>}              <R+2>}              une entrée par ligne, au retrait R+4, virgule finale
+//   <R+2>}                                                     collée, la dernière comprise ; le fermant au retrait
+//                                                              R+2, ` # commentaire` pouvant le suivre.
+//   Entre l'ouvrant et le fermant : ni ligne vide, ni commentaire, ni entrée sur deux lignes, ni imbrication.
+//
+// Tabulation, `\r` isolé, caractère de commande, marque d'ordre des octets, espace insécable et autres blancs
+// d'Unicode : illisible, où qu'ils soient. Scalaire en bloc (`|`, `>`), texte plié sur plusieurs lignes, étiquette,
+// ancre, alias, clé entre guillemets, clé explicite (`? `) : hors liste, donc illisible.
 const EN_TETE = /^---[ \t]*\r?\n([\s\S]*?)\r?\n---[ \t]*(?:\r?\n|$)/;
-// La marque d'ordre des octets, écrite par son code : un caractère invisible ne se relit pas dans un source.
-const BOM = String.fromCharCode(0xfeff);
+const INTERDITS = /[\u0000-\u001f\u007f-\u00a0\u00ad\u1680\u180e\u2000-\u200f\u2028-\u202f\u205f-\u206f\u3000\ufeff\ufffd-\uffff]/;
+const CLE = /^([A-Za-z_][A-Za-z0-9_-]*):(?: +(.*))?$/;
+const CLE_D_ELEMENT = /^[A-Za-z_][A-Za-z0-9_-]*:(?: |$)/;
+// Motifs « collants » : ils se jouent à une position de la ligne, qui n'est jamais recopiée (lecture en temps linéaire).
+const CITE = /"((?:[^"\\]|\\["\\])*)"|'((?:[^']|'')*)'/y;
+const NU_EN_FLUX = /[\p{L}\p{N}._][\p{L}\p{N} _.\/()'’«»;-]*/uy;
+const CLE_EN_FLUX = /([A-Za-z_][A-Za-z0-9_-]*): +/y;
+const DEBUT_DE_NU = /^[\p{L}\p{N}._]/u;
+// Ce que YAML ne lit pas comme un texte : nul, booléen, nombre. Ni une clé ni un chemin de `code` nu ne peuvent en être un.
+const PAS_UN_TEXTE = /^(?:null|Null|NULL|true|True|TRUE|false|False|FALSE|[-+]?[0-9]+|0o[0-7]+|0x[0-9a-fA-F]+|[-+]?(?:\.[0-9]+|[0-9]+(?:\.[0-9]*)?)(?:[eE][-+]?[0-9]+)?|[-+]?\.(?:inf|Inf|INF)|\.(?:nan|NaN|NAN))$/;
+const LONGUEUR_DE_CLE = 100; // YAML refuse une clé de plus de 1 024 caractères
 
-/**
- * Un guillemet n'ouvre une chaîne qu'en tête de valeur : au début du texte, après `,`, `[` ou `{`, ou après `:` et
- * un blanc. Partout ailleurs c'est du texte (`c'est grave`), comme une bibliothèque YAML le lit. Dans une chaîne
- * entre apostrophes, `''` est une apostrophe échappée : elle ne ferme pas la chaîne. (Un élément de
- * liste en bloc, `- 'a'`, ne passe pas par ici : `scalaire` lit son guillemet de tête.)
- */
-function enTeteDeValeur(texte, i) {
-  let j = i - 1;
-  while (j >= 0 && (texte[j] === ' ' || texte[j] === '\t')) j--;
-  if (j < 0) return true;
-  const c = texte[j];
-  return c === ',' || c === '[' || c === '{' || (c === ':' && j < i - 1);
+/** Une ligne de l'en-tête est refusée : le numéro est celui de la ligne dans le fichier, la première étant `---`. */
+const ligneRefusee = (n, raison, texte = '') => illisible(`ligne ${n} : ${raison}${texte === '' ? '' : ` : ${texte.slice(0, 60)}`}`);
+
+/** Une clé admise : assez courte, et un texte pour YAML. */
+const cleAdmise = (cle) => cle.length <= LONGUEUR_DE_CLE && !PAS_UN_TEXTE.test(cle);
+
+/** Un scalaire lu : son texte, et s'il était nu. */
+const unTexte = (texte, nu) => ({ texte, nu });
+const estScalaire = (v) => v !== null && typeof v === 'object' && typeof v.texte === 'string';
+
+/** `s` sans ses espaces finales, sans motif à retour arrière. */
+function sansEspacesFinales(s) {
+  let fin = s.length;
+  while (fin > 0 && s[fin - 1] === ' ') fin--;
+  return fin === s.length ? s : s.slice(0, fin);
 }
 
-/** Où se ferme la chaîne qu'un guillemet ouvre en `i`, sur la même ligne ; -1 si elle ne s'y ferme pas. */
-function fermeture(ligne, i) {
-  const g = ligne[i];
-  for (let j = i + 1; j < ligne.length; j++) {
-    if (g === '"' && ligne[j] === '\\') j++;
-    else if (g === "'" && ligne[j] === "'" && ligne[j + 1] === "'") j++;
-    else if (ligne[j] === g) return j;
+/** Un motif collant joué à la position `p` de `s` → `[correspondance, position suivante]`, sinon `null`. */
+function colle(motif, s, p) {
+  motif.lastIndex = p;
+  const m = motif.exec(s);
+  return m ? [m, motif.lastIndex] : null;
+}
+
+/** Une chaîne entre guillemets à la position `p` de `s` → `[scalaire, position suivante]`, sinon `null`. */
+function chaine(s, p) {
+  const lu = colle(CITE, s, p);
+  if (!lu) return null;
+  const [m, suite] = lu;
+  return [unTexte(m[1] !== undefined ? m[1].replace(/\\(["\\])/g, '$1') : m[2].replaceAll("''", "'"), false), suite];
+}
+
+/** Ce qui peut suivre une valeur sur sa ligne, à partir de `p` : rien, ou une espace au moins et un commentaire. */
+function finDeLigne(s, p, n) {
+  let q = p;
+  while (s[q] === ' ') q++;
+  if (q === s.length || (q > p && s[q] === '#')) return;
+  ligneRefusee(n, 'après une valeur, ni la fin de la ligne ni un commentaire', s.slice(p));
+}
+
+/**
+ * Une entrée d'un mappage ou d'une liste en ligne, à la position `p` de `s` : `clé: scalaire` (dans une `Map`) ou
+ * `scalaire` (dans une liste), rangée dans `lu` → la position qui suit le scalaire, espaces finales d'un nu comprises.
+ */
+function entreeDeFlux(s, p, lu, n) {
+  let cle;
+  let q = p;
+  if (lu instanceof Map) {
+    const k = colle(CLE_EN_FLUX, s, q);
+    if (!k || !cleAdmise(k[0][1])) ligneRefusee(n, 'dans un mappage en ligne, attendu `clé: scalaire`', s.slice(q));
+    if (lu.has(k[0][1])) ligneRefusee(n, `clé \`${k[0][1]}\` écrite deux fois`);
+    [cle, q] = [k[0][1], k[1]];
   }
-  return -1;
+  let valeur;
+  const cite = chaine(s, q);
+  if (cite) [valeur, q] = cite;
+  else {
+    const nu = colle(NU_EN_FLUX, s, q) ?? ligneRefusee(n, 'dans un mappage ou une liste en ligne, attendu un scalaire entre guillemets, ou nu et sans autre signe que _ . / ( ) \' ’ « » ; -', s.slice(q));
+    valeur = unTexte(sansEspacesFinales(nu[0][0]), true);
+    q = nu[1];
+  }
+  if (lu instanceof Map) lu.set(cle, valeur);
+  else lu.push(valeur);
+  return q;
 }
 
-/**
- * Les formes que ce lecteur ne cherche pas à lire, et refuse où qu'elles soient dans l'en-tête (`A-133`) : une clé
- * entre guillemets, une étiquette (`!…`), une ancre ou un alias (`&…`, `*…`) en tête d'une clé, d'une valeur ou d'une
- * entrée, une chaîne entre guillemets qui ne se ferme pas sur sa ligne. Avec elles, une bibliothèque YAML lit autre
- * chose que ce lecteur (une chaîne ouverte après `"r":`, un texte derrière `!!str`, une chaîne pliée sur trois
- * lignes) : il n'en devine rien. Une « tête » est le début d'une ligne, après son retrait et ses `- `, ce qui suit
- * `: `, et, dans un mappage ou une liste en ligne, ce qui suit `,`, `[` ou `{` ; la profondeur de ces crochets se
- * tient d'une ligne à l'autre. Les lignes d'un scalaire en bloc (`clé: |`, `clé: >`) sont du texte : elles sont sautées.
- */
-function refuserLesFormesNonLues(lignes) {
-  const blanc = (c) => c === ' ' || c === '\t';
-  let flux = 0;
-  let bloc = null; // le retrait de la ligne qui ouvre un scalaire en bloc
-  for (const ligne of lignes) {
-    const retrait = ligne.length - ligne.trimStart().length;
-    if (retrait === ligne.length) continue;
-    if (bloc !== null && retrait > bloc) continue;
-    bloc = null;
-    let tete = true;
-    let fin = ligne.length;
-    for (let i = retrait; i < ligne.length; i++) {
-      const c = ligne[i];
-      if (blanc(c)) continue;
-      if (c === '#' && (i === 0 || blanc(ligne[i - 1]))) {
-        fin = i;
+/** `{ clé: scalaire, … }` ou `[ scalaire, … ]` en tête de `s`, sur une ligne, sans imbrication → `[Map | liste, position suivante]`. */
+function fluxEnLigne(s, n) {
+  const fermant = s[0] === '{' ? '}' : ']';
+  const lu = s[0] === '{' ? new Map() : [];
+  let p = 1;
+  while (s[p] === ' ') p++;
+  if (s[p] === fermant) return [lu, p + 1];
+  for (;;) {
+    p = entreeDeFlux(s, p, lu, n);
+    while (s[p] === ' ') p++;
+    if (s[p] === fermant) return [lu, p + 1];
+    if (s[p] !== ',') ligneRefusee(n, `dans un mappage ou une liste en ligne, attendu \`,\` ou \`${fermant}\` sur la même ligne`, s.slice(p));
+    p++;
+    while (s[p] === ' ') p++;
+  }
+}
+
+/** La valeur écrite sur une ligne, après `clé: ` ou `- ` : un scalaire, un mappage ou une liste en ligne. */
+function valeurDeLigne(s, n) {
+  if (s[0] === '"' || s[0] === "'") {
+    const cite = chaine(s, 0) ?? ligneRefusee(n, 'chaîne entre guillemets non refermée sur sa ligne, ou échappement autre que `\\"`, `\\\\` et `\'\'`', s);
+    finDeLigne(s, cite[1], n);
+    return cite[0];
+  }
+  if (s[0] === '{' || s[0] === '[') {
+    const [lu, suite] = fluxEnLigne(s, n);
+    finDeLigne(s, suite, n);
+    return lu;
+  }
+  if (!DEBUT_DE_NU.test(s)) ligneRefusee(n, 'une valeur nue commence par une lettre, un chiffre, `.` ou `_`', s);
+  const i = s.indexOf(' #');
+  const nu = sansEspacesFinales(i === -1 ? s : s.slice(0, i));
+  if (nu.includes(': ') || nu.endsWith(':')) ligneRefusee(n, 'des deux-points dans un texte nu, à mettre entre guillemets', nu);
+  return unTexte(nu, true);
+}
+
+/** L'en-tête entier → `[arbre, lignes des clés du premier niveau]` ; l'arbre : `Map` (mappage), liste, scalaire `{ texte, nu }` ou `null` (clé sans valeur). */
+function arbreDeLEnTete(lignes) {
+  const utiles = []; // les lignes qui portent autre chose qu'un commentaire : `{ n, retrait, texte }`
+  lignes.forEach((brute, k) => {
+    const n = k + 2;
+    if (INTERDITS.test(brute)) ligneRefusee(n, "une tabulation, un caractère de commande, une marque invisible ou un blanc autre que l'espace");
+    const ligne = sansEspacesFinales(brute);
+    let retrait = 0;
+    while (ligne[retrait] === ' ') retrait++;
+    if (retrait === ligne.length || ligne[retrait] === '#') return;
+    utiles.push({ n, retrait, texte: ligne.slice(retrait) });
+  });
+  const lignesDesCles = new Map(); // les clés du premier niveau → leur ligne
+  let i = 0;
+  const refuser = (u, raison) => ligneRefusee(u.n, raison, u.texte);
+
+  // Le mappage ou la liste pliés par un formateur. `R` : le retrait de la clé ou du tiret ; `n` : la ligne de l'ouvrant.
+  const fluxPlie = (R, ouvrant, n) => {
+    const fermant = ouvrant === '{' ? '}' : ']';
+    const lu = ouvrant === '{' ? new Map() : [];
+    for (let attendue = n + 1; ; attendue++) {
+      const u = utiles[i];
+      if (!u || u.n !== attendue) ligneRefusee(attendue, `dans un mappage ou une liste pliés, attendu une entrée ou \`${fermant}\`, sans ligne vide ni commentaire`);
+      if (u.retrait === R + 2 && u.texte[0] === fermant) {
+        if ((lu instanceof Map ? lu.size : lu.length) === 0) refuser(u, 'un mappage ou une liste pliés sans entrée');
+        finDeLigne(u.texte, 1, u.n);
+        i++;
         break;
       }
-      if (tete) {
-        if (c === '-' && (i + 1 === ligne.length || blanc(ligne[i + 1]))) continue;
-        if (c === '!') illisible("une étiquette (`!…`) dans l'en-tête : ce lecteur ne la lit pas");
-        if (c === '&' || c === '*') illisible("une ancre ou un alias (`&…`, `*…`) dans l'en-tête : ce lecteur ne les lit pas");
-        if (c === '[' || c === '{') {
-          flux++;
-          continue;
-        }
-        if (c === '"' || c === "'") {
-          i = fermeture(ligne, i);
-          if (i === -1) illisible("une chaîne entre guillemets ne se ferme pas sur sa ligne : ce lecteur ne la lit pas");
-          let k = i + 1;
-          while (k < ligne.length && blanc(ligne[k])) k++;
-          if (ligne[k] === ':') illisible("une clé entre guillemets dans l'en-tête : ce lecteur ne la lit pas");
-          tete = false;
-          continue;
-        }
-        tete = false;
+      if (u.retrait !== R + 4) refuser(u, `dans un mappage ou une liste pliés, une entrée est au retrait ${R + 4} et \`${fermant}\` au retrait ${R + 2}`);
+      const p = entreeDeFlux(u.texte, 0, lu, u.n);
+      if (u.texte[p] !== ',' || p + 1 !== u.texte.length || u.texte[p - 1] === ' ') refuser(u, 'dans un mappage ou une liste pliés, une entrée par ligne, suivie de sa virgule');
+      i++;
+    }
+    return lu;
+  };
+
+  // Ce qu'une clé du retrait `R` ouvre, `reste` étant ce qui suit `clé: ` sur sa ligne.
+  const valeurDeCle = (u, reste, R) => {
+    if (reste === '{' || reste === '[') return fluxPlie(R, reste, u.n);
+    if (reste !== '' && reste[0] !== '#') return valeurDeLigne(reste, u.n);
+    const suivante = utiles[i];
+    if (suivante && suivante.retrait > R) {
+      if (suivante.texte === '{' || suivante.texte === '[') {
+        if (reste !== '' || suivante.retrait !== R + 2 || suivante.n !== u.n + 1) refuser(suivante, `l'ouvrant d'un mappage ou d'une liste pliés suit sa clé, seul sur sa ligne, au retrait ${R + 2}`);
+        i++;
+        return fluxPlie(R, suivante.texte, suivante.n);
       }
-      if (flux > 0 && (c === ',' || c === '[' || c === '{')) tete = true;
-      if (flux > 0 && (c === '[' || c === '{')) flux++;
-      if (flux > 0 && (c === ']' || c === '}')) flux--;
-      if (c === ':' && (i + 1 === ligne.length || blanc(ligne[i + 1]))) tete = true;
+      return suivante.texte.startsWith('- ') ? liste(suivante.retrait) : mappage(suivante.retrait);
     }
-    if (flux === 0 && /(?:^|[:-][ \t]+)[|>][-+0-9]*$/.test(ligne.slice(retrait, fin).trimEnd())) bloc = retrait;
-  }
+    return suivante && suivante.retrait === R && suivante.texte.startsWith('- ') ? liste(R) : null;
+  };
+
+  const mappage = (R) => {
+    const lu = new Map();
+    while (i < utiles.length && utiles[i].retrait === R) {
+      const u = utiles[i];
+      const cle = CLE.exec(u.texte);
+      if (!cle || !cleAdmise(cle[1])) refuser(u, 'ni `clé: valeur`, ni `clé:`, ni `- valeur`');
+      if (lu.has(cle[1])) refuser(u, `clé \`${cle[1]}\` écrite deux fois`);
+      if (R === 0) lignesDesCles.set(cle[1], u.n);
+      i++;
+      lu.set(cle[1], valeurDeCle(u, cle[2] ?? '', R));
+    }
+    return lu;
+  };
+
+  const liste = (R) => {
+    const lu = [];
+    while (i < utiles.length && utiles[i].retrait === R && utiles[i].texte.startsWith('- ')) {
+      const u = utiles[i];
+      const reste = u.texte.slice(2);
+      if (reste === '{' || reste === '[') {
+        i++;
+        lu.push(fluxPlie(R, reste, u.n));
+      } else if (CLE_D_ELEMENT.test(reste)) {
+        // L'élément ouvre un mappage, au retrait de sa clé.
+        utiles[i] = { n: u.n, retrait: R + 2, texte: reste };
+        lu.push(mappage(R + 2));
+      } else {
+        i++;
+        lu.push(valeurDeLigne(reste, u.n));
+      }
+    }
+    return lu;
+  };
+
+  if (utiles.length === 0) return [new Map(), lignesDesCles];
+  if (utiles[0].retrait !== 0) refuser(utiles[0], "l'en-tête ne commence pas en première colonne");
+  const racine = mappage(0);
+  // Un mappage et une liste s'arrêtent à la première ligne qui n'est pas à leur retrait ; une ligne que personne n'a
+  // prise est plus profonde que ce qui la précède sans en être le bloc, ou à un retrait entre deux niveaux.
+  if (i < utiles.length) refuser(utiles[i], 'ligne mal alignée : ni au retrait de son bloc, ni le bloc de la clé qui la précède');
+  return [racine, lignesDesCles];
 }
 
-/** Découpe `a, "b, c", {d, e}` aux virgules de premier niveau, hors guillemets ; guillemet ou crochet non refermé : illisible. */
-function decouper(texte) {
-  const parts = [];
-  let debut = 0;
-  let niveau = 0;
-  let guillemet = null;
-  for (let i = 0; i < texte.length; i++) {
-    const c = texte[i];
-    if (guillemet) {
-      if (guillemet === '"' && c === '\\') i++;
-      else if (guillemet === "'" && c === "'" && texte[i + 1] === "'") i++;
-      else if (c === guillemet) guillemet = null;
-    } else if ((c === '"' || c === "'") && enTeteDeValeur(texte, i)) guillemet = c;
-    else if (c === '{' || c === '[') niveau++;
-    else if (c === '}' || c === ']') niveau--;
-    else if (c === ',' && niveau === 0) {
-      parts.push(texte.slice(debut, i));
-      debut = i + 1;
-    }
-    if (niveau < 0) illisible('crochet fermé sans être ouvert');
-  }
-  if (guillemet || niveau !== 0) illisible('guillemet ou crochet non refermé');
-  parts.push(texte.slice(debut));
-  return parts.map((p) => p.trim()).filter((p) => p !== '');
-}
-
-/** Une valeur simple : commentaire ` # …` retiré hors guillemets, guillemets retirés, `''` rendu en apostrophe. */
+/** La valeur d'une ligne `Relecture:` d'un ticket : commentaire ` # …` retiré, guillemets retirés ; autre chose après une chaîne : illisible. */
 function scalaire(brut) {
   const v = brut.trim();
   const g = v[0];
   if (g === '"' || g === "'") {
-    const chaine = (g === "'" ? /^'((?:[^']|'')*)'/ : /^"([^"]*)"/).exec(v);
-    if (!chaine || !/^\s*(#.*)?$/.test(v.slice(chaine[0].length)) || chaine[1].includes('\\')) illisible(`valeur illisible : ${v}`);
-    return g === "'" ? chaine[1].replaceAll("''", "'") : chaine[1];
+    const cite = (g === "'" ? /^'([^']*)'/ : /^"([^"]*)"/).exec(v);
+    if (!cite || !/^\s*(#.*)?$/.test(v.slice(cite[0].length))) illisible(`valeur illisible : ${v}`);
+    return cite[1];
   }
   const i = v.search(/\s#/);
   return (v.startsWith('#') ? '' : i === -1 ? v : v.slice(0, i)).trim();
 }
 
-/** La valeur en ligne d'une clé : vide quand la ligne ne porte qu'un commentaire. */
-const valeurEnLigne = (v) => (/^\s*#/.test(v) ? '' : v.trim());
-
-/** L'intérieur d'un `{ … }` ou d'un `[ … ]` écrit sur une ligne, un commentaire ` # …` pouvant suivre ; autre chose : illisible. */
-function interieur(valeur, ouvrant, fermant) {
-  const v = valeur.trim();
-  const fin = v.lastIndexOf(fermant);
-  if (!v.startsWith(ouvrant) || fin === -1 || !/^\s*(#.*)?$/.test(v.slice(fin + 1))) illisible(`valeur illisible : ${v.slice(0, 80)}`);
-  return v.slice(1, fin);
-}
-
-/** `{ a: 1, b: 2 }` sur une ligne → Map ; une clé écrite deux fois : illisible (la dernière ne l'emporte pas). */
-function mappageEnLigne(valeur) {
-  const m = new Map();
-  for (const part of decouper(interieur(valeur, '{', '}'))) {
-    const i = part.indexOf(':');
-    const cle = part.slice(0, Math.max(i, 0)).trim();
-    if (cle === '' || m.has(cle)) illisible(`mappage illisible : ${part.slice(0, 80)}`);
-    m.set(cle, part.slice(i + 1));
-  }
-  return m;
-}
-
-/** Une ligne sans son commentaire (` # …`, ou `#` en tête), les guillemets respectés. */
-function sansCommentaire(ligne) {
-  let guillemet = null;
-  for (let i = 0; i < ligne.length; i++) {
-    const c = ligne[i];
-    if (guillemet) {
-      if (guillemet === '"' && c === '\\') i++;
-      else if (guillemet === "'" && c === "'" && ligne[i + 1] === "'") i++;
-      else if (c === guillemet) guillemet = null;
-    } else if ((c === '"' || c === "'") && enTeteDeValeur(ligne, i)) guillemet = c;
-    else if (c === '#' && (i === 0 || ligne[i - 1] === ' ' || ligne[i - 1] === '\t')) return ligne.slice(0, i);
-  }
-  return ligne;
-}
-
-/** Les lignes d'un bloc à son premier niveau d'indentation (les plus profondes sont le contenu d'une de ces lignes). */
-function premierNiveau(bloc) {
-  const retrait = (l) => l.length - l.trimStart().length;
-  const min = bloc.reduce((m, l) => Math.min(m, retrait(l)), Infinity);
-  return bloc.filter((l) => retrait(l) === min).map((l) => l.trim());
-}
-
-/** La valeur d'une clé qui ouvre un mappage ou une liste en ligne (`{ … }`, `[ … ]`), ramenée sur une ligne si elle est pliée, sans ses commentaires ; sinon `null`. */
-function enLigne(cle) {
-  const debut = cle.valeur !== '' ? cle.valeur : (cle.bloc[0] ?? '').trim();
-  // Chaque ligne perd son commentaire avant d'être jointe : celui d'une ligne pliée avalerait sinon la suite.
-  return /^[[{]/.test(debut) ? [cle.valeur, ...cle.bloc].map((l) => sansCommentaire(l).trim()).filter(Boolean).join(' ') : null;
-}
-
-/** Un champ d'un mappage écrit en ligne (`{ … }`) ou en bloc ; absent : `undefined` ; deux fois : illisible. */
-function champ(cle, nom) {
-  const ligne = enLigne(cle);
-  if (ligne !== null) return mappageEnLigne(ligne).get(nom);
-  if (cle.valeur !== '') illisible(`mappage illisible : ${cle.valeur.slice(0, 80)}`);
-  if (cle.bloc.length === 0) illisible('clé sans valeur');
-  const lignes = premierNiveau(cle.bloc).filter((l) => new RegExp(`^${nom}[ \\t]*:`).test(l));
-  if (lignes.length > 1) illisible(`\`${nom}\` écrit deux fois`);
-  return lignes[0]?.slice(lignes[0].indexOf(':') + 1);
-}
-
 /**
  * Ce que l'en-tête d'un fichier de règle dit de sa criticité : `{ niveau, code, enVigueur }`.
  * `niveau` : `low`, `medium`, `high`, ou `null` sans clé `criticality` (« à classer ») ; les deux formes sont lues,
- * la nue (`criticality: high`) et `{ level, by, reason }`, en ligne ou en bloc. `code` : la liste, en ligne ou en
- * bloc, vide sans la clé. `enVigueur` : faux pour `validation.status` `rejected` ou `obsolete` seulement.
- * Sans en-tête, ou une de ces clés écrite autrement : `Illisible`.
+ * la nue (`criticality: high`) et `{ level, by, reason }`, en bloc, en ligne ou pliée par un formateur. `code` : la
+ * liste, de même, vide sans la clé. `enVigueur` : faux pour `validation.status` `rejected` ou `obsolete` seulement.
+ * Sans en-tête, ou une ligne hors de la liste fermée des formes, où qu'elle soit : `Illisible`, dont le message
+ * commence par `ligne <n> : `, le numéro de la ligne dans le fichier.
  */
-export function enTeteDeRegle(texte) {
-  const m = EN_TETE.exec(texte.startsWith(BOM) ? texte.slice(1) : texte);
-  if (!m) illisible("pas d'en-tête YAML (`---` en première ligne, refermé par `---`)");
-  const lignes = m[1].split(/\r?\n/);
-  refuserLesFormesNonLues(lignes);
-  const cles = new Map();
-  let courante = null;
-  for (const ligne of lignes) {
-    if (/^\s*(#.*)?$/.test(ligne)) continue;
-    const cle = /^([A-Za-z_][\w-]*)[ \t]*:(?:[ \t]+(.*))?$/.exec(ligne);
-    if (cle) {
-      if (cles.has(cle[1])) illisible(`clé \`${cle[1]}\` écrite deux fois`);
-      courante = { valeur: valeurEnLigne(cle[2] ?? ''), bloc: [] };
-      cles.set(cle[1], courante);
-    } else if (courante && /^(\s|- |-$)/.test(ligne)) courante.bloc.push(ligne);
-    else illisible(`ligne d'en-tête illisible : ${ligne.slice(0, 80)}`);
-  }
+export function enTeteDeRegle(contenu) {
+  const m = EN_TETE.exec(contenu);
+  if (!m) illisible("ligne 1 : pas d'en-tête YAML (`---` en première ligne, sans rien devant, refermé par une ligne `---`)");
+  const [racine, lignes] = arbreDeLEnTete(m[1].split(/\r?\n/));
+  const refuser = (cle, raison) => ligneRefusee(lignes.get(cle), raison);
 
   let niveau = null;
-  const criticite = cles.get('criticality');
-  if (criticite) {
-    const brut = criticite.valeur !== '' && enLigne(criticite) === null ? criticite.valeur : champ(criticite, 'level');
-    niveau = brut === undefined ? illisible('`criticality` sans `level`') : scalaire(brut);
-    if (!NIVEAUX.includes(niveau)) illisible(`criticité « ${niveau} » : attendu low, medium ou high`);
+  if (racine.has('criticality')) {
+    const criticite = racine.get('criticality');
+    const lu = criticite instanceof Map ? criticite.get('level') : criticite;
+    if (!estScalaire(lu)) refuser('criticality', criticite instanceof Map ? '`criticality` sans `level`' : '`criticality` : attendu low, medium ou high, ou un mappage qui porte `level`');
+    niveau = lu.texte;
+    if (!NIVEAUX.includes(niveau)) refuser('criticality', `criticité « ${niveau.slice(0, 40)} » : attendu low, medium ou high`);
   }
 
   let code = [];
-  const c = cles.get('code');
-  if (c) {
-    let items;
-    const ligne = enLigne(c);
-    if (ligne !== null) items = decouper(interieur(ligne, '[', ']'));
-    else {
-      if (c.valeur !== '' || c.bloc.length === 0) illisible(`\`code\` illisible : ${c.valeur.slice(0, 80) || 'sans valeur'}`);
-      items = premierNiveau(c.bloc).map((l) => (/^-\s+\S/.test(l) ? l.slice(1) : illisible(`\`code\` illisible : ${l}`)));
-    }
-    code = items.map(scalaire);
-    // Une entrée en scalaire de bloc (`- >-`, le chemin à la ligne suivante) : une bibliothèque lirait ce chemin.
-    if (code.some((p) => /^[|>][-+0-9]*$/.test(p))) illisible('`code` porte une entrée en scalaire de bloc');
-    if (code.some((p) => p === '')) illisible('`code` porte un chemin vide');
+  if (racine.has('code')) {
+    const c = racine.get('code');
+    if (!Array.isArray(c) || !c.every(estScalaire)) refuser('code', '`code` : attendu une liste de chemins');
+    if (c.some((p) => p.texte === '' || (p.nu && PAS_UN_TEXTE.test(p.texte)))) refuser('code', '`code` porte un chemin vide, ou une valeur nue que YAML ne lit pas comme un texte');
+    code = c.map((p) => p.texte);
   }
 
-  let statut;
-  try {
-    const validation = cles.get('validation');
-    statut = validation ? scalaire(champ(validation, 'status') ?? '') : '';
-  } catch {
-    statut = ''; // statut que ce lecteur ne comprend pas : la règle compte
-  }
+  // Un statut que ce lecteur ne trouve pas (pas de `validation`, pas de `status`, autre chose qu'un scalaire) : la règle compte.
+  const validation = racine.get('validation');
+  const statut = validation instanceof Map && estScalaire(validation.get('status')) ? validation.get('status').texte : '';
   return { niveau, code, enVigueur: !HORS_VIGUEUR.includes(statut) };
 }
 
@@ -415,8 +477,9 @@ const court = (nom) => nom.replace(/^refs\/remotes\//, '');
 /**
  * Le dossier de ce dépôt, si l'utilisateur l'a déclaré sûr par `safe.directory` ; sinon `null`. C'est le seul réglage
  * d'utilisateur ou de système que le lecteur reprend, et il le reprend pour ce dossier seul, jamais le `*` qui l'a
- * admis. Le dossier est le premier, en remontant, qui porte `.git` : celui que git compare. Le lecteur n'admet
- * jamais un dépôt que git refuserait (`A-135`) : il lit moins que git, jamais plus. Ne vaut qu'une valeur égale à ce
+ * admis. Le dossier est le premier, en remontant, qui porte `.git` : celui que git compare. Les déclarations sont
+ * celles que git lit lui-même hors de tout dépôt, aux portées `system` et `global`, dans son ordre
+ * (`git config --show-scope`, `A-143`). Le lecteur lit moins que git (`A-135`) : ne vaut qu'une valeur égale à ce
  * chemin, caractère pour caractère, ou `*` : ni barre finale, ni `dossier/*`, ni `.`, ni `~/`, ni lien symbolique.
  * Une déclaration faite par `git -c`, `GIT_CONFIG_COUNT` ou `GIT_CONFIG_PARAMETERS` n'est pas vue, et la présence
  * d'une de ces deux variables, où une remise à zéro peut se trouver, fait qu'aucune déclaration n'est admise.
@@ -435,22 +498,24 @@ function declareSur(cwd) {
   // Où vit la configuration de l'utilisateur : ces trois variables le disent, aucune autre `GIT_*` n'est héritée.
   const LIEU = ['GIT_CONFIG_GLOBAL', 'GIT_CONFIG_SYSTEM', 'GIT_CONFIG_NOSYSTEM'];
   const env = Object.fromEntries(Object.entries(process.env).filter(([cle]) => !cle.startsWith('GIT_') || LIEU.includes(cle)));
-  // Les déclarations que git lirait lui-même, pas davantage : quand GIT_CONFIG_NOSYSTEM est vrai, git ignore la
-  // configuration de système, mais `git config --system`, nommé, la lirait quand même. Elle n'est lue ici que si la
-  // variable est absente ou fausse au sens de git (vide, `false`, `no`, `off`, zéro) ; toute autre valeur l'écarte,
-  // celle que git refuse comprise (il échoue alors à toute commande) : le côté sûr, le calcul lit moins.
-  const sansSysteme = !/^(|false|no|off|[+-]?0+)$/i.test(process.env.GIT_CONFIG_NOSYSTEM ?? '');
+  // Les déclarations que git lirait lui-même, dans son ordre, lues par lui et hors de tout dépôt : la portée de
+  // système s'il ne l'écarte pas (`GIT_CONFIG_NOSYSTEM`), puis les deux fichiers de l'utilisateur
+  // (`$XDG_CONFIG_HOME/git/config`, puis `~/.gitconfig`), leurs `include` compris. `git config --global`, nommé,
+  // ne lirait que le second quand il existe : une remise à zéro écrite dans le premier serait manquée.
+  let lus = [];
+  try {
+    lus = execFileSync('git', ['config', '--show-scope', '--includes', '--get-all', 'safe.directory'], { cwd: '/', env, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).split('\n');
+    lus.pop();
+  } catch {
+    // Aucune déclaration (sortie 1), une configuration que git refuse, ou git absent : la première lecture du dépôt le dira.
+  }
   let declares = [];
-  for (const portee of sansSysteme ? ['--global'] : ['--system', '--global']) {
-    let lus = [];
-    try {
-      lus = execFileSync('git', ['config', portee, '--includes', '--get-all', 'safe.directory'], { cwd: '/', env, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).split('\n');
-      lus.pop();
-    } catch {
-      // Aucune déclaration à cette portée (sortie 1), ou git absent : la première lecture du dépôt le dira.
-    }
+  for (const ligne of lus) {
+    const m = /^(system|global)\t(.*)$/.exec(ligne);
+    // Une ligne d'une autre portée, ou la suite d'une valeur à saut de ligne : rien n'est admis.
+    if (!m) return null;
     // Comme git : une valeur vide efface les déclarations qui la précèdent.
-    for (const v of lus) declares = v === '' ? [] : [...declares, v];
+    declares = m[2] === '' ? [] : [...declares, m[2]];
   }
   return declares.some((v) => v === '*' || v === racine) ? racine : null;
 }
@@ -607,7 +672,12 @@ function cheminDeCode(chemin) {
   return segments.length ? comparable(segments.join('/')) : null;
 }
 
-/** Les règles hautes et en vigueur de l'arbre d'un commit : `{ regles: Map clé comparable → { cle, code }, connues, source }` ; `connues` : toutes les règles de l'arbre, quel que soit leur niveau. `nom` : la réf, pour les messages. */
+/**
+ * Les règles hautes et en vigueur de l'arbre d'un commit : `{ regles: Map clé comparable → { cle, code }, connues, horsListe, source }`.
+ * `connues` : toutes les règles de l'arbre, quel que soit leur niveau. `horsListe` : les fichiers de règle dont l'en-tête
+ * est hors de la liste fermée des formes, `[{ cle, chemin, message }]` ; on ne prouve pas ce qu'on ne lit pas, chacun
+ * est une cause (`A-143`), et les autres règles de l'arbre restent lues. `nom` : la réf, pour les messages.
+ */
 function hautes(nom, commit, lecteur) {
   const fichiers = new Map(); // clé comparable → chemin réel
   for (const chemin of lecteur.lister(commit, REGLES)) {
@@ -623,24 +693,27 @@ function hautes(nom, commit, lecteur) {
   // ce qu'un en-tête dit. Le plus haut niveau gagne, le `code` est l'union, et l'un des deux suffit à dire « en vigueur ».
   const aLire = [...fichiers];
   const textes = lecteur.lire(commit, aLire.map(([, chemin]) => chemin));
+  const horsListe = [];
   for (const [cle, chemin] of aLire) {
+    const ecrite = chemin.split('/').pop().slice(0, -3);
     let lu;
     try {
       lu = enTeteDeRegle(textes.get(chemin));
     } catch (e) {
       if (!(e instanceof Illisible)) throw e;
-      illisible(`${nom}:${chemin} : ${e.message}`);
+      horsListe.push({ cle: regles.get(cle)?.cle ?? ecrite, chemin, message: `${nom}:${chemin} : ${e.message}` });
+      continue;
     }
     const connu = regles.get(cle);
     const rang = (n) => NIVEAUX.indexOf(n);
     regles.set(cle, {
-      cle: connu?.cle ?? chemin.split('/').pop().slice(0, -3),
+      cle: connu?.cle ?? ecrite,
       niveau: connu && rang(connu.niveau) > rang(lu.niveau) ? connu.niveau : lu.niveau,
       code: [...(connu?.code ?? []), ...lu.code],
       enVigueur: (connu?.enVigueur ?? false) || lu.enVigueur,
     });
   }
-  return { regles: new Map([...regles].filter(([, r]) => r.niveau === 'high' && r.enVigueur)), connues: new Set(regles.keys()), source: avecIndex ? INDEX : REGLES };
+  return { regles: new Map([...regles].filter(([, r]) => r.niveau === 'high' && r.enVigueur)), connues: new Set([...regles.keys(), ...fichiers.keys()]), horsListe, source: avecIndex ? INDEX : REGLES };
 }
 
 // Une ligne d'en-tête, aux formes que le gate `tickets` lit (`enTete`, `tickets-regles.mjs`) : `Règles: …`,
@@ -774,6 +847,11 @@ function calculer({ fichiers, base: cible, tete: sha, tickets = [], develop: int
     }
     const lu = parCommit.get(commit);
     if (lu instanceof Illisible) throw lu;
+    // Un en-tête hors de la liste fermée : la règle n'est pas lue, donc pas prouvée basse. Une cause, et son message.
+    for (const h of lu.horsListe) {
+      causes.push({ sujet: h.cle, motif: EN_TETE_ILLISIBLE, chemin: h.chemin, ref: nom });
+      if (!illisibles.includes(h.message)) illisibles.push(h.message);
+    }
     return lu;
   };
 
@@ -836,19 +914,23 @@ function calculer({ fichiers, base: cible, tete: sha, tickets = [], develop: int
       }
     };
     for (const ticket of new Set(tickets)) {
-      let trouve = false;
+      let absences = 0; // les arbres lus qui ne portent pas le ticket
       let sansLigne = false;
       for (const [commit, nom] of refs)
         essayer(() => {
           const lu = enTeteDuTicket(ticket, nom, commit, lecteur);
-          if (!lu) return;
-          trouve = true;
+          if (!lu) return void absences++;
           sansLigne ||= lu.sansLigne;
           if (lu.double) causes.push({ sujet: ticket, motif: 'Relecture: double', chemin: lu.chemin, ref: nom });
           citer(lu.regles, nom);
         });
       if (sansLigne) for (const [commit, nom] of refs) essayer(() => citer(reglesDeLaSpec(ticket, nom, commit, lecteur), nom));
-      if (!trouve && refs.size > 0) remarques.push(`ticket ${ticket} absent de ${[...refs.values()].join(', ')} : aucun en-tête lu`);
+      // Un ticket que la PR nomme et qu'aucun arbre ne porte : ni sa ligne `Relecture:`, ni ses règles ne sont prouvées
+      // (`A-143`). Un ticket trouvé et mal lu, lui, a déjà dit sa lecture en échec.
+      if (absences === refs.size && refs.size > 0) {
+        causes.push({ sujet: ticket, motif: TICKET_INTROUVABLE, chemin: '—', ref: [...refs.values()].join(', ') });
+        remarques.push(`ticket ${ticket} absent de ${[...refs.values()].join(', ')} : aucun en-tête lu`);
+      }
     }
   }
 
