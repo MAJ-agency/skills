@@ -1,6 +1,6 @@
 # Tests et heure : une règle en trois points dans la fiche des tests du socle, et un gabarit dans socle-tests
 
-Status: ready-for-agent
+Status: Fait — PR #112
 Type: task
 Modèle: sonnet — un texte de règle court, un gabarit de test sur le modèle d'`exemple.property.spec.ts`, et un banc de texte sur le modèle de ceux de `scripts/depot.test.mjs` ; aucune conception.
 Blocked by: —

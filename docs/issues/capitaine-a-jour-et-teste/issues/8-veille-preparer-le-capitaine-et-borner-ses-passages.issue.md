@@ -1,6 +1,6 @@
 # La veille prépare l'environnement du capitaine et ne lance plus un passage qu'elle n'aurait pas le temps de finir
 
-Status: ready-for-agent
+Status: Fait — PR #120
 Type: défaut
 Modèle: opus — une clé de contrat qui fait exécuter une commande par le capitaine (lue au bon endroit, échec fermé), un redémarrage de machine à reconnaître sans dépendre de l'horloge, et une échéance à faire respecter par deux scripts (la veille et la boucle qu'elle lance) ; une erreur arrête le capitaine de tous les projets ou le laisse fusionner sur un environnement cassé.
 Blocked by: 1 (`skills/chaine/fusionner/scripts/boucle.sh`, `skills/chaine/fusionner/SKILL.md`, `skills/chaine/fusionner/references/CONTENU.md`, `.claude-plugin/plugin.json` et `NOTES-DE-VERSION.md` sont des fichiers chauds du ticket 1 : partir de `main` après sa fusion)

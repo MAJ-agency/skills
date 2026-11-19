@@ -1,6 +1,6 @@
 # Mobile en CI : une référence dans socle-mobile-expo, et le ticket gabarit des parcours sur appareil qui y renvoie
 
-Status: ready-for-agent
+Status: Fait — PR #113
 Type: task
 Modèle: sonnet — un document de méthode à écrire d'après une source relue (le workflow et la décision d'Iroki), sans rien en recopier de propre au projet, et un banc de texte sur le modèle de ceux de `scripts/depot.test.mjs`.
 Blocked by: —
