@@ -2621,3 +2621,41 @@ test("passer.sh : l'epoch qu'écrit le rafraîchissement d'un tour date la marqu
   assert.match(rb.stdout, /\[#40\] en passage chez le capitaine capitaine-banc depuis 2026-11-17T11:55:00Z : sautée sans renvoi\n$/);
   assert.equal(b.sommet(), b.avant, "rien n'est poussé");
 });
+
+// Troisième contre-relecture : `PASSAGE_HORLOGE_BANC` posée hors des bancs ne s'avertit qu'au chargement de github.sh,
+// jamais depuis la trappe EXIT, après le verdict : la boucle lit le verdict sur la dernière ligne de `2>&1 | tee`
+// (boucle.sh, `tail -n 1` ; refus.sh, la dernière ligne non vide).
+test("sujet.sh relancer et fusionner, PASSAGE_HORLOGE_BANC posée sans FAUX_GH : un seul avertissement, au chargement, et la dernière ligne de 2>&1 reste le verdict", () => {
+  const { d } = prVerrou();
+  d.branche("sujet/lot", "origin/develop", { "lot.md": "lot\n" });
+  d.branche("feat/sous", "origin/sujet/lot", { "sous.md": "sous\n" });
+  d.git("switch", "-q", "--detach", "origin/develop");
+  const e = d.etat();
+  e.pulls.push(pr(41, "feat/sous", { base: "sujet/lot", title: "docs(lot): sous" }));
+  d.github(e);
+  // Le faux GitHub lit son dossier dans FAUX_GH : un `gh` qui le pose pour lui seul, les scripts ne le voient pas.
+  const bin = join(d.racine, "bin-sans-faux");
+  mkdirSync(bin);
+  writeFileSync(
+    join(bin, "gh"),
+    `#!/bin/sh\nFAUX_GH=${JSON.stringify(d.env.FAUX_GH)} FAUX_GH_ORIGINE=${JSON.stringify(d.env.FAUX_GH_ORIGINE)} exec node ${JSON.stringify(scriptDe("sujet", "faux-gh.mjs"))} "$@"\n`,
+  );
+  chmodSync(join(bin, "gh"), 0o755);
+  const env = { ...d.env, PATH: `${bin}:${d.env.PATH}`, PASSAGE_HORLOGE_BANC: "1000" };
+  delete env.FAUX_GH;
+  delete env.FAUX_GH_ORIGINE;
+  const AVERTISSEMENT = "verrou du passage : PASSAGE_HORLOGE_BANC ignorée hors des bancs (FAUX_GH absent ou vide), horloge de la machine";
+  // relancer : la sous-PR contient déjà son sujet (sortie 3) ; fusionner : elle entre dans le sujet (sortie 0).
+  for (const [geste, sortie] of [["relancer", 3], ["fusionner", 0]]) {
+    const r = spawnSync("bash", ["-c", `bash "$0" ${geste} 41 2>&1`, scriptDe("sujet", "sujet.sh")], { cwd: d.travail, env, encoding: "utf8" });
+    assert.equal(r.status, sortie, `${geste} : ${r.stdout}`);
+    const lignes = r.stdout.split("\n").filter(Boolean);
+    assert.equal(lignes.filter((l) => l.startsWith("verrou du passage : PASSAGE_HORLOGE_BANC")).length, 1, `${geste} : un seul avertissement\n${r.stdout}`);
+    assert.equal(lignes[0], AVERTISSEMENT, `${geste} : l'avertissement au chargement, avant tout\n${r.stdout}`);
+    assert.match(lignes.at(-1), /^#41 /, `${geste} : la dernière ligne est le verdict\n${r.stdout}`);
+    // Le verrou a bien été posé puis terminé (la trappe a joué), à l'horloge de la machine, jamais à 1000.
+    const fin = d.journal().filter((x) => x.methode === "PATCH" && /<!-- capitaine:fin -->/.test(x.champs?.body ?? "")).at(-1);
+    assert.ok(fin, `${geste} : commentaire terminé\n${r.stdout}`);
+    assert.doesNotMatch(fin.champs.body, /<!-- capitaine:passage capitaine-banc 1000 -->/);
+  }
+});

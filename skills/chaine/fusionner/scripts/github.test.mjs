@@ -483,7 +483,7 @@ const decisionPassage = (lus, cree, mien = 7002) => {
   return JSON.parse(r.stdout);
 };
 const autre = (body, created_at = "2026-11-17T10:00:00Z") => ({ id: 7001, body, author_association: "OWNER", created_at, updated_at: created_at });
-const iso = (epoch) => new Date(epoch * 1000).toISOString().replace(".000Z", "Z");
+const iso = (epoch) => new Date(epoch * 1000).toISOString().replace(/\.000Z$/, "Z");
 
 test("FILTRE_PASSAGE : un epoch en avance est ignoré tant qu'il le reste pour le lecteur, puis compte ; une marque figée posée par une horloge en avance revit jusqu'à E + 90 min (décision A-55)", () => {
   // Créée à C = 10:00, epoch E = C + 2 h (horloge en avance de 2 heures), jamais rafraîchie ensuite.
@@ -510,12 +510,13 @@ test("FILTRE_PASSAGE : un epoch de plus de 40 caractères ou vide ne fait jamais
   assert.deepEqual(decisionPassage([autre(marque("capitaine-banc", false, long))], cree).anciens, [7001], "sienne au long epoch : à terminer");
 });
 
-test("epoch_passage : PASSAGE_HORLOGE_BANC n'est honorée que sous le faux GitHub des bancs (FAUX_GH posé et non vide) ; sans lui, l'horloge réelle et un avertissement par appel", () => {
+test("epoch_passage : PASSAGE_HORLOGE_BANC n'est honorée que sous le faux GitHub des bancs (FAUX_GH posé et non vide) ; sans lui, l'horloge réelle et un seul avertissement, au chargement de github.sh, avant toute sortie", () => {
   const d = depotJouet();
-  const jouer = (env) => spawnSync("bash", ["-c", `set -euo pipefail; source ${GITHUB}; epoch_passage; epoch_passage`], { cwd: d.travail, env, encoding: "utf8" });
+  // Sortie d'erreur et sortie standard dans un même flux, comme la boucle (`2>&1 | tee`) : l'avertissement vient en tête.
+  const jouer = (env) => spawnSync("bash", ["-c", `set -euo pipefail; source ${GITHUB} 2>&1; echo "apres-chargement \${PASSAGE_HORLOGE_BANC-retiree}"; epoch_passage; epoch_passage 2>&1; echo verdict`], { cwd: d.travail, env, encoding: "utf8" });
   const banc = jouer(d.env);
   assert.equal(banc.status, 0, banc.stderr);
-  assert.deepEqual(banc.stdout.split("\n").filter(Boolean), [d.env.PASSAGE_HORLOGE_BANC, d.env.PASSAGE_HORLOGE_BANC], "sous le faux : l'horloge des bancs");
+  assert.deepEqual(banc.stdout.split("\n").filter(Boolean), [`apres-chargement ${d.env.PASSAGE_HORLOGE_BANC}`, d.env.PASSAGE_HORLOGE_BANC, d.env.PASSAGE_HORLOGE_BANC, "verdict"], "sous le faux : l'horloge des bancs");
   assert.equal(banc.stderr, "");
   for (const faux of [undefined, ""]) {
     const env = { ...d.env, PASSAGE_HORLOGE_BANC: "1000" };
@@ -525,10 +526,14 @@ test("epoch_passage : PASSAGE_HORLOGE_BANC n'est honorée que sous le faux GitHu
     const r = jouer(env);
     const apres = Math.floor(Date.now() / 1000);
     assert.equal(r.status, 0, r.stderr);
-    const lus = r.stdout.split("\n").filter(Boolean).map(Number);
+    const [avertissement, chargement, ...reste] = r.stdout.split("\n").filter(Boolean);
+    assert.equal(avertissement, "verrou du passage : PASSAGE_HORLOGE_BANC ignorée hors des bancs (FAUX_GH absent ou vide), horloge de la machine", "l'avertissement, au chargement, en tête");
+    assert.equal(chargement, "apres-chargement retiree", "PASSAGE_HORLOGE_BANC retirée de l'environnement au chargement");
+    assert.equal(reste.at(-1), "verdict", "rien après le verdict");
+    const lus = reste.slice(0, -1).map(Number);
     assert.equal(lus.length, 2, r.stdout);
     for (const e of lus) assert.ok(e >= avant && e <= apres, `FAUX_GH ${JSON.stringify(faux)} : horloge réelle, lu ${e}`);
-    assert.deepEqual(r.stderr.split("\n").filter(Boolean), Array(2).fill("verrou du passage : PASSAGE_HORLOGE_BANC ignorée hors des bancs (FAUX_GH absent), horloge de la machine"), "un avertissement par appel");
+    assert.equal(r.stderr, "", "epoch_passage n'avertit jamais");
   }
 });
 

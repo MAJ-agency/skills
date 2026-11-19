@@ -670,12 +670,16 @@ PASSAGE_MOTIF=''
 PASSAGE_POSE_LANCEE='' # 1 : POST du commentaire lancé, son id pas encore lu (finir_passage relit alors)
 # Horloge du verrou : celle de la machine. `PASSAGE_HORLOGE_BANC` (secondes depuis l'époque Unix, pour les bancs
 # seulement : l'epoch des marques suit alors les dates du faux GitHub) la fixe ; elle ne règle que cette heure-là, et
-# seulement sous le faux GitHub des bancs (`FAUX_GH` posé et non vide). Posée sans lui (en production) : ignorée, et
-# une ligne d'avertissement sur la sortie d'erreur à chaque appel.
+# seulement si `FAUX_GH` (le faux GitHub des bancs) est posé et non vide. Posée sans lui (en production) : ignorée,
+# avec un seul avertissement sur la sortie d'erreur, donné ici, au chargement, avant tout verdict, puis retirée de
+# l'environnement : `epoch_passage` n'avertit jamais, et rien n'est écrit après la ligne de `sortir`, même depuis la
+# trappe EXIT (`finir_passage`), car la boucle lit le verdict sur la dernière ligne de la sortie.
+if [ -n "${PASSAGE_HORLOGE_BANC-}" ] && [ -z "${FAUX_GH-}" ]; then
+  echo "verrou du passage : PASSAGE_HORLOGE_BANC ignorée hors des bancs (FAUX_GH absent ou vide), horloge de la machine" >&2 || :
+  unset PASSAGE_HORLOGE_BANC
+fi
 epoch_passage() {
-  if [ -n "${PASSAGE_HORLOGE_BANC-}" ] && [ -z "${FAUX_GH-}" ]; then
-    echo "verrou du passage : PASSAGE_HORLOGE_BANC ignorée hors des bancs (FAUX_GH absent), horloge de la machine" >&2 || :
-  elif [[ "${PASSAGE_HORLOGE_BANC-}" =~ ^[0-9]{1,12}$ ]]; then
+  if [[ "${PASSAGE_HORLOGE_BANC-}" =~ ^[0-9]{1,12}$ ]]; then
     printf '%s\n' "$PASSAGE_HORLOGE_BANC"
     return
   fi
