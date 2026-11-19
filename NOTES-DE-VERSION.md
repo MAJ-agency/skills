@@ -2,7 +2,7 @@
 
 La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque projet par `poser` : une version publiée ne change rien chez un projet qui ne les repose pas. Chaque note dit ce qui change, puis ce qu'un projet fait pour en profiter.
 
-## 7.32.0 — 2026-11-19
+## 7.33.0 — 2026-11-19
 
 ### Ce qui change
 
@@ -18,6 +18,21 @@ Dans un dépôt superficiel, le clone par défaut d'une session cloud, il rend �
 2. Rien d'autre pour l'instant : aucun script de la chaîne n'appelle ce calcul, rien ne change au passage du capitaine, et il n'y a pas à le relancer.
 3. À la prochaine repose de `fusionner`, son étape 0 copie `scripts/double-relecture.mjs` dans `scripts/chaine/` avec son banc : rien à faire de plus.
 4. Avant qu'un script n'appelle ce calcul : écrire les en-têtes des fichiers de règle dans les formes de la liste, la forme en bloc de préférence (`criticality:` puis `level:`, `by:`, `reason:` en retrait), que Prettier ne plie pas au réglage du socle (il en plie la raison sous `proseWrap: always`).
+
+## 7.32.0 — 2026-11-19
+
+### Ce qui change
+
+Le verdict d'une contre-relecture s'écrit sur la PR, et aucun ordre de fusion ne passe un verdict non conforme (ticket 21 de `capitaine-a-jour-et-teste`). Le 2026-11-19, la PR 133 est entrée dans `main` sans les corrections d'une contre-relecture non conforme dont le verdict n'était écrit que dans une carte : aucune session ne pouvait le lire depuis la PR.
+
+- **Le verdict s'écrit sur la PR** : toute contre-relecture d'une PR, dans un dépôt sans la chaîne, laisse en première ligne d'un commentaire `contre-relecture non conforme au sommet <sha40>` (suivie des constats) ou `contre-relecture conforme au sommet <sha40>`. Elle l'écrit avant l'ordre `à-fusionner`, jamais après.
+- **Aucun ordre ne passe un verdict non conforme** : la session qui livre ou ordonne ne pose ni le commentaire ni le label si un verdict `non conforme` porte sur le sommet, ou si la PR porte un verdict et qu'aucun verdict `conforme` ne porte sur ce sommet. Le capitaine sans la chaîne (`architecte/references/lancement.md`) renvoie la PR dans ces cas, renvoi compté dans le plafond de trois, et s'arrête sur un verdict édité ou sur une première ligne qui commence par `contre-relecture non conforme` sans la forme exacte d'un verdict. Une PR sans aucun verdict suit la suite de la procédure.
+
+### Ce qu'un projet fait pour en profiter
+
+- Un capitaine ou une session déjà lancés gardent l'ancienne procédure jusqu'à leur relance.
+- Une PR déjà ordonnée sans aucun commentaire de verdict n'est pas renvoyée pour cela ; l'architecte qui a contre-relu une PR encore ouverte y écrit son verdict.
+- Iroki et Fedora, dépôts à la chaîne, n'ont rien à faire : leur capitaine (`fusionner`, `revue-exigee.mjs`) ne lit pas ces commentaires, et un verdict écrit sur leurs PR n'y est qu'une information.
 
 ## 7.31.2 — 2026-11-19
 
