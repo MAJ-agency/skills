@@ -450,3 +450,24 @@ test('ticket 18 (contre-relecture) : un gabarit recopié sans choisir, ou la lig
   assert.equal(revueExigee.motifSansSecurite({ corps: avecLigne(`<!-- note -->\n${LIGNE}`), fichiers: ['infra/main.tf'], base: INFRA }), null, 'après un commentaire fermé');
   assert.equal(revueExigee.motifSansSecurite({ corps: avecLigne(`${LIGNE} <!-- relue -->`), fichiers: ['infra/main.tf'], base: INFRA }), null, 'commentaire après la ligne');
 });
+
+test('ticket 18 (contre-relecture) : des points de suspension dans la prose comptent ; une parenthèse de chemins vide, laissée en …, ou « / non requise » ne comptent pas', () => {
+  const avec = (ligne) => revueExigee.motifSansSecurite({ corps: avecLigne(ligne), fichiers: ['infra/main.tf'], base: INFRA });
+  for (const ligne of [
+    '- `/security-review` : lancée (chemins : infra/main.tf) — rien à signaler...',
+    '- `/security-review` : lancée (chemins : infra/main.tf) — rien à signaler…',
+    '- `/security-review` : lancée… deux constats corrigés',
+    '- `/security-review` : lancée, chemins infra/**, rien...',
+  ])
+    assert.equal(avec(ligne), null, ligne);
+  for (const ligne of [
+    '- `/security-review` : lancée (chemins : )',
+    '- `/security-review` : lancée (chemins :)',
+    '- `/security-review` : lancée (chemins : … )',
+    '- `/security-review` : lancée (chemins : infra/main.tf, ...)',
+    '- `/security-review` : lancée (chemins : infra/main.tf) / non requise',
+    '- `/security-review` : lancée / non requise',
+    '- `/security-review` : lancée | non requise',
+  ])
+    assert.notEqual(avec(ligne), null, ligne);
+});

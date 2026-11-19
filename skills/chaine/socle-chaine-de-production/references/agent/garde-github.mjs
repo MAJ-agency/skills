@@ -25,7 +25,9 @@ const refuser = (texte) => {
 process.on('uncaughtException', (e) => refuser(`erreur inattendue (${cause(e)}) : tout outil est refusé, la garde ne s'ouvre jamais sur une erreur. ${RESTAURER}`));
 process.on('unhandledRejection', (e) => refuser(`erreur inattendue (${cause(e)}) : tout outil est refusé, la garde ne s'ouvre jamais sur une erreur. ${RESTAURER}`));
 // Dernier filet : toute sortie autre que 0 (permis) ou 2 (refusé), comme le 13 d'un `await` de premier niveau qui ne se
-// résout jamais, devient un refus. Claude Code laisse passer l'outil sur toute autre sortie.
+// résout jamais, devient un refus. Claude Code ne refuse l'outil que sur la sortie 2 ; sur une sortie 1 ou un signal, il
+// le bloque si le hook porte `"onFailure": "block"` (le fragment `settings-hooks.json` le pose), et le laisse passer
+// sinon (un projet qui n'a pas reposé le fragment) : d'où ce filet, qui ne dépend pas du réglage.
 process.on('exit', (code) => {
   if (code === 0 || code === 2) return;
   process.stderr.write(`garde-github : sortie ${code} inattendue (await jamais résolu ou erreur de Node) : tout outil est refusé, la garde ne s'ouvre jamais sur une erreur. ${RESTAURER}\n`);

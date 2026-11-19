@@ -262,14 +262,21 @@ const CLOTURE = /^\s{0,3}(```|~~~)/;
  * finale ou de la fin de ligne (`\b` ne vaut rien après `é` en JavaScript). Lue en NFC, sans casse.
  */
 const LIGNE_SECURITE = /^\s*[-*+]\s+`?\/security-review`?\s*:\s*lancée(?=[\s(.,;:!?…]|$)/iu;
-/** Un gabarit recopié sans choisir : la branche « non requise » laissée, ou les chemins laissés en `…`. */
-const GABARIT_NON_REMPLI = /\|\s*non requise|…|\.\.\./iu;
+/**
+ * Un gabarit recopié sans choisir : la branche « non requise » laissée (`| non requise`, `/ non requise`), ou la
+ * parenthèse « (chemins : …) » vide ou laissée en `…` / `...`. Des points de suspension dans la prose comptent.
+ */
+const nonRemplie = (ligne) => {
+  if (/[|/]\s*non requise/iu.test(ligne)) return true;
+  const chemins = /\(\s*chemins\s*:([^)]*)\)/iu.exec(ligne);
+  return chemins !== null && (chemins[1].trim() === '' || /…|\.\.\./u.test(chemins[1]));
+};
 
 /**
  * Vrai si une ligne « - `/security-review` : lancée » se tient dans une section « Revue de ticket » ou « Revue
  * adversariale » : après son titre, avant le titre suivant de niveau égal ou supérieur, hors bloc de code et hors
  * commentaire HTML (`<!-- … -->`, sur une ou plusieurs lignes, non fermé compris), et remplie (ni « | non requise »
- * ni `…` laissés du gabarit).
+ * ni parenthèse « (chemins : …) » vide ou laissée en `…` ; des points de suspension dans la prose comptent).
  */
 export function aLigneSecurite(corps) {
   let dansBloc = false;
@@ -306,7 +313,7 @@ export function aLigneSecurite(corps) {
       if (titre[1].length <= niveau) niveau = 0;
       continue;
     }
-    if (niveau > 0 && LIGNE_SECURITE.test(brute) && !GABARIT_NON_REMPLI.test(brute)) return true;
+    if (niveau > 0 && LIGNE_SECURITE.test(brute) && !nonRemplie(brute)) return true;
   }
   return false;
 }
