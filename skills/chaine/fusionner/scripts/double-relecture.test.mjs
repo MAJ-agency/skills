@@ -5,7 +5,7 @@
 import { after, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
-import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -297,7 +297,8 @@ test('ligne `Relecture:` d\'une autre valeur, ticket en double : illisible ; tic
 test("un ticket qui cite une règle haute en `Règles:` exige deux relectures, sans champ `code` ni ligne `Relecture: double` (A-113)", () => {
   const regles = { [INDEX]: index([entree('RULE_ALL_FAC-16', { niveau: 'high', origin: 'feature' }), entree('RULE_ALL_FAC-17', { niveau: 'medium' })]) };
   const avec = (ligne) => juger([CODE], { ...regles, [TICKET]: ticket(ligne) }, undefined, 'SPEC_ALL_FAC-1.03');
-  const r = avec('Règles: RULE_ALL_FAC-17, `RULE_ALL_FAC-16` # la règle du total\n');
+  // Rien n'est un commentaire sur cette ligne (A-136) : le gate `tickets` lirait `# RULE_…` comme une règle de plus.
+  const r = avec('Règles: RULE_ALL_FAC-17, `RULE_ALL_FAC-16`\n');
   assert.equal(r.reponse, EXIGEE);
   assert.deepEqual(causes(r), [`RULE_ALL_FAC-16 · Règles: · ${TICKET} · origin/develop`]);
   for (const ligne of ['', 'Règles: —\n', 'Règles: RULE_ALL_FAC-17\n', 'Règles: RULE_ALL_FAC-99\n']) assert.equal(avec(ligne).reponse, NON_EXIGEE, ligne || 'sans ligne `Règles:`');
@@ -420,7 +421,7 @@ test("un ticket sans ligne `Règles:` : celle de sa spec est lue à sa place, da
   assert.equal(avec('', spec()).reponse, NON_EXIGEE, 'ni le ticket ni la spec');
   assert.equal(avec('', null).reponse, NON_EXIGEE, 'pas de spec dans cet arbre');
   // Une ligne `Règles:` vide n'est pas « aucune » : elle est ignorée, et la spec est lue (A-122).
-  for (const ligne of ['Règles:\n', 'Règles: \n', '- **Règles** :\n', 'Règles: # à remplir\n']) assert.deepEqual(causes(avec(ligne)), [`RULE_ALL_FAC-16 · Règles: · ${SPEC} · origin/develop`], `« ${ligne.trim()} »`);
+  for (const ligne of ['Règles:\n', 'Règles: \n', '- **Règles** :\n']) assert.deepEqual(causes(avec(ligne)), [`RULE_ALL_FAC-16 · Règles: · ${SPEC} · origin/develop`], `« ${ligne.trim()} »`);
   assert.equal(avec('Règles:\nRègles: —\n').reponse, NON_EXIGEE, 'une ligne vide et une ligne « aucune » : le ticket porte sa ligne');
   assert.equal(avec('', spec('Règles: FAC-16\n')).reponse, ILLISIBLE, 'un jeton illisible dans la spec');
   // La spec d'à côté n'est pas celle du ticket ; deux fichiers pour la même spec : illisible.
@@ -547,6 +548,111 @@ test("l'en-tête d'une règle : les formes lues, et ce qui est refusé plutôt q
     ['texte après la liste', regle('R', { code: 'code: [ apps/a.ts ] et b.ts\n' })],
   ])
     assert.throws(() => enTeteDeRegle(texte), Illisible, nom);
+});
+
+test("l'en-tête d'une règle : une clé entre guillemets, une étiquette, une ancre ou un alias, une chaîne qui ne se ferme pas sur sa ligne rendent l'en-tête « illisible », où qu'ils soient ; jamais une lecture plus basse que celle d'une bibliothèque YAML (A-133)", () => {
+  // Les montages de la contre-relecture : du YAML valide, qu'une bibliothèque lit « haute, en vigueur, ce fichier de
+  // code », et que ce lecteur lisait plus bas. Sur develop, sans index, la PR touche le fichier de `code`.
+  const C = `code:\n  - ${CODE}\n`;
+  const montages = {
+    'g1, clé entre guillemets': [`criticality: { "r":'x, level: low, z: "', level: high, by: "agent" }\n`, C],
+    'g2, étiquette': [`criticality: { r: !!str 'x, level: low, z: "', level: high, by: "agent" }\n`, C],
+    'g2, ancre': [`criticality: { r: &a 'x, level: low, z: "', level: high, by: "agent" }\n`, C],
+    'f1, chaîne pliée sur plusieurs lignes': [`criticality: { reason: "a\n  # ", level: high, r2: '\n  ", level: low, r3: x' }\n`, C],
+    'g7, étiquette sur une entrée de `code`': ['criticality: high\n', `code:\n  - !!str ${CODE}\n`],
+    'g8, ancre sur une entrée de `code`': ['criticality: high\n', `code:\n  - &c ${CODE}\n`],
+    'g8, alias': ['criticality: high\n', 'code:\n  - *c\n'],
+    'une entrée de `code` en scalaire de bloc': ['criticality: high\n', `code:\n  - >-\n    ${CODE}\n`],
+  };
+  const juge = (texte) => juger([CODE], { [R16]: texte });
+  for (const [nom, [criticite, code]] of Object.entries(montages)) {
+    const r = juge(regle('RULE_ALL_FAC-16', { criticite, code }));
+    assert.equal(r.reponse, ILLISIBLE, nom);
+    assert.match(r.illisibles[0], /^origin\/develop:docs\/metier\/regles\/all\/RULE_ALL_FAC-16\.md : /, nom);
+  }
+  const g5 = `---\nid: RULE_ALL_FAC-16\nvalidation: { "r":'x, status: rejected, z: "', status: validated, w: "y" }\ncriticality: high\n${C}---\n`;
+  assert.equal(juge(g5).reponse, ILLISIBLE, 'g5, le statut derrière une clé entre guillemets');
+  // Les quatre traits, hors des trois clés lues aussi : premier niveau, mappage ou liste en ligne, entrée de liste.
+  for (const [nom, lignes] of [
+    ['clé entre guillemets au premier niveau', '"note": x\n'],
+    ['clé entre apostrophes dans un mappage en bloc', "criticality:\n  'level': high\n"],
+    ['clé entre guillemets dans un mappage en ligne', 'sources2: { "ref": a }\n'],
+    ['étiquette au premier niveau', 'criticality: !!str high\n'],
+    ['étiquette dans une liste en ligne', 'epics: [ !!str facture ]\n'],
+    ['ancre au premier niveau', 'criticality: &c high\n'],
+    ['ancre sur une clé de bloc', 'criticality:\n  &l level: high\n'],
+    ['alias dans une liste en ligne', 'epics: [ *e ]\n'],
+    ['alias sur une entrée de liste', 'epics:\n  - *e\n'],
+    ['étiquette après une virgule, dans une liste en ligne', 'epics: [ a, !!str b ]\n'],
+    ['clé entre guillemets après une virgule, dans un mappage plié', 'criticality:\n  {\n    level: high,\n    "by": agent,\n  }\n'],
+    ["chaîne entre guillemets non refermée sur sa ligne, dans une autre clé", 'note: "a\n  b"\n'],
+    ["chaîne entre apostrophes non refermée sur sa ligne, dans une entrée de liste", "epics:\n  - 'a\n    b'\n"],
+  ])
+    assert.throws(() => enTeteDeRegle(regle('RULE_ALL_FAC-16', { criticite: lignes })), Illisible, nom);
+  // Ce qui n'est pas un de ces traits reste lu : le texte d'un scalaire en bloc, un guillemet ou une étoile dans un texte.
+  const lu = enTeteDeRegle(regle('RULE_ALL_FAC-16', { criticite: `${HAUTE_BLOC}note: |\n  "une ligne de texte\n  * une puce, !important, &co\nautre: >-\n  'encore\ntitre2: le "total" d'une facture, *à peu près*, c'est 100 % !\nautre2: x # un commentaire : "pas une chaîne, !important, &co\n`, code: CODE_BLOC }));
+  assert.deepEqual(lu, { niveau: 'high', code: [CODE], enVigueur: true });
+});
+
+test("avec un index, les en-têtes des fichiers de règle sont lus aussi, à chaque référence : une règle est haute et comptée dès que l'une des deux lectures le dit, son `code` est l'union des deux (A-134)", () => {
+  const fichier = { [R16]: regle('RULE_ALL_FAC-16', { criticite: HAUTE_BLOC, code: CODE_BLOC }) };
+  const montages = {
+    "l'index d'une CLI ancienne, sans `criticality`": index([entree('RULE_ALL_FAC-16', { code: [CODE] })], '2'),
+    "la règle absente de l'index": index([entree('RULE_ALL_FAC-17', { niveau: 'medium' })]),
+    "l'index dit `low`": index([entree('RULE_ALL_FAC-16', { niveau: 'low', code: [CODE] })]),
+    "`code` absent de l'index": index([entree('RULE_ALL_FAC-16', { niveau: 'high' })]),
+    "`rejected` dans l'index seul": index([entree('RULE_ALL_FAC-16', { niveau: 'high', code: [CODE], statut: 'rejected' })]),
+  };
+  for (const [nom, idx] of Object.entries(montages)) {
+    const r = juger([CODE], { ...fichier, [INDEX]: idx });
+    assert.equal(r.reponse, EXIGEE, nom);
+    assert.deepEqual(causes(r), [`RULE_ALL_FAC-16 · code · ${CODE} · origin/develop`], nom);
+  }
+  // Le niveau reçu d'une feature, que seul l'index porte, reste vu ; le `code` vient alors de l'en-tête.
+  const feature = { [R16]: regle('RULE_ALL_FAC-16', { code: CODE_BLOC }), [INDEX]: index([entree('RULE_ALL_FAC-16', { niveau: 'high', origin: 'feature' })]) };
+  assert.deepEqual(causes(juger([CODE], feature)), [`RULE_ALL_FAC-16 · code · ${CODE} · origin/develop`]);
+  // Rejetée des deux côtés : elle ne compte pas.
+  const rejetee = { [R16]: regle('RULE_ALL_FAC-16', { criticite: HAUTE_BLOC, code: CODE_BLOC, statut: 'rejected' }), [INDEX]: montages["`rejected` dans l'index seul"] };
+  assert.equal(juger([CODE], rejetee).reponse, NON_EXIGEE);
+  // Un en-tête illisible rend la lecture illisible, index ou pas, que le diff touche son fichier ou non.
+  const illisible = juger(['README.md'], { [R17]: regle('RULE_ALL_FAC-17', { criticite: 'criticality: HIGH\n' }), [INDEX]: index([entree('RULE_ALL_FAC-17', { niveau: 'medium' })]) });
+  assert.equal(illisible.reponse, ILLISIBLE);
+  assert.match(illisible.illisibles[0], /RULE_ALL_FAC-17\.md/);
+});
+
+test("2 000 règles, index et en-têtes lus à chaque référence : le calcul reste court (A-134)", () => {
+  const cles = Array.from({ length: 2000 }, (_, i) => `RULE_ALL_FAC-${i + 100}`);
+  const arbre = { [INDEX]: index(cles.map((cle, i) => entree(cle, { niveau: i === 0 ? 'high' : 'medium', code: [`apps/api/src/r${i}.ts`] }))) };
+  cles.forEach((cle, i) => (arbre[`docs/metier/regles/all/${cle}.md`] = regle(cle, { criticite: i === 0 ? HAUTE_BLOC : MOYENNE, code: `code:\n  - apps/api/src/r${i}.ts\n` })));
+  const tete = { ...arbre, 'README.md': 'm\n' };
+  const debut = Date.now();
+  assert.equal(juger(['apps/api/src/r0.ts'], arbre, tete).reponse, EXIGEE);
+  assert.equal(juger(['apps/api/src/r1.ts'], arbre, tete).reponse, NON_EXIGEE);
+  assert.ok(Date.now() - debut < 2000, `${Date.now() - debut} ms`);
+});
+
+test("quatre petits : une ligne `Règles:` ne porte que des identifiants de règle, leurs séparateurs ou `—` ; un chemin du diff qui contient un chemin de `code` compte ; deux fichiers pour une règle à la casse près : « illisible » ; une règle citée qu'aucun arbre ne connaît : un avertissement (A-136)", () => {
+  const regles = { [INDEX]: index([entree('RULE_ALL_FAC-16', { niveau: 'high', code: ['vendor/lib/src/total.ts'] }), entree('RULE_ALL_FAC-17', { niveau: 'medium' })]) };
+  const avec = (ligne) => juger(['README.md'], { ...regles, [TICKET]: ticket(ligne) }, undefined, 'SPEC_ALL_FAC-1.03');
+  // (a) Le gate lit `RULE_ALL_FAC-2 # RULE_ALL_FAC-16` comme deux règles et un jeton mal formé : rien n'y est un commentaire.
+  for (const ligne of ['Règles: RULE_ALL_FAC-17 # RULE_ALL_FAC-16\n', 'Règles: RULE_ALL_FAC-17, `RULE_ALL_FAC-16` # la règle du total\n', 'Règles: # à remplir\n', 'Règles: RULE_ALL_FAC-17 et la suite\n'])
+    assert.equal(avec(ligne).reponse, ILLISIBLE, ligne);
+  assert.equal(avec('Règles: RULE_ALL_FAC-17, `RULE_ALL_FAC-16`\n').reponse, EXIGEE);
+  // (b) Le lien d'un sous-module, ou tout chemin du diff qui est un ancêtre d'un chemin de `code`.
+  const ancetre = juger(['vendor/lib'], regles);
+  assert.deepEqual(causes(ancetre), ['RULE_ALL_FAC-16 · code · vendor/lib · origin/develop']);
+  assert.equal(juger(['vendor/li', 'vendor/lib/src/total.tsx', 'vendor/lib/src/autre.ts'], regles).reponse, NON_EXIGEE, "ni un préfixe de nom, ni un voisin");
+  // (c) Deux fichiers pour un même identifiant, à la casse près.
+  const deux = juger(['README.md'], { [R16]: regle('RULE_ALL_FAC-16', { criticite: MOYENNE }), [R16.replace('RULE_ALL_FAC-16', 'rule_all_fac-16')]: regle('RULE_ALL_FAC-16', { criticite: HAUTE_NUE }) });
+  assert.equal(deux.reponse, ILLISIBLE);
+  assert.match(deux.illisibles[0], /deux fichiers pour la règle/);
+  // (d) Une règle citée qu'aucun des trois arbres ne connaît reste ignorée (les tickets archivés en citent), et se dit.
+  const inconnue = avec('Règles: RULE_ALL_FAC-99, RULE_ALL_FAC-17\n');
+  assert.equal(inconnue.reponse, NON_EXIGEE);
+  assert.equal(inconnue.avertissements.length, 1);
+  assert.match(inconnue.avertissements[0], /^règle RULE_ALL_FAC-99 citée par .*SPEC_ALL_FAC-1-facture\.03\.issue\.md \(origin\/develop\) : aucun arbre ne la connaît, elle est ignorée$/);
+  assert.deepEqual(avec('Règles: RULE_ALL_FAC-17\n').avertissements, [], 'une règle moyenne est connue');
+  assert.doesNotMatch(texte(inconnue), /RULE_ALL_FAC-99/, "l'avertissement n'est pas sur la sortie standard");
 });
 
 test("lecture en temps linéaire : trois en-têtes hostiles de 300 000 caractères, lus ou refusés en moins de 2 s", () => {
@@ -785,6 +891,11 @@ test('le ticket se lit dans le titre et dans le nom de la branche de tête, et s
   const avecTicket = commit(depot, { [TICKET]: ticket('**Relecture:** double\n') }, 'docs: ticket');
   const surLaTete = lancer(script, ['--base', 'develop', '--tete', avecTicket, '--branche', BRANCHE], { cwd: depot, entree: `${TICKET}\n` });
   assert.deepEqual([surLaTete.code, surLaTete.sortie], [20, `SPEC_ALL_FAC-1.03\tRelecture: double\t${TICKET}\t${avecTicket}\nexigée\n`]);
+  // Une règle citée qu'aucun arbre ne connaît : ignorée, et dite sur la sortie d'erreur, jamais sur la sortie standard (A-136).
+  const inconnue = commit(depot, { [TICKET]: ticket('Règles: RULE_ALL_FAC-99\n') }, 'docs: une règle inconnue');
+  const avertie = lancer(script, ['--base', 'develop', '--tete', inconnue, '--branche', BRANCHE], { cwd: depot, entree: `${TICKET}\n` });
+  assert.deepEqual([avertie.code, avertie.sortie], [0, 'non exigée\n']);
+  assert.equal(avertie.erreur, `# règle RULE_ALL_FAC-99 citée par ${TICKET} (${inconnue}) : aucun arbre ne la connaît, elle est ignorée\n`);
 });
 
 test("le lecteur git lit par un dépôt propre, jetable : un fichier absent du commit, plusieurs fichiers en une lecture, un contenu à accents, la base de fusion, les branches de sujet", () => {
@@ -938,7 +1049,7 @@ test("le dépôt d'un autre propriétaire : « illisible » ; déclaré sûr par
   // propriétaire (la variable de test de git), et lui seul : le dépôt propre du calcul reste le sien.
   const vrai = execFileSync('sh', ['-c', 'command -v git'], { encoding: 'utf8', env: ENV_PROPRE }).trim();
   const faux = dossier('git-');
-  writeFileSync(join(faux, 'git'), `#!/bin/sh\ncase "$PWD/" in "${depot}/"*) GIT_TEST_ASSUME_DIFFERENT_OWNER=1; export GIT_TEST_ASSUME_DIFFERENT_OWNER ;; esac\nexec "${vrai}" "$@"\n`, { mode: 0o755 });
+  writeFileSync(join(faux, 'git'), `#!/bin/sh\ncase "$PWD/" in "${realpathSync(depot)}/"*) GIT_TEST_ASSUME_DIFFERENT_OWNER=1; export GIT_TEST_ASSUME_DIFFERENT_OWNER ;; esac\nexec "${vrai}" "$@"\n`, { mode: 0o755 });
   const configuration = join(dossier('configuration-'), 'gitconfig');
   const juger = (declarations, cwd = depot, env = {}) => {
     // La configuration de l'utilisateur ment sur le reste : le calcul n'en reprend que la déclaration. (Aucun réglage
@@ -950,13 +1061,23 @@ test("le dépôt d'un autre propriétaire : « illisible » ; déclaré sûr par
   const lu = [20, `RULE_ALL_FAC-16\tniveau\t${INDEX}\t${tete}\nexigée\n`];
   const rendu = (r) => [r.code, r.sortie];
   assert.deepEqual(rendu(juger([])), refuse, "le témoin : git refuse le dépôt d'un autre propriétaire");
-  assert.deepEqual(rendu(juger([depot])), lu, 'déclaré par son chemin');
+  // Le chemin du dépôt tel que git le compare : liens symboliques suivis (un TMPDIR peut en être un).
+  const reel = realpathSync(depot);
+  assert.deepEqual(rendu(juger([reel])), lu, 'déclaré par son chemin');
   mkdirSync(join(depot, 'apps'), { recursive: true });
-  assert.deepEqual(rendu(juger([depot], join(depot, 'apps'))), lu, "depuis un sous-dossier : c'est la racine qui est déclarée");
+  assert.deepEqual(rendu(juger([reel], join(depot, 'apps'))), lu, "depuis un sous-dossier : c'est la racine qui est déclarée");
   assert.deepEqual(rendu(juger(['*'])), lu, 'déclaré par `*`');
-  assert.deepEqual(rendu(juger([`${dirname(depot)}/*`])), lu, 'déclaré par le dossier qui le contient');
-  assert.deepEqual(rendu(juger([`${depot}-autre`, '/ailleurs/*'])), refuse, "la déclaration d'un autre dépôt ne vaut pas pour celui-ci");
-  assert.deepEqual(rendu(juger([depot, ''])), refuse, 'une valeur vide efface les déclarations qui la précèdent, comme pour git');
+  // Le calcul lit moins que git, jamais plus (A-135) : seule vaut une valeur égale au chemin, caractère pour caractère, ou `*`.
+  const lien = join(dossier('lien-'), 'depot');
+  symlinkSync(reel, lien);
+  for (const [nom, valeur] of [['une barre finale', `${reel}/`], ['le dossier qui le contient', `${dirname(reel)}/*`], ['un lien symbolique vers lui', lien], ['un sous-dossier', join(reel, 'apps')]])
+    assert.deepEqual(rendu(juger([valeur])), refuse, `${nom} : non admis`);
+  for (const valeur of ['.', '..']) assert.deepEqual(rendu(juger([valeur], join(depot, 'apps'))), refuse, `\`${valeur}\` : non admis`);
+  // Une remise à zéro peut se trouver dans ces variables, que ce calcul ne lit pas : avec l'une d'elles, aucune déclaration n'est admise.
+  assert.deepEqual(rendu(juger([reel], depot, { GIT_CONFIG_COUNT: '0' })), refuse, 'GIT_CONFIG_COUNT présente');
+  assert.deepEqual(rendu(juger(['*'], depot, { GIT_CONFIG_PARAMETERS: "'safe.directory='" })), refuse, 'GIT_CONFIG_PARAMETERS présente');
+  assert.deepEqual(rendu(juger([`${reel}-autre`, '/ailleurs/*'])), refuse, "la déclaration d'un autre dépôt ne vaut pas pour celui-ci");
+  assert.deepEqual(rendu(juger([reel, ''])), refuse, 'une valeur vide efface les déclarations qui la précèdent, comme pour git');
   // La configuration de système (`A-130`) : le calcul lit les déclarations que git lirait lui-même, pas davantage.
   // Avec GIT_CONFIG_NOSYSTEM vrai au sens de git, git ignore le fichier de système : le calcul ne le lit pas non plus.
   const systeme = join(dirname(configuration), 'systeme');
@@ -966,7 +1087,7 @@ test("le dépôt d'un autre propriétaire : « illisible » ; déclaré sûr par
   for (const v of ['0', 'false', 'no', 'off', 'OFF', '']) assert.deepEqual(avec(v), lu, `GIT_CONFIG_NOSYSTEM=${JSON.stringify(v)} est faux pour git : le système est lu`);
   for (const v of ['1', 'true', 'yes', 'on', 'TRUE', '2']) assert.deepEqual(avec(v), refuse, `GIT_CONFIG_NOSYSTEM=${v} : git ignore le système, le calcul aussi`);
   assert.deepEqual(avec('bidon'), refuse, 'une valeur que git refuse (il échoue alors à toute commande) : le système n\'est pas lu');
-  assert.deepEqual(rendu(juger([depot], depot, { GIT_CONFIG_SYSTEM: systeme, GIT_CONFIG_NOSYSTEM: '1' })), lu, "le système ignoré, la déclaration de l'utilisateur vaut toujours");
+  assert.deepEqual(rendu(juger([reel], depot, { GIT_CONFIG_SYSTEM: systeme, GIT_CONFIG_NOSYSTEM: '1' })), lu, "le système ignoré, la déclaration de l'utilisateur vaut toujours");
   assert.deepEqual(readdirSync(temporaire), [], 'aucun dépôt propre ne reste');
 });
 

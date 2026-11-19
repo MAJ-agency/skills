@@ -38,8 +38,9 @@
 // est l'identifiant de la règle, le niveau effectif, criticité reçue d'une feature comprise ; ses fichiers de
 // code dans `code`, son statut dans `validation.status`. Sans index : dans l'en-tête de chaque fichier de règle
 // (`docs/metier/regles/<ctx>/<RULE_…>.md`), qui ne voit pas une criticité reçue d'une feature. Avec un index,
-// l'en-tête des fichiers de règle que le diff touche est lu en plus, et le plus haut gagne : un index que la PR
-// n'a pas régénéré ne cache pas une règle qu'elle monte. Une règle `rejected` ou `obsolete` ne compte pas.
+// les en-têtes sont lus aussi, à chaque référence : une règle est haute et comptée dès que l'une des deux lectures
+// le dit, et son `code` est l'union des deux ; un index ancien, incomplet ou que la PR n'a pas régénéré ne cache
+// rien. Une règle `rejected` ou `obsolete` (des deux côtés, quand il y a un index) ne compte pas.
 // Le changement de niveau se lit entre le départ de la PR (la base de fusion de sa cible et de sa tête) et sa tête :
 // ce qu'une autre PR a changé dans la cible depuis n'est pas un changement de celle-ci.
 //
@@ -59,7 +60,7 @@
 
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdtempSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from 'node:fs';
-import { homedir, tmpdir } from 'node:os';
+import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
@@ -136,6 +137,72 @@ function enTeteDeValeur(texte, i) {
   if (j < 0) return true;
   const c = texte[j];
   return c === ',' || c === '[' || c === '{' || (c === ':' && j < i - 1);
+}
+
+/** Où se ferme la chaîne qu'un guillemet ouvre en `i`, sur la même ligne ; -1 si elle ne s'y ferme pas. */
+function fermeture(ligne, i) {
+  const g = ligne[i];
+  for (let j = i + 1; j < ligne.length; j++) {
+    if (g === '"' && ligne[j] === '\\') j++;
+    else if (g === "'" && ligne[j] === "'" && ligne[j + 1] === "'") j++;
+    else if (ligne[j] === g) return j;
+  }
+  return -1;
+}
+
+/**
+ * Les formes que ce lecteur ne cherche pas à lire, et refuse où qu'elles soient dans l'en-tête (`A-133`) : une clé
+ * entre guillemets, une étiquette (`!…`), une ancre ou un alias (`&…`, `*…`) en tête d'une clé, d'une valeur ou d'une
+ * entrée, une chaîne entre guillemets qui ne se ferme pas sur sa ligne. Avec elles, une bibliothèque YAML lit autre
+ * chose que ce lecteur (une chaîne ouverte après `"r":`, un texte derrière `!!str`, une chaîne pliée sur trois
+ * lignes) : il n'en devine rien. Une « tête » est le début d'une ligne, après son retrait et ses `- `, ce qui suit
+ * `: `, et, dans un mappage ou une liste en ligne, ce qui suit `,`, `[` ou `{` ; la profondeur de ces crochets se
+ * tient d'une ligne à l'autre. Les lignes d'un scalaire en bloc (`clé: |`, `clé: >`) sont du texte : elles sont sautées.
+ */
+function refuserLesFormesNonLues(lignes) {
+  const blanc = (c) => c === ' ' || c === '\t';
+  let flux = 0;
+  let bloc = null; // le retrait de la ligne qui ouvre un scalaire en bloc
+  for (const ligne of lignes) {
+    const retrait = ligne.length - ligne.trimStart().length;
+    if (retrait === ligne.length) continue;
+    if (bloc !== null && retrait > bloc) continue;
+    bloc = null;
+    let tete = true;
+    let fin = ligne.length;
+    for (let i = retrait; i < ligne.length; i++) {
+      const c = ligne[i];
+      if (blanc(c)) continue;
+      if (c === '#' && (i === 0 || blanc(ligne[i - 1]))) {
+        fin = i;
+        break;
+      }
+      if (tete) {
+        if (c === '-' && (i + 1 === ligne.length || blanc(ligne[i + 1]))) continue;
+        if (c === '!') illisible("une étiquette (`!…`) dans l'en-tête : ce lecteur ne la lit pas");
+        if (c === '&' || c === '*') illisible("une ancre ou un alias (`&…`, `*…`) dans l'en-tête : ce lecteur ne les lit pas");
+        if (c === '[' || c === '{') {
+          flux++;
+          continue;
+        }
+        if (c === '"' || c === "'") {
+          i = fermeture(ligne, i);
+          if (i === -1) illisible("une chaîne entre guillemets ne se ferme pas sur sa ligne : ce lecteur ne la lit pas");
+          let k = i + 1;
+          while (k < ligne.length && blanc(ligne[k])) k++;
+          if (ligne[k] === ':') illisible("une clé entre guillemets dans l'en-tête : ce lecteur ne la lit pas");
+          tete = false;
+          continue;
+        }
+        tete = false;
+      }
+      if (flux > 0 && (c === ',' || c === '[' || c === '{')) tete = true;
+      if (flux > 0 && (c === '[' || c === '{')) flux++;
+      if (flux > 0 && (c === ']' || c === '}')) flux--;
+      if (c === ':' && (i + 1 === ligne.length || blanc(ligne[i + 1]))) tete = true;
+    }
+    if (flux === 0 && /(?:^|[:-][ \t]+)[|>][-+0-9]*$/.test(ligne.slice(retrait, fin).trimEnd())) bloc = retrait;
+  }
 }
 
 /** Découpe `a, "b, c", {d, e}` aux virgules de premier niveau, hors guillemets ; guillemet ou crochet non refermé : illisible. */
@@ -250,9 +317,11 @@ function champ(cle, nom) {
 export function enTeteDeRegle(texte) {
   const m = EN_TETE.exec(texte.startsWith(BOM) ? texte.slice(1) : texte);
   if (!m) illisible("pas d'en-tête YAML (`---` en première ligne, refermé par `---`)");
+  const lignes = m[1].split(/\r?\n/);
+  refuserLesFormesNonLues(lignes);
   const cles = new Map();
   let courante = null;
-  for (const ligne of m[1].split(/\r?\n/)) {
+  for (const ligne of lignes) {
     if (/^\s*(#.*)?$/.test(ligne)) continue;
     const cle = /^([A-Za-z_][\w-]*)[ \t]*:(?:[ \t]+(.*))?$/.exec(ligne);
     if (cle) {
@@ -282,6 +351,8 @@ export function enTeteDeRegle(texte) {
       items = premierNiveau(c.bloc).map((l) => (/^-\s+\S/.test(l) ? l.slice(1) : illisible(`\`code\` illisible : ${l}`)));
     }
     code = items.map(scalaire);
+    // Une entrée en scalaire de bloc (`- >-`, le chemin à la ligne suivante) : une bibliothèque lirait ce chemin.
+    if (code.some((p) => /^[|>][-+0-9]*$/.test(p))) illisible('`code` porte une entrée en scalaire de bloc');
     if (code.some((p) => p === '')) illisible('`code` porte un chemin vide');
   }
 
@@ -343,8 +414,12 @@ const court = (nom) => nom.replace(/^refs\/remotes\//, '');
 
 /**
  * Le dossier de ce dépôt, si l'utilisateur l'a déclaré sûr par `safe.directory` ; sinon `null`. C'est le seul réglage
- * d'utilisateur ou de système que le lecteur reprend, et il le reprend pour ce dossier seul : jamais le motif (`*`,
- * `dossier/*`) qui l'a admis. Le dossier est le premier, en remontant, qui porte `.git` : celui que git compare.
+ * d'utilisateur ou de système que le lecteur reprend, et il le reprend pour ce dossier seul, jamais le `*` qui l'a
+ * admis. Le dossier est le premier, en remontant, qui porte `.git` : celui que git compare. Le lecteur n'admet
+ * jamais un dépôt que git refuserait (`A-135`) : il lit moins que git, jamais plus. Ne vaut qu'une valeur égale à ce
+ * chemin, caractère pour caractère, ou `*` : ni barre finale, ni `dossier/*`, ni `.`, ni `~/`, ni lien symbolique.
+ * Une déclaration faite par `git -c`, `GIT_CONFIG_COUNT` ou `GIT_CONFIG_PARAMETERS` n'est pas vue, et la présence
+ * d'une de ces deux variables, où une remise à zéro peut se trouver, fait qu'aucune déclaration n'est admise.
  */
 function declareSur(cwd) {
   let racine = null;
@@ -356,6 +431,7 @@ function declareSur(cwd) {
   } catch {
     return null;
   }
+  if ('GIT_CONFIG_COUNT' in process.env || 'GIT_CONFIG_PARAMETERS' in process.env) return null;
   // Où vit la configuration de l'utilisateur : ces trois variables le disent, aucune autre `GIT_*` n'est héritée.
   const LIEU = ['GIT_CONFIG_GLOBAL', 'GIT_CONFIG_SYSTEM', 'GIT_CONFIG_NOSYSTEM'];
   const env = Object.fromEntries(Object.entries(process.env).filter(([cle]) => !cle.startsWith('GIT_') || LIEU.includes(cle)));
@@ -376,21 +452,7 @@ function declareSur(cwd) {
     // Comme git : une valeur vide efface les déclarations qui la précèdent.
     for (const v of lus) declares = v === '' ? [] : [...declares, v];
   }
-  // Le chemin déclaré se compare tel qu'écrit, puis liens symboliques suivis (la racine, elle, l'est déjà).
-  const suivi = (chemin) => {
-    try {
-      return realpathSync(chemin);
-    } catch {
-      return chemin;
-    }
-  };
-  const admis = (v) => {
-    if (v === '*') return true;
-    const chemin = (v.startsWith('~/') ? join(homedir(), v.slice(2)) : v).replace(/\/+$/, '');
-    if (chemin.endsWith('/*')) return racine.startsWith(chemin.slice(0, -1)) || racine.startsWith(`${suivi(chemin.slice(0, -2))}/`);
-    return chemin === racine || suivi(chemin) === racine;
-  };
-  return declares.some(admis) ? racine : null;
+  return declares.some((v) => v === '*' || v === racine) ? racine : null;
 }
 
 /**
@@ -545,17 +607,21 @@ function cheminDeCode(chemin) {
   return segments.length ? comparable(segments.join('/')) : null;
 }
 
-/** Les règles hautes et en vigueur de l'arbre d'un commit : `{ regles: Map clé comparable → { cle, code }, source }`. `nom` : la réf, pour les messages. */
-function hautes(nom, commit, touchees, lecteur) {
+/** Les règles hautes et en vigueur de l'arbre d'un commit : `{ regles: Map clé comparable → { cle, code }, connues, source }` ; `connues` : toutes les règles de l'arbre, quel que soit leur niveau. `nom` : la réf, pour les messages. */
+function hautes(nom, commit, lecteur) {
   const fichiers = new Map(); // clé comparable → chemin réel
   for (const chemin of lecteur.lister(commit, REGLES)) {
     const cle = regleDuChemin(chemin);
-    if (cle) fichiers.set(cle, chemin);
+    if (!cle) continue;
+    // Deux fichiers pour un même identifiant, à la casse près : lequel dit le niveau ne se devine pas.
+    if (fichiers.has(cle)) illisible(`${nom} : deux fichiers pour la règle ${chemin.split('/').pop().slice(0, -3)}`);
+    fichiers.set(cle, chemin);
   }
   const avecIndex = lecteur.lister(commit, INDEX).includes(INDEX);
   const regles = avecIndex ? reglesDeLIndex(lecteur.lire(commit, [INDEX]).get(INDEX)) : new Map();
-  // Sans index : tous les en-têtes. Avec : ceux des fichiers de règle que le diff touche, en plus.
-  const aLire = [...fichiers].filter(([cle]) => !avecIndex || touchees.has(cle));
+  // Tous les en-têtes, index ou pas (`A-134`) : un index ancien, incomplet ou en retard sur ses fichiers ne cache pas
+  // ce qu'un en-tête dit. Le plus haut niveau gagne, le `code` est l'union, et l'un des deux suffit à dire « en vigueur ».
+  const aLire = [...fichiers];
   const textes = lecteur.lire(commit, aLire.map(([, chemin]) => chemin));
   for (const [cle, chemin] of aLire) {
     let lu;
@@ -574,7 +640,7 @@ function hautes(nom, commit, touchees, lecteur) {
       enVigueur: (connu?.enVigueur ?? false) || lu.enVigueur,
     });
   }
-  return { regles: new Map([...regles].filter(([, r]) => r.niveau === 'high' && r.enVigueur)), source: avecIndex ? INDEX : REGLES };
+  return { regles: new Map([...regles].filter(([, r]) => r.niveau === 'high' && r.enVigueur)), connues: new Set(regles.keys()), source: avecIndex ? INDEX : REGLES };
 }
 
 // Une ligne d'en-tête, aux formes que le gate `tickets` lit (`enTete`, `tickets-regles.mjs`) : `Règles: …`,
@@ -589,15 +655,19 @@ function valeursDEnTete(texte, motif) {
   const fin = lignes.findIndex((l) => /^## /.test(l));
   return (fin === -1 ? lignes : lignes.slice(0, fin)).map((l) => motif.exec(l)?.[1]).filter((v) => v !== undefined);
 }
-/** Les règles que des lignes `Règles:` citent, clés comparables : des identifiants séparés par des virgules ou des blancs, entre accents graves ou nus, ou `—`. */
+/**
+ * Les règles que des lignes `Règles:` citent, `[{ cle, ecrit }]` : des identifiants séparés par des virgules ou des
+ * blancs, entre accents graves ou nus, ou `—`. Rien d'autre (`A-136`) : la ligne n'a pas de commentaire, le gate
+ * `tickets` lirait `RULE_… # RULE_…` comme deux règles et un jeton mal formé.
+ */
 function reglesCitees(valeurs, ou) {
   const regles = [];
   for (const v of valeurs)
-    for (const morceau of scalaire(v).split(/[\s,]+/).filter((m) => m !== '' && !/^[—–-]$/.test(m))) {
+    for (const morceau of v.split(/[\s,]+/).filter((m) => m !== '' && !/^[—–-]$/.test(m))) {
       const nu = /^`([^`]+)`$/.exec(morceau)?.[1] ?? morceau;
       const lu = G.lireIdentifiant(nu);
       if (lu?.type !== 'RULE' || lu.index !== undefined) illisible(`${ou} : ligne \`Règles:\`, « ${morceau.slice(0, 80)} » n'est pas un identifiant de règle`);
-      regles.push(comparable(nu));
+      regles.push({ cle: comparable(nu), ecrit: nu });
     }
   return regles;
 }
@@ -617,8 +687,8 @@ function enTeteDuTicket(ticket, nom, commit, lecteur) {
   const texte = lecteur.lire(commit, [chemin]).get(chemin);
   const relectures = valeursDEnTete(texte, RELECTURE);
   for (const v of relectures) if (scalaire(v) !== 'double') illisible(`${nom}:${chemin} : ligne \`Relecture:\` « ${v.trim().slice(0, 80)} », seule valeur \`double\``);
-  const lignes = valeursDEnTete(texte, REGLES_CITEES).filter((v) => scalaire(v) !== '');
-  const regles = reglesCitees(lignes, `${nom}:${chemin}`).map((cle) => ({ cle, chemin }));
+  const lignes = valeursDEnTete(texte, REGLES_CITEES).filter((v) => v.trim() !== '');
+  const regles = reglesCitees(lignes, `${nom}:${chemin}`).map((r) => ({ ...r, chemin }));
   return { chemin, double: relectures.length > 0, regles, sansLigne: lignes.length === 0 };
 }
 
@@ -627,14 +697,15 @@ function reglesDeLaSpec(ticket, nom, commit, lecteur) {
   const { spec } = G.lireTicket(ticket);
   const chemin = unSeul(lecteur.lister(commit, 'docs/').filter((p) => G.identifiantDeLaSpec(p.split('/').pop()) === spec), `la spec ${spec}`, nom);
   if (chemin === undefined) return [];
-  return reglesCitees(valeursDEnTete(lecteur.lire(commit, [chemin]).get(chemin), REGLES_CITEES), `${nom}:${chemin}`).map((cle) => ({ cle, chemin }));
+  return reglesCitees(valeursDEnTete(lecteur.lire(commit, [chemin]).get(chemin), REGLES_CITEES), `${nom}:${chemin}`).map((r) => ({ ...r, chemin }));
 }
 
 /**
  * La PR exige-t-elle deux relectures ? `fichiers` : les lignes de `git diff --name-only --no-renames` ; `base`,
  * `tete` : la branche cible (un nom de branche) et le sommet (un sha) ; `tickets` : les identifiants des tickets de la PR
  * (aucun, un, ou deux quand son titre et sa branche n'en nomment pas le même) ; `develop` : le nom de la branche d'intégration.
- * `lecteur` : le lecteur git, par défaut celui du dépôt courant. Rend `{ reponse, causes, illisibles, remarques, outilManquant }`.
+ * `lecteur` : le lecteur git, par défaut celui du dépôt courant. Rend `{ reponse, causes, illisibles, remarques, avertissements, outilManquant }` ;
+ * `avertissements` : ce qui se dit sans peser sur la réponse (une règle citée qu'aucun arbre ne connaît), écrit sur la sortie d'erreur.
  */
 export function doubleRelecture({ lecteur, ...pr }) {
   // Le lecteur par défaut lit par un dépôt propre, jetable : il est retiré quoi qu'il arrive.
@@ -650,6 +721,7 @@ function calculer({ fichiers, base: cible, tete: sha, tickets = [], develop: int
   const causes = [];
   const illisibles = [];
   const remarques = [];
+  const avertissements = [];
   let outilManquant = false;
   const essayer = (lecture) => {
     try {
@@ -661,7 +733,7 @@ function calculer({ fichiers, base: cible, tete: sha, tickets = [], develop: int
       return undefined;
     }
   };
-  if (!G) return { reponse: ILLISIBLE, causes, illisibles: [`scripts/docs/identifiants.mjs introuvable depuis ${ICI}`], remarques, outilManquant: true };
+  if (!G) return { reponse: ILLISIBLE, causes, illisibles: [`scripts/docs/identifiants.mjs introuvable depuis ${ICI}`], remarques, avertissements, outilManquant: true };
 
   // Trois réfs : deux branches d'origin, lues en entier, et un sha. Tout ce qui suit lit leurs commits.
   const [base, tete, develop] = [{ branche: cible }, { sommet: sha }, { branche: integration }];
@@ -688,15 +760,13 @@ function calculer({ fichiers, base: cible, tete: sha, tickets = [], develop: int
       illisible(`${inconnus} chemin(s) de l'entrée n'existent ni au départ, ni à la tête, ni sur la cible, ni sur develop : attendu la sortie de \`git diff --name-only --no-renames\``);
     }
   });
-  const touchees = new Set(chemins.map((c) => regleDuChemin(c.lu)).filter(Boolean));
-
   // Les règles hautes d'un arbre, lues une fois par commit : la base est souvent `origin/develop`, ou le départ.
   // Un échec est gardé comme une réussite, avec la réf qui l'a lu la première : il n'est dit qu'une fois.
   const parCommit = new Map();
   const hautesDe = (commit, nom) => {
     if (!parCommit.has(commit)) {
       try {
-        parCommit.set(commit, hautes(nom, commit, touchees, lecteur));
+        parCommit.set(commit, hautes(nom, commit, lecteur));
       } catch (e) {
         if (!(e instanceof Illisible) || e instanceof OutilManquant) throw e;
         parCommit.set(commit, new Illisible(e.message.startsWith(`${nom}:`) ? e.message : `${nom} : ${e.message}`));
@@ -709,17 +779,24 @@ function calculer({ fichiers, base: cible, tete: sha, tickets = [], develop: int
 
   // 1. Le diff touche le fichier d'une règle haute, ou un fichier de son `code` : sur la base, la tête et develop.
   const hautesQuelquePart = new Map(); // clé comparable → clé écrite
+  const connues = new Set(); // toutes les règles de ces trois arbres, quel que soit leur niveau
+  let arbresLus = 0;
   for (const ref of [base, tete, develop])
     essayer(() => {
       const nom = nomDe(ref);
-      const { regles } = hautesDe(commitDe(ref), nom);
-      const parCode = new Map();
+      const lues = hautesDe(commitDe(ref), nom);
+      const { regles } = lues;
+      for (const cle of lues.connues) connues.add(cle);
+      arbresLus++;
+      const parCode = new Map(); // un chemin de `code`, ou l'un de ses dossiers ancêtres → les règles
+      const ajouter = (chemin, cle) => parCode.get(chemin)?.add(cle) ?? parCode.set(chemin, new Set([cle]));
       for (const [cle, r] of regles) {
         hautesQuelquePart.set(cle, r.cle);
         for (const p of r.code) {
           // Une entrée qui nomme la racine du dépôt, ou en sort, ne dit pas quels fichiers réalisent la règle : pas « aucun ».
           const entree = cheminDeCode(p) ?? illisible(`${nom} : une entrée de \`code\` de ${r.cle} nomme la racine du dépôt ou en sort`);
-          parCode.set(entree, [...(parCode.get(entree) ?? []), r.cle]);
+          // Un chemin du diff qui contient l'entrée (le lien d'un sous-module, `vendor/lib` pour `vendor/lib/src/x.ts`) la touche aussi.
+          for (let a = entree; a !== ''; a = a.includes('/') ? a.slice(0, a.lastIndexOf('/')) : '') ajouter(a === entree ? a : `${a}/`, r.cle);
         }
       }
       for (const c of chemins) {
@@ -728,6 +805,8 @@ function calculer({ fichiers, base: cible, tete: sha, tickets = [], develop: int
         // Le chemin lui-même, puis chacun de ses dossiers : une entrée de `code` peut nommer un dossier.
         for (let p = c.lu; p !== ''; p = p.includes('/') ? p.slice(0, p.lastIndexOf('/')) : '')
           for (const cle of parCode.get(p) ?? []) causes.push({ sujet: cle, motif: 'code', chemin: c.ecrit, ref: nom });
+        // Le chemin du diff est un ancêtre d'une entrée de `code`.
+        for (const cle of parCode.get(`${c.lu}/`) ?? []) causes.push({ sujet: cle, motif: 'code', chemin: c.ecrit, ref: nom });
       }
     });
 
@@ -747,7 +826,14 @@ function calculer({ fichiers, base: cible, tete: sha, tickets = [], develop: int
     for (const ref of [base, develop, tete]) essayer(() => refs.has(commitDe(ref)) || refs.set(commitDe(ref), nomDe(ref)));
     for (const nom of essayer(() => lecteur.sujets()) ?? []) essayer(() => refs.has(lecteur.verifier(nom)) || refs.set(lecteur.verifier(nom), court(nom)));
     const citer = (regles, nom) => {
-      for (const { cle, chemin } of regles) if (hautesQuelquePart.has(cle)) causes.push({ sujet: hautesQuelquePart.get(cle), motif: 'Règles:', chemin, ref: nom });
+      for (const { cle, ecrit, chemin } of regles) {
+        if (hautesQuelquePart.has(cle)) causes.push({ sujet: hautesQuelquePart.get(cle), motif: 'Règles:', chemin, ref: nom });
+        // Une règle qu'aucun des trois arbres ne connaît reste ignorée (les tickets archivés en citent), mais se dit.
+        else if (arbresLus === 3 && !connues.has(cle)) {
+          const avis = `règle ${ecrit} citée par ${chemin} (${nom}) : aucun arbre ne la connaît, elle est ignorée`;
+          if (!avertissements.includes(avis)) avertissements.push(avis);
+        }
+      }
     };
     for (const ticket of new Set(tickets)) {
       let trouve = false;
@@ -773,8 +859,12 @@ function calculer({ fichiers, base: cible, tete: sha, tickets = [], develop: int
     return !vues.has(k) && vues.add(k);
   });
   const reponse = uniques.length ? EXIGEE : illisibles.length ? ILLISIBLE : NON_EXIGEE;
-  return { reponse, causes: uniques, illisibles, remarques, outilManquant: reponse === ILLISIBLE && outilManquant };
+  return { reponse, causes: uniques, illisibles, remarques, avertissements, outilManquant: reponse === ILLISIBLE && outilManquant };
 }
+
+// Tout caractère de commande, séparateurs de ligne d'Unicode compris (U+0085, U+2028, U+2029), devient une espace.
+const SEPARATEURS = [0x85, 0x2028, 0x2029].map((c) => String.fromCharCode(c)).join('');
+const surUneLigne = (t) => `${t}`.replace(new RegExp(`[\\x00-\\x1f\\x7f${SEPARATEURS}]+`, 'g'), ' ').slice(0, 500);
 
 /**
  * Ce que la ligne de commande écrit : les causes, les lectures en échec et les remarques en `# …`, puis le verdict,
@@ -782,9 +872,7 @@ function calculer({ fichiers, base: cible, tete: sha, tickets = [], develop: int
  * commande : rien de ce qui est lu dans le dépôt ne peut écrire une ligne de plus.
  */
 export function texte({ reponse, causes, illisibles, remarques }) {
-  // Tout caractère de commande, séparateurs de ligne d'Unicode compris (U+0085, U+2028, U+2029), devient une espace.
-  const SEPARATEURS = [0x85, 0x2028, 0x2029].map((c) => String.fromCharCode(c)).join('');
-  const propre = (t) => `${t}`.replace(new RegExp(`[\\x00-\\x1f\\x7f${SEPARATEURS}]+`, 'g'), ' ').slice(0, 500);
+  const propre = surUneLigne;
   return [
     ...causes.map((c) => [c.sujet, c.motif, c.chemin, c.ref].map(propre).join('\t')),
     ...illisibles.map((m) => `# illisible : ${propre(m)}`),
@@ -835,5 +923,7 @@ if (estPointEntree()) {
       resultat = { reponse: ILLISIBLE, causes: [], illisibles: ['le calcul a échoué sans conclure'], remarques: [] };
     }
   process.stdout.write(texte(resultat));
+  // Les avertissements ne pèsent pas sur la réponse : sur la sortie d'erreur, une ligne chacun.
+  for (const avis of resultat.avertissements ?? []) process.stderr.write(`# ${surUneLigne(avis)}\n`);
   process.exitCode = resultat.outilManquant ? SORTIES.outilManquant : SORTIES[resultat.reponse];
 }
