@@ -1,6 +1,6 @@
 # Plusieurs capitaines sur la même file : un verrou par passage, posé par un commentaire marqué sur la PR
 
-Status: en cours — ticket/4-plusieurs-capitaines-verrou
+Status: Fait — PR #133
 Type: défaut
 Modèle: opus — un verrou entre processus de machines différentes, tenu par des commentaires GitHub (ordre, âge, fin, trappe de sortie), branché sur trois gestes du capitaine et sur la boucle du ticket 1, un faux GitHub à étendre, et la règle « un seul capitaine » à retirer de sept textes sans en oublier un.
 Blocked by: 1 (`github.sh`, `passer.sh`, `sujet.sh`, `boucle.sh`, `faux-gh.mjs` et les bancs sont des fichiers chauds du ticket 1, dont la boucle de reprises fixe où le verrou se rafraîchit : partir de `main` après sa fusion)
