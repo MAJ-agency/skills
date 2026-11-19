@@ -47,9 +47,15 @@
 #  et tournent au passage, que passer.sh attend. « prête » veut dire : la CI
 # légère est verte.
 #
+# GitHub illisible (lire_github de github.sh : réponse vide, non JSON, corps d'erreur ou code non nul) à la lecture des
+# PR ouvertes, des checks exigés, des checks d'un sommet ou de la base d'une parente : rien sur la sortie standard (les
+# lignes se rassemblent, puis s'écrivent d'un coup), le motif sur la sortie d'erreur, sortie 5. Une file illisible
+# n'est jamais une file vide : boucle.sh se met en pause (PAUSE) et relit au tour suivant.
+#
 # Usage : bash scripts/chaine/file.sh          → tableau
 #         bash scripts/chaine/file.sh --next   → numéro de la prochaine PR (sortie 1 si aucune)
 #         bash scripts/chaine/file.sh --rouges → « numéro<TAB>checks rouges », une par ligne
+#         sortie 5 : GitHub illisible, rien sur la sortie standard
 # =============================================================================
 set -euo pipefail
 outils=$(cd "$(dirname "$0")" && pwd)
@@ -66,13 +72,14 @@ if ! login_valide "$LOGIN_CAPITAINE"; then
   LOGIN_CAPITAINE='?' # dit une fois : renvois_de rend le plafond sans relire ni redire
 fi
 
-prs=$(gh api --paginate "$DEPOT/pulls?state=open&per_page=100" --jq '.[] | {number, title, draft,
+prs=$(lire_github "$DEPOT/pulls?state=open&per_page=100" --paginate) || exit 5
+prs=$(jq -s '[.[][] | {number, title, draft,
   head: .head.ref, sommet: .head.sha, base: .base.ref, labels: [.labels[].name],
-  demandes: '"$demandes_jq"'}' | jq -s .)
+  demandes: '"$demandes_jq"'}]' <<<"$prs")
 ouvertes=$(jq -r '.[] | "\(.head) \(.number)"' <<<"$prs")
 # Checks exigés, lus dans la protection de develop (comme passer.sh) : un check d'un autre
 # workflow, non exigé, ne retient pas la file.
-requis=$(checks_exiges)
+requis=$(checks_exiges) || exit 5
 # Tickets qui déclarent un sujet (« ticket<TAB>nom ») : une PR qui en cite un et vise develop
 # est reciblée sur le sujet.
 carte=$(bash "$SUJET" carte 2>/dev/null || true)
@@ -93,7 +100,12 @@ ci_jq='
 # PR qui en vaut N : tête `sujet/<nom>`, ou livraison intermédiaire `livraison/<nom>-<AAAAMMJJ-HHMM>`
 # de sujet.sh livrer), puis prio:haute, puis numéro. L'ordre seul : passer.sh vérifie qu'une
 # livraison intermédiaire vient bien de son sujet avant de la dispenser de revue.
-jq -r '.[] | select(any(.labels[]; . == "à-fusionner")) | [
+# Lignes rassemblées dans un fichier, puis écrites d'un coup : une lecture refusée en route ne laisse rien sur la
+# sortie standard. Le `while` tourne dans le shell du script (entrées lues d'une substitution de processus, jamais
+# d'un tube) : chaque `exit 5` sort du script lui-même, explicitement, jamais par `set -e` (Décision 2 du ticket 9).
+lignes=$(mktemp)
+trap 'rm -f "$lignes"' EXIT
+entrees=$(jq -r '.[] | select(any(.labels[]; . == "à-fusionner")) | [
     (if (.base | startswith("sujet/")) then 0
      elif (.head | startswith("sujet/")) or (.head | test("^livraison/.+-[0-9]{8}-[0-9]{4}$")) then 1
      elif any(.labels[]; . == "prio:haute") then 2 else 3 end),
@@ -103,83 +115,87 @@ jq -r '.[] | select(any(.labels[]; . == "à-fusionner")) | [
     .demandes,
     .head, .title
   ] | @tsv' <<<"$prs" |
-  sort -t "$(printf '\t')" -k1,1n -k2,2n |
-  while IFS="$(printf '\t')" read -r prio n sommet base brouillon bloquee hors_sujet demandes tete titre; do
-    ci_de() {
-      local ci
-      ci=$(checks_commit "$sommet" | jq -Rnr --argjson requis "$requis" "$ci_jq")
-      case "$ci" in
-        vert) echo 'prête' ;;
-        'sans CI') echo 'prête (sans CI)' ;;
-        rouge*) echo "CI $ci" ;;
-        *) echo 'CI en cours' ;;
-      esac
-    }
-    # Ticket cité (titre ou branche) → sujet déclaré.
-    ticket=$(identifiant ticket-de-pr "$titre" "$tete" </dev/null)
+  sort -t "$(printf '\t')" -k1,1n -k2,2n)
+while IFS="$(printf '\t')" read -r prio n sommet base brouillon bloquee hors_sujet demandes tete titre; do
+  # Checks du sommet illisibles : sortie 5, que chaque appelant propage (`|| exit 5`).
+  ci_de() {
+    local ci etats
+    etats=$(checks_commit "$sommet") || return 5
+    ci=$(printf '%s' "$etats" | jq -Rnr --argjson requis "$requis" "$ci_jq")
+    case "$ci" in
+      vert) echo 'prête' ;;
+      'sans CI') echo 'prête (sans CI)' ;;
+      rouge*) echo "CI $ci" ;;
+      *) echo 'CI en cours' ;;
+    esac
+  }
+  # Ticket cité (titre ou branche) → sujet déclaré.
+  ticket=$(identifiant ticket-de-pr "$titre" "$tete" </dev/null)
+  sujet_ticket=''
+  if [ -n "$ticket" ]; then
+    sujet_ticket=$(awk -F '\t' -v t="$ticket" -v s="${ticket%.*}" '$1 == t { print $2; f = 1; exit }
+      $1 == s { sp = $2 } END { if (!f && sp != "") print sp }' <<<"$carte")
+  fi
+  # Sujet déclaré déjà livré dans develop : la PR est directe, jamais reciblée ;
+  # 4e colonne pour que boucle.sh pose `hors-sujet` (file.sh ne fait que lire).
+  livre=''
+  if [ -n "$sujet_ticket" ] && [ "$hors_sujet" = false ] && bash "$SUJET" livre "$sujet_ticket" 2>/dev/null; then
+    livre=$sujet_ticket
     sujet_ticket=''
-    if [ -n "$ticket" ]; then
-      sujet_ticket=$(awk -F '\t' -v t="$ticket" -v s="${ticket%.*}" '$1 == t { print $2; f = 1; exit }
-        $1 == s { sp = $2 } END { if (!f && sp != "") print sp }' <<<"$carte")
-    fi
-    # Sujet déclaré déjà livré dans develop : la PR est directe, jamais reciblée ;
-    # 4e colonne pour que boucle.sh pose `hors-sujet` (file.sh ne fait que lire).
-    livre=''
-    if [ -n "$sujet_ticket" ] && [ "$hors_sujet" = false ] && bash "$SUJET" livre "$sujet_ticket" 2>/dev/null; then
-      livre=$sujet_ticket
-      sujet_ticket=''
-    fi
-    # Sujet de la PR, pour le gel : sous-PR (base), livraison (tête `sujet/<nom>` ou
-    # `livraison/<nom>-<date>`), PR à recibler (ticket qui déclare le sujet, sauf `hors-sujet`).
-    cible=''
-    if [[ "$base" == sujet/* ]]; then cible=${base#sujet/}
-    elif [[ "$tete" == sujet/* ]]; then cible=${tete#sujet/}
-    elif [[ "$tete" =~ ^livraison/(.+)-[0-9]{8}-[0-9]{4}$ ]]; then cible=${BASH_REMATCH[1]}
-    elif [ -n "$sujet_ticket" ] && [ "$hors_sujet" = false ]; then cible=$sujet_ticket
-    fi
-    if [ "$brouillon" = true ]; then
-      etat='brouillon'
-    elif [ "$bloquee" = true ]; then
-      etat='bloquée'
-    elif [ -n "$cible" ] && bash "$SUJET" gel "$cible" >/dev/null 2>&1; then
-      etat='gelée'
-    elif [ "$(renvois_de "$n")" -ge "$plafond" ]; then
-      etat='humain'
-    elif attend_humain "$n"; then
-      # Une CI rouge prime, comme sur « attend un propriétaire » : relancée, puis renvoyée, comme une autre.
-      etat=$(ci_de)
-      if [[ "$etat" == 'CI rouge'* ]]; then [[ "$base" != sujet/* ]] || etat="$base : $etat"; else etat='attend un humain'; fi
-    elif [[ "$base" == sujet/* ]]; then
-      etat="$base : $(ci_de)"
-    elif [ "$base" = develop ] && [ -n "$sujet_ticket" ] && [ "$hors_sujet" = false ]; then
-      etat="vers sujet/$sujet_ticket"
-    elif [ "$base" = develop ]; then
-      # Sans CI (workflow pas déclenché) : le push du capitaine la lancera.
-      etat=$(ci_de)
-      # Revue des propriétaires : la règle et le CODEOWNERS de develop se lisent une fois pour toute la file.
-      if [ "$demandes" != - ] && [[ "$etat" != 'CI rouge'* ]]; then
-        if [ -z "${proprietaires_develop+lu}" ]; then
-          proprietaires_develop=$(proprietaires_de develop)
-          if [ -n "$proprietaires_develop" ] && ! revue_proprietaires_exigee develop; then proprietaires_develop=''; fi
-        fi
-        ! proprietaire_demande "$demandes" "$proprietaires_develop" || etat='attend un propriétaire'
+  fi
+  # Sujet de la PR, pour le gel : sous-PR (base), livraison (tête `sujet/<nom>` ou
+  # `livraison/<nom>-<date>`), PR à recibler (ticket qui déclare le sujet, sauf `hors-sujet`).
+  cible=''
+  if [[ "$base" == sujet/* ]]; then cible=${base#sujet/}
+  elif [[ "$tete" == sujet/* ]]; then cible=${tete#sujet/}
+  elif [[ "$tete" =~ ^livraison/(.+)-[0-9]{8}-[0-9]{4}$ ]]; then cible=${BASH_REMATCH[1]}
+  elif [ -n "$sujet_ticket" ] && [ "$hors_sujet" = false ]; then cible=$sujet_ticket
+  fi
+  if [ "$brouillon" = true ]; then
+    etat='brouillon'
+  elif [ "$bloquee" = true ]; then
+    etat='bloquée'
+  elif [ -n "$cible" ] && bash "$SUJET" gel "$cible" >/dev/null 2>&1; then
+    etat='gelée'
+  elif [ "$(renvois_de "$n")" -ge "$plafond" ]; then
+    etat='humain'
+  elif attend_humain "$n"; then
+    # Une CI rouge prime, comme sur « attend un propriétaire » : relancée, puis renvoyée, comme une autre.
+    etat=$(ci_de) || exit 5
+    if [[ "$etat" == 'CI rouge'* ]]; then [[ "$base" != sujet/* ]] || etat="$base : $etat"; else etat='attend un humain'; fi
+  elif [[ "$base" == sujet/* ]]; then
+    etat=$(ci_de) || exit 5
+    etat="$base : $etat"
+  elif [ "$base" = develop ] && [ -n "$sujet_ticket" ] && [ "$hors_sujet" = false ]; then
+    etat="vers sujet/$sujet_ticket"
+  elif [ "$base" = develop ]; then
+    # Sans CI (workflow pas déclenché) : le push du capitaine la lancera.
+    etat=$(ci_de) || exit 5
+    # Revue des propriétaires : la règle et le CODEOWNERS de develop se lisent une fois pour toute la file.
+    if [ "$demandes" != - ] && [[ "$etat" != 'CI rouge'* ]]; then
+      if [ -z "${proprietaires_develop+lu}" ]; then
+        proprietaires_develop=$(proprietaires_de develop)
+        if [ -n "$proprietaires_develop" ] && ! revue_proprietaires_exigee develop; then proprietaires_develop=''; fi
       fi
+      ! proprietaire_demande "$demandes" "$proprietaires_develop" || etat='attend un propriétaire'
+    fi
+  else
+    parente=$(printf '%s\n' "$ouvertes" | awk -v b="$base" '$1 == b { print $2 }')
+    if [ -n "$parente" ]; then
+      etat="attend #$parente"
     else
-      parente=$(printf '%s\n' "$ouvertes" | awk -v b="$base" '$1 == b { print $2 }')
-      if [ -n "$parente" ]; then
-        etat="attend #$parente"
-      else
-        # Parente fusionnée : dans develop (passer.sh recible) ou dans un sujet (boucle.sh recible).
-        base_parente=$(gh api "$DEPOT/pulls?state=closed&per_page=1&head={owner}:$(uri "$base")" --jq '.[0].base.ref // ""')
-        if [[ "$base_parente" == sujet/* ]]; then etat="prête (à recibler sur $base_parente)"; else etat='prête (à recibler)'; fi
-      fi
+      # Parente fusionnée : dans develop (passer.sh recible) ou dans un sujet (boucle.sh recible).
+      base_parente=$(lire_github "$DEPOT/pulls?state=closed&per_page=1&head={owner}:$(uri "$base")") || exit 5
+      base_parente=$(jq -r '.[0].base.ref // ""' <<<"$base_parente")
+      if [[ "$base_parente" == sujet/* ]]; then etat="prête (à recibler sur $base_parente)"; else etat='prête (à recibler)'; fi
     fi
-    [ "$prio" = 2 ] && titre="[prio:haute] $titre"
-    printf '%s\t%s\t%s\t%s\n' "$n" "$etat" "$titre" "${livre:+sujet livré : $livre}"
-  done |
-  case "${1:-}" in
-    # Lit tout (pas d'`exit` au premier trouvé) : sous pipefail, l'amont tué par SIGPIPE ferait sortir en 141.
-    --next) awk -F '\t' '!trouve && $2 ~ /^prête/ { print $1; trouve = 1 } END { exit !trouve }' ;;
-    --rouges) awk -F '\t' '$2 ~ /CI rouge : / { sub(/^.*CI rouge : /, "", $2); print $1 "\t" $2 }' ;;
-    *) cat ;;
-  esac
+  fi
+  [ "$prio" = 2 ] && titre="[prio:haute] $titre"
+  printf '%s\t%s\t%s\t%s\n' "$n" "$etat" "$titre" "${livre:+sujet livré : $livre}"
+done < <(printf '%s' "${entrees:+$entrees$'\n'}") >"$lignes"
+case "${1:-}" in
+  # Lit tout (pas d'`exit` au premier trouvé) : sous pipefail, l'amont tué par SIGPIPE ferait sortir en 141.
+  --next) awk -F '\t' '!trouve && $2 ~ /^prête/ { print $1; trouve = 1 } END { exit !trouve }' ;;
+  --rouges) awk -F '\t' '$2 ~ /CI rouge : / { sub(/^.*CI rouge : /, "", $2); print $1 "\t" $2 }' ;;
+  *) cat ;;
+esac <"$lignes"

@@ -27,8 +27,17 @@
 //   PR.approbationManquante  sur une base de `revueProprietaires`, la fusion est refusée (405, « Waiting on code
 //               owner review ») : l'approbation d'un propriétaire manque (le faux ne lit pas CODEOWNERS)
 //   commentairesRefuses  tout commentaire posé est refusé (403)
+//   PR.refusFusion  message d'un refus de fusion (`gh: … (HTTP 405)`) : le `PUT pulls/<n>/merge` le rend, code 1, après
+//               `avantFusion` (une fusion concurrente, puis le refus)
+//   origineCasseeAuRefus  au refus de `PR.refusFusion`, le dépôt nu est renommé : la relecture de develop échoue
 //   PR.revues   revues de la PR (`pulls/<n>/reviews`) : [{ state, submitted_at, auteur }]
 //   PR.commentaires  un corps seul reçoit un `created_at` d'office, croissant avec son rang ; un objet porte le sien
+//   pannes      GitHub en panne pour des lectures : [{ route, fois, sortie, erreur, code }]. `route` est une expression
+//               rationnelle sur le chemin sans `repos/{owner}/{repo}/` (requête comprise) ; `sortie` ce que `gh` écrit
+//               sur la sortie standard (défaut : rien), `erreur` sur la sortie d'erreur (défaut « gh: Bad Gateway
+//               (HTTP 502) »), `code` le code de sortie (défaut 1). Une lecture (`GET`) dont le chemin correspond à la
+//               première panne restante qui le prend y répond, puis décompte `fois` (défaut 1) ; à zéro, la panne sort
+//               de l'état. `brute: true` écrit `erreur` sans fin de ligne. Les écritures ne sont jamais en panne
 // Le sommet d'une PR est lu dans le dépôt nu ($FAUX_GH_ORIGINE), comme GitHub. Chaque écriture
 // (méthode autre que GET) est appliquée à l'état et journalisée dans $FAUX_GH/journal.jsonl.
 // Fusion (`PUT pulls/<n>/merge`), comme GitHub : refusée si la tête n'est plus `sha` (409) ; l'arbre du commit de
@@ -191,6 +200,22 @@ const TERMINES = new Set([
   "STARTUP_FAILURE",
 ]);
 
+// Panne de GitHub sur une lecture : la réponse de la panne, telle quelle (aucun filtre `--jq`, comme `gh` sur une
+// erreur HTTP), décomptée.
+function panne() {
+  if (methode !== "GET" || !Array.isArray(etat.pannes)) return;
+  const relatif = chemin.replace(/^repos\/\{owner\}\/\{repo\}\//, "");
+  const i = etat.pannes.findIndex((p) => new RegExp(p.route).test(relatif));
+  if (i < 0) return;
+  const p = etat.pannes[i];
+  p.fois = (p.fois ?? 1) - 1;
+  if (p.fois <= 0) etat.pannes.splice(i, 1);
+  sauver();
+  process.stdout.write(p.sortie ?? "");
+  process.stderr.write(`${p.erreur ?? "gh: Bad Gateway (HTTP 502)"}${p.brute ? "" : "\n"}`);
+  process.exit(p.code ?? 1);
+}
+
 function repondre() {
   const [route, requete = ""] = chemin
     .replace(/^repos\/\{owner\}\/\{repo\}\//, "")
@@ -344,6 +369,11 @@ function fusionner(
     git("update-ref", `refs/heads/${etat.avantFusion.branche}`, etat.avantFusion.vers);
     delete etat.avantFusion;
   }
+  if (p.refusFusion) {
+    // Le dépôt nu devient injoignable : la relecture de develop qui suit le refus échoue (une coupure).
+    if (etat.origineCasseeAuRefus) renameSync(ORIGINE, `${ORIGINE}.casse`);
+    echec(p.refusFusion);
+  }
   const base = ref(p.base);
   const ancetre = spawnSync("git", ["--git-dir", ORIGINE, "merge-base", "--is-ancestor", base, sha]).status === 0;
   if ((etat.strict ?? []).includes(p.base) && !ancetre)
@@ -368,6 +398,7 @@ function fusionner(
   return { merged: true, sha: commit };
 }
 
+panne();
 const reponse = repondre();
 sauver();
 const json = JSON.stringify(reponse);
