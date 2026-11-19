@@ -2,6 +2,18 @@
 
 La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque projet par `poser` : une version publiée ne change rien chez un projet qui ne les repose pas. Chaque note dit ce qui change, puis ce qu'un projet fait pour en profiter.
 
+## 7.24.0 — 2026-11-19
+
+### Ce qui change
+
+`fusionner` porte un script neuf et son banc, `scripts/meme-contenu.sh` et `scripts/meme-contenu.test.mjs`. Le calcul dit si deux sommets d'une PR, celui d'un verdict de relecture et celui qu'on juge, ne sont séparés que par des fusions de la cible et des commits d'index générés : `bash scripts/chaine/meme-contenu.sh <V> <T> <B>`, sorties 0 « même », 20 « différent », 21 « illisible » (69 quand un outil manque). Seul un index à `commande`, de chemin littéral, est dispensé ; un index sans commande ou déclaré par motif se juge comme tout fichier. Il demande **git ≥ 2.41** (`--attr-source`), bash ≥ 4, `jq`, `mktemp` et `rm`, et un dossier temporaire où écrire ; il ne lit pas le réseau et n'écrit rien dans le dépôt. Rien ne l'appelle encore : il prépare la relecture indépendante.
+
+### Ce qu'un projet fait pour en profiter
+
+Mettre à jour le plugin ; rien d'autre aujourd'hui : aucun script de la boucle ne change, le capitaine ne se relance pas. Le script et son banc arrivent dans `scripts/chaine/` à la prochaine fois que le projet rejoue `/maj-skills:fusionner poser`.
+
+À prévoir pour la suite : **un poste de capitaine ou de Relecteur dont le git est plus ancien que 2.41 rendra « illisible » (sortie 69) à chaque appel**. Relever `git --version` sur ces postes avant que le capitaine et le Relecteur n'appellent ce calcul.
+
 ## 7.23.0 — 2026-11-18
 
 ### Ce qui change
