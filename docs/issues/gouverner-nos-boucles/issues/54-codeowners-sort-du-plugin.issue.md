@@ -1,171 +1,240 @@
 # CODEOWNERS sort du plugin : GitHub ne bloque plus une PR sur les fichiers sensibles ; le générateur, son gate, la clé `proprietaires`, le refus d'édition et l'attente d'un propriétaire par le capitaine sont retirés
 
-Status: needs-info
+Status: ready-for-agent
 Type: task
 Label: contre-revue
-Modèle: sonnet — un patch inverse donné par sa commande et vérifié fichier par fichier, deux fichiers supprimés, quarante-deux retouches données mot pour mot (ancien, nouveau), un fichier nouveau et un banc donnés entiers, la version ; tout est joué sur une copie jetable de `origin/main`, mutations comprises (voir « Vérification »). Rien à concevoir ; la revue passe `/security-review` (la garde de fichiers et les scripts du capitaine).
-Blocked by: —
+Modèle: sonnet — quatre-vingt-onze blocs donnés mot pour mot, appliqués par un script donné entier et vérifié par son empreinte (rien ne se recopie à la main), une version et sa note données mot pour mot ; le tout a été joué sur un clone neuf d'`origin/main` à `a3c2a7c` : suite entière rejouée, treize mutations rouges, l'essai du retrait sur deux dépôts jouets (voir « Vérification »). Rien à concevoir : la session applique, rejoue, et suit la règle de repli si `main` a bougé ; la revue passe `/security-review` (la garde de fichiers et les scripts du capitaine).
+Blocked by: 56, puis 57 — l'ordre d'`A-109` sur le § 6 de `skills/chaine/chantier/SKILL.md` (le 56 récrit le point 6, le 57 la moitié « une sous-PR à la fois » du point 5, ce ticket l'autre moitié), et « un seul ticket à la fois sur les fichiers chauds du capitaine » : le 57 écrit `boucle.sh` et `fusionner.test.mjs`, que ce ticket écrit aussi. Au 2026-11-19, le 56 est lancé (base `a3c2a7c`) et le 57 est rejoué sur `main`. Hors programme : plus rien. Les douze tickets de « capitaine à jour et testé » que le lot 1 attendait (2, 3, 4, 5, 7, 8, 9, 11, 13, 16, 17, 18) sont entrés, le dernier par la PR 133 (`a3c2a7c`). Si l'architecte fait passer ce ticket avant le 57, rien n'est à récrire ici : le bloc `R39` ne retire que deux phrases que ni le 56 ni le 57 ne touchent, et c'est le 57 qui part alors du `main` laissé.
 Dépendances: —
-Fichiers chauds: `skills/chaine/socle-chaine-de-production/references/scripts/github/codeowners.mjs`, `skills/chaine/socle-chaine-de-production/references/scripts/github/codeowners.test.mjs`, `skills/chaine/socle-chaine-de-production/references/agent/regles.mjs`, `skills/chaine/socle-chaine-de-production/references/agent/regles.test.mjs`, `skills/chaine/socle-chaine-de-production/references/chaine.json`, `skills/chaine/socle-chaine-de-production/references/admin.md`, `skills/chaine/socle-chaine-de-production/references/adr/ADR_ALL_ARC-N-codeowners.md`, `skills/chaine/socle-chaine-de-production/references/CONTENU.md`, `skills/chaine/socle-chaine-de-production/references/docs-agents/chaine-de-production.md`, `skills/chaine/socle-chaine-de-production/references/fragments/claude-md-fusion.md`, `skills/chaine/socle-chaine-de-production/references/retrait-codeowners.md`, `skills/chaine/socle-chaine-de-production/SKILL.md`, `skills/chaine/fusionner/scripts/github.sh`, `skills/chaine/fusionner/scripts/file.sh`, `skills/chaine/fusionner/scripts/passer.sh`, `skills/chaine/fusionner/scripts/boucle.sh`, `skills/chaine/fusionner/scripts/fusionner.test.mjs`, `skills/chaine/fusionner/scripts/veille.test.mjs`, `skills/chaine/fusionner/SKILL.md`, `skills/chaine/fusionner/references/CONTENU.md`, `skills/chaine/sujet/scripts/faux-gh.mjs`, `skills/chaine/chantier/SKILL.md`, `README.md`, `scripts/depot.test.mjs`, `scripts/poses.test.mjs`, `scripts/points-d-entree.test.mjs`, `.claude-plugin/plugin.json`
+Fichiers chauds: `skills/chaine/socle-chaine-de-production/references/scripts/github/codeowners.mjs` (supprimé), `skills/chaine/socle-chaine-de-production/references/scripts/github/codeowners.test.mjs` (supprimé), `skills/chaine/socle-chaine-de-production/references/agent/regles.mjs`, `skills/chaine/socle-chaine-de-production/references/agent/regles.test.mjs`, `skills/chaine/socle-chaine-de-production/references/chaine.json`, `skills/chaine/socle-chaine-de-production/references/admin.md`, `skills/chaine/socle-chaine-de-production/references/adr/ADR_ALL_ARC-N-codeowners.md`, `skills/chaine/socle-chaine-de-production/references/CONTENU.md`, `skills/chaine/socle-chaine-de-production/references/docs-agents/chaine-de-production.md`, `skills/chaine/socle-chaine-de-production/references/fragments/claude-md-fusion.md`, `skills/chaine/socle-chaine-de-production/references/retrait-codeowners.md` (créé), `skills/chaine/socle-chaine-de-production/SKILL.md`, `skills/chaine/fusionner/scripts/github.sh`, `skills/chaine/fusionner/scripts/file.sh`, `skills/chaine/fusionner/scripts/passer.sh`, `skills/chaine/fusionner/scripts/boucle.sh`, `skills/chaine/fusionner/scripts/fusionner.test.mjs`, `skills/chaine/fusionner/scripts/veille.test.mjs`, `skills/chaine/fusionner/SKILL.md`, `skills/chaine/fusionner/references/CONTENU.md`, `skills/chaine/sujet/scripts/faux-gh.mjs`, `skills/chaine/sujet/scripts/faux-gh.test.mjs`, `skills/chaine/chantier/SKILL.md`, `README.md`, `scripts/depot.test.mjs`, `scripts/poses.test.mjs`, `scripts/points-d-entree.test.mjs`, `.claude-plugin/plugin.json`, `NOTES-DE-VERSION.md`
 
 ## Le besoin
 
+Ce ticket réalise le lot 1 de la spec `docs/issues/gouverner-nos-boucles/relecture-independante.spec.md` : la décision `A-77`, voulue par la décision du produit `P-49`, avec les alignements `A-94` (le § 6 de `chantier/SKILL.md`) et `A-108` (le compte des clés du contrat, la version et la note).
+
 **La décision du produit** (`P-49` de la carte « gouverner nos boucles », 2026-11-18, grilling du chantier 3, question `Q2`). Ses mots : « Q2: oui pas de blocage Github donc on peut dégager sur fichier CODEOWNERS nan ? ». La carte en tire : « Pas de blocage par GitHub sur les fichiers sensibles, et le fichier CODEOWNERS disparaît », « Le réglage « Require review from Code Owners » ne se coche sur aucun dépôt », et `P-49` remplace `P-41` (les propriétaires).
 
-**Pourquoi.** Toutes les sessions écrivent sous le compte du produit, et GitHub refuse qu'un auteur approuve sa propre PR : avec CODEOWNERS, chaque PR sensible dépendait d'une seconde personne (spec du chantier 3, « Le problème »).
+**Pourquoi.** Toutes les sessions écrivent sous le compte du produit, et GitHub refuse qu'un auteur approuve sa propre PR : avec CODEOWNERS, chaque PR sensible dépendait d'une seconde personne (spec, « Le problème »).
 
-**Le fait, sur `origin/main` à `4a45634`** (plugin 7.15.0, 738 tests). Le ticket 50 (PR 108, plugin 7.13.0) a posé dans le plugin : un générateur de `.github/CODEOWNERS` et son gate, joué aussi en fin de tour ; la clé `proprietaires` du contrat ; le refus d'éditer CODEOWNERS dans la garde de fichiers ; deux états de la file du capitaine, « attend un propriétaire » et « attend un humain », avec la lecture des règles de la branche, des relecteurs demandés et des revues ; une ADR, une case de la liste de l'admin, une ligne dans la méthode et dans le fragment de `CLAUDE.md`. `git grep -il codeowners origin/main -- skills scripts README.md .claude-plugin` rend 24 fichiers ; un 25e, `veille.test.mjs`, ne nomme que l'état « attend un propriétaire ».
+**`A-77`, mot pour mot** : « **CODEOWNERS sort du plugin.** Retirés : `scripts/github/codeowners.mjs` et son test, son gate et l'entrée de `gatesRapides`, la clé `proprietaires`, le refus d'éditer CODEOWNERS dans `regles.mjs`, les états « attend un propriétaire » et « attend un humain » qui en viennent (`fusionner/scripts/github.sh`, `file.sh`, `passer.sh`, `boucle.sh` et leurs tests), la case correspondante d'`admin.md` — ses sous-règles (pas de push forcé, pas de suppression de branche, aucune liste de contournement) restent, dans la protection de branche. **`proprietaire.sh` reste** : il retrouve la session auteur d'une PR. L'ADR « CODEOWNERS » est marquée remplacée. La repose retire `.github/CODEOWNERS` quand il porte l'en-tête du générateur. »
+
+**Le fait, sur `origin/main` à `a3c2a7c`** (PR 133, plugin 7.31.0, 1 072 tests). Le ticket 50 (PR 108, plugin 7.13.0) a posé dans le plugin : un générateur de `.github/CODEOWNERS` et son gate, joué aussi en fin de tour ; la clé `proprietaires` du contrat ; le refus d'éditer CODEOWNERS dans la garde de fichiers ; deux états de la file du capitaine, « attend un propriétaire » et « attend un humain », avec la lecture des règles de la branche, des relecteurs demandés et des revues ; une ADR, une case de la liste de l'admin, une ligne dans la méthode et dans le fragment de `CLAUDE.md`. Depuis, vingt-trois commits sont entrés dans `main`, dont quinze sur les fichiers de ce ticket : ils ont déplacé presque toutes ses lignes, et changé ce que le capitaine fait d'un refus de fusion (« Où », « Ce que le rejeu a changé »). `git grep -il codeowners origin/main -- skills scripts README.md .claude-plugin` rend 24 fichiers ; deux autres ne nomment que l'état « attend un propriétaire » (`veille.test.mjs`) ou la marque du commentaire d'attente (`faux-gh.test.mjs`).
 
 Quand le ticket est fait :
 
 1. **Plus rien ne génère, ne compare ni ne garde CODEOWNERS** : le générateur, son banc, son gate rapide et le refus d'édition sont retirés ; le gabarit du contrat n'a plus de clé `proprietaires`.
 2. **Le capitaine n'attend plus personne** : les états « attend un propriétaire » et « attend un humain » qui venaient de CODEOWNERS sortent de `file.sh`, `passer.sh`, `boucle.sh` et `github.sh`. L'état `humain` du plafond des renvois ne change pas d'une ligne.
-3. **Le socle ne pose plus rien de CODEOWNERS** dans un projet neuf : ni question, ni étape, ni ADR ; il pose trois ADR.
-4. **Un projet déjà posé sait s'en défaire** : une marche à suivre, lue depuis le skill, retire `.github/CODEOWNERS` quand il porte l'en-tête du générateur, et seulement alors.
-5. **L'ADR « CODEOWNERS » reste, marquée retirée** par la décision du 2026-11-18.
-6. **La liste de l'admin dit de ne pas cocher « Require review from Code Owners »**, et garde, dans la protection de branche, ce qui ne tenait pas à CODEOWNERS : pas de push forcé, pas de suppression de branche, aucune liste de contournement.
-7. **Un banc tient le retrait** : CODEOWNERS n'est plus nommé que là où le plugin dit qu'il est retiré.
+3. **Un refus de fusion de GitHub faute de revue approuvée arrête la boucle**, comme tout refus durable (`passer.sh`, sortie 3) : il n'est plus ni attendu, ni commenté.
+4. **Le socle ne pose plus rien de CODEOWNERS** dans un projet neuf : ni question, ni étape, ni ADR ; il pose trois ADR. Le point 4 ter de son étape 2 ne pose plus que le check `PR titre`.
+5. **Un projet déjà posé sait s'en défaire** : une marche à suivre, lue depuis le skill, retire `.github/CODEOWNERS` quand il porte l'en-tête du générateur, et seulement alors.
+6. **L'ADR « CODEOWNERS » reste, marquée retirée** par la décision du 2026-11-18.
+7. **La liste de l'admin dit de ne pas cocher « Require review from Code Owners »**, et garde, dans la protection de branche, ce qui ne tenait pas à CODEOWNERS : pas de push forcé, pas de suppression de branche, aucune liste de contournement.
+8. **Un banc tient le retrait** : CODEOWNERS n'est plus nommé que là où le plugin dit qu'il est retiré, et le compte des clés que dit le `CONTENU.md` du socle est celui du gabarit.
 
-Ce ticket ne pose pas la garde qui prendra la place : l'accord du produit donné avant de toucher un fichier sensible (`P-47`, `P-48`) arrive avec les lots suivants du chantier 3. D'ici là, un chemin sensible reste tenu comme avant le ticket 50 : contre-revue du conducteur, `/security-review`, revue exigée par le capitaine.
+Ce ticket ne pose pas la garde qui prendra la place : l'accord du produit donné avant de toucher un fichier sensible (`P-47`, `P-48`) arrive avec les lots suivants. D'ici là, un chemin sensible reste tenu comme avant le ticket 50 : contre-revue du conducteur, `/security-review`, revue exigée par le capitaine.
 
 ## Où
 
-Base : `origin/main` à `4a45634` (PR 110, plugin **7.15.0**, **738 tests**). Les numéros de ligne sont ceux de cette base.
+Base : `origin/main` à `a3c2a7c` (PR 133, plugin **7.31.0**, **1 072 tests**). Les numéros de ligne sont ceux de cette base. Recherche, sous une locale UTF-8 : `codeowners`, `code owner`, `code_owner`, `proprietaires`, `propriétaire`, `proprietaire`, `attend un propriétaire`, `attend un humain`, `attente-revue`, `d'attente`, `possédé`, `approbation`, `approuv`, `relecteurs`, `equipes`, `revues`, `requested_`, `required_pull_request_reviews`, et le nom de chaque fonction, constante et réglage du ticket 50 ; chaque occurrence lue.
 
-| Fichier | Ce qu'il porte de CODEOWNERS | Ce qu'il devient |
-| --- | --- | --- |
-| `skills/chaine/socle-chaine-de-production/references/scripts/github/codeowners.mjs` (147 lignes) | le générateur (`--ecrire`) et le gate (sans argument) | supprimé (§ 1) |
-| `…/references/scripts/github/codeowners.test.mjs` (146 lignes, 10 tests) | son banc | supprimé (§ 1) |
-| `skills/chaine/fusionner/scripts/github.sh:220-294` | `revue_proprietaires_exigee`, `proprietaires_de`, `demandes_jq`, `proprietaire_demande`, `attend_proprietaire`, `refus_pour_revue`, `MARQUE_ATTENTE`, `TEXTE_ATTENTE`, `attend_humain`, `MOTIF_PROPRIETAIRE` | les 75 lignes sortent (§ 1, patch inverse) |
-| `skills/chaine/fusionner/scripts/file.sh:20-32`, `:70-71`, `:103`, `:107`, `:148-151`, `:159-166` | la description des deux états, le champ `demandes` lu sur chaque PR, la branche `attend_humain`, le bloc « Revue des propriétaires » | sortent (§ 1) |
-| `skills/chaine/fusionner/scripts/passer.sh:42-48`, `:85-87`, `:104-106`, `:356-357`, `:363-379` | les deux motifs de la sortie 7 et la seconde sortie 5 dans l'en-tête, le saut « attend un humain », le saut « attend un propriétaire », la lecture du refus de fusion et son commentaire marqué | sortent ; le refus de fusion redevient une sortie 5 (décision 6) (§ 1) |
-| `skills/chaine/fusionner/scripts/boucle.sh:7-11`, `:387` | l'en-tête et le commentaire de la sortie 7 | reviennent à leur texte d'avant (§ 1) |
-| `skills/chaine/fusionner/scripts/fusionner.test.mjs:1430-1630` | onze tests, leurs aides `attenteProprietaire`, `etats`, `commentaireAttente` et trois constantes | sortent (§ 1) |
-| `skills/chaine/fusionner/scripts/veille.test.mjs:165-173` | un test | sort (§ 1) |
-| `skills/chaine/sujet/scripts/faux-gh.mjs:11-19`, `:125-126`, `:129-130`, `:210`, `:218-219`, `:221-222`, `:238-263`, `:295-296` | les réglages `revueProprietaires`, `PR.relecteurs`, `PR.equipes`, `PR.approbationManquante`, `commentairesRefuses`, `PR.revues`, la date des commentaires, la règle `pull_request` et la route `required_pull_request_reviews`, le refus 405 | sortent (décision 5) (§ 1) |
-| `skills/chaine/fusionner/SKILL.md:64-65` | le paragraphe « Une PR qui attend l'approbation d'un propriétaire » | sort (§ 1) |
-| `skills/chaine/fusionner/references/CONTENU.md:13`, `:51` | « Attend un propriétaire », « Attend un humain » ; les tests décrits | sortent (§ 1) |
-| `…/references/fragments/claude-md-fusion.md:10` | la ligne « Chemin sensible = relu par un humain, tenu par GitHub » | sort (§ 1) |
-| `scripts/poses.test.mjs:6`, `:23-29`, `:62`, `:65-70`, `:86-105` | `FICHIERS_POSES`, les bancs de `scripts/github/`, le test du banc posé avec un contrat | reviennent à leur forme d'avant (§ 1) |
-| `scripts/points-d-entree.test.mjs:20` | l'entrée `codeowners` de `SCRIPTS` (six tests) | S1 |
-| `…/references/agent/regles.mjs:41-49`, `:63-65` | `CODEOWNERS`, `RAISON_CODEOWNERS`, le refus dans `refusEdition` | S2, S3 ; la normalisation du chemin reste (décision 4) |
-| `…/references/agent/regles.test.mjs:27-38` | le test du refus | B1 |
-| `…/references/chaine.json:2`, `:3`, `:4`, `:19` | le `$comment`, `scripts/github/**` parmi les chemins sensibles, `"proprietaires": []`, le gate rapide | S4 à S7 ; `scripts/github/**` reste (décision 3) |
-| `skills/chaine/socle-chaine-de-production/SKILL.md:3`, `:10`, `:16`, `:26`, `:34`, `:38`, `:42`, `:63-64`, `:74`, `:78`, `:89` | la description, le placeholder, la question 4, le point 4 ter, les quatre ADR, deux commandes de vérification, le message de commit, « ni propriétaires inventés », un anti-pattern | R1 à R13 |
-| `…/references/CONTENU.md:5`, `:13`, `:19-22`, `:41`, `:45`, `:49` | sept clés, le refus d'édition, la section « CODEOWNERS », quatre gabarits, la ligne du fragment, la règle de l'admin | R14 à R22 |
-| `…/references/admin.md:6`, `:26-37` | le renvoi à la case, la case « CODEOWNERS respecté » et ses neuf sous-points | R23, R24 |
-| `…/references/adr/ADR_ALL_ARC-N-codeowners.md:3`, `:7` | `Statut : **accepté**` | R25, R26 : marquée retirée, gardée (décision 2) |
-| `…/references/docs-agents/chaine-de-production.md:3`, `:85-86` | « CODEOWNERS : `{{ADR_CODEOWNERS}}`. », le paragraphe du § 3 | R27, R28 |
-| `skills/chaine/chantier/SKILL.md:95` | « Sauf une PR qui touche un chemin possédé… il n'approuve rien lui-même. » | R29 |
-| `README.md:79`, `:150` | « un `.github/CODEOWNERS` généré… quatre ADR », « CODEOWNERS et son gate… quatre ADR » | R30, R31 |
-| `scripts/depot.test.mjs:222`, `:734-743` | un chemin d'exemple, le test « le dernier repli du banc de CODEOWNERS… » | B2, B3 ; B4 ajoute trois tests |
-| `…/references/retrait-codeowners.md` | — (absent) | N1 : la marche à suivre du retrait dans un projet |
-| `.claude-plugin/plugin.json:3` | 7.15.0 | V1 : 7.16.0 |
+### L'inventaire, fichier par fichier
 
-### « Attend un humain » : deux sens, ligne par ligne
+Lignes qui nomment CODEOWNERS, les « Code Owners », la clé `proprietaires`, l'état « attend un propriétaire », la marque `attente-revue-capitaine` ou `attend_humain` (le lecteur du banc, décision 11) : **221 lignes dans 26 fichiers** hors de `docs/` avant le ticket, **64 lignes dans 7 fichiers** après, ceux de la liste fermée.
+
+| Fichier | Ce qu'il porte, à `a3c2a7c` | Blocs | Ce qu'il devient |
+| --- | --- | --- | --- |
+| `skills/chaine/socle-chaine-de-production/references/scripts/github/codeowners.mjs` (147 lignes) | le générateur (`--ecrire`) et le gate (sans argument) | S1 | supprimé |
+| `…/references/scripts/github/codeowners.test.mjs` (146 lignes, 10 tests) | son banc | S2 | supprimé |
+| `scripts/points-d-entree.test.mjs:21` | l'entrée `codeowners` de `SCRIPTS` (six tests) | S3 | retirée |
+| `…/references/agent/regles.mjs:41-49`, `:63-65` | `CODEOWNERS`, `RAISON_CODEOWNERS`, le refus dans `refusEdition` | S4, S5 | retirés ; la normalisation du chemin reste (décision 4) |
+| `…/references/agent/regles.test.mjs:27-38` | le test du refus | B1 | remplacé par le test de la normalisation |
+| `…/references/chaine.json:2`, `:4`, `:19-20` | le `$comment` (deux passages), `"proprietaires": []`, le gate rapide | S6 à S9 | retirés ; `scripts/github/**` reste un chemin sensible (décision 3), les descriptions de `preparerCapitaine` et de `fusionsSansEffet` restent |
+| `skills/chaine/fusionner/scripts/github.sh:564-637` | `revue_proprietaires_exigee`, `proprietaires_de`, `demandes_jq`, `proprietaire_demande`, `attend_proprietaire`, `refus_pour_revue`, `MARQUE_ATTENTE`, `TEXTE_ATTENTE`, `attend_humain`, `MOTIF_PROPRIETAIRE` | S10 | les 74 lignes et la ligne vide qui les suit sortent |
+| `skills/chaine/fusionner/scripts/file.sh:24-36`, `:82`, `:119`, `:123`, `:170-173`, `:182-189` | la description des deux états, le champ `demandes` lu sur chaque PR, la branche `attend_humain`, le bloc « Revue des propriétaires » | S11 à S16 | sortent |
+| `skills/chaine/fusionner/scripts/passer.sh:56-64`, `:67-68`, `:124-126`, `:143-145`, `:393-394`, `:397-406`, `:408`, `:432` | les deux motifs de la sortie 7 et la sortie 3 du commentaire d'attente dans l'en-tête, le saut « attend un humain », le saut « attend un propriétaire », la lecture du refus faute de revue et son commentaire marqué, « ni pour la revue » dans le refus durable | S17 à S24 | sortent ; le refus faute de revue devient un refus durable (décision 6) |
+| `skills/chaine/fusionner/scripts/boucle.sh:7-8`, `:18-19`, `:505` | l'en-tête de la sortie 7, « commentaire d'attente impossible à poser », le commentaire de la sortie 7 | S25 à S27 | reviennent à leur texte d'avant le ticket 50 |
+| `skills/chaine/fusionner/scripts/fusionner.test.mjs:1485-1686` | onze tests, leurs aides `attenteProprietaire`, `etats`, `commentaireAttente` et trois constantes | S28 | sortent |
+| `skills/chaine/fusionner/scripts/fusionner.test.mjs:2078`, `:2084`, `:2129` | deux tests du refus durable, qui lisent « ni pour la revue » | B5 à B7 | lisent le nouveau message ; un cas ajouté : le refus faute de revue |
+| `skills/chaine/fusionner/scripts/veille.test.mjs:231-238` | un test | S29 | sort |
+| `skills/chaine/sujet/scripts/faux-gh.mjs:24-29`, `:31`, `:35`, `:172-173`, `:351-352`, `:370-395`, `:452-453` | les réglages `revueProprietaires`, `PR.relecteurs`, `PR.equipes`, `PR.approbationManquante`, `PR.revues`, la règle `pull_request`, la route `required_pull_request_reviews`, la route des revues, le refus 405 ; l'exemple de `commentairesRefuses` | S30 à S36 | sortent (décision 5) ; `commentairesRefuses` et les dates des commentaires restent |
+| `skills/chaine/sujet/scripts/faux-gh.test.mjs:277-279` | l'exemple du test de `commentairesRefuses` : la marque `attente-revue-capitaine` | S37 | prend la marque du renvoi |
+| `scripts/poses.test.mjs:6`, `:24-25`, `:28-29`, `:67`, `:88-107` | deux entrées de `FICHIERS_POSES`, trois commentaires, le test du banc posé avec un contrat | S38 à S42 | sortent ; les deux entrées du check `PR titre` restent |
+| `skills/chaine/fusionner/SKILL.md:93`, `:89` | le paragraphe « Une PR qui attend l'approbation d'un propriétaire » ; la liste des refus durables | R1, R2 | le paragraphe sort ; « revue exigée » entre dans la liste |
+| `skills/chaine/fusionner/references/CONTENU.md:15`, `:19`, `:65` (trois passages) | « Attend un propriétaire », « Attend un humain » ; la liste des refus durables ; les tests décrits | R3 à R7 | sortent ; la liste et la description des tests suivent la décision 6 |
+| `…/references/fragments/claude-md-fusion.md:10` | la ligne « Chemin sensible = relu par un humain, tenu par GitHub » | R8 | sort |
+| `skills/chaine/socle-chaine-de-production/SKILL.md:3`, `:10`, `:16`, `:26`, `:34`, `:38`, `:42` (trois passages), `:63`, `:74`, `:78`, `:89` | la description, le placeholder, la question 4, le point 4 ter, les quatre ADR, une commande de vérification, le message de commit, « ni propriétaires inventés », un anti-pattern | R9 à R21 | le point 4 ter garde le check `PR titre` (décision 13) ; `:16` reçoit le renvoi à la marche à suivre |
+| `…/references/CONTENU.md:5` (quatre passages), `:13`, `:19-22`, `:45` (deux passages), `:49`, `:53` | « Huit clés », les propriétaires, « Une neuvième », `scripts/github/**`, le refus d'édition, la section « CODEOWNERS », quatre gabarits, la ligne du fragment, la règle de l'admin | R22 à R31 | « Sept clés » et « Une huitième » (décision 14) |
+| `…/references/admin.md:6`, `:26-37` | le renvoi à la case, la case « CODEOWNERS respecté », ses neuf sous-points et le paragraphe « Le capitaine n'est pas bloqué » | R32 à R34 | décision 7 |
+| `…/references/adr/ADR_ALL_ARC-N-codeowners.md:3`, `:7` | `Statut : **accepté**` | R35, R36 | marquée retirée, gardée (décision 2) |
+| `…/references/docs-agents/chaine-de-production.md:3`, `:85` | « CODEOWNERS : `{{ADR_CODEOWNERS}}`. », le paragraphe du § 3 | R37, R38 | sortent |
+| `skills/chaine/chantier/SKILL.md:95` | deux phrases du point 5 du § 6 : « Sauf une PR qui touche un chemin possédé… il n'approuve rien lui-même. » | R39 | sortent, elles seules (décision 15) |
+| `README.md:81`, `:152` | « un `.github/CODEOWNERS` généré… quatre ADR », « CODEOWNERS et son gate… quatre ADR » | R40, R41 | trois ADR |
+| `scripts/depot.test.mjs:222`, `:835-843` | un chemin d'exemple, le test « le dernier repli du banc de CODEOWNERS… » | B2, B3 | B4 ajoute trois tests en fin de fichier |
+| `…/references/retrait-codeowners.md` | — (absent) | N1 | la marche à suivre du retrait dans un projet |
+| `.claude-plugin/plugin.json:3`, `NOTES-DE-VERSION.md` | 7.31.0 ; vingt-deux notes | § 4 | la version suivante de `main`, sa note en tête |
+
+### Ce que le rejeu a changé à l'inventaire du 2026-11-18
+
+L'inventaire d'origine valait à `4a45634` (7.15.0, 738 tests).
+
+**Disparu.**
+
+- **Le patch inverse de la PR 108.** Il ramenait onze fichiers à leur contenu de `c17f88b` en trois commandes. `git diff --stat 86daaee a3c2a7c` nomme aujourd'hui ces onze fichiers, tous (2 369 lignes ajoutées, 416 retirées) : le patch ne s'applique plus à aucun. Le retrait est donné bloc par bloc.
+- **« Un refus de fusion redevient une sortie 5 »** (décision 6 d'origine). Sur `main`, `passer.sh` classe un refus de fusion : branche bougée ou panne en 5, tout autre refus en 3 après avoir rejoué la règle d'ascendance (ticket 9 de l'autre programme, sa décision `A-51`). La décision 6 est récrite.
+- **« Le commentaire d'attente impossible à poser sort en 5 »** : c'est une sortie 3 sur `main` (`passer.sh:63-64`, `:404`). Elle sort avec le reste.
+- **« Le faux `gh` revient entier à son état d'avant le ticket 50 »** (décision 5 d'origine) : `commentairesRefuses` est lu par `github.test.mjs:445`, `:451` (le verrou du passage, ticket 4 de l'autre programme), et les dates des commentaires par ce même verrou. La décision 5 est récrite.
+- **Deux textes d'origine** : « Sept clés, et rien d'autre, » (`CONTENU.md` du socle : « Huit clés » sur `main`) et « c'est le `strict: true` dont dépend le capitaine » (`admin.md:6`, récrit par la 7.16.0).
+
+**Nouveau.**
+
+- `skills/chaine/sujet/scripts/faux-gh.test.mjs` (né avec le ticket 4 de l'autre programme) nomme la marque `attente-revue-capitaine` : bloc S37.
+- `passer.sh:67-68`, `:408`, `:432` et `fusionner.test.mjs:2078`, `:2129` disent « ni pour la revue » d'un refus durable : blocs S18, S23, S24, B5, B7. Un cas de test neuf prouve ce que devient un refus faute de revue : B6.
+- `boucle.sh:18-19` (« commentaire d'attente impossible à poser »), `fusionner/SKILL.md:89` et `fusionner/references/CONTENU.md:19` (la liste des refus durables), `CONTENU.md:65` (« le commentaire d'attente impossible en 3 ») : blocs S26, R2, R4, R7.
+- Le point 4 ter du socle (`SKILL.md:38`) et `FICHIERS_POSES` (`scripts/poses.test.mjs:26-31`) portent aussi le check `PR titre` (ticket 16 de l'autre programme) : ils ne reviennent pas à leur forme d'avant, ils perdent leur moitié CODEOWNERS (R14, S39 à S41). `node --test scripts/github/*.test.mjs` reste à l'étape 3 du socle.
+- Le `$comment` de `chaine.json` décrit deux clés entrées depuis, `preparerCapitaine` et `fusionsSansEffet`, après `proprietaires` : S7 ne retire que la sienne. Le `CONTENU.md` du socle dit « Huit clés » et « Une neuvième » : R22, R24.
+- `NOTES-DE-VERSION.md` (né en 7.16.0) : la note du § 4. Sa note 7.24.0 nomme « un commentaire d'attente d'un propriétaire » : c'est de l'histoire, elle reste.
+- `chantier/SKILL.md:95` porte deux règles depuis la 7.16.0 (`A-94`) : R39 se resserre sur deux phrases.
+
+**Bougé.** Aux mêmes lignes qu'à `4a45634`, texte inchangé : `regles.mjs:41-49` et `:63-65`, `regles.test.mjs:27-38`, `scripts/depot.test.mjs:222`, `chantier/SKILL.md:95`, le fragment `:10`, `chaine-de-production.md:3` et `:85`, `admin.md:26-37`, et tous les repères du `SKILL.md` du socle. Déplacés : `points-d-entree.test.mjs:20` → `:21` ; `depot.test.mjs:734-743` → `:835-843` ; `README.md:79`, `:150` → `:81`, `:152` ; `CONTENU.md` du socle `:41`, `:45`, `:49` → `:45`, `:49`, `:53` ; `chaine.json:19` → `:20` ; `fusionner/SKILL.md:64` → `:93` ; `fusionner/references/CONTENU.md:13`, `:51` → `:15`, `:65` ; `github.sh:220-294` → `:564-637` ; `fusionner.test.mjs:1430-1630` → `:1485-1686` ; `veille.test.mjs:165-173` → `:231-238` ; `file.sh`, `passer.sh`, `boucle.sh`, `faux-gh.mjs` et `poses.test.mjs` partout.
+
+### « Attend un humain » : deux sens
 
 Le même mot dit deux choses sur `origin/main`. **Le plafond des renvois** (ticket 7, `plafonds.renvoisParPR`) : une PR renvoyée trois fois prend l'état `humain`. **L'attente d'une approbation** (ticket 50) : une PR dont GitHub a refusé la fusion faute de revue prend l'état `attend un humain`. Seul le second sort.
 
-| Ligne | Texte | Sens | Verdict |
-| --- | --- | --- | --- |
-| `fusionner/scripts/github.sh:21`, `:27`, `:34` | « en attente d'un humain », « le plafond (la PR attend un humain) », « compté au plafond : la PR attend un humain » | plafond des renvois (`renvois_de`) | gardé |
-| `github.sh:266-292` | « Attente d'un humain (plafond des mises à jour sans approbation) », `attend_humain`, « la PR attend un humain » (`:280`) | approbation | retiré |
-| `file.sh:19` | « le gel prime sur « humain », qui revient au dégel » | plafond | gardé |
-| `file.sh:27-32` | la description de l'état `attend un humain` | approbation | retiré |
-| `file.sh:33-35` | la description de l'état `humain` | plafond | gardé |
-| `file.sh:65` | « chaque PR se lit au plafond de renvois et attend un humain » | plafond | gardé |
-| `file.sh:146-147` | `elif [ "$(renvois_de "$n")" -ge "$plafond" ]; then etat='humain'` | plafond | gardé |
-| `file.sh:148-151` | `elif attend_humain "$n"; then … etat='attend un humain'` | approbation | retiré |
-| `passer.sh:44-45`, `:85-87` | « ou qui attend un humain : fusion déjà refusée ainsi », `! attend_humain "$N" \|\| sortir 7 "attend un humain : …"` | approbation | retiré |
-| `passer.sh:309` | « la décision revient à l'humain ou à la session » | ni l'un ni l'autre (branche déjà à jour) | gardé |
-| `passer.sh:371` | « La PR attend un humain jusqu'à une nouvelle approbation » | approbation | retiré |
-| `renvoyer.sh:21`, `:36` | « cette PR attend un humain », « RENVOI $numero sur $plafond : la PR attend un humain » | plafond | gardé |
-| `fusionner.test.mjs:340-460`, `:930`, `:983-993` | les tests des renvois et du gel (« humain ») | plafond | gardés, sans retouche |
-| `fusionner.test.mjs:1523-1614` | quatre tests et une aide qui nomment « attend un humain » | approbation | retirés |
-| `fusionner/SKILL.md:64` | « la PR se lit `attend un humain` (ni mise à jour, ni relancée, ni renvoyée) » | approbation | retiré |
-| `fusionner/SKILL.md:70` | « Au troisième renvoi, la sortie dit que la PR attend un humain : le dire au produit. » | plafond | gardé |
-| `fusionner/references/CONTENU.md:13` | « « Attend un humain » : plafond des mises à jour sans approbation. » | approbation | retiré |
-| `fusionner/references/CONTENU.md:33` | « la marque recopiée par un autre compte ne met pas une PR en attente d'un humain » | plafond | gardé |
-| `chantier/SKILL.md:95` | « puis « attend un humain » si GitHub a refusé sa fusion » | approbation | retiré (R29) |
-| `…/references/chaine.json:2` | « `renvoisParPR` met une PR renvoyée autant de fois en attente d'un humain » | plafond | gardé |
-| `…/references/CONTENU.md:5` | « le nombre de renvois après lequel une PR attend un humain » | plafond | gardé |
-| `…/docs-agents/chaine-de-production.md:144` | « une PR renvoyée trois fois attend un humain » | plafond | gardé |
-| `…/references/admin.md:37` | « la montre `attend un humain` », « chaque PR qui touche un chemin sensible attend un humain » | approbation | retiré (R24) |
-| `README.md:86` | « les renvois comptés (au plafond, la PR attend un humain) » | plafond | gardé |
+| Fichier | Plafond des renvois : gardé, sans retouche | Approbation : retiré |
+| --- | --- | --- |
+| `fusionner/scripts/github.sh` | `:21`, `:27`, `:34` (`renvois_de`) | `:610-636` (S10) |
+| `fusionner/scripts/file.sh` | `:23`, `:37-39` (l'état `humain`), `:75`, `:168-169` | `:31-36`, `:170-173` (S11, S15) |
+| `fusionner/scripts/passer.sh` | — | `:58-59`, `:124-126`, `:400` (S17, S19, S22) |
+| `fusionner/scripts/renvoyer.sh` | `:25`, `:40` | — |
+| `fusionner/scripts/fusionner.test.mjs` | `:344` à `:511`, `:981`, `:1034` (renvois, gel) | `:1489` à `:1668` (S28) |
+| `fusionner/SKILL.md` | `:99` | `:93` (R1) |
+| `fusionner/references/CONTENU.md` | `:41` | `:15`, `:65` (R3, R5) |
+| `chantier/SKILL.md` | — | `:95` (R39) |
+| `socle…/references/admin.md` | — | `:37` (R34) |
+| `socle…/references/chaine.json`, `CONTENU.md`, `docs-agents/chaine-de-production.md`, `README.md:88` | « en attente d'un humain », « attend un humain » au plafond | — |
 
 ### Gardé tel quel, après lecture
 
-- **`skills/chaine/fusionner/scripts/proprietaire.sh`** (19 lignes) : il rend le worktree d'une branche, pour retrouver la session qui a écrit une PR (`:4`). Aucun lien avec CODEOWNERS. Restent avec lui `renvoyer.sh:4`, `:37` (« worktree propriétaire »), `passer.sh:310`, `fusionner/SKILL.md:3`, `:22`, `:70`, `:71`, `:84`, `:92`, `:93` (« session propriétaire », « Propriétaire renvoyé »), `fusionner/references/CONTENU.md:31`, `:33`, `sujet/scripts/depot-jouet.mjs:102`, `README.md:167`.
-- **`…/references/agent/garde-github.mjs:14`** (« Un nom de dépôt ou de propriétaire ») : le propriétaire d'un dépôt GitHub.
-- **Le rôle « propriétaire » de PostgreSQL** dans `skills/backend/socle-nest-hexagonal/` (migrations, RLS) et `skills/monorepo/socle-monorepo/references/tickets/2-hebergement-et-trust-proxy.issue.md:23`.
-- **`checks_exiges`** (`github.sh:209-218`) et sa lecture de `rules/branches/develop` : les checks exigés, pas la revue.
-- **`…/references/scripts/github/develop.sh` et `develop.test.mjs`**, `…/references/labels.sh` : ce que `scripts/github/` garde.
-- **`cheminsSensibles` du gabarit** (`chaine.json:3`), `scripts/github/**` compris (décision 3), et les deux tests qui le lisent : `scripts/depot.test.mjs:213` (un chemin d'exemple change, B2) et `:394`.
+- **`skills/chaine/fusionner/scripts/proprietaire.sh`** (19 lignes) : il rend le worktree d'une branche, pour retrouver la session qui a écrit une PR. Aucun lien avec CODEOWNERS (`A-77` : « `proprietaire.sh` reste »). Restent avec lui « worktree propriétaire » et « session propriétaire » dans `renvoyer.sh`, `passer.sh:339`, `sujet.sh`, `fusionner/SKILL.md`, `fusionner/references/CONTENU.md:39-41`, `sujet/SKILL.md:34`, `sujet/scripts/depot-jouet.mjs:101`, `README.md:169`, `NOTES-DE-VERSION.md:9`.
+- **`…/references/agent/garde-github.mjs:51`** (« Un nom de dépôt ou de propriétaire ») : le propriétaire d'un dépôt GitHub.
+- **Le rôle « propriétaire » de PostgreSQL** et la « ressource possédée » dans `skills/backend/socle-nest-hexagonal/`, `skills/monorepo/socle-monorepo/references/methode/pare-feu-ci.md:34` et `…/tickets/2-hebergement-et-trust-proxy.issue.md:23`.
+- **`checks_exiges`** (`github.sh:485`) et sa lecture de `rules/branches/develop` : les checks exigés, pas la revue.
+- **`…/references/scripts/github/develop.sh`, `develop.test.mjs`, `pr-titre.mjs`, `pr-titre.test.mjs`**, `…/references/labels.sh` : ce que `scripts/github/` garde.
+- **`cheminsSensibles` du gabarit** (`chaine.json:3`), `scripts/github/**` compris (décision 3).
+- **Le faux GitHub** : `commentairesRefuses`, les dates et les ids des commentaires, `PR.refusFusion`, `protectionClassique` (lue par `checks_exiges`).
+- **Les notes de version déjà publiées** (`NOTES-DE-VERSION.md`) et **tout `docs/`** : les tickets 39 et 50 de ce programme, le ticket 16 de l'autre, la carte et la spec nomment CODEOWNERS ; c'est l'histoire des décisions, elle ne se récrit pas. Le banc ne lit ni l'un ni l'autre.
+- **Le texte de l'ADR « CODEOWNERS »** sous sa section « Retrait » : la décision retirée, telle qu'elle était, « attend un propriétaire » et « attend un humain » compris.
 
-### Les tests retirés, et ce qu'ils deviennent
+### Les tests retirés, ajoutés, modifiés
 
-31 tests sortent, 4 entrent : 738 − 31 + 4 = **711**.
+31 tests sortent, 4 entrent : 1 072 − 31 + 4 = **1 045**. Aucun n'est retiré pour verdir : chacun prouvait une chose qui disparaît.
 
 | Tests | Ce qu'ils prouvaient | Ce qu'ils deviennent |
 | --- | --- | --- |
-| `codeowners.test.mjs`, 10 tests | la génération, les motifs refusés, le gate | retirés avec le script ; « CODEOWNERS n'est plus nommé que là où le plugin dit qu'il est retiré » prouve que ni le script ni ses commandes n'existent plus |
+| `codeowners.test.mjs`, 10 tests | la génération, les motifs refusés, le gate | retirés avec le script (S2) ; « CODEOWNERS n'est plus nommé que là où le plugin dit qu'il est retiré » prouve que ni le script ni ses commandes n'existent plus |
 | `regles.test.mjs` « refusEdition refuse CODEOWNERS à ses trois places, toute casse : modifier chaine.json, puis régénérer » | le refus, sur douze chemins normalisés | remplacé (B1) par « refusEdition normalise le chemin avant de juger : un détour (`//`, `/./`, `x/../`, `\\`) ne contourne aucun refus » : la normalisation gardée, prouvée sur le lockfile, un `.env` et une migration livrée, et l'édition de CODEOWNERS que plus rien ne refuse |
-| `fusionner.test.mjs`, 11 tests : cinq « file.sh : … attend un propriétaire … », « passer.sh : une PR qui attend un propriétaire sort en 7… », « passer.sh : une fusion refusée faute d'approbation… », « file.sh : « attend un humain » jusqu'à une approbation plus récente… », « boucle.sh : les PR qui attendent un propriétaire sont sautées… », « file.sh : une CI rouge prime sur « attend un humain »… », « passer.sh : commentaire d'attente impossible à poser… » | les deux états | retirés : les états n'existent plus. L'état `humain` du plafond reste prouvé, sans retouche, par « renvoyer.sh : au troisième renvoi… » (`:346`), « file.sh : une PR renvoyée autant de fois que le plafond est montrée humain… » (`:380`), « renvois : seuls les commentaires du compte du capitaine comptent… » (`:404`), « boucle.sh : une PR à l'état humain n'est ni passée, ni relancée, ni renvoyée » (`:460`), « file.sh : le gel prime sur « humain »… » (`:983`) |
-| `veille.test.mjs` « PR qui attend un propriétaire : pas de relance ; approuvée (prête), boucle relancée » | la veille ne relance pas sur cet état | retiré |
-| `poses.test.mjs` « le banc de CODEOWNERS posé passe dans un projet dont le contrat a ses propriétaires » | le banc posé hors du plugin | retiré ; « les bancs posés à plat sous scripts/chaine/ tournent hors du plugin » revient à `scripts/chaine/` seul |
-| `points-d-entree.test.mjs`, six « codeowners agit quand on le lance : … » | les six accès au script | retirés (S1) |
+| `fusionner.test.mjs`, 11 tests (S28) : « file.sh : une PR vers develop qui attend un propriétaire se lit « attend un propriétaire »… », « file.sh : seul un propriétaire du CODEOWNERS de la base fait attendre… », « file.sh : CODEOWNERS lu comme GitHub (racine, puis docs/)… », « file.sh : approuvée (relecteurs retirés par GitHub), la PR revient prête… », « file.sh : une CI rouge reste « CI rouge » même quand la PR attend un propriétaire… », « passer.sh : une PR qui attend un propriétaire sort en 7 avant toute mise à jour… », « passer.sh : une fusion refusée faute d'approbation d'un propriétaire sort en 7, pas en 5… », « file.sh : « attend un humain » jusqu'à une approbation plus récente… », « boucle.sh : les PR qui attendent un propriétaire sont sautées sans renvoi ni relance… », « file.sh : une CI rouge prime sur « attend un humain »… », « passer.sh : commentaire d'attente impossible à poser après un refus de fusion pour revue : sortie 3 (arrêt), pas 7… » | les deux états, le commentaire marqué | retirés : les états et le commentaire n'existent plus. Ce que devient un refus faute de revue est prouvé par le cas ajouté en B6. L'état `humain` du plafond reste prouvé, sans retouche, par « renvoyer.sh : au troisième renvoi, le commentaire dit que la PR attend un humain », « file.sh : une PR renvoyée autant de fois que le plafond est montrée humain… », « renvois : seuls les commentaires du compte du capitaine comptent ; compte illisible, la PR attend un humain », « boucle.sh : une PR à l'état humain n'est ni passée, ni relancée, ni renvoyée », « file.sh : le gel prime sur « humain »… » |
+| `veille.test.mjs` « PR qui attend un propriétaire : pas de relance ; approuvée (prête), boucle relancée » | la veille ne relance pas sur cet état | retiré (S29) : `file.sh` ne rend plus cet état |
+| `poses.test.mjs` « le banc de CODEOWNERS posé passe dans un projet dont le contrat a ses propriétaires » | le banc posé hors du plugin, avec un contrat rempli | retiré (S42) : ce banc n'existe plus |
+| `points-d-entree.test.mjs`, six « codeowners agit quand on le lance : … » | les six accès au script | retirés (S3) avec le script |
 | `depot.test.mjs` « le dernier repli du banc de CODEOWNERS redit les cheminsSensibles du gabarit » | le repli du banc retiré | retiré (B3) |
+| **Ajoutés** : `depot.test.mjs`, trois tests (B4) ; `regles.test.mjs`, un test (B1) | — | « lecteur des mentions de CODEOWNERS : entrées piégées », « CODEOWNERS n'est plus nommé que là où le plugin dit qu'il est retiré », « le socle retire CODEOWNERS d'un projet déjà posé… », « refusEdition normalise le chemin avant de juger… » |
+| **Modifié** : `fusionner.test.mjs` « passer.sh : une fusion refusée durablement par GitHub sort en 3 et la boucle s'arrête ; branche bougée ou panne : 5 » (B5, B6) | le refus durable et son message | le message attendu change (décision 6), et un quatorzième cas entre : le refus faute de revue approuvée sort en 3. Rien n'y est retiré |
+| **Modifié** : `fusionner.test.mjs` « passer.sh : un refus de fusion 405 après un develop qui a bougé sort en 5 (course) ; le même 405 sans develop bougé, en 3 » (B7) | la course et le refus durable | le message attendu change, rien d'autre |
+| **Modifié** : `faux-gh.test.mjs` « faux gh, commentairesRefuses : true refuse tout commentaire posé, une chaîne seulement ceux dont le corps y correspond » (S37) | la forme en chaîne du réglage | l'exemple prend la marque du renvoi ; ce qu'il prouve ne change pas |
+| **Modifié** : `depot.test.mjs` « le gabarit .claude/chaine.json range les gardes de la chaîne parmi les chemins sensibles » (B2) | `scripts/github/**` est sensible | l'exemple devient `scripts/github/develop.sh` ; ce qu'il prouve ne change pas |
+| **Modifié** : `poses.test.mjs` « les bancs posés à plat sous scripts/chaine/ tournent hors du plugin » (S40) | les bancs posés tournent hors du plugin | il pose deux fichiers de moins ; le banc du check `PR titre` y tourne toujours |
 
-### Repose dans un projet
+### Ce que voit un projet
 
-Rien ne se met à jour seul : un projet garde sa copie des scripts posés. Sur les trois projets du programme, deux ont reçu CODEOWNERS (lu sur leur `origin/develop` le 2026-11-18) : `.github/CODEOWNERS`, dont la première ligne est celle du générateur, `scripts/github/codeowners.mjs` et son banc, les scripts `codeowners` et `check:codeowners` de `package.json`, une étape de leur script de contrôle, la clé `proprietaires` et le gate rapide dans `.claude/chaine.json`, l'ADR posée ; le troisième n'a rien de tout cela. Le retrait dans un projet est le travail de son architecte, par la marche à suivre que ce ticket écrit (N1) ; ce ticket ne touche aucun projet.
+Rien ne se met à jour seul : un projet garde sa copie des scripts posés, et une version publiée ne change rien chez qui ne repose pas.
+
+- **Un projet qui n'a jamais reçu CODEOWNERS** (posé avant le plugin 7.13.0 et pas reposé depuis) : rien à retirer. À sa prochaine repose des scripts du capitaine, la file perd deux états qu'elle n'y affichait jamais.
+- **Un projet qui l'a reçu** porte `.github/CODEOWNERS`, `scripts/github/codeowners.mjs` et son banc, les scripts `codeowners` et `check:codeowners` de `package.json`, une étape de son script de contrôle, la clé `proprietaires` et le gate rapide dans `.claude/chaine.json`, et l'ADR posée. **Aucun `poser` ne les retire** : reposer un skill copie ses fichiers, sans retirer ceux qu'une version antérieure a posés. Le retrait est le travail de l'architecte du projet, par la marche à suivre que ce ticket écrit (N1), dans une PR du projet.
+- **Ce que la marche à suivre fait du fichier déjà posé** : elle le retire (`git rm .github/CODEOWNERS`) **si, et seulement si, sa première ligne est celle du générateur**, `# Généré depuis .claude/chaine.json (cheminsSensibles, proprietaires) : ne pas éditer.` ; toute autre première ligne, le fichier est celui du projet : il reste, et la session le dit à qui l'a lancée. Un `CODEOWNERS` à la racine ou sous `docs/` n'a jamais été généré : elle n'y touche pas.
+- **Une repose partielle ne casse rien, mais change le capitaine.** Un projet qui repose `scripts/agent/` et les scripts du capitaine sans suivre le reste garde un gate `check:codeowners` vert (son contrat porte encore `proprietaires`, son générateur est encore là) ; sa garde ne refuse plus l'édition de CODEOWNERS, que le gate rattrape. Mais son capitaine n'attend plus : sur un dépôt où « Require review from Code Owners » est cochée, il s'arrête (`ARRÊT`, sortie 3) au premier refus de fusion d'une PR qui touche un chemin possédé. La note de version le dit, et fait décocher la règle avant de relancer le capitaine.
+- **Relevé du 2026-11-19**, sur les clones locaux de trois projets posés (leur `origin/develop` tel qu'il y était, sans le rafraîchir) : deux portent `.github/CODEOWNERS`, dont la première ligne est celle du générateur au caractère près ; le troisième, posé avant la 7.13.0, n'a rien de tout cela. Ce ticket ne touche aucun projet.
 
 ## Décisions
 
-1. **Tout `A-77` de la spec du chantier 3**, sans rien y ajouter : sortent le générateur et son test, son gate et l'entrée de `gatesRapides`, la clé `proprietaires`, le refus d'éditer CODEOWNERS, les états « attend un propriétaire » et « attend un humain » qui en viennent (`github.sh`, `file.sh`, `passer.sh`, `boucle.sh` et leurs tests), la case de la liste de l'admin. `proprietaire.sh` reste.
-2. **L'ADR « CODEOWNERS » du socle est marquée « retirée par la décision `P-49` du 2026-11-18 », pas supprimée** (R25, R26) : sa ligne `Statut` le dit, une section « Retrait » dit ce qui sort et ce qui reste, la suite du texte ne change pas. **Elle ne se pose plus dans un projet neuf** : le socle pose trois ADR, et le placeholder `{{ADR_CODEOWNERS}}` disparaît de tous les fichiers posés. Le gabarit reste dans `references/adr/` pour les projets qui l'ont reçu : la marche à suivre y prend la ligne `Statut` et la section « Retrait ». Elle n'est pas dite « remplacée » : l'ADR qui la remplacera s'écrit avec la bascule du chantier 3 (`A-96`), pas avant.
-3. **`scripts/github/**` reste dans `cheminsSensibles`** du gabarit. Le ticket 50 l'y a fait entrer pour le générateur ; `develop.sh` (qui crée `develop` sur le distant) et `labels.sh` (qui écrit les labels du dépôt) y vivent encore, et retirer un chemin sensible n'est pas dans `A-77`.
+Les décisions 1 à 4, 7, 8 et 10 sont celles du ticket d'origine, relues sur `main` : elles tiennent. Les décisions 5, 6, 9 et 11 sont récrites sur ce que `main` est devenu ; les décisions 12 à 16 sont nouvelles.
+
+1. **Tout `A-77`**, sans rien y ajouter : sortent le générateur et son test, son gate et l'entrée de `gatesRapides`, la clé `proprietaires`, le refus d'éditer CODEOWNERS, les états « attend un propriétaire » et « attend un humain » qui en viennent (`github.sh`, `file.sh`, `passer.sh`, `boucle.sh` et leurs tests), la case de la liste de l'admin. `proprietaire.sh` reste.
+2. **L'ADR « CODEOWNERS » du socle est marquée « retirée par la décision `P-49` du 2026-11-18 », pas supprimée** (R35, R36) : sa ligne `Statut` le dit, une section « Retrait » dit ce qui sort et ce qui reste, la suite du texte ne change pas. **Elle ne se pose plus dans un projet neuf** : le socle pose trois ADR, et le placeholder `{{ADR_CODEOWNERS}}` disparaît de tous les fichiers posés. Le gabarit reste dans `references/adr/` pour les projets qui l'ont reçu : la marche à suivre y prend la ligne `Statut` et la section « Retrait ». Elle n'est pas dite « remplacée » (le mot d'`A-77`) : l'ADR qui la remplacera s'écrit avec la bascule (`A-96`), pas avant ; la ligne du lot 1 de la spec dit « marquée retirée par `P-49` ».
+3. **`scripts/github/**` reste dans `cheminsSensibles`** du gabarit. Le ticket 50 l'y a fait entrer pour le générateur ; `develop.sh` (qui crée `develop` sur le distant), `labels.sh` (qui écrit les labels du dépôt) et, depuis la 7.28.0, le check `PR titre` y vivent, et retirer un chemin sensible n'est pas dans `A-77`.
 4. **La normalisation du chemin reste dans `refusEdition`** (`posix.normalize`, `regles.mjs:64`). Le ticket 50 l'a écrite pour CODEOWNERS, mais elle ferme un contournement des autres refus : sans elle, `apps/../pnpm-lock.yaml` et `apps/web/../api/src/db/migrations/<livrée>.ts` passent la garde. Son test change d'objet (B1).
-5. **Le faux `gh` revient à ce qu'il était avant le ticket 50** : tout réglage qu'aucun banc ne lit plus sort, y compris ceux qui ne nomment pas CODEOWNERS (`commentairesRefuses`, `PR.revues`, la date `created_at` des commentaires, la route `rules/branches/<branche>` pour une autre branche que `develop`). Les lots 3 et 4 du chantier 3 poseront ce dont ils ont besoin, avec leurs bancs.
-6. **Un refus de fusion de GitHub redevient une sortie 5** de `passer.sh` (« fusion refusée (develop ou la PR a bougé), relancer »), comme avant le ticket 50 : la boucle retente une fois, puis s'arrête. Sur un dépôt où « Require review from Code Owners » serait restée cochée, c'est cet arrêt qui le montre ; la marche à suivre le dit à l'admin (N1, point 7).
-7. **La liste de l'admin** (R23, R24) : la case « Protection de `develop` » dit de ne pas cocher « Require review from Code Owners », et reçoit « Restrict deletions », « aucune liste de contournement » et « pas de règle de PR sur `sujet/*` » ; une case « Block force pushes » prend la place de la case « CODEOWNERS respecté » ; un paragraphe dit ce que ces règles ne tiennent pas (une PR hostile). Sortent avec la case : les deux propriétaires humains, « Required approvals » à 0, la PR d'essai, « Dismiss stale pull request approvals », l'approbation qui vaut pour le sommet approuvé, la lecture de CODEOWNERS sur la branche visée, la casse des motifs.
-8. **Le retrait dans un projet est une marche à suivre, pas un script** : `references/retrait-codeowners.md`, lue depuis le skill et jamais posée, citée par `SKILL.md:16`. Elle retire `.github/CODEOWNERS` **seulement si sa première ligne est celle du générateur**, `# Généré depuis .claude/chaine.json (cheminsSensibles, proprietaires) : ne pas éditer.` (`codeowners.mjs:85`, avec `CONTRAT` de `:22`) ; toute autre première ligne, le fichier est celui du projet et reste. Elle ne touche pas un `CODEOWNERS` à la racine ou sous `docs/` : le générateur n'a jamais écrit que `.github/CODEOWNERS` (`codeowners.mjs:21`).
-9. **Version : mineure** (`.claude-plugin/plugin.json:3`, 7.15.0 → **7.16.0**) : une pièce posée et une clé du contrat sortent, une référence entre. **Règle de repli** : si `main` bouge entre l'ouverture et la fusion, la session fusionne `origin/main` dans sa branche par un commit de fusion (jamais de rebase ni de push forcé), reprend la version de `main` plus un au deuxième nombre, troisième à zéro, puis vérifie la valeur (`git diff origin/main -- .claude-plugin/plugin.json` ne montre que `"version"`).
-10. **`Label: contre-revue`** et **`/security-review`** : `regles.mjs` est la garde de fichiers, `github.sh`, `file.sh`, `passer.sh` et `boucle.sh` sont les scripts du capitaine, `chaine.json` est le contrat, tous chemins sensibles d'un projet posé. PR vers `main`, hors brouillon, **sans `à-fusionner`** : l'architecte la contre-relit, puis la fait entrer. Titre `feat(chaine): CODEOWNERS sort du plugin, GitHub ne bloque plus une PR sur les fichiers sensibles (plugin <version>)`. Commits sous les hooks, jamais `--no-verify`.
-11. **Le banc tient le retrait par une liste fermée** (B4) : tout fichier suivi de `README.md`, `.claude-plugin/`, `scripts/` et `skills/` qui nomme CODEOWNERS, les « Code Owners », la clé `proprietaires`, l'état « attend un propriétaire », la marque `attente-revue-capitaine` ou `attend_humain` est une faute, hors six fichiers qui disent le retrait : `SKILL.md` du socle, `retrait-codeowners.md`, `CONTENU.md` du socle, `admin.md`, l'ADR, `regles.test.mjs`, et le banc lui-même. Le lecteur a son test d'entrées piégées : `proprietaire.sh`, « session propriétaire » et « la PR attend un humain » ne sont pas des fautes.
+5. **Le faux `gh` ne garde que ce qu'un banc lit encore.** Sortent les réglages que seuls les onze tests retirés lisaient : `revueProprietaires`, `PR.relecteurs`, `PR.equipes`, `PR.approbationManquante`, `PR.revues` et la route `pulls/<n>/reviews`, la règle `pull_request` et la route `required_pull_request_reviews` ; la route des règles redevient `rules/branches/develop`, la seule que `checks_exiges` lit. **Restent**, parce que d'autres bancs les lisent depuis : `commentairesRefuses` (`github.test.mjs`, et son propre test dans `faux-gh.test.mjs`), les dates et les ids des commentaires (le verrou du passage), `PR.refusFusion`. Le lot 5a ajoutera au faux ce dont il a besoin, avec son test (`A-108`).
+6. **Un refus de fusion de GitHub faute de revue approuvée est un refus durable : sortie 3, la boucle s'arrête.** Sur `main`, `passer.sh` classe déjà un refus de fusion : branche bougée ou panne en 5 (pause, puis reprise) ; tout autre refus en 3, après avoir relu develop et rejoué la règle d'ascendance (décision `A-51` de l'autre programme). Le ticket 50 avait glissé devant ce classement une branche propre à la revue (commentaire marqué, sortie 7). Elle sort (S21, S22), et le refus faute de revue tombe dans le classement commun, sans une ligne de code nouvelle : `passer.sh` ne lit plus le texte du refus pour y chercher une revue. Le message de la sortie 3 ne peut plus dire « ni pour la revue » : il dit « pour une autre raison qu'une branche qui a bougé (droit du compte, règle du dépôt, revue exigée, méthode de fusion) » (S18, S23, S24), et les deux tests qui le lisent suivent (B5, B7). Un cas de plus le prouve (B6). C'est le comportement voulu sur un dépôt où « Require review from Code Owners » serait restée cochée : la boucle s'arrête, un humain lit la cause et décoche la règle (N1, point 7).
+7. **La liste de l'admin** (R32 à R34) : la case « Protection de `develop` » dit de ne pas cocher « Require review from Code Owners », et reçoit « Restrict deletions », « aucune liste de contournement » et « pas de règle de PR sur `sujet/*` » ; une case « Block force pushes » prend la place de la case « CODEOWNERS respecté » ; un paragraphe dit ce que ces règles ne tiennent pas (une PR hostile). Sortent avec la case : les deux propriétaires humains, « Required approvals » à 0, la PR d'essai, « Dismiss stale pull request approvals », l'approbation qui vaut pour le sommet approuvé, la lecture de CODEOWNERS sur la branche visée, la casse des motifs. Ce que la 7.16.0 a écrit dans la même case sur l'ascendance n'est pas touché.
+8. **Le retrait dans un projet est une marche à suivre, pas un script** : `references/retrait-codeowners.md`, lue depuis le skill et jamais posée, citée par `SKILL.md:16`. Elle retire `.github/CODEOWNERS` **seulement si sa première ligne est celle du générateur**, `# Généré depuis .claude/chaine.json (cheminsSensibles, proprietaires) : ne pas éditer.` (`codeowners.mjs:85`, avec `CONTRAT` de `:22`) ; toute autre première ligne, le fichier est celui du projet et reste. Elle ne touche pas un `CODEOWNERS` à la racine ou sous `docs/` : le générateur n'a jamais écrit que `.github/CODEOWNERS` (`codeowners.mjs:21`). Elle dit « depuis le plugin 7.13.0 », sans version de fin : le texte ne dépend pas de la version que ce ticket prendra.
+9. **Version : mineure**, la suivante de `main` au moment de livrer (deuxième nombre de la version d'`origin/main` plus un, troisième à zéro), avec sa note en tête de `NOTES-DE-VERSION.md`, donnée mot pour mot au § 4. Raisons : (a) la règle du `README.md` réserve la majeure à « un skill existant [qui] change de contrat », et un projet qui ne repose rien ne voit rien changer ; un contrat qui porte encore `proprietaires` est lu sans erreur par les scripts de cette version (plus aucun ne lit la clé) ; (b) la spec réserve la **8.0.0** à la bascule (lot 6) et nomme ses deux régimes d'après elle (« régime 7 », « régime 8 ») : une majeure prise ici décalerait ces noms. Contre : la 7.0.0 était une majeure pour un script posé retiré (`plafonds.mjs`), et le capitaine reposé change de conduite devant un refus faute de revue ; c'est pourquoi la note le dit en gras. L'architecte tranche à la contre-revue s'il veut une majeure. **Règle de repli** : si `main` bouge entre l'ouverture et la fusion, la session fusionne `origin/main` dans sa branche par un commit de fusion (jamais de rebase, de push forcé ni d'`--amend`), reprend la version de `main` plus un au deuxième nombre, troisième à zéro, remonte sa note en tête du fichier, rejoue la suite, puis vérifie (`git diff origin/main -- .claude-plugin/plugin.json` ne montre que `"version"`).
+10. **`Label: contre-revue`** et **`/security-review`** : `regles.mjs` est la garde de fichiers, `github.sh`, `file.sh`, `passer.sh` et `boucle.sh` sont les scripts du capitaine, `chaine.json` est le contrat, tous chemins sensibles d'un projet posé. PR vers `main`, hors brouillon, **sans `à-fusionner`** : l'architecte la contre-relit, puis la fait entrer. Titre `feat(chaine): CODEOWNERS sort du plugin, le capitaine n'attend plus de propriétaire (plugin <version>)` (cent caractères environ : le sujet du squash reste sous 120). Jamais `--no-verify`, jamais `git commit --amend`.
+11. **Le banc tient le retrait par une liste fermée** (B4) : tout fichier suivi de `README.md`, `.claude-plugin/`, `scripts/` et `skills/` qui nomme CODEOWNERS, les « Code Owners », la clé `proprietaires`, l'état « attend un propriétaire », la marque `attente-revue-capitaine` ou `attend_humain` est une faute, hors sept fichiers qui disent le retrait ou le prouvent : `SKILL.md` du socle, `retrait-codeowners.md`, `CONTENU.md` du socle, `admin.md`, l'ADR, `regles.test.mjs`, et le banc lui-même. Le lecteur a son test d'entrées piégées : `proprietaire.sh`, « session propriétaire » et « la PR attend un humain » ne sont pas des fautes. `NOTES-DE-VERSION.md` et `docs/` ne sont pas lus (l'histoire) ; la note du § 4 nomme donc CODEOWNERS librement. **Le même test tient le compte des clés** : la phrase « <N> clés, et rien d'autre, » du `CONTENU.md` du socle porte le nombre de clés du gabarit `chaine.json`, hors `$comment`, et « Une <N+1>ième, facultative et absente du gabarit : `preparerCapitaine` » le suit. La partie 6c, qui ajoutera la clé `relecture`, verra ce test rougir tant qu'elle n'aura pas recompté (`A-108`).
+12. **Rien ne se recopie à la main.** Les blocs du § 1 au § 3 sont appliqués par le script du § 5, donné entier, que la session tire du ticket par ses bornes et vérifie par son empreinte. Tout ou rien : un bloc dont le texte « Ancien » manque ou paraît deux fois, un bloc retiré d'une autre taille ou d'une autre empreinte, et rien n'est écrit, le bloc est nommé. C'est ce script, lancé sur ce fichier, qui a produit l'arbre vérifié (« Vérification »). Le patch inverse de la PR 108 ne s'applique plus (« Ce que le rejeu a changé »).
+13. **Le point 4 ter du socle garde le check `PR titre`** (R14) : sa phrase, entrée avec le ticket 16 de l'autre programme, reste mot pour mot ; seul son début CODEOWNERS sort. `node --test scripts/github/*.test.mjs` reste à l'étape 3 : il joue le banc de ce check.
+14. **Le compte des clés du contrat, refait sur `main`** (`A-108`) : le gabarit porte huit clés à `a3c2a7c` (`cheminsSensibles`, `proprietaires`, `criteresRevue`, `fillesParVague`, `plafonds`, `migrations`, `fusionsSansEffet`, `gatesRapides`), sept sans `proprietaires` ; `preparerCapitaine`, facultative et absente du gabarit, passe de neuvième à huitième (R22, R24). Si `main` a changé ce compte avant la livraison, le test de la décision 11 rougit et dit le nombre.
+15. **Dans `chantier/SKILL.md`, deux phrases et elles seules** (R39, `A-94`) : « Sauf une PR qui touche un chemin possédé… la vague peut s'y arrêter. » et « Le conducteur le dit au produit… il n'approuve rien lui-même. ». Le bloc cite, avant et après, quatre mots de contexte que ni le ticket 56 (point 6, ligne voisine) ni le ticket 57 (« Une sous-PR à la fois par sujet », plus loin dans le même alinéa) ne récrivent. `wc -l` du fichier ne change pas.
+16. **L'histoire ne se récrit pas** : les notes de version déjà publiées et tout `docs/` (tickets, carte, spec, les deux programmes) gardent leurs mentions de CODEOWNERS.
 
 ### Remèdes écartés
 
 - **Supprimer l'ADR** : une décision retirée se lit encore ; les projets qui l'ont posée gardent son numéro.
 - **Garder l'attente d'un propriétaire pour un projet qui tiendrait CODEOWNERS à la main** : `P-49` dit qu'aucun dépôt ne coche le réglage ; un état que rien ne déclenche est du code mort dans les scripts du capitaine.
+- **Sauter sans renvoi (sortie 7) une PR dont GitHub refuse la fusion faute de revue, sans le commentaire marqué** : elle repasserait à chaque tour, mise à jour et CI comprises ; c'est ce que le commentaire du ticket 50 empêchait. **La renvoyer à son auteur (sortie 4)** : l'auteur ne peut pas corriger une règle de GitHub. L'arrêt est la seule sortie qui amène un humain devant la cause.
 - **Un script de retrait posé dans le projet** : il servirait une fois par projet, et vivrait ensuite dans `scripts/` sans objet ; la condition tient en une commande (`head -n 1`), que le banc tient mot pour mot.
-- **Garder dans le faux `gh` les réglages sans nom de CODEOWNERS**, pour les lots 3 et 4 : sans lecteur ni test, ils ne prouvent rien ; ces lots les poseront avec leurs bancs.
+- **Garder dans le faux `gh` les réglages de la revue**, pour les lots suivants : sans lecteur ni test, ils ne prouvent rien ; `A-108` fait ajouter au faux ce dont un lot a besoin, avec son test.
 - **Retirer la normalisation avec le refus** : elle rouvrirait un contournement du lockfile et des migrations livrées (décision 4).
 - **Écrire dans la liste de l'admin que l'accord du produit, donné avant, garde les fichiers sensibles** : cette garde n'existe pas encore dans le plugin ; le texte décrirait un régime qui n'est pas là.
+- **Redonner les blocs en « Ancien, Nouveau » à recopier à la main**, comme le ticket d'origine : quatre-vingt-onze copies, dont des blocs de deux cents lignes, sur des fichiers que `main` déplace chaque jour ; une copie fautive ne se voit qu'à la suite rouge, ou pas du tout dans un commentaire.
+- **Une majeure, 8.0.0** : réservée à la bascule (décision 9).
 
 ## À faire, dans l'ordre
 
-Chaque « Ancien » se retrouve par son texte ; il apparaît une fois, une seule, dans son fichier. Un bloc « Nouveau » se recopie tel quel, sans la ligne de clôture.
+Chaque bloc porte un identifiant, le fichier qu'il touche et une opération, annoncée par une ligne de marque : « Ancien : » puis « Nouveau : » (un texte, présent une fois et une seule dans le fichier, remplacé par un autre) ; « Lignes retirées, entières : » (des lignes entières, présentes une fois, retirées avec leur fin de ligne) ; « Bloc retiré (N lignes, empreinte `…`), de la ligne qui commence par : » puis « jusqu'à la ligne, non comprise, qui commence par : », blancs de début mis à part, et parfois « À la place : » ; « Ajouté à la fin du fichier, après une ligne vide : » ; « Fichier nouveau, mot pour mot : » ; ou, dans le titre du bloc, « fichier supprimé ». L'empreinte d'un bloc est le début (douze caractères) du SHA-256 de ses lignes, fins de ligne comprises. **Les blocs ne se recopient pas à la main** : le script du § 5 les lit dans ce fichier et les applique, tout ou rien.
 
-### 0. Le banc d'abord, vu rouge
+### § 0 — Partir de `main`, tirer le script du ticket
 
-#### B1 — `skills/chaine/socle-chaine-de-production/references/agent/regles.test.mjs:27`
+```bash
+git fetch origin main && git switch -c <branche de travail> origin/main
+git rev-parse --short HEAD          # a3c2a7c : ce ticket a été joué sur ce commit ; un autre commit, lire la règle de repli (§ 6)
+pnpm install --frozen-lockfile && pnpm test 2>&1 | tail -n 12     # la suite de départ, verte : 1 072 tests sur a3c2a7c
+```
+
+Le ticket se lit sur la branche de documentation du programme, que nomme le prompt de lancement, sans y écrire. La session en prend une copie dans un dossier temporaire, et en tire le script du § 5 par ses bornes :
+
+```bash
+export TMPDIR="$(mktemp -d)"
+TICKET="$TMPDIR/ticket-54.md"
+git fetch origin <branche de documentation>
+git show FETCH_HEAD:docs/issues/gouverner-nos-boucles/issues/54-codeowners-sort-du-plugin.issue.md > "$TICKET"
+awk '/^<!-- début : appliquer.mjs -->$/ { f = 1; next } /^<!-- fin : appliquer.mjs -->$/ { f = 0 } f' "$TICKET" | grep -v '^````' > "$TMPDIR/appliquer.mjs"
+sha256sum "$TMPDIR/appliquer.mjs"   # ba80c0dfc34fe6ff716219cc32244679d15940da152480ddf80f690f51e1ad61
+```
+
+L'empreinte vaut pour le script de ce ticket tel qu'il est écrit ici. Une autre empreinte : la copie du ticket n'est pas la bonne, ne rien appliquer et l'écrire à l'architecte.
+
+### § 1 — Le banc d'abord, vu rouge
+
+`node "$TMPDIR/appliquer.mjs" "$TICKET" B` applique les sept blocs qui suivent, et eux seuls.
+
+#### B1 — `skills/chaine/socle-chaine-de-production/references/agent/regles.test.mjs`
 
 Le test du refus de CODEOWNERS devient le test de ce qui reste de lui : la normalisation du chemin (décision 4), prouvée sur le lockfile, un `.env` et une migration livrée, et l'édition de CODEOWNERS que plus rien ne refuse.
 
-Bloc retiré : de la ligne qui commence par
+Bloc retiré (13 lignes, empreinte `f32512b21641`), de la ligne qui commence par :
 
 ````js
 test('refusEdition refuse CODEOWNERS à ses trois places
 ````
 
-jusqu'à la ligne, non comprise, qui commence par
+jusqu'à la ligne, non comprise, qui commence par :
 
 ````js
 test('decisionCommande refuse le push forcé
 ````
 
-À la place (les lignes vides qui précèdent la ligne gardée restent) :
+À la place :
 
 ````js
 test('refusEdition normalise le chemin avant de juger : un détour (`//`, `/./`, `x/../`, `\\`) ne contourne aucun refus', () => {
@@ -178,9 +247,10 @@ test('refusEdition normalise le chemin avant de juger : un détour (`//`, `/./`,
   // CODEOWNERS n'est plus généré ni gardé (décision du produit, 2026-11-18) : plus rien ne refuse son édition.
   for (const c of ['.github/CODEOWNERS', 'CODEOWNERS', 'docs/CODEOWNERS']) assert.equal(refusEdition(c, nouvelle), null, c);
 });
+
 ````
 
-#### B2 — `scripts/depot.test.mjs:221`
+#### B2 — `scripts/depot.test.mjs`
 
 Le test « le gabarit .claude/chaine.json range les gardes de la chaîne parmi les chemins sensibles » garde un exemple sous `scripts/github/**` (décision 3) : le script qui crée `develop`.
 
@@ -198,27 +268,25 @@ Nouveau :
     "scripts/github/develop.sh",
 ````
 
-#### B3 — `scripts/depot.test.mjs:734`
+#### B3 — `scripts/depot.test.mjs`
 
 Le test « le dernier repli du banc de CODEOWNERS redit les cheminsSensibles du gabarit » lisait `codeowners.test.mjs`, qui disparaît : il sort avec lui.
 
-Bloc retiré : de la ligne qui commence par
+Bloc retiré (10 lignes, empreinte `e88689266577`), de la ligne qui commence par :
 
 ````js
 // Le banc de CODEOWNERS, posé sans contrat ni gabarit à côté
 ````
 
-jusqu'à la ligne, non comprise, qui commence par
+jusqu'à la ligne, non comprise, qui commence par :
 
 ````js
 // Le skill de criticité (ticket 49)
 ````
 
-Rien à la place.
+#### B4 — `scripts/depot.test.mjs`
 
-#### B4 — fin de `scripts/depot.test.mjs`
-
-Trois tests. `SKILLS_CHAINE`, `REF`, `lignes`, `titres` et `exiger` existent déjà dans le fichier.
+Trois tests. `SKILLS_CHAINE`, `REF`, `lignes`, `titres`, `exiger`, `existsSync` et `execFileSync` existent déjà dans le fichier.
 
 Ajouté à la fin du fichier, après une ligne vide :
 
@@ -256,16 +324,22 @@ test("CODEOWNERS n'est plus nommé que là où le plugin dit qu'il est retiré",
   const gabarit = JSON.parse(readFileSync(join(RACINE, REF, "chaine.json"), "utf8"));
   assert.equal("proprietaires" in gabarit, false, "le gabarit du contrat ne porte plus la clé `proprietaires`");
   assert.deepEqual(gabarit.gatesRapides.filter((g) => /github/.test(g)), [], "aucun gate rapide sous scripts/github/");
-  assert.ok(gabarit.cheminsSensibles.includes("scripts/github/**"), "scripts/github/** reste un chemin sensible (develop.sh, labels.sh)");
+  assert.ok(gabarit.cheminsSensibles.includes("scripts/github/**"), "scripts/github/** reste un chemin sensible (develop.sh, labels.sh, le check PR titre)");
+  // Le compte des clés que dit le CONTENU.md du socle est celui du gabarit (hors `$comment`), la facultative en plus.
+  const NOMBRES = ["Une", "Deux", "Trois", "Quatre", "Cinq", "Six", "Sept", "Huit", "Neuf", "Dix", "Onze", "Douze"];
+  const ORDINAUX = ["première", "deuxième", "troisième", "quatrième", "cinquième", "sixième", "septième", "huitième", "neuvième", "dixième", "onzième", "douzième", "treizième"];
+  const cles = Object.keys(gabarit).filter((c) => c !== "$comment").length;
+  exiger(`${REF}/CONTENU.md`, [`${NOMBRES[cles - 1]} clés, et rien d'autre,`, `Une ${ORDINAUX[cles]}, facultative et absente du gabarit : \`preparerCapitaine\``]);
 });
 
 test("le socle retire CODEOWNERS d'un projet déjà posé : le fichier seulement s'il porte l'en-tête du générateur, l'ADR marquée retirée, la règle de GitHub jamais cochée", () => {
   exiger(`${SOCLE_CHAINE}/SKILL.md`, [
-    "Un projet posé avec le plugin 7.13 à 7.15 porte un `.github/CODEOWNERS` généré, que le produit a retiré : [`references/retrait-codeowners.md`](references/retrait-codeowners.md).",
+    "Un projet posé depuis le plugin 7.13.0 peut porter un `.github/CODEOWNERS` généré, que le produit a retiré : [`references/retrait-codeowners.md`](references/retrait-codeowners.md).",
     "`node scripts/docs/next-id.mjs ADR ALL ARC` trois fois, de suite",
   ]);
   exiger(RETRAIT_CODEOWNERS, [
     "Le produit les a retirés le 2026-11-18 : GitHub ne bloque aucune PR sur les chemins sensibles, et « Require review from Code Owners » ne se coche sur aucun dépôt.",
+    "Aucun `poser` ne fait ce retrait : reposer un skill copie ses fichiers, sans retirer ceux qu'une version antérieure a posés.",
     "1. **Le fichier.** `head -n 1 .github/CODEOWNERS` rend `# Généré depuis .claude/chaine.json (cheminsSensibles, proprietaires) : ne pas éditer.` : c'est la copie du générateur, `git rm .github/CODEOWNERS`. Toute autre première ligne : le fichier est celui du projet, le laisser et le dire à qui a lancé la session. Un `CODEOWNERS` à la racine ou sous `docs/` n'a jamais été généré : ne pas y toucher.",
     "2. **Le générateur et son gate.** `git rm scripts/github/codeowners.mjs scripts/github/codeowners.test.mjs` ; retirer de `package.json` les scripts `codeowners` et `check:codeowners`, de `scripts/check.mjs` l'étape `check:codeowners`,",
     "3. **Le contrat.** Dans `.claude/chaine.json` : retirer la clé `proprietaires` et l'entrée `scripts/github/codeowners.mjs` de `gatesRapides`, reprendre le `$comment` de `references/chaine.json`. `cheminsSensibles` ne change pas.",
@@ -283,42 +357,85 @@ test("le socle retire CODEOWNERS d'un projet déjà posé : le fichier seulement
 });
 ````
 
-Après B1 à B4, sur le texte de `origin/main` : `node --test scripts/depot.test.mjs skills/chaine/socle-chaine-de-production/references/agent/regles.test.mjs` rend **100 tests, 3 rouges** : « CODEOWNERS n'est plus nommé que là où le plugin dit qu'il est retiré » (168 lignes dans 19 fichiers), « le socle retire CODEOWNERS d'un projet déjà posé… », « refusEdition normalise le chemin avant de juger… » (sur sa dernière assertion : l'édition de CODEOWNERS est encore refusée). « lecteur des mentions de CODEOWNERS : entrées piégées » est vert dès l'écriture.
+#### B5 — `skills/chaine/fusionner/scripts/fusionner.test.mjs`
 
-### 1. Les retraits
+Le test « passer.sh : une fusion refusée durablement par GitHub sort en 3 et la boucle s'arrête ; branche bougée ou panne : 5 » : le message du refus durable ne dit plus « ni pour la revue » (décision 6).
 
-**Onze fichiers par le patch inverse de la PR 108.** Ces onze fichiers n'ont pas bougé depuis la PR 108 (`86daaee`) : `git diff 86daaee origin/main --stat -- <les onze>` ne rend rien. Le retrait y est l'inverse exact de ce que la PR 108 leur a fait, et le résultat est leur contenu à `c17f88b`, le parent de la PR 108 :
+Ancien :
 
-```bash
-ONZE="skills/chaine/fusionner/scripts/github.sh skills/chaine/fusionner/scripts/file.sh skills/chaine/fusionner/scripts/passer.sh skills/chaine/fusionner/scripts/boucle.sh skills/chaine/fusionner/scripts/fusionner.test.mjs skills/chaine/fusionner/scripts/veille.test.mjs skills/chaine/sujet/scripts/faux-gh.mjs skills/chaine/fusionner/SKILL.md skills/chaine/fusionner/references/CONTENU.md skills/chaine/socle-chaine-de-production/references/fragments/claude-md-fusion.md scripts/poses.test.mjs"
-git diff 86daaee origin/main --stat -- $ONZE    # rien : les onze fichiers sont ceux de la PR 108
-git diff 86daaee c17f88b -- $ONZE | git apply   # l'inverse de la PR 108, sur ces onze fichiers seuls
-git diff c17f88b --stat -- $ONZE                # rien : ils sont revenus à leur contenu d'avant
-```
+````js
+  const DURABLE = /fusion refusée par GitHub, ni pour la revue ni pour une branche qui a bougé/;
+````
 
-Si la première commande rend quelque chose (un autre ticket a touché l'un des onze fichiers depuis), la session ne joue pas le patch sur ce fichier : elle y retire à la main les plages du tableau de « Où », lit `git diff c17f88b 86daaee -- <fichier>` pour les retrouver, et le dit dans sa PR.
+Nouveau :
 
-**Deux fichiers supprimés**, par `git rm` et pas par `rm` : le test « aucun script du plugin ne saute un hook git » (`scripts/depot.test.mjs:287`) lit `git ls-files` et tombe sur un fichier suivi qui n'est plus sur le disque.
+````js
+  const DURABLE = /fusion refusée par GitHub pour une autre raison qu'une branche qui a bougé \(droit du compte, règle du dépôt, revue exigée, méthode de fusion\)/;
+````
 
-```bash
-git rm skills/chaine/socle-chaine-de-production/references/scripts/github/codeowners.mjs skills/chaine/socle-chaine-de-production/references/scripts/github/codeowners.test.mjs
-```
+#### B6 — `skills/chaine/fusionner/scripts/fusionner.test.mjs`
 
-**Sept retouches**, dans trois fichiers que d'autres tickets ont touchés depuis, ou dont une ligne reste (décisions 3 et 4) :
+Le même test reçoit un cas : un refus de GitHub faute de revue approuvée. Sur `main` il sort en 7, avec un commentaire d'attente ; il devient un refus durable comme un autre.
 
-#### S1 — `scripts/points-d-entree.test.mjs:20`
+Ancien :
+
+````js
+    ["gh: HTTP 403", 3, DURABLE],
+````
+
+Nouveau :
+
+````js
+    ["gh: HTTP 403", 3, DURABLE],
+    // Une revue exigée par une règle de GitHub n'est plus attendue (ticket 54) : un refus durable comme un autre.
+    ["gh: At least 1 approving review is required by reviewers with write access. (HTTP 405)", 3, DURABLE],
+````
+
+#### B7 — `skills/chaine/fusionner/scripts/fusionner.test.mjs`
+
+Le test « passer.sh : un refus de fusion 405 après un develop qui a bougé sort en 5 (course) ; le même 405 sans develop bougé, en 3 » lit le même message.
+
+Ancien :
+
+````js
+  assert.match(durable.stdout, /fusion refusée par GitHub, ni pour la revue ni pour une branche qui a bougé/);
+````
+
+Nouveau :
+
+````js
+  assert.match(durable.stdout, /fusion refusée par GitHub pour une autre raison qu'une branche qui a bougé/);
+````
+
+Après ces sept blocs, sur le texte d'`origin/main` à `a3c2a7c` : `node --test scripts/depot.test.mjs skills/chaine/socle-chaine-de-production/references/agent/regles.test.mjs` rend **144 tests, 3 rouges** : « CODEOWNERS n'est plus nommé que là où le plugin dit qu'il est retiré » (171 lignes dans 20 fichiers), « le socle retire CODEOWNERS d'un projet déjà posé… », « refusEdition normalise le chemin avant de juger… » (sur sa dernière assertion : l'édition de CODEOWNERS est encore refusée). « lecteur des mentions de CODEOWNERS : entrées piégées » est vert dès l'écriture. Et `node --test --test-name-pattern='fusion refusée durablement|refus de fusion 405' skills/chaine/fusionner/scripts/fusionner.test.mjs` rend **2 rouges** : les deux tests du refus durable.
+
+### § 2 — Les retraits : le générateur, la garde, le contrat, le capitaine et ses bancs
+
+`node "$TMPDIR/appliquer.mjs" "$TICKET" S` applique les quarante-deux blocs qui suivent.
+
+#### S1 — `skills/chaine/socle-chaine-de-production/references/scripts/github/codeowners.mjs` (fichier supprimé, 147 lignes, empreinte `8397aa4a4ed8`)
+
+Le générateur et son gate. Le script le retire par `git rm`, pas par `rm` : le test « aucun script du plugin ne saute un hook git » de `scripts/depot.test.mjs` lit `git ls-files` et tombe sur un fichier suivi qui n'est plus sur le disque.
+
+#### S2 — `skills/chaine/socle-chaine-de-production/references/scripts/github/codeowners.test.mjs` (fichier supprimé, 146 lignes, empreinte `fd167fc02e5a`)
+
+Son banc, dix tests.
+
+#### S3 — `scripts/points-d-entree.test.mjs`
 
 L'entrée de `SCRIPTS` du générateur : ses six tests (« codeowners agit quand on le lance : … ») sortent avec lui.
 
-Ligne retirée, entière ; blancs de début mis à part, elle commence par :
+Lignes retirées, entières :
 
 ````js
-{ nom: "codeowners", fichier:
+  { nom: "codeowners", fichier: "skills/chaine/socle-chaine-de-production/references/scripts/github/codeowners.mjs", args: [], statut: 2, sortie: /codeowners : \.claude\/chaine\.json illisible/ },
 ````
 
-#### S2 — `skills/chaine/socle-chaine-de-production/references/agent/regles.mjs:41`
+#### S4 — `skills/chaine/socle-chaine-de-production/references/agent/regles.mjs`
 
-Ancien :
+Le motif et la raison du refus d'éditer CODEOWNERS.
+
+Lignes retirées, entières :
 
 ````js
 /**
@@ -330,20 +447,11 @@ const CODEOWNERS = /^(\.github\/|docs\/)?codeowners$/i;
 const RAISON_CODEOWNERS = (c) =>
   `${c} ne s'édite pas : il est généré depuis .claude/chaine.json. Modifier \`cheminsSensibles\` ou \`proprietaires\` dans .claude/chaine.json, puis régénérer avec « pnpm codeowners » (node scripts/github/codeowners.mjs --ecrire) ; le gate \`codeowners\` refuse tout écart (ADR « CODEOWNERS »).`;
 
-/**
- * Refus d'éditer un fichier, ou `null` si l'édition est permise.
 ````
 
-Nouveau :
+#### S5 — `skills/chaine/socle-chaine-de-production/references/agent/regles.mjs`
 
-````js
-/**
- * Refus d'éditer un fichier, ou `null` si l'édition est permise.
-````
-
-#### S3 — `skills/chaine/socle-chaine-de-production/references/agent/regles.mjs:63`
-
-Le refus sort ; la normalisation reste (décision 4), et `import { posix } from 'node:path';` (`regles.mjs:13`) avec elle.
+Le refus sort de `refusEdition` ; la normalisation reste (décision 4), et `import { posix } from 'node:path';` avec elle.
 
 Ancien :
 
@@ -360,43 +468,51 @@ Nouveau :
   const c = posix.normalize(chemin.replace(/\\/g, '/')).replace(/^(\.\/)+/, '');
 ````
 
-#### S4 — `skills/chaine/socle-chaine-de-production/references/chaine.json:2`
+#### S6 — `skills/chaine/socle-chaine-de-production/references/chaine.json`
+
+Le `$comment` du gabarit : ce que `scripts/github/` porte encore.
 
 Ancien :
 
-````json
+````text
 le générateur de CODEOWNERS et les scripts de `scripts/github/`,
 ````
 
 Nouveau :
 
-````json
-les scripts de `scripts/github/` qui créent `develop` et les labels,
+````text
+les scripts de `scripts/github/` (création de `develop`, labels, check `PR titre`),
 ````
 
-#### S5 — `skills/chaine/socle-chaine-de-production/references/chaine.json:2`
+#### S7 — `skills/chaine/socle-chaine-de-production/references/chaine.json`
+
+Le `$comment` : la description de la clé `proprietaires`. Celles de `preparerCapitaine` et de `fusionsSansEffet`, entrées depuis, restent.
 
 Ancien :
 
-````json
-et le gate `tickets` les contrôle dans les cartes. `proprietaires` : les comptes GitHub (`@utilisateur`, `@organisation/équipe`) à qui `.github/CODEOWNERS` donne chaque chemin sensible, ce fichier et CODEOWNERS lui-même ; CODEOWNERS se régénère par `pnpm codeowners` et le gate `codeowners` refuse tout écart (ADR « CODEOWNERS ») : deux humains au moins quand les sessions publient sous le compte d'un humain.",
+````text
+les contrôle dans les cartes. `proprietaires` : les comptes GitHub (`@utilisateur`, `@organisation/équipe`) à qui `.github/CODEOWNERS` donne chaque chemin sensible, ce fichier et CODEOWNERS lui-même ; CODEOWNERS se régénère par `pnpm codeowners` et le gate `codeowners` refuse tout écart (ADR « CODEOWNERS ») : deux humains au moins quand les sessions publient sous le compte d'un humain. `preparerCapitaine`
 ````
 
 Nouveau :
 
-````json
-et le gate `tickets` les contrôle dans les cartes.",
+````text
+les contrôle dans les cartes. `preparerCapitaine`
 ````
 
-#### S6 — `skills/chaine/socle-chaine-de-production/references/chaine.json:4`
+#### S8 — `skills/chaine/socle-chaine-de-production/references/chaine.json`
 
-Ligne retirée, entière ; blancs de début mis à part, elle commence par :
+La clé.
+
+Lignes retirées, entières :
 
 ````json
-"proprietaires": [],
+  "proprietaires": [],
 ````
 
-#### S7 — `skills/chaine/socle-chaine-de-production/references/chaine.json:18`
+#### S9 — `skills/chaine/socle-chaine-de-production/references/chaine.json`
+
+Le gate rapide de fin de tour.
 
 Ancien :
 
@@ -411,9 +527,674 @@ Nouveau :
     "scripts/verify/settings-json.mjs"
 ````
 
-### 2. Les textes, mot pour mot
+#### S10 — `skills/chaine/fusionner/scripts/github.sh`
 
-#### R1 — `skills/chaine/socle-chaine-de-production/SKILL.md:3`
+`revue_proprietaires_exigee`, `proprietaires_de`, `demandes_jq`, `proprietaire_demande`, `attend_proprietaire`, `refus_pour_revue`, `MARQUE_ATTENTE`, `TEXTE_ATTENTE`, `attend_humain`, `MOTIF_PROPRIETAIRE`, avec leurs commentaires et la ligne vide qui les suit. Plus rien ne les appelle une fois S11 à S24 appliqués.
+
+Bloc retiré (75 lignes, empreinte `0feb60f83d98`), de la ligne qui commence par :
+
+````bash
+# Revue des propriétaires exigée sur `<base>`
+````
+
+jusqu'à la ligne, non comprise, qui commence par :
+
+````bash
+# Verrou du passage (plusieurs capitaines sur la même file
+````
+
+#### S11 — `skills/chaine/fusionner/scripts/file.sh`
+
+L'en-tête : la description des états « attend un propriétaire » et « attend un humain ». Celle de l'état `humain` du plafond des renvois, juste dessous, ne change pas.
+
+Bloc retiré (13 lignes, empreinte `470ffd467c13`), de la ligne qui commence par :
+
+````bash
+#   attend un propriétaire
+````
+
+jusqu'à la ligne, non comprise, qui commence par :
+
+````bash
+#   humain              PR déjà renvoyée autant de fois que le plafond
+````
+
+#### S12 — `skills/chaine/fusionner/scripts/file.sh`
+
+Le champ `demandes` (relecteurs demandés) n'est plus lu sur chaque PR.
+
+Ancien :
+
+````bash
+  head: .head.ref, sommet: .head.sha, base: .base.ref, labels: [.labels[].name],
+  demandes: '"$demandes_jq"'}]' <<<"$prs")
+````
+
+Nouveau :
+
+````bash
+  head: .head.ref, sommet: .head.sha, base: .base.ref, labels: [.labels[].name]}]' <<<"$prs")
+````
+
+#### S13 — `skills/chaine/fusionner/scripts/file.sh`
+
+Lignes retirées, entières :
+
+````bash
+    .demandes,
+````
+
+#### S14 — `skills/chaine/fusionner/scripts/file.sh`
+
+Ancien :
+
+````bash
+read -r prio n sommet base brouillon bloquee hors_sujet demandes tete titre; do
+````
+
+Nouveau :
+
+````bash
+read -r prio n sommet base brouillon bloquee hors_sujet tete titre; do
+````
+
+#### S15 — `skills/chaine/fusionner/scripts/file.sh`
+
+La branche « attend un humain » (approbation). La branche `humain` (plafond des renvois), juste au-dessus, ne change pas.
+
+Lignes retirées, entières :
+
+````bash
+  elif attend_humain "$n"; then
+    # Une CI rouge prime, comme sur « attend un propriétaire » : relancée, puis renvoyée, comme une autre.
+    etat=$(ci_de) || exit 5
+    if [[ "$etat" == 'CI rouge'* ]]; then [[ "$base" != sujet/* ]] || etat="$base : $etat"; else etat='attend un humain'; fi
+````
+
+#### S16 — `skills/chaine/fusionner/scripts/file.sh`
+
+La revue des propriétaires d'une PR vers develop.
+
+Lignes retirées, entières :
+
+````bash
+    # Revue des propriétaires : la règle et le CODEOWNERS de develop se lisent une fois pour toute la file.
+    if [ "$demandes" != - ] && [[ "$etat" != 'CI rouge'* ]]; then
+      if [ -z "${proprietaires_develop+lu}" ]; then
+        proprietaires_develop=$(proprietaires_de develop)
+        if [ -n "$proprietaires_develop" ] && ! revue_proprietaires_exigee develop; then proprietaires_develop=''; fi
+      fi
+      ! proprietaire_demande "$demandes" "$proprietaires_develop" || etat='attend un propriétaire'
+    fi
+````
+
+#### S17 — `skills/chaine/fusionner/scripts/passer.sh`
+
+L'en-tête, sortie 7 : les deux attentes sortent ; ce que le ticket 4 de l'autre programme y a ajouté (le passage chez un autre capitaine, le verrou pris) reste, mot pour mot. La sortie 3 du commentaire d'attente sort avec elles.
+
+Ancien :
+
+````bash
+#   7  pas éligible, rien à corriger côté auteur (non ouverte, brouillon, sans `à-fusionner`,
+#      déjà `fusion-bloquée`, empilée sur une parente pas encore fusionnée, ou qui attend l'approbation d'un
+#      propriétaire : CODEOWNERS et « Require review from Code Owners » sur la base, vu à l'éligibilité ou au refus
+#      de fusion de GitHub, qui fait poser un commentaire marqué ; ou qui attend un humain : fusion déjà refusée
+#      ainsi, aucune revue APPROVED plus récente que ce commentaire) : la boucle la saute sans renvoi et la reprend
+#      au tour suivant ; ou en passage chez un autre capitaine (son commentaire marqué `<!-- capitaine:passage <id> -->`,
+#      sans fin, de moins de 90 minutes, posé avant le sien), sautée sans renvoi ; ou qui n'est plus éligible une fois le
+#      verrou pris (relue : fermée, label retiré, sommet changé)
+#   3  fusion refusée faute d'approbation d'un propriétaire et commentaire d'attente impossible à poser : la boucle
+#      s'arrête (ARRÊT, sortie 3), sans le repasser → lire la cause (droits du compte du capitaine), relancer
+````
+
+Nouveau :
+
+````bash
+#   7  pas éligible, rien à corriger côté auteur (non ouverte, brouillon, sans `à-fusionner`,
+#      déjà `fusion-bloquée`, empilée sur une parente pas encore fusionnée) : la boucle la saute sans renvoi et la
+#      reprend au tour suivant ; ou en passage chez un autre capitaine (son commentaire marqué `<!-- capitaine:passage <id> -->`,
+#      sans fin, de moins de 90 minutes, posé avant le sien), sautée sans renvoi ; ou qui n'est plus éligible une fois le
+#      verrou pris (relue : fermée, label retiré, sommet changé)
+````
+
+#### S18 — `skills/chaine/fusionner/scripts/passer.sh`
+
+L'en-tête, sortie 3 du refus durable : la revue n'est plus un cas à part (décision 6).
+
+Ancien :
+
+````bash
+#   3  fusion refusée par GitHub pour une autre raison que la revue ou une branche qui a bougé (droit du compte, règle
+#      du dépôt, méthode de fusion interdite : un refus durable) : la boucle s'arrête (ARRÊT) → lire le message, traiter.
+````
+
+Nouveau :
+
+````bash
+#   3  fusion refusée par GitHub pour une autre raison qu'une branche qui a bougé (droit du compte, règle du dépôt,
+#      revue exigée, méthode de fusion interdite : un refus durable) : la boucle s'arrête (ARRÊT) → lire le message, traiter.
+````
+
+#### S19 — `skills/chaine/fusionner/scripts/passer.sh`
+
+L'éligibilité : le saut « attend un humain ».
+
+Lignes retirées, entières :
+
+````bash
+# Fusion déjà refusée faute d'approbation, sans approbation plus récente que le commentaire du capitaine : attend
+# un humain, aucune mise à jour (au plus une CI par nouvelle approbation).
+! attend_humain "$N" || sortir 7 "attend un humain : fusion refusée faute d'approbation d'un propriétaire (CODEOWNERS), aucune approbation depuis ; sautée sans renvoi"
+````
+
+#### S20 — `skills/chaine/fusionner/scripts/passer.sh`
+
+L'éligibilité : le saut « attend un propriétaire ».
+
+Lignes retirées, entières :
+
+````bash
+# Revue des propriétaires (CODEOWNERS de la base) attendue : ni rouge ni bloquée, rien à corriger côté auteur. Vu
+# avant la mise à jour : une CI pour rien sinon, à chaque tour, jusqu'à l'approbation.
+! attend_proprietaire "$pr" || sortir 7 "$MOTIF_PROPRIETAIRE"
+````
+
+#### S21 — `skills/chaine/fusionner/scripts/passer.sh`
+
+Le refus de fusion : le commentaire qui annonçait la sortie 7.
+
+Lignes retirées, entières :
+
+````bash
+  # Refus faute d'approbation d'un propriétaire (un propriétaire du CODEOWNERS demandé, ou seul propriétaire = l'auteur, que
+  # GitHub ne demande pas) : sortie 7, jamais 5, que la boucle relancerait puis arrêterait.
+````
+
+#### S22 — `skills/chaine/fusionner/scripts/passer.sh`
+
+Le refus de fusion : la reconnaissance du refus faute de revue, le commentaire marqué, les sorties 3 et 7. Ce qui suit dans le script (branche bougée ou panne : 5 ; règle d'ascendance rejouée, décision `A-51` de l'autre programme ; refus durable : 3) ne change pas et juge désormais ce refus comme les autres.
+
+Lignes retirées, entières :
+
+````bash
+  if refus_pour_revue "$message" || attend_proprietaire "$(pr_json "$N" 2>/dev/null || echo '{}')"; then
+    git switch -q --detach origin/develop
+    git branch -q -D "capitaine/$N" 2>/dev/null || true
+    # La PR attend un humain jusqu'à une nouvelle approbation : le commentaire marqué l'arrête (file.sh, attend_humain).
+    # Commentaire impossible à poser : sortie 3 (la boucle s'arrête), jamais 7, qui ferait repasser la PR, mise à jour
+    # et CI comprises, à chaque tour, ni 5, que la boucle met en pause puis reprend sans fin.
+    commenter "$N" "$(printf '%s\n%s\n\n---\n_Generated by [Claude Code](https://claude.ai/code)_' "$MARQUE_ATTENTE" "$TEXTE_ATTENTE")" ||
+      sortir 3 "fusion refusée faute d'approbation d'un propriétaire (CODEOWNERS) et commentaire d'attente non posé : sans lui, la PR repasserait à chaque tour ; lire la cause (droits du compte du capitaine), relancer"
+    sortir 7 "$MOTIF_PROPRIETAIRE"
+  fi
+````
+
+#### S23 — `skills/chaine/fusionner/scripts/passer.sh`
+
+Ancien :
+
+````bash
+Tout autre refus (droit, règle du dépôt, méthode de fusion interdite) est
+````
+
+Nouveau :
+
+````bash
+Tout autre refus (droit, règle du dépôt, revue exigée, méthode de fusion interdite) est
+````
+
+#### S24 — `skills/chaine/fusionner/scripts/passer.sh`
+
+Le message du refus durable (décision 6).
+
+Ancien :
+
+````bash
+  sortir 3 "fusion refusée par GitHub, ni pour la revue ni pour une branche qui a bougé (droit du compte, règle du dépôt, méthode de fusion) : message ci-dessus ; la boucle s'arrête, un humain lit la cause"
+````
+
+Nouveau :
+
+````bash
+  sortir 3 "fusion refusée par GitHub pour une autre raison qu'une branche qui a bougé (droit du compte, règle du dépôt, revue exigée, méthode de fusion) : message ci-dessus ; la boucle s'arrête, un humain lit la cause"
+````
+
+#### S25 — `skills/chaine/fusionner/scripts/boucle.sh`
+
+L'en-tête, sortie 7 : la phrase revient à une ligne, comme avant le ticket 50.
+
+Ancien :
+
+````bash
+# (refus.sh) ; une PR non éligible sans correction possible (sortie 7, dont « attend un propriétaire » :
+# CODEOWNERS) est sautée sans renvoi ; une PR sans CI déclenchée (sortie 3, déjà à jour,
+````
+
+Nouveau :
+
+````bash
+# (refus.sh) ; une PR non éligible sans correction possible (sortie 7) est sautée sans renvoi ; une PR sans CI déclenchée (sortie 3, déjà à jour,
+````
+
+#### S26 — `skills/chaine/fusionner/scripts/boucle.sh`
+
+L'en-tête, les arrêts : le commentaire d'attente n'existe plus.
+
+Ancien :
+
+````bash
+# Tout autre code arrête la boucle (gates des registres, install, CI bloquée, commentaire d'attente impossible à
+# poser) : le capitaine traite, puis relance.
+````
+
+Nouveau :
+
+````bash
+# Tout autre code arrête la boucle (gates des registres, install, CI bloquée) : le capitaine traite, puis relance.
+````
+
+#### S27 — `skills/chaine/fusionner/scripts/boucle.sh`
+
+Ancien :
+
+````bash
+(empilée, brouillon, déjà renvoyée, attend un propriétaire)
+````
+
+Nouveau :
+
+````bash
+(empilée, brouillon, déjà renvoyée)
+````
+
+#### S28 — `skills/chaine/fusionner/scripts/fusionner.test.mjs`
+
+Onze tests, leurs aides (`attenteProprietaire`, `etats`, `commentaireAttente`) et trois constantes (`MOTIF_PROPRIETAIRE`, `MARQUE_ATTENTE`, `CODEOWNERS`), que rien d'autre n'emploie dans le fichier. Le tableau « Les tests retirés » dit ce que chacun prouvait.
+
+Bloc retiré (203 lignes, empreinte `346d7fa71262`), de la ligne qui commence par :
+
+````js
+// Revue des propriétaires (CODEOWNERS, « Require review from Code Owners » sur la base)
+````
+
+jusqu'à la ligne, non comprise, qui commence par :
+
+````js
+// ── Règle d'ascendance : la cible qui bouge pendant la CI
+````
+
+#### S29 — `skills/chaine/fusionner/scripts/veille.test.mjs`
+
+Le test de la veille sur l'état « attend un propriétaire », et la ligne vide qui le suit.
+
+Lignes retirées, entières :
+
+````js
+test("PR qui attend un propriétaire : pas de relance ; approuvée (prête), boucle relancée", () => {
+  const attend = `31\tattend un propriétaire\t\n`;
+  const r = veilleJouet([attend, attend], { sondes: 2 });
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(r.lancements, 1);
+  const r2 = veilleJouet([attend, attend, prete(31)]);
+  assert.equal(r2.lancements, 2);
+});
+
+````
+
+#### S30 — `skills/chaine/sujet/scripts/faux-gh.mjs`
+
+Le faux GitHub : les réglages que seuls les bancs retirés lisaient (décision 5). En-tête : `revueProprietaires`, `PR.relecteurs`, `PR.equipes`, `PR.approbationManquante`.
+
+Lignes retirées, entières :
+
+````js
+//   revueProprietaires  branches dont la règle de PR exige la revue des propriétaires (« Require review
+//               from Code Owners ») : ruleset `pull_request`, ou ancienne protection avec `protectionClassique`
+//   PR.relecteurs / PR.equipes  relecteurs demandés (`requested_reviewers` logins, `requested_teams` slugs) : GitHub y
+//               met d'office les propriétaires CODEOWNERS et les retire quand ils approuvent
+//   PR.approbationManquante  sur une base de `revueProprietaires`, la fusion est refusée (405, « Waiting on code
+//               owner review ») : l'approbation d'un propriétaire manque (le faux ne lit pas CODEOWNERS)
+````
+
+#### S31 — `skills/chaine/sujet/scripts/faux-gh.mjs`
+
+`commentairesRefuses` reste : `github.test.mjs` le lit (`true`), et `faux-gh.test.mjs` éprouve sa forme en chaîne. Son exemple ne nomme plus le commentaire d'attente.
+
+Ancien :
+
+````js
+cette expression rationnelle seulement (le commentaire d'attente refusé, celui du verrou du passage posé)
+````
+
+Nouveau :
+
+````js
+cette expression rationnelle seulement (un commentaire refusé, celui du verrou du passage posé)
+````
+
+#### S32 — `skills/chaine/sujet/scripts/faux-gh.mjs`
+
+Lignes retirées, entières :
+
+````js
+//   PR.revues   revues de la PR (`pulls/<n>/reviews`) : [{ state, submitted_at, auteur }]
+````
+
+#### S33 — `skills/chaine/sujet/scripts/faux-gh.mjs`
+
+Les relecteurs demandés d'une PR.
+
+Lignes retirées, entières :
+
+````js
+    requested_reviewers: (pr.relecteurs ?? []).map((login) => ({ login })),
+    requested_teams: (pr.equipes ?? []).map((slug) => ({ slug })),
+````
+
+#### S34 — `skills/chaine/sujet/scripts/faux-gh.mjs`
+
+La route des revues d'une PR.
+
+Lignes retirées, entières :
+
+````js
+  if ((m = route.match(/^pulls\/(\d+)\/reviews$/)) && methode === "GET")
+    return (pr(m[1]).revues ?? []).map((r, i) => ({ id: i + 1, state: r.state, submitted_at: r.submitted_at, user: { login: r.auteur ?? "relecteur" } }));
+````
+
+#### S35 — `skills/chaine/sujet/scripts/faux-gh.mjs`
+
+Les règles d'une branche : la règle `pull_request` et la route `required_pull_request_reviews` sortent ; la route redevient celle de `develop`, la seule que `checks_exiges` lit.
+
+Ancien :
+
+````js
+  // Revue des propriétaires : une règle `pull_request` du ruleset sur les branches de `revueProprietaires`.
+  if ((m = route.match(/^rules\/branches\/([^/]+)$/))) {
+    const branche = decodeURIComponent(m[1]);
+    if (etat.protectionClassique) return [];
+    return [
+      ...(branche === "develop"
+        ? [
+            {
+              type: "required_status_checks",
+              parameters: {
+                required_status_checks: (etat.exiges ?? []).map((context) => ({
+                  context,
+                })),
+              },
+            },
+          ]
+        : []),
+      ...((etat.revueProprietaires ?? []).includes(branche)
+        ? [{ type: "pull_request", parameters: { require_code_owner_review: true, required_approving_review_count: 1 } }]
+        : []),
+    ];
+  }
+  if ((m = route.match(/^branches\/([^/]+)\/protection\/required_pull_request_reviews$/)))
+    return etat.protectionClassique && (etat.revueProprietaires ?? []).includes(decodeURIComponent(m[1]))
+      ? { require_code_owner_reviews: true, required_approving_review_count: 1 }
+      : echec("gh: Branch not protected (HTTP 404)");
+````
+
+Nouveau :
+
+````js
+  if (route === "rules/branches/develop")
+    return etat.protectionClassique
+      ? []
+      : [
+          {
+            type: "required_status_checks",
+            parameters: {
+              required_status_checks: (etat.exiges ?? []).map((context) => ({
+                context,
+              })),
+            },
+          },
+        ];
+````
+
+#### S36 — `skills/chaine/sujet/scripts/faux-gh.mjs`
+
+Le refus 405 faute d'approbation. `PR.refusFusion`, entré depuis, rend tout message de refus qu'un banc lui donne (B6).
+
+Lignes retirées, entières :
+
+````js
+  if ((etat.revueProprietaires ?? []).includes(p.base) && p.approbationManquante)
+    echec("gh: Waiting on code owner review from @proprietaire. (HTTP 405)");
+````
+
+#### S37 — `skills/chaine/sujet/scripts/faux-gh.test.mjs`
+
+Le test de `commentairesRefuses` prenait pour exemple la marque du commentaire d'attente, qui n'existe plus : il prend celle du renvoi. Ce qu'il prouve ne change pas.
+
+Ancien :
+
+````js
+  d.github({ commentairesRefuses: 'attente-revue' });
+  assert.equal(gh(d, '-X', 'POST', COMMENTAIRES, '-f', 'body=<!-- capitaine:passage x -->').status, 0);
+  assert.match(gh(d, '-X', 'POST', COMMENTAIRES, '-f', 'body=<!-- attente-revue-capitaine -->').stderr, /HTTP 403/);
+````
+
+Nouveau :
+
+````js
+  d.github({ commentairesRefuses: 'renvoi-capitaine' });
+  assert.equal(gh(d, '-X', 'POST', COMMENTAIRES, '-f', 'body=<!-- capitaine:passage x -->').status, 0);
+  assert.match(gh(d, '-X', 'POST', COMMENTAIRES, '-f', 'body=<!-- renvoi-capitaine -->').stderr, /HTTP 403/);
+````
+
+#### S38 — `scripts/poses.test.mjs`
+
+`readFileSync` ne servait qu'au test retiré par S42.
+
+Ancien :
+
+````js
+readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+````
+
+Nouveau :
+
+````js
+readdirSync, rmSync, writeFileSync } from "node:fs";
+````
+
+#### S39 — `scripts/poses.test.mjs`
+
+Ancien :
+
+````js
+// Fichiers posés un à un, et non par dossier : de `references/scripts/github/`, le socle de la chaîne ne pose que
+// CODEOWNERS et le check `PR titre`, avec leurs bancs (étape 4 ter) ; `develop.sh` part seul, sans son banc (étape 9).
+````
+
+Nouveau :
+
+````js
+// Fichiers posés un à un, et non par dossier : de `references/scripts/github/`, le socle de la chaîne ne pose que
+// le check `PR titre`, avec son banc (étape 4 ter) ; `develop.sh` part seul, sans son banc (étape 9).
+````
+
+#### S40 — `scripts/poses.test.mjs`
+
+Lignes retirées, entières :
+
+````js
+  [`${SOCLE_GITHUB}/codeowners.mjs`, "scripts/github/codeowners.mjs"],
+  [`${SOCLE_GITHUB}/codeowners.test.mjs`, "scripts/github/codeowners.test.mjs"],
+````
+
+#### S41 — `scripts/poses.test.mjs`
+
+Ancien :
+
+````js
+(socle de la chaîne : CODEOWNERS, PR titre)
+````
+
+Nouveau :
+
+````js
+(socle de la chaîne : PR titre)
+````
+
+#### S42 — `scripts/poses.test.mjs`
+
+Le test « le banc de CODEOWNERS posé passe dans un projet dont le contrat a ses propriétaires », son commentaire et la ligne vide qui les précède, en fin de fichier : le banc qu'il posait n'existe plus.
+
+Lignes retirées, entières :
+
+````js
+
+// Un projet réel a son contrat, propriétaires remplis (question 4 du socle) : le banc de CODEOWNERS posé le lit et
+// doit y passer aussi, pas seulement dans un projet sans contrat.
+test("le banc de CODEOWNERS posé passe dans un projet dont le contrat a ses propriétaires", { timeout: 60_000 }, () => {
+  const projet = mkdtempSync(join(tmpdir(), "poses-contrat-"));
+  try {
+    for (const [source, destination] of FICHIERS_POSES) {
+      mkdirSync(join(projet, destination, ".."), { recursive: true });
+      copyFileSync(join(RACINE, source), join(projet, destination));
+    }
+    mkdirSync(join(projet, ".claude"));
+    const gabarit = JSON.parse(readFileSync(join(RACINE, "skills/chaine/socle-chaine-de-production/references/chaine.json"), "utf8"));
+    const contrat = { ...gabarit, proprietaires: ["@exemple-une", "@exemple/relecteurs"], cheminsSensibles: [...gabarit.cheminsSensibles, "apps/api/src/auth/"] };
+    writeFileSync(join(projet, ".claude/chaine.json"), JSON.stringify(contrat, null, 2));
+    const r = spawnSync(process.execPath, ["--test", "scripts/github/codeowners.test.mjs"], { cwd: projet, env: env(), encoding: "utf8", timeout: 50_000 });
+    assert.equal(r.status, 0, (r.stdout + r.stderr).split("\n").filter((l) => /not ok|✖|Error/.test(l)).join("\n"));
+  } finally {
+    rmSync(projet, { recursive: true, force: true });
+  }
+});
+````
+
+### § 3 — Les textes, mot pour mot
+
+`node "$TMPDIR/appliquer.mjs" "$TICKET" R N` applique les quarante et un blocs `R` et le bloc `N1`.
+
+#### R1 — `skills/chaine/fusionner/SKILL.md`
+
+Le paragraphe « Une PR qui attend l'approbation d'un propriétaire » et la ligne vide qui le suit.
+
+Bloc retiré (2 lignes, empreinte `b15b5033c073`), de la ligne qui commence par :
+
+````text
+**Une PR qui attend l'approbation d'un propriétaire**
+````
+
+jusqu'à la ligne, non comprise, qui commence par :
+
+````text
+La file lit la CI de chaque PR : états dans l'en-tête de `file.sh`.
+````
+
+#### R2 — `skills/chaine/fusionner/SKILL.md`
+
+Ancien :
+
+````text
+une fusion refusée durablement par GitHub (droit, règle du dépôt, méthode interdite) sort en 3
+````
+
+Nouveau :
+
+````text
+une fusion refusée durablement par GitHub (droit, règle du dépôt, revue exigée, méthode interdite) sort en 3
+````
+
+#### R3 — `skills/chaine/fusionner/references/CONTENU.md`
+
+La section de `file.sh` : les deux états, jusqu'à la fin du paragraphe.
+
+Ancien :
+
+````text
+ne prouve pas que la CI a démarré. « Attend un propriétaire » : la base exige la revue des propriétaires (« Require review from Code Owners ») et un propriétaire du CODEOWNERS de la base (lu sur `origin/<base>`, `.github/`, racine puis `docs/`, comme GitHub ; une fois par file) reste demandé comme relecteur (GitHub les demande d'office et les retire à l'approbation ; un relecteur demandé à la main qui n'est pas propriétaire ne compte pas, CODEOWNERS illisible : aucun propriétaire connu) ; ni rouge ni bloquée, la PR est sautée sans renvoi ni relance et reprise au tour suivant, une fois approuvée. `passer.sh` le voit à l'éligibilité, avant toute mise à jour (une CI pour rien sinon, à chaque tour), et au refus de fusion de GitHub qui tient à la revue (seul propriétaire = l'auteur, que GitHub ne demande pas) : sortie 7, jamais 5, que la boucle relancerait puis arrêterait. « Attend un humain » : plafond des mises à jour sans approbation. Sur ce refus, `passer.sh` commente la PR (marque invisible `<!-- attente-revue-capitaine -->`, comptée sous le seul compte du capitaine, comme celle des renvois) ; tant qu'aucune revue `APPROVED` n'est plus récente que le dernier commentaire marqué, ni `file.sh` ni `passer.sh` ne la font passer : au plus une CI par nouvelle approbation, au lieu d'une à chaque tour (cas : l'auteur seul propriétaire, que GitHub ne demande pas). Compte du capitaine illisible : fermé, comme les renvois, dont le compte n'est pas touché. Une CI rouge prime sur les deux attentes (relancée, puis renvoyée, comme une autre). Un commentaire d'attente impossible à poser fait sortir `passer.sh` en 3, jamais en 7 ni en 5 : la boucle s'arrête sans le repasser, au lieu de refaire mise à jour et CI à chaque tour (la pause sur 5 la ferait repasser sans fin). Le capitaine ne demande ni ne donne l'approbation, et ne contourne jamais la règle (ADR « CODEOWNERS » du projet).
+````
+
+Nouveau :
+
+````text
+ne prouve pas que la CI a démarré.
+````
+
+#### R4 — `skills/chaine/fusionner/references/CONTENU.md`
+
+Ancien :
+
+````text
+tout autre refus (droit du compte, règle du dépôt, méthode de fusion interdite) est durable et sort en 3
+````
+
+Nouveau :
+
+````text
+tout autre refus (droit du compte, règle du dépôt, revue exigée, méthode de fusion interdite) est durable et sort en 3
+````
+
+#### R5 — `skills/chaine/fusionner/references/CONTENU.md`
+
+« Les tests » : ce que les onze tests retirés prouvaient.
+
+Ancien :
+
+````text
+(`null` ou `unknown` : « prête (sans CI) ») ; la revue des propriétaires (faux `gh` : règle `pull_request` du ruleset ou ancienne protection, relecteurs et équipes demandés, fusion refusée en 405) : `attend un propriétaire` dans la file, ni `--next` ni `--rouges`, seul un propriétaire du CODEOWNERS (utilisateur ou équipe, casse ignorée, aux trois emplacements) et jamais un relecteur demandé à la main, CODEOWNERS absent sans attente, prête une fois approuvée, rien sans la règle sur develop, CI rouge qui prime, `passer.sh` en 7 sans rien pousser, commenter ni étiqueter, un refus de fusion pour revue en 7 et non en 5 avec le commentaire marqué, puis `attend un humain` jusqu'à une approbation plus récente (une plus ancienne ne suffit pas, la marque d'un autre compte ne compte pas, compte illisible fermé), la boucle qui la saute sans renvoi, fait passer la suivante et ne pousse rien au tour suivant, une CI rouge qui prime sur l'attente d'un humain, un commentaire d'attente refusé qui sort en 3 et arrête la boucle sans le repasser.
+````
+
+Nouveau :
+
+````text
+(`null` ou `unknown` : « prête (sans CI) »).
+````
+
+#### R6 — `skills/chaine/fusionner/references/CONTENU.md`
+
+« Les tests » : la veille.
+
+Ancien :
+
+````text
+pas sur « CI en cours » ni sur « attend un propriétaire », relance dès qu'elle est approuvée, une seule relance
+````
+
+Nouveau :
+
+````text
+pas sur « CI en cours », une seule relance
+````
+
+#### R7 — `skills/chaine/fusionner/references/CONTENU.md`
+
+« Les tests » : le refus durable.
+
+Ancien :
+
+````text
+le commentaire d'attente impossible en 3, une fusion refusée durablement par GitHub en 3 (la boucle s'arrête),
+````
+
+Nouveau :
+
+````text
+une fusion refusée durablement par GitHub en 3, faute de revue approuvée comprise (la boucle s'arrête),
+````
+
+#### R8 — `skills/chaine/socle-chaine-de-production/references/fragments/claude-md-fusion.md`
+
+La ligne « Chemin sensible = relu par un humain, tenu par GitHub » du fragment de `CLAUDE.md`.
+
+Lignes retirées, entières :
+
+````text
+- **Chemin sensible = relu par un humain, tenu par GitHub** : `.github/CODEOWNERS` se génère depuis `cheminsSensibles` et `proprietaires` de `.claude/chaine.json` (`pnpm codeowners`, jamais à la main) ; une PR qui touche un chemin sensible attend l'approbation d'un propriétaire, et le capitaine l'attend sans la renvoyer. Décision : `{{ADR_CODEOWNERS}}`.
+````
+
+#### R9 — `skills/chaine/socle-chaine-de-production/SKILL.md`
+
+La description du skill.
 
 Ancien :
 
@@ -427,7 +1208,7 @@ Nouveau :
 une CI minimale, la méthode docs/agents/chaine-de-production.md et trois ADR
 ````
 
-#### R2 — `skills/chaine/socle-chaine-de-production/SKILL.md:10`
+#### R10 — `skills/chaine/socle-chaine-de-production/SKILL.md`
 
 Ancien :
 
@@ -441,7 +1222,9 @@ Nouveau :
 `{{ADR_CHAINE}}`, `{{ADR_SUJET}}`. Ce que chaque pièce
 ````
 
-#### R3 — `skills/chaine/socle-chaine-de-production/SKILL.md:16`
+#### R11 — `skills/chaine/socle-chaine-de-production/SKILL.md`
+
+« Avant de commencer », point 3 : le renvoi à la marche à suivre du retrait (N1).
 
 Ancien :
 
@@ -452,20 +1235,20 @@ une mise à jour se fait pièce par pièce.
 Nouveau :
 
 ````text
-une mise à jour se fait pièce par pièce. Un projet posé avec le plugin 7.13 à 7.15 porte un `.github/CODEOWNERS` généré, que le produit a retiré : [`references/retrait-codeowners.md`](references/retrait-codeowners.md).
+une mise à jour se fait pièce par pièce. Un projet posé depuis le plugin 7.13.0 peut porter un `.github/CODEOWNERS` généré, que le produit a retiré : [`references/retrait-codeowners.md`](references/retrait-codeowners.md).
 ````
 
-#### R4 — `skills/chaine/socle-chaine-de-production/SKILL.md:26`
+#### R12 — `skills/chaine/socle-chaine-de-production/SKILL.md`
 
 La question 4 de l'étape 1 : il n'y a plus de propriétaires à demander.
 
-Ligne retirée, entière ; blancs de début mis à part, elle commence par :
+Lignes retirées, entières :
 
 ````text
-4. **Propriétaires des chemins sensibles**
+4. **Propriétaires des chemins sensibles** — les comptes GitHub (`@utilisateur`, `@organisation/équipe`) qui approuvent une PR qui touche un chemin sensible : `proprietaires` du contrat, d'où `.github/CODEOWNERS` est généré. _(Recommandé : deux humains au moins, ou une équipe qui en compte deux ; l'auteur d'une PR ne peut pas l'approuver, et quand les sessions publient sous le compte d'un humain, cet humain n'approuve aucune de leurs PR. Avec un seul humain, le dire : la règle ne le protège pas, et `chaine-admin.md` laisse sa case ouverte.)_
 ````
 
-#### R5 — `skills/chaine/socle-chaine-de-production/SKILL.md:34`
+#### R13 — `skills/chaine/socle-chaine-de-production/SKILL.md`
 
 Ancien :
 
@@ -479,17 +1262,23 @@ Nouveau :
 rempli des réponses de l'étape 1.
 ````
 
-#### R6 — `skills/chaine/socle-chaine-de-production/SKILL.md:38`
+#### R14 — `skills/chaine/socle-chaine-de-production/SKILL.md`
 
-Le point 4 ter de l'étape 2 : plus rien à poser.
+Le point 4 ter de l'étape 2 : il ne pose plus que le check `PR titre`, que le ticket 16 de l'autre programme y a ajouté ; sa phrase reste mot pour mot.
 
-Ligne retirée, entière ; blancs de début mis à part, elle commence par :
+Ancien :
 
 ````text
-4 ter. **CODEOWNERS**
+4 ter. **CODEOWNERS** : `references/scripts/github/codeowners*` → `scripts/github/` ; scripts `codeowners` (`node scripts/github/codeowners.mjs --ecrire`) et `check:codeowners` (`node scripts/github/codeowners.mjs`) dans `package.json`, étape `check:codeowners` dans `scripts/check.mjs` après `check:settings` ; puis `pnpm codeowners`, qui écrit `.github/CODEOWNERS` depuis `cheminsSensibles` et `proprietaires` (plus CODEOWNERS lui-même et `.claude/chaine.json`). Un CODEOWNERS déjà là est remplacé : ses lignes qui ne sont pas des chemins sensibles vont d'abord dans `cheminsSensibles` si le projet les veut, sinon le dire à l'humain. Le gate refuse tout écart avec la commande qui régénère ; `garde-fichiers` refuse l'édition du fichier ; le gate rapide de fin de tour le rejoue (`gatesRapides`). La règle de GitHub qui le fait respecter est à l'admin (`admin.md`, case « CODEOWNERS respecté »). Avec lui, le check `PR titre` :
 ````
 
-#### R7 — `skills/chaine/socle-chaine-de-production/SKILL.md:42`
+Nouveau :
+
+````text
+4 ter. **Le check `PR titre`** :
+````
+
+#### R15 — `skills/chaine/socle-chaine-de-production/SKILL.md`
 
 Ancien :
 
@@ -503,7 +1292,7 @@ Nouveau :
 `node scripts/docs/next-id.mjs ADR ALL ARC` trois fois, de suite
 ````
 
-#### R8 — `skills/chaine/socle-chaine-de-production/SKILL.md:42`
+#### R16 — `skills/chaine/socle-chaine-de-production/SKILL.md`
 
 Ancien :
 
@@ -517,7 +1306,7 @@ Nouveau :
 `ADR_ALL_ARC-N-recette-humaine.md` → `docs/adr/ADR_ALL_ARC-<n>-….md`
 ````
 
-#### R9 — `skills/chaine/socle-chaine-de-production/SKILL.md:42`
+#### R17 — `skills/chaine/socle-chaine-de-production/SKILL.md`
 
 Ancien :
 
@@ -531,25 +1320,17 @@ Nouveau :
 `{{ADR_CHAINE}}` et `{{ADR_SUJET}}` valent ces identifiants
 ````
 
-#### R10 — `skills/chaine/socle-chaine-de-production/SKILL.md:62`
+#### R18 — `skills/chaine/socle-chaine-de-production/SKILL.md`
 
-Ancien :
+L'étape 3 : le gate n'existe plus. La ligne suivante, `node --test scripts/github/*.test.mjs`, reste : elle joue le banc du check `PR titre`.
+
+Lignes retirées, entières :
 
 ````text
-pnpm check:tickets        # le gate et les tests des scripts, dont scripts/agent/
 pnpm check:codeowners     # .github/CODEOWNERS suit le contrat
-node --test scripts/github/*.test.mjs
-node scripts/docs/next-id.mjs ADR ALL ARC
 ````
 
-Nouveau :
-
-````text
-pnpm check:tickets        # le gate et les tests des scripts, dont scripts/agent/
-node scripts/docs/next-id.mjs ADR ALL ARC
-````
-
-#### R11 — `skills/chaine/socle-chaine-de-production/SKILL.md:74`
+#### R19 — `skills/chaine/socle-chaine-de-production/SKILL.md`
 
 Ancien :
 
@@ -563,7 +1344,7 @@ Nouveau :
 les branches de sujet et la recette humaine`
 ````
 
-#### R12 — `skills/chaine/socle-chaine-de-production/SKILL.md:78`
+#### R20 — `skills/chaine/socle-chaine-de-production/SKILL.md`
 
 Ancien :
 
@@ -577,31 +1358,33 @@ Nouveau :
 - **Ni critères de revue, ni chemins sensibles inventés.** Le fichier de critères naît avec `revue-adversariale` ; les chemins viennent de la question 1.
 ````
 
-#### R13 — `skills/chaine/socle-chaine-de-production/SKILL.md:89`
+#### R21 — `skills/chaine/socle-chaine-de-production/SKILL.md`
 
 La ligne du tableau des anti-patterns.
 
-Ligne retirée, entière ; blancs de début mis à part, elle commence par :
+Lignes retirées, entières :
 
 ````text
-| « Je corrige CODEOWNERS à la main, c'est une ligne »
+| « Je corrige CODEOWNERS à la main, c'est une ligne »               | Il se régénère depuis `.claude/chaine.json` : le gate rougit et la garde refuse. Le chemin va dans `cheminsSensibles`, puis `pnpm codeowners`. |
 ````
 
-#### R14 — `skills/chaine/socle-chaine-de-production/references/CONTENU.md:5`
+#### R22 — `skills/chaine/socle-chaine-de-production/references/CONTENU.md`
+
+Le compte des clés du contrat, refait sur `main` (`A-108`) : le gabarit en porte huit depuis `fusionsSansEffet` (ticket 3 de l'autre programme), sept sans `proprietaires` ; `preparerCapitaine` (son ticket 8), facultative et absente du gabarit, devient la huitième (R24).
 
 Ancien :
 
 ````text
-Sept clés, et rien d'autre,
+Huit clés, et rien d'autre,
 ````
 
 Nouveau :
 
 ````text
-Six clés, et rien d'autre,
+Sept clés, et rien d'autre,
 ````
 
-#### R15 — `skills/chaine/socle-chaine-de-production/references/CONTENU.md:5`
+#### R23 — `skills/chaine/socle-chaine-de-production/references/CONTENU.md`
 
 Ancien :
 
@@ -615,7 +1398,21 @@ Nouveau :
 (un diff qui les touche passe en plus `/security-review`), le **fichier de critères**
 ````
 
-#### R16 — `skills/chaine/socle-chaine-de-production/references/CONTENU.md:5`
+#### R24 — `skills/chaine/socle-chaine-de-production/references/CONTENU.md`
+
+Ancien :
+
+````text
+Une neuvième, facultative et absente du gabarit : `preparerCapitaine`
+````
+
+Nouveau :
+
+````text
+Une huitième, facultative et absente du gabarit : `preparerCapitaine`
+````
+
+#### R25 — `skills/chaine/socle-chaine-de-production/references/CONTENU.md`
 
 Ancien :
 
@@ -626,10 +1423,12 @@ Ancien :
 Nouveau :
 
 ````text
-`scripts/github/**` (`develop.sh`, `labels.sh`)
+`scripts/github/**` (`develop.sh`, `labels.sh`, le check `PR titre`)
 ````
 
-#### R17 — `skills/chaine/socle-chaine-de-production/references/CONTENU.md:13`
+#### R26 — `skills/chaine/socle-chaine-de-production/references/CONTENU.md`
+
+Ce que `garde-fichiers` refuse.
 
 Ancien :
 
@@ -643,25 +1442,23 @@ Nouveau :
 d'un `.env` et d'une migration déjà livrée, le chemin normalisé d'abord (`.//pnpm-lock.yaml` et `docs/../pnpm-lock.yaml` comptent).
 ````
 
-#### R18 — `skills/chaine/socle-chaine-de-production/references/CONTENU.md:19`
+#### R27 — `skills/chaine/socle-chaine-de-production/references/CONTENU.md`
 
-La section entière : son titre, son paragraphe et la ligne vide qui les suit.
+La section « CODEOWNERS » entière : son titre, son paragraphe et les deux lignes vides.
 
-Bloc retiré : de la ligne qui commence par
+Bloc retiré (4 lignes, empreinte `0196b5786ad0`), de la ligne qui commence par :
 
 ````text
 ## CODEOWNERS — `scripts/github/codeowners.mjs`
 ````
 
-jusqu'à la ligne, non comprise, qui commence par
+jusqu'à la ligne, non comprise, qui commence par :
 
 ````text
 ## Les labels — `labels.sh`
 ````
 
-Rien à la place.
-
-#### R19 — `skills/chaine/socle-chaine-de-production/references/CONTENU.md:41`
+#### R28 — `skills/chaine/socle-chaine-de-production/references/CONTENU.md`
 
 Ancien :
 
@@ -675,7 +1472,7 @@ Nouveau :
 Trois gabarits, numérotés à l'installation
 ````
 
-#### R20 — `skills/chaine/socle-chaine-de-production/references/CONTENU.md:41`
+#### R29 — `skills/chaine/socle-chaine-de-production/references/CONTENU.md`
 
 Ancien :
 
@@ -686,10 +1483,10 @@ la recette humaine, CODEOWNERS (un chemin sensible relu par un humain et tenu pa
 Nouveau :
 
 ````text
-la recette humaine. Ils portent la décision et les faits mesurés qui la fondent ; le projet les date et peut les réviser. Les skills ne les relisent jamais. Un quatrième, `ADR_ALL_ARC-N-codeowners.md`, est marqué retiré (décision du produit du 2026-11-18) et ne se pose plus : il ne sert qu'à mettre à jour l'ADR d'un projet posé avec le plugin 7.13 à 7.15. `retrait-codeowners.md` est la marche à suivre de ce retrait, lue depuis le skill et jamais posée.
+la recette humaine. Ils portent la décision et les faits mesurés qui la fondent ; le projet les date et peut les réviser. Les skills ne les relisent jamais. Un quatrième, `ADR_ALL_ARC-N-codeowners.md`, est marqué retiré (décision du produit du 2026-11-18) et ne se pose plus : il ne sert qu'à mettre à jour l'ADR d'un projet qui l'a reçue. `retrait-codeowners.md` est la marche à suivre de ce retrait, lue depuis le skill et jamais posée.
 ````
 
-#### R21 — `skills/chaine/socle-chaine-de-production/references/CONTENU.md:45`
+#### R30 — `skills/chaine/socle-chaine-de-production/references/CONTENU.md`
 
 Ancien :
 
@@ -703,7 +1500,7 @@ Nouveau :
 la section « Fusion vers `develop` » et deux lignes de routage
 ````
 
-#### R22 — `skills/chaine/socle-chaine-de-production/references/CONTENU.md:49`
+#### R31 — `skills/chaine/socle-chaine-de-production/references/CONTENU.md`
 
 Ancien :
 
@@ -717,47 +1514,66 @@ Nouveau :
 La protection des branches (dont « Block force pushes », « Restrict deletions » et aucune liste de contournement ; « Require review from Code Owners » ne se coche pas), la suppression automatique
 ````
 
-#### R23 — `skills/chaine/socle-chaine-de-production/references/admin.md:6`
+#### R32 — `skills/chaine/socle-chaine-de-production/references/admin.md`
 
-La case « Protection de `develop` » reprend les sous-règles qui ne tenaient pas à CODEOWNERS : pas de suppression de branche, aucune liste de contournement, pas de règle de PR sur les sujets.
+La case « Protection de `develop` » dit de ne pas cocher la règle (décision 7).
 
 Ancien :
 
 ````text
-« Require a pull request before merging » ; « Require status checks to pass » avec **« Require branches to be up to date before merging »** (c'est le `strict: true` dont dépend le capitaine) et les checks `qualite` et `test-db` ; la revue des propriétaires relève de la case « CODEOWNERS respecté » ci-dessous, et de sa condition ; « Do not allow bypassing the above settings ». Pas de « Require linear history » : un sujet entre par un commit de merge.
+« Require a pull request before merging » ; « Require status checks to pass »
 ````
 
 Nouveau :
 
 ````text
-« Require a pull request before merging », **sans** « Require review from Code Owners » (le produit l'a retirée le 2026-11-18 : aucun `.github/CODEOWNERS` n'est posé, et GitHub ne bloque aucune PR sur les chemins sensibles) ; « Require status checks to pass » avec **« Require branches to be up to date before merging »** (c'est le `strict: true` dont dépend le capitaine) et les checks `qualite` et `test-db` ; **« Restrict deletions »** ; « Do not allow bypassing the above settings », et **aucune liste de contournement** (« Bypass list » vide) : un administrateur qui contourne la règle la retire pour tous. Pas de « Require linear history » : un sujet entre par un commit de merge. Pas de règle de PR sur `sujet/*` ni sur les branches de travail, où le capitaine et les sessions poussent sans PR : elle bloquerait la chaîne.
+« Require a pull request before merging », **sans** « Require review from Code Owners » (le produit l'a retirée le 2026-11-18 : aucun `.github/CODEOWNERS` n'est posé, et GitHub ne bloque aucune PR sur les chemins sensibles) ; « Require status checks to pass »
 ````
 
-#### R24 — `skills/chaine/socle-chaine-de-production/references/admin.md:26`
+#### R33 — `skills/chaine/socle-chaine-de-production/references/admin.md`
 
-La case « CODEOWNERS respecté », ses neuf sous-points et le paragraphe « Le capitaine n'est pas bloqué » (`admin.md:26-37`) sortent. Reste, de ses sous-règles, le refus des pushs forcés, et ce que GitHub ne tient plus.
+La même case reprend les sous-règles qui ne tenaient pas à CODEOWNERS : pas de suppression de branche, aucune liste de contournement, pas de règle de PR sur les sujets. Ce que la 7.16.0 y a écrit sur l'ascendance, plus haut dans la phrase, n'est pas touché.
 
-Bloc retiré : de la ligne qui commence par
+Ancien :
+
+````text
+ ; la revue des propriétaires relève de la case « CODEOWNERS respecté » ci-dessous, et de sa condition ; « Do not allow bypassing the above settings ». Pas de « Require linear history » : un sujet entre par un commit de merge.
+````
+
+Nouveau :
+
+````text
+ ; **« Restrict deletions »** ; « Do not allow bypassing the above settings », et **aucune liste de contournement** (« Bypass list » vide) : un administrateur qui contourne la règle la retire pour tous. Pas de « Require linear history » : un sujet entre par un commit de merge. Pas de règle de PR sur `sujet/*` ni sur les branches de travail, où le capitaine et les sessions poussent sans PR : elle bloquerait la chaîne.
+````
+
+#### R34 — `skills/chaine/socle-chaine-de-production/references/admin.md`
+
+La case « CODEOWNERS respecté », ses neuf sous-points, le paragraphe « Le capitaine n'est pas bloqué » et la ligne vide qui les suit. Reste, de ses sous-règles, le refus des pushs forcés, et ce que GitHub ne tient plus.
+
+Bloc retiré (13 lignes, empreinte `94b8b6361709`), de la ligne qui commence par :
 
 ````text
 - [ ] **CODEOWNERS respecté :
 ````
 
-jusqu'à la ligne, non comprise, qui commence par
+jusqu'à la ligne, non comprise, qui commence par :
 
 ````text
 Vérification : `gh api
 ````
 
-À la place (les lignes vides qui précèdent la ligne gardée restent) :
+À la place :
 
 ````text
 - [ ] **« Block force pushes »** sur toutes les branches (Rulesets, cible `~ALL`), sans liste de contournement.
 
 Ce que ces règles ne tiennent pas : toutes les sessions écrivent sous le même compte, la revue exigée par le capitaine est écrite par la session, et le capitaine exécute ce qui entre (hooks git, `pnpm install`, `pnpm check`). Aucune n'arrête une PR hostile.
+
 ````
 
-#### R25 — `skills/chaine/socle-chaine-de-production/references/adr/ADR_ALL_ARC-N-codeowners.md:3`
+#### R35 — `skills/chaine/socle-chaine-de-production/references/adr/ADR_ALL_ARC-N-codeowners.md`
+
+L'ADR est marquée retirée, pas supprimée (décision 2).
 
 Ancien :
 
@@ -771,7 +1587,7 @@ Nouveau :
 - Statut : **retirée** par la décision du produit du 2026-11-18 (`P-49` de la carte « gouverner nos boucles » du plugin `maj-skills`) ; gardée pour mémoire
 ````
 
-#### R26 — `skills/chaine/socle-chaine-de-production/references/adr/ADR_ALL_ARC-N-codeowners.md:7`
+#### R36 — `skills/chaine/socle-chaine-de-production/references/adr/ADR_ALL_ARC-N-codeowners.md`
 
 Une section « Retrait » avant « Contexte » ; le reste du fichier ne change pas.
 
@@ -791,7 +1607,7 @@ Le produit a retiré cette décision le 2026-11-18 : pas de blocage par GitHub s
 ## Contexte
 ````
 
-#### R27 — `skills/chaine/socle-chaine-de-production/references/docs-agents/chaine-de-production.md:3`
+#### R37 — `skills/chaine/socle-chaine-de-production/references/docs-agents/chaine-de-production.md`
 
 Ancien :
 
@@ -805,39 +1621,39 @@ Nouveau :
 Branches de sujet : `{{ADR_SUJET}}`. Contrat du projet
 ````
 
-#### R28 — `skills/chaine/socle-chaine-de-production/references/docs-agents/chaine-de-production.md:85`
+#### R38 — `skills/chaine/socle-chaine-de-production/references/docs-agents/chaine-de-production.md`
 
 Le paragraphe du § 3 et la ligne vide qui le suit.
 
-Bloc retiré : de la ligne qui commence par
+Bloc retiré (2 lignes, empreinte `736d9a416597`), de la ligne qui commence par :
 
 ````text
 **Chemin sensible = relu par un humain, tenu par GitHub.**
 ````
 
-jusqu'à la ligne, non comprise, qui commence par
+jusqu'à la ligne, non comprise, qui commence par :
 
 ````text
 Taille : un jour au plus
 ````
 
-Rien à la place.
+#### R39 — `skills/chaine/chantier/SKILL.md`
 
-#### R29 — `skills/chaine/chantier/SKILL.md:95`
+§ 6, point 5 : **la moitié CODEOWNERS de l'alinéa, et elle seule** (`A-94`). Deux phrases sortent ; la contre-revue du conducteur, avant elles, et « Une sous-PR à la fois par sujet », après elles, ne sont pas touchées (le ticket 57 récrit cette seconde moitié, le ticket 56 le point 6, sur la ligne voisine).
 
 Ancien :
 
 ````text
-Le capitaine fusionne dès la CI verte, avant le réveil suivant. Sauf une PR qui touche un chemin possédé (`.github/CODEOWNERS`) : vers develop, elle attend l'approbation d'un propriétaire humain, et `file.sh` la montre « attend un propriétaire », puis « attend un humain » si GitHub a refusé sa fusion ; la vague peut s'y arrêter. Le conducteur le dit au produit (par l'architecte dans un programme) : il n'approuve rien lui-même. Pour un ticket `Label: contre-revue`
+avant le réveil suivant. Sauf une PR qui touche un chemin possédé (`.github/CODEOWNERS`) : vers develop, elle attend l'approbation d'un propriétaire humain, et `file.sh` la montre « attend un propriétaire », puis « attend un humain » si GitHub a refusé sa fusion ; la vague peut s'y arrêter. Le conducteur le dit au produit (par l'architecte dans un programme) : il n'approuve rien lui-même. Pour un ticket `Label: contre-revue`
 ````
 
 Nouveau :
 
 ````text
-Le capitaine fusionne dès la CI verte, avant le réveil suivant. Pour un ticket `Label: contre-revue`
+avant le réveil suivant. Pour un ticket `Label: contre-revue`
 ````
 
-#### R30 — `README.md:79`
+#### R40 — `README.md`
 
 Ancien :
 
@@ -851,7 +1667,7 @@ Nouveau :
 une CI minimale, la méthode et trois ADR |
 ````
 
-#### R31 — `README.md:150`
+#### R41 — `README.md`
 
 Ancien :
 
@@ -865,97 +1681,419 @@ Nouveau :
 labels, CI, méthode, trois ADR, fragments, liste admin
 ````
 
-### 3. La marche à suivre du retrait
+#### N1 — `skills/chaine/socle-chaine-de-production/references/retrait-codeowners.md`
 
-#### N1 — `skills/chaine/socle-chaine-de-production/references/retrait-codeowners.md`, fichier nouveau
+La marche à suivre du retrait dans un projet déjà posé (décision 8), lue depuis le skill (R11) et jamais posée.
 
 Fichier nouveau, mot pour mot :
 
 ````text
 # Retirer CODEOWNERS d'un projet déjà posé
 
-Un projet posé avec le plugin 7.13 à 7.15 porte un `.github/CODEOWNERS` généré, son générateur et son gate. Le produit les a retirés le 2026-11-18 : GitHub ne bloque aucune PR sur les chemins sensibles, et « Require review from Code Owners » ne se coche sur aucun dépôt. À faire une fois, dans une seule PR vers `develop` ; les points 1 à 3 dans le même tour, parce qu'entre deux le gate `check:codeowners` rougit.
+Un projet posé ou reposé depuis le plugin 7.13.0 peut porter un `.github/CODEOWNERS` généré, son générateur et son gate. Le produit les a retirés le 2026-11-18 : GitHub ne bloque aucune PR sur les chemins sensibles, et « Require review from Code Owners » ne se coche sur aucun dépôt. Aucun `poser` ne fait ce retrait : reposer un skill copie ses fichiers, sans retirer ceux qu'une version antérieure a posés. À faire une fois, dans une seule PR vers `develop` ; les points 1 à 3 dans le même tour, parce qu'entre deux le gate `check:codeowners` rougit.
 
 1. **Le fichier.** `head -n 1 .github/CODEOWNERS` rend `# Généré depuis .claude/chaine.json (cheminsSensibles, proprietaires) : ne pas éditer.` : c'est la copie du générateur, `git rm .github/CODEOWNERS`. Toute autre première ligne : le fichier est celui du projet, le laisser et le dire à qui a lancé la session. Un `CODEOWNERS` à la racine ou sous `docs/` n'a jamais été généré : ne pas y toucher.
-2. **Le générateur et son gate.** `git rm scripts/github/codeowners.mjs scripts/github/codeowners.test.mjs` ; retirer de `package.json` les scripts `codeowners` et `check:codeowners`, de `scripts/check.mjs` l'étape `check:codeowners`, et de tout script ou workflow du projet l'appel à `scripts/github/*.test.mjs` s'il n'y reste aucun banc.
+2. **Le générateur et son gate.** `git rm scripts/github/codeowners.mjs scripts/github/codeowners.test.mjs` ; retirer de `package.json` les scripts `codeowners` et `check:codeowners`, de `scripts/check.mjs` l'étape `check:codeowners`, et de tout autre script ou workflow du projet l'appel à l'un d'eux. Le check `PR titre` et son banc, posés depuis le plugin 7.28.0, restent sous `scripts/github/`.
 3. **Le contrat.** Dans `.claude/chaine.json` : retirer la clé `proprietaires` et l'entrée `scripts/github/codeowners.mjs` de `gatesRapides`, reprendre le `$comment` de `references/chaine.json`. `cheminsSensibles` ne change pas.
-4. **Les gardes et le capitaine.** Reposer `references/agent/*` (`SKILL.md`, étape 2, point 4) et les scripts du capitaine (étape 0 de `fusionner`, `/maj-skills:sujet poser`) : `regles.mjs` ne refuse plus l'édition de CODEOWNERS, la file n'a plus d'état « attend un propriétaire ».
+4. **Les gardes et le capitaine.** Reposer `references/agent/*` (`SKILL.md`, étape 2, point 4) et les scripts du capitaine et des sujets (« Étape 0 — poser » du skill `fusionner`, puis `/maj-skills:sujet poser`) : `regles.mjs` ne refuse plus l'édition de CODEOWNERS, la file n'a plus d'état « attend un propriétaire ». Relancer chaque capitaine une fois cette PR entrée dans `develop`.
 5. **Les textes.** Retirer de `CLAUDE.md` la ligne « Chemin sensible = relu par un humain, tenu par GitHub » ; de `docs/agents/chaine-de-production.md`, le paragraphe du même nom et, dans son en-tête, « CODEOWNERS : » suivi de son ADR ; dans `docs/agents/chaine-admin.md`, reprendre la case « Protection de `develop` » de `references/admin.md` et remplacer la case « CODEOWNERS respecté » par sa case « Block force pushes » et le paragraphe qui la suit (les cases déjà cochées le restent).
 6. **L'ADR.** L'ADR « CODEOWNERS » du projet garde son numéro et son texte : sa ligne `Statut` devient celle de `references/adr/ADR_ALL_ARC-N-codeowners.md`, et la section « Retrait » de ce gabarit s'y ajoute, placeholders substitués. Ce gabarit ne se pose plus dans un projet neuf.
-7. **À l'admin.** Décocher « Require review from Code Owners » sur `develop` et `main` si elle l'était : une session ne le peut pas.
+7. **À l'admin.** Décocher « Require review from Code Owners » sur `develop` et `main` si elle l'était : une session ne le peut pas. Tant qu'elle reste cochée, GitHub refuse la fusion d'une PR qui touche un chemin possédé, et le capitaine reposé ne l'attend plus : il s'arrête sur ce refus (`passer.sh`, sortie 3, `ARRÊT`), et le dit.
 
 Puis `pnpm check`. `git grep -il codeowners` ne rend plus que l'ADR, `docs/agents/chaine-admin.md` et `scripts/agent/regles.test.mjs` ; tout autre fichier est propre au projet : le dire à qui a lancé la session.
 ````
 
-### 4. La version
 
-#### V1 — `.claude-plugin/plugin.json:3`
+### § 4 — La version et la note
 
-Ancien :
+À la main, après les blocs : le script du § 5 ne lit pas ce paragraphe.
 
-````json
-"version": "7.15.0",
+`.claude-plugin/plugin.json:3` : `"version": "<version d'origin/main>"` devient la version suivante, mineure (décision 9) : sur `a3c2a7c`, `"7.31.0"` deviendrait `"7.32.0"` ; les PR des tickets 60 et 56 passent avant celle-ci et prendront des versions, lire donc celle de `main` au moment de livrer.
+
+`NOTES-DE-VERSION.md` : cette note, entre le paragraphe d'introduction et la première note du fichier, avec la version prise et la date du jour de la livraison à la place de `<version>` et de `<date>` :
+
+````markdown
+## <version> — <date>
+
+### Ce qui change
+
+CODEOWNERS sort du plugin (décision du produit du 2026-11-18) : GitHub ne bloque plus aucune PR sur les chemins sensibles. Le socle ne pose plus `.github/CODEOWNERS`, ni son générateur `scripts/github/codeowners.mjs`, ni le gate `check:codeowners` ; le gabarit de `.claude/chaine.json` n'a plus de clé `proprietaires` ni de gate rapide sous `scripts/github/` ; `garde-fichiers` ne refuse plus l'édition de CODEOWNERS, et normalise toujours le chemin avant de juger le lockfile, un `.env` ou une migration livrée. Le capitaine n'attend plus personne : les états « attend un propriétaire » et « attend un humain » (fusion refusée faute d'approbation) sortent de `file.sh`, `passer.sh`, `boucle.sh` et `github.sh`. **Un refus de fusion de GitHub faute de revue approuvée est désormais un refus durable comme un autre : `passer.sh` sort en 3 et la boucle s'arrête**, au lieu d'attendre l'approbation. L'état `humain` du plafond des renvois ne change pas. Le socle pose trois ADR ; le gabarit de l'ADR « CODEOWNERS » reste dans le plugin, marqué retiré. La liste de l'admin dit de ne pas cocher « Require review from Code Owners », et garde « Block force pushes », « Restrict deletions » et « aucune liste de contournement ». Les chemins sensibles, la contre-revue et `/security-review` ne changent pas ; ce qui prendra la place de CODEOWNERS, l'accord du produit donné avant de toucher un fichier sensible, arrive avec la relecture indépendante.
+
+### Ce qu'un projet fait pour en profiter
+
+Un projet qui ne repose rien ne voit rien changer : ses scripts sont des copies, son CODEOWNERS et son gate marchent comme avant.
+
+1. Mettre à jour le plugin : `claude plugin marketplace update maj`, puis `claude plugin update maj-skills@maj`, puis redémarrer Claude Code (session cloud : `lancement.md` § « La mise à niveau »).
+2. Un projet qui n'a jamais reçu CODEOWNERS (pas de `scripts/github/codeowners.mjs`) : rien d'autre à faire.
+3. Un projet qui l'a reçu (posé ou reposé depuis le plugin 7.13.0) suit, dans une seule PR vers `develop`, la marche à suivre `socle-chaine-de-production/references/retrait-codeowners.md`. **Aucun `poser` ne fait ce retrait.** Elle retire `.github/CODEOWNERS` seulement si sa première ligne est celle du générateur (`# Généré depuis .claude/chaine.json (cheminsSensibles, proprietaires) : ne pas éditer.`) : un CODEOWNERS écrit à la main reste, et se dit à qui a lancé la session. Elle retire aussi le générateur, son banc, les scripts `codeowners` et `check:codeowners`, la clé `proprietaires` et le gate rapide du contrat, repose `scripts/agent/` et les scripts du capitaine, corrige `CLAUDE.md`, la méthode et la liste de l'admin, et marque retirée l'ADR « CODEOWNERS » du projet.
+4. **À l'admin, avant de relancer le capitaine : décocher « Require review from Code Owners » sur `develop` et `main` si elle l'était.** Dès que les scripts du capitaine sont reposés à cette version, même sans le reste du retrait, il n'attend plus un propriétaire : règle cochée, il s'arrête (`ARRÊT`, sortie 3) au refus de fusion de la première PR qui touche un chemin possédé.
+5. Relancer chaque capitaine une fois cette PR entrée dans `develop` (skill `fusionner` § « Mise en place »).
+
+Un projet peut reposer `scripts/agent/` et les scripts du capitaine avant de retirer le fichier : son gate `check:codeowners` reste vert tant que son contrat garde `proprietaires` et que son générateur est là.
 ````
 
-Nouveau :
+`scripts/depot.test.mjs` tient la forme : la première note du fichier commence par la version de `plugin.json` et porte les deux titres `### Ce qui change` et `### Ce qu'un projet fait pour en profiter`.
 
-````json
-"version": "7.16.0",
+### § 5 — Le script qui applique les blocs
+
+Donné entier. La session le tire de ce fichier par ses bornes (§ 0), vérifie son empreinte, et ne le commite pas : il ne vit que dans son dossier temporaire.
+
+<!-- début : appliquer.mjs -->
+````js
+#!/usr/bin/env node
+// Applique à l'arbre de travail courant les blocs « À faire » d'un ticket (ticket 54 : CODEOWNERS sort du plugin).
+// Usage, depuis la racine du dépôt : node appliquer.mjs <ticket.md> [<choix>…]
+//   sans choix, tous les blocs ; « B » (des lettres seules) : ceux dont l'identifiant commence par B ; « S12 » : ce bloc.
+// Tout ou rien : chaque bloc choisi est d'abord joué en mémoire ; au premier qui ne s'applique pas (texte absent ou
+// présent deux fois, bloc d'une autre taille ou d'une autre empreinte), rien n'est écrit, les blocs en cause sont
+// nommés, sortie 1. Sinon les fichiers sont écrits, les fichiers supprimés le sont par `git rm`, un fichier nouveau
+// est suivi par `git add`. Aucune dépendance.
+import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
+
+const [ticket, ...choix] = process.argv.slice(2);
+if (!ticket) {
+  console.error("usage : node appliquer.mjs <ticket.md> [<lettres d'un groupe de blocs, ou identifiant d'un bloc>…]");
+  process.exit(64);
+}
+const empreinte = (texte) => createHash("sha256").update(texte).digest("hex").slice(0, 12);
+const lignes = readFileSync(ticket, "utf8").split("\n");
+const debut = lignes.indexOf("## À faire, dans l'ordre");
+if (debut < 0) {
+  console.error(`${ticket} : section « ## À faire, dans l'ordre » introuvable`);
+  process.exit(64);
+}
+
+// Une ligne de marque annonce le bloc de code qui la suit ; un bloc de code sans marque est ignoré.
+const MARQUES = [
+  [/^Ancien :$/, "ancien"],
+  [/^Nouveau :$/, "nouveau"],
+  [/^Lignes retirées, entières :$/, "lignes"],
+  [/^Bloc retiré \((\d+) lignes, empreinte `([0-9a-f]{12})`\), de la ligne qui commence par :$/, "de"],
+  [/^jusqu'à la ligne, non comprise, qui commence par :$/, "jusqua"],
+  [/^À la place :$/, "place"],
+  [/^Ajouté à la fin du fichier, après une ligne vide :$/, "fin"],
+  [/^Fichier nouveau, mot pour mot :$/, "entier"],
+];
+const blocs = [];
+let bloc = null;
+let attente = null;
+for (let i = debut + 1; i < lignes.length; i++) {
+  const l = lignes[i];
+  if (l.startsWith("## ")) break; // la section suivante du ticket ; un « ## » dans un bloc de code n'arrive pas ici
+  if (l.startsWith("#")) {
+    const m = /^#### (\S+) — `([^`]+)`(.*)$/.exec(l);
+    bloc = m ? { id: m[1], fichier: m[2], parties: {} } : null;
+    attente = null;
+    if (!m) continue;
+    const s = /fichier supprimé, (\d+) lignes, empreinte `([0-9a-f]{12})`/.exec(m[3]);
+    if (s) Object.assign(bloc, { supprime: true, taille: Number(s[1]), empreinte: s[2] });
+    blocs.push(bloc);
+    continue;
+  }
+  const cloture = /^(`{3,})/.exec(l)?.[1];
+  if (cloture) {
+    const f = lignes.indexOf(cloture, i + 1);
+    if (bloc && attente) bloc.parties[attente] = lignes.slice(i + 1, f).join("\n");
+    attente = null;
+    i = f;
+    continue;
+  }
+  if (!bloc) continue;
+  for (const [motif, nom] of MARQUES) {
+    const m = motif.exec(l);
+    if (!m) continue;
+    attente = nom;
+    if (nom === "de") Object.assign(bloc, { taille: Number(m[1]), empreinte: m[2] });
+  }
+}
+
+const occurrences = (texte, morceau) => texte.split(morceau).length - 1;
+const choisis = blocs.filter((b) => choix.length === 0 || choix.some((p) => (/^[A-Z]+$/.test(p) ? b.id.startsWith(p) : b.id === p)));
+const textes = new Map(); // fichier → contenu (null : supprimé)
+const nouveaux = [];
+const fautes = [];
+const lire = (f) => (textes.has(f) ? textes.get(f) : existsSync(f) ? readFileSync(f, "utf8") : null);
+for (const b of choisis) {
+  const p = b.parties;
+  const t = lire(b.fichier);
+  const faute = (motif) => fautes.push(`${b.id} — ${b.fichier} : ${motif}`);
+  if ("entier" in p) {
+    if (t !== null) faute("le fichier existe déjà");
+    else {
+      textes.set(b.fichier, `${p.entier}\n`);
+      nouveaux.push(b.fichier);
+    }
+    continue;
+  }
+  if (t === null) {
+    faute("fichier absent");
+    continue;
+  }
+  if (b.supprime) {
+    const taille = t.split("\n").length - 1;
+    if (taille !== b.taille || empreinte(t) !== b.empreinte) faute(`fichier de ${taille} lignes, empreinte ${empreinte(t)} : il a changé, le relire avant de le supprimer`);
+    else textes.set(b.fichier, null);
+  } else if ("ancien" in p && "nouveau" in p) {
+    const n = occurrences(t, p.ancien);
+    if (n !== 1) faute(`« Ancien » trouvé ${n} fois, attendu une`);
+    else textes.set(b.fichier, t.replace(p.ancien, () => p.nouveau));
+  } else if ("lignes" in p) {
+    const morceau = `${p.lignes}\n`;
+    const n = occurrences(`\n${t}`, `\n${morceau}`);
+    if (n !== 1) faute(`lignes à retirer trouvées ${n} fois, attendu une`);
+    else textes.set(b.fichier, `\n${t}`.replace(`\n${morceau}`, () => "\n").slice(1));
+  } else if ("de" in p && "jusqua" in p) {
+    const ls = t.split("\n");
+    const commence = (prefixe) => (l) => l.trimStart().startsWith(prefixe);
+    const departs = ls.flatMap((l, i) => (commence(p.de)(l) ? [i] : []));
+    const arrivee = departs.length === 1 ? ls.findIndex((l, i) => i > departs[0] && commence(p.jusqua)(l)) : -1;
+    if (departs.length !== 1) faute(`première ligne du bloc trouvée ${departs.length} fois, attendu une`);
+    else if (arrivee < 0) faute("ligne de fin du bloc introuvable");
+    else {
+      const retire = ls.slice(departs[0], arrivee);
+      const e = empreinte(`${retire.join("\n")}\n`);
+      if (retire.length !== b.taille || e !== b.empreinte) faute(`bloc de ${retire.length} lignes, empreinte ${e} : attendu ${b.taille} lignes, empreinte ${b.empreinte} ; le bloc a changé, le relire`);
+      else textes.set(b.fichier, [...ls.slice(0, departs[0]), ...("place" in p ? p.place.split("\n") : []), ...ls.slice(arrivee)].join("\n"));
+    }
+  } else if ("fin" in p) {
+    if (t.includes(p.fin)) faute("texte déjà présent dans le fichier");
+    else textes.set(b.fichier, `${t.replace(/\n*$/, "\n")}\n${p.fin}\n`);
+  } else faute(`bloc sans opération reconnue (${Object.keys(p).join(", ") || "aucune marque"})`);
+}
+if (choisis.length === 0) fautes.push("aucun bloc choisi");
+if (fautes.length > 0) {
+  console.error(`${fautes.length} bloc(s) ne s'appliquent pas, rien n'est écrit :\n${fautes.map((f) => `  ${f}`).join("\n")}`);
+  process.exit(1);
+}
+for (const [fichier, texte] of textes) {
+  if (texte === null) execFileSync("git", ["rm", "-q", "--", fichier], { stdio: "inherit" });
+  else writeFileSync(fichier, texte);
+}
+if (nouveaux.length > 0) execFileSync("git", ["add", "--", ...nouveaux], { stdio: "inherit" });
+console.log(`${choisis.length} blocs appliqués (${choisis.map((b) => b.id).join(" ")}), ${textes.size} fichiers`);
 ````
+<!-- fin : appliquer.mjs -->
 
-Le deuxième nombre de la version de `origin/main`, plus un, troisième à zéro (règle de repli : décision 9).
+Ce qu'il rend : `7 blocs appliqués (B1 … B7), 3 fichiers` au § 1 ; `42 blocs appliqués (S1 … S42), 14 fichiers` au § 2 ; `42 blocs appliqués (R1 … R41 N1), 11 fichiers` au § 3. Lancé sans préfixe sur un arbre neuf, `91 blocs appliqués`, 27 fichiers. Un bloc déjà appliqué ne s'applique pas deux fois : relancé, le script le nomme et n'écrit rien.
+
+### § 6 — Livrer
+
+1. « Vérification », points 1 à 6.
+2. Commit (`git add -A`, les deux fichiers supprimés et le fichier nouveau compris), push, PR vers `main` hors brouillon, sans `à-fusionner` (décision 10). Dans le corps de la PR : ce que la suite a rendu, avant et après ; la sortie de `git grep -il codeowners -- skills scripts README.md .claude-plugin` ; le résultat de l'essai du retrait ; les sections de la revue de ticket et de `/security-review` ; les six points de « Ce qui n'a pas été établi », pour que l'architecte les lise à la contre-revue.
+3. Écrire à l'architecte dès la PR livrée, puis s'arrêter.
+
+**Règle de repli.** `main` n'est plus à `a3c2a7c`, ou bouge entre l'ouverture et la fusion :
+
+- **Avant d'appliquer** : `git diff --stat a3c2a7c origin/main -- <les fichiers de « Fichiers chauds »>`. Rien : le ticket s'applique tel quel, et l'empreinte de l'arbre vaut pour ces fichiers. Quelque chose : lancer le script quand même, il dit quels blocs ne s'appliquent plus. Pour chacun, lire `git diff a3c2a7c origin/main -- <fichier>`, retrouver le texte déplacé ou récrit, faire le retrait à la main dans l'esprit du bloc (ce qu'il retire est dit dans sa phrase), et le dire dans la PR, bloc par bloc. Les autres blocs s'appliquent par leurs préfixes (`node appliquer.mjs "$TICKET" S1 S2 …`). Un bloc qui retirerait autre chose que CODEOWNERS (un texte qu'un autre ticket a mêlé au sien) ne se joue pas : l'écrire à l'architecte.
+- **Le banc ajouté en fin de `scripts/depot.test.mjs`** (B4) s'ajoute après ce que d'autres tickets y auront ajouté : pas de conflit de sens.
+- **Après la PR ouverte** : fusionner `origin/main` dans la branche par un commit de fusion (jamais de rebase, de push forcé ni d'`--amend`), reprendre la version (décision 9), remonter la note en tête, puis « Vérification » à nouveau. Le test « CODEOWNERS n'est plus nommé… » dit si le `main` reçu a réintroduit une mention ; le test du compte des clés dit si une clé est entrée.
 
 ## Surfaces
 
 | Surface | Preuve |
 | --- | --- |
-| CODEOWNERS n'est plus nommé dans le plugin, hors la liste fermée de la décision 11 ; le générateur et son banc n'existent plus ; le gabarit du contrat n'a plus de clé `proprietaires` ni de gate rapide sous `scripts/github/`, et garde `scripts/github/**` parmi ses chemins sensibles | `scripts/depot.test.mjs` « CODEOWNERS n'est plus nommé que là où le plugin dit qu'il est retiré » |
+| CODEOWNERS n'est plus nommé dans le plugin, hors la liste fermée de la décision 11 ; le générateur et son banc n'existent plus ; le gabarit du contrat n'a plus de clé `proprietaires` ni de gate rapide sous `scripts/github/`, et garde `scripts/github/**` parmi ses chemins sensibles ; le `CONTENU.md` du socle dit le compte des clés du gabarit | `scripts/depot.test.mjs` « CODEOWNERS n'est plus nommé que là où le plugin dit qu'il est retiré » |
 | le lecteur du banc reconnaît chaque forme retirée, et laisse `proprietaire.sh`, « session propriétaire » et l'attente d'un humain au plafond des renvois | `scripts/depot.test.mjs` « lecteur des mentions de CODEOWNERS : entrées piégées » |
-| la marche à suivre retire `.github/CODEOWNERS` seulement s'il porte l'en-tête du générateur, donné mot pour mot ; le socle pose trois ADR ; l'ADR est marquée retirée, sa section « Retrait » en premier ; la liste de l'admin dit « sans « Require review from Code Owners » », et garde « Restrict deletions », « aucune liste de contournement » et « Block force pushes » | `scripts/depot.test.mjs` « le socle retire CODEOWNERS d'un projet déjà posé : le fichier seulement s'il porte l'en-tête du générateur, l'ADR marquée retirée, la règle de GitHub jamais cochée » |
+| la marche à suivre retire `.github/CODEOWNERS` seulement s'il porte l'en-tête du générateur, donné mot pour mot, et dit qu'aucun `poser` ne fait ce retrait ; le socle pose trois ADR ; l'ADR est marquée retirée, sa section « Retrait » en premier ; la liste de l'admin dit « sans « Require review from Code Owners » », et garde « Restrict deletions », « aucune liste de contournement » et « Block force pushes » | `scripts/depot.test.mjs` « le socle retire CODEOWNERS d'un projet déjà posé : le fichier seulement s'il porte l'en-tête du générateur, l'ADR marquée retirée, la règle de GitHub jamais cochée » |
 | la garde de fichiers ne refuse plus l'édition de CODEOWNERS, et normalise toujours le chemin avant de juger le lockfile, un `.env`, une migration livrée | `skills/chaine/socle-chaine-de-production/references/agent/regles.test.mjs` « refusEdition normalise le chemin avant de juger : un détour (`//`, `/./`, `x/../`, `\\`) ne contourne aucun refus » |
-| la file du capitaine n'a plus que ses états d'avant ; l'état `humain` du plafond des renvois est intact | `skills/chaine/fusionner/scripts/fusionner.test.mjs` « file.sh : une PR renvoyée autant de fois que le plafond est montrée humain, et ni --next ni --rouges ne la rendent », « renvois : seuls les commentaires du compte du capitaine comptent ; compte illisible, la PR attend un humain », « boucle.sh : une PR à l'état humain n'est ni passée, ni relancée, ni renvoyée », sans retouche |
-| les scripts du capitaine sont revenus à leur contenu d'avant la PR 108 | `git diff c17f88b --stat -- $ONZE` ne rend rien |
-| les bancs posés dans un projet tournent hors du plugin, sans `scripts/github/` | `scripts/poses.test.mjs` « les bancs posés à plat sous scripts/chaine/ tournent hors du plugin » |
-| `chaine-de-production.md`, le fragment de `CLAUDE.md`, `chantier/SKILL.md`, `fusionner/SKILL.md`, les deux `CONTENU.md`, `README.md` ne décrivent plus l'attente d'un propriétaire | « CODEOWNERS n'est plus nommé… » (aucun n'est dans sa liste fermée, sauf le `CONTENU.md` du socle, lu en contre-revue) |
+| un refus de fusion de GitHub faute de revue approuvée sort en 3, avec le message du refus durable, et la boucle s'arrête sur un refus durable | `skills/chaine/fusionner/scripts/fusionner.test.mjs` « passer.sh : une fusion refusée durablement par GitHub sort en 3 et la boucle s'arrête ; branche bougée ou panne : 5 » (le cas ajouté par B6), « passer.sh : un refus de fusion 405 après un develop qui a bougé sort en 5 (course) ; le même 405 sans develop bougé, en 3 » |
+| la file du capitaine n'a plus que ses autres états ; l'état `humain` du plafond des renvois est intact | `skills/chaine/fusionner/scripts/fusionner.test.mjs` « file.sh : une PR renvoyée autant de fois que le plafond est montrée humain, et ni --next ni --rouges ne la rendent », « renvois : seuls les commentaires du compte du capitaine comptent ; compte illisible, la PR attend un humain », « boucle.sh : une PR à l'état humain n'est ni passée, ni relancée, ni renvoyée », sans retouche ; et la suite entière de `fusionner.test.mjs`, `sujet-fusionner.test.mjs`, `github.test.mjs`, `boucle-outils.test.mjs`, verte sans les fonctions retirées |
+| le faux GitHub répond encore à tout ce que les bancs lui demandent | `skills/chaine/sujet/scripts/faux-gh.test.mjs` (quatorze tests, dont « faux gh, commentairesRefuses : … »), et la suite entière |
+| les bancs posés dans un projet tournent hors du plugin, celui du check `PR titre` compris, sans le générateur | `scripts/poses.test.mjs` « les bancs posés à plat sous scripts/chaine/ tournent hors du plugin » |
+| `chaine-de-production.md`, le fragment de `CLAUDE.md`, `chantier/SKILL.md`, `fusionner/SKILL.md`, le `CONTENU.md` de `fusionner`, `README.md`, les quatre scripts du capitaine et le faux GitHub ne décrivent plus l'attente d'un propriétaire | « CODEOWNERS n'est plus nommé… » (aucun n'est dans sa liste fermée) |
+| les textes du socle gardés dans la liste fermée (`SKILL.md`, `CONTENU.md`, `admin.md`) ne nomment CODEOWNERS que pour dire le retrait | lus en contre-revue : quatre lignes en tout (une dans `SKILL.md`, deux dans `CONTENU.md`, une dans `admin.md`) |
 | le retrait dans un projet : fichier généré retiré, fichier écrit à la main laissé | essai réel sur deux dépôts jouets (« Vérification ») |
-| la version | `git diff origin/main -- .claude-plugin/plugin.json` ne montre que `"version"` |
+| l'arbre obtenu est celui que ce ticket a vérifié | `git write-tree` après `git add -A`, avant le § 4 : `5fde574ba0ae0d0d77dcf2560a10d6774e764777` (si `main` est à `a3c2a7c`) |
+| la version et la note | `scripts/depot.test.mjs` « la règle d'ascendance du plugin 7.16.0 : version, note de version en tête… » ; `git diff origin/main -- .claude-plugin/plugin.json` ne montre que `"version"` |
 
 ## Vérification
 
-Joué le 2026-11-18 sur un clone jetable de `4a45634`, sous Node 22.23, puis le clone retiré. Ce ticket a été relu par un script qui en tire chaque bloc « Ancien », « Nouveau », « Ligne retirée », « Bloc retiré », le fichier nouveau et le banc, joue les commandes du § 1 et applique le tout à une copie neuve : ce qui suit est le résultat de ce texte.
+### Pour la session
 
-- Sur `4a45634` sans rien : `node --test` sur les quatre motifs de `pnpm test`, **738 sur 738**.
-- Le banc du § 0 sur le texte de `4a45634` : 100 tests, les 3 rouges nommés au § 0.
-- §§ 0 à 4 appliqués : **711 sur 711** (738 − 31 + 4). `git diff c17f88b --stat -- $ONZE` ne rend rien. `git diff 4a45634 --stat` : 27 fichiers, dont 2 supprimés et 1 nouveau, ceux de « Fichiers chauds ».
-- `SKILL.md` du socle : 86 lignes (91 avant) ; `fusionner/SKILL.md` : 92 ; `chantier/SKILL.md` : 128, inchangé en nombre.
-- **Mutations**, chacune jouée seule sur le texte corrigé, puis le texte remis ; chacune fait rougir au moins un test : `README.md` renomme `.github/CODEOWNERS` ; `posix.normalize` retiré de `refusEdition` ; un refus de CODEOWNERS remis dans `refusEdition` ; l'ADR remise à « accepté » ; `"proprietaires": []` remis dans `chaine.json` ; `scripts/github/**` retiré de `cheminsSensibles` ; l'en-tête du générateur changé dans la marche à suivre ; « attend un propriétaire » remis dans `file.sh` ; « **sans** « Require review from Code Owners » » changé en « avec » dans `admin.md`. Neuf sur neuf.
-- **Essai réel du retrait**, sur deux dépôts jouets (`git init`). Le premier reçoit `codeowners.mjs` de `4a45634` et un contrat aux deux propriétaires fictifs ; `node scripts/github/codeowners.mjs --ecrire` écrit `.github/CODEOWNERS` ; `head -n 1 .github/CODEOWNERS` rend, au caractère près, la ligne du point 1 de la marche à suivre : `git rm` retire le fichier et le générateur. Le second porte un `.github/CODEOWNERS` écrit à la main (`# Les nôtres`) : la première ligne diffère, le fichier reste.
+1. **Le départ** (§ 0) : `pnpm install --frozen-lockfile && pnpm test` sur `origin/main`, vert ; relever le compte (1 072 tests sur `a3c2a7c`).
+2. **Le banc, vu rouge** (§ 1, après `node "$TMPDIR/appliquer.mjs" "$TICKET" B`) : les deux commandes de la fin du § 1 rendent **3 rouges** (deux de `scripts/depot.test.mjs`, un de `regles.test.mjs`), puis **2 rouges** (les deux tests du refus durable de `fusionner.test.mjs` : le message, et le cas du refus faute de revue, qui sort encore en 7). Cinq rouges, ceux-là.
+3. **Le vert** (§§ 2 à 4) : `pnpm test`, vert, **le compte du départ moins 27** (1 045 sur `a3c2a7c`).
+4. **L'arbre.** Avant le § 4, `git add -A && git write-tree` rend `5fde574ba0ae0d0d77dcf2560a10d6774e764777` si la branche part de `a3c2a7c` ; sinon, `git diff --stat a3c2a7c origin/main -- <fichiers chauds>` dit sur quels fichiers l'empreinte ne vaut plus. `git diff --stat origin/main`, après le § 4 : 29 fichiers, dont 2 supprimés et 1 nouveau, ceux de « Fichiers chauds » :
 
-Pour la session :
+   ```text
+   .claude-plugin/plugin.json                         |   2 +-
+   NOTES-DE-VERSION.md                                |  18 ++
+   README.md                                          |   4 +-
+   scripts/depot.test.mjs                             |  77 ++++++--
+   scripts/points-d-entree.test.mjs                   |   1 -
+   scripts/poses.test.mjs                             |  28 +--
+   skills/chaine/chantier/SKILL.md                    |   2 +-
+   skills/chaine/fusionner/SKILL.md                   |   4 +-
+   skills/chaine/fusionner/references/CONTENU.md      |   6 +-
+   skills/chaine/fusionner/scripts/boucle.sh          |   8 +-
+   skills/chaine/fusionner/scripts/file.sh            |  31 +--
+   skills/chaine/fusionner/scripts/fusionner.test.mjs | 209 +--------------------
+   skills/chaine/fusionner/scripts/github.sh          |  75 --------
+   skills/chaine/fusionner/scripts/passer.sh          |  35 +---
+   skills/chaine/fusionner/scripts/veille.test.mjs    |   9 -
+   skills/chaine/socle-chaine-de-production/SKILL.md  |  19 +-
+   .../references/CONTENU.md                          |  14 +-
+   .../socle-chaine-de-production/references/admin.md |  15 +-
+   .../references/adr/ADR_ALL_ARC-N-codeowners.md     |   6 +-
+   .../references/agent/regles.mjs                    |  12 +-
+   .../references/agent/regles.test.mjs               |  20 +-
+   .../references/chaine.json                         |   6 +-
+   .../references/docs-agents/chaine-de-production.md |   4 +-
+   .../references/fragments/claude-md-fusion.md       |   1 -
+   .../references/retrait-codeowners.md               |  13 ++
+   .../references/scripts/github/codeowners.mjs       | 147 ---------------
+   .../references/scripts/github/codeowners.test.mjs  | 146 --------------
+   skills/chaine/sujet/scripts/faux-gh.mjs            |  52 ++---
+   skills/chaine/sujet/scripts/faux-gh.test.mjs       |   4 +-
+   29 files changed, 172 insertions(+), 796 deletions(-)
+   ```
 
-1. Le § 0 : trois rouges. Les §§ 1 à 4, puis `pnpm install --frozen-lockfile && pnpm test` : vert, **le compte de `origin/main` moins 27**.
-2. `git diff origin/main --stat` ne montre que les 27 fichiers de « Fichiers chauds » ; `git diff c17f88b --stat -- $ONZE` ne rend rien ; `git grep -il 'codeowners' -- skills scripts README.md .claude-plugin` rend sept fichiers, ceux de la décision 11 ; `wc -l skills/chaine/socle-chaine-de-production/SKILL.md` : 86.
-3. **L'essai réel du retrait**, rejoué par la session sur deux dépôts jouets, avec les mots de N1 : un fichier généré par `codeowners.mjs` de `origin/main` est retiré, un fichier écrit à la main reste. Le résultat va dans le corps de la PR.
-4. Revue de ticket (ses trois axes), puis `/security-review` sur la branche ; leurs sections dans le corps de la PR.
-5. La PR vise `main`, hors brouillon, **sans `à-fusionner`** (`Label: contre-revue`) ; la session écrit à l'architecte dès sa PR livrée. Elle part de `origin/main` et lit ce ticket sur la branche de documentation du programme, sans le modifier.
+   `git grep -il codeowners -- skills scripts README.md .claude-plugin` rend sept fichiers, ceux de la décision 11 ; `wc -l` : `skills/chaine/socle-chaine-de-production/SKILL.md` 88 (91 avant), `skills/chaine/fusionner/SKILL.md` 122 (124 avant), `skills/chaine/chantier/SKILL.md` 128, inchangé.
+5. **Les mutations** : le script ci-dessous, tiré par ses bornes comme celui du § 5, lancé depuis la racine : **13 rouges sur 13**, témoin vert. Il remet chaque fichier après sa mutation ; `git status --short` est le même avant et après.
+6. **L'essai réel du retrait**, sur deux dépôts jouets, avec les mots de N1 : les commandes ci-dessous. Un fichier écrit par `codeowners.mjs` d'`origin/main` est retiré, un fichier écrit à la main reste. Le résultat va dans le corps de la PR.
+7. Revue de ticket (ses trois axes), puis `/security-review` sur la branche ; leurs sections dans le corps de la PR.
+8. La PR vise `main`, hors brouillon, **sans `à-fusionner`** (`Label: contre-revue`) ; la session écrit à l'architecte dès sa PR livrée. Elle part d'`origin/main` et lit ce ticket sur la branche de documentation du programme, sans le modifier.
+
+### Ce qui a été joué en écrivant ce ticket
+
+Le 2026-11-19, sous Node 22.23.4, sur un clone neuf d'`origin/main` à `a3c2a7c`, dans un dossier temporaire privé, retiré ensuite. Ce fichier a été lu par le script du § 5, tiré de lui par ses bornes ; ce qui suit est le résultat de ce texte, pas d'un brouillon.
+
+- **Le départ.** `pnpm install --frozen-lockfile && pnpm test` sur `a3c2a7c` : 1 072 tests, 1 071 verts et un hors délai. « les bancs posés à plat sous scripts/chaine/ tournent hors du plugin » (`scripts/poses.test.mjs`) a atteint son plafond de 600 s : la machine, quatre cœurs, jouait au même moment les suites d'autres sessions (charge de 13 à 28). Rejoué seul sur `a3c2a7c`, sous une charge de 16 : même plafond, 601 s. Ce banc n'est pas en cause, et ce ticket n'y change que deux fichiers posés en moins.
+- **Le banc, vu rouge.** Après les sept blocs `B` : 144 tests, 3 rouges (171 lignes dans 20 fichiers nommées par le premier), puis 2 rouges de `fusionner.test.mjs` ; les cinq attendus.
+- **Les blocs.** Sur un clone neuf, en trois lancements du script tiré de ce fichier par ses bornes : 7 blocs et 3 fichiers, 42 et 14, 42 et 11 ; `git write-tree` : `5fde574ba0ae0d0d77dcf2560a10d6774e764777`. Sur deux autres clones neufs, en un lancement : même arbre. Relancé sur un arbre déjà transformé : rien n'est écrit, les blocs sont nommés. `bash -n` des quatre scripts du capitaine, `node --check` de chaque `.mjs` touché, `JSON.parse` du gabarit : sans faute.
+- **La suite après les §§ 1 à 3** : **1 045 tests** (1 072 − 31 + 4), 1 043 verts, 2 rouges dus à la charge, hors de ce que le ticket change : le même banc des fichiers posés, au même plafond de 600 s, et « ticket 33, contre-relecture C1 : ce qui suit un mot à expansion se relit en temps et mémoire linéaires » de `regles.test.mjs`, qui compare deux durées (« 0,027 s puis 0,552 s »). Rejoués seuls sur l'arbre transformé : `regles.test.mjs` 85 sur 85, deux fois ; `scripts/poses.test.mjs` vert en 593 s.
+- **La version et la note**, jouées avec 7.32.0 en exemple : `scripts/depot.test.mjs` et `regles.test.mjs`, 144 sur 144 ; `git diff --stat a3c2a7c` : 29 fichiers, 172 insertions, 796 retraits.
+- **Les mutations** : 13 rouges sur 13, témoin vert ; `git status --short` identique avant et après.
+- **L'essai du retrait** : les cinq lignes attendues.
+- **Non attendu** : un dernier lancement de la suite entière sur l'arbre final (blocs, version et note), parti sous une charge retombée à 6, n'était pas fini quand la rédaction a été arrêtée. **Une suite entière verte d'un seul tenant n'a donc pas été vue** : chaque test l'a été, deux d'entre eux à part.
+
+### Le script des mutations
+
+<!-- début : mutations.mjs -->
+````js
+#!/usr/bin/env node
+// Mutations du retrait de CODEOWNERS (ticket 54). Usage, depuis la racine du dépôt, le ticket appliqué :
+//   node mutations.mjs
+// D'abord le témoin : les trois bancs, sans mutation, sont verts. Puis chaque mutation est jouée seule : le fichier
+// est modifié, le banc nommé est lancé, le fichier est remis.
+// « rouge » : un banc au moins échoue, la mutation est vue. Sortie 1 si une mutation survit, ne s'applique pas ou
+// reste sans verdict (banc non fini).
+import { spawnSync } from "node:child_process";
+import { readFileSync, writeFileSync } from "node:fs";
+
+const REF = "skills/chaine/socle-chaine-de-production/references";
+const FUSIONNER = "skills/chaine/fusionner";
+const DEPOT = ["scripts/depot.test.mjs"];
+const REGLES = [`${REF}/agent/regles.test.mjs`];
+const REFUS = ["--test-name-pattern=fusion refusée durablement|refus de fusion 405", `${FUSIONNER}/scripts/fusionner.test.mjs`];
+const NORMALISE = "  const c = posix.normalize(chemin.replace(/\\\\/g, '/')).replace(/^(\\.\\/)+/, '');";
+const MUTATIONS = [
+  ["le README nomme de nouveau le fichier", "README.md", "une CI minimale, la méthode et trois ADR |", "une CI minimale, un `.github/CODEOWNERS`, la méthode et trois ADR |", DEPOT],
+  ["refusEdition ne normalise plus le chemin", `${REF}/agent/regles.mjs`, NORMALISE, "  const c = chemin.replace(/\\\\/g, '/').replace(/^(\\.\\/)+/, '');", REGLES],
+  ["refusEdition refuse de nouveau l'édition du fichier", `${REF}/agent/regles.mjs`, NORMALISE, `${NORMALISE}\n  if (/^(\\.github\\/|docs\\/)?codeowners$/i.test(c)) return \`\${c} ne s'édite pas\`;`, REGLES],
+  ["l'ADR redevient acceptée", `${REF}/adr/ADR_ALL_ARC-N-codeowners.md`, "- Statut : **retirée** par", "- Statut : **accepté** ; retirée par", DEPOT],
+  ["la clé revient dans le gabarit du contrat", `${REF}/chaine.json`, '  "criteresRevue":', '  "proprietaires": [],\n  "criteresRevue":', DEPOT],
+  ["scripts/github/** n'est plus un chemin sensible", `${REF}/chaine.json`, '"scripts/github/**", ', "", DEPOT],
+  ["l'en-tête du générateur change dans la marche à suivre", `${REF}/retrait-codeowners.md`, "(cheminsSensibles, proprietaires) : ne pas éditer.", ": ne pas éditer.", DEPOT],
+  ["l'état revient dans l'en-tête de file.sh", `${FUSIONNER}/scripts/file.sh`, "#   humain              PR déjà renvoyée", "#   attend un propriétaire\n#   humain              PR déjà renvoyée", DEPOT],
+  ["la liste de l'admin fait cocher la règle", `${REF}/admin.md`, "**sans** « Require review from Code Owners »", "avec « Require review from Code Owners »", DEPOT],
+  ["le compte des clés reste à huit", `${REF}/CONTENU.md`, "Sept clés, et rien d'autre,", "Huit clés, et rien d'autre,", DEPOT],
+  ["le socle numérote encore quatre ADR", "skills/chaine/socle-chaine-de-production/SKILL.md", "trois fois, de suite", "quatre fois, de suite", DEPOT],
+  ["un refus faute de revue est de nouveau sauté (sortie 7)", `${FUSIONNER}/scripts/passer.sh`, "  # La branche ou develop a bougé (409,", "  if grep -qi 'approving review' <<<\"$message\"; then sortir 7 \"attend une approbation\"; fi\n  # La branche ou develop a bougé (409,", REFUS],
+  ["le refus durable dit encore « ni pour la revue »", `${FUSIONNER}/scripts/passer.sh`, "pour une autre raison qu'une branche qui a bougé (droit du compte, règle du dépôt, revue exigée, méthode de fusion) :", ", ni pour la revue ni pour une branche qui a bougé (droit du compte, règle du dépôt, méthode de fusion) :", REFUS],
+];
+
+const env = Object.fromEntries(Object.entries(process.env).filter(([cle]) => cle !== "NODE_TEST_CONTEXT"));
+const jouer = (bancs) => spawnSync(process.execPath, ["--test", ...bancs], { env, stdio: "ignore", timeout: 900_000 }).status;
+// Le témoin : sans mutation, chaque banc est vert. Sinon un rouge ne dirait rien.
+for (const bancs of [DEPOT, REGLES, REFUS]) {
+  if (jouer(bancs) === 0) continue;
+  console.log(`TÉMOIN ROUGE : ${bancs.at(-1)} échoue sans mutation, aucune mutation jouée`);
+  process.exit(1);
+}
+let survivantes = 0;
+for (const [nom, fichier, ancien, nouveau, bancs] of MUTATIONS) {
+  const texte = readFileSync(fichier, "utf8");
+  if (texte.split(ancien).length !== 2) {
+    console.log(`INAPPLICABLE  ${nom} (${fichier})`);
+    survivantes++;
+    continue;
+  }
+  writeFileSync(fichier, texte.replace(ancien, () => nouveau));
+  let statut;
+  try {
+    statut = jouer(bancs);
+  } finally {
+    writeFileSync(fichier, texte);
+  }
+  // Statut nul : le banc n'a pas fini (délai dépassé, signal). Ce n'est pas un rouge.
+  if (statut === 0 || statut === null) survivantes++;
+  console.log(`${statut === 0 ? "VERT (survit)" : statut === null ? "SANS VERDICT " : "rouge        "}  ${nom}`);
+}
+console.log(`${MUTATIONS.length - survivantes} rouges sur ${MUTATIONS.length}`);
+process.exit(survivantes === 0 ? 0 : 1);
+````
+<!-- fin : mutations.mjs -->
+
+```bash
+awk '/^<!-- début : mutations.mjs -->$/ { f = 1; next } /^<!-- fin : mutations.mjs -->$/ { f = 0 } f' "$TICKET" | grep -v '^````' > "$TMPDIR/mutations.mjs"
+node "$TMPDIR/mutations.mjs"        # depuis la racine du dépôt, le ticket appliqué
+```
+
+### L'essai du retrait
+
+```bash
+# L'essai du retrait, sur deux dépôts jouets. Depuis la racine du dépôt du plugin, le ticket appliqué.
+PLUGIN=$PWD
+N1=$PLUGIN/skills/chaine/socle-chaine-de-production/references/retrait-codeowners.md
+R=$(mktemp -d)
+jouet() { git init -q "$R/$1" && cd "$R/$1" && git config user.name essai && git config user.email essai@example.invalid; }
+# 1. Un fichier écrit par le générateur d'origin/main : la première ligne est celle du point 1, il est retiré.
+jouet genere
+mkdir -p .claude scripts/github
+git -C "$PLUGIN" show origin/main:skills/chaine/socle-chaine-de-production/references/scripts/github/codeowners.mjs > scripts/github/codeowners.mjs
+printf '{"cheminsSensibles":["scripts/agent/**","apps/api/src/auth/"],"proprietaires":["@exemple-une","@exemple/relecteurs"]}\n' > .claude/chaine.json
+node scripts/github/codeowners.mjs --ecrire
+git add -A && git commit -q -m "chore: pose"
+grep -cF "\`$(head -n 1 .github/CODEOWNERS)\`" "$N1"     # 1 : la ligne du point 1, au caractère près
+git rm -q .github/CODEOWNERS scripts/github/codeowners.mjs && test ! -e .github/CODEOWNERS && echo "généré : retiré"
+# 2. Un fichier écrit à la main : une autre première ligne, il reste.
+jouet a-la-main
+mkdir .github && printf '# Les nôtres\n* @exemple-une\n' > .github/CODEOWNERS
+grep -cF "\`$(head -n 1 .github/CODEOWNERS)\`" "$N1"     # 0 : ce n'est pas la ligne du générateur
+test -e .github/CODEOWNERS && echo "écrit à la main : laissé"
+cd "$PLUGIN" && rm -rf "$R"
+```
+
+Ce qu'il rend, dans l'ordre : `codeowners : .github/CODEOWNERS régénéré depuis .claude/chaine.json`, `1`, `généré : retiré`, `0`, `écrit à la main : laissé`.
 
 ## Ce qui n'a pas été établi
 
-- **Le texte du refus que rend GitHub** quand « Require review from Code Owners » est cochée n'a jamais été lu sur un vrai dépôt (la liste de l'admin du ticket 50 demandait de le noter « au premier dépôt posé ») : `refus_pour_revue` le devinait. Il sort ; un tel refus arrête désormais la boucle en sortie 5 (décision 6).
-- **L'état du réglage sur les dépôts des projets** : ce ticket ne lit aucune protection de branche. Si la case a été cochée quelque part, seul un administrateur la décoche (N1, point 7).
-- **Le script de contrôle de chaque projet** : la marche à suivre nomme `scripts/check.mjs`, celui du socle ; un projet qui en a un autre retire l'étape où elle est. L'un des deux projets concernés est dans ce cas.
-- **Le banc** tient l'absence d'un mot, pas d'un comportement : une attente d'approbation réécrite sans aucun des mots de son lecteur passerait. Les scripts du capitaine sont tenus, eux, par l'égalité avec `c17f88b`.
+- **Le texte du refus que rend GitHub** quand une règle exige une revue approuvée n'a jamais été lu sur un vrai dépôt (la liste de l'admin du ticket 50 demandait de le noter « au premier dépôt posé »). Le cas ajouté par B6 emploie un message plausible, pas un message relevé. `passer.sh` ne lit plus ce texte pour y chercher une revue ; il le classe comme tout refus : un code 409 ou 5xx, ou les mots « branch was modified », « not up to date », valent une branche bougée (sortie 5, pause puis reprise) ; tout autre refus à code HTTP est durable (sortie 3). Si GitHub rendait un refus faute de revue sous l'une des formes de la sortie 5, la boucle le reprendrait à chaque tour au lieu de s'arrêter. Rien ne le laisse penser ; rien ne le prouve.
+- **L'état du réglage sur les dépôts des projets** : ce ticket ne lit aucune protection de branche. Si « Require review from Code Owners » a été cochée quelque part, seul un administrateur la décoche (N1, point 7), et jusque-là un capitaine reposé s'y arrête (décision 6).
+- **Le script de contrôle de chaque projet** : la marche à suivre nomme `scripts/check.mjs`, celui du socle ; un projet qui en a un autre retire l'étape où elle est.
+- **Les projets posés** : le relevé de « Ce que voit un projet » lit des clones locaux sans les rafraîchir ; un projet a pu changer depuis.
+- **Le banc tient l'absence d'un mot, pas d'un comportement**, sauf pour le refus de fusion (B6) : une attente d'approbation réécrite sans aucun des mots de son lecteur passerait. Le ticket d'origine tenait les scripts du capitaine par l'égalité avec leur contenu d'avant le ticket 50 ; cette égalité n'existe plus sur `main`. Ils sont tenus par les blocs à empreinte, par l'empreinte de l'arbre, par leurs bancs restés verts, et par la contre-revue.
+- **Le `main` de la livraison.** Les tickets 60, 56 et 57 entreront avant ce ticket et touchent plusieurs de ses fichiers (`fusionner/SKILL.md`, `chantier/SKILL.md`, `boucle.sh`, `fusionner.test.mjs`, `scripts/depot.test.mjs`, `plugin.json`, `NOTES-DE-VERSION.md`). Ce ticket n'a été joué que sur `a3c2a7c`. Le script dit quels blocs ne s'appliquent plus ; la règle de repli dit quoi en faire.
+- **La suite entière verte en un seul lancement** n'a pas été obtenue en écrivant ce ticket (« Ce qui a été joué ») : sur la machine partagée du rejeu, `scripts/poses.test.mjs` tient à quelques secondes de son plafond de 600 s, sur `main` comme sur l'arbre transformé. La session la voit verte au point 3 de sa vérification, ou rejoue à part le banc hors délai et le dit.
+- **Le relecteur neuf n'est pas encore passé** sur ce rejeu.
 
 ## Hors périmètre
 
-- **La garde qui prend la place** : la ligne `Sensibles:` du ticket, la demande d'accord dans la carte, les trois gardes mécaniques (`A-73` à `A-76`), et l'ADR « relecture indépendante et accord des fichiers sensibles » (`A-96`). Lots 2, 5 et 6 du chantier 3.
+- **La garde qui prend la place** : la ligne `Sensibles:` du ticket, la demande d'accord dans la carte, les trois gardes mécaniques (`A-73` à `A-76`), et l'ADR « relecture indépendante et accord des fichiers sensibles » (`A-96`). Lots 2, 5 et 6.
 - **Le retrait dans les projets** : par leur architecte, avec la marche à suivre de ce ticket.
 - **Les réglages GitHub** : aucune session ne les change.
 - **Le relâchement de `Label: contre-revue`** : il reste exigé, et la contre-revue du conducteur reste (`chantier/SKILL.md:95`, moins ses deux phrases sur CODEOWNERS).
-- **Les deux défauts de la chaîne relevés le 2026-11-18** (`sujet.sh rafraichir` donné au conducteur, une PR en retard dont seul un index est périmé) : ils ont leurs tickets.
+- **L'autre moitié du point 5 et le point 6 du § 6 de `chantier/SKILL.md`** : tickets 57 et 56.
+- **Ce que le faux GitHub ne rend pas encore** (date d'ouverture d'une PR, date de modification d'un commentaire au sens d'`A-108`) : lot 5a.
+- **Les notes de version déjà publiées et `docs/`** : décision 16.
 
 ## Comments
 
 - 2026-11-18 — Rédigé sur `4a45634` (plugin 7.15.0, 738 tests) d'après `P-49`, `A-77` et le lot 1 de la spec du chantier 3. Inventaire refait par recherche (`codeowners`, `code owner`, `code_owner`, `proprietaires`, `propriétaire`, `proprietaire`, `attend un propriétaire`, `attend un humain`, `possédé`, `approbation`, sous une locale UTF-8), chaque occurrence lue. Joué sur un clone jetable : 711 tests, neuf mutations rouges, l'essai du retrait sur deux dépôts jouets. Choix du rédacteur, que la spec ne tranche pas : (1) l'ADR n'est plus posée dans un projet neuf, et le socle revient à trois ADR (décision 2) ; (2) `scripts/github/**` reste un chemin sensible (décision 3) ; (3) la normalisation du chemin reste dans `refusEdition` (décision 4) ; (4) le faux `gh` revient entier à son état d'avant le ticket 50 (décision 5) ; (5) le retrait dans un projet est une marche à suivre en référence, pas un script (décision 8) ; (6) le texte de la liste de l'admin (décision 7).
 
 - 2026-11-18 — Architecte : ticket écrit et joué sur `origin/main` à `4a45634` (7.15.0). `main` est depuis à `1c4acb1` (7.17.0) et le programme « capitaine à jour et testé » modifie plusieurs fichiers de ce ticket (`passer.sh`, `boucle.sh`, `faux-gh.mjs`, `regles.mjs`, `chantier/SKILL.md`). **`needs-info` jusqu'au rejeu des blocs sur `main`**, une fois ses tickets chauds entrés : repères de ligne, compte de tests, numéro de version et note dans `NOTES-DE-VERSION.md` (fichier né en 7.16.0) sont à reprendre ; les décisions du ticket, elles, tiennent.
+
+- 2026-11-19 — **Rejoué sur `origin/main` à `a3c2a7c` (plugin 7.31.0), `ready-for-agent`.** Ce que le rejeu a changé : (1) **la méthode** : le patch inverse de la PR 108 ne s'applique plus à aucun de ses onze fichiers ; le retrait est donné en quatre-vingt-onze blocs, appliqués par un script donné entier (décision 12) ; (2) **l'inventaire**, refait sur `main` : 221 lignes dans 26 fichiers avant, 64 lignes dans 7 fichiers après ; ce qui a disparu, ce qui est nouveau et ce qui a bougé est dans « Où » ; (3) **la décision 6** : un refus de fusion faute de revue devient un refus durable, sortie 3 et arrêt de la boucle, là où le ticket d'origine le rendait à la sortie 5 ; `main` classe désormais les refus de fusion, et le message « ni pour la revue » change avec ses deux tests ; (4) **la décision 5** : le faux `gh` ne revient plus à son état d'avant, il garde `commentairesRefuses` et les dates des commentaires, que le verrou du passage lit ; (5) **le socle** : le point 4 ter garde le check `PR titre`, le contrat compte sept clés et une huitième facultative, un test tient ce compte ; (6) **`chantier/SKILL.md`** : deux phrases, elles seules ; (7) **les tests** : 31 sortent toujours, 4 entrent, 5 sont modifiés dont un reçoit un cas ; 1 072 − 31 + 4 = **1 045** ; treize mutations au lieu de neuf ; (8) **la version** : la suivante de `main` au moment de livrer, mineure, avec sa note. Choix du rédacteur que rien d'écrit ne tranche, pour la contre-revue : l'arrêt en sortie 3 sur un refus faute de revue et le nouveau message (décision 6) ; ce que le faux `gh` garde (décision 5) ; mineure plutôt que majeure (décision 9) ; le test du compte des clés (décision 11) ; le titre de PR raccourci (décision 10) ; « depuis le plugin 7.13.0 » sans version de fin (décision 8) ; `Blocked by: 56, puis 57`, repris d'`A-109`.
