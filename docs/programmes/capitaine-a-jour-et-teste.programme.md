@@ -79,7 +79,7 @@ Décisions de l'architecte :
 | ticket | 14 | session_012xRpgZCHrKAsSDyAM9MBy8 | sonnet | 171 523 | 2,50 |
 | ticket | 5 | session_012xRpgZ61a6Z3tAxnLE1XtH | sonnet | 186 928 | 2,98 |
 | ticket | 8 | session_012xRpgb2wqPnXRgEHTvthK3 | opus | 327 602 | 17,89 |
-| ticket | 18 | session_012xRpgZurfcXHuBBqAMFitE | opus | — | — |
+| ticket | 18 | session_012xRpgZurfcXHuBBqAMFitE | opus | 407 806 | 19,19 |
 | ticket | 7 | session_012xRpgZAedd2xzkqRc9YBYv | sonnet | 191 702 | 2,70 |
 | ticket | 2 | session_012xRpgbmxxvZr3pZbLZccCN | opus | — | — |
 | ticket | 11 | session_012xRpga69nMFgKEzuT4rE8A | sonnet | — | — |
@@ -170,3 +170,4 @@ Demande du produit, 2026-11-18, recopiée telle quelle (relevée sur `MAJ-agency
 - 2026-11-19 — 01 h 00 UTC. PR 125 : alerte CodeQL corrigée (`6bbb40f`, `sansCommentaires` par boucle `indexOf`, banc rouge avant, 944 tests, quatre checks verts), delta relu ; attend la fusion de la 127 pour reprendre `main` en 7.26.0.
 - 2026-11-19 — 01 h 14 UTC. **PR 127 fusionnée** (squash `9a912d3`, 7.25.0, non annoncée par le capitaine), arbre identique au sommet ordonné `0539528`, vérifié ; ticket 7 fait, session archivée (2,70 $). Signal à la PR 125 (7.26.0). Tickets 2 (session_012xRpgbmxxvZr3pZbLZccCN, opus) et 11 (session_012xRpga69nMFgKEzuT4rE8A, sonnet) lancés en parallèle depuis `9a912d3` (`sujet.sh` commun, conflit à résoudre par la seconde à son tour) ; consigne nouvelle dans les prompts : CodeQL vert avant de livrer.
 - 2026-11-19 — 01 h 28 UTC. PR 125 : `main` fusionnée (`9a912d3`, un conflit sur les notes), 7.26.0, 951 tests, quatre checks verts ; delta relu (contient `main`, même diff). **Ordre `à-fusionner au sommet 7501a5c…` et label reposés.**
+- 2026-11-19 — 01 h 48 UTC. **PR 125 fusionnée** (squash `20b18c6`, 7.26.0), arbre identique au sommet ordonné `7501a5c`, vérifié ; ticket 18 fait, session archivée (19,19 $). PR 128 (ticket 2) et 129 (ticket 11) en contre-relecture. Tickets 3 et 4 attendent la PR 128 (`relancer` et les fusions du capitaine) ; ticket 16 attend la 129.
