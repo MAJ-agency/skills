@@ -82,8 +82,10 @@ Décisions de l'architecte :
 | ticket | 8 | session_012xRpgb2wqPnXRgEHTvthK3 | opus | 327 602 | 17,89 |
 | ticket | 18 | session_012xRpgZurfcXHuBBqAMFitE | opus | 407 806 | 19,19 |
 | ticket | 7 | session_012xRpgZAedd2xzkqRc9YBYv | sonnet | 191 702 | 2,70 |
-| ticket | 2 | session_012xRpgbmxxvZr3pZbLZccCN | opus | — | — |
+| ticket | 2 | session_012xRpgbmxxvZr3pZbLZccCN | opus | 372 631 | 16,73 |
 | ticket | 11 | session_012xRpga69nMFgKEzuT4rE8A | sonnet | 203 660 | 3,14 |
+| ticket | 16 | session_012xRpgXvNcXsnHhWX6PyPB3 | opus | — | — |
+| ticket | 3 | session_012xRpga1obGxgaKzsZHF9ts | opus | — | — |
 | capitaine | — | session_012xRpgcWjwiV8xVUSzzEy9L | sonnet | — | — |
 
 ## Passation
@@ -179,3 +181,4 @@ Demande du produit, 2026-11-18, recopiée telle quelle (relevée sur `MAJ-agency
 - 2026-11-19 — 02 h 25 UTC. PR 129 : `main` fusionnée (`20b18c6`, trois conflits, deux côtés gardés), 7.26.1, 957 tests, quatre checks verts ; delta relu (contient `main`, même diff qu'au sommet relu). **Ordre `à-fusionner au sommet 0c97eb7…` et label posés.** PR 128 : mineure m1 portée (`9adcbc9`, `</dev/null` sur le corps de la boucle des sujets, banc rouge avant, 945 tests), delta relu ; attend la 129 (7.27.0).
 - 2026-11-19 — 02 h 32 UTC. **PR 129 fusionnée** (squash `bb3314a`, 7.26.1), arbre identique au sommet ordonné `0c97eb7`, vérifié ; ticket 11 fait, session archivée (3,14 $). Signal à la PR 128 (7.27.0). Après elle : tickets 16 et 3 en parallèle, puis 4.
 - 2026-11-19 — 02 h 42 UTC. PR 128 : `main` fusionnée (`bb3314a`, quatre conflits, deux côtés gardés), 7.27.0, 969 tests, checks verts ; delta relu (contient `main`, même diff, branche `3)` et `</dev/null` présents). **Ordre `à-fusionner au sommet 1436297…` et label posés.** Les tickets 16 et 3 partiront de `main` après sa fusion.
+- 2026-11-19 — 02 h 53 UTC. **PR 128 fusionnée** (squash `3b42387`, `main` en 7.27.0 ; le titre du squash dit encore « plugin 7.26.0 », titre de PR non mis à jour par la session : écart cosmétique, l'historique ne se réécrit pas), arbre identique au sommet ordonné `1436297`, vérifié ; ticket 2 fait. Tickets 16 (session_012xRpgXvNcXsnHhWX6PyPB3) et 3 (session_012xRpga1obGxgaKzsZHF9ts), opus, lancés en parallèle depuis `3b42387`.
