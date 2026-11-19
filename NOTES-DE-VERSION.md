@@ -2,6 +2,16 @@
 
 La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque projet par `poser` : une version publiée ne change rien chez un projet qui ne les repose pas. Chaque note dit ce qui change, puis ce qu'un projet fait pour en profiter.
 
+## 7.31.1 — 2026-11-19
+
+### Ce qui change
+
+Le conducteur d'un chantier ne met plus le sujet à jour avec develop : le capitaine seul le fait, de lui-même, au début et à la fin de chaque lancement de sa boucle, dès qu'aucune sous-PR du sujet n'est ouverte. Le skill `chantier` (§ 6, point 6) disait au conducteur de lancer `sujet.sh rafraichir` entre deux vagues ; deux sessions ont ainsi fait ce geste l'une après l'autre sur un même sujet. Le conducteur constate seulement, sans rien écrire : `git fetch -q origin '+refs/heads/develop:refs/remotes/origin/develop' '+refs/heads/sujet/<nom>:refs/remotes/origin/sujet/<nom>'`, puis `git merge-base --is-ancestor origin/develop origin/sujet/<nom>`. Le fetch porte des refspecs explicites : dans le clone `--single-branch` d'une session cloud, un fetch nu ne met pas `origin/sujet/<nom>` à jour, et le constat lirait une référence périmée. Sujet en retard : aucune vague ne part, et s'il le reste au réveil suivant le conducteur demande pourquoi à un capitaine actif ; sur `SUJET EN CONFLIT` ou `SUJET NON MIS À JOUR (sortie 3)`, il lance comme avant une session fille qui ouvre la PR de mise à jour. Un constat qui échoue (fetch en échec, sortie autre que 0 ou 1) ne vaut ni « à jour » ni « en retard » : aucune vague ne part.
+
+### Ce qu'un projet fait pour en profiter
+
+Mettre à jour le plugin ; aucun script à reposer, le capitaine ne se relance pas. Un conducteur déjà lancé garde son ancien skill jusqu'à sa relève : lui dire de ne plus lancer `sujet.sh rafraichir`.
+
 ## 7.31.0 — 2026-11-19
 
 ### Ce qui change
