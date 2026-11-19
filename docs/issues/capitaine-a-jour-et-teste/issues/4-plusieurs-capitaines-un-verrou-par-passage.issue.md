@@ -1,6 +1,6 @@
 # Plusieurs capitaines sur la même file : un verrou par passage, posé par un commentaire marqué sur la PR
 
-Status: ready-for-agent
+Status: en cours — ticket/4-plusieurs-capitaines-verrou
 Type: défaut
 Modèle: opus — un verrou entre processus de machines différentes, tenu par des commentaires GitHub (ordre, âge, fin, trappe de sortie), branché sur trois gestes du capitaine et sur la boucle du ticket 1, un faux GitHub à étendre, et la règle « un seul capitaine » à retirer de sept textes sans en oublier un.
 Blocked by: 1 (`github.sh`, `passer.sh`, `sujet.sh`, `boucle.sh`, `faux-gh.mjs` et les bancs sont des fichiers chauds du ticket 1, dont la boucle de reprises fixe où le verrou se rafraîchit : partir de `main` après sa fusion)
@@ -246,3 +246,6 @@ Ceux du second tableau « Où ».
   - **Bancs existants** : `ecritures(d)` de `fusionner.test.mjs` et `sujet-fusionner.test.mjs` filtre les seuls commentaires du verrou (corps marqué `<!-- capitaine:passage `, ou `DELETE issues/comments/<id>`) ; aucune assertion retirée ; `veille.test.mjs` reçoit `CAPITAINE_ID` dans son environnement, `depot-jouet.mjs` le pose d'office.
   - **Le test des textes** liste les onze lignes rouges de 7.28.0 par fichier et extrait, sans numéro de ligne (mineure de la relecture).
   - **Version** : mineure (7.29.0), comme proposé ; à reprendre au numéro suivant celui de `main` au signal de l'architecte.
+  - **Limite des 90 minutes** (revue de ticket, axe Ticket, bloquant corrigé) : « à moins de 90 minutes » se lit strictement ; une marque rafraîchie il y a 90 minutes tout juste ne prend plus la PR (`> $t - 5400`), une de 89 min 59 s la prend ; les deux cas au banc.
+  - **API GitHub** : les appels du verrou sont ceux de la page REST « Issue comments » de GitHub (`POST issues/<n>/comments`, `PATCH` et `DELETE issues/comments/<id>`, lecture paginée qui rend `author_association`, `created_at` et `updated_at`). La page n'a pas pu être relue depuis la session (`docs.github.com` hors du réseau autorisé) : à relire par l'architecte ; le `PATCH` qui avance `updated_at` est l'hypothèse sur laquelle repose l'âge du verrou.
+  - **Double renvoi** (revue, axe Règles) : deux capitaines peuvent encore renvoyer deux fois une même PR, par `traiter_rouges` (Décision 8) et aussi sur un refus 4 lu avant le verrou ou une sortie 2/3 après sa fin ; hors de ce ticket, comme la Décision 8 le dit, à suivre s'il se voit (il compte deux renvois au plafond).

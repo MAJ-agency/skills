@@ -510,6 +510,12 @@ test("aucun texte de la chaîne ne redit la règle d'un seul capitaine : entrée
     assert.deepEqual(redites(f, texte), [], `${f} : aucun motif ne la voit`);
     assert.ok(!texte.includes(TENUES_EN_POSITIF.find(([g]) => g === f)[1]), `${f} : le positif manque à l'ancienne ligne`);
   }
+  // Fin de ligne CRLF, dernière ligne sans fin de ligne : la ligne est vue, une seule fois, sans le retour chariot.
+  assert.deepEqual(redites("x", "avant\r\nUn seul capitaine fusionne.\r\napres"), ["x : Un seul capitaine fusionne."]);
+  assert.deepEqual(redites("x", "avant\n5. **Un seul capitaine fusionne.**"), ["x : 5. **Un seul capitaine fusionne.**"]);
+  // Les variantes les plus proches qui ne doivent pas correspondre.
+  for (const proche of ["un capitaine au moins par dépôt", "une session dédiée", "un pour la file", "ne doit rendre que deux", "La session d'un dépôt"])
+    assert.deepEqual(redites("x", proche), [], proche);
   // Ce que le ticket écrit à la place ne rougit pas.
   for (const sain of ["plusieurs capitaines peuvent tenir la même file", "**Seuls les capitaines fusionnent** (skill `fusionner`)", "un ou plusieurs par dépôt (un verrou par PR)"])
     assert.deepEqual(redites("x", sain), [], sain);

@@ -415,9 +415,9 @@ test("prendre_passage : une marque vivante d'un autre capitaine, posée avant, p
     return p;
   };
   libre([marque("autre", true)], "finie");
-  // Le sien est créé à 12:00:01 ; 90 minutes avant : 10:30:01.
-  libre([{ body: marque("autre"), created_at: "2026-11-17T09:00:00Z", updated_at: "2026-11-17T10:30:00Z" }], "vieille de 90 minutes");
-  assert.equal(passage([{ body: marque("autre"), created_at: "2026-11-17T09:00:00Z", updated_at: "2026-11-17T10:30:01Z" }]).rc, 1, "rafraîchie à 90 minutes juste : vivante");
+  // Le sien est créé à 12:00:01 ; 90 minutes avant : 10:30:01. « À moins de 90 minutes » : 90 tout juste ne prend plus.
+  libre([{ body: marque("autre"), created_at: "2026-11-17T09:00:00Z", updated_at: "2026-11-17T10:30:01Z" }], "vieille de 90 minutes");
+  assert.equal(passage([{ body: marque("autre"), created_at: "2026-11-17T09:00:00Z", updated_at: "2026-11-17T10:30:02Z" }]).rc, 1, "rafraîchie à 89 min 59 s : vivante");
   libre([{ body: marque("autre"), association: "NONE" }], "compte hors de l'organisation");
   for (const association of ["MEMBER", "COLLABORATOR"]) assert.equal(passage([{ body: marque("autre"), association }]).rc, 1, association);
   // Du même capitaine (passage précédent tué) : ne prend pas, et se termine avec le sien.

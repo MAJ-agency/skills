@@ -583,7 +583,7 @@ FILTRE_PASSAGE='def marque: [.body | match("<!-- capitaine:passage ([A-Za-z0-9_-
     | select((.body | contains("<!-- capitaine:fin -->")) | not)
     | {id, updated_at, m: marque} | select(.m != null and .id != $mien)] as $vivantes
   | ($cree | fromdateiso8601) as $t
-  | { tenu: ([$vivantes[] | select(.m != $moi and .id < $mien and (.updated_at | fromdateiso8601) >= $t - 5400)]
+  | { tenu: ([$vivantes[] | select(.m != $moi and .id < $mien and (.updated_at | fromdateiso8601) > $t - 5400)]
         | sort_by(.id) | first | if . == null then null else "\(.m) \(.updated_at)" end),
       anciens: [$vivantes[] | select(.m == $moi) | .id] }'
 # Pose le verrou sur la PR `<n>` (CAPITAINE_ID valide exigé de l'appelant). Retours : 0 pris par ce capitaine
