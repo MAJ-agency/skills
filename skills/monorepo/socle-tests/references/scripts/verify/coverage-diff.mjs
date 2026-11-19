@@ -59,10 +59,12 @@ import {
   SEUILS,
   baseDepuisPush,
   choisirBase,
+  compterSuites,
   decisionSansBase,
   exemption,
   fusionner,
   inScope,
+  messageEchec,
   metriques,
   plages,
   referenceDuDiff,
@@ -255,6 +257,12 @@ const vitestBin = (pkg) => {
   return existsSync(local) ? local : join(ROOT, "node_modules/.bin/vitest");
 };
 
+const withoutForceColor = (env) => {
+  const copie = { ...env };
+  delete copie.FORCE_COLOR;
+  return copie;
+};
+
 /** `vitest related` sous couverture sur les fichiers → rapport istanbul (chemins absolus). */
 function mesurer(pkg, fichiersDuPaquet, config) {
   const rel = fichiersDuPaquet.map((f) => relative(join(ROOT, pkg), join(ROOT, f)));
@@ -279,7 +287,7 @@ function mesurer(pkg, fichiersDuPaquet, config) {
       "--coverage.thresholds.statements=0",
       ...rel.map((f) => `--coverage.include=${f}`),
     ],
-    { cwd: join(ROOT, pkg), env: { ...process.env, CI: "1", FORCE_COLOR: "0" }, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], maxBuffer: 64 * 1024 * 1024 },
+    { cwd: join(ROOT, pkg), env: { ...withoutForceColor(process.env), CI: "1", NO_COLOR: "1" }, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], maxBuffer: 64 * 1024 * 1024 },
   );
   const chemin = join(dir, "coverage-final.json");
   const rapport = existsSync(chemin) ? JSON.parse(readFileSync(chemin, "utf8")) : {};
@@ -293,8 +301,7 @@ function mesurer(pkg, fichiersDuPaquet, config) {
     dire((r.stdout + r.stderr).split("\n").filter((l) => /FAIL|Error|✗|×/.test(l)).slice(0, 20).join("\n"));
     process.exit(1);
   }
-  const suites = ((r.stdout + r.stderr).match(/Test Files\s+(\d+)/) ?? [])[1] ?? "0";
-  return { rapport, suites: Number(suites) || 0 };
+  return { rapport, suites: compterSuites(r.stdout + r.stderr) };
 }
 
 /** Les suites sur base (`*.db.spec.ts`) du paquet, suivies ou non, hors ignorées ; leur source, et les alias du tsconfig. */
@@ -381,6 +388,7 @@ if (echecs.length) {
       "    `// coverage-diff: ignore — <raison>` en tête de fichier si le fichier n'est pas testable en unitaire.\n" +
       "    Repository : les suites *.db.spec.ts comptent quand DATABASE_URL est définie (compose.yaml en local).",
   );
+  console.log(messageEchec(echecs));
   process.exit(1);
 }
 dire("coverage-diff: OK");

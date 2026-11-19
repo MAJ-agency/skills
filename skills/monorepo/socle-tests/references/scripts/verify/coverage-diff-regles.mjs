@@ -146,6 +146,27 @@ export function verdict(m, { nouveau, seuils = SEUILS }) {
   return problemes;
 }
 
+/**
+ * Nombre de suites (fichiers de test) d'une sortie Vitest : le total entre parenthèses de la
+ * ligne « Test Files », codes ANSI retirés (Vitest colore même avec `FORCE_COLOR=0`). 0 si la
+ * ligne manque.
+ */
+export function compterSuites(sortie) {
+  // eslint-disable-next-line no-control-regex
+  const propre = sortie.replace(/\u001b\[[0-9;]*m/g, "");
+  const m = propre.match(/Test Files[^\n]*?\((\d+)\)/);
+  return m ? Number(m[1]) : 0;
+}
+
+/**
+ * Dernière ligne d'un échec de seuil : dit « couverture insuffisante » avec, par fichier, la
+ * mesure et le seuil (`problemes` vient de `verdict`) — jamais un conseil, jamais un silence.
+ */
+export function messageEchec(echecs) {
+  const detail = echecs.map((e) => `${e.f} (${e.problemes.join(" ; ")})`).join(" ; ");
+  return `coverage-diff: couverture insuffisante — ${echecs.length} fichier(s) : ${detail}`;
+}
+
 export const BASE_DEFAUT = "origin/develop";
 
 /**

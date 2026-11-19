@@ -8,11 +8,13 @@ import {
   aliasDeTsconfig,
   baseDepuisPush,
   choisirBase,
+  compterSuites,
   decisionSansBase,
   exemption,
   fusionner,
   importsDe,
   inScope,
+  messageEchec,
   metriques,
   plages,
   referenceDuDiff,
@@ -269,6 +271,24 @@ test("la base : un sujet qui a avancé depuis la création de la branche reste l
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
+});
+
+test("compterSuites lit le total de la ligne « Test Files » malgré les codes ANSI", () => {
+  const ansi =
+    "\u001b[2m Test Files \u001b[22m \u001b[1m\u001b[32m3 passed\u001b[39m\u001b[22m\u001b[90m (3)\u001b[39m";
+  assert.equal(compterSuites(ansi), 3);
+  assert.equal(compterSuites(" Test Files  3 passed (3)\n"), 3);
+});
+
+test("compterSuites compte aussi les suites en échec ou ignorées, et vaut 0 sans la ligne", () => {
+  assert.equal(compterSuites(" Test Files  1 failed | 3 passed | 1 skipped (5)"), 5);
+  assert.equal(compterSuites("rien"), 0);
+});
+
+test("messageEchec dit « couverture insuffisante » avec le fichier, la mesure et le seuil", () => {
+  const m = messageEchec([{ f: "apps/api/src/a.ts", problemes: ["branches 62 % < 70 %"] }]);
+  assert.match(m, /^coverage-diff: couverture insuffisante/);
+  assert.match(m, /apps\/api\/src\/a\.ts \(branches 62 % < 70 %\)/);
 });
 
 test("suiteSurBaseCible : un import relatif ou par alias du fichier, de son dossier à index ou de son module voisin cible le fichier ; un import de type, d'un autre fichier ou d'un dossier qui a un fichier frère ne le cible pas", () => {
