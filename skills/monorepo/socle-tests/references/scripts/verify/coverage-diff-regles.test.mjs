@@ -5,14 +5,18 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 import {
+  aliasDeTsconfig,
   baseDepuisPush,
   choisirBase,
   decisionSansBase,
   exemption,
   fusionner,
+  importsDe,
   inScope,
   metriques,
   plages,
+  referenceDuDiff,
+  suiteSurBaseCible,
   verdict,
 } from "./coverage-diff-regles.mjs";
 
@@ -265,4 +269,85 @@ test("la base : un sujet qui a avancé depuis la création de la branche reste l
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
+});
+
+test("suiteSurBaseCible : un import relatif ou par alias du fichier, de son dossier à index ou de son module voisin cible le fichier ; un import de type, d'un autre fichier ou d'un dossier qui a un fichier frère ne le cible pas", () => {
+  const fichier = "src/users/users.repository.ts";
+  const alias = [{ motif: "@u/*", cibles: ["src/users/*"] }];
+  const presents = new Set(["src/users/index.ts", "src/lots/index.ts", "src/lots.ts"]);
+  const existe = (c) => presents.has(c);
+  const cible = (source, chemin = "src/users/users.db.spec.ts", f = fichier, a = alias) =>
+    suiteSurBaseCible(f, [{ chemin, source }], a, existe);
+  // le fichier lui-même, relatif ou par alias, avec ou sans extension
+  assert.equal(cible('import { R } from "./users.repository";'), true);
+  assert.equal(cible('import { R } from "./users.repository.js";'), true);
+  assert.equal(cible('import { R } from "@u/users.repository";'), true);
+  assert.equal(cible('import "./users.repository";'), true);
+  assert.equal(cible('const m = await import("./users.repository");'), true);
+  // le dossier à index, sans fichier frère
+  assert.equal(cible('import { x } from "../users";', "src/other/o.db.spec.ts"), true);
+  // le module du dossier (convention Nest : users/users.module), ou le module voisin du dossier
+  assert.equal(cible('import { M } from "./users.module";'), true);
+  assert.equal(cible('import { M } from "../users/users.module";', "src/other/o.db.spec.ts"), true);
+  assert.equal(cible('import { M } from "../users.module";', "src/other/o.db.spec.ts"), true);
+  assert.equal(cible('import { M } from "./lots.module";'), false);
+  // un type n'est pas exécuté
+  assert.equal(cible('import type { R } from "./users.repository";'), false);
+  assert.equal(cible('export type { R } from "./users.repository";'), false);
+  // un autre fichier
+  assert.equal(cible('import { x } from "./autre";'), false);
+  // un dossier qui a un fichier frère `lots.ts` : l'import vise ce fichier, pas l'index
+  assert.equal(cible('import { x } from "../lots";', "src/other/o.db.spec.ts", "src/lots/index.ts"), false);
+  // un paquet extérieur n'est pas le fichier
+  assert.equal(cible('import { x } from "zod";'), false);
+  // sans alias lisible, seuls les imports relatifs comptent
+  assert.equal(cible('import { R } from "@u/users.repository";', undefined, fichier, []), false);
+  // une cible à deux `*` : chaque `*` reçoit la capture, et `$&` n'est pas un motif de remplacement
+  const deuxEtoiles = [{ motif: "@v/*", cibles: ["src/*/*"] }];
+  assert.equal(cible('import { R } from "@v/users/users.repository";', undefined, fichier, deuxEtoiles), false);
+  assert.equal(cible('import { R } from "@v/users";', undefined, "src/users/users.ts", deuxEtoiles), true);
+  assert.equal(cible('import { R } from "@v/$&";', undefined, "src/$&/$&.ts", deuxEtoiles), true);
+  // aucune spec
+  assert.equal(suiteSurBaseCible(fichier, [], alias, existe), false);
+  // fins de ligne CRLF, dernière ligne sans fin de ligne
+  assert.equal(cible('import { R } from "./users.repository";\r\nR;'), true);
+  assert.equal(cible('import { R } from "./users.repository"'), true);
+  // un alias de type sans point-virgule ne masque pas l'import qui le suit
+  assert.equal(cible('export type X = Y\nimport { R } from "./users.repository"\n'), true);
+  assert.equal(cible('import type * as T from "./users.repository";'), false);
+});
+
+test("referenceDuDiff : la fusion recalculée gagne ; base develop inchangée ; develop illisible, la base et la note ; HEAD contient develop et la base non, develop ; sinon la base", () => {
+  const base = { base: "origin/sujet/x", fusion: null, developLisible: true, headContientDevelop: false, baseContientDevelop: false };
+  const mb = "mmm";
+  const ref = (o) => referenceDuDiff({ ...base, mergeBase: mb, mergeBaseDevelop: "ddd", ...o });
+  assert.deepEqual(ref({ fusion: "tree", headContientDevelop: true }), { reference: "tree", sorte: "fusion", note: null });
+  assert.deepEqual(ref({ base: "origin/develop", headContientDevelop: true }), { reference: mb, sorte: "base", note: null });
+  assert.deepEqual(ref({ developLisible: false }), {
+    reference: mb,
+    sorte: "base",
+    note: "origin/develop illisible : diff lu contre origin/sujet/x, sans repli",
+  });
+  assert.deepEqual(ref({ headContientDevelop: true }), { reference: "ddd", sorte: "develop", note: null });
+  assert.deepEqual(ref({ headContientDevelop: true, baseContientDevelop: true }), { reference: mb, sorte: "base", note: null });
+  assert.deepEqual(ref({}), { reference: mb, sorte: "base", note: null });
+});
+
+test("aliasDeTsconfig : commentaires, virgules finales, CRLF et chemins à `*/` ; illisible, aucun alias", () => {
+  const texte =
+    '{\r\n  // commentaire\r\n  "compilerOptions": {\r\n    "baseUrl": "./",\r\n    /* bloc */ "paths": { "@x/*": ["src/*/index", "src/x/*",], },\r\n  },\r\n}';
+  assert.deepEqual(aliasDeTsconfig(texte), [{ motif: "@x/*", cibles: ["src/*/index", "src/x/*"] }]);
+  assert.deepEqual(aliasDeTsconfig('{"compilerOptions":{"baseUrl":"src","paths":{"@a":["a.ts"]}}}'), [{ motif: "@a", cibles: ["src/a.ts"] }]);
+  assert.deepEqual(aliasDeTsconfig('{"compilerOptions":{}}'), []);
+  assert.deepEqual(aliasDeTsconfig("pas du json"), []);
+});
+
+test("importsDe et aliasDeTsconfig : une entrée pathologique se lit en temps linéaire", () => {
+  const debut = Date.now();
+  const gros = "import type " + "a ".repeat(100000) + "\n" + "from ".repeat(50000) + " ".repeat(100000);
+  assert.deepEqual(importsDe(gros), []);
+  assert.deepEqual(importsDe('import type { A } from "./a";\nimport { B } from "./b";'), ["./b"]);
+  assert.deepEqual(aliasDeTsconfig('{"compilerOptions":{"paths":{"@a":["a"' + ",".repeat(100000) + "]}}}"), []);
+  assert.deepEqual(aliasDeTsconfig("/*" + "/*".repeat(100000)), []);
+  assert.ok(Date.now() - debut < 2000, `${Date.now() - debut} ms : la lecture n'est pas linéaire`);
 });

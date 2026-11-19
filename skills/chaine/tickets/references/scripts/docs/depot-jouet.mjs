@@ -39,10 +39,12 @@ export function dossierTemporaire(prefixe) {
 
 const ICI = dirname(fileURLToPath(import.meta.url));
 /** La grammaire et la numérotation, posées par `socle-monorepo` à `scripts/docs/`, pas par ce skill. */
-const DU_SOCLE = ['identifiants.mjs', 'next-id.mjs', 'next-id-branches.mjs'];
+const DU_SOCLE = ['identifiants.mjs', 'next-id.mjs', 'next-id-branches.mjs', 'pr-ouvertes.mjs', 'environnement-de-banc.mjs'];
 // Dans le plugin, elles vivent dans le skill `socle-monorepo` : skills/monorepo/socle-monorepo/.
 const SOCLE = join(ICI, '../../../../../monorepo/socle-monorepo/references/scripts/docs');
 let pose;
+// `environnement-de-banc.mjs` est posé par le socle à côté de ce fichier ; dans le plugin, il est dans le skill `socle-monorepo`.
+const { environnementDeBanc } = await import(pathToFileURL(existsSync(join(ICI, 'environnement-de-banc.mjs')) ? join(ICI, 'environnement-de-banc.mjs') : join(SOCLE, 'environnement-de-banc.mjs')).href);
 
 /**
  * Le dossier `scripts/` tel que le projet le porte : `docs/` et `verify/` côte à côte, la grammaire
@@ -64,7 +66,7 @@ export const script = (chemin) => join(scripts(), chemin);
 export const module = (chemin) => import(pathToFileURL(script(chemin)).href);
 
 export const ENV = {
-  ...Object.fromEntries(Object.entries(process.env).filter(([cle]) => !cle.startsWith('GIT_'))),
+  ...environnementDeBanc(),
   GIT_CONFIG_GLOBAL: '/dev/null',
   GIT_CONFIG_NOSYSTEM: '1',
   GIT_AUTHOR_NAME: 'test',

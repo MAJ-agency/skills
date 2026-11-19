@@ -1,12 +1,13 @@
 # Les hooks d'agent refusent qu'on désactive les hooks git, qu'on fabrique une ref de suivi et qu'on pousse en « matching », sur le découpage en mots du ticket 33
 
-Status: needs-triage
+Status: Repris — ticket 17, PR #119
 Type: défaut
 Label: contre-revue
 Modèle: à fixer au triage — ce ticket est une matière, pas une instruction ; il se récrit sur le découpage en mots du ticket 33, puis se donne à une session.
 Blocked by: 33
 Dépendances: —
 Fichiers chauds: `skills/chaine/socle-chaine-de-production/references/agent/regles.mjs`, `skills/chaine/socle-chaine-de-production/references/agent/regles.test.mjs`, `skills/chaine/socle-chaine-de-production/references/CONTENU.md`, `skills/chaine/socle-chaine-de-production/references/fragments/claude-md-fusion.md`, `.claude-plugin/plugin.json`
+Repris par : le ticket 17 de `capitaine-a-jour-et-teste` ([`17-les-gardes-lisent-git-apres-ses-options-globales.issue.md`](../../capitaine-a-jour-et-teste/issues/17-les-gardes-lisent-git-apres-ses-options-globales.issue.md), décision `A-28`, 2026-11-18), réécrit sur la lecture par jetons avec les cas d'Iroki #652 : ce ticket ne se lance plus seul.
 
 ## D'où il vient, et ce qui est déjà fermé
 

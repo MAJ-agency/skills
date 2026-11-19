@@ -1,6 +1,6 @@
 # apps/mobile — imperative rules
 
-Expo client of the {{TITRE}}. Read this file **entirely** before writing mobile code. What is shared with the API lives in `packages/CLAUDE.md`; the API's rules in `apps/api/CLAUDE.md`; the web client's in `apps/web/CLAUDE.md`. The *why*: `apps/mobile/docs/MOBILE_GUIDELINES.md`.
+Expo client of the {{TITRE}}. Read this file **entirely** before writing mobile code. What is shared with the API lives in `packages/CLAUDE.md`; the API's rules in `apps/api/CLAUDE.md`; the web client's in `apps/web/CLAUDE.md`. The *why*: `apps/mobile/docs/MOBILE_GUIDELINES.md`. Device flows in CI (emulator, cold start, diagnostics, `paths` filter): read `apps/mobile/docs/MOBILE_CI.md` before writing or touching that workflow.
 
 ## Golden rule — same architecture as the web client
 

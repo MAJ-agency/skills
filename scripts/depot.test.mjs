@@ -239,6 +239,13 @@ test("le gabarit .claude/chaine.json range les gardes de la chaîne parmi les ch
   }
 });
 
+test("le gabarit de .claude/chaine.json porte fusionsSansEffet vide, et son $comment la nomme", () => {
+  const gabarit = JSON.parse(readFileSync(join(RACINE, "skills/chaine/socle-chaine-de-production/references/chaine.json"), "utf8"));
+  assert.deepEqual(gabarit.fusionsSansEffet, []);
+  assert.match(gabarit.$comment, /`fusionsSansEffet`/);
+  assert.match(gabarit.$comment, /grep -E/);
+});
+
 // Un script du plugin ne saute jamais un hook git (« jamais --no-verify ») : les scripts que le plugin
 // pose dans un projet passent sous les hooks du projet, comme une session. Un banc peut INSTALLER un hook
 // dans son dépôt jouet (`config core.hooksPath`), pas en sauter un. Les quatre fichiers ci-dessous nomment
@@ -247,6 +254,10 @@ const REF = "skills/chaine/socle-chaine-de-production/references";
 const EXCEPTIONS_SAUT = [
   `${REF}/agent/regles.mjs`,
   `${REF}/agent/regles.test.mjs`,
+  // Le banc du hook de bout en bout (ticket 17 de capitaine-a-jour-et-teste) cite les sauts qu'il fait refuser.
+  `${REF}/agent/garde-commandes.test.mjs`,
+  // Le banc de la garde illisible (ticket 18) rejoue une commande qui saute les hooks sur un regles.mjs cassé : elle est refusée.
+  `${REF}/agent/garde-illisible.test.mjs`,
   `${REF}/scripts/verify/settings-json.test.mjs`,
   "scripts/depot.test.mjs",
 ];
@@ -389,6 +400,134 @@ test("aucun texte de lancement n'affirme que le plugin se met à jour à chaque 
   assert.deepEqual(fautes, [], `une session part de l'instantané de son environnement : ${fautes.join(" ; ")}`);
 });
 
+// Ticket 5 du programme capitaine-a-jour-et-teste : chaque session lancée charge send_message en premier
+// geste, une ligne « Commits » interdit l'amend, et l'architecte comme le conducteur relèvent leurs sessions.
+const GABARIT_FILLE = `skills/chaine/socle-chaine-de-production/references/docs-agents/chaine-de-production.md`;
+const promptsLances = () => [
+  ...blocsPrompt(readFileSync(join(RACINE, LANCEMENT), "utf8")).map((b, i) => [`${LANCEMENT} bloc ${i + 1}`, b]),
+  ...blocsTexte(readFileSync(join(RACINE, GABARIT_FILLE), "utf8"))
+    .filter((b) => b.startsWith("Session fille du chantier"))
+    .map((b) => ["gabarit d'une fille", b]),
+];
+const INTANGIBLES_MAIN =
+  "Intangibles : jamais --no-verify ; jamais de push forcé ni de réécriture d'historique ; jamais de fusion avec un contrôle exigé rouge ; jamais de test sauté ou assoupli ; jamais de push sur la branche par défaut ; une dépendance nouvelle attend l'accord humain.";
+const sectionEntre = (texte, debut, fin) => {
+  const i = texte.search(debut);
+  const j = texte.slice(i + 1).search(fin);
+  assert.ok(i >= 0 && j >= 0, `section ${debut} … ${fin} introuvable`);
+  return texte.slice(i, i + 1 + j);
+};
+
+test("chaque prompt lancé charge send_message en premier geste, avant la ligne Version :", () => {
+  const prompts = promptsLances();
+  assert.equal(prompts.length, 4, "trois blocs de lancement et le gabarit d'une fille");
+  const fautes = prompts.flatMap(([nom, bloc]) => {
+    const l = lignes(bloc);
+    const outils = l.findIndex((x) => x.startsWith("Outils : "));
+    const version = l.findIndex((x) => x.startsWith("Version : "));
+    const f = [];
+    if (outils < 0 || !l[outils].includes("select:mcp__claude-code-remote__send_message")) f.push(`${nom} : ligne « Outils : » absente`);
+    else if (version >= 0 && version < outils) f.push(`${nom} : « Version : » avant « Outils : »`);
+    return f;
+  });
+  assert.deepEqual(fautes, [], fautes.join(" ; "));
+});
+
+test("jamais d'amend : une ligne Commits juste après les intangibles, la même dans lancement.md et dans le gabarit d'une fille ; les intangibles restent ceux du produit", () => {
+  const apres = (texte) => {
+    const l = lignes(texte);
+    const i = l.findIndex((x) => x.startsWith("Intangibles : "));
+    assert.ok(i >= 0, "ligne Intangibles absente");
+    return [l[i], l[i + 1] ?? ""];
+  };
+  const [intL, comL] = apres(sectionEntre(readFileSync(join(RACINE, LANCEMENT), "utf8"), /^## Les consignes du produit/m, /^## Après le lancement/m));
+  const [intG, comG] = apres(readFileSync(join(RACINE, GABARIT_FILLE), "utf8"));
+  assert.equal(intL, INTANGIBLES_MAIN);
+  assert.equal(intG, INTANGIBLES_MAIN);
+  assert.ok(comL.startsWith("Commits : ") && comL.includes("`git commit --amend`"), "lancement.md : ligne « Commits : » après les intangibles");
+  assert.equal(comG, comL, "la ligne « Commits : » du gabarit est celle de lancement.md");
+});
+
+test("l'architecte et le conducteur relèvent leurs sessions dans l'heure, sans filtre tags, et lisent le contexte par get_session", () => {
+  const archi = sectionEntre(lire("skills/chaine/architecte"), /^## 5\./m, /^## 6\./m);
+  const chantier = readFileSync(join(RACINE, "skills/chaine/chantier/SKILL.md"), "utf8");
+  const suivi = sectionEntre(chantier, /^## 6\./m, /^## 7\./m);
+  const commun = ["get_session", "connection_status", "session_status", "rate_limit_info.status", "resetsAt", "60 minutes"];
+  const manques = [
+    ...commun.filter((p) => !archi.includes(p)).map((p) => `architecte § 5 : « ${p} »`),
+    ...[...commun, "jamais dans ce qu'elle annonce", "role:capitaine"].filter((p) => !suivi.includes(p)).map((p) => `chantier § 6 : « ${p} »`),
+    ...lignes(chantier).flatMap((l, i) => (/`list_sessions` filtré/.test(l) || /tags: \[/.test(l) ? [`chantier/SKILL.md:${i + 1} : filtre tags`] : [])),
+  ];
+  assert.deepEqual(manques, [], manques.join(" ; "));
+});
+
+// Ticket 4 du programme capitaine-a-jour-et-teste (décision P-2 du produit) : plusieurs capitaines peuvent tenir la
+// même file, un verrou par passage. Aucun texte de la chaîne ne redit la règle d'un seul capitaine ; deux lignes
+// qu'aucun motif ne voit sont tenues en positif.
+const TEXTES_DES_CAPITAINES = [
+  "skills/chaine/fusionner/SKILL.md",
+  "skills/chaine/chantier/SKILL.md",
+  "skills/chaine/architecte/SKILL.md",
+  "skills/chaine/architecte/references/lancement.md",
+  "skills/chaine/socle-chaine-de-production/references/docs-agents/chaine-de-production.md",
+  "skills/chaine/socle-chaine-de-production/references/fragments/claude-md-fusion.md",
+  "skills/chaine/socle-chaine-de-production/references/adr/ADR_ALL_ARC-N-chaine-de-production.md",
+  "CONTEXT.md",
+  "README.md",
+];
+const UN_SEUL_CAPITAINE = /un seul capitaine|une seule session fusionne|UNE seule session|un pour le dépôt|ne doit rendre qu'(\*\*)?une|La session unique d'un dépôt/i;
+const redites = (fichier, texte) => lignes(texte).filter((l) => UN_SEUL_CAPITAINE.test(l)).map((l) => `${fichier} : ${l.slice(0, 80)}`);
+const TENUES_EN_POSITIF = [
+  ["skills/chaine/chantier/SKILL.md", "au moins une session active"],
+  ["skills/chaine/architecte/SKILL.md", "un capitaine au moins par dépôt"],
+];
+
+test("aucun texte de la chaîne ne redit la règle d'un seul capitaine", () => {
+  const fautes = TEXTES_DES_CAPITAINES.flatMap((f) => redites(f, readFileSync(join(RACINE, f), "utf8")));
+  assert.deepEqual(fautes, [], `règle d'un seul capitaine redite : ${fautes.join(" ; ")}`);
+  const manques = TENUES_EN_POSITIF.filter(([f, texte]) => !readFileSync(join(RACINE, f), "utf8").includes(texte)).map(([f, t]) => `${f} : « ${t} »`);
+  assert.deepEqual(manques, [], manques.join(" ; "));
+});
+
+test("aucun texte de la chaîne ne redit la règle d'un seul capitaine : entrées piégées, les onze lignes de 7.28.0 par fichier et texte", () => {
+  // Les lignes rouges sur main avant ce ticket, par fichier et extrait (sans numéro de ligne : ils bougent).
+  const rouges = [
+    ["skills/chaine/fusionner/SKILL.md", "À lancer dans UNE seule session, « Capitaine de fusion », jamais dans une session de travail."],
+    ["skills/chaine/fusionner/SKILL.md", "Un seul capitaine qui fait passer les PR une par une paie **exactement une CI par PR**"],
+    ["skills/chaine/fusionner/SKILL.md", "`list_sessions` filtré par ce tag ne doit rendre qu'**une** session active"],
+    ["skills/chaine/socle-chaine-de-production/references/docs-agents/chaine-de-production.md", "| Capitaine de fusion  | un pour le dépôt             |"],
+    ["skills/chaine/socle-chaine-de-production/references/docs-agents/chaine-de-production.md", "Les règles de branche (sujet dès la première PR, jamais de PR empilée, un seul capitaine)"],
+    ["skills/chaine/socle-chaine-de-production/references/fragments/claude-md-fusion.md", "**Une seule session fusionne** : le capitaine de fusion (skill `fusionner`)."],
+    ["skills/chaine/socle-chaine-de-production/references/adr/ADR_ALL_ARC-N-chaine-de-production.md", "# ADR_ALL_ARC-{{N}} — Chaîne de production : un rôle par session, un ticket prêt par fille, une revue adversariale avant la file, un seul capitaine"],
+    ["skills/chaine/socle-chaine-de-production/references/adr/ADR_ALL_ARC-N-chaine-de-production.md", "session fille (un ticket), capitaine de fusion (un pour le dépôt), relecteur adversaire (sous-agent)."],
+    ["skills/chaine/socle-chaine-de-production/references/adr/ADR_ALL_ARC-N-chaine-de-production.md", "5. **Un seul capitaine fusionne.** La file `à-fusionner` passe dans l'ordre, une PR à la fois"],
+    ["CONTEXT.md", "La session unique d'un dépôt qui fait entrer les PR prêtes dans la branche d'intégration, une par une."],
+    ["README.md", "les PR d'un sujet gelé laissées dans la file ; une seule session"],
+  ];
+  assert.equal(rouges.length, 11);
+  const vues = rouges.flatMap(([f, texte]) => redites(f, texte));
+  assert.equal(vues.length, 11, `chaque ligne rouge est vue : ${vues.join(" ; ")}`);
+  for (const [f] of rouges) assert.ok(TEXTES_DES_CAPITAINES.includes(f), `${f} est relu`);
+  // Les deux lignes tenues en positif, dans leur forme d'avant : aucun motif ne les voit, le positif seul les attrape.
+  const avant = [
+    ["skills/chaine/chantier/SKILL.md", "« tags filter is not currently available »), une session active."],
+    ["skills/chaine/architecte/SKILL.md", "Un conducteur par chantier, un capitaine par dépôt (`chantier/SKILL.md` § 0, point 5"],
+  ];
+  for (const [f, texte] of avant) {
+    assert.deepEqual(redites(f, texte), [], `${f} : aucun motif ne la voit`);
+    assert.ok(!texte.includes(TENUES_EN_POSITIF.find(([g]) => g === f)[1]), `${f} : le positif manque à l'ancienne ligne`);
+  }
+  // Fin de ligne CRLF, dernière ligne sans fin de ligne : la ligne est vue, une seule fois, sans le retour chariot.
+  assert.deepEqual(redites("x", "avant\r\nUn seul capitaine fusionne.\r\napres"), ["x : Un seul capitaine fusionne."]);
+  assert.deepEqual(redites("x", "avant\n5. **Un seul capitaine fusionne.**"), ["x : 5. **Un seul capitaine fusionne.**"]);
+  // Les variantes les plus proches qui ne doivent pas correspondre.
+  for (const proche of ["un capitaine au moins par dépôt", "une session dédiée", "un pour la file", "ne doit rendre que deux", "La session d'un dépôt"])
+    assert.deepEqual(redites("x", proche), [], proche);
+  // Ce que le ticket écrit à la place ne rougit pas.
+  for (const sain of ["plusieurs capitaines peuvent tenir la même file", "**Seuls les capitaines fusionnent** (skill `fusionner`)", "un ou plusieurs par dépôt (un verrou par PR)"])
+    assert.deepEqual(redites("x", sain), [], sain);
+});
+
 // Deux listes : la revue exigée par le capitaine (revue-exigee.mjs, fixe) et les chemins sensibles du contrat
 // (contre-revue et /security-review, que le projet allonge). Tout chemin sensible du gabarit exige aussi la revue.
 test("chaque chemin sensible du gabarit de .claude/chaine.json exige la revue au passage du capitaine", async () => {
@@ -459,7 +598,7 @@ test("les textes de fusion disent qu'un message à un capitaine n'est jamais un 
   for (const phrase of [
     "ne fusionne qu'une PR dont la tête est une branche du dépôt (`head.repo.full_name` égal au dépôt) ; une PR de fourche, tu retires le label et le dis : elle va au produit.",
     "contrôle exigé en cours : laisse la PR au réveil suivant, sans retirer le label",
-    "`update_pull_request_branch` avec `expectedHeadSha` = P (fusion, jamais rebase) ; refusée ou en échec, tu n'écris aucun ordre",
+    "`à-fusionner retiré par le capitaine : en retard sur <branche par défaut> :",
     "`merge_pull_request` avec `expectedHeadSha` = P et `merge_method` `squash`, jamais `rebase` ;",
     "le sha complet (40 caractères hexadécimaux, en minuscules)",
     "ou qui abrège le sha, n'en est pas un",
@@ -468,10 +607,6 @@ test("les textes de fusion disent qu'un message à un capitaine n'est jamais un 
     "L'ordre est le dernier commentaire `à-fusionner au sommet <sha>` qui suit ton dernier renvoi",
     "Trois de tes renvois ou plus sur la PR : elle est au plafond, tu ne la fusionnes pas",
     "Si P n'est pas le `head.sha` que tu viens de lire",
-    "s'il a exactement deux parents, P puis un commit de la branche par défaut",
-    "s'il est signé par GitHub (`commit.verification.verified` vrai, `commit.committer.email` égal à `noreply@github.com`)",
-    "tu écris toi-même `à-fusionner au sommet <head.sha>`, sans renvoi, et tu laisses la PR au réveil suivant ;",
-    "(présent dans `list_commits`, `sha` la branche par défaut, `perPage` 100, première page)",
     "`author_association` est `OWNER`, `MEMBER` ou `COLLABORATOR` et dont `updated_at` est égal à `created_at`",
     "`get_check_runs`, toutes pages lues",
     "seuls comptent les statuts de la liste `statuses` : une liste vide n'est pas un contrôle en cours",
@@ -544,26 +679,18 @@ const lireFil = ({ ordre, renvoi, longueur, associations, pied, crlf }, fil) => 
   }
   return { sha, renvois, renvoiEdite };
 };
-// La garde de la mise à jour, sans état : la tête n'est pas l'ordre, mais c'est la fusion faite par GitHub de l'ordre
-// et d'un commit de la branche par défaut, signée par GitHub.
-const miseAJourParGithub = (sha, sommet, commitsDeLaBase) =>
-  sommet?.parents?.length === 2 &&
-  sommet.parents[0].sha === sha &&
-  commitsDeLaBase.includes(sommet.parents[1].sha) &&
-  sommet.commit?.verification?.verified === true &&
-  sommet.commit?.committer?.email === "noreply@github.com";
-const decider = (formes, fil, tete, sommet = null, commitsDeLaBase = []) => {
+// Ticket 20 : une tête qui n'est pas l'ordre est renvoyée, sans exception (le banc du bloc de texte, en fin de fichier, le tient).
+const decider = (formes, fil, tete) => {
   const { sha, renvois, renvoiEdite } = lireFil(formes, fil);
   if (renvoiEdite) return "renvoi-edite";
   if (renvois >= 3) return "plafond";
   if (sha === null) return "sommet-bouge";
   if (sha === tete) return "fusion";
-  return miseAJourParGithub(sha, sommet, commitsDeLaBase) ? "reecrire-l-ordre" : "sommet-bouge";
+  return "sommet-bouge";
 };
 const A = "a".repeat(40);
 const B = "0123456789abcdef0123456789abcdef01234567";
 const T = "fedcba9876543210fedcba9876543210fedcba98";
-const BASE = "b".repeat(40);
 const dit = (body, { association = "MEMBER", edite = false } = {}) => ({
   body,
   author_association: association,
@@ -620,27 +747,6 @@ test("le plafond : les renvois du capitaine se comptent dans le fil, un renvoi d
     "une forme voisine de renvoi ne compte pas",
   );
   assert.equal(lireFil(formes, [ordre(A), ordre(B)]).renvois, 0, "l'ordre réécrit par le capitaine après une mise à jour n'est pas un renvoi");
-});
-
-test("la garde de la mise à jour, sans état : la tête n'est pas l'ordre, mais la fusion signée par GitHub de l'ordre et de la branche par défaut", () => {
-  const formes = formesLues();
-  const fil = [dit(`à-fusionner au sommet ${A}`)];
-  const sommet = (parents, { verified = true, email = "noreply@github.com" } = {}) => ({
-    sha: T,
-    parents: parents.map((sha) => ({ sha })),
-    commit: { verification: { verified }, committer: { email } },
-  });
-  const base = [BASE];
-  assert.equal(decider(formes, fil, T, sommet([A, BASE]), base), "reecrire-l-ordre", "mise à jour faite par GitHub : l'ordre se réécrit à la tête, sans renvoi");
-  assert.equal(decider(formes, [...fil, dit(`à-fusionner au sommet ${T}`)], T), "fusion", "au réveil suivant, l'ordre réécrit vaut");
-  assert.equal(decider(formes, fil, T, sommet([BASE, A]), base), "sommet-bouge", "parents dans l'autre ordre");
-  assert.equal(decider(formes, fil, T, sommet([B, BASE]), base), "sommet-bouge", "premier parent autre que l'ordre");
-  assert.equal(decider(formes, fil, T, sommet([A, B]), base), "sommet-bouge", "second parent absent de la branche par défaut");
-  assert.equal(decider(formes, fil, T, sommet([A]), base), "sommet-bouge", "un commit poussé sur l'ordre");
-  assert.equal(decider(formes, fil, T, sommet([A, BASE, B]), base), "sommet-bouge", "trois parents");
-  assert.equal(decider(formes, fil, T, sommet([A, BASE], { verified: false }), base), "sommet-bouge", "fusion non signée");
-  assert.equal(decider(formes, fil, T, sommet([A, BASE], { email: "intrus@example.org" }), base), "sommet-bouge", "signée, mais committer autre que GitHub");
-  assert.equal(decider(formes, fil, T, null, base), "sommet-bouge", "sommet illisible");
 });
 
 test("le capitaine d'un dépôt sans la chaîne n'a ni `gh` ni timeline, et le commentaire au sommet n'est le geste que du dépôt sans la chaîne", () => {
@@ -711,11 +817,6 @@ test("le pied de page des sessions cloud : l'ordre qui le porte vaut, un pied al
   const renvoi = (motif) => dit(`${formes.renvoi}${motif}${PIED}`);
   assert.equal(decider(formes, [dit(`${L}${PIED}`), renvoi("conflit")], A), "sommet-bouge", "un renvoi qui porte le pied de page délie l'ordre");
   assert.equal(decider(formes, [renvoi("a"), renvoi("b"), renvoi("c"), dit(`${L}${PIED}`)], A), "plafond", "trois renvois qui portent le pied de page : au produit");
-  assert.equal(
-    decider(formes, [dit(`à-fusionner au sommet ${A}${PIED}`)], T, { parents: [{ sha: A }, { sha: BASE }], commit: { verification: { verified: true }, committer: { email: "noreply@github.com" } } }, [BASE]),
-    "reecrire-l-ordre",
-    "la garde joue sur un ordre qui porte le pied de page",
-  );
   assert.equal(decider(formes, [dit(`${L}${PIED}`), dit(`à-fusionner au sommet ${T}${PIED}`)], T), "fusion", "l'ordre que le capitaine réécrit, pied de page compris, vaut");
 });
 
@@ -876,4 +977,264 @@ test("chaque skill du plugin a sa ligne au README et passe le gate references-ag
   const refuses = declares.filter((s) => !integrees.includes(`maj-skills:${s.split("/").pop()}`));
   assert.deepEqual(refuses, [], `references-agent-integrees.json : skills que le gate d'un projet refuserait : ${refuses.join(", ")}`);
   assert.ok(readme.includes("    criticite/\n"), "README.md : le skill de criticité dans l'arbre du dépôt");
+});
+
+// Le critère T3 de la revue de ticket (ticket 52, décision du produit P-38) : pour une règle qui déclare ses cas, dans un
+// projet dont l'index Anchorpost est au pivot 3, le relecteur ne recompte pas les cas, la CLI le fait ; il vérifie ce que
+// la machine ne juge pas, puis lit ce qu'elle a compté. Pour toute autre règle, l'ancien contrôle reste. Le banc tient
+// les deux branches, les trois vérifications, la lecture de l'index, la phrase qui passera la main au relecteur
+// indépendant, et l'absence de tout décompte demandé au relecteur dans la branche « cas déclarés ». Même lecture à plat
+// que le banc du skill de criticité, même limite : une phrase glissée entre deux passages exigés passe, même contraire.
+const REVUE_DE_TICKET = `${SKILLS_CHAINE}/revue-de-ticket`;
+const CRITERES_TICKET = `${REVUE_DE_TICKET}/references/criteres-ticket.md`;
+const CAS_DECLARES = "Branche « cas déclarés »";
+const SANS_CAS_DECLARES = "Branche « sans cas déclarés »";
+const DECOMPTE = /au moins un test|ont chacun un cas|chaque cas (attendu|déclaré)[^.;:]* a (sa|une) preuve|tous les cas (attendus|déclarés) (sont couverts|ont (leur|une) preuve)/i;
+// Le critère T3, à plat, coupé en trois : sa tête, puis ses deux branches. null s'il manque, si l'une de ses branches
+// manque ou est écrite deux fois, ou si elles ne sont pas dans cet ordre.
+const critereT3 = (texte) => {
+  const bloc = texte.match(/^T3 {2}[\s\S]*?(?=^T4 {2})/m);
+  if (!bloc) return null;
+  const [tete, ...declares] = plat(bloc[0]).split(CAS_DECLARES);
+  if (declares.length !== 1 || tete.includes(SANS_CAS_DECLARES)) return null;
+  const [branche, ...sans] = declares[0].split(SANS_CAS_DECLARES);
+  if (sans.length !== 1) return null;
+  return { tete, declares: branche, sans: sans[0] };
+};
+const exigerDans = (ou, texte, phrases) => {
+  const absentes = phrases.filter((p) => !texte.includes(plat(p)));
+  assert.deepEqual(absentes, [], `${ou} : passages absents : ${absentes.join(" | ")}`);
+};
+const lireT3 = () => {
+  const t3 = critereT3(readFileSync(join(RACINE, CRITERES_TICKET), "utf8"));
+  assert.ok(t3, `${CRITERES_TICKET} : le critère T3, entre « T3 » et « T4 », avec ses deux branches, « cas déclarés » puis « sans cas déclarés »`);
+  return t3;
+};
+// Une version « a.b.c » vaut au moins « x.y.z ».
+const auMoins = (version, plancher) => {
+  const [a, b] = [version, plancher].map((v) => v.split(".").map(Number));
+  for (let i = 0; i < 3; i += 1) if (a[i] !== b[i]) return a[i] > b[i];
+  return true;
+};
+
+test("lecteurs du critère T3 : entrées piégées", () => {
+  const t3 = (corps) => `T2  x\nT3  Tête. ${corps}\nT4  y\n`;
+  assert.deepEqual(critereT3(t3(`${CAS_DECLARES} — a.\n    ${SANS_CAS_DECLARES} — b.`)), { tete: "T3 Tête. ", declares: " — a. ", sans: " — b. " });
+  assert.equal(critereT3("T2  x\nT4  y\n"), null, "sans T3");
+  assert.equal(critereT3(t3("un seul contrôle")), null, "sans branche");
+  assert.equal(critereT3(t3(`${CAS_DECLARES} — a.`)), null, "sans la branche « sans cas déclarés »");
+  assert.equal(critereT3(t3(`${SANS_CAS_DECLARES} — b.`)), null, "sans la branche « cas déclarés »");
+  assert.equal(critereT3(t3(`${SANS_CAS_DECLARES} — b. ${CAS_DECLARES} — a.`)), null, "branches dans le désordre");
+  assert.equal(critereT3(t3(`${CAS_DECLARES} — a. ${CAS_DECLARES} — a. ${SANS_CAS_DECLARES} — b.`)), null, "une branche écrite deux fois");
+  assert.equal(DECOMPTE.test("chaque cas déclaré de la règle a sa preuve"), true, "un décompte demandé au relecteur");
+  assert.equal(DECOMPTE.test("Chaque cas attendu a une preuve"), true, "un décompte en tête de phrase");
+  assert.equal(DECOMPTE.test("Tous les cas déclarés sont couverts"), true, "un décompte dit autrement");
+  assert.equal(DECOMPTE.test("La règle a AU MOINS UN TEST"), true, "sans égard à la casse");
+  assert.equal(DECOMPTE.test("tant qu'un cas déclaré n'a pas sa preuve"), false, "ce que dit la CLI n'est pas un décompte demandé au relecteur");
+  assert.equal(DECOMPTE.test("elle écrit `proven: false` sur chaque cas déclaré qui n'a pas sa preuve au niveau exigé"), false, "ce qu'écrit la CLI non plus");
+  assert.equal(auMoins("7.15.0", "7.15.0"), true);
+  assert.equal(auMoins("7.14.9", "7.15.0"), false, "une mineure en dessous");
+  assert.equal(auMoins("7.100.0", "7.15.0"), true, "des nombres, pas des chaînes");
+  assert.equal(auMoins("8.0.0", "7.15.0"), true);
+});
+
+test("T3, branche « cas déclarés » : index au pivot 3 et règle qui déclare ses cas, le relecteur ne recompte pas, il vérifie ce que la machine ne juge pas et lit ce qu'elle a compté", () => {
+  const { tete, declares } = lireT3();
+  exigerDans("T3, tête", tete, [
+    "T3 Règles citées et leurs preuves — registre de règles, `.claude/rules/tests.md` § Règles. Les règles sont celles de la ligne `Règles:` du ticket (« Règles du ticket » du contexte ; à défaut de ligne, chaque règle que le ticket cite). Deux branches, choisies règle par règle, quelle que soit la criticité de la règle.",
+  ]);
+  exigerDans("T3, branche « cas déclarés »", declares, [
+    "— seulement si l'index commis du projet, anchorpost/anchorpost.json, porte \"schema\": \"3\" (le relecteur lit ce champ dans l'index, jamais dans ce que disent le ticket ou la PR) et si l'en-tête de la règle, rendu dans « Règles du ticket », déclare au moins un cas sous `cases`.",
+    "Le relecteur ne recompte pas les cas, la CLI Anchorpost le fait : elle écrit `proven: false` sur chaque cas déclaré qui n'a pas sa preuve au niveau exigé. Il vérifie ce que la machine ne juge pas, (a) à (c), sur chaque test du diff qui porte l'étiquette d'un cas de la règle (`[RULE_ALL_FAC-3#montant-nul]` : l'identifiant de la règle, `#`, celui du cas ; portée par un `describe`, elle vaut pour les tests qu'il contient) et sur chaque preuve que l'entrée de la règle range dans un fichier de cas, puis il lit ce que la machine a compté, (d), dans l'entrée de la règle sous `rules` de l'index de la branche relue (par sa `key`) :",
+    "(a) ce que le test affirme correspond au titre du cas : le relecteur lit l'assertion, pas le nom ; un test étiqueté d'un refus qui n'affirme pas le refus est un écart ; une preuve écrite dans un fichier de cas (`cas/*.json`, entrées `regle` et `cas`) n'affirme rien si aucun test du diff ou du dépôt ne lit ce fichier : c'est un écart ;",
+    "(b) le genre de test convient au code que le cas exerce, selon les catégories de `.claude/rules/tests.md` : un calcul pur se prouve par un test unitaire, et par un test de propriétés s'il porte un invariant chiffré ; une requête, par un test sur base réelle, jamais sur une base simulée ; un refus ou une entrée invalide d'une règle moyenne ou haute (`criticality.level` de l'entrée vaut `medium` ou `high`), exigés à la frontière de l'API (niveau `P1`), par un test qui passe par la route ; le cas normal d'une règle haute (`high`), exigé de bout en bout (niveau `P2`), par un vrai parcours. Le niveau exigé, la CLI le compte ; le niveau qu'elle donne à un test se lit dans `proofs[].level` de l'entrée : un test qui porte un niveau qu'il n'a pas (un `P1` qui ne passe pas par la route, un `P2` qui n'est pas un parcours) est un écart ;",
+    "(c) un cas dit technique l'est vraiment : chaque cas `scope: technical` qu'un test du diff étiquette, ou que le diff ajoute ou modifie dans le fichier de la règle, est une situation que seule l'équipe voit (une saisie vide, un doublon, deux actions simultanées) ; s'il est une décision du métier (un refus, une exception que la MOA reconnaîtrait), c'est un écart : il échappe à la validation de la MOA ;",
+    "(d) ce que la CLI a compté : une de ces règles dont un cas de `cases` porte `proven: false` est un écart, quel que soit `realisation.status` (`partial` si elle a des preuves, `to-build` ou `configured` si elle n'en a aucune : `proofs` est alors vide) ; `missing.reason` dit pourquoi : `no-proof`, aucune preuve ne nomme le cas, ou `level-too-low`, ses preuves sont d'un niveau trop bas. Le relecteur ne refait pas le compte : il lit celui de l'index. L'écart ne tombe que pour un cas qu'un autre ticket porte, aux cinq conditions réunies : le ticket relu nomme ce ticket ; il est « trouvé » dans « Identifiants cités » du contexte, sans « (archivé) », et n'est pas le ticket relu ; il est ouvert, son `Status:` n'est ni `Fait` ni `wontfix` ; sa ligne `Règles:` cite la règle ; ni la mention ni cette ligne `Règles:` ne sont ajoutées par le diff relu. Le relecteur rend alors « cas <règle>#<id> porté par <ticket> », pour la section de PR. Un index que le diff n'a pas régénéré est un écart de T5, pour le seul index que (d) lit : il se régénère, et l'axe Ticket seul se rejoue. Ses signes : une de ces règles absente de `rules` ; un test étiqueté du diff dont le titre manque aux `proofs` de la règle ; des `id` de cas qui diffèrent entre l'en-tête de la règle et son entrée.",
+    "Un cas de bord que l'énoncé de la règle dit et qu'aucun cas de `cases` ne porte est un écart, et qu'une famille soit dite sans objet n'y change rien : le cas se dit, la session ne l'écrit pas elle-même ; son test, étiqueté de la règle sans nom de cas, est dû dans le diff.",
+    "Un test qui porte un identifiant de règle, avec ou sans cas, qu'il ne prouve pas est un écart.",
+  ]);
+  assert.ok(!DECOMPTE.test(declares), "T3, branche « cas déclarés » : aucun décompte n'est demandé au relecteur, la CLI compte");
+  assert.ok(!/étage/.test(declares), "T3, branche « cas déclarés » : un seul mot pour le niveau d'une preuve");
+});
+
+test("T3, branche « sans cas déclarés » : pour toute autre règle, l'ancien contrôle reste", () => {
+  const { sans } = lireT3();
+  exigerDans("T3, branche « sans cas déclarés »", sans, [
+    "— toute autre règle : index absent ou d'un autre schéma, ou en-tête sans aucun cas sous `cases`. La règle a au moins un test qui porte son identifiant entre crochets en tête du nom (`[RULE_ALL_FAC-3]`), ou sur le `describe` qui le contient ; les cas de bord que la règle énonce (limite, zéro, dépassement, chevauchement, passage à minuit, montant nul ou négatif, doublon) ont chacun un cas ; un test qui porte un identifiant de règle qu'il ne prouve pas est un écart.",
+  ]);
+});
+
+test("l'axe Ticket lit dans l'index le schéma et l'entrée des règles du ticket, et son prompt porte les deux branches : ce qu'il peut lire, l'étiquette de cas, ce qu'il ne recompte pas, les gravités, le cas laissé à un autre ticket", () => {
+  exiger(CRITERES_TICKET, [
+    "chaque fichier de règle tel que le dépôt l'écrit, en-tête YAML compris — puis les identifiants cités ailleurs, chacun trouvé ou introuvable) et le **diff**, et lit dans l'index commis du projet, `anchorpost/anchorpost.json`, s'il existe, le champ `schema` et l'entrée `rules` de chaque règle du ticket.",
+  ]);
+  exiger(`${REVUE_DE_TICKET}/references/prompt-ticket.md`, [
+    "Tu travailles en lecture seule. Pour vérifier un point, tu peux lire : les fichiers entiers touchés par le diff, les tests, le glossaire et les règles du dépôt ; le code qu'un test du diff exerce, quand le diff ne le touche pas ; un fichier `cas/*.json` hors du diff qu'une preuve cite ; dans l'index anchorpost/anchorpost.json, le champ `schema` et l'entrée `rules` de chaque règle du ticket ; l'en-tête du ticket que le ticket relu nomme pour porter un cas (critère T3, (d)). Rien d'autre. Tu ne modifies rien, tu ne lances aucune commande qui écrit.",
+    "Ta seule mission : trouver les ÉCARTS entre le diff et le ticket — une surface sans test, une décision non tenue, une règle citée sans test ou sans ses cas de bord, une preuve de cas qui n'affirme pas ce que le titre du cas promet, un test qui porte un niveau qu'il n'a pas, un cas dit technique qui est une décision du métier, un cas déclaré que l'index dit non prouvé, un cas de bord de l'énoncé qu'aucun cas déclaré ne porte, du code hors ticket — selon la liste fermée de critères ci-dessous et elle seule.",
+    "Il prouve un cas attendu de la règle quand l'étiquette nomme ce cas après un `#` (`[RULE_ALL_LIC-3#seconde-licence]`), sur le test ou sur un `describe` qui le contient : les cas d'une règle sont la clé `cases` de son en-tête, dans « Règles du ticket ». Tu ne recomptes pas les cas d'une règle qui les déclare, quand l'index du projet porte \"schema\": \"3\" : la CLI Anchorpost le fait ; tu juges ce qu'elle ne juge pas, et tu lis dans l'index ce qu'elle a compté (critère T3), quelle que soit la criticité de la règle. Les règles que T3 regarde sont celles de « Règles du ticket » dans le contexte ; celles d'« Identifiants cités » sont du contexte, pas une liste à prouver.",
+    "- bloquant : une surface du ticket sans aucun test, une décision tranchée contredite par le code ; dans les deux branches de T3, une règle citée sans aucune preuve qui la nomme (aux cas déclarés : `proofs` vide dans son entrée de l'index) ; pour une règle aux cas déclarés, une preuve de cas qui n'affirme pas ce que le titre du cas promet, un fichier de cas que rien ne lit, un test qui porte un niveau qu'il n'a pas, un cas dit technique qui est une décision du métier, un cas `proven: false` que ce ticket porte (un test du diff l'étiquette, ou la table « Surfaces » l'annonce) ; un index que le diff n'a pas régénéré (T5) ;",
+    "- à corriger : un cas de bord qu'une règle sans cas déclarés énonce, sans cas de test ; pour une règle aux cas déclarés, tout autre cas `proven: false`, un cas de bord que l'énoncé dit et qu'aucun cas déclaré ne porte, le test de ce cas de bord s'il manque au diff, un genre de test qui ne convient pas au code sans que son niveau en dépende ; un fichier hors « Où » non justifié, un statut ou un commentaire de ticket manquant ;",
+    "- ou, s'il n'y a rien : « aucun écart » - puis une ligne par cas non prouvé que T3 (d) laisse à un autre ticket : « cas <règle>#<id> porté par <ticket> » - puis une dernière ligne : « Critères non concernés : T… ».",
+  ]);
+});
+
+test("qui joue T3 : la phrase qui passera la main au relecteur indépendant, hors du bloc des critères, les lignes de la section de PR, et ce que la session fait autour de la revue", () => {
+  exiger(CRITERES_TICKET, [
+    "**Qui joue `T3`.** Pour une PR qui touche une règle moyenne ou haute, ce contrôle revient à un relecteur indépendant de l'auteur, que le plugin ne pose pas encore. Tant qu'il n'est pas posé, l'axe Ticket garde ce contrôle pour toutes les criticités, et la section de PR le dit en une ligne : « Contrôle des preuves joué par la revue de ticket, faute de relecteur indépendant ». Le critère est écrit pour que ce relecteur le reprenne tel quel. Ce paragraphe reste hors du bloc : le sous-agent de l'axe Ticket ne reçoit que le bloc, et ne saute aucune règle pour sa criticité.",
+  ]);
+  const blocs = blocsTexte(readFileSync(join(RACINE, CRITERES_TICKET), "utf8"));
+  assert.equal(blocs.length, 1, `${CRITERES_TICKET} : un seul bloc de critères, celui que reçoit le sous-agent`);
+  assert.ok(!/relecteur indépendant/.test(plat(blocs[0])), `${CRITERES_TICKET} : le bloc que reçoit le sous-agent ne lui dit pas qu'un autre jouera ce contrôle`);
+  exiger(`${REVUE_DE_TICKET}/references/section-pr.md`, [
+    "- Contrôle des preuves joué par la revue de ticket, faute de relecteur indépendant (critère `T3`, toutes criticités) - Cas laissés à un autre ticket (`T3`, (d)) : cas `<règle>#<id>` porté par `<ticket>` | aucun",
+  ]);
+  exiger(`${REVUE_DE_TICKET}/SKILL.md`, [
+    "**Les index générés d'abord** : avant tout sous-agent, jouer le gate de chaque index généré du projet (`scripts/docs/index-generes.json` ; pour l'index Anchorpost, le gate Anchorpost du projet). Un index périmé arrête la revue ici : il se régénère par sa commande, et ce n'est aucun des deux tours de l'étape 4.",
+    "4. Deux constats de `T3` ne se corrigent pas en entier dans la session : un cas dit technique jugé métier, et un cas de bord de l'énoncé qu'aucun cas déclaré ne porte. Elle ne change ni le `scope` ni le titre d'un cas (fiche `.claude/rules/anchorpost.md`), et n'en écrit aucun sous `cases` : cela seul attend le skill `criticite`. Le test du cas de bord, étiqueté de la règle sans nom de cas, se livre dans la PR. Le constat reste dans la section de PR et la session le dit au conducteur du chantier (sans chantier, au produit) ; le premier, bloquant, garde la PR en brouillon. 5. Si le relecteur de l'axe Ticket voit malgré l'étape 1 un index que le diff n'a pas régénéré (`T5`, les signes de `T3` (d)), l'index se régénère par sa commande, puis l'axe Ticket seul se rejoue. Ce n'est aucun des deux tours.",
+    "Sa ligne « Contrôle des preuves » dit qui a joué `T3` : la revue de ticket, pour toutes les criticités, tant que le relecteur indépendant d'une règle moyenne ou haute n'est pas posé ([`references/criteres-ticket.md`](references/criteres-ticket.md), « Qui joue `T3` »). Sa ligne « Cas laissés à un autre ticket » reprend chaque « cas … porté par … » que l'axe Ticket a rendu, ou « aucun ».",
+  ]);
+  exiger(`${REVUE_DE_TICKET}/references/CONTENU.md`, [
+    "la ligne `Règles:`, liste fermée des règles dont `T3` relit les preuves, et chaque fichier `docs/metier/regles/<ctx>/RULE_<CTX>_<TRI>-<n>.md` rendu tel quel, en-tête YAML compris : c'est là que le relecteur lit si une règle déclare ses cas (clé `cases`) —",
+    "règles citées et leurs preuves (`T3`, deux branches, choisies règle par règle : si l'index du projet est au pivot 3 et que la règle déclare ses cas, le relecteur ne recompte pas les cas, la CLI Anchorpost le fait, et il vérifie ce que la machine ne juge pas — ce que le test affirme correspond au titre du cas, le genre de test convient au code, un cas dit technique l'est vraiment — puis il lit dans l'index ce qu'elle a compté : une règle citée dont un cas déclaré porte `proven: false` est un écart, qu'elle ait des preuves ou non, sauf pour un cas qu'un autre ticket, encore ouvert, porte, à cinq conditions que l'auteur ne remplit pas seul ; un cas de bord que l'énoncé dit et qu'aucun cas déclaré ne porte est un écart aussi, et son test reste dû ; sinon, l'ancien contrôle reste — un test étiqueté par règle, un cas par cas de bord énoncé),",
+    "Celui de l'axe Ticket reçoit le contexte du ticket, et lit lui-même, dans l'index du projet, le champ `schema` et l'entrée `rules` de chaque règle du ticket, jamais ce qu'en disent le ticket ou la PR ; ce qu'il peut lire est une liste fermée, écrite dans son prompt ;",
+    "Sa ligne « Contrôle des preuves » dit qui a joué `T3`. Pour une PR qui touche une règle moyenne ou haute, ce contrôle revient à un relecteur indépendant de l'auteur, que le plugin ne pose pas encore : tant qu'il n'est pas posé, l'axe Ticket le garde pour toutes les criticités, et la ligne le dit (« Contrôle des preuves joué par la revue de ticket, faute de relecteur indépendant »). Le jour où ce relecteur est posé, cette ligne et le paragraphe « Qui joue `T3` » de `criteres-ticket.md` lui passent la main. Sa ligne « Cas laissés à un autre ticket » garde visible chaque cas non prouvé que `T3` (d) laisse à un autre ticket.",
+  ]);
+});
+
+test("ce que T3 suppose autour de lui : le critère T5 auquel (d) renvoie, le commentaire du script qui rend les règles, la version du plugin", () => {
+  exiger(CRITERES_TICKET, [
+    "T5 Vérification — ticket § « Vérification ». Les commandes ciblées du ticket ont un équivalent vert dans le diff (specs nommées présentes, index régénérés, specs de garde complétées).",
+  ]);
+  exiger(`${REVUE_DE_TICKET}/scripts/contexte-ticket.mjs`, [
+    "* 3. « Règles du ticket » : la ligne `Règles:` de l'en-tête, la liste fermée des règles dont l'axe * Ticket (`T3`) relit les preuves, puis chaque fichier de règle rendu tel quel, en-tête YAML * compris (c'est là que se lit si une règle déclare ses cas, clé `cases`) ;",
+  ]);
+  const { version } = JSON.parse(readFileSync(join(RACINE, ".claude-plugin/plugin.json"), "utf8"));
+  assert.ok(auMoins(version, "7.15.0"), `.claude-plugin/plugin.json : version ${version} ; le critère T3 à deux branches est celui du plugin 7.15.0 et des suivants`);
+});
+
+// Première note de NOTES-DE-VERSION.md : son titre (`## <titre>`, ni `###`, ni `##titre`) et les titres `### …` de son
+// corps, jusqu'à la note suivante. Fins de ligne CRLF admises, dernière ligne sans fin de ligne comprise. null sans note.
+const premiereNote = (texte) => {
+  const lignes = texte.split(/\r?\n/);
+  const debut = lignes.findIndex((l) => /^## \S/.test(l));
+  if (debut < 0) return null;
+  const fin = lignes.findIndex((l, i) => i > debut && /^## \S/.test(l));
+  const corps = lignes.slice(debut + 1, fin < 0 ? undefined : fin);
+  return { titre: lignes[debut].slice(3).trim(), sections: corps.filter((l) => /^### \S/.test(l)).map((l) => l.trim()) };
+};
+
+test("lecteur de NOTES-DE-VERSION.md : entrées piégées", () => {
+  assert.deepEqual(premiereNote("# Notes\r\n\r\n## 7.16.0 — d\r\n\r\n### Ce qui change\r\n\r\n## 7.15.0\r\n### Vieux"), { titre: "7.16.0 — d", sections: ["### Ce qui change"] });
+  assert.deepEqual(premiereNote("## 7.16.0\n### Ce qui change"), { titre: "7.16.0", sections: ["### Ce qui change"] }, "dernière ligne sans fin de ligne");
+  assert.equal(premiereNote("# Notes\n### 7.16.0\n##7.16.0\n"), null, "ni `###` ni `##titre` ne sont une note");
+  assert.deepEqual(premiereNote("## 7.16.0\n####  Ce qui change\n###Ce qui change\n").sections, [], "ni `####` ni `###titre` ne sont une section");
+});
+
+test("la règle d'ascendance du plugin 7.16.0 : version, note de version en tête, renvoi du README, une sous-PR étiquetée à la fois", () => {
+  const { version } = JSON.parse(readFileSync(join(RACINE, ".claude-plugin/plugin.json"), "utf8"));
+  assert.ok(auMoins(version, "7.16.0"), `.claude-plugin/plugin.json : version ${version} ; la règle d'ascendance est celle du plugin 7.16.0 et des suivants`);
+  const note = premiereNote(readFileSync(join(RACINE, "NOTES-DE-VERSION.md"), "utf8"));
+  assert.ok(note, "NOTES-DE-VERSION.md : au moins une note, titrée `## <version> — <date>`");
+  assert.ok(note.titre.startsWith(version), `NOTES-DE-VERSION.md : la première note (« ${note.titre} ») commence par la version de plugin.json, ${version}`);
+  for (const section of ["### Ce qui change", "### Ce qu'un projet fait pour en profiter"])
+    assert.ok(note.sections.includes(section), `NOTES-DE-VERSION.md : la note ${version} porte « ${section} »`);
+  assert.ok(readFileSync(join(RACINE, "README.md"), "utf8").includes("NOTES-DE-VERSION.md"), "README.md renvoie à NOTES-DE-VERSION.md");
+  exiger(`${SKILLS_CHAINE}/fusionner/SKILL.md`, ["une seule sous-PR porte `à-fusionner` à la fois"]);
+});
+
+test("sujet/SKILL.md a la section Recevoir develop dans un sujet, avec son corps type", () => {
+  const skill = readFileSync(join(RACINE, `${SKILLS_CHAINE}/sujet/SKILL.md`), "utf8");
+  // Le corps type contient lui-même des titres `## ` : la section va jusqu'au titre suivant hors bloc de code.
+  const debut = skill.indexOf("\n## Recevoir develop dans un sujet\n");
+  assert.ok(debut >= 0, "sujet/SKILL.md : section « Recevoir develop dans un sujet » absente");
+  const section = skill.slice(debut).split("\n## Geler un chantier")[0];
+  assert.ok(plat(section).includes("une seule fusion"), "la section dit « une seule fusion »");
+  const bloc = section.match(/```markdown\n([\s\S]*?)```/);
+  assert.ok(bloc, "la section porte le corps type dans un bloc de code");
+  for (const titre of ["## Réception de develop", "## Retouches", "## Revue de ticket"])
+    assert.ok(bloc[1].includes(titre), `le corps type porte « ${titre} »`);
+});
+
+// Ticket 18 : un fichier que les gardes chargent s'écrit d'un seul coup ; la garde refuse l'amend, et le gabarit le
+// dit ; la ligne « /security-review : lancée » des deux gabarits de section est celle que le capitaine lit.
+test("la consigne d'écriture d'un seul coup est dans le gabarit, et le paragraphe Jamais d'amend dit que la garde le refuse", () => {
+  const gabarit = readFileSync(join(RACINE, GABARIT_FILLE), "utf8");
+  const amend = lignes(gabarit).find((l) => l.includes("**Jamais d'amend.**"));
+  assert.ok(amend, "paragraphe « Jamais d'amend » absent");
+  assert.ok(amend.trimEnd().endsWith("La garde (`garde-commandes`) refuse l'un et l'autre."), "le paragraphe « Jamais d'amend » finit par la garde qui refuse l'amend et le push forcé");
+  assert.equal(amend.match(/refuse/g).length, 1, "le refus n'est dit qu'une fois");
+  const seulCoup = lignes(gabarit).find((l) => l.includes("**Un fichier que les gardes chargent s'écrit d'un seul coup.**"));
+  assert.ok(seulCoup, "consigne « s'écrit d'un seul coup » absente");
+  for (const attendu of ["node --check <copie>", "import('<copie>')", "Object.keys(m)", "aucun nom ne manque", "jamais une suite d'`Edit`", "git checkout origin/develop -- scripts/agent/", "dernier commit où les gardes se chargent", "jamais en contournant la garde"])
+    assert.ok(seulCoup.includes(attendu), `consigne d'écriture : « ${attendu} » manque`);
+  const fragment = readFileSync(join(RACINE, "skills/chaine/socle-chaine-de-production/references/fragments/claude-md-fusion.md"), "utf8");
+  assert.ok(lignes(fragment).find((l) => l.startsWith("- **Hooks d'agent**"))?.includes("`git commit --amend`"), "la ligne « Hooks d'agent » du fragment nomme l'amend");
+  // Aucun gabarit ne conseille de couper les hooks pour sortir d'une garde cassée (contre-relecture du ticket 18).
+  for (const doc of ["skills/chaine/socle-chaine-de-production/references/docs-agents/pieges.md", "skills/chaine/socle-chaine-de-production/references/CONTENU.md", GABARIT_FILLE])
+    assert.ok(!readFileSync(join(RACINE, doc), "utf8").includes(`claude --settings '{"disableAllHooks"`), `${doc} conseille de relancer avec disableAllHooks`);
+});
+
+test("ticket 18 : la ligne /security-review des deux gabarits de section se lit « lancée » par le capitaine", async () => {
+  const { aLigneSecurite } = await import(join(RACINE, "skills/chaine/fusionner/scripts/revue-exigee.mjs"));
+  for (const gabarit of ["skills/chaine/revue-de-ticket/references/section-pr.md", "skills/chaine/revue-adversariale/references/section-pr.md"]) {
+    const texte = readFileSync(join(RACINE, gabarit), "utf8");
+    const ligne = lignes(texte).find((l) => l.includes("`/security-review` :"));
+    assert.ok(ligne, `${gabarit} : ligne /security-review absente`);
+    // Le gabarit offre « lancée (chemins : …) | non requise » : chaque branche telle qu'une session la recopie.
+    const [lancee, nonRequise] = ligne.split(" | ");
+    const titre = lignes(texte)[0];
+    assert.equal(aLigneSecurite(`${titre}\n\n${lancee.replace("…", "infra/main.tf")}\n`), true, `${gabarit} : « ${lancee} »`);
+    assert.equal(aLigneSecurite(`${titre}\n\n${ligne.slice(0, ligne.indexOf(":") + 1)} ${nonRequise}\n`), false, `${gabarit} : « non requise »`);
+  }
+});
+
+// Ticket 16 : le check `PR titre` du socle lit un titre et un corps écrits par l'auteur de la PR. Son workflow, posé
+// dans les projets, se contrôle ici comme ceux du dépôt : jamais d'expression dans un `run:`, actions épinglées.
+const PR_TITRE_YML = "skills/chaine/socle-chaine-de-production/references/ci/pr-titre.yml";
+test("le workflow pr-titre du socle : pull_request vers develop et sujet/**, types avec edited, permissions en lecture, actions épinglées, valeurs de l'événement par env et jamais dans run, jamais pull_request_target", () => {
+  const w = readFileSync(join(RACINE, PR_TITRE_YML), "utf8");
+  assert.match(w, /^on:\r?\n {2}pull_request:\r?\n {4}branches: \['develop', 'sujet\/\*\*'\]\r?\n/m, "pull_request vers develop et sujet/**");
+  const types = /^ {4}types: \[([^\]]*)\]/m.exec(w)?.[1].split(",").map((t) => t.trim()) ?? [];
+  for (const t of ["opened", "edited", "reopened", "ready_for_review", "synchronize"]) assert.ok(types.includes(t), `types: ${t} attendu`);
+  assert.doesNotMatch(w, /pull_request_target/, "jamais pull_request_target");
+  assert.doesNotMatch(w, /^\s+push:/m, "pas de déclencheur push");
+  assert.match(w, /^permissions:\r?\n {2}contents: read\r?\n(?! {2}\S)/m, "permissions : contents: read, et rien d'autre");
+  assert.ok(!aLigne(w, /write/), "aucune permission en écriture");
+  assert.match(w, /^concurrency:\r?\n {2}group: .*pull_request\.number.*\r?\n {2}cancel-in-progress: true/m, "concurrence par PR");
+  assert.match(w, /if: \$\{\{ !github\.event\.pull_request\.draft \}\}/, "sauté sur un brouillon");
+  assert.match(w, /fetch-depth: 0, persist-credentials: false/);
+  assert.ok(nombreActions(w) >= 3, "checkout, pnpm, node");
+  assert.deepEqual(actionsMalEpinglees(w), []);
+  // Les mêmes actions, aux mêmes empreintes, que la CI du socle.
+  const ci = readFileSync(join(RACINE, "skills/chaine/socle-chaine-de-production/references/ci/ci.yml"), "utf8");
+  const uses = (t) => new Set([...t.matchAll(/uses:\s*(\S+)/g)].map((m) => m[1]));
+  for (const u of uses(w)) assert.ok(uses(ci).has(u), `${u} : pas l'empreinte de ci.yml`);
+  assert.deepEqual(runAvecExpression(w), [], "aucune expression dans un run:");
+  assert.ok(commande(w, "pnpm install --frozen-lockfile"));
+  assert.ok(aLigne(w, /^\s+run: node scripts\/github\/pr-titre\.mjs$/));
+  for (const [v, champ] of [["PR_TITRE", "title"], ["PR_CORPS", "body"], ["PR_NUMERO", "number"], ["PR_BASE", "base.ref"], ["PR_TETE", "head.ref"], ["PR_SOMMET", "head.sha"]])
+    assert.ok(aLigne(w, new RegExp(`^\\s+${v}: \\$\\{\\{ github\\.event\\.pull_request\\.${champ.replace(".", "\\.")} \\}\\}$`)), `${v} par env:`);
+  // Le titre et le corps n'apparaissent que dans env:.
+  assert.equal(lignes(w).filter((l) => /pull_request\.(title|body)/.test(l)).length, 2);
+});
+
+// Ticket 20 de capitaine-a-jour-et-teste (A-48, P-6) : le capitaine d'un dépôt sans la chaîne renvoie une PR
+// en retard ; il ne la met jamais à jour et ne lit plus un sommet par get_commit pour le prouver.
+test("la procédure du capitaine sans la chaîne renvoie une PR en retard, sans update_pull_request_branch ni garde get_commit", () => {
+  const texte = readFileSync(join(RACINE, LANCEMENT), "utf8");
+  const procedure = blocsTexte(texte).find((b) => b.startsWith("Procédure : "));
+  assert.ok(procedure, "bloc « Procédure : » du capitaine introuvable");
+  for (const interdit of ["update_pull_request_branch", "get_commit", "noreply@github.com", "verification"])
+    assert.ok(!procedure.includes(interdit), `la procédure ne contient plus « ${interdit} »`);
+  assert.ok(
+    procedure.includes("à-fusionner retiré par le capitaine : en retard sur <branche par défaut> : fusionner <branche par défaut> dans la branche (commit de merge, jamais de rebase), pousser, puis reposer le label et le commentaire au nouveau sommet"),
+    "le renvoi « en retard » a la forme exacte du ticket",
+  );
+  assert.ok(/Tu ne mets jamais une branche à jour/.test(procedure), "la procédure dit que le capitaine ne met jamais une branche à jour");
+  assert.ok(/ce renvoi compte dans le plafond de trois/.test(procedure) && /Trois de tes renvois/.test(procedure), "le plafond de trois compte les renvois en retard");
+  const limite = texte.split("\n").find((l) => l.startsWith("**Limite** (dépôt sans la chaîne)"));
+  assert.ok(limite, "paragraphe Limite introuvable");
+  assert.ok(!/éditeur web|garde de la mise à jour/.test(limite), "la Limite ne commente plus la garde de mise à jour");
+  for (const f of ["skills/chaine/architecte/SKILL.md", "skills/chaine/architecte/references/CONTENU.md", LANCEMENT])
+    assert.ok(!/signée par GitHub|noreply@github\.com/.test(readFileSync(join(RACINE, f), "utf8")), `${f} : plus de garde « signée par GitHub »`);
 });

@@ -17,9 +17,15 @@ const SUJET = scriptDe("sujet", "sujet.sh");
 const BOUCLE = scriptDe("fusionner", "boucle.sh");
 const ADR = "docs/adr";
 const index = (...adr) => adr.map((f) => `- ${f}\n`).join("");
-const ecritures = (d) => d.journal().map((e) => `${e.methode} ${e.route}`);
+// Écritures sur GitHub, hors commentaires du verrou du passage (posé, rafraîchi, terminé ou retiré par chaque passage,
+// ticket 4 de capitaine-a-jour-et-teste) : les bancs du verrou les lisent dans le journal brut (`d.journal()`).
+const passage = (e) => (/^issues\/\d+\/comments$|^issues\/comments\/\d+$/.test(e.route) && (e.methode === "DELETE" || (e.champs?.body ?? "").includes("<!-- capitaine:passage ")));
+const horsPassage = (d) => d.journal().filter((e) => !passage(e));
+const ecritures = (d) => horsPassage(d).map((e) => `${e.methode} ${e.route}`);
 
-// Le sujet ajoute l'ADR 3, la sous-PR #80 l'ADR 2 (ou, avec `fichier`, un fichier de code en conflit).
+// Le sujet ajoute l'ADR 3, la sous-PR #80 l'ADR 2 (ou, avec `fichier`, un fichier de code en conflit). Sans
+// conflit (« aucun »), la sous-PR part du sujet : elle est à jour (le cas en retard est le banc « retard de
+// documentation seule »). Checks : verts sur l'ancien sommet seul (par son sha) ; sans conflit, sur tout commit.
 function sousPrEnConflit(conflit) {
   const d = depotJouet();
   d.ecrire(`${ADR}/ADR_ALL_ARC-1-a.md`, "# 1\n");
@@ -28,29 +34,44 @@ function sousPrEnConflit(conflit) {
   d.commit("docs: adr 1");
   d.git("push", "-q", "origin", "HEAD:develop");
   d.git("fetch", "-q", "origin");
-  const sommet = d.branche(
-    "docs/sous",
-    "origin/develop",
-    conflit === "code"
-      ? { "docs/f.md": "sous\n" }
-      : { [`${ADR}/ADR_ALL_ARC-2-b.md`]: "# 2\n", [`${ADR}/README.md`]: index("ADR_ALL_ARC-1-a.md", "ADR_ALL_ARC-2-b.md") },
-  );
+  const sous = () =>
+    d.branche(
+      "docs/sous",
+      conflit === "aucun" ? "origin/sujet/lot" : "origin/develop",
+      conflit === "code"
+        ? { "docs/f.md": "sous\n" }
+        : conflit === "code2"
+          ? { "docs/f.md": "sous\n", "docs/g.md": "sous\n" }
+          : conflit === "mixte"
+            ? { "docs/f.md": "sous\n", [`${ADR}/ADR_ALL_ARC-2-b.md`]: "# 2\n", [`${ADR}/README.md`]: index("ADR_ALL_ARC-1-a.md", "ADR_ALL_ARC-2-b.md") }
+            : { [`${ADR}/ADR_ALL_ARC-2-b.md`]: "# 2\n", [`${ADR}/README.md`]: index("ADR_ALL_ARC-1-a.md", "ADR_ALL_ARC-2-b.md") },
+    );
+  const avant = conflit === "aucun" ? null : sous();
   d.branche(
     "sujet/lot",
     "origin/develop",
     conflit === "code"
       ? { "docs/f.md": "sujet\n" }
-      : conflit === "index"
+      : conflit === "code2"
+        ? { "docs/f.md": "sujet\n", "docs/g.md": "sujet\n" }
+        : conflit === "mixte"
+          ? {
+              "docs/f.md": "sujet\n",
+              [`${ADR}/ADR_ALL_ARC-3-c.md`]: "# 3\n",
+              [`${ADR}/README.md`]: index("ADR_ALL_ARC-1-a.md", "ADR_ALL_ARC-3-c.md"),
+            }
+          : conflit === "index"
         ? {
             [`${ADR}/ADR_ALL_ARC-3-c.md`]: "# 3\n",
             [`${ADR}/README.md`]: index("ADR_ALL_ARC-1-a.md", "ADR_ALL_ARC-3-c.md"),
           }
         : { "docs/autre.md": "autre\n" },
   );
+  const sommet = avant ?? sous();
   d.git("switch", "-q", "--detach", "origin/develop");
   d.github({
     exiges: ["qualite"],
-    checks: { "*": { qualite: "SUCCESS" } },
+    checks: conflit === "aucun" ? { "*": { qualite: "SUCCESS" } } : { [sommet]: { qualite: "SUCCESS" } },
     pulls: [
       {
         number: 80,
@@ -69,7 +90,8 @@ test("fusionner : conflit sur un index généré seul, la branche est mise à jo
   const { d, sommet } = sousPrEnConflit("index");
   const r = d.lancer(SUJET, "fusionner", "80");
   assert.equal(r.status, 8, r.stdout + r.stderr);
-  assert.match(r.stdout, /#80 mise à jour avec sujet\/lot \(index régénérés\), CI relancée/);
+  assert.match(r.stdout, /#80 en retard sur sujet\/lot : mise à jour poussée \([0-9a-f]+\), attente de la CI/);
+  assert.match(r.stdout, /#80 : mise à jour avec sujet\/lot poussée, CI pas finie : repasse au tour suivant/);
   d.git("fetch", "-q", "origin");
   const tete = d.git("rev-parse", "origin/docs/sous");
   assert.notEqual(tete, sommet, "la branche de la sous-PR a avancé");
@@ -95,7 +117,7 @@ test("fusionner : conflit hors index, sortie 3 et branche de la sous-PR intacte"
   assert.equal(d.git("status", "--porcelain"), "", "fusion annulée");
 });
 
-test("fusionner : sans conflit, squash comme avant", () => {
+test("fusionner : sans conflit et à jour, squash comme avant, branche intacte", () => {
   const { d, sommet } = sousPrEnConflit("aucun");
   const r = d.lancer(SUJET, "fusionner", "80");
   assert.equal(r.status, 0, r.stdout + r.stderr);
@@ -109,7 +131,7 @@ test("fusionner : FORCE_COLOR=1 dans l'environnement ne fait refuser aucun titre
   const { d } = sousPrEnConflit("aucun");
   const r = spawnSync("bash", [SUJET, "fusionner", "80"], {
     cwd: d.travail,
-    env: { ...d.env, FORCE_COLOR: "1" },
+    env: { ...d.env, FORCE_COLOR: "1", NO_COLOR: undefined },
     encoding: "utf8",
   });
   assert.equal(r.status, 0, r.stdout + r.stderr);
@@ -121,13 +143,179 @@ test("boucle.sh : la sortie 8 ne renvoie pas la PR (MISE À JOUR, aucun label ni
   d.publierChaine();
   const r = d.lancer(BOUCLE);
   assert.equal(r.status, 0, r.stdout + r.stderr);
-  assert.match(r.stdout, /\[#80\] MISE À JOUR avec sujet\/lot \(index régénérés\), CI relancée/);
+  assert.match(r.stdout, /\[#80\] MISE À JOUR avec sujet\/lot poussée, CI pas finie : repasse au tour suivant/);
   assert.doesNotMatch(r.stdout, /RENVOI/);
   assert.ok(
     !ecritures(d).some((e) => /issues\/80\/(labels|comments)/.test(e)),
     ecritures(d).join(),
   );
   assert.deepEqual(d.etat().pulls[0].labels, ["à-fusionner"]);
+});
+
+// Une sous-PR en conflit avec son sujet n'a pas de CI (GitHub ne lance pas les workflows d'une PR qu'il ne sait pas
+// fusionner) : `relancer` lit la règle d'ascendance avant toute fusion. Sur des index générés seuls, la branche est mise
+// à jour comme par `fusionner` ; hors index, sortie 2 avec les fichiers, branche intacte (défaut 1, #1969 sur `fedora`).
+const sansChecks = (conflit) => {
+  const f = sousPrEnConflit(conflit);
+  f.d.github({ checks: {} });
+  return f;
+};
+
+test("relancer : conflit sur un index généré seul, la branche est mise à jour, index régénéré, poussée, sortie 0", () => {
+  const { d, sommet } = sansChecks("index");
+  const r = d.lancer(SUJET, "relancer", "80");
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /#80 : sujet\/lot fusionné dans sa branche \([0-9a-f]+\), CI lancée/);
+  d.git("fetch", "-q", "origin");
+  const tete = d.git("rev-parse", "origin/docs/sous");
+  assert.notEqual(tete, sommet, "la branche de la sous-PR a avancé");
+  assert.equal(d.git("rev-parse", `${tete}^1`), sommet, "commit de fusion, l'ancien sommet premier parent");
+  assert.equal(d.git("rev-parse", `${tete}^2`), d.git("rev-parse", "origin/sujet/lot"), "le sujet second parent");
+  assert.equal(
+    d.git("show", `${tete}:${ADR}/README.md`) + "\n",
+    index("ADR_ALL_ARC-1-a.md", "ADR_ALL_ARC-2-b.md", "ADR_ALL_ARC-3-c.md"),
+  );
+  assert.ok(!ecritures(d).some((e) => e.startsWith("PUT ")), "aucun squash");
+  assert.equal(d.git("status", "--porcelain"), "");
+});
+
+test("relancer : conflit hors index, sortie 2, fichiers listés, branche intacte", () => {
+  const { d, sommet } = sansChecks("code");
+  const r = d.lancer(SUJET, "relancer", "80");
+  assert.equal(r.status, 2, r.stdout + r.stderr);
+  assert.match(r.stdout, /^conflit avec sujet\/lot hors index générés :\n {2}docs\/f\.md$/m);
+  d.git("fetch", "-q", "origin");
+  assert.equal(d.git("rev-parse", "origin/docs/sous"), sommet, "branche distante intacte");
+  assert.deepEqual(horsPassage(d), [], "rien d'écrit");
+  assert.equal(d.git("status", "--porcelain"), "");
+});
+
+// Un clone `--single-branch` (refspec de fetch limitée à develop) ne met à jour aucune `origin/<branche>` sur un
+// `git fetch origin <branche>` nu : `relancer` passe des refspecs explicites.
+test("relancer : sur un clone --single-branch, le sujet et la tête sont lus par refspec explicite", () => {
+  const { d, sommet } = sansChecks("index");
+  d.git("config", "remote.origin.fetch", "+refs/heads/develop:refs/remotes/origin/develop");
+  d.git("update-ref", "-d", "refs/remotes/origin/sujet/lot");
+  d.git("update-ref", "-d", "refs/remotes/origin/docs/sous");
+  const r = d.lancer(SUJET, "relancer", "80");
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  const tete = d.git("ls-remote", "origin", "refs/heads/docs/sous").split("\t")[0];
+  assert.equal(d.git("rev-parse", `${tete}^1`), sommet, "la branche de la sous-PR a avancé par une fusion");
+});
+
+test("relancer : une sous-PR qui a bougé depuis sa lecture n'est ni jugée ni poussée (sortie 5)", () => {
+  const { d } = sansChecks("code");
+  const etat = d.etat();
+  etat.pulls[0].sha = d.git("rev-parse", "origin/develop");
+  d.github(etat);
+  const avant = d.git("ls-remote", "origin");
+  const r = d.lancer(SUJET, "relancer", "80");
+  assert.equal(r.status, 5, r.stdout + r.stderr);
+  assert.match(r.stdout, /a bougé depuis sa lecture/);
+  assert.equal(d.git("ls-remote", "origin"), avant);
+});
+
+// Contre-relecture (m1) : la boucle `file.sh | while read` partageait son entrée standard avec ce qu'elle lance ; le
+// faux `pnpm` du jouet la lit (`cat > /dev/null`), comme tout outil qui lit l'entrée : après une mise à jour par
+// `relancer`, les sous-PR suivantes n'étaient plus traitées dans le tour.
+test("boucle.sh : deux sous-PR en conflit d'index, la première mise à jour par relancer sous un outil qui lit l'entrée, la seconde traitée dans le même tour", () => {
+  const { d, sommet } = sansChecks("index");
+  const autre = d.branche("docs/autre", "origin/develop", {
+    [`${ADR}/ADR_ALL_ARC-4-d.md`]: "# 4\n",
+    [`${ADR}/README.md`]: index("ADR_ALL_ARC-1-a.md", "ADR_ALL_ARC-4-d.md"),
+  });
+  d.git("switch", "-q", "--detach", "origin/develop");
+  const etat = d.etat();
+  etat.pulls.push({ ...etat.pulls[0], number: 81, title: "docs(adr): ADR 4", head: "docs/autre" });
+  d.github(etat);
+  d.publierChaine();
+  const r = d.lancer(BOUCLE);
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  d.git("fetch", "-q", "origin");
+  assert.equal(d.git("rev-parse", "origin/docs/sous^1"), sommet, "#80 mise à jour");
+  assert.equal(d.git("rev-parse", "origin/docs/autre^1"), autre, `#81 mise à jour dans le même tour : ${r.stdout}`);
+});
+
+// Contre-relecture (M1) : un conflit mixte ne nomme que les fichiers hors index générés ; l'index se régénère.
+test("relancer : conflit mixte (code et index généré), seuls les fichiers hors index sont listés", () => {
+  const { d, sommet } = sansChecks("mixte");
+  const r = d.lancer(SUJET, "relancer", "80");
+  assert.equal(r.status, 2, r.stdout + r.stderr);
+  assert.match(r.stdout, /^conflit avec sujet\/lot hors index générés :\n {2}docs\/f\.md$/m);
+  assert.doesNotMatch(r.stdout, /README\.md/);
+  d.git("fetch", "-q", "origin");
+  assert.equal(d.git("rev-parse", "origin/docs/sous"), sommet);
+});
+
+// Contre-relecture (M2) : GitHub rend encore l'ancien sommet, en conflit, alors que la session a déjà résolu et
+// poussé. Sans le garde, `relancer` jugerait l'ancien sommet et la boucle renverrait à tort (sortie 2) : sortie 5.
+test("relancer : GitHub rend l'ancien sommet en conflit alors que la session a résolu et poussé : sortie 5, aucun renvoi possible", () => {
+  const { d, sommet } = sansChecks("code");
+  d.git("switch", "-q", "--detach", "origin/docs/sous");
+  spawnSync("git", ["merge", "-q", "--no-edit", "origin/sujet/lot"], { cwd: d.travail, env: d.env });
+  d.ecrire("docs/f.md", "résolu\n");
+  d.git("add", "docs/f.md");
+  d.git("commit", "-q", "--no-edit");
+  d.git("push", "-q", "origin", "HEAD:refs/heads/docs/sous");
+  d.git("switch", "-q", "--detach", "origin/develop");
+  const etat = d.etat();
+  etat.pulls[0].sha = sommet;
+  d.github(etat);
+  const r = d.lancer(SUJET, "relancer", "80");
+  assert.equal(r.status, 5, r.stdout + r.stderr);
+  assert.match(r.stdout, /a bougé depuis sa lecture/);
+  assert.doesNotMatch(r.stdout, /hors index générés/);
+});
+
+// Contre-relecture (B1, A-22) : le pre-push refuse la mise à jour d'index que pousse `relancer`, trace de husky dans sa
+// sortie : la sous-PR est renvoyée avec la sortie du hook, jamais refaite en silence à chaque tour.
+test("boucle.sh : relancer refusé par le pre-push (trace de husky) sur un conflit d'index, la sous-PR est renvoyée avec la sortie du hook", () => {
+  const { d } = sansChecks("index");
+  d.publierChaine();
+  const dir = join(d.racine, "hooks-relancer");
+  mkdirSync(dir);
+  writeFileSync(join(dir, "pre-push"), '#!/bin/sh\necho "pre-push jouet : refus du lint" >&2\necho "husky - pre-push script failed (code 1)"\nexit 1\n');
+  chmodSync(join(dir, "pre-push"), 0o755);
+  d.git("config", "core.hooksPath", dir);
+  const avant = d.git("ls-remote", "origin", "refs/heads/docs/sous");
+  const r = d.lancer(BOUCLE);
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  const renvoi = horsPassage(d).find((e) => e.methode === "POST" && e.route === "issues/80/comments");
+  assert.ok(renvoi, `renvoi posté : ${r.stdout}`);
+  assert.match(renvoi.champs.body, /<!-- renvoi-capitaine -->/);
+  assert.match(renvoi.champs.body, /le pre-push refuse le push de la mise à jour avec sujet\/lot\. Sortie du hook : .*pre-push jouet : refus du lint/);
+  assert.equal(d.git("ls-remote", "origin", "refs/heads/docs/sous"), avant, "rien n'est poussé");
+});
+
+test("boucle.sh : une sous-PR prête (en conflit) sur un index seul est mise à jour par relancer, jamais renvoyée ; en conflit de code, renvoyée avec ses fichiers", () => {
+  const { d } = sansChecks("index");
+  d.publierChaine();
+  const file = d.lancer(scriptDe("fusionner", "file.sh"));
+  assert.match(file.stdout, /^80\tsujet\/lot : prête \(en conflit\)\t/m, file.stdout + file.stderr);
+  const r = d.lancer(BOUCLE);
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /\[#80\] #80 : sujet\/lot fusionné dans sa branche/);
+  assert.doesNotMatch(r.stdout, /RENVOI/);
+  assert.ok(!ecritures(d).some((e) => /issues\/80\/(labels|comments)/.test(e)), ecritures(d).join());
+  assert.deepEqual(d.etat().pulls[0].labels, ["à-fusionner"]);
+
+  const c = sansChecks("code").d;
+  c.publierChaine();
+  const rc = c.lancer(BOUCLE);
+  assert.equal(rc.status, 0, rc.stdout + rc.stderr);
+  const renvoi = horsPassage(c).find((e) => e.methode === "POST" && e.route === "issues/80/comments");
+  assert.ok(renvoi, `renvoi posté : ${rc.stdout}`);
+  assert.match(renvoi.champs.body, /<!-- renvoi-capitaine -->/);
+  assert.match(renvoi.champs.body, /conflit avec sujet\/lot hors index générés : `docs\/f\.md`\. Fusionner sujet\/lot dans la branche et le résoudre/);
+
+  // Deux fichiers : la liste les prend tous les deux, et s'arrête à la ligne qui suit (le journal de la boucle).
+  const g = sansChecks("code2").d;
+  g.publierChaine();
+  const rg = g.lancer(BOUCLE);
+  assert.equal(rg.status, 0, rg.stdout + rg.stderr);
+  const renvoi2 = horsPassage(g).find((e) => e.methode === "POST" && e.route === "issues/80/comments");
+  assert.ok(renvoi2, `renvoi posté : ${rg.stdout}`);
+  assert.match(renvoi2.champs.body, /hors index générés : `docs\/f\.md`, `docs\/g\.md`\. Fusionner/);
 });
 
 // Worktree du capitaine pas propre : rien que l'auteur de la sous-PR puisse corriger. Sortie 6 (comme
@@ -138,7 +326,7 @@ test("fusionner : worktree du capitaine pas propre, sortie 6 sans écriture, bra
   const r = d.lancer(SUJET, "fusionner", "80");
   assert.equal(r.status, 6, r.stdout + r.stderr);
   assert.match(r.stdout, /arbre de travail pas propre/);
-  assert.deepEqual(d.journal(), []);
+  assert.deepEqual(horsPassage(d), []);
   d.git("fetch", "-q", "origin");
   assert.equal(d.git("rev-parse", "origin/docs/sous"), sommet);
 });
@@ -151,7 +339,7 @@ test("rafraichir et regrouper : worktree du capitaine pas propre, sortie 6 sans 
     assert.equal(r.status, 6, args[0] + ": " + r.stdout + r.stderr);
     assert.match(r.stdout, /arbre de travail pas propre/);
   }
-  assert.deepEqual(d.journal(), []);
+  assert.deepEqual(horsPassage(d), []);
 });
 
 test("boucle.sh : worktree du capitaine pas propre, la sous-PR n'est pas renvoyée (PAS PROPRE, aucun label ni commentaire)", () => {
@@ -661,6 +849,24 @@ test("fusionner : une PR de mise à jour d'une autre forme que « la fusion, pui
     const r = d.lancer(SUJET, "fusionner", "81");
     assert.equal(r.status, sortie, r.stdout + r.stderr);
     assert.match(r.stdout, motif);
+    if (options.avantPush && /une seule fusion de develop/.test(r.stdout)) {
+      const derniere = r.stdout.trim().split("\n").at(-1);
+      assert.match(derniere, /git switch -c maj\/lot-2 origin\/sujet\/lot/, "la dernière ligne (celle que refus.sh renvoie) porte la recette");
+      assert.match(derniere, /en une seule fusion/);
+      // La recette, jouée telle qu'écrite dans le motif, dans un clone `--single-branch` (tout clone superficiel,
+      // donc les sessions cloud) : le fetch doit créer origin/sujet/lot, et le switch partir de son sommet.
+      const [, rapatrier, brancher] = derniere.match(/en une seule fusion : (git fetch [^;]+) ; (git switch [^;]+) ;/) ?? [];
+      assert.ok(rapatrier && brancher, "le motif porte le fetch et le switch de la recette");
+      const clone = join(d.racine, "clone-superficiel");
+      const env = { ...d.env };
+      assert.equal(spawnSync("git", ["clone", "-q", "--single-branch", "-b", "develop", d.origine, clone], { env }).status, 0);
+      for (const geste of [rapatrier, brancher]) {
+        const g = spawnSync("sh", ["-c", geste], { cwd: clone, env, encoding: "utf8" });
+        assert.equal(g.status, 0, `${geste} : ${g.stderr}`);
+      }
+      const sommetClone = spawnSync("git", ["rev-parse", "HEAD"], { cwd: clone, env, encoding: "utf8" }).stdout.trim();
+      assert.equal(sommetClone, spawnSync("git", ["rev-parse", "origin/sujet/lot"], { cwd: clone, env, encoding: "utf8" }).stdout.trim());
+    }
     assert.equal(sujetDistant(d), avant, "sujet inchangé");
     assert.ok(!ecritures(d).some((e) => e.startsWith("PUT ")), "aucun squash");
     assert.equal(d.git("status", "--porcelain"), "");
@@ -711,7 +917,8 @@ test("fusionner : des checks encore en cours sortent en 5 (reprise, aucun renvoi
 function prePushRefuse(d) {
   const hooks = join(d.racine, "hooks");
   mkdirSync(hooks, { recursive: true });
-  writeFileSync(join(hooks, "pre-push"), "#!/bin/sh\necho 'pnpm check rouge (formatage)' >&2\nexit 1\n");
+  // La trace de husky 9 (`.husky/_/h`), comme le hook d'un projet : sans elle, le refus se lit comme celui du distant.
+  writeFileSync(join(hooks, "pre-push"), "#!/bin/sh\necho 'pnpm check rouge (formatage)' >&2\necho 'husky - pre-push script failed (code 1)'\nexit 1\n");
   chmodSync(join(hooks, "pre-push"), 0o755);
   d.git("config", "core.hooksPath", hooks);
 }
@@ -871,4 +1078,334 @@ test("refus.sh : une sortie 3 sans motif lisible se dit « refusée en sortie 3 
   const r = d.lancer(scriptDe("fusionner", "refus.sh"), "63", "absent.txt", "3");
   assert.equal(r.status, 0, r.stdout + r.stderr);
   assert.match(r.stdout, /RENVOI : refusée en sortie 3, voir le journal du capitaine/);
+});
+
+// ── Règle d'ascendance : une sous-PR en retard sur son sujet n'entre qu'après mise à jour et retest ──────────────
+// Le défaut vécu sur `fedora` (2026-11-18) : #1968 et #1979 squashées en retard sur leur sujet, chacune avec le même
+// import ; la combinaison « sous-PR + dernier sujet » n'avait jamais été testée.
+const misesAJour = (d, n) => d.journal().filter((e) => e.methode === "PUT" && e.route === `pulls/${n}/merge`);
+const shaFusionne = (d, n) => JSON.parse(misesAJour(d, n)[0].entree).sha;
+
+// #80 part du sujet ; le sujet reçoit ensuite `fichiersSujet`. L'ancien sommet est vert par son sha ; tout autre
+// commit lit `etatNouveau` (une liste se consomme par sha : en cours, puis vert).
+function sousPrEnRetard(fichiersSujet, etatNouveau = ["IN_PROGRESS", "SUCCESS"]) {
+  const d = depotJouet();
+  d.branche("sujet/lot", "origin/develop", { "docs/lot.md": "lot\n" }, "feat(lot): lot (#1)");
+  const ancien = d.branche("feat/sous", "origin/sujet/lot", { "docs/sous.md": "sous\n" });
+  const sujet = d.branche("sujet/lot", "origin/sujet/lot", fichiersSujet, "feat(lot): a (#2)");
+  d.git("switch", "-q", "--detach", "origin/develop");
+  d.github({
+    exiges: ["qualite"],
+    checks: { [ancien]: { qualite: "SUCCESS" }, "*": { qualite: etatNouveau } },
+    pulls: [
+      {
+        number: 80,
+        title: "docs(lot): sous",
+        head: "feat/sous",
+        base: "sujet/lot",
+        labels: ["à-fusionner"],
+        body: "## Revue de ticket\n\nRien de bloquant.\n",
+      },
+    ],
+  });
+  return { d, ancien, sujet };
+}
+
+function verifierMiseAJourPuisSquash(d, ancien, sujet, r) {
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /#80 en retard sur sujet\/lot : mise à jour poussée \([0-9a-f]+\), attente de la CI/);
+  assert.match(r.stdout, /#80 fusionnée dans sujet\/lot/);
+  d.git("fetch", "-q", "origin");
+  const nouveau = d.git("rev-parse", "origin/feat/sous");
+  assert.equal(d.git("rev-parse", `${nouveau}^1`), ancien, "premier parent : l'ancien sommet");
+  assert.equal(d.git("rev-parse", `${nouveau}^2`), sujet, "second parent : le sujet");
+  assert.equal(shaFusionne(d, 80), nouveau, "le PUT porte le nouveau sommet, testé");
+  assert.equal(d.git("rev-parse", "origin/sujet/lot^{tree}"), d.git("rev-parse", `${nouveau}^{tree}`), "arbre du squash = arbre testé");
+  assert.ok(d.etat().lectures[nouveau] >= 2, "la CI du nouveau sommet a été attendue (en cours, puis verte)");
+}
+
+test("sous-PR en retard de code : mise à jour, CI attendue sur le nouveau sommet, puis squash", () => {
+  const { d, ancien, sujet } = sousPrEnRetard({ "apps/a.ts": "export const a = 1;\n" });
+  verifierMiseAJourPuisSquash(d, ancien, sujet, d.lancer(SUJET, "fusionner", "80"));
+
+  // Le nouveau sommet est rouge : sortie 3, aucun squash.
+  const rouge = sousPrEnRetard({ "apps/a.ts": "export const a = 1;\n" }, "FAILURE");
+  const x = rouge.d.lancer(SUJET, "fusionner", "80");
+  assert.equal(x.status, 3, x.stdout + x.stderr);
+  assert.match(x.stdout, /checks rouges sur #80 : qualite ;/);
+  assert.equal(misesAJour(rouge.d, 80).length, 0, "aucun PUT");
+});
+
+test("retard de documentation seule : mis à jour et retesté", () => {
+  const { d, ancien, sujet } = sousPrEnRetard({ "docs/guide.md": "guide\n" });
+  verifierMiseAJourPuisSquash(d, ancien, sujet, d.lancer(SUJET, "fusionner", "80"));
+});
+
+test("retard de documentation seule : mis à jour et retesté, vers develop (strict), develop qui reçoit un Markdown pendant la CI", () => {
+  const d = depotJouet();
+  const premier = d.branche("docs/guide", "origin/develop", { "docs/guide.md": "guide\n" });
+  const markdown = d.branche("ailleurs", "origin/develop", { "docs/autre.md": "autre\n" });
+  d.git("switch", "-q", "--detach", "origin/develop");
+  d.github({
+    exiges: ["qualite"],
+    strict: ["develop"],
+    checks: { "*": { qualite: "SUCCESS" } },
+    pendantCi: [{ lectures: 1, branche: "develop", vers: markdown }],
+    pulls: [{ number: 40, title: "docs(demo): guide", head: "docs/guide", base: "develop", labels: ["à-fusionner"] }],
+  });
+  const r = d.lancer(scriptDe("fusionner", "passer.sh"), "40");
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /develop a bougé pendant la CI : nouvelle mise à jour \(1 sur 2\)/);
+  assert.match(r.stdout, /FUSIONNÉE : [0-9a-f]+, arbre = arbre testé/);
+  d.git("fetch", "-q", "origin");
+  const second = d.git("rev-parse", "origin/docs/guide");
+  assert.equal(d.git("rev-parse", `${second}^1`), premier);
+  assert.equal(d.git("rev-parse", `${second}^2`), markdown, "seconde mise à jour : le Markdown de develop");
+  assert.equal(shaFusionne(d, 40), second);
+  assert.ok(d.etat().lectures[premier] >= 1 && d.etat().lectures[second] >= 2, "une CI par sommet");
+});
+
+// La sous-PR a reçu un push après sa lecture : ces commits n'ont été ni revus ni contrôlés. Le capitaine ne les met pas
+// à jour ni ne les pousse : sortie 5, rien n'est poussé, la sous-PR est rejugée au tour suivant.
+test("fusionner : une sous-PR en retard qui a bougé depuis sa lecture n'est ni mise à jour ni poussée (sortie 5)", () => {
+  const { d, ancien } = sousPrEnRetard({ "apps/a.ts": "export const a = 1;\n" });
+  const pousse = d.branche("feat/sous", "origin/feat/sous", { "apps/cache.ts": "export const x = 1;\n" });
+  d.git("switch", "-q", "--detach", "origin/develop");
+  // GitHub rend encore l'ancien sommet (lecture faite avant le push de la session).
+  d.github({ pulls: d.etat().pulls.map((p) => ({ ...p, sha: ancien })) });
+  const r = d.lancer(SUJET, "fusionner", "80");
+  assert.equal(r.status, 5, r.stdout + r.stderr);
+  assert.match(r.stdout, /la sous-PR #80 a bougé depuis sa lecture/);
+  assert.equal(d.git("ls-remote", "origin", "refs/heads/feat/sous").split("\t")[0], pousse, "rien n'est poussé");
+  assert.equal(misesAJour(d, 80).length, 0, "aucun PUT");
+});
+
+// GitHub illisible (ticket 9) : une lecture refusée pendant `fusionner` sort en 5 (REPRISE dans la boucle), jamais un
+// état (« checks encore en cours » lus sur une panne, « aucun check exigé ») ni un renvoi.
+test("sujet.sh fusionner : GitHub illisible pendant l'attente de la CI de la sous-PR : sortie 5 (REPRISE), aucun renvoi", () => {
+  for (const panne of [
+    { route: "/check-runs", fois: 40, sortie: "" },
+    { route: "/check-runs", fois: 40, sortie: '{"message":"Server Error"}', code: 0, erreur: "" },
+    { route: "^rules/branches/develop$", fois: 5 },
+    { route: "^pulls/80$", fois: 1 },
+  ]) {
+    const { d, sommet } = sousPrEnConflit("aucun");
+    d.github({ pannes: [panne] });
+    const r = d.lancer(SUJET, "fusionner", "80");
+    assert.equal(r.status, 5, `${panne.route} : ${r.stdout}${r.stderr}`);
+    assert.match(r.stdout, /GitHub illisible/, panne.route);
+    assert.match(r.stderr, /GitHub illisible \(/, panne.route);
+    assert.deepEqual(horsPassage(d), [], `${panne.route} : ni squash, ni label, ni commentaire`);
+    d.git("fetch", "-q", "origin");
+    assert.equal(d.git("rev-parse", "origin/docs/sous"), sommet);
+  }
+  // PR de mise à jour : sa lecture unique des checks, de même.
+  const { d, sujet } = miseAJour();
+  d.github({ checks: { "*": { qualite: "SUCCESS" } }, pannes: [{ route: "/check-runs", fois: 3 }] });
+  const r = d.lancer(SUJET, "fusionner", "81");
+  assert.equal(r.status, 5, r.stdout + r.stderr);
+  assert.match(r.stdout, /GitHub illisible/);
+  assert.equal(sujetDistant(d), sujet);
+});
+
+// Contre-relecture (M2, M3) : `relancer` sort en 5, explicitement, sur une PR illisible ; le refus de fusion que relaie
+// `sujet.sh fusionner` est masqué.
+test("sujet.sh relancer : PR illisible, sortie 5 sans rien pousser ; fusionner : refus de fusion relayé masqué", () => {
+  const { d, sommet } = sousPrEnConflit("aucun");
+  d.github({ pannes: [{ route: "^pulls/80$", fois: 1 }] });
+  const r = d.lancer(SUJET, "relancer", "80");
+  assert.equal(r.status, 5, r.stdout + r.stderr);
+  assert.match(r.stdout, /GitHub illisible/);
+  d.git("fetch", "-q", "origin");
+  assert.equal(d.git("rev-parse", "origin/docs/sous"), sommet);
+
+  const e = sousPrEnConflit("aucun").d;
+  const etat = e.etat();
+  etat.pulls[0].refusFusion = "gh: refus, voir https://x:jeton-secret@exemple.test/regles (HTTP 405)";
+  e.github(etat);
+  const f = e.lancer(SUJET, "fusionner", "80");
+  assert.equal(f.status, 3, f.stdout + f.stderr);
+  assert.match(f.stderr, /https:\/\/\*\*\*@exemple\.test/);
+  assert.doesNotMatch(f.stdout + f.stderr, /jeton-secret/);
+});
+
+// Ticket 16 : `sujet.sh a-juger`, que lit le check `pr-titre` du socle, écrit les fichiers que `fusionner` juge, par la
+// même fonction (`fichiers_a_juger`), sans appel GitHub.
+test("sujet.sh a-juger écrit les fichiers que fusionner juge : résolution et retouches d'une PR de mise à jour, diff depuis le départ du sujet sinon ; un refus de forme sort en 4", () => {
+  // PR de mise à jour : la résolution (fichiers en conflit et leur écart) et la retouche, jamais le develop apporté.
+  const { d, sommet } = avecRetouche({ avantPush: retouche({ "apps/s.ts": FORMATE }) });
+  const avant = ecritures(d).length;
+  const maj = d.lancer(SUJET, "a-juger", sommet, "sujet/lot", "81");
+  assert.equal(maj.status, 0, maj.stdout + maj.stderr);
+  // Deux listes, séparées par une ligne vide : la résolution (jugée avant les checks), puis l'union avec les retouches.
+  const [avantChecks, apresChecks, ...reste] = maj.stdout.replace(/\n$/, "").split("\n\n");
+  assert.deepEqual(reste, []);
+  assert.deepEqual(avantChecks.split("\n").sort(), [`${ADR}/README.md`, "docs/f.md"]);
+  assert.deepEqual(apresChecks.split("\n").sort(), ["apps/s.ts", `${ADR}/README.md`, "docs/f.md"]);
+  assert.equal(ecritures(d).length, avant, "aucun appel GitHub");
+  assert.doesNotMatch(d.journal().map((e) => e.route).join("\n"), /pulls/, "aucune lecture GitHub non plus");
+  // Et fusionner juge bien la retouche : sans section, refus sur apps/s.ts.
+  const juge = d.lancer(SUJET, "fusionner", "81");
+  assert.equal(juge.status, 4, juge.stdout + juge.stderr);
+  assert.match(juge.stdout, /\(apps\/s\.ts\)/);
+  // Sous-PR ordinaire : le diff depuis son départ du sujet, pas ce que develop a reçu depuis.
+  const o = depotJouet();
+  o.branche("sujet/lot", "origin/develop", { "docs/lot.md": "lot\n" }, "docs: lot");
+  const sous = o.branche("feat/b", "origin/sujet/lot", { "apps/b.ts": "export const b = 1;\n" }, "feat: b");
+  o.branche("develop", "origin/develop", { "apps/z.ts": "export const z = 1;\n" }, "feat: z");
+  const ordinaire = o.lancer(SUJET, "a-juger", sous, "sujet/lot", "82");
+  assert.equal(ordinaire.status, 0, ordinaire.stdout + ordinaire.stderr);
+  assert.equal(ordinaire.stdout, "apps/b.ts\n");
+  // Refus de forme : deux fusions de develop. Sortie 4, le motif de verifier_mise_a_jour en dernière ligne.
+  const deux = miseAJour({
+    avantPush: (x) => {
+      x.git("switch", "-q", "--detach", "origin/develop");
+      x.ecrire("docs/d2.md", "d2\n");
+      x.commit("docs: develop encore");
+      x.git("push", "-q", "origin", "HEAD:develop");
+      x.git("fetch", "-q", "origin");
+      x.git("switch", "-q", "maj/lot");
+      x.git("merge", "-q", "--no-edit", "origin/develop");
+    },
+  });
+  const refus = deux.d.lancer(SUJET, "a-juger", deux.d.git("rev-parse", "origin/maj/lot"), "sujet/lot", "81");
+  assert.equal(refus.status, 4, refus.stdout + refus.stderr);
+  assert.match(refus.stdout.trim().split("\n").at(-1), /^#81, PR de mise à jour : une seule fusion de develop dans sujet\/lot/);
+  // Refs absentes : 11, jamais une liste vide.
+  const absent = o.lancer(SUJET, "a-juger", sous, "sujet/fantome", "82");
+  assert.equal(absent.status, 11, absent.stdout + absent.stderr);
+  assert.match(absent.stdout, /refs absentes/);
+});
+
+// ── Verrou du passage : plusieurs capitaines sur la même file (ticket 4 de capitaine-a-jour-et-teste) ──────────
+const marqueDe = (id) => `Passage du capitaine \`${id}\` depuis 12:00 UTC.\n<!-- capitaine:passage ${id} -->`;
+const brutes = (d) => d.journal().map((e) => `${e.methode} ${e.route}`);
+
+test("fusionner et relancer : une sous-PR en passage chez un autre capitaine est sautée (sortie 7), rien n'est poussé ; la boucle ne la renvoie pas", () => {
+  // fusionner : la sous-PR #80, en retard sur son sujet, serait mise à jour, poussée et squashée sans verrou.
+  const { d, ancien } = sousPrEnRetard({ "apps/a.ts": "export const a = 1;\n" });
+  const tenue = () => d.github({ pulls: d.etat().pulls.map((p) => ({ ...p, commentaires: [marqueDe("capitaine-jordan")] })) });
+  tenue();
+  let r = d.lancer(SUJET, "fusionner", "80");
+  assert.equal(r.status, 7, r.stdout + r.stderr);
+  assert.match(r.stdout, /^#80 en passage chez le capitaine capitaine-jordan depuis 2026-11-17T12:00:00Z : sautée sans renvoi$/m);
+  assert.deepEqual(brutes(d), ["POST issues/80/comments", "DELETE issues/comments/80002"]);
+  assert.equal(d.git("ls-remote", "origin", "refs/heads/feat/sous").split("\t")[0], ancien, "rien n'est poussé");
+
+  // relancer : la même sous-PR, en retard, serait mise à jour et poussée.
+  r = d.lancer(SUJET, "relancer", "80");
+  assert.equal(r.status, 7, r.stdout + r.stderr);
+  assert.match(r.stdout, /#80 en passage chez le capitaine capitaine-jordan/);
+  assert.equal(d.git("ls-remote", "origin", "refs/heads/feat/sous").split("\t")[0], ancien, "rien n'est poussé");
+
+  // La boucle : sautée, ni renvoyée ni étiquetée.
+  d.publierChaine();
+  tenue();
+  r = d.lancer(BOUCLE);
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /\[#80\] sous-PR non éligible \(fermée, en brouillon, ou en passage chez un autre capitaine\)/);
+  assert.doesNotMatch(r.stdout, /RENVOI/);
+  assert.ok(!ecritures(d).some((e) => /issues\/80\/(labels|comments)|pulls\/80\/merge/.test(e)), ecritures(d).join());
+  assert.deepEqual(d.etat().pulls[0].labels, ["à-fusionner"]);
+  assert.equal(d.git("ls-remote", "origin", "refs/heads/feat/sous").split("\t")[0], ancien, "rien n'est poussé");
+});
+
+test("fusionner : le commentaire du passage est rafraîchi à chaque tour d'attente de la CI", () => {
+  // La sous-PR part du sujet (à jour) ; le sujet reçoit un Markdown pendant la première attente : deux tours.
+  const d = depotJouet();
+  d.branche("sujet/lot", "origin/develop", { "docs/lot.md": "lot\n" }, "feat(lot): lot (#1)");
+  d.branche("feat/sous", "origin/sujet/lot", { "docs/sous.md": "sous\n" });
+  const markdown = d.branche("ailleurs", "origin/sujet/lot", { "docs/autre.md": "autre\n" });
+  d.git("switch", "-q", "--detach", "origin/develop");
+  d.github({
+    exiges: ["qualite"],
+    checks: { "*": { qualite: "SUCCESS" } },
+    pendantCi: [{ lectures: 1, branche: "sujet/lot", vers: markdown }],
+    pulls: [{ number: 80, title: "docs(lot): sous", head: "feat/sous", base: "sujet/lot", labels: ["à-fusionner"], body: "## Revue de ticket\n\nRien de bloquant.\n" }],
+  });
+  const r = d.lancer(SUJET, "fusionner", "80");
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /sujet\/lot a bougé pendant la CI : nouvelle mise à jour \(1 sur 2\)/);
+  const j = d.journal();
+  const put = j.findIndex((e) => e.route === "pulls/80/merge");
+  const tours = j.slice(0, put).filter((e) => e.methode === "PATCH" && e.route === "issues/comments/80001").map((e) => /, tour (\d+) :/.exec(e.champs.body)?.[1]);
+  assert.deepEqual(tours, ["1", "2"], "un rafraîchissement par tour, avant le squash");
+  assert.match(j.at(-1).champs.body, /terminé à \d\d:\d\d UTC\.\n<!-- capitaine:passage capitaine-banc -->\n<!-- capitaine:fin -->/, "terminé à la sortie");
+});
+
+// ── Fusion sans effet (ticket 3 de capitaine-a-jour-et-teste, A-8) : develop dans un sujet (`rafraichir`) et un sujet
+// dans une sous-PR (`mettre_a_jour_sous_pr`) portent la mention du contrat d'origin/develop, sous un `commit-msg` de
+// banc qui refuse un commit touchant le schéma sans migration ni `[sans-migration:`. ─────────────────────────────────
+const SCHEMA = "prisma/schema.prisma";
+const MENTION = "[sans-migration: commentaire seul, apporté par une mise à jour du capitaine]";
+const CONTRAT = { fusionsSansEffet: [{ fichier: SCHEMA, lignesSansEffet: "^[[:space:]]*(//.*)?$", mention: MENTION }] };
+function commitMsgPrisma(d) {
+  const dir = join(d.racine, "hooks-prisma");
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(
+    join(dir, "commit-msg"),
+    `#!/bin/sh
+f=$(git diff --cached --name-only)
+if printf '%s\\n' "$f" | grep -qx '${SCHEMA}' && ! printf '%s\\n' "$f" | grep -q '^prisma/migrations/' && ! grep -qF '[sans-migration:' "$1"; then
+  echo "commit-msg prisma jouet : migration ou [sans-migration: <raison>] exigée" >&2; exit 1
+fi
+`,
+  );
+  chmodSync(join(dir, "commit-msg"), 0o755);
+  d.git("config", "core.hooksPath", dir);
+}
+function schemaSujetJouet() {
+  const d = depotJouet();
+  d.ecrire(SCHEMA, "model A {\n  id Int\n}\n");
+  d.ecrire(".claude/chaine.json", JSON.stringify(CONTRAT));
+  d.commit("chore: schéma et contrat");
+  d.git("push", "-q", "origin", "HEAD:develop");
+  d.git("fetch", "-q", "origin");
+  return d;
+}
+
+test("rafraichir et fusionner : la mention vaut aussi pour develop dans un sujet et pour un sujet dans une sous-PR", () => {
+  // develop dans un sujet.
+  const d = schemaSujetJouet();
+  d.branche("sujet/lot", "origin/develop", { "docs/lot.md": "lot\n" });
+  d.branche("develop", "origin/develop", { [SCHEMA]: "// note\nmodel A {\n  id Int\n}\n" }, "docs(db): note [sans-migration: commentaire]");
+  d.git("switch", "-q", "--detach", "origin/develop");
+  commitMsgPrisma(d);
+  const r = d.lancer(SUJET, "rafraichir", "lot");
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  d.git("fetch", "-q", "origin");
+  assert.equal(d.git("log", "-1", "--format=%B", "origin/sujet/lot"), `Merge remote-tracking branch 'origin/develop' into sujet/lot\n\n${MENTION}`);
+
+  // Un sujet dans une sous-PR en retard sur lui.
+  const s = schemaSujetJouet();
+  s.branche("sujet/lot", "origin/develop", { "docs/lot.md": "lot\n" }, "feat(lot): lot (#1)");
+  const ancien = s.branche("feat/sous", "origin/sujet/lot", { "docs/sous.md": "sous\n" });
+  s.branche("sujet/lot", "origin/sujet/lot", { [SCHEMA]: "// note\nmodel A {\n  id Int\n}\n" }, "docs(db): note [sans-migration: commentaire] (#2)");
+  s.git("switch", "-q", "--detach", "origin/develop");
+  s.github({
+    exiges: ["qualite"],
+    checks: { [ancien]: { qualite: "SUCCESS" }, "*": { qualite: "SUCCESS" } },
+    pulls: [
+      { number: 80, title: "docs(lot): sous", head: "feat/sous", base: "sujet/lot", labels: ["à-fusionner"], body: "## Revue de ticket\n\nRien de bloquant.\n" },
+    ],
+  });
+  commitMsgPrisma(s);
+  const f = s.lancer(SUJET, "fusionner", "80");
+  assert.equal(f.status, 0, f.stdout + f.stderr);
+  assert.match(f.stdout, /#80 en retard sur sujet\/lot : mise à jour poussée/);
+  s.git("fetch", "-q", "origin");
+  assert.equal(s.git("log", "-1", "--format=%B", "origin/feat/sous"), `Merge remote-tracking branch 'origin/sujet/lot' into capitaine/80\n\n${MENTION}`);
+});
+
+test("PR de mise à jour d'un sujet : la fusion de develop par une session, jouée par la recette (fusionner_avec), porte la mention et passe le commit-msg", () => {
+  const d = schemaSujetJouet();
+  d.publierChaine();
+  d.branche("sujet/lot", "origin/develop", { "docs/lot.md": "lot\n" });
+  d.branche("develop", "origin/develop", { [SCHEMA]: "// note\nmodel A {\n  id Int\n}\n" }, "docs(db): note [sans-migration: commentaire]");
+  d.git("switch", "-q", "-c", "maj/lot", "origin/sujet/lot");
+  commitMsgPrisma(d);
+  // La commande de la recette (skill sujet, « Recevoir develop dans un sujet », et en-tête de sujet.sh).
+  const r = spawnSync("bash", ["-c", ". scripts/chaine/github.sh && fusionner_avec origin/develop"], { cwd: d.travail, env: d.env, encoding: "utf8" });
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.equal(d.git("log", "-1", "--format=%B"), `Merge remote-tracking branch 'origin/develop' into maj/lot\n\n${MENTION}`);
 });

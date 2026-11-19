@@ -23,7 +23,7 @@ La session qui réalise un ticket, et un seul, puis s'arrête.
 _Avoid_: worker, sous-agent (un sous-agent vit dans la session qui le lance)
 
 **Capitaine de fusion**:
-La session unique d'un dépôt qui fait entrer les PR prêtes dans la branche d'intégration, une par une.
+Une session qui fait entrer les PR prêtes dans la branche d'intégration, une par une ; plusieurs peuvent tenir la même file.
 _Avoid_: merger, intégrateur
 
 ### Travail
@@ -43,6 +43,18 @@ _Avoid_: sprint, lot
 Une branche qu'aucune session n'écrit elle-même : un sujet (`sujet/…`), `develop`, `main` ou la branche par défaut, sous toutes leurs graphies ; le capitaine y entre par ses scripts, le conducteur un sujet par `sujet.sh`. Une seule définition (`brancheGardee`) sert les hooks pour `git push`, `gh` et les outils GitHub.
 _Avoid_: branche protégée (réglage côté GitHub)
 
+**Fusion sans effet**:
+Une fusion jouée par le capitaine qui n'apporte à un fichier gardé par un hook du projet que des lignes sans effet (`fusionsSansEffet` du contrat, lu sur develop) ; son commit porte la mention que le hook attend. Un changement réel n'en porte aucune.
+_Avoid_: dispense, exemption
+
 **Plafond**:
 La limite de mémoire de travail au-delà de laquelle une session est signalée au produit, qui décide ; elle n'est jamais interrompue pour cela.
 _Avoid_: budget, quota
+
+**Règle d'ascendance**:
+La vérification, juste avant chaque fusion, que la PR a été testée sur l'état de la branche où elle entre ; une PR en retard est mise à jour et retestée, sans exception.
+_Avoid_: « à jour » au sens du réglage de GitHub
+
+**Verrou du passage**:
+Le commentaire marqué `<!-- capitaine:passage <id> -->` qu'un capitaine pose sur une PR au début de son passage et termine à sa sortie : un autre capitaine saute la PR tant qu'il vit (90 minutes au plus sans rafraîchissement). Il évite le travail en double, la règle d'ascendance garde la sûreté. En code : `prendre_passage`, `rafraichir_passage`, `finir_passage` (`github.sh`), signés par `CAPITAINE_ID`.
+_Avoid_: verrou de la boucle (le `flock`, local à un clone)
