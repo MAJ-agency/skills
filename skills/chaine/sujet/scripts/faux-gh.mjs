@@ -27,7 +27,8 @@
 //               met d'office les propriétaires CODEOWNERS et les retire quand ils approuvent
 //   PR.approbationManquante  sur une base de `revueProprietaires`, la fusion est refusée (405, « Waiting on code
 //               owner review ») : l'approbation d'un propriétaire manque (le faux ne lit pas CODEOWNERS)
-//   commentairesRefuses  tout commentaire posé est refusé (403)
+//   commentairesRefuses  `true` : tout commentaire posé est refusé (403) ; une chaîne : ceux dont le corps correspond à
+//               cette expression rationnelle seulement (le commentaire d'attente refusé, celui du verrou du passage posé)
 //   PR.refusFusion  message d'un refus de fusion (`gh: … (HTTP 405)`) : le `PUT pulls/<n>/merge` le rend, code 1, après
 //               `avantFusion` (une fusion concurrente, puis le refus)
 //   origineCasseeAuRefus  au refus de `PR.refusFusion`, le dépôt nu est renommé : la relecture de develop échoue
@@ -310,7 +311,9 @@ function repondre() {
     return [];
   }
   if ((m = route.match(/^issues\/(\d+)\/comments$/)) && methode === "POST") {
-    if (etat.commentairesRefuses) echec("gh: Resource not accessible by integration (HTTP 403)");
+    const refus = etat.commentairesRefuses;
+    if (refus === true || (typeof refus === "string" && new RegExp(refus).test(champs.body ?? "")))
+      echec("gh: Resource not accessible by integration (HTTP 403)");
     const p = pr(m[1]);
     p.commentaires ??= [];
     // Un autre capitaine arrivé à la même seconde : son commentaire passe juste avant le nôtre (un id plus petit).
