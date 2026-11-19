@@ -3,14 +3,14 @@
 Status: ready-for-agent
 Type: task
 Label: contre-revue
-Modèle: sonnet — treize fichiers de skill et un banc de 16 tests donnés entiers, six ajouts à quatre fichiers existants donnés mot pour mot avec leurs bornes, la version et sa note ; le tout a été joué sur des clones neufs d'`origin/main`, à `f58ccad` puis à `a3c2a7c` : suite entière verte sur `f58ccad`, verte sur `a3c2a7c` à un banc près, arrêté par son plafond sur une machine chargée et qui ne lit aucun fichier de ce ticket, 86 mutations nommées, toutes rouges (voir « Vérification »). Rien à concevoir : la session recopie, rejoue, et prend la version qui suit celle de `main` au moment de livrer (§ 0).
-Blocked by: — : rien ne bloque, et l'architecte tranche sur la preuve de « Où », « Ce que ce ticket partage ». La spec place le lot 3d « après 2 » et après les tickets 2, 3, 4, 7, 9, 11, 13 et 16 de l'autre programme. Ces huit tickets sont entrés (`main` à `a3c2a7c`, le ticket 4 par la PR 133), le ticket 16 compris, dont ce skill emploie la commande `sujet.sh a-juger` telle quelle. Restent, dans ce programme, les tickets 54 (lot 1) et 55 (lot 2) : avec eux, ce ticket n'a en commun que `README.md`, sur des lignes différentes, et les deux fichiers de version que tout ticket se dispute. Les tickets 56, 57 et 60 (PR 134) ne partagent que la version.
+Modèle: sonnet — quatorze fichiers de skill et un banc de 21 tests donnés entiers, six ajouts à quatre fichiers existants donnés mot pour mot avec leurs bornes, la version et sa note ; le tout a été joué sur des clones neufs d'`origin/main`, à `f58ccad`, à `a3c2a7c`, puis à `a018502` après les retouches du premier tour de relecture adversariale : sur `a018502`, le banc est rouge avant le skill (19 sur 21) et vert après (21 sur 21), la suite entière est verte d'un seul tenant (1 094 tests), et 134 mutations nommées sont toutes rouges (voir « Vérification »). Rien à concevoir : la session recopie, rejoue, et prend la version qui suit celle de `main` au moment de livrer (§ 0).
+Blocked by: — : rien ne bloque, et l'architecte l'a confirmé (`A-137` : « le lot 3d n'attend pas le lot 2 ») sur la preuve de « Où », « Ce que ce ticket partage ». La spec plaçait le lot 3d « après 2 » et après les tickets 2, 3, 4, 7, 9, 11, 13 et 16 de l'autre programme. Ces huit tickets sont entrés (`main` à `a018502`, le ticket 4 par la PR 133), le ticket 16 compris, dont ce skill emploie la commande `sujet.sh a-juger` telle quelle. Restent, dans ce programme, les tickets 54 (lot 1) et 55 (lot 2) : avec eux, ce ticket n'a en commun que `README.md`, sur des lignes différentes, et les deux fichiers de version que tout ticket se dispute. Les tickets 56, 57 et 60 (PR 134) ne partagent que la version.
 Dépendances: —
-Fichiers chauds: `.claude-plugin/plugin.json`, `NOTES-DE-VERSION.md`, `README.md`, `CONTEXT.md`, `skills/monorepo/socle-monorepo/references/scripts/verify/references-agent-integrees.json`. Quatorze fichiers neufs, que personne d'autre n'écrit : `skills/chaine/relecture/SKILL.md`, les douze fichiers de `skills/chaine/relecture/references/`, et `scripts/relecture.test.mjs`. `scripts/depot.test.mjs`, `scripts/poses.test.mjs` et `scripts/points-d-entree.test.mjs` ne sont pas touchés (décisions 3 et 18).
+Fichiers chauds: `.claude-plugin/plugin.json`, `NOTES-DE-VERSION.md`, `README.md`, `CONTEXT.md`, `skills/monorepo/socle-monorepo/references/scripts/verify/references-agent-integrees.json`. Quinze fichiers neufs, que personne d'autre n'écrit : `skills/chaine/relecture/SKILL.md`, les treize fichiers de `skills/chaine/relecture/references/`, et `scripts/relecture.test.mjs`. `scripts/depot.test.mjs`, `scripts/poses.test.mjs` et `scripts/points-d-entree.test.mjs` ne sont pas touchés (décisions 3 et 18).
 
 ## Le besoin
 
-Ce ticket réalise le lot 3d de la spec `docs/issues/gouverner-nos-boucles/relecture-independante.spec.md` (sixième version, `A-110` à `A-126` compris) : les décisions `A-78`, `A-79`, `A-80` précisée par `A-111`, et `A-107`, pour les décisions du produit `P-51` (« Toute PR a une relecture indépendante »), `P-52` (« La session qui code ne se relit plus ») et `P-55` (« Un skill unique de relecture choisit les contrôles selon ce que la PR contient »).
+Ce ticket réalise le lot 3d de la spec `docs/issues/gouverner-nos-boucles/relecture-independante.spec.md` (sixième version, `A-110` à `A-137` compris) : les décisions `A-78`, `A-79`, `A-80` précisée par `A-111` et amendée par `A-137`, et `A-107`, pour les décisions du produit `P-51` (« Toute PR a une relecture indépendante »), `P-52` (« La session qui code ne se relit plus ») et `P-55` (« Un skill unique de relecture choisit les contrôles selon ce que la PR contient »).
 
 **Les décisions.** `A-78`, mot pour mot :
 
@@ -35,34 +35,39 @@ Ce ticket réalise le lot 3d de la spec `docs/issues/gouverner-nos-boucles/relec
 
 > **Le verdict est un commentaire de la PR**, de forme fixe, que la machine lit : une marque invisible ; `Sommet relu:` (sha de 40 caractères) ; `Tour:` (le numéro que le Relecteur lui a donné) ; `Verdict:` (`validé`, `refusé` ou `incomplet`) ; `Bloquants:` (nombre) ; `Session:` (son identifiant) ; `/security-review:` (`lancée` ou `non requise`, `A-107`) ; puis les constats (gravité, critère, fichier et ligne, constat, et pour un bloquant le test qui l'aurait attrapé). Un axe en échec s'écrit « non exécuté » et le verdict est `incomplet` : ni validé, ni refusé. […] **Précisée par `A-111`** : la marque invisible est `<!-- relecture:verdict -->`, première ligne du commentaire ; la ligne `/security-review:` est facultative dans la forme, dernière ligne de l'en-tête, et n'est exigée (`lancée`) que sur un chemin sensible ; […] la session de relecture relit le sommet que sa distribution nomme, pas la tête du moment.
 
+`A-137`, qui amende la phrase « Un axe en échec s'écrit « non exécuté » et le verdict est `incomplet` » d'`A-80` :
+
+> **Un bloquant confirmé l'emporte sur un axe non joué** (amende `A-80`, lot 3d). Quand une session de relecture confirme au moins un bloquant et qu'un axe ou un contrôle n'a pas pu se jouer, le verdict est `refusé`, et il nomme l'axe non exécuté ; `incomplet` ne s'écrit que sans aucun bloquant confirmé. Raison : après un `refusé`, l'auteur pousse, le contenu change et le tour suivant rejoue tous les axes ; un `incomplet` ferait rejouer un tour entier sur un contenu déjà connu fautif. Le lecteur de verdict accepte les deux combinaisons.
+
 Le vocabulaire de la spec (« Vocabulaire ») fixe les deux gravités : « **bloquant** (un écart à un critère écrit : il se corrige, ou se conteste) et **doute** (une question, sans obligation) », et dit de ne pas dire « défaut, « à corriger », mineur ». Et « Ce que cette spec ne ferme pas » : « Deux gravités seulement : ce qui était « à corriger » devient bloquant. »
 
 La ligne du lot, dans « Les lots » :
 
 > (3d) le skill, après 2 et après le ticket 16 de l'autre programme, dont il emploie la commande `sujet.sh a-juger` telle quelle (`A-78`, `A-108`) : ses prompts et critères récrits à deux gravités, `relecture poser`, la lecture depuis un arbre à part, `plugin.json`, `README.md`, `CONTEXT.md`, `references-agent-integrees.json`, les tests de `scripts/` qui connaissent les skills. Il ne touche pas aux phrases « relecteur indépendant » de `revue-de-ticket` (`A-108`).
 
-S'y ajoutent `A-98` (« aucun `SKILL.md` ne dépasse 200 lignes »), `A-126` (« ce sont les appelants qui approfondissent le clone, une fois, avant d'appeler »), `A-88` (« la session de relecture lit les arbitrages de la PR et ne relève plus un constat écarté »), `A-90` (deux sessions de relecture : « chacune a pour consigne de ne pas lire le verdict de l'autre »), `A-85` (« La session de relecture, son verdict écrit, écrit une ligne au Relecteur : ce message ne fait que hâter le réveil »), `A-118` (un verdict modifié ne compte plus), et « Vocabulaire » : « Ces termes entrent dans `CONTEXT.md` avec le lot 3. »
+S'y ajoutent `A-98` (« aucun `SKILL.md` ne dépasse 200 lignes »), `A-126` (« ce sont les appelants qui approfondissent le clone, une fois, avant d'appeler »), `A-88` (« la session de relecture lit les arbitrages de la PR et ne relève plus un constat écarté »), `A-90` (deux sessions de relecture : « chacune a pour consigne de ne pas lire le verdict de l'autre »), `A-85` (« La session de relecture, son verdict écrit, écrit une ligne au Relecteur : ce message ne fait que hâter le réveil » ; règle 6 : le Relecteur distribue « en créant les sessions, puis en écrivant la distribution »), `A-115` (« un verdict écrit avant la distribution qui nomme sa session ne compte pas » ; « l'appelant fournit tous les commentaires de la PR, toutes pages lues »), `A-118` (un verdict modifié ne compte plus), et « Vocabulaire » : « Ces termes entrent dans `CONTEXT.md` avec le lot 3. »
 
-**Le fait, sur `origin/main` à `a3c2a7c`** (plugin 7.31.0) :
+**Le fait, sur `origin/main` à `a018502`** (plugin 7.31.1) :
 
 - Aucun skill `relecture`. La revue est jouée par l'auteur : `revue-de-ticket` (trois sous-agents) et `revue-adversariale` (un sous-agent), dont les prompts connaissent trois gravités (« bloquant », « à corriger », « doute ») et lisent « le dépôt du répertoire courant ».
-- Le lecteur du verdict existe (`skills/chaine/fusionner/scripts/verdict.mjs`, lot 3a, PR 122) : `lireVerdict`, `lireVerdicts`, `ecrireVerdict`, `corpsLu`. C'est un module pur, sans point d'entrée.
+- Le lecteur du verdict existe (`skills/chaine/fusionner/scripts/verdict.mjs`, lot 3a, PR 122) : `lireVerdict`, `lireVerdicts`, `ecrireVerdict`, `corpsLu`. C'est un module pur, sans point d'entrée. Il accepte `incomplet` avec des bloquants (`:137-138` ne refuse que `validé` avec, et `refusé` sans).
+- La décision du Relecteur existe (`skills/chaine/fusionner/scripts/decision-relecteur.mjs`, même lot) : `decider` (`:346`). Sa fonction `compter` (`:245`) compte `incomplet` tout verdict d'une PR sensible qui ne porte pas `/security-review: lancée`, un `refusé` compris : c'est la limite écrite à la décision 17.
 - `sujet.sh a-juger <sommet> <base> [<n>]` existe (`skills/chaine/sujet/scripts/sujet.sh:786`, ticket 16 de l'autre programme, PR 130, plugin 7.28.0). Sur un clone superficiel elle sort en 11 (`:143`).
-- Les trois scripts de relecture se jouent déjà hors du dossier où ils sont rangés : `diff-revue.sh` prend la racine du dossier courant (`git rev-parse --show-toplevel`, `:15`), `chemins-sensibles.mjs` lit le contrat du dossier courant et ses outils à côté de lui (`:35-37`), `contexte-ticket.mjs` lit `PROJET_RACINE` (`:52-53`). Et `regenerer_index` (`fusionner/scripts/github.sh:77`) régénère les index du dossier courant.
-- `scripts/depot.test.mjs` tient déjà, pour tout skill du dépôt : sa déclaration dans `plugin.json` (`:29`), son nom (`:40`), le plafond de 200 lignes (`:49`), sa ligne au `README.md` et son nom dans `references-agent-integrees.json` (`:971`), et l'interdit de demander la commande d'un skill marqué (`:351`).
+- Les trois scripts de relecture se jouent déjà hors du dossier où ils sont rangés : `diff-revue.sh` prend la racine du dossier courant (`git rev-parse --show-toplevel`, `:15`), y lit la liste des index générés (`:21-25` : celle de la tête de la PR, quand il se joue dans l'arbre à part) et sort en 1 pour deux causes (`:16-19`, la base non rapatriée ; `:30-33`, le diff vide), `chemins-sensibles.mjs` lit le contrat du dossier courant et ses outils à côté de lui (`:35-37`), `contexte-ticket.mjs` lit `PROJET_RACINE` (`:52-53`). Et `regenerer_index` (`fusionner/scripts/github.sh:77`) régénère les index du dossier courant.
+- `scripts/depot.test.mjs` tient déjà, pour tout skill du dépôt : sa déclaration dans `plugin.json` (`:29`), son nom (`:40`), le plafond de 200 lignes (`:49`), sa ligne au `README.md` et son nom dans `references-agent-integrees.json` (`:984`), et l'interdit de demander la commande d'un skill marqué (`:351`).
 - Personne n'appelle encore ce skill : le Relecteur est le lot 4, le régime 8 se pose au lot 6.
 
-**Quand le ticket est fait** : le plugin porte un skill `relecture` qu'une session de relecture joue de bout en bout sans rien inventer — se placer sur la base, extraire le sommet distribué dans un arbre à part, y jouer les scripts de la base, choisir ses axes, lancer un sous-agent par axe avec un prompt et une liste fermée, trier, écrire un verdict que `verdict.mjs` lit. Un banc tient ses commandes sur un dépôt jouet, son gabarit de verdict contre le lecteur réel, ses critères contre ceux du régime 7, et ses mots. Rien d'autre ne change : aucun script du plugin n'est modifié, `revue-de-ticket` et `revue-adversariale` restent tels quels.
+**Quand le ticket est fait** : le plugin porte un skill `relecture` qu'une session de relecture joue de bout en bout sans rien inventer — se placer sur la base, extraire le sommet distribué dans un arbre à part, y jouer les scripts de la base, choisir ses axes, lancer un sous-agent par axe avec un prompt et une liste fermée, trier, écrire un verdict que `verdict.mjs` lit et que `decider` aiguille. Un banc tient ses commandes sur un dépôt jouet, son gabarit de verdict contre le lecteur réel et contre la décision réelle du Relecteur, ses critères contre ceux du régime 7 et contre le prompt de `criticite`, et ses mots. Rien d'autre ne change : aucun script du plugin n'est modifié, `revue-de-ticket` et `revue-adversariale` restent tels quels.
 
 ## Où
 
-Base : `origin/main` à `a3c2a7c` (plugin **7.31.0**). Les repères de ligne valent à ce commit. Le ticket a d'abord été écrit et joué sur `f58ccad` (7.30.0), puis rejoué ici après l'entrée de la PR 133.
+Base : `origin/main` à `a018502` (plugin **7.31.1**). Les repères de ligne valent à ce commit. Le ticket a d'abord été écrit et joué sur `f58ccad` (7.30.0), rejoué sur `a3c2a7c` (7.31.0) après l'entrée de la PR 133, puis repris et rejoué sur `a018502` après l'entrée de la PR 136, qui ne change des fichiers de ce ticket que la version (`plugin.json`, `NOTES-DE-VERSION.md`) et décale de treize lignes la fin de `scripts/depot.test.mjs`.
 
 | Fichier | Ce qui change |
 | --- | --- |
-| `scripts/relecture.test.mjs` | **neuf** : le banc, 16 tests (§ 1) |
-| `skills/chaine/relecture/SKILL.md` | **neuf** : le skill, 187 lignes (§ 2) |
-| `skills/chaine/relecture/references/` | **neuf**, douze fichiers (§ 3) : `CONTENU.md`, `verdict.md`, cinq prompts (`prompt-regles.md`, `prompt-ticket.md`, `prompt-documentation.md`, `prompt-tickets.md`, `prompt-regles-metier.md`), cinq listes de critères (`criteres-ticket.md`, `criteres-documentation.md`, `criteres-tickets.md`, `criteres-regles-metier.md`, `criteres-session.md`) |
+| `scripts/relecture.test.mjs` | **neuf** : le banc, 21 tests (§ 1) |
+| `skills/chaine/relecture/SKILL.md` | **neuf** : le skill, 198 lignes (§ 2) |
+| `skills/chaine/relecture/references/` | **neuf**, treize fichiers (§ 3) : `CONTENU.md`, `cas-limites.md`, `verdict.md`, cinq prompts (`prompt-regles.md`, `prompt-ticket.md`, `prompt-documentation.md`, `prompt-tickets.md`, `prompt-regles-metier.md`), cinq listes de critères (`criteres-ticket.md`, `criteres-documentation.md`, `criteres-tickets.md`, `criteres-regles-metier.md`, `criteres-session.md`) |
 | `.claude-plugin/plugin.json:3`, `:40` | la version, mineure ; le skill déclaré, une ligne après `:40` (§ 4, § 5) |
 | `skills/monorepo/socle-monorepo/references/scripts/verify/references-agent-integrees.json:7` | un nom ajouté à la liste (§ 4) |
 | `README.md:86`, `:93`, `:163` | une ligne du tableau après `:86`, un membre de phrase dans `:93`, trois lignes de l'arbre après `:163` (§ 4) |
@@ -75,14 +80,14 @@ Aucun autre fichier : la vérification le montre par une commande.
 
 - `skills/chaine/revue-adversariale/` : `SKILL.md` (étapes 0 à 5), `references/prompt.md`, `references/criteres-socle.md`, `scripts/diff-revue.sh`, `scripts/chemins-sensibles.mjs`.
 - `skills/chaine/revue-de-ticket/` : `SKILL.md`, `references/prompt-ticket.md`, `references/prompt-documentation.md`, `references/criteres-ticket.md` (le bloc `T1` à `T9`, `:5-90`), `references/criteres-documentation.md` (le bloc `D1` à `D8`, `:5-42`), `scripts/contexte-ticket.mjs`.
-- `skills/chaine/fusionner/scripts/verdict.mjs` (la forme lue, `:89-151` ; `ecrireVerdict`, `:183`), `decision-relecteur.mjs:105-119` (les marques à préfixe : un commentaire qui porte le préfixe d'une marque sans sa forme rend la PR illisible), `revue-exigee.mjs:182` (`cheminExige`) et `:380-389` (sa ligne de commande), `identifiant.mjs:9` (`ticket-de-pr`), `github.sh:64-94` (`index_json`, `regenerer_index`).
+- `skills/chaine/fusionner/scripts/verdict.mjs` (la forme lue, `:89-151` ; `ecrireVerdict`, `:183`), `decision-relecteur.mjs:105-119` (les marques à préfixe : un commentaire qui porte le préfixe d'une marque sans sa forme rend la PR illisible), `:245` (`compter`), `:346` (`decider`) et `:66-87` (`lireDistribution`, `ecrireDistribution`), `github.sh:290` (`index_regeneres_regex`), `revue-exigee.mjs:182` (`cheminExige`) et `:380-389` (sa ligne de commande), `identifiant.mjs:9` (`ticket-de-pr`), `github.sh:64-94` (`index_json`, `regenerer_index`).
 - `skills/chaine/sujet/scripts/sujet.sh:66-71`, `:140-148`, `:647-719`, `:786-804` (`a-juger`, `est_mise_a_jour`, `verifier_mise_a_jour`, qui joue `pnpm exec commitlint` sur chaque retouche, `:693`), et `skills/chaine/sujet/SKILL.md` § « Recevoir develop dans un sujet ».
-- `skills/chaine/criticite/SKILL.md` et `references/prompt.md` (les trois niveaux, les dix familles), `skills/chaine/socle-chaine-de-production/references/docs-agents/chaine-de-production.md` § 3 et § 4 (le ticket prêt pour agent, les fichiers chauds).
-- `scripts/depot.test.mjs:11-56`, `:315-358`, `:485-490`, `:971-980` ; `scripts/poses.test.mjs:15-23` ; `scripts/points-d-entree.test.mjs:18-28` ; `skills/chaine/sujet/scripts/depot-jouet.mjs:44-52` (`dossierTemporaire`) et `:69` (`environnementDeBanc`) ; `README.md:183-196`.
+- `skills/chaine/criticite/SKILL.md` et `references/prompt.md` (les trois niveaux, les dix familles, ce qui répond à une famille), `skills/chaine/anchorpost/references/rules/anchorpost.md:27` (qui écrit `validation`), `skills/chaine/socle-chaine-de-production/references/docs-agents/chaine-de-production.md` § 3 et § 4 (le ticket prêt pour agent, les fichiers chauds).
+- `scripts/depot.test.mjs:11-56`, `:315-358`, `:485-490`, `:984-993` ; `scripts/poses.test.mjs:15-23` ; `scripts/points-d-entree.test.mjs:18-28` ; `skills/chaine/sujet/scripts/depot-jouet.mjs:44-52` (`dossierTemporaire`) et `:69` (`environnementDeBanc`) ; `README.md:183-196`.
 
 ### Ce que ce ticket partage avec les autres, fichier par fichier
 
-La spec dit qu'« un lot attend un ticket quand ils ont un fichier en commun, hors `.claude-plugin/plugin.json` et `NOTES-DE-VERSION.md` ». Relevé le 2026-11-19 sur `main` à `a3c2a7c`, sur les tickets 54, 55, 56, 57 et 60 de ce dossier, et sur les fichiers de la PR 134 (ticket 60).
+La spec dit qu'« un lot attend un ticket quand ils ont un fichier en commun, hors `.claude-plugin/plugin.json` et `NOTES-DE-VERSION.md` ». Relevé le 2026-11-19 sur `main` à `a3c2a7c`, sur les tickets 54, 55, 56, 57 et 60 de ce dossier, et sur les fichiers de la PR 134 (ticket 60). La PR 136, entrée depuis (`a018502`), n'y change rien : elle écrit `plugin.json`, `NOTES-DE-VERSION.md`, `scripts/depot.test.mjs` et `skills/chaine/chantier/SKILL.md`.
 
 | Fichier de ce ticket | Ticket 54 (lot 1) | Ticket 55 (lot 2) | Tickets 56 et 57 | Ticket 60 (lot 3c, PR 134) |
 | --- | --- | --- | --- | --- |
@@ -102,40 +107,55 @@ Ce que ce ticket en tire :
 - **`sujet.sh`** : lu, pas modifié.
 - **Le lien de fond avec le ticket 55** : le critère `C3` de ce skill lit la ligne `Sensibles:`, dont le ticket 55 fait juger la forme par le gate. Cette forme est déjà fixée par la spec (`A-74`, amendée en sixième version), et `C3` la reprend de là. Aucun fichier du ticket 55 n'est lu par ce skill.
 
-Conclusion : rien ne bloque ce ticket. Avec tout autre ticket ouvert, la seule rencontre est la version : qui entre en second prend la suivante (§ 0).
+Conclusion : rien ne bloque ce ticket, et `A-137` le confirme. Avec tout autre ticket ouvert, la seule rencontre est la version : qui entre en second prend la suivante (§ 0).
 
 ## Décisions
 
 1. **Deux gravités : « bloquant » et « doute ».** Ce sont les mots de la spec (« Vocabulaire »), qui écarte « mineur » et « à corriger ». Tout écart à un critère écrit est bloquant ; ce que le dépôt ne permet pas de trancher est un doute, et un doute n'empêche pas `validé`. Le paragraphe des gravités est le même dans les cinq prompts, et un test le tient.
 2. **Le skill est marqué `disable-model-invocation: true`.** Raison : `A-78` dit « jamais par l'auteur » ; un skill que le modèle charge sur sa description serait chargé par une session qui vient de coder et qui parle de « relecture ». Marqué, il ne se charge que par sa commande, en tête du message qui lance la session de relecture, comme `chantier` et `fusionner`. Conséquences pour les lots suivants, écrites ici pour qui les rédigera : le prompt de lancement d'une session de relecture (lot 4) commence par cette commande, et `scripts/depot.test.mjs:342` le tiendra s'il vit dans `lancement.md` ; le `SKILL.md` du socle (lot 6c) ne peut pas écrire cette commande (`:351`), il fait lire l'étape 0 du skill, comme il le fait pour `fusionner`.
-3. **Aucun script neuf, et aucune copie.** `A-78` : les scripts des deux skills de revue « servent aux deux régimes ; `relecture poser` les pose aussi ». L'étape 0 nomme donc les sources chez `revue-adversariale` et `revue-de-ticket`, avec les mêmes destinations, et vérifie ce que la relecture appelle chez `fusionner` et `sujet`. Raison : une copie des scripts sous `relecture/scripts/` serait refusée par `scripts/poses.test.mjs:56` (« posé deux fois ») et divergerait. Sans dossier `scripts/`, il n'y a rien à ajouter à `POSES` ni à `scripts/points-d-entree.test.mjs`.
+3. **Aucun script neuf, et aucune copie** (confirmé par `A-137` : « `relecture poser` ne copie rien de neuf »). `A-78` : les scripts des deux skills de revue « servent aux deux régimes ; `relecture poser` les pose aussi ». L'étape 0 nomme donc les sources chez `revue-adversariale` et `revue-de-ticket`, avec les mêmes destinations, et vérifie ce que la relecture appelle chez `fusionner` et `sujet`. Raison : une copie des scripts sous `relecture/scripts/` serait refusée par `scripts/poses.test.mjs:56` (« posé deux fois ») et divergerait. Sans dossier `scripts/`, il n'y a rien à ajouter à `POSES` ni à `scripts/points-d-entree.test.mjs`.
 4. **Les scripts se jouent depuis la base, sur l'arbre à part.** `A-78` : la session « ne charge ni le `CLAUDE.md` ni les hooks que la PR modifie ». Le dossier de la session reste sur la base, la tête de la PR s'extrait par `git worktree add --detach` dans le dossier de brouillons, et chaque commande prend le script de la base (`"$R/scripts/chaine/…"`, `R` étant le dossier de la session) en se plaçant dans l'arbre à part. Raison : une PR qui modifie `diff-revue.sh`, `chemins-sensibles.mjs` ou `github.sh` se relirait sinon avec sa propre version. Le banc le prouve : la PR du dépôt jouet sabote ces trois scripts, et les commandes du skill ne jouent aucun des trois.
-5. **La session se replace au sommet de la base à chaque tour** (`git switch -q --detach origin/<base>`). Raison : la même session relit les tours suivants (`P-52`), parfois des jours plus tard ; les scripts de la base ont pu changer entre-temps. Elle ne se place jamais sur la tête.
+5. **La session se replace au sommet de la base à chaque tour** (`git switch -q --detach origin/<base>` ; confirmé par `A-137`). Raison : la même session relit les tours suivants (`P-52`), parfois des jours plus tard ; les scripts de la base ont pu changer entre-temps. Elle ne se place jamais sur la tête.
 6. **C'est la session qui approfondit le clone** (`A-126`), une fois, à l'étape 2 : `sujet.sh a-juger` sort en 11 sur un clone superficiel, et un diff à trois points y serait faux. Les refspecs sont explicites, le clone d'une session cloud ne suivant qu'une branche.
-7. **Le diff relu.** Pour une PR vers `develop` : `git diff --name-only --no-renames origin/<base>...HEAD`. Pour une PR vers un sujet : la sortie d'`a-juger` (`A-78`, `A-108`), une liste pour une sous-PR ordinaire, deux pour une PR de mise à jour ; la seconde (la résolution et les retouches) est celle que le capitaine juge après les checks. Ces fichiers passent en zones à `diff-revue.sh`, contre le sujet. Limite : pour ces fichiers, le diff porte aussi ce que `develop` y apporte sans conflit ; la session l'écarte au tri, ligne par ligne, par `git blame` (une ligne dont le commit est un ancêtre d'`origin/develop` n'est ni la résolution ni une retouche). Joué sur le dépôt jouet du banc.
+7. **Le diff relu.** Pour une PR vers `develop` : `git diff --name-only --no-renames origin/<base>...HEAD`. Pour une PR vers un sujet : la sortie d'`a-juger` (`A-78`, `A-108`), une liste pour une sous-PR ordinaire, deux pour une PR de mise à jour ; la seconde (la résolution et les retouches) est celle que le capitaine juge après les checks. Quand la fusion n'a pas eu de conflit, la première liste est vide et la sortie commence par une ligne vide : la seconde se prend par `awk 'vu; /^$/ { vu = 1 }'`, la commande d'avant (`sed '1,/^$/d'`) effaçant tout dans ce cas, retouches comprises ; sans retouche non plus, il n'y a aucun fichier, et le diff ne se joue pas (sans zone, `diff-revue.sh` prendrait tout ce que `develop` apporte). Ces fichiers passent en zones à `diff-revue.sh`, contre le sujet. Limite : pour ces fichiers, le diff porte aussi ce que `develop` y apporte sans conflit ; la session l'écarte au tri, ligne par ligne, par `git blame` (une ligne dont le commit est un ancêtre d'`origin/develop` n'est ni la résolution ni une retouche). Joué sur le dépôt jouet du banc.
 8. **Le choix des axes : la table d'`A-78`, et trois commandes.** La ligne de commande de `revue-exigee.mjs`, corps et titre vides, sort en 1 dès qu'un chemin exige la revue : c'est `cheminExige`, sans rien recopier. `chemins-sensibles.mjs` rend les chemins sensibles. `identifiant.mjs ticket-de-pr` rend le ticket. Le reste de la table (un ticket, une spec, une carte, une règle, le glossaire, une autre documentation) se lit sur les noms de fichiers ; « seules la ligne `Status:` et la section `## Comments` changent » se lit sur le diff du ticket. Pas de script `axes` : la spec n'en prévoit pas au lot 3d, et ce dernier jugement demande de lire un diff.
-9. **Quatre contrôles que la session joue elle-même, en liste fermée** (`C1` à `C4`, `criteres-session.md`) : les index générés, la forme d'une PR de mise à jour, l'accord des fichiers sensibles, `/security-review`. Raison : `A-79` écarte un constat « sans critère cité » ; ce qu'un script décide ou qu'une skill joue doit donc avoir son critère, comme ce qu'un axe relève. `C2` : quand `a-juger` sort en 4, le capitaine refuserait la PR ; le motif écrit est le constat, aucun axe ne se joue, le verdict est `refusé`.
+9. **Quatre contrôles que la session joue elle-même, en liste fermée** (`C1` à `C4`, `criteres-session.md`) : les index générés, la forme d'une PR de mise à jour, l'accord des fichiers sensibles, `/security-review`. Raison : `A-79` écarte un constat « sans critère cité » ; ce qu'un script décide ou qu'une skill joue doit donc avoir son critère, comme ce qu'un axe relève. `C2` : quand `a-juger` sort en 4, le capitaine refuserait la PR ; le motif écrit est le constat, aucun axe ne se joue, le verdict est `refusé` (les axes « non exécuté », ce qu'`A-137` permet). Une exception, décision 27 : le motif « refusé par commitlint » quand commitlint ne tourne pas dans la session.
 10. **`C1` se joue par `regenerer_index`, la fonction du capitaine, dans l'arbre à part ; un index périmé est un bloquant, et les axes se jouent quand même.** Raison : c'est ce que le capitaine rejouera sur le sommet qu'il fusionne ; et un tour compte au plafond de trois (`A-89`), un verdict doit donc porter tout ce que le tour peut trouver, pas le seul index. L'arbre revient ensuite au sommet (`git reset --hard`, `git clean -fd`) : les axes lisent la PR, pas un index régénéré.
 11. **Deux axes neufs.** L'axe Tickets (`K1` à `K6`) reprend les six points de la table d'`A-78`, un critère chacun, rattaché à la règle écrite du dépôt qu'il applique (`chaine-de-production.md` § 3 et § 4, `issue-tracker.md`, `nomenclature.md`). L'axe Règles métier (`M1` à `M4`) reprend ses quatre points : `M1` redit `D8` mot pour mot, `M2` et `M3` prennent leurs définitions au prompt du skill `criticite`, `M4` au glossaire. Leurs textes sont de ce ticket : la spec n'en donne que les titres.
 12. **`T1` à `T9` et `D1` à `D8` sont repris mot pour mot**, à neuf réécritures nommées près (cinq pour l'axe Ticket, quatre pour l'axe Documentation), et un test de parité compare le bloc du régime 8 au bloc du régime 7 récrit. Raison : `A-78` dit « repris […] et récrits avec les deux gravités » ; deux copies qui vivent côte à côte jusqu'au nettoyage (`A-102`) divergent si rien ne les lie. Une retouche d'un critère du régime 7 se reporte ici, ou le banc rougit. Les prompts, eux, changent davantage : ils sont tenus par des phrases exigées.
 13. **Le sous-agent se nomme « l'axe », partout.** « Relecteur », avec sa majuscule, ne nomme que la session qui aiguille (« Vocabulaire »). Un test refuse « relecteur » en minuscule, « à corriger », « mineur » et « label » dans tout fichier du skill.
 14. **Chaque bloquant vient avec le test qui l'aurait attrapé** (`A-80`). Le format de sortie le demande à l'axe ; quand aucun test ne peut le tenir (un écart de documentation, un ticket), l'axe écrit « aucun test : », et pourquoi.
-15. **Le gabarit du verdict a pour en-tête ce qu'`ecrireVerdict` écrit**, à l'octet près ; un test le compare. La ligne `/security-review:` est toujours écrite (`lancée` ou `non requise`), sauf quand elle était exigée et que la skill n'a pas tourné : elle se retire alors, et le verdict est `incomplet` (`A-107`, `A-111`). Rien ne suit `lancée` : la section de PR du régime 7 y ajoutait les chemins, le lecteur du régime 8 lirait un verdict illisible. Le corps est pour l'auteur : les axes joués, un tableau des constats gardés, les écartés et pourquoi (`A-79`), les cas laissés à un autre ticket.
-16. **La session relit son brouillon comme la machine le lira**, par une commande d'une ligne sur le `verdict.mjs` posé (`node --input-type=module -e …`). Raison : `verdict.mjs` est un module pur, sans point d'entrée ; un script de plus sous `scripts/chaine/` demanderait une pose, un banc posé et une entrée dans `points-d-entree.test.mjs`, trois fichiers que d'autres tickets écrivent. Le banc joue la commande telle que le skill l'écrit.
-17. **`incomplet` l'emporte.** Un axe ou un contrôle « non exécuté » donne `incomplet`, même s'il y a des bloquants (`A-80` : « ni validé, ni refusé »). Le Relecteur relance alors la session (règle 5 d'`A-85`).
+15. **Le gabarit du verdict a pour en-tête ce qu'`ecrireVerdict` écrit**, à l'octet près ; un test le compare. La ligne `/security-review:` est toujours écrite (`lancée` ou `non requise`), sauf quand elle était exigée et que la skill n'a pas tourné : elle se retire alors, et le verdict est `incomplet` (`A-107`, `A-111`), ou `refusé` s'il reste un bloquant (décision 17, et sa limite). Rien ne suit `lancée` : la section de PR du régime 7 y ajoutait les chemins, le lecteur du régime 8 lirait un verdict illisible. Le corps est pour l'auteur : les axes joués, un tableau des constats gardés, les écartés et pourquoi (`A-79`), les fichiers restés hors du diff relu (décision 33), les cas laissés à un autre ticket.
+16. **La session relit son brouillon comme la machine le lira**, par une commande d'une ligne sur le `verdict.mjs` posé (`node --input-type=module -e …`). Raison : `verdict.mjs` est un module pur, sans point d'entrée ; un script de plus sous `scripts/chaine/` demanderait une pose, un banc posé et une entrée dans `points-d-entree.test.mjs`, trois fichiers que d'autres tickets écrivent. Le banc joue la commande telle que le skill l'écrit. Elle refuse en plus ce que le lecteur accepte et que la session n'écrit jamais, `incomplet` avec des bloquants (décision 17), et elle se rejoue sur le commentaire publié (décision 33).
+17. **Un bloquant confirmé l'emporte sur un axe non joué** (`A-137`, qui amende `A-80`). Trois cas, dans cet ordre : `refusé` dès qu'il reste un bloquant gardé au tri, même si un axe ou un contrôle est « non exécuté », et le verdict le nomme sur la ligne de cet axe, avec la cause ; sinon `incomplet` dès qu'un axe ou un contrôle est « non exécuté », avec `Bloquants: 0` ; sinon `validé`. Cette règle est écrite à l'étape 8 du `SKILL.md`, dans `verdict.md` (« Remplir l'en-tête »), dans l'en-tête de `criteres-session.md` et dans `cas-limites.md` ; la commande de contrôle refuse `incomplet` avec des bloquants ; le banc fait passer le gabarit rempli par `decider`, la décision réelle du Relecteur : `validé` rend `à-fusionner` (règle 2), `refusé` rend `à-reprendre` (règle 4), axe non joué ou non, `incomplet` fait réécrire à la session (règle 5).
+    **Limite, écrite dans `verdict.md` et tenue par le même test.** Sur une PR qui touche un chemin sensible, `compter` (`decision-relecteur.mjs:245`) compte `incomplet` tout verdict qui ne porte pas `/security-review: lancée`, un `refusé` compris. Quand `/security-review` était exigée et n'a pas pu tourner (`C4` « non exécuté »), la session ne peut pas écrire `lancée` : elle retire la ligne et, s'il reste un bloquant, écrit `refusé` comme `A-137` le veut. Le Relecteur lit ce verdict `incomplet` : il ne rend pas la PR à son auteur, il réécrit à la session (règle 5), au même tour. Vérifié sur le code de `main` : le lecteur lit bien `refusé`, `decider` rend `reecrire`. Le bénéfice d'`A-137` est donc perdu dans ce seul cas, sans rien de pire qu'avant `A-137`. **La retouche de `compter` est un autre ticket** (un `refusé` reste un refus, quelle que soit la ligne `/security-review:`) ; ce ticket ne la code pas. Le jour où elle entre, le cas « limite connue » du banc rougit : la limite se retire alors de `verdict.md` et de `CONTENU.md`, et ce cas attend la règle 4.
 18. **Le banc est un fichier neuf, `scripts/relecture.test.mjs`.** Raison : `scripts/depot.test.mjs` est écrit par les tickets 54 à 57, après la PR 133 ; ses tests généraux (déclaration, nom, plafond, ligne au README, gate `references-agent`, commande d'un skill marqué) prennent déjà le skill neuf sans y toucher. `package.json` joue `scripts/*.test.mjs` : le fichier neuf entre dans la suite sans autre geste.
 19. **`CONTEXT.md` reçoit les douze entrées du vocabulaire de la spec**, dans une section « Relecture indépendante », avant `### Travail`. « Contestation » et « Arbitrage » y sont deux entrées. Deux précisions de ce ticket : « Décision de plafond » dit que ce plafond compte des tours, pas la mémoire de travail du terme « Plafond » déjà au glossaire ; « Étiquette » n'écarte « label » que dans la prose du régime 8, les textes du régime 7 gardant leur mot jusqu'au nettoyage.
 20. **`README.md`** : la ligne du tableau (exigée par `scripts/depot.test.mjs:971`), le skill dans l'arbre, et un membre de phrase dans « Invocation » qui dit que rien ne lance encore ce skill.
-21. **Version : la mineure qui suit celle de `main` au moment de livrer** : un skill de plus (`README.md:188`). Sur `a3c2a7c`, ce serait 7.32.0 ; la PR 134 la prendra sans doute avant, et le ticket 56 un correctif derrière. Aucun numéro n'est donc écrit en dur : ni dans le banc, ni dans le script des mutations. Le ticket montre 7.32.0 là où il faut un exemple ; la règle est au § 0.
+21. **Version : la mineure qui suit celle de `main` au moment de livrer** : un skill de plus (`README.md:188`). Sur `a018502` (7.31.1), ce serait 7.32.0, que deux PR ouvertes annoncent déjà (134 et 44), et une troisième annonce un correctif (135). Aucun numéro à livrer n'est donc écrit en dur : ni dans le banc, ni dans le script des mutations, ni dans la note du § 5, dont le titre porte `<version>` et `<AAAA-MM-JJ>` à remplacer (laissés tels quels, ils font rougir le test de `scripts/depot.test.mjs` sur la note en tête). Les seuls numéros que les fichiers de ce ticket écrivent sont des versions passées, celles où un script est entré (`7.23.0`, `7.28.0`). La règle est au § 0.
 22. **Rien du régime 7 n'est touché.** `revue-de-ticket` et `revue-adversariale` gardent leurs prompts, leurs critères, leurs sections de PR et leurs phrases « relecteur indépendant » (`A-108`) ; le lot 9 les retire.
 23. **Le skill ne lit pas le régime de la PR.** Il dit ce qu'il sert ; c'est le Relecteur qui ne distribue que les PR en régime 8 (lot 4, `A-97`).
 24. **`Label: contre-revue`** : le skill décidera de l'entrée des PR des projets. PR vers `main`, hors brouillon, **sans `à-fusionner`** : l'architecte la contre-relit, puis la fait entrer. Titre `feat(chaine): le skill relecture, ce que joue une session de relecture (plugin <version>)`. Commits sous les hooks, jamais `--no-verify`, jamais d'amend.
+25. **Le diff relu est vérifié contre la liste des fichiers changés** (étape 3, quatrième bloc). `diff-revue.sh` lit la liste des index générés dans l'arbre où il se joue, donc celle de la tête de la PR : un fichier que la PR déclare elle-même index généré sortait du diff, et une PR qui déclarait tout « index » avait un diff vide, donc aucun axe, donc `validé`. La session calcule maintenant ce qui est attendu au diff (`attendus.txt`) : chaque fichier de `fichiers.txt`, sauf les index **à commande** que la base **et** la tête déclarent toutes deux, lus par le script de la base (`index_regeneres_regex` de `github.sh`), et jamais la liste des index elle-même. C'est la règle qu'`A-123` et `A-125` ont fixée pour « même contenu propre » : seul un index à commande est dispensé, parce que `C1` le régénère ; un index sans commande n'est vérifié par rien. Elle compare à ce que `diff.patch` porte (`relus.txt`) ; un fichier qui manque s'ajoute au diff par une commande, ou le diff relu est « non exécuté ». « Aucun axe » ne vaut que si `attendus.txt` est vide. La même vérification attrape un chemin que git cite entre guillemets (il ne passe pas en zone) et tout autre fichier que le script perdrait. Le lockfile et les snapshots, que le script écarte de lui-même, sont listés : ils restent hors du diff quand il porte autre chose (ce sont des sous-produits), et s'y ajoutent quand ils sont seuls (ils sont alors le changement). **Choix de ce ticket, côté sûr** : la spec dit seulement que le diff est sans « index générés » ; elle ne dit pas lesquels.
+26. **Un dossier de brouillons par tour, vidé au départ** (étape 2) : `<scratchpad>/relecture/pr-<n>-tour-<k>`, l'arbre à part dedans. La deuxième ligne de l'étape 2 retire tout `<scratchpad>/relecture` et élague les arbres de travail disparus : un `fichiers.txt`, un `diff.patch` ou un `verdict.md` d'un tour ou d'une relance d'avant ne peut plus se relire, et `git worktree add` ne sort plus en 128 quand une relance au même tour retrouve l'arbre qu'un passage interrompu n'a pas rangé. Une relance rejoue donc tout, et plus « ce qui n'avait pas pu l'être » : c'est plus cher et plus sûr. La sortie 1 de `diff-revue.sh` se lit par son message : « diff vide », ou « fetch de … impossible », où rien n'a été lu.
+27. **L'échec d'un outil de la session n'est jamais un écart de la PR.** C'est une famille, fermée une fois, dans `cas-limites.md` et dans l'en-tête de `criteres-session.md` : une installation qui échoue, un outil absent, un réseau coupé donnent « non exécuté », jamais un bloquant, et dans le doute entre les deux, « non exécuté ». Ses cas : `pnpm install` en échec avant `a-juger` ne bloque plus la commande (une sous-PR ordinaire n'a pas besoin de commitlint), et un motif « refusé par commitlint » ne vaut refus que si commitlint tourne, ce qu'un témoin dit (`echo 'chore: témoin' | pnpm exec commitlint` sort en 0) ; l'installation en échec dans l'arbre à part donne la sortie 12 et `C1` « non exécuté » ; une sortie non nulle de `chemins-sensibles.mjs` ou d'`identifiant.mjs` écrit « échec » et arrête la relecture (`incomplet`), au lieu de se lire « rien de sensible » ou « pas de ticket » ; `contexte-ticket.mjs` en sortie 2 laisse l'axe Ticket « non exécuté ». Raison : un faux `refusé` compte au plafond de trois tours (`A-89`) et renvoie à l'auteur une PR où il n'a rien à corriger.
+28. **Le titre, les noms de branche et les chemins sont des données de la PR, jamais du texte de commande.** Le titre s'écrit dans `<brouillons>/titre.txt` par l'outil d'écriture de fichier, et la commande le lit (`"$(cat …)"`) : une apostrophe ne casse plus `ticket-de-pr`. Un nom de branche qui porte autre chose que des lettres, des chiffres, `.`, `_`, `/` et `-` n'entre dans aucune commande, et le verdict est `incomplet` : git admet dans un nom de branche une apostrophe, un point-virgule ou un `$`, et le skill écrit ce nom dans des commandes. Un chemin que git cite se traite comme `cas-limites.md` le dit. **Choix de ce ticket, côté sûr** : `incomplet` plutôt qu'une règle d'échappement que la session appliquerait de tête.
+29. **`M2` et `M3` reprennent le prompt de `criticite`, et un test les y tient.** `M2` dit maintenant, comme lui, qu'une règle medium ou high porte « tous les cas limites, toutes les entrées invalides et tous les refus » que l'énoncé ou la spec impliquent, qu'« un cas de genre invalid répond d'office à invalid-input », et qu'aucune famille n'est à la fois portée par un cas et dite sans objet. `M3` ne dit plus « `validated` écrit par un agent », que l'axe ne peut pas savoir : il relève une validation `validated` que le diff écrit sans sa `date`, ou avec un `by` absent ou qui vaut `agent` (la fiche Anchorpost : `validation` porte `date`, `by`, `reason`, et seule une personne l'écrit). Même famille dans `D8` et `M1`, repris mot pour mot du régime 7 : « dans la PR d'un agent » ; les deux fichiers de critères disent, hors du bloc, que la session tient au tri toute PR qu'elle relit pour celle d'un agent.
+30. **La session lit toutes les pages des commentaires, et ne publie pas un verdict que nulle distribution ne nomme.** `A-85`, règle 6 : le Relecteur distribue « en créant les sessions, puis en écrivant la distribution ». Une session peut donc démarrer avant sa distribution : ce n'est pas une panne, c'est l'ordre normal. Elle relit alors le tour et le sommet de son message de lancement, et relit les commentaires juste avant de publier : la distribution qui la nomme dit ce tour et ce sommet, elle publie ; un autre sommet, elle reprend à l'étape 2 ; aucune, elle ne publie rien, l'écrit au Relecteur et s'arrête. Raison : « un verdict écrit avant la distribution qui nomme sa session ne compte pas » (`A-115`). **Choix de ce ticket, côté sûr** : ne pas publier, plutôt qu'un verdict que personne ne compterait et qu'on ne peut pas modifier.
+31. **Trois cas seulement n'ont aucun verdict** (`cas-limites.md`, « Sans verdict ») : la session a écrit la PR ou son ticket ; aucune distribution ne la nomme au moment de publier ; la publication échoue deux fois. Dans les trois, « s'arrêter et le dire » veut dire une ligne à la session qui l'a lancée (`send_message`), rien sur la PR. Tout autre arrêt a un verdict, `incomplet` : un dossier de session qui n'est pas propre, un sommet introuvable, un nom de branche refusé. Raison : un tour sans verdict laisse le Relecteur attendre `relecture.delai`, deux heures, avant de remplacer la session ; un `incomplet` se lit au réveil suivant.
+32. **`C3` rapatrie le sujet d'une PR vers `develop`, et le skill dit ce qu'il exécute.** Le clone d'une session ne suit que sa branche de base : pour une PR `hors-sujet`, `origin/sujet/<nom>` n'y est pas, et `git show` échouait. Le skill donne le `fetch` ; si la branche n'est plus sur le distant (sujet livré), le ticket se lit sur `origin/develop`. Et `SKILL.md` comme `CONTENU.md` disent que `pnpm install` dans l'arbre à part et la régénération des index exécutent, dans la session, ce que la PR déclare.
+33. **Le commentaire publié se relit, et ce que les axes ne lisent pas se nomme.** Après la publication, le corps du commentaire tel que GitHub le rend passe par la commande de contrôle : la même ligne, ou un verdict neuf. Le gabarit a une ligne « Hors du diff relu », pour un fichier binaire (le diff n'en porte que le nom), un fichier sans écart contre la base, le lockfile ou un snapshot. **Choix de ce ticket** : un fichier binaire se nomme et n'est pas une cause d'`incomplet` ; sinon toute PR qui porte une image resterait `incomplet`. Un diff de plus de 2 000 lignes est décrit dans `cas-limites.md` : des lots par zone, un sous-agent par axe et par lot, la vérification de la décision 25 sur l'ensemble.
+34. **Une treizième référence, `cas-limites.md`.** `SKILL.md` est à 198 lignes sur 200 (`A-98`) : ce que la session fait quand une étape ne se joue pas comme prévu ne tient pas dans la page. La page garde le chemin ordinaire et chaque commande, que le banc joue ; la référence porte les trois règles qui valent partout, les trois cas sans verdict, une table par étape et le découpage en lots.
+35. **`K2` et `K4` précisés**, le premier relecteur ne les ayant pas regardés. `K2` : ce qu'un ticket ajoute à sa source n'est pas une paraphrase, c'est une décision du ticket, dite telle (`K3`) ; sans cette phrase, tout ticket qui précise sa spec, comme celui-ci, était en écart. `K4` : un fichier à créer peut l'être par un ticket que la ligne `Blocked by:` nomme ; un repère de ligne donné pour un commit se vérifie à ce commit ; une référence hors du dépôt n'est jamais un écart, un doute au plus. Et le prompt de l'axe Tickets fait lire une spec ou une carte longue par recherche, pas en entier.
 
 ### Remèdes écartés
 
 - **Un script `axes.mjs` qui choisirait les axes.** Il devrait lire un diff de ticket pour le cas « `Status:` et `## Comments` seuls », recopier la table en code, et se poser dans les projets. La table tient en six lignes que la session lit, et les deux faits qu'une machine décide mieux (un chemin exige la revue, un chemin est sensible) ont déjà leur script.
 - **Recopier les scripts de revue sous `relecture/scripts/`.** Deux copies, une pose en double (décision 3).
 - **Un diff de fusion combiné (`git show --cc`) pour une PR de mise à jour.** Il ne montre que la résolution, mais dans une forme à deux colonnes que les prompts ne décrivent pas, et sans les retouches. Les zones de `diff-revue.sh` et le tri par `git blame` donnent le même périmètre avec les outils déjà posés (décision 7).
+- **Retoucher `compter` dans ce ticket**, pour qu'un `refusé` reste un refus sur une PR sensible. `decision-relecteur.mjs` est le lot 3a, livré et testé par ses dix-sept histoires ; ce ticket n'écrit aucun script (décision 3). La limite est écrite, tenue par un test, et la retouche est un ticket à part (décision 17).
+- **Un script `diff-relu.mjs` qui ferait la vérification de la décision 25.** Il demanderait une pose, un banc posé et une entrée dans `points-d-entree.test.mjs`. Quatre lignes de shell, dont le calcul des index vient de `github.sh`, font la même chose, et le banc les joue sur quatre PR jouets.
+- **Corriger `diff-revue.sh`** pour qu'il lise la liste des index sur la base. Il sert le régime 7, où l'auteur relit sa propre branche dans son arbre : la liste de l'arbre y est la bonne. Ce ticket ne modifie aucun script.
 - **S'arrêter au premier index périmé**, comme `revue-de-ticket` le fait. L'auteur y régénère lui-même et rejoue ; ici la session ne modifie rien, et un arrêt coûterait un tour sur trois (décision 10).
 
 ## À faire, dans l'ordre
@@ -144,30 +164,32 @@ Chaque fichier neuf est donné entier, sous un titre qui porte son chemin. Le re
 
 ### § 0 — Partir de `main`, et la règle de repli
 
-`git fetch origin main`, une branche depuis `origin/main`. `main` aura bougé depuis `a3c2a7c` : d'autres tickets entrent en ce moment. Les ajouts de ce ticket se placent par leur repère de texte, pas par leur numéro de ligne.
+`git fetch origin main`, une branche depuis `origin/main`. `main` aura bougé depuis `a018502` : d'autres tickets entrent en ce moment. Les ajouts de ce ticket se placent par leur repère de texte, pas par leur numéro de ligne.
 
-- **La version** : celle de `.claude-plugin/plugin.json` sur `main` au moment de livrer, plus un au deuxième nombre, troisième à zéro (7.31.0 donne 7.32.0, 7.32.1 donne 7.33.0). La note du § 5 prend ce numéro et la date du jour, et se place avant la première note du fichier, quelle qu'elle soit. Aucun test de ce ticket ne fige le numéro.
+- **La version** : celle de `.claude-plugin/plugin.json` sur `main` au moment de livrer, plus un au deuxième nombre, troisième à zéro (7.31.1 donne 7.32.0, 7.32.0 donne 7.33.0, 7.32.1 donne 7.33.0). La note du § 5 prend ce numéro et la date du jour, à la place de `<version>` et de `<AAAA-MM-JJ>` dans son titre, et se place avant la première note du fichier, quelle qu'elle soit. Aucun test de ce ticket ne fige le numéro ; le titre de la PR le porte aussi.
 - **`plugin.json`** : la ligne du skill se place juste après `"./skills/chaine/revue-de-ticket",`, où que soit cette ligne.
 - **`README.md`** : la ligne du tableau juste après celle de `revue-de-ticket` ; les trois lignes de l'arbre juste après le bloc `revue-adversariale/` (sa ligne `references/`) ; le membre de phrase juste après « `/maj-skills:sujet` au début de tout ticket ; ». Si l'un de ces repères a changé de mots, placer l'ajout au même endroit par le sens, et ne rien retoucher d'autre.
 - **`CONTEXT.md`** : la section se place juste avant la ligne `### Travail`, quoi que les lignes au-dessus soient devenues.
 - **`references-agent-integrees.json`** : le nom se place juste après `"maj-skills:revue-de-ticket", `.
 - **Ce ticket n'ajoute rien en fin d'un fichier existant** : ni dans `scripts/depot.test.mjs` (le banc est un fichier neuf), ni dans `CONTEXT.md`, ni dans `NOTES-DE-VERSION.md` (la note va en tête). Un autre ticket qui ajoute en fin de fichier ne croise donc pas celui-ci.
 - **Si le bloc `T1` à `T9` ou `D1` à `D8` de `revue-de-ticket` a changé sur `main`** : le test « les critères repris du régime 7 ne perdent rien » rougit et dit quoi. Refaire le bloc du fichier de ce skill à partir du bloc de `main`, en lui appliquant les réécritures que le banc nomme (`RECRITS_TICKET`, `RECRITS_DOCUMENTATION`) ; si l'une d'elles ne trouve plus son texte, le banc le dit aussi : l'écrire à l'architecte, ne rien inventer.
-- **Si un script que le skill appelle a changé sur `main`** (`sujet.sh a-juger`, `diff-revue.sh`, `chemins-sensibles.mjs`, `contexte-ticket.mjs`, `github.sh`, `revue-exigee.mjs`, `verdict.mjs`) : les deux derniers tests du banc jouent les commandes du skill sur ces scripts et rougissent si l'une ne tient plus. Ne pas retoucher le skill pour les faire passer : l'écrire à l'architecte.
+- **Si un script que le skill appelle a changé sur `main`** (`sujet.sh a-juger`, `diff-revue.sh`, `chemins-sensibles.mjs`, `contexte-ticket.mjs`, `github.sh`, `revue-exigee.mjs`, `verdict.mjs`, `decision-relecteur.mjs`) : les cinq derniers tests du banc jouent les commandes du skill sur ces scripts, un sixième fait passer le verdict par `decider`, et ils rougissent si l'une ne tient plus. Ne pas retoucher le skill pour les faire passer : l'écrire à l'architecte. Un seul cas est attendu : si `compter` a été retouché entre-temps (décision 17), le cas « limite connue » de ce sixième test rend la règle 4 au lieu de la règle 5 ; l'écrire à l'architecte, qui fera retirer la limite de `verdict.md` et de `CONTENU.md`.
+- **Si le prompt du skill `criticite` a changé sur `main`** (`skills/chaine/criticite/references/prompt.md`) : le test « M2 et M3 prennent leurs définitions au prompt du skill criticite » rougit et dit quelle phrase. Reporter la phrase dans `M2` ou `M3`, mot pour mot ; si le changement est de fond (une famille, un niveau), l'écrire à l'architecte.
 - **Si `main` bouge entre l'ouverture de la PR et sa fusion** : fusionner `origin/main` dans la branche par un commit de fusion (jamais de rebase ni de push forcé), reprendre la version comme ci-dessus, puis « Vérification » à nouveau.
 
 ### § 1 — Le banc d'abord, vu rouge
 
-Écrire ce fichier, puis `node --test scripts/relecture.test.mjs` : **16 tests, 14 rouges** (le skill n'existe pas ; les deux tests verts sont les entrées piégées des lecteurs du banc).
+Écrire ce fichier, puis `node --test scripts/relecture.test.mjs` : **21 tests, 19 rouges** (le skill n'existe pas ; les deux tests verts sont les entrées piégées des lecteurs du banc). Le banc demande `git`, `jq` et `bash` sur la machine, comme les bancs de `fusionner` et de `sujet`.
 
 #### `scripts/relecture.test.mjs`
 
 `````javascript
-// Banc du skill `relecture` (relecture indépendante, lot 3d, décisions A-78 à A-80, A-107, A-111). Le skill est un
+// Banc du skill `relecture` (relecture indépendante, lot 3d, décisions A-78 à A-80, A-107, A-111, A-137). Le skill est un
 // texte, avec ses prompts, ses critères et son gabarit de verdict : ce banc tient ce qu'une session de relecture
 // exécute sans le relire. Le gabarit de verdict rempli se lit par le lecteur réel (`verdict.mjs`) ; la commande de
 // contrôle que le skill cite est jouée telle qu'il l'écrit ; chaque fichier et chaque script cités existent ; les
-// critères repris de `revue-de-ticket` ne perdent rien ; il n'y a que deux gravités ; « Relecteur » n'a qu'un sens.
+// critères repris de `revue-de-ticket` ne perdent rien ; il n'y a que deux gravités ; « Relecteur » n'a qu'un sens ;
+// le verdict passe par la décision réelle du Relecteur (`decider`) ; le diff relu ne perd aucun fichier changé.
 // Les textes sont lus à plat (blancs et sauts de ligne réduits à une espace) là où une phrase peut changer de ligne.
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
@@ -176,6 +198,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
+import { decider, ecrireDistribution } from "../skills/chaine/fusionner/scripts/decision-relecteur.mjs";
 import { PIED, corpsLu, ecrireVerdict, lireVerdict, lireVerdicts } from "../skills/chaine/fusionner/scripts/verdict.mjs";
 import { dossierTemporaire, environnementDeBanc } from "../skills/chaine/sujet/scripts/depot-jouet.mjs";
 
@@ -217,7 +240,7 @@ test("l'en-tête du skill : son nom, sa description (au plus 1 024 caractères, 
 test("ce que le skill cite existe : chaque référence liée, chaque fichier de references/ lié, chaque script de scripts/chaine/ posé par un skill voisin", () => {
   const skill = lire(`${SKILL}/SKILL.md`);
   const liees = [...new Set([...skill.matchAll(/\]\((references\/[\w.-]+)\)/g)].map((m) => m[1]))];
-  assert.ok(liees.length >= 12, `SKILL.md lie ${liees.length} références`);
+  assert.ok(liees.length >= 13, `SKILL.md lie ${liees.length} références`);
   for (const r of liees) assert.ok(existsSync(join(RACINE, SKILL, r)), `${r} : lié par SKILL.md, absent`);
   const presentes = readdirSync(join(RACINE, REFERENCES)).map((n) => `references/${n}`);
   assert.deepEqual(presentes.filter((r) => !liees.includes(r)), [], "fichiers de references/ que SKILL.md ne lie pas");
@@ -230,8 +253,12 @@ test("ce que le skill cite existe : chaque référence liée, chaque fichier de 
   // Les commandes et fonctions que le skill appelle chez ses voisins.
   assert.match(lire(`${CHAINE}/sujet/scripts/sujet.sh`), /^ {2}a-juger\) a_juger "\$@" ;;$/m, "sujet.sh a la commande a-juger");
   assert.match(lire(`${CHAINE}/fusionner/scripts/identifiant.mjs`), /case 'ticket-de-pr':/, "identifiant.mjs a la commande ticket-de-pr");
-  assert.match(lire(`${CHAINE}/fusionner/scripts/github.sh`), /^regenerer_index\(\) \{$/m, "github.sh a la fonction regenerer_index");
+  for (const f of ["regenerer_index", "index_regeneres_regex"]) assert.match(lire(`${CHAINE}/fusionner/scripts/github.sh`), new RegExp(`^${f}\\(\\) \\{$`, "m"), `github.sh a la fonction ${f}`);
   assert.match(lire(`${CHAINE}/revue-de-ticket/scripts/contexte-ticket.mjs`), /process\.env\.PROJET_RACINE \?\?/, "contexte-ticket.mjs lit PROJET_RACINE");
+  // Les deux messages de la sortie 1 de diff-revue.sh, que l'étape 3 distingue, et le calcul que la limite de verdict.md nomme.
+  for (const message of ["fetch de $base impossible", "diff vide contre $base"]) assert.ok(lire(`${CHAINE}/revue-adversariale/scripts/diff-revue.sh`).includes(`diff-revue : ${message}`), `diff-revue.sh écrit « ${message} »`);
+  exigerDans(`${SKILL}/SKILL.md`, ["« diff vide »", "« fetch de … impossible »"]);
+  assert.match(lire(`${CHAINE}/fusionner/scripts/decision-relecteur.mjs`), /^ {4}const compter = \(v\) =>/m, "decision-relecteur.mjs a la fonction compter");
 });
 
 test("poser : le skill n'a aucun script à lui, et chaque source que son étape 0 nomme existe chez le skill voisin", () => {
@@ -319,6 +346,30 @@ test("chaque liste de critères est fermée et numérotée sans trou : T1 à T9,
   exigerDans(`${REFERENCES}/criteres-session.md`, ["Index générés", "Forme d'une PR de mise à jour", "Accord des fichiers sensibles", "Sécurité"]);
   exigerDans(`${REFERENCES}/criteres-ticket.md`, ["**Qui joue `T3`.** L'axe Ticket de la session de relecture, pour toutes les criticités."]);
 });
+
+test("M2 et M3 prennent leurs définitions au prompt du skill criticite : les trois niveaux, les dix familles, ce qu'une règle medium ou high doit porter, et ce qui répond à invalid-input", () => {
+  const prompt = plat(lire(`${CHAINE}/criticite/references/prompt.md`));
+  const metier = plat(blocDesCriteres(`${REFERENCES}/criteres-regles-metier.md`)).replace(/ sa spec /g, " la spec ");
+  for (const partage of [
+    "une erreur casse ou bloque un usage essentiel, coûte de l'argent, ouvre un accès, expose ou perd une donnée, ou ne se rattrape pas",
+    "une erreur casse ou bloque un usage courant, fausse ce que la MOA lit, ou laisse entrer des données erronées",
+    "une erreur gêne, sans conséquence durable",
+    "tous les cas limites, toutes les entrées invalides et tous les refus que l'énoncé ou la spec impliquent",
+    "un cas de genre invalid répond d'office à invalid-input",
+  ]) {
+    assert.ok(prompt.includes(partage), `le prompt de criticite ne dit plus « ${partage} » : M2 ou M3 à reprendre`);
+    assert.ok(metier.includes(partage), `criteres-regles-metier.md : « ${partage} », comme le prompt de criticite`);
+  }
+  const familles = prompt.match(/Les dix familles de cas limites \(family\) : (.*?)\. /)?.[1].split(", ").map((f) => f.split(" ")[0]) ?? [];
+  assert.equal(familles.length, 10, "le prompt de criticite nomme dix familles");
+  assert.ok(metier.includes(`(${familles.join(", ")})`), `M2 nomme les dix familles du prompt, dans son ordre : ${familles.join(", ")}`);
+  exigerDans(`${REFERENCES}/criteres-regles-metier.md`, [
+    "une famille à la fois portée par un cas et dite sans objet",
+    "une validation `validated` (`validation.status`) que le diff écrit ou change sans sa `date`, ou avec un `by` absent ou qui vaut `agent`",
+    "L'axe ne sait pas qui a écrit une ligne",
+  ]);
+});
+
 function exigerDans(chemin, phrases) {
   const texte = plat(lire(chemin));
   const absentes = phrases.filter((p) => !texte.includes(plat(p)));
@@ -381,7 +432,7 @@ test("le gabarit de verdict rempli se lit par verdict.mjs : son en-tête est cel
     { verdict: "validé", bloquants: 0, securite: "non requise" },
     { verdict: "refusé", bloquants: 2, securite: "lancée" },
     { verdict: "incomplet", bloquants: 0, securite: "lancée" },
-    { verdict: "incomplet", bloquants: 1, securite: "non requise" },
+    { verdict: "refusé", bloquants: 1, securite: "non requise" },
   ]) {
     const rempli = remplir(g, cas);
     const lu = lireVerdict(corpsLu(rempli));
@@ -431,14 +482,14 @@ test("le gabarit de verdict : la ligne /security-review se retire entière ; non
   for (const marque of ["Relecture — ", "Relecture en panne", "À relire — ", "Plafond — ", "Décision de plafond", "Arbitrage — ", "Lecture illisible"])
     assert.deepEqual(corps.filter((l) => l.startsWith(marque)), [], `aucune ligne du gabarit ne commence par « ${marque} »`);
   for (const axe of AXES) assert.ok(g.includes(`- ${axe} : `), `le gabarit a la ligne de l'axe ${axe}`);
-  for (const attendu of ["non exécuté", "\n| Gravité | Axe | Critère | Fichier et ligne | Constat | Test qui l'aurait attrapé |\n", "\nÉcartés au tri : <n>.\n", "\nCas laissés à un autre ticket (`T3`, (d)) : "])
+  for (const attendu of ["non exécuté", "\n| Gravité | Axe | Critère | Fichier et ligne | Constat | Test qui l'aurait attrapé |\n", "\nÉcartés au tri : <n>.\n", "\nHors du diff relu : ", "\nCas laissés à un autre ticket (`T3`, (d)) : "])
     assert.ok(g.includes(attendu), `le gabarit porte « ${attendu.trim()} »`);
 });
 
-test("la commande de contrôle du verdict que le skill cite, jouée telle qu'il l'écrit dans un projet posé : 0 sur le gabarit rempli, 1 sur un verdict hors de la forme", () => {
+test("la commande de contrôle du verdict que le skill cite, jouée telle qu'il l'écrit dans un projet posé : 0 sur le gabarit rempli, 1 sur un verdict hors de la forme ou « incomplet » avec un bloquant, la même ligne sur le commentaire publié", () => {
   const commandes = blocs(lire(`${SKILL}/SKILL.md`), "bash").filter((b) => b.includes("lireVerdict"));
   assert.equal(commandes.length, 1, "SKILL.md : un bloc bash qui appelle lireVerdict, un seul");
-  const brouillon = "<scratchpad>/relecture/verdict.md";
+  const brouillon = "<brouillons>/verdict.md";
   assert.ok(commandes[0].includes(brouillon), `la commande lit ${brouillon}`);
   const projet = mkdtempSync(join(tmpdir(), "relecture-"));
   try {
@@ -453,6 +504,8 @@ test("la commande de contrôle du verdict que le skill cite, jouée telle qu'il 
     assert.equal(bon.stdout.trim(), `refusé 2 2 ${SOMMET} ${SESSION} lancée`, "elle redit ce que la machine lira : verdict, bloquants, tour, sommet, session, /security-review");
     for (const [nom, texte, motif] of [
       ["validé avec un bloquant", remplir(gabarit(), { verdict: "validé", bloquants: 1 }), /validé avec des bloquants/],
+      // A-137 : le lecteur accepte « incomplet » avec des bloquants, la session ne l'écrit jamais.
+      ["incomplet avec un bloquant", remplir(gabarit(), { verdict: "incomplet", bloquants: 1 }), /incomplet avec des bloquants : un bloquant gardé donne refusé/],
       ["le gabarit non rempli", gabarit(), /valeur hors de sa forme/],
       ["sans la marque", "Sommet relu: x\n", /marque absente/],
     ]) {
@@ -460,16 +513,58 @@ test("la commande de contrôle du verdict que le skill cite, jouée telle qu'il 
       assert.equal(r.status, 1, `${nom} : ${r.stdout}${r.stderr}`);
       assert.match(r.stderr, motif, nom);
     }
+    // Le commentaire publié, tel que GitHub le rend d'une session cloud (CRLF, pied de page) : la même ligne.
+    exigerDans(`${SKILL}/SKILL.md`, ["relire le commentaire publié", "`<brouillons>/publie.md`", "écrit la même ligne"]);
+    const publie = jouer(`${remplir(gabarit(), { verdict: "refusé", bloquants: 2 }).replace(/\n/g, "\r\n")}\r\n\r\n---\r\n${PIED}`);
+    assert.deepEqual([publie.status, publie.stdout], [0, bon.stdout]);
+    // Un commentaire tronqué à la publication ne rend pas cette ligne.
+    assert.equal(jouer(remplir(gabarit(), { verdict: "refusé", bloquants: 2 }).split("\n").slice(0, 4).join("\n")).status, 1);
   } finally {
     rmSync(projet, { recursive: true, force: true });
   }
+});
+
+// Le verdict devant la décision réelle du Relecteur (lot 3a) : la PR porte `à-relire`, une demande, la distribution
+// du tour 2 à cette session, puis le gabarit rempli. `decider` rend le geste que le skill annonce.
+test("le verdict lu par la décision du Relecteur (decider) : validé donne à-fusionner, refusé donne à-reprendre même avec un axe non joué (A-137), incomplet fait relancer la session ; limite : sur une PR sensible, un refusé sans « lancée » est compté incomplet", () => {
+  const g = gabarit();
+  const instant = (minute) => `2026-11-19T10:${String(minute).padStart(2, "0")}:00Z`;
+  const decide = (verdict, { sensible = false, pied = false } = {}) => {
+    const corps = [`À relire — sommet ${SOMMET} — Session: — — Conducteur: —`, ecrireDistribution({ tour: 2, sommet: SOMMET, sessions: [SESSION] }), pied ? `${verdict}\n\n---\n${PIED}` : verdict];
+    const commentaires = corps.map((body, i) => commentaire(body, { id: i + 1, created_at: instant(i), updated_at: instant(i) }));
+    const d = decider({ numero: 12, etiquettes: ["à-relire"], branche: "feat/spec-all-fac-1-03-total", commentaires, tete: SOMMET, exiges: 1, sensible, maintenant: Date.parse(instant(30)) });
+    return [d.regle, d.geste, d.poser ?? d.session ?? null];
+  };
+  const nonJoue = (texte) => texte.replace("- Documentation : <joué | non exécuté, et la cause | sans objet>", "- Documentation : non exécuté, le sous-agent a rendu deux fois une sortie hors format");
+  assert.notEqual(nonJoue(g), g, "le gabarit a la ligne de l'axe Documentation");
+  assert.deepEqual(decide(remplir(g, { verdict: "validé", bloquants: 0, securite: "non requise" })), [2, "etiqueter", "à-fusionner"]);
+  assert.deepEqual(decide(remplir(g, { verdict: "validé", bloquants: 0 }), { sensible: true, pied: true }), [2, "etiqueter", "à-fusionner"], "PR sensible, /security-review lancée, pied des sessions cloud");
+  assert.deepEqual(decide(remplir(g, { verdict: "refusé", bloquants: 2 }), { sensible: true }), [4, "etiqueter", "à-reprendre"]);
+  // A-137 : un bloquant confirmé l'emporte sur un axe non joué. L'auteur reçoit la PR, le tour compte.
+  assert.deepEqual(decide(remplir(nonJoue(g), { verdict: "refusé", bloquants: 1, securite: "non requise" })), [4, "etiqueter", "à-reprendre"]);
+  // Sans bloquant, un axe non joué : incomplet, et le Relecteur réécrit à la même session (règle 5).
+  assert.deepEqual(decide(remplir(nonJoue(g), { verdict: "incomplet", bloquants: 0, securite: "non requise" })), [5, "reecrire", SESSION]);
+  // Ce que la garde des chemins sensibles tient : jamais `à-fusionner` sans « lancée ».
+  assert.deepEqual(decide(remplir(g, { verdict: "validé", bloquants: 0, securite: "non requise" }), { sensible: true }), [5, "reecrire", SESSION]);
+  // La limite écrite dans verdict.md : PR sensible, `/security-review` exigée et non jouée, un bloquant gardé. La
+  // session écrit `refusé` sans la ligne ; `compter` (decision-relecteur.mjs) le compte `incomplet`, et la PR ne
+  // revient pas à son auteur. Le jour où `compter` change, ce cas rend la règle 4 : retirer alors la limite du skill.
+  const sansLigne = remplir(g.replace("/security-review: <lancée | non requise>\n", ""), { verdict: "refusé", bloquants: 1 });
+  assert.deepEqual([lireVerdict(corpsLu(sansLigne)).verdict, lireVerdict(corpsLu(sansLigne)).securite], ["refusé", null], "le lecteur, lui, lit bien refusé");
+  assert.deepEqual(decide(sansLigne, { sensible: true }), [5, "reecrire", SESSION], "limite connue : compté incomplet par le Relecteur");
+  assert.deepEqual(decide(sansLigne), [4, "etiqueter", "à-reprendre"], "sur une PR sans chemin sensible, le même verdict est un refus");
+  // Les trois textes qui portent la règle.
+  exigerDans(`${SKILL}/SKILL.md`, ["**`refusé`** dès qu'il reste un bloquant gardé au tri, **même si un axe ou un contrôle est « non exécuté »**", "Sinon **`incomplet`** dès qu'un axe ou un contrôle est « non exécuté » : aucun bloquant, `Bloquants: 0`.", "ou `incomplet` avec un bloquant gardé"]);
+  exigerDans(`${REFERENCES}/verdict.md`, ["`refusé` dès qu'il reste au moins un bloquant gardé au tri, **même si un axe ou un contrôle est « non exécuté »**", "`validé` et `incomplet` veulent 0, `refusé` veut 1 ou plus", "**Limite connue.**", "un `refusé` compris (`compter`"]);
+  exigerDans(`${REFERENCES}/criteres-session.md`, ["le verdict est alors `incomplet`, ou `refusé` s'il reste un bloquant gardé", "L'échec d'un outil de la session n'est jamais un écart de la PR"]);
+  exigerDans(`${REFERENCES}/cas-limites.md`, ["**Un bloquant gardé donne `refusé`, quoi qu'il manque.**", "**L'échec d'un outil de la session n'est jamais un écart de la PR.**", "Trois cas seulement n'ont aucun verdict."]);
 });
 
 test("le choix des axes : la commande qui dit « un chemin exige la revue » sort en 1 sur du code, en 0 sur de la documentation, et le skill porte les six lignes de la table d'A-78", () => {
   const skill = lire(`${SKILL}/SKILL.md`);
   const exige = (fichiers) =>
     spawnSync(process.execPath, [join(RACINE, CHAINE, "fusionner/scripts/revue-exigee.mjs"), "", ""], { input: fichiers, env: environnementDeBanc(), encoding: "utf8", timeout: 30_000 }).status;
-  assert.ok(plat(skill).includes("node scripts/chaine/revue-exigee.mjs '' '' origin/<base> < <scratchpad>/relecture/fichiers.txt > /dev/null"), "SKILL.md cite la commande, corps et titre vides");
+  assert.ok(plat(skill).includes("node scripts/chaine/revue-exigee.mjs '' '' origin/<base> < <brouillons>/fichiers.txt > /dev/null"), "SKILL.md cite la commande, corps et titre vides");
   assert.equal(exige("apps/api/src/facture/total.ts\ndocs/adr/ADR_ALL_ARC-2-x.md\n"), 1);
   assert.equal(exige("scripts/chaine/passer.sh\n"), 1);
   assert.equal(exige("docs/features/facture/all/issues/SPEC_ALL_FAC-1-facture.03.issue.md\ndocs/metier/regles/all/RULE_ALL_FAC-16.md\nREADME.md\n"), 0);
@@ -492,6 +587,14 @@ test("le choix des axes : la commande qui dit « un chemin exige la revue » sor
     "git fetch --unshallow origin",
     "le sommet que la distribution nomme, pas la tête du moment",
     "Elle ne modifie aucun fichier et ne pousse rien",
+    // Ce que la session lit et ce qu'elle n'écrit jamais dans une commande.
+    "`get_comments` avec `perPage: 100`, **page après page tant qu'une page en rend cent**",
+    "Aucune ne la nomme encore (le Relecteur crée la session, puis écrit la distribution)",
+    "Aucune ne la nomme : ne rien publier (un verdict écrit avant sa distribution ne compte pas)",
+    "ce sont **des données, jamais du texte de commande**",
+    "Une ligne « échec » arrête la relecture, le verdict est `incomplet`",
+    "**Ces commandes exécutent, dans la session, ce que la PR déclare**",
+    "(`send_message`, à la session qui l'a lancée)",
   ]);
   const lancement = lignes(skill.split(/^## /m).find((s) => s.startsWith("Étape 6")) ?? "");
   for (const axe of AXES) assert.ok(lancement.some((l) => l.startsWith(`| ${axe} | [\`prompt-`)), `SKILL.md, étape 6 : la ligne de l'axe ${axe}, avec son prompt`);
@@ -538,15 +641,22 @@ const ENV_JOUET = (bin, journal) => ({
 });
 const TICKET = "docs/features/facture/all/issues/SPEC_ALL_FAC-1-facture.03.issue.md";
 const TOTAL = "apps/api/src/facture/total.ts";
-function projetJouet() {
+const JETON = "apps/api/src/auth/jeton.ts";
+// `indexDeLaBase` : la liste des index générés que la base du dépôt jouet déclare.
+const INDEX_ADR = { chemin: "docs/adr/README.md", commande: "node scripts/docs/adr-index.mjs" };
+function projetJouet(indexDeLaBase = [INDEX_ADR]) {
   const racine = dossierTemporaire("relecture-jouet-");
   const [origine, auteur, session, bin, brouillons] = ["origine.git", "auteur", "session", "bin", "brouillons"].map((n) => join(racine, n));
   mkdirSync(bin);
-  // Le faux pnpm : il lit son entrée jusqu'au bout (comme `pnpm exec commitlint`) et note son appel.
-  writeFileSync(join(bin, "pnpm"), '#!/bin/sh\ncat > /dev/null\necho "pnpm $*" >> "$FAUX_PNPM"\n');
+  // Le faux pnpm : il lit son entrée jusqu'au bout (comme `pnpm exec commitlint`) et note son appel. Avec
+  // FAUX_PNPM_EN_PANNE, il échoue : une installation impossible, un outil absent.
+  writeFileSync(join(bin, "pnpm"), '#!/bin/sh\ncat > /dev/null\necho "pnpm $*" >> "$FAUX_PNPM"\n[ -z "$FAUX_PNPM_EN_PANNE" ]\n');
   chmodSync(join(bin, "pnpm"), 0o755);
+  // Le faux jq : le vrai, sauf avec FAUX_JQ_EN_PANNE, où il échoue (la liste des index ne se lit plus).
+  writeFileSync(join(bin, "jq"), '#!/bin/sh\n[ -z "$FAUX_JQ_EN_PANNE" ] || exit 1\nPATH="${PATH#*:}" exec jq "$@"\n');
+  chmodSync(join(bin, "jq"), 0o755);
   const env = ENV_JOUET(bin, join(racine, "pnpm.log"));
-  const lancer = (cwd, commande, args, entree = "") => spawnSync(commande, args, { cwd, env, input: entree, encoding: "utf8", timeout: 60_000 });
+  const lancer = (cwd, commande, args, entree = "", plus = {}) => spawnSync(commande, args, { cwd, env: { ...env, ...plus }, input: entree, encoding: "utf8", timeout: 60_000 });
   const git = (cwd, ...args) => {
     const r = lancer(cwd, "git", args);
     assert.equal(r.status, 0, `git ${args.join(" ")} : ${r.stderr}`);
@@ -576,7 +686,7 @@ function projetJouet() {
   }
   // La commande d'index laisse aussi un sous-produit non suivi, comme le font des générateurs réels.
   ecrire("scripts/docs/adr-index.mjs", "import { readdirSync, writeFileSync } from 'node:fs';\nwriteFileSync('docs/adr/README.md', readdirSync('docs/adr').filter((f) => /^ADR_/.test(f)).sort().map((f) => '- ' + f + '\\n').join(''));\nwriteFileSync('adr-index.journal', 'fait\\n');\n");
-  ecrire("scripts/docs/index-generes.json", JSON.stringify({ index: [{ chemin: "docs/adr/README.md", commande: "node scripts/docs/adr-index.mjs" }] }));
+  ecrire("scripts/docs/index-generes.json", JSON.stringify({ index: indexDeLaBase }));
   ecrire(".claude/chaine.json", JSON.stringify({ cheminsSensibles: ["apps/api/src/auth/"] }));
   ecrire(".gitignore", "node_modules\n");
   ecrire("docs/adr/ADR_ALL_ARC-1-socle.md", "# Socle\n");
@@ -585,7 +695,7 @@ function projetJouet() {
   ecrire("docs/features/facture/all/SPEC_ALL_FAC-1-facture.spec.md", "# Facture\n\nSujet: sujet/facture\n\n| 03 | le total |\n");
   ecrire(TICKET, "# SPEC_ALL_FAC-1.03 — Le total\n\nStatus: ready-for-agent\nType: task\nRègles: RULE_ALL_FAC-16\nSujet: sujet/facture\n\n## Surfaces\n\n| Surface | Preuve |\n| --- | --- |\n| le total | total.spec.ts |\n");
   ecrire(TOTAL, "export const total = () => 0;\n");
-  ecrire("apps/api/src/auth/jeton.ts", "export const duree = 1;\n");
+  ecrire(JETON, "export const duree = 1;\n");
   commit("chore: socle");
   // Assez d'historique pour qu'un clone de profondeur 2 soit superficiel.
   for (const jour of [1, 2, 3]) {
@@ -597,18 +707,19 @@ function projetJouet() {
   ecrire("docs/sujet.md", "sujet\n");
   commit("docs: ouvre le sujet");
   git(auteur, "push", "-q", "origin", "sujet/facture");
-  const cloner = () => {
-    git(racine, "clone", "-q", "--depth", "2", "--single-branch", "--branch", "sujet/facture", `file://${origine}`, session);
+  const cloner = (branche = "sujet/facture") => {
+    git(racine, "clone", "-q", "--depth", "2", "--single-branch", "--branch", branche, `file://${origine}`, session);
     assert.equal(git(session, "rev-parse", "--is-shallow-repository"), "true", "le clone de la session est superficiel, comme dans le cloud");
   };
-  /** Joue un bloc de SKILL.md dans le dossier de la session, ses marqueurs remplacés. */
-  const jouer = (bloc, marqueurs) => {
-    const arbre = join(brouillons, "relecture", `pr-${marqueurs.n}-tour-${marqueurs.k}`);
-    const texte = Object.entries({ "<scratchpad>/relecture/pr-<n>-tour-<k>": arbre, "<arbre>": arbre, "<scratchpad>": brouillons, "<n>": marqueurs.n, "<k>": marqueurs.k, ...marqueurs.autres })
+  /** Joue un bloc de SKILL.md dans le dossier de la session, ses marqueurs remplacés ; `plus` : des variables d'environnement. */
+  const jouer = (bloc, marqueurs, plus = {}) => {
+    const dossier = join(brouillons, "relecture", `pr-${marqueurs.n}-tour-${marqueurs.k}`);
+    const arbre = join(dossier, "arbre");
+    const texte = Object.entries({ "<arbre>": arbre, "<brouillons>": dossier, "<scratchpad>": brouillons, "<n>": marqueurs.n, "<k>": marqueurs.k, ...marqueurs.autres })
       .reduce((t, [de, vers]) => t.split(de).join(vers), bloc);
     assert.doesNotMatch(texte, /<[a-zé][a-zéè ]*>/, `un marqueur n'est pas remplacé : ${texte}`);
-    const r = lancer(session, "bash", ["-c", texte]);
-    return { ...r, arbre, sortie: r.stdout + r.stderr };
+    const r = lancer(session, "bash", ["-c", texte], "", plus);
+    return { ...r, arbre, dossier, sortie: r.stdout + r.stderr };
   };
   return { racine, auteur, session, brouillons, git, ecrire, commit, cloner, jouer, lancer };
 }
@@ -619,6 +730,26 @@ const etape = (n) => {
 };
 /** Les blocs ```bash d'une section, ceux d'une liste compris (leur retrait ôté). */
 const commandes = (section) => [...section.matchAll(/^( *)```bash\n([\s\S]*?)^\1```\s*$/gm)].map((m) => m[2].split("\n").map((l) => l.slice(m[1].length)).join("\n"));
+/** Une commande que SKILL.md cite dans sa prose, telle quelle : le banc la joue, et rougit si le skill ne la porte plus. */
+const citee = (n, commande) => {
+  assert.ok(etape(n).includes(commande), `SKILL.md, étape ${n} : ${commande}`);
+  return commande;
+};
+// Les quatre blocs de l'étape 3 : la liste d'une PR vers develop, celle d'une PR vers un sujet, le diff, et la
+// vérification qu'aucun fichier changé ne manque au diff relu.
+const etape3 = () => {
+  const blocs3 = commandes(etape(3));
+  assert.equal(blocs3.length, 4, "étape 3 : quatre blocs");
+  const [versDevelop, versSujet, diff, manquants] = blocs3;
+  return { versDevelop, versSujet, diff, manquants };
+};
+/** La commande que l'étape 3 donne pour la seconde liste d'`a-juger`, tirée du skill. */
+const secondeListe = () => {
+  const m = etape(3).match(/La seconde est `fichiers\.txt` \(`([^`]+)`\)/);
+  assert.ok(m, "SKILL.md, étape 3 : « La seconde est `fichiers.txt` (`<commande>`) »");
+  return m[1];
+};
+const AJOUTER = "git -C <arbre> diff origin/<base>...HEAD -- ':(literal)<fichier>' >> <brouillons>/diff.patch";
 
 test("lecteur des commandes du skill : entrées piégées", () => {
   assert.deepEqual(commandes("a\n```bash\nx\n```\n- b\n\n  ```bash\n  y\n  z\n  ```\n```text\nw\n```\n"), ["x\n", "y\nz\n"]);
@@ -626,12 +757,12 @@ test("lecteur des commandes du skill : entrées piégées", () => {
   assert.deepEqual(commandes("```bashx\nx\n```\n"), [], "variante voisine");
 });
 
-test("les commandes des étapes 2 à 5, jouées telles que le skill les écrit, sur une sous-PR de code vers un sujet : la base dans le dossier de la session, la tête dans l'arbre à part, les scripts de la base", { timeout: 120_000 }, () => {
+test("les commandes des étapes 2 à 5, jouées telles que le skill les écrit, sur une sous-PR de code vers un sujet : la base dans le dossier de la session, la tête dans l'arbre à part, les scripts de la base, des brouillons neufs à chaque tour", { timeout: 120_000 }, () => {
   const p = projetJouet();
   // La PR : du code, un chemin sensible, une ADR sans son index régénéré, le ticket passé à « Fait ».
   p.git(p.auteur, "switch", "-q", "-c", "feat/spec-all-fac-1-03-total");
   p.ecrire(TOTAL, "export const total = (lignes: number[]) => lignes.reduce((a, b) => a + b);\n");
-  p.ecrire("apps/api/src/auth/jeton.ts", "export const duree = 2;\n");
+  p.ecrire(JETON, "export const duree = 2;\n");
   p.ecrire("docs/adr/ADR_ALL_ARC-2-total.md", "# Total\n");
   p.ecrire(TICKET, readFileSync(join(p.auteur, TICKET), "utf8").replace("Status: ready-for-agent", "Status: Fait — PR #12"));
   // Elle déclare un chemin sensible de plus : le contrat de la tête compte, avec celui de la base.
@@ -639,7 +770,7 @@ test("les commandes des étapes 2 à 5, jouées telles que le skill les écrit, 
   // Elle modifie aussi trois scripts de relecture : la session ne doit jouer aucun des siens.
   p.ecrire("scripts/chaine/diff-revue.sh", "#!/usr/bin/env bash\necho 'script de la PR' >&2\nexit 42\n");
   p.ecrire("scripts/chaine/chemins-sensibles.mjs", "process.exit(0);\n");
-  p.ecrire("scripts/chaine/github.sh", "regenerer_index() { :; }\n");
+  p.ecrire("scripts/chaine/github.sh", "regenerer_index() { :; }\nindex_regeneres_regex() { echo '.*'; }\n");
   const sommet = p.commit("feat(facture): SPEC_ALL_FAC-1.03 le total");
   // La tête bouge après la distribution : la session relit le sommet distribué, pas la tête du moment.
   p.ecrire(TOTAL, "export const total = () => 99;\n");
@@ -653,7 +784,10 @@ test("les commandes des étapes 2 à 5, jouées telles que le skill les écrit, 
   const base = p.commit("docs: le sujet avance");
   p.git(p.auteur, "push", "-q", "origin", "sujet/facture");
   assert.notEqual(p.git(p.session, "rev-parse", "HEAD"), base);
-  const m = { n: "12", k: "1", autres: { "<base>": "sujet/facture", "<tête>": "feat/spec-all-fac-1-03-total", "<sommet>": sommet, "<nom>": "facture", "<titre>": "feat(facture): SPEC_ALL_FAC-1.03 le total" } };
+  // Le titre porte une apostrophe. Le skill ne l'écrit dans aucune commande ; le marqueur n'est là que pour qu'une
+  // commande qui l'écrirait soit jouée, et casse.
+  const TITRE = "feat(facture): SPEC_ALL_FAC-1.03 l'arrondi du total";
+  const m = { n: "12", k: "1", autres: { "<base>": "sujet/facture", "<tête>": "feat/spec-all-fac-1-03-total", "<sommet>": sommet, "<nom>": "facture", "<titre>": TITRE } };
   // Avant l'étape 2, sur le clone superficiel : `a-juger` refuse, sortie 11.
   assert.equal(p.lancer(p.session, "bash", ["scripts/chaine/sujet.sh", "a-juger", "HEAD", "sujet/facture", "12"]).status, 11, "clone superficiel : a-juger sort en 11");
 
@@ -665,34 +799,63 @@ test("les commandes des étapes 2 à 5, jouées telles que le skill les écrit, 
   assert.equal(p.git(p.session, "rev-parse", "HEAD"), base, "le dossier de la session est au sommet de la base");
   assert.equal(p.git(r2.arbre, "rev-parse", "HEAD"), sommet, "l'arbre à part est au sommet de la distribution");
   assert.equal(p.git(p.session, "status", "--porcelain"), "", "le dossier de la session reste propre");
+  const brouillon = (nom) => join(r2.dossier, nom);
+  // Une relance au même tour, l'arbre à part resté en place et des brouillons périmés : l'étape 2 repart de rien.
+  writeFileSync(brouillon("fichiers.txt"), "un-fichier-du-passage-d-avant.ts\n");
+  writeFileSync(brouillon("verdict.md"), "un verdict du passage d'avant\n");
+  mkdirSync(join(p.brouillons, "relecture/pr-12-tour-0"), { recursive: true });
+  const relance = p.jouer(e2[0], m);
+  assert.equal(relance.status, 0, `l'étape 2 se rejoue au même tour : ${relance.sortie}`);
+  assert.deepEqual(readdirSync(join(p.brouillons, "relecture")), ["pr-12-tour-1"], "rien ne reste d'un tour d'avant");
+  assert.deepEqual(readdirSync(r2.dossier), ["arbre"], "rien ne reste des brouillons d'avant");
+  assert.equal(p.git(r2.arbre, "rev-parse", "HEAD"), sommet);
 
-  const e3 = commandes(etape(3));
-  assert.equal(e3.length, 3, "étape 3 : la liste d'une PR vers develop, celle d'une PR vers un sujet, le diff");
-  const r3 = p.jouer(e3[1], m);
+  const e3 = etape3();
+  const r3 = p.jouer(e3.versSujet, m);
   assert.equal(r3.status, 0, r3.sortie);
-  const aJuger = readFileSync(join(p.brouillons, "relecture/a-juger.txt"), "utf8");
+  const aJuger = readFileSync(brouillon("a-juger.txt"), "utf8");
   assert.deepEqual(
     aJuger.trim().split("\n").sort(),
-    [".claude/chaine.json", "apps/api/src/auth/jeton.ts", TOTAL, "docs/adr/ADR_ALL_ARC-2-total.md", TICKET, "scripts/chaine/chemins-sensibles.mjs", "scripts/chaine/diff-revue.sh", "scripts/chaine/github.sh"].sort(),
+    [".claude/chaine.json", JETON, TOTAL, "docs/adr/ADR_ALL_ARC-2-total.md", TICKET, "scripts/chaine/chemins-sensibles.mjs", "scripts/chaine/diff-revue.sh", "scripts/chaine/github.sh"].sort(),
     "une seule liste : le diff de la sous-PR, au sommet distribué",
   );
+  assert.ok(!/^$/m.test(aJuger.trimEnd()), "une seule liste : aucune ligne vide");
   assert.match(readFileSync(join(p.racine, "pnpm.log"), "utf8"), /^pnpm install --frozen-lockfile --prefer-offline$/m, "sans node_modules, les dépendances de la base sont installées avant a-juger");
+  // L'installation échoue : `a-juger` se joue quand même, une sous-PR ordinaire n'a pas besoin de commitlint.
+  const sansOutil = p.jouer(e3.versSujet, m, { FAUX_PNPM_EN_PANNE: "1" });
+  assert.deepEqual([sansOutil.status, sansOutil.stdout.trim()], [0, "installation en échec"]);
+  assert.equal(readFileSync(brouillon("a-juger.txt"), "utf8"), aJuger);
   // La commande d'une PR vers develop rend la même liste : pour une sous-PR ordinaire, c'est le même diff.
-  assert.equal(p.jouer(e3[0], m).status, 0);
-  assert.equal(readFileSync(join(p.brouillons, "relecture/fichiers.txt"), "utf8"), aJuger);
-  const rDiff = p.jouer(e3[2], m);
+  assert.equal(p.jouer(e3.versDevelop, m).status, 0);
+  assert.equal(readFileSync(brouillon("fichiers.txt"), "utf8"), aJuger);
+  const rDiff = p.jouer(e3.diff, m);
   assert.equal(rDiff.status, 0, `le script joué est celui de la base, pas celui de la PR : ${rDiff.sortie}`);
-  const diff = readFileSync(join(p.brouillons, "relecture/diff.patch"), "utf8");
-  for (const f of [TOTAL, "apps/api/src/auth/jeton.ts", TICKET]) assert.ok(diff.includes(`diff --git a/${f} b/${f}`), `diff.patch porte ${f}`);
+  const diff = readFileSync(brouillon("diff.patch"), "utf8");
+  for (const f of [TOTAL, JETON, TICKET]) assert.ok(diff.includes(`diff --git a/${f} b/${f}`), `diff.patch porte ${f}`);
   assert.ok(diff.includes("+export const total = (lignes: number[])") && !diff.includes("=> 99"), "le diff est celui du sommet distribué contre la base");
+  // Aucun fichier changé ne manque au diff relu ; la liste des index vient du script de la base, pas de celui de la
+  // PR, qui dispenserait tout.
+  const rManquants = p.jouer(e3.manquants, m);
+  assert.deepEqual([rManquants.status, rManquants.stdout], [0, ""], rManquants.sortie);
+  assert.equal(readFileSync(brouillon("attendus.txt"), "utf8"), readFileSync(brouillon("relus.txt"), "utf8"));
+  assert.equal(readFileSync(brouillon("attendus.txt"), "utf8").trim().split("\n").length, 8);
+  // La liste des index ne se lit pas (jq en échec) : sortie 12, rien n'est dispensé à l'aveugle.
+  const sansJq = p.jouer(e3.manquants, m, { FAUX_JQ_EN_PANNE: "1" });
+  assert.deepEqual([sansJq.status, sansJq.stdout.trim()], [12, "liste des index illisible"], sansJq.sortie);
 
+  // Le titre de la PR se lit dans un fichier, jamais dans la commande.
+  writeFileSync(brouillon("titre.txt"), `${TITRE}\n`);
   const e4 = commandes(etape(4));
   assert.equal(e4.length, 1);
   const r4 = p.jouer(e4[0], m);
   const lignes4 = r4.stdout.trim().split("\n");
   assert.equal(lignes4[0], "sortie 1", r4.sortie);
-  assert.deepEqual(lignes4.slice(1, -1).sort(), ["apps/api/src/auth/jeton.ts\tapps/api/src/auth/", `${TOTAL}\tapps/api/src/facture/`], "les chemins sensibles : le contrat de la base et celui de la tête, par le script de la base");
-  assert.equal(lignes4.at(-1), "SPEC_ALL_FAC-1.03", "le ticket de la PR");
+  assert.deepEqual(lignes4.slice(1, -1).sort(), [`${JETON}\tapps/api/src/auth/`, `${TOTAL}\tapps/api/src/facture/`], "les chemins sensibles : le contrat de la base et celui de la tête, par le script de la base");
+  assert.equal(lignes4.at(-1), "SPEC_ALL_FAC-1.03", "le ticket de la PR, lu dans son titre");
+  // Un outil en échec ne se lit jamais « rien de sensible » : une liste vide fait sortir chemins-sensibles en 2.
+  writeFileSync(brouillon("vide.txt"), "");
+  const echec = p.jouer(e4[0].split("<brouillons>/fichiers.txt").join("<brouillons>/vide.txt"), m);
+  assert.match(echec.stdout, /^échec 2$/m, echec.sortie);
 
   // C1 : l'index des ADR n'a pas été régénéré par la PR ; la commande le montre, puis l'arbre revient au sommet.
   const e5 = commandes(etape(5));
@@ -705,6 +868,10 @@ test("les commandes des étapes 2 à 5, jouées telles que le skill les écrit, 
   assert.equal(p.jouer(remettre, m).status, 0);
   assert.equal(p.git(r2.arbre, "status", "--porcelain"), "", "l'arbre revient à la PR, sous-produit retiré");
   assert.equal(p.git(r2.arbre, "rev-parse", "HEAD"), sommet);
+  // L'installation échoue dans l'arbre à part : sortie 12, C1 est « non exécuté », jamais un index périmé.
+  const c1SansOutil = p.jouer(regenerer, m, { FAUX_PNPM_EN_PANNE: "1" });
+  assert.match(c1SansOutil.stdout, /^sortie 12$/m, c1SansOutil.sortie);
+  assert.equal(p.git(r2.arbre, "status", "--porcelain"), "", "rien n'a été régénéré");
 
   // Le contexte du ticket se lit dans l'arbre à part, par le script de la base ; l'accord, sur le sujet.
   const contexte = "PROJET_RACINE=<arbre> node scripts/chaine/contexte-ticket.mjs <ID>";
@@ -712,9 +879,18 @@ test("les commandes des étapes 2 à 5, jouées telles que le skill les écrit, 
   const rc = p.jouer(contexte, { ...m, autres: { ...m.autres, "<ID>": "SPEC_ALL_FAC-1.03" } });
   assert.equal(rc.status, 0, rc.sortie);
   assert.ok(rc.stdout.includes("Status: Fait — PR #12"), "le ticket rendu est celui de la tête de la PR");
+  assert.equal(p.jouer(contexte, { ...m, autres: { ...m.autres, "<ID>": "SPEC_ALL_FAC-1.99" } }).status, 2, "ticket introuvable : sortie 2, l'axe Ticket est « non exécuté »");
+  exigerDans(`${SKILL}/SKILL.md`, ["sortie non nulle (ticket introuvable) : l'axe est « non exécuté »"]);
   const accord = "git show origin/sujet/<nom>:<fichier du ticket>";
   assert.ok(lire(`${SKILL}/SKILL.md`).includes(accord), `SKILL.md : ${accord}`);
   assert.ok(p.jouer(accord, { ...m, autres: { ...m.autres, "<fichier du ticket>": TICKET } }).stdout.includes("Status: ready-for-agent"), "la ligne Sensibles: se lit sur le sujet, pas sur la PR");
+
+  // Le distant ne répond plus : diff-revue.sh sort en 1 comme sur un diff vide, mais son message dit autre chose.
+  p.git(p.session, "remote", "set-url", "origin", `file://${join(p.racine, "nulle-part.git")}`);
+  const sansDistant = p.jouer(e3.diff, m);
+  assert.equal(sansDistant.status, 1);
+  assert.match(sansDistant.stderr, /^diff-revue : fetch de origin\/sujet\/facture impossible/m);
+  assert.doesNotMatch(sansDistant.stderr, /diff vide/);
 
   const ranger = "git worktree remove --force <arbre>";
   assert.ok(lire(`${SKILL}/SKILL.md`).includes(ranger), `SKILL.md : ${ranger}`);
@@ -723,7 +899,106 @@ test("les commandes des étapes 2 à 5, jouées telles que le skill les écrit, 
   assert.equal(p.git(p.session, "status", "--porcelain"), "", "la session n'a modifié aucun fichier suivi");
 });
 
-test("une PR de mise à jour d'un sujet : a-juger rend deux listes, la seconde fait le diff relu, une ligne venue de develop se reconnaît par blame, et une forme refusée sort en 4", { timeout: 120_000 }, () => {
+test("le diff relu ne perd aucun fichier : ce que la PR déclare index généré, un index sans commande, un chemin que git cite et un renommage y sont, un index à commande régénéré n'y est pas ; « aucun axe » seulement quand tout est index à commande", { timeout: 120_000 }, () => {
+  // La base déclare index à commande jusqu'à sa propre liste : elle ne sort jamais du diff relu, quoi qu'on déclare.
+  const LISTE = "scripts/docs/index-generes.json";
+  const INDEX_LISTE = { chemin: LISTE, commande: "true" };
+  const p = projetJouet([INDEX_ADR, INDEX_LISTE]);
+  const TABULE = "apps/api/src/facture/a\tb.ts";
+  p.git(p.auteur, "switch", "-q", "-c", "feat/spec-all-fac-1-03-index");
+  // La PR se déclare elle-même des index : un fichier sensible, sans commande, et un fichier de code, avec une
+  // commande qui ne fait rien. `diff-revue.sh` lit cette liste dans l'arbre à part et les écarte du diff.
+  p.ecrire(LISTE, JSON.stringify({ index: [INDEX_ADR, INDEX_LISTE, JETON, { chemin: TOTAL, commande: "true" }] }));
+  p.ecrire(JETON, "export const duree = 99999;\n");
+  p.ecrire(TOTAL, "export const total = () => -1;\n");
+  p.ecrire(TABULE, "export const tabule = 1;\n");
+  p.git(p.auteur, "mv", "docs/journal.md", "docs/journal-de-bord.md");
+  // Un vrai index à commande, déclaré sur la base et sur la tête, régénéré par la PR : C1 le vérifie, il reste hors du diff.
+  p.ecrire("docs/adr/ADR_ALL_ARC-2-total.md", "# Total\n");
+  p.ecrire("docs/adr/README.md", "- ADR_ALL_ARC-1-socle.md\n- ADR_ALL_ARC-2-total.md\n");
+  const sommet = p.commit("feat(facture): SPEC_ALL_FAC-1.03 des index déclarés par la PR");
+  p.git(p.auteur, "push", "-q", "origin", "HEAD");
+  p.cloner();
+  const m = { n: "14", k: "1", autres: { "<base>": "sujet/facture", "<tête>": "feat/spec-all-fac-1-03-index", "<sommet>": sommet, "<nom>": "facture" } };
+  const r2 = p.jouer(commandes(etape(2))[0], m);
+  assert.equal(r2.status, 0, r2.sortie);
+  const brouillon = (nom) => join(r2.dossier, nom);
+  const e3 = etape3();
+  assert.equal(p.jouer(e3.versSujet, m).status, 0);
+  copyFileSync(brouillon("a-juger.txt"), brouillon("fichiers.txt"));
+  const cite = '"apps/api/src/facture/a\\tb.ts"';
+  assert.ok(readFileSync(brouillon("fichiers.txt"), "utf8").split("\n").includes(cite), "git cite le chemin à tabulation");
+  assert.equal(p.jouer(e3.diff, m).status, 0);
+  const avant = readFileSync(brouillon("diff.patch"), "utf8");
+  for (const f of [`a/${JETON} `, `a/${TOTAL} `, "a\\tb.ts"]) assert.ok(!avant.includes(`diff --git ${f}`) && !avant.includes(`diff --git "a/apps/api/src/facture/${f}`), `diff-revue.sh, tel quel, perd ${f}`);
+  // La vérification les nomme tous les trois, et la liste des index, que la base et la tête déclarent pourtant à
+  // commande ; l'index des ADR, lui, n'est pas attendu.
+  const manquants = p.jouer(e3.manquants, m);
+  assert.equal(manquants.status, 0, manquants.sortie);
+  assert.deepEqual(manquants.stdout.trim().split("\n").sort(), [cite, JETON, TOTAL, LISTE].sort());
+  const attendus = readFileSync(brouillon("attendus.txt"), "utf8").trim().split("\n");
+  assert.ok(!attendus.includes("docs/adr/README.md"), "un index à commande que la base et la tête déclarent n'est pas attendu au diff");
+  assert.ok(attendus.includes(LISTE), "la liste des index, elle, se relit toujours");
+  for (const f of ["docs/journal.md", "docs/journal-de-bord.md"]) assert.ok(readFileSync(brouillon("relus.txt"), "utf8").split("\n").includes(f), `un renommage : ${f} est relu`);
+  // Chacun s'ajoute par la commande que le skill donne, le chemin décité ; puis plus rien ne manque.
+  for (const fichier of [JETON, TOTAL, TABULE, LISTE]) assert.equal(p.jouer(citee(3, AJOUTER), { ...m, autres: { ...m.autres, "<fichier>": fichier } }).status, 0);
+  const apres = readFileSync(brouillon("diff.patch"), "utf8");
+  assert.ok(apres.includes("+export const duree = 99999;") && apres.includes("+export const total = () => -1;") && apres.includes("+export const tabule = 1;"));
+  const [, , ...deuxDernieres] = e3.manquants.trim().split("\n");
+  assert.equal(deuxDernieres.length, 2, "les deux dernières lignes du bloc : relus.txt, puis comm");
+  const rejoue = p.jouer(deuxDernieres.join("\n"), m);
+  assert.deepEqual([rejoue.status, rejoue.stdout], [0, ""], rejoue.sortie);
+
+  // Une PR dont chaque fichier changé est un index qu'elle déclare elle-même : « diff vide », mais pas « aucun axe ».
+  p.git(p.auteur, "switch", "-q", "-C", "feat/spec-all-fac-1-03-tout-index", "origin/sujet/facture");
+  p.ecrire(LISTE, JSON.stringify({ index: [INDEX_ADR, JETON, LISTE] }));
+  p.ecrire(JETON, "export const duree = 99999;\n");
+  const sommet2 = p.commit("feat(facture): SPEC_ALL_FAC-1.03 tout est index");
+  p.git(p.auteur, "push", "-q", "origin", "HEAD");
+  const m2 = { n: "15", k: "1", autres: { "<base>": "sujet/facture", "<tête>": "feat/spec-all-fac-1-03-tout-index", "<sommet>": sommet2, "<nom>": "facture" } };
+  const r22 = p.jouer(commandes(etape(2))[0], m2);
+  assert.equal(r22.status, 0, r22.sortie);
+  const brouillon2 = (nom) => join(r22.dossier, nom);
+  assert.equal(p.jouer(e3.versSujet, m2).status, 0);
+  copyFileSync(brouillon2("a-juger.txt"), brouillon2("fichiers.txt"));
+  const vide = p.jouer(e3.diff, m2);
+  assert.equal(vide.status, 1);
+  assert.match(vide.stderr, /^diff-revue : diff vide contre origin\/sujet\/facture/m, "diff-revue.sh, tel quel, ne voit rien à relire");
+  const manquants2 = p.jouer(e3.manquants, m2);
+  assert.deepEqual(manquants2.stdout.trim().split("\n").sort(), [JETON, LISTE].sort(), "les deux fichiers manquent au diff relu : la PR n'est pas « sans axe »");
+  // Une PR qui retire un index de la liste, l'écrit à la main, et sabote le script qui lit la liste : l'index n'est
+  // dispensé que si la base ET la tête le déclarent à commande, et c'est le script de la base qui lit les deux.
+  p.git(p.auteur, "switch", "-q", "-C", "feat/spec-all-fac-1-03-index-retire", "origin/sujet/facture");
+  p.ecrire(LISTE, JSON.stringify({ index: [] }));
+  p.ecrire("docs/adr/README.md", "- ADR_ALL_ARC-1-socle.md\n- une ligne écrite à la main\n");
+  p.ecrire("scripts/chaine/github.sh", "index_regeneres_regex() { echo '.*'; }\n");
+  const sommet4 = p.commit("feat(facture): SPEC_ALL_FAC-1.03 un index retiré de la liste");
+  p.git(p.auteur, "push", "-q", "origin", "HEAD");
+  const m4 = { n: "20", k: "1", autres: { "<base>": "sujet/facture", "<tête>": "feat/spec-all-fac-1-03-index-retire", "<sommet>": sommet4, "<nom>": "facture" } };
+  const r24 = p.jouer(commandes(etape(2))[0], m4);
+  assert.equal(r24.status, 0, r24.sortie);
+  assert.equal(p.jouer(e3.versSujet, m4).status, 0);
+  copyFileSync(join(r24.dossier, "a-juger.txt"), join(r24.dossier, "fichiers.txt"));
+  assert.equal(p.jouer(e3.diff, m4).status, 0);
+  assert.deepEqual([p.jouer(e3.manquants, m4).stdout, readFileSync(join(r24.dossier, "attendus.txt"), "utf8").split("\n").includes("docs/adr/README.md")], ["", true], "l'index retiré de la liste est attendu au diff relu, et il y est");
+  // Une PR qui ne change qu'un index à commande de la base : là, et là seulement, aucun axe.
+  p.git(p.auteur, "switch", "-q", "-C", "docs/index-seul", "origin/sujet/facture");
+  p.ecrire("docs/adr/README.md", "- ADR_ALL_ARC-1-socle.md\n\n");
+  const sommet3 = p.commit("docs: l'index des ADR, seul");
+  p.git(p.auteur, "push", "-q", "origin", "HEAD");
+  const m3 = { n: "16", k: "1", autres: { "<base>": "sujet/facture", "<tête>": "docs/index-seul", "<sommet>": sommet3, "<nom>": "facture" } };
+  const r23 = p.jouer(commandes(etape(2))[0], m3);
+  assert.equal(r23.status, 0, r23.sortie);
+  assert.equal(p.jouer(e3.versSujet, m3).status, 0);
+  copyFileSync(join(r23.dossier, "a-juger.txt"), join(r23.dossier, "fichiers.txt"));
+  assert.equal(p.jouer(e3.diff, m3).status, 1);
+  assert.deepEqual([p.jouer(e3.manquants, m3).stdout, readFileSync(join(r23.dossier, "attendus.txt"), "utf8")], ["", ""], "attendus.txt vide : aucun axe, seul C1 se joue");
+  exigerDans(`${SKILL}/SKILL.md`, ["**Aucun axe** seulement si `attendus.txt` est vide", "Ce script écarte ce que **la PR** déclare index généré"]);
+  exigerDans(`${REFERENCES}/cas-limites.md`, ["## Un diff de plus de 2 000 lignes", "`REVUE_DIR=<brouillons>/lot-<i>`", "Le diff porte « Binary files … differ »", "un chemin que git cite entre guillemets", "`fichiers.txt` est vide"]);
+  exigerDans(`${REFERENCES}/verdict.md`, ["« Hors du diff relu » nomme chaque fichier changé que les axes n'ont pas lu"]);
+});
+
+test("une PR de mise à jour d'un sujet : a-juger rend deux listes, la seconde fait le diff relu, une ligne venue de develop se reconnaît par blame, une forme refusée sort en 4, et un commitlint qui ne tourne pas n'est pas un refus", { timeout: 120_000 }, () => {
   const p = projetJouet();
   // develop et le sujet changent la même ligne ; develop apporte aussi un fichier que la PR ne touche pas.
   p.git(p.auteur, "switch", "-q", "develop");
@@ -747,19 +1022,27 @@ test("une PR de mise à jour d'un sujet : a-juger rend deux listes, la seconde f
   const m = { n: "13", k: "1", autres: { "<base>": "sujet/facture", "<tête>": "maj/facture", "<sommet>": sommet, "<nom>": "facture" } };
   const r2 = p.jouer(commandes(etape(2))[0], m);
   assert.equal(r2.status, 0, r2.sortie);
-  const e3 = commandes(etape(3));
-  assert.equal(p.jouer(e3[1], m).status, 0);
-  const brouillon = (nom) => join(p.brouillons, "relecture", nom);
+  const e3 = etape3();
+  const brouillon = (nom) => join(r2.dossier, nom);
+  // commitlint ne tourne pas (installation en échec) : a-juger sort en 4 au motif « refusé par commitlint », et le
+  // témoin que le skill donne dit que c'est l'outil, pas le message de la retouche. C2 est « non exécuté ».
+  const temoin = citee(3, "echo 'chore: témoin' | pnpm exec commitlint");
+  const sansOutil = p.jouer(e3.versSujet, m, { FAUX_PNPM_EN_PANNE: "1" });
+  assert.deepEqual([sansOutil.status, sansOutil.stdout.trim()], [4, "installation en échec"]);
+  assert.match(readFileSync(brouillon("a-juger.txt"), "utf8"), /refusé par commitlint/);
+  assert.notEqual(p.jouer(temoin, m, { FAUX_PNPM_EN_PANNE: "1" }).status, 0, "le témoin : l'outil ne tourne pas");
+  assert.equal(p.jouer(temoin, m).status, 0, "le témoin : l'outil tourne");
+  exigerDans(`${SKILL}/SKILL.md`, ["Sauf le motif « refusé par commitlint » quand l'outil ne tourne pas", "`C2` est « non exécuté », jamais un bloquant"]);
+  assert.equal(p.jouer(e3.versSujet, m).status, 0);
   assert.equal(readFileSync(brouillon("a-juger.txt"), "utf8"), `${TOTAL}\n\n${TOTAL}\ndocs/retouche.md\n`, "deux listes : la résolution, puis la résolution et les retouches");
   // La seconde liste, par la commande que le skill donne.
-  const seconde = "sed '1,/^$/d'";
-  assert.ok(etape(3).includes(seconde), `SKILL.md, étape 3 : ${seconde}`);
-  writeFileSync(brouillon("fichiers.txt"), p.lancer(p.session, "bash", ["-c", `${seconde} "$0"`, brouillon("a-juger.txt")]).stdout);
+  writeFileSync(brouillon("fichiers.txt"), p.lancer(p.session, "bash", ["-c", `${secondeListe()} "$0"`, brouillon("a-juger.txt")]).stdout);
   assert.equal(readFileSync(brouillon("fichiers.txt"), "utf8"), `${TOTAL}\ndocs/retouche.md\n`);
-  assert.equal(p.jouer(e3[2], m).status, 0);
+  assert.equal(p.jouer(e3.diff, m).status, 0);
   const diff = readFileSync(brouillon("diff.patch"), "utf8");
   assert.ok(diff.includes("-export const total = () => 2;\n+export const total = () => 3;") && diff.includes("docs/retouche.md"), "le diff relu porte la résolution, contre le sujet, et la retouche");
   assert.ok(!diff.includes("venu-de-develop"), "il ne porte pas ce que develop apporte ailleurs");
+  assert.equal(p.jouer(e3.manquants, m).stdout, "", "aucun fichier de la seconde liste ne manque au diff relu");
   // Le tri : la ligne 2 vient de develop, la ligne 1 est la résolution.
   const blame = "git -C <arbre> blame -l -L <ligne>,<ligne> <sommet> -- <fichier>";
   const ancetre = "git merge-base --is-ancestor <commit> origin/develop";
@@ -776,9 +1059,68 @@ test("une PR de mise à jour d'un sujet : a-juger rend deux listes, la seconde f
   p.commit("docs: le sujet avance");
   p.git(p.auteur, "push", "-q", "origin", "sujet/facture");
   p.git(p.session, "fetch", "-q", "origin", "+refs/heads/sujet/facture:refs/remotes/origin/sujet/facture");
-  const refus = p.jouer(e3[1], m);
+  const refus = p.jouer(e3.versSujet, m);
   assert.equal(refus.status, 4, refus.sortie);
   assert.match(readFileSync(brouillon("a-juger.txt"), "utf8"), /PR de mise à jour : le premier parent n'est pas le sommet de sujet\/facture/, "le motif écrit est le constat de C2");
+});
+
+test("une PR de mise à jour sans conflit : la première liste est vide, la seconde est celle des retouches ; sans retouche non plus, aucun fichier, et le diff ne se joue pas", { timeout: 120_000 }, () => {
+  const p = projetJouet();
+  // develop avance sans rien croiser du sujet : la fusion est propre.
+  p.git(p.auteur, "switch", "-q", "develop");
+  p.ecrire("docs/venu-de-develop.md", "develop\n");
+  p.ecrire(JETON, "export const duree = 3;\n");
+  p.commit("feat(auth): la durée du jeton");
+  p.git(p.auteur, "push", "-q", "origin", "develop");
+  p.git(p.auteur, "switch", "-q", "-c", "maj/facture", "sujet/facture");
+  p.git(p.auteur, "merge", "-q", "--no-edit", "origin/develop");
+  const fusion = p.git(p.auteur, "rev-parse", "HEAD");
+  p.ecrire("docs/retouche.md", "retouche\n");
+  const retouche = p.commit("docs: retouche après la fusion");
+  p.git(p.auteur, "push", "-q", "origin", "HEAD:maj/facture");
+  p.cloner();
+  const e3 = etape3();
+  const listes = (sommet, n) => {
+    const m = { n, k: "1", autres: { "<base>": "sujet/facture", "<tête>": "maj/facture", "<sommet>": sommet, "<nom>": "facture" } };
+    const r2 = p.jouer(commandes(etape(2))[0], m);
+    assert.equal(r2.status, 0, r2.sortie);
+    const brouillon = (nom) => join(r2.dossier, nom);
+    assert.equal(p.jouer(e3.versSujet, m).status, 0);
+    const aJuger = readFileSync(brouillon("a-juger.txt"), "utf8");
+    writeFileSync(brouillon("fichiers.txt"), p.lancer(p.session, "bash", ["-c", `${secondeListe()} "$0"`, brouillon("a-juger.txt")]).stdout);
+    return { m, brouillon, aJuger, fichiers: readFileSync(brouillon("fichiers.txt"), "utf8") };
+  };
+  // Avec une retouche : la liste d'avant les checks est vide, celle d'après porte la retouche. La commande de la
+  // version d'avant (`sed '1,/^$/d'`) effaçait tout dès que la première ligne était vide.
+  const avec = listes(retouche, "17");
+  assert.deepEqual([avec.aJuger, avec.fichiers], ["\ndocs/retouche.md\n", "docs/retouche.md\n"]);
+  assert.equal(p.jouer(e3.diff, avec.m).status, 0);
+  const diff = readFileSync(avec.brouillon("diff.patch"), "utf8");
+  assert.ok(diff.includes("docs/retouche.md") && !diff.includes("venu-de-develop") && !diff.includes("duree = 3"), "le diff relu porte la retouche, rien de ce que develop apporte");
+  // Sans retouche : deux listes vides. Le diff ne se joue pas : sans zone, il prendrait tout ce que develop apporte,
+  // un chemin sensible compris.
+  const sans = listes(fusion, "18");
+  assert.deepEqual([sans.aJuger, sans.fichiers], ["\n", ""]);
+  const rDiff = p.jouer(e3.diff, sans.m);
+  assert.deepEqual([rDiff.status, rDiff.stdout.trim()], [0, "aucun fichier à relire"]);
+  assert.ok(!existsSync(sans.brouillon("diff.patch")), "aucun diff n'est écrit");
+  exigerDans(`${SKILL}/SKILL.md`, ["« aucun fichier à relire » (`fichiers.txt` vide : une PR de mise à jour sans conflit ni retouche)", "ni axe, ni `C3`, ni `C4`, seuls `C1` et `C2` se jouent"]);
+});
+
+test("C3 sur une PR vers develop dont le ticket nomme un sujet : le sujet n'est pas dans le clone de la session, la commande du skill le rapatrie", { timeout: 120_000 }, () => {
+  const p = projetJouet();
+  p.git(p.auteur, "switch", "-q", "-c", "fix/spec-all-fac-1-03-total", "develop");
+  p.ecrire(JETON, "export const duree = 2;\n");
+  const sommet = p.commit("fix(auth): SPEC_ALL_FAC-1.03 la durée du jeton");
+  p.git(p.auteur, "push", "-q", "origin", "HEAD");
+  p.cloner("develop");
+  const m = { n: "19", k: "1", autres: { "<base>": "develop", "<tête>": "fix/spec-all-fac-1-03-total", "<sommet>": sommet, "<nom>": "facture" } };
+  assert.equal(p.jouer(commandes(etape(2))[0], m).status, 0);
+  const accord = { ...m, autres: { ...m.autres, "<fichier du ticket>": TICKET } };
+  assert.notEqual(p.jouer(citee(5, "git show origin/sujet/<nom>:<fichier du ticket>"), accord).status, 0, "le clone d'une session ne suit que sa branche");
+  assert.equal(p.jouer(citee(5, "git fetch origin '+refs/heads/sujet/<nom>:refs/remotes/origin/sujet/<nom>'"), m).status, 0);
+  assert.ok(p.jouer("git show origin/sujet/<nom>:<fichier du ticket>", accord).stdout.includes("Sujet: sujet/facture"));
+  exigerDans(`${SKILL}/SKILL.md`, ["branche absente du distant, le ticket se lit sur `origin/develop`"]);
 });
 `````
 
@@ -798,9 +1140,9 @@ disable-model-invocation: true
 
 La session qui a écrit une PR ne la relit pas : elle ne lance aucun sous-agent sur son propre travail et ne trie aucun constat. Une **session de relecture**, lancée par le **Relecteur** du dépôt, relit la PR et écrit son **verdict** sur la PR. Le Relecteur aiguille et ne relit rien. Le capitaine ne relit rien non plus : son script vérifie que le verdict porte sur ce qu'il fusionne.
 
-Les mots, un sens chacun. Un **axe** est un sous-agent en contexte vierge, lancé par la session de relecture avec une liste fermée de critères. Un **constat** est ce qu'un axe relève ; il a deux gravités, pas trois : **bloquant** (un écart à un critère écrit : il se corrige, ou se conteste) et **doute** (une question, sans obligation). Le **verdict** vaut `validé` (aucun bloquant), `refusé` (au moins un bloquant) ou `incomplet` (un axe n'a pas pu être joué). L'**auteur** est la session qui a écrit la PR.
+Les mots, un sens chacun. Un **axe** est un sous-agent en contexte vierge, lancé par la session de relecture avec une liste fermée de critères. Un **constat** est ce qu'un axe relève ; il a deux gravités, pas trois : **bloquant** (un écart à un critère écrit : il se corrige, ou se conteste) et **doute** (une question, sans obligation). Le **verdict** vaut `validé` (aucun bloquant, tout joué), `refusé` (au moins un bloquant) ou `incomplet` (aucun bloquant, et un axe ou un contrôle n'a pas pu être joué). L'**auteur** est la session qui a écrit la PR.
 
-Ce skill sert le **régime 8** : une PR dont la branche de base porte la clé `relecture` de `.claude/chaine.json`, et ouverte après la date `depuis` de cette clé. Toute autre PR reste relue par son auteur, avec les skills `revue-de-ticket` et `revue-adversariale`, qui ne changent pas. Ce que le skill contient, et pourquoi : [`references/CONTENU.md`](references/CONTENU.md).
+Ce skill sert le **régime 8** : une PR dont la branche de base porte la clé `relecture` de `.claude/chaine.json`, et ouverte après la date `depuis` de cette clé. Toute autre PR reste relue par son auteur, avec les skills `revue-de-ticket` et `revue-adversariale`, qui ne changent pas. Ce que le skill contient, et pourquoi : [`references/CONTENU.md`](references/CONTENU.md). Ce que la session fait quand une étape ne se joue pas comme prévu : [`references/cas-limites.md`](references/cas-limites.md), à lire dès qu'une commande sort autrement que cette page le dit.
 
 ## Étape 0 — poser (une fois par dépôt, `poser`)
 
@@ -819,72 +1161,83 @@ Ce sont les fichiers et les destinations de l'étape 0 de ces deux skills : un d
 ## Qui joue ce skill
 
 - **Une session de relecture**, créée par le Relecteur sur la **base** de la PR, pas sur sa tête : elle ne charge ni le `CLAUDE.md` ni les hooks que la PR modifie.
-- **Jamais l'auteur.** Une session qui a écrit un commit de la PR, ou le ticket qu'elle réalise, s'arrête et l'écrit au Relecteur.
+- **Jamais l'auteur.** Une session qui a écrit un commit de la PR, ou le ticket qu'elle réalise, ne joue rien et n'écrit aucun verdict : elle l'écrit au Relecteur, en une ligne (`send_message`, à la session qui l'a lancée), et s'arrête.
 - **Une PR à la fois.** La même session relit les tours suivants de la même PR tant que le Relecteur la relance.
 
 ## Étape 1 — Ce que la session reçoit
 
-Le Relecteur écrit sur la PR une **distribution**, `Relecture — tour <k> — sommet <sha> — sessions <…>`, puis lance ou relance la session avec le numéro de la PR, le tour et le sommet. La session lit sur la PR (outil GitHub MCP `pull_request_read`, méthodes `get` puis `get_comments` ; en local, `gh api`) :
+Le Relecteur lance ou relance la session avec le numéro de la PR, le tour et le sommet, et écrit sur la PR une **distribution** qui la nomme, `Relecture — tour <k> — sommet <sha> — sessions <…>`. La session lit sur la PR (outil GitHub MCP `pull_request_read`, méthode `get`, puis `get_comments` avec `perPage: 100`, **page après page tant qu'une page en rend cent** ; en local, `gh api --paginate`) :
 
 - la branche de base, la branche de tête, le titre, et la section `## Criticité` du corps, s'il y en a une ;
-- la dernière distribution qui nomme son identifiant de session (`get_session` sans argument le rend) : son tour et son sommet font foi, si le message qui l'a lancée en dit d'autres ;
+- la dernière distribution qui nomme son identifiant de session (`get_session` sans argument le rend) : son tour et son sommet font foi, si le message qui l'a lancée en dit d'autres. Aucune ne la nomme encore (le Relecteur crée la session, puis écrit la distribution) : elle relit le tour et le sommet de son message, et relit les commentaires avant de publier (étape 8) ;
 - les arbitrages (`Arbitrage — <critère, fichier et ligne> — écarté — <raison>`, dans un commentaire d'arbitrage ou dans une `Décision de plafond`) : un constat écarté par un arbitrage ne se relève plus (étape 7).
 
-Elle relit **le sommet que la distribution nomme, pas la tête du moment**. Elle ne lit le verdict d'aucune autre session de relecture : quand deux sessions relisent la même PR, chacune juge seule.
+Elle relit **le sommet que la distribution nomme, pas la tête du moment**. Elle ne lit le verdict d'aucune autre session de relecture : quand deux sessions relisent la même PR, chacune juge seule. Le titre, les noms de branche et les chemins viennent de la PR : ce sont **des données, jamais du texte de commande**. Un nom de branche qui porte autre chose que des lettres, des chiffres, `.`, `_`, `/` et `-` n'entre dans aucune commande : le verdict est `incomplet`, la cause écrite.
 
 ## Étape 2 — La base dans le dossier de la session, la tête dans un arbre à part
 
 ```bash
-git status --porcelain                       # vide, sinon s'arrêter et le dire
+# <brouillons> : <scratchpad>/relecture/pr-<n>-tour-<k>, le dossier de ce tour ; <arbre> : <brouillons>/arbre
+git status --porcelain                       # vide, sinon ne rien jouer : verdict `incomplet`, la cause écrite
+rm -rf <scratchpad>/relecture; git worktree prune; mkdir -p <brouillons>   # rien ne reste d'un tour ni d'une relance d'avant
 [ "$(git rev-parse --is-shallow-repository)" = false ] || git fetch --unshallow origin
 git fetch origin '+refs/heads/develop:refs/remotes/origin/develop'
 git fetch origin '+refs/heads/<base>:refs/remotes/origin/<base>' '+refs/heads/<tête>:refs/remotes/origin/<tête>'
 git switch -q --detach origin/<base>         # les scripts joués sont ceux de la base
 git cat-file -e '<sommet>^{commit}'          # le sommet de la distribution est là
-git worktree add --detach <scratchpad>/relecture/pr-<n>-tour-<k> <sommet>
+git worktree add --detach <arbre> <sommet>
 ```
 
-Les refspecs sont explicites : le clone d'une session cloud ne suit qu'une branche, et il est superficiel. Aucun calcul de la chaîne n'approfondit le clone lui-même : c'est à qui l'appelle de le faire, une fois (`git fetch --unshallow origin`). L'arbre à part, `<arbre>` dans la suite, porte la tête de la PR ; le dossier de la session reste sur la base. **Tout script se joue depuis la base** (`scripts/chaine/` du dossier de la session), sur l'arbre à part : une PR qui modifie un script de relecture ne se relit pas avec sa propre version. Sommet introuvable après le `fetch` : aucun axe ne se joue, le verdict est `incomplet` (étape 8).
+Les refspecs sont explicites : le clone d'une session cloud ne suit qu'une branche, et il est superficiel. Aucun calcul de la chaîne n'approfondit le clone lui-même : c'est à qui l'appelle de le faire, une fois (`git fetch --unshallow origin`). L'arbre à part porte la tête de la PR ; le dossier de la session reste sur la base. **Tout script se joue depuis la base** (`scripts/chaine/` du dossier de la session), sur l'arbre à part : une PR qui modifie un script de relecture ne se relit pas avec sa propre version. Sommet introuvable après le `fetch` : aucun axe ne se joue, le verdict est `incomplet` (étape 8).
 
 ## Étape 3 — Le diff relu
 
 Pour une PR vers `develop` :
 
 ```bash
-git -C <arbre> -c core.quotepath=false diff --name-only --no-renames origin/<base>...HEAD > <scratchpad>/relecture/fichiers.txt
+git -C <arbre> -c core.quotepath=false diff --name-only --no-renames origin/<base>...HEAD > <brouillons>/fichiers.txt
 ```
 
 Pour une PR vers un sujet, la liste est celle que le capitaine juge :
 
 ```bash
-[ -d node_modules ] || pnpm install --frozen-lockfile --prefer-offline   # a-juger joue commitlint sur les retouches
-bash scripts/chaine/sujet.sh a-juger <sommet> sujet/<nom> <n> > <scratchpad>/relecture/a-juger.txt
+[ -d node_modules ] || pnpm install --frozen-lockfile --prefer-offline || echo "installation en échec"   # a-juger joue commitlint sur les retouches
+bash scripts/chaine/sujet.sh a-juger <sommet> sujet/<nom> <n> > <brouillons>/a-juger.txt
 ```
 
-- **Une seule liste** (sous-PR ordinaire) : elle se copie telle quelle dans `fichiers.txt`.
-- **Deux listes séparées par une ligne vide** (PR de mise à jour du sujet avec `develop`, tête `maj/<nom>`) : la résolution du conflit, puis la résolution et les retouches. La seconde est `fichiers.txt` (`sed '1,/^$/d'`) : le diff relu est ce que le capitaine juge, pas tout ce que `develop` apporte.
-- **Sortie 4** : la forme de la PR de mise à jour est refusée ; le motif écrit est un constat bloquant (`C2`), aucun axe ne se joue, le verdict est `refusé`. **Sortie 11** (réf absente, clone superficiel) : refaire l'étape 2 ; encore 11, le verdict est `incomplet`.
+- **Une seule liste**, sans ligne vide (sous-PR ordinaire) : elle se copie telle quelle dans `fichiers.txt`.
+- **Deux listes séparées par une ligne vide** (PR de mise à jour du sujet avec `develop`, tête `maj/<nom>`) : la résolution du conflit, vide quand la fusion n'a pas eu de conflit, puis la résolution et les retouches. La seconde est `fichiers.txt` (`awk 'vu; /^$/ { vu = 1 }'`) : le diff relu est ce que le capitaine juge, pas tout ce que `develop` apporte.
+- **Sortie 4** : la forme de la PR de mise à jour est refusée ; le motif écrit est un constat bloquant (`C2`), aucun axe ne se joue, le verdict est `refusé`. Sauf le motif « refusé par commitlint » quand l'outil ne tourne pas (« installation en échec », ou `echo 'chore: témoin' | pnpm exec commitlint` ne sort pas en 0) : `C2` est « non exécuté », jamais un bloquant. **Sortie 11** (réf absente, clone superficiel) : refaire l'étape 2 ; encore 11, le verdict est `incomplet`.
 
 Puis le diff, sans lockfile, index générés ni snapshots :
 
 ```bash
-R=$PWD; mapfile -t zones < <scratchpad>/relecture/fichiers.txt
-(cd <arbre> && REVUE_DIR=<scratchpad>/relecture bash "$R/scripts/chaine/diff-revue.sh" origin/<base> "${zones[@]}")
+R=$PWD; mapfile -t zones < <brouillons>/fichiers.txt; [ "${#zones[@]}" -gt 0 ] || { echo "aucun fichier à relire"; exit 0; }
+(cd <arbre> && REVUE_DIR=<brouillons> bash "$R/scripts/chaine/diff-revue.sh" origin/<base> "${zones[@]}")
 ```
 
-Il écrit `<scratchpad>/relecture/diff.patch`. Sortie 1 sur un diff vide (une PR qui ne change que des index générés) : aucun axe, seul `C1` se joue. Plus de 2 000 lignes : un lot par zone, comme le script le dit, un sous-agent par axe et par lot.
+Il écrit `<brouillons>/diff.patch`. « aucun fichier à relire » (`fichiers.txt` vide : une PR de mise à jour sans conflit ni retouche) : le diff ne se joue pas, sans zone il prendrait tout ce que `develop` apporte ; ni axe, ni `C3`, ni `C4`, seuls `C1` et `C2` se jouent. La sortie 1 de `diff-revue.sh` a deux messages : « diff vide » (rien à écrire), et « fetch de … impossible », où rien n'est lu (le rejouer une fois ; encore, aucun axe ne se joue : `incomplet`). Plus de 2 000 lignes : un lot par zone, un sous-agent par axe et par lot ([`cas-limites.md`](references/cas-limites.md)). Ce script écarte ce que **la PR** déclare index généré : la session vérifie donc qu'aucun fichier changé ne manque au diff relu, contre les index à commande que la base et la tête déclarent toutes deux.
+
+```bash
+b=$(bash -c '. scripts/chaine/github.sh && index_regeneres_regex'); h=$(R=$PWD; cd <arbre> && bash -c '. "$0/scripts/chaine/github.sh" && index_regeneres_regex' "$R"); [ -n "$b" ] && [ -n "$h" ] || { echo "liste des index illisible"; exit 12; }
+{ grep -Ev "$b" <brouillons>/fichiers.txt; grep -Ev "$h" <brouillons>/fichiers.txt; grep -Fx scripts/docs/index-generes.json <brouillons>/fichiers.txt; } | sort -u > <brouillons>/attendus.txt
+sed -n -e 's/^diff --git a\/\(.*\) b\/\1$/\1/p' -e 's/^diff --git "a\/\(.*\)" "b\/\1"$/"\1"/p' -e 's/^rename from //p' -e 's/^rename to //p' <brouillons>/diff.patch | sort -u > <brouillons>/relus.txt
+comm -23 <brouillons>/attendus.txt <brouillons>/relus.txt          # chaque ligne : un fichier changé qui manque au diff relu
+```
+
+Chaque fichier listé s'ajoute au diff relu, `git -C <arbre> diff origin/<base>...HEAD -- ':(literal)<fichier>' >> <brouillons>/diff.patch`, puis les deux dernières lignes se rejouent. Ne restent listés que : un fichier sans écart contre la base (la commande n'ajoute rien), et `pnpm-lock.yaml` ou un snapshot (`*.snap`, `__snapshots__/`), qui restent hors du diff quand il porte autre chose. Un autre fichier resté listé, ou la sortie 12 : le diff relu est « non exécuté ». **Aucun axe** seulement si `attendus.txt` est vide : chaque fichier changé est un index à commande, et seul `C1` se joue.
 
 ## Étape 4 — Choisir les axes
 
-La session lit `fichiers.txt` et joue trois commandes :
+La session écrit le titre de la PR dans `<brouillons>/titre.txt` par son outil d'écriture de fichier (jamais dans une commande : une apostrophe la casserait), lit `fichiers.txt` et joue trois commandes :
 
 ```bash
-node scripts/chaine/revue-exigee.mjs '' '' origin/<base> < <scratchpad>/relecture/fichiers.txt > /dev/null; echo "sortie $?"
-(R=$PWD; cd <arbre> && node "$R/scripts/chaine/chemins-sensibles.mjs" origin/<base> < <scratchpad>/relecture/fichiers.txt)
-node scripts/chaine/identifiant.mjs ticket-de-pr '<titre>' '<tête>'
+node scripts/chaine/revue-exigee.mjs '' '' origin/<base> < <brouillons>/fichiers.txt > /dev/null; echo "sortie $?"
+(R=$PWD; cd <arbre> && node "$R/scripts/chaine/chemins-sensibles.mjs" origin/<base> < <brouillons>/fichiers.txt) || echo "échec $?"
+node scripts/chaine/identifiant.mjs ticket-de-pr "$(cat <brouillons>/titre.txt)" '<tête>' || echo "échec $?"
 ```
 
-La première sort en 1 quand un chemin au moins exige la revue (du code, ou ce que la chaîne exécute), en 0 sinon ; son message, écrit pour le régime 7, ne se lit pas. La deuxième écrit une ligne par chemin sensible touché ; une sortie non nulle arrête la relecture, le verdict est `incomplet`. La troisième écrit le ticket de la PR, ou rien.
+La première sort en 1 quand un chemin au moins exige la revue (du code, ou ce que la chaîne exécute), en 0 sinon ; son message, écrit pour le régime 7, ne se lit pas. La deuxième écrit une ligne par chemin sensible touché. La troisième écrit le ticket de la PR, ou rien. Une ligne « échec » arrête la relecture, le verdict est `incomplet` : un outil en échec ne se lit jamais « rien de sensible », ni « pas de ticket ».
 
 | Le diff relu contient | Axes et contrôles |
 | --- | --- |
@@ -904,24 +1257,24 @@ Quatre contrôles sans sous-agent, liste fermée : [`references/criteres-session
 - **`C1`, les index générés**, toujours, avant tout sous-agent :
 
   ```bash
-  (R=$PWD; cd <arbre> && pnpm install --frozen-lockfile --prefer-offline && bash -c '. "$0/scripts/chaine/github.sh" && regenerer_index' "$R"); echo "sortie $?"
+  (R=$PWD; cd <arbre> && { pnpm install --frozen-lockfile --prefer-offline || exit 12; } && bash -c '. "$0/scripts/chaine/github.sh" && regenerer_index' "$R"); echo "sortie $?"
   git -C <arbre> status --porcelain          # un fichier listé : un index périmé, un constat bloquant
   git -C <arbre> reset -q --hard <sommet> && git -C <arbre> clean -fdq
   ```
 
-  Une sortie non nulle dit pourquoi sur la sortie d'erreur, préfixée de la commande : une vérification rouge sur ce que la PR écrit est un constat bloquant ; une commande qui ne peut pas tourner (outil absent, service éteint) laisse `C1` « non exécuté ». L'arbre revient ensuite au sommet : les axes lisent la PR, pas un index régénéré.
+  Sortie 12 : l'installation a échoué, `C1` est « non exécuté ». Une autre sortie non nulle dit pourquoi sur la sortie d'erreur, préfixée de la commande : une vérification rouge sur ce que la PR écrit est un constat bloquant ; une commande qui ne peut pas tourner (outil absent, service éteint) laisse `C1` « non exécuté ». L'arbre revient ensuite au sommet : les axes lisent la PR, pas un index régénéré. **Ces commandes exécutent, dans la session, ce que la PR déclare** (ses scripts d'installation, les commandes de ses index) : c'est ce que le capitaine joue aussi sur le sommet qu'il fusionne.
 - **`C2`, la forme d'une PR de mise à jour** : la sortie d'`a-juger` (étape 3).
-- **`C3`, l'accord des fichiers sensibles**, pour chaque ligne de `chemins-sensibles.mjs` : la ligne `Sensibles:` du ticket se lit sur la branche de son sujet (`git show origin/sujet/<nom>:<fichier du ticket>` ; le sujet est la base de la PR, ou celui que la ligne `Sujet:` du ticket nomme pour une PR vers `develop`), sur `origin/develop` pour un ticket sans sujet, jamais dans l'arbre à part. Le chemin du ticket est en tête de la sortie de `contexte-ticket.mjs` (étape 6). Un chemin non couvert est un constat bloquant.
+- **`C3`, l'accord des fichiers sensibles**, pour chaque ligne de `chemins-sensibles.mjs` : la ligne `Sensibles:` du ticket se lit sur la branche de son sujet (`git show origin/sujet/<nom>:<fichier du ticket>` ; le sujet est la base de la PR, ou celui que la ligne `Sujet:` du ticket nomme pour une PR vers `develop`, à rapatrier d'abord : `git fetch origin '+refs/heads/sujet/<nom>:refs/remotes/origin/sujet/<nom>'` ; branche absente du distant, le ticket se lit sur `origin/develop`), sur `origin/develop` pour un ticket sans sujet, jamais dans l'arbre à part. Le chemin du ticket est en tête de la sortie de `contexte-ticket.mjs` (étape 6). Un chemin non couvert est un constat bloquant.
 - **`C4`, `/security-review`**, dès qu'une ligne sort : lancer la skill sur l'arbre à part, en lui disant que le diff à relire est `git -C <arbre> diff origin/<base>...HEAD`, pas la branche du dossier courant. Ses constats passent au tri comme ceux d'un axe. Elle ne peut pas tourner : `C4` est « non exécuté ».
 
 ## Étape 6 — Lancer les axes
 
-Outil **Agent** : un sous-agent neuf par axe, en lecture seule, tous lancés dans le même tour, sans l'historique de la session. Chacun reçoit son prompt, entier, où la session remplace `{{PROJET}}` par le nom du projet, `{{ARBRE}}` par le chemin de l'arbre à part, `<critères>` par le bloc de code entier du fichier de critères, jamais réduit, et `<diff>` par le contenu de `diff.patch`.
+Outil **Agent** : un sous-agent neuf par axe, en lecture seule, tous lancés dans le même tour, sans l'historique de la session. Chacun reçoit son prompt, entier, où la session remplace `{{PROJET}}` par le nom du projet, `{{ARBRE}}` par le chemin de l'arbre à part, `<critères>` par le bloc de code entier du fichier de critères, jamais réduit, et `<diff>` par le contenu de `diff.patch`. Un fichier binaire n'y a que son nom : aucun axe ne le lit, et le verdict le nomme (« Hors du diff relu »).
 
 | Axe | Prompt | Critères | Reçoit en plus |
 | --- | --- | --- | --- |
 | Règles | [`prompt-regles.md`](references/prompt-regles.md) | le fichier du projet (`criteresRevue` de `.claude/chaine.json`, lu sur la base), critères du socle et du projet | rien : **ni ticket, ni intention** |
-| Ticket | [`prompt-ticket.md`](references/prompt-ticket.md) | [`criteres-ticket.md`](references/criteres-ticket.md) | `<contexte>` : la sortie de `PROJET_RACINE=<arbre> node scripts/chaine/contexte-ticket.mjs <ID>` |
+| Ticket | [`prompt-ticket.md`](references/prompt-ticket.md) | [`criteres-ticket.md`](references/criteres-ticket.md) | `<contexte>` : la sortie de `PROJET_RACINE=<arbre> node scripts/chaine/contexte-ticket.mjs <ID>` ; sortie non nulle (ticket introuvable) : l'axe est « non exécuté » |
 | Documentation | [`prompt-documentation.md`](references/prompt-documentation.md) | [`criteres-documentation.md`](references/criteres-documentation.md) | `<criticité>` : la section `## Criticité` de la PR telle que GitHub la rend, et les commentaires qu'elle lie, ou « aucune section » |
 | Tickets | [`prompt-tickets.md`](references/prompt-tickets.md) | [`criteres-tickets.md`](references/criteres-tickets.md) | rien |
 | Règles métier | [`prompt-regles-metier.md`](references/prompt-regles-metier.md) | [`criteres-regles-metier.md`](references/criteres-regles-metier.md) | `<criticité>`, comme l'axe Documentation |
@@ -943,23 +1296,24 @@ Le verdict dit combien de constats sont écartés, et pourquoi en une phrase cha
 
 ## Étape 8 — Le verdict
 
-Un commentaire de la PR, de forme fixe : [`references/verdict.md`](references/verdict.md), le gabarit, ses règles et un exemple. La session écrit son brouillon dans `<scratchpad>/relecture/verdict.md`, puis le relit comme la machine le lira :
+Un commentaire de la PR, de forme fixe : [`references/verdict.md`](references/verdict.md), le gabarit, ses règles et un exemple. La session écrit son brouillon dans `<brouillons>/verdict.md`, puis le relit comme la machine le lira :
 
 ```bash
-node --input-type=module -e 'import{readFileSync}from"node:fs";import{corpsLu,lireVerdict}from"./scripts/chaine/verdict.mjs";const v=lireVerdict(corpsLu(readFileSync(process.argv[1],"utf8")));if(!v||v.illisible){console.error(v?v.defauts.join(" ; "):"marque absente en première ligne");process.exit(1)}console.log(v.verdict,v.bloquants,v.tour,v.sommet,v.session,v.securite)' <scratchpad>/relecture/verdict.md
+node --input-type=module -e 'import{readFileSync}from"node:fs";import{corpsLu,lireVerdict}from"./scripts/chaine/verdict.mjs";const v=lireVerdict(corpsLu(readFileSync(process.argv[1],"utf8")));const d=!v?["marque absente en première ligne"]:v.illisible?v.defauts:v.verdict==="incomplet"&&v.bloquants>0?["incomplet avec des bloquants : un bloquant gardé donne refusé"]:[];if(d.length){console.error(d.join(" ; "));process.exit(1)}console.log(v.verdict,v.bloquants,v.tour,v.sommet,v.session,v.securite)' <brouillons>/verdict.md
 ```
 
 Sortie 1 : le brouillon est hors de la forme, la machine le lirait `incomplet` ; le corriger et rejouer. Sortie 0 : la ligne écrite redit le verdict, le nombre de bloquants, le tour, le sommet, la session et `/security-review` ; la session les compare à sa distribution.
 
-- **`incomplet`** dès qu'un axe ou un contrôle est « non exécuté », même s'il y a des bloquants : ni validé, ni refusé. Sinon **`refusé`** s'il reste un bloquant, **`validé`** sinon.
-- **`/security-review:`** vaut `lancée` si la skill a tourné sur ce sommet, `non requise` sans chemin sensible. Exigée et non jouée : la ligne se retire, le verdict est `incomplet`.
-- **Publier** : un commentaire neuf (outil GitHub MCP `add_issue_comment` ; en local, `gh api -X POST 'repos/{owner}/{repo}/issues/<n>/comments' -F 'body=@<scratchpad>/relecture/verdict.md'`). **Jamais modifié ensuite** : un verdict modifié ne compte plus ; pour le corriger, en écrire un neuf.
-- **Prévenir** le Relecteur, en une ligne (`send_message`) : « verdict écrit sur la PR <n>, tour <k> ». Jamais le verdict, ni un constat : ils se lisent sur la PR. Ce message ne fait que hâter son réveil.
+- **`refusé`** dès qu'il reste un bloquant gardé au tri, **même si un axe ou un contrôle est « non exécuté »** : le verdict le nomme sur sa ligne, avec la cause, et le tour suivant le joue. Sinon **`incomplet`** dès qu'un axe ou un contrôle est « non exécuté » : aucun bloquant, `Bloquants: 0`. Sinon **`validé`**.
+- **`/security-review:`** vaut `lancée` si la skill a tourné sur ce sommet, `non requise` sans chemin sensible. Exigée et non jouée : la ligne se retire, et le verdict est `incomplet`, ou `refusé` s'il reste un bloquant (limite connue : [`verdict.md`](references/verdict.md)).
+- **Avant de publier**, relire les commentaires de la PR, toutes pages. La distribution qui nomme la session dit ce tour et ce sommet : publier. Elle dit un autre sommet : reprendre à l'étape 2 sur lui, sans rien publier. Aucune ne la nomme : ne rien publier (un verdict écrit avant sa distribution ne compte pas), l'écrire au Relecteur en une ligne, et s'arrêter.
+- **Publier** : un commentaire neuf (outil GitHub MCP `add_issue_comment` ; en local, `gh api -X POST 'repos/{owner}/{repo}/issues/<n>/comments' -F 'body=@<brouillons>/verdict.md'`). Puis **relire le commentaire publié** : son corps, tel que GitHub le rend, s'écrit dans `<brouillons>/publie.md`, et la commande ci-dessus, jouée sur ce fichier, écrit la même ligne. Autre ligne, ou sortie 1 : écrire un verdict neuf. **Jamais modifié** : un verdict modifié ne compte plus.
+- **Prévenir** le Relecteur, en une ligne (`send_message`, à la session qui a lancé celle-ci) : « verdict écrit sur la PR <n>, tour <k> ». Jamais le verdict, ni un constat : ils se lisent sur la PR. Ce message ne fait que hâter son réveil.
 - **Ranger** : `git worktree remove --force <arbre>`.
 
 ## Au tour suivant
 
-Le Relecteur relance la même session quand l'auteur a corrigé ou contesté. Tout se rejoue depuis l'étape 1 : un arbre neuf au sommet nouveau, des sous-agents neufs, le diff entier, et pas seulement ce qui a changé. Une distribution `(après arbitrage, non compté)` porte sur le même sommet : la session relit, et ne relève plus ce que l'arbitrage a écarté. Une distribution `(relance <identifiant>)` suit un verdict `incomplet` : la session rejoue ce qui n'avait pas pu l'être et écrit un verdict neuf, au même tour.
+Le Relecteur relance la même session quand l'auteur a corrigé ou contesté. Tout se rejoue depuis l'étape 1 : des brouillons et un arbre neufs au sommet nouveau, des sous-agents neufs, le diff entier, et pas seulement ce qui a changé. Une distribution `(après arbitrage, non compté)` porte sur le même sommet : la session relit, et ne relève plus ce que l'arbitrage a écarté. Une distribution `(relance <identifiant>)` suit un verdict que le Relecteur a lu `incomplet` : la session rejoue tout, au même tour et sur le même sommet, et écrit un verdict neuf.
 
 ## Ne jamais
 
@@ -967,18 +1321,17 @@ Le Relecteur relance la même session quand l'auteur a corrigé ou contesté. To
 - Placer la tête de la PR dans le dossier de la session (`git switch`, `git checkout`, `git merge`) : elle se lit dans l'arbre à part.
 - Modifier un fichier du dépôt, committer, pousser, changer une étiquette, corriger soi-même un constat. Elle ne modifie aucun fichier et ne pousse rien.
 - Écrire sur la PR autre chose que le verdict, ou commencer un commentaire par une marque d'un autre rôle (`Relecture — `, `À relire — `, `Arbitrage — `, `Plafond — `).
-- Modifier un verdict écrit, ou écrire `validé` avec un axe « non exécuté ».
-- Lire le verdict d'une autre session de relecture, ou lui écrire.
+- Modifier un verdict écrit ; écrire `validé` avec un axe « non exécuté », ou `incomplet` avec un bloquant gardé ; lire l'échec d'un outil de la session comme un écart de la PR.
+- Écrire dans une commande le titre de la PR, ou un nom de branche ou un chemin sans l'avoir lu comme une donnée (étape 1).
 - Donner à un axe l'historique de la session, l'intention de la PR ou sa description ; donner à l'axe Règles le ticket.
 - Réduire une liste de critères, ajouter « et toute autre remarque utile », garder un constat sans critère, inventer une troisième gravité.
-- Transmettre un constat ou un résumé au Relecteur, à l'auteur ou au conducteur.
-- Relever un constat qu'un arbitrage a écarté.
-- Lancer la relecture en CI ou par une Action GitHub.
+- Lire le verdict d'une autre session de relecture, ou lui écrire ; transmettre un constat ou un résumé au Relecteur, à l'auteur ou au conducteur.
+- Relever un constat qu'un arbitrage a écarté ; lancer la relecture en CI ou par une Action GitHub.
 `````
 
 ### § 3 — Les références
 
-Douze fichiers sous `skills/chaine/relecture/references/`. Les blocs de `criteres-ticket.md` et de `criteres-documentation.md` sont ceux de `revue-de-ticket` à `a3c2a7c` (inchangés depuis `f58ccad`), réécritures appliquées (décision 12).
+Treize fichiers sous `skills/chaine/relecture/references/`. Les blocs de `criteres-ticket.md` et de `criteres-documentation.md` sont ceux de `revue-de-ticket` à `a018502` (inchangés depuis `f58ccad`), réécritures appliquées (décision 12).
 
 #### `skills/chaine/relecture/references/CONTENU.md`
 
@@ -989,7 +1342,7 @@ Le skill n'a aucun script à lui. Il joue ceux que `revue-adversariale` (`diff-r
 
 ## `SKILL.md`
 
-Ce que fait une session de relecture, de la distribution du Relecteur au verdict : se placer sur la base, extraire le sommet à relire dans un arbre de travail à part, y jouer les scripts de la base, choisir ses axes selon ce que le diff contient, lancer un sous-agent en contexte vierge par axe, trier chaque constat dans le code, écrire le verdict. Il est marqué `disable-model-invocation` : il ne se charge que par sa commande, en tête du message qui lance la session de relecture, jamais parce qu'une session qui vient de coder parle de « relecture ».
+Ce que fait une session de relecture, de la distribution du Relecteur au verdict : se placer sur la base, extraire le sommet à relire dans un arbre de travail à part, y jouer les scripts de la base, choisir ses axes selon ce que le diff contient, lancer un sous-agent en contexte vierge par axe, trier chaque constat dans le code, écrire le verdict. Chaque tour a son dossier de brouillons, vidé au départ : rien d'un tour ou d'une relance d'avant ne s'y relit. Le diff relu est vérifié contre la liste des fichiers changés : `diff-revue.sh` écarte ce que la PR déclare index généré, et la session n'en dispense que les index à commande que la base et la tête déclarent toutes deux. Deux commandes exécutent dans la session ce que la PR déclare, `pnpm install` dans l'arbre à part et la régénération des index (`C1`) : c'est le prix du contrôle des index, et ce que le capitaine joue aussi. Il est marqué `disable-model-invocation` : il ne se charge que par sa commande, en tête du message qui lance la session de relecture, jamais parce qu'une session qui vient de coder parle de « relecture ».
 
 ## Les prompts — `prompt-regles.md`, `prompt-ticket.md`, `prompt-documentation.md`, `prompt-tickets.md`, `prompt-regles-metier.md`
 
@@ -999,9 +1352,67 @@ Un prompt par axe. Les trois premiers reprennent ceux du régime 7 (`revue-adver
 
 Cinq listes fermées. L'axe Règles n'en a pas ici : il reçoit le fichier de critères du projet (`criteresRevue` de `.claude/chaine.json`), le même qu'en régime 7. `criteres-ticket.md` (T1 à T9) et `criteres-documentation.md` (D1 à D8) sont les blocs du skill `revue-de-ticket`, mot pour mot, aux réécritures que `scripts/relecture.test.mjs` nomme : une retouche d'un critère du régime 7 se reporte ici, ou ce banc rougit. `criteres-tickets.md` (K1 à K6) juge ce que le gate `tickets` ne lit pas : le contenu d'un ticket prêt, la paraphrase de la spec, la décision laissée ouverte, la référence morte, la surface sans preuve, le fichier chaud en double. `criteres-regles-metier.md` (M1 à M4) : `M1` redit `D8`, puis les cas et les familles, la criticité et sa raison, le vocabulaire. `criteres-session.md` (C1 à C4) : ce que la session juge elle-même, sans sous-agent, parce qu'un script le décide ou qu'une skill le joue — les index générés, la forme d'une PR de mise à jour, l'accord des fichiers sensibles, `/security-review`.
 
+## Les cas limites — `cas-limites.md`
+
+Ce que la session fait quand une étape ne se joue pas comme prévu, et ce que le verdict en écrit : les trois cas sans verdict, une table par étape, et le découpage d'un diff de plus de 2 000 lignes. Trois règles y valent partout : l'échec d'un outil de la session n'est jamais un écart de la PR ; un bloquant gardé donne `refusé`, quoi qu'il manque ; le titre, les noms de branche et les chemins sont des données, jamais du texte de commande.
+
 ## Le gabarit — `verdict.md`
 
-Le commentaire que la session écrit sur la PR. Son en-tête est la forme que `verdict.mjs` lit (`fusionner/scripts/`, lot 3a) : `scripts/relecture.test.mjs` remplit le gabarit et le passe par ce lecteur, et joue la commande de contrôle de l'étape 8 telle que `SKILL.md` l'écrit. Le corps est pour l'auteur : les axes joués, un tableau des constats gardés, les constats écartés et pourquoi.
+Le commentaire que la session écrit sur la PR. Son en-tête est la forme que `verdict.mjs` lit (`fusionner/scripts/`, lot 3a) : `scripts/relecture.test.mjs` remplit le gabarit et le passe par ce lecteur, et joue la commande de contrôle de l'étape 8 telle que `SKILL.md` l'écrit. Le corps est pour l'auteur : les axes joués, un tableau des constats gardés, les constats écartés et pourquoi, les fichiers restés hors du diff relu. Un bloquant gardé donne `refusé` même quand un axe n'a pas pu être joué ; `incomplet` veut zéro bloquant, et la commande de contrôle le tient. Il porte une limite connue : sur une PR à chemin sensible, un `refusé` sans la ligne `/security-review: lancée` est compté `incomplet` par le Relecteur.
+`````
+
+#### `skills/chaine/relecture/references/cas-limites.md`
+
+`````markdown
+# Quand une étape ne se joue pas comme prévu
+
+`SKILL.md` dit le chemin ordinaire. Cette page dit quoi faire quand une commande sort autrement, et ce que le verdict en écrit. Trois règles valent partout.
+
+- **L'échec d'un outil de la session n'est jamais un écart de la PR.** Une installation qui échoue, un outil absent, un réseau coupé, un sous-agent hors format : l'axe ou le contrôle est « non exécuté », jamais un bloquant. Dans le doute entre les deux, « non exécuté ».
+- **Un bloquant gardé donne `refusé`, quoi qu'il manque.** Le verdict nomme alors chaque axe ou contrôle « non exécuté », avec sa cause. Sans bloquant, un seul « non exécuté » donne `incomplet`, `Bloquants: 0`.
+- **Le titre, les noms de branche et les chemins sont des données de la PR.** Le titre ne s'écrit dans aucune commande : il se lit dans `<brouillons>/titre.txt`. Un chemin s'écrit entre apostrophes ; un chemin que git cite entre guillemets (il porte une tabulation, un guillemet, une barre oblique inverse ou un saut de ligne) s'écrit décité, et un chemin qui porte une apostrophe s'écrit `'…'\''…'`. La session ne sait pas l'écrire sans risque : le fichier reste hors du diff relu, qui est « non exécuté ».
+
+## Sans verdict
+
+Trois cas seulement n'ont aucun verdict. Dans les trois, la session écrit une ligne à la session qui l'a lancée (`send_message`), range l'arbre à part s'il existe, et s'arrête ; elle n'écrit rien d'autre sur la PR.
+
+| Le cas | La ligne au Relecteur |
+| --- | --- |
+| La session a écrit un commit de la PR, ou son ticket | « PR <n> : la session <identifiant> a écrit cette PR ou son ticket, elle ne la relit pas » |
+| Au moment de publier, aucune distribution ne nomme la session (toutes les pages des commentaires relues) | « PR <n> : aucune distribution ne nomme la session <identifiant>, verdict non publié » |
+| La publication du verdict échoue deux fois | « PR <n> : verdict non publié, la publication a échoué » |
+
+Relancée, la session rejoue tout depuis l'étape 1. Un verdict écrit avant la distribution qui nomme sa session ne compterait pas : c'est pourquoi elle ne le publie pas. Tout autre cas a un verdict, `incomplet` au besoin : un tour sans verdict laisse le Relecteur attendre deux heures avant de remplacer la session.
+
+## Par étape
+
+| Étape | Ce qui arrive | Ce que fait la session | Au verdict |
+| --- | --- | --- | --- |
+| 1 | Un nom de branche porte autre chose que des lettres, des chiffres, `.`, `_`, `/` et `-` | aucune commande ne le reçoit | `incomplet`, tout « non exécuté », la cause |
+| 2 | `git status --porcelain` n'est pas vide | rien ne se joue : les scripts de la base ne sont plus sûrs | `incomplet`, tout « non exécuté », la cause |
+| 2 | Le sommet est introuvable après le `fetch` | `git fetch origin <sommet>`, une fois | encore introuvable : `incomplet` |
+| 3 | « installation en échec » avant `a-juger` | `a-juger` se joue quand même : une sous-PR ordinaire n'a pas besoin de commitlint | sortie 4 au motif « refusé par commitlint » : `C2` « non exécuté », aucune liste, donc aucun axe |
+| 3 | `a-juger` sort en 4, tout autre motif | le motif est le constat de `C2` ; aucun axe ne se joue | `refusé`, les axes « non exécuté » : la forme de la PR est refusée |
+| 3 | `a-juger.txt` commence par une ligne vide | une PR de mise à jour sans conflit : la première liste est vide, la seconde est celle des retouches | — |
+| 3 | `fichiers.txt` est vide (PR de mise à jour sans conflit ni retouche, PR sans fichier changé) | le diff ne se joue pas : sans zone, `diff-revue.sh` prendrait tout ce que `develop` apporte ; ni étape 4, ni axe, ni `C3`, ni `C4` | `C1` et `C2` seuls ; `validé` s'ils passent, `/security-review: non requise` |
+| 3 | `diff-revue.sh` sort en 1, « fetch de … impossible » | le rejouer une fois | encore : aucun axe, `incomplet` |
+| 3 | `comm` liste un fichier (la PR le déclare index généré, git cite son chemin, un index sans commande) | l'ajouter au diff relu par la commande de l'étape 3, rejouer les deux dernières lignes | resté listé avec un écart : le diff relu est « non exécuté » |
+| 3 | « liste des index illisible », sortie 12 | rien n'est dispensé à l'aveugle | le diff relu est « non exécuté » |
+| 3 | Le diff porte « Binary files … differ » | aucun axe ne lit ce fichier | il se nomme sous « Hors du diff relu », binaire ; `C3` et `C4` le voient comme tout chemin |
+| 3 | `diff.patch` dépasse 2 000 lignes | des lots : voir plus bas | — |
+| 4 | Une ligne « échec » | la relecture s'arrête | `incomplet` : jamais « rien de sensible », jamais « pas de ticket » |
+| 5 | `C1` sort en 12 | l'installation a échoué | `C1` « non exécuté » |
+| 5 | Le sujet du ticket n'est pas rapatrié (PR vers `develop`) | `git fetch` du sujet ; branche absente du distant : lire le ticket sur `origin/develop` | — |
+| 5 | `/security-review` ne peut pas tourner | — | `C4` « non exécuté », la ligne `/security-review:` se retire ; `incomplet`, ou `refusé` s'il reste un bloquant (limite connue de `verdict.md`) |
+| 6 | `contexte-ticket.mjs` sort en 2 | le ticket de la PR est introuvable dans l'arbre à part | axe Ticket « non exécuté » |
+| 6 | Un sous-agent rend deux fois une sortie hors format, ou l'outil échoue | — | l'axe est « non exécuté » |
+| 8 | La commande de contrôle sort en 1 | corriger le brouillon, rejouer | rien ne se publie avant la sortie 0 |
+| 8 | La publication échoue | réessayer une fois | encore : aucun verdict, la ligne au Relecteur (« Sans verdict ») |
+| 8 | Le commentaire publié ne rend pas la même ligne | écrire un verdict neuf, jamais modifier | le dernier verdict de la session pour ce tour compte |
+
+## Un diff de plus de 2 000 lignes
+
+`diff-revue.sh` le dit sur sa sortie d'erreur. La session partage alors `fichiers.txt` en lots, par zone (`apps/api`, `apps/web`, `apps/mobile`, `packages` et `scripts`, la documentation), chaque fichier dans un lot et un seul, et rejoue le diff une fois par lot, les fichiers du lot en zones, avec `REVUE_DIR=<brouillons>/lot-<i>`. Un fichier dont le diff dépasse seul 2 000 lignes fait un lot à lui, donné entier. Chaque axe se lance une fois par lot : un sous-agent neuf par axe et par lot, mêmes critères. Les `diff.patch` des lots, mis bout à bout dans `<brouillons>/diff.patch`, passent la vérification de l'étape 3 : aucun fichier ne manque à l'ensemble. Un axe n'est « joué » que si tous ses lots le sont.
 `````
 
 #### `skills/chaine/relecture/references/verdict.md`
@@ -1037,6 +1448,8 @@ Axes et contrôles :
 Écartés au tri : <n>.
 - `<fichier>:<ligne>` : <le critère cité, ou « sans critère »>, <pourquoi il est écarté, en une phrase>
 
+Hors du diff relu : <`<fichier>`, et pourquoi : binaire, sans écart contre la base, lockfile, snapshot | aucun>
+
 Cas laissés à un autre ticket (`T3`, (d)) : <cas `<règle>#<id>` porté par `<ticket>` | aucun>
 ```
 
@@ -1044,20 +1457,23 @@ Cas laissés à un autre ticket (`T3`, (d)) : <cas `<règle>#<id>` porté par `<
 
 - **`Sommet relu:`** le sommet que la distribution nomme, en entier, en minuscules, même si la tête de la PR a bougé depuis. Un verdict sur un autre sommet se lit `incomplet`.
 - **`Tour:`** le numéro que la distribution donne.
-- **`Verdict:`** `incomplet` dès qu'un axe ou un contrôle est « non exécuté », ou que `/security-review` était exigée et n'a pas tourné ; sinon `refusé` s'il reste au moins un bloquant ; sinon `validé`.
-- **`Bloquants:`** le nombre de lignes « bloquant » du tableau. `validé` veut 0, `refusé` veut 1 ou plus : la machine lit toute autre combinaison comme un verdict illisible, donc `incomplet`.
+- **`Verdict:`** trois cas, dans cet ordre. `refusé` dès qu'il reste au moins un bloquant gardé au tri, **même si un axe ou un contrôle est « non exécuté »** : un bloquant confirmé l'emporte, l'auteur corrige, et le tour suivant rejoue tout, sur un contenu neuf. Sinon `incomplet` dès qu'un axe ou un contrôle est « non exécuté », ou que `/security-review` était exigée et n'a pas tourné. Sinon `validé`.
+- **`Bloquants:`** le nombre de lignes « bloquant » du tableau. `validé` et `incomplet` veulent 0, `refusé` veut 1 ou plus. La machine lit `validé` avec un bloquant, ou `refusé` sans bloquant, comme un verdict illisible, donc `incomplet` ; elle accepte `incomplet` avec des bloquants, mais la session ne l'écrit jamais : la commande de l'étape 8 le refuse.
 - **`Session:`** l'identifiant de la session de relecture, celui que la distribution nomme.
-- **`/security-review:`** `lancée` si la skill a tourné sur ce sommet, `non requise` si le diff relu ne touche aucun chemin sensible. Un seul de ces deux mots, et rien après : les chemins s'écrivent dans le corps. Exigée et non jouée : la ligne se retire entière, et le verdict est `incomplet`.
+- **`/security-review:`** `lancée` si la skill a tourné sur ce sommet, `non requise` si le diff relu ne touche aucun chemin sensible. Un seul de ces deux mots, et rien après : les chemins s'écrivent dans le corps. Exigée et non jouée : la ligne se retire entière ; le verdict est `incomplet` sans bloquant, `refusé` s'il en reste un.
 
-Aucune ligne ne s'ajoute à l'en-tête, aucune ne s'y déplace. La commande de l'étape 8 de `SKILL.md` relit le brouillon comme la machine le lira : elle se joue avant de publier.
+Aucune ligne ne s'ajoute à l'en-tête, aucune ne s'y déplace. La commande de l'étape 8 de `SKILL.md` relit le brouillon comme la machine le lira : elle se joue avant de publier, puis sur le commentaire publié.
+
+**Limite connue.** Sur une PR qui touche un chemin sensible, le Relecteur compte `incomplet` tout verdict sans la ligne `/security-review: lancée`, un `refusé` compris (`compter`, dans le calcul de décision que `fusionner` pose sous `scripts/chaine/`). Un `refusé` écrit alors que `/security-review` n'a pas pu tourner ne rend donc pas la PR à son auteur : le Relecteur relance la session, au même tour. La session écrit quand même `refusé` : ses constats sont sur la PR, et le verdict dit ce qu'elle a vu.
 
 ## Remplir le corps
 
-- Un axe ou un contrôle que le diff ne déclenche pas est « sans objet ». Un axe dont le sous-agent a échoué deux fois, un contrôle dont l'outil manque : « non exécuté », avec la cause.
+- Un axe ou un contrôle que le diff ne déclenche pas est « sans objet ». Un axe dont le sous-agent a échoué deux fois, un contrôle dont l'outil manque : « non exécuté », avec la cause. Un verdict `refusé` qui porte un « non exécuté » le dit ainsi, sur la ligne de l'axe ou du contrôle : l'auteur sait ce que le tour suivant jouera en plus.
 - Une ligne du tableau par constat gardé au tri, les bloquants d'abord. Sans constat : le tableau se remplace par la phrase « Aucun constat. ».
 - Le critère est cité par son identifiant (`S3`, `P2`, `T1`, `D4`, `K5`, `M2`, `C3`) et par la règle écrite qu'il applique.
 - Pour un bloquant, la dernière colonne dit le test qui l'aurait attrapé : l'auteur corrige le bloquant avec ce test, ou le conteste. Quand aucun test ne peut le tenir (un écart de documentation, un ticket), elle dit « aucun test », et pourquoi.
 - « Écartés au tri » dit combien de constats la session a écartés, et pourquoi en une phrase chacun : sans critère cité, faux, écarté par un arbitrage, ligne venue de `develop`, doublon d'un autre axe.
+- « Hors du diff relu » nomme chaque fichier changé que les axes n'ont pas lu, et pourquoi : un fichier binaire (le diff n'en porte que le nom), un fichier sans écart contre la base, `pnpm-lock.yaml` ou un snapshot. Un index à commande, que `C1` vérifie, ne s'y nomme pas.
 - Aucune ligne du corps ne commence par `Relecture — `, `Relecture en panne`, `À relire — `, `Plafond — `, `Décision de plafond`, `Arbitrage — ` ni `Lecture illisible` : ce sont les marques du Relecteur, de l'auteur et de l'arbitre.
 
 ## Un exemple
@@ -1076,7 +1492,7 @@ PR #412 vers `sujet/facture` : 6 fichiers, 214 lignes relues (index générés e
 Axes et contrôles :
 - Règles : joué
 - Ticket : joué
-- Documentation : joué
+- Documentation : non exécuté, le sous-agent a rendu deux fois une sortie hors format
 - Tickets : sans objet
 - Règles métier : sans objet
 - Session : `C1` joué · `C2` joué · `C3` sans objet · `C4` sans objet
@@ -1089,8 +1505,12 @@ Axes et contrôles :
 Écartés au tri : 1.
 - `apps/api/src/facture/total.ts:12` : sans critère, une suggestion de nommage.
 
+Hors du diff relu : `apps/web/public/logo.png`, binaire
+
 Cas laissés à un autre ticket (`T3`, (d)) : aucun
 ```
+
+Dans cet exemple, l'axe Documentation n'a pas pu être joué et le verdict est `refusé` : le bloquant de l'axe Ticket suffit. Sans ce bloquant, le même verdict s'écrirait `incomplet`, `Bloquants: 0`.
 `````
 
 #### `skills/chaine/relecture/references/prompt-regles.md`
@@ -1262,8 +1682,9 @@ seulement, que tu lis. Le répertoire courant porte la base de la PR : tu n'y li
 Tu travailles en lecture seule. Pour vérifier un point, tu peux lire, dans ce dossier : les
 fichiers entiers touchés par le diff ; la spec et la carte du chantier de chaque ticket touché ;
 les autres tickets du même dossier `issues/` ; tout fichier, règle, ADR ou décision qu'un ticket,
-une spec ou une carte du diff cite ; docs/agents/ et docs/methode/. Rien d'autre. Tu ne modifies
-rien, tu ne lances aucune commande qui écrit.
+une spec ou une carte du diff cite ; docs/agents/ et docs/methode/. Rien d'autre. Une spec ou une
+carte longue se lit par recherche (l'identifiant d'une décision, le titre d'une section), pas en
+entier. Tu ne modifies rien, tu ne lances aucune commande qui écrit.
 
 Ta seule mission : trouver ce qui empêcherait une session neuve de réaliser un ticket du diff sans
 exploration large ni question, ou ce qui le ferait s'écarter de sa spec — un ticket prêt qui n'en
@@ -1461,7 +1882,7 @@ T9  Essai d'une réécriture de dépôt — cas vécu : anchorpost, vague 8 (tic
 
 L'axe reçoit le **diff**, et la section `## Criticité` du corps de la PR quand elle existe, et lit la documentation du dépôt dans l'arbre à part. Il ne rend que des écarts rattachés à l'un de ces critères. Tout écart est un constat **bloquant** ; ce que le dépôt ne permet pas de trancher est un **doute**. Les chemins sont des rôles : le glossaire du projet (`GLOSSARY.md`, ou `CONTEXT.md`), le registre de règles (`docs/metier/regles/<ctx>/RULE_<CTX>_<TRI>-<n>.md`), les ADR (`docs/adr/` ou `docs/architecture/adr/`).
 
-Ce bloc est celui du skill `revue-de-ticket` (régime 7), mot pour mot, à quatre réécritures près, que `scripts/relecture.test.mjs` tient : le sous-agent s'y nomme « l'axe », et les trois endroits de `D8` qui rangeaient un écart sous une gravité disent « un écart », puisqu'un écart est toujours bloquant.
+Ce bloc est celui du skill `revue-de-ticket` (régime 7), mot pour mot, à quatre réécritures près, que `scripts/relecture.test.mjs` tient : le sous-agent s'y nomme « l'axe », et les trois endroits de `D8` qui rangeaient un écart sous une gravité disent « un écart », puisqu'un écart est toujours bloquant. `D8` dit « dans la PR d'un agent » : l'axe ne sait pas qui a écrit la PR, et la session, au tri, tient toute PR qu'elle relit pour celle d'un agent.
 
 ```text
 D1  Glossaire — ADR_ALL_ARC-4 / langue des identifiants. Un terme du domaine nouveau dans le code (entité,
@@ -1525,7 +1946,9 @@ K2  Paraphrase de la spec — docs/agents/issue-tracker.md, docs/methode/decisio
     spec ou la carte décide, le ticket le reprend mot pour mot ou par renvoi (l'identifiant de la
     décision, la section). Une règle, un chiffre, un nom, une forme ou un ordre d'étapes que le
     ticket énonce autrement que sa source est un écart, même si le sens paraît le même : deux
-    énoncés divergent, et la session qui code ne lit que le ticket.
+    énoncés divergent, et la session qui code ne lit que le ticket. Ce que le ticket ajoute à sa
+    source n'est pas une paraphrase : c'est une décision du ticket, dite telle, avec sa raison
+    (K3) ; une précision glissée sans être dite est un écart.
 K3  Décision laissée ouverte — docs/agents/chaine-de-production.md § 3 (« Décisions »). Tout
     choix dont dépend le code est tranché dans le ticket, avec sa raison ou son renvoi, ou nommé
     comme laissé à la session « par défaut prudent », ce défaut écrit. Un « à voir », un « selon
@@ -1534,8 +1957,11 @@ K3  Décision laissée ouverte — docs/agents/chaine-de-production.md § 3 (« 
 K4  Référence morte — docs/methode/nomenclature.md. Tout identifiant (règle, spec, ticket, ADR,
     décision de la carte), tout chemin de fichier, toute commande et tout fichier:ligne que le
     ticket, la spec ou la carte citent existent dans l'arbre relu, à l'endroit dit ; un fichier à
-    créer est dit tel. Une ligne `Blocked by:` ne cite que des tickets qui existent, et aucun
-    ticket ne se bloque lui-même, directement ou par une chaîne.
+    créer est dit tel, par ce ticket ou par un ticket que sa ligne `Blocked by:` nomme. Un repère
+    fichier:ligne que le texte donne pour un commit nommé se vérifie à ce commit. Une référence
+    hors du dépôt (un autre dépôt, une PR, une adresse) ne se vérifie pas ici : elle n'est jamais
+    un écart, un doute au plus. Une ligne `Blocked by:` ne cite que des tickets qui existent, et
+    aucun ticket ne se bloque lui-même, directement ou par une chaîne.
 K5  Surface sans preuve — docs/agents/chaine-de-production.md § 3 (« Surfaces »). Chaque surface
     que le besoin ou les décisions du ticket font exister (écran, endpoint, commande, script,
     message, fichier posé) a sa ligne dans la table surface → preuve, et chaque ligne nomme une
@@ -1559,7 +1985,7 @@ K6  Fichier chaud en double dans une vague — docs/agents/chaine-de-production.
 
 L'axe reçoit le **diff**, et la section `## Criticité` du corps de la PR quand elle existe, et lit dans l'arbre à part les fichiers de règle touchés, les specs qui les portent, le glossaire du projet (`GLOSSARY.md`, ou `CONTEXT.md`) et l'index `anchorpost/anchorpost.json`. Il est joué quand le diff touche un fichier de règle (`docs/metier/regles/<ctx>/RULE_<CTX>_<TRI>-<n>.md`), une criticité (`criticality`, `cases` ou `notApplicableFamilies` d'une règle, `featureCriticality` du manifeste `anchorpost/manifest.json`) ou le glossaire. Il ne rend que des écarts rattachés à l'un de ces critères. Tout écart est un constat **bloquant** ; ce que le dépôt ne permet pas de trancher est un **doute**.
 
-`M1` redit le critère `D8` de l'axe Documentation, mot pour mot (`scripts/relecture.test.mjs` le tient) : quand les deux axes sont joués sur la même PR et relèvent le même écart, le verdict n'en garde qu'un constat. Les définitions de `M2` et de `M3` sont celles du skill `criticite` (son prompt, `criticite/references/prompt.md`).
+`M1` redit le critère `D8` de l'axe Documentation, mot pour mot (`scripts/relecture.test.mjs` le tient) : quand les deux axes sont joués sur la même PR et relèvent le même écart, le verdict n'en garde qu'un constat. Les définitions de `M2` et de `M3` sont celles du skill `criticite` (son prompt, `criticite/references/prompt.md`). L'axe ne sait pas qui a écrit une ligne : là où un critère dit « un agent » ou « une personne », il lit qui la règle ou la section « Criticité » nomme, et la session, au tri, tient toute PR qu'elle relit pour celle d'un agent.
 
 ```text
 M1  Criticité tracée — skill criticite. Seulement si l'index commis du projet, anchorpost/anchorpost.json,
@@ -1582,17 +2008,20 @@ M1  Criticité tracée — skill criticite. Seulement si l'index commis du proje
 M2  Cas et familles — skill criticite, fiche .claude/rules/anchorpost.md. Seulement si l'index
     commis du projet porte "schema": "3". Une règle que le diff crée, ou dont il change l'énoncé,
     porte dans son en-tête ses cas attendus (`cases`) : le cas normal et chaque cas limite que
-    l'énoncé énonce ; pour une règle medium ou high, en plus, chaque entrée invalide et chaque
-    refus que l'énoncé ou sa spec impliquent. Elle répond à chacune des dix familles (limits,
-    empty, invalid-input, duplicate, ordering, time, permissions, rare-state, volume, failure) : par
-    un cas qui porte la famille (`family`), par une entrée de `notApplicableFamilies` avec sa
-    raison, ou par une question au registre `docs/questions-ouvertes.md` (la règle sur sa ligne
-    `Bloque :`). Écart : un cas que l'énoncé dit et qu'aucun cas de `cases` ne porte ; un cas que
-    ni l'énoncé ni la spec ne portent ; une famille sans cas, sans « sans objet » et sans
-    question ; un « sans objet » dont la raison ne tient pas à ce que la règle exige ; un cas
-    `scope: technical` qui est une décision du métier (un refus, une exception que la MOA
-    reconnaîtrait) ; un cas dont le `kind` contredit son titre (un refus rangé `invalid`, une
-    entrée mal formée rangée `refusal`).
+    l'énoncé énonce ; pour une règle medium ou high, en plus, tous les cas limites, toutes les
+    entrées invalides et tous les refus que l'énoncé ou sa spec impliquent. Elle répond à chacune
+    des dix familles (limits, empty, invalid-input, duplicate, ordering, time, permissions,
+    rare-state, volume, failure) par l'une de ces trois réponses : un cas au moins qui la porte
+    (`family` ; un cas de genre invalid répond d'office à invalid-input), une entrée de
+    `notApplicableFamilies` avec sa raison, ou une question au registre
+    `docs/questions-ouvertes.md` (la règle sur sa ligne `Bloque :`). Écart : un cas que l'énoncé
+    dit et qu'aucun cas de `cases` ne porte ; pour une règle medium ou high, un cas limite, une
+    entrée invalide ou un refus que l'énoncé ou sa spec impliquent et qu'aucun cas ne porte ; un
+    cas que ni l'énoncé ni la spec ne portent ; une famille sans aucune des trois réponses ; une
+    famille à la fois portée par un cas et dite sans objet ; un « sans objet » dont la raison ne
+    tient pas à ce que la règle exige ; un cas `scope: technical` qui est une décision du métier
+    (un refus, une exception que la MOA reconnaîtrait) ; un cas dont le `kind` contredit son
+    titre (un refus rangé `invalid`, une entrée mal formée rangée `refusal`).
 M3  Criticité et sa raison — skill criticite. Seulement si l'index commis du projet porte
     "schema": "3". `criticality` s'écrit { level, by, reason }, et la raison dit en une ou deux
     phrases ce qu'une erreur coûterait, dans les mots de la règle. Les trois niveaux : high, une
@@ -1604,7 +2033,8 @@ M3  Criticité et sa raison — skill criticite. Seulement si l'index commis du 
     plus bas ; une raison qui ne dit pas ce qu'une erreur coûterait ; la forme nue
     (`criticality: high`) écrite par le diff ; un niveau baissé par le diff, ou une règle retirée
     d'une ligne `Règles:`, sans que la section « Criticité » nomme la personne qui l'a décidé ;
-    `validated` écrit par un agent.
+    une validation `validated` (`validation.status`) que le diff écrit ou change sans sa `date`,
+    ou avec un `by` absent ou qui vaut `agent` : seule une personne valide, et la règle la nomme.
 M4  Vocabulaire — glossaire du projet, ADR sur la langue des identifiants. Un terme du domaine
     que le diff introduit dans l'énoncé d'une règle ou dans une spec a son entrée au glossaire,
     avec son nom en code ; l'énoncé d'une règle emploie le terme du glossaire, jamais un mot que
@@ -1619,24 +2049,27 @@ M4  Vocabulaire — glossaire du projet, ADR sur la langue des identifiants. Un 
 `````markdown
 # Critères que la session de relecture juge elle-même (liste fermée)
 
-Quatre contrôles ne passent par aucun sous-agent : la session les joue dans l'arbre à part, par les scripts de la base, et en rend les écarts au verdict sous l'axe « Session ». Tout écart est un constat **bloquant**. Un contrôle qui n'a pas pu être joué (outil absent, commande en échec pour une cause étrangère à la PR) s'écrit « non exécuté », et le verdict est `incomplet`.
+Quatre contrôles ne passent par aucun sous-agent : la session les joue dans l'arbre à part, par les scripts de la base, et en rend les écarts au verdict sous l'axe « Session ». Tout écart est un constat **bloquant**. Un contrôle qui n'a pas pu être joué (outil absent, installation en échec, commande en échec pour une cause étrangère à la PR) s'écrit « non exécuté » : le verdict est alors `incomplet`, ou `refusé` s'il reste un bloquant gardé. L'échec d'un outil de la session n'est jamais un écart de la PR ; dans le doute entre les deux, « non exécuté ».
 
 ```text
 C1  Index générés — scripts/docs/index-generes.json (critère D4 de l'axe Documentation). Sur le
     sommet relu, chaque index à `commande` est celui que sa commande produit, et chaque
     `verification` passe : `regenerer_index` (scripts/chaine/github.sh), joué dans l'arbre à
     part, ne change aucun fichier. Un fichier que la régénération change, ou une vérification
-    rouge sur ce que la PR écrit, est un écart : son auteur régénère l'index par sa commande.
+    rouge sur ce que la PR écrit, est un écart : son auteur régénère l'index par sa commande. Un
+    index sans commande n'est vérifié par rien ici : il se relit dans le diff, comme tout fichier.
 C2  Forme d'une PR de mise à jour — skill sujet, « Recevoir develop dans un sujet ». Pour une PR
     dont la base est un sujet, `sujet.sh a-juger` sort en 0. Une sortie 4 est un écart, et le
     motif que la commande écrit est le constat : plusieurs fusions, un premier parent qui n'est
-    pas le sommet du sujet, un message de fusion ou de retouche refusé.
+    pas le sommet du sujet, un message de fusion ou de retouche refusé. Le motif « refusé par
+    commitlint » n'est un écart que si l'outil tourne dans la session : sinon le contrôle n'a pas
+    été joué.
 C3  Accord des fichiers sensibles — ligne `Sensibles:` du ticket. Chaque chemin sensible que le
     diff relu touche (une ligne de `chemins-sensibles.mjs`) est couvert par la ligne `Sensibles:`
     du ticket de la PR : un chemin exact, ou un motif qui le prend, suivi de l'accord (` — accord
-    de <nom>, <date>`). La ligne se lit sur la branche du sujet (`origin/sujet/<nom>`), ou sur
-    `origin/develop` pour un ticket sans sujet, jamais dans l'arbre relu ni sur la branche de la
-    PR. Un écart par chemin sensible touché que la ligne ne couvre pas : ligne absente,
+    de <nom>, <date>`). La ligne se lit sur la branche du sujet (`origin/sujet/<nom>`, rapatriée
+    d'abord quand la PR va vers develop), ou sur `origin/develop` pour un ticket sans sujet ou dont
+    le sujet n'est plus sur le distant, jamais dans l'arbre relu ni sur la branche de la PR. Un écart par chemin sensible touché que la ligne ne couvre pas : ligne absente,
     `Sensibles: —`, chemin hors de la liste, ou PR sans ticket. Une PR de mise à jour d'un sujet
     (`maj/<nom>`) n'a pas de ticket : un chemin sensible n'y est couvert que s'il est dans la
     première liste de `sujet.sh a-juger` (la résolution du conflit) et sur la ligne `Sensibles:`
@@ -1684,7 +2117,7 @@ Six ajouts à quatre fichiers, chacun donné mot pour mot. Aucune ligne existant
 `````text
     relecture/
       SKILL.md         poser, qui le joue, la distribution, l'arbre à part, le diff relu, les axes, les contrôles de la session, trier, le verdict
-      references/      cinq prompts, cinq listes de critères, le gabarit du verdict
+      references/      cinq prompts, cinq listes de critères, le gabarit du verdict, les cas limites
 `````
 
 **`CONTEXT.md`**, cette section entre la ligne vide `:28` et `### Travail` (`:29`), suivie d'une ligne vide :
@@ -1711,7 +2144,7 @@ Ce qu'un axe relève. Deux gravités : bloquant (un écart à un critère écrit
 _Avoid_: défaut, « à corriger », mineur
 
 **Verdict**:
-Le commentaire de la session de relecture sur la PR, de forme fixe ; il vaut validé (aucun bloquant), refusé (au moins un bloquant) ou incomplet (un axe n'a pas pu être joué).
+Le commentaire de la session de relecture sur la PR, de forme fixe ; il vaut validé (aucun bloquant), refusé (au moins un bloquant, même si un axe n'a pas pu être joué) ou incomplet (aucun bloquant, et un axe n'a pas pu être joué).
 _Avoid_: « à corriger »
 
 **Tour**:
@@ -1743,16 +2176,16 @@ _Avoid_: propriétaire
 
 ### § 5 — La version et la note
 
-`.claude-plugin/plugin.json:3` : `"version"` prend la mineure qui suit celle de `main` au moment de livrer (§ 0) ; sur `a3c2a7c`, `"7.31.0"` devient `"7.32.0"`.
+`.claude-plugin/plugin.json:3` : `"version"` prend la mineure qui suit celle de `main` au moment de livrer (§ 0). Sur `a018502`, `"7.31.1"` donnerait `"7.32.0"` ; deux PR ouvertes annoncent déjà ce numéro (134 et 44), et la session prend celui qui suit `main` le jour où elle livre, pas celui de ce paragraphe.
 
-`NOTES-DE-VERSION.md` : cette note, entre le paragraphe d'introduction et la première note du fichier (`## 7.31.0 — 2026-11-19` sur `a3c2a7c`). Son titre prend la version du point précédent et la date du jour de la livraison ; le reste se recopie tel quel :
+`NOTES-DE-VERSION.md` : cette note, entre le paragraphe d'introduction et la première note du fichier (`## 7.31.1 — 2026-11-19` sur `a018502`). Dans son titre, `<version>` devient la version du point précédent et `<AAAA-MM-JJ>` la date du jour de la livraison ; le reste se recopie tel quel :
 
 `````markdown
-## 7.32.0 — 2026-11-19
+## <version> — <AAAA-MM-JJ>
 
 ### Ce qui change
 
-Le plugin porte un skill de plus, le skill `relecture` (`skills/chaine/relecture/`) : ce que joue une **session de relecture**, lancée par le Relecteur d'un dépôt et jamais par l'auteur d'une PR. Elle se place sur la base de la PR, extrait le sommet à relire dans un arbre de travail à part, y joue les scripts de la base (`diff-revue.sh`, `chemins-sensibles.mjs`, `contexte-ticket.mjs`, `sujet.sh a-juger` pour une PR vers un sujet, la régénération des index), choisit ses axes selon ce que le diff contient (Règles, Ticket, Documentation, Tickets, Règles métier), lance un sous-agent en contexte vierge par axe, trie chaque constat dans le code, puis écrit sur la PR un verdict de la forme que `verdict.mjs` lit (7.23.0). Il n'y a que deux gravités, bloquant et doute : ce que les deux skills de revue rangent « à corriger » est ici un bloquant. Deux axes sont neufs : Tickets (K1 à K6), pour une PR de tickets, de spec ou de carte, et Règles métier (M1 à M4), pour une règle, sa criticité ou le glossaire. Le skill ne se charge que par sa commande (`disable-model-invocation`), et il n'a aucun script à lui. `CONTEXT.md` reçoit le vocabulaire de la relecture indépendante.
+Le plugin porte un skill de plus, le skill `relecture` (`skills/chaine/relecture/`) : ce que joue une **session de relecture**, lancée par le Relecteur d'un dépôt et jamais par l'auteur d'une PR. Elle se place sur la base de la PR, extrait le sommet à relire dans un arbre de travail à part, y joue les scripts de la base (`diff-revue.sh`, `chemins-sensibles.mjs`, `contexte-ticket.mjs`, `sujet.sh a-juger` pour une PR vers un sujet, la régénération des index), choisit ses axes selon ce que le diff contient (Règles, Ticket, Documentation, Tickets, Règles métier), lance un sous-agent en contexte vierge par axe, trie chaque constat dans le code, puis écrit sur la PR un verdict de la forme que `verdict.mjs` lit (7.23.0). Il n'y a que deux gravités, bloquant et doute : ce que les deux skills de revue rangent « à corriger » est ici un bloquant. Un bloquant confirmé donne `refusé` même quand un axe n'a pas pu être joué ; `incomplet` veut zéro bloquant. L'échec d'un outil de la session (une installation, un réseau, un sous-agent) n'est jamais un écart de la PR : il s'écrit « non exécuté ». Le diff relu est vérifié contre la liste des fichiers changés : rien de ce que la PR déclare elle-même index généré n'en sort. Deux axes sont neufs : Tickets (K1 à K6), pour une PR de tickets, de spec ou de carte, et Règles métier (M1 à M4), pour une règle, sa criticité ou le glossaire. Le skill ne se charge que par sa commande (`disable-model-invocation`), et il n'a aucun script à lui. `CONTEXT.md` reçoit le vocabulaire de la relecture indépendante.
 
 **Rien ne l'appelle encore** : le Relecteur et la bascule vers le régime 8 ne sont pas livrés. `revue-de-ticket` et `revue-adversariale` ne changent pas, et restent la revue de toute PR.
 
@@ -1780,44 +2213,57 @@ Mettre à jour le plugin ; rien d'autre aujourd'hui. Les scripts que le skill jo
 | Cinq listes fermées, numérotées sans trou | « chaque liste de critères est fermée… » |
 | Les cinq prompts : l'arbre à part, les marqueurs, le format d'un constat | « chaque prompt lit l'arbre à part… » |
 | Le gabarit de verdict, lu par le lecteur réel | « le gabarit de verdict rempli se lit par verdict.mjs… », « le gabarit de verdict : la ligne /security-review se retire entière… » |
-| La commande de contrôle du verdict | « la commande de contrôle du verdict que le skill cite, jouée telle qu'il l'écrit… » |
+| La commande de contrôle du verdict : la forme, `incomplet` sans bloquant, la même ligne sur le commentaire publié | « la commande de contrôle du verdict que le skill cite, jouée telle qu'il l'écrit… » |
+| Le verdict devant la décision du Relecteur : `validé`, `refusé` avec un axe non joué (`A-137`), `incomplet`, et la limite d'une PR sensible | « le verdict lu par la décision du Relecteur (decider)… » |
+| `M2` et `M3` contre le prompt de `criticite` | « M2 et M3 prennent leurs définitions au prompt du skill criticite… » |
 | Le choix des axes : la table d'`A-78`, la commande « un chemin exige la revue » | « le choix des axes… » |
-| La lecture depuis un arbre à part : la base dans le dossier de la session, le sommet distribué dans l'arbre, les scripts de la base, le clone approfondi, les index, le contexte du ticket, l'accord lu sur le sujet | « les commandes des étapes 2 à 5, jouées telles que le skill les écrit… » |
-| Une PR de mise à jour d'un sujet : `a-juger`, la seconde liste, le tri par `git blame`, la forme refusée | « une PR de mise à jour d'un sujet… » |
+| La lecture depuis un arbre à part : la base dans le dossier de la session, le sommet distribué dans l'arbre, les scripts de la base, le clone approfondi, les index, le contexte du ticket, l'accord lu sur le sujet ; des brouillons neufs à chaque tour et à chaque relance ; le titre lu dans un fichier ; un outil en échec (`pnpm`, `jq`, le distant) qui ne se lit jamais comme un écart | « les commandes des étapes 2 à 5, jouées telles que le skill les écrit… » |
+| Le diff relu ne perd aucun fichier : un fichier que la PR déclare index généré, un index sans commande, un index retiré de la liste, un chemin que git cite, un renommage ; « aucun axe » seulement quand tout est index à commande | « le diff relu ne perd aucun fichier… » |
+| Une PR de mise à jour d'un sujet : `a-juger`, la seconde liste, le tri par `git blame`, la forme refusée, commitlint qui ne tourne pas | « une PR de mise à jour d'un sujet : a-juger rend deux listes… » |
+| Une PR de mise à jour sans conflit : la première liste vide, la seconde ; aucune liste, et le diff ne se joue pas | « une PR de mise à jour sans conflit… » |
+| `C3` sur une PR vers `develop` : le sujet rapatrié | « C3 sur une PR vers develop dont le ticket nomme un sujet… » |
 | `plugin.json`, `README.md`, `references-agent-integrees.json`, la note, `CONTEXT.md` | « le plugin connaît le skill… », et `scripts/depot.test.mjs`, inchangé : « chaque skill du plugin a sa ligne au README… », « la règle d'ascendance du plugin 7.16.0… » (la première note commence par la version) |
-| Ce que les sous-agents rendent sur une vraie PR ; `/security-review` sur un arbre à part ; le commentaire publié et le message au Relecteur | aucun test : voir « Ce qui n'a pas été établi » |
+| Ce que les sous-agents rendent sur une vraie PR ; `/security-review` sur un arbre à part ; le commentaire publié et le message au Relecteur ; la lecture de la distribution sur une vraie PR ; les lots d'un diff de plus de 2 000 lignes | aucun test : voir « Ce qui n'a pas été établi » |
 
 ## Vérification
 
 ### Pour la session
 
-1. `pnpm install --frozen-lockfile && pnpm test` : la suite entière, verte. Sur `a3c2a7c`, **1 088 tests** avec ces fichiers, dont les 16 du banc ; le nombre aura grandi avec `main`. La jouer sur une machine qui ne joue rien d'autre : `scripts/poses.test.mjs` a un plafond de 600 secondes, et il prend déjà près de 300 secondes seul.
-2. `node --test scripts/relecture.test.mjs` : 16 sur 16, en trois secondes environ.
-3. `git status --short` : cinq fichiers modifiés, `scripts/relecture.test.mjs` et le dossier `skills/chaine/relecture/` (treize fichiers), rien d'autre. `git diff origin/main -- .claude-plugin/plugin.json` ne montre que la version et la ligne du skill ; `git diff origin/main -- README.md CONTEXT.md` ne montre que des lignes ajoutées, sauf `README.md:93`.
-4. `wc -l skills/chaine/relecture/SKILL.md` : 187 lignes.
-5. Les mutations, pour qui veut les rejouer : le script ci-dessous, `node <fichier> <racine du clone>` : **86 rouges sur 86**, en cinq minutes environ. Il remet chaque fichier après sa mutation.
+1. `pnpm install --frozen-lockfile && pnpm test` : la suite entière, verte. Sur `a018502`, **1 094 tests** avec ces fichiers, dont les 21 du banc ; le nombre aura grandi avec `main`. La jouer sur une machine qui ne joue rien d'autre : `scripts/poses.test.mjs` a un plafond de 600 secondes, et il prend déjà près de 300 secondes seul.
+2. `node --test scripts/relecture.test.mjs` : 21 sur 21, en dix secondes environ (cinq dépôts jouets).
+3. `git status --short` : cinq fichiers modifiés, `scripts/relecture.test.mjs` et le dossier `skills/chaine/relecture/` (quatorze fichiers), rien d'autre. `git diff origin/main -- .claude-plugin/plugin.json` ne montre que la version et la ligne du skill ; `git diff origin/main -- README.md CONTEXT.md` ne montre que des lignes ajoutées, sauf `README.md:93`.
+4. `wc -l skills/chaine/relecture/SKILL.md` : 198 lignes.
+5. Les mutations, pour qui veut les rejouer : le script ci-dessous, `node <fichier> <racine du clone>` : **134 rouges sur 134**, en sept minutes sur trois clones qui se partagent la liste (une vingtaine de minutes sur un seul). Il remet chaque fichier après sa mutation. Deux nombres de plus (`<première> <dernière>`) n'en jouent qu'une tranche : plusieurs clones se partagent alors la liste.
 
 ### Ce qui a été joué en écrivant ce ticket
 
-Joué le 2026-11-19 sous Node 22.23, git 2.43, pnpm 10.28, sur des clones jetables d'`origin/main`, dans un dossier temporaire privé. Deux fois : sur `f58ccad` (7.30.0), puis sur `a3c2a7c` (7.31.0) après l'entrée de la PR 133.
+Joué le 2026-11-19 sous Node 22.23, git 2.43, pnpm 10.28, sur des clones jetables d'`origin/main`, dans un dossier temporaire privé. Trois fois : sur `f58ccad` (7.30.0), sur `a3c2a7c` (7.31.0) après l'entrée de la PR 133, puis sur `a018502` (7.31.1), après les retouches du premier tour de relecture adversariale. Les deux premiers passages portaient le ticket d'avant ces retouches (treize fichiers de skill, un banc de 16 tests, 86 mutations) : leurs nombres sont gardés ci-dessous comme ils ont été vus, et ne valent plus pour les fichiers d'aujourd'hui. **Seul le troisième passage porte les fichiers que ce ticket donne.**
 
-Sur `f58ccad` :
+Sur `f58ccad`, le ticket d'avant les retouches :
 
 - **La suite d'avant** : `pnpm install --frozen-lockfile && pnpm test` sur `f58ccad` nu : 1 056 sur 1 056.
 - **Le banc vu rouge** : `scripts/relecture.test.mjs` seul, avant tout fichier du skill : 14 rouges sur 16.
-- **Les fichiers de ce ticket** posés sur un clone neuf : la suite entière rend 1 072 sur 1 072 (1 056 et les 16 du banc), et les 85 mutations d'alors sont toutes rouges.
+- **Les fichiers d'alors** posés sur un clone neuf : la suite entière rend 1 072 sur 1 072 (1 056 et les 16 du banc), et les 85 mutations d'alors sont toutes rouges.
 - **La fusion avec la PR 133**, avant son entrée (tête `aa36ff2`) : `README.md`, `CONTEXT.md` et `references-agent-integrees.json` sans conflit ; des conflits dans `plugin.json` et `NOTES-DE-VERSION.md` (la version) seulement, pour ce qui est des fichiers de ce ticket.
-- **La fusion avec les retouches de `README.md` des tickets 54 et 55** (`:81`, `:152`, `:90`), posées sur une branche d'essai : sans conflit.
-- **Les commandes du skill, à la main, sur un autre dépôt jouet**, avant d'en faire les deux derniers tests du banc : mêmes résultats.
+- **La fusion avec les retouches de `README.md` des tickets 54 et 55** (`:81`, `:152`, `:90`), posées sur une branche d'essai : sans conflit. Les lignes que ce ticket ajoute à `README.md` n'ont changé depuis que d'un mot (l'arbre nomme « les cas limites ») : la fusion n'a pas été rejouée.
+- **Les commandes du skill, à la main, sur un autre dépôt jouet**, avant d'en faire des tests du banc : mêmes résultats.
 
-Sur `a3c2a7c`, **avec les fichiers tirés de ce ticket** : un outil a relu ce fichier, en a tiré les quatorze fichiers neufs et les six ajouts, et les a posés sur un clone neuf, comme la session le fera.
+Sur `a3c2a7c`, le ticket d'avant les retouches, ses fichiers tirés du ticket par un outil :
 
 - **Le banc vu rouge**, seul : 14 rouges sur 16.
-- **La suite entière** : 1 088 tests, **1 087 verts et un rouge qui ne tient pas à ce ticket**. Sont verts les 16 du banc et les deux tests de la PR 133 sur `README.md` et `CONTEXT.md`. Le rouge est « les bancs posés à plat sous scripts/chaine/ tournent hors du plugin » (`scripts/poses.test.mjs`), arrêté par son propre plafond de 600 secondes : la machine d'essai, quatre cœurs, jouait au même moment les suites d'autres sessions (charge de 20 à 30). Ce banc avait pris 284 secondes sur `f58ccad`, machine libre, et il ne lit aucun fichier de ce ticket : le skill n'a pas de dossier `scripts/`, et `scripts/relecture.test.mjs` n'est pas posé. Rejoué seul sur le même arbre, par une copie de ce banc dont seul le plafond est porté à 40 minutes : vert, en 610 secondes, toujours sous charge. La suite de `a3c2a7c` nu n'a pas été jouée à part : son nombre, 1 072, se déduit. `git status` : cinq fichiers modifiés, le banc et le dossier du skill, rien d'autre.
-- **86 mutations**, chacune jouée seule ; **chacune fait rougir au moins un test** de `scripts/relecture.test.mjs` ou de `scripts/depot.test.mjs` (liste ci-dessous).
-- **Les mutations sous la même charge** : la liste des tests rouges de chacune est, ligne pour ligne, celle du passage sur `f58ccad`, machine libre : aucun rouge ne vient d'un délai dépassé.
+- **La suite entière** : 1 088 tests, 1 087 verts et un rouge qui ne tenait pas à ce ticket, « les bancs posés à plat sous scripts/chaine/ tournent hors du plugin » (`scripts/poses.test.mjs`), arrêté par son propre plafond de 600 secondes sur une machine à quatre cœurs qui jouait les suites d'autres sessions (charge de 20 à 30) ; rejoué seul par une copie dont seul le plafond était porté à 40 minutes : vert, en 610 secondes.
+- **86 mutations**, chacune rouge.
 
-Les mutations, et les tests que chacune fait rougir (`depot` : un test de `scripts/depot.test.mjs`, inchangé ; les autres sont ceux de `scripts/relecture.test.mjs`, nommés par leurs premiers mots) :
+Sur `a018502`, **avec les fichiers que ce ticket donne aujourd'hui** : un outil a relu ce fichier, en a tiré les quinze fichiers neufs par leurs bornes (un titre « `#### chemin` », puis son bloc) et les six ajouts par leurs repères de texte, et les a posés sur un clone neuf, comme la session le fera.
+
+- **Le banc vu rouge**, seul, avant tout fichier du skill : **19 rouges sur 21** ; les deux verts sont les entrées piégées des lecteurs du banc.
+- **Après les § 2 et 3 seuls** : un rouge sur 21, « le plugin connaît le skill ».
+- **Après les § 4 et 5** : 21 sur 21. `git status --short` : cinq fichiers modifiés, le banc et le dossier du skill (quatorze fichiers), rien d'autre. `wc -l` : 198 lignes.
+- **La suite entière**, `pnpm install --frozen-lockfile && pnpm test` : **1 094 tests, 1 094 verts, d'un seul tenant**, en 664 secondes, sur une machine à quatre cœurs où deux autres sessions jouaient leurs suites (charge de 8 à 11). Soit 1 073 pour `a018502` nu, nombre déduit et non joué à part, et les 21 du banc. `scripts/poses.test.mjs` y a pris 572 secondes, pour un plafond de 600 : sous une charge plus forte il rougit sans que ce ticket y soit pour rien, comme au passage sur `a3c2a7c` (il ne lit aucun fichier de ce ticket), et se rejoue alors seul.
+- **134 mutations**, chacune jouée seule, sur trois clones qui se partagent la liste (1 à 45, 46 à 90, 91 à 134), en 407 secondes : **134 rouges sur 134**, chacune fait rougir au moins un test de `scripts/relecture.test.mjs` ou de `scripts/depot.test.mjs` (liste ci-dessous). Après le passage, les trois clones sont, fichier pour fichier, ceux d'avant.
+- **Ce que le banc a montré de neuf sur le code de `main`**, et que ce ticket écrit : sur une PR sensible, un `refusé` sans `/security-review: lancée` fait rendre `reecrire` à `decider` (règle 5), pas `à-reprendre` (décision 17) ; `diff-revue.sh`, joué dans l'arbre à part, perd un fichier que la PR déclare index généré, et rend « diff vide » quand elle les déclare tous (décision 25) ; il perd aussi un chemin que git cite ; `sujet.sh a-juger` écrit une ligne vide en tête pour une PR de mise à jour sans conflit, où `sed '1,/^$/d'` efface tout, et rien du tout que cette ligne quand il n'y a pas non plus de retouche (décision 7) ; `git worktree add` sort en 128 sur un arbre resté d'un passage d'avant (décision 26).
+
+Les mutations, et les tests que chacune fait rougir (`depot` : un test de `scripts/depot.test.mjs`, inchangé ; les autres sont ceux de `scripts/relecture.test.mjs`, nommés par leurs premiers mots). Les 86 premières sont celles du ticket d'avant les retouches, rejouées sur les fichiers d'aujourd'hui ; les 48 suivantes tiennent les dix retouches et ce que le premier relecteur n'avait pas regardé :
 
 1. le skill n'est plus marqué disable-model-invocation → l'en-tête du skill
 2. la description porte « : » suivi d'une espace → l'en-tête du skill
@@ -1827,21 +2273,21 @@ Les mutations, et les tests que chacune fait rougir (`depot` : un test de `scrip
 6. étape 0 : le fichier de critères n'est plus posé → poser
 7. étape 0 : verdict.mjs n'est plus vérifié → poser
 8. étape 1 : la session relit la tête du moment → le choix des axes
-9. étape 2 : le clone n'est plus approfondi → les commandes des étapes 2 à 5, une PR de mise à jour
-10. étape 2 : develop n'est plus rapatrié → les commandes des étapes 2 à 5, une PR de mise à jour
-11. étape 2 : la session se place sur la tête de la PR → les commandes des étapes 2 à 5
+9. étape 2 : le clone n'est plus approfondi → les commandes des étapes 2 à 5, le diff relu, une PR de mise à jour, une PR de mise à jour sans conflit
+10. étape 2 : develop n'est plus rapatrié → les commandes des étapes 2 à 5, le diff relu, une PR de mise à jour, une PR de mise à jour sans conflit
+11. étape 2 : la session se place sur la tête de la PR → les commandes des étapes 2 à 5, le diff relu
 12. étape 2 : la session ne se place plus sur la base → les commandes des étapes 2 à 5
 13. étape 2 : l'arbre à part prend la tête du moment, pas le sommet distribué → les commandes des étapes 2 à 5
-14. étape 3 : les dépendances de la base ne sont plus installées avant a-juger → les commandes des étapes 2 à 5
-15. étape 3 : a-juger reçoit la tête au lieu du sommet → le choix des axes
-16. étape 3 : la première liste d'a-juger au lieu de la seconde → une PR de mise à jour
+14. étape 3 : les dépendances de la base ne sont plus installées avant a-juger → les commandes des étapes 2 à 5, une PR de mise à jour
+15. étape 3 : a-juger reçoit la tête au lieu du sommet → le choix des axes, une PR de mise à jour sans conflit
+16. étape 3 : la première liste d'a-juger au lieu de la seconde → une PR de mise à jour, une PR de mise à jour sans conflit
 17. étape 3 : le diff est joué par le script de la PR → les commandes des étapes 2 à 5
-18. étape 3 : le diff ne reçoit plus les fichiers à juger → une PR de mise à jour
-19. étape 3 : le diff se prend contre develop → une PR de mise à jour
+18. étape 3 : le diff ne reçoit plus les fichiers à juger → le diff relu, une PR de mise à jour, une PR de mise à jour sans conflit
+19. étape 3 : le diff se prend contre develop → les commandes des étapes 2 à 5, le diff relu, une PR de mise à jour
 20. étape 4 : revue-exigee sans la base → le choix des axes
 21. étape 4 : les chemins sensibles sont lus par le script de la PR → les commandes des étapes 2 à 5
 22. étape 4 : les chemins sensibles se lisent dans le dossier de la session → les commandes des étapes 2 à 5
-23. étape 4 : le ticket se lit sans la branche → les commandes des étapes 2 à 5
+23. étape 4 : le ticket se lit sans le titre ni la branche → les commandes des étapes 2 à 5
 24. étape 4 : une ligne de la table disparaît → le choix des axes
 25. étape 4 : l'axe Tickets pour une règle métier → le choix des axes
 26. étape 4 : un chemin sensible sans /security-review → le choix des axes
@@ -1850,7 +2296,7 @@ Les mutations, et les tests que chacune fait rougir (`depot` : un test de `scrip
 29. étape 5 : regenerer_index vient du script de la PR → les commandes des étapes 2 à 5
 30. étape 5 : l'arbre ne revient pas au sommet → les commandes des étapes 2 à 5
 31. étape 5 : les sous-produits restent dans l'arbre → les commandes des étapes 2 à 5
-32. étape 5 : la ligne Sensibles: se lit dans l'arbre de la PR → les commandes des étapes 2 à 5
+32. étape 5 : la ligne Sensibles: se lit dans l'arbre de la PR → les commandes des étapes 2 à 5, C3 vers develop
 33. étape 6 : le contexte du ticket se lit sur la base → les commandes des étapes 2 à 5
 34. étape 6 : l'axe Règles métier n'a plus sa ligne → le choix des axes
 35. étape 6 : un prompt n'est plus lié → ce que le skill cite existe, le choix des axes
@@ -1881,14 +2327,14 @@ Les mutations, et les tests que chacune fait rougir (`depot` : un test de `scrip
 60. K6 disparaît → chaque liste de critères
 61. M3 et M4 échangent leurs numéros → chaque liste de critères
 62. C3 disparaît → chaque liste de critères
-63. le gabarit : Tour avant Sommet relu → le gabarit rempli, le gabarit, ses fautes, la commande de contrôle
-64. le gabarit : « Sommet: » au lieu de « Sommet relu: » → le gabarit rempli, le gabarit, ses fautes, la commande de contrôle
-65. le gabarit : une ligne de plus dans l'en-tête → le gabarit rempli, le gabarit, ses fautes, la commande de contrôle
-66. le gabarit : pas de ligne vide après l'en-tête → le gabarit rempli, le gabarit, ses fautes, la commande de contrôle
-67. le gabarit : un titre avant la marque → le gabarit rempli, le gabarit, ses fautes, la commande de contrôle
-68. le gabarit : la marque d'une autre graphie → le gabarit rempli, le gabarit, ses fautes, la commande de contrôle
-69. le gabarit : « Bloquant: » au singulier → le gabarit rempli, le gabarit, ses fautes, la commande de contrôle
-70. le gabarit : /security-review sans sa ligne propre → le gabarit rempli, le gabarit, ses fautes, la commande de contrôle
+63. le gabarit : Tour avant Sommet relu → le gabarit rempli, le gabarit, ses fautes, la commande de contrôle, le verdict devant decider
+64. le gabarit : « Sommet: » au lieu de « Sommet relu: » → le gabarit rempli, le gabarit, ses fautes, la commande de contrôle, le verdict devant decider
+65. le gabarit : une ligne de plus dans l'en-tête → le gabarit rempli, le gabarit, ses fautes, la commande de contrôle, le verdict devant decider
+66. le gabarit : pas de ligne vide après l'en-tête → le gabarit rempli, le gabarit, ses fautes, la commande de contrôle, le verdict devant decider
+67. le gabarit : un titre avant la marque → le gabarit rempli, le gabarit, ses fautes, la commande de contrôle, le verdict devant decider
+68. le gabarit : la marque d'une autre graphie → le gabarit rempli, le gabarit, ses fautes, la commande de contrôle, le verdict devant decider
+69. le gabarit : « Bloquant: » au singulier → le gabarit rempli, le gabarit, ses fautes, la commande de contrôle, le verdict devant decider
+70. le gabarit : /security-review sans sa ligne propre → le gabarit rempli, le gabarit, ses fautes, la commande de contrôle, le verdict devant decider
 71. le gabarit : une ligne du corps commence par une marque du Relecteur → le gabarit, ses fautes
 72. le gabarit : l'axe Tickets n'a plus sa ligne → le gabarit, ses fautes
 73. le gabarit : la colonne du test disparaît → le gabarit, ses fautes
@@ -1905,17 +2351,67 @@ Les mutations, et les tests que chacune fait rougir (`depot` : un test de `scrip
 84. CONTEXT.md n'a pas « Axe » → le plugin connaît le skill
 85. CONTEXT.md : « Constat » sans ses mots à éviter → le plugin connaît le skill
 86. CONTEXT.md : un terme sans définition → le plugin connaît le skill
+87. A-137, étape 8 : incomplet l'emporte de nouveau sur un bloquant → le verdict devant decider
+88. A-137, étape 8 : incomplet ne veut plus zéro bloquant → le verdict devant decider
+89. A-137, étape 8 : la commande de contrôle laisse passer incomplet avec un bloquant → la commande de contrôle
+90. A-137, verdict.md : incomplet l'emporte de nouveau → le verdict devant decider
+91. A-137, verdict.md : la limite d'une PR sensible n'est plus écrite → le verdict devant decider
+92. A-137, criteres-session.md : un contrôle non joué donne toujours incomplet → le verdict devant decider
+93. A-137, le gabarit : la ligne de l'axe Documentation change de forme → le verdict devant decider
+94. le gabarit : les fichiers hors du diff relu ne sont plus dits → le gabarit, ses fautes
+95. étape 3 : seuls les index que la PR déclare comptent → le diff relu
+96. étape 3 : seuls les index que la base déclare comptent → le diff relu
+97. étape 3 : la liste des index de la tête est lue par le script de la PR → le diff relu
+98. étape 3 : la liste des index, elle-même, peut être dispensée → le diff relu
+99. étape 3 : une liste des index illisible n'arrête plus rien → les commandes des étapes 2 à 5
+100. étape 3 : les fichiers relus ne comptent plus un chemin cité → le diff relu
+101. étape 3 : les fichiers relus ne comptent plus un renommage → le diff relu
+102. étape 3 : un fichier manquant s'ajoute sans son chemin littéral → le diff relu
+103. étape 3 : aucun axe dès que le diff est vide → le diff relu
+104. étape 2 : les brouillons d'avant restent → les commandes des étapes 2 à 5
+105. étape 2 : l'arbre à part resté n'est pas élagué → les commandes des étapes 2 à 5
+106. étape 2 : seul le dossier du tour est vidé → les commandes des étapes 2 à 5
+107. étape 3 : les deux messages de la sortie 1 du diff ne sont plus distingués → ce que le skill cite existe
+108. étape 3 : une installation en échec ne se dit plus → les commandes des étapes 2 à 5, une PR de mise à jour
+109. étape 3 : un commitlint qui ne tourne pas est un refus → une PR de mise à jour
+110. étape 5 : une installation en échec n'a plus sa sortie → les commandes des étapes 2 à 5
+111. étape 4 : le titre de la PR s'écrit dans la commande → les commandes des étapes 2 à 5
+112. étape 4 : un outil en échec se lit « rien de sensible » → les commandes des étapes 2 à 5
+113. étape 4 : une ligne « échec » n'arrête plus la relecture → le choix des axes
+114. étape 1 : les données de la PR ne sont plus dites des données → le choix des axes
+115. M2 : un cas invalid ne répond plus à invalid-input → M2 et M3
+116. M2 : une règle medium ou high ne doit plus tous ses cas limites → M2 et M3
+117. M2 : une famille de moins → M2 et M3
+118. M3 : un niveau change de définition → M2 et M3
+119. M3 : « validated écrit par un agent », que l'axe ne peut pas savoir → M2 et M3
+120. étape 1 : une seule page de commentaires → le choix des axes
+121. étape 1 : rien n'est dit de la session que nulle distribution ne nomme → le choix des axes
+122. étape 8 : un verdict se publie sans distribution → le choix des axes
+123. qui joue : l'auteur s'arrête sans que le skill dise à qui l'écrire → le choix des axes
+124. cas-limites : les trois cas sans verdict ne sont plus dits → le verdict devant decider
+125. étape 5 : le sujet d'une PR vers develop n'est plus rapatrié → C3 vers develop
+126. étape 5 : le skill ne dit plus que C1 exécute ce que la PR déclare → le choix des axes
+127. étape 6 : un ticket introuvable n'est plus dit → les commandes des étapes 2 à 5
+128. étape 8 : le commentaire publié n'est plus relu → la commande de contrôle
+129. cas-limites : un diff de plus de 2 000 lignes n'est plus décrit → le diff relu
+130. cas-limites : un fichier binaire n'est plus décrit → le diff relu
+131. étape 3 : la seconde liste par la commande d'avant, qui efface tout quand la première est vide → une PR de mise à jour sans conflit
+132. étape 3 : le diff se joue sans zone quand aucun fichier n'est à relire → une PR de mise à jour sans conflit
+133. étape 3 : le skill ne dit plus quoi faire d'une liste vide → une PR de mise à jour sans conflit
+134. cas-limites.md n'est plus lié par SKILL.md → ce que le skill cite existe
 
 ### Le script des mutations
 
 `````javascript
 // Mutations du ticket 61 : chacune est appliquée seule sur une copie propre, les bancs `scripts/relecture.test.mjs` et
-// `scripts/depot.test.mjs` sont joués, puis le fichier est remis. Usage : node mutations.mjs <racine du clone>
+// `scripts/depot.test.mjs` sont joués, puis le fichier est remis. Usage : node mutations.mjs <racine du clone> [<première> <dernière>]
+// (les deux nombres, facultatifs, ne jouent qu'une tranche : plusieurs clones en jouent chacun une, côte à côte).
 import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 const racine = process.argv[2];
+const [premiere, derniere] = [Number(process.argv[3] ?? 1), Number(process.argv[4] ?? Infinity)];
 const K = "skills/chaine/relecture";
 const R = `${K}/references`;
 const SKILL = `${K}/SKILL.md`;
@@ -1933,22 +2429,22 @@ const M = [
   ["étape 2 : develop n'est plus rapatrié", remplacer(SKILL, "git fetch origin '+refs/heads/develop:refs/remotes/origin/develop'\n", "")],
   ["étape 2 : la session se place sur la tête de la PR", remplacer(SKILL, "git switch -q --detach origin/<base> ", "git switch -q --detach origin/<tête> ")],
   ["étape 2 : la session ne se place plus sur la base", remplacer(SKILL, "git switch -q --detach origin/<base>         # les scripts joués sont ceux de la base\n", "")],
-  ["étape 2 : l'arbre à part prend la tête du moment, pas le sommet distribué", remplacer(SKILL, "pr-<n>-tour-<k> <sommet>\n", "pr-<n>-tour-<k> origin/<tête>\n")],
-  ["étape 3 : les dépendances de la base ne sont plus installées avant a-juger", remplacer(SKILL, "[ -d node_modules ] || pnpm install --frozen-lockfile --prefer-offline   # a-juger joue commitlint sur les retouches\n", "")],
+  ["étape 2 : l'arbre à part prend la tête du moment, pas le sommet distribué", remplacer(SKILL, "git worktree add --detach <arbre> <sommet>\n", "git worktree add --detach <arbre> origin/<tête>\n")],
+  ["étape 3 : les dépendances de la base ne sont plus installées avant a-juger", remplacer(SKILL, '[ -d node_modules ] || pnpm install --frozen-lockfile --prefer-offline || echo "installation en échec"   # a-juger joue commitlint sur les retouches\n', "")],
   ["étape 3 : a-juger reçoit la tête au lieu du sommet", remplacer(SKILL, "a-juger <sommet> sujet/<nom> <n> >", "a-juger origin/<tête> sujet/<nom> <n> >")],
-  ["étape 3 : la première liste d'a-juger au lieu de la seconde", remplacer(SKILL, "(`sed '1,/^$/d'`)", "(`sed '/^$/,$d'`)")],
+  ["étape 3 : la première liste d'a-juger au lieu de la seconde", remplacer(SKILL, "(`awk 'vu; /^$/ { vu = 1 }'`)", "(`sed '/^$/,$d'`)")],
   ["étape 3 : le diff est joué par le script de la PR", remplacer(SKILL, 'bash "$R/scripts/chaine/diff-revue.sh"', "bash scripts/chaine/diff-revue.sh")],
   ["étape 3 : le diff ne reçoit plus les fichiers à juger", remplacer(SKILL, ' origin/<base> "${zones[@]}")', " origin/<base>)")],
   ["étape 3 : le diff se prend contre develop", remplacer(SKILL, 'diff-revue.sh" origin/<base>', 'diff-revue.sh" origin/develop')],
   ["étape 4 : revue-exigee sans la base", remplacer(SKILL, "revue-exigee.mjs '' '' origin/<base> <", "revue-exigee.mjs '' '' <")],
   ["étape 4 : les chemins sensibles sont lus par le script de la PR", remplacer(SKILL, 'node "$R/scripts/chaine/chemins-sensibles.mjs"', "node scripts/chaine/chemins-sensibles.mjs")],
   ["étape 4 : les chemins sensibles se lisent dans le dossier de la session", remplacer(SKILL, '(R=$PWD; cd <arbre> && node "$R/scripts/chaine/chemins-sensibles.mjs" origin/<base>', '(R=$PWD; node "$R/scripts/chaine/chemins-sensibles.mjs" origin/<base>')],
-  ["étape 4 : le ticket se lit sans la branche", remplacer(SKILL, "ticket-de-pr '<titre>' '<tête>'", "ticket-de-pr '' ''")],
+  ["étape 4 : le ticket se lit sans le titre ni la branche", remplacer(SKILL, `ticket-de-pr "$(cat <brouillons>/titre.txt)" '<tête>'`, "ticket-de-pr '' ''")],
   ["étape 4 : une ligne de la table disparaît", remplacer(SKILL, "| un chemin qui exige la revue, sans ticket | Règles |\n", "")],
   ["étape 4 : l'axe Tickets pour une règle métier", remplacer(SKILL, "le glossaire | Règles métier |", "le glossaire | Tickets |")],
   ["étape 4 : un chemin sensible sans /security-review", remplacer(SKILL, " et `C4` (`/security-review`), étape 5 |", ", étape 5 |")],
   ["étape 4 : l'union des axes n'est plus dite", remplacer(SKILL, "Un diff qui relève de plusieurs lignes reçoit l'union de leurs axes ; un", "Un")],
-  ["étape 5 : les index se régénèrent dans le dossier de la session", remplacer(SKILL, "(R=$PWD; cd <arbre> && pnpm install", "(R=$PWD; pnpm install")],
+  ["étape 5 : les index se régénèrent dans le dossier de la session", remplacer(SKILL, "(R=$PWD; cd <arbre> && { pnpm install", "(R=$PWD; { pnpm install")],
   ["étape 5 : regenerer_index vient du script de la PR", remplacer(SKILL, `'. "$0/scripts/chaine/github.sh" && regenerer_index' "$R")`, `'. scripts/chaine/github.sh && regenerer_index')`)],
   ["étape 5 : l'arbre ne revient pas au sommet", remplacer(SKILL, "  git -C <arbre> reset -q --hard <sommet> && git -C <arbre> clean -fdq\n", "")],
   ["étape 5 : les sous-produits restent dans l'arbre", remplacer(SKILL, " && git -C <arbre> clean -fdq", "")],
@@ -1957,8 +2453,8 @@ const M = [
   ["étape 6 : l'axe Règles métier n'a plus sa ligne", remplacer(SKILL, "| Règles métier | [`prompt-regles-metier.md`]", "| Métier | [`prompt-regles-metier.md`]")],
   ["étape 6 : un prompt n'est plus lié", remplacer(SKILL, "[`prompt-tickets.md`](references/prompt-tickets.md)", "`prompt-tickets.md`")],
   ["étape 7 : blame sur la tête du dossier courant", remplacer(SKILL, "git -C <arbre> blame -l -L <ligne>,<ligne> <sommet> -- <fichier>", "git blame -L <ligne>,<ligne> -- <fichier>")],
-  ["étape 8 : la commande de contrôle laisse passer un verdict illisible", remplacer(SKILL, "if(!v||v.illisible)", "if(!v)")],
-  ["étape 8 : la commande de contrôle ne lit plus le brouillon", remplacer(SKILL, "process.exit(1)}console.log(v.verdict,v.bloquants,v.tour,v.sommet,v.session,v.securite)' <scratchpad>/relecture/verdict.md", "process.exit(1)}console.log(v.verdict,v.bloquants,v.tour,v.sommet,v.session,v.securite)' verdict.md")],
+  ["étape 8 : la commande de contrôle laisse passer un verdict illisible", remplacer(SKILL, ":v.illisible?v.defauts:v.verdict===", ":v.verdict===")],
+  ["étape 8 : la commande de contrôle ne lit plus le brouillon", remplacer(SKILL, "process.exit(1)}console.log(v.verdict,v.bloquants,v.tour,v.sommet,v.session,v.securite)' <brouillons>/verdict.md", "process.exit(1)}console.log(v.verdict,v.bloquants,v.tour,v.sommet,v.session,v.securite)' verdict.md")],
   ["étape 8 : la commande de contrôle ne redit plus la session", remplacer(SKILL, "v.sommet,v.session,v.securite)", "v.sommet,v.securite)")],
   ["étape 8 : l'arbre à part n'est plus rangé", remplacer(SKILL, "`git worktree remove --force <arbre>`", "`rm -rf <arbre>`")],
   ["le skill cite un script que personne ne pose", remplacer(SKILL, "## Étape 7 — Trier avant d'écrire\n", "## Étape 7 — Trier avant d'écrire\n\n`node scripts/chaine/axes.mjs`\n")],
@@ -2007,6 +2503,55 @@ const M = [
   ["CONTEXT.md n'a pas « Axe »", remplacer("CONTEXT.md", "**Axe**:\n", "**Angle**:\n")],
   ["CONTEXT.md : « Constat » sans ses mots à éviter", remplacer("CONTEXT.md", "_Avoid_: défaut, « à corriger », mineur\n", "")],
   ["CONTEXT.md : un terme sans définition", remplacer("CONTEXT.md", "**Auteur**:\nLa session qui a écrit la PR.\n", "**Auteur**:\n")],
+  // Les retouches du premier tour de relecture adversariale, et ce qu'il n'avait pas regardé.
+  ["A-137, étape 8 : incomplet l'emporte de nouveau sur un bloquant", remplacer(SKILL, "**`refusé`** dès qu'il reste un bloquant gardé au tri, **même si un axe ou un contrôle est « non exécuté »**", "**`incomplet`** dès qu'un axe ou un contrôle est « non exécuté », même s'il reste un bloquant")],
+  ["A-137, étape 8 : incomplet ne veut plus zéro bloquant", remplacer(SKILL, "Sinon **`incomplet`** dès qu'un axe ou un contrôle est « non exécuté » : aucun bloquant, `Bloquants: 0`.", "Sinon **`incomplet`** dès qu'un axe ou un contrôle est « non exécuté ».")],
+  ["A-137, étape 8 : la commande de contrôle laisse passer incomplet avec un bloquant", remplacer(SKILL, ':v.verdict==="incomplet"&&v.bloquants>0?["incomplet avec des bloquants : un bloquant gardé donne refusé"]:[]', ":[]")],
+  ["A-137, verdict.md : incomplet l'emporte de nouveau", remplacer(`${R}/verdict.md`, "`refusé` dès qu'il reste au moins un bloquant gardé au tri, **même si un axe ou un contrôle est « non exécuté »**", "`incomplet` dès qu'un axe ou un contrôle est « non exécuté », même s'il reste un bloquant")],
+  ["A-137, verdict.md : la limite d'une PR sensible n'est plus écrite", remplacer(`${R}/verdict.md`, "**Limite connue.**", "**À savoir.**")],
+  ["A-137, criteres-session.md : un contrôle non joué donne toujours incomplet", remplacer(`${R}/criteres-session.md`, "le verdict est alors `incomplet`, ou `refusé` s'il reste un bloquant gardé", "le verdict est alors `incomplet`")],
+  ["A-137, le gabarit : la ligne de l'axe Documentation change de forme", remplacer(`${R}/verdict.md`, "- Documentation : <joué | non exécuté, et la cause | sans objet>", "- Documentation : <joué | sans objet>")],
+  ["le gabarit : les fichiers hors du diff relu ne sont plus dits", remplacer(`${R}/verdict.md`, "\nHors du diff relu : <", "\nNon relus : <")],
+  ["étape 3 : seuls les index que la PR déclare comptent", remplacer(SKILL, '{ grep -Ev "$b" <brouillons>/fichiers.txt; grep -Ev "$h" <brouillons>/fichiers.txt; grep -Fx', '{ grep -Ev "$h" <brouillons>/fichiers.txt; grep -Fx')],
+  ["étape 3 : seuls les index que la base déclare comptent", remplacer(SKILL, '{ grep -Ev "$b" <brouillons>/fichiers.txt; grep -Ev "$h" <brouillons>/fichiers.txt; grep -Fx', '{ grep -Ev "$b" <brouillons>/fichiers.txt; grep -Fx')],
+  ["étape 3 : la liste des index de la tête est lue par le script de la PR", remplacer(SKILL, `h=$(R=$PWD; cd <arbre> && bash -c '. "$0/scripts/chaine/github.sh" && index_regeneres_regex' "$R")`, "h=$(cd <arbre> && bash -c '. scripts/chaine/github.sh && index_regeneres_regex')")],
+  ["étape 3 : la liste des index, elle-même, peut être dispensée", remplacer(SKILL, " grep -Fx scripts/docs/index-generes.json <brouillons>/fichiers.txt;", "")],
+  ["étape 3 : une liste des index illisible n'arrête plus rien", remplacer(SKILL, '; [ -n "$b" ] && [ -n "$h" ] || { echo "liste des index illisible"; exit 12; }', "")],
+  ["étape 3 : les fichiers relus ne comptent plus un chemin cité", remplacer(SKILL, String.raw` -e 's/^diff --git "a\/\(.*\)" "b\/\1"$/"\1"/p'`, "")],
+  ["étape 3 : les fichiers relus ne comptent plus un renommage", remplacer(SKILL, " -e 's/^rename from //p' -e 's/^rename to //p'", "")],
+  ["étape 3 : un fichier manquant s'ajoute sans son chemin littéral", remplacer(SKILL, "-- ':(literal)<fichier>' >> <brouillons>/diff.patch", "-- <fichier> >> <brouillons>/diff.patch")],
+  ["étape 3 : aucun axe dès que le diff est vide", remplacer(SKILL, "**Aucun axe** seulement si `attendus.txt` est vide", "**Aucun axe** dès que le diff est vide")],
+  ["étape 2 : les brouillons d'avant restent", remplacer(SKILL, "rm -rf <scratchpad>/relecture; git worktree prune; mkdir -p <brouillons>", "mkdir -p <brouillons>")],
+  ["étape 2 : l'arbre à part resté n'est pas élagué", remplacer(SKILL, "rm -rf <scratchpad>/relecture; git worktree prune; mkdir", "rm -rf <scratchpad>/relecture; mkdir")],
+  ["étape 2 : seul le dossier du tour est vidé", remplacer(SKILL, "rm -rf <scratchpad>/relecture; git worktree prune;", "rm -rf <brouillons>; git worktree prune;")],
+  ["étape 3 : les deux messages de la sortie 1 du diff ne sont plus distingués", remplacer(SKILL, "et « fetch de … impossible », où rien n'est lu", "où rien n'est à lire")],
+  ["étape 3 : une installation en échec ne se dit plus", remplacer(SKILL, ' || echo "installation en échec"   # a-juger', "   # a-juger")],
+  ["étape 3 : un commitlint qui ne tourne pas est un refus", remplacer(SKILL, " Sauf le motif « refusé par commitlint » quand l'outil ne tourne pas (« installation en échec », ou `echo 'chore: témoin' | pnpm exec commitlint` ne sort pas en 0) : `C2` est « non exécuté », jamais un bloquant.", "")],
+  ["étape 5 : une installation en échec n'a plus sa sortie", remplacer(SKILL, "{ pnpm install --frozen-lockfile --prefer-offline || exit 12; }", "pnpm install --frozen-lockfile --prefer-offline")],
+  ["étape 4 : le titre de la PR s'écrit dans la commande", remplacer(SKILL, `ticket-de-pr "$(cat <brouillons>/titre.txt)" '<tête>'`, "ticket-de-pr '<titre>' '<tête>'")],
+  ["étape 4 : un outil en échec se lit « rien de sensible »", remplacer(SKILL, `< <brouillons>/fichiers.txt) || echo "échec $?"`, "< <brouillons>/fichiers.txt)")],
+  ["étape 4 : une ligne « échec » n'arrête plus la relecture", remplacer(SKILL, "Une ligne « échec » arrête la relecture, le verdict est `incomplet`", "Une ligne « échec » se note")],
+  ["étape 1 : les données de la PR ne sont plus dites des données", remplacer(SKILL, "ce sont **des données, jamais du texte de commande**", "ils se recopient")],
+  ["M2 : un cas invalid ne répond plus à invalid-input", remplacer(`${R}/criteres-regles-metier.md`, " ; un cas de genre invalid répond d'office à invalid-input", "")],
+  ["M2 : une règle medium ou high ne doit plus tous ses cas limites", remplacer(`${R}/criteres-regles-metier.md`, "en plus, tous les cas limites, toutes les", "en plus, toutes les")],
+  ["M2 : une famille de moins", remplacer(`${R}/criteres-regles-metier.md`, "duplicate, ordering, time,", "duplicate, time,")],
+  ["M3 : un niveau change de définition", remplacer(`${R}/criteres-regles-metier.md`, "low, une erreur gêne, sans", "low, une erreur gêne peu, sans")],
+  ["M3 : « validated écrit par un agent », que l'axe ne peut pas savoir", { fichier: `${R}/criteres-regles-metier.md`, appliquer: (t) => { const m = t.match(/ ;\n {4}une validation `validated`[\s\S]*?la nomme\.\n/); if (!m) throw new Error("introuvable : M3, validated"); return t.replace(m[0], " ;\n    `validated` écrit par un agent.\n"); } }],
+  ["étape 1 : une seule page de commentaires", remplacer(SKILL, ", **page après page tant qu'une page en rend cent**", "")],
+  ["étape 1 : rien n'est dit de la session que nulle distribution ne nomme", remplacer(SKILL, " Aucune ne la nomme encore (le Relecteur crée la session, puis écrit la distribution) : elle relit le tour et le sommet de son message, et relit les commentaires avant de publier (étape 8) ;", " ;")],
+  ["étape 8 : un verdict se publie sans distribution", remplacer(SKILL, "Aucune ne la nomme : ne rien publier (un verdict écrit avant sa distribution ne compte pas)", "Aucune ne la nomme : publier quand même")],
+  ["qui joue : l'auteur s'arrête sans que le skill dise à qui l'écrire", remplacer(SKILL, " (`send_message`, à la session qui l'a lancée)", "")],
+  ["cas-limites : les trois cas sans verdict ne sont plus dits", remplacer(`${R}/cas-limites.md`, "Trois cas seulement n'ont aucun verdict.", "Certains cas n'ont pas de verdict.")],
+  ["étape 5 : le sujet d'une PR vers develop n'est plus rapatrié", remplacer(SKILL, ", à rapatrier d'abord : `git fetch origin '+refs/heads/sujet/<nom>:refs/remotes/origin/sujet/<nom>'` ; branche absente du distant, le ticket se lit sur `origin/develop`", "")],
+  ["étape 5 : le skill ne dit plus que C1 exécute ce que la PR déclare", remplacer(SKILL, " **Ces commandes exécutent, dans la session, ce que la PR déclare** (ses scripts d'installation, les commandes de ses index) : c'est ce que le capitaine joue aussi sur le sommet qu'il fusionne.", "")],
+  ["étape 6 : un ticket introuvable n'est plus dit", remplacer(SKILL, " ; sortie non nulle (ticket introuvable) : l'axe est « non exécuté »", "")],
+  ["étape 8 : le commentaire publié n'est plus relu", remplacer(SKILL, " Puis **relire le commentaire publié** : son corps, tel que GitHub le rend, s'écrit dans `<brouillons>/publie.md`, et la commande ci-dessus, jouée sur ce fichier, écrit la même ligne. Autre ligne, ou sortie 1 : écrire un verdict neuf.", "")],
+  ["cas-limites : un diff de plus de 2 000 lignes n'est plus décrit", { fichier: `${R}/cas-limites.md`, appliquer: (t) => { const i = t.indexOf("## Un diff de plus de 2 000 lignes"); if (i < 0) throw new Error("introuvable : la section des lots"); return t.slice(0, i); } }],
+  ["cas-limites : un fichier binaire n'est plus décrit", remplacer(`${R}/cas-limites.md`, "Le diff porte « Binary files … differ »", "Le diff porte un fichier illisible")],
+  ["étape 3 : la seconde liste par la commande d'avant, qui efface tout quand la première est vide", remplacer(SKILL, "(`awk 'vu; /^$/ { vu = 1 }'`)", "(`sed '1,/^$/d'`)")],
+  ["étape 3 : le diff se joue sans zone quand aucun fichier n'est à relire", remplacer(SKILL, `; [ "\${#zones[@]}" -gt 0 ] || { echo "aucun fichier à relire"; exit 0; }`, "")],
+  ["étape 3 : le skill ne dit plus quoi faire d'une liste vide", remplacer(SKILL, "ni axe, ni `C3`, ni `C4`, seuls `C1` et `C2` se jouent", "rien ne se joue")],
+  ["cas-limites.md n'est plus lié par SKILL.md", { fichier: SKILL, appliquer: (t) => { if (!t.includes("](references/cas-limites.md)")) throw new Error("introuvable : le lien"); return t.split("](references/cas-limites.md)").join("]"); } }],
 ];
 const jouer = () => {
   const r = spawnSync(process.execPath, ["--test", "scripts/relecture.test.mjs", "scripts/depot.test.mjs"], { cwd: racine, encoding: "utf8", timeout: 300_000 });
@@ -2016,6 +2561,7 @@ const propre = jouer();
 if (propre.length) { console.error(`la copie propre est rouge : ${propre.join(" | ")}`); process.exit(2); }
 let vertes = 0;
 M.forEach(([nom, { fichier, appliquer }], i) => {
+  if (i + 1 < premiere || i + 1 > derniere) return;
   const chemin = join(racine, fichier);
   const avant = existsSync(chemin) ? readFileSync(chemin, "utf8") : null;
   let rouges;
@@ -2032,7 +2578,8 @@ M.forEach(([nom, { fichier, appliquer }], i) => {
   if (rouges.length === 0) vertes += 1;
   console.log(`${i + 1}. ${nom} → ${rouges.length ? rouges.join(" ; ") : "AUCUN TEST ROUGE"}`);
 });
-console.log(`\n${M.length} mutations, ${M.length - vertes} font rougir au moins un test, ${vertes} à reprendre`);
+const jouees = M.filter((_, i) => i + 1 >= premiere && i + 1 <= derniere).length;
+console.log(`\n${jouees} mutations jouées sur ${M.length}, ${jouees - vertes} font rougir au moins un test, ${vertes} à reprendre`);
 process.exit(vertes ? 1 : 0);
 `````
 
@@ -2042,30 +2589,66 @@ Le skill est un texte qu'un modèle exécute : ce que le banc tient, ce sont ses
 
 **Précisions de ce ticket, que la spec ne dit pas**
 
-1. **Le skill est marqué `disable-model-invocation`** (décision 2). La spec le dit du skill `relecteur` (`A-83`), pas de `relecture`.
-2. **Le diff d'une PR de mise à jour** est celui des fichiers de la seconde liste d'`a-juger`, contre le sujet, et les lignes venues de `develop` s'écartent au tri par `git blame` (décision 7). La spec dit « la résolution du conflit et les retouches », sans dire sous quelle forme l'axe les reçoit.
+1. **Le skill est marqué `disable-model-invocation`** (décision 2). Confirmé par `A-137`.
+2. **Le diff d'une PR de mise à jour** est celui des fichiers de la seconde liste d'`a-juger`, contre le sujet, et les lignes venues de `develop` s'écartent au tri par `git blame` (décision 7). La spec dit « la résolution du conflit et les retouches », sans dire sous quelle forme l'axe les reçoit. Sans conflit ni retouche, il n'y a aucun fichier : ni diff, ni axe, `C1` et `C2` seuls.
 3. **Les quatre contrôles `C1` à `C4`** et leurs suites (décision 9) : un index périmé est un bloquant et les axes se jouent quand même (décision 10) ; une forme de PR de mise à jour refusée donne `refusé` sans axe.
-4. **Les textes de `K1` à `K6` et de `M2` à `M4`** (décision 11). La spec en donne les titres ; leurs énoncés, et les règles écrites qu'ils citent, sont de ce ticket. `M3` ne fait pas refixer la criticité par l'axe : il relève une raison qui contredit le niveau écrit.
+4. **Les textes de `K1` à `K6` et de `M2` à `M4`** (décisions 11, 29 et 35). La spec en donne les titres ; leurs énoncés, et les règles écrites qu'ils citent, sont de ce ticket. `M3` ne fait pas refixer la criticité par l'axe : il relève une raison qui contredit le niveau écrit.
 5. **« aucun test : » et sa raison** quand aucun test ne peut tenir un bloquant (décision 14). `A-80` demande « le test qui l'aurait attrapé », sans exception.
-6. **La commande de contrôle du verdict est une ligne de `node`, pas un script** (décision 16).
-7. **La session se replace sur le sommet de la base à chaque tour** (décision 5), et **installe les dépendances** : celles de la base avant `a-juger` si `node_modules` manque, celles de la tête dans l'arbre à part avant `C1`. La seconde installation joue les scripts d'installation que la PR déclare : c'est ce que la spec demande en faisant jouer « les gates des index générés » sur la tête, et ce que le capitaine fait déjà.
-8. **Un diff qui ne relève d'aucune ligne de la table** (un ticket dont seule la ligne `Status:` change, par exemple) n'a aucun axe, et le verdict vaut `validé` si `C1` passe.
-9. **`CONTEXT.md`** : la place de la section, les mots de « Décision de plafond » et d'« Étiquette » (décision 19) ; et le membre de phrase ajouté au paragraphe « Invocation » du `README.md` (décision 20).
+6. **La commande de contrôle du verdict est une ligne de `node`, pas un script** (décision 16), et elle refuse `incomplet` avec des bloquants, que le lecteur accepte.
+7. **La session se replace sur le sommet de la base à chaque tour** (décision 5, confirmée par `A-137`), et **installe les dépendances** : celles de la base avant `a-juger` si `node_modules` manque, celles de la tête dans l'arbre à part avant `C1`. La seconde installation joue les scripts d'installation que la PR déclare, et `C1` les commandes de ses index : c'est ce que la spec demande en faisant jouer « les gates des index générés » sur la tête, et ce que le capitaine fait déjà. `SKILL.md` et `CONTENU.md` le disent (décision 32).
+8. **Un diff qui ne relève d'aucune ligne de la table** (un ticket dont seule la ligne `Status:` change, par exemple) n'a aucun axe, et le verdict vaut `validé` si `C1` passe. **Un diff vide**, lui, ne vaut « aucun axe » que si chaque fichier changé est un index à commande que la base et la tête déclarent (décision 25).
+9. **`CONTEXT.md`** : la place de la section, les mots de « Décision de plafond » et d'« Étiquette » (décision 19), et « Verdict », qui dit `A-137` là où le vocabulaire de la spec dit encore « incomplet (un axe n'a pas pu être joué) » ; et le membre de phrase ajouté au paragraphe « Invocation » du `README.md` (décision 20).
 10. **Le banc dans un fichier neuf** (décision 18), et non dans `scripts/depot.test.mjs` comme les bancs des skills précédents.
+11. **Quatre choix du côté sûr, que rien d'écrit ne tranchait** : seuls les index à commande déclarés sur la base et sur la tête sortent du diff relu, par analogie avec `A-123` et `A-125` (décision 25) ; un nom de branche hors des caractères sûrs donne `incomplet` (décision 28) ; aucun verdict n'est publié sans distribution qui nomme la session (décision 30) ; dans le doute entre un écart de la PR et un outil en échec, « non exécuté » (décision 27).
+12. **Un choix qui n'est pas du côté le plus sûr** : un fichier binaire se nomme sous « Hors du diff relu » et ne rend pas le verdict `incomplet` (décision 33). L'autre choix laisserait `incomplet` toute PR qui porte une image.
+13. **Une treizième référence**, `cas-limites.md` (décision 34), et un cas du banc qui épingle une limite d'un autre module (`compter`, décision 17) : le jour où ce module est corrigé, ce banc rougit, exprès.
+
+**Limites connues, écrites dans le skill ou ici**
+
+14. **Sur une PR sensible, un `refusé` sans `/security-review: lancée` est compté `incomplet` par le Relecteur** (décision 17). Vérifié sur `decision-relecteur.mjs` à `a018502`, et tenu par le banc. La retouche de `compter` est un autre ticket, à faire entrer avant le lot 4 ou avec lui.
+15. **Une PR qui change la commande d'un index, puis écrit cet index à la main.** Le changement de commande est dans le diff relu (la liste des index n'est jamais dispensée), l'index lui-même en sort, et `C1` joue la commande que la PR déclare. C'est l'axe Règles qui le voit, ou personne.
+16. **Le lockfile ou des snapshots seuls** : la règle (ils s'ajoutent au diff relu quand rien d'autre n'y est) est une phrase de l'étape 3, que le banc ne joue pas.
+17. **Le témoin de commitlint** (`chore: témoin`) peut être refusé par la configuration d'un projet qui exige une portée : `C2` serait alors « non exécuté » à tort, du côté sûr.
+18. **La règle des noms de branche** est une phrase que la session applique ; aucune commande ne la joue, et la sortie non nulle d'`identifiant.mjs` (6, grammaire introuvable) n'est pas jouée non plus.
+19. **`rm -rf <scratchpad>/relecture`** suppose qu'une session ne relit qu'une PR à la fois, ce que le skill dit (« Une PR à la fois »).
+20. **La vérification du diff relu demande `jq`**, comme `github.sh` dont elle prend la fonction ; sans lui, elle sort en 12 et le diff relu est « non exécuté ».
 
 **Ce qui n'a pas été joué**
 
-11. **Aucun sous-agent n'a été lancé avec ces prompts.** Ce que les cinq axes relèvent sur une vraie PR, la part de constats faux, le nombre de tours refusés que donne « tout écart est bloquant » : rien n'en est mesuré. C'est l'essai réel de la partie 6c (« Vérification d'ensemble » de la spec) qui le dira.
-12. **`/security-review` sur un arbre à part.** C'est une skill intégrée de Claude Code, qui relit « la branche courante ». Le skill lui fait dire quel diff relire (`git -C <arbre> diff origin/<base>...HEAD`) ; qu'elle le suive depuis un dossier qui n'est pas le sien n'a pas été joué. Si elle ne le peut pas, `C4` est « non exécuté » et toute PR à chemin sensible reste `incomplet` : à sonder avant le lot 4.
-13. **La publication du verdict et le message au Relecteur** (`add_issue_comment`, `send_message`) : non joués ; le lot 4 les joue avec le Relecteur. De même la lecture de la distribution et des arbitrages sur une vraie PR.
-14. **Le régime 8 n'existe pas encore.** Ni la clé `relecture` de `chaine.json`, ni la ligne `Sensibles:` jugée par le gate (ticket 55), ni les documents du régime 8 (lot 6) : `C3` cite la forme d'`A-74` telle que la spec l'écrit. Si le ticket 55 change cette forme en se rejouant, `C3` se retouche (un mot de `criteres-session.md`).
-15. **Le dépôt jouet du banc n'a pas de vrai `pnpm`** : un faux `pnpm` note ses appels. Que `pnpm install` et `pnpm exec commitlint` réussissent dans le clone d'une session de relecture d'un vrai projet n'est pas joué ici.
-16. **Un diff de plus de 2 000 lignes** : le skill reprend la règle de `revue-adversariale` (un lot par zone) ; non joué.
-17. **Un chemin que git écrit entre guillemets** (un nom à tabulation, à guillemet, à retour à la ligne) passe mal en zone de `diff-revue.sh` : le fichier manquerait au diff relu. `chemins-sensibles.mjs` et `revue-exigee.mjs`, eux, le lisent bien.
-18. **Les axes Tickets, Règles métier et Documentation reçoivent le même `diff.patch` que les autres**, entier : pas de diff par axe. Un axe relève parfois hors de son objet ; ses interdits et le tri l'écartent.
-19. **`git blame` sur une PR de mise à jour** : joué sur un conflit d'une ligne et une retouche. Une ligne de `develop` que la résolution a reformatée est attribuée à la fusion, donc gardée : c'est le bon côté.
-20. **Deux sessions de relecture d'une même PR** ont chacune leur arbre à part, dans leur propre clone : non joué à deux.
-21. **Les axes lisent les règles du projet (`CLAUDE.md`, fiches, ADR) dans l'arbre à part**, donc telles que la PR les écrit. Seule la liste de critères de l'axe Règles vient de la base. Une PR qui affaiblit une règle le montre dans son diff, et ce chemin exige la revue ; rien de plus ne le garde.
+21. **Aucun sous-agent n'a été lancé avec ces prompts.** Ce que les cinq axes relèvent sur une vraie PR, la part de constats faux, le nombre de tours refusés que donne « tout écart est bloquant » : rien n'en est mesuré. C'est l'essai réel de la partie 6c (« Vérification d'ensemble » de la spec) qui le dira.
+22. **`/security-review` sur un arbre à part.** C'est une skill intégrée de Claude Code, qui relit « la branche courante ». Le skill lui fait dire quel diff relire (`git -C <arbre> diff origin/<base>...HEAD`) ; qu'elle le suive depuis un dossier qui n'est pas le sien n'a pas été joué, et ne se sonde pas depuis un banc. Si elle ne le peut pas, `C4` est « non exécuté » : toute PR à chemin sensible reste `incomplet`, ou `refusé` lu `incomplet` (limite 14). À sonder avant le lot 4.
+23. **La publication du verdict et le message au Relecteur** (`add_issue_comment`, `send_message`) : non joués ; le lot 4 les joue avec le Relecteur. De même la lecture de la distribution, des pages de commentaires et des arbitrages sur une vraie PR. La relecture du commentaire publié est jouée sur un texte à fins de ligne CRLF et au pied de page des sessions cloud, pas sur un vrai commentaire.
+24. **Le régime 8 n'existe pas encore.** Ni la clé `relecture` de `chaine.json`, ni la ligne `Sensibles:` jugée par le gate (ticket 55), ni les documents du régime 8 (lot 6) : `C3` cite la forme d'`A-74` telle que la spec l'écrit. Si le ticket 55 change cette forme en se rejouant, `C3` se retouche (un mot de `criteres-session.md`).
+25. **Le dépôt jouet du banc n'a pas de vrai `pnpm`** : un faux `pnpm` note ses appels, et échoue sur demande. Que `pnpm install` et `pnpm exec commitlint` réussissent dans le clone d'une session de relecture d'un vrai projet n'est pas joué ici.
+26. **Un diff de plus de 2 000 lignes** : `cas-limites.md` décrit les lots (par zone, un sous-agent par axe et par lot, la vérification sur l'ensemble) ; non joué.
+27. **Un chemin que git écrit entre guillemets** : joué pour une tabulation (il manque au diff de `diff-revue.sh`, la vérification le nomme, la commande d'ajout le remet). Un chemin à apostrophe, à guillemet ou à saut de ligne n'est pas joué : la session l'écrit comme `cas-limites.md` le dit, ou laisse le diff relu « non exécuté ».
+28. **Les axes Tickets, Règles métier et Documentation reçoivent le même `diff.patch` que les autres**, entier : pas de diff par axe. Un axe relève parfois hors de son objet ; ses interdits et le tri l'écartent.
+29. **`git blame` sur une PR de mise à jour** : joué sur un conflit d'une ligne et une retouche. Une ligne de `develop` que la résolution a reformatée est attribuée à la fusion, donc gardée : c'est le bon côté.
+30. **Deux sessions de relecture d'une même PR** ont chacune leur arbre à part, dans leur propre clone : non joué à deux.
+31. **Les axes lisent les règles du projet (`CLAUDE.md`, fiches, ADR) dans l'arbre à part**, donc telles que la PR les écrit. Seule la liste de critères de l'axe Règles vient de la base. Une PR qui affaiblit une règle le montre dans son diff, et ce chemin exige la revue ; rien de plus ne le garde.
+32. **`K2` et `K4`** : précisés (décision 35), jamais joués par un sous-agent. Le risque de `K2` reste celui du point 21 : un axe qui prend toute reformulation pour une paraphrase.
+
+### Ce que ce ticket promet au lot 4, et ce qu'il en attend
+
+Le Relecteur (lot 4) est le seul appelant de ce skill. Les promesses étaient dispersées dans les décisions ; les voici en une liste, pour qui rédigera son ticket.
+
+| | Ce que le skill suppose | D'où |
+| --- | --- | --- |
+| 1 | Le prompt qui lance une session de relecture **commence par la commande du skill**, `/maj-skills:relecture <numéro de PR> <tour> <sommet>` ; s'il vit dans `lancement.md`, `scripts/depot.test.mjs:342` le tient | décision 2, `A-137` |
+| 2 | La session est créée sur la **base** de la PR, dans un clone qui peut être superficiel et à une branche : elle l'approfondit elle-même, une fois | `A-78`, décision 6 |
+| 3 | La session peut **écrire à la session qui l'a lancée** (`send_message`) : son identifiant lui est donné, par le message ou par son expéditeur. Quatre lignes peuvent en venir : « verdict écrit sur la PR <n>, tour <k> », « PR <n> : la session <identifiant> a écrit cette PR ou son ticket, elle ne la relit pas », « PR <n> : aucune distribution ne nomme la session <identifiant>, verdict non publié », « PR <n> : verdict non publié, la publication a échoué ». Le lot 4 dit ce que le Relecteur fait des trois dernières : il remplace la session, ou écrit la distribution et la relance | décisions 30 et 31 |
+| 4 | Le Relecteur **écrit la distribution après avoir créé la session** ; la session ne publie rien tant qu'aucune distribution ne la nomme. S'il s'interrompt entre les deux, la session s'arrête sans verdict : à son réveil, il écrit la distribution et la relance | `A-85` règle 6, `A-115`, décision 30 |
+| 5 | Le fait **`sensible`** que le Relecteur passe à `decider` se calcule sur la même liste que la session : pour une PR vers `develop`, le diff à trois points sans renommage ; pour une PR vers un sujet, la sortie d'`a-juger`, seconde liste d'une PR de mise à jour ; par `chemins-sensibles.mjs`, avec la base. Sinon un `/security-review: non requise` honnête est compté `incomplet`, sans fin | décision 17, `compter` |
+| 6 | Le Relecteur lit **toutes les pages** des commentaires, comme la session | `A-115` |
+| 7 | Une **relance** (`(relance <identifiant>)`) rejoue le tour entier, au même numéro et sur le même sommet : le Relecteur ne compte pas sur une reprise partielle | décision 26 |
+| 8 | **`compter` est retouché** (autre ticket) avant le lot 4, ou avec lui : sans cela, sur une PR sensible, un `refusé` sans `/security-review: lancée` ne rend pas la PR à son auteur | décision 17 |
+| 9 | **`/security-review` depuis un arbre à part** est sondé avant le lot 4 : sinon aucune PR sensible n'est jamais `validé` | point 22 |
+| 10 | La publication du verdict, le message au Relecteur et la lecture de la distribution sont **joués pour la première fois par le lot 4**, sur une vraie PR | point 23 |
+| 11 | Une session de relecture **exécute ce que la PR déclare** (`pnpm install`, commandes d'index) : le lot 4 ne lui donne aucun secret qu'une session de travail n'a pas | décision 32 |
+| 12 | Le Relecteur ne distribue que les PR en **régime 8** : le skill ne lit pas le régime | décision 23, `A-97` |
+| 13 | Les lignes de `fusionner/references/CONTENU.md`, de `scripts/points-d-entree.test.mjs` et de l'arbre du `README.md` pour les trois calculs **partent au lot 4** | `A-137`, « Hors périmètre » |
+
+Au lot 6c, une promesse aussi : le `SKILL.md` du socle ne peut pas écrire la commande de ce skill (`scripts/depot.test.mjs:351`), il fait lire son étape 0, comme il le fait pour `fusionner` (décision 2).
 
 ## Hors périmètre
 
@@ -2074,7 +2657,8 @@ Le skill est un texte qu'un modèle exécute : ce que le banc tient, ce sont ses
 - **Les gardes des fichiers sensibles** (lot 5b) et **le gate `tickets`** (ticket 55, lot 5c) : ce ticket ne fait que lire la ligne `Sensibles:`.
 - **Les documents et les skills du régime 8** (lot 6) : `chaine-de-production.md`, `chantier`, `architecte`, `lancement.md`, `fusionner/SKILL.md`, `sujet/SKILL.md`, le `SKILL.md` du socle (`relecture poser`), la clé `relecture` de `chaine.json`.
 - **`revue-de-ticket` et `revue-adversariale`** : pas un mot ne change, phrases « relecteur indépendant » comprises (lot 9).
-- **`fusionner/references/CONTENU.md`, `scripts/points-d-entree.test.mjs`, la ligne de `fusionner` dans l'arbre du `README.md` (`:169`)**, pour les trois calculs des lots 3a à 3c. La spec dit de ces lignes qu'elles s'écrivent « une fois ses tickets 2, 3, 4, 8, 9 et 13 entrés, au plus tard avec 3d », et les tickets 58 à 60 les ont laissées à 3d. **Ce ticket ne les écrit pas, et le dit pour que l'architecte tranche** : le ticket 8 de l'autre programme n'est pas entré, le ticket 54 écrit `fusionner/references/CONTENU.md` en ce moment, le calcul du ticket 60 (PR 134) n'est pas encore sur `main`, et aucun test de `main` n'exige ces lignes. Relevé sur `a3c2a7c` : `CONTENU.md` de `fusionner` n'a de section ni pour `verdict.mjs`, ni pour `decision-relecteur.mjs`, ni pour `meme-contenu.sh` ; `points-d-entree.test.mjs` n'a rien à recevoir avant le ticket 60 (les deux modules du lot 3a n'ont pas de point d'entrée, le lot 3b est un `.sh`). Deux façons de les porter : un ticket de documentation à part, une fois les tickets 54 et 60 entrés, ou le lot 4, premier à appeler ces calculs.
+- **`fusionner/references/CONTENU.md`, `scripts/points-d-entree.test.mjs`, la ligne de `fusionner` dans l'arbre du `README.md` (`:169`)**, pour les trois calculs des lots 3a à 3c. La spec disait de ces lignes qu'elles s'écrivent « au plus tard avec 3d », et les tickets 58 à 60 les avaient laissées à 3d ; ce ticket avait demandé à l'architecte de trancher. **Tranché par `A-137` : ces lignes partent au lot 4**, premier à appeler ces calculs. Relevé sur `a018502`, pour qui les écrira : `CONTENU.md` de `fusionner` n'a de section ni pour `verdict.mjs`, ni pour `decision-relecteur.mjs`, ni pour `meme-contenu.sh` ; `points-d-entree.test.mjs` n'a rien à recevoir avant le ticket 60 (les deux modules du lot 3a n'ont pas de point d'entrée, le lot 3b est un `.sh`).
+- **La retouche de `compter`** (`decision-relecteur.mjs:245`), pour qu'un `refusé` reste un refus sur une PR sensible sans `/security-review: lancée` : un autre ticket (décision 17). Ce ticket écrit la limite et la tient par un test.
 - **Le coût d'une session de relecture** (`A-87`) et son archivage.
 
 ## Comments
@@ -2093,3 +2677,23 @@ Le skill est un texte qu'un modèle exécute : ce que le banc tient, ce sont ses
   9. m — C3 : `origin/sujet/<nom>` n'est pas rapatrié pour une PR `hors-sujet`. Que C1 et l'installation exécutent ce que la PR déclare est dit dans le ticket, pas dans `SKILL.md` ni `CONTENU.md`.
   10. m — Publication : relire le commentaire publié contre le fichier contrôlé ; fichier binaire et diff de plus de 2 000 lignes non décrits.
   Pas regardé : la suite entière et les mutations du relecteur (lancées, non lues) ; `/security-review` depuis un arbre à part ; `a-juger` d'une PR de mise à jour sans conflit ; `K2` et `K4` à creuser ; la liste des promesses au lot 4.
+
+- 2026-11-19 — **Les dix retouches du premier tour, portées par l'agent rédacteur**, sur `origin/main` à `a018502` : la PR 136 est entrée entre-temps (7.31.1), les repères de ligne sont repris à ce commit. Tout a été rejoué depuis les fichiers tirés de ce ticket par ses bornes (« Ce qui a été joué »). Une ligne par retouche, ce qui a changé et où :
+  1. `A-137` — **portée**. Décision 17 récrite ; étape 8 et « Ne jamais » du `SKILL.md` ; `verdict.md` (« Remplir l'en-tête », « Limite connue », l'exemple, qui montre un `refusé` avec un axe non joué) ; en-tête de `criteres-session.md` ; `cas-limites.md` ; « Verdict » dans `CONTEXT.md` ; la note. La commande de contrôle refuse `incomplet` avec des bloquants. Le cas `incomplet, bloquants: 1` du banc est remplacé, et un test neuf fait passer le gabarit rempli par `decider`. La limite de `compter` est vérifiée sur le code (`decision-relecteur.mjs:245` : `decider` rend `reecrire`, règle 5, pour un `refusé` sans `/security-review: lancée` sur une PR sensible), écrite, tenue par ce test, et **non codée** : sa retouche est un autre ticket.
+  2. Index que la PR déclare — **portée**. Quatrième bloc de l'étape 3, décision 25, test « le diff relu ne perd aucun fichier » (quatre PR jouets). « Aucun axe » ne vaut plus que si `attendus.txt` est vide.
+  3. Sortie 1 de `diff-revue.sh`, brouillons communs — **portée**. Étape 3 (les deux messages), étape 2 (un dossier par tour, vidé au départ), décision 26 ; le banc coupe le distant et rejoue l'étape 2 au même tour.
+  4. `pnpm install` en échec avant `a-juger` — **portée**, et la famille avec : décision 27. L'installation en échec ne bloque plus `a-juger` ; le motif « refusé par commitlint » ne vaut refus que si commitlint tourne (un témoin) ; sortie 12 pour `C1` ; une ligne « échec » pour `chemins-sensibles.mjs` et `identifiant.mjs` ; sortie 2 de `contexte-ticket.mjs`.
+  5. Chemins cités, titre à apostrophe — **portée**. La vérification de la retouche 2 nomme un chemin que git cite, et la commande d'ajout le remet (joué pour une tabulation) ; le titre se lit dans `titre.txt` ; même famille, les noms de branche : décision 28.
+  6. `M2`, `M3` — **portée**. `criteres-regles-metier.md`, un test de parité avec le prompt de `criticite`, décision 29 ; « la PR d'un agent » de `D8` et `M1`, dit hors du bloc repris mot pour mot.
+  7. Pages des commentaires, distribution absente — **portée**. Étapes 1 et 8, décision 30.
+  8. « S'arrêter et le dire » à qui, relance au même tour — **portée**. « Qui joue », `cas-limites.md` (« Sans verdict », trois cas), décision 31 ; l'étape 2 retire l'arbre resté (décision 26, `git worktree add` sortait en 128, vu).
+  9. `C3` d'une PR `hors-sujet`, ce que `C1` exécute — **portée**. Étape 5, `criteres-session.md`, `CONTENU.md`, décision 32, test « C3 sur une PR vers develop… ».
+  10. Publication, binaire, 2 000 lignes — **portée**. Étape 8 (le commentaire publié se relit par la commande de contrôle), ligne « Hors du diff relu » du gabarit, `cas-limites.md` (les lots), décision 33. Les lots sont décrits, pas joués.
+
+  **Ce que le premier relecteur n'avait pas regardé.** `a-juger` d'une PR de mise à jour sans conflit : **deux défauts trouvés**, corrigés et tenus par un test neuf. La sortie commence par une ligne vide, et `sed '1,/^$/d'` effaçait alors tout, la liste des retouches comprise ; avec ou sans retouche, `fichiers.txt` était donc vide : `diff-revue.sh`, sans zone, prenait tout ce que `develop` apporte, et `chemins-sensibles.mjs` sortait en 2 sur une liste vide, ce qui laissait toute PR de mise à jour sans conflit `incomplet` (décision 7). Les promesses au lot 4 : rassemblées en une table de treize lignes (« Ce que ce ticket promet au lot 4 »), dont deux neuves (le fait `sensible` calculé sur la même liste que la session ; `compter` retouché avant le lot 4). `K2` et `K4` : précisés (décision 35). `/security-review` depuis un arbre à part : ne se sonde pas depuis un banc, reste au point 22 de « Ce qui n'a pas été établi ».
+
+  **Mes choix, et leur raison.** (a) Seuls les index à commande que la base et la tête déclarent sortent du diff relu, par analogie avec `A-123` et `A-125` ; le lockfile et les snapshots s'y ajoutent quand ils sont seuls (décision 25). (b) Aucun verdict n'est publié sans distribution qui nomme la session : `A-115` ne le compterait pas, et il ne se modifie pas (décision 30). (c) Un nom de branche hors des caractères sûrs donne `incomplet`, plutôt qu'un échappement fait de tête (décision 28). (d) Un fichier binaire se nomme et ne rend pas le verdict `incomplet` : c'est le seul choix qui n'est pas du côté le plus sûr (décision 33). (e) Le banc épingle la limite de `compter` : il rougira, exprès, le jour où `compter` sera corrigé (décision 17). (f) Une treizième référence, `cas-limites.md`, `SKILL.md` étant à 198 lignes sur 200 : quinze fichiers neufs au lieu de quatorze (décision 34). (g) Une relance rejoue le tour entier (décision 26). (h) Un dossier de session qui n'est pas propre donne un verdict `incomplet`, et plus un arrêt muet (décision 31). (i) Le titre de la note du § 5 porte `<version>` et `<AAAA-MM-JJ>` : plus aucun numéro à livrer n'est écrit en dur (décision 21). (j) L'expression `sed` de la vérification du diff relu n'emploie pas `\|`, que seul GNU sed lit.
+
+  **Ce qui n'a pas pu être porté** : rien des dix. Restent hors de ce ticket la retouche de `compter` et la sonde de `/security-review`.
+
+  **Les comptes vus**, sur `a018502`, Node 22.23, git 2.43, pnpm 10.28 : banc seul, avant le skill, 19 rouges sur 21 ; après les § 2 et 3, un rouge ; après les § 4 et 5, 21 sur 21 ; suite entière, 1 094 tests, 1 094 verts, d'un seul tenant, en 664 secondes sous la charge de deux autres sessions (`scripts/poses.test.mjs` : 572 secondes pour un plafond de 600) ; 134 mutations, 134 rouges, en 407 secondes sur trois clones.
