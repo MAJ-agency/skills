@@ -845,6 +845,24 @@ test("fusionner : une PR de mise à jour d'une autre forme que « la fusion, pui
     const r = d.lancer(SUJET, "fusionner", "81");
     assert.equal(r.status, sortie, r.stdout + r.stderr);
     assert.match(r.stdout, motif);
+    if (options.avantPush && /une seule fusion de develop/.test(r.stdout)) {
+      const derniere = r.stdout.trim().split("\n").at(-1);
+      assert.match(derniere, /git switch -c maj\/lot-2 origin\/sujet\/lot/, "la dernière ligne (celle que refus.sh renvoie) porte la recette");
+      assert.match(derniere, /en une seule fusion/);
+      // La recette, jouée telle qu'écrite dans le motif, dans un clone `--single-branch` (tout clone superficiel,
+      // donc les sessions cloud) : le fetch doit créer origin/sujet/lot, et le switch partir de son sommet.
+      const [, rapatrier, brancher] = derniere.match(/en une seule fusion : (git fetch [^;]+) ; (git switch [^;]+) ;/) ?? [];
+      assert.ok(rapatrier && brancher, "le motif porte le fetch et le switch de la recette");
+      const clone = join(d.racine, "clone-superficiel");
+      const env = { ...d.env };
+      assert.equal(spawnSync("git", ["clone", "-q", "--single-branch", "-b", "develop", d.origine, clone], { env }).status, 0);
+      for (const geste of [rapatrier, brancher]) {
+        const g = spawnSync("sh", ["-c", geste], { cwd: clone, env, encoding: "utf8" });
+        assert.equal(g.status, 0, `${geste} : ${g.stderr}`);
+      }
+      const sommetClone = spawnSync("git", ["rev-parse", "HEAD"], { cwd: clone, env, encoding: "utf8" }).stdout.trim();
+      assert.equal(sommetClone, spawnSync("git", ["rev-parse", "origin/sujet/lot"], { cwd: clone, env, encoding: "utf8" }).stdout.trim());
+    }
     assert.equal(sujetDistant(d), avant, "sujet inchangé");
     assert.ok(!ecritures(d).some((e) => e.startsWith("PUT ")), "aucun squash");
     assert.equal(d.git("status", "--porcelain"), "");

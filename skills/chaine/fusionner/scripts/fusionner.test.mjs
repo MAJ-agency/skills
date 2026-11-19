@@ -340,6 +340,17 @@ test("renvoyer.sh : pose fusion-bloquée, retire à-fusionner et commente la cau
   assert.doesNotMatch(commentaire.champs.body, /attend un humain/);
 });
 
+test("renvoyer.sh : le refus « plusieurs fusions » d'une PR de mise à jour dit de la refaire dans une nouvelle PR, pas de remettre le label", () => {
+  const d = depotJouet();
+  d.branche("maj/lot", "origin/develop", { "docs/r.md": "r\n" });
+  d.github({ pulls: [pr(41, "maj/lot")] });
+  const r = d.lancer(script("renvoyer.sh"), "41", "#41, PR de mise à jour : une seule fusion de develop dans sujet/lot, jamais une seconde fusion. Refaire la réception");
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  const commentaire = d.journal().find((e) => e.route === "issues/41/comments");
+  assert.match(commentaire.champs.body, /ouvrir une nouvelle PR vers le sujet et fermer celle-ci/);
+  assert.doesNotMatch(commentaire.champs.body, /remettre `à-fusionner`/);
+});
+
 const MARQUE = "<!-- renvoi-capitaine -->";
 const renvoi = `**Renvoyée par le capitaine de fusion** : x.\n\n${MARQUE}\n`;
 

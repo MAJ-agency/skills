@@ -352,3 +352,139 @@ test('exigeRevue : un chemin décité qui porte un saut de ligne ou U+2028 touch
   }
   assert.equal(exigeRevue(['".github/workflows/x\\342\\200\\250.yml"']), true, 'CI avec U+2028 dans le nom');
 });
+
+// ——— Ticket 18 : la ligne « /security-review : lancée » sur une PR qui touche un chemin sensible ————————————————
+const INFRA = { sensibles: ['infra/**'], criteres: ['docs/agents/criteres-revue.md'], generes: [], illisible: null };
+const REVUE_SANS = '## Résumé\n\nx\n\n## Revue de ticket\n\n- Sommet relu : `abc1234`\n- Écarts : aucun\n';
+const avecLigne = (ligne, titre = '## Revue de ticket') => `## Résumé\n\nx\n\n${titre}\n\n- Sommet relu : \`abc1234\`\n${ligne}\n- Écarts : aucun\n\n## Sécurité\n\nRAS\n`;
+const LIGNE = '- `/security-review` : lancée (chemins : infra/main.tf)';
+
+test('ticket 18 : chemin sensible sans la ligne /security-review : lancée dans la section de revue : refusée ; avec elle : éligible', () => {
+  const motif = revueExigee.motifSansSecurite({ corps: REVUE_SANS, fichiers: ['infra/main.tf'], base: INFRA });
+  assert.match(motif ?? '', /section de revue sans la ligne « \/security-review : lancée » alors que la PR touche un chemin sensible \(infra\/main\.tf\)/);
+  assert.match(motif, /lancer la skill \/security-review sur ce sommet, puis écrire la ligne dans la section/);
+  assert.equal(revueExigee.motifSansSecurite({ corps: avecLigne(LIGNE), fichiers: ['infra/main.tf'], base: INFRA }), null);
+  // Les variantes d'espaces, de puce, de casse, d'accents graves et de ponctuation finale que les sessions écrivent.
+  for (const ligne of [
+    '- `/security-review` : lancée',
+    '- `/security-review`: lancée.',
+    '- `/security-review`\u00a0: lancée (chemins : infra/**)',
+    '- `/security-review`\u202f:\u00a0lancée ; deux constats',
+    '* /security-review : lancée, chemins : infra/',
+    '+ `/security-review` :   Lancée',
+    '  - `/SECURITY-REVIEW` : LANCÉE',
+    '- `/security-review` : lance\u0301e (NFD)',
+    '- `/security-review` : lancée !',
+  ])
+    assert.equal(revueExigee.motifSansSecurite({ corps: avecLigne(ligne), fichiers: ['infra/main.tf'], base: INFRA }), null, ligne);
+});
+
+test('ticket 18 : « non requise », une ligne hors de la section ou dans un bloc de code ne comptent pas ; la ligne d’une section « Revue adversariale » compte', () => {
+  const refusee = (corps, contexte) => assert.notEqual(revueExigee.motifSansSecurite({ corps, fichiers: ['infra/main.tf'], base: INFRA }), null, contexte);
+  refusee(avecLigne('- `/security-review` : non requise'), 'non requise');
+  refusee(avecLigne('- `/security-review` : lancéeX'), 'mot collé');
+  refusee(avecLigne('- `/security-review` : à lancer'), 'à lancer');
+  refusee(avecLigne('`/security-review` : lancée'), 'sans puce');
+  refusee(`${REVUE_SANS}\n## Sécurité\n\n${LIGNE}\n`, 'dans la section suivante de même niveau');
+  refusee(`## Résumé\n\n${LIGNE}\n\n${REVUE_SANS}`, 'avant la section');
+  refusee(`# Titre\n\n## Revue de ticket\n\nx\n\n# Annexe\n\n${LIGNE}\n`, 'après un titre de niveau supérieur');
+  refusee(avecLigne(`\`\`\`markdown\n${LIGNE}\n\`\`\``), 'bloc de code');
+  refusee(avecLigne(`~~~\n${LIGNE}\n~~~`), 'bloc de code ~~~');
+  refusee(`## Revue de ticket\n\n\`\`\`\n## Autre\n\`\`\`\n\n## Sécurité\n\n${LIGNE}\n`, 'un titre dans un bloc ne ferme pas la section, et la ligne reste hors');
+  assert.equal(revueExigee.motifSansSecurite({ corps: avecLigne(LIGNE, '## Revue adversariale'), fichiers: ['infra/main.tf'], base: INFRA }), null);
+  assert.equal(revueExigee.motifSansSecurite({ corps: `## Revue de ticket\n\n### Axe Règles\n\nx\n\n${LIGNE}\n`, fichiers: ['infra/main.tf'], base: INFRA }), null, 'sous-section plus profonde');
+});
+
+test('ticket 18 : sans chemin sensible, rien n’est exigé ; base illisible : la ligne est exigée ; un chemin NFD ou d’une autre casse touche son motif', () => {
+  assert.equal(revueExigee.motifSansSecurite({ corps: REVUE_SANS, fichiers: ['apps/api/src/a.ts', 'docs/a.md'], base: INFRA }), null);
+  assert.equal(revueExigee.motifSansSecurite({ corps: REVUE_SANS, fichiers: ['infra/main.tf'] }), null, 'sans base : aucun chemin sensible');
+  assert.equal(revueExigee.motifSansSecurite({ corps: REVUE_SANS, fichiers: ['infra/main.tf'], base: { ...INFRA, sensibles: [] } }), null, 'contrat sans chemins sensibles');
+  assert.equal(revueExigee.motifSansSecurite({ corps: REVUE_SANS, fichiers: [], base: INFRA }), null);
+  const illisible = { ...revueExigee.SANS_BASE, illisible: 'contrat de origin/develop illisible (x)' };
+  assert.match(revueExigee.motifSansSecurite({ corps: REVUE_SANS, fichiers: ['docs/a.md'], base: illisible }) ?? '', /chemin sensible \(docs\/a\.md/);
+  assert.equal(revueExigee.motifSansSecurite({ corps: avecLigne(LIGNE), fichiers: ['docs/a.md'], base: illisible }), null);
+  const accents = { ...INFRA, sensibles: ['données/**'] };
+  for (const f of ['donne\u0301es/a.json', 'DONNÉES/a.json', 'Infra/Main.tf'])
+    assert.notEqual(revueExigee.motifSansSecurite({ corps: REVUE_SANS, fichiers: [f], base: f.startsWith('Infra') ? INFRA : accents }), null, f);
+  assert.notEqual(revueExigee.motifSansSecurite({ corps: REVUE_SANS, fichiers: ['"docs/a\\qb"'], base: INFRA }), null, 'citation mal formée : exigée, comme cheminExige');
+});
+
+test('ticket 18 : la CLI renvoie le motif de la ligne après celui de la section, et avant celui du titre', () => {
+  const d = jouet.dossierTemporaire('revue-securite-');
+  const env = { ...jouet.environnementDeBanc(), GIT_CONFIG_GLOBAL: '/dev/null', GIT_CONFIG_NOSYSTEM: '1', GIT_AUTHOR_NAME: 't', GIT_AUTHOR_EMAIL: 't@example.org', GIT_COMMITTER_NAME: 't', GIT_COMMITTER_EMAIL: 't@example.org' };
+  const git = (...a) => execFileSync('git', a, { cwd: d, env, encoding: 'utf8' });
+  git('init', '-q', '-b', 'develop');
+  mkdirSync(join(d, '.claude'), { recursive: true });
+  writeFileSync(join(d, '.claude/chaine.json'), JSON.stringify({ cheminsSensibles: ['infra/**'] }));
+  git('add', '-A');
+  git('commit', '-q', '-m', 'base');
+  const cli = fileURLToPath(new URL('./revue-exigee.mjs', import.meta.url));
+  const lancer = (corps, titre, fichiers = 'infra/main.tf\n') => spawnSync('node', [cli, corps, titre, 'develop'], { cwd: d, env, input: fichiers, encoding: 'utf8' });
+  const sansSection = lancer('## Résumé\n', 'fix: x');
+  assert.equal(sansSection.status, 1);
+  assert.match(sansSection.stdout, /sans section « Revue de ticket »/, 'sans section : le motif de la section d’abord');
+  const sansLigne = lancer(REVUE_SANS, 'fix: x');
+  assert.equal(sansLigne.status, 1);
+  assert.match(sansLigne.stdout, /sans la ligne « \/security-review : lancée »/);
+  // Un titre qui annonce du code sur un diff docs seul : le chemin sensible sous docs/ reçoit d'abord le motif de la ligne.
+  writeFileSync(join(d, '.claude/chaine.json'), JSON.stringify({ cheminsSensibles: ['docs/securite/**'] }));
+  git('commit', '-q', '-am', 'docs sensibles');
+  const avantTitre = lancer(REVUE_SANS, 'feat: x', 'docs/securite/a.md\n');
+  assert.equal(avantTitre.status, 1);
+  assert.match(avantTitre.stdout, /sans la ligne « \/security-review : lancée »/, 'la ligne avant le titre');
+  const titre = lancer(avecLigne(LIGNE), 'feat: x', 'docs/securite/a.md\n');
+  assert.equal(titre.status, 1);
+  assert.match(titre.stdout, /titre « feat »/, 'la ligne présente : le motif du titre');
+  assert.equal(lancer(avecLigne(LIGNE), 'docs: x', 'docs/securite/a.md\n').status, 0);
+});
+
+test('ticket 18 (contre-relecture) : un gabarit recopié sans choisir, ou la ligne dans un commentaire HTML, ne comptent pas', () => {
+  const refusee = (corps, contexte) => assert.notEqual(revueExigee.motifSansSecurite({ corps, fichiers: ['infra/main.tf'], base: INFRA }), null, contexte);
+  refusee(avecLigne('- `/security-review` : lancée (chemins : …) | non requise'), 'gabarit recopié tel quel');
+  refusee(avecLigne('- `/security-review` : lancée (chemins : infra/main.tf) | non requise'), 'les deux branches laissées');
+  refusee(avecLigne('- `/security-review` : lancée (chemins : …)'), 'chemins non remplis');
+  refusee(avecLigne('- `/security-review` : lancée (chemins : ...)'), 'chemins non remplis, trois points');
+  refusee(avecLigne(`<!-- ${LIGNE} -->`), 'commentaire HTML sur une ligne');
+  refusee(avecLigne(`<!--\n${LIGNE}\n-->`), 'commentaire HTML sur plusieurs lignes');
+  refusee(avecLigne(`<!--\n${LIGNE}`), 'commentaire HTML non fermé');
+  assert.equal(revueExigee.motifSansSecurite({ corps: avecLigne(`<!-- note -->\n${LIGNE}`), fichiers: ['infra/main.tf'], base: INFRA }), null, 'après un commentaire fermé');
+  assert.equal(revueExigee.motifSansSecurite({ corps: avecLigne(`${LIGNE} <!-- relue -->`), fichiers: ['infra/main.tf'], base: INFRA }), null, 'commentaire après la ligne');
+});
+
+test('ticket 18 (contre-relecture) : des points de suspension dans la prose comptent ; une parenthèse de chemins vide, laissée en …, ou « / non requise » ne comptent pas', () => {
+  const avec = (ligne) => revueExigee.motifSansSecurite({ corps: avecLigne(ligne), fichiers: ['infra/main.tf'], base: INFRA });
+  for (const ligne of [
+    '- `/security-review` : lancée (chemins : infra/main.tf) — rien à signaler...',
+    '- `/security-review` : lancée (chemins : infra/main.tf) — rien à signaler…',
+    '- `/security-review` : lancée… deux constats corrigés',
+    '- `/security-review` : lancée, chemins infra/**, rien...',
+  ])
+    assert.equal(avec(ligne), null, ligne);
+  for (const ligne of [
+    '- `/security-review` : lancée (chemins : )',
+    '- `/security-review` : lancée (chemins :)',
+    '- `/security-review` : lancée (chemins : … )',
+    '- `/security-review` : lancée (chemins : infra/main.tf, ...)',
+    '- `/security-review` : lancée (chemins : infra/main.tf) / non requise',
+    '- `/security-review` : lancée / non requise',
+    '- `/security-review` : lancée | non requise',
+  ])
+    assert.notEqual(avec(ligne), null, ligne);
+});
+
+test('ticket 18 (CodeQL) : un commentaire HTML imbriqué ou recollé ne cache ni ne fabrique la ligne ; deux commentaires de suite puis la vraie ligne comptent', () => {
+  const avec = (corps) => revueExigee.motifSansSecurite({ corps: avecLigne(corps), fichiers: ['infra/main.tf'], base: INFRA });
+  for (const corps of [
+    '<!<!-- x -->-- - `/security-review` : lancée -->',
+    '<!<!-- x -->--\n- `/security-review` : lancée\n-->',
+    '<!-<!-- x -->- a -->\n<!<!-- y -->-- b\n- `/security-review` : lancée\n-->',
+  ])
+    assert.notEqual(avec(corps), null, JSON.stringify(corps));
+  for (const corps of [
+    `<!-- a --><!-- b -->\n${LIGNE}`,
+    `<!-- a --><!-- b -->${LIGNE}`,
+    `${LIGNE} <!-- a --><!-- b -->`,
+    `<!-- a\nb --> <!-- c -->\n${LIGNE}`,
+  ])
+    assert.equal(avec(corps), null, JSON.stringify(corps));
+});
