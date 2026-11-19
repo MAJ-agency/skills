@@ -1,6 +1,6 @@
 # Le capitaine d'un dépôt sans la chaîne renvoie une PR en retard au lieu de la faire mettre à jour par GitHub
 
-Status: ready-for-agent
+Status: Fait — PR #132
 Type: défaut
 Modèle: sonnet — un paragraphe de procédure à réécrire dans `architecte/references/lancement.md`, sans script, et un banc de texte dans `scripts/depot.test.mjs` ; la décision est prise ici.
 Blocked by: —
