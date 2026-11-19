@@ -2,6 +2,18 @@
 
 La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque projet par `poser` : une version publiée ne change rien chez un projet qui ne les repose pas. Chaque note dit ce qui change, puis ce qu'un projet fait pour en profiter.
 
+## 7.31.0 — 2026-11-19
+
+### Ce qui change
+
+Le skill `fusionner` porte un calcul nouveau, `scripts/double-relecture.mjs` : il dit si une PR exige deux relectures indépendantes, parce que son ticket porte la ligne `Relecture: double` ou cite en `Règles:` une règle de criticité haute (sans cette ligne, celle de sa spec est lue), que son diff touche le fichier d'une règle haute ou un fichier que le champ `code` de cette règle nomme, ou qu'elle change le niveau d'une règle vers ou depuis « haute ». Il rend, en dernière ligne de sa sortie, « exigée », « non exigée » ou « illisible », après les règles en cause ; une lecture en échec ne vaut jamais « non exigée ». Dans un dépôt superficiel, le clone par défaut d'une session cloud, il rend « illisible » et sa raison nomme la cause et le remède (`git fetch --unshallow origin`) : il n'écrit jamais dans le dépôt et ne lance aucun `fetch`, c'est à qui l'appelle d'approfondir le clone d'abord. Un dépôt partiel (cloné avec `--filter`) est « illisible » de même, cause et remède nommés. Aucun script ne l'appelle encore : c'est une brique de la relecture indépendante, qui arrive par étapes. L'étape 0 de `fusionner` (`poser`) le nomme parmi les scripts à copier.
+
+### Ce qu'un projet fait pour en profiter
+
+1. Mettre à jour le plugin : `claude plugin marketplace update maj`, puis `claude plugin update maj-skills@maj`, puis redémarrer Claude Code.
+2. Rien d'autre pour l'instant : aucun script de la chaîne n'appelle ce calcul, rien ne change au passage du capitaine, et il n'y a pas à le relancer.
+3. À la prochaine repose de `fusionner`, son étape 0 copie `scripts/double-relecture.mjs` dans `scripts/chaine/` avec son banc : rien à faire de plus.
+
 ## 7.30.0 — 2026-11-19
 
 ### Ce qui change
