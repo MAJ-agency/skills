@@ -2,7 +2,7 @@
 
 La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque projet par `poser` : une version publiée ne change rien chez un projet qui ne les repose pas. Chaque note dit ce qui change, puis ce qu'un projet fait pour en profiter.
 
-## 7.31.0 — 2026-11-19
+## 7.32.0 — 2026-11-19
 
 ### Ce qui change
 
@@ -13,6 +13,20 @@ Le skill `fusionner` porte un calcul nouveau, `scripts/double-relecture.mjs` : i
 1. Mettre à jour le plugin : `claude plugin marketplace update maj`, puis `claude plugin update maj-skills@maj`, puis redémarrer Claude Code.
 2. Rien d'autre pour l'instant : aucun script de la chaîne n'appelle ce calcul, rien ne change au passage du capitaine, et il n'y a pas à le relancer.
 3. À la prochaine repose de `fusionner`, son étape 0 copie `scripts/double-relecture.mjs` dans `scripts/chaine/` avec son banc : rien à faire de plus.
+
+## 7.31.0 — 2026-11-19
+
+### Ce qui change
+
+Plusieurs capitaines peuvent tenir la même file : la règle « un seul capitaine actif » disparaît. Au début de chaque passage, le capitaine pose sur la PR un commentaire « passage du capitaine <id> », et un autre capitaine saute la PR tant que ce passage n'est pas terminé (90 minutes au plus sans nouvelles). La boucle, la veille, `passer.sh`, `sujet.sh fusionner` et `sujet.sh relancer` exigent `CAPITAINE_ID`, l'id de la session du capitaine (sortie 64 sans lui ; `sujet.sh relancer`, joué à la main par la session propriétaire, ne pose alors aucun verrou et le dit ; `boucle.sh --arreter` marche sans lui). Un verrou illisible arrête le passage (`passer.sh` 3, `sujet.sh` 11), jamais un passage sans lui ; `boucle.sh --arreter` laisse 15 s entre TERM et KILL pour que le passage termine son commentaire. Le texte du socle change : fragment `claude-md-fusion.md` (« Seuls les capitaines fusionnent »), gabarit de l'ADR « chaîne de production », table des rôles de `chaine-de-production.md`.
+
+### Ce qu'un projet fait pour en profiter
+
+1. Mettre à jour le plugin : `claude plugin marketplace update maj`, puis `claude plugin update maj-skills@maj`, puis redémarrer Claude Code (session cloud : `lancement.md` § « La mise à niveau »).
+2. Reposer les scripts, dans une PR du projet : `/maj-skills:fusionner poser`, puis `/maj-skills:sujet poser`. Dans la même PR, `CLAUDE.md` § « Fusion vers `develop` : une file, un capitaine » : remplacer « **Une seule session fusionne** : le capitaine de fusion (skill `fusionner`) » par la phrase du fragment du socle (`socle-chaine-de-production/references/fragments/claude-md-fusion.md`, l. 3). L'ADR « chaîne de production » du projet reste telle quelle : elle se révise si le projet le veut.
+3. Relancer chaque capitaine une fois cette PR entrée dans develop, **avec `CAPITAINE_ID`** : `bash scripts/chaine/boucle.sh --arreter`, nouvelle copie dans `<scratchpad>/outils`, puis `CAPITAINE_ID=<id de la session> bash <scratchpad>/outils/veille.sh > <scratchpad>/veille.log 2>&1` (skill `fusionner` § « Mise en place »). Un capitaine relancé sans la variable s'arrête aussitôt, sortie 64 : `VEILLE ARRÊTÉE`.
+
+**Iroki** : ses deux capitaines (un par personne) peuvent tourner ensemble une fois les scripts reposés. Son `boucle.sh` et son `passer.sh` ont divergé de ceux du plugin : reposer remplace ses versions par celles de 7.31.0. Son `CLAUDE.md` reçoit la phrase du fragment.
 
 ## 7.30.0 — 2026-11-19
 

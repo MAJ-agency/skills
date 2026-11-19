@@ -31,6 +31,8 @@ const ENV = {
   GIT_AUTHOR_EMAIL: "test@example.org",
   GIT_COMMITTER_NAME: "test",
   GIT_COMMITTER_EMAIL: "test@example.org",
+  // Le verrou du passage exige l'id de la session du capitaine : la veille refuse de démarrer sans lui.
+  CAPITAINE_ID: "capitaine-banc",
 };
 
 // Jouet de la veille : un dossier d'outils (veille.sh copiée, doublures de boucle.sh et file.sh), un

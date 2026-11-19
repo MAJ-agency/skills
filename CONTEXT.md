@@ -23,7 +23,7 @@ La session qui réalise un ticket, et un seul, puis s'arrête.
 _Avoid_: worker, sous-agent (un sous-agent vit dans la session qui le lance)
 
 **Capitaine de fusion**:
-La session unique d'un dépôt qui fait entrer les PR prêtes dans la branche d'intégration, une par une.
+Une session qui fait entrer les PR prêtes dans la branche d'intégration, une par une ; plusieurs peuvent tenir la même file.
 _Avoid_: merger, intégrateur
 
 ### Travail
@@ -54,3 +54,7 @@ _Avoid_: budget, quota
 **Règle d'ascendance**:
 La vérification, juste avant chaque fusion, que la PR a été testée sur l'état de la branche où elle entre ; une PR en retard est mise à jour et retestée, sans exception.
 _Avoid_: « à jour » au sens du réglage de GitHub
+
+**Verrou du passage**:
+Le commentaire marqué `<!-- capitaine:passage <id> -->` qu'un capitaine pose sur une PR au début de son passage et termine à sa sortie : un autre capitaine saute la PR tant qu'il vit (90 minutes au plus sans rafraîchissement). Il évite le travail en double, la règle d'ascendance garde la sûreté. En code : `prendre_passage`, `rafraichir_passage`, `finir_passage` (`github.sh`), signés par `CAPITAINE_ID`.
+_Avoid_: verrou de la boucle (le `flock`, local à un clone)
