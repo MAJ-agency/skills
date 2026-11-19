@@ -4,7 +4,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { chmodSync, existsSync, mkdirSync, readdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 // Posé dans un projet, depot-jouet.mjs est à côté (scripts/chaine/) ; dans le plugin, il est dans le skill sujet.
 const { depotJouet, dossierTemporaire, script } = await import(
@@ -678,10 +678,12 @@ test("un fichier renommé vers le chemin d'un index, sous diff.renames : la supp
 
 test("GIT_DIR et GIT_WORK_TREE hérités d'un autre dépôt : c'est le dépôt du dossier courant qui est jugé", () => {
   const d = depotJouet();
-  const V = pousser(d, "feat/a", { "apps/a.ts": "a\n" });
+  // Un autre clone, dont origin/develop déclare apps/a.ts index à commande ; la PR le déclare aussi (A-125 : la
+  // dispense demande la cible et T), mais pas la cible du dépôt du dossier courant.
+  const piege = { [LISTE]: JSON.stringify({ index: [ADR_CMD, { chemin: "apps/a.ts", commande: "true" }] }) };
+  const V = pousser(d, "feat/a", { "apps/a.ts": "a\n", ...piege });
   const T = pousser(d, "feat/a", { "apps/a.ts": "a2\n" });
-  // Un autre clone, dont origin/develop déclare apps/a.ts index à commande.
-  pousser(d, "piege", { [LISTE]: JSON.stringify({ index: [ADR_CMD, { chemin: "apps/a.ts", commande: "true" }] }) });
+  pousser(d, "piege", piege);
   const autre = join(dossierTemporaire("autre-"), "clone");
   assert.equal(spawnSync("git", ["clone", "-q", d.origine, autre], { env: d.env }).status, 0);
   const dans = (...args) => spawnSync("git", args, { cwd: autre, env: d.env, encoding: "utf8" });
@@ -904,4 +906,184 @@ test("le chemin voisin d'un index à commande n'est jamais pris pour lui : chaqu
     assert.equal(d.git("diff", "--name-only", V, W), voisin, "le commit ne touche que le voisin");
     estDifferent(juger(d, V, W), new RegExp(`: ${voisin.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} n'est pas un index généré de origin/develop$`));
   });
+});
+
+// ── A-125 : décidée par l'architecte après sa contre-relecture ──────────────────────────────────────────────
+// La cible avance d'un commit écrit par `geste` (dans le clone de travail, sur develop).
+function cibleAvance(d, geste) {
+  d.git("switch", "-q", "-C", "develop", "origin/develop");
+  geste();
+  d.git("add", "-A");
+  d.git("commit", "-q", "-m", "feat: la cible avance");
+  d.git("push", "-q", "origin", "HEAD:refs/heads/develop");
+  d.git("fetch", "-q", "origin");
+}
+// L'auteur fusionne lui-même la cible dans sa branche, tombe sur un conflit, et le conclut par `resoudre`.
+function conclure(d, V, resoudre) {
+  d.git("switch", "-q", "-C", "auteur", V);
+  const fusion = spawnSync("git", ["merge", "-q", "--no-edit", "origin/develop"], { cwd: d.travail, env: d.env, encoding: "utf8" });
+  assert.notEqual(fusion.status, 0, "la fusion est en conflit");
+  resoudre();
+  d.git("commit", "-q", "--no-edit");
+  const T = d.git("rev-parse", "HEAD");
+  assert.deepEqual(parents(d, T), [V, d.git("rev-parse", "origin/develop")]);
+  return T;
+}
+
+test("A-125 : une fusion dont la fusion calculée est en conflit hors index à commande n'est jamais « même »", () => {
+  const conflit = (f) => new RegExp(`conclut un conflit sur ${f.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}, qui n'est pas un index à commande`);
+  // La cible supprime le fichier que la PR modifie ; l'auteur garde l'état du conflit : le fichier revient.
+  {
+    const d = depotJouet();
+    pousser(d, "develop", { "apps/f.ts": "l1\nl2\nl3\n" });
+    const V = pousser(d, "feat/a", { "apps/f.ts": "l1\nPR\nl3\n" });
+    cibleAvance(d, () => d.git("rm", "-q", "apps/f.ts"));
+    const T = conclure(d, V, () => d.git("add", "apps/f.ts"));
+    assert.equal(d.git("show", `${T}:apps/f.ts`), "l1\nPR\nl3", "le fichier supprimé par la cible est revenu");
+    estDifferent(juger(d, V, T), conflit("apps/f.ts"));
+  }
+  // L'inverse : la PR supprime, la cible modifie.
+  {
+    const d = depotJouet();
+    pousser(d, "develop", { "apps/f.ts": "l1\nl2\nl3\n" });
+    d.git("switch", "-q", "-C", "feat/a", "origin/develop");
+    d.git("rm", "-q", "apps/f.ts");
+    d.git("commit", "-q", "-m", "feat: retire f");
+    const V = d.git("rev-parse", "HEAD");
+    cibleAvance(d, () => d.ecrire("apps/f.ts", "l1\nCIBLE\nl3\n"));
+    const T = conclure(d, V, () => d.git("add", "apps/f.ts"));
+    estDifferent(juger(d, V, T), conflit("apps/f.ts"));
+  }
+  // Un binaire modifié des deux côtés, conclu du côté de la PR.
+  {
+    const d = depotJouet();
+    pousser(d, "develop", { "apps/img.bin": "\u0000base\u0000\n" });
+    const V = pousser(d, "feat/a", { "apps/img.bin": "\u0000pr\u0000\n" });
+    cibleAvance(d, () => d.ecrire("apps/img.bin", "\u0000cible\u0000\n"));
+    const T = conclure(d, V, () => {
+      d.git("checkout", "--ours", "--", "apps/img.bin");
+      d.git("add", "apps/img.bin");
+    });
+    estDifferent(juger(d, V, T), conflit("apps/img.bin"));
+  }
+  // Les marqueurs de conflit commités tels quels : l'arbre de T est celui de la fusion calculée.
+  {
+    const d = depotJouet();
+    pousser(d, "develop", { "apps/f.ts": "l1\nl2\nl3\n" });
+    const V = pousser(d, "feat/a", { "apps/f.ts": "l1\nPR\nl3\n" });
+    cibleAvance(d, () => d.ecrire("apps/f.ts", "l1\nCIBLE\nl3\n"));
+    const D = d.git("rev-parse", "origin/develop");
+    const calcul = spawnSync("git", ["merge-tree", "--write-tree", V, D], { cwd: d.travail, env: d.env, encoding: "utf8" });
+    assert.equal(calcul.status, 1, "la fusion calculée est en conflit");
+    const T = d.git("commit-tree", calcul.stdout.split("\n")[0], "-p", V, "-p", D, "-m", "Merge");
+    assert.match(d.git("show", `${T}:apps/f.ts`), /^<<<<<<< /m, "T porte les marqueurs");
+    estDifferent(juger(d, V, T), conflit("apps/f.ts"));
+  }
+  // Un sous-module déplacé des deux côtés, conclu du côté de la PR.
+  {
+    const d = depotJouet();
+    const lien = (sha) => d.git("update-index", "--add", "--cacheinfo", `160000,${sha},vendor/lib`);
+    const [s0, s1, s2] = ["a", "b", "c"].map((c) => c.repeat(40));
+    d.git("switch", "-q", "-C", "develop", "origin/develop");
+    lien(s0);
+    d.git("commit", "-q", "-m", "feat: un sous-module");
+    d.git("push", "-q", "origin", "HEAD:refs/heads/develop");
+    d.git("fetch", "-q", "origin");
+    d.git("switch", "-q", "-C", "feat/a", "origin/develop");
+    lien(s1);
+    d.git("commit", "-q", "-m", "feat: le sous-module avance");
+    const V = d.git("rev-parse", "HEAD");
+    d.git("switch", "-q", "-C", "develop", "origin/develop");
+    lien(s2);
+    d.git("commit", "-q", "-m", "feat: la cible avance le sous-module");
+    d.git("push", "-q", "origin", "HEAD:refs/heads/develop");
+    d.git("fetch", "-q", "origin");
+    const T = conclure(d, V, () => lien(s1));
+    estDifferent(juger(d, V, T), conflit("vendor/lib"));
+  }
+  // Un conflit sur un index à commande et sur du code à la fois, le code conclu comme la fusion calculée.
+  {
+    const d = depotJouet();
+    pousser(d, "develop", { "apps/f.ts": "l1\nl2\nl3\n" });
+    const V = pousser(d, "feat/a", { "apps/f.ts": "l1\nPR\nl3\n", [`${ADR}/ADR_1.md`]: "# 1\n", [`${ADR}/README.md`]: index("ADR_1.md") });
+    cibleAvance(d, () => {
+      d.git("rm", "-q", "apps/f.ts");
+      d.ecrire(`${ADR}/ADR_2.md`, "# 2\n");
+      d.ecrire(`${ADR}/README.md`, index("ADR_2.md"));
+    });
+    const T = conclure(d, V, () => {
+      d.ecrire(`${ADR}/README.md`, index("ADR_1.md", "ADR_2.md"));
+      d.git("add", "-A");
+    });
+    estDifferent(juger(d, V, T), conflit("apps/f.ts"));
+  }
+  // Le conflit sur le seul index à commande, lui, reste une mise à jour (cas 4) : rejoué ici par l'auteur.
+  {
+    const d = depotJouet();
+    const V = conflitIndex(d);
+    const T = conclure(d, V, () => {
+      d.ecrire(`${ADR}/README.md`, index("ADR_1.md", "ADR_2.md"));
+      d.git("add", "-A");
+    });
+    estMeme(juger(d, V, T), /1 fusion/);
+  }
+});
+
+test("A-125 : un index n'est dispensé que s'il est déclaré à commande sur la cible et sur T", () => {
+  const d = depotJouet();
+  const DB = "apps/api/src/generated/db.ts";
+  declarer(d, [ADR_CMD, { chemin: DB, commande: "true" }]);
+  // Déclaré des deux côtés : un commit qui ne touche que lui garde le verdict.
+  const V0 = pousser(d, "feat/a", { "apps/a.ts": "a\n" });
+  estMeme(juger(d, V0, pousser(d, "feat/a", { [DB]: "1\n" })), /1 commit\(s\) d'index/);
+  // V retire l'entrée de la liste (ou la garde sans commande, ou sous un motif, ou retire la liste) ; le commit
+  // suivant récrit le fichier, que plus rien ne régénérera.
+  const listes = [[ADR_CMD], [ADR_CMD, DB], [ADR_CMD, { chemin: DB }], [ADR_CMD, { chemin: "apps/api/src/generated/*", commande: "true" }], []];
+  listes.forEach((liste, i) => {
+    const V = pousser(d, `feat/retire-${i}`, { [LISTE]: JSON.stringify({ index: liste }) });
+    const T = pousser(d, `feat/retire-${i}`, { [DB]: "2\n" });
+    estDifferent(juger(d, V, T), /apps\/api\/src\/generated\/db\.ts, index à commande de origin\/develop, n'est plus déclaré à commande sur T$/);
+  });
+  {
+    d.git("switch", "-q", "-C", "feat/sans-liste", "origin/develop");
+    d.git("rm", "-q", LISTE);
+    d.git("commit", "-q", "-m", "chore: retire la liste");
+    const V = d.git("rev-parse", "HEAD");
+    d.ecrire(DB, "2\n");
+    d.git("add", "-A");
+    d.git("commit", "-q", "-m", "feat: db");
+    estDifferent(juger(d, V, d.git("rev-parse", "HEAD")), /n'est plus déclaré à commande sur T$/);
+  }
+  // Une liste de T mal formée : illisible, jamais « même ».
+  const V = pousser(d, "feat/casse", { [LISTE]: "{" });
+  const T = pousser(d, "feat/casse", { [DB]: "2\n" });
+  estIllisible(juger(d, V, T), /^scripts\/docs\/index-generes\.json de T \([0-9a-f]{9}\) mal formé$/);
+});
+
+test("A-125 : un caractère de contrôle dans un chemin déclaré : liste mal formée, illisible", () => {
+  for (const chemin of ["apps/a.ts\u0000", "\u0000apps/a.ts", "apps/\u0001a.ts", "apps/a.ts\u007f", "apps/a\tb.ts", "apps/a.ts\n"]) {
+    for (const entree of [chemin, { chemin, commande: "true" }]) {
+      const d = depotJouet();
+      declarer(d, [ADR_CMD, entree]);
+      const V = pousser(d, "feat/a", { "apps/a.ts": "a\n" });
+      const T = pousser(d, "feat/a", { "apps/a.ts": "a2\n" });
+      estIllisible(juger(d, V, T), /^scripts\/docs\/index-generes\.json de origin\/develop mal formé$/);
+    }
+  }
+});
+
+test("A-125 : un objet illisible à la base de la fusion n'est pas un conflit : illisible", () => {
+  const d = depotJouet();
+  const base = d.git("rev-parse", "origin/develop");
+  const V = pousser(d, "feat/a", { "apps/a.ts": "a\n" });
+  pousser(d, "develop", { "apps/a.ts": "cible\n" });
+  const T = miseAJour(d, "feat/a", "develop", rien); // conflit sur apps/a.ts, conclu du côté de la cible
+  estDifferent(juger(d, V, T), /apps\/a\.ts/);
+  // L'arbre de la base de fusion disparaît : git merge-tree l'écrit sur sa sortie d'erreur et sort en 1, comme
+  // pour un conflit.
+  const arbre = d.git("rev-parse", `${base}^{tree}`);
+  const objet = join(d.git("rev-parse", "--path-format=absolute", "--git-path", "objects"), arbre.slice(0, 2), arbre.slice(2));
+  assert.ok(existsSync(objet), "l'arbre de la base est un objet libre du clone");
+  rmSync(objet);
+  estIllisible(juger(d, V, T), /^git merge-tree --write-tree a écrit une erreur sur [0-9a-f]{9}$/);
 });

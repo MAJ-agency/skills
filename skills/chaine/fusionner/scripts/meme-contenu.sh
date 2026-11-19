@@ -16,11 +16,13 @@
 #   - une mise à jour : une fusion à deux parents, dont le second est sur la ligne des premiers parents de
 #     origin/<B> (il a été un jour le sommet de la cible) sans être un ancêtre du premier (elle apporte quelque
 #     chose), et dont l'arbre est celui de la fusion calculée de ses deux parents (`git merge-tree --write-tree`,
-#     fusion à trois voies nue, sans aucun attribut ; arbre pris même en conflit), aux index générés près ;
+#     fusion à trois voies nue, sans aucun attribut), aux index générés près ; la fusion calculée ne peut être en
+#     conflit que sur des index générés : le capitaine ne résout aucun autre conflit, il renvoie ;
 #   - ou un commit à un parent qui ne touche que des index générés.
 # Les index générés sont ceux de `origin/<B>:scripts/docs/index-generes.json` (fichier absent : aucun). **Seul un
-# index à `commande`, de chemin littéral, est dispensé** (son contenu se régénère), absent ou fichier ordinaire,
-# jamais lien symbolique ni sous-module. Un index sans `commande`, ou déclaré par motif (`*`), se juge comme tout
+# index à `commande`, de chemin littéral, déclaré tel sur la cible et sur T, est dispensé** (son contenu se
+# régénère), absent ou fichier ordinaire, jamais lien symbolique ni sous-module. Un chemin déclaré ne porte aucun
+# caractère de contrôle (liste mal formée sinon). Un index sans `commande`, ou déclaré par motif (`*`), se juge comme tout
 # fichier, dans une fusion comme dans un commit à un parent : en écart, `différent`. Un chemin que git cite (il
 # commence par un guillemet : caractère de contrôle, guillemet ou barre oblique inverse dans le nom) n'est jamais
 # un index.
@@ -140,40 +142,52 @@ LIGNE_CIBLE=$'\n'$sortie$'\n'
 
 # La liste des index, sur la cible. Trois expressions régulières (ERE) : tous, ceux à `commande`, ceux à
 # `commande` déclarés par motif. `*` vaut `[^/]+` ; tout autre caractère est pris à la lettre.
-FORME='(.index | type == "array") and all(.index[];
-  if type == "string" then . != ""
-  elif type == "object" then (.chemin | type) == "string" and .chemin != "" and ((.commande // "") | type) == "string"
+FORME='def net: . != "" and (explode | all(. >= 32 and . != 127));
+  (.index | type == "array") and all(.index[];
+  if type == "string" then net
+  elif type == "object" then (.chemin | type) == "string" and (.chemin | net) and ((.commande // "") | type) == "string"
   else false end)'
 REGEX='def lettre: gsub("(?<c>[\\[\\]\\\\.^$+?(){}|])"; "\\\(.c)");
   def regex: map(split("*") | map(lettre) | join("[^/]+")) | "^(" + join("|") + ")$";
-  [.index[] | if type == "string" then {chemin: ., commande: ""} else {chemin, commande: (.commande // "")} end] |
-  (map(.chemin) | regex), (map(select(.commande != "") | .chemin) | regex),
-  (map(select(.commande != "" and (.chemin | contains("*"))) | .chemin) | regex)'
-sortie=$(p ls-tree --full-tree "$cible" -- scripts/docs/index-generes.json 2>/dev/null) || illisible "arbre de origin/$B illisible"
+  def liste: [.index[] | if type == "string" then {chemin: ., commande: ""} else {chemin, commande: (.commande // "")} end];
+  (liste | (map(.chemin) | regex), (map(select(.commande != "") | .chemin) | regex),
+    (map(select(.commande != "" and (.chemin | contains("*"))) | .chemin) | regex)),
+  ($t[0] | liste | map(select(.commande != "" and (.chemin | contains("*") | not)) | .chemin) | regex)'
+# La liste d'un commit, écrite dans un fichier du dépôt propre et relue dans sa forme. Absente : liste vide.
+lire_liste() { # <commit> <fichier> <qui>
+  local lu forme
+  lu=$(p ls-tree --full-tree "$1" -- scripts/docs/index-generes.json 2>/dev/null) || illisible "arbre de $3 illisible"
+  if [ -z "$lu" ]; then
+    # Absente pour de bon, ou lecture vide ? Une seconde lecture, d'une autre commande, doit dire « absente » aussi.
+    ! p cat-file -e "$1:scripts/docs/index-generes.json" 2>/dev/null || illisible "arbre de $3 illisible"
+    printf '%s\n' '{"index":[]}' >"$2" 2>/dev/null || illisible "dépôt propre impossible à écrire sous le dossier temporaire"
+  else
+    p cat-file blob "$1:scripts/docs/index-generes.json" >"$2" 2>/dev/null && [ -s "$2" ] ||
+      illisible "scripts/docs/index-generes.json de $3 illisible"
+  fi
+  forme=$(jq -r "$FORME" "$2" 2>/dev/null) && [ "$forme" = true ] || illisible "scripts/docs/index-generes.json de $3 mal formé"
+}
 LISTE=$propre/index-generes.json
-if [ -z "$sortie" ]; then
-  # Absente pour de bon, ou lecture vide ? Une seconde lecture, d'une autre commande, doit dire « absente » aussi.
-  ! p cat-file -e "$cible:scripts/docs/index-generes.json" 2>/dev/null || illisible "arbre de origin/$B illisible"
-  printf '%s\n' '{"index":[]}' >"$LISTE" 2>/dev/null || illisible "dépôt propre impossible à écrire sous le dossier temporaire"
-else
-  p cat-file blob "$cible:scripts/docs/index-generes.json" >"$LISTE" 2>/dev/null && [ -s "$LISTE" ] ||
-    illisible "scripts/docs/index-generes.json de origin/$B illisible"
-fi
-forme=$(jq -r "$FORME" "$LISTE" 2>/dev/null) && [ "$forme" = true ] || illisible "scripts/docs/index-generes.json de origin/$B mal formé"
-sortie=$(jq -r "$REGEX" "$LISTE" 2>/dev/null) || illisible "scripts/docs/index-generes.json de origin/$B : liste des index illisible"
+LISTE_T=$propre/index-generes-T.json
+lire_liste "$cible" "$LISTE" "origin/$B"
+# A-125 : un index n'est dispensé que s'il est déclaré à commande sur la cible et sur T. La liste de T ne donne
+# aucune dispense de plus : elle ne fait qu'en retirer.
+lire_liste "$T" "$LISTE_T" "T ($(court "$T"))"
+sortie=$(jq -r --slurpfile t "$LISTE_T" "$REGEX" "$LISTE" 2>/dev/null) || illisible "scripts/docs/index-generes.json de origin/$B : liste des index illisible"
 decouper "$sortie"
-[ "${#LIGNES[@]}" = 3 ] || illisible "scripts/docs/index-generes.json de origin/$B : liste des index illisible"
+[ "${#LIGNES[@]}" = 4 ] || illisible "scripts/docs/index-generes.json de origin/$B : liste des index illisible"
 for r in "${LIGNES[@]}"; do
   [[ "$r" == '^('*')$' ]] || illisible "scripts/docs/index-generes.json de origin/$B : liste des index illisible"
 done
-GENERES=${LIGNES[0]} REGENERES=${LIGNES[1]} MOTIFS=${LIGNES[2]}
+GENERES=${LIGNES[0]} REGENERES=${LIGNES[1]} MOTIFS=${LIGNES[2]} REGENERES_T=${LIGNES[3]}
 
-# Classe d'un chemin, dans l'ordre de `livraison_intermediaire` : hors, motif, sans-commande, régénéré. Seule la
-# dernière est dispensée.
+# Classe d'un chemin, dans l'ordre de `livraison_intermediaire` : hors, motif, sans-commande, puis retiré (à
+# commande sur la cible, plus sur T), régénéré. Seule la dernière est dispensée.
 classe() {
   if [[ "$1" == '"'* ]] || ! [[ "$1" =~ $GENERES ]]; then echo hors
   elif [[ "$1" =~ $MOTIFS ]]; then echo motif
   elif ! [[ "$1" =~ $REGENERES ]]; then echo sans-commande
+  elif ! [[ "$1" =~ $REGENERES_T ]]; then echo retiré
   else echo régénéré; fi
 }
 ordinaire() { [ "$1" = 100644 ] || [ "$1" = 100755 ]; }
@@ -189,6 +203,7 @@ ecart_de() {
 }
 PARENTS='^([0-9a-f]{40}) ([0-9a-f]{40})( ([0-9a-f]{40}))?( .+)?$'
 
+ERREURS=$propre/erreurs
 acceptes=0
 fusions=0
 index=0
@@ -198,6 +213,7 @@ for c in "${chemin[@]}"; do
   p1=${BASH_REMATCH[2]} p2=${BASH_REMATCH[4]} reste=${BASH_REMATCH[5]}
   [ -z "$reste" ] || different "$(court "$c") est une fusion à plus de deux parents"
   arbre_c=$(p rev-parse -q --verify "$c^{tree}" 2>/dev/null) && [[ "$arbre_c" =~ $SHA ]] || illisible "arbre de $(court "$c") illisible"
+  conflits=()
   if [ -n "$p2" ]; then
     # S2 : le second parent a été un jour le sommet de la cible, et la fusion apporte quelque chose.
     [[ "$LIGNE_CIBLE" == *$'\n'"$p2"$'\n'* ]] ||
@@ -209,14 +225,17 @@ for c in "${chemin[@]}"; do
       *) illisible "git merge-base --is-ancestor en échec ($rc) sur $(court "$c")" ;;
     esac
     # S4 : la fusion à trois voies nue, sans aucun attribut.
-    sortie=$(p --attr-source="$VIDE" merge-tree --write-tree --name-only --no-messages "$p1" "$p2" 2>/dev/null) && rc=0 || rc=$?
+    sortie=$(p --attr-source="$VIDE" merge-tree --write-tree --name-only --no-messages "$p1" "$p2" 2>"$ERREURS") && rc=0 || rc=$?
     [ "$rc" -le 1 ] || illisible "git merge-tree --write-tree en échec ($rc) sur $(court "$c")"
+    # Un vrai conflit n'écrit rien sur la sortie d'erreur : un objet illisible, si, et sort en 1 lui aussi.
+    [ -e "$ERREURS" ] && [ ! -s "$ERREURS" ] || illisible "git merge-tree --write-tree a écrit une erreur sur $(court "$c")"
     decouper "$sortie"
     depart=${LIGNES[0]:-}
     [[ "$depart" =~ $SHA ]] || illisible "arbre de la fusion calculée de $(court "$c") illisible"
-    # Sortie 1 : un conflit, donc au moins un fichier en conflit ; sortie 0 : aucun. Rien d'autre n'en est tiré.
+    # Sortie 1 : un conflit, donc au moins un fichier en conflit ; sortie 0 : aucun.
     if [ "$rc" = 1 ]; then [ "${#LIGNES[@]}" -ge 2 ]; else [ "${#LIGNES[@]}" = 1 ]; fi ||
       illisible "fichiers en conflit de la fusion calculée de $(court "$c") illisibles"
+    conflits=("${LIGNES[@]:1}")
     sorte="la fusion $(court "$c") s'écarte de la fusion calculée de ses parents"
   else
     depart=$(p rev-parse -q --verify "$p1^{tree}" 2>/dev/null) && [[ "$depart" =~ $SHA ]] || illisible "arbre de $(court "$p1") illisible"
@@ -236,12 +255,19 @@ for c in "${chemin[@]}"; do
       motif | sans-commande)
         different "$sorte : $f, index sans commande ou déclaré par motif, se juge comme tout fichier"
         ;;
+      retiré) different "$sorte : $f, index à commande de origin/$B, n'est plus déclaré à commande sur T" ;;
       *) illisible "classe de $f illisible" ;;
     esac
     juges=$((juges + 1))
   done
   # S3 : chaque ligne de l'écart a été jugée, le commit est accepté, et compté.
   [ "$juges" = "${#LIGNES[@]}" ] || illisible "écart de $(court "$c") jugé à moitié"
+  # A-125 : le capitaine ne résout jamais un conflit de code, il renvoie. Une fusion dont la fusion calculée est en
+  # conflit ailleurs que sur un index à commande n'est pas la sienne, quel que soit l'arbre qu'elle porte.
+  for f in ${conflits[@]+"${conflits[@]}"}; do
+    [ "$(classe "$f")" = régénéré ] ||
+      different "la fusion $(court "$c") conclut un conflit sur $f, qui n'est pas un index à commande : ce n'est pas une mise à jour du capitaine"
+  done
   if [ -n "$p2" ]; then fusions=$((fusions + 1)); else index=$((index + 1)); fi
   acceptes=$((acceptes + 1))
 done
