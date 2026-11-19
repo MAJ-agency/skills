@@ -1133,7 +1133,7 @@ test("lecteur de NOTES-DE-VERSION.md : entrées piégées", () => {
   assert.deepEqual(premiereNote("## 7.16.0\n####  Ce qui change\n###Ce qui change\n").sections, [], "ni `####` ni `###titre` ne sont une section");
 });
 
-test("la règle d'ascendance du plugin 7.16.0 : version, note de version en tête, renvoi du README, une sous-PR étiquetée à la fois", () => {
+test("la règle d'ascendance du plugin 7.16.0 : version, note de version en tête, renvoi du README", () => {
   const { version } = JSON.parse(readFileSync(join(RACINE, ".claude-plugin/plugin.json"), "utf8"));
   assert.ok(auMoins(version, "7.16.0"), `.claude-plugin/plugin.json : version ${version} ; la règle d'ascendance est celle du plugin 7.16.0 et des suivants`);
   const note = premiereNote(readFileSync(join(RACINE, "NOTES-DE-VERSION.md"), "utf8"));
@@ -1142,7 +1142,41 @@ test("la règle d'ascendance du plugin 7.16.0 : version, note de version en têt
   for (const section of ["### Ce qui change", "### Ce qu'un projet fait pour en profiter"])
     assert.ok(note.sections.includes(section), `NOTES-DE-VERSION.md : la note ${version} porte « ${section} »`);
   assert.ok(readFileSync(join(RACINE, "README.md"), "utf8").includes("NOTES-DE-VERSION.md"), "README.md renvoie à NOTES-DE-VERSION.md");
-  exiger(`${SKILLS_CHAINE}/fusionner/SKILL.md`, ["une seule sous-PR porte `à-fusionner` à la fois"]);
+});
+
+// Ticket 57 de gouverner-nos-boucles (A-104, A-142) : « une sous-PR à la fois par sujet » est tenue par le capitaine,
+// et qui tient le sujet le garde ; le conducteur ne retire ni ne repose plus `à-fusionner`. L'ancienne discipline ne
+// revient pas. Aucun numéro de version ici : la version est la suivante de `main` au moment de livrer, et le test des
+// notes de version tient déjà ensemble `plugin.json` et la note en tête.
+test("une sous-PR à la fois par sujet : le capitaine tient l'ordre, qui tient le sujet le garde, le conducteur ne retire plus l'étiquette", () => {
+  const ADR_SUJET = `${SKILLS_CHAINE}/socle-chaine-de-production/references/adr/ADR_ALL_ARC-N-branches-de-sujet.md`;
+  exiger(`${SKILLS_CHAINE}/fusionner/SKILL.md`, [
+    "**Une sous-PR à la fois par sujet.** À chaque tour, la boucle ne prend qu'une sous-PR étiquetée par sujet, parmi celles qui sont en route",
+    "Qui tient le sujet le garde, avant tout ordre de numéro : une sous-PR en passage chez un autre capitaine (sa marque de passage, lue sur chaque sous-PR en route du sujet), sinon celle que la boucle tenait au tour précédent, sinon une sous-PR « CI en cours » ; personne ne le tient, la plus ancienne (le plus petit numéro) le prend.",
+    "`[#<n>] attend son tour : #<m> passe d'abord dans sujet/<nom>` : ni mise à jour, ni CI, ni renvoi, et elles gardent `à-fusionner` ; personne ne retire ni ne repose une étiquette pour tenir cet ordre.",
+    "la boucle le dit à chaque tour, `[sujet/<nom>] tenu par #<n> (<raison>)`",
+    "passage interrompu par un signal (128 et plus), passage chez un autre capitaine (7) : un capitaine ne prend aucune autre sous-PR d'un sujet dont il voit une sous-PR en passage chez un autre.",
+    "après une mise à jour dont la CI n'apparaît pas, elle est « sans CI et déjà à jour », et le sujet est rendu.",
+    "Une sous-PR qui attend son tour dans son sujet la relance une fois à la sonde suivante, puis chaque fois que celle qui tient le sujet change d'état ou quitte la file ; un sujet tenu par le verrou d'un autre capitaine la relance une fois quand ce verrou a expiré (sa date a plus de 95 minutes).",
+    "« CI en cours », « attend », « bloquée » et brouillon ne relancent rien d'eux-mêmes.",
+  ]);
+  exiger(`${SKILLS_CHAINE}/chantier/SKILL.md`, [
+    "**Une sous-PR à la fois par sujet : le capitaine tient cet ordre, pas le conducteur.**",
+    "celle qui tient déjà le sujet (sa mise à jour attend sa CI, ou un capitaine est dessus), sinon la plus ancienne (le plus petit numéro, pas la première étiquetée)",
+    "Le conducteur étiquette toutes les sous-PR prêtes d'une vague sans attendre que la précédente soit entrée, et il ne retire ni ne repose jamais `à-fusionner` pour régler l'ordre de passage.",
+  ]);
+  exiger(ADR_SUJET, ["dans un sujet, le capitaine ne prend qu'une sous-PR étiquetée à la fois, celle qui tient déjà le sujet, sinon la plus ancienne (le plus petit numéro), et les autres attendent leur tour avec leur étiquette."]);
+  exiger("NOTES-DE-VERSION.md", ["« Une sous-PR à la fois par sujet » est tenue par le capitaine, plus par le conducteur.", "Qui tient le sujet le garde, avant tout ordre de numéro"]);
+  for (const [fichier, ancien] of [
+    [`${SKILLS_CHAINE}/fusionner/SKILL.md`, "une seule sous-PR porte `à-fusionner` à la fois"],
+    [`${SKILLS_CHAINE}/fusionner/SKILL.md`, "le conducteur y veille"],
+    [`${SKILLS_CHAINE}/fusionner/SKILL.md`, "brouillon ne relancent rien."],
+    [`${SKILLS_CHAINE}/chantier/SKILL.md`, "ne le laisse qu'à la plus ancienne"],
+    [`${SKILLS_CHAINE}/chantier/SKILL.md`, "retiré par le conducteur"],
+    [`${SKILLS_CHAINE}/chantier/SKILL.md`, "puis le repose sur la suivante"],
+    [ADR_SUJET, "une seule sous-PR porte `à-fusionner` à la fois"],
+  ])
+    assert.ok(!plat(readFileSync(join(RACINE, fichier), "utf8")).includes(ancien), `${fichier} : l'ancienne discipline y est encore (« ${ancien} »)`);
 });
 
 test("sujet/SKILL.md a la section Recevoir develop dans un sujet, avec son corps type", () => {

@@ -2,6 +2,25 @@
 
 La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque projet par `poser` : une version publiée ne change rien chez un projet qui ne les repose pas. Chaque note dit ce qui change, puis ce qu'un projet fait pour en profiter.
 
+## 7.35.0 — 2026-11-19
+
+### Ce qui change
+
+« Une sous-PR à la fois par sujet » est tenue par le capitaine, plus par le conducteur. À chaque tour de sa boucle, le capitaine ne prend qu'une sous-PR étiquetée par sujet ; les autres attendent leur tour avec leur étiquette (`[#<n>] attend son tour : #<m> passe d'abord dans sujet/<nom>` dans le journal), sans mise à jour, ni CI, ni renvoi. Qui tient le sujet le garde, avant tout ordre de numéro : une sous-PR en passage chez un autre capitaine, sinon celle que la boucle tenait au tour précédent, sinon une sous-PR dont la CI tourne ; personne ne le tient, la plus ancienne (le plus petit numéro) le prend. La suivante est prise dans le tour où celle qui tient entre ou sort de la file ; tant que le sujet reste tenu, la boucle le dit à chaque tour (`[sujet/<nom>] tenu par #<n> (<raison>)`). La veille relance la boucle quand la sous-PR qui tient un sujet change d'état ou quitte la file, et une fois quand le verrou d'un autre capitaine qui tenait un sujet a expiré. Le conducteur étiquette toutes les sous-PR prêtes d'une vague : il ne retire ni ne repose plus `à-fusionner` (skill `chantier` § 6), ce qui coûtait jusqu'à 45 minutes d'attente par sous-PR. Une PR de mise à jour d'un sujet s'ouvre, comme avant, sans sous-PR étiquetée devant elle : derrière une sous-PR plus ancienne en route, elle attend son tour, puis elle est à refaire.
+
+Le bilan de fin de chantier est supprimé (décision du produit du 2026-11-18), sans rien à la place : le gate `tickets` n'exige plus de section `## Rétro` pour passer une carte à `fini`, et le skill `chantier`, la méthode, `pieges.md` et le gabarit de carte ne la demandent plus. Un incident (un renvoi, une vague ratée) donne un ticket au moment où il arrive, ou, faute de gate, une ligne de `docs/agents/pieges.md`. Une carte qui garde sa section `## Rétro` passe aussi.
+
+Le gate `tickets` juge la forme de deux lignes d'en-tête qu'il ne lisait pas, sans les exiger : `Sensibles:` (`—`, ou des chemins puis ` — accord de <nom>, 2026-11-19`) et `Relecture: double`. Il les lit dans l'en-tête seul, sous les formes `X:`, `**X:**`, `- X:` et `* X:`, sans égard à la casse de la clé ; mal formée, une ligne est refusée, le fichier et la ligne nommés. Aucune garde ne les lit encore. Il accepte `Règles: —`, seul, pour un ticket qui ne réalise aucune règle. Le rôle `relecture` d'une ligne de `## Coût` passe sans être jugé au plafond et compte au registre dans le total, pas dans la part des filles. `Label: contre-revue` reste exigé comme avant.
+
+### Ce qu'un projet fait pour en profiter
+
+1. Mettre à jour le plugin : `claude plugin marketplace update maj`, puis `claude plugin update maj-skills@maj`, puis redémarrer Claude Code (session cloud : `lancement.md` § « La mise à niveau »).
+2. Reposer les scripts du capitaine, dans une PR du projet : `/maj-skills:fusionner poser`.
+3. Relancer chaque capitaine une fois cette PR entrée dans develop : `bash scripts/chaine/boucle.sh --arreter`, nouvelle copie dans `<scratchpad>/outils`, puis `CAPITAINE_ID=<id de la session> bash <scratchpad>/outils/veille.sh > <scratchpad>/veille.log 2>&1` (skill `fusionner` § « Mise en place »). La boucle se remplace d'elle-même par la version de develop ; la veille tourne sur sa copie, c'est elle qu'il faut recopier.
+4. D'ici là, le conducteur garde l'ancienne discipline, une seule sous-PR étiquetée à la fois par sujet : un capitaine dont les scripts ne sont pas reposés prend encore toutes les sous-PR étiquetées d'un sujet dans le même tour. Avec plusieurs capitaines, il ne l'abandonne qu'une fois tous relancés.
+5. Reposer le gate et les gabarits, dans une PR du projet : `/maj-skills:tickets poser` (`scripts/verify/tickets-regles.mjs`, `tickets.mjs` et leurs tests, `scripts/docs/couts.test.mjs`, les gabarits de ticket et de carte). Une ligne `Sensibles:` ou `Relecture:` mal formée dans l'en-tête d'un ticket rougit alors le gate : la corriger, ou la retirer.
+6. Dans la même PR, reporter dans `docs/agents/chaine-de-production.md` (posé par `socle-chaine-de-production`, que le projet a pu amender) le § 2 sans rétro (le schéma du cycle, la parenthèse du point 2 et le point 7), et dans `docs/agents/pieges.md` sa phrase d'en-tête : un incident donne un ticket au moment où il arrive. Une carte déjà `fini` garde sa section `## Rétro`, sans effet.
+
 ## 7.34.0 — 2026-11-19
 
 ### Ce qui change
