@@ -4,18 +4,18 @@ Carte de l'architecte B du programme « gouverner nos boucles », ouverte le 202
 
 ## Fiche
 
-Phase: suivi — relève 2 du conducteur lancée le 2026-11-19 à 14 h 42 UTC ; en cours : #324 (tickets `.55`, `.56`, `.57`), `.54` (#325), puis `.57` avant `.19`
+Phase: suivi — sessions relancées en Opus le 2026-11-19 à 19 h 53 UTC ; en cours : #325 (`.54`, commit de documentation avant le label), ticket de suite `A-206`, puis `.57` avant `.19`
 Architecte: `session_01BxuG2zBnGe6UCP6cqG1F1E` (depuis le 2026-11-19, 08 h 52 UTC)
 Objectif: mener le chantier `SPEC_ALL_ANC-5` (la preuve suffisante) jusqu'à sa livraison dans `develop`, puis la publication de la CLI 2.0.0.
 Dépôts: `MAJ-agency/anchorpost` ; `MAJ-agency/skills` pour cette carte seule.
 Source: la passation ci-dessus ; la carte du chantier, `docs/features/anchorpost/all/SPEC_ALL_ANC-5-preuve-suffisante.map.md`, branche `sujet/preuve-suffisante-cas` d'Anchorpost.
-Capitaines: Anchorpost — `session_01BxuG32bZp5xNjwqVZ9U8Fo` (depuis le 2026-11-19, 09 h 44 UTC). `skills` — `session_01BxuG2zz5bdN5uN8N7j4ztk`, archivé le 2026-11-19 après la fusion de la PR 133.
+Capitaines: Anchorpost — `session_01BxuG34gQKsuhqcM71Hgxxi` (Opus, depuis le 2026-11-19, 19 h 52 UTC ; avant lui `session_01BxuG32bZp5xNjwqVZ9U8Fo`, Fable, de 09 h 44 à 16 h 28, archivé). `skills` — `session_01BxuG2zz5bdN5uN8N7j4ztk`, archivé le 2026-11-19 après la fusion de la PR 133.
 
 ## Chantiers
 
 | Chantier | Dépôt | Spec | Conducteur | État |
 | --- | --- | --- | --- | --- |
-| La preuve suffisante | `MAJ-agency/anchorpost` | `SPEC_ALL_ANC-5` | `session_01BxuG2zP4RpAu97AuHPdSR8` (depuis le 2026-11-19, 14 h 42 UTC ; avant lui `session_01BxuG2zwaHUkcBNJS6VVwiz`, de 09 h 44 à 14 h 45, archivé) | 38 tickets faits ; sujet à jour avec `develop` ; `.54` en brouillon ; trois tickets de suite (`.55`, `.56`, `.57`) à entrer |
+| La preuve suffisante | `MAJ-agency/anchorpost` | `SPEC_ALL_ANC-5` | `session_01BxuG34SC3thVES3Npz8w7L` (Opus, depuis le 2026-11-19, 19 h 53 UTC ; avant lui `session_01BxuG2zP4RpAu97AuHPdSR8`, Fable, 14 h 42 à 15 h 34, et `session_01BxuG2zwaHUkcBNJS6VVwiz`, 09 h 44 à 14 h 45, archivés) | 38 tickets faits ; `.55`, `.56`, `.57` entrés comme tickets (#324) ; `.54` (#325) à étiqueter après un commit de documentation |
 
 ## Décisions
 
@@ -26,6 +26,7 @@ Capitaines: Anchorpost — `session_01BxuG32bZp5xNjwqVZ9U8Fo` (depuis le 2026-11
 - `A-204` — 2026-11-19. Le trou général a son ticket, `Label: contre-revue`, à faire avant `.19`, donc avant la livraison intermédiaire et la CLI 2.0.0 : `compare` lit d'un en-tête de règle refusé sur la base les seuls champs qu'il juge (identifiant, statut de validation, criticité, son auteur, sa date), sur le modèle du manifeste refusé « lu clé à clé » ; si même eux ne se lisent pas, écart `base-unreadable` qui nomme le fichier, jamais accepté. `anchorpost index` et `check` ne changent pas. Raison : le juge ne se trompe que du côté sûr (`A-66`), et une PR qui répare l'en-tête doit pouvoir passer, ce qu'un écart systématique empêcherait à chaque durcissement du schéma. Fait lu à la source : `apps/cli/src/read/rules/rules.ts:53-58` et `apps/cli/src/build/build-index.ts:43-48` sur le sujet.
 - `A-205` — 2026-11-19. Ticket `.57` (`A-204`), ses deux points ouverts : la lecture tolérante d'un en-tête de règle refusé vaut à la base comme à la tête, pour les seuls champs jugés ; une tête qui garde le même en-tête refusé n'est pas un `rule-removed`, et `check` reste celui qui signale l'en-tête refusé. Si même ces champs ne se lisent pas : `rule-removed` à la tête ; à la base, `base-unreadable` qui nomme le fichier, sortie 1 en enforce. Raison : sans cela chaque PR d'un dépôt à en-tête refusé sortirait un écart qui n'est pas le sien, et le juge resterait pourtant du côté sûr sur la criticité lue.
 - `A-206` — 2026-11-19. #325 (`.54`) s'étiquette après un commit de documentation au-dessus de `034be36` (ligne `Règles:` et `Fichiers chauds:` du ticket, question ouverte marquée tranchée par `A-204` et `A-205`). Trois restes vont à un ticket de suite, `Label: contre-revue`, avant `.22` : les caractères de format (bidi, largeur nulle) ni rendus visibles par le rapport ni refusés par `check` ; un message d'avertissement qui commencerait par trois accents graves ; le chemin de `code` vide. Limites acceptées : un `[` ou un `<` légitime entre accents graves affiché en entité (à écrire au README), une adresse nue ou une mention restée active (déjà au README). Raison : aucun n'ouvre une section du rapport ni ne change un jugement, et le rapport de `.19` est en `observe`.
+- `A-207` — 2026-11-19. Sur le mot du produit (« tu peux reprendre en Opus Extra ? j'ai plus de quota Fable »), toutes les sessions de ce chantier repartent en `claude-opus-5-5` : capitaine et conducteur neufs, les sessions Fable arrêtées archivées, et les filles du conducteur lancées en Opus à la place du modèle de la ligne `Modèle:`. Le niveau d'effort des sessions lancées n'est pas fixé : il reste celui par défaut. Raison : la limite d'usage de Fable a arrêté toutes les sessions vers 16 h 30 UTC et ne se lève que le 22 novembre ; une session ne change pas de modèle en cours de route.
 
 ## Fog
 
@@ -35,10 +36,12 @@ Capitaines: Anchorpost — `session_01BxuG32bZp5xNjwqVZ9U8Fo` (depuis le 2026-11
 
 | Session | Rôle | Relevé |
 | --- | --- | --- |
-| `session_01BxuG2zBnGe6UCP6cqG1F1E` | architecte B | 22,77 $, 344 674 tokens à 14 h 37 UTC le 2026-11-19 |
+| `session_01BxuG2zBnGe6UCP6cqG1F1E` | architecte B | 32,93 $, 424 484 tokens à 19 h 51 UTC le 2026-11-19 (Fable jusqu'à l'arrêt, Opus ensuite) |
 | `session_01BxuG32z1RUgo3HduKXzDCG` | ticket, `skills` PR 133 | 2,39 $, 132 163 tokens, archivée |
 | `session_01BxuG2zz5bdN5uN8N7j4ztk` | capitaine de `skills` | 3,71 $, 151 810 tokens, archivé |
-| `session_01BxuG32bZp5xNjwqVZ9U8Fo` | capitaine d'Anchorpost | 3,23 $, 144 277 tokens à 14 h 37 UTC |
+| `session_01BxuG32bZp5xNjwqVZ9U8Fo` | capitaine d'Anchorpost (Fable) | 6,35 $, 176 401 tokens, archivé |
+| `session_01BxuG2zP4RpAu97AuHPdSR8` | conducteur, relève 2 (Fable) | 8,07 $, 186 076 tokens, archivé ; ses filles comptées dans la carte du chantier |
+| `session_01BxuG34gQKsuhqcM71Hgxxi` | capitaine d'Anchorpost (Opus) | lancé à 19 h 52 UTC |
 | sous-agent | contre-relecture de la PR 133 | 321 089 tokens |
 
 ## Passation
@@ -70,3 +73,4 @@ Rien encore.
 - 2026-11-19, 14 h 59 UTC — le conducteur de relève suit le plugin 7.31.2 (chargé 7.31.0), fiche écrite (sommet `6158619` du sujet). #324 : rouge `qualite` expliqué par un sous-agent (index généré périmé sur le commit de fusion avec le sujet, que le capitaine régénère) ; fille `session_01BxuG32AwDm6Vjya3AW76uH` pour les trois retouches. `.54` : fille neuve `session_01BxuG346dpSFbXRhrEWyxyT` sur la branche de #325 ; l'ancienne (`session_01BxuG31Y99mmxJ32YVoQWMb`, 16,88 $) reste à archiver à la fusion.
 - 2026-11-19, 15 h 20 UTC — #324 (tickets `.55`, `.56`, `.57`) étiquetée par le conducteur au sommet `9c479e7` ; deux choix du rédacteur de `.57` étendus à la tête acceptés (un `level` refusé à la tête vaut `rule-removed` ; `compare` n'avertit pas pour la tête). #325 (`.54`, sommet `034be36cf284c1975b6157b4748063b8a75d8341`, 9 fichiers, +687 −50) : contre-revue du conducteur sans bloquant, aucun test existant modifié, 589 preuves avant et après. Diff de `compare/report.ts` et de `check/targets.ts` lu par l'architecte contre `5d9d162` : `renderJson` et le jugement intacts, toute valeur du dépôt passe par `inert`. Accord donné (`A-206`).
 - 2026-11-19, 15 h 25 UTC — l'architecte du programme « capitaine à jour et testé » (`session_01BxuG31Smx1AQZtYS6Xurp3`) demande qui a posé l'ordre de fusion de la PR 133 et sur quelle base : une contre-relecture de la 133 était alors non conforme, et la PR 135 (plugin 7.31.2) a réparé depuis. Répondu : l'ordre vient de l'architecte B, sur la contre-relecture de son propre sous-agent (aucun bloquant, trois écarts laissés à un ticket) ; l'autre contre-relecture n'était ni sur la PR ni dans la passation. Leçon : avant un ordre de fusion sur un dépôt qui n'est pas le mien, demander au produit si une relecture est en cours ailleurs.
+- 2026-11-19, 19 h 55 UTC — COUPURE par la limite d'usage de Fable (`seven_day_overage_included`, `rejected`, levée le 22 novembre à 19 h UTC) : le conducteur arrêté à 15 h 34, le capitaine à 16 h 28, la fille de `.54` à 16 h 42 ; cette session aussi, jusqu'au mot du produit de 19 h 50 et à son passage en Opus. Rien de perdu sur le dépôt : #324 (tickets `.55`, `.56`, `.57`) entrée à 15 h 37 (`9d82911`), après une mise à jour de sa branche par le capitaine ; #325 (`.54`) au sommet `034be36`, sans label, le commit de documentation d'`A-206` non fait (lu dans le journal de sa fille). Le conducteur n'a pas écrit d'entrée de relève. Relancés en Opus (`A-207`) : capitaine `session_01BxuG34gQKsuhqcM71Hgxxi`, conducteur `session_01BxuG34SC3thVES3Npz8w7L`, avec l'état lu sur GitHub et l'ordre : commit de documentation de #325 puis label, ticket de suite `A-206`, `.57`. Archivées : capitaine et conducteur Fable, fille de #324 (2,11 $), filles de `.54` (21,79 $ et 13,13 $ au final ; comptées dans la carte du chantier). L'architecte de « onglet-projet » a le nouvel identifiant du capitaine.
