@@ -2351,3 +2351,79 @@ test("passer.sh : le passage de A finit entre l'éligibilité et la prise du ver
     assert.ok(!ecritures(d).includes("PUT pulls/40/merge"));
   }
 });
+
+// ── Fusion sans effet (ticket 3 de capitaine-a-jour-et-teste, A-8) : un `commit-msg` de banc, comme celui de `fedora`,
+// refuse un commit qui touche le schéma Prisma sans migration ni `[sans-migration:` dans son message. Les commits de
+// fixture se font avant la pose des hooks. ─────────────────────────────────────────────────────────────────────────
+const SCHEMA = "prisma/schema.prisma";
+const MENTION = "[sans-migration: commentaire seul, apporté par une mise à jour du capitaine]";
+const CONTRAT = { fusionsSansEffet: [{ fichier: SCHEMA, lignesSansEffet: "^[[:space:]]*(//.*)?$", mention: MENTION }] };
+const BASE_SCHEMA = "model A {\n  id Int\n}\n";
+const MIGRATION_PRISMA = /commit-msg prisma jouet : migration ou \[sans-migration: <raison>\] exigée/;
+function hookPrisma(d) {
+  const hook = join(d.racine, "hooks", "commit-msg");
+  const corps = readFileSync(hook, "utf8").replace(
+    "#!/bin/sh\n",
+    `#!/bin/sh
+f=$(git diff --cached --name-only)
+if printf '%s\\n' "$f" | grep -qx '${SCHEMA}' && ! printf '%s\\n' "$f" | grep -q '^prisma/migrations/' && ! grep -qF '[sans-migration:' "$1"; then
+  echo "commit-msg prisma jouet : migration ou [sans-migration: <raison>] exigée" >&2; exit 1
+fi
+`,
+  );
+  writeFileSync(hook, corps);
+}
+// develop porte le schéma (et le contrat, sauf `contrat: null`) ; #32 en part, puis develop reçoit `develop`.
+function schemaJouet(develop, contrat = CONTRAT) {
+  const d = depotJouet();
+  d.ecrire(SCHEMA, BASE_SCHEMA);
+  if (contrat !== null) d.ecrire(".claude/chaine.json", JSON.stringify(contrat));
+  d.commit("chore: schéma et contrat");
+  d.git("push", "-q", "origin", "HEAD:develop");
+  d.git("fetch", "-q", "origin");
+  d.branche("feat/s", "origin/develop", { "s.md": "s\n" });
+  d.branche("develop", "origin/develop", develop, "docs(db): commentaire du schéma [sans-migration: commentaire]");
+  d.git("switch", "-q", "--detach", "origin/develop");
+  d.github({
+    exiges: ["qualite"],
+    checks: { "*": { [PERIMETRE]: "SUCCESS", qualite: "SUCCESS" } },
+    pulls: [pr(32, "feat/s")],
+  });
+  hooks(d);
+  hookPrisma(d);
+  return d;
+}
+const fusionDeLaPr = (d) => {
+  d.git("fetch", "-q", "origin");
+  return d.git("log", "-1", "--format=%B", "origin/feat/s");
+};
+
+test("passer.sh : develop n'apporte qu'un commentaire au schéma, la fusion porte la mention du contrat et passe le commit-msg", () => {
+  const d = schemaJouet({ [SCHEMA]: `// note\n${BASE_SCHEMA}` });
+  const r = d.lancer(script("passer.sh"), "32");
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout + r.stderr, /FUSIONNÉE/);
+  assert.equal(fusionDeLaPr(d), `Merge remote-tracking branch 'origin/develop' into capitaine/32\n\n${MENTION}`);
+});
+
+test("passer.sh : sans fusionsSansEffet, la même fusion est refusée par le hook comme avant", () => {
+  const d = schemaJouet({ [SCHEMA]: `// note\n${BASE_SCHEMA}` }, null);
+  const avant = distant(d);
+  const r = d.lancer(script("passer.sh"), "32");
+  assert.equal(r.status, 3, r.stdout + r.stderr);
+  assert.match(r.stderr, MIGRATION_PRISMA);
+  sansFusion(d);
+  assert.equal(d.git("status", "--porcelain"), "");
+  assert.equal(distant(d), avant);
+});
+
+test("passer.sh : un changement réel du schéma, venu avec sa migration, entre sans mention, et le capitaine le dit", () => {
+  const d = schemaJouet({
+    [SCHEMA]: `${BASE_SCHEMA}model B {\n  id Int\n}\n`,
+    "prisma/migrations/1_b/migration.sql": "CREATE TABLE b ();\n",
+  });
+  const r = d.lancer(script("passer.sh"), "32");
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stderr, /fusion sans mention : prisma\/schema\.prisma porte un changement réel/);
+  assert.doesNotMatch(fusionDeLaPr(d), /sans-migration/);
+});

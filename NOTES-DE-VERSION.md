@@ -2,7 +2,7 @@
 
 La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque projet par `poser` : une version publiée ne change rien chez un projet qui ne les repose pas. Chaque note dit ce qui change, puis ce qu'un projet fait pour en profiter.
 
-## 7.29.0 — 2026-11-19
+## 7.31.0 — 2026-11-19
 
 ### Ce qui change
 
@@ -14,7 +14,62 @@ Plusieurs capitaines peuvent tenir la même file : la règle « un seul capitain
 2. Reposer les scripts, dans une PR du projet : `/maj-skills:fusionner poser`, puis `/maj-skills:sujet poser`. Dans la même PR, `CLAUDE.md` § « Fusion vers `develop` : une file, un capitaine » : remplacer « **Une seule session fusionne** : le capitaine de fusion (skill `fusionner`) » par la phrase du fragment du socle (`socle-chaine-de-production/references/fragments/claude-md-fusion.md`, l. 3). L'ADR « chaîne de production » du projet reste telle quelle : elle se révise si le projet le veut.
 3. Relancer chaque capitaine une fois cette PR entrée dans develop, **avec `CAPITAINE_ID`** : `bash scripts/chaine/boucle.sh --arreter`, nouvelle copie dans `<scratchpad>/outils`, puis `CAPITAINE_ID=<id de la session> bash <scratchpad>/outils/veille.sh > <scratchpad>/veille.log 2>&1` (skill `fusionner` § « Mise en place »). Un capitaine relancé sans la variable s'arrête aussitôt, sortie 64 : `VEILLE ARRÊTÉE`.
 
-**Iroki** : ses deux capitaines (un par personne) peuvent tourner ensemble une fois les scripts reposés. Son `boucle.sh` et son `passer.sh` ont divergé de ceux du plugin : reposer remplace ses versions par celles de 7.29.0. Son `CLAUDE.md` reçoit la phrase du fragment.
+**Iroki** : ses deux capitaines (un par personne) peuvent tourner ensemble une fois les scripts reposés. Son `boucle.sh` et son `passer.sh` ont divergé de ceux du plugin : reposer remplace ses versions par celles de 7.31.0. Son `CLAUDE.md` reçoit la phrase du fragment.
+
+## 7.30.0 — 2026-11-19
+
+### Ce qui change
+
+`fusionner` porte un script neuf et son banc, `scripts/meme-contenu.sh` et `scripts/meme-contenu.test.mjs`. Le calcul dit si deux sommets d'une PR, celui d'un verdict de relecture et celui qu'on juge, ne sont séparés que par des fusions de la cible et des commits d'index générés : `bash scripts/chaine/meme-contenu.sh <V> <T> <B>`, sorties 0 « même », 20 « différent », 21 « illisible » (69 quand un outil manque). Seul un index à `commande`, de chemin littéral, déclaré tel sur la cible et au sommet jugé, est dispensé ; un index sans commande, déclaré par motif, déclaré plus d'une fois ou couvert aussi par un motif se juge comme tout fichier, et le fichier de la liste des index toujours. Une fusion dont le conflit porte sur autre chose qu'un tel index n'est jamais « même » : le capitaine ne résout aucun conflit de code. Il demande **git ≥ 2.41** (`--attr-source`), bash ≥ 4, `jq`, `mktemp` et `rm`, et un dossier temporaire où écrire ; il ne lit pas le réseau et n'écrit rien dans le dépôt. Rien ne l'appelle encore : il prépare la relecture indépendante.
+
+### Ce qu'un projet fait pour en profiter
+
+Mettre à jour le plugin ; rien d'autre aujourd'hui : aucun script de la boucle ne change, le capitaine ne se relance pas. Le script et son banc arrivent dans `scripts/chaine/` à la prochaine fois que le projet rejoue `/maj-skills:fusionner poser`.
+
+À prévoir pour la suite : **un poste de capitaine ou de Relecteur dont le git est plus ancien que 2.41 rendra « illisible » (sortie 69) à chaque appel**. Relever `git --version` sur ces postes avant que le capitaine et le Relecteur n'appellent ce calcul. De même, **dans un dépôt superficiel** (le clone d'une session cloud, profondeur 50 par défaut), le calcul rend « illisible » et sa raison dit le remède, `git fetch --unshallow origin` : il n'approfondit rien lui-même, c'est à qui l'appelle de le faire une fois avant.
+
+## 7.29.1 — 2026-11-19
+
+### Ce qui change
+
+Le capitaine d'un dépôt sans la chaîne (`architecte/references/lancement.md`, bloc « Procédure : ») renvoie une PR en retard sur la branche par défaut (`mergeable_state` `behind`) au lieu de la mettre à jour : commentaire `à-fusionner retiré par le capitaine : en retard sur <branche par défaut> : …`, label retiré, et le renvoi compte dans le plafond de trois. La garde « mise à jour signée par GitHub » (lecture du sommet par `get_commit`) disparaît : le serveur GitHub MCP d'une session cloud ne rend ni les parents ni `verification`, le capitaine ne pouvait pas la prouver et renvoyait toute PR mise à jour par GitHub (PR 111, 2026-11-18). Un sommet qui n'est pas celui de l'ordre est renvoyé, sans exception ; le capitaine n'appelle plus jamais la mise à jour de branche. Les gardes d'agent du socle ne changent pas.
+
+### Ce qu'un projet fait pour en profiter
+
+1. Mettre à jour le plugin : `claude plugin marketplace update maj`, puis `claude plugin update maj-skills@maj`, puis redémarrer Claude Code (session cloud : `lancement.md` § « La mise à niveau »).
+2. Un capitaine sans la chaîne déjà lancé garde l'ancienne procédure jusqu'à sa relance : le relancer avec le prompt de `lancement.md`.
+3. Une session qui reçoit le renvoi « en retard » fusionne elle-même la branche par défaut dans sa branche (commit de merge, jamais de rebase), pousse, attend la CI, puis repose le label et le commentaire au nouveau sommet.
+
+## 7.29.0 — 2026-11-19
+
+### Ce qui change
+
+Clé de contrat facultative `fusionsSansEffet` (`.claude/chaine.json`) : pour chaque fichier qu'un hook du projet garde, l'expression des lignes sans effet et la mention à écrire. Quand une fusion jouée par le capitaine (mise à jour d'une PR avec develop, d'un sujet avec develop, d'une sous-PR avec son sujet) n'apporte à ce fichier que de telles lignes, son commit de fusion porte la mention, et le hook du projet le laisse passer. Un changement réel n'a pas de mention : le capitaine le dit, et le hook juge comme avant.
+
+### Ce qu'un projet fait pour en profiter
+
+1. Mettre à jour le plugin : `claude plugin marketplace update maj`, puis `claude plugin update maj-skills@maj`, puis redémarrer Claude Code (session cloud : `lancement.md` § « La mise à niveau »).
+2. Reposer les scripts, dans une PR du projet : `/maj-skills:fusionner poser`, puis `/maj-skills:sujet poser`.
+3. Si un hook du projet exige une mention sur un fichier, ajouter la clé à `.claude/chaine.json`, dans la même PR (le capitaine la lit sur develop). Pour un projet Prisma dont le `commit-msg` exige une migration ou `[sans-migration: <raison>]` :
+
+   ```json
+   "fusionsSansEffet": [
+     {
+       "fichier": "prisma/schema.prisma",
+       "lignesSansEffet": "^[[:space:]]*(//.*)?$",
+       "mention": "[sans-migration: commentaire seul, apporté par une mise à jour du capitaine]"
+     }
+   ]
+   ```
+
+   Le chemin du schéma est celui du projet ; l'expression est celle de `grep -E` (POSIX étendue : `[[:space:]]`, jamais `\s`), et chaque ligne ajoutée ou retirée doit lui correspondre en entier.
+4. Relancer le capitaine une fois cette PR entrée dans develop : la boucle prend les scripts de develop au tour suivant ; la veille tourne sur une copie : `bash scripts/chaine/boucle.sh --arreter`, nouvelle copie dans `<scratchpad>/outils`, puis `veille.sh` relancée (skill `fusionner` § « Boucle »).
+
+**Iroki** : son `.husky/commit-msg` n'exige aucune mention de migration ; rien à ajouter au contrat. Reposer `passer.sh`, `sujet.sh` et `github.sh` remplace ses versions, qui ont divergé (`github.sh` de 549 lignes) : la repose est celle de 7.16.0, cette version n'en ajoute pas.
+
+**Fedora** (où le défaut a été vécu) : ajouter à `.claude/chaine.json` l'entrée de l'étape 3, avec le chemin de son schéma. Son hook `sans-migration` doit lire **tout** le message de commit : la mention est au deuxième paragraphe, après la ligne `Merge remote-tracking branch '…' into …` de git ; un hook qui ne lit que la première ligne ne la voit pas.
+
+Une session qui reçoit develop dans un sujet (PR de mise à jour, après un `rafraichir` refusé) fusionne par `bash -c '. scripts/chaine/github.sh && fusionner_avec origin/develop'` au lieu de `git merge origin/develop` : sa fusion porte la même mention (skill `sujet`, « Recevoir develop dans un sujet »).
 
 ## 7.28.0 — 2026-11-19
 
