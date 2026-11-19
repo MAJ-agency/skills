@@ -456,6 +456,20 @@ test("prendre_passage : une marque vivante d'un autre capitaine, posée avant, p
   assert.equal(decision([c(7001, marque("autre")), c(7002, marque("capitaine-banc"))]).tenu, "autre 2026-11-17T12:00:05Z", "posée avant");
 });
 
+test("prendre_passage : un epoch en retard ne date jamais une marque avant sa pose, le plus tard de l'epoch et du created_at (décision A-54)", () => {
+  // Le sien est créé à 12:00:01 ; une marque créée il y a 1 minute vit, quel que soit le retard de son epoch.
+  const retard = passage([{ body: marque("autre", false, le17(10, 28, 0)), created_at: "2026-11-17T11:59:01Z" }]);
+  assert.equal(retard.rc, 1, `epoch en retard de 91 minutes, marque créée il y a 1 minute : tenue\n${retard.r.stdout}${retard.r.stderr}`);
+  assert.match(retard.motif, /depuis 2026-11-17T11:59:01Z/, "datée par son created_at");
+  const zero = passage([{ body: marque("autre", false, 0), created_at: "2026-11-17T11:59:01Z" }]);
+  assert.equal(zero.rc, 1, "epoch 0 (lisible) : tenue");
+  assert.match(zero.motif, /depuis 2026-11-17T11:59:01Z/, "epoch 0 : datée par son created_at");
+  // Créée il y a 2 heures, rafraîchie il y a 10 minutes : tenue, datée par son epoch.
+  const rafraichie = passage([{ body: marque("autre", false, le17(11, 50, 1)), created_at: "2026-11-17T10:00:01Z" }]);
+  assert.equal(rafraichie.rc, 1, "créée il y a 2 heures, epoch rafraîchi il y a 10 minutes : tenue");
+  assert.match(rafraichie.motif, /depuis 2026-11-17T11:50:01Z/);
+});
+
 test("prendre_passage : commentaire non posé (écriture refusée) : 2 ; commentaires illisibles après la pose (panne de lecture) : 3, son commentaire retiré ; jamais un passage sans verrou", () => {
   const d = depotJouet();
   d.github({ pulls: [{ number: 7, title: "t", base: "develop", head: "x", labels: [] }], commentairesRefuses: true });

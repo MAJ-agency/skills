@@ -58,7 +58,8 @@
 #      de fusion de GitHub, qui fait poser un commentaire marqué ; ou qui attend un humain : fusion déjà refusée
 #      ainsi, aucune revue APPROVED plus récente que ce commentaire) : la boucle la saute sans renvoi et la reprend
 #      au tour suivant ; ou en passage chez un autre capitaine (son commentaire marqué `<!-- capitaine:passage <id> <epoch> -->`,
-#      sans fin, daté par son epoch de moins de 90 minutes, posé avant le sien), sautée sans renvoi ; ou qui n'est plus éligible une fois le
+#      sans fin, daté de moins de 90 minutes, le plus tard de son epoch et de sa création, posé avant le sien), sautée
+#      sans renvoi ; ou qui n'est plus éligible une fois le
 #      verrou pris (relue : fermée, label retiré, sommet changé)
 #   3  fusion refusée faute d'approbation d'un propriétaire et commentaire d'attente impossible à poser : la boucle
 #      s'arrête (ARRÊT, sortie 3), sans le repasser → lire la cause (droits du compte du capitaine), relancer
@@ -87,7 +88,8 @@
 #
 # Verrou du passage (plusieurs capitaines sur la même file) : une fois la PR jugée éligible, `prendre_passage` (github.sh)
 # pose sur elle le commentaire « Passage du capitaine <id> », relit la PR, et une seule trappe EXIT le termine à toute
-# sortie, TERM compris (`boucle.sh --arreter`) ; il est rafraîchi au début de chaque tour (étapes 2 à 5 bis).
+# sortie, TERM et INT compris (`boucle.sh --arreter`), même pendant sa pose ou sa relecture ; il est rafraîchi au
+# début de chaque tour (étapes 2 à 5 bis).
 # Usage : bash scripts/chaine/passer.sh <numéro>
 # =============================================================================
 set -euo pipefail
@@ -199,8 +201,10 @@ motif=$(node "$PASSER_OUTILS/migrations-ordre.mjs" origin/develop "$origine") ||
 # ── Verrou du passage ───────────────────────────────────────────────────────
 # Après l'éligibilité, avant toute écriture : un autre capitaine qui tient la PR la fait sauter sans renvoi (7) ; une
 # lecture refusée est une panne (5) ; un commentaire non posé arrête (3) ; jamais un passage sans verrou.
-# Une seule trappe, posée AVANT le verrou : un TERM pendant sa pose ou sa relecture le termine (finir_passage ne fait
-# rien sans commentaire). Une seconde trappe remplacerait la première. TERM et INT passent par `exit`, donc par elle.
+# Une seule trappe, posée AVANT le verrou : un TERM ou un INT pendant sa pose ou sa relecture le termine (finir_passage
+# ne fait rien sans commentaire ; un signal pendant le POST, réponse perdue, lui fait relire les commentaires et terminer
+# les marques vivantes du capitaine). Une seconde trappe remplacerait la première. TERM et INT passent par `exit`, donc
+# par elle.
 trap 'finir_passage; rm -f "${refus_fusion:-}" "${reponse_fusion:-}"' EXIT
 trap 'exit 143' TERM
 trap 'exit 130' INT

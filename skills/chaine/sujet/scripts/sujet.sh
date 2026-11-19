@@ -827,13 +827,14 @@ est_livraison() {
 
 # Verrou du passage (`prendre_passage` de github.sh) sur la sous-PR `<n>`, lue dans `<json>` : tenue par un autre
 # capitaine, sortie 7 ; commentaires illisibles à la relecture, sortie 5 (panne, aucun renvoi) ; commentaire non posé,
-# sortie 11 (côté capitaine, aucun renvoi). Pris : une seule trappe EXIT le termine
-# à toute sortie, TERM et INT compris. Puis la PR relue : l'éligibilité a été lue avant le verrou, un autre capitaine a
+# sortie 11 (côté capitaine, aucun renvoi). Une seule trappe EXIT, posée avant `prendre_passage`, le termine
+# à toute sortie, TERM et INT compris, même pendant sa pose ou sa relecture. Puis la PR relue : l'éligibilité a été lue avant le verrou, un autre capitaine a
 # pu finir son passage entre les deux ; fermée, en brouillon, `fusion-bloquée` posé, `à-fusionner` retiré (s'il y était)
 # ou sommet changé : sortie 7.
 verrouiller() {
   local n=$1 lu=$2 statut relu raison
-  # Trappe posée avant le verrou : un TERM pendant sa pose ou sa relecture le termine.
+  # Trappe posée avant le verrou : un TERM ou un INT pendant sa pose ou sa relecture le termine (signal pendant le
+  # POST, réponse perdue : finir_passage relit les commentaires et termine les marques vivantes du capitaine).
   trap 'finir_passage' EXIT
   trap 'exit 143' TERM
   trap 'exit 130' INT

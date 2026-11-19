@@ -2497,3 +2497,104 @@ test("passer.sh : le commentaire du passage est rafraîchi à chaque tour (devel
   // Chaque rafraîchissement réécrit l'epoch de la marque (l'âge du verrou se lit dans le corps).
   for (const e of j.slice(0, put).filter((x) => x.methode === "PATCH")) assert.match(e.champs.body, /<!-- capitaine:passage capitaine-banc \d{10} -->/);
 });
+
+// ── Verrou du passage : signaux pendant la pose et la relecture (contre-relecture du 2026-11-19, C1 et C2) ────────
+// Un `gh` enveloppe : `regle` (fragment sh, `$*` les arguments, `$J` le journal du faux) est joué avant le faux.
+function ghEnveloppe(d, regle) {
+  const bin = join(d.racine, "bin-enveloppe");
+  mkdirSync(bin, { recursive: true });
+  writeFileSync(join(bin, "gh"), `#!/bin/bash\nJ="$FAUX_GH/journal.jsonl"\n${regle}\nexec node ${JSON.stringify(scriptDe("sujet", "faux-gh.mjs"))} "$@"\n`);
+  chmodSync(join(bin, "gh"), 0o755);
+  return { ...d.env, PATH: `${bin}:${d.env.PATH}` };
+}
+// Lance `args`, attend que le fichier `drapeau` existe, envoie `signal` au groupe ou au seul pid, rend le code.
+async function tuerQuand(d, env, args, drapeau, signal, groupe) {
+  const { spawn } = await import("node:child_process");
+  const enfant = spawn("bash", args, { cwd: d.travail, env, detached: true, stdio: ["ignore", "pipe", "pipe"] });
+  let sortie = "";
+  enfant.stdout.on("data", (x) => (sortie += x));
+  enfant.stderr.on("data", (x) => (sortie += x));
+  const fin = new Promise((resolve) => enfant.on("close", (code, sig) => resolve(code ?? sig)));
+  while (!existsSync(drapeau)) await new Promise((p) => setTimeout(p, 50));
+  process.kill(groupe ? -enfant.pid : enfant.pid, signal);
+  return { code: await fin, sortie };
+}
+// Les commentaires du verrou de ce capitaine encore vivants sur la PR `n` (ni terminés, ni retirés), dans l'état du faux.
+const verrousVivants = (d, n) => {
+  const p = d.etat().pulls.find((x) => x.number === n);
+  return (p.commentaires ?? [])
+    .map((c, i) => ({ corps: typeof c === "string" ? c : c.body, i }))
+    .filter(({ corps, i }) => corps.includes("<!-- capitaine:passage capitaine-banc ") && !corps.includes("<!-- capitaine:fin -->") && !(p.supprimes ?? []).includes(i));
+};
+// La sous-PR #41 de sujet/lot, à jour, prête pour `sujet.sh fusionner`.
+function sousPrVerrou() {
+  const d = depotJouet();
+  d.branche("sujet/lot", "origin/develop", { "lot.md": "lot\n" });
+  d.branche("feat/sous", "origin/sujet/lot", { "sous.md": "sous\n" });
+  d.git("switch", "-q", "--detach", "origin/develop");
+  d.github({ exiges: ["qualite"], checks: { "*": { qualite: "SUCCESS" } }, pulls: [pr(41, "feat/sous", { base: "sujet/lot", title: "docs(lot): sous", body: "## Revue de ticket\n\nRien.\n" })] });
+  return d;
+}
+const GESTES_VERROU = [
+  { nom: "passer.sh", n: 40, prepare: () => prVerrou().d, args: (n) => [script("passer.sh"), String(n)] },
+  { nom: "sujet.sh fusionner", n: 41, prepare: sousPrVerrou, args: (n) => [SUJET_SH, "fusionner", String(n)] },
+];
+for (const geste of GESTES_VERROU) {
+  for (const [signal, code] of [["SIGTERM", 143], ["SIGINT", 130]]) {
+    for (const groupe of [true, false]) {
+      const cible = groupe ? "au groupe" : "au seul pid";
+      test(`${geste.nom} : ${signal} ${cible} pendant un POST lent du verrou (commentaire créé, réponse en vol) : il est terminé, aucun verrou vivant`, { timeout: 120_000 }, async () => {
+        const d = geste.prepare();
+        const drapeau = join(d.racine, "en-post");
+        // Le faux crée le commentaire et répond, puis `gh` traîne : un signal au groupe le tue, réponse perdue.
+        const env = ghEnveloppe(d, `case "$*" in *"-X POST"*"issues/${geste.n}/comments"*) node ${JSON.stringify(scriptDe("sujet", "faux-gh.mjs"))} "$@"; rc=$?; : > ${JSON.stringify(drapeau)}; /bin/sleep 3; exit $rc ;; esac`);
+        const r = await tuerQuand(d, env, geste.args(geste.n), drapeau, signal, groupe);
+        assert.equal(r.code, code, r.sortie);
+        assert.deepEqual(verrousVivants(d, geste.n), [], `${r.sortie}\n${JSON.stringify(commentairesDePassage(d))}`);
+        assert.ok(commentairesDePassage(d).some(termine), "terminé par un PATCH de fin");
+      });
+      test(`${geste.nom} : ${signal} ${cible} pendant la relecture lente du verrou : il est terminé, aucun verrou vivant`, { timeout: 120_000 }, async () => {
+        const d = geste.prepare();
+        const drapeau = join(d.racine, "en-lecture");
+        const env = ghEnveloppe(d, `case "$*" in *"issues/${geste.n}/comments?per_page"*) if grep -q '"POST","route":"issues/${geste.n}/comments"' "$J" 2>/dev/null && [ ! -e ${JSON.stringify(drapeau)} ]; then : > ${JSON.stringify(drapeau)}; /bin/sleep 3; fi ;; esac`);
+        const r = await tuerQuand(d, env, geste.args(geste.n), drapeau, signal, groupe);
+        assert.equal(r.code, code, r.sortie);
+        assert.deepEqual(verrousVivants(d, geste.n), [], `${r.sortie}\n${JSON.stringify(commentairesDePassage(d))}`);
+      });
+    }
+  }
+}
+
+test("finir_passage : une pose lancée sans id connu et une relecture en panne se disent en une ligne, le passage sort sans autre code", () => {
+  const d = depotJouet();
+  d.github({ pulls: [pr(7, "x")], pannes: [{ route: "^issues/7/comments" }] });
+  const r = spawnSync("bash", ["-c", `source ${script("github.sh")}; PASSAGE_PR=7 PASSAGE_POSE_LANCEE=1; finir_passage; echo "rc=$?"`], { cwd: d.travail, env: d.env, encoding: "utf8" });
+  assert.match(r.stdout, /^rc=0$/m, r.stdout + r.stderr);
+  assert.deepEqual(r.stderr.split("\n").filter(Boolean), ["verrou du passage : commentaire de #7 non terminé (relecture impossible : GitHub illisible (repos/{owner}/{repo}/issues/7/comments?per_page=100) : gh en échec (code 1) : gh: Bad Gateway (HTTP 502)), il expirera en 90 minutes"]);
+  assert.deepEqual(d.journal(), [], "rien d'écrit");
+});
+
+// ── L'epoch des marques éprouvé de bout en bout (C3) : l'horloge des scripts suit les dates du faux ─────────────────
+test("passer.sh : l'epoch qu'écrit le rafraîchissement d'un tour date la marque : posée il y a 2 heures, rafraîchie il y a 5 minutes, elle tient la PR d'un second capitaine", () => {
+  // A : deux tours d'attente de la CI, son horloge à 11:55 (le faux date ses commentaires à 12:00).
+  const a = prVerrou();
+  const markdown = a.d.branche("ailleurs", "origin/develop", { "docs/ailleurs.md": "ailleurs\n" });
+  a.d.git("switch", "-q", "--detach", "origin/develop");
+  a.d.github({ pendantCi: [{ lectures: 1, branche: "develop", vers: markdown }] });
+  const onzeCinquanteCinq = Date.UTC(2026, 10, 17, 11, 55, 0) / 1000;
+  const r = spawnSync("bash", [script("passer.sh"), "40"], { cwd: a.d.travail, env: { ...a.d.env, PASSAGE_HORLOGE_BANC: String(onzeCinquanteCinq) }, encoding: "utf8" });
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  const tour2 = a.d.journal().find((e) => e.methode === "PATCH" && /, tour 2 :/.test(e.champs?.body ?? ""));
+  assert.ok(tour2, "rafraîchi au tour 2");
+  assert.match(tour2.champs.body, new RegExp(`<!-- capitaine:passage capitaine-banc ${onzeCinquanteCinq} -->`));
+  // B : la marque de A telle que l'a laissée son tour 2 (A tué ensuite), créée à 10:00 : par son created_at, elle
+  // serait libre (plus de 90 minutes) ; par son epoch, rafraîchie il y a 5 minutes, elle tient la PR.
+  const b = prVerrou();
+  const e = b.d.etat();
+  e.pulls[0].commentaires = [{ body: tour2.champs.body, created_at: "2026-11-17T10:00:00Z" }];
+  b.d.github(e);
+  const rb = spawnSync("bash", [script("passer.sh"), "40"], { cwd: b.d.travail, env: { ...b.d.env, CAPITAINE_ID: "capitaine-b" }, encoding: "utf8" });
+  assert.equal(rb.status, 7, rb.stdout + rb.stderr);
+  assert.match(rb.stdout, /\[#40\] en passage chez le capitaine capitaine-banc depuis 2026-11-17T11:55:00Z : sautée sans renvoi\n$/);
+  assert.equal(b.sommet(), b.avant, "rien n'est poussé");
+});
