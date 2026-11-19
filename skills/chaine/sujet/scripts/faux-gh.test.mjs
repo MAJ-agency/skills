@@ -274,9 +274,9 @@ test('faux gh, apresCommentaire : la PR qui reçoit le prochain commentaire chan
 
 test('faux gh, commentairesRefuses : true refuse tout commentaire posé, une chaîne seulement ceux dont le corps y correspond', () => {
   const d = jouetCommentaires();
-  d.github({ commentairesRefuses: 'attente-revue' });
+  d.github({ commentairesRefuses: 'renvoi-capitaine' });
   assert.equal(gh(d, '-X', 'POST', COMMENTAIRES, '-f', 'body=<!-- capitaine:passage x -->').status, 0);
-  assert.match(gh(d, '-X', 'POST', COMMENTAIRES, '-f', 'body=<!-- attente-revue-capitaine -->').stderr, /HTTP 403/);
+  assert.match(gh(d, '-X', 'POST', COMMENTAIRES, '-f', 'body=<!-- renvoi-capitaine -->').stderr, /HTTP 403/);
   d.github({ commentairesRefuses: true });
   assert.match(gh(d, '-X', 'POST', COMMENTAIRES, '-f', 'body=tout').stderr, /HTTP 403/);
   assert.equal(lireCommentaires(d).length, 1);

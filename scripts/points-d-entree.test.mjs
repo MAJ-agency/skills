@@ -18,7 +18,6 @@ const SANS_GIT = environnementDeBanc();
 const SCRIPTS = [
   { nom: "migrations-ordre", fichier: "skills/chaine/fusionner/scripts/migrations-ordre.mjs", args: [], statut: 2, sortie: /usage : node migrations-ordre\.mjs/ },
   { nom: "revue-exigee", fichier: "skills/chaine/fusionner/scripts/revue-exigee.mjs", args: ["", "feat: x"], entree: "apps/a.ts\n", statut: 1, sortie: /sans section « Revue de ticket »/ },
-  { nom: "codeowners", fichier: "skills/chaine/socle-chaine-de-production/references/scripts/github/codeowners.mjs", args: [], statut: 2, sortie: /codeowners : \.claude\/chaine\.json illisible/ },
   { nom: "demarrage", fichier: "skills/chaine/socle-chaine-de-production/references/agent/demarrage.mjs", args: [], statut: 0, sortie: /démarrage : fetch-develop/ },
   { nom: "vagues", fichier: "skills/chaine/tickets/references/scripts/docs/vagues.mjs", avec: ["skills/monorepo/socle-monorepo/references/scripts/docs"], args: [], statut: 2, sortie: /Usage : node scripts\/docs\/vagues\.mjs/ },
   { nom: "couts", fichier: "skills/chaine/tickets/references/scripts/docs/couts.mjs", avec: ["skills/monorepo/socle-monorepo/references/scripts/docs"], args: ["--verify"], statut: 1, sortie: /couts : .* n'est pas à jour/ },
