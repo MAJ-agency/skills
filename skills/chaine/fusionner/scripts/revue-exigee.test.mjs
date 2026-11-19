@@ -471,3 +471,20 @@ test('ticket 18 (contre-relecture) : des points de suspension dans la prose comp
   ])
     assert.notEqual(avec(ligne), null, ligne);
 });
+
+test('ticket 18 (CodeQL) : un commentaire HTML imbriqué ou recollé ne cache ni ne fabrique la ligne ; deux commentaires de suite puis la vraie ligne comptent', () => {
+  const avec = (corps) => revueExigee.motifSansSecurite({ corps: avecLigne(corps), fichiers: ['infra/main.tf'], base: INFRA });
+  for (const corps of [
+    '<!<!-- x -->-- - `/security-review` : lancée -->',
+    '<!<!-- x -->--\n- `/security-review` : lancée\n-->',
+    '<!-<!-- x -->- a -->\n<!<!-- y -->-- b\n- `/security-review` : lancée\n-->',
+  ])
+    assert.notEqual(avec(corps), null, JSON.stringify(corps));
+  for (const corps of [
+    `<!-- a --><!-- b -->\n${LIGNE}`,
+    `<!-- a --><!-- b -->${LIGNE}`,
+    `${LIGNE} <!-- a --><!-- b -->`,
+    `<!-- a\nb --> <!-- c -->\n${LIGNE}`,
+  ])
+    assert.equal(avec(corps), null, JSON.stringify(corps));
+});

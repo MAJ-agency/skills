@@ -273,6 +273,22 @@ const nonRemplie = (ligne) => {
 };
 
 /**
+ * Le texte d'une ligne sans ses commentaires HTML, et `ouvert` si un `<!--` y reste sans sa fermeture (le texte
+ * s'arrête alors avant lui). Coupé par `indexOf`, sans motif : chaque `<!--` … `-->` est retiré et le reste recollé,
+ * puis on recommence tant qu'un `<!--` subsiste, recollage compris (`<!<!-- x -->--` se relit `<!--`).
+ */
+function sansCommentaires(ligne) {
+  let texte = ligne;
+  for (;;) {
+    const ouvre = texte.indexOf('<!--');
+    if (ouvre < 0) return { texte, ouvert: false };
+    const ferme = texte.indexOf('-->', ouvre + 4);
+    if (ferme < 0) return { texte: texte.slice(0, ouvre), ouvert: true };
+    texte = texte.slice(0, ouvre) + texte.slice(ferme + 3);
+  }
+}
+
+/**
  * Vrai si une ligne « - `/security-review` : lancée » se tient dans une section « Revue de ticket » ou « Revue
  * adversariale » : après son titre, avant le titre suivant de niveau égal ou supérieur, hors bloc de code et hors
  * commentaire HTML (`<!-- … -->`, sur une ou plusieurs lignes, non fermé compris), et remplie (ni « | non requise »
@@ -291,12 +307,7 @@ export function aLigneSecurite(corps) {
         brute = brute.slice(fin + 3);
         dansCommentaire = false;
       }
-      brute = brute.replace(/<!--[\s\S]*?-->/g, '');
-      const ouvre = brute.indexOf('<!--');
-      if (ouvre >= 0) {
-        brute = brute.slice(0, ouvre);
-        dansCommentaire = true;
-      }
+      ({ texte: brute, ouvert: dansCommentaire } = sansCommentaires(brute));
     }
     if (CLOTURE.test(brute)) {
       dansBloc = !dansBloc;
