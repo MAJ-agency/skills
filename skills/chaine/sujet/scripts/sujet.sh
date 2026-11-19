@@ -65,12 +65,13 @@
 #                         fusion ou option (jamais de push forcé) : sortie 9, rien n'est poussé
 #   a-juger <sommet> <base> [<pr>]
 #                         lecture (check `pr-titre` du socle), sans appel GitHub ni réseau : les fichiers que `fusionner`
-#                         passerait à la revue exigée, un par ligne (PR de mise à jour : résolution et retouches ; sinon le
-#                         diff depuis le départ du sujet) ; refus de forme d'une PR de mise à jour : 4 et son motif ; refs
-#                         absentes ou clone superficiel : 11
+#                         juge avant les checks, un par ligne (le diff depuis le départ du sujet, ou la résolution d'une PR
+#                         de mise à jour) ; pour une PR de mise à jour, une ligne vide puis ceux qu'il juge après (résolution
+#                         et retouches) ; refus de forme d'une PR de mise à jour : 4 et son motif ; refs absentes ou clone
+#                         superficiel : 11
 #   est-livraison <tête> <sommet>
 #                         lecture (check `pr-titre`), sans appel GitHub ni réseau : 0 livraison de sujet prouvée (tête
-#                         `sujet/<nom>`, ou livraison intermédiaire que `livraison_intermediaire` de github.sh reconnaît,
+#                         `sujet/<nom>` au sommet d'origin/sujet/<nom>, ou livraison intermédiaire que `livraison_intermediaire` de github.sh reconnaît,
 #                         comme passer.sh), 1 PR ordinaire (revue exigée), 11 refs absentes ou clone superficiel
 #   carte (sans argument) « ticket<TAB>sujet » pour chaque ticket qui déclare un sujet (develop et sujets)
 #   de <ticket>           sujet d'un ticket
@@ -776,9 +777,11 @@ fichiers_a_juger() {
 }
 
 # `a-juger <sommet> <base> [<n>]` : lecture, sans appel GitHub ni réseau. Écrit, un par ligne, les fichiers que
-# `fusionner` passerait à la revue exigée : pour une PR de mise à jour, l'union de la résolution et des retouches
-# (`A_JUGER` et `MAJ_APRES`, jugées avant et après les checks) ; sinon le diff depuis le départ du sujet. Refus de forme
-# d'une PR de mise à jour : sortie 4, motif de `verifier_mise_a_jour`. Refs absentes : 11.
+# `fusionner` passe à la revue exigée avant les checks : le diff depuis le départ du sujet, ou, pour une PR de mise à
+# jour, sa résolution (`A_JUGER`) ; pour une PR de mise à jour seulement, une ligne vide puis la liste qu'il juge après
+# les checks, l'union de la résolution et des retouches (`A_JUGER` et `MAJ_APRES`, `juger_retouches`). git n'écrit jamais
+# un chemin vide : la ligne vide ne sépare que les deux listes. Refus de forme d'une PR de mise à jour : sortie 4, motif
+# de `verifier_mise_a_jour`. Refs absentes : 11.
 a_juger() {
   local sommet=${1:?sommet de la PR} base=${2:?base de la PR (sujet/<nom>)} n=${3:-?}
   [[ "$base" == sujet/* ]] || sortir 4 "a-juger : $base n'est pas une branche sujet/ (une PR vers develop se lit par git diff depuis le merge-base)"
@@ -788,11 +791,12 @@ a_juger() {
   sommet=$(git rev-parse -q --verify "$sommet^{commit}") || sortir 11 "refs absentes : sommet $1 introuvable, fetch d'abord"
   MAJ_APRES=''
   fichiers_a_juger "$n" "$sommet" "$base"
-  printf '%s\n%s\n' "$FICHIERS_JUGES" "${MAJ:+$MAJ_APRES}" | sed '/^$/d' | sort -u
+  printf '%s\n' "$FICHIERS_JUGES" | sed '/^$/d' | sort -u
+  [ -z "$MAJ" ] || { echo; printf '%s\n%s\n' "$A_JUGER" "$MAJ_APRES" | sed '/^$/d' | sort -u; }
 }
 
 # `est-livraison <tête> <sommet>` : lecture, sans appel GitHub ni réseau, pour une PR vers develop. Sortie 0 : livraison
-# de sujet prouvée (tête `sujet/<nom>` dont origin/sujet/<nom> est là, ou tête `livraison/<nom>-<AAAAMMJJ-HHMM>` que
+# de sujet prouvée (tête `sujet/<nom>` dont le sommet est celui d'origin/sujet/<nom>, ou tête `livraison/<nom>-<AAAAMMJJ-HHMM>` que
 # `livraison_intermediaire` de github.sh reconnaît, comme passer.sh) ; 1 : PR ordinaire, revue exigée ; 11 : refs
 # absentes (origin/develop, le sommet, ou origin/sujet/<nom> d'une tête sujet/).
 est_livraison() {
@@ -803,6 +807,8 @@ est_livraison() {
   if [[ "$tete" == sujet/* ]]; then
     git rev-parse -q --verify "refs/remotes/origin/$tete^{commit}" >/dev/null ||
       sortir 11 "refs absentes : origin/$tete introuvable, fetch d'abord"
+    # Un sommet étranger sous le nom du sujet n'est pas sa livraison : PR ordinaire, revue exigée.
+    [ "$sommet" = "$(git rev-parse "refs/remotes/origin/$tete^{commit}")" ] || exit 1
     exit 0
   fi
   if [[ "$tete" =~ ^livraison/(.+)-[0-9]{8}-[0-9]{4}$ ]]; then

@@ -170,6 +170,19 @@ test('PR de réception avec une retouche de formatage sous apps/ : refusée sans
   assert.equal(r.status, 0, r.stdout + r.stderr);
 });
 
+// Contre-relecture A : le capitaine juge la résolution seule avant les checks, puis l'union avec les retouches. Une
+// résolution de documentation seule sous un titre `fix` est refusée par lui (titre de code sur de la documentation),
+// même quand une retouche apporte du code : le check doit la refuser de même.
+test('PR de réception titrée fix dont la résolution ne touche que docs/, retouche sous apps/ et section de revue : refusée comme par le capitaine (titre de code sur la résolution)', () => {
+  const { d, entrees } = reception({ sujetEnPlus: NON_FORMATE, retouches: formate });
+  const titre = 'fix(sujet): met lot à jour avec develop';
+  const r = check(d, { ...entrees, PR_TITRE: titre, PR_CORPS: REVUE });
+  assert.equal(r.status, 1, r.stdout + r.stderr);
+  const resolution = `${ADR}/README.md\ndocs/f.md\n`;
+  assert.deepEqual(motifs(r), [motifCapitaine(d, resolution, REVUE, titre, 'origin/sujet/lot')]);
+  assert.match(motifs(r)[0], /titre « fix » mais le diff ne contient que de la documentation \(2 fichier\(s\) sous docs\/\)/);
+});
+
 test('PR de réception en deux fusions : refusée avec le motif de sujet.sh', () => {
   const secondeFusion = (d) => {
     d.git('switch', '-q', '--detach', 'origin/develop');
@@ -194,6 +207,12 @@ test('livraison de sujet (tête sujet/<nom>) : section non exigée, et la sortie
   assert.equal(r.status, 0, r.stdout + r.stderr);
   assert.match(r.stdout, /livraison de sujet prouvée : chaque sous-PR a passé la revue/);
   assert.match(r.stdout, CONFORME);
+  // Contre-relecture B : un sommet qui n'est pas celui d'origin/sujet/<nom> n'est pas la livraison du sujet.
+  const etranger = d.branche('feat/etranger', 'origin/develop', { 'apps/e.ts': 'export const e = 1;\n' }, 'feat: e');
+  const faux = check(d, { PR_TITRE: 'feat(lot): livre le sujet lot', PR_BASE: 'develop', PR_TETE: 'sujet/lot', PR_SOMMET: etranger });
+  assert.equal(faux.status, 1, faux.stdout + faux.stderr);
+  assert.doesNotMatch(faux.stdout, /livraison de sujet prouvée/);
+  assert.deepEqual(motifs(faux), [motifCapitaine(d, 'apps/e.ts\n', '', 'feat(lot): livre le sujet lot')]);
 });
 
 test('branche livraison/ qui n’apporte pas un sommet du sujet : section exigée', () => {
@@ -233,6 +252,13 @@ test('une variable d’entrée manque : sortie 2 ; un corps vide n’en est pas 
   assert.equal(absent.status, 3, absent.stdout + absent.stderr);
   assert.match(absent.stderr, /sujet\.sh a-juger a échoué.*refs absentes/);
   assert.doesNotMatch(absent.stdout, CONFORME);
+  // Un clone superficiel se dit tel quel, jamais « refs absentes ».
+  const superficiel = join(d.racine, 'superficiel');
+  assert.equal(spawnSync('git', ['clone', '-q', '--depth', '1', '--no-single-branch', `file://${d.origine}`, superficiel], { env: d.env }).status, 0);
+  const court = spawnSync(process.execPath, [CHECK], { cwd: superficiel, env: { ...d.env, ...entrees, PR_NUMERO: '12', GITHUB_ACTIONS: '' }, encoding: 'utf8' });
+  assert.equal(court.status, 3, court.stdout + court.stderr);
+  assert.match(court.stderr, /clone superficiel/);
+  assert.doesNotMatch(court.stderr, /refs absentes/);
   // En CI, seul le chemin du projet vaut : depuis le plugin (ou un projet sans scripts/chaine/), rouge.
   const projet = dossierTemporaire('pr-titre-projet-');
   mkdirSync(join(projet, 'scripts', 'github'), { recursive: true });

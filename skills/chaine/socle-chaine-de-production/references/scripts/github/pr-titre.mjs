@@ -7,8 +7,9 @@
 // Aucune règle n'est écrite ici : le check appelle celles du capitaine.
 //   - `motifsDuCapitaine` et `lireBase` de `revue-exigee.mjs` (skill fusionner) : les motifs, sur le contrat de la base ;
 //   - `sujet.sh a-juger` (skill sujet) : les fichiers qu'une sous-PR fait juger, une PR de réception de develop
-//     reconnue à sa forme (sa résolution et ses retouches, jamais le develop apporté), et son refus de forme ;
-//   - `sujet.sh est-livraison` : une tête `sujet/<nom>` ou `livraison/<nom>-<AAAAMMJJ-HHMM>` vers develop dispensée de
+//     reconnue à sa forme (sa résolution seule, puis sa résolution et ses retouches, jugées chacune comme le capitaine,
+//     jamais le develop apporté), et son refus de forme ;
+//   - `sujet.sh est-livraison` : une tête `sujet/<nom>` (au sommet d'origin/sujet/<nom>) ou `livraison/<nom>-<AAAAMMJJ-HHMM>` vers develop dispensée de
 //     la revue sur la preuve du capitaine (`livraison_intermediaire` de github.sh), jamais sur le seul nom de branche ;
 //   - sinon le diff depuis le merge-base de la base, comme `passer.sh`.
 //
@@ -21,7 +22,8 @@
 // (`GITHUB_ACTIONS=true`), seul le chemin du projet vaut : un outil absent rend le check rouge, sans repli.
 //
 // Sorties : 0 conforme · 1 au moins un motif, chacun sur une ligne `✗ <motif>` de la sortie d'erreur · 2 entrée absente
-// ou mal formée · 3 lecture impossible (outil absent, refs absentes, git ou outil en échec) : jamais un vert.
+// ou mal formée · 3 lecture impossible (outil absent, refs absentes, clone superficiel, git ou outil en échec) : jamais
+// un vert.
 // =============================================================================
 import { spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
@@ -77,6 +79,17 @@ const derniere = (texte) => lignes(texte).at(-1) ?? '';
 const lectureEchouee = (quoi, r) =>
   echouer(3, `PR titre : ${quoi} a échoué (sortie ${r.status ?? 'injouable'}) : le check ne conclut pas. ${derniere(r.stderr) || derniere(r.stdout)}`.trim());
 
+/**
+ * La sortie de `sujet.sh a-juger` : une liste, ou deux séparées par une ligne vide (PR de mise à jour : résolution, puis
+ * résolution et retouches). git n'écrit jamais un chemin vide.
+ */
+function listesAJuger(sortie) {
+  if (sortie === '') return [[]];
+  const l = sortie.replace(/\n$/, '').split('\n');
+  const vide = l.indexOf('');
+  return vide < 0 ? [l] : [l.slice(0, vide), l.slice(vide + 1)];
+}
+
 /** `sujet.sh est-livraison` : vrai sur une livraison prouvée (0), faux sur une PR ordinaire (1), échec sinon. */
 function estLivraison(sujet, e) {
   const r = lancer('bash', [sujet, 'est-livraison', e.tete, e.sommet]);
@@ -90,6 +103,11 @@ async function principal() {
   const e = entrees(process.env);
   const { sujet, revue } = outils(enCI);
   const { motifsDuCapitaine, lireBase } = await import(pathToFileURL(revue).href);
+  // Clone superficiel : merge-base faux, dit tel quel (jamais « refs absentes »).
+  const superficiel = lancer('git', ['rev-parse', '--is-shallow-repository']);
+  if (superficiel.status !== 0) lectureEchouee('git rev-parse --is-shallow-repository', superficiel);
+  if (superficiel.stdout.trim() !== 'false')
+    echouer(3, 'PR titre : clone superficiel, merge-base faux : le check ne conclut pas ; git fetch --unshallow d’abord (actions/checkout : fetch-depth: 0)');
   const versSujet = e.base.startsWith('sujet/');
   const motifs = [];
   const notes = [];
@@ -106,11 +124,12 @@ async function principal() {
     if (r.status !== 0) motifs.push(`titre refusé par commitlint (Conventional Commits) : ${e.titre}`);
   }
 
-  // Les fichiers que le capitaine jugerait ; `null` : rien à juger (livraison prouvée, ou refus de forme).
+  // Les listes de fichiers que le capitaine juge, dans son ordre ; `null` : rien à juger (livraison prouvée, ou refus de
+  // forme). Une PR de mise à jour en a deux : sa résolution avant les checks, puis l'union avec ses retouches.
   let fichiers;
   if (versSujet) {
     const r = lancer('bash', [sujet, 'a-juger', e.sommet, e.base, e.n]);
-    if (r.status === 0) fichiers = lignes(r.stdout);
+    if (r.status === 0) fichiers = listesAJuger(r.stdout);
     else if (r.status === 4) {
       motifs.push(derniere(r.stdout) || 'PR de mise à jour refusée par sujet.sh (forme)');
       fichiers = null;
@@ -123,10 +142,14 @@ async function principal() {
     if (mb.status !== 0) lectureEchouee(`git merge-base avec origin/${e.base} (refs absentes : fetch d'abord)`, mb);
     const d = lancer('git', ['-c', 'core.quotePath=false', 'diff', '--no-renames', '--name-only', mb.stdout.trim(), e.sommet]);
     if (d.status !== 0) lectureEchouee('git diff', d);
-    fichiers = lignes(d.stdout);
+    fichiers = [lignes(d.stdout)];
   }
 
-  if (fichiers !== null) motifs.push(...motifsDuCapitaine({ corps: e.corps, titre: e.titre, fichiers, base: lireBase(`origin/${e.base}`) }));
+  if (fichiers !== null) {
+    const base = lireBase(`origin/${e.base}`);
+    for (const liste of fichiers)
+      for (const m of motifsDuCapitaine({ corps: e.corps, titre: e.titre, fichiers: liste, base })) if (!motifs.includes(m)) motifs.push(m);
+  }
 
   for (const n of notes) process.stdout.write(`${n}\n`);
   if (motifs.length) {

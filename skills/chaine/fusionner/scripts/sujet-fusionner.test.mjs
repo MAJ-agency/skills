@@ -1233,7 +1233,11 @@ test("sujet.sh a-juger écrit les fichiers que fusionner juge : résolution et r
   const avant = ecritures(d).length;
   const maj = d.lancer(SUJET, "a-juger", sommet, "sujet/lot", "81");
   assert.equal(maj.status, 0, maj.stdout + maj.stderr);
-  assert.deepEqual(maj.stdout.trim().split("\n").sort(), ["apps/s.ts", `${ADR}/README.md`, "docs/f.md"]);
+  // Deux listes, séparées par une ligne vide : la résolution (jugée avant les checks), puis l'union avec les retouches.
+  const [avantChecks, apresChecks, ...reste] = maj.stdout.replace(/\n$/, "").split("\n\n");
+  assert.deepEqual(reste, []);
+  assert.deepEqual(avantChecks.split("\n").sort(), [`${ADR}/README.md`, "docs/f.md"]);
+  assert.deepEqual(apresChecks.split("\n").sort(), ["apps/s.ts", `${ADR}/README.md`, "docs/f.md"]);
   assert.equal(ecritures(d).length, avant, "aucun appel GitHub");
   assert.doesNotMatch(d.journal().map((e) => e.route).join("\n"), /pulls/, "aucune lecture GitHub non plus");
   // Et fusionner juge bien la retouche : sans section, refus sur apps/s.ts.
