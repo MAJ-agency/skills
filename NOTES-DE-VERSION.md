@@ -2,6 +2,18 @@
 
 La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque projet par `poser` : une version publiée ne change rien chez un projet qui ne les repose pas. Chaque note dit ce qui change, puis ce qu'un projet fait pour en profiter.
 
+## 7.29.1 — 2026-11-19
+
+### Ce qui change
+
+Le capitaine d'un dépôt sans la chaîne (`architecte/references/lancement.md`, bloc « Procédure : ») renvoie une PR en retard sur la branche par défaut (`mergeable_state` `behind`) au lieu de la mettre à jour : commentaire `à-fusionner retiré par le capitaine : en retard sur <branche par défaut> : …`, label retiré, et le renvoi compte dans le plafond de trois. La garde « mise à jour signée par GitHub » (lecture du sommet par `get_commit`) disparaît : le serveur GitHub MCP d'une session cloud ne rend ni les parents ni `verification`, le capitaine ne pouvait pas la prouver et renvoyait toute PR mise à jour par GitHub (PR 111, 2026-11-18). Un sommet qui n'est pas celui de l'ordre est renvoyé, sans exception ; le capitaine n'appelle plus jamais la mise à jour de branche. Les gardes d'agent du socle ne changent pas.
+
+### Ce qu'un projet fait pour en profiter
+
+1. Mettre à jour le plugin : `claude plugin marketplace update maj`, puis `claude plugin update maj-skills@maj`, puis redémarrer Claude Code (session cloud : `lancement.md` § « La mise à niveau »).
+2. Un capitaine sans la chaîne déjà lancé garde l'ancienne procédure jusqu'à sa relance : le relancer avec le prompt de `lancement.md`.
+3. Une session qui reçoit le renvoi « en retard » fusionne elle-même la branche par défaut dans sa branche (commit de merge, jamais de rebase), pousse, attend la CI, puis repose le label et le commentaire au nouveau sommet.
+
 ## 7.29.0 — 2026-11-19
 
 ### Ce qui change
