@@ -2,6 +2,26 @@
 
 La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque projet par `poser` : une version publiée ne change rien chez un projet qui ne les repose pas. Chaque note dit ce qui change, puis ce qu'un projet fait pour en profiter.
 
+## 7.32.0 — 2026-11-19
+
+### Ce qui change
+
+Quatre petits correctifs (ticket 62 de `gouverner-nos-boucles`) :
+
+- **`meme-contenu.sh` nomme le clone partiel** : dans un clone fait avec `--filter` (`remote.<nom>.promisor` ou `extensions.partialclone` dans la configuration du dépôt), le calcul rend `illisible`, sortie 21, avec pour raison « dépôt partiel : des objets manquent et ce calcul ne télécharge rien, à cloner en entier avant de l'appeler (git clone sans --filter) », au lieu d'une lecture d'objet en échec qui ne disait pas la cause.
+- **`meme-contenu.sh` lit `safe.directory` comme le calcul de double relecture** : le dépôt réel se lit sans configuration d'utilisateur ni de poste, sauf la déclaration qui le dit sûr ; elle se lit par `git config --show-scope --includes --get-all safe.directory` joué depuis `/` (lignes `system` et `global`, le fichier XDG compris, dans l'ordre de git), avec `GIT_CONFIG_GLOBAL`, `GIT_CONFIG_SYSTEM` et `GIT_CONFIG_NOSYSTEM` telles que l'appelant les a posées. Ne vaut qu'une valeur égale à la racine du dépôt, ou `*` ; avec `GIT_CONFIG_COUNT` ou `GIT_CONFIG_PARAMETERS` dans l'environnement, rien n'est admis. **Un dépôt d'un autre propriétaire déclaré sûr par `dossier/*` est désormais refusé** (« pas dans un dépôt git ») : le déclarer par son chemin.
+- **Le gabarit de règle montre `criticality` en bloc**, une clé par ligne (`level`, `by`, `reason` entre guillemets), forme qu'aucun formateur ne replie et que le lecteur d'en-têtes lit ; la forme en ligne `{ level, by, reason }` n'est plus montrée.
+- **Les noms de tests s'écrivent en français**, comme le veut l'ADR du socle sur la langue (`ADR_ALL_ARC-4`) : `.claude/rules/tests.md` demande `it('<comportement> quand <condition>')`, au présent, sans « should » ; ses exemples, la méthode du socle, la fiche Anchorpost, le gabarit de règle, les gabarits de tests (`exemple.jour-metier.spec.ts`, `exemple.property.spec.ts`) et le `CLAUDE.md` et les guides de l'API le disent de même. Aucun gate ne lisait l'ancienne forme.
+
+Dans le dépôt du plugin seulement : `scripts/poses.test.mjs` joue les bancs posés en tranches parallèles (`scripts/tranches.mjs`), chaque test exactement une fois ; seul, il passe de 324 s à 183 s, plafonds inchangés.
+
+### Ce qu'un projet fait pour en profiter
+
+1. Mettre à jour le plugin : `claude plugin marketplace update maj`, puis `claude plugin update maj-skills@maj`, puis redémarrer Claude Code.
+2. Reposer les scripts de la chaîne, dans une PR du projet : `/maj-skills:fusionner poser` (`meme-contenu.sh` et son banc). Un poste qui déclare un dépôt d'un autre propriétaire par `dossier/*` le déclare par son chemin (`git config --global --add safe.directory <chemin>`).
+3. Reporter dans le projet, par une PR, la ligne « Le nom dit le comportement » de `.claude/rules/tests.md`, ses exemples et ceux de `docs/agents/gabarits/` ; les tests déjà écrits en anglais se renomment à leur prochaine retouche, rien ne les refuse.
+4. Une règle qui porte `criticality` en ligne peut être réécrite en bloc à sa prochaine retouche (`level`, `by`, `reason` entre guillemets, une clé par ligne).
+
 ## 7.31.2 — 2026-11-19
 
 ### Ce qui change

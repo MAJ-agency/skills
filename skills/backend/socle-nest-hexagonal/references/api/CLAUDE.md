@@ -217,7 +217,7 @@ Enforce by lint (`no-restricted-imports` / `eslint-plugin-boundaries`) and repla
 <!-- ══ /TENANT-B ══ -->
 - **Inbound adapters**: HTTP → `supertest` e2e-style (override guards/config, real global `ZodValidationPipe` + domain filter); assert status, response shape, 400 validation, 5xx mapping. Consumers/cron/CLI → unit-test that input is deserialized and `execute()` is called.
 - Tests covering a registered business rule carry its ID in the name: `test("[RULE_ALL_XXX-2] <behaviour>", …)`.
-- Shared mocks in `@test/mocks/`. AAA pattern, fresh mocks per test (`afterEach(() => vi.clearAllMocks())`), one concern per test, names `should [behavior] when [condition]`. Test behavior, not implementation.
+- Shared mocks in `@test/mocks/`. AAA pattern, fresh mocks per test (`afterEach(() => vi.clearAllMocks())`), one concern per test, names in French, since a test name is prose (`ADR_ALL_ARC-4`): `<comportement> quand <condition>`, e.g. `it('refuse une seconde licence quand la saison en a déjà une')`. Test behavior, not implementation.
 
 ---
 

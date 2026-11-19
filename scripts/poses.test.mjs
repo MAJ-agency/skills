@@ -9,6 +9,9 @@ import { join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { environnementDeBanc } from "../skills/chaine/sujet/scripts/depot-jouet.mjs";
+import { spawn } from "node:child_process";
+import { availableParallelism } from "node:os";
+import { couverture, nomsDesTests, RAPPORTEUR, travaux } from "./tranches.mjs";
 
 const RACINE = fileURLToPath(new URL("..", import.meta.url));
 // [dossier source dans le plugin, dossier de destination dans le projet]
@@ -46,9 +49,12 @@ exit 1
 // `node --test` enfant rend ses résultats au parent au lieu de les jouer et de sortir non nul.
 // Plancher du nombre de tests que l'enfant joue (plus de 170 à l'écriture) : sous lui, le garde ne jouait rien.
 const PLANCHER = 150;
+// Une tranche : au plus TAILLE noms de tests (fusionner.test.mjs, 116 tests, en douze) ; PARALLELE tranches à la fois.
+const TAILLE = 10;
+const PARALLELE = Math.max(2, availableParallelism());
 const env = () => environnementDeBanc();
 
-test("les bancs posés à plat sous scripts/chaine/ tournent hors du plugin", { timeout: 620_000 }, () => {
+test("les bancs posés à plat sous scripts/chaine/ tournent hors du plugin", { timeout: 620_000 }, async () => {
   const projet = mkdtempSync(join(tmpdir(), "poses-"));
   try {
     const poses = new Map();
@@ -70,17 +76,49 @@ test("les bancs posés à plat sous scripts/chaine/ tournent hors du plugin", { 
         .filter((n) => n.endsWith(".test.mjs"))
         .sort()
         .map((n) => join(dossier, n)));
-    const r = spawnSync(process.execPath, ["--test", "--test-reporter=spec", ...bancs], {
-      cwd: projet,
-      env: env(),
-      encoding: "utf8",
-      timeout: 600_000,
-    });
-    const sortie = (r.stdout + r.stderr).trim();
-    const echecs = sortie.split("\n").filter((l) => /^\s*✖/.test(l) || /\bnot ok\b/.test(l));
-    const joues = Number(/^\W*tests\s+(\d+)/m.exec(sortie)?.[1] ?? 0);
-    assert.equal(r.status, 0, [...echecs, ...sortie.split("\n").slice(-40)].join("\n"));
-    assert.ok(joues >= PLANCHER, `l'enfant a joué ${joues} tests, plancher ${PLANCHER} : il ne joue rien (NODE_TEST_CONTEXT hérité ?)\n${sortie.split("\n").slice(-20).join("\n")}`);
+    // Ticket 62 : `node --test` joue les tests d'un fichier l'un après l'autre, et `fusionner.test.mjs` (322 s sur 324
+    // pour tous les bancs) fixait seul la durée de ce test. Chaque banc se joue en tranches d'au plus TAILLE noms,
+    // chacune par son processus, PARALLELE à la fois, les plus gros bancs d'abord ; la couverture prouve que chaque
+    // test a tourné exactement une fois, ceux que la lecture des noms ne reconnaît pas compris (tranche de reste).
+    writeFileSync(join(projet, "rapporteur-tranches.mjs"), RAPPORTEUR);
+    const liste = bancs
+      .map((banc) => travaux(banc, nomsDesTests(readFileSync(join(projet, banc), "utf8")), TAILLE))
+      .sort((a, b) => b.length - a.length)
+      .flat();
+    const jouer = (t, i) =>
+      new Promise((fin) => {
+        const rapport = join(projet, `rapport-${i}.jsonl`);
+        const args = ["--test", "--test-reporter=spec", "--test-reporter-destination=stdout", "--test-reporter=./rapporteur-tranches.mjs", `--test-reporter-destination=${rapport}`, ...t.args];
+        const enfant = spawn(process.execPath, args, { cwd: projet, env: env(), stdio: ["ignore", "pipe", "pipe"] });
+        let sortie = "";
+        enfant.stdout.on("data", (d) => (sortie += d));
+        enfant.stderr.on("data", (d) => (sortie += d));
+        const minuterie = setTimeout(() => enfant.kill("SIGKILL"), 300_000);
+        enfant.on("close", (code, signal) => {
+          clearTimeout(minuterie);
+          let noms = [];
+          try {
+            noms = readFileSync(rapport, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l).nom);
+          } catch {}
+          fin({ t, code, signal, sortie: sortie.trim(), noms });
+        });
+      });
+    const resultats = new Array(liste.length);
+    let suivant = 0;
+    await Promise.all(
+      Array.from({ length: Math.min(PARALLELE, liste.length) }, async () => {
+        while (suivant < liste.length) {
+          const i = suivant++;
+          resultats[i] = await jouer(liste[i], i);
+        }
+      }),
+    );
+    const enEchec = resultats.filter((r) => r.code !== 0);
+    const recit = (r) => [`── ${r.t.banc} (${r.t.sorte}, sortie ${r.code ?? r.signal})`, ...r.sortie.split("\n").filter((l) => /^\s*✖/.test(l) || /\bnot ok\b/.test(l)), ...r.sortie.split("\n").slice(-40)].join("\n");
+    assert.deepEqual(enEchec.map((r) => r.t.banc), [], enEchec.map(recit).join("\n"));
+    assert.deepEqual(couverture(liste, resultats.map((r) => r.noms)), [], "chaque test d'un banc posé tourne exactement une fois");
+    const joues = resultats.reduce((n, r) => n + r.noms.length, 0);
+    assert.ok(joues >= PLANCHER, `les bancs posés ont joué ${joues} tests, plancher ${PLANCHER} : ils ne jouent rien (NODE_TEST_CONTEXT hérité ?)`);
   } finally {
     rmSync(projet, { recursive: true, force: true });
   }

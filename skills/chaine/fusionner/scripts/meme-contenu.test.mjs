@@ -4,7 +4,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { appendFileSync, chmodSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { appendFileSync, chmodSync, existsSync, mkdirSync, readdirSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 // Posé dans un projet, depot-jouet.mjs est à côté (scripts/chaine/) ; dans le plugin, il est dans le skill sujet.
 const { depotJouet, dossierTemporaire, script } = await import(
@@ -1190,4 +1190,120 @@ test("une déclaration ambiguë ne dispense pas : chemin déclaré deux fois, ou
     const V = pousser(d, "feat/a", { "apps/a.ts": "a\n" });
     estMeme(juger(d, V, pousser(d, "feat/a", { [DB]: "1\n" })), /1 commit\(s\) d'index/);
   }
+});
+
+// ── Ticket 62 : le clone partiel nommé, et `safe.directory` lu comme `A-135` et `A-143` le disent ───────────────
+// Un dépôt jouet, une PR mise à jour avec develop : la vraie réponse est « même ».
+function retard() {
+  const d = depotJouet();
+  const V = pousser(d, "feat/a", { "apps/a.ts": "a\n" });
+  pousser(d, "develop", { "docs/b.md": "b\n" });
+  const T = miseAJour(d, "feat/a", "develop", rien);
+  return { d, V, T };
+}
+const PARTIEL = /^dépôt partiel : des objets manquent et ce calcul ne télécharge rien, à cloner en entier avant de l'appeler \(git clone sans --filter\)$/;
+
+test("un clone partiel (`--filter`) : illisible, la raison nomme la cause et le remède ; cloné en entier, la vraie réponse", () => {
+  const { d, V, T } = retard();
+  assert.equal(spawnSync("git", ["config", "uploadpack.allowFilter", "true"], { cwd: d.origine, env: d.env }).status, 0);
+  const clones = dossierTemporaire("clones-");
+  const cloner = (nom, ...options) => {
+    const r = spawnSync("git", ["clone", "-q", "--no-checkout", ...options, `file://${d.origine}`, join(clones, nom)], { env: d.env, encoding: "utf8" });
+    assert.equal(r.status, 0, r.stderr);
+    return join(clones, nom);
+  };
+  const dans = (cwd, ...args) => spawnSync("git", args, { cwd, env: d.env, encoding: "utf8" });
+  const partiel = cloner("partiel", "--filter=blob:none");
+  assert.equal(dans(partiel, "config", "remote.origin.promisor").stdout.trim(), "true", "le montage est bien partiel");
+  estIllisible(juger(d, V, T, "develop", { cwd: partiel }), PARTIEL);
+  estMeme(juger(d, T, T, "develop", { cwd: partiel }), /V est T/); // V égal à T ne lit rien : même, partiel ou non
+  const entier = cloner("entier");
+  estMeme(juger(d, V, T, "develop", { cwd: entier }), /1 fusion\(s\) de origin\/develop/);
+  // Le partiel se reconnaît à la configuration du dépôt, pas à ses objets : un clone entier marqué l'est aussi.
+  for (const [cle, valeur] of [["remote.origin.promisor", "true"], ["extensions.partialclone", "origin"]]) {
+    const marque = cloner(`marque-${cle}`);
+    if (cle.startsWith("extensions.")) assert.equal(dans(marque, "config", "core.repositoryformatversion", "1").status, 0);
+    assert.equal(dans(marque, "config", cle, valeur).status, 0);
+    estIllisible(juger(d, V, T, "develop", { cwd: marque }), PARTIEL);
+  }
+  const faux = cloner("promisor-faux");
+  assert.equal(dans(faux, "config", "remote.origin.promisor", "false").status, 0);
+  estMeme(juger(d, V, T, "develop", { cwd: faux }), /1 fusion\(s\) de origin\/develop/);
+});
+
+test("le dépôt d'un autre propriétaire : illisible ; déclaré sûr (`safe.directory`, portées system et global, lues depuis /), il est lu (A-135, A-143)", () => {
+  const { d, V, T } = retard();
+  // Sans droits particuliers : un `git` de banc, en tête du PATH, fait tenir le dépôt jouet pour celui d'un autre
+  // propriétaire (la variable de test de git), et lui seul : le dépôt propre du calcul reste le sien.
+  const reel = realpathSync(d.travail);
+  const vrai = spawnSync("sh", ["-c", "command -v git"], { env: d.env, encoding: "utf8" }).stdout.trim();
+  const bin = dossierTemporaire("git-autre-");
+  writeFileSync(join(bin, "git"), `#!/bin/sh\ncase "$(pwd -P)/" in ${JSON.stringify(`${reel}/`)}*) GIT_TEST_ASSUME_DIFFERENT_OWNER=1; export GIT_TEST_ASSUME_DIFFERENT_OWNER ;; esac\nexec ${JSON.stringify(vrai)} "$@"\n`, { mode: 0o755 });
+  const configuration = join(dossierTemporaire("configuration-"), "gitconfig");
+  const base = { ...d.env, PATH: `${bin}:${d.env.PATH}` };
+  const lancer = (cwd, env) => {
+    const r = juger(d, V, T, "develop", { cwd, env: { ...base, ...env } });
+    return r.code === 0 ? "lu" : r.code === 21 && r.raison === "pas dans un dépôt git" ? "refusé" : r.sortie;
+  };
+  // La configuration de l'utilisateur ment sur le reste : le calcul n'en reprend que la déclaration.
+  const juge = (declarations, cwd = d.travail, env = {}) => {
+    writeFileSync(configuration, `[core]\n\tbare = true\n\tworktree = /ailleurs\n[safe]\n${declarations.map((v) => `\tdirectory = ${v}\n`).join("")}`);
+    return lancer(cwd, { GIT_CONFIG_GLOBAL: configuration, ...env });
+  };
+  assert.equal(juge([]), "refusé", "le témoin : git refuse le dépôt d'un autre propriétaire");
+  assert.equal(juge([reel]), "lu", "déclaré par son chemin");
+  mkdirSync(join(d.travail, "apps"), { recursive: true });
+  assert.equal(juge([reel], join(d.travail, "apps")), "lu", "depuis un sous-dossier : c'est la racine qui est déclarée");
+  assert.equal(juge(["*"]), "lu", "déclaré par `*`");
+  // Le calcul lit moins que git, jamais plus (A-135) : seule vaut une valeur égale au chemin, ou `*`.
+  const lien = join(dossierTemporaire("lien-"), "depot");
+  symlinkSync(reel, lien);
+  for (const [nom, valeur] of [["une barre finale", `${reel}/`], ["le dossier qui le contient", `${dirname(reel)}/*`], ["un lien symbolique vers lui", lien], ["un sous-dossier", join(reel, "apps")]])
+    assert.equal(juge([valeur]), "refusé", `${nom} : non admis`);
+  for (const valeur of [".", ".."]) assert.equal(juge([valeur], join(d.travail, "apps")), "refusé", `\`${valeur}\` : non admis`);
+  // Entré par un lien symbolique, d'un shell qui garde ce chemin dans PWD : git compare le vrai chemin, le calcul aussi.
+  assert.equal(juge([reel], lien, { PWD: lien }), "lu", "depuis un lien symbolique vers le dépôt : la racine est son vrai chemin");
+  // Une remise à zéro peut se trouver dans ces variables, que ce calcul ne lit pas : avec l'une d'elles, rien n'est admis.
+  assert.equal(juge([reel], d.travail, { GIT_CONFIG_COUNT: "0" }), "refusé", "GIT_CONFIG_COUNT présente");
+  assert.equal(juge(["*"], d.travail, { GIT_CONFIG_PARAMETERS: "'safe.directory='" }), "refusé", "GIT_CONFIG_PARAMETERS présente");
+  assert.equal(juge([`${reel}-autre`, "/ailleurs/*"]), "refusé", "la déclaration d'un autre dépôt ne vaut pas pour celui-ci");
+  assert.equal(juge([reel, ""]), "refusé", "une valeur vide efface les déclarations qui la précèdent, comme pour git");
+  assert.equal(juge(["", reel]), "lu", "une déclaration après la remise à zéro vaut");
+  // Une déclaration dans un fichier que la configuration de l'utilisateur inclut : git la lit, le calcul aussi.
+  const inclus = join(dirname(configuration), "inclus");
+  writeFileSync(inclus, `[safe]\n\tdirectory = ${reel}\n`);
+  writeFileSync(configuration, `[include]\n\tpath = ${inclus}\n`);
+  assert.equal(lancer(d.travail, { GIT_CONFIG_GLOBAL: configuration }), "lu", "déclaré par un fichier inclus");
+  // La portée system : lue si git la lit (GIT_CONFIG_NOSYSTEM absente ou fausse au sens de git), jamais sinon.
+  const systeme = join(dirname(configuration), "systeme");
+  writeFileSync(systeme, "[safe]\n\tdirectory = *\n");
+  const avec = (nosystem) => juge([], d.travail, { GIT_CONFIG_SYSTEM: systeme, GIT_CONFIG_NOSYSTEM: nosystem });
+  assert.equal(juge([], d.travail, { GIT_CONFIG_SYSTEM: systeme, GIT_CONFIG_NOSYSTEM: undefined }), "lu", "déclaré par le système, sans GIT_CONFIG_NOSYSTEM : lu");
+  for (const v of ["0", "false", "off"]) assert.equal(avec(v), "lu", `GIT_CONFIG_NOSYSTEM=${v} est faux pour git : le système est lu`);
+  for (const v of ["1", "true", "yes"]) assert.equal(avec(v), "refusé", `GIT_CONFIG_NOSYSTEM=${v} : git ignore le système, le calcul aussi`);
+  // Les deux fichiers de l'utilisateur, dans l'ordre de git (A-143) : `$XDG_CONFIG_HOME/git/config`, puis
+  // `~/.gitconfig`. `git config --global`, nommé, ne lit que le second quand il existe.
+  const maison = dossierTemporaire("maison-");
+  const xdg = dossierTemporaire("xdg-");
+  mkdirSync(join(xdg, "git"));
+  const exact = join(dirname(configuration), "systeme-exact");
+  writeFileSync(exact, `[safe]\n\tdirectory = ${reel}\n`);
+  const vide = join(dirname(configuration), "systeme-vide");
+  writeFileSync(vide, "");
+  const parXdg = (systemeLu, xdgDit, maisonDit) => {
+    writeFileSync(join(xdg, "git/config"), xdgDit);
+    if (maisonDit === null) rmSync(join(maison, ".gitconfig"), { force: true });
+    else writeFileSync(join(maison, ".gitconfig"), maisonDit);
+    return lancer(d.travail, { HOME: maison, XDG_CONFIG_HOME: xdg, GIT_CONFIG_GLOBAL: undefined, GIT_CONFIG_NOSYSTEM: undefined, GIT_CONFIG_SYSTEM: systemeLu });
+  };
+  const remise = "[safe]\n\tdirectory =\n";
+  const sansSafe = "[user]\n\tname = x\n";
+  assert.equal(parXdg(exact, remise, sansSafe), "refusé", "le système déclare, XDG remet à zéro, `~/.gitconfig` existe sans rien en dire : git refuse, le calcul aussi");
+  assert.equal(parXdg(exact, "", sansSafe), "lu", "le témoin : sans la remise à zéro, la déclaration du système vaut");
+  assert.equal(parXdg(vide, `[safe]\n\tdirectory = ${reel}\n`, sansSafe), "lu", "XDG déclare, `~/.gitconfig` existe sans rien en dire : git admet, le calcul aussi");
+  assert.equal(parXdg(vide, `[safe]\n\tdirectory = ${reel}\n`, remise), "refusé", "XDG déclare, `~/.gitconfig`, lu après lui, remet à zéro");
+  assert.equal(parXdg(vide, remise, `[safe]\n\tdirectory = ${reel}\n`), "lu", "XDG remet à zéro, `~/.gitconfig`, lu après lui, déclare");
+  // Une valeur à saut de ligne : sa suite n'est la ligne d'aucune portée, rien n'est admis.
+  assert.equal(parXdg(vide, `[safe]\n\tdirectory = "x\\n${reel}"\n\tdirectory = *\n`, null), "refusé", "une valeur à saut de ligne");
+  assert.equal(parXdg(vide, `[safe]\n\tdirectory = "${reel}\\n"\n`, null), "refusé", "une valeur que suit un saut de ligne n'est pas le chemin");
 });

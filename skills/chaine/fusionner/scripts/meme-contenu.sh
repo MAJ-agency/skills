@@ -41,6 +41,17 @@
 #   S4  la fusion calculée ne lit aucun attribut (`--attr-source=<arbre vide>`, git ≥ 2.41) : une fusion faite
 #       sous un pilote (`merge=union`, `merge=ours`) s'en écarte, donc `différent`.
 #
+# Le dépôt réel se lit sans configuration d'utilisateur ni de poste, à une exception près (A-135, A-143) : le
+# `safe.directory` par lequel l'utilisateur a déclaré sûr ce dépôt-ci, sans quoi git refuse le dépôt d'un autre
+# propriétaire. Les déclarations sont celles que git lit hors de tout dépôt, aux portées `system` et `global`, dans
+# son ordre (`git config --show-scope --includes --get-all safe.directory`, joué depuis `/` : `--global`, nommé, ne
+# lirait pas le fichier XDG quand `~/.gitconfig` existe). Ne vaut qu'une valeur égale à la racine du dépôt (le
+# premier dossier, en remontant du dossier courant sans lien symbolique, qui porte `.git`), caractère pour caractère,
+# ou `*` ; une valeur vide efface celles qui la précèdent ; une ligne d'une autre forme, ou `GIT_CONFIG_COUNT` ou
+# `GIT_CONFIG_PARAMETERS` dans l'environnement : rien n'est admis. Le calcul lit moins que git, jamais plus.
+# Un dépôt partiel (`--filter` : `remote.<nom>.promisor` ou `extensions.partialclone` dans sa configuration) est
+# `illisible`, et la raison le dit : le dépôt propre ne télécharge aucun objet manquant.
+#
 # Sortie standard : une seule ligne, le verdict. Sortie d'erreur : une ligne, sa raison. Un argument refusé n'est
 # jamais recopié. Sorties : 0 `même` · 20 `différent` · 21 `illisible` (usage, dépôt, réf, liste, dossier
 # temporaire, git en échec ou lecture vide : jamais `même`) · 69 `illisible`, outil absent (git, jq, mktemp, rm) ou
@@ -81,6 +92,14 @@ V=$1 T=$2 B=$3
 for outil in git jq mktemp rm; do
   command -v "$outil" >/dev/null || rendre 69 illisible "$outil est requis par les scripts de la chaîne (jq : sudo apt install jq, ou brew install jq)"
 done
+# A-143 : où vit la configuration de l'utilisateur et du poste, pour la seule lecture de `safe.directory` ; et
+# A-135 : une déclaration par `git -c` ou par ces deux variables n'est pas lue, et leur présence n'admet rien.
+LIEU=()
+for variable in GIT_CONFIG_GLOBAL GIT_CONFIG_SYSTEM GIT_CONFIG_NOSYSTEM; do
+  [ -z "${!variable+x}" ] || LIEU+=("$variable=${!variable}")
+done
+parametres=0
+if [ -n "${GIT_CONFIG_COUNT+x}" ] || [ -n "${GIT_CONFIG_PARAMETERS+x}" ]; then parametres=1; fi
 # Aucune variable GIT_* héritée, sauf celle qui borne la recherche du dépôt.
 for variable in $(compgen -v GIT_); do
   [ "$variable" = GIT_CEILING_DIRECTORIES ] || unset "$variable"
@@ -90,12 +109,55 @@ version=$(git version 2>/dev/null) || rendre 69 illisible "git version en échec
 [ "${BASH_REMATCH[1]}" -gt 2 ] || { [ "${BASH_REMATCH[1]}" = 2 ] && [ "${BASH_REMATCH[2]}" -ge 41 ]; } ||
   rendre 69 illisible "git ≥ 2.41 requis, ici ${BASH_REMATCH[1]}.${BASH_REMATCH[2]}"
 
-# ── Le dépôt réel : où sont ses objets, le sha de la cible, s'il est superficiel. Rien d'autre. ────────────────
-git rev-parse --git-dir >/dev/null 2>&1 || illisible "pas dans un dépôt git"
-[[ "$B" != *[[:cntrl:][:space:]]* ]] && [ "$B" != HEAD ] && git check-ref-format "refs/remotes/origin/$B" 2>/dev/null ||
+# ── safe.directory (A-135, A-143) : la racine du dépôt, si l'utilisateur ou le poste l'a déclarée sûre ─────────
+# La racine est celle que git compare : le premier dossier, en remontant, qui porte `.git`.
+sur=''
+racine=$(pwd -P 2>/dev/null) && [[ "$racine" == /* ]] || racine=''
+while [ -n "$racine" ] && ! [ -e "${racine%/}/.git" ]; do
+  if [ "$racine" = / ]; then racine=''; else racine=${racine%/*}; racine=${racine:-/}; fi
+done
+if [ -n "$racine" ] && [ "$parametres" = 0 ]; then
+  # Lues par git lui-même, hors de tout dépôt, avec les seules variables qui disent où vit cette configuration ; le
+  # point final garde les sauts de ligne de la fin. Aucune déclaration, ou git en échec : rien n'est admis (la
+  # première lecture du dépôt dira s'il est refusé).
+  lu=$(
+    for kv in ${LIEU[@]+"${LIEU[@]}"}; do export "${kv%%=*}=${kv#*=}"; done
+    cd / && git config --show-scope --includes --get-all safe.directory 2>/dev/null && printf .
+  ) || lu=''
+  declares=() admis=1 TAB=$'\t'
+  [[ "$lu" == *. ]] || admis=0
+  reste=${lu%.}
+  while [ "$admis" = 1 ] && [[ "$reste" == *$'\n'* ]]; do
+    l=${reste%%$'\n'*} reste=${reste#*$'\n'}
+    # Une ligne d'une autre portée, ou la suite d'une valeur à saut de ligne : rien n'est admis.
+    if [[ "$l" =~ ^(system|global)"$TAB"(.*)$ ]]; then
+      # Comme git : une valeur vide efface les déclarations qui la précèdent.
+      if [ -z "${BASH_REMATCH[2]}" ]; then declares=(); else declares+=("${BASH_REMATCH[2]}"); fi
+    else admis=0; fi
+  done
+  [ -z "$reste" ] || admis=0
+  if [ "$admis" = 1 ]; then
+    for v in ${declares[@]+"${declares[@]}"}; do
+      if [ "$v" = '*' ] || [ "$v" = "$racine" ]; then sur=$racine; fi
+    done
+  fi
+fi
+# Les lectures du dépôt réel : sans configuration d'utilisateur ni de poste, sauf la déclaration de ce dépôt.
+r() {
+  if [ -n "$sur" ]; then
+    GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_SYSTEM=/dev/null GIT_CONFIG_NOSYSTEM=1 \
+      GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=safe.directory GIT_CONFIG_VALUE_0="$sur" git "$@"
+  else
+    GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_SYSTEM=/dev/null GIT_CONFIG_NOSYSTEM=1 git "$@"
+  fi
+}
+
+# ── Le dépôt réel : où sont ses objets, le sha de la cible, s'il est superficiel ou partiel. Rien d'autre. ──────
+r rev-parse --git-dir >/dev/null 2>&1 || illisible "pas dans un dépôt git"
+[[ "$B" != *[[:cntrl:][:space:]]* ]] && [ "$B" != HEAD ] && r check-ref-format "refs/remotes/origin/$B" 2>/dev/null ||
   illisible "nom de branche cible invalide"
-! git symbolic-ref -q "refs/remotes/origin/$B" >/dev/null 2>&1 || illisible "origin/$B est une réf symbolique, pas une branche"
-objets=$(git rev-parse --path-format=absolute --git-path objects 2>/dev/null) && [[ "$objets" == /* ]] && [[ "$objets" != *$'\n'* ]] && [ -d "$objets" ] ||
+! r symbolic-ref -q "refs/remotes/origin/$B" >/dev/null 2>&1 || illisible "origin/$B est une réf symbolique, pas une branche"
+objets=$(r rev-parse --path-format=absolute --git-path objects 2>/dev/null) && [[ "$objets" == /* ]] && [[ "$objets" != *$'\n'* ]] && [ -d "$objets" ] ||
   illisible "dossier des objets du dépôt illisible"
 
 # ── S1 : le dépôt propre ────────────────────────────────────────────────────────────────────────────────────
@@ -118,9 +180,23 @@ VIDE=$(p hash-object -w -t tree --stdin </dev/null 2>/dev/null) && [[ "$VIDE" =~
 BRUIT=$(p cat-file -e "$T^{commit}" 2>&1) || illisible "T introuvable dans ce dépôt : $T"
 [ "$V" != "$T" ] || meme "V est T"
 
-superficiel=$(git rev-parse --is-shallow-repository 2>/dev/null) || illisible "git rev-parse --is-shallow-repository en échec"
+superficiel=$(r rev-parse --is-shallow-repository 2>/dev/null) || illisible "git rev-parse --is-shallow-repository en échec"
 [ "$superficiel" = false ] || illisible "dépôt superficiel : l'historique est tronqué, à approfondir avant d'appeler ce calcul (git fetch --unshallow origin)"
-cible=$(git rev-parse -q --verify "refs/remotes/origin/$B" 2>/dev/null) && [[ "$cible" =~ $SHA ]] ||
+# Un clone partiel : git le marque dans la configuration du dépôt, par un dépôt distant « promisor ». Sortie 1 :
+# aucune clé ne répond ; toute autre sortie en échec : illisible.
+partiel=$(r config --local --get-regexp '^(extensions\.partialclone|remote\..+\.promisor)$' 2>/dev/null) && rc=0 || rc=$?
+case $rc in
+  0)
+    decouper "$partiel"
+    for l in ${LIGNES[@]+"${LIGNES[@]}"}; do
+      [[ "$l" == *' false' ]] ||
+        illisible "dépôt partiel : des objets manquent et ce calcul ne télécharge rien, à cloner en entier avant de l'appeler (git clone sans --filter)"
+    done
+    ;;
+  1) ;;
+  *) illisible "configuration du dépôt illisible (git config en échec, $rc)" ;;
+esac
+cible=$(r rev-parse -q --verify "refs/remotes/origin/$B" 2>/dev/null) && [[ "$cible" =~ $SHA ]] ||
   illisible "origin/$B introuvable : relire la cible d'abord"
 p cat-file -e "$cible^{commit}" 2>/dev/null || illisible "origin/$B n'est pas un commit lisible"
 p cat-file -e "$V^{commit}" 2>/dev/null || different "V introuvable dans ce dépôt (branche réécrite ?) : $(court "$V")"
