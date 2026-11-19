@@ -907,6 +907,19 @@ test("le skill de criticité : sa description (au plus 1 024 caractères, sans �
   assert.deepEqual(absentes, [], `prompt.md : familles absentes : ${absentes.join(", ")}`);
 });
 
+test("recevoir develop dans un sujet est le geste du capitaine seul : le conducteur constate par un fetch à refspecs explicites et ne lance jamais rafraichir", () => {
+  const chemin = `${SKILLS_CHAINE}/chantier/SKILL.md`;
+  exiger(chemin, [
+    "le conducteur ne lance jamais `sujet.sh rafraichir`",
+    "`git fetch -q origin '+refs/heads/develop:refs/remotes/origin/develop' '+refs/heads/sujet/<nom>:refs/remotes/origin/sujet/<nom>'`",
+    "puis `git merge-base --is-ancestor origin/develop origin/sujet/<nom>`. Sortie 0, sujet à jour : il continue. Sortie 1, sujet en retard : aucune vague ne part",
+    "n'est ni « à jour » ni « en retard »",
+  ]);
+  const texte = readFileSync(join(RACINE, chemin), "utf8");
+  assert.ok(!texte.includes("sujet.sh rafraichir <"), `${chemin} : le conducteur n'est plus invité à lancer rafraichir`);
+  assert.ok(!texte.includes("git fetch -q origin develop sujet/"), `${chemin} : le constat ne se fait pas sur un fetch nu, qui laisse origin/sujet/<nom> périmée dans un clone --single-branch`);
+});
+
 test("qui rédige une règle, et quand : l'architecte, le conducteur, le skill tickets, le tracker et la fiche d'Anchorpost le disent, et l'architecte cite le gabarit et la fiche", () => {
   exiger(`${SKILLS_CHAINE}/architecte/SKILL.md`, [
     "4. **Les règles qu'elle porte** : l'architecte écrit le fichier de chaque règle nouvelle, `candidate`, à cette étape, après le grilling et avant tout code, d'après le gabarit `docs/agents/gabarits/regle.md` et la fiche d'écriture `.claude/rules/anchorpost.md` du projet (dans `skills`, `skills/chaine/tickets/references/gabarits/regle.md` et `skills/chaine/anchorpost/references/rules/anchorpost.md`). Puis il lance lui-même le skill `criticite` sur chaque règle : si l'index du projet est au pivot 3, il la classe, écrit le niveau rendu ou un plus haut, et porte la commande jouée et chaque sortie brute dans la section `## Criticité` de la PR de documentation ; sinon le skill le dit et s'arrête, et la règle reste « à classer ». Un sous-agent qui rédige une règle ne lance pas ce skill : l'architecte le lance, le fichier écrit. 5. **Validée, puis passée au conducteur.** La spec est **validée** quand le produit l'a dit : la date et la décision vont dans la carte. Ses règles écrites, et classées si l'index est au pivot 3, le chantier passe alors au conducteur (§ 4).",
