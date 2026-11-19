@@ -395,9 +395,9 @@ const mentions = (d, ref = "origin/develop") =>
     encoding: "utf8",
   });
 // develop porte le schéma et, sauf `contrat: null`, le contrat ; `feat/pr` en part (HEAD), puis develop reçoit `develop`.
-function mentionsJouet(develop, contrat = { fusionsSansEffet: [ENTREE] }) {
+function mentionsJouet(develop, contrat = { fusionsSansEffet: [ENTREE] }, base = BASE_SCHEMA) {
   const d = depotJouet();
-  d.ecrire(SCHEMA, BASE_SCHEMA);
+  d.ecrire(SCHEMA, base);
   if (contrat !== null) d.ecrire(".claude/chaine.json", JSON.stringify(contrat));
   d.commit("chore: schéma et contrat");
   d.git("push", "-q", "origin", "HEAD:develop");
@@ -454,6 +454,18 @@ test("mentions_de_fusion : une ligne qui ne correspond à l'expression qu'en par
   // La même expression, sur un commentaire seul : la mention.
   const c = mentionsJouet({ [SCHEMA]: `// note\n${BASE_SCHEMA}` }, { fusionsSansEffet: [{ ...ENTREE, lignesSansEffet: "[[:space:]]*//.*|}" }] });
   verdict(mentions(c), `${MENTION}\n`, "");
+});
+
+test("mentions_de_fusion : fin de ligne CRLF et dernière ligne sans fin de ligne, lues comme les autres lignes", () => {
+  // Fichier en CRLF : un commentaire et une ligne vide en \r\n sont sans effet ; un modèle en \r\n reste un changement réel.
+  const crlf = (t) => t.replace(/\n/g, "\r\n");
+  verdict(mentions(mentionsJouet({ [SCHEMA]: crlf(`// note\n\n${BASE_SCHEMA}`) }, undefined, crlf(BASE_SCHEMA))), `${MENTION}\n`, "");
+  verdict(mentions(mentionsJouet({ [SCHEMA]: crlf(`${BASE_SCHEMA}model B {\n}\n`) }, undefined, crlf(BASE_SCHEMA))), "", REEL);
+  // Dernière ligne sans fin de ligne : la ligne « \\ No newline at end of file » du diff n'est pas un changement.
+  const sansFin = "model A {\n  id Int\n}";
+  verdict(mentions(mentionsJouet({ [SCHEMA]: `// note\n${sansFin}` }, undefined, sansFin)), `${MENTION}\n`, "");
+  // La dernière ligne qui reçoit sa fin de ligne change (« } » retirée puis ajoutée) : changement réel, jamais une mention.
+  verdict(mentions(mentionsJouet({ [SCHEMA]: `${sansFin}\n// note\n` }, undefined, sansFin)), "", REEL);
 });
 
 test("mentions_de_fusion : une entrée mal formée ne donne aucune mention, son motif sur la sortie d'erreur", () => {
