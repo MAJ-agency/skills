@@ -576,6 +576,36 @@ test("livrer en phase 4 : la PR part d'une branche jetable, sujet/<nom> reste", 
   assert.match(d.git("ls-remote", "--heads", "origin", pr.champs.head), /livraison\/demo-/);
 });
 
+const sousPR = (number, draft) => ({ number, title: `sous-PR ${number}`, draft, state: "open", base: "sujet/demo", head: `fix/${number}` });
+
+test("livrer en phase 4 : une sous-PR en brouillon ne bloque pas, le corps la dit hors de la livraison", () => {
+  const d = sujetAvecCarte("4-vagues");
+  d.github({ pulls: [sousPR(683, true)] });
+  const r = d.lancer(SCRIPT, "livrer", "demo", "feat(demo): livraison intermédiaire");
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  const pr = teteDeLaPR(d);
+  assert.match(pr.champs.head, /^livraison\/demo-\d{8}-\d{4}$/);
+  assert.match(pr.champs.body, /Hors de cette livraison : #683, en brouillon sur `sujet\/demo`/);
+});
+
+test("livrer en 5-livraison : une sous-PR en brouillon bloque (le sujet disparaît), sortie 4, aucune PR", () => {
+  const d = sujetAvecCarte("5-livraison");
+  d.github({ pulls: [sousPR(683, true)] });
+  const r = d.lancer(SCRIPT, "livrer", "demo", "feat(demo): livraison");
+  assert.equal(r.status, 4, r.stdout + r.stderr);
+  assert.match(r.stdout + r.stderr, /sous-PR en brouillon visent encore sujet\/demo \(#683\)/);
+  assert.deepEqual(d.journal().filter((e) => e.methode === "POST"), []);
+});
+
+test("livrer en phase 4 : une sous-PR prête bloque toujours, nommée, sortie 4, aucune PR", () => {
+  const d = sujetAvecCarte("4-vagues");
+  d.github({ pulls: [sousPR(681, false), sousPR(683, true)] });
+  const r = d.lancer(SCRIPT, "livrer", "demo", "feat(demo): livraison intermédiaire");
+  assert.equal(r.status, 4, r.stdout + r.stderr);
+  assert.match(r.stdout + r.stderr, /des sous-PR visent encore sujet\/demo \(#681\)/);
+  assert.deepEqual(d.journal().filter((e) => e.methode === "POST"), []);
+});
+
 test("livrer en 5-livraison : la PR part de sujet/<nom>, comme avant", () => {
   const d = sujetAvecCarte("5-livraison");
   const r = d.lancer(SCRIPT, "livrer", "demo", "feat(demo): livraison");

@@ -2,6 +2,18 @@
 
 La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque projet par `poser` : une version publiée ne change rien chez un projet qui ne les repose pas. Chaque note dit ce qui change, puis ce qu'un projet fait pour en profiter.
 
+## 7.32.0 — 2026-11-19
+
+### Ce qui change
+
+- **`sujet.sh livrer` et les brouillons.** Une sous-PR en brouillon ne bloque plus une livraison **intermédiaire** : le sujet survit à la fusion, le brouillon y reste, et le corps de la PR le dit « hors de cette livraison » (#683 d'Iroki, la nuit du 19/11, retenait la livraison n°10). Une livraison **finale** reste refusée (sortie 4) : elle supprime le sujet, donc la base du brouillon. Une sous-PR prête bloque toujours, et le refus nomme désormais les numéros. Une lecture de GitHub vide reste « illisible » (sortie 14), jamais « aucune sous-PR ».
+- **`coverage-diff`** (MAJ-agency/skills#44, report du correctif d'Iroki) : le compte des suites lit la ligne « Test Files » malgré les codes ANSI (`compterSuites`), et un seuil non tenu finit par « coverage-diff: couverture insuffisante », le fichier, la mesure et le seuil (`messageEchec`).
+
+### Ce qu'un projet fait pour en profiter
+
+1. Mettre à jour le plugin (comme pour 7.31.0, étape 1).
+2. Reposer les scripts dans une PR du projet : `/maj-skills:sujet poser` (et `/maj-skills:socle-tests poser` pour `coverage-diff`). Rien à changer dans `CLAUDE.md`.
+
 ## 7.31.0 — 2026-11-19
 
 ### Ce qui change

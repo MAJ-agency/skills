@@ -1063,7 +1063,7 @@ derniere_ligne() { { grep . "$1" || true; } | tail -n 1 | masquer_url; }
 
 livrer() {
   local nom=${1:?nom du sujet} titre=${2:?titre de la PR finale (Conventional Commits)}
-  local branche="sujet/$nom" corps n tete phase statut intermediaire='' ouvertes sansgh='' cause='' erreur poussee=''
+  local branche="sujet/$nom" corps n tete phase statut intermediaire='' sous_prs pretes='' brouillons='' sansgh='' cause='' erreur poussee=''
   git_masque fetch -q origin develop "$branche"
   refuser_si_gele "$nom"
   # Livraison intermédiaire : carte en phase d'avant `5-livraison`. La PR part d'une
@@ -1078,9 +1078,17 @@ livrer() {
   elif [ -z "$(gh api user --jq .login 2>"$erreur" </dev/null)" ]; then
     sansgh=1 cause="compte illisible ($(derniere_ligne "$erreur"))"
   else
-    ouvertes=$(gh api "$DEPOT/pulls?state=open&base=$(uri "$branche")" --jq length 2>"$erreur" </dev/null) || ouvertes=''
-    if [[ "$ouvertes" =~ ^[0-9]+$ ]]; then
-      [ "$ouvertes" = 0 ] || { rm -f "$erreur"; sortir 4 "des sous-PR visent encore $branche : les fusionner ou les fermer avant de livrer"; }
+    # Une ligne par sous-PR ouverte : « <numéro> <true|false> » (brouillon ou non), puis « fin » : une lecture vide
+    # (sans « fin ») reste illisible, jamais « aucune sous-PR ».
+    sous_prs=$(gh api "$DEPOT/pulls?state=open&base=$(uri "$branche")" --jq '(.[] | "\(.number) \(.draft)"), "fin"' 2>"$erreur" </dev/null) || sous_prs=''
+    if [ "$(printf '%s\n' "$sous_prs" | tail -n 1)" = fin ]; then
+      pretes=$(printf '%s\n' "$sous_prs" | awk '$2 == "false" { printf "#%s ", $1 }')
+      brouillons=$(printf '%s\n' "$sous_prs" | awk '$2 == "true" { printf "#%s ", $1 }')
+      # Une sous-PR prête attend sa fusion : jamais livrée sans elle. Un brouillon bloque une livraison finale
+      # (le sujet disparaît, sa base avec) ; une livraison intermédiaire le laisse sur le sujet, qui survit.
+      [ -z "$pretes" ] || { rm -f "$erreur"; sortir 4 "des sous-PR visent encore $branche (${pretes% }) : les fusionner ou les fermer avant de livrer"; }
+      [ -z "$brouillons" ] || [ -n "$intermediaire" ] ||
+        { rm -f "$erreur"; sortir 4 "des sous-PR en brouillon visent encore $branche (${brouillons% }) : une livraison finale supprime le sujet, les fusionner ou les fermer avant"; }
     else
       # lecture en échec : jamais lue comme des sous-PR ouvertes
       sansgh=1 cause="lecture des sous-PR illisible ($(derniere_ligne "$erreur"))"
@@ -1095,6 +1103,8 @@ livrer() {
     git log --first-parent --no-merges --reverse --format='- %s' "origin/develop..origin/$branche"
     if [ -n "$intermediaire" ]; then
       printf '\nLivraison intermédiaire : la PR part d'\''une branche jetable, `%s` survit à la fusion.\n' "$branche"
+      [ -z "${brouillons:-}" ] ||
+        printf '\nHors de cette livraison : %s, en brouillon sur `%s`, entreront à la suivante.\n' "${brouillons% }" "$branche"
     fi
   )
   if [ -n "$intermediaire" ]; then
