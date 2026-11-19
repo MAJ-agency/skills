@@ -3,7 +3,7 @@
 // GitHub est simulé par le faux `gh` du dépôt jouet ; aucun réseau.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { chmodSync, writeFileSync } from "node:fs";
+import { chmodSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { depotJouet, script } from "./depot-jouet.mjs";
 
@@ -43,6 +43,18 @@ test("demarrer accepte le ticket une fois son bloquant fait sur le sujet", () =>
   const d = sujetAvecTickets("01");
   d.git("switch", "-q", "-c", "tmp", "origin/sujet/demo");
   d.ecrire(ticket("01"), "# .01\n\nStatus: Fait — PR #1\nBlocked by: —\n");
+  d.commit("feat: .01");
+  d.git("push", "-q", "origin", "HEAD:sujet/demo");
+  d.git("switch", "-q", "feat/spec-all-dem-1-02-travail");
+  const r = demarrer(d, "SPEC_ALL_DEM-1.02");
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /^base=sujet\/demo$/m);
+});
+
+test("demarrer accepte un bloquant fait même quand son fichier dépasse le tampon d'un tube (SIGPIPE sous pipefail)", () => {
+  const d = sujetAvecTickets("01");
+  d.git("switch", "-q", "-c", "tmp", "origin/sujet/demo");
+  d.ecrire(ticket("01"), "# .01\n\nStatus: Fait — PR #1\nBlocked by: —\n" + "x".repeat(1024 * 1024) + "\n");
   d.commit("feat: .01");
   d.git("push", "-q", "origin", "HEAD:sujet/demo");
   d.git("switch", "-q", "feat/spec-all-dem-1-02-travail");
@@ -557,6 +569,54 @@ test("livrer en 5-livraison : la PR part de sujet/<nom>, comme avant", () => {
   assert.equal(pr.champs.head, "sujet/demo");
   assert.doesNotMatch(pr.champs.body, /intermédiaire/);
   assert.equal(d.git("ls-remote", "--heads", "origin", "livraison/*"), "");
+});
+
+test("livrer ouvre la PR sans à-fusionner, et le dit", () => {
+  const d = sujetAvecCarte("5-livraison");
+  const r = d.lancer(SCRIPT, "livrer", "demo", "feat(demo): livraison");
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /^PR #\d+ ouverte \(sujet\/demo → develop\), sans à-fusionner : le poser après la relecture de la PR$/m);
+  const j = d.journal();
+  assert.equal(j.filter((e) => e.methode === "POST" && e.route === "pulls").length, 1);
+  assert.deepEqual(j.filter((e) => /labels$/.test(e.route)), []);
+});
+
+test("livrer sans gh utilisable : sortie 14, fichier de titre et de corps hors de l'arbre, aucune PR, l'aide MCP affichée", () => {
+  const d = sujetAvecCarte("5-livraison");
+  d.github({ pulls: [], compteIllisible: true });
+  const r = d.lancer(SCRIPT, "livrer", "demo", "feat(demo): livraison");
+  assert.equal(r.status, 14, r.stdout + r.stderr);
+  assert.match(r.stdout, /PR NON OUVERTE \(gh indisponible\)/);
+  assert.match(r.stdout, /list_pull_requests\(owner: "[^"]+", repo: "[^"]+", base: "sujet\/demo", state: "open"\)/);
+  assert.match(r.stdout, /create_pull_request\(owner: "[^"]+", repo: "[^"]+", base: "develop", head: "sujet\/demo"/);
+  const chemin = /Fichier : (\S+)/.exec(r.stdout)[1];
+  assert.ok(chemin.startsWith("/"));
+  const fichier = readFileSync(chemin, "utf8").split("\n");
+  assert.equal(fichier[0], "feat(demo): livraison");
+  assert.equal(fichier[1], "");
+  assert.match(fichier.slice(2).join("\n"), /## Sous-PR/);
+  assert.equal(chemin, join(d.git("rev-parse", "--path-format=absolute", "--git-common-dir").trim(), "livraison-demo.md"));
+  assert.deepEqual(d.journal().filter((e) => e.methode === "POST"), []);
+  assert.equal(d.git("status", "--porcelain").trim(), "");
+});
+
+test("livrer : une lecture des sous-PR vide n'est pas « des sous-PR ouvertes » mais « sans gh » (14), aucune PR", () => {
+  const d = sujetAvecCarte("5-livraison");
+  d.github({ pulls: [], pannes: [{ route: "^pulls\\?state=open", code: 0, erreur: "" }] });
+  const r = d.lancer(SCRIPT, "livrer", "demo", "feat(demo): livraison");
+  assert.equal(r.status, 14, r.stdout + r.stderr);
+  assert.doesNotMatch(r.stdout, /des sous-PR visent encore/);
+  assert.deepEqual(d.journal().filter((e) => e.methode === "POST"), []);
+});
+
+test("livrer sans gh utilisable en phase 4 : la branche jetable est poussée, le fichier nomme sa tête", () => {
+  const d = sujetAvecCarte("4-vagues");
+  d.github({ pulls: [], compteIllisible: true });
+  const r = d.lancer(SCRIPT, "livrer", "demo", "feat(demo): livraison intermédiaire");
+  assert.equal(r.status, 14, r.stdout + r.stderr);
+  const tete = /head: "(livraison\/demo-\d{8}-\d{4})"/.exec(r.stdout)[1];
+  assert.match(d.git("ls-remote", "--heads", "origin", tete), /livraison\/demo-/);
+  assert.deepEqual(d.journal().filter((e) => e.methode === "POST"), []);
 });
 
 // =============================================================================

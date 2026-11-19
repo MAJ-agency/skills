@@ -27,11 +27,13 @@
 #   rafraichir <nom> [--abandon-si-conflit]
 #                         fusionne develop dans sujet/<nom> (jamais de rebase), index régénérés ;
 #                         `--abandon-si-conflit` (capitaine) annule la fusion au lieu de la laisser en cours
-#   livrer <nom> <titre>  ouvre la PR sujet/<nom> → develop, étiquetée `à-fusionner` ; refuse une migration
+#   livrer <nom> <titre>  ouvre la PR sujet/<nom> → develop, SANS `à-fusionner` (la session qui livre le pose après la
+#                         relecture de la PR) ; sans `gh` utilisable, écrit le titre et le corps dans un fichier et sort
+#                         en 14 (ouverture par l'outil GitHub MCP) ; refuse une migration
 #                         plus ancienne que la dernière de develop, et tant qu'une sous-PR est ouverte ;
 #                         livraison intermédiaire (carte avant `5-livraison`) : la PR part de `livraison/<nom>-<date>`, jetable, et `sujet/<nom>` survit
 #   livrer-prets [--dry-run]
-#                         (capitaine) livre chaque sujet « prêt à livrer », sauf label `sujet-manuel` :
+#                         (capitaine) livre et étiquette `à-fusionner` chaque sujet « prêt à livrer », sauf label `sujet-manuel` :
 #                         plus de sous-PR ouverte, ET tickets déclarés (`Sujet:`) tous faits ou label
 #                         `sujet-auto` (né d'un regroupement) : un ticket pas commencé n'a pas de PR
 #                         (#575, 15/10) ; `--dry-run` affiche sans rien écrire
@@ -89,6 +91,7 @@
 # propre (`fusionner`, `rafraichir`, `regrouper`, `relancer` : à nettoyer par qui lance, jamais un renvoi de la PR,
 # comme la sortie 6 de passer.sh) · 7 `fusionner` d'une PR fermée, en brouillon ou d'un sujet gelé (rien à
 # corriger : sautée) · 9 `carte <nom>` refusée, ou `geler`/`degeler` dont le push échoue deux fois (rien n'est poussé)
+# 14 `livrer` : `gh` inutilisable ou lecture GitHub en échec, PR non ouverte, fichier de livraison écrit (ouvrir par l'outil GitHub MCP)
 # `fusionner`, `rafraichir`, `relancer`, `livrer` : 5 la branche a bougé pendant l'écriture, relancer ; `relancer` : 5 aussi sur une PR illisible (GitHub)
 # `fusionner` encore : la sous-PR a bougé pendant sa mise à jour, ses checks sont encore en cours après l'attente sur un
 # sommet que le capitaine n'a pas poussé, ou le sujet a bougé trois fois pendant la CI (reprise au tour suivant, aucun
@@ -196,7 +199,10 @@ bloquants() {
   if [ -n "$ids" ]; then printf '%s\n' "$ids"; else printf '? %s\n' "$ligne"; fi
 }
 
-fait_sur() { git show "$1:$2" | grep -m1 -E '^(- )?\**Status\**\s*:' | grep -qiE ':\** *(resolved|fait|done)'; }
+# awk lit tout le flux : `grep -m1` fermerait le tube, git show recevrait SIGPIPE, et sous pipefail un bloquant fait passerait pour « pas encore fait ».
+fait_sur() {
+  git show "$1:$2" | awk '!vu && /^(- )?\**Status\**[[:space:]]*:/ { vu = 1; l = tolower($0); if (l ~ /:\** *(resolved|fait|done)/) ok = 1 } END { exit !ok }'
+}
 
 # Garde-fous de `demarrer` (cas vécus) : la spec et le ticket doivent être sur la base
 # (une branche partie d'une branche de specs non fusionnée tombe en conflit au squash des specs),
@@ -931,7 +937,7 @@ rafraichir() {
 
 livrer() {
   local nom=${1:?nom du sujet} titre=${2:?titre de la PR finale (Conventional Commits)}
-  local branche="sujet/$nom" corps n tete phase statut intermediaire=''
+  local branche="sujet/$nom" corps n tete phase statut intermediaire='' ouvertes sansgh=''
   git_masque fetch -q origin develop "$branche"
   refuser_si_gele "$nom"
   # Livraison intermédiaire : carte en phase d'avant `5-livraison`. La PR part d'une
@@ -939,8 +945,17 @@ livrer() {
   phase=$(phase_carte "$nom")
   case "$phase" in '' | 5-livraison* | 6-nettoyage* | fini*) ;; *) intermediaire=1 ;; esac
   tete=$branche
-  [ "$(gh api "$DEPOT/pulls?state=open&base=$(uri "$branche")" --jq length)" = 0 ] ||
-    sortir 4 "des sous-PR visent encore $branche : les fusionner ou les fermer avant de livrer"
+  # `gh` utilisable : présent et connecté. Sinon (ou lecture en échec) : tout ce que git permet, puis le fichier et la sortie 14.
+  if ! command -v gh >/dev/null 2>&1 || [ -z "$(gh api user --jq .login 2>/dev/null </dev/null)" ]; then
+    sansgh=1
+  else
+    ouvertes=$(gh api "$DEPOT/pulls?state=open&base=$(uri "$branche")" --jq length 2>/dev/null </dev/null) || ouvertes=''
+    if [[ "$ouvertes" =~ ^[0-9]+$ ]]; then
+      [ "$ouvertes" = 0 ] || sortir 4 "des sous-PR visent encore $branche : les fusionner ou les fermer avant de livrer"
+    else
+      sansgh=1 # lecture en échec : jamais lue comme des sous-PR ouvertes
+    fi
+  fi
   # Ordre des migrations : seul l'ordre d'arrivée dans develop compte (migrations-ordre.mjs).
   ordre="$ici/migrations-ordre.mjs"
   [ -f "$ordre" ] || ordre="$ici/../../fusionner/scripts/migrations-ordre.mjs"
@@ -962,9 +977,39 @@ livrer() {
       *) sortir 11 "livraison intermédiaire $tete : push refusé par le distant, sans trace du hook pre-push : côté capitaine ou du distant, rien à corriger côté PR ; sortie ci-dessus ; aucune PR ouverte" ;;
     esac
   fi
-  n=$(gh api -X POST "$DEPOT/pulls" -f base=develop -f head="$tete" -f title="$titre" -f body="$corps" --jq .number)
-  poser_label "$n" à-fusionner
-  echo "PR #$n ouverte ($tete → develop), étiquetée à-fusionner"
+  if [ -z "$sansgh" ]; then
+    if ! n=$(gh api -X POST "$DEPOT/pulls" -f base=develop -f head="$tete" -f title="$titre" -f body="$corps" --jq .number 2>"${TMPDIR:-/tmp}/livrer-gh.$$" </dev/null); then
+      masquer_url <"${TMPDIR:-/tmp}/livrer-gh.$$" >&2
+      sansgh=1
+    fi
+    rm -f "${TMPDIR:-/tmp}/livrer-gh.$$"
+  fi
+  [ -z "$sansgh" ] || livraison_sans_gh "$nom" "$tete" "$titre" "$corps"
+  if [ "${ETIQUETER:-}" = 1 ]; then
+    poser_label "$n" à-fusionner
+    echo "PR #$n ouverte ($tete → develop), étiquetée à-fusionner"
+  else
+    echo "PR #$n ouverte ($tete → develop), sans à-fusionner : le poser après la relecture de la PR"
+  fi
+}
+
+# Sans `gh` utilisable : titre (ligne 1), ligne vide, corps, dans `<git-common-dir>/livraison-<nom>.md` (hors de l'arbre de
+# travail : un fichier non suivi ferait refuser le geste suivant du capitaine, sortie 6). Sortie 14.
+livraison_sans_gh() {
+  local nom=$1 tete=$2 titre=$3 corps=$4 fichier owner repo url
+  fichier="$(git rev-parse --path-format=absolute --git-common-dir)/livraison-$nom.md"
+  printf '%s\n\n%s\n' "$titre" "$corps" >"$fichier"
+  url=$(git remote get-url origin 2>/dev/null | masquer_url) || url=''
+  owner=$(sed -E 's#^.*[:/]([^/:]+)/[^/]+$#\1#' <<<"$url")
+  repo=$(sed -E 's#^.*/([^/]+)$#\1#; s#\.git$##' <<<"$url")
+  cat <<EOT
+PR NON OUVERTE (gh indisponible) : l'ouvrir par l'outil GitHub MCP.
+  D'abord : list_pull_requests(owner: "$owner", repo: "$repo", base: "sujet/$nom", state: "open") ne rend rien ; sinon, ne pas livrer.
+  Puis : create_pull_request(owner: "$owner", repo: "$repo", base: "develop", head: "$tete", title: <ligne 1 du fichier>, body: <le fichier à partir de la ligne 3>)
+  Fichier : $fichier
+  Puis poser à-fusionner après la relecture de la PR (issue_write).
+EOT
+  exit 14
 }
 
 relancer() {
@@ -1211,7 +1256,7 @@ livrer_prets() {
     if [ "$essai" = --dry-run ]; then
       echo "sujet/$nom prêt : livrerait « $titre » (--dry-run : aucune PR ouverte)"
     else
-      livrer "$nom" "$titre"
+      ETIQUETER=1 livrer "$nom" "$titre"
     fi
   done
 }
