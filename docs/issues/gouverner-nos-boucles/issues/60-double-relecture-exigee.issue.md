@@ -4,13 +4,13 @@ Status: ready-for-agent
 Type: task
 Label: contre-revue
 Modèle: sonnet — deux fichiers neufs donnés entiers (le calcul, son banc), un mot ajouté à une phrase, une version et sa note données mot pour mot ; le tout a été joué sur une copie jetable de `origin/main`, suite entière et mutations comprises (voir « Vérification »). Rien à concevoir.
-Blocked by: — dans ce programme comme dans l'autre : le lot 3c part tout de suite (`A-109`). Les tickets 58 (lot 3a) et 59 (lot 3b) partent en même temps, prennent eux aussi une version et une note, et le 58 ajoute lui aussi un mot à la même phrase de `fusionner/SKILL.md`, que l'autre programme écrit aussi : partir de `main`, reprendre `main` avant de livrer.
+Blocked by: — dans ce programme comme dans l'autre : le lot 3c part tout de suite (`A-109`). Le ticket 58 (lot 3a) est entré (PR 122, 7.23.0) et a ajouté ses deux modules à la phrase de `fusionner/SKILL.md` où ce ticket ajoute le sien ; le ticket 59 (lot 3b) part en même temps et prend lui aussi une version et une note ; l'autre programme écrit aussi ce fichier : partir de `main`, reprendre `main` avant de livrer.
 Dépendances: —
 Fichiers chauds: `.claude-plugin/plugin.json`, `NOTES-DE-VERSION.md`, `skills/chaine/fusionner/SKILL.md` (un mot, étape 0). Deux fichiers neufs, que personne d'autre n'écrit : `skills/chaine/fusionner/scripts/double-relecture.mjs`, `skills/chaine/fusionner/scripts/double-relecture.test.mjs`.
 
 ## Le besoin
 
-Ce ticket réalise le lot 3c de la spec `docs/issues/gouverner-nos-boucles/relecture-independante.spec.md` (sixième version, `A-110` à `A-117` compris) : la décision `A-82`, amendée par `A-113` et `A-117`, pour la décision du produit `P-56` (« Règle de criticité haute : deux relectures indépendantes, et un message d'information au produit, sans que la PR l'attende ») et pour `A-90`.
+Ce ticket réalise le lot 3c de la spec `docs/issues/gouverner-nos-boucles/relecture-independante.spec.md` (sixième version, `A-110` à `A-122` compris) : la décision `A-82`, amendée par `A-113`, `A-117` et `A-122`, pour la décision du produit `P-56` (« Règle de criticité haute : deux relectures indépendantes, et un message d'information au produit, sans que la PR l'attende ») et pour `A-90`.
 
 **La décision.** `A-82`, mot pour mot :
 
@@ -33,24 +33,29 @@ Et `A-117`, après la relecture adversariale de ce ticket, qui avait reproduit q
 > - **Le ticket se lit aussi sur la tête de la PR** : un ticket que la PR crée elle-même est vu.
 > - **Un ticket sans ligne `Règles:` hérite de celle de sa spec** ; un ticket qui porte `Règles: —` dit lui-même qu'il n'en réalise aucune, et sa spec n'est alors pas lue. Raison : dans le doute, deux relectures, et le conducteur garde un moyen écrit de dire « aucune ».
 
+Et `A-122`, après le second tour de cette relecture (quatre bloquants nouveaux, un mineur) :
+
+> **« Double relecture exigée », après le second tour de sa relecture adversariale** (amende `A-113` et `A-117`). Le calcul prend la règle du dépôt propre d'`A-119` : toutes ses lectures git se font dans un dépôt nu jetable qui emprunte les objets du dépôt réel, sans configuration ni variable d'environnement héritée ; des greffes ou un dossier git hérité faisaient rendre « non exigée » pour une règle montée à haute. Le lecteur d'en-tête n'ouvre une chaîne entre guillemets qu'en tête de valeur (une apostrophe de texte faisait lire un niveau plus bas), et se vérifie contre une vraie bibliothèque sur un grand nombre d'en-têtes, hors du dépôt. Le contrôle de l'entrée admet les chemins présents sur la cible et sur `develop` : une PR de mise à jour d'un sujet qui supprime un fichier venu de `develop` n'est plus « illisible ». Une ligne `Règles:` vide est ignorée (seule `Règles: —` dit « aucune ») ; la puce étoile est lue ; la spec d'un ticket se cherche dans tous les arbres où le ticket se cherche. Un banc neuf suit la garde « un seul environnement de banc » entrée dans `main` en 7.21.0.
+
 `A-90` : « Une règle montée à haute après un tour validé à un seul verdict : le tour redevient en cours, et la règle 5 lui ajoute une session. » `A-106` donne la règle des lectures : « Une lecture en échec ne vaut jamais « même » » ; ici, jamais « non exigée ».
 
-**Le fait, sur `origin/main` à `085d7d4`** (plugin 7.20.0) :
+**Le fait, sur `origin/main` à `d5b1561`** (plugin 7.23.0) :
 
 - Aucun script du plugin ne lit la criticité d'une règle. `contexte-ticket.mjs` (revue de ticket) et `contexte-regle.mjs` (skill `criticite`) rendent un fichier de règle tel quel, sans lire son en-tête ; `mutation-regles.mjs` (socle-tests) lit dans l'index le champ `code` des règles prouvées, au schéma "2", mais il se pose sous `scripts/verify/`, que la copie de travail de la boucle ne porte pas.
 - Personne n'appelle encore ce calcul : ses deux appelants sont le Relecteur (lot 4) et le capitaine (lot 5a), qui lui passeront, eux, le diff qu'ils jugent.
-- L'étape 0 de `fusionner/SKILL.md` (`:14`) pose tous les `.sh`, nomme les `.mjs` un à un, et fait suivre tous les bancs : un `.mjs` neuf qu'elle ne nomme pas laisserait partir son banc seul dans un projet qui repose.
+- L'étape 0 de `fusionner/SKILL.md` (`:14`) pose tous les `.sh`, nomme les `.mjs` un à un, et fait suivre tous les bancs : un `.mjs` neuf qu'elle ne nomme pas laisserait partir son banc seul dans un projet qui repose. Le ticket 58 y a déjà ajouté ses deux modules.
+- Depuis la 7.21.0, `scripts/un-seul-environnement-de-banc.test.mjs` refuse qu'un banc recopie le filtre des variables `GIT_*` : il lit chaque `*.test.mjs` et chaque `depot-jouet.mjs` de `scripts/` et de `skills/`, et rougit sur `startsWith('GIT_')` ou `/^GIT_/`. Un banc neuf prend son environnement par `environnementDeBanc()` (`README.md:194`).
 
 **Quand le ticket est fait** : un fichier sans dépendance, à côté des scripts du capitaine, répond pour une PR (la liste de ses fichiers changés, sa cible, son sommet, son titre, sa branche) « exigée » avec les règles ou le ticket en cause, « non exigée », ou « illisible » ; son banc le tient sur des fichiers de règle et un index à la forme du standard, joue la ligne de commande depuis une copie des outils faite comme celle de la boucle, et chaque mutation de la liste le fait rougir ; l'étape 0 de `fusionner` nomme le module. Rien d'autre ne change dans le plugin : aucun script ne l'appelle.
 
 ## Où
 
-Base : `origin/main` à `085d7d4` (plugin **7.20.0**). `main` a avancé sept fois depuis le `1c4acb1` de la spec (PR 113, 111, 116, 117, 118, 114 et 120). La dernière, le ticket 8 de l'autre programme, a touché `boucle.sh`, `veille.sh` et `fusionner/SKILL.md` (hors de sa ligne 14) : les repères de ligne ci-dessous valent à `085d7d4`. Les versions 7.19.0 et 7.20.0, que les états précédents de ce ticket prenaient, sont prises. La session relit `main` avant de partir.
+Base : `origin/main` à `d5b1561` (plugin **7.23.0**). `main` a avancé onze fois depuis le `1c4acb1` de la spec, la dernière fois par le ticket 58 (PR 122), qui a ajouté `verdict.mjs` et `decision-relecteur.mjs` à `fusionner/scripts/` et à la ligne 14 de `fusionner/SKILL.md` : les repères de ligne ci-dessous valent à `d5b1561`. Les versions que les états précédents de ce ticket prenaient (7.19.0 à 7.22.0) sont prises.
 
 | Fichier | Ce qui change |
 | --- | --- |
 | `skills/chaine/fusionner/scripts/double-relecture.mjs` | **neuf** : le calcul, ses lecteurs, sa ligne de commande (§ 2) |
-| `skills/chaine/fusionner/scripts/double-relecture.test.mjs` | **neuf** : son banc, 35 tests (§ 1) |
+| `skills/chaine/fusionner/scripts/double-relecture.test.mjs` | **neuf** : son banc, 36 tests (§ 1) |
 | `skills/chaine/fusionner/SKILL.md:14` | un mot : le module entre dans la liste des `.mjs` posés (§ 3) |
 | `.claude-plugin/plugin.json:3` | la version, mineure (§ 4) |
 | `NOTES-DE-VERSION.md` | la note, en tête (§ 4) |
@@ -67,7 +72,8 @@ Aucun autre fichier : la vérification le montre par une commande.
 - `skills/chaine/tickets/references/gabarits/regle.md:20-21` (les clés `code` et `criticality` du gabarit), `skills/chaine/criticite/SKILL.md:21` et `:58` (le pivot, les formes de `criticality`), `skills/chaine/anchorpost/references/rules/anchorpost.md:23` et `:43` (« Une règle est un fichier », « Le manifeste et l'index »).
 - `skills/monorepo/socle-tests/references/scripts/verify/mutation-regles.mjs:34`, `:80-82` : le seul lecteur de l'index du plugin (`rules[].key`, `rules[].code`, schéma "2").
 - `skills/monorepo/socle-monorepo/references/scripts/docs/identifiants.mjs` : `lireIdentifiant`, `dossierDuContexte`, `fichierDuTicket`, `estArchive`, `identifiantDeBranche` (`:120`), `ticketDeLaPr` (`:170`).
-- `scripts/poses.test.mjs:14-22`, `:49`, `:75` ; `scripts/points-d-entree.test.mjs:17-27` ; `scripts/depot.test.mjs:1093-1103` ; `README.md:169`, `:188`.
+- `scripts/poses.test.mjs:15-23`, `:49`, `:75` ; `scripts/points-d-entree.test.mjs:18-28` ; `scripts/depot.test.mjs:1095-1105` ; `README.md:169`, `:188`, `:194`.
+- `scripts/un-seul-environnement-de-banc.test.mjs` (la garde), `skills/monorepo/socle-monorepo/references/scripts/docs/environnement-de-banc.mjs` (le seul filtre des variables `GIT_*`), `skills/chaine/sujet/scripts/depot-jouet.mjs:64-69` (qui le réexporte), `skills/chaine/fusionner/scripts/commits-a-relire.test.mjs:10-25` (l'idiome d'un banc qui ne monte pas le dépôt jouet).
 - Dans Anchorpost, le schéma pivot : `packages/schema/src/v2/index-schema.ts` et `enums.ts` sur son `develop`, `packages/schema/src/v3/index-schema.ts` sur `sujet/preuve-suffisante-cas` à `74a37c8`.
 
 ### Les formes lues
@@ -104,7 +110,7 @@ La forme d'avant, au pivot 2 : `criticality: high`, nue. Ce sont « ses deux for
 ### Ce que la copie de travail de la boucle impose
 
 1. **Le fichier vit dans `fusionner/scripts/`**, que l'étape 0 de `fusionner` copie dans `scripts/chaine/` d'un projet : c'est de là, une fois dans `develop`, que la boucle le reprend. Un projet qui n'a pas reposé ne l'a pas ; ses appelants (lots 4 et 5a) en répondent.
-2. **Il ne lit jamais l'arbre de travail.** La copie est sous `.git`, hors du dépôt : `new URL('../..', import.meta.url)`, l'idiome de `contexte-ticket.mjs`, y désignerait la copie. Et l'arbre de travail du capitaine est sur une autre branche que la PR jugée. Tout se lit dans des objets git : `rev-parse`, `merge-base`, `for-each-ref`, `ls-tree`, `cat-file --batch`. Et de la même façon d'où qu'il soit lancé (`A-117`) : une réf est d'abord résolue en entier (`refs/remotes/origin/…`) vers son sha, toutes les lectures prennent ce sha, les arbres se listent depuis la racine (`ls-tree --full-tree`), un objet se nomme `<sha>:<chemin>`, et `git` est lancé avec `--no-replace-objects`.
+2. **Il ne lit jamais l'arbre de travail, et il lit dans un dépôt propre** (`A-122`, la règle d'`A-119`). La copie est sous `.git`, hors du dépôt : `new URL('../..', import.meta.url)`, l'idiome de `contexte-ticket.mjs`, y désignerait la copie. Et l'arbre de travail du capitaine est sur une autre branche que la PR jugée. Tout se lit dans des objets git (`rev-parse`, `merge-base`, `ls-tree`, `cat-file --batch`), par sha, dans un dépôt nu jetable qui emprunte les objets du dépôt réel : décision 22.
 3. **Il n'importe que `node:*` et la grammaire** `scripts/docs/identifiants.mjs`, que la copie porte. Ni `yaml`, ni `zod`, ni un script de `scripts/verify/` ou de `scripts/docs/` (le lecteur des lignes `Relecture:` et `Règles:` du gate `tickets`, celui de `mutation-regles.mjs`) : ils n'y sont pas. D'où un lecteur d'en-tête YAML écrit ici, pour trois clés, et le motif du gate recopié ici, avec sa découpe d'une ligne `Règles:`.
 4. **C'est la version de `develop` qui juge**, sous-PR d'un sujet plus ancien comprise : le lecteur accepte donc ce qu'un sujet en retard porte encore (un index au pivot 2, la forme nue de `criticality`).
 
@@ -116,7 +122,7 @@ Il ne partage **aucun code** : `contexte-ticket.mjs` s'exécute à l'import, n'e
 
 ## Décisions
 
-Tenues de la spec : `A-82`, `A-90`, `A-106` (les lectures), `A-108` (les règles de `main`), `A-113` (ce que ce lot fixe, les codes de sortie, la pose), `A-114` (le verdict en dernière ligne, le calcul à la racine), `A-117` (les corrections de la relecture adversariale). **Six précisions restent celles de ce ticket** (dans les décisions 3, 5, 9, 13 et 14) : elles sont reprises dans « Ce qui n'a pas été établi ».
+Tenues de la spec : `A-82`, `A-90`, `A-106` (les lectures), `A-108` (les règles de `main`), `A-113` (ce que ce lot fixe, les codes de sortie, la pose), `A-114` (le verdict en dernière ligne), `A-117` et `A-122` (les corrections des deux tours de la relecture adversariale ; le dépôt propre d'`A-119`). **Huit précisions restent celles de ce ticket** (dans les décisions 3, 5, 9, 11, 13 et 14) : elles sont reprises dans « Ce qui n'a pas été établi ».
 
 1. **Un fichier, un nom.** `skills/chaine/fusionner/scripts/double-relecture.mjs`, posé `scripts/chaine/double-relecture.mjs`. Aucun fichier de ce nom dans les quatre dossiers que `scripts/poses.test.mjs` pose au même endroit (il refuse un nom posé deux fois).
 2. **L'appel.**
@@ -127,7 +133,7 @@ Tenues de la spec : `A-82`, `A-90`, `A-106` (les lectures), `A-108` (les règles
    ````
 
    - **Entrée standard** : les fichiers changés de la PR, un par ligne, tels que `git diff --name-only --no-renames` les écrit, guillemets de git compris. C'est l'appelant qui choisit le diff : celui que la relecture lit (`A-76`, `A-78`), que ce calcul ne recalcule pas. **`--no-renames` est dû** : avec la détection des renommages, un fichier de code renommé ne paraît plus sous son ancien nom, celui que la règle nomme ; l'usage et l'en-tête du module le disent.
-   - **L'entrée est contrôlée** (`A-117`) : une tabulation ou un octet nul (`--name-status`, `-z`) ; une ligne entre guillemets mal formée ; un chemin qui n'existe ni au départ ni à la tête de la PR : « illisible », et aucune cause n'est tirée du reste de l'entrée. Un fichier supprimé existe au départ, un fichier ajouté à la tête. Un diff vide rend « non exigée » si rien d'autre ne l'exige : l'appelant répond de sa lecture (`A-113`).
+   - **L'entrée est contrôlée** (`A-117`, `A-122`) : une tabulation ou un octet nul (`--name-status`, `-z`) ; une ligne entre guillemets mal formée ; un chemin qui n'existe **ni au départ, ni à la tête, ni sur la cible, ni sur `develop`** : « illisible », et aucune cause n'est tirée du reste de l'entrée. Un fichier supprimé existe au départ, un fichier ajouté à la tête ; la PR de mise à jour d'un sujet dont une retouche supprime un fichier venu de `develop` le trouve sur `develop`, la sous-PR en retard qui supprime un fichier arrivé depuis sur son sujet le trouve sur la cible. Un diff vide rend « non exigée » si rien d'autre ne l'exige : l'appelant répond de sa lecture (`A-113`).
    - `--base` : **la branche cible de la PR, un nom de branche** (`develop`, `sujet/<nom>`), comme au ticket 59 : jamais une réf, ni `HEAD`, ni une réf symbolique, ni un texte à blanc, à retour ligne ou à tiret initial. Le calcul lit `refs/remotes/origin/<branche>` en entier, **que l'appelant vient de relire** par un refspec explicite (`A-106`), comme `origin/develop` et les `origin/sujet/*` : ni un tag ni une branche locale du même nom ne la remplacent. `--tete` : **le sommet jugé, un sha de 40 caractères**. Tout autre texte est refusé, sans être recopié ; un nom de branche valide qui n'est pas une branche d'origin est « introuvable ».
    - `--titre`, `--branche` : le titre de la PR et le nom de sa branche de tête, vides admis. Le ticket de la PR est celui que rend `ticketDeLaPr` de la grammaire (le premier que le titre cite, sinon celui de la branche), la définition que les scripts du capitaine emploient déjà par `identifiant.mjs` (`ticket-de-pr`) ; quand la branche en porte un autre, les deux sont lus. Ni l'un ni l'autre : la PR n'a pas de ticket.
    - En module : `doubleRelecture({ fichiers, base, tete, tickets, develop, lecteur })` (`base` et `develop` : des noms de branche ; `tete` : un sha) rend `{ reponse, causes, illisibles, remarques, outilManquant }` ; `ticketsDeLaPr(titre, branche)` rend la liste des tickets ; `brancheDOrigin(nom)` rend la réf entière d'une branche cible, `sommet(sha)` contrôle un sommet ; `lecteur` est le lecteur git par défaut, remplacé par des arbres en mémoire dans le banc.
@@ -146,24 +152,28 @@ Tenues de la spec : `A-82`, `A-90`, `A-106` (les lectures), `A-108` (les règles
 6. **Avec un index** sur l'arbre : `criticality.level` de l'entrée de `rules`, par sa `key` ; `code` et `validation.status` de la même entrée. Schéma `"2"` ou `"3"` ; tout autre schéma est « illisible », comme deux entrées de même `key` (`A-117`).
 7. **Sans index** sur l'arbre : l'en-tête de chaque fichier de règle, sous les deux formes de `criticality`. Une criticité reçue d'une feature n'est pas vue : limite écrite de la spec. Ni index ni fichier de règle : aucune règle haute (un projet sans règles métier).
 8. **Avec un index, l'en-tête des fichiers de règle que le diff touche est lu en plus, et le plus haut gagne.** Une règle montée, créée haute, ou dont le `code` change dans la PR est vue par son fichier, index régénéré ou non.
-9. **Le changement de niveau (cause e) se lit du départ de la PR à sa tête** : l'ensemble des règles hautes et en vigueur du départ, comparé à celui de la tête ; toute règle qui n'est que d'un côté est une cause, lue dans l'index quand la tête en a un, dans les en-têtes sinon. **Précision de ce ticket : le départ est la base de fusion de la cible et de la tête (`git merge-base`), pas la pointe de la cible.** Comparée à la pointe, toute PR ouverte, en retard sur une cible où une autre PR vient de monter ou de baisser une règle, exigerait deux relectures sans rien avoir changé, jusqu'à la mise à jour qui la remettrait d'accord avec sa cible. Une PR à jour a pour départ la pointe de sa cible : la lecture d'`A-113` est alors la même. C'est aussi contre ce départ et cette tête que l'entrée est contrôlée (décision 2). Limite : tant que la PR n'a pas régénéré son index, une criticité fixée au manifeste ne se lit nulle part ; elle est vue dès que l'index de la tête est régénéré, par l'auteur ou par le capitaine avant son second contrôle (`A-105`).
+9. **Le changement de niveau (cause e) se lit du départ de la PR à sa tête** : l'ensemble des règles hautes et en vigueur du départ, comparé à celui de la tête ; toute règle qui n'est que d'un côté est une cause, lue dans l'index quand la tête en a un, dans les en-têtes sinon. **Précision de ce ticket : le départ est la base de fusion de la cible et de la tête (`git merge-base`), pas la pointe de la cible.** Comparée à la pointe, toute PR ouverte, en retard sur une cible où une autre PR vient de monter ou de baisser une règle, exigerait deux relectures sans rien avoir changé, jusqu'à la mise à jour qui la remettrait d'accord avec sa cible. Une PR à jour a pour départ la pointe de sa cible : la lecture d'`A-113` est alors la même. Ce départ est aussi l'un des quatre arbres contre lesquels l'entrée est contrôlée (décision 2). Limite : tant que la PR n'a pas régénéré son index, une criticité fixée au manifeste ne se lit nulle part ; elle est vue dès que l'index de la tête est régénéré, par l'auteur ou par le capitaine avant son second contrôle (`A-105`).
 10. **Le fichier d'une règle** est `docs/metier/regles/<dossier du contexte>/<identifiant>.md`, à la racine du dépôt. Un homonyme ailleurs n'en est pas un : les dépôts jouets d'un projet en portent (`apps/…/fixtures/…/docs/metier/regles/all/RULE_….md`). Un chemin de règles hors convention, déclaré au manifeste Anchorpost (`contexts[].rules`), n'est pas reconnu : limite écrite.
-11. **Une entrée de `code` nomme un fichier, ou un dossier** : le chemin du diff lui est égal, ou est dessous. Elle est normalisée avant d'être comparée (`A-117`) : `apps//api/…`, `apps/api/./src/…`, `./apps/…`, un détour par `..` nomment le même fichier ; une entrée qui sort du dépôt ne nomme rien.
+11. **Une entrée de `code` nomme un fichier, ou un dossier** : le chemin du diff lui est égal, ou est dessous. Elle est normalisée avant d'être comparée (`A-117`) : `apps//api/…`, `apps/api/./src/…`, `./apps/…`, un détour par `..` nomment le même fichier. Précision de ce ticket, sur le constat 7 du relecteur (`A-122`) : **une entrée qui nomme la racine du dépôt (`.`, `./`, `/`, vide) ou qui en sort (`..`) est « illisible » pour une règle haute**, jamais « aucun fichier ». Lue à la lettre, `.` voudrait dire le dépôt entier, donc toute PR ; rien dans le standard ne dit qu'une règle se réalise partout, et la CLI ne vérifie que l'existence du chemin : le calcul refuse de deviner, et le projet corrige l'en-tête.
 12. **Une règle `rejected` ou `obsolete` ne compte pas.** Lu sur chaque arbre : la PR qui rejette une règle haute est vue par la base, où elle est encore en vigueur, et par le changement de niveau. Une règle `candidate` compte.
 13. **L'en-tête du ticket** (avant la première section `## `) se lit sur la base, sur `origin/develop`, **sur la tête de la PR** (`A-117` : le ticket que la PR crée elle-même est vu) et sur chaque `origin/sujet/*` ; une seule de ces lectures suffit, et un même commit n'est lu qu'une fois. La PR qui retire une ligne de son ticket n'y gagne rien : la base la porte encore. Sur chaque arbre :
-    - **Les lignes se reconnaissent par le motif du gate** (`enTete`, `A-117`) : `Règles: …`, `- Règles: …`, `**Règles:** …`, sans égard à la casse ; de même pour `Relecture:`. Une ligne en retrait ou précédée d'un autre texte n'est pas la ligne, pour le gate non plus.
+    - **Les lignes se reconnaissent par le motif du gate** (`enTete`, `A-117`) : `Règles: …`, `- Règles: …`, `**Règles:** …`, sans égard à la casse ; **et à la puce étoile** (`* Règles: …`, `A-122`), que le gate ne lit pas mais que la CLI Anchorpost lit ; de même pour `Relecture:`. Une ligne en retrait ou précédée d'un autre texte n'est pas la ligne, pour le gate non plus.
     - `Relecture: double` (un commentaire ` # …` peut suivre) : cause (a). Une ligne `Relecture:` reconnue dont la valeur n'est pas `double` : « illisible ».
     - `Règles:` : des identifiants de règle séparés par des virgules ou des blancs, entre accents graves ou nus, comme le gate les découpe (`reglesCitees`), ou `—`. Chaque règle citée qui est haute sur l'un des trois arbres de la décision 5 est une cause (b). Précisions de ce ticket : un jeton qui n'est pas un identifiant de règle est « illisible » (le gate le refuse, il ne se devine pas) ; le niveau d'une règle citée se lit sur ces trois arbres, pas sur le sujet où vit le ticket.
-    - **Un ticket sans ligne `Règles:`** : celle de sa spec est lue à sa place (`A-117`), dans le même arbre, par le même motif, dans l'en-tête de la spec ; la cause nomme alors le fichier de la spec. **`Règles: —` est une ligne** : le ticket dit lui-même qu'il n'en réalise aucune, et la spec n'est pas lue ; de même s'il ne cite que des règles qui ne sont pas hautes.
+    - **Un ticket sans ligne `Règles:`** : celle de sa spec est lue à sa place (`A-117`), par le même motif, dans l'en-tête de la spec, **cherchée dans tous les arbres où le ticket se cherche** (`A-122` : le ticket que la PR crée, sa spec sur un sujet seul) ; la cause nomme alors le fichier de la spec. **Une ligne `Règles:` vide n'est pas une ligne** (`A-122`) : elle est ignorée, et la spec est lue. **`Règles: —` est une ligne** : le ticket dit lui-même qu'il n'en réalise aucune, et la spec n'est pas lue ; de même s'il ne cite que des règles qui ne sont pas hautes. Dans le doute, deux relectures : il suffit que le ticket soit sans ligne dans un seul de ces arbres (la base ne l'a pas encore, le sujet dit `—`) pour que la spec soit lue.
     - Deux fichiers pour un même ticket, ou pour sa spec, dans un arbre : « illisible ». Un ticket archivé n'est pas lu. Un ticket qu'aucun de ces arbres ne porte : une remarque, aucune cause.
 14. **Le ticket de la PR** : `ticketDeLaPr(titre, branche)`, importée de la grammaire sans modifier aucun fichier, puis `identifiantDeBranche(branche)` s'il est autre. Précision de ce ticket : d'un titre qui cite plusieurs tickets, seul le premier est lu, comme `ticketDeLaPr` le fait partout ailleurs.
 15. **« Illisible » n'est jamais « non exigée », et une cause établie suffit.** Chaque lecture (l'entrée, chaque arbre, le départ, chaque arbre du ticket) est jouée à part ; une réf refusée ou introuvable, un index qui n'est pas du JSON ou d'un autre schéma, un en-tête que le lecteur ne comprend pas, une entrée mal formée sont des lectures en échec. Si une cause est établie malgré elles, la réponse est « exigée », et les échecs sont dits ; sinon, un seul échec donne « illisible ». Un échec est dit une fois par commit, avec la réf qui l'a lu la première. Ce que le Relecteur et le capitaine font d'« illisible » est dans `A-113` et aux lots 4 et 5a.
-16. **Le lecteur d'en-tête ne lit que trois clés de premier niveau** (`criticality`, `code`, `validation`) et refuse ce qu'il ne comprend pas : pas d'en-tête, une clé écrite deux fois, à ce niveau comme dans un mappage en ligne (`A-117` : la dernière ne l'emporte pas), une ligne de première colonne qui n'est ni une clé ni un commentaire, un niveau hors `low`, `medium`, `high`, un `code` qui n'est pas une liste. Il lit la forme nue, le bloc, le mappage et la liste en ligne, même pliés sur plusieurs lignes par un formateur, **le commentaire de chaque ligne retiré avant de les joindre** (`A-117` : celui d'une ligne pliée avalait la suite, ou devenait la valeur), un `#` entre guillemets restant dans sa valeur ; une clé imbriquée (`extensions.<projet>.criticality`) ou commentée n'est pas la clé. Un statut qu'il ne comprend pas laisse la règle en vigueur. **Lecture en temps linéaire** : l'en-tête d'une PR est une entrée que son auteur écrit.
+16. **Le lecteur d'en-tête ne lit que trois clés de premier niveau** (`criticality`, `code`, `validation`) et refuse ce qu'il ne comprend pas : pas d'en-tête, une clé écrite deux fois, à ce niveau comme dans un mappage en ligne (`A-117` : la dernière ne l'emporte pas), une ligne de première colonne qui n'est ni une clé ni un commentaire, un niveau hors `low`, `medium`, `high`, un `code` qui n'est pas une liste. Il lit la forme nue, le bloc, le mappage et la liste en ligne, même pliés sur plusieurs lignes par un formateur, **le commentaire de chaque ligne retiré avant de les joindre** (`A-117`). **Un guillemet n'ouvre une chaîne qu'en tête de valeur** (`A-122`) : au début, après `,`, `[` ou `{`, après `:` et un blanc (un élément de liste en bloc, `- 'a'`, est lu à part, par son guillemet de tête) ; partout ailleurs c'est du texte (`c'est grave`, `l'agent`), comme une bibliothèque YAML le lit. Une apostrophe de texte lue comme un guillemet faisait avaler une virgule ou un commentaire, et lire un niveau plus bas. Une clé imbriquée (`extensions.<projet>.criticality`) ou commentée n'est pas la clé. Un statut qu'il ne comprend pas laisse la règle en vigueur. **Lecture en temps linéaire** : l'en-tête d'une PR est une entrée que son auteur écrit. **Il se vérifie contre une vraie bibliothèque, à grande échelle, hors du dépôt** (« Vérification », point 6).
 17. **Aucun import d'un autre script de la chaîne.** `cheminDuDiff` est la copie de `cheminLu` de `revue-exigee.mjs`, un fichier que deux tickets de l'autre programme récrivent (16 et 18) ; le banc garde la parité, comme `revue-exigee.test.mjs` le fait pour `regexDuMotif`. Le motif `enTete` du gate est recopié de même : le gate n'est pas dans la copie de la boucle, et le banc tient les mêmes formes.
-18. **Deux fichiers neufs, et un mot** (`A-113`, la pose). Le nom du module entre dans la liste de l'étape 0 de `fusionner/SKILL.md:14` : un projet qui repose ne reçoit jamais le banc sans son module. Aucun test du dépôt ne fige cette phrase (`git grep -n "commits-a-relire" -- 'scripts/*.test.mjs'` ne rend rien), et le fichier reste à 117 lignes. Ne sont pas touchés, et le ticket le dit pour qui les écrira : la ligne du calcul dans `fusionner/references/CONTENU.md`, dans `scripts/points-d-entree.test.mjs` et dans l'arbre du `README.md:169` (la spec : « au plus tard avec 3d »). Aucun test de `main` n'exige qu'un script de `fusionner/scripts/` y soit listé (suite jouée : verte) ; en attendant, **le banc prouve lui-même le point d'entrée** (lien symbolique, `--preserve-symlinks-main`, dossier à espace et à accent).
-19. **Banc court** : 35 tests, six secondes environ ; le calcul se joue sur des arbres en mémoire, sept tests seulement montent un dépôt git. Il est rejoué, posé à plat, par `scripts/poses.test.mjs` (plafond de 600 s pour l'ensemble, `:75`) : il ne lit jamais l'arbre du plugin, et prend la grammaire là où le module l'a trouvée (`GRAMMAIRE`).
-20. **Version : mineure** (7.20.0 → **7.21.0** sur `085d7d4`) : un script de plus dans un skill. **Règle de repli** : les tickets 58 et 59 prennent une version en même temps, et `main` a déjà pris cinq versions pendant l'écriture de ce ticket. Si `main` bouge entre l'ouverture et la fusion, la session fusionne `origin/main` dans sa branche par un commit de fusion (jamais de rebase ni de push forcé), reprend la version de `main` plus un au deuxième nombre, troisième à zéro, remonte sa note en tête avec ce numéro, garde dans `fusionner/SKILL.md` les mots que les autres y ont ajoutés, puis vérifie (`git diff origin/main -- .claude-plugin/plugin.json` ne montre que `"version"`, `git diff origin/main -- skills/chaine/fusionner/SKILL.md` ne montre que le mot).
+18. **Deux fichiers neufs, et un mot** (`A-113`, la pose). Le nom du module entre dans la liste de l'étape 0 de `fusionner/SKILL.md:14`, à la suite des deux modules du ticket 58 : un projet qui repose ne reçoit jamais le banc sans son module. Aucun test du dépôt ne fige cette phrase (`git grep -n "commits-a-relire" -- 'scripts/*.test.mjs'` ne rend rien), et le fichier reste à 117 lignes. Ne sont pas touchés, et le ticket le dit pour qui les écrira : la ligne du calcul dans `fusionner/references/CONTENU.md`, dans `scripts/points-d-entree.test.mjs` et dans l'arbre du `README.md:169` (la spec : « au plus tard avec 3d »). Aucun test de `main` n'exige qu'un script de `fusionner/scripts/` y soit listé (suite jouée : verte) ; en attendant, **le banc prouve lui-même le point d'entrée** (lien symbolique, `--preserve-symlinks-main`, dossier à espace et à accent).
+19. **Banc court, et sous la garde des bancs** : 36 tests, six secondes environ ; le calcul se joue sur des arbres en mémoire, huit tests seulement montent un dépôt git. Il est rejoué, posé à plat, par `scripts/poses.test.mjs` (plafond de 600 s pour l'ensemble, `:75`) : il ne lit jamais l'arbre du plugin, et prend la grammaire là où le module l'a trouvée (`GRAMMAIRE`). **Ce que la garde « un seul environnement de banc » exige d'un banc neuf** (`A-122`, `scripts/un-seul-environnement-de-banc.test.mjs`) : aucune ligne du banc ne filtre elle-même les variables `GIT_*` (ni `startsWith('GIT_')`, ni `/^GIT_/`) ; il importe `environnementDeBanc()` de `depot-jouet.mjs`, à côté de lui quand il est posé (`scripts/chaine/`), dans le skill `sujet` sinon, retire de son propre processus ce que ce filtre retire (sauf `NODE_TEST_CONTEXT`), pose `NO_COLOR`, `GIT_CONFIG_GLOBAL=/dev/null` et `GIT_CONFIG_NOSYSTEM=1`, et donne cet environnement à chaque processus qu'il lance : c'est l'idiome de `commits-a-relire.test.mjs`. `depot-jouet.mjs` exige `jq` à l'import, comme pour les autres bancs de la chaîne. Le module, lui, n'est pas un banc : son propre filtre des `GIT_*` (décision 22) n'est pas lu par la garde.
+20. **Version : mineure** (7.23.0 → **7.24.0** sur `d5b1561`) : un script de plus dans un skill. **Règle de repli** : le ticket 59 prend une version en même temps, et `main` a pris dix versions depuis le `1c4acb1` de la spec. Si `main` bouge entre l'ouverture et la fusion, la session fusionne `origin/main` dans sa branche par un commit de fusion (jamais de rebase ni de push forcé), reprend la version de `main` plus un au deuxième nombre, troisième à zéro, remonte sa note en tête avec ce numéro, garde dans `fusionner/SKILL.md` les mots que les autres y ont ajoutés, puis vérifie (`git diff origin/main -- .claude-plugin/plugin.json` ne montre que `"version"`, `git diff origin/main -- skills/chaine/fusionner/SKILL.md` ne montre que le mot).
 21. **`Label: contre-revue`** : le fichier se pose sous `scripts/chaine/`, chemin sensible du gabarit de `.claude/chaine.json`, et il gardera l'entrée des PR. PR vers `main`, hors brouillon, **sans `à-fusionner`** : l'architecte la contre-relit, puis la fait entrer. Titre `feat(chaine): double relecture exigée, un calcul et son lecteur de règles et d'index (plugin <version>)`. Commits sous les hooks, jamais `--no-verify`.
+22. **Un dépôt propre pour lire** (`A-122`, la règle d'`A-119`, la même que pour « même contenu propre »). Le dépôt réel ne sert qu'à deux choses : dire où sont ses objets (`git rev-parse --path-format=absolute --git-path objects`) et résoudre une réf en sha (`rev-parse`, `symbolic-ref`, `for-each-ref`). Tout le reste (base de fusion, arbres, contenus) se lit par sha dans **un dépôt nu jetable**, créé sous le dossier temporaire par `git init --bare --template=`, qui emprunte ces objets par une ligne de `objects/info/alternates`, et qui est retiré à la fin, quoi qu'il arrive. Aucune commande n'hérite d'une variable `GIT_*` (sauf `GIT_CEILING_DIRECTORIES`, qui borne la recherche du dépôt, comme au ticket 59) ; toutes tournent avec `GIT_CONFIG_GLOBAL=/dev/null`, `GIT_CONFIG_SYSTEM=/dev/null`, `GIT_CONFIG_NOSYSTEM=1`, `GIT_ATTR_NOSYSTEM=1` ; celles du dépôt réel, en plus, avec `GIT_GRAFT_FILE=/dev/null` et `GIT_NO_REPLACE_OBJECTS=1`. Un clone superficiel (limite 9), un dossier temporaire où le dépôt propre ne se crée pas : « illisible ». Rien n'empêche cela dans un module `.mjs` sans dépendance : `node:fs`, `node:os` et `git` suffisent.
+    - **Ce qui tombe sous le dépôt propre sans garde particulière** : le dossier courant (un dépôt nu se lit depuis sa racine : `--full-tree` n'y est plus), les greffes du dépôt (`.git/info/grafts`), ses objets remplacés (`refs/replace`), sa configuration, ses attributs locaux. Le banc les tient par une seule mutation, « les lectures se font dans le dépôt réel ».
+    - **Ce qui garde une garde à soi** : les variables `GIT_*` héritées (`GIT_DIR` vers un autre clone, `GIT_GRAFT_FILE`, `GIT_ICASE_PATHSPECS`…), retirées de l'environnement ; un tag ou une branche locale du nom de la cible, écartés par la réf lue en entier ; une réf symbolique ; un clone superficiel ; les arguments.
+    - **Trois ceintures sans mutation**, parce que rien dans le banc ne sait les prendre en défaut : la configuration d'utilisateur et de système écartée, `GIT_GRAFT_FILE=/dev/null` et `GIT_NO_REPLACE_OBJECTS=1` sur les commandes du dépôt réel (qui ne parcourent aucun historique et ne lisent aucun objet).
 
 ### Remèdes écartés
 
@@ -171,6 +181,9 @@ Tenues de la spec : `A-82`, `A-90`, `A-106` (les lectures), `A-108` (les règles
 - **Lire le manifeste** (`featureCriticality`) pour voir une criticité de feature avant que l'index soit régénéré : le niveau effectif est un calcul de la CLI Anchorpost (la feature, ses specs, leurs lignes `Règles:`), que ce fichier ne refait pas.
 - **Ne lire le ticket que sur la tête** : la PR retirerait elle-même la ligne qui l'oblige ; la tête s'ajoute aux autres lectures, elle ne les remplace pas.
 - **Le verdict en première ligne** (les deux premières versions) : accordé sur `A-114`, il est la dernière ligne, et la seule qui en ait la forme.
+- **Garder les lectures dans le dépôt réel, option par option** (`--full-tree`, `--no-replace-objects`, l'état d'avant) : chaque réglage oublié était un faux « non exigée » de plus ; `A-119` puis `A-122` y mettent fin par le dépôt propre.
+- **Lire `code: [.]` comme « tout le dépôt »**, ou comme « aucun fichier » : décision 11.
+- **Une bibliothèque YAML dans le dépôt pour le banc** : elle ne sert qu'à l'essai à grande échelle, hors du dépôt (« Vérification », point 6).
 - **Lire une réf par son nom court** (`develop`, `origin/develop`) : un tag ou une branche locale du même nom passait devant.
 - **Recevoir `origin/<branche>` ou un sha pour la base** (l'état d'avant) : accordé sur le ticket 59, la base est un nom de branche nu, la tête un sha.
 - **Lire la spec même quand le ticket porte sa ligne `Règles:`** : le conducteur n'aurait plus de moyen écrit de dire « aucune ».
@@ -187,13 +200,13 @@ Tenues de la spec : `A-82`, `A-90`, `A-106` (les lectures), `A-108` (les règles
 
 ### § 0 — Partir de `main`
 
-`git fetch origin main`, une branche depuis `origin/main`. Relever la version de `.claude-plugin/plugin.json` et la ligne 14 de `skills/chaine/fusionner/SKILL.md` : si la version n'est plus 7.20.0 ou si la phrase a changé, les § 3 et 4 suivent la règle de repli (décision 20).
+`git fetch origin main`, une branche depuis `origin/main`. Relever la version de `.claude-plugin/plugin.json` et la ligne 14 de `skills/chaine/fusionner/SKILL.md` : si la version n'est plus 7.23.0 ou si la phrase a changé, les § 3 et 4 suivent la règle de repli (décision 20).
 
 ### § 1 — Le banc d'abord, vu rouge
 
 Créer `skills/chaine/fusionner/scripts/double-relecture.test.mjs`, tel quel. Le lancer : `node --test skills/chaine/fusionner/scripts/double-relecture.test.mjs` échoue à l'import, le module n'existe pas.
 
-**Les cas, un par un.** Le calcul se joue sur des arbres en mémoire : `origin/develop`, la tête (donnée par un sha, écrite `tete` ci-dessous), le départ de la PR (la base, quand la PR est à jour), et au besoin `origin/sujet/facture`. Les fichiers du diff existent dans ces arbres, sauf au cas 21. `R16` est `docs/metier/regles/all/RULE_ALL_FAC-16.md`, `CODE` est `apps/api/src/facture/total.ts`, le ticket est `SPEC_ALL_FAC-1.03`. Sauf mention, la PR vise `origin/develop`.
+**Les cas, un par un.** Le calcul se joue sur des arbres en mémoire : `origin/develop`, la tête (donnée par un sha, écrite `tete` ci-dessous), le départ de la PR (la base, quand la PR est à jour), et au besoin `origin/sujet/facture`. Les fichiers du diff existent dans ces arbres, sauf aux cas 21. `R16` est `docs/metier/regles/all/RULE_ALL_FAC-16.md`, `CODE` est `apps/api/src/facture/total.ts`, le ticket est `SPEC_ALL_FAC-1.03`. Sauf mention, la PR vise `origin/develop`.
 
 | n° | Montage | Fichiers du diff | Attendu |
 | --- | --- | --- | --- |
@@ -239,26 +252,35 @@ Créer `skills/chaine/fusionner/scripts/double-relecture.test.mjs`, tel quel. Le
 | 18 | **dossier courant hors de la racine** (`A-117`), sur un dépôt git, montage M : `origin/develop` porte l'index avec la règle `high` et `code: [CODE]`, la PR modifie `CODE` ; le calcul est lancé depuis `<dépôt>/apps`, `<dépôt>/apps/api/src/facture`, `<dépôt>/docs` | `CODE` | sortie 20, `RULE_ALL_FAC-16 · code · CODE · origin/develop` puis `exigée`, comme depuis la racine |
 | 18 bis | M ; la branche locale `develop`, un tag `develop`, un tag et une branche locale `origin/develop` pointent un commit sans règle ni index ; puis ce commit **remplace** celui de la cible (`git replace`) | `CODE` | sortie 20 dans les deux cas : la cible se lit en entier (`refs/remotes/origin/develop`), les objets remplacés ne sont pas suivis |
 | 18 ter | `refs/remotes/origin/HEAD` et `refs/remotes/origin/alias`, réfs symboliques vers `origin/develop` : `--base HEAD`, `--base alias` | `README.md` | sortie 21 : « branche refusée » pour `HEAD`, « origin/alias est une référence symbolique » pour l'alias |
-| 19 | **formes que le gate lit** (`A-117`) : `**Règles:** RULE_ALL_FAC-16`, `- Règles: …`, `règles: …`, `- **RÈGLES** : …`, une fin de ligne CRLF ; `**Relecture:** double`, `- Relecture: double`, `relecture: double` | `README.md` | « exigée » chaque fois, cause `Règles:` ou `Relecture: double` |
+| 19 | **formes que le gate lit** (`A-117`), **et la puce étoile** (`A-122`) : `**Règles:** RULE_ALL_FAC-16`, `- Règles: …`, `* Règles: …`, `*` suivi d'une tabulation, `règles: …`, `- **RÈGLES** : …`, une fin de ligne CRLF ; `**Relecture:** double`, `- Relecture: double`, `* Relecture: double`, `relecture: double` | `README.md` | « exigée » chaque fois, cause `Règles:` ou `Relecture: double` |
 | 19 bis | `**Relecture:** triple`, `- Relecture: simple`, `RELECTURE: Double` ; puis `Les règles: …`, une ligne en retrait, une citation `> Règles: …` | `README.md` | « illisible » ; « non exigée » (le gate ne lit pas ces trois-là non plus) |
 | 20 | **commentaire dans un mappage plié** (`A-117`) : `criticality:`, puis `{`, `level: high,`, `by: agent, # avant: x, level: low`, `}` ; `validation` pliée de même avec `# a: b, status: rejected` ; un `#` entre guillemets dans une liste `code` pliée | — | le niveau lu est `high` ; la règle est en vigueur ; le `#` entre guillemets reste dans le chemin |
+| 20 ter | **apostrophe de texte** (`A-122`) : `criticality:`, puis `{`, `reason: c'est grave, # ', level: low,`, `by: l'agent, level: high, # '`, `}` ; `criticality: { level: high, by: agent, reason: c'est grave }` ; une chaîne ouverte en tête de valeur qui porte `, level: high` ; des chemins de `code` à apostrophe, en ligne, en bloc avec commentaires, pliés | — | `high` ; `high`, pas « illisible » ; la chaîne garde sa virgule, le niveau lu est celui d'après ; chaque chemin est lu entier, `apps/l'un.ts` compris |
 | 20 bis | `criticality: { level: low, by: agent, level: high }` ; la même clé deux fois dans un mappage plié ; une clé vide | — | refusé (« illisible »), jamais la dernière valeur |
 | 21 | **entrée non contrôlée** (`A-117`), les fichiers n'existent que là où le montage les écrit : M avec `git diff --name-only -z`, puis `--name-status` ; une tabulation en fin de ligne | l'entrée telle que git l'écrit | « illisible », sortie 21, aucune cause |
-| 21 bis | un chemin de l'entrée absent du départ comme de la tête, seul, puis à côté de `CODE` ; `CODE` supprimé par la PR (au départ seul) ; ajouté (à la tête seule) ; absent des deux alors que la cible le porte | — | « illisible », le message compte les chemins sans les nommer, même avec `CODE` à côté ; « exigée » ; « exigée » ; « illisible » |
+| 21 bis | un chemin de l'entrée qui n'existe dans aucun arbre, seul, puis à côté de `CODE` ; `CODE` supprimé par la PR ; ajouté (à la tête seule) ; supprimé par la PR et, depuis, par sa cible (au départ seul) | — | « illisible », le message compte les chemins sans les nommer, même avec `CODE` à côté ; « exigée » ; « exigée » ; « exigée » |
+| 21 quater | **« illisible » de trop** (`A-122`) : `CODE` absent du départ comme de la tête, présent sur la cible, où la règle le nomme ; PR de mise à jour d'un sujet dont une retouche supprime `apps/venu.ts`, venu de `develop` seul ; sous-PR en retard qui supprime `apps/arrive.ts`, arrivé depuis sur son sujet ; le même chemin dans aucun des quatre arbres | le chemin | « exigée » ; « non exigée », aucun échec ; « non exigée », aucun échec ; « illisible » |
 | 21 ter | des lignes vides, une fin de ligne CRLF ; un diff vide | `README.md` ; rien | « non exigée » |
 | 22 | **renommage** (`A-117`), sur un dépôt git : la PR renomme `CODE` sans le modifier | la sortie de `git diff --no-renames --name-only` | sortie 20, cause `code` sur l'ancien nom ; la sortie de `git diff --name-only` avec la détection des renommages ne porte pas l'ancien nom : d'où l'usage |
 | 23 | **argument refusé** (`A-117`) : `--base HEAD` ; `--base` d'un texte de deux lignes dont la seconde est `non exigée` ; `--base --all` ; `--base a..b` ; `--tete HEAD`, `--tete origin/develop`, un sha de 12 caractères, un sha suivi d'une ligne `non exigée` ; un titre et une branche de tête de deux lignes | `README.md` ; `CODE` | sortie 21, une ligne `# illisible : branche refusée : …` ou `sommet refusé : …` qui ne recopie rien, puis `illisible` ; le titre hostile n'écrit rien : sortie 20 |
 | 23 bis | `--base origin/develop` (un nom de branche valide, qui n'est pas une branche d'origin) ; `--base absente` ; un sha de 40 zéros | `README.md` | sortie 21, « référence … introuvable » |
-| 24 | **chemins de `code`** (`A-117`) : `apps//api/src/facture/total.ts`, `apps/api/./src/…`, `./apps/…`, un détour par `..`, le dossier avec deux slashs finaux, une autre casse ; dans l'index puis dans l'en-tête | `CODE` | « exigée » ; `../apps/…`, une entrée vide, `.`, `/`, le chemin sans son extension : « non exigée » |
+| 24 | **chemins de `code`** (`A-117`) : `apps//api/src/facture/total.ts`, `apps/api/./src/…`, `./apps/…`, un détour par `..`, le dossier avec deux slashs finaux, une autre casse ; dans l'index puis dans l'en-tête | `CODE` | « exigée » ; le chemin sans son extension : « non exigée » |
+| 24 bis | **`code` qui nomme la racine du dépôt** (`A-122`) : `.`, `./`, `/`, une entrée vide, `apps/..`, `../apps/…`, dans l'index d'une règle haute ; `code: [.]` dans un en-tête ; les mêmes pour une règle moyenne | `CODE` | « illisible », l'échec nomme la règle ; « illisible » ; « non exigée » |
 | 25 | **la sortie** (`A-117`) : un message et un champ de cause qui portent un saut de ligne, une tabulation, un séparateur de ligne d'Unicode, le mot `non exigée` ; un message de 5 000 caractères | — | une ligne chacun, une seule ligne de la sortie est un verdict, la dernière ; le message est borné à 500 caractères |
 | 26 | **le ticket créé par la PR** (`A-117`) : la base n'a pas le ticket, la tête le porte avec `Règles:` d'une règle haute, puis avec `Relecture: double`, puis sans rien, puis avec `Relecture: triple` | le fichier du ticket | « exigée », cause lue sur `tete` ; idem ; « non exigée » ; « illisible » |
 | 26 bis | le ticket est sur la base sans ligne `Règles:`, la PR la lui ajoute ; la base la porte, la PR la lui retire | le fichier du ticket | « exigée », lue sur `tete` ; « exigée », lue sur `origin/develop` |
 | 27 | **ticket sans ligne `Règles:`, spec qui en porte une** (`A-117`) : la spec `SPEC_ALL_FAC-1` cite la règle haute et une moyenne dans son en-tête | `README.md` | « exigée », cause `RULE_ALL_FAC-16 · Règles: · <fichier de la spec> · origin/develop` |
-| 27 bis | la même spec ; le ticket porte `Règles: —`, puis `- **Règles** : —`, puis une règle moyenne | `README.md` | « non exigée » : le ticket porte sa ligne, la spec n'est pas lue |
+| 27 bis | la même spec ; le ticket porte `Règles: —`, puis `- **Règles** : —`, puis une règle moyenne ; une ligne vide et une ligne `—` | `README.md` | « non exigée » : le ticket porte sa ligne, la spec n'est pas lue |
+| 27 quinquies | **ligne `Règles:` vide** (`A-122`) : `Règles:`, `Règles: ` suivi d'un blanc, `- **Règles** :`, `Règles: # à remplir`, la spec citant la règle haute | `README.md` | « exigée », cause lue dans la spec : une ligne vide n'est pas « aucune » |
+| 27 sexies | **la spec dans tous les arbres** (`A-122`) : le ticket créé par la PR (sur la tête seule, sans ligne), sa spec sur `origin/sujet/facture` seul ; le ticket dit `—` sur le sujet et n'a pas de ligne sur `develop`, où la spec cite la règle haute | le fichier du ticket ; `README.md` | « exigée », cause `Règles: · <spec> · origin/sujet/facture` ; « exigée » (dans le doute) |
 | 27 ter | la spec ne cite que la moyenne ; la cite dans son corps ; n'a pas de ligne ; n'est pas dans l'arbre ; la spec d'à côté cite la règle haute | `README.md` | « non exigée » |
 | 27 quater | un jeton illisible dans la ligne de la spec ; deux fichiers pour la spec ; le ticket et sa spec sur un sujet seul, PR vers `develop` | `README.md` | « illisible » ; « illisible » ; « exigée », cause lue sur `origin/sujet/facture` |
 
-Puis les lecteurs (l'en-tête : onze écritures lues, dix-sept refusées ; trois en-têtes hostiles de 300 000 caractères en moins de 2 s ; l'index aux deux pivots ; les lignes du diff, en parité avec `revue-exigee.mjs` ; les arguments, les noms de branche et les sommets admis) et, sur un dépôt git jouet, la ligne de commande lancée **depuis une copie des outils faite comme celle de la boucle** (`scripts/chaine/double-relecture.mjs` et `scripts/docs/identifiants.mjs`, rien d'autre, hors du dépôt), l'arbre de travail du dépôt disant le contraire des réfs (règle basse, index supprimé) : sorties 20, 0, 21 (réf absente, hors de tout dépôt, usage) et 69 (sans `git` au `PATH`), un chemin que git cite, le ticket lu dans le titre, dans la branche, les deux à la fois, sur une branche de sujet du dépôt, sur la tête, le lecteur git (`merge-base`, `for-each-ref`, l'arbre entier), le point d'entrée par un lien symbolique.
+| 28 | **environnement hostile** (`A-122`), sur un dépôt git, puis depuis un arbre de travail lié (`git worktree`) et l'un de ses sous-dossiers : `origin/develop` dit la règle `medium` dans son index, la PR la monte à `high` par l'index seul et touche le manifeste. Témoin, puis : `.git/info/grafts` portant `<develop> <tête>` ; `GIT_GRAFT_FILE` vers un tel fichier ; `GIT_DIR` hérité vers un autre clone, où la cible est déjà la tête ; `GIT_ICASE_PATHSPECS=1` ; d'autres variables `GIT_*` | le manifeste, l'index | sortie 20 chaque fois, `RULE_ALL_FAC-16 · niveau · anchorpost/anchorpost.json · <tête>` puis `exigée` ; aucun dépôt propre ne reste sous le dossier temporaire |
+| 28 bis | le même dépôt, un dossier temporaire qui n'existe pas ; puis un clone superficiel (`--depth 1`) | le manifeste, l'index | sortie 21 : « dépôt propre impossible à créer sous le dossier temporaire » ; « clone superficiel : l'historique est tronqué (git fetch --unshallow origin) » |
+| 29 | **le dépôt propre** : le lecteur git ouvert sur le dépôt jouet ; puis le calcul appelé en module, sans lecteur donné | — | rien sous le dossier temporaire avant la première lecture ; ensuite un dépôt nu, sans aucune réf ; un sha absent est « introuvable » ; le lecteur par défaut du calcul est refermé à son retour ; après `fermer()`, plus rien |
+
+Puis les lecteurs (l'en-tête : dix-sept écritures lues, dix-sept refusées ; trois en-têtes hostiles de 300 000 caractères en moins de 2 s ; l'index aux deux pivots ; les lignes du diff, en parité avec `revue-exigee.mjs` ; les arguments, les noms de branche et les sommets admis) et, sur un dépôt git jouet, la ligne de commande lancée **depuis une copie des outils faite comme celle de la boucle** (`scripts/chaine/double-relecture.mjs` et `scripts/docs/identifiants.mjs`, rien d'autre, hors du dépôt), l'arbre de travail du dépôt disant le contraire des réfs (règle basse, index supprimé) : sorties 20, 0, 21 (réf absente, hors de tout dépôt, usage) et 69 (sans `git` au `PATH`), un chemin que git cite, le ticket lu dans le titre, dans la branche, les deux à la fois, sur une branche de sujet du dépôt, sur la tête, le lecteur git, le point d'entrée par un lien symbolique.
 
 ````js
 // `node --test scripts/chaine/double-relecture.test.mjs` : « double relecture exigée », sur des arbres donnés en
@@ -268,7 +290,7 @@ Puis les lecteurs (l'en-tête : onze écritures lues, dix-sept refusées ; trois
 import { after, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
-import { copyFileSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -294,9 +316,15 @@ import {
 
 const ICI = dirname(fileURLToPath(import.meta.url));
 
-// Jamais le vrai dépôt : sous un hook git, GIT_DIR et ses semblables sont exportés (même précaution que
-// `commits-a-relire.test.mjs`). NODE_TEST_CONTEXT : avec lui, un `node` enfant rend ses résultats au parent.
-for (const cle of Object.keys(process.env)) if (cle.startsWith('GIT_')) delete process.env[cle];
+// Jamais le vrai dépôt : sous un hook git, GIT_DIR et ses semblables sont exportés. Le filtre de ces variables vit en
+// un seul endroit, `environnementDeBanc` (`scripts/docs/environnement-de-banc.mjs` du socle, réexporté par
+// `depot-jouet.mjs`) : un banc ne le recopie pas (`scripts/un-seul-environnement-de-banc.test.mjs`). Posé dans un
+// projet, depot-jouet.mjs est à côté (scripts/chaine/) ; dans le plugin, il est dans le skill sujet.
+// NODE_TEST_CONTEXT reste dans ce processus : avec lui, un `node` enfant rendrait ses résultats au parent.
+const { environnementDeBanc } = await import(existsSync(new URL('./depot-jouet.mjs', import.meta.url)) ? './depot-jouet.mjs' : '../../sujet/scripts/depot-jouet.mjs');
+const SANS = environnementDeBanc();
+for (const cle of Object.keys(process.env)) if (!(cle in SANS) && cle !== 'NODE_TEST_CONTEXT') delete process.env[cle];
+process.env.NO_COLOR = '1';
 process.env.GIT_CONFIG_GLOBAL = '/dev/null';
 process.env.GIT_CONFIG_NOSYSTEM = '1';
 const ENV_PROPRE = Object.fromEntries(Object.entries(process.env).filter(([cle]) => cle !== 'NODE_TEST_CONTEXT'));
@@ -638,12 +666,12 @@ test("le ticket de la PR est celui de `ticketDeLaPr` ; quand le titre et la bran
   assert.equal(calculer({ fichiers: ['README.md'], develop: { [TICKET]: ticket(), [TICKET_04]: ticket() }, tickets: ticketsDeLaPr(TITRE, BRANCHE) }).reponse, NON_EXIGEE);
 });
 
-test("les lignes `Règles:` et `Relecture:` se lisent aux formes que le gate `tickets` lit : en gras, en puce, sans égard à la casse (A-117)", () => {
+test("les lignes `Règles:` et `Relecture:` se lisent aux formes que le gate `tickets` lit, et à la puce étoile : en gras, en puce, sans égard à la casse (A-117, A-122)", () => {
   const regles = { [INDEX]: index([entree('RULE_ALL_FAC-16', { niveau: 'high' })]) };
   const avec = (ligne) => juger(['README.md'], { ...regles, [TICKET]: ticket(ligne) }, undefined, 'SPEC_ALL_FAC-1.03');
-  for (const ligne of ['**Règles:** RULE_ALL_FAC-16\n', '- Règles: RULE_ALL_FAC-16\n', 'règles: RULE_ALL_FAC-16\n', '- **RÈGLES** : `RULE_ALL_FAC-16`\n', 'Règles : RULE_ALL_FAC-16\r\n'])
+  for (const ligne of ['**Règles:** RULE_ALL_FAC-16\n', '- Règles: RULE_ALL_FAC-16\n', '* Règles: RULE_ALL_FAC-16\n', '*\t**Règles** : RULE_ALL_FAC-16\n', 'règles: RULE_ALL_FAC-16\n', '- **RÈGLES** : `RULE_ALL_FAC-16`\n', 'Règles : RULE_ALL_FAC-16\r\n'])
     assert.deepEqual(causes(avec(ligne)), [`RULE_ALL_FAC-16 · Règles: · ${TICKET} · origin/develop`], ligne);
-  for (const ligne of ['**Relecture:** double\n', '- Relecture: double\n', 'relecture: double\n', '- **Relecture** : double # deux relectures\n'])
+  for (const ligne of ['**Relecture:** double\n', '- Relecture: double\n', '* Relecture: double\n', 'relecture: double\n', '- **Relecture** : double # deux relectures\n'])
     assert.deepEqual(causes(avec(ligne)), [`SPEC_ALL_FAC-1.03 · Relecture: double · ${TICKET} · origin/develop`], ligne);
   for (const ligne of ['**Relecture:** triple\n', '- Relecture: simple\n', 'RELECTURE: Double\n']) assert.equal(avec(ligne).reponse, ILLISIBLE, ligne);
   for (const ligne of ['Les règles: RULE_ALL_FAC-16\n', '  Règles: RULE_ALL_FAC-16\n', '> Règles: RULE_ALL_FAC-16\n']) assert.equal(avec(ligne).reponse, NON_EXIGEE, `${ligne} : le gate ne la lit pas non plus`);
@@ -663,7 +691,7 @@ test("le ticket que la PR crée elle-même est lu sur sa tête : une règle haut
   assert.deepEqual(causes(juger([TICKET], cite, sans, 'SPEC_ALL_FAC-1.03')), [`RULE_ALL_FAC-16 · Règles: · ${TICKET} · origin/develop`]);
 });
 
-test("un ticket sans ligne `Règles:` : celle de sa spec est lue à sa place ; `Règles: —` sur le ticket dit « aucune », et la spec n'est pas lue (A-117)", () => {
+test("un ticket sans ligne `Règles:` : celle de sa spec est lue à sa place, dans tous les arbres ; `Règles: —` sur le ticket dit « aucune », une ligne vide ne dit rien (A-117, A-122)", () => {
   const regles = { [INDEX]: index([entree('RULE_ALL_FAC-16', { niveau: 'high' }), entree('RULE_ALL_FAC-17', { niveau: 'medium' })]) };
   const avec = (ligneDuTicket, laSpec = spec('Règles: RULE_ALL_FAC-17, RULE_ALL_FAC-16\n')) =>
     juger(['README.md'], { ...regles, [TICKET]: ticket(ligneDuTicket), ...(laSpec ? { [SPEC]: laSpec } : {}) }, undefined, 'SPEC_ALL_FAC-1.03');
@@ -673,18 +701,27 @@ test("un ticket sans ligne `Règles:` : celle de sa spec est lue à sa place ; `
   assert.equal(avec('', spec('', 'Règles: RULE_ALL_FAC-16\n')).reponse, NON_EXIGEE, "dans le corps de la spec, ce n'est pas la ligne");
   assert.equal(avec('', spec()).reponse, NON_EXIGEE, 'ni le ticket ni la spec');
   assert.equal(avec('', null).reponse, NON_EXIGEE, 'pas de spec dans cet arbre');
+  // Une ligne `Règles:` vide n'est pas « aucune » : elle est ignorée, et la spec est lue (A-122).
+  for (const ligne of ['Règles:\n', 'Règles: \n', '- **Règles** :\n', 'Règles: # à remplir\n']) assert.deepEqual(causes(avec(ligne)), [`RULE_ALL_FAC-16 · Règles: · ${SPEC} · origin/develop`], `« ${ligne.trim()} »`);
+  assert.equal(avec('Règles:\nRègles: —\n').reponse, NON_EXIGEE, 'une ligne vide et une ligne « aucune » : le ticket porte sa ligne');
   assert.equal(avec('', spec('Règles: FAC-16\n')).reponse, ILLISIBLE, 'un jeton illisible dans la spec');
   // La spec d'à côté n'est pas celle du ticket ; deux fichiers pour la même spec : illisible.
   const voisine = SPEC.replace('FAC-1-facture', 'FAC-2-avoir');
   assert.equal(juger(['README.md'], { ...regles, [TICKET]: ticket(), [voisine]: spec('Règles: RULE_ALL_FAC-16\n') }, undefined, 'SPEC_ALL_FAC-1.03').reponse, NON_EXIGEE);
   const double = { ...regles, [TICKET]: ticket(), [SPEC]: spec(), [SPEC.replace('-facture.spec', '-total.spec')]: spec() };
   assert.equal(juger(['README.md'], double, undefined, 'SPEC_ALL_FAC-1.03').reponse, ILLISIBLE);
-  // Le ticket vit sur un sujet, sa spec aussi : la spec lue est celle du même arbre.
+  // La spec se cherche dans tous les arbres où le ticket se cherche (A-122) : le ticket que la PR crée, sa spec sur un sujet seul.
+  const cree = calculer({ fichiers: [TICKET], develop: regles, sujet: { ...regles, [SPEC]: spec('Règles: RULE_ALL_FAC-16\n') }, tete: { ...regles, [TICKET]: ticket() }, versDevelop: true, tickets: ['SPEC_ALL_FAC-1.03'] });
+  assert.deepEqual(causes(cree), [`RULE_ALL_FAC-16 · Règles: · ${SPEC} · ${SUJET}`]);
+  // Le ticket dit « aucune » sur le sujet, mais n'a pas de ligne sur develop : dans le doute, la spec est lue.
+  const partage = calculer({ fichiers: ['README.md'], develop: { ...regles, [TICKET]: ticket(), [SPEC]: spec('Règles: RULE_ALL_FAC-16\n') }, sujet: { ...regles, [TICKET]: ticket('Règles: —\n') }, tickets: ['SPEC_ALL_FAC-1.03'] });
+  assert.equal(partage.reponse, EXIGEE);
+  // Le ticket vit sur un sujet, sa spec aussi.
   const surSujet = calculer({ fichiers: ['README.md'], develop: regles, sujet: { ...regles, [TICKET]: ticket(), [SPEC]: spec('Règles: RULE_ALL_FAC-16\n') }, versDevelop: true, tickets: ['SPEC_ALL_FAC-1.03'] });
   assert.deepEqual(causes(surSujet), [`RULE_ALL_FAC-16 · Règles: · ${SPEC} · ${SUJET}`]);
 });
 
-test("l'entrée : une tabulation ou un octet nul, un chemin qui n'existe ni au départ ni à la tête : « illisible », jamais « non exigée » (A-117)", () => {
+test("l'entrée : une tabulation ou un octet nul, un chemin qui n'existe dans aucun des arbres de la PR : « illisible », jamais « non exigée » (A-117, A-122)", () => {
   const arbre = { [INDEX]: index([entree('RULE_ALL_FAC-16', { niveau: 'high', code: [CODE] })]), [CODE]: 'x', 'README.md': 'x' };
   const lire = (fichiers, tete = arbre, depart = arbre) => calculer({ fichiers, develop: arbre, tete, depart, existants: [] });
   assert.equal(lire([CODE]).reponse, EXIGEE);
@@ -695,23 +732,43 @@ test("l'entrée : une tabulation ou un octet nul, un chemin qui n'existe ni au d
     assert.match(r.illisibles[0], /^l'entrée porte une tabulation ou un octet nul/);
   }
   const absent = lire(['README.md', 'apps/absent.ts']);
-  assert.deepEqual([absent.reponse, absent.illisibles], [ILLISIBLE, ["1 chemin(s) de l'entrée n'existent ni au départ ni à la tête de la PR : attendu la sortie de `git diff --name-only --no-renames`"]]);
+  assert.deepEqual([absent.reponse, absent.illisibles], [ILLISIBLE, ["1 chemin(s) de l'entrée n'existent ni au départ, ni à la tête, ni sur la cible, ni sur develop : attendu la sortie de `git diff --name-only --no-renames`"]]);
   assert.equal(lire([CODE, 'apps/absent.ts']).reponse, ILLISIBLE, 'un chemin inconnu rend toute l\'entrée suspecte : aucune cause n\'en est tirée');
   // Supprimé par la PR : au départ seul. Ajouté par la PR : à la tête seule. Casse et accents comparés comme git les écrit.
   const sansCode = { [INDEX]: arbre[INDEX], 'README.md': 'x' };
   assert.equal(lire([CODE], sansCode, arbre).reponse, EXIGEE);
   assert.equal(lire([CODE], arbre, sansCode).reponse, EXIGEE);
-  assert.equal(lire([CODE], sansCode, sansCode).reponse, ILLISIBLE, 'ni au départ ni à la tête, même si la cible le porte');
+  // Au départ seul : la PR supprime un fichier que sa cible a supprimé aussi depuis.
+  assert.equal(calculer({ fichiers: [CODE], develop: sansCode, tete: sansCode, depart: arbre, existants: [] }).reponse, EXIGEE, 'le chemin existe au départ, et la règle le nomme encore');
+  // Ni au départ ni à la tête, mais sur la cible : la PR en retard qui supprime un fichier arrivé depuis sur sa cible.
+  assert.equal(lire([CODE], sansCode, sansCode).reponse, EXIGEE, 'le chemin existe sur la cible, où la règle le nomme');
+  // La PR de mise à jour d'un sujet dont une retouche supprime un fichier venu de develop : ni au départ (le sujet), ni
+  // à la tête, ni sur la cible (le sujet) ; sur develop seul. Une PR ordinaire, pas une entrée suspecte (A-122).
+  const sujet = { 'README.md': 'x' };
+  const maj = calculer({ fichiers: ['apps/venu.ts'], develop: { ...sujet, 'apps/venu.ts': 'x' }, sujet, tete: sujet, existants: [] });
+  assert.deepEqual([maj.reponse, maj.illisibles], [NON_EXIGEE, []]);
+  assert.equal(calculer({ fichiers: ['apps/venu.ts'], develop: sujet, sujet, tete: sujet, existants: [] }).reponse, ILLISIBLE, 'dans aucun des quatre arbres');
+  // La sous-PR en retard qui supprime un fichier arrivé depuis sur son sujet : sur la cible seule.
+  const enRetard = calculer({ fichiers: ['apps/arrive.ts'], develop: sujet, sujet: { ...sujet, 'apps/arrive.ts': 'x' }, tete: sujet, depart: sujet, existants: [] });
+  assert.deepEqual([enRetard.reponse, enRetard.illisibles], [NON_EXIGEE, []]);
   assert.equal(lire(['', '  ', 'README.md\r']).reponse, NON_EXIGEE, 'lignes vides et fin de ligne CRLF');
   assert.equal(lire([]).reponse, NON_EXIGEE, "un diff vide : l'appelant répond de sa lecture");
 });
 
-test("les chemins de `code` sont normalisés : un double slash, un `./`, un détour par `..` nomment le même fichier (A-117)", () => {
+test("les chemins de `code` sont normalisés : un double slash, un `./`, un détour par `..` nomment le même fichier ; la racine du dépôt n'est pas « aucun fichier » (A-117, A-122)", () => {
   for (const chemin of ['apps//api/src/facture/total.ts', 'apps/api/./src/facture/total.ts', './apps/api/src/facture/total.ts', 'apps/api/src/x/../facture/total.ts', 'apps/api/src/facture//', 'Apps/API/src/facture/total.ts']) {
     assert.deepEqual(causes(juger([CODE], { [INDEX]: index([entree('RULE_ALL_FAC-16', { niveau: 'high', code: [chemin] })]) })), [`RULE_ALL_FAC-16 · code · ${CODE} · origin/develop`], chemin);
     assert.equal(juger([CODE], { [R16]: regle('RULE_ALL_FAC-16', { criticite: HAUTE_NUE, code: `code: [ "${chemin}" ]\n` }) }).reponse, EXIGEE, `${chemin}, dans l'en-tête`);
   }
-  for (const chemin of ['../apps/api/src/facture/total.ts', 'apps/../../x', '', '.', '/', 'apps/api/src/facture/total']) assert.equal(juger([CODE], { [INDEX]: index([entree('RULE_ALL_FAC-16', { niveau: 'high', code: [chemin] })]) }).reponse, NON_EXIGEE, `${chemin} ne nomme pas ce fichier`);
+  assert.equal(juger([CODE], { [INDEX]: index([entree('RULE_ALL_FAC-16', { niveau: 'high', code: ['apps/api/src/facture/total'] })]) }).reponse, NON_EXIGEE, 'un autre fichier que celui du diff');
+  // Une entrée qui nomme la racine du dépôt, ou en sort, ne dit pas « aucun fichier » : illisible, pour une règle haute (A-122).
+  for (const chemin of ['.', './', '/', '', 'apps/..', '../apps/api/src/facture/total.ts', 'apps/../../x']) {
+    const r = juger([CODE], { [INDEX]: index([entree('RULE_ALL_FAC-16', { niveau: 'high', code: [chemin] })]) });
+    assert.equal(r.reponse, ILLISIBLE, `« ${chemin} »`);
+    assert.match(r.illisibles[0], /une entrée de `code` de RULE_ALL_FAC-16 nomme la racine du dépôt ou en sort$/);
+    assert.equal(juger([CODE], { [INDEX]: index([entree('RULE_ALL_FAC-16', { niveau: 'medium', code: [chemin] })]) }).reponse, NON_EXIGEE, `« ${chemin} » d'une règle moyenne`);
+  }
+  assert.equal(juger([CODE], { [R16]: regle('RULE_ALL_FAC-16', { criticite: HAUTE_NUE, code: 'code: [.]\n' }) }).reponse, ILLISIBLE, '`code: [.]` dans un en-tête');
 });
 
 test("la sortie : une ligne par cause, par échec, par remarque, le verdict seul en dernière ligne ; rien de ce qui est lu n'écrit une ligne de plus (A-117)", () => {
@@ -736,6 +793,13 @@ test("l'en-tête d'une règle : les formes lues, et ce qui est refusé plutôt q
   assert.equal(lu('criticality: { # avant, level: low\n  level: high, by: agent }\n').niveau, 'high');
   assert.equal(enTeteDeRegle('---\nid: RULE_ALL_FAC-16\nvalidation:\n  {\n    status: validated, # a: b, status: rejected\n    date: 2026-11-16,\n  }\ncriticality: high\n---\n').enVigueur, true);
   assert.deepEqual(lu('', 'code:\n  [\n    a.ts, # b.ts, c.ts\n    "d # e.ts",\n  ]\n').code, ['a.ts', 'd # e.ts'], 'un `#` entre guillemets reste dans la valeur');
+  // Une apostrophe de texte n'ouvre pas une chaîne : un guillemet ne compte qu'en tête de valeur (A-122).
+  assert.equal(lu("criticality:\n  {\n    reason: c'est grave, # ', level: low,\n    by: l'agent, level: high, # '\n  }\n").niveau, 'high');
+  assert.equal(lu("criticality: { level: high, by: agent, reason: c'est grave }\n").niveau, 'high');
+  assert.equal(lu("criticality: { reason: l'un, level: low, by: 'x, level: high' }\n").niveau, 'low', "la chaîne ouverte en tête de valeur garde sa virgule");
+  assert.deepEqual(lu('', "code: [ apps/l'un.ts, 'apps/a, b.ts', apps/d'un.ts ]\n").code, ["apps/l'un.ts", 'apps/a, b.ts', "apps/d'un.ts"]);
+  assert.deepEqual(lu('', "code:\n  - apps/l'un.ts # l'autre\n  - 'apps/a # b.ts' # c'est tout\n  - \"apps/c.ts\"\n").code, ["apps/l'un.ts", 'apps/a # b.ts', 'apps/c.ts']);
+  assert.deepEqual(lu('', "code:\n  [\n    apps/l'un.ts, # d'abord\n    'apps/a # b.ts', # l'autre\n  ]\n").code, ["apps/l'un.ts", 'apps/a # b.ts']);
   assert.equal(lu('# criticality: high\nextensions:\n  projet:\n    criticality: high\n').niveau, null, 'ni un commentaire ni une clé imbriquée ne sont la clé');
   assert.equal(enTeteDeRegle(String.fromCharCode(0xfeff) + '---\r\nid: RULE_ALL_FAC-16\r\ncriticality: high\r\nvalidation: { status: rejected, date: 2026-11-16 }\r\n---\r\n').enVigueur, false, 'BOM, CRLF, validation en ligne');
   for (const [nom, texte] of [
@@ -925,7 +989,7 @@ test("le calcul se place à la racine du dépôt et n'obéit ni au dossier coura
   assert.deepEqual([lancer(script, m, { cwd: depot, entree: `${CODE}\n` }).sortie], [`${CAUSE_M}exigée\n`]);
 });
 
-test("l'entrée est contrôlée : `-z`, `--name-status`, un chemin qui n'existe ni au départ ni à la tête sont « illisibles » ; un argument refusé n'est pas recopié", () => {
+test("l'entrée est contrôlée : `-z`, `--name-status`, un chemin qui n'existe dans aucun arbre de la PR sont « illisibles » ; un argument refusé n'est pas recopié", () => {
   const { depot, tete } = depotJouet();
   const script = copieDesOutils();
   const m = ['--base', 'develop', '--tete', tete];
@@ -936,7 +1000,7 @@ test("l'entrée est contrôlée : `-z`, `--name-status`, un chemin qui n'existe 
     assert.deepEqual([r.code, r.sortie], [21, "# illisible : l'entrée porte une tabulation ou un octet nul : attendu la sortie de `git diff --name-only --no-renames`, un chemin par ligne\nillisible\n"], forme.join(' '));
   }
   const inconnu = lancer(script, m, { cwd: depot, entree: `${CODE}\napps/api/src/facture/absent.ts\n` });
-  assert.deepEqual([inconnu.code, inconnu.sortie], [21, "# illisible : 1 chemin(s) de l'entrée n'existent ni au départ ni à la tête de la PR : attendu la sortie de `git diff --name-only --no-renames`\nillisible\n"], 'même avec un chemin qui aurait suffi');
+  assert.deepEqual([inconnu.code, inconnu.sortie], [21, "# illisible : 1 chemin(s) de l'entrée n'existent ni au départ, ni à la tête, ni sur la cible, ni sur develop : attendu la sortie de `git diff --name-only --no-renames`\nillisible\n"], 'même avec un chemin qui aurait suffi');
   // Un fichier supprimé par la PR existe au départ ; un fichier ajouté, à la tête ; des fins de ligne CRLF passent.
   assert.equal(lancer(script, m, { cwd: depot, entree: `${CODE}\r\nREADME.md\r\n` }).code, 20);
   // Une réf refusée, un titre hostile : rien de ce qui est reçu n'écrit une ligne de verdict.
@@ -998,28 +1062,111 @@ test('le ticket se lit dans le titre et dans le nom de la branche de tête, et s
   assert.deepEqual([surLaTete.code, surLaTete.sortie], [20, `SPEC_ALL_FAC-1.03\tRelecture: double\t${TICKET}\t${avecTicket}\nexigée\n`]);
 });
 
-test("le lecteur git : un fichier absent du commit, plusieurs fichiers en une lecture, un contenu à accents, la base de fusion, les branches de sujet", () => {
+test("le lecteur git lit par un dépôt propre, jetable : un fichier absent du commit, plusieurs fichiers en une lecture, un contenu à accents, la base de fusion, les branches de sujet", () => {
   const { depot, tete } = depotJouet();
+  const temporaire = dossier('temporaire-');
+  const garde = process.env.TMPDIR;
+  process.env.TMPDIR = temporaire;
   const l = lecteurGit(depot);
-  const develop = l.verifier('refs/remotes/origin/develop');
-  assert.match(develop, /^[0-9a-f]{40}$/);
-  assert.deepEqual(l.lister(tete, 'docs/metier/regles/'), [R16]);
-  assert.deepEqual(l.lister(tete, 'absent/'), []);
-  assert.deepEqual(l.chemins(tete).sort(), [INDEX, CODE, R16, TICKET, 'README.md', 'docs/métier/note.md'].sort());
-  const lus = l.lire(tete, [R16, CODE]);
-  assert.match(lus.get(R16), /arrondi au centime[\s\S]*Le total est la somme des lignes\.\n$/);
-  assert.equal(lus.get(CODE), 'export const total = 1;\n');
-  assert.throws(() => l.lire(tete, ['absent.md']), Illisible);
-  assert.throws(() => l.verifier('refs/remotes/origin/absente'), /référence origin\/absente introuvable/);
-  g(depot, 'symbolic-ref', 'refs/remotes/origin/HEAD', 'refs/remotes/origin/develop');
-  assert.throws(() => l.verifier('refs/remotes/origin/HEAD'), /origin\/HEAD est une référence symbolique/);
-  assert.equal(l.baseDeFusion(develop, tete), develop);
-  assert.deepEqual(l.sujets(), []);
-  g(depot, 'update-ref', 'refs/remotes/origin/sujet/facture', tete);
-  g(depot, 'update-ref', 'refs/remotes/origin/autre', tete);
-  assert.deepEqual(l.sujets(), ['refs/remotes/origin/sujet/facture']);
-  const orphelin = g(depot, 'commit-tree', '-m', 'sans parent', `${tete}^{tree}`);
-  assert.throws(() => l.baseDeFusion(develop, orphelin), /pas de base de fusion/);
+  try {
+    assert.deepEqual(readdirSync(temporaire), [], 'rien avant la première lecture');
+    const develop = l.verifier('refs/remotes/origin/develop');
+    assert.match(develop, /^[0-9a-f]{40}$/);
+    const [propre] = readdirSync(temporaire);
+    assert.match(propre, /^double-relecture\./);
+    assert.equal(g(join(temporaire, propre, 'depot'), 'rev-parse', '--is-bare-repository'), 'true', 'un dépôt nu');
+    assert.deepEqual(readdirSync(join(temporaire, propre, 'depot/refs/heads')), [], 'sans aucune réf : tout se lit par sha');
+    assert.deepEqual(l.lister(tete, 'docs/metier/regles/'), [R16]);
+    assert.deepEqual(l.lister(tete, 'absent/'), []);
+    assert.deepEqual(l.chemins(tete).sort(), [INDEX, CODE, R16, TICKET, 'README.md', 'docs/métier/note.md'].sort());
+    const lus = l.lire(tete, [R16, CODE]);
+    assert.match(lus.get(R16), /arrondi au centime[\s\S]*Le total est la somme des lignes\.\n$/);
+    assert.equal(lus.get(CODE), 'export const total = 1;\n');
+    assert.throws(() => l.lire(tete, ['absent.md']), Illisible);
+    assert.throws(() => l.verifier('refs/remotes/origin/absente'), /référence origin\/absente introuvable/);
+    assert.throws(() => l.verifier('0'.repeat(40)), /introuvable/);
+    g(depot, 'symbolic-ref', 'refs/remotes/origin/HEAD', 'refs/remotes/origin/develop');
+    assert.throws(() => l.verifier('refs/remotes/origin/HEAD'), /origin\/HEAD est une référence symbolique/);
+    assert.equal(l.baseDeFusion(develop, tete), develop);
+    assert.deepEqual(l.sujets(), []);
+    g(depot, 'update-ref', 'refs/remotes/origin/sujet/facture', tete);
+    g(depot, 'update-ref', 'refs/remotes/origin/autre', tete);
+    assert.deepEqual(l.sujets(), ['refs/remotes/origin/sujet/facture']);
+    const orphelin = g(depot, 'commit-tree', '-m', 'sans parent', `${tete}^{tree}`);
+    assert.throws(() => l.baseDeFusion(develop, orphelin), /pas de base de fusion/);
+    // Le lecteur par défaut du calcul, ouvert sur le dossier courant, est refermé au retour : rien n'attend la fin du processus.
+    const courant = process.cwd();
+    process.chdir(depot);
+    try {
+      assert.equal(doubleRelecture({ fichiers: [CODE], base: 'develop', tete }).reponse, EXIGEE);
+      assert.equal(readdirSync(temporaire).length, 1, 'seul reste le dépôt propre du lecteur de ce test');
+    } finally {
+      process.chdir(courant);
+    }
+  } finally {
+    l.fermer();
+    if (garde === undefined) delete process.env.TMPDIR;
+    else process.env.TMPDIR = garde;
+  }
+  assert.deepEqual(readdirSync(temporaire), [], 'le dépôt propre est retiré');
+});
+
+/** Une PR qui monte une règle par l'index seul : develop la dit moyenne, la tête haute, ni son fichier ni son code ne sont touchés. */
+function depotNiveau() {
+  const depot = dossier('double-relecture-');
+  g(depot, 'init', '-q', '-b', 'develop');
+  g(depot, 'config', 'user.email', 'jouet@example.invalid');
+  g(depot, 'config', 'user.name', 'Jouet');
+  const socle = commit(depot, { [INDEX]: index([entree('RULE_ALL_FAC-16', { niveau: 'medium' })]), 'anchorpost/manifest.json': '{}\n', 'README.md': 'jouet\n' }, 'chore: socle');
+  g(depot, 'update-ref', 'refs/remotes/origin/develop', 'HEAD');
+  g(depot, 'checkout', '-q', '-b', 'feat/criticite');
+  const tete = commit(depot, { [INDEX]: index([entree('RULE_ALL_FAC-16', { niveau: 'high', origin: 'feature' })]), 'anchorpost/manifest.json': '{"featureCriticality": []}\n' }, 'feat: criticité');
+  return { depot, socle, tete, entree: `anchorpost/manifest.json\n${INDEX}\n` };
+}
+
+test("un environnement hostile ne pèse pas : des greffes, `GIT_GRAFT_FILE`, un `GIT_DIR` hérité vers un autre clone, `GIT_ICASE_PATHSPECS`, un arbre de travail lié ; sans dépôt propre, ou sur un clone superficiel : « illisible » (A-122)", () => {
+  const { depot, socle, tete, entree } = depotNiveau();
+  const script = copieDesOutils();
+  const temporaire = dossier('temporaire-');
+  const juger = (env = {}, cwd = depot) => lancer(script, ['--base', 'develop', '--tete', tete], { cwd, entree, env: { TMPDIR: temporaire, ...env } });
+  const attendu = `RULE_ALL_FAC-16\tniveau\t${INDEX}\t${tete}\nexigée\n`;
+  const temoin = juger();
+  assert.deepEqual([temoin.code, temoin.sortie], [20, attendu], 'le témoin : la criticité montée par l\'index seul');
+  // Des greffes : la cible aurait la tête pour parent, la base de fusion serait la tête, et la PR ne changerait rien.
+  const greffe = `${socle} ${tete}\n`;
+  mkdirSync(join(depot, '.git/info'), { recursive: true });
+  writeFileSync(join(depot, '.git/info/grafts'), greffe);
+  // La greffe fait un cycle (la tête descend déjà de la cible) : lue dans le dépôt réel, la base de fusion est la tête, ou
+  // n'est pas calculable, selon l'ordre des dates ; jamais la cible.
+  const trompe = spawnSync('git', ['merge-base', socle, tete], { cwd: depot, env: ENV_PROPRE, encoding: 'utf8' });
+  assert.notEqual(trompe.stdout.trim(), socle, 'le montage trompe bien une lecture dans le dépôt réel');
+  assert.equal(juger().sortie, attendu, '.git/info/grafts');
+  rmSync(join(depot, '.git/info/grafts'));
+  const greffes = join(dossier('greffes-'), 'greffes');
+  writeFileSync(greffes, greffe);
+  assert.equal(juger({ GIT_GRAFT_FILE: greffes }).sortie, attendu, 'GIT_GRAFT_FILE');
+  // Un GIT_DIR hérité vers un autre clone, où la cible est déjà la tête : le dépôt jugé est celui du dossier courant.
+  const autre = join(dossier('autre-'), 'clone');
+  g(depot, 'clone', '-q', depot, autre);
+  g(autre, 'update-ref', 'refs/remotes/origin/develop', tete);
+  assert.equal(juger({ GIT_DIR: join(autre, '.git') }).sortie, attendu, 'GIT_DIR');
+  assert.equal(juger({ GIT_ICASE_PATHSPECS: '1' }).sortie, attendu, 'GIT_ICASE_PATHSPECS');
+  assert.equal(juger({ GIT_NOGLOB_PATHSPECS: '1', GIT_GLOB_PATHSPECS: '1', GIT_INDEX_FILE: '/dev/null', GIT_OBJECT_DIRECTORY: join(autre, '.git/objects/absent') }).sortie, attendu, "d'autres variables GIT_*");
+  // Depuis un arbre de travail lié, celui du capitaine : ses objets sont ceux du dépôt commun.
+  const lie = join(dossier('lie-'), 'arbre');
+  g(depot, 'worktree', 'add', '-q', '--detach', lie, socle);
+  assert.equal(juger({}, lie).sortie, attendu, 'un arbre de travail lié');
+  assert.equal(juger({}, join(lie, 'anchorpost')).sortie, attendu, 'un sous-dossier de cet arbre');
+  assert.deepEqual(readdirSync(temporaire), [], 'aucun dépôt propre ne reste');
+  // Le dépôt propre ne se crée pas : illisible, jamais une lecture dans le dépôt réel.
+  const sans = juger({ TMPDIR: join(temporaire, 'absent') });
+  assert.deepEqual([sans.code, sans.sortie], [21, '# illisible : dépôt propre impossible à créer sous le dossier temporaire\nillisible\n']);
+  // Un clone superficiel : son historique est tronqué, la base de fusion ne s'y calcule pas.
+  const superficiel = join(dossier('superficiel-'), 'clone');
+  g(depot, 'clone', '-q', '--depth', '1', '--branch', 'feat/criticite', `file://${depot}`, superficiel);
+  g(superficiel, 'update-ref', 'refs/remotes/origin/develop', tete);
+  const tronque = lancer(script, ['--base', 'develop', '--tete', tete, '--branche', BRANCHE], { cwd: superficiel, entree, env: { TMPDIR: temporaire } });
+  assert.deepEqual([tronque.code, tronque.sortie], [21, "# illisible : clone superficiel : l'historique est tronqué (git fetch --unshallow origin)\nillisible\n"]);
 });
 
 test("le point d'entrée est reconnu par un lien symbolique, depuis un dossier à espace et à accent", () => {
@@ -1036,7 +1183,7 @@ test("le point d'entrée est reconnu par un lien symbolique, depuis un dossier �
 
 ### § 2 — `skills/chaine/fusionner/scripts/double-relecture.mjs`
 
-Créer le fichier, tel quel. Le banc du § 1 devient vert, 35 sur 35.
+Créer le fichier, tel quel. Le banc du § 1 devient vert, 36 sur 36.
 
 ````js
 #!/usr/bin/env node
@@ -1055,7 +1202,7 @@ Créer le fichier, tel quel. Le banc du § 1 devient vert, 35 sur 35.
 // Entrée standard : les fichiers changés de la PR, un par ligne, tels que `git diff --name-only --no-renames` les
 // écrit. `--no-renames` : sans lui, un fichier de code renommé ne paraît plus sous son ancien nom, celui que la
 // règle nomme. Une tabulation ou un octet nul dans l'entrée (`--name-status`, `-z`), ou un chemin qui n'existe ni
-// au départ ni à la tête de la PR : « illisible ».
+// au départ, ni à la tête, ni sur la cible, ni sur develop : « illisible ».
 // `--base` : la branche cible de la PR, un nom de branche (`develop`, `sujet/<nom>`), jamais une réf, ni `HEAD`, ni
 // une réf symbolique ; le calcul lit `refs/remotes/origin/<branche>` en entier, que qui appelle vient de relire : ni
 // un tag ni une branche locale du même nom ne la remplacent. `--tete` : le sommet de la PR, un sha de 40 caractères.
@@ -1063,12 +1210,15 @@ Créer le fichier, tel quel. Le banc du § 1 devient vert, 35 sur 35.
 // d'où se lit son ticket (`ticketDeLaPr` de la grammaire ; quand le titre et la branche en nomment deux, les deux
 // sont lus).
 //
-// Tout se lit dans des objets git, jamais dans l'arbre de travail, et de la même façon quels que soient le dossier
-// courant et les réglages du dépôt ou de l'utilisateur (objets remplacés, chemins relatifs) : ce fichier tourne
-// depuis la copie des outils que la boucle du capitaine reprend d'origin/develop, hors du dépôt, avec
-// `scripts/chaine` et `scripts/docs/identifiants.mjs` pour tout bagage. Aucune dépendance : l'en-tête YAML d'une
-// règle est lu ici, pour trois clés seulement (`criticality`, `code`, `validation`), et ce que ce lecteur ne
-// comprend pas est « illisible », jamais « non exigée ».
+// Tout se lit dans des objets git, jamais dans l'arbre de travail, et dans un dépôt propre : un dépôt nu jetable,
+// créé sous le dossier temporaire, qui emprunte les objets du dépôt réel (`objects/info/alternates`), sans
+// configuration d'utilisateur ni de système, sans aucune variable `GIT_*` héritée. Les réfs se résolvent une fois
+// en sha dans le dépôt réel, tout le reste se lit par sha dans le dépôt propre : ni la configuration du dépôt, ni
+// ses greffes, ni ses objets remplacés, ni le dossier courant ne pèsent. S'il ne se crée pas : « illisible ».
+// Ce fichier tourne depuis la copie des outils que la boucle du capitaine reprend d'origin/develop, hors du
+// dépôt, avec `scripts/chaine` et `scripts/docs/identifiants.mjs` pour tout bagage. Aucune dépendance : l'en-tête
+// YAML d'une règle est lu ici, pour trois clés seulement (`criticality`, `code`, `validation`), et ce que ce
+// lecteur ne comprend pas est « illisible », jamais « non exigée ».
 //
 // Le niveau d'une règle se lit sur trois arbres, la base, la tête et `origin/develop` (un sujet en retard ne cache
 // pas une règle montée dans develop) ; le plus haut l'emporte. Dans l'index Anchorpost de l'arbre
@@ -1081,9 +1231,10 @@ Créer le fichier, tel quel. Le banc du § 1 devient vert, 35 sur 35.
 // Le changement de niveau se lit entre le départ de la PR (la base de fusion de sa cible et de sa tête) et sa tête :
 // ce qu'une autre PR a changé dans la cible depuis n'est pas un changement de celle-ci.
 //
-// L'en-tête du ticket (`Relecture:`, `Règles:`, aux formes que le gate `tickets` lit) se lit sur la base, sur
-// `origin/develop`, sur la tête et sur chaque `origin/sujet/*` : une seule de ces lectures qui dit « double » ou
-// cite une règle haute suffit.
+// L'en-tête du ticket (`Relecture:`, `Règles:`, aux formes que le gate `tickets` lit, puce étoile en plus) se lit
+// sur la base, sur `origin/develop`, sur la tête et sur chaque `origin/sujet/*` : une seule de ces lectures qui dit
+// « double » ou cite une règle haute suffit. Un ticket sans ligne `Règles:` (une ligne vide n'en est pas une) hérite
+// de celle de sa spec, cherchée dans les mêmes arbres ; `Règles: —` dit « aucune ».
 //
 // Sortie standard : une ligne par cause
 // (`<règle ou ticket>\t<fichier | code | niveau | Règles: | Relecture: double>\t<chemin>\t<réf>`), une ligne
@@ -1095,7 +1246,8 @@ Créer le fichier, tel quel. Le banc du § 1 devient vert, 35 sur 35.
 // =============================================================================
 
 import { execFileSync } from 'node:child_process';
-import { existsSync, readFileSync, realpathSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
@@ -1160,6 +1312,19 @@ const EN_TETE = /^---[ \t]*\r?\n([\s\S]*?)\r?\n---[ \t]*(?:\r?\n|$)/;
 // La marque d'ordre des octets, écrite par son code : un caractère invisible ne se relit pas dans un source.
 const BOM = String.fromCharCode(0xfeff);
 
+/**
+ * Un guillemet n'ouvre une chaîne qu'en tête de valeur : au début du texte, après `,`, `[` ou `{`, ou après `:` et
+ * un blanc. Partout ailleurs c'est du texte (`c'est grave`), comme une bibliothèque YAML le lit. (Un élément de
+ * liste en bloc, `- 'a'`, ne passe pas par ici : `scalaire` lit son guillemet de tête.)
+ */
+function enTeteDeValeur(texte, i) {
+  let j = i - 1;
+  while (j >= 0 && (texte[j] === ' ' || texte[j] === '\t')) j--;
+  if (j < 0) return true;
+  const c = texte[j];
+  return c === ',' || c === '[' || c === '{' || (c === ':' && j < i - 1);
+}
+
 /** Découpe `a, "b, c", {d, e}` aux virgules de premier niveau, hors guillemets ; guillemet ou crochet non refermé : illisible. */
 function decouper(texte) {
   const parts = [];
@@ -1171,7 +1336,7 @@ function decouper(texte) {
     if (guillemet) {
       if (guillemet === '"' && c === '\\') i++;
       else if (c === guillemet) guillemet = null;
-    } else if (c === '"' || c === "'") guillemet = c;
+    } else if ((c === '"' || c === "'") && enTeteDeValeur(texte, i)) guillemet = c;
     else if (c === '{' || c === '[') niveau++;
     else if (c === '}' || c === ']') niveau--;
     else if (c === ',' && niveau === 0) {
@@ -1229,7 +1394,7 @@ function sansCommentaire(ligne) {
     if (guillemet) {
       if (guillemet === '"' && c === '\\') i++;
       else if (c === guillemet) guillemet = null;
-    } else if (c === '"' || c === "'") guillemet = c;
+    } else if ((c === '"' || c === "'") && enTeteDeValeur(ligne, i)) guillemet = c;
     else if (c === '#' && (i === 0 || ligne[i - 1] === ' ' || ligne[i - 1] === '\t')) return ligne.slice(0, i);
   }
   return ligne;
@@ -1362,35 +1527,72 @@ export function sommet(sha) {
 const court = (nom) => nom.replace(/^refs\/remotes\//, '');
 
 /**
- * Lecteur d'objets git du dépôt de `cwd`. `verifier(nom)` → le sha du commit d'un sha ou d'une réf entière, qui n'est
- * pas une réf symbolique ;
- * les autres lectures prennent ce sha : `baseDeFusion(a, b)`, `chemins(commit)` (tout l'arbre),
- * `lister(commit, prefixe)`, `lire(commit, chemins)` → Map chemin → texte ; `sujets()` → les
- * `refs/remotes/origin/sujet/*`. Chaque commande porte ses options : les chemins partent de la racine du dépôt quel
- * que soit le dossier courant (`--full-tree`, `<commit>:<chemin>`), et les objets remplacés ne sont pas suivis.
+ * Lecteur d'objets git du dépôt de `cwd`, par un dépôt propre. `verifier(nom)` → le sha du commit d'un sha ou d'une
+ * réf entière, qui n'est pas une réf symbolique ; les autres lectures prennent ce sha : `baseDeFusion(a, b)`,
+ * `chemins(commit)` (tout l'arbre), `lister(commit, prefixe)`, `lire(commit, chemins)` → Map chemin → texte ;
+ * `sujets()` → les `refs/remotes/origin/sujet/*` ; `fermer()` retire le dépôt propre.
+ *
+ * Le dépôt réel ne sert qu'à dire où sont ses objets et à résoudre une réf en sha. Tout le reste se lit dans un dépôt
+ * nu jetable, créé sous le dossier temporaire, qui emprunte ces objets (`objects/info/alternates`) : il n'a ni
+ * configuration, ni greffes, ni `refs/replace`, ni attributs, ni arbre de travail, ni dossier courant (un dépôt nu
+ * se lit depuis sa racine). Aucune commande n'hérite d'une
+ * variable `GIT_*` (sauf `GIT_CEILING_DIRECTORIES`, qui borne la recherche du dépôt) ni d'une configuration
+ * d'utilisateur ou de système. S'il ne se crée pas : `Illisible`.
  */
 export function lecteurGit(cwd = process.cwd()) {
-  const git = (args, input) => {
+  const env = Object.fromEntries(Object.entries(process.env).filter(([cle]) => !cle.startsWith('GIT_') || cle === 'GIT_CEILING_DIRECTORIES'));
+  Object.assign(env, { GIT_CONFIG_GLOBAL: '/dev/null', GIT_CONFIG_SYSTEM: '/dev/null', GIT_CONFIG_NOSYSTEM: '1', GIT_ATTR_NOSYSTEM: '1' });
+  // Dans le dépôt réel, les greffes et les objets remplacés sont écartés en plus : il ne sert qu'à résoudre des réfs.
+  const reel = { cwd, env: { ...env, GIT_GRAFT_FILE: '/dev/null', GIT_NO_REPLACE_OBJECTS: '1' } };
+  const git = (ou, args, input) => {
     try {
-      return execFileSync('git', ['--no-replace-objects', ...args], { cwd, input, maxBuffer: 1 << 30, stdio: ['pipe', 'pipe', 'ignore'] });
+      return execFileSync('git', args, { cwd, env, ...ou, input, maxBuffer: 1 << 30, stdio: ['pipe', 'pipe', 'ignore'] });
     } catch (e) {
-      if (e?.code === 'ENOENT') throw new OutilManquant('git est requis par les scripts de la chaîne');
+      if (e?.code === 'ENOENT' && e?.path === 'git') throw new OutilManquant('git est requis par les scripts de la chaîne');
       throw e;
     }
   };
-  const essayer = (args, message, input) => {
+  const essayer = (ou, args, message, input) => {
     try {
-      return git(args, input);
+      return git(ou, args, input);
     } catch (e) {
       if (e instanceof Illisible) throw e;
       illisible(message);
     }
   };
+  const texte = (sortie) => sortie.toString('utf8').trim();
   const lignes = (sortie, separateur) => sortie.toString('utf8').split(separateur).filter(Boolean);
+
+  // Le dépôt propre, créé à la première lecture.
+  let dossier = null;
+  const retirer = () => {
+    if (dossier) rmSync(dossier, { recursive: true, force: true });
+    dossier = null;
+  };
+  const ouvrir = () => {
+    if (dossier) return;
+    const objets = texte(essayer(reel, ['rev-parse', '--path-format=absolute', '--git-path', 'objects'], 'pas dans un dépôt git'));
+    if (!objets.startsWith('/') || objets.includes('\n') || !statSync(objets, { throwIfNoEntry: false })?.isDirectory()) illisible('dossier des objets du dépôt illisible');
+    if (texte(essayer(reel, ['rev-parse', '--is-shallow-repository'], 'dépôt illisible')) !== 'false') illisible("clone superficiel : l'historique est tronqué (git fetch --unshallow origin)");
+    try {
+      dossier = mkdtempSync(join(tmpdir(), 'double-relecture.'));
+      process.once('exit', retirer);
+      git({ cwd: dossier }, ['init', '-q', '--bare', '--template=', join(dossier, 'depot')]);
+      writeFileSync(join(dossier, 'depot/objects/info/alternates'), `${objets}\n`);
+    } catch (e) {
+      retirer();
+      if (e instanceof Illisible) throw e;
+      illisible('dépôt propre impossible à créer sous le dossier temporaire');
+    }
+  };
+  const propre = (args, message, input) => {
+    ouvrir();
+    return essayer({ cwd: dossier }, [`--git-dir=${join(dossier, 'depot')}`, ...args], message, input);
+  };
   // `git symbolic-ref -q` sort en 0 pour une réf symbolique (`origin/HEAD`), en 1 pour une réf ordinaire ou absente.
   const symbolique = (nom) => {
     try {
-      git(['symbolic-ref', '-q', nom]);
+      git(reel, ['symbolic-ref', '-q', nom]);
       return true;
     } catch (e) {
       if (e instanceof Illisible) throw e;
@@ -1399,27 +1601,35 @@ export function lecteurGit(cwd = process.cwd()) {
   };
   return {
     verifier(nom) {
-      if (nom.startsWith('refs/') && symbolique(nom)) illisible(`${court(nom)} est une référence symbolique`);
-      const commit = essayer(['rev-parse', '--verify', '-q', `${nom}^{commit}`], `référence ${court(nom)} introuvable`).toString('utf8').trim();
-      return SHA.test(commit) ? commit : illisible(`référence ${court(nom)} introuvable`);
+      const absente = `référence ${court(nom)} introuvable`;
+      ouvrir();
+      let commit = nom;
+      if (nom.startsWith('refs/')) {
+        // Dans le dépôt réel : la seule lecture qui lui est faite, avec le dossier de ses objets.
+        if (symbolique(nom)) illisible(`${court(nom)} est une référence symbolique`);
+        commit = texte(essayer(reel, ['rev-parse', '--verify', '-q', `${nom}^{commit}`], absente));
+      }
+      if (!SHA.test(commit) || texte(propre(['rev-parse', '--verify', '-q', `${commit}^{commit}`], absente)) !== commit) illisible(absente);
+      return commit;
     },
     baseDeFusion(a, b) {
-      const commit = essayer(['merge-base', a, b], 'pas de base de fusion entre la cible et la tête').toString('utf8').trim();
+      const commit = texte(propre(['merge-base', a, b], 'pas de base de fusion entre la cible et la tête'));
       return SHA.test(commit) ? commit : illisible('pas de base de fusion entre la cible et la tête');
     },
     sujets() {
-      return lignes(essayer(['for-each-ref', '--format=%(refname)', 'refs/remotes/origin/sujet/'], 'branches de sujet illisibles'), '\n');
+      ouvrir();
+      return lignes(essayer(reel, ['for-each-ref', '--format=%(refname)', 'refs/remotes/origin/sujet/'], 'branches de sujet illisibles'), '\n');
     },
     chemins(commit) {
-      return lignes(essayer(['ls-tree', '-r', '-z', '--full-tree', '--name-only', commit], `arbre de ${commit} illisible`), '\0');
+      return lignes(propre(['ls-tree', '-r', '-z', '--name-only', commit], `arbre de ${commit} illisible`), '\0');
     },
     lister(commit, prefixe) {
-      return lignes(essayer(['ls-tree', '-r', '-z', '--full-tree', '--name-only', commit, '--', prefixe], `arbre de ${commit} illisible`), '\0');
+      return lignes(propre(['ls-tree', '-r', '-z', '--name-only', commit, '--', prefixe], `arbre de ${commit} illisible`), '\0');
     },
     lire(commit, chemins) {
       const textes = new Map();
       if (chemins.length === 0) return textes;
-      const brut = essayer(['cat-file', '--batch'], `objets de ${commit} illisibles`, chemins.map((c) => `${commit}:${c}\n`).join(''));
+      const brut = propre(['cat-file', '--batch'], `objets de ${commit} illisibles`, chemins.map((c) => `${commit}:${c}\n`).join(''));
       let i = 0;
       for (const chemin of chemins) {
         const fin = brut.indexOf(10, i);
@@ -1430,6 +1640,7 @@ export function lecteurGit(cwd = process.cwd()) {
       }
       return textes;
     },
+    fermer: retirer,
   };
 }
 
@@ -1441,7 +1652,7 @@ function regleDuChemin(chemin) {
   return lu?.type === 'RULE' && lu.index === undefined && comparable(G.dossierDuContexte(lu.contexte)) === m[1] ? m[2] : null;
 }
 
-/** Un chemin de `code`, comparable et sans détour (`apps//api`, `apps/./api`, `apps/x/../api`) ; `null` s'il sort du dépôt ou ne nomme rien. */
+/** Un chemin de `code`, comparable et sans détour (`apps//api`, `apps/./api`, `apps/x/../api`) ; `null` s'il sort du dépôt ou nomme sa racine (`.`, `/`, vide). */
 function cheminDeCode(chemin) {
   const segments = [];
   for (const segment of chemin.trim().split('/')) {
@@ -1485,8 +1696,9 @@ function hautes(nom, commit, touchees, lecteur) {
 }
 
 // Une ligne d'en-tête, aux formes que le gate `tickets` lit (`enTete`, `tickets-regles.mjs`) : `Règles: …`,
-// `- Règles: …`, `**Règles:** …`, sans égard à la casse.
-const ligneDEnTete = (nom) => new RegExp(`^(?:- )?\\**${nom}\\**\\s*:\\**\\s*(.*)$`, 'i');
+// `- Règles: …`, `**Règles:** …`, sans égard à la casse ; et à la puce étoile (`* Règles: …`), que la CLI
+// Anchorpost lit aussi.
+const ligneDEnTete = (nom) => new RegExp(`^(?:[-*][ \\t]+)?\\**${nom}\\**\\s*:\\**\\s*(.*)$`, 'i');
 const RELECTURE = ligneDEnTete('Relecture');
 const REGLES_CITEES = ligneDEnTete('Règles');
 /** Les valeurs d'une ligne dans l'en-tête d'un document : avant sa première section `## `. */
@@ -1508,38 +1720,51 @@ function reglesCitees(valeurs, ou) {
   return regles;
 }
 
+/** Le seul fichier d'une liste, `undefined` si elle est vide ; plusieurs : illisible. */
+const unSeul = (fichiers, quoi, nom) => (fichiers.length > 1 ? illisible(`${fichiers.length} fichiers pour ${quoi} sur ${nom} : ${fichiers.join(', ')}`) : fichiers[0]);
+
 /**
- * Ce que l'en-tête du ticket dit dans l'arbre d'un commit : `{ chemin, double, regles: [{ cle, chemin }] }`, ou `null`
- * si l'arbre ne le porte pas. Sans ligne `Règles:` sur le ticket, celle de sa spec est lue à sa place ; `Règles: —`
- * est une ligne : le ticket dit lui-même qu'il n'en réalise aucune, et la spec n'est pas lue.
+ * Ce que l'en-tête du ticket dit dans l'arbre d'un commit : `{ chemin, double, regles: [{ cle, chemin }], sansLigne }`,
+ * ou `null` si l'arbre ne le porte pas. `sansLigne` : le ticket n'a pas de ligne `Règles:`, une ligne vide n'en étant
+ * pas une ; `Règles: —` en est une, qui dit « aucune ».
  */
 function enTeteDuTicket(ticket, nom, commit, lecteur) {
   const motif = G.fichierDuTicket(ticket) ?? illisible(`${ticket} n'est pas un identifiant de ticket`);
-  const docs = lecteur.lister(commit, 'docs/');
-  const un = (fichiers, quoi) => (fichiers.length > 1 ? illisible(`${fichiers.length} fichiers pour ${quoi} sur ${nom} : ${fichiers.join(', ')}`) : fichiers[0]);
-  const chemin = un(docs.filter((p) => motif.test(`/${p}`) && !G.estArchive(`/${p}`)), `le ticket ${ticket}`);
+  const chemin = unSeul(lecteur.lister(commit, 'docs/').filter((p) => motif.test(`/${p}`) && !G.estArchive(`/${p}`)), `le ticket ${ticket}`, nom);
   if (chemin === undefined) return null;
   const texte = lecteur.lire(commit, [chemin]).get(chemin);
   const relectures = valeursDEnTete(texte, RELECTURE);
   for (const v of relectures) if (scalaire(v) !== 'double') illisible(`${nom}:${chemin} : ligne \`Relecture:\` « ${v.trim().slice(0, 80)} », seule valeur \`double\``);
-  const lignes = valeursDEnTete(texte, REGLES_CITEES);
+  const lignes = valeursDEnTete(texte, REGLES_CITEES).filter((v) => scalaire(v) !== '');
   const regles = reglesCitees(lignes, `${nom}:${chemin}`).map((cle) => ({ cle, chemin }));
-  if (lignes.length === 0) {
-    const { spec } = G.lireTicket(ticket);
-    const fichier = un(docs.filter((p) => G.identifiantDeLaSpec(p.split('/').pop()) === spec), `la spec ${spec}`);
-    if (fichier !== undefined)
-      for (const cle of reglesCitees(valeursDEnTete(lecteur.lire(commit, [fichier]).get(fichier), REGLES_CITEES), `${nom}:${fichier}`)) regles.push({ cle, chemin: fichier });
-  }
-  return { chemin, double: relectures.length > 0, regles };
+  return { chemin, double: relectures.length > 0, regles, sansLigne: lignes.length === 0 };
+}
+
+/** Les règles que la spec du ticket cite dans son en-tête, dans l'arbre d'un commit : `[{ cle, chemin }]`, vide sans spec. */
+function reglesDeLaSpec(ticket, nom, commit, lecteur) {
+  const { spec } = G.lireTicket(ticket);
+  const chemin = unSeul(lecteur.lister(commit, 'docs/').filter((p) => G.identifiantDeLaSpec(p.split('/').pop()) === spec), `la spec ${spec}`, nom);
+  if (chemin === undefined) return [];
+  return reglesCitees(valeursDEnTete(lecteur.lire(commit, [chemin]).get(chemin), REGLES_CITEES), `${nom}:${chemin}`).map((cle) => ({ cle, chemin }));
 }
 
 /**
  * La PR exige-t-elle deux relectures ? `fichiers` : les lignes de `git diff --name-only --no-renames` ; `base`,
  * `tete` : la branche cible (un nom de branche) et le sommet (un sha) ; `tickets` : les identifiants des tickets de la PR
  * (aucun, un, ou deux quand son titre et sa branche n'en nomment pas le même) ; `develop` : le nom de la branche d'intégration.
- * Rend `{ reponse, causes, illisibles, remarques, outilManquant }`.
+ * `lecteur` : le lecteur git, par défaut celui du dépôt courant. Rend `{ reponse, causes, illisibles, remarques, outilManquant }`.
  */
-export function doubleRelecture({ fichiers, base: cible, tete: sha, tickets = [], develop: integration = DEVELOP, lecteur = lecteurGit() }) {
+export function doubleRelecture({ lecteur, ...pr }) {
+  // Le lecteur par défaut lit par un dépôt propre, jetable : il est retiré quoi qu'il arrive.
+  const propre = lecteur ?? lecteurGit();
+  try {
+    return calculer({ ...pr, lecteur: propre });
+  } finally {
+    if (!lecteur) propre.fermer();
+  }
+}
+
+function calculer({ fichiers, base: cible, tete: sha, tickets = [], develop: integration = DEVELOP, lecteur }) {
   const causes = [];
   const illisibles = [];
   const remarques = [];
@@ -1572,11 +1797,13 @@ export function doubleRelecture({ fichiers, base: cible, tete: sha, tickets = []
   const depart = essayer(() => lecteur.baseDeFusion(commitDe(base), commitDe(tete)));
   essayer(() => {
     if (depart === undefined || chemins.length === 0) return;
-    const connus = new Set([...lecteur.chemins(depart), ...lecteur.chemins(commitDe(tete))].map(comparable));
+    // Au départ, à la tête, et sur la cible et develop : la PR de mise à jour d'un sujet peut supprimer un fichier venu de develop.
+    const arbres = new Set([depart, commitDe(tete), commitDe(base), commitDe(develop)]);
+    const connus = new Set([...arbres].flatMap((commit) => lecteur.chemins(commit)).map(comparable));
     const inconnus = chemins.filter((c) => !connus.has(c.lu)).length;
     if (inconnus > 0) {
       chemins = [];
-      illisible(`${inconnus} chemin(s) de l'entrée n'existent ni au départ ni à la tête de la PR : attendu la sortie de \`git diff --name-only --no-renames\``);
+      illisible(`${inconnus} chemin(s) de l'entrée n'existent ni au départ, ni à la tête, ni sur la cible, ni sur develop : attendu la sortie de \`git diff --name-only --no-renames\``);
     }
   });
   const touchees = new Set(chemins.map((c) => regleDuChemin(c.lu)).filter(Boolean));
@@ -1608,8 +1835,9 @@ export function doubleRelecture({ fichiers, base: cible, tete: sha, tickets = []
       for (const [cle, r] of regles) {
         hautesQuelquePart.set(cle, r.cle);
         for (const p of r.code) {
-          const entree = cheminDeCode(p);
-          if (entree !== null) parCode.set(entree, [...(parCode.get(entree) ?? []), r.cle]);
+          // Une entrée qui nomme la racine du dépôt, ou en sort, ne dit pas quels fichiers réalisent la règle : pas « aucun ».
+          const entree = cheminDeCode(p) ?? illisible(`${nom} : une entrée de \`code\` de ${r.cle} nomme la racine du dépôt ou en sort`);
+          parCode.set(entree, [...(parCode.get(entree) ?? []), r.cle]);
         }
       }
       for (const c of chemins) {
@@ -1630,23 +1858,29 @@ export function doubleRelecture({ fichiers, base: cible, tete: sha, tickets = []
       if (avant.regles.has(cle) !== apres.regles.has(cle)) causes.push({ sujet: r.cle, motif: 'niveau', chemin: apres.source, ref: nomDe(tete) });
   });
 
-  // 3. Le ticket : `Relecture: double`, ou une règle haute citée en `Règles:` (la sienne, sinon celle de sa spec),
-  //    sur la base, develop, la tête et chaque sujet.
+  // 3. Le ticket : `Relecture: double`, ou une règle haute citée en `Règles:`, sur la base, develop, la tête et chaque
+  //    sujet. Sans ligne `Règles:` dans l'un de ces arbres, celle de sa spec est lue à sa place, dans tous ces arbres.
   if (tickets.length > 0) {
     const refs = new Map(); // commit → nom : un même commit n'est lu qu'une fois
     for (const ref of [base, develop, tete]) essayer(() => refs.has(commitDe(ref)) || refs.set(commitDe(ref), nomDe(ref)));
     for (const nom of essayer(() => lecteur.sujets()) ?? []) essayer(() => refs.has(lecteur.verifier(nom)) || refs.set(lecteur.verifier(nom), court(nom)));
+    const citer = (regles, nom) => {
+      for (const { cle, chemin } of regles) if (hautesQuelquePart.has(cle)) causes.push({ sujet: hautesQuelquePart.get(cle), motif: 'Règles:', chemin, ref: nom });
+    };
     for (const ticket of new Set(tickets)) {
       let trouve = false;
+      let sansLigne = false;
       for (const [commit, nom] of refs)
         essayer(() => {
           const lu = enTeteDuTicket(ticket, nom, commit, lecteur);
           if (!lu) return;
           trouve = true;
+          sansLigne ||= lu.sansLigne;
           if (lu.double) causes.push({ sujet: ticket, motif: 'Relecture: double', chemin: lu.chemin, ref: nom });
-          for (const { cle, chemin } of lu.regles) if (hautesQuelquePart.has(cle)) causes.push({ sujet: hautesQuelquePart.get(cle), motif: 'Règles:', chemin, ref: nom });
+          citer(lu.regles, nom);
         });
-      if (!trouve) remarques.push(`ticket ${ticket} absent de ${[...refs.values()].join(', ')} : aucun en-tête lu`);
+      if (sansLigne) for (const [commit, nom] of refs) essayer(() => citer(reglesDeLaSpec(ticket, nom, commit, lecteur), nom));
+      if (!trouve && refs.size > 0) remarques.push(`ticket ${ticket} absent de ${[...refs.values()].join(', ')} : aucun en-tête lu`);
     }
   }
 
@@ -1725,30 +1959,30 @@ if (estPointEntree()) {
 
 ### § 3 — Le mot de l'étape 0
 
-`skills/chaine/fusionner/SKILL.md:14`, dans la phrase qui nomme les `.mjs` posés. Rien d'autre ne change dans ce fichier.
+`skills/chaine/fusionner/SKILL.md:14`, dans la phrase qui nomme les `.mjs` posés, à la suite des deux modules du ticket 58. Rien d'autre ne change dans ce fichier.
 
 Ancien :
 
 ````markdown
-`scripts/commits-a-relire.mjs` → `scripts/chaine/` (exécutables)
+`scripts/decision-relecteur.mjs` → `scripts/chaine/` (exécutables)
 ````
 
 Nouveau :
 
 ````markdown
-`scripts/commits-a-relire.mjs`, `scripts/double-relecture.mjs` → `scripts/chaine/` (exécutables)
+`scripts/decision-relecteur.mjs`, `scripts/double-relecture.mjs` → `scripts/chaine/` (exécutables)
 ````
 
-Si le ticket 58 est entré avant, la liste porte déjà ses deux modules : le mot s'ajoute à la suite, avant la flèche.
+Si la liste a encore changé sur `main`, le mot s'ajoute à sa fin, avant la flèche.
 
 ### § 4 — La version et la note
 
-`.claude-plugin/plugin.json:3` : `"version": "7.20.0"` devient `"version": "7.21.0"` (règle de repli : décision 20).
+`.claude-plugin/plugin.json:3` : `"version": "7.23.0"` devient `"version": "7.24.0"` (règle de repli : décision 20).
 
-`NOTES-DE-VERSION.md` : cette note, entre le paragraphe d'introduction et `## 7.20.0 — 2026-11-18`, avec la date du jour de la livraison :
+`NOTES-DE-VERSION.md` : cette note, entre le paragraphe d'introduction et `## 7.23.0 — 2026-11-18`, avec la date du jour de la livraison :
 
 ````markdown
-## 7.21.0 — 2026-11-18
+## 7.24.0 — 2026-11-18
 
 ### Ce qui change
 
@@ -1764,7 +1998,7 @@ Le skill `fusionner` porte un calcul nouveau, `scripts/double-relecture.mjs` : i
 ### § 5 — Livrer
 
 1. « Vérification », points 1 à 5.
-2. Commit, push, PR vers `main` hors brouillon, sans `à-fusionner` (décision 21). Dans le corps de la PR : ce que le fichier rend, les six précisions de ce ticket (« Ce qui n'a pas été établi »), pour que l'architecte les lise à la contre-revue.
+2. Commit, push, PR vers `main` hors brouillon, sans `à-fusionner` (décision 21). Dans le corps de la PR : ce que le fichier rend, les huit précisions de ce ticket (« Ce qui n'a pas été établi »), pour que l'architecte les lise à la contre-revue.
 3. Si `main` a bougé : règle de repli, puis « Vérification » à nouveau.
 
 ## Surfaces
@@ -1800,32 +2034,40 @@ Le skill `fusionner` porte un calcul nouveau, `scripts/double-relecture.mjs` : i
 | depuis la copie des outils de la boucle : les réfs, jamais l'arbre de travail ; sorties 0, 20, 21, 69 | « en ligne de commande, depuis la copie des outils de la boucle … » |
 | à la racine du dépôt, sans obéir au dossier courant, à un objet remplacé, à un tag ou une branche locale du nom de la cible, ni à une réf symbolique (`A-117`) | « le calcul se place à la racine du dépôt … » |
 | un fichier de code renommé, vu par `--no-renames` (`A-117`) | « un fichier de code renommé … » |
-| le lecteur git : un objet absent, plusieurs objets en une lecture, l'arbre entier, la base de fusion, les branches de sujet | « le lecteur git … » |
+| le lecteur git : un objet absent, plusieurs objets en une lecture, l'arbre entier, la base de fusion, les branches de sujet | « le lecteur git lit par un dépôt propre, jetable … » |
 | le point d'entrée par un lien symbolique, un dossier à espace et à accent | « le point d'entrée est reconnu … » |
+| un guillemet n'ouvre une chaîne qu'en tête de valeur (`A-122`) | « l'en-tête d'une règle : les formes lues … », et l'essai à grande échelle de « Vérification », point 6 |
+| l'entrée admet les chemins de la cible et de `develop` (`A-122`) | « l'entrée : une tabulation ou un octet nul, un chemin qui n'existe dans aucun des arbres de la PR … » |
+| la puce étoile, la ligne `Règles:` vide, la spec dans tous les arbres (`A-122`) | « les lignes `Règles:` et `Relecture:` se lisent aux formes que le gate `tickets` lit, et à la puce étoile … », « un ticket sans ligne `Règles:` … » |
+| `code` qui nomme la racine du dépôt : « illisible » (`A-122`) | « les chemins de `code` sont normalisés … » |
+| le dépôt propre : greffes, `GIT_GRAFT_FILE`, `GIT_DIR`, `GIT_ICASE_PATHSPECS`, dossier temporaire absent, clone superficiel ; rien ne reste (`A-122`) | « un environnement hostile ne pèse pas … », « le lecteur git lit par un dépôt propre, jetable … » |
+| le banc ne recopie pas le filtre des `GIT_*` (`A-122`) | test existant de `scripts/un-seul-environnement-de-banc.test.mjs` |
 | l'étape 0 nomme le module | `git diff origin/main -- skills/chaine/fusionner/SKILL.md` (aucun test ne lit cette phrase) ; le garde des bancs posés pose le dossier entier |
-| version et note | test existant de `scripts/depot.test.mjs:1093` |
+| version et note | test existant de `scripts/depot.test.mjs:1095` |
 
 ## Vérification
 
 ### Pour la session
 
-1. `pnpm install --frozen-lockfile && pnpm test` : la suite entière, verte. Sur `085d7d4`, **848 tests** avec ces fichiers (813 sans : 848 moins les 35 du banc).
-2. `node --test skills/chaine/fusionner/scripts/double-relecture.test.mjs` : 35 sur 35, en six secondes environ.
+1. `pnpm install --frozen-lockfile && pnpm test` : la suite entière, verte, garde « un seul environnement de banc » comprise. Sur `d5b1561`, **941 tests** avec ces fichiers (905 sans : 941 moins les 36 du banc).
+2. `node --test skills/chaine/fusionner/scripts/double-relecture.test.mjs` : 36 sur 36, en six secondes environ.
 3. `git diff --stat origin/main` : cinq fichiers, deux neufs et trois modifiés ; `git diff origin/main -- .claude-plugin/plugin.json` ne montre que `"version"` ; `git diff origin/main -- skills/chaine/fusionner/SKILL.md` ne montre qu'une ligne, et dans cette ligne le seul mot ajouté.
-4. Le banc posé à plat : il est rejoué par `scripts/poses.test.mjs` dans la suite du point 1 ; pour le voir seul, copier les deux fichiers et `revue-exigee.mjs` dans `<dossier>/scripts/chaine/`, `skills/monorepo/socle-monorepo/references/scripts/docs/identifiants.mjs` dans `<dossier>/scripts/docs/`, puis `node --test <dossier>/scripts/chaine/double-relecture.test.mjs`.
-5. Les mutations : le script ci-dessous sur ce dossier posé à plat, `python3 <fichier> <dossier>/scripts/chaine` : **101 rouges sur 101**, en une dizaine de minutes. Il remet le fichier après chaque mutation.
+4. Le banc posé à plat : il est rejoué par `scripts/poses.test.mjs` dans la suite du point 1 ; pour le voir seul, copier dans `<dossier>/scripts/chaine/` les deux fichiers, `revue-exigee.mjs` et `skills/chaine/sujet/scripts/depot-jouet.mjs`, dans `<dossier>/scripts/docs/` les fichiers `identifiants.mjs` et `environnement-de-banc.mjs` de `skills/monorepo/socle-monorepo/references/scripts/docs/`, puis `node --test <dossier>/scripts/chaine/double-relecture.test.mjs`.
+5. Les mutations : le script ci-dessous sur ce dossier posé à plat, `python3 <fichier> <dossier>/scripts/chaine` : **117 rouges sur 117**, en un quart d'heure. Il remet le fichier après chaque mutation.
+6. Le lecteur d'en-tête contre une vraie bibliothèque, à grande échelle, **hors du dépôt** (« L'essai à grande échelle ») : aucun en-tête « dangereux ».
 
 ### Ce qui a été joué en écrivant ce ticket
 
-Le 2026-11-18, dans des clones jetables de `origin/main`, sous un `TMPDIR` privé : la première version à `99a6214` puis `22b2d49`, la deuxième (`A-113`) à `6fc652d`, celle-ci (`A-117`) dans un clone neuf à `e45a504`, puis à `085d7d4` quand `main` a encore bougé. Les blocs de ce ticket (banc, module, mutations, mot de l'étape 0, note) ont été relus par un script qui les tire du texte et les rejoue : ce qui suit est le résultat de ce texte, pas d'un brouillon.
+Les 2026-11-18 et 2026-11-19, dans des clones jetables de `origin/main`, sous un `TMPDIR` privé : la première version à `99a6214` puis `22b2d49`, la deuxième (`A-113`) à `6fc652d`, la troisième (`A-117`) à `e45a504` puis `085d7d4`, celle-ci (`A-122`) dans un clone neuf à `8f8cfd9`, puis à `d5b1561` quand le ticket 58 est entré. Les blocs de ce ticket (banc, module, mutations, mot de l'étape 0, note, essai à grande échelle) ont été relus par un script qui les tire du texte et les rejoue : ce qui suit est le résultat de ce texte, pas d'un brouillon.
 
-- Le banc : 35 sur 35, six secondes environ, dans l'arbre du plugin et posé à plat ; rien ne reste dans le dossier temporaire.
-- La suite entière : 848 sur 848 à `085d7d4`, avec les deux fichiers, le mot de l'étape 0, la version 7.21.0 et sa note, deux fois (avant et après l'alignement de `--base` sur le ticket 59) ; 830 sur 830 à `e45a504` plus tôt. Le banc y est rejoué posé à plat par `scripts/poses.test.mjs`, dont le test a duré de 4 minutes 30 à 7 minutes 15 sur les 10 de son plafond, sur une machine partagée et chargée (jusqu'à une charge de 10 pour 4 cœurs ; le banc neuf y pèse six secondes) : marge à surveiller, elle ne tient pas à ce ticket. Les versions précédentes avaient passé la suite à `99a6214`, `22b2d49` et `6fc652d`.
-- Les mutations : 101 rouges sur 101, après un passage témoin vert ; chaque attaque de la relecture adversariale a la sienne.
-- **Les quatre faux « non exigée » de la relecture adversariale**, rejoués sur le montage M par la ligne de commande : depuis `<dépôt>/apps`, sortie 20 ; `**Règles:**`, `- Règles:`, `règles:`, « exigée » ; le mappage plié à commentaire, `high` ; `-z` et `--name-status`, sortie 21.
-- **Sur des données réelles, en lecture seule.** Le lecteur d'en-tête de la première version avait lu les 1 923 fichiers de règle de trois dépôts réels sans un refus, avec le même ensemble de chemins `code` et le même statut que leur index ; celui-ci, qui retire en plus les commentaires et refuse les clés en double, a relu les mêmes 1 923 fichiers sans un refus et sans un écart avec leur index. La ligne de commande, lancée depuis la copie des outils **et depuis un sous-dossier** (`apps/`) du dépôt d'Anchorpost, a jugé le diff sans renommage du départ de `origin/sujet/preuve-suffisante-cas` à sa tête contre `develop` (293 fichiers, index au pivot 2 sur la base, au pivot 3 sur la tête) : « exigée », par le fichier de la règle haute et quatre fichiers de son `code`, le verdict en dernière ligne ; le même diff en `--name-status` : « illisible » ; `README.md` seul : « non exigée ». Sur le plus gros des trois dépôts (près de treize mille fichiers, plus d'un millier de règles), une réponse prend de 0,2 à 0,4 s.
+- Le banc : 36 sur 36, six secondes environ, dans l'arbre du plugin et posé à plat ; rien ne reste dans le dossier temporaire. Joué seize fois de suite sans un échec, après la correction d'un montage instable (la greffe de l'attaque fait un cycle : lue dans le dépôt réel, la base de fusion est tantôt la tête, tantôt incalculable).
+- La suite entière : 941 sur 941 à `d5b1561`, avec les deux fichiers, le mot de l'étape 0, la version 7.24.0 et sa note, la garde « un seul environnement de banc » verte ; 886 sur 886 à `8f8cfd9` une heure plus tôt. Le banc y est rejoué posé à plat par `scripts/poses.test.mjs`, dont le test a duré 3 minutes 30 sur les 10 de son plafond (jusqu'à 7 minutes 15 à un rejeu d'avant, sur une machine partagée et chargée ; le banc neuf y pèse six secondes).
+- Les mutations : 117 rouges sur 117, après un passage témoin vert ; chaque attaque des deux tours de la relecture adversariale a la sienne.
+- **Les faux « non exigée » du second tour**, rejoués par la ligne de commande sur une criticité montée par l'index seul : `.git/info/grafts`, `GIT_GRAFT_FILE`, `GIT_DIR` vers un autre clone, `GIT_ICASE_PATHSPECS=1`, sortie 20 chaque fois ; l'en-tête à apostrophes, `high` ; `* Règles:`, la ligne `Règles:` vide, le ticket créé par la PR dont la spec est sur un sujet, « exigée » ; la PR de mise à jour qui supprime un fichier venu de `develop`, « non exigée » sans échec ; `code: [.]`, « illisible ».
+- **L'essai à grande échelle** : 80 000 en-têtes tirés : 77 216 accords, 1 843 refusés par le lecteur comme par la bibliothèque, 941 lus par le lecteur et refusés par la bibliothèque, **aucun dangereux, aucun refus du lecteur seul**. Le même essai sur le module d'avant `A-122` : 2 280 dangereux et 18 872 refus du lecteur seul.
+- **Sur des données réelles, en lecture seule.** Le lecteur d'en-tête a relu, par `git` seul, les 1 923 fichiers de règle de trois dépôts réels : aucun refus, et pour chaque règle le même ensemble de chemins `code` et le même statut que dans leur index. La ligne de commande, elle, y rend « illisible », sortie 21, avec son remède : ces clones sont superficiels (limite 9).
 
-Non joué : aucun appelant n'existe, donc ni le Relecteur ni le capitaine n'ont lancé ce calcul ; la vraie boucle (`boucle.sh`) n'a pas repris le fichier d'un `origin/develop`, c'est le banc qui imite sa copie ; le schéma pivot a été lu dans Anchorpost aux commits nommés dans « Où », pas la CLI exécutée ; aucune PR réelle ne change une criticité par le manifeste dans les dépôts lus : la cause `niveau` n'est jouée que sur les arbres du banc ; la suite de `main` seul à `085d7d4` n'a pas été rejouée (le compte sans ces fichiers est le total moins les 35 du banc).
+Non joué : aucun appelant n'existe, donc ni le Relecteur ni le capitaine n'ont lancé ce calcul ; la vraie boucle (`boucle.sh`) n'a pas repris le fichier d'un `origin/develop`, c'est le banc qui imite sa copie ; le schéma pivot a été lu dans Anchorpost aux commits nommés dans « Où », pas la CLI exécutée ; aucune PR réelle ne change une criticité par le manifeste dans les dépôts lus : la cause `niveau` n'est jouée que sur les montages du banc ; le dépôt propre n'a été joué que sur des clones ordinaires et sur un arbre de travail lié (limite 13) ; **la ligne de commande n'a pas été rejouée sur un dépôt réel dans cette version** : les clones du poste d'essai sont superficiels, et le calcul les refuse désormais (limite 9) ; la version d'avant l'y avait jouée ; la suite de `main` seul à `d5b1561` n'a pas été rejouée (le compte sans ces fichiers est le total moins les 36 du banc) ; le corpus de 76 973 en-têtes du relecteur n'est pas dans le dépôt : l'essai d'ici a son propre générateur.
 
 ### Le script des mutations
 
@@ -1843,7 +2085,6 @@ M = [
     ("le ticket : le titre seul, quand il en nomme un", "[...new Set([G.ticketDeLaPr(titre, branche), G.identifiantDeBranche(branche)].filter(Boolean))]", "[...new Set([G.ticketDeLaPr(titre, branche)].filter(Boolean))]"),
     ("le ticket : la branche seule", "[...new Set([G.ticketDeLaPr(titre, branche), G.identifiantDeBranche(branche)].filter(Boolean))]", "[...new Set([G.identifiantDeBranche(branche)].filter(Boolean))]"),
     ("sans `git`, la sortie est 21", "outilManquant: 69 };", "outilManquant: 21 };"),
-    ("`git` introuvable se lit comme une réf introuvable", "if (e?.code === 'ENOENT') throw new OutilManquant('git est requis par les scripts de la chaîne');", ""),
     ("les branches de sujet : toute branche d'origin", "'refs/remotes/origin/sujet/'], 'branches de sujet illisibles'", "'refs/remotes/origin/'], 'branches de sujet illisibles'"),
     ("avec un index, l'en-tête des fichiers de règle touchés n'est plus lu", "filter(([cle]) => !avecIndex || touchees.has(cle))", "filter(() => !avecIndex)"),
     ("une règle rejetée compte", "const HORS_VIGUEUR = ['rejected', 'obsolete'];", "const HORS_VIGUEUR = ['obsolete'];"),
@@ -1894,17 +2135,13 @@ M = [
     ("le changement de niveau : vers « haute » seulement", "if (avant.regles.has(cle) !== apres.regles.has(cle)) causes.push(", "if (!avant.regles.has(cle) && apres.regles.has(cle)) causes.push("),
     ("le changement de niveau : depuis « haute » seulement", "if (avant.regles.has(cle) !== apres.regles.has(cle)) causes.push(", "if (avant.regles.has(cle) && !apres.regles.has(cle)) causes.push("),
     ("le départ de la PR est la pointe de sa cible, plus leur base de fusion", "const depart = essayer(() => lecteur.baseDeFusion(commitDe(base), commitDe(tete)));", "const depart = essayer(() => commitDe(base));"),
-    ("la ligne `Règles:` n'est plus lue", "for (const { cle, chemin } of lu.regles) if (hautesQuelquePart.has(cle)) causes.push(", "for (const { cle, chemin } of lu.regles) if (false) causes.push("),
     ("toute règle citée en `Règles:` compte, haute ou non", "if (hautesQuelquePart.has(cle)) causes.push({ sujet: hautesQuelquePart.get(cle),", "if (true) causes.push({ sujet: hautesQuelquePart.get(cle) ?? cle,"),
     ("l'en-tête d'un ticket ou d'une spec : tout le document", "return (fin === -1 ? lignes : lignes.slice(0, fin)).map((l) => motif.exec(l)?.[1])", "return lignes.map((l) => motif.exec(l)?.[1])"),
-    ("les lignes d'en-tête : la forme nue seule, plus celles du gate (gras, puce, casse)", "const ligneDEnTete = (nom) => new RegExp(`^(?:- )?\\\\**${nom}\\\\**\\\\s*:\\\\**\\\\s*(.*)$`, 'i');", "const ligneDEnTete = (nom) => new RegExp(`^${nom}\\\\s*:\\\\s*(.*)$`);"),
     ("les lignes d'en-tête : sensibles à la casse", "\\\\s*:\\\\**\\\\s*(.*)$`, 'i');", "\\\\s*:\\\\**\\\\s*(.*)$`);"),
     ("l'en-tête du ticket ne se lit plus sur les sujets", "for (const nom of essayer(() => lecteur.sujets()) ?? [])", "for (const nom of [])"),
     ("l'en-tête du ticket ne se lit plus sur origin/develop", "for (const ref of [base, develop, tete]) essayer(", "for (const ref of [base, tete]) essayer("),
     ("l'en-tête du ticket ne se lit plus sur la base", "for (const ref of [base, develop, tete]) essayer(", "for (const ref of [develop, tete]) essayer("),
     ("l'en-tête du ticket ne se lit plus sur la tête", "for (const ref of [base, develop, tete]) essayer(", "for (const ref of [base, develop]) essayer("),
-    ("la spec n'est plus lue pour un ticket sans ligne `Règles:`", "if (lignes.length === 0) {", "if (false) {"),
-    ("la spec est lue aussi quand le ticket dit `Règles: —`", "if (lignes.length === 0) {", "if (regles.length === 0) {"),
     ("la spec d'à côté est lue", "G.identifiantDeLaSpec(p.split('/').pop()) === spec)", "G.identifiantDeLaSpec(p.split('/').pop()) !== null)"),
     ("une lecture en échec est redite à chaque arbre du même commit", "parCommit.set(commit, new Illisible(e.message.startsWith(`${nom}:`) ? e.message : `${nom} : ${e.message}`));", "throw new Illisible(e.message.startsWith(`${nom}:`) ? e.message : `${nom} : ${e.message}`);"),
     ("un ticket ou une spec en double : le premier est pris", "(fichiers.length > 1 ? illisible(", "(false ? illisible("),
@@ -1915,19 +2152,13 @@ M = [
     ("l'entrée : un octet nul passe", "if (lignes.some((f) => /[\\t\\0]/.test(f))) illisible(", "if (lignes.some((f) => /[\\t]/.test(f))) illisible("),
     ("l'entrée : un chemin qui n'existe nulle part passe", "if (inconnus > 0) {", "if (false) {"),
     ("l'entrée : un chemin inconnu n'empêche pas de juger les autres", "if (inconnus > 0) {\n      chemins = [];", "if (inconnus > 0) {"),
-    ("l'entrée : les chemins se cherchent à la tête seule", "new Set([...lecteur.chemins(depart), ...lecteur.chemins(commitDe(tete))].map(comparable))", "new Set([...lecteur.chemins(commitDe(tete))].map(comparable))"),
-    ("l'entrée : les chemins se cherchent au départ seul", "new Set([...lecteur.chemins(depart), ...lecteur.chemins(commitDe(tete))].map(comparable))", "new Set([...lecteur.chemins(depart)].map(comparable))"),
     ("en-tête : un mappage ou une liste pliés sur plusieurs lignes ne sont plus lus", "return /^[[{]/.test(debut) ? [cle.valeur, ...cle.bloc].map((l) => sansCommentaire(l).trim()).filter(Boolean).join(' ') : null;", "return /^[[{]/.test(cle.valeur) ? cle.valeur : null;"),
     ("en-tête : le commentaire d'une ligne pliée n'est plus retiré", "[cle.valeur, ...cle.bloc].map((l) => sansCommentaire(l).trim())", "[cle.valeur, ...cle.bloc].map((l) => l.trim())"),
     ("en-tête : une clé en double dans un mappage en ligne, la dernière gagne", "if (cle === '' || m.has(cle)) illisible(", "if (cle === '') illisible("),
-    ("en-tête : les guillemets ne protègent plus une virgule", "} else if (c === '\"' || c === \"'\") guillemet = c;\n    else if (c === '{' || c === '[') niveau++;", "}\n    else if (c === '{' || c === '[') niveau++;"),
-    ("en-tête : les guillemets ne protègent plus un `#`", "} else if (c === '\"' || c === \"'\") guillemet = c;\n    else if (c === '#' &&", "}\n    else if (c === '#' &&"),
     ("un chemin de `code` n'est plus normalisé", "if (segment === '' || segment === '.') continue;", ""),
     ("un chemin de `code` : `..` n'est plus suivi", "else if (segments.pop() === undefined) return null;", "else return null;"),
     ("l'index : deux entrées de même clé, la dernière gagne", "if (regles.has(comparable(r.key))) illisible(`${INDEX} : deux entrées pour ${r.key}`);", ""),
     ("un objet absent du commit est lu comme vide", "if (fin === -1 || taille === undefined) illisible(`${chemin} illisible dans ${commit}`);", "if (fin === -1 || taille === undefined) { textes.set(chemin, ''); continue; }"),
-    ("les arbres se listent depuis le dossier courant", "'--full-tree', '--name-only', commit, '--', prefixe]", "'--name-only', commit, '--', prefixe]"),
-    ("les objets remplacés sont suivis", "execFileSync('git', ['--no-replace-objects', ...args],", "execFileSync('git', [...args],"),
     ("le verdict n'est plus la dernière ligne", "    ...causes.map((c) => [c.sujet, c.motif, c.chemin, c.ref].map(propre).join('\\t')),\n    ...illisibles.map((m) => `# illisible : ${propre(m)}`),\n    ...remarques.map((m) => `# ${propre(m)}`),\n    reponse,\n", "    reponse,\n    ...causes.map((c) => [c.sujet, c.motif, c.chemin, c.ref].map(propre).join('\\t')),\n    ...illisibles.map((m) => `# illisible : ${propre(m)}`),\n    ...remarques.map((m) => `# ${propre(m)}`),\n"),
     ("un message ou un champ peut porter un saut de ligne", "' ').slice(0, 500);", "'$&').slice(0, 500);"),
     ("un message n'est plus borné", "' ').slice(0, 500);", "' ');"),
@@ -1936,10 +2167,37 @@ M = [
     ("`HEAD` est admis comme branche cible", " || nom === 'HEAD' || ", " || "),
     ("tout texte est admis comme branche cible", "if (typeof nom !== 'string' || !NOM_DE_BRANCHE.test(nom) || nom === 'HEAD' || /\\.\\.|\\/\\/|\\/$|\\.lock$|\\.lock\\/|\\/\\.|\\.$/.test(nom))", "if (typeof nom !== 'string')"),
     ("une branche cible peut porter `..`, un slash final ou un point final", " || /\\.\\.|\\/\\/|\\/$|\\.lock$|\\.lock\\/|\\/\\.|\\.$/.test(nom))", ")"),
-    ("une réf symbolique est admise comme branche cible", "if (nom.startsWith('refs/') && symbolique(nom)) illisible(`${court(nom)} est une référence symbolique`);", ""),
     ("le sommet : tout texte est admis", "return typeof sha === 'string' && SHA.test(sha) ? sha : illisible('sommet refusé : attendu un sha de 40 caractères');", "return sha;"),
     ("la branche d'intégration n'est plus `develop`", "export const DEVELOP = 'develop';", "export const DEVELOP = 'main';"),
-    ("une réf introuvable n'est plus vérifiée", "const commit = essayer(['rev-parse', '--verify', '-q', `${nom}^{commit}`], `référence ${court(nom)} introuvable`).toString('utf8').trim();", "const commit = 'f'.repeat(40);"),
+    ("`git` introuvable se lit comme une réf introuvable", "if (e?.code === 'ENOENT' && e?.path === 'git') throw new OutilManquant('git est requis par les scripts de la chaîne');", ""),
+    ("la ligne `Règles:` n'est plus lue", "for (const { cle, chemin } of regles) if (hautesQuelquePart.has(cle)) causes.push(", "for (const { cle, chemin } of regles) if (false) causes.push("),
+    ("les lignes d'en-tête : la forme nue seule, plus celles du gate (gras, puce, casse)", "const ligneDEnTete = (nom) => new RegExp(`^(?:[-*][ \\\\t]+)?\\\\**${nom}\\\\**\\\\s*:\\\\**\\\\s*(.*)$`, 'i');", "const ligneDEnTete = (nom) => new RegExp(`^${nom}\\\\s*:\\\\s*(.*)$`);"),
+    ("les lignes d'en-tête : la puce étoile n'est plus lue", "`^(?:[-*][ \\\\t]+)?\\\\**${nom}", "`^(?:- )?\\\\**${nom}"),
+    ("une ligne `Règles:` vide compte pour une ligne : la spec n'est pas lue", "const lignes = valeursDEnTete(texte, REGLES_CITEES).filter((v) => scalaire(v) !== '');", "const lignes = valeursDEnTete(texte, REGLES_CITEES);"),
+    ("la spec n'est plus lue pour un ticket sans ligne `Règles:`", "if (sansLigne) for (const [commit, nom] of refs)", "if (false) for (const [commit, nom] of refs)"),
+    ("la spec est lue aussi quand le ticket dit `Règles: —`", "sansLigne: lignes.length === 0 };", "sansLigne: regles.length === 0 };"),
+    ("la spec ne se cherche que dans le premier arbre, plus dans tous", "if (sansLigne) for (const [commit, nom] of refs) essayer(", "if (sansLigne) for (const [commit, nom] of [...refs].slice(0, 1)) essayer("),
+    ("la spec est lue dès que le ticket est trouvé, ligne ou non", "sansLigne ||= lu.sansLigne;", "sansLigne = true;"),
+    ("l'entrée : les chemins se cherchent au départ et à la tête seuls", "const arbres = new Set([depart, commitDe(tete), commitDe(base), commitDe(develop)]);", "const arbres = new Set([depart, commitDe(tete)]);"),
+    ("l'entrée : les chemins ne se cherchent plus sur develop", "const arbres = new Set([depart, commitDe(tete), commitDe(base), commitDe(develop)]);", "const arbres = new Set([depart, commitDe(tete), commitDe(base)]);"),
+    ("l'entrée : les chemins ne se cherchent plus sur la cible", "const arbres = new Set([depart, commitDe(tete), commitDe(base), commitDe(develop)]);", "const arbres = new Set([depart, commitDe(tete), commitDe(develop)]);"),
+    ("l'entrée : les chemins ne se cherchent plus à la tête", "const arbres = new Set([depart, commitDe(tete), commitDe(base), commitDe(develop)]);", "const arbres = new Set([depart, commitDe(base), commitDe(develop)]);"),
+    ("l'entrée : les chemins ne se cherchent plus au départ", "const arbres = new Set([depart, commitDe(tete), commitDe(base), commitDe(develop)]);", "const arbres = new Set([commitDe(tete), commitDe(base), commitDe(develop)]);"),
+    ("en-tête : un guillemet ouvre une chaîne partout dans une liste ou un mappage en ligne", "} else if ((c === '\"' || c === \"'\") && enTeteDeValeur(texte, i)) guillemet = c;", "} else if (c === '\"' || c === \"'\") guillemet = c;"),
+    ("en-tête : les guillemets ne protègent plus une virgule", "} else if ((c === '\"' || c === \"'\") && enTeteDeValeur(texte, i)) guillemet = c;", "}"),
+    ("une entrée de `code` qui nomme la racine du dépôt ne nomme aucun fichier", "const entree = cheminDeCode(p) ?? illisible(`${nom} : une entrée de \\`code\\` de ${r.cle} nomme la racine du dépôt ou en sort`);\n          parCode.set(", "const entree = cheminDeCode(p);\n          if (entree !== null) parCode.set("),
+    ("les lectures se font dans le dépôt réel, plus dans le dépôt propre", "return essayer({ cwd: dossier }, [`--git-dir=${join(dossier, 'depot')}`, ...args], message, input);", "return essayer({ cwd }, args, message, input);"),
+    ("les variables `GIT_*` héritées sont gardées", ".filter(([cle]) => !cle.startsWith('GIT_') || cle === 'GIT_CEILING_DIRECTORIES'));", ".filter(() => true));"),
+    ("le dépôt propre n'est pas retiré", "if (dossier) rmSync(dossier, { recursive: true, force: true });", ""),
+    ("le lecteur par défaut n'est pas fermé", "if (!lecteur) propre.fermer();", ""),
+    ("sans dépôt propre, le calcul continue", "illisible('dépôt propre impossible à créer sous le dossier temporaire');", "return;"),
+    ("un clone superficiel est lu", "!== 'false') illisible(\"clone superficiel : l'historique est tronqué (git fetch --unshallow origin)\");", "!== 'false') return;"),
+    ("une réf symbolique est admise comme branche cible", "if (symbolique(nom)) illisible(`${court(nom)} est une référence symbolique`);", ""),
+    ("une réf introuvable n'est plus vérifiée", "commit = texte(essayer(reel, ['rev-parse', '--verify', '-q', `${nom}^{commit}`], absente));", "commit = 'f'.repeat(40);"),
+    ("un sha absent du dépôt n'est plus vérifié", "if (!SHA.test(commit) || texte(propre(['rev-parse', '--verify', '-q', `${commit}^{commit}`], absente)) !== commit) illisible(absente);", ""),
+    ("en-tête : un guillemet après deux-points n'ouvre plus une chaîne", "return c === ',' || c === '[' || c === '{' || (c === ':' && j < i - 1);", "return c === ',' || c === '[' || c === '{';"),
+    ("en-tête : un guillemet ouvre une chaîne partout dans une ligne à commentaire", "} else if ((c === '\"' || c === \"'\") && enTeteDeValeur(ligne, i)) guillemet = c;", "} else if (c === '\"' || c === \"'\") guillemet = c;"),
+    ("en-tête : les guillemets ne protègent plus un `#`", "} else if ((c === '\"' || c === \"'\") && enTeteDeValeur(ligne, i)) guillemet = c;", "}"),
 ]
 temoin = subprocess.run(["node", "--test", str(d / "double-relecture.test.mjs")], capture_output=True, text=True, timeout=120)
 if temoin.returncode != 0:
@@ -1961,9 +2219,168 @@ for n in absentes: print("ANCIEN INTROUVABLE OU EN DOUBLE :", n)
 sys.exit(0 if rouges == len(M) else 1)
 ````
 
+## L'essai à grande échelle
+
+Hors du dépôt, sans rien y ajouter : la bibliothèque de référence (PyYAML) ne sert qu'à l'essai, et ni elle ni ces deux fichiers n'entrent dans le plugin. Dans un dossier jetable, hors de tout clone :
+
+````bash
+python3 -c "import yaml" || python3 -m pip install --user pyyaml   # sur le poste, pas dans le dépôt
+node en-tetes.mjs <clone>/skills/chaine/fusionner/scripts/double-relecture.mjs 80000 > en-tetes.jsonl
+python3 comparer.py en-tetes.jsonl   # sortie 0 : aucun en-tête « dangereux »
+````
+
+`en-tetes.mjs` fabrique des en-têtes de règle par tirage reproductible (les trois clés sous toutes leurs formes, des textes à apostrophes, à guillemets, à `#`, à virgules, des commentaires qui portent `level: low`) et écrit, pour chacun, ce que le lecteur du module en lit ou son refus. `comparer.py` lit le même en-tête avec la bibliothèque et range chaque cas : accord ; refus du lecteur seul (côté sûr) ; refus des deux ; lu par le lecteur et refusé par la bibliothèque (un fichier que la CLI Anchorpost refuserait aussi) ; écart sans danger ; **dangereux**, quand la bibliothèque lit un niveau plus haut, une règle en vigueur ou un chemin de `code` que le lecteur n'a pas. Un seul cas dangereux, et la sortie est 1.
+
+````js
+// Essai hors dépôt : fabrique des en-têtes de règle et dit ce que le lecteur du module en lit.
+// Usage : node en-tetes.mjs <chemin de double-relecture.mjs> <nombre> > en-tetes.jsonl
+// Une ligne JSON par en-tête : { texte, lu: { niveau, code, enVigueur } } ou { texte, refus: "<message>" }.
+import { pathToFileURL } from 'node:url';
+const [module, nombre = '80000'] = process.argv.slice(2);
+const { enTeteDeRegle, Illisible } = await import(pathToFileURL(module).href);
+
+// Tirage reproductible (mulberry32).
+let graine = 20261118;
+const hasard = () => {
+  graine = (graine + 0x6d2b79f5) | 0;
+  let t = Math.imul(graine ^ (graine >>> 15), 1 | graine);
+  t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+};
+const un = (liste) => liste[Math.floor(hasard() * liste.length)];
+const melange = (liste) => liste.map((v) => [hasard(), v]).sort((a, b) => a[0] - b[0]).map(([, v]) => v);
+
+const NIVEAUX = ['low', 'medium', 'high'];
+const TEXTES = [
+  'une erreur coûte de l\'argent', 'c\'est grave', 'l\'agent', 'rien', '"entre guillemets, level: low"', '\'entre apostrophes, level: low\'',
+  '"un # dans la chaîne"', '\'un # dans la chaîne\'', 'jusqu\'à 50 % d\'erreurs', '"d\'un côté, de l\'autre"', 'agent', 'd\'abord l\'un puis l\'autre',
+  '"level: high"', '\'level: low\'', 'x\'', '\'\'', '""', 'l\'un # et l\'autre', '"a\'b"', '\'a"b\'', 'niveau-haut', 'a.b/c-d_e',
+];
+const CHEMINS = [
+  'apps/api/src/facture/total.ts', 'apps/web/src/l\'un.ts', '"apps/web/a, b.ts"', '\'apps/web/c, d.ts\'', 'apps/web/d\'un/x.ts', 'packages/contracts/src/facture.ts',
+  '"apps/x # y.ts"', '\'apps/x # z.ts\'', 'apps/api/src/app.module.ts', 'apps/l\'un/l\'autre.ts', '"apps/q\'r.ts"',
+];
+const COMMENTAIRES = ['', '', '', ' # un commentaire', ' # l\'autre', ' # \', level: low', ' # ", level: low', ' # level: low, by: agent', ' # c\'est tout'];
+const STATUTS = ['candidate', 'validated', 'rejected', 'obsolete'];
+const retrait = () => un(['  ', '  ', '    ']);
+
+function criticite() {
+  const niveau = un(NIVEAUX);
+  const paires = melange([['level', un([niveau, niveau, `"${niveau}"`, `'${niveau}'`])], ['by', un(TEXTES)], ['reason', un(TEXTES)]]).slice(0, un([1, 2, 3, 3]));
+  if (!paires.some(([c]) => c === 'level')) paires.push(['level', niveau]);
+  const forme = un(['absente', 'nue', 'nue', 'bloc', 'bloc', 'ligne', 'ligne', 'pliee', 'pliee', 'pliee']);
+  if (forme === 'absente') return '';
+  if (forme === 'nue') return `criticality: ${un([niveau, `"${niveau}"`, `'${niveau}'`])}${un(COMMENTAIRES)}\n`;
+  const r = retrait();
+  if (forme === 'bloc') return `criticality:${un(COMMENTAIRES)}\n${paires.map(([c, v]) => `${r}${c}: ${v}${un(COMMENTAIRES)}\n`).join('')}`;
+  if (forme === 'ligne') return `criticality: { ${paires.map(([c, v]) => `${c}: ${v}`).join(', ')}${un(['', ','])} }${un(COMMENTAIRES)}\n`;
+  // Pliée : une ou deux paires par ligne, un commentaire possible à chaque ligne.
+  const lignes = [];
+  for (let i = 0; i < paires.length; ) {
+    const n = un([1, 1, 2]);
+    lignes.push(`${r}${r}${paires.slice(i, i + n).map(([c, v]) => `${c}: ${v}`).join(', ')},${un(COMMENTAIRES)}\n`);
+    i += n;
+  }
+  return un([`criticality:\n${r}{\n${lignes.join('')}${r}}\n`, `criticality: {${un(COMMENTAIRES)}\n${lignes.join('')}${r}}\n`]);
+}
+function code() {
+  const chemins = melange(CHEMINS).slice(0, un([1, 1, 2, 3, 4]));
+  const forme = un(['absente', 'vide', 'bloc', 'bloc', 'bloc0', 'ligne', 'ligne', 'pliee', 'pliee']);
+  if (forme === 'absente') return '';
+  if (forme === 'vide') return `code: []${un(COMMENTAIRES)}\n`;
+  const r = retrait();
+  if (forme === 'bloc') return `code:${un(COMMENTAIRES)}\n${chemins.map((c) => `${r}- ${c}${un(COMMENTAIRES)}\n`).join('')}`;
+  if (forme === 'bloc0') return `code:\n${chemins.map((c) => `- ${c}${un(COMMENTAIRES)}\n`).join('')}`;
+  if (forme === 'ligne') return `code: [${un(['', ' '])}${chemins.join(', ')}${un(['', ',', ' '])}]${un(COMMENTAIRES)}\n`;
+  return `code:\n${r}[\n${chemins.map((c) => `${r}${r}${c},${un(COMMENTAIRES)}\n`).join('')}${r}]\n`;
+}
+function validation() {
+  const statut = un(STATUTS);
+  const forme = un(['bloc', 'bloc', 'bloc', 'ligne', 'pliee', 'absente']);
+  if (forme === 'absente') return '';
+  if (forme === 'bloc') return `validation:\n  status: ${statut}${un(COMMENTAIRES)}\n  date: 2026-11-16\n${un(['', `  reason: ${un(TEXTES)}\n`])}`;
+  if (forme === 'ligne') return `validation: { status: ${statut}, reason: ${un(TEXTES)} }${un(COMMENTAIRES)}\n`;
+  return `validation:\n  {\n    status: ${statut},${un(COMMENTAIRES)}\n    reason: ${un(TEXTES)},${un(COMMENTAIRES)}\n  }\n`;
+}
+const TITRES = ['title: Le total d\'une facture est la somme de ses lignes\n', `title: "Un titre : avec deux-points, level: low"\n`, 'title: C\'est l\'agent qui fixe le niveau # level: low\n'];
+const AUTRES = ['epics: [facture]\n', 'sources:\n  - { ref: "réunion, point 3", path: docs/r.md }\n', 'extensions:\n  projet:\n    criticality: low\n    status: rejected\n', '# criticality: low\n'];
+
+for (let i = 0; i < Number(nombre); i++) {
+  const cles = melange([criticite(), code(), validation(), un(TITRES), ...melange(AUTRES).slice(0, 3)]).join('');
+  const texte = `---\nid: RULE_ALL_FAC-${i}\n${cles}---\n\nL'énoncé.\n`;
+  let ligne;
+  try {
+    ligne = { texte, lu: enTeteDeRegle(texte) };
+  } catch (e) {
+    if (!(e instanceof Illisible)) throw e;
+    ligne = { texte, refus: e.message };
+  }
+  process.stdout.write(`${JSON.stringify(ligne)}\n`);
+}
+````
+
+````python
+# Essai hors dépôt : compare ce que le lecteur du module a lu à ce qu'une vraie bibliothèque YAML lit.
+# Usage : python3 comparer.py en-tetes.jsonl     (PyYAML, qui n'entre pas dans le dépôt)
+# Dangereux : la bibliothèque lit une règle plus haute, en vigueur, ou un chemin de code que le lecteur n'a pas.
+import json, sys, collections, yaml
+
+RANG = {None: 0, "low": 1, "medium": 2, "high": 3}
+compte = collections.Counter()
+exemples = collections.defaultdict(list)
+
+def reference(texte):
+    """Ce que la bibliothèque lit de l'en-tête, ou None s'il n'a pas la forme du standard."""
+    try:
+        d = yaml.safe_load(texte.split("---\n")[1])
+    except yaml.YAMLError:
+        return None
+    if not isinstance(d, dict):
+        return None
+    c = d.get("criticality")
+    niveau = c if isinstance(c, str) else c.get("level") if isinstance(c, dict) else None
+    if "criticality" in d and niveau not in ("low", "medium", "high"):
+        return None
+    code = d.get("code", [])
+    if not isinstance(code, list) or any(not isinstance(p, str) or p == "" for p in code):
+        return None
+    v = d.get("validation")
+    statut = v.get("status") if isinstance(v, dict) else None
+    return {"niveau": niveau, "code": code, "enVigueur": statut not in ("rejected", "obsolete")}
+
+for ligne in open(sys.argv[1], encoding="utf-8"):
+    cas = json.loads(ligne)
+    ref = reference(cas["texte"])
+    if "refus" in cas:
+        classe = "refus du lecteur, lu par la bibliothèque (côté sûr)" if ref else "refus des deux"
+    elif ref is None:
+        classe = "lu par le lecteur, refusé par la bibliothèque"
+    else:
+        lu = cas["lu"]
+        if lu == ref:
+            classe = "accord"
+        elif RANG[lu["niveau"]] < RANG[ref["niveau"]] or (ref["enVigueur"] and not lu["enVigueur"]) or set(ref["code"]) - set(lu["code"]):
+            classe = "DANGEREUX : le lecteur lit moins que la bibliothèque"
+        else:
+            classe = "écart sans danger : le lecteur lit plus que la bibliothèque"
+    compte[classe] += 1
+    if len(exemples[classe]) < 3:
+        exemples[classe].append(cas)
+
+total = sum(compte.values())
+print(f"{total} en-têtes")
+for classe, n in compte.most_common():
+    print(f"  {n:7d}  {classe}")
+for classe in compte:
+    if classe.startswith(("DANGEREUX", "écart", "lu par le lecteur")):
+        for cas in exemples[classe]:
+            print("---", classe, "\n" + cas["texte"], cas.get("lu"), reference(cas["texte"]))
+sys.exit(1 if any(c.startswith("DANGEREUX") for c in compte) else 0)
+````
+
 ## Ce qui n'a pas été établi
 
-`A-113` a tranché les quatorze points de la première version de ce ticket, `A-117` les onze de sa relecture adversariale (« Comments »). Restent six précisions prises ici, que la spec ne dit pas, et huit limites, chacune avec sa conséquence. L'architecte les lit à la contre-revue ; chacune tient à une décision et à un test nommés.
+`A-113` a tranché les quatorze points de la première version de ce ticket, `A-117` et `A-122` ceux des deux tours de sa relecture adversariale (« Comments »). Restent huit précisions prises ici, que la spec ne dit pas, et onze limites, chacune avec sa conséquence. L'architecte les lit à la contre-revue ; chacune tient à une décision et à un test nommés.
 
 **Précisions de ce ticket**
 
@@ -1973,22 +2390,27 @@ sys.exit(0 if rouges == len(M) else 1)
 4. **Un dépôt sans `origin/develop` : « illisible »** (décision 5, cas 9 ter).
 5. **La grammaire introuvable sort en 69**, l'usage en 21 (décision 3).
 6. **D'un titre qui cite plusieurs tickets, seul le premier est lu** (décision 14) : c'est `ticketDeLaPr`, telle quelle.
+7. **Une entrée de `code` qui nomme la racine du dépôt, ou en sort : « illisible »** pour une règle haute (décision 11, cas 24 bis). `A-122` laissait le choix entre « exigée » et « illisible » ; « exigée » pour toute PR ferait de `.` un mot qui veut dire « tout le dépôt », ce que rien n'écrit.
+8. **La spec est lue dès que le ticket est sans ligne `Règles:` dans un seul des arbres** où il se trouve (décision 13, cas 27 sexies) : un `Règles: —` écrit sur le sujet ne dit « aucune » qu'une fois entré aussi dans la base et dans `develop`.
 
 **Limites**
 
-7. **`Règles: —` est refusée aujourd'hui par le gate `tickets`** (`ecartsRegles`, `tickets-regles.mjs:435` : « citer au moins une règle, ou retirer la ligne », et un `—` n'est pas un identifiant de règle). Le calcul la lit quand même comme « ce ticket ne réalise aucune règle » (`A-117`) ; c'est le lot 2 (ticket 55, à rejouer sur `main`) qui la fera accepter par le gate, pas ce ticket. **Conséquence d'ici là** : le conducteur ne peut pas écrire « aucune » sur un ticket que le gate juge ; un ticket sans ligne `Règles:` hérite donc de sa spec, et, si celle-ci cite une règle haute qu'il ne réalise pas, sa PR reçoit deux relecteurs de trop. Jamais un de moins.
-8. **Une criticité fixée au manifeste n'est vue qu'une fois l'index de la tête régénéré** (décision 9, cas 16 bis). Le Relecteur, qui juge avant, peut ne distribuer qu'une relecture ; le changement est vu par le premier calcul joué sur une tête dont l'index est régénéré.
-9. **Une entrée produite avec la détection des renommages, mais bien formée, reste invisible au calcul** (décision 2, cas 22) : l'ancien nom d'un fichier de code renommé n'y est pas, et rien dans une liste de chemins ne dit comment elle a été produite. C'est la faute de l'appelant : les lots 4 et 5a produisent l'entrée par `git diff --no-renames --name-only`, comme `passer.sh` le fait déjà pour la revue exigée, et l'usage du module le dit.
-10. **Un chemin de l'entrée absent du départ comme de la tête rend « illisible »**, même légitime (décision 2, cas 21 bis) : la PR de mise à jour d'un sujet dont la résolution supprime un fichier que `develop` seul apportait. Le cas est rare, et l'erreur est du côté sûr : le capitaine saute la PR sans la renvoyer, le Relecteur ne distribue ni ne valide, et l'architecte est prévenu (`A-113`).
-11. **Les branches de sujet lues sont celles du dépôt de l'appelant** : une `origin/sujet/*` qu'il n'a pas relue, ou une branche supprimée qu'il n'a pas élaguée, donne une lecture en retard ou en trop. Le fetch est à l'appelant (lots 4 et 5a).
-12. **Un chemin de règles déclaré au manifeste** (`contexts[].rules`) n'est pas reconnu comme le fichier d'une règle (décision 10) ; l'index, lui, porte quand même son niveau et son `code`.
-13. **Une ligne d'en-tête que le gate ne lit pas n'est pas lue non plus** (en retrait, dans une citation, cas 19 bis) : le calcul suit le gate, il ne le dépasse pas. Et le motif du gate est recopié, pas importé : s'il change dans `tickets-regles.mjs`, rien ne le dit ici.
-14. **Le coût** croît avec le nombre de branches de sujet (un `git ls-tree` de `docs/` par sujet) et avec la taille du dépôt (deux `git ls-tree` de l'arbre entier par appel, pour contrôler l'entrée) ; non mesuré au-delà de quatre sujets.
+9. **Un clone superficiel est « illisible »** (décision 22, cas 28 bis), comme au ticket 59 : la base de fusion ne se calcule pas sur un historique tronqué. Or **les sessions cloud clonent à une profondeur de 50 par défaut** : sur le poste d'essai, les quatre clones lus l'étaient tous, et la ligne de commande y rend « illisible » avec son remède, `git fetch --unshallow origin`. Conséquence : le Relecteur et le capitaine (lots 4 et 5a) rendent leur dépôt complet avant d'appeler les deux calculs, une fois par session ; sinon aucune PR n'est distribuée ni fusionnée, ce qui se voit tout de suite et ne laisse rien passer.
+10. **`Règles: —` est refusée aujourd'hui par le gate `tickets`** (`ecartsRegles`, `tickets-regles.mjs:435` : « citer au moins une règle, ou retirer la ligne », et un `—` n'est pas un identifiant de règle). Le calcul la lit quand même comme « ce ticket ne réalise aucune règle » (`A-117`) ; c'est le lot 2 (ticket 55, à rejouer sur `main`) qui la fera accepter par le gate, pas ce ticket. **Conséquence d'ici là** : le conducteur ne peut pas écrire « aucune » sur un ticket que le gate juge ; un ticket sans ligne `Règles:`, ou à ligne vide, hérite donc de sa spec, et, si celle-ci cite une règle haute qu'il ne réalise pas, sa PR reçoit deux relecteurs de trop. Jamais un de moins.
+11. **Une criticité fixée au manifeste n'est vue qu'une fois l'index de la tête régénéré** (décision 9, cas 16 bis). Le Relecteur, qui juge avant, peut ne distribuer qu'une relecture ; le changement est vu par le premier calcul joué sur une tête dont l'index est régénéré.
+12. **Une entrée produite avec la détection des renommages, mais bien formée, reste invisible au calcul** (décision 2, cas 22) : l'ancien nom d'un fichier de code renommé n'y est pas, et rien dans une liste de chemins ne dit comment elle a été produite. C'est la faute de l'appelant : les lots 4 et 5a produisent l'entrée par `git diff --no-renames --name-only`, comme `passer.sh` le fait déjà pour la revue exigée, et l'usage du module le dit.
+13. **Le dépôt propre emprunte les objets du dépôt réel par `objects/info/alternates`** (décision 22). Joué sur des clones ordinaires et sur un arbre de travail lié. Non joué : un dépôt réel qui emprunte lui-même ses objets ailleurs par un chemin relatif (`git clone --shared`), un clone partiel, un dépôt en `sha256`, un dépôt dont git juge le propriétaire douteux une fois la configuration d'utilisateur écartée. Dans chacun, une commande échouerait : « illisible », jamais « non exigée ». Et il lui faut un dossier temporaire où écrire : sans lui, « illisible » (cas 28 bis).
+14. **Trois ceintures de la décision 22 n'ont pas de mutation** (la configuration d'utilisateur et de système écartée ; `GIT_GRAFT_FILE=/dev/null` et `GIT_NO_REPLACE_OBJECTS=1` sur les commandes du dépôt réel) : aucun cas du banc ne sait les prendre en défaut, elles sont là parce qu'`A-122` les demande.
+15. **L'essai à grande échelle ne vaut que pour ce que son générateur fabrique** : les formes des trois clés, pas tout YAML (ni ancres, ni scalaires pliés `>` ou `|`, ni clés entre guillemets, que le lecteur refuse). Et la référence est PyYAML, pas la bibliothèque de la CLI Anchorpost : les deux lisent YAML 1.1 et 1.2 un peu différemment hors de ces formes.
+16. **Les branches de sujet lues sont celles du dépôt de l'appelant** : une `origin/sujet/*` qu'il n'a pas relue, ou une branche supprimée qu'il n'a pas élaguée, donne une lecture en retard ou en trop. Le fetch est à l'appelant (lots 4 et 5a).
+17. **Un chemin de règles déclaré au manifeste** (`contexts[].rules`) n'est pas reconnu comme le fichier d'une règle (décision 10) ; l'index, lui, porte quand même son niveau et son `code`.
+18. **Une ligne d'en-tête que ni le gate ni la CLI ne lisent n'est pas lue non plus** (en retrait, dans une citation, cas 19 bis). Et le motif est recopié du gate, pas importé : s'il change dans `tickets-regles.mjs`, rien ne le dit ici.
+19. **Le coût** croît avec le nombre de branches de sujet (un `git ls-tree` de `docs/` par sujet) et avec la taille du dépôt (un `git ls-tree` de l'arbre entier pour chacun des quatre arbres de l'entrée, un `git init` par appel) ; non mesuré au-delà de quatre sujets.
 
 ## Hors périmètre
 
 - **Tout appelant** : le Relecteur (lot 4), le capitaine à ses deux contrôles (lot 5a, `A-105`), le diff qu'ils passent, le fetch de la cible, de `origin/develop` et des sujets, ce qu'ils font d'« illisible » (`A-113`), le nombre qu'ils tirent de la réponse.
-- **Le gate `tickets`**, auquel ce ticket ne touche pas : la forme de `Relecture: double` (ticket 55, lot 2) ; **l'écriture `Règles: —`**, qu'il refuse aujourd'hui et que le lot 2 (ticket 55, à rejouer sur `main`) lui fera accepter (limite 7 : d'ici là, un ticket sans ligne `Règles:` hérite de sa spec, au pire deux relecteurs de trop) ; l'exigence de `Relecture: double` sur un ticket qui cite une règle haute (lot 5c).
+- **Le gate `tickets`**, auquel ce ticket ne touche pas : la forme de `Relecture: double` (ticket 55, lot 2) ; **l'écriture `Règles: —`**, qu'il refuse aujourd'hui et que le lot 2 (ticket 55, à rejouer sur `main`) lui fera accepter (limite 10 : d'ici là, un ticket sans ligne `Règles:` hérite de sa spec, au pire deux relecteurs de trop) ; l'exigence de `Relecture: double` sur un ticket qui cite une règle haute (lot 5c).
 - **Le message d'information au produit** (`A-90`), qui part du conducteur.
 - **`fusionner/references/CONTENU.md`, `scripts/points-d-entree.test.mjs`, l'arbre du `README.md`** : au plus tard avec 3d (décision 18). De `fusionner/SKILL.md`, seul le mot du § 3.
 - **« Même contenu propre »** (lot 3b, ticket 59) et **le lecteur de verdict** (lot 3a, ticket 58).
@@ -2000,3 +2422,4 @@ sys.exit(0 if rouges == len(M) else 1)
 - 2026-11-18 — Décisions de l'architecte portées au ticket (`A-113`), sur `origin/main` à `6fc652d`. Cinq changent le calcul : `Règles:` est lue ; le niveau se lit sur trois arbres, `origin/develop` compris ; l'en-tête du ticket se lit sur la base, `origin/develop` et les sujets ; un changement de niveau vers ou depuis « haute » suffit ; le ticket de la PR est celui de `ticketDeLaPr`, et celui de la branche s'il est autre. Confirmés : les pivots 2 et 3, l'en-tête des règles touchées lu en plus de l'index, la règle rejetée ou obsolète, le chemin de convention et `code`, `Relecture:` d'une autre valeur, le diff vide. Accordés avec le ticket 59 : les sorties 0, 20, 21 et 69, sans 22. La pose : un mot à l'étape 0 de `fusionner/SKILL.md`. Rejoué dans un clone neuf : banc, suite entière, mutations.
 - 2026-11-18 — Relecture adversariale par un agent neuf : « prêt après retouches », quatre faux « non exigée » reproduits, six mineurs, un point à trancher ; toutes les corrections adoptées (`A-117`) et portées ici, chaque attaque devenue un cas du banc avec sa mutation. Bloquants : le dossier courant hors de la racine (`--full-tree`, et le calcul à la racine sans obéir à la configuration) ; les formes de `Règles:` que le gate lit ; le commentaire d'un mappage plié et la clé en double ; l'entrée standard non contrôlée. Mineurs : `--no-renames` dans l'usage et un test de renommage ; les réfs lues en entier ; les chemins de `code` normalisés ; l'index à deux entrées de même clé ; `Relecture:` aux formes du gate ; un message par ligne, aucun argument refusé recopié, le verdict en dernière ligne. Tranché : le ticket se lit aussi sur la tête ; un ticket sans `Règles:` hérite de sa spec, `Règles: —` dit « aucune ». Base relue : `origin/main` à `085d7d4` (7.20.0 ; la version devient 7.21.0). Rejoué dans un clone neuf : banc, suite entière, mutations (« Vérification »).
 - 2026-11-18 — Deux retouches avant le second tour du relecteur. `--base` s'aligne sur le ticket 59 : un nom de branche nu (`develop`, `sujet/<nom>`), validé (ni `HEAD`, ni réf symbolique, ni retour ligne, ni tiret initial), lu `refs/remotes/origin/<nom>` en entier ; `--tete` est un sha de 40 caractères ; mêmes mots dans l'usage, l'en-tête du module et le banc. `Règles: —` : le gate la refuse aujourd'hui, le calcul la lit comme « aucune », le lot 2 la fera accepter (limite 7, « Hors périmètre »). La précision 1 et les limites 9 et 10 disent leur raison et leur conséquence. Rejoué dans un clone neuf à `085d7d4`.
+- 2026-11-19 — Second tour de la relecture adversariale : « prêt après retouches », huit corrections fermées, trois à moitié, quatre bloquants nouveaux et un mineur ; tout est adopté (`A-122`) et porté ici, chaque attaque devenue un cas du banc avec sa mutation. N1 : le banc suit la garde « un seul environnement de banc » (`environnementDeBanc()`). N2 : un guillemet n'ouvre une chaîne qu'en tête de valeur ; le lecteur se vérifie contre une vraie bibliothèque, hors du dépôt. N3 : toutes les lectures dans un dépôt nu jetable qui emprunte les objets du dépôt réel, sans configuration ni variable `GIT_*` héritée. N4 : l'entrée admet les chemins de la cible et de `develop`. N5 : la puce étoile, la ligne `Règles:` vide ignorée, la spec cherchée dans tous les arbres. Constat 7 : `code` qui nomme la racine, « illisible ». Constaté en rejouant : les clones des sessions cloud sont superficiels, et les deux calculs les refusent (limite 9). Constat 5 (renommage) : reste la limite 12. Base relue : `origin/main` à `d5b1561` (7.23.0, le ticket 58 entré ; la version devient 7.24.0). Rejoué dans un clone neuf : banc, suite entière, mutations, essai à grande échelle (« Vérification »).
