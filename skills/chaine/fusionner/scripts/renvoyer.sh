@@ -17,6 +17,10 @@ deja=$(renvois_de "$N")
 plafond=$(plafond_renvois)
 numero=$((deja + 1))
 suite="Corriger, puis retirer \`fusion-bloquée\` et remettre \`à-fusionner\` (CLAUDE.md § « Fusion vers \`develop\` »)."
+# Une réception de develop faite en plusieurs fusions ne se corrige pas par un push : elle se refait, dans une nouvelle PR.
+case "$cause" in
+  *"jamais une seconde fusion"*) suite="Refaire la réception comme la cause le dit, ouvrir une nouvelle PR vers le sujet et fermer celle-ci ; la nouvelle PR porte \`à-fusionner\` (CLAUDE.md § « Fusion vers \`develop\` »)." ;;
+esac
 if [ "$numero" -ge "$plafond" ]; then
   suite="**Renvoi $numero sur $plafond : cette PR attend un humain.** La file ne la reprend plus ; un humain décide, puis le capitaine la passe à la main (\`passer.sh $N\`, ou \`sujet.sh fusionner $N\` pour une sous-PR)."
 fi

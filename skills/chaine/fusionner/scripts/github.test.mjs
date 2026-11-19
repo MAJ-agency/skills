@@ -4,7 +4,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 // Posé dans un projet, depot-jouet.mjs est à côté (scripts/chaine/) ; dans le plugin, il est dans le skill sujet.
 const { depotJouet, script } = await import(
@@ -183,4 +183,343 @@ test("ascendance : une réf absente sort en 1, motif sur la sortie d'erreur, jam
     assert.equal(r.stdout, "");
     assert.match(r.stderr, /introuvable/);
   }
+});
+
+// ── GitHub illisible (ticket 9, A-21) : une lecture qui décide d'un état passe par `lire_github`, qui refuse une réponse
+// vide, non JSON, porteuse d'un `message` d'erreur ou à code non nul : sortie 5, jamais un état. ─────────────────────
+const fonction = (d, corps, ...args) =>
+  spawnSync("bash", ["-c", `source ${GITHUB}; ${corps}`, "_", ...args], {
+    cwd: d.travail,
+    env: d.env,
+    encoding: "utf8",
+  });
+const PR1 = "repos/{owner}/{repo}/pulls/1";
+function avecPr() {
+  const d = depotJouet();
+  d.github({ pulls: [{ number: 1, title: "t", head: "feat/x", base: "develop", labels: [] }] });
+  return d;
+}
+
+test("lire_github refuse une réponse vide, non JSON, porteuse de message ou à code non nul : sortie 5 ; un JSON valide passe ; --absent rend son défaut sur un 404 seulement", () => {
+  const d = avecPr();
+  const refus = [
+    { sortie: "", erreur: "gh: Bad Gateway (HTTP 502)", code: 1 },
+    { sortie: "<html>502 Bad Gateway</html>", erreur: "gh: Bad Gateway (HTTP 502)", code: 1 },
+    { sortie: "", code: 0, erreur: "" },
+    { sortie: "  \n", code: 0, erreur: "" },
+    { sortie: "<html>502 Bad Gateway</html>", code: 0, erreur: "" },
+    { sortie: '{"message":"Server Error","documentation_url":"https://docs.github.com"}', code: 0, erreur: "" },
+  ];
+  for (const panne of refus) {
+    d.github({ pannes: [{ route: "^pulls/1$", ...panne }] });
+    const r = fonction(d, 'lire_github "$1"', PR1);
+    assert.equal(r.status, 5, `${JSON.stringify(panne)} : ${r.stdout}${r.stderr}`);
+    assert.equal(r.stdout, "", JSON.stringify(panne));
+    assert.match(r.stderr, /GitHub illisible \(repos\/\{owner\}\/\{repo\}\/pulls\/1\) : /, JSON.stringify(panne));
+  }
+  const ok = fonction(d, 'lire_github "$1"', PR1);
+  assert.equal(ok.status, 0, ok.stderr);
+  assert.equal(JSON.parse(ok.stdout).number, 1);
+  // Un tableau d'objets n'est jamais refusé pour un champ `message` imbriqué ; des pages concaténées se lisent chacune.
+  d.github({ pannes: [{ route: "^pulls/1$", sortie: '[{"message":"commit"}]', code: 0, erreur: "" }] });
+  assert.equal(fonction(d, 'lire_github "$1"', PR1).status, 0);
+  d.github({ pannes: [{ route: "^pulls/1$", sortie: '[1,2]\n[3]\n', code: 0, erreur: "" }] });
+  const pages = fonction(d, 'lire_github "$1" --paginate', PR1);
+  assert.equal(pages.status, 0, pages.stderr);
+  assert.equal(pages.stdout, "[1,2]\n[3]\n");
+  d.github({ pannes: [{ route: "^pulls/1$", sortie: '[1]\n{"message":"Server Error"}\n', code: 0, erreur: "" }] });
+  assert.equal(fonction(d, 'lire_github "$1" --paginate', PR1).status, 5, "une page d'erreur parmi d'autres");
+  d.github({ pannes: [{ route: "^pulls/1$", sortie: "[1]\n<html>", code: 0, erreur: "" }] });
+  assert.equal(fonction(d, 'lire_github "$1" --paginate', PR1).status, 5, "une page illisible parmi d'autres");
+  // --absent : un 404 est une réponse (protection absente), tout autre refus reste une panne.
+  const absent = fonction(d, `lire_github "$1" --absent '[]'`, "repos/{owner}/{repo}/branches/develop/protection/required_status_checks");
+  assert.equal(absent.status, 0, absent.stderr);
+  assert.equal(absent.stdout, "[]\n");
+  // Une sortie d'erreur en CRLF reste un 404.
+  d.github({ pannes: [{ route: "protection/required_status_checks$", erreur: "gh: Branch not protected (HTTP 404)\r" }] });
+  assert.equal(fonction(d, `lire_github "$1" --absent '[]'`, "repos/{owner}/{repo}/branches/develop/protection/required_status_checks").stdout, "[]\n");
+  // Une dernière ligne sans fin de ligne reste un 404.
+  d.github({ pannes: [{ route: "protection/required_status_checks$", erreur: "gh: Branch not protected (HTTP 404)", brute: true }] });
+  assert.equal(fonction(d, `lire_github "$1" --absent '[]'`, "repos/{owner}/{repo}/branches/develop/protection/required_status_checks").stdout, "[]\n");
+  // Un 404 sans message dans le corps : `gh: HTTP 404`.
+  d.github({ pannes: [{ route: "protection/required_status_checks$", erreur: "gh: HTTP 404" }] });
+  assert.equal(fonction(d, `lire_github "$1" --absent '[]'`, "repos/{owner}/{repo}/branches/develop/protection/required_status_checks").stdout, "[]\n");
+  d.github({ pannes: [{ route: "protection/required_status_checks$", erreur: "gh: HTTP 4040" }] });
+  assert.equal(fonction(d, `lire_github "$1" --absent '[]'`, "repos/{owner}/{repo}/branches/develop/protection/required_status_checks").status, 5, "4040 n'est pas un 404");
+  d.github({ pannes: [{ route: "protection/required_status_checks$" }] });
+  const panne = fonction(d, `lire_github "$1" --absent '[]'`, "repos/{owner}/{repo}/branches/develop/protection/required_status_checks");
+  assert.equal(panne.status, 5, panne.stdout + panne.stderr);
+  assert.equal(panne.stdout, "");
+});
+
+// `pousser` classe un push refusé par la trace de husky 9 (A-22) : 3 avec elle (le hook refuse, la PR est à corriger),
+// 4 sans (le distant refuse : échec fermé, jamais un renvoi), 5 quand la branche a bougé.
+const TRACE_HUSKY = "husky - pre-push script failed (code 1)";
+function hookLocal(d, corps) {
+  const dir = join(d.racine, "hooks");
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(join(dir, "pre-push"), `#!/bin/sh\n${corps}\n`);
+  chmodSync(join(dir, "pre-push"), 0o755);
+  d.git("config", "core.hooksPath", dir);
+}
+function hookDistant(d, corps) {
+  writeFileSync(join(d.origine, "hooks", "pre-receive"), `#!/bin/sh\n${corps}\n`);
+  chmodSync(join(d.origine, "hooks", "pre-receive"), 0o755);
+}
+const pousser = (d, refspec, branche, avant = "") =>
+  fonction(d, 'pousser "$1" "$2" "$3"', refspec, branche, avant);
+
+test("pousser rend 4 sur un push refusé sans trace de husky, 3 avec la trace, 5 quand la branche a bougé", () => {
+  const distant = depotJouet();
+  hookDistant(distant, 'echo "règle du dépôt : refus" >&2; exit 1');
+  const quatre = pousser(distant, "HEAD:refs/heads/feat/p", "feat/p");
+  assert.equal(quatre.status, 4, quatre.stdout + quatre.stderr);
+  assert.match(quatre.stderr, /\[git push -q origin HEAD:refs\/heads\/feat\/p\] remote: règle du dépôt : refus/);
+  assert.match(quatre.stderr, /push refusé par le distant \(ou échec sans trace du hook pre-push\) : sortie ci-dessus/);
+  assert.doesNotMatch(quatre.stderr, /refusé par le hook pre-push :/);
+
+  // Une trace écrite par le distant (« remote: husky - … ») n'est pas celle du hook local.
+  const imite = depotJouet();
+  hookDistant(imite, `echo "${TRACE_HUSKY}" >&2; exit 1`);
+  assert.equal(pousser(imite, "HEAD:refs/heads/feat/p", "feat/p").status, 4);
+
+  const hook = depotJouet();
+  hookLocal(hook, `echo "pnpm check rouge" >&2; echo "${TRACE_HUSKY}"; exit 1`);
+  const trois = pousser(hook, "HEAD:refs/heads/feat/p", "feat/p");
+  assert.equal(trois.status, 3, trois.stdout + trois.stderr);
+  assert.match(trois.stderr, /\] pnpm check rouge/);
+  assert.match(trois.stderr, /push refusé par le hook pre-push : sortie ci-dessus ; corriger, jamais en sautant le hook/);
+  assert.equal(hook.git("ls-remote", "origin", "refs/heads/feat/p"), "", "rien n'est poussé");
+
+  const bouge = depotJouet();
+  const avant = bouge.branche("feat/q", "origin/develop", { "q.md": "q\n" });
+  bouge.branche("feat/q", "origin/feat/q", { "q2.md": "q2\n" });
+  bouge.git("switch", "-q", "--detach", "origin/develop");
+  bouge.ecrire("autre.md", "autre\n");
+  bouge.commit("docs: autre");
+  const cinq = pousser(bouge, "HEAD:refs/heads/feat/q", "feat/q", avant);
+  assert.equal(cinq.status, 5, cinq.stdout + cinq.stderr);
+
+  // Fin de ligne CRLF (hook écrit sous Windows) : encore la trace. Variantes voisines (autre hook, texte après la
+  // parenthèse, trace citée au milieu d'une ligne) : jamais la trace.
+  for (const [ligne, attendu] of [
+    ["printf 'husky - pre-push script failed (code 1)\\r\\n'", 3],
+    [`echo "husky - pre-commit script failed (code 1)"`, 4],
+    [`echo "husky - pre-push script failed (code 1) ailleurs"`, 4],
+    [`echo "voir : husky - pre-push script failed (code 1)"`, 4],
+  ]) {
+    const v = depotJouet();
+    hookLocal(v, `${ligne}\nexit 1`);
+    assert.equal(pousser(v, "HEAD:refs/heads/feat/p", "feat/p").status, attendu, ligne);
+  }
+});
+
+test("masquer_url : le jeton d'un hook distant est masqué dans ce que relaient jouer_ou_dire, pousser et git_masque, et le code de git est gardé", () => {
+  const d = depotJouet();
+  hookDistant(d, 'echo "refus : https://x:jeton-secret@exemple.test/regles" >&2; exit 1');
+  const relais = [
+    fonction(d, 'jouer_ou_dire "git push -q origin HEAD:refs/heads/feat/m"'),
+    pousser(d, "HEAD:refs/heads/feat/m", "feat/m"),
+    fonction(d, "git_masque push -q origin HEAD:refs/heads/feat/m"),
+  ];
+  for (const r of relais) {
+    assert.notEqual(r.status, 0, r.stderr);
+    assert.match(r.stderr, /https:\/\/\*\*\*@exemple\.test\/regles/, r.stderr);
+    assert.doesNotMatch(r.stdout + r.stderr, /jeton-secret/);
+  }
+  const brut = spawnSync("git", ["push", "-q", "origin", "HEAD:refs/heads/feat/m"], { cwd: d.travail, env: d.env, encoding: "utf8" });
+  assert.equal(relais[2].status, brut.status, "git_masque rend le code de git");
+  const masque = fonction(d, "printf '%s\\n' 'https://u@h.test/a ssh://git:t0k3n@h.test/b http://h.test/c' | masquer_url");
+  assert.equal(masque.stdout, "https://***@h.test/a ssh://***@h.test/b http://h.test/c\n");
+  const fetch = fonction(d, "git_masque fetch -q origin develop; echo \"code $?\"");
+  assert.equal(fetch.stderr, "");
+  assert.equal(fetch.stdout, "code 0\n");
+});
+
+test("checks_exiges : une panne n'est jamais « aucun check exigé » (sortie 5) ; des règles vides et une protection absente rendent [] ; une réponse qui n'est pas un tableau sort en 5", () => {
+  const d = depotJouet();
+  const exiges = () => fonction(d, "checks_exiges");
+  d.github({ exiges: ["qualite", "e2e"] });
+  assert.equal(exiges().stdout.replace(/\s/g, ""), '["e2e","qualite"]');
+  d.github({ pannes: [{ route: "^rules/branches/develop$" }] });
+  let r = exiges();
+  assert.equal(r.status, 5, r.stdout + r.stderr);
+  assert.equal(r.stdout, "");
+  assert.match(r.stderr, /GitHub illisible/);
+  d.github({ pannes: [{ route: "^rules/branches/develop$", sortie: '{"total":1}', code: 0, erreur: "" }] });
+  r = exiges();
+  assert.equal(r.status, 5, r.stdout + r.stderr);
+  assert.equal(r.stdout, "");
+  d.github({ exiges: [] });
+  r = exiges();
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(r.stdout.trim(), "[]", "règles vides, protection absente (404)");
+  d.github({ pannes: [{ route: "protection/required_status_checks$" }] });
+  r = exiges();
+  assert.equal(r.status, 5, "règles vides, puis protection en panne : jamais []");
+  assert.equal(r.stdout, "");
+  d.github({ protectionClassique: true, exiges: ["qualite"] });
+  assert.equal(exiges().stdout.replace(/\s/g, ""), '["qualite"]');
+});
+
+test("checks_commit : un corps vide ou une erreur sort en 5, jamais une liste vide", () => {
+  const d = depotJouet();
+  const sha = d.git("rev-parse", "HEAD");
+  d.github({ checks: { "*": { qualite: "SUCCESS" } } });
+  const lire = () => fonction(d, 'checks_commit "$1"', sha);
+  assert.equal(lire().stdout, "qualite\tSUCCESS\n");
+  for (const panne of [
+    { route: "/check-runs", sortie: "", code: 0, erreur: "" },
+    { route: "/check-runs" },
+    { route: "/check-runs", sortie: '{"message":"Server Error"}', code: 0, erreur: "" },
+    { route: "/status$" },
+  ]) {
+    d.github({ pannes: [panne] });
+    const r = lire();
+    assert.equal(r.status, 5, `${JSON.stringify(panne)} : ${r.stdout}${r.stderr}`);
+    assert.equal(r.stdout, "", JSON.stringify(panne));
+  }
+});
+
+// ── `mentions_de_fusion <réf>` (ticket 3 de capitaine-a-jour-et-teste, A-8) : la mention qu'un commit de fusion du
+// capitaine porte quand la fusion n'apporte à un fichier gardé par un hook du projet que des lignes sans effet. Le
+// contrat se lit sur origin/develop, jamais dans l'arbre de travail ; la fonction sort toujours en 0. ───────────────
+const SCHEMA = "prisma/schema.prisma";
+const MENTION = "[sans-migration: commentaire seul, apporté par une mise à jour]";
+const ENTREE = { fichier: SCHEMA, lignesSansEffet: "^[[:space:]]*(//.*)?$", mention: MENTION };
+const BASE_SCHEMA = "model A {\n  id Int\n}\n-- sql\n";
+// Sous `set -euo pipefail`, comme passer.sh et sujet.sh qui l'appellent.
+const mentions = (d, ref = "origin/develop") =>
+  spawnSync("bash", ["-c", `set -euo pipefail; source ${GITHUB}; mentions_de_fusion "$1"`, "_", ref], {
+    cwd: d.travail,
+    env: d.env,
+    encoding: "utf8",
+  });
+// develop porte le schéma et, sauf `contrat: null`, le contrat ; `feat/pr` en part (HEAD), puis develop reçoit `develop`.
+function mentionsJouet(develop, contrat = { fusionsSansEffet: [ENTREE] }, base = BASE_SCHEMA) {
+  const d = depotJouet();
+  d.ecrire(SCHEMA, base);
+  if (contrat !== null) d.ecrire(".claude/chaine.json", JSON.stringify(contrat));
+  d.commit("chore: schéma et contrat");
+  d.git("push", "-q", "origin", "HEAD:develop");
+  d.git("fetch", "-q", "origin");
+  d.branche("feat/pr", "origin/develop", { "docs/pr.md": "pr\n" });
+  d.branche("develop", "origin/develop", develop);
+  d.git("switch", "-q", "feat/pr");
+  return d;
+}
+const verdict = (r, stdout, stderr) => {
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.equal(r.stdout, stdout, r.stderr);
+  if (stderr instanceof RegExp) assert.match(r.stderr, stderr);
+  else assert.equal(r.stderr, stderr);
+};
+const REEL = /fusion sans mention : prisma\/schema\.prisma porte un changement réel \(lignes hors de lignesSansEffet\) ; les hooks du projet jugent le commit/;
+
+test("mentions_de_fusion : develop n'apporte qu'un commentaire et une ligne vide au fichier, la mention, sortie 0", () => {
+  const d = mentionsJouet({ [SCHEMA]: `// note\n\n${BASE_SCHEMA}` });
+  verdict(mentions(d), `${MENTION}\n`, "");
+});
+
+test("mentions_de_fusion : develop y apporte un modèle, rien sur la sortie standard, la sortie d'erreur nomme le fichier", () => {
+  const d = mentionsJouet({ [SCHEMA]: `${BASE_SCHEMA}// B\nmodel B {\n  id Int\n}\n` });
+  verdict(mentions(d), "", REEL);
+});
+
+test("mentions_de_fusion : un changement réel suivi de plus de lignes qu'un tube n'en tient reste un changement réel (pipefail)", () => {
+  const d = mentionsJouet({ [SCHEMA]: `model X {\n${"// commentaire sans effet\n".repeat(30000)}${BASE_SCHEMA}` });
+  verdict(mentions(d), "", REEL);
+});
+
+test("mentions_de_fusion : la fusion en conflit sur un autre fichier donne la mention, sortie 0 sous set -euo pipefail", () => {
+  const d = depotJouet();
+  d.ecrire(SCHEMA, BASE_SCHEMA);
+  d.ecrire("docs/f.md", "0\n");
+  d.ecrire(".claude/chaine.json", JSON.stringify({ fusionsSansEffet: [ENTREE] }));
+  d.commit("chore: schéma, contrat et f");
+  d.git("push", "-q", "origin", "HEAD:develop");
+  d.git("fetch", "-q", "origin");
+  d.branche("feat/pr", "origin/develop", { "docs/f.md": "pr\n" });
+  d.branche("develop", "origin/develop", { "docs/f.md": "develop\n", [SCHEMA]: `// note\n${BASE_SCHEMA}` });
+  d.git("switch", "-q", "feat/pr");
+  verdict(mentions(d), `${MENTION}\n`, "");
+});
+
+test("mentions_de_fusion : develop ne touche pas le fichier, rien, en silence", () => {
+  const d = mentionsJouet({ "docs/x.md": "x\n" });
+  verdict(mentions(d), "", "");
+});
+
+test("mentions_de_fusion : contrat sans la clé, ou absent, rien, en silence", () => {
+  for (const contrat of [{ migrations: "prisma/migrations/" }, null]) {
+    const d = mentionsJouet({ [SCHEMA]: `// note\n${BASE_SCHEMA}` }, contrat);
+    verdict(mentions(d), "", "");
+  }
+});
+
+test("mentions_de_fusion : une ligne retirée qui commence par « -- » ou ajoutée qui commence par « ++ » est un changement réel (l'en-tête du diff se coupe par sa position)", () => {
+  for (const schema of [`// note\nmodel A {\n  id Int\n}\n`, `// note\n${BASE_SCHEMA}++ x\n`]) {
+    const d = mentionsJouet({ [SCHEMA]: schema });
+    verdict(mentions(d), "", REEL);
+  }
+});
+
+test("mentions_de_fusion : une ligne qui ne correspond à l'expression qu'en partie est un changement réel (ligne entière, grep -xE)", () => {
+  // Expression sans ancre : « model B { // x » y correspond en partie, jamais en entier.
+  const d = mentionsJouet(
+    { [SCHEMA]: `// note\n${BASE_SCHEMA}model B { // x\n}\n` },
+    { fusionsSansEffet: [{ ...ENTREE, lignesSansEffet: "[[:space:]]*//.*|}" }] },
+  );
+  verdict(mentions(d), "", REEL);
+  // La même expression, sur un commentaire seul : la mention.
+  const c = mentionsJouet({ [SCHEMA]: `// note\n${BASE_SCHEMA}` }, { fusionsSansEffet: [{ ...ENTREE, lignesSansEffet: "[[:space:]]*//.*|}" }] });
+  verdict(mentions(c), `${MENTION}\n`, "");
+});
+
+test("mentions_de_fusion : fin de ligne CRLF et dernière ligne sans fin de ligne, lues comme les autres lignes", () => {
+  // Fichier en CRLF : un commentaire et une ligne vide en \r\n sont sans effet ; un modèle en \r\n reste un changement réel.
+  const crlf = (t) => t.replace(/\n/g, "\r\n");
+  verdict(mentions(mentionsJouet({ [SCHEMA]: crlf(`// note\n\n${BASE_SCHEMA}`) }, undefined, crlf(BASE_SCHEMA))), `${MENTION}\n`, "");
+  verdict(mentions(mentionsJouet({ [SCHEMA]: crlf(`${BASE_SCHEMA}model B {\n}\n`) }, undefined, crlf(BASE_SCHEMA))), "", REEL);
+  // Dernière ligne sans fin de ligne : la ligne « \\ No newline at end of file » du diff n'est pas un changement.
+  const sansFin = "model A {\n  id Int\n}";
+  verdict(mentions(mentionsJouet({ [SCHEMA]: `// note\n${sansFin}` }, undefined, sansFin)), `${MENTION}\n`, "");
+  // La dernière ligne qui reçoit sa fin de ligne change (« } » retirée puis ajoutée) : changement réel, jamais une mention.
+  verdict(mentions(mentionsJouet({ [SCHEMA]: `${sansFin}\n// note\n` }, undefined, sansFin)), "", REEL);
+});
+
+test("mentions_de_fusion : une entrée mal formée ne donne aucune mention, son motif sur la sortie d'erreur", () => {
+  const casDe = [
+    [{ ...ENTREE, lignesSansEffet: "(" }, /expression refusée par grep -E/],
+    [{ ...ENTREE, lignesSansEffet: "a\nb" }, /lignesSansEffet sur plusieurs lignes/],
+    [{ ...ENTREE, mention: "[sans-migration: a]\n[b]" }, /mention sur plusieurs lignes/],
+    [{ ...ENTREE, mention: "Sujet: sujet/x" }, /mention qui commence par « Sujet: »/],
+    [{ ...ENTREE, mention: "Merge pull request #1" }, /mention qui commence par « Merge pull request »/],
+    [{ ...ENTREE, mention: "# x" }, /mention qui commence par « # »/],
+    [{ ...ENTREE, mention: "" }, /mention manquante, vide ou non textuelle/],
+    [{ fichier: SCHEMA, mention: MENTION }, /lignesSansEffet manquante, vide ou non textuelle/],
+    [{ ...ENTREE, fichier: 3 }, /fichier manquant, vide ou non textuel/],
+    ["prisma/schema.prisma", /entrée qui n'est pas un objet/],
+  ];
+  for (const [entree, motif] of casDe) {
+    const d = mentionsJouet({ [SCHEMA]: `// note\n${BASE_SCHEMA}` }, { fusionsSansEffet: [entree] });
+    const r = mentions(d);
+    verdict(r, "", motif);
+    assert.match(r.stderr, /^fusionsSansEffet\[0\] ignorée : /, JSON.stringify(entree));
+  }
+  const d = mentionsJouet({ [SCHEMA]: `// note\n${BASE_SCHEMA}` }, { fusionsSansEffet: ENTREE });
+  verdict(mentions(d), "", /fusionsSansEffet n'est pas une liste/);
+});
+
+test("mentions_de_fusion : un fichier à caractère de motif est lu comme un chemin littéral, rien", () => {
+  const d = mentionsJouet({ [SCHEMA]: `// note\n${BASE_SCHEMA}` }, { fusionsSansEffet: [{ ...ENTREE, fichier: "prisma/*.prisma" }] });
+  verdict(mentions(d), "", "");
+});
+
+test("mentions_de_fusion : le contrat de l'arbre de travail ne compte pas, seul celui d'origin/develop", () => {
+  const d = mentionsJouet({ [SCHEMA]: `// note\n${BASE_SCHEMA}` }, null);
+  // La PR s'accorde la mention : son contrat porte l'entrée, origin/develop n'en a aucun.
+  d.ecrire(".claude/chaine.json", JSON.stringify({ fusionsSansEffet: [ENTREE] }));
+  d.commit("chore: contrat de la PR");
+  verdict(mentions(d), "", "");
 });

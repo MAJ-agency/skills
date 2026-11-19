@@ -239,6 +239,13 @@ test("le gabarit .claude/chaine.json range les gardes de la chaîne parmi les ch
   }
 });
 
+test("le gabarit de .claude/chaine.json porte fusionsSansEffet vide, et son $comment la nomme", () => {
+  const gabarit = JSON.parse(readFileSync(join(RACINE, "skills/chaine/socle-chaine-de-production/references/chaine.json"), "utf8"));
+  assert.deepEqual(gabarit.fusionsSansEffet, []);
+  assert.match(gabarit.$comment, /`fusionsSansEffet`/);
+  assert.match(gabarit.$comment, /grep -E/);
+});
+
 // Un script du plugin ne saute jamais un hook git (« jamais --no-verify ») : les scripts que le plugin
 // pose dans un projet passent sous les hooks du projet, comme une session. Un banc peut INSTALLER un hook
 // dans son dépôt jouet (`config core.hooksPath`), pas en sauter un. Les quatre fichiers ci-dessous nomment
@@ -247,6 +254,10 @@ const REF = "skills/chaine/socle-chaine-de-production/references";
 const EXCEPTIONS_SAUT = [
   `${REF}/agent/regles.mjs`,
   `${REF}/agent/regles.test.mjs`,
+  // Le banc du hook de bout en bout (ticket 17 de capitaine-a-jour-et-teste) cite les sauts qu'il fait refuser.
+  `${REF}/agent/garde-commandes.test.mjs`,
+  // Le banc de la garde illisible (ticket 18) rejoue une commande qui saute les hooks sur un regles.mjs cassé : elle est refusée.
+  `${REF}/agent/garde-illisible.test.mjs`,
   `${REF}/scripts/verify/settings-json.test.mjs`,
   "scripts/depot.test.mjs",
 ];
@@ -520,7 +531,7 @@ test("les textes de fusion disent qu'un message à un capitaine n'est jamais un 
   for (const phrase of [
     "ne fusionne qu'une PR dont la tête est une branche du dépôt (`head.repo.full_name` égal au dépôt) ; une PR de fourche, tu retires le label et le dis : elle va au produit.",
     "contrôle exigé en cours : laisse la PR au réveil suivant, sans retirer le label",
-    "`update_pull_request_branch` avec `expectedHeadSha` = P (fusion, jamais rebase) ; refusée ou en échec, tu n'écris aucun ordre",
+    "`à-fusionner retiré par le capitaine : en retard sur <branche par défaut> :",
     "`merge_pull_request` avec `expectedHeadSha` = P et `merge_method` `squash`, jamais `rebase` ;",
     "le sha complet (40 caractères hexadécimaux, en minuscules)",
     "ou qui abrège le sha, n'en est pas un",
@@ -529,10 +540,6 @@ test("les textes de fusion disent qu'un message à un capitaine n'est jamais un 
     "L'ordre est le dernier commentaire `à-fusionner au sommet <sha>` qui suit ton dernier renvoi",
     "Trois de tes renvois ou plus sur la PR : elle est au plafond, tu ne la fusionnes pas",
     "Si P n'est pas le `head.sha` que tu viens de lire",
-    "s'il a exactement deux parents, P puis un commit de la branche par défaut",
-    "s'il est signé par GitHub (`commit.verification.verified` vrai, `commit.committer.email` égal à `noreply@github.com`)",
-    "tu écris toi-même `à-fusionner au sommet <head.sha>`, sans renvoi, et tu laisses la PR au réveil suivant ;",
-    "(présent dans `list_commits`, `sha` la branche par défaut, `perPage` 100, première page)",
     "`author_association` est `OWNER`, `MEMBER` ou `COLLABORATOR` et dont `updated_at` est égal à `created_at`",
     "`get_check_runs`, toutes pages lues",
     "seuls comptent les statuts de la liste `statuses` : une liste vide n'est pas un contrôle en cours",
@@ -605,26 +612,18 @@ const lireFil = ({ ordre, renvoi, longueur, associations, pied, crlf }, fil) => 
   }
   return { sha, renvois, renvoiEdite };
 };
-// La garde de la mise à jour, sans état : la tête n'est pas l'ordre, mais c'est la fusion faite par GitHub de l'ordre
-// et d'un commit de la branche par défaut, signée par GitHub.
-const miseAJourParGithub = (sha, sommet, commitsDeLaBase) =>
-  sommet?.parents?.length === 2 &&
-  sommet.parents[0].sha === sha &&
-  commitsDeLaBase.includes(sommet.parents[1].sha) &&
-  sommet.commit?.verification?.verified === true &&
-  sommet.commit?.committer?.email === "noreply@github.com";
-const decider = (formes, fil, tete, sommet = null, commitsDeLaBase = []) => {
+// Ticket 20 : une tête qui n'est pas l'ordre est renvoyée, sans exception (le banc du bloc de texte, en fin de fichier, le tient).
+const decider = (formes, fil, tete) => {
   const { sha, renvois, renvoiEdite } = lireFil(formes, fil);
   if (renvoiEdite) return "renvoi-edite";
   if (renvois >= 3) return "plafond";
   if (sha === null) return "sommet-bouge";
   if (sha === tete) return "fusion";
-  return miseAJourParGithub(sha, sommet, commitsDeLaBase) ? "reecrire-l-ordre" : "sommet-bouge";
+  return "sommet-bouge";
 };
 const A = "a".repeat(40);
 const B = "0123456789abcdef0123456789abcdef01234567";
 const T = "fedcba9876543210fedcba9876543210fedcba98";
-const BASE = "b".repeat(40);
 const dit = (body, { association = "MEMBER", edite = false } = {}) => ({
   body,
   author_association: association,
@@ -681,27 +680,6 @@ test("le plafond : les renvois du capitaine se comptent dans le fil, un renvoi d
     "une forme voisine de renvoi ne compte pas",
   );
   assert.equal(lireFil(formes, [ordre(A), ordre(B)]).renvois, 0, "l'ordre réécrit par le capitaine après une mise à jour n'est pas un renvoi");
-});
-
-test("la garde de la mise à jour, sans état : la tête n'est pas l'ordre, mais la fusion signée par GitHub de l'ordre et de la branche par défaut", () => {
-  const formes = formesLues();
-  const fil = [dit(`à-fusionner au sommet ${A}`)];
-  const sommet = (parents, { verified = true, email = "noreply@github.com" } = {}) => ({
-    sha: T,
-    parents: parents.map((sha) => ({ sha })),
-    commit: { verification: { verified }, committer: { email } },
-  });
-  const base = [BASE];
-  assert.equal(decider(formes, fil, T, sommet([A, BASE]), base), "reecrire-l-ordre", "mise à jour faite par GitHub : l'ordre se réécrit à la tête, sans renvoi");
-  assert.equal(decider(formes, [...fil, dit(`à-fusionner au sommet ${T}`)], T), "fusion", "au réveil suivant, l'ordre réécrit vaut");
-  assert.equal(decider(formes, fil, T, sommet([BASE, A]), base), "sommet-bouge", "parents dans l'autre ordre");
-  assert.equal(decider(formes, fil, T, sommet([B, BASE]), base), "sommet-bouge", "premier parent autre que l'ordre");
-  assert.equal(decider(formes, fil, T, sommet([A, B]), base), "sommet-bouge", "second parent absent de la branche par défaut");
-  assert.equal(decider(formes, fil, T, sommet([A]), base), "sommet-bouge", "un commit poussé sur l'ordre");
-  assert.equal(decider(formes, fil, T, sommet([A, BASE, B]), base), "sommet-bouge", "trois parents");
-  assert.equal(decider(formes, fil, T, sommet([A, BASE], { verified: false }), base), "sommet-bouge", "fusion non signée");
-  assert.equal(decider(formes, fil, T, sommet([A, BASE], { email: "intrus@example.org" }), base), "sommet-bouge", "signée, mais committer autre que GitHub");
-  assert.equal(decider(formes, fil, T, null, base), "sommet-bouge", "sommet illisible");
 });
 
 test("le capitaine d'un dépôt sans la chaîne n'a ni `gh` ni timeline, et le commentaire au sommet n'est le geste que du dépôt sans la chaîne", () => {
@@ -772,11 +750,6 @@ test("le pied de page des sessions cloud : l'ordre qui le porte vaut, un pied al
   const renvoi = (motif) => dit(`${formes.renvoi}${motif}${PIED}`);
   assert.equal(decider(formes, [dit(`${L}${PIED}`), renvoi("conflit")], A), "sommet-bouge", "un renvoi qui porte le pied de page délie l'ordre");
   assert.equal(decider(formes, [renvoi("a"), renvoi("b"), renvoi("c"), dit(`${L}${PIED}`)], A), "plafond", "trois renvois qui portent le pied de page : au produit");
-  assert.equal(
-    decider(formes, [dit(`à-fusionner au sommet ${A}${PIED}`)], T, { parents: [{ sha: A }, { sha: BASE }], commit: { verification: { verified: true }, committer: { email: "noreply@github.com" } } }, [BASE]),
-    "reecrire-l-ordre",
-    "la garde joue sur un ordre qui porte le pied de page",
-  );
   assert.equal(decider(formes, [dit(`${L}${PIED}`), dit(`à-fusionner au sommet ${T}${PIED}`)], T), "fusion", "l'ordre que le capitaine réécrit, pied de page compris, vaut");
 });
 
@@ -1100,4 +1073,101 @@ test("la règle d'ascendance du plugin 7.16.0 : version, note de version en têt
     assert.ok(note.sections.includes(section), `NOTES-DE-VERSION.md : la note ${version} porte « ${section} »`);
   assert.ok(readFileSync(join(RACINE, "README.md"), "utf8").includes("NOTES-DE-VERSION.md"), "README.md renvoie à NOTES-DE-VERSION.md");
   exiger(`${SKILLS_CHAINE}/fusionner/SKILL.md`, ["une seule sous-PR porte `à-fusionner` à la fois"]);
+});
+
+test("sujet/SKILL.md a la section Recevoir develop dans un sujet, avec son corps type", () => {
+  const skill = readFileSync(join(RACINE, `${SKILLS_CHAINE}/sujet/SKILL.md`), "utf8");
+  // Le corps type contient lui-même des titres `## ` : la section va jusqu'au titre suivant hors bloc de code.
+  const debut = skill.indexOf("\n## Recevoir develop dans un sujet\n");
+  assert.ok(debut >= 0, "sujet/SKILL.md : section « Recevoir develop dans un sujet » absente");
+  const section = skill.slice(debut).split("\n## Geler un chantier")[0];
+  assert.ok(plat(section).includes("une seule fusion"), "la section dit « une seule fusion »");
+  const bloc = section.match(/```markdown\n([\s\S]*?)```/);
+  assert.ok(bloc, "la section porte le corps type dans un bloc de code");
+  for (const titre of ["## Réception de develop", "## Retouches", "## Revue de ticket"])
+    assert.ok(bloc[1].includes(titre), `le corps type porte « ${titre} »`);
+});
+
+// Ticket 18 : un fichier que les gardes chargent s'écrit d'un seul coup ; la garde refuse l'amend, et le gabarit le
+// dit ; la ligne « /security-review : lancée » des deux gabarits de section est celle que le capitaine lit.
+test("la consigne d'écriture d'un seul coup est dans le gabarit, et le paragraphe Jamais d'amend dit que la garde le refuse", () => {
+  const gabarit = readFileSync(join(RACINE, GABARIT_FILLE), "utf8");
+  const amend = lignes(gabarit).find((l) => l.includes("**Jamais d'amend.**"));
+  assert.ok(amend, "paragraphe « Jamais d'amend » absent");
+  assert.ok(amend.trimEnd().endsWith("La garde (`garde-commandes`) refuse l'un et l'autre."), "le paragraphe « Jamais d'amend » finit par la garde qui refuse l'amend et le push forcé");
+  assert.equal(amend.match(/refuse/g).length, 1, "le refus n'est dit qu'une fois");
+  const seulCoup = lignes(gabarit).find((l) => l.includes("**Un fichier que les gardes chargent s'écrit d'un seul coup.**"));
+  assert.ok(seulCoup, "consigne « s'écrit d'un seul coup » absente");
+  for (const attendu of ["node --check <copie>", "import('<copie>')", "Object.keys(m)", "aucun nom ne manque", "jamais une suite d'`Edit`", "git checkout origin/develop -- scripts/agent/", "dernier commit où les gardes se chargent", "jamais en contournant la garde"])
+    assert.ok(seulCoup.includes(attendu), `consigne d'écriture : « ${attendu} » manque`);
+  const fragment = readFileSync(join(RACINE, "skills/chaine/socle-chaine-de-production/references/fragments/claude-md-fusion.md"), "utf8");
+  assert.ok(lignes(fragment).find((l) => l.startsWith("- **Hooks d'agent**"))?.includes("`git commit --amend`"), "la ligne « Hooks d'agent » du fragment nomme l'amend");
+  // Aucun gabarit ne conseille de couper les hooks pour sortir d'une garde cassée (contre-relecture du ticket 18).
+  for (const doc of ["skills/chaine/socle-chaine-de-production/references/docs-agents/pieges.md", "skills/chaine/socle-chaine-de-production/references/CONTENU.md", GABARIT_FILLE])
+    assert.ok(!readFileSync(join(RACINE, doc), "utf8").includes(`claude --settings '{"disableAllHooks"`), `${doc} conseille de relancer avec disableAllHooks`);
+});
+
+test("ticket 18 : la ligne /security-review des deux gabarits de section se lit « lancée » par le capitaine", async () => {
+  const { aLigneSecurite } = await import(join(RACINE, "skills/chaine/fusionner/scripts/revue-exigee.mjs"));
+  for (const gabarit of ["skills/chaine/revue-de-ticket/references/section-pr.md", "skills/chaine/revue-adversariale/references/section-pr.md"]) {
+    const texte = readFileSync(join(RACINE, gabarit), "utf8");
+    const ligne = lignes(texte).find((l) => l.includes("`/security-review` :"));
+    assert.ok(ligne, `${gabarit} : ligne /security-review absente`);
+    // Le gabarit offre « lancée (chemins : …) | non requise » : chaque branche telle qu'une session la recopie.
+    const [lancee, nonRequise] = ligne.split(" | ");
+    const titre = lignes(texte)[0];
+    assert.equal(aLigneSecurite(`${titre}\n\n${lancee.replace("…", "infra/main.tf")}\n`), true, `${gabarit} : « ${lancee} »`);
+    assert.equal(aLigneSecurite(`${titre}\n\n${ligne.slice(0, ligne.indexOf(":") + 1)} ${nonRequise}\n`), false, `${gabarit} : « non requise »`);
+  }
+});
+
+// Ticket 16 : le check `PR titre` du socle lit un titre et un corps écrits par l'auteur de la PR. Son workflow, posé
+// dans les projets, se contrôle ici comme ceux du dépôt : jamais d'expression dans un `run:`, actions épinglées.
+const PR_TITRE_YML = "skills/chaine/socle-chaine-de-production/references/ci/pr-titre.yml";
+test("le workflow pr-titre du socle : pull_request vers develop et sujet/**, types avec edited, permissions en lecture, actions épinglées, valeurs de l'événement par env et jamais dans run, jamais pull_request_target", () => {
+  const w = readFileSync(join(RACINE, PR_TITRE_YML), "utf8");
+  assert.match(w, /^on:\r?\n {2}pull_request:\r?\n {4}branches: \['develop', 'sujet\/\*\*'\]\r?\n/m, "pull_request vers develop et sujet/**");
+  const types = /^ {4}types: \[([^\]]*)\]/m.exec(w)?.[1].split(",").map((t) => t.trim()) ?? [];
+  for (const t of ["opened", "edited", "reopened", "ready_for_review", "synchronize"]) assert.ok(types.includes(t), `types: ${t} attendu`);
+  assert.doesNotMatch(w, /pull_request_target/, "jamais pull_request_target");
+  assert.doesNotMatch(w, /^\s+push:/m, "pas de déclencheur push");
+  assert.match(w, /^permissions:\r?\n {2}contents: read\r?\n(?! {2}\S)/m, "permissions : contents: read, et rien d'autre");
+  assert.ok(!aLigne(w, /write/), "aucune permission en écriture");
+  assert.match(w, /^concurrency:\r?\n {2}group: .*pull_request\.number.*\r?\n {2}cancel-in-progress: true/m, "concurrence par PR");
+  assert.match(w, /if: \$\{\{ !github\.event\.pull_request\.draft \}\}/, "sauté sur un brouillon");
+  assert.match(w, /fetch-depth: 0, persist-credentials: false/);
+  assert.ok(nombreActions(w) >= 3, "checkout, pnpm, node");
+  assert.deepEqual(actionsMalEpinglees(w), []);
+  // Les mêmes actions, aux mêmes empreintes, que la CI du socle.
+  const ci = readFileSync(join(RACINE, "skills/chaine/socle-chaine-de-production/references/ci/ci.yml"), "utf8");
+  const uses = (t) => new Set([...t.matchAll(/uses:\s*(\S+)/g)].map((m) => m[1]));
+  for (const u of uses(w)) assert.ok(uses(ci).has(u), `${u} : pas l'empreinte de ci.yml`);
+  assert.deepEqual(runAvecExpression(w), [], "aucune expression dans un run:");
+  assert.ok(commande(w, "pnpm install --frozen-lockfile"));
+  assert.ok(aLigne(w, /^\s+run: node scripts\/github\/pr-titre\.mjs$/));
+  for (const [v, champ] of [["PR_TITRE", "title"], ["PR_CORPS", "body"], ["PR_NUMERO", "number"], ["PR_BASE", "base.ref"], ["PR_TETE", "head.ref"], ["PR_SOMMET", "head.sha"]])
+    assert.ok(aLigne(w, new RegExp(`^\\s+${v}: \\$\\{\\{ github\\.event\\.pull_request\\.${champ.replace(".", "\\.")} \\}\\}$`)), `${v} par env:`);
+  // Le titre et le corps n'apparaissent que dans env:.
+  assert.equal(lignes(w).filter((l) => /pull_request\.(title|body)/.test(l)).length, 2);
+});
+
+// Ticket 20 de capitaine-a-jour-et-teste (A-48, P-6) : le capitaine d'un dépôt sans la chaîne renvoie une PR
+// en retard ; il ne la met jamais à jour et ne lit plus un sommet par get_commit pour le prouver.
+test("la procédure du capitaine sans la chaîne renvoie une PR en retard, sans update_pull_request_branch ni garde get_commit", () => {
+  const texte = readFileSync(join(RACINE, LANCEMENT), "utf8");
+  const procedure = blocsTexte(texte).find((b) => b.startsWith("Procédure : "));
+  assert.ok(procedure, "bloc « Procédure : » du capitaine introuvable");
+  for (const interdit of ["update_pull_request_branch", "get_commit", "noreply@github.com", "verification"])
+    assert.ok(!procedure.includes(interdit), `la procédure ne contient plus « ${interdit} »`);
+  assert.ok(
+    procedure.includes("à-fusionner retiré par le capitaine : en retard sur <branche par défaut> : fusionner <branche par défaut> dans la branche (commit de merge, jamais de rebase), pousser, puis reposer le label et le commentaire au nouveau sommet"),
+    "le renvoi « en retard » a la forme exacte du ticket",
+  );
+  assert.ok(/Tu ne mets jamais une branche à jour/.test(procedure), "la procédure dit que le capitaine ne met jamais une branche à jour");
+  assert.ok(/ce renvoi compte dans le plafond de trois/.test(procedure) && /Trois de tes renvois/.test(procedure), "le plafond de trois compte les renvois en retard");
+  const limite = texte.split("\n").find((l) => l.startsWith("**Limite** (dépôt sans la chaîne)"));
+  assert.ok(limite, "paragraphe Limite introuvable");
+  assert.ok(!/éditeur web|garde de la mise à jour/.test(limite), "la Limite ne commente plus la garde de mise à jour");
+  for (const f of ["skills/chaine/architecte/SKILL.md", "skills/chaine/architecte/references/CONTENU.md", LANCEMENT])
+    assert.ok(!/signée par GitHub|noreply@github\.com/.test(readFileSync(join(RACINE, f), "utf8")), `${f} : plus de garde « signée par GitHub »`);
 });

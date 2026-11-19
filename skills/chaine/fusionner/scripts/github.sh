@@ -92,26 +92,47 @@ regenerer_index() {
   done < <(index_verifications)
   ajouter_index
 }
-# Joue une commande ; en échec, sa sortie part sur stderr, chaque ligne préfixée de la commande.
+# URL à identifiants (`scheme://utilisateur[:jeton]@hôte…`) masquée dans un texte lu sur l'entrée standard :
+# `scheme://***@hôte…`. Toute sortie de git ou d'un hook que les scripts du capitaine relaient (sortie d'erreur,
+# journal, commentaire de PR) passe par ici (A-42) : un jeton d'un remote ou d'un hook distant n'y paraît jamais.
+masquer_url() { sed -E 's#://[^/@[:space:]]*@#://***@#g'; }
+# Joue `git <args>`, sa sortie d'erreur passée par masquer_url, sa sortie standard telle quelle ; rend le code de git.
+git_masque() {
+  { git "$@" 2>&1 1>&3 3>&- | masquer_url >&2; return "${PIPESTATUS[0]}"; } 3>&1
+}
+# Joue une commande ; en échec, sa sortie (masquée) part sur stderr, chaque ligne préfixée de la commande.
+# SORTIE_JOUEE garde la sortie masquée de la dernière commande jouée, que `pousser` classe.
+SORTIE_JOUEE=''
 jouer_ou_dire() {
-  local l sortie
-  if ! sortie=$(sh -c "$1" 2>&1); then
-    while IFS= read -r l; do printf '[%s] %s\n' "$1" "$l" >&2; done <<<"$sortie"
-    return 1
-  fi
+  local l sortie rc=0
+  sortie=$(sh -c "$1" 2>&1) || rc=$?
+  SORTIE_JOUEE=$(printf '%s\n' "$sortie" | masquer_url)
+  [ "$rc" != 0 ] || return 0
+  while IFS= read -r l; do printf '[%s] %s\n' "$1" "$l" >&2; done <<<"$SORTIE_JOUEE"
+  return 1
 }
 # Pousse `<refspec>` sous les hooks git, jamais en les sautant. `<branche>` est la branche distante
-# visée, `<avant>` son sommet lu avant le push (vide pour une branche à créer). Sorties : 0 poussé ;
-# 5 la branche a bougé (ou le distant ne répond pas) ; 3 refusé par le hook pre-push (ou le distant),
-# sa sortie sur stderr, chaque ligne préfixée de la commande.
+# visée, `<avant>` son sommet lu avant le push (vide pour une branche à créer). La sortie de ce push
+# part sur stderr, masquée, chaque ligne préfixée de la commande. Sorties :
+#   0 poussé ;
+#   5 la branche a bougé, ou le distant ne répond pas à la relecture ;
+#   3 refusé par le hook pre-push : la trace de husky 9 (`husky - pre-push script failed (code N)`, écrite par
+#     `.husky/_/h`, en début de ligne : jamais un « remote: » du distant) est dans la sortie de CE push ; la PR
+#     est à corriger ;
+#   4 tout autre refus (règle du dépôt, droit, proxy, coupure, hook sans husky) : échec fermé, jamais un renvoi.
 pousser() {
   local refspec=$1 branche=$2 avant=${3:-} apres
   jouer_ou_dire "git push -q origin $(printf '%q' "$refspec")" && return 0
   apres=$(git ls-remote origin "refs/heads/$branche" 2>/dev/null) || return 5
   apres=${apres%%[[:space:]]*}
   [ "$apres" = "$avant" ] || return 5
-  echo "push refusé par le hook pre-push (ou le distant) : sortie ci-dessus ; corriger, jamais en sautant le hook" >&2
-  return 3
+  # Une fin de ligne CRLF (hook écrit sous Windows) reste une trace.
+  if grep -qE $'^husky - pre-push script failed \\(code [0-9]+\\)\r?$' <<<"$SORTIE_JOUEE"; then
+    echo "push refusé par le hook pre-push : sortie ci-dessus ; corriger, jamais en sautant le hook" >&2
+    return 3
+  fi
+  echo "push refusé par le distant (ou échec sans trace du hook pre-push) : sortie ci-dessus" >&2
+  return 4
 }
 # Après un `git merge` ou un `git commit` refusé (hook, fichier non suivi écrasé) : rend l'arbre comme
 # avant la fusion — `git merge --abort` si elle est en cours, sinon `git reset -q --hard`.
@@ -168,6 +189,101 @@ ascendance() {
   printf '%s\n' "$fichiers"
 }
 
+# Fusion sans effet (skill `fusionner`, « Fusion sans effet ») : un hook du projet garde un fichier (une migration
+# exigée sur `schema.prisma`, par exemple) ; quand une fusion jouée par le capitaine ne lui apporte que des lignes
+# sans effet, son commit porte la mention que le hook attend. `mentions_de_fusion <réf>`, appelée avant la fusion
+# de <réf> dans HEAD, écrit une mention par ligne sur la sortie standard. Le contrat (`fusionsSansEffet` de
+# `.claude/chaine.json`) se lit sur origin/develop, jamais dans l'arbre de travail : une PR ne s'accorde pas
+# elle-même une mention. Le diff va de HEAD à l'arbre de la fusion (`git merge-tree`, git ≥ 2.38) ; ses lignes
+# ajoutées ou retirées, lues après le premier `@@` (un en-tête se coupe par sa position, jamais par son texte),
+# doivent toutes correspondre en entier à `lignesSansEffet` (`grep -xE`). Changement réel, entrée mal formée, arbre
+# illisible : aucune mention, le motif sur la sortie d'erreur ; contrat absent, illisible ou sans la clé : rien, en
+# silence. Sortie toujours 0 : la fonction n'arrête jamais une fusion, les hooks du projet jugent le commit.
+mentions_de_fusion() {
+  local ref=${1:-} contrat nombre i motif fichier expr mention arbre='' diff lignes rc trouvees=''
+  contrat=$(git show origin/develop:.claude/chaine.json 2>/dev/null) || return 0
+  nombre=$(jq -r 'if type != "object" or (has("fusionsSansEffet") | not) then 0
+    elif (.fusionsSansEffet | type) == "array" then .fusionsSansEffet | length else "pas une liste" end' <<<"$contrat" 2>/dev/null) || return 0
+  if [ "$nombre" = "pas une liste" ]; then
+    echo "fusion sans mention : fusionsSansEffet n'est pas une liste (contrat d'origin/develop)" >&2
+    return 0
+  fi
+  for ((i = 0; i < nombre; i++)); do
+    # Le motif d'une entrée mal formée, vide pour une entrée bien formée. Un caractère de contrôle (fin de ligne
+    # comprise) n'entre ni dans un chemin, ni dans une expression (`grep -E` en ferait plusieurs), ni dans une mention.
+    motif=$(jq -r --argjson i "$i" '.fusionsSansEffet[$i] as $e
+      | def texte(f): ($e | f | type) == "string" and ($e | f) != "";
+      def controle(f): $e | f | explode | any(. < 32 or . == 127);
+      if ($e | type) != "object" then "entrée qui n'"'"'est pas un objet"
+      elif texte(.fichier) | not then "fichier manquant, vide ou non textuel"
+      elif controle(.fichier) then "fichier à caractère de contrôle"
+      elif texte(.lignesSansEffet) | not then "lignesSansEffet manquante, vide ou non textuelle"
+      elif controle(.lignesSansEffet) then "lignesSansEffet sur plusieurs lignes ou à caractère de contrôle"
+      elif texte(.mention) | not then "mention manquante, vide ou non textuelle"
+      elif controle(.mention) then "mention sur plusieurs lignes ou à caractère de contrôle"
+      elif $e.mention | startswith("Sujet:") then "mention qui commence par « Sujet: » (sujet_livre la lirait dans develop)"
+      elif $e.mention | startswith("Merge pull request") then "mention qui commence par « Merge pull request » (sujet_livre la lirait dans develop)"
+      elif $e.mention | startswith("#") then "mention qui commence par « # » (commit.cleanup=strip la retirerait)"
+      else "" end' <<<"$contrat" 2>/dev/null) || motif="entrée illisible"
+    if [ -z "$motif" ]; then
+      fichier=$(jq -r --argjson i "$i" '.fusionsSansEffet[$i].fichier' <<<"$contrat")
+      expr=$(jq -r --argjson i "$i" '.fusionsSansEffet[$i].lignesSansEffet' <<<"$contrat")
+      mention=$(jq -r --argjson i "$i" '.fusionsSansEffet[$i].mention' <<<"$contrat")
+      # L'expression se valide avant usage : `grep -E` sort en 2 sur une expression qu'il refuse.
+      grep -qE -- "$expr" </dev/null 2>/dev/null && rc=0 || rc=$?
+      [ "$rc" -le 1 ] || motif="expression refusée par grep -E"
+    fi
+    if [ -n "$motif" ]; then
+      printf 'fusionsSansEffet[%s] ignorée : %s\n' "$i" "$motif" >&2
+      continue
+    fi
+    if [ -z "$arbre" ]; then
+      # En conflit, `merge-tree` sort en 1 mais donne l'arbre : seuls les fichiers en conflit y portent des marqueurs.
+      # `|| true` : sous `pipefail`, la sortie 1 d'un conflit ferait sortir l'appelant (`set -e`) ; l'arbre se vérifie après.
+      arbre=$(git merge-tree --write-tree --no-messages HEAD "$ref" 2>/dev/null | sed -n 1p) || true
+      if ! git rev-parse -q --verify "$arbre^{tree}" >/dev/null 2>&1; then
+        echo "fusion sans mention : arbre de la fusion de « $ref » illisible (git ≥ 2.38 requis) ; les hooks du projet jugent le commit" >&2
+        return 0
+      fi
+    fi
+    if ! diff=$(git diff --no-textconv --no-ext-diff --no-color -U0 --no-renames HEAD "$arbre" -- ":(literal)$fichier" 2>/dev/null); then
+      printf 'fusion sans mention : diff de %s illisible ; les hooks du projet jugent le commit\n' "$fichier" >&2
+      continue
+    fi
+    lignes=$(sed -n '/^@@/,$p' <<<"$diff" | grep -E '^[-+]' || true)
+    [ -n "$lignes" ] || continue
+    # Sans tube : `grep -q` sort à la première ligne non conforme, et sous `pipefail` le SIGPIPE de l'écrivain
+    # ferait lire « toutes conformes » à l'appelant (passer.sh, sujet.sh).
+    lignes=$(sed 's/^.//' <<<"$lignes")
+    if grep -qvxE -- "$expr" <<<"$lignes"; then
+      printf 'fusion sans mention : %s porte un changement réel (lignes hors de lignesSansEffet) ; les hooks du projet jugent le commit\n' "$fichier" >&2
+      continue
+    fi
+    trouvees+="$mention"$'\n'
+  done
+  [ -z "$trouvees" ] || printf '%s' "$trouvees" | awk '!vu[$0]++'
+  return 0
+}
+# Fusionne <réf> dans HEAD comme `git merge -q --no-edit <réf>`, avec les mentions de `mentions_de_fusion` : le
+# message par défaut de git (`Merge remote-tracking branch '<réf>' into <branche>`, que commitlint ignore), puis une
+# mention par paragraphe. Rend le code et les sorties de `git merge`, sans rien en changer : le chemin de chaque
+# appelant (refus de hook, conflits, avance rapide) reste le sien ; en conflit, le message est dans MERGE_MSG, que
+# `git commit --no-edit` reprend. Les avis de `mentions_de_fusion` partent sur le descripteur 3 s'il est ouvert
+# (l'appelant qui capture la sortie de git l'y relie : `3>&2 2>&1`), sinon sur la sortie d'erreur.
+fusionner_avec() {
+  local ref=${1:?réf à fusionner} mentions branche m
+  local -a messages
+  if { true >&3; } 2>/dev/null; then mentions=$(mentions_de_fusion "$ref" 2>&3); else mentions=$(mentions_de_fusion "$ref"); fi
+  if [ -z "$mentions" ]; then
+    git merge -q --no-edit "$ref"
+    return
+  fi
+  branche=$(git symbolic-ref -q --short HEAD) || branche=HEAD
+  messages=(-m "Merge remote-tracking branch '$ref' into $branche")
+  while IFS= read -r m; do messages+=(-m "$m"); done <<<"$mentions"
+  git merge -q --no-edit "${messages[@]}" "$ref"
+}
+
 # Ceux qui ont une `commande`, de même : régénérés, donc écrasés à chaque mise à jour. Un index sans
 # commande (chaîne nue de la liste) n'est jamais régénéré : `sujet.sh` (PR de mise à jour) et `passer.sh`
 # (livraison intermédiaire) ne le dispensent pas sur sa seule place dans la liste.
@@ -181,6 +297,59 @@ index_regeneres_regex() {
 index_regeneres_motifs_regex() {
   index_json | jq -r '.index[] | objects | select((.commande // "") != "" and (.chemin | contains("*"))) | .chemin' |
     jq -Rrs 'split("\n") | map(select(. != "") | gsub("\\."; "\\.") | gsub("\\*"; "[^/]+")) | "^(" + join("|") + ")$"'
+}
+# Livraison intermédiaire (`livraison/<nom>-<AAAAMMJJ-HHMM>`) : `livraison_intermediaire <nom> <sommet>`, sortie 0 si
+# la tête est prouvée livraison du sujet, 1 sinon. Une seule règle pour passer.sh (après son `git fetch` du sujet) et
+# `sujet.sh est-livraison` (le check `pr-titre` du socle, ticket 16) : sur les refs déjà là (origin/develop,
+# origin/sujet/<nom>), sans fetch ni appel GitHub ; origin/sujet/<nom> absent, 1.
+# Le nom de branche seul ne suffit pas (il dispense de la revue) : `sujet/<nom>` doit exister, et la
+# livraison n'apporter qu'un sommet du sujet fusionné avec develop. La contenance du sommet dans le
+# sujet ne suffit pas non plus : l'étape 4 pousse sur la livraison sa fusion avec develop, qu'aucun
+# sujet ne contient, et au passage suivant (checks rouges relancés, sortie 5) la livraison passait
+# pour une PR ordinaire (revue exigée, puis squash). Critère : un ancêtre commun de la tête et du
+# sujet, hors de develop, dont la fusion avec le develop que la tête contient donne l'arbre de la
+# tête, aux index générés près. Sinon la PR repasse par le chemin ordinaire (revue exigée, squash).
+livraison_intermediaire() {
+  local nom=$1 origine=$2 d s attendu ecart hors regeneres motifs generes
+  git rev-parse -q --verify "refs/remotes/origin/sujet/$nom^{commit}" >/dev/null || return 1
+  git rev-parse -q --verify "$origine^{commit}" >/dev/null || return 1
+  # Liste des index générés calculée ici, jamais héritée d'un appelant ; illisible : pas une livraison.
+  generes=$(index_generes_regex) && [ -n "$generes" ] || return 1
+  d=$(git merge-base "$origine" origin/develop) || return 1
+  for s in $(git merge-base --all "$origine" "origin/sujet/$nom" 2>/dev/null); do
+    ! git merge-base --is-ancestor "$s" origin/develop || continue
+    # Arbre de la fusion, même en conflit (sortie 1) : un conflit hors index y laisse ses marqueurs,
+    # donc un écart avec la tête.
+    attendu=$(git merge-tree --write-tree --no-messages "$s" "$d" 2>/dev/null | sed -n 1p) || true
+    [ -n "$attendu" ] || continue
+    # Un `git diff` en échec n'est jamais une dispense : on ne conclut que sur un diff lu.
+    # Sans détection des renommages : une suppression ne se cache pas derrière un index généré ajouté.
+    ecart=$(git -c core.quotePath=false diff --no-renames --name-only "$attendu" "$origine") || continue
+    # Un index qui a une `commande` est régénéré : dispensé. Un index sans commande ne l'est que si son
+    # blob au sommet est celui d'origin/develop (la version de develop prise au conflit par la mise à
+    # jour) ; absent d'un côté, il diffère et va à la revue.
+    # Un index déclaré par motif, même avec une `commande`, ne l'est que sur un contenu déjà connu (celui de la
+    # fusion recalculée ou d'origin/develop) : sa régénération ne retire pas un fichier en trop sous le motif.
+    # Liste illisible (fonction absente, jq en échec) : pas une livraison, la revue est exigée.
+    regeneres=$(index_regeneres_regex) && [ -n "$regeneres" ] || return 1
+    motifs=$(index_regeneres_motifs_regex) && [ -n "$motifs" ] || return 1
+    hors=$(printf '%s\n' "$ecart" | sed '/^$/d' | while IFS= read -r f; do
+      if ! grep -qE "$generes" <<<"$f"; then
+        printf '%s\n' "$f"
+      elif grep -qE "$motifs" <<<"$f"; then
+        a=$(git rev-parse -q --verify "$origine:$f" 2>/dev/null) || a=''
+        b=$(git rev-parse -q --verify "$attendu:$f" 2>/dev/null) || b=''
+        c=$(git rev-parse -q --verify "origin/develop:$f" 2>/dev/null) || c=''
+        [ -n "$a" ] && { [ "$a" = "$b" ] || [ "$a" = "$c" ]; } || printf '%s\n' "$f"
+      elif ! grep -qE "$regeneres" <<<"$f"; then
+        a=$(git rev-parse -q --verify "$origine:$f" 2>/dev/null) || a=''
+        b=$(git rev-parse -q --verify "origin/develop:$f" 2>/dev/null) || b=''
+        [ -n "$a" ] && [ "$a" = "$b" ] || printf '%s\n' "$f"
+      fi
+    done)
+    [ -n "$hors" ] || return 0
+  done
+  return 1
 }
 # Les dossiers d'un index généré (`docs/adr` pour `docs/adr/README.md`, motif compris), en expression régulière.
 index_dossiers_regex() {
@@ -224,9 +393,54 @@ ajouter_index() {
 # Chaîne encodée pour un segment d'URL (nom de label, nom de branche).
 uri() { jq -rn --arg s "$1" '$s | @uri'; }
 
+# Lecture GitHub qui décide d'un état ou d'une fusion (A-21) : la seule. `gh api [--paginate] <route>`, sa sortie
+# standard, sa sortie d'erreur et son code gardés. Refus, sortie 5, motif `GitHub illisible (<route>) : <cause>` sur la
+# sortie d'erreur, rien sur la sortie standard : un code non nul, une sortie vide, une sortie qui n'est pas du JSON (un
+# `--paginate` concatène des pages : chacune doit se lire), ou une page qui est un objet portant `message` au premier
+# niveau (le corps d'erreur de GitHub ; un tableau d'objets n'est jamais refusé pour un champ imbriqué). Un 502 lu comme
+# une file vide, « aucun check exigé » ou « CI non déclenchée » : c'est ce que ce refus empêche.
+# `--absent <défaut>` : un refus dont la sortie d'erreur porte `HTTP 404` rend `<défaut>`, code 0 (protection absente).
+# Rend la réponse brute ; le filtre jq reste chez l'appelant. Chaque appelant teste le code et sort en 5 lui-même :
+# jamais `set -e`, perdu sous `||`, dans un `if` ou une substitution.
+lire_github() {
+  local route=${1:?route} paginer=() absent='' avec_absent=0 sortie erreur rc=0 cause=''
+  shift
+  while [ $# -gt 0 ]; do
+    case $1 in
+      --paginate) paginer=(--paginate) ;;
+      --absent) avec_absent=1; absent=${2-}; shift ;;
+      *) echo "lire_github : option inconnue $1" >&2; return 64 ;;
+    esac
+    shift
+  done
+  erreur=$(mktemp)
+  sortie=$(gh api ${paginer[@]+"${paginer[@]}"} "$route" 2>"$erreur" </dev/null) || rc=$?
+  if [ "$rc" != 0 ]; then
+    # `gh: <message> (HTTP 404)`, ou `gh: HTTP 404` quand le corps n'a pas de message (cli/cli, pkg/cmd/api/api.go).
+    if [ "$avec_absent" = 1 ] && grep -qE 'HTTP 404([^0-9]|$)' "$erreur"; then
+      rm -f "$erreur"
+      printf '%s\n' "$absent"
+      return 0
+    fi
+    cause="gh en échec (code $rc) : $(grep . "$erreur" | tail -n 1 | masquer_url)"
+  elif [ -z "${sortie//[[:space:]]/}" ]; then
+    cause='réponse vide'
+  elif ! jq -s . >/dev/null 2>&1 <<<"$sortie"; then
+    cause='réponse qui n'"'"'est pas du JSON'
+  elif [ "$(jq -s 'any(.[]; type == "object" and has("message"))' <<<"$sortie")" != false ]; then
+    cause="corps d'erreur de GitHub : $(jq -rs 'map(select(type == "object" and has("message")) | .message | tostring) | first' <<<"$sortie" | masquer_url)"
+  fi
+  rm -f "$erreur"
+  if [ -n "$cause" ]; then
+    printf 'GitHub illisible (%s) : %s\n' "$route" "$cause" >&2
+    return 5
+  fi
+  printf '%s\n' "$sortie"
+}
+
 # PR en JSON REST (`state` open/closed, `draft`, `labels[].name`, `base.ref`, `head.ref`,
-# `head.sha`, `title`).
-pr_json() { gh api "$DEPOT/pulls/$1"; }
+# `head.sha`, `title`). Illisible : sortie 5.
+pr_json() { lire_github "$DEPOT/pulls/$1"; }
 
 # Tête de PR gardée : `develop`, `main`, ou la branche par défaut du dépôt (2e argument, lu dans le
 # JSON de la PR : `base.repo.default_branch`). Le capitaine pousse la mise à jour d'une PR sur sa tête :
@@ -234,8 +448,14 @@ pr_json() { gh api "$DEPOT/pulls/$1"; }
 # (`sujet/<nom>` vers develop) n'en est pas une : la mettre à jour avec develop est le chemin prévu.
 tete_gardee() { [ "$1" = develop ] || [ "$1" = main ] || { [ -n "${2:-}" ] && [ "$1" = "$2" ]; }; }
 
-# Sommet (dernier commit) de la branche d'une PR.
-pr_sommet() { gh api "$DEPOT/pulls/$1" --jq .head.sha; }
+# Sommet (dernier commit) de la branche d'une PR. Illisible, ou pas un sha : sortie 5.
+pr_sommet() {
+  local j s
+  j=$(pr_json "$1") || return 5
+  s=$(jq -r '.head.sha // ""' <<<"$j" 2>/dev/null) || s=''
+  [[ "$s" =~ ^[0-9a-f]{40}$ ]] || { echo "GitHub illisible ($DEPOT/pulls/$1) : sommet absent de la réponse" >&2; return 5; }
+  printf '%s\n' "$s"
+}
 
 # Checks d'un commit, une ligne « nom<TAB>état » par check, états au format de
 # `statusCheckRollup` : conclusion en majuscules (SUCCESS, FAILURE, SKIPPED…) pour un check
@@ -245,21 +465,33 @@ pr_sommet() { gh api "$DEPOT/pulls/$1" --jq .head.sha; }
 # laissent deux du même nom, et l'API ne remplace que le relancement d'un même run. Cas vécu :
 # #700, checks annulés lus à la place de leurs successeurs verts.
 checks_commit() {
-  gh api --paginate "$DEPOT/commits/$1/check-runs?per_page=100" | jq -rs '[.[].check_runs[]]
+  local runs statuts lignes
+  runs=$(lire_github "$DEPOT/commits/$1/check-runs?per_page=100" --paginate) || return 5
+  statuts=$(lire_github "$DEPOT/commits/$1/status") || return 5
+  # Une forme inattendue (champ absent) est une panne aussi : rien n'est écrit avant que tout soit lu.
+  lignes=$(jq -rs '[.[].check_runs[]]
     | group_by(.name) | map(max_by(.id))[]
-    | "\(.name)\t\(if .status == "completed" then (.conclusion // "" | ascii_upcase) else (.status | ascii_upcase) end)"'
-  gh api "$DEPOT/commits/$1/status" --jq '.statuses[] | "\(.context)\t\(.state | ascii_upcase)"'
+    | "\(.name)\t\(if .status == "completed" then (.conclusion // "" | ascii_upcase) else (.status | ascii_upcase) end)"' <<<"$runs" 2>/dev/null &&
+    jq -r '.statuses[] | "\(.context)\t\(.state | ascii_upcase)"' <<<"$statuts" 2>/dev/null) ||
+    { echo "GitHub illisible ($DEPOT/commits/$1) : checks d'une forme inattendue" >&2; return 5; }
+  [ -z "$lignes" ] || printf '%s\n' "$lignes"
 }
 
 # Checks exigés sur develop, en tableau JSON. D'abord les rulesets (`rules/branches/develop` :
-# ce que GitHub recommande, et ce que pose admin.md), sinon l'ancienne protection de branche,
-# qui répond 404 « Branch not protected » quand seul un ruleset protège la branche.
+# ce que GitHub recommande, et ce que pose admin.md), qui doivent rendre un tableau ; s'ils n'exigent rien,
+# l'ancienne protection de branche, qui répond 404 « Branch not protected » quand seul un ruleset protège la
+# branche : une réponse, pas une panne. Toute autre erreur, ou une forme inattendue : sortie 5, jamais « aucun
+# check exigé ».
 checks_exiges() {
-  local regles
-  regles=$(gh api "$DEPOT/rules/branches/develop" --jq \
-    '[.[] | select(.type == "required_status_checks") | .parameters.required_status_checks[].context] | unique' 2>/dev/null || echo '[]')
-  if [ "$(jq 'length' <<<"$regles")" -gt 0 ]; then printf '%s\n' "$regles"; return; fi
-  gh api "$DEPOT/branches/develop/protection/required_status_checks" --jq '.contexts' 2>/dev/null || echo '[]'
+  local regles protection
+  regles=$(lire_github "$DEPOT/rules/branches/develop") || return 5
+  regles=$(jq -c 'if type == "array" then [.[] | select(.type == "required_status_checks") | .parameters.required_status_checks[].context] | unique
+    else error("pas un tableau") end' <<<"$regles" 2>/dev/null) ||
+    { echo "GitHub illisible ($DEPOT/rules/branches/develop) : réponse qui n'est pas un tableau de règles" >&2; return 5; }
+  if [ "$regles" != '[]' ]; then printf '%s\n' "$regles"; return 0; fi
+  protection=$(lire_github "$DEPOT/branches/develop/protection/required_status_checks" --absent '{"contexts":[]}') || return 5
+  jq -c 'if type == "object" and ((.contexts // []) | type) == "array" then (.contexts // []) else error("forme inattendue") end' <<<"$protection" 2>/dev/null ||
+    { echo "GitHub illisible ($DEPOT/branches/develop/protection/required_status_checks) : forme inattendue" >&2; return 5; }
 }
 
 # Attend la CI exigée de `<sommet>`, la tête de la PR `<pr>` : le sommet sur la PR (5 min au plus), un check exigé
@@ -267,23 +499,27 @@ checks_exiges() {
 # sommet ne montrent que ceux déjà créés, et un check de synthèse (qui attend toute une matrice) n'apparaît qu'en fin
 # de matrice. Partagée par passer.sh et sujet.sh. Retours : 0 vert ; 1 rouge, la liste sur la sortie standard, une
 # ligne « ␣␣nom : ÉTAT » par check ; 2 aucun check exigé apparu au bout de 5 min (CI non déclenchée) ; 3 encore en
-# attente après 60 min.
+# attente après 60 min ; 5 GitHub illisible pendant l'attente (lire_github, motif sur la sortie d'erreur) : jamais lu
+# comme « encore en attente » ni comme « aucun check ».
 attendre_ci() {
-  local n=$1 sommet=$2 requis etats rouges attente nom c vu
+  local n=$1 sommet=$2 requis etats rouges attente nom c vu s
   for _ in $(seq 1 60); do
-    [ "$(pr_sommet "$n")" = "$sommet" ] && break
+    s=$(pr_sommet "$n") || return 5
+    [ "$s" = "$sommet" ] && break
     sleep 5
   done
-  requis=$(checks_exiges | jq -r '.[]')
+  requis=$(checks_exiges) || return 5
+  requis=$(jq -r '.[]' <<<"$requis")
   vu=0
   for _ in $(seq 1 30); do
+    etats=$(checks_commit "$sommet") || return 5
     # Pas de `grep -q` : sous pipefail, `gh` tué par SIGPIPE ferait échouer le test.
-    [ "$(checks_commit "$sommet" | awk -F '\t' -v r="$requis" 'BEGIN { n = split(r, t, "\n"); for (i = 1; i <= n; i++) if (t[i] != "") e[t[i]] = 1 } ($1 in e) { v = 1 } END { print v + 0 }')" = 1 ] && { vu=1; break; }
+    [ "$(printf '%s\n' "$etats" | awk -F '\t' -v r="$requis" 'BEGIN { n = split(r, t, "\n"); for (i = 1; i <= n; i++) if (t[i] != "") e[t[i]] = 1 } ($1 in e) { v = 1 } END { print v + 0 }')" = 1 ] && { vu=1; break; }
     sleep 10
   done
   [ "$vu" = 1 ] || return 2
   for _ in $(seq 1 120); do # 60 min au plus
-    etats=$(checks_commit "$sommet")
+    etats=$(checks_commit "$sommet") || return 5
     attente=0
     rouges=''
     while IFS= read -r nom; do

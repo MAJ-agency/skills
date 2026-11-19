@@ -1,6 +1,6 @@
 # Le capitaine d'un dépôt sans la chaîne renvoie une PR en retard au lieu de la faire mettre à jour par GitHub
 
-Status: ready-for-agent
+Status: Fait — PR #132
 Type: défaut
 Modèle: sonnet — un paragraphe de procédure à réécrire dans `architecte/references/lancement.md`, sans script, et un banc de texte dans `scripts/depot.test.mjs` ; la décision est prise ici.
 Blocked by: —
@@ -36,3 +36,8 @@ Programme : [`../../../programmes/capitaine-a-jour-et-teste.programme.md`](../..
 4. `pnpm test` complet, revue de ticket, PR.
 
 ## Comments
+
+- 2026-11-19 — Textes : le bloc « Procédure : » de `lancement.md` renvoie `behind` avec le commentaire exact du ticket (`<branche par défaut>` nommée) et dit « Tu ne mets jamais une branche à jour toi-même » sans nommer l'outil, pour que le banc du ticket (« ne contient plus `update_pull_request_branch` ») tienne. `architecte/SKILL.md` et `references/CONTENU.md` ne décrivaient pas la garde : rien à y changer. Les gardes d'agent du socle sont intactes.
+- 2026-11-19 — Bancs existants réécrits, pas assouplis : la liste de phrases attendues de la procédure (ancien `behind`, garde par `get_commit`) devient celle du renvoi, et le modèle `decider` du banc des commentaires perd `miseAJourParGithub` (une tête qui n'est pas l'ordre est « sommet-bouge », sans exception).
+- 2026-11-19 — Version : patch 7.29.1 sur 7.29.0 (main), pris après la fusion de origin/main (6b34a12) à la demande de l'architecte ; 7.28.1 d'abord, avant les PR 131 et ticket 3.
+- 2026-11-19 — Revue de ticket : le banc local « la tête qui n'est pas l'ordre… » ne vérifiait rien (le modèle `decider` ne lit plus le sommet) et la constante `BASE` était morte : tous deux retirés ; le bloc de texte de `lancement.md` reste tenu par le banc final. Le Fog du programme (`capitaine-a-jour-et-teste.programme.md`) est hors périmètre du ticket : laissé à l'architecte.

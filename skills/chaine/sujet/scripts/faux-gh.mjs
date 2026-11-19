@@ -5,6 +5,7 @@
 //   pulls       PR { number, title, body, draft, state, labels: [noms], base, head, merged_at, commentaires }
 //               `commentaires` : [corps], écrits par le compte du capitaine, ou { auteur, body } d'un autre compte
 //   capitaine   compte que rend `gh api user` (défaut « capitaine ») ; compteIllisible : `user` répond 403
+//   refusPost   message d'un refus du `POST pulls` (`gh: … (HTTP 422)`), code 1
 //   brancheParDefaut  branche par défaut du dépôt (défaut « main »), dans `base.repo.default_branch`
 //   checks      états par commit (clé = sha complet), par PR (« #12 », la tête courante de la PR seule) ou pour
 //               tout commit (« * »), dans cet ordre de priorité : { nom: SUCCESS | FAILURE | IN_PROGRESS… }. Un état
@@ -27,10 +28,23 @@
 //   PR.approbationManquante  sur une base de `revueProprietaires`, la fusion est refusée (405, « Waiting on code
 //               owner review ») : l'approbation d'un propriétaire manque (le faux ne lit pas CODEOWNERS)
 //   commentairesRefuses  tout commentaire posé est refusé (403)
+//   PR.refusFusion  message d'un refus de fusion (`gh: … (HTTP 405)`) : le `PUT pulls/<n>/merge` le rend, code 1, après
+//               `avantFusion` (une fusion concurrente, puis le refus)
+//   origineCasseeAuRefus  au refus de `PR.refusFusion`, le dépôt nu est renommé : la relecture de develop échoue
 //   PR.revues   revues de la PR (`pulls/<n>/reviews`) : [{ state, submitted_at, auteur }]
 //   PR.commentaires  un corps seul reçoit un `created_at` d'office, croissant avec son rang ; un objet porte le sien
+//   pannes      GitHub en panne pour des lectures : [{ route, fois, sortie, erreur, code }]. `route` est une expression
+//               rationnelle sur le chemin sans `repos/{owner}/{repo}/` (requête comprise) ; `sortie` ce que `gh` écrit
+//               sur la sortie standard (défaut : rien), `erreur` sur la sortie d'erreur (défaut « gh: Bad Gateway
+//               (HTTP 502) »), `code` le code de sortie (défaut 1). Une lecture (`GET`) dont le chemin correspond à la
+//               première panne restante qui le prend y répond, puis décompte `fois` (défaut 1) ; à zéro, la panne sort
+//               de l'état. `brute: true` écrit `erreur` sans fin de ligne. Les écritures ne sont jamais en panne
 // Le sommet d'une PR est lu dans le dépôt nu ($FAUX_GH_ORIGINE), comme GitHub. Chaque écriture
 // (méthode autre que GET) est appliquée à l'état et journalisée dans $FAUX_GH/journal.jsonl.
+// `mergeable_state` sur la seule lecture d'une PR (`GET`/`PATCH pulls/<n>`), jamais dans la liste `GET pulls` (comme
+// GitHub) : `dirty` si `git merge-tree --write-tree <base> <tête>` est en conflit dans le dépôt nu, `clean` sinon,
+// `null` si la base ou la tête manque, ou si `git merge-tree --write-tree` est en échec (un banc remplace `git`). `PR.mergeableState` (dont `null` ou `"unknown"`, l'état que GitHub n'a pas
+// encore calculé) prime sur ce calcul.
 // Fusion (`PUT pulls/<n>/merge`), comme GitHub : refusée si la tête n'est plus `sha` (409) ; l'arbre du commit de
 // squash ou de merge est celui de `git merge-tree --write-tree <base> <sha>` (l'arbre du sommet quand la base en est
 // ancêtre) ; en conflit, 405 « Pull Request is not mergeable ». La réponse est `{ merged: true, sha }`.
@@ -191,6 +205,22 @@ const TERMINES = new Set([
   "STARTUP_FAILURE",
 ]);
 
+// Panne de GitHub sur une lecture : la réponse de la panne, telle quelle (aucun filtre `--jq`, comme `gh` sur une
+// erreur HTTP), décomptée.
+function panne() {
+  if (methode !== "GET" || !Array.isArray(etat.pannes)) return;
+  const relatif = chemin.replace(/^repos\/\{owner\}\/\{repo\}\//, "");
+  const i = etat.pannes.findIndex((p) => new RegExp(p.route).test(relatif));
+  if (i < 0) return;
+  const p = etat.pannes[i];
+  p.fois = (p.fois ?? 1) - 1;
+  if (p.fois <= 0) etat.pannes.splice(i, 1);
+  sauver();
+  process.stdout.write(p.sortie ?? "");
+  process.stderr.write(`${p.erreur ?? "gh: Bad Gateway (HTTP 502)"}${p.brute ? "" : "\n"}`);
+  process.exit(p.code ?? 1);
+}
+
 function repondre() {
   const [route, requete = ""] = chemin
     .replace(/^repos\/\{owner\}\/\{repo\}\//, "")
@@ -214,6 +244,7 @@ function repondre() {
       .map(versRest);
   }
   if (methode === "POST" && route === "pulls") {
+    if (etat.refusPost) return echec(etat.refusPost);
     const n = Math.max(0, ...etat.pulls.map((p) => p.number)) + 1;
     etat.pulls.push({
       number: n,
@@ -228,7 +259,7 @@ function repondre() {
   if ((m = route.match(/^pulls\/(\d+)$/))) {
     if (methode === "PATCH")
       Object.assign(pr(m[1]), champs.base ? { base: champs.base } : {}, champs.state ? { state: champs.state } : {});
-    return versRest(pr(m[1]));
+    return { ...versRest(pr(m[1])), mergeable_state: etatDeFusion(pr(m[1])) };
   }
   if ((m = route.match(/^pulls\/(\d+)\/merge$/)) && methode === "PUT")
     return fusionner(pr(m[1]), JSON.parse(entree));
@@ -326,6 +357,30 @@ function repondre() {
   echec(`faux gh : route non simulée ${methode} ${chemin}`);
 }
 
+// Arbre de la fusion de `base` et `sha` dans le dépôt nu (`git merge-tree --write-tree`) : `{ conflit, arbre }`.
+function fusionEssayee(base, sha) {
+  const essai = spawnSync("git", ["--git-dir", ORIGINE, "merge-tree", "--write-tree", "--no-messages", base, sha], {
+    encoding: "utf8",
+  });
+  if (essai.status === 1) return { conflit: true, arbre: null };
+  if (essai.status !== 0) throw new Error(`faux gh : git merge-tree en échec : ${essai.stderr}`);
+  return { conflit: false, arbre: essai.stdout.split("\n")[0].trim() };
+}
+// `mergeable_state` d'une PR, comme GitHub le rend sur sa lecture (voir l'en-tête).
+function etatDeFusion(p) {
+  if (Object.hasOwn(p, "mergeableState")) return p.mergeableState;
+  const base = ref(p.base);
+  const sha = versRest(p).head.sha;
+  if (!base || !ref(p.head)) return null;
+  // Un calcul impossible (un banc remplace `git` par un git sans `merge-tree --write-tree`) se lit comme GitHub qui
+  // n'a pas encore calculé l'état : `null`, jamais un faux en échec sur une simple lecture.
+  try {
+    return fusionEssayee(base, sha).conflit ? "dirty" : "clean";
+  } catch {
+    return null;
+  }
+}
+
 // Fusion dans le dépôt nu, comme GitHub : refusée si le sommet n'est plus `sha`, si la base est stricte et pas
 // ancêtre de `sha`, ou en conflit ; l'arbre est celui de la fusion de la base et du sommet.
 function fusionner(
@@ -344,16 +399,17 @@ function fusionner(
     git("update-ref", `refs/heads/${etat.avantFusion.branche}`, etat.avantFusion.vers);
     delete etat.avantFusion;
   }
+  if (p.refusFusion) {
+    // Le dépôt nu devient injoignable : la relecture de develop qui suit le refus échoue (une coupure).
+    if (etat.origineCasseeAuRefus) renameSync(ORIGINE, `${ORIGINE}.casse`);
+    echec(p.refusFusion);
+  }
   const base = ref(p.base);
   const ancetre = spawnSync("git", ["--git-dir", ORIGINE, "merge-base", "--is-ancestor", base, sha]).status === 0;
   if ((etat.strict ?? []).includes(p.base) && !ancetre)
     echec("gh: Head branch is not up to date with the base branch (HTTP 405)");
-  const essai = spawnSync("git", ["--git-dir", ORIGINE, "merge-tree", "--write-tree", "--no-messages", base, sha], {
-    encoding: "utf8",
-  });
-  if (essai.status === 1) echec("gh: Pull Request is not mergeable (HTTP 405)");
-  if (essai.status !== 0) throw new Error(`faux gh : git merge-tree en échec : ${essai.stderr}`);
-  const arbre = essai.stdout.split("\n")[0].trim();
+  const { conflit, arbre } = fusionEssayee(base, sha);
+  if (conflit) echec("gh: Pull Request is not mergeable (HTTP 405)");
   const parents =
     methodeFusion === "merge" ? ["-p", base, "-p", sha] : ["-p", base];
   const commit = git(
@@ -368,6 +424,7 @@ function fusionner(
   return { merged: true, sha: commit };
 }
 
+panne();
 const reponse = repondre();
 sauver();
 const json = JSON.stringify(reponse);

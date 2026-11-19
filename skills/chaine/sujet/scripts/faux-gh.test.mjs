@@ -93,6 +93,24 @@ test('faux gh, arbre de la fusion : en conflit, 405 « not mergeable », rien n�
   assert.equal(d.git('ls-remote', 'origin', 'refs/heads/develop').split('\t')[0], develop);
 });
 
+// `file.sh` lit `mergeable_state` pour dire une PR sans CI « prête (en conflit) » : GitHub ne le rend que sur la lecture
+// d'une PR, jamais dans la liste, et rend `null` tant qu'il ne l'a pas calculé.
+test('faux gh, mergeable_state : dirty en conflit avec la base, clean sinon, la clé de la PR prime, absent de la liste', () => {
+  const lire = (d) => JSON.parse(gh(d, 'repos/{owner}/{repo}/pulls/1').stdout).mergeable_state;
+  const enConflit = enRetard({ conflit: true }).d;
+  assert.equal(lire(enConflit), 'dirty');
+  const liste = JSON.parse(gh(enConflit, 'repos/{owner}/{repo}/pulls?state=open').stdout);
+  assert.ok(liste.length === 1 && !('mergeable_state' in liste[0]), 'la liste ne porte pas la clé');
+  assert.equal(lire(enRetard().d), 'clean');
+  for (const valeur of [null, 'unknown']) {
+    const { d } = enRetard({ conflit: true });
+    const etat = d.etat();
+    etat.pulls[0].mergeableState = valeur;
+    d.github(etat);
+    assert.equal(lire(d), valeur);
+  }
+});
+
 test('faux gh, checks par commit : le sha prime sur #n, qui prime sur * ; une liste se consomme par sha', () => {
   const { d, sommet, develop } = enRetard();
   d.github({ checks: { '*': { q: ['IN_PROGRESS', 'SUCCESS'] }, '#1': { q: 'FAILURE' }, [develop]: { q: 'SUCCESS' } } });
@@ -151,4 +169,40 @@ test('faux gh, avantFusion : une fusion concurrente entre juste avant la nôtre,
   assert.equal(x.status, 1);
   assert.match(x.stderr, /not up to date/);
   assert.equal(strict.etat().avantFusion, undefined, 'un refus garde le déplacement joué');
+});
+
+// GitHub en panne (`pannes`) : sans lui, aucun banc ne montre un 502 lu comme un état (une file vide, « aucun check
+// exigé », « CI non déclenchée »). Une lecture en panne répond la panne autant de fois que dit, puis normalement ;
+// une écriture n'est jamais en panne.
+test('faux gh, pannes : une route en panne deux fois répond la panne, puis normalement ; une écriture passe', () => {
+  const d = depotJouet();
+  d.github({
+    pulls: [{ number: 1, title: 't', head: 'feat/x', base: 'develop', labels: [] }],
+    pannes: [
+      { route: '^pulls\\?', fois: 2, sortie: '' },
+      { route: '^pulls/1$', fois: 2, sortie: '<html>502 Bad Gateway</html>', erreur: 'gh: Bad Gateway (HTTP 502)' },
+      { route: '^user$', sortie: '{"message":"Server Error"}', erreur: 'gh: Server Error (HTTP 500)', code: 1 },
+    ],
+  });
+  for (let i = 0; i < 2; i++) {
+    const vide = gh(d, 'repos/{owner}/{repo}/pulls?state=open&per_page=100');
+    assert.equal(vide.status, 1);
+    assert.equal(vide.stdout, '');
+    assert.match(vide.stderr, /Bad Gateway \(HTTP 502\)/);
+    const html = gh(d, 'repos/{owner}/{repo}/pulls/1', '--jq', '.number');
+    assert.equal(html.status, 1);
+    assert.equal(html.stdout, '<html>502 Bad Gateway</html>', 'aucun filtre --jq sur une panne');
+  }
+  const message = gh(d, 'repos/{owner}/{repo}/user');
+  assert.equal(message.status, 1);
+  assert.equal(message.stdout, '{"message":"Server Error"}');
+  assert.deepEqual(d.etat().pannes, [], 'chaque panne épuisée sort de l’état');
+  assert.equal(gh(d, 'repos/{owner}/{repo}/pulls/1', '--jq', '.number').stdout, '1\n');
+  assert.equal(JSON.parse(gh(d, 'repos/{owner}/{repo}/pulls?state=open').stdout).length, 1);
+
+  d.github({ pannes: [{ route: 'labels', fois: 5 }] });
+  const ecrit = gh(d, '-X', 'POST', 'repos/{owner}/{repo}/issues/1/labels', '-f', 'labels[]=x');
+  assert.equal(ecrit.status, 0, ecrit.stderr);
+  assert.deepEqual(d.etat().pulls[0].labels, ['x']);
+  assert.equal(d.etat().pannes[0].fois, 5, 'une écriture ne décompte rien');
 });

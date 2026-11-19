@@ -1,0 +1,37 @@
+# Check « PR titre » de la chaîne de production (skill socle-chaine-de-production, ticket 16) : montre à l'auteur, dès
+# l'ouverture d'une PR vers develop ou un sujet, ce que le capitaine refusera (sujet du squash trop long, commitlint pour
+# une sous-PR, section de revue absente, ligne /security-review absente, titre de code sur de la documentation seule).
+# Il juge avec les fonctions du capitaine (scripts/chaine/revue-exigee.mjs, scripts/chaine/sujet.sh a-juger).
+# Workflow à part de ci.yml : `edited` y relancerait toute la CI à chaque retouche de la description.
+# Non exigé par la protection de develop : le capitaine reste le juge ; ce check montre son refus plus tôt.
+# Le titre et le corps sont écrits par l'auteur : ils passent par `env:`, jamais dans un `run:` (injection).
+name: PR titre
+on:
+  pull_request:
+    branches: ['develop', 'sujet/**']
+    types: [opened, edited, reopened, ready_for_review, synchronize]
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+permissions:
+  contents: read
+jobs:
+  pr-titre:
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with: { fetch-depth: 0, persist-credentials: false }
+      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with: { node-version-file: .nvmrc, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - name: Titre et description, comme le capitaine
+        env:
+          PR_TITRE: ${{ github.event.pull_request.title }}
+          PR_CORPS: ${{ github.event.pull_request.body }}
+          PR_NUMERO: ${{ github.event.pull_request.number }}
+          PR_BASE: ${{ github.event.pull_request.base.ref }}
+          PR_TETE: ${{ github.event.pull_request.head.ref }}
+          PR_SOMMET: ${{ github.event.pull_request.head.sha }}
+        run: node scripts/github/pr-titre.mjs

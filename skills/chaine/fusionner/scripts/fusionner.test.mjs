@@ -340,6 +340,17 @@ test("renvoyer.sh : pose fusion-bloquée, retire à-fusionner et commente la cau
   assert.doesNotMatch(commentaire.champs.body, /attend un humain/);
 });
 
+test("renvoyer.sh : le refus « plusieurs fusions » d'une PR de mise à jour dit de la refaire dans une nouvelle PR, pas de remettre le label", () => {
+  const d = depotJouet();
+  d.branche("maj/lot", "origin/develop", { "docs/r.md": "r\n" });
+  d.github({ pulls: [pr(41, "maj/lot")] });
+  const r = d.lancer(script("renvoyer.sh"), "41", "#41, PR de mise à jour : une seule fusion de develop dans sujet/lot, jamais une seconde fusion. Refaire la réception");
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  const commentaire = d.journal().find((e) => e.route === "issues/41/comments");
+  assert.match(commentaire.champs.body, /ouvrir une nouvelle PR vers le sujet et fermer celle-ci/);
+  assert.doesNotMatch(commentaire.champs.body, /remettre `à-fusionner`/);
+});
+
 const MARQUE = "<!-- renvoi-capitaine -->";
 const renvoi = `**Renvoyée par le capitaine de fusion** : x.\n\n${MARQUE}\n`;
 
@@ -375,6 +386,42 @@ test("renvoyer.sh : au troisième renvoi, le commentaire dit que la PR attend un
   assert.equal(rm.status, 0, rm.stdout + rm.stderr);
   assert.match(rm.stderr, /valeur par défaut 3/);
   assert.match(rm.stdout, /attend un humain/);
+});
+
+// GitHub ne lance pas la CI d'une PR qu'il ne sait pas fusionner : sans CI et `mergeable_state` « dirty », elle est
+// « prête (en conflit) » ; état pas encore calculé (`null`, `unknown`) ou PR propre : « prête (sans CI) ».
+test("file.sh : une PR sans CI que GitHub dit en conflit se lit prête (en conflit), vers develop comme vers un sujet ; état inconnu : prête (sans CI)", () => {
+  const d = depotJouet();
+  d.branche("sujet/lot", "origin/develop", { "docs/s.md": "lot\n" });
+  d.branche("feat/s", "origin/develop", { "docs/s.md": "sous\n" });
+  for (const b of ["feat/a", "feat/b", "feat/c", "feat/d"]) d.branche(b, "origin/develop", { "docs/d.md": `${b}\n` });
+  d.branche("develop", "origin/develop", { "docs/d.md": "develop\n" });
+  d.branche("feat/propre", "origin/develop", { "docs/p.md": "p\n" });
+  d.git("switch", "-q", "--detach", "origin/develop");
+  d.github({
+    exiges: ["qualite"],
+    checks: { "#95": { qualite: "SUCCESS" } },
+    pulls: [
+      pr(90, "feat/a"),
+      pr(91, "feat/propre"),
+      pr(92, "feat/b", { mergeableState: null }),
+      pr(93, "feat/c", { mergeableState: "unknown" }),
+      pr(94, "feat/s", { base: "sujet/lot", title: "feat(demo): s" }),
+      pr(95, "feat/d"),
+    ],
+  });
+  const etats = Object.fromEntries(
+    d.lancer(script("file.sh")).stdout.trim().split("\n").map((l) => l.split("\t").slice(0, 2)),
+  );
+  assert.deepEqual(etats, {
+    90: "prête (en conflit)",
+    91: "prête (sans CI)",
+    92: "prête (sans CI)",
+    93: "prête (sans CI)",
+    94: "sujet/lot : prête (en conflit)",
+    95: "prête",
+  });
+  assert.deepEqual(d.journal(), [], "file.sh ne fait que lire");
 });
 
 test("file.sh : une PR renvoyée autant de fois que le plafond est montrée humain, et ni --next ni --rouges ne la rendent", () => {
@@ -1030,8 +1077,10 @@ function hooks(d, commitlint = COMMITLINT) {
     writeFileSync(join(dir, nom), `#!/bin/sh\n${corps}\n`);
     chmodSync(join(dir, nom), 0o755);
   };
+  // Un refus écrit aussi la trace de husky 9 (`.husky/_/h`), comme le hook d'un projet : sans elle, un refus du
+  // pre-push se lit comme un refus du distant (pousser, github.sh).
   const refuse = (nom) =>
-    `if [ -e ${JSON.stringify(join(d.racine, `refus.${nom}`))} ]; then echo "${nom} jouet : refus" >&2; exit 1; fi`;
+    `if [ -e ${JSON.stringify(join(d.racine, `refus.${nom}`))} ]; then echo "${nom} jouet : refus" >&2; echo "husky - ${nom} script failed (code 1)"; exit 1; fi`;
   poser("pre-commit", `echo pre-commit >> ${J}\n${refuse("pre-commit")}`);
   poser("pre-push", `echo pre-push >> ${J}\n${refuse("pre-push")}`);
   writeFileSync(
@@ -1614,20 +1663,20 @@ test("file.sh : une CI rouge prime sur « attend un humain » : la PR marquée e
   assert.deepEqual(etats(d), ["72 attend un humain"], "CI en cours : l'attente reste");
 });
 
-test("passer.sh : commentaire d'attente impossible à poser après un refus de fusion pour revue : sortie 5 (arrêt), pas 7 ; la boucle retente une fois puis s'arrête", () => {
+test("passer.sh : commentaire d'attente impossible à poser après un refus de fusion pour revue : sortie 3 (arrêt), pas 7 ; la boucle s'arrête sans le repasser", () => {
   const { d } = attenteProprietaire({ commentairesRefuses: true, pulls: [pr(72, "feat/seul", { approbationManquante: true })] });
   const r = d.lancer(script("passer.sh"), "72");
-  assert.equal(r.status, 5, r.stdout + r.stderr);
+  assert.equal(r.status, 3, r.stdout + r.stderr);
   assert.match(r.stdout, /commentaire d'attente non posé/);
   assert.deepEqual(ecritures(d), ["PUT pulls/72/merge", "POST issues/72/comments"]);
   assert.deepEqual(d.etat().pulls[0].labels, ["à-fusionner"]);
   const e = attenteProprietaire({ commentairesRefuses: true, pulls: [pr(72, "feat/seul", { approbationManquante: true })] }).d;
   e.publierChaine();
   const b = e.lancer(script("boucle.sh"));
-  assert.equal(b.status, 5, b.stdout + b.stderr);
-  assert.match(b.stdout, /\[#72\] a bougé, second essai/);
-  assert.match(b.stdout, /ARRÊT sur #72 \(sortie 5\)/);
-  assert.equal(ecritures(e).filter((x) => x === "PUT pulls/72/merge").length, 2, "deux essais, pas un par tour");
+  assert.equal(b.status, 3, b.stdout + b.stderr);
+  assert.match(b.stdout, /ARRÊT sur #72 \(sortie 3\)/);
+  assert.doesNotMatch(b.stdout, /second essai|PAUSE/);
+  assert.equal(ecritures(e).filter((x) => x === "PUT pulls/72/merge").length, 1, "un essai : la boucle ne le repasse pas");
 });
 
 // ── Règle d'ascendance : la cible qui bouge pendant la CI, l'arbre du squash différent de l'arbre testé ──────────
@@ -1657,6 +1706,39 @@ function cibleQuiBouge(deplacements) {
   });
   return { d, origine, vers };
 }
+
+// Contre-relecture (M1) : develop rejoint pendant la CI un commit en conflit mixte (code et index généré) ; le contrôle
+// d'ascendance d'avant le squash ne nomme que le fichier hors index.
+test("passer.sh : conflit mixte avec develop après la CI, seuls les fichiers hors index générés sont listés", () => {
+  const d = depotJouet();
+  d.ecrire(`${ADR}/ADR_ALL_ARC-1-a.md`, "# 1\n");
+  d.ecrire(`${ADR}/README.md`, index("ADR_ALL_ARC-1-a.md"));
+  d.commit("docs: adr 1");
+  d.git("push", "-q", "origin", "HEAD:develop");
+  d.git("fetch", "-q", "origin");
+  d.branche("docs/m", "origin/develop", {
+    "docs/m.md": "pr\n",
+    [`${ADR}/ADR_ALL_ARC-2-b.md`]: "# 2\n",
+    [`${ADR}/README.md`]: index("ADR_ALL_ARC-1-a.md", "ADR_ALL_ARC-2-b.md"),
+  });
+  const vers = d.branche("ailleurs", "origin/develop", {
+    "docs/m.md": "develop\n",
+    [`${ADR}/ADR_ALL_ARC-3-c.md`]: "# 3\n",
+    [`${ADR}/README.md`]: index("ADR_ALL_ARC-1-a.md", "ADR_ALL_ARC-3-c.md"),
+  });
+  d.git("switch", "-q", "--detach", "origin/develop");
+  d.github({
+    exiges: ["qualite"],
+    checks: { "*": { [PERIMETRE]: ["IN_PROGRESS", "SUCCESS"], qualite: ["IN_PROGRESS", "SUCCESS"] } },
+    pendantCi: [{ lectures: 2, branche: "develop", vers }],
+    pulls: [pr(41, "docs/m", { title: "docs(adr): ADR 2" })],
+  });
+  const r = d.lancer(script("passer.sh"), "41");
+  assert.equal(r.status, 2, r.stdout + r.stderr);
+  assert.match(r.stdout, /conflit avec develop hors index générés :\n {2}docs\/m\.md\n?/);
+  assert.doesNotMatch(r.stdout, /^ {2}docs\/adr\/README\.md$/m);
+  assert.equal(fusionsDe(d, 41).length, 0, "aucun PUT");
+});
 
 test("cible qui bouge pendant la CI : mise à jour reprise, deux fois au plus", () => {
   const { d, origine, vers } = cibleQuiBouge(1);
@@ -1845,4 +1927,362 @@ test("cible qui bouge pendant la CI, clone --single-branch : sujet.sh relit le s
   assert.equal(r.status, 0, r.stdout + r.stderr);
   assert.match(r.stdout, /sujet\/lot a bougé pendant la CI : nouvelle mise à jour \(1 sur 2\)/);
   assert.equal(d.git("merge-base", "--is-ancestor", vers, shaDe(d, 80)), "", "jamais squashée sur l'ancien sujet");
+});
+
+// ── GitHub illisible et refus du pre-push (ticket 9) ─────────────────────────────────────────────────────────────
+// Une panne de GitHub n'est jamais un état : le script qui lisait sort en 5 (pause de la boucle). Un push refusé se
+// classe par la trace de husky : refus du hook, la PR est renvoyée avec la sortie du hook ; sans trace, refus du
+// distant, la boucle s'arrête (passer.sh) ou sujet.sh sort en 11, sans renvoi.
+function prSimple() {
+  const d = depotJouet();
+  d.branche("feat/simple", "origin/develop", { "docs/simple.md": "s\n" });
+  d.git("switch", "-q", "--detach", "origin/develop");
+  d.github({ exiges: ["qualite"], checks: { "*": { qualite: "SUCCESS" } }, pulls: [pr(33, "feat/simple")] });
+  return d;
+}
+
+test("passer.sh : une panne de GitHub pendant l'attente de la CI sort en 5, jamais « CI non déclenchée »", () => {
+  // Un 502 au corps vide, puis un 200 au corps vide : ni l'un ni l'autre n'est « aucun check ».
+  for (const panne of [{ sortie: "" }, { sortie: "", code: 0, erreur: "" }]) {
+    const d = prSimple();
+    d.github({ pannes: [{ route: "/check-runs", fois: 40, ...panne }] });
+    const r = d.lancer(script("passer.sh"), "33");
+    assert.equal(r.status, 5, `${JSON.stringify(panne)} : ${r.stdout}${r.stderr}`);
+    assert.match(r.stdout, /GitHub illisible pendant l'attente de la CI : pause, puis reprise/);
+    assert.match(r.stderr, /GitHub illisible \(.*check-runs/);
+    assert.doesNotMatch(r.stdout, /CI non déclenchée/);
+    assert.deepEqual(d.journal(), [], "ni fusion ni label");
+  }
+});
+
+test("passer.sh : la PR illisible sort en 5 avant toute écriture", () => {
+  const d = prSimple();
+  d.github({ pannes: [{ route: "^pulls/33$", sortie: "<html>502</html>" }] });
+  const r = d.lancer(script("passer.sh"), "33");
+  assert.equal(r.status, 5, r.stdout + r.stderr);
+  assert.match(r.stdout, /GitHub illisible/);
+  assert.deepEqual(d.journal(), []);
+});
+
+test("file.sh : GitHub illisible, sortie 5 et rien sur la sortie standard", () => {
+  for (const panne of [
+    { route: "^pulls\\?" },
+    { route: "^rules/branches/develop$", sortie: '{"message":"Server Error"}', code: 0, erreur: "" },
+    { route: "/check-runs", sortie: "" },
+  ]) {
+    const d = prSimple();
+    d.github({ pulls: [pr(33, "feat/simple"), pr(34, "feat/simple", { title: "docs(demo): autre" })], pannes: [{ fois: 9, ...panne }] });
+    for (const args of [[], ["--next"], ["--rouges"]]) {
+      const r = d.lancer(script("file.sh"), ...args);
+      assert.equal(r.status, 5, `${panne.route} ${args} : ${r.stdout}${r.stderr}`);
+      assert.equal(r.stdout, "", `${panne.route} ${args}`);
+      assert.match(r.stderr, /GitHub illisible/);
+    }
+  }
+  // Une PR lisible d'abord, puis une PR dont les checks sont en panne : sa ligne, déjà calculée, n'est pas écrite.
+  const d = prSimple();
+  const autre = d.branche("feat/autre", "origin/develop", { "docs/autre.md": "a\n" });
+  d.git("switch", "-q", "--detach", "origin/develop");
+  d.github({ pulls: [pr(33, "feat/simple"), pr(34, "feat/autre")], pannes: [{ route: `commits/${autre}/check-runs`, fois: 9, sortie: "" }] });
+  const r = d.lancer(script("file.sh"));
+  assert.equal(r.status, 5, r.stdout + r.stderr);
+  assert.equal(r.stdout, "", "la ligne de #33 n'est pas écrite avant la panne de #34");
+});
+
+// Le hook écrit une URL à identifiants : le commentaire, public, ne la porte jamais.
+const HOOK_URL = "https://capitaine:jeton-secret@exemple.test/depot.git";
+function prePushRefuse(d, trace = true) {
+  const h = hooks(d);
+  writeFileSync(
+    join(d.racine, "hooks", "pre-push"),
+    `#!/bin/sh\necho pre-push >> ${JSON.stringify(join(d.racine, "hooks.log"))}\necho "pnpm check : \\\`tsc\\\` rouge sur apps/x.ts" >&2\nprintf 'ligne windows\\r\\n' >&2\necho "fetch ${HOOK_URL} refusé" >&2\n${trace ? 'echo "husky - pre-push script failed (code 1)"\n' : ""}exit 1\n`,
+  );
+  chmodSync(join(d.racine, "hooks", "pre-push"), 0o755);
+  return h;
+}
+
+test("un pre-push refusé avec la trace de husky : passer.sh sort en 3, la boucle renvoie la PR avec la sortie du hook et passe à la suivante", () => {
+  const d = conflitIndex();
+  d.publierChaine();
+  d.branche("docs/autre", "origin/develop", { "docs/autre.md": "a\n" });
+  d.git("switch", "-q", "--detach", "origin/develop");
+  d.github({ pulls: [pr(30, "docs/adr-deux", { title: "docs(adr): ADR 2" }), pr(31, "docs/autre")] });
+  prePushRefuse(d);
+  const seul = d.lancer(script("passer.sh"), "30");
+  assert.equal(seul.status, 3, seul.stdout + seul.stderr);
+  assert.match(seul.stdout, /push refusé par le hook pre-push : sortie ci-dessus ; corriger, jamais en sautant le hook/);
+  assert.doesNotMatch(seul.stdout + seul.stderr, /jeton-secret/);
+
+  const b = d.lancer(script("boucle.sh"));
+  assert.equal(b.status, 0, b.stdout + b.stderr);
+  assert.doesNotMatch(b.stdout, /ARRÊT/);
+  assert.match(b.stdout, /\[#30\] RENVOI : le pre-push refuse le push de la mise à jour avec develop/);
+  assert.match(b.stdout, /\[#31\] DÉBUT/, "la suivante passe");
+  const commentaire = d.etat().pulls.find((x) => x.number === 30).commentaires.at(-1);
+  assert.match(commentaire, /le pre-push refuse le push de la mise à jour avec develop\. Sortie du hook : /);
+  assert.match(commentaire, /pnpm check : tsc rouge sur apps\/x\.ts/, "la ligne du hook, accents graves retirés");
+  assert.match(commentaire, /https:\/\/\*\*\*@exemple\.test/);
+  assert.doesNotMatch(commentaire, /jeton-secret/);
+  assert.doesNotMatch(commentaire, /\[git push/, "préfixe retiré");
+  assert.match(commentaire, /ligne windows ;/);
+  assert.doesNotMatch(commentaire, /\r/, "fin de ligne CRLF retirée");
+  assert.deepEqual(d.etat().pulls.find((x) => x.number === 30).labels, ["fusion-bloquée"]);
+});
+
+test("un push refusé sans trace de husky : échec fermé, passer.sh en 3 « push refusé par le distant », la boucle s'arrête sans renvoyer ; sujet.sh en 11", () => {
+  const refusDistant = (d) => {
+    writeFileSync(join(d.origine, "hooks", "pre-receive"), `#!/bin/sh\necho "règle du dépôt : ${HOOK_URL}" >&2\nexit 1\n`);
+    chmodSync(join(d.origine, "hooks", "pre-receive"), 0o755);
+  };
+  const d = conflitIndex();
+  d.publierChaine();
+  refusDistant(d);
+  const r = d.lancer(script("passer.sh"), "30");
+  assert.equal(r.status, 3, r.stdout + r.stderr);
+  assert.match(r.stdout, /push refusé par le distant \(règle de dépôt, droit, panne ou coupure ; aucune trace du hook pre-push\) : sortie ci-dessus/);
+  assert.doesNotMatch(r.stdout + r.stderr, /jeton-secret/);
+  const b = d.lancer(script("boucle.sh"));
+  assert.equal(b.status, 3, b.stdout + b.stderr);
+  assert.match(b.stdout, /ARRÊT sur #30 \(sortie 3\)/);
+  assert.doesNotMatch(b.stdout, /RENVOI/);
+  assert.deepEqual(d.journal().filter((e) => e.methode !== "GET"), [], "aucun renvoi, aucun label");
+  // Un pre-push sans husky (aucune trace) : refus du distant, de même.
+  const sansTrace = conflitIndex();
+  prePushRefuse(sansTrace, false);
+  assert.match(sansTrace.lancer(script("passer.sh"), "30").stdout, /push refusé par le distant/);
+
+  const gestes = { ...GESTES, fusionner: () => ({ d: sousPrConflitIndex(), args: ["fusionner", "80"] }) };
+  for (const [nom, fabrique] of Object.entries(gestes)) {
+    const { d: s, args } = fabrique();
+    refusDistant(s);
+    const avant = distant(s);
+    const x = s.lancer(scriptDe("sujet", "sujet.sh"), ...args);
+    assert.equal(x.status, 11, `${nom} : ${x.stdout}${x.stderr}`);
+    assert.match(x.stdout, /push refusé par le distant, sans trace du hook/, nom);
+    assert.doesNotMatch(x.stdout + x.stderr, /jeton-secret/, nom);
+    assert.equal(distant(s), avant, `${nom} : distant inchangé`);
+    assert.equal(s.git("status", "--porcelain"), "", `${nom} : worktree propre`);
+    sansFusion(s);
+  }
+});
+
+// Un refus de fusion durable (droit, règle du dépôt, méthode interdite) n'est pas « la branche a bougé » : sortie 3, la
+// boucle s'arrête au lieu de refaire mise à jour et CI à chaque tour, en pause sans fin. 409 ou panne : sortie 5.
+test("passer.sh : une fusion refusée durablement par GitHub sort en 3 et la boucle s'arrête ; branche bougée ou panne : 5", () => {
+  const DURABLE = /fusion refusée par GitHub, ni pour la revue ni pour une branche qui a bougé/;
+  const BOUGEE = /fusion refusée \(develop ou la PR a bougé, ou GitHub en panne\), relancer/;
+  for (const [message, attendu, motif] of [
+    ["gh: Merge commits are not allowed on this repository. (HTTP 405)", 3, DURABLE],
+    ["gh: Resource not accessible by integration (HTTP 403)", 3, DURABLE],
+    ["gh: Repository rule violations found (HTTP 422)", 3, DURABLE],
+    ["gh: HTTP 403", 3, DURABLE],
+    ["gh: HTTP 4030", 5, BOUGEE], // pas un code HTTP : lu comme une panne
+    ["gh: Head branch was modified. Review and try the merge again. (HTTP 409)", 5, BOUGEE],
+    ["gh: Base branch was modified. Review and try the merge again. (HTTP 405)", 5, BOUGEE],
+    ["gh: Head branch is not up to date with the base branch (HTTP 405)", 5, BOUGEE],
+    ["gh: Bad Gateway (HTTP 502)", 5, BOUGEE],
+    ["gh: Bad Gateway (HTTP 502)\r", 5, BOUGEE],
+    ["gh: Resource not accessible by integration (HTTP 403)\r", 3, DURABLE],
+    ["gh: HTTP 502", 5, BOUGEE],
+    ["error connecting to api.github.com", 5, BOUGEE],
+  ]) {
+    const d = prSimple();
+    d.github({ pulls: [pr(33, "feat/simple", { refusFusion: message })] });
+    const r = d.lancer(script("passer.sh"), "33");
+    assert.equal(r.status, attendu, `${JSON.stringify(message)} : ${r.stdout}${r.stderr}`);
+    assert.match(r.stdout, motif, JSON.stringify(message));
+    assert.equal(d.git("status", "--porcelain"), "");
+  }
+  const d = prSimple();
+  d.publierChaine();
+  d.github({ pulls: [pr(33, "feat/simple", { refusFusion: "gh: Merge commits are not allowed on this repository. (HTTP 405)" })] });
+  const b = d.lancer(script("boucle.sh"));
+  assert.equal(b.status, 3, b.stdout + b.stderr);
+  assert.match(b.stdout, /ARRÊT sur #33 \(sortie 3\)/);
+  assert.doesNotMatch(b.stdout, /PAUSE/);
+  assert.equal(fusionsDe(d, 33).length, 1, "un seul essai");
+});
+
+// Décision A-51 : un refus durable n'arrête la boucle que si develop n'a pas bougé entre le test et la fusion. Un 405
+// « Repository rule violations found » d'une branche devenue en retard (develop avancé juste avant la fusion) est une
+// course : sortie 5, le tour suivant remet à jour et reteste.
+test("passer.sh : un refus de fusion 405 après un develop qui a bougé sort en 5 (course) ; le même 405 sans develop bougé, en 3", () => {
+  const REGLE = "gh: Repository rule violations found (HTTP 405)";
+  const d = prSimple();
+  const concurrent = d.branche("concurrent", "origin/develop", { "apps/c.ts": "c\n" });
+  d.git("switch", "-q", "--detach", "origin/develop");
+  d.github({ pulls: [pr(33, "feat/simple", { refusFusion: REGLE })], avantFusion: { branche: "develop", vers: concurrent } });
+  const course = d.lancer(script("passer.sh"), "33");
+  assert.equal(course.status, 5, course.stdout + course.stderr);
+  assert.match(course.stdout, /develop a bougé entre le test et la fusion/);
+  assert.equal(d.git("status", "--porcelain"), "");
+  const f = prSimple();
+  f.github({ pulls: [pr(33, "feat/simple", { refusFusion: REGLE })] });
+  const durable = f.lancer(script("passer.sh"), "33");
+  assert.equal(durable.status, 3, durable.stdout + durable.stderr);
+  assert.match(durable.stdout, /fusion refusée par GitHub, ni pour la revue ni pour une branche qui a bougé/);
+});
+
+// Décision A-51 : une lecture refusée durablement (401, 403) reste une pause (A-21), mais la ligne PAUSE nomme la route
+// et le code HTTP de la cause, pour qu'un humain le voie.
+test("boucle.sh : la ligne PAUSE donne la route et le code HTTP de la cause (file.sh et passer.sh)", () => {
+  const d = prSimple();
+  d.publierChaine();
+  // Lectures des checks : traiter_rouges, traiter_sujets et la lecture du tour échouent (PAUSE de la file) ; au tour
+  // suivant, traiter_rouges échoue encore, puis la file se lit et la PR passe.
+  d.github({ pannes: [{ route: "/check-runs", fois: 4, erreur: "gh: Bad credentials (HTTP 401)" }] });
+  const r = d.lancer(script("boucle.sh"));
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /PAUSE \d\d:\d\d \(file\.sh, sortie 5\) : file illisible ; cause : GitHub illisible \(repos\/\{owner\}\/\{repo\}\/commits\/[0-9a-f]{40}\/check-runs\?per_page=100\) : gh en échec \(code 1\) : gh: Bad credentials \(HTTP 401\), reprise dans 120 s/);
+  assert.match(r.stdout, /\[#33\] FUSIONNÉE/);
+});
+
+// Contre-relecture (B1) : la sortie d'un hook relayée peut porter les messages que la boucle classe (un pre-push qui joue
+// les bancs reposés en écrit les titres). La boucle classe une sortie 3 sur la dernière ligne `[#<n>] ` de passer.sh,
+// jamais sur un motif cherché dans toute la sortie.
+const TITRES_PIEGES = [
+  "ok 12 - passer.sh : une panne de GitHub pendant l'attente de la CI sort en 5, jamais « CI non déclenchée »",
+  "ok 13 - passer.sh : checks exigés rouges : liste",
+  "push refusé par le hook pre-push : sortie ci-dessus ; corriger, jamais en sautant le hook",
+  "GitHub illisible (repos/x/y/pulls) : gh en échec (code 1) : gh: HTTP 502",
+];
+function hookTitres(d, { refuse, trace }) {
+  hooks(d);
+  const lignes = TITRES_PIEGES.map((t) => `echo ${JSON.stringify(t)} >&2`).join("\n");
+  writeFileSync(
+    join(d.racine, "hooks", "pre-push"),
+    `#!/bin/sh\n${lignes}\n${refuse ? `${trace ? 'echo "husky - pre-push script failed (code 1)"\n' : ""}exit 1` : "exit 0"}\n`,
+  );
+  chmodSync(join(d.racine, "hooks", "pre-push"), 0o755);
+}
+test("boucle.sh : une sortie 3 se classe sur la dernière ligne de passer.sh, jamais sur la sortie du hook relayée", () => {
+  // Échéance à une minute : une régression qui repasse la PR à chaque tour finit sur ÉCHÉANCE (sortie 0), rouge, au
+  // lieu de tourner sans fin.
+  const borner = (d) => { d.env.BOUCLE_ECHEANCE = String(Math.floor(Date.now() / 1000) + 60); };
+  // Pre-push refusé avec la trace, qui écrit « CI non déclenchée » : renvoi, jamais « de côté ».
+  const a = conflitIndex();
+  a.publierChaine();
+  borner(a);
+  hookTitres(a, { refuse: true, trace: true });
+  const ra = a.lancer(script("boucle.sh"));
+  assert.equal(ra.status, 0, ra.stdout + ra.stderr);
+  assert.match(ra.stdout, /\[#30\] RENVOI : le pre-push refuse le push/);
+  assert.doesNotMatch(ra.stdout, /sans CI : de côté|checks rouges au passage/);
+  const commentaire = a.etat().pulls[0].commentaires.at(-1);
+  assert.match(commentaire, /GitHub illisible \(repos\/x\/y\/pulls\)/, "l'extrait garde les lignes du hook");
+
+  // Pre-push refusé sans trace : refus du distant, ARRÊT.
+  const b = conflitIndex();
+  b.publierChaine();
+  borner(b);
+  hookTitres(b, { refuse: true, trace: false });
+  const rb = b.lancer(script("boucle.sh"));
+  assert.equal(rb.status, 3, rb.stdout + rb.stderr);
+  assert.match(rb.stdout, /ARRÊT sur #30 \(sortie 3\)/);
+  assert.doesNotMatch(rb.stdout, /RENVOI|sans CI : de côté|checks rouges au passage/);
+
+  // Pre-push vert qui écrit tous ces titres, puis refus du distant : ARRÊT, sans renvoi.
+  const c = conflitIndex();
+  c.publierChaine();
+  borner(c);
+  hookTitres(c, { refuse: false });
+  writeFileSync(join(c.origine, "hooks", "pre-receive"), "#!/bin/sh\necho 'règle du dépôt' >&2\nexit 1\n");
+  chmodSync(join(c.origine, "hooks", "pre-receive"), 0o755);
+  const rc = c.lancer(script("boucle.sh"));
+  assert.equal(rc.status, 3, rc.stdout + rc.stderr);
+  assert.match(rc.stdout, /ARRÊT sur #30 \(sortie 3\)/);
+  assert.doesNotMatch(rc.stdout, /RENVOI|sans CI : de côté|checks rouges au passage/);
+  assert.deepEqual(c.journal().filter((e) => e.methode !== "GET"), [], "aucun renvoi, aucun label");
+});
+
+// A-51 précisée (M1) : develop illisible à la relecture qui suit un refus de fusion : sortie 5 (une coupure passagère
+// n'arrête pas la boucle), jamais 3.
+test("passer.sh : refus de fusion 405, develop avancé puis illisible à la relecture : sortie 5", () => {
+  const d = prSimple();
+  const concurrent = d.branche("concurrent", "origin/develop", { "apps/c.ts": "c\n" });
+  d.git("switch", "-q", "--detach", "origin/develop");
+  d.github({
+    pulls: [pr(33, "feat/simple", { refusFusion: "gh: Repository rule violations found (HTTP 405)" })],
+    avantFusion: { branche: "develop", vers: concurrent },
+    origineCasseeAuRefus: true,
+  });
+  const r = d.lancer(script("passer.sh"), "33");
+  assert.equal(r.status, 5, r.stdout + r.stderr);
+  assert.match(r.stdout, /develop illisible à la relecture/);
+});
+
+// ── Fusion sans effet (ticket 3 de capitaine-a-jour-et-teste, A-8) : un `commit-msg` de banc, comme celui de `fedora`,
+// refuse un commit qui touche le schéma Prisma sans migration ni `[sans-migration:` dans son message. Les commits de
+// fixture se font avant la pose des hooks. ─────────────────────────────────────────────────────────────────────────
+const SCHEMA = "prisma/schema.prisma";
+const MENTION = "[sans-migration: commentaire seul, apporté par une mise à jour du capitaine]";
+const CONTRAT = { fusionsSansEffet: [{ fichier: SCHEMA, lignesSansEffet: "^[[:space:]]*(//.*)?$", mention: MENTION }] };
+const BASE_SCHEMA = "model A {\n  id Int\n}\n";
+const MIGRATION_PRISMA = /commit-msg prisma jouet : migration ou \[sans-migration: <raison>\] exigée/;
+function hookPrisma(d) {
+  const hook = join(d.racine, "hooks", "commit-msg");
+  const corps = readFileSync(hook, "utf8").replace(
+    "#!/bin/sh\n",
+    `#!/bin/sh
+f=$(git diff --cached --name-only)
+if printf '%s\\n' "$f" | grep -qx '${SCHEMA}' && ! printf '%s\\n' "$f" | grep -q '^prisma/migrations/' && ! grep -qF '[sans-migration:' "$1"; then
+  echo "commit-msg prisma jouet : migration ou [sans-migration: <raison>] exigée" >&2; exit 1
+fi
+`,
+  );
+  writeFileSync(hook, corps);
+}
+// develop porte le schéma (et le contrat, sauf `contrat: null`) ; #32 en part, puis develop reçoit `develop`.
+function schemaJouet(develop, contrat = CONTRAT) {
+  const d = depotJouet();
+  d.ecrire(SCHEMA, BASE_SCHEMA);
+  if (contrat !== null) d.ecrire(".claude/chaine.json", JSON.stringify(contrat));
+  d.commit("chore: schéma et contrat");
+  d.git("push", "-q", "origin", "HEAD:develop");
+  d.git("fetch", "-q", "origin");
+  d.branche("feat/s", "origin/develop", { "s.md": "s\n" });
+  d.branche("develop", "origin/develop", develop, "docs(db): commentaire du schéma [sans-migration: commentaire]");
+  d.git("switch", "-q", "--detach", "origin/develop");
+  d.github({
+    exiges: ["qualite"],
+    checks: { "*": { [PERIMETRE]: "SUCCESS", qualite: "SUCCESS" } },
+    pulls: [pr(32, "feat/s")],
+  });
+  hooks(d);
+  hookPrisma(d);
+  return d;
+}
+const fusionDeLaPr = (d) => {
+  d.git("fetch", "-q", "origin");
+  return d.git("log", "-1", "--format=%B", "origin/feat/s");
+};
+
+test("passer.sh : develop n'apporte qu'un commentaire au schéma, la fusion porte la mention du contrat et passe le commit-msg", () => {
+  const d = schemaJouet({ [SCHEMA]: `// note\n${BASE_SCHEMA}` });
+  const r = d.lancer(script("passer.sh"), "32");
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout + r.stderr, /FUSIONNÉE/);
+  assert.equal(fusionDeLaPr(d), `Merge remote-tracking branch 'origin/develop' into capitaine/32\n\n${MENTION}`);
+});
+
+test("passer.sh : sans fusionsSansEffet, la même fusion est refusée par le hook comme avant", () => {
+  const d = schemaJouet({ [SCHEMA]: `// note\n${BASE_SCHEMA}` }, null);
+  const avant = distant(d);
+  const r = d.lancer(script("passer.sh"), "32");
+  assert.equal(r.status, 3, r.stdout + r.stderr);
+  assert.match(r.stderr, MIGRATION_PRISMA);
+  sansFusion(d);
+  assert.equal(d.git("status", "--porcelain"), "");
+  assert.equal(distant(d), avant);
+});
+
+test("passer.sh : un changement réel du schéma, venu avec sa migration, entre sans mention, et le capitaine le dit", () => {
+  const d = schemaJouet({
+    [SCHEMA]: `${BASE_SCHEMA}model B {\n  id Int\n}\n`,
+    "prisma/migrations/1_b/migration.sql": "CREATE TABLE b ();\n",
+  });
+  const r = d.lancer(script("passer.sh"), "32");
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stderr, /fusion sans mention : prisma\/schema\.prisma porte un changement réel/);
+  assert.doesNotMatch(fusionDeLaPr(d), /sans-migration/);
 });

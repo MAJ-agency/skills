@@ -28,12 +28,22 @@
 #
 # Les fusions, commits et push du capitaine passent sous les hooks git du projet, comme ceux d'une
 # session. Un refus de hook sort en 3, sa sortie sur stderr : le lire, corriger, jamais --no-verify.
+# Les fusions du capitaine portent la mention de `fusionsSansEffet` (contrat d'origin/develop) quand elle
+# s'applique (`fusionner_avec`, github.sh ; skill `fusionner`, « Fusion sans effet »).
+# Un push refusé se classe par la trace de husky 9 (`pousser`, github.sh) : refus du hook pre-push (la boucle
+# renvoie la PR avec la sortie du hook), ou refus du distant (la boucle s'arrête). Toute lecture GitHub qui décide
+# passe par `lire_github` : une réponse vide, non JSON ou d'erreur sort en 5, jamais un état. Toute sortie de git ou
+# de hook relayée passe par `masquer_url` : une URL à identifiants n'y paraît jamais.
 #
 # Sorties, et la suite pour le capitaine (boucle.sh en traite la plupart elle-même) :
 #   0  fusionnée, arbre du squash = arbre testé → suivante
 #   2  conflit avec develop hors index générés → renvoyer (renvoyer.sh)
-#   3  hook git (commit-msg, pre-commit, pre-push) qui refuse la fusion, un commit ou le push : worktree
-#      détaché sur origin/develop, sortie du hook sur stderr → la lire, corriger, jamais --no-verify
+#   3  hook git (commit-msg, pre-commit) qui refuse la fusion ou un commit : worktree détaché sur origin/develop,
+#      sortie du hook sur stderr → la lire, corriger, jamais --no-verify
+#   3  « push refusé par le hook pre-push » (trace de husky dans la sortie du push) : la boucle renvoie la PR à sa
+#      session avec la sortie du hook (renvoyer.sh), jamais en sautant le hook
+#   3  « push refusé par le distant » (règle de dépôt, droit, panne ou coupure ; aucune trace du hook pre-push) :
+#      échec fermé, la boucle s'arrête (ARRÊT), jamais un renvoi → lire la sortie, relancer
 #   3  gates des registres ou checks rouges → lire l'échec : instabilité connue →
 #      `gh run rerun <id> --failed` puis relancer ; sinon renvoyer
 #   3  aucun check sur le sommet après 5 min : CI non déclenchée → ni fermeture-réouverture ni
@@ -48,8 +58,16 @@
 #      de fusion de GitHub, qui fait poser un commentaire marqué ; ou qui attend un humain : fusion déjà refusée
 #      ainsi, aucune revue APPROVED plus récente que ce commentaire) : la boucle la saute sans renvoi et la reprend
 #      au tour suivant
-#   5  fusion refusée faute d'approbation d'un propriétaire et commentaire d'attente impossible à poser : la boucle
-#      retente une fois puis s'arrête (ARRÊT, sortie 5) → lire la cause (droits du compte du capitaine), relancer
+#   3  fusion refusée faute d'approbation d'un propriétaire et commentaire d'attente impossible à poser : la boucle
+#      s'arrête (ARRÊT, sortie 3), sans le repasser → lire la cause (droits du compte du capitaine), relancer
+#   5  GitHub illisible (lire_github : réponse vide, non JSON, corps d'erreur ou code non nul), à la lecture de la PR,
+#      de sa parente ou pendant l'attente de la CI : la boucle se met en pause (PAUSE) puis reprend, jamais un arrêt
+#   3  fusion refusée par GitHub pour une autre raison que la revue ou une branche qui a bougé (droit du compte, règle
+#      du dépôt, méthode de fusion interdite : un refus durable) : la boucle s'arrête (ARRÊT) → lire le message, traiter.
+#      Avant, develop relu et la règle d'ascendance rejouée (décision A-51) : si develop n'est plus ancêtre du sommet
+#      testé (il a bougé entre le test et la fusion, un 405 « Repository rule violations » d'une branche devenue en
+#      retard), c'est une course : sortie 5 ; develop illisible à la relecture, 5 aussi (coupure) ; `ascendance` en
+#      échec, 3
 #   3  contrôle d'ascendance illisible (réf absente, git en échec) : la boucle s'arrête → lire la cause, relancer
 #   5  develop a bougé trois fois pendant la CI (deux reprises de la mise à jour déjà jouées) → relancer
 #   5  develop ou la PR a bougé en route → relancer. develop a bougé sans le capitaine :
@@ -81,7 +99,7 @@ GENERES=$(index_generes_regex) # scripts/docs/index-generes.json
 
 log() { printf '[#%s] %s\n' "$N" "$*"; }
 sortir() { log "$2"; exit "$1"; }
-pr=$(pr_json "$N")
+pr=$(pr_json "$N") || sortir 5 "GitHub illisible à la lecture de la PR (cause ci-dessus) : pause, puis reprise"
 champ() { jq -r "$1" <<<"$pr"; }
 
 # ── 1. Éligibilité ───────────────────────────────────────────────────────────
@@ -108,60 +126,16 @@ longueur=$(node -e 'console.log(String([...process.argv[1]].length))' "$titre (#
 # Clone superficiel (sessions cloud : `--depth`) : les commits de develop au-delà de la profondeur
 # n'y sont pas vus comme ancêtres. Merge-base faux, donc mise à jour et corps du squash faux. Cas
 # vécu, #478 le 15/10 : 215 commits de develop dans le corps (445 Ko, refusé par le système).
-[ "$(git rev-parse --is-shallow-repository)" = false ] || git fetch -q --unshallow origin
-git fetch -q origin develop "$tete"
+[ "$(git rev-parse --is-shallow-repository)" = false ] || git_masque fetch -q --unshallow origin
+git_masque fetch -q origin develop "$tete"
 # Revue des propriétaires (CODEOWNERS de la base) attendue : ni rouge ni bloquée, rien à corriger côté auteur. Vu
 # avant la mise à jour : une CI pour rien sinon, à chaque tour, jusqu'à l'approbation.
 ! attend_proprietaire "$pr" || sortir 7 "$MOTIF_PROPRIETAIRE"
 origine=$(git rev-parse "origin/$tete")
 
-# Livraison de sujet : tête `sujet/<nom>`, ou livraison intermédiaire `livraison/<nom>-<AAAAMMJJ-HHMM>`.
-# Le nom de branche seul ne suffit pas (il dispense de la revue) : `sujet/<nom>` doit exister, et la
-# livraison n'apporter qu'un sommet du sujet fusionné avec develop. La contenance du sommet dans le
-# sujet ne suffit pas non plus : l'étape 4 pousse sur la livraison sa fusion avec develop, qu'aucun
-# sujet ne contient, et au passage suivant (checks rouges relancés, sortie 5) la livraison passait
-# pour une PR ordinaire (revue exigée, puis squash). Critère : un ancêtre commun de la tête et du
-# sujet, hors de develop, dont la fusion avec le develop que la tête contient donne l'arbre de la
-# tête, aux index générés près. Sinon la PR repasse par le chemin ordinaire (revue exigée, squash).
-livraison_intermediaire() {
-  local nom=$1 d s attendu ecart hors regeneres motifs
-  git fetch -q origin "sujet/$nom" 2>/dev/null || return 1
-  d=$(git merge-base "$origine" origin/develop) || return 1
-  for s in $(git merge-base --all "$origine" "origin/sujet/$nom" 2>/dev/null); do
-    ! git merge-base --is-ancestor "$s" origin/develop || continue
-    # Arbre de la fusion, même en conflit (sortie 1) : un conflit hors index y laisse ses marqueurs,
-    # donc un écart avec la tête.
-    attendu=$(git merge-tree --write-tree --no-messages "$s" "$d" 2>/dev/null | sed -n 1p) || true
-    [ -n "$attendu" ] || continue
-    # Un `git diff` en échec n'est jamais une dispense : on ne conclut que sur un diff lu.
-    # Sans détection des renommages : une suppression ne se cache pas derrière un index généré ajouté.
-    ecart=$(git -c core.quotePath=false diff --no-renames --name-only "$attendu" "$origine") || continue
-    # Un index qui a une `commande` est régénéré : dispensé. Un index sans commande ne l'est que si son
-    # blob au sommet est celui d'origin/develop (la version de develop prise au conflit par la mise à
-    # jour) ; absent d'un côté, il diffère et va à la revue.
-    # Un index déclaré par motif, même avec une `commande`, ne l'est que sur un contenu déjà connu (celui de la
-    # fusion recalculée ou d'origin/develop) : sa régénération ne retire pas un fichier en trop sous le motif.
-    # Liste illisible (fonction absente, jq en échec) : pas une livraison, la revue est exigée.
-    regeneres=$(index_regeneres_regex) && [ -n "$regeneres" ] || return 1
-    motifs=$(index_regeneres_motifs_regex) && [ -n "$motifs" ] || return 1
-    hors=$(printf '%s\n' "$ecart" | sed '/^$/d' | while IFS= read -r f; do
-      if ! grep -qE "$GENERES" <<<"$f"; then
-        printf '%s\n' "$f"
-      elif grep -qE "$motifs" <<<"$f"; then
-        a=$(git rev-parse -q --verify "$origine:$f" 2>/dev/null) || a=''
-        b=$(git rev-parse -q --verify "$attendu:$f" 2>/dev/null) || b=''
-        c=$(git rev-parse -q --verify "origin/develop:$f" 2>/dev/null) || c=''
-        [ -n "$a" ] && { [ "$a" = "$b" ] || [ "$a" = "$c" ]; } || printf '%s\n' "$f"
-      elif ! grep -qE "$regeneres" <<<"$f"; then
-        a=$(git rev-parse -q --verify "$origine:$f" 2>/dev/null) || a=''
-        b=$(git rev-parse -q --verify "origin/develop:$f" 2>/dev/null) || b=''
-        [ -n "$a" ] && [ "$a" = "$b" ] || printf '%s\n' "$f"
-      fi
-    done)
-    [ -n "$hors" ] || return 0
-  done
-  return 1
-}
+# Livraison de sujet : tête `sujet/<nom>`, ou livraison intermédiaire `livraison/<nom>-<AAAAMMJJ-HHMM>`, prouvée
+# par sa forme (`livraison_intermediaire` de github.sh, sur origin/sujet/<nom> rapatrié ici) : le nom de branche seul
+# ne dispense jamais de la revue.
 livraison_sujet=0
 nom_sujet=''
 if [[ "$tete" == sujet/* ]]; then
@@ -169,17 +143,22 @@ if [[ "$tete" == sujet/* ]]; then
   nom_sujet=${tete#sujet/}
 elif [[ "$tete" =~ ^livraison/(.+)-[0-9]{8}-[0-9]{4}$ ]]; then
   nom_sujet=${BASH_REMATCH[1]}
-  if livraison_intermediaire "$nom_sujet"; then livraison_sujet=1; else nom_sujet=''; fi
+  if git fetch -q origin "sujet/$nom_sujet" 2>/dev/null && livraison_intermediaire "$nom_sujet" "$origine"; then
+    livraison_sujet=1
+  else
+    nom_sujet=''
+  fi
 fi
 
 # Point de départ des commits propres à la PR (corps du squash).
 if [ "$base" = develop ]; then
   depart=$(git merge-base "$origine" origin/develop)
 else
-  read -r parente etat_parente sommet_parente <<<"$(gh api "$DEPOT/pulls?state=all&per_page=1&head={owner}:$(uri "$base")" \
-    --jq '.[0] | "\(.number) \(if .merged_at then "MERGED" else .state end) \(.head.sha)"')"
+  json_parente=$(lire_github "$DEPOT/pulls?state=all&per_page=1&head={owner}:$(uri "$base")") ||
+    sortir 5 "GitHub illisible à la lecture de la parente $base (cause ci-dessus) : pause, puis reprise"
+  read -r parente etat_parente sommet_parente <<<"$(jq -r '.[0] | "\(.number) \(if .merged_at then "MERGED" else .state end) \(.head.sha)"' <<<"$json_parente")"
   [ "$etat_parente" = MERGED ] || sortir 7 "empilée sur #$parente, pas encore fusionnée"
-  git fetch -q origin "$base" || true
+  git_masque fetch -q origin "$base" || true
   depart=$sommet_parente
   git cat-file -e "$depart^{commit}" 2>/dev/null || depart=$(git merge-base "$origine" origin/develop)
   # Départ de la pile : ce que la PR a repris de sa parente.
@@ -217,11 +196,11 @@ while :; do
   # ── 2. Mise à jour avec develop ───────────────────────────────────────────
   git switch -q -C "capitaine/$N" "$origine"
   fusion_en_cours=0
-  if ! sortie_merge=$(git merge -q --no-edit origin/develop 2>&1); then
+  if ! sortie_merge=$(fusionner_avec origin/develop 3>&2 2>&1); then
     conflits=$(git diff --name-only --diff-filter=U)
     # Sans fichier en conflit, c'est un refus (hook commit-msg, fichier non suivi écrasé), pas une fusion en cours.
     if [ -z "$conflits" ]; then
-      printf '%s\n' "$sortie_merge" >&2
+      printf '%s\n' "$sortie_merge" | masquer_url >&2
       annuler_fusion
       git switch -q --detach origin/develop
       sortir 3 "fusion de develop refusée (hook git ou fichier non suivi) : sortie ci-dessus ; corriger, jamais en sautant le hook"
@@ -295,9 +274,15 @@ while :; do
     case $statut in
       0) ;;
       5) sortir 5 "push refusé : la branche a bougé, relancer" ;;
-      *)
+      3)
+        # Trace de husky dans la sortie du push : le hook refuse, la boucle renvoie la PR avec sa sortie.
         git switch -q --detach origin/develop
-        sortir 3 "push refusé par le hook pre-push (ou le distant) : sortie ci-dessus ; corriger, jamais en sautant le hook"
+        sortir 3 "push refusé par le hook pre-push : sortie ci-dessus ; corriger, jamais en sautant le hook"
+        ;;
+      *)
+        # Aucune trace du hook : échec fermé, la boucle s'arrête, jamais un renvoi.
+        git switch -q --detach origin/develop
+        sortir 3 "push refusé par le distant (règle de dépôt, droit, panne ou coupure ; aucune trace du hook pre-push) : sortie ci-dessus"
         ;;
     esac
     log "mise à jour poussée ($(git rev-parse --short HEAD))"
@@ -316,14 +301,16 @@ while :; do
     0) ;;
     1) sortir 3 "checks exigés rouges :"$'\n'"${rouges%$'\n'}" ;;
     2) sortir 3 "aucun check sur le sommet après 5 min : CI non déclenchée (un push de la session propriétaire la lancera)" ;;
+    5) sortir 5 "GitHub illisible pendant l'attente de la CI : pause, puis reprise" ;;
     *) sortir 3 "checks exigés toujours en attente après 60 min" ;;
   esac
-  [ "$(pr_sommet "$N")" = "$sommet" ] || sortir 5 "la PR a reçu un push pendant la CI, relancer"
+  sommet_lu=$(pr_sommet "$N") || sortir 5 "GitHub illisible à la relecture du sommet de la PR (cause ci-dessus) : pause, puis reprise"
+  [ "$sommet_lu" = "$sommet" ] || sortir 5 "la PR a reçu un push pendant la CI, relancer"
 
   # ── 5 bis. Contrôle d'ascendance, juste avant la fusion ───────────────────
   # Refspec explicite : un clone `--single-branch` (ou au refspec restreint) ne met pas à jour origin/develop
   # sur un simple `git fetch origin develop`, et le contrôle jugerait une cible périmée.
-  git fetch -q origin "+refs/heads/develop:refs/remotes/origin/develop"
+  git_masque fetch -q origin "+refs/heads/develop:refs/remotes/origin/develop"
   verdict=$(ascendance "$sommet" origin/develop) ||
     sortir 3 "contrôle d'ascendance illisible (ascendance de github.sh, cause ci-dessus) : la PR n'entre pas sans lui"
   case ${verdict%%$'\n'*} in
@@ -335,7 +322,8 @@ while :; do
     conflit)
       git switch -q --detach origin/develop
       log "conflit avec develop hors index générés :"
-      sed -n '2,$p' <<<"$verdict" | sed 's/^/  /'
+      # Seuls les fichiers hors index générés : un index en conflit se régénère, la session n'a rien à y faire.
+      sed -n '2,$p' <<<"$verdict" | { grep -Ev "$GENERES" || true; } | sed 's/^/  /'
       exit 2 ;;
     *) sortir 3 "contrôle d'ascendance illisible (verdict « ${verdict%%$'\n'*} ») : la PR n'entre pas sans lui" ;;
   esac
@@ -369,22 +357,47 @@ corps |
   gh api -X PUT "$DEPOT/pulls/$N/merge" --input - --jq .sha >"$reponse_fusion" 2>"$refus_fusion" || {
   # Refus faute d'approbation d'un propriétaire (un propriétaire du CODEOWNERS demandé, ou seul propriétaire = l'auteur, que
   # GitHub ne demande pas) : sortie 7, jamais 5, que la boucle relancerait puis arrêterait.
-  message=$(cat "$refus_fusion")
+  message=$(masquer_url <"$refus_fusion")
   printf '%s\n' "$message" >&2
   if refus_pour_revue "$message" || attend_proprietaire "$(pr_json "$N" 2>/dev/null || echo '{}')"; then
     git switch -q --detach origin/develop
     git branch -q -D "capitaine/$N" 2>/dev/null || true
     # La PR attend un humain jusqu'à une nouvelle approbation : le commentaire marqué l'arrête (file.sh, attend_humain).
-    # Commentaire impossible à poser : sortie 5 (arrêt après le second essai de la boucle), jamais 7, qui ferait
-    # repasser la PR, mise à jour et CI comprises, à chaque tour.
+    # Commentaire impossible à poser : sortie 3 (la boucle s'arrête), jamais 7, qui ferait repasser la PR, mise à jour
+    # et CI comprises, à chaque tour, ni 5, que la boucle met en pause puis reprend sans fin.
     commenter "$N" "$(printf '%s\n%s\n\n---\n_Generated by [Claude Code](https://claude.ai/code)_' "$MARQUE_ATTENTE" "$TEXTE_ATTENTE")" ||
-      sortir 5 "fusion refusée faute d'approbation d'un propriétaire (CODEOWNERS) et commentaire d'attente non posé : sans lui, la PR repasserait à chaque tour ; lire la cause (droits du compte du capitaine), relancer"
+      sortir 3 "fusion refusée faute d'approbation d'un propriétaire (CODEOWNERS) et commentaire d'attente non posé : sans lui, la PR repasserait à chaque tour ; lire la cause (droits du compte du capitaine), relancer"
     sortir 7 "$MOTIF_PROPRIETAIRE"
   fi
-  sortir 5 "fusion refusée (develop ou la PR a bougé), relancer"
+  # La branche ou develop a bougé (409, « Head/Base branch was modified », « not up to date »), ou GitHub en panne (5xx, aucun code HTTP) : sortie 5, la
+  # boucle se met en pause puis reprend. Tout autre refus (droit, règle du dépôt, méthode de fusion interdite) est
+  # durable : sortie 3, la boucle s'arrête, au lieu de refaire mise à jour et CI à chaque tour, en pause sans fin.
+  # `gh` écrit `gh: <message> (HTTP <code>)`, ou `gh: HTTP <code>` sans message dans le corps (cli/cli, pkg/cmd/api).
+  if grep -qiE 'HTTP (409|5[0-9]{2})([^0-9]|$)|branch was modified|not up to date' <<<"$message" || ! grep -qE 'HTTP [0-9]{3}([^0-9]|$)' <<<"$message"; then
+    sortir 5 "fusion refusée (develop ou la PR a bougé, ou GitHub en panne), relancer"
+  fi
+  # Décision A-51 : avant d'arrêter la boucle, develop relu et la règle d'ascendance rejouée sur le sommet testé. Develop
+  # qui n'est plus ancêtre du sommet testé a bougé entre le test et la fusion (un 405 « Repository rule violations » d'une
+  # branche devenue en retard) : une course, sortie 5, le tour suivant remet à jour et reteste. Develop illisible à la
+  # relecture : 5 (coupure passagère) ; `ascendance` en échec (panne locale) : 3, fermé.
+  if ! git_masque fetch -q origin "+refs/heads/develop:refs/remotes/origin/develop"; then
+    # Develop illisible à la relecture : une coupure passagère n'arrête pas la boucle (A-51 précisée, A-21) ; si git
+    # reste illisible, `rafraichir_outils` du tour suivant arrête la boucle (sortie 6).
+    git switch -q --detach origin/develop 2>/dev/null || true
+    git branch -q -D "capitaine/$N" 2>/dev/null || true
+    sortir 5 "fusion refusée par GitHub, et develop illisible à la relecture (cause ci-dessus) : pause, puis reprise"
+  fi
+  if verdict=$(ascendance "$sommet" origin/develop) && [ "${verdict%%$'\n'*}" != à-jour ]; then
+    git switch -q --detach origin/develop
+    git branch -q -D "capitaine/$N" 2>/dev/null || true
+    sortir 5 "fusion refusée par GitHub, mais develop a bougé entre le test et la fusion (${verdict%%$'\n'*}) : relancer, le tour suivant remet à jour et reteste"
+  fi
+  git switch -q --detach origin/develop
+  git branch -q -D "capitaine/$N" 2>/dev/null || true
+  sortir 3 "fusion refusée par GitHub, ni pour la revue ni pour une branche qui a bougé (droit du compte, règle du dépôt, méthode de fusion) : message ci-dessus ; la boucle s'arrête, un humain lit la cause"
 }
 
-git fetch -q origin "+refs/heads/develop:refs/remotes/origin/develop"
+git_masque fetch -q origin "+refs/heads/develop:refs/remotes/origin/develop"
 # Le squash : le `sha` de la réponse du PUT, sinon cherché dans develop par son sujet.
 squash=$(sed -n 1p "$reponse_fusion")
 git cat-file -e "$squash^{commit}" 2>/dev/null || squash=''
