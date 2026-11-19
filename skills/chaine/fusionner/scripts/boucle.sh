@@ -33,7 +33,7 @@
 # develop (`passer.sh`, sortie 12) : la PR porte le commentaire, la boucle s'arrête (ARRÊT, sortie 12) et le
 # capitaine le dit à son lanceur.
 # Un conflit est annulé et signalé (SUJET EN CONFLIT), jamais résolu ici : une session le
-# résout dans une PR de mise à jour (en-tête de sujet.sh), que `sujet.sh fusionner` fait entrer par
+# résout dans une PR de mise à jour (skill sujet, § « Recevoir develop dans un sujet »), que `sujet.sh fusionner` fait entrer par
 # avance rapide. Une fusion sans conflit refusée par un contrôle (hook, dépendances, gate des index, sortie 3)
 # est annulée de même et dite SUJET NON MIS À JOUR, jamais SUJET EN CONFLIT : un pre-push rouge sur ce que
 # develop apporte se corrige par une PR de mise à jour avec retouches. Une panne du capitaine (sortie 11) ou de
@@ -292,11 +292,11 @@ rafraichir_sujets() {
     rc=${PIPESTATUS[0]}
     case "$rc" in
       0) ;;
-      2) echo "[sujet/$nom] SUJET EN CONFLIT avec develop : à résoudre par une session, PR de mise à jour vers sujet/$nom (en-tête de sujet.sh)" ;;
+      2) echo "[sujet/$nom] SUJET EN CONFLIT avec develop : à résoudre par une session, PR de mise à jour vers sujet/$nom (skill sujet, « Recevoir develop dans un sujet »)" ;;
       5) echo "[sujet/$nom] sujet bougé pendant la mise à jour : repris au tour suivant" ;;
       6) echo "[sujet/$nom] PAS PROPRE : worktree du capitaine à nettoyer, sujet laissé tel quel (aucun conflit)" ;;
       # Aucun conflit : la fusion de develop est refusée par un contrôle (hook, dépendances, gate des index).
-      3) echo "[sujet/$nom] SUJET NON MIS À JOUR (sortie 3, aucun conflit) : cause ci-dessus ; un hook rouge sur ce que develop apporte (pre-push, formateur monté) se corrige par une PR de mise à jour avec retouches vers sujet/$nom (en-tête de sujet.sh)" ;;
+      3) echo "[sujet/$nom] SUJET NON MIS À JOUR (sortie 3, aucun conflit) : cause ci-dessus ; un hook rouge sur ce que develop apporte (pre-push, formateur monté) se corrige par une PR de mise à jour avec retouches vers sujet/$nom (skill sujet, « Recevoir develop dans un sujet »)" ;;
       # Rien qu'une session puisse corriger : un outil du capitaine, ou sujet.sh lui-même (69 : jq absent ; 1 : erreur).
       11) echo "[sujet/$nom] SUJET NON MIS À JOUR (sortie 11, aucun conflit) : outil du capitaine en échec, cause ci-dessus : à corriger chez le capitaine, rien à faire par une session" ;;
       *) echo "[sujet/$nom] SUJET NON MIS À JOUR (sortie $rc, aucun conflit) : erreur de sujet.sh (69 : jq absent du poste ; 1 : erreur inattendue), cause ci-dessus : à corriger chez le capitaine, rien à faire par une session" ;;

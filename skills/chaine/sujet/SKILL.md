@@ -40,7 +40,9 @@ Chaque commande, son effet et ses sorties : en-tête de `sujet.sh` ; `sujet.sh` 
 **La recette : partir du sujet à jour, une seule fusion de develop, ses conflits résolus dans cette fusion, tout le reste en retouches après elle, jamais une seconde fusion.**
 
 ```
-git fetch origin develop sujet/<nom>
+git fetch origin '+refs/heads/develop:refs/remotes/origin/develop' '+refs/heads/sujet/<nom>:refs/remotes/origin/sujet/<nom>'
+                                  # refspecs explicites : un clone `--single-branch` (clone superficiel, session cloud)
+                                  # ne crée ni ne met à jour origin/sujet/<nom> sur un simple `git fetch origin develop sujet/<nom>`
 git switch -c maj/<nom> origin/sujet/<nom>
 git merge origin/develop          # conflit résolu, puis `git add <fichiers résolus>` ; un index généré en
                                   # conflit ne s'édite pas : `git checkout --theirs -- <index>`, puis
@@ -75,7 +77,7 @@ Conflits résolus : `<fichier>` — <résolution> | aucun
 
 « Retouches » quand il y en a. « Revue de ticket » dès qu'une résolution ou une retouche touche un chemin que `revue-exigee.mjs` (skill `fusionner`) exige, formatage compris (une retouche de formatage sous `apps/` l'exige ; `docs/` et le Markdown, non). Une PR de réception sans conflit de code ni retouche de code n'en exige aucune. Après une montée d'outil, la session joue la revue de ticket sur ses retouches ; elle porte sur la résolution (`git show --remerge-diff <fusion>`) et sur l'union des fichiers de chaque retouche (`git log -p --first-parent <fusion>..<sommet>`, commit par commit).
 
-**Ce que le capitaine vérifie.** `fusionner` fait entrer la PR par avance rapide, sans squash : la filiation de develop reste, et le capitaine ferme la PR en nommant le sommet. Il exige : l'unique fusion hors du sujet et de develop est le premier commit, seule (message de git, sans ligne `Sujet:`), le sommet du sujet en premier parent et en second un commit de develop absent du sujet ; l'écart limité aux fichiers en conflit et aux index qui ont une `commande` (régénérés) ; le formatage que le pre-commit met dans la fusion n'est pas prouvé : il vient en retouche. **Chaque retouche se juge comme une sous-PR**, commit par commit (décision A-47 ter : aucune dispense par un formateur ; le capitaine n'installe rien et ne joue aucun formateur pour une PR de mise à jour). La section « Retouches » n'est jamais lue pour dispenser. Sinon, sortie 4 avec le motif et la recette.
+**Ce que le capitaine vérifie.** `fusionner` fait entrer la PR par avance rapide, sans squash : la filiation de develop reste, et le capitaine ferme la PR en nommant le sommet. Il exige : l'unique fusion hors du sujet et de develop est le premier commit, seule (message de git, sans ligne `Sujet:`), le sommet du sujet en premier parent et en second un commit de develop absent du sujet ; l'écart limité aux fichiers en conflit et aux index qui ont une `commande` (régénérés) ; le formatage que le pre-commit met dans la fusion n'est pas prouvé : il vient en retouche. **Chaque retouche se juge comme une sous-PR**, commit par commit (décision A-47 ter : aucune dispense par un formateur ; le capitaine n'installe rien et ne joue aucun formateur pour une PR de mise à jour). La section « Retouches » n'est jamais lue pour dispenser. Sinon, sortie 4 avec le motif. Seul le refus « plusieurs fusions » donne la recette pour refaire ; le refus du premier parent dit seulement de refaire la PR depuis `origin/sujet/<nom>` et renvoie ici ; les autres motifs disent ce qui est faux, sans recette.
 
 ## Geler un chantier (`geler`, `degeler`, `gel`)
 
