@@ -1,6 +1,6 @@
 # Le conducteur ne met plus le sujet à jour avec develop : c'est le geste du capitaine seul
 
-Status: ready-for-agent
+Status: Fait — PR 136
 Type: défaut
 Modèle: sonnet — une phrase d'un skill remplacée par un texte donné mot pour mot, un test de dépôt, la version et sa note. Rien à concevoir.
 Blocked by: — dans ce programme. Hors programme : `skills/chaine/chantier/SKILL.md` est un fichier chaud du programme « capitaine à jour et testé » (ses tickets 4 et 5) ; partir de `main` une fois leurs PR entrées, ou reprendre `main` avant de livrer.
@@ -73,3 +73,4 @@ Le conducteur n'a donc rien à lancer : le capitaine reçoit `develop` de lui-m�
 ## Comments
 
 - 2026-11-18 — Relecture par un agent neuf : « prêt après retouches ». Portées : le trou du premier constat « en retard » (aucune vague ne part, réveil à 45 min, puis la question au capitaine ; les autres réponses du capitaine), « chaque lancement de la boucle » et non « chaque tour », la forme du test de refus, la base `1c4acb1` (7.17.0), le reliquat de `sujet.sh:204` en hors périmètre. Vérifié par le relecteur : les deux bornes existent une fois chacune, seule occurrence de `rafraichir` du fichier, aucune autre prose du plugin ne dit au conducteur de lancer `rafraichir`, tests de version en `depot.test.mjs:1032-1041`. Non vérifié : la suite n'a pas été jouée.
+- 2026-11-19 — **Fait : PR 136 de `MAJ-agency/skills`, squash `a018502`, plugin 7.31.1**, fusionnée à 11 h 14 UTC par le capitaine relancé. Arbre de `main` identique à l'arbre du sommet relu `db1ee8250f23e9ac46ce4dd264da3dda2f60d32b` (`ac511d3a…`), vérifié par l'architecte. **Le texte de la PR fait foi sur celui de ce ticket** pour les trois écarts d'`A-131` et les quatre retouches d'`A-132` (corps de la PR). Session `session_017ZgEwJLmqmNSgMZ97RgCuy` (4,34 $), archivée avant la fusion. Reliquat laissé : le refus de `demarrer` dans `sujet.sh` conseille encore `sujet.sh rafraichir <nom>` à une session.
