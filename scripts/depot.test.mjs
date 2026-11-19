@@ -239,6 +239,13 @@ test("le gabarit .claude/chaine.json range les gardes de la chaîne parmi les ch
   }
 });
 
+test("le gabarit de .claude/chaine.json porte fusionsSansEffet vide, et son $comment la nomme", () => {
+  const gabarit = JSON.parse(readFileSync(join(RACINE, "skills/chaine/socle-chaine-de-production/references/chaine.json"), "utf8"));
+  assert.deepEqual(gabarit.fusionsSansEffet, []);
+  assert.match(gabarit.$comment, /`fusionsSansEffet`/);
+  assert.match(gabarit.$comment, /grep -E/);
+});
+
 // Un script du plugin ne saute jamais un hook git (« jamais --no-verify ») : les scripts que le plugin
 // pose dans un projet passent sous les hooks du projet, comme une session. Un banc peut INSTALLER un hook
 // dans son dépôt jouet (`config core.hooksPath`), pas en sauter un. Les quatre fichiers ci-dessous nomment

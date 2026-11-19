@@ -44,7 +44,11 @@ git fetch origin '+refs/heads/develop:refs/remotes/origin/develop' '+refs/heads/
                                   # refspecs explicites : un clone `--single-branch` (clone superficiel, session cloud)
                                   # ne crée ni ne met à jour origin/sujet/<nom> sur un simple `git fetch origin develop sujet/<nom>`
 git switch -c maj/<nom> origin/sujet/<nom>
-git merge origin/develop          # conflit résolu, puis `git add <fichiers résolus>` ; un index généré en
+bash -c '. scripts/chaine/github.sh && fusionner_avec origin/develop'
+                                  # `git merge origin/develop` avec la mention de `fusionsSansEffet` quand elle
+                                  # s'applique (skill fusionner, « Fusion sans effet ») : sans elle, le hook du projet
+                                  # qui a refusé `rafraichir` refuse aussi cette fusion ;
+                                  # conflit résolu, puis `git add <fichiers résolus>` ; un index généré en
                                   # conflit ne s'édite pas : `git checkout --theirs -- <index>`, puis
                                   # `git add <index>`, le capitaine le régénère
 pnpm install --frozen-lockfile --prefer-offline   # les outils avant le commit : le pre-commit formate avec le Prettier installé
