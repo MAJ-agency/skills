@@ -605,7 +605,7 @@ const lireFil = ({ ordre, renvoi, longueur, associations, pied, crlf }, fil) => 
   }
   return { sha, renvois, renvoiEdite };
 };
-// Ticket 20 : la tête qui n'est pas l'ordre est renvoyée, même une mise à jour faite par GitHub.
+// Ticket 20 : une tête qui n'est pas l'ordre est renvoyée, sans exception (le banc du bloc de texte, en fin de fichier, le tient).
 const decider = (formes, fil, tete) => {
   const { sha, renvois, renvoiEdite } = lireFil(formes, fil);
   if (renvoiEdite) return "renvoi-edite";
@@ -617,7 +617,6 @@ const decider = (formes, fil, tete) => {
 const A = "a".repeat(40);
 const B = "0123456789abcdef0123456789abcdef01234567";
 const T = "fedcba9876543210fedcba9876543210fedcba98";
-const BASE = "b".repeat(40);
 const dit = (body, { association = "MEMBER", edite = false } = {}) => ({
   body,
   author_association: association,
@@ -674,13 +673,6 @@ test("le plafond : les renvois du capitaine se comptent dans le fil, un renvoi d
     "une forme voisine de renvoi ne compte pas",
   );
   assert.equal(lireFil(formes, [ordre(A), ordre(B)]).renvois, 0, "l'ordre réécrit par le capitaine après une mise à jour n'est pas un renvoi");
-});
-
-test("la tête qui n'est pas l'ordre est renvoyée, sans exception, même une mise à jour signée par GitHub", () => {
-  const formes = formesLues();
-  const fil = [dit(`à-fusionner au sommet ${A}`)];
-  assert.equal(decider(formes, fil, T), "sommet-bouge", "tête différente de l'ordre : renvoi, sans lecture du sommet");
-  assert.equal(decider(formes, [...fil, dit(`à-fusionner au sommet ${T}`)], T), "fusion", "l'ordre reposé à la nouvelle tête par la session vaut");
 });
 
 test("le capitaine d'un dépôt sans la chaîne n'a ni `gh` ni timeline, et le commentaire au sommet n'est le geste que du dépôt sans la chaîne", () => {
