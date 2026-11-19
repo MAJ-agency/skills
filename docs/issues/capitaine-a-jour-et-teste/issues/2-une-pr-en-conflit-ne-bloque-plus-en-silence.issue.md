@@ -1,6 +1,6 @@
 # Une PR en conflit ne bloque plus en silence : `relancer` résout un conflit d'index, `file.sh` dit « en conflit »
 
-Status: ready-for-agent
+Status: Fait — PR #128
 Type: défaut
 Modèle: opus — le ticket s'appuie sur `ascendance` et `mettre_a_jour_sous_pr` tels que le ticket 1 les aura laissés, dont la forme exacte ne se lit qu'au lancement ; il change un état de `file.sh` que lisent la boucle et la veille, et une erreur laisse une sous-PR sans CI ni renvoi.
 Blocked by: 1 (`ascendance` et la nouvelle `mettre_a_jour_sous_pr` ; `sujet.sh`, `faux-gh.mjs` et les bancs sont des fichiers chauds du ticket 1 : partir de `main` après sa fusion)
