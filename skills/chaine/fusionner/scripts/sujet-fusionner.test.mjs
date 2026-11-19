@@ -38,7 +38,9 @@ function sousPrEnConflit(conflit) {
         ? { "docs/f.md": "sous\n" }
         : conflit === "code2"
           ? { "docs/f.md": "sous\n", "docs/g.md": "sous\n" }
-          : { [`${ADR}/ADR_ALL_ARC-2-b.md`]: "# 2\n", [`${ADR}/README.md`]: index("ADR_ALL_ARC-1-a.md", "ADR_ALL_ARC-2-b.md") },
+          : conflit === "mixte"
+            ? { "docs/f.md": "sous\n", [`${ADR}/ADR_ALL_ARC-2-b.md`]: "# 2\n", [`${ADR}/README.md`]: index("ADR_ALL_ARC-1-a.md", "ADR_ALL_ARC-2-b.md") }
+            : { [`${ADR}/ADR_ALL_ARC-2-b.md`]: "# 2\n", [`${ADR}/README.md`]: index("ADR_ALL_ARC-1-a.md", "ADR_ALL_ARC-2-b.md") },
     );
   const avant = conflit === "aucun" ? null : sous();
   d.branche(
@@ -48,7 +50,13 @@ function sousPrEnConflit(conflit) {
       ? { "docs/f.md": "sujet\n" }
       : conflit === "code2"
         ? { "docs/f.md": "sujet\n", "docs/g.md": "sujet\n" }
-        : conflit === "index"
+        : conflit === "mixte"
+          ? {
+              "docs/f.md": "sujet\n",
+              [`${ADR}/ADR_ALL_ARC-3-c.md`]: "# 3\n",
+              [`${ADR}/README.md`]: index("ADR_ALL_ARC-1-a.md", "ADR_ALL_ARC-3-c.md"),
+            }
+          : conflit === "index"
         ? {
             [`${ADR}/ADR_ALL_ARC-3-c.md`]: "# 3\n",
             [`${ADR}/README.md`]: index("ADR_ALL_ARC-1-a.md", "ADR_ALL_ARC-3-c.md"),
@@ -201,6 +209,57 @@ test("relancer : une sous-PR qui a bougé depuis sa lecture n'est ni jugée ni p
   assert.equal(r.status, 5, r.stdout + r.stderr);
   assert.match(r.stdout, /a bougé depuis sa lecture/);
   assert.equal(d.git("ls-remote", "origin"), avant);
+});
+
+// Contre-relecture (M1) : un conflit mixte ne nomme que les fichiers hors index générés ; l'index se régénère.
+test("relancer : conflit mixte (code et index généré), seuls les fichiers hors index sont listés", () => {
+  const { d, sommet } = sansChecks("mixte");
+  const r = d.lancer(SUJET, "relancer", "80");
+  assert.equal(r.status, 2, r.stdout + r.stderr);
+  assert.match(r.stdout, /^conflit avec sujet\/lot hors index générés :\n {2}docs\/f\.md$/m);
+  assert.doesNotMatch(r.stdout, /README\.md/);
+  d.git("fetch", "-q", "origin");
+  assert.equal(d.git("rev-parse", "origin/docs/sous"), sommet);
+});
+
+// Contre-relecture (M2) : GitHub rend encore l'ancien sommet, en conflit, alors que la session a déjà résolu et
+// poussé. Sans le garde, `relancer` jugerait l'ancien sommet et la boucle renverrait à tort (sortie 2) : sortie 5.
+test("relancer : GitHub rend l'ancien sommet en conflit alors que la session a résolu et poussé : sortie 5, aucun renvoi possible", () => {
+  const { d, sommet } = sansChecks("code");
+  d.git("switch", "-q", "--detach", "origin/docs/sous");
+  spawnSync("git", ["merge", "-q", "--no-edit", "origin/sujet/lot"], { cwd: d.travail, env: d.env });
+  d.ecrire("docs/f.md", "résolu\n");
+  d.git("add", "docs/f.md");
+  d.git("commit", "-q", "--no-edit");
+  d.git("push", "-q", "origin", "HEAD:refs/heads/docs/sous");
+  d.git("switch", "-q", "--detach", "origin/develop");
+  const etat = d.etat();
+  etat.pulls[0].sha = sommet;
+  d.github(etat);
+  const r = d.lancer(SUJET, "relancer", "80");
+  assert.equal(r.status, 5, r.stdout + r.stderr);
+  assert.match(r.stdout, /a bougé depuis sa lecture/);
+  assert.doesNotMatch(r.stdout, /hors index générés/);
+});
+
+// Contre-relecture (B1, A-22) : le pre-push refuse la mise à jour d'index que pousse `relancer`, trace de husky dans sa
+// sortie : la sous-PR est renvoyée avec la sortie du hook, jamais refaite en silence à chaque tour.
+test("boucle.sh : relancer refusé par le pre-push (trace de husky) sur un conflit d'index, la sous-PR est renvoyée avec la sortie du hook", () => {
+  const { d } = sansChecks("index");
+  d.publierChaine();
+  const dir = join(d.racine, "hooks-relancer");
+  mkdirSync(dir);
+  writeFileSync(join(dir, "pre-push"), '#!/bin/sh\necho "pre-push jouet : refus du lint" >&2\necho "husky - pre-push script failed (code 1)"\nexit 1\n');
+  chmodSync(join(dir, "pre-push"), 0o755);
+  d.git("config", "core.hooksPath", dir);
+  const avant = d.git("ls-remote", "origin", "refs/heads/docs/sous");
+  const r = d.lancer(BOUCLE);
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  const renvoi = d.journal().find((e) => e.methode === "POST" && e.route === "issues/80/comments");
+  assert.ok(renvoi, `renvoi posté : ${r.stdout}`);
+  assert.match(renvoi.champs.body, /<!-- renvoi-capitaine -->/);
+  assert.match(renvoi.champs.body, /le pre-push refuse le push de la mise à jour avec sujet\/lot\. Sortie du hook : .*pre-push jouet : refus du lint/);
+  assert.equal(d.git("ls-remote", "origin", "refs/heads/docs/sous"), avant, "rien n'est poussé");
 });
 
 test("boucle.sh : une sous-PR prête (en conflit) sur un index seul est mise à jour par relancer, jamais renvoyée ; en conflit de code, renvoyée avec ses fichiers", () => {

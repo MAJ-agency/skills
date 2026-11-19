@@ -32,7 +32,8 @@
 # elle repasse au tour suivant. Une sous-PR sans CI, ou « prête (en conflit) » (GitHub ne lance pas la CI d'une PR en
 # conflit), passe par `sujet.sh relancer`, qui lit la règle d'ascendance avant toute fusion : en retard ou en conflit
 # sur des index générés seuls, mise à jour et poussée, CI relancée ; conflit hors index, renvoyée avec ses fichiers
-# (sortie 2) ; contrôle illisible (sortie 11), laissée dans la file sans renvoi. Arbre du squash ≠ arbre testé, vers un sujet (`sujet.sh`, sortie 12) comme vers
+# (sortie 2) ; mise à jour refusée par le pre-push (sortie 3, dernière ligne de relancer, A-22), renvoyée avec la sortie
+# du hook ; contrôle illisible (sortie 11), laissée dans la file sans renvoi. Arbre du squash ≠ arbre testé, vers un sujet (`sujet.sh`, sortie 12) comme vers
 # develop (`passer.sh`, sortie 12) : la PR porte le commentaire, la boucle s'arrête (ARRÊT, sortie 12) et le
 # capitaine le dit à son lanceur.
 # Un conflit est annulé et signalé (SUJET EN CONFLIT), jamais résolu ici : une session le
@@ -345,6 +346,15 @@ traiter_sujets() {
           2)
             fichiers=$(awk -v d="conflit avec ${etat%% :*} hors index générés :" '{ sub(/\r$/, "") } index($0, d) == 1 { f = 1; next } f && /^  [^ ]/ { sub(/^  /, ""); printf "%s`%s`", (k++ ? ", " : ""), $0; next } { f = 0 }' "$sortie")
             bash "$outils/renvoyer.sh" "$n" "conflit avec ${etat%% :*} hors index générés : ${fichiers:-voir la sortie de sujet.sh relancer}. Fusionner ${etat%% :*} dans la branche et le résoudre" ;;
+          # Classée sur la DERNIÈRE ligne de relancer (son `sortir`), jamais sur un motif cherché dans toute la sortie :
+          # celle d'un hook relayée peut porter ces mots. Trace de husky (A-22) : le pre-push refuse la mise à jour,
+          # la sous-PR est renvoyée avec la sortie du hook. Toute autre sortie 3 (rien à pousser, conflit apparu
+          # entre le contrôle et la fusion, hook de commit) reste silencieuse : le tour suivant la rejuge.
+          3)
+            fin=$({ grep . "$sortie" || true; } | tail -n 1 | tr -d '\r')
+            if [[ "$fin" == "mise à jour de #$n refusée par le hook pre-push"* ]]; then
+              bash "$outils/renvoyer.sh" "$n" "le pre-push refuse le push de la mise à jour avec ${etat%% :*}. Sortie du hook : $(extrait_hook "$sortie")"
+            fi ;;
           4) bash "$outils/refus.sh" "$n" "$sortie" ;; # tête gardée : renvoyée avec le motif
           6) echo "[#$n] PAS PROPRE : worktree du capitaine à nettoyer, sous-PR laissée dans la file (aucun renvoi)" ;;
           5) echo "[#$n] REPRISE au tour suivant (sous-PR bougée ou GitHub illisible), aucun renvoi" ;;

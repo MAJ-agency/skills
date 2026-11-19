@@ -186,3 +186,8 @@ Ceux du tableau « Où » : `fusionner/SKILL.md:60`, `fusionner/references/CONTE
   - **`skills/chaine/sujet/references/CONTENU.md`**, hors du tableau « Où » : il décrit chaque comportement du faux GitHub ; `mergeable_state` y est ajouté.
   - **Renvoi de la boucle** : la liste des fichiers s'arrête à la première ligne qui n'est pas un fichier indenté, et tolère une fin de ligne CRLF ; banc à deux fichiers en conflit (revue de ticket, axe Règles, S19).
   - Version : **7.26.0** (mineure sur 7.25.0 de `main`).
+- 2026-11-19 — Contre-relecture de l'architecte sur `8f05692` (non conforme, un bloquant), corrigée :
+  - **B1** : l'architecte tranche entre la Décision 3 et `A-22` pour `A-22`. Une sortie 3 de `relancer` dont la **dernière** ligne est `mise à jour de #<n> refusée par le hook pre-push…` (trace de husky) est renvoyée par la boucle avec `extrait_hook`, comme pour `passer.sh` ; toute autre sortie 3 reste silencieuse. Banc par la boucle, pre-push qui refuse avec la trace, vu rouge avant le code.
+  - **M1** : un conflit mixte ne liste que les fichiers que la regex des index générés n'attrape pas, dans `relancer` et dans le contrôle d'ascendance de `passer.sh` après la CI (même défaut, hérité du ticket 1). Deux bancs, vus rouges.
+  - **M2** : banc du garde « a bougé depuis sa lecture » qui le tient : GitHub rend l'ancien sommet en conflit alors que la session a résolu et poussé ; sans le garde, sortie 2 (vu rouge), avec lui, 5.
+  - Doutes tranchés par l'architecte : sortie 5 de `file.sh` conforme à `A-21` ; « prête (en conflit) » gardé, la spec `A-7` mise à jour par lui.

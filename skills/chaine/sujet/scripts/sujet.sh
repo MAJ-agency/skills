@@ -42,7 +42,9 @@
 #                         en retard, ou en conflit sur des index générés seuls : son sujet fusionné dans sa branche
 #                         comme par `fusionner` (index régénérés, commit, push), ce qui lance sa CI (jamais de rebase
 #                         ni de force) ; conflit hors index : sortie 2, la ligne `conflit avec <base> hors index
-#                         générés :` puis chaque fichier indenté de deux espaces, branche intacte ; déjà à jour : 3
+#                         générés :` puis chaque fichier hors index générés, indenté de deux espaces, branche intacte ;
+#                         déjà à jour : 3 ; mise à jour refusée par le pre-push : 3, dernière ligne `mise à jour de #<n>
+#                         refusée par le hook pre-push…` ; sous-PR qui a bougé depuis sa lecture : 5
 #   series                séries repérées dans la file du capitaine (PR vers develop ou empilées) :
 #                         même spec (SPEC_ALL_SOC-1.xx), même pile, même préfixe de branche
 #   regrouper-series [--dry-run]
@@ -1055,8 +1057,9 @@ relancer() {
   case ${verdict%%$'\n'*} in
     à-jour) sortir 3 "#$n contient déjà $base : aucun commit à pousser, CI non déclenchable" ;;
     conflit)
+      # Seuls les fichiers hors index générés : un index en conflit se régénère, la session n'a rien à y faire.
       printf 'conflit avec %s hors index générés :\n' "$base"
-      sed -n '2,$p' <<<"$verdict" | sed 's/^/  /'
+      sed -n '2,$p' <<<"$verdict" | { grep -Ev "$GENERES" || true; } | sed 's/^/  /'
       exit 2 ;;
     retard | conflit-index) ;;
     *) sortir 11 "#$n : contrôle d'ascendance illisible (verdict « ${verdict%%$'\n'*} ») : sous-PR laissée dans la file, rien à corriger côté PR" ;;

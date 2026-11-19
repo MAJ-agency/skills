@@ -1696,6 +1696,39 @@ function cibleQuiBouge(deplacements) {
   return { d, origine, vers };
 }
 
+// Contre-relecture (M1) : develop rejoint pendant la CI un commit en conflit mixte (code et index généré) ; le contrôle
+// d'ascendance d'avant le squash ne nomme que le fichier hors index.
+test("passer.sh : conflit mixte avec develop après la CI, seuls les fichiers hors index générés sont listés", () => {
+  const d = depotJouet();
+  d.ecrire(`${ADR}/ADR_ALL_ARC-1-a.md`, "# 1\n");
+  d.ecrire(`${ADR}/README.md`, index("ADR_ALL_ARC-1-a.md"));
+  d.commit("docs: adr 1");
+  d.git("push", "-q", "origin", "HEAD:develop");
+  d.git("fetch", "-q", "origin");
+  d.branche("docs/m", "origin/develop", {
+    "docs/m.md": "pr\n",
+    [`${ADR}/ADR_ALL_ARC-2-b.md`]: "# 2\n",
+    [`${ADR}/README.md`]: index("ADR_ALL_ARC-1-a.md", "ADR_ALL_ARC-2-b.md"),
+  });
+  const vers = d.branche("ailleurs", "origin/develop", {
+    "docs/m.md": "develop\n",
+    [`${ADR}/ADR_ALL_ARC-3-c.md`]: "# 3\n",
+    [`${ADR}/README.md`]: index("ADR_ALL_ARC-1-a.md", "ADR_ALL_ARC-3-c.md"),
+  });
+  d.git("switch", "-q", "--detach", "origin/develop");
+  d.github({
+    exiges: ["qualite"],
+    checks: { "*": { [PERIMETRE]: ["IN_PROGRESS", "SUCCESS"], qualite: ["IN_PROGRESS", "SUCCESS"] } },
+    pendantCi: [{ lectures: 2, branche: "develop", vers }],
+    pulls: [pr(41, "docs/m", { title: "docs(adr): ADR 2" })],
+  });
+  const r = d.lancer(script("passer.sh"), "41");
+  assert.equal(r.status, 2, r.stdout + r.stderr);
+  assert.match(r.stdout, /conflit avec develop hors index générés :\n {2}docs\/m\.md\n?/);
+  assert.doesNotMatch(r.stdout, /^ {2}docs\/adr\/README\.md$/m);
+  assert.equal(fusionsDe(d, 41).length, 0, "aucun PUT");
+});
+
 test("cible qui bouge pendant la CI : mise à jour reprise, deux fois au plus", () => {
   const { d, origine, vers } = cibleQuiBouge(1);
   const r = d.lancer(script("passer.sh"), "40");
