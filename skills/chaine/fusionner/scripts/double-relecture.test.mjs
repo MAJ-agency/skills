@@ -42,6 +42,9 @@ for (const cle of Object.keys(process.env)) if (!(cle in SANS) && cle !== 'NODE_
 process.env.NO_COLOR = '1';
 process.env.GIT_CONFIG_GLOBAL = '/dev/null';
 process.env.GIT_CONFIG_NOSYSTEM = '1';
+// Ni la configuration de système du poste : `git config --system`, nommé, la lit malgré GIT_CONFIG_NOSYSTEM, et un
+// poste (un runner de CI) y déclare `safe.directory = *`. Un banc qui dépend de `/etc/gitconfig` n'est pas un banc.
+process.env.GIT_CONFIG_SYSTEM = '/dev/null';
 const ENV_PROPRE = Object.fromEntries(Object.entries(process.env).filter(([cle]) => cle !== 'NODE_TEST_CONTEXT'));
 const dossiers = [];
 const dossier = (prefixe) => {
@@ -937,11 +940,11 @@ test("le dépôt d'un autre propriétaire : « illisible » ; déclaré sûr par
   const faux = dossier('git-');
   writeFileSync(join(faux, 'git'), `#!/bin/sh\ncase "$PWD/" in "${depot}/"*) GIT_TEST_ASSUME_DIFFERENT_OWNER=1; export GIT_TEST_ASSUME_DIFFERENT_OWNER ;; esac\nexec "${vrai}" "$@"\n`, { mode: 0o755 });
   const configuration = join(dossier('configuration-'), 'gitconfig');
-  const juger = (declarations, cwd = depot) => {
+  const juger = (declarations, cwd = depot, env = {}) => {
     // La configuration de l'utilisateur ment sur le reste : le calcul n'en reprend que la déclaration. (Aucun réglage
     // d'utilisateur ne change les lectures du dépôt réel au point de se voir ici : cela tient au code, pas à ce banc.)
     writeFileSync(configuration, `[core]\n\tbare = true\n\tworktree = /ailleurs\n[safe]\n${declarations.map((d) => `\tdirectory = ${d}\n`).join('')}`);
-    return lancer(script, ['--base', 'develop', '--tete', tete], { cwd, entree, env: { TMPDIR: temporaire, PATH: `${faux}:${process.env.PATH}`, GIT_CONFIG_GLOBAL: configuration } });
+    return lancer(script, ['--base', 'develop', '--tete', tete], { cwd, entree, env: { TMPDIR: temporaire, PATH: `${faux}:${process.env.PATH}`, GIT_CONFIG_GLOBAL: configuration, ...env } });
   };
   const refuse = [21, '# illisible : pas dans un dépôt git\nillisible\n'];
   const lu = [20, `RULE_ALL_FAC-16\tniveau\t${INDEX}\t${tete}\nexigée\n`];
@@ -954,6 +957,16 @@ test("le dépôt d'un autre propriétaire : « illisible » ; déclaré sûr par
   assert.deepEqual(rendu(juger([`${dirname(depot)}/*`])), lu, 'déclaré par le dossier qui le contient');
   assert.deepEqual(rendu(juger([`${depot}-autre`, '/ailleurs/*'])), refuse, "la déclaration d'un autre dépôt ne vaut pas pour celui-ci");
   assert.deepEqual(rendu(juger([depot, ''])), refuse, 'une valeur vide efface les déclarations qui la précèdent, comme pour git');
+  // La configuration de système (`A-130`) : le calcul lit les déclarations que git lirait lui-même, pas davantage.
+  // Avec GIT_CONFIG_NOSYSTEM vrai au sens de git, git ignore le fichier de système : le calcul ne le lit pas non plus.
+  const systeme = join(dirname(configuration), 'systeme');
+  writeFileSync(systeme, '[safe]\n\tdirectory = *\n');
+  const avec = (nosystem) => rendu(juger([], depot, { GIT_CONFIG_SYSTEM: systeme, GIT_CONFIG_NOSYSTEM: nosystem }));
+  assert.deepEqual(avec(undefined), lu, 'déclaré par le système, sans GIT_CONFIG_NOSYSTEM : lu');
+  for (const v of ['0', 'false', 'no', 'off', 'OFF', '']) assert.deepEqual(avec(v), lu, `GIT_CONFIG_NOSYSTEM=${JSON.stringify(v)} est faux pour git : le système est lu`);
+  for (const v of ['1', 'true', 'yes', 'on', 'TRUE', '2']) assert.deepEqual(avec(v), refuse, `GIT_CONFIG_NOSYSTEM=${v} : git ignore le système, le calcul aussi`);
+  assert.deepEqual(avec('bidon'), refuse, 'une valeur que git refuse (il échoue alors à toute commande) : le système n\'est pas lu');
+  assert.deepEqual(rendu(juger([depot], depot, { GIT_CONFIG_SYSTEM: systeme, GIT_CONFIG_NOSYSTEM: '1' })), lu, "le système ignoré, la déclaration de l'utilisateur vaut toujours");
   assert.deepEqual(readdirSync(temporaire), [], 'aucun dépôt propre ne reste');
 });
 

@@ -359,8 +359,13 @@ function declareSur(cwd) {
   // Où vit la configuration de l'utilisateur : ces trois variables le disent, aucune autre `GIT_*` n'est héritée.
   const LIEU = ['GIT_CONFIG_GLOBAL', 'GIT_CONFIG_SYSTEM', 'GIT_CONFIG_NOSYSTEM'];
   const env = Object.fromEntries(Object.entries(process.env).filter(([cle]) => !cle.startsWith('GIT_') || LIEU.includes(cle)));
+  // Les déclarations que git lirait lui-même, pas davantage : quand GIT_CONFIG_NOSYSTEM est vrai, git ignore la
+  // configuration de système, mais `git config --system`, nommé, la lirait quand même. Elle n'est lue ici que si la
+  // variable est absente ou fausse au sens de git (vide, `false`, `no`, `off`, zéro) ; toute autre valeur l'écarte,
+  // celle que git refuse comprise (il échoue alors à toute commande) : le côté sûr, le calcul lit moins.
+  const sansSysteme = !/^(|false|no|off|[+-]?0+)$/i.test(process.env.GIT_CONFIG_NOSYSTEM ?? '');
   let declares = [];
-  for (const portee of ['--system', '--global']) {
+  for (const portee of sansSysteme ? ['--global'] : ['--system', '--global']) {
     let lus = [];
     try {
       lus = execFileSync('git', ['config', portee, '--includes', '--get-all', 'safe.directory'], { cwd: '/', env, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).split('\n');
