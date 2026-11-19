@@ -3,14 +3,14 @@
 Status: ready-for-agent
 Type: task
 Label: contre-revue
-Modèle: sonnet — le script et son banc sont donnés mot pour mot (annexes A et B), joués sur un clone neuf d'`origin/main` : 47 tests verts, 39 mutations nommées, toutes tuées sauf une, dite et expliquée, la suite entière du dépôt verte avec eux. Restent la version, la note et le rejeu. Rien à concevoir : qui veut changer une décision l'écrit à son lanceur, il ne tranche pas.
+Modèle: sonnet — le script et son banc sont donnés mot pour mot (annexes A et B), joués sur un clone neuf d'`origin/main` : 48 tests verts, 41 mutations nommées, 36 tuées et cinq qui survivent, chacune dite et expliquée (des gardes qui se couvrent l'une l'autre), la suite entière du dépôt verte avec eux. Restent la version, la note et le rejeu. Rien à concevoir : qui veut changer une décision l'écrit à son lanceur, il ne tranche pas.
 Blocked by: —
 Dépendances: —
 Fichiers chauds: `skills/chaine/fusionner/scripts/meme-contenu.sh` (créé), `skills/chaine/fusionner/scripts/meme-contenu.test.mjs` (créé), `.claude-plugin/plugin.json`, `NOTES-DE-VERSION.md`
 
 ## Le besoin
 
-Ce ticket réalise le lot 3b de la spec [`relecture-independante.spec.md`](../relecture-independante.spec.md) (sixième version) : ses décisions `A-81` et `A-106`, sous les règles de `A-108` et dans l'ordre de `A-109`. Les choix que la spec ne portait pas ont été tranchés par l'architecte le 2026-11-18, décision `A-112`. Une relecture adversariale de la première version de ce ticket l'a rendue « pas prête » : deux faux « même » et un « illisible » manqué, tous reproduits ; l'architecte a adopté toutes ses corrections, décision `A-114`. Un second tour a fermé ces corrections et reproduit trois faux « même » nouveaux : l'architecte a cessé de boucher cas par cas, et posé quatre règles de structure, décision `A-119` (Décision 13). Les trois sont marquées ainsi dans « Décisions » ; le script et le banc des annexes sont ceux d'après `A-119`.
+Ce ticket réalise le lot 3b de la spec [`relecture-independante.spec.md`](../relecture-independante.spec.md) (sixième version) : ses décisions `A-81` et `A-106`, sous les règles de `A-108` et dans l'ordre de `A-109`. Les choix que la spec ne portait pas ont été tranchés par l'architecte le 2026-11-18, décision `A-112`. Une relecture adversariale de la première version de ce ticket l'a rendue « pas prête » : deux faux « même » et un « illisible » manqué, tous reproduits ; l'architecte a adopté toutes ses corrections, décision `A-114`. Un second tour a fermé ces corrections et reproduit trois faux « même » nouveaux : l'architecte a cessé de boucher cas par cas, et posé quatre règles de structure, décision `A-119` (Décision 13). Un troisième et dernier tour a rendu « prêt après retouches » et laissé deux faux « même » : l'architecte les a fermés par la décision `A-123`, qui clôt la boucle (la dispense des index sans commande et sous motif est retirée, Décision 7 ; aucun fichier de l'utilisateur ne pèse, Décision 13). Les quatre décisions sont marquées dans « Décisions » ; le script et le banc des annexes sont ceux d'après `A-123`.
 
 **Ce qui manque.** En régime 8, un verdict de relecture porte sur un sommet, V. Le capitaine met à jour et reteste toute PR en retard sur sa cible, jusqu'à trois fois par passage (plugin 7.16.0) : le sommet qu'il fusionne, T, est un commit qu'il a écrit lui-même. Deux lecteurs devront dire si le verdict de V vaut encore pour T : le Relecteur à chaque réveil (`A-85`, règles 2 et 3, lot 4) et le capitaine à ses deux contrôles (`A-105`, lot 5a). `A-81` veut un seul calcul, écrit une fois, à côté des scripts du capitaine. Il n'existe pas. Ce ticket l'écrit et l'éprouve ; **il ne le branche nulle part** : ni `passer.sh`, ni `sujet.sh`, ni aucun skill ne l'appelle encore.
 
@@ -23,14 +23,14 @@ Ce ticket réalise le lot 3b de la spec [`relecture-independante.spec.md`](../re
 >
 > Tout autre commit : « différent » ; V absent de cette ligne : « différent ».
 
-**Ce que `main` a déjà, et pourquoi le calcul ne le reprend pas.** **La base de ce ticket est `origin/main` à `8f8cfd9` (plugin 7.21.1)**, relue après `git fetch origin main`. `passer.sh`, `github.sh` et `sujet.sh` y sont ceux de `1c4acb1` (7.17.0), le commit que la spec et le rapport de vérification citent : `git diff 1c4acb1 8f8cfd9 -- skills/chaine/fusionner/scripts/passer.sh skills/chaine/fusionner/scripts/github.sh skills/chaine/sujet/scripts/sujet.sh` est vide. `depot-jouet.mjs` (le ticket 13 de l'autre programme y est entré), `boucle.sh`, `fusionner/SKILL.md`, `README.md` et les tests de `scripts/` ont bougé depuis : leurs repères de ligne sont ceux de `8f8cfd9`.
+**Ce que `main` a déjà, et pourquoi le calcul ne le reprend pas.** **La base de ce ticket est `origin/main` à `d5b1561` (plugin 7.23.0)**, relue après `git fetch origin main`. `passer.sh`, `github.sh` et `sujet.sh` y sont ceux de `1c4acb1` (7.17.0), le commit que la spec et le rapport de vérification citent : `git diff 1c4acb1 d5b1561 -- skills/chaine/fusionner/scripts/passer.sh skills/chaine/fusionner/scripts/github.sh skills/chaine/sujet/scripts/sujet.sh` est vide. `depot-jouet.mjs` (le ticket 13 de l'autre programme y est entré), `boucle.sh`, `fusionner/SKILL.md`, `README.md` et les tests de `scripts/` ont bougé depuis : leurs repères de ligne sont ceux de `d5b1561`.
 
 - Les deux sortes de commits que le capitaine écrit sur la branche d'une PR : la fusion de la cible (`skills/chaine/fusionner/scripts/passer.sh:220`, `skills/chaine/sujet/scripts/sujet.sh:518`), conclue par `git commit --no-edit` quand un index était en conflit, après `git checkout --theirs` sur lui et la régénération (`passer.sh:261`, `:272` ; `sujet.sh:534`, `:539`) ; et, quand la fusion était propre et qu'un index change à la régénération, un commit à part, `docs: régénère les index après mise à jour avec …` (`passer.sh:274`, `sujet.sh:541`).
 - `verifier_mise_a_jour` (`sujet.sh:618`) juge déjà une fusion contre celle qu'elle recalcule de ses deux parents : c'est l'esprit du calcul. Mais elle lit la liste des index par l'arbre de travail d'abord, joue `commitlint`, et sort par `sortir`.
 - `livraison_intermediaire` (`passer.sh:126`) applique les trois classes d'index. Mais elle lit la liste par `index_json` (`skills/chaine/fusionner/scripts/github.sh:64`), **l'arbre de travail d'abord**, et compare un index au **sommet courant** d'`origin/develop` (`passer.sh:153`, `:157`). `A-81` interdit l'un et `A-106` l'autre.
 - `ascendance` (`github.sh:138`) est le modèle : paramétrée par des réfs, elle lit la liste sur la cible (`git show "$cible:scripts/docs/index-generes.json"`), et ne rend jamais un verdict par défaut quand une lecture échoue.
 
-**Ce qui a été joué pour écrire ce ticket** (2026-11-18, git 2.43.0, bash 5.2.21, jq 1.7, Node 22.23.4), sur un clone neuf d'`origin/main` à `8f8cfd9` : le script de l'annexe A et le banc de l'annexe B, 47 tests verts en environ 30 s ; les 39 mutations de « Vérification », 38 tuées, une qui survit et qui est dite (la 35) ; la suite entière avec les deux fichiers ajoutés (897 tests, tous verts). **Le cas que la définition par M jugeait mal et que la définition pas à pas rend « même »** (rapport `relecture-independante.verif-716.md`, § 2.2, limite 3) : cas 8. Son montage est prouvé dans le banc (la fusion directe de V avec la cible n'a pas l'arbre de T). À savoir : T2 n'y porte plus le changement que la PR faisait sur `f`, la cible l'ayant annulé ; « même » y dit que rien d'autre que des mises à jour avec la cible n'a été écrit depuis V, pas que la PR apporte encore tout ce que V apportait. `A-112` le confirme (Décision 8, i). **L'autre cas du rapport (limite 4, deux bases de fusion) rend « différent » depuis `A-119`** : c'est le prix de S2, dit en Décision 5 et joué au cas 9. **Les attaques des deux tours de relecture adversariale** ont toutes été rejouées, rouges par leur mutation, vertes ici : cas 30 à 47. Hors banc : le dossier temporaire plein, sur un tmpfs (« Ce qui n'a pas été établi », point 3), et la condition de rechange de S2 (Décision 5).
+**Ce qui a été joué pour écrire ce ticket** (2026-11-19, git 2.43.0, bash 5.2.21, jq 1.7, Node 22.23.4), sur un clone neuf d'`origin/main` à `d5b1561` : le script de l'annexe A et le banc de l'annexe B, 48 tests verts en environ 30 s ; les 41 mutations de « Vérification », 36 tuées, cinq qui survivent et qui sont dites (16, 21, 23, 35, 40 : des gardes que d'autres couvrent) ; la suite entière avec les deux fichiers ajoutés (953 tests, tous verts). **Le cas que la définition par M jugeait mal et que la définition pas à pas rend « même »** (rapport `relecture-independante.verif-716.md`, § 2.2, limite 3) : cas 8. Son montage est prouvé dans le banc (la fusion directe de V avec la cible n'a pas l'arbre de T). À savoir : T2 n'y porte plus le changement que la PR faisait sur `f`, la cible l'ayant annulé ; « même » y dit que rien d'autre que des mises à jour avec la cible n'a été écrit depuis V, pas que la PR apporte encore tout ce que V apportait. `A-112` le confirme (Décision 8, i). **L'autre cas du rapport (limite 4, deux bases de fusion) rend « différent » depuis `A-119`** : c'est le prix de S2, dit en Décision 5 et joué au cas 9. **Les attaques des trois tours de relecture adversariale** ont toutes été rejouées, rouges par leur mutation, vertes ici : cas 30 à 48. Hors banc : le dossier temporaire plein, sur un tmpfs (« Ce qui n'a pas été établi », point 3), et la condition de rechange de S2 (Décision 5).
 
 ## Où
 
@@ -49,7 +49,7 @@ Aucun autre fichier. `skills/chaine/sujet/scripts/depot-jouet.mjs` n'est pas mod
 
 Confirmée par `A-112`. `skills/chaine/fusionner/scripts/meme-contenu.sh`, posé en `scripts/chaine/meme-contenu.sh`. Il s'exécute (`bash …/meme-contenu.sh`), il ne se source pas : ses variables et son `exit` ne touchent pas l'appelant. Raisons :
 
-- **Il est posé sans toucher à aucun fichier existant.** L'étape `poser` de `fusionner` copie `scripts/*.sh` et « les tests `scripts/*.test.mjs` » par motif, mais les `.mjs` **un par un, par leur nom** (`skills/chaine/fusionner/SKILL.md:14`). Un calcul `.mjs` neuf ne serait pas posé tant que cette ligne ne le nomme pas, alors que son banc le serait : le banc posé tomberait chez le projet. `fusionner/SKILL.md` est un fichier chaud de l'autre programme ; ce lot n'écrit que des fichiers neufs (`A-109`). Un `.sh` et son `.test.mjs` passent par les deux motifs.
+- **Il est posé sans toucher à aucun fichier existant.** L'étape `poser` de `fusionner` copie `scripts/*.sh` et « les tests `scripts/*.test.mjs` » par motif, mais les `.mjs` **un par un, par leur nom** (`skills/chaine/fusionner/SKILL.md:14`). Un calcul `.mjs` neuf ne serait pas posé tant que cette ligne ne le nomme pas, alors que son banc le serait : le banc posé tomberait chez le projet. `fusionner/SKILL.md` est un fichier chaud de l'autre programme ; ce lot n'écrit que des fichiers neufs (`A-109`). Un `.sh` et son `.test.mjs` passent par les deux motifs. (Le lot 3a, entré depuis sous deux `.mjs`, a dû ajouter leurs noms à cette ligne.)
 - Ses trois appelants sont en bash ou lancent des commandes : `passer.sh` (`bash "$PASSER_OUTILS/meme-contenu.sh" …`), `sujet.sh` (`bash "$ici/meme-contenu.sh" …`, avec le repli vers `fusionner/scripts/` que `sujet.sh:738-739` fait déjà pour `revue-exigee.mjs`), et le Relecteur, qui lit GitHub par `github.sh` (`A-83`). La copie de travail de la boucle prend tout `scripts/chaine` d'`origin/develop` (`skills/chaine/fusionner/scripts/boucle.sh:221`) : le script y sera sans rien ajouter.
 - Pas d'idiome de point d'entrée à porter, donc aucune ligne due à `scripts/points-d-entree.test.mjs`, qui ne liste que des `.mjs`.
 - Dépendances : `bash` ≥ 4, `git` ≥ 2.41 (`merge-tree --write-tree`, que `ascendance` exige depuis 2.38, et `--attr-source`, S4), `jq` (déjà exigé par `github.sh:12`), `mktemp` et `rm` pour le dossier du dépôt propre (S1). Aucun autre outil : ni `awk`, ni `grep`, ni `sed`. Rien d'installé, aucun `node_modules`, aucun arbre de travail lu ; le dépôt réel n'est pas écrit.
@@ -101,13 +101,13 @@ Les quatre codes sont confirmés par `A-112`. **Seul le code 0 vaut « même ».
 
 Ses parents se lisent par `git rev-list --parents -n 1` : la ligne rendue doit avoir la forme attendue et commencer par le commit lui-même, sinon 21. Son arbre par `git rev-parse <commit>^{tree}`.
 
-- **Deux parents, `p1` et `p2` : une mise à jour, si S2 le dit** (`A-119`, qui amende `A-106`). Le second parent doit être **sur la ligne des premiers parents de `origin/<B>`** : il a été un jour le sommet de la cible. Sinon `différent`. Et il ne doit **pas être un ancêtre du premier** (`git merge-base --is-ancestor p2 p1` rend 1) : la fusion apporte quelque chose de la cible. Sinon `différent` ; toute autre sortie : 21. Puis `git --attr-source=<arbre vide> merge-tree --write-tree --name-only --no-messages p1 p2` (S4) : sortie 0 ou 1, la première ligne est l'arbre calculé, **pris même en conflit** (il porte alors les marqueurs), les suivantes sont **les fichiers en conflit** ; toute autre sortie : 21 ; une sortie 1 sans fichier en conflit, ou une sortie 0 avec : 21. L'arbre de départ de l'écart est l'arbre calculé.
+- **Deux parents, `p1` et `p2` : une mise à jour, si S2 le dit** (`A-119`, qui amende `A-106`). Le second parent doit être **sur la ligne des premiers parents de `origin/<B>`** : il a été un jour le sommet de la cible. Sinon `différent`. Et il ne doit **pas être un ancêtre du premier** (`git merge-base --is-ancestor p2 p1` rend 1) : la fusion apporte quelque chose de la cible. Sinon `différent` ; toute autre sortie : 21. Puis `git --attr-source=<arbre vide> merge-tree --write-tree --name-only --no-messages p1 p2` (S4) : sortie 0 ou 1, la première ligne est l'arbre calculé, **pris même en conflit** (il porte alors les marqueurs), les suivantes sont les fichiers en conflit (depuis `A-123` aucune dispense n'en dépend : elles ne servent plus qu'à relire la sortie) ; toute autre sortie : 21 ; une sortie 1 sans fichier en conflit, ou une sortie 0 avec : 21. L'arbre de départ de l'écart est l'arbre calculé.
 - **Un parent** : l'arbre de départ est celui du parent.
 - **Plus de deux parents** : `différent`.
 
 L'écart est `git diff-tree -r --raw --no-abbrev --no-renames <arbre de départ> <arbre du commit>` : une ligne par chemin, qui porte aussi le mode et le blob du côté du commit. **Il est vide si, et seulement si, les deux arbres sont le même objet** : un écart vide entre deux arbres différents, ou l'inverse, est une lecture en échec, donc 21 (`A-114`). Chaque ligne doit avoir la forme attendue (sinon 21) et son chemin être dispensé (Décision 7). Un commit vide passe : son arbre est celui de son parent.
 
-**Pourquoi S2.** La règle d'`A-106`, « le second parent est un ancêtre de la cible », admettait un second parent **latéral** : un commit entré dans la cible par le second parent d'une fusion, qui ne porte pas tout ce que la cible portait avant lui. Une fusion écrite à la main avec lui fabriquait un conflit sur un index sans commande, y mettait le contenu de ce second parent, et le squash faisait perdre à la cible une ligne que le commit latéral n'avait jamais eue (cas 32). Un commit qui a été le sommet de la cible porte, lui, tout ce que la cible portait avant : une fusion avec lui est une mise à jour que le capitaine aurait pu écrire. La relecture proposait une autre condition (chaque base de fusion de `p1` et de la cible est un ancêtre de `p2`) : **elle n'est pas ajoutée**. Aucun cas n'a été trouvé que S2 laisse et qu'elle ferme, et elle fait basculer à « différent » une mise à jour honnête dès que la base de la PR entre ensuite dans la cible par un second parent (une PR partie du sommet d'un sujet, mise à jour avec develop, puis le sujet livré) : joué hors banc.
+**Pourquoi S2.** La règle d'`A-106`, « le second parent est un ancêtre de la cible », admettait un second parent **latéral** : un commit entré dans la cible par le second parent d'une fusion, qui ne porte pas tout ce que la cible portait avant lui. Une fusion écrite à la main avec lui fabriquait un conflit sur un index sans commande, y mettait le contenu de ce second parent, et le squash faisait perdre à la cible une ligne que le commit latéral n'avait jamais eue (cas 32). Un commit qui a été le sommet de la cible porte, lui, tout ce que la cible portait avant : une fusion avec lui est une mise à jour que le capitaine aurait pu écrire. La relecture proposait une autre condition (chaque base de fusion de `p1` et de la cible est un ancêtre de `p2`) : **elle n'est pas ajoutée**, et `A-123` la dit sans objet depuis que la dispense des index sans commande est retirée. Aucun cas n'a été trouvé que S2 laisse et qu'elle ferme, et elle fait basculer à « différent » une mise à jour honnête dès que la base de la PR entre ensuite dans la cible par un second parent (une PR partie du sommet d'un sujet, mise à jour avec develop, puis le sujet livré) : joué hors banc.
 
 **Ce que S2 coûte**, et que la sixième version de la spec promettait à l'inverse (rapport § 2.2, limite 4) : **une sous-PR qui a fusionné elle-même un `develop` plus récent que son sujet rend « différent »**, avant comme après que le sujet a reçu ce `develop` (cas 9). Ce commit de `develop` est entré dans le sujet par un second parent : il n'en a jamais été le sommet, et c'est exactement la forme de l'attaque. Un verdict rendu **après** cette fusion tient (cas 9, dernier appel), et la mise à jour d'une sous-PR par le capitaine avec son sujet, une fois que le sujet a reçu develop, rend « même » (cas 10).
 
@@ -119,7 +119,7 @@ Le fichier est `scripts/docs/index-generes.json`, lu **dans l'arbre de `refs/rem
 - Fichier présent mais mal formé : 21. Mal formé : pas du JSON, `index` qui n'est pas un tableau, une entrée qui n'est ni une chaîne non vide ni un objet à `chemin` chaîne non vide, une `commande` qui n'est pas une chaîne.
 - `verification` n'est pas lu.
 
-### 7. « Aux index générés près » : les trois classes, à chaque commit
+### 7. « Aux index générés près » : seul un index à commande est dispensé (`A-123`)
 
 Un chemin en écart reçoit sa classe **dans l'ordre de `livraison_intermediaire`** (`passer.sh:148-159`) :
 
@@ -128,36 +128,35 @@ Un chemin en écart reçoit sa classe **dans l'ordre de `livraison_intermediaire
 3. sinon, aucune entrée à `commande` ne le touche : **sans commande** ;
 4. sinon : **régénéré** (un chemin littéral à `commande`).
 
-Une « entrée » d'arbre est le couple mode et blob. « Ordinaire » : mode `100644` ou `100755`.
+« Ordinaire » : mode `100644` ou `100755`.
 
-| Classe | Dans une fusion (deux parents) | Dans un commit à un parent |
-| ------ | ------------------------------ | -------------------------- |
-| hors index | `différent` | `différent` |
-| régénéré | dispensé, si le chemin est absent du commit ou y est un fichier ordinaire | de même |
-| sans commande | dispensé seulement si le chemin est **en conflit dans la fusion calculée**, et si son entrée dans le commit est ordinaire et **est celle du second parent**, la cible fusionnée ; hors conflit, `différent` | `différent` |
-| motif | de même | `différent` |
+| Classe | Dans une fusion comme dans un commit à un parent |
+| ------ | ------------------------------------------------ |
+| hors index | `différent` |
+| régénéré | **dispensé**, si le chemin est absent du commit ou y est un fichier ordinaire ; lien symbolique ou sous-module : `différent` |
+| sans commande | `différent` : il se juge comme tout fichier |
+| motif | `différent` : il se juge comme tout fichier |
 
 Ce que ce tableau fixe, et d'où il vient :
 
-- **Un index sans commande ou sous motif n'est dispensé que dans un conflit** (`A-114`, qui amende `A-106`). Hors conflit, la fusion calculée dit déjà ce qu'il doit porter, et il se juge comme tout fichier. La version relue le dispensait dès qu'il avait le contenu du second parent : une fusion écrite à la main, dont le second parent est un vieux commit de la cible, reculait le registre jusqu'à lui, et le squash perdait ce que la cible y avait écrit depuis (cas 31, a ; S2 la refuse désormais avant même cette règle, le second parent étant un ancêtre du premier). La règle reste nécessaire à côté de S2 : avec un vrai sommet de la cible, une fusion sans conflit peut encore écraser l'index par celui de la cible (cas 31, b). Le capitaine, lui, ne prend le côté de la cible que sur un fichier en conflit (`git checkout --theirs -- <fichiers en conflit>`, `passer.sh:261`, `sujet.sh:534`).
-- **Le contenu connu est celui du second parent**, jamais le sommet courant de la cible (`A-106`). Les mots « ou celui de la fusion calculée » ne demandaient aucun code : un chemin n'est dans l'écart que si son entrée n'est pas celle de la fusion calculée. `A-112` les retire d'`A-106`.
-- **Classes 2 et 3 ont donc la même règle** dans une fusion : c'est déjà vrai de `livraison_intermediaire`, à ceci près qu'elle compare au sommet courant.
-- **Absent n'est pas un contenu connu** pour les classes 2 et 3 (`passer.sh:154`, `:158` ; son commentaire : « absent d'un côté, il diffère et va à la revue »).
-- Le calcul ne joue aucune commande et ne régénère rien : il ne sait pas si un index régénéré est à jour.
+- **La dispense des index sans commande et sous motif est retirée, entièrement** (`A-123`, qui amende `A-81` et `A-106`). `A-106` les dispensait quand ils portaient le contenu de la cible fusionnée ; `A-114` y avait ajouté « et seulement s'ils sont en conflit dans la fusion calculée ». Trois tours de relecture de suite, le faux « même » est venu de cette dispense : une fusion qui recule l'index jusqu'à un vieux sommet de la cible (cas 31), un conflit fabriqué par un second parent latéral (cas 32), puis son miroir, une PR bâtie sur un sujet livré entre-temps, dont le conflit se résout au contenu d'un vrai sommet de la cible qui n'a jamais porté la ligne du sujet (cas 33). Dans les trois, le squash faisait perdre à la cible une ligne que personne n'avait décidé de retirer. Un index sans commande ne se régénère pas : son contenu est écrit par quelqu'un, et se relit.
+- **Seuls les index à commande restent dispensés** : leur contenu se régénère, et la CI le vérifie quand le projet déclare une `verification`.
+- **Ce que cela coûte** : quand le capitaine résout un conflit sur un index sans commande ou sous motif (il prend le côté de la cible, `passer.sh:261`, `sujet.sh:534`), la PR rend « différent » et se relit une fois de plus (cas 6, 7). Les trois projets posés ne déclarent aucun index de ces deux classes, selon l'architecte.
 - **Limite, à connaître** (`A-114`) : **un index à commande est dispensé quel que soit son contenu.** S'il n'a pas de `verification` jouée en CI, une retouche à la main de cet index après le verdict n'est vue par personne : ni par ce calcul, ni par la relecture, qui ne lit pas les index générés. C'est la limite d'aujourd'hui (la revue les exclut déjà de son diff) ; elle est dite ici pour ne pas être découverte plus tard.
+- Le calcul ne joue aucune commande et ne régénère rien : il ne sait pas si un index régénéré est à jour.
 
 ### 8. Ce que la spec ne disait pas : tranché par `A-112`
 
 La sixième version de la spec ne portait pas ces points. L'architecte les a tranchés le 2026-11-18 (`A-112`) : (a) à (e), (h) et (i) sont ses décisions ; (f) est un choix d'écriture de ce ticket ; (g) vient de `A-114`. Chacun est du côté sûr (« différent » ou « illisible »), sauf (c) et (i), où aucun contenu propre n'a changé. La session ne revient sur aucun.
 
-- **(a) Un index sans commande, ou sous motif, qui change dans un commit à un parent.** `A-106` ne donne le « contenu connu » que pour une fusion. Aucun contenu connu, donc `différent` (`A-112`). Le capitaine n'écrit jamais ce commit pour un index sans commande. Pour un index sous motif, voir (h).
+- **(a) Un index sans commande, ou sous motif, qui change dans un commit à un parent** : `différent` (`A-112`). `A-123` étend la règle à la fusion : Décision 7.
 - **(b) Un index dispensé qui devient un lien symbolique** (ou un sous-module) : `différent` (`A-112`). La spec ne le disait pas ; `liens_sur_index` (`github.sh:196`) existe parce que la régénération écrirait à travers lui.
 - **(c) Un commit vide** entre V et T : `même` (`A-112`).
 - **(d) Un clone superficiel** : `illisible` (`A-112`), avec la commande (`git fetch --unshallow origin`). Sur un historique tronqué, la ligne des premiers parents s'arrête sans le dire et la base d'une fusion calculée peut manquer. `passer.sh:111` et `sujet.sh:113` complètent déjà leur clone avant de juger ; une session cloud part d'un clone superficiel (`passer.sh:108`), et le Relecteur devra faire de même (lot 4).
 - **(e) V introuvable** : `différent` (`A-81`, `A-112`), alors que T introuvable, cible absente et liste illisible donnent `illisible` (`A-106`, « une lecture en échec »). Raison : après une réécriture de la branche, V n'est plus atteignable d'aucune réf et un clone neuf ne l'aura jamais ; `illisible` y serait un état sans fin.
 - **(f) Les caractères d'un chemin de la liste.** `github.sh` n'échappe que `.` et `*` en bâtissant ses expressions régulières (`:123`, `:176`) : un chemin de la liste qui porte `(`, `+` ou `[` y vaut autre chose que lui-même. Ici tout caractère autre que `*` est pris à la lettre. Écart assumé avec `github.sh`, qui n'est pas touché.
-- **(g) Les chemins se lisent sans `-z`, sous `core.quotePath=false` écrit sur chaque commande, et un chemin que git cite n'est jamais un index** (`A-114`). Git cite un chemin, et le fait alors commencer par un guillemet, dès qu'il porte un caractère de contrôle, un guillemet ou une barre oblique inverse ; aucun chemin non cité ne commence par un guillemet. La version relue comparait le chemin cité à la liste : une entrée de la liste écrite elle-même entre guillemets, `"apps/a\tb.ts"`, faisait passer pour un index le fichier `apps/a<TAB>b.ts` (cas 36). La relecture demandait `-z` « là où c'est possible » : ce ne l'est pas sans perdre une garde. Une substitution de commande de bash jette les octets nuls, et une substitution de processus perd le statut de git, donc la règle « une lecture en échec n'est jamais une lecture vide » ; un fichier temporaire ajouterait un outil et une écriture. La règle du guillemet ferme le même trou, et elle se prouve : cas 25 et 36.
-- **(h) Un index déclaré par motif, récrit d'un contenu nouveau par une régénération : `différent`, et la relecture de plus est acceptée** (`A-112`). Dans une fusion, son entrée n'est celle du second parent que si la régénération n'y a rien changé ; dans le commit d'index à part, il n'a aucun contenu connu (a). Une PR dont le capitaine régénère ainsi un index sous motif perd donc son verdict. Raisons de l'architecte : le calcul ne peut pas rejouer la commande qui a produit le fichier, donc il ne distingue pas une régénération d'une retouche ; l'erreur est du seul côté sûr ; et le cas est rare, le gabarit du plugin ne déclarant aucun motif. `A-112` amende la dernière phrase d'`A-81` : « garde son verdict, sauf un index sous motif récrit d'un contenu nouveau ». Un index sans commande n'est pas concerné : le capitaine ne le régénère pas, et en conflit il prend le contenu de la cible (cas 6).
+- **(g) Les chemins se lisent sans `-z`, sous `core.quotePath=false` écrit sur chaque commande, et un chemin que git cite n'est jamais un index** (`A-114`). Git cite un chemin, et le fait alors commencer par un guillemet, dès qu'il porte un caractère de contrôle, un guillemet ou une barre oblique inverse ; aucun chemin non cité ne commence par un guillemet. La version relue comparait le chemin cité à la liste : une entrée de la liste écrite elle-même entre guillemets, `"apps/a\tb.ts"`, faisait passer pour un index le fichier `apps/a<TAB>b.ts` (cas 37). La relecture demandait `-z` « là où c'est possible » : ce ne l'est pas sans perdre une garde. Une substitution de commande de bash jette les octets nuls, et une substitution de processus perd le statut de git, donc la règle « une lecture en échec n'est jamais une lecture vide » ; un fichier temporaire ajouterait un outil et une écriture. La règle du guillemet ferme le même trou, et elle se prouve : cas 25 et 37.
+- **(h) Un index déclaré par motif, récrit d'un contenu nouveau par une régénération : `différent`, et la relecture de plus est acceptée** (`A-112`). Raisons de l'architecte : le calcul ne peut pas rejouer la commande qui a produit le fichier, donc il ne distingue pas une régénération d'une retouche ; l'erreur est du seul côté sûr ; et le cas est rare, le gabarit du plugin ne déclarant aucun motif. Depuis `A-123`, c'est le cas de tout index sous motif, quel que soit son contenu (Décision 7).
 - **(i) La cible annule un changement que la PR faisait aussi : `même`, alors que T ne porte plus ce changement** (`A-112`, cas 8). C'est juste : le contenu propre de la PR n'a pas changé, c'est la cible qui l'a défait, et la CI du sommet fusionné juge le résultat.
 
 ### 9. Le script ne s'arrête pas sur une erreur, ne passe par aucun here-document, et prouve « même » (S3)
@@ -166,7 +165,7 @@ La sixième version de la spec ne portait pas ces points. L'architecte les a tra
 
 **Quatre outils, pas un de plus** : `git`, `jq`, et, pour le dossier du dépôt propre, `mktemp` et `rm`. Tout le reste est du bash. La première version passait par `grep`, `sed` et `awk` : sur un poste sans `awk`, la lecture revenait vide et le script rendait `même` (cas 30). La deuxième les avait retirés, mais découpait ses lectures par des here-documents (`mapfile -t … <<<"$sortie"`) : bash écrit un here-document dans un fichier du dossier temporaire, et sur un dossier plein la lecture revenait vide, la boucle ne jugeait aucune ligne d'un commit de 2 500 fichiers, et le script rendait `même`. **S3** (`A-119`) ferme la famille au lieu du cas :
 
-- **aucun here-document, aucune substitution de processus, aucun tube vers une lecture** : un texte se découpe en lignes par le découpage des mots de bash (`IFS` réduit au saut de ligne, développement des noms de fichiers coupé), et une ligne se lit par une expression régulière. Le banc le vérifie sur le texte du script (cas 46) ;
+- **aucun here-document, aucune substitution de processus, aucun tube vers une lecture** : un texte se découpe en lignes par le découpage des mots de bash (`IFS` réduit au saut de ligne, développement des noms de fichiers coupé), et une ligne se lit par une expression régulière. Le banc le vérifie sur le texte du script (cas 47) ;
 - **aucun fichier temporaire hors du dossier de S1** ; un seul y est écrit, la liste des index, par une redirection dont le statut est lu ;
 - chaque lecture est une substitution de commande seule, dont le statut est lu, et **elle est relue dans sa forme** : un sha est un sha, la ligne des premiers parents finit par T, celle de la cible commence par la cible, le premier mot de `rev-list --parents` est le commit demandé, chaque ligne de l'écart a la forme de `--raw`, l'écart n'est vide que si les deux arbres sont le même, la liste absente l'est pour deux commandes ;
 - **`même` se prouve par un compte** : le nombre de commits de V à T, rendu par `git rev-list --count --first-parent V..T`, est comparé au nombre de commits que la boucle a examinés et acceptés un à un, chacun après que toutes les lignes de son écart ont été jugées. Pas égaux, ou nuls alors que V n'est pas T : 21. Un `même` ne se déduit donc jamais d'une boucle qui n'a rien lu.
@@ -179,7 +178,7 @@ Les commits du capitaine sont écrits de deux façons : par une aide du banc, `m
 
 ### 11. Version et note
 
-La mineure suivante de la version de `main` au moment de livrer (7.23.0 tant que `main` porte la 7.22.0 : il y est arrivé, à `289323c`, pendant le dernier rejeu, par une PR qui ne touche aucun fichier cité ici ; un script ajouté, `README.md` « Ajouter un skill », point 4). La note, en tête de `NOTES-DE-VERSION.md`, à la forme des précédentes (`## <version> — <date>`, « ### Ce qui change », « ### Ce qu'un projet fait pour en profiter » : `scripts/depot.test.mjs:1095-1105` exige que la première note commence par la version de `plugin.json` et porte ces deux titres) :
+La mineure suivante de la version de `main` au moment de livrer (`A-123` : la version suivante de `main` à la livraison ; 7.24.0 tant que `main` porte la 7.23.0 ; un script ajouté, `README.md` « Ajouter un skill », point 4). La note, en tête de `NOTES-DE-VERSION.md`, à la forme des précédentes (`## <version> — <date>`, « ### Ce qui change », « ### Ce qu'un projet fait pour en profiter » : `scripts/depot.test.mjs:1095-1105` exige que la première note commence par la version de `plugin.json` et porte ces deux titres) :
 
 - « Ce qui change » : `fusionner` porte `scripts/meme-contenu.sh` et son banc. Le calcul dit si deux sommets d'une PR ne sont séparés que par des fusions de la cible et des commits d'index générés ; sorties 0 « même », 20 « différent », 21 « illisible » ; **il demande git ≥ 2.41** (`--attr-source`), bash ≥ 4, `jq`, `mktemp` et `rm`, et un dossier temporaire où écrire. Rien ne l'appelle encore : il prépare la relecture indépendante.
 - « Ce qu'un projet fait pour en profiter » : mettre à jour le plugin ; rien d'autre aujourd'hui. À prévoir pour la suite : **un poste de capitaine ou de Relecteur dont le git est plus ancien que 2.41 rendra « illisible » (sortie 69) à chaque appel** : relever `git --version` sur ces postes avant que le capitaine et le Relecteur n'appellent ce calcul. Le script et son banc arrivent dans `scripts/chaine/` à la prochaine fois que le projet rejoue `/maj-skills:fusionner poser` ; aucun script de la boucle ne change, le capitaine ne se relance pas.
@@ -194,44 +193,53 @@ La ligne du script et de son banc dans `skills/chaine/fusionner/references/CONTE
 
 Deux tours de relecture adversariale ont trouvé, chacun, des faux « même » d'une même sorte : une configuration, un dossier, une variable, un outil dont le calcul dépendait sans le dire. `A-114` les avait bouchés un par un, par une option écrite pour chaque réglage ; le second tour en a trouvé d'autres (`merge.text.driver`, un pilote de fusion commité, le dossier temporaire plein). **`A-119` arrête de boucher cas par cas** : quatre règles ferment les familles.
 
-- **S1, un dépôt propre pour calculer.** Tout calcul git (ligne des premiers parents, arbres, écarts, `merge-tree`, lecture de la liste) se fait dans **un dépôt nu jetable**, créé par `mktemp -d` sous le dossier temporaire puis `git init --bare --template=`, qui emprunte les objets du dépôt réel par une ligne dans `objects/info/alternates`. Chaque commande y tourne avec `GIT_CONFIG_GLOBAL=/dev/null`, `GIT_CONFIG_SYSTEM=/dev/null`, `GIT_CONFIG_NOSYSTEM=1`, `GIT_ATTR_NOSYSTEM=1`, et sans aucune variable `GIT_*` héritée. Ce dépôt n'a ni configuration (hors les trois lignes de `git init`), ni `info/attributes`, ni greffes, ni `refs/replace`, ni arbre de travail, ni `HEAD` : rien de tout cela ne peut peser, quel que soit le poste. V et T sont des sha ; la cible se résout une fois en sha dans le dépôt réel ; tout le reste se fait par sha. La fusion calculée s'écrit dans le dépôt propre : **le dépôt réel n'est plus écrit du tout**. Le dépôt propre est retiré à la sortie (`trap … EXIT`).
+- **S1, un dépôt propre pour calculer.** Tout calcul git (ligne des premiers parents, arbres, écarts, `merge-tree`, lecture de la liste) se fait dans **un dépôt nu jetable**, créé par `mktemp -d` sous le dossier temporaire puis `git init --bare --template=`, qui emprunte les objets du dépôt réel par une ligne dans `objects/info/alternates`. Chaque commande y tourne avec `GIT_CONFIG_GLOBAL=/dev/null`, `GIT_CONFIG_SYSTEM=/dev/null`, `GIT_CONFIG_NOSYSTEM=1`, `GIT_ATTR_NOSYSTEM=1`, sans aucune variable `GIT_*` héritée, **et avec `HOME` et `XDG_CONFIG_HOME` posés sur un dossier vide du même dossier temporaire, plus `-c core.attributesFile=/dev/null`** (`A-123`) : git lit `~/.config/git/attributes` sans passer par la configuration, et un `* merge=union` y faisait rendre `même` sur un conflit résolu à la main en union, malgré le dépôt propre (cas 42). Ce dépôt n'a ni configuration (hors les trois lignes de `git init`), ni `info/attributes`, ni greffes, ni `refs/replace`, ni arbre de travail, ni `HEAD`, ni utilisateur : rien de tout cela ne peut peser, quel que soit le poste. V et T sont des sha ; la cible se résout une fois en sha dans le dépôt réel ; tout le reste se fait par sha. La fusion calculée s'écrit dans le dépôt propre : **le dépôt réel n'est plus écrit du tout**. Le dépôt propre est retiré à la sortie (`trap … EXIT`).
 - **S2, quelle fusion compte comme une mise à jour** : Décision 5.
 - **S3, « même » se prouve** : Décision 9.
 - **S4, aucun attribut dans la fusion calculée** : `--attr-source=<arbre vide>` sur `git merge-tree`. La fusion calculée est la fusion à trois voies nue. **Git ≥ 2.41 est donc exigé** (c'est la version qui apporte `--attr-source` ; la version d'`A-114` disait 2.40 à tort) : le contrôle est en tête, sortie 69, « git ≥ 2.41 requis, ici X », et l'exigence s'écrit dans la note de version (Décision 11).
 
-**Ce qui tombe sous S1 sans garde particulière.** Le script ne porte plus aucune des parades d'`A-114` que voici ; leurs cas sont restés au banc, verts. La mutation 22, qui fait calculer dans le dépôt réel, rougit les cas 33, 35 et 41 (et le 45, qui regarde que le dépôt réel n'est pas écrit). Le cas 42 demande de retirer S1 **et** S4 (mutation 39) : l'une ou l'autre suffit à le fermer. Le cas 34 reste vert même sous la mutation 22 : `git diff-tree` n'obéit pas à `diff.relative`, et `--full-tree` est resté écrit sur `git ls-tree`.
+**Ce qui tombe sous S1 sans garde particulière.** Le script ne porte plus aucune des parades d'`A-114` que voici ; leurs cas sont restés au banc, verts. La mutation 22, qui fait calculer dans le dépôt réel, rougit les cas 34, 36 et 42 (et le 45, qui regarde que le dépôt réel n'est pas écrit). Le cas 43 demande de retirer S1 **et** S4 (mutation 39) : l'une ou l'autre suffit à le fermer. Le cas 35 reste vert même sous la mutation 22 : `git diff-tree` n'obéit pas à `diff.relative`, et `--full-tree` est resté écrit sur `git ls-tree`.
 
 | Attaque | Cas | Parade d'`A-114`, retirée |
 | ------- | --- | ------------------------- |
-| `diff.ignoreSubmodules`, `ignore` de `.gitmodules` (premier tour, attaque 2) | 33 | `--ignore-submodules=none` |
-| `diff.relative` et le dossier courant (premier tour, attaque 2) | 34 | `--no-relative`, se placer à la racine |
-| `git replace` | 35 | `GIT_NO_REPLACE_OBJECTS=1` |
-| greffes (`info/grafts`) | 35 | `GIT_GRAFT_FILE=/dev/null` |
-| `.gitattributes` non commité de l'arbre de travail | 41 | `--attr-source=<premier parent>` |
-| `merge.default=union` dans la configuration du dépôt | 41 | `-c merge.default=text` |
-| `merge.text.driver true` (second tour, attaque 4) | 41 | aucune : elle n'était pas fermée |
-| `info/attributes` du dépôt | 41 | le refus « attributs locaux », sortie 21 : il n'a plus lieu d'être, le dépôt réel peut en porter |
-| `merge.ours.driver true` avec `merge=ours` commité (second tour, attaque 3, avec configuration) | 42 | aucune : elle n'était pas fermée |
-| la configuration de l'utilisateur (`~/.gitconfig` à `merge.default=union`) | 41 | `-c merge.default=text` ; sous S1, c'est la mutation 23 qui la rougit |
+| `diff.ignoreSubmodules`, `ignore` de `.gitmodules` (premier tour, attaque 2) | 34 | `--ignore-submodules=none` |
+| `diff.relative` et le dossier courant (premier tour, attaque 2) | 35 | `--no-relative`, se placer à la racine |
+| `git replace` | 36 | `GIT_NO_REPLACE_OBJECTS=1` |
+| greffes (`info/grafts`) | 36 | `GIT_GRAFT_FILE=/dev/null` |
+| `.gitattributes` non commité de l'arbre de travail | 42 | `--attr-source=<premier parent>` |
+| `merge.default=union` dans la configuration du dépôt | 42 | `-c merge.default=text` |
+| `merge.text.driver true` (second tour, attaque 4) | 42 | aucune : elle n'était pas fermée |
+| `info/attributes` du dépôt | 42 | le refus « attributs locaux », sortie 21 : il n'a plus lieu d'être, le dépôt réel peut en porter |
+| `merge.ours.driver true` avec `merge=ours` commité (second tour, attaque 3, avec configuration) | 43 | aucune : elle n'était pas fermée |
+| la configuration de l'utilisateur (`~/.gitconfig` à `merge.default=union`) | 42 | `-c merge.default=text` ; sous S1, `GIT_CONFIG_GLOBAL=/dev/null` et le `HOME` vide la couvrent l'un et l'autre |
+
+**Les fichiers de l'utilisateur et du poste** (`A-123`), et ce qui a été joué :
+
+| Fichier | Parade | Joué |
+| ------- | ------ | ---- |
+| `~/.config/git/attributes` (sous `HOME`), `$XDG_CONFIG_HOME/git/attributes`, `core.attributesFile` | trois parades, dont chacune suffit seule à écarter les trois fichiers : `HOME` sur un dossier vide, `XDG_CONFIG_HOME` sur un dossier vide, `-c core.attributesFile=/dev/null` (un `core.attributesFile` écrit remplace le fichier par défaut) | cas 42 ; mutations 16, 21 et 40 (chacune retirée seule : elle survit) ; mutation 41 (les trois retirées : le cas rougit) |
+| `~/.gitconfig` (`merge.default`, `core.attributesFile`, `core.excludesFile`) | `GIT_CONFIG_GLOBAL=/dev/null`, et `HOME` vide, l'un couvrant l'autre | cas 42 ; mutation 23 (`GIT_CONFIG_GLOBAL` retiré seul : elle survit) |
+| `~/.config/git/ignore`, `core.excludesFile` | les mêmes ; ils ne pèsent de toute façon sur aucune commande du calcul, qui ne lit aucun arbre de travail | cas 42 (posés, sans effet) |
+| `/etc/gitattributes`, `/etc/gitconfig` | `GIT_ATTR_NOSYSTEM=1`, `GIT_CONFIG_SYSTEM=/dev/null`, `GIT_CONFIG_NOSYSTEM=1` | **non joués** : le banc n'écrit pas sous `/etc` |
 
 **Ce qui a demandé une garde de plus**, parce que S1 à S4 ne le couvrent pas :
 
-- **`-c core.quotePath=false`**, écrit sur chaque commande du dépôt propre : sans lui, un dépôt sans configuration cite les chemins accentués, et un index au chemin accentué passerait pour un chemin cité (cas 40, mutation 26). Ce n'est pas une parade contre un poste, c'est le format que le script lit.
-- **`--no-renames`** sur `git diff-tree` : de même, un format (cas 38, mutation 25).
-- **Oublier les variables `GIT_*` héritées** : c'est dans l'énoncé de S1, mais cela vaut aussi pour les trois questions posées au dépôt réel ; un `GIT_DIR` hérité ferait répondre un autre dépôt (cas 39, mutation 24).
-- **Le chemin cité hors index, les arguments jamais recopiés, `HEAD` et les réfs symboliques refusés, le lien symbolique** : ce sont des règles sur ce que le script lit et écrit, pas sur le poste (cas 36, 37, 22).
-- **La règle du conflit** (Décision 7) reste nécessaire à côté de S2 : avec un vrai sommet de la cible en second parent, une fusion sans conflit peut encore écraser un index sans commande par celui de la cible (cas 31, b, mutation 21).
+- **`-c core.quotePath=false`**, écrit sur chaque commande du dépôt propre : sans lui, un dépôt sans configuration cite les chemins accentués, et un index au chemin accentué passerait pour un chemin cité (cas 41, mutation 26). Ce n'est pas une parade contre un poste, c'est le format que le script lit.
+- **`--no-renames`** sur `git diff-tree` : de même, un format (cas 39, mutation 25).
+- **Oublier les variables `GIT_*` héritées** : c'est dans l'énoncé de S1, mais cela vaut aussi pour les trois questions posées au dépôt réel ; un `GIT_DIR` hérité ferait répondre un autre dépôt (cas 40, mutation 24).
+- **Le chemin cité hors index, les arguments jamais recopiés, `HEAD` et les réfs symboliques refusés, le lien symbolique** : ce sont des règles sur ce que le script lit et écrit, pas sur le poste (cas 37, 38, 22).
+- **La dispense retirée** (`A-123`, Décision 7) : S2 ne suffisait pas. Avec un vrai sommet de la cible en second parent, une fusion pouvait encore écraser un index sans commande, hors conflit (cas 31, b) ou dans un conflit que la PR bâtie sur un sujet livré rendait possible (cas 33, mutation 9).
 
-**S4 seule, sous S1** : retirer `--attr-source` ne rougit aucun cas sur git 2.43 (mutation 35). Le dépôt propre est nu et son `HEAD` ne désigne rien : git n'y trouve aucun attribut à lire. S4 est écrite quand même, parce que c'est la règle de l'architecte et qu'un autre git pourrait lire autrement ; ce qu'elle interdit est prouvé par la mutation 34 (les attributs lus dans l'arbre du premier parent, comme le faisait `A-114` : le cas 42 rougit).
+**S4 seule, sous S1** : retirer `--attr-source` ne rougit aucun cas sur git 2.43 (mutation 35). Le dépôt propre est nu et son `HEAD` ne désigne rien : git n'y trouve aucun attribut à lire. S4 est écrite quand même, parce que c'est la règle de l'architecte et qu'un autre git pourrait lire autrement ; ce qu'elle interdit est prouvé par la mutation 34 (les attributs lus dans l'arbre du premier parent, comme le faisait `A-114` : le cas 43 rougit).
 
-**Limite de S4, à connaître** : une fusion **réelle** faite sous un pilote s'écarte de la fusion nue. Un projet qui déclare `merge=union` (ou tout autre pilote) sur un fichier verra ses PR rendre « différent », donc être relues, après chaque mise à jour du capitaine qui fusionne ce fichier des deux côtés. C'est le côté sûr : sous `merge=union`, git mêle deux contenus sans conflit, et personne n'a relu le résultat (cas 42).
+**Limite de S4, à connaître** : une fusion **réelle** faite sous un pilote s'écarte de la fusion nue. Un projet qui déclare `merge=union` (ou tout autre pilote) sur un fichier verra ses PR rendre « différent », donc être relues, après chaque mise à jour du capitaine qui fusionne ce fichier des deux côtés. C'est le côté sûr : sous `merge=union`, git mêle deux contenus sans conflit, et personne n'a relu le résultat (cas 43).
 
 ## À faire, dans l'ordre
 
 1. Partir d'`origin/main` à jour. Relever sa version (`.claude-plugin/plugin.json`) et vérifier que `skills/chaine/fusionner/scripts/` ne porte pas déjà un `meme-contenu.*`.
-2. Créer `skills/chaine/fusionner/scripts/meme-contenu.sh` avec le contenu de l'annexe A, **mot pour mot**, puis `chmod +x` (mode `100755` dans git, comme `passer.sh`). Contrôle : `git hash-object skills/chaine/fusionner/scripts/meme-contenu.sh` rend `6c43a791684235e8ac4cf88edbcbb12e5a1bfc34`.
-3. Créer `skills/chaine/fusionner/scripts/meme-contenu.test.mjs` avec le contenu de l'annexe B, mot pour mot. Contrôle : `git hash-object` rend `0db4237f38242332dc5ef48970b5cf539de2a633`.
-4. `node --test skills/chaine/fusionner/scripts/meme-contenu.test.mjs` : 47 tests, tous verts. Un cas rouge ne se corrige pas en changeant ce qu'il attend : il se dit au lanceur, avec sa sortie. Un cas rouge sur un autre git que celui de l'écriture se dit aussi, avec `git --version`. Si c'est le cas 12 ou le cas 13 (ils appellent `passer.sh` et `sujet.sh fusionner`), regarder d'abord si un ticket de l'autre programme, entré depuis, a changé l'appel ou les sorties de ces scripts : seule la ligne d'appel ou la sortie attendue du script du capitaine se recale alors, jamais le verdict attendu du calcul.
+2. Créer `skills/chaine/fusionner/scripts/meme-contenu.sh` avec le contenu de l'annexe A, **mot pour mot**, puis `chmod +x` (mode `100755` dans git, comme `passer.sh`). Contrôle : `git hash-object skills/chaine/fusionner/scripts/meme-contenu.sh` rend `d5a9f48bcd4b8dc8eb5e9fc9383d91c5f795ec1a`.
+3. Créer `skills/chaine/fusionner/scripts/meme-contenu.test.mjs` avec le contenu de l'annexe B, mot pour mot. Contrôle : `git hash-object` rend `7842264129fa20d9efd44da140883b4f49c0c364`.
+4. `node --test skills/chaine/fusionner/scripts/meme-contenu.test.mjs` : 48 tests, tous verts. Un cas rouge ne se corrige pas en changeant ce qu'il attend : il se dit au lanceur, avec sa sortie. Un cas rouge sur un autre git que celui de l'écriture se dit aussi, avec `git --version`. Si c'est le cas 12 ou le cas 13 (ils appellent `passer.sh` et `sujet.sh fusionner`), regarder d'abord si un ticket de l'autre programme, entré depuis, a changé l'appel ou les sorties de ces scripts : seule la ligne d'appel ou la sortie attendue du script du capitaine se recale alors, jamais le verdict attendu du calcul.
 5. Les mutations de « Vérification », une à la fois, chacune retirée avant la suivante.
 6. La version et la note (Décision 11).
 7. La suite entière : `pnpm install --frozen-lockfile`, puis `pnpm test`, verte. Relever la durée du test « les bancs posés à plat sous scripts/chaine/ tournent hors du plugin » (plafond de 600 s, `scripts/poses.test.mjs:49`, `:75`).
@@ -241,7 +249,7 @@ Deux tours de relecture adversariale ont trouvé, chacun, des faux « même » d
 
 Vocabulaire du tableau. **Jouet** : `depotJouet()`, soit `develop` avec un commit initial (`README.md`, `scripts/docs/adr-index.mjs`, `scripts/docs/index-generes.json` qui déclare `docs/adr/README.md` à commande, `docs/adr/README.md` vide). **Pousser `b` { fichiers }** : un commit sur la branche `b` (créée depuis `origin/develop` si elle n'existe pas), poussé, puis `git fetch`. **Mise à jour** : les gestes du capitaine, `git switch -C capitaine/… origin/<tête>`, `git merge -q --no-edit origin/<cible>` ; en conflit, `git checkout --theirs -- <fichiers en conflit>` et `git add` ; la régénération quand le cas en nomme une ; puis `git commit --no-edit` si la fusion était en conflit, sinon, si quelque chose a changé, `git commit -m 'docs: régénère les index après mise à jour avec <cible>'` ; `git push origin HEAD:refs/heads/<tête>`. **Index(a, b)** : le contenu `- a⏎- b⏎` de `docs/adr/README.md`. Sauf mention, `<B>` est `develop`. Dans la colonne « Attendu », le mot en police fixe est la sortie standard, entière ; le texte entre guillemets est lu sur la sortie d'erreur.
 
-### « même » (code 0)
+### Les mises à jour et ce qui les entoure : « même » (code 0), sauf les cas 6, 7 et 9, que des décisions ont retournés
 
 | n° | Montage | Attendu |
 | -- | ------- | ------- |
@@ -250,8 +258,8 @@ Vocabulaire du tableau. **Jouet** : `depotJouet()`, soit `develop` avec un commi
 | 3 | **Retard sans conflit, index périmé.** Pousser `feat/a` { `docs/adr/ADR_1.md` } = V (index non régénéré). Pousser `develop` { `docs/b.md` }. Mise à jour avec `node scripts/docs/adr-index.mjs` = T : un commit à un parent, dont le parent est la fusion ; `T:docs/adr/README.md` = Index(ADR_1.md). | `même`, « 1 fusion(s) …, 1 commit(s) d'index » |
 | 4 | **Conflit d'index.** Pousser `feat/a` { `docs/adr/ADR_1.md`, README = Index(ADR_1.md) } = V. Pousser `develop` { `docs/adr/ADR_2.md`, README = Index(ADR_2.md) }. Mise à jour avec régénération = T : fusion dont le README est Index(ADR_1.md, ADR_2.md), ni celui de la cible ni celui de la fusion calculée. | `même`, « 1 fusion » |
 | 5 | **Deux mises à jour de suite, puis la cible qui avance.** Suite du cas 4 (T1). Pousser `develop` { `docs/adr/ADR_3.md`, README = Index(ADR_2.md, ADR_3.md), `apps/c.ts` }. Seconde mise à jour avec régénération = T2 (`T2^1` = T1). Puis pousser `develop` { `docs/adr/ADR_4.md`, README = Index(ADR_2.md, ADR_3.md, ADR_4.md) }, sans mise à jour. | `(V, T2)` : `même`, « 2 fusion(s) » ; `(T1, T2)` : `même`, « 1 fusion(s) » ; `(V, T2)` après l'avance de la cible : `même` encore |
-| 6 | **Index sans commande.** Pousser `develop` { `docs/registre.md` = `base` }, puis la liste `[docs/adr/README.md à commande, "docs/registre.md"]`. Pousser `feat/a` { `docs/registre.md` = `pr`, `apps/a.ts` } = V. Pousser `develop` { `docs/registre.md` = `cible` }. Mise à jour sans régénération = T : conflit sur le registre, côté de la cible ; son blob dans T est celui de la cible fusionnée. Puis pousser `develop` { `docs/registre.md` = `cible, plus tard` }. | `même` ; `même` encore après que la cible a récrit le registre (jamais le sommet courant : rapport § 2.2, limite 1) |
-| 7 | **Index déclaré par motif.** Pousser `develop` { `docs/gen/a.md` = `base` }, puis la liste `[…, { chemin: "docs/gen/*.md", commande: "true" }]`. Pousser `feat/a` { `docs/gen/a.md` = `pr`, `apps/a.ts` } = V. Pousser `develop` { `docs/gen/a.md` = `cible` }. Mise à jour sans régénération = T : `T:docs/gen/a.md` = `cible`. | `même` |
+| 6 | **Index sans commande, en conflit** (`A-123` : retourné). Pousser `develop` { `docs/registre.md` = `base` }, puis la liste `[docs/adr/README.md à commande, "docs/registre.md"]`. Pousser `feat/a` { `docs/registre.md` = `pr`, `apps/a.ts` } = V. Pousser `develop` { `docs/registre.md` = `cible` }. Mise à jour sans régénération = T : conflit sur le registre, côté de la cible ; son blob dans T est celui de la cible fusionnée. | `différent`, « docs/registre.md, index sans commande ou déclaré par motif, se juge comme tout fichier » |
+| 7 | **Index déclaré par motif, en conflit** (`A-123` : retourné). Pousser `develop` { `docs/gen/a.md` = `base` }, puis la liste `[…, { chemin: "docs/gen/*.md", commande: "true" }]`. Pousser `feat/a` { `docs/gen/a.md` = `pr`, `apps/a.ts` } = V. Pousser `develop` { `docs/gen/a.md` = `cible` }. Mise à jour sans régénération = T : `T:docs/gen/a.md` = `cible`. | `différent`, « docs/gen/a.md, index sans commande ou déclaré par motif, se juge comme tout fichier » |
 | 8 | **La cible annule un changement identique entre deux mises à jour** (rapport § 2.2, limite 3). Pousser `develop` { `f` = `a` }. Pousser `feat/a` { `f` = `b`, `p` = `pr` } = V. Pousser `develop` { `f` = `b` }. Mise à jour = T1. Pousser `develop` { `f` = `a` }. Mise à jour = T2. Preuves du montage : `T2:f` = `a` (le changement est perdu) ; l'arbre de `git merge-tree --write-tree V origin/develop` n'est pas celui de T2 (la définition par M disait « différent »). | `(V, T1)` : `même` ; `(V, T2)` : `même`, « 2 fusion(s) » |
 | 9 | **Deux bases de fusion : la sous-PR a fusionné develop elle-même** (rapport § 2.2, limite 4). Pousser `sujet/x` { `s` }. Pousser `travail`, depuis `origin/sujet/x`, { `p` } = V. Pousser `develop` { `dev` }. Sur `travail`, `git merge -q --no-edit origin/develop`, poussé = T0. Appel `(V, T0, sujet/x)`. Puis `sujet/x` reçoit develop (`git merge -q --no-edit origin/develop`, poussé) : `git merge-base --all T0 origin/sujet/x` rend deux lignes. Appel `(V, T0, sujet/x)`. Puis mise à jour de `travail` avec `sujet/x` = T1. | `(V, T0)` avant et après que le sujet a reçu develop, et `(V, T1)` : `différent`, « second parent … pas sur la ligne des premiers parents de origin/sujet/x » (S2 : ce commit de develop n'a jamais été le sommet du sujet) ; `(T0, T1, sujet/x)` : `même`, « 1 fusion(s) de origin/sujet/x » |
 | 10 | **Une sous-PR mise à jour avec son sujet, après que le sujet a reçu develop.** Pousser `sujet/x` { `s` }. Pousser `travail`, depuis `origin/sujet/x`, { `p` } = V. Pousser `develop` { `dev` }. `sujet/x` reçoit develop (`git merge -q --no-edit origin/develop`, poussé : son premier parent reste le sujet). Mise à jour de `travail` avec `sujet/x` = T1. Pousser `sujet/x` { `autre` } ; seconde mise à jour = T2. | `(V, T1, sujet/x)` : `même`, « 1 fusion(s) de origin/sujet/x » ; `(V, T2, sujet/x)` : `même`, « 2 fusion(s) » |
@@ -269,8 +277,8 @@ Vocabulaire du tableau. **Jouet** : `depotJouet()`, soit `develop` avec un commi
 | 17 | **Second parent hors de la cible.** Pousser `feat/a` = V. Pousser `autre` { `apps/autre.ts` } (jamais fusionnée dans `develop`). Sur `feat/a` : `git merge -q --no-edit origin/autre` = T. | `différent`, « second parent … pas sur la ligne des premiers parents de origin/develop » |
 | 18 | **V absent de la ligne des premiers parents.** (a) T = le sommet d'une autre branche, `feat/b`. (b) Pousser `develop` { `docs/b.md` } ; branche `inverse` depuis `origin/develop`, `git merge --no-ff origin/feat/a` = T : V est le **second** parent de T. (c) Sur `feat/a`, `git commit --amend -m …` = T (réécriture, même contenu). (d) V = `000…01`, un sha qui n'existe pas. | (a), (b), (c) : `différent`, « n'est pas sur la ligne des premiers parents » ; (d) : `différent`, « V introuvable » |
 | 19 | **Commit d'index qui touche aussi un autre fichier.** Pousser `feat/a` { `docs/adr/ADR_1.md` } = V ; puis { README = Index(ADR_1.md) } = T1 ; puis { README récrit, `apps/a.ts` } = T2. | `(V, T1)` : `même`, « 1 commit(s) d'index » ; `(V, T2)` : `différent`, « apps/a.ts n'est pas un index généré » |
-| 20 | **Index sans commande, quatre refus.** Liste et registre du cas 6 ; V = `feat/a` { registre = `pr` } ; `develop` { registre = `cible` }. Depuis V, `git merge origin/develop` (conflit), résolu : (a) par un troisième contenu ; (b) par `git checkout --ours` (le côté de la PR) ; (c) par `git rm`. (d) Un commit à un parent, sur `feat/a`, qui récrit le registre. | (a), (b), (c) : `différent`, « n'a pas le contenu de la cible fusionnée » ; (d) : `différent`, « change dans un commit d'index : aucun contenu connu » |
-| 21 | **Index par motif, deux refus.** Liste `[…, { chemin: "apps/gen/*.ts", commande: "true" }]`. V = `feat/a` { `apps/a.ts` } ; `develop` avance. (a) Fusion propre amendée pour ajouter `apps/gen/glisse.ts`. (b) Un commit à un parent, depuis V, qui ajoute `apps/gen/glisse.ts`. | (a) : `différent`, « n'est pas en conflit dans la fusion calculée » ; (b) : `différent`, « aucun contenu connu » |
+| 20 | **Index sans commande, quatre refus.** Liste et registre du cas 6 ; V = `feat/a` { registre = `pr` } ; `develop` { registre = `cible` }. Depuis V, `git merge origin/develop` (conflit), résolu : (a) par un troisième contenu ; (b) par `git checkout --ours` (le côté de la PR) ; (c) par `git rm`. (d) Un commit à un parent, sur `feat/a`, qui récrit le registre. | `différent` les quatre fois, « docs/registre.md, index sans commande ou déclaré par motif, se juge comme tout fichier » |
+| 21 | **Index par motif, deux refus.** Liste `[…, { chemin: "apps/gen/*.ts", commande: "true" }]`. V = `feat/a` { `apps/a.ts` } ; `develop` avance. (a) Fusion propre amendée pour ajouter `apps/gen/glisse.ts`. (b) Un commit à un parent, depuis V, qui ajoute `apps/gen/glisse.ts`. | `différent` les deux fois, « apps/gen/glisse.ts, index sans commande ou déclaré par motif, se juge comme tout fichier » |
 | 22 | **Lien symbolique.** V = `feat/a`. Un commit qui remplace `docs/adr/README.md` par un lien vers `../../apps/a.ts` = T. | `différent`, « index généré, n'est plus un fichier ordinaire » |
 | 23 | **Trois parents.** V = `feat/a` ; pousser `autre` ; pousser `develop` ; sur `feat/a`, `git merge -q --no-edit origin/develop origin/autre` = T (trois parents). | `différent`, « fusion à plus de deux parents » |
 | 24 | **La liste se lit sur la cible.** (a) Pousser `feat/a` { la liste, qui déclare en plus `apps/a.ts` à commande ; `apps/a.ts` } = V, puis { `apps/a.ts` récrit } = T ; l'arbre de travail est sur `feat/a`, sa liste nomme `apps/a.ts`. (b) Une cible `sans-liste`, où le fichier de liste est supprimé ; `feat/c` depuis elle = W, puis { `docs/adr/README.md` } = T ; appel `(W, T, sans-liste)`. | (a) : `différent`, « apps/a.ts n'est pas un index généré de origin/develop » ; (b) : `différent`, « docs/adr/README.md n'est pas un index généré de origin/sans-liste » |
@@ -294,23 +302,24 @@ Chacune rendait `même` (ou manquait `illisible`) sur la version que le tour rel
 | n° | Montage | Attendu |
 | -- | ------- | ------- |
 | 30 | **Outil absent.** Un `PATH` réduit à `bash`, `git`, `jq`, `mktemp` et `rm` (ni `awk`, ni `grep`, ni `sed`). V = `feat/a` { `docs/adr/ADR_1.md` } ; `develop` avance ; mise à jour avec régénération = T (une fusion, un commit d'index) ; puis un commit de l'auteur { `apps/a.ts` } = U. | `(V, T)` : `même`, « 1 fusion(s) …, 1 commit(s) d'index » ; `(V, U)` : `différent`, « apps/a.ts n'est pas un index généré » |
-| 31 | **Une fusion qui recule un index sans commande, ou l'écrase hors de tout conflit.** `develop` : D1 { registre = `ligne1⏎l2…l8`, la liste `[…, "docs/registre.md"]` }, puis D2 { `ligne2` ajoutée sous `ligne1` }. V = `feat/a`, depuis D2, { `lignePR` ajoutée en bas du registre }. Une fusion s'écrit à la main : `git read-tree <arbre>` ; `git update-index --cacheinfo 100644,<blob du registre de la source>,docs/registre.md` ; `T=$(git commit-tree $(git write-tree) -p V -p <second parent> -m x)`. (a) Arbre de V, registre de D1, second parent D1 : le registre recule. (b) `develop` : D3 { `ligne0` ajoutée en haut }. Arbre de `git merge-tree --write-tree V D3` (fusion sans conflit, les deux ajouts), registre de D3, second parent D3 : `lignePR` disparaît. | (a) : `différent`, « second parent … déjà ancêtre de son premier parent » (S2) ; (b) : `différent`, « docs/registre.md, index sans commande ou déclaré par motif, n'est pas en conflit dans la fusion calculée » |
+| 31 | **Une fusion qui recule un index sans commande, ou l'écrase hors de tout conflit** (premier tour). `develop` : D1 { registre = `ligne1⏎l2…l8`, la liste `[…, "docs/registre.md"]` }, puis D2 { `ligne2` ajoutée sous `ligne1` }. V = `feat/a`, depuis D2, { `lignePR` ajoutée en bas du registre }. Une fusion s'écrit à la main : `git read-tree <arbre>` ; `git update-index --cacheinfo 100644,<blob du registre de la source>,docs/registre.md` ; `T=$(git commit-tree $(git write-tree) -p V -p <second parent> -m x)`. (a) Arbre de V, registre de D1, second parent D1 : le registre recule. (b) `develop` : D3 { `ligne0` ajoutée en haut }. Arbre de `git merge-tree --write-tree V D3` (fusion sans conflit, les deux ajouts), registre de D3, second parent D3 : `lignePR` disparaît. | (a) : `différent`, « second parent … déjà ancêtre de son premier parent » (S2) ; (b) : `différent`, « docs/registre.md, index sans commande ou déclaré par motif, se juge comme tout fichier » |
 | 32 | **Un conflit fabriqué par un second parent latéral** (second tour, attaque 1). `develop` : D0 { registre = `a⏎…⏎j`, la liste `[…, "docs/registre.md"]` }. `sujet/s`, depuis D0 : SK { `ligneS` ajoutée en bas }. `develop` : DJ { `ligne2` ajoutée en haut }. V = `feat/a`, depuis DJ, { `ligneP` ajoutée en bas }. `develop` fusionne `sujet/s` (`git merge --no-ff`), poussé : SK est un ancêtre de la cible, par un second parent. `git merge-tree --write-tree V SK` sort en 1 (conflit sur le registre) ; `git read-tree <son arbre>` ; registre := blob de SK ; `T=$(git commit-tree $(git write-tree) -p V -p SK -m x)`. `T:docs/registre.md` ne porte plus `ligne2`. | `différent`, « second parent … pas sur la ligne des premiers parents de origin/develop » |
-| 33 | **Un sous-module déplacé.** V porte `.gitmodules` (`ignore = all` pour `vendor/lib`) et un sous-module `vendor/lib` (`git update-index --add --cacheinfo 160000,<sha>,vendor/lib`). T = un commit qui le déplace (`--cacheinfo 160000,<autre sha>,vendor/lib`). Rejoué avec `diff.ignoreSubmodules=all`. | `différent` les deux fois, « vendor/lib n'est pas un index généré » |
-| 34 | **Depuis un sous-dossier, sous `diff.relative=true`.** Appels lancés depuis `docs/adr`. (a) V = `feat/a` { `apps/a.ts` }, T = { `apps/a.ts` récrit }. (b) W = `feat/c` { `docs/adr/ADR_1.md` }, X = { README = Index(ADR_1.md) }. | (a) : `différent`, « apps/a.ts n'est pas un index généré » ; (b) : `même`, « 1 commit(s) d'index » (la liste de la cible est trouvée) |
-| 35 | **`git replace` et greffe.** V, puis T = { `apps/a.ts` récrit }. (a) `git replace T <commit vide posé sur V>`. (b) Le remplacement retiré ; un commit R qui remet `apps/a.ts` comme en V (l'arbre de R est celui de V) ; `.git/info/grafts` = `R V`. | (a) `(V, T)` : `différent` ; (b) `(V, R)` : `différent`, « apps/a.ts n'est pas un index généré » (le commit de l'auteur est lu) |
-| 36 | **Un chemin de la liste écrit comme git cite.** La liste porte `{ "chemin": "\"apps/a\\tb.ts\"", "commande": "true" }`. V = `feat/a` { le fichier `apps/a<TAB>b.ts` }, T = le même fichier récrit. | `différent`, « n'est pas un index généré » |
-| 37 | **Arguments hostiles.** V = `x⏎même` ; T = `<T>⏎même` ; `<B>` = `develop⏎même` ; V = `<V>⏎`. Puis, `refs/remotes/origin/HEAD` et `refs/remotes/origin/alias` posées en réfs symboliques vers `origin/develop` : `<B>` = `HEAD`, `<B>` = `alias`. | chaque fois 21, la sortie standard vaut exactement `illisible⏎`, la sortie d'erreur tient en une ligne et ne porte pas `même` ; `HEAD` : « nom de branche cible invalide » ; `alias` : « réf symbolique » |
-| 38 | **Un fichier renommé vers le chemin d'un index, sous `diff.renames=copies`.** La liste porte `docs/agents/couts.md` à commande. V = `feat/a` { `apps/a.ts` } ; T = `git mv apps/a.ts docs/agents/couts.md`. | `différent`, « apps/a.ts n'est pas un index généré » (la suppression est lue) |
-| 39 | **`GIT_DIR` et `GIT_WORK_TREE` hérités d'un autre dépôt.** Un second clone, dont `refs/remotes/origin/develop` est déplacée sur un commit qui déclare `apps/a.ts` index à commande. V, T = { `apps/a.ts` récrit }. Appel depuis le second clone, puis depuis le premier avec `GIT_DIR` et `GIT_WORK_TREE` pointés sur le second. | depuis le second clone : `même` (le piège y est réel) ; depuis le premier, variables héritées : `différent`, « apps/a.ts n'est pas un index généré de origin/develop » |
-| 40 | **`core.quotePath`.** La liste porte `docs/métier/index.md` à commande. V, T = { `docs/métier/index.md` }. Rejoué avec `core.quotePath=true`, puis `false`. | `même` les deux fois, « 1 commit(s) d'index » |
-| 41 | **Les attributs et les pilotes de fusion, où qu'ils soient écrits.** `develop` { `apps/a.ts` = `base⏎l2⏎l3` } ; V = `feat/a` { `pr⏎l2⏎l3` } ; `develop` { `cible⏎l2⏎l3` }. Sur `feat/a`, `git merge origin/develop` (conflit), résolu à la main par les deux côtés l'un sous l'autre (`pr⏎cible⏎l2⏎l3`, ce qu'un pilote `union` écrirait) = T. Six appels : tel quel ; avec un `.gitattributes` **non commité** dans l'arbre de travail (`apps/a.ts merge=union`) ; avec `merge.default=union` dans la configuration du dépôt ; avec `merge.text.driver=true` (second tour, attaque 4) ; avec `.git/info/attributes` = `apps/a.ts merge=union` ; avec un `HOME` dont le `.gitconfig` porte `merge.default=union`. | `différent` les six fois, « s'écarte de la fusion calculée … apps/a.ts » |
-| 42 | **Un pilote de fusion commité avec V** (second tour, attaque 3). `develop` { `apps/auth.ts` = `base⏎l2⏎l3` }. Deux PR, `feat/union` et `feat/ours` : V = { `.gitattributes` = `apps/auth.ts merge=union` (ou `merge=ours`), `apps/auth.ts` = `pr⏎l2⏎l3` }. `develop` { `apps/auth.ts` = `correctif⏎l2⏎l3` }. Mise à jour de `feat/union`, sans aucune configuration : git mêle sans conflit, `T:apps/auth.ts` = `pr⏎correctif⏎l2⏎l3`. Puis `git config merge.ours.driver true` et mise à jour de `feat/ours` : `T:apps/auth.ts` = `pr⏎l2⏎l3`, le correctif de la cible est perdu. | `différent` les deux fois, « s'écarte de la fusion calculée … apps/auth.ts » (S4) |
-| 43 | **Lectures vides ou incohérentes.** V, T = un commit de l'auteur. Un faux `git` en tête de `PATH`, muet et en sortie 0 tour à tour pour `diff-tree`, pour `rev-list --first-parent`, pour `rev-list --parents`, pour `rev-parse <T>^{tree}`, pour `rev-list --count`. | 21 chaque fois : « écart de … illisible », « ligne des premiers parents de T illisible », « parents de … illisibles », « arbre de … illisible », « compte des commits de V à T incohérent » |
-| 44 | **git plus ancien que 2.41** (second tour, constat 5). Un faux `git` qui répond `git version 2.40.1`, puis `git version 1.9.5 (Apple Git-50)`, puis `2.41.0`, puis `3.0.0`. V, T = un commit de l'auteur. | 69 et `illisible`, « git ≥ 2.41 requis, ici 2.40 », puis « … ici 1.9 » ; `différent` aux deux derniers (le calcul tourne) |
-| 45 | **S1 : le dépôt propre.** Le conflit d'index du cas 4 (V, T), `TMPDIR` posé sur un dossier vide. Puis `TMPDIR` posé sur un dossier qui n'existe pas, puis sur un fichier. | `même`, le dossier de `TMPDIR` est vide après l'appel, et `git count-objects -v` du dépôt réel n'a pas bougé (la fusion calculée ne s'y écrit pas) ; puis 21 deux fois, « dossier temporaire impossible à créer » |
-| 46 | **S3 : aucun here-document, et un long écart** (second tour, attaque 2). Le texte du script, hors commentaires, ne porte ni `<<`, ni substitution de processus, ni tube vers `read`, `while` ou `mapfile`. V = `feat/a` ; T = un commit de 2 500 fichiers sous `apps/gros/`. Puis la liste porte 200 index à commande `gen/f<i>.md` ; W = `feat/b` ; X = un commit de ces 200 fichiers et de `zzz/dernier.ts`. | `(V, T)` : `différent`, « apps/gros/f0.ts n'est pas un index généré » ; `(W, X)` : `différent`, « zzz/dernier.ts n'est pas un index généré » (la dernière ligne de l'écart est lue) |
-| 47 | **S3 : le compte.** V, puis un commit de l'auteur { `apps/a.ts` }, puis un commit vide = T. Un faux `git` dont `rev-list … --reverse` ne rend que V et T (le commit de l'auteur sauté : seul le commit vide serait jugé) ; puis un faux `git` dont `rev-list --count` rend 1. | sans faux git : `différent` ; puis 21 deux fois, « compte des commits de V à T incohérent » |
+| 33 | **Une PR bâtie sur un sujet livré entre-temps** (troisième tour : le miroir du cas 32). `develop` : D0 { registre = `a⏎…⏎j`, la liste `[…, "docs/registre.md"]` }. `sujet/s`, depuis D0 : SK { `ligneS` ajoutée en bas }. V = `feat/a`, **depuis SK**, PR vers `develop` : { `ligneP` ajoutée en haut }. `develop` : DK { `ligneK` ajoutée en haut }, puis fusionne `sujet/s` (`git merge --no-ff`), poussé : la cible porte `ligneS`. DK a été le sommet de la cible et n'est pas un ancêtre de V : S2 l'admet. `git merge-tree --write-tree V DK` sort en 1 (conflit sur le registre) ; `git read-tree <son arbre>` ; registre := blob de DK ; `T=$(git commit-tree $(git write-tree) -p V -p DK -m x)`. `T:docs/registre.md` ne porte plus `ligneS`. | `différent`, « docs/registre.md, index sans commande ou déclaré par motif, se juge comme tout fichier » |
+| 34 | **Un sous-module déplacé.** V porte `.gitmodules` (`ignore = all` pour `vendor/lib`) et un sous-module `vendor/lib` (`git update-index --add --cacheinfo 160000,<sha>,vendor/lib`). T = un commit qui le déplace (`--cacheinfo 160000,<autre sha>,vendor/lib`). Rejoué avec `diff.ignoreSubmodules=all`. | `différent` les deux fois, « vendor/lib n'est pas un index généré » |
+| 35 | **Depuis un sous-dossier, sous `diff.relative=true`.** Appels lancés depuis `docs/adr`. (a) V = `feat/a` { `apps/a.ts` }, T = { `apps/a.ts` récrit }. (b) W = `feat/c` { `docs/adr/ADR_1.md` }, X = { README = Index(ADR_1.md) }. | (a) : `différent`, « apps/a.ts n'est pas un index généré » ; (b) : `même`, « 1 commit(s) d'index » (la liste de la cible est trouvée) |
+| 36 | **`git replace` et greffe.** V, puis T = { `apps/a.ts` récrit }. (a) `git replace T <commit vide posé sur V>`. (b) Le remplacement retiré ; un commit R qui remet `apps/a.ts` comme en V (l'arbre de R est celui de V) ; `.git/info/grafts` = `R V`. | (a) `(V, T)` : `différent` ; (b) `(V, R)` : `différent`, « apps/a.ts n'est pas un index généré » (le commit de l'auteur est lu) |
+| 37 | **Un chemin de la liste écrit comme git cite.** La liste porte `{ "chemin": "\"apps/a\\tb.ts\"", "commande": "true" }`. V = `feat/a` { le fichier `apps/a<TAB>b.ts` }, T = le même fichier récrit. | `différent`, « n'est pas un index généré » |
+| 38 | **Arguments hostiles.** V = `x⏎même` ; T = `<T>⏎même` ; `<B>` = `develop⏎même` ; V = `<V>⏎`. Puis, `refs/remotes/origin/HEAD` et `refs/remotes/origin/alias` posées en réfs symboliques vers `origin/develop` : `<B>` = `HEAD`, `<B>` = `alias`. | chaque fois 21, la sortie standard vaut exactement `illisible⏎`, la sortie d'erreur tient en une ligne et ne porte pas `même` ; `HEAD` : « nom de branche cible invalide » ; `alias` : « réf symbolique » |
+| 39 | **Un fichier renommé vers le chemin d'un index, sous `diff.renames=copies`.** La liste porte `docs/agents/couts.md` à commande. V = `feat/a` { `apps/a.ts` } ; T = `git mv apps/a.ts docs/agents/couts.md`. | `différent`, « apps/a.ts n'est pas un index généré » (la suppression est lue) |
+| 40 | **`GIT_DIR` et `GIT_WORK_TREE` hérités d'un autre dépôt.** Un second clone, dont `refs/remotes/origin/develop` est déplacée sur un commit qui déclare `apps/a.ts` index à commande. V, T = { `apps/a.ts` récrit }. Appel depuis le second clone, puis depuis le premier avec `GIT_DIR` et `GIT_WORK_TREE` pointés sur le second. | depuis le second clone : `même` (le piège y est réel) ; depuis le premier, variables héritées : `différent`, « apps/a.ts n'est pas un index généré de origin/develop » |
+| 41 | **`core.quotePath`.** La liste porte `docs/métier/index.md` à commande. V, T = { `docs/métier/index.md` }. Rejoué avec `core.quotePath=true`, puis `false`. | `même` les deux fois, « 1 commit(s) d'index » |
+| 42 | **Les attributs et les pilotes de fusion, où qu'ils soient écrits.** `develop` { `apps/a.ts` = `base⏎l2⏎l3` } ; V = `feat/a` { `pr⏎l2⏎l3` } ; `develop` { `cible⏎l2⏎l3` }. Sur `feat/a`, `git merge origin/develop` (conflit), résolu à la main par les deux côtés l'un sous l'autre (`pr⏎cible⏎l2⏎l3`, ce qu'un pilote `union` écrirait) = T. Neuf appels : tel quel ; avec un `.gitattributes` **non commité** dans l'arbre de travail (`apps/a.ts merge=union`) ; avec `merge.default=union` dans la configuration du dépôt ; avec `merge.text.driver=true` ; avec `.git/info/attributes` = `apps/a.ts merge=union` ; avec un `HOME` dont le `.gitconfig` porte `merge.default=union` ; **avec un `HOME` dont `.config/git/attributes` porte `* merge=union`** (et `.config/git/ignore` porte `*`), `XDG_CONFIG_HOME` vide (troisième tour) ; avec ces deux fichiers sous `XDG_CONFIG_HOME` ; avec un `HOME` dont le `.gitconfig` nomme un `core.attributesFile` et un `core.excludesFile` à `* merge=union`. | `différent` les neuf fois, « s'écarte de la fusion calculée … apps/a.ts » |
+| 43 | **Un pilote de fusion commité avec V** (second tour, attaque 3). `develop` { `apps/auth.ts` = `base⏎l2⏎l3` }. Deux PR, `feat/union` et `feat/ours` : V = { `.gitattributes` = `apps/auth.ts merge=union` (ou `merge=ours`), `apps/auth.ts` = `pr⏎l2⏎l3` }. `develop` { `apps/auth.ts` = `correctif⏎l2⏎l3` }. Mise à jour de `feat/union`, sans aucune configuration : git mêle sans conflit, `T:apps/auth.ts` = `pr⏎correctif⏎l2⏎l3`. Puis `git config merge.ours.driver true` et mise à jour de `feat/ours` : `T:apps/auth.ts` = `pr⏎l2⏎l3`, le correctif de la cible est perdu. | `différent` les deux fois, « s'écarte de la fusion calculée … apps/auth.ts » (S4) |
+| 44 | **Lectures vides ou incohérentes.** V, T = un commit de l'auteur. Un faux `git` en tête de `PATH`, muet et en sortie 0 tour à tour pour `diff-tree`, pour `rev-list --first-parent`, pour `rev-list --parents`, pour `rev-parse <T>^{tree}`, pour `rev-list --count`. | 21 chaque fois : « écart de … illisible », « ligne des premiers parents de T illisible », « parents de … illisibles », « arbre de … illisible », « compte des commits de V à T incohérent » |
+| 45 | **git plus ancien que 2.41** (second tour, constat 5). Un faux `git` qui répond `git version 2.40.1`, puis `git version 1.9.5 (Apple Git-50)`, puis `2.41.0`, puis `3.0.0`. V, T = un commit de l'auteur. | 69 et `illisible`, « git ≥ 2.41 requis, ici 2.40 », puis « … ici 1.9 » ; `différent` aux deux derniers (le calcul tourne) |
+| 46 | **S1 : le dépôt propre.** Le conflit d'index du cas 4 (V, T), `TMPDIR` posé sur un dossier vide. Puis `TMPDIR` posé sur un dossier qui n'existe pas, puis sur un fichier. | `même`, le dossier de `TMPDIR` est vide après l'appel, et `git count-objects -v` du dépôt réel n'a pas bougé (la fusion calculée ne s'y écrit pas) ; puis 21 deux fois, « dossier temporaire impossible à créer » |
+| 47 | **S3 : aucun here-document, et un long écart** (second tour, attaque 2). Le texte du script, hors commentaires, ne porte ni `<<`, ni substitution de processus, ni tube vers `read`, `while` ou `mapfile`. V = `feat/a` ; T = un commit de 2 500 fichiers sous `apps/gros/`. Puis la liste porte 200 index à commande `gen/f<i>.md` ; W = `feat/b` ; X = un commit de ces 200 fichiers et de `zzz/dernier.ts`. | `(V, T)` : `différent`, « apps/gros/f0.ts n'est pas un index généré » ; `(W, X)` : `différent`, « zzz/dernier.ts n'est pas un index généré » (la dernière ligne de l'écart est lue) |
+| 48 | **S3 : le compte.** V, puis un commit de l'auteur { `apps/a.ts` }, puis un commit vide = T. Un faux `git` dont `rev-list … --reverse` ne rend que V et T (le commit de l'auteur sauté : seul le commit vide serait jugé) ; puis un faux `git` dont `rev-list --count` rend 1. | sans faux git : `différent` ; puis 21 deux fois, « compte des commits de V à T incohérent » |
 
 ## Surfaces
 
@@ -320,29 +329,29 @@ Chacune rendait `même` (ou manquait `illisible`) sur la version que le tour rel
 | une mise à jour : arbre de la fusion calculée de ses deux parents | cas 2, 5, 15, 16 |
 | S2 : le second parent a été le sommet de `origin/<B>`, n'est pas un ancêtre du premier, et `<B>` est la base de la PR | cas 9, 10, 13, 17, 31, 32 |
 | V sur la ligne des premiers parents de T ; V introuvable | cas 18 |
-| un commit qui ne touche que des index générés ; un commit vide | cas 3, 11, 14, 19 |
-| classe « régénéré » | cas 3, 4, 5, 22 |
-| classe « sans commande » : en conflit seulement, contre le second parent et jamais le sommet courant | cas 6, 20, 31 |
-| classe « motif » | cas 7, 21 |
+| un commit qui ne touche que des index à commande ; un commit vide | cas 3, 11, 14, 19 |
+| seul un index à commande est dispensé (classe « régénéré ») | cas 3, 4, 5, 22 |
+| un index sans commande se juge comme tout fichier, en conflit ou non (`A-123`) | cas 6, 20, 31, 33 |
+| un index sous motif se juge comme tout fichier (`A-123`) | cas 7, 21 |
 | une fusion à plus de deux parents | cas 23 |
-| la liste lue sur la cible, jamais sur la PR ni dans l'arbre de travail ; cible sans liste | cas 24, 34, 39 |
-| un chemin cité par git n'est jamais un index | cas 25, 36 |
+| la liste lue sur la cible, jamais sur la PR ni dans l'arbre de travail ; cible sans liste | cas 24, 35, 40 |
+| un chemin cité par git n'est jamais un index | cas 25, 37 |
 | le cas que la définition par M jugeait mal et qui rend `même` ; celui que S2 rend `différent` | cas 8 ; cas 9 |
 | les commits que `passer.sh` et `sujet.sh fusionner` écrivent | cas 12, 13 |
-| S1 : le dépôt propre, créé, retiré ; le dépôt réel jamais écrit ; ni configuration, ni attributs, ni remplacement, ni greffe, ni dossier courant, ni variable héritée | cas 33, 34, 35, 39, 41, 45 |
-| S3 : aucun here-document, un compte confronté, une lecture vide ou incohérente est `illisible` | cas 43, 46, 47 |
-| S4 : la fusion à trois voies nue ; git ≥ 2.41 | cas 41, 42, 44 |
+| S1 : le dépôt propre, créé, retiré ; le dépôt réel jamais écrit ; ni configuration, ni attributs, ni remplacement, ni greffe, ni dossier courant, ni variable héritée, ni fichier de l'utilisateur | cas 34, 35, 36, 40, 42, 46 |
+| S3 : aucun here-document, un compte confronté, une lecture vide ou incohérente est `illisible` | cas 44, 47, 48 |
+| S4 : la fusion à trois voies nue ; git ≥ 2.41 | cas 42, 43, 45 |
 | quatre outils et pas un de plus | cas 29, 30 |
-| la sortie standard ne porte que le verdict ; aucun argument recopié ; `<B>` est une branche | cas 37 |
-| `illisible`, sorties 21 et 69, jamais `même` | cas 26, 27, 28, 29, 43, 44, 45, 47 |
+| la sortie standard ne porte que le verdict ; aucun argument recopié ; `<B>` est une branche | cas 38 |
+| `illisible`, sorties 21 et 69, jamais `même` | cas 26, 27, 28, 29, 44, 45, 46, 48 |
 | version et note | les tests de version de `scripts/depot.test.mjs` (« la règle d'ascendance du plugin 7.16.0 : version, note de version en tête… ») |
 
 Le cas n est le n-ième test du banc, dans l'ordre du fichier.
 
 ## Vérification
 
-1. `node --test skills/chaine/fusionner/scripts/meme-contenu.test.mjs` : 47 tests verts (environ 30 s à l'écriture, dont environ 5 s pour les cas 12 et 13 et 3 s pour le cas 46).
-2. **Les mutations**, chacune appliquée seule à `meme-contenu.sh`, le banc rejoué, puis retirée. Chacune doit rougir au moins le cas nommé, sauf la 35, qui survit et dit pourquoi ; toutes ont été jouées à l'écriture.
+1. `node --test skills/chaine/fusionner/scripts/meme-contenu.test.mjs` : 48 tests verts (environ 30 s à l'écriture, dont environ 5 s pour les cas 12 et 13 et 3 s pour le cas 47).
+2. **Les mutations**, chacune appliquée seule à `meme-contenu.sh`, le banc rejoué, puis retirée. Chacune doit rougir au moins le cas nommé, sauf cinq qui survivent et disent pourquoi (16, 21, 23, 35, 40) ; toutes ont été jouées à l'écriture.
 
    | n° | Mutation | Test qui rougit, au moins |
    | -- | -------- | ------------------------- |
@@ -351,59 +360,62 @@ Le cas n est le n-ième test du banc, dans l'ordre du fichier.
    | 3 | ne plus vérifier le second parent du tout | cas 17 (et 9, 13, 32) |
    | 4 | comparer les index aussi : `classe` rend toujours `hors` | cas 3, 4 (et une quinzaine d'autres) |
    | 5 | accepter un commit quelconque : pour un commit à un parent, l'arbre de départ est celui du commit | cas 14, 19 (et une quinzaine d'autres) |
-   | 6 | lire la liste dans l'arbre de travail d'abord : `cat scripts/docs/index-generes.json \|\| git cat-file blob …` | cas 24 (et 39) |
+   | 6 | lire la liste dans l'arbre de travail d'abord : `cat scripts/docs/index-generes.json \|\| git cat-file blob …` | cas 24 (et 40) |
    | 7 | suivre tous les parents pour la ligne de T : `--topo-order --reverse` à la place de `--first-parent --reverse` | cas 18 (et presque tous les autres) |
    | 8 | tolérer un `git merge-tree` en échec : sans arbre calculé, prendre celui du commit | cas 28 |
-   | 9 | dispenser un index sans commande ou sous motif en conflit sans le comparer au second parent | cas 20 |
-   | 10 | ne plus comparer l'arbre d'une fusion à la fusion calculée | cas 15, 16 (et 20, 21, 31, 41, 42) |
-   | 11 | prendre pour contenu connu le sommet courant de la cible | cas 6 |
+   | 9 | **rétablir la dispense** (`A-123`) : un index sans commande ou sous motif passe dans toute fusion | cas 33 (et 6, 7, 20, 21, 31) |
+   | 10 | ne plus comparer l'arbre d'une fusion à la fusion calculée | cas 15, 16 (et 6, 7, 20, 21, 31, 33, 42, 43) |
+   | 11 | prendre un index sans commande pour un index régénéré | cas 6, 20 (et 31, 33) |
    | 12 | dispenser un index régénéré devenu lien symbolique | cas 22 |
    | 13 | accepter un clone superficiel | cas 27 |
    | 14 | accepter une fusion à plus de deux parents | cas 23 |
-   | 15 | prendre un index sous motif pour un index régénéré | cas 21 |
-   | 16 | dispenser un index sans commande ou sous motif dans un commit à un parent | cas 20, 21 |
+   | 15 | prendre un index sous motif pour un index régénéré | cas 7, 21 |
+   | 16 | garder le `HOME` de l'utilisateur | **aucun : elle survit**, `XDG_CONFIG_HOME` vide et `core.attributesFile=/dev/null` couvrent (voir la 41) |
    | 17 | tolérer une cible absente : `cible=$T` quand `origin/<B>` manque | cas 26 |
    | 18 | lire une liste mal formée comme une liste vide | cas 26 |
-   | 19 | ne plus écarter un chemin que git cite | cas 36 |
+   | 19 | ne plus écarter un chemin que git cite | cas 37 |
    | 20 | rendre `même` quand V est introuvable | cas 18 |
-   | 21 | dispenser un index sans commande ou sous motif hors conflit | cas 31 (et 21) |
-   | 22 | **S1 : calculer dans le dépôt réel** (`git` sans `--git-dir=<dépôt propre>`) | cas 33, 35, 41, 45 |
-   | 23 | S1 : ne plus écarter la configuration de l'utilisateur et du poste (`GIT_CONFIG_GLOBAL=/dev/null` et les trois autres retirés) | cas 41 |
-   | 24 | garder les variables `GIT_*` héritées | cas 39 |
-   | 25 | détecter les renommages : `-M` à la place de `--no-renames` | cas 38 |
-   | 26 | retirer `-c core.quotePath=false` | cas 40 |
-   | 27 | recopier un argument refusé dans la raison | cas 37 (et 26) |
+   | 21 | garder le `XDG_CONFIG_HOME` de l'utilisateur | **aucun : elle survit**, `core.attributesFile=/dev/null` couvre (voir la 41) |
+   | 22 | **S1 : calculer dans le dépôt réel** (`git` sans `--git-dir=<dépôt propre>`) | cas 34, 36, 42, 46 |
+   | 23 | S1 : retirer `GIT_CONFIG_GLOBAL=/dev/null` et les trois autres, `HOME` vide restant | **aucun : elle survit**, un `HOME` vide n'a pas de `.gitconfig` |
+   | 24 | garder les variables `GIT_*` héritées | cas 40 |
+   | 25 | détecter les renommages : `-M` à la place de `--no-renames` | cas 39 |
+   | 26 | retirer `-c core.quotePath=false` | cas 41 |
+   | 27 | recopier un argument refusé dans la raison | cas 38 (et 26) |
    | 28 | écrire la raison sur la sortie standard | tous les cas |
-   | 29 | accepter `HEAD` comme nom de branche | cas 37 |
-   | 30 | accepter une réf symbolique | cas 37 |
-   | 31 | tolérer un écart vide entre deux arbres différents | cas 43 |
-   | 32 | **S3 : ne plus confronter le compte** des commits, ni avant la boucle ni après | cas 47 |
-   | 33 | **S3 : réemployer un here-document** (`mapfile -t LIGNES <<<"$ecart"`) | cas 46 (et dix autres : un écart vide y devient une ligne vide) |
-   | 34 | **S4 : lire les attributs dans l'arbre du premier parent** (`--attr-source=<p1>`, la règle d'`A-114`) | cas 42 |
+   | 29 | accepter `HEAD` comme nom de branche | cas 38 |
+   | 30 | accepter une réf symbolique | cas 38 |
+   | 31 | tolérer un écart vide entre deux arbres différents | cas 44 |
+   | 32 | **S3 : ne plus confronter le compte** des commits, ni avant la boucle ni après | cas 48 |
+   | 33 | **S3 : réemployer un here-document** (`mapfile -t LIGNES <<<"$ecart"`) | cas 47 (et dix autres : un écart vide y devient une ligne vide) |
+   | 34 | **S4 : lire les attributs dans l'arbre du premier parent** (`--attr-source=<p1>`, la règle d'`A-114`) | cas 43 |
    | 35 | S4 : retirer `--attr-source`, S1 restant | **aucun : elle survit** sur git 2.43 (Décision 13 : le dépôt propre n'a aucun attribut à lire) |
-   | 36 | ne plus contrôler la version de git | cas 44 |
-   | 37 | S1 : ignorer `TMPDIR`, `/tmp` en dur | cas 45 |
-   | 38 | S1 : ne plus retirer le dépôt propre | cas 45 |
-   | 39 | ni S1 ni S4 : calculer dans le dépôt réel, sans `--attr-source` | cas 42 (et 33, 35, 41, 45) |
+   | 36 | ne plus contrôler la version de git | cas 45 |
+   | 37 | S1 : ignorer `TMPDIR`, `/tmp` en dur | cas 46 |
+   | 38 | S1 : ne plus retirer le dépôt propre | cas 46 |
+   | 39 | ni S1 ni S4 : calculer dans le dépôt réel, sans `--attr-source` | cas 43 (et 34, 36, 42, 46) |
+   | 40 | retirer `-c core.attributesFile=/dev/null` | **aucun : elle survit**, `HOME` et `XDG_CONFIG_HOME` vides couvrent (voir la 41) |
+   | 41 | **`A-123` : aucune des trois**, ni `HOME`, ni `XDG_CONFIG_HOME`, ni `core.attributesFile` | cas 42 |
 
-3. La suite entière (`pnpm test`), verte. À l'écriture, sur un clone neuf de `8f8cfd9` : 897 tests, tous verts. Le compte se relève sur le `main` du moment : il bouge à chaque PR de l'autre programme. Le test des bancs posés à plat, qui rejoue ce banc hors du plugin, a pris de 181 à 390 s sur 600 ; ce banc seul y compte pour une trentaine de secondes.
+3. La suite entière (`pnpm test`), verte. À l'écriture, sur un clone neuf de `d5b1561` : 953 tests, tous verts. Le compte se relève sur le `main` du moment : il bouge à chaque PR de l'autre programme. Le test des bancs posés à plat, qui rejoue ce banc hors du plugin, a pris 184 s sur 600 ; ce banc seul y compte pour une trentaine de secondes.
 4. `git diff --stat origin/main` : quatre fichiers, dont deux créés. `git diff origin/main -- skills/chaine/sujet/scripts/depot-jouet.mjs` : vide.
 5. Le banc ne laisse rien : `TMPDIR=<dossier vide> node --test skills/chaine/fusionner/scripts/meme-contenu.test.mjs`, puis il n'y reste aucun dossier du banc ni du calcul (`jouet-…`, `path-…`, `autre-…`, `maison-…`, `meme-contenu.…`) ; seul un `node-compile-cache`, que Node y pose selon le poste, peut y paraître (vérifié à l'écriture).
 
 ## Ce qui n'a pas été établi
 
-1. **Un autre git que le 2.43.0 de l'écriture.** Le contrôle de version refuse tout git plus ancien que 2.41 (joué avec un faux `git version`, cas 44) ; ni 2.41 ni 2.42 n'ont été joués pour de vrai. Sur 2.43, retirer `--attr-source` ne change rien sous S1 (mutation 35) : comment un autre git lirait les attributs d'un dépôt nu sans `HEAD` n'est pas établi, et c'est la raison de garder S4 écrite. bash 3.2 (macOS) rend « illisible » dès la première ligne : écrit, non joué.
+1. **Un autre git que le 2.43.0 de l'écriture.** Le contrôle de version refuse tout git plus ancien que 2.41 (joué avec un faux `git version`, cas 45) ; ni 2.41 ni 2.42 n'ont été joués pour de vrai. Sur 2.43, retirer `--attr-source` ne change rien sous S1 (mutation 35) : comment un autre git lirait les attributs d'un dépôt nu sans `HEAD` n'est pas établi, et c'est la raison de garder S4 écrite. bash 3.2 (macOS) rend « illisible » dès la première ligne : écrit, non joué.
 2. **Le dépôt propre emprunte les objets du dépôt réel par `objects/info/alternates`.** Joué sur des clones ordinaires. Non joué : un dépôt réel qui emprunte lui-même ses objets ailleurs par un chemin relatif (`git clone --shared`, certains arbres de travail liés), un clone partiel (objets à la demande), un dépôt à `extensions.objectFormat=sha256`. Dans chacun, un objet manquerait au dépôt propre : une commande échouerait, donc « illisible », jamais « même ».
-3. **Le dossier temporaire plein** (second tour, attaque 2) : rejoué hors banc sur un tmpfs monté sous `unshare -m` (8 Ko : « illisible », le dépôt propre ne se crée pas ; 64 Ko, 400 Ko, 4 Mo : « différent » pour le commit de 2 500 fichiers). Le banc, lui, ne monte pas de tmpfs (il doit tourner sans droits et hors de Linux) : il vérifie l'absence de here-document dans le texte du script, le dossier temporaire absent, et un long écart (cas 45, 46).
+3. **Le dossier temporaire plein** (second tour, attaque 2) : rejoué hors banc sur un tmpfs monté sous `unshare -m` (8 Ko : « illisible », le dépôt propre ne se crée pas ; 64 Ko, 400 Ko, 4 Mo : « différent » pour le commit de 2 500 fichiers). Le banc, lui, ne monte pas de tmpfs (il doit tourner sans droits et hors de Linux) : il vérifie l'absence de here-document dans le texte du script, le dossier temporaire absent, et un long écart (cas 46, 47).
 4. **La fusion calculée contre la fusion réelle, hors pilote** : `merge.renames`, `merge.directoryRenames`, `merge.conflictStyle`, la renormalisation des fins de ligne ne pèsent plus sur le calcul (S1), mais ils ont pu peser sur la fusion réelle du poste qui l'a faite. Un écart donnerait « différent », du côté sûr. Non joué.
 5. **Le `pre-commit` d'un projet sur une fusion que le capitaine conclut** (rapport § 2.2, limite 5) : rejoué ici par une fusion amendée (cas 16), pas par un vrai `lint-staged`.
 6. **Le conflit de pile résolu par `passer.sh`** (même limite) : rejoué par un choix de côté à la main (cas 15), pas par `passer.sh` sur une vraie pile.
 7. **Une sous-PR d'un sujet mise à jour deux fois par `sujet.sh fusionner`** : le cas 13 n'en joue qu'une (sortie 8). Les deux mises à jour de suite sont jouées par `passer.sh` (cas 12) et par l'aide du banc (cas 5, 10).
 8. **Les cibles dont la ligne des premiers parents n'est pas l'histoire de leurs sommets.** S2 suppose que la cible n'avance que par des commits dont elle est le premier parent : squash, fusion `--no-ff` avec la cible en premier, report de develop dans un sujet, avance rapide jusqu'à une PR de mise à jour dont le premier parent est le sommet du sujet (`verifier_mise_a_jour` l'exige, `sujet.sh:618`). Une cible avancée par une avance rapide vers une fusion **dont elle est le second parent** sortirait ses anciens sommets de cette ligne, et toute mise à jour antérieure rendrait « différent ». Aucun script de la chaîne ne le fait ; non joué.
-9. **Un historique très long, une longue liste d'index.** La ligne des premiers parents de la cible est lue en entier à chaque appel ; chaque chemin d'un écart est confronté à la liste par une expression régulière que bash recompile à chaque fois. Avec 200 index et 200 fichiers, le cas 46 prend moins de trois secondes ; avec 2 499 index et autant de fichiers, un essai a dépassé cinq minutes. Non mesuré au-delà.
+9. **Un historique très long, une longue liste d'index.** La ligne des premiers parents de la cible est lue en entier à chaque appel ; chaque chemin d'un écart est confronté à la liste par une expression régulière que bash recompile à chaque fois. Avec 200 index et 200 fichiers, le cas 47 prend moins de trois secondes ; avec 2 499 index et autant de fichiers, un essai a dépassé cinq minutes. Non mesuré au-delà.
 10. **Les cas 12 et 13 dépendent de l'appel de `passer.sh` et de `sujet.sh fusionner`** tels qu'ils sont sur `main`. Un ticket de l'autre programme qui change cet appel (son ticket 4 rend `CAPITAINE_ID` obligatoire) devra les garder verts ; ils passent par `d.lancer` et `d.env`, donc par l'environnement que `depot-jouet.mjs` donnera alors. Non essayé contre ces tickets, qui ne sont pas sur `main`.
 11. **Ce que l'appelant fait de « illisible »** (pause, renvoi, nouvel essai) : lots 4 et 5a. Un git plus ancien que 2.41 et un dossier temporaire plein en sont deux causes de poste, que l'appelant devra dire à un humain plutôt qu'à l'auteur de la PR.
 12. **La marge du plafond de 600 s** : le test des bancs posés à plat n'a pas été mesuré sans ce banc.
+13. **Limites connues, dites par la relecture et par l'architecte** (`A-123`). (a) **Un clone partiel** (objets à la demande) rend « illisible » sans nommer la cause : un objet manque au dépôt propre, une commande échoue, et la raison dit seulement laquelle. (b) **Une cible réécrite après une mise à jour honnête** (push forcé sur `develop` ou sur un sujet) rend « différent » : le second parent de la fusion n'est plus sur la ligne des premiers parents de la cible. Les hooks de la chaîne refusent ce push ; un humain peut le faire. (c) **Un git plus ancien que 2.41 rend 69** à chaque appel, V égal à T compris : à relever sur les postes avant de brancher le calcul.
 
 ## Hors périmètre
 
@@ -419,10 +431,11 @@ Le cas n est le n-ième test du banc, dans l'ordre du fichier.
 - 2026-11-18 — Décisions de l'architecte portées au ticket (`A-112`) : un index sous motif récrit d'un contenu nouveau donne « différent », la relecture de plus est acceptée ; les choix du rédacteur sont confirmés (commit à un parent, lien symbolique, clone superficiel, commit vide, V introuvable, forme `.sh`, `<B>` nom de branche, codes 0, 20, 21 et 69, cas 8). Base relue : `origin/main` à `22b2d49` (7.18.1). Ni le script ni le banc ne changent, leurs empreintes non plus : rien n'a été rejoué.
 - 2026-11-18 — Relecture adversariale : « pas prêt », deux faux « même » (une fusion qui recule un index sans commande ; `git diff` obéissant à la configuration et au dossier courant) et un « illisible » manqué (outil absent). `A-114` adopte toutes ses corrections. Portées ici : la règle du conflit (Décision 7), la plomberie à options écrites (la Décision 13 d'alors, que les règles de structure d'`A-119` remplacent), aucun outil hors git et jq et toute lecture relue (Décision 9), la sortie standard réduite au verdict (Décision 3), le chemin cité hors index (Décision 8, g), la limite des index à commande (Décision 7). Trouvés en plus, de la même famille, et fermés : les attributs de fusion lus dans l'arbre de travail, `merge.default`. Le script est récrit, le banc passe de 28 à 40 cas, les empreintes changent ; base relue, `origin/main` à `e45a504` (7.19.1) ; banc, 38 mutations et suite entière rejoués sur un clone neuf de `6fc652d`, puis banc et suite entière sur un clone neuf de `e45a504`.
 - 2026-11-18 — Second tour de relecture adversariale : les huit corrections d'`A-114` sont fermées, trois faux « même » nouveaux sont reproduits (un conflit fabriqué par un second parent latéral ; un dossier temporaire plein, par les here-documents ; un pilote de fusion commité, ou posé dans la configuration). `A-119` : quatre règles de structure, S1 (un dépôt propre pour calculer), S2 (le second parent a été le sommet de la cible et n'est pas un ancêtre du premier), S3 (« même » se prouve par un compte, aucun here-document), S4 (aucun attribut dans la fusion calculée, git ≥ 2.41). Portées ici : Décisions 3, 4, 5, 9 et 13. Les parades d'`A-114` que S1 rend inutiles sont retirées du script ; leurs cas restent au banc. Le cas des deux bases de fusion (limite 4 du rapport) rend désormais « différent » : S2. La condition de rechange proposée pour S2 n'est pas ajoutée (Décision 5). Le script est récrit, le banc passe à 47 cas, les empreintes changent ; base relue, `origin/main` à `8f8cfd9` (7.21.1) ; banc, 39 mutations et suite entière rejoués sur un clone neuf de `8f8cfd9`. `main` est passé à `289323c` (7.22.0) pendant ce rejeu : rien de ce que ce ticket cite n'y a bougé, et rien n'y a été rejoué.
+- 2026-11-19 — Troisième et dernier tour de relecture adversariale, par le même relecteur que les deux premiers : huit constats, puis cinq, puis deux, tous portés. Verdict : « prêt après retouches » ; rien n'est de trop sur une PR ordinaire (chemin à espaces, `worktree` lié, trois mises à jour, `alternates` en chaîne). `A-123` clôt la boucle : la dispense des index sans commande et sous motif est retirée, entièrement (Décision 7 : seul un index à commande reste dispensé) ; aucun fichier de l'utilisateur ne pèse (`HOME` et `XDG_CONFIG_HOME` vides, `core.attributesFile=/dev/null` : Décision 13). Chacun des deux changements ne peut que rendre « différent » ou « illisible » de plus, jamais « même » : le ticket part sans autre tour. Les cas qui prouvaient la dispense sont retournés (6, 7, 20, 21, 31) ; l'attaque du troisième tour est le cas 33. Banc à 48 cas, empreintes nouvelles ; base relue, `origin/main` à `d5b1561` (7.23.0) ; banc, 41 mutations et suite entière rejoués sur un clone neuf.
 
 ## Annexe A — `skills/chaine/fusionner/scripts/meme-contenu.sh`
 
-`git hash-object` : `6c43a791684235e8ac4cf88edbcbb12e5a1bfc34`.
+`git hash-object` : `d5a9f48bcd4b8dc8eb5e9fc9383d91c5f795ec1a`.
 
 ````bash
 #!/usr/bin/env bash
@@ -445,21 +458,18 @@ Le cas n est le n-ième test du banc, dans l'ordre du fichier.
 #     chose), et dont l'arbre est celui de la fusion calculée de ses deux parents (`git merge-tree --write-tree`,
 #     fusion à trois voies nue, sans aucun attribut ; arbre pris même en conflit), aux index générés près ;
 #   - ou un commit à un parent qui ne touche que des index générés.
-# Les index générés sont ceux de `origin/<B>:scripts/docs/index-generes.json` (fichier absent : aucun). Un chemin
-# en écart est dispensé selon sa classe, dans cet ordre :
-#   motif         il touche une entrée à `commande` dont le chemin porte `*` : dispensé seulement dans une fusion,
-#                 s'il est en conflit dans la fusion calculée et si son entrée (mode et blob) est celle du second
-#                 parent ; hors conflit, il se juge comme tout fichier ;
-#   sans-commande aucune entrée à `commande` ne le touche : de même ;
-#   régénéré      sinon (un chemin littéral à `commande`) : dispensé, absent ou fichier ordinaire.
-# Un index dispensé n'est jamais un lien symbolique ni un sous-module. Un chemin que git cite (il commence par un
-# guillemet : caractère de contrôle, guillemet ou barre oblique inverse dans le nom) n'est jamais un index.
+# Les index générés sont ceux de `origin/<B>:scripts/docs/index-generes.json` (fichier absent : aucun). **Seul un
+# index à `commande`, de chemin littéral, est dispensé** (son contenu se régénère), absent ou fichier ordinaire,
+# jamais lien symbolique ni sous-module. Un index sans `commande`, ou déclaré par motif (`*`), se juge comme tout
+# fichier, dans une fusion comme dans un commit à un parent : en écart, `différent`. Un chemin que git cite (il
+# commence par un guillemet : caractère de contrôle, guillemet ou barre oblique inverse dans le nom) n'est jamais
+# un index.
 #
 # Quatre règles de structure :
 #   S1  tout calcul se fait dans un dépôt nu jetable, sous le dossier temporaire, qui emprunte les objets du dépôt
 #       réel (`objects/info/alternates`) : ni sa configuration, ni celle de l'utilisateur ou du poste, ni ses
-#       `info/attributes`, ses greffes ou ses `refs/replace`, ni le dossier courant, ni une variable `GIT_*` héritée
-#       n'y pèsent. Le dépôt réel ne dit que trois choses : où sont ses objets, le sha de la cible, s'il est
+#       `info/attributes`, ses greffes ou ses `refs/replace`, ni le dossier courant, ni une variable `GIT_*` héritée,
+#       ni aucun fichier de l'utilisateur (`HOME` et `XDG_CONFIG_HOME` y sont un dossier vide) n'y pèsent. Le dépôt réel ne dit que trois choses : où sont ses objets, le sha de la cible, s'il est
 #       superficiel. Le dépôt propre ne se crée pas : `illisible` ;
 #   S2  la fusion admise est celle que dit le premier tiret ci-dessus ;
 #   S3  `même` se prouve : le nombre de commits de V à T, compté par git, est celui des commits examinés et
@@ -528,12 +538,16 @@ objets=$(git rev-parse --path-format=absolute --git-path objects 2>/dev/null) &&
 # ── S1 : le dépôt propre ────────────────────────────────────────────────────────────────────────────────────
 propre=$(mktemp -d "${TMPDIR:-/tmp}/meme-contenu.XXXXXX" 2>/dev/null) && [ -n "$propre" ] && [ -d "$propre" ] ||
   { propre=''; illisible "dossier temporaire impossible à créer (plein ou absent)"; }
-p() {
-  GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_SYSTEM=/dev/null GIT_CONFIG_NOSYSTEM=1 GIT_ATTR_NOSYSTEM=1 \
-    git --git-dir="$propre/depot" -c core.quotePath=false "$@"
-}
-GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_SYSTEM=/dev/null GIT_CONFIG_NOSYSTEM=1 git init -q --bare --template= "$propre/depot" >/dev/null 2>&1 ||
+# Un dossier vide tient lieu de HOME et de XDG_CONFIG_HOME : git lit ~/.config/git/attributes sans passer par la
+# configuration, et aucun fichier de l'utilisateur ne doit peser.
+maison=$(mktemp -d "$propre/maison.XXXXXX" 2>/dev/null) && [ -n "$maison" ] && [ -d "$maison" ] ||
   illisible "dépôt propre impossible à créer sous le dossier temporaire"
+p() {
+  HOME="$maison" XDG_CONFIG_HOME="$maison" GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_SYSTEM=/dev/null GIT_CONFIG_NOSYSTEM=1 GIT_ATTR_NOSYSTEM=1 \
+    git --git-dir="$propre/depot" -c core.quotePath=false -c core.attributesFile=/dev/null "$@"
+}
+HOME="$maison" XDG_CONFIG_HOME="$maison" GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_SYSTEM=/dev/null GIT_CONFIG_NOSYSTEM=1 \
+  git init -q --bare --template= "$propre/depot" >/dev/null 2>&1 || illisible "dépôt propre impossible à créer sous le dossier temporaire"
 printf '%s\n' "$objets" >"$propre/depot/objects/info/alternates" 2>/dev/null || illisible "dépôt propre impossible à écrire sous le dossier temporaire"
 VIDE=$(p hash-object -w -t tree --stdin </dev/null 2>/dev/null) && [[ "$VIDE" =~ $SHA ]] || illisible "dépôt propre impossible à écrire sous le dossier temporaire"
 p cat-file -e "$T^{commit}" 2>/dev/null || illisible "T introuvable dans ce dépôt : $T"
@@ -594,7 +608,8 @@ for r in "${LIGNES[@]}"; do
 done
 GENERES=${LIGNES[0]} REGENERES=${LIGNES[1]} MOTIFS=${LIGNES[2]}
 
-# Classe d'un chemin, dans l'ordre de `livraison_intermediaire` : hors, motif, sans-commande, régénéré.
+# Classe d'un chemin, dans l'ordre de `livraison_intermediaire` : hors, motif, sans-commande, régénéré. Seule la
+# dernière est dispensée.
 classe() {
   if [[ "$1" == '"'* ]] || ! [[ "$1" =~ $GENERES ]]; then echo hors
   elif [[ "$1" =~ $MOTIFS ]]; then echo motif
@@ -602,15 +617,6 @@ classe() {
   else echo régénéré; fi
 }
 ordinaire() { [ "$1" = 100644 ] || [ "$1" = 100755 ]; }
-ENTREE=$'^([0-7]{6}) [a-z]+ ([0-9a-f]{40})\t'
-# Entrée d'un chemin dans l'arbre d'un commit : « mode sha », vide s'il est absent. Sortie 1 : lecture en échec.
-entree() {
-  local lue
-  lue=$(p ls-tree --full-tree "$1" -- "$2" 2>/dev/null) || return 1
-  [ -n "$lue" ] || return 0
-  [[ "$lue" != *$'\n'* ]] && [[ "$lue" =~ $ENTREE ]] || return 1
-  echo "${BASH_REMATCH[1]} ${BASH_REMATCH[2]}"
-}
 # Écart entre deux arbres, une ligne par chemin : « :mode mode sha sha lettre<TAB>chemin ». Vide si, et seulement
 # si, les deux arbres sont le même : une lecture vide entre deux arbres différents est une lecture en échec.
 ECART=$'^:[0-7]{6} ([0-7]{6}) [0-9a-f]{40} ([0-9a-f]{40}) [A-Z][0-9]*\t(.+)$'
@@ -632,7 +638,6 @@ for c in "${chemin[@]}"; do
   p1=${BASH_REMATCH[2]} p2=${BASH_REMATCH[4]} reste=${BASH_REMATCH[5]}
   [ -z "$reste" ] || different "$(court "$c") est une fusion à plus de deux parents"
   arbre_c=$(p rev-parse -q --verify "$c^{tree}" 2>/dev/null) && [[ "$arbre_c" =~ $SHA ]] || illisible "arbre de $(court "$c") illisible"
-  conflits=()
   if [ -n "$p2" ]; then
     # S2 : le second parent a été un jour le sommet de la cible, et la fusion apporte quelque chose.
     [[ "$LIGNE_CIBLE" == *$'\n'"$p2"$'\n'* ]] ||
@@ -649,9 +654,8 @@ for c in "${chemin[@]}"; do
     decouper "$sortie"
     depart=${LIGNES[0]:-}
     [[ "$depart" =~ $SHA ]] || illisible "arbre de la fusion calculée de $(court "$c") illisible"
-    conflits=("${LIGNES[@]:1}")
-    # Sortie 1 : un conflit, donc au moins un fichier en conflit ; sortie 0 : aucun.
-    if [ "$rc" = 1 ]; then [ "${#conflits[@]}" -ge 1 ]; else [ "${#conflits[@]}" = 0 ]; fi ||
+    # Sortie 1 : un conflit, donc au moins un fichier en conflit ; sortie 0 : aucun. Rien d'autre n'en est tiré.
+    if [ "$rc" = 1 ]; then [ "${#LIGNES[@]}" -ge 2 ]; else [ "${#LIGNES[@]}" = 1 ]; fi ||
       illisible "fichiers en conflit de la fusion calculée de $(court "$c") illisibles"
     sorte="la fusion $(court "$c") s'écarte de la fusion calculée de ses parents"
   else
@@ -663,19 +667,14 @@ for c in "${chemin[@]}"; do
   juges=0
   for l in ${LIGNES[@]+"${LIGNES[@]}"}; do
     [[ "$l" =~ $ECART ]] || illisible "écart de $(court "$c") illisible"
-    mode=${BASH_REMATCH[1]} sha=${BASH_REMATCH[2]} f=${BASH_REMATCH[3]}
+    mode=${BASH_REMATCH[1]} f=${BASH_REMATCH[3]}
     case $(classe "$f") in
       hors) different "$sorte : $f n'est pas un index généré de origin/$B" ;;
       régénéré)
         [ "$mode" = 000000 ] || ordinaire "$mode" || different "$sorte : $f, index généré, n'est plus un fichier ordinaire"
         ;;
       motif | sans-commande)
-        [ -n "$p2" ] || different "$sorte : $f, index sans commande ou déclaré par motif, change dans un commit d'index : aucun contenu connu"
-        en_conflit=0
-        for k in ${conflits[@]+"${conflits[@]}"}; do [ "$k" != "$f" ] || en_conflit=1; done
-        [ "$en_conflit" = 1 ] || different "$sorte : $f, index sans commande ou déclaré par motif, n'est pas en conflit dans la fusion calculée : il se juge comme tout fichier"
-        connu=$(entree "$p2" "$f") || illisible "arbre de $(court "$p2") illisible pour $f"
-        ordinaire "$mode" && [ "$mode $sha" = "$connu" ] || different "$sorte : $f, index sans commande ou déclaré par motif, n'a pas le contenu de la cible fusionnée"
+        different "$sorte : $f, index sans commande ou déclaré par motif, se juge comme tout fichier"
         ;;
       *) illisible "classe de $f illisible" ;;
     esac
@@ -694,7 +693,7 @@ meme "de V à T : $fusions fusion(s) de origin/$B, $index commit(s) d'index gén
 
 ## Annexe B — `skills/chaine/fusionner/scripts/meme-contenu.test.mjs`
 
-`git hash-object` : `0db4237f38242332dc5ef48970b5cf539de2a633`.
+`git hash-object` : `7842264129fa20d9efd44da140883b4f49c0c364`.
 
 ````js
 // `meme-contenu.sh` : « même contenu propre », de V (sommet du verdict) à T (sommet jugé), pas à pas sur la ligne
@@ -830,20 +829,19 @@ test("deux mises à jour de suite, puis la cible qui avance encore, index compri
   estMeme(juger(d, V, T2), /2 fusion\(s\)/);
 });
 
-test("index sans commande : en conflit, la version de la cible fusionnée est dispensée, même si la cible le récrit ensuite", () => {
+test("index sans commande : même en conflit, même au contenu de la cible fusionnée, il se juge comme tout fichier : différent", () => {
   const d = depotJouet();
   pousser(d, "develop", { "docs/registre.md": "base\n" });
   declarer(d, [ADR_CMD, "docs/registre.md"]);
   const V = pousser(d, "feat/a", { "docs/registre.md": "pr\n", "apps/a.ts": "a\n" });
   const cible = pousser(d, "develop", { "docs/registre.md": "cible\n" });
+  // Ce que le capitaine écrit : en conflit, le côté de la cible, sans régénération.
   const T = miseAJour(d, "feat/a", "develop", rien);
   assert.equal(d.git("rev-parse", `${T}:docs/registre.md`), d.git("rev-parse", `${cible}:docs/registre.md`));
-  estMeme(juger(d, V, T));
-  pousser(d, "develop", { "docs/registre.md": "cible, plus tard\n" });
-  estMeme(juger(d, V, T));
+  estDifferent(juger(d, V, T), /docs\/registre\.md, index sans commande ou déclaré par motif, se juge comme tout fichier/);
 });
 
-test("index déclaré par motif : en conflit, le fichier qui a le contenu de la cible fusionnée est dispensé", () => {
+test("index déclaré par motif : même en conflit, même au contenu de la cible fusionnée, il se juge comme tout fichier : différent", () => {
   const d = depotJouet();
   pousser(d, "develop", { "docs/gen/a.md": "base\n" });
   declarer(d, [ADR_CMD, { chemin: "docs/gen/*.md", commande: "true" }]);
@@ -851,7 +849,7 @@ test("index déclaré par motif : en conflit, le fichier qui a le contenu de la 
   pousser(d, "develop", { "docs/gen/a.md": "cible\n" });
   const T = miseAJour(d, "feat/a", "develop", rien);
   assert.equal(d.git("show", `${T}:docs/gen/a.md`), "cible");
-  estMeme(juger(d, V, T));
+  estDifferent(juger(d, V, T), /docs\/gen\/a\.md, index sans commande ou déclaré par motif, se juge comme tout fichier/);
 });
 
 test("la cible annule un changement identique entre deux mises à jour : même (la définition par M disait différent)", () => {
@@ -1052,7 +1050,7 @@ test("un commit d'index qui touche aussi un autre fichier : différent", () => {
   estDifferent(juger(d, V, T), /apps\/a\.ts n'est pas un index généré/);
 });
 
-test("index sans commande : d'un autre contenu que la cible fusionnée, retiré, ou changé dans un commit d'index : différent", () => {
+test("index sans commande : d'un autre contenu, du côté de la PR, retiré, ou changé dans un commit à un parent : différent", () => {
   const d = depotJouet();
   pousser(d, "develop", { "docs/registre.md": "base\n" });
   declarer(d, [ADR_CMD, "docs/registre.md"]);
@@ -1066,13 +1064,13 @@ test("index sans commande : d'un autre contenu que la cible fusionnée, retiré,
     return d.git("rev-parse", "HEAD");
   };
   const autre = fusion(() => { d.ecrire("docs/registre.md", "à la main\n"); d.git("add", "-A"); });
-  estDifferent(juger(d, V, autre), /docs\/registre\.md, index sans commande ou déclaré par motif, n'a pas le contenu de la cible fusionnée/);
+  estDifferent(juger(d, V, autre), /docs\/registre\.md, index sans commande ou déclaré par motif, se juge comme tout fichier/);
   const cotePr = fusion(() => { d.git("checkout", "--ours", "--", "docs/registre.md"); d.git("add", "-A"); });
-  estDifferent(juger(d, V, cotePr), /n'a pas le contenu de la cible fusionnée/);
+  estDifferent(juger(d, V, cotePr), /docs\/registre\.md, index sans commande ou déclaré par motif, se juge comme tout fichier/);
   const retire = fusion(() => d.git("rm", "-q", "-f", "docs/registre.md"));
-  estDifferent(juger(d, V, retire), /n'a pas le contenu de la cible fusionnée/);
+  estDifferent(juger(d, V, retire), /docs\/registre\.md, index sans commande ou déclaré par motif, se juge comme tout fichier/);
   const seul = pousser(d, "feat/a", { "docs/registre.md": "pr, encore\n" });
-  estDifferent(juger(d, V, seul), /change dans un commit d'index : aucun contenu connu/);
+  estDifferent(juger(d, V, seul), /docs\/registre\.md, index sans commande ou déclaré par motif, se juge comme tout fichier/);
 });
 
 test("index déclaré par motif : un fichier ajouté ou récrit sous le motif, dans la fusion ou dans un commit d'index : différent", () => {
@@ -1085,9 +1083,9 @@ test("index déclaré par motif : un fichier ajouté ou récrit sous le motif, d
   d.ecrire("apps/gen/glisse.ts", "export const glisse = 1;\n");
   d.git("add", "-A");
   d.git("commit", "-q", "--amend", "--no-edit");
-  estDifferent(juger(d, V, d.git("rev-parse", "HEAD")), /apps\/gen\/glisse\.ts, index sans commande ou déclaré par motif, n'est pas en conflit dans la fusion calculée/);
+  estDifferent(juger(d, V, d.git("rev-parse", "HEAD")), /apps\/gen\/glisse\.ts, index sans commande ou déclaré par motif, se juge comme tout fichier/);
   const seul = pousser(d, "feat/b", { "apps/gen/glisse.ts": "export const glisse = 1;\n" }, V);
-  estDifferent(juger(d, V, seul), /apps\/gen\/glisse\.ts.*aucun contenu connu/);
+  estDifferent(juger(d, V, seul), /apps\/gen\/glisse\.ts, index sans commande ou déclaré par motif, se juge comme tout fichier/);
 });
 
 test("un index régénéré remplacé par un lien symbolique : différent", () => {
@@ -1245,7 +1243,7 @@ test("une fusion qui recule un index sans commande, ou l'écrase hors de tout co
   const D3 = pousser(d, "develop", { "docs/registre.md": "ligne0\nligne1\nligne2\nl2\nl3\nl4\nl5\nl6\nl7\nl8\n" });
   const ecrase = ecrite(d.git("merge-tree", "--write-tree", V, D3).split("\n")[0], D3, D3);
   assert.doesNotMatch(d.git("show", `${ecrase}:docs/registre.md`), /lignePR/);
-  estDifferent(juger(d, V, ecrase), /docs\/registre\.md, index sans commande ou déclaré par motif, n'est pas en conflit dans la fusion calculée/);
+  estDifferent(juger(d, V, ecrase), /docs\/registre\.md, index sans commande ou déclaré par motif, se juge comme tout fichier/);
 });
 
 test("un conflit fabriqué par un second parent latéral, entré dans la cible par une fusion : différent (S2)", () => {
@@ -1269,6 +1267,30 @@ test("un conflit fabriqué par un second parent latéral, entré dans la cible p
   d.git("read-tree", "HEAD");
   assert.doesNotMatch(d.git("show", `${T}:docs/registre.md`), /ligne2/, "le sommet a perdu la ligne 2 de la cible");
   estDifferent(juger(d, V, T), /second parent .* pas sur la ligne des premiers parents de origin\/develop/);
+});
+
+test("une PR bâtie sur un sujet livré entre-temps : le conflit résolu au contenu d'un vrai sommet de la cible, différent", () => {
+  const d = depotJouet();
+  const lettres = "a\nb\nc\nd\ne\nf\ng\nh\ni\nj\n";
+  pousser(d, "develop", { "docs/registre.md": lettres, [LISTE]: JSON.stringify({ index: [ADR_CMD, "docs/registre.md"] }) });
+  pousser(d, "sujet/s", { "docs/registre.md": `${lettres}ligneS\n` });
+  const V = pousser(d, "feat/a", { "docs/registre.md": `ligneP\n${lettres}ligneS\n` }, "origin/sujet/s"); // PR vers develop, partie du sujet
+  const DK = pousser(d, "develop", { "docs/registre.md": `ligneK\n${lettres}` });
+  d.git("switch", "-q", "-C", "develop", "origin/develop");
+  d.git("merge", "-q", "--no-ff", "--no-edit", "origin/sujet/s"); // le sujet est livré : la cible porte ligneS
+  d.git("push", "-q", "origin", "HEAD:refs/heads/develop");
+  d.git("fetch", "-q", "origin");
+  assert.match(d.git("show", "origin/develop:docs/registre.md"), /ligneS/);
+  // DK a été le sommet de la cible et n'est pas un ancêtre de V : S2 l'admet. La fusion calculée est en conflit
+  // sur le registre ; l'attaque y met celui de DK, qui n'a jamais porté ligneS.
+  const calcule = spawnSync("git", ["merge-tree", "--write-tree", V, DK], { cwd: d.travail, env: d.env, encoding: "utf8" });
+  assert.equal(calcule.status, 1, "conflit sur le registre");
+  d.git("read-tree", calcule.stdout.split("\n")[0]);
+  d.git("update-index", "--cacheinfo", `100644,${d.git("rev-parse", `${DK}:docs/registre.md`)},docs/registre.md`);
+  const T = d.git("commit-tree", d.git("write-tree"), "-p", V, "-p", DK, "-m", "x");
+  d.git("read-tree", "HEAD");
+  assert.doesNotMatch(d.git("show", `${T}:docs/registre.md`), /ligneS/, "le sommet a perdu la ligne du sujet");
+  estDifferent(juger(d, V, T), /docs\/registre\.md, index sans commande ou déclaré par motif, se juge comme tout fichier/);
 });
 
 test("un sous-module déplacé après V : différent, quoi que disent .gitmodules et diff.ignoreSubmodules", () => {
@@ -1411,6 +1433,23 @@ test("les attributs et les pilotes de fusion : la fusion calculée est la fusion
   const maison = dossierTemporaire("maison-");
   writeFileSync(join(maison, ".gitconfig"), "[merge]\n\tdefault = union\n");
   estDifferent(juger(d, V, T, "develop", { env: { ...d.env, HOME: maison, XDG_CONFIG_HOME: join(maison, "xdg") } }), refus);
+  // Dans les fichiers que git lit chez l'utilisateur sans passer par la configuration : ~/.config/git/attributes
+  // (et ignore), sous HOME puis sous XDG_CONFIG_HOME ; puis ceux que sa configuration nomme.
+  const chez = (dossier) => {
+    mkdirSync(join(dossier, "git"), { recursive: true });
+    writeFileSync(join(dossier, "git/attributes"), "* merge=union\n");
+    writeFileSync(join(dossier, "git/ignore"), "*\n");
+  };
+  const foyer = dossierTemporaire("foyer-");
+  chez(join(foyer, ".config"));
+  estDifferent(juger(d, V, T, "develop", { env: { ...d.env, HOME: foyer, XDG_CONFIG_HOME: "" } }), refus);
+  const xdg = dossierTemporaire("xdg-");
+  chez(xdg);
+  estDifferent(juger(d, V, T, "develop", { env: { ...d.env, HOME: dossierTemporaire("vide-"), XDG_CONFIG_HOME: xdg } }), refus);
+  const nomme = dossierTemporaire("nomme-");
+  writeFileSync(join(nomme, "attributs"), "* merge=union\n");
+  writeFileSync(join(nomme, ".gitconfig"), `[core]\n\tattributesFile = ${join(nomme, "attributs")}\n\texcludesFile = ${join(nomme, "attributs")}\n`);
+  estDifferent(juger(d, V, T, "develop", { env: { ...d.env, HOME: nomme, XDG_CONFIG_HOME: join(nomme, "xdg") } }), refus);
 });
 
 test("un pilote de fusion commité avec V (merge=union, merge=ours) : la fusion faite sous lui s'écarte de la fusion nue, différent (S4)", () => {
