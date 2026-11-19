@@ -912,9 +912,11 @@ test("recevoir develop dans un sujet est le geste du capitaine seul : le conduct
   exiger(chemin, [
     "le conducteur ne lance jamais `sujet.sh rafraichir`",
     "`git fetch -q origin '+refs/heads/develop:refs/remotes/origin/develop' '+refs/heads/sujet/<nom>:refs/remotes/origin/sujet/<nom>'`",
+    "puis `git merge-base --is-ancestor origin/develop origin/sujet/<nom>`. Sortie 0, sujet à jour : il continue. Sortie 1, sujet en retard : aucune vague ne part",
+    "n'est ni « à jour » ni « en retard »",
   ]);
   const texte = readFileSync(join(RACINE, chemin), "utf8");
-  assert.ok(!texte.includes("bash scripts/chaine/sujet.sh rafraichir"), `${chemin} : le conducteur n'est plus invité à lancer rafraichir`);
+  assert.ok(!texte.includes("sujet.sh rafraichir <"), `${chemin} : le conducteur n'est plus invité à lancer rafraichir`);
   assert.ok(!texte.includes("git fetch -q origin develop sujet/"), `${chemin} : le constat ne se fait pas sur un fetch nu, qui laisse origin/sujet/<nom> périmée dans un clone --single-branch`);
 });
 
