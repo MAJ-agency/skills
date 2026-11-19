@@ -37,6 +37,6 @@ Programme : [`../../../programmes/capitaine-a-jour-et-teste.programme.md`](../..
 
 ## Comments
 
-- Textes : le bloc « Procédure : » de `lancement.md` renvoie `behind` avec le commentaire exact du ticket (`<branche par défaut>` nommée) et dit « Tu ne mets jamais une branche à jour toi-même » sans nommer l'outil, pour que le banc du ticket (« ne contient plus `update_pull_request_branch` ») tienne. `architecte/SKILL.md` et `references/CONTENU.md` ne décrivaient pas la garde : rien à y changer. Les gardes d'agent du socle sont intactes.
-- Bancs existants réécrits, pas assouplis : la liste de phrases attendues de la procédure (ancien `behind`, garde par `get_commit`) devient celle du renvoi, et le modèle `decider` du banc des commentaires perd `miseAJourParGithub` (une tête qui n'est pas l'ordre est « sommet-bouge », sans exception).
-- Version : patch 7.28.1 sur 7.28.0 ; à reprendre à la version suivante de main au signal de l'architecte (PR 131 et ticket 4 passent avant).
+- 2026-11-19 — Textes : le bloc « Procédure : » de `lancement.md` renvoie `behind` avec le commentaire exact du ticket (`<branche par défaut>` nommée) et dit « Tu ne mets jamais une branche à jour toi-même » sans nommer l'outil, pour que le banc du ticket (« ne contient plus `update_pull_request_branch` ») tienne. `architecte/SKILL.md` et `references/CONTENU.md` ne décrivaient pas la garde : rien à y changer. Les gardes d'agent du socle sont intactes.
+- 2026-11-19 — Bancs existants réécrits, pas assouplis : la liste de phrases attendues de la procédure (ancien `behind`, garde par `get_commit`) devient celle du renvoi, et le modèle `decider` du banc des commentaires perd `miseAJourParGithub` (une tête qui n'est pas l'ordre est « sommet-bouge », sans exception).
+- 2026-11-19 — Version : patch 7.28.1 sur 7.28.0 ; à reprendre à la version suivante de main au signal de l'architecte (PR 131 et ticket 4 passent avant).
