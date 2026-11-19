@@ -87,6 +87,7 @@ Décisions de l'architecte :
 | ticket | 16 | session_012xRpgXvNcXsnHhWX6PyPB3 | opus | 329 735 | 13,30 |
 | ticket | 3 | session_012xRpga1obGxgaKzsZHF9ts | opus | — | — |
 | ticket | 4 | session_012xRpgYoUfHC1w29vDGPWPG | opus | — | — |
+| ticket | 20 | session_012xRpgc3qSdPZDRvhki7Z3B | sonnet | — | — |
 | capitaine | — | session_012xRpgcWjwiV8xVUSzzEy9L | sonnet | — | — |
 
 ## Passation
@@ -188,3 +189,4 @@ Demande du produit, 2026-11-18, recopiée telle quelle (relevée sur `MAJ-agency
 - 2026-11-19 — 03 h 37 UTC. **PR 130 fusionnée** (squash `03e4d64`, 7.28.0), arbre identique au sommet ordonné `2c1c248`, vérifié ; ticket 16 fait, session archivée (13,30 $). Ticket 4, le dernier, lancé : session_012xRpgYoUfHC1w29vDGPWPG (opus, depuis `03e4d64`). PR 131 en contre-relecture, prendra 7.29.0.
 - 2026-11-19 — 03 h 45 UTC. Contre-relecture de la PR 131 (ticket 3, `2141545`) **conforme** (985 tests, 10 mutations tuées, aucune quatrième fusion : `fusionner_avec` est seule) ; quatre mineures et la fusion de `main` (7.29.0) demandées d'un même geste (`merge-tree` sous pipefail, note : Iroki 549 lignes, paragraphe Fedora, recette de la PR de mise à jour d'un sujet).
 - 2026-11-19 — 03 h 55 UTC. Spec du chantier 1 : A-7 dit l'état livré « prête (en conflit) ». Ticket 20 écrit par l'architecte (Fog : le capitaine sans la chaîne renvoie une PR en retard, plus de `update_pull_request_branch` ni de garde par `get_commit` ; patch) ; il partira de `main` sur cette branche de cadrage une fois la PR de documentation fusionnée, ou plus tôt depuis cette branche.
+- 2026-11-19 — 03 h 53 UTC. Ticket 20 lancé : session_012xRpgc3qSdPZDRvhki7Z3B (sonnet, depuis `03e4d64`, ticket lu sur la branche de cadrage et porté dans sa PR).
