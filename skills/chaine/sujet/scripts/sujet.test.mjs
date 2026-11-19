@@ -601,7 +601,7 @@ test("livrer sans gh utilisable : sortie 14, fichier de titre et de corps hors d
   d.github({ pulls: [], compteIllisible: true });
   const r = d.lancer(SCRIPT, "livrer", "demo", "feat(demo): livraison");
   assert.equal(r.status, 14, r.stdout + r.stderr);
-  assert.match(r.stdout, /PR NON OUVERTE \(gh indisponible\)/);
+  assert.match(r.stdout, /PR NON OUVERTE \(compte illisible \(gh: Resource not accessible by integration \(HTTP 403\)\)\)/);
   assert.match(r.stdout, /list_pull_requests\(owner: "[^"]+", repo: "[^"]+", base: "sujet\/demo", state: "open"\)/);
   assert.match(r.stdout, /create_pull_request\(owner: "[^"]+", repo: "[^"]+", base: "develop", head: "sujet\/demo"/);
   const chemin = /Fichier : (\S+)/.exec(r.stdout)[1];
@@ -624,14 +624,24 @@ test("livrer : une lecture des sous-PR vide n'est pas « des sous-PR ouvertes »
   assert.deepEqual(d.journal().filter((e) => e.methode === "POST"), []);
 });
 
-test("livrer sans gh utilisable en phase 4 : la branche jetable est poussée, le fichier nomme sa tête", () => {
+test("livrer sans gh utilisable en phase 4 : aucune branche jetable poussée, l'aide dit de la pousser d'abord", () => {
   const d = sujetAvecCarte("4-vagues");
   d.github({ pulls: [], compteIllisible: true });
   const r = d.lancer(SCRIPT, "livrer", "demo", "feat(demo): livraison intermédiaire");
   assert.equal(r.status, 14, r.stdout + r.stderr);
   const tete = /head: "(livraison\/demo-\d{8}-\d{4})"/.exec(r.stdout)[1];
-  assert.match(d.git("ls-remote", "--heads", "origin", tete), /livraison\/demo-/);
+  assert.match(r.stdout, new RegExp(`git push origin origin/sujet/demo:refs/heads/${tete}`));
+  assert.equal(d.git("ls-remote", "--heads", "origin", "livraison/*"), "");
   assert.deepEqual(d.journal().filter((e) => e.methode === "POST"), []);
+});
+
+test("livrer en phase 4 : un POST refusé (422) sort en 14 avec sa cause et retire la branche jetable poussée", () => {
+  const d = sujetAvecCarte("4-vagues");
+  d.github({ pulls: [], refusPost: "gh: Validation Failed (HTTP 422)" });
+  const r = d.lancer(SCRIPT, "livrer", "demo", "feat(demo): livraison intermédiaire");
+  assert.equal(r.status, 14, r.stdout + r.stderr);
+  assert.match(r.stdout, /PR NON OUVERTE \(POST refusé \(gh: Validation Failed \(HTTP 422\)\)\)/);
+  assert.equal(d.git("ls-remote", "--heads", "origin", "livraison/*"), "");
 });
 
 // =============================================================================

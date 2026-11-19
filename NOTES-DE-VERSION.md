@@ -6,7 +6,7 @@ La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque pro
 
 ### Ce qui change
 
-`sujet.sh livrer` ouvre la PR de livraison sans `à-fusionner` : la session qui livre le pose après la relecture de la PR (contre-revue si elle touche un chemin sensible). `livrer-prets`, le geste du capitaine, étiquette toujours ses livraisons. Sans `gh` utilisable (session cloud), `livrer` écrit le titre et le corps dans un fichier, sort en 14 et donne les appels de l'outil GitHub MCP. `sujet.sh demarrer` ne refuse plus un ticket dont le bloquant est fait dans un fichier long (SIGPIPE).
+`sujet.sh livrer` ouvre la PR de livraison sans `à-fusionner` : la session qui livre le pose après la relecture de la PR (contre-revue si elle touche un chemin sensible). `livrer-prets`, le geste du capitaine, étiquette toujours ses livraisons. Sans `gh` utilisable (session cloud), `livrer` écrit le titre et le corps dans un fichier, sort en 14 et donne les appels de l'outil GitHub MCP, avec la cause lue (`gh` absent, compte illisible, POST refusé) ; une livraison intermédiaire ne pousse pas sa branche jetable sans `gh`, et la retire si le POST est refusé. `sujet.sh demarrer` ne refuse plus un ticket dont le bloquant est fait dans un fichier long (SIGPIPE).
 
 ### Ce qu'un projet fait pour en profiter
 
@@ -15,7 +15,7 @@ La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque pro
 3. Dans la même PR, reporter dans `docs/agents/chaine-de-production.md` (§ 2, point 6) la précision du gabarit : la PR d'une livraison intermédiaire s'ouvre sans `à-fusionner`.
 4. Relancer le capitaine une fois cette PR entrée dans develop (`livrer-prets` est joué par la boucle, qui prend les scripts de develop au tour suivant ; rien à recopier pour la veille).
 
-**Iroki** : sa remontée A5 (le label posé avant la contre-revue) est corrigée ici. Son `sujet.sh` a divergé de 1 820 lignes : reposer remplace sa version ; sinon, son conducteur reporte à la main le retrait du label dans `livrer`, `ETIQUETER=1` dans `livrer_prets`, la sortie 14 et le nouveau `fait_sur`.
+**Iroki** : sa remontée A5 (le label posé avant la contre-revue) est corrigée ici. Son `sujet.sh` a divergé de 1 820 lignes : son `fait_sur` est déjà corrigé (`scripts/chaine/sujet.sh`, SOC-4.25), rien à reporter de ce côté ; son `livrer` porte en plus une comparaison e2e (`pas_pire_que_reference`) et les brouillons, absents du skill : reposer `sujet.sh` les ferait perdre, son conducteur reporte donc à la main le retrait du label dans `livrer`, `ETIQUETER=1` dans `livrer_prets` et la sortie 14.
 
 ## 7.24.0 — 2026-11-18
 

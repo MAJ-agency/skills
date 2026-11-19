@@ -935,9 +935,12 @@ rafraichir() {
   echo "$branche à jour avec develop ($(git rev-parse --short HEAD))"
 }
 
+# Dernière ligne non vide d'un fichier d'erreur de gh, URL masquées ; vide sans erreur (jamais un échec sous set -e).
+derniere_ligne() { { grep . "$1" || true; } | tail -n 1 | masquer_url; }
+
 livrer() {
   local nom=${1:?nom du sujet} titre=${2:?titre de la PR finale (Conventional Commits)}
-  local branche="sujet/$nom" corps n tete phase statut intermediaire='' ouvertes sansgh=''
+  local branche="sujet/$nom" corps n tete phase statut intermediaire='' ouvertes sansgh='' cause='' erreur poussee=''
   git_masque fetch -q origin develop "$branche"
   refuser_si_gele "$nom"
   # Livraison intermédiaire : carte en phase d'avant `5-livraison`. La PR part d'une
@@ -946,14 +949,18 @@ livrer() {
   case "$phase" in '' | 5-livraison* | 6-nettoyage* | fini*) ;; *) intermediaire=1 ;; esac
   tete=$branche
   # `gh` utilisable : présent et connecté. Sinon (ou lecture en échec) : tout ce que git permet, puis le fichier et la sortie 14.
-  if ! command -v gh >/dev/null 2>&1 || [ -z "$(gh api user --jq .login 2>/dev/null </dev/null)" ]; then
-    sansgh=1
+  erreur=$(mktemp)
+  if ! command -v gh >/dev/null 2>&1; then
+    sansgh=1 cause='gh absent'
+  elif [ -z "$(gh api user --jq .login 2>"$erreur" </dev/null)" ]; then
+    sansgh=1 cause="compte illisible ($(derniere_ligne "$erreur"))"
   else
-    ouvertes=$(gh api "$DEPOT/pulls?state=open&base=$(uri "$branche")" --jq length 2>/dev/null </dev/null) || ouvertes=''
+    ouvertes=$(gh api "$DEPOT/pulls?state=open&base=$(uri "$branche")" --jq length 2>"$erreur" </dev/null) || ouvertes=''
     if [[ "$ouvertes" =~ ^[0-9]+$ ]]; then
-      [ "$ouvertes" = 0 ] || sortir 4 "des sous-PR visent encore $branche : les fusionner ou les fermer avant de livrer"
+      [ "$ouvertes" = 0 ] || { rm -f "$erreur"; sortir 4 "des sous-PR visent encore $branche : les fusionner ou les fermer avant de livrer"; }
     else
-      sansgh=1 # lecture en échec : jamais lue comme des sous-PR ouvertes
+      # lecture en échec : jamais lue comme des sous-PR ouvertes
+      sansgh=1 cause="lecture des sous-PR illisible ($(derniere_ligne "$erreur"))"
     fi
   fi
   # Ordre des migrations : seul l'ordre d'arrivée dans develop compte (migrations-ordre.mjs).
@@ -969,6 +976,10 @@ livrer() {
   )
   if [ -n "$intermediaire" ]; then
     tete="livraison/$nom-$(date -u +%Y%m%d-%H%M)"
+  fi
+  # Sans gh déjà connu : la branche jetable n'est pas poussée (une panne qui dure en pousserait une par tour).
+  if [ -n "$intermediaire" ] && [ -z "$sansgh" ]; then
+    poussee=1
     pousser "origin/$branche:refs/heads/$tete" "$tete" "" && statut=0 || statut=$?
     case $statut in
       0) ;;
@@ -978,13 +989,15 @@ livrer() {
     esac
   fi
   if [ -z "$sansgh" ]; then
-    if ! n=$(gh api -X POST "$DEPOT/pulls" -f base=develop -f head="$tete" -f title="$titre" -f body="$corps" --jq .number 2>"${TMPDIR:-/tmp}/livrer-gh.$$" </dev/null); then
-      masquer_url <"${TMPDIR:-/tmp}/livrer-gh.$$" >&2
-      sansgh=1
+    if ! n=$(gh api -X POST "$DEPOT/pulls" -f base=develop -f head="$tete" -f title="$titre" -f body="$corps" --jq .number 2>"$erreur" </dev/null); then
+      sansgh=1 cause="POST refusé ($(derniere_ligne "$erreur"))"
+      # La branche jetable poussée pour rien est retirée : aucune ne reste par tour de panne.
+      [ -z "$poussee" ] || git_masque push -q origin ":refs/heads/$tete" >/dev/null 2>&1 || true
+      poussee=''
     fi
-    rm -f "${TMPDIR:-/tmp}/livrer-gh.$$"
   fi
-  [ -z "$sansgh" ] || livraison_sans_gh "$nom" "$tete" "$titre" "$corps"
+  rm -f "$erreur"
+  [ -z "$sansgh" ] || livraison_sans_gh "$nom" "$tete" "$titre" "$corps" "$cause" "$intermediaire"
   if [ "${ETIQUETER:-}" = 1 ]; then
     poser_label "$n" à-fusionner
     echo "PR #$n ouverte ($tete → develop), étiquetée à-fusionner"
@@ -996,15 +1009,17 @@ livrer() {
 # Sans `gh` utilisable : titre (ligne 1), ligne vide, corps, dans `<git-common-dir>/livraison-<nom>.md` (hors de l'arbre de
 # travail : un fichier non suivi ferait refuser le geste suivant du capitaine, sortie 6). Sortie 14.
 livraison_sans_gh() {
-  local nom=$1 tete=$2 titre=$3 corps=$4 fichier owner repo url
+  local nom=$1 tete=$2 titre=$3 corps=$4 cause=$5 intermediaire=${6:-} fichier owner repo url pousser_d_abord=''
   [[ "$nom" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]] || sortir 4 "nom de sujet « $nom » refusé pour le fichier de livraison (lettres, chiffres, point, tiret, souligné)"
   fichier="$(git rev-parse --path-format=absolute --git-common-dir)/livraison-$nom.md"
   printf '%s\n\n%s\n' "$titre" "$corps" >"$fichier"
   url=$(git remote get-url origin 2>/dev/null | masquer_url) || url=''
   owner=$(sed -E 's#^.*[:/]([^/:]+)/[^/]+$#\1#' <<<"$url")
   repo=$(sed -E 's#^.*/([^/]+)$#\1#; s#\.git$##' <<<"$url")
+  [ -z "$intermediaire" ] || pousser_d_abord="
+  Livraison intermédiaire : la branche jetable n'est pas poussée ; la pousser d'abord (git push origin origin/sujet/$nom:refs/heads/$tete)."
   cat <<EOT
-PR NON OUVERTE (gh indisponible) : l'ouvrir par l'outil GitHub MCP.
+PR NON OUVERTE ($cause) : l'ouvrir par l'outil GitHub MCP.$pousser_d_abord
   D'abord : list_pull_requests(owner: "$owner", repo: "$repo", base: "sujet/$nom", state: "open") ne rend rien ; sinon, ne pas livrer.
   Puis : create_pull_request(owner: "$owner", repo: "$repo", base: "develop", head: "$tete", title: <ligne 1 du fichier>, body: <le fichier à partir de la ligne 3>)
   Fichier : $fichier
