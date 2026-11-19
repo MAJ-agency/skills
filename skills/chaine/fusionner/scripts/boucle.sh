@@ -340,9 +340,10 @@ traiter_sujets() {
         bash "$SUJET" relancer "$n" 2>&1 | tee "$sortie" | sed "s#^#[\#$n] #"
         rc=${PIPESTATUS[0]}
         case "$rc" in
-          # Conflit hors index : `relancer` écrit `conflit avec <sujet> hors index générés :`, puis les fichiers.
+          # Conflit hors index : `relancer` écrit `conflit avec <sujet> hors index générés :`, puis les fichiers indentés de
+          # deux espaces ; la liste s'arrête à la première autre ligne (fin de ligne CRLF tolérée).
           2)
-            fichiers=$(awk -v d="conflit avec ${etat%% :*} hors index générés :" 'index($0, d) == 1 { f = 1; next } f && /^  / { sub(/^  /, ""); printf "%s`%s`", (k++ ? ", " : ""), $0 }' "$sortie")
+            fichiers=$(awk -v d="conflit avec ${etat%% :*} hors index générés :" '{ sub(/\r$/, "") } index($0, d) == 1 { f = 1; next } f && /^  [^ ]/ { sub(/^  /, ""); printf "%s`%s`", (k++ ? ", " : ""), $0; next } { f = 0 }' "$sortie")
             bash "$outils/renvoyer.sh" "$n" "conflit avec ${etat%% :*} hors index générés : ${fichiers:-voir la sortie de sujet.sh relancer}. Fusionner ${etat%% :*} dans la branche et le résoudre" ;;
           4) bash "$outils/refus.sh" "$n" "$sortie" ;; # tête gardée : renvoyée avec le motif
           6) echo "[#$n] PAS PROPRE : worktree du capitaine à nettoyer, sous-PR laissée dans la file (aucun renvoi)" ;;

@@ -43,7 +43,7 @@
 // (méthode autre que GET) est appliquée à l'état et journalisée dans $FAUX_GH/journal.jsonl.
 // `mergeable_state` sur la seule lecture d'une PR (`GET`/`PATCH pulls/<n>`), jamais dans la liste `GET pulls` (comme
 // GitHub) : `dirty` si `git merge-tree --write-tree <base> <tête>` est en conflit dans le dépôt nu, `clean` sinon,
-// `null` si la base ou la tête manque. `PR.mergeableState` (dont `null` ou `"unknown"`, l'état que GitHub n'a pas
+// `null` si la base ou la tête manque, ou si `git merge-tree --write-tree` est en échec (un banc remplace `git`). `PR.mergeableState` (dont `null` ou `"unknown"`, l'état que GitHub n'a pas
 // encore calculé) prime sur ce calcul.
 // Fusion (`PUT pulls/<n>/merge`), comme GitHub : refusée si la tête n'est plus `sha` (409) ; l'arbre du commit de
 // squash ou de merge est celui de `git merge-tree --write-tree <base> <sha>` (l'arbre du sommet quand la base en est

@@ -36,7 +36,9 @@ function sousPrEnConflit(conflit) {
       conflit === "aucun" ? "origin/sujet/lot" : "origin/develop",
       conflit === "code"
         ? { "docs/f.md": "sous\n" }
-        : { [`${ADR}/ADR_ALL_ARC-2-b.md`]: "# 2\n", [`${ADR}/README.md`]: index("ADR_ALL_ARC-1-a.md", "ADR_ALL_ARC-2-b.md") },
+        : conflit === "code2"
+          ? { "docs/f.md": "sous\n", "docs/g.md": "sous\n" }
+          : { [`${ADR}/ADR_ALL_ARC-2-b.md`]: "# 2\n", [`${ADR}/README.md`]: index("ADR_ALL_ARC-1-a.md", "ADR_ALL_ARC-2-b.md") },
     );
   const avant = conflit === "aucun" ? null : sous();
   d.branche(
@@ -44,7 +46,9 @@ function sousPrEnConflit(conflit) {
     "origin/develop",
     conflit === "code"
       ? { "docs/f.md": "sujet\n" }
-      : conflit === "index"
+      : conflit === "code2"
+        ? { "docs/f.md": "sujet\n", "docs/g.md": "sujet\n" }
+        : conflit === "index"
         ? {
             [`${ADR}/ADR_ALL_ARC-3-c.md`]: "# 3\n",
             [`${ADR}/README.md`]: index("ADR_ALL_ARC-1-a.md", "ADR_ALL_ARC-3-c.md"),
@@ -219,6 +223,15 @@ test("boucle.sh : une sous-PR prête (en conflit) sur un index seul est mise à 
   assert.ok(renvoi, `renvoi posté : ${rc.stdout}`);
   assert.match(renvoi.champs.body, /<!-- renvoi-capitaine -->/);
   assert.match(renvoi.champs.body, /conflit avec sujet\/lot hors index générés : `docs\/f\.md`\. Fusionner sujet\/lot dans la branche et le résoudre/);
+
+  // Deux fichiers : la liste les prend tous les deux, et s'arrête à la ligne qui suit (le journal de la boucle).
+  const g = sansChecks("code2").d;
+  g.publierChaine();
+  const rg = g.lancer(BOUCLE);
+  assert.equal(rg.status, 0, rg.stdout + rg.stderr);
+  const renvoi2 = g.journal().find((e) => e.methode === "POST" && e.route === "issues/80/comments");
+  assert.ok(renvoi2, `renvoi posté : ${rg.stdout}`);
+  assert.match(renvoi2.champs.body, /hors index générés : `docs\/f\.md`, `docs\/g\.md`\. Fusionner/);
 });
 
 // Worktree du capitaine pas propre : rien que l'auteur de la sous-PR puisse corriger. Sortie 6 (comme
