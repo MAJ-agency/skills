@@ -1305,3 +1305,97 @@ test("la procédure du capitaine sans la chaîne renvoie une PR en retard, sans 
   for (const f of ["skills/chaine/architecte/SKILL.md", "skills/chaine/architecte/references/CONTENU.md", LANCEMENT])
     assert.ok(!/signée par GitHub|noreply@github\.com/.test(readFileSync(join(RACINE, f), "utf8")), `${f} : plus de garde « signée par GitHub »`);
 });
+
+// Ticket 21 : le verdict d'une contre-relecture s'écrit sur la PR, et aucun ordre ne passe un verdict non conforme.
+// Les deux lignes de verdict sont lues dans lancement.md ; la décision du capitaine est jouée sur des fils d'exemple.
+const VERDICT_NON = "contre-relecture non conforme au sommet <sha40>";
+const VERDICT_OUI = "contre-relecture conforme au sommet <sha40>";
+const RENVOI_VERDICT =
+  "à-fusionner retiré par le capitaine : contre-relecture non conforme ou absente au sommet ordonné : contre-relire ce sommet, écrire le verdict sur la PR, puis reposer le label et le commentaire";
+const lireVerdicts = (formes, fil) => {
+  const motif = /^contre-relecture (non conforme|conforme) au sommet ([0-9a-f]{40})$/;
+  const verdicts = [];
+  let edite = false;
+  let malforme = false;
+  for (const c of fil) {
+    if (!formes.associations.includes(c.author_association)) continue;
+    const premiere = c.body.trimStart().split("\n")[0].replace(/\r$/, "");
+    const m = premiere.match(motif);
+    if (!m) {
+      if (premiere.startsWith("contre-relecture non conforme")) malforme = true;
+      continue;
+    }
+    if (c.updated_at !== c.created_at) edite = true;
+    else verdicts.push({ conforme: m[1] === "conforme", sha: m[2] });
+  }
+  return { verdicts, edite, malforme };
+};
+// Le capitaine, une fois l'ordre lu : P est le sommet ordonné.
+const decider21 = (formes, fil, tete) => {
+  const base = decider(formes, fil, tete);
+  if (base !== "fusion") return base === "sommet-bouge" ? "renvoyée" : base;
+  const { verdicts, edite, malforme } = lireVerdicts(formes, fil);
+  if (edite) return "verdict-edite";
+  if (malforme) return "verdict-malforme";
+  if (verdicts.some((v) => !v.conforme && v.sha === tete)) return "renvoyée";
+  if (verdicts.length > 0 && !verdicts.some((v) => v.conforme && v.sha === tete)) return "renvoyée";
+  return "fusionnable";
+};
+test("verdict de contre-relecture : les deux lignes, le renvoi du capitaine, le cas de l'incident", () => {
+  const lancement = readFileSync(join(RACINE, LANCEMENT), "utf8");
+  for (const v of [VERDICT_NON, VERDICT_OUI]) assert.ok(lancement.includes(`\`${v}\``), `lancement.md : la ligne de verdict « ${v} » manque`);
+  const procedure = PROCEDURE_SANS_CHAINE();
+  assert.ok(procedure.includes(`\`${RENVOI_VERDICT}\``), "lancement.md : le bloc « Procédure : » n'a pas le renvoi sur un verdict non conforme ou absent");
+  const ancre = procedure.indexOf("Si P n'est pas le `head.sha`");
+  assert.ok(ancre >= 0 && procedure.indexOf(RENVOI_VERDICT) > ancre, "le renvoi sur verdict vient après la vérification du sommet");
+  assert.ok(procedure.slice(procedure.indexOf(RENVOI_VERDICT)).startsWith(`${RENVOI_VERDICT}\`, label retiré dans le même geste ; ce renvoi compte dans le plafond de trois`), "le renvoi sur verdict compte dans le plafond");
+  assert.match(procedure, /Un verdict édité[^.]*tu ne fusionnes pas la PR et tu le dis au produit/, "un verdict édité arrête la PR");
+  for (const phrase of [
+    "Si un verdict `non conforme` porte sur P, ou si la PR porte au moins un verdict et qu'aucun verdict `conforme` ne porte sur P, tu renvoies",
+    "dont `author_association` est `OWNER`, `MEMBER` ou `COLLABORATOR` et dont `updated_at` est égal à `created_at`",
+    "commence par `contre-relecture non conforme` sans avoir la forme exacte d'un verdict",
+    "Une PR sans aucun verdict suit la suite de la procédure.",
+  ])
+    assert.ok(procedure.includes(phrase), `lancement.md : la procédure ne dit pas « ${phrase} »`);
+  const formes = formesLues();
+  const ordre = (sha) => dit(`à-fusionner au sommet ${sha}`);
+  const non = (sha, options) => dit(`contre-relecture non conforme au sommet ${sha}\n- constat`, options);
+  const oui = (sha, options) => dit(`contre-relecture conforme au sommet ${sha}`, options);
+  // l'incident : un non conforme sur un sommet antérieur, puis un ordre sur un sommet plus récent sans verdict conforme
+  assert.equal(decider21(formes, [non(A), ordre(B)], B), "renvoyée", "l'incident");
+  assert.equal(decider21(formes, [non(B), ordre(B)], B), "renvoyée", "non conforme sur ce sommet");
+  assert.equal(decider21(formes, [non(A), oui(B), ordre(B)], B), "fusionnable", "contre-relu conforme depuis");
+  assert.equal(decider21(formes, [oui(A), ordre(B)], B), "renvoyée", "un verdict, aucun conforme sur ce sommet");
+  assert.equal(decider21(formes, [ordre(B)], B), "fusionnable", "aucun verdict : comme avant");
+  assert.equal(decider21(formes, [dit("relu, rien à dire"), ordre(B)], B), "fusionnable", "un commentaire ordinaire n'est pas un verdict");
+  assert.equal(decider21(formes, [non(A, { association: "NONE" }), ordre(B)], B), "fusionnable", "un verdict d'un compte étranger ne compte pas");
+  assert.equal(decider21(formes, [non(A, { edite: true }), ordre(B)], B), "verdict-edite", "un verdict édité arrête la PR");
+  assert.equal(decider21(formes, [dit(`contre-relecture conforme au sommet ${A.toUpperCase()}`), ordre(B)], B), "fusionnable", "une forme voisine de `conforme` n'est pas un verdict");
+  assert.equal(decider21(formes, [dit(`contre-relecture non conforme au sommet ${A.toUpperCase()}`), ordre(B)], B), "verdict-malforme", "sha en majuscules : la fusion s'arrête");
+  assert.equal(decider21(formes, [dit(`contre-relecture non conforme au sommet ${A}.`), ordre(B)], B), "verdict-malforme", "ponctuation finale : la fusion s'arrête");
+  assert.equal(decider21(formes, [dit(`contre-relecture non conforme au sommet ${A.slice(0, 7)}`), ordre(B)], B), "verdict-malforme", "sha abrégé : la fusion s'arrête");
+  assert.equal(decider21(formes, [dit(`  contre-relecture non conforme au sommet ${A}`), ordre(B)], B), "renvoyée", "blancs de tête retirés");
+});
+test("verdict de contre-relecture : la règle est dite dans le prompt de la session d'un ticket, la ligne « contre-relit lui-même » et architecte/SKILL.md § 5 et § 7", () => {
+  const lancement = readFileSync(join(RACINE, LANCEMENT), "utf8");
+  const ticket = lancement.split("## La session d'un ticket hors chantier")[1] ?? "";
+  const prompt = ticket.match(/```text\n([\s\S]*?)```/)?.[1] ?? "";
+  assert.ok(prompt.includes("un verdict `non conforme`") && prompt.includes("les vérifie"), "le prompt de la session d'un ticket ne porte pas la règle");
+  for (const phrase of [
+    "ni si la PR porte un verdict et qu'aucun verdict `conforme` ne porte sur ton sommet",
+    "un compte `OWNER`, `MEMBER` ou `COLLABORATOR`, non édité",
+    "tu ne poses rien et tu le dis à l'architecte",
+    "de même pour une première ligne qui commence par `contre-relecture non conforme` sans la forme exacte",
+  ])
+    assert.ok(prompt.includes(phrase), `le prompt de la session d'un ticket ne dit pas « ${phrase} »`);
+  const ligne = ticket.split("\n").find((l) => l.includes("contre-relit lui-même")) ?? "";
+  assert.ok(ligne.includes("un verdict `non conforme`") && ligne.includes("écrit son verdict sur la PR") && ligne.includes("les vérifie"), "la ligne « contre-relit lui-même » ne porte pas la règle");
+  const skill = readFileSync(join(RACINE, `${SKILLS_CHAINE}/architecte/SKILL.md`), "utf8");
+  const s5 = skill.split(/^## 5\./m)[1]?.split(/^## 6\./m)[0] ?? "";
+  const s7 = skill.split(/^## 7\./m)[1]?.split(/^## Ne jamais/m)[0] ?? "";
+  const second = "ni si la PR porte un verdict et qu'aucun verdict `conforme` ne porte sur ce sommet";
+  assert.ok(s5.includes("un verdict `non conforme`") && s5.includes(second), "SKILL.md § 5 ne porte pas les deux cas d'arrêt");
+  assert.ok(s7.includes("un verdict `non conforme`") && s7.includes(second), "SKILL.md § 7 ne porte pas les deux cas d'arrêt");
+  assert.ok(ligne.includes(second), "la ligne « contre-relit lui-même » ne porte pas le second cas d'arrêt");
+  assert.ok(ligne.includes("Il écrit son verdict avant l'ordre, jamais après"), "la ligne « contre-relit lui-même » ne dit pas que le verdict précède l'ordre");
+});
