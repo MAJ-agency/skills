@@ -4,8 +4,7 @@
 # Avant chaque passage, une PR dont la CI est rouge sur son sommet (`file.sh --rouges`) voit
 # ses jobs rouges relancés une fois (instabilité), puis est renvoyée s'ils retombent.
 # Un refus corrigeable par l'auteur (sortie 4 : titre, revue…) renvoie la PR avec son motif
-# (refus.sh) ; une PR non éligible sans correction possible (sortie 7, dont « attend un propriétaire » :
-# CODEOWNERS) est sautée sans renvoi ; une PR sans CI déclenchée (sortie 3, déjà à jour,
+# (refus.sh) ; une PR non éligible sans correction possible (sortie 7) est sautée sans renvoi ; une PR sans CI déclenchée (sortie 3, déjà à jour,
 # rien à pousser) est mise de côté jusqu'à la prochaine fusion, dont la mise à jour la poussera
 # et lancera sa CI. La sortie 5 (develop ou la PR a bougé, ou GitHub illisible : passer.sh) a droit à un second
 # essai immédiat ; un second 5 met la boucle en PAUSE (`BOUCLE_PAUSE` secondes, 120 par défaut), puis elle reprend au
@@ -15,8 +14,7 @@
 # passage (sortie 3) la laissent rouge dans la file : relance au tour suivant, puis renvoi. Un push refusé par le
 # hook pre-push (sortie 3, trace de husky) renvoie la PR à sa session avec la sortie du hook ; un push refusé par le
 # distant (sortie 3, sans trace) arrête la boucle, sans renvoi.
-# Tout autre code arrête la boucle (gates des registres, install, CI bloquée, commentaire d'attente impossible à
-# poser) : le capitaine traite, puis relance.
+# Tout autre code arrête la boucle (gates des registres, install, CI bloquée) : le capitaine traite, puis relance.
 #
 # Branches de sujet : à chaque tour, avant la PR suivante vers develop,
 # `traiter_sujets` regroupe d'office les séries par spec et les piles (`sujet.sh
@@ -502,7 +500,7 @@ while :; do
       # Refus que l'auteur peut corriger (titre, revue adversariale…) : la session est prévenue
       # avec le motif, la PR ne reste pas en file muette (#1414). Sautée si le renvoi échoue.
       bash "$outils/refus.sh" "$n" "$sortie" || sautees="$sautees$n " ;;
-    7) sautees="$sautees$n " ;; # rien à corriger côté auteur (empilée, brouillon, déjà renvoyée, attend un propriétaire)
+    7) sautees="$sautees$n " ;; # rien à corriger côté auteur (empilée, brouillon, déjà renvoyée)
     # Fusionnée, mais le code entré n'est pas celui que la CI a jugé : passer.sh a commenté la PR ; un humain examine.
     12) echo "ARRÊT sur #$n (sortie 12) : arbre du squash ≠ arbre testé"; exit 12 ;;
     *) echo "ARRÊT sur #$n (sortie $rc)"; exit "$rc" ;;

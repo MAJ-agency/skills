@@ -24,17 +24,15 @@ test('refusEdition refuse le lockfile et les fichiers .env, laisse .env.example'
   assert.equal(refusEdition('apps/api/src/main.ts', nouvelle), null);
 });
 
-test('refusEdition refuse CODEOWNERS à ses trois places, toute casse : modifier chaine.json, puis régénérer', () => {
-  for (const c of ['.github/CODEOWNERS', './.github/CODEOWNERS', 'CODEOWNERS', 'docs/CODEOWNERS', '.GitHub/codeowners', '.github\\CODEOWNERS', '.github//CODEOWNERS', '.github/./CODEOWNERS', 'docs/../CODEOWNERS', 'apps/../.github/CODEOWNERS', './/docs/CODEOWNERS', '.github/workflows/../CODEOWNERS']) {
-    const refus = refusEdition(c, nouvelle);
-    assert.match(refus ?? '', /\.claude\/chaine\.json/, c);
-    assert.match(refus, /cheminsSensibles/, c);
-    assert.match(refus, /pnpm codeowners/, c);
-    assert.match(refus, /node scripts\/github\/codeowners\.mjs --ecrire/, c);
-    assert.ok(refus.indexOf('chaine.json') < refus.indexOf('régénérer'), `${c} : chaine.json d'abord, la régénération ensuite`);
-  }
-  for (const c of ['.claude/chaine.json', '.github/CODEOWNERS.md', 'apps/web/CODEOWNERS', '.github/workflows/ci.yml', 'docs/agents/CODEOWNERS'])
-    assert.equal(refusEdition(c, nouvelle), null, c);
+test('refusEdition normalise le chemin avant de juger : un détour (`//`, `/./`, `x/../`, `\\`) ne contourne aucun refus', () => {
+  for (const c of ['pnpm-lock.yaml', './pnpm-lock.yaml', './/pnpm-lock.yaml', 'apps/../pnpm-lock.yaml', 'docs/./../pnpm-lock.yaml', '.\\pnpm-lock.yaml'])
+    assert.match(refusEdition(c, nouvelle) ?? '', /pnpm install/, c);
+  for (const c of ['apps/api/.env', 'apps//api/.env', 'apps/./api/.env', 'apps/web/../api/.env', 'apps\\api\\.env'])
+    assert.match(refusEdition(c, nouvelle) ?? '', /secrets/, c);
+  for (const c of ['apps/api/src/db/migrations/202611041200-care-plan.ts', 'apps/api/src/db//migrations/202611041200-care-plan.ts', 'apps/api/src/./db/migrations/202611041200-care-plan.ts', 'apps/web/../api/src/db/migrations/202611041200-care-plan.ts'])
+    assert.match(refusEdition(c, livree) ?? '', /ne se modifie jamais/, c);
+  // CODEOWNERS n'est plus généré ni gardé (décision du produit, 2026-11-18) : plus rien ne refuse son édition.
+  for (const c of ['.github/CODEOWNERS', 'CODEOWNERS', 'docs/CODEOWNERS']) assert.equal(refusEdition(c, nouvelle), null, c);
 });
 
 test('decisionCommande refuse le push forcé, --no-verify, le push direct sur develop/main, le rebase d’un sujet', () => {

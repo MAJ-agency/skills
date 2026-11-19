@@ -1482,209 +1482,6 @@ test("passer.sh : une livraison intermédiaire dont un fichier sous un index par
   assert.equal(d.git("rev-list", "--parents", "-1", "origin/develop").split(" ").length, 3, "commit de merge : deux parents");
 });
 
-// Revue des propriétaires (CODEOWNERS, « Require review from Code Owners » sur la base) : une PR qui
-// l'attend n'est ni rouge ni bloquée. file.sh la montre « attend un propriétaire », le capitaine la saute
-// sans la renvoyer et la reprend au tour suivant, une fois approuvée. Seuls comptent les propriétaires du
-// CODEOWNERS de la base, demandés comme relecteurs. Une fusion refusée faute d'approbation laisse un
-// commentaire marqué : la PR « attend un humain » jusqu'à une approbation plus récente.
-const MOTIF_PROPRIETAIRE = /attend l'approbation d'un propriétaire \(CODEOWNERS\) : sautée sans renvoi, reprise au tour suivant/;
-const MARQUE_ATTENTE = "<!-- attente-revue-capitaine -->";
-const CODEOWNERS = "# propriétaires de la chaîne\n* @Proprietaire @exemple/Securite\n/docs/ @exemple/docs # commentaire @pas-un-proprietaire\n";
-
-function attenteProprietaire(etat = {}, { codeowners = CODEOWNERS, chemin = ".github/CODEOWNERS" } = {}) {
-  const d = depotJouet();
-  if (codeowners !== null) {
-    d.ecrire(chemin, codeowners);
-    d.commit("chore: CODEOWNERS");
-    d.git("push", "-q", "origin", "HEAD:develop");
-    d.git("fetch", "-q", "origin");
-  }
-  const sommets = {};
-  for (const b of ["feat/proprio", "feat/libre", "feat/seul"]) sommets[b] = d.branche(b, "origin/develop", { [`docs/${b}.md`]: `${b}\n` });
-  d.git("switch", "-q", "--detach", "origin/develop");
-  d.github({
-    exiges: ["qualite"],
-    checks: { "*": { qualite: "SUCCESS" } },
-    revueProprietaires: ["develop"],
-    pulls: [
-      pr(70, "feat/proprio", { relecteurs: ["proprietaire"] }),
-      pr(71, "feat/libre"),
-    ],
-    ...etat,
-  });
-  return { d, sommets };
-}
-const etats = (d) =>
-  d.lancer(script("file.sh")).stdout.trim().split("\n").map((l) => l.split("\t").slice(0, 2).join(" "));
-
-test("file.sh : une PR vers develop qui attend un propriétaire se lit « attend un propriétaire », et ni --next ni --rouges ne la rendent", () => {
-  const { d } = attenteProprietaire();
-  assert.deepEqual(etats(d), ["70 attend un propriétaire", "71 prête"]);
-  assert.equal(d.lancer(script("file.sh"), "--next").stdout, "71\n");
-  assert.equal(d.lancer(script("file.sh"), "--rouges").stdout, "");
-  assert.deepEqual(d.journal(), [], "file.sh ne fait que lire");
-});
-
-test("file.sh : seul un propriétaire du CODEOWNERS de la base fait attendre — utilisateur, puis équipe (casse ignorée), jamais un relecteur demandé à la main", () => {
-  const { d } = attenteProprietaire({ pulls: [pr(70, "feat/proprio", { relecteurs: ["quelqu-un", "pas-un-proprietaire"] })] });
-  assert.deepEqual(etats(d), ["70 prête"], "relecteur demandé à la main, hors CODEOWNERS (ni en commentaire)");
-  d.github({ pulls: [pr(70, "feat/proprio", { relecteurs: ["PROPRIETAIRE"] })] });
-  assert.deepEqual(etats(d), ["70 attend un propriétaire"]);
-  d.github({ pulls: [pr(70, "feat/proprio", { equipes: ["securite"] })] });
-  assert.deepEqual(etats(d), ["70 attend un propriétaire"]);
-  d.github({ pulls: [pr(70, "feat/proprio", { equipes: ["autre-equipe"] })] });
-  assert.deepEqual(etats(d), ["70 prête"]);
-  d.github({ protectionClassique: true, pulls: [pr(70, "feat/proprio", { relecteurs: ["proprietaire"] })] });
-  assert.deepEqual(etats(d), ["70 attend un propriétaire"], "ancienne protection de branche");
-});
-
-test("file.sh : CODEOWNERS lu comme GitHub (racine, puis docs/) ; absent de la base, aucun propriétaire connu : prête", () => {
-  for (const chemin of ["CODEOWNERS", "docs/CODEOWNERS"]) {
-    const { d } = attenteProprietaire({}, { chemin });
-    assert.deepEqual(etats(d), ["70 attend un propriétaire", "71 prête"], chemin);
-  }
-  const { d } = attenteProprietaire({}, { codeowners: null });
-  assert.deepEqual(etats(d), ["70 prête", "71 prête"]);
-});
-
-test("file.sh : approuvée (relecteurs retirés par GitHub), la PR revient prête ; sans la règle sur la base, un propriétaire demandé ne retient rien", () => {
-  const { d } = attenteProprietaire();
-  d.github({ pulls: [pr(70, "feat/proprio", { relecteurs: [] }), pr(71, "feat/libre")] });
-  assert.deepEqual(etats(d), ["70 prête", "71 prête"]);
-  d.github({ revueProprietaires: [], pulls: [pr(70, "feat/proprio", { relecteurs: ["proprietaire"] })] });
-  assert.deepEqual(etats(d), ["70 prête"]);
-  d.github({ revueProprietaires: ["main"] });
-  assert.deepEqual(etats(d), ["70 prête"], "la règle de main ne vaut pas pour une PR vers develop");
-});
-
-test("file.sh : une CI rouge reste « CI rouge » même quand la PR attend un propriétaire ; en cours, elle attend le propriétaire", () => {
-  const { d } = attenteProprietaire({ checks: { "*": { qualite: "SUCCESS" }, "#70": { qualite: "FAILURE" } } });
-  assert.deepEqual(etats(d), ["70 CI rouge : qualite", "71 prête"]);
-  assert.equal(d.lancer(script("file.sh"), "--rouges").stdout, "70\tqualite\n");
-  d.github({ checks: { "*": { qualite: "SUCCESS" }, "#70": { qualite: "IN_PROGRESS" } } });
-  assert.deepEqual(etats(d), ["70 attend un propriétaire", "71 prête"]);
-});
-
-test("passer.sh : une PR qui attend un propriétaire sort en 7 avant toute mise à jour : rien poussé, commenté ni étiqueté", () => {
-  const { d, sommets } = attenteProprietaire();
-  const r = d.lancer(script("passer.sh"), "70");
-  assert.equal(r.status, 7, r.stdout + r.stderr);
-  assert.match(r.stdout, MOTIF_PROPRIETAIRE);
-  assert.deepEqual(d.journal(), []);
-  assert.equal(d.git("ls-remote", "origin", "refs/heads/feat/proprio").split(/\s/)[0], sommets["feat/proprio"]);
-});
-
-test("passer.sh : une fusion refusée faute d'approbation d'un propriétaire sort en 7, pas en 5, commente avec la marque et garde le label ; relancé, il sort en 7 sans rien écrire", () => {
-  const { d } = attenteProprietaire({ pulls: [pr(72, "feat/seul", { approbationManquante: true })] });
-  const r = d.lancer(script("passer.sh"), "72");
-  assert.equal(r.status, 7, r.stdout + r.stderr);
-  assert.match(r.stdout, MOTIF_PROPRIETAIRE);
-  assert.doesNotMatch(r.stdout, /fusion refusée \(develop ou la PR a bougé\)/);
-  assert.deepEqual(ecritures(d), ["PUT pulls/72/merge", "POST issues/72/comments"]);
-  // Le commentaire d'attente, à côté de celui du verrou du passage (terminé).
-  const commentaire = d.etat().pulls[0].commentaires.find((c) => typeof c === "string" && c.includes(MARQUE_ATTENTE));
-  assert.ok(commentaire, JSON.stringify(d.etat().pulls[0].commentaires));
-  assert.match(commentaire, /GitHub a refusé la fusion : l'approbation d'un propriétaire \(CODEOWNERS\) manque\. Le capitaine ne met plus cette PR à jour avant une nouvelle approbation\./);
-  assert.match(commentaire, /\n\n---\n_Generated by \[Claude Code\]\(https:\/\/claude\.ai\/code\)_$/);
-  assert.deepEqual(d.etat().pulls[0].labels, ["à-fusionner"]);
-  assert.deepEqual(etats(d), ["72 attend un humain"]);
-  const encore = d.lancer(script("passer.sh"), "72");
-  assert.equal(encore.status, 7, encore.stdout + encore.stderr);
-  assert.match(encore.stdout, /attend un humain/);
-  assert.deepEqual(ecritures(d), ["PUT pulls/72/merge", "POST issues/72/comments"], "rien de plus");
-});
-
-const commentaireAttente = (created_at, auteur = "capitaine") => ({
-  auteur,
-  created_at,
-  body: `${MARQUE_ATTENTE}\nGitHub a refusé la fusion.\n`,
-});
-
-test("file.sh : « attend un humain » jusqu'à une approbation plus récente que le dernier commentaire marqué ; une approbation plus ancienne ou un autre avis ne suffit pas ; la marque d'un autre compte ne compte pas", () => {
-  const { d } = attenteProprietaire({
-    pulls: [pr(72, "feat/seul", { commentaires: [commentaireAttente("2026-11-17T10:00:00Z")], revues: [{ state: "APPROVED", submitted_at: "2026-11-17T09:00:00Z" }, { state: "COMMENTED", submitted_at: "2026-11-17T11:00:00Z" }] })],
-  });
-  assert.deepEqual(etats(d), ["72 attend un humain"]);
-  assert.equal(d.lancer(script("file.sh"), "--next").stdout, "");
-  assert.equal(d.lancer(script("file.sh"), "--rouges").stdout, "");
-  d.github({
-    pulls: [pr(72, "feat/seul", { commentaires: [commentaireAttente("2026-11-17T10:00:00Z"), commentaireAttente("2026-11-17T12:00:00Z")], revues: [{ state: "APPROVED", submitted_at: "2026-11-17T11:00:00Z" }] })],
-  });
-  assert.deepEqual(etats(d), ["72 attend un humain"], "approbation antérieure au dernier commentaire marqué");
-  d.github({
-    pulls: [pr(72, "feat/seul", { commentaires: [commentaireAttente("2026-11-17T10:00:00Z")], revues: [{ state: "APPROVED", submitted_at: "2026-11-17T11:00:00Z" }] })],
-  });
-  assert.deepEqual(etats(d), ["72 prête"], "nouvelle approbation : évaluation normale");
-  d.github({ pulls: [pr(72, "feat/seul", { commentaires: [commentaireAttente("2026-11-17T10:00:00Z", "intrus")] })] });
-  assert.deepEqual(etats(d), ["72 prête"], "marque écrite par un autre compte : ignorée");
-  d.github({ pulls: [pr(72, "feat/seul", { commentaires: [commentaireAttente("2026-11-17T10:00:00Z")] })], compteIllisible: true });
-  const r = d.lancer(script("file.sh"));
-  assert.match(r.stdout, /^72\thumain/m, "compte illisible : fermé, comme les renvois");
-  const p = d.lancer(script("passer.sh"), "72");
-  assert.equal(p.status, 7, p.stdout + p.stderr);
-  assert.match(p.stdout, /attend un humain/);
-  assert.match(p.stderr, /compte du capitaine illisible/);
-  assert.equal(d.journal().length, 0);
-});
-
-test("boucle.sh : les PR qui attendent un propriétaire sont sautées sans renvoi ni relance, une PR prête passe ; au tour suivant, rien n'est poussé sur celle qui attend un humain", () => {
-  const { d } = attenteProprietaire();
-  d.publierChaine();
-  d.github({
-    pulls: [
-      pr(70, "feat/proprio", { relecteurs: ["proprietaire"] }),
-      pr(71, "feat/libre"),
-      pr(72, "feat/seul", { approbationManquante: true }),
-    ],
-  });
-  const r = d.lancer(script("boucle.sh"));
-  assert.equal(r.status, 0, r.stdout + r.stderr);
-  assert.match(r.stdout, /FILE VIDE/);
-  assert.match(r.stdout, /\[#71\] FUSIONNÉE/);
-  assert.match(r.stdout, /\[#72\] sortie=7/);
-  assert.doesNotMatch(r.stdout, /\[#70\] (DÉBUT|RENVOI)/);
-  const ecrit = () => ecritures(d).filter((e) => /^(PUT|POST|DELETE|PATCH) (pulls|issues|actions)/.test(e));
-  assert.deepEqual(ecrit(), ["PUT pulls/71/merge", "DELETE issues/71/labels/%C3%A0-fusionner", "PUT pulls/72/merge", "POST issues/72/comments"]);
-  const etatFinal = d.etat();
-  for (const n of [70, 72]) assert.deepEqual(etatFinal.pulls.find((x) => x.number === n).labels, ["à-fusionner"], `#${n} garde son label`);
-  assert.equal(etatFinal.pulls.find((x) => x.number === 70).commentaires, undefined, "#70 n'est pas commentée");
-  d.git("fetch", "-q", "origin");
-  const tete = d.git("rev-parse", "origin/feat/seul");
-  const encore = d.lancer(script("boucle.sh"));
-  assert.equal(encore.status, 0, encore.stdout + encore.stderr);
-  assert.doesNotMatch(encore.stdout, /\[#72\] DÉBUT/);
-  assert.deepEqual(ecrit(), ["PUT pulls/71/merge", "DELETE issues/71/labels/%C3%A0-fusionner", "PUT pulls/72/merge", "POST issues/72/comments"], "rien de plus au tour suivant");
-  assert.equal(d.git("ls-remote", "origin", "refs/heads/feat/seul").split(/\s/)[0], tete, "rien poussé sur #72");
-});
-
-test("file.sh : une CI rouge prime sur « attend un humain » : la PR marquée est relancée puis renvoyée comme une autre", () => {
-  const { d } = attenteProprietaire({
-    checks: { "*": { qualite: "SUCCESS" }, "#72": { qualite: "FAILURE" } },
-    pulls: [pr(72, "feat/seul", { commentaires: [commentaireAttente("2026-11-17T10:00:00Z")] })],
-  });
-  assert.deepEqual(etats(d), ["72 CI rouge : qualite"]);
-  assert.equal(d.lancer(script("file.sh"), "--rouges").stdout, "72\tqualite\n");
-  d.github({ checks: { "*": { qualite: "SUCCESS" }, "#72": { qualite: "IN_PROGRESS" } } });
-  assert.deepEqual(etats(d), ["72 attend un humain"], "CI en cours : l'attente reste");
-});
-
-test("passer.sh : commentaire d'attente impossible à poser après un refus de fusion pour revue : sortie 3 (arrêt), pas 7 ; la boucle s'arrête sans le repasser", () => {
-  // Le commentaire d'attente seul est refusé : celui du verrou du passage se pose.
-  const { d } = attenteProprietaire({ commentairesRefuses: "attente-revue-capitaine", pulls: [pr(72, "feat/seul", { approbationManquante: true })] });
-  const r = d.lancer(script("passer.sh"), "72");
-  assert.equal(r.status, 3, r.stdout + r.stderr);
-  assert.match(r.stdout, /commentaire d'attente non posé/);
-  assert.deepEqual(ecritures(d), ["PUT pulls/72/merge", "POST issues/72/comments"]);
-  assert.deepEqual(d.etat().pulls[0].labels, ["à-fusionner"]);
-  const e = attenteProprietaire({ commentairesRefuses: "attente-revue-capitaine", pulls: [pr(72, "feat/seul", { approbationManquante: true })] }).d;
-  e.publierChaine();
-  const b = e.lancer(script("boucle.sh"));
-  assert.equal(b.status, 3, b.stdout + b.stderr);
-  assert.match(b.stdout, /ARRÊT sur #72 \(sortie 3\)/);
-  assert.doesNotMatch(b.stdout, /second essai|PAUSE/);
-  assert.equal(ecritures(e).filter((x) => x === "PUT pulls/72/merge").length, 1, "un essai : la boucle ne le repasse pas");
-});
-
 // ── Règle d'ascendance : la cible qui bouge pendant la CI, l'arbre du squash différent de l'arbre testé ──────────
 // Le défaut vécu sur `fedora` (2026-11-18) : #1986 squashée sur un develop que son sommet testé ne contenait pas,
 // malgré le réglage « strict » de GitHub.
@@ -2075,13 +1872,17 @@ test("un push refusé sans trace de husky : échec fermé, passer.sh en 3 « pus
 // Un refus de fusion durable (droit, règle du dépôt, méthode interdite) n'est pas « la branche a bougé » : sortie 3, la
 // boucle s'arrête au lieu de refaire mise à jour et CI à chaque tour, en pause sans fin. 409 ou panne : sortie 5.
 test("passer.sh : une fusion refusée durablement par GitHub sort en 3 et la boucle s'arrête ; branche bougée ou panne : 5", () => {
-  const DURABLE = /fusion refusée par GitHub, ni pour la revue ni pour une branche qui a bougé/;
+  const DURABLE = /fusion refusée par GitHub pour une autre raison qu'une branche qui a bougé \(droit du compte, règle du dépôt, revue exigée, méthode de fusion\)/;
   const BOUGEE = /fusion refusée \(develop ou la PR a bougé, ou GitHub en panne\), relancer/;
   for (const [message, attendu, motif] of [
     ["gh: Merge commits are not allowed on this repository. (HTTP 405)", 3, DURABLE],
     ["gh: Resource not accessible by integration (HTTP 403)", 3, DURABLE],
     ["gh: Repository rule violations found (HTTP 422)", 3, DURABLE],
     ["gh: HTTP 403", 3, DURABLE],
+    // Une revue exigée par une règle de GitHub n'est plus attendue (ticket 54) : un refus durable comme un autre, quel
+    // que soit le texte du refus (une approbation exigée, la revue d'un tiers désigné pour le fichier).
+    ["gh: At least 1 approving review is required by reviewers with write access. (HTTP 405)", 3, DURABLE],
+    ["gh: Waiting on code owner review from @exemple. (HTTP 405)", 3, DURABLE],
     ["gh: HTTP 4030", 5, BOUGEE], // pas un code HTTP : lu comme une panne
     ["gh: Head branch was modified. Review and try the merge again. (HTTP 409)", 5, BOUGEE],
     ["gh: Base branch was modified. Review and try the merge again. (HTTP 405)", 5, BOUGEE],
@@ -2098,15 +1899,66 @@ test("passer.sh : une fusion refusée durablement par GitHub sort en 3 et la bou
     assert.equal(r.status, attendu, `${JSON.stringify(message)} : ${r.stdout}${r.stderr}`);
     assert.match(r.stdout, motif, JSON.stringify(message));
     assert.equal(d.git("status", "--porcelain"), "");
+    // Après un refus durable : rien d'écrit sur la PR hors le verrou du passage, son label gardé ; et le capitaine ne
+    // reste pas sur sa branche de passage (tête détachée sur develop, branche supprimée).
+    // Le message exact de GitHub, que le capitaine rapporte à son lanceur (skill `fusionner`, « Devant un refus durable
+    // de fusion ») : sur la sortie d'erreur de passer.sh.
+    if (attendu === 3) assert.ok(r.stderr.split(/\r?\n/).includes(message.trimEnd()), `${JSON.stringify(message)} : le message exact de GitHub sur la sortie d'erreur\n${r.stderr}`);
+    if (attendu === 3) assert.deepEqual([ecritures(d), d.etat().pulls[0].labels], [["PUT pulls/33/merge"], ["à-fusionner"]], `${JSON.stringify(message)} : rien d'écrit sur la PR hors le verrou du passage, label gardé`);
+    if (attendu === 3) assert.deepEqual([d.git("rev-parse", "--abbrev-ref", "HEAD"), d.git("rev-parse", "HEAD"), d.git("branch", "--list", "capitaine/33")], ["HEAD", d.git("rev-parse", "origin/develop"), ""], JSON.stringify(message));
   }
+  // La dernière ligne de `2>&1` reste le verdict (boucle.sh la classe par `tail -n 1`, refus.sh la prend pour motif) :
+  // rien ne s'écrit après le message du refus durable, pas même depuis la trappe qui termine le verrou du passage.
+  const fondu = prSimple();
+  fondu.github({ pulls: [pr(33, "feat/simple", { refusFusion: "gh: At least 1 approving review is required by reviewers with write access. (HTTP 405)" })] });
+  const f = spawnSync("bash", ["-c", 'bash "$0" 33 2>&1', script("passer.sh")], { cwd: fondu.travail, env: fondu.env, encoding: "utf8" });
+  assert.equal(f.status, 3, f.stdout);
+  assert.match(f.stdout.split("\n").filter(Boolean).at(-1), DURABLE, `la dernière ligne de 2>&1 est le verdict\n${f.stdout}`);
+  assert.ok(fondu.journal().some((x) => x.methode === "PATCH" && /<!-- capitaine:fin -->/.test(x.champs?.body ?? "")), "le verrou du passage a été terminé par la trappe");
+  // La boucle : un refus durable l'arrête sur la PR refusée, faute de revue comprise (ticket 54 : plus d'attente, ni
+  // « de côté »), et la PR suivante de la file n'est pas fusionnée.
+  for (const message of [
+    "gh: Merge commits are not allowed on this repository. (HTTP 405)",
+    "gh: Waiting on code owner review from @exemple. (HTTP 405)",
+    "gh: At least 1 approving review is required by reviewers with write access. (HTTP 405)",
+  ]) {
+    const d = prSimple();
+    d.publierChaine();
+    d.branche("feat/suivante", "origin/develop", { "docs/suivante.md": "n\n" });
+    d.git("switch", "-q", "--detach", "origin/develop");
+    d.github({ pulls: [pr(33, "feat/simple", { refusFusion: message }), pr(34, "feat/suivante")] });
+    const b = d.lancer(script("boucle.sh"));
+    assert.equal(b.status, 3, `${JSON.stringify(message)} : ${b.stdout}${b.stderr}`);
+    assert.match(b.stdout, /ARRÊT sur #33 \(sortie 3\)/, JSON.stringify(message));
+    assert.doesNotMatch(b.stdout, /PAUSE|de côté|\[#34\]/, JSON.stringify(message));
+    assert.equal(fusionsDe(d, 33).length, 1, `${JSON.stringify(message)} : un seul essai`);
+    assert.equal(fusionsDe(d, 34).length, 0, `${JSON.stringify(message)} : la PR suivante n'est pas fusionnée`);
+    assert.deepEqual(d.etat().pulls.map((p) => p.labels), [["à-fusionner"], ["à-fusionner"]], JSON.stringify(message));
+  }
+});
+
+// Ce que la version d'avant laisse sur une PR (ticket 54, contre-relecture C5) : le commentaire d'attente marqué, posé
+// sous le compte du capitaine, et un relecteur demandé. Plus rien ne les lit : la PR est prête, passe, est fusionnée, et
+// ses renvois restent à 0.
+test("file.sh, passer.sh, boucle.sh : une PR qui porte l'ancien commentaire d'attente et un relecteur demandé est prête et fusionnée, sans renvoi", () => {
+  const attente = "GitHub a refusé la fusion : l'approbation d'un propriétaire (CODEOWNERS) manque. Le capitaine ne met plus cette PR à jour avant une nouvelle approbation.\n\n<!-- attente-revue-capitaine -->\n";
   const d = prSimple();
   d.publierChaine();
-  d.github({ pulls: [pr(33, "feat/simple", { refusFusion: "gh: Merge commits are not allowed on this repository. (HTTP 405)" })] });
+  d.github({ pulls: [pr(33, "feat/simple", { commentaires: [attente], relecteurs: ["proprietaire"], equipes: ["relecteurs"] })] });
+  const lue = spawnSync("gh", ["api", "repos/{owner}/{repo}/pulls/33", "--jq", "[.requested_reviewers[].login, .requested_teams[].slug]"], { cwd: d.travail, env: d.env, encoding: "utf8" });
+  assert.deepEqual(JSON.parse(lue.stdout), ["proprietaire", "relecteurs"], `le faux rend les relecteurs demandés\n${lue.stderr}`);
+  const f = d.lancer(script("file.sh"));
+  assert.equal(f.status, 0, f.stderr);
+  assert.deepEqual(f.stdout.trim().split("\n").map((l) => l.split("\t").slice(0, 2).join(" ")), ["33 prête"]);
+  const renvois = () => spawnSync("bash", ["-c", `source ${script("github.sh")}; renvois_de 33`], { cwd: d.travail, env: d.env, encoding: "utf8" });
+  assert.equal(renvois().stdout, "0\n", renvois().stderr);
   const b = d.lancer(script("boucle.sh"));
-  assert.equal(b.status, 3, b.stdout + b.stderr);
-  assert.match(b.stdout, /ARRÊT sur #33 \(sortie 3\)/);
-  assert.doesNotMatch(b.stdout, /PAUSE/);
-  assert.equal(fusionsDe(d, 33).length, 1, "un seul essai");
+  assert.equal(b.status, 0, b.stdout + b.stderr);
+  assert.match(b.stdout, /\[#33\] FUSIONNÉE/);
+  assert.doesNotMatch(b.stdout, /RENVOI|attend|sautée/);
+  assert.equal(fusionsDe(d, 33).length, 1);
+  assert.equal(renvois().stdout, "0\n", "aucun renvoi");
+  assert.deepEqual(ecritures(d).filter((e) => /^(POST|PATCH|DELETE) issues\/(\d+\/)?comments/.test(e)), [], "aucun commentaire hors le passage");
 });
 
 // Décision A-51 : un refus durable n'arrête la boucle que si develop n'a pas bougé entre le test et la fusion. Un 405
@@ -2126,7 +1978,7 @@ test("passer.sh : un refus de fusion 405 après un develop qui a bougé sort en 
   f.github({ pulls: [pr(33, "feat/simple", { refusFusion: REGLE })] });
   const durable = f.lancer(script("passer.sh"), "33");
   assert.equal(durable.status, 3, durable.stdout + durable.stderr);
-  assert.match(durable.stdout, /fusion refusée par GitHub, ni pour la revue ni pour une branche qui a bougé/);
+  assert.match(durable.stdout, /fusion refusée par GitHub pour une autre raison qu'une branche qui a bougé/);
 });
 
 // Décision A-51 : une lecture refusée durablement (401, 403) reste une pause (A-21), mais la ligne PAUSE nomme la route
@@ -2658,4 +2510,25 @@ test("sujet.sh relancer et fusionner, PASSAGE_HORLOGE_BANC posée sans FAUX_GH :
     assert.ok(fin, `${geste} : commentaire terminé\n${r.stdout}`);
     assert.doesNotMatch(fin.champs.body, /<!-- capitaine:passage capitaine-banc 1000 -->/);
   }
+});
+
+// La boucle saute une PR que passer.sh rend en 7 et fait passer la suivante. Le banc qui le prouvait est sorti avec
+// l'attente d'une approbation (ticket 54) : le cas est repris ici sur le passage d'un autre capitaine.
+test("boucle.sh : une PR que passer.sh rend en 7 (en passage chez un autre capitaine) est sautée sans renvoi ni arrêt, la suivante passe", () => {
+  const { d, avant, sommet } = prVerrou();
+  d.branche("docs/suivante", "origin/develop", { "docs/suivante.md": "s\n" });
+  d.git("switch", "-q", "--detach", "origin/develop");
+  d.publierChaine();
+  const e = d.etat();
+  e.pulls[0].commentaires = [marqueDe("capitaine-jordan")];
+  e.pulls.push(pr(41, "docs/suivante"));
+  d.github(e);
+  const r = d.lancer(script("boucle.sh"));
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /\[#40\] sortie=7/);
+  assert.match(r.stdout, /\[#41\] FUSIONNÉE/);
+  assert.match(r.stdout, /FILE VIDE/);
+  assert.doesNotMatch(r.stdout, /RENVOI|ARRÊT/);
+  const pr40 = d.etat().pulls.find((p) => p.number === 40);
+  assert.deepEqual([pr40.labels, pr40.merged_at ?? null, sommet()], [["à-fusionner"], null, avant], "#40 garde son label, n'est ni fusionnée ni poussée");
 });
