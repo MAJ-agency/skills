@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { ajouteUneDependance, decisionCommande, decisionOutilGithub, lireDependances, paquetsAjoutes, pousseSurUnSujet, refusEdition, sansTexte, segmentsDeCommande, lintable } from './regles.mjs';
-import { lireCommande, RAISON_ILLISIBLE, LECTURE_7_9, RAISON_TROP_LONGUE, appelsGit, sauteLesHooks, ecritUneRefDeSuivi } from './regles.mjs';
+import { lireCommande, RAISON_ILLISIBLE, LECTURE_7_9, RAISON_TROP_LONGUE, appelsGit, sauteLesHooks, ecritUneRefDeSuivi, amendeUnCommit } from './regles.mjs';
 
 const livree = { migrationExistante: () => true, migrations: 'apps/api/src/db/migrations/' };
 const nouvelle = { migrationExistante: () => false, migrations: 'apps/api/src/db/migrations/' };
@@ -468,7 +468,7 @@ test('contournements relevés pendant le ticket 27 : champ gh collé ou route ap
   assert.equal(decisionOutilGithub('mcp__github__push_files', { branch: 'feat/x.y' }, {}), null);
   for (const commande of [
     `git commit -m "jamais ${nv}"`,
-    'git commit --amend --no-edit',
+    'git commit --no-edit',
     'git commit -m x -- docs/a.md',
     'gh api -X POST repos/o/r/issues/3/comments -f body="voir graphql et contents"',
     'echo $((1+2)) && git push -u origin feat/x',
@@ -1460,7 +1460,7 @@ test('ticket 17 : les commandes ordinaires de la chaîne passent toujours', () =
     'git merge --no-ff --no-edit origin/develop',
     'git add -A && git commit -m "feat: x"',
     'git commit -F /tmp/message.txt',
-    'git commit --amend --no-edit',
+    'git commit --no-edit',
     'git rev-parse HEAD',
     'git rev-parse --abbrev-ref HEAD',
     'git ls-remote --heads origin "sujet/*"',
@@ -1904,4 +1904,56 @@ test('ticket 17 : troisième contre-relecture (A-49) — tableau modifié, opér
 test('ticket 17 : quatrième contre-relecture (A-50) — un motif non cité dans le programme', () => {
   refusees(["/usr/bin/g[i]t commit -n -am x", "/usr/bin/gi[t] commit --no-verify -am x", "G=/usr/bin/g[i]t; $G -c core.hooksPath=/dev/null commit -am x", "G=/usr/bin/g[i]t; $G push origin HEAD:sujet/v", "sudo /usr/bin/g?t commit -am x"], HOOKS);
   passent(['G="/usr/bin/git"; "$G" status', 'git commit -m x -- src/*.ts']);
+});
+
+// ——— Ticket 18 : git commit --amend ————————————————————————————————————————————————————————————————
+const AMEND = /--amend/;
+const T18_AMEND = [
+  'git commit --amend -m x',
+  'git commit --amend --no-edit',
+  'git commit -a --amend',
+  'git commit --am -m x',
+  'git commit --ame -m x',
+  'git commit --amen -m x',
+  'git commit --AMEND',
+  'git commit -m x --amend',
+  'git commit -m x --amen',
+  'git -C . commit --amend',
+  'git -C . commit --am',
+  'git -c user.name=x commit --amend',
+  'git -c user.name=x commit --amen',
+  'git --git-dir=.git commit --amend',
+  'git --git-dir .git commit --am',
+  '/usr/bin/git commit --amend',
+  'sudo git commit --amend',
+  'git $(echo commit) --amend',
+  'sh -c "git commit --amend"',
+  'git add -A && git commit --amend --no-edit',
+  'git-commit --amend',
+];
+/** Chaque blanc hors citation simple devient une ligne continuée : bash recolle `\<retour>`, la garde aussi. */
+const continuee = (c) => c.replace(/ /g, ' \\\n  ');
+test('ticket 18 : git commit --amend est refusé, sous ses abréviations et derrière toute option globale', () => {
+  refusees(T18_AMEND, AMEND);
+  refusees(T18_AMEND.map(continuee), AMEND);
+  for (const c of T18_AMEND) assert.equal(amendeUnCommit(c), true, c);
+});
+
+test('ticket 18 : un message qui cite --amend passe, comme --fixup=amend', () => {
+  const passe = [
+    'git commit -m "--amend"',
+    'git commit -m "fix --amend"',
+    "git commit -m 'refuse --amend et --am'",
+    'git commit -m --amend',
+    'git commit --message=--amend',
+    'git commit -F msg.txt',
+    'git commit --fixup=amend:HEAD~1',
+    'git commit --fixup amend:HEAD~1',
+    'git log --grep=--amend',
+    'git commit --allow-empty -m x',
+    'git commit -m x -- --amend',
+  ];
+  passent(passe);
+  passent(passe.map(continuee));
+  for (const c of passe) assert.equal(amendeUnCommit(c), false, c);
 });
