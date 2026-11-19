@@ -1224,3 +1224,47 @@ test("sujet.sh relancer : PR illisible, sortie 5 sans rien pousser ; fusionner :
   assert.match(f.stderr, /https:\/\/\*\*\*@exemple\.test/);
   assert.doesNotMatch(f.stdout + f.stderr, /jeton-secret/);
 });
+
+// Ticket 16 : `sujet.sh a-juger`, que lit le check `pr-titre` du socle, écrit les fichiers que `fusionner` juge, par la
+// même fonction (`fichiers_a_juger`), sans appel GitHub.
+test("sujet.sh a-juger écrit les fichiers que fusionner juge : résolution et retouches d'une PR de mise à jour, diff depuis le départ du sujet sinon ; un refus de forme sort en 4", () => {
+  // PR de mise à jour : la résolution (fichiers en conflit et leur écart) et la retouche, jamais le develop apporté.
+  const { d, sommet } = avecRetouche({ avantPush: retouche({ "apps/s.ts": FORMATE }) });
+  const avant = ecritures(d).length;
+  const maj = d.lancer(SUJET, "a-juger", sommet, "sujet/lot", "81");
+  assert.equal(maj.status, 0, maj.stdout + maj.stderr);
+  assert.deepEqual(maj.stdout.trim().split("\n").sort(), ["apps/s.ts", `${ADR}/README.md`, "docs/f.md"]);
+  assert.equal(ecritures(d).length, avant, "aucun appel GitHub");
+  assert.doesNotMatch(d.journal().map((e) => e.route).join("\n"), /pulls/, "aucune lecture GitHub non plus");
+  // Et fusionner juge bien la retouche : sans section, refus sur apps/s.ts.
+  const juge = d.lancer(SUJET, "fusionner", "81");
+  assert.equal(juge.status, 4, juge.stdout + juge.stderr);
+  assert.match(juge.stdout, /\(apps\/s\.ts\)/);
+  // Sous-PR ordinaire : le diff depuis son départ du sujet, pas ce que develop a reçu depuis.
+  const o = depotJouet();
+  o.branche("sujet/lot", "origin/develop", { "docs/lot.md": "lot\n" }, "docs: lot");
+  const sous = o.branche("feat/b", "origin/sujet/lot", { "apps/b.ts": "export const b = 1;\n" }, "feat: b");
+  o.branche("develop", "origin/develop", { "apps/z.ts": "export const z = 1;\n" }, "feat: z");
+  const ordinaire = o.lancer(SUJET, "a-juger", sous, "sujet/lot", "82");
+  assert.equal(ordinaire.status, 0, ordinaire.stdout + ordinaire.stderr);
+  assert.equal(ordinaire.stdout, "apps/b.ts\n");
+  // Refus de forme : deux fusions de develop. Sortie 4, le motif de verifier_mise_a_jour en dernière ligne.
+  const deux = miseAJour({
+    avantPush: (x) => {
+      x.git("switch", "-q", "--detach", "origin/develop");
+      x.ecrire("docs/d2.md", "d2\n");
+      x.commit("docs: develop encore");
+      x.git("push", "-q", "origin", "HEAD:develop");
+      x.git("fetch", "-q", "origin");
+      x.git("switch", "-q", "maj/lot");
+      x.git("merge", "-q", "--no-edit", "origin/develop");
+    },
+  });
+  const refus = deux.d.lancer(SUJET, "a-juger", deux.d.git("rev-parse", "origin/maj/lot"), "sujet/lot", "81");
+  assert.equal(refus.status, 4, refus.stdout + refus.stderr);
+  assert.match(refus.stdout.trim().split("\n").at(-1), /^#81, PR de mise à jour : une seule fusion de develop dans sujet\/lot/);
+  // Refs absentes : 11, jamais une liste vide.
+  const absent = o.lancer(SUJET, "a-juger", sous, "sujet/fantome", "82");
+  assert.equal(absent.status, 11, absent.stdout + absent.stderr);
+  assert.match(absent.stdout, /refs absentes/);
+});

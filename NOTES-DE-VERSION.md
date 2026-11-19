@@ -2,6 +2,21 @@
 
 La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque projet par `poser` : une version publiée ne change rien chez un projet qui ne les repose pas. Chaque note dit ce qui change, puis ce qu'un projet fait pour en profiter.
 
+## 7.28.0 — 2026-11-19
+
+### Ce qui change
+
+Le socle de la chaîne pose un check `PR titre` (`.github/workflows/pr-titre.yml`, `scripts/github/pr-titre.mjs`), non exigé : à l'ouverture d'une PR vers `develop` ou un sujet, à chaque retouche de son titre ou de son corps et à chaque push, il montre ce que le capitaine refusera (sujet du squash trop long, commitlint pour une sous-PR, section de revue absente, ligne `/security-review` absente sur un chemin sensible, titre de code sur de la documentation seule). Il juge avec les fonctions du capitaine (`revue-exigee.mjs`, `sujet.sh a-juger`, `sujet.sh est-livraison`) : une PR de réception de `develop` dans un sujet se reconnaît à sa forme et se juge sur sa résolution et ses retouches ; une tête `livraison/…` n'est dispensée de revue que sur la preuve du capitaine, jamais sur son nom.
+
+### Ce qu'un projet fait pour en profiter
+
+1. Mettre à jour le plugin : `claude plugin marketplace update maj`, puis `claude plugin update maj-skills@maj`, puis redémarrer Claude Code (session cloud : `lancement.md` § « La mise à niveau »).
+2. Dans une PR du projet : `/maj-skills:fusionner poser` et `/maj-skills:sujet poser` (`revue-exigee.mjs`, `github.sh`, `passer.sh`, `sujet.sh` et leurs bancs), puis, de `/maj-skills:socle-chaine-de-production`, les étapes 4 ter (`scripts/github/pr-titre.mjs` et son banc) et 6 (`.github/workflows/pr-titre.yml`). `.github/workflows/**` et `scripts/github/**` sont des chemins sensibles : contre-revue et `/security-review`. Aucune clé de contrat.
+3. Ne pas ajouter `PR titre` aux checks exigés de `develop` : le capitaine reste le juge.
+4. Relancer le capitaine une fois cette PR entrée dans develop (`passer.sh` et `github.sh` changent, sans changer de comportement) : `bash scripts/chaine/boucle.sh --arreter`, nouvelle copie dans `<scratchpad>/outils`, puis `veille.sh` relancée.
+
+**Iroki**, hors du plugin : son `scripts/ci/pr-titre.mjs` et son `.github/workflows/pr-titre.yml` (#628, et sa voie de réception, #539) sont à remplacer par ceux du socle ; sa voie `chore/<nom>-recoit-develop`, reconnue par le nom de branche, n'existe pas dans le plugin, qui reconnaît une PR de réception à sa forme (une seule fusion de `develop`, son premier commit, puis des retouches). Ses PR de réception qui n'ont pas cette forme seront refusées par le check comme par le capitaine du plugin.
+
 ## 7.27.0 — 2026-11-19
 
 ### Ce qui change

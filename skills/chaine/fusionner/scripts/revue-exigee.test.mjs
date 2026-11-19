@@ -488,3 +488,49 @@ test('ticket 18 (CodeQL) : un commentaire HTML imbriqué ou recollé ne cache ni
   ])
     assert.equal(avec(corps), null, JSON.stringify(corps));
 });
+
+// Ticket 16 : le check `pr-titre` du socle donne les motifs du capitaine par `motifsDuCapitaine`, sans en recopier la
+// règle. La CLI rend le premier ; la fonction les rend tous, dans l'ordre de la CLI (section, ligne
+// `/security-review`, titre).
+test('ticket 16 : motifsDuCapitaine rend ce que rend la CLI, motif pour motif, dans son ordre', () => {
+  const d = jouet.dossierTemporaire('revue-motifs-');
+  const env = { ...jouet.environnementDeBanc(), GIT_CONFIG_GLOBAL: '/dev/null', GIT_CONFIG_NOSYSTEM: '1', GIT_AUTHOR_NAME: 't', GIT_AUTHOR_EMAIL: 't@example.org', GIT_COMMITTER_NAME: 't', GIT_COMMITTER_EMAIL: 't@example.org' };
+  const git = (...a) => execFileSync('git', a, { cwd: d, env, encoding: 'utf8' });
+  git('init', '-q', '-b', 'develop');
+  mkdirSync(join(d, '.claude'), { recursive: true });
+  writeFileSync(join(d, '.claude/chaine.json'), JSON.stringify({ cheminsSensibles: ['infra/**', 'docs/securite/**'] }));
+  git('add', '-A');
+  git('commit', '-q', '-m', 'base');
+  const cli = fileURLToPath(new URL('./revue-exigee.mjs', import.meta.url));
+  const cas = [
+    ['## Résumé\n', 'fix: x', ['infra/main.tf'], 'develop'],
+    [REVUE_SANS, 'fix: x', ['infra/main.tf'], 'develop'],
+    [REVUE_SANS, 'feat: x', ['docs/securite/a.md'], 'develop'],
+    [avecLigne(LIGNE), 'feat: x', ['docs/securite/a.md'], 'develop'],
+    [avecLigne(LIGNE), 'docs: x', ['docs/securite/a.md'], 'develop'],
+    ['', 'feat: x', ['apps/a.ts'], undefined],
+    ['', 'feat: x', ['docs/a.md'], undefined],
+    [SECTION, 'fix: x', ['apps/a.ts', 'docs/a.md'], undefined],
+    ['', 'docs: x', ['docs/a.md'], 'origin/introuvable'],
+  ];
+  for (const [corps, titre, fichiers, ref] of cas) {
+    const r = spawnSync('node', [cli, corps, titre, ...(ref ? [ref] : [])], { cwd: d, env, input: fichiers.join('\n') + '\n', encoding: 'utf8' });
+    const base = ref ? revueExigee.lireBase(ref, (rf, chemin) => {
+      execFileSync('git', ['rev-parse', '--verify', '-q', `${rf}^{commit}`], { cwd: d, env, stdio: 'ignore' });
+      try {
+        return execFileSync('git', ['show', `${rf}:${chemin}`], { cwd: d, env, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+      } catch {
+        return null;
+      }
+    }) : revueExigee.SANS_BASE;
+    const motifs = revueExigee.motifsDuCapitaine({ corps, titre, fichiers, base });
+    const attendu = [
+      revueExigee.motifSansRevue({ corps, fichiers, base }),
+      revueExigee.motifSansSecurite({ corps, fichiers, base }),
+      revueExigee.motifTitreSansCode({ titre, fichiers }),
+    ].filter((m) => m !== null);
+    assert.deepEqual(motifs, attendu, `${titre} ${fichiers}`);
+    assert.equal(r.status, motifs.length ? 1 : 0, `${titre} ${fichiers} : ${r.stdout}`);
+    assert.equal(r.stdout, motifs.length ? `${motifs[0]}\n` : '', `${titre} ${fichiers}`);
+  }
+});
