@@ -251,7 +251,10 @@ mentions_de_fusion() {
     fi
     lignes=$(sed -n '/^@@/,$p' <<<"$diff" | grep -E '^[-+]' || true)
     [ -n "$lignes" ] || continue
-    if sed 's/^.//' <<<"$lignes" | grep -qvxE -- "$expr"; then
+    # Sans tube : `grep -q` sort à la première ligne non conforme, et sous `pipefail` le SIGPIPE de l'écrivain
+    # ferait lire « toutes conformes » à l'appelant (passer.sh, sujet.sh).
+    lignes=$(sed 's/^.//' <<<"$lignes")
+    if grep -qvxE -- "$expr" <<<"$lignes"; then
       printf 'fusion sans mention : %s porte un changement réel (lignes hors de lignesSansEffet) ; les hooks du projet jugent le commit\n' "$fichier" >&2
       continue
     fi

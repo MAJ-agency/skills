@@ -388,8 +388,9 @@ const SCHEMA = "prisma/schema.prisma";
 const MENTION = "[sans-migration: commentaire seul, apporté par une mise à jour]";
 const ENTREE = { fichier: SCHEMA, lignesSansEffet: "^[[:space:]]*(//.*)?$", mention: MENTION };
 const BASE_SCHEMA = "model A {\n  id Int\n}\n-- sql\n";
+// Sous `set -euo pipefail`, comme passer.sh et sujet.sh qui l'appellent.
 const mentions = (d, ref = "origin/develop") =>
-  spawnSync("bash", ["-c", `source ${GITHUB}; mentions_de_fusion "$1"`, "_", ref], {
+  spawnSync("bash", ["-c", `set -euo pipefail; source ${GITHUB}; mentions_de_fusion "$1"`, "_", ref], {
     cwd: d.travail,
     env: d.env,
     encoding: "utf8",
@@ -422,6 +423,11 @@ test("mentions_de_fusion : develop n'apporte qu'un commentaire et une ligne vide
 
 test("mentions_de_fusion : develop y apporte un modèle, rien sur la sortie standard, la sortie d'erreur nomme le fichier", () => {
   const d = mentionsJouet({ [SCHEMA]: `${BASE_SCHEMA}// B\nmodel B {\n  id Int\n}\n` });
+  verdict(mentions(d), "", REEL);
+});
+
+test("mentions_de_fusion : un changement réel suivi de plus de lignes qu'un tube n'en tient reste un changement réel (pipefail)", () => {
+  const d = mentionsJouet({ [SCHEMA]: `model X {\n${"// commentaire sans effet\n".repeat(30000)}${BASE_SCHEMA}` });
   verdict(mentions(d), "", REEL);
 });
 
