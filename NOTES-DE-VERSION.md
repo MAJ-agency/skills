@@ -2,6 +2,25 @@
 
 La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque projet par `poser` : une version publiée ne change rien chez un projet qui ne les repose pas. Chaque note dit ce qui change, puis ce qu'un projet fait pour en profiter.
 
+## 7.31.2 — 2026-11-19
+
+### Ce qui change
+
+Correctifs du verrou du passage de 7.31.0 (contre-relecture du ticket 4 de `capitaine-a-jour-et-teste`) :
+
+- **Une lecture refusée du verrou est une panne** : des commentaires illisibles à sa relecture (502, réponse vide ou d'erreur) font sortir `passer.sh` et `sujet.sh fusionner` ou `relancer` en 5 (`PAUSE`, `REPRISE`), jamais en 3 ou 11 ; seul un commentaire qui ne se pose pas (écriture refusée) garde 3 (`ARRÊT`) et 11 (`ÉCHEC DU CAPITAINE`).
+- **La trappe est posée avant le verrou** : un TERM (`boucle.sh --arreter`) ou un INT pendant la pose ou la relecture termine le commentaire, au lieu de le laisser vivant jusqu'à son expiration. Un signal qui tombe pendant la pose elle-même (réponse de GitHub en vol, `gh` tué avec le groupe) laisse un commentaire posé dont l'id n'est pas lu : la trappe relit alors les commentaires de la PR et termine les marques vivantes du capitaine ; une relecture en panne se dit en une ligne (le verrou expire 90 minutes après sa dernière date comptée). Cette trappe ne sort jamais en échec sous `set -euo pipefail` : une relecture lue dont une date est illisible se dit aussi en une ligne, et le code de sortie reste celui du passage (3, 5, 143…).
+- **L'âge du verrou se lit dans la marque** : `<!-- capitaine:passage <id> <epoch> -->`, epoch réécrit à chaque rafraîchissement ; `updated_at` ne sert plus. Une marque de 7.31.0, sans epoch, vit 90 minutes depuis sa création. La date d'une marque est le plus tard de son epoch et de sa création : un epoch en retard (horloge en retard, `0`) ne la rajeunit pas, et un verrou vit au moins 90 minutes depuis sa pose. Un epoch en avance de plus de 5 minutes sur le capitaine qui lit est ignoré tant qu'il le reste (la marque est alors datée par sa création), puis compte quand un lecteur plus tardif le rattrape : une marque posée par une horloge en avance peut donc revivre, jusqu'à son epoch + 90 minutes. Un verrou sans nouvelles meurt 90 minutes après la plus tardive de sa création et de son epoch compté ; jamais de gel, jamais de fusion non testée (décision A-55 de l'architecte). Un epoch illisible (lettres, plus de 12 chiffres, plus de 40 caractères, vide) laisse la marque datée par sa création, jamais ignorée.
+- **L'horloge des bancs ne joue que sous le faux GitHub** : `PASSAGE_HORLOGE_BANC` n'est honorée que si `FAUX_GH` est posé et non vide ; posée sans lui, elle est ignorée (horloge de la machine) et retirée de l'environnement, avec un seul avertissement sur la sortie d'erreur, donné une fois, au chargement de `github.sh`, avant tout verdict : la dernière ligne de la sortie reste le verdict que lit la boucle, même quand la trappe de fin du verrou joue après lui.
+
+Aucune clé, aucune sortie nouvelle pour un projet.
+
+### Ce qu'un projet fait pour en profiter
+
+1. Mettre à jour le plugin : `claude plugin marketplace update maj`, puis `claude plugin update maj-skills@maj`, puis redémarrer Claude Code (session cloud : `lancement.md` § « La mise à niveau »).
+2. Reposer les scripts, dans une PR du projet : `/maj-skills:fusionner poser`, puis `/maj-skills:sujet poser`.
+3. Relancer chaque capitaine une fois cette PR entrée dans develop, avec `CAPITAINE_ID` comme en 7.31.0 : `bash scripts/chaine/boucle.sh --arreter`, nouvelle copie dans `<scratchpad>/outils`, puis `CAPITAINE_ID=<id de la session> bash <scratchpad>/outils/veille.sh > <scratchpad>/veille.log 2>&1`.
+
 ## 7.31.1 — 2026-11-19
 
 ### Ce qui change

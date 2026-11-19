@@ -1330,7 +1330,25 @@ test("fusionner : le commentaire du passage est rafraîchi à chaque tour d'atte
   const put = j.findIndex((e) => e.route === "pulls/80/merge");
   const tours = j.slice(0, put).filter((e) => e.methode === "PATCH" && e.route === "issues/comments/80001").map((e) => /, tour (\d+) :/.exec(e.champs.body)?.[1]);
   assert.deepEqual(tours, ["1", "2"], "un rafraîchissement par tour, avant le squash");
-  assert.match(j.at(-1).champs.body, /terminé à \d\d:\d\d UTC\.\n<!-- capitaine:passage capitaine-banc -->\n<!-- capitaine:fin -->/, "terminé à la sortie");
+  assert.match(j.at(-1).champs.body, /terminé à \d\d:\d\d UTC\.\n<!-- capitaine:passage capitaine-banc \d{10} -->\n<!-- capitaine:fin -->/, "terminé à la sortie");
+});
+
+test("fusionner et relancer : la sous-PR relue une fois le verrou pris n'est plus éligible (fermée, label retiré) : sortie 7, rien n'est poussé, le commentaire terminé", () => {
+  for (const geste of ["fusionner", "relancer"]) {
+    for (const [apresCommentaire, raison] of [
+      [{ state: "closed" }, "non ouverte"],
+      [{ labels: [] }, "sans le label à-fusionner"],
+    ]) {
+      const { d, ancien } = sousPrEnRetard({ "apps/a.ts": "export const a = 1;\n" });
+      d.github({ apresCommentaire });
+      const r = d.lancer(SUJET, geste, "80");
+      assert.equal(r.status, 7, `${geste} ${raison} : ${r.stdout}${r.stderr}`);
+      assert.match(r.stdout, new RegExp(`#80 : PR plus éligible une fois le verrou pris \\(${raison}\\) : sautée`));
+      assert.equal(d.git("ls-remote", "origin", "refs/heads/feat/sous").split("\t")[0], ancien, "rien n'est poussé");
+      assert.deepEqual(brutes(d), ["POST issues/80/comments", "PATCH issues/comments/80001"], `${geste} ${raison}`);
+      assert.match(d.journal()[1].champs.body, /<!-- capitaine:fin -->/);
+    }
+  }
 });
 
 // ── Fusion sans effet (ticket 3 de capitaine-a-jour-et-teste, A-8) : develop dans un sujet (`rafraichir`) et un sujet
