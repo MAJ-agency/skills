@@ -37,8 +37,14 @@
 #                         plus de sous-PR ouverte, ET tickets déclarés (`Sujet:`) tous faits ou label
 #                         `sujet-auto` (né d'un regroupement) : un ticket pas commencé n'a pas de PR
 #                         (#575, 15/10) ; `--dry-run` affiche sans rien écrire
-#   relancer <pr>         sous-PR sans CI (reciblée depuis une pile) : fusionne son sujet dans sa
-#                         branche et pousse, ce qui lance sa CI (jamais de rebase ni de force)
+#   relancer <pr>         sous-PR sans CI ou en conflit (reciblée depuis une pile, ou que GitHub ne sait pas fusionner) :
+#                         lit d'abord la règle d'ascendance (`ascendance` de github.sh) sur le sommet lu avec la PR ;
+#                         en retard, ou en conflit sur des index générés seuls : son sujet fusionné dans sa branche
+#                         comme par `fusionner` (index régénérés, commit, push), ce qui lance sa CI (jamais de rebase
+#                         ni de force) ; conflit hors index : sortie 2, la ligne `conflit avec <base> hors index
+#                         générés :` puis chaque fichier hors index générés, indenté de deux espaces, branche intacte ;
+#                         déjà à jour : 3 ; mise à jour refusée par le pre-push : 3, dernière ligne `mise à jour de #<n>
+#                         refusée par le hook pre-push…` ; sous-PR qui a bougé depuis sa lecture : 5
 #   series                séries repérées dans la file du capitaine (PR vers develop ou empilées) :
 #                         même spec (SPEC_ALL_SOC-1.xx), même pile, même préfixe de branche
 #   regrouper-series [--dry-run]
@@ -105,7 +111,7 @@
 # aucun renvoi · 11 push refusé par le distant sans trace du hook pre-push (tout geste qui pousse : `fusionner`,
 # `rafraichir`, `relancer`, `livrer`, `ouvrir`, `geler`, `degeler` ; la trace de husky 9 seule fait un refus du hook,
 # sortie 3), ou outil du capitaine en échec : aucun renvoi · 11 `clore` : origin ou GitHub illisible, ou suppression
-# non confirmée · `clore` : 3 suppression refusée par
+# non confirmée · 11 `relancer` : contrôle d'ascendance illisible, côté capitaine, aucun renvoi · `clore` : 3 suppression refusée par
 # un hook ou par le distant, 4 refus (pas livré, PR ouverte, carte, nom ou option), 5 le sommet a bougé · 69 jq absent du poste
 # Tout passe par l'API REST (`gh api`) : GraphQL est refusé depuis les sessions cloud. Depuis la
 # racine du dépôt ; sans argument, affiche cette aide.
@@ -1037,34 +1043,37 @@ EOT
 }
 
 relancer() {
-  local n=${1:?numéro de la sous-PR} pr base tete sortie statut
+  local n=${1:?numéro de la sous-PR} pr base tete sommet verdict
   pr=$(pr_json "$n") || sortir 5 "#$n : GitHub illisible à la lecture de la PR (cause ci-dessus) : reprise au tour suivant, aucun renvoi"
   base=$(jq -r .base.ref <<<"$pr")
   tete=$(jq -r .head.ref <<<"$pr")
+  sommet=$(jq -r .head.sha <<<"$pr")
   [[ "$base" == sujet/* ]] || sortir 4 "#$n vise $base, pas un sujet"
   refuser_tete_gardee "$n" "$pr"
   [ -z "$(git status --porcelain)" ] || sortir 6 "arbre de travail pas propre : committer ou ranger d'abord, puis relancer (rien à corriger côté PR)"
-  git_masque fetch -q origin "$base" "$tete"
-  git switch -q --detach "origin/$tete"
-  if ! sortie=$(git merge -q --no-edit "origin/$base" 2>&1); then
-    if [ -z "$(git diff --name-only --diff-filter=U)" ]; then # aucun fichier en conflit : un refus
-      printf '%s\n' "$sortie" | masquer_url >&2
-      annuler_fusion
-      sortir 3 "fusion de $base dans #$n refusée par un hook git ou un fichier non suivi : sortie ci-dessus ; corriger, jamais en sautant le hook"
-    fi
-    git merge --abort
-    sortir 2 "conflit entre #$n et $base"
-  fi
-  [ "$(git rev-parse HEAD)" != "$(git rev-parse "origin/$tete")" ] ||
-    sortir 3 "#$n contient déjà $base : aucun commit à pousser, CI non déclenchable"
-  pousser "HEAD:refs/heads/$tete" "$tete" "$(git rev-parse "origin/$tete")" && statut=0 || statut=$?
-  case $statut in
-    0) ;;
-    5) sortir 5 "#$n a bougé pendant la mise à jour : relancer" ;;
-    3) sortir 3 "mise à jour de #$n refusée par le hook pre-push : sortie ci-dessus" ;;
-    *) git switch -q --detach origin/develop 2>/dev/null || true; sortir 11 "mise à jour de #$n : push refusé par le distant, sans trace du hook pre-push : côté capitaine ou du distant, rien à corriger côté PR ; sortie ci-dessus" ;;
+  # Refspecs explicites : un clone `--single-branch` ne met à jour aucune `origin/<branche>` sur un fetch nu.
+  git_masque fetch -q origin "+refs/heads/develop:refs/remotes/origin/develop" \
+    "+refs/heads/$base:refs/remotes/origin/$base" "+refs/heads/$tete:refs/remotes/origin/$tete"
+  # Le verdict porte sur le sommet lu avec la PR : une branche qui a bougé depuis (la session a peut-être résolu son
+  # conflit) n'est ni jugée ni renvoyée sur un sommet périmé.
+  [ "$(git rev-parse "origin/$tete")" = "$sommet" ] ||
+    sortir 5 "la sous-PR #$n a bougé depuis sa lecture : rien n'est poussé, reprise au tour suivant, aucun renvoi"
+  # Règle d'ascendance avant toute fusion (skill `fusionner`) : GitHub ne lance pas la CI d'une sous-PR en conflit avec
+  # son sujet. Conflit limité aux index générés : mise à jour comme par `fusionner` ; tout autre conflit : sortie 2.
+  verdict=$(ascendance "$sommet" "origin/$base") ||
+    sortir 11 "#$n : contrôle d'ascendance illisible (ascendance de github.sh, cause ci-dessus) : sous-PR laissée dans la file, rien à corriger côté PR"
+  case ${verdict%%$'\n'*} in
+    à-jour) sortir 3 "#$n contient déjà $base : aucun commit à pousser, CI non déclenchable" ;;
+    conflit)
+      # Seuls les fichiers hors index générés : un index en conflit se régénère, la session n'a rien à y faire.
+      printf 'conflit avec %s hors index générés :\n' "$base"
+      sed -n '2,$p' <<<"$verdict" | { grep -Ev "$GENERES" || true; } | sed 's/^/  /'
+      exit 2 ;;
+    retard | conflit-index) ;;
+    *) sortir 11 "#$n : contrôle d'ascendance illisible (verdict « ${verdict%%$'\n'*} ») : sous-PR laissée dans la file, rien à corriger côté PR" ;;
   esac
-  echo "#$n : $base fusionné dans sa branche, CI lancée"
+  mettre_a_jour_sous_pr "$n" "$base" "$tete" "$sommet"
+  echo "#$n : $base fusionné dans sa branche ($(git rev-parse --short "$SOMMET_POUSSE")), CI lancée"
 }
 
 # Séries de la file : PR ouvertes, non brouillon, qui visent develop ou une autre PR. Clés de

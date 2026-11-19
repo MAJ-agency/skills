@@ -41,6 +41,10 @@
 //               de l'état. `brute: true` écrit `erreur` sans fin de ligne. Les écritures ne sont jamais en panne
 // Le sommet d'une PR est lu dans le dépôt nu ($FAUX_GH_ORIGINE), comme GitHub. Chaque écriture
 // (méthode autre que GET) est appliquée à l'état et journalisée dans $FAUX_GH/journal.jsonl.
+// `mergeable_state` sur la seule lecture d'une PR (`GET`/`PATCH pulls/<n>`), jamais dans la liste `GET pulls` (comme
+// GitHub) : `dirty` si `git merge-tree --write-tree <base> <tête>` est en conflit dans le dépôt nu, `clean` sinon,
+// `null` si la base ou la tête manque, ou si `git merge-tree --write-tree` est en échec (un banc remplace `git`). `PR.mergeableState` (dont `null` ou `"unknown"`, l'état que GitHub n'a pas
+// encore calculé) prime sur ce calcul.
 // Fusion (`PUT pulls/<n>/merge`), comme GitHub : refusée si la tête n'est plus `sha` (409) ; l'arbre du commit de
 // squash ou de merge est celui de `git merge-tree --write-tree <base> <sha>` (l'arbre du sommet quand la base en est
 // ancêtre) ; en conflit, 405 « Pull Request is not mergeable ». La réponse est `{ merged: true, sha }`.
@@ -255,7 +259,7 @@ function repondre() {
   if ((m = route.match(/^pulls\/(\d+)$/))) {
     if (methode === "PATCH")
       Object.assign(pr(m[1]), champs.base ? { base: champs.base } : {}, champs.state ? { state: champs.state } : {});
-    return versRest(pr(m[1]));
+    return { ...versRest(pr(m[1])), mergeable_state: etatDeFusion(pr(m[1])) };
   }
   if ((m = route.match(/^pulls\/(\d+)\/merge$/)) && methode === "PUT")
     return fusionner(pr(m[1]), JSON.parse(entree));
@@ -353,6 +357,30 @@ function repondre() {
   echec(`faux gh : route non simulée ${methode} ${chemin}`);
 }
 
+// Arbre de la fusion de `base` et `sha` dans le dépôt nu (`git merge-tree --write-tree`) : `{ conflit, arbre }`.
+function fusionEssayee(base, sha) {
+  const essai = spawnSync("git", ["--git-dir", ORIGINE, "merge-tree", "--write-tree", "--no-messages", base, sha], {
+    encoding: "utf8",
+  });
+  if (essai.status === 1) return { conflit: true, arbre: null };
+  if (essai.status !== 0) throw new Error(`faux gh : git merge-tree en échec : ${essai.stderr}`);
+  return { conflit: false, arbre: essai.stdout.split("\n")[0].trim() };
+}
+// `mergeable_state` d'une PR, comme GitHub le rend sur sa lecture (voir l'en-tête).
+function etatDeFusion(p) {
+  if (Object.hasOwn(p, "mergeableState")) return p.mergeableState;
+  const base = ref(p.base);
+  const sha = versRest(p).head.sha;
+  if (!base || !ref(p.head)) return null;
+  // Un calcul impossible (un banc remplace `git` par un git sans `merge-tree --write-tree`) se lit comme GitHub qui
+  // n'a pas encore calculé l'état : `null`, jamais un faux en échec sur une simple lecture.
+  try {
+    return fusionEssayee(base, sha).conflit ? "dirty" : "clean";
+  } catch {
+    return null;
+  }
+}
+
 // Fusion dans le dépôt nu, comme GitHub : refusée si le sommet n'est plus `sha`, si la base est stricte et pas
 // ancêtre de `sha`, ou en conflit ; l'arbre est celui de la fusion de la base et du sommet.
 function fusionner(
@@ -380,12 +408,8 @@ function fusionner(
   const ancetre = spawnSync("git", ["--git-dir", ORIGINE, "merge-base", "--is-ancestor", base, sha]).status === 0;
   if ((etat.strict ?? []).includes(p.base) && !ancetre)
     echec("gh: Head branch is not up to date with the base branch (HTTP 405)");
-  const essai = spawnSync("git", ["--git-dir", ORIGINE, "merge-tree", "--write-tree", "--no-messages", base, sha], {
-    encoding: "utf8",
-  });
-  if (essai.status === 1) echec("gh: Pull Request is not mergeable (HTTP 405)");
-  if (essai.status !== 0) throw new Error(`faux gh : git merge-tree en échec : ${essai.stderr}`);
-  const arbre = essai.stdout.split("\n")[0].trim();
+  const { conflit, arbre } = fusionEssayee(base, sha);
+  if (conflit) echec("gh: Pull Request is not mergeable (HTTP 405)");
   const parents =
     methodeFusion === "merge" ? ["-p", base, "-p", sha] : ["-p", base];
   const commit = git(

@@ -2,6 +2,20 @@
 
 La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque projet par `poser` : une version publiée ne change rien chez un projet qui ne les repose pas. Chaque note dit ce qui change, puis ce qu'un projet fait pour en profiter.
 
+## 7.27.0 — 2026-11-19
+
+### Ce qui change
+
+Une PR sans CI que GitHub dit en conflit se lit « prête (en conflit) » dans la file du capitaine, au lieu de « prête (sans CI) ». Une sous-PR dans cet état passe par `sujet.sh relancer`, qui lit désormais la règle d'ascendance avant toute fusion : un conflit limité aux index générés est mis à jour (index régénérés, poussé, CI relancée), tout autre conflit est renvoyé à sa session avec la liste des fichiers hors index générés (de même pour `passer.sh`), et une mise à jour que le pre-push refuse est renvoyée avec la sortie du hook.
+
+### Ce qu'un projet fait pour en profiter
+
+1. Mettre à jour le plugin : `claude plugin marketplace update maj`, puis `claude plugin update maj-skills@maj`, puis redémarrer Claude Code (session cloud : `lancement.md` § « La mise à niveau »).
+2. Reposer les scripts, dans une PR du projet : `/maj-skills:fusionner poser`, puis `/maj-skills:sujet poser`.
+3. Relancer le capitaine une fois cette PR entrée dans develop : la boucle prend les scripts de develop au tour suivant ; la veille et son `file.sh` tournent sur une copie : `bash scripts/chaine/boucle.sh --arreter`, nouvelle copie dans `<scratchpad>/outils`, puis `veille.sh` relancée (skill `fusionner` § « Boucle »).
+
+**Iroki** : son `file.sh` signale déjà ce cas par une note au titre (« [conflit avec la base, aucun check : mise à jour par le passage] », `file.sh:18-23` et `:155`), et son `relancer` résout déjà un conflit d'index (SPEC_ALL_SOC-4.28, SPEC_ALL_SOC-4.41), avec d'autres codes (6 outillage, 8 index régénérés, 9 push refusé). Reposer remplace ses deux scripts par ceux du plugin et perd ses ajouts locaux (`file.sh` diffère de 231 lignes, `sujet.sh` de 1 820) : son conducteur reporte ce changement à la main, ou repose puis reporte ses ajouts, et rejoue ses bancs propres (`file-mobile-e2e.test.mjs`, `file-ticket-titre.test.mjs`).
+
 ## 7.26.1 — 2026-11-19
 
 ### Ce qui change

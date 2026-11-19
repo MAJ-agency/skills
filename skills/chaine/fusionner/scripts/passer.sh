@@ -360,7 +360,8 @@ while :; do
     conflit)
       git switch -q --detach origin/develop
       log "conflit avec develop hors index générés :"
-      sed -n '2,$p' <<<"$verdict" | sed 's/^/  /'
+      # Seuls les fichiers hors index générés : un index en conflit se régénère, la session n'a rien à y faire.
+      sed -n '2,$p' <<<"$verdict" | { grep -Ev "$GENERES" || true; } | sed 's/^/  /'
       exit 2 ;;
     *) sortir 3 "contrôle d'ascendance illisible (verdict « ${verdict%%$'\n'*} ») : la PR n'entre pas sans lui" ;;
   esac
