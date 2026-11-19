@@ -3,8 +3,8 @@
 Status: ready-for-agent
 Type: task
 Label: contre-revue
-Modèle: sonnet — deux fichiers neufs donnés entiers (le calcul, son banc), un mot ajouté à une phrase, une version et sa note données mot pour mot ; le tout a été joué sur une copie jetable de `origin/main`, suite entière et mutations comprises (voir « Vérification »). Rien à concevoir.
-Blocked by: — dans ce programme comme dans l'autre : le lot 3c part tout de suite (`A-109`). Le ticket 58 (lot 3a) est entré (PR 122, 7.23.0) et a ajouté ses deux modules à la phrase de `fusionner/SKILL.md` où ce ticket ajoute le sien ; l'autre programme a pris les versions 7.24.0 à 7.29.1 (PR 124, 125 et 127 à 132) ; le ticket 59 (lot 3b) part en même temps et prend lui aussi une version et une note ; l'autre programme écrit aussi ce fichier : partir de `main`, reprendre `main` avant de livrer.
+Modèle: sonnet — deux fichiers neufs donnés entiers (le calcul, son banc de 39 tests), un mot ajouté à une phrase, une version et sa note données mot pour mot ; le tout a été joué sur un clone neuf d'`origin/main` à `f58ccad` : suite entière verte, 132 mutations nommées, toutes rouges, et trois tours de relecture adversariale portés (voir « Vérification » et « Comments »). Rien à concevoir : la session recopie, rejoue, et suit la règle de repli si `main` a bougé.
+Blocked by: — dans ce programme comme dans l'autre : le lot 3c part tout de suite (`A-109`). Le ticket 58 (lot 3a) est entré (PR 122, 7.23.0) et a ajouté ses deux modules à la phrase de `fusionner/SKILL.md` où ce ticket ajoute le sien ; l'autre programme a pris les versions 7.24.0 à 7.29.1 (PR 124, 125 et 127 à 132) ; le ticket 59 (lot 3b) est entré à son tour (PR 126, 7.30.0), sans toucher à cette phrase ; l'autre programme écrit aussi ce fichier : partir de `main`, reprendre `main` avant de livrer.
 Dépendances: —
 Fichiers chauds: `.claude-plugin/plugin.json`, `NOTES-DE-VERSION.md`, `skills/chaine/fusionner/SKILL.md` (un mot, étape 0). Deux fichiers neufs, que personne d'autre n'écrit : `skills/chaine/fusionner/scripts/double-relecture.mjs`, `skills/chaine/fusionner/scripts/double-relecture.test.mjs`.
 
@@ -39,7 +39,7 @@ Et `A-122`, après le second tour de cette relecture (quatre bloquants nouveaux,
 
 `A-90` : « Une règle montée à haute après un tour validé à un seul verdict : le tour redevient en cours, et la règle 5 lui ajoute une session. » `A-106` donne la règle des lectures : « Une lecture en échec ne vaut jamais « même » » ; ici, jamais « non exigée ».
 
-**Le fait, sur `origin/main` à `107507f`** (plugin 7.29.1) :
+**Le fait, sur `origin/main` à `f58ccad`** (plugin 7.30.0) :
 
 - Aucun script du plugin ne lit la criticité d'une règle. `contexte-ticket.mjs` (revue de ticket) et `contexte-regle.mjs` (skill `criticite`) rendent un fichier de règle tel quel, sans lire son en-tête ; `mutation-regles.mjs` (socle-tests) lit dans l'index le champ `code` des règles prouvées, au schéma "2", mais il se pose sous `scripts/verify/`, que la copie de travail de la boucle ne porte pas.
 - Personne n'appelle encore ce calcul : ses deux appelants sont le Relecteur (lot 4) et le capitaine (lot 5a), qui lui passeront, eux, le diff qu'ils jugent.
@@ -50,12 +50,12 @@ Et `A-122`, après le second tour de cette relecture (quatre bloquants nouveaux,
 
 ## Où
 
-Base : `origin/main` à `107507f` (plugin **7.29.1**). `main` a avancé dix-neuf fois depuis le `1c4acb1` de la spec : par le ticket 58 (PR 122), qui a ajouté `verdict.mjs` et `decision-relecteur.mjs` à `fusionner/scripts/` et à la ligne 14 de `fusionner/SKILL.md` ; puis huit fois par l'autre programme (PR 124, 125 et 127 à 132), qui a déplacé les lignes de `boucle.sh`, de `revue-exigee.mjs`, de `scripts/poses.test.mjs` et de `scripts/depot.test.mjs` sans rien changer à la copie des outils, à `cheminLu` ni à la phrase de l'étape 0. Les repères de ligne ci-dessous valent à `107507f`. Les versions que les états précédents de ce ticket prenaient (7.19.0 à 7.25.0) sont prises.
+Base : `origin/main` à `f58ccad` (plugin **7.30.0**). `main` a avancé vingt fois depuis le `1c4acb1` de la spec : par le ticket 58 (PR 122), qui a ajouté `verdict.mjs` et `decision-relecteur.mjs` à `fusionner/scripts/` et à la ligne 14 de `fusionner/SKILL.md` ; puis huit fois par l'autre programme (PR 124, 125 et 127 à 132), qui a déplacé les lignes de `boucle.sh`, de `revue-exigee.mjs`, de `scripts/poses.test.mjs` et de `scripts/depot.test.mjs` sans rien changer à la copie des outils, à `cheminLu` ni à la phrase de l'étape 0 ; enfin par le ticket 59 (PR 126), qui n'a ajouté que `meme-contenu.sh` et son banc. Les repères de ligne ci-dessous valent à `f58ccad`. Les versions que les états précédents de ce ticket prenaient (7.19.0 à 7.30.0) sont prises.
 
 | Fichier | Ce qui change |
 | --- | --- |
 | `skills/chaine/fusionner/scripts/double-relecture.mjs` | **neuf** : le calcul, ses lecteurs, sa ligne de commande (§ 2) |
-| `skills/chaine/fusionner/scripts/double-relecture.test.mjs` | **neuf** : son banc, 37 tests (§ 1) |
+| `skills/chaine/fusionner/scripts/double-relecture.test.mjs` | **neuf** : son banc, 39 tests (§ 1) |
 | `skills/chaine/fusionner/SKILL.md:14` | un mot : le module entre dans la liste des `.mjs` posés (§ 3) |
 | `.claude-plugin/plugin.json:3` | la version, mineure (§ 4) |
 | `NOTES-DE-VERSION.md` | la note, en tête (§ 4) |
@@ -164,18 +164,23 @@ Tenues de la spec : `A-82`, `A-90`, `A-106` (les lectures), `A-108` (les règles
     - Deux fichiers pour un même ticket, ou pour sa spec, dans un arbre : « illisible ». Un ticket archivé n'est pas lu. Un ticket qu'aucun de ces arbres ne porte : une remarque, aucune cause.
 14. **Le ticket de la PR** : `ticketDeLaPr(titre, branche)`, importée de la grammaire sans modifier aucun fichier, puis `identifiantDeBranche(branche)` s'il est autre. Précision de ce ticket : d'un titre qui cite plusieurs tickets, seul le premier est lu, comme `ticketDeLaPr` le fait partout ailleurs.
 15. **« Illisible » n'est jamais « non exigée », et une cause établie suffit.** Chaque lecture (l'entrée, chaque arbre, le départ, chaque arbre du ticket) est jouée à part ; une réf refusée ou introuvable, un index qui n'est pas du JSON ou d'un autre schéma, un en-tête que le lecteur ne comprend pas, une entrée mal formée sont des lectures en échec. Si une cause est établie malgré elles, la réponse est « exigée », et les échecs sont dits ; sinon, un seul échec donne « illisible ». Un échec est dit une fois par commit, avec la réf qui l'a lu la première. Ce que le Relecteur et le capitaine font d'« illisible » est dans `A-113` et aux lots 4 et 5a.
-16. **Le lecteur d'en-tête ne lit que trois clés de premier niveau** (`criticality`, `code`, `validation`) et refuse ce qu'il ne comprend pas : pas d'en-tête, une clé écrite deux fois, à ce niveau comme dans un mappage en ligne (`A-117` : la dernière ne l'emporte pas), une ligne de première colonne qui n'est ni une clé ni un commentaire, un niveau hors `low`, `medium`, `high`, un `code` qui n'est pas une liste. Il lit la forme nue, le bloc, le mappage et la liste en ligne, même pliés sur plusieurs lignes par un formateur, **le commentaire de chaque ligne retiré avant de les joindre** (`A-117`). **Un guillemet n'ouvre une chaîne qu'en tête de valeur** (`A-122`) : au début, après `,`, `[` ou `{`, après `:` et un blanc (un élément de liste en bloc, `- 'a'`, est lu à part, par son guillemet de tête) ; partout ailleurs c'est du texte (`c'est grave`, `l'agent`), comme une bibliothèque YAML le lit. Une apostrophe de texte lue comme un guillemet faisait avaler une virgule ou un commentaire, et lire un niveau plus bas. Une clé imbriquée (`extensions.<projet>.criticality`) ou commentée n'est pas la clé. Un statut qu'il ne comprend pas laisse la règle en vigueur. **Lecture en temps linéaire** : l'en-tête d'une PR est une entrée que son auteur écrit. **Il se vérifie contre une vraie bibliothèque, à grande échelle, hors du dépôt** (« Vérification », point 6).
+16. **Le lecteur d'en-tête ne lit que trois clés de premier niveau** (`criticality`, `code`, `validation`) et refuse ce qu'il ne comprend pas : pas d'en-tête, une clé écrite deux fois, à ce niveau comme dans un mappage en ligne (`A-117` : la dernière ne l'emporte pas), une ligne de première colonne qui n'est ni une clé ni un commentaire, un niveau hors `low`, `medium`, `high`, un `code` qui n'est pas une liste. Il lit la forme nue, le bloc, le mappage et la liste en ligne, même pliés sur plusieurs lignes par un formateur, **le commentaire de chaque ligne retiré avant de les joindre** (`A-117`). **Un guillemet n'ouvre une chaîne qu'en tête de valeur** (`A-122`) : au début, après `,`, `[` ou `{`, après `:` et un blanc (un élément de liste en bloc, `- 'a'`, est lu à part, par son guillemet de tête) ; partout ailleurs c'est du texte (`c'est grave`, `l'agent`), comme une bibliothèque YAML le lit. Une apostrophe de texte lue comme un guillemet faisait avaler une virgule ou un commentaire, et lire un niveau plus bas. **Dans une chaîne entre apostrophes, `''` est l'apostrophe échappée de YAML : elle ne ferme pas la chaîne** (troisième tour) ; sans cela, `reason: 'a'', level: low, z: "', level: high` faisait lire `low` pour `high`, et le même montage sur `validation` faisait lire une règle rejetée. Elle est sautée là où le lecteur découpe un mappage et là où il retire un commentaire, et rendue en apostrophe dans une valeur (`'apps/l''un/x.ts'`). Une clé imbriquée (`extensions.<projet>.criticality`) ou commentée n'est pas la clé. Un statut qu'il ne comprend pas laisse la règle en vigueur. **Lecture en temps linéaire** : l'en-tête d'une PR est une entrée que son auteur écrit. **Il se vérifie contre une vraie bibliothèque, à grande échelle, hors du dépôt** (« Vérification », point 6).
 17. **Aucun import d'un autre script de la chaîne.** `cheminDuDiff` est la copie de `cheminLu` de `revue-exigee.mjs`, un fichier que deux tickets de l'autre programme récrivent (16 et 18) ; le banc garde la parité, comme `revue-exigee.test.mjs` le fait pour `regexDuMotif`. Le motif `enTete` du gate est recopié de même : le gate n'est pas dans la copie de la boucle, et le banc tient les mêmes formes.
 18. **Deux fichiers neufs, et un mot** (`A-113`, la pose). Le nom du module entre dans la liste de l'étape 0 de `fusionner/SKILL.md:14`, à la suite des deux modules du ticket 58 : un projet qui repose ne reçoit jamais le banc sans son module. Aucun test du dépôt ne fige cette phrase (`git grep -n "commits-a-relire" -- 'scripts/*.test.mjs'` ne rend rien), et le fichier reste à 117 lignes. Ne sont pas touchés, et le ticket le dit pour qui les écrira : la ligne du calcul dans `fusionner/references/CONTENU.md`, dans `scripts/points-d-entree.test.mjs` et dans l'arbre du `README.md:169` (la spec : « au plus tard avec 3d »). Aucun test de `main` n'exige qu'un script de `fusionner/scripts/` y soit listé (suite jouée : verte) ; en attendant, **le banc prouve lui-même le point d'entrée** (lien symbolique, `--preserve-symlinks-main`, dossier à espace et à accent).
-19. **Banc court, et sous la garde des bancs** : 37 tests, six secondes environ ; le calcul se joue sur des arbres en mémoire, neuf tests seulement montent un dépôt git. Il est rejoué, posé à plat, par `scripts/poses.test.mjs` (plafond de 600 s pour l'ensemble, `:77`) : il ne lit jamais l'arbre du plugin, et prend la grammaire là où le module l'a trouvée (`GRAMMAIRE`). **Ce que la garde « un seul environnement de banc » exige d'un banc neuf** (`A-122`, `scripts/un-seul-environnement-de-banc.test.mjs`) : aucune ligne du banc ne filtre elle-même les variables `GIT_*` (ni `startsWith('GIT_')`, ni `/^GIT_/`) ; il importe `environnementDeBanc()` de `depot-jouet.mjs`, à côté de lui quand il est posé (`scripts/chaine/`), dans le skill `sujet` sinon, retire de son propre processus ce que ce filtre retire (sauf `NODE_TEST_CONTEXT`), pose `NO_COLOR`, `GIT_CONFIG_GLOBAL=/dev/null` et `GIT_CONFIG_NOSYSTEM=1`, et donne cet environnement à chaque processus qu'il lance : c'est l'idiome de `commits-a-relire.test.mjs`. `depot-jouet.mjs` exige `jq` à l'import, comme pour les autres bancs de la chaîne. Le module, lui, n'est pas un banc : son propre filtre des `GIT_*` (décision 22) n'est pas lu par la garde.
-20. **Version : mineure** (7.29.1 → **7.30.0** sur `107507f`) : un script de plus dans un skill. **Règle de repli** : le ticket 59 prend une version en même temps, et `main` a pris dix-huit versions depuis le `1c4acb1` de la spec, dont sept pendant la dernière retouche de ce ticket. Si `main` bouge entre l'ouverture et la fusion, la session fusionne `origin/main` dans sa branche par un commit de fusion (jamais de rebase ni de push forcé), reprend la version de `main` plus un au deuxième nombre, troisième à zéro, remonte sa note en tête avec ce numéro, garde dans `fusionner/SKILL.md` les mots que les autres y ont ajoutés, puis vérifie (`git diff origin/main -- .claude-plugin/plugin.json` ne montre que `"version"`, `git diff origin/main -- skills/chaine/fusionner/SKILL.md` ne montre que le mot).
+19. **Banc court, et sous la garde des bancs** : 39 tests, une dizaine de secondes ; le calcul se joue sur des arbres en mémoire, onze tests seulement montent un dépôt git. Il est rejoué, posé à plat, par `scripts/poses.test.mjs` (plafond de 600 s pour l'ensemble, `:77`) : il ne lit jamais l'arbre du plugin, et prend la grammaire là où le module l'a trouvée (`GRAMMAIRE`). **Ce que la garde « un seul environnement de banc » exige d'un banc neuf** (`A-122`, `scripts/un-seul-environnement-de-banc.test.mjs`) : aucune ligne du banc ne filtre elle-même les variables `GIT_*` (ni `startsWith('GIT_')`, ni `/^GIT_/`) ; il importe `environnementDeBanc()` de `depot-jouet.mjs`, à côté de lui quand il est posé (`scripts/chaine/`), dans le skill `sujet` sinon, retire de son propre processus ce que ce filtre retire (sauf `NODE_TEST_CONTEXT`), pose `NO_COLOR`, `GIT_CONFIG_GLOBAL=/dev/null` et `GIT_CONFIG_NOSYSTEM=1`, et donne cet environnement à chaque processus qu'il lance : c'est l'idiome de `commits-a-relire.test.mjs`. `depot-jouet.mjs` exige `jq` à l'import, comme pour les autres bancs de la chaîne. Le module, lui, n'est pas un banc : son propre filtre des `GIT_*` (décision 22) n'est pas lu par la garde.
+20. **Version : mineure** (7.30.0 → **7.31.0** sur `f58ccad`) : un script de plus dans un skill. **Règle de repli** : `main` a pris dix-neuf versions depuis le `1c4acb1` de la spec, dont huit pendant les deux dernières retouches de ce ticket (la dernière par le ticket 59). Si `main` bouge entre l'ouverture et la fusion, la session fusionne `origin/main` dans sa branche par un commit de fusion (jamais de rebase ni de push forcé), reprend la version de `main` plus un au deuxième nombre, troisième à zéro, remonte sa note en tête avec ce numéro, garde dans `fusionner/SKILL.md` les mots que les autres y ont ajoutés, puis vérifie (`git diff origin/main -- .claude-plugin/plugin.json` ne montre que `"version"`, `git diff origin/main -- skills/chaine/fusionner/SKILL.md` ne montre que le mot).
 21. **`Label: contre-revue`** : le fichier se pose sous `scripts/chaine/`, chemin sensible du gabarit de `.claude/chaine.json`, et il gardera l'entrée des PR. PR vers `main`, hors brouillon, **sans `à-fusionner`** : l'architecte la contre-relit, puis la fait entrer. Titre `feat(chaine): double relecture exigée, un calcul et son lecteur de règles et d'index (plugin <version>)`. Commits sous les hooks, jamais `--no-verify`.
-22. **Un dépôt propre pour lire** (`A-122`, la règle d'`A-119`, la même que pour « même contenu propre »). Le dépôt réel ne sert qu'à deux choses : dire où sont ses objets (`git rev-parse --path-format=absolute --git-path objects`) et résoudre une réf en sha (`rev-parse`, `symbolic-ref`, `for-each-ref`). Tout le reste (base de fusion, arbres, contenus) se lit par sha dans **un dépôt nu jetable**, créé sous le dossier temporaire par `git init --bare --template=`, qui emprunte ces objets par une ligne de `objects/info/alternates`, et qui est retiré à la fin, quoi qu'il arrive. Aucune commande n'hérite d'une variable `GIT_*` (sauf `GIT_CEILING_DIRECTORIES`, qui borne la recherche du dépôt, comme au ticket 59) ; toutes tournent avec `GIT_CONFIG_GLOBAL=/dev/null`, `GIT_CONFIG_SYSTEM=/dev/null`, `GIT_CONFIG_NOSYSTEM=1`, `GIT_ATTR_NOSYSTEM=1` ; celles du dépôt réel, en plus, avec `GIT_GRAFT_FILE=/dev/null` et `GIT_NO_REPLACE_OBJECTS=1`. Un dossier temporaire où le dépôt propre ne se crée pas : « illisible ». Un dépôt superficiel aussi (décision 23). Rien n'empêche cela dans un module `.mjs` sans dépendance : `node:fs`, `node:os` et `git` suffisent.
+22. **Un dépôt propre pour lire** (`A-122`, la règle d'`A-119`, la même que pour « même contenu propre »). Le dépôt réel ne sert qu'à dire où sont ses objets (`git rev-parse --path-format=absolute --git-path objects`), s'il est superficiel ou partiel (`rev-parse --is-shallow-repository`, `config --local`, décisions 23 et 24), et à résoudre une réf en sha (`rev-parse`, `symbolic-ref`, `for-each-ref`). Tout le reste (base de fusion, arbres, contenus) se lit par sha dans **un dépôt nu jetable**, créé sous le dossier temporaire par `git init --bare --template=`, qui emprunte ces objets par une ligne de `objects/info/alternates`, et qui est retiré à la fin, quoi qu'il arrive. Aucune commande n'hérite d'une variable `GIT_*` (sauf `GIT_CEILING_DIRECTORIES`, qui borne la recherche du dépôt, comme au ticket 59) ; toutes tournent avec `GIT_CONFIG_GLOBAL=/dev/null`, `GIT_CONFIG_SYSTEM=/dev/null`, `GIT_CONFIG_NOSYSTEM=1`, `GIT_ATTR_NOSYSTEM=1` ; celles du dépôt réel, en plus, avec `GIT_GRAFT_FILE=/dev/null` et `GIT_NO_REPLACE_OBJECTS=1`. Un dossier temporaire où le dépôt propre ne se crée pas : « illisible ». Un dépôt superficiel aussi (décision 23). Rien n'empêche cela dans un module `.mjs` sans dépendance : `node:fs`, `node:os` et `git` suffisent.
     - **Ce qui tombe sous le dépôt propre sans garde particulière** : le dossier courant (un dépôt nu se lit depuis sa racine : `--full-tree` n'y est plus), les greffes du dépôt (`.git/info/grafts`), ses objets remplacés (`refs/replace`), sa configuration, ses attributs locaux. Le banc les tient par une seule mutation, « les lectures se font dans le dépôt réel ».
     - **Ce qui garde une garde à soi** : les variables `GIT_*` héritées (`GIT_DIR` vers un autre clone, `GIT_GRAFT_FILE`, `GIT_ICASE_PATHSPECS`…), retirées de l'environnement ; un tag ou une branche locale du nom de la cible, écartés par la réf lue en entier ; une réf symbolique ; un dépôt superficiel (décision 23) ; les arguments.
     - **Trois ceintures sans mutation**, parce que rien dans le banc ne sait les prendre en défaut : la configuration d'utilisateur et de système écartée, `GIT_GRAFT_FILE=/dev/null` et `GIT_NO_REPLACE_OBJECTS=1` sur les commandes du dépôt réel (qui ne parcourent aucun historique et ne lisent aucun objet).
+    - **Une seule exception à la configuration écartée** : `safe.directory` (décision 25).
 
 23. **Un dépôt superficiel est « illisible », et le dit** (`A-126`). Les sessions cloud travaillent toutes dans un clone superficiel (profondeur 50 par défaut), et c'est là que tourneront le capitaine et le Relecteur. Sur un historique tronqué, le calcul ne prouve rien : la base de fusion peut manquer ou être fausse, et le dépôt propre, qui emprunte les objets, ne connaît pas la liste des commits tronqués (`.git/shallow`). Il rend donc « illisible », sortie 21, par **une seule ligne de raison qui nomme la cause et le remède** : « dépôt superficiel : l'historique est tronqué, à approfondir avant d'appeler ce calcul (git fetch --unshallow origin) ». **Le calcul n'écrit jamais dans le dépôt réel et ne lance aucun `fetch`** : il n'y joue que les lectures de la décision 22. Ce sont les appelants (lots 4 et 5a) qui approfondissent le clone, une fois, avant de l'appeler ; le même dépôt, une fois approfondi, rend la vraie réponse (cas 28 ter).
+
+24. **Un dépôt partiel est « illisible », et le dit** (troisième tour, L1). Dans un clone fait avec `--filter` (`blob:none`…), des objets manquent ; le dépôt propre, qui ne télécharge rien, n'y lit ni l'index ni les règles, et la raison disait « `anchorpost.json` illisible » sans nommer la cause. Le calcul le reconnaît à ce que git écrit dans la configuration du dépôt (`remote.<nom>.promisor`, ou `extensions.partialclone`) et rend « illisible », sortie 21, par une seule ligne : « dépôt partiel : des objets manquent et ce calcul ne télécharge rien, à cloner en entier avant de l'appeler (git clone sans --filter) ». Comme pour le dépôt superficiel, il n'écrit rien et ne télécharge rien (cas 28 quater).
+
+25. **Le dépôt d'un autre propriétaire, déclaré sûr par l'utilisateur, est lu** (troisième tour, L2). Git refuse de lire le dépôt d'un autre propriétaire, sauf si l'utilisateur l'a déclaré sûr (`safe.directory`, dans sa configuration d'utilisateur ou de système) ; le calcul, qui écarte cette configuration (décision 22), rendait « illisible », « pas dans un dépôt git », pour un dépôt que toutes les autres commandes git de la session lisent. **Le calcul reporte donc aux seules lectures du dépôt réel la déclaration qui concerne ce dépôt, et elle seule** : il lit les valeurs de `safe.directory` de l'utilisateur et du système (`git config --system` puis `--global`, `--includes` ; les trois variables qui disent où vit cette configuration, `GIT_CONFIG_GLOBAL`, `GIT_CONFIG_SYSTEM` et `GIT_CONFIG_NOSYSTEM`, sont les seules `GIT_*` héritées par cette lecture), et, si l'une admet la racine du dépôt (le premier dossier, en remontant du dossier courant, qui porte `.git` : celui que git compare), il passe aux commandes du dépôt réel `safe.directory=<cette racine>`, jamais le motif qui l'a admise (`*`, `dossier/*`). Une valeur vide efface les déclarations qui la précèdent, comme pour git. Rien d'autre de la configuration de l'utilisateur n'est repris, et le dépôt propre, créé par le calcul, n'en a pas besoin. Sans déclaration : « illisible », comme avant (cas 28 quinquies). Le banc monte ce cas sans droits particuliers : un `git` de banc, en tête du `PATH`, pose pour le seul dépôt jouet la variable par laquelle git tient un dépôt pour celui d'un autre (`GIT_TEST_ASSUME_DIFFERENT_OWNER`).
 
 ### Remèdes écartés
 
@@ -202,7 +207,7 @@ Tenues de la spec : `A-82`, `A-90`, `A-106` (les lectures), `A-108` (les règles
 
 ### § 0 — Partir de `main`
 
-`git fetch origin main`, une branche depuis `origin/main`. Relever la version de `.claude-plugin/plugin.json` et la ligne 14 de `skills/chaine/fusionner/SKILL.md` : si la version n'est plus 7.29.1 ou si la phrase a changé, les § 3 et 4 suivent la règle de repli (décision 20).
+`git fetch origin main`, une branche depuis `origin/main`. Relever la version de `.claude-plugin/plugin.json` et la ligne 14 de `skills/chaine/fusionner/SKILL.md` : si la version n'est plus 7.30.0 ou si la phrase a changé, les § 3 et 4 suivent la règle de repli (décision 20).
 
 ### § 1 — Le banc d'abord, vu rouge
 
@@ -258,6 +263,7 @@ Créer `skills/chaine/fusionner/scripts/double-relecture.test.mjs`, tel quel. Le
 | 19 bis | `**Relecture:** triple`, `- Relecture: simple`, `RELECTURE: Double` ; puis `Les règles: …`, une ligne en retrait, une citation `> Règles: …` | `README.md` | « illisible » ; « non exigée » (le gate ne lit pas ces trois-là non plus) |
 | 20 | **commentaire dans un mappage plié** (`A-117`) : `criticality:`, puis `{`, `level: high,`, `by: agent, # avant: x, level: low`, `}` ; `validation` pliée de même avec `# a: b, status: rejected` ; un `#` entre guillemets dans une liste `code` pliée | — | le niveau lu est `high` ; la règle est en vigueur ; le `#` entre guillemets reste dans le chemin |
 | 20 ter | **apostrophe de texte** (`A-122`) : `criticality:`, puis `{`, `reason: c'est grave, # ', level: low,`, `by: l'agent, level: high, # '`, `}` ; `criticality: { level: high, by: agent, reason: c'est grave }` ; une chaîne ouverte en tête de valeur qui porte `, level: high` ; des chemins de `code` à apostrophe, en ligne, en bloc avec commentaires, pliés | — | `high` ; `high`, pas « illisible » ; la chaîne garde sa virgule, le niveau lu est celui d'après ; chaque chemin est lu entier, `apps/l'un.ts` compris |
+| 20 quater | **apostrophe échappée** (troisième tour) : `criticality: { reason: 'a'', level: low, z: "', level: high, by: "ag" }` ; `validation: { note: 'a'', status: validated, z: "', status: rejected }` ; dans un mappage plié, `reason: 'l''agent # pas un commentaire', level: high,` ; `reason: ''` ; `criticality: 'high' # l''agent` ; des chemins de `code` `'apps/l''un/x.ts'`, `'apps/''.ts'`, `''''` ; `'apps/a.ts''` | — | `high` ; la règle est rejetée ; `high` ; `high` ; `high` ; les chemins `apps/l'un/x.ts`, `apps/'.ts`, `'` ; la dernière, non refermée, est refusée |
 | 20 bis | `criticality: { level: low, by: agent, level: high }` ; la même clé deux fois dans un mappage plié ; une clé vide | — | refusé (« illisible »), jamais la dernière valeur |
 | 21 | **entrée non contrôlée** (`A-117`), les fichiers n'existent que là où le montage les écrit : M avec `git diff --name-only -z`, puis `--name-status` ; une tabulation en fin de ligne | l'entrée telle que git l'écrit | « illisible », sortie 21, aucune cause |
 | 21 bis | un chemin de l'entrée qui n'existe dans aucun arbre, seul, puis à côté de `CODE` ; `CODE` supprimé par la PR ; ajouté (à la tête seule) ; supprimé par la PR et, depuis, par sa cible (au départ seul) | — | « illisible », le message compte les chemins sans les nommer, même avec `CODE` à côté ; « exigée » ; « exigée » ; « exigée » |
@@ -281,6 +287,8 @@ Créer `skills/chaine/fusionner/scripts/double-relecture.test.mjs`, tel quel. Le
 | 28 | **environnement hostile** (`A-122`), sur un dépôt git, puis depuis un arbre de travail lié (`git worktree`) et l'un de ses sous-dossiers : `origin/develop` dit la règle `medium` dans son index, la PR la monte à `high` par l'index seul et touche le manifeste. Témoin, puis : `.git/info/grafts` portant `<develop> <tête>` ; `GIT_GRAFT_FILE` vers un tel fichier ; `GIT_DIR` hérité vers un autre clone, où la cible est déjà la tête ; `GIT_ICASE_PATHSPECS=1` ; d'autres variables `GIT_*` | le manifeste, l'index | sortie 20 chaque fois, `RULE_ALL_FAC-16 · niveau · anchorpost/anchorpost.json · <tête>` puis `exigée` ; aucun dépôt propre ne reste sous le dossier temporaire |
 | 28 bis | le même dépôt, un dossier temporaire qui n'existe pas | le manifeste, l'index | sortie 21 : « dépôt propre impossible à créer sous le dossier temporaire » |
 | 28 ter | **dépôt superficiel** (`A-126`) : un clone `--depth 1 --no-single-branch` du même dépôt, où la tête de la PR n'a plus de parent ; puis le même clone après `git fetch --unshallow origin`, lancé par le banc comme le fera l'appelant | le manifeste, l'index | superficiel : sortie 21, une seule ligne de raison, « dépôt superficiel : l'historique est tronqué, à approfondir avant d'appeler ce calcul (git fetch --unshallow origin) » ; `.git/shallow` est inchangé après l'appel et rien ne reste sous le dossier temporaire ; approfondi : sortie 20, cause `niveau`, la vraie réponse |
+| 28 quater | **dépôt partiel** (troisième tour) : un clone `--filter=blob:none --no-checkout` du même dépôt ; puis un clone entier | le manifeste, l'index | partiel : sortie 21, une seule ligne de raison, « dépôt partiel : des objets manquent et ce calcul ne télécharge rien, à cloner en entier avant de l'appeler (git clone sans --filter) » ; rien ne reste sous le dossier temporaire ; entier : sortie 20, cause `niveau` |
+| 28 quinquies | **dépôt d'un autre propriétaire** (troisième tour) : le même dépôt, que git tient pour celui d'un autre ; la configuration de l'utilisateur ne déclare rien ; déclare ce dépôt par son chemin (appel depuis la racine, puis depuis un sous-dossier) ; par `*` ; par `<dossier parent>/*` ; déclare un autre dépôt ; déclare ce dépôt puis une valeur vide | le manifeste, l'index | rien : sortie 21, « pas dans un dépôt git » ; par son chemin, par `*`, par le dossier parent : sortie 20, cause `niveau` ; un autre dépôt, ou la valeur vide ensuite : sortie 21 |
 | 29 | **le dépôt propre** : le lecteur git ouvert sur le dépôt jouet ; puis le calcul appelé en module, sans lecteur donné | — | rien sous le dossier temporaire avant la première lecture ; ensuite un dépôt nu, sans aucune réf ; un sha absent est « introuvable » ; le lecteur par défaut du calcul est refermé à son retour ; après `fermer()`, plus rien |
 
 Puis les lecteurs (l'en-tête : dix-sept écritures lues, dix-sept refusées ; trois en-têtes hostiles de 300 000 caractères en moins de 2 s ; l'index aux deux pivots ; les lignes du diff, en parité avec `revue-exigee.mjs` ; les arguments, les noms de branche et les sommets admis) et, sur un dépôt git jouet, la ligne de commande lancée **depuis une copie des outils faite comme celle de la boucle** (`scripts/chaine/double-relecture.mjs` et `scripts/docs/identifiants.mjs`, rien d'autre, hors du dépôt), l'arbre de travail du dépôt disant le contraire des réfs (règle basse, index supprimé) : sorties 20, 0, 21 (réf absente, hors de tout dépôt, usage) et 69 (sans `git` au `PATH`), un chemin que git cite, le ticket lu dans le titre, dans la branche, les deux à la fois, sur une branche de sujet du dépôt, sur la tête, le lecteur git, le point d'entrée par un lien symbolique.
@@ -799,6 +807,13 @@ test("l'en-tête d'une règle : les formes lues, et ce qui est refusé plutôt q
   // Une apostrophe de texte n'ouvre pas une chaîne : un guillemet ne compte qu'en tête de valeur (A-122).
   assert.equal(lu("criticality:\n  {\n    reason: c'est grave, # ', level: low,\n    by: l'agent, level: high, # '\n  }\n").niveau, 'high');
   assert.equal(lu("criticality: { level: high, by: agent, reason: c'est grave }\n").niveau, 'high');
+  // `''` est l'apostrophe échappée de YAML : dans une chaîne entre apostrophes, elle ne la ferme pas (troisième tour).
+  assert.equal(lu(`criticality: { reason: 'a'', level: low, z: "', level: high, by: "ag" }\n`).niveau, 'high', "le niveau caché derrière `''` est lu");
+  assert.equal(enTeteDeRegle(`---\nid: RULE_ALL_FAC-16\nvalidation: { note: 'a'', status: validated, z: "', status: rejected }\ncriticality: high\n---\n`).enVigueur, false, "le statut caché derrière `''` est lu");
+  assert.equal(lu("criticality:\n  {\n    reason: 'l''agent # pas un commentaire', level: high,\n    by: agent,\n  }\n").niveau, 'high', "un `#` après `''` reste dans la chaîne");
+  assert.equal(lu("criticality: { reason: '', level: high }\n").niveau, 'high', 'la chaîne vide reste une chaîne vide');
+  assert.deepEqual(lu("criticality: 'high' # l''agent\n", "code:\n  - 'apps/l''un/x.ts' # c'est tout\n  - 'apps/''.ts'\n  - ''''\n"), { niveau: 'high', code: ["apps/l'un/x.ts", "apps/'.ts", "'"], enVigueur: true }, "`''` est rendu en apostrophe dans une valeur");
+  assert.throws(() => lu('', "code:\n  - 'apps/a.ts''\n"), Illisible, 'une chaîne entre apostrophes non refermée');
   assert.equal(lu("criticality: { reason: l'un, level: low, by: 'x, level: high' }\n").niveau, 'low', "la chaîne ouverte en tête de valeur garde sa virgule");
   assert.deepEqual(lu('', "code: [ apps/l'un.ts, 'apps/a, b.ts', apps/d'un.ts ]\n").code, ["apps/l'un.ts", 'apps/a, b.ts', "apps/d'un.ts"]);
   assert.deepEqual(lu('', "code:\n  - apps/l'un.ts # l'autre\n  - 'apps/a # b.ts' # c'est tout\n  - \"apps/c.ts\"\n").code, ["apps/l'un.ts", 'apps/a # b.ts', 'apps/c.ts']);
@@ -1189,6 +1204,55 @@ test("un dépôt superficiel : « illisible », la raison nomme la cause et le r
   assert.deepEqual([complet.code, complet.sortie], [20, `RULE_ALL_FAC-16\tniveau\t${INDEX}\t${tete}\nexigée\n`]);
 });
 
+test("un dépôt partiel (`--filter`) : « illisible », la raison nomme la cause et le remède sur une ligne ; le même dépôt cloné en entier rend la vraie réponse (troisième tour)", () => {
+  const { depot, tete, entree } = depotNiveau();
+  const script = copieDesOutils();
+  const temporaire = dossier('temporaire-');
+  g(depot, 'config', 'uploadpack.allowFilter', 'true');
+  const clones = dossier('clones-');
+  const juger = (cwd) => lancer(script, ['--base', 'develop', '--tete', tete], { cwd, entree, env: { TMPDIR: temporaire } });
+  // Un clone sans ses fichiers : le dépôt propre, qui ne télécharge rien, n'y lirait ni l'index ni les règles.
+  g(depot, 'clone', '-q', '--filter=blob:none', '--no-checkout', '--branch', 'feat/criticite', `file://${depot}`, join(clones, 'partiel'));
+  assert.equal(g(join(clones, 'partiel'), 'config', 'remote.origin.promisor'), 'true', 'le montage est bien partiel');
+  const partiel = juger(join(clones, 'partiel'));
+  assert.deepEqual([partiel.code, partiel.sortie], [21, "# illisible : dépôt partiel : des objets manquent et ce calcul ne télécharge rien, à cloner en entier avant de l'appeler (git clone sans --filter)\nillisible\n"]);
+  assert.deepEqual(readdirSync(temporaire), [], 'aucun dépôt propre ne reste');
+  // Le même dépôt, cloné en entier : la vraie réponse.
+  g(depot, 'clone', '-q', '--no-checkout', '--branch', 'feat/criticite', `file://${depot}`, join(clones, 'entier'));
+  const entier = juger(join(clones, 'entier'));
+  assert.deepEqual([entier.code, entier.sortie], [20, `RULE_ALL_FAC-16\tniveau\t${INDEX}\t${tete}\nexigée\n`]);
+});
+
+test("le dépôt d'un autre propriétaire : « illisible » ; déclaré sûr par l'utilisateur (`safe.directory`), il est lu, et la déclaration d'un autre dépôt ne vaut pas pour lui (troisième tour)", () => {
+  const { depot, tete, entree } = depotNiveau();
+  const script = copieDesOutils();
+  const temporaire = dossier('temporaire-');
+  // Sans droits particuliers : un `git` de banc, en tête du PATH, fait tenir le dépôt jouet pour celui d'un autre
+  // propriétaire (la variable de test de git), et lui seul : le dépôt propre du calcul reste le sien.
+  const vrai = execFileSync('sh', ['-c', 'command -v git'], { encoding: 'utf8', env: ENV_PROPRE }).trim();
+  const faux = dossier('git-');
+  writeFileSync(join(faux, 'git'), `#!/bin/sh\ncase "$PWD/" in "${depot}/"*) GIT_TEST_ASSUME_DIFFERENT_OWNER=1; export GIT_TEST_ASSUME_DIFFERENT_OWNER ;; esac\nexec "${vrai}" "$@"\n`, { mode: 0o755 });
+  const configuration = join(dossier('configuration-'), 'gitconfig');
+  const juger = (declarations, cwd = depot) => {
+    // La configuration de l'utilisateur ment sur le reste : le calcul n'en reprend que la déclaration. (Aucun réglage
+    // d'utilisateur ne change les lectures du dépôt réel au point de se voir ici : cela tient au code, pas à ce banc.)
+    writeFileSync(configuration, `[core]\n\tbare = true\n\tworktree = /ailleurs\n[safe]\n${declarations.map((d) => `\tdirectory = ${d}\n`).join('')}`);
+    return lancer(script, ['--base', 'develop', '--tete', tete], { cwd, entree, env: { TMPDIR: temporaire, PATH: `${faux}:${process.env.PATH}`, GIT_CONFIG_GLOBAL: configuration } });
+  };
+  const refuse = [21, '# illisible : pas dans un dépôt git\nillisible\n'];
+  const lu = [20, `RULE_ALL_FAC-16\tniveau\t${INDEX}\t${tete}\nexigée\n`];
+  const rendu = (r) => [r.code, r.sortie];
+  assert.deepEqual(rendu(juger([])), refuse, "le témoin : git refuse le dépôt d'un autre propriétaire");
+  assert.deepEqual(rendu(juger([depot])), lu, 'déclaré par son chemin');
+  mkdirSync(join(depot, 'apps'), { recursive: true });
+  assert.deepEqual(rendu(juger([depot], join(depot, 'apps'))), lu, "depuis un sous-dossier : c'est la racine qui est déclarée");
+  assert.deepEqual(rendu(juger(['*'])), lu, 'déclaré par `*`');
+  assert.deepEqual(rendu(juger([`${dirname(depot)}/*`])), lu, 'déclaré par le dossier qui le contient');
+  assert.deepEqual(rendu(juger([`${depot}-autre`, '/ailleurs/*'])), refuse, "la déclaration d'un autre dépôt ne vaut pas pour celui-ci");
+  assert.deepEqual(rendu(juger([depot, ''])), refuse, 'une valeur vide efface les déclarations qui la précèdent, comme pour git');
+  assert.deepEqual(readdirSync(temporaire), [], 'aucun dépôt propre ne reste');
+});
+
 test("le point d'entrée est reconnu par un lien symbolique, depuis un dossier à espace et à accent", () => {
   const { depot, tete } = depotJouet();
   const script = copieDesOutils('outils é -');
@@ -1203,7 +1267,7 @@ test("le point d'entrée est reconnu par un lien symbolique, depuis un dossier �
 
 ### § 2 — `skills/chaine/fusionner/scripts/double-relecture.mjs`
 
-Créer le fichier, tel quel. Le banc du § 1 devient vert, 37 sur 37.
+Créer le fichier, tel quel. Le banc du § 1 devient vert, 39 sur 39.
 
 ````js
 #!/usr/bin/env node
@@ -1267,8 +1331,8 @@ Créer le fichier, tel quel. Le banc du § 1 devient vert, 37 sur 37.
 
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdtempSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
+import { homedir, tmpdir } from 'node:os';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 export const EXIGEE = 'exigée';
@@ -1334,7 +1398,8 @@ const BOM = String.fromCharCode(0xfeff);
 
 /**
  * Un guillemet n'ouvre une chaîne qu'en tête de valeur : au début du texte, après `,`, `[` ou `{`, ou après `:` et
- * un blanc. Partout ailleurs c'est du texte (`c'est grave`), comme une bibliothèque YAML le lit. (Un élément de
+ * un blanc. Partout ailleurs c'est du texte (`c'est grave`), comme une bibliothèque YAML le lit. Dans une chaîne
+ * entre apostrophes, `''` est une apostrophe échappée : elle ne ferme pas la chaîne. (Un élément de
  * liste en bloc, `- 'a'`, ne passe pas par ici : `scalaire` lit son guillemet de tête.)
  */
 function enTeteDeValeur(texte, i) {
@@ -1355,6 +1420,7 @@ function decouper(texte) {
     const c = texte[i];
     if (guillemet) {
       if (guillemet === '"' && c === '\\') i++;
+      else if (guillemet === "'" && c === "'" && texte[i + 1] === "'") i++;
       else if (c === guillemet) guillemet = null;
     } else if ((c === '"' || c === "'") && enTeteDeValeur(texte, i)) guillemet = c;
     else if (c === '{' || c === '[') niveau++;
@@ -1370,14 +1436,14 @@ function decouper(texte) {
   return parts.map((p) => p.trim()).filter((p) => p !== '');
 }
 
-/** Une valeur simple : commentaire ` # …` retiré hors guillemets, guillemets retirés. */
+/** Une valeur simple : commentaire ` # …` retiré hors guillemets, guillemets retirés, `''` rendu en apostrophe. */
 function scalaire(brut) {
   const v = brut.trim();
   const g = v[0];
   if (g === '"' || g === "'") {
-    const fin = v.indexOf(g, 1);
-    if (fin === -1 || !/^\s*(#.*)?$/.test(v.slice(fin + 1)) || v.slice(1, fin).includes('\\')) illisible(`valeur illisible : ${v}`);
-    return v.slice(1, fin);
+    const chaine = (g === "'" ? /^'((?:[^']|'')*)'/ : /^"([^"]*)"/).exec(v);
+    if (!chaine || !/^\s*(#.*)?$/.test(v.slice(chaine[0].length)) || chaine[1].includes('\\')) illisible(`valeur illisible : ${v}`);
+    return g === "'" ? chaine[1].replaceAll("''", "'") : chaine[1];
   }
   const i = v.search(/\s#/);
   return (v.startsWith('#') ? '' : i === -1 ? v : v.slice(0, i)).trim();
@@ -1413,6 +1479,7 @@ function sansCommentaire(ligne) {
     const c = ligne[i];
     if (guillemet) {
       if (guillemet === '"' && c === '\\') i++;
+      else if (guillemet === "'" && c === "'" && ligne[i + 1] === "'") i++;
       else if (c === guillemet) guillemet = null;
     } else if ((c === '"' || c === "'") && enTeteDeValeur(ligne, i)) guillemet = c;
     else if (c === '#' && (i === 0 || ligne[i - 1] === ' ' || ligne[i - 1] === '\t')) return ligne.slice(0, i);
@@ -1547,6 +1614,53 @@ export function sommet(sha) {
 const court = (nom) => nom.replace(/^refs\/remotes\//, '');
 
 /**
+ * Le dossier de ce dépôt, si l'utilisateur l'a déclaré sûr par `safe.directory` ; sinon `null`. C'est le seul réglage
+ * d'utilisateur ou de système que le lecteur reprend, et il le reprend pour ce dossier seul : jamais le motif (`*`,
+ * `dossier/*`) qui l'a admis. Le dossier est le premier, en remontant, qui porte `.git` : celui que git compare.
+ */
+function declareSur(cwd) {
+  let racine = null;
+  try {
+    for (let d = realpathSync(resolve(cwd)); racine === null; d = dirname(d)) {
+      if (existsSync(join(d, '.git'))) racine = d;
+      else if (dirname(d) === d) return null;
+    }
+  } catch {
+    return null;
+  }
+  // Où vit la configuration de l'utilisateur : ces trois variables le disent, aucune autre `GIT_*` n'est héritée.
+  const LIEU = ['GIT_CONFIG_GLOBAL', 'GIT_CONFIG_SYSTEM', 'GIT_CONFIG_NOSYSTEM'];
+  const env = Object.fromEntries(Object.entries(process.env).filter(([cle]) => !cle.startsWith('GIT_') || LIEU.includes(cle)));
+  let declares = [];
+  for (const portee of ['--system', '--global']) {
+    let lus = [];
+    try {
+      lus = execFileSync('git', ['config', portee, '--includes', '--get-all', 'safe.directory'], { cwd: '/', env, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).split('\n');
+      lus.pop();
+    } catch {
+      // Aucune déclaration à cette portée (sortie 1), ou git absent : la première lecture du dépôt le dira.
+    }
+    // Comme git : une valeur vide efface les déclarations qui la précèdent.
+    for (const v of lus) declares = v === '' ? [] : [...declares, v];
+  }
+  // Le chemin déclaré se compare tel qu'écrit, puis liens symboliques suivis (la racine, elle, l'est déjà).
+  const suivi = (chemin) => {
+    try {
+      return realpathSync(chemin);
+    } catch {
+      return chemin;
+    }
+  };
+  const admis = (v) => {
+    if (v === '*') return true;
+    const chemin = (v.startsWith('~/') ? join(homedir(), v.slice(2)) : v).replace(/\/+$/, '');
+    if (chemin.endsWith('/*')) return racine.startsWith(chemin.slice(0, -1)) || racine.startsWith(`${suivi(chemin.slice(0, -2))}/`);
+    return chemin === racine || suivi(chemin) === racine;
+  };
+  return declares.some(admis) ? racine : null;
+}
+
+/**
  * Lecteur d'objets git du dépôt de `cwd`, par un dépôt propre. `verifier(nom)` → le sha du commit d'un sha ou d'une
  * réf entière, qui n'est pas une réf symbolique ; les autres lectures prennent ce sha : `baseDeFusion(a, b)`,
  * `chemins(commit)` (tout l'arbre), `lister(commit, prefixe)`, `lire(commit, chemins)` → Map chemin → texte ;
@@ -1557,13 +1671,17 @@ const court = (nom) => nom.replace(/^refs\/remotes\//, '');
  * configuration, ni greffes, ni `refs/replace`, ni attributs, ni arbre de travail, ni dossier courant (un dépôt nu
  * se lit depuis sa racine). Aucune commande n'hérite d'une
  * variable `GIT_*` (sauf `GIT_CEILING_DIRECTORIES`, qui borne la recherche du dépôt) ni d'une configuration
- * d'utilisateur ou de système. S'il ne se crée pas : `Illisible`.
+ * d'utilisateur ou de système, à une exception près : le `safe.directory` par lequel l'utilisateur a déclaré sûr ce
+ * dépôt-ci est reporté, pour ce dépôt seul, aux lectures du dépôt réel (sans lui, git refuse le dépôt d'un autre
+ * propriétaire). S'il ne se crée pas, si le dépôt est superficiel ou partiel : `Illisible`.
  */
 export function lecteurGit(cwd = process.cwd()) {
   const env = Object.fromEntries(Object.entries(process.env).filter(([cle]) => !cle.startsWith('GIT_') || cle === 'GIT_CEILING_DIRECTORIES'));
   Object.assign(env, { GIT_CONFIG_GLOBAL: '/dev/null', GIT_CONFIG_SYSTEM: '/dev/null', GIT_CONFIG_NOSYSTEM: '1', GIT_ATTR_NOSYSTEM: '1' });
   // Dans le dépôt réel, les greffes et les objets remplacés sont écartés en plus : il ne sert qu'à résoudre des réfs.
   const reel = { cwd, env: { ...env, GIT_GRAFT_FILE: '/dev/null', GIT_NO_REPLACE_OBJECTS: '1' } };
+  const sur = declareSur(cwd);
+  if (sur) Object.assign(reel.env, { GIT_CONFIG_COUNT: '1', GIT_CONFIG_KEY_0: 'safe.directory', GIT_CONFIG_VALUE_0: sur });
   const git = (ou, args, input) => {
     try {
       return execFileSync('git', args, { cwd, env, ...ou, input, maxBuffer: 1 << 30, stdio: ['pipe', 'pipe', 'ignore'] });
@@ -1594,6 +1712,7 @@ export function lecteurGit(cwd = process.cwd()) {
     const objets = texte(essayer(reel, ['rev-parse', '--path-format=absolute', '--git-path', 'objects'], 'pas dans un dépôt git'));
     if (!objets.startsWith('/') || objets.includes('\n') || !statSync(objets, { throwIfNoEntry: false })?.isDirectory()) illisible('dossier des objets du dépôt illisible');
     if (texte(essayer(reel, ['rev-parse', '--is-shallow-repository'], 'dépôt illisible')) !== 'false') illisible("dépôt superficiel : l'historique est tronqué, à approfondir avant d'appeler ce calcul (git fetch --unshallow origin)");
+    if (partiel()) illisible('dépôt partiel : des objets manquent et ce calcul ne télécharge rien, à cloner en entier avant de l\'appeler (git clone sans --filter)');
     try {
       dossier = mkdtempSync(join(tmpdir(), 'double-relecture.'));
       process.once('exit', retirer);
@@ -1608,6 +1727,16 @@ export function lecteurGit(cwd = process.cwd()) {
   const propre = (args, message, input) => {
     ouvrir();
     return essayer({ cwd: dossier }, [`--git-dir=${join(dossier, 'depot')}`, ...args], message, input);
+  };
+  // Un clone partiel (`--filter`) : git le marque dans la configuration du dépôt, par un dépôt distant « promisor ».
+  // `git config --get-regexp` sort en 1 quand aucune clé ne répond.
+  const partiel = () => {
+    try {
+      return lignes(git(reel, ['config', '--local', '--get-regexp', '^(extensions\\.partialclone|remote\\..+\\.promisor)$']), '\n').some((l) => !/ false$/.test(l));
+    } catch (e) {
+      if (e instanceof Illisible || e instanceof OutilManquant) throw e;
+      return false;
+    }
   };
   // `git symbolic-ref -q` sort en 0 pour une réf symbolique (`origin/HEAD`), en 1 pour une réf ordinaire ou absente.
   const symbolique = (nom) => {
@@ -1997,16 +2126,16 @@ Si la liste a encore changé sur `main`, le mot s'ajoute à sa fin, avant la fl�
 
 ### § 4 — La version et la note
 
-`.claude-plugin/plugin.json:3` : `"version": "7.29.1"` devient `"version": "7.30.0"` (règle de repli : décision 20).
+`.claude-plugin/plugin.json:3` : `"version": "7.30.0"` devient `"version": "7.31.0"` (règle de repli : décision 20).
 
-`NOTES-DE-VERSION.md` : cette note, entre le paragraphe d'introduction et `## 7.29.1 — 2026-11-19`, avec la date du jour de la livraison :
+`NOTES-DE-VERSION.md` : cette note, entre le paragraphe d'introduction et `## 7.30.0 — 2026-11-19`, avec la date du jour de la livraison :
 
 ````markdown
-## 7.30.0 — 2026-11-19
+## 7.31.0 — 2026-11-19
 
 ### Ce qui change
 
-Le skill `fusionner` porte un calcul nouveau, `scripts/double-relecture.mjs` : il dit si une PR exige deux relectures indépendantes, parce que son ticket porte la ligne `Relecture: double` ou cite en `Règles:` une règle de criticité haute (sans cette ligne, celle de sa spec est lue), que son diff touche le fichier d'une règle haute ou un fichier que le champ `code` de cette règle nomme, ou qu'elle change le niveau d'une règle vers ou depuis « haute ». Il rend, en dernière ligne de sa sortie, « exigée », « non exigée » ou « illisible », après les règles en cause ; une lecture en échec ne vaut jamais « non exigée ». Dans un dépôt superficiel, le clone par défaut d'une session cloud, il rend « illisible » et sa raison nomme la cause et le remède (`git fetch --unshallow origin`) : il n'écrit jamais dans le dépôt et ne lance aucun `fetch`, c'est à qui l'appelle d'approfondir le clone d'abord. Aucun script ne l'appelle encore : c'est une brique de la relecture indépendante, qui arrive par étapes. L'étape 0 de `fusionner` (`poser`) le nomme parmi les scripts à copier.
+Le skill `fusionner` porte un calcul nouveau, `scripts/double-relecture.mjs` : il dit si une PR exige deux relectures indépendantes, parce que son ticket porte la ligne `Relecture: double` ou cite en `Règles:` une règle de criticité haute (sans cette ligne, celle de sa spec est lue), que son diff touche le fichier d'une règle haute ou un fichier que le champ `code` de cette règle nomme, ou qu'elle change le niveau d'une règle vers ou depuis « haute ». Il rend, en dernière ligne de sa sortie, « exigée », « non exigée » ou « illisible », après les règles en cause ; une lecture en échec ne vaut jamais « non exigée ». Dans un dépôt superficiel, le clone par défaut d'une session cloud, il rend « illisible » et sa raison nomme la cause et le remède (`git fetch --unshallow origin`) : il n'écrit jamais dans le dépôt et ne lance aucun `fetch`, c'est à qui l'appelle d'approfondir le clone d'abord. Un dépôt partiel (cloné avec `--filter`) est « illisible » de même, cause et remède nommés. Aucun script ne l'appelle encore : c'est une brique de la relecture indépendante, qui arrive par étapes. L'étape 0 de `fusionner` (`poser`) le nomme parmi les scripts à copier.
 
 ### Ce qu'un projet fait pour en profiter
 
@@ -2062,6 +2191,9 @@ Le skill `fusionner` porte un calcul nouveau, `scripts/double-relecture.mjs` : i
 | `code` qui nomme la racine du dépôt : « illisible » (`A-122`) | « les chemins de `code` sont normalisés … » |
 | le dépôt propre : greffes, `GIT_GRAFT_FILE`, `GIT_DIR`, `GIT_ICASE_PATHSPECS`, dossier temporaire absent ; rien ne reste (`A-122`) | « un environnement hostile ne pèse pas … », « le lecteur git lit par un dépôt propre, jetable … » |
 | le dépôt superficiel : « illisible », la cause et le remède sur une ligne ; rien n'est écrit dans le dépôt réel ; approfondi, la vraie réponse (`A-126`) | « un dépôt superficiel : « illisible », la raison nomme la cause et le remède … » |
+| `''`, l'apostrophe échappée, ne ferme pas une chaîne entre apostrophes (troisième tour) | « l'en-tête d'une règle : les formes lues … », et l'essai à grande échelle |
+| le dépôt partiel : « illisible », la cause et le remède sur une ligne (troisième tour) | « un dépôt partiel (`--filter`) : « illisible » … » |
+| le dépôt d'un autre propriétaire, lu quand l'utilisateur l'a déclaré sûr, et alors seulement (troisième tour) | « le dépôt d'un autre propriétaire : « illisible » ; déclaré sûr par l'utilisateur … » |
 | le banc ne recopie pas le filtre des `GIT_*` (`A-122`) | test existant de `scripts/un-seul-environnement-de-banc.test.mjs` |
 | l'étape 0 nomme le module | `git diff origin/main -- skills/chaine/fusionner/SKILL.md` (aucun test ne lit cette phrase) ; le garde des bancs posés pose le dossier entier |
 | version et note | test existant de `scripts/depot.test.mjs:1066` |
@@ -2070,25 +2202,25 @@ Le skill `fusionner` porte un calcul nouveau, `scripts/double-relecture.mjs` : i
 
 ### Pour la session
 
-1. `pnpm install --frozen-lockfile && pnpm test` : la suite entière, verte, garde « un seul environnement de banc » comprise. Sur `107507f`, **1 037 tests** avec ces fichiers (1 000 sans : 1 037 moins les 37 du banc).
-2. `node --test skills/chaine/fusionner/scripts/double-relecture.test.mjs` : 37 sur 37, en six secondes environ.
+1. `pnpm install --frozen-lockfile && pnpm test` : la suite entière, verte, garde « un seul environnement de banc » comprise. Sur `f58ccad`, **1 095 tests** avec ces fichiers (1 056 sans : 1 095 moins les 39 du banc).
+2. `node --test skills/chaine/fusionner/scripts/double-relecture.test.mjs` : 39 sur 39, en une dizaine de secondes.
 3. `git diff --stat origin/main` : cinq fichiers, deux neufs et trois modifiés ; `git diff origin/main -- .claude-plugin/plugin.json` ne montre que `"version"` ; `git diff origin/main -- skills/chaine/fusionner/SKILL.md` ne montre qu'une ligne, et dans cette ligne le seul mot ajouté.
 4. Le banc posé à plat : il est rejoué par `scripts/poses.test.mjs` dans la suite du point 1 ; pour le voir seul, copier dans `<dossier>/scripts/chaine/` les deux fichiers, `revue-exigee.mjs` et `skills/chaine/sujet/scripts/depot-jouet.mjs`, dans `<dossier>/scripts/docs/` les fichiers `identifiants.mjs` et `environnement-de-banc.mjs` de `skills/monorepo/socle-monorepo/references/scripts/docs/`, puis `node --test <dossier>/scripts/chaine/double-relecture.test.mjs`.
-5. Les mutations : le script ci-dessous sur ce dossier posé à plat, `python3 <fichier> <dossier>/scripts/chaine` : **120 rouges sur 120**, en un quart d'heure. Il remet le fichier après chaque mutation.
+5. Les mutations : le script ci-dessous sur ce dossier posé à plat, `python3 <fichier> <dossier>/scripts/chaine` : **132 rouges sur 132**, en vingt minutes environ. Il remet le fichier après chaque mutation.
 6. Le lecteur d'en-tête contre une vraie bibliothèque, à grande échelle, **hors du dépôt** (« L'essai à grande échelle ») : aucun en-tête « dangereux ».
 
 ### Ce qui a été joué en écrivant ce ticket
 
-Les 2026-11-18 et 2026-11-19, dans des clones jetables de `origin/main`, sous un `TMPDIR` privé : la première version à `99a6214` puis `22b2d49`, la deuxième (`A-113`) à `6fc652d`, la troisième (`A-117`) à `e45a504` puis `085d7d4`, celle-ci (`A-122`) dans un clone neuf à `8f8cfd9`, puis à `d5b1561` quand le ticket 58 est entré, puis à `ebe60ee` quand l'autre programme a pris la 7.24.0, puis à `107507f` quand il a pris les sept suivantes. Les blocs de ce ticket (banc, module, mutations, mot de l'étape 0, note, essai à grande échelle) ont été relus par un script qui les tire du texte et les rejoue : ce qui suit est le résultat de ce texte, pas d'un brouillon.
+Les 2026-11-18 et 2026-11-19, dans des clones jetables de `origin/main`, sous un `TMPDIR` privé : la première version à `99a6214` puis `22b2d49`, la deuxième (`A-113`) à `6fc652d`, la troisième (`A-117`) à `e45a504` puis `085d7d4`, celle-ci (`A-122`) dans un clone neuf à `8f8cfd9`, puis à `d5b1561` quand le ticket 58 est entré, puis à `ebe60ee` quand l'autre programme a pris la 7.24.0, puis à `107507f` quand il a pris les sept suivantes, puis à `f58ccad` quand le ticket 59 est entré. Les blocs de ce ticket (banc, module, mutations, mot de l'étape 0, note, essai à grande échelle) ont été relus par un script qui les tire du texte et les rejoue : ce qui suit est le résultat de ce texte, pas d'un brouillon.
 
-- Le banc : 37 sur 37, six secondes environ, dans l'arbre du plugin et posé à plat ; rien ne reste dans le dossier temporaire. Joué seize fois de suite sans un échec, après la correction d'un montage instable (la greffe de l'attaque fait un cycle : lue dans le dépôt réel, la base de fusion est tantôt la tête, tantôt incalculable).
-- La suite entière : 1 037 sur 1 037 à `107507f`, avec les deux fichiers, le mot de l'étape 0, la version 7.30.0 et sa note, la garde « un seul environnement de banc » verte ; 963 sur 963 à `ebe60ee`, 941 sur 941 à `d5b1561` et 886 sur 886 à `8f8cfd9` plus tôt. Le banc y est rejoué posé à plat par `scripts/poses.test.mjs`, dont le test a duré 4 minutes 55 sur les 10 de son plafond (jusqu'à 7 minutes 15 à un rejeu d'avant, sur une machine partagée et chargée ; le banc neuf y pèse six secondes).
-- Les mutations : 120 rouges sur 120, après un passage témoin vert ; chaque attaque des deux tours de la relecture adversariale a la sienne, et le dépôt superficiel en a quatre (lu quand même, approfondi par le calcul lui-même, raison sans la cause, raison sans le remède).
+- Le banc : 39 sur 39, une dizaine de secondes, dans l'arbre du plugin et posé à plat ; rien ne reste dans le dossier temporaire. Joué seize fois de suite sans un échec, après la correction d'un montage instable (la greffe de l'attaque fait un cycle : lue dans le dépôt réel, la base de fusion est tantôt la tête, tantôt incalculable).
+- La suite entière : 1 095 sur 1 095 à `f58ccad`, avec les deux fichiers, le mot de l'étape 0, la version 7.31.0 et sa note, la garde « un seul environnement de banc » verte ; 1 039 sur 1 039 à `107507f`, 963 sur 963 à `ebe60ee`, 941 sur 941 à `d5b1561` et 886 sur 886 à `8f8cfd9` plus tôt. Le banc y est rejoué posé à plat par `scripts/poses.test.mjs`, dont le test a duré 5 minutes sur les 10 de son plafond (jusqu'à 7 minutes 15 à un rejeu d'avant, sur une machine partagée et chargée ; le banc neuf y pèse une dizaine de secondes).
+- Les mutations : 132 rouges sur 132, après un passage témoin vert ; chaque attaque des trois tours de la relecture adversariale a la sienne ; le dépôt superficiel en a quatre (lu quand même, approfondi par le calcul lui-même, raison sans la cause, raison sans le remède), l'apostrophe échappée quatre, le dépôt partiel deux, le dépôt d'un autre propriétaire six.
 - **Les faux « non exigée » du second tour**, rejoués par la ligne de commande sur une criticité montée par l'index seul : `.git/info/grafts`, `GIT_GRAFT_FILE`, `GIT_DIR` vers un autre clone, `GIT_ICASE_PATHSPECS=1`, sortie 20 chaque fois ; l'en-tête à apostrophes, `high` ; `* Règles:`, la ligne `Règles:` vide, le ticket créé par la PR dont la spec est sur un sujet, « exigée » ; la PR de mise à jour qui supprime un fichier venu de `develop`, « non exigée » sans échec ; `code: [.]`, « illisible ».
-- **L'essai à grande échelle** : 80 000 en-têtes tirés : 77 216 accords, 1 843 refusés par le lecteur comme par la bibliothèque, 941 lus par le lecteur et refusés par la bibliothèque, **aucun dangereux, aucun refus du lecteur seul**. Le même essai sur le module d'avant `A-122` : 2 280 dangereux et 18 872 refus du lecteur seul.
-- **Sur des données réelles, en lecture seule.** Le lecteur d'en-tête a relu, par `git` seul, les 1 923 fichiers de règle de trois dépôts réels : aucun refus, et pour chaque règle le même ensemble de chemins `code` et le même statut que dans leur index. **La ligne de commande, de bout en bout**, sur deux dépôts réels clonés en entier à côté (les clones du poste, superficiels, rendent « illisible », sortie 21, avec la cause et le remède). Sur un dépôt de projet à index, dont une règle haute, six branches vivantes jugées contre `develop`, chacune avec le diff de sa base de fusion : deux « exigée » (sortie 20 : le fichier de la règle haute, lu sur `origin/develop`, et quatre fichiers de son `code`, lus sur la tête), trois « non exigée » (sortie 0, dont une branche sans diff), une « illisible » (sortie 21 : une branche partie avant le pivot 2, dont l'index est de schéma "1", ce que la décision 6 prévoit). Sur le dépôt du plugin, qui n'a ni `develop` ni règles : « illisible », `origin/develop` introuvable, puis « non exigée » une fois cette réf posée dans le clone jetable. **Le geste de l'appelant** (`A-126`), sur la copie jetable d'un clone réel de session, superficiel : « illisible », sortie 21, avec la cause et le remède ; après `git fetch --unshallow origin` dans cette copie, la vraie réponse (une branche « exigée », sortie 20, avec les mêmes causes que dans le clone entier ; une autre « non exigée », sortie 0). Rien ne reste sous le dossier temporaire.
+- **L'essai à grande échelle** : 80 000 en-têtes tirés, apostrophes échappées comprises : 77 794 accords, 1 504 refusés par le lecteur comme par la bibliothèque, 702 lus par le lecteur et refusés par la bibliothèque, **aucun dangereux, aucun refus du lecteur seul**. Le même tirage sur le module d'avant le troisième tour : 107 dangereux et 17 176 refus du lecteur seul ; le tirage d'avant, sans `''`, n'en voyait aucun (et 2 280 dangereux sur le module d'avant `A-122`).
+- **Sur des données réelles, en lecture seule.** Le lecteur d'en-tête a relu, par `git` seul, les 1 923 fichiers de règle de trois dépôts réels (avant le troisième tour) : aucun refus, et pour chaque règle le même ensemble de chemins `code` et le même statut que dans leur index. **La ligne de commande, de bout en bout**, sur deux dépôts réels clonés en entier à côté (les clones du poste, superficiels, rendent « illisible », sortie 21, avec la cause et le remède). Sur un dépôt de projet à index, dont une règle haute, six branches vivantes jugées contre `develop`, chacune avec le diff de sa base de fusion : deux « exigée » (sortie 20 : le fichier de la règle haute, lu sur `origin/develop`, et quatre fichiers de son `code`, lus sur la tête), trois « non exigée » (sortie 0, dont une branche sans diff), une « illisible » (sortie 21 : une branche partie avant le pivot 2, dont l'index est de schéma "1", ce que la décision 6 prévoit). Sur le dépôt du plugin, qui n'a ni `develop` ni règles : « illisible », `origin/develop` introuvable, puis « non exigée » une fois cette réf posée dans le clone jetable. **Le geste de l'appelant** (`A-126`), sur la copie jetable d'un clone réel de session, superficiel : « illisible », sortie 21, avec la cause et le remède ; après `git fetch --unshallow origin` dans cette copie, la vraie réponse (une branche « exigée », sortie 20, avec les mêmes causes que dans le clone entier ; une autre « non exigée », sortie 0). **Les deux dépôts du troisième tour**, pour de bon : la copie d'un clone entier donnée à un autre propriétaire (`chown`) rend « illisible », sortie 21 ; déclarée sûre dans la configuration de l'utilisateur, « non exigée », sortie 0 ; avec la déclaration d'un autre dépôt, « illisible ». Un clone `--filter=blob:none` du dépôt du plugin : « illisible », sortie 21, « dépôt partiel » et son remède. Rien ne reste sous le dossier temporaire.
 
-Non joué : aucun appelant n'existe, donc ni le Relecteur ni le capitaine n'ont lancé ce calcul ; la vraie boucle (`boucle.sh`) n'a pas repris le fichier d'un `origin/develop`, c'est le banc qui imite sa copie ; le schéma pivot a été lu dans Anchorpost aux commits nommés dans « Où », pas la CLI exécutée ; aucune PR réelle ne change une criticité par le manifeste dans les dépôts lus : la cause `niveau` n'est jouée que sur les montages du banc ; le dépôt propre n'a été joué que sur des clones ordinaires et sur un arbre de travail lié (limite 13) ; le geste de l'appelant, `git fetch --unshallow origin`, n'a été joué que sur le jouet du banc (cas 28 ter) et sur la copie d'un seul clone réel, à toutes ses branches (ci-dessus) : pas dans une vraie session, ni sur un clone à une seule branche (limite 9) ; la suite de `main` seul à `107507f` n'a pas été rejouée (le compte sans ces fichiers est le total moins les 37 du banc) ; le corpus de 76 973 en-têtes du relecteur n'est pas dans le dépôt : l'essai d'ici a son propre générateur.
+Non joué : aucun appelant n'existe, donc ni le Relecteur ni le capitaine n'ont lancé ce calcul ; la vraie boucle (`boucle.sh`) n'a pas repris le fichier d'un `origin/develop`, c'est le banc qui imite sa copie ; le schéma pivot a été lu dans Anchorpost aux commits nommés dans « Où », pas la CLI exécutée ; aucune PR réelle ne change une criticité par le manifeste dans les dépôts lus : la cause `niveau` n'est jouée que sur les montages du banc ; le dépôt propre n'a été joué que sur des clones ordinaires et sur un arbre de travail lié (limite 13) ; le geste de l'appelant, `git fetch --unshallow origin`, n'a été joué que sur le jouet du banc (cas 28 ter) et sur la copie d'un seul clone réel, à toutes ses branches (ci-dessus) : pas dans une vraie session, ni sur un clone à une seule branche (limite 9) ; la suite de `main` seul à `f58ccad` n'a pas été rejouée (le compte sans ces fichiers est le total moins les 39 du banc) ; le corpus de 76 973 en-têtes du relecteur n'est pas dans le dépôt : l'essai d'ici a son propre générateur.
 
 ### Le script des mutations
 
@@ -2216,6 +2348,18 @@ M = [
     ("le calcul approfondit lui-même le dépôt réel", "!== 'false') illisible(\"dépôt superficiel : l'historique est tronqué, à approfondir avant d'appeler ce calcul (git fetch --unshallow origin)\");", "!== 'false') git(reel, ['fetch', '-q', '--unshallow', 'origin']);"),
     ("la raison du dépôt superficiel ne dit plus le remède", ", à approfondir avant d'appeler ce calcul (git fetch --unshallow origin)\");", "\");"),
     ("la raison ne nomme plus le dépôt superficiel", "illisible(\"dépôt superficiel : l'historique est tronqué", "illisible(\"l'historique est tronqué"),
+    ("en-tête : `''` ferme la chaîne quand on découpe un mappage", "      else if (guillemet === \"'\" && c === \"'\" && texte[i + 1] === \"'\") i++;\n", ""),
+    ("en-tête : `''` ferme la chaîne quand on retire un commentaire", "      else if (guillemet === \"'\" && c === \"'\" && ligne[i + 1] === \"'\") i++;\n", ""),
+    ("en-tête : `''` n'est plus rendu en apostrophe dans une valeur", "return g === \"'\" ? chaine[1].replaceAll(\"''\", \"'\") : chaine[1];", "return chaine[1];"),
+    ("en-tête : `''` ferme la chaîne d'une valeur", "(g === \"'\" ? /^'((?:[^']|'')*)'/ : /^\"([^\"]*)\"/)", "(g === \"'\" ? /^'([^']*)'/ : /^\"([^\"]*)\"/)"),
+    ("un dépôt partiel est lu", "    if (partiel()) illisible(", "    if (false) illisible("),
+    ("la raison du dépôt partiel ne dit plus le remède", ", à cloner en entier avant de l\\'appeler (git clone sans --filter)');", "');"),
+    ("le `safe.directory` de l'utilisateur n'est plus reporté", "  if (sur) Object.assign(reel.env, {", "  if (false) Object.assign(reel.env, {"),
+    ("la déclaration d'un autre dépôt vaut pour celui-ci", "return declares.some(admis) ? racine : null;", "return declares.length ? racine : null;"),
+    ("une valeur vide n'efface plus les déclarations", "declares = v === '' ? [] : [...declares, v];", "declares = [...declares, v];"),
+    ("le dossier déclaré est le dossier courant, pas la racine", "if (existsSync(join(d, '.git'))) racine = d;", "if (true) racine = d;"),
+    ("`safe.directory = *` n'est plus compris", "    if (v === '*') return true;\n", ""),
+    ("`safe.directory = dossier/*` n'est plus compris", "    if (chemin.endsWith('/*')) return racine.startsWith(chemin.slice(0, -1)) || racine.startsWith(`${suivi(chemin.slice(0, -2))}/`);\n", ""),
     ("une réf symbolique est admise comme branche cible", "if (symbolique(nom)) illisible(`${court(nom)} est une référence symbolique`);", ""),
     ("une réf introuvable n'est plus vérifiée", "commit = texte(essayer(reel, ['rev-parse', '--verify', '-q', `${nom}^{commit}`], absente));", "commit = 'f'.repeat(40);"),
     ("un sha absent du dépôt n'est plus vérifié", "if (!SHA.test(commit) || texte(propre(['rev-parse', '--verify', '-q', `${commit}^{commit}`], absente)) !== commit) illisible(absente);", ""),
@@ -2279,10 +2423,12 @@ const TEXTES = [
   'une erreur coûte de l\'argent', 'c\'est grave', 'l\'agent', 'rien', '"entre guillemets, level: low"', '\'entre apostrophes, level: low\'',
   '"un # dans la chaîne"', '\'un # dans la chaîne\'', 'jusqu\'à 50 % d\'erreurs', '"d\'un côté, de l\'autre"', 'agent', 'd\'abord l\'un puis l\'autre',
   '"level: high"', '\'level: low\'', 'x\'', '\'\'', '""', 'l\'un # et l\'autre', '"a\'b"', '\'a"b\'', 'niveau-haut', 'a.b/c-d_e',
+  // L'apostrophe échappée de YAML, `''`, dans une chaîne entre apostrophes (troisième tour de la relecture).
+  `'l''agent'`, `'a'', level: low, z: "'`, `'a'', status: rejected, z: "'`, `'d''abord # pas un commentaire'`, `''''`, `'c''est grave, level: low'`,
 ];
 const CHEMINS = [
   'apps/api/src/facture/total.ts', 'apps/web/src/l\'un.ts', '"apps/web/a, b.ts"', '\'apps/web/c, d.ts\'', 'apps/web/d\'un/x.ts', 'packages/contracts/src/facture.ts',
-  '"apps/x # y.ts"', '\'apps/x # z.ts\'', 'apps/api/src/app.module.ts', 'apps/l\'un/l\'autre.ts', '"apps/q\'r.ts"',
+  '"apps/x # y.ts"', '\'apps/x # z.ts\'', 'apps/api/src/app.module.ts', 'apps/l\'un/l\'autre.ts', '"apps/q\'r.ts"', `'apps/l''un/x.ts'`,
 ];
 const COMMENTAIRES = ['', '', '', ' # un commentaire', ' # l\'autre', ' # \', level: low', ' # ", level: low', ' # level: low, by: agent', ' # c\'est tout'];
 const STATUTS = ['candidate', 'validated', 'rejected', 'obsolete'];
@@ -2404,7 +2550,7 @@ sys.exit(1 if any(c.startswith("DANGEREUX") for c in compte) else 0)
 
 ## Ce qui n'a pas été établi
 
-`A-113` a tranché les quatorze points de la première version de ce ticket, `A-117` et `A-122` ceux des deux tours de sa relecture adversariale (« Comments »). Restent huit précisions prises ici, que la spec ne dit pas, et onze limites, chacune avec sa conséquence. L'architecte les lit à la contre-revue ; chacune tient à une décision et à un test nommés.
+`A-113` a tranché les quatorze points de la première version de ce ticket, `A-117`, `A-122` et l'architecte après le troisième tour, ceux des trois tours de sa relecture adversariale (« Comments »). Restent huit précisions prises ici, que la spec ne dit pas, et treize limites, chacune avec sa conséquence. L'architecte les lit à la contre-revue ; chacune tient à une décision et à un test nommés.
 
 **Précisions de ce ticket**
 
@@ -2419,17 +2565,19 @@ sys.exit(1 if any(c.startswith("DANGEREUX") for c in compte) else 0)
 
 **Limites**
 
-9. **Un dépôt superficiel est « illisible »** (décision 23, `A-126`, cas 28 ter), comme au ticket 59 : la base de fusion ne se calcule pas sur un historique tronqué. Or **les sessions cloud clonent à une profondeur de 50 par défaut** : sur le poste d'essai, les quatre clones lus l'étaient tous, et la ligne de commande y rend « illisible » avec sa cause et son remède. `A-126` a tranché : le calcul ne s'approfondit pas lui-même, ce sont le Relecteur et le capitaine (lots 4 et 5a) qui rendent leur dépôt complet, une fois, avant d'appeler les deux calculs. D'ici là, dans une session cloud, toute PR est « illisible » : rien n'est distribué ni fusionné à tort, cela se voit tout de suite et ne laisse rien passer. Joué sur la copie d'un clone réel de session, superficiel et à toutes ses branches : « illisible » avant, la vraie réponse après `git fetch --unshallow origin`. Ce que ce ticket ne prouve pas : que ce geste suffit dans tous les clones (un clone à une seule branche, un clone partiel) ; les lots 4 et 5a le jouent dans une vraie session.
+9. **Tout appel dans une session cloud rend « illisible » tant que l'appelant n'a pas approfondi le clone** (`A-126`) : un dépôt superficiel est « illisible » (décision 23, cas 28 ter), comme au ticket 59 : la base de fusion ne se calcule pas sur un historique tronqué. Or **les sessions cloud clonent à une profondeur de 50 par défaut** : sur le poste d'essai, les quatre clones lus l'étaient tous, et la ligne de commande y rend « illisible » avec sa cause et son remède. `A-126` a tranché : le calcul ne s'approfondit pas lui-même, ce sont le Relecteur et le capitaine (lots 4 et 5a) qui rendent leur dépôt complet, une fois, avant d'appeler les deux calculs. D'ici là, dans une session cloud, toute PR est « illisible » : rien n'est distribué ni fusionné à tort, cela se voit tout de suite et ne laisse rien passer. Joué sur la copie d'un clone réel de session, superficiel et à toutes ses branches : « illisible » avant, la vraie réponse après `git fetch --unshallow origin`. Ce que ce ticket ne prouve pas : que ce geste suffit dans tous les clones (un clone à une seule branche, un clone partiel) ; les lots 4 et 5a le jouent dans une vraie session.
 10. **`Règles: —` est refusée aujourd'hui par le gate `tickets`** (`ecartsRegles`, `tickets-regles.mjs:435` : « citer au moins une règle, ou retirer la ligne », et un `—` n'est pas un identifiant de règle). Le calcul la lit quand même comme « ce ticket ne réalise aucune règle » (`A-117`) ; c'est le lot 2 (ticket 55, à rejouer sur `main`) qui la fera accepter par le gate, pas ce ticket. **Conséquence d'ici là** : le conducteur ne peut pas écrire « aucune » sur un ticket que le gate juge ; un ticket sans ligne `Règles:`, ou à ligne vide, hérite donc de sa spec, et, si celle-ci cite une règle haute qu'il ne réalise pas, sa PR reçoit deux relecteurs de trop. Jamais un de moins.
 11. **Une criticité fixée au manifeste n'est vue qu'une fois l'index de la tête régénéré** (décision 9, cas 16 bis). Le Relecteur, qui juge avant, peut ne distribuer qu'une relecture ; le changement est vu par le premier calcul joué sur une tête dont l'index est régénéré.
-12. **Une entrée produite avec la détection des renommages, mais bien formée, reste invisible au calcul** (décision 2, cas 22) : l'ancien nom d'un fichier de code renommé n'y est pas, et rien dans une liste de chemins ne dit comment elle a été produite. C'est la faute de l'appelant : les lots 4 et 5a produisent l'entrée par `git diff --no-renames --name-only`, comme `passer.sh` le fait déjà pour la revue exigée, et l'usage du module le dit.
-13. **Le dépôt propre emprunte les objets du dépôt réel par `objects/info/alternates`** (décision 22). Joué sur des clones ordinaires et sur un arbre de travail lié. Non joué : un dépôt réel qui emprunte lui-même ses objets ailleurs par un chemin relatif (`git clone --shared`), un clone partiel, un dépôt en `sha256`, un dépôt dont git juge le propriétaire douteux une fois la configuration d'utilisateur écartée. Dans chacun, une commande échouerait : « illisible », jamais « non exigée ». Et il lui faut un dossier temporaire où écrire : sans lui, « illisible » (cas 28 bis).
+12. **Un renommage sans `--no-renames` : une entrée produite avec la détection des renommages, mais bien formée, reste invisible au calcul** (décision 2, cas 22 ; le constat du relecteur que les trois tours laissent ouvert, par décision) : l'ancien nom d'un fichier de code renommé n'y est pas, et rien dans une liste de chemins ne dit comment elle a été produite. C'est la faute de l'appelant : les lots 4 et 5a produisent l'entrée par `git diff --no-renames --name-only`, comme `passer.sh` le fait déjà pour la revue exigée, et l'usage du module le dit.
+13. **Le dépôt propre emprunte les objets du dépôt réel par `objects/info/alternates`** (décision 22). Joué sur des clones ordinaires et sur un arbre de travail lié. Non joué : un dépôt réel qui emprunte lui-même ses objets ailleurs par un chemin relatif (`git clone --shared`), un dépôt en `sha256`, un dépôt nu d'un autre propriétaire (limite 20). Le clone partiel et le dépôt d'un autre propriétaire ont leur décision (24 et 25). Dans chacun, une commande échouerait : « illisible », jamais « non exigée ». Et il lui faut un dossier temporaire où écrire : sans lui, « illisible » (cas 28 bis).
 14. **Trois ceintures de la décision 22 n'ont pas de mutation** (la configuration d'utilisateur et de système écartée ; `GIT_GRAFT_FILE=/dev/null` et `GIT_NO_REPLACE_OBJECTS=1` sur les commandes du dépôt réel) : aucun cas du banc ne sait les prendre en défaut, elles sont là parce qu'`A-122` les demande.
 15. **L'essai à grande échelle ne vaut que pour ce que son générateur fabrique** : les formes des trois clés, pas tout YAML (ni ancres, ni scalaires pliés `>` ou `|`, ni clés entre guillemets, que le lecteur refuse). Et la référence est PyYAML, pas la bibliothèque de la CLI Anchorpost : les deux lisent YAML 1.1 et 1.2 un peu différemment hors de ces formes.
 16. **Les branches de sujet lues sont celles du dépôt de l'appelant** : une `origin/sujet/*` qu'il n'a pas relue, ou une branche supprimée qu'il n'a pas élaguée, donne une lecture en retard ou en trop. Le fetch est à l'appelant (lots 4 et 5a).
 17. **Un chemin de règles déclaré au manifeste** (`contexts[].rules`) n'est pas reconnu comme le fichier d'une règle (décision 10) ; l'index, lui, porte quand même son niveau et son `code`.
 18. **Une ligne d'en-tête que ni le gate ni la CLI ne lisent n'est pas lue non plus** (en retrait, dans une citation, cas 19 bis). Et le motif est recopié du gate, pas importé : s'il change dans `tickets-regles.mjs`, rien ne le dit ici.
 19. **Le coût** croît avec le nombre de branches de sujet (un `git ls-tree` de `docs/` par sujet) et avec la taille du dépôt (un `git ls-tree` de l'arbre entier pour chacun des quatre arbres de l'entrée, un `git init` par appel) ; non mesuré au-delà de quatre sujets.
+20. **Le dépôt d'un autre propriétaire que l'utilisateur n'a pas déclaré sûr reste « illisible », et la raison ne nomme pas la cause** : « pas dans un dépôt git » (décision 25) ; git, lui, la nomme à la première commande lancée dans ce dépôt. Un dépôt nu d'un autre propriétaire (aucun `.git` en remontant) n'est pas reconnu, même déclaré. Que rien d'autre de la configuration de l'utilisateur ne soit repris tient au code : aucun réglage d'utilisateur ne change les lectures du dépôt réel au point de se voir dans un banc, donc aucune mutation ne le garde. Le motif `dossier/*` est admis ici même par un git qui ne le comprend pas encore.
+21. **Un dépôt partiel se reconnaît à sa configuration, pas à ses objets** (décision 24) : un clone partiel complété après coup (`git fetch --refetch --no-filter origin`) garde sa marque, donc reste « illisible » ici ; le remède nommé est le clone entier. Les sessions cloud ne clonent pas ainsi (elles clonent superficiel, limite 9).
 
 ## Hors périmètre
 
@@ -2449,3 +2597,4 @@ sys.exit(1 if any(c.startswith("DANGEREUX") for c in compte) else 0)
 - 2026-11-18 — Deux retouches avant le second tour du relecteur. `--base` s'aligne sur le ticket 59 : un nom de branche nu (`develop`, `sujet/<nom>`), validé (ni `HEAD`, ni réf symbolique, ni retour ligne, ni tiret initial), lu `refs/remotes/origin/<nom>` en entier ; `--tete` est un sha de 40 caractères ; mêmes mots dans l'usage, l'en-tête du module et le banc. `Règles: —` : le gate la refuse aujourd'hui, le calcul la lit comme « aucune », le lot 2 la fera accepter (limite 7, « Hors périmètre »). La précision 1 et les limites 9 et 10 disent leur raison et leur conséquence. Rejoué dans un clone neuf à `085d7d4`.
 - 2026-11-19 — Second tour de la relecture adversariale : « prêt après retouches », huit corrections fermées, trois à moitié, quatre bloquants nouveaux et un mineur ; tout est adopté (`A-122`) et porté ici, chaque attaque devenue un cas du banc avec sa mutation. N1 : le banc suit la garde « un seul environnement de banc » (`environnementDeBanc()`). N2 : un guillemet n'ouvre une chaîne qu'en tête de valeur ; le lecteur se vérifie contre une vraie bibliothèque, hors du dépôt. N3 : toutes les lectures dans un dépôt nu jetable qui emprunte les objets du dépôt réel, sans configuration ni variable `GIT_*` héritée. N4 : l'entrée admet les chemins de la cible et de `develop`. N5 : la puce étoile, la ligne `Règles:` vide ignorée, la spec cherchée dans tous les arbres. Constat 7 : `code` qui nomme la racine, « illisible ». Constaté en rejouant : les clones des sessions cloud sont superficiels, et les deux calculs les refusent (limite 9). Constat 5 (renommage) : reste la limite 12. Base relue : `origin/main` à `ebe60ee` (7.24.0, le ticket 58 et la PR 124 entrés ; la version devient 7.25.0). Rejoué dans un clone neuf : banc, suite entière, mutations, essai à grande échelle (« Vérification »).
 - 2026-11-19 — Une retouche avant le troisième tour du relecteur (`A-126`, le clone superficiel) : la raison nomme la cause, « dépôt superficiel », et le remède, `git fetch --unshallow origin`, sur une ligne ; le calcul n'écrit jamais dans le dépôt réel et ne lance aucun `fetch` ; ce sont les appelants (lots 4 et 5a) qui approfondissent (décision 23, « Hors périmètre », note de version). Un test de plus, à lui : dépôt superficiel, 21 avec ces deux mots ; le même dépôt approfondi, la vraie réponse (cas 28 ter, quatre mutations). La ligne de commande rejouée de bout en bout sur deux dépôts réels clonés en entier (« Vérification »). Base : `origin/main` à `107507f` (7.25.0 à 7.29.1 prises par l'autre programme pendant la retouche ; la version devient 7.30.0, repères de ligne relus).
+- 2026-11-19 — Trois tours de relecture adversariale par le même relecteur : onze constats, puis cinq, puis un, tous portés, chaque attaque devenue un cas du banc avec sa mutation (sauf le renommage sans `--no-renames`, faute de l'appelant, écrit en limite 12). Le troisième rend « prêt après une retouche », portée ici : `''`, l'apostrophe échappée de YAML, ne ferme plus une chaîne entre apostrophes (B1 : elle faisait lire `low` pour `high`, et une règle rejetée pour une règle en vigueur) ; un dépôt partiel est « illisible » et le dit, cause et remède (L1, décision 24) ; le dépôt d'un autre propriétaire que l'utilisateur a déclaré sûr est lu, par le report de cette seule déclaration aux lectures du dépôt réel (L2, décision 25) ; les deux limites restantes sont écrites (9 et 12). Décision de l'architecte : le ticket part, sans autre tour. Rejoué sur un clone neuf d'`origin/main` à `f58ccad` (le ticket 59 entré pendant la retouche, 7.30.0 ; la version devient 7.31.0) : banc, suite entière, mutations, essai à grande échelle (« Vérification »).

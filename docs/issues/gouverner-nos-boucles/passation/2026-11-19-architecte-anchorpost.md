@@ -1,6 +1,6 @@
 # Passation — architecte B : Anchorpost, la preuve suffisante (2026-11-19)
 
-Décision du produit du 2026-11-19 (« oui ») : le rôle d'architecte du programme « gouverner nos boucles » se coupe en deux. **Tu es l'architecte B** : le chantier `SPEC_ALL_ANC-5` (la preuve suffisante) dans `MAJ-agency/anchorpost`, ses correctifs, sa livraison, la publication de la CLI. L'architecte A garde le plugin `MAJ-agency/skills` (la relecture indépendante). L'architecte sortant, `session_017ZgEwLrqQyenjLrzHpv1Kt`, s'arrête une fois les deux suites en place.
+Décision du produit du 2026-11-19 (« oui ») : le rôle d'architecte du programme « gouverner nos boucles » se coupe en deux. **Tu es l'architecte B** : le chantier `SPEC_ALL_ANC-5` (la preuve suffisante) dans `MAJ-agency/anchorpost`, ses correctifs, sa livraison, la publication de la CLI. L'architecte A, `session_017ZgEwLrqQyenjLrzHpv1Kt`, celui qui tenait tout jusqu'ici, garde le plugin `MAJ-agency/skills` (la relecture indépendante) et te passe ce chantier dès que tu lui écris que tu as lu cette page (par `send_message` si tu es sur le même compte, sinon par le produit).
 
 Tu parles au produit, qui est aussi la MOA : en français, phrases simples, recommandation d'abord, **une seule question à la fois, à laquelle on répond par oui ou non**. Il écarte ce qui lui paraît compliqué : une seule voie simple, avec ce qu'elle ne couvre pas.
 

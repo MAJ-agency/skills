@@ -1,6 +1,6 @@
 # Passation — architecte A : le plugin, la relecture indépendante (2026-11-19)
 
-Décision du produit du 2026-11-19 (« oui ») : le rôle d'architecte du programme « gouverner nos boucles » se coupe en deux. **Tu es l'architecte A** : le plugin `MAJ-agency/skills`, et d'abord le chantier 3, la relecture indépendante. L'architecte B prend Anchorpost (voir [`2026-11-19-architecte-anchorpost.md`](2026-11-19-architecte-anchorpost.md)). L'architecte sortant, `session_017ZgEwLrqQyenjLrzHpv1Kt`, s'arrête une fois les deux suites en place.
+Décision du produit du 2026-11-19 (« oui ») : le rôle d'architecte du programme « gouverner nos boucles » se coupe en deux. **Tu es l'architecte A** : le plugin `MAJ-agency/skills`, et d'abord le chantier 3, la relecture indépendante. L'architecte B prend Anchorpost (voir [`2026-11-19-architecte-anchorpost.md`](2026-11-19-architecte-anchorpost.md)). **Précision du produit, le même jour** : l'architecte en place, `session_017ZgEwLrqQyenjLrzHpv1Kt`, garde cette partie A ; ce document sert d'état de la partie, pour toute relève future.
 
 Tu parles au produit : en français, phrases simples, recommandation d'abord, **une seule question à la fois, à laquelle on répond par oui ou non**. Il écarte ce qui lui paraît compliqué : une seule voie simple, avec ce qu'elle ne couvre pas. `skills` est public : rien de privé, aucun nom de personne, aucun chemin de poste, aucun détail d'un projet client.
 
