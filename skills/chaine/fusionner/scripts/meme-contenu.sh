@@ -116,7 +116,7 @@ p cat-file -e "$T^{commit}" 2>/dev/null || illisible "T introuvable dans ce dép
 [ "$V" != "$T" ] || meme "V est T"
 
 superficiel=$(git rev-parse --is-shallow-repository 2>/dev/null) || illisible "git rev-parse --is-shallow-repository en échec"
-[ "$superficiel" = false ] || illisible "clone superficiel : l'historique est tronqué (git fetch --unshallow origin)"
+[ "$superficiel" = false ] || illisible "dépôt superficiel : l'historique est tronqué, à approfondir avant d'appeler ce calcul (git fetch --unshallow origin)"
 cible=$(git rev-parse -q --verify "refs/remotes/origin/$B" 2>/dev/null) && [[ "$cible" =~ $SHA ]] ||
   illisible "origin/$B introuvable : relire la cible d'abord"
 p cat-file -e "$cible^{commit}" 2>/dev/null || illisible "origin/$B n'est pas un commit lisible"

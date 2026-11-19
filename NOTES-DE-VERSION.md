@@ -12,7 +12,7 @@ La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque pro
 
 Mettre à jour le plugin ; rien d'autre aujourd'hui : aucun script de la boucle ne change, le capitaine ne se relance pas. Le script et son banc arrivent dans `scripts/chaine/` à la prochaine fois que le projet rejoue `/maj-skills:fusionner poser`.
 
-À prévoir pour la suite : **un poste de capitaine ou de Relecteur dont le git est plus ancien que 2.41 rendra « illisible » (sortie 69) à chaque appel**. Relever `git --version` sur ces postes avant que le capitaine et le Relecteur n'appellent ce calcul.
+À prévoir pour la suite : **un poste de capitaine ou de Relecteur dont le git est plus ancien que 2.41 rendra « illisible » (sortie 69) à chaque appel**. Relever `git --version` sur ces postes avant que le capitaine et le Relecteur n'appellent ce calcul. De même, **dans un dépôt superficiel** (le clone d'une session cloud, profondeur 50 par défaut), le calcul rend « illisible » et sa raison dit le remède, `git fetch --unshallow origin` : il n'approfondit rien lui-même, c'est à qui l'appelle de le faire une fois avant.
 
 ## 7.24.0 — 2026-11-18
 

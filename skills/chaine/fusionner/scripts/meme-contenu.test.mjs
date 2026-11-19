@@ -471,7 +471,14 @@ test("illisible : un clone superficiel, dont l'historique est tronqué", () => {
   const clone = join(dossierTemporaire("superficiel-"), "clone");
   const r = spawnSync("git", ["clone", "-q", "--depth", "1", "--no-single-branch", `file://${d.origine}`, clone], { env: d.env, encoding: "utf8" });
   assert.equal(r.status, 0, r.stderr);
-  estIllisible(juger(d, V, T, "develop", { cwd: clone }), /clone superficiel/);
+  // A-126 : la raison nomme la cause et le remède, sur une ligne ; le calcul n'approfondit rien lui-même.
+  estIllisible(juger(d, V, T, "develop", { cwd: clone }), /^dépôt superficiel : .* \(git fetch --unshallow origin\)$/);
+  const dans = (...args) => spawnSync("git", args, { cwd: clone, env: d.env, encoding: "utf8" });
+  assert.equal(dans("rev-parse", "--is-shallow-repository").stdout.trim(), "true", "le calcul n'a pas touché au dépôt");
+  // Le même dépôt, approfondi par qui appelle : la vraie réponse.
+  const fetch = dans("fetch", "-q", "--unshallow", "origin");
+  assert.equal(fetch.status, 0, fetch.stderr);
+  estMeme(juger(d, V, T, "develop", { cwd: clone }), /1 fusion\(s\) de origin\/develop/);
 });
 
 test("illisible : git merge-tree en échec n'est jamais « même »", () => {
