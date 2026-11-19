@@ -1320,8 +1320,10 @@ test("un dépôt nu trouvé sans --git-dir, sous `safe.bareRepository = explicit
   // Le témoin : le dépôt nu se lit, et c'est la cible absente qui le fait refuser plus loin.
   estIllisible(juge(""), /^origin\/develop introuvable/);
   estIllisible(juge("[safe]\n\tbareRepository = all\n"), /^origin\/develop introuvable/);
-  const refus = /^pas dans un dépôt git$/;
+  const refus = /^dépôt nu trouvé sans --git-dir, que git refuse sous safe\.bareRepository .* : appeler ce calcul depuis un arbre de travail$/;
   estIllisible(juge("[safe]\n\tbareRepository = explicit\n"), refus);
+  // Une valeur vide ou inconnue fait échouer git lui-même : reportée telle quelle, jamais lue comme une remise à zéro.
+  for (const v of ["", "bidon"]) estIllisible(juge(`[safe]\n\tbareRepository = all\n\tbareRepository = ${v}\n`), refus);
   // La dernière valeur vaut, dans l'ordre de git : le système, puis l'utilisateur.
   writeFileSync(systeme, "[safe]\n\tbareRepository = explicit\n");
   estIllisible(juge("[safe]\n\tbareRepository = all\n", { GIT_CONFIG_SYSTEM: systeme, GIT_CONFIG_NOSYSTEM: undefined }), /^origin\/develop introuvable/);
@@ -1330,4 +1332,8 @@ test("un dépôt nu trouvé sans --git-dir, sous `safe.bareRepository = explicit
   estIllisible(juge("", { GIT_CONFIG_COUNT: "0" }), refus);
   estIllisible(juge("", { GIT_CONFIG_PARAMETERS: "'core.x=1'" }), refus);
   estIllisible(juge('[safe]\n\tbareRepository = "all\\nall"\n'), refus);
+  // Une configuration que git ne lit pas : explicit. Celle du dépôt lui-même ne compte pas, comme pour git.
+  estIllisible(juge("[safe\n"), refus);
+  assert.equal(spawnSync("git", ["config", "safe.bareRepository", "explicit"], { cwd: d.origine, env: d.env }).status, 0);
+  estIllisible(juge(""), /^origin\/develop introuvable/);
 });

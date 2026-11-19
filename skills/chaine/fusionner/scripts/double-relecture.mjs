@@ -541,6 +541,36 @@ function declareSur(cwd) {
 }
 
 /**
+ * La valeur de `safe.bareRepository` que le lecteur reporte au dépôt réel (`A-154`), ou `null` : git refuse un dépôt nu
+ * trouvé sans `--git-dir` quand elle vaut `explicit`, et échoue sur une valeur vide ou qu'il ne lit pas. Lue comme
+ * `safe.directory` (portées `system` et `global`, hors de tout dépôt, par git lui-même, avec les seules variables qui
+ * disent où vit la configuration) ; la dernière valeur vaut, telle quelle, vide comprise. Dans le doute (une ligne
+ * d'une autre forme, git en échec autrement que par « aucune valeur », `GIT_CONFIG_COUNT` ou `GIT_CONFIG_PARAMETERS`
+ * présente, où elle peut valoir `explicit`) : `explicit`. Le lecteur lit moins que git, jamais plus.
+ */
+function bareDeclare() {
+  if ('GIT_CONFIG_COUNT' in process.env || 'GIT_CONFIG_PARAMETERS' in process.env) return 'explicit';
+  const LIEU = ['GIT_CONFIG_GLOBAL', 'GIT_CONFIG_SYSTEM', 'GIT_CONFIG_NOSYSTEM'];
+  const env = Object.fromEntries(Object.entries(process.env).filter(([cle]) => !cle.startsWith('GIT_') || LIEU.includes(cle)));
+  let lus;
+  try {
+    lus = execFileSync('git', ['config', '--show-scope', '--includes', '--get-all', 'safe.bareRepository'], { cwd: '/', env, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).split('\n');
+  } catch (e) {
+    // Sortie 1 sans rien écrit : aucune valeur. Toute autre panne : explicit.
+    return e?.status === 1 && !e.stdout ? null : 'explicit';
+  }
+  if (lus.pop() !== '') return 'explicit';
+  let valeur = null;
+  for (const ligne of lus) {
+    const m = /^(system|global)\t(.*)$/.exec(ligne);
+    if (!m) return 'explicit';
+    valeur = m[2];
+  }
+  return valeur;
+}
+const NU_REFUSE = "dépôt nu trouvé sans --git-dir, que git refuse sous safe.bareRepository (explicit, une valeur qu'il ne lit pas, ou explicit dans le doute) : appeler ce calcul depuis un arbre de travail";
+
+/**
  * Lecteur d'objets git du dépôt de `cwd`, par un dépôt propre. `verifier(nom)` → le sha du commit d'un sha ou d'une
  * réf entière, qui n'est pas une réf symbolique ; les autres lectures prennent ce sha : `baseDeFusion(a, b)`,
  * `chemins(commit)` (tout l'arbre), `lister(commit, prefixe)`, `lire(commit, chemins)` → Map chemin → texte ;
@@ -553,7 +583,8 @@ function declareSur(cwd) {
  * variable `GIT_*` (sauf `GIT_CEILING_DIRECTORIES`, qui borne la recherche du dépôt) ni d'une configuration
  * d'utilisateur ou de système, à une exception près : le `safe.directory` par lequel l'utilisateur a déclaré sûr ce
  * dépôt-ci est reporté, pour ce dépôt seul, aux lectures du dépôt réel (sans lui, git refuse le dépôt d'un autre
- * propriétaire). S'il ne se crée pas, si le dépôt est superficiel ou partiel : `Illisible`.
+ * propriétaire) ; et `safe.bareRepository`, reportée de même (`A-154`), pour que le lecteur refuse le dépôt nu que git
+ * refuserait, en nommant la cause. S'il ne se crée pas, si le dépôt est superficiel ou partiel : `Illisible`.
  */
 export function lecteurGit(cwd = process.cwd()) {
   const env = Object.fromEntries(Object.entries(process.env).filter(([cle]) => !cle.startsWith('GIT_') || cle === 'GIT_CEILING_DIRECTORIES'));
@@ -561,7 +592,13 @@ export function lecteurGit(cwd = process.cwd()) {
   // Dans le dépôt réel, les greffes et les objets remplacés sont écartés en plus : il ne sert qu'à résoudre des réfs.
   const reel = { cwd, env: { ...env, GIT_GRAFT_FILE: '/dev/null', GIT_NO_REPLACE_OBJECTS: '1' } };
   const sur = declareSur(cwd);
-  if (sur) Object.assign(reel.env, { GIT_CONFIG_COUNT: '1', GIT_CONFIG_KEY_0: 'safe.directory', GIT_CONFIG_VALUE_0: sur });
+  const nu = bareDeclare();
+  // Les reports au dépôt réel, par `GIT_CONFIG_COUNT` ; `sansNu` : sans celui de safe.bareRepository, pour nommer la
+  // cause d'un refus, jamais pour lire.
+  const reports = (avecNu) => [...(sur ? [['safe.directory', sur]] : []), ...(avecNu && nu !== null ? [['safe.bareRepository', nu]] : [])];
+  const enEnv = (liste) => Object.fromEntries([['GIT_CONFIG_COUNT', String(liste.length)], ...liste.flatMap(([cle, valeur], i) => [[`GIT_CONFIG_KEY_${i}`, cle], [`GIT_CONFIG_VALUE_${i}`, valeur]])]);
+  const sansNu = { cwd, env: { ...reel.env, ...enEnv(reports(false)) } };
+  Object.assign(reel.env, enEnv(reports(true)));
   const git = (ou, args, input) => {
     try {
       return execFileSync('git', args, { cwd, env, ...ou, input, maxBuffer: 1 << 30, stdio: ['pipe', 'pipe', 'ignore'] });
@@ -589,7 +626,20 @@ export function lecteurGit(cwd = process.cwd()) {
   };
   const ouvrir = () => {
     if (dossier) return;
-    const objets = texte(essayer(reel, ['rev-parse', '--path-format=absolute', '--git-path', 'objects'], 'pas dans un dépôt git'));
+    let objets;
+    try {
+      objets = texte(git(reel, ['rev-parse', '--path-format=absolute', '--git-path', 'objects']));
+    } catch (e) {
+      if (e instanceof Illisible || e instanceof OutilManquant) throw e;
+      // Un dépôt nu que safe.bareRepository fait refuser : la cause est nommée.
+      let nuRefuse = false;
+      if (nu !== null && nu !== 'all') {
+        try {
+          nuRefuse = texte(git(sansNu, ['rev-parse', '--is-bare-repository'])) === 'true';
+        } catch {}
+      }
+      illisible(nuRefuse ? NU_REFUSE : 'pas dans un dépôt git');
+    }
     if (!objets.startsWith('/') || objets.includes('\n') || !statSync(objets, { throwIfNoEntry: false })?.isDirectory()) illisible('dossier des objets du dépôt illisible');
     if (texte(essayer(reel, ['rev-parse', '--is-shallow-repository'], 'dépôt illisible')) !== 'false') illisible("dépôt superficiel : l'historique est tronqué, à approfondir avant d'appeler ce calcul (git fetch --unshallow origin)");
     if (partiel()) illisible('dépôt partiel : des objets manquent et ce calcul ne télécharge rien, à cloner en entier avant de l\'appeler (git clone sans --filter)');

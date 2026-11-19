@@ -1593,3 +1593,41 @@ test("le point d'entrée est reconnu par un lien symbolique, depuis un dossier �
     assert.deepEqual([r.code, r.verdict], [20, 'exigée'], nom);
   }
 });
+
+test("un dépôt nu trouvé sans --git-dir, sous `safe.bareRepository = explicit` : « illisible », la cause nommée, comme git le refuse (A-154, ticket 62)", () => {
+  const { depot, tete } = depotJouet();
+  const script = copieDesOutils();
+  const nu = join(dossier('nu-'), 'depot.git');
+  g(depot, 'clone', '-q', '--mirror', depot, nu);
+  const configuration = join(dossier('configuration-'), 'gitconfig');
+  const systeme = join(dirname(configuration), 'systeme');
+  const juger = (globale, { cwd = nu, env = {} } = {}) => {
+    writeFileSync(configuration, globale);
+    const r = lancer(script, ['--base', 'develop', '--tete', tete], { cwd, entree: 'README.md\n', env: { GIT_CONFIG_GLOBAL: configuration, ...env } });
+    return [r.code, r.sortie];
+  };
+  const lu = [0, 'non exigée\n'];
+  const refuse = [21, "# illisible : dépôt nu trouvé sans --git-dir, que git refuse sous safe.bareRepository (explicit, une valeur qu'il ne lit pas, ou explicit dans le doute) : appeler ce calcul depuis un arbre de travail\nillisible\n"];
+  assert.deepEqual(juger(''), lu, 'le témoin : sans réglage, le dépôt nu se lit');
+  assert.deepEqual(juger('[safe]\n\tbareRepository = all\n'), lu);
+  assert.deepEqual(juger('[safe]\n\tbareRepository = explicit\n'), refuse);
+  // La dernière valeur vaut, dans l'ordre de git : le système, puis l'utilisateur.
+  writeFileSync(systeme, '[safe]\n\tbareRepository = explicit\n');
+  assert.deepEqual(juger('[safe]\n\tbareRepository = all\n', { env: { GIT_CONFIG_SYSTEM: systeme, GIT_CONFIG_NOSYSTEM: undefined } }), lu);
+  assert.deepEqual(juger('', { env: { GIT_CONFIG_SYSTEM: systeme, GIT_CONFIG_NOSYSTEM: undefined } }), refuse);
+  // Une valeur vide ou inconnue fait échouer git : reportée telle quelle, jamais lue comme une remise à zéro.
+  for (const v of ['', 'bidon']) assert.deepEqual(juger(`[safe]\n\tbareRepository = all\n\tbareRepository = ${v}\n`), refuse, `valeur « ${v} »`);
+  // Dans le doute, explicit : GIT_CONFIG_COUNT ou GIT_CONFIG_PARAMETERS présente, ou une valeur à saut de ligne.
+  assert.deepEqual(juger('', { env: { GIT_CONFIG_COUNT: '0' } }), refuse, 'GIT_CONFIG_COUNT présente');
+  assert.deepEqual(juger('', { env: { GIT_CONFIG_PARAMETERS: "'core.x=1'" } }), refuse, 'GIT_CONFIG_PARAMETERS présente');
+  assert.deepEqual(juger('[safe]\n\tbareRepository = "all\\nall"\n'), refuse, 'une valeur à saut de ligne');
+  // Une configuration que git ne lit pas : git échoue partout, le calcul refuse aussi (explicit).
+  assert.deepEqual(juger('[safe\n'), refuse, 'une configuration illisible');
+  // La configuration du dépôt lui-même ne compte pas (git ne lit safe.bareRepository qu'aux portées protégées) : lue
+  // hors de tout dépôt, elle n'est pas vue.
+  g(nu, 'config', 'safe.bareRepository', 'explicit');
+  assert.deepEqual(juger(''), lu, 'explicit dans la configuration du dépôt nu : ignoré, comme git');
+  g(nu, 'config', '--unset', 'safe.bareRepository');
+  // Un arbre de travail n'est pas un dépôt nu : explicit ne le refuse pas.
+  assert.deepEqual(juger('[safe]\n\tbareRepository = explicit\n', { cwd: depot }), lu, 'depuis un arbre de travail');
+});

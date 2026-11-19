@@ -75,6 +75,7 @@ meme() { rendre 0 même "$1"; }
 different() { rendre 20 différent "$1"; }
 illisible() { rendre 21 illisible "$1"; }
 SHA='^[0-9a-f]{40}$'
+NU_REFUSE="dépôt nu trouvé sans --git-dir, que git refuse sous safe.bareRepository (explicit, une valeur qu'il ne lit pas, ou explicit dans le doute) : appeler ce calcul depuis un arbre de travail"
 NOMBRE='^(0|[1-9][0-9]*)$'
 court() { printf '%s' "${1:0:9}"; }
 # Un texte en lignes, dans LIGNES, sans here-document (bash en écrirait un fichier sous le dossier temporaire).
@@ -113,12 +114,13 @@ version=$(git version 2>/dev/null) || rendre 69 illisible "git version en échec
 
 # ── safe.directory et safe.bareRepository (A-135, A-143) : ce que l'utilisateur ou le poste dit de ce dépôt ───
 # Les déclarations d'une clé, lues par git lui-même, hors de tout dépôt (`cd /`), avec les seules variables qui disent
-# où vit la configuration, dans son ordre : DECLARES (une valeur vide efface les précédentes, comme pour git), et
+# où vit la configuration, dans son ordre : DECLARES (une valeur vide efface les précédentes, comme git le fait pour
+# safe.directory), DERNIERE et VU (la dernière valeur telle quelle, vide comprise, et si une valeur a été vue), et
 # LISIBLE=1, ou 0 si une ligne n'est ni `system` ni `global` (la suite d'une valeur à saut de ligne) ou si git a
 # échoué autrement que par « aucune valeur » (sortie 1). Le point final garde les sauts de ligne de la fin.
 declarations() { # <clé>
   local lu rc reste l TAB=$'\t'
-  DECLARES=() LISIBLE=1
+  DECLARES=() LISIBLE=1 DERNIERE='' VU=0
   lu=$(
     for kv in ${LIEU[@]+"${LIEU[@]}"}; do export "${kv%%=*}=${kv#*=}"; done
     cd / && git config --show-scope --includes --get-all "$1" 2>/dev/null && printf .
@@ -134,6 +136,7 @@ declarations() { # <clé>
     l=${reste%%$'\n'*} reste=${reste#*$'\n'}
     if [[ "$l" =~ ^(system|global)"$TAB"(.*)$ ]]; then
       if [ -z "${BASH_REMATCH[2]}" ]; then DECLARES=(); else DECLARES+=("${BASH_REMATCH[2]}"); fi
+      DERNIERE=${BASH_REMATCH[2]} VU=1
     else LISIBLE=0; fi
   done
   [ -z "$reste" ] || LISIBLE=0
@@ -154,23 +157,25 @@ if [ -n "$racine" ] && [ "$parametres" = 0 ]; then
     done
   fi
 fi
-# safe.bareRepository : git refuse un dépôt nu trouvé sans `--git-dir` quand elle vaut `explicit`. Sa dernière valeur
-# est reportée telle quelle ; une lecture illisible, ou GIT_CONFIG_COUNT ou GIT_CONFIG_PARAMETERS présente (où elle
-# peut valoir `explicit`) : `explicit`. Le calcul lit moins que git, jamais plus.
-nu=''
-if [ "$parametres" = 1 ]; then nu=explicit
+# safe.bareRepository (A-154) : git refuse un dépôt nu trouvé sans `--git-dir` quand elle vaut `explicit`, et échoue
+# sur une valeur vide ou inconnue. Sa dernière valeur est reportée telle quelle, vide comprise ; une lecture
+# illisible, ou GIT_CONFIG_COUNT ou GIT_CONFIG_PARAMETERS présente (où elle peut valoir `explicit`) : `explicit`. Le
+# calcul lit moins que git, jamais plus.
+nu='' nu_vu=0
+if [ "$parametres" = 1 ]; then nu=explicit nu_vu=1
 else
   declarations safe.bareRepository
-  if [ "$LISIBLE" = 0 ]; then nu=explicit; elif [ "${#DECLARES[@]}" -gt 0 ]; then nu=${DECLARES[${#DECLARES[@]} - 1]}; fi
+  if [ "$LISIBLE" = 0 ]; then nu=explicit nu_vu=1; elif [ "$VU" = 1 ]; then nu=$DERNIERE nu_vu=1; fi
 fi
-REPORTS=()
-[ -z "$sur" ] || REPORTS+=(safe.directory "$sur")
-[ -z "$nu" ] || REPORTS+=(safe.bareRepository "$nu")
-# Les lectures du dépôt réel : sans configuration d'utilisateur ni de poste, sauf ces deux reports.
+# Les lectures du dépôt réel : sans configuration d'utilisateur ni de poste, sauf ces deux reports (SANS_NU=1 : sans
+# celui de safe.bareRepository, pour nommer la cause d'un refus, jamais pour lire).
 r() {
-  local -a vars=(GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_SYSTEM=/dev/null GIT_CONFIG_NOSYSTEM=1 "GIT_CONFIG_COUNT=$((${#REPORTS[@]} / 2))")
+  local -a reports=()
+  [ -z "$sur" ] || reports+=(safe.directory "$sur")
+  [ "$nu_vu" = 0 ] || [ "${SANS_NU:-0}" = 1 ] || reports+=(safe.bareRepository "$nu")
+  local -a vars=(GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_SYSTEM=/dev/null GIT_CONFIG_NOSYSTEM=1 "GIT_CONFIG_COUNT=$((${#reports[@]} / 2))")
   local i
-  for ((i = 0; i < ${#REPORTS[@]} / 2; i++)); do vars+=("GIT_CONFIG_KEY_$i=${REPORTS[2 * i]}" "GIT_CONFIG_VALUE_$i=${REPORTS[2 * i + 1]}"); done
+  for ((i = 0; i < ${#reports[@]} / 2; i++)); do vars+=("GIT_CONFIG_KEY_$i=${reports[2 * i]}" "GIT_CONFIG_VALUE_$i=${reports[2 * i + 1]}"); done
   (
     export "${vars[@]}"
     exec git "$@"
@@ -178,7 +183,12 @@ r() {
 }
 
 # ── Le dépôt réel : où sont ses objets, le sha de la cible, s'il est superficiel ou partiel. Rien d'autre. ──────
-r rev-parse --git-dir >/dev/null 2>&1 || illisible "pas dans un dépôt git"
+if ! r rev-parse --git-dir >/dev/null 2>&1; then
+  # Un dépôt nu que safe.bareRepository fait refuser : la cause est nommée (la lecture sans ce report ne sert qu'à ça).
+  [ "$nu_vu" = 0 ] || [ "$nu" = all ] || [ "$(SANS_NU=1 r rev-parse --is-bare-repository 2>/dev/null)" != true ] ||
+    illisible "$NU_REFUSE"
+  illisible "pas dans un dépôt git"
+fi
 [[ "$B" != *[[:cntrl:][:space:]]* ]] && [ "$B" != HEAD ] && r check-ref-format "refs/remotes/origin/$B" 2>/dev/null ||
   illisible "nom de branche cible invalide"
 ! r symbolic-ref -q "refs/remotes/origin/$B" >/dev/null 2>&1 || illisible "origin/$B est une réf symbolique, pas une branche"

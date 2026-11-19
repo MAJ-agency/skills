@@ -26,6 +26,8 @@ test("les noms se lisent aux `test(` de début de ligne, nom littéral suivi d'u
     'it("pas test", () => {});',
   ].join("\n");
   assert.deepEqual(nomsDesTests(source), ["double", "simple", "gabarit sans substitution", 'échappés : " \\ fin', "l'apostrophe", "deux fois", "deux fois"]);
+  // Fins de ligne CRLF, et une dernière ligne lue sans fin de ligne : les mêmes noms ; la variante en retrait, non.
+  assert.deepEqual(nomsDesTests('test("un", () => {});\r\n  test("retrait", () => {});\r\ntest(\'deux\', () => {});'), ["un", "deux"]);
 });
 
 test("un banc qui écrit des sous-tests est reconnu : il se jouera entier", () => {
@@ -33,6 +35,10 @@ test("un banc qui écrit des sous-tests est reconnu : il se jouera entier", () =
     assert.ok(aDesSousTests(s), s);
   for (const s of ['test("seul", () => {});', "if (/^x/.test(ligne)) {}", "const ok = MOTIF.test(nom);", 'assert.ok(re.test(nom), "édit");', "const split = (x) => x;"])
     assert.ok(!aDesSousTests(s), s);
+  // Fins de ligne CRLF, et un sous-test sur la dernière ligne sans fin de ligne : reconnus.
+  assert.ok(aDesSousTests('test("a", async (t) => {\r\n  await t.test("b", () => {});\r\n});'));
+  assert.ok(aDesSousTests('test("a", () => {});\r\ndescribe("s", () => {})'));
+  assert.ok(!aDesSousTests('test("a", () => {});\r\nconst ok = re.test(x);'));
 });
 
 test("le motif d'une liste de noms est ancré et lit chaque caractère à la lettre", () => {
