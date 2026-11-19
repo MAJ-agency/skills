@@ -2,6 +2,61 @@
 
 La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque projet par `poser` : une version publiée ne change rien chez un projet qui ne les repose pas. Chaque note dit ce qui change, puis ce qu'un projet fait pour en profiter.
 
+## 7.31.2 — 2026-11-19
+
+### Ce qui change
+
+Correctifs du verrou du passage de 7.31.0 (contre-relecture du ticket 4 de `capitaine-a-jour-et-teste`) :
+
+- **Une lecture refusée du verrou est une panne** : des commentaires illisibles à sa relecture (502, réponse vide ou d'erreur) font sortir `passer.sh` et `sujet.sh fusionner` ou `relancer` en 5 (`PAUSE`, `REPRISE`), jamais en 3 ou 11 ; seul un commentaire qui ne se pose pas (écriture refusée) garde 3 (`ARRÊT`) et 11 (`ÉCHEC DU CAPITAINE`).
+- **La trappe est posée avant le verrou** : un TERM (`boucle.sh --arreter`) ou un INT pendant la pose ou la relecture termine le commentaire, au lieu de le laisser vivant jusqu'à son expiration. Un signal qui tombe pendant la pose elle-même (réponse de GitHub en vol, `gh` tué avec le groupe) laisse un commentaire posé dont l'id n'est pas lu : la trappe relit alors les commentaires de la PR et termine les marques vivantes du capitaine ; une relecture en panne se dit en une ligne (le verrou expire 90 minutes après sa dernière date comptée). Cette trappe ne sort jamais en échec sous `set -euo pipefail` : une relecture lue dont une date est illisible se dit aussi en une ligne, et le code de sortie reste celui du passage (3, 5, 143…).
+- **L'âge du verrou se lit dans la marque** : `<!-- capitaine:passage <id> <epoch> -->`, epoch réécrit à chaque rafraîchissement ; `updated_at` ne sert plus. Une marque de 7.31.0, sans epoch, vit 90 minutes depuis sa création. La date d'une marque est le plus tard de son epoch et de sa création : un epoch en retard (horloge en retard, `0`) ne la rajeunit pas, et un verrou vit au moins 90 minutes depuis sa pose. Un epoch en avance de plus de 5 minutes sur le capitaine qui lit est ignoré tant qu'il le reste (la marque est alors datée par sa création), puis compte quand un lecteur plus tardif le rattrape : une marque posée par une horloge en avance peut donc revivre, jusqu'à son epoch + 90 minutes. Un verrou sans nouvelles meurt 90 minutes après la plus tardive de sa création et de son epoch compté ; jamais de gel, jamais de fusion non testée (décision A-55 de l'architecte). Un epoch illisible (lettres, plus de 12 chiffres, plus de 40 caractères, vide) laisse la marque datée par sa création, jamais ignorée.
+- **L'horloge des bancs ne joue que sous le faux GitHub** : `PASSAGE_HORLOGE_BANC` n'est honorée que si `FAUX_GH` est posé et non vide ; posée sans lui, elle est ignorée (horloge de la machine) et retirée de l'environnement, avec un seul avertissement sur la sortie d'erreur, donné une fois, au chargement de `github.sh`, avant tout verdict : la dernière ligne de la sortie reste le verdict que lit la boucle, même quand la trappe de fin du verrou joue après lui.
+
+Aucune clé, aucune sortie nouvelle pour un projet.
+
+### Ce qu'un projet fait pour en profiter
+
+1. Mettre à jour le plugin : `claude plugin marketplace update maj`, puis `claude plugin update maj-skills@maj`, puis redémarrer Claude Code (session cloud : `lancement.md` § « La mise à niveau »).
+2. Reposer les scripts, dans une PR du projet : `/maj-skills:fusionner poser`, puis `/maj-skills:sujet poser`.
+3. Relancer chaque capitaine une fois cette PR entrée dans develop, avec `CAPITAINE_ID` comme en 7.31.0 : `bash scripts/chaine/boucle.sh --arreter`, nouvelle copie dans `<scratchpad>/outils`, puis `CAPITAINE_ID=<id de la session> bash <scratchpad>/outils/veille.sh > <scratchpad>/veille.log 2>&1`.
+
+## 7.31.1 — 2026-11-19
+
+### Ce qui change
+
+Le conducteur d'un chantier ne met plus le sujet à jour avec develop : le capitaine seul le fait, de lui-même, au début de chaque lancement de sa boucle, et à la fin quand la file est vide, dès qu'aucune sous-PR du sujet n'est ouverte. Le skill `chantier` (§ 6, point 6) disait au conducteur de lancer `sujet.sh rafraichir` entre deux vagues ; deux sessions ont ainsi fait ce geste l'une après l'autre sur un même sujet. Le conducteur constate seulement, sans rien écrire : `git fetch -q origin '+refs/heads/develop:refs/remotes/origin/develop' '+refs/heads/sujet/<nom>:refs/remotes/origin/sujet/<nom>'`, puis `git merge-base --is-ancestor origin/develop origin/sujet/<nom>`. Le fetch porte des refspecs explicites : dans le clone `--single-branch` d'une session cloud, un fetch nu ne met pas `origin/sujet/<nom>` à jour, et le constat lirait une référence périmée. Sujet en retard : aucune vague ne part, et s'il le reste au réveil suivant le conducteur demande pourquoi à un capitaine actif ; sur `SUJET EN CONFLIT` ou `SUJET NON MIS À JOUR (sortie 3, aucun conflit)`, il lance comme avant une session fille qui ouvre la PR de mise à jour. Dans trois cas la boucle ne reporte pas develop d'elle-même (livraison du sujet ouverte, livraison intermédiaire tout juste entrée dans develop, sous-PR hors vague restée ouverte) : le conducteur demande alors au capitaine de le faire à la main, sans le faire lui-même. Un constat qui échoue (fetch en échec, sortie autre que 0 ou 1) ne vaut ni « à jour » ni « en retard » : aucune vague ne part.
+
+### Ce qu'un projet fait pour en profiter
+
+Mettre à jour le plugin ; aucun script à reposer, le capitaine ne se relance pas. Un conducteur déjà lancé garde son ancien skill jusqu'à sa relève : lui dire de ne plus lancer `sujet.sh rafraichir`.
+
+## 7.31.0 — 2026-11-19
+
+### Ce qui change
+
+Plusieurs capitaines peuvent tenir la même file : la règle « un seul capitaine actif » disparaît. Au début de chaque passage, le capitaine pose sur la PR un commentaire « passage du capitaine <id> », et un autre capitaine saute la PR tant que ce passage n'est pas terminé (90 minutes au plus sans nouvelles). La boucle, la veille, `passer.sh`, `sujet.sh fusionner` et `sujet.sh relancer` exigent `CAPITAINE_ID`, l'id de la session du capitaine (sortie 64 sans lui ; `sujet.sh relancer`, joué à la main par la session propriétaire, ne pose alors aucun verrou et le dit ; `boucle.sh --arreter` marche sans lui). Un verrou illisible arrête le passage (`passer.sh` 3, `sujet.sh` 11), jamais un passage sans lui ; `boucle.sh --arreter` laisse 15 s entre TERM et KILL pour que le passage termine son commentaire. Le texte du socle change : fragment `claude-md-fusion.md` (« Seuls les capitaines fusionnent »), gabarit de l'ADR « chaîne de production », table des rôles de `chaine-de-production.md`.
+
+### Ce qu'un projet fait pour en profiter
+
+1. Mettre à jour le plugin : `claude plugin marketplace update maj`, puis `claude plugin update maj-skills@maj`, puis redémarrer Claude Code (session cloud : `lancement.md` § « La mise à niveau »).
+2. Reposer les scripts, dans une PR du projet : `/maj-skills:fusionner poser`, puis `/maj-skills:sujet poser`. Dans la même PR, `CLAUDE.md` § « Fusion vers `develop` : une file, un capitaine » : remplacer « **Une seule session fusionne** : le capitaine de fusion (skill `fusionner`) » par la phrase du fragment du socle (`socle-chaine-de-production/references/fragments/claude-md-fusion.md`, l. 3). L'ADR « chaîne de production » du projet reste telle quelle : elle se révise si le projet le veut.
+3. Relancer chaque capitaine une fois cette PR entrée dans develop, **avec `CAPITAINE_ID`** : `bash scripts/chaine/boucle.sh --arreter`, nouvelle copie dans `<scratchpad>/outils`, puis `CAPITAINE_ID=<id de la session> bash <scratchpad>/outils/veille.sh > <scratchpad>/veille.log 2>&1` (skill `fusionner` § « Mise en place »). Un capitaine relancé sans la variable s'arrête aussitôt, sortie 64 : `VEILLE ARRÊTÉE`.
+
+**Iroki** : ses deux capitaines (un par personne) peuvent tourner ensemble une fois les scripts reposés. Son `boucle.sh` et son `passer.sh` ont divergé de ceux du plugin : reposer remplace ses versions par celles de 7.31.0. Son `CLAUDE.md` reçoit la phrase du fragment.
+
+## 7.30.0 — 2026-11-19
+
+### Ce qui change
+
+`fusionner` porte un script neuf et son banc, `scripts/meme-contenu.sh` et `scripts/meme-contenu.test.mjs`. Le calcul dit si deux sommets d'une PR, celui d'un verdict de relecture et celui qu'on juge, ne sont séparés que par des fusions de la cible et des commits d'index générés : `bash scripts/chaine/meme-contenu.sh <V> <T> <B>`, sorties 0 « même », 20 « différent », 21 « illisible » (69 quand un outil manque). Seul un index à `commande`, de chemin littéral, déclaré tel sur la cible et au sommet jugé, est dispensé ; un index sans commande, déclaré par motif, déclaré plus d'une fois ou couvert aussi par un motif se juge comme tout fichier, et le fichier de la liste des index toujours. Une fusion dont le conflit porte sur autre chose qu'un tel index n'est jamais « même » : le capitaine ne résout aucun conflit de code. Il demande **git ≥ 2.41** (`--attr-source`), bash ≥ 4, `jq`, `mktemp` et `rm`, et un dossier temporaire où écrire ; il ne lit pas le réseau et n'écrit rien dans le dépôt. Rien ne l'appelle encore : il prépare la relecture indépendante.
+
+### Ce qu'un projet fait pour en profiter
+
+Mettre à jour le plugin ; rien d'autre aujourd'hui : aucun script de la boucle ne change, le capitaine ne se relance pas. Le script et son banc arrivent dans `scripts/chaine/` à la prochaine fois que le projet rejoue `/maj-skills:fusionner poser`.
+
+À prévoir pour la suite : **un poste de capitaine ou de Relecteur dont le git est plus ancien que 2.41 rendra « illisible » (sortie 69) à chaque appel**. Relever `git --version` sur ces postes avant que le capitaine et le Relecteur n'appellent ce calcul. De même, **dans un dépôt superficiel** (le clone d'une session cloud, profondeur 50 par défaut), le calcul rend « illisible » et sa raison dit le remède, `git fetch --unshallow origin` : il n'approfondit rien lui-même, c'est à qui l'appelle de le faire une fois avant.
+
 ## 7.29.1 — 2026-11-19
 
 ### Ce qui change

@@ -106,7 +106,10 @@
 # dernière ligne est le motif, `fusionner` : titre, commitlint, revue, lien symbolique sur un index généré, base ; `fusionner` et `relancer` : tête gardée, develop, main, la branche par défaut ou un sujet) · 6 arbre de travail pas
 # propre (`fusionner`, `rafraichir`, `regrouper`, `relancer` : à nettoyer par qui lance, jamais un renvoi de la PR,
 # comme la sortie 6 de passer.sh) · 7 `fusionner` d'une PR fermée, en brouillon ou d'un sujet gelé (rien à
-# corriger : sautée) · 9 `carte <nom>` refusée, ou `geler`/`degeler` dont le push échoue deux fois (rien n'est poussé)
+# corriger : sautée) ; 7 aussi pour `fusionner` et `relancer` d'une sous-PR en passage chez un autre capitaine (son
+# commentaire marqué `<!-- capitaine:passage <id> <epoch> -->`, verrou du passage de github.sh), ou qui n'est plus éligible une fois
+# le verrou pris · 64 `fusionner` sans CAPITAINE_ID ou avec un CAPITAINE_ID mal formé ; `relancer` avec un CAPITAINE_ID mal
+# formé (sans lui, joué à la main par la session propriétaire : aucun verrou posé, et il le dit) · 9 `carte <nom>` refusée, ou `geler`/`degeler` dont le push échoue deux fois (rien n'est poussé)
 # 14 `livrer` : `gh` inutilisable ou lecture GitHub en échec, PR non ouverte, fichier de livraison écrit (ouvrir par l'outil GitHub MCP)
 # `fusionner`, `rafraichir`, `relancer`, `livrer` : 5 la branche a bougé pendant l'écriture, relancer ; `relancer` : 5 aussi sur une PR illisible (GitHub)
 # `fusionner` encore : la sous-PR a bougé pendant sa mise à jour, ses checks sont encore en cours après l'attente sur un
@@ -121,7 +124,8 @@
 # aucun renvoi · 11 push refusé par le distant sans trace du hook pre-push (tout geste qui pousse : `fusionner`,
 # `rafraichir`, `relancer`, `livrer`, `ouvrir`, `geler`, `degeler` ; la trace de husky 9 seule fait un refus du hook,
 # sortie 3), ou outil du capitaine en échec : aucun renvoi · 11 `clore` : origin ou GitHub illisible, ou suppression
-# non confirmée · 11 `relancer` : contrôle d'ascendance illisible, côté capitaine, aucun renvoi · `clore` : 3 suppression refusée par
+# non confirmée · 11 `fusionner`, `relancer` : verrou du passage non posé (écriture refusée), aucun renvoi ; ses
+# commentaires illisibles à la relecture sortent en 5 · 11 `relancer` : contrôle d'ascendance illisible, côté capitaine, aucun renvoi · `clore` : 3 suppression refusée par
 # un hook ou par le distant, 4 refus (pas livré, PR ouverte, carte, nom ou option), 5 le sommet a bougé · 69 jq absent du poste
 # Tout passe par l'API REST (`gh api`) : GraphQL est refusé depuis les sessions cloud. Depuis la
 # racine du dépôt ; sans argument, affiche cette aide.
@@ -821,9 +825,40 @@ est_livraison() {
   exit 1
 }
 
+# Verrou du passage (`prendre_passage` de github.sh) sur la sous-PR `<n>`, lue dans `<json>` : tenue par un autre
+# capitaine, sortie 7 ; commentaires illisibles à la relecture, sortie 5 (panne, aucun renvoi) ; commentaire non posé,
+# sortie 11 (côté capitaine, aucun renvoi). Une seule trappe EXIT, posée avant `prendre_passage`, le termine
+# à toute sortie, TERM et INT compris, même pendant sa pose ou sa relecture. Puis la PR relue : l'éligibilité a été lue avant le verrou, un autre capitaine a
+# pu finir son passage entre les deux ; fermée, en brouillon, `fusion-bloquée` posé, `à-fusionner` retiré (s'il y était)
+# ou sommet changé : sortie 7.
+verrouiller() {
+  local n=$1 lu=$2 statut relu raison
+  # Trappe posée avant le verrou : un TERM ou un INT pendant sa pose ou sa relecture le termine (signal pendant le
+  # POST, réponse perdue : finir_passage relit les commentaires et termine les marques vivantes du capitaine).
+  trap 'finir_passage' EXIT
+  trap 'exit 143' TERM
+  trap 'exit 130' INT
+  prendre_passage "$n" && statut=0 || statut=$?
+  case $statut in
+    0) ;;
+    1) sortir 7 "#$n $PASSAGE_MOTIF" ;;
+    3) sortir 5 "#$n : GitHub illisible à la lecture du verrou du passage (cause ci-dessus) : reprise au tour suivant, aucun renvoi" ;;
+    *) sortir 11 "#$n : verrou du passage non posé (cause ci-dessus), côté capitaine : sous-PR laissée dans la file, aucun renvoi" ;;
+  esac
+  relu=$(pr_json "$n") || sortir 5 "#$n : GitHub illisible à la relecture de la PR, verrou pris (cause ci-dessus) : reprise au tour suivant, aucun renvoi"
+  raison=$(jq -r --argjson lu "$lu" '[.labels[].name] as $l | ([$lu.labels[].name] | index("à-fusionner")) as $avait
+    | if .state != "open" then "non ouverte" elif .draft != false then "en brouillon"
+      elif ($l | index("fusion-bloquée")) != null then "label fusion-bloquée"
+      elif $avait != null and ($l | index("à-fusionner")) == null then "sans le label à-fusionner"
+      elif .head.sha != $lu.head.sha then "sommet changé" else "" end' <<<"$relu")
+  [ -z "$raison" ] || sortir 7 "#$n : PR plus éligible une fois le verrou pris ($raison) : sautée"
+}
+
 fusionner() {
   local n=${1:?numéro de la sous-PR}
   local pr base titre sommet longueur
+  capitaine_id_valide "${CAPITAINE_ID-}" ||
+    sortir 64 "CAPITAINE_ID absent ou mal formé (l'id de la session du capitaine, lettres, chiffres, - et _ : skill fusionner, « Mise en place ») : aucun passage"
   pr=$(pr_json "$n") || sortir 5 "#$n : GitHub illisible à la lecture de la PR (cause ci-dessus) : reprise au tour suivant, aucun renvoi"
   [ "$(jq -r .state <<<"$pr")" = open ] || sortir 7 "#$n n'est pas ouverte"
   [ "$(jq -r .draft <<<"$pr")" = false ] || sortir 7 "#$n est en brouillon"
@@ -858,6 +893,8 @@ fusionner() {
   # Lien symbolique sur un index généré ou son dossier, que la PR ajoute ou change : la régénération du capitaine
   # (mise à jour, avance, rafraichir) écrirait à travers lui.
   motif=$(liens_sur_index "$sommet" "origin/$base") || sortir 4 "#$n $motif"
+  # Avant le premier contrôle d'ascendance et avant le chemin de la PR de mise à jour : un seul passage à la fois.
+  verrouiller "$n" "$pr"
 
   local tete
   tete=$(jq -r .head.ref <<<"$pr")
@@ -916,6 +953,7 @@ fusionner() {
   controler
   [ "${verdict%%$'\n'*}" = à-jour ] || mettre_a_jour
   for tour in 1 2 3; do
+    rafraichir_passage
     rouges=$(attendre_ci "$n" "$sommet") && statut=0 || statut=$?
     case $statut in
       0) ;;
@@ -1126,6 +1164,15 @@ relancer() {
   [[ "$base" == sujet/* ]] || sortir 4 "#$n vise $base, pas un sujet"
   refuser_tete_gardee "$n" "$pr"
   [ -z "$(git status --porcelain)" ] || sortir 6 "arbre de travail pas propre : committer ou ranger d'abord, puis relancer (rien à corriger côté PR)"
+  # Joué aussi à la main par la session propriétaire, qui n'est pas un capitaine : sans CAPITAINE_ID, aucun verrou (son
+  # push ne fait que relancer la CI) ; mal formé, refusé.
+  if [ -z "${CAPITAINE_ID-}" ]; then
+    echo "relancer sans CAPITAINE_ID : aucun verrou posé"
+  else
+    capitaine_id_valide "$CAPITAINE_ID" ||
+      sortir 64 "CAPITAINE_ID mal formé (l'id de la session du capitaine, lettres, chiffres, - et _) : aucune relance"
+    verrouiller "$n" "$pr"
+  fi
   # Refspecs explicites : un clone `--single-branch` ne met à jour aucune `origin/<branche>` sur un fetch nu.
   git_masque fetch -q origin "+refs/heads/develop:refs/remotes/origin/develop" \
     "+refs/heads/$base:refs/remotes/origin/$base" "+refs/heads/$tete:refs/remotes/origin/$tete"

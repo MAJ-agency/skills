@@ -45,8 +45,9 @@
 # (échéance) ». Une `--duree` plus longue ne repousse pas l'échéance. `VEILLE_LIMITE` (minutes, décimal
 # permis) remplace la limite de 120, pour les bancs seulement.
 #
-# Usage, en tâche de fond, depuis le worktree du capitaine, scripts copiés hors du worktree :
-#   bash <copie>/veille.sh [--pause <s>] [--duree <min>] [--marge <min>] [--sondes <n>] > <journal> 2>&1
+# Usage, en tâche de fond, depuis le worktree du capitaine, scripts copiés hors du worktree, `CAPITAINE_ID` (l'id de la
+# session du capitaine) en préfixe :
+#   CAPITAINE_ID=<id> bash <copie>/veille.sh [--pause <s>] [--duree <min>] [--marge <min>] [--sondes <n>] > <journal> 2>&1
 #   (défauts 120 s, 75 min, 40 min)
 # VEILLE FINIE ou VEILLE ARRÊTÉE réveille la session. `--duree` : un nombre positif, décimal permis ;
 # `--marge` : des minutes entières, sous la limite. Option invalide : sortie 64, l'option nommée.
@@ -54,6 +55,12 @@
 # compte des sondes sans dépendre de l'horloge. Défaut : pas de limite.
 # =============================================================================
 outils=$(cd "$(dirname "$0")" && pwd)
+# L'id de la session du capitaine (verrou de chaque passage, github.sh) : vérifié ici, pas deux minutes plus tard par la
+# boucle. Absent ou mal formé : sortie 64.
+[[ "${CAPITAINE_ID-}" =~ ^[A-Za-z0-9_-]{1,100}$ ]] || {
+  echo "VEILLE ARRÊTÉE $(date +%H:%M) : CAPITAINE_ID requis (l'id de la session du capitaine, skill fusionner § « Mise en place »)" >&2
+  exit 64
+}
 
 # Limite des tâches de fond de la plateforme (2 h), en minutes ; `VEILLE_LIMITE` pour les bancs.
 limite=${VEILLE_LIMITE:-120}

@@ -133,6 +133,11 @@ export function depotJouet() {
     TMPDIR: racine,
     FAUX_GH: faux,
     FAUX_GH_ORIGINE: origine,
+    // Le capitaine exige l'id de sa session (verrou du passage) : posé d'office, un banc qui teste son absence le retire.
+    CAPITAINE_ID: 'capitaine-banc',
+    // L'horloge du verrou du passage (github.sh) au jour des dates du faux, 2026-11-17T12:00:00Z : l'epoch que les
+    // scripts écrivent dans leurs marques se compare alors au `created_at` que le faux leur donne, comme sur GitHub.
+    PASSAGE_HORLOGE_BANC: String(Date.UTC(2026, 10, 17, 12, 0, 0) / 1000),
   };
   writeFileSync(join(faux, 'etat.json'), JSON.stringify({ pulls: [], checks: {}, exiges: [] }));
 

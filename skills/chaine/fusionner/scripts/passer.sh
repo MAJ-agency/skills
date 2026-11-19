@@ -57,7 +57,11 @@
 #      propriétaire : CODEOWNERS et « Require review from Code Owners » sur la base, vu à l'éligibilité ou au refus
 #      de fusion de GitHub, qui fait poser un commentaire marqué ; ou qui attend un humain : fusion déjà refusée
 #      ainsi, aucune revue APPROVED plus récente que ce commentaire) : la boucle la saute sans renvoi et la reprend
-#      au tour suivant
+#      au tour suivant ; ou en passage chez un autre capitaine (son commentaire marqué `<!-- capitaine:passage <id> <epoch> -->`,
+#      sans fin, daté de moins de 90 minutes, le plus tard de son epoch, s'il n'est pas en avance de plus de 5 minutes
+#      sur le sien, et de sa création ; jamais de gel : FILTRE_PASSAGE de github.sh ; posé avant le sien), sautée
+#      sans renvoi ; ou qui n'est plus éligible une fois le
+#      verrou pris (relue : fermée, label retiré, sommet changé)
 #   3  fusion refusée faute d'approbation d'un propriétaire et commentaire d'attente impossible à poser : la boucle
 #      s'arrête (ARRÊT, sortie 3), sans le repasser → lire la cause (droits du compte du capitaine), relancer
 #   5  GitHub illisible (lire_github : réponse vide, non JSON, corps d'erreur ou code non nul), à la lecture de la PR,
@@ -77,7 +81,16 @@
 #   12 fusionnée, mais arbre du squash ≠ arbre testé (ou squash introuvable) : commentaire marqué
 #      `<!-- arbre-different-capitaine -->` sur la PR, `à-fusionner` retiré, ligne `ARBRE DIFFÉRENT` ; la boucle
 #      s'arrête (ARRÊT), le capitaine le dit à son lanceur, un humain examine (`git diff <sommet testé> <squash>`)
+#   3  verrou du passage non posé (écriture du commentaire refusée) : la boucle s'arrête, jamais un passage sans
+#      verrou → lire la cause, relancer ; commentaires illisibles à sa relecture : 5 (panne, pause puis reprise)
+#   64 CAPITAINE_ID absent ou mal formé (l'id de la session du capitaine, `^[A-Za-z0-9_-]{1,100}$`), aucune lecture
+#      GitHub → le donner en préfixe de la commande (skill fusionner, « Mise en place »)
 #   69 jq absent du poste → l'installer (sudo apt install jq), relancer
+#
+# Verrou du passage (plusieurs capitaines sur la même file) : une fois la PR jugée éligible, `prendre_passage` (github.sh)
+# pose sur elle le commentaire « Passage du capitaine <id> », relit la PR, et une seule trappe EXIT le termine à toute
+# sortie, TERM et INT compris (`boucle.sh --arreter`), même pendant sa pose ou sa relecture ; il est rafraîchi au
+# début de chaque tour (étapes 2 à 5 bis).
 # Usage : bash scripts/chaine/passer.sh <numéro>
 # =============================================================================
 set -euo pipefail
@@ -99,6 +112,8 @@ GENERES=$(index_generes_regex) # scripts/docs/index-generes.json
 
 log() { printf '[#%s] %s\n' "$N" "$*"; }
 sortir() { log "$2"; exit "$1"; }
+capitaine_id_valide "${CAPITAINE_ID-}" ||
+  sortir 64 "CAPITAINE_ID absent ou mal formé (l'id de la session du capitaine, lettres, chiffres, - et _ : skill fusionner, « Mise en place ») : aucun passage"
 pr=$(pr_json "$N") || sortir 5 "GitHub illisible à la lecture de la PR (cause ci-dessus) : pause, puis reprise"
 champ() { jq -r "$1" <<<"$pr"; }
 
@@ -184,6 +199,33 @@ motif=$(liens_sur_index "$origine" origin/develop) || sortir 4 "$motif"
 # pour une PR directe ; les sous-PR vers un sujet passent par sujet.sh, hors de ce contrôle.
 motif=$(node "$PASSER_OUTILS/migrations-ordre.mjs" origin/develop "$origine") || sortir 4 "$motif"
 
+# ── Verrou du passage ───────────────────────────────────────────────────────
+# Après l'éligibilité, avant toute écriture : un autre capitaine qui tient la PR la fait sauter sans renvoi (7) ; une
+# lecture refusée est une panne (5) ; un commentaire non posé arrête (3) ; jamais un passage sans verrou.
+# Une seule trappe, posée AVANT le verrou : un TERM ou un INT pendant sa pose ou sa relecture le termine (finir_passage
+# ne fait rien sans commentaire ; un signal pendant le POST, réponse perdue, lui fait relire les commentaires et terminer
+# les marques vivantes du capitaine). Une seconde trappe remplacerait la première. TERM et INT passent par `exit`, donc
+# par elle.
+trap 'finir_passage; rm -f "${refus_fusion:-}" "${reponse_fusion:-}"' EXIT
+trap 'exit 143' TERM
+trap 'exit 130' INT
+prendre_passage "$N" && statut=0 || statut=$?
+case $statut in
+  0) ;;
+  1) sortir 7 "$PASSAGE_MOTIF" ;;
+  3) sortir 5 "GitHub illisible à la lecture du verrou du passage (cause ci-dessus) : pause, puis reprise" ;;
+  *) sortir 3 "verrou du passage non posé (cause ci-dessus) : la PR ne passe pas sans lui" ;;
+esac
+# L'éligibilité a été lue avant le verrou : un autre capitaine a pu finir son passage entre les deux (PR fusionnée,
+# label retiré, renvoyée). La PR relue doit l'être encore, au même sommet.
+pr_relu=$(pr_json "$N") || sortir 5 "GitHub illisible à la relecture de la PR, verrou pris (cause ci-dessus) : pause, puis reprise"
+raison=$(jq -r --arg s "$(champ .head.sha)" '[.labels[].name] as $l
+  | if .state != "open" then "non ouverte" elif .draft != false then "en brouillon"
+    elif ($l | index("à-fusionner")) == null then "sans le label à-fusionner"
+    elif ($l | index("fusion-bloquée")) != null then "label fusion-bloquée"
+    elif .head.sha != $s then "sommet changé" else "" end' <<<"$pr_relu")
+[ -z "$raison" ] || sortir 7 "PR plus éligible une fois le verrou pris ($raison) : sautée"
+
 # ── 2 à 5 bis. Mise à jour, index, push, CI, puis contrôle d'ascendance ───────
 # Trois tours au plus. Un tour met la PR à jour avec develop (2), régénère les index (3), pousse (4), attend la CI
 # exigée du sommet (5), puis relit develop et contrôle l'ascendance (5 bis, `ascendance` de github.sh) : la PR
@@ -193,6 +235,7 @@ motif=$(node "$PASSER_OUTILS/migrations-ordre.mjs" origin/develop "$origine") ||
 tour=0
 while :; do
   tour=$((tour + 1))
+  rafraichir_passage
   # ── 2. Mise à jour avec develop ───────────────────────────────────────────
   git switch -q -C "capitaine/$N" "$origine"
   fusion_en_cours=0
@@ -347,8 +390,7 @@ else
   corps() { git log --no-merges --reverse --format='%B' "$depart..$origine"; }
 fi
 refus_fusion=$(mktemp)
-reponse_fusion=$(mktemp)
-trap 'rm -f "$refus_fusion" "$reponse_fusion"' EXIT
+reponse_fusion=$(mktemp) # retirés par la trappe du verrou
 # Requête passée sur l'entrée standard : un corps long dépasserait la taille maximale d'un
 # argument. `sha` : GitHub refuse la fusion si le sommet n'est plus celui testé.
 corps |

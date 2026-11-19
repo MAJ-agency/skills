@@ -17,7 +17,11 @@ const SUJET = scriptDe("sujet", "sujet.sh");
 const BOUCLE = scriptDe("fusionner", "boucle.sh");
 const ADR = "docs/adr";
 const index = (...adr) => adr.map((f) => `- ${f}\n`).join("");
-const ecritures = (d) => d.journal().map((e) => `${e.methode} ${e.route}`);
+// Écritures sur GitHub, hors commentaires du verrou du passage (posé, rafraîchi, terminé ou retiré par chaque passage,
+// ticket 4 de capitaine-a-jour-et-teste) : les bancs du verrou les lisent dans le journal brut (`d.journal()`).
+const passage = (e) => (/^issues\/\d+\/comments$|^issues\/comments\/\d+$/.test(e.route) && (e.methode === "DELETE" || (e.champs?.body ?? "").includes("<!-- capitaine:passage ")));
+const horsPassage = (d) => d.journal().filter((e) => !passage(e));
+const ecritures = (d) => horsPassage(d).map((e) => `${e.methode} ${e.route}`);
 
 // Le sujet ajoute l'ADR 3, la sous-PR #80 l'ADR 2 (ou, avec `fichier`, un fichier de code en conflit). Sans
 // conflit (« aucun »), la sous-PR part du sujet : elle est à jour (le cas en retard est le banc « retard de
@@ -182,7 +186,7 @@ test("relancer : conflit hors index, sortie 2, fichiers listés, branche intacte
   assert.match(r.stdout, /^conflit avec sujet\/lot hors index générés :\n {2}docs\/f\.md$/m);
   d.git("fetch", "-q", "origin");
   assert.equal(d.git("rev-parse", "origin/docs/sous"), sommet, "branche distante intacte");
-  assert.deepEqual(d.journal(), [], "rien d'écrit");
+  assert.deepEqual(horsPassage(d), [], "rien d'écrit");
   assert.equal(d.git("status", "--porcelain"), "");
 });
 
@@ -276,7 +280,7 @@ test("boucle.sh : relancer refusé par le pre-push (trace de husky) sur un confl
   const avant = d.git("ls-remote", "origin", "refs/heads/docs/sous");
   const r = d.lancer(BOUCLE);
   assert.equal(r.status, 0, r.stdout + r.stderr);
-  const renvoi = d.journal().find((e) => e.methode === "POST" && e.route === "issues/80/comments");
+  const renvoi = horsPassage(d).find((e) => e.methode === "POST" && e.route === "issues/80/comments");
   assert.ok(renvoi, `renvoi posté : ${r.stdout}`);
   assert.match(renvoi.champs.body, /<!-- renvoi-capitaine -->/);
   assert.match(renvoi.champs.body, /le pre-push refuse le push de la mise à jour avec sujet\/lot\. Sortie du hook : .*pre-push jouet : refus du lint/);
@@ -299,7 +303,7 @@ test("boucle.sh : une sous-PR prête (en conflit) sur un index seul est mise à 
   c.publierChaine();
   const rc = c.lancer(BOUCLE);
   assert.equal(rc.status, 0, rc.stdout + rc.stderr);
-  const renvoi = c.journal().find((e) => e.methode === "POST" && e.route === "issues/80/comments");
+  const renvoi = horsPassage(c).find((e) => e.methode === "POST" && e.route === "issues/80/comments");
   assert.ok(renvoi, `renvoi posté : ${rc.stdout}`);
   assert.match(renvoi.champs.body, /<!-- renvoi-capitaine -->/);
   assert.match(renvoi.champs.body, /conflit avec sujet\/lot hors index générés : `docs\/f\.md`\. Fusionner sujet\/lot dans la branche et le résoudre/);
@@ -309,7 +313,7 @@ test("boucle.sh : une sous-PR prête (en conflit) sur un index seul est mise à 
   g.publierChaine();
   const rg = g.lancer(BOUCLE);
   assert.equal(rg.status, 0, rg.stdout + rg.stderr);
-  const renvoi2 = g.journal().find((e) => e.methode === "POST" && e.route === "issues/80/comments");
+  const renvoi2 = horsPassage(g).find((e) => e.methode === "POST" && e.route === "issues/80/comments");
   assert.ok(renvoi2, `renvoi posté : ${rg.stdout}`);
   assert.match(renvoi2.champs.body, /hors index générés : `docs\/f\.md`, `docs\/g\.md`\. Fusionner/);
 });
@@ -322,7 +326,7 @@ test("fusionner : worktree du capitaine pas propre, sortie 6 sans écriture, bra
   const r = d.lancer(SUJET, "fusionner", "80");
   assert.equal(r.status, 6, r.stdout + r.stderr);
   assert.match(r.stdout, /arbre de travail pas propre/);
-  assert.deepEqual(d.journal(), []);
+  assert.deepEqual(horsPassage(d), []);
   d.git("fetch", "-q", "origin");
   assert.equal(d.git("rev-parse", "origin/docs/sous"), sommet);
 });
@@ -335,7 +339,7 @@ test("rafraichir et regrouper : worktree du capitaine pas propre, sortie 6 sans 
     assert.equal(r.status, 6, args[0] + ": " + r.stdout + r.stderr);
     assert.match(r.stdout, /arbre de travail pas propre/);
   }
-  assert.deepEqual(d.journal(), []);
+  assert.deepEqual(horsPassage(d), []);
 });
 
 test("boucle.sh : worktree du capitaine pas propre, la sous-PR n'est pas renvoyée (PAS PROPRE, aucun label ni commentaire)", () => {
@@ -1191,7 +1195,7 @@ test("sujet.sh fusionner : GitHub illisible pendant l'attente de la CI de la sou
     assert.equal(r.status, 5, `${panne.route} : ${r.stdout}${r.stderr}`);
     assert.match(r.stdout, /GitHub illisible/, panne.route);
     assert.match(r.stderr, /GitHub illisible \(/, panne.route);
-    assert.deepEqual(d.journal(), [], `${panne.route} : ni squash, ni label, ni commentaire`);
+    assert.deepEqual(horsPassage(d), [], `${panne.route} : ni squash, ni label, ni commentaire`);
     d.git("fetch", "-q", "origin");
     assert.equal(d.git("rev-parse", "origin/docs/sous"), sommet);
   }
@@ -1271,6 +1275,80 @@ test("sujet.sh a-juger écrit les fichiers que fusionner juge : résolution et r
   const absent = o.lancer(SUJET, "a-juger", sous, "sujet/fantome", "82");
   assert.equal(absent.status, 11, absent.stdout + absent.stderr);
   assert.match(absent.stdout, /refs absentes/);
+});
+
+// ── Verrou du passage : plusieurs capitaines sur la même file (ticket 4 de capitaine-a-jour-et-teste) ──────────
+const marqueDe = (id) => `Passage du capitaine \`${id}\` depuis 12:00 UTC.\n<!-- capitaine:passage ${id} -->`;
+const brutes = (d) => d.journal().map((e) => `${e.methode} ${e.route}`);
+
+test("fusionner et relancer : une sous-PR en passage chez un autre capitaine est sautée (sortie 7), rien n'est poussé ; la boucle ne la renvoie pas", () => {
+  // fusionner : la sous-PR #80, en retard sur son sujet, serait mise à jour, poussée et squashée sans verrou.
+  const { d, ancien } = sousPrEnRetard({ "apps/a.ts": "export const a = 1;\n" });
+  const tenue = () => d.github({ pulls: d.etat().pulls.map((p) => ({ ...p, commentaires: [marqueDe("capitaine-jordan")] })) });
+  tenue();
+  let r = d.lancer(SUJET, "fusionner", "80");
+  assert.equal(r.status, 7, r.stdout + r.stderr);
+  assert.match(r.stdout, /^#80 en passage chez le capitaine capitaine-jordan depuis 2026-11-17T12:00:00Z : sautée sans renvoi$/m);
+  assert.deepEqual(brutes(d), ["POST issues/80/comments", "DELETE issues/comments/80002"]);
+  assert.equal(d.git("ls-remote", "origin", "refs/heads/feat/sous").split("\t")[0], ancien, "rien n'est poussé");
+
+  // relancer : la même sous-PR, en retard, serait mise à jour et poussée.
+  r = d.lancer(SUJET, "relancer", "80");
+  assert.equal(r.status, 7, r.stdout + r.stderr);
+  assert.match(r.stdout, /#80 en passage chez le capitaine capitaine-jordan/);
+  assert.equal(d.git("ls-remote", "origin", "refs/heads/feat/sous").split("\t")[0], ancien, "rien n'est poussé");
+
+  // La boucle : sautée, ni renvoyée ni étiquetée.
+  d.publierChaine();
+  tenue();
+  r = d.lancer(BOUCLE);
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /\[#80\] sous-PR non éligible \(fermée, en brouillon, ou en passage chez un autre capitaine\)/);
+  assert.doesNotMatch(r.stdout, /RENVOI/);
+  assert.ok(!ecritures(d).some((e) => /issues\/80\/(labels|comments)|pulls\/80\/merge/.test(e)), ecritures(d).join());
+  assert.deepEqual(d.etat().pulls[0].labels, ["à-fusionner"]);
+  assert.equal(d.git("ls-remote", "origin", "refs/heads/feat/sous").split("\t")[0], ancien, "rien n'est poussé");
+});
+
+test("fusionner : le commentaire du passage est rafraîchi à chaque tour d'attente de la CI", () => {
+  // La sous-PR part du sujet (à jour) ; le sujet reçoit un Markdown pendant la première attente : deux tours.
+  const d = depotJouet();
+  d.branche("sujet/lot", "origin/develop", { "docs/lot.md": "lot\n" }, "feat(lot): lot (#1)");
+  d.branche("feat/sous", "origin/sujet/lot", { "docs/sous.md": "sous\n" });
+  const markdown = d.branche("ailleurs", "origin/sujet/lot", { "docs/autre.md": "autre\n" });
+  d.git("switch", "-q", "--detach", "origin/develop");
+  d.github({
+    exiges: ["qualite"],
+    checks: { "*": { qualite: "SUCCESS" } },
+    pendantCi: [{ lectures: 1, branche: "sujet/lot", vers: markdown }],
+    pulls: [{ number: 80, title: "docs(lot): sous", head: "feat/sous", base: "sujet/lot", labels: ["à-fusionner"], body: "## Revue de ticket\n\nRien de bloquant.\n" }],
+  });
+  const r = d.lancer(SUJET, "fusionner", "80");
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /sujet\/lot a bougé pendant la CI : nouvelle mise à jour \(1 sur 2\)/);
+  const j = d.journal();
+  const put = j.findIndex((e) => e.route === "pulls/80/merge");
+  const tours = j.slice(0, put).filter((e) => e.methode === "PATCH" && e.route === "issues/comments/80001").map((e) => /, tour (\d+) :/.exec(e.champs.body)?.[1]);
+  assert.deepEqual(tours, ["1", "2"], "un rafraîchissement par tour, avant le squash");
+  assert.match(j.at(-1).champs.body, /terminé à \d\d:\d\d UTC\.\n<!-- capitaine:passage capitaine-banc \d{10} -->\n<!-- capitaine:fin -->/, "terminé à la sortie");
+});
+
+test("fusionner et relancer : la sous-PR relue une fois le verrou pris n'est plus éligible (fermée, label retiré) : sortie 7, rien n'est poussé, le commentaire terminé", () => {
+  for (const geste of ["fusionner", "relancer"]) {
+    for (const [apresCommentaire, raison] of [
+      [{ state: "closed" }, "non ouverte"],
+      [{ labels: [] }, "sans le label à-fusionner"],
+    ]) {
+      const { d, ancien } = sousPrEnRetard({ "apps/a.ts": "export const a = 1;\n" });
+      d.github({ apresCommentaire });
+      const r = d.lancer(SUJET, geste, "80");
+      assert.equal(r.status, 7, `${geste} ${raison} : ${r.stdout}${r.stderr}`);
+      assert.match(r.stdout, new RegExp(`#80 : PR plus éligible une fois le verrou pris \\(${raison}\\) : sautée`));
+      assert.equal(d.git("ls-remote", "origin", "refs/heads/feat/sous").split("\t")[0], ancien, "rien n'est poussé");
+      assert.deepEqual(brutes(d), ["POST issues/80/comments", "PATCH issues/comments/80001"], `${geste} ${raison}`);
+      assert.match(d.journal()[1].champs.body, /<!-- capitaine:fin -->/);
+    }
+  }
 });
 
 // ── Fusion sans effet (ticket 3 de capitaine-a-jour-et-teste, A-8) : develop dans un sujet (`rafraichir`) et un sujet
