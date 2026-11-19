@@ -192,12 +192,15 @@ test("le gabarit de programme porte ses sections et aucune ligne `Sujet:`", () =
 });
 
 // La carte de chantier : son gabarit porte la ligne `Gel:` (vide) dans la fiche et la section `## Journal`
-// où le conducteur écrit ses arrêts ; le gate des cartes n'exige ni l'une ni l'autre.
+// où le conducteur écrit ses arrêts ; le gate des cartes n'exige ni l'une ni l'autre. Il n'a plus de section
+// `## Rétro` (ticket 55 : le bilan de fin de chantier est supprimé) et nomme le rôle `relecture` sous `## Coût`.
 const CARTE = "skills/chaine/tickets/references/gabarits/carte.map.md";
-test("le gabarit de la carte de chantier porte `Gel:` dans sa fiche et la section `## Journal`", () => {
+test("le gabarit de la carte de chantier porte `Gel:` dans sa fiche et la section `## Journal`, nomme le rôle `relecture` sous `## Coût`, et n'a plus de section `## Rétro`", () => {
   const texte = readFileSync(join(RACINE, CARTE), "utf8");
   assert.ok(lignes(section(texte, "Fiche")).includes("Gel:"), `${CARTE} : la fiche porte la ligne Gel: vide`);
   assert.ok(titres(texte).includes("## Journal"), `${CARTE} : section ## Journal`);
+  assert.deepEqual(titres(texte), ["## Fiche", "## Decisions-so-far", "## Fog", "## Vagues", "## Coût", "## Dépassements", "## Journal"], `${CARTE} : ses sections, sans ## Rétro`);
+  assert.ok(lignes(section(texte, "Coût")).some((l) => /^<!-- Rôles : fille, conducteur, architecte, capitaine, relecture \(/.test(l)), `${CARTE} : la section ## Coût nomme ses rôles, relecture compris`);
 });
 
 // Un skill propre au projet (`P-21`) se commite sans `git add -f` : le gabarit ne l'ignore pas.
@@ -1315,7 +1318,7 @@ const DISENT_LE_RETRAIT = new Map([
     ],
   ],
 ]);
-const DE_CODEOWNERS = /code[ _-]?owners?|\bproprietaires\b|attend(ent)? un propriétaire|approbation d['’]un propriétaire|revue des propriétaires|propriétaires? du code|chemin possédé|tenu par GitHub|attente-revue-capitaine|attend_humain/i;
+const DE_CODEOWNERS = /code[\s_-]*owners?|\bproprietaires\b|attend(ent)? un propriétaire|approbation d['’]un propriétaire|revue des propriétaires|propriétaires? du code|chemin possédé|tenu par GitHub|attente-revue-capitaine|attend_humain/i;
 const deCodeowners = (ligne) => DE_CODEOWNERS.test(ligne);
 // Les mentions fautives d'un fichier : ses passages admis doivent y être, une fois chacun ; eux retirés, plus aucune
 // ligne ne doit être reconnue par le lecteur.
@@ -1327,6 +1330,8 @@ const mentionsFautives = (fichier, texte, passages = []) => {
     texte = texte.split(p).join("");
   }
   lignes(texte).forEach((l, i) => deCodeowners(l) && fautes.push(`${fichier}:${i + 1}`));
+  // Une mention coupée par une fin de ligne (LF ou CRLF) se lit d'un seul tenant sur le texte entier, blancs réduits.
+  if (fautes.length === 0 && deCodeowners(texte.replace(/\s+/g, " "))) fautes.push(`${fichier} : mention à cheval sur deux lignes`);
   return fautes;
 };
 
@@ -1344,6 +1349,20 @@ test("lecteur des mentions de CODEOWNERS : entrées piégées", () => {
   assert.equal(mentionsFautives("f", `- ${admis}\n- ${admis}\n`, [admis]).length, 1, "passage répété");
   assert.equal(mentionsFautives("f", "a\n- avec « Require review from Code Owners »\n", [admis]).length, 2, "passage absent, mention hors de lui");
   assert.deepEqual(mentionsFautives("f", "a\n.github/CODEOWNERS\n"), ["f:2"]);
+  // Plusieurs blancs, une espace insécable, une tabulation entre les deux mots : la mention reste lue (ticket 55).
+  for (const l of ["Require review from Code  Owners", "Require review from Code\u00a0Owners", "code\towners", "code -_ owner"]) assert.equal(deCodeowners(l), true, JSON.stringify(l));
+  // À cheval sur deux lignes, en LF comme en CRLF : lue sur le texte entier, blancs réduits, et dite.
+  const cheval = "f : mention à cheval sur deux lignes";
+  assert.deepEqual(mentionsFautives("f", "a\n- cocher « Require review from Code\nOwners »\n"), [cheval]);
+  assert.deepEqual(mentionsFautives("f", "a\r\n- une PR qui touche un chemin\r\npossédé\r\n"), [cheval]);
+  assert.deepEqual(mentionsFautives("f", "a\n- elle attend\nun propriétaire\n"), [cheval]);
+  // Fins de ligne CRLF, dernière ligne sans fin de ligne : la ligne fautive est nommée, un passage admis passe.
+  assert.deepEqual(mentionsFautives("f", "a\r\n.github/CODEOWNERS\r\nb\r\n"), ["f:2"]);
+  assert.deepEqual(mentionsFautives("f", "a\nb\npnpm codeowners"), ["f:3"]);
+  assert.deepEqual(mentionsFautives("f", `a\r\n- ${admis} ; b\r\n`, [admis]), []);
+  assert.deepEqual(mentionsFautives("f", `a\n- ${admis}`, [admis]), []);
+  // Deux lignes voisines sans mention ne s'en fabriquent pas une.
+  assert.deepEqual(mentionsFautives("f", "le code\nouvre la session propriétaire\r\nb"), []);
 });
 
 test("CODEOWNERS n'est plus nommé que là où le plugin dit qu'il est retiré", () => {
@@ -1526,4 +1545,50 @@ test("verdict de contre-relecture : la règle est dite dans le prompt de la sess
   assert.ok(s7.includes("un verdict `non conforme`") && s7.includes(second), "SKILL.md § 7 ne porte pas les deux cas d'arrêt");
   assert.ok(ligne.includes(second), "la ligne « contre-relit lui-même » ne porte pas le second cas d'arrêt");
   assert.ok(ligne.includes("Il écrit son verdict avant l'ordre, jamais après"), "la ligne « contre-relit lui-même » ne dit pas que le verdict précède l'ordre");
+});
+
+// Le bilan de fin de chantier est supprimé (ticket 55 ; décision du produit du 2026-11-18, sans rien à la place) :
+// les textes qui le demandaient ne nomment plus de rétro, et disent qu'un incident donne un ticket quand il arrive.
+// Le gabarit de ticket montre les deux lignes que le gate accepte sans les exiger.
+const SANS_RETRO = [
+  `${SKILLS_CHAINE}/chantier/SKILL.md`,
+  `${SKILLS_CHAINE}/chantier/references/CONTENU.md`,
+  `${REF}/docs-agents/chaine-de-production.md`,
+  `${REF}/docs-agents/pieges.md`,
+  `${REF}/CONTENU.md`,
+  "skills/chaine/tickets/references/gabarits/carte.map.md",
+  "README.md",
+];
+test("le bilan de fin de chantier est supprimé : plus aucune rétro dans les textes du conducteur, un incident donne un ticket au moment où il arrive", () => {
+  for (const f of SANS_RETRO) {
+    const fautes = lignes(readFileSync(join(RACINE, f), "utf8")).flatMap((l, i) => (/rétro/i.test(l) ? [`${f}:${i + 1}`] : []));
+    assert.deepEqual(fautes, [], `le bilan de fin de chantier est supprimé : ${fautes.join(" ; ")}`);
+  }
+  exiger(`${SKILLS_CHAINE}/chantier/SKILL.md`, [
+    "## 7. Phase 5 — livraison (`Phase: 5-livraison`), phase 6 — nettoyage (`Phase: 6-nettoyage`, puis `Phase: fini`)",
+    "**Aucun bilan de fin de chantier** : un incident (un renvoi, une vague ratée) donne un ticket au moment où il arrive — un gate, un critère de `revue-adversariale` — ou, faute de gate, une ligne de `docs/agents/pieges.md` ; vécu deux fois sans gate, il est signalé au produit.",
+  ]);
+  exiger(`${REF}/docs-agents/chaine-de-production.md`, [
+    "──► vagues de filles ──► sujet livré (produit,",
+    "7. **Un incident donne un ticket au moment où il arrive.** Chaque renvoi du capitaine et chaque échec de vague donne, sur le moment, un ticket (un gate, un critère de la revue adversariale) ou, faute de gate, une ligne de `pieges.md`. Il n'y a pas de bilan de fin de chantier. Un piège vécu deux fois sans gate est une dette.",
+  ]);
+  exiger(`${REF}/docs-agents/pieges.md`, [
+    "Un incident qui n'a pas encore son gate reçoit ici sa ligne au moment où il arrive, avec son ticket (skill `chantier` § 7) : il n'y a pas de bilan de fin de chantier.",
+  ]);
+  // La note de version le dit, sans numéro : la version est la suivante de `main` au moment de livrer.
+  exiger("NOTES-DE-VERSION.md", [
+    "Le bilan de fin de chantier est supprimé (décision du produit du 2026-11-18), sans rien à la place :",
+    "Le gate `tickets` juge la forme de deux lignes d'en-tête qu'il ne lisait pas, sans les exiger :",
+  ]);
+});
+
+const GABARIT_TICKET = "skills/chaine/tickets/references/gabarits/ticket.issue.md";
+test("le gabarit de ticket montre `Sensibles:` et `Relecture: double` dans son en-tête, après `Label:`, chacune à retirer quand elle ne sert pas, et `Règles: —` pour un ticket sans règle", () => {
+  const enTete = lignes(readFileSync(join(RACINE, GABARIT_TICKET), "utf8").split(/^## /m)[0]);
+  const rang = (debut) => enTete.findIndex((l) => l.startsWith(debut));
+  const [label, sensibles, relecture, dependances] = ["Label: contre-revue", "Sensibles: ", "Relecture: double # ", "Dépendances: "].map(rang);
+  assert.ok(label >= 0 && sensibles === label + 1 && relecture === label + 2 && dependances === label + 3, `${GABARIT_TICKET} : Label, Sensibles, Relecture, Dépendances, dans cet ordre`);
+  assert.match(enTete[sensibles], /^Sensibles: `\{\{chemin ou motif\}\}`, `\{\{chemin ou motif\}\}` — accord de \{\{la personne qui a accordé\}\}, \{\{AAAA-MM-JJ\}\} # .*ou `—` s'il n'en modifie aucun.*sans exiger la ligne.*ou retirer la ligne$/);
+  assert.match(enTete[relecture], /^Relecture: double # .*seule valeur acceptée par le gate `tickets`, qui n'exige pas la ligne.*sinon retirer la ligne$/);
+  assert.match(enTete[rang("Règles: ")], /; `—` seul s'il n'en réalise aucune ; ou retirer la ligne\}\}$/, `${GABARIT_TICKET} : Règles: — pour un ticket sans règle`);
 });

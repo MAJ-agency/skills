@@ -64,6 +64,21 @@ test("le bilan compte les tickets distincts des filles et leur coût moyen, hors
   assert.deepEqual(bilan(c), { total: 20, filles: 10, tickets: 2, parTicket: 5 });
 });
 
+test("une session de relecture compte dans le total et les sessions, pas dans les filles ni dans les tickets", () => {
+  const c = lireCarte(
+    "docs/f/all/SPEC_ALL_SOC-9-demo.map.md",
+    carte("demo", [
+      ["fille", "SPEC_ALL_SOC-9.01", "s1", "sonnet", "200 k", "3,00"],
+      ["relecture", "SPEC_ALL_SOC-9.01", "s2", "sonnet", "90 k", "1,50"],
+      ["relecture", "SPEC_ALL_SOC-9.02", "s3", "sonnet", "80 k", "0,50"],
+    ]),
+  );
+  assert.deepEqual(bilan(c), { total: 5, filles: 3, tickets: 1, parTicket: 3 });
+  const md = plat(enMarkdown([c]));
+  assert.match(md, /\*\*Total : 5,00 \$\*\* sur 3 session\(s\) et 1 chantier\(s\)\. Filles : 3,00 \$ pour 1 ticket\(s\), soit 3,00 \$ par ticket\./);
+  assert.match(md, /\| demo \| relecture \| SPEC_ALL_SOC-9\.01 \| s2 \| sonnet \| 90 k \| 1,50 \|/);
+});
+
 test("une carte sans section Coût ni Sujet garde le nom de son fichier et n'apparaît pas au registre", () => {
   const vide = lireCarte("docs/f/all/SPEC_ALL_SOC-8-vide.map.md", "# Carte\n\nPhase: 1-grilling\n");
   assert.equal(vide.chantier, "SPEC_ALL_SOC-8-vide");

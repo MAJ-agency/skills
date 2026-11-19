@@ -14,9 +14,9 @@
  *      (sections « Réserver un ticket », « Un ticket prêt pour agent », « Archivage » ; valeurs
  *      `en cours — <branche>` et `Fait — PR #<n>`) : rejouer setup-matt-pocock-skills les écrase,
  *   4. la fiche d'une carte de chantier (`docs/**\/*.map.md` à ligne `Sujet:`) : `Phase:`, `Responsable:`
- *      (une personne, pas un identifiant `session_…`), `Conducteur:`, `## Coût` dès `4-vague-1`, `## Rétro`
- *      à `fini` ; une ligne de `## Coût` au-delà du plafond de son rôle (`plafonds` de `.claude/chaine.json`,
- *      l'égalité compte : `fille` 400 k tokens, `conducteur` 400 k tokens, le coût ne se juge pas ; l'`architecte` n'a pas de plafond) exige une
+ *      (une personne, pas un identifiant `session_…`), `Conducteur:`, `## Coût` dès `4-vague-1` (aucune section
+ *      `## Rétro` n'est exigée, pas même à `fini`) ; une ligne de `## Coût` au-delà du plafond de son rôle (`plafonds` de `.claude/chaine.json`,
+ *      l'égalité compte : `fille` 400 k tokens, `conducteur` 400 k tokens, le coût ne se juge pas ; l'`architecte` n'a pas de plafond, tout autre rôle, `relecture` compris, n'est pas jugé) exige une
  *      ligne de `## Dépassements` pour la même session (sans contrat, aucun plafond ; une carte gelée n'est pas
  *      jugée sur ses dépassements) ; `Architecte:` est facultative. Une carte d'avant ces deux lignes, gelée
  *      dans la clé `fiches` de la dette, écrite une seule fois (`--geler-fiches`), garde l'ancienne règle :
@@ -32,10 +32,13 @@
  *      la fiche ; une carte `fini` ne réserve plus) ;
  *   9. `Type:` ∈ task, défaut, grilling, research ; absente, elle n'est tolérée que pour un ticket gelé
  *      dans la clé `types` de la dette, écrite une seule fois, à l'arrivée du gate (`--geler-types`) ;
- *  10. `Règles:`, si la ligne est là, cite au moins une règle, chacune `RULE_<CTX>_<TRI>-<n>` ayant son
+ *  10. `Règles:`, si la ligne est là, vaut `—` (aucune règle) ou cite au moins une règle, chacune `RULE_<CTX>_<TRI>-<n>` ayant son
  *      fichier `docs/metier/regles/<ctx>/RULE_….md`, du contexte du ticket ou de `ALL` ;
  *  11. un `Type: défaut` à `Fait — PR #n` nomme dans la colonne « Preuve » de `## Surfaces` des tests
- *      (`fichier.test.ts` « titre ») qui existent dans les fichiers de tests suivis et sont actifs.
+ *      (`fichier.test.ts` « titre ») qui existent dans les fichiers de tests suivis et sont actifs ;
+ *  12. `Sensibles:`, si la ligne est dans l'en-tête, vaut `—` ou des chemins (ou des motifs) séparés par des
+ *      virgules puis ` — accord de <nom>, <AAAA-MM-JJ>` : la forme seule est jugée, la ligne n'est jamais exigée ;
+ *  13. `Relecture:`, si la ligne est dans l'en-tête, vaut `double` ; elle n'est jamais exigée.
  *
  * Usage : node scripts/verify/tickets.mjs [--elaguer | --geler-types | --geler-fiches]   (pnpm check:tickets — CI)
  * Sortie 2 : `scripts/docs/identifiants.mjs` absent (posé par `socle-monorepo`).

@@ -173,6 +173,11 @@ const SUJET = /^Sujet\s*:\s*(.*)$/;
 const MODELE = /^Modèle\s*:\s*(.*)$/;
 const CHAUDS = /^Fichiers chauds\s*:\s*(.*)$/;
 const LABEL = /^Label\s*:\s*(.*)$/;
+// `Sensibles:` et `Relecture:` se lisent sous toutes les formes que lit le calcul « double relecture exigée » du
+// skill `fusionner` (`A-113`) : `X:`, `**X:**`, `- X:`, `* X:`, sans égard à la casse. Une ligne qu'il lit, le gate la juge.
+const ligneDEnTete = (nom) => new RegExp(`^(?:[-*][ \\t]+)?\\**${nom}\\**\\s*:\\**\\s*(.*)$`, 'i');
+const SENSIBLES = ligneDEnTete('Sensibles');
+const RELECTURE = ligneDEnTete('Relecture');
 
 export const VOCABULAIRE = ['needs-triage', 'needs-info', 'ready-for-agent', 'ready-for-human', 'wontfix', 'en cours — <branche>', 'Fait — PR #<n>'];
 
@@ -342,7 +347,7 @@ export function contexteEnTokens(texte) {
  * Plafonds de `## Coût` : une ligne dont le rôle est jugé (`fille`, `conducteur` ; pas `architecte`, P-25) qui
  * atteint son plafond de contexte (l'égalité compte) exige une ligne dans `## Dépassements` pour la même
  * session. Le coût ne se juge pas : la colonne « Coût $ » n'est pas lue ici.
- * Tout autre rôle n'est pas jugé ; une cellule « Contexte max » vide, `—`, `à relever` ou au gabarit
+ * Tout autre rôle n'est pas jugé (`capitaine`, `relecture` : une session de relecture d'une PR) ; une cellule « Contexte max » vide, `—`, `à relever` ou au gabarit
  * non plus ; toute autre forme illisible sur un rôle jugé est une erreur de la carte.
  */
 function plafondsDeLaCarte({ nom, lignes, corps, plafonds }) {
@@ -427,12 +432,68 @@ export function ecartsFormatPret(texte, cheminsSensibles = []) {
   return ecarts;
 }
 
+/** La valeur sans son commentaire de gabarit (` # …`), comme sur `Type:`. Recherche d'un motif de deux caractères : linéaire. */
+const sansCommentaire = (valeur) => {
+  const i = valeur.search(/\s#/);
+  return (i === -1 ? valeur : valeur.slice(0, i)).trim();
+};
+
+/** `AAAA-MM-JJ` d'un jour qui existe (`2026-02-30` n'en est pas un). */
+const dateValide = (date) => {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return false;
+  const jour = new Date(`${date}T00:00:00Z`);
+  return !Number.isNaN(jour.getTime()) && jour.toISOString().slice(0, 10) === date;
+};
+
+const ACCORD = ' — accord de ';
+
 /**
- * Écarts de la ligne `Règles:` d'un ticket. Absente : rien à vérifier. Présente, elle cite au moins une
+ * Écarts de la ligne `Sensibles:` d'un ticket : les chemins sensibles qu'il modifie et l'accord donné avant.
+ * Deux formes : `—` seul (aucun chemin sensible), ou des chemins ou des motifs séparés par des virgules, entre
+ * accents graves ou nus, puis ` — accord de <nom>, <AAAA-MM-JJ>`. Seule la forme est jugée : ni que le chemin est
+ * déjà dans `cheminsSensibles` (un ticket peut nommer le dossier qu'un ticket précédent rendra sensible), ni que
+ * l'accord a été donné. La ligne n'est jamais exigée. Lecture par découpes de chaîne : linéaire.
+ */
+export function ecartsSensibles(valeur) {
+  const v = sansCommentaire(valeur);
+  if (v === '—') return [];
+  const forme = 'attendu `—`, ou des chemins séparés par des virgules puis ` — accord de <nom>, <AAAA-MM-JJ>`';
+  const i = v.indexOf(ACCORD);
+  const accord = i === -1 ? '' : v.slice(i + ACCORD.length);
+  const j = accord.lastIndexOf(',');
+  if (i <= 0 || j <= 0) return [`Sensibles « ${v} » : ${forme}`];
+  const ecarts = [];
+  for (const brut of v.slice(0, i).split(',')) {
+    const c = brut.trim().replace(/^`([^`]*)`$/, '$1').trim();
+    // Retouche A-156 (C4) : ni `\` (un chemin Windows, ou `..` caché derrière), ni `~` initial (le dossier personnel).
+    if (c === '' || /[\s`{}\\]/.test(c) || c === '—' || c.startsWith('/') || c.startsWith('~') || c.split('/').includes('..'))
+      ecarts.push(`Sensibles : « ${brut.trim()} » n'est pas un chemin ni un motif relatif à la racine du dépôt (sans blanc, sans \`/\` ni \`~\` initial, sans \`\\\`, sans \`..\`) ; ${forme}`);
+  }
+  const nom = accord.slice(0, j).trim();
+  const date = accord.slice(j + 1).trim();
+  // Retouche A-156 (C4) : ni un tiret seul ni deux accords (`—` dans le nom), ni un identifiant de session à toute
+  // casse, nu ou au bout d'une URL.
+  if (nom === '' || nom.includes('—') || /(^|[/:])session_/i.test(nom) || /[<>{}]/.test(nom))
+    ecarts.push(`Sensibles : accord de « ${nom} » : attendu la personne qui a accordé, pas un identifiant de session ni un gabarit`);
+  // Retouche A-156 (C4) : un jour qui existe, et de l'ère de la chaîne (an 2000 à 2999) : ni `0000-01-01` ni `9999-12-31`.
+  const an = Number(date.slice(0, 4));
+  if (!dateValide(date) || an < 2000 || an > 2999) ecarts.push(`Sensibles : date « ${date} » : attendu le jour de l'accord, AAAA-MM-JJ`);
+  return ecarts;
+}
+
+/** Écarts de la ligne `Relecture:` d'un ticket : seule valeur `double` (deux relectures indépendantes). Jamais exigée. */
+export function ecartsRelecture(valeur) {
+  return sansCommentaire(valeur) === 'double' ? [] : [`Relecture « ${valeur} » : seule valeur \`double\` ; sinon retirer la ligne`];
+}
+
+/**
+ * Écarts de la ligne `Règles:` d'un ticket. Absente : rien à vérifier. `Règles: —`, seul : le ticket dit lui-même
+ * qu'il ne réalise aucune règle (`A-117`), rien à vérifier. Sinon elle cite au moins une
  * règle, chacune bien formée, existante (`regleExiste(id)`) et du contexte du ticket ou de `ALL`.
  * `contexte` : celui de l'identifiant du ticket, `null` s'il est illisible (seul `ALL` est alors sûr).
  */
 export function ecartsRegles(valeur, { contexte, regleExiste }) {
+  if (valeur === '—') return [];
   const { cites, malformes } = reglesCitees(valeur);
   const ecarts = malformes.map(
     (m) => `Règles cite « ${m} », qui n'est pas un identifiant de règle complet (\`RULE_<CTX>_<TRI>-<n>\`, \`RULE_ALL_LIC-3\`) ; rien d'autre sur la ligne`,
@@ -515,6 +576,14 @@ export function controlerTicket({
   const sujet = chercher(lignes, SUJET);
   if (sujet && !/^sujet\/[a-z0-9]+(?:-[a-z0-9]+)*(?:\s|$)/.test(sujet.valeur))
     erreurs.push({ ligne: sujet.ligne, message: `Sujet « ${sujet.valeur} » : attendu \`sujet/<nom-en-kebab>\`` });
+  // Lues dans l'en-tête seul, chaque ligne : un exemple cité dans le corps du ticket n'est pas la ligne.
+  tete(lignes).forEach((brute, i) => {
+    const l = brute.replace(/\r$/, '');
+    const sensibles = SENSIBLES.exec(l);
+    if (sensibles) for (const e of ecartsSensibles(sensibles[1].trim())) erreurs.push({ ligne: i + 1, message: e });
+    const relecture = RELECTURE.exec(l);
+    if (relecture) for (const e of ecartsRelecture(relecture[1].trim())) erreurs.push({ ligne: i + 1, message: e });
+  });
   const pret = status?.valeur === 'ready-for-agent';
   if (pret && !gele) {
     for (const e of ecartsFormatPret(texte, cheminsSensibles))
@@ -578,10 +647,6 @@ export function controlerCarte({ nom, texte, ficheGelee = false, plafonds = null
   if (m && !corps.has('Coût')) erreurs.push({ ligne: phase.ligne, message: `carte ${nom} : section \`## Coût\` absente (obligatoire dès 4-vague-1)` });
   // Plafonds : pas de contrat (`plafonds` null) ou carte gelée d'avant les rôles, rien n'est jugé.
   if (plafonds && !ficheGelee && corps.has('Coût')) erreurs.push(...plafondsDeLaCarte({ nom, lignes, corps, plafonds }));
-  if (phase && /^fini(\s|$)/.test(phase.valeur)) {
-    const retro = corps.get('Rétro');
-    if (!retro || retro.length === 0) erreurs.push({ ligne: phase.ligne, message: `carte ${nom} : section \`## Rétro\` absente ou vide (obligatoire à \`fini\`)` });
-  }
   const migrations = chercher(lignes, MIGRATIONS);
   if (migrations && !formeMigrations(migrations.valeur))
     erreurs.push({
