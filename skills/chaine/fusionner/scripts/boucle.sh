@@ -7,12 +7,16 @@
 # (refus.sh) ; une PR non éligible sans correction possible (sortie 7, dont « attend un propriétaire » :
 # CODEOWNERS) est sautée sans renvoi ; une PR sans CI déclenchée (sortie 3, déjà à jour,
 # rien à pousser) est mise de côté jusqu'à la prochaine fusion, dont la mise à jour la poussera
-# et lancera sa CI. La sortie 5 (develop ou la PR a bougé, ou commentaire d'attente d'un propriétaire impossible
-# à poser : passer.sh)
-# a droit à un second essai. Un conflit (sortie 2) renvoie la PR ; des checks rouges au
-# passage (sortie 3) la laissent rouge dans la file : relance au tour suivant, puis renvoi.
-# Tout autre code arrête la boucle (gates des registres, install, CI bloquée) : le capitaine
-# traite, puis relance.
+# et lancera sa CI. La sortie 5 (develop ou la PR a bougé, ou GitHub illisible : passer.sh) a droit à un second
+# essai immédiat ; un second 5 met la boucle en PAUSE (`BOUCLE_PAUSE` secondes, 120 par défaut), puis elle reprend au
+# tour suivant, qui relit l'arrêt, l'échéance et les scripts de develop : une sortie 5 ne l'arrête jamais. Une file
+# illisible (`file.sh` en 5) est une PAUSE aussi, jamais une file vide ; `file.sh` en échec sous un autre code arrête
+# la boucle (sortie 6). Un conflit (sortie 2) renvoie la PR ; des checks rouges au
+# passage (sortie 3) la laissent rouge dans la file : relance au tour suivant, puis renvoi. Un push refusé par le
+# hook pre-push (sortie 3, trace de husky) renvoie la PR à sa session avec la sortie du hook ; un push refusé par le
+# distant (sortie 3, sans trace) arrête la boucle, sans renvoi.
+# Tout autre code arrête la boucle (gates des registres, install, CI bloquée, commentaire d'attente impossible à
+# poser) : le capitaine traite, puis relance.
 #
 # Branches de sujet : à chaque tour, avant la PR suivante vers develop,
 # `traiter_sujets` regroupe d'office les séries par spec et les piles (`sujet.sh
@@ -207,6 +211,20 @@ arret_signal() {
 trap 'arret_signal 143' TERM
 trap 'arret_signal 130' INT
 
+# Pause sur GitHub illisible (sortie 5) : `BOUCLE_PAUSE` secondes, entier, 120 par défaut (la sonde de la veille).
+PAUSE=${BOUCLE_PAUSE:-120}
+[[ "$PAUSE" =~ ^[0-9]+$ ]] || PAUSE=120
+# La ligne PAUSE nomme la cause : la dernière ligne `GitHub illisible (<route>) : <cause>` de lire_github lue dans `<fichier>`
+# (route et code HTTP tels que gh les écrit, `(HTTP 401)` d'un jeton expiré compris : décision A-51).
+# Ancrée en début de ligne : lire_github l'écrit ainsi, et une sortie de hook relayée est préfixée `[git push …]`.
+cause_lue() { grep -a '^GitHub illisible (' "$1" 2>/dev/null | tail -n 1 | tr -d '\r'; }
+mettre_en_pause() { # <préfixe> <motif> [<fichier où lire la cause>]
+  local cause=''
+  [ -z "${3:-}" ] || cause=$(cause_lue "$3")
+  echo "$1 $(date +%H:%M) $2${cause:+ ; cause : $cause}, reprise dans $PAUSE s"
+  sleep "$PAUSE"
+}
+
 arret_outils() { echo "ARRÊT : $1 : jouer des scripts périmés est pire qu'attendre, le capitaine traite puis relance" >&2; exit 6; }
 
 rafraichir_outils() {
@@ -322,6 +340,9 @@ traiter_sujets() {
           2) bash "$outils/renvoyer.sh" "$n" "conflit avec ${etat%%:*} : fusionner ${etat%%:*} dans la branche et le résoudre" ;;
           4) bash "$outils/refus.sh" "$n" "$sortie" ;; # tête gardée : renvoyée avec le motif
           6) echo "[#$n] PAS PROPRE : worktree du capitaine à nettoyer, sous-PR laissée dans la file (aucun renvoi)" ;;
+          5) echo "[#$n] REPRISE au tour suivant (sous-PR bougée ou GitHub illisible), aucun renvoi" ;;
+          # Push refusé par le distant, sans trace du hook : côté capitaine ou du distant, jamais un renvoi.
+          11) echo "[#$n] ÉCHEC DU CAPITAINE : sous-PR laissée dans la file (aucun renvoi), cause ci-dessus" ;;
         esac ;;
       sujet/*': prête')
         # Passé l'échéance, aucun `sujet.sh fusionner` (il peut attendre une CI) : le code remonte du sous-shell.
@@ -333,7 +354,7 @@ traiter_sujets() {
           # Checks rouges, conflit avec le sujet, hook : le motif est celui de sujet.sh, jamais un conflit supposé.
           3) bash "$outils/refus.sh" "$n" "$sortie" 3 ;;
           4) bash "$outils/refus.sh" "$n" "$sortie" ;; # corrigeable (titre, revue, base) : renvoyée
-          5) echo "[#$n] REPRISE au tour suivant (sous-PR ou sujet bougé, checks en cours), aucun renvoi" ;;
+          5) echo "[#$n] REPRISE au tour suivant (sous-PR ou sujet bougé, checks en cours, GitHub illisible), aucun renvoi" ;;
           # Worktree du capitaine sale : rien que l'auteur puisse corriger, jamais un renvoi.
           6) echo "[#$n] PAS PROPRE : worktree du capitaine à nettoyer, sous-PR laissée dans la file (aucun renvoi)" ;;
           7) echo "[#$n] sous-PR non éligible (fermée ou en brouillon)" ;;
@@ -341,7 +362,7 @@ traiter_sujets() {
           # Arbre du squash ≠ arbre testé : arrêt. Le `while` tourne dans le sous-shell du tube : le code remonte
           # après lui (PIPESTATUS), et la boucle sort en 12.
           12) echo "ARRÊT sur #$n (sortie 12) : arbre du squash ≠ arbre testé"; exit 12 ;;
-          # PR de mise à jour : un outil du capitaine en échec, rien que la session puisse corriger.
+          # Outil du capitaine en échec, ou push refusé par le distant : rien que la session puisse corriger.
           11) echo "[#$n] ÉCHEC DU CAPITAINE : sous-PR laissée dans la file (aucun renvoi), cause ci-dessus" ;;
           *) echo "[#$n] sous-PR non éligible (sortie $rc)" ;;
         esac ;;
@@ -356,9 +377,20 @@ traiter_sujets() {
   git switch -q --detach origin/develop 2>/dev/null || true
 }
 
+# Extrait de la sortie du hook pre-push, pour le renvoi : les huit dernières lignes préfixées `[git push …]`
+# (pousser, github.sh) avant « push refusé par le hook pre-push », préfixe et accents graves retirés, jointes par
+# « ; », coupées à 1 500 caractères, repassées par masquer_url : le commentaire est public.
+extrait_hook() {
+  local extrait
+  extrait=$(awk '/^push refusé par le hook pre-push/ { exit } /^\[git push [^]]*\] / { sub(/^\[git push [^]]*\] /, ""); l[++n] = $0 }
+    END { for (i = (n > 8 ? n - 7 : 1); i <= n; i++) printf "%s%s", (i > (n > 8 ? n - 7 : 1) ? " ; " : ""), l[i] }' "$1" | tr -d '`\r')
+  node -e 'process.stdout.write([...process.argv[1]].slice(0, 1500).join(""))' "$extrait" | masquer_url
+}
+
 # Sortie de passer.sh gardée pour lire la cause (fichiers en conflit, checks rouges).
 sortie=$(mktemp)
-trap 'rm -f "$sortie"' EXIT
+erreurs_file=$(mktemp)
+trap 'rm -f "$sortie" "$erreurs_file"' EXIT
 passer() {
   verifier_arret
   verifier_echeance
@@ -376,7 +408,16 @@ while :; do
   rafraichir_outils "$@"
   traiter_rouges
   traiter_sujets
-  n=$(bash "$outils/file.sh" | awk -F '\t' -v s="$sautees$attente_fusion" '!t && $2 ~ /^prête/ && $2 !~ /sur sujet\// && index(s, " " $1 " ") == 0 { print $1; t = 1 }')
+  # La file se lit avec son code : illisible (5), une pause puis le tour suivant ; un autre échec arrête la boucle.
+  # Jamais FILE VIDE sur un échec.
+  liste=$(bash "$outils/file.sh" 2>"$erreurs_file") && rc=0 || rc=$?
+  cat "$erreurs_file" >&2
+  case "$rc" in
+    0) ;;
+    5) mettre_en_pause PAUSE "(file.sh, sortie 5) : file illisible" "$erreurs_file"; continue ;;
+    *) echo "ARRÊT : file.sh en échec (sortie $rc) : le capitaine traite, puis relance"; exit 6 ;;
+  esac
+  n=$(printf '%s\n' "$liste" | awk -F '\t' -v s="$sautees$attente_fusion" '!t && $2 ~ /^prête/ && $2 !~ /sur sujet\// && index(s, " " $1 " ") == 0 { print $1; t = 1 }')
   [ -n "$n" ] || break
   echo "[#$n] DÉBUT $(date +%H:%M)"
   passer "$n"
@@ -389,26 +430,37 @@ while :; do
     rc=$?
   fi
   if [ "$rc" = 5 ]; then
-    echo "[#$n] a bougé, second essai"
+    echo "[#$n] a bougé ou GitHub illisible, second essai"
     passer "$n"
     rc=$?
   fi
+  # La dernière ligne de passer.sh, préfixée `[#<n>] ` (son `sortir`) : seule elle décide de la suite.
+  derniere=$(grep -a "^\[#$n\] " "$sortie" | tail -n 1 | tr -d '\r')
   echo "[#$n] sortie=$rc $(date +%H:%M)"
   case "$rc" in
     0) attente_fusion=' ' ;;
+    # Develop ou la PR a bougé deux fois, ou GitHub illisible : pause, puis le tour suivant. Jamais un arrêt.
+    5) mettre_en_pause "[#$n] PAUSE" "(sortie 5) : $derniere" "$sortie" ;;
     2)
-      fichiers=$(awk '/conflit avec develop hors index générés/ { f = 1; next } f && /^  / { sub(/^  /, ""); printf "%s`%s`", (n++ ? ", " : ""), $0 }' "$sortie")
+      fichiers=$(awk -v d="[#$n] conflit avec develop hors index générés" 'index($0, d) == 1 { f = 1; next } f && /^  / { sub(/^  /, ""); printf "%s`%s`", (n++ ? ", " : ""), $0 }' "$sortie")
       # Renvoyée, la PR perd `à-fusionner` : elle sort de la file d'elle-même et y revient,
       # dans ce même tour, dès que sa session la corrige. Sautée seulement si le renvoi échoue.
       bash "$outils/renvoyer.sh" "$n" "conflit avec develop à la mise à jour (hors index générés et hors règle de pile) : $fichiers. Fusionner develop dans la branche et le résoudre" ||
         sautees="$sautees$n " ;;
     3)
-      if grep -q 'checks exigés rouges' "$sortie"; then
+      # Classée sur la dernière ligne `[#<n>] ` (le `sortir` de passer.sh), jamais sur un motif cherché dans toute la
+      # sortie : celle d'un hook relayée peut porter ces messages (un pre-push qui joue les bancs en écrit les titres).
+      if [[ "$derniere" == "[#$n] checks exigés rouges"* ]]; then
         # Rouge sur le sommet poussé : `traiter_rouges` relance, puis renvoie au second échec.
         echo "[#$n] checks rouges au passage : relance au prochain tour"
-      elif grep -q 'CI non déclenchée' "$sortie"; then
+      elif [[ "$derniere" == *"CI non déclenchée"* ]]; then
         echo "[#$n] sans CI : de côté jusqu'à la prochaine fusion"
         attente_fusion="$attente_fusion$n "
+      elif [[ "$derniere" == "[#$n] push refusé par le hook pre-push"* ]]; then
+        # Trace de husky : le hook refuse la mise à jour, la PR est à corriger. Renvoyée avec la sortie du hook ;
+        # sautée si le renvoi échoue. Un refus du distant (sans trace) tombe dans l'ARRÊT ci-dessous.
+        bash "$outils/renvoyer.sh" "$n" "le pre-push refuse le push de la mise à jour avec develop. Sortie du hook : $(extrait_hook "$sortie")" ||
+          sautees="$sautees$n "
       else
         echo "ARRÊT sur #$n (sortie $rc)"; exit "$rc"
       fi ;;

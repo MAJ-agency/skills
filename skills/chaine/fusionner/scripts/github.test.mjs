@@ -4,7 +4,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 // Posé dans un projet, depot-jouet.mjs est à côté (scripts/chaine/) ; dans le plugin, il est dans le skill sujet.
 const { depotJouet, script } = await import(
@@ -182,5 +182,201 @@ test("ascendance : une réf absente sort en 1, motif sur la sortie d'erreur, jam
     assert.equal(r.status, 1, r.stdout);
     assert.equal(r.stdout, "");
     assert.match(r.stderr, /introuvable/);
+  }
+});
+
+// ── GitHub illisible (ticket 9, A-21) : une lecture qui décide d'un état passe par `lire_github`, qui refuse une réponse
+// vide, non JSON, porteuse d'un `message` d'erreur ou à code non nul : sortie 5, jamais un état. ─────────────────────
+const fonction = (d, corps, ...args) =>
+  spawnSync("bash", ["-c", `source ${GITHUB}; ${corps}`, "_", ...args], {
+    cwd: d.travail,
+    env: d.env,
+    encoding: "utf8",
+  });
+const PR1 = "repos/{owner}/{repo}/pulls/1";
+function avecPr() {
+  const d = depotJouet();
+  d.github({ pulls: [{ number: 1, title: "t", head: "feat/x", base: "develop", labels: [] }] });
+  return d;
+}
+
+test("lire_github refuse une réponse vide, non JSON, porteuse de message ou à code non nul : sortie 5 ; un JSON valide passe ; --absent rend son défaut sur un 404 seulement", () => {
+  const d = avecPr();
+  const refus = [
+    { sortie: "", erreur: "gh: Bad Gateway (HTTP 502)", code: 1 },
+    { sortie: "<html>502 Bad Gateway</html>", erreur: "gh: Bad Gateway (HTTP 502)", code: 1 },
+    { sortie: "", code: 0, erreur: "" },
+    { sortie: "  \n", code: 0, erreur: "" },
+    { sortie: "<html>502 Bad Gateway</html>", code: 0, erreur: "" },
+    { sortie: '{"message":"Server Error","documentation_url":"https://docs.github.com"}', code: 0, erreur: "" },
+  ];
+  for (const panne of refus) {
+    d.github({ pannes: [{ route: "^pulls/1$", ...panne }] });
+    const r = fonction(d, 'lire_github "$1"', PR1);
+    assert.equal(r.status, 5, `${JSON.stringify(panne)} : ${r.stdout}${r.stderr}`);
+    assert.equal(r.stdout, "", JSON.stringify(panne));
+    assert.match(r.stderr, /GitHub illisible \(repos\/\{owner\}\/\{repo\}\/pulls\/1\) : /, JSON.stringify(panne));
+  }
+  const ok = fonction(d, 'lire_github "$1"', PR1);
+  assert.equal(ok.status, 0, ok.stderr);
+  assert.equal(JSON.parse(ok.stdout).number, 1);
+  // Un tableau d'objets n'est jamais refusé pour un champ `message` imbriqué ; des pages concaténées se lisent chacune.
+  d.github({ pannes: [{ route: "^pulls/1$", sortie: '[{"message":"commit"}]', code: 0, erreur: "" }] });
+  assert.equal(fonction(d, 'lire_github "$1"', PR1).status, 0);
+  d.github({ pannes: [{ route: "^pulls/1$", sortie: '[1,2]\n[3]\n', code: 0, erreur: "" }] });
+  const pages = fonction(d, 'lire_github "$1" --paginate', PR1);
+  assert.equal(pages.status, 0, pages.stderr);
+  assert.equal(pages.stdout, "[1,2]\n[3]\n");
+  d.github({ pannes: [{ route: "^pulls/1$", sortie: '[1]\n{"message":"Server Error"}\n', code: 0, erreur: "" }] });
+  assert.equal(fonction(d, 'lire_github "$1" --paginate', PR1).status, 5, "une page d'erreur parmi d'autres");
+  d.github({ pannes: [{ route: "^pulls/1$", sortie: "[1]\n<html>", code: 0, erreur: "" }] });
+  assert.equal(fonction(d, 'lire_github "$1" --paginate', PR1).status, 5, "une page illisible parmi d'autres");
+  // --absent : un 404 est une réponse (protection absente), tout autre refus reste une panne.
+  const absent = fonction(d, `lire_github "$1" --absent '[]'`, "repos/{owner}/{repo}/branches/develop/protection/required_status_checks");
+  assert.equal(absent.status, 0, absent.stderr);
+  assert.equal(absent.stdout, "[]\n");
+  // Une sortie d'erreur en CRLF reste un 404.
+  d.github({ pannes: [{ route: "protection/required_status_checks$", erreur: "gh: Branch not protected (HTTP 404)\r" }] });
+  assert.equal(fonction(d, `lire_github "$1" --absent '[]'`, "repos/{owner}/{repo}/branches/develop/protection/required_status_checks").stdout, "[]\n");
+  // Une dernière ligne sans fin de ligne reste un 404.
+  d.github({ pannes: [{ route: "protection/required_status_checks$", erreur: "gh: Branch not protected (HTTP 404)", brute: true }] });
+  assert.equal(fonction(d, `lire_github "$1" --absent '[]'`, "repos/{owner}/{repo}/branches/develop/protection/required_status_checks").stdout, "[]\n");
+  // Un 404 sans message dans le corps : `gh: HTTP 404`.
+  d.github({ pannes: [{ route: "protection/required_status_checks$", erreur: "gh: HTTP 404" }] });
+  assert.equal(fonction(d, `lire_github "$1" --absent '[]'`, "repos/{owner}/{repo}/branches/develop/protection/required_status_checks").stdout, "[]\n");
+  d.github({ pannes: [{ route: "protection/required_status_checks$", erreur: "gh: HTTP 4040" }] });
+  assert.equal(fonction(d, `lire_github "$1" --absent '[]'`, "repos/{owner}/{repo}/branches/develop/protection/required_status_checks").status, 5, "4040 n'est pas un 404");
+  d.github({ pannes: [{ route: "protection/required_status_checks$" }] });
+  const panne = fonction(d, `lire_github "$1" --absent '[]'`, "repos/{owner}/{repo}/branches/develop/protection/required_status_checks");
+  assert.equal(panne.status, 5, panne.stdout + panne.stderr);
+  assert.equal(panne.stdout, "");
+});
+
+// `pousser` classe un push refusé par la trace de husky 9 (A-22) : 3 avec elle (le hook refuse, la PR est à corriger),
+// 4 sans (le distant refuse : échec fermé, jamais un renvoi), 5 quand la branche a bougé.
+const TRACE_HUSKY = "husky - pre-push script failed (code 1)";
+function hookLocal(d, corps) {
+  const dir = join(d.racine, "hooks");
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(join(dir, "pre-push"), `#!/bin/sh\n${corps}\n`);
+  chmodSync(join(dir, "pre-push"), 0o755);
+  d.git("config", "core.hooksPath", dir);
+}
+function hookDistant(d, corps) {
+  writeFileSync(join(d.origine, "hooks", "pre-receive"), `#!/bin/sh\n${corps}\n`);
+  chmodSync(join(d.origine, "hooks", "pre-receive"), 0o755);
+}
+const pousser = (d, refspec, branche, avant = "") =>
+  fonction(d, 'pousser "$1" "$2" "$3"', refspec, branche, avant);
+
+test("pousser rend 4 sur un push refusé sans trace de husky, 3 avec la trace, 5 quand la branche a bougé", () => {
+  const distant = depotJouet();
+  hookDistant(distant, 'echo "règle du dépôt : refus" >&2; exit 1');
+  const quatre = pousser(distant, "HEAD:refs/heads/feat/p", "feat/p");
+  assert.equal(quatre.status, 4, quatre.stdout + quatre.stderr);
+  assert.match(quatre.stderr, /\[git push -q origin HEAD:refs\/heads\/feat\/p\] remote: règle du dépôt : refus/);
+  assert.match(quatre.stderr, /push refusé par le distant \(ou échec sans trace du hook pre-push\) : sortie ci-dessus/);
+  assert.doesNotMatch(quatre.stderr, /refusé par le hook pre-push :/);
+
+  // Une trace écrite par le distant (« remote: husky - … ») n'est pas celle du hook local.
+  const imite = depotJouet();
+  hookDistant(imite, `echo "${TRACE_HUSKY}" >&2; exit 1`);
+  assert.equal(pousser(imite, "HEAD:refs/heads/feat/p", "feat/p").status, 4);
+
+  const hook = depotJouet();
+  hookLocal(hook, `echo "pnpm check rouge" >&2; echo "${TRACE_HUSKY}"; exit 1`);
+  const trois = pousser(hook, "HEAD:refs/heads/feat/p", "feat/p");
+  assert.equal(trois.status, 3, trois.stdout + trois.stderr);
+  assert.match(trois.stderr, /\] pnpm check rouge/);
+  assert.match(trois.stderr, /push refusé par le hook pre-push : sortie ci-dessus ; corriger, jamais en sautant le hook/);
+  assert.equal(hook.git("ls-remote", "origin", "refs/heads/feat/p"), "", "rien n'est poussé");
+
+  const bouge = depotJouet();
+  const avant = bouge.branche("feat/q", "origin/develop", { "q.md": "q\n" });
+  bouge.branche("feat/q", "origin/feat/q", { "q2.md": "q2\n" });
+  bouge.git("switch", "-q", "--detach", "origin/develop");
+  bouge.ecrire("autre.md", "autre\n");
+  bouge.commit("docs: autre");
+  const cinq = pousser(bouge, "HEAD:refs/heads/feat/q", "feat/q", avant);
+  assert.equal(cinq.status, 5, cinq.stdout + cinq.stderr);
+
+  // Fin de ligne CRLF (hook écrit sous Windows) : encore la trace. Variantes voisines (autre hook, texte après la
+  // parenthèse, trace citée au milieu d'une ligne) : jamais la trace.
+  for (const [ligne, attendu] of [
+    ["printf 'husky - pre-push script failed (code 1)\\r\\n'", 3],
+    [`echo "husky - pre-commit script failed (code 1)"`, 4],
+    [`echo "husky - pre-push script failed (code 1) ailleurs"`, 4],
+    [`echo "voir : husky - pre-push script failed (code 1)"`, 4],
+  ]) {
+    const v = depotJouet();
+    hookLocal(v, `${ligne}\nexit 1`);
+    assert.equal(pousser(v, "HEAD:refs/heads/feat/p", "feat/p").status, attendu, ligne);
+  }
+});
+
+test("masquer_url : le jeton d'un hook distant est masqué dans ce que relaient jouer_ou_dire, pousser et git_masque, et le code de git est gardé", () => {
+  const d = depotJouet();
+  hookDistant(d, 'echo "refus : https://x:jeton-secret@exemple.test/regles" >&2; exit 1');
+  const relais = [
+    fonction(d, 'jouer_ou_dire "git push -q origin HEAD:refs/heads/feat/m"'),
+    pousser(d, "HEAD:refs/heads/feat/m", "feat/m"),
+    fonction(d, "git_masque push -q origin HEAD:refs/heads/feat/m"),
+  ];
+  for (const r of relais) {
+    assert.notEqual(r.status, 0, r.stderr);
+    assert.match(r.stderr, /https:\/\/\*\*\*@exemple\.test\/regles/, r.stderr);
+    assert.doesNotMatch(r.stdout + r.stderr, /jeton-secret/);
+  }
+  const brut = spawnSync("git", ["push", "-q", "origin", "HEAD:refs/heads/feat/m"], { cwd: d.travail, env: d.env, encoding: "utf8" });
+  assert.equal(relais[2].status, brut.status, "git_masque rend le code de git");
+  const masque = fonction(d, "printf '%s\\n' 'https://u@h.test/a ssh://git:t0k3n@h.test/b http://h.test/c' | masquer_url");
+  assert.equal(masque.stdout, "https://***@h.test/a ssh://***@h.test/b http://h.test/c\n");
+  const fetch = fonction(d, "git_masque fetch -q origin develop; echo \"code $?\"");
+  assert.equal(fetch.stderr, "");
+  assert.equal(fetch.stdout, "code 0\n");
+});
+
+test("checks_exiges : une panne n'est jamais « aucun check exigé » (sortie 5) ; des règles vides et une protection absente rendent [] ; une réponse qui n'est pas un tableau sort en 5", () => {
+  const d = depotJouet();
+  const exiges = () => fonction(d, "checks_exiges");
+  d.github({ exiges: ["qualite", "e2e"] });
+  assert.equal(exiges().stdout.replace(/\s/g, ""), '["e2e","qualite"]');
+  d.github({ pannes: [{ route: "^rules/branches/develop$" }] });
+  let r = exiges();
+  assert.equal(r.status, 5, r.stdout + r.stderr);
+  assert.equal(r.stdout, "");
+  assert.match(r.stderr, /GitHub illisible/);
+  d.github({ pannes: [{ route: "^rules/branches/develop$", sortie: '{"total":1}', code: 0, erreur: "" }] });
+  r = exiges();
+  assert.equal(r.status, 5, r.stdout + r.stderr);
+  assert.equal(r.stdout, "");
+  d.github({ exiges: [] });
+  r = exiges();
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(r.stdout.trim(), "[]", "règles vides, protection absente (404)");
+  d.github({ pannes: [{ route: "protection/required_status_checks$" }] });
+  r = exiges();
+  assert.equal(r.status, 5, "règles vides, puis protection en panne : jamais []");
+  assert.equal(r.stdout, "");
+  d.github({ protectionClassique: true, exiges: ["qualite"] });
+  assert.equal(exiges().stdout.replace(/\s/g, ""), '["qualite"]');
+});
+
+test("checks_commit : un corps vide ou une erreur sort en 5, jamais une liste vide", () => {
+  const d = depotJouet();
+  const sha = d.git("rev-parse", "HEAD");
+  d.github({ checks: { "*": { qualite: "SUCCESS" } } });
+  const lire = () => fonction(d, 'checks_commit "$1"', sha);
+  assert.equal(lire().stdout, "qualite\tSUCCESS\n");
+  for (const panne of [
+    { route: "/check-runs", sortie: "", code: 0, erreur: "" },
+    { route: "/check-runs" },
+    { route: "/check-runs", sortie: '{"message":"Server Error"}', code: 0, erreur: "" },
+    { route: "/status$" },
+  ]) {
+    d.github({ pannes: [panne] });
+    const r = lire();
+    assert.equal(r.status, 5, `${JSON.stringify(panne)} : ${r.stdout}${r.stderr}`);
+    assert.equal(r.stdout, "", JSON.stringify(panne));
   }
 });
