@@ -1331,6 +1331,7 @@ test("verdict de contre-relecture : la règle est dite dans le prompt de la sess
     "ni si la PR porte un verdict et qu'aucun verdict `conforme` ne porte sur ton sommet",
     "un compte `OWNER`, `MEMBER` ou `COLLABORATOR`, non édité",
     "tu ne poses rien et tu le dis à l'architecte",
+    "de même pour une première ligne qui commence par `contre-relecture non conforme` sans la forme exacte",
   ])
     assert.ok(prompt.includes(phrase), `le prompt de la session d'un ticket ne dit pas « ${phrase} »`);
   const ligne = ticket.split("\n").find((l) => l.includes("contre-relit lui-même")) ?? "";
@@ -1342,4 +1343,5 @@ test("verdict de contre-relecture : la règle est dite dans le prompt de la sess
   assert.ok(s5.includes("un verdict `non conforme`") && s5.includes(second), "SKILL.md § 5 ne porte pas les deux cas d'arrêt");
   assert.ok(s7.includes("un verdict `non conforme`") && s7.includes(second), "SKILL.md § 7 ne porte pas les deux cas d'arrêt");
   assert.ok(ligne.includes(second), "la ligne « contre-relit lui-même » ne porte pas le second cas d'arrêt");
+  assert.ok(ligne.includes("Il écrit son verdict avant l'ordre, jamais après"), "la ligne « contre-relit lui-même » ne dit pas que le verdict précède l'ordre");
 });

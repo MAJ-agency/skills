@@ -55,3 +55,4 @@ Programme : [`../../../programmes/capitaine-a-jour-et-teste.programme.md`](../..
 ## Comments
 
 - 2026-11-19, la fille : formulation prudente, les deux lignes de verdict et le renvoi exacts. Un verdict édité arrête aussi la session qui ordonne (elle le dit à l'architecte). Version 7.32.0 (mineure suivante de `main` 7.31.2, PR 134 non encore fusionnée). La puce « PR étrangère » de `SKILL.md` § 7 lit aussi les verdicts. Revue de ticket jouée (trois sous-agents), écarts corrigés.
+- 2026-11-19, contre-relecture : une première ligne qui commence par `contre-relecture non conforme` sans la forme exacte arrête la fusion (capitaine : au produit ; session : à l'architecte) ; un `conforme` mal formé est ignoré, par prudence.
