@@ -2254,7 +2254,7 @@ test("passer.sh : deux capitaines à la même seconde, le premier commentaire pa
   assert.equal(sommet(), avant);
 });
 
-test("passer.sh : le commentaire du passage se termine à toute sortie, fusion, refus et TERM compris", async () => {
+test("passer.sh : le commentaire du passage se termine à toute sortie, fusion, refus et TERM compris", { timeout: 120_000 }, async () => {
   // Fusion : sortie 0, le commentaire posé, rafraîchi au tour, puis terminé.
   const fusion = prVerrou();
   let r = fusion.d.lancer(script("passer.sh"), "40");
@@ -2281,7 +2281,7 @@ test("passer.sh : le commentaire du passage se termine à toute sortie, fusion, 
   writeFileSync(join(bin, "sleep"), `#!/bin/sh\n: > ${JSON.stringify(enAttente)}\nexec /bin/sleep 600\n`);
   chmodSync(join(bin, "sleep"), 0o755);
   const { spawn } = await import("node:child_process");
-  const enfant = spawn("bash", [script("passer.sh"), "40"], { cwd: tue.d.travail, env: { ...tue.d.env, PATH: `${bin}:${tue.d.env.PATH}` }, detached: true });
+  const enfant = spawn("bash", [script("passer.sh"), "40"], { cwd: tue.d.travail, env: { ...tue.d.env, PATH: `${bin}:${tue.d.env.PATH}` }, detached: true, stdio: ["ignore", "pipe", "pipe"] });
   let sortie = "";
   enfant.stdout.on("data", (x) => (sortie += x));
   enfant.stderr.on("data", (x) => (sortie += x));
