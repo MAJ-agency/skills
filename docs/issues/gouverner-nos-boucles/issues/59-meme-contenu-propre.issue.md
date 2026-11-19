@@ -1,6 +1,6 @@
 # « Même contenu propre » : un seul calcul, pas à pas de V à T, `meme-contenu.sh` et son banc sur dépôts jouets (lot 3b)
 
-Status: ready-for-agent
+Status: Fait — PR 126
 Type: task
 Label: contre-revue
 Modèle: sonnet — le script et son banc sont donnés mot pour mot (annexes A et B), joués sur un clone neuf d'`origin/main` : 48 tests verts, 41 mutations nommées, 36 tuées et cinq qui survivent, chacune dite et expliquée (des gardes qui se couvrent l'une l'autre), la suite entière du dépôt verte avec eux. Restent la version, la note et le rejeu. Rien à concevoir : qui veut changer une décision l'écrit à son lanceur, il ne tranche pas.
@@ -1569,3 +1569,5 @@ test("S3 : une ligne des premiers parents tronquée, ou un compte qui ne dit pas
   estIllisible(juger(d, V, T), /compte des commits de V à T incohérent/);
 });
 ````
+
+- 2026-11-19 — **Fait : PR 126 de `MAJ-agency/skills`, squash `f58ccad`, plugin 7.30.0.** Session `session_017ZgEwMkVCFF3VYBRoSYdjw` (24,80 $, 354 238 tokens), archivée. **Les annexes A et B de ce ticket ne font plus foi : le script et le banc de la PR font foi** (script `52e4051…`, banc `4e4a74e…`, 56 cas). Contre-relue par l'architecte en trois tours du même contre-relecteur, sur le script réel : deux faux « même » au premier (fusion en conflit conclue par l'auteur ; index dé-déclaré par la PR), fermés par `A-125` ; au second, un « illisible » de trop sur un `alternates` périmé, la liste des index qui se dispensait elle-même, une déclaration ambiguë (doublon, motif couvrant) ; au troisième, conforme : équivalence `jq`/ERE tenue sur 1 500 tirages, listes d'index d'Anchorpost, de Fedora et d'Iroki sans aucun cas « ambigu », mises à jour honnêtes « même » depuis un worktree lié et un clone approfondi. Ajouts de la session : cas 49 (un voisin d'un index n'est jamais pris pour lui), `A-126` (clone superficiel nommé avec son remède). Arbre de `main` après le squash identique à l'arbre du sommet relu (`64e411a`), vérifié. Restes notés pour un ticket de suite : nommer la cause d'un clone partiel ; le cas `safe.directory` ; un bruit de sortie d'erreur qui varie d'une commande à l'autre rend « illisible » ; sur un git qui sort en 128 pour un objet manquant, le cas 53 n'exerce pas sa garde.

@@ -15,7 +15,7 @@ Tu parles au produit : en français, phrases simples, recommandation d'abord, **
 | Lot | Ticket | État |
 | --- | --- | --- |
 | 3a, lecteur de verdict et décision du Relecteur | 58 | **Fait**, PR 122, plugin 7.23.0 |
-| 3b, « même contenu propre » | 59 | PR 126, contre-relue conforme au troisième tour, **ordre posé** au sommet `64e411a95e78c2b7b109001840ae899a2ddedbdf` (7.30.0) ; session `session_017ZgEwMkVCFF3VYBRoSYdjw`, proche de 300 000 tokens |
+| 3b, « même contenu propre » | 59 | **Fait**, PR 126, plugin 7.30.0 (`f58ccad`), arbre vérifié, session archivée |
 | 3c, « double relecture exigée » | 60 | Trois tours de relecture adversariale faits ; dernière retouche portée ou en cours (apostrophe doublée, clone partiel nommé, `safe.directory`) ; **à lancer** dès qu'elle est commitée |
 | 1, CODEOWNERS sort du plugin | 54 | Écrit, `needs-info` : à rejouer sur `main` |
 | 2, bilan supprimé, gate des trois écritures | 55 | Écrit, `needs-info` ; doit aussi faire accepter `Règles: —` par le gate (`A-117`) |
@@ -23,7 +23,7 @@ Tu parles au produit : en français, phrases simples, recommandation d'abord, **
 | hors lots, une sous-PR à la fois tenue par le capitaine | 57 | Écrit, `needs-info`, même attente (`boucle.sh`) |
 | 3d, 4, 5a à 5c, 6, 7, 8, 9 | — | À écrire ; ordre et attentes dans le tableau de la spec, « Les lots » |
 
-- **À la fusion de la PR 126** : vérifier que `meme-contenu.sh` et son banc sur `main` sont ceux du sommet relu ; passer le ticket 59 à « Fait » ; relever le coût de sa session ; l'archiver. Si le capitaine la renvoie pour un numéro de version repris par `main` : fusion de `main` et version suivante, rien d'autre, par une session neuve si l'ancienne dépasse 300 000 ; vérifier que seuls la version et la note changent ; reposer l'ordre.
+- **Quand une PR est renvoyée pour un numéro de version repris par `main`** (arrivé aux PR 122 et 126) : fusion de `main` et version suivante, rien d'autre, par une session neuve si l'ancienne dépasse 300 000 ; vérifier que seuls la version et la note changent ; reposer l'ordre. **À chaque fusion** : vérifier que l'arbre de `main` est celui du sommet relu, passer le ticket à « Fait », relever le coût de la session, l'archiver.
 - **Ordre de fusion dans `skills`** (dépôt sans la chaîne) : un commentaire dont le corps est exactement `à-fusionner au sommet <sha de 40 caractères>` suivi du pied de page des sessions cloud, puis le label `à-fusionner`. Jamais avant la contre-relecture d'un ticket `Label: contre-revue`. Le capitaine de `skills` renvoie une PR en conflit ou en retard sur `main`.
 
 ## La méthode qui a payé, à garder
