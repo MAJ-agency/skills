@@ -53,7 +53,7 @@ Une PR peut entrer alors que la combinaison « PR + dernier état de la branche 
   - un conflit limité aux index générés suit le chemin de mise à jour de `A-5`, et `relancer` ne sort plus en 2 dans ce cas ;
   - tout autre conflit est renvoyé.
 
-  `file.sh` lit l'état de fusion de la PR et affiche « en conflit » au lieu de « prête (sans CI) ». Raison : GitHub ne lance pas la CI d'une PR en conflit, donc lire les checks d'abord tourne en rond.
+  `file.sh` lit l'état de fusion de la PR et affiche « prête (en conflit) » (`A-41` de la carte du programme) au lieu de « prête (sans CI) » ; une lecture de la PR en échec sort en 5 (`A-21`). Raison : GitHub ne lance pas la CI d'une PR en conflit, donc lire les checks d'abord tourne en rond.
 - `A-8` — **Clé de contrat `fusionsSansEffet`**, une liste d'entrées `{ "fichier", "lignesSansEffet", "mention" }`. Elle s'applique quand un commit de fusion joué par un script apporte un changement à `fichier` (diff entre le sommet de la branche avant la fusion et le résultat). Si chaque ligne ajoutée ou retirée correspond à l'expression `lignesSansEffet` (un commentaire, une ligne vide), le script ajoute `mention` au message du commit. Sinon, il s'arrête en disant quel fichier porte un changement réel. Le gabarit la laisse vide ; la note de version donne l'entrée de `schema.prisma` pour un projet Prisma. Raison : le hook appartient au projet, le plugin ne connaît ni Prisma ni la mention. Une clé générique, vérifiée par diff, fait ce que demande le produit sans écrire un projet en dur dans le plugin.
 - `A-9` — **Le nombre de capitaines sur un dépôt n'a pas d'importance, et la file ne se filtre pas** (`P-2`). Deux capitaines ne peuvent plus faire entrer une PR non testée : la règle d'ascendance (`A-1` à `A-4`) le garantit, quel que soit le nombre. Le seul risque qui reste est le travail en double, quand deux capitaines prennent la même PR en même temps : double mise à jour, push refusé, et un renvoi à tort à la session. Le verrou de `A-10` le supprime. Avec lui, la règle « un seul `role:capitaine` actif » de `fusionner/SKILL.md` disparaît. Raison : un filtre de file demanderait un réglage à chaque lancement, sans rien ajouter à la sûreté.
 - `A-10` — **Le verrou d'un passage est un commentaire marqué sur la PR**. Le commentaire est visible (« passage du capitaine `<id>` depuis `<heure>` ») et porte une marque invisible `<!-- capitaine:passage <id> -->`. Le script le pose au début du passage, puis relit les commentaires :
@@ -93,7 +93,7 @@ Un ticket par lot, sous `docs/issues/capitaine-a-jour-et-teste/issues/`, numéro
 | Lot | Objet | Décisions | Bloqué par |
 | --- | ----- | --------- | ---------- |
 | 1 | Règle d'ascendance vers `develop` et vers un sujet, comparaison des arbres, faux GitHub « strict » et checks par commit, `SKILL.md` de `fusionner` et sa référence (dont « une sous-PR étiquetée à la fois par sujet »), `NOTES-DE-VERSION.md` ouvert, 7.16.0 | A-1 à A-6, A-16 | — |
-| 2 | PR en conflit : conflit lu avant les checks, `relancer` sur index, `file.sh` « en conflit » | A-7 | 1 |
+| 2 | PR en conflit : conflit lu avant les checks, `relancer` sur index, `file.sh` « prête (en conflit) » | A-7 | 1 |
 | 3 | Mention d'une fusion sans effet (`fusionsSansEffet`) | A-8 | 1 |
 | 4 | Verrou du passage, plusieurs capitaines sur la même file | A-9, A-10 | 1 |
 | 5 | Contrôle de vie, `send_message` au premier geste, contexte lu par `get_session` (texte des skills `architecte`, `chantier`, `socle-chaine-de-production`) | A-11 à A-13 | — |
