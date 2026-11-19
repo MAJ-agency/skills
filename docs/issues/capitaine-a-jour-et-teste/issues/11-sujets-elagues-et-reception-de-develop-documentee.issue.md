@@ -1,6 +1,6 @@
 # Les sujets supprimés du distant disparaissent des lectures, et la réception de develop dans un sujet a sa recette
 
-Status: en cours
+Status: Fait — PR #129
 Type: défaut
 Modèle: sonnet — un `--prune` limité à un refspec, une ligne d'avertissement, un message de refus réécrit et une section de skill tirée d'un paragraphe existant, sur le modèle du correctif d'Iroki et de ses bancs ; aucune conception.
 Blocked by: 9 et 7 (`skills/chaine/sujet/scripts/sujet.sh` et `skills/chaine/fusionner/scripts/sujet-fusionner.test.mjs` sont des fichiers chauds des deux, après le ticket 1 : partir de `main` après leur fusion). Le ticket 16 passe après celui-ci (`sujet.sh` partagé, `A-43`).
