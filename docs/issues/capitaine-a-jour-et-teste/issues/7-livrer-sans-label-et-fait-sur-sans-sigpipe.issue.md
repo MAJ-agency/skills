@@ -1,6 +1,6 @@
 # `sujet.sh livrer` n'étiquette plus et sait faire sans `gh`, `fait_sur` lit tout le flux
 
-Status: Fait — PR #<n>
+Status: Fait — PR #127
 Type: défaut
 Modèle: sonnet — deux corrections locales de `sujet.sh`, chacune décidée ici avec sa sortie et son message, et des bancs sur le modèle de ceux de `sujet.test.mjs`.
 Blocked by: 1 (`sujet.sh` et le faux GitHub sont des fichiers chauds du ticket 1 : partir de `main` après sa fusion)
