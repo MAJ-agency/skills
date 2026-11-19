@@ -2,7 +2,7 @@
 
 La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque projet par `poser` : une version publiée ne change rien chez un projet qui ne les repose pas. Chaque note dit ce qui change, puis ce qu'un projet fait pour en profiter.
 
-## 7.33.0 — 2026-11-19
+## 7.34.0 — 2026-11-19
 
 ### Ce qui change
 
@@ -20,6 +20,23 @@ Un projet qui ne repose rien ne voit rien changer : ses scripts sont des copies,
 6. Relancer la veille de chaque capitaine une fois cette PR entrée dans `develop` (skill `fusionner` § « Mise en place ») : la boucle en marche a déjà pris les nouveaux scripts, la veille garde sa copie de `file.sh` jusqu'à sa relance.
 
 Un projet peut reposer `scripts/agent/` et les scripts du capitaine avant de retirer le fichier : son gate `check:codeowners` reste vert tant que son contrat garde `proprietaires` et que son générateur est là.
+
+## 7.33.0 — 2026-11-19
+
+### Ce qui change
+
+Le skill `fusionner` porte un calcul nouveau, `scripts/double-relecture.mjs` : il dit si une PR exige deux relectures indépendantes, parce que son ticket porte la ligne `Relecture: double` ou cite en `Règles:` une règle de criticité haute (sans cette ligne, celle de sa spec est lue), que son diff touche le fichier d'une règle haute ou un fichier que le champ `code` de cette règle nomme, ou qu'elle change le niveau d'une règle vers ou depuis « haute ». Il rend, en dernière ligne de sa sortie, « exigée », « non exigée » ou « illisible », après les causes ; une lecture en échec ne vaut jamais « non exigée ».
+
+**Le prix, à connaître avant de l'appeler.** L'en-tête d'un fichier de règle est lu sans bibliothèque, par une liste fermée de formes de ligne : `clé: valeur`, `clé:` suivie d'un bloc, `- valeur`, `- clé: valeur`, des scalaires nus ou entre guillemets sur une ligne, un mappage `{ … }` ou une liste `[ … ]` sur une ligne, les commentaires, et les trois formes que Prettier 3 donne à un mappage ou à une liste trop longs, à ses retraits exacts : le flux entier seul sur la ligne qui suit sa clé, au retrait de la clé plus deux (la forme qu'on rencontre d'abord au réglage du socle, `printWidth: 100`, dès qu'une liste `code:` de trois chemins dépasse la ligne) ; l'ouvrant seul sur cette ligne, puis une entrée par ligne avec sa virgule, puis le fermant seul ; l'ouvrant en fin de la ligne de la clé, puis de même. Tout le reste est hors liste : scalaire en bloc (`|`, `>`), texte ou chaîne pliés sur plusieurs lignes, étiquette, ancre, alias, clé entre guillemets, clé explicite (`? `), `clé:valeur` sans espace, tabulation, espace insécable, marque d'ordre des octets. **Un seul fichier de règle dont l'en-tête porte une ligne hors liste fait répondre « exigée » à toute PR du dépôt, tant qu'il n'est pas récrit** : le calcul ne prouve pas ce qu'il ne lit pas. Un en-tête dont les lignes sont dans la liste mais que le calcul refuse au sens fait la même cause : un niveau hors de `low`, `medium`, `high`, une `criticality` sans `level`, un `code` qui n'est pas une liste de chemins (`code:` sans valeur compris), un chemin nu que YAML lit comme un nombre, un fichier sans en-tête. La sortie dit où : une cause `<règle>`, `en-tête illisible`, le fichier, la réf, et une ligne `# illisible : <réf>:<fichier> : ligne <n> : <raison>`. Restent hors liste, sous Prettier : une chaîne pliée sur deux lignes (`proseWrap: always`, qui plie aussi la raison de la forme en bloc), un texte nu à virgule dans un mappage en ligne (à mettre entre guillemets) ; et, sous `trailingComma: none` (aucune virgule après la dernière entrée) ou une largeur de retrait autre que 2 (`tabWidth: 4`), toute forme où le flux est plié sur plusieurs lignes. Le réglage du socle (`printWidth: 100`, `trailingComma: all`, retrait de 2) n'en écrit aucune de celles-là. Le gabarit `regle.md`, tant que ses jokers `{{…}}` ne sont pas remplis, est hors liste aussi. De même, un ticket que la PR nomme (titre ou branche) et qu'aucun arbre ne porte fait répondre « exigée », cause `ticket introuvable` ; un ticket archivé dans tous les arbres l'est aussi. Un index Anchorpost illisible rend tout l'arbre illisible avant que les en-têtes soient lus : « illisible », sortie 21, même à côté d'un en-tête hors liste.
+
+Dans un dépôt superficiel, le clone par défaut d'une session cloud, il rend « illisible » et sa raison nomme la cause et le remède (`git fetch --unshallow origin`) : il n'écrit jamais dans le dépôt et ne lance aucun `fetch`, c'est à qui l'appelle d'approfondir le clone d'abord. Un dépôt partiel (cloné avec `--filter`) est « illisible » de même, cause et remède nommés. Le dépôt d'un autre propriétaire n'est lu que si une déclaration `safe.directory` l'admet : le calcul prend les déclarations que `git config --show-scope` lit hors de tout dépôt aux portées de système et d'utilisateur, et n'en retient qu'une valeur égale au chemin du dépôt, caractère pour caractère, ou `*` ; il ne voit pas une déclaration faite par `git -c`, et n'en admet aucune quand `GIT_CONFIG_COUNT` ou `GIT_CONFIG_PARAMETERS` est dans l'environnement. Aucun script ne l'appelle encore : c'est une brique de la relecture indépendante, qui arrive par étapes. L'étape 0 de `fusionner` (`poser`) le nomme parmi les scripts à copier.
+
+### Ce qu'un projet fait pour en profiter
+
+1. Mettre à jour le plugin : `claude plugin marketplace update maj`, puis `claude plugin update maj-skills@maj`, puis redémarrer Claude Code.
+2. Rien d'autre pour l'instant : aucun script de la chaîne n'appelle ce calcul, rien ne change au passage du capitaine, et il n'y a pas à le relancer.
+3. À la prochaine repose de `fusionner`, son étape 0 copie `scripts/double-relecture.mjs` dans `scripts/chaine/` avec son banc : rien à faire de plus.
+4. Avant qu'un script n'appelle ce calcul : écrire les en-têtes des fichiers de règle dans les formes de la liste, la forme en bloc de préférence (`criticality:` puis `level:`, `by:`, `reason:` en retrait), que Prettier ne plie pas au réglage du socle (il en plie la raison sous `proseWrap: always`).
 
 ## 7.32.0 — 2026-11-19
 
