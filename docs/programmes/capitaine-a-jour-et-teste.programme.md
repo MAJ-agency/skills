@@ -82,7 +82,7 @@ Décisions de l'architecte :
 | ticket | 8 | session_012xRpgb2wqPnXRgEHTvthK3 | opus | 327 602 | 17,89 |
 | ticket | 18 | session_012xRpgZurfcXHuBBqAMFitE | opus | 407 806 | 19,19 |
 | ticket | 7 | session_012xRpgZAedd2xzkqRc9YBYv | sonnet | 191 702 | 2,70 |
-| ticket | 2 | session_012xRpgbmxxvZr3pZbLZccCN | opus | 372 631 | 16,73 |
+| ticket | 2 | session_012xRpgbmxxvZr3pZbLZccCN | opus | 410 377 | 17,29 |
 | ticket | 11 | session_012xRpga69nMFgKEzuT4rE8A | sonnet | 203 660 | 3,14 |
 | ticket | 16 | session_012xRpgXvNcXsnHhWX6PyPB3 | opus | — | — |
 | ticket | 3 | session_012xRpga1obGxgaKzsZHF9ts | opus | — | — |
