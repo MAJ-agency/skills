@@ -206,3 +206,68 @@ test('faux gh, pannes : une route en panne deux fois répond la panne, puis norm
   assert.deepEqual(d.etat().pulls[0].labels, ['x']);
   assert.equal(d.etat().pannes[0].fois, 5, 'une écriture ne décompte rien');
 });
+
+// Verrou du passage (ticket 4 de capitaine-a-jour-et-teste) : le capitaine pose, relit, édite et supprime un
+// commentaire marqué ; le faux rend les ids, les dates et `author_association` comme GitHub.
+const COMMENTAIRES = 'repos/{owner}/{repo}/issues/7/comments';
+const jouetCommentaires = (commentaires = []) => {
+  const d = depotJouet();
+  d.github({ pulls: [{ number: 7, title: 't', base: 'develop', head: 'x', labels: ['à-fusionner'], commentaires }] });
+  return d;
+};
+const lireCommentaires = (d) => JSON.parse(gh(d, COMMENTAIRES).stdout);
+
+test('faux gh, commentaires : le POST rend l’id réel, created_at et author_association ; la lecture rend updated_at et author_association (OWNER par défaut, celle de l’objet sinon)', () => {
+  const d = jouetCommentaires(['ancien', { body: 'dehors', auteur: 'passant', association: 'NONE', created_at: '2026-11-17T10:00:00Z', updated_at: '2026-11-17T10:30:00Z' }]);
+  const r = gh(d, '-X', 'POST', COMMENTAIRES, '-f', 'body=neuf');
+  assert.equal(r.status, 0, r.stderr);
+  const pose = JSON.parse(r.stdout);
+  assert.equal(pose.id, 7003, 'numéro × 1000 + rang + 1');
+  assert.equal(pose.created_at, '2026-11-17T12:00:02Z');
+  assert.equal(pose.author_association, 'OWNER');
+  const lus = lireCommentaires(d);
+  assert.deepEqual(lus.map((c) => [c.id, c.author_association, c.updated_at]), [
+    [7001, 'OWNER', '2026-11-17T12:00:00Z'],
+    [7002, 'NONE', '2026-11-17T10:30:00Z'],
+    [7003, 'OWNER', '2026-11-17T12:00:02Z'],
+  ]);
+  assert.equal(lus[1].user.login, 'passant');
+});
+
+test('faux gh, commentaires : PATCH réécrit le corps et avance updated_at, DELETE le retire de la lecture, les deux journalisés ; un id inconnu ou supprimé répond 404', () => {
+  const d = jouetCommentaires(['premier', 'second']);
+  const p = gh(d, '-X', 'PATCH', 'repos/{owner}/{repo}/issues/comments/7001', '-f', 'body=édité');
+  assert.equal(p.status, 0, p.stderr);
+  let lus = lireCommentaires(d);
+  assert.equal(lus[0].body, 'édité');
+  assert.equal(lus[0].created_at, '2026-11-17T12:00:00Z');
+  assert.ok(lus[0].updated_at > lus[0].created_at, `updated_at ${lus[0].updated_at} après l’édition`);
+  assert.equal(lus[1].updated_at, lus[1].created_at, 'un commentaire non édité garde updated_at = created_at');
+  assert.equal(gh(d, '-X', 'DELETE', 'repos/{owner}/{repo}/issues/comments/7002').status, 0);
+  lus = lireCommentaires(d);
+  assert.deepEqual(lus.map((c) => c.id), [7001], 'le supprimé ne se lit plus, les ids restent');
+  assert.deepEqual(d.journal().map((e) => `${e.methode} ${e.route}`), ['PATCH issues/comments/7001', 'DELETE issues/comments/7002']);
+  assert.match(gh(d, '-X', 'PATCH', 'repos/{owner}/{repo}/issues/comments/7002', '-f', 'body=x').stderr, /HTTP 404/);
+  assert.match(gh(d, '-X', 'DELETE', 'repos/{owner}/{repo}/issues/comments/7009').stderr, /HTTP 404/);
+});
+
+test('faux gh, concurrent : le commentaire de l’autre capitaine passe juste avant le prochain posé (id plus petit), une fois', () => {
+  const d = jouetCommentaires();
+  d.github({ concurrent: 'marque de l’autre' });
+  const pose = JSON.parse(gh(d, '-X', 'POST', COMMENTAIRES, '-f', 'body=le mien').stdout);
+  assert.equal(pose.id, 7002);
+  assert.deepEqual(lireCommentaires(d).map((c) => [c.id, c.body]), [[7001, 'marque de l’autre'], [7002, 'le mien']]);
+  assert.equal(d.etat().concurrent, undefined, 'retiré une fois joué');
+  gh(d, '-X', 'POST', COMMENTAIRES, '-f', 'body=encore');
+  assert.equal(lireCommentaires(d).length, 3, 'aucune seconde insertion');
+});
+
+test('faux gh, apresCommentaire : la PR qui reçoit le prochain commentaire change (fermée, label retiré), une fois', () => {
+  const d = jouetCommentaires();
+  d.github({ apresCommentaire: { state: 'closed', labels: [] } });
+  assert.equal(gh(d, '-X', 'POST', COMMENTAIRES, '-f', 'body=verrou').status, 0);
+  const pr = JSON.parse(gh(d, 'repos/{owner}/{repo}/pulls/7').stdout);
+  assert.equal(pr.state, 'closed');
+  assert.deepEqual(pr.labels, []);
+  assert.equal(d.etat().apresCommentaire, undefined, 'retirée une fois jouée');
+});

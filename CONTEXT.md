@@ -23,7 +23,7 @@ La session qui réalise un ticket, et un seul, puis s'arrête.
 _Avoid_: worker, sous-agent (un sous-agent vit dans la session qui le lance)
 
 **Capitaine de fusion**:
-La session unique d'un dépôt qui fait entrer les PR prêtes dans la branche d'intégration, une par une.
+Une session qui fait entrer les PR prêtes dans la branche d'intégration, une par une ; plusieurs peuvent tenir la même file.
 _Avoid_: merger, intégrateur
 
 ### Travail

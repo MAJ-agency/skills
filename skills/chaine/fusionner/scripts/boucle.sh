@@ -81,7 +81,13 @@
 # relancée tant qu'il existe refuse de démarrer (sortie 10, message). `--arreter` interrompt aussi le
 # passage en cours (TERM, puis KILL) : la trappe remet le worktree propre (`git merge --abort` ou
 # `reset --hard`, puis `switch --detach origin/develop` ; le worktree du capitaine ne porte rien
-# d'autre), sortie 143 (TERM) ou 130 (INT). Option inconnue : sortie 64. `flock` (util-linux) requis.
+# d'autre), sortie 143 (TERM) ou 130 (INT) ; le passage tué termine d'abord son commentaire de verrou (15 s au plus
+# entre TERM et KILL). Option inconnue : sortie 64. `flock` (util-linux) requis.
+#
+# Plusieurs capitaines. Le verrou `flock` vaut pour un clone. Entre capitaines (un par personne, sur la même file),
+# chaque passage (passer.sh, `sujet.sh fusionner`, `sujet.sh relancer`) pose sur sa PR un commentaire marqué
+# (`prendre_passage` de github.sh) : un autre capitaine saute la PR (sortie 7) tant que ce passage n'est pas terminé.
+# `CAPITAINE_ID`, l'id de la session du capitaine, est exigé au démarrage (sortie 64 sans lui, `--arreter` excepté).
 #
 # Échéance. La veille (`veille.sh`) pose `BOUCLE_ECHEANCE` (secondes depuis l'époque Unix) : au-delà,
 # un passage commencé ne finirait pas avant la limite de 2 h de la tâche de fond qui la porte. La boucle
@@ -159,7 +165,9 @@ arreter_boucle() {
     [ -z "$pg" ] || [ "$pg" = "$moi" ] || kill -"$essai" -- "-$pg" 2>/dev/null
     # shellcheck disable=SC2086
     kill -"$essai" $cibles 2>/dev/null
-    for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
+    # Après TERM, 15 s au plus : la trappe du passage en cours termine son commentaire de verrou (un PATCH) avant de
+    # sortir ; la boucle s'arrête dès qu'aucun détenteur ne reste.
+    for _ in $(seq 1 60); do
       det=$(detenteurs)
       [ -n "$det" ] || { echo "[boucle] boucle arrêtée ; fichier d'arrêt posé ($ARRET), --reprendre le retire"; return 0; }
       pause_reelle 0.25
@@ -175,6 +183,12 @@ case "${1:-}" in
   --reprendre) reprendre=1; shift ;;
   --*) usage ;;
 esac
+# L'id de la session du capitaine, pour le verrou de chaque passage (github.sh, prendre_passage) : après `--arreter`, qui
+# doit marcher sans lui, avant le verrou de la boucle. L'`exec` de relance garde l'environnement.
+[[ "${CAPITAINE_ID-}" =~ ^[A-Za-z0-9_-]{1,100}$ ]] || {
+  echo "ARRÊT : CAPITAINE_ID requis (l'id de la session du capitaine, skill fusionner § « Mise en place »)" >&2
+  exit 64
+}
 
 # Instance unique. Après un `exec` de relance (même pid), le descripteur 9 porte déjà le verrou.
 if [ "${BOUCLE_VERROU_PID:-}" != "$$" ]; then
@@ -360,6 +374,7 @@ traiter_sujets() {
           4) bash "$outils/refus.sh" "$n" "$sortie" ;; # tête gardée : renvoyée avec le motif
           6) echo "[#$n] PAS PROPRE : worktree du capitaine à nettoyer, sous-PR laissée dans la file (aucun renvoi)" ;;
           5) echo "[#$n] REPRISE au tour suivant (sous-PR bougée ou GitHub illisible), aucun renvoi" ;;
+          7) echo "[#$n] en passage chez un autre capitaine : sautée (aucun renvoi)" ;;
           # Push refusé par le distant, sans trace du hook : côté capitaine ou du distant, jamais un renvoi.
           11) echo "[#$n] ÉCHEC DU CAPITAINE : sous-PR laissée dans la file (aucun renvoi), cause ci-dessus" ;;
         esac ;;
@@ -376,7 +391,7 @@ traiter_sujets() {
           5) echo "[#$n] REPRISE au tour suivant (sous-PR ou sujet bougé, checks en cours, GitHub illisible), aucun renvoi" ;;
           # Worktree du capitaine sale : rien que l'auteur puisse corriger, jamais un renvoi.
           6) echo "[#$n] PAS PROPRE : worktree du capitaine à nettoyer, sous-PR laissée dans la file (aucun renvoi)" ;;
-          7) echo "[#$n] sous-PR non éligible (fermée ou en brouillon)" ;;
+          7) echo "[#$n] sous-PR non éligible (fermée, en brouillon, ou en passage chez un autre capitaine)" ;;
           8) echo "[#$n] MISE À JOUR avec ${etat%% :*} poussée, CI pas finie : repasse au tour suivant" ;;
           # Arbre du squash ≠ arbre testé : arrêt. Le `while` tourne dans le sous-shell du tube : le code remonte
           # après lui (PIPESTATUS), et la boucle sort en 12.

@@ -17,7 +17,10 @@ const { depotJouet, script: scriptDe } = await import(
 const script = (nom) => scriptDe("fusionner", nom);
 const PERIMETRE = "Périmètre des changements";
 const REVUE = "## Revue adversariale\n\nRien de bloquant.\n";
-const ecritures = (d) => d.journal().map((e) => `${e.methode} ${e.route}`);
+// Écritures sur GitHub, hors commentaires du verrou du passage (posé, rafraîchi, terminé ou retiré par chaque passage,
+// ticket 4 de capitaine-a-jour-et-teste) : les bancs du verrou les lisent dans le journal brut (`d.journal()`).
+const passage = (e) => (/^issues\/\d+\/comments$|^issues\/comments\/\d+$/.test(e.route) && (e.methode === "DELETE" || (e.champs?.body ?? "").includes("<!-- capitaine:passage ")));
+const ecritures = (d) => d.journal().filter((e) => !passage(e)).map((e) => `${e.methode} ${e.route}`);
 
 // PR ouverte étiquetée à-fusionner, vers develop par défaut.
 const pr = (number, head, autres = {}) => ({
@@ -2209,4 +2212,139 @@ test("passer.sh : refus de fusion 405, develop avancé puis illisible à la rele
   const r = d.lancer(script("passer.sh"), "33");
   assert.equal(r.status, 5, r.stdout + r.stderr);
   assert.match(r.stdout, /develop illisible à la relecture/);
+});
+
+// ── Verrou du passage : plusieurs capitaines sur la même file (ticket 4 de capitaine-a-jour-et-teste) ──────────
+// La PR #40 (docs/verrou) est en retard sur develop : sans verrou, passer.sh la mettrait à jour, la pousserait et la
+// fusionnerait. `marqueDe(id)` : le commentaire d'un autre capitaine, sans fin.
+const marqueDe = (id) => `Passage du capitaine \`${id}\` depuis 12:00 UTC.\n<!-- capitaine:passage ${id} -->`;
+function prVerrou(github = {}) {
+  const d = depotJouet();
+  d.branche("docs/verrou", "origin/develop", { "docs/verrou.md": "verrou\n" });
+  d.branche("develop", "origin/develop", { "docs/autre.md": "autre\n" });
+  d.git("switch", "-q", "--detach", "origin/develop");
+  d.github({ exiges: ["qualite"], checks: { "*": { qualite: "SUCCESS" } }, pulls: [pr(40, "docs/verrou")], ...github });
+  const sommet = () => d.git("ls-remote", "origin", "refs/heads/docs/verrou").split("\t")[0];
+  return { d, avant: sommet(), sommet };
+}
+const commentairesDePassage = (d) => d.journal().filter((e) => /^issues\/(\d+\/)?comments/.test(e.route));
+const termine = (e) => e.methode === "PATCH" && /terminé à \d\d:\d\d UTC\.\n<!-- capitaine:passage capitaine-banc -->\n<!-- capitaine:fin -->/.test(e.champs.body);
+
+test("passer.sh : une PR en passage chez un autre capitaine est sautée (sortie 7), son commentaire retiré, rien n'est poussé", () => {
+  const { d, avant, sommet } = prVerrou();
+  const e = d.etat();
+  e.pulls[0].commentaires = [marqueDe("capitaine-jordan")];
+  d.github(e);
+  const r = d.lancer(script("passer.sh"), "40");
+  assert.equal(r.status, 7, r.stdout + r.stderr);
+  assert.match(r.stdout, /\[#40\] en passage chez le capitaine capitaine-jordan depuis 2026-11-17T12:00:00Z : sautée sans renvoi\n$/);
+  assert.deepEqual(d.journal().map((e) => `${e.methode} ${e.route}`), ["POST issues/40/comments", "DELETE issues/comments/40002"]);
+  assert.equal(sommet(), avant, "rien n'est poussé");
+});
+
+test("passer.sh : deux capitaines à la même seconde, le premier commentaire passe, le second saute", () => {
+  const { d, avant, sommet } = prVerrou({ concurrent: marqueDe("capitaine-jordan") });
+  const r = d.lancer(script("passer.sh"), "40");
+  assert.equal(r.status, 7, r.stdout + r.stderr);
+  assert.match(r.stdout, /en passage chez le capitaine capitaine-jordan/);
+  assert.deepEqual(d.journal().map((e) => `${e.methode} ${e.route}`), ["POST issues/40/comments", "DELETE issues/comments/40002"]);
+  assert.equal(sommet(), avant);
+});
+
+test("passer.sh : le commentaire du passage se termine à toute sortie, fusion, refus et TERM compris", async () => {
+  // Fusion : sortie 0, le commentaire posé, rafraîchi au tour, puis terminé.
+  const fusion = prVerrou();
+  let r = fusion.d.lancer(script("passer.sh"), "40");
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  let c = commentairesDePassage(fusion.d);
+  assert.equal(c[0].methode, "POST");
+  assert.ok(termine(c.at(-1)), JSON.stringify(c.at(-1)));
+  const brutes = fusion.d.journal().map((e) => `${e.methode} ${e.route}`);
+  assert.ok(brutes.indexOf("PUT pulls/40/merge") < brutes.lastIndexOf("PATCH issues/comments/40001"), "terminé après la fusion");
+
+  // Refus après le verrou : checks exigés rouges, sortie 3. (Le titre trop long est refusé avant le verrou : aucun
+  // commentaire n'est posé.)
+  const refus = prVerrou({ checks: { "*": { qualite: "FAILURE" } } });
+  r = refus.d.lancer(script("passer.sh"), "40");
+  assert.equal(r.status, 3, r.stdout + r.stderr);
+  assert.ok(termine(commentairesDePassage(refus.d).at(-1)));
+
+  // TERM pendant l'attente de la CI : un faux `sleep` qui bloque (jusqu'au signal) et le dit dans un fichier ; le banc
+  // envoie TERM au groupe du passage (comme `boucle.sh --arreter`) quand ce fichier existe, sans dépendre d'une durée.
+  const tue = prVerrou({ checks: { "*": { qualite: "IN_PROGRESS" } } });
+  const bin = join(tue.d.racine, "bin-attente");
+  const enAttente = join(tue.d.racine, "en-attente");
+  mkdirSync(bin);
+  writeFileSync(join(bin, "sleep"), `#!/bin/sh\n: > ${JSON.stringify(enAttente)}\nexec /bin/sleep 600\n`);
+  chmodSync(join(bin, "sleep"), 0o755);
+  const { spawn } = await import("node:child_process");
+  const enfant = spawn("bash", [script("passer.sh"), "40"], { cwd: tue.d.travail, env: { ...tue.d.env, PATH: `${bin}:${tue.d.env.PATH}` }, detached: true });
+  let sortie = "";
+  enfant.stdout.on("data", (x) => (sortie += x));
+  enfant.stderr.on("data", (x) => (sortie += x));
+  const fin = new Promise((resolve) => enfant.on("close", (code, signal) => resolve({ code, signal })));
+  while (!existsSync(enAttente)) await new Promise((p) => setTimeout(p, 50));
+  process.kill(-enfant.pid, "SIGTERM");
+  const { code } = await fin;
+  assert.equal(code, 143, sortie);
+  assert.ok(termine(commentairesDePassage(tue.d).at(-1)), `${sortie}\n${JSON.stringify(commentairesDePassage(tue.d))}`);
+});
+
+test("boucle.sh, veille.sh, passer.sh et sujet.sh fusionner refusent de démarrer sans CAPITAINE_ID, sortie 64, rien d'écrit sur GitHub ; boucle.sh --arreter marche sans lui ; relancer à la main ne pose aucun verrou", () => {
+  const { d } = prVerrou();
+  d.branche("sujet/lot", "origin/develop", { "lot.md": "lot\n" });
+  d.branche("feat/sous", "origin/sujet/lot", { "sous.md": "sous\n" });
+  d.git("switch", "-q", "--detach", "origin/develop");
+  const e = d.etat();
+  e.pulls.push(pr(41, "feat/sous", { base: "sujet/lot", title: "docs(lot): sous" }));
+  d.github(e);
+  const sans = (valeur) => {
+    const env = { ...d.env };
+    if (valeur === undefined) delete env.CAPITAINE_ID;
+    else env.CAPITAINE_ID = valeur;
+    return (fichier, ...args) => spawnSync("bash", [fichier, ...args], { cwd: d.travail, env, encoding: "utf8" });
+  };
+  for (const valeur of [undefined, "", "a-->b"]) {
+    const jouer = sans(valeur);
+    const nom = JSON.stringify(valeur);
+    let r = jouer(script("boucle.sh"));
+    assert.equal(r.status, 64, `boucle ${nom} : ${r.stdout}${r.stderr}`);
+    assert.match(r.stderr, /ARRÊT : CAPITAINE_ID requis \(l'id de la session du capitaine, skill fusionner § « Mise en place »\)/);
+    r = jouer(script("veille.sh"));
+    assert.equal(r.status, 64, `veille ${nom} : ${r.stdout}${r.stderr}`);
+    assert.match(r.stderr, /VEILLE ARRÊTÉE \d\d:\d\d : CAPITAINE_ID requis/);
+    r = jouer(script("passer.sh"), "40");
+    assert.equal(r.status, 64, `passer ${nom} : ${r.stdout}${r.stderr}`);
+    assert.match(r.stdout, /\[#40\] CAPITAINE_ID absent ou mal formé/);
+    r = jouer(scriptDe("sujet", "sujet.sh"), "fusionner", "41");
+    assert.equal(r.status, 64, `sujet.sh fusionner ${nom} : ${r.stdout}${r.stderr}`);
+    // relancer : mal formé, refusé ; absent ou vide, joué sans verrou (la sous-PR contient déjà son sujet : sortie 3).
+    r = jouer(scriptDe("sujet", "sujet.sh"), "relancer", "41");
+    if (valeur === "a-->b") assert.equal(r.status, 64, `relancer ${nom} : ${r.stdout}${r.stderr}`);
+    else {
+      assert.equal(r.status, 3, `relancer ${nom} : ${r.stdout}${r.stderr}`);
+      assert.match(r.stdout, /^relancer sans CAPITAINE_ID : aucun verrou posé$/m);
+    }
+    assert.deepEqual(d.journal(), [], `${nom} : rien d'écrit sur GitHub`);
+  }
+  const r = sans(undefined)(script("boucle.sh"), "--arreter");
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /aucune boucle en cours ; fichier d'arrêt posé/);
+});
+
+test("passer.sh : le passage de A finit entre l'éligibilité et la prise du verrou : la PR relue n'est plus éligible, sortie 7, rien n'est poussé", () => {
+  for (const [apresCommentaire, raison] of [
+    [{ state: "closed" }, "non ouverte"],
+    [{ labels: [] }, "sans le label à-fusionner"],
+  ]) {
+    const { d, avant, sommet } = prVerrou({ apresCommentaire });
+    const r = d.lancer(script("passer.sh"), "40");
+    assert.equal(r.status, 7, r.stdout + r.stderr);
+    assert.match(r.stdout, new RegExp(`\\[#40\\] PR plus éligible une fois le verrou pris \\(${raison}\\) : sautée\\n$`));
+    const c = commentairesDePassage(d);
+    assert.equal(c.length, 2, JSON.stringify(c));
+    assert.ok(termine(c[1]), "le commentaire de B terminé");
+    assert.equal(sommet(), avant, "rien n'est poussé");
+    assert.ok(!ecritures(d).includes("PUT pulls/40/merge"));
+  }
 });

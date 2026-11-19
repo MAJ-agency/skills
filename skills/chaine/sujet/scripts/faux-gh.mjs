@@ -32,7 +32,16 @@
 //               `avantFusion` (une fusion concurrente, puis le refus)
 //   origineCasseeAuRefus  au refus de `PR.refusFusion`, le dépôt nu est renommé : la relecture de develop échoue
 //   PR.revues   revues de la PR (`pulls/<n>/reviews`) : [{ state, submitted_at, auteur }]
-//   PR.commentaires  un corps seul reçoit un `created_at` d'office, croissant avec son rang ; un objet porte le sien
+//   PR.commentaires  un corps seul reçoit un `created_at` d'office, croissant avec son rang ; un objet { body, auteur,
+//               association, created_at, updated_at } porte les siens (`association` : `author_association`, OWNER
+//               par défaut, NONE pour un compte hors de l'organisation). Id = numéro × 1000 + rang + 1 (unique dans le
+//               dépôt, comme GitHub). `POST issues/<n>/comments` rend { id, created_at, author_association… } ;
+//               `PATCH issues/comments/<id>` réécrit le corps et date `updated_at` (`PR.editions`, rang → date) ;
+//               `DELETE issues/comments/<id>` le retire des lectures (`PR.supprimes`, les rangs) ; les deux journalisés
+//   concurrent  un commentaire (corps ou objet) d'un autre capitaine, inséré juste AVANT le prochain commentaire posé
+//               (un id plus petit), puis retiré : deux capitaines arrivés à la même seconde
+//   apresCommentaire  { state, labels… } assigné à la PR qui reçoit le prochain commentaire posé, puis retiré (jouée une
+//               fois) : un autre passage finit pendant que le capitaine pose son verrou
 //   pannes      GitHub en panne pour des lectures : [{ route, fois, sortie, erreur, code }]. `route` est une expression
 //               rationnelle sur le chemin sans `repos/{owner}/{repo}/` (requête comprise) ; `sortie` ce que `gh` écrit
 //               sur la sortie standard (défaut : rien), `erreur` sur la sortie d'erreur (défaut « gh: Bad Gateway
@@ -165,6 +174,27 @@ function versRest(pr) {
 }
 // Date d'un commentaire sans date, par son rang : 2026-11-17T12:00:00Z, puis une seconde de plus par rang.
 const dateDuRang = (i) => new Date(Date.UTC(2026, 10, 17, 12, 0, i)).toISOString().replace(/\.000Z$/, "Z");
+// Commentaire `i` de la PR `p`, comme GitHub le rend. Id unique dans le dépôt (numéro × 1000 + rang + 1), croissant
+// avec le rang ; `updated_at` = `created_at` sauf édition ; `author_association` OWNER sauf celle de l'objet.
+function commentaireRest(p, i) {
+  const c = p.commentaires[i];
+  const o = typeof c === "string" ? { body: c } : c;
+  const created_at = o.created_at ?? dateDuRang(i);
+  return {
+    id: p.number * 1000 + i + 1,
+    body: o.body,
+    user: { login: o.auteur ?? etat.capitaine ?? "capitaine" },
+    author_association: o.association ?? "OWNER",
+    created_at,
+    updated_at: p.editions?.[i] ?? o.updated_at ?? created_at,
+  };
+}
+function commentaireParId(id) {
+  const p = etat.pulls.find((x) => x.number === Math.floor((id - 1) / 1000));
+  const i = (id - 1) % 1000;
+  if (!p || i >= (p.commentaires ?? []).length || (p.supprimes ?? []).includes(i)) echec("gh: Not Found (HTTP 404)");
+  return { p, i };
+}
 function pr(n) {
   return (
     etat.pulls.find((p) => p.number === Number(n)) ??
@@ -281,16 +311,40 @@ function repondre() {
   }
   if ((m = route.match(/^issues\/(\d+)\/comments$/)) && methode === "POST") {
     if (etat.commentairesRefuses) echec("gh: Resource not accessible by integration (HTTP 403)");
-    (pr(m[1]).commentaires ??= []).push(champs.body);
-    return { id: 1 };
+    const p = pr(m[1]);
+    p.commentaires ??= [];
+    // Un autre capitaine arrivé à la même seconde : son commentaire passe juste avant le nôtre (un id plus petit).
+    if (etat.concurrent) {
+      p.commentaires.push(etat.concurrent);
+      delete etat.concurrent;
+    }
+    p.commentaires.push(champs.body);
+    const i = p.commentaires.length - 1;
+    // Jouée une fois, au commentaire posé : la PR change sous le capitaine (un autre passage vient de finir).
+    if (etat.apresCommentaire) {
+      Object.assign(p, etat.apresCommentaire);
+      delete etat.apresCommentaire;
+    }
+    return commentaireRest(p, i);
   }
-  // Lecture des commentaires, comme GitHub les rend : un corps seul est du compte du capitaine.
-  if ((m = route.match(/^issues\/(\d+)\/comments$/)) && methode === "GET")
-    return (pr(m[1]).commentaires ?? []).map((c, i) =>
-      typeof c === "string"
-        ? { id: i + 1, body: c, user: { login: etat.capitaine ?? "capitaine" }, created_at: dateDuRang(i) }
-        : { id: i + 1, body: c.body, user: { login: c.auteur ?? etat.capitaine ?? "capitaine" }, created_at: c.created_at ?? dateDuRang(i) },
-    );
+  // Lecture des commentaires, comme GitHub les rend : un corps seul est du compte du capitaine. Les supprimés n'y sont plus.
+  if ((m = route.match(/^issues\/(\d+)\/comments$/)) && methode === "GET") {
+    const p = pr(m[1]);
+    return (p.commentaires ?? []).map((_, i) => i).filter((i) => !(p.supprimes ?? []).includes(i)).map((i) => commentaireRest(p, i));
+  }
+  if ((m = route.match(/^issues\/comments\/(\d+)$/)) && (methode === "PATCH" || methode === "DELETE")) {
+    const { p, i } = commentaireParId(Number(m[1]));
+    if (methode === "DELETE") {
+      (p.supprimes ??= []).push(i);
+      return {};
+    }
+    const c = p.commentaires[i];
+    if (typeof c === "string") p.commentaires[i] = champs.body;
+    else c.body = champs.body;
+    etat.horloge = (etat.horloge ?? 600) + 1;
+    (p.editions ??= {})[i] = dateDuRang(etat.horloge);
+    return commentaireRest(p, i);
+  }
   if ((m = route.match(/^pulls\/(\d+)\/reviews$/)) && methode === "GET")
     return (pr(m[1]).revues ?? []).map((r, i) => ({ id: i + 1, state: r.state, submitted_at: r.submitted_at, user: { login: r.auteur ?? "relecteur" } }));
   if (route === "user" && methode === "GET")
