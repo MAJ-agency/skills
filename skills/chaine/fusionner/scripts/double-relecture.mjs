@@ -30,10 +30,13 @@
 // Ce fichier tourne depuis la copie des outils que la boucle du capitaine reprend d'origin/develop, hors du
 // dépôt, avec `scripts/chaine` et `scripts/docs/identifiants.mjs` pour tout bagage. Aucune dépendance : l'en-tête
 // YAML d'une règle est lu ici, sans bibliothèque, par une liste fermée de formes de ligne (`A-143`). Le lecteur ne
-// lit que ce que cette liste admet, sur tout l'en-tête ; une seule ligne hors liste, et la règle n'est pas lue :
+// lit que ce que cette liste admet, sur tout l'en-tête ; une seule ligne hors liste, ou un en-tête refusé au sens
+// (niveau hors vocabulaire, `criticality` sans `level`, `code` qui n'est pas une liste, fichier sans en-tête), et la
+// règle n'est pas lue :
 // on ne prouve pas ce qu'on ne lit pas, elle est une cause (« en-tête illisible »), la réponse est « exigée », et
 // le message dit le fichier, la ligne et la raison. Tant que cet en-tête n'est pas récrit, toute PR du dépôt
-// répond « exigée ». De même un ticket que la PR nomme et qu'aucun arbre ne porte (« ticket introuvable »).
+// répond « exigée ». De même un ticket que la PR nomme et qu'aucun arbre ne porte, ou que tous portent archivé
+// (« ticket introuvable »).
 //
 // Le niveau d'une règle se lit sur trois arbres, la base, la tête et `origin/develop` (un sujet en retard ne cache
 // pas une règle montée dans develop) ; le plus haut l'emporte. Dans l'index Anchorpost de l'arbre
@@ -44,7 +47,8 @@
 // les en-têtes sont lus aussi, à chaque référence : une règle est haute et comptée dès que l'une des deux lectures
 // le dit, et son `code` est l'union des deux ; un index ancien, incomplet ou que la PR n'a pas régénéré ne cache
 // rien. Une règle `rejected` ou `obsolete` (des deux côtés, quand il y a un index) ne compte pas. Un fichier de
-// règle dont l'en-tête est hors liste est une cause quoi que l'index en dise ; les autres règles restent lues.
+// règle dont l'en-tête est hors liste est une cause quoi que dise un index lisible ; les autres règles restent lues
+// (un index illisible rend l'arbre entier illisible avant que les en-têtes soient lus : sortie 21, pas de cause).
 // Le changement de niveau se lit entre le départ de la PR (la base de fusion de sa cible et de sa tête) et sa tête :
 // ce qu'une autre PR a changé dans la cible depuis n'est pas un changement de celle-ci.
 //
@@ -139,7 +143,8 @@ export function cheminDuDiff(ligne) {
 //   <retrait># commentaire                           (sautée)
 //   <retrait>clé: <valeur>                           une paire ; aucune ligne plus profonde ne la suit
 //   <retrait>clé:                                    un bloc plus profond la suit (mappage ou liste), ou une liste au
-//                                                    même retrait (`clé:` puis `- …`), ou rien
+//                                                    même retrait (`clé:` puis `- …`), ou rien (`null`, que `code`
+//                                                    refuse : « attendu une liste de chemins »)
 //   <retrait>- <valeur>                              un élément de liste
 //   <retrait>- clé: <valeur>   |   <retrait>- clé:   un élément qui ouvre un mappage, au retrait de sa clé
 //
@@ -154,8 +159,12 @@ export function cheminDuDiff(ligne) {
 //   "…"        fermée sur la ligne ; seuls échappements `\"` et `\\`.      '…'   fermée sur la ligne ; `''` pour l'apostrophe.
 //   { } [ ]    ouverts et fermés sur la ligne, sans imbrication, sans virgule finale ; `{}` et `[]`.
 //
-// Et les deux formes qu'un formateur (Prettier 3) donne à un mappage ou à une liste en ligne trop longs, à ses
+// Et les trois formes qu'un formateur (Prettier 3) donne à un mappage ou à une liste en ligne trop longs, à ses
 // retraits exacts, R étant le retrait de la clé ou du tiret :
+//
+//   <R>clé:                          le flux entier, `{ … }` ou `[ … ]` comme ci-dessus, seul sur la ligne qui suit
+//   <R+2>{ clé: scalaire, … }        sa clé, au retrait R+2 ; `clé:` sans rien après, pas même un commentaire ; ni
+//                                    ligne vide ni commentaire entre les deux (`A-151`).
 //
 //   <R>clé:            <R>clé: {           <R>- {              l'ouvrant, `{` ou `[`, seul : sur sa ligne au retrait
 //   <R+2>{             <R+4>clé: scalaire, <R+4>clé: scalaire,  R+2, ou en fin de la ligne de la clé ou du tiret ;
@@ -163,6 +172,8 @@ export function cheminDuDiff(ligne) {
 //   <R+2>}                                                     collée, la dernière comprise ; le fermant au retrait
 //                                                              R+2, ` # commentaire` pouvant le suivre.
 //   Entre l'ouvrant et le fermant : ni ligne vide, ni commentaire, ni entrée sur deux lignes, ni imbrication.
+//   Hors liste, donc : ce que Prettier écrit sous `proseWrap: always` (une chaîne pliée), sous `trailingComma: none`
+//   (la dernière entrée sans virgule) ou à un retrait autre que 2 ; le réglage du socle n'en écrit aucune.
 //
 // Tabulation, `\r` isolé, caractère de commande, marque d'ordre des octets, espace insécable et autres blancs
 // d'Unicode : illisible, où qu'ils soient. Scalaire en bloc (`|`, `>`), texte plié sur plusieurs lignes, étiquette,
@@ -329,6 +340,15 @@ function arbreDeLEnTete(lignes) {
         if (reste !== '' || suivante.retrait !== R + 2 || suivante.n !== u.n + 1) refuser(suivante, `l'ouvrant d'un mappage ou d'une liste pliés suit sa clé, seul sur sa ligne, au retrait ${R + 2}`);
         i++;
         return fluxPlie(R, suivante.texte, suivante.n);
+      }
+      // La troisième forme du formateur : le mappage ou la liste en ligne entiers, seuls sur la ligne qui suit leur
+      // clé (`clé:` sans rien après, pas même un commentaire), au retrait R+2 exactement.
+      if (suivante.texte[0] === '{' || suivante.texte[0] === '[') {
+        if (reste !== '' || suivante.retrait !== R + 2 || suivante.n !== u.n + 1) refuser(suivante, `un mappage ou une liste en ligne sous sa clé la suit immédiatement, sans commentaire après la clé, au retrait ${R + 2}`);
+        i++;
+        const [lu, suite] = fluxEnLigne(suivante.texte, suivante.n);
+        finDeLigne(suivante.texte, suite, suivante.n);
+        return lu;
       }
       return suivante.texte.startsWith('- ') ? liste(suivante.retrait) : mappage(suivante.retrait);
     }

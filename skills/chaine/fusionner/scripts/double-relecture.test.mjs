@@ -878,6 +878,113 @@ test("les deux formes qu'un formateur donne à un mappage ou à une liste en lig
   for (const [abimee, n] of Object.entries(ABIMEES)) assert.throws(() => lit(abimee), (e) => e instanceof Illisible && e.message.startsWith(`ligne ${n} : `), `${JSON.stringify(abimee)} → ligne ${n}`);
 });
 
+test("la troisième forme du formateur : `clé:` puis, à la ligne suivante exacte et au retrait R+2, le mappage ou la liste en ligne entiers, sur une ligne, sont lus ; la même abîmée d'un caractère ou d'une ligne est « illisible » (A-151)", () => {
+  // Les sorties de Prettier 3.10.1 au réglage du socle (`printWidth: 100`, `trailingComma: all`), recopiées : le banc
+  // ne dépend pas de lui. La première : `criticality: { level: high, by: agent, reason: "…" }` et `code: [ … ]`
+  // de trois chemins, écrits chacun sur la ligne de leur clé.
+  const socle = [
+    'id: RULE_ALL_FAC-16',
+    "title: Le total d'une facture est la somme de ses lignes",
+    'criticality:',
+    '  { level: high, by: agent, reason: "Une erreur sur le total coûte de l\'argent au client" }',
+    'validation: { status: validated, date: 2026-11-16 }',
+    'code:',
+    '  [apps/api/src/facture/total.ts, apps/api/src/facture/lignes.ts, apps/web/src/facture/total.tsx]',
+    '',
+  ].join('\n');
+  assert.deepEqual(lit(socle), { niveau: 'high', code: ['apps/api/src/facture/total.ts', 'apps/api/src/facture/lignes.ts', 'apps/web/src/facture/total.tsx'], enVigueur: true }, 'la sortie du formateur au réglage du socle');
+  // La seconde : la même forme sous une clé d'un mappage et sous la clé d'un élément de liste.
+  const imbrique = [
+    'id: RULE_ALL_FAC-17',
+    'validation:',
+    '  status: rejected',
+    '  detail:',
+    '    { by: une-personne, reason: "validée en réunion du mois de novembre, point trois et quatre" }',
+    'sources:',
+    '  - ref: une réunion',
+    '    at:',
+    '      [section deux du compte rendu, section trois du compte rendu, section quatre du compte rendu]',
+    'criticality: high',
+    '',
+  ].join('\n');
+  assert.deepEqual(lit(imbrique), { ...HAUTE, enVigueur: false }, 'sous une clé, sous la clé d\'un élément de liste');
+  assert.deepEqual(lit('extensions:\n  {}\ncode:\n  []\nnote:\n  { level: low } # un commentaire après le fermant\ncriticality: high\n'), HAUTE, 'vides, et un commentaire après le fermant');
+  assert.throws(() => lit('criticality:\n  {}\n'), { message: /^ligne 2 : `criticality` sans `level`/ });
+  // Abîmée d'un caractère ou d'une ligne → la ligne refusée.
+  const ABIMEES = {
+    'criticality:\n {  level: high }\n': 3, // retrait R+1
+    'criticality:\n   { level: high }\n': 3, // retrait R+3
+    'criticality:\n    { level: high }\n': 3, // retrait R+4
+    'criticality:\n\n  { level: high }\n': 4, // une ligne vide entre la clé et le flux
+    'criticality:\n  \n  { level: high }\n': 4, // une ligne d'espaces
+    'criticality:\n  # c\n  { level: high }\n': 4, // un commentaire entre les deux
+    'criticality: # c\n  { level: high }\n': 3, // un commentaire après la clé
+    'criticality:\n  { level: high }\n    x: y\n': 4, // une ligne plus profonde après le flux
+    'criticality:\n  { level: high }\n  x: y\n': 4,
+    'criticality:\n  { level: high }\n  { level: low }\n': 4,
+    'criticality: high\ncode:\n  [apps/a.ts]\n  - apps/b.ts\n': 5,
+    'criticality:\n  { level: high\n': 3, // jamais refermé
+    'criticality:\n  { level: high\n  }\n': 3,
+    'criticality:\n  { level: high ]\n': 3,
+    'criticality:\n  { level: high } x\n': 3,
+    'criticality:\n  { level: high }#c\n': 3,
+    'criticality:\n  { level: high },\n': 3,
+    'criticality:\n  { level: high }: x\n': 3, // le flux serait une clé
+    'criticality:\n  { level: high, }\n': 3,
+    'criticality:\n  { level:high }\n': 3,
+    'criticality:\n  { level: high, level: low }\n': 3,
+    'criticality:\n  { level: low, "level": high }\n': 3,
+    'criticality:\n  { level: { a: high } }\n': 3,
+    'criticality:\n  { ? level : high }\n': 3,
+    'criticality:\n  { level: &a high }\n': 3,
+    'criticality:\n  { level: hi[gh }\n': 3,
+    [`criticality:\n  { level: high${String.fromCharCode(0xa0)}}\n`]: 3,
+    'criticality:\n  { level: high,\n    by: agent }\n': 3, // l'entrée sur deux lignes
+    'criticality: high\ncode:\n  [ apps/a.ts, [ apps/b.ts ] ]\n': 4,
+    'criticality: high\ncode:\n  [ 12 ]\n': 3,
+    'criticality: high\ncode:\n  [ apps/a.ts,, apps/b.ts ]\n': 4,
+    'criticality: high\ncode:\n  [ apps/a.ts # c ]\n': 4,
+    'validation:\n  detail:\n   { a: b }\ncriticality: high\n': 4, // sous une clé de retrait 2 : le flux à 4
+    'validation:\n  detail:\n     { a: b }\ncriticality: high\n': 4,
+    'sources:\n  - at:\n     [a, b]\ncriticality: high\n': 4, // sous la clé d'un élément : le flux à 6
+    'sources:\n  - at:\n       [a, b]\ncriticality: high\n': 4,
+    'sources:\n  - at:\n    [a, b]\ncriticality: high\n': 4,
+  };
+  for (const [abimee, n] of Object.entries(ABIMEES)) assert.throws(() => lit(abimee), (e) => e instanceof Illisible && e.message.startsWith(`ligne ${n} : `), `${JSON.stringify(abimee)} → ligne ${n}`);
+  // Chaque caractère de la sortie du socle, retiré un à un : la ligne reste lue, ou elle est refusée, à sa ligne ou,
+  // refus de sens (`level` manquant, `code` qui n'est plus une liste), à celle de sa clé ; jamais lue plus bas. (Un caractère d'un chemin ou de la raison change le
+  // texte lu, pas le niveau ; un caractère de `high` le change : refusé, la criticité n'étant plus dans le vocabulaire.)
+  const lignes = socle.split('\n');
+  for (const k of [3, 6]) {
+    for (let c = 0; c < lignes[k].length; c++) {
+      const abimee = lignes.map((l, j) => (j === k ? l.slice(0, c) + l.slice(c + 1) : l)).join('\n');
+      let lu;
+      try {
+        lu = lit(abimee);
+      } catch (e) {
+        assert.ok(e instanceof Illisible && (e.message.startsWith(`ligne ${k + 2} : `) || e.message.startsWith(`ligne ${k + 1} : `)), `${JSON.stringify(lignes[k])} sans son caractère ${c} : ${e.message}`);
+        continue;
+      }
+      assert.equal(lu.niveau, 'high', `${JSON.stringify(lignes[k])} sans son caractère ${c}`);
+      // Une virgule retirée fond deux chemins en un, comme une bibliothèque YAML les lit.
+      const attendu = k === 6 ? abimee.split('\n')[k].trim().slice(1, -1).split(',').map((p) => p.trim()) : ['apps/api/src/facture/total.ts', 'apps/api/src/facture/lignes.ts', 'apps/web/src/facture/total.tsx'];
+      assert.deepEqual(lu.code, attendu, `${JSON.stringify(lignes[k])} sans son caractère ${c}`);
+    }
+  }
+});
+
+test("deux bords du lecteur : un statut qui commence par `rejected` ou `obsolete` sans l'être laisse la règle en vigueur ; `code:` sans valeur suivi d'une clé sœur est « illisible » (A-151, m1)", () => {
+  // Une bibliothèque YAML lit `rejected x` : ni `rejected`, ni `obsolete` ; la règle compte.
+  for (const statut of ['rejected x', '"rejected "', "'obsolete '", 'rejectedness', 'obsolete-2', 'rejected_', 'obsoletes', 'Rejected', 'OBSOLETE'])
+    assert.equal(lit(`criticality: high\nvalidation:\n  status: ${statut}\n`).enVigueur, true, statut);
+  for (const statut of ['rejected', '"rejected"', "'obsolete'", 'obsolete # retirée'])
+    assert.equal(lit(`criticality: high\nvalidation:\n  status: ${statut}\n`).enVigueur, false, statut);
+  // `code:` sans rien, puis une clé au même retrait : YAML y lit `code: null`, pas une liste ; le lecteur refuse, à la ligne de `code`.
+  assert.throws(() => lit('code:\ncriticality: high\n'), { message: /^ligne 2 : `code` : attendu une liste de chemins/ });
+  assert.throws(() => lit('criticality: high\ncode:\nvalidation:\n  status: validated\n'), { message: /^ligne 3 : `code` : attendu une liste de chemins/ });
+  assert.deepEqual(lit('criticality: high\ncode:\n- apps/a.ts\nnote: x\n'), { ...HAUTE, code: ['apps/a.ts'] }, 'la liste au retrait de sa clé, elle, est lue');
+});
+
 test("les sept histoires de la contre-relecture, de bout en bout, en ligne de commande : une règle haute et validée, écrite hors de la liste fermée, exige deux relectures (B1, B2, B3)", () => {
   const script = copieDesOutils();
   const R19 = 'docs/metier/regles/all/RULE_ALL_FAC-19.md';
