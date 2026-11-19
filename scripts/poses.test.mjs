@@ -22,11 +22,13 @@ const POSES = [
   ["skills/chaine/tickets/references/scripts/verify", "scripts/verify"],
 ];
 // Fichiers posés un à un, et non par dossier : de `references/scripts/github/`, le socle de la chaîne ne pose que
-// CODEOWNERS et son banc (étape 4 ter) ; `develop.sh` part seul, sans son banc (étape 9).
+// CODEOWNERS et le check `PR titre`, avec leurs bancs (étape 4 ter) ; `develop.sh` part seul, sans son banc (étape 9).
 const SOCLE_GITHUB = "skills/chaine/socle-chaine-de-production/references/scripts/github";
 const FICHIERS_POSES = [
   [`${SOCLE_GITHUB}/codeowners.mjs`, "scripts/github/codeowners.mjs"],
   [`${SOCLE_GITHUB}/codeowners.test.mjs`, "scripts/github/codeowners.test.mjs"],
+  [`${SOCLE_GITHUB}/pr-titre.mjs`, "scripts/github/pr-titre.mjs"],
+  [`${SOCLE_GITHUB}/pr-titre.test.mjs`, "scripts/github/pr-titre.test.mjs"],
 ];
 // Fichiers de la racine du projet que les bancs posés lisent (socle-monorepo, TABLE-RACINE.md).
 const RACINE_PROJET = [
@@ -62,7 +64,7 @@ test("les bancs posés à plat sous scripts/chaine/ tournent hors du plugin", { 
     for (const [source, destination] of [...FICHIERS_POSES, ...RACINE_PROJET]) poser(source, destination);
     mkdirSync(join(projet, ".husky"), { recursive: true });
     writeFileSync(join(projet, ".husky/pre-commit"), PRE_COMMIT_PROJET, { mode: 0o755 });
-    // Les bancs posés à plat dans scripts/chaine/ et scripts/github/ (socle de la chaîne : CODEOWNERS).
+    // Les bancs posés à plat dans scripts/chaine/ et scripts/github/ (socle de la chaîne : CODEOWNERS, PR titre).
     const bancs = ["scripts/chaine", "scripts/github"].flatMap((dossier) =>
       readdirSync(join(projet, dossier))
         .filter((n) => n.endsWith(".test.mjs"))

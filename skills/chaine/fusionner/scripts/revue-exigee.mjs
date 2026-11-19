@@ -15,6 +15,8 @@
 // alors la seule ligne Status du commit de réservation et le code reste sur la branche.
 //
 // Usage : printf '%s\n' "$fichiers" | node revue-exigee.mjs "$corps" ["$titre"] ["<base>"]
+// En module : `motifsDuCapitaine` (tous les motifs, dans l'ordre de la CLI) et `lireBase`, que le check `pr-titre` du
+// socle de la chaîne appelle (ticket 16).
 // `<base>` : la branche que la PR vise (`origin/develop`, `origin/sujet/<nom>`) ; ses `cheminsSensibles` et son
 // fichier des critères s'ajoutent au plancher (`lireBase`). Sans elle, le plancher seul.
 // Sortie 0 éligible · 1 non éligible, motif sur la sortie standard.
@@ -353,6 +355,19 @@ export function motifTitreSansCode({ titre, fichiers }) {
   return `titre « ${m[1]} » mais le diff ne contient que de la documentation (${liste.length} fichier(s) sous docs/) : le code est-il poussé ? Poser à-fusionner après le dernier push (le pre-push est long), ou retitrer en docs:`;
 }
 
+/**
+ * Ticket 16 : les motifs de non-éligibilité du capitaine, tous, dans l'ordre où la CLI les juge (section de revue,
+ * ligne `/security-review`, titre de code sur de la documentation seule) ; `[]` si la PR peut passer. La CLI rend
+ * le premier ; le check `pr-titre` du socle les rend tous, sans recopier la règle.
+ */
+export function motifsDuCapitaine({ corps, titre, fichiers, base = SANS_BASE }) {
+  return [
+    motifSansRevue({ corps, fichiers, base }),
+    motifSansSecurite({ corps, fichiers, base }),
+    motifTitreSansCode({ titre, fichiers }),
+  ].filter((m) => m !== null);
+}
+
 /** Vrai quand ce fichier est lancé en ligne de commande : lien symbolique, chemin à espace ou à accent, `--preserve-symlinks-main` compris. */
 function estPointEntree() {
   try {
@@ -366,10 +381,7 @@ if (estPointEntree()) {
   const { readFileSync } = await import('node:fs');
   const fichiers = readFileSync(0, 'utf8').split('\n').filter(Boolean);
   const base = process.argv[4] ? lireBase(process.argv[4]) : SANS_BASE;
-  const motif =
-    motifSansRevue({ corps: process.argv[2] ?? '', fichiers, base }) ??
-    motifSansSecurite({ corps: process.argv[2] ?? '', fichiers, base }) ??
-    motifTitreSansCode({ titre: process.argv[3] ?? '', fichiers });
+  const [motif] = motifsDuCapitaine({ corps: process.argv[2] ?? '', titre: process.argv[3] ?? '', fichiers, base });
   if (motif) {
     process.stdout.write(`${motif}\n`);
     process.exit(1);

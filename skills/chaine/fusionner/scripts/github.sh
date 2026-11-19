@@ -203,6 +203,59 @@ index_regeneres_motifs_regex() {
   index_json | jq -r '.index[] | objects | select((.commande // "") != "" and (.chemin | contains("*"))) | .chemin' |
     jq -Rrs 'split("\n") | map(select(. != "") | gsub("\\."; "\\.") | gsub("\\*"; "[^/]+")) | "^(" + join("|") + ")$"'
 }
+# Livraison intermédiaire (`livraison/<nom>-<AAAAMMJJ-HHMM>`) : `livraison_intermediaire <nom> <sommet>`, sortie 0 si
+# la tête est prouvée livraison du sujet, 1 sinon. Une seule règle pour passer.sh (après son `git fetch` du sujet) et
+# `sujet.sh est-livraison` (le check `pr-titre` du socle, ticket 16) : sur les refs déjà là (origin/develop,
+# origin/sujet/<nom>), sans fetch ni appel GitHub ; origin/sujet/<nom> absent, 1.
+# Le nom de branche seul ne suffit pas (il dispense de la revue) : `sujet/<nom>` doit exister, et la
+# livraison n'apporter qu'un sommet du sujet fusionné avec develop. La contenance du sommet dans le
+# sujet ne suffit pas non plus : l'étape 4 pousse sur la livraison sa fusion avec develop, qu'aucun
+# sujet ne contient, et au passage suivant (checks rouges relancés, sortie 5) la livraison passait
+# pour une PR ordinaire (revue exigée, puis squash). Critère : un ancêtre commun de la tête et du
+# sujet, hors de develop, dont la fusion avec le develop que la tête contient donne l'arbre de la
+# tête, aux index générés près. Sinon la PR repasse par le chemin ordinaire (revue exigée, squash).
+livraison_intermediaire() {
+  local nom=$1 origine=$2 d s attendu ecart hors regeneres motifs generes
+  git rev-parse -q --verify "refs/remotes/origin/sujet/$nom^{commit}" >/dev/null || return 1
+  git rev-parse -q --verify "$origine^{commit}" >/dev/null || return 1
+  # Liste des index générés calculée ici, jamais héritée d'un appelant ; illisible : pas une livraison.
+  generes=$(index_generes_regex) && [ -n "$generes" ] || return 1
+  d=$(git merge-base "$origine" origin/develop) || return 1
+  for s in $(git merge-base --all "$origine" "origin/sujet/$nom" 2>/dev/null); do
+    ! git merge-base --is-ancestor "$s" origin/develop || continue
+    # Arbre de la fusion, même en conflit (sortie 1) : un conflit hors index y laisse ses marqueurs,
+    # donc un écart avec la tête.
+    attendu=$(git merge-tree --write-tree --no-messages "$s" "$d" 2>/dev/null | sed -n 1p) || true
+    [ -n "$attendu" ] || continue
+    # Un `git diff` en échec n'est jamais une dispense : on ne conclut que sur un diff lu.
+    # Sans détection des renommages : une suppression ne se cache pas derrière un index généré ajouté.
+    ecart=$(git -c core.quotePath=false diff --no-renames --name-only "$attendu" "$origine") || continue
+    # Un index qui a une `commande` est régénéré : dispensé. Un index sans commande ne l'est que si son
+    # blob au sommet est celui d'origin/develop (la version de develop prise au conflit par la mise à
+    # jour) ; absent d'un côté, il diffère et va à la revue.
+    # Un index déclaré par motif, même avec une `commande`, ne l'est que sur un contenu déjà connu (celui de la
+    # fusion recalculée ou d'origin/develop) : sa régénération ne retire pas un fichier en trop sous le motif.
+    # Liste illisible (fonction absente, jq en échec) : pas une livraison, la revue est exigée.
+    regeneres=$(index_regeneres_regex) && [ -n "$regeneres" ] || return 1
+    motifs=$(index_regeneres_motifs_regex) && [ -n "$motifs" ] || return 1
+    hors=$(printf '%s\n' "$ecart" | sed '/^$/d' | while IFS= read -r f; do
+      if ! grep -qE "$generes" <<<"$f"; then
+        printf '%s\n' "$f"
+      elif grep -qE "$motifs" <<<"$f"; then
+        a=$(git rev-parse -q --verify "$origine:$f" 2>/dev/null) || a=''
+        b=$(git rev-parse -q --verify "$attendu:$f" 2>/dev/null) || b=''
+        c=$(git rev-parse -q --verify "origin/develop:$f" 2>/dev/null) || c=''
+        [ -n "$a" ] && { [ "$a" = "$b" ] || [ "$a" = "$c" ]; } || printf '%s\n' "$f"
+      elif ! grep -qE "$regeneres" <<<"$f"; then
+        a=$(git rev-parse -q --verify "$origine:$f" 2>/dev/null) || a=''
+        b=$(git rev-parse -q --verify "origin/develop:$f" 2>/dev/null) || b=''
+        [ -n "$a" ] && [ "$a" = "$b" ] || printf '%s\n' "$f"
+      fi
+    done)
+    [ -n "$hors" ] || return 0
+  done
+  return 1
+}
 # Les dossiers d'un index généré (`docs/adr` pour `docs/adr/README.md`, motif compris), en expression régulière.
 index_dossiers_regex() {
   index_generes | jq -Rrs 'split("\n") | map(select(. != "") | split("/") | . as $s | range(1; length) | $s[:.] | join("/"))

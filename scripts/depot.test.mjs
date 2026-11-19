@@ -1151,3 +1151,33 @@ test("ticket 18 : la ligne /security-review des deux gabarits de section se lit 
     assert.equal(aLigneSecurite(`${titre}\n\n${ligne.slice(0, ligne.indexOf(":") + 1)} ${nonRequise}\n`), false, `${gabarit} : « non requise »`);
   }
 });
+
+// Ticket 16 : le check `PR titre` du socle lit un titre et un corps écrits par l'auteur de la PR. Son workflow, posé
+// dans les projets, se contrôle ici comme ceux du dépôt : jamais d'expression dans un `run:`, actions épinglées.
+const PR_TITRE_YML = "skills/chaine/socle-chaine-de-production/references/ci/pr-titre.yml";
+test("le workflow pr-titre du socle : pull_request vers develop et sujet/**, types avec edited, permissions en lecture, actions épinglées, valeurs de l'événement par env et jamais dans run, jamais pull_request_target", () => {
+  const w = readFileSync(join(RACINE, PR_TITRE_YML), "utf8");
+  assert.match(w, /^on:\r?\n {2}pull_request:\r?\n {4}branches: \['develop', 'sujet\/\*\*'\]\r?\n/m, "pull_request vers develop et sujet/**");
+  const types = /^ {4}types: \[([^\]]*)\]/m.exec(w)?.[1].split(",").map((t) => t.trim()) ?? [];
+  for (const t of ["opened", "edited", "reopened", "ready_for_review", "synchronize"]) assert.ok(types.includes(t), `types: ${t} attendu`);
+  assert.doesNotMatch(w, /pull_request_target/, "jamais pull_request_target");
+  assert.doesNotMatch(w, /^\s+push:/m, "pas de déclencheur push");
+  assert.match(w, /^permissions:\r?\n {2}contents: read\r?\n(?! {2}\S)/m, "permissions : contents: read, et rien d'autre");
+  assert.ok(!aLigne(w, /write/), "aucune permission en écriture");
+  assert.match(w, /^concurrency:\r?\n {2}group: .*pull_request\.number.*\r?\n {2}cancel-in-progress: true/m, "concurrence par PR");
+  assert.match(w, /if: \$\{\{ !github\.event\.pull_request\.draft \}\}/, "sauté sur un brouillon");
+  assert.match(w, /fetch-depth: 0, persist-credentials: false/);
+  assert.ok(nombreActions(w) >= 3, "checkout, pnpm, node");
+  assert.deepEqual(actionsMalEpinglees(w), []);
+  // Les mêmes actions, aux mêmes empreintes, que la CI du socle.
+  const ci = readFileSync(join(RACINE, "skills/chaine/socle-chaine-de-production/references/ci/ci.yml"), "utf8");
+  const uses = (t) => new Set([...t.matchAll(/uses:\s*(\S+)/g)].map((m) => m[1]));
+  for (const u of uses(w)) assert.ok(uses(ci).has(u), `${u} : pas l'empreinte de ci.yml`);
+  assert.deepEqual(runAvecExpression(w), [], "aucune expression dans un run:");
+  assert.ok(commande(w, "pnpm install --frozen-lockfile"));
+  assert.ok(aLigne(w, /^\s+run: node scripts\/github\/pr-titre\.mjs$/));
+  for (const [v, champ] of [["PR_TITRE", "title"], ["PR_CORPS", "body"], ["PR_NUMERO", "number"], ["PR_BASE", "base.ref"], ["PR_TETE", "head.ref"], ["PR_SOMMET", "head.sha"]])
+    assert.ok(aLigne(w, new RegExp(`^\\s+${v}: \\$\\{\\{ github\\.event\\.pull_request\\.${champ.replace(".", "\\.")} \\}\\}$`)), `${v} par env:`);
+  // Le titre et le corps n'apparaissent que dans env:.
+  assert.equal(lignes(w).filter((l) => /pull_request\.(title|body)/.test(l)).length, 2);
+});
