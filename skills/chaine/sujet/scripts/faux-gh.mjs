@@ -372,7 +372,13 @@ function etatDeFusion(p) {
   const base = ref(p.base);
   const sha = versRest(p).head.sha;
   if (!base || !ref(p.head)) return null;
-  return fusionEssayee(base, sha).conflit ? "dirty" : "clean";
+  // Un calcul impossible (un banc remplace `git` par un git sans `merge-tree --write-tree`) se lit comme GitHub qui
+  // n'a pas encore calculé l'état : `null`, jamais un faux en échec sur une simple lecture.
+  try {
+    return fusionEssayee(base, sha).conflit ? "dirty" : "clean";
+  } catch {
+    return null;
+  }
 }
 
 // Fusion dans le dépôt nu, comme GitHub : refusée si le sommet n'est plus `sha`, si la base est stricte et pas
