@@ -377,6 +377,42 @@ test("renvoyer.sh : au troisième renvoi, le commentaire dit que la PR attend un
   assert.match(rm.stdout, /attend un humain/);
 });
 
+// GitHub ne lance pas la CI d'une PR qu'il ne sait pas fusionner : sans CI et `mergeable_state` « dirty », elle est
+// « prête (en conflit) » ; état pas encore calculé (`null`, `unknown`) ou PR propre : « prête (sans CI) ».
+test("file.sh : une PR sans CI que GitHub dit en conflit se lit prête (en conflit), vers develop comme vers un sujet ; état inconnu : prête (sans CI)", () => {
+  const d = depotJouet();
+  d.branche("sujet/lot", "origin/develop", { "docs/s.md": "lot\n" });
+  d.branche("feat/s", "origin/develop", { "docs/s.md": "sous\n" });
+  for (const b of ["feat/a", "feat/b", "feat/c", "feat/d"]) d.branche(b, "origin/develop", { "docs/d.md": `${b}\n` });
+  d.branche("develop", "origin/develop", { "docs/d.md": "develop\n" });
+  d.branche("feat/propre", "origin/develop", { "docs/p.md": "p\n" });
+  d.git("switch", "-q", "--detach", "origin/develop");
+  d.github({
+    exiges: ["qualite"],
+    checks: { "#95": { qualite: "SUCCESS" } },
+    pulls: [
+      pr(90, "feat/a"),
+      pr(91, "feat/propre"),
+      pr(92, "feat/b", { mergeableState: null }),
+      pr(93, "feat/c", { mergeableState: "unknown" }),
+      pr(94, "feat/s", { base: "sujet/lot", title: "feat(demo): s" }),
+      pr(95, "feat/d"),
+    ],
+  });
+  const etats = Object.fromEntries(
+    d.lancer(script("file.sh")).stdout.trim().split("\n").map((l) => l.split("\t").slice(0, 2)),
+  );
+  assert.deepEqual(etats, {
+    90: "prête (en conflit)",
+    91: "prête (sans CI)",
+    92: "prête (sans CI)",
+    93: "prête (sans CI)",
+    94: "sujet/lot : prête (en conflit)",
+    95: "prête",
+  });
+  assert.deepEqual(d.journal(), [], "file.sh ne fait que lire");
+});
+
 test("file.sh : une PR renvoyée autant de fois que le plafond est montrée humain, et ni --next ni --rouges ne la rendent", () => {
   const d = depotJouet();
   for (const b of ["feat/a", "feat/b", "feat/c"])

@@ -136,6 +136,91 @@ test("boucle.sh : la sortie 8 ne renvoie pas la PR (MISE À JOUR, aucun label ni
   assert.deepEqual(d.etat().pulls[0].labels, ["à-fusionner"]);
 });
 
+// Une sous-PR en conflit avec son sujet n'a pas de CI (GitHub ne lance pas les workflows d'une PR qu'il ne sait pas
+// fusionner) : `relancer` lit la règle d'ascendance avant toute fusion. Sur des index générés seuls, la branche est mise
+// à jour comme par `fusionner` ; hors index, sortie 2 avec les fichiers, branche intacte (défaut 1, #1969 sur `fedora`).
+const sansChecks = (conflit) => {
+  const f = sousPrEnConflit(conflit);
+  f.d.github({ checks: {} });
+  return f;
+};
+
+test("relancer : conflit sur un index généré seul, la branche est mise à jour, index régénéré, poussée, sortie 0", () => {
+  const { d, sommet } = sansChecks("index");
+  const r = d.lancer(SUJET, "relancer", "80");
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /#80 : sujet\/lot fusionné dans sa branche \([0-9a-f]+\), CI lancée/);
+  d.git("fetch", "-q", "origin");
+  const tete = d.git("rev-parse", "origin/docs/sous");
+  assert.notEqual(tete, sommet, "la branche de la sous-PR a avancé");
+  assert.equal(d.git("rev-parse", `${tete}^1`), sommet, "commit de fusion, l'ancien sommet premier parent");
+  assert.equal(d.git("rev-parse", `${tete}^2`), d.git("rev-parse", "origin/sujet/lot"), "le sujet second parent");
+  assert.equal(
+    d.git("show", `${tete}:${ADR}/README.md`) + "\n",
+    index("ADR_ALL_ARC-1-a.md", "ADR_ALL_ARC-2-b.md", "ADR_ALL_ARC-3-c.md"),
+  );
+  assert.ok(!ecritures(d).some((e) => e.startsWith("PUT ")), "aucun squash");
+  assert.equal(d.git("status", "--porcelain"), "");
+});
+
+test("relancer : conflit hors index, sortie 2, fichiers listés, branche intacte", () => {
+  const { d, sommet } = sansChecks("code");
+  const r = d.lancer(SUJET, "relancer", "80");
+  assert.equal(r.status, 2, r.stdout + r.stderr);
+  assert.match(r.stdout, /^conflit avec sujet\/lot hors index générés :\n {2}docs\/f\.md$/m);
+  d.git("fetch", "-q", "origin");
+  assert.equal(d.git("rev-parse", "origin/docs/sous"), sommet, "branche distante intacte");
+  assert.deepEqual(d.journal(), [], "rien d'écrit");
+  assert.equal(d.git("status", "--porcelain"), "");
+});
+
+// Un clone `--single-branch` (refspec de fetch limitée à develop) ne met à jour aucune `origin/<branche>` sur un
+// `git fetch origin <branche>` nu : `relancer` passe des refspecs explicites.
+test("relancer : sur un clone --single-branch, le sujet et la tête sont lus par refspec explicite", () => {
+  const { d, sommet } = sansChecks("index");
+  d.git("config", "remote.origin.fetch", "+refs/heads/develop:refs/remotes/origin/develop");
+  d.git("update-ref", "-d", "refs/remotes/origin/sujet/lot");
+  d.git("update-ref", "-d", "refs/remotes/origin/docs/sous");
+  const r = d.lancer(SUJET, "relancer", "80");
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  const tete = d.git("ls-remote", "origin", "refs/heads/docs/sous").split("\t")[0];
+  assert.equal(d.git("rev-parse", `${tete}^1`), sommet, "la branche de la sous-PR a avancé par une fusion");
+});
+
+test("relancer : une sous-PR qui a bougé depuis sa lecture n'est ni jugée ni poussée (sortie 5)", () => {
+  const { d } = sansChecks("code");
+  const etat = d.etat();
+  etat.pulls[0].sha = d.git("rev-parse", "origin/develop");
+  d.github(etat);
+  const avant = d.git("ls-remote", "origin");
+  const r = d.lancer(SUJET, "relancer", "80");
+  assert.equal(r.status, 5, r.stdout + r.stderr);
+  assert.match(r.stdout, /a bougé depuis sa lecture/);
+  assert.equal(d.git("ls-remote", "origin"), avant);
+});
+
+test("boucle.sh : une sous-PR prête (en conflit) sur un index seul est mise à jour par relancer, jamais renvoyée ; en conflit de code, renvoyée avec ses fichiers", () => {
+  const { d } = sansChecks("index");
+  d.publierChaine();
+  const file = d.lancer(scriptDe("fusionner", "file.sh"));
+  assert.match(file.stdout, /^80\tsujet\/lot : prête \(en conflit\)\t/m, file.stdout + file.stderr);
+  const r = d.lancer(BOUCLE);
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /\[#80\] #80 : sujet\/lot fusionné dans sa branche/);
+  assert.doesNotMatch(r.stdout, /RENVOI/);
+  assert.ok(!ecritures(d).some((e) => /issues\/80\/(labels|comments)/.test(e)), ecritures(d).join());
+  assert.deepEqual(d.etat().pulls[0].labels, ["à-fusionner"]);
+
+  const c = sansChecks("code").d;
+  c.publierChaine();
+  const rc = c.lancer(BOUCLE);
+  assert.equal(rc.status, 0, rc.stdout + rc.stderr);
+  const renvoi = c.journal().find((e) => e.methode === "POST" && e.route === "issues/80/comments");
+  assert.ok(renvoi, `renvoi posté : ${rc.stdout}`);
+  assert.match(renvoi.champs.body, /<!-- renvoi-capitaine -->/);
+  assert.match(renvoi.champs.body, /conflit avec sujet\/lot hors index générés : `docs\/f\.md`\. Fusionner sujet\/lot dans la branche et le résoudre/);
+});
+
 // Worktree du capitaine pas propre : rien que l'auteur de la sous-PR puisse corriger. Sortie 6 (comme
 // passer.sh), jamais 4, que boucle.sh traiterait en renvoi (`fusion-bloquée`).
 test("fusionner : worktree du capitaine pas propre, sortie 6 sans écriture, branche intacte", () => {

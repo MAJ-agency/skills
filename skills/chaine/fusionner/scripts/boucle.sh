@@ -29,7 +29,10 @@
 # Règle d'ascendance (skill `fusionner`) : une sous-PR en retard sur son sujet (documentation comprise), ou en
 # conflit avec lui sur des index générés seuls, n'est pas renvoyée : `sujet.sh fusionner` la met à jour, régénère,
 # pousse et attend la CI du nouveau sommet, puis la squashe ; si cette CI ne finit pas, sortie 8 (MISE À JOUR) :
-# elle repasse au tour suivant. Arbre du squash ≠ arbre testé, vers un sujet (`sujet.sh`, sortie 12) comme vers
+# elle repasse au tour suivant. Une sous-PR sans CI, ou « prête (en conflit) » (GitHub ne lance pas la CI d'une PR en
+# conflit), passe par `sujet.sh relancer`, qui lit la règle d'ascendance avant toute fusion : en retard ou en conflit
+# sur des index générés seuls, mise à jour et poussée, CI relancée ; conflit hors index, renvoyée avec ses fichiers
+# (sortie 2) ; contrôle illisible (sortie 11), laissée dans la file sans renvoi. Arbre du squash ≠ arbre testé, vers un sujet (`sujet.sh`, sortie 12) comme vers
 # develop (`passer.sh`, sortie 12) : la PR porte le commentaire, la boucle s'arrête (ARRÊT, sortie 12) et le
 # capitaine le dit à son lanceur.
 # Un conflit est annulé et signalé (SUJET EN CONFLIT), jamais résolu ici : une session le
@@ -333,11 +336,14 @@ traiter_sujets() {
         sujet=${etat#prête (à recibler sur }
         sujet=${sujet%)}
         gh api -X PATCH "$DEPOT/pulls/$n" -f base="$sujet" >/dev/null && echo "[#$n] RECIBLÉE sur $sujet (parente fusionnée dedans)" ;;
-      sujet/*': prête (sans CI)')
+      sujet/*': prête (sans CI)' | sujet/*': prête (en conflit)')
         bash "$SUJET" relancer "$n" 2>&1 | tee "$sortie" | sed "s#^#[\#$n] #"
         rc=${PIPESTATUS[0]}
         case "$rc" in
-          2) bash "$outils/renvoyer.sh" "$n" "conflit avec ${etat%%:*} : fusionner ${etat%%:*} dans la branche et le résoudre" ;;
+          # Conflit hors index : `relancer` écrit `conflit avec <sujet> hors index générés :`, puis les fichiers.
+          2)
+            fichiers=$(awk -v d="conflit avec ${etat%% :*} hors index générés :" 'index($0, d) == 1 { f = 1; next } f && /^  / { sub(/^  /, ""); printf "%s`%s`", (k++ ? ", " : ""), $0 }' "$sortie")
+            bash "$outils/renvoyer.sh" "$n" "conflit avec ${etat%% :*} hors index générés : ${fichiers:-voir la sortie de sujet.sh relancer}. Fusionner ${etat%% :*} dans la branche et le résoudre" ;;
           4) bash "$outils/refus.sh" "$n" "$sortie" ;; # tête gardée : renvoyée avec le motif
           6) echo "[#$n] PAS PROPRE : worktree du capitaine à nettoyer, sous-PR laissée dans la file (aucun renvoi)" ;;
           5) echo "[#$n] REPRISE au tour suivant (sous-PR bougée ou GitHub illisible), aucun renvoi" ;;
