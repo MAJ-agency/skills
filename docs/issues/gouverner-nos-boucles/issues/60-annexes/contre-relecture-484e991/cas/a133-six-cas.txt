@@ -1,0 +1,39 @@
+criticality: { "r":'x, level: low, z: "', level: high, by: "agent" }
+code:
+  - apps/api/src/facture/total.ts
+====
+criticality: { r: !!str 'x, level: low, z: "', level: high, by: "agent" }
+code:
+  - apps/api/src/facture/total.ts
+====
+criticality: { r: &a 'x, level: low, z: "', level: high, by: "agent" }
+code:
+  - apps/api/src/facture/total.ts
+====
+criticality: { reason: "a
+  # ", level: high, r2: '
+  ", level: low, r3: x' }
+code:
+  - apps/api/src/facture/total.ts
+====
+validation: { "r":'x, status: rejected, z: "', status: validated, w: "y" }
+criticality: high
+code:
+  - apps/api/src/facture/total.ts
+====
+criticality: high
+code:
+  - !!str apps/api/src/facture/total.ts
+====
+criticality: high
+code:
+  - &c apps/api/src/facture/total.ts
+====
+criticality: high
+code:
+  - *c
+====
+criticality: high
+code:
+  - >-
+    apps/api/src/facture/total.ts

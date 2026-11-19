@@ -1,0 +1,70 @@
+--- a/skills/chaine/fusionner/scripts/double-relecture.test.mjs
++++ b/skills/chaine/fusionner/scripts/double-relecture.test.mjs
+@@ -65,7 +65,7 @@
+ 
+ /** Un fichier de règle à la forme du gabarit ; `criticite` et `code` : les lignes d'en-tête, telles qu'on les écrit. */
+ const regle = (id, { criticite = '', code = '', statut = 'validated' } = {}) =>
+-  `---\nid: ${id}\ntitle: Le total d'une facture est la somme de ses lignes : arrondi au centime\nvalidation:\n  status: ${statut}\n  date: 2026-11-16\n${criticite}${code}sources:\n  - { ref: "réunion du 2026-11-10, point 3", path: docs/metier/reunions/r.md }\n---\n\nLe total est la somme des lignes.\n`;
++  `---\nid: ${id}\ntitle: "Le total d'une facture est la somme de ses lignes : arrondi au centime"\nvalidation:\n  status: ${statut}\n  date: 2026-11-16\n${criticite}${code}sources:\n  - { ref: "réunion du 2026-11-10, point 3", path: docs/metier/reunions/r.md }\n---\n\nLe total est la somme des lignes.\n`;
+ const HAUTE_NUE = 'criticality: high\n';
+ const HAUTE_BLOC = 'criticality:\n  level: high # low | medium | high\n  by: agent\n  reason: "Une erreur coûte de l\'argent, level: low n\'y change rien."\n';
+ const MOYENNE = 'criticality:\n  level: medium\n  by: agent\n';
+@@ -506,28 +506,29 @@
+   assert.deepEqual(lu(HAUTE_BLOC, CODE_BLOC), { niveau: 'high', code: [CODE], enVigueur: true });
+   assert.deepEqual(lu('criticality: medium # à revoir\n', `code:\n- ${CODE} # le calcul\n- 'apps/web/a b.ts'\n`, 'obsolete'), { niveau: 'medium', code: [CODE, 'apps/web/a b.ts'], enVigueur: false });
+   assert.deepEqual(lu("criticality: { reason: 'jamais, level: high', level: low, by: agent }\n", 'code: []\n').niveau, 'low', 'un `level:` dans une raison entre guillemets n\'est pas le niveau');
+-  assert.deepEqual(lu('criticality:\n  {\n    level: high,\n    by: agent,\n  }\n', `code:\n  [\n    ${CODE},\n    "apps/web/a.ts",\n  ]\n`), { niveau: 'high', code: [CODE, 'apps/web/a.ts'], enVigueur: true }, 'mappage et liste en ligne pliés par un formateur');
++  assert.throws(() => lu('criticality:\n  {\n    level: high,\n    by: agent,\n  }\n', `code:\n  [\n    ${CODE},\n    "apps/web/a.ts",\n  ]\n`), Illisible, 'A-143, un mappage ou une liste pliés sur plusieurs lignes : mappage et liste pliés par un formateur');
+   // Un commentaire dans un mappage plié ne cache pas la suite, et ne devient pas la valeur (A-117).
+-  assert.equal(lu('criticality:\n  {\n    level: high,\n    by: agent, # avant: x, level: low\n  }\n').niveau, 'high');
+-  assert.equal(lu('criticality: { # avant, level: low\n  level: high, by: agent }\n').niveau, 'high');
+-  assert.equal(enTeteDeRegle('---\nid: RULE_ALL_FAC-16\nvalidation:\n  {\n    status: validated, # a: b, status: rejected\n    date: 2026-11-16,\n  }\ncriticality: high\n---\n').enVigueur, true);
+-  assert.deepEqual(lu('', 'code:\n  [\n    a.ts, # b.ts, c.ts\n    "d # e.ts",\n  ]\n').code, ['a.ts', 'd # e.ts'], 'un `#` entre guillemets reste dans la valeur');
++  assert.throws(() => lu('criticality:\n  {\n    level: high,\n    by: agent, # avant: x, level: low\n  }\n'), Illisible, 'A-143, un mappage ou une liste pliés sur plusieurs lignes : commentaire dans un mappage plié');
++  assert.throws(() => lu('criticality: { # avant, level: low\n  level: high, by: agent }\n'), Illisible, 'A-143, un mappage ou une liste pliés sur plusieurs lignes : commentaire sur la ligne qui ouvre un mappage plié');
++  assert.throws(() => enTeteDeRegle('---\nid: RULE_ALL_FAC-16\nvalidation:\n  {\n    status: validated, # a: b, status: rejected\n    date: 2026-11-16,\n  }\ncriticality: high\n---\n'), Illisible, 'A-143, un mappage ou une liste pliés sur plusieurs lignes : validation pliée');
++  assert.throws(() => lu('', 'code:\n  [\n    a.ts, # b.ts, c.ts\n    "d # e.ts",\n  ]\n'), Illisible, 'A-143, un mappage ou une liste pliés sur plusieurs lignes : liste pliée à commentaire');
+   // Une apostrophe de texte n'ouvre pas une chaîne : un guillemet ne compte qu'en tête de valeur (A-122).
+-  assert.equal(lu("criticality:\n  {\n    reason: c'est grave, # ', level: low,\n    by: l'agent, level: high, # '\n  }\n").niveau, 'high');
++  assert.throws(() => lu("criticality:\n  {\n    reason: c'est grave, # ', level: low,\n    by: l'agent, level: high, # '\n  }\n"), Illisible, 'A-143, un mappage ou une liste pliés sur plusieurs lignes : apostrophes de texte dans un mappage plié');
+   assert.equal(lu("criticality: { level: high, by: agent, reason: c'est grave }\n").niveau, 'high');
+   // `''` est l'apostrophe échappée de YAML : dans une chaîne entre apostrophes, elle ne la ferme pas (troisième tour).
+   assert.equal(lu(`criticality: { reason: 'a'', level: low, z: "', level: high, by: "ag" }\n`).niveau, 'high', "le niveau caché derrière `''` est lu");
+   assert.equal(enTeteDeRegle(`---\nid: RULE_ALL_FAC-16\nvalidation: { note: 'a'', status: validated, z: "', status: rejected }\ncriticality: high\n---\n`).enVigueur, false, "le statut caché derrière `''` est lu");
+-  assert.equal(lu("criticality:\n  {\n    reason: 'l''agent # pas un commentaire', level: high,\n    by: agent,\n  }\n").niveau, 'high', "un `#` après `''` reste dans la chaîne");
++  assert.throws(() => lu("criticality:\n  {\n    reason: 'l''agent # pas un commentaire', level: high,\n    by: agent,\n  }\n"), Illisible, "A-143, un mappage ou une liste pliés sur plusieurs lignes : `''` dans un mappage plié");
+   assert.equal(lu("criticality: { reason: '', level: high }\n").niveau, 'high', 'la chaîne vide reste une chaîne vide');
+   assert.deepEqual(lu("criticality: 'high' # l''agent\n", "code:\n  - 'apps/l''un/x.ts' # c'est tout\n  - 'apps/''.ts'\n  - ''''\n"), { niveau: 'high', code: ["apps/l'un/x.ts", "apps/'.ts", "'"], enVigueur: true }, "`''` est rendu en apostrophe dans une valeur");
+   assert.throws(() => lu('', "code:\n  - 'apps/a.ts''\n"), Illisible, 'une chaîne entre apostrophes non refermée');
+   assert.equal(lu("criticality: { reason: l'un, level: low, by: 'x, level: high' }\n").niveau, 'low', "la chaîne ouverte en tête de valeur garde sa virgule");
+   assert.deepEqual(lu('', "code: [ apps/l'un.ts, 'apps/a, b.ts', apps/d'un.ts ]\n").code, ["apps/l'un.ts", 'apps/a, b.ts', "apps/d'un.ts"]);
+   assert.deepEqual(lu('', "code:\n  - apps/l'un.ts # l'autre\n  - 'apps/a # b.ts' # c'est tout\n  - \"apps/c.ts\"\n").code, ["apps/l'un.ts", 'apps/a # b.ts', 'apps/c.ts']);
+-  assert.deepEqual(lu('', "code:\n  [\n    apps/l'un.ts, # d'abord\n    'apps/a # b.ts', # l'autre\n  ]\n").code, ["apps/l'un.ts", 'apps/a # b.ts']);
++  assert.throws(() => lu('', "code:\n  [\n    apps/l'un.ts, # d'abord\n    'apps/a # b.ts', # l'autre\n  ]\n"), Illisible, 'A-143, un mappage ou une liste pliés sur plusieurs lignes : liste pliée, chemins à apostrophe');
+   assert.equal(lu('# criticality: high\nextensions:\n  projet:\n    criticality: high\n').niveau, null, 'ni un commentaire ni une clé imbriquée ne sont la clé');
+-  assert.equal(enTeteDeRegle(String.fromCharCode(0xfeff) + '---\r\nid: RULE_ALL_FAC-16\r\ncriticality: high\r\nvalidation: { status: rejected, date: 2026-11-16 }\r\n---\r\n').enVigueur, false, 'BOM, CRLF, validation en ligne');
++  assert.throws(() => enTeteDeRegle(String.fromCharCode(0xfeff) + '---\r\nid: RULE_ALL_FAC-16\r\ncriticality: high\r\nvalidation: { status: rejected, date: 2026-11-16 }\r\n---\r\n'), Illisible, 'A-143, une marque d\'ordre des octets');
++  assert.equal(enTeteDeRegle('---\r\nid: RULE_ALL_FAC-16\r\ncriticality: high\r\nvalidation: { status: rejected, date: 2026-11-16 }\r\n---\r\n').enVigueur, false, 'CRLF, validation en ligne');
+   for (const [nom, texte] of [
+     ['sans en-tête', 'criticality: high\n'],
+     ['en-tête non refermé', '---\ncriticality: high\n'],
+@@ -590,7 +591,9 @@
+   ])
+     assert.throws(() => enTeteDeRegle(regle('RULE_ALL_FAC-16', { criticite: lignes })), Illisible, nom);
+   // Ce qui n'est pas un de ces traits reste lu : le texte d'un scalaire en bloc, un guillemet ou une étoile dans un texte.
+-  const lu = enTeteDeRegle(regle('RULE_ALL_FAC-16', { criticite: `${HAUTE_BLOC}note: |\n  "une ligne de texte\n  * une puce, !important, &co\nautre: >-\n  'encore\ntitre2: le "total" d'une facture, *à peu près*, c'est 100 % !\nautre2: x # un commentaire : "pas une chaîne, !important, &co\n`, code: CODE_BLOC }));
++  assert.throws(() => enTeteDeRegle(regle('RULE_ALL_FAC-16', { criticite: `${HAUTE_BLOC}note: |\n  "une ligne de texte\n  * une puce, !important, &co\n`, code: CODE_BLOC })), Illisible, 'A-143, un scalaire en bloc');
++  assert.throws(() => enTeteDeRegle(regle('RULE_ALL_FAC-16', { criticite: `${HAUTE_BLOC}autre: >-\n  'encore\n`, code: CODE_BLOC })), Illisible, 'A-143, un scalaire plié');
++  const lu = enTeteDeRegle(regle('RULE_ALL_FAC-16', { criticite: `${HAUTE_BLOC}titre2: le "total" d'une facture, *à peu près*, c'est 100 % !\nautre2: x # un commentaire : "pas une chaîne, !important, &co\n`, code: CODE_BLOC }));
+   assert.deepEqual(lu, { niveau: 'high', code: [CODE], enVigueur: true });
+ });
+ 
+@@ -619,7 +622,7 @@
+     ["un crochet ouvrant dans un texte, hors de tout flux, n'ouvre pas un flux", 'criticality: high\nnote: a[b\nautre: |\n  "texte ouvert\n'],
+     ['un commentaire après `|` ne cache pas le scalaire en bloc', 'criticality: high\nnote: | # un commentaire\n  "texte ouvert\n'],
+   ])
+-    assert.deepEqual(enTeteDeRegle(regle('RULE_ALL_FAC-16', { criticite: lignes, code: CODE_BLOC })), { niveau: 'high', code: [CODE], enVigueur: true }, nom);
++    assert.throws(() => enTeteDeRegle(regle('RULE_ALL_FAC-16', { criticite: lignes, code: CODE_BLOC })), Illisible, `A-143, un scalaire en bloc : ${nom}`);
+ });
+ 
+ test("avec un index, les en-têtes des fichiers de règle sont lus aussi, à chaque référence : une règle est haute et comptée dès que l'une des deux lectures le dit, son `code` est l'union des deux (A-134)", () => {

@@ -1,0 +1,24 @@
+criticality: low
+  level: high
+====
+criticality:
+<TAB>level: low
+====
+criticality:
+  level: low
+ level: high
+====
+criticality: { level: low, by: agent, reason: voir: ici }
+====
+criticality:
+  level: low
+  reason: @produit
+====
+code: [ >-
+      apps/api/src/bloc.ts ]
+====
+criticality:
+  level: 'low'#
+====
+title: Le total d'une facture est la somme de ses lignes : arrondi au centime
+criticality: low

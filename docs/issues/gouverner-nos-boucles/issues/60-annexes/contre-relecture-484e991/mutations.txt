@@ -1,0 +1,45 @@
+# Les 34 mutations de la contre-relecture de la PR 134, au sommet 484e991, au format du script des mutations du
+# ticket 60 : (nom, ancien, nouveau). Chaque « ancien » se trouve une fois exactement dans le module de 484e991.
+# Jouées une à la fois contre le banc à 44 tests : 14 rouges, 20 vertes. Chaque ligne dit son résultat :
+#   ROUGE       le banc la voit
+#   VERTE       le banc ne la voit pas, et elle change le comportement : un trou du banc (17)
+#     plus bas    elle fait lire plus bas qu'une lecture correcte, ou rendre « non exigée » à tort (9)
+#     autrement   elle fait lire ce que YAML refuse, ou lit autrement (6)
+#     refuse      elle fait refuser davantage, sans danger (2)
+#   ÉQUIVALENTE verte, sans changer aucune lecture d'un en-tête que la garde laisse passer (3)
+# À coller dans la liste `M` du script ; les commentaires de fin de ligne sont du Python.
+
+    ("C1 garde : un `#` collé à un mot ouvre un commentaire", "      if (c === '#' && (i === 0 || blanc(ligne[i - 1]))) {", "      if (c === '#') {"),  # VERTE, plus bas
+    ("C2 garde : après `{` ou `[` en tête, la suite n'est plus une tête", "          flux++;\n          continue;", "          flux++;\n          tete = false;\n          continue;"),  # ROUGE
+    ("C4 garde : `\"clé\" :` (blanc avant les deux-points) n'est plus une clé entre guillemets", "          while (k < ligne.length && blanc(ligne[k])) k++;\n", ""),  # VERTE, plus bas
+    ("C9 enTeteDeValeur : après `[`, un guillemet n'ouvre plus une chaîne", "return c === ',' || c === '[' || c === '{' || (c === ':' && j < i - 1);", "return c === ',' || c === '{' || (c === ':' && j < i - 1);"),  # VERTE, refuse
+    ("C10 enTeteDeValeur : après `{`, un guillemet n'ouvre plus une chaîne", "return c === ',' || c === '[' || c === '{' || (c === ':' && j < i - 1);", "return c === ',' || c === '[' || (c === ':' && j < i - 1);"),  # ÉQUIVALENTE
+    ("C11 enTeteDeValeur : au début du texte, un guillemet n'ouvre plus une chaîne", "  if (j < 0) return true;", "  if (j < 0) return false;"),  # ROUGE
+    ("C12 scalaire : une barre oblique inverse entre guillemets doubles est lue telle quelle", " || chaine[1].includes('\\\\')) illisible(`valeur illisible : ${v}`);", ") illisible(`valeur illisible : ${v}`);"),  # VERTE, plus bas
+    ("C13 scalaire : ce qui suit une chaîne fermée n'est plus regardé", "if (!chaine || !/^\\s*(#.*)?$/.test(v.slice(chaine[0].length)) || chaine[1].includes('\\\\')) illisible(", "if (!chaine || chaine[1].includes('\\\\')) illisible("),  # VERTE, autrement
+    ("C14 scalaire : un `#` collé coupe la valeur", "const i = v.search(/\\s#/);", "const i = v.search(/#/);"),  # VERTE, plus bas
+    ("C16 champ : `level` reconnu en préfixe d'une autre clé (`levels:`)", "new RegExp(`^${nom}[ \\\\t]*:`)", "new RegExp(`^${nom}`)"),  # VERTE, autrement
+    ("C17 mappage en ligne : une part sans deux-points est admise, clé vide", "    if (cle === '' || m.has(cle)) illisible(", "    if (m.has(cle)) illisible("),  # VERTE, autrement
+    ("C19 clé d'en-tête : `clé:valeur` sans blanc est une clé", "const cle = /^([A-Za-z_][\\w-]*)[ \\t]*:(?:[ \\t]+(.*))?$/.exec(ligne);", "const cle = /^([A-Za-z_][\\w-]*)[ \\t]*:(?:[ \\t]*(.*))?$/.exec(ligne);"),  # VERTE, autrement
+    ("C20 une ligne qui n'est ni clé ni suite est sautée", "    else illisible(`ligne d'en-tête illisible : ${ligne.slice(0, 80)}`);\n", ""),  # VERTE, plus bas
+    ("C21 suite d'une clé : toute ligne qui commence par un tiret (`--- x`, `-x`)", "else if (courante && /^(\\s|- |-$)/.test(ligne))", "else if (courante && /^(\\s|-)/.test(ligne))"),  # VERTE, autrement
+    ("C24 un statut que le lecteur ne comprend pas : la règle ne compte plus", "    statut = ''; // statut que ce lecteur ne comprend pas : la règle compte", "    statut = 'rejected';"),  # VERTE, plus bas
+    ("C26 A-134 : en vigueur seulement si l'index et l'en-tête le disent tous deux", "enVigueur: (connu?.enVigueur ?? false) || lu.enVigueur,", "enVigueur: (connu?.enVigueur ?? true) && lu.enVigueur,"),  # ROUGE
+    ("C27 A-134 : le plus bas des deux niveaux gagne", "niveau: connu && rang(connu.niveau) > rang(lu.niveau) ? connu.niveau : lu.niveau,", "niveau: connu && rang(connu.niveau) < rang(lu.niveau) ? connu.niveau : lu.niveau,"),  # ROUGE
+    ("C28 une règle de l'index sans fichier sous docs/metier/regles n'est plus comptée", "new Map([...regles].filter(([, r]) => r.niveau === 'high' && r.enVigueur))", "new Map([...regles].filter(([cle, r]) => r.niveau === 'high' && r.enVigueur && fichiers.has(cle)))"),  # ROUGE
+    ("C32 `Règles:` : les identifiants ne se séparent plus par des virgules", "v.split(/[\\s,]+/)", "v.split(/\\s+/)"),  # ROUGE
+    ("C33 `Règles:` : seul le tiret cadratin dit « aucune »", "!/^[—–-]$/.test(m)", "!/^[—]$/.test(m)"),  # VERTE, refuse
+    ("C34 `Règles:` : un identifiant entre accents graves n'est plus lu", "const nu = /^`([^`]+)`$/.exec(morceau)?.[1] ?? morceau;", "const nu = morceau;"),  # ROUGE
+    ("C35 `Règles:` : un identifiant de règle à index (`RULE_….01`) passe", "if (lu?.type !== 'RULE' || lu.index !== undefined) illisible(`${ou} : ligne", "if (lu?.type !== 'RULE') illisible(`${ou} : ligne"),  # ÉQUIVALENTE
+    ("C36 `Règles:` : la règle citée se compare à la casse près… plus", "regles.push({ cle: comparable(nu), ecrit: nu });", "regles.push({ cle: nu, ecrit: nu });"),  # ROUGE
+    ("C37 sansLigne : le dernier arbre lu décide seul", "sansLigne ||= lu.sansLigne;", "sansLigne = lu.sansLigne;"),  # VERTE, plus bas
+    ("C40 deux tickets : seul le premier est lu par le calcul", "for (const ticket of new Set(tickets)) {", "for (const ticket of [...new Set(tickets)].slice(0, 1)) {"),  # ROUGE
+    ("C48 EN_TETE : `---` suivi d'un texte ferme l'en-tête", "const EN_TETE = /^---[ \\t]*\\r?\\n([\\s\\S]*?)\\r?\\n---[ \\t]*(?:\\r?\\n|$)/;", "const EN_TETE = /^---[ \\t]*\\r?\\n([\\s\\S]*?)\\r?\\n---/;"),  # VERTE, plus bas
+    ("C49 EN_TETE : l'en-tête peut ne pas commencer le fichier", "const EN_TETE = /^---[ \\t]*\\r?\\n", "const EN_TETE = /---[ \\t]*\\r?\\n"),  # VERTE, autrement
+    ("C50 les lignes de l'en-tête ne se coupent plus à `\\r\\n`", "const lignes = m[1].split(/\\r?\\n/);", "const lignes = m[1].split('\\n');"),  # ROUGE
+    ("C51 le niveau le plus haut des trois arbres : la base seule dit quelles règles citées sont hautes", "        hautesQuelquePart.set(cle, r.cle);", "        if (ref === base) hautesQuelquePart.set(cle, r.cle);"),  # ROUGE
+    ("C52 une règle haute hors vigueur dans l'en-tête mais en vigueur dans l'index ne compte plus", "enVigueur: (connu?.enVigueur ?? false) || lu.enVigueur,", "enVigueur: lu.enVigueur,"),  # VERTE, plus bas
+    ("C53 code d'en-tête : la liste pliée sur plusieurs lignes garde ses commentaires", "if (ligne !== null) items = decouper(interieur(ligne, '[', ']'));", "if (ligne !== null) items = decouper(interieur([c.valeur, ...c.bloc].map((l) => l.trim()).filter(Boolean).join(' '), '[', ']'));"),  # ROUGE
+    ("C54 la spec : ses règles citées ne comptent que si le ticket est absent", "if (sansLigne) for (const [commit, nom] of refs)", "if (sansLigne && !trouve) for (const [commit, nom] of refs)"),  # ROUGE
+    ("C55 le ticket lu sur un sujet : seul le premier sujet est lu", "for (const nom of essayer(() => lecteur.sujets()) ?? [])", "for (const nom of (essayer(() => lecteur.sujets()) ?? []).slice(0, 1))"),  # ROUGE
+    ("C56 garde : la profondeur de flux monte aussi hors tête pour `[` seulement", "if (flux > 0 && (c === '[' || c === '{')) flux++;", "if (flux > 0 && c === '[') flux++;"),  # ÉQUIVALENTE
