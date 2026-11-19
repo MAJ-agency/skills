@@ -2231,7 +2231,7 @@ function prVerrou(github = {}) {
   return { d, avant: sommet(), sommet };
 }
 const commentairesDePassage = (d) => d.journal().filter((e) => /^issues\/(\d+\/)?comments/.test(e.route));
-const termine = (e) => e.methode === "PATCH" && /terminé à \d\d:\d\d UTC\.\n<!-- capitaine:passage capitaine-banc -->\n<!-- capitaine:fin -->/.test(e.champs.body);
+const termine = (e) => e.methode === "PATCH" && /terminé à \d\d:\d\d UTC\.\n<!-- capitaine:passage capitaine-banc \d{10} -->\n<!-- capitaine:fin -->/.test(e.champs.body);
 
 test("passer.sh : une PR en passage chez un autre capitaine est sautée (sortie 7), son commentaire retiré, rien n'est poussé", () => {
   const { d, avant, sommet } = prVerrou();
@@ -2426,4 +2426,69 @@ test("passer.sh : un changement réel du schéma, venu avec sa migration, entre 
   assert.equal(r.status, 0, r.stdout + r.stderr);
   assert.match(r.stderr, /fusion sans mention : prisma\/schema\.prisma porte un changement réel/);
   assert.doesNotMatch(fusionDeLaPr(d), /sans-migration/);
+});
+
+// Contre-relecture de l'architecte (A-21) : une lecture refusée du verrou est une panne, jamais un arrêt.
+test("passer.sh et sujet.sh fusionner : la lecture du verrou refusée par GitHub (502) sort en 5, pause puis reprise, son commentaire retiré, rien n'est poussé", () => {
+  const { d, avant, sommet } = prVerrou({ pannes: [{ route: "^issues/40/comments", fois: 2 }] });
+  const r = d.lancer(script("passer.sh"), "40");
+  assert.equal(r.status, 5, r.stdout + r.stderr);
+  assert.match(r.stdout, /\[#40\] GitHub illisible à la lecture du verrou du passage \(cause ci-dessus\) : pause, puis reprise\n$/);
+  assert.match(r.stderr, /GitHub illisible \(repos\/\{owner\}\/\{repo\}\/issues\/40\/comments\?per_page=100\) : gh en échec/);
+  assert.deepEqual(d.journal().map((e) => `${e.methode} ${e.route}`), ["POST issues/40/comments", "DELETE issues/comments/40001"]);
+  assert.equal(sommet(), avant, "rien n'est poussé");
+
+  // sujet.sh fusionner : la même panne sur une sous-PR, sortie 5 (REPRISE dans la boucle), jamais 11.
+  d.branche("sujet/lot", "origin/develop", { "lot.md": "lot\n" });
+  d.branche("feat/sous", "origin/sujet/lot", { "sous.md": "sous\n" });
+  d.git("switch", "-q", "--detach", "origin/develop");
+  const e = d.etat();
+  e.pulls.push(pr(41, "feat/sous", { base: "sujet/lot", title: "docs(lot): sous" }));
+  e.pannes = [{ route: "^issues/41/comments" }];
+  d.github(e);
+  const s = d.lancer(scriptDe("sujet", "sujet.sh"), "fusionner", "41");
+  assert.equal(s.status, 5, s.stdout + s.stderr);
+  assert.match(s.stdout, /#41 : GitHub illisible à la lecture du verrou du passage/);
+});
+
+test("passer.sh : un TERM pendant la relecture du verrou (gh lent) termine le commentaire posé, jamais un verrou laissé 90 minutes", { timeout: 120_000 }, async () => {
+  const { d } = prVerrou();
+  // Un `gh` qui bloque sur la lecture des commentaires de #40 une fois le verrou posé (l'éligibilité les lit aussi, avant)
+  // et le dit dans un fichier ; le reste va au faux.
+  const bin = join(d.racine, "bin-lent");
+  const enLecture = join(d.racine, "en-lecture");
+  mkdirSync(bin);
+  writeFileSync(
+    join(bin, "gh"),
+    `#!/bin/sh\ncase "$*" in *"issues/40/comments?per_page"*) if grep -q '"POST","route":"issues/40/comments"' "$FAUX_GH/journal.jsonl" 2>/dev/null; then : > ${JSON.stringify(enLecture)}; exec /bin/sleep 600; fi ;; esac\nexec node ${JSON.stringify(scriptDe("sujet", "faux-gh.mjs"))} "$@"\n`,
+  );
+  chmodSync(join(bin, "gh"), 0o755);
+  const { spawn } = await import("node:child_process");
+  const enfant = spawn("bash", [script("passer.sh"), "40"], { cwd: d.travail, env: { ...d.env, PATH: `${bin}:${d.env.PATH}` }, detached: true, stdio: ["ignore", "pipe", "pipe"] });
+  let sortie = "";
+  enfant.stdout.on("data", (x) => (sortie += x));
+  enfant.stderr.on("data", (x) => (sortie += x));
+  const fin = new Promise((resolve) => enfant.on("close", (code) => resolve(code)));
+  while (!existsSync(enLecture)) await new Promise((p) => setTimeout(p, 50));
+  process.kill(-enfant.pid, "SIGTERM");
+  assert.equal(await fin, 143, sortie);
+  const c = commentairesDePassage(d);
+  assert.deepEqual(c.map((e) => `${e.methode} ${e.route}`), ["POST issues/40/comments", "PATCH issues/comments/40001"], sortie);
+  assert.ok(termine(c[1]), JSON.stringify(c[1]));
+});
+
+test("passer.sh : le commentaire du passage est rafraîchi à chaque tour (develop bouge pendant la CI : deux tours)", () => {
+  const { d } = prVerrou();
+  const markdown = d.branche("ailleurs", "origin/develop", { "docs/ailleurs.md": "ailleurs\n" });
+  d.git("switch", "-q", "--detach", "origin/develop");
+  d.github({ pendantCi: [{ lectures: 1, branche: "develop", vers: markdown }] });
+  const r = d.lancer(script("passer.sh"), "40");
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /develop a bougé pendant la CI : nouvelle mise à jour \(1 sur 2\)/);
+  const j = d.journal();
+  const put = j.findIndex((e) => e.route === "pulls/40/merge");
+  const tours = j.slice(0, put).filter((e) => e.methode === "PATCH" && e.route === "issues/comments/40001").map((e) => /, tour (\d+) :/.exec(e.champs.body)?.[1]);
+  assert.deepEqual(tours, ["1", "2"], "un rafraîchissement par tour, avant le squash");
+  // Chaque rafraîchissement réécrit l'epoch de la marque (l'âge du verrou se lit dans le corps).
+  for (const e of j.slice(0, put).filter((x) => x.methode === "PATCH")) assert.match(e.champs.body, /<!-- capitaine:passage capitaine-banc \d{10} -->/);
 });

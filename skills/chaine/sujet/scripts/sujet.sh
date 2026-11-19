@@ -124,8 +124,8 @@
 # aucun renvoi · 11 push refusé par le distant sans trace du hook pre-push (tout geste qui pousse : `fusionner`,
 # `rafraichir`, `relancer`, `livrer`, `ouvrir`, `geler`, `degeler` ; la trace de husky 9 seule fait un refus du hook,
 # sortie 3), ou outil du capitaine en échec : aucun renvoi · 11 `clore` : origin ou GitHub illisible, ou suppression
-# non confirmée · 11 `fusionner`, `relancer` : verrou du passage illisible (commentaire non posé, commentaires illisibles),
-# aucun renvoi · 11 `relancer` : contrôle d'ascendance illisible, côté capitaine, aucun renvoi · `clore` : 3 suppression refusée par
+# non confirmée · 11 `fusionner`, `relancer` : verrou du passage non posé (écriture refusée), aucun renvoi ; ses
+# commentaires illisibles à la relecture sortent en 5 · 11 `relancer` : contrôle d'ascendance illisible, côté capitaine, aucun renvoi · `clore` : 3 suppression refusée par
 # un hook ou par le distant, 4 refus (pas livré, PR ouverte, carte, nom ou option), 5 le sommet a bougé · 69 jq absent du poste
 # Tout passe par l'API REST (`gh api`) : GraphQL est refusé depuis les sessions cloud. Depuis la
 # racine du dépôt ; sans argument, affiche cette aide.
@@ -826,21 +826,24 @@ est_livraison() {
 }
 
 # Verrou du passage (`prendre_passage` de github.sh) sur la sous-PR `<n>`, lue dans `<json>` : tenue par un autre
-# capitaine, sortie 7 ; illisible, sortie 11 (côté capitaine, aucun renvoi). Pris : une seule trappe EXIT le termine
+# capitaine, sortie 7 ; commentaires illisibles à la relecture, sortie 5 (panne, aucun renvoi) ; commentaire non posé,
+# sortie 11 (côté capitaine, aucun renvoi). Pris : une seule trappe EXIT le termine
 # à toute sortie, TERM et INT compris. Puis la PR relue : l'éligibilité a été lue avant le verrou, un autre capitaine a
 # pu finir son passage entre les deux ; fermée, en brouillon, `fusion-bloquée` posé, `à-fusionner` retiré (s'il y était)
 # ou sommet changé : sortie 7.
 verrouiller() {
   local n=$1 lu=$2 statut relu raison
+  # Trappe posée avant le verrou : un TERM pendant sa pose ou sa relecture le termine.
+  trap 'finir_passage' EXIT
+  trap 'exit 143' TERM
+  trap 'exit 130' INT
   prendre_passage "$n" && statut=0 || statut=$?
   case $statut in
     0) ;;
     1) sortir 7 "#$n $PASSAGE_MOTIF" ;;
-    *) sortir 11 "#$n : verrou du passage illisible (cause ci-dessus), côté capitaine : sous-PR laissée dans la file, aucun renvoi" ;;
+    3) sortir 5 "#$n : GitHub illisible à la lecture du verrou du passage (cause ci-dessus) : reprise au tour suivant, aucun renvoi" ;;
+    *) sortir 11 "#$n : verrou du passage non posé (cause ci-dessus), côté capitaine : sous-PR laissée dans la file, aucun renvoi" ;;
   esac
-  trap 'finir_passage' EXIT
-  trap 'exit 143' TERM
-  trap 'exit 130' INT
   relu=$(pr_json "$n") || sortir 5 "#$n : GitHub illisible à la relecture de la PR, verrou pris (cause ci-dessus) : reprise au tour suivant, aucun renvoi"
   raison=$(jq -r --argjson lu "$lu" '[.labels[].name] as $l | ([$lu.labels[].name] | index("à-fusionner")) as $avait
     | if .state != "open" then "non ouverte" elif .draft != false then "en brouillon"
