@@ -1,6 +1,6 @@
 # Le verdict d'une contre-relecture s'écrit sur la PR, et aucun ordre de fusion ne passe un verdict non conforme
 
-Status: ready-for-agent
+Status: Fait — PR #139
 Type: défaut
 Modèle: sonnet — des paragraphes de procédure à réécrire dans `architecte/references/lancement.md` et `architecte/SKILL.md`, sans script, et des bancs de texte dans `scripts/depot.test.mjs` ; les décisions sont prises ici, relues par un agent neuf le 2026-11-19.
 Blocked by: —
