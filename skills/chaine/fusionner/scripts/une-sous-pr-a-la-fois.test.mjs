@@ -449,3 +449,64 @@ test("veille.sh et boucle.sh : le verrou d'un capitaine mort tient un sujet ; il
   assert.equal((r.stdout.match(/^\[sujet\/ci\] tenu par #82 \(CI en cours\)$/gm) ?? []).length, 3, r.stdout);
   assert.deepEqual(fusionnees(d), [80, 81, 83, 84]);
 });
+
+// ── Contre-relecture de la PR 141, tour 1 (décision A-161) ─────────────────────────────────────────────────────────
+// Une sortie 128 est une erreur fatale de git (réseau coupé, référence introuvable, index verrouillé), pas un signal :
+// elle suit la table d'une erreur et rend le sujet. Seules les sorties 129 et plus tiennent le sujet comme un signal.
+const gitQuiMeurt = (d, code) =>
+  writeFileSync(join(d.racine, "bin", "git"), `#!/bin/sh\ncase " $* " in *" fetch "*feat/pr-80*) echo "fatal: unable to access 'https://x/': Could not resolve host" >&2; exit ${code} ;; esac\nPATH=\${PATH#*:} exec git "$@"\n`, { mode: 0o755 });
+
+test("boucle.sh : une sortie 128 de fusionner (erreur fatale de git) n'est pas un signal : le sujet est rendu, la suivante est prise dans le tour", () => {
+  const d = sousPrDeSujets({ lot: [80, 81] }, { retard: ["lot"] });
+  gitQuiMeurt(d, 128);
+  const r = tour(d);
+  assert.match(r.stdout, /^\[#80\] sous-PR non éligible \(sortie 128\)$/m, r.stdout);
+  assert.doesNotMatch(r.stdout, /signal/);
+  assert.deepEqual(poussees(r), [81], r.stdout);
+  assert.match(r.stdout, tenu("lot", 81, "sortie 8 de fusionner"));
+  assert.doesNotMatch(r.stdout, /tenu par #80|attend son tour : #80/);
+});
+
+test("boucle.sh : une sortie 129 de fusionner (un signal) laisse le sujet tenu à ce tour : la suivante attend", () => {
+  const d = sousPrDeSujets({ lot: [80, 81] }, { retard: ["lot"] });
+  gitQuiMeurt(d, 129);
+  const r = tour(d);
+  assert.match(r.stdout, /^\[#80\] ÉCHEC DU CAPITAINE : passage interrompu par un signal \(sortie 129\)/m, r.stdout);
+  assert.match(r.stdout, attend(81, 80));
+  assert.match(r.stdout, tenu("lot", 80, "sortie 129 de fusionner"));
+  assert.deepEqual(poussees(r), []);
+});
+
+// A-161 (2) : une lecture GitHub en panne ne donne jamais le sujet. L'essai ADV2 du contre-relecteur : la boucle tient
+// #80 (sa CI tourne) ; un 502 sur la lecture des commentaires de #81 ne la lui fait pas prendre, ni aucune autre.
+test("boucle.sh : une lecture des commentaires en panne ne donne pas le sujet : à ce tour, aucune sous-PR de ce sujet n'est prise, et celle que la boucle tenait le garde au tour suivant", () => {
+  const d = sousPrDeSujets({ lot: [80, 81] }, { retard: ["lot"] });
+  let r = tour(d);
+  assert.deepEqual(poussees(r), [80], r.stdout);
+  ci(d, "IN_PROGRESS");
+  const marque = join(d.racine, "panne-81");
+  writeFileSync(marque, "");
+  const fauxGh = new URL("../../sujet/scripts/faux-gh.mjs", import.meta.url).pathname;
+  writeFileSync(join(d.racine, "bin", "gh"), `#!/bin/sh\ncase " $* " in *issues/81/comments*) case " $* " in *" --jq "*) ;; *) if [ -f ${JSON.stringify(marque)} ]; then rm -f ${JSON.stringify(marque)}; echo "gh: Bad Gateway (HTTP 502)" >&2; exit 1; fi ;; esac ;; esac\nexec node ${JSON.stringify(fauxGh)} "$@"\n`, { mode: 0o755 });
+  r = tour(d);
+  assert.ok(!existsSync(marque), "la lecture en panne a bien eu lieu");
+  assert.match(r.stdout, /^\[#81\] REPRISE au tour suivant : commentaires de #81 illisibles \(GitHub\), aucune sous-PR de sujet\/lot n'est prise à ce tour$/m, r.stdout);
+  assert.doesNotMatch(r.stdout, /marque de passage d'un autre capitaine/);
+  assert.deepEqual(poussees(r), [], r.stdout);
+  assert.doesNotMatch(r.stdout, /attend son tour : #81/);
+  // Le tour suivant relit : la mémoire a gardé #80, qui tient toujours (« CI en cours »), #81 attend.
+  r = tour(d);
+  assert.match(r.stdout, attend(81, 80), r.stdout);
+  assert.match(r.stdout, tenu("lot", 80, "CI en cours"));
+  assert.deepEqual(poussees(r), []);
+});
+
+// Contre-relecture, constat 8 (mutation L3) : sans mémoire ni marque, deux sous-PR « CI en cours » : la plus ancienne tient.
+test("boucle.sh : deux sous-PR « CI en cours » dans un sujet, sans mémoire ni marque : la plus ancienne tient le sujet", () => {
+  const d = sousPrDeSujets({ lot: [80, 81] });
+  checksDe(d, "IN_PROGRESS", 80, 81);
+  const r = tour(d);
+  assert.match(r.stdout, attend(81, 80), r.stdout);
+  assert.match(r.stdout, tenu("lot", 80, "CI en cours"));
+  assert.doesNotMatch(r.stdout, /tenu par #81/);
+});

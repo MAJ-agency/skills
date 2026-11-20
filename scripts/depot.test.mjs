@@ -1158,7 +1158,7 @@ test("une sous-PR à la fois par sujet : le capitaine tient l'ordre, qui tient l
     "Qui tient le sujet le garde, avant tout ordre de numéro : une sous-PR en passage chez un autre capitaine (sa marque de passage, lue sur chaque sous-PR en route du sujet), sinon celle que la boucle tenait au tour précédent, sinon une sous-PR « CI en cours » ; personne ne le tient, la plus ancienne (le plus petit numéro) le prend.",
     "`[#<n>] attend son tour : #<m> passe d'abord dans sujet/<nom>` : ni mise à jour, ni CI, ni renvoi, et elles gardent `à-fusionner` ; personne ne retire ni ne repose une étiquette pour tenir cet ordre.",
     "la boucle le dit à chaque tour, `[sujet/<nom>] tenu par #<n> (<raison>)`",
-    "passage interrompu par un signal (128 et plus), passage chez un autre capitaine (7) : un capitaine ne prend aucune autre sous-PR d'un sujet dont il voit une sous-PR en passage chez un autre.",
+    "passage interrompu par un signal (129 et plus ; une erreur fatale de git, 128, rend le sujet), passage chez un autre capitaine (7) : un capitaine ne prend aucune autre sous-PR d'un sujet dont il voit une sous-PR en passage chez un autre.",
     "après une mise à jour dont la CI n'apparaît pas, elle est « sans CI et déjà à jour », et le sujet est rendu.",
     "Une sous-PR qui attend son tour dans son sujet la relance une fois à la sonde suivante, puis chaque fois que celle qui tient le sujet change d'état ou quitte la file ; un sujet tenu par le verrou d'un autre capitaine la relance une fois quand ce verrou a expiré (sa date a plus de 95 minutes).",
     "« CI en cours », « attend », « bloquée » et brouillon ne relancent rien d'eux-mêmes.",
@@ -1174,6 +1174,8 @@ test("une sous-PR à la fois par sujet : le capitaine tient l'ordre, qui tient l
     [`${SKILLS_CHAINE}/fusionner/SKILL.md`, "une seule sous-PR porte `à-fusionner` à la fois"],
     [`${SKILLS_CHAINE}/fusionner/SKILL.md`, "le conducteur y veille"],
     [`${SKILLS_CHAINE}/fusionner/SKILL.md`, "brouillon ne relancent rien."],
+    // A-161 : 128 est une erreur fatale de git, pas un signal.
+    [`${SKILLS_CHAINE}/fusionner/SKILL.md`, "signal (128 et plus)"],
     [`${SKILLS_CHAINE}/chantier/SKILL.md`, "ne le laisse qu'à la plus ancienne"],
     [`${SKILLS_CHAINE}/chantier/SKILL.md`, "retiré par le conducteur"],
     [`${SKILLS_CHAINE}/chantier/SKILL.md`, "puis le repose sur la suivante"],

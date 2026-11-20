@@ -32,7 +32,7 @@
  *      la fiche ; une carte `fini` ne réserve plus) ;
  *   9. `Type:` ∈ task, défaut, grilling, research ; absente, elle n'est tolérée que pour un ticket gelé
  *      dans la clé `types` de la dette, écrite une seule fois, à l'arrivée du gate (`--geler-types`) ;
- *  10. `Règles:`, si la ligne est là, vaut `—` (aucune règle) ou cite au moins une règle, chacune `RULE_<CTX>_<TRI>-<n>` ayant son
+ *  10. `Règles:`, chaque ligne de l'en-tête, vaut `—` (aucune règle, alors seule) ou cite au moins une règle, chacune `RULE_<CTX>_<TRI>-<n>` ayant son
  *      fichier `docs/metier/regles/<ctx>/RULE_….md`, du contexte du ticket ou de `ALL` ;
  *  11. un `Type: défaut` à `Fait — PR #n` nomme dans la colonne « Preuve » de `## Surfaces` des tests
  *      (`fichier.test.ts` « titre ») qui existent dans les fichiers de tests suivis et sont actifs ;

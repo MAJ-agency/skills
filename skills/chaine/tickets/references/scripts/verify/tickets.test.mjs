@@ -184,7 +184,7 @@ test('Sensibles: `—`, ou des chemins puis l’accord (nom, date), passe ; tout
   ])
     assert.deepEqual(ecartsSensibles(v), [], v);
   const FORME = /^Sensibles « .* » : attendu `—`, ou des chemins séparés par des virgules puis ` — accord de <nom>, <AAAA-MM-JJ>`$/;
-  for (const v of ['', 'scripts/chaine/passer.sh', 'scripts/chaine/passer.sh, scripts/agent/regles.mjs', 'scripts/chaine/passer.sh — accord de Camille Martin', `— ${ACCORD}`, `scripts/chaine/passer.sh - ${ACCORD}`, `scripts/chaine/passer.sh —  ${ACCORD}`, '— —']) {
+  for (const v of ['', 'scripts/chaine/passer.sh', 'scripts/chaine/passer.sh, scripts/agent/regles.mjs', 'scripts/chaine/passer.sh — accord de Camille Martin', `— ${ACCORD}`, `scripts/chaine/passer.sh - ${ACCORD}`, `scripts/chaine/passer.sh —  ${ACCORD}`, '— —', '—#x' /* A-161 (6) : un `#` collé n'est pas un commentaire */]) {
     const e = ecartsSensibles(v);
     assert.equal(e.length, 1, v);
     assert.match(e[0], FORME, v);
@@ -213,6 +213,11 @@ test('Sensibles: `—`, ou des chemins puis l’accord (nom, date), passe ; tout
     ['scripts/chaine/passer.sh — accord de Camille Martin — accord de Paul Durand, 2026-11-18', /attendu la personne qui a accordé/],
     ['scripts/chaine/passer.sh — accord de Camille Martin, 0000-01-01', /date « 0000-01-01 »/],
     ['scripts/chaine/passer.sh — accord de Camille Martin, 9999-12-31', /date « 9999-12-31 »/],
+    // A-161 (5) : un nom fait de seuls tirets ou ponctuation, `session_` où qu'il soit dans le nom, une URL.
+    ...['-', '–', '?', 'la MOA session_01AbC', 'la MOA (session_01AbC)', 'x,session_01AbC', 'https://claude.ai/code/01AbCdEfGhIj'].map((nom) => [
+      `scripts/chaine/passer.sh — accord de ${nom}, 2026-11-19`,
+      /attendu la personne qui a accordé/,
+    ]),
   ];
   for (const [v, motif] of refus) {
     const e = ecartsSensibles(v);
@@ -229,7 +234,7 @@ test('Sensibles: `—`, ou des chemins puis l’accord (nom, date), passe ; tout
 
 test('Relecture: `double` passe ; toute autre valeur est refusée, la valeur nommée', () => {
   for (const v of ['double', 'double # règle de criticité haute']) assert.deepEqual(ecartsRelecture(v), [], v);
-  for (const v of ['', 'simple', 'Double', 'double double', 'doubles', '2', 'oui']) {
+  for (const v of ['', 'simple', 'Double', 'double double', 'doubles', '2', 'oui', 'double#x' /* A-161 (6) */]) {
     const e = ecartsRelecture(v);
     assert.equal(e.length, 1, v);
     assert.match(e[0], /^Relecture « .* » : seule valeur `double` ; sinon retirer la ligne$/, v);
@@ -374,6 +379,13 @@ test('Règles: `—` seul dit que le ticket ne réalise aucune règle et passe ;
     ['Règles: `—`', /« `—` »/],
   ])
     assert.match(avecRegles(ligne).join(' | '), motif, ligne);
+  // A-161 (4) : chaque ligne `Règles:` de l'en-tête est jugée, comme le calcul « double relecture exigée » les lit
+  // toutes ; `Règles: —` avec une autre ligne `Règles:` se contredit.
+  assert.match(avecRegles('Règles: —\nRègles: RULE_ALL_LIC-3').join(' | '), /Règles: — .*une autre ligne `Règles:`/);
+  assert.match(avecRegles('Règles: RULE_ALL_LIC-3\nRègles: —').join(' | '), /Règles: — .*une autre ligne `Règles:`/);
+  assert.match(avecRegles('Règles: RULE_ALL_LIC-3\nRègles: voir plus bas').join(' | '), /« voir »/, 'la seconde ligne est jugée');
+  assert.match(avecRegles('Règles: RULE_ALL_LIC-3\nRègles: RULE_FNSMR_LIC-7').join(' | '), /RULE_FNSMR_LIC-7, absente du registre/);
+  assert.deepEqual(avecRegles('Règles: RULE_ALL_LIC-3\nRègles: RULE_FNSMR_LIC-05'), [], 'deux lignes bien formées passent');
 });
 
 const SPEC_TS = [

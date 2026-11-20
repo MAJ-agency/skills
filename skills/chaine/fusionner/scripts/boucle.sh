@@ -336,7 +336,8 @@ rafraichir_sujets() {
 # Le sujet est rendu dans le tour quand celle qui le tient n'est plus en route vers l'entrée (fusionnée, renvoyée, ou
 # refusée par une sortie non classée) : la plus ancienne qui attend le prend aussitôt. Il reste tenu sur une sortie qui
 # la laisse en route : 5, 6, 8, 11, `relancer` réussi, 7 (le verrou d'un autre capitaine) et toute sortie par signal
-# (128 et plus : l'état du passage interrompu est inconnu, son verrou peut rester). Un sujet encore tenu après le
+# (129 et plus : l'état du passage interrompu est inconnu, son verrou peut rester ; 128 est une erreur fatale de git,
+# pas un signal : elle suit la table d'une erreur, A-161). Un sujet encore tenu après le
 # passage de celle qui le tient est dit à chaque tour : `[sujet/<nom>] tenu par #n (<raison>)`, écrit par la boucle une
 # fois la sortie de `sujet.sh` classée (son code, et sa dernière ligne dans `$sortie`), jamais dans `$sortie` : la ligne
 # ne suit pas celle du `sortir`, et `refus.sh` ne la prend pas pour un motif. Sur une sortie 7, la raison porte la date
@@ -348,11 +349,12 @@ TENUS="$COMMUN/boucle-tenus"
 # github.sh (la décision du verrou) sur ses commentaires, comme le lirait un passage qui poserait sa marque maintenant
 # (`mien` au-dessus de tout id, `cree` à l'heure de `epoch_passage`, l'horloge du verrou). Écrit « <capitaine> <date
 # du verrou> » ; rien : personne, ou une marque expirée (90 minutes) ; « illisible » : commentaires ou dates
-# illisibles, et dans le doute elle tient. Son passage, lui, pose sa marque et tranche (`prendre_passage`).
+# illisibles, et dans le doute elle tient. Son passage, lui, pose sa marque et tranche (`prendre_passage`). « panne » :
+# la lecture GitHub elle-même a échoué ; elle ne donne jamais le sujet (A-161) : à ce tour, aucune sous-PR du sujet.
 verrou_d_un_autre() {
   local lus
-  lus=$(lire_github "$DEPOT/issues/$1/comments?per_page=100" --paginate) &&
-    jq -rs --arg moi "$CAPITAINE_ID" --argjson mien 9007199254740991 --arg cree "$(jq -nr --argjson e "$(epoch_passage)" '$e | todate')" \
+  lus=$(lire_github "$DEPOT/issues/$1/comments?per_page=100" --paginate) || { echo panne; return 0; }
+  jq -rs --arg moi "$CAPITAINE_ID" --argjson mien 9007199254740991 --arg cree "$(jq -nr --argjson e "$(epoch_passage)" '$e | todate')" \
       "$FILTRE_PASSAGE | .tenu // \"\"" <<<"$lus" 2>/dev/null ||
     echo illisible
 }
@@ -367,7 +369,7 @@ date_du_verrou() { # <n> <fichier de la sortie>
   printf ', verrou du %s' "${BASH_REMATCH[1]}"
 }
 traiter_sujets() {
-  local n etat sujet rc tient par liste lue enroute verrou geste tenus=' '
+  local n etat sujet rc tient par liste lue enroute verrou geste tenus=' ' suspendus=' '
   verifier_arret
   # Séries par spec et piles : regroupées d'office (hors prio:haute et hors-sujet).
   bash "$SUJET" regrouper-series 2>&1 | sed 's#^série #[sujets] REGROUPÉE série #; s#^#  #'
@@ -385,11 +387,22 @@ traiter_sujets() {
     for n in $(awk -F '\t' -v s="$sujet" '$1 == s { print $2 }' <<<"$enroute"); do
       verrou=$(verrou_d_un_autre "$n" </dev/null)
       [ -n "$verrou" ] || continue
+      if [ "$verrou" = panne ]; then
+        echo "[#$n] REPRISE au tour suivant : commentaires de #$n illisibles (GitHub), aucune sous-PR de $sujet n'est prise à ce tour"
+        suspendus="$suspendus$sujet "
+        break
+      fi
       echo "[#$n] marque de passage d'un autre capitaine ($verrou) : elle tient $sujet"
       par=$n
       break
     done
-    if [ -z "$par" ]; then
+    case "$suspendus" in
+      # Suspendu : la mémoire est gardée (celle que la boucle tenait, encore en route), personne n'est pris.
+      *" $sujet "*)
+        par=$(awk -F ':' -v s="$sujet" '$1 == s { print $2; exit }' "$TENUS" 2>/dev/null)
+        par=$(awk -F '\t' -v s="$sujet" -v m="$par" '$1 == s && $2 == m { print $2 }' <<<"$enroute") ;;
+    esac
+    if [ -z "$par" ] && [[ "$suspendus" != *" $sujet "* ]]; then
       par=$(awk -F ':' -v s="$sujet" '$1 == s { print $2; exit }' "$TENUS" 2>/dev/null)
       par=$(awk -F '\t' -v s="$sujet" -v m="$par" '$1 != s { next } $2 == m { g = $2 } $3 == "CI en cours" && !c { c = $2 } END { print (g ? g : c) }' <<<"$enroute")
     fi
@@ -413,6 +426,7 @@ traiter_sujets() {
     case "$etat" in
       sujet/*' : prête' | sujet/*' : prête (sans CI)' | sujet/*' : prête (en conflit)' | sujet/*' : CI en cours')
         tient=${etat%% : *}
+        case "$suspendus" in *" $tient "*) echo "[#$n] sautée à ce tour : $tient suspendu (lecture GitHub en panne)"; continue ;; esac
         case "$tenus" in
           *" $tient:$n "*) ;;
           *" $tient:"*)
@@ -462,13 +476,13 @@ traiter_sujets() {
           7) echo "[#$n] en passage chez un autre capitaine : sautée (aucun renvoi)" ;;
           # Push refusé par le distant, sans trace du hook : côté capitaine ou du distant, jamais un renvoi.
           11) echo "[#$n] ÉCHEC DU CAPITAINE : sous-PR laissée dans la file (aucun renvoi), cause ci-dessus" ;;
-          # Passage interrompu par un signal (128 et plus) : rien que la session puisse corriger, état inconnu.
-          12[89] | 1[3-9][0-9] | 2[0-9][0-9]) echo "[#$n] ÉCHEC DU CAPITAINE : passage interrompu par un signal (sortie $rc), état de la sous-PR inconnu : laissée dans la file (aucun renvoi)" ;;
+          # Passage interrompu par un signal (129 et plus ; 128 est une erreur fatale de git, A-161) : état inconnu.
+          129 | 1[3-9][0-9] | 2[0-9][0-9]) echo "[#$n] ÉCHEC DU CAPITAINE : passage interrompu par un signal (sortie $rc), état de la sous-PR inconnu : laissée dans la file (aucun renvoi)" ;;
         esac
         # Mise à jour poussée (0), reprise (5, 6, 11), verrou d'un autre capitaine (7) ou passage interrompu par un
-        # signal (128 et plus) : le sujet reste tenu. Renvoyée (2, 4, 3 du pre-push), ou sortie 3 muette (rien de
+        # signal (129 et plus) : le sujet reste tenu. Renvoyée (2, 4, 3 du pre-push), ou sortie 3 muette (rien de
         # poussé, et rien ne dit qu'elle passera un jour) : rendu.
-        case "$rc" in 0 | 5 | 6 | 7 | 11 | 12[89] | 1[3-9][0-9] | 2[0-9][0-9]) ;; *) tenus=${tenus/" $tient:$n "/ } ;; esac ;;
+        case "$rc" in 0 | 5 | 6 | 7 | 11 | 129 | 1[3-9][0-9] | 2[0-9][0-9]) ;; *) tenus=${tenus/" $tient:$n "/ } ;; esac ;;
       sujet/*': prête')
         # Passé l'échéance, aucun `sujet.sh fusionner` (il peut attendre une CI) : le code remonte du sous-shell.
         ! echeance_passee || exit "$ECHEANCE_TUBE"
@@ -491,14 +505,14 @@ traiter_sujets() {
           12) echo "ARRÊT sur #$n (sortie 12) : arbre du squash ≠ arbre testé"; exit 12 ;;
           # Outil du capitaine en échec, ou push refusé par le distant : rien que la session puisse corriger.
           11) echo "[#$n] ÉCHEC DU CAPITAINE : sous-PR laissée dans la file (aucun renvoi), cause ci-dessus" ;;
-          # Passage interrompu par un signal (128 et plus) : rien que la session puisse corriger, état inconnu.
-          12[89] | 1[3-9][0-9] | 2[0-9][0-9]) echo "[#$n] ÉCHEC DU CAPITAINE : passage interrompu par un signal (sortie $rc), état de la sous-PR inconnu : laissée dans la file (aucun renvoi)" ;;
+          # Passage interrompu par un signal (129 et plus ; 128 est une erreur fatale de git, A-161) : état inconnu.
+          129 | 1[3-9][0-9] | 2[0-9][0-9]) echo "[#$n] ÉCHEC DU CAPITAINE : passage interrompu par un signal (sortie $rc), état de la sous-PR inconnu : laissée dans la file (aucun renvoi)" ;;
           *) echo "[#$n] sous-PR non éligible (sortie $rc)" ;;
         esac
         # Reprise (5, 6, 11), verrou d'un autre capitaine (7), CI de la mise à jour en cours (8) ou passage interrompu
-        # par un signal (128 et plus) : le sujet reste tenu. Fusionnée (0), renvoyée (3, 4) ou sortie non classée (2,
+        # par un signal (129 et plus) : le sujet reste tenu. Fusionnée (0), renvoyée (3, 4) ou sortie non classée (2,
         # le sujet en conflit avec develop : la PR de mise à jour qui le résout est plus loin dans la file) : rendu.
-        case "$rc" in 5 | 6 | 7 | 8 | 11 | 12[89] | 1[3-9][0-9] | 2[0-9][0-9]) ;; *) tenus=${tenus/" $tient:$n "/ } ;; esac ;;
+        case "$rc" in 5 | 6 | 7 | 8 | 11 | 129 | 1[3-9][0-9] | 2[0-9][0-9]) ;; *) tenus=${tenus/" $tient:$n "/ } ;; esac ;;
     esac </dev/null
     # Le sujet reste tenu après le passage de celle qui le tient : dit à chaque tour, avec la raison.
     case "$tenus" in *" ${tient:-?}:$n "*) echo "[$tient] tenu par #$n (${geste:-CI en cours})" ;; esac
