@@ -1054,3 +1054,8 @@ La session de suite fait, dans cet ordre :
   - banc 38 sur 38, suite 1 212 sur 1 212 ;
   - les 7 mutations vertes et les 5 du défaut 4 sont rouges ; CI en cours.
   **Second tour lancé** par le même contre-relecteur, sur le delta `0b6a5eb..eb52035`, résolution comprise.
+- 2026-11-20 — 06 h 50 UTC. **PR 143 : second tour sur la PR au sommet `eb52035`, conforme.**
+  - Les 11 constats sont fermés et la résolution de la fusion est lue en entier : seuls `plugin.json` et la note changent, 7.37.0 gardée à l'octet près, et la PR 141 est intacte blob pour blob.
+  - Banc 38 sur 38, `depot` 69 sur 69 ; 16 mutations, 16 rouges.
+  - Verdict `conforme` écrit sur la PR. L'ordre attend la fin du job `bancs`, en cours.
+  - Rapport et mutations du second tour publiés sous `63-annexes/contre-relecture-0b6a5eb/`.

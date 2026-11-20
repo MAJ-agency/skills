@@ -1,0 +1,52 @@
+eb52035cefc83ff951905ab212166ce20d50bdbe 791862e21278d39c4603f354a6fd585229eb38fd 860cd9c2ea861909020d957c07db5ff6dc262cbd
+Merge remote-tracking branch 'origin/main' into claude/ticket-63-suites-relecture
+
+diff --git a/.claude-plugin/plugin.json b/.claude-plugin/plugin.json
+remerge CONFLICT (content): Merge conflict in .claude-plugin/plugin.json
+index ce47b7f..a50dc20 100644
+--- a/.claude-plugin/plugin.json
++++ b/.claude-plugin/plugin.json
+@@ -1,10 +1,6 @@
+ {
+   "name": "maj-skills",
+-<<<<<<< 791862e (fix(relecture): un seul calcul des illisibles, après les binaires de la résolution (A-174))
+-  "version": "7.36.1",
+-=======
+-  "version": "7.37.0",
+->>>>>>> 860cd9c (feat(chaine): une sous-PR à la fois par sujet tenue par le capitaine, le bilan de fin de chantier sort, le gate juge Sensibles et Relecture (plugin 7.37.0) (#141))
++  "version": "7.37.1",
+   "description": "Skills d'ingénierie maison : amorçage de monorepo et de socles (API NestJS hexagonale, web Next.js, mobile Expo), chaîne de production pour des sessions d'agent en parallèle (tickets, sujets, capitaine de fusion, revue adversariale, chantier, recette). Aucune règle métier.",
+   "author": {
+     "name": "Guillaume Jauffret"
+diff --git a/NOTES-DE-VERSION.md b/NOTES-DE-VERSION.md
+remerge CONFLICT (content): Merge conflict in NOTES-DE-VERSION.md
+index 207156a..f1d14a3 100644
+--- a/NOTES-DE-VERSION.md
++++ b/NOTES-DE-VERSION.md
+@@ -2,8 +2,7 @@
+ 
+ La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque projet par `poser` : une version publiée ne change rien chez un projet qui ne les repose pas. Chaque note dit ce qui change, puis ce qu'un projet fait pour en profiter.
+ 
+-<<<<<<< 791862e (fix(relecture): un seul calcul des illisibles, après les binaires de la résolution (A-174))
+-## 7.36.1 — 2026-11-20
++## 7.37.1 — 2026-11-20
+ 
+ ### Ce qui change
+ 
+@@ -19,7 +18,7 @@ Depuis 7.36.0, la résolution d'une PR de mise à jour se relit : `git show --re
+ ### Ce qu'un projet fait pour en profiter
+ 
+ Mettre à jour le plugin ; rien d'autre (rien n'appelle encore le skill, comme le dit la note 7.36.0).
+-=======
++
+ ## 7.37.0 — 2026-11-20
+ 
+ ### Ce qui change
+@@ -40,7 +39,6 @@ Le gate `tickets` juge la forme de deux lignes d'en-tête qu'il ne lisait pas, s
+ 4. D'ici là, le conducteur garde l'ancienne discipline, une seule sous-PR étiquetée à la fois par sujet : un capitaine dont les scripts ne sont pas reposés prend encore toutes les sous-PR étiquetées d'un sujet dans le même tour. Avec plusieurs capitaines, il ne l'abandonne qu'une fois tous relancés.
+ 5. Reposer le gate et les gabarits, dans une PR du projet : `/maj-skills:tickets poser` (`scripts/verify/tickets-regles.mjs`, `tickets.mjs` et leurs tests, `scripts/docs/couts.test.mjs`, les gabarits de ticket et de carte). Une ligne `Sensibles:` ou `Relecture:` mal formée dans l'en-tête d'un ticket rougit alors le gate : la corriger, ou la retirer.
+ 6. Dans la même PR, reporter dans `docs/agents/chaine-de-production.md` (posé par `socle-chaine-de-production`, que le projet a pu amender) le § 2 sans rétro (le schéma du cycle, la parenthèse du point 2 et le point 7), et dans `docs/agents/pieges.md` sa phrase d'en-tête : un incident donne un ticket au moment où il arrive. Une carte déjà `fini` garde sa section `## Rétro`, sans effet.
+->>>>>>> 860cd9c (feat(chaine): une sous-PR à la fois par sujet tenue par le capitaine, le bilan de fin de chantier sort, le gate juge Sensibles et Relecture (plugin 7.37.0) (#141))
+ 
+ ## 7.36.0 — 2026-11-20
+ 

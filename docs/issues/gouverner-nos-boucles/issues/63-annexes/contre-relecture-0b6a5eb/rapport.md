@@ -90,3 +90,75 @@ Comptes : 34 mutations jouées (16 de la session, 18 miennes) ; 13 vertes, toute
 - m — corps de la PR : « 15 mutations », 16 nommées. Lu (`mcp github pull_request_read get`).
 
 Aucun bloquant : ni validation à tort, ni lot du diff relu jeté ou mêlé (`a2`, `a6`, `:1987`, `S10`, `O18`), ni nom hostile mal lu (`a3`), ni binaire de la seule résolution manqué dans les cas que `C2` admet (`a4`, `a5`, `e22`), ni lot récrit après `C1` que l'empreinte ne voit pas (`a2`, `:1953`). `set -euo pipefail` : chaque commande neuve est lue par son code (`|| quitter 12` sur les deux `numstat`, `errexit` sur `cat`, `mktemp` et le tube de `:345`, `rmdir … || true` voulu) ; le tube de `:345` sort en 1 et non en 12 s'il échouait, comme celui de `:304` déjà sur `main`, et `diff` en traite toute sortie non nulle par « Toute autre sortie ».
+
+## Second tour
+
+Sommet relu : `eb52035cefc83ff951905ab212166ce20d50bdbe` (`git ls-remote origin refs/pull/143/head`, 06:40 UTC) ; `main` à `860cd9c` (7.37.0). Delta lu : `3ac8895`, `791862e`, `eb52035` (fusion, parents `791862e` et `860cd9c`). La machine vient de redémarrer (`uptime` : 0 min, charge 0,08). Retouches fixées par `A-174` (spec de `claude/compassionate-euler-st84s9`, `:316`, lue par `grep -n "A-174"` puis les lignes de son paragraphe seul).
+
+### Le delta, lu
+
+- `791862e` : `binaires_resolution` est appelé avant l'unique calcul d'`illisibles.txt` (`gestes.sh:306`, puis `:309`), la copie de `:346` est retirée. L'appel passe aussi avant la vérification des manquants : les deux chemins sortent en 12, ce déplacement ne change que la cause écrite quand les deux échouent à la fois.
+- `3ac8895` :
+  - `gestes.md:40` dit ce que `binaires.txt` porte, « trié, sans doublon » ; `:68` nomme `resolution` et `resolution-<j>`, axe 1 seulement.
+  - `SKILL.md:70` et `cas-limites.md:57` nomment les deux sorties 12 neuves.
+  - La note dit « trois mineurs, plus un trou trouvé en préparant le ticket », et le rappel d'`A-164` vient après les changements.
+  - Le banc : la panne `FAUX_GIT_NUMSTAT_FUSION=1|2` d'un seul des deux `numstat` (`relecture.test.mjs:692`) et la boucle sur les deux (`:2062-2065`) ; `readdirSync(lots)` exact dans `:1953` et `:1988` ; l'absence du message « un seul fichier… » dans `:1988` ; deux tests neufs, `:2075` (diff relu et résolution découpés ensemble, `miseAJour(77)`) et `:2112` (seul `^1` voit le binaire, `miseAJour(78)` ; binaires mêlés et triés, `miseAJour(79)`). `readdirSync` est déjà importé (`:13`).
+- Le corps de la PR, relu par l'outil GitHub, au moment de la synthèse : voir plus bas.
+
+### La fusion `eb52035`
+
+`git show --remerge-diff --format='%H %P%n%s' eb52035`, lu en entier (52 lignes, `essais/second-remerge-eb52035.txt`) : deux conflits, `plugin.json` (7.36.1 contre 7.37.0, résolu en 7.37.1) et `NOTES-DE-VERSION.md` (la note de la PR, renommée 7.37.1, posée au-dessus de la note 7.37.0). Rien d'autre.
+
+1. La note 7.37.0 de `main` est gardée à l'octet près : la section `## 7.37.0` de `860cd9c` et celle du sommet sont égales par `cmp` (5 912 octets). `diff <(git show 860cd9c:NOTES-DE-VERSION.md) <(git show eb52035:NOTES-DE-VERSION.md)` n'ôte aucune ligne et n'ajoute que les lignes 5 à 21.
+2. La note de la PR, en 7.37.1, est en tête (`## 7.37.1` à `:5`, puis 7.37.0 à `:22`, puis 7.36.0 à `:43`). Son corps est celui de la note 7.36.1 de `791862e`, égal par `cmp`, en-tête ôté. « 7.36.1 » ne paraît plus nulle part dans le fichier.
+3. Entre `860cd9c` et le sommet, `plugin.json` ne change que `"version"` (7.37.0 → 7.37.1). Le fichier est un JSON valide.
+4. Rien de la PR 141 n'est perdu. Les fichiers où le sommet diffère de `860cd9c` sont exactement les 7 de la PR seule (`git diff --name-only e64f93b 791862e`), comparés par `cmp`. Les 5 qui ne sont qu'à la PR sont égaux, blob pour blob, à ceux de `791862e`. Les 24 qui ne sont qu'à la PR 141 sont égaux, blob pour blob, à ceux de `860cd9c`. Les 2 communs sont ceux des points 1 à 3.
+
+### Bancs et essais au sommet `eb52035`
+
+- `node --test --test-reporter=spec scripts/relecture.test.mjs` : 38 tests, 38 réussis, statut 0, 40,8 s (charge 0,12 avant, 0,59 après). Sortie : `essais/second-banc-relecture.txt`.
+- `node --test --test-reporter=spec scripts/depot.test.mjs` : 69 tests, 69 réussis, statut 0, 0,36 s (charge 0,59). Sortie : `essais/second-banc-depot.txt`.
+- Essais a1 à a7, toutes variantes (a1 `ours`/`neuve`, a4 `petit`/`lots`, a5 `inverse`/`retouche`/`theirs-retouche`), joués sur le worktree `plugin-pr2` (13 jeux, 16 s, charge 0,54 à 0,64). Sorties : `essais/second-a*.txt`. Leur sortie, normalisée (empreintes, abrégés de commits, nom du dossier de travail, dossier des jouets), est celle du premier tour, ligne pour ligne. Pour `a5-inverse` et `a5-theirs-retouche`, comparées sous le même filtre que le premier tour : `liste` en 4 par `C2` ; puis `binaires : 1`, seul `numstat-resolution-1.txt` porte la clé, `lus 1 resolution` en 0.
+
+### Mutations, second tour
+
+Mêmes outils (`essais/mutations/appliquer.py`, `jouer2.sh`), définitions dans `essais/mutations/definir2.py` et `mutations2.json`. Chaque mutation est jouée seule, sur le banc relecture entier (38 tests), sur trois worktrees du sommet en parallèle ; 38 à 44 s par banc, charge de 0,26 à 3,89. Le diff de chaque mutation et la sortie brute du banc sont sous `essais/mutations/second/<id>.diff` et `<id>.out`.
+
+| Mutation | Banc | Assertion qui la tue |
+| --- | --- | --- |
+| `O01` l'échec du seul `numstat ^2` ignoré | 38, 1 échec | `:2064`, « la panne du numstat de <fusion>^2 seul » |
+| `O02` l'échec du seul `numstat ^1` ignoré | 38, 1 échec | `:2064`, « … <fusion>^1 seul » |
+| `O03` premier parent retiré | 38, 2 échecs | `:2112`, `binaires : 0` (et `:2064`) |
+| `O05` ajout sans tri | 38, 1 échec | `:2112`, « la liste reste triée » |
+| `O06` dossier de travail laissé | 38, 3 échecs | `:1953`, `:1988`, `:2075` : « aucun dossier de travail ne reste sous lots/ » |
+| `O09` message « un seul lot » pour la résolution | 38, 1 échec | `:1988`, « ce message est celui du diff relu » |
+| `O11` lignes sommées sur tous les lots | 38, 1 échec | `:2075`, « lots de la résolution : leurs lignes ne font pas la résolution » |
+| `O07`, `O10`, `O18` (rouges au premier tour) | 38, 1 échec chacune | `:1953`, `:1953`, `:1988` |
+| `O17` (rouge au premier tour) | 38, 2 échecs | `:1953`, `:2075` |
+| `N1` `791862e` : l'appel remis après le calcul unique des illisibles | 38, 2 échecs | `:2030`, `:2112` |
+| `N2` `791862e` : le calcul unique retiré | 38, 5 échecs | dont `:2030`, `:2049`, `:2112` |
+| `N3` `791862e` : les illisibles sur les seuls binaires du diff relu | 38, 2 échecs | `:2030`, `:2112` |
+| `N4` `791862e` : l'appel avant l'écriture de `binaires.txt` | 38, 2 échecs | `:2030`, `:2112` |
+| `N5` `791862e` : l'appel après les manquants, le calcul resté avant | 38, 2 échecs | `:2030`, `:2112` |
+
+16 mutations jouées, 16 rouges, 0 verte. Les sept trous du premier tour sont fermés, chacun par son cas neuf. L'ancien `O04` (le second calcul des illisibles retiré) n'a plus d'objet depuis `791862e` : `N1` à `N5` le remplacent. Les worktrees sont propres après la série (`git status --short` vide, au sommet `eb52035`).
+
+### Les onze constats du premier tour
+
+| Constat | Retouche (`A-174`) | Vu |
+| --- | --- | --- |
+| 1. `gestes.md:40` et `:68` | 1 | fermé : `:40` dit les binaires de la seule résolution, « trié, sans doublon » ; `:68` nomme `resolution` et `resolution-<j>` (axe 1) |
+| 2. `O01`, `O02` | 2 | fermé : panne d'un seul `numstat` (`:692`), boucle `:2062-2065` ; les deux mutations sont rouges |
+| 3. `O03` | 2 | fermé : `:2112` (`miseAJour(78)`, l'essai `a5` `theirs-retouche`), rouge |
+| 4. `O05` | 2 | fermé : `:2112` (`miseAJour(79)`, l'essai `a7`), rouge |
+| 5. `O11` | 2 | fermé : `:2075` (`miseAJour(77)`, l'essai `a2`), rouge ; il vérifie aussi `lus` pour chaque lot et l'empreinte de chacun |
+| 6. `O06`, `O09` | 2 | fermé : `readdirSync` exact (`:1970`, `:2001`), l'absence du message (`:2002`) ; les deux mutations sont rouges |
+| 7. `gros.ts` à 2 100 lignes, ordre des tests | laissés, par décision | tels quels |
+| 8. La note | 5 | fermé : « trois mineurs, plus un trou trouvé en préparant le ticket » ; le rappel d'`A-164` vient après les changements |
+| 9. La copie de l'expression des illisibles | 3 | fermé : un seul calcul (`gestes.sh:309`) ; `N1` à `N5` le tiennent |
+| 10. Les deux sorties 12 neuves | 4 | fermé : nommées dans `SKILL.md:70` et `cas-limites.md:57` |
+| 11. Le corps de la PR | 6 | fermé : « 23 distinctes » (16 du premier passage et 7 de la contre-relecture), 38 sur 38 (« 31 existants + 7 neufs »), 7.37.1 |
+
+Aucun constat neuf. Le diff net de la PR (`git diff 860cd9c eb52035`, 7 fichiers, 274 lignes ajoutées et 41 retirées) ne porte rien de privé : la recherche de `/home`, `/tmp/`, `/root`, `Users/`, du nom de l'auteur, `session_0` ou `claude.ai` dans les lignes ajoutées sort en 1.
+
+Verdict du second tour : **conforme**. Bancs : relecture 38/38, `depot.test.mjs` 69/69. Essais a1 à a7 identiques au premier tour. Mutations : 16 jouées, 16 rouges.
