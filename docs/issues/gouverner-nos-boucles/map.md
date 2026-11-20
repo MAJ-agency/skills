@@ -1135,3 +1135,12 @@ La session de suite fait, dans cet ordre :
   - une revue de ticket, sans bloquant, une réserve S19 écartée avec sa raison.
 
   Premier tour de contre-relecture lancé, effort moyen, avec les 7 mutations à jouer.
+- 2026-11-20 — 11 h 06 UTC. **PR 145 : premier tour, au sommet `2d563fd`, « conforme après retouches ». 0 bloquant, 3 mineurs, aucun dans le code.**
+  - Gate joué avant et après sur `main` et sur la branche : sortie identique, aucun `\p{Cc}` dans une ligne `Sensibles:`.
+  - Les 65 caractères `\p{Cc}` essayés à toutes les positions sont refusés comme la décision le veut.
+  - La réserve S19 écartée par la session tient.
+  - Mutations : 13 jouées, 12 rouges. M4, qui déplace le paragraphe dans `SKILL.md`, reste verte : le test, imposé par le ticket, ne tient que la présence de la phrase.
+  - Bancs : 171 sur 171. CI : 1 223 sur 1 223.
+  - Décisions de l'architecte :
+    - m1, les preuves manquantes du corps de la PR : à recopier, sans commit, donc le sommet ne bouge pas. **Aucun verdict `non conforme` n'est écrit** : un `non conforme` sur un sommet le bloque pour de bon chez le capitaine, alors que la retouche ne le change pas. Le verdict `conforme` viendra après lecture du corps.
+    - m2 et m3 sont laissés : M4 est le m6 déjà relevé au ticket ; le commentaire de `trim()` est incomplet mais sans effet. Tous deux vont au prochain passage sur ces fichiers.
