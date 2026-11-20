@@ -15,7 +15,7 @@ Capitaines: Anchorpost — `session_01BxuG34gQKsuhqcM71Hgxxi` (Opus, depuis le 2
 
 | Chantier | Dépôt | Spec | Conducteur | État |
 | --- | --- | --- | --- | --- |
-| La preuve suffisante | `MAJ-agency/anchorpost` | `SPEC_ALL_ANC-5` | `session_01BxuG34SC3thVES3Npz8w7L` (Opus, depuis le 2026-11-19, 19 h 53 UTC ; avant lui `session_01BxuG2zP4RpAu97AuHPdSR8`, Fable, 14 h 42 à 15 h 34, et `session_01BxuG2zwaHUkcBNJS6VVwiz`, 09 h 44 à 14 h 45, archivés) | 38 tickets faits ; `.55`, `.56`, `.57` entrés comme tickets (#324) ; `.54` (#325) à étiqueter après un commit de documentation |
+| La preuve suffisante | `MAJ-agency/anchorpost` | `SPEC_ALL_ANC-5` | `session_01BxuG34Pue2UQGTWC51oyGb` (Opus, depuis le 2026-11-20, 02 h 32 UTC ; avant lui `session_01BxuG34SC3thVES3Npz8w7L`, Opus, 19 h 53 à 02 h 32, 68,66 $, archivé ; avant lui `session_01BxuG2zP4RpAu97AuHPdSR8`, Fable, 14 h 42 à 15 h 34, et `session_01BxuG2zwaHUkcBNJS6VVwiz`, 09 h 44 à 14 h 45, archivés) | 38 tickets faits ; `.55`, `.56`, `.57` entrés comme tickets (#324) ; `.54` (#325) à étiqueter après un commit de documentation |
 
 ## Décisions
 
@@ -122,3 +122,4 @@ Rien encore.
 - 2026-11-20, 02 h 12 UTC — #335 (`.13`) fusionnée dans le sujet (`1b76196`), arbre identique au sommet étiqueté, lu sur le dépôt : 49 tickets faits ; `RULE_ALL_ANC-23` prouvée, 2 cas sur 2.
 - 2026-11-20, 02 h 20 UTC — #341 (`.15`) étiquetée au sommet `a9eebbd`. Le conducteur demande sa relève (634 225 tokens, 64,63 $) : décidée pour l'entrée de #341, entrée « RELÈVE DU CONDUCTEUR » d'abord. Alerte d'usage hebdomadaire en Opus : `seven_day`, `allowed_warning`, levée le 2026-11-22 à 19 h UTC ; dite au produit une fois.
 - 2026-11-20, 02 h 32 UTC — #341 (`.15`) fusionnée dans le sujet (`5c17d2e`), arbre identique au sommet étiqueté, lu sur le dépôt : 50 tickets faits ; le pilote est entré en entier (`RULE_ALL_ANC-23` prouvée, `-5` à 4 cas sur 5, `-19` à 4 cas sur 5). Relève du conducteur attendue.
+- 2026-11-20, 02 h 33 UTC — relève 4 du conducteur : l'ancien (`session_01BxuG34SC3thVES3Npz8w7L`, 672 185 tokens, 68,66 $) a poussé son entrée de relève (`e214fe1`) ; archivé. Lancé : `session_01BxuG34Pue2UQGTWC51oyGb`, Opus, avec la veille (abonnement aux sous-PR, réveil de 15 minutes). Filles archivées (comptées dans la carte du chantier) : `.57` 20,99 $, lot check 19,14 $, lot scanner 18,03 $, lot compare 9,02 $, `.13` 7,73 $, `.14` 10,31 $, `.15` 10,04 $. Restent : #332 (`.59`), #344 (`.60`), #342 (`.38`), `.19`, #343 (`.61`), puis la livraison intermédiaire.
