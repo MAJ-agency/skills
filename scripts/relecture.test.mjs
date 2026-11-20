@@ -687,8 +687,9 @@ function projetJouet(indexDeLaBase = [INDEX_ADR]) {
   writeFileSync(join(bin, "jq"), '#!/bin/sh\n[ -z "$FAUX_JQ_EN_PANNE" ] || exit 1\nPATH="${PATH#*:}" exec jq "$@"\n');
   chmodSync(join(bin, "jq"), 0o755);
   // Le faux git : le vrai, sauf avec FAUX_GIT_CALE, où il échoue sur la liste des écarts (`diff --name-only
-  // --no-renames <base>...HEAD`, sans -z) : une commande de liste en échec au milieu d'un geste.
-  writeFileSync(join(bin, "git"), '#!/bin/bash\nif [ -n "$FAUX_GIT_SANS_REMERGE" ] && [[ " $* " == *" --remerge-diff "* ]]; then echo "fatal: unrecognized argument: --remerge-diff" >&2; exit 128; fi\nif [ -n "$FAUX_GIT_CALE" ] && [[ " $* " == *" diff --name-only --no-renames origin/"*"...HEAD "* ]] && [[ " $* " != *" -z "* ]]; then echo "git calé" >&2; exit 1; fi\nPATH="${PATH#*:}" exec git "$@"\n');
+  // --no-renames <base>...HEAD`, sans -z) : une commande de liste en échec au milieu d'un geste. Avec
+  // FAUX_GIT_NUMSTAT_FUSION, c'est `diff --numstat --no-renames <fusion>^1|^2 <fusion>` (les binaires de la résolution).
+  writeFileSync(join(bin, "git"), '#!/bin/bash\nif [ -n "$FAUX_GIT_SANS_REMERGE" ] && [[ " $* " == *" --remerge-diff "* ]]; then echo "fatal: unrecognized argument: --remerge-diff" >&2; exit 128; fi\nif [ -n "$FAUX_GIT_CALE" ] && [[ " $* " == *" diff --name-only --no-renames origin/"*"...HEAD "* ]] && [[ " $* " != *" -z "* ]]; then echo "git calé" >&2; exit 1; fi\nif [ -n "$FAUX_GIT_NUMSTAT_FUSION" ] && [[ " $* " == *" diff --numstat --no-renames "*"^"[12]" "* ]]; then echo "numstat calé" >&2; exit 1; fi\nPATH="${PATH#*:}" exec git "$@"\n');
   chmodSync(join(bin, "git"), 0o755);
   const env = ENV_JOUET(bin, join(racine, "pnpm.log"));
   const lancer = (cwd, commande, args, entree = "", plus = {}) => spawnSync(commande, args, { cwd, env: { ...env, ...plus }, input: entree, encoding: "utf8", timeout: 60_000 });
@@ -1888,7 +1889,7 @@ test("A-162 : les GIT_CONFIG_* de la session sont complétés, jamais remplacés
  * Une PR de mise à jour jouet (A-164) : chaque fichier de `fichiers` a sa version de la base commune, du sujet, de
  * develop et de la résolution ; la fusion de develop dans le sujet est en conflit, et sa résolution écrit `resolu`.
  */
-function miseAJour(n, fichiers) {
+function miseAJour(n, fichiers, apres = {}) {
   const p = projetJouet();
   p.git(p.auteur, "switch", "-q", "develop");
   for (const [f, v] of Object.entries(fichiers)) p.ecrire(f, v.commune);
@@ -1908,6 +1909,11 @@ function miseAJour(n, fichiers) {
   for (const [f, v] of Object.entries(fichiers)) p.ecrire(f, v.resolu);
   p.git(p.auteur, "add", "-A");
   p.git(p.auteur, "commit", "-q", "--no-edit");
+  // Une retouche après la fusion, dans un commit à elle : la forme qu'a-juger admet.
+  if (Object.keys(apres).length > 0) {
+    for (const [f, v] of Object.entries(apres)) p.ecrire(f, v);
+    p.commit("fix(facture): une retouche après la fusion");
+  }
   const sommet = p.git(p.auteur, "rev-parse", "HEAD");
   p.git(p.auteur, "push", "-q", "origin", "HEAD:maj/facture");
   p.cloner();
@@ -1942,6 +1948,123 @@ test("A-164, une PR de mise à jour : la résolution de la fusion se relit (git 
   assert.equal(lus(`aucun écart\nFichiers du diff lus :\n${DEPLACEE}\n${RECRITE}\n`).status, 0);
   assert.equal(lus(`aucun écart\nFichiers du diff lus :\n${RECRITE}\n`).status, 1, "un fichier de la résolution non lu");
   assert.equal(lus(`aucun écart\nFichiers du diff lus :\n${DEPLACEE}\n`).status, 1, "l'autre, non lu non plus");
+});
+
+test("A-164, une résolution de plus de 2 000 lignes : la machine la découpe en lots par zone, comme le diff relu, vérifie leur union, et compare ce que l'axe Règles a lu à chaque lot", { timeout: 180_000 }, () => {
+  const GROS = "apps/api/src/facture/gros.ts";
+  const PETIT = "apps/web/src/petit.ts";
+  const corps = (prefixe) => Array.from({ length: 2100 }, (_, i) => `export const ${prefixe}${i} = ${i};`).join("\n") + "\n";
+  const { p, m, B } = miseAJour(75, {
+    [GROS]: { commune: corps("c"), sujet: corps("s"), develop: corps("d"), resolu: corps("s") },
+    [PETIT]: { commune: "export const a = 1;\n", sujet: "export const a = 2;\n", develop: "export const a = 3;\n", resolu: "export const a = 2;\n" },
+  });
+  const d = p.joue("diff", m);
+  assert.equal(d.status, 0, d.sortie);
+  assert.ok(readFileSync(join(B, "resolution.patch"), "utf8").split("\n").length > 2000, "la résolution dépasse 2 000 lignes");
+  const sortie = d.stdout.split("\n");
+  assert.equal(sortie.filter((l) => l.startsWith("lot resolution-")).length, 2, d.sortie);
+  assert.ok(sortie.includes("lots de la résolution : 2"), d.sortie);
+  assert.ok(!sortie.some((l) => l.startsWith("lots : ")), "aucune ligne « lots : » : le diff relu n'a pas de lots");
+  assert.ok(!d.stdout.includes("{{DIFF}} de la résolution, pour l'axe Règles"), "les lots remplacent la ligne de la résolution entière");
+  const lot = (j, f) => join(B, `lots/resolution-${j}`, f);
+  assert.deepEqual([...listeDe(lot(1, "relus.txt")), ...listeDe(lot(2, "relus.txt"))].sort(), listeDe(join(B, "resolution.txt")), "leur union est la résolution");
+  assert.equal(readFileSync(lot(1, "diff.patch"), "utf8") + readFileSync(lot(2, "diff.patch"), "utf8"), readFileSync(join(B, "resolution.patch"), "utf8"), "leurs diffs, bout à bout, sont la résolution");
+  assert.ok(d.stdout.includes(`{{DIFF}} : ${lot(2, "diff.patch")}`), d.sortie);
+  const lus = (axe, nom, texte) => { writeFileSync(join(B, `axe-${axe}-lot-${nom}.txt`), `aucun écart\nFichiers du diff lus :\n${texte}`); return p.joue("lus", m, {}, { "<i>": `${axe} ${nom}` }); };
+  const f1 = listeDe(lot(1, "relus.txt")).join("\n") + "\n";
+  assert.equal(lus("1", "resolution-1", f1).status, 0, "le fichier du lot, lu");
+  assert.equal(lus("1", "resolution-1", "").status, 1, "sans lui");
+  assert.equal(lus("2", "resolution-1", f1).status, 12, "la résolution se lit par l'axe Règles seul");
+  assert.equal(p.joue("lus", m, {}, { "<i>": "1 resolution-9" }).status, 12, "lot inconnu");
+  writeFileSync(join(B, "titre.txt"), "chore(facture): reçoit develop\n");
+  assert.equal(p.joue("axes", m).status, 0);
+  assert.equal(p.joue("c1", m).status, 0);
+  assert.match(readFileSync(join(B, "c1/avant.txt"), "utf8"), /^[0-9a-f]{40} lots\/resolution-1\/diff\.patch$/m);
+  writeFileSync(join(B, "lots/resolution-1/diff.patch"), "diff --git a/x b/x\n");
+  assert.equal(p.joue("garde", m).status, 14, "un lot de la résolution récrit après C1 : aucun axe");
+});
+
+test("A-164, un diff relu en lots et une résolution d'un seul fichier de plus de 2 000 lignes : les lots du diff relu restent, la résolution se lit entière", { timeout: 180_000 }, () => {
+  const GROS = "apps/api/src/facture/gros.ts";
+  const corps = (prefixe, n) => Array.from({ length: n }, (_, i) => `export const ${prefixe}${i} = ${i};`).join("\n") + "\n";
+  const { p, m, B } = miseAJour(76, {
+    [GROS]: { commune: corps("c", 2100), sujet: corps("s", 2100), develop: corps("d", 2100), resolu: corps("s", 2100) },
+  }, {
+    "apps/api/src/facture/retouche.ts": corps("r", 1200),
+    "apps/web/src/retouche.ts": corps("w", 1200),
+  });
+  const d = p.joue("diff", m);
+  assert.equal(d.status, 0, d.sortie);
+  assert.ok(d.stdout.split("\n").includes("lots : 2"), d.sortie);
+  assert.deepEqual([existsSync(join(B, "lots/lot-1")), existsSync(join(B, "lots/lot-2")), existsSync(join(B, "lots/resolution-1"))], [true, true, false], "les lots du diff relu restent, la résolution n'a pas de lots");
+  assert.ok(d.stdout.includes(`{{DIFF}} de la résolution, pour l'axe Règles : ${join(B, "resolution.patch")}`), d.sortie);
+  writeFileSync(join(B, "axe-1-lot-resolution.txt"), `aucun écart\nFichiers du diff lus :\n${GROS}\n`);
+  assert.equal(p.joue("lus", m, {}, { "<i>": "1 resolution" }).status, 0);
+});
+
+test("A-164, une PR de mise à jour : develop ne fait que retirer une garde, et la résolution écrit autre chose à sa place ; la ligne retirée se garde, et la même sans rien d'inséré s'écarte (P9)", { timeout: 120_000 }, () => {
+  const GARDE = '  if (!admin) throw new Error("interdit");';
+  const INSERTION = "  if (admin === undefined) return 2;";
+  const INSERE = "apps/api/src/facture/insere.ts";
+  const TEMOIN = "apps/api/src/facture/temoin.ts";
+  const avec = (v, garde = GARDE) => `export function lire(admin) {\n${garde}\n  return 2;\n}\nexport const version = ${v};\n`;
+  const sans = (v) => `export function lire(admin) {\n  return 2;\n}\nexport const version = ${v};\n`;
+  const { p, m, B } = miseAJour(72, {
+    // develop retire la garde, sans rien écrire à sa place ; la résolution insère une autre ligne, là même.
+    [INSERE]: { commune: avec(1), sujet: avec(2), develop: sans(3), resolu: avec(2, INSERTION) },
+    // Le témoin : la même fusion, la résolution suit develop à cet endroit.
+    [TEMOIN]: { commune: avec(1), sujet: avec(2), develop: sans(3), resolu: sans(2) },
+  });
+  const d = p.joue("diff", m);
+  assert.equal(d.status, 0, d.sortie);
+  assert.ok(readFileSync(join(B, "resolution.patch"), "utf8").includes(`+${INSERTION}`), "l'insertion de la résolution y paraît");
+  writeFileSync(join(B, "tri.txt"), `retirée\t2\t${INSERE}\nretirée\t2\t${TEMOIN}\n`);
+  const tri = p.joue("tri", m);
+  assert.equal(tri.status, 0, tri.sortie);
+  assert.deepEqual(tri.stdout.trim().split("\n"), ["1 : gardé", "2 : écarté, develop retire seul cette ligne", "tri : sortie 0"], tri.sortie);
+});
+
+test("A-164, une PR de mise à jour : un binaire que seule la résolution touche (sans écart contre le sujet, la version de develop jetée) est un binaire du tour : nommé, illisible, vu sous un chemin sensible, et aucun axe n'a à le dire lu", { timeout: 120_000 }, () => {
+  const CLE = "apps/api/src/auth/cle.bin";
+  const binaire = (texte) => `\u0000\u0001${texte}\u0000`;
+  const { p, m, B } = miseAJour(73, {
+    // Les deux côtés changent la clé : conflit binaire ; la résolution garde celle du sujet et jette celle de develop.
+    [CLE]: { commune: binaire("commune"), sujet: binaire("sujet"), develop: binaire("develop"), resolu: binaire("sujet") },
+  });
+  const d = p.joue("diff", m);
+  assert.equal(d.status, 0, d.sortie);
+  assert.deepEqual([listeDe(join(B, "sans-ecart.txt")), listeDe(join(B, "resolution.txt"))], [[CLE], [CLE]], "sans écart contre le sujet, touché par la résolution");
+  assert.deepEqual([listeDe(join(B, "binaires.txt")), listeDe(join(B, "illisibles.txt"))], [[CLE], [CLE]], d.sortie);
+  writeFileSync(join(B, "titre.txt"), "chore(facture): reçoit develop\n");
+  const ax = p.joue("axes", m);
+  assert.equal(ax.status, 0, ax.sortie);
+  assert.ok(ax.stdout.includes(`binaires sous un chemin sensible : 1\n${CLE}\nbinaires illisibles : 1\n`), ax.sortie);
+  writeFileSync(join(B, "axe-1-lot-resolution.txt"), "aucun écart\nFichiers du diff lus :\n");
+  assert.equal(p.joue("lus", m, {}, { "<i>": "1 resolution" }).status, 0, "un binaire ne se lit pas : aucun axe n'a à le dire lu");
+});
+
+test("A-164, une PR de mise à jour : les binaires de la résolution complètent ceux du diff relu sans rien leur prendre ; un texte du diff relu que develop avait rendu binaire reste à lire ; un binaire que la fusion n'a pas touché n'en est pas ; la liste illisible arrête le geste", { timeout: 120_000 }, () => {
+  const NEUVE = "apps/api/src/auth/neuve.bin";
+  const AUTRE = "apps/web/public/logo.bin";
+  const REGLE = "apps/api/src/facture/regle.ts";
+  const binaire = (texte) => `\u0000\u0001${texte}\u0000`;
+  const { p, m, B } = miseAJour(74, {
+    // Un binaire du diff relu : la résolution écrit une troisième forme.
+    [NEUVE]: { commune: binaire("commune"), sujet: binaire("sujet"), develop: binaire("develop"), resolu: binaire("neuve") },
+    // Un binaire que seul le sujet change : hors conflit, hors de la résolution, binaire contre develop.
+    [AUTRE]: { commune: binaire("commune"), sujet: binaire("sujet"), develop: binaire("commune"), resolu: binaire("sujet") },
+    // Un texte contre le sujet, que develop avait rendu binaire (un NUL) : la résolution écrit du code, à lire (e4b).
+    [REGLE]: { commune: "export const a = 1;\n", sujet: "export const a = 2;\n", develop: "export const a = 3;\u0000\n", resolu: "export const a = 2;\nif (process.env.X) eval(process.env.X);\n" },
+  });
+  const cale = p.joue("diff", m, { FAUX_GIT_NUMSTAT_FUSION: "1" });
+  assert.deepEqual([cale.status, cale.stdout.trim().split("\n").slice(-2)], [12, ["liste des binaires de la résolution illisible", "diff : sortie 12"]], cale.sortie);
+  const d = p.joue("diff", m);
+  assert.equal(d.status, 0, d.sortie);
+  assert.deepEqual(listeDe(join(B, "attendus.txt")), [NEUVE, REGLE]);
+  assert.deepEqual(listeDe(join(B, "resolution.txt")), [NEUVE, REGLE]);
+  assert.deepEqual([listeDe(join(B, "binaires.txt")), listeDe(join(B, "illisibles.txt"))], [[NEUVE], [NEUVE]], d.sortie);
+  const lus = (fichier, lot) => { writeFileSync(join(B, lot ? "axe-1-lot-resolution.txt" : "axe-1.txt"), `aucun écart\nFichiers du diff lus :\n${fichier}`); return p.joue("lus", m, {}, { "<i>": lot ? "1 resolution" : "1" }).status; };
+  assert.deepEqual([lus("", false), lus(`${REGLE}\n`, false), lus("", true), lus(`${REGLE}\n`, true)], [1, 0, 1, 0], "le code se lit, au diff relu comme dans la résolution");
 });
 
 test("A-164, une résolution « ours » qui jette ce que develop vient d'ajouter : jamais « aucun axe », la résolution se relit et la revue est exigée ; un git sans --remerge-diff : la résolution ne se relit pas, sortie 12", { timeout: 120_000 }, () => {
