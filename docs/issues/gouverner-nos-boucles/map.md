@@ -1025,3 +1025,11 @@ La session de suite fait, dans cet ordre :
 - 2026-11-20 — 05 h 48 UTC. **PR 143 (ticket 63) livrée** au sommet `0b6a5ebb7c3cf5f21fa550bfb5c1afe16a03ad85`, en plugin 7.36.1, avec `Label: contre-revue` : ni ordre ni label. D'après la session, le banc `relecture` passe 36 sur 36, `pnpm test` 1 179 sur 1 179, et les 15 mutations sont rouges. **Premier tour de contre-relecture lancé**, effort extra (PR sensible : le skill de la relecture). Ordre d'entrée : si la PR 141 entre avant elle, en 7.37.0, la PR 143 reprendra `main` et passera en 7.37.1.
 - 2026-11-20 — 05 h 55 UTC. **Contrôle de vie.** Le capitaine est en veille, sans label dans sa file (39,55 $). La session de la PR 141 porte les retouches d'`A-169` et d'`A-170` (70,46 $). La session du ticket 63, sur Sonnet, attend la CI de la PR 143 (2,32 $). Les agents locaux tournent : le contre-relecteur de la PR 143 au travail, le relecteur du ticket 64 qui vient de rendre. L'alerte hebdomadaire est toujours à `allowed_warning`.
 - 2026-11-20 — 05 h 55 UTC. **Ticket 64, tour unique de relecture : « prêt après retouches », 5 bloquants et 8 mineurs.** Faits rejoués conformes, `poses` seul à 185,9 s à `e64f93b`. **A-172** : le blocage par la PR 141, des fonctions pures pour le tri, le cas du délai, le travail tué par son groupe avec un délai plafonné à 1 800 s, la séquence du commit d'essai, la `/` ambiguë dans le doute. Retouches confiées au rédacteur.
+- 2026-11-20 — 06 h 05 UTC. **Ticket 64 prêt** (`ccc4d9c`). L'architecte a lu les retouches d'`A-172` :
+  - B1 : `Blocked by: PR 141`, et une source propre pour le cas du faux positif ;
+  - B2 : `ordre`, `recit`, `bilan` et `conclure`, fonctions pures avec leurs cas ;
+  - B3 : 4 travaux pour `parallele` = 2 (2 220 s) ;
+  - B4 : groupe de processus, résolution sur `exit` ; l'essai `close.mjs` passe de 6,03 s à 1,009 s ;
+  - B5 : la séquence du commit d'essai, pas à pas.
+
+  **A-173** : le délai est le plafond de 1 800 s, et le pire cas calculé (14 440 s) ne s'écrit qu'au bilan. Point de plus, noté au ticket : U+2028 est permis dans une chaîne (`revue-exigee.test.mjs:345`). Le ticket attend l'entrée de la PR 141 pour être lancé.
