@@ -48,8 +48,8 @@ const MUTATIONS = [
   ['M31 labels.sh : `à-reprendre` manque', 'skills/chaine/socle-chaine-de-production/references/labels.sh', 'à-reprendre|C2410C|', 'a-reprendre|C2410C|', [BT]],
   ['M32 gabarit : la commande du Relecteur n’est plus en première ligne', 'skills/chaine/architecte/references/lancement.md', '```text\n/maj-skills:relecteur\n', '```text\nRelecteur :\n/maj-skills:relecteur\n', [BT]],
   ['M33 prompt de session : la commande du skill relecture n’est plus en tête', 'skills/chaine/relecteur/references/prompt-session.md', '```text\n/maj-skills:relecture <n> <tour> <sommet>\n', '```text\nRelecture : /maj-skills:relecture <n> <tour> <sommet>\n', [BT]],
+  ['M35 SKILL.md : la session joue pendant que la veille tourne', 'skills/chaine/relecteur/SKILL.md', '**Tant que la veille tourne, la session ne lance aucune sous-commande**', 'La veille tourne', [BT]],
   ['M34 verdict.md : la limite de `compter` revient', 'skills/chaine/relecture/references/verdict.md', '**Un refus reste un refus.**', '**Limite connue.** **Un refus reste un refus.**', [BL]],
-  ['M35 A-178 : la phrase du rapport vide retirée de criteres-session.md', 'skills/chaine/relecture/references/criteres-session.md', '**Un rapport vide de `/security-review` ne vaut pas absence de faille**', 'Un rapport', [BL]],
 ];
 
 const voulues = process.argv.slice(2);

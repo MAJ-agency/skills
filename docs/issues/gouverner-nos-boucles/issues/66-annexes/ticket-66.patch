@@ -1,10 +1,10 @@
 diff --git a/.claude-plugin/plugin.json b/.claude-plugin/plugin.json
-index 7543737..818adbf 100644
+index 1edd5a2..818adbf 100644
 --- a/.claude-plugin/plugin.json
 +++ b/.claude-plugin/plugin.json
 @@ -2,3 +2,3 @@
    "name": "maj-skills",
--  "version": "7.37.2",
+-  "version": "7.37.3",
 +  "version": "7.38.0",
    "description": "Skills d'ingénierie maison : amorçage de monorepo et de socles (API NestJS hexagonale, web Next.js, mobile Expo), chaîne de production pour des sessions d'agent en parallèle (tickets, sujets, capitaine de fusion, revue adversariale, chantier, recette). Aucune règle métier.",
 @@ -41,2 +41,3 @@
@@ -12,7 +12,7 @@ index 7543737..818adbf 100644
 +    "./skills/chaine/relecteur",
      "./skills/chaine/sujet",
 diff --git a/NOTES-DE-VERSION.md b/NOTES-DE-VERSION.md
-index 4f93e4c..121a84a 100644
+index e9ca192..9e2e48c 100644
 --- a/NOTES-DE-VERSION.md
 +++ b/NOTES-DE-VERSION.md
 @@ -2,6 +2,21 @@
@@ -25,7 +25,7 @@ index 4f93e4c..121a84a 100644
 +
 +- **Le skill `relecteur`** (régime 8, lot 4 de la relecture indépendante) : le Relecteur d'un dépôt, une session par dépôt, lancée par `/maj-skills:relecteur` en première ligne. Une veille relit la file (`à-relire`, `à-fusionner`) des PR du régime 8 ; `relecteur.mjs` prend la décision du Relecteur (`decision-relecteur.mjs` de develop, la même que celle du capitaine) sur les faits des calculs de develop, pose `à-reprendre` et `à-fusionner` (la nouvelle étiquette avant l'ancienne), écrit les distributions après la création des sessions ; la session crée les sessions de relecture sur la base de la PR, leur écrit et lit leur état. Rien ne change pour une PR du régime 7.
 +- **Deux labels de plus, `à-relire` et `à-reprendre`** : `labels.sh` en pose neuf. Le gabarit de lancement du Relecteur est dans `architecte/references/lancement.md` ; la carte d'un programme a une ligne `Relecteurs:`, celle d'un chantier une ligne `Relecteur:`.
-+- **Un refus reste un refus** : sur une PR à chemin sensible, un `refusé` sans la ligne `/security-review: lancée` rend la PR à son auteur (`compter`, `decision-relecteur.mjs`) ; la limite écrite dans le skill `relecture` est retirée. Le skill `relecture` dit aussi qu'un rapport vide de `/security-review` ne prouve pas l'absence de faille (`A-178`).
++- **Un refus reste un refus** : sur une PR à chemin sensible, un `refusé` sans la ligne `/security-review: lancée` rend la PR à son auteur (`compter`, `decision-relecteur.mjs`) ; la limite écrite dans le skill `relecture` est retirée.
 +- Le faux GitHub des bancs rend la date d'ouverture d'une PR et date un commentaire posé à l'heure du banc.
 +
 +### Ce qu'un projet fait pour en profiter
@@ -34,7 +34,7 @@ index 4f93e4c..121a84a 100644
 +2. Reposer les scripts dans une PR du projet : `/maj-skills:fusionner poser` (la décision du Relecteur change). Un administrateur joue `bash scripts/github/labels.sh` après avoir reposé le socle (`/maj-skills:socle-chaine-de-production`), pour créer les deux labels.
 +3. Rien d'autre tant que le dépôt n'est pas en régime 8 : la clé `relecture` de `.claude/chaine.json` arrive avec la bascule (lot 6). Le Relecteur se lance à la repose qui la pose.
 +
- ## 7.37.2 — 2026-11-20
+ ## 7.37.3 — 2026-11-20
  
  ### Ce qui change
 diff --git a/README.md b/README.md
@@ -94,7 +94,7 @@ index ff575de..17734af 100644
  const tmp = mkdtempSync(join(tmpdir(), "entree-"));
 diff --git a/scripts/relecteur.test.mjs b/scripts/relecteur.test.mjs
 new file mode 100644
-index 0000000..d042d89
+index 0000000..d574395
 --- /dev/null
 +++ b/scripts/relecteur.test.mjs
 @@ -0,0 +1,79 @@
@@ -129,7 +129,7 @@ index 0000000..d042d89
 +  assert.ok(JSON.parse(lire(".claude-plugin/plugin.json")).skills.includes("./skills/chaine/relecteur"));
 +  assert.ok(JSON.parse(lire("skills/monorepo/socle-monorepo/references/scripts/verify/references-agent-integrees.json"))["skills-plugins"].includes("maj-skills:relecteur"));
 +  exigerDans("README.md", ["| [`relecteur`](skills/chaine/relecteur/SKILL.md)", "    relecteur/\n      SKILL.md ", "relecteur.mjs (passe, jouer, distribuer, veille)"]);
-+  exigerDans(`${SKILL}/SKILL.md`, ["**La file, la décision et la veille sont des scripts**", "la nouvelle étiquette **avant** de retirer l'ancienne", "`source_revision` **la base de la PR** (jamais sa tête)", "Créer d'abord, écrire la distribution ensuite", "**sort en 3 sans rien écrire**", "Il ne se demande que pour la règle 5.", "`VEILLE GESTE`", "`VEILLE FINIE`", "`VEILLE ARRÊTÉE sortie <c>`"]);
++  exigerDans(`${SKILL}/SKILL.md`, ["**La file, la décision et la veille sont des scripts**", "la nouvelle étiquette **avant** de retirer l'ancienne", "`source_revision` **la base de la PR** (jamais sa tête)", "Créer d'abord, écrire la distribution ensuite", "**sort en 3 sans rien écrire**", "Il ne se demande que pour la règle 5.", "`VEILLE GESTE`", "`VEILLE FINIE`", "`VEILLE ARRÊTÉE sortie <c>`", "**Tant que la veille tourne, la session ne lance aucune sous-commande**"]);
 +});
 +
 +test("les deux étiquettes neuves : labels.sh en pose neuf, dont les quatre que la décision du Relecteur lit ; plus aucun « sept labels »", () => {
@@ -178,10 +178,10 @@ index 0000000..d042d89
 +  exigerDans("skills/chaine/fusionner/references/CONTENU.md", ["## `scripts/verdict.mjs`, `scripts/decision-relecteur.mjs`", "## `scripts/meme-contenu.sh`", "## `scripts/double-relecture.mjs`", "Un refus ne compte jamais moins qu'un refus"]);
 +});
 diff --git a/scripts/relecture.test.mjs b/scripts/relecture.test.mjs
-index 27fd30b..4ad1a0a 100644
+index f25a939..6a9f565 100644
 --- a/scripts/relecture.test.mjs
 +++ b/scripts/relecture.test.mjs
-@@ -370,7 +370,7 @@ test("le gabarit de verdict : la ligne /security-review se retire entière ; non
+@@ -377,7 +377,7 @@ test("le gabarit de verdict : la ligne /security-review se retire entière ; non
  
  // Le verdict devant la décision réelle du Relecteur (lot 3a) : la PR porte `à-relire`, une demande, la distribution
  // du tour 2 à cette session, puis le gabarit rempli. `decider` rend le geste que le skill annonce.
@@ -190,7 +190,7 @@ index 27fd30b..4ad1a0a 100644
    const g = gabarit();
    const instant = (minute) => `2026-11-19T10:${String(minute).padStart(2, "0")}:00Z`;
    const decide = (verdict, { sensible = false, pied = false } = {}) => {
-@@ -390,16 +390,17 @@ test("le verdict lu par la décision du Relecteur (decider) : validé donne à-f
+@@ -397,16 +397,17 @@ test("le verdict lu par la décision du Relecteur (decider) : validé donne à-f
    assert.deepEqual(decide(remplir(nonJoue(g), { verdict: "incomplet", bloquants: 0, securite: "non requise" })), [5, "reecrire", SESSION]);
    // Ce que la garde des chemins sensibles tient : jamais `à-fusionner` sans « lancée ».
    assert.deepEqual(decide(remplir(g, { verdict: "validé", bloquants: 0, securite: "non requise" }), { sensible: true }), [5, "reecrire", SESSION]);
@@ -214,15 +214,6 @@ index 27fd30b..4ad1a0a 100644
    exigerDans(`${REFERENCES}/criteres-session.md`, ["le verdict est alors `incomplet`, ou `refusé` s'il reste un bloquant gardé", "L'échec d'un outil de la session n'est jamais un écart de la PR"]);
    exigerDans(`${REFERENCES}/cas-limites.md`, ["**Un bloquant gardé donne `refusé`, quoi qu'il manque.**", "**L'échec d'un outil de la session n'est jamais un écart de la PR.**", "Trois cas seulement n'ont aucun verdict."]);
  });
-@@ -2164,3 +2165,8 @@ test("A-164, une résolution « ours » qui jette ce que develop vient d'ajouter
-   exigerDans(`${REFERENCES}/prompt-regles.md`, ["un contrôle, une garde, une validation que `develop` écrivait et qu'elle retire est un écart bloquant"]);
-   exigerDans(`${REFERENCES}/cas-limites.md`, ["| La résolution d'une PR de mise à jour ne se relit pas (git sans `--remerge-diff`, avant 2.36 ; aucune fusion ou plusieurs) |"]);
- });
-+
-+test("A-178 — le clone de C4 reste dans le dossier de la session, et un rapport vide de /security-review ne prouve pas l'absence de faille", () => {
-+  exigerDans(`${SKILL}/SKILL.md`, ["Le clone reste dans le dossier de la session, jamais hors des dossiers de travail", "sonde d'`A-178`", "c'est pourquoi `c4-verifier` refuse un dossier courant qui n'est pas le clone"]);
-+  exigerDans(`${REFERENCES}/criteres-session.md`, ["**Un rapport vide de `/security-review` ne vaut pas absence de faille**", "L'axe Règles garde ses critères d'injection et de chemins sensibles sur le diff entier, quel que soit le rapport de `C4`", "le verdict ne cite jamais `/security-review` comme preuve qu'une faille manque"]);
-+});
 diff --git a/skills/chaine/architecte/references/lancement.md b/skills/chaine/architecte/references/lancement.md
 index e5f6cf8..7c61628 100644
 --- a/skills/chaine/architecte/references/lancement.md
@@ -353,7 +344,7 @@ index 8e42fb7..e22c70a 100644
    assert.equal(joue({ commentaires: fil(...base, verdict(1, 'r1', 'validé'), verdict(1, 'r1', 'refusé')) }).poser, 'à-reprendre', 'le dernier verdict fait foi');
 diff --git a/skills/chaine/relecteur/SKILL.md b/skills/chaine/relecteur/SKILL.md
 new file mode 100644
-index 0000000..666449c
+index 0000000..52f9312
 --- /dev/null
 +++ b/skills/chaine/relecteur/SKILL.md
 @@ -0,0 +1,86 @@
@@ -420,9 +411,9 @@ index 0000000..666449c
 +
 +## Les messages des sessions de relecture
 +
-+Un message ne fait que hâter : la veille fait le même travail à sa sonde suivante. À sa réception, `passe`, puis les gestes qu'elle rend. Quatre lignes peuvent venir d'une session de relecture :
++Un message ne fait que hâter : la veille fait le même travail à sa sonde suivante. **Tant que la veille tourne, la session ne lance aucune sous-commande** : deux préparations du même dossier en même temps se gênent (git). Pour un message qui demande un geste, arrêter la veille (`TaskStop`), jouer, puis la relancer. Quatre lignes peuvent venir d'une session de relecture :
 +
-+- « verdict écrit sur la PR <n>, tour <k> » : rien de plus ;
++- « verdict écrit sur la PR <n>, tour <k> » : rien, la veille le lira ;
 +- « PR <n> : la session <id> a écrit cette PR ou son ticket, elle ne la relit pas » ; ou « PR <n> : verdict non publié, la lecture des commentaires ou la publication a échoué » : la session se compte `morte` pour ce tour (« L'état des sessions »), et `jouer <n> --sessions <fichier>` la remplace, une fois par tour ;
 +- « PR <n> : aucune distribution ne nomme la session <id>, verdict non publié » : si `jouer <n>` rend encore le geste qui l'a créée, `distribuer <n> <id…>`, puis le message de relance ; sinon elle est orpheline, une ligne à l'architecte.
 +
@@ -1122,19 +1113,10 @@ index 0000000..20dad3b
 +  assert.deepEqual(d.etat().pulls[0].labels, ['à-relire']);
 +});
 diff --git a/skills/chaine/relecture/SKILL.md b/skills/chaine/relecture/SKILL.md
-index a4c0197..a401b59 100644
+index 08bdb1f..001ae8a 100644
 --- a/skills/chaine/relecture/SKILL.md
 +++ b/skills/chaine/relecture/SKILL.md
-@@ -92,7 +92,7 @@ Quatre contrôles sans sous-agent, liste fermée : [`references/criteres-session
- - **`C1`, les index générés**, toujours, avant tout sous-agent : `bash '<dossier du skill>/scripts/gestes.sh' c1 '<brouillons>'`. **Ces commandes exécutent, dans la session, ce que la PR déclare** (ses scripts d'installation, les commandes de ses index) : c'est ce que le capitaine joue aussi sur le sommet qu'il fusionne. Le script prend donc l'empreinte de ce que les axes recevront (les listes et les diffs du tour, le skill entier, les consignes autour de l'arbre et du dossier de la session, l'état des deux dossiers) **avant**, régénère les index sur le sommet entier, remet l'arbre au sommet sans consignes, puis reprend l'empreinte : une autre empreinte, un dossier qui n'est plus propre, ou un `CLAUDE.md` apparu (dans l'arbre, au-dessus de lui ou dans le dossier de la session), et aucun axe ne se joue, sortie 14, le verdict est `incomplet`. « index périmés » : chacun est un constat bloquant ; un sous-produit non suivi n'en est pas un. Sur une PR de mise à jour, un index à commande que la fusion a touché n'est pas jugé : le verdict le nomme, « Index à régénérer par le capitaine », sans bloquant. Sortie 12 ou 13 : `C1` est « non exécuté ». Sortie 15 : `regeneration.log` dit quelle commande ; une vérification rouge sur ce que la PR écrit est un constat bloquant, une commande qui ne peut pas tourner laisse `C1` « non exécuté ».
- - **`C2`, la forme d'une PR de mise à jour** : la sortie de `liste` (étape 3).
- - **`C3`, l'accord des fichiers sensibles**, dès que `sensibles.txt` porte une ligne : `bash '<dossier du skill>/scripts/gestes.sh' accord '<brouillons>'`. La ligne `Sensibles:` du ticket se lit sur la branche de son sujet (la base de la PR, ou celui que la ligne `Sujet:` du ticket nomme pour une PR vers `develop`, rapatrié d'abord ; s'il n'est plus sur le distant, `git ls-remote --exit-code` sort en 2, et le ticket se lit sur `origin/develop`), sur `origin/develop` pour un ticket sans sujet, jamais dans l'arbre à part. Toute autre sortie que 0 : `C3` est « non exécuté ». Un chemin non couvert est un constat bloquant.
--- **`C4`, `/security-review`**, dès que `sensibles.txt` porte une ligne, après les axes. La commande intégrée lit elle-même son diff, dans le dossier où la session se trouve, qui porte la base : la session lui prépare un clone où ce diff est celui de la PR, sans aucun attribut git de la PR ni de la base (`bash '<dossier du skill>/scripts/gestes.sh' c4 '<brouillons>'`), s'y place, **le vérifie par une commande, et ne la lance que sur la sortie 0 de cette vérification**, puis revient, quoi qu'il soit arrivé :
-+- **`C4`, `/security-review`**, dès que `sensibles.txt` porte une ligne, après les axes. La commande intégrée lit elle-même son diff, dans le dossier où la session se trouve, qui porte la base : la session lui prépare un clone où ce diff est celui de la PR, sans aucun attribut git de la PR ni de la base (`bash '<dossier du skill>/scripts/gestes.sh' c4 '<brouillons>'`), s'y place, **le vérifie par une commande, et ne la lance que sur la sortie 0 de cette vérification**, puis revient, quoi qu'il soit arrivé. Le clone reste dans le dossier de la session, jamais hors des dossiers de travail : hors d'eux, le `cd` ne tient pas, et la commande comme ses sous-agents lisent la base, où la faille n'est pas (sonde d'`A-178`) ; c'est pourquoi `c4-verifier` refuse un dossier courant qui n'est pas le clone :
- 
- ```bash
- cd "$(cat '<brouillons>/c4-dossier.txt')" && bash '<dossier du skill>/scripts/gestes.sh' c4-verifier '<brouillons>'; echo "sortie $?"
-@@ -135,7 +135,7 @@ Le verdict dit combien de constats sont écartés, et pourquoi en une phrase cha
+@@ -137,7 +137,7 @@ Le verdict dit combien de constats sont écartés, et pourquoi en une phrase cha
  Un commentaire de la PR, de forme fixe : [`references/verdict.md`](references/verdict.md), le gabarit, ses règles et un exemple. La session écrit son brouillon dans `<brouillons>/verdict.md`, puis le relit comme la machine le lira : `bash '<dossier du skill>/scripts/gestes.sh' controle '<brouillons>' verdict` (le `verdict.mjs` du dossier de la session, par son chemin absolu). Sortie 1 : le brouillon est hors de la forme, la machine le lirait `incomplet` ; le corriger et rejouer. Sortie 0 : la ligne écrite redit le verdict, le nombre de bloquants, le tour, le sommet, la session et `/security-review` ; la session les compare à sa distribution.
  
  - **`refusé`** dès qu'il reste un bloquant gardé au tri, **même si un axe ou un contrôle est « non exécuté »** : le verdict le nomme sur sa ligne, avec la cause, et le tour suivant le joue. Sinon **`incomplet`** dès qu'un axe ou un contrôle est « non exécuté » : aucun bloquant, `Bloquants: 0`. De même quand un fichier binaire est sous un chemin sensible, ou qu'un binaire est illisible (`illisibles.txt`). Le verdict `incomplet` nomme chaque cause, et qui la lève. Sinon **`validé`**.
@@ -1153,18 +1135,8 @@ index 9356528..8730e69 100644
  
 -Le commentaire que la session écrit sur la PR. Son en-tête est la forme que `verdict.mjs` lit (`fusionner/scripts/`, lot 3a) : `scripts/relecture.test.mjs` remplit le gabarit et le passe par ce lecteur, et joue la commande de contrôle de l'étape 8 telle que `SKILL.md` l'écrit. Le corps est pour l'auteur : les axes joués, qui lève un « non exécuté », un tableau des constats gardés, les constats écartés et pourquoi, les fichiers restés hors du diff relu, toujours nommés, et les index laissés au capitaine. Un bloquant gardé donne `refusé` même quand un axe n'a pas pu être joué ; `incomplet` veut zéro bloquant, et la commande de contrôle le tient. Il porte une limite connue : sur une PR à chemin sensible, un `refusé` sans la ligne `/security-review: lancée` est compté `incomplet` par le Relecteur.
 +Le commentaire que la session écrit sur la PR. Son en-tête est la forme que `verdict.mjs` lit (`fusionner/scripts/`, lot 3a) : `scripts/relecture.test.mjs` remplit le gabarit et le passe par ce lecteur, et joue la commande de contrôle de l'étape 8 telle que `SKILL.md` l'écrit. Le corps est pour l'auteur : les axes joués, qui lève un « non exécuté », un tableau des constats gardés, les constats écartés et pourquoi, les fichiers restés hors du diff relu, toujours nommés, et les index laissés au capitaine. Un bloquant gardé donne `refusé` même quand un axe n'a pas pu être joué ; `incomplet` veut zéro bloquant, et la commande de contrôle le tient. Un refus reste un refus : sur une PR à chemin sensible, un `refusé` sans la ligne `/security-review: lancée` rend la PR à son auteur, comme tout `refusé`.
-diff --git a/skills/chaine/relecture/references/criteres-session.md b/skills/chaine/relecture/references/criteres-session.md
-index 070ef95..fa8d4a9 100644
---- a/skills/chaine/relecture/references/criteres-session.md
-+++ b/skills/chaine/relecture/references/criteres-session.md
-@@ -37,3 +37,5 @@ C4  Sécurité — commande intégrée /security-review. Une faille que `/securi
- ```
- 
- Le constat de `C4` cite la faille comme `/security-review` la nomme. Ce que la commande propose sans faille (durcissement, conseil) n'est pas un constat. Un fichier binaire sous un chemin sensible n'est lu ni par elle ni par un axe : le verdict est `incomplet`, sans bloquant. Les fiches de règles (`CLAUDE.md`, `.claude/rules/`) se lisent sur la base : l'arbre relu ne porte aucun fichier de consigne.
-+
-+**Un rapport vide de `/security-review` ne vaut pas absence de faille** : la commande juge à son propre seuil et écarte une faille réelle qu'elle note sous lui (sonde d'`A-178`). L'axe Règles garde ses critères d'injection et de chemins sensibles sur le diff entier, quel que soit le rapport de `C4`, et le verdict ne cite jamais `/security-review` comme preuve qu'une faille manque.
 diff --git a/skills/chaine/relecture/references/verdict.md b/skills/chaine/relecture/references/verdict.md
-index 7fbe757..5d8501a 100644
+index dd6b884..050cd19 100644
 --- a/skills/chaine/relecture/references/verdict.md
 +++ b/skills/chaine/relecture/references/verdict.md
 @@ -48,7 +48,7 @@ Cas laissés à un autre ticket (`T3`, (d)) : <cas `<règle>#<id>` porté par `<

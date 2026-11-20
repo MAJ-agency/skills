@@ -32,5 +32,5 @@ ROUGE M31 labels.sh : `à-reprendre` manque
 ROUGE M32 gabarit : la commande du Relecteur n’est plus en première ligne
 ROUGE M33 prompt de session : la commande du skill relecture n’est plus en tête
 ROUGE M34 verdict.md : la limite de `compter` revient
-ROUGE M35 A-178 : la phrase du rapport vide retirée de criteres-session.md
+ROUGE M35 SKILL.md : la session joue pendant que la veille tourne
 toutes rouges

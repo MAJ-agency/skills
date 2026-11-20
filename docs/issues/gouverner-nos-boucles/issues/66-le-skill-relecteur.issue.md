@@ -3,18 +3,18 @@
 Status: ready-for-agent
 Type: task
 Label: contre-revue
-Modèle: sonnet — un skill neuf de trois fichiers et un script de 328 lignes, deux bancs neufs donnés entiers, vingt-deux fichiers existants retouchés par des diffs donnés mot pour mot ; le tout joué sur un clone neuf d'`origin/main` à `4cd047f` (plugin 7.37.2) : les bancs neufs ou changés sont rouges avant le code (30 tests rouges sur six fichiers), la suite entière est verte après (« Vérification »), et 35 mutations nommées sont toutes rouges.
-Blocked by: — : rien ne bloque. Les tickets que le lot 4 attendait de l'autre programme (2, 3, 4, 5, 8, 9, 11, 13, 16, 17, 18) et ses 21 tickets sont « Fait » ; les lots 3a à 3d sont dans `main` (tickets 58 à 61, et 63) ; le ticket 57 aussi (PR 141). La sonde de `/security-review` est jouée (`A-178`) : le lot 4 n'attend plus rien.
+Modèle: sonnet — un skill neuf de trois fichiers et un script de 328 lignes, deux bancs neufs donnés entiers, vingt et un fichiers existants retouchés par des diffs donnés mot pour mot ; le tout joué sur un clone neuf d'`origin/main` à `5bf4f39` (plugin 7.37.3) : les bancs neufs ou changés sont rouges avant le code (29 tests rouges sur six fichiers), la suite entière est verte après (« Vérification »), et 35 mutations nommées sont toutes rouges.
+Blocked by: — : rien ne bloque. Les tickets que le lot 4 attendait de l'autre programme (2, 3, 4, 5, 8, 9, 11, 13, 16, 17, 18) et ses 21 tickets sont « Fait » ; les lots 3a à 3d sont dans `main` (tickets 58 à 61, et 63) ; le ticket 57 aussi (PR 141), et le ticket 65 (PR 145, `5bf4f39`), qui a porté les points 2 et 3 d'`A-178` dans le skill `relecture`. La sonde de `/security-review` est jouée (`A-178`) : le lot 4 n'attend plus rien.
 Dépendances: —
-Fichiers chauds: `.claude-plugin/plugin.json`, `NOTES-DE-VERSION.md`, `README.md`, `skills/chaine/architecte/references/lancement.md`, `skills/chaine/fusionner/references/CONTENU.md`, `skills/chaine/fusionner/scripts/decision-relecteur.mjs` et son test, `skills/chaine/sujet/scripts/faux-gh.mjs` et son test, `scripts/relecture.test.mjs`, `scripts/points-d-entree.test.mjs`, les quatre fichiers du skill `relecture` cités dans « Où », les cinq du socle de la chaîne, les deux gabarits de carte, `references-agent-integrees.json`. Six fichiers neufs, que personne d'autre n'écrit : `skills/chaine/relecteur/` (`SKILL.md`, `references/CONTENU.md`, `references/prompt-session.md`, `scripts/relecteur.mjs`, `scripts/relecteur.test.mjs`) et `scripts/relecteur.test.mjs`. Les PR ouvertes hors programme : la 44 touche `plugin.json`, `NOTES-DE-VERSION.md`, `sujet/SKILL.md`, `sujet.sh`, `sujet.test.mjs` et `coverage-diff` (les deux premiers en commun, la règle de version du § 0 suffit) ; la 56 ne touche que deux tickets de `docs/issues/pose-du-socle/` (rien en commun).
+Fichiers chauds: `.claude-plugin/plugin.json`, `NOTES-DE-VERSION.md`, `README.md`, `skills/chaine/architecte/references/lancement.md`, `skills/chaine/fusionner/references/CONTENU.md`, `skills/chaine/fusionner/scripts/decision-relecteur.mjs` et son test, `skills/chaine/sujet/scripts/faux-gh.mjs` et son test, `scripts/relecture.test.mjs`, `scripts/points-d-entree.test.mjs`, les trois fichiers du skill `relecture` cités dans « Où », les cinq du socle de la chaîne, les deux gabarits de carte, `references-agent-integrees.json`. Six fichiers neufs, que personne d'autre n'écrit : `skills/chaine/relecteur/` (`SKILL.md`, `references/CONTENU.md`, `references/prompt-session.md`, `scripts/relecteur.mjs`, `scripts/relecteur.test.mjs`) et `scripts/relecteur.test.mjs`. Les PR ouvertes hors programme : la 44 touche `plugin.json`, `NOTES-DE-VERSION.md`, `sujet/SKILL.md`, `sujet.sh`, `sujet.test.mjs` et `coverage-diff` (les deux premiers en commun, la règle de version du § 0 suffit) ; la 56 ne touche que deux tickets de `docs/issues/pose-du-socle/` (rien en commun).
 
 ## Le besoin
 
-Ce ticket réalise le **lot 4** de la spec `docs/issues/gouverner-nos-boucles/relecture-independante.spec.md` (section « Les lots », point 4) : le skill `relecteur`, sa file et sa veille sur les calculs du lot 3, le faux GitHub pour les commentaires et les étiquettes, le gabarit de lancement, les deux étiquettes neuves, les lignes `Relecteurs:` et `Relecteur:` des cartes, et la déclaration du skill. Il porte les décisions `A-83` (un rôle, un skill, une session par dépôt), `A-84` (les étiquettes, et qui les pose), `A-85` (la décision du Relecteur, déjà codée au lot 3a, et « qui fait quoi »), `A-86` (le réveil de l'auteur, que le Relecteur suppose), `A-87` (le coût, le modèle), `A-88` et `A-89` (contester, plafonner : ce que la décision rend, que le Relecteur joue), `A-90` (deux sessions), telles que les amendent `A-105`, `A-107`, `A-108`, `A-110`, `A-111`, `A-113`, `A-115`, `A-116`, `A-118` (« pour le lot 4 : l'exécutant d'un geste ne renvoie pas des lignes déjà écrites quand un passage se rejoue »), `A-126` (les appelants approfondissent le clone), `A-128` et `P-64` (le modèle et l'effort suivent le risque), `A-137` (les lignes de `fusionner/references/CONTENU.md`, de `points-d-entree.test.mjs` et de l'arbre du `README.md` pour les trois calculs partent au lot 4), `A-141` et `A-178`. Il tient les quinze promesses que le ticket 61 fait au lot 4 (« Ce que ce ticket promet au lot 4 », table ci-dessous, colonne « Tenue »).
+Ce ticket réalise le **lot 4** de la spec `docs/issues/gouverner-nos-boucles/relecture-independante.spec.md` (section « Les lots », point 4) : le skill `relecteur`, sa file et sa veille sur les calculs du lot 3, le faux GitHub pour les commentaires et les étiquettes, le gabarit de lancement, les deux étiquettes neuves, les lignes `Relecteurs:` et `Relecteur:` des cartes, et la déclaration du skill. Il porte les décisions `A-83` (un rôle, un skill, une session par dépôt), `A-84` (les étiquettes, et qui les pose), `A-85` (la décision du Relecteur, déjà codée au lot 3a, et « qui fait quoi »), `A-86` (le réveil de l'auteur, que le Relecteur suppose), `A-87` (le coût, le modèle), `A-88` et `A-89` (contester, plafonner : ce que la décision rend, que le Relecteur joue), `A-90` (deux sessions), telles que les amendent `A-105`, `A-107`, `A-108`, `A-110`, `A-111`, `A-113`, `A-115`, `A-116`, `A-118` (« pour le lot 4 : l'exécutant d'un geste ne renvoie pas des lignes déjà écrites quand un passage se rejoue »), `A-126` (les appelants approfondissent le clone), `A-128` et `P-64` (le modèle et l'effort suivent le risque), `A-137` (les lignes de `fusionner/references/CONTENU.md`, de `points-d-entree.test.mjs` et de l'arbre du `README.md` pour les trois calculs partent au lot 4), `A-141` et `A-178` (C4 tient ; le lot 4 n'attend plus la sonde). Il tient les quinze promesses que le ticket 61 fait au lot 4 (« Ce que ce ticket promet au lot 4 », table ci-dessous, colonne « Tenue »).
 
 **Avec lui, la retouche de `compter`** (`A-141` : « un ticket retouche `compter` avant le lot 4 ») : sur une PR à chemin sensible, un `refusé` sans ligne `/security-review: lancée` est aujourd'hui compté `incomplet` (`decision-relecteur.mjs:245`, décision 17 du ticket 61) : la PR ne revient pas à son auteur, le Relecteur réécrit à la session au même tour, et le bénéfice d'`A-137` est perdu. Ce ticket la fait : **un refus ne compte jamais moins qu'un refus** (décision 1).
 
-**Et les points 2 et 3 d'`A-178`**, qui « vont dans le prochain ticket du skill `relecture` » : ce ticket touche le skill `relecture` (la limite de `compter` s'y retire), et le ticket 65, en rédaction, porte `tranches.mjs` (`scripts/`) et le gate `tickets`, pas ce skill (décision 15, question 4).
+**Les points 2 et 3 d'`A-178`** (le clone de `C4` dans le dossier de la session, un rapport vide de `/security-review` qui ne prouve rien) sont entrés avec le ticket 65 (`5bf4f39`) : ce ticket n'y touche pas.
 
 Ce qui est acquis et que ce ticket ne refait pas : la décision (`decider`, `tourValide`, `lireMarques`, `sommetsDesTours`, `ecrireDistribution`), le lecteur de verdict, « même contenu propre », « double relecture exigée », le skill `relecture` et son script `gestes.sh`, `sujet.sh a-juger`, `lire_github`. Le Relecteur **les joue**, depuis le `develop` du projet.
 
@@ -40,7 +40,7 @@ Ce qui est acquis et que ce ticket ne refait pas : la décision (`decider`, `tou
 
 ## Où
 
-Base : `origin/main` à `4cd047f` (plugin **7.37.2**), le 2026-11-20. Les repères de ligne valent à ce commit ; les ajouts se placent par leur texte (§ 0).
+Base : `origin/main` à `5bf4f39` (plugin **7.37.3**), le 2026-11-20, après l'entrée du ticket 65 (PR 145). Les repères de ligne valent à ce commit ; les ajouts se placent par leur texte (§ 0).
 
 | Fichier | Ce qui change |
 | --- | --- |
@@ -52,9 +52,9 @@ Base : `origin/main` à `4cd047f` (plugin **7.37.2**), le 2026-11-20. Les repèr
 | `scripts/relecteur.test.mjs` | **neuf**, le banc des textes, 6 tests (§ 1) |
 | `skills/chaine/fusionner/scripts/decision-relecteur.mjs:243-245` | `compter` (§ 3, décision 1) |
 | `skills/chaine/fusionner/scripts/decision-relecteur.test.mjs:382`, `:766` | une assertion inversée, un test neuf (§ 1) |
-| `scripts/relecture.test.mjs:373`, `:393-402`, fin | le cas « limite connue » devient « un refus reste un refus », un test neuf pour `A-178` (§ 1) |
-| `skills/chaine/relecture/SKILL.md:95`, `:138` ; `references/verdict.md:51` ; `references/CONTENU.md:31` ; `references/criteres-session.md:39` | la limite retirée ; les points 2 et 3 d'`A-178` (§ 3) |
-| `skills/chaine/sujet/scripts/faux-gh.mjs:5`, `:163`, `:319` ; `faux-gh.test.mjs`, fin | la date d'ouverture d'une PR, l'heure d'un commentaire posé (§ 3, décision 16) |
+| `scripts/relecture.test.mjs:380`, `:400-409` | le cas « limite connue » devient « un refus reste un refus » (§ 1) |
+| `skills/chaine/relecture/SKILL.md:140` ; `references/verdict.md:51` ; `references/CONTENU.md:31` | la limite retirée (§ 3) |
+| `skills/chaine/sujet/scripts/faux-gh.mjs:5`, `:163`, `:319` ; `faux-gh.test.mjs`, fin | la date d'ouverture d'une PR, l'heure d'un commentaire posé (§ 3, décision 15) |
 | `skills/chaine/architecte/references/lancement.md:65`, `:103` | la section « Le Relecteur d'un dépôt » ; `Relecteurs:` (§ 3) |
 | `skills/chaine/socle-chaine-de-production/references/labels.sh:3`, `:20` ; `admin.md:10` ; `SKILL.md:3`, `:66`, `:87` ; `references/CONTENU.md:21` | les deux labels, « neuf » (§ 3) |
 | `skills/chaine/tickets/references/gabarits/programme.md:15` ; `carte.map.md:18` | `Relecteurs:`, `Relecteur:` (§ 3) |
@@ -78,15 +78,14 @@ Aucun autre fichier. En particulier ni `github.sh`, ni `passer.sh`, ni `sujet.sh
 7. **`jouer` joue ce qui s'écrit sur GitHub, et seulement cela** : l'étiquette (la nouvelle **posée avant** que l'ancienne soit retirée, `A-84`), le commentaire du plafond, de la panne ou de l'illisible. Il refait la décision juste avant : ce qu'il joue est ce que la PR demande à cet instant, pas ce qu'une veille a vu deux minutes plus tôt. **Une ligne ne part qu'au changement d'étiquette** (`A-85`) : une étiquette déjà posée avant lui (un passage rejoué après une coupure entre la pose et le retrait) ne rend aucune ligne (`A-118`, « pour le lot 4 »). Une écriture refusée sort en 7 ; la pose refusée, rien n'est retiré.
 8. **La distribution s'écrit après la création des sessions, et jamais pour un tour que la machine ne demande plus.** `distribuer <n> <sessions…>` refait la décision, sort en 3 sans rien écrire si le geste a changé (un verdict tombé, un push), compose la liste (règles 4 et 6 : les sessions du tour ; `completer` : celles du tour et les ajoutées ; `remplacer` : la remplaçante à la place de la remplacée ; `reecrire` : aucune, la distribution redite `(relance <id>)`), refuse un nombre faux et une session ajoutée déjà du tour, puis écrit par `ecrireDistribution`. Une session créée pour rien est orpheline : une ligne à l'architecte, qui l'archive (`A-85`, règle 6).
 9. **L'état des sessions ne se demande que pour la règle 5** (`A-85`, « Qui fait quoi ») : à chaque réveil, pour les PR que la passe range en règle 5, `get_session` des sessions attendues, écrit dans un fichier `{ <id>: vivante | morte | plafond }` et passé par `--sessions` à `jouer` et à `distribuer`. `morte` : archivée, en échec, introuvable ; `plafond` : la session l'a écrit. Une session remplacée au plafond de contexte se signale au conducteur (`A-87`).
-10. **La veille ne réveille le Relecteur que pour un geste** (`A-85`) : une passe toutes les 2 minutes, pendant une heure ; `VEILLE GESTE` et une ligne par PR dès qu'un geste autre que `rien`, `hors-regime` ou `pause` apparaît, hors des PR tues (`--taire`) ; `PAUSE` quand GitHub ne répond pas (`A-108` : un refus de lecture est une pause), et la veille continue ; `VEILLE FINIE` au bout de la durée, pour que le Relecteur relève son contexte ; `VEILLE ARRÊTÉE sortie <c>` pour toute autre sortie de la passe. Une attente (règle 5, `rien`) ne réveille personne : un remplacement pour silence arrive par la passe qui suit l'échéance.
+10. **La veille ne réveille le Relecteur que pour un geste** (`A-85`) : une passe toutes les 2 minutes, pendant une heure ; `VEILLE GESTE` et une ligne par PR dès qu'un geste autre que `rien`, `hors-regime` ou `pause` apparaît, hors des PR tues (`--taire`) ; `PAUSE` quand GitHub ne répond pas (`A-108` : un refus de lecture est une pause), et la veille continue ; `VEILLE FINIE` au bout de la durée, pour que le Relecteur relève son contexte ; `VEILLE ARRÊTÉE sortie <c>` pour toute autre sortie de la passe. Une attente (règle 5, `rien`) ne réveille personne : un remplacement pour silence arrive par la passe qui suit l'échéance. **Tant que la veille tourne, la session ne lance aucune sous-commande** : chaque sous-commande prépare le dossier (`fetch`, `switch`), et deux préparations en même temps se gênent ; pour un message qui demande un geste, la session arrête la veille, joue, et la relance.
 11. **Les quatre messages d'une session de relecture** (promesse 3) : « verdict écrit » ne fait que hâter ; « a écrit cette PR ou son ticket » et « verdict non publié, la lecture ou la publication a échoué » font compter la session `morte` pour le tour, donc remplacée une fois, puis `Relecture en panne` (`A-115`) ; « aucune distribution ne me nomme » fait écrire la distribution si le geste qui l'a créée est encore celui que la décision rend, sinon la session est orpheline.
 12. **Le lancement du Relecteur** (`A-83`, `A-108`) : un gabarit dans `lancement.md`, sa commande en première ligne, puis les lignes « Outils : » (avec `create_session` et `get_session`), « Argument : », « Skills : » et « Version : », celles du capitaine pour ce skill, puis les consignes du produit. `tags` `["role:relecteur"]` ; `effort` `"medium"` ; `model` Sonnet, sauf tant que le produit impose un modèle à toutes les sessions (jusqu'au 2026-11-23, `P-64`). L'architecte l'inscrit sur `Relecteurs:` ; son contrôle de vie relève déjà toute session que sa carte nomme (`architecte/SKILL.md` § 5) : la ligne y entre sans mot de plus. Sans programme, le conducteur le lance et sa carte le nomme sur `Relecteur:` ; ce que `chantier` en vérifie au démarrage est du lot 6b.
 13. **Deux labels neufs**, `à-relire` (bleu `0369A1`) et `à-reprendre` (orange `C2410C`), ajoutés en fin de liste de `labels.sh` ; « sept » devient « neuf » partout où le socle le dit, et `admin.md` dit qu'ils se créent avant la repose qui passe le dépôt en régime 8 (`A-84`). Le banc des textes vérifie que les quatre étiquettes de la décision (`ETIQUETTES`) sont parmi les neuf.
 14. **Les cartes** : `Relecteurs:` sous `Capitaines:` dans la fiche d'un programme, `Relecteur:` sous `Capitaine:` dans celle d'un chantier (`A-83`). Le gate `tickets` ne lit pas ces lignes.
-15. **`A-178`, points 2 et 3, dans le skill `relecture`** : la phrase du point 2 à l'étape 5 du `SKILL.md` (le clone de `C4` reste dans le dossier de la session, et pourquoi) ; le point 3 dans `criteres-session.md`, sous `C4` (un rapport vide ne prouve rien ; l'axe Règles garde ses critères ; le verdict ne cite jamais `/security-review` comme preuve d'absence). Tenus par un test de `scripts/relecture.test.mjs`.
-16. **Le faux GitHub** rend `created_at` d'une PR (la date d'ouverture, `2026-11-17T11:00:00Z` par défaut) et date un commentaire posé à `maintenant` quand l'état la porte, sans quoi la date de son rang ; un test de `faux-gh.test.mjs` tient les deux. `A-108` donnait la date d'ouverture au lot 5a ; le Relecteur la lit le premier (le régime), elle entre ici, et le lot 5a la trouve faite. Sans l'heure posée, un commentaire que le Relecteur pose recevrait une date antérieure à ceux que le banc a datés, et `retenir` refuserait l'ordre.
-17. **Les trois calculs décrits** (`A-137`, promesse 13) : trois sections dans `fusionner/references/CONTENU.md` ; `double-relecture.mjs` dans `points-d-entree.test.mjs` (ses six accès passent déjà : c'est une couverture de plus, pas un rouge) ; les quatre noms dans la ligne `scripts/` de `fusionner` de l'arbre du `README.md`.
-18. **La version** : la suivante de `main` au moment de livrer, le deuxième nombre plus un, le troisième à zéro (7.37.2 donne 7.38.0). Aucun test ne l'écrit en dur.
+15. **Le faux GitHub** rend `created_at` d'une PR (la date d'ouverture, `2026-11-17T11:00:00Z` par défaut) et date un commentaire posé à `maintenant` quand l'état la porte, sans quoi la date de son rang ; un test de `faux-gh.test.mjs` tient les deux. `A-108` donnait la date d'ouverture au lot 5a ; le Relecteur la lit le premier (le régime), elle entre ici, et le lot 5a la trouve faite. Sans l'heure posée, un commentaire que le Relecteur pose recevrait une date antérieure à ceux que le banc a datés, et `retenir` refuserait l'ordre.
+16. **Les trois calculs décrits** (`A-137`, promesse 13) : trois sections dans `fusionner/references/CONTENU.md` ; `double-relecture.mjs` dans `points-d-entree.test.mjs` (ses six accès passent déjà : c'est une couverture de plus, pas un rouge) ; les quatre noms dans la ligne `scripts/` de `fusionner` de l'arbre du `README.md`.
+17. **La version** : la suivante de `main` au moment de livrer, le deuxième nombre plus un, le troisième à zéro (7.37.3 donne 7.38.0). Aucun test ne l'écrit en dur.
 
 ### Remèdes écartés
 
@@ -103,15 +102,14 @@ Chacune a sa recommandation en premier ; le ticket est écrit sur elle, et dit c
 1. **La forme de la clé `relecture` que le Relecteur lit** (décision 5). La spec la fait poser au lot 6c, mais le lot 4 la lit le premier : `depuis` (`A-97`), `relecture.delai` (dont `A-111` laisse l'unité au lot 6c), `relecture.ordinaire` et `relecture.sensible` (`A-128`). **Recommandation** : celle de la décision 5 — `depuis` en ISO 8601 UTC, `delai` en minutes (entier, 120 par défaut), les deux couples `{ modele, effort }` avec les défauts de `P-64` — et le lot 6c la recopie dans le gabarit du socle. Autrement : changer `contrat()` de `relecteur.mjs` et le premier test de son banc, rien d'autre.
 2. **`compter` laisse aussi `refusé` un refus qui a relu un autre sommet** (décision 1). La consigne était « un refus ne doit jamais compter moins qu'un refus » ; à la lettre, elle couvre ce cas, qu'`A-111` avait rangé avec les autres (« se lit `incomplet` »). **Recommandation** : la forme du ticket, une seule règle pour tout refus lisible. Autrement (la forme étroite, le seul cas de la ligne `/security-review:`) : l'expression devient `v.illisible || v.sommet !== sommet || (sensible && v.securite !== 'lancée' && v.verdict !== 'refusé') ? 'incomplet' : v.verdict`, et les deux cas « un autre sommet » du test « ticket 66 » de `decision-relecteur.test.mjs` passent à `reecrire` ; la mutation M2 se retire.
 3. **Le Relecteur installe les dépendances de develop** pour que `sujet.sh a-juger` lise une PR de mise à jour à retouches (décision 4, promesse 5 du ticket 61, qui laissait le choix entre cette voie et une lecture de la liste qui ne juge pas les messages). **Recommandation** : l'installation, quand le lockfile de develop change, comme la session de relecture le fait déjà ; elle ne touche aucun fichier tenu. Autrement : un ticket sur `sujet.sh` (lot 5, qui le tient) ajoute `a-juger --sans-messages`, et `liste()` l'appelle ; d'ici là, une telle PR serait « illisible ».
-4. **Les points 2 et 3 d'`A-178` dans ce ticket** (décision 15). `A-178` les envoie « au prochain ticket du skill `relecture` » ; le ticket 65, en rédaction, porte `tranches.mjs` et le gate `tickets`. **Recommandation** : ici, puisque ce ticket rouvre déjà le skill (la limite de `compter`) ; deux phrases et un test. Autrement : retirer la décision 15, les deux hunks marqués `A-178` du § 3, le dernier test de `scripts/relecture.test.mjs` et la mutation M35, et les donner au ticket 65.
 
 ## À faire, dans l'ordre
 
-Chaque fichier neuf est donné entier, sous un titre qui porte son chemin ; chaque fichier existant, par son diff, contre `4cd047f`. Les recopier tels quels. L'ensemble est aussi dans [`66-annexes/ticket-66.patch`](66-annexes/ticket-66.patch) (`git apply` sur `4cd047f`, vérifié sur un clone neuf) : il fait foi en cas d'écart de recopie.
+Chaque fichier neuf est donné entier, sous un titre qui porte son chemin ; chaque fichier existant, par son diff, contre `5bf4f39`. Les recopier tels quels. L'ensemble est aussi dans [`66-annexes/ticket-66.patch`](66-annexes/ticket-66.patch) (`git apply` sur `5bf4f39`, vérifié sur un clone neuf) : il fait foi en cas d'écart de recopie.
 
 ### § 0 — Partir de `main`, et la règle de repli
 
-`git fetch origin main`, une branche depuis `origin/main`. **Les annexes** (`66-annexes/ticket-66.patch`, `mutations.mjs`) se lisent sous `docs/issues/gouverner-nos-boucles/issues/66-annexes/` de `main` si la PR de documentation qui porte ce ticket y est entrée ; sinon sur la branche de documentation du programme (`git fetch origin claude/compassionate-euler-st84s9`, puis `git show FETCH_HEAD:<chemin>`), écrites dans le scratchpad de la session, jamais dans le dépôt. Si `main` est encore à `4cd047f`, `git apply <scratchpad>/ticket-66.patch` depuis la racine pose tout ; sinon, recopier fichier par fichier.
+`git fetch origin main`, une branche depuis `origin/main`. **Les annexes** (`66-annexes/ticket-66.patch`, `mutations.mjs`) se lisent sous `docs/issues/gouverner-nos-boucles/issues/66-annexes/` de `main` si la PR de documentation qui porte ce ticket y est entrée ; sinon sur la branche de documentation du programme (`git fetch origin claude/compassionate-euler-st84s9`, puis `git show FETCH_HEAD:<chemin>`), écrites dans le scratchpad de la session, jamais dans le dépôt. Si `main` est encore à `5bf4f39`, `git apply <scratchpad>/ticket-66.patch` depuis la racine pose tout ; sinon, recopier fichier par fichier.
 
 - **La version** : celle de `.claude-plugin/plugin.json` sur `main` au moment de livrer, le deuxième nombre plus un, le troisième à zéro. La note du § 5 prend ce numéro et la date du jour, et se place avant la première note du fichier.
 - **Les ajouts se placent par leur texte** : la ligne du skill dans `plugin.json` juste après `"./skills/chaine/relecture",` ; le nom dans `references-agent-integrees.json` juste après `"maj-skills:relecture", ` ; la ligne du tableau du `README.md` juste après celle de `relecture`, et le bloc `relecteur/` de l'arbre juste après celui de `relecture/` ; la section de `lancement.md` juste avant `## La session d'un ticket hors chantier` ; les trois sections de `fusionner/references/CONTENU.md` juste avant `## Les tests` ; les deux labels en fin de la liste de `labels.sh`. Si un repère a changé de mots, placer l'ajout au même endroit par le sens.
@@ -121,7 +119,7 @@ Chaque fichier neuf est donné entier, sous un titre qui porte son chemin ; chaq
 
 ### § 1 — Les bancs d'abord, vus rouges
 
-Écrire les deux bancs neufs et les quatre changements de bancs existants, puis les jouer : **30 tests rouges** sur `4cd047f` (« Vérification », « Ce qui a été joué »). Les bancs demandent `git` 2.41 ou plus (« même contenu propre »), `jq` et `bash`.
+Écrire les deux bancs neufs et les quatre changements de bancs existants, puis les jouer : **29 tests rouges** sur `5bf4f39` (« Vérification », « Ce qui a été joué »). Les bancs demandent `git` 2.41 ou plus (« même contenu propre »), `jq` et `bash`.
 
 #### `skills/chaine/relecteur/scripts/relecteur.test.mjs`
 
@@ -445,7 +443,7 @@ test("le skill relecteur est un rôle : marqué, sous 200 lignes, déclaré au p
   assert.ok(JSON.parse(lire(".claude-plugin/plugin.json")).skills.includes("./skills/chaine/relecteur"));
   assert.ok(JSON.parse(lire("skills/monorepo/socle-monorepo/references/scripts/verify/references-agent-integrees.json"))["skills-plugins"].includes("maj-skills:relecteur"));
   exigerDans("README.md", ["| [`relecteur`](skills/chaine/relecteur/SKILL.md)", "    relecteur/\n      SKILL.md ", "relecteur.mjs (passe, jouer, distribuer, veille)"]);
-  exigerDans(`${SKILL}/SKILL.md`, ["**La file, la décision et la veille sont des scripts**", "la nouvelle étiquette **avant** de retirer l'ancienne", "`source_revision` **la base de la PR** (jamais sa tête)", "Créer d'abord, écrire la distribution ensuite", "**sort en 3 sans rien écrire**", "Il ne se demande que pour la règle 5.", "`VEILLE GESTE`", "`VEILLE FINIE`", "`VEILLE ARRÊTÉE sortie <c>`"]);
+  exigerDans(`${SKILL}/SKILL.md`, ["**La file, la décision et la veille sont des scripts**", "la nouvelle étiquette **avant** de retirer l'ancienne", "`source_revision` **la base de la PR** (jamais sa tête)", "Créer d'abord, écrire la distribution ensuite", "**sort en 3 sans rien écrire**", "Il ne se demande que pour la règle 5.", "`VEILLE GESTE`", "`VEILLE FINIE`", "`VEILLE ARRÊTÉE sortie <c>`", "**Tant que la veille tourne, la session ne lance aucune sous-commande**"]);
 });
 
 test("les deux étiquettes neuves : labels.sh en pose neuf, dont les quatre que la décision du Relecteur lit ; plus aucun « sept labels »", () => {
@@ -544,10 +542,10 @@ index 8e42fb7..e22c70a 100644
 
 ```diff
 diff --git a/scripts/relecture.test.mjs b/scripts/relecture.test.mjs
-index 27fd30b..4ad1a0a 100644
+index f25a939..6a9f565 100644
 --- a/scripts/relecture.test.mjs
 +++ b/scripts/relecture.test.mjs
-@@ -370,7 +370,7 @@ test("le gabarit de verdict : la ligne /security-review se retire entière ; non
+@@ -377,7 +377,7 @@ test("le gabarit de verdict : la ligne /security-review se retire entière ; non
  
  // Le verdict devant la décision réelle du Relecteur (lot 3a) : la PR porte `à-relire`, une demande, la distribution
  // du tour 2 à cette session, puis le gabarit rempli. `decider` rend le geste que le skill annonce.
@@ -556,7 +554,7 @@ index 27fd30b..4ad1a0a 100644
    const g = gabarit();
    const instant = (minute) => `2026-11-19T10:${String(minute).padStart(2, "0")}:00Z`;
    const decide = (verdict, { sensible = false, pied = false } = {}) => {
-@@ -390,16 +390,17 @@ test("le verdict lu par la décision du Relecteur (decider) : validé donne à-f
+@@ -397,16 +397,17 @@ test("le verdict lu par la décision du Relecteur (decider) : validé donne à-f
    assert.deepEqual(decide(remplir(nonJoue(g), { verdict: "incomplet", bloquants: 0, securite: "non requise" })), [5, "reecrire", SESSION]);
    // Ce que la garde des chemins sensibles tient : jamais `à-fusionner` sans « lancée ».
    assert.deepEqual(decide(remplir(g, { verdict: "validé", bloquants: 0, securite: "non requise" }), { sensible: true }), [5, "reecrire", SESSION]);
@@ -580,15 +578,6 @@ index 27fd30b..4ad1a0a 100644
    exigerDans(`${REFERENCES}/criteres-session.md`, ["le verdict est alors `incomplet`, ou `refusé` s'il reste un bloquant gardé", "L'échec d'un outil de la session n'est jamais un écart de la PR"]);
    exigerDans(`${REFERENCES}/cas-limites.md`, ["**Un bloquant gardé donne `refusé`, quoi qu'il manque.**", "**L'échec d'un outil de la session n'est jamais un écart de la PR.**", "Trois cas seulement n'ont aucun verdict."]);
  });
-@@ -2164,3 +2165,8 @@ test("A-164, une résolution « ours » qui jette ce que develop vient d'ajouter
-   exigerDans(`${REFERENCES}/prompt-regles.md`, ["un contrôle, une garde, une validation que `develop` écrivait et qu'elle retire est un écart bloquant"]);
-   exigerDans(`${REFERENCES}/cas-limites.md`, ["| La résolution d'une PR de mise à jour ne se relit pas (git sans `--remerge-diff`, avant 2.36 ; aucune fusion ou plusieurs) |"]);
- });
-+
-+test("A-178 — le clone de C4 reste dans le dossier de la session, et un rapport vide de /security-review ne prouve pas l'absence de faille", () => {
-+  exigerDans(`${SKILL}/SKILL.md`, ["Le clone reste dans le dossier de la session, jamais hors des dossiers de travail", "sonde d'`A-178`", "c'est pourquoi `c4-verifier` refuse un dossier courant qui n'est pas le clone"]);
-+  exigerDans(`${REFERENCES}/criteres-session.md`, ["**Un rapport vide de `/security-review` ne vaut pas absence de faille**", "L'axe Règles garde ses critères d'injection et de chemins sensibles sur le diff entier, quel que soit le rapport de `C4`", "le verdict ne cite jamais `/security-review` comme preuve qu'une faille manque"]);
-+});
 ```
 
 #### `skills/chaine/sujet/scripts/faux-gh.test.mjs`
@@ -711,9 +700,9 @@ Il ne se demande que pour la règle 5. À chaque réveil, pour chaque PR que la 
 
 ## Les messages des sessions de relecture
 
-Un message ne fait que hâter : la veille fait le même travail à sa sonde suivante. À sa réception, `passe`, puis les gestes qu'elle rend. Quatre lignes peuvent venir d'une session de relecture :
+Un message ne fait que hâter : la veille fait le même travail à sa sonde suivante. **Tant que la veille tourne, la session ne lance aucune sous-commande** : deux préparations du même dossier en même temps se gênent (git). Pour un message qui demande un geste, arrêter la veille (`TaskStop`), jouer, puis la relancer. Quatre lignes peuvent venir d'une session de relecture :
 
-- « verdict écrit sur la PR <n>, tour <k> » : rien de plus ;
+- « verdict écrit sur la PR <n>, tour <k> » : rien, la veille le lira ;
 - « PR <n> : la session <id> a écrit cette PR ou son ticket, elle ne la relit pas » ; ou « PR <n> : verdict non publié, la lecture des commentaires ou la publication a échoué » : la session se compte `morte` pour ce tour (« L'état des sessions »), et `jouer <n> --sessions <fichier>` la remplace, une fois par tour ;
 - « PR <n> : aucune distribution ne nomme la session <id>, verdict non publié » : si `jouer <n>` rend encore le geste qui l'a créée, `distribuer <n> <id…>`, puis le message de relance ; sinon elle est orpheline, une ligne à l'architecte.
 
@@ -1159,23 +1148,14 @@ index b3416a7..5befb86 100644
        const nommee = distributions.find((d) => d.sessions.includes(session)).rang;
 ```
 
-#### Le skill `relecture` (décisions 1 et 15 ; le hunk de l'étape 5 du `SKILL.md` et celui de `criteres-session.md` sont ceux d'`A-178`)
+#### Le skill `relecture` : la limite retirée (décision 1)
 
-````diff
+```diff
 diff --git a/skills/chaine/relecture/SKILL.md b/skills/chaine/relecture/SKILL.md
-index a4c0197..a401b59 100644
+index 08bdb1f..001ae8a 100644
 --- a/skills/chaine/relecture/SKILL.md
 +++ b/skills/chaine/relecture/SKILL.md
-@@ -92,7 +92,7 @@ Quatre contrôles sans sous-agent, liste fermée : [`references/criteres-session
- - **`C1`, les index générés**, toujours, avant tout sous-agent : `bash '<dossier du skill>/scripts/gestes.sh' c1 '<brouillons>'`. **Ces commandes exécutent, dans la session, ce que la PR déclare** (ses scripts d'installation, les commandes de ses index) : c'est ce que le capitaine joue aussi sur le sommet qu'il fusionne. Le script prend donc l'empreinte de ce que les axes recevront (les listes et les diffs du tour, le skill entier, les consignes autour de l'arbre et du dossier de la session, l'état des deux dossiers) **avant**, régénère les index sur le sommet entier, remet l'arbre au sommet sans consignes, puis reprend l'empreinte : une autre empreinte, un dossier qui n'est plus propre, ou un `CLAUDE.md` apparu (dans l'arbre, au-dessus de lui ou dans le dossier de la session), et aucun axe ne se joue, sortie 14, le verdict est `incomplet`. « index périmés » : chacun est un constat bloquant ; un sous-produit non suivi n'en est pas un. Sur une PR de mise à jour, un index à commande que la fusion a touché n'est pas jugé : le verdict le nomme, « Index à régénérer par le capitaine », sans bloquant. Sortie 12 ou 13 : `C1` est « non exécuté ». Sortie 15 : `regeneration.log` dit quelle commande ; une vérification rouge sur ce que la PR écrit est un constat bloquant, une commande qui ne peut pas tourner laisse `C1` « non exécuté ».
- - **`C2`, la forme d'une PR de mise à jour** : la sortie de `liste` (étape 3).
- - **`C3`, l'accord des fichiers sensibles**, dès que `sensibles.txt` porte une ligne : `bash '<dossier du skill>/scripts/gestes.sh' accord '<brouillons>'`. La ligne `Sensibles:` du ticket se lit sur la branche de son sujet (la base de la PR, ou celui que la ligne `Sujet:` du ticket nomme pour une PR vers `develop`, rapatrié d'abord ; s'il n'est plus sur le distant, `git ls-remote --exit-code` sort en 2, et le ticket se lit sur `origin/develop`), sur `origin/develop` pour un ticket sans sujet, jamais dans l'arbre à part. Toute autre sortie que 0 : `C3` est « non exécuté ». Un chemin non couvert est un constat bloquant.
--- **`C4`, `/security-review`**, dès que `sensibles.txt` porte une ligne, après les axes. La commande intégrée lit elle-même son diff, dans le dossier où la session se trouve, qui porte la base : la session lui prépare un clone où ce diff est celui de la PR, sans aucun attribut git de la PR ni de la base (`bash '<dossier du skill>/scripts/gestes.sh' c4 '<brouillons>'`), s'y place, **le vérifie par une commande, et ne la lance que sur la sortie 0 de cette vérification**, puis revient, quoi qu'il soit arrivé :
-+- **`C4`, `/security-review`**, dès que `sensibles.txt` porte une ligne, après les axes. La commande intégrée lit elle-même son diff, dans le dossier où la session se trouve, qui porte la base : la session lui prépare un clone où ce diff est celui de la PR, sans aucun attribut git de la PR ni de la base (`bash '<dossier du skill>/scripts/gestes.sh' c4 '<brouillons>'`), s'y place, **le vérifie par une commande, et ne la lance que sur la sortie 0 de cette vérification**, puis revient, quoi qu'il soit arrivé. Le clone reste dans le dossier de la session, jamais hors des dossiers de travail : hors d'eux, le `cd` ne tient pas, et la commande comme ses sous-agents lisent la base, où la faille n'est pas (sonde d'`A-178`) ; c'est pourquoi `c4-verifier` refuse un dossier courant qui n'est pas le clone :
- 
- ```bash
- cd "$(cat '<brouillons>/c4-dossier.txt')" && bash '<dossier du skill>/scripts/gestes.sh' c4-verifier '<brouillons>'; echo "sortie $?"
-@@ -135,7 +135,7 @@ Le verdict dit combien de constats sont écartés, et pourquoi en une phrase cha
+@@ -137,7 +137,7 @@ Le verdict dit combien de constats sont écartés, et pourquoi en une phrase cha
  Un commentaire de la PR, de forme fixe : [`references/verdict.md`](references/verdict.md), le gabarit, ses règles et un exemple. La session écrit son brouillon dans `<brouillons>/verdict.md`, puis le relit comme la machine le lira : `bash '<dossier du skill>/scripts/gestes.sh' controle '<brouillons>' verdict` (le `verdict.mjs` du dossier de la session, par son chemin absolu). Sortie 1 : le brouillon est hors de la forme, la machine le lirait `incomplet` ; le corriger et rejouer. Sortie 0 : la ligne écrite redit le verdict, le nombre de bloquants, le tour, le sommet, la session et `/security-review` ; la session les compare à sa distribution.
  
  - **`refusé`** dès qu'il reste un bloquant gardé au tri, **même si un axe ou un contrôle est « non exécuté »** : le verdict le nomme sur sa ligne, avec la cause, et le tour suivant le joue. Sinon **`incomplet`** dès qu'un axe ou un contrôle est « non exécuté » : aucun bloquant, `Bloquants: 0`. De même quand un fichier binaire est sous un chemin sensible, ou qu'un binaire est illisible (`illisibles.txt`). Le verdict `incomplet` nomme chaque cause, et qui la lève. Sinon **`validé`**.
@@ -1184,11 +1164,11 @@ index a4c0197..a401b59 100644
  - **Avant de publier**, relire les commentaires de la PR, toutes pages. La distribution qui nomme la session dit ce tour et ce sommet : publier. Elle dit ce sommet et un autre tour : corriger `Tour:` dans le brouillon, rejouer la commande de contrôle, publier. Elle dit un autre sommet : reprendre à l'étape 2 sur lui, sans rien publier. Aucune ne la nomme : ne rien publier (un verdict écrit avant sa distribution ne compte pas), l'écrire au Relecteur en une ligne, et s'arrêter.
  - **Publier** : un commentaire neuf (outil GitHub MCP `add_issue_comment` ; en local, `gh api -X POST 'repos/{owner}/{repo}/issues/<n>/comments' -F 'body=@<brouillons>/verdict.md'`). Puis **relire le commentaire publié** : son corps, tel que GitHub le rend, s'écrit dans `<brouillons>/publie.md`, et `bash '<dossier du skill>/scripts/gestes.sh' controle '<brouillons>' publie` écrit la même ligne. Autre ligne, ou sortie 1 : écrire un verdict neuf. **Jamais modifié** : un verdict modifié ne compte plus.
  - **Prévenir** le Relecteur, en une ligne (`send_message`, à la session qui a lancé celle-ci) : « verdict écrit sur la PR <n>, tour <k> ». Jamais le verdict, ni un constat : ils se lisent sur la PR. Ce message ne fait que hâter son réveil.
-````
+```
 
 ```diff
 diff --git a/skills/chaine/relecture/references/verdict.md b/skills/chaine/relecture/references/verdict.md
-index 7fbe757..5d8501a 100644
+index dd6b884..050cd19 100644
 --- a/skills/chaine/relecture/references/verdict.md
 +++ b/skills/chaine/relecture/references/verdict.md
 @@ -48,7 +48,7 @@ Cas laissés à un autre ticket (`T3`, (d)) : <cas `<règle>#<id>` porté par `<
@@ -1215,20 +1195,7 @@ index 9356528..8730e69 100644
 +Le commentaire que la session écrit sur la PR. Son en-tête est la forme que `verdict.mjs` lit (`fusionner/scripts/`, lot 3a) : `scripts/relecture.test.mjs` remplit le gabarit et le passe par ce lecteur, et joue la commande de contrôle de l'étape 8 telle que `SKILL.md` l'écrit. Le corps est pour l'auteur : les axes joués, qui lève un « non exécuté », un tableau des constats gardés, les constats écartés et pourquoi, les fichiers restés hors du diff relu, toujours nommés, et les index laissés au capitaine. Un bloquant gardé donne `refusé` même quand un axe n'a pas pu être joué ; `incomplet` veut zéro bloquant, et la commande de contrôle le tient. Un refus reste un refus : sur une PR à chemin sensible, un `refusé` sans la ligne `/security-review: lancée` rend la PR à son auteur, comme tout `refusé`.
 ```
 
-````diff
-diff --git a/skills/chaine/relecture/references/criteres-session.md b/skills/chaine/relecture/references/criteres-session.md
-index 070ef95..fa8d4a9 100644
---- a/skills/chaine/relecture/references/criteres-session.md
-+++ b/skills/chaine/relecture/references/criteres-session.md
-@@ -37,3 +37,5 @@ C4  Sécurité — commande intégrée /security-review. Une faille que `/securi
- ```
- 
- Le constat de `C4` cite la faille comme `/security-review` la nomme. Ce que la commande propose sans faille (durcissement, conseil) n'est pas un constat. Un fichier binaire sous un chemin sensible n'est lu ni par elle ni par un axe : le verdict est `incomplet`, sans bloquant. Les fiches de règles (`CLAUDE.md`, `.claude/rules/`) se lisent sur la base : l'arbre relu ne porte aucun fichier de consigne.
-+
-+**Un rapport vide de `/security-review` ne vaut pas absence de faille** : la commande juge à son propre seuil et écarte une faille réelle qu'elle note sous lui (sonde d'`A-178`). L'axe Règles garde ses critères d'injection et de chemins sensibles sur le diff entier, quel que soit le rapport de `C4`, et le verdict ne cite jamais `/security-review` comme preuve qu'une faille manque.
-````
-
-#### `skills/chaine/sujet/scripts/faux-gh.mjs` (décision 16)
+#### `skills/chaine/sujet/scripts/faux-gh.mjs` (décision 15)
 
 ```diff
 diff --git a/skills/chaine/sujet/scripts/faux-gh.mjs b/skills/chaine/sujet/scripts/faux-gh.mjs
@@ -1430,7 +1397,7 @@ index 71a26bb..1eaa376 100644
  ## Decisions-so-far
 ```
 
-#### `skills/chaine/fusionner/references/CONTENU.md` (décisions 13 et 17)
+#### `skills/chaine/fusionner/references/CONTENU.md` (décisions 13 et 16)
 
 ```diff
 diff --git a/skills/chaine/fusionner/references/CONTENU.md b/skills/chaine/fusionner/references/CONTENU.md
@@ -1471,12 +1438,12 @@ index 7d4b194..c6eaf44 100644
 
 ```diff
 diff --git a/.claude-plugin/plugin.json b/.claude-plugin/plugin.json
-index 7543737..818adbf 100644
+index 1edd5a2..818adbf 100644
 --- a/.claude-plugin/plugin.json
 +++ b/.claude-plugin/plugin.json
 @@ -2,3 +2,3 @@
    "name": "maj-skills",
--  "version": "7.37.2",
+-  "version": "7.37.3",
 +  "version": "7.38.0",
    "description": "Skills d'ingénierie maison : amorçage de monorepo et de socles (API NestJS hexagonale, web Next.js, mobile Expo), chaîne de production pour des sessions d'agent en parallèle (tickets, sujets, capitaine de fusion, revue adversariale, chantier, recette). Aucune règle métier.",
 @@ -41,2 +41,3 @@
@@ -1548,11 +1515,11 @@ index 69c14fd..3c38ae0 100644
 
 ### § 5 — La version et la note
 
-Le numéro et la date suivent la règle du § 0 (ici, 7.38.0 sur `4cd047f`) ; le texte, tel quel.
+Le numéro et la date suivent la règle du § 0 (ici, 7.38.0 sur `5bf4f39`) ; le texte, tel quel.
 
 ```diff
 diff --git a/NOTES-DE-VERSION.md b/NOTES-DE-VERSION.md
-index 4f93e4c..121a84a 100644
+index e9ca192..9e2e48c 100644
 --- a/NOTES-DE-VERSION.md
 +++ b/NOTES-DE-VERSION.md
 @@ -2,6 +2,21 @@
@@ -1565,7 +1532,7 @@ index 4f93e4c..121a84a 100644
 +
 +- **Le skill `relecteur`** (régime 8, lot 4 de la relecture indépendante) : le Relecteur d'un dépôt, une session par dépôt, lancée par `/maj-skills:relecteur` en première ligne. Une veille relit la file (`à-relire`, `à-fusionner`) des PR du régime 8 ; `relecteur.mjs` prend la décision du Relecteur (`decision-relecteur.mjs` de develop, la même que celle du capitaine) sur les faits des calculs de develop, pose `à-reprendre` et `à-fusionner` (la nouvelle étiquette avant l'ancienne), écrit les distributions après la création des sessions ; la session crée les sessions de relecture sur la base de la PR, leur écrit et lit leur état. Rien ne change pour une PR du régime 7.
 +- **Deux labels de plus, `à-relire` et `à-reprendre`** : `labels.sh` en pose neuf. Le gabarit de lancement du Relecteur est dans `architecte/references/lancement.md` ; la carte d'un programme a une ligne `Relecteurs:`, celle d'un chantier une ligne `Relecteur:`.
-+- **Un refus reste un refus** : sur une PR à chemin sensible, un `refusé` sans la ligne `/security-review: lancée` rend la PR à son auteur (`compter`, `decision-relecteur.mjs`) ; la limite écrite dans le skill `relecture` est retirée. Le skill `relecture` dit aussi qu'un rapport vide de `/security-review` ne prouve pas l'absence de faille (`A-178`).
++- **Un refus reste un refus** : sur une PR à chemin sensible, un `refusé` sans la ligne `/security-review: lancée` rend la PR à son auteur (`compter`, `decision-relecteur.mjs`) ; la limite écrite dans le skill `relecture` est retirée.
 +- Le faux GitHub des bancs rend la date d'ouverture d'une PR et date un commentaire posé à l'heure du banc.
 +
 +### Ce qu'un projet fait pour en profiter
@@ -1574,7 +1541,7 @@ index 4f93e4c..121a84a 100644
 +2. Reposer les scripts dans une PR du projet : `/maj-skills:fusionner poser` (la décision du Relecteur change). Un administrateur joue `bash scripts/github/labels.sh` après avoir reposé le socle (`/maj-skills:socle-chaine-de-production`), pour créer les deux labels.
 +3. Rien d'autre tant que le dépôt n'est pas en régime 8 : la clé `relecture` de `.claude/chaine.json` arrive avec la bascule (lot 6). Le Relecteur se lance à la repose qui la pose.
 +
- ## 7.37.2 — 2026-11-20
+ ## 7.37.3 — 2026-11-20
  
  ### Ce qui change
 ```
@@ -1606,25 +1573,24 @@ Une PR vers `main`, titre `feat(chaine): le skill relecteur, sa file, sa veille 
 | `Relecteurs:`, `Relecteur:` | test 5 |
 | Les trois calculs dans `CONTENU.md` | test 6 ; `points-d-entree.test.mjs` pour `double-relecture.mjs` et `relecteur.mjs` |
 | La date d'ouverture d'une PR et l'heure d'un commentaire posé, dans le faux | `faux-gh.test.mjs`, « faux gh, Relecteur » |
-| `A-178`, points 2 et 3 | `relecture.test.mjs`, dernier test |
 
 ## Vérification
 
 ### Pour la session
 
-1. Sur la branche, avant le code (les six bancs du § 1 seuls) : `node --test skills/chaine/relecteur/scripts/relecteur.test.mjs scripts/relecteur.test.mjs skills/chaine/fusionner/scripts/decision-relecteur.test.mjs scripts/relecture.test.mjs skills/chaine/sujet/scripts/faux-gh.test.mjs scripts/points-d-entree.test.mjs` : **30 rouges** (13, 6, 2, 2, 1 et 6).
-2. Après : les mêmes, tous verts ; puis `pnpm test`, la suite entière, verte (1 255 tests sur `4cd047f`).
+1. Sur la branche, avant le code (les six bancs du § 1 seuls) : `node --test skills/chaine/relecteur/scripts/relecteur.test.mjs scripts/relecteur.test.mjs skills/chaine/fusionner/scripts/decision-relecteur.test.mjs scripts/relecture.test.mjs skills/chaine/sujet/scripts/faux-gh.test.mjs scripts/points-d-entree.test.mjs` : **29 rouges** (13, 6, 2, 1, 1 et 6).
+2. Après : les mêmes, tous verts ; puis `pnpm test`, la suite entière, verte (1 256 tests sur `5bf4f39`).
 3. `node <scratchpad>/mutations.mjs` depuis la racine (l'annexe lue comme au § 0) : « toutes rouges » (35). Sur `main` plus avancé, une mutation « INTROUVABLE » dit qu'un texte a bougé : la refaire sur le texte nouveau.
 4. `git diff --stat origin/main` : les fichiers de « Où », et eux seuls.
 
 ### Ce qui a été joué en écrivant ce ticket
 
-Sur un clone neuf de `https://github.com/MAJ-agency/skills` à `4cd047f` (plugin 7.37.2), le 2026-11-20 :
+Sur un clone neuf de `https://github.com/MAJ-agency/skills` à `5bf4f39` (plugin 7.37.3), le 2026-11-20, après un premier passage sur `4cd047f` (7.37.2) qu'a rendu caduc l'entrée du ticket 65 :
 
-- **Rouge avant le code.** Les six bancs du § 1 posés seuls sur `4cd047f` : `skills/chaine/relecteur/scripts/relecteur.test.mjs` 13 rouges sur 13 (le script n'existe pas) ; `scripts/relecteur.test.mjs` 6 sur 6 ; `decision-relecteur.test.mjs` 2 sur 39 (l'assertion inversée d'`A-107` et le test « ticket 66 ») ; `scripts/relecture.test.mjs` 2 sur 39 (le cas « un refus reste un refus » et `A-178`) ; `faux-gh.test.mjs` 1 sur 15 ; `points-d-entree.test.mjs` 6 sur 60 (les six accès de `relecteur.mjs` ; ceux de `double-relecture.mjs` passent déjà). **30 rouges.**
-- **Vert après.** [`66-annexes/ticket-66.patch`](66-annexes/ticket-66.patch) appliqué sur un second clone neuf de `4cd047f` (`git apply --check`, puis `git apply`), puis la suite entière, `node --test` sur les quatre motifs de `pnpm test` : **1 255 tests, 1 255 verts**, aucun sauté. Le banc du Relecteur tourne en une quinzaine de secondes.
+- **Rouge avant le code.** Les six bancs du § 1 posés seuls sur `5bf4f39` : `skills/chaine/relecteur/scripts/relecteur.test.mjs` 13 rouges sur 13 (le script n'existe pas) ; `scripts/relecteur.test.mjs` 6 sur 6 ; `decision-relecteur.test.mjs` 2 sur 39 (l'assertion inversée d'`A-107` et le test « ticket 66 ») ; `scripts/relecture.test.mjs` 1 sur 39 (le cas « un refus reste un refus ») ; `faux-gh.test.mjs` 1 sur 15 ; `points-d-entree.test.mjs` 6 sur 60 (les six accès de `relecteur.mjs` ; ceux de `double-relecture.mjs` passent déjà). **29 rouges.**
+- **Vert après.** [`66-annexes/ticket-66.patch`](66-annexes/ticket-66.patch) appliqué sur un clone neuf de `5bf4f39` (`git apply --check`, puis `git apply`), puis la suite entière, `node --test` sur les quatre motifs de `pnpm test` : **1 256 tests, 1 256 verts**, aucun sauté (onze minutes sur la machine du rédacteur, chargée). Le banc du Relecteur tourne en une quinzaine de secondes.
 - **Mutations.** [`66-annexes/mutations.mjs`](66-annexes/mutations.mjs), sur l'arbre du ticket : **35 mutations, toutes rouges** ; la liste et leur résultat : [`66-annexes/mutations.txt`](66-annexes/mutations.txt). M1 est le code d'avant (`compter`), M2 le cas de la question 2, M4 l'ordre des étiquettes, M5 la ligne qui repart, M16 la distribution écrite sans refaire la décision, M20 le clone superficiel.
-- **Les bornes.** Chaque fichier neuf de ce ticket est recopié de l'arbre joué, chaque diff produit par `git diff 4cd047f` sur cet arbre : le patch et le texte du ticket viennent du même commit.
+- **Les bornes.** Chaque fichier neuf de ce ticket est recopié de l'arbre joué, chaque diff produit par `git diff 5bf4f39` sur cet arbre : le patch et le texte du ticket viennent du même commit.
 
 ## Ce qui n'a pas été établi
 
@@ -1644,4 +1610,4 @@ Sur un clone neuf de `https://github.com/MAJ-agency/skills` à `4cd047f` (plugin
 
 ## Comments
 
-- 2026-11-20 — Écrit par un agent rédacteur sur la spec (lot 4, `A-83` à `A-90` et leurs amendements, `A-141`, `A-178`) et sur `origin/main` à `4cd047f`. Code, bancs et mutations joués sur un clone neuf (« Vérification »). Points remontés à l'architecte : les quatre « Questions à l'architecte ».
+- 2026-11-20 — Écrit par un agent rédacteur sur la spec (lot 4, `A-83` à `A-90` et leurs amendements, `A-141`, `A-178`) et sur `origin/main` à `4cd047f`, puis rejoué sur `5bf4f39` après l'entrée du ticket 65 (PR 145), qui avait porté les points 2 et 3 d'`A-178` : ce ticket les a retirés de son périmètre. Code, bancs et mutations joués sur un clone neuf (« Vérification »). Points remontés à l'architecte : les trois « Questions à l'architecte ».
