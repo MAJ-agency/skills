@@ -31,7 +31,7 @@ Une règle dit ce que le logiciel permet, exige, calcule ou refuse. Une fonction
 
 ## Les tests prouvent
 
-Un test qui prouve une règle porte son identifiant entre crochets en tête de son nom : `it('[RULE_ALL_LIC-3] should …')`. Plusieurs étiquettes se juxtaposent ; une étiquette sur un `describe` vaut pour ses tests. Jamais d'étiquette sur un test qui ne prouve pas la règle, jamais sur un test de recette. La catégorie et le niveau de la preuve viennent du chemin et du suffixe du fichier (`.claude/rules/tests.md`).
+Un test qui prouve une règle porte son identifiant entre crochets en tête de son nom : `it('[RULE_ALL_LIC-3] refuse …')`. Plusieurs étiquettes se juxtaposent ; une étiquette sur un `describe` vaut pour ses tests. Jamais d'étiquette sur un test qui ne prouve pas la règle, jamais sur un test de recette. La catégorie et le niveau de la preuve viennent du chemin et du suffixe du fichier (`.claude/rules/tests.md`).
 
 ## Les tickets et les demandes
 

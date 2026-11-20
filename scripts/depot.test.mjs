@@ -962,13 +962,81 @@ test("le gabarit de règle porte `criticality`, `cases` et `notApplicableFamilie
     assert.deepEqual(lignes(entete).filter((l) => new RegExp(`^\\s*${cle}:`).test(l)), [], `${GABARIT_REGLE} : ${cle} reste en commentaire`);
   }
   exiger(GABARIT_REGLE, [
-    "# criticality: { level: low | medium | high, by: agent | <clé de roles>, reason: … } sous la forme { level, by, reason }, à partir de l'index au pivot 3 (CLI Anchorpost 2.0.0) ; la forme nue (criticality: high) est celle d'avant, qu'on n'écrit plus ; fixée par le skill `criticite` à l'écriture de la règle, avant tout code ; un agent écrit toujours by: agent, une clé de `roles` du manifeste n'est écrite que par la personne elle-même ; reason obligatoire pour low ; un agent ne la baisse jamais",
+    "# criticality: à partir de l'index au pivot 3 (CLI Anchorpost 2.0.0) ; en bloc, une clé par ligne, que nul formateur ne replie ; la forme nue (criticality: high) est celle d'avant, qu'on n'écrit plus ; fixée par le skill `criticite` à l'écriture de la règle, avant tout code ; un agent écrit toujours by: agent, une clé de `roles` du manifeste n'est écrite que par la personne elle-même ; reason obligatoire pour low ; un agent ne la baisse jamais # level: medium # low | medium | high # by: agent # agent | <clé de roles> # reason: \"…\" # entre guillemets ; sans eux, une virgule ou « : » coupe la raison",
     "# cases: à partir de l'index au pivot 3 (CLI Anchorpost 2.0.0) ; les cas attendus, rendus par le skill `criticite` # - { id: {{id-du-cas}}, title: …, kind: nominal | edge | invalid | refusal, scope: business | technical, family: … } family facultatif",
     "# notApplicableFamilies: à partir de l'index au pivot 3 (CLI Anchorpost 2.0.0) ; chaque famille sans cas, avec sa raison ; le skill `criticite` répond aux dix familles quel que soit le niveau, et une réponse par famille est obligatoire dès medium ; écrite par le skill `criticite` seul ; la réponse est un cas, un « sans objet » motivé, ou une question ouverte au registre `docs/questions-ouvertes.md` ; le gate Anchorpost signale une famille sans réponse ; en `enforce`, il la refuse, sauf quand une question ouverte bloque la règle : la règle reste alors « partielle » jusqu'à la réponse # - { family: limits | empty | invalid-input | duplicate | ordering | time | permissions | rare-state | volume | failure, reason: … }",
   ]);
   assert.ok(!lignes(entete).find((l) => /^#\s*criticality:/.test(l)).includes("Prénom Nom"), `${GABARIT_REGLE} : le by de criticality nomme une clé de roles, pas « Prénom Nom »`);
   const absentes = FAMILLES.filter((f) => !entete.includes(f));
   assert.deepEqual(absentes, [], `${GABARIT_REGLE} : familles absentes : ${absentes.join(", ")}`);
+});
+
+// Ticket 62 : les deux gardes qui lisent les textes de `skills/`. `criticality` montrée en ligne, que le mappage soit
+// sur la ligne de la clé ou replié par un formateur sur la suivante ; un nom de test anglais à la manière `should …`,
+// en tête d'un `it`/`test` (étiquettes, `.each(…)` et `.each\`…\`` compris, quelle que soit la casse) ou donné en modèle.
+const CRITICITE_EN_LIGNE = /criticality:[ \t]*(?:\r?\n[ \t]*)?\{/;
+const NOM_ANGLAIS = /\b(it|test)(\.each(\([\s\S]*?\)|`[\s\S]*?`))?\(\s*["'`](\[[^\]]*\]\s*)*(should\b|<behaviou?r>)|`should [<[]|names `should|\(`should /i;
+test("les deux gardes de textes du ticket 62 voient les formes piégées, et pas leurs voisines", () => {
+  for (const t of ["criticality: { level: high }", "criticality:\n  {\n    level: high,\n  }", "criticality:\r\n  {\r\n", "x\ncriticality: {"])
+    assert.ok(CRITICITE_EN_LIGNE.test(t), JSON.stringify(t));
+  for (const t of ["criticality:\n  level: high", "criticality: high", "# criticality: à partir de l'index", "criticality:\n\n  level: { x }"])
+    assert.ok(!CRITICITE_EN_LIGNE.test(t), JSON.stringify(t));
+  for (const t of ["it('should x')", 'it("Should x")', "test(`[RULE_ALL_A-1] SHOULD x`)", "it.each([1])('should %i')", "it.each`\n a | b\n`('should $a')", "x\r\n  it('should y')", 'test("[RULE_ALL_X-2] <behaviour>", …)', "names `should [behavior]`"])
+    assert.ok(NOM_ANGLAIS.test(t), JSON.stringify(t));
+  for (const t of ["it('refuse x quand y')", "it('shoulder')", "// on should pas", "test('[RULE_ALL_A-1] doit refuser')"])
+    assert.ok(!NOM_ANGLAIS.test(t), JSON.stringify(t));
+});
+
+// Ticket 62 : un formateur (Prettier) replie un mappage en ligne trop long, et le lecteur d'en-têtes de « double
+// relecture exigée » (A-143) refuse certaines formes repliées. Le gabarit montre `criticality` en bloc, une clé par
+// ligne : décommentée, la forme se lit comme `{ level, by, reason }` (yaml, CLI Anchorpost), et rien ne la replie.
+test("le gabarit de règle montre `criticality` en bloc, une clé par ligne ; aucun texte du plugin ne la montre en ligne", () => {
+  const entete = lignes(readFileSync(join(RACINE, GABARIT_REGLE), "utf8").match(/^---\r?\n([\s\S]*?)\r?\n---/)[1]);
+  const i = entete.findIndex((l) => /^#\s*criticality:/.test(l));
+  assert.ok(!entete[i].includes("{"), `${GABARIT_REGLE} : la ligne « # criticality: » ne porte aucun mappage en ligne`);
+  const bloc = [];
+  for (let j = i + 1; j < entete.length && /^# {3}\S/.test(entete[j]); j++) bloc.push(entete[j].slice(4));
+  assert.deepEqual(bloc.map((l) => l.split(":")[0]), ["level", "by", "reason"], `${GABARIT_REGLE} : sous « # criticality: », une clé par ligne, retrait de deux espaces`);
+  assert.match(bloc[0], /^level: medium # low \| medium \| high$/, "une seule espace avant le commentaire : la forme que Prettier rend");
+  assert.match(bloc[1], /^by: agent +# /);
+  assert.match(bloc[2], /^reason: "…" +# /, "reason entre guillemets : une raison qui porte « : » reste un texte");
+  // Ailleurs dans le plugin : la forme en ligne n'est montrée nulle part (le lecteur de la PR 134 la teste, lui).
+  const enLigne = [];
+  const parcourir = (dossier) => {
+    for (const e of readdirSync(join(RACINE, dossier), { withFileTypes: true })) {
+      const chemin = `${dossier}/${e.name}`;
+      if (e.isDirectory()) parcourir(chemin);
+      else if (!/^skills\/chaine\/fusionner\/scripts\/double-relecture/.test(chemin) && CRITICITE_EN_LIGNE.test(readFileSync(join(RACINE, chemin), "utf8")))
+        enLigne.push(chemin);
+    }
+  };
+  parcourir("skills");
+  assert.deepEqual(enLigne, [], `criticality en ligne : ${enLigne.join(", ")}`);
+});
+
+// Ticket 62 : ADR_ALL_ARC-4 (langue des identifiants) met les noms de tests dans la prose, en français. La fiche des
+// tests, ses exemples et les gabarits qui citent un nom de test l'écrivent en français, au présent, sans « should ».
+test("les noms de tests montrés par le plugin sont en français, comme le veut ADR_ALL_ARC-4", () => {
+  const FICHE_TESTS = "skills/monorepo/socle-monorepo/references/racine/.claude/rules/tests.md";
+  exiger(FICHE_TESTS, [
+    "- **Le nom dit le comportement, en français** (c'est de la prose, `ADR_ALL_ARC-4`) : `describe('<Sujet>')` puis `it('<comportement> quand <condition>')`, au présent de l'indicatif : `it('refuse une seconde licence quand la saison en a déjà une')`.",
+    "`it('[RULE_ALL_LIC-2] refuse une seconde licence quand la saison en a déjà une')`",
+  ]);
+  exiger("skills/monorepo/socle-monorepo/references/adr/ADR_ALL_ARC-4-langue-des-identifiants-de-code.md", ["noms de tests (qui citent les règles du registre, `<TRI>-<N>`)"]);
+  const fautes = [];
+  const parcourir = (dossier) => {
+    for (const e of readdirSync(join(RACINE, dossier), { withFileTypes: true })) {
+      const chemin = `${dossier}/${e.name}`;
+      if (e.isDirectory()) parcourir(chemin);
+      // Le banc des tests creux rejoue un cas réel observé (« should create »), gardé tel quel : le gate ne lit pas la langue.
+      else if (chemin !== "skills/monorepo/socle-tests/references/scripts/verify/tests-creux.test.mjs" && /\.(md|ts|tsx|mjs|js)$/.test(e.name)) {
+        const texte = readFileSync(join(RACINE, chemin), "utf8");
+        if (NOM_ANGLAIS.test(texte)) fautes.push(chemin);
+      }
+    }
+  };
+  parcourir("skills");
+  assert.deepEqual(fautes, [], `noms de tests en anglais (« should … ») : ${fautes.join(", ")}`);
 });
 
 test("chaque skill du plugin a sa ligne au README et passe le gate references-agent d'un projet qui le cite", () => {

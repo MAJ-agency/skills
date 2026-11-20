@@ -194,7 +194,7 @@ Les bancs (`pnpm test`, joués aussi par la CI) demandent Node ≥ 22, `git` et 
 
 Cette règle vaut pour **tout** changement de contenu, pas seulement l'ajout d'un skill.
 
-Un skill dont l'étape `poser` copie un dossier de scripts dans `scripts/chaine/` d'un projet ajoute ce dossier à `POSES` dans `scripts/poses.test.mjs` : le garde pose ses fichiers à plat et rejoue ses bancs hors du plugin. Un banc posé ne lit jamais l'arbre du plugin sans repli vers le fichier du projet.
+Un skill dont l'étape `poser` copie un dossier de scripts dans `scripts/chaine/` d'un projet ajoute ce dossier à `POSES` dans `scripts/poses.test.mjs` : le garde pose ses fichiers à plat et rejoue ses bancs hors du plugin. Un banc posé ne lit jamais l'arbre du plugin sans repli vers le fichier du projet. Le garde joue chaque banc en tranches parallèles (`scripts/tranches.mjs`), par les noms de ses tests (`test("…", …)` en début de ligne), chaque test exactement une fois : les tranches d'un même banc tournent en même temps, donc un banc n'écrit jamais dans un chemin fixe partagé (chaque dépôt jouet par `mkdtemp`) ; un banc qui écrit des sous-tests (`t.test`, `describe`, `it`) se joue entier. Limite : un sous-test au nom calculé (`t.test(nom, …)`) ou un `test(` global appelé dans le corps d'un test n'est pas reconnu ; un banc posé n'en écrit pas.
 
 Un banc ne recopie jamais le filtre des variables `GIT_*` : il importe `environnementDeBanc()` (`scripts/docs/environnement-de-banc.mjs` du socle, réexporté par `depot-jouet.mjs`), qui retire aussi `FORCE_COLOR` et pose `NO_COLOR=1`. `scripts/un-seul-environnement-de-banc.test.mjs` refuse toute copie.
 
