@@ -1129,3 +1129,9 @@ La session de suite fait, dans cet ordre :
 - 2026-11-20 — 10 h 36 UTC. **Ticket 65 prêt** (`d025955`).
   - Retouches : `## Surfaces`, pour que `ecartsFormatPret` rende `[]` ; le cas `la MOA\t` au banc, qui fait rougir la mutation du nom brut ; le décompte corrigé ; deux caractères invisibles du ticket écrits en clair.
   - **Session lancée** : session_01BxuG31zYeYtZawFUnZxHaj, Sonnet, mode « auto », branche `claude/ticket-65-petits-correctifs`, patch suivant de `main`.
+- 2026-11-20 — 10 h 54 UTC. **PR 145 (ticket 65) livrée** au sommet `2d563fdfdd595445ad68e9402cf9932aed59064f`, plugin 7.37.3. D'après la session :
+  - suite 1 223 sur 1 223 ;
+  - 12 mutations rouges sur 19, les 7 autres non jouées et listées ;
+  - une revue de ticket, sans bloquant, une réserve S19 écartée avec sa raison.
+
+  Premier tour de contre-relecture lancé, effort moyen, avec les 7 mutations à jouer.
