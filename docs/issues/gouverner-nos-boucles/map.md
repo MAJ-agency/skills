@@ -1085,3 +1085,9 @@ La session de suite fait, dans cet ordre :
   - Corpus : 0 fichier dans le doute. Mutations : 16 tuées sur 17, dont une équivalente.
   - `poses` seul passe en 356 s.
   - **A-177** : la division ne se lit que sur certitude, et la liste des mots vient de la spécification ECMAScript. Un passage de plus est prévu sur le delta. Le verdict `non conforme` est écrit sur la PR.
+- 2026-11-20 — 08 h 48 UTC. **PR 144 au sommet `31eb5b0`** : retouches d'`A-177`, CI verte, d'après la session.
+  - Règle : la division n'est admise que sur certitude, et `MOTS_ECMASCRIPT` (50 mots) est prouvée entière contre la liste écrite dans le test.
+  - Bancs : les six sources du contre-relecteur et les 24 cas de `pieges3` sont au banc. Le corpus reste à 0 fichier dans le doute.
+  - `lancer` : un `finally` tue le groupe de processus, et M13 rougit sans faire pendre le banc.
+  - Suite : 1 221 sur 1 221. Bilan de `poses` en CI : 493,9 s sur 1 800, soit 27,4 %.
+  - **Troisième passage lancé**, sur le seul delta.
