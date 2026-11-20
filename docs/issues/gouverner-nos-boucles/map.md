@@ -1091,3 +1091,10 @@ La session de suite fait, dans cet ordre :
   - `lancer` : un `finally` tue le groupe de processus, et M13 rougit sans faire pendre le banc.
   - Suite : 1 221 sur 1 221. Bilan de `poses` en CI : 493,9 s sur 1 800, soit 27,4 %.
   - **Troisième passage lancé**, sur le seul delta.
+- 2026-11-20 — 08 h 53 UTC. **PR 144 : troisième passage au sommet `31eb5b0`, conforme.**
+  - Les deux B et le m du second tour sont fermés. 30 sources valides ont été jouées contre la règle nouvelle, avec 2 ratés hors domaine (`await` et `yield` pris pour identifiants dans du code de script) et 9 coûts nommés, dont aucun dans le corpus.
+  - `MOTS_ECMASCRIPT` est entière contre ECMA-262. Les 14 mutations neuves sont toutes tuées.
+  - Les quatre contrôles sont verts et la PR est clean, base `b944606` (relu à la source).
+  - Sur la PR : le verdict `conforme`, l'ordre et le label. Le capitaine et la session sont prévenus.
+  - Le rapport des trois passages et leurs essais sont publiés sous `64-annexes/contre-relecture-069b146/`.
+  - **Leçon**, qui confirme `A-143` et `A-159` : la règle « inverser la charge de la preuve » a fermé en un passage ce que deux tours de listes de dangers n'avaient pas fermé.

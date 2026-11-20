@@ -94,3 +94,27 @@ Comptes du second tour :
 - Pièges : 62 + 9 rejoués, 0 raté neuf ; seuls restent `it.only` et `describe.skip`, hors périmètre. 24 pièges neufs (`pieges3.mjs`) et 2 sources ajoutées (`essais/js/e.mjs`, `f.mjs`) : 6 faux négatifs en tout.
 - Mutations : 17 jouées, dont 6 du premier tour (M1, M4, M8, M13, M16, M17) et 11 neuves. 16 tuées : M13 l'est par son `not ok`, mais elle pend. 1 vivante équivalente (N8). S14 et S15 ensemble : tuées.
 - Bancs : `tranches` 13/13, `depot` 69/69, `poses` 1/1 en 356 s.
+
+## Troisième passage
+
+Sommet : `git ls-remote origin refs/pull/144/head` → `31eb5b0c1bf38d919bdaf7f17b19938276dbb6b7`, un commit sur `8d870d0` (`scripts/tranches.mjs`, `scripts/tranches.test.mjs`). A-177 lu par `grep -n` (spec, l. 345-353). Tout lancé sous `setsid --wait`.
+
+### Au fil de l'eau
+
+- Rejeux : `pieges.mjs` 0 faute sur 62 ; `pieges2.mjs` tout vu sauf `it.only`/`describe.skip` (hors périmètre) ; `pieges3.mjs` 0 faute sur 24 ; `js/a` à `js/f` : `aDesSousTests` → `true` (doute) pour les six ; `corpus.mjs` : 129 fichiers, 0 doute.
+- `essais/pieges4.mjs` (sources écrites sous `js4/`, chacune passée à `node --check`, les invalides écartées) : 30 sources « vu » valides, 28 justes. Justes : `a = b` + fin de ligne + `/ 2; t.test(…)`, `)` de conditions imbriquées, d'un `for (;;)`, d'un `do {} while (a)`, `)` d'une flèche suivi de `=>`, `a[0] / 2`, gabarits imbriqués (fermés puis `/`, regex dans `${}` imbriqué, `t.test` dans `${}` imbriqué), `async` identifiant (doute), `async (a) => /re/`, `get`/`set` en accesseurs et en clés, `{ return: 1, if: 2 }`, `{ return: /re/ }`, méthodes de classe nommées `return`/`if`, `await /re/` en module, `yield /re/`, `#!`, `a?.(b) / 2`, `this.#p / 2`, `.../re/`, `new.target / 2`, `import.meta / 2`, étiquette puis regex, `xa`, `/[//]/`. La forme du coordinateur `a = b\n/re/g.exec(c)` : JavaScript la lit comme une division, et `codeSeul` aussi ; avec un guillemet pour cacher un appel, elle n'est plus valide (écartée par `node --check`) — la règle ne peut pas s'y tromper. Aucune forme valide « `)` sans mot puis regex » ni « `]` puis regex » n'existe : `]` et le `)` d'une parenthèse d'expression finissent toujours une expression.
+- Deux ratés, en code de script seulement (`.cjs`, `node --check` les accepte) : `var await = 4; x = await / 2; t.test("y", f); c = d / e;` et la même chose avec `yield` → `false`. En module, `await` et `yield` sont réservés (`mots.mjs` : les 46 mots réservés et réservés du mode strict sont refusés comme noms en `.mjs`), et `codeSeul` ne lit que des `.test.mjs` (`poses.test.mjs:78`). Limite de domaine, non écrite dans l'en-tête.
+- Coûts (division certaine lue comme doute), aucun dans le corpus : `this / 2`, `null / 2`, `true / 2`, `set(a) / 2`, `of(a) / 2`, `async(a) / 2`, `typeof (a) / 2`, `void (0) / 2`, `i++ / 2`. Lues sans doute : `import.meta / 2`, `{}.a / 2`, `(function () {…})() / 2`.
+- `MOTS_ECMASCRIPT` (`essais/mots.mjs`, contre ECMA-262 2024 : 38 `ReservedWord`, 9 réservés du mode strict, 8 contextuels d'A-177) : 50 mots attendus, 50 dans la liste, aucun manquant, aucun en trop. Le test (`tranches.test.mjs:79-88`) compare la liste à l'union de ses trois listes écrites, qui sont les mêmes que les miennes.
+- M13 (`detached: false`, `arbre-mut` à `31eb5b0`) : `setsid --wait timeout -k 5 120 node --test --test-name-pattern=lancer …` → `exit=1` en 10,1 s, `not ok`, `lancer : non résolu en 10000 ms` (`essais/m13-t3.tap`), charge 0,14 ; aucun processus restant. Le m du second tour est fermé.
+- Mutations sur A-177 (`essais/mutations3.json`, témoin vert, charge 0,08 → 0,16) : 14 jouées, 14 tuées (tête de source en doute, identifiant ouvrant une regex, `debugger` retiré de la liste, `)` sans mot ouvrant une regex, `)` d'un autre mot lu comme division, `...` retiré, `...` non reconnu, `yield` retiré des ouvrants, mots non ouvrants traités en identifiants, nom de propriété gardant son sens de mot, `with` retiré, `]` en doute, étiquette sans doute, mot non ouvrant ouvrant une regex).
+- Bancs (charge 0,15) : `tranches.test.mjs` 15/15 en 3,0 s ; `depot.test.mjs` 69/69 en 0,4 s. `ps` ensuite : rien. Diff : rien de privé.
+
+### Verdict du troisième passage
+
+conforme
+
+- B1, B2 et m1 du second tour fermés (`pieges3.mjs`, `js/a`–`f`, M13 rouge en 10 s sans pendre).
+- m `scripts/tranches.mjs:17-27` — `await` et `yield` employés comme identifiants dans du code de script (`.cjs`) donnent un faux négatif (`essais/pieges4.mjs`, cas `js4/19.cjs` et `js4/20.cjs`). Hors du domaine, puisque `codeSeul` ne lit que des `.test.mjs`, où ces mots sont réservés ; à écrire dans l'en-tête (« une source de module ») si l'on veut que la limite se lise.
+
+Comptes : 0 B, 1 m. Pièges : 62 + 9 + 24 + 6 rejoués sans faute neuve ; 30 sources neuves valides, 2 ratés hors domaine ; 9 coûts nommés, 0 dans le corpus. Mutations : 14 jouées, 14 tuées ; M13 rouge et sortie en 10,1 s. Bancs : `tranches` 15/15, `depot` 69/69.
