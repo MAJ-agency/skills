@@ -6,12 +6,14 @@ La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque pro
 
 ### Ce qui change
 
-Le skill `relecture` : trois suites de la contre-relecture de 7.36.0. Depuis 7.36.0, la résolution d'une PR de mise à jour se relit : `git show --remerge-diff` du commit de fusion, que l'axe Règles lit en entier ; une ligne de `develop` qu'elle retire est un constat, jamais écartée (`A-164`).
+Le skill `relecture` : les suites de la contre-relecture de 7.36.0 (trois mineurs), plus un trou trouvé en préparant le ticket.
 
-- **La résolution se découpe en lots** au-delà de 2 000 lignes de `resolution.patch`, comme le diff relu et par la même fonction : par zone, `lots/resolution-<j>/`, leur union vérifiée contre `resolution.txt` (« lots de la résolution : … », sortie 12). L'axe Règles se lance une fois par lot (`lus '<brouillons>' 1 resolution-<j>`). Un seul lot : la résolution entière, comme avant.
-- **Un binaire que seule la résolution touche** (sans écart contre le sujet, la version de `develop` jetée par une résolution « ours ») est nommé parmi les binaires du tour, illisible ou sous un chemin sensible selon les mêmes règles : aucun axe n'a à le dire lu, le verdict le nomme.
+- **La résolution d'une PR de mise à jour se découpe en lots** au-delà de 2 000 lignes de `resolution.patch`, comme le diff relu et par la même fonction : par zone, `lots/resolution-<j>/`, leur union vérifiée contre `resolution.txt` (« lots de la résolution : … », sortie 12). L'axe Règles se lance une fois par lot (`lus '<brouillons>' 1 resolution-<j>`). Un seul lot : la résolution entière, comme avant.
+- **Un binaire que seule la résolution touche** (sans écart contre le sujet, la version de `develop` jetée par une résolution « ours ») est nommé parmi les binaires du tour, illisible ou sous un chemin sensible selon les mêmes règles : aucun axe n'a à le dire lu, le verdict le nomme. C'est le trou trouvé en préparant le ticket ; une commande de lecture en échec sort en 12 (« liste des binaires de la résolution illisible »).
 
-Dans le dépôt du plugin seulement : un cas de banc tient la branche du tri où `develop` ne fait que retirer et où la résolution insère à ce point.
+Dans le dépôt du plugin seulement : un cas de banc tient la branche du tri où `develop` ne fait que retirer et où la résolution insère à ce point ; d'autres tiennent la panne de chaque lecture de binaires, les deux parents de la fusion, le diff relu et la résolution découpés ensemble.
+
+Depuis 7.36.0, la résolution d'une PR de mise à jour se relit : `git show --remerge-diff` du commit de fusion, que l'axe Règles lit en entier ; une ligne de `develop` qu'elle retire est un constat, jamais écartée (`A-164`).
 
 ### Ce qu'un projet fait pour en profiter
 
