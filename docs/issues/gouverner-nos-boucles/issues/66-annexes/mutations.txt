@@ -1,0 +1,36 @@
+ROUGE M1 compter : un refus sans « lancée » se relit incomplet (le code d’avant)
+ROUGE M2 compter : un refus sur un autre sommet se relit incomplet
+ROUGE M3 compter : plus aucun verdict n’exige « lancée »
+ROUGE M4 jouer : l’ancienne étiquette retirée avant que la nouvelle soit posée
+ROUGE M5 jouer : les lignes repartent quand l’étiquette était déjà posée
+ROUGE M6 jouer : la nouvelle étiquette n’est jamais posée
+ROUGE M7 jouer : le commentaire du plafond n’est pas écrit
+ROUGE M8 régime : la date d’ouverture n’est pas comparée à `depuis`
+ROUGE M9 contrat : une clé `relecture` mal formée est lue comme absente
+ROUGE M10 contrat : `delai` n’est plus vérifié
+ROUGE M11 diff propre : une sous-PR vers un sujet lue à trois points contre develop
+ROUGE M12 diff propre illisible : « double relecture » rendue 1
+ROUGE M13 chemins sensibles : un chemin touché ne rend plus la PR sensible
+ROUGE M14 « même contenu propre » toujours « différent »
+ROUGE M15 couple : une PR sensible reçoit le couple ordinaire
+ROUGE M16 distribuer : le geste n’est pas refait, la distribution part quand même
+ROUGE M17 distribuer : la remplaçante s’ajoute au lieu de remplacer
+ROUGE M18 distribuer : la relance n’est pas tracée
+ROUGE M19 distribuer : une remplaçante qui est déjà du tour est admise
+ROUGE M20 préparer : le clone superficiel n’est pas approfondi
+ROUGE M21 préparer : un dossier sale est accepté
+ROUGE M22 préparer : les calculs manquants ne sont pas vus
+ROUGE M23 dépendances : installées à chaque passe
+ROUGE M24 écriture refusée : passée sous silence
+ROUGE M25 veille : une attente la réveille
+ROUGE M26 veille : `--taire` ignoré
+ROUGE M27 veille : GitHub illisible l’arrête
+ROUGE M28 relecteur.mjs ne reconnaît plus son point d’entrée
+ROUGE M29 faux GitHub : plus de date d’ouverture
+ROUGE M30 faux GitHub : `maintenant` ignoré
+ROUGE M31 labels.sh : `à-reprendre` manque
+ROUGE M32 gabarit : la commande du Relecteur n’est plus en première ligne
+ROUGE M33 prompt de session : la commande du skill relecture n’est plus en tête
+ROUGE M34 verdict.md : la limite de `compter` revient
+ROUGE M35 A-178 : la phrase du rapport vide retirée de criteres-session.md
+toutes rouges
