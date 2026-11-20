@@ -1,6 +1,6 @@
 # Petits correctifs du gate, des tranches et du skill relecture : un nom d'accord à caractère de contrôle passe, la limite `await`/`yield` de `codeSeul` n'est pas écrite, un rapport vide de `/security-review` n'est pas une preuve
 
-Status: ready-for-agent
+Status: Fait — PR 145 (`5bf4f39`, plugin 7.37.3)
 Type: défaut
 Label: contre-revue
 Modèle: sonnet. Trois petits défauts mesurés, chacun avec sa décision, ses fichiers, ses cas et ses mutations. Le changement entier est donné : une expression régulière à changer, des phrases à écrire mot pour mot, deux tests à ajouter, dont le texte est ci-dessous. Rien n'est à concevoir ; les décisions de l'architecte sont `A-170`, `A-175`, `A-177` et `A-178`.

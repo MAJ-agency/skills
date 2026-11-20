@@ -33,6 +33,8 @@ Gel:
 
 ## Coût
 
+<!-- Rôles : fille, conducteur, architecte, capitaine, relecture (une session de relecture d'une PR). Le gate `tickets` ne juge au plafond que fille et conducteur. -->
+
 | Rôle | Ticket | Session | Modèle | Contexte max | Coût $ |
 | ---- | ------ | ------- | ------ | ------------ | ------ |
 
@@ -46,7 +48,3 @@ Une session au plafond (`plafonds` de `.claude/chaine.json`) y a sa ligne : sans
 ## Journal
 
 - {{AAAA-MM-JJ}} — {{ce qui s'est passé : gel, interruption des filles, dégel}}
-
-## Rétro
-
-{{À la fin : incidents, ce qui a donné un gate ou un critère de revue, coût total et par ticket.}}
