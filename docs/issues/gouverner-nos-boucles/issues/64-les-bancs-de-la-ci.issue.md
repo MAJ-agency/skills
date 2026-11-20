@@ -1,6 +1,6 @@
 # Les bancs de la CI : un banc posé joué entier par erreur, des bornes qui ne suivent pas le travail, une précondition qui dépend de l'horloge
 
-Status: ready-for-agent
+Status: Fait — PR 144 (`4cd047f`, plugin 7.37.2)
 Type: défaut
 Label: contre-revue
 Modèle: sonnet. Quatre défauts mesurés, chacun avec sa décision, ses fichiers, ses cas de banc et ses mutations. Les sorties exactes de `codeSeul` sont données, et le changement entier du défaut 4 aussi. La séquence du rouge sur la CI est écrite pas à pas. Rien n'est à concevoir au-delà de ce que le ticket donne ; les décisions de l'architecte sont `A-171` et `A-172`.
