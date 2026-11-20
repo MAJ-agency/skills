@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =============================================================================
-# Les sept labels de la chaîne de production, créés (ou mis à jour) sur le dépôt GitHub, en REST.
+# Les neuf labels de la chaîne de production, créés (ou mis à jour) sur le dépôt GitHub, en REST.
 # Idempotent : un label existant est mis à jour (couleur, description), jamais dupliqué.
 #
 # Usage : bash scripts/github/labels.sh              (gh api, depuis la racine du dépôt)
@@ -18,6 +18,8 @@ hors-sujet|6B7280|Vise develop bien que son ticket déclare un sujet : doit arri
 ci-complète|4F46E5|Lance les E2E complets à la relance du run, avant le passage du capitaine
 sujet-manuel|6B7280|Sujet livré à la main (sujet.sh livrer), jamais par livrer-prets
 sujet-auto|9CA3AF|Sujet né d'un regroupement de série par le capitaine
+à-relire|0369A1|Régime 8 : demande une relecture indépendante ; le Relecteur la distribue
+à-reprendre|C2410C|Régime 8 : verdict refusé, plafond atteint ou contenu changé : à reprendre par son auteur
 FIN
 )
 if [[ "${1:-}" == "--liste" ]]; then

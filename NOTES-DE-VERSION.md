@@ -2,6 +2,21 @@
 
 La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque projet par `poser` : une version publiée ne change rien chez un projet qui ne les repose pas. Chaque note dit ce qui change, puis ce qu'un projet fait pour en profiter.
 
+## 7.38.0 — 2026-11-20
+
+### Ce qui change
+
+- **Le skill `relecteur`** (régime 8, lot 4 de la relecture indépendante) : le Relecteur d'un dépôt, une session par dépôt, lancée par `/maj-skills:relecteur` en première ligne. Une veille relit la file (`à-relire`, `à-fusionner`) des PR du régime 8 ; `relecteur.mjs` prend la décision du Relecteur (`decision-relecteur.mjs` de develop, la même que celle du capitaine) sur les faits des calculs de develop, pose `à-reprendre` et `à-fusionner` (la nouvelle étiquette avant l'ancienne), écrit les distributions après la création des sessions ; la session crée les sessions de relecture sur la base de la PR, leur écrit et lit leur état. Rien ne change pour une PR du régime 7.
+- **Deux labels de plus, `à-relire` et `à-reprendre`** : `labels.sh` en pose neuf. Le gabarit de lancement du Relecteur est dans `architecte/references/lancement.md` ; la carte d'un programme a une ligne `Relecteurs:`, celle d'un chantier une ligne `Relecteur:`.
+- **Un refus reste un refus** : sur une PR à chemin sensible, un `refusé` sans la ligne `/security-review: lancée` rend la PR à son auteur (`compter`, `decision-relecteur.mjs`) ; la limite écrite dans le skill `relecture` est retirée.
+- Le faux GitHub des bancs rend la date d'ouverture d'une PR et date un commentaire posé à l'heure du banc.
+
+### Ce qu'un projet fait pour en profiter
+
+1. Mettre à jour le plugin (comme pour 7.31.0, étape 1).
+2. Reposer les scripts dans une PR du projet : `/maj-skills:fusionner poser` (la décision du Relecteur change). Un administrateur joue `bash scripts/github/labels.sh` après avoir reposé le socle (`/maj-skills:socle-chaine-de-production`), pour créer les deux labels.
+3. Rien d'autre tant que le dépôt n'est pas en régime 8 : la clé `relecture` de `.claude/chaine.json` arrive avec la bascule (lot 6). Le Relecteur se lance à la repose qui la pose.
+
 ## 7.37.3 — 2026-11-20
 
 ### Ce qui change

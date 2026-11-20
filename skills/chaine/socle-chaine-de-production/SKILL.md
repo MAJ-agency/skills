@@ -1,6 +1,6 @@
 ---
 name: socle-chaine-de-production
-description: Pose dans un monorepo tout ce que supposent les skills d'exploitation de la chaîne de production (tickets, sujet, fusionner, revue-adversariale, chantier, recette-humaine) — develop qui intègre et main qui livre, les sept labels, les hooks d'agent, le contrat .claude/chaine.json, la liste des index générés, une CI minimale, la méthode docs/agents/chaine-de-production.md et trois ADR — puis dit ce qu'un admin fait à la main. Use when setting up parallel agent sessions, a merge captain, adversarial review or subject branches on a repository, or when a chain skill says the socle is missing.
+description: Pose dans un monorepo tout ce que supposent les skills d'exploitation de la chaîne de production (tickets, sujet, fusionner, revue-adversariale, chantier, recette-humaine) — develop qui intègre et main qui livre, les neuf labels, les hooks d'agent, le contrat .claude/chaine.json, la liste des index générés, une CI minimale, la méthode docs/agents/chaine-de-production.md et trois ADR — puis dit ce qu'un admin fait à la main. Use when setting up parallel agent sessions, a merge captain, adversarial review or subject branches on a repository, or when a chain skill says the socle is missing.
 ---
 
 # Socle de la chaîne de production
@@ -63,7 +63,7 @@ node --test scripts/github/*.test.mjs
 node scripts/docs/next-id.mjs ADR ALL ARC
 ```
 
-Puis : aucun placeholder `{{…}}` restant (chercher `{{[A-Z_]+}}` hors JSX) ; `.claude/settings.json` valide et les quatre hooks présents (deux graphify, deux agent) ; `git ls-remote --heads origin develop` rend une ligne ; `gh api repos/{owner}/{repo}/labels --jq '.[].name'` liste les sept labels, ou la case correspondante de `chaine-admin.md` est ouverte.
+Puis : aucun placeholder `{{…}}` restant (chercher `{{[A-Z_]+}}` hors JSX) ; `.claude/settings.json` valide et les quatre hooks présents (deux graphify, deux agent) ; `git ls-remote --heads origin develop` rend une ligne ; `gh api repos/{owner}/{repo}/labels --jq '.[].name'` liste les neuf labels, ou la case correspondante de `chaine-admin.md` est ouverte.
 
 Remettre à l'humain **la liste de `chaine-admin.md`** : rien de la chaîne ne tourne tant que `develop` n'est pas protégée avec « branche à jour exigée ».
 
@@ -84,5 +84,5 @@ Remettre à l'humain **la liste de `chaine-admin.md`** : rien de la chaîne ne t
 | « Je garde `main` comme branche d'intégration, c'est plus simple » | Le capitaine, les sujets et les scripts lisent `develop`. Deux conventions, c'est deux fois les tests.      |
 | « Je mets les règles de fusion dans un prompt, pas dans un hook »  | Un prompt se contourne, un hook non. Le push forcé a été vu deux fois avant le hook.                        |
 | « Je recopie les ADR d'un autre projet »                           | Une ADR est une décision du projet, datée et signée. Le gabarit porte les faits ; le projet la fait sienne. |
-| « J'ajoute un label de plus pour notre cas »                       | Les sept labels sont le protocole des skills. Un huitième n'est lu par personne.                            |
+| « J'ajoute un label de plus pour notre cas »                       | Les neuf labels sont le protocole des skills. Un dixième n'est lu par personne.                              |
 | « La CI minimale ne suffit pas, j'écris les E2E tout de suite »    | Un E2E sans seed ni parcours est un job rouge. Ils arrivent avec le premier parcours.                       |
