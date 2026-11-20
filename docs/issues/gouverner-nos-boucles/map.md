@@ -1108,3 +1108,20 @@ La session de suite fait, dans cet ordre :
     - la limite `await`/`yield` de `tranches.mjs` ;
     - la sonde `/security-review` avant le lot 4 ;
     - les lots 4 à 9 de la spec.
+- 2026-11-20 — 10 h 04 UTC. **Contrôle de vie, et la suite engagée.**
+  - Le capitaine neuf est en veille (1,59 $ en une heure) ; les PR 44 et 56, hors programme, sont inchangées.
+  - Les 21 tickets de l'autre programme sont tous « Fait » : le lot 4 n'attend plus rien de lui.
+  - **Sonde `/security-review` lancée** (`A-162`, préalable au lot 4) : session_01BxuG33NCAYxm9fbocULFdx, Opus, mode « auto », montage local seulement. Les sous-agents lisent-ils le clone ou la base ?
+  - **Ticket 65 en rédaction**, par un agent local sur Sonnet. Il porte les petits correctifs : le `\p{Cc}` d'`A-175` et la limite `await`/`yield` de `tranches.mjs`.
+  - L'alerte hebdomadaire est inchangée. Prochain réveil à 11 h 04.
+- 2026-11-20 — 10 h 08 UTC. **Sonde `/security-review`, premier montage** : le clone est dans le scratchpad, hors des dossiers de travail.
+  - Le `cd` ne tient pas : chaque appel Bash revient au dossier de la session.
+  - Le préambule de la commande et chaque sous-agent (`pwd`, Read en relatif) lisent la base. La faille n'est jamais vue.
+  - Le filtre de faux positifs, à qui on donne le constat, lit le fichier de la base et le juge faux positif à 1/10, deux fois sur deux.
+  - Ce montage n'est pas celui du skill : le clone de C4 est `<session>/.relecture-securite`, un dossier de travail où le `cd` tient (`A-147`). **Second montage demandé**, avec le clone à cet endroit : les sous-agents suivent-ils le dossier courant de la session, ou son dossier de départ ? La décision sur le lot 4 l'attend.
+- 2026-11-20 — 10 h 12 UTC. **Sonde `/security-review`, second montage, celui de C4** (clone sous `<session>/.relecture-securite`).
+  - Le `cd` tient. Le préambule et les sous-agents lisent le clone.
+  - Une injection réelle, notée 7/10, est écartée par le seuil de 8 de la commande : le rapport est vide.
+  - **A-178** : C4 tient tel qu'il est dans `main` ; le lot 4 n'attend plus la sonde. Un rapport vide ne prouve pas l'absence de faille, et l'axe Règles garde ses critères ; c'est pour le prochain ticket du skill `relecture`.
+  - La session de la sonde est archivée. Elle n'a rien poussé ; son clone et sa ligne d'exclusion sont restés dans son seul conteneur, que l'archivage libère.
+- 2026-11-20 — 10 h 13 UTC. **Ticket 65 complété d'un troisième point** (`A-178` dans le skill `relecture`). **Ticket 66 en rédaction** par un agent local sur Opus : le lot 4 (skill `relecteur`, décisions `A-83` à `A-90`), avec la retouche de `compter` qu'`A-141` demandait avant le lot 4. Il aura un seul tour de relecture (`P-65`).
