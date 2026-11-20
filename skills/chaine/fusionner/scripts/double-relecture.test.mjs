@@ -1412,8 +1412,8 @@ test("le lecteur git lit par un dépôt propre, jetable : un fichier absent du c
 // les deux marques (git 2.43 : aucune base ; git 2.55, lu dans sa source : la tête). Daté par l'horloge, la tête passe
 // la première dès que les deux commits tombent dans deux secondes différentes, et git 2.56.1 (CI, PR 142, `fc06f17`)
 // rend le socle : la précondition rougit.
-const DATE_DU_SOCLE = '2026-11-16T11:00:00+00:00';
-const DATE_DE_LA_TETE = '2026-11-16T12:00:00+00:00';
+const DATE_DU_SOCLE = '2026-11-16T12:00:00+00:00';
+const DATE_DE_LA_TETE = '2026-11-16T11:00:00+00:00';
 /** Une PR qui monte une règle par l'index seul : develop la dit moyenne, la tête haute, ni son fichier ni son code ne sont touchés. */
 function depotNiveau() {
   const depot = dossier('double-relecture-');
