@@ -1125,3 +1125,28 @@ La session de suite fait, dans cet ordre :
   - **A-178** : C4 tient tel qu'il est dans `main` ; le lot 4 n'attend plus la sonde. Un rapport vide ne prouve pas l'absence de faille, et l'axe Règles garde ses critères ; c'est pour le prochain ticket du skill `relecture`.
   - La session de la sonde est archivée. Elle n'a rien poussé ; son clone et sa ligne d'exclusion sont restés dans son seul conteneur, que l'archivage libère.
 - 2026-11-20 — 10 h 13 UTC. **Ticket 65 complété d'un troisième point** (`A-178` dans le skill `relecture`). **Ticket 66 en rédaction** par un agent local sur Opus : le lot 4 (skill `relecteur`, décisions `A-83` à `A-90`), avec la retouche de `compter` qu'`A-141` demandait avant le lot 4. Il aura un seul tour de relecture (`P-65`).
+- 2026-11-20 — 10 h 34 UTC. **Ticket 65 : tour unique de relecture, « prêt après retouches », 0 bloquant, 6 mineurs.** Les faits sont rejoués sur `4cd047f`. Les changements sont appliqués dans une copie, et 21 mutations sur 22 sont tuées. Le motif ne refuse aucun nom réel de plus (essayé sur une dizaine d'écritures). Trois retouches sont confiées au rédacteur : `## Surfaces` pour le gate du format prêt, le cas `la MOA\t` qui fige le choix du `trim()`, et le décompte des lignes `Sensibles:` sous leurs vraies formes.
+- 2026-11-20 — 10 h 36 UTC. **Ticket 65 prêt** (`d025955`).
+  - Retouches : `## Surfaces`, pour que `ecartsFormatPret` rende `[]` ; le cas `la MOA\t` au banc, qui fait rougir la mutation du nom brut ; le décompte corrigé ; deux caractères invisibles du ticket écrits en clair.
+  - **Session lancée** : session_01BxuG31zYeYtZawFUnZxHaj, Sonnet, mode « auto », branche `claude/ticket-65-petits-correctifs`, patch suivant de `main`.
+- 2026-11-20 — 10 h 54 UTC. **PR 145 (ticket 65) livrée** au sommet `2d563fdfdd595445ad68e9402cf9932aed59064f`, plugin 7.37.3. D'après la session :
+  - suite 1 223 sur 1 223 ;
+  - 12 mutations rouges sur 19, les 7 autres non jouées et listées ;
+  - une revue de ticket, sans bloquant, une réserve S19 écartée avec sa raison.
+
+  Premier tour de contre-relecture lancé, effort moyen, avec les 7 mutations à jouer.
+- 2026-11-20 — 11 h 06 UTC. **PR 145 : premier tour, au sommet `2d563fd`, « conforme après retouches ». 0 bloquant, 3 mineurs, aucun dans le code.**
+  - Gate joué avant et après sur `main` et sur la branche : sortie identique, aucun `\p{Cc}` dans une ligne `Sensibles:`.
+  - Les 65 caractères `\p{Cc}` essayés à toutes les positions sont refusés comme la décision le veut.
+  - La réserve S19 écartée par la session tient.
+  - Mutations : 13 jouées, 12 rouges. M4, qui déplace le paragraphe dans `SKILL.md`, reste verte : le test, imposé par le ticket, ne tient que la présence de la phrase.
+  - Bancs : 171 sur 171. CI : 1 223 sur 1 223.
+  - Décisions de l'architecte :
+    - m1, les preuves manquantes du corps de la PR : à recopier, sans commit, donc le sommet ne bouge pas. **Aucun verdict `non conforme` n'est écrit** : un `non conforme` sur un sommet le bloque pour de bon chez le capitaine, alors que la retouche ne le change pas. Le verdict `conforme` viendra après lecture du corps.
+    - m2 et m3 sont laissés : M4 est le m6 déjà relevé au ticket ; le commentaire de `trim()` est incomplet mais sans effet. Tous deux vont au prochain passage sur ces fichiers.
+- 2026-11-20 — 11 h 08 UTC. **PR 145 ordonnée** au sommet `2d563fd`.
+  - Le corps de la PR est retouché sans commit, et l'architecte l'a lu.
+  - La Vérification 4 est tenue par la contre-relecture : le gate des deux versions, joué sur les deux arbres, donne une sortie identique.
+  - La PR est clean et ses quatre contrôles sont verts, relu à la source.
+  - Sur la PR : le verdict `conforme`, qui note les deux mineurs laissés, l'ordre et le label. Le capitaine et la session sont prévenus.
+  - Le premier tour ne portait aucun constat de code, donc aucun second tour : `P-65` prévoit deux tours au plus, et rien n'a changé à relire.
