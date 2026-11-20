@@ -17,10 +17,14 @@ import { spawn } from "node:child_process";
 // commit « suite (#2) », un commentaire) n'est pas un appel. Dans le doute (`codeSeul` rend `null`), le banc se joue entier.
 // Limites : ne sont reconnus que les sous-tests à nom littéral (`t.test("…"`) et `describe`, `suite`, `it` ; un
 // sous-test au nom calculé (`t.test(nom, …)`), ou un `test(` global appelé dans le corps d'un test (Node 22 l'attache
-// au test qui tourne), n'est pas vu. `codeSeul` est une lecture, pas un analyseur : toute `/` dont la nature ne se lit pas
-// sûrement met le banc dans le doute, donc entier (un `}`, `++`, `--` ou `.` avant la `/`, un `of`, `let`, `yield` ou
-// `await`, une étiquette après `break` ou `continue`, une pile de parenthèses déséquilibrée), au prix du temps.
-// `)` : la `/` qui suit le `)` d'un `if`, `while`, `for` ou `with` ouvre une expression régulière, après tout autre `)` c'est une division.
+// au test qui tourne), n'est pas vu. `codeSeul` est une lecture, pas un analyseur : une `/` est une division seulement
+// quand le jeton qui la précède la rend certaine (un nombre, la fin d'une chaîne ou d'un gabarit, `]`, un identifiant qui n'est
+// pas un mot ECMAScript ou un nom de propriété, le `)` d'une `(` que ne précède aucun mot ECMAScript) ; elle ouvre une
+// expression régulière en tête de source, après un ponctuateur ou un opérateur ouvrant, après `return`, `typeof`, `case`, `do`,
+// `else`, `in`, `instanceof`, `new`, `delete`, `void`, `throw`, `yield` ou `await`, et après le `)` d'un `if`, `while`, `for`
+// ou `with` ; partout ailleurs (`}`, `++`, `--`, une étiquette après `break` ou `continue`, tout autre mot ECMAScript, le `)`
+// d'une `(` que précède un autre mot, une pile de parenthèses déséquilibrée), le banc est dans le doute, donc joué entier,
+// au prix du temps.
 // Un banc joué entier dont aucun nom n'est lu pèse 1 et a la borne minimale, quelle que soit sa taille (ticket 64).
 
 const NOM = /^test\(\s*(?:"((?:[^"\\\n]|\\["\\'`])*)"|'((?:[^'\\\n]|\\["\\'`])*)'|`((?:[^`\\$\n]|\\["\\'`]|\$(?!\{))*)`)\s*,/gm;
@@ -33,12 +37,20 @@ export function nomsDesTests(source) {
 // Un sous-test : `<param>.test("…"` (un nom littéral en premier argument), ou `describe`, `suite`, `it` appelés.
 const SOUS_TEST = /\b\w+\.test\s*\(\s*["'`]|\b(?:describe|suite|it)\s*\(/;
 
-const MOTS_AVANT_REGEX = new Set(["return", "typeof", "case", "do", "else", "in", "new", "delete", "void", "throw", "instanceof"]);
-// Des mots qui ne sont pas réservés partout (`of`, `let`) ou dont le sens dépend du contexte (`yield`, `await`) : la `/` qui les suit est dans le doute.
-const MOTS_DU_DOUTE = new Set(["of", "yield", "await", "let"]);
+// Les mots réservés et contextuels d'ECMAScript (ES2024) : les mots réservés, ceux du mode strict, et `let`, `static`, `yield`,
+// `await`, `async`, `of`, `get`, `set`. Un test du banc prouve que cette liste est entière contre la liste écrite dans le test.
+export const MOTS_ECMASCRIPT = new Set([
+  "await", "break", "case", "catch", "class", "const", "continue", "debugger", "default", "delete", "do", "else", "enum",
+  "export", "extends", "false", "finally", "for", "function", "if", "import", "in", "instanceof", "new", "null", "return",
+  "super", "switch", "this", "throw", "true", "try", "typeof", "var", "void", "while", "with", "yield",
+  "implements", "interface", "let", "package", "private", "protected", "public", "static",
+  "async", "of", "get", "set",
+]);
+// Après ces mots, une `/` ouvre une expression régulière.
+const MOTS_AVANT_REGEX = new Set(["return", "typeof", "case", "do", "else", "in", "instanceof", "new", "delete", "void", "throw", "yield", "await"]);
 // Le `)` d'un de ces mots ferme une condition : la `/` qui le suit ouvre une expression régulière.
 const MOTS_AVANT_CONDITION = new Set(["if", "while", "for", "with"]);
-const PONCTUATION_AVANT_REGEX = new Set(["(", "[", "{", ",", ";", ":", "?", "!", "=", "&", "|", "^", "~", "+", "-", "*", "%", "<", ">"]);
+const PONCTUATION_AVANT_REGEX = new Set(["(", "[", "{", ",", ";", ":", "?", "!", "=", "&", "|", "^", "~", "+", "-", "*", "%", "<", ">", "..."]);
 const FIN_DE_LIGNE = /[\n\r\u2028\u2029]/;
 const DEBUT_DE_MOT = /[A-Za-z_$\u0080-￿]/;
 const SUITE_DE_MOT = /[\w$\u0080-￿]/;
@@ -107,16 +119,21 @@ export function codeSeul(source) {
       continue;
     }
     if (c === "/") {
+      // Une `/` est une division seulement quand le jeton qui la précède la rend certaine ; elle ouvre une expression
+      // régulière après un ouvrant sûr ; partout ailleurs, le doute (A-177).
       let regex;
-      if (avant === null || avant.sorte === "doute") return null;
-      if (avant.sorte === "litteral") regex = false;
+      if (avant === null) regex = true;
+      else if (avant.sorte === "litteral" || avant.sorte === "ident") regex = false;
       else if (avant.sorte === "mot") {
-        if (MOTS_DU_DOUTE.has(avant.valeur)) return null;
-        regex = MOTS_AVANT_REGEX.has(avant.valeur);
-      } else if (avant.valeur === ")") regex = MOTS_AVANT_CONDITION.has(avant.mot);
-      else if (avant.valeur === "]") regex = false;
-      else if (PONCTUATION_AVANT_REGEX.has(avant.valeur)) regex = true;
-      else return null; // `}`, `++`, `--`, `.` … : la nature de la `/` ne se lit pas
+        if (!MOTS_AVANT_REGEX.has(avant.valeur)) return null;
+        regex = true;
+      } else if (avant.sorte === "ponct" && avant.valeur === ")") {
+        if (MOTS_AVANT_CONDITION.has(avant.mot)) regex = true;
+        else if (avant.mot === "") regex = false;
+        else return null; // le `)` d'une `(` que précède un autre mot de la liste : `for await`, `catch`, `function`…
+      } else if (avant.sorte === "ponct" && avant.valeur === "]") regex = false;
+      else if (avant.sorte === "ponct" && PONCTUATION_AVANT_REGEX.has(avant.valeur)) regex = true;
+      else return null; // `}`, `++`, `--`, `.`, une étiquette … : la nature de la `/` ne se lit pas
       if (!regex) { i++; avant = { sorte: "ponct", valeur: "/" }; continue; }
       i++;
       let classe = false;
@@ -139,11 +156,12 @@ export function codeSeul(source) {
       const d = i;
       while (i < n && SUITE_DE_MOT.test(source[i])) i++;
       const mot = source.slice(d, i);
-      // Un nom de propriété (`a.return`, `a?.of`) est un identifiant ; un identifiant derrière `break` ou `continue` (une
-      // étiquette) peut finir l'instruction à la fin de ligne : la `/` qui suit est dans le doute.
-      if (avant?.sorte === "ponct" && avant.valeur === ".") avant = { sorte: "mot", valeur: "" };
+      // Un nom de propriété (`a.return`, `a?.of`) est un identifiant ; une étiquette derrière `break` ou `continue` peut finir
+      // l'instruction à la fin de ligne : la `/` qui suit est dans le doute ; un mot ECMAScript garde son sens de mot.
+      if (avant?.sorte === "ponct" && avant.valeur === ".") avant = { sorte: "ident" };
       else if (avant?.sorte === "mot" && (avant.valeur === "break" || avant.valeur === "continue")) avant = { sorte: "doute" };
-      else avant = { sorte: "mot", valeur: mot };
+      else if (MOTS_ECMASCRIPT.has(mot)) avant = { sorte: "mot", valeur: mot };
+      else avant = { sorte: "ident" };
       continue;
     }
     if (/[0-9]/.test(c)) {
@@ -152,6 +170,7 @@ export function codeSeul(source) {
       continue;
     }
     if ((c === "+" || c === "-") && source[i + 1] === c) { i += 2; avant = { sorte: "ponct", valeur: c + c }; continue; }
+    if (c === "." && source[i + 1] === "." && source[i + 2] === ".") { i += 3; avant = { sorte: "ponct", valeur: "..." }; continue; }
     if (c === "(") { parentheses.push(avant?.sorte === "mot" ? avant.valeur : ""); i++; avant = { sorte: "ponct", valeur: "(" }; continue; }
     if (c === ")") {
       if (parentheses.length === 0) return null; // pile déséquilibrée
@@ -274,8 +293,10 @@ export function conclure(liste, resultats, { parallele, duree, depasse, plancher
 export function lancer(args, { cwd, env, borne }) {
   const debut = Date.now();
   let arreter;
+  let pidEnfant;
   const promesse = new Promise((fin) => {
     const enfant = spawn(process.execPath, args, { cwd, env, detached: true, stdio: ["ignore", "pipe", "pipe"] });
+    pidEnfant = enfant.pid;
     let sortie = "";
     let tue = false;
     let arrete = false;
@@ -318,6 +339,7 @@ export function lancer(args, { cwd, env, borne }) {
     enfant.on("error", () => rendre(null, null));
   });
   promesse.arreter = () => arreter?.();
+  promesse.pid = pidEnfant;
   return promesse;
 }
 

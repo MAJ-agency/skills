@@ -7,7 +7,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
-import { aDesSousTests, bilan, codeSeul, conclure, couverture, lancer, motif, nomsDesTests, ordre, pireCas, recit, RAPPORTEUR, travaux } from "./tranches.mjs";
+import { aDesSousTests, bilan, codeSeul, conclure, couverture, lancer, MOTS_ECMASCRIPT, motif, nomsDesTests, ordre, pireCas, recit, RAPPORTEUR, travaux } from "./tranches.mjs";
 import { existsSync, readdirSync, readFileSync as lire } from "node:fs";
 import { fileURLToPath } from "node:url";
 
@@ -74,37 +74,88 @@ test("`codeSeul` garde la longueur, les fins de ligne et les délimiteurs, garde
   }
 });
 
-test("`codeSeul` ne cache aucun appel : une `/` qui ne se lit pas sûrement met le banc dans le doute (contre-relecture du ticket 64)", () => {
+// La liste des mots d'ECMAScript (ES2024), écrite ici contre celle de `tranches.mjs` : mots réservés, mots réservés du mode
+// strict, et les mots contextuels `let`, `static`, `yield`, `await`, `async`, `of`, `get`, `set`.
+const RESERVES = "await break case catch class const continue debugger default delete do else enum export extends false finally for function if import in instanceof new null return super switch this throw true try typeof var void while with yield".split(" ");
+const STRICT = "implements interface let package private protected public static yield".split(" ");
+const CONTEXTUELS = "let static yield await async of get set".split(" ");
+const AVANT_REGEX = ["return", "typeof", "case", "do", "else", "in", "instanceof", "new", "delete", "void", "throw", "yield", "await"];
+
+test("`codeSeul` : la liste des mots d'ECMAScript est entière ; une `/` est une division sur certitude seule, une regex après un ouvrant sûr, le doute ailleurs (A-177)", () => {
+  assert.deepEqual([...MOTS_ECMASCRIPT].sort(), [...new Set([...RESERVES, ...STRICT, ...CONTEXTUELS])].sort());
   const T = 't.test("y", f);';
-  // Des mots de la liste qui sont des noms de propriété ou des identifiants : jamais une expression régulière.
-  for (const s of [`x = a.return / 2; ${T} c = d / e;`, `x = m.delete / 2; ${T} c = d / e;`, `x = a?.typeof / 2; ${T} c = d / e;`, `const of = 4; x = of / 2; ${T} c = d / e;`])
-    assert.ok(aDesSousTests(s), s);
-  // `of`, `let`, `yield`, `await` : la `/` qui les suit est dans le doute.
-  for (const m of ["of", "let", "yield", "await"]) assert.equal(codeSeul(`x = ${m} / 2;`), null, m);
-  // Une étiquette derrière `break` ou `continue` : l'instruction peut finir à la fin de ligne, la `/` suivante est une regex.
+  // Une regex en tête de source, ou après un mot qui ouvre une expression : lue (le `t.test` qui suit est vu, sans doute).
+  const apres = (avant) => `${avant} /"/.test(b); ${T} // "`;
+  assert.ok(aDesSousTests(`/"/.test(b); ${T} // "`) && codeSeul(`/"/.test(b); ${T} // "`) !== null, "en tête de source");
+  for (const m of AVANT_REGEX) {
+    assert.notEqual(codeSeul(apres(m)), null, m);
+    assert.ok(aDesSousTests(apres(m)), m);
+  }
+  // Tout autre mot de la liste : la `/` qui le suit est dans le doute.
+  for (const m of MOTS_ECMASCRIPT) {
+    if (AVANT_REGEX.includes(m)) continue;
+    assert.equal(codeSeul(`${m} / 2; ${T} c = d / e;`), null, m);
+  }
+  // Une division certaine, lue sans doute : après un nombre, une chaîne, un gabarit, `]`, un identifiant, un nom de propriété
+  // (même celui d'un mot de la liste), le `)` d'une `(` sans mot.
+  for (const s of ["x = 1 / 2;", "x = 'a' / 2;", "x = `a` / 2;", "x = a[0] / 2;", "x = a / 2;", "x = a.return / 2;", "x = a?.of / 2;", "x = a.if / 2;", "x = (a + b) / 2;", "x = f(a) / 2;", "x = o.if(a) / 2;"]) {
+    const complet = `${s} ${T} c = d / e;`;
+    assert.notEqual(codeSeul(complet), null, s);
+    assert.ok(aDesSousTests(complet), s);
+  }
+  // Le `)` d'une `(` que précède un autre mot de la liste : le doute ; celui de `if`, `while`, `for`, `with` : une regex.
+  for (const m of ["catch", "function", "switch", "return", "typeof", "async"]) assert.equal(codeSeul(`${m} (a) / 2; ${T}`), null, m);
+  assert.equal(codeSeul(`for await (const x of y) /"/.test(b) && ${T} // "`), null);
+  for (const m of ["if", "while", "for", "with"]) assert.notEqual(codeSeul(`${m} (a) /"/.test(b) && ${T} // "`), null, m);
+  // `}`, `++`, `--` : le doute.
+  for (const s of ["if (a) {} / 2;", "x = i++ / 2;", "x = i-- / 2;"]) assert.equal(codeSeul(s), null, s);
+  // Une `/` après `...` ouvre une regex.
+  assert.notEqual(codeSeul(`f(.../"/.source); ${T} // "`), null);
+});
+
+test("`codeSeul` : une étiquette après `break` ou `continue`, une pile de parenthèses déséquilibrée, une continuation de ligne : le doute (A-176)", () => {
+  const T = 't.test("y", f);';
   for (const m of ["break", "continue"]) {
     const s = `a: for (;;) { ${m} a\n/"/.test(b); ${T} // "\n}`;
     assert.equal(codeSeul(s), null, s);
     assert.ok(aDesSousTests(s), s);
   }
-  // Le `)` d'un `if`, `while`, `for` ou `with` : la `/` qui suit ouvre une expression régulière ; après tout autre `)`, une division.
-  for (const m of ["if", "while", "for", "with"]) {
-    const s = `${m} (a) /"/.test(b) && ${T} // "`;
-    assert.ok(aDesSousTests(s), s);
-    assert.notEqual(codeSeul(s), null, s);
-  }
-  const division = `x = f(a) / 2; ${T} c = d / e;`;
-  assert.notEqual(codeSeul(division), null);
-  assert.ok(aDesSousTests(division));
-  // Une pile de parenthèses déséquilibrée : le doute.
   for (const s of ["a = 1);", "f((a);", "f(a", "x = ) / 2;"]) assert.equal(codeSeul(s), null, s);
-  // Un `]` avant une `/` est une division, lue sans doute ; `typeof` ouvre une expression régulière.
-  const crochet = `x = a[0] / 2; ${T} c = d / e;`;
-  assert.notEqual(codeSeul(crochet), null);
-  assert.ok(aDesSousTests(crochet));
-  assert.ok(aDesSousTests('x = typeof /"/; t.test("x", () => {}); // "'));
   // Une continuation de ligne dans une chaîne : le doute.
   assert.equal(codeSeul('const s = "a\\\nb";'), null);
+  // Un nom de propriété, même celui d'un mot de la liste, est un identifiant : la division qui le suit est lue.
+  for (const s of [`x = a.return / 2; ${T} c = d / e;`, `x = m.delete / 2; ${T} c = d / e;`, `x = a?.typeof / 2; ${T} c = d / e;`]) {
+    assert.notEqual(codeSeul(s), null, s);
+    assert.ok(aDesSousTests(s), s);
+  }
+});
+
+test("`codeSeul` : les six sources de la contre-relecture et ses cas ne cachent aucun appel (régressions par rapport à `main`)", () => {
+  const T = 't.test("y", f);';
+  const sources = [
+    `for (;;) { break\n/"/.test(s); ${T} // "\n}`,
+    `for (;;) { continue\n/"/.test(s); ${T} // "\n}`,
+    `debugger\n/"/.test(s); ${T} // "`,
+    `async function g() { for await (const x of y) /"/.test(b) && ${T} // "\n}`,
+    `export default /"/.test(b) && ${T} // "`,
+    `class A extends /"/ {}; ${T} // "`,
+  ];
+  for (const s of sources) assert.ok(aDesSousTests(s), s);
+  const cas = [
+    `x = a?.of / 2; ${T} c = d / e;`, `x = x.let / y; ${T} c = d / e;`,
+    `label: for (;;) { continue label\n/"/.test(s); ${T} // "\n}`,
+    `if ((a)) /"/.test(b) && ${T} // "`, `x = foo(if_) / 2; ${T} c = d / e;`,
+    `x = f("(") / 2; ${T} c = d / e;`, `x = /\\(/; if (a) /"/.test(b) && ${T} // "`,
+    `/* ( */ if (a) /"/.test(b) && ${T} // "`, "x = `(`; if (a) /\"/.test(b) && " + T + ' // "',
+    `f((a); ${T}`, `a); ${T}`,
+    `for (;;) { break\n/"/.test(s); ${T} // "\n}`, `for (;;) { continue\n/"/.test(s); ${T} // "\n}`, `debugger\n/"/.test(s); ${T} // "`,
+    `async function g() { for await (const x of y) /"/.test(b) && ${T} // "\n}`,
+    `if (b) {} else if (a) /"/.test(b) && ${T} // "`, `if /* c */ (a) /"/.test(b) && ${T} // "`,
+    `x = o.if(a) / 2; ${T} c = d / e;`, `if (f(a)) /"/.test(b) && ${T} // "`,
+    `do {} while (x) /"/.test(b) && ${T} // "`, "x = `${ (a) }`; if (a) /\"/.test(b) && " + T + ' // "',
+    `x = [...of / 2]; ${T} c = d / e;`, `function* g() { yield /"/; ${T} // "\n}`, "let / 2;",
+  ];
+  for (const s of cas) assert.ok(aDesSousTests(s), s);
 });
 
 test("aucun banc posé du plugin n'est pris pour un banc à sous-tests, et aucun n'est dans le doute", () => {
@@ -230,22 +281,47 @@ test("`recit`, `bilan` et `conclure` : un travail tué nomme sa borne, le plafon
   assert.match(trou.fautes.join("\n"), /a\.test\.mjs : « x » a tourné 0 fois dans sa tranche/);
 });
 
+// Joue `lancer` sous un garde-fou : le groupe de l'enfant est tué dans un `finally`, et une promesse qui ne se résout pas fait
+// rougir le test au lieu de le faire pendre.
+async function jouer(args, options, { attente = 10_000, verifier } = {}) {
+  const p = lancer(args, options);
+  let minuterie;
+  try {
+    const r = await Promise.race([p, new Promise((_, refuse) => (minuterie = setTimeout(() => refuse(new Error(`lancer : non résolu en ${attente} ms`)), attente)))]);
+    await verifier?.(r);
+    return r;
+  } finally {
+    clearTimeout(minuterie);
+    for (const cible of [-p.pid, p.pid]) {
+      try {
+        process.kill(cible, "SIGKILL");
+      } catch {}
+    }
+  }
+}
+
 test("`lancer` : un travail tué se résout à sa borne, même quand un petit-enfant tient ses flux, et son groupe est mort", { timeout: 30_000 }, async () => {
+  const env = { PATH: process.env.PATH };
   const script = "const { spawn } = require('node:child_process'); const e = spawn('sleep', ['6'], { stdio: 'inherit' }); console.log(e.pid); setInterval(() => {}, 1000);";
   const debut = Date.now();
-  const r = await lancer(["-e", script], { cwd: tmpdir(), env: { PATH: process.env.PATH }, borne: 1_000 });
+  // Le petit-enfant est mort avant tout nettoyage : le kill de `lancer` a tué le groupe, pas seulement l'enfant.
+  const r = await jouer(["-e", script], { cwd: tmpdir(), env, borne: 1_000 }, {
+    verifier: async (resultat) => {
+      assert.equal(resultat.tue, true);
+      assert.ok(Date.now() - debut < 3_000, `résolue en ${Date.now() - debut} ms`);
+      const pid = Number(resultat.sortie.split("\n")[0]);
+      assert.ok(pid > 0, resultat.sortie);
+      await new Promise((fin) => setTimeout(fin, 300));
+      const stat = `/proc/${pid}/stat`;
+      assert.ok(!existsSync(stat) || /^\d+ \(.*\) Z/.test(lire(stat, "utf8")), "le petit-enfant est mort");
+    },
+  });
   assert.equal(r.tue, true);
-  assert.ok(Date.now() - debut < 3_000, `résolue en ${Date.now() - debut} ms`);
-  const pid = Number(r.sortie.split("\n")[0]);
-  assert.ok(pid > 0, r.sortie);
-  await new Promise((fin) => setTimeout(fin, 300));
-  const stat = `/proc/${pid}/stat`;
-  assert.ok(!existsSync(stat) || /^\d+ \(.*\) Z/.test(lire(stat, "utf8")), "le petit-enfant est mort");
   // Un petit-enfant détaché (`setsid`) sort du groupe : il survit au kill, mais la résolution se fait sur `exit`, flux
   // détruits, à l'heure. Sans cela (close attendu, tube tenu par le petit-enfant), elle attendrait ses 8 s.
   const detache = "const { spawn } = require('node:child_process'); const e = spawn('sleep', ['8'], { stdio: 'inherit', detached: true }); console.log(e.pid); setInterval(() => {}, 1000);";
   const debutDetache = Date.now();
-  const d = await lancer(["-e", detache], { cwd: tmpdir(), env: { PATH: process.env.PATH }, borne: 1_000 });
+  const d = await jouer(["-e", detache], { cwd: tmpdir(), env, borne: 1_000 }, { attente: 5_000 });
   try {
     assert.equal(d.tue, true);
     assert.ok(Date.now() - debutDetache < 3_000, `résolue en ${Date.now() - debutDetache} ms`);
@@ -255,7 +331,7 @@ test("`lancer` : un travail tué se résout à sa borne, même quand un petit-en
     } catch {}
   }
   // Un travail qui finit seul : sortie complète, pas tué.
-  const fini = await lancer(["-e", "console.log('a'); console.error('b');"], { cwd: tmpdir(), env: { PATH: process.env.PATH }, borne: 30_000 });
+  const fini = await jouer(["-e", "console.log('a'); console.error('b');"], { cwd: tmpdir(), env, borne: 30_000 });
   assert.equal(fini.tue, false);
   assert.equal(fini.code, 0);
   assert.deepEqual(fini.sortie.split("\n").sort(), ["a", "b"]);
