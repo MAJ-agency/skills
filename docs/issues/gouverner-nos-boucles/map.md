@@ -1108,3 +1108,9 @@ La session de suite fait, dans cet ordre :
     - la limite `await`/`yield` de `tranches.mjs` ;
     - la sonde `/security-review` avant le lot 4 ;
     - les lots 4 à 9 de la spec.
+- 2026-11-20 — 10 h 04 UTC. **Contrôle de vie, et la suite engagée.**
+  - Le capitaine neuf est en veille (1,59 $ en une heure) ; les PR 44 et 56, hors programme, sont inchangées.
+  - Les 21 tickets de l'autre programme sont tous « Fait » : le lot 4 n'attend plus rien de lui.
+  - **Sonde `/security-review` lancée** (`A-162`, préalable au lot 4) : session_01BxuG33NCAYxm9fbocULFdx, Opus, mode « auto », montage local seulement. Les sous-agents lisent-ils le clone ou la base ?
+  - **Ticket 65 en rédaction**, par un agent local sur Sonnet. Il porte les petits correctifs : le `\p{Cc}` d'`A-175` et la limite `await`/`yield` de `tranches.mjs`.
+  - L'alerte hebdomadaire est inchangée. Prochain réveil à 11 h 04.
