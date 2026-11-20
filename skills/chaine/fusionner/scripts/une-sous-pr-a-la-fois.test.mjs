@@ -486,7 +486,8 @@ test("boucle.sh : une lecture des commentaires en panne ne donne pas le sujet : 
   ci(d, "IN_PROGRESS");
   const marque = join(d.racine, "panne-81");
   writeFileSync(marque, "");
-  const fauxGh = new URL("../../sujet/scripts/faux-gh.mjs", import.meta.url).pathname;
+  // Posé dans un projet, faux-gh.mjs est à côté (scripts/chaine/) ; dans le plugin, il est dans le skill sujet.
+  const fauxGh = new URL(existsSync(new URL("./faux-gh.mjs", import.meta.url)) ? "./faux-gh.mjs" : "../../sujet/scripts/faux-gh.mjs", import.meta.url).pathname;
   writeFileSync(join(d.racine, "bin", "gh"), `#!/bin/sh\ncase " $* " in *issues/81/comments*) case " $* " in *" --jq "*) ;; *) if [ -f ${JSON.stringify(marque)} ]; then rm -f ${JSON.stringify(marque)}; echo "gh: Bad Gateway (HTTP 502)" >&2; exit 1; fi ;; esac ;; esac\nexec node ${JSON.stringify(fauxGh)} "$@"\n`, { mode: 0o755 });
   r = tour(d);
   assert.ok(!existsSync(marque), "la lecture en panne a bien eu lieu");
