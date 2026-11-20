@@ -1033,3 +1033,8 @@ La session de suite fait, dans cet ordre :
   - B5 : la séquence du commit d'essai, pas à pas.
 
   **A-173** : le délai est le plafond de 1 800 s, et le pire cas calculé (14 440 s) ne s'écrit qu'au bilan. Point de plus, noté au ticket : U+2028 est permis dans une chaîne (`revue-exigee.test.mjs:345`). Le ticket attend l'entrée de la PR 141 pour être lancé.
+- 2026-11-20 — 06 h 12 UTC. **PR 143 : premier tour sur la PR au sommet `0b6a5eb`, « conforme après retouches », 0 bloquant, 11 mineurs.**
+  - Comptes : banc 36 sur 36, `depot` 66 sur 66. 34 mutations jouées, dont 13 vertes : 7 trous du banc et 6 équivalentes.
+  - Essais a1 à a7 : diff relu et résolution découpés ensemble, noms hostiles en lots, binaires de la seule résolution.
+  - **A-174** : six retouches. Verdict `non conforme` écrit sur la PR.
+  - Rapport et essais publiés sous `63-annexes/contre-relecture-0b6a5eb/`.
