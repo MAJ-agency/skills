@@ -1119,3 +1119,8 @@ La session de suite fait, dans cet ordre :
   - Le préambule de la commande et chaque sous-agent (`pwd`, Read en relatif) lisent la base. La faille n'est jamais vue.
   - Le filtre de faux positifs, à qui on donne le constat, lit le fichier de la base et le juge faux positif à 1/10, deux fois sur deux.
   - Ce montage n'est pas celui du skill : le clone de C4 est `<session>/.relecture-securite`, un dossier de travail où le `cd` tient (`A-147`). **Second montage demandé**, avec le clone à cet endroit : les sous-agents suivent-ils le dossier courant de la session, ou son dossier de départ ? La décision sur le lot 4 l'attend.
+- 2026-11-20 — 10 h 12 UTC. **Sonde `/security-review`, second montage, celui de C4** (clone sous `<session>/.relecture-securite`).
+  - Le `cd` tient. Le préambule et les sous-agents lisent le clone.
+  - Une injection réelle, notée 7/10, est écartée par le seuil de 8 de la commande : le rapport est vide.
+  - **A-178** : C4 tient tel qu'il est dans `main` ; le lot 4 n'attend plus la sonde. Un rapport vide ne prouve pas l'absence de faille, et l'axe Règles garde ses critères ; c'est pour le prochain ticket du skill `relecture`.
+  - La session de la sonde est archivée. Elle n'a rien poussé ; son clone et sa ligne d'exclusion sont restés dans son seul conteneur, que l'archivage libère.
