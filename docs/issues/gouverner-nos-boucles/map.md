@@ -1064,3 +1064,10 @@ La session de suite fait, dans cet ordre :
   - Vérifié à la source : l'arbre de `main` (`cde0674…`) est celui du sommet ordonné `eb52035`, et son parent est `860cd9c`.
   - Le ticket est passé à « Fait » et sa session est archivée. Coût de la session Sonnet : 6,31 $ (lu à l'archivage), pour une PR passée en deux tours.
   - Le ticket 64 suivra `main` en 7.37.2.
+- 2026-11-20 — 07 h 15 UTC. **PR 144 (ticket 64) livrée** au sommet `069b1465c5594a19268f396aa5ccedfe1219a643`, plugin 7.37.2 ; `main` (`b944606`) fusionné par un commit de fusion. Ce qu'en dit la session :
+  - Décision 17 jouée à la lettre : le commit d'essai `e921846` donne `bancs` en `failure` en CI, sous git 2.56.1, avec `expected` égal à `actual`, recopié dans la PR ; puis le correctif `f77f569`.
+  - Suite entière : 1 218 sur 1 218 en 616 s. En CI, `poses` prend 616 s sur 1 800, soit 34 %.
+  - Mutations : 29 tuées sur 31 ; les 2 vivantes sont celles que le ticket dit « vert possible ».
+  - Revue de ticket : 3 « à corriger », tous corrigés.
+
+  **Premier tour de contre-relecture lancé**, effort moyen : la PR est ordinaire, des bancs et non un skill sensible.
