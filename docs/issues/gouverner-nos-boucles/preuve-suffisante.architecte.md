@@ -55,6 +55,7 @@ Capitaines: Anchorpost — `session_01BxuG34gQKsuhqcM71Hgxxi` (Opus, depuis le 2
 - `A-232` — 2026-11-20. Accord sur #362 (`.64`, d2feddb), après lecture du diff : une seule classe `INVISIBLE_CHARACTER` (Cf, Default_Ignorable_Code_Point, U+2800), partagée par le rapport et par `check`. La fille fait un petit push : U+2800 écrit en échappement, et le commentaire de `missingTargets` mis à jour. Puis une vérification bornée du delta, et le label sans repasser par moi. L'import de `check` depuis `compare/` et la moitié de paire de substitution isolée vont dans `.22`. Raison : un caractère invisible écrit en littéral dans le code qui neutralise les caractères invisibles ne se relit pas.
 ## Fog
 
+- Les scripts de la chaîne en 7.12.3 (Anchorpost) ont tenu pour vert un contrôle `qualite` « skipped » en double, alors que le vrai tournait encore, sur #330, le 2026-11-20 à 07 h 54. GitHub a refusé la fusion, et rien n'est entré. Reste à vérifier si une version récente du plugin corrige déjà la lecture des contrôles en double ; sinon, il faut un ticket dans le dépôt skills. Le sujet de l'architecte A.
 - La PR 133 porte `Label: contre-revue` : la contre-relecture du sommet repris se fait par un sous-agent de l'architecte B avant l'ordre de fusion.
 
 ## Coût
@@ -148,3 +149,4 @@ Rien encore.
 - 2026-11-20, 06 h 35 UTC — accords sur #358 et #353 ; #352 corrige deux points ; `.64` (#354) en option B ; `.63` (#357, API) lancée. Essai 2.0.0 toujours bloqué sur l'hôte des artefacts. `A-229`, `A-230`.
 - 2026-11-20, 07 h 15 UTC — essais à blanc 2.0.0 faits. Iroki : 0 erreur, et ses 105 prouvées deviennent partielles. Fedora : refusé au groupe 3 (dossiers dans `code`), puis, à tort, au groupe 5, puis au groupe 7 (plancher) par les preuves que le scanner perd. Ticket `.65` (#359), `A-231`. Passation du conducteur poussée (e4a52ea) ; #353 étiquetée (0e5641f) ; relève 5 du conducteur lancée.
 - 2026-11-20, 07 h 50 UTC — relève 5 du conducteur en place (session_01BxuG34FRQdzDTcis5X5tM9, 7.37.1) ; le conducteur sortant et les sessions finies (`.19`, `.38`, `.60`, `.63`, les essais) sont archivés. #353 (`.58`) est entrée (5983ea4). #358 (`.62`) est étiquetée. Le ticket `.65` (#359) porte A-231 et est prêt. #362 (`.64`) a son accord (`A-232`).
+- 2026-11-20, 08 h 00 UTC — develop reporté dans le sujet (934c72a, livraison #361, sans rien sous la CLI). #358 (`.62`) est entrée (2963acc), et `.59` est lancée. Incident du capitaine sur #330, sans dommage (voir Fog).
