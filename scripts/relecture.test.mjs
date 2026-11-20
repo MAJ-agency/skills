@@ -1941,6 +1941,7 @@ test("A-164, une PR de mise à jour : la résolution de la fusion se relit (git 
   const lus = (texte) => { writeFileSync(join(B, "axe-1-lot-resolution.txt"), texte); return p.joue("lus", m, {}, { "<i>": "1 resolution" }); };
   assert.equal(lus(`aucun écart\nFichiers du diff lus :\n${DEPLACEE}\n${RECRITE}\n`).status, 0);
   assert.equal(lus(`aucun écart\nFichiers du diff lus :\n${RECRITE}\n`).status, 1, "un fichier de la résolution non lu");
+  assert.equal(lus(`aucun écart\nFichiers du diff lus :\n${DEPLACEE}\n`).status, 1, "l'autre, non lu non plus");
 });
 
 test("A-164, une résolution « ours » qui jette ce que develop vient d'ajouter : jamais « aucun axe », la résolution se relit et la revue est exigée ; un git sans --remerge-diff : la résolution ne se relit pas, sortie 12", { timeout: 120_000 }, () => {
