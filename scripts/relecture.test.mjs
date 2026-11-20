@@ -120,10 +120,13 @@ test("poser : le skill ne pose aucun script, son script se lance depuis son doss
     assert.ok(sources.some(([s, f]) => `${s}/${f}` === attendue), `l'étape 0 nomme ${attendue}`);
   for (const [skill, fichier] of sources) {
     const [dossier, nom] = [fichier.slice(0, fichier.lastIndexOf("/")), fichier.slice(fichier.lastIndexOf("/") + 1)];
-    const motif = new RegExp(`^${nom.replace(/[.]/g, "\\.").replace(/\*/g, ".*")}$`);
+    const motif = motifDeSource(nom);
     assert.ok(readdirSync(join(RACINE, CHAINE, skill, dossier)).some((n) => motif.test(n)), `${skill}/${fichier} : source absente`);
   }
   for (const voisin of ["verdict.mjs", "a-juger)"]) assert.ok(etape0.includes(voisin), `l'étape 0 vérifie ${voisin}`);
+  // Un nom de source qui porte un métacaractère n'en fait pas un motif : seul `*` est un joker.
+  for (const [nom, n, attendu] of [["a+b.mjs", "a+b.mjs", true], ["a+b.mjs", "aab.mjs", false], ["a.b", "axb", false], ["(x)|y.md", "y.md", false], ["c\\d.sh", "c\\d.sh", true], ["[ab].md", "a.md", false], ["diff-*.sh", "diff-revue.sh", true]])
+    assert.equal(motifDeSource(nom).test(n), attendu, `le motif de « ${nom} » ${attendu ? "prend" : "ne prend pas"} « ${n} »`);
 });
 
 test("deux gravités, pas trois, et un mot par sens : ni « à corriger », ni « mineur », ni « label », et « Relecteur » ne nomme que le rôle", () => {
@@ -638,7 +641,7 @@ const TOTAL = "apps/api/src/facture/total.ts";
 const JETON = "apps/api/src/auth/jeton.ts";
 const INDEX_ADR = { chemin: "docs/adr/README.md", commande: "node scripts/docs/adr-index.mjs" };
 /** L'enveloppe de l'outil Bash : la commande dans une liste `&&`, le dossier courant noté si elle sort en 0. */
-const OUTIL = 'eval "$1" && pwd -P >| "$2"';
+const OUTIL = 'eval "$1" && pwd -P >| "$RELECTURE_NOTE"';
 /** Une commande que SKILL.md écrit en code, entre accents graves, et qui commence ainsi ; une seule. */
 const ligneDe = (debut) => {
   const tete = `bash '<dossier du skill>/scripts/gestes.sh' ${debut}`;
@@ -664,6 +667,8 @@ const lignesC4 = () => {
   assert.deepEqual(reste, [], "le bloc de C4 : deux lignes");
   return { aller, retour };
 };
+/** Le motif d'un nom de source de l'étape 0 : `*` vaut tout, et tout autre métacaractère se lit tel quel. */
+const motifDeSource = (nom) => new RegExp(`^${nom.replace(/[\\^$.+?()[\]{}|]/g, "\\$&").replace(/\*/g, ".*")}$`);
 const listeDe = (fichier) => readFileSync(fichier, "utf8").split("\n").filter(Boolean);
 
 function projetJouet(indexDeLaBase = [INDEX_ADR]) {
@@ -750,12 +755,14 @@ function projetJouet(indexDeLaBase = [INDEX_ADR]) {
    */
   const outil = (texteAvecMarqueurs, m, plus = {}, valeurs = {}) => {
     const dossier = brouillonsDe(m);
-    const texte = Object.entries({ "<dossier du skill>": join(RACINE, SKILL), "<brouillons>": dossier, "<base>": m.base, "<tête>": m.tete, "<sommet>": m.sommet, ...valeurs })
+    // Les deux chemins absolus entrent par l'environnement, jamais dans le texte évalué : chaque marqueur, entre
+    // apostrophes dans SKILL.md, devient `'"$RELECTURE_…"'`, ce que bash lit comme le chemin lui-même.
+    const texte = Object.entries({ "<dossier du skill>": `'"$RELECTURE_SKILL"'`, "<brouillons>": `'"$RELECTURE_BROUILLONS"'`, "<base>": m.base, "<tête>": m.tete, "<sommet>": m.sommet, ...valeurs })
       .reduce((t, [de, vers]) => t.split(de).join(vers), texteAvecMarqueurs);
     assert.doesNotMatch(texte, /<[a-zé][a-zéè ]*>/, `un marqueur n'est pas remplacé : ${texte}`);
     const cwd = p.cwd;
     const note = join(racine, "pwd-de-l-outil");
-    const r = lancer(cwd, "bash", ["-c", OUTIL, "_", texte, note], "", plus);
+    const r = lancer(cwd, "bash", ["-c", OUTIL, "_", texte], "", { RELECTURE_SKILL: join(RACINE, SKILL), RELECTURE_BROUILLONS: dossier, RELECTURE_NOTE: note, ...plus });
     if (r.status === 0) p.cwd = readFileSync(note, "utf8").trim();
     return { ...r, dossier, arbre: join(dossier, "arbre"), sortie: r.stdout + r.stderr, avant: cwd };
   };
@@ -772,7 +779,7 @@ test("lecteur des commandes du skill : entrées piégées", () => {
   assert.deepEqual(commandes("```bash\nx\n```"), ["x\n"], "dernière ligne sans fin de ligne");
   assert.deepEqual(commandes("```bashx\nx\n```\n"), [], "variante voisine");
   // L'enveloppe de l'outil : `set -e` n'y arrête pas une commande en échec, et le dossier courant tient.
-  const r = spawnSync("bash", ["-c", OUTIL, "_", "set -e; false; echo apres", "/dev/null"], { encoding: "utf8" });
+  const r = spawnSync("bash", ["-c", OUTIL, "_", "set -e; false; echo apres"], { env: { ...process.env, RELECTURE_NOTE: "/dev/null" }, encoding: "utf8" });
   assert.deepEqual([r.status, r.stdout], [0, "apres\n"], "sous l'outil, set -e ne joue pas : aucun bloc collé ne peut compter dessus");
 });
 
