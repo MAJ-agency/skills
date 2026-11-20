@@ -13,6 +13,7 @@ Objectif: {{une phrase}}
 Dépôts: {{les dépôts du programme, et ce que chacun reçoit}}
 Source: {{chemin de l'entrée brute (passation, notes, artefact) — ni spec ni décision}}
 Capitaines: {{par dépôt : session_id, ou « absent »}}
+Relecteurs: {{par dépôt : session_id du Relecteur (régime 8), ou « absent »}}
 
 ## Chantiers
 

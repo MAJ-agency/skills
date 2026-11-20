@@ -48,7 +48,7 @@ Cas laissés à un autre ticket (`T3`, (d)) : <cas `<règle>#<id>` porté par `<
 
 Aucune ligne ne s'ajoute à l'en-tête, aucune ne s'y déplace. La commande de contrôle (`gestes.sh controle`, étape 8 de `SKILL.md`) relit le brouillon comme la machine le lira : elle se joue avant de publier, puis sur le commentaire publié.
 
-**Limite connue.** Sur une PR qui touche un chemin sensible, le Relecteur compte `incomplet` tout verdict sans la ligne `/security-review: lancée`, un `refusé` compris (`compter`, dans le calcul de décision que `fusionner` pose sous `scripts/chaine/`). Un `refusé` écrit alors que `/security-review` n'a pas pu tourner ne rend donc pas la PR à son auteur : le Relecteur relance la session, au même tour. La session écrit quand même `refusé` : ses constats sont sur la PR, et le verdict dit ce qu'elle a vu.
+**Un refus reste un refus.** Sur une PR qui touche un chemin sensible, le Relecteur compte `incomplet` un `validé` ou un `incomplet` sans la ligne `/security-review: lancée` ; un `refusé` compte `refusé`, avec ou sans cette ligne (`compter`, dans le calcul de décision que `fusionner` pose sous `scripts/chaine/`). Un `refusé` écrit alors que `/security-review` n'a pas pu tourner rend donc la PR à son auteur : il corrige, et le tour suivant rejoue tous les axes, `C4` compris.
 
 ## Remplir le corps
 

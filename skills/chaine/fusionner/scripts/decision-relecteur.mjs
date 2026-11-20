@@ -240,9 +240,10 @@ export function tours(marques, contexte) {
     const sessions = distributions.at(-1).sessions;
     // Le tour se clôt à la première distribution d'un tour de numéro supérieur : abandonné reste abandonné.
     const cloture = Math.min(...marques.distributions.filter((d) => d.tour > numero).map((d) => d.rang), Infinity);
-    // Le verdict tel que le tour le compte : `incomplet` s'il est illisible, s'il a relu un autre sommet, ou si
-    // la PR est sensible sans `/security-review: lancée`.
-    const compter = (v) => ({ ...v, verdict: v.illisible || v.sommet !== sommet || (sensible && v.securite !== 'lancée') ? 'incomplet' : v.verdict });
+    // Le verdict tel que le tour le compte. Un `refusé` lisible compte `refusé`, toujours : un refus ne compte
+    // jamais moins qu'un refus. Un autre verdict se lit `incomplet` s'il est illisible, s'il a relu un autre
+    // sommet, ou si la PR est sensible sans `/security-review: lancée`.
+    const compter = (v) => ({ ...v, verdict: v.verdict !== 'refusé' && (v.illisible || v.sommet !== sommet || (sensible && v.securite !== 'lancée')) ? 'incomplet' : v.verdict });
     // Le dernier verdict d'une session pour ce tour, écrit après la distribution qui l'a nommée la première.
     const dernierVerdict = (session) => {
       const nommee = distributions.find((d) => d.sessions.includes(session)).rang;

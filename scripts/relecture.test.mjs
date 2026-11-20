@@ -377,7 +377,7 @@ test("le gabarit de verdict : la ligne /security-review se retire entière ; non
 
 // Le verdict devant la décision réelle du Relecteur (lot 3a) : la PR porte `à-relire`, une demande, la distribution
 // du tour 2 à cette session, puis le gabarit rempli. `decider` rend le geste que le skill annonce.
-test("le verdict lu par la décision du Relecteur (decider) : validé donne à-fusionner, refusé donne à-reprendre même avec un axe non joué (A-137), incomplet fait relancer la session ; limite : sur une PR sensible, un refusé sans « lancée » est compté incomplet", () => {
+test("le verdict lu par la décision du Relecteur (decider) : validé donne à-fusionner, refusé donne à-reprendre même avec un axe non joué (A-137), incomplet fait relancer la session ; sur une PR sensible, un refusé sans « lancée » reste un refus", () => {
   const g = gabarit();
   const instant = (minute) => `2026-11-19T10:${String(minute).padStart(2, "0")}:00Z`;
   const decide = (verdict, { sensible = false, pied = false } = {}) => {
@@ -397,16 +397,17 @@ test("le verdict lu par la décision du Relecteur (decider) : validé donne à-f
   assert.deepEqual(decide(remplir(nonJoue(g), { verdict: "incomplet", bloquants: 0, securite: "non requise" })), [5, "reecrire", SESSION]);
   // Ce que la garde des chemins sensibles tient : jamais `à-fusionner` sans « lancée ».
   assert.deepEqual(decide(remplir(g, { verdict: "validé", bloquants: 0, securite: "non requise" }), { sensible: true }), [5, "reecrire", SESSION]);
-  // La limite écrite dans verdict.md : PR sensible, `/security-review` exigée et non jouée, un bloquant gardé. La
-  // session écrit `refusé` sans la ligne ; `compter` (decision-relecteur.mjs) le compte `incomplet`, et la PR ne
-  // revient pas à son auteur. Le jour où `compter` change, ce cas rend la règle 4 : retirer alors la limite du skill.
+  // Un refus reste un refus (ticket 66, retouche de `compter`) : PR sensible, `/security-review` exigée et non
+  // jouée, un bloquant gardé. La session écrit `refusé` sans la ligne ; le Relecteur rend la PR à son auteur.
   const sansLigne = remplir(g.replace("/security-review: <lancée | non requise>\n", ""), { verdict: "refusé", bloquants: 1 });
-  assert.deepEqual([lireVerdict(corpsLu(sansLigne)).verdict, lireVerdict(corpsLu(sansLigne)).securite], ["refusé", null], "le lecteur, lui, lit bien refusé");
-  assert.deepEqual(decide(sansLigne, { sensible: true }), [5, "reecrire", SESSION], "limite connue : compté incomplet par le Relecteur");
+  assert.deepEqual([lireVerdict(corpsLu(sansLigne)).verdict, lireVerdict(corpsLu(sansLigne)).securite], ["refusé", null], "le lecteur lit refusé");
+  assert.deepEqual(decide(sansLigne, { sensible: true }), [4, "etiqueter", "à-reprendre"], "un refus reste un refus : la PR revient à son auteur");
   assert.deepEqual(decide(sansLigne), [4, "etiqueter", "à-reprendre"], "sur une PR sans chemin sensible, le même verdict est un refus");
   // Les trois textes qui portent la règle.
   exigerDans(`${SKILL}/SKILL.md`, ["**`refusé`** dès qu'il reste un bloquant gardé au tri, **même si un axe ou un contrôle est « non exécuté »**", "Sinon **`incomplet`** dès qu'un axe ou un contrôle est « non exécuté » : aucun bloquant, `Bloquants: 0`.", "ou `incomplet` avec un bloquant gardé"]);
-  exigerDans(`${REFERENCES}/verdict.md`, ["`refusé` dès qu'il reste au moins un bloquant gardé au tri, **même si un axe ou un contrôle est « non exécuté »**", "`validé` et `incomplet` veulent 0, `refusé` veut 1 ou plus", "**Limite connue.**", "un `refusé` compris (`compter`"]);
+  exigerDans(`${REFERENCES}/verdict.md`, ["`refusé` dès qu'il reste au moins un bloquant gardé au tri, **même si un axe ou un contrôle est « non exécuté »**", "`validé` et `incomplet` veulent 0, `refusé` veut 1 ou plus", "**Un refus reste un refus.**", "un `refusé` compte `refusé`, avec ou sans cette ligne (`compter`"]);
+  assert.ok(!lire(`${REFERENCES}/verdict.md`).includes("Limite connue"), "la limite de `compter` est retirée de verdict.md");
+  assert.ok(!lire(`${REFERENCES}/CONTENU.md`).includes("limite connue"), "et de CONTENU.md");
   exigerDans(`${REFERENCES}/criteres-session.md`, ["le verdict est alors `incomplet`, ou `refusé` s'il reste un bloquant gardé", "L'échec d'un outil de la session n'est jamais un écart de la PR"]);
   exigerDans(`${REFERENCES}/cas-limites.md`, ["**Un bloquant gardé donne `refusé`, quoi qu'il manque.**", "**L'échec d'un outil de la session n'est jamais un écart de la PR.**", "Trois cas seulement n'ont aucun verdict."]);
 });

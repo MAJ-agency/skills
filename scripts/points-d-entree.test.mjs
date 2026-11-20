@@ -24,6 +24,8 @@ const SCRIPTS = [
   { nom: "mutation-regles", fichier: "skills/monorepo/socle-tests/references/scripts/verify/mutation-regles.mjs", args: [], statut: 2, sortie: /usage : node scripts\/verify\/mutation-regles\.mjs/ },
   { nom: "mutation-regles-synthese", fichier: "skills/monorepo/socle-tests/references/scripts/verify/mutation-regles-synthese.mjs", args: [], statut: 0, sortie: /Mutation sur les règles prouvées : périmètre vide/ },
   { nom: "contexte-regle", fichier: "skills/chaine/criticite/scripts/contexte-regle.mjs", args: [], statut: 2, sortie: /usage : node contexte-regle\.mjs/ },
+  { nom: "double-relecture", fichier: "skills/chaine/fusionner/scripts/double-relecture.mjs", args: [], statut: 21, sortie: /^illisible\n$/m },
+  { nom: "relecteur", fichier: "skills/chaine/relecteur/scripts/relecteur.mjs", args: [], statut: 2, sortie: /relecteur : usage : relecteur\.mjs passe/ },
 ];
 
 const tmp = mkdtempSync(join(tmpdir(), "entree-"));

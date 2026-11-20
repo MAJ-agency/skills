@@ -78,13 +78,14 @@ Invocation : `/maj-skills:socle-mobile-expo`. Suppose la racine et les contrats 
 
 | Skill                                                                             | Ce qu'il fait                                                                                                                                                                                                                                                   |
 | --------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [`socle-chaine-de-production`](skills/chaine/socle-chaine-de-production/SKILL.md) | Pose ce que supposent les skills de la chaîne : `develop` intègre et `main` livre, les sept labels, les hooks d'agent, le contrat `.claude/chaine.json`, les index générés, une CI minimale, la méthode et trois ADR |
+| [`socle-chaine-de-production`](skills/chaine/socle-chaine-de-production/SKILL.md) | Pose ce que supposent les skills de la chaîne : `develop` intègre et `main` livre, les neuf labels, les hooks d'agent, le contrat `.claude/chaine.json`, les index générés, une CI minimale, la méthode et trois ADR |
 | [`tickets`](skills/chaine/tickets/SKILL.md)                                       | La convention des specs et tickets (`SPEC_ALL_SOC-1`, `SPEC_ALL_SOC-1.03`), les scripts qui la lisent (numéro suivant, ticket libre, vagues, avancement, archivage, gate) et la migration d'un dépôt                                                            |
 | [`anchorpost`](skills/chaine/anchorpost/SKILL.md)                                 | Branche un dépôt sur Anchorpost, le site qui montre à la MOA les règles, les preuves, les défauts et les demandes lus dans la documentation : la CLI privée, le manifeste, l'index généré et son gate, la fiche d'écriture, la recette d'installation de la clé |
 | [`criticite`](skills/chaine/criticite/SKILL.md)                                   | La criticité d'une règle à sa création ou au changement de son énoncé, avant tout code : un sous-agent vierge, dont le message est fabriqué par un script, rend le niveau et sa raison, les cas attendus et les dix familles ; jamais « basse » sans raison, le niveau supérieur dans le doute, un agent écrit `by: agent` et ne baisse jamais un niveau ; la commande et chaque sortie brute dans la PR ; sans index au pivot 3, il s'arrête |
 | [`revue-adversariale`](skills/chaine/revue-adversariale/SKILL.md)                 | Avant `à-fusionner` : un sous-agent vierge, le diff seul, une liste fermée de critères (vingt et un du socle, plus ceux du projet), une section de PR                                                                                                           |
 | [`revue-de-ticket`](skills/chaine/revue-de-ticket/SKILL.md)                       | Quand un ticket est « fini » : trois sous-agents vierges — règles (la revue adversariale), ticket (surfaces, décisions, règles et cas de bord, périmètre), documentation — une seule section de PR                                                              |
 | [`relecture`](skills/chaine/relecture/SKILL.md)                                   | Régime 8 : ce que joue une session de relecture, lancée par le Relecteur du dépôt et jamais par l'auteur de la PR — le sommet à relire extrait dans un arbre à part, les axes choisis selon le diff (règles, ticket, documentation, tickets, règles métier, fichiers sensibles), chaque constat trié dans le code, puis un verdict de forme fixe sur la PR ; deux gravités, bloquant et doute |
+| [`relecteur`](skills/chaine/relecteur/SKILL.md)                                   | Régime 8 : le Relecteur d'un dépôt, une session par dépôt — une veille sur la file `à-relire`, la décision du capitaine prise par un script, les sessions de relecture créées sur la base de la PR, `à-reprendre` et `à-fusionner` posées selon les verdicts ; il ne relit rien et n'arbitre rien |
 | [`sujet`](skills/chaine/sujet/SKILL.md)                                           | Un lot de PR liées sur `sujet/<nom>` dès sa première PR, entré dans develop en une PR par un commit de merge ; `demarrer`, `etat`, `livrer`, `geler` / `degeler` (le gel d'un chantier)                                                                         |
 | [`fusionner`](skills/chaine/fusionner/SKILL.md)                                   | Le capitaine de fusion : la file `à-fusionner` passée une PR à la fois, les sous-PR dans leur sujet, les renvois comptés (au plafond, la PR attend un humain), les PR d'un sujet gelé laissées dans la file ; plusieurs capitaines peuvent tenir la même file |
 | [`architecte`](skills/chaine/architecte/SKILL.md)                                 | L'architecte d'un programme : seul à parler au produit, il tient la carte du programme, mène le grilling jusqu'à la spec validée, lance sans lui demander conducteurs, capitaines et sessions de ticket prêtes, avec leur procédure entière et ses consignes, ouvre lui-même les PR de documentation, relaie les plafonds au produit                                   |
@@ -166,15 +167,19 @@ skills/
       SKILL.md         poser, qui le joue, la distribution, l'arbre à part, le diff relu, les axes, les contrôles de la session, trier, le verdict
       scripts/         gestes.sh, les gestes de la session de relecture, lancé depuis le dossier du skill
       references/      cinq prompts, cinq listes de critères, les sous-commandes du script, le gabarit du verdict, les cas limites
+    relecteur/
+      SKILL.md         qui le lance, la mise en place, ce que rend la passe, créer ou relancer les sessions, leur état, les lignes, la veille
+      scripts/         relecteur.mjs (passe, jouer, distribuer, veille), lancé depuis le dossier du skill, et son banc
+      references/      le prompt d'une session de relecture et son message de relance
     sujet/
       SKILL.md         quand un sujet, session de travail, capitaine, livrer
       scripts/         sujet.sh, le dépôt jouet et le faux gh, les tests
     fusionner/
       SKILL.md         la règle, REST seulement, mise en place, boucle, renvoyer, fin de passage
-      scripts/         github.sh, identifiant.mjs, file.sh, passer.sh, boucle.sh, renvoyer.sh, refus.sh, proprietaire.sh, revue-exigee.mjs, migrations-ordre.mjs, commits-a-relire.mjs, les tests
+      scripts/         github.sh, identifiant.mjs, file.sh, passer.sh, boucle.sh, renvoyer.sh, refus.sh, proprietaire.sh, revue-exigee.mjs, migrations-ordre.mjs, commits-a-relire.mjs, verdict.mjs et decision-relecteur.mjs (le verdict et la décision du Relecteur), meme-contenu.sh, double-relecture.mjs, les tests
     architecte/
       SKILL.md         lire, vérifier l'environnement, la carte du programme, le grilling, lancer, suivre, changer d'architecte
-      references/      les prompts de lancement d'un conducteur et d'un capitaine
+      references/      les prompts de lancement d'un conducteur, d'un capitaine et d'un Relecteur
     chantier/
       SKILL.md         reprendre ou démarrer, setup, les six phases, le suivi à chaque réveil, l'arrêt d'un chantier
       references/      CONTENU.md
