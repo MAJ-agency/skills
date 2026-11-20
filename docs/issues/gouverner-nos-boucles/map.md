@@ -1160,3 +1160,8 @@ La session de suite fait, dans cet ordre :
   - Le skill `relecteur` est donné entier : `relecteur.mjs` (`passe`, `jouer`, `distribuer`, `veille`), son banc de 13 tests, 21 fichiers retouchés, version 7.38.0. `compter` compte toujours un refus lisible comme un refus.
   - **A-179** tranche les trois questions du rédacteur : la forme de la clé `relecture`, un refus sur un autre sommet, les dépendances de `develop`.
   - Le tour unique de relecture du ticket est lancé (`P-65`).
+- 2026-11-20 — 12 h 11 UTC. **Ticket 66, tour unique de relecture : « prêt après retouches », 1 bloquant et 19 mineurs.**
+  - Ce qui tient : le patch est identique au texte du ticket ; 29 rouges, puis 172 verts ; la suite passe 1 256 sur 1 256 ; les 35 mutations de l'annexe sont rouges ; 15 des 18 mutations du relecteur survivent ; 11 essais d'adversaire.
+  - Aucun code d'une PR ne s'exécute dans le Relecteur.
+  - **A-180.** Le bloquant : la veille de 60 minutes meurt au plafond de 30 minutes de l'outil Bash. Elle passe à 25 minutes.
+  - Retouches confiées au rédacteur.

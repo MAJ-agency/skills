@@ -367,6 +367,36 @@ Prises par l'architecte sur le rapport de vérification (`relecture-independante
   3. **Les dépendances pour `a-juger`** : le Relecteur installe celles de `develop` quand le lockfile change entre deux passages. Ce sont celles de la branche d'intégration, jamais celles de la PR. Ainsi `a-juger` lit aussi une PR de mise à jour à retouches. L'option « sans commitlint » de `sujet.sh` n'est pas retenue.
 
   Raison : la forme la plus simple qui tienne les décisions déjà prises. Un refus ne doit jamais compter moins qu'un refus, et le Relecteur n'exécute que le code de la branche d'intégration.
+- `A-180` — **Ticket 66, tour unique de relecture : « prêt après retouches », 1 bloquant et 19 mineurs** (2026-11-20). Aucune PR hostile ne fait exécuter son code au Relecteur : seul tourne celui de `develop`. Décidé :
+  1. **B, la veille.** L'outil Bash arrête une tâche de fond à 30 minutes par défaut, et la veille de 60 minutes mourait sans ligne finale. La veille du Relecteur dure donc 25 minutes (`--duree 25`), sous ce plafond. La même limite touche la veille du capitaine (`fusionner`) : c'est un ticket de suite.
+  2. **Le couple modèle et effort.** Une session n'est réemployée qu'à couple égal. Une PR qui devient sensible ou « double » reçoit une session neuve au bon couple (`P-64` prime sur `P-52`). `distribuer` reçoit le sommet et le couple attendus, et sort en 3 s'ils diffèrent de ce que `passe` a vu.
+  3. **Les suites manquantes.**
+     - Chaque sortie de `jouer` et de `distribuer` a sa suite écrite dans le skill.
+     - La sortie 7 passe en `--taire` au second refus.
+     - `passe` se rejoue à chaque réveil, et les `preferees` encore vivantes se demandent par `get_session`, dans les règles 4, 5 et 6.
+     - « Au plafond » se lit dans `get_session`, au-delà de 700 000 tokens de contexte, et non dans un message que la relecture n'envoie pas.
+     - À `VEILLE FINIE`, au-delà de 500 000 tokens de son propre contexte, le Relecteur l'écrit à l'architecte et s'arrête : un Relecteur neuf est lancé.
+     - `TaskStop` se charge par le `ToolSearch` de la mise en place.
+  4. **Les entrées.**
+     - `modele` n'admet que `opus` ou `sonnet`.
+     - `depuis` admet `Z`, avec ou sans millisecondes.
+     - Un fichier `--sessions` mal formé sort en 2, avec sa cause.
+     - `remplacer` n'exige plus `--sessions`.
+     - `jouer` et `distribuer` refusent une PR fermée (sortie 3).
+  5. **Le dossier et git.**
+     - Un `flock` sur le dossier, comme dans `boucle.sh`, empêche deux préparations à la fois.
+     - Chaque commande git porte `core.hooksPath` vide et `core.fsmonitor=false`, comme dans `relecture`.
+     - Un `pnpm install` en échec écrit sa sortie d'erreur. Il ne se retente qu'au prochain changement du lockfile, et la PR reçoit la cause « dépendances de `develop` ».
+     - Les causes d'« illisible » sont nommées une à une : forme refusée par `a-juger`, tête introuvable, PR de fourche. Une forme refusée va à l'auteur.
+  6. **Le banc** gagne les cas qui tuent les mutations N1 à N4, N7, N9, N10, N12 et N13 :
+     - les calculs en panne, avec des talons sur `develop` ;
+     - la reprise après arbitrage ;
+     - une lecture en panne ;
+     - une PR double ;
+     - `completer` ;
+     - deux pages de commentaires.
+
+  Les autres mineurs vont tels que le relecteur les propose. Raison : un Relecteur qui s'arrête sur un écart, ou relit une PR sensible au mauvais effort, coûte plus que ces retouches.
 - `P-64` (produit, 2026-11-19, « oui ») et `A-128` — **Le modèle et l'effort des relectures suivent le risque** (précise `A-87`). Le produit a écarté le modèle le plus fort en effort élevé pour toutes les relectures : trop cher. Décidé : une session de relecture d'une PR **ordinaire** tourne sur Opus, effort moyen ; celle d'une PR **sensible** (son diff touche un chemin sensible, ou « double relecture exigée » répond « exigée ») sur Opus, effort extra (`xhigh`). Le Relecteur lui-même : effort moyen, et un modèle peu cher dès que le modèle imposé ne l'est plus (2026-11-23). `A-128`, ce que cela change dans les lots : la clé `relecture.modele` de `chaine.json` devient deux couples, `relecture.ordinaire` et `relecture.sensible`, chacun `{ modele, effort }`, lus par le Relecteur quand il crée une session (lot 4, paramètres `model` et `effort` de `create_session`) et posés par le lot 6c avec ces valeurs par défaut ; le gabarit de lancement du Relecteur porte son propre effort. Un projet change ces valeurs dans son contrat, sans rien recoder. **Ce que cette voie ne couvre pas** : aucune comparaison entre Opus et le modèle le plus fort n'existe sur ce travail ; les défauts attrapés avant fusion dans ce programme l'ont tous été par le modèle le plus fort. **L'essai qui lève le doute**, à jouer avant la bascule (lot 6, « Vérification d'ensemble ») : trois ou quatre défauts réels de ce programme, dont la réponse est connue, rejoués par une session de relecture sur Opus en effort extra ; s'il en manque un, `relecture.sensible.modele` passe au modèle le plus fort, et le produit en est informé avec le chiffre.
 
 ## Les lots
