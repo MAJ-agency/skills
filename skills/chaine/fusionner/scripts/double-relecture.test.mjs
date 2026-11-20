@@ -1497,92 +1497,140 @@ test("un dépôt partiel (`--filter`) : « illisible », la raison nomme la caus
   g(depot, 'clone', '-q', '--no-checkout', '--branch', 'feat/criticite', `file://${depot}`, join(clones, 'entier'));
   const entier = juger(join(clones, 'entier'));
   assert.deepEqual([entier.code, entier.sortie], [20, `RULE_ALL_FAC-16\tniveau\t${INDEX}\t${tete}\nexigée\n`]);
+  // m1 (contre-relecture de la PR 140) : la marque lue aussi dans un `include` du dépôt et dans `config.worktree`.
+  const PARTIEL = [21, "# illisible : dépôt partiel : des objets manquent et ce calcul ne télécharge rien, à cloner en entier avant de l'appeler (git clone sans --filter)\nillisible\n"];
+  g(depot, 'clone', '-q', '--no-checkout', '--branch', 'feat/criticite', `file://${depot}`, join(clones, 'inclus'));
+  writeFileSync(join(clones, 'inclus/.git/promisor.gitconfig'), '[remote "origin"]\n\tpromisor = true\n');
+  g(join(clones, 'inclus'), 'config', 'include.path', 'promisor.gitconfig');
+  const inclus = juger(join(clones, 'inclus'));
+  assert.deepEqual([inclus.code, inclus.sortie], PARTIEL, 'la marque dans un include du dépôt');
+  g(depot, 'clone', '-q', '--no-checkout', '--branch', 'feat/criticite', `file://${depot}`, join(clones, 'arbre'));
+  g(join(clones, 'arbre'), 'config', 'extensions.worktreeConfig', 'true');
+  g(join(clones, 'arbre'), 'config', '--worktree', 'remote.origin.promisor', 'true');
+  const arbre = juger(join(clones, 'arbre'));
+  assert.deepEqual([arbre.code, arbre.sortie], PARTIEL, 'la marque dans config.worktree');
 });
 
-test("le dépôt d'un autre propriétaire : « illisible » ; déclaré sûr par l'utilisateur (`safe.directory`), il est lu, et la déclaration d'un autre dépôt ne vaut pas pour lui (troisième tour)", () => {
+// A-159 : le lecteur demande à git s'il admet le dépôt, dans le même dossier et le même environnement, et ne lit que si
+// git admet. Chaque cellule joue git lui-même (l'oracle) puis le calcul ; les cellules « violation » sont celles où, au
+// sommet 557cbc3 (A-135, A-154), le calcul lisait un dépôt que git refuse (contre-relecture de la PR 140).
+const REFUS_GIT = '# illisible : pas dans un dépôt git que git admet : ';
+function cellulesGit({ cwdDefaut, autres = [], lancerCalcul }) {
+  const vrai = execFileSync('sh', ['-c', 'command -v git'], { encoding: 'utf8', env: ENV_PROPRE }).trim();
+  const faux = dossier('git-');
+  // Un `git` de banc, en tête du PATH, fait tenir les dossiers `autres` pour ceux d'un autre propriétaire.
+  const cas = autres.map((a) => `${JSON.stringify(`${a}/`)}*`).join('|');
+  writeFileSync(join(faux, 'git'), `#!/bin/sh\n${cas ? `case "$(pwd -P)/" in ${cas}) GIT_TEST_ASSUME_DIFFERENT_OWNER=1; export GIT_TEST_ASSUME_DIFFERENT_OWNER ;; esac\n` : ''}exec "${vrai}" "$@"\n`, { mode: 0o755 });
+  const cfg = dossier('configuration-');
+  const maison = join(cfg, 'maison');
+  const xdg = join(cfg, 'xdg');
+  mkdirSync(join(xdg, 'git'), { recursive: true });
+  mkdirSync(maison, { recursive: true });
+  const fautes = [];
+  const c = (nom, { globale = null, systeme = '', xdgDit = null, cwd = cwdDefaut, env = {} }, attendu) => {
+    rmSync(join(maison, '.gitconfig'), { force: true });
+    if (globale !== null) writeFileSync(join(maison, '.gitconfig'), globale);
+    writeFileSync(join(cfg, 'systeme'), systeme);
+    rmSync(join(xdg, 'git/config'), { force: true });
+    if (xdgDit !== null) writeFileSync(join(xdg, 'git/config'), xdgDit);
+    const tout = { ...ENV_PROPRE, PATH: `${faux}:${process.env.PATH}`, HOME: maison, XDG_CONFIG_HOME: xdg, GIT_CONFIG_SYSTEM: join(cfg, 'systeme'), ...env };
+    delete tout.GIT_CONFIG_GLOBAL;
+    delete tout.GIT_CONFIG_NOSYSTEM;
+    for (const [cle, v] of Object.entries(env)) if (v === undefined) delete tout[cle]; else tout[cle] = v;
+    const oracle = spawnSync('git', ['rev-parse', '--verify', '-q', 'HEAD'], { cwd, env: tout, encoding: 'utf8' });
+    const git = oracle.status === 0 ? 'lu' : 'refusé';
+    // La cause que git donne lui-même : sa première ligne `fatal:`, s'il en écrit une.
+    const cause = oracle.stderr.split('\n').find((l) => l.startsWith('fatal:')) ?? null;
+    // `lancer` pose ENV_PROPRE dessous : ce que la cellule a retiré y est dit absent (une valeur undefined n'est pas passée).
+    const r = lancerCalcul(cwd, { GIT_CONFIG_GLOBAL: undefined, GIT_CONFIG_NOSYSTEM: undefined, GIT_CONFIG_SYSTEM: undefined, ...tout });
+    const calcul = r.code === 21 && r.sortie.startsWith(REFUS_GIT) ? 'refusé' : r.code === 0 || r.code === 20 ? 'lu' : JSON.stringify([r.code, r.sortie]);
+    if (calcul !== git) fautes.push(`${nom} : le calcul dit ${calcul}, git ${git}`);
+    else if (attendu && git !== attendu) fautes.push(`${nom} : git dit ${git}, la cellule le montre ${attendu}`);
+    else if (git === 'refusé' && !/^# illisible : pas dans un dépôt git que git admet : \S/.test(r.sortie)) fautes.push(`${nom} : la cause de git n'est pas nommée`);
+    else if (git === 'refusé' && cause && !r.sortie.includes(cause.slice(0, 60))) fautes.push(`${nom} : la raison ne reprend pas la cause de git (${cause})`);
+    return { git, calcul, sortie: r.sortie };
+  };
+  // m8 : une limite écrite, où le lecteur refuse un dépôt que git admet ; la raison doit le dire, et dire pourquoi.
+  const limite = (nom, opts, motifs) => {
+    const avant = fautes.length;
+    const cellule = c(nom, opts);
+    fautes.splice(avant);
+    if (cellule.git !== 'lu') fautes.push(`${nom} : git dit ${cellule.git}, la limite suppose qu'il admet`);
+    else if (cellule.calcul === 'lu') fautes.push(`${nom} : le lecteur lit, la limite suppose qu'il refuse`);
+    else for (const motif of motifs) if (!motif.test(cellule.sortie)) fautes.push(`${nom} : la raison ne dit pas ${motif} (${cellule.sortie})`);
+  };
+  return { c, limite, fautes, cfg };
+}
+const SD = (v) => `[safe]\n\tdirectory = ${v}\n`;
+const SB = (v) => `[safe]\n\tbareRepository = ${v}\n`;
+
+test("le dépôt d'un autre propriétaire : le lecteur lit si, et seulement si, git l'admet, la cause de git nommée sinon (A-159)", () => {
   const { depot, tete, entree } = depotNiveau();
   const script = copieDesOutils();
   const temporaire = dossier('temporaire-');
-  // Sans droits particuliers : un `git` de banc, en tête du PATH, fait tenir le dépôt jouet pour celui d'un autre
-  // propriétaire (la variable de test de git), et lui seul : le dépôt propre du calcul reste le sien.
-  const vrai = execFileSync('sh', ['-c', 'command -v git'], { encoding: 'utf8', env: ENV_PROPRE }).trim();
-  const faux = dossier('git-');
-  writeFileSync(join(faux, 'git'), `#!/bin/sh\ncase "$PWD/" in "${realpathSync(depot)}/"*) GIT_TEST_ASSUME_DIFFERENT_OWNER=1; export GIT_TEST_ASSUME_DIFFERENT_OWNER ;; esac\nexec "${vrai}" "$@"\n`, { mode: 0o755 });
-  const configuration = join(dossier('configuration-'), 'gitconfig');
-  const juger = (declarations, cwd = depot, env = {}) => {
-    // La configuration de l'utilisateur ment sur le reste : le calcul n'en reprend que la déclaration. (Aucun réglage
-    // d'utilisateur ne change les lectures du dépôt réel au point de se voir ici : cela tient au code, pas à ce banc.)
-    writeFileSync(configuration, `[core]\n\tbare = true\n\tworktree = /ailleurs\n[safe]\n${declarations.map((d) => `\tdirectory = ${d}\n`).join('')}`);
-    return lancer(script, ['--base', 'develop', '--tete', tete], { cwd, entree, env: { TMPDIR: temporaire, PATH: `${faux}:${process.env.PATH}`, GIT_CONFIG_GLOBAL: configuration, ...env } });
-  };
-  const refuse = [21, '# illisible : pas dans un dépôt git\nillisible\n'];
-  const lu = [20, `RULE_ALL_FAC-16\tniveau\t${INDEX}\t${tete}\nexigée\n`];
-  const rendu = (r) => [r.code, r.sortie];
-  assert.deepEqual(rendu(juger([])), refuse, "le témoin : git refuse le dépôt d'un autre propriétaire");
-  // Le chemin du dépôt tel que git le compare : liens symboliques suivis (un TMPDIR peut en être un).
   const reel = realpathSync(depot);
-  assert.deepEqual(rendu(juger([reel])), lu, 'déclaré par son chemin');
+  const lie = join(realpathSync(dossier('arbre-lie-')), 'lie');
+  g(depot, 'worktree', 'add', '-q', '--detach', lie, tete);
+  // Un dépôt nu d'un autre propriétaire (b29).
+  const nuAutre = join(realpathSync(dossier('nu-autre-')), 'nu.git');
+  g(depot, 'clone', '-q', '--mirror', depot, nuAutre);
+  const { c, limite, fautes, cfg } = cellulesGit({
+    cwdDefaut: depot,
+    autres: [reel, lie, nuAutre],
+    lancerCalcul: (cwd, env) => lancer(script, ['--base', 'develop', '--tete', tete], { cwd, entree, env: { ...env, TMPDIR: temporaire } }),
+  });
   mkdirSync(join(depot, 'apps'), { recursive: true });
-  assert.deepEqual(rendu(juger([reel], join(depot, 'apps'))), lu, "depuis un sous-dossier : c'est la racine qui est déclarée");
-  assert.deepEqual(rendu(juger(['*'])), lu, 'déclaré par `*`');
-  // Le calcul lit moins que git, jamais plus (A-135) : seule vaut une valeur égale au chemin, caractère pour caractère, ou `*`.
-  const lien = join(dossier('lien-'), 'depot');
-  symlinkSync(reel, lien);
-  for (const [nom, valeur] of [['une barre finale', `${reel}/`], ['le dossier qui le contient', `${dirname(reel)}/*`], ['un lien symbolique vers lui', lien], ['un sous-dossier', join(reel, 'apps')]])
-    assert.deepEqual(rendu(juger([valeur])), refuse, `${nom} : non admis`);
-  for (const valeur of ['.', '..']) assert.deepEqual(rendu(juger([valeur], join(depot, 'apps'))), refuse, `\`${valeur}\` : non admis`);
-  // Une remise à zéro peut se trouver dans ces variables, que ce calcul ne lit pas : avec l'une d'elles, aucune déclaration n'est admise.
-  assert.deepEqual(rendu(juger([reel], depot, { GIT_CONFIG_COUNT: '0' })), refuse, 'GIT_CONFIG_COUNT présente');
-  assert.deepEqual(rendu(juger(['*'], depot, { GIT_CONFIG_PARAMETERS: "'safe.directory='" })), refuse, 'GIT_CONFIG_PARAMETERS présente');
-  assert.deepEqual(rendu(juger([`${reel}-autre`, '/ailleurs/*'])), refuse, "la déclaration d'un autre dépôt ne vaut pas pour celui-ci");
-  assert.deepEqual(rendu(juger([reel, ''])), refuse, 'une valeur vide efface les déclarations qui la précèdent, comme pour git');
-  // Une déclaration faite dans un fichier que la configuration de l'utilisateur inclut : git la lit, le calcul aussi.
-  const inclus = join(dirname(configuration), 'inclus');
-  writeFileSync(inclus, `[safe]\n\tdirectory = ${reel}\n`);
-  const parInclusion = () => {
-    writeFileSync(configuration, `[include]\n\tpath = ${inclus}\n`);
-    return rendu(lancer(script, ['--base', 'develop', '--tete', tete], { cwd: depot, entree, env: { TMPDIR: temporaire, PATH: `${faux}:${process.env.PATH}`, GIT_CONFIG_GLOBAL: configuration } }));
-  };
-  assert.deepEqual(parInclusion(), lu, 'déclaré par un fichier inclus');
-  // La configuration de système (`A-130`) : le calcul lit les déclarations que git lirait lui-même, pas davantage.
-  // Avec GIT_CONFIG_NOSYSTEM vrai au sens de git, git ignore le fichier de système : le calcul ne le lit pas non plus.
-  const systeme = join(dirname(configuration), 'systeme');
-  writeFileSync(systeme, '[safe]\n\tdirectory = *\n');
-  const avec = (nosystem) => rendu(juger([], depot, { GIT_CONFIG_SYSTEM: systeme, GIT_CONFIG_NOSYSTEM: nosystem }));
-  assert.deepEqual(avec(undefined), lu, 'déclaré par le système, sans GIT_CONFIG_NOSYSTEM : lu');
-  for (const v of ['0', 'false', 'no', 'off', 'OFF', '']) assert.deepEqual(avec(v), lu, `GIT_CONFIG_NOSYSTEM=${JSON.stringify(v)} est faux pour git : le système est lu`);
-  for (const v of ['1', 'true', 'yes', 'on', 'TRUE', '2']) assert.deepEqual(avec(v), refuse, `GIT_CONFIG_NOSYSTEM=${v} : git ignore le système, le calcul aussi`);
-  assert.deepEqual(avec('bidon'), refuse, 'une valeur que git refuse (il échoue alors à toute commande) : le système n\'est pas lu');
-  assert.deepEqual(rendu(juger([reel], depot, { GIT_CONFIG_SYSTEM: systeme, GIT_CONFIG_NOSYSTEM: '1' })), lu, "le système ignoré, la déclaration de l'utilisateur vaut toujours");
-  // Les deux fichiers de l'utilisateur, dans l'ordre de git (m1, `A-143`) : `$XDG_CONFIG_HOME/git/config`, puis
-  // `~/.gitconfig`. `git config --global`, nommé, ne lit que le second quand il existe : une remise à zéro écrite
-  // dans le premier était manquée, et le calcul lisait un dépôt que git refuse.
-  const maison = dossier('maison-');
-  const xdg = dossier('xdg-');
-  mkdirSync(join(xdg, 'git'));
-  const exact = join(dirname(configuration), 'systeme-exact');
-  const vide = join(dirname(configuration), 'systeme-vide');
-  writeFileSync(vide, '');
-  const parXdg = (systemeLu, xdgDit, maisonDit) => {
-    writeFileSync(exact, `[safe]\n\tdirectory = ${reel}\n`);
-    writeFileSync(join(xdg, 'git/config'), xdgDit);
-    if (maisonDit === null) rmSync(join(maison, '.gitconfig'), { force: true });
-    else writeFileSync(join(maison, '.gitconfig'), maisonDit);
-    return rendu(lancer(script, ['--base', 'develop', '--tete', tete], { cwd: depot, entree, env: { TMPDIR: temporaire, PATH: `${faux}:${process.env.PATH}`, HOME: maison, XDG_CONFIG_HOME: xdg, GIT_CONFIG_GLOBAL: undefined, GIT_CONFIG_NOSYSTEM: undefined, GIT_CONFIG_SYSTEM: systemeLu } }));
-  };
-  const remise = '[safe]\n\tdirectory =\n';
-  const sansSafe = '[user]\n\tname = x\n';
-  assert.deepEqual(parXdg(exact, remise, sansSafe), refuse, 'le système déclare, XDG remet à zéro, `~/.gitconfig` existe sans rien en dire : git refuse, le calcul aussi');
-  assert.deepEqual(parXdg(exact, remise, null), refuse, 'le même sans `~/.gitconfig`');
-  assert.deepEqual(parXdg(exact, '', sansSafe), lu, 'le témoin : sans la remise à zéro, la déclaration du système vaut');
-  assert.deepEqual(parXdg(vide, `[safe]\n\tdirectory = ${reel}\n`, sansSafe), lu, 'XDG déclare, `~/.gitconfig` existe sans rien en dire : git admet, le calcul aussi');
-  assert.deepEqual(parXdg(vide, `[safe]\n\tdirectory = ${reel}\n`, remise), refuse, 'XDG déclare, `~/.gitconfig`, lu après lui, remet à zéro');
-  assert.deepEqual(parXdg(vide, remise, `[safe]\n\tdirectory = ${reel}\n`), lu, 'XDG remet à zéro, `~/.gitconfig`, lu après lui, déclare');
-  // Une valeur à saut de ligne : sa suite n'est la ligne d'aucune portée, rien n'est admis.
-  assert.deepEqual(parXdg(vide, `[safe]\n\tdirectory = "x\\n${reel}"\n\tdirectory = *\n`, null), refuse, 'une valeur à saut de ligne');
+  c('le témoin : aucune déclaration', {}, 'refusé');
+  c('déclaré par son chemin', { globale: SD(reel) }, 'lu');
+  c('déclaré par *', { globale: SD('*') }, 'lu');
+  c('le système déclare', { systeme: SD(reel) }, 'lu');
+  c('le système déclare, GIT_CONFIG_NOSYSTEM=1', { systeme: SD(reel), env: { GIT_CONFIG_NOSYSTEM: '1' } });
+  c('depuis un sous-dossier', { globale: SD(reel), cwd: join(depot, 'apps') }, 'lu');
+  for (const valeur of [`${reel}/`, `${dirname(reel)}/*`, join(reel, 'apps'), '.', '..']) c(`déclaré par « ${valeur} »`, { globale: SD(valeur), cwd: join(depot, 'apps') });
+  c('une valeur vide efface la déclaration', { globale: SD(reel) + SD('') }, 'refusé');
+  c("la déclaration d'un autre dépôt", { globale: SD(`${reel}-autre`) }, 'refusé');
+  c('XDG déclare, ~/.gitconfig remet à zéro', { xdgDit: SD(reel), globale: SD('') }, 'refusé');
+  c('XDG remet à zéro, ~/.gitconfig déclare', { xdgDit: SD(''), globale: SD(reel) }, 'lu');
+  writeFileSync(join(cfg, 'inclus'), SD(reel));
+  c('déclaré par un fichier inclus', { globale: `[include]\n\tpath = ${join(cfg, 'inclus')}\n` }, 'lu');
+  c('une valeur à saut de ligne', { globale: `[safe]\n\tdirectory = "x\\n${reel}"\n` });
+  c("GIT_CONFIG_COUNT déclare (git l'admet : le lecteur aussi)", { env: { GIT_CONFIG_COUNT: '1', GIT_CONFIG_KEY_0: 'safe.directory', GIT_CONFIG_VALUE_0: reel } }, 'lu');
+  c('GIT_CONFIG_PARAMETERS remet à zéro', { globale: SD(reel), env: { GIT_CONFIG_PARAMETERS: "'safe.directory='" } }, 'refusé');
+  // git écrit une ligne `error:` avant sa ligne `fatal:` : c'est la ligne `fatal:` qui est la cause.
+  c('GIT_CONFIG_PARAMETERS mal formé', { globale: SD(reel), env: { GIT_CONFIG_PARAMETERS: "'x" } }, 'refusé');
+  c('violation s38 : ~inconnu puis le chemin', { globale: SD('~nosuchuser42/x') + SD(reel) }, 'refusé');
+  c('violation s39 : le chemin puis ~inconnu', { globale: SD(reel) + SD('~nosuchuser42/x') }, 'refusé');
+  c("violation s40 : * au système, ~inconnu à l'utilisateur", { systeme: SD('*'), globale: SD('~nosuchuser42/x') }, 'refusé');
+  writeFileSync(join(depot, 'raz.gitconfig'), SD(''));
+  c('violation s51 : GIT_CONFIG_GLOBAL relatif qui remet à zéro, le système déclare', { systeme: SD(reel), env: { GIT_CONFIG_GLOBAL: 'raz.gitconfig' } }, 'refusé');
+  rmSync(join(depot, 'raz.gitconfig'));
+  mkdirSync(join(depot, 'apps/.git'), { recursive: true });
+  c('s53 : un .git vide dans apps, apps déclaré, depuis apps', { globale: SD(join(reel, 'apps')), cwd: join(depot, 'apps') }, 'refusé');
+  c('s52 : un .git vide dans apps, le dépôt déclaré, depuis apps', { globale: SD(reel), cwd: join(depot, 'apps') });
+  rmSync(join(depot, 'apps/.git'), { recursive: true });
+  c("w01 : arbre lié d'un autre propriétaire, rien", { cwd: lie }, 'refusé');
+  c("w02 : arbre lié d'un autre propriétaire déclaré par son chemin", { globale: SD(lie), cwd: lie }, 'lu');
+  c('w03 : arbre lié, seul le dépôt principal déclaré', { globale: SD(reel), cwd: lie });
+  c('w04 : arbre lié, *', { globale: SD('*'), cwd: lie }, 'lu');
+  // m6 : la borne de la recherche est celle de la session. Égale à la racine, appelé depuis un sous-dossier : git ne
+  // remonte pas jusqu'au dépôt.
+  c('m6 : GIT_CEILING_DIRECTORIES à la racine du dépôt déclaré, depuis un sous-dossier', { globale: SD(reel), cwd: join(reel, 'apps'), env: { GIT_CEILING_DIRECTORIES: reel } }, 'refusé');
+  c('m6 : GIT_CEILING_DIRECTORIES au-dessus de la racine, depuis un sous-dossier', { globale: SD(reel), cwd: join(reel, 'apps'), env: { GIT_CEILING_DIRECTORIES: dirname(reel) } }, 'lu');
+  // m7 : le dossier git admis est transmis, pas seulement l'arbre de travail.
+  c("m7 b29 : un dépôt nu d'un autre propriétaire déclaré par son chemin", { globale: SD(nuAutre), cwd: nuAutre }, 'lu');
+  c('m7 s32 : le .git déclaré, appelé depuis le .git', { globale: SD(join(reel, '.git')), cwd: join(reel, '.git') }, 'lu');
+  // m8 : GIT_DISCOVERY_ACROSS_FILESYSTEM ne désigne pas un autre dépôt : elle reste, et git la lit comme la session.
+  c('m8 : GIT_DISCOVERY_ACROSS_FILESYSTEM que git ne lit pas', { globale: SD(reel), env: { GIT_DISCOVERY_ACROSS_FILESYSTEM: 'bogus' } }, 'refusé');
+  c('m8 : GIT_DISCOVERY_ACROSS_FILESYSTEM=1', { globale: SD(reel), env: { GIT_DISCOVERY_ACROSS_FILESYSTEM: '1' } }, 'lu');
+  // m8 : sous `core.worktree`, le dossier où git trouve le dépôt n'est ni le dossier git ni l'arbre de travail ; il
+  // n'est pas transmis : une limite, que la raison dit.
+  const ailleurs = realpathSync(dossier('ailleurs-'));
+  g(depot, 'config', 'core.worktree', ailleurs);
+  limite('m8 : core.worktree ailleurs, le dépôt déclaré', { globale: SD(reel) }, [/^# illisible : plus strict que git : git admet ce dépôt/, /safe\.directory pour ce seul dossier git/, /dubious ownership/]);
+  g(depot, 'config', '--unset', 'core.worktree');
+  assert.deepEqual(fautes, []);
   assert.deepEqual(readdirSync(temporaire), [], 'aucun dépôt propre ne reste');
 });
-
 test("le point d'entrée est reconnu par un lien symbolique, depuis un dossier à espace et à accent", () => {
   const { depot, tete } = depotJouet();
   const script = copieDesOutils('outils é -');
@@ -1592,4 +1640,55 @@ test("le point d'entrée est reconnu par un lien symbolique, depuis un dossier �
     const r = lancer(chemin, ['--base', 'develop', '--tete', tete], { cwd: depot, entree: `${CODE}\n`, options });
     assert.deepEqual([r.code, r.verdict], [20, 'exigée'], nom);
   }
+});
+
+test("un dépôt nu trouvé sans --git-dir : le lecteur lit si, et seulement si, git l'admet, la cause de git nommée sinon (A-159)", () => {
+  const { depot, tete } = depotJouet();
+  const script = copieDesOutils();
+  const nu = join(dossier('nu-'), 'depot.git');
+  g(depot, 'clone', '-q', '--mirror', depot, nu);
+  const mien = join(dossier('mien-'), 'mien');
+  g(depot, 'clone', '-q', depot, mien);
+  g(mien, 'update-ref', 'refs/remotes/origin/develop', g(depot, 'rev-parse', 'refs/remotes/origin/develop'));
+  const { c, limite, fautes } = cellulesGit({
+    cwdDefaut: nu,
+    lancerCalcul: (cwd, env) => lancer(script, ['--base', 'develop', '--tete', tete], { cwd, entree: 'README.md\n', env }),
+  });
+  c('le témoin : aucun réglage', {}, 'lu');
+  c('all', { globale: SB('all') }, 'lu');
+  c('explicit', { globale: SB('explicit') }, 'refusé');
+  c("le système explicit, l'utilisateur all", { systeme: SB('explicit'), globale: SB('all') }, 'lu');
+  c("le système all, l'utilisateur explicit", { systeme: SB('all'), globale: SB('explicit') }, 'refusé');
+  c('GIT_CONFIG_COUNT explicit', { env: { GIT_CONFIG_COUNT: '1', GIT_CONFIG_KEY_0: 'safe.bareRepository', GIT_CONFIG_VALUE_0: 'explicit' } }, 'refusé');
+  c('explicit, GIT_CONFIG_COUNT all', { globale: SB('explicit'), env: { GIT_CONFIG_COUNT: '1', GIT_CONFIG_KEY_0: 'safe.bareRepository', GIT_CONFIG_VALUE_0: 'all' } }, 'lu');
+  c('GIT_CONFIG_PARAMETERS explicit', { env: { GIT_CONFIG_PARAMETERS: "'safe.bareRepository=explicit'" } }, 'refusé');
+  c('une valeur vide en dernier', { globale: SB('all') + SB('') }, 'refusé');
+  c('une valeur à saut de ligne', { globale: '[safe]\n\tbareRepository = "all\\nall"\n' });
+  c('violation b08 : bogus puis all', { globale: SB('bogus') + SB('all') }, 'refusé');
+  c("violation b09 : le système vide, l'utilisateur all", { systeme: SB(''), globale: SB('all') }, 'refusé');
+  c("violation b10 : le système sans =, l'utilisateur all", { systeme: '[safe]\n\tbareRepository\n', globale: SB('all') }, 'refusé');
+  c("violation b11 : le système Explicit (casse), l'utilisateur all", { systeme: SB('Explicit'), globale: SB('all') }, 'refusé');
+  c('violation b12 : explicit, bogus, all', { globale: SB('explicit') + SB('bogus') + SB('all') }, 'refusé');
+  c("violation b23 : le .git d'un arbre de travail, bogus puis all", { globale: SB('bogus') + SB('all'), cwd: join(mien, '.git') }, 'refusé');
+  c("le .git d'un arbre de travail, all (témoin de b23)", { globale: SB('all'), cwd: join(mien, '.git') });
+  writeFileSync(join(nu, 'expl.gitconfig'), SB('explicit'));
+  c('violation b26 : GIT_CONFIG_GLOBAL relatif, explicit', { env: { GIT_CONFIG_GLOBAL: 'expl.gitconfig' } }, 'refusé');
+  mkdirSync(join(nu, 'h/git'), { recursive: true });
+  writeFileSync(join(nu, 'h/.gitconfig'), SB('explicit'));
+  writeFileSync(join(nu, 'h/git/config'), SB('explicit'));
+  c('violation b35 : HOME relatif', { env: { HOME: 'h' } }, 'refusé');
+  c('violation b36 : XDG_CONFIG_HOME relatif', { env: { XDG_CONFIG_HOME: 'h' } }, 'refusé');
+  c('violation b37 : GIT_CONFIG_SYSTEM relatif', { env: { GIT_CONFIG_SYSTEM: 'h/.gitconfig' } }, 'refusé');
+  rmSync(join(nu, 'h'), { recursive: true });
+  rmSync(join(nu, 'expl.gitconfig'));
+  c('une configuration que git ne lit pas', { globale: '[safe\n' }, 'refusé');
+  g(nu, 'config', 'safe.bareRepository', 'explicit');
+  c('explicit dans la configuration du dépôt nu : ignoré, comme git', {}, 'lu');
+  g(nu, 'config', '--unset', 'safe.bareRepository');
+  c('un arbre de travail sous explicit', { globale: SB('explicit'), cwd: mien }, 'lu');
+  c('un arbre de travail sous une valeur que git ne lit pas', { globale: SB('bogus'), cwd: mien });
+  // m8 b21 : sous explicit, git admet le dépôt nu que GIT_DIR désigne ; le lecteur écarte GIT_DIR : une limite, que la
+  // raison dit.
+  limite('m8 b21 : explicit, GIT_DIR donné', { globale: SB('explicit'), env: { GIT_DIR: '.' } }, [/^# illisible : pas dans un dépôt git que git admet : fatal: cannot use bare repository/, /sans GIT_DIR, que ce calcul écarte/, /git admet avec GIT_DIR, ce refus est plus strict que git/]);
+  assert.deepEqual(fautes, []);
 });

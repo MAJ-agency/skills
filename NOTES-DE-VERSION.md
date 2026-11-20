@@ -2,6 +2,26 @@
 
 La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque projet par `poser` : une version publiée ne change rien chez un projet qui ne les repose pas. Chaque note dit ce qui change, puis ce qu'un projet fait pour en profiter.
 
+## 7.35.0 — 2026-11-19
+
+### Ce qui change
+
+Cinq petits correctifs (ticket 62 de `gouverner-nos-boucles`), quatre pour les projets et un dans le dépôt du plugin seulement :
+
+- **`meme-contenu.sh` nomme le clone partiel** : dans un clone fait avec `--filter` (`remote.<nom>.promisor` ou `extensions.partialclone` dans la configuration du dépôt, ses `include` et `config.worktree` compris), le calcul rend `illisible`, sortie 21, avec pour raison « dépôt partiel : des objets manquent et ce calcul ne télécharge rien, à cloner en entier avant de l'appeler (git clone sans --filter) », au lieu d'une lecture d'objet en échec qui ne disait pas la cause. `double-relecture.mjs` lit la marque de même, `include` et `config.worktree` compris.
+- **`meme-contenu.sh` et `double-relecture.mjs` demandent à git s'il admet le dépôt** (décision `A-159`), au lieu de refaire sa décision : avant toute lecture, chacun joue `git rev-parse --absolute-git-dir` dans le dossier courant, avec l'environnement de la session tel quel (sa configuration et ses variables `GIT_CONFIG_*`). Refusé par git (dépôt d'un autre propriétaire, dépôt nu sous `safe.bareRepository = explicit`, valeur de configuration que git ne lit pas, lieu de configuration relatif…) : `illisible`, sortie 21, « pas dans un dépôt git que git admet : <la ligne `fatal:` de git> ». Admis, le dépôt réel se lit toujours sans configuration d'utilisateur ni de poste, et reçoit seulement `safe.directory` pour le dossier git et l'arbre de travail que git vient d'admettre. Les deux bornes de la recherche, `GIT_CEILING_DIRECTORIES` et `GIT_DISCOVERY_ACROSS_FILESYSTEM`, sont gardées, pour la question comme pour les lectures. Deux cas restent plus stricts que git, et la raison le dit : `GIT_DIR`, `GIT_WORK_TREE` ou `GIT_COMMON_DIR` posée (le calcul les écarte et juge le dépôt du dossier courant ; la raison les nomme) ; un dépôt sous `core.worktree` d'un autre propriétaire (« plus strict que git : … », avec la cause de git). Hors ces deux cas, les deux calculs lisent ainsi exactement ce que git admet : avant, ils refaisaient sa lecture de configuration et lisaient, dans 14 cas trouvés par la contre-relecture, un dépôt que git refuse ; ils refusaient aussi un dépôt déclaré sûr par `GIT_CONFIG_COUNT` ou `GIT_CONFIG_PARAMETERS`, ce qui touchait les sessions cloud, où `GIT_CONFIG_COUNT` est toujours posée.
+- **Le gabarit de règle montre `criticality` en bloc**, une clé par ligne (`level`, `by`, `reason` entre guillemets) : Prettier la laisse telle quelle à ses réglages par défaut, la réindente sans la replier sous un autre retrait, et le lecteur d'en-têtes de la double relecture la lit dans les deux cas ; la forme en ligne `{ level, by, reason }` n'est plus montrée.
+- **Les noms de tests s'écrivent en français**, comme le veut l'ADR du socle sur la langue (`ADR_ALL_ARC-4`) : `.claude/rules/tests.md` demande `it('<comportement> quand <condition>')`, au présent, sans « should » ; ses exemples, la méthode du socle, la fiche Anchorpost, le gabarit de règle, les gabarits de tests (`exemple.jour-metier.spec.ts`, `exemple.property.spec.ts`) et le `CLAUDE.md` et les guides de l'API le disent de même. Aucun gate ne lisait l'ancienne forme.
+
+Dans le dépôt du plugin seulement : `scripts/poses.test.mjs` joue les bancs posés en tranches parallèles (`scripts/tranches.mjs`), chaque test exactement une fois ; seul, il passe de 324 s à 236 s, et de 360 s à 279 s dans la suite entière, plafonds inchangés.
+
+### Ce qu'un projet fait pour en profiter
+
+1. Mettre à jour le plugin : `claude plugin marketplace update maj`, puis `claude plugin update maj-skills@maj`, puis redémarrer Claude Code.
+2. Reposer les scripts de la chaîne, dans une PR du projet : `/maj-skills:fusionner poser` (`meme-contenu.sh`, `double-relecture.mjs` et leurs bancs). Rien à déclarer de plus : ce que la session lit avec son propre git, les deux calculs le lisent ; un « illisible » qui cite une ligne `fatal:` de git se règle comme git le demande.
+3. Reporter dans le projet, par une PR, la ligne « Le nom dit le comportement » de `.claude/rules/tests.md`, ses exemples et ceux de `docs/agents/gabarits/` ; les tests déjà écrits en anglais se renomment à leur prochaine retouche, rien ne les refuse.
+4. Une règle qui porte `criticality` en ligne peut être réécrite en bloc à sa prochaine retouche (`level`, `by`, `reason` entre guillemets, une clé par ligne).
+
 ## 7.34.0 — 2026-11-19
 
 ### Ce qui change

@@ -41,6 +41,23 @@
 #   S4  la fusion calculée ne lit aucun attribut (`--attr-source=<arbre vide>`, git ≥ 2.41) : une fusion faite
 #       sous un pilote (`merge=union`, `merge=ours`) s'en écarte, donc `différent`.
 #
+# A-159 : le calcul ne refait pas la décision de git, il la lui demande. Avant toute lecture, il joue
+# `git rev-parse --absolute-git-dir` dans le dossier courant, avec l'environnement de la session tel quel (sa
+# configuration, ses variables `GIT_CONFIG_*` et les deux bornes de la recherche, `GIT_CEILING_DIRECTORIES` et
+# `GIT_DISCOVERY_ACROSS_FILESYSTEM`, rien d'écarté ; seules les variables qui désignent un autre dépôt, `GIT_DIR` et
+# voisines, sont retirées, comme pour tout le calcul). Toute autre issue qu'un succès : `illisible`, la sortie d'erreur
+# de git en cause (dépôt d'un autre propriétaire, dépôt nu sous `safe.bareRepository = explicit`, configuration que
+# git ne lit pas…). Admis, le dépôt réel se lit sans configuration d'utilisateur ni de poste, et reçoit seulement
+# `safe.directory` pour le dossier git et l'arbre de travail que git vient d'admettre : la transmission de sa
+# décision, rien de plus. Le dossier git que le calcul lit doit être celui que git a admis, sinon `illisible`.
+# Deux limites, plus strictes que git, que la raison dit (m8) : la session pose `GIT_DIR`, `GIT_WORK_TREE` ou
+# `GIT_COMMON_DIR` (la raison les nomme, et dit si git aurait admis avec elles) ; le dossier où git trouve le dépôt
+# n'est ni le dossier git ni l'arbre de travail (sous `core.worktree`) : il n'est pas transmis, et la raison dit ce
+# que le calcul a transmis et la cause du refus.
+# Un dépôt partiel (`--filter` : `remote.<nom>.promisor` ou `extensions.partialclone` dans sa configuration, ses
+# `include` et `config.worktree` compris) est `illisible`, et la raison le dit : le dépôt propre ne télécharge aucun
+# objet manquant.
+#
 # Sortie standard : une seule ligne, le verdict. Sortie d'erreur : une ligne, sa raison. Un argument refusé n'est
 # jamais recopié. Sorties : 0 `même` · 20 `différent` · 21 `illisible` (usage, dépôt, réf, liste, dossier
 # temporaire, git en échec ou lecture vide : jamais `même`) · 69 `illisible`, outil absent (git, jq, mktemp, rm) ou
@@ -81,21 +98,96 @@ V=$1 T=$2 B=$3
 for outil in git jq mktemp rm; do
   command -v "$outil" >/dev/null || rendre 69 illisible "$outil est requis par les scripts de la chaîne (jq : sudo apt install jq, ou brew install jq)"
 done
-# Aucune variable GIT_* héritée, sauf celle qui borne la recherche du dépôt.
+# A-159 : les variables de configuration de la session, pour la seule question posée à git (`git_session`) ; toutes
+# ses variables GIT_*, pour dire, quand le calcul refuse, si git aurait admis avec elles (`git_complet`) ; celles qui
+# désignent un autre dépôt, que le calcul écarte, pour les nommer dans la raison.
+SESSION=()
+COMPLETE=()
+ECARTEES=()
 for variable in $(compgen -v GIT_); do
-  [ "$variable" = GIT_CEILING_DIRECTORIES ] || unset "$variable"
+  COMPLETE+=("$variable=${!variable}")
+  [[ "$variable" != GIT_CONFIG* ]] || SESSION+=("$variable=${!variable}")
+  case $variable in GIT_DIR | GIT_WORK_TREE | GIT_COMMON_DIR) ECARTEES+=("$variable") ;; esac
+done
+# Aucune variable GIT_* héritée, sauf les deux qui bornent la recherche du dépôt sans en désigner un autre.
+for variable in $(compgen -v GIT_); do
+  case $variable in GIT_CEILING_DIRECTORIES | GIT_DISCOVERY_ACROSS_FILESYSTEM) ;; *) unset "$variable" ;; esac
 done
 version=$(git version 2>/dev/null) || rendre 69 illisible "git version en échec"
 [[ "$version" =~ ^git\ version\ ([0-9]+)\.([0-9]+) ]] || rendre 69 illisible "version de git illisible"
 [ "${BASH_REMATCH[1]}" -gt 2 ] || { [ "${BASH_REMATCH[1]}" = 2 ] && [ "${BASH_REMATCH[2]}" -ge 41 ]; } ||
   rendre 69 illisible "git ≥ 2.41 requis, ici ${BASH_REMATCH[1]}.${BASH_REMATCH[2]}"
 
-# ── Le dépôt réel : où sont ses objets, le sha de la cible, s'il est superficiel. Rien d'autre. ────────────────
-git rev-parse --git-dir >/dev/null 2>&1 || illisible "pas dans un dépôt git"
-[[ "$B" != *[[:cntrl:][:space:]]* ]] && [ "$B" != HEAD ] && git check-ref-format "refs/remotes/origin/$B" 2>/dev/null ||
+# ── A-159 : git lui-même dit s'il admet ce dépôt ────────────────────────────────────────────────────────────
+# Dans le dossier courant, avec l'environnement de la session : seules ses variables GIT_CONFIG_* lui sont rendues
+# (les autres GIT_*, qui désignent un autre dépôt, restent retirées).
+git_session() {
+  (
+    for kv in ${SESSION[@]+"${SESSION[@]}"}; do export "${kv%%=*}=${kv#*=}"; done
+    exec git "$@"
+  )
+}
+git_complet() {
+  (
+    for kv in ${COMPLETE[@]+"${COMPLETE[@]}"}; do export "${kv%%=*}=${kv#*=}"; done
+    exec git "$@"
+  )
+}
+# La cause d'un refus, dans CAUSE : la première ligne `fatal:` de la sortie d'erreur de la commande, ou à défaut sa
+# première ligne.
+cause_de() {
+  local erreur l
+  erreur=$("$@" 2>&1 >/dev/null) || :
+  decouper "$erreur"
+  CAUSE=${LIGNES[0]:-git a échoué sans rien dire}
+  for l in ${LIGNES[@]+"${LIGNES[@]}"}; do
+    if [[ "$l" == fatal:* ]]; then CAUSE=$l; break; fi
+  done
+}
+if ! gitdir=$(git_session rev-parse --absolute-git-dir 2>/dev/null); then
+  cause_de git_session rev-parse --absolute-git-dir
+  if [ "${#ECARTEES[@]}" -gt 0 ]; then
+    # m8 : la réponse est celle de git sans les variables que le calcul écarte ; la raison les nomme, et dit si git
+    # aurait admis avec elles.
+    noms=${ECARTEES[*]}
+    noms=${noms// /, }
+    CAUSE="$CAUSE (sans $noms, que ce calcul écarte : il ne lit que le dépôt du dossier courant"
+    if git_complet rev-parse --absolute-git-dir >/dev/null 2>&1; then
+      CAUSE="$CAUSE ; git admet avec $noms, ce refus est plus strict que git)"
+    else
+      CAUSE="$CAUSE)"
+    fi
+  fi
+  illisible "pas dans un dépôt git que git admet : $CAUSE"
+fi
+[[ "$gitdir" == /* ]] && [[ "$gitdir" != *$'\n'* ]] || illisible "dossier git du dépôt illisible"
+haut=$(git_session rev-parse --show-toplevel 2>/dev/null) && [[ "$haut" == /* ]] && [[ "$haut" != *$'\n'* ]] || haut=''
+# Les lectures du dépôt réel : sans configuration d'utilisateur ni de poste ; `safe.directory` pour le seul dossier git
+# et le seul arbre de travail que git vient d'admettre (sans lui, le dépôt d'un autre propriétaire serait refusé).
+r() {
+  local -a reports=(safe.directory "$gitdir")
+  [ -z "$haut" ] || reports+=(safe.directory "$haut")
+  local -a vars=(GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_SYSTEM=/dev/null GIT_CONFIG_NOSYSTEM=1 "GIT_CONFIG_COUNT=$((${#reports[@]} / 2))")
+  local i
+  for ((i = 0; i < ${#reports[@]} / 2; i++)); do vars+=("GIT_CONFIG_KEY_$i=${reports[2 * i]}" "GIT_CONFIG_VALUE_$i=${reports[2 * i + 1]}"); done
+  (
+    export "${vars[@]}"
+    exec git "$@"
+  )
+}
+
+# ── Le dépôt réel : où sont ses objets, le sha de la cible, s'il est superficiel ou partiel. Rien d'autre. ──────
+if ! lu=$(r rev-parse --absolute-git-dir 2>/dev/null); then
+  # m8 : git admet, mais pas sous ce que le calcul lui transmet (le dossier où git a trouvé le dépôt n'est pas
+  # transmis quand il n'est ni le dossier git ni l'arbre de travail, sous `core.worktree` par exemple).
+  cause_de r rev-parse --absolute-git-dir
+  illisible "plus strict que git : git admet ce dépôt ($gitdir), mais sans configuration d'utilisateur ni de poste, avec safe.directory pour ce seul dossier git${haut:+ et le seul arbre de travail $haut}, git le refuse : $CAUSE"
+fi
+[ "$lu" = "$gitdir" ] || illisible "le dépôt que ce calcul lirait n'est pas celui que git admet ($gitdir)"
+[[ "$B" != *[[:cntrl:][:space:]]* ]] && [ "$B" != HEAD ] && r check-ref-format "refs/remotes/origin/$B" 2>/dev/null ||
   illisible "nom de branche cible invalide"
-! git symbolic-ref -q "refs/remotes/origin/$B" >/dev/null 2>&1 || illisible "origin/$B est une réf symbolique, pas une branche"
-objets=$(git rev-parse --path-format=absolute --git-path objects 2>/dev/null) && [[ "$objets" == /* ]] && [[ "$objets" != *$'\n'* ]] && [ -d "$objets" ] ||
+! r symbolic-ref -q "refs/remotes/origin/$B" >/dev/null 2>&1 || illisible "origin/$B est une réf symbolique, pas une branche"
+objets=$(r rev-parse --path-format=absolute --git-path objects 2>/dev/null) && [[ "$objets" == /* ]] && [[ "$objets" != *$'\n'* ]] && [ -d "$objets" ] ||
   illisible "dossier des objets du dépôt illisible"
 
 # ── S1 : le dépôt propre ────────────────────────────────────────────────────────────────────────────────────
@@ -118,9 +210,24 @@ VIDE=$(p hash-object -w -t tree --stdin </dev/null 2>/dev/null) && [[ "$VIDE" =~
 BRUIT=$(p cat-file -e "$T^{commit}" 2>&1) || illisible "T introuvable dans ce dépôt : $T"
 [ "$V" != "$T" ] || meme "V est T"
 
-superficiel=$(git rev-parse --is-shallow-repository 2>/dev/null) || illisible "git rev-parse --is-shallow-repository en échec"
+superficiel=$(r rev-parse --is-shallow-repository 2>/dev/null) || illisible "git rev-parse --is-shallow-repository en échec"
 [ "$superficiel" = false ] || illisible "dépôt superficiel : l'historique est tronqué, à approfondir avant d'appeler ce calcul (git fetch --unshallow origin)"
-cible=$(git rev-parse -q --verify "refs/remotes/origin/$B" 2>/dev/null) && [[ "$cible" =~ $SHA ]] ||
+# Un clone partiel : git le marque dans la configuration du dépôt, par un dépôt distant « promisor » ; lue avec ses
+# `include` et `config.worktree` (le dépôt réel n'a ni configuration d'utilisateur ni de poste). Sortie 1 : aucune clé
+# ne répond ; toute autre sortie en échec : illisible.
+partiel=$(r config --includes --get-regexp '^(extensions\.partialclone|remote\..+\.promisor)$' 2>/dev/null) && rc=0 || rc=$?
+case $rc in
+  0)
+    decouper "$partiel"
+    for l in ${LIGNES[@]+"${LIGNES[@]}"}; do
+      [[ "$l" == *' false' ]] ||
+        illisible "dépôt partiel : des objets manquent et ce calcul ne télécharge rien, à cloner en entier avant de l'appeler (git clone sans --filter)"
+    done
+    ;;
+  1) ;;
+  *) illisible "configuration du dépôt illisible (git config en échec, $rc)" ;;
+esac
+cible=$(r rev-parse -q --verify "refs/remotes/origin/$B" 2>/dev/null) && [[ "$cible" =~ $SHA ]] ||
   illisible "origin/$B introuvable : relire la cible d'abord"
 p cat-file -e "$cible^{commit}" 2>/dev/null || illisible "origin/$B n'est pas un commit lisible"
 p cat-file -e "$V^{commit}" 2>/dev/null || different "V introuvable dans ce dépôt (branche réécrite ?) : $(court "$V")"
