@@ -1,9 +1,0 @@
-1	0	.claude
-0	1	.claude/chaine.json
-0	1	.claude/settings.json
-1	1	apps/api/src/facture/total.ts
-1	0	docs/charge/CLAUDE.md
-1	0	docs/charge/chaine.json
-1	0	docs/charge/rules/piege.md
-1	0	docs/charge/settings.json
-5	0	docs/charge/skills/piege/SKILL.md

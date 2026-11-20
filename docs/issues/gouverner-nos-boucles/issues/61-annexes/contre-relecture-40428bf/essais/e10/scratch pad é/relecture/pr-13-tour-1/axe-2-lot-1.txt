@@ -1,5 +1,0 @@
-aucun écart
-Fichiers du diff lus :
-apps/api/src/$(touch PIEGE).ts
-apps/api/src/auth/nul.ts
-apps/api/src/gros.ts

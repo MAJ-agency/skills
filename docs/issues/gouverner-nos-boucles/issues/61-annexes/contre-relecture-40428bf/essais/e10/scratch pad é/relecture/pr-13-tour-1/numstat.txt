@@ -1,7 +1,0 @@
-1	0	apps/api/src/$(touch PIEGE).ts
--	-	apps/api/src/auth/nul.ts
-1500	0	apps/api/src/gros.ts
-1500	0	apps/web/src/gros.ts
--	-	apps/web/src/logo.png
-1	0	"apps/web/src/tab\thereé \"q\".ts"
-1	0	packages/x/-n

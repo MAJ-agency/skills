@@ -1,2 +1,0 @@
-db/migrations/002_purge.sql
-infra/main.tf

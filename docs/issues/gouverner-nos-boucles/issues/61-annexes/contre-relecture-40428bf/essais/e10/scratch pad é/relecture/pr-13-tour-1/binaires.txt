@@ -1,2 +1,0 @@
-apps/api/src/auth/nul.ts
-apps/web/src/logo.png

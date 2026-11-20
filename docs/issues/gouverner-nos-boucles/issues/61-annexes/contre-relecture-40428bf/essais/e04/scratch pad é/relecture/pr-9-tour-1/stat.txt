@@ -1,3 +1,0 @@
- db/migrations/002_purge.sql | 1 +
- infra/main.tf               | 1 +
- 2 files changed, 2 insertions(+)

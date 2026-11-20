@@ -1,7 +1,0 @@
-diff --git a/apps/api/src/facture/total.ts b/apps/api/src/facture/total.ts
-index 659edf3..4efd47e 100644
---- a/apps/api/src/facture/total.ts
-+++ b/apps/api/src/facture/total.ts
-@@ -1 +1 @@
--export const total = () => 0;
-+export const total = (l) => { throw new Error("x"); };

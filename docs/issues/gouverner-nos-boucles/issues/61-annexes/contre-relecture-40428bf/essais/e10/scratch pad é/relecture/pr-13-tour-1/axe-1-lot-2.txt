@@ -1,7 +1,0 @@
-aucun écart
-Critères non concernés : S1
-Fichiers du diff lus :
-"apps/web/src/tab\thereé \"q\".ts"
-apps/web/src/gros.ts
-apps/web/src/logo.png
-packages/x/-n

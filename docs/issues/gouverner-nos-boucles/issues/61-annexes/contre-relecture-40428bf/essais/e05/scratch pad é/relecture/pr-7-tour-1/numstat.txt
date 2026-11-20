@@ -1,3 +1,0 @@
-1	1	apps/api/src/facture/total.ts
-1	0	package.json
-1	0	scripts/installer.sh

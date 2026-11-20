@@ -1,2 +1,0 @@
-.gitattributes
-apps/api/src/auth/jeton.ts
