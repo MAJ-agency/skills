@@ -2,7 +2,7 @@
 
 La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque projet par `poser` : une version publiée ne change rien chez un projet qui ne les repose pas. Chaque note dit ce qui change, puis ce qu'un projet fait pour en profiter.
 
-## 7.36.0 — 2026-11-20
+## 7.37.0 — 2026-11-20
 
 ### Ce qui change
 
@@ -22,6 +22,18 @@ Le gate `tickets` juge la forme de deux lignes d'en-tête qu'il ne lisait pas, s
 4. D'ici là, le conducteur garde l'ancienne discipline, une seule sous-PR étiquetée à la fois par sujet : un capitaine dont les scripts ne sont pas reposés prend encore toutes les sous-PR étiquetées d'un sujet dans le même tour. Avec plusieurs capitaines, il ne l'abandonne qu'une fois tous relancés.
 5. Reposer le gate et les gabarits, dans une PR du projet : `/maj-skills:tickets poser` (`scripts/verify/tickets-regles.mjs`, `tickets.mjs` et leurs tests, `scripts/docs/couts.test.mjs`, les gabarits de ticket et de carte). Une ligne `Sensibles:` ou `Relecture:` mal formée dans l'en-tête d'un ticket rougit alors le gate : la corriger, ou la retirer.
 6. Dans la même PR, reporter dans `docs/agents/chaine-de-production.md` (posé par `socle-chaine-de-production`, que le projet a pu amender) le § 2 sans rétro (le schéma du cycle, la parenthèse du point 2 et le point 7), et dans `docs/agents/pieges.md` sa phrase d'en-tête : un incident donne un ticket au moment où il arrive. Une carte déjà `fini` garde sa section `## Rétro`, sans effet.
+
+## 7.36.0 — 2026-11-20
+
+### Ce qui change
+
+Le plugin porte un skill de plus, le skill `relecture` (`skills/chaine/relecture/`) : ce que joue une **session de relecture**, lancée par le Relecteur d'un dépôt et jamais par l'auteur d'une PR. Elle se place sur la base de la PR, extrait le sommet à relire dans un arbre de travail à part, y joue les scripts de la base (`diff-revue.sh`, `chemins-sensibles.mjs`, `contexte-ticket.mjs`, `sujet.sh a-juger` pour une PR vers un sujet, la régénération des index), choisit ses axes selon ce que le diff contient (Règles, Ticket, Documentation, Tickets, Règles métier), lance un sous-agent en contexte vierge par axe, trie chaque constat dans le code, puis écrit sur la PR un verdict de la forme que `verdict.mjs` lit (7.23.0). Il n'y a que deux gravités, bloquant et doute : ce que les deux skills de revue rangent « à corriger » est ici un bloquant. Un bloquant confirmé donne `refusé` même quand un axe n'a pas pu être joué ; `incomplet` veut zéro bloquant. L'échec d'un outil de la session (une installation, un réseau, un sous-agent) n'est jamais un écart de la PR : il s'écrit « non exécuté ». Toute commande dont la sortie sert à décider se lit par son code de sortie : une liste vide après un échec n'est jamais « rien à relire », et ce que la session ne peut ni lire ni jouer donne `incomplet`, avec sa cause et qui la lève. Le diff relu est vérifié contre la liste des fichiers changés : n'en sortent ni ce que la PR déclare elle-même index généré, ni un fichier texte qu'un `.gitattributes` dit binaire, ni du code rangé sous `__snapshots__/` ; le lockfile, les fichiers `.snap` et les binaires que les axes ne lisent pas sont toujours nommés au verdict. L'empreinte de ce que les axes recevront est prise avant que la session n'exécute ce que la PR déclare, et reprise après. `/security-review` ne compte pour lancée que si la session a vérifié par une commande, avant de la lancer, que le diff que la commande intégrée lit est celui de la PR. Deux axes sont neufs : Tickets (K1 à K6), pour une PR de tickets, de spec ou de carte, et Règles métier (M1 à M4), pour une règle, sa criticité ou le glossaire. La session ne colle aucun bloc de shell : chaque geste est une sous-commande d'un script du skill, `scripts/gestes.sh`, lancé depuis le dossier du skill et jamais posé dans un projet, qui s'arrête au premier échec et écrit sa cause (l'outil Bash d'une session ignore `set -e` dans un bloc collé). L'arbre à part et le clone de `/security-review` s'extraient sans les fichiers qu'une session charge comme consignes (`CLAUDE.md`, `CLAUDE.local.md`, `.claude/`, sauf `/.claude/chaine.json`) ; les axes lisent les fiches de règles sur la base, et un `CLAUDE.md` apparu pendant `C1` donne `incomplet`. Au-delà de 2 000 lignes, le script découpe les lots et vérifie leur union. Le skill ne se charge que par sa commande (`disable-model-invocation`). `CONTEXT.md` reçoit le vocabulaire de la relecture indépendante.
+
+**Rien ne l'appelle encore** : le Relecteur et la bascule vers le régime 8 ne sont pas livrés. `revue-de-ticket` et `revue-adversariale` ne changent pas, et restent la revue de toute PR.
+
+### Ce qu'un projet fait pour en profiter
+
+Mettre à jour le plugin ; rien d'autre aujourd'hui. Une session de relecture demande `git` 2.40 ou plus et `jq`. Une session de relecture demande aussi `node`. Les scripts que le skill joue sont déjà dans `scripts/chaine/` d'un projet qui a posé `revue-adversariale`, `revue-de-ticket`, `fusionner` (7.23.0 ou plus, pour `verdict.mjs`) et `sujet` (7.28.0 ou plus, pour `a-juger`) : `/maj-skills:relecture poser` le vérifie et ne copie rien de plus. Un projet qui a le gate `references-agent` ajoute `maj-skills:relecture` à `scripts/verify/references-agent-integrees.json` le jour où l'un de ses textes cite le skill par son nom qualifié.
 
 ## 7.35.0 — 2026-11-19
 

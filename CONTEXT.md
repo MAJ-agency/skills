@@ -26,6 +26,56 @@ _Avoid_: worker, sous-agent (un sous-agent vit dans la session qui le lance)
 Une session qui fait entrer les PR prêtes dans la branche d'intégration, une par une ; plusieurs peuvent tenir la même file.
 _Avoid_: merger, intégrateur
 
+### Relecture indépendante
+
+Le vocabulaire du régime 8, où l'auteur d'une PR ne la relit plus. Les textes du régime 7 (`revue-de-ticket`, `revue-adversariale`) gardent leurs mots jusqu'à leur retrait.
+
+**Relecteur**:
+La session qui aiguille les relectures d'un dépôt : elle lance une session de relecture par PR, et ne relit rien elle-même.
+_Avoid_: « relecteur » pour autre chose (la session qui relit est une session de relecture, son sous-agent un axe)
+
+**Session de relecture**:
+La session que le Relecteur lance pour relire une PR, et qui écrit le verdict ; ce n'est jamais l'auteur de la PR.
+_Avoid_: relecteur
+
+**Axe**:
+Un sous-agent en contexte vierge, lancé par la session de relecture avec une liste fermée de critères.
+_Avoid_: relecteur, revue
+
+**Constat**:
+Ce qu'un axe relève. Deux gravités : bloquant (un écart à un critère écrit : il se corrige, ou se conteste) et doute (une question, sans obligation).
+_Avoid_: défaut, « à corriger », mineur
+
+**Verdict**:
+Le commentaire de la session de relecture sur la PR, de forme fixe ; il vaut validé (aucun bloquant), refusé (au moins un bloquant, même si un axe n'a pas pu être joué) ou incomplet (aucun bloquant, et un axe n'a pas pu être joué).
+_Avoid_: « à corriger »
+
+**Tour**:
+Une distribution d'une PR à une ou deux sessions de relecture, numérotée, et les verdicts qui y répondent ; il finit validé, refusé ou abandonné.
+_Avoid_: aller-retour
+
+**Même contenu propre**:
+Deux sommets d'une PR, celui du verdict et celui qu'on juge, que ne séparent que des fusions de la cible et des commits d'index générés. En code : `meme-contenu.sh`.
+_Avoid_: « aux index près » sans définition
+
+**Contestation**:
+La réponse de l'auteur à un bloquant qu'il juge faux, écrite sur la PR.
+
+**Arbitrage**:
+La décision d'un arbitre, qui n'est jamais l'auteur, de maintenir ou d'écarter un bloquant contesté.
+
+**Décision de plafond**:
+Ce que décide l'architecte après le troisième tour refusé d'une PR. Ce plafond compte des tours de relecture, pas la mémoire de travail d'une session (« Plafond », plus bas).
+_Avoid_: arbitrage
+
+**Étiquette**:
+Un label GitHub posé sur une PR : `à-relire`, `à-reprendre`, `à-fusionner`, `fusion-bloquée`.
+_Avoid_: label, dans la prose du régime 8
+
+**Auteur**:
+La session qui a écrit la PR.
+_Avoid_: propriétaire
+
 ### Travail
 
 **Programme**:
