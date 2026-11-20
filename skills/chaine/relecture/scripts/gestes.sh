@@ -142,7 +142,7 @@ consignes_autour() {
 empreinte() {
   local f h e
   for f in session.txt pr.txt fichiers.txt attendus.txt relus.txt diff.patch binaires.txt illisibles.txt sensibles.txt \
-    binaires-sensibles.txt dispenses.txt hors.txt sans-ecart.txt ticket.txt titre.txt; do
+    binaires-sensibles.txt dispenses.txt hors.txt sans-ecart.txt ticket.txt titre.txt resolution.patch resolution.txt; do
     if [ -f "$B/$f" ]; then h=$(git hash-object -- "$B/$f") || return 1; printf '%s %s\n' "$h" "$f"; else dire "absent $f"; fi
   done
   if [ -d "$B/lots" ]; then
@@ -243,15 +243,17 @@ diff_relu() {
   cd "$S"
   [ -f "$B/liste.faite" ] || quitter 12 "liste des fichiers absente"
   rm -rf -- "$B/lots" "$B/diff.fait"
-  rm -f -- "$B/diff.patch" "$B/stat.txt" "$B/attendus.txt" "$B/relus.txt" "$B/manquants.txt" "$B/binaires.txt" "$B/illisibles.txt"
+  rm -f -- "$B/diff.patch" "$B/stat.txt" "$B/attendus.txt" "$B/relus.txt" "$B/manquants.txt" "$B/binaires.txt" "$B/illisibles.txt" \
+    "$B/resolution.patch" "$B/resolution.txt" "$B/fusion.txt"
+  # Aucun attribut git ne joue (l'arbre vide pour source), les chemins sans citation des accents, sans renommages.
+  export GIT_ATTR_SOURCE=$ARBRE_VIDE
+  config_git core.quotePath false diff.renames false
+  [ ! -f "$B/maj" ] || resolution
   if [ ! -s "$B/fichiers.txt" ]; then
     : > "$B/attendus.txt"
     touch "$B/diff.fait"
     quitter 0 "aucun fichier à relire"
   fi
-  # Aucun attribut git ne joue (l'arbre vide pour source), les chemins sans citation des accents, sans renommages.
-  export GIT_ATTR_SOURCE=$ARBRE_VIDE
-  config_git core.quotePath false diff.renames false
   git --attr-source="$ARBRE_VIDE" -C "$A" check-attr diff -- x > /dev/null 2>&1 || quitter 12 "git 2.40 ou plus est requis"
   local zones s=0
   mapfile -t zones < "$B/fichiers.txt"
@@ -306,10 +308,27 @@ diff_relu() {
   if [ -s "$B/manquants.txt" ]; then quitter 12 "manquent au diff relu :" "$(cat "$B/manquants.txt")"; fi
   lots
   touch "$B/diff.fait"
-  [ -s "$B/attendus.txt" ] || dire "aucun axe"
+  [ -s "$B/attendus.txt" ] || [ -s "$B/resolution.txt" ] || dire "aucun axe"
   dire "diff relu : $(lignes "$B/relus.txt") fichiers, $(lignes "$B/diff.patch") lignes ; hors du diff : $(lignes "$B/hors.txt") ; sans écart : $(lignes "$B/sans-ecart.txt") ; binaires : $(lignes "$B/binaires.txt"), dont illisibles : $(lignes "$B/illisibles.txt")"
   if [ -s "$B/illisibles.txt" ]; then dire "binaires illisibles (ni image, ni police, ni archive) :" "$(cat "$B/illisibles.txt")"; fi
   dire "{{DIFF}} : $B/diff.patch"
+  if [ -s "$B/resolution.txt" ]; then
+    dire "résolution de la fusion : $(lignes "$B/resolution.txt") fichiers" "{{DIFF}} de la résolution, pour l'axe Règles : $B/resolution.patch"
+  fi
+}
+
+# Sur une PR de mise à jour, la résolution de la fusion se relit en entier : ce qu'elle change par rapport à la fusion
+# automatique (`git show --remerge-diff`, git 2.36 ou plus), marqueurs de conflit compris. Ce que develop écrit et que
+# la résolution retire n'est dans aucun autre diff relu : c'est le seul endroit où cela se lit.
+resolution() {
+  local f
+  f=$(git -C "$A" rev-list --merges "$sommet" "^origin/$base" ^origin/develop) || quitter 12 "fusion illisible : la résolution ne se relit pas"
+  [ -n "$f" ] && [ "$(printf '%s\n' "$f" | wc -l | tr -d ' ')" = 1 ] || quitter 12 "PR de mise à jour sans une fusion et une seule : la résolution ne se relit pas"
+  git -C "$A" show --remerge-diff --format= --quiet "$f" > /dev/null 2>&1 ||
+    quitter 12 "git 2.36 ou plus est requis (git show --remerge-diff) : la résolution de la fusion ne se relit pas"
+  git -C "$A" show --remerge-diff --format= --no-renames --no-ext-diff "$f" > "$B/resolution.patch" || quitter 12 "diff de la résolution non écrit"
+  relus_de "$B/resolution.patch" > "$B/resolution.txt"
+  printf '%s\n' "$f" > "$B/fusion.txt"
 }
 
 # Au-delà de 2 000 lignes, des lots : par zone (`apps/<x>`, `packages/<x>`, sinon le premier dossier, la racine à
@@ -379,15 +398,15 @@ axes() {
   [ -f "$B/liste.faite" ] || quitter 12 "liste des fichiers absente"
   [ -f "$B/diff.fait" ] || quitter 12 "diff relu absent : jouer diff d'abord"
   rm -f -- "$B/axes.fait" "$B/sensibles.txt" "$B/ticket.txt" "$B/binaires-sensibles.txt" "$B/sans-ligne.txt"
-  if [ ! -s "$B/fichiers.txt" ]; then touch "$B/axes.fait"; quitter 0 "aucun fichier à relire : ni axe, ni C3, ni C4"; fi
+  if [ ! -s "$B/fichiers.txt" ] && [ ! -s "$B/resolution.txt" ]; then touch "$B/axes.fait"; quitter 0 "aucun fichier à relire : ni axe, ni C3, ni C4"; fi
   [ -s "$B/titre.txt" ] || quitter 12 "titre.txt absent : l'écrire par l'outil d'écriture de fichier"
   local s=0 ticket
   node "$S/scripts/chaine/revue-exigee.mjs" '' '' "origin/$base" < "$B/fichiers.txt" > /dev/null 2> "$B/revue-exigee.err" || s=$?
   case $s in
     0)
-      # Un fichier du diff relu qu'aucune ligne de la table ne couvre (ni code pour revue-exigee.mjs, ni documentation) est
-      # du code : la revue est exigée, jamais aucun axe.
-      { filtrer -Eiv '\.mdx?"?$' "$B/attendus.txt"; } > "$B/sans-ligne.txt"
+      # Un fichier du diff relu qu'aucune ligne de la table ne couvre (ni code pour revue-exigee.mjs, ni documentation : un
+      # `.md` ; un `.mdx` exécute ses `export`, c'est du code) est du code : la revue est exigée, jamais aucun axe.
+      { filtrer -Eiv '\.md"?$' "$B/attendus.txt"; } > "$B/sans-ligne.txt"
       if [ -s "$B/sans-ligne.txt" ]; then
         dire "revue exigée : oui, un fichier qu'aucune ligne de la table ne couvre est du code :"
         cat "$B/sans-ligne.txt"
@@ -404,6 +423,10 @@ axes() {
   : > "$B/binaires-sensibles.txt"
   if [ -s "$B/binaires.txt" ]; then
     (cd "$A" && node "$S/scripts/chaine/chemins-sensibles.mjs" "origin/$base" < "$B/binaires.txt") > "$B/binaires-sensibles.txt" || quitter 12 "chemins-sensibles.mjs en échec sur les binaires"
+  fi
+  if [ -s "$B/resolution.txt" ]; then
+    dire "résolution de la fusion : $(lignes "$B/resolution.txt") fichiers, que l'axe Règles lit"
+    cat "$B/resolution.txt"
   fi
   dire "chemins sensibles : $(lignes "$B/sensibles.txt")"
   [ ! -s "$B/sensibles.txt" ] || cat "$B/sensibles.txt"
@@ -546,7 +569,13 @@ lus() {
   local i=${3:-} lot=${4:-} d axe
   [[ $i =~ ^[1-5]$ ]] || quitter 12 "usage : lus '<brouillons>' <rang de l'axe, 1 à 5> [<lot>]"
   d=$B axe=$B/axe-$i.txt
-  if [ -n "$lot" ]; then
+  if [ "$lot" = resolution ]; then
+    [ "$i" = 1 ] || quitter 12 "la résolution de la fusion se lit par l'axe Règles (1)"
+    [ -s "$B/resolution.txt" ] || quitter 12 "aucune résolution à relire : jouer diff d'abord, sur une PR de mise à jour"
+    mkdir -p "$B/lots/resolution"
+    cp "$B/resolution.txt" "$B/lots/resolution/relus.txt"
+    d=$B/lots/resolution axe=$B/axe-1-lot-resolution.txt
+  elif [ -n "$lot" ]; then
     [[ $lot =~ ^[0-9]+$ ]] && [ -d "$B/lots/lot-$lot" ] || quitter 12 "lot inconnu : $lot"
     d=$B/lots/lot-$lot axe=$B/axe-$i-lot-$lot.txt
   fi
@@ -595,14 +624,27 @@ meme_retrait() {
   # Le morceau que develop retire et qui couvre cette place ; rien de lui n'a changé côté sujet.
   m=$(awk -v l="$lm" '
     function bornes(x, t) { x = substr(x, 2); if (x !~ /,/) x = x ",1"; split(x, t, ","); return t[1] + 0 SUBSEP t[2] + 0 }
-    /^@@ / { split(bornes($2), o, SUBSEP); if (o[2] > 0 && l >= o[1] && l <= o[1] + o[2] - 1) { print o[1], o[1] + o[2] - 1; exit } }' "$B/tri-$n-develop.diff") || return 1
+    /^@@ / { split(bornes($2), o, SUBSEP); split(bornes($3), w, SUBSEP); if (o[2] > 0 && l >= o[1] && l <= o[1] + o[2] - 1) { print o[1], o[1] + o[2] - 1, w[1], w[2]; exit } }' "$B/tri-$n-develop.diff") || return 1
   [ -n "$m" ] || return 1
-  awk -v d="${m% *}" -v e="${m#* }" '
+  local md me mc mk
+  read -r md me mc mk <<< "$m" || return 1
+  [[ "$md $me $mc $mk" =~ ^[0-9]+\ [0-9]+\ [0-9]+\ [0-9]+$ ]] || return 1
+  awk -v d="$md" -v e="$me" '
     function bornes(x, t) { x = substr(x, 2); if (x !~ /,/) x = x ",1"; split(x, t, ","); return t[1] + 0 SUBSEP t[2] + 0 }
     /^@@ / { split(bornes($2), o, SUBSEP)
       if (o[2] > 0 && o[1] <= e && o[1] + o[2] - 1 >= d) touche = 1
       if (o[2] == 0 && o[1] >= d && o[1] < e) touche = 1 }
     END { exit touche }' "$B/tri-$n-sujet.diff" || return 1
+  # La résolution n'a ni récrit ni retiré ce que develop met à la place : si le morceau de develop écrit des lignes, aucun
+  # morceau de `git diff -U0 <fusion>^2 <fusion>` ne les touche ; s'il ne fait que retirer, la fusion n'insère rien là.
+  git diff -U0 --no-renames --no-ext-diff "$f^2" "$f" -- ":(literal)$reel" > "$B/tri-$n-fusion.diff" || return 1
+  awk -v c="$mc" -v k="$mk" '
+    function bornes(x, t) { x = substr(x, 2); if (x !~ /,/) x = x ",1"; split(x, t, ","); return t[1] + 0 SUBSEP t[2] + 0 }
+    /^@@ / { split(bornes($2), o, SUBSEP)
+      if (k > 0 && o[2] > 0 && o[1] <= c + k - 1 && o[1] + o[2] - 1 >= c) touche = 1
+      if (k > 0 && o[2] == 0 && o[1] >= c && o[1] < c + k) touche = 1
+      if (k == 0 && o[2] == 0 && o[1] == c) touche = 1 }
+    END { exit touche }' "$B/tri-$n-fusion.diff" || return 1
 }
 
 tri() {

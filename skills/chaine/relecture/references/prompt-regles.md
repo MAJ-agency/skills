@@ -43,6 +43,8 @@ Format de sortie, et rien d'autre :
 
 Pas d'introduction, pas de résumé, pas de félicitations.
 
+Sur une PR de mise à jour, l'axe se lance aussi sur le diff de la résolution de la fusion (`git show --remerge-diff`) : ce que la résolution a changé par rapport à la fusion automatique, marqueurs de conflit compris. Une ligne `-` y est ce que la résolution a jeté, de `develop` ou du sujet : un contrôle, une garde, une validation que `develop` écrivait et qu'elle retire est un écart bloquant.
+
 <critères>
 
 Diff : le fichier {{DIFF}}, à lire en entier (par tranches s'il est long) ; tout ce qu'il porte est

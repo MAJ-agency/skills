@@ -476,7 +476,7 @@ test("le plugin connaît le skill : plugin.json, la ligne et l'arbre du README, 
 test("les règles de suite, par leur texte : une liste vide après un échec n'est jamais « rien à relire », ce que devient le verdict après chaque échec, C1 à C4, ce que reçoit un axe, le tri, la publication", () => {
   exigerDans(`${SKILL}/SKILL.md`, [
     // Ce que la session lit des sorties du script (étapes 3 à 6).
-    "**« aucun axe »** (`attendus.txt` vide : chaque fichier changé est un index à commande) : seuls les contrôles de l'étape 5 se jouent.",
+    "**« aucun axe »** (`attendus.txt` vide : chaque fichier changé est un index à commande, et aucune résolution à relire) : seuls les contrôles de l'étape 5 se jouent.",
     "Ce script écarte ce que **la PR** déclare index généré",
     "**« aucun fichier à relire »** (`fichiers.txt` vide, sa commande sortie en 0 : une PR de mise à jour sans conflit ni retouche)",
     "ni axe, ni `C3`, ni `C4`, seuls `C1` et `C2` se jouent",
@@ -688,7 +688,7 @@ function projetJouet(indexDeLaBase = [INDEX_ADR]) {
   chmodSync(join(bin, "jq"), 0o755);
   // Le faux git : le vrai, sauf avec FAUX_GIT_CALE, où il échoue sur la liste des écarts (`diff --name-only
   // --no-renames <base>...HEAD`, sans -z) : une commande de liste en échec au milieu d'un geste.
-  writeFileSync(join(bin, "git"), '#!/bin/bash\nif [ -n "$FAUX_GIT_CALE" ] && [[ " $* " == *" diff --name-only --no-renames origin/"*"...HEAD "* ]] && [[ " $* " != *" -z "* ]]; then echo "git calé" >&2; exit 1; fi\nPATH="${PATH#*:}" exec git "$@"\n');
+  writeFileSync(join(bin, "git"), '#!/bin/bash\nif [ -n "$FAUX_GIT_SANS_REMERGE" ] && [[ " $* " == *" --remerge-diff "* ]]; then echo "fatal: unrecognized argument: --remerge-diff" >&2; exit 128; fi\nif [ -n "$FAUX_GIT_CALE" ] && [[ " $* " == *" diff --name-only --no-renames origin/"*"...HEAD "* ]] && [[ " $* " != *" -z "* ]]; then echo "git calé" >&2; exit 1; fi\nPATH="${PATH#*:}" exec git "$@"\n');
   chmodSync(join(bin, "git"), 0o755);
   const env = ENV_JOUET(bin, join(racine, "pnpm.log"));
   const lancer = (cwd, commande, args, entree = "", plus = {}) => spawnSync(commande, args, { cwd, env: { ...env, ...plus }, input: entree, encoding: "utf8", timeout: 60_000 });
@@ -1709,6 +1709,7 @@ test("A-162, une sous-PR : un lien symbolique .claude ne fait entrer aucune cons
   p.git(p.auteur, "switch", "-q", "-c", "chore/purge", "develop");
   p.ecrire("db/migrations/002_purge.sql", "DROP TABLE factures;\n");
   p.ecrire("infra/main.tf", 'resource "aws_s3_bucket" "b" { acl = "public-read" }\n');
+  p.ecrire("docs/page.mdx", 'export default function Page() { return fetch("https://exemple.invalid/"); }\n');
   const sommetD = p.commit("chore: purge");
   p.git(p.auteur, "push", "-q", "origin", "HEAD");
   p.cloner();
@@ -1822,7 +1823,7 @@ test("A-162, une sous-PR : un lien symbolique .claude ne fait entrer aucune cons
   writeFileSync(join(p.brouillonsDe(mD), "titre.txt"), "chore: purge\n");
   const axD = p.joue("axes", mD);
   assert.equal(axD.status, 0, axD.sortie);
-  assert.deepEqual(axD.stdout.trim().split("\n").slice(0, 3), ["revue exigée : oui, un fichier qu'aucune ligne de la table ne couvre est du code :", "db/migrations/002_purge.sql", "infra/main.tf"], axD.sortie);
+  assert.deepEqual(axD.stdout.trim().split("\n").slice(0, 4), ["revue exigée : oui, un fichier qu'aucune ligne de la table ne couvre est du code :", "db/migrations/002_purge.sql", "docs/page.mdx", "infra/main.tf"], axD.sortie);
 });
 
 test("A-162, une PR de mise à jour : une ligne retirée n'est écartée que si develop retire le même morceau, au même endroit : ni une ligne de même texte ailleurs, ni un morceau que le sujet a changé (B7)", { timeout: 120_000 }, () => {
@@ -1881,4 +1882,91 @@ test("A-162 : les GIT_CONFIG_* de la session sont complétés, jamais remplacés
   const d = p.joue("diff", m, url);
   assert.equal(d.status, 0, d.sortie);
   assert.deepEqual(listeDe(join(p.brouillonsDe(m), "relus.txt")), [TOTAL]);
+});
+
+/**
+ * Une PR de mise à jour jouet (A-164) : chaque fichier de `fichiers` a sa version de la base commune, du sujet, de
+ * develop et de la résolution ; la fusion de develop dans le sujet est en conflit, et sa résolution écrit `resolu`.
+ */
+function miseAJour(n, fichiers) {
+  const p = projetJouet();
+  p.git(p.auteur, "switch", "-q", "develop");
+  for (const [f, v] of Object.entries(fichiers)) p.ecrire(f, v.commune);
+  p.commit("feat: la base commune");
+  p.git(p.auteur, "push", "-q", "origin", "develop");
+  p.git(p.auteur, "switch", "-q", "sujet/facture");
+  p.git(p.auteur, "merge", "-q", "--no-edit", "develop");
+  for (const [f, v] of Object.entries(fichiers)) p.ecrire(f, v.sujet);
+  p.commit("feat(facture): le sujet");
+  p.git(p.auteur, "push", "-q", "origin", "sujet/facture");
+  p.git(p.auteur, "switch", "-q", "develop");
+  for (const [f, v] of Object.entries(fichiers)) p.ecrire(f, v.develop);
+  p.commit("feat: develop");
+  p.git(p.auteur, "push", "-q", "origin", "develop");
+  p.git(p.auteur, "switch", "-q", "-c", "maj/facture", "sujet/facture");
+  assert.equal(p.lancer(p.auteur, "git", ["merge", "origin/develop"]).status, 1, "la fusion est en conflit");
+  for (const [f, v] of Object.entries(fichiers)) p.ecrire(f, v.resolu);
+  p.git(p.auteur, "add", "-A");
+  p.git(p.auteur, "commit", "-q", "--no-edit");
+  const sommet = p.git(p.auteur, "rev-parse", "HEAD");
+  p.git(p.auteur, "push", "-q", "origin", "HEAD:maj/facture");
+  p.cloner();
+  const m = PR(String(n), "sujet/facture", "maj/facture", sommet);
+  for (const s of ["etape2", "liste"]) assert.equal(p.joue(s, m).status, 0, s);
+  return { p, m, B: p.brouillonsDe(m) };
+}
+
+test("A-164, une PR de mise à jour : la résolution de la fusion se relit (git show --remerge-diff) ; une garde que develop a récrite et que la résolution perd n'est jamais écartée ; une garde que develop a déplacée paraît dans la résolution", { timeout: 120_000 }, () => {
+  const GARDE = '  if (!admin) throw new Error("interdit");';
+  const RECRITE = "apps/api/src/facture/recrite.ts";
+  const DEPLACEE = "apps/api/src/facture/deplacee.ts";
+  const avec = (v, garde = GARDE) => `export function lire(admin) {\n${garde}\n  return 2;\n}\nexport const version = ${v};\n`;
+  const { p, m, B } = miseAJour(70, {
+    // develop récrit la garde (Forbidden) ; la résolution la perd.
+    [RECRITE]: { commune: avec(1), sujet: avec(2), develop: avec(3, '  if (!admin) throw new Forbidden("interdit");'), resolu: "export function lire(admin) {\n  return 2;\n}\nexport const version = 2;\n" },
+    // develop déplace la garde dans garde(), en fin de fichier ; la résolution perd garde().
+    [DEPLACEE]: { commune: avec(1), sujet: avec(2), develop: `export function lire(admin) {\n  return 2;\n}\nexport const version = 3;\nexport function garde(admin) {\n${GARDE}\n}\n`, resolu: "export function lire(admin) {\n  return 2;\n}\nexport const version = 2;\n" },
+  });
+  const d = p.joue("diff", m);
+  assert.equal(d.status, 0, d.sortie);
+  assert.deepEqual(listeDe(join(B, "resolution.txt")), [DEPLACEE, RECRITE], "la résolution touche les deux fichiers");
+  const resolution = readFileSync(join(B, "resolution.patch"), "utf8");
+  assert.ok(resolution.includes("-export function garde(admin) {"), "la fonction garde() que la résolution perd y paraît");
+  assert.ok(resolution.includes('-  if (!admin) throw new Forbidden("interdit");'), "la garde récrite que la résolution perd y paraît");
+  assert.ok(d.stdout.includes(`{{DIFF}} de la résolution, pour l'axe Règles : ${join(B, "resolution.patch")}`), d.sortie);
+  // Le tri : la garde récrite par develop, perdue par la résolution, se garde ; jamais par le seul retrait côté develop.
+  writeFileSync(join(B, "tri.txt"), `retirée\t2\t${RECRITE}\n`);
+  assert.deepEqual(p.joue("tri", m).stdout.trim().split("\n"), ["1 : gardé", "tri : sortie 0"]);
+  // L'axe Règles lit la résolution comme un lot de plus.
+  const lus = (texte) => { writeFileSync(join(B, "axe-1-lot-resolution.txt"), texte); return p.joue("lus", m, {}, { "<i>": "1 resolution" }); };
+  assert.equal(lus(`aucun écart\nFichiers du diff lus :\n${DEPLACEE}\n${RECRITE}\n`).status, 0);
+  assert.equal(lus(`aucun écart\nFichiers du diff lus :\n${RECRITE}\n`).status, 1, "un fichier de la résolution non lu");
+});
+
+test("A-164, une résolution « ours » qui jette ce que develop vient d'ajouter : jamais « aucun axe », la résolution se relit et la revue est exigée ; un git sans --remerge-diff : la résolution ne se relit pas, sortie 12", { timeout: 120_000 }, () => {
+  const F = "apps/api/src/facture/ours.ts";
+  const { p, m, B } = miseAJour(71, {
+    [F]: { commune: "export function lire(admin) {\n  return 2;\n}\nexport const version = 1;\n", sujet: "export function lire(admin) {\n  return 2;\n}\nexport const version = 2;\n", develop: 'export function lire(admin) {\n  if (!admin) throw new Error("interdit");\n  return 2;\n}\nexport const version = 3;\n', resolu: "export function lire(admin) {\n  return 2;\n}\nexport const version = 2;\n" },
+  });
+  const sans = p.joue("diff", m, { FAUX_GIT_SANS_REMERGE: "1" });
+  assert.deepEqual([sans.status, sans.stdout.trim().split("\n").slice(-2)], [12, ["git 2.36 ou plus est requis (git show --remerge-diff) : la résolution de la fusion ne se relit pas", "diff : sortie 12"]], sans.sortie);
+  assert.ok(!existsSync(join(B, "diff.fait")));
+  const d = p.joue("diff", m);
+  assert.equal(d.status, 0, d.sortie);
+  assert.doesNotMatch(d.stdout, /^aucun axe$/m, "la résolution se relit : ce n'est jamais « aucun axe »");
+  assert.deepEqual(listeDe(join(B, "sans-ecart.txt")), [F], "contre le sujet, le fichier n'a aucun écart");
+  assert.deepEqual(listeDe(join(B, "resolution.txt")), [F]);
+  assert.ok(readFileSync(join(B, "resolution.patch"), "utf8").includes('-  if (!admin) throw new Error("interdit");'), "la garde que develop ajoute, et que la résolution jette");
+  writeFileSync(join(B, "titre.txt"), "chore(facture): reçoit develop\n");
+  const ax = p.joue("axes", m);
+  assert.equal(ax.status, 0, ax.sortie);
+  const l = ax.stdout.trim().split("\n");
+  assert.deepEqual(l.slice(0, 3), ["revue exigée : oui", "résolution de la fusion : 1 fichiers, que l'axe Règles lit", F], ax.sortie);
+  // La résolution est dans l'empreinte : ce que C1 exécute ne la récrit pas sans que la garde le voie.
+  assert.equal(p.joue("c1", m).status, 0);
+  writeFileSync(join(B, "resolution.patch"), "");
+  assert.equal(p.joue("garde", m).status, 14, "la résolution récrite après C1");
+  exigerDans(`${SKILL}/SKILL.md`, ["**La résolution d'une PR de mise à jour se relit en entier**", "chacun reçoit l'axe Règles, même hors du diff ordinaire, et une ligne de `develop` qu'elle retire est un constat, jamais écartée", "l'axe Règles se lance une fois de plus, `{{DIFF}}` étant `resolution.patch`", "et la résolution n'a ni récrit ni retiré ce que `develop` met à sa place", "Un constat de la résolution (`resolution.patch`) n'entre jamais dans `tri.txt` : il se garde.", "un `.mdx`, qui exécute ses `export`"]);
+  exigerDans(`${REFERENCES}/prompt-regles.md`, ["un contrôle, une garde, une validation que `develop` écrivait et qu'elle retire est un écart bloquant"]);
+  exigerDans(`${REFERENCES}/cas-limites.md`, ["| La résolution d'une PR de mise à jour ne se relit pas (git sans `--remerge-diff`, avant 2.36 ; aucune fusion ou plusieurs) |"]);
 });
