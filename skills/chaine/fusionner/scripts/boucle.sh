@@ -322,14 +322,101 @@ rafraichir_sujets() {
 }
 
 # Sous-PR et reciblages : rapides, faits avant chaque passage vers develop.
+# Une sous-PR à la fois par sujet (décisions A-104 et A-142). Une sous-PR est « en route » quand file.sh la lit
+# « prête », « prête (sans CI) », « prête (en conflit) » ou « CI en cours ». À chaque tour, une seule tient son sujet ;
+# les autres sous-PR en route du même sujet attendent leur tour, sans mise à jour, ni CI, ni renvoi, et gardent leur
+# étiquette (`[#n] attend son tour : #m passe d'abord dans sujet/<nom>`, que la veille lit).
+# Qui tient le sujet le garde, avant tout ordre de numéro. Au début du tour, pour un sujet qui a plusieurs sous-PR en
+# route, dans cet ordre : (1) une sous-PR qui porte la marque de passage vivante d'un autre capitaine
+# (`verrou_d_un_autre`, lue sur chacune, la plus ancienne d'abord) : ce capitaine-ci ne prend alors aucune autre sous-PR
+# du sujet à ce tour ; (2) sinon celle que cette boucle tenait à la fin du tour précédent, si elle est encore en route
+# (`TENUS`, gardé d'un tour et d'une boucle à l'autre) ; (3) sinon une sous-PR « CI en cours », la plus ancienne ;
+# (4) sinon personne : la plus ancienne en route (le plus petit numéro) prend le sujet. Celle qui tient déjà son sujet
+# passe la première ; les autres lignes suivent dans l'ordre de file.sh.
+# Le sujet est rendu dans le tour quand celle qui le tient n'est plus en route vers l'entrée (fusionnée, renvoyée, ou
+# refusée par une sortie non classée) : la plus ancienne qui attend le prend aussitôt. Il reste tenu sur une sortie qui
+# la laisse en route : 5, 6, 8, 11, `relancer` réussi, 7 (le verrou d'un autre capitaine) et toute sortie par signal
+# (129 et plus : l'état du passage interrompu est inconnu, son verrou peut rester ; 128 est une erreur fatale de git,
+# pas un signal : elle suit la table d'une erreur, A-161). Un sujet encore tenu après le
+# passage de celle qui le tient est dit à chaque tour : `[sujet/<nom>] tenu par #n (<raison>)`, écrit par la boucle une
+# fois la sortie de `sujet.sh` classée (son code, et sa dernière ligne dans `$sortie`), jamais dans `$sortie` : la ligne
+# ne suit pas celle du `sortir`, et `refus.sh` ne la prend pas pour un motif. Sur une sortie 7, la raison porte la date
+# du verrou de l'autre capitaine (`, verrou du <date>`), que la veille lit pour relancer la boucle à son expiration.
+# `tenus` : « sujet/<nom>:<numéro> », entre espaces (un nom de branche ne contient ni espace ni deux-points) ; jamais
+# un tableau associatif, dont l'indice, un nom de branche, serait évalué. `TENUS` : les mêmes, un par ligne.
+TENUS="$COMMUN/boucle-tenus"
+# Marque de passage vivante d'un autre capitaine sur la sous-PR `<n>`, lue sans rien écrire : `FILTRE_PASSAGE` de
+# github.sh (la décision du verrou) sur ses commentaires, comme le lirait un passage qui poserait sa marque maintenant
+# (`mien` au-dessus de tout id, `cree` à l'heure de `epoch_passage`, l'horloge du verrou). Écrit « <capitaine> <date
+# du verrou> » ; rien : personne, ou une marque expirée (90 minutes) ; « illisible » : commentaires ou dates
+# illisibles, et dans le doute elle tient. Son passage, lui, pose sa marque et tranche (`prendre_passage`). « panne » :
+# la lecture GitHub elle-même a échoué ; elle ne donne jamais le sujet (A-161) : à ce tour, aucune sous-PR du sujet.
+# La veille ne suit pas un sujet suspendu : il est repris au prochain changement de la file, ou à la veille suivante
+# (au pire à la fin de la veille en cours, 75 minutes par défaut ; A-165).
+verrou_d_un_autre() {
+  local lus
+  lus=$(lire_github "$DEPOT/issues/$1/comments?per_page=100" --paginate) || { echo panne; return 0; }
+  jq -rs --arg moi "$CAPITAINE_ID" --argjson mien 9007199254740991 --arg cree "$(jq -nr --argjson e "$(epoch_passage)" '$e | todate')" \
+      "$FILTRE_PASSAGE | .tenu // \"\"" <<<"$lus" 2>/dev/null ||
+    echo illisible
+}
+# Date du verrou d'un autre capitaine, lue sur la DERNIÈRE ligne d'une sortie 7 de `sujet.sh` (son `sortir` :
+# « #<n> en passage chez le capitaine <id> depuis <date> : … », `PASSAGE_MOTIF` de github.sh), jamais sur un motif cherché
+# dans toute la sortie. Écrit « , verrou du <date> » ; rien quand la sortie 7 a une autre cause (fermée, en brouillon,
+# sujet gelé, plus éligible une fois le verrou pris).
+date_du_verrou() { # <n> <fichier de la sortie>
+  local fin
+  fin=$({ grep . "$2" || true; } | tail -n 1 | tr -d '\r')
+  [[ "$fin" =~ ^"#$1 en passage chez le capitaine "[A-Za-z0-9_-]+" depuis "([0-9TZ:-]+)" : " ]] || return 0
+  printf ', verrou du %s' "${BASH_REMATCH[1]}"
+}
 traiter_sujets() {
-  local n etat sujet rc
+  local n etat sujet rc tient par liste lue enroute verrou geste tenus=' ' suspendus=' '
   verifier_arret
   # Séries par spec et piles : regroupées d'office (hors prio:haute et hors-sujet).
   bash "$SUJET" regrouper-series 2>&1 | sed 's#^série #[sujets] REGROUPÉE série #; s#^#  #'
+  # La file, lue une fois. Illisible (file.sh en 5, rien sur sa sortie) : aucun geste, et `TENUS` reste tel quel.
+  liste=$(bash "$outils/file.sh") && lue=1 || lue=''
+  # Sous-PR en route, « sujet<TAB>numéro<TAB>état », dans l'ordre de file.sh (numéro croissant).
+  enroute=$(awk -F '\t' -v s="$sautees" 'index(s, " " $1 " ") == 0 && match($2, /^sujet\/[^ ]+ : /) {
+      e = substr($2, RLENGTH + 1)
+      if (e == "prête" || e == "prête (sans CI)" || e == "prête (en conflit)" || e == "CI en cours") print substr($2, 1, RLENGTH - 3) "\t" $1 "\t" e
+    }' <<<"$liste")
+  # Qui tient déjà chaque sujet qui a plusieurs sous-PR en route, au début du tour (en-tête : marque d'un autre
+  # capitaine, mémoire, « CI en cours »).
+  while IFS= read -r sujet; do
+    par=''
+    for n in $(awk -F '\t' -v s="$sujet" '$1 == s { print $2 }' <<<"$enroute"); do
+      verrou=$(verrou_d_un_autre "$n" </dev/null)
+      [ -n "$verrou" ] || continue
+      if [ "$verrou" = panne ]; then
+        echo "[#$n] REPRISE à la veille suivante : commentaires de #$n illisibles (GitHub), aucune sous-PR de $sujet n'est prise à ce tour"
+        suspendus="$suspendus$sujet "
+        break
+      fi
+      echo "[#$n] marque de passage d'un autre capitaine ($verrou) : elle tient $sujet"
+      par=$n
+      break
+    done
+    case "$suspendus" in
+      # Suspendu : la mémoire est gardée (celle que la boucle tenait, encore en route), personne n'est pris.
+      *" $sujet "*)
+        par=$(awk -F ':' -v s="$sujet" '$1 == s { print $2; exit }' "$TENUS" 2>/dev/null)
+        par=$(awk -F '\t' -v s="$sujet" -v m="$par" '$1 == s && $2 == m { print $2 }' <<<"$enroute") ;;
+    esac
+    if [ -z "$par" ] && [[ "$suspendus" != *" $sujet "* ]]; then
+      par=$(awk -F ':' -v s="$sujet" '$1 == s { print $2; exit }' "$TENUS" 2>/dev/null)
+      par=$(awk -F '\t' -v s="$sujet" -v m="$par" '$1 != s { next } $2 == m { g = $2 } $3 == "CI en cours" && !c { c = $2 } END { print (g ? g : c) }' <<<"$enroute")
+    fi
+    [ -z "$par" ] || tenus="$tenus$sujet:$par "
+  done < <(awk -F '\t' '$1 != "" && ++k[$1] == 2 { print $1 }' <<<"$enroute")
   # Le corps lit /dev/null, jamais l'entrée de la boucle : un outil lancé qui lit son entrée (pnpm, un hook, `cat`)
   # mangeait les lignes suivantes de file.sh, et les sous-PR suivantes n'étaient pas traitées dans le tour.
-  bash "$outils/file.sh" | while IFS="$(printf '\t')" read -r n etat _ livre; do
+  # Celles qui tiennent déjà leur sujet d'abord, puis les autres lignes dans l'ordre de file.sh. La file lue jusqu'au
+  # bout, `tenus` est gardé dans `TENUS` pour le tour suivant (dans le sous-shell du tube, où il vit).
+  awk -F '\t' -v t="$tenus" '$1 == "" { next } { s = $2; sub(/ : .*/, "", s) }
+    index(t, " " s ":" $1 " ") { print; next } { reste = reste $0 "\n" } END { printf "%s", reste }' <<<"$liste" |
+  while IFS="$(printf '\t')" read -r n etat _ livre || { [ -z "$lue" ] || tr ' ' '\n' <<<"$tenus" >"$TENUS"; false; }; do
     case " $sautees " in *" $n "*) continue ;; esac
     # Ticket d'un sujet déjà livré : PR directe vers develop, `hors-sujet` posé.
     if [ -n "$livre" ]; then
@@ -337,6 +424,20 @@ traiter_sujets() {
         commenter "$n" "$(printf 'Le sujet de ce ticket est déjà livré dans develop : PR laissée vers \`develop\` (label \`hors-sujet\`), jamais reciblée sur la branche de sujet.\n\n---\n_Generated by [Claude Code](https://claude.ai/code)_')" &&
         echo "[#$n] hors-sujet posé ($livre)"
     fi </dev/null
+    tient='' geste=''
+    case "$etat" in
+      sujet/*' : prête' | sujet/*' : prête (sans CI)' | sujet/*' : prête (en conflit)' | sujet/*' : CI en cours')
+        tient=${etat%% : *}
+        case "$suspendus" in *" $tient "*) echo "[#$n] sautée à ce tour : $tient suspendu (lecture GitHub en panne)"; continue ;; esac
+        case "$tenus" in
+          *" $tient:$n "*) ;;
+          *" $tient:"*)
+            par=${tenus#*" $tient:"}
+            echo "[#$n] attend son tour : #${par%% *} passe d'abord dans $tient"
+            continue ;;
+          *) tenus="$tenus$tient:$n " ;;
+        esac ;;
+    esac
     case "$etat" in
       'vers sujet/'*)
         sujet=${etat#vers sujet/}
@@ -354,6 +455,8 @@ traiter_sujets() {
       sujet/*': prête (sans CI)' | sujet/*': prête (en conflit)')
         bash "$SUJET" relancer "$n" 2>&1 | tee "$sortie" | sed "s#^#[\#$n] #"
         rc=${PIPESTATUS[0]}
+        geste="sortie $rc de relancer"
+        [ "$rc" != 7 ] || geste="$geste$(date_du_verrou "$n" "$sortie")"
         case "$rc" in
           # Conflit hors index : `relancer` écrit `conflit avec <sujet> hors index générés :`, puis les fichiers indentés de
           # deux espaces ; la liste s'arrête à la première autre ligne (fin de ligne CRLF tolérée).
@@ -375,12 +478,20 @@ traiter_sujets() {
           7) echo "[#$n] en passage chez un autre capitaine : sautée (aucun renvoi)" ;;
           # Push refusé par le distant, sans trace du hook : côté capitaine ou du distant, jamais un renvoi.
           11) echo "[#$n] ÉCHEC DU CAPITAINE : sous-PR laissée dans la file (aucun renvoi), cause ci-dessus" ;;
-        esac ;;
+          # Passage interrompu par un signal (129 et plus ; 128 est une erreur fatale de git, A-161) : état inconnu.
+          129 | 1[3-9][0-9] | 2[0-9][0-9]) echo "[#$n] ÉCHEC DU CAPITAINE : passage interrompu par un signal (sortie $rc), état de la sous-PR inconnu : laissée dans la file (aucun renvoi)" ;;
+        esac
+        # Mise à jour poussée (0), reprise (5, 6, 11), verrou d'un autre capitaine (7) ou passage interrompu par un
+        # signal (129 et plus) : le sujet reste tenu. Renvoyée (2, 4, 3 du pre-push), ou sortie 3 muette (rien de
+        # poussé, et rien ne dit qu'elle passera un jour) : rendu.
+        case "$rc" in 0 | 5 | 6 | 7 | 11 | 129 | 1[3-9][0-9] | 2[0-9][0-9]) ;; *) tenus=${tenus/" $tient:$n "/ } ;; esac ;;
       sujet/*': prête')
         # Passé l'échéance, aucun `sujet.sh fusionner` (il peut attendre une CI) : le code remonte du sous-shell.
         ! echeance_passee || exit "$ECHEANCE_TUBE"
         bash "$SUJET" fusionner "$n" 2>&1 | tee "$sortie" | sed "s#^#[\#$n] #"
         rc=${PIPESTATUS[0]}
+        geste="sortie $rc de fusionner"
+        [ "$rc" != 7 ] || geste="$geste$(date_du_verrou "$n" "$sortie")"
         case "$rc" in
           0) echo "[#$n] FUSIONNÉE dans ${etat%%:*}" ;;
           # Checks rouges, conflit avec le sujet, hook : le motif est celui de sujet.sh, jamais un conflit supposé.
@@ -396,9 +507,17 @@ traiter_sujets() {
           12) echo "ARRÊT sur #$n (sortie 12) : arbre du squash ≠ arbre testé"; exit 12 ;;
           # Outil du capitaine en échec, ou push refusé par le distant : rien que la session puisse corriger.
           11) echo "[#$n] ÉCHEC DU CAPITAINE : sous-PR laissée dans la file (aucun renvoi), cause ci-dessus" ;;
+          # Passage interrompu par un signal (129 et plus ; 128 est une erreur fatale de git, A-161) : état inconnu.
+          129 | 1[3-9][0-9] | 2[0-9][0-9]) echo "[#$n] ÉCHEC DU CAPITAINE : passage interrompu par un signal (sortie $rc), état de la sous-PR inconnu : laissée dans la file (aucun renvoi)" ;;
           *) echo "[#$n] sous-PR non éligible (sortie $rc)" ;;
-        esac ;;
+        esac
+        # Reprise (5, 6, 11), verrou d'un autre capitaine (7), CI de la mise à jour en cours (8) ou passage interrompu
+        # par un signal (129 et plus) : le sujet reste tenu. Fusionnée (0), renvoyée (3, 4) ou sortie non classée (2,
+        # le sujet en conflit avec develop : la PR de mise à jour qui le résout est plus loin dans la file) : rendu.
+        case "$rc" in 5 | 6 | 7 | 8 | 11 | 129 | 1[3-9][0-9] | 2[0-9][0-9]) ;; *) tenus=${tenus/" $tient:$n "/ } ;; esac ;;
     esac </dev/null
+    # Le sujet reste tenu après le passage de celle qui le tient : dit à chaque tour, avec la raison.
+    case "$tenus" in *" ${tient:-?}:$n "*) echo "[$tient] tenu par #$n (${geste:-CI en cours})" ;; esac
   done
   rc=${PIPESTATUS[1]}
   [ "$rc" != 12 ] || exit 12

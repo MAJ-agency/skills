@@ -54,7 +54,9 @@ const TAILLE = 10;
 const PARALLELE = Math.max(2, availableParallelism() - 1);
 const env = () => environnementDeBanc();
 
-test("les bancs posés à plat sous scripts/chaine/ tournent hors du plugin", { timeout: 620_000 }, async () => {
+// A-166 : 900 s, les bancs de la boucle (une sous-PR à la fois par sujet) ayant allongé les tranches ; la minuterie de
+// 300 s par tranche, la couverture et le plancher restent.
+test("les bancs posés à plat sous scripts/chaine/ tournent hors du plugin", { timeout: 900_000 }, async () => {
   const projet = mkdtempSync(join(tmpdir(), "poses-"));
   try {
     const poses = new Map();
