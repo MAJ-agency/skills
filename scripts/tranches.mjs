@@ -17,8 +17,10 @@ import { spawn } from "node:child_process";
 // commit « suite (#2) », un commentaire) n'est pas un appel. Dans le doute (`codeSeul` rend `null`), le banc se joue entier.
 // Limites : ne sont reconnus que les sous-tests à nom littéral (`t.test("…"`) et `describe`, `suite`, `it` ; un
 // sous-test au nom calculé (`t.test(nom, …)`), ou un `test(` global appelé dans le corps d'un test (Node 22 l'attache
-// au test qui tourne), n'est pas vu. `codeSeul` est une lecture, pas un analyseur : une expression régulière après `)`
-// ou `]` se lit comme une division (`if (a) /"/.test(b);`), et un `}` avant une `/` met le banc dans le doute.
+// au test qui tourne), n'est pas vu. `codeSeul` est une lecture, pas un analyseur : toute `/` dont la nature ne se lit pas
+// sûrement met le banc dans le doute, donc entier (un `}`, `++`, `--` ou `.` avant la `/`, un `of`, `let`, `yield` ou
+// `await`, une étiquette après `break` ou `continue`, une pile de parenthèses déséquilibrée), au prix du temps.
+// `)` : la `/` qui suit le `)` d'un `if`, `while`, `for` ou `with` ouvre une expression régulière, après tout autre `)` c'est une division.
 // Un banc joué entier dont aucun nom n'est lu pèse 1 et a la borne minimale, quelle que soit sa taille (ticket 64).
 
 const NOM = /^test\(\s*(?:"((?:[^"\\\n]|\\["\\'`])*)"|'((?:[^'\\\n]|\\["\\'`])*)'|`((?:[^`\\$\n]|\\["\\'`]|\$(?!\{))*)`)\s*,/gm;
@@ -31,7 +33,11 @@ export function nomsDesTests(source) {
 // Un sous-test : `<param>.test("…"` (un nom littéral en premier argument), ou `describe`, `suite`, `it` appelés.
 const SOUS_TEST = /\b\w+\.test\s*\(\s*["'`]|\b(?:describe|suite|it)\s*\(/;
 
-const MOTS_AVANT_REGEX = new Set(["return", "typeof", "case", "do", "else", "in", "of", "new", "delete", "void", "throw", "instanceof", "yield", "await"]);
+const MOTS_AVANT_REGEX = new Set(["return", "typeof", "case", "do", "else", "in", "new", "delete", "void", "throw", "instanceof"]);
+// Des mots qui ne sont pas réservés partout (`of`, `let`) ou dont le sens dépend du contexte (`yield`, `await`) : la `/` qui les suit est dans le doute.
+const MOTS_DU_DOUTE = new Set(["of", "yield", "await", "let"]);
+// Le `)` d'un de ces mots ferme une condition : la `/` qui le suit ouvre une expression régulière.
+const MOTS_AVANT_CONDITION = new Set(["if", "while", "for", "with"]);
 const PONCTUATION_AVANT_REGEX = new Set(["(", "[", "{", ",", ";", ":", "?", "!", "=", "&", "|", "^", "~", "+", "-", "*", "%", "<", ">"]);
 const FIN_DE_LIGNE = /[\n\r\u2028\u2029]/;
 const DEBUT_DE_MOT = /[A-Za-z_$\u0080-￿]/;
@@ -49,6 +55,7 @@ export function codeSeul(source) {
   let i = 0;
   let avant = null; // le jeton significatif précédent : { sorte: "mot" | "litteral" | "ponct", valeur }
   const pile = []; // "accolade" ou "gabarit" (un `${` ouvert)
+  const parentheses = []; // le mot qui précède chaque `(` ouverte
   const n = source.length;
   // Le texte d'un gabarit, à partir de i (après le ` ou après la } qui ferme un ${) ; rend false au doute.
   const texteDeGabarit = () => {
@@ -101,10 +108,13 @@ export function codeSeul(source) {
     }
     if (c === "/") {
       let regex;
-      if (avant === null) return null;
+      if (avant === null || avant.sorte === "doute") return null;
       if (avant.sorte === "litteral") regex = false;
-      else if (avant.sorte === "mot") regex = MOTS_AVANT_REGEX.has(avant.valeur);
-      else if (avant.valeur === ")" || avant.valeur === "]") regex = false;
+      else if (avant.sorte === "mot") {
+        if (MOTS_DU_DOUTE.has(avant.valeur)) return null;
+        regex = MOTS_AVANT_REGEX.has(avant.valeur);
+      } else if (avant.valeur === ")") regex = MOTS_AVANT_CONDITION.has(avant.mot);
+      else if (avant.valeur === "]") regex = false;
       else if (PONCTUATION_AVANT_REGEX.has(avant.valeur)) regex = true;
       else return null; // `}`, `++`, `--`, `.` … : la nature de la `/` ne se lit pas
       if (!regex) { i++; avant = { sorte: "ponct", valeur: "/" }; continue; }
@@ -128,7 +138,12 @@ export function codeSeul(source) {
     if (DEBUT_DE_MOT.test(c)) {
       const d = i;
       while (i < n && SUITE_DE_MOT.test(source[i])) i++;
-      avant = { sorte: "mot", valeur: source.slice(d, i) };
+      const mot = source.slice(d, i);
+      // Un nom de propriété (`a.return`, `a?.of`) est un identifiant ; un identifiant derrière `break` ou `continue` (une
+      // étiquette) peut finir l'instruction à la fin de ligne : la `/` qui suit est dans le doute.
+      if (avant?.sorte === "ponct" && avant.valeur === ".") avant = { sorte: "mot", valeur: "" };
+      else if (avant?.sorte === "mot" && (avant.valeur === "break" || avant.valeur === "continue")) avant = { sorte: "doute" };
+      else avant = { sorte: "mot", valeur: mot };
       continue;
     }
     if (/[0-9]/.test(c)) {
@@ -137,6 +152,13 @@ export function codeSeul(source) {
       continue;
     }
     if ((c === "+" || c === "-") && source[i + 1] === c) { i += 2; avant = { sorte: "ponct", valeur: c + c }; continue; }
+    if (c === "(") { parentheses.push(avant?.sorte === "mot" ? avant.valeur : ""); i++; avant = { sorte: "ponct", valeur: "(" }; continue; }
+    if (c === ")") {
+      if (parentheses.length === 0) return null; // pile déséquilibrée
+      i++;
+      avant = { sorte: "ponct", valeur: ")", mot: parentheses.pop() };
+      continue;
+    }
     if (c === "{") { pile.push("accolade"); i++; avant = { sorte: "ponct", valeur: "{" }; continue; }
     if (c === "}") {
       const haut = pile.pop();
@@ -148,7 +170,7 @@ export function codeSeul(source) {
     i++;
     avant = { sorte: "ponct", valeur: c };
   }
-  if (pile.includes("gabarit")) return null;
+  if (pile.includes("gabarit") || parentheses.length > 0) return null;
   return sortie.join("");
 }
 
@@ -246,6 +268,8 @@ export function conclure(liste, resultats, { parallele, duree, depasse, plancher
  * Joue `node <args>` dans son propre groupe de processus. Rend une promesse de `{ code, signal, tue, arrete, ms, sortie }`,
  * qui porte `arreter()`. À sa `borne` (ou à `arreter()`), le groupe entier est tué (`SIGKILL`) et la promesse se résout sur
  * `exit`, flux détruits : un petit-enfant qui tient le tube ne retient plus le travail. Sans kill, elle se résout sur `close`.
+ * Limite : un petit-enfant qui fait lui-même `setsid` (ou `detached`) sort du groupe et survit au kill ; la promesse, elle, se
+ * résout à l'heure.
  */
 export function lancer(args, { cwd, env, borne }) {
   const debut = Date.now();

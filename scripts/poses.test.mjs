@@ -80,7 +80,7 @@ test("les bancs posés à plat sous scripts/chaine/ tournent hors du plugin", { 
         .map((n) => join(dossier, n)));
     // Ticket 62 : `node --test` joue les tests d'un fichier l'un après l'autre, et `fusionner.test.mjs` (322 s sur 324
     // pour tous les bancs) fixait seul la durée de ce test. Chaque banc se joue en tranches d'au plus TAILLE noms
-    // distincts, chacune par son processus, PARALLELE à la fois, les plus gros bancs d'abord ; la couverture prouve que
+    // distincts, chacune par son processus, PARALLELE à la fois, les travaux les plus lourds d'abord ; la couverture prouve que
     // chaque test de premier niveau a tourné exactement une fois, ceux que la lecture des noms ne reconnaît pas compris
     // (tranche de reste). Un banc qui écrit des sous-tests se joue entier.
     writeFileSync(join(projet, "rapporteur-tranches.mjs"), RAPPORTEUR);

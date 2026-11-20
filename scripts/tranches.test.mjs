@@ -62,6 +62,9 @@ test("`codeSeul` garde la longueur, les fins de ligne et les délimiteurs, garde
     ['f(/[/"]\\//g, 1); // it("x")\rg();', "f(/      /g, 1); //        \rg();"],
     ['s = `t ${ u("v") } w`;', 's = `  ${ u(" ") }  `;'],
     ["x = `a${ `b${ c }d` }e`;", "x = ` ${ ` ${ c } ` } `;"],
+    // Les fins de ligne restent dans un commentaire bloc et dans un gabarit.
+    ["a /* x\ny */ b", "a /*  \n  */ b"],
+    ["s = `a\nb`;", "s = ` \n `;"],
     // Le corps d'une expression régulière sans classe ni échappement est blanchi aussi.
     ["x = /a(b)c/g;", "x = /     /g;"],
   ];
@@ -69,6 +72,39 @@ test("`codeSeul` garde la longueur, les fins de ligne et les délimiteurs, garde
     assert.equal(codeSeul(source), attendu, source);
     assert.equal(codeSeul(source).length, source.length);
   }
+});
+
+test("`codeSeul` ne cache aucun appel : une `/` qui ne se lit pas sûrement met le banc dans le doute (contre-relecture du ticket 64)", () => {
+  const T = 't.test("y", f);';
+  // Des mots de la liste qui sont des noms de propriété ou des identifiants : jamais une expression régulière.
+  for (const s of [`x = a.return / 2; ${T} c = d / e;`, `x = m.delete / 2; ${T} c = d / e;`, `x = a?.typeof / 2; ${T} c = d / e;`, `const of = 4; x = of / 2; ${T} c = d / e;`])
+    assert.ok(aDesSousTests(s), s);
+  // `of`, `let`, `yield`, `await` : la `/` qui les suit est dans le doute.
+  for (const m of ["of", "let", "yield", "await"]) assert.equal(codeSeul(`x = ${m} / 2;`), null, m);
+  // Une étiquette derrière `break` ou `continue` : l'instruction peut finir à la fin de ligne, la `/` suivante est une regex.
+  for (const m of ["break", "continue"]) {
+    const s = `a: for (;;) { ${m} a\n/"/.test(b); ${T} // "\n}`;
+    assert.equal(codeSeul(s), null, s);
+    assert.ok(aDesSousTests(s), s);
+  }
+  // Le `)` d'un `if`, `while`, `for` ou `with` : la `/` qui suit ouvre une expression régulière ; après tout autre `)`, une division.
+  for (const m of ["if", "while", "for", "with"]) {
+    const s = `${m} (a) /"/.test(b) && ${T} // "`;
+    assert.ok(aDesSousTests(s), s);
+    assert.notEqual(codeSeul(s), null, s);
+  }
+  const division = `x = f(a) / 2; ${T} c = d / e;`;
+  assert.notEqual(codeSeul(division), null);
+  assert.ok(aDesSousTests(division));
+  // Une pile de parenthèses déséquilibrée : le doute.
+  for (const s of ["a = 1);", "f((a);", "f(a", "x = ) / 2;"]) assert.equal(codeSeul(s), null, s);
+  // Un `]` avant une `/` est une division, lue sans doute ; `typeof` ouvre une expression régulière.
+  const crochet = `x = a[0] / 2; ${T} c = d / e;`;
+  assert.notEqual(codeSeul(crochet), null);
+  assert.ok(aDesSousTests(crochet));
+  assert.ok(aDesSousTests('x = typeof /"/; t.test("x", () => {}); // "'));
+  // Une continuation de ligne dans une chaîne : le doute.
+  assert.equal(codeSeul('const s = "a\\\nb";'), null);
 });
 
 test("aucun banc posé du plugin n'est pris pour un banc à sous-tests, et aucun n'est dans le doute", () => {
@@ -166,6 +202,14 @@ test("`recit`, `bilan` et `conclure` : un travail tué nomme sa borne, le plafon
   assert.match(recit(tue), /^── a\.test\.mjs \(tranche, tué à sa borne de 600 s\)/);
   const echec = { code: 1, signal: null, tue: false, ms: 5, sortie: "ok 1\nnot ok 2 - cassé\n  ✖ cassé", t: liste[2], noms: [] };
   assert.match(recit(echec), /^── c\.test\.mjs \(reste, sortie 1\)\nnot ok 2 - cassé\n {2}✖ cassé/);
+  // Les 40 dernières lignes de la sortie, pas moins, pas plus.
+  const longue = { code: 1, signal: null, tue: false, ms: 5, sortie: Array.from({ length: 60 }, (_, i) => `l${i}`).join("\n"), t: liste[2], noms: [] };
+  const vingt = recit(longue).split("\n");
+  assert.equal(vingt.length, 41);
+  assert.ok(vingt.includes("l20") && !vingt.includes("l19"));
+  // Un travail arrêté par la garde du plafond le dit, sans parler de sa borne.
+  const arrete = { code: null, signal: "SIGKILL", tue: true, arrete: true, ms: 5, sortie: "", t: liste[0], noms: [] };
+  assert.match(recit(arrete), /^── a\.test\.mjs \(tranche, arrêté au plafond\)/);
   // Vert : aucune faute, le bilan rendu.
   const reel = travaux("e.test.mjs", ["a", "b"], 5);
   const vert = conclure(reel, [ok(1_000, ["a", "b"])], { parallele: 2, duree: 1_000, depasse: false, plancher: 2 });
@@ -186,7 +230,7 @@ test("`recit`, `bilan` et `conclure` : un travail tué nomme sa borne, le plafon
   assert.match(trou.fautes.join("\n"), /a\.test\.mjs : « x » a tourné 0 fois dans sa tranche/);
 });
 
-test("`lancer` : un travail tué se résout à sa borne, même quand un petit-enfant tient ses flux, et son groupe est mort", async () => {
+test("`lancer` : un travail tué se résout à sa borne, même quand un petit-enfant tient ses flux, et son groupe est mort", { timeout: 30_000 }, async () => {
   const script = "const { spawn } = require('node:child_process'); const e = spawn('sleep', ['6'], { stdio: 'inherit' }); console.log(e.pid); setInterval(() => {}, 1000);";
   const debut = Date.now();
   const r = await lancer(["-e", script], { cwd: tmpdir(), env: { PATH: process.env.PATH }, borne: 1_000 });
@@ -197,6 +241,19 @@ test("`lancer` : un travail tué se résout à sa borne, même quand un petit-en
   await new Promise((fin) => setTimeout(fin, 300));
   const stat = `/proc/${pid}/stat`;
   assert.ok(!existsSync(stat) || /^\d+ \(.*\) Z/.test(lire(stat, "utf8")), "le petit-enfant est mort");
+  // Un petit-enfant détaché (`setsid`) sort du groupe : il survit au kill, mais la résolution se fait sur `exit`, flux
+  // détruits, à l'heure. Sans cela (close attendu, tube tenu par le petit-enfant), elle attendrait ses 8 s.
+  const detache = "const { spawn } = require('node:child_process'); const e = spawn('sleep', ['8'], { stdio: 'inherit', detached: true }); console.log(e.pid); setInterval(() => {}, 1000);";
+  const debutDetache = Date.now();
+  const d = await lancer(["-e", detache], { cwd: tmpdir(), env: { PATH: process.env.PATH }, borne: 1_000 });
+  try {
+    assert.equal(d.tue, true);
+    assert.ok(Date.now() - debutDetache < 3_000, `résolue en ${Date.now() - debutDetache} ms`);
+  } finally {
+    try {
+      process.kill(Number(d.sortie.split("\n")[0]), "SIGKILL");
+    } catch {}
+  }
   // Un travail qui finit seul : sortie complète, pas tué.
   const fini = await lancer(["-e", "console.log('a'); console.error('b');"], { cwd: tmpdir(), env: { PATH: process.env.PATH }, borne: 30_000 });
   assert.equal(fini.tue, false);
