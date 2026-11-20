@@ -1154,3 +1154,9 @@ La session de suite fait, dans cet ordre :
   - Vérifié : l'arbre de `main` (`3df36b3…`) est celui du sommet ordonné `2d563fd`, et son parent est `4cd047f`.
   - Le ticket est passé à « Fait » et sa session est archivée.
   - Le ticket 66 (lot 4) est en cours d'écriture, 1 647 lignes au commit `a1b9f64`.
+- 2026-11-20 — 11 h 39 UTC. **Ticket 66 écrit** (`b9edf58`, 1 613 lignes, avec ses annexes `ticket-66.patch` et `mutations`).
+  - Il est rejoué sur `5bf4f39`, après l'entrée de la PR 145.
+  - Avant le patch, 29 rouges ; avec le patch, la suite entière est verte, 1 256 sur 1 256 ; les 35 mutations sont rouges.
+  - Le skill `relecteur` est donné entier : `relecteur.mjs` (`passe`, `jouer`, `distribuer`, `veille`), son banc de 13 tests, 21 fichiers retouchés, version 7.38.0. `compter` compte toujours un refus lisible comme un refus.
+  - **A-179** tranche les trois questions du rédacteur : la forme de la clé `relecture`, un refus sur un autre sommet, les dépendances de `develop`.
+  - Le tour unique de relecture du ticket est lancé (`P-65`).
