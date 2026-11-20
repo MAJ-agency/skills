@@ -1,6 +1,6 @@
 # Suites du skill `relecture` : la résolution découpée en lots, la branche P9 du tri tenue par le banc, la note de version qui dit la résolution relue, le binaire que seule la résolution touche
 
-Status: ready-for-agent
+Status: Fait — PR 143 (`b944606`, plugin 7.37.1)
 Type: défaut
 Label: contre-revue
 Modèle: sonnet — quatre défauts mesurés (trois mineurs de la contre-relecture, un trou trouvé en préparant le ticket), chacun avec sa décision, ses fichiers, ses cas de banc et ses mutations ; les cas des défauts 2 et 4 sont donnés entiers, vus rouges puis verts ; rien à concevoir au-delà de ce que le ticket donne.
