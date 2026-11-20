@@ -35,6 +35,20 @@
 set -euo pipefail
 shopt -s inherit_errexit
 export LC_ALL=C
+# Des réglages git pour chaque commande du script et des scripts qu'il joue, ajoutés à ceux que la session porte déjà
+# dans son environnement (`GIT_CONFIG_COUNT`, une réécriture d'URL par exemple), jamais à leur place. Ni fsmonitor ni
+# crochet : ce que la PR exécute pendant `C1` peut en poser dans la configuration du dossier de la session.
+config_git() {
+  local n=${GIT_CONFIG_COUNT:-0}
+  [[ $n =~ ^[0-9]+$ ]] || { printf '%s\n' "GIT_CONFIG_COUNT illisible : $n"; exit 12; }
+  while [ $# -ge 2 ]; do
+    export "GIT_CONFIG_KEY_$n=$1" "GIT_CONFIG_VALUE_$n=$2"
+    n=$((n + 1))
+    shift 2
+  done
+  export GIT_CONFIG_COUNT=$n
+}
+config_git core.fsmonitor false core.hooksPath ''
 
 SOUS=${1:-}
 trap 's=$?; printf "%s : sortie %s\n" "${SOUS:-gestes}" "$s"' EXIT
@@ -42,8 +56,9 @@ KIT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)
 ARBRE_VIDE=4b825dc642cb6eb9a060e54bf8d69288fbee4904
 # Les fichiers qu'une session charge comme consignes : jamais sur le disque d'un arbre qui porte la tête de la PR.
 # Toute casse (un système de fichiers insensible à la casse lit `claude.md` comme `CLAUDE.md`), à toute profondeur,
-# et tout dossier `.claude/`, sauf le contrat de la racine.
-SANS_CONSIGNES=('/*' '![Cc][Ll][Aa][Uu][Dd][Ee].[Mm][Dd]' '![Cc][Ll][Aa][Uu][Dd][Ee].[Ll][Oo][Cc][Aa][Ll].[Mm][Dd]' '!.[Cc][Ll][Aa][Uu][Dd][Ee]/' '/.claude/chaine.json')
+# et tout `.claude`, dossier, fichier ou lien symbolique, sauf le contrat de la racine. Un lien de ces noms n'est
+# jamais extrait : il ferait entrer ce qu'il désigne.
+SANS_CONSIGNES=('/*' '![Cc][Ll][Aa][Uu][Dd][Ee].[Mm][Dd]' '![Cc][Ll][Aa][Uu][Dd][Ee].[Ll][Oo][Cc][Aa][Ll].[Mm][Dd]' '!.[Cc][Ll][Aa][Uu][Dd][Ee]/' '!.[Cc][Ll][Aa][Uu][Dd][Ee]' '/.claude/chaine.json')
 
 dire() { printf '%s\n' "$@"; }
 quitter() {
@@ -80,52 +95,70 @@ lire_pr() {
   [[ $sommet =~ ^[0-9a-f]{40}$ ]] || quitter 12 "sommet hors de sa forme"
   [ -d "$A" ] || quitter 12 "arbre à part absent : rejouer l'étape 2"
 }
-# Les fichiers de consigne sur le disque d'un arbre (`.claude/chaine.json` à sa racine mis à part).
+# Les fichiers de consigne sur le disque d'un arbre (`.claude/chaine.json` à sa racine mis à part). Le `.claude` de
+# la racine n'est mis à part que s'il est un vrai dossier : un lien de ce nom, comme tout lien `CLAUDE.md` ou
+# `CLAUDE.local.md`, est une consigne. Une liste qui ne se calcule pas est un échec, jamais « aucune consigne ».
 consignes_dans() {
-  local d=$1
-  (cd "$d" && find . -path ./.git -prune -o \( -iname claude.md -o -iname claude.local.md -o -iname .claude \) -print) |
-    { filtrer -vx './.claude'; } | sort
-  if [ -d "$d/.claude" ]; then (cd "$d" && find ./.claude -mindepth 1 -print) | { filtrer -vx './.claude/chaine.json'; } | sort; fi
+  local d=$1 l
+  l=$(cd "$d" && find . -path ./.git -prune -o \( -iname claude.md -o -iname claude.local.md -o -iname .claude \) -print) || return 1
+  if [ -d "$d/.claude" ] && [ ! -L "$d/.claude" ]; then
+    printf '%s\n' "$l" | { filtrer -vx './.claude'; } | { filtrer .; } | sort || return 1
+    l=$(cd "$d" && find ./.claude -mindepth 1 -print) || return 1
+    printf '%s\n' "$l" | { filtrer -vx './.claude/chaine.json'; } | { filtrer .; } | sort || return 1
+    [ ! -L "$d/.claude/chaine.json" ] || dire './.claude/chaine.json, un lien'
+  else
+    printf '%s\n' "$l" | { filtrer .; } | sort || return 1
+  fi
+}
+# L'empreinte d'un fichier de consigne : son contenu, ou ce que désigne un lien.
+empreinte_de() {
+  local t
+  if [ -L "$1" ]; then t=$(readlink -- "$1") || return 1; printf 'lien:%s' "$t"; else git hash-object -- "$1"; fi
 }
 # Tout fichier de consigne que la session ou un axe peut charger : sous le dossier de la session et sous le
 # scratchpad, et dans chaque dossier au-dessus d'eux. Un CLAUDE.md avec son empreinte, un `.claude/` par son nom.
 consignes_autour() {
-  local racine d
+  local racine d f h
   for racine in "$S" "$(dirname -- "$(dirname -- "$B")")"; do
     find "$racine" \( -path "$S/.git" -o -path "$S/.relecture-securite" -o -path "$A/.git" \) -prune -o \
-      \( -iname claude.md -o -iname claude.local.md \) -type f -print0 | sort -z |
-      while IFS= read -r -d '' d; do printf '%s %s\n' "$(git hash-object -- "$d")" "$d"; done
-    find "$racine" \( -path "$S/.git" -o -path "$S/.relecture-securite" \) -prune -o -iname .claude -print | sort
+      \( -iname claude.md -o -iname claude.local.md \) \( -type f -o -type l \) -print0 | sort -z |
+      while IFS= read -r -d '' d; do h=$(empreinte_de "$d") || exit 1; printf '%s %s\n' "$h" "$d"; done || return 1
+    find "$racine" \( -path "$S/.git" -o -path "$S/.relecture-securite" \) -prune -o -iname .claude -print | sort || return 1
     d=$(dirname -- "$racine")
     while :; do
       for f in "$d/CLAUDE.md" "$d/CLAUDE.local.md" "$d/.claude/CLAUDE.md"; do
-        [ ! -f "$f" ] || printf '%s %s\n' "$(git hash-object -- "$f")" "$f"
+        if [ -f "$f" ] || [ -L "$f" ]; then h=$(empreinte_de "$f") || return 1; printf '%s %s\n' "$h" "$f"; fi
       done
-      [ ! -d "$d/.claude" ] || dire "$d/.claude"
+      if [ -d "$d/.claude" ] || [ -L "$d/.claude" ]; then dire "$d/.claude"; fi
       [ "$d" != / ] || break
       d=$(dirname -- "$d")
     done
   done
 }
 # L'empreinte de ce que les axes recevront : les listes et les diffs du tour, le titre, le skill entier (prompts,
-# critères, gabarit, ce script), les consignes autour, et l'état des deux dossiers.
+# critères, gabarit, ce script), les consignes autour, et l'état des deux dossiers. Appelée dans une liste `||`, où
+# `set -e` ne joue pas : chaque commande y est lue par son code, et une empreinte qui ne se calcule pas est un échec,
+# jamais un dossier « propre ».
 empreinte() {
-  local f
+  local f h e
   for f in session.txt pr.txt fichiers.txt attendus.txt relus.txt diff.patch binaires.txt illisibles.txt sensibles.txt \
     binaires-sensibles.txt dispenses.txt hors.txt sans-ecart.txt ticket.txt titre.txt; do
-    if [ -f "$B/$f" ]; then printf '%s %s\n' "$(git hash-object -- "$B/$f")" "$f"; else dire "absent $f"; fi
+    if [ -f "$B/$f" ]; then h=$(git hash-object -- "$B/$f") || return 1; printf '%s %s\n' "$h" "$f"; else dire "absent $f"; fi
   done
   if [ -d "$B/lots" ]; then
-    find "$B/lots" -type f -print0 | sort -z | while IFS= read -r -d '' f; do printf '%s %s\n' "$(git hash-object -- "$f")" "${f#"$B"/}"; done
+    find "$B/lots" -type f -print0 | sort -z | while IFS= read -r -d '' f; do h=$(git hash-object -- "$f") || exit 1; printf '%s %s\n' "$h" "${f#"$B"/}"; done || return 1
   fi
-  find "$KIT" -type f -print0 | sort -z | while IFS= read -r -d '' f; do printf '%s %s\n' "$(git hash-object -- "$f")" "${f#"$KIT"/}"; done
-  consignes_autour
+  find "$KIT" -type f -print0 | sort -z | while IFS= read -r -d '' f; do h=$(git hash-object -- "$f") || exit 1; printf '%s %s\n' "$h" "${f#"$KIT"/}"; done || return 1
+  consignes_autour || return 1
   dire "état de la session :"
-  git -C "$S" status --porcelain
+  e=$(git -C "$S" status --porcelain) || return 1
+  [ -z "$e" ] || printf '%s\n' "$e"
   dire "état de l'arbre :"
-  git -C "$A" status --porcelain --ignored
+  e=$(git -C "$A" status --porcelain --ignored) || return 1
+  [ -z "$e" ] || printf '%s\n' "$e"
   dire "consignes de l'arbre :"
-  consignes_dans "$A"
+  e=$(consignes_dans "$A") || return 1
+  [ -z "$e" ] || printf '%s\n' "$e"
 }
 
 etape2() {
@@ -158,7 +191,7 @@ etape2() {
   git -C "$A" checkout -q --detach "$sommet" || quitter 12 "arbre à part : le sommet ne s'extrait pas"
   [ "$(git -C "$A" rev-parse HEAD)" = "$sommet" ] || quitter 12 "l'arbre à part n'est pas au sommet distribué"
   local c
-  c=$(consignes_dans "$A")
+  c=$(consignes_dans "$A") || quitter 12 "consignes de l'arbre à part illisibles"
   [ -z "$c" ] || quitter 14 "consignes de la PR sur le disque de l'arbre à part :" "$c"
   printf '%s\n%s\n%s\n' "$base" "$tete" "$sommet" > "$B/pr.txt"
   dire "{{BASE}} : $S" "{{ARBRE}} : $A" "étape 2 : faite"
@@ -167,7 +200,8 @@ etape2() {
 liste() {
   lire_pr
   cd "$S"
-  rm -f -- "$B/liste.faite" "$B/fichiers.txt" "$B/a-juger.txt" "$B/maj"
+  # Chaque geste retire sa marque en partant ; la liste défait aussi ce qui se calcule sur elle.
+  rm -rf -- "$B/liste.faite" "$B/fichiers.txt" "$B/a-juger.txt" "$B/maj" "$B/diff.fait" "$B/axes.fait" "$B/sensibles.txt" "$B/ticket.txt" "$B/binaires-sensibles.txt" "$B/c1"
   if [[ $base == sujet/* ]]; then
     if [ ! -d node_modules ]; then
       pnpm install --frozen-lockfile --prefer-offline > "$B/installation.log" 2>&1 || dire "installation en échec"
@@ -216,8 +250,8 @@ diff_relu() {
     quitter 0 "aucun fichier à relire"
   fi
   # Aucun attribut git ne joue (l'arbre vide pour source), les chemins sans citation des accents, sans renommages.
-  export GIT_ATTR_SOURCE=$ARBRE_VIDE GIT_CONFIG_COUNT=2 GIT_CONFIG_KEY_0=core.quotePath GIT_CONFIG_VALUE_0=false \
-    GIT_CONFIG_KEY_1=diff.renames GIT_CONFIG_VALUE_1=false
+  export GIT_ATTR_SOURCE=$ARBRE_VIDE
+  config_git core.quotePath false diff.renames false
   git --attr-source="$ARBRE_VIDE" -C "$A" check-attr diff -- x > /dev/null 2>&1 || quitter 12 "git 2.40 ou plus est requis"
   local zones s=0
   mapfile -t zones < "$B/fichiers.txt"
@@ -266,8 +300,9 @@ diff_relu() {
   comm -23 "$B/attendus.txt" "$B/relus.txt" > "$B/manquants.txt"
   git -C "$A" diff --numstat --no-renames "origin/$base...HEAD" > "$B/numstat.txt" || quitter 12 "liste des binaires illisible"
   awk -F'\t' '$1 == "-" && $2 == "-" { print $3 }' "$B/numstat.txt" | sort -u | comm -12 - "$B/attendus.txt" > "$B/binaires.txt"
-  # Un binaire qui n'est ni une image, ni une police, ni une archive : du code ou un texte que git ne lit pas.
-  { filtrer -Eiv '\.(png|jpe?g|gif|webp|avif|ico|bmp|tiff?|heic|woff2?|ttf|otf|eot|zip|gz|tgz|tar|bz2|xz|7z|jar)"?$' "$B/binaires.txt"; } > "$B/illisibles.txt"
+  # Un binaire qui n'est ni une image, ni une police, ni une archive de données : du code ou un texte que git ne lit
+  # pas. Une archive qui porte du code exécutable (`.jar`, `.war`, `.whl`, `.nupkg`) est illisible.
+  { filtrer -Eiv '\.(png|jpe?g|gif|webp|avif|ico|bmp|tiff?|heic|woff2?|ttf|otf|eot|zip|gz|tgz|tar|bz2|xz|7z)"?$' "$B/binaires.txt"; } > "$B/illisibles.txt"
   if [ -s "$B/manquants.txt" ]; then quitter 12 "manquent au diff relu :" "$(cat "$B/manquants.txt")"; fi
   lots
   touch "$B/diff.fait"
@@ -341,13 +376,25 @@ lots() {
 axes() {
   lire_pr
   cd "$S"
+  [ -f "$B/liste.faite" ] || quitter 12 "liste des fichiers absente"
   [ -f "$B/diff.fait" ] || quitter 12 "diff relu absent : jouer diff d'abord"
-  [ -s "$B/fichiers.txt" ] || quitter 0 "aucun fichier à relire : ni axe, ni C3, ni C4"
+  rm -f -- "$B/axes.fait" "$B/sensibles.txt" "$B/ticket.txt" "$B/binaires-sensibles.txt" "$B/sans-ligne.txt"
+  if [ ! -s "$B/fichiers.txt" ]; then touch "$B/axes.fait"; quitter 0 "aucun fichier à relire : ni axe, ni C3, ni C4"; fi
   [ -s "$B/titre.txt" ] || quitter 12 "titre.txt absent : l'écrire par l'outil d'écriture de fichier"
   local s=0 ticket
   node "$S/scripts/chaine/revue-exigee.mjs" '' '' "origin/$base" < "$B/fichiers.txt" > /dev/null 2> "$B/revue-exigee.err" || s=$?
   case $s in
-    0) dire "revue exigée : non" ;;
+    0)
+      # Un fichier du diff relu qu'aucune ligne de la table ne couvre (ni code pour revue-exigee.mjs, ni documentation) est
+      # du code : la revue est exigée, jamais aucun axe.
+      { filtrer -Eiv '\.mdx?"?$' "$B/attendus.txt"; } > "$B/sans-ligne.txt"
+      if [ -s "$B/sans-ligne.txt" ]; then
+        dire "revue exigée : oui, un fichier qu'aucune ligne de la table ne couvre est du code :"
+        cat "$B/sans-ligne.txt"
+      else
+        dire "revue exigée : non"
+      fi
+      ;;
     1) dire "revue exigée : oui" ;;
     *) quitter 12 "revue-exigee.mjs en échec, sortie $s" ;;
   esac
@@ -363,12 +410,13 @@ axes() {
   dire "ticket : ${ticket:-aucun}" "binaires sous un chemin sensible : $(lignes "$B/binaires-sensibles.txt")"
   [ ! -s "$B/binaires-sensibles.txt" ] || cut -f1 "$B/binaires-sensibles.txt"
   dire "binaires illisibles : $(lignes "$B/illisibles.txt")"
+  touch "$B/axes.fait"
 }
 
 c1() {
   lire_pr
   cd "$S"
-  [ -f "$B/diff.fait" ] || quitter 12 "diff relu absent : jouer diff d'abord"
+  [ -f "$B/liste.faite" ] && [ -f "$B/diff.fait" ] || quitter 12 "diff relu absent : jouer diff d'abord"
   rm -rf -- "$B/c1"
   mkdir -p "$B/c1"
   empreinte > "$B/c1/avant.txt" || quitter 12 "empreinte illisible"
@@ -425,6 +473,7 @@ garde() {
 # Le contexte du ticket, par le script de la base, dans l'arbre à part ; son chemin, lu dans sa sortie.
 contexte_ticket() {
   local id s=0
+  [ -f "$B/axes.fait" ] || quitter 12 "ticket.txt absent : jouer axes d'abord"
   id=$(cat "$B/ticket.txt" 2> /dev/null) || quitter 12 "ticket.txt absent : jouer axes d'abord"
   [ -n "$id" ] || return 3
   PROJET_RACINE="$A" node "$S/scripts/chaine/contexte-ticket.mjs" "$id" > "$B/contexte.txt" 2> "$B/contexte.err" || s=$?
@@ -448,7 +497,7 @@ contexte() {
 accord() {
   lire_pr
   cd "$S"
-  [ -f "$B/sensibles.txt" ] || quitter 12 "sensibles.txt absent : jouer axes d'abord"
+  [ -f "$B/axes.fait" ] && [ -f "$B/sensibles.txt" ] || quitter 12 "sensibles.txt absent : jouer axes d'abord"
   [ -s "$B/sensibles.txt" ] || quitter 0 "aucun chemin sensible : C3 sans objet"
   dire "chemins sensibles :"
   cut -f1 "$B/sensibles.txt"
@@ -522,6 +571,40 @@ chemin_reel() {
   return 1
 }
 
+# Une ligne retirée ne vient de develop que si develop retire le même morceau, au même endroit : la ligne <l> de la
+# base (le premier parent de la fusion), ramenée sur la base commune des deux parents par les en-têtes du diff du sujet,
+# hors de tout ce que le sujet a changé ; un morceau que develop retire la couvre ; et rien de ce morceau n'a changé
+# côté sujet. Jamais par son seul texte. Dans le doute (une commande en échec, une forme illisible), sortie non nulle :
+# le constat se garde.
+meme_retrait() {
+  local f=$1 reel=$2 l=$3 texte=$4 n=$5 p1 mb lm m
+  p1=$(git rev-parse "$f^1") || return 1
+  [ "$(git rev-parse "origin/$base:$reel" 2> /dev/null)" = "$(git rev-parse "$p1:$reel" 2> /dev/null)" ] || return 1
+  mb=$(git merge-base "$p1" "$f^2") || return 1
+  git diff -U0 --no-renames --no-ext-diff "$mb" "$p1" -- ":(literal)$reel" > "$B/tri-$n-sujet.diff" || return 1
+  git diff -U0 --no-renames --no-ext-diff "$mb" "$f^2" -- ":(literal)$reel" > "$B/tri-$n-develop.diff" || return 1
+  # La place de la ligne sur la base commune ; hors d'un morceau que le sujet a écrit.
+  lm=$(awk -v l="$l" '
+    function bornes(x, t) { x = substr(x, 2); if (x !~ /,/) x = x ",1"; split(x, t, ","); return t[1] + 0 SUBSEP t[2] + 0 }
+    /^@@ / { split(bornes($2), o, SUBSEP); split(bornes($3), w, SUBSEP)
+      if (w[2] > 0 && l >= w[1] && l <= w[1] + w[2] - 1) { dedans = 1; exit }
+      if (l > (w[2] > 0 ? w[1] + w[2] - 1 : w[1])) decale += o[2] - w[2] }
+    END { if (dedans) exit 1; print l + decale }' "$B/tri-$n-sujet.diff") || return 1
+  [[ $lm =~ ^[0-9]+$ ]] || return 1
+  [ "$(git show "$mb:$reel" | sed -n "${lm}p")" = "$texte" ] || return 1
+  # Le morceau que develop retire et qui couvre cette place ; rien de lui n'a changé côté sujet.
+  m=$(awk -v l="$lm" '
+    function bornes(x, t) { x = substr(x, 2); if (x !~ /,/) x = x ",1"; split(x, t, ","); return t[1] + 0 SUBSEP t[2] + 0 }
+    /^@@ / { split(bornes($2), o, SUBSEP); if (o[2] > 0 && l >= o[1] && l <= o[1] + o[2] - 1) { print o[1], o[1] + o[2] - 1; exit } }' "$B/tri-$n-develop.diff") || return 1
+  [ -n "$m" ] || return 1
+  awk -v d="${m% *}" -v e="${m#* }" '
+    function bornes(x, t) { x = substr(x, 2); if (x !~ /,/) x = x ",1"; split(x, t, ","); return t[1] + 0 SUBSEP t[2] + 0 }
+    /^@@ / { split(bornes($2), o, SUBSEP)
+      if (o[2] > 0 && o[1] <= e && o[1] + o[2] - 1 >= d) touche = 1
+      if (o[2] == 0 && o[1] >= d && o[1] < e) touche = 1 }
+    END { exit touche }' "$B/tri-$n-sujet.diff" || return 1
+}
+
 tri() {
   lire_pr
   cd "$S"
@@ -549,8 +632,8 @@ tri() {
         texte=$(git show "origin/$base:$reel" 2> /dev/null | sed -n "${l}p") || texte=''
         [ -n "$texte" ] || { dire "$n : gardé, la ligne $l ne se lit pas sur la base"; continue; }
         s=0
-        git diff "$fusion^1...$fusion^2" -- ":(literal)$reel" > "$B/tri-$n.diff" 2> /dev/null || s=$?
-        if [ "$s" = 0 ] && grep -Fxq -- "-$texte" "$B/tri-$n.diff"; then dire "$n : écarté, develop retire seul cette ligne"; else dire "$n : gardé"; fi
+        meme_retrait "$fusion" "$reel" "$l" "$texte" "$n" || s=$?
+        if [ "$s" = 0 ]; then dire "$n : écarté, develop retire seul cette ligne"; else dire "$n : gardé"; fi
         ;;
       *) dire "$n : gardé, sens illisible ($sens)" ;;
     esac
@@ -580,9 +663,13 @@ c4() {
   git clone -q --shared --no-checkout "$S" "$C" || quitter 12 "clone de C4 non créé"
   git -C "$C" update-ref "refs/remotes/origin/$base" "$b"
   git -C "$C" symbolic-ref refs/remotes/origin/HEAD "refs/remotes/origin/$base"
+  # Aucun attribut git de la PR ni de la base ne joue dans le clone : la commande intégrée y lit le diff comme les axes,
+  # le contenu seul disant ce qui est binaire (ni `diff`, ni son `textconv`, ni `filter`).
+  mkdir -p -- "$C/.git/info"
+  printf '%s\n' '* !diff !filter' > "$C/.git/info/attributes"
   git -C "$C" sparse-checkout set --no-cone "${SANS_CONSIGNES[@]}" || quitter 12 "clone de C4 : l'extraction sans consignes a échoué"
   git -C "$C" checkout -q --detach "$sommet" || quitter 12 "clone de C4 : le sommet ne s'extrait pas"
-  o=$(consignes_dans "$C")
+  o=$(consignes_dans "$C") || quitter 12 "consignes du clone de C4 illisibles"
   [ -z "$o" ] || quitter 14 "consignes de la PR sur le disque du clone de C4 :" "$o"
   # La valeur d'origin/HEAD du dossier de la session, gardée une fois par tour : un second passage ne la perd pas.
   if [ ! -f "$B/origin-head.txt" ]; then
@@ -606,8 +693,18 @@ c4_verifier() {
   git -c core.quotePath=false diff --name-only --no-renames origin/HEAD... | sort -u > "$B/securite.txt" || quitter 1 "« git diff origin/HEAD... » ne se lit pas"
   sort -u "$B/fichiers.txt" | comm -23 - "$B/securite.txt" > "$B/securite-manquants.txt"
   [ ! -s "$B/securite-manquants.txt" ] || quitter 1 "fichiers du diff relu que la commande ne lirait pas :" "$(cat "$B/securite-manquants.txt")"
+  # Un fichier que le diff relu montre en texte ne doit pas être, pour la commande, un binaire dont elle ne lit que le nom.
+  git -c core.quotePath=false diff --numstat --no-renames origin/HEAD... > "$B/securite-numstat.txt" || quitter 1 "« git diff --numstat origin/HEAD... » ne se lit pas"
+  # Le texte du diff relu : la liste, moins ses binaires (aucun binaire tant que le diff relu ne les a pas nommés).
+  sort -u "$B/fichiers.txt" > "$B/securite-liste.txt"
+  if [ -f "$B/binaires.txt" ]; then cp "$B/binaires.txt" "$B/securite-binaires.txt"; else : > "$B/securite-binaires.txt"; fi
+  awk -F'\t' '$1 == "-" && $2 == "-" { print $3 }' "$B/securite-numstat.txt" | sort -u | comm -12 - "$B/securite-liste.txt" | comm -23 - "$B/securite-binaires.txt" > "$B/securite-caches.txt" ||
+    quitter 1 "les binaires de la commande ne se comparent pas au diff relu"
+  [ ! -s "$B/securite-caches.txt" ] || quitter 1 "binaires pour la commande, texte pour le diff relu :" "$(cat "$B/securite-caches.txt")"
   ! git -C "$S" rev-parse -q --verify refs/remotes/origin/HEAD > /dev/null || quitter 1 "origin/HEAD se lit encore dans le dossier de la session"
-  [ -z "$(consignes_dans "$C")" ] || quitter 1 "une consigne de la PR est sur le disque du clone"
+  local o
+  o=$(consignes_dans "$C") || quitter 1 "les consignes du clone ne se lisent pas"
+  [ -z "$o" ] || quitter 1 "une consigne de la PR est sur le disque du clone"
   dire "vérification de C4 : faite, /security-review peut se lancer d'ici"
 }
 
@@ -621,7 +718,8 @@ revenir() {
   rm -rf -- "$S/.relecture-securite"
   [ "$ici" = "$S" ] || quitter 1 "la session n'est pas revenue dans son dossier : elle est dans $ici"
   [ "$(git symbolic-ref -q refs/remotes/origin/HEAD || true)" = "$o" ] || quitter 1 "origin/HEAD n'est pas remis"
-  [ -z "$(git status --porcelain)" ] || quitter 1 "le dossier de la session n'est pas propre"
+  o=$(git status --porcelain) || quitter 1 "l'état du dossier de la session ne se lit pas"
+  [ -z "$o" ] || quitter 1 "le dossier de la session n'est pas propre"
   [ "$(git rev-parse HEAD)" = "$(git rev-parse "origin/$base")" ] || quitter 1 "le dossier de la session n'est plus sur la base"
   dire "revenue : le dossier de la session, sur la base, origin/HEAD remis, le clone retiré"
 }
@@ -642,7 +740,9 @@ ranger() {
   lire_pr
   cd "$S"
   git worktree remove --force "$A" || quitter 12 "l'arbre à part ne se retire pas"
-  [ -z "$(git status --porcelain)" ] || quitter 1 "le dossier de la session n'est pas propre"
+  local e
+  e=$(git status --porcelain) || quitter 1 "l'état du dossier de la session ne se lit pas"
+  [ -z "$e" ] || quitter 1 "le dossier de la session n'est pas propre"
   dire "arbre à part retiré"
 }
 
