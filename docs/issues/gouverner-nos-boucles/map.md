@@ -1059,3 +1059,4 @@ La session de suite fait, dans cet ordre :
   - Banc 38 sur 38, `depot` 69 sur 69 ; 16 mutations, 16 rouges.
   - Verdict `conforme` écrit sur la PR. L'ordre attend la fin du job `bancs`, en cours.
   - Rapport et mutations du second tour publiés sous `63-annexes/contre-relecture-0b6a5eb/`.
+- 2026-11-20 — 06 h 56 UTC. **PR 143 ordonnée** au sommet `eb52035`. Ses quatre contrôles sont verts et la PR est clean, base `860cd9c`, relue à la source. Sur la PR : l'ordre `à-fusionner au sommet eb52035…` et le label. Capitaine et session prévenus. La session du ticket 64 (4,96 $) attend sa suite locale et la CI de `f94e98f`.
