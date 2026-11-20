@@ -43,13 +43,17 @@
 #
 # A-159 : le calcul ne refait pas la décision de git, il la lui demande. Avant toute lecture, il joue
 # `git rev-parse --absolute-git-dir` dans le dossier courant, avec l'environnement de la session tel quel (sa
-# configuration et ses variables `GIT_CONFIG_*`, rien d'écarté ; seules les variables qui désignent un autre dépôt,
-# `GIT_DIR` et voisines, sont retirées, comme pour tout le calcul). Toute autre issue qu'un succès : `illisible`, la
-# sortie d'erreur de git en cause (dépôt d'un autre propriétaire, dépôt nu sous `safe.bareRepository = explicit`,
-# configuration que git ne lit pas…). Admis, le dépôt réel se lit sans configuration d'utilisateur ni de poste, et
-# reçoit seulement `safe.directory` pour le dossier git et l'arbre de travail que git vient d'admettre : la
-# transmission de sa décision, rien de plus. Le dossier git que le calcul lit doit être celui que git a admis, sinon
-# `illisible`.
+# configuration, ses variables `GIT_CONFIG_*` et les deux bornes de la recherche, `GIT_CEILING_DIRECTORIES` et
+# `GIT_DISCOVERY_ACROSS_FILESYSTEM`, rien d'écarté ; seules les variables qui désignent un autre dépôt, `GIT_DIR` et
+# voisines, sont retirées, comme pour tout le calcul). Toute autre issue qu'un succès : `illisible`, la sortie d'erreur
+# de git en cause (dépôt d'un autre propriétaire, dépôt nu sous `safe.bareRepository = explicit`, configuration que
+# git ne lit pas…). Admis, le dépôt réel se lit sans configuration d'utilisateur ni de poste, et reçoit seulement
+# `safe.directory` pour le dossier git et l'arbre de travail que git vient d'admettre : la transmission de sa
+# décision, rien de plus. Le dossier git que le calcul lit doit être celui que git a admis, sinon `illisible`.
+# Deux limites, plus strictes que git, que la raison dit (m8) : la session pose `GIT_DIR`, `GIT_WORK_TREE` ou
+# `GIT_COMMON_DIR` (la raison les nomme, et dit si git aurait admis avec elles) ; le dossier où git trouve le dépôt
+# n'est ni le dossier git ni l'arbre de travail (sous `core.worktree`) : il n'est pas transmis, et la raison dit ce
+# que le calcul a transmis et la cause du refus.
 # Un dépôt partiel (`--filter` : `remote.<nom>.promisor` ou `extensions.partialclone` dans sa configuration, ses
 # `include` et `config.worktree` compris) est `illisible`, et la raison le dit : le dépôt propre ne télécharge aucun
 # objet manquant.
@@ -94,12 +98,20 @@ V=$1 T=$2 B=$3
 for outil in git jq mktemp rm; do
   command -v "$outil" >/dev/null || rendre 69 illisible "$outil est requis par les scripts de la chaîne (jq : sudo apt install jq, ou brew install jq)"
 done
-# A-159 : les variables de configuration de la session, pour la seule question posée à git (`git_session`).
+# A-159 : les variables de configuration de la session, pour la seule question posée à git (`git_session`) ; toutes
+# ses variables GIT_*, pour dire, quand le calcul refuse, si git aurait admis avec elles (`git_complet`) ; celles qui
+# désignent un autre dépôt, que le calcul écarte, pour les nommer dans la raison.
 SESSION=()
-for variable in $(compgen -v GIT_CONFIG); do SESSION+=("$variable=${!variable}"); done
-# Aucune variable GIT_* héritée, sauf celle qui borne la recherche du dépôt.
+COMPLETE=()
+ECARTEES=()
 for variable in $(compgen -v GIT_); do
-  [ "$variable" = GIT_CEILING_DIRECTORIES ] || unset "$variable"
+  COMPLETE+=("$variable=${!variable}")
+  [[ "$variable" != GIT_CONFIG* ]] || SESSION+=("$variable=${!variable}")
+  case $variable in GIT_DIR | GIT_WORK_TREE | GIT_COMMON_DIR) ECARTEES+=("$variable") ;; esac
+done
+# Aucune variable GIT_* héritée, sauf les deux qui bornent la recherche du dépôt sans en désigner un autre.
+for variable in $(compgen -v GIT_); do
+  case $variable in GIT_CEILING_DIRECTORIES | GIT_DISCOVERY_ACROSS_FILESYSTEM) ;; *) unset "$variable" ;; esac
 done
 version=$(git version 2>/dev/null) || rendre 69 illisible "git version en échec"
 [[ "$version" =~ ^git\ version\ ([0-9]+)\.([0-9]+) ]] || rendre 69 illisible "version de git illisible"
@@ -115,15 +127,38 @@ git_session() {
     exec git "$@"
   )
 }
-if ! gitdir=$(git_session rev-parse --absolute-git-dir 2>/dev/null); then
-  # La cause : la première ligne `fatal:` de la sortie d'erreur de git, ou à défaut sa première ligne.
-  erreur=$(git_session rev-parse --absolute-git-dir 2>&1 >/dev/null) || :
+git_complet() {
+  (
+    for kv in ${COMPLETE[@]+"${COMPLETE[@]}"}; do export "${kv%%=*}=${kv#*=}"; done
+    exec git "$@"
+  )
+}
+# La cause d'un refus, dans CAUSE : la première ligne `fatal:` de la sortie d'erreur de la commande, ou à défaut sa
+# première ligne.
+cause_de() {
+  local erreur l
+  erreur=$("$@" 2>&1 >/dev/null) || :
   decouper "$erreur"
-  cause=${LIGNES[0]:-git a échoué sans rien dire}
+  CAUSE=${LIGNES[0]:-git a échoué sans rien dire}
   for l in ${LIGNES[@]+"${LIGNES[@]}"}; do
-    if [[ "$l" == fatal:* ]]; then cause=$l; break; fi
+    if [[ "$l" == fatal:* ]]; then CAUSE=$l; break; fi
   done
-  illisible "pas dans un dépôt git que git admet : $cause"
+}
+if ! gitdir=$(git_session rev-parse --absolute-git-dir 2>/dev/null); then
+  cause_de git_session rev-parse --absolute-git-dir
+  if [ "${#ECARTEES[@]}" -gt 0 ]; then
+    # m8 : la réponse est celle de git sans les variables que le calcul écarte ; la raison les nomme, et dit si git
+    # aurait admis avec elles.
+    noms=${ECARTEES[*]}
+    noms=${noms// /, }
+    CAUSE="$CAUSE (sans $noms, que ce calcul écarte : il ne lit que le dépôt du dossier courant"
+    if git_complet rev-parse --absolute-git-dir >/dev/null 2>&1; then
+      CAUSE="$CAUSE ; git admet avec $noms, ce refus est plus strict que git)"
+    else
+      CAUSE="$CAUSE)"
+    fi
+  fi
+  illisible "pas dans un dépôt git que git admet : $CAUSE"
 fi
 [[ "$gitdir" == /* ]] && [[ "$gitdir" != *$'\n'* ]] || illisible "dossier git du dépôt illisible"
 haut=$(git_session rev-parse --show-toplevel 2>/dev/null) && [[ "$haut" == /* ]] && [[ "$haut" != *$'\n'* ]] || haut=''
@@ -142,8 +177,13 @@ r() {
 }
 
 # ── Le dépôt réel : où sont ses objets, le sha de la cible, s'il est superficiel ou partiel. Rien d'autre. ──────
-lu=$(r rev-parse --absolute-git-dir 2>/dev/null) && [ "$lu" = "$gitdir" ] ||
-  illisible "le dépôt que ce calcul lirait n'est pas celui que git admet ($gitdir)"
+if ! lu=$(r rev-parse --absolute-git-dir 2>/dev/null); then
+  # m8 : git admet, mais pas sous ce que le calcul lui transmet (le dossier où git a trouvé le dépôt n'est pas
+  # transmis quand il n'est ni le dossier git ni l'arbre de travail, sous `core.worktree` par exemple).
+  cause_de r rev-parse --absolute-git-dir
+  illisible "plus strict que git : git admet ce dépôt ($gitdir), mais sans configuration d'utilisateur ni de poste, avec safe.directory pour ce seul dossier git${haut:+ et le seul arbre de travail $haut}, git le refuse : $CAUSE"
+fi
+[ "$lu" = "$gitdir" ] || illisible "le dépôt que ce calcul lirait n'est pas celui que git admet ($gitdir)"
 [[ "$B" != *[[:cntrl:][:space:]]* ]] && [ "$B" != HEAD ] && r check-ref-format "refs/remotes/origin/$B" 2>/dev/null ||
   illisible "nom de branche cible invalide"
 ! r symbolic-ref -q "refs/remotes/origin/$B" >/dev/null 2>&1 || illisible "origin/$B est une réf symbolique, pas une branche"

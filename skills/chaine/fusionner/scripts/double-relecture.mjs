@@ -498,21 +498,46 @@ const court = (nom) => nom.replace(/^refs\/remotes\//, '');
  * A-159 : git lui-même dit s'il admet le dépôt de `cwd`, au lieu que le lecteur refasse sa décision. La question
  * (`git rev-parse --absolute-git-dir`) se pose dans ce dossier, avec l'environnement de la session tel quel : sa
  * configuration et ses variables `GIT_CONFIG_*`, rien d'écarté ; seules les autres `GIT_*`, qui désigneraient un autre
- * dépôt, sont retirées (sauf `GIT_CEILING_DIRECTORIES`), comme pour tout le lecteur. Un échec : `Illisible`, la première
- * ligne `fatal:` de la sortie d'erreur de git en cause (dépôt d'un autre propriétaire, dépôt nu sous
- * `safe.bareRepository = explicit`, configuration que git ne lit pas…). Rend `{ gitdir, haut }` : le dossier git admis
+ * dépôt, sont retirées (sauf les deux bornes de la recherche), comme pour tout le lecteur. Un échec : `Illisible`, la
+ * première ligne `fatal:` de la sortie d'erreur de git en cause (dépôt d'un autre propriétaire, dépôt nu sous
+ * `safe.bareRepository = explicit`, configuration que git ne lit pas…) ; si la session pose `GIT_DIR`,
+ * `GIT_WORK_TREE` ou `GIT_COMMON_DIR`, la raison les nomme et dit si git aurait admis avec elles (m8). Rend `{ gitdir, haut }` : le dossier git admis
  * et, s'il y en a un, l'arbre de travail (`--show-toplevel`).
  */
+// Les variables héritées que toutes les commandes gardent : aucune `GIT_*`, sauf les deux qui bornent la recherche du
+// dépôt sans en désigner un autre. Un seul filtre, pour la question à git comme pour les lectures.
+const BORNES = new Set(['GIT_CEILING_DIRECTORIES', 'GIT_DISCOVERY_ACROSS_FILESYSTEM']);
+const herite = (cle) => !cle.startsWith('GIT_') || BORNES.has(cle);
+// Les variables qui désignent un autre dépôt : écartées, et nommées dans la raison d'un refus (m8).
+const AUTRE_DEPOT = ['GIT_DIR', 'GIT_WORK_TREE', 'GIT_COMMON_DIR'];
+// La cause d'un refus de git : la première ligne `fatal:` de sa sortie d'erreur, ou à défaut sa première ligne.
+function causeDe(e) {
+  if (e?.code === 'ENOENT' && e?.path === 'git') throw new OutilManquant('git est requis par les scripts de la chaîne');
+  const erreur = String(e?.stderr ?? '').split('\n').filter((l) => l.trim() !== '');
+  return erreur.find((l) => l.startsWith('fatal:')) ?? erreur[0] ?? `git a échoué sans rien dire (sortie ${e?.status ?? e?.signal})`;
+}
+
 function admisParGit(cwd) {
-  const env = Object.fromEntries(Object.entries(process.env).filter(([cle]) => !cle.startsWith('GIT_') || cle.startsWith('GIT_CONFIG') || cle === 'GIT_CEILING_DIRECTORIES'));
-  const demander = (args) => execFileSync('git', args, { cwd, env, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).replace(/\n$/, '');
+  const env = Object.fromEntries(Object.entries(process.env).filter(([cle]) => herite(cle) || cle.startsWith('GIT_CONFIG')));
+  const demander = (args, avec = env) => execFileSync('git', args, { cwd, env: avec, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).replace(/\n$/, '');
   let gitdir;
   try {
     gitdir = demander(['rev-parse', '--absolute-git-dir']);
   } catch (e) {
-    if (e?.code === 'ENOENT' && e?.path === 'git') throw new OutilManquant('git est requis par les scripts de la chaîne');
-    const erreur = String(e?.stderr ?? '').split('\n').filter((l) => l.trim() !== '');
-    const cause = erreur.find((l) => l.startsWith('fatal:')) ?? erreur[0] ?? `git a échoué sans rien dire (sortie ${e?.status ?? e?.signal})`;
+    let cause = causeDe(e);
+    const ecartees = AUTRE_DEPOT.filter((cle) => process.env[cle] !== undefined);
+    if (ecartees.length > 0) {
+      // m8 : la réponse est celle de git sans les variables que le calcul écarte ; la raison les nomme, et dit si git
+      // aurait admis avec elles.
+      const noms = ecartees.join(', ');
+      let admet = true;
+      try {
+        demander(['rev-parse', '--absolute-git-dir'], process.env);
+      } catch {
+        admet = false;
+      }
+      cause += ` (sans ${noms}, que ce calcul écarte : il ne lit que le dépôt du dossier courant${admet ? ` ; git admet avec ${noms}, ce refus est plus strict que git` : ''})`;
+    }
     illisible(`pas dans un dépôt git que git admet : ${cause}`);
   }
   if (!gitdir.startsWith('/') || gitdir.includes('\n')) illisible('dossier git du dépôt illisible');
@@ -535,15 +560,15 @@ function admisParGit(cwd) {
  * Le dépôt réel ne sert qu'à dire où sont ses objets et à résoudre une réf en sha. Tout le reste se lit dans un dépôt
  * nu jetable, créé sous le dossier temporaire, qui emprunte ces objets (`objects/info/alternates`) : il n'a ni
  * configuration, ni greffes, ni `refs/replace`, ni attributs, ni arbre de travail, ni dossier courant (un dépôt nu
- * se lit depuis sa racine). Aucune commande n'hérite d'une
- * variable `GIT_*` (sauf `GIT_CEILING_DIRECTORIES`, qui borne la recherche du dépôt) ni d'une configuration
+ * se lit depuis sa racine). Aucune commande n'hérite d'une variable `GIT_*` (sauf `GIT_CEILING_DIRECTORIES` et
+ * `GIT_DISCOVERY_ACROSS_FILESYSTEM`, qui bornent la recherche du dépôt sans en désigner un autre) ni d'une configuration
  * d'utilisateur ou de système. Avant toute lecture, git lui-même dit s'il admet ce dépôt (`admisParGit`, `A-159`) ;
  * admis, le dépôt réel reçoit `safe.directory` pour le seul dossier git et le seul arbre de travail que git vient
  * d'admettre (la transmission de sa décision, sans quoi le dépôt d'un autre propriétaire serait refusé), et le dossier
  * git qu'il lit doit être celui-là. Refusé, s'il ne se crée pas, si le dépôt est superficiel ou partiel : `Illisible`.
  */
 export function lecteurGit(cwd = process.cwd()) {
-  const env = Object.fromEntries(Object.entries(process.env).filter(([cle]) => !cle.startsWith('GIT_') || cle === 'GIT_CEILING_DIRECTORIES'));
+  const env = Object.fromEntries(Object.entries(process.env).filter(([cle]) => herite(cle)));
   Object.assign(env, { GIT_CONFIG_GLOBAL: '/dev/null', GIT_CONFIG_SYSTEM: '/dev/null', GIT_CONFIG_NOSYSTEM: '1', GIT_ATTR_NOSYSTEM: '1' });
   // Dans le dépôt réel, les greffes et les objets remplacés sont écartés en plus : il ne sert qu'à résoudre des réfs.
   const reel = { cwd, env: { ...env, GIT_GRAFT_FILE: '/dev/null', GIT_NO_REPLACE_OBJECTS: '1' } };
@@ -578,7 +603,15 @@ export function lecteurGit(cwd = process.cwd()) {
     const { gitdir, haut } = admisParGit(cwd);
     const reports = [['safe.directory', gitdir], ...(haut ? [['safe.directory', haut]] : [])];
     Object.assign(reel.env, { GIT_CONFIG_COUNT: String(reports.length) }, ...reports.map(([cle, valeur], i) => ({ [`GIT_CONFIG_KEY_${i}`]: cle, [`GIT_CONFIG_VALUE_${i}`]: valeur })));
-    if (texte(essayer(reel, ['rev-parse', '--absolute-git-dir'], `le dépôt que ce calcul lirait n'est pas celui que git admet (${gitdir})`)) !== gitdir) illisible(`le dépôt que ce calcul lirait n'est pas celui que git admet (${gitdir})`);
+    let lu;
+    try {
+      lu = execFileSync('git', ['rev-parse', '--absolute-git-dir'], { ...reel, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).replace(/\n$/, '');
+    } catch (e) {
+      // m8 : git admet, mais pas sous ce que le calcul lui transmet (le dossier où git a trouvé le dépôt n'est pas
+      // transmis quand il n'est ni le dossier git ni l'arbre de travail, sous `core.worktree` par exemple).
+      illisible(`plus strict que git : git admet ce dépôt (${gitdir}), mais sans configuration d'utilisateur ni de poste, avec safe.directory pour ce seul dossier git${haut ? ` et le seul arbre de travail ${haut}` : ''}, git le refuse : ${causeDe(e)}`);
+    }
+    if (lu !== gitdir) illisible(`le dépôt que ce calcul lirait n'est pas celui que git admet (${gitdir})`);
     const objets = texte(essayer(reel, ['rev-parse', '--path-format=absolute', '--git-path', 'objects'], 'dossier des objets du dépôt illisible'));
     if (!objets.startsWith('/') || objets.includes('\n') || !statSync(objets, { throwIfNoEntry: false })?.isDirectory()) illisible('dossier des objets du dépôt illisible');
     if (texte(essayer(reel, ['rev-parse', '--is-shallow-repository'], 'dépôt illisible')) !== 'false') illisible("dépôt superficiel : l'historique est tronqué, à approfondir avant d'appeler ce calcul (git fetch --unshallow origin)");

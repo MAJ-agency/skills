@@ -1548,8 +1548,18 @@ function cellulesGit({ cwdDefaut, autres = [], lancerCalcul }) {
     else if (attendu && git !== attendu) fautes.push(`${nom} : git dit ${git}, la cellule le montre ${attendu}`);
     else if (git === 'refusé' && !/^# illisible : pas dans un dépôt git que git admet : \S/.test(r.sortie)) fautes.push(`${nom} : la cause de git n'est pas nommée`);
     else if (git === 'refusé' && cause && !r.sortie.includes(cause.slice(0, 60))) fautes.push(`${nom} : la raison ne reprend pas la cause de git (${cause})`);
+    return { git, calcul, sortie: r.sortie };
   };
-  return { c, fautes, cfg };
+  // m8 : une limite écrite, où le lecteur refuse un dépôt que git admet ; la raison doit le dire, et dire pourquoi.
+  const limite = (nom, opts, motifs) => {
+    const avant = fautes.length;
+    const cellule = c(nom, opts);
+    fautes.splice(avant);
+    if (cellule.git !== 'lu') fautes.push(`${nom} : git dit ${cellule.git}, la limite suppose qu'il admet`);
+    else if (cellule.calcul === 'lu') fautes.push(`${nom} : le lecteur lit, la limite suppose qu'il refuse`);
+    else for (const motif of motifs) if (!motif.test(cellule.sortie)) fautes.push(`${nom} : la raison ne dit pas ${motif} (${cellule.sortie})`);
+  };
+  return { c, limite, fautes, cfg };
 }
 const SD = (v) => `[safe]\n\tdirectory = ${v}\n`;
 const SB = (v) => `[safe]\n\tbareRepository = ${v}\n`;
@@ -1561,9 +1571,12 @@ test("le dépôt d'un autre propriétaire : le lecteur lit si, et seulement si, 
   const reel = realpathSync(depot);
   const lie = join(realpathSync(dossier('arbre-lie-')), 'lie');
   g(depot, 'worktree', 'add', '-q', '--detach', lie, tete);
-  const { c, fautes, cfg } = cellulesGit({
+  // Un dépôt nu d'un autre propriétaire (b29).
+  const nuAutre = join(realpathSync(dossier('nu-autre-')), 'nu.git');
+  g(depot, 'clone', '-q', '--mirror', depot, nuAutre);
+  const { c, limite, fautes, cfg } = cellulesGit({
     cwdDefaut: depot,
-    autres: [reel, lie],
+    autres: [reel, lie, nuAutre],
     lancerCalcul: (cwd, env) => lancer(script, ['--base', 'develop', '--tete', tete], { cwd, entree, env: { ...env, TMPDIR: temporaire } }),
   });
   mkdirSync(join(depot, 'apps'), { recursive: true });
@@ -1599,6 +1612,22 @@ test("le dépôt d'un autre propriétaire : le lecteur lit si, et seulement si, 
   c("w02 : arbre lié d'un autre propriétaire déclaré par son chemin", { globale: SD(lie), cwd: lie }, 'lu');
   c('w03 : arbre lié, seul le dépôt principal déclaré', { globale: SD(reel), cwd: lie });
   c('w04 : arbre lié, *', { globale: SD('*'), cwd: lie }, 'lu');
+  // m6 : la borne de la recherche est celle de la session. Égale à la racine, appelé depuis un sous-dossier : git ne
+  // remonte pas jusqu'au dépôt.
+  c('m6 : GIT_CEILING_DIRECTORIES à la racine du dépôt déclaré, depuis un sous-dossier', { globale: SD(reel), cwd: join(reel, 'apps'), env: { GIT_CEILING_DIRECTORIES: reel } }, 'refusé');
+  c('m6 : GIT_CEILING_DIRECTORIES au-dessus de la racine, depuis un sous-dossier', { globale: SD(reel), cwd: join(reel, 'apps'), env: { GIT_CEILING_DIRECTORIES: dirname(reel) } }, 'lu');
+  // m7 : le dossier git admis est transmis, pas seulement l'arbre de travail.
+  c("m7 b29 : un dépôt nu d'un autre propriétaire déclaré par son chemin", { globale: SD(nuAutre), cwd: nuAutre }, 'lu');
+  c('m7 s32 : le .git déclaré, appelé depuis le .git', { globale: SD(join(reel, '.git')), cwd: join(reel, '.git') }, 'lu');
+  // m8 : GIT_DISCOVERY_ACROSS_FILESYSTEM ne désigne pas un autre dépôt : elle reste, et git la lit comme la session.
+  c('m8 : GIT_DISCOVERY_ACROSS_FILESYSTEM que git ne lit pas', { globale: SD(reel), env: { GIT_DISCOVERY_ACROSS_FILESYSTEM: 'bogus' } }, 'refusé');
+  c('m8 : GIT_DISCOVERY_ACROSS_FILESYSTEM=1', { globale: SD(reel), env: { GIT_DISCOVERY_ACROSS_FILESYSTEM: '1' } }, 'lu');
+  // m8 : sous `core.worktree`, le dossier où git trouve le dépôt n'est ni le dossier git ni l'arbre de travail ; il
+  // n'est pas transmis : une limite, que la raison dit.
+  const ailleurs = realpathSync(dossier('ailleurs-'));
+  g(depot, 'config', 'core.worktree', ailleurs);
+  limite('m8 : core.worktree ailleurs, le dépôt déclaré', { globale: SD(reel) }, [/^# illisible : plus strict que git : git admet ce dépôt/, /safe\.directory pour ce seul dossier git/, /dubious ownership/]);
+  g(depot, 'config', '--unset', 'core.worktree');
   assert.deepEqual(fautes, []);
   assert.deepEqual(readdirSync(temporaire), [], 'aucun dépôt propre ne reste');
 });
@@ -1621,7 +1650,7 @@ test("un dépôt nu trouvé sans --git-dir : le lecteur lit si, et seulement si,
   const mien = join(dossier('mien-'), 'mien');
   g(depot, 'clone', '-q', depot, mien);
   g(mien, 'update-ref', 'refs/remotes/origin/develop', g(depot, 'rev-parse', 'refs/remotes/origin/develop'));
-  const { c, fautes } = cellulesGit({
+  const { c, limite, fautes } = cellulesGit({
     cwdDefaut: nu,
     lancerCalcul: (cwd, env) => lancer(script, ['--base', 'develop', '--tete', tete], { cwd, entree: 'README.md\n', env }),
   });
@@ -1658,5 +1687,8 @@ test("un dépôt nu trouvé sans --git-dir : le lecteur lit si, et seulement si,
   g(nu, 'config', '--unset', 'safe.bareRepository');
   c('un arbre de travail sous explicit', { globale: SB('explicit'), cwd: mien }, 'lu');
   c('un arbre de travail sous une valeur que git ne lit pas', { globale: SB('bogus'), cwd: mien });
+  // m8 b21 : sous explicit, git admet le dépôt nu que GIT_DIR désigne ; le lecteur écarte GIT_DIR : une limite, que la
+  // raison dit.
+  limite('m8 b21 : explicit, GIT_DIR donné', { globale: SB('explicit'), env: { GIT_DIR: '.' } }, [/^# illisible : pas dans un dépôt git que git admet : fatal: cannot use bare repository/, /sans GIT_DIR, que ce calcul écarte/, /git admet avec GIT_DIR, ce refus est plus strict que git/]);
   assert.deepEqual(fautes, []);
 });
