@@ -46,3 +46,51 @@ Choix propres de la session, jugés :
 Fidélité : les décisions 1 à 18 sont codées. Les cas des tables y sont tous, avec les sorties exactes de `codeSeul`, les poids et bornes, `ordre`, `pireCas`, `bilan`, `recit`, `conclure` et `lancer`. Le diff de `double-relecture.test.mjs` est celui du ticket. La séquence de la décision 17 est tenue : `e921846` rouge en CI sur la bonne assertion, puis `f77f569`. La CI à `069b146` est verte, 1 218 sur 1 218, et `poses` y prend 616,0 s sur 1 800.
 
 Comptes : 2 B, 7 m. Pièges `codeSeul` : 62 + 9, dont 10 ratés : 3 pour B1, 3 pour B2, 2 pour la limite `)`, 2 hors périmètre (`it.only`, `describe.skip`, déjà ratés sur `main`). Mutations : 42 jouées (17 de la session, 25 à moi), 29 tuées, 13 vivantes, dont 8 équivalentes (S14, S15, M6, M14, M19, M24, M25, M15 côté sûr) et 5 trous (M1, M4, M8, M16, M17). Bancs : `tranches` 12/12, `double-relecture` 50/50, `depot` 69/69, `poses` 1/1 en 336 s.
+
+## Second tour
+
+Sommet : `git ls-remote origin refs/pull/144/head` → `8d870d00d304d3cb2f54eac14735ea74804e8134`, un seul commit sur `069b146` (`scripts/tranches.mjs`, `scripts/tranches.test.mjs`, `scripts/poses.test.mjs`). `ps` avant tout lancement : aucun de mes processus du premier tour (la machine a redémarré : `up 3 min`). A-176 lu par `grep -n` dans la spec (l. 333-339).
+
+### Au fil de l'eau
+
+- Pièges du premier tour sur `8d870d0` : `pieges.mjs` 0 faute sur 62 ; `pieges2.mjs` : `.return`, `.delete`, `of`, `break a`, `continue a`, `while (x) /re/` tous vus ; seuls `it.only` et `describe.skip` restent ratés (hors périmètre, motif inchangé). `corpus.mjs` : 129 fichiers, 0 doute (aucun fichier réel ne passe dans le doute).
+- `essais/pieges3.mjs` (24 attaques des règles neuves) : vus `a?.of / 2`, `x.let / y`, `continue label` + fin de ligne (doute), `if ((a)) /re/`, `foo(if_) / 2`, `(` dans une chaîne, une regex, un commentaire, un gabarit (sans effet sur la pile), `f((a);` et `a);` (doute), `else if`, `if /* c */ (a)`, `o.if(a) / 2`, `if (f(a))`, `do {} while (x)`, `${ (a) }`, `[...of / 2]`, `yield`, `let`. **Ratés** : `break` seul + fin de ligne + `/"/.test(s); t.test(…)`, `continue` seul (idem), `debugger` + fin de ligne (idem), `for await (const x of y) /"/.test(b) && t.test(…)`. Un cinquième, `export default /"/.test(b) && t.test(…)`. Les cinq sources sont du JavaScript valide (`node --check essais/js/{a,b,c,d,e}.mjs`) et `aDesSousTests` y rend `false` ; `main` rendait `true` sur la source brute.
+- Sixième raté, même famille : `class A extends /"/ {}; t.test("y", f); // "` (valide, `node --check essais/js/f.mjs`) → `false`.
+- Mutations (`essais/muter.mjs essais/mutations2.json`, `arbre-mut` à `8d870d0`, témoin vert, charge 0,04 → 0,12) : 17 jouées, 16 tuées.
+  - Vivantes du premier tour, rejouées : M1, M4, M8, M16, M17 tuées par les cas neufs. M13 : le test rougit (`not ok … duration_ms: 30021`) mais le processus `node --test` ne sort pas — `setsid --wait timeout 150 node --test --test-name-pattern=lancer …` sous M13 : `exit=124` à 150 s (`essais/m13.tap`). L'enfant non tué, avec son `setInterval`, tient la boucle du fichier de test.
+  - S14+S15 ensemble (`essais/arbre-s1415`) : tuées, `not ok`, `résolue en 8027 ms`, 9 s (`essais/s1415.tap`).
+  - Neuves sur A-176 : N1 (un mot après `.` garde sa valeur), N2 (`let` hors du doute), N3 (`continue` hors de la règle des étiquettes), N4 (`with` hors des conditions), N5 (`)` orphelin accepté), N6 (`(` non fermée acceptée), N7 (`(` ne retient pas le mot), N9 (`await` hors du doute), N10 (`)` de condition lu comme une division), N11 (`of` hors du doute) : toutes tuées. N8 (le test `avant.sorte === "doute"` ôté à la `/`) vivante et équivalente : un `avant` de sorte « doute » n'a pas de `valeur`, et tombe de toute façon dans le `return null` final.
+- Bancs (charge 0,00) : `tranches.test.mjs` 13/13 en 2,9 s ; `depot.test.mjs` 69/69 en 0,4 s.
+- Un processus de la mutation M13 lancée par `muter.mjs` a survécu dans mon groupe (pgid 445) ; arrêté par `kill -KILL -- -445`, il reste un zombie sans parent qu'init récolte. Depuis, chaque lancement passe par `setsid --wait` et `ps` ne montre rien derrière.
+- `poses` seul (`setsid --wait node --test scripts/poses.test.mjs`) : vert, 356 s, charge 0,00 → 1,88. `# poses : 87 travaux, 3 à la fois, 356.1 s sur un plafond de 1800 s (19.8 %), pire cas 14920.0 s` ; marge la plus courte 68,1 % (`une-sous-pr-a-la-fois`, tranche de 10, 191,2 s sur 600 s). Rien ne reste derrière (`ps`).
+
+### Verdict du second tour
+
+conforme après retouches
+
+Mes neuf constats du premier tour :
+- **B1 fermé.** `a.return`, `m.delete`, `a?.typeof`, `a?.of` et `x.let` sont lus comme des identifiants. `of`, `let`, `yield` et `await` mettent la `/` dans le doute.
+- **B2 fermé pour l'étiquette** (`break a`, `continue a`, `continue label`).
+- **m1 fermé.** La pile des parenthèses est juste : `if ((a))`, `if (f(a))`, `else if`, `if /* c */ (a)`, `do … while (x)`, et une `(` dans un littéral ne compte pas. Une pile déséquilibrée met dans le doute.
+- **m2 fermé.** S14 et S15 jouées ensemble sont tuées.
+- **m4 à m7 fermés.** M1, M4, M8, M16 et M17 sont tuées. La branche « arrêté au plafond » de `recit` est jouée. L'en-tête de `lancer` écrit la limite `setsid`. Le commentaire de `poses.test.mjs:83` est corrigé.
+- **m3 à moitié fermé** (voir m1 ci-dessous).
+
+Constats neufs :
+- **B1** `scripts/tranches.mjs:111-117` (`MOTS_AVANT_REGEX`, l. 36). Après `break` ou `continue` sans étiquette, `debugger`, `default` (`export default`) et `extends`, une `/` est toujours une regex. `codeSeul` la lit comme une division après un identifiant.
+  - Exemples, tous valides selon `node --check` : `break` + fin de ligne + `/"/.test(s); t.test("y", f); // "` ; `continue` de même ; `debugger` de même ; `export default /"/.test(b) && t.test(…); // "` ; `class A extends /"/ {}; t.test(…); // "`.
+  - `aDesSousTests` y rend `false`, alors que `main` rendait `true` : ce sont des régressions.
+  - Commandes : `node essais/pieges3.mjs clone/scripts/tranches.mjs`, et l'essai `essais/js/{a,b,c,e,f}.mjs`.
+  - Retouche proposée : ajouter ces cinq mots à `MOTS_AVANT_REGEX`, ou à `MOTS_DU_DOUTE`.
+- **B2** `scripts/tranches.mjs:155` (la pile retient `avant.valeur`). Dans `for await (const x of y) /"/.test(b) && t.test(…); // "`, la `(` retient `await` et non `for` : le `)` est lu comme une division. Le cas est valide (`node --check essais/js/d.mjs`) et `aDesSousTests` rend `false`.
+  - Retouche proposée : un `)` dont le mot est dans `MOTS_DU_DOUTE` met la `/` dans le doute, ou bien `await` après `for` est retenu comme `for`.
+- **m1** `scripts/tranches.test.mjs:233` (`{ timeout: 30_000 }`). Sous M13, le test rougit à 30 s, mais `node --test` ne sort pas : il tourne encore quand je l'arrête à 150 s (`essais/m13.tap`), car l'enfant resté vivant tient la boucle. En CI, sans `timeout-minutes`, le job pendrait jusqu'à la limite de GitHub.
+  - Retouche proposée : dans un `finally`, tuer le pid de l'enfant que le test a lancé, ou passer `--test-force-exit` à ce banc.
+
+Le coût est nul : aucun fichier réel du dépôt ne passe dans le doute (`corpus.mjs` : 129 fichiers, 0 doute).
+
+Comptes du second tour :
+- 2 B, 1 m.
+- Pièges : 62 + 9 rejoués, 0 raté neuf ; seuls restent `it.only` et `describe.skip`, hors périmètre. 24 pièges neufs (`pieges3.mjs`) et 2 sources ajoutées (`essais/js/e.mjs`, `f.mjs`) : 6 faux négatifs en tout.
+- Mutations : 17 jouées, dont 6 du premier tour (M1, M4, M8, M13, M16, M17) et 11 neuves. 16 tuées : M13 l'est par son `not ok`, mais elle pend. 1 vivante équivalente (N8). S14 et S15 ensemble : tuées.
+- Bancs : `tranches` 13/13, `depot` 69/69, `poses` 1/1 en 356 s.

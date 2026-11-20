@@ -1078,3 +1078,10 @@ La session de suite fait, dans cet ordre :
   - Les deux processus que le contre-relecteur de la PR 144 avait laissés se sont éteints seuls. Le `kill` de l'architecte a été refusé par le classifieur, mais il n'avait plus d'objet.
   - L'alerte hebdomadaire est inchangée.
   - Réveil réarmé à 08 h 59.
+- 2026-11-20 — 08 h 15 UTC. **PR 144 : second tour au sommet `8d870d0`, « conforme après retouches », 2 bloquants neufs et 1 mineur.**
+  - Les 9 constats du premier tour sont fermés.
+  - Six nouveaux faux négatifs, tous des régressions : `break` ou `continue` sans étiquette, `debugger`, `export default`, `extends`, et le `)` de `for await`.
+  - Sous M13, `node --test` pend.
+  - Corpus : 0 fichier dans le doute. Mutations : 16 tuées sur 17, dont une équivalente.
+  - `poses` seul passe en 356 s.
+  - **A-177** : la division ne se lit que sur certitude, et la liste des mots vient de la spécification ECMAScript. Un passage de plus est prévu sur le delta. Le verdict `non conforme` est écrit sur la PR.
