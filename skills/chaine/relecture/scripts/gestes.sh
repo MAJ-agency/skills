@@ -11,13 +11,13 @@
 #
 #   etape2 '<brouillons>' '<base>' '<tête>' '<sommet>'  la base dans le dossier de la session, le sommet dans l'arbre à part
 #   liste '<brouillons>'          la liste des fichiers (diff à trois points, ou `sujet.sh a-juger` vers un sujet)
-#   diff '<brouillons>'           le diff relu, vérifié contre la liste ; ses lots au-delà de 2 000 lignes
+#   diff '<brouillons>'           le diff relu, vérifié contre la liste ; ses lots, et ceux de la résolution, au-delà de 2 000 lignes
 #   axes '<brouillons>'           ce qui choisit les axes : revue exigée, chemins sensibles, ticket, binaires
 #   c1 '<brouillons>'             l'empreinte, les index générés (C1), l'arbre remis, l'empreinte reprise
 #   garde '<brouillons>'          l'empreinte reprise juste avant le premier axe
 #   contexte '<brouillons>'       le contexte du ticket (axe Ticket), lu dans l'arbre à part
 #   accord '<brouillons>'         la ligne `Sensibles:` du ticket, lue sur le sujet (C3)
-#   lus '<brouillons>' <i> [<lot>]  ce que l'axe <i> a lu, comparé au diff relu
+#   lus '<brouillons>' <i> [<lot>]  ce que l'axe <i> a lu, comparé au diff relu (<lot> : un rang, `resolution` ou `resolution-<j>`)
 #   tri '<brouillons>'            les constats de `tri.txt`, venus de develop ou non (PR de mise à jour)
 #   montrer '<brouillons>'        le fichier de `montrer.txt`, tel que le sommet l'écrit
 #   c4 '<brouillons>'             le clone de `/security-review` (C4), prêt ; son chemin dans `c4-dossier.txt`
@@ -306,14 +306,17 @@ diff_relu() {
   # pas. Une archive qui porte du code exécutable (`.jar`, `.war`, `.whl`, `.nupkg`) est illisible.
   { filtrer -Eiv '\.(png|jpe?g|gif|webp|avif|ico|bmp|tiff?|heic|woff2?|ttf|otf|eot|zip|gz|tgz|tar|bz2|xz|7z)"?$' "$B/binaires.txt"; } > "$B/illisibles.txt"
   if [ -s "$B/manquants.txt" ]; then quitter 12 "manquent au diff relu :" "$(cat "$B/manquants.txt")"; fi
-  lots
+  if [ -s "$B/resolution.txt" ]; then binaires_resolution; fi
+  lots "$B/diff.patch" "$B/relus.txt" lot
+  if [ -s "$B/resolution.txt" ]; then lots "$B/resolution.patch" "$B/resolution.txt" resolution; fi
   touch "$B/diff.fait"
   [ -s "$B/attendus.txt" ] || [ -s "$B/resolution.txt" ] || dire "aucun axe"
   dire "diff relu : $(lignes "$B/relus.txt") fichiers, $(lignes "$B/diff.patch") lignes ; hors du diff : $(lignes "$B/hors.txt") ; sans écart : $(lignes "$B/sans-ecart.txt") ; binaires : $(lignes "$B/binaires.txt"), dont illisibles : $(lignes "$B/illisibles.txt")"
   if [ -s "$B/illisibles.txt" ]; then dire "binaires illisibles (ni image, ni police, ni archive) :" "$(cat "$B/illisibles.txt")"; fi
   dire "{{DIFF}} : $B/diff.patch"
   if [ -s "$B/resolution.txt" ]; then
-    dire "résolution de la fusion : $(lignes "$B/resolution.txt") fichiers" "{{DIFF}} de la résolution, pour l'axe Règles : $B/resolution.patch"
+    dire "résolution de la fusion : $(lignes "$B/resolution.txt") fichiers"
+    [ -d "$B/lots/resolution-1" ] || dire "{{DIFF}} de la résolution, pour l'axe Règles : $B/resolution.patch"
   fi
 }
 
@@ -331,16 +334,32 @@ resolution() {
   printf '%s\n' "$f" > "$B/fusion.txt"
 }
 
+# Un fichier de la résolution que git lit binaire contre l'un ou l'autre parent de la fusion, et que le diff relu ne
+# porte pas (absent d'attendus.txt), est un binaire du tour : le premier parent voit la forme neuve que la résolution
+# écrit, le second ce qu'elle jette de develop. Il complète binaires.txt, sans rien lui prendre.
+binaires_resolution() {
+  local f
+  f=$(cat "$B/fusion.txt")
+  git -C "$A" diff --numstat --no-renames "$f^1" "$f" > "$B/numstat-resolution-1.txt" || quitter 12 "liste des binaires de la résolution illisible"
+  git -C "$A" diff --numstat --no-renames "$f^2" "$f" > "$B/numstat-resolution-2.txt" || quitter 12 "liste des binaires de la résolution illisible"
+  cat "$B"/numstat-resolution-[12].txt | awk -F'\t' '$1 == "-" && $2 == "-" { print $3 }' | sort -u | comm -12 - "$B/resolution.txt" | comm -23 - "$B/attendus.txt" | sort -u - "$B/binaires.txt" -o "$B/binaires.txt"
+  { filtrer -Eiv '\.(png|jpe?g|gif|webp|avif|ico|bmp|tiff?|heic|woff2?|ttf|otf|eot|zip|gz|tgz|tar|bz2|xz|7z)"?$' "$B/binaires.txt"; } > "$B/illisibles.txt"
+}
+
 # Au-delà de 2 000 lignes, des lots : par zone (`apps/<x>`, `packages/<x>`, sinon le premier dossier, la racine à
 # part), une zone entière dans un lot quand elle tient, un fichier de plus de 2 000 lignes seul dans le sien. La machine
-# découpe le diff relu lui-même, en-tête par en-tête : l'union des lots est vérifiée, fichier pour fichier et ligne
-# pour ligne.
+# découpe le diff lui-même, en-tête par en-tête : l'union des lots est vérifiée, fichier pour fichier et ligne
+# pour ligne. Deux appels : le diff relu (`lots diff.patch relus.txt lot`, lots `lots/lot-<i>/`) et, sur une PR de mise
+# à jour, la résolution (`lots resolution.patch resolution.txt resolution`, lots `lots/resolution-<j>/`), chacun dans
+# son dossier de travail : le cas « un seul lot » ne retire que le sien.
 lots() {
-  local total
-  total=$(lignes "$B/diff.patch")
+  local patch=$1 liste=$2 nom=$3 total qui pre n i d W
+  total=$(lignes "$patch")
   [ "$total" -gt 2000 ] || return 0
+  if [ "$nom" = lot ]; then qui="le diff relu" pre=lots; else qui="la résolution" pre="lots de la résolution"; fi
   mkdir -p "$B/lots"
-  awk -v sortie="$B/lots" -v plafond=2000 '
+  W=$(mktemp -d "$B/lots/travail-XXXXXX")
+  awk -v sortie="$W" -v plafond=2000 '
     function cle(h,   r, n) {
       if (h ~ /^diff --git "a\//) { r = substr(h, 15); n = (length(r) - 5) / 2; return "\"" substr(r, 1, n) "\"" }
       r = substr(h, 14); n = (length(r) - 3) / 2; return substr(r, 1, n)
@@ -363,33 +382,33 @@ lots() {
       print lot > (sortie "/nombre")
     }
     function place(k,   d) { d = sortie "/" lot; printf "%s", texte[k] >> (d ".patch"); close(d ".patch"); print k >> (d ".attendus"); close(d ".attendus") }
-  ' "$B/diff.patch"
-  local n i d
-  n=$(cat "$B/lots/nombre")
+  ' "$patch"
+  n=$(cat "$W/nombre")
   if [ "$n" = 1 ]; then
-    rm -rf -- "$B/lots"
-    dire "un seul fichier, de plus de 2 000 lignes : un seul lot, le diff relu entier"
+    rm -rf -- "$W"
+    rmdir -- "$B/lots" 2> /dev/null || true
+    [ "$nom" != lot ] || dire "un seul fichier, de plus de 2 000 lignes : un seul lot, le diff relu entier"
     return 0
   fi
-  : > "$B/lots/union.txt"
+  : > "$W/union.txt"
   for i in $(seq 1 "$n"); do
-    d=$B/lots/lot-$i
+    d=$B/lots/$nom-$i
     mkdir -p -- "$d"
-    mv -- "$B/lots/$i.patch" "$d/diff.patch"
-    mv -- "$B/lots/$i.attendus" "$d/attendus.txt"
-    [ -s "$d/diff.patch" ] || quitter 12 "lots : le lot $i est vide"
+    mv -- "$W/$i.patch" "$d/diff.patch"
+    mv -- "$W/$i.attendus" "$d/attendus.txt"
+    [ -s "$d/diff.patch" ] || quitter 12 "$pre : le lot $i est vide"
     sort -u "$d/attendus.txt" -o "$d/attendus.txt"
     relus_de "$d/diff.patch" > "$d/relus.txt"
-    cmp -s "$d/attendus.txt" "$d/relus.txt" || quitter 12 "lots : le lot $i ne porte pas ses fichiers"
+    cmp -s "$d/attendus.txt" "$d/relus.txt" || quitter 12 "$pre : le lot $i ne porte pas ses fichiers"
     comm -12 "$d/relus.txt" "$B/binaires.txt" > "$d/binaires.txt"
-    cat "$d/relus.txt" >> "$B/lots/union.txt"
+    cat "$d/relus.txt" >> "$W/union.txt"
   done
-  [ -z "$(sort "$B/lots/union.txt" | uniq -d)" ] || quitter 12 "lots : un fichier est dans deux lots"
-  sort -u "$B/lots/union.txt" | cmp -s - "$B/relus.txt" || quitter 12 "lots : leur union n'est pas le diff relu"
-  [ "$(cat "$B"/lots/lot-*/diff.patch | wc -l | tr -d ' ')" = "$total" ] || quitter 12 "lots : leurs lignes ne font pas le diff relu"
-  rm -f -- "$B/lots/union.txt" "$B/lots/nombre"
-  for i in $(seq 1 "$n"); do dire "lot $i : $(lignes "$B/lots/lot-$i/relus.txt") fichiers, $(lignes "$B/lots/lot-$i/diff.patch") lignes, {{DIFF}} : $B/lots/lot-$i/diff.patch"; done
-  dire "lots : $n"
+  [ -z "$(sort "$W/union.txt" | uniq -d)" ] || quitter 12 "$pre : un fichier est dans deux lots"
+  sort -u "$W/union.txt" | cmp -s - "$liste" || quitter 12 "$pre : leur union n'est pas $qui"
+  [ "$(cat "$B"/lots/"$nom"-*/diff.patch | wc -l | tr -d ' ')" = "$total" ] || quitter 12 "$pre : leurs lignes ne font pas $qui"
+  rm -rf -- "$W"
+  for i in $(seq 1 "$n"); do dire "lot $( [ "$nom" = lot ] && echo "$i" || echo "$nom-$i") : $(lignes "$B/lots/$nom-$i/relus.txt") fichiers, $(lignes "$B/lots/$nom-$i/diff.patch") lignes, {{DIFF}} : $B/lots/$nom-$i/diff.patch"; done
+  if [ "$nom" = lot ]; then dire "lots : $n"; else dire "lots de la résolution : $n"; fi
 }
 
 axes() {
@@ -575,6 +594,10 @@ lus() {
     mkdir -p "$B/lots/resolution"
     cp "$B/resolution.txt" "$B/lots/resolution/relus.txt"
     d=$B/lots/resolution axe=$B/axe-1-lot-resolution.txt
+  elif [[ $lot =~ ^resolution-[0-9]+$ ]]; then
+    [ "$i" = 1 ] || quitter 12 "la résolution de la fusion se lit par l'axe Règles (1)"
+    [ -d "$B/lots/$lot" ] || quitter 12 "lot inconnu : $lot"
+    d=$B/lots/$lot axe=$B/axe-1-lot-$lot.txt
   elif [ -n "$lot" ]; then
     [[ $lot =~ ^[0-9]+$ ]] && [ -d "$B/lots/lot-$lot" ] || quitter 12 "lot inconnu : $lot"
     d=$B/lots/lot-$lot axe=$B/axe-$i-lot-$lot.txt
