@@ -101,6 +101,8 @@ cd "$(cat '<brouillons>/session.txt')" && bash '<dossier du skill>/scripts/geste
 
   La première ligne, puis la commande `/security-review` lancée sans rien lui dire du diff, puis la seconde : trois appels de l'outil Bash, dans cet ordre. Les deux `cd` vont au chemin absolu que le script a écrit ; la vérification contrôle le dossier courant, et `revenir` contrôle que la session est revenue (son dossier, sur la base, `origin/HEAD` remis, le clone retiré). Ses constats passent au tri comme ceux d'un axe. Vérification en échec, ou commande qui ne se charge pas : `/security-review` est non lancée, `C4` est « non exécuté ». `revenir` en échec : la rejouer une fois ; encore, `C4` est « non exécuté », la cause écrite.
 
+  Le clone de `C4` reste dans le dossier de la session, jamais hors des dossiers de travail : hors d'un dossier de travail, le `cd` ne tient pas, la commande et ses sous-agents lisent la base, et le filtre de faux positifs écarte une faille réelle.
+
 ## Étape 6 — Lancer les axes
 
 D'abord `bash '<dossier du skill>/scripts/gestes.sh' garde '<brouillons>'` : l'empreinte de `C1`, reprise juste avant le premier axe ; une autre sortie que 0, et aucun axe ne se joue, le verdict est `incomplet`. Pour l'axe Ticket, `bash '<dossier du skill>/scripts/gestes.sh' contexte '<brouillons>'` écrit `contexte.txt` ; sortie non nulle (ticket introuvable) : l'axe est « non exécuté ».

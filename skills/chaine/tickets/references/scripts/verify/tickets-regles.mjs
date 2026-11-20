@@ -478,7 +478,9 @@ export function ecartsSensibles(valeur) {
   // A-161 (5) : ni un nom fait de seuls tirets, blancs ou ponctuation, ni `session_` où qu'il soit, ni une URL ; A-165 :
   // ni caractère invisible (`\p{Cf}`), ni espace Unicode autre que l'espace ordinaire.
   // A-170 : ce refus-là dit sa cause ; U+200C et U+200D en sont (un nom s'écrit sans eux).
-  if (/\p{Cf}|(?! )\p{Z}/u.test(nom))
+  // A-175 : un caractère de contrôle (`\p{Cc}` : tabulation, `\v`, `\f`, U+0085, NUL, DEL) en est aussi ; `trim()` ne retire
+  // que ceux des bouts.
+  if (/\p{Cf}|\p{Cc}|(?! )\p{Z}/u.test(nom))
     ecarts.push(`Sensibles : accord de « ${nom} » : nom d'accord avec un caractère invisible ou une espace autre que l'espace ordinaire`);
   else if (nom === '' || nom.includes('—') || /^[\p{P}\p{S}\s]+$/u.test(nom) || /session_/i.test(nom) || nom.includes('://') || /[<>{}]/.test(nom))
     ecarts.push(`Sensibles : accord de « ${nom} » : attendu la personne qui a accordé, pas un identifiant de session ni un gabarit`);

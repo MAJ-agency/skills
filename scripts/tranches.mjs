@@ -57,7 +57,10 @@ const SUITE_DE_MOT = /[\w$\u0080-￿]/;
 
 /**
  * La source de même longueur, le contenu des littéraux (chaînes, gabarits, expressions régulières) et des commentaires
- * blanchi (fins de ligne, délimiteurs et code des `${…}` gardés), ou `null` dans le doute.
+ * blanchi (fins de ligne, délimiteurs et code des `${…}` gardés), ou `null` dans le doute. Elle lit une source de module,
+ * seule que `poses` lui donne (des `.test.mjs`) : `await` et `yield` y sont réservés, jamais un identifiant, donc une `/` qui
+ * les suit ouvre une expression régulière ; dans un script (`.cjs`) où ils nomment une variable, `x = await / 2` serait lu à
+ * tort comme une expression régulière, et cacherait un appel.
  */
 export function codeSeul(source) {
   const sortie = source.split("");
