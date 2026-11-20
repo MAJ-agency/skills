@@ -1,6 +1,6 @@
 # Contre-relecture de la PR 142 (skill `relecture`) — tour 1 de 2
 
-Sommets relus : `40428bff39daa766da8b16886c910ee66809db74` (tout le rapport), puis le delta jusqu'à `098b20811c64b4240ea2c9c177e608463e33096c` (le seul banc, tête de la branche `claude/ticket-61-skill-relecture` à la fin du tour, `git ls-remote`) ; base `main` à `5d05f4b`. Clone : `<dossier du contre-relecteur>/clone`.
+Sommets relus : `40428bff39daa766da8b16886c910ee66809db74` (tout le rapport), puis le delta jusqu'à `098b20811c64b4240ea2c9c177e608463e33096c` (le seul banc, tête de la branche `claude/ticket-61-skill-relecture` à la fin du tour, `git ls-remote`) ; base `main` à `5d05f4b`. Clone : un clone du dépôt dans le dossier privé du contre-relecteur.
 
 ## Avancement
 - [x] clone et sha vérifiés
@@ -365,3 +365,37 @@ Même vue sur le morceau déplacé de R1 (`essais2/e14-deplace`) : `git show --r
 | Mutations du ticket | 317 rouges | non rejouées |
 | Mes mutations | non rejouées | 20 sur 20 rouges, plus 10 neuves sur les retouches, 10 sur 10 rouges, aucune par délai |
 | `SKILL.md` | — | 162 lignes |
+
+---
+
+# Troisième passage — sommet `9e4d8df8738e242840cd0affc6166224055db83e` (`A-164`)
+
+- [x] `git fetch` : tête `9e4d8df` (`git ls-remote`), `main` `8a64453` ; deux commits depuis `f11919f` (`e5a9f39`, `9e4d8df`) ; copie `t4`
+- [x] banc sur `t4` : 31 sur 31, statut 0 (`banc-9e4d8df.log`) ; `SKILL.md` 162 lignes
+- [x] ce qui a changé depuis `f11919f` : 7 fichiers, tous du skill (`SKILL.md`, `CONTENU.md`, `cas-limites.md`, `gestes.md`, `prompt-regles.md`, `gestes.sh`) et le banc ; `main` toujours `8a64453` ; rien d'autre
+
+## Troisième passage — R1 et R2, et leurs variantes (`PLUGIN=t4 ESSAIS=essais3`)
+
+- **R2 fermé.** e15 (résolution « ours » qui jette la garde que `develop` ajoute) : plus de « aucun axe » ; `diff` écrit « résolution de la fusion : 1 fichiers » et `resolution.patch`, qui porte `-  if (!admin) throw new Error("interdit");` ; `axes` : « résolution de la fusion : 1 fichiers, que l'axe Règles lit ».
+- **R1 fermé.** e14, `tri` : `double` 1 écarté / 2 gardé, `deplace` écarté, `modifiee` gardé, `temoin` écarté ; et `resolution.patch` porte ce que la résolution a perdu : `double` `-  verifier(admin);`, `deplace` `-export function garde(admin) {` … `-}`, `modifiee` `-  if (!admin) throw new Forbidden("interdit");`, `temoin` rien (la résolution suit `develop`). Le morceau déplacé, que `tri` écarte à bon droit à son ancienne place, se lit donc dans la résolution, comme `A-164` le veut.
+- Variantes (e17, e18) :
+  - **la résolution récrit le morceau de `develop` sans le retirer** (`Forbidden` récrit en `console.log`) : `resolution.patch` `-  if (!admin) throw new Forbidden("interdit");` `+  if (!admin) console.log("interdit");` ; `tri` de la ligne retirée : « gardé » ;
+  - **la résolution ajoute du code qu'aucun côté n'avait** (`eval(process.env.CHARGE);`) : dans `resolution.patch` (`+`) et dans le diff relu ; `tri` de la ligne ajoutée : « gardé » (`blame` : la fusion) ;
+  - **une fusion à trois parents**, tous du sujet ou de `develop` (`commit-tree`, git réduirait les têtes) : `liste : sortie 4`, « une fusion à deux parents, le sommet de sujet/facture puis develop » : `C2` bloquant, `refusé`, aucun axe ; une fusion dont un parent n'est ni du sujet ni de `develop` n'est pas une PR de mise à jour : sous-PR ordinaire, tout relu ;
+  - **la fusion n'est pas le dernier commit** (une retouche après elle) : `fichiers.txt` porte la retouche (`total.ts`) et la résolution, `resolution.txt` la seule résolution, prise sur le commit de fusion, pas sur le sommet ;
+  - **une résolution vide** (fusion sans conflit, sans retouche) : `resolution.txt` vide, « aucun fichier à relire », `axes` en 0 sans axe — juste, rien n'a été résolu.
+
+## Troisième passage — `resolution.patch` contre un nom hostile et un gros diff (e19)
+
+Un conflit sur `apps/api/src/tab<TAB>here é "q" $(touch PIEGE).ts` et sur un `gros.ts` de 3 000 lignes, résolus « ours ». `resolution.txt` : `"apps/api/src/tab\there é \"q\" $(touch PIEGE).ts"` et `apps/api/src/gros.ts`, tels que git les cite ; `lus 1 resolution` : 0 avec les deux, 1 sans `gros.ts`, 1 avec le nom recopié sans ses guillemets (le même côté sûr que pour le diff relu) ; `PIEGE` jamais créé ; l'empreinte porte `resolution.patch` (une espace ajoutée après `c1` : `garde : sortie 14`, la ligne `resolution.patch` dite). **m nouveau** : `resolution.patch` fait 3 027 lignes et reste **un seul lot**. La règle des 2 000 lignes, qui découpe le diff relu par zone, ne s'y applique pas, et `lus` ne vérifie que la liste. Ce n'est pas une validation à tort que je puisse montrer : c'est la même confiance que pour un fichier de plus de 2 000 lignes seul dans son lot. Retouche : passer `resolution.patch` par `lots` (même découpe, `lots/resolution-<i>`).
+
+## Troisième passage — les mutations (`mut/mes-mutations-t4.mjs`, copies `v1` à `v4`)
+
+Mes trente du second passage (X1 à X20, N1 à N10), plus dix sur le code d'`A-164` (P1 la résolution non calculée, P2 `--cc` au lieu de `--remerge-diff`, P3 « aucun axe » malgré une résolution, P4 `axes` « aucun fichier à relire » malgré une résolution, P5 la résolution hors de l'empreinte, P6 `lus 1 resolution` sur le premier fichier seul, P7 `.mdx` de nouveau documentation, P8 et P9 les deux branches du contrôle côté fusion dans `meme_retrait`, P10 `resolution.txt` vide). Chacune seule sur une copie propre de `9e4d8df`, délais guettés : **38 rouges, 2 vertes, aucune par délai** (`mut/t4-1.log` à `mut/t4-4.log`).
+
+- **P4, verte, équivalente** : `fichiers.txt` vide veut dire ni conflit ni retouche, donc une résolution vide (une fusion propre qui écrirait hors des conflits est refusée par `a-juger`). J'ai cherché le seul écart possible, une fusion automatique refaite sans suivre les renommages (`diff.renames=false` dans le script) : e20, `develop` renomme un fichier que le sujet modifie, et `resolution.patch` reste vide. Rien à retoucher.
+- **P9, verte, m** : la branche « `develop` ne fait que retirer, la fusion insère à ce point » n'est pas tenue par le banc. Jouée (e21, `t4` contre `t5` où P9 est appliquée) : la résolution remplace la garde que `develop` retire par `if (admin === undefined) return 2;`. Sur `t4`, `tri` : « gardé » ; sous P9, « écarté ». L'insertion reste visible dans le diff relu et dans `resolution.patch`, d'où m. Retouche : ce cas au banc.
+
+## Troisième passage — verdict
+
+**Conforme.** R1 et R2 fermés, variantes comprises ; rien d'autre n'a changé depuis `f11919f`. Il reste trois m : `resolution.patch` n'est pas découpé en lots au-delà de 2 000 lignes (e19, 3 027 lignes, un seul lot) ; la branche P9 de `meme_retrait` n'est pas tenue par le banc ; la note de version 7.36.0 ne dit rien de la résolution relue (`grep -c remerge NOTES-DE-VERSION.md` : 0).
