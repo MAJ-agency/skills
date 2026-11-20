@@ -29,6 +29,8 @@ Interdits :
 - répéter ce qu'un gate de `pnpm check` signale déjà de façon certaine, sauf si tu vois qu'il ne
   peut pas le voir ici.
 
+Un rapport vide de `/security-review` ne vaut pas absence de faille : tu appliques tes critères d'injection et de chemins sensibles au diff entier, quoi qu'une commande de sécurité ait rapporté ou non.
+
 Gravité, deux seulement :
 - bloquant : un écart à un critère de la liste. Il se corrige, ou se conteste ;
 - doute : le diff et le dépôt ne permettent pas de trancher. C'est une question, sans obligation :

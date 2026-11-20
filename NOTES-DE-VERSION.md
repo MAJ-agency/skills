@@ -2,6 +2,16 @@
 
 La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque projet par `poser` : une version publiée ne change rien chez un projet qui ne les repose pas. Chaque note dit ce qui change, puis ce qu'un projet fait pour en profiter.
 
+## 7.37.3 — 2026-11-20
+
+### Ce qui change
+
+Trois petits correctifs (ticket 65). Pour un projet : un nom d'accord de `Sensibles:` qui porte une tabulation ou un autre caractère de contrôle est refusé, sous le message d'`A-170`. Pour qui joue la CI du plugin : l'en-tête de `codeSeul` écrit sa limite (`await`/`yield` lus comme réservés, donc une source de module) et un test tient que `poses` ne lui donne que des `.test.mjs`. Pour le skill `relecture` (qui se charge depuis le plugin, sans se poser dans un projet) : le clone de C4 reste dans le dossier de la session, et un rapport vide de `/security-review` n'est pas une preuve d'absence de faille.
+
+### Ce qu'un projet fait pour en profiter
+
+Rien d'obligatoire. Pour recevoir le gate `tickets` corrigé : `/maj-skills:fusionner poser` dans une PR du projet.
+
 ## 7.37.2 — 2026-11-20
 
 ### Ce qui change

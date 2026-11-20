@@ -179,6 +179,19 @@ test("aucun banc posé du plugin n'est pris pour un banc à sous-tests, et aucun
   assert.ok(vus >= 20, `${vus} bancs lus`);
 });
 
+test("le filtre de `poses.test.mjs` ne retient que des `.test.mjs` : `codeSeul` ne lit que des modules", () => {
+  const racine = fileURLToPath(new URL("..", import.meta.url));
+  const poses = lire(join(racine, "scripts/poses.test.mjs"), "utf8");
+  // La liste des bancs que `poses` lit : un seul `.filter(…)`, sur le suffixe `.test.mjs`.
+  const bancs = /const bancs = [^;]*;/.exec(poses)?.[0];
+  assert.ok(bancs, "la liste `bancs` de `poses.test.mjs` n'est plus lue");
+  assert.equal((bancs.match(/\.filter\(/g) ?? []).length, 1, bancs);
+  assert.match(bancs, /\.filter\(\(n\) => n\.endsWith\("\.test\.mjs"\)\)/);
+  // Rien d'autre que ces bancs n'est donné à `aDesSousTests` : la source lue est celle d'un banc de la liste.
+  assert.equal((poses.match(/aDesSousTests\(/g) ?? []).length, 1);
+  assert.match(poses, /const source = readFileSync\(join\(projet, banc\), "utf8"\);\s*return travaux\(banc, nomsDesTests\(source\), TAILLE, \{ entier: aDesSousTests\(source\), source \}\)/);
+});
+
 test("le motif d'une liste de noms est ancré et lit chaque caractère à la lettre", () => {
   const noms = ["a.b", "x (y) [z] {1} * + ? ^ $ | \\ /", "préfixe", "deux fois", "deux fois"];
   const re = new RegExp(motif(noms));
