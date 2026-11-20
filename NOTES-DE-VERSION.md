@@ -2,6 +2,16 @@
 
 La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque projet par `poser` : une version publiée ne change rien chez un projet qui ne les repose pas. Chaque note dit ce qui change, puis ce qu'un projet fait pour en profiter.
 
+## 7.37.2 — 2026-11-20
+
+### Ce qui change
+
+La CI du plugin joue mieux ses bancs posés (ticket 64). Pour qui joue la CI du plugin : `scripts/poses.test.mjs` lit les sous-tests dans le code seul (`codeSeul` : le texte d'une chaîne ou d'un commentaire, comme un titre de commit « suite (#2) », ne fait plus jouer un banc entier ; dans le doute il se joue entier), part des travaux les plus lourds en tests, donne à chaque travail une borne qui suit son poids (60 s par test, au moins 300 s) et le tue par son groupe de processus, et prend pour délai un plafond de 1 800 s. Le bilan (part du plafond, pire cas, les trois marges les plus courtes) s'écrit dans le journal en vert comme en rouge (`# poses : …`) ; atteindre le plafond rougit et dit de découper. Pour un projet : le banc posé `double-relecture.test.mjs` date son socle et sa tête, la précondition du test « un environnement hostile … (A-122) » ne dépend plus de l'horloge ni de la version de git.
+
+### Ce qu'un projet fait pour en profiter
+
+Rien d'obligatoire. Pour recevoir le banc posé stable : `/maj-skills:fusionner poser` dans une PR du projet.
+
 ## 7.37.1 — 2026-11-20
 
 ### Ce qui change

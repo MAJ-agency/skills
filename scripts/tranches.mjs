@@ -1,3 +1,5 @@
+import { spawn } from "node:child_process";
+
 // Le découpage d'un banc `node --test` en tranches (ticket 62). `node --test` joue les tests d'un même fichier l'un
 // après l'autre : un banc de 116 tests (`fusionner.test.mjs`, 322 s sur 324 pour tous les bancs posés) fixe à lui
 // seul la durée de `scripts/poses.test.mjs`. Jouées en tranches, chacune par son processus, ses tests tournent en
@@ -11,10 +13,19 @@
 //
 // Seuls les tests de premier niveau sont comptés. Un sous-test (`t.test(…)`, `it` d'un `describe`) dont le nom égale
 // un nom lu serait sauté par la tranche de reste sans être vu : un banc qui en écrit se joue entier, jamais découpé.
-// Limite (contre-relecture de la PR 140, m2) : ne sont reconnus que les sous-tests à nom littéral (`t.test("…"`) et
-// `describe`, `suite`, `it` ; un sous-test au nom calculé (`t.test(nom, …)`), ou un `test(` global appelé dans le corps
-// d'un test (Node 22 l'attache au test qui tourne), n'est pas vu. Aucun banc posé n'en écrit (610 tests réels de
-// premier niveau simulés, 0 écart) ; un banc qui en écrirait devrait se jouer entier.
+// Le motif des sous-tests se cherche dans `codeSeul(source)` : le texte des littéraux et des commentaires (un titre de
+// commit « suite (#2) », un commentaire) n'est pas un appel. Dans le doute (`codeSeul` rend `null`), le banc se joue entier.
+// Limites : ne sont reconnus que les sous-tests à nom littéral (`t.test("…"`) et `describe`, `suite`, `it` ; un
+// sous-test au nom calculé (`t.test(nom, …)`), ou un `test(` global appelé dans le corps d'un test (Node 22 l'attache
+// au test qui tourne), n'est pas vu. `codeSeul` est une lecture, pas un analyseur : une `/` est une division seulement
+// quand le jeton qui la précède la rend certaine (un nombre, la fin d'une chaîne ou d'un gabarit, `]`, un identifiant qui n'est
+// pas un mot ECMAScript ou un nom de propriété, le `)` d'une `(` que ne précède aucun mot ECMAScript) ; elle ouvre une
+// expression régulière en tête de source, après un ponctuateur ou un opérateur ouvrant, après `return`, `typeof`, `case`, `do`,
+// `else`, `in`, `instanceof`, `new`, `delete`, `void`, `throw`, `yield` ou `await`, et après le `)` d'un `if`, `while`, `for`
+// ou `with` ; partout ailleurs (`}`, `++`, `--`, une étiquette après `break` ou `continue`, tout autre mot ECMAScript, le `)`
+// d'une `(` que précède un autre mot, une pile de parenthèses déséquilibrée), le banc est dans le doute, donc joué entier,
+// au prix du temps.
+// Un banc joué entier dont aucun nom n'est lu pèse 1 et a la borne minimale, quelle que soit sa taille (ticket 64).
 
 const NOM = /^test\(\s*(?:"((?:[^"\\\n]|\\["\\'`])*)"|'((?:[^'\\\n]|\\["\\'`])*)'|`((?:[^`\\$\n]|\\["\\'`]|\$(?!\{))*)`)\s*,/gm;
 
@@ -26,9 +37,166 @@ export function nomsDesTests(source) {
 // Un sous-test : `<param>.test("…"` (un nom littéral en premier argument), ou `describe`, `suite`, `it` appelés.
 const SOUS_TEST = /\b\w+\.test\s*\(\s*["'`]|\b(?:describe|suite|it)\s*\(/;
 
-/** Le banc écrit-il des sous-tests ? Alors il se joue entier. */
+// Les mots réservés et contextuels d'ECMAScript (ES2024) : les mots réservés, ceux du mode strict, et `let`, `static`, `yield`,
+// `await`, `async`, `of`, `get`, `set`. Un test du banc prouve que cette liste est entière contre la liste écrite dans le test.
+export const MOTS_ECMASCRIPT = new Set([
+  "await", "break", "case", "catch", "class", "const", "continue", "debugger", "default", "delete", "do", "else", "enum",
+  "export", "extends", "false", "finally", "for", "function", "if", "import", "in", "instanceof", "new", "null", "return",
+  "super", "switch", "this", "throw", "true", "try", "typeof", "var", "void", "while", "with", "yield",
+  "implements", "interface", "let", "package", "private", "protected", "public", "static",
+  "async", "of", "get", "set",
+]);
+// Après ces mots, une `/` ouvre une expression régulière.
+const MOTS_AVANT_REGEX = new Set(["return", "typeof", "case", "do", "else", "in", "instanceof", "new", "delete", "void", "throw", "yield", "await"]);
+// Le `)` d'un de ces mots ferme une condition : la `/` qui le suit ouvre une expression régulière.
+const MOTS_AVANT_CONDITION = new Set(["if", "while", "for", "with"]);
+const PONCTUATION_AVANT_REGEX = new Set(["(", "[", "{", ",", ";", ":", "?", "!", "=", "&", "|", "^", "~", "+", "-", "*", "%", "<", ">", "..."]);
+const FIN_DE_LIGNE = /[\n\r\u2028\u2029]/;
+const DEBUT_DE_MOT = /[A-Za-z_$\u0080-￿]/;
+const SUITE_DE_MOT = /[\w$\u0080-￿]/;
+
+/**
+ * La source de même longueur, le contenu des littéraux (chaînes, gabarits, expressions régulières) et des commentaires
+ * blanchi (fins de ligne, délimiteurs et code des `${…}` gardés), ou `null` dans le doute.
+ */
+export function codeSeul(source) {
+  const sortie = source.split("");
+  const blanchir = (i) => {
+    if (!FIN_DE_LIGNE.test(sortie[i])) sortie[i] = " ";
+  };
+  let i = 0;
+  let avant = null; // le jeton significatif précédent : { sorte: "mot" | "litteral" | "ponct", valeur }
+  const pile = []; // "accolade" ou "gabarit" (un `${` ouvert)
+  const parentheses = []; // le mot qui précède chaque `(` ouverte
+  const n = source.length;
+  // Le texte d'un gabarit, à partir de i (après le ` ou après la } qui ferme un ${) ; rend false au doute.
+  const texteDeGabarit = () => {
+    while (i < n) {
+      const c = source[i];
+      if (c === "\\") { blanchir(i); if (i + 1 < n) blanchir(i + 1); i += 2; continue; }
+      if (c === "`") { i++; avant = { sorte: "litteral" }; return true; }
+      if (c === "$" && source[i + 1] === "{") { pile.push("gabarit"); i += 2; avant = { sorte: "ponct", valeur: "{" }; return true; }
+      blanchir(i);
+      i++;
+    }
+    return false;
+  };
+  while (i < n) {
+    const c = source[i];
+    if (/\s/.test(c)) { i++; continue; }
+    if (c === "/" && source[i + 1] === "/") {
+      i += 2;
+      while (i < n && !FIN_DE_LIGNE.test(source[i])) { blanchir(i); i++; }
+      continue;
+    }
+    if (c === "/" && source[i + 1] === "*") {
+      const fin = source.indexOf("*/", i + 2);
+      if (fin < 0) return null;
+      for (let k = i + 2; k < fin; k++) blanchir(k);
+      i = fin + 2;
+      continue;
+    }
+    if (c === "'" || c === '"') {
+      i++;
+      let ferme = false;
+      while (i < n) {
+        const d = source[i];
+        if (d === "\n" || d === "\r") return null; // U+2028 et U+2029 sont permis dans une chaîne
+        if (d === "\\") {
+          if (i + 1 < n && (source[i + 1] === "\n" || source[i + 1] === "\r")) return null;
+          blanchir(i); blanchir(i + 1); i += 2; continue;
+        }
+        if (d === c) { ferme = true; i++; break; }
+        blanchir(i); i++;
+      }
+      if (!ferme) return null;
+      avant = { sorte: "litteral" };
+      continue;
+    }
+    if (c === "`") {
+      i++;
+      if (!texteDeGabarit()) return null;
+      continue;
+    }
+    if (c === "/") {
+      // Une `/` est une division seulement quand le jeton qui la précède la rend certaine ; elle ouvre une expression
+      // régulière après un ouvrant sûr ; partout ailleurs, le doute (A-177).
+      let regex;
+      if (avant === null) regex = true;
+      else if (avant.sorte === "litteral" || avant.sorte === "ident") regex = false;
+      else if (avant.sorte === "mot") {
+        if (!MOTS_AVANT_REGEX.has(avant.valeur)) return null;
+        regex = true;
+      } else if (avant.sorte === "ponct" && avant.valeur === ")") {
+        if (MOTS_AVANT_CONDITION.has(avant.mot)) regex = true;
+        else if (avant.mot === "") regex = false;
+        else return null; // le `)` d'une `(` que précède un autre mot de la liste : `for await`, `catch`, `function`…
+      } else if (avant.sorte === "ponct" && avant.valeur === "]") regex = false;
+      else if (avant.sorte === "ponct" && PONCTUATION_AVANT_REGEX.has(avant.valeur)) regex = true;
+      else return null; // `}`, `++`, `--`, `.`, une étiquette … : la nature de la `/` ne se lit pas
+      if (!regex) { i++; avant = { sorte: "ponct", valeur: "/" }; continue; }
+      i++;
+      let classe = false;
+      let ferme = false;
+      while (i < n) {
+        const d = source[i];
+        if (FIN_DE_LIGNE.test(d)) return null;
+        if (d === "\\") { if (i + 1 < n && FIN_DE_LIGNE.test(source[i + 1])) return null; blanchir(i); blanchir(i + 1); i += 2; continue; }
+        if (classe) { if (d === "]") classe = false; blanchir(i); i++; continue; }
+        if (d === "[") { classe = true; blanchir(i); i++; continue; }
+        if (d === "/") { ferme = true; i++; break; }
+        blanchir(i); i++;
+      }
+      if (!ferme) return null;
+      while (i < n && SUITE_DE_MOT.test(source[i])) i++; // les drapeaux
+      avant = { sorte: "litteral" };
+      continue;
+    }
+    if (DEBUT_DE_MOT.test(c)) {
+      const d = i;
+      while (i < n && SUITE_DE_MOT.test(source[i])) i++;
+      const mot = source.slice(d, i);
+      // Un nom de propriété (`a.return`, `a?.of`) est un identifiant ; une étiquette derrière `break` ou `continue` peut finir
+      // l'instruction à la fin de ligne : la `/` qui suit est dans le doute ; un mot ECMAScript garde son sens de mot.
+      if (avant?.sorte === "ponct" && avant.valeur === ".") avant = { sorte: "ident" };
+      else if (avant?.sorte === "mot" && (avant.valeur === "break" || avant.valeur === "continue")) avant = { sorte: "doute" };
+      else if (MOTS_ECMASCRIPT.has(mot)) avant = { sorte: "mot", valeur: mot };
+      else avant = { sorte: "ident" };
+      continue;
+    }
+    if (/[0-9]/.test(c)) {
+      while (i < n && /[\w.]/.test(source[i])) i++;
+      avant = { sorte: "litteral" };
+      continue;
+    }
+    if ((c === "+" || c === "-") && source[i + 1] === c) { i += 2; avant = { sorte: "ponct", valeur: c + c }; continue; }
+    if (c === "." && source[i + 1] === "." && source[i + 2] === ".") { i += 3; avant = { sorte: "ponct", valeur: "..." }; continue; }
+    if (c === "(") { parentheses.push(avant?.sorte === "mot" ? avant.valeur : ""); i++; avant = { sorte: "ponct", valeur: "(" }; continue; }
+    if (c === ")") {
+      if (parentheses.length === 0) return null; // pile déséquilibrée
+      i++;
+      avant = { sorte: "ponct", valeur: ")", mot: parentheses.pop() };
+      continue;
+    }
+    if (c === "{") { pile.push("accolade"); i++; avant = { sorte: "ponct", valeur: "{" }; continue; }
+    if (c === "}") {
+      const haut = pile.pop();
+      i++;
+      if (haut === "gabarit") { if (!texteDeGabarit()) return null; continue; }
+      avant = { sorte: "ponct", valeur: "}" };
+      continue;
+    }
+    i++;
+    avant = { sorte: "ponct", valeur: c };
+  }
+  if (pile.includes("gabarit") || parentheses.length > 0) return null;
+  return sortie.join("");
+}
+
+/** Le banc écrit-il des sous-tests ? Alors il se joue entier. Dans le doute, aussi. */
 export function aDesSousTests(source) {
-  return SOUS_TEST.test(source);
+  const code = codeSeul(source);
+  return code === null || SOUS_TEST.test(code);
 }
 
 /** Le motif qui répond à ces noms, et à eux seuls : ancré, chaque caractère lu à la lettre. */
@@ -36,24 +204,143 @@ export function motif(noms) {
   return `^(?:${noms.map((n) => n.replace(/[.*+?^${}()|[\]\\/]/g, "\\$&")).join("|")})$`;
 }
 
+// Les bornes (ticket 64) : la borne d'un travail suit son poids, le plafond borne l'ensemble. Millisecondes.
+export const BORNE_PAR_TEST = 60_000;
+export const BORNE_MINIMALE = 300_000;
+export const PLAFOND = 1_800_000;
+
+/** La borne d'un travail de `poids` tests : jamais moins que la borne minimale. */
+const borneDe = (poids) => Math.max(BORNE_MINIMALE, BORNE_PAR_TEST * poids);
+
 /**
- * Les travaux d'un banc : `{ banc, args, noms, sorte }`, `args` étant ce qui suit `node --test` et ses rapporteurs.
- * Au plus `taille` noms distincts lus, ou `entier` vrai (banc à sous-tests) : le banc entier (`entier`). Au-delà : une `tranche` par paquet de `taille` noms distincts, puis le
- * `reste`, qui saute tous les noms lus.
+ * Les travaux d'un banc : `{ banc, args, noms, sorte, poids, borne }`, `args` étant ce qui suit `node --test` et ses
+ * rapporteurs. Au plus `taille` noms distincts lus, ou `entier` vrai (banc à sous-tests) : le banc entier (`entier`).
+ * Au-delà : une `tranche` par paquet de `taille` noms distincts, puis le `reste`, qui saute tous les noms lus.
+ * `poids` : le nombre de tests de premier niveau que le travail est sûr de jouer, au moins 1. Un reste pèse les lignes
+ * `test(` de la `source` moins les noms lus (sans `source`, 1) ; `borne` : voir `borneDe`.
  */
-export function travaux(banc, noms, taille, { entier = false } = {}) {
+export function travaux(banc, noms, taille, { entier = false, source } = {}) {
   if (!Number.isInteger(taille) || taille < 1) throw new Error(`travaux : taille ${taille} : attendu un entier ≥ 1`);
-  if (entier || new Set(noms).size <= taille) return [{ banc, args: [banc], noms, sorte: "entier" }];
+  const travail = (args, lus, sorte, poids) => {
+    const p = Math.max(1, poids);
+    return { banc, args, noms: lus, sorte, poids: p, borne: borneDe(p) };
+  };
+  if (entier || new Set(noms).size <= taille) return [travail([banc], noms, "entier", noms.length)];
   // Un nom porté par deux tests répond deux fois au même motif : il va, avec tous ses doublons, dans une seule tranche.
   const distincts = [...new Set(noms)];
   const liste = [];
   for (let i = 0; i < distincts.length; i += taille) {
     const paquet = distincts.slice(i, i + taille);
     const avecDoublons = noms.filter((n) => paquet.includes(n));
-    liste.push({ banc, args: [`--test-name-pattern=${motif(paquet)}`, banc], noms: avecDoublons, sorte: "tranche" });
+    liste.push(travail([`--test-name-pattern=${motif(paquet)}`, banc], avecDoublons, "tranche", avecDoublons.length));
   }
-  liste.push({ banc, args: [`--test-skip-pattern=${motif(noms)}`, banc], noms, sorte: "reste" });
+  const lignes = source === undefined ? noms.length : (source.match(/^test\(/gm) ?? []).length;
+  liste.push(travail([`--test-skip-pattern=${motif(noms)}`, banc], noms, "reste", lignes - noms.length));
   return liste;
+}
+
+/** Les travaux, tous bancs confondus, les plus lourds d'abord ; à poids égal, l'ordre reçu. La liste reçue ne change pas. */
+export function ordre(liste) {
+  return [...liste].sort((a, b) => b.poids - a.poids);
+}
+
+/** La durée si chaque travail allait jusqu'à sa borne : la somme des bornes sur `parallele`, plus la plus grande. */
+export function pireCas(liste, parallele) {
+  return liste.reduce((s, t) => s + t.borne, 0) / parallele + Math.max(0, ...liste.map((t) => t.borne));
+}
+
+const sec = (ms) => (ms / 1000).toFixed(1);
+
+/** Le récit d'un travail en échec : son titre, ses lignes `✖` et `not ok`, puis les 40 dernières lignes de sa sortie. */
+export function recit(r) {
+  const fin = r.arrete ? "arrêté au plafond" : r.tue ? `tué à sa borne de ${r.t.borne / 1000} s` : `sortie ${r.code ?? r.signal}`;
+  const lignes = r.sortie.split("\n");
+  return [`── ${r.t.banc} (${r.t.sorte}, ${fin})`, ...lignes.filter((l) => /^\s*✖/.test(l) || /\bnot ok\b/.test(l)), ...lignes.slice(-40)].join("\n");
+}
+
+/** Les lignes du diagnostic : le total sur le plafond, le pire cas, puis les trois travaux joués les plus proches de leur borne. */
+export function bilan(liste, resultats, { parallele, duree }) {
+  const lignes = [`poses : ${liste.length} travaux, ${parallele} à la fois, ${sec(duree)} s sur un plafond de ${PLAFOND / 1000} s (${((100 * duree) / PLAFOND).toFixed(1)} %), pire cas ${sec(pireCas(liste, parallele))} s`];
+  const joues = liste.map((t, i) => ({ t, ms: resultats[i]?.ms })).filter((x) => x.ms !== undefined);
+  joues.sort((a, b) => b.ms / b.t.borne - a.ms / a.t.borne);
+  for (const { t, ms } of joues.slice(0, 3)) lignes.push(`${t.banc} (${t.sorte}, ${t.poids} tests) : ${sec(ms)} s sur ${t.borne / 1000} s, marge ${(100 * (1 - ms / t.borne)).toFixed(1)} %`);
+  return lignes;
+}
+
+/** `{ diagnostics, fautes }` : le bilan, en vert comme en rouge ; les fautes (échecs, plafond, couverture, plancher), vides si tout va bien. */
+export function conclure(liste, resultats, { parallele, duree, depasse, plancher }) {
+  const fautes = [];
+  for (const r of resultats) if (r && r.code !== 0) fautes.push(recit(r));
+  if (depasse) {
+    const non = liste.length - resultats.filter(Boolean).length;
+    fautes.push(`poses a atteint son plafond de ${PLAFOND / 1000} s : ${non} travaux non joués ; découper (un banc trop lourd, ou TAILLE)`);
+  }
+  // Les travaux non joués (plafond atteint) n'ont pas de résultat : la couverture ne juge que ceux qui ont tourné.
+  const jouees = liste.map((t, i) => [t, resultats[i]]).filter(([, r]) => r && !r.arrete);
+  fautes.push(...couverture(jouees.map(([t]) => t), jouees.map(([, r]) => r.noms)));
+  const joues = jouees.reduce((n, [, r]) => n + r.noms.length, 0);
+  if (joues < plancher) fautes.push(`les bancs posés ont joué ${joues} tests, plancher ${plancher} : ils ne jouent rien (NODE_TEST_CONTEXT hérité ?)`);
+  return { diagnostics: bilan(liste, resultats, { parallele, duree }), fautes };
+}
+
+/**
+ * Joue `node <args>` dans son propre groupe de processus. Rend une promesse de `{ code, signal, tue, arrete, ms, sortie }`,
+ * qui porte `arreter()`. À sa `borne` (ou à `arreter()`), le groupe entier est tué (`SIGKILL`) et la promesse se résout sur
+ * `exit`, flux détruits : un petit-enfant qui tient le tube ne retient plus le travail. Sans kill, elle se résout sur `close`.
+ * Limite : un petit-enfant qui fait lui-même `setsid` (ou `detached`) sort du groupe et survit au kill ; la promesse, elle, se
+ * résout à l'heure.
+ */
+export function lancer(args, { cwd, env, borne }) {
+  const debut = Date.now();
+  let arreter;
+  let pidEnfant;
+  const promesse = new Promise((fin) => {
+    const enfant = spawn(process.execPath, args, { cwd, env, detached: true, stdio: ["ignore", "pipe", "pipe"] });
+    pidEnfant = enfant.pid;
+    let sortie = "";
+    let tue = false;
+    let arrete = false;
+    let sorti = null;
+    let rendu = false;
+    const rendre = (code, signal) => {
+      if (rendu) return;
+      rendu = true;
+      clearTimeout(minuterie);
+      fin({ code, signal, tue, arrete, ms: Date.now() - debut, sortie: sortie.trim() });
+    };
+    enfant.stdout.on("data", (d) => (sortie += d));
+    enfant.stderr.on("data", (d) => (sortie += d));
+    const tuer = () => {
+      tue = true;
+      try {
+        process.kill(-enfant.pid, "SIGKILL");
+      } catch (e) {
+        if (e.code !== "ESRCH") throw e;
+      }
+      enfant.stdout.destroy();
+      enfant.stderr.destroy();
+      if (sorti) rendre(...sorti);
+    };
+    const minuterie = setTimeout(tuer, borne);
+    arreter = () => {
+      if (rendu) return;
+      arrete = true;
+      tuer();
+    };
+    enfant.on("exit", (code, signal) => {
+      sorti = [code, signal];
+      if (tue) {
+        enfant.stdout.destroy();
+        enfant.stderr.destroy();
+        rendre(code, signal);
+      }
+    });
+    enfant.on("close", (code, signal) => rendre(code, signal));
+    enfant.on("error", () => rendre(null, null));
+  });
+  promesse.arreter = () => arreter?.();
+  promesse.pid = pidEnfant;
+  return promesse;
 }
 
 const compter = (noms) => noms.reduce((m, n) => m.set(n, (m.get(n) ?? 0) + 1), new Map());

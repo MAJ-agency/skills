@@ -1160,14 +1160,15 @@ test('les lignes du diff se lisent comme `revue-exigee.mjs` les lit : la copie e
 function g(cwd, ...args) {
   return execFileSync('git', args, { cwd, encoding: 'utf8', env: ENV_PROPRE }).trim();
 }
-/** Écrit `fichiers` dans le dépôt et les commite sur la branche courante ; rend le sha. */
-function commit(depot, fichiers, message) {
+/** Écrit `fichiers` dans le dépôt et les commite sur la branche courante ; rend le sha. `date` : la date d'auteur et de commit, fixée (sinon l'horloge). */
+function commit(depot, fichiers, message, { date } = {}) {
   for (const [chemin, contenu] of Object.entries(fichiers)) {
     mkdirSync(dirname(join(depot, chemin)), { recursive: true });
     writeFileSync(join(depot, chemin), contenu);
   }
   g(depot, 'add', '-A');
-  g(depot, 'commit', '-q', '-m', message);
+  const env = date === undefined ? ENV_PROPRE : { ...ENV_PROPRE, GIT_AUTHOR_DATE: date, GIT_COMMITTER_DATE: date };
+  execFileSync('git', ['commit', '-q', '-m', message], { cwd: depot, encoding: 'utf8', env });
   return g(depot, 'rev-parse', 'HEAD');
 }
 /** Le montage M : `origin/develop` porte l'index avec la règle haute et son `code`, et une branche de ticket modifie ce fichier de code. */
@@ -1405,16 +1406,24 @@ test("le lecteur git lit par un dépôt propre, jetable : un fichier absent du c
   assert.deepEqual(readdirSync(temporaire), [], 'le dépôt propre est retiré');
 });
 
+// Les dates du montage de niveau, fixées (ticket 64) : la greffe du test « un environnement hostile » fait de la tête le
+// parent du socle, un cycle, et la base de fusion que git y lit dépend de l'ordre des dates. Le socle est daté après la
+// tête : git parcourt du plus récent au plus ancien, le socle passe le premier, et c'est la tête qui porte la première
+// les deux marques (git 2.43 : aucune base ; git 2.55, lu dans sa source : la tête). Daté par l'horloge, la tête passe
+// la première dès que les deux commits tombent dans deux secondes différentes, et git 2.56.1 (CI, PR 142, `fc06f17`)
+// rend le socle : la précondition rougit.
+const DATE_DU_SOCLE = '2026-11-16T12:00:00+00:00';
+const DATE_DE_LA_TETE = '2026-11-16T11:00:00+00:00';
 /** Une PR qui monte une règle par l'index seul : develop la dit moyenne, la tête haute, ni son fichier ni son code ne sont touchés. */
 function depotNiveau() {
   const depot = dossier('double-relecture-');
   g(depot, 'init', '-q', '-b', 'develop');
   g(depot, 'config', 'user.email', 'jouet@example.invalid');
   g(depot, 'config', 'user.name', 'Jouet');
-  const socle = commit(depot, { [INDEX]: index([entree('RULE_ALL_FAC-16', { niveau: 'medium' })]), 'anchorpost/manifest.json': '{}\n', 'README.md': 'jouet\n' }, 'chore: socle');
+  const socle = commit(depot, { [INDEX]: index([entree('RULE_ALL_FAC-16', { niveau: 'medium' })]), 'anchorpost/manifest.json': '{}\n', 'README.md': 'jouet\n' }, 'chore: socle', { date: DATE_DU_SOCLE });
   g(depot, 'update-ref', 'refs/remotes/origin/develop', 'HEAD');
   g(depot, 'checkout', '-q', '-b', 'feat/criticite');
-  const tete = commit(depot, { [INDEX]: index([entree('RULE_ALL_FAC-16', { niveau: 'high', origin: 'feature' })]), 'anchorpost/manifest.json': '{"featureCriticality": []}\n' }, 'feat: criticité');
+  const tete = commit(depot, { [INDEX]: index([entree('RULE_ALL_FAC-16', { niveau: 'high', origin: 'feature' })]), 'anchorpost/manifest.json': '{"featureCriticality": []}\n' }, 'feat: criticité', { date: DATE_DE_LA_TETE });
   return { depot, socle, tete, entree: `anchorpost/manifest.json\n${INDEX}\n` };
 }
 
@@ -1431,7 +1440,7 @@ test("un environnement hostile ne pèse pas : des greffes, `GIT_GRAFT_FILE`, un 
   mkdirSync(join(depot, '.git/info'), { recursive: true });
   writeFileSync(join(depot, '.git/info/grafts'), greffe);
   // La greffe fait un cycle (la tête descend déjà de la cible) : lue dans le dépôt réel, la base de fusion est la tête, ou
-  // n'est pas calculable, selon l'ordre des dates ; jamais la cible.
+  // n'est pas calculable, selon la version de git ; jamais la cible, les dates du montage étant fixées (DATE_DU_SOCLE).
   const trompe = spawnSync('git', ['merge-base', socle, tete], { cwd: depot, env: ENV_PROPRE, encoding: 'utf8' });
   assert.notEqual(trompe.stdout.trim(), socle, 'le montage trompe bien une lecture dans le dépôt réel');
   assert.equal(juger().sortie, attendu, '.git/info/grafts');
