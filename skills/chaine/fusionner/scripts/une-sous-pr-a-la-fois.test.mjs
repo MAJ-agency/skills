@@ -477,6 +477,17 @@ test("boucle.sh : une sortie 129 de fusionner (un signal) laisse le sujet tenu �
   assert.deepEqual(poussees(r), []);
 });
 
+// Le faux gh, dont la lecture brute (sans --jq) des commentaires de #<n> rend une fois un 502 tant que la marque rendue
+// existe. Posé dans un projet, faux-gh.mjs est à côté (scripts/chaine/) ; dans le plugin, il est dans le skill sujet.
+const pannePour = (d, n) => {
+  const marque = join(d.racine, `panne-${n}`);
+  writeFileSync(marque, "");
+  const fauxGh = new URL(existsSync(new URL("./faux-gh.mjs", import.meta.url)) ? "./faux-gh.mjs" : "../../sujet/scripts/faux-gh.mjs", import.meta.url).pathname;
+  writeFileSync(join(d.racine, "bin", "gh"), `#!/bin/sh\ncase " $* " in *issues/${n}/comments*) case " $* " in *" --jq "*) ;; *) if [ -f ${JSON.stringify(marque)} ]; then rm -f ${JSON.stringify(marque)}; echo "gh: Bad Gateway (HTTP 502)" >&2; exit 1; fi ;; esac ;; esac\nexec node ${JSON.stringify(fauxGh)} "$@"\n`, { mode: 0o755 });
+  return marque;
+};
+const reprise = (n) => new RegExp(`^\\[#${n}\\] REPRISE à la veille suivante : commentaires de #${n} illisibles \\(GitHub\\), aucune sous-PR de sujet\\/lot n'est prise à ce tour$`, "m");
+
 // A-161 (2) : une lecture GitHub en panne ne donne jamais le sujet. L'essai ADV2 du contre-relecteur : la boucle tient
 // #80 (sa CI tourne) ; un 502 sur la lecture des commentaires de #81 ne la lui fait pas prendre, ni aucune autre.
 test("boucle.sh : une lecture des commentaires en panne ne donne pas le sujet : à ce tour, aucune sous-PR de ce sujet n'est prise, et celle que la boucle tenait le garde au tour suivant", () => {
@@ -484,14 +495,10 @@ test("boucle.sh : une lecture des commentaires en panne ne donne pas le sujet : 
   let r = tour(d);
   assert.deepEqual(poussees(r), [80], r.stdout);
   ci(d, "IN_PROGRESS");
-  const marque = join(d.racine, "panne-81");
-  writeFileSync(marque, "");
-  // Posé dans un projet, faux-gh.mjs est à côté (scripts/chaine/) ; dans le plugin, il est dans le skill sujet.
-  const fauxGh = new URL(existsSync(new URL("./faux-gh.mjs", import.meta.url)) ? "./faux-gh.mjs" : "../../sujet/scripts/faux-gh.mjs", import.meta.url).pathname;
-  writeFileSync(join(d.racine, "bin", "gh"), `#!/bin/sh\ncase " $* " in *issues/81/comments*) case " $* " in *" --jq "*) ;; *) if [ -f ${JSON.stringify(marque)} ]; then rm -f ${JSON.stringify(marque)}; echo "gh: Bad Gateway (HTTP 502)" >&2; exit 1; fi ;; esac ;; esac\nexec node ${JSON.stringify(fauxGh)} "$@"\n`, { mode: 0o755 });
+  const marque = pannePour(d, 81);
   r = tour(d);
   assert.ok(!existsSync(marque), "la lecture en panne a bien eu lieu");
-  assert.match(r.stdout, /^\[#81\] REPRISE au tour suivant : commentaires de #81 illisibles \(GitHub\), aucune sous-PR de sujet\/lot n'est prise à ce tour$/m, r.stdout);
+  assert.match(r.stdout, reprise(81), r.stdout);
   assert.doesNotMatch(r.stdout, /marque de passage d'un autre capitaine/);
   assert.deepEqual(poussees(r), [], r.stdout);
   assert.doesNotMatch(r.stdout, /attend son tour : #81/);
@@ -510,4 +517,39 @@ test("boucle.sh : deux sous-PR « CI en cours » dans un sujet, sans mémoire ni
   assert.match(r.stdout, attend(81, 80), r.stdout);
   assert.match(r.stdout, tenu("lot", 80, "CI en cours"));
   assert.doesNotMatch(r.stdout, /tenu par #81/);
+});
+
+// A-165 (3) : une panne sans mémoire (essai T2-ADV6 du contre-relecteur, ici sans la veille) : deux sous-PR prêtes, la
+// lecture des commentaires de la plus ancienne en panne. Personne n'est pris à ce tour ; au tour suivant, la plus
+// ancienne entre, et la suivante est prise dans le même tour.
+test("boucle.sh : une lecture en panne sans mémoire : aucune des sous-PR prêtes du sujet n'entre à ce tour, la plus ancienne entre au tour suivant, la suivante est prise dans le tour", () => {
+  const d = sousPrDeSujets({ lot: [80, 81] });
+  const marque = pannePour(d, 80);
+  let r = tour(d);
+  assert.ok(!existsSync(marque), "la lecture en panne a bien eu lieu");
+  assert.match(r.stdout, reprise(80), r.stdout);
+  for (const n of [80, 81]) assert.match(r.stdout, new RegExp(`^\\[#${n}\\] sautée à ce tour : sujet\\/lot suspendu \\(lecture GitHub en panne\\)$`, "m"));
+  assert.deepEqual(fusionnees(d), [], r.stdout);
+  r = tour(d);
+  assert.match(r.stdout, entree(80), r.stdout);
+  assert.deepEqual(poussees(r), [81], "#80 entrée, #81 est prise dans le tour (mise à jour : elle est en retard sur le sujet)");
+});
+
+// A-165 (3) : une panne pendant que la mémoire tient une sous-PR plus récente que la plus ancienne (essai T2-ADV7) : la
+// mémoire survit au tour suspendu, et celle qu'elle tenait entre la première au tour suivant.
+test("boucle.sh : une lecture en panne pendant que la boucle tient une sous-PR plus récente : la mémoire survit au tour suspendu, celle qu'elle tenait entre la première", () => {
+  const d = sousPrDeSujets({ lot: [80, 81] }, { retard: ["lot"] });
+  changerPr(d, 80, { labels: [] });
+  let r = tour(d);
+  assert.deepEqual(poussees(r), [81], r.stdout);
+  changerPr(d, 80, { labels: ["à-fusionner"] });
+  checksDe(d, "SUCCESS", 81);
+  pannePour(d, 80);
+  r = tour(d);
+  assert.match(r.stdout, reprise(80), r.stdout);
+  assert.deepEqual(poussees(r), []);
+  assert.deepEqual(fusionnees(d), []);
+  r = tour(d);
+  assert.match(r.stdout, entree(81), r.stdout);
+  assert.deepEqual(poussees(r), [80], "la plus ancienne n'est mise à jour qu'après l'entrée de celle que la mémoire tenait");
 });

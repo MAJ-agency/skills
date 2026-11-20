@@ -1230,6 +1230,8 @@ test("une sous-PR à la fois par sujet : le capitaine tient l'ordre, qui tient l
     "après une mise à jour dont la CI n'apparaît pas, elle est « sans CI et déjà à jour », et le sujet est rendu.",
     "Une sous-PR qui attend son tour dans son sujet la relance une fois à la sonde suivante, puis chaque fois que celle qui tient le sujet change d'état ou quitte la file ; un sujet tenu par le verrou d'un autre capitaine la relance une fois quand ce verrou a expiré (sa date a plus de 95 minutes).",
     "« CI en cours », « attend », « bloquée » et brouillon ne relancent rien d'eux-mêmes.",
+    // A-165 (4) : la reprise d'un sujet suspendu par une panne de lecture, et sa borne.
+    "le sujet est repris au prochain changement de la file, ou à la veille suivante (au pire à la fin de la veille en cours, 75 minutes par défaut)",
   ]);
   exiger(`${SKILLS_CHAINE}/chantier/SKILL.md`, [
     "**Une sous-PR à la fois par sujet : le capitaine tient cet ordre, pas le conducteur.**",
@@ -1237,7 +1239,7 @@ test("une sous-PR à la fois par sujet : le capitaine tient l'ordre, qui tient l
     "Le conducteur étiquette toutes les sous-PR prêtes d'une vague sans attendre que la précédente soit entrée, et il ne retire ni ne repose jamais `à-fusionner` pour régler l'ordre de passage.",
   ]);
   exiger(ADR_SUJET, ["dans un sujet, le capitaine ne prend qu'une sous-PR étiquetée à la fois, celle qui tient déjà le sujet, sinon la plus ancienne (le plus petit numéro), et les autres attendent leur tour avec leur étiquette."]);
-  exiger("NOTES-DE-VERSION.md", ["« Une sous-PR à la fois par sujet » est tenue par le capitaine, plus par le conducteur.", "Qui tient le sujet le garde, avant tout ordre de numéro"]);
+  exiger("NOTES-DE-VERSION.md", ["« Une sous-PR à la fois par sujet » est tenue par le capitaine, plus par le conducteur.", "Qui tient le sujet le garde, avant tout ordre de numéro", "le sujet est repris au prochain changement de la file, ou à la veille suivante"]);
   for (const [fichier, ancien] of [
     [`${SKILLS_CHAINE}/fusionner/SKILL.md`, "une seule sous-PR porte `à-fusionner` à la fois"],
     [`${SKILLS_CHAINE}/fusionner/SKILL.md`, "le conducteur y veille"],

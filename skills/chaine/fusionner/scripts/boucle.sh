@@ -351,6 +351,8 @@ TENUS="$COMMUN/boucle-tenus"
 # du verrou> » ; rien : personne, ou une marque expirée (90 minutes) ; « illisible » : commentaires ou dates
 # illisibles, et dans le doute elle tient. Son passage, lui, pose sa marque et tranche (`prendre_passage`). « panne » :
 # la lecture GitHub elle-même a échoué ; elle ne donne jamais le sujet (A-161) : à ce tour, aucune sous-PR du sujet.
+# La veille ne suit pas un sujet suspendu : il est repris au prochain changement de la file, ou à la veille suivante
+# (au pire à la fin de la veille en cours, 75 minutes par défaut ; A-165).
 verrou_d_un_autre() {
   local lus
   lus=$(lire_github "$DEPOT/issues/$1/comments?per_page=100" --paginate) || { echo panne; return 0; }
@@ -388,7 +390,7 @@ traiter_sujets() {
       verrou=$(verrou_d_un_autre "$n" </dev/null)
       [ -n "$verrou" ] || continue
       if [ "$verrou" = panne ]; then
-        echo "[#$n] REPRISE au tour suivant : commentaires de #$n illisibles (GitHub), aucune sous-PR de $sujet n'est prise à ce tour"
+        echo "[#$n] REPRISE à la veille suivante : commentaires de #$n illisibles (GitHub), aucune sous-PR de $sujet n'est prise à ce tour"
         suspendus="$suspendus$sujet "
         break
       fi

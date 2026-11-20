@@ -214,7 +214,8 @@ test('Sensibles: `—`, ou des chemins puis l’accord (nom, date), passe ; tout
     ['scripts/chaine/passer.sh — accord de Camille Martin, 0000-01-01', /date « 0000-01-01 »/],
     ['scripts/chaine/passer.sh — accord de Camille Martin, 9999-12-31', /date « 9999-12-31 »/],
     // A-161 (5) : un nom fait de seuls tirets ou ponctuation, `session_` où qu'il soit dans le nom, une URL.
-    ...['-', '–', '?', 'la MOA session_01AbC', 'la MOA (session_01AbC)', 'x,session_01AbC', 'https://claude.ai/code/01AbCdEfGhIj'].map((nom) => [
+    // A-165 (2, 3) : un nom de seuls symboles (`~`, `−`), ou qui porte un caractère invisible ou une espace Unicode.
+    ...['-', '–', '?', 'la MOA session_01AbC', 'la MOA (session_01AbC)', 'x,session_01AbC', 'https://claude.ai/code/01AbCdEfGhIj', '~', '−', '\u200b', 'Camille\u200bMartin', 'Camille\u00a0Martin', 'Camille\u2009Martin', '\u2060'].map((nom) => [
       `scripts/chaine/passer.sh — accord de ${nom}, 2026-11-19`,
       /attendu la personne qui a accordé/,
     ]),
@@ -386,6 +387,14 @@ test('Règles: `—` seul dit que le ticket ne réalise aucune règle et passe ;
   assert.match(avecRegles('Règles: RULE_ALL_LIC-3\nRègles: voir plus bas').join(' | '), /« voir »/, 'la seconde ligne est jugée');
   assert.match(avecRegles('Règles: RULE_ALL_LIC-3\nRègles: RULE_FNSMR_LIC-7').join(' | '), /RULE_FNSMR_LIC-7, absente du registre/);
   assert.deepEqual(avecRegles('Règles: RULE_ALL_LIC-3\nRègles: RULE_FNSMR_LIC-05'), [], 'deux lignes bien formées passent');
+  // A-165 (1, 3) : `Règles:` se lit comme `Sensibles:`, puce étoile comprise, dans l'en-tête seul, fin de ligne CRLF ôtée.
+  assert.match(avecRegles('Règles: —\n* Règles: RULE_ALL_LIC-3').join(' | '), /Règles: — .*une autre ligne `Règles:`/, 'puce étoile');
+  assert.match(avecRegles('* Règles: voir plus bas').join(' | '), /« voir »/);
+  const corps = messages(controlerTicket({ nom: NOM_FNSMR, texte: ticket('Status: needs-triage\nType: task\nRègles: RULE_ALL_LIC-3', '\n## Contexte\n\nRègles: pas une ligne d’en-tête\n'), existe, regleExiste }));
+  assert.deepEqual(corps, [], 'une ligne `Règles:` du corps n’est pas jugée');
+  const crlf = controlerTicket({ nom: NOM_FNSMR, texte: '# x\r\n\r\nStatus: needs-triage\r\nType: task\r\nRègles: pas une règle\r\n', existe, regleExiste });
+  assert.ok(crlf.erreurs.length > 0 && crlf.erreurs.every((e) => e.ligne === 5), `CRLF : la ligne mal formée est lue et refusée, à sa ligne : ${JSON.stringify(crlf.erreurs)}`);
+  assert.match(crlf.erreurs[0].message, /« pas »/);
 });
 
 const SPEC_TS = [

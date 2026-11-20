@@ -178,6 +178,8 @@ const LABEL = /^Label\s*:\s*(.*)$/;
 const ligneDEnTete = (nom) => new RegExp(`^(?:[-*][ \\t]+)?\\**${nom}\\**\\s*:\\**\\s*(.*)$`, 'i');
 const SENSIBLES = ligneDEnTete('Sensibles');
 const RELECTURE = ligneDEnTete('Relecture');
+// `Règles:` dans l'en-tête, lue comme `Sensibles:` (puce étoile comprise, A-165), comme le calcul « double relecture exigée ».
+const REGLES_EN_TETE = ligneDEnTete('Règles');
 
 export const VOCABULAIRE = ['needs-triage', 'needs-info', 'ready-for-agent', 'ready-for-human', 'wontfix', 'en cours — <branche>', 'Fait — PR #<n>'];
 
@@ -473,8 +475,9 @@ export function ecartsSensibles(valeur) {
   const date = accord.slice(j + 1).trim();
   // Retouche A-156 (C4) : ni un tiret seul ni deux accords (`—` dans le nom), ni un identifiant de session à toute
   // casse, nu ou au bout d'une URL.
-  // A-161 (5) : ni un nom fait de seuls tirets, blancs ou ponctuation, ni `session_` où qu'il soit, ni une URL.
-  if (nom === '' || nom.includes('—') || /^[\p{P}\p{S}\s]+$/u.test(nom) || /session_/i.test(nom) || nom.includes('://') || /[<>{}]/.test(nom))
+  // A-161 (5) : ni un nom fait de seuls tirets, blancs ou ponctuation, ni `session_` où qu'il soit, ni une URL ; A-165 :
+  // ni caractère invisible (`\p{Cf}`), ni espace Unicode autre que l'espace ordinaire.
+  if (nom === '' || /\p{Cf}|(?! )\p{Z}/u.test(nom) || nom.includes('—') || /^[\p{P}\p{S}\s]+$/u.test(nom) || /session_/i.test(nom) || nom.includes('://') || /[<>{}]/.test(nom))
     ecarts.push(`Sensibles : accord de « ${nom} » : attendu la personne qui a accordé, pas un identifiant de session ni un gabarit`);
   // Retouche A-156 (C4) : un jour qui existe, et de l'ère de la chaîne (an 2000 à 2999) : ni `0000-01-01` ni `9999-12-31`.
   const an = Number(date.slice(0, 4));
@@ -564,7 +567,7 @@ export function controlerTicket({
   // avec une autre ligne `Règles:` se contredit.
   const regles = [];
   tete(lignes).forEach((brute, i) => {
-    const m = REGLES.exec(brute.replace(/\r$/, ''));
+    const m = REGLES_EN_TETE.exec(brute.replace(/\r$/, ''));
     if (m) regles.push({ valeur: m[1].trim(), ligne: i + 1 });
   });
   if (regles.length) {
