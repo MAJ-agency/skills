@@ -4,7 +4,7 @@ Carte de l'architecte B du programme « gouverner nos boucles », ouverte le 202
 
 ## Fiche
 
-Phase: suivi — sessions relancées en Opus le 2026-11-19 à 19 h 53 UTC ; en cours : #325 (`.54`, commit de documentation avant le label), ticket de suite `A-206`, puis `.57` avant `.19`
+Phase: suivi — livraison intermédiaire entrée dans `develop` le 2026-11-20 à 04 h 51 UTC (#348) ; suite : `.19`, essai à blanc et publication de la CLI 2.0.0, tickets de suite avant `.22`
 Architecte: `session_01BxuG2zBnGe6UCP6cqG1F1E` (depuis le 2026-11-19, 08 h 52 UTC)
 Objectif: mener le chantier `SPEC_ALL_ANC-5` (la preuve suffisante) jusqu'à sa livraison dans `develop`, puis la publication de la CLI 2.0.0.
 Dépôts: `MAJ-agency/anchorpost` ; `MAJ-agency/skills` pour cette carte seule.
@@ -134,3 +134,4 @@ Rien encore.
 - 2026-11-20, 04 h 18 UTC — #343 (`.61`, ticket) entrée à 04 h 10 (`7ee62fe`) ; #345 (`.62`, ticket) étiquetée ; #346 (`.19`) en brouillon. Conducteur 287 729 tokens, 13,92 $. Après #345 : la PR de livraison du sujet vers `develop`.
 - 2026-11-20, 04 h 30 UTC — #346 (`.19`, sommet `5e6ad65`) : contre-revue sans bloquant (1 855 tests verts, aucun test existant modifié) ; `A-225`, un push de documentation puis label après la livraison intermédiaire.
 - 2026-11-20, 04 h 37 UTC — LIVRAISON INTERMÉDIAIRE : PR #348 (branche `livraison/preuve-suffisante-cas-20261120-0433` vers `develop`, sommet `d6e9052`, 337 fichiers, +46 821 −6 272) ouverte par le conducteur, `sujet.sh livrer` (7.12.3) refusant à cause de #346 ouverte. Lu sur le dépôt : sommet du sujet, #345 entrée (`9f291a8`), aucun retard sur `develop`, pas de CODEOWNERS. Accord donné pour le label ; CI en cours. `.19` (#346) hors de cette livraison (`A-224`).
+- 2026-11-20, 04 h 53 UTC — LIVRAISON INTERMÉDIAIRE ENTRÉE : #348 fusionnée dans `develop` (`f3f16eb`, commit de merge), arbre de `develop` identique au sommet `d6e9052` du sujet, lu sur le dépôt. L'architecte du programme « onglet-projet » prévenu (tranches 12 et 13 de la refonte débloquées). Restent sur le sujet : `.19` (#346), `.62`, `.58`, `.61`, `.24`, `.26` et les tickets de suite ; la CLI 2.0.0 (essai à blanc, accord du produit) ; la question du produit sur `RULE_ALL_ANC-19#source-invalide`.
