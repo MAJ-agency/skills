@@ -164,3 +164,121 @@ Gate (`journaux/mut-gate.log`, 47 tests de `tickets.test.mjs` et `tickets-gate.t
 ## Verdict
 
 **Conforme après retouches.** 0 bloquant, 8 mineurs. Retouches que je demande avant l'entrée, parce qu'elles touchent ce que la PR affirme : constat 1 (128 n'est pas un signal : le code, `fusionner/SKILL.md` et le test de `depot.test.mjs` qui exige « (128 et plus) ») avec le cas du banc du constat 8 ; constat 6 et l'autre cas du constat 8 (trous du banc) ; constat 5 (le gate refuse ce que son code et le ticket disent refuser). Les constats 2, 3, 4 et 7 peuvent aller à l'architecte : le 2 et le 3 coûtent une mise à jour et une CI de plus, jamais une fusion non testée ; le 4 existait sur `main` pour la seconde ligne, la PR y ajoute la contradiction ; le 7 suppose un nom de sujet piégé.
+
+---
+
+# Second tour (dernier, `P-65`), sommet `26cf5a4`
+
+Demandé par l'architecte après `A-161` (constats 1, 2, 4, 5, 6 et 8 portés ; 3 et 7 écrits en limite). `git fetch` : `origin/claude/tickets-55-57` = `26cf5a4edb21c75e2f1e436d72060e3c48c54d8e`, `origin/main` = `8a644532eeef770b7e88dff2c8dc5e603aff8141` ; `21a8abd` (retouches A-161), `788e452` (cas posé à plat), `26cf5a4` (fusion d'`origin/main`). Contre `main` : 25 fichiers, +1 179 −59 (`git diff --stat`). Arbres : `w-adv2/` et `w-mut3/` à `26cf5a4`, `poses/pr2/` le gate posé.
+
+## 1. Les six constats portés, rejoués sur `26cf5a4`
+
+Mes essais du premier tour, recopiés tels quels dans `w-adv2/` (`journaux/t2-adv-rejeu.log`) : ADV3, ADV4, ADV5, ADVV1 et ADVV2 verts comme au premier tour (ADV3 : la limite écrite du constat 3 ; ADV5 : `essai 1 : A [80], B []`, `essai 2 : A [80], B []`, `essai 3 : A [80], B []`) ; **ADV1 et ADV2 rouges**, parce qu'ils affirmaient le défaut : leurs lignes montrent la correction.
+```
+--- ADV1 tour 1
+[#80] sous-PR non éligible (sortie 128)
+[#81] #81 en retard sur sujet/lot : mise à jour poussée (dc9dc60), attente de la CI
+--- ADV2 tour 2
+[#81] REPRISE au tour suivant : commentaires de #81 illisibles (GitHub), aucune sous-PR de sujet/lot n'est prise à ce tour
+[#80] sautée à ce tour : sujet/lot suspendu (lecture GitHub en panne)
+[#81] sautée à ce tour : sujet/lot suspendu (lecture GitHub en panne)
+```
+Les mêmes, récrits pour affirmer la correction, avec leur famille (`w-adv2/…/adv-t2.test.mjs`, `journaux/t2-adv-nouveaux.log`, 4 sur 4 verts) :
+- **Constat 1 fermé.** T2-ADV1 : une sortie 128 de `fusionner` donne `[#80] sous-PR non éligible (sortie 128)`, aucune ligne `signal`, pas de `tenu par #80`, et #81 est mise à jour dans le tour. Famille, T2-ADV1r : la même sortie 128 de `relancer` (sous-PR sans CI) rend le sujet, sans ligne de signal (silencieuse comme toute « autre » sortie de `relancer`, la table du ticket). Textes : `fusionner/SKILL.md` dit « 129 et plus ; une erreur fatale de git, 128, rend le sujet », `depot.test.mjs` l'exige et refuse « signal (128 et plus) » ; les commentaires de `boucle.sh` disent 129.
+- **Constat 2 fermé.** T2-ADV2 : tour 1, #80 mise à jour ; tour 2, CI de #80 en cours, un 502 sur les commentaires de #81 : `REPRISE … aucune sous-PR de sujet/lot n'est prise à ce tour`, rien de poussé, la mémoire garde `sujet/lot:80` ; tour 3, `[sujet/lot] tenu par #80 (CI en cours)`, `[#81] attend son tour` ; tour 4, #80 entre et #81 est mise à jour : une mise à jour par sous-PR. La « marque illisible » (`jq` sur des dates illisibles) tient toujours le sujet, comme `A-153` l'accepte : la donnée est la même au passage, qui sort en 5.
+- **Constat 4 fermé, sauf un reste de famille.** Le gate juge chaque ligne `Règles:` (`journaux/t2-sonde-regles.log`, vrai calcul de `main` à côté) : `Règles: —` puis `Règles: RULE_ALL_ZZZ-9` **REFUS** (`5:Règles: — dit que le ticket ne réalise aucune règle : pas av…`), de même en CRLF, sous `**Règles:**` puis `- Règles:`, et `—` deux fois ; `Règles: RULE_ALL_ANC-1` puis `Règles: voir plus bas` **REFUS** (la seconde ligne est jugée). Reste : `gate PASSE | "Règles: —\n* Règles: RULE_ALL_ZZZ-9" | calcul : regles=[RULE_ALL_ZZZ-9]` : le gate lit toujours `Règles:` sans la puce étoile (`enTete`), le calcul la lit ; la contradiction passe par là. Essayé : `Règles:` lue par le motif de `Sensibles:` (`ligneDEnTete`, puce étoile et tabulation) refuse ce cas et ne change le verdict d'aucun des fichiers réels (`poses/essai-etoile`, 91 + 145 + 254 fichiers, `"changes":0` partout). Voir constat 10.
+- **Constat 5 fermé**, à un reste près. Les 57 formes du premier tour rejouées (`journaux/t2-sonde-sensibles.log`) : `-`, `–`, `?`, `.`, `session_` hors de la tête (trois formes) et l'URL sans `session_` passent de PASSE à REFUS ; rien d'autre ne bouge. Vingt-deux formes de plus (`journaux/t2-sonde-sensibles2.log`) : des noms de personnes passent (`Jeanne d'Arc`, `J.-P. Dupont`, `O'Neil`, `l'équipe produit`) ; `‐`, `−`, `~`, `💬`, `.-`, `a://b`, `SESSION_01` refusés. Reste : `PASSE "a — accord de \u200b, 2026-11-19"` (un nom fait d'une espace de largeur nulle : ni `\s`, ni `\p{P}`, ni `\p{S}`) et `PASSE "… www.claude.ai/code/session-1 …"` (adresse sans `://` ni `session_`). Voir constat 10.
+- **Constats 6 et 8 fermés** : G7, L3 et les deux moitiés de L4 rejouées rouges (§ 5).
+
+## 2. La limite nouvelle : une panne de lecture, puis une file qui ne change plus
+
+Joué avec la vraie veille sur la vraie boucle (T2-ADV6, même montage que le cas 12 du banc : `sleep 7777` du jouet joue une sonde ; `journaux/t2-adv-nouveaux.log`). Sujet à deux sous-PR prêtes ; un 502 sur la lecture des commentaires de #80 au premier tour de la veille seulement :
+```
+--- T2-ADV6 veille 1
+VEILLE 02:39 : durée 75 min, aucun passage après 03:59 (marge 40 min)
+[#80] REPRISE au tour suivant : commentaires de #80 illisibles (GitHub), aucune sous-PR de sujet/lot n'est prise à ce tour
+[#80] sautée à ce tour : sujet/lot suspendu (lecture GitHub en panne)
+[#81] sautée à ce tour : sujet/lot suspendu (lecture GitHub en panne)
+FILE VIDE 02:39
+VEILLE FINIE 02:39
+--- T2-ADV6 veille 2
+[#80] FUSIONNÉE dans sujet/lot
+[sujet/lot] tenu par #81 (sortie 8 de fusionner)
+```
+Huit sondes, aucune relance : les lignes « sautée » ne sont pas des lignes « attend son tour », la veille n'a rien à suivre, et la file ne change pas. La veille suivante reprend le sujet à son premier tour.
+**Au pire** : le reste de la veille en cours. Elle finit à `--duree` (75 min par défaut) ou à l'échéance, `120 − --marge` minutes après son départ (80 par défaut ; 120 au plus, avec `--marge 0`) ; donc au plus 75 min par défaut, 120 min aux réglages extrêmes, plus le temps que la session du capitaine mette à relancer la veille sur `VEILLE FINIE` (règle du skill). **Jamais pour toujours**, tant que le capitaine relance sa veille et que la panne passe : une panne qui dure (jeton expiré, GitHub tombé) laisse le sujet suspendu autant qu'elle dure, avec une ligne `REPRISE` (dans le filtre du `Monitor`) à chaque tour ; une panne propre aux commentaires d'une seule PR, qui durerait, je n'en ai pas trouvé (`lire_github` refuse une page vide, non JSON, ou un objet `message` : rien de cela n'est propre à une PR ouverte). Plus tôt si la file change pour une autre raison, ou si la boucle fait un autre tour dans le même lancement (une PR vers develop).
+C'est la famille de la sortie 5 (« Hors périmètre » du ticket 57 : « reprise qu'au prochain changement de la file ou à la veille suivante »), et la ligne dit `REPRISE au tour suivant`. Mais la limite n'est écrite dans aucun texte livré : ni `fusionner/SKILL.md`, ni la note 7.36.0, ni `CONTENU.md` ne disent qu'après une panne la veille ne relance pas (`grep -n "veille suivante\|prochain changement"` : rien dans ces fichiers). Voir constat 9.
+
+## 3. Le gate sur les fichiers réels, au sommet `26cf5a4`
+
+Le gate posé de `26cf5a4` (`poses/pr2`) contre celui de `main` à `5d05f4b` (`outils/comparer-gate.mjs`, `journaux/t2-comparer.log`) : `docs/` du clone à `a145da6` (90 fichiers), `w-adv2/docs` à `26cf5a4` (91), `<dépôt>/docs` (145 : le dépôt a reçu les annexes de la PR 141 depuis le premier tour), `<un dépôt de projet>/docs` (254 et 7 cartes) : `"changes":0,"refusNouveaux":0` partout. CLI réelle sur Anchorpost, `PROJET_RACINE`, lecture seule (`git status` vide) : `tickets : OK — 163 tickets, dette gelée 0, 0 sans Type: gelé(s), 6 carte(s) dont 0 gelée(s), 2 fiche(s) d'avant Responsable:/Conducteur:`. **Aucun verdict ne change.**
+
+## 4. La fusion de `main` (PR 140)
+
+`26cf5a4` a pour parents `788e452` et `8a64453` (`origin/main`). Sur les 21 fichiers de la PR 140 (`git diff 5d05f4b 8a64453`), les seules lignes qu'elle ajoutait et que la branche retire (`git diff 8a64453 26cf5a4`) : `"version": "7.35.0"` (devenue 7.36.0). **`scripts/poses.test.mjs` et `scripts/tranches.mjs` : identiques à `main`** (`git diff --quiet`). Fichiers communs aux deux PR : `plugin.json`, `NOTES-DE-VERSION.md`, `README.md`, `scripts/depot.test.mjs` ; les lignes que la branche retire de `depot.test.mjs` sont exactement celles du premier tour. Notes : `## 7.36.0 — 2026-11-20` l. 5, au-dessus de `## 7.35.0 — 2026-11-19` l. 26 ; tout ce qui suit la 7.36.0 est la note de `main`, octet pour octet (`diff` vide). La note 7.36.0 est celle du premier tour plus les retouches A-161 (128, panne) et un paragraphe « Deux limites connues » (constats 3 et 7).
+
+## Constats du second tour
+
+### 9. (m) La limite de la panne tient et est bornée, mais aucun texte livré ne l'écrit
+
+Fait : § 2 ci-dessus (T2-ADV6) ; au pire le reste de la veille en cours, 75 min par défaut, 120 aux réglages extrêmes, jamais pour toujours tant que la veille est relancée et que la panne passe. La ligne de la boucle dit `REPRISE au tour suivant`, ce que la veille ne tient pas sur une file calme ; ni `fusionner/SKILL.md` (l. 40 : « Une lecture GitHub en panne ne donne jamais le sujet : à ce tour, aucune sous-PR de ce sujet n'est prise. »), ni la note 7.36.0, ni `CONTENU.md` ne disent quand le sujet est repris.
+Retouche (au choix) : l'écrire là où la panne est dite (skill et note : « repris au prochain changement de la file ou à la veille suivante ») ; ou que la veille relève la ligne `sautée à ce tour : … suspendu` comme une attente (un second regard à la sonde suivante, 2 min), ce qui ramène le pire à une sonde.
+
+### 10. (m) Le code d'A-161 est juste, mais son banc laisse passer six mutations ; et deux restes de famille
+
+Fait. Sur douze mutations du code nouveau (§ 5), six survivent au banc de la PR (`journaux/t2-mut-{a,b,gate}.log`) :
+```
+N3 SURVIT (rc 0, 27 tests, 0 rouges, 277 s) le sujet en panne n'est pas suspendu
+N4 SURVIT (rc 0, 27 tests, 0 rouges, 276 s) suspendu, la mémoire est perdue
+N5 SURVIT (rc 0, 27 tests, 0 rouges, 274 s) suspendu, les sous-PR du sujet sont traitées quand même
+N8 SURVIT (rc 0, 47 tests, 0 rouges, 3 s) les lignes `Règles:` lues dans le corps aussi
+N9 SURVIT (rc 0, 47 tests, 0 rouges, 3 s) fin de ligne CRLF gardée sur `Règles:` (la ligne n'est plus lue)
+N11 SURVIT (rc 0, 47 tests, 0 rouges, 3 s) un nom de symboles seuls (`~`, `−`) accepté
+```
+- N3, N4, N5 : le seul cas de panne du banc a pour mémoire la plus ancienne, « CI en cours » : la boucle n'y ferait aucun geste, suspendue ou non. Mes deux essais les tuent (`journaux/t2-mut-essais.log` : `N3/essais TUÉE`, `N4/essais TUÉE`, `N5/essais TUÉE`) : T2-ADV6 (panne sans mémoire, deux sous-PR prêtes : personne n'est pris) et T2-ADV7 (panne pendant que la mémoire tient #81, plus récente que #80 : la mémoire survit, `⏎sujet/lot:81⏎⏎`, et #81 entre la première au tour suivant ; `journaux/t2-adv7.log`).
+- N8 n'est pas anodin : sous elle, deux fichiers réels deviennent rouges (`poses/essai-N8`, `outils/comparer-gate.mjs`) : `docs/issues/gouverner-nos-boucles/issues/61-le-skill-relecture.issue.md` l. 2997 et, chez Anchorpost, `docs/adr/ADR_ALL_DES-1-…md` l. 45 : une ligne `Règles:` du corps. Aucun cas ne dit qu'une ligne `Règles:` après la première section n'est pas jugée.
+- N9 : un ticket CRLF à `Règles: pas une règle` est refusé par le gate de la PR (`5:Règles cite « pas »…`) et passe sous la mutation (`essai-N9 []`) : aucun cas CRLF sur `Règles:` depuis que la lecture n'est plus `chercher`.
+- Restes de famille (§ 1) : `Règles: —` puis `* Règles: RULE_…` passe encore (le gate lit `Règles:` sans la puce étoile, le calcul avec) ; un nom d'accord fait d'une espace de largeur nulle passe.
+Retouches : au banc, T2-ADV6 et T2-ADV7 (ou leur équivalent), une ligne `Règles:` du corps non jugée, un ticket CRLF à `Règles:` mal formée refusé, un nom de symboles seuls refusé ; `Règles:` lue par `ligneDEnTete` (essayé : 0 verdict changé sur les 490 fichiers réels) ; `\p{Cf}` et `\p{Z}` dans la classe des noms refusés.
+
+## 5. Mutations du second tour : 16 jouées, 10 tuées, 6 survivantes
+
+Appliquées une à une dans `w-mut3/` et `w-mut4/` (`outils/muter.mjs`), les arbres remis propres (`git status --short` vide).
+
+| | Mutation | Résultat |
+| --- | --- | --- |
+| L3 | (survivante du 1er tour) « CI en cours » : la plus récente tient | **tuée** (cas « deux sous-PR CI en cours… la plus ancienne tient ») |
+| L4a | (survivante du 1er tour, dans le sens du code nouveau) 128 tient de nouveau le sujet | **tuée** (cas 128) |
+| L4b | (survivante du 1er tour) 129 rend le sujet | **tuée** (cas 129) |
+| G7 | (survivante du 1er tour) commentaire coupé au premier `#` | **tuée** (2 rouges) |
+| N1 | panne lue « illisible » (elle tiendrait le sujet) | tuée |
+| N2 | panne lue libre | tuée |
+| N3 | le sujet en panne n'est pas suspendu | **survit** (tuée par T2-ADV6 et T2-ADV7) |
+| N4 | suspendu, la mémoire est perdue | **survit** (tuée par T2-ADV7) |
+| N5 | suspendu, ses sous-PR traitées quand même | **survit** (tuée par T2-ADV6 et T2-ADV7) |
+| N6 | la ligne de la panne perd « REPRISE » | tuée |
+| N7 | `Règles: —` avec une autre ligne, accepté jusqu'à deux | tuée |
+| N8 | `Règles:` lues dans le corps | **survit** |
+| N9 | CRLF gardé sur `Règles:` | **survit** |
+| N10 | `session_` en tête seulement (l'avant A-161) | tuée |
+| N11 | nom de symboles seuls accepté (`\p{S}` retiré) | **survit** |
+| N12 | URL acceptée comme nom | tuée |
+
+Les trois survivantes du premier tour sont rouges (quatre jeux, L4 dans les deux sens). Sur le code nouveau : douze, six tuées, six survivantes (constat 10).
+
+## Hors demande, joué une fois
+
+`scripts/poses.test.mjs` seul à `26cf5a4` (les tranches de la PR 140, le cas posé à plat de `788e452`) : `# pass 1`, `# fail 0`, 494 s, `rc=0` (`journaux/t2-poses.log`). Mes essais du second tour sont dans `essais-t2/` (sortis de `w-adv2/` avant ce jeu, pour qu'il ne les pose pas).
+
+## Second tour : ce que je n'ai pas regardé
+
+La suite entière (demandé : non) ; les 32 mutations de la session ; un GitHub réel ; la panne qui durerait sur les commentaires d'une seule PR ouverte (lue dans `lire_github`, pas provoquée) ; macOS ; les textes au-delà des lignes citées.
+
+## Second tour : comptes et verdict
+
+- Essais : ADV1 à ADV5, ADVV1, ADVV2 rejoués (5 verts ; ADV1 et ADV2 rouges parce que le défaut qu'ils affirmaient est corrigé) ; six essais nouveaux, T2-ADV1, T2-ADV1r, T2-ADV2, T2-ADV6, T2-ADV7, tous verts.
+- Gate : 90 + 91 + 145 + 254 fichiers réels et 7 cartes, 0 verdict changé ; Anchorpost par la CLI, OK ; 42 + 8 formes de `Règles:` et `Relecture:` contre le calcul de `main`, 57 + 22 de `Sensibles:`.
+- Fusion de `main` : rien de la PR 140 perdu, `poses.test.mjs` et `tranches.mjs` identiques à `main`, 7.36.0 au-dessus de 7.35.0.
+- Mutations : 16 jouées, 10 tuées, 6 survivantes (les 3 survivantes du premier tour toutes rouges).
+
+**Verdict du second tour : conforme après retouches** — 0 B ; constats 1, 2, 6 et 8 fermés ; 4 et 5 fermés à un reste près ; 2 m nouveaux : 9 (limite de la panne bornée, non écrite) et 10 (six mutations survivantes sur le code d'A-161, deux restes de famille). Retouches : celles du constat 10 (les cas de banc, `Règles:` lue avec la puce étoile, `\p{Cf}`/`\p{Z}` dans la classe des noms) et l'écriture de la limite du constat 9 (ou la relance de la veille après un tour suspendu).
