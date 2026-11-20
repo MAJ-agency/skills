@@ -1038,3 +1038,11 @@ La session de suite fait, dans cet ordre :
   - Essais a1 à a7 : diff relu et résolution découpés ensemble, noms hostiles en lots, binaires de la seule résolution.
   - **A-174** : six retouches. Verdict `non conforme` écrit sur la PR.
   - Rapport et essais publiés sous `63-annexes/contre-relecture-0b6a5eb/`.
+- 2026-11-20 — 06 h 16 UTC. **PR 141 : quatrième passage du contre-relecteur au sommet `e20b2b8`, conforme.**
+  - m11 et m12 fermés ; `poses` seul est vert en 361 s ; le gate ne change aucun verdict sur 494 fichiers réels.
+  - m13, le `\p{Cc}` dans un nom d'accord, va en ticket de suite (**A-175**).
+  - La PR est clean et ses quatre contrôles sont verts, relus à la source.
+  - Sur la PR : le verdict `conforme`, l'ordre `à-fusionner au sommet e20b2b8…` et le label. Le capitaine et la session sont prévenus.
+  - Rapport des passages 3 et 4 publié sous `55-57-annexes/contre-relecture-a145da6/rapport.md`.
+  - **Erreur et correction** : le commit `9580fd0` a publié ce rapport avec deux chemins locaux (le clone local d'Anchorpost), et le script de la carte a échoué au même moment (une accolade lue par une f-string de Python). Les chemins sont retirés par le commit suivant ; le premier tour en portait déjà un. Rien de personnel, l'historique n'est pas réécrit.
+  - Après la fusion, la PR 143 reprendra `main` (7.37.1) et le ticket 64 sera lancé.
