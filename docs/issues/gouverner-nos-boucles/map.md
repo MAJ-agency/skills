@@ -1165,3 +1165,14 @@ La session de suite fait, dans cet ordre :
   - Aucun code d'une PR ne s'exécute dans le Relecteur.
   - **A-180.** Le bloquant : la veille de 60 minutes meurt au plafond de 30 minutes de l'outil Bash. Elle passe à 25 minutes.
   - Retouches confiées au rédacteur.
+- 2026-11-20 — 12 h 58 UTC. **Ticket 66 prêt** (`cdf1754`, 2 027 lignes). L'architecte a lu les retouches d'`A-180` :
+  - la veille passe à 25 minutes ;
+  - le couple modèle et effort est vérifié par `distribuer` ;
+  - les sorties sont écrites en table ;
+  - un `flock` garde le dossier et les hooks sont coupés ;
+  - les causes d'« illisible » sont nommées ;
+  - le banc passe à 26 tests.
+
+  Mesures : 43 rouges avant le code, puis la suite verte, 1 270 sur 1 270. Les 73 mutations de l'annexe sont rouges ; 4 vivantes sont expliquées (N15, M16, N9, M12).
+
+  **Session lancée** : session_01BxuG32dzAaWY9zU6PEZQ5n, Sonnet (ligne `Modèle:`), mode « auto », branche `claude/ticket-66-relecteur`, version 7.38.0. Deux tours de contre-relecture suivront, en effort extra : la PR est sensible.
