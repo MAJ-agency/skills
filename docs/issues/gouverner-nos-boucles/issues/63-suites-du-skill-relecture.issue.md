@@ -1,16 +1,16 @@
-# Suites du skill `relecture` : la résolution découpée en lots, la branche P9 du tri tenue par le banc, la note de version qui dit la résolution relue
+# Suites du skill `relecture` : la résolution découpée en lots, la branche P9 du tri tenue par le banc, la note de version qui dit la résolution relue, le binaire que seule la résolution touche
 
 Status: ready-for-agent
 Type: défaut
 Label: contre-revue
-Modèle: sonnet — trois mineurs mesurés, chacun avec sa décision, ses fichiers, ses cas de banc et ses mutations ; le cas du défaut 2 est donné entier, vu vert puis rouge sous la mutation ; rien à concevoir au-delà de ce que le ticket donne.
+Modèle: sonnet — quatre défauts mesurés (trois mineurs de la contre-relecture, un trou trouvé en préparant le ticket), chacun avec sa décision, ses fichiers, ses cas de banc et ses mutations ; les cas des défauts 2 et 4 sont donnés entiers, vus rouges puis verts ; rien à concevoir au-delà de ce que le ticket donne.
 Blocked by: —
 Dépendances: —
 Fichiers chauds: `skills/chaine/relecture/scripts/gestes.sh`, `scripts/relecture.test.mjs`, `skills/chaine/relecture/SKILL.md`, `skills/chaine/relecture/references/gestes.md`, `skills/chaine/relecture/references/cas-limites.md` (aucune PR ouverte ne les touche) ; `.claude-plugin/plugin.json` et `NOTES-DE-VERSION.md` (les PR 141 et 44, ouvertes, les touchent aussi : la note de ce ticket s'écrit en tête au moment de livrer, sur la version de `main` d'alors).
 
 ## Le besoin
 
-La contre-relecture de la PR 142 (ticket 61, le skill `relecture`), troisième passage, sommet `9e4d8df`, a rendu « conforme » et laissé trois mineurs (rapport : `issues/61-annexes/contre-relecture-40428bf/rapport.md`, section « Troisième passage », essais `e19` et `e21`, bibliothèque `outils/jouet.sh`). La PR est entrée dans `main` à `e64f93b` (plugin 7.36.0) ; les fichiers en cause y sont identiques à `9e4d8df` :
+La contre-relecture de la PR 142 (ticket 61, le skill `relecture`), troisième passage, sommet `9e4d8df`, a rendu « conforme » et laissé trois mineurs (défauts 1 à 3) (rapport : `issues/61-annexes/contre-relecture-40428bf/rapport.md`, section « Troisième passage », essais `e19` et `e21`, bibliothèque `outils/jouet.sh`). La PR est entrée dans `main` à `e64f93b` (plugin 7.36.0) ; les fichiers en cause y sont identiques à `9e4d8df` :
 
 ```text
 $ git diff --stat 9e4d8df e64f93b -- skills/chaine/relecture scripts/relecture.test.mjs NOTES-DE-VERSION.md .claude-plugin/plugin.json
@@ -27,7 +27,7 @@ $ node --test --test-reporter=spec scripts/relecture.test.mjs
 ℹ duration_ms 32262.489147
 ```
 
-Les décisions citées vivent dans `relecture-independante.spec.md` (branche de l'architecte) : `A-150` (les lots de plus de 2 000 lignes sont calculés par le script, leur union comparée au diff relu, leurs diffs dans l'empreinte), `A-162` (B7 : une ligne retirée n'est écartée que si `develop` retire le même morceau, au même endroit), `A-164` (sur une PR de mise à jour, le diff de la résolution, `git show --remerge-diff` du commit de fusion, se relit en entier par l'axe Règles ; `tri` n'écarte une ligne retirée que si la résolution n'a ni récrit ni retiré le morceau de `develop`).
+Le défaut 4 a été trouvé en préparant ce ticket, à la demande de l'architecte (`A-167`). Les décisions citées vivent dans `relecture-independante.spec.md` (branche de l'architecte) : `A-150` (les lots de plus de 2 000 lignes sont calculés par le script, leur union comparée au diff relu, leurs diffs dans l'empreinte), `A-162` (B7 : une ligne retirée n'est écartée que si `develop` retire le même morceau, au même endroit), `A-164` (sur une PR de mise à jour, le diff de la résolution, `git show --remerge-diff` du commit de fusion, se relit en entier par l'axe Règles ; `tri` n'écarte une ligne retirée que si la résolution n'a ni récrit ni retiré le morceau de `develop`), `A-167` (ticket 63 : la résolution se découpe en lots par la fonction `lots` déjà en place, sur le même seuil, sous `lots/resolution-<j>/` ; `lus` ne refuse pas encore le diff entier quand des lots existent, et ce refus, s'il vient, vaudra pour le diff relu comme pour la résolution).
 
 ### 1. La résolution n'est pas découpée en lots
 
@@ -124,11 +124,46 @@ La note 7.36.0 (lignes 5 à 16) décrit le skill entier, lots compris (« Au-del
 
 **Ce que les bancs en lisent.** `scripts/depot.test.mjs:1203-1213` : la première note commence par la version de `plugin.json` et porte les deux sections. `scripts/relecture.test.mjs:458-461` : la **première** note qui contient « skill `relecture` » porte les deux sections ; si la note neuve écrit ces mots, c'est elle que ce test lit (elle porte les deux sections : rien à changer au banc).
 
+### 4. Un binaire que seule la résolution touche n'est pas un binaire du tour
+
+**Le fait.** `binaires.txt` (`gestes.sh:303-304`) se lit dans `git diff --numstat` de la base à la tête, restreint à `attendus.txt` ; `illisibles.txt` (`:307`) et `binaires-sensibles.txt` (`axes`, `:423-426`) en dérivent. Un fichier de `resolution.txt` sans écart contre le sujet n'est pas dans `attendus.txt` : s'il est binaire, aucune de ces trois listes ne le voit, et `lus 1 resolution` exige que l'axe Règles le dise lu.
+
+**La mesure.** Un essai (même bibliothèque `outils/jouet.sh`, joué sur `e64f93b`) : `develop` et le sujet ajoutent chacun `apps/api/src/auth/cle.bin` (chemin sensible du jouet), binaire, sous deux formes ; la fusion est en conflit (add/add), et trois résolutions :
+
+- **neuve** (la résolution écrit une troisième forme) : `binaires.txt`, `illisibles.txt` et `binaires-sensibles.txt` portent `cle.bin` (« binaires : 1, dont illisibles : 1 », « binaires sous un chemin sensible : 1 ») ; `resolution.patch` porte `Binary files a/apps/api/src/auth/cle.bin and b/apps/api/src/auth/cle.bin differ` ; l'empreinte porte `resolution.patch` et `resolution.txt`. Tient.
+- **un fichier ajouté hors des conflits** (`ajout.bin`) : `liste` sort en 4, « elle écrit hors des fichiers en conflit (apps/api/src/auth/ajout.bin ) » (`C2`). Tient.
+- **« ours »** (la résolution garde la clé du sujet et jette celle de `develop`) : le trou. Sortie brute utile :
+
+```text
+diff-revue : diff vide contre origin/sujet/facture (zones : :(literal)apps/api/src/auth/cle.bin) : rien à relire
+diff relu : 0 fichiers, 0 lignes ; hors du diff : 0 ; sans écart : 1 ; binaires : 0, dont illisibles : 0
+résolution de la fusion : 1 fichiers
+--- resolution.patch :
+diff --git a/apps/api/src/auth/cle.bin b/apps/api/src/auth/cle.bin
+remerge warning: Cannot merge binary files: apps/api/src/auth/cle.bin (494315c (feat(facture): la clé du sujet) vs. df95d3d (feat: la clé de develop))
+remerge CONFLICT (add/add): Merge conflict in apps/api/src/auth/cle.bin
+chemins sensibles : 1
+apps/api/src/auth/cle.bin	apps/api/src/auth/
+binaires sous un chemin sensible : 0
+binaires illisibles : 0
+--- empreinte, lignes qui nomment la résolution ou la clé :
+6cbfd5505c5d7587ab9c3e3adc45da3fc62dea7f resolution.patch
+15a5045019c6302ed9c33a4cb4f8cb70274f76a8 resolution.txt
+fichiers du diff relu que l'axe n'a pas lus :
+apps/api/src/auth/cle.bin
+lus : sortie 1
+```
+
+`resolution.patch` n'a que l'en-tête et les deux lignes `remerge` : git garde, pour un conflit binaire, la version du premier parent, et la résolution « ours » ne s'en écarte pas, donc aucune ligne `Binary files … differ`. `git show --remerge-diff --numstat` de la fusion ne rend rien ; `git diff --numstat <fusion>^2 <fusion>` rend `-	-	apps/api/src/auth/cle.bin`. L'empreinte hache `resolution.patch` et `resolution.txt`, pas le binaire, comme pour un binaire du diff relu (aucun axe ne le lit) : elle tient.
+
+**La cause.** La liste des binaires ne lit que le diff de la base à la tête. Ce que la résolution jette d'un binaire de `develop` ne s'y voit pas ; l'axe Règles reçoit un en-tête sans contenu, et devrait le dire lu. Un fichier sensible que personne ne peut lire ne se valide pas (`SKILL.md`, étape 4) : ici, rien ne le nomme comme tel.
+
 ## Où
 
 - `skills/chaine/relecture/scripts/gestes.sh` : `lots` (`:334-393`), son appel dans `diff_relu` (`:309`) et la ligne `{{DIFF}} de la résolution` (`:315-317`) ; `lus` (`:567-590`) ; l'en-tête (`:14`, `:20`). `meme_retrait` n'est pas touché.
 - `skills/chaine/relecture/SKILL.md:69` et `:108` ; `references/gestes.md:39`, `:42` et `:68` ; `references/cas-limites.md:60` et `:80-82`.
 - `scripts/relecture.test.mjs` : deux tests neufs pour le défaut 1, un pour le défaut 2, après le test « A-164, une PR de mise à jour : la résolution de la fusion se relit… » (`:1919-1945`), en réutilisant `miseAJour` (`:1891`).
+- Défaut 4 : `gestes.sh`, juste après la ligne qui écrit `binaires.txt` (`:304`) ; `references/gestes.md:40` (`binaires.txt`) ; `scripts/relecture.test.mjs`, un test neuf après celui du défaut 2.
 - `.claude-plugin/plugin.json`, `NOTES-DE-VERSION.md`.
 
 ## Décisions
@@ -139,7 +174,7 @@ La note 7.36.0 (lignes 5 à 16) décrit le skill entier, lots compris (« Au-del
 2. **Deux pièges de `lots` tel qu'il est écrit**, à ne pas reporter sur la résolution : son cas « un seul lot » fait `rm -rf -- "$B/lots"` (`:369-370`), qui jetterait les lots du diff relu déjà écrits ; et son `awk` écrit ses fichiers de travail (`nombre`, `<i>.patch`, `<i>.attendus`) directement sous `$B/lots`. Chaque appel travaille dans son propre dossier temporaire sous `$B/lots`, et le cas « un seul lot » ne retire que celui-là.
 3. **Les lots de la résolution vivent sous `$B/lots/`** : l'empreinte de `C1` les porte sans rien changer à `empreinte` (`:148-150`, qui hache tout fichier sous `lots/`), et `diff` les efface en partant (`:245`).
 4. **Ce que `diff` écrit** : avec des lots de la résolution, une ligne par lot, `lot resolution-<j> : <n> fichiers, <m> lignes, {{DIFF}} : <brouillons>/lots/resolution-<j>/diff.patch`, puis `lots de la résolution : <n>` (jamais `lots : <n>`, que le banc lit pour le diff relu), à la place de la ligne `{{DIFF}} de la résolution, pour l'axe Règles : …`. Sans lots, la ligne d'aujourd'hui, inchangée.
-5. **`lus`** reçoit `resolution-<j>` comme lot : axe 1 seulement (sinon sortie 12, « la résolution de la fusion se lit par l'axe Règles (1) »), le lot doit exister (sinon « lot inconnu »), sortie de l'axe `axe-1-lot-resolution-<j>.txt`, comparée au `relus.txt` du lot. `lus 1 resolution` reste ce qu'il est (sur le modèle du diff relu, où `lus <i>` sans lot n'est pas refusé quand des lots existent : voir la question à l'architecte).
+5. **`lus`** reçoit `resolution-<j>` comme lot : axe 1 seulement (sinon sortie 12, « la résolution de la fusion se lit par l'axe Règles (1) »), le lot doit exister (sinon « lot inconnu »), sortie de l'axe `axe-1-lot-resolution-<j>.txt`, comparée au `relus.txt` du lot. `lus 1 resolution` reste ce qu'il est : sur le modèle du diff relu, où `lus <i>` sans lot n'est pas refusé quand des lots existent, `A-167` décide que `lus` ne refuse pas le diff entier dans ce ticket (voir « Suite possible »).
 6. **Le texte** : `SKILL.md:108` garde sa phrase et ajoute « ; au-delà de 2 000 lignes, une fois par lot de la résolution (`lots/resolution-<j>/diff.patch`, lot nommé `resolution-<j>`) » (la phrase que `relecture.test.mjs:1970` exige, « l'axe Règles se lance une fois de plus, `{{DIFF}}` étant `resolution.patch` », reste entière) ; `SKILL.md:69`, `gestes.md:39`, `:42`, `:68` et `cas-limites.md:80-82` disent que la résolution se découpe de même, en `lots/resolution-<j>/`. Rien n'est recopié d'un outil externe : la découpe est celle de `lots`.
 
 ### Défaut 2
@@ -172,9 +207,36 @@ test("A-164, une PR de mise à jour : develop ne fait que retirer une garde, et 
 
    Le numéro `72` est libre (`miseAJour(70` et `(71` sont pris, aucun `PR("72"`).
 
+### Défaut 4
+
+8 bis. **Un fichier de la résolution que git lit binaire contre l'un ou l'autre parent de la fusion est un binaire du tour.** Après l'écriture de `binaires.txt`, `diff` lit `git diff --numstat --no-renames <fusion>^1 <fusion>` puis `<fusion>^2 <fusion>` (une commande en échec : sortie 12, « liste des binaires de la résolution illisible »), garde les lignes `-	-` dont le fichier est dans `resolution.txt`, et les ajoute à `binaires.txt` (trié, sans doublon). `illisibles.txt`, `binaires-sensibles.txt`, le compte de `diff`, `lus` (qui retire `binaires.txt`) et le verdict (« Hors du diff relu », `incomplet` pour un binaire illisible ou sous un chemin sensible) suivent sans autre changement. Les deux parents : le premier voit une forme neuve que la résolution écrit, le second ce qu'elle jette de `develop`. Un prototype de ces neuf lignes, joué sur une copie de `e64f93b`, rend le banc vert (ci-dessous) ; il ne se recopie pas tel quel sans relecture.
+
+Le test, entier, après celui du défaut 2 (le numéro `73` est libre) :
+
+```js
+test("A-164, une PR de mise à jour : un binaire que seule la résolution touche (sans écart contre le sujet, la version de develop jetée) est un binaire du tour : nommé, illisible, vu sous un chemin sensible, et aucun axe n'a à le dire lu", { timeout: 120_000 }, () => {
+  const CLE = "apps/api/src/auth/cle.bin";
+  const binaire = (texte) => `\u0000\u0001${texte}\u0000`;
+  const { p, m, B } = miseAJour(73, {
+    // Les deux côtés changent la clé : conflit binaire ; la résolution garde celle du sujet et jette celle de develop.
+    [CLE]: { commune: binaire("commune"), sujet: binaire("sujet"), develop: binaire("develop"), resolu: binaire("sujet") },
+  });
+  const d = p.joue("diff", m);
+  assert.equal(d.status, 0, d.sortie);
+  assert.deepEqual([listeDe(join(B, "sans-ecart.txt")), listeDe(join(B, "resolution.txt"))], [[CLE], [CLE]], "sans écart contre le sujet, touché par la résolution");
+  assert.deepEqual([listeDe(join(B, "binaires.txt")), listeDe(join(B, "illisibles.txt"))], [[CLE], [CLE]], d.sortie);
+  writeFileSync(join(B, "titre.txt"), "chore(facture): reçoit develop\n");
+  const ax = p.joue("axes", m);
+  assert.equal(ax.status, 0, ax.sortie);
+  assert.ok(ax.stdout.includes(`binaires sous un chemin sensible : 1\n${CLE}\nbinaires illisibles : 1\n`), ax.sortie);
+  writeFileSync(join(B, "axe-1-lot-resolution.txt"), "aucun écart\nFichiers du diff lus :\n");
+  assert.equal(p.joue("lus", m, {}, { "<i>": "1 resolution" }).status, 0, "un binaire ne se lit pas : aucun axe n'a à le dire lu");
+});
+```
+
 ### Défaut 3
 
-8. **Une note neuve en tête, la 7.36.0 inchangée.** Sa section « Ce qui change » dit les trois changements : la résolution d'une PR de mise à jour se découpe en lots au-delà de 2 000 lignes, comme le diff relu (`lots/resolution-<j>/`, `lus '<brouillons>' 1 resolution-<j>`) ; « Dans le dépôt du plugin seulement » (la forme de la note 7.35.0) : un cas de banc tient la branche du tri où `develop` ne fait que retirer et la résolution insère à ce point. Puis une phrase de rappel : « Depuis 7.36.0, la résolution d'une PR de mise à jour se relit : `git show --remerge-diff` du commit de fusion, que l'axe Règles lit en entier ; une ligne de `develop` qu'elle retire est un constat, jamais écartée (`A-164`). » « Ce qu'un projet fait pour en profiter » : mettre à jour le plugin, rien d'autre (rien n'appelle encore le skill, comme le dit la note 7.36.0).
+8. **Une note neuve en tête, la 7.36.0 inchangée.** Sa section « Ce qui change » dit les changements : la résolution d'une PR de mise à jour se découpe en lots au-delà de 2 000 lignes, comme le diff relu (`lots/resolution-<j>/`, `lus '<brouillons>' 1 resolution-<j>`) ; un binaire que seule la résolution touche est nommé parmi les binaires, illisible ou sensible selon les mêmes règles ; « Dans le dépôt du plugin seulement » (la forme de la note 7.35.0) : un cas de banc tient la branche du tri où `develop` ne fait que retirer et la résolution insère à ce point. Puis une phrase de rappel : « Depuis 7.36.0, la résolution d'une PR de mise à jour se relit : `git show --remerge-diff` du commit de fusion, que l'axe Règles lit en entier ; une ligne de `develop` qu'elle retire est un constat, jamais écartée (`A-164`). » « Ce qu'un projet fait pour en profiter » : mettre à jour le plugin, rien d'autre (rien n'appelle encore le skill, comme le dit la note 7.36.0).
 
 ### Version
 
@@ -189,6 +251,7 @@ Chacun vu rouge avant le correctif, vert après.
 | 1 | « A-164, une résolution de plus de 2 000 lignes : la machine la découpe en lots par zone, comme le diff relu, vérifie leur union, et compare ce que l'axe Règles a lu à chaque lot » — `miseAJour` avec `apps/api/src/facture/gros.ts` de 3 000 lignes et un petit fichier sous `apps/web/`, résolus en gardant le sujet. Attendu : `diff` sortie 0 ; deux lignes `lot resolution-<j> : …` et `lots de la résolution : 2`, aucune ligne `lots : ` ; les `relus.txt` des deux lots bout à bout font `resolution.txt`, leurs `diff.patch` bout à bout font `resolution.patch` ; `lus 1 resolution-<j>` en 0 avec le fichier du lot, en 1 sans lui ; `lus 2 resolution-1` en 12 ; après `c1`, `c1/avant.txt` porte `lots/resolution-1/diff.patch`, et ce fichier récrit fait sortir `garde` en 14 | aucune ligne `lot resolution-` ; `lots/resolution-1` absent (mesuré sur `e19`) |
 | 1 | « … un diff relu en lots et une résolution d'un seul fichier de plus de 2 000 lignes : les lots du diff relu restent, la résolution se lit entière » — la fusion en conflit sur un gros fichier, puis une retouche après elle sur deux zones de plus de 2 000 lignes en tout (forme vue par `e17`, « la fusion n'est pas le dernier commit »). Attendu : `lots/lot-1` et `lots/lot-2` présents après `diff`, aucun `lots/resolution-*`, `lus 1 resolution` en 0 | vert avant (rien ne se découpe) : il tient le piège de la décision 2 |
 | 2 | le test de la décision 7 | vert sur `e64f93b`, rouge sous P9 (ci-dessous) |
+| 4 | le test de la décision 8 bis | rouge sur `e64f93b` : « binaires : 0, dont illisibles : 0 », `binaires.txt` vide ; vert avec le prototype |
 | 3 | aucun cas neuf : les tests de version de `depot.test.mjs` et le test « le plugin connaît le skill » de `relecture.test.mjs` | — |
 
 Les tests existants d'`A-164` (`:1919`, `:1947`), dont la résolution fait moins de 2 000 lignes, restent verts sans retouche : `lus 1 resolution` ne change pas.
@@ -220,11 +283,13 @@ Sortie brute du cas sous P9 :
     ]
 ```
 
+**Défaut 4, jouées pour ce ticket** (copie de `e64f93b`, le test de la décision 8 bis inséré) : sans le correctif, 32 tests, 31 réussis, 1 échec (le cas), statut 1 ; avec le prototype, 32 sur 32, statut 0 ; le prototype sans le second parent (`<fusion>^2`), le cas seul : 1 échec, statut 1. À jouer encore par la session, sur son correctif : la restriction à `resolution.txt` retirée ; `binaires.txt` remplacé au lieu d'être complété (les binaires du diff relu perdus) ; une commande `numstat` en échec lue comme une liste vide.
+
 **Défaut 1, à jouer par la session** (aucune n'est jouée ici : le correctif n'est pas écrit), chacune rouge sur les deux cas du défaut 1 : la résolution non découpée (l'appel retiré) ; le seuil compté sur `diff.patch` au lieu de `resolution.patch` ; le cas « un seul lot » de la résolution qui retire `$B/lots` (les lots du diff relu perdus) ; la vérification d'union retirée, ou comparée à `relus.txt` au lieu de `resolution.txt` ; la vérification des lignes retirée ; `lus` qui compare un lot `resolution-<j>` à `resolution.txt` entier ; `lus` qui admet `resolution-<j>` pour un autre axe que 1 ; les lots de la résolution écrits hors de `$B/lots` (l'empreinte ne les voit plus) ; la ligne `lots : <n>` écrite pour la résolution.
 
 ## Vérification
 
-1. Le banc du skill : `node --test --test-reporter=spec scripts/relecture.test.mjs`, vert (31 tests sur `e64f93b`, 32 avec le cas du défaut 2, 34 avec les deux du défaut 1).
+1. Le banc du skill : `node --test --test-reporter=spec scripts/relecture.test.mjs`, vert (31 tests sur `e64f93b` ; 35 avec le cas du défaut 2, les deux du défaut 1 et celui du défaut 4).
 2. Les mutations ci-dessus, toutes rouges, avec la sortie brute dans la PR.
 3. La suite entière, `pnpm test`, verte d'un seul tenant sur la branche (non jouée pour ce ticket).
 4. `grep -c remerge NOTES-DE-VERSION.md` : 1 ou plus, dans la note neuve ; `git diff origin/main -- NOTES-DE-VERSION.md` n'ôte aucune ligne de la note 7.36.0.
@@ -232,12 +297,16 @@ Sortie brute du cas sous P9 :
 ## Ce qui n'est pas établi
 
 - **Le correctif du défaut 1 n'est pas prototypé** : seule la fonction `lots` d'aujourd'hui, jouée à part sur le `resolution.patch` d'`e19`, est mesurée (deux lots, 3 016 et 11 lignes, union vérifiée). Les deux pièges de la décision 2 sont lus dans le code (`gestes.sh:343-370`), pas joués.
-- **Un binaire de la seule résolution** (un fichier sans écart contre le sujet, binaire, que la résolution touche) : `lus` retire `binaires.txt`, calculé sur le diff relu ordinaire (`--numstat`), pas sur la résolution. Non regardé ; vaut pour `lus 1 resolution` aujourd'hui comme pour ses lots demain.
+- **Un binaire de la résolution renommé** : `diff.renames` est coupé dans le script, et l'essai du défaut 4 n'a pas de renommage ; non joué.
 - **Qu'un sous-agent lise mieux 3 016 lignes en un lot qu'en deux** n'est pas mesuré : la décision suit la règle d'`A-150`, et un fichier de plus de 2 000 lignes reste seul dans son lot, donné entier, comme pour le diff relu.
 - **La suite entière** (`pnpm test`) n'est pas jouée ; seul le banc du skill l'est.
 
-## Question à l'architecte
+## Ce qui tient déjà
 
-**Faut-il que `lus` refuse la lecture d'un diff entier quand ses lots existent ?** Recommandation : **non, pas dans ce ticket** ; le noter comme suite possible, pour le diff relu et la résolution ensemble. Aujourd'hui `lus '<brouillons>' <i>` sans lot compare à `relus.txt` entier même quand `lots/lot-<i>/` existe (`gestes.sh:571-582`) ; « un axe n'est joué que si tous ses lots le sont » (`SKILL.md:118`) est une consigne de la session, pas un refus de la machine. Ce ticket garde ce modèle pour la résolution (décision 5) : refuser `lus 1 resolution` seul serait une règle que le diff relu n'a pas. Si l'architecte veut le refus, il vaut pour les deux, et c'est une décision de plus.
+- Un binaire que la résolution écrit sous une forme neuve est déjà dans le diff relu : nommé, illisible et sensible (essai du défaut 4, résolution « neuve ») ; un binaire ajouté par la fusion hors des fichiers en conflit est refusé par `C2` (`liste` sortie 4) ; l'empreinte de `C1` porte `resolution.patch` et `resolution.txt` dans les trois cas.
+
+## Suite possible (`A-167`)
+
+**`lus` pourrait refuser la lecture d'un diff entier quand ses lots existent**, pour le diff relu comme pour la résolution. Aujourd'hui `lus '<brouillons>' <i>` sans lot compare à `relus.txt` entier même quand `lots/lot-<i>/` existe (`gestes.sh:571-582`) ; « un axe n'est joué que si tous ses lots le sont » (`SKILL.md:118`) est une consigne de la session, pas un refus de la machine. `A-167` le laisse hors de ce ticket : un refus porté par la machine change le contrat de `lus` pour tous les axes et demande son propre ticket.
 
 ## Comments
