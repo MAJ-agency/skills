@@ -477,7 +477,10 @@ export function ecartsSensibles(valeur) {
   // casse, nu ou au bout d'une URL.
   // A-161 (5) : ni un nom fait de seuls tirets, blancs ou ponctuation, ni `session_` où qu'il soit, ni une URL ; A-165 :
   // ni caractère invisible (`\p{Cf}`), ni espace Unicode autre que l'espace ordinaire.
-  if (nom === '' || /\p{Cf}|(?! )\p{Z}/u.test(nom) || nom.includes('—') || /^[\p{P}\p{S}\s]+$/u.test(nom) || /session_/i.test(nom) || nom.includes('://') || /[<>{}]/.test(nom))
+  // A-170 : ce refus-là dit sa cause ; U+200C et U+200D en sont (un nom s'écrit sans eux).
+  if (/\p{Cf}|(?! )\p{Z}/u.test(nom))
+    ecarts.push(`Sensibles : accord de « ${nom} » : nom d'accord avec un caractère invisible ou une espace autre que l'espace ordinaire`);
+  else if (nom === '' || nom.includes('—') || /^[\p{P}\p{S}\s]+$/u.test(nom) || /session_/i.test(nom) || nom.includes('://') || /[<>{}]/.test(nom))
     ecarts.push(`Sensibles : accord de « ${nom} » : attendu la personne qui a accordé, pas un identifiant de session ni un gabarit`);
   // Retouche A-156 (C4) : un jour qui existe, et de l'ère de la chaîne (an 2000 à 2999) : ni `0000-01-01` ni `9999-12-31`.
   const an = Number(date.slice(0, 4));

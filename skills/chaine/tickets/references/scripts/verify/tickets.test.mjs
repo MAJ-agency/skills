@@ -215,9 +215,15 @@ test('Sensibles: `—`, ou des chemins puis l’accord (nom, date), passe ; tout
     ['scripts/chaine/passer.sh — accord de Camille Martin, 9999-12-31', /date « 9999-12-31 »/],
     // A-161 (5) : un nom fait de seuls tirets ou ponctuation, `session_` où qu'il soit dans le nom, une URL.
     // A-165 (2, 3) : un nom de seuls symboles (`~`, `−`), ou qui porte un caractère invisible ou une espace Unicode.
-    ...['-', '–', '?', 'la MOA session_01AbC', 'la MOA (session_01AbC)', 'x,session_01AbC', 'https://claude.ai/code/01AbCdEfGhIj', '~', '−', '\u200b', 'Camille\u200bMartin', 'Camille\u00a0Martin', 'Camille\u2009Martin', '\u2060'].map((nom) => [
+    ...['-', '–', '?', 'la MOA session_01AbC', 'la MOA (session_01AbC)', 'x,session_01AbC', 'https://claude.ai/code/01AbCdEfGhIj', '~', '−'].map((nom) => [
       `scripts/chaine/passer.sh — accord de ${nom}, 2026-11-19`,
-      /attendu la personne qui a accordé/,
+      /attendu la personne qui a accordé, pas un identifiant de session ni un gabarit/,
+    ]),
+    // A-170 : un caractère invisible ou une espace Unicode reçoit son propre message, qui dit la cause ; U+200C et
+    // U+200D (antiliant, liant) restent refusés : un nom s'écrit sans eux.
+    ...['\u200b', 'Camille\u200bMartin', 'Camille\u00a0Martin', 'Camille\u2009Martin', '\u2060', 'Camille\u200cMartin', 'Camille\u200dMartin'].map((nom) => [
+      `scripts/chaine/passer.sh — accord de ${nom}, 2026-11-19`,
+      /accord de « .* » : nom d'accord avec un caractère invisible ou une espace autre que l'espace ordinaire$/su,
     ]),
   ];
   for (const [v, motif] of refus) {
