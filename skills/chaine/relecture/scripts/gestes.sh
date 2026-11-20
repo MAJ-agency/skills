@@ -302,11 +302,12 @@ diff_relu() {
   comm -23 "$B/attendus.txt" "$B/relus.txt" > "$B/manquants.txt"
   git -C "$A" diff --numstat --no-renames "origin/$base...HEAD" > "$B/numstat.txt" || quitter 12 "liste des binaires illisible"
   awk -F'\t' '$1 == "-" && $2 == "-" { print $3 }' "$B/numstat.txt" | sort -u | comm -12 - "$B/attendus.txt" > "$B/binaires.txt"
+  # Les binaires que seule la résolution touche complètent la liste, avant le calcul des illisibles.
+  if [ -s "$B/resolution.txt" ]; then binaires_resolution; fi
   # Un binaire qui n'est ni une image, ni une police, ni une archive de données : du code ou un texte que git ne lit
   # pas. Une archive qui porte du code exécutable (`.jar`, `.war`, `.whl`, `.nupkg`) est illisible.
   { filtrer -Eiv '\.(png|jpe?g|gif|webp|avif|ico|bmp|tiff?|heic|woff2?|ttf|otf|eot|zip|gz|tgz|tar|bz2|xz|7z)"?$' "$B/binaires.txt"; } > "$B/illisibles.txt"
   if [ -s "$B/manquants.txt" ]; then quitter 12 "manquent au diff relu :" "$(cat "$B/manquants.txt")"; fi
-  if [ -s "$B/resolution.txt" ]; then binaires_resolution; fi
   lots "$B/diff.patch" "$B/relus.txt" lot
   if [ -s "$B/resolution.txt" ]; then lots "$B/resolution.patch" "$B/resolution.txt" resolution; fi
   touch "$B/diff.fait"
@@ -343,7 +344,6 @@ binaires_resolution() {
   git -C "$A" diff --numstat --no-renames "$f^1" "$f" > "$B/numstat-resolution-1.txt" || quitter 12 "liste des binaires de la résolution illisible"
   git -C "$A" diff --numstat --no-renames "$f^2" "$f" > "$B/numstat-resolution-2.txt" || quitter 12 "liste des binaires de la résolution illisible"
   cat "$B"/numstat-resolution-[12].txt | awk -F'\t' '$1 == "-" && $2 == "-" { print $3 }' | sort -u | comm -12 - "$B/resolution.txt" | comm -23 - "$B/attendus.txt" | sort -u - "$B/binaires.txt" -o "$B/binaires.txt"
-  { filtrer -Eiv '\.(png|jpe?g|gif|webp|avif|ico|bmp|tiff?|heic|woff2?|ttf|otf|eot|zip|gz|tgz|tar|bz2|xz|7z)"?$' "$B/binaires.txt"; } > "$B/illisibles.txt"
 }
 
 # Au-delà de 2 000 lignes, des lots : par zone (`apps/<x>`, `packages/<x>`, sinon le premier dossier, la racine à
