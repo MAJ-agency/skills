@@ -1072,3 +1072,9 @@ La session de suite fait, dans cet ordre :
 
   **Premier tour de contre-relecture lancé**, effort moyen : la PR est ordinaire, des bancs et non un skill sensible.
 - 2026-11-20 — 07 h 28 UTC. **PR 144 : premier tour sur la PR, au sommet `069b146`, « conforme après retouches », 2 bloquants et 7 mineurs.** Le contre-relecteur a joué 71 pièges sur `codeSeul`, dont 10 sont ratés. Il a joué 42 mutations : 29 tuées, 8 équivalentes, 5 trous. La garde du plafond et la précondition de `double-relecture` tiennent. `poses` seul passe en 336 s. **A-176.** Le verdict `non conforme` est écrit sur la PR, et le rapport et les essais sont publiés sous `64-annexes/contre-relecture-069b146/`. Le contre-relecteur laisse deux processus à lui, qu'il n'a pas pu tuer : un `node` en boucle (pid 18500, venu de la mutation M13) et un `sleep 30` ; ils sont signalés au produit.
+- 2026-11-20 — 07 h 59 UTC. **Contrôle de vie.**
+  - Le capitaine est en veille, sans label dans sa file. Il coûte 54,78 $ pour un contexte de 634 k : chaque réveil relit un gros contexte. À surveiller, et à relancer neuf si le coût grimpe sans travail.
+  - La session du ticket 64 (9,47 $) a poussé les retouches d'`A-176` en `8d870d0`, avec une suite de 1 219 tests ; sa CI est attendue.
+  - Les deux processus que le contre-relecteur de la PR 144 avait laissés se sont éteints seuls. Le `kill` de l'architecte a été refusé par le classifieur, mais il n'avait plus d'objet.
+  - L'alerte hebdomadaire est inchangée.
+  - Réveil réarmé à 08 h 59.
