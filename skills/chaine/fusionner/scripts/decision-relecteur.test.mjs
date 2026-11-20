@@ -379,7 +379,7 @@ test("A-107 — sur un chemin sensible, un verdict sans la ligne « /security-re
     assert.equal(tourValide(pr({ sensible: true, commentaires: avec(securite) })), null, String(securite));
     assert.deepEqual(joue({ sensible: true, commentaires: avec(securite), etiquettes: ['à-fusionner'] }), { regle: 3, geste: 'etiqueter', poser: 'à-relire', retirer: ['à-fusionner'], lignes: LIGNES('PR 12 : relecture incomplète') }, String(securite));
     assert.equal(joue({ sensible: false, commentaires: avec(securite) }).poser, 'à-fusionner', 'hors chemin sensible, la ligne n\'est pas exigée');
-    assert.equal(joue({ sensible: true, commentaires: avec(securite, 'refusé') }).geste, 'reecrire', 'un refus sans la ligne se lit incomplet lui aussi');
+    assert.equal(joue({ sensible: true, commentaires: avec(securite, 'refusé') }).poser, 'à-reprendre', 'un refus sans la ligne reste un refus (ticket 66)');
   }
   assert.equal(joue({ sensible: true, commentaires: avec('lancée') }).poser, 'à-fusionner');
   assert.equal(tourValide(pr({ sensible: true, commentaires: avec('lancée') })).numero, 1);
@@ -762,6 +762,26 @@ test("la file : une livraison de sujet n'est regardée que si elle porte `à-rel
     assert.equal(joue({ branche, etiquettes: ['à-relire', 'à-fusionner'] }).regle, 3, branche);
   }
   assert.equal(joue({ branche: 'feat/sujet/x', etiquettes: ['à-fusionner'] }).regle, 3);
+});
+
+test("ticket 66 — un refus ne compte jamais moins qu'un refus : sans « lancée » sur un chemin sensible, ou sur un autre sommet, un `refusé` lisible rend `à-reprendre` et compte au plafond", () => {
+  const base = [DEMANDE(), D(1, V1, ['r1'])];
+  const refus = (options) => fil(...base, verdict(1, 'r1', 'refusé', options));
+  for (const [nom, champs] of [
+    ['sensible, sans la ligne', { sensible: true, commentaires: refus({}) }],
+    ['sensible, « non requise »', { sensible: true, commentaires: refus({ securite: 'non requise' }) }],
+    ['un autre sommet', { commentaires: refus({ sommet: V2 }) }],
+    ['sensible, un autre sommet, sans la ligne', { sensible: true, commentaires: refus({ sommet: V2 }) }],
+  ]) {
+    assert.deepEqual(joue(champs), { regle: 4, geste: 'etiqueter', poser: 'à-reprendre', retirer: ['à-relire'], lignes: LIGNES('verdict écrit sur la PR 12 : refusé') }, nom);
+    assert.equal(comptes(champs), 1, `${nom} : le tour refusé compte au plafond`);
+    assert.equal(tourValide(pr(champs)), null, `${nom} : jamais validé`);
+  }
+  // Ce qui ne change pas : un `validé` ou un `incomplet` sans « lancée », ou sur un autre sommet, se lit `incomplet`.
+  assert.equal(joue({ sensible: true, commentaires: fil(...base, verdict(1, 'r1', 'validé')) }).geste, 'reecrire');
+  assert.equal(joue({ commentaires: fil(...base, verdict(1, 'r1', 'validé', { sommet: V2 })) }).geste, 'reecrire');
+  // Un verdict illisible n'est pas un refus lisible : il reste `incomplet`, même s'il porte « refusé ».
+  assert.equal(joue({ commentaires: fil(...base, verdict(1, 'r1', 'refusé').replace('Bloquants: 1', 'Bloquants: 0')) }).geste, 'reecrire');
 });
 
 test("verdicts d'un tour : le dernier de chaque session nommée ; un verdict sur un autre sommet, ou illisible, se lit `incomplet`", () => {
