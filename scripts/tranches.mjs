@@ -11,6 +11,10 @@
 //
 // Seuls les tests de premier niveau sont comptés. Un sous-test (`t.test(…)`, `it` d'un `describe`) dont le nom égale
 // un nom lu serait sauté par la tranche de reste sans être vu : un banc qui en écrit se joue entier, jamais découpé.
+// Limite (contre-relecture de la PR 140, m2) : ne sont reconnus que les sous-tests à nom littéral (`t.test("…"`) et
+// `describe`, `suite`, `it` ; un sous-test au nom calculé (`t.test(nom, …)`), ou un `test(` global appelé dans le corps
+// d'un test (Node 22 l'attache au test qui tourne), n'est pas vu. Aucun banc posé n'en écrit (610 tests réels de
+// premier niveau simulés, 0 écart) ; un banc qui en écrirait devrait se jouer entier.
 
 const NOM = /^test\(\s*(?:"((?:[^"\\\n]|\\["\\'`])*)"|'((?:[^'\\\n]|\\["\\'`])*)'|`((?:[^`\\$\n]|\\["\\'`]|\$(?!\{))*)`)\s*,/gm;
 
@@ -20,7 +24,7 @@ export function nomsDesTests(source) {
 }
 
 // Un sous-test : `<param>.test("…"` (un nom littéral en premier argument), ou `describe`, `suite`, `it` appelés.
-const SOUS_TEST = /\b\w+\.test\(\s*["'`]|\b(?:describe|suite|it)\s*\(/;
+const SOUS_TEST = /\b\w+\.test\s*\(\s*["'`]|\b(?:describe|suite|it)\s*\(/;
 
 /** Le banc écrit-il des sous-tests ? Alors il se joue entier. */
 export function aDesSousTests(source) {

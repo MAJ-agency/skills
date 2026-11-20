@@ -70,7 +70,7 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdtempSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 export const EXIGEE = 'exigée';
@@ -495,80 +495,36 @@ export function sommet(sha) {
 const court = (nom) => nom.replace(/^refs\/remotes\//, '');
 
 /**
- * Le dossier de ce dépôt, si l'utilisateur l'a déclaré sûr par `safe.directory` ; sinon `null`. C'est le seul réglage
- * d'utilisateur ou de système que le lecteur reprend, et il le reprend pour ce dossier seul, jamais le `*` qui l'a
- * admis. Le dossier est le premier, en remontant, qui porte `.git` : celui que git compare. Les déclarations sont
- * celles que git lit lui-même hors de tout dépôt, aux portées `system` et `global`, dans son ordre
- * (`git config --show-scope`, `A-143`). Le lecteur lit moins que git (`A-135`) : ne vaut qu'une valeur égale à ce
- * chemin, caractère pour caractère, ou `*` : ni barre finale, ni `dossier/*`, ni `.`, ni `~/`, ni lien symbolique.
- * Une déclaration faite par `git -c`, `GIT_CONFIG_COUNT` ou `GIT_CONFIG_PARAMETERS` n'est pas vue, et la présence
- * d'une de ces deux variables, où une remise à zéro peut se trouver, fait qu'aucune déclaration n'est admise.
+ * A-159 : git lui-même dit s'il admet le dépôt de `cwd`, au lieu que le lecteur refasse sa décision. La question
+ * (`git rev-parse --absolute-git-dir`) se pose dans ce dossier, avec l'environnement de la session tel quel : sa
+ * configuration et ses variables `GIT_CONFIG_*`, rien d'écarté ; seules les autres `GIT_*`, qui désigneraient un autre
+ * dépôt, sont retirées (sauf `GIT_CEILING_DIRECTORIES`), comme pour tout le lecteur. Un échec : `Illisible`, la première
+ * ligne `fatal:` de la sortie d'erreur de git en cause (dépôt d'un autre propriétaire, dépôt nu sous
+ * `safe.bareRepository = explicit`, configuration que git ne lit pas…). Rend `{ gitdir, haut }` : le dossier git admis
+ * et, s'il y en a un, l'arbre de travail (`--show-toplevel`).
  */
-function declareSur(cwd) {
-  let racine = null;
+function admisParGit(cwd) {
+  const env = Object.fromEntries(Object.entries(process.env).filter(([cle]) => !cle.startsWith('GIT_') || cle.startsWith('GIT_CONFIG') || cle === 'GIT_CEILING_DIRECTORIES'));
+  const demander = (args) => execFileSync('git', args, { cwd, env, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).replace(/\n$/, '');
+  let gitdir;
   try {
-    for (let d = realpathSync(resolve(cwd)); racine === null; d = dirname(d)) {
-      if (existsSync(join(d, '.git'))) racine = d;
-      else if (dirname(d) === d) return null;
-    }
-  } catch {
-    return null;
-  }
-  if ('GIT_CONFIG_COUNT' in process.env || 'GIT_CONFIG_PARAMETERS' in process.env) return null;
-  // Où vit la configuration de l'utilisateur : ces trois variables le disent, aucune autre `GIT_*` n'est héritée.
-  const LIEU = ['GIT_CONFIG_GLOBAL', 'GIT_CONFIG_SYSTEM', 'GIT_CONFIG_NOSYSTEM'];
-  const env = Object.fromEntries(Object.entries(process.env).filter(([cle]) => !cle.startsWith('GIT_') || LIEU.includes(cle)));
-  // Les déclarations que git lirait lui-même, dans son ordre, lues par lui et hors de tout dépôt : la portée de
-  // système s'il ne l'écarte pas (`GIT_CONFIG_NOSYSTEM`), puis les deux fichiers de l'utilisateur
-  // (`$XDG_CONFIG_HOME/git/config`, puis `~/.gitconfig`), leurs `include` compris. `git config --global`, nommé,
-  // ne lirait que le second quand il existe : une remise à zéro écrite dans le premier serait manquée.
-  let lus = [];
-  try {
-    lus = execFileSync('git', ['config', '--show-scope', '--includes', '--get-all', 'safe.directory'], { cwd: '/', env, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).split('\n');
-    lus.pop();
-  } catch {
-    // Aucune déclaration (sortie 1), une configuration que git refuse, ou git absent : la première lecture du dépôt le dira.
-  }
-  let declares = [];
-  for (const ligne of lus) {
-    const m = /^(system|global)\t(.*)$/.exec(ligne);
-    // Une ligne d'une autre portée, ou la suite d'une valeur à saut de ligne : rien n'est admis.
-    if (!m) return null;
-    // Comme git : une valeur vide efface les déclarations qui la précèdent.
-    declares = m[2] === '' ? [] : [...declares, m[2]];
-  }
-  return declares.some((v) => v === '*' || v === racine) ? racine : null;
-}
-
-/**
- * La valeur de `safe.bareRepository` que le lecteur reporte au dépôt réel (`A-154`), ou `null` : git refuse un dépôt nu
- * trouvé sans `--git-dir` quand elle vaut `explicit`, et échoue sur une valeur vide ou qu'il ne lit pas. Lue comme
- * `safe.directory` (portées `system` et `global`, hors de tout dépôt, par git lui-même, avec les seules variables qui
- * disent où vit la configuration) ; la dernière valeur vaut, telle quelle, vide comprise. Dans le doute (une ligne
- * d'une autre forme, git en échec autrement que par « aucune valeur », `GIT_CONFIG_COUNT` ou `GIT_CONFIG_PARAMETERS`
- * présente, où elle peut valoir `explicit`) : `explicit`. Le lecteur lit moins que git, jamais plus.
- */
-function bareDeclare() {
-  if ('GIT_CONFIG_COUNT' in process.env || 'GIT_CONFIG_PARAMETERS' in process.env) return 'explicit';
-  const LIEU = ['GIT_CONFIG_GLOBAL', 'GIT_CONFIG_SYSTEM', 'GIT_CONFIG_NOSYSTEM'];
-  const env = Object.fromEntries(Object.entries(process.env).filter(([cle]) => !cle.startsWith('GIT_') || LIEU.includes(cle)));
-  let lus;
-  try {
-    lus = execFileSync('git', ['config', '--show-scope', '--includes', '--get-all', 'safe.bareRepository'], { cwd: '/', env, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).split('\n');
+    gitdir = demander(['rev-parse', '--absolute-git-dir']);
   } catch (e) {
-    // Sortie 1 sans rien écrit : aucune valeur. Toute autre panne : explicit.
-    return e?.status === 1 && !e.stdout ? null : 'explicit';
+    if (e?.code === 'ENOENT' && e?.path === 'git') throw new OutilManquant('git est requis par les scripts de la chaîne');
+    const erreur = String(e?.stderr ?? '').split('\n').filter((l) => l.trim() !== '');
+    const cause = erreur.find((l) => l.startsWith('fatal:')) ?? erreur[0] ?? `git a échoué sans rien dire (sortie ${e?.status ?? e?.signal})`;
+    illisible(`pas dans un dépôt git que git admet : ${cause}`);
   }
-  if (lus.pop() !== '') return 'explicit';
-  let valeur = null;
-  for (const ligne of lus) {
-    const m = /^(system|global)\t(.*)$/.exec(ligne);
-    if (!m) return 'explicit';
-    valeur = m[2];
+  if (!gitdir.startsWith('/') || gitdir.includes('\n')) illisible('dossier git du dépôt illisible');
+  let haut = null;
+  try {
+    haut = demander(['rev-parse', '--show-toplevel']);
+    if (!haut.startsWith('/') || haut.includes('\n')) haut = null;
+  } catch {
+    haut = null;
   }
-  return valeur;
+  return { gitdir, haut };
 }
-const NU_REFUSE = "dépôt nu trouvé sans --git-dir, que git refuse sous safe.bareRepository (explicit, une valeur qu'il ne lit pas, ou explicit dans le doute) : appeler ce calcul depuis un arbre de travail";
 
 /**
  * Lecteur d'objets git du dépôt de `cwd`, par un dépôt propre. `verifier(nom)` → le sha du commit d'un sha ou d'une
@@ -581,24 +537,16 @@ const NU_REFUSE = "dépôt nu trouvé sans --git-dir, que git refuse sous safe.b
  * configuration, ni greffes, ni `refs/replace`, ni attributs, ni arbre de travail, ni dossier courant (un dépôt nu
  * se lit depuis sa racine). Aucune commande n'hérite d'une
  * variable `GIT_*` (sauf `GIT_CEILING_DIRECTORIES`, qui borne la recherche du dépôt) ni d'une configuration
- * d'utilisateur ou de système, à une exception près : le `safe.directory` par lequel l'utilisateur a déclaré sûr ce
- * dépôt-ci est reporté, pour ce dépôt seul, aux lectures du dépôt réel (sans lui, git refuse le dépôt d'un autre
- * propriétaire) ; et `safe.bareRepository`, reportée de même (`A-154`), pour que le lecteur refuse le dépôt nu que git
- * refuserait, en nommant la cause. S'il ne se crée pas, si le dépôt est superficiel ou partiel : `Illisible`.
+ * d'utilisateur ou de système. Avant toute lecture, git lui-même dit s'il admet ce dépôt (`admisParGit`, `A-159`) ;
+ * admis, le dépôt réel reçoit `safe.directory` pour le seul dossier git et le seul arbre de travail que git vient
+ * d'admettre (la transmission de sa décision, sans quoi le dépôt d'un autre propriétaire serait refusé), et le dossier
+ * git qu'il lit doit être celui-là. Refusé, s'il ne se crée pas, si le dépôt est superficiel ou partiel : `Illisible`.
  */
 export function lecteurGit(cwd = process.cwd()) {
   const env = Object.fromEntries(Object.entries(process.env).filter(([cle]) => !cle.startsWith('GIT_') || cle === 'GIT_CEILING_DIRECTORIES'));
   Object.assign(env, { GIT_CONFIG_GLOBAL: '/dev/null', GIT_CONFIG_SYSTEM: '/dev/null', GIT_CONFIG_NOSYSTEM: '1', GIT_ATTR_NOSYSTEM: '1' });
   // Dans le dépôt réel, les greffes et les objets remplacés sont écartés en plus : il ne sert qu'à résoudre des réfs.
   const reel = { cwd, env: { ...env, GIT_GRAFT_FILE: '/dev/null', GIT_NO_REPLACE_OBJECTS: '1' } };
-  const sur = declareSur(cwd);
-  const nu = bareDeclare();
-  // Les reports au dépôt réel, par `GIT_CONFIG_COUNT` ; `sansNu` : sans celui de safe.bareRepository, pour nommer la
-  // cause d'un refus, jamais pour lire.
-  const reports = (avecNu) => [...(sur ? [['safe.directory', sur]] : []), ...(avecNu && nu !== null ? [['safe.bareRepository', nu]] : [])];
-  const enEnv = (liste) => Object.fromEntries([['GIT_CONFIG_COUNT', String(liste.length)], ...liste.flatMap(([cle, valeur], i) => [[`GIT_CONFIG_KEY_${i}`, cle], [`GIT_CONFIG_VALUE_${i}`, valeur]])]);
-  const sansNu = { cwd, env: { ...reel.env, ...enEnv(reports(false)) } };
-  Object.assign(reel.env, enEnv(reports(true)));
   const git = (ou, args, input) => {
     try {
       return execFileSync('git', args, { cwd, env, ...ou, input, maxBuffer: 1 << 30, stdio: ['pipe', 'pipe', 'ignore'] });
@@ -626,20 +574,12 @@ export function lecteurGit(cwd = process.cwd()) {
   };
   const ouvrir = () => {
     if (dossier) return;
-    let objets;
-    try {
-      objets = texte(git(reel, ['rev-parse', '--path-format=absolute', '--git-path', 'objects']));
-    } catch (e) {
-      if (e instanceof Illisible || e instanceof OutilManquant) throw e;
-      // Un dépôt nu que safe.bareRepository fait refuser : la cause est nommée.
-      let nuRefuse = false;
-      if (nu !== null && nu !== 'all') {
-        try {
-          nuRefuse = texte(git(sansNu, ['rev-parse', '--is-bare-repository'])) === 'true';
-        } catch {}
-      }
-      illisible(nuRefuse ? NU_REFUSE : 'pas dans un dépôt git');
-    }
+    // A-159 : git admet-il ce dépôt ? Puis la transmission de sa décision aux seules lectures du dépôt réel.
+    const { gitdir, haut } = admisParGit(cwd);
+    const reports = [['safe.directory', gitdir], ...(haut ? [['safe.directory', haut]] : [])];
+    Object.assign(reel.env, { GIT_CONFIG_COUNT: String(reports.length) }, ...reports.map(([cle, valeur], i) => ({ [`GIT_CONFIG_KEY_${i}`]: cle, [`GIT_CONFIG_VALUE_${i}`]: valeur })));
+    if (texte(essayer(reel, ['rev-parse', '--absolute-git-dir'], `le dépôt que ce calcul lirait n'est pas celui que git admet (${gitdir})`)) !== gitdir) illisible(`le dépôt que ce calcul lirait n'est pas celui que git admet (${gitdir})`);
+    const objets = texte(essayer(reel, ['rev-parse', '--path-format=absolute', '--git-path', 'objects'], 'dossier des objets du dépôt illisible'));
     if (!objets.startsWith('/') || objets.includes('\n') || !statSync(objets, { throwIfNoEntry: false })?.isDirectory()) illisible('dossier des objets du dépôt illisible');
     if (texte(essayer(reel, ['rev-parse', '--is-shallow-repository'], 'dépôt illisible')) !== 'false') illisible("dépôt superficiel : l'historique est tronqué, à approfondir avant d'appeler ce calcul (git fetch --unshallow origin)");
     if (partiel()) illisible('dépôt partiel : des objets manquent et ce calcul ne télécharge rien, à cloner en entier avant de l\'appeler (git clone sans --filter)');
@@ -658,11 +598,12 @@ export function lecteurGit(cwd = process.cwd()) {
     ouvrir();
     return essayer({ cwd: dossier }, [`--git-dir=${join(dossier, 'depot')}`, ...args], message, input);
   };
-  // Un clone partiel (`--filter`) : git le marque dans la configuration du dépôt, par un dépôt distant « promisor ».
+  // Un clone partiel (`--filter`) : git le marque dans la configuration du dépôt, par un dépôt distant « promisor » ; lue
+  // avec ses `include` et `config.worktree` (le dépôt réel n'a ni configuration d'utilisateur ni de poste).
   // `git config --get-regexp` sort en 1 quand aucune clé ne répond.
   const partiel = () => {
     try {
-      return lignes(git(reel, ['config', '--local', '--get-regexp', '^(extensions\\.partialclone|remote\\..+\\.promisor)$']), '\n').some((l) => !/ false$/.test(l));
+      return lignes(git(reel, ['config', '--includes', '--get-regexp', '^(extensions\\.partialclone|remote\\..+\\.promisor)$']), '\n').some((l) => !/ false$/.test(l));
     } catch (e) {
       if (e instanceof Illisible || e instanceof OutilManquant) throw e;
       return false;

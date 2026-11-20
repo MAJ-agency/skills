@@ -41,18 +41,18 @@
 #   S4  la fusion calculée ne lit aucun attribut (`--attr-source=<arbre vide>`, git ≥ 2.41) : une fusion faite
 #       sous un pilote (`merge=union`, `merge=ours`) s'en écarte, donc `différent`.
 #
-# Le dépôt réel se lit sans configuration d'utilisateur ni de poste, à une exception près (A-135, A-143) : le
-# `safe.directory` par lequel l'utilisateur a déclaré sûr ce dépôt-ci, sans quoi git refuse le dépôt d'un autre
-# propriétaire. Les déclarations sont celles que git lit hors de tout dépôt, aux portées `system` et `global`, dans
-# son ordre (`git config --show-scope --includes --get-all safe.directory`, joué depuis `/` : `--global`, nommé, ne
-# lirait pas le fichier XDG quand `~/.gitconfig` existe). Ne vaut qu'une valeur égale à la racine du dépôt (le
-# premier dossier, en remontant du dossier courant sans lien symbolique, qui porte `.git`), caractère pour caractère,
-# ou `*` ; une valeur vide efface celles qui la précèdent ; une ligne d'une autre forme, ou `GIT_CONFIG_COUNT` ou
-# `GIT_CONFIG_PARAMETERS` dans l'environnement : rien n'est admis. De même pour `safe.bareRepository` (un dépôt nu trouvé
-# sans `--git-dir` est refusé sous `explicit`) : sa dernière valeur est reportée, et `explicit` dans le doute. Le
-# calcul lit moins que git, jamais plus.
-# Un dépôt partiel (`--filter` : `remote.<nom>.promisor` ou `extensions.partialclone` dans sa configuration) est
-# `illisible`, et la raison le dit : le dépôt propre ne télécharge aucun objet manquant.
+# A-159 : le calcul ne refait pas la décision de git, il la lui demande. Avant toute lecture, il joue
+# `git rev-parse --absolute-git-dir` dans le dossier courant, avec l'environnement de la session tel quel (sa
+# configuration et ses variables `GIT_CONFIG_*`, rien d'écarté ; seules les variables qui désignent un autre dépôt,
+# `GIT_DIR` et voisines, sont retirées, comme pour tout le calcul). Toute autre issue qu'un succès : `illisible`, la
+# sortie d'erreur de git en cause (dépôt d'un autre propriétaire, dépôt nu sous `safe.bareRepository = explicit`,
+# configuration que git ne lit pas…). Admis, le dépôt réel se lit sans configuration d'utilisateur ni de poste, et
+# reçoit seulement `safe.directory` pour le dossier git et l'arbre de travail que git vient d'admettre : la
+# transmission de sa décision, rien de plus. Le dossier git que le calcul lit doit être celui que git a admis, sinon
+# `illisible`.
+# Un dépôt partiel (`--filter` : `remote.<nom>.promisor` ou `extensions.partialclone` dans sa configuration, ses
+# `include` et `config.worktree` compris) est `illisible`, et la raison le dit : le dépôt propre ne télécharge aucun
+# objet manquant.
 #
 # Sortie standard : une seule ligne, le verdict. Sortie d'erreur : une ligne, sa raison. Un argument refusé n'est
 # jamais recopié. Sorties : 0 `même` · 20 `différent` · 21 `illisible` (usage, dépôt, réf, liste, dossier
@@ -75,7 +75,6 @@ meme() { rendre 0 même "$1"; }
 different() { rendre 20 différent "$1"; }
 illisible() { rendre 21 illisible "$1"; }
 SHA='^[0-9a-f]{40}$'
-NU_REFUSE="dépôt nu trouvé sans --git-dir, que git refuse sous safe.bareRepository (explicit, une valeur qu'il ne lit pas, ou explicit dans le doute) : appeler ce calcul depuis un arbre de travail"
 NOMBRE='^(0|[1-9][0-9]*)$'
 court() { printf '%s' "${1:0:9}"; }
 # Un texte en lignes, dans LIGNES, sans here-document (bash en écrirait un fichier sous le dossier temporaire).
@@ -95,14 +94,9 @@ V=$1 T=$2 B=$3
 for outil in git jq mktemp rm; do
   command -v "$outil" >/dev/null || rendre 69 illisible "$outil est requis par les scripts de la chaîne (jq : sudo apt install jq, ou brew install jq)"
 done
-# A-143 : où vit la configuration de l'utilisateur et du poste, pour la seule lecture de `safe.directory` ; et
-# A-135 : une déclaration par `git -c` ou par ces deux variables n'est pas lue, et leur présence n'admet rien.
-LIEU=()
-for variable in GIT_CONFIG_GLOBAL GIT_CONFIG_SYSTEM GIT_CONFIG_NOSYSTEM; do
-  [ -z "${!variable+x}" ] || LIEU+=("$variable=${!variable}")
-done
-parametres=0
-if [ -n "${GIT_CONFIG_COUNT+x}" ] || [ -n "${GIT_CONFIG_PARAMETERS+x}" ]; then parametres=1; fi
+# A-159 : les variables de configuration de la session, pour la seule question posée à git (`git_session`).
+SESSION=()
+for variable in $(compgen -v GIT_CONFIG); do SESSION+=("$variable=${!variable}"); done
 # Aucune variable GIT_* héritée, sauf celle qui borne la recherche du dépôt.
 for variable in $(compgen -v GIT_); do
   [ "$variable" = GIT_CEILING_DIRECTORIES ] || unset "$variable"
@@ -112,67 +106,32 @@ version=$(git version 2>/dev/null) || rendre 69 illisible "git version en échec
 [ "${BASH_REMATCH[1]}" -gt 2 ] || { [ "${BASH_REMATCH[1]}" = 2 ] && [ "${BASH_REMATCH[2]}" -ge 41 ]; } ||
   rendre 69 illisible "git ≥ 2.41 requis, ici ${BASH_REMATCH[1]}.${BASH_REMATCH[2]}"
 
-# ── safe.directory et safe.bareRepository (A-135, A-143) : ce que l'utilisateur ou le poste dit de ce dépôt ───
-# Les déclarations d'une clé, lues par git lui-même, hors de tout dépôt (`cd /`), avec les seules variables qui disent
-# où vit la configuration, dans son ordre : DECLARES (une valeur vide efface les précédentes, comme git le fait pour
-# safe.directory), DERNIERE et VU (la dernière valeur telle quelle, vide comprise, et si une valeur a été vue), et
-# LISIBLE=1, ou 0 si une ligne n'est ni `system` ni `global` (la suite d'une valeur à saut de ligne) ou si git a
-# échoué autrement que par « aucune valeur » (sortie 1). Le point final garde les sauts de ligne de la fin.
-declarations() { # <clé>
-  local lu rc reste l TAB=$'\t'
-  DECLARES=() LISIBLE=1 DERNIERE='' VU=0
-  lu=$(
-    for kv in ${LIEU[@]+"${LIEU[@]}"}; do export "${kv%%=*}=${kv#*=}"; done
-    cd / && git config --show-scope --includes --get-all "$1" 2>/dev/null && printf .
-  ) && rc=0 || rc=$?
-  if [ "$rc" != 0 ]; then
-    # Sortie 1 de `git config` : aucune valeur. Toute autre : rien n'est lisible.
-    [ "$rc" = 1 ] && [ -z "$lu" ] || LISIBLE=0
-    return 0
-  fi
-  [[ "$lu" == *. ]] || { LISIBLE=0; return 0; }
-  reste=${lu%.}
-  while [ "$LISIBLE" = 1 ] && [[ "$reste" == *$'\n'* ]]; do
-    l=${reste%%$'\n'*} reste=${reste#*$'\n'}
-    if [[ "$l" =~ ^(system|global)"$TAB"(.*)$ ]]; then
-      if [ -z "${BASH_REMATCH[2]}" ]; then DECLARES=(); else DECLARES+=("${BASH_REMATCH[2]}"); fi
-      DERNIERE=${BASH_REMATCH[2]} VU=1
-    else LISIBLE=0; fi
-  done
-  [ -z "$reste" ] || LISIBLE=0
+# ── A-159 : git lui-même dit s'il admet ce dépôt ────────────────────────────────────────────────────────────
+# Dans le dossier courant, avec l'environnement de la session : seules ses variables GIT_CONFIG_* lui sont rendues
+# (les autres GIT_*, qui désignent un autre dépôt, restent retirées).
+git_session() {
+  (
+    for kv in ${SESSION[@]+"${SESSION[@]}"}; do export "${kv%%=*}=${kv#*=}"; done
+    exec git "$@"
+  )
 }
-# safe.directory : la racine est celle que git compare, le premier dossier, en remontant, qui porte `.git`. Seule
-# vaut une valeur égale à elle, ou `*` ; rien n'est admis si une déclaration est illisible, ou si GIT_CONFIG_COUNT ou
-# GIT_CONFIG_PARAMETERS est dans l'environnement (une remise à zéro peut s'y trouver).
-sur=''
-racine=$(pwd -P 2>/dev/null) && [[ "$racine" == /* ]] || racine=''
-while [ -n "$racine" ] && ! [ -e "${racine%/}/.git" ]; do
-  if [ "$racine" = / ]; then racine=''; else racine=${racine%/*}; racine=${racine:-/}; fi
-done
-if [ -n "$racine" ] && [ "$parametres" = 0 ]; then
-  declarations safe.directory
-  if [ "$LISIBLE" = 1 ]; then
-    for v in ${DECLARES[@]+"${DECLARES[@]}"}; do
-      if [ "$v" = '*' ] || [ "$v" = "$racine" ]; then sur=$racine; fi
-    done
-  fi
+if ! gitdir=$(git_session rev-parse --absolute-git-dir 2>/dev/null); then
+  # La cause : la première ligne `fatal:` de la sortie d'erreur de git, ou à défaut sa première ligne.
+  erreur=$(git_session rev-parse --absolute-git-dir 2>&1 >/dev/null) || :
+  decouper "$erreur"
+  cause=${LIGNES[0]:-git a échoué sans rien dire}
+  for l in ${LIGNES[@]+"${LIGNES[@]}"}; do
+    if [[ "$l" == fatal:* ]]; then cause=$l; break; fi
+  done
+  illisible "pas dans un dépôt git que git admet : $cause"
 fi
-# safe.bareRepository (A-154) : git refuse un dépôt nu trouvé sans `--git-dir` quand elle vaut `explicit`, et échoue
-# sur une valeur vide ou inconnue. Sa dernière valeur est reportée telle quelle, vide comprise ; une lecture
-# illisible, ou GIT_CONFIG_COUNT ou GIT_CONFIG_PARAMETERS présente (où elle peut valoir `explicit`) : `explicit`. Le
-# calcul lit moins que git, jamais plus.
-nu='' nu_vu=0
-if [ "$parametres" = 1 ]; then nu=explicit nu_vu=1
-else
-  declarations safe.bareRepository
-  if [ "$LISIBLE" = 0 ]; then nu=explicit nu_vu=1; elif [ "$VU" = 1 ]; then nu=$DERNIERE nu_vu=1; fi
-fi
-# Les lectures du dépôt réel : sans configuration d'utilisateur ni de poste, sauf ces deux reports (SANS_NU=1 : sans
-# celui de safe.bareRepository, pour nommer la cause d'un refus, jamais pour lire).
+[[ "$gitdir" == /* ]] && [[ "$gitdir" != *$'\n'* ]] || illisible "dossier git du dépôt illisible"
+haut=$(git_session rev-parse --show-toplevel 2>/dev/null) && [[ "$haut" == /* ]] && [[ "$haut" != *$'\n'* ]] || haut=''
+# Les lectures du dépôt réel : sans configuration d'utilisateur ni de poste ; `safe.directory` pour le seul dossier git
+# et le seul arbre de travail que git vient d'admettre (sans lui, le dépôt d'un autre propriétaire serait refusé).
 r() {
-  local -a reports=()
-  [ -z "$sur" ] || reports+=(safe.directory "$sur")
-  [ "$nu_vu" = 0 ] || [ "${SANS_NU:-0}" = 1 ] || reports+=(safe.bareRepository "$nu")
+  local -a reports=(safe.directory "$gitdir")
+  [ -z "$haut" ] || reports+=(safe.directory "$haut")
   local -a vars=(GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_SYSTEM=/dev/null GIT_CONFIG_NOSYSTEM=1 "GIT_CONFIG_COUNT=$((${#reports[@]} / 2))")
   local i
   for ((i = 0; i < ${#reports[@]} / 2; i++)); do vars+=("GIT_CONFIG_KEY_$i=${reports[2 * i]}" "GIT_CONFIG_VALUE_$i=${reports[2 * i + 1]}"); done
@@ -183,12 +142,8 @@ r() {
 }
 
 # ── Le dépôt réel : où sont ses objets, le sha de la cible, s'il est superficiel ou partiel. Rien d'autre. ──────
-if ! r rev-parse --git-dir >/dev/null 2>&1; then
-  # Un dépôt nu que safe.bareRepository fait refuser : la cause est nommée (la lecture sans ce report ne sert qu'à ça).
-  [ "$nu_vu" = 0 ] || [ "$nu" = all ] || [ "$(SANS_NU=1 r rev-parse --is-bare-repository 2>/dev/null)" != true ] ||
-    illisible "$NU_REFUSE"
-  illisible "pas dans un dépôt git"
-fi
+lu=$(r rev-parse --absolute-git-dir 2>/dev/null) && [ "$lu" = "$gitdir" ] ||
+  illisible "le dépôt que ce calcul lirait n'est pas celui que git admet ($gitdir)"
 [[ "$B" != *[[:cntrl:][:space:]]* ]] && [ "$B" != HEAD ] && r check-ref-format "refs/remotes/origin/$B" 2>/dev/null ||
   illisible "nom de branche cible invalide"
 ! r symbolic-ref -q "refs/remotes/origin/$B" >/dev/null 2>&1 || illisible "origin/$B est une réf symbolique, pas une branche"
@@ -217,9 +172,10 @@ BRUIT=$(p cat-file -e "$T^{commit}" 2>&1) || illisible "T introuvable dans ce d�
 
 superficiel=$(r rev-parse --is-shallow-repository 2>/dev/null) || illisible "git rev-parse --is-shallow-repository en échec"
 [ "$superficiel" = false ] || illisible "dépôt superficiel : l'historique est tronqué, à approfondir avant d'appeler ce calcul (git fetch --unshallow origin)"
-# Un clone partiel : git le marque dans la configuration du dépôt, par un dépôt distant « promisor ». Sortie 1 :
-# aucune clé ne répond ; toute autre sortie en échec : illisible.
-partiel=$(r config --local --get-regexp '^(extensions\.partialclone|remote\..+\.promisor)$' 2>/dev/null) && rc=0 || rc=$?
+# Un clone partiel : git le marque dans la configuration du dépôt, par un dépôt distant « promisor » ; lue avec ses
+# `include` et `config.worktree` (le dépôt réel n'a ni configuration d'utilisateur ni de poste). Sortie 1 : aucune clé
+# ne répond ; toute autre sortie en échec : illisible.
+partiel=$(r config --includes --get-regexp '^(extensions\.partialclone|remote\..+\.promisor)$' 2>/dev/null) && rc=0 || rc=$?
 case $rc in
   0)
     decouper "$partiel"

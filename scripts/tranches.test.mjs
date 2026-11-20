@@ -31,7 +31,7 @@ test("les noms se lisent aux `test(` de début de ligne, nom littéral suivi d'u
 });
 
 test("un banc qui écrit des sous-tests est reconnu : il se jouera entier", () => {
-  for (const s of ['await t.test("enfant", () => {});', "describe('suite', () => {});", "  it(`cas`, () => {});", 'suite("s", () => {});', "await contexte.test('x', () => {});"])
+  for (const s of ['await t.test("enfant", () => {});', "describe('suite', () => {});", "  it(`cas`, () => {});", 'suite("s", () => {});', "await contexte.test('x', () => {});", 'await t.test( "espace", () => {});', "await t.test ('espace avant', () => {});"])
     assert.ok(aDesSousTests(s), s);
   for (const s of ['test("seul", () => {});', "if (/^x/.test(ligne)) {}", "const ok = MOTIF.test(nom);", 'assert.ok(re.test(nom), "édit");', "const split = (x) => x;"])
     assert.ok(!aDesSousTests(s), s);
