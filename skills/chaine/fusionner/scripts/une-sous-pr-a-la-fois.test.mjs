@@ -42,7 +42,7 @@ function sousPrDeSujets(sujets, { retard = [], conflit = [] } = {}) {
     }
     const suite = Object.fromEntries(numeros.filter((n) => conflit.includes(n)).map((n) => [`docs/pr-${n}.md`, "sujet\n"]));
     if (retard.includes(nom)) suite[`docs/${nom}-suite.md`] = "suite\n";
-    if (Object.keys(suite).length) d.branche(`sujet/${nom}`, `origin/sujet/${nom}`, suite, `feat(${nom}): suite (#2)`);
+    if (Object.keys(suite).length) d.branche(`sujet/${nom}`, `origin/sujet/${nom}`, suite, `feat(${nom}): suite, #2`);
   }
   d.git("switch", "-q", "--detach", "origin/develop");
   d.github({ exiges: ["qualite"], checks, pulls });
