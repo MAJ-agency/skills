@@ -1114,3 +1114,8 @@ La session de suite fait, dans cet ordre :
   - **Sonde `/security-review` lancée** (`A-162`, préalable au lot 4) : session_01BxuG33NCAYxm9fbocULFdx, Opus, mode « auto », montage local seulement. Les sous-agents lisent-ils le clone ou la base ?
   - **Ticket 65 en rédaction**, par un agent local sur Sonnet. Il porte les petits correctifs : le `\p{Cc}` d'`A-175` et la limite `await`/`yield` de `tranches.mjs`.
   - L'alerte hebdomadaire est inchangée. Prochain réveil à 11 h 04.
+- 2026-11-20 — 10 h 08 UTC. **Sonde `/security-review`, premier montage** : le clone est dans le scratchpad, hors des dossiers de travail.
+  - Le `cd` ne tient pas : chaque appel Bash revient au dossier de la session.
+  - Le préambule de la commande et chaque sous-agent (`pwd`, Read en relatif) lisent la base. La faille n'est jamais vue.
+  - Le filtre de faux positifs, à qui on donne le constat, lit le fichier de la base et le juge faux positif à 1/10, deux fois sur deux.
+  - Ce montage n'est pas celui du skill : le clone de C4 est `<session>/.relecture-securite`, un dossier de travail où le `cd` tient (`A-147`). **Second montage demandé**, avec le clone à cet endroit : les sous-agents suivent-ils le dossier courant de la session, ou son dossier de départ ? La décision sur le lot 4 l'attend.
