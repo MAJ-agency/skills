@@ -1124,3 +1124,4 @@ La session de suite fait, dans cet ordre :
   - Une injection réelle, notée 7/10, est écartée par le seuil de 8 de la commande : le rapport est vide.
   - **A-178** : C4 tient tel qu'il est dans `main` ; le lot 4 n'attend plus la sonde. Un rapport vide ne prouve pas l'absence de faille, et l'axe Règles garde ses critères ; c'est pour le prochain ticket du skill `relecture`.
   - La session de la sonde est archivée. Elle n'a rien poussé ; son clone et sa ligne d'exclusion sont restés dans son seul conteneur, que l'archivage libère.
+- 2026-11-20 — 10 h 13 UTC. **Ticket 65 complété d'un troisième point** (`A-178` dans le skill `relecture`). **Ticket 66 en rédaction** par un agent local sur Opus : le lot 4 (skill `relecteur`, décisions `A-83` à `A-90`), avec la retouche de `compter` qu'`A-141` demandait avant le lot 4. Il aura un seul tour de relecture (`P-65`).
