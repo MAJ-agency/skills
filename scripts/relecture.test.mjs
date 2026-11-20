@@ -519,7 +519,7 @@ test("les règles de suite, par leur texte : une liste vide après un échec n'e
     "les chemins sensibles touchés (`sensibles.txt`, contrat de la base et de la tête)",
     "un fichier sensible que personne ne peut lire ne se valide pas, le verdict est `incomplet`",
     "dans le doute, l'axe se joue",
-    "Aucun fichier du diff relu n'est sans axe : seul un diff relu vide, ou un ticket dont seules `Status:` et `## Comments` changent, n'a pas d'axe",
+    "Aucun fichier du diff relu n'est sans axe : seul un diff relu vide, ou un ticket dont seules `Status:` et `## Comments` changent, n'a pas d'axe ; le verdict le dit, et vaut `validé` si les contrôles de l'étape 5 passent.",
     // L'étape 5.
     "une autre empreinte, un dossier qui n'est plus propre, ou un `CLAUDE.md` apparu (dans l'arbre, au-dessus de lui ou dans le dossier de la session), et aucun axe ne se joue, sortie 14, le verdict est `incomplet`",
     "« index périmés » : chacun est un constat bloquant ; un sous-produit non suivi n'en est pas un.",
@@ -1745,6 +1745,12 @@ test("A-162, une sous-PR : un lien symbolique .claude ne fait entrer aucune cons
   writeFileSync(join(B, "diff.fait"), "");
   assert.deepEqual([p.joue("axes", m).status, p.joue("axes", m).stdout.split("\n")[0]], [12, "liste des fichiers absente"]);
   for (const s of ["liste", "diff", "axes", "c1", "garde"]) assert.equal(p.joue(s, m).status, 0, s);
+  // X1, X2 : ce qu'un axe a lu. Sa liste dans le désordre se lit ; un chemin qu'il cite avant la liste n'est pas lu.
+  const relusA = listeDe(join(B, "relus.txt"));
+  const lusA = (texte) => { writeFileSync(join(B, "axe-1.txt"), texte); return p.joue("lus", m, {}, { "<i>": "1" }); };
+  assert.equal(lusA(`aucun écart\nFichiers du diff lus :\n${[...relusA].reverse().join("\n")}\n`).status, 0, "une liste dans le désordre se lit");
+  const cite = lusA(`B1 — ${JETON}:1 — un écart\n${JETON}\nFichiers du diff lus :\n${relusA.filter((f) => f !== JETON).join("\n")}\n`);
+  assert.deepEqual([cite.status, cite.stdout.trim().split("\n").slice(-2)], [1, [JETON, "lus : sortie 1"]], "un chemin cité avant la liste n'est pas un fichier lu");
 
   // X17 : montrer rend le CLAUDE.md que la PR change, tel que le sommet l'écrit, sans qu'il soit sur le disque.
   writeFileSync(join(B, "montrer.txt"), "CLAUDE.md\n");
@@ -1824,7 +1830,7 @@ test("A-162, une PR de mise à jour : une ligne retirée n'est écartée que si 
   const F = "apps/api/src/facture/droits.ts";
   const GARDE = '  if (!admin) throw new Error("interdit");';
   p.git(p.auteur, "switch", "-q", "develop");
-  p.ecrire(F, `export function ancienne(admin) {\n${GARDE}\n  return 1;\n}\nexport function lire(admin) {\n${GARDE}\n  return 2;\n}\nexport const version = 1;\n`);
+  p.ecrire(F, `export function ancienne(admin) {\n${GARDE}\n  return 1;\n}\nexport function lire(admin) {\n${GARDE}\n  return 2;\n}\nexport const version = 1;\nexport const nom = "droits";\nexport function vieille(admin) {\n${GARDE}\n  return 3;\n}\n`);
   p.commit("feat: droits");
   p.git(p.auteur, "push", "-q", "origin", "develop");
   p.git(p.auteur, "switch", "-q", "sujet/facture");
@@ -1834,13 +1840,13 @@ test("A-162, une PR de mise à jour : une ligne retirée n'est écartée que si 
   p.git(p.auteur, "push", "-q", "origin", "sujet/facture");
   // develop retire la fonction obsolète, sa garde avec elle, et change la constante : conflit.
   p.git(p.auteur, "switch", "-q", "develop");
-  p.ecrire(F, `export function lire(admin) {\n${GARDE}\n  return 2;\n}\nexport const version = 3;\n`);
-  p.commit("refactor: retire ancienne");
+  p.ecrire(F, `export function lire(admin) {\n${GARDE}\n  return 2;\n}\nexport const version = 3;\nexport const nom = "droits";\n`);
+  p.commit("refactor: retire ancienne et vieille");
   p.git(p.auteur, "push", "-q", "origin", "develop");
   // La résolution perd aussi la garde de lire().
   p.git(p.auteur, "switch", "-q", "-c", "maj/facture", "sujet/facture");
   assert.equal(p.lancer(p.auteur, "git", ["merge", "origin/develop"]).status, 1, "la fusion est en conflit");
-  p.ecrire(F, "export function lire(admin) {\n  return 2;\n}\nexport const version = 2;\n");
+  p.ecrire(F, 'export function lire(admin) {\n  return 2;\n}\nexport const version = 2;\nexport const nom = "droits";\n');
   p.git(p.auteur, "add", "-A");
   p.git(p.auteur, "commit", "-q", "--no-edit");
   const sommet = p.git(p.auteur, "rev-parse", "HEAD");
@@ -1854,10 +1860,11 @@ test("A-162, une PR de mise à jour : une ligne retirée n'est écartée que si 
   // develop la retire au même endroit, mais dans un morceau que le sujet a changé (« return 10 ») : ce n'est pas le
   // même morceau, la résolution a aussi perdu ce que le sujet écrivait, le constat reste. Le cas où develop retire
   // seul le même morceau est celui de « une PR de mise à jour d'un sujet » (« 3 : écarté »).
-  writeFileSync(join(B, "tri.txt"), `retirée\t6\t${F}\nretirée\t2\t${F}\n`);
+  // La garde de vieille() (ligne 12) : develop retire seul ce morceau, que le sujet n'a pas touché : écartée.
+  writeFileSync(join(B, "tri.txt"), `retirée\t6\t${F}\nretirée\t2\t${F}\nretirée\t12\t${F}\n`);
   const tri = p.joue("tri", m);
   assert.equal(tri.status, 0, tri.sortie);
-  assert.deepEqual(tri.stdout.trim().split("\n"), ["1 : gardé", "2 : gardé", "tri : sortie 0"], tri.sortie);
+  assert.deepEqual(tri.stdout.trim().split("\n"), ["1 : gardé", "2 : gardé", "3 : écarté, develop retire seul cette ligne", "tri : sortie 0"], tri.sortie);
 });
 
 test("A-162 : les GIT_CONFIG_* de la session sont complétés, jamais remplacés : un distant joint par une réécriture d'URL se rapatrie encore au diff relu (m8)", { timeout: 120_000 }, () => {
