@@ -1062,5 +1062,5 @@ La session de suite fait, dans cet ordre :
 - 2026-11-20 — 06 h 56 UTC. **PR 143 ordonnée** au sommet `eb52035`. Ses quatre contrôles sont verts et la PR est clean, base `860cd9c`, relue à la source. Sur la PR : l'ordre `à-fusionner au sommet eb52035…` et le label. Capitaine et session prévenus. La session du ticket 64 (4,96 $) attend sa suite locale et la CI de `f94e98f`.
 - 2026-11-20 — 06 h 57 UTC. **La PR 143 est fusionnée (`b944606`, plugin 7.37.1) : le ticket 63 est fait.**
   - Vérifié à la source : l'arbre de `main` (`cde0674…`) est celui du sommet ordonné `eb52035`, et son parent est `860cd9c`.
-  - Le ticket est passé à « Fait » et sa session est archivée. Coût de la session Sonnet : environ 3 $, pour une PR passée en deux tours.
+  - Le ticket est passé à « Fait » et sa session est archivée. Coût de la session Sonnet : 6,31 $ (lu à l'archivage), pour une PR passée en deux tours.
   - Le ticket 64 suivra `main` en 7.37.2.
