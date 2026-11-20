@@ -94,10 +94,10 @@ index ff575de..17734af 100644
  const tmp = mkdtempSync(join(tmpdir(), "entree-"));
 diff --git a/scripts/relecteur.test.mjs b/scripts/relecteur.test.mjs
 new file mode 100644
-index 0000000..d574395
+index 0000000..add3eb6
 --- /dev/null
 +++ b/scripts/relecteur.test.mjs
-@@ -0,0 +1,79 @@
+@@ -0,0 +1,98 @@
 +// Banc des textes du lot 4 (ticket 66) : le skill `relecteur` est déclaré et se lance comme un rôle, ses deux
 +// étiquettes sont celles de la décision du Relecteur, son gabarit de lancement porte les lignes de tout prompt, et
 +// les cartes le nomment. Le script et sa conduite sont jugés par son banc, `skills/chaine/relecteur/scripts/`.
@@ -129,7 +129,26 @@ index 0000000..d574395
 +  assert.ok(JSON.parse(lire(".claude-plugin/plugin.json")).skills.includes("./skills/chaine/relecteur"));
 +  assert.ok(JSON.parse(lire("skills/monorepo/socle-monorepo/references/scripts/verify/references-agent-integrees.json"))["skills-plugins"].includes("maj-skills:relecteur"));
 +  exigerDans("README.md", ["| [`relecteur`](skills/chaine/relecteur/SKILL.md)", "    relecteur/\n      SKILL.md ", "relecteur.mjs (passe, jouer, distribuer, veille)"]);
-+  exigerDans(`${SKILL}/SKILL.md`, ["**La file, la décision et la veille sont des scripts**", "la nouvelle étiquette **avant** de retirer l'ancienne", "`source_revision` **la base de la PR** (jamais sa tête)", "Créer d'abord, écrire la distribution ensuite", "**sort en 3 sans rien écrire**", "Il ne se demande que pour la règle 5.", "`VEILLE GESTE`", "`VEILLE FINIE`", "`VEILLE ARRÊTÉE sortie <c>`", "**Tant que la veille tourne, la session ne lance aucune sous-commande**"]);
++  exigerDans(`${SKILL}/SKILL.md`, ["**La file, la décision et la veille sont des scripts**", "la nouvelle étiquette **avant** de retirer l'ancienne", "`source_revision` **la base de la PR** (jamais sa tête)", "Créer d'abord, écrire la distribution ensuite", "**sort en 3 sans rien écrire**", "`VEILLE GESTE`", "`VEILLE FINIE`", "`VEILLE ARRÊTÉE sortie <c>`"]);
++});
++
++test("A-180 — la veille sous le plafond de l'outil Bash, le couple au réemploi, l'état par get_session, une suite écrite pour chaque sortie", () => {
++  exigerDans(`${SKILL}/SKILL.md`, [
++    "`select:mcp__claude-code-remote__send_message,mcp__claude-code-remote__create_session,mcp__claude-code-remote__get_session,TaskStop`",
++    "relecteur.mjs' veille --duree 25 >",
++    "**25 minutes, pas plus** : l'outil Bash arrête une tâche de fond à 30 minutes par défaut",
++    "au-delà de 500 000 tokens, l'écrire à l'architecte, qui lance un Relecteur neuf, et s'arrêter",
++    "**`passe` d'abord**, toujours",
++    "**et au même couple** que celui du geste",
++    "pour les règles 4, 5 et 6 seulement",
++    "`plafond` : plus de 700 000 tokens de contexte",
++    "**Un verrou** (`flock`) tient le dossier",
++  ]);
++  const skill = lire(`${SKILL}/SKILL.md`);
++  const sorties = skill.slice(skill.indexOf("## Les sorties de `passe`, `jouer` et `distribuer`"), skill.indexOf("## Créer ou relancer les sessions"));
++  for (const code of [0, 1, 2, 3, 5, 6, 7, 9, 12]) assert.match(sorties, new RegExp(`^\\| ${code} \\| \\S`, "m"), `la sortie ${code} a sa suite`);
++  assert.match(sorties, /^\| 7 \| .*au second refus, l'architecte et `--taire <n>`/m);
++  assert.ok(!/elle a écrit qu'elle est au plafond/.test(skill), "« au plafond » ne se lit plus dans un message");
 +});
 +
 +test("les deux étiquettes neuves : labels.sh en pose neuf, dont les quatre que la décision du Relecteur lit ; plus aucun « sept labels »", () => {
@@ -344,10 +363,10 @@ index 8e42fb7..e22c70a 100644
    assert.equal(joue({ commentaires: fil(...base, verdict(1, 'r1', 'validé'), verdict(1, 'r1', 'refusé')) }).poser, 'à-reprendre', 'le dernier verdict fait foi');
 diff --git a/skills/chaine/relecteur/SKILL.md b/skills/chaine/relecteur/SKILL.md
 new file mode 100644
-index 0000000..52f9312
+index 0000000..5a936b2
 --- /dev/null
 +++ b/skills/chaine/relecteur/SKILL.md
-@@ -0,0 +1,86 @@
+@@ -0,0 +1,101 @@
 +---
 +name: relecteur
 +description: Relecteur d'un dépôt — aiguille la relecture indépendante des PR du régime 8 de la chaîne. Une veille relit la file (PR ouvertes qui portent `à-relire` ou `à-fusionner`), un script prend pour chaque PR la décision du Relecteur (la même que celle du capitaine), et la session ne joue que ce que la machine ne peut pas jouer : créer une session de relecture, lui écrire, lire son état, envoyer une ligne à l'auteur, au conducteur ou à l'architecte. Il pose `à-reprendre` et `à-fusionner`, ne relit rien, n'arbitre rien. À lancer dans une session dédiée, « Relecteur », une par dépôt, par sa commande en première ligne, jamais par le modèle.
@@ -373,37 +392,52 @@ index 0000000..52f9312
 +
 +## Mise en place (une fois par session)
 +
-+1. Charger les outils de session : `ToolSearch`, requête `select:mcp__claude-code-remote__send_message,mcp__claude-code-remote__create_session,mcp__claude-code-remote__get_session`. Un outil absent : l'écrire à l'architecte et s'arrêter.
-+2. Le dossier de la session est **le sien seul** : il n'y écrit, n'y commite et n'y pousse rien. Les scripts le placent sur `origin/develop` à chaque geste, approfondissent le clone une fois et installent les dépendances de develop quand elles changent.
-+3. Le premier geste : `node '<dossier du skill>/scripts/relecteur.mjs' passe`. Sortie 6 : le dossier n'est pas propre, ou `scripts/chaine/` n'a pas les calculs de la relecture (`fusionner`, `sujet` et `relecture` sont à reposer) : l'écrire à l'architecte, rien d'autre. Sortie 12 : git ne lit pas `origin` ; le dire de même.
-+4. Puis la veille (« La veille »), et rien d'autre tant qu'elle tourne.
++1. Charger les outils de session : `ToolSearch`, requête `select:mcp__claude-code-remote__send_message,mcp__claude-code-remote__create_session,mcp__claude-code-remote__get_session,TaskStop`. Un outil absent : l'écrire à l'architecte et s'arrêter.
++2. Le dossier de la session est **le sien seul** : il n'y écrit, n'y commite et n'y pousse rien. Les scripts le placent sur `origin/develop` à chaque geste, sans hook ni fsmonitor, approfondissent le clone une fois et installent les dépendances de develop quand son lockfile change. **Un verrou** (`flock`) tient le dossier pendant chaque sous-commande : un geste lancé pendant une passe de la veille attend sa fin.
++3. Le premier geste : `node '<dossier du skill>/scripts/relecteur.mjs' passe`, et ses sorties comme celles de `jouer` (« Les sorties »).
++4. Puis la veille (« La veille »).
 +
-+## Ce que rend la passe
++## À chaque réveil
 +
-+`passe` écrit une ligne JSON par PR ouverte. Son champ `geste` dit ce que la session fait :
++Fin de la veille, message d'une session : **`passe` d'abord**, toujours, puis les gestes qu'elle rend, PR par PR. `passe` écrit une ligne JSON par PR ouverte ; son champ `geste` dit ce que la session fait :
 +
 +| `geste` | La session |
 +| --- | --- |
-+| `rien`, `hors-regime`, `pause` | rien |
++| `rien`, `hors-regime`, `pause` | rien ; sauf `rien` avec la raison `attente` (règle 5) : « L'état des sessions » |
 +| `contrat-illisible` | une ligne à l'architecte (la clé `relecture` d'une base est mal formée), une fois ; la veille relancée avec `--taire <n>` |
 +| `etiqueter`, `plafonner`, `panne`, `illisible` | `jouer <n>`, puis chaque ligne de `lignes` (« Les lignes ») |
-+| `distribuer` (règles 4 et 6) | « Créer ou relancer les sessions », puis `distribuer <n> <sessions…>`, puis le message de relance aux sessions réemployées |
-+| `completer` | créer `manque` sessions neuves, puis `distribuer <n> <neuves…>` |
-+| `remplacer` | créer une session neuve, puis `distribuer <n> <neuve> --sessions <fichier>` ; cause `plafond` : une ligne au conducteur (`faits.conducteur`), « session de relecture <id> remplacée au plafond de contexte, PR <n> » |
-+| `reecrire` | lire l'état de la session (« L'état des sessions ») ; vivante : `distribuer <n>`, puis le message de relance ; sinon `jouer <n> --sessions <fichier>`, qui rend `remplacer` |
++| `distribuer` (règles 4 et 6) | « Créer ou relancer les sessions », puis `distribuer <n> --sommet <sommet> --couple <modele>/<effort> <sessions…>`, puis le message de relance aux sessions réemployées |
++| `completer` | créer `manque` sessions neuves, puis `distribuer <n> --sommet … --couple … <neuves…>` |
++| `remplacer` | créer une session neuve, puis `distribuer <n> --sommet … --couple … --remplace <ancienne> <neuve>` ; cause `plafond` : une ligne au conducteur (`faits.conducteur`), « session de relecture <id> remplacée au plafond de contexte, PR <n> » |
++| `reecrire` | lire l'état de la session ; vivante : `distribuer <n> --sommet … --couple …`, puis le message de relance ; sinon `jouer <n> --sessions <fichier>`, qui rend `remplacer` |
 +
-+`jouer <n>` refait la décision de la PR et joue sur GitHub ce qui s'y écrit : la nouvelle étiquette **avant** de retirer l'ancienne, le commentaire du plafond, de la panne ou de l'illisible. Pour un geste de session, il n'écrit rien et rend le geste à jouer, avec `faits` : `modele` et `effort` de la session à créer, `sensible`, `exiges`, `auteur`, `conducteur`. `distribuer` refait la décision et **sort en 3 sans rien écrire** si le geste a changé entre-temps (un verdict tombé, un push) : la session créée pour rien est orpheline ; une ligne à l'architecte, qui l'archive. Sortie 7 : GitHub a refusé une écriture ; la rejouer au réveil suivant, puis l'écrire à l'architecte.
++`jouer <n>` refait la décision de la PR et joue sur GitHub ce qui s'y écrit : la nouvelle étiquette **avant** de retirer l'ancienne, le commentaire du plafond, de la panne ou de l'illisible. Pour un geste de session, il n'écrit rien et rend le geste à jouer, avec `faits` : `modele` et `effort` de la session à créer, `sensible`, `exiges`, `auteur`, `conducteur`. `distribuer` reçoit le sommet et le couple que le geste nommait, refait la décision et **sort en 3 sans rien écrire** si le geste, le sommet ou le couple ont changé entre-temps (un verdict tombé, un push, une PR devenue sensible).
++
++## Les sorties de `passe`, `jouer` et `distribuer`
++
++| Sortie | La session |
++| --- | --- |
++| 0 | la suite du geste |
++| 1 | une erreur du script (sa pile) : la ligne à l'architecte, la PR tue (`--taire <n>`), rien d'autre pour elle |
++| 2 | un appel mal formé (la cause dite) : le refaire une fois d'après la cause ; encore, l'architecte, et `--taire <n>` |
++| 3 | la PR est fermée, ou le geste a changé : `passe`, et le geste qu'elle rend ; une session créée pour rien est orpheline, une ligne à l'architecte, qui l'archive |
++| 5 | GitHub n'a pas répondu : rien, le réveil suivant rejoue |
++| 6 | le dossier n'est pas propre, `scripts/chaine/` n'a pas les calculs de la relecture (`fusionner`, `sujet`, `relecture` à reposer), ou `flock` manque : l'architecte, et s'arrêter |
++| 7 | GitHub a refusé une écriture : la rejouer au réveil suivant ; au second refus, l'architecte et `--taire <n>` |
++| 9 | le verrou n'est pas venu en 5 minutes : rejouer au réveil suivant |
++| 12 | git ne lit pas `origin` : rejouer au réveil suivant ; à la seconde fois, l'architecte, et s'arrêter |
 +
 +## Créer ou relancer les sessions
 +
-+- **Une session par PR, et une seule** : une session de relecture ne relit jamais une autre PR. Les tours suivants d'une même PR vont aux mêmes sessions tant qu'elles vivent et ne sont pas au plafond de contexte (`preferees` du geste) ; sinon à des sessions neuves.
-+- **Créer** : `create_session`, avec `title` « `<Projet> — Relecture PR <n>` », `tags` `["role:relecture", "pr:<n>"]`, `source_url` le dépôt, `source_revision` **la base de la PR** (jamais sa tête), `model` et `effort` de `faits` (`relecture.ordinaire` ou `relecture.sensible` du contrat), `permission_mode` `"auto"`, et le prompt de [`references/prompt-session.md`](references/prompt-session.md), rempli. Créer d'abord, écrire la distribution ensuite : une session que nulle distribution ne nomme ne publie rien.
++- **Une session par PR, et une seule** : une session de relecture ne relit jamais une autre PR.
++- **Réemployer**, dans les règles 4, 5 et 6, une session de `preferees` (ou du tour) seulement si `get_session` la dit vivante, à 700 000 tokens de contexte au plus, **et au même couple** que celui du geste (`model` et `effort` qu'il rend égaux à `faits.modele` et `faits.effort`) ; sinon une session neuve. Une PR devenue sensible ou « double » reçoit des sessions neuves au couple sensible (`P-64` prime sur `P-52`).
++- **Créer** : `create_session`, avec `title` « `<Projet> — Relecture PR <n>` », `tags` `["role:relecture", "pr:<n>"]`, `source_url` le dépôt, `source_revision` **la base de la PR** (jamais sa tête), `model` et `effort` de `faits` (`relecture.ordinaire` ou `relecture.sensible` du contrat, `opus` ou `sonnet`), `permission_mode` `"auto"`, et le prompt de [`references/prompt-session.md`](references/prompt-session.md), rempli. Créer d'abord, écrire la distribution ensuite : une session que nulle distribution ne nomme ne publie rien. `create_session` refuse `effort` (l'outil est pré-approuvé dans cette session) : ne pas créer sans lui ; l'architecte, et `--taire <n>`.
 +- **Deux sessions** quand `nombre` vaut 2 : chacune a pour consigne de ne pas lire le verdict de l'autre (le prompt le dit).
 +- **Relancer** une session réemployée : le message de relance du même fichier, par `send_message`, après la distribution.
 +
 +## L'état des sessions
 +
-+Il ne se demande que pour la règle 5. À chaque réveil, pour chaque PR que la passe range en règle 5 (`reecrire`, ou `rien` avec la raison `attente`), lire chaque session attendue par `get_session`, écrire `{ "<session>": "vivante" | "morte" | "plafond" }` dans un fichier du scratchpad, et rejouer `jouer <n> --sessions <fichier>`. `morte` : archivée, en échec, ou introuvable ; `plafond` : elle a écrit qu'elle est au plafond de contexte ; sinon `vivante`.
++Il se lit par `get_session`, pour les règles 4, 5 et 6 seulement : les `preferees` d'un geste `distribuer`, et, pour chaque PR que la passe range en règle 5 (`reecrire`, ou `rien` avec la raison `attente`), chaque session attendue, écrite dans un fichier du scratchpad, `{ "<session>": "vivante" | "morte" | "plafond" }`, puis `jouer <n> --sessions <fichier>`. `morte` : archivée, en échec, ou introuvable ; `plafond` : plus de 700 000 tokens de contexte ; sinon `vivante`.
 +
 +## Les lignes
 +
@@ -411,21 +445,21 @@ index 0000000..52f9312
 +
 +## Les messages des sessions de relecture
 +
-+Un message ne fait que hâter : la veille fait le même travail à sa sonde suivante. **Tant que la veille tourne, la session ne lance aucune sous-commande** : deux préparations du même dossier en même temps se gênent (git). Pour un message qui demande un geste, arrêter la veille (`TaskStop`), jouer, puis la relancer. Quatre lignes peuvent venir d'une session de relecture :
++Un message ne fait que hâter : la veille fait le même travail à sa sonde suivante. Quatre lignes peuvent venir d'une session de relecture :
 +
-+- « verdict écrit sur la PR <n>, tour <k> » : rien, la veille le lira ;
-+- « PR <n> : la session <id> a écrit cette PR ou son ticket, elle ne la relit pas » ; ou « PR <n> : verdict non publié, la lecture des commentaires ou la publication a échoué » : la session se compte `morte` pour ce tour (« L'état des sessions »), et `jouer <n> --sessions <fichier>` la remplace, une fois par tour ;
-+- « PR <n> : aucune distribution ne nomme la session <id>, verdict non publié » : si `jouer <n>` rend encore le geste qui l'a créée, `distribuer <n> <id…>`, puis le message de relance ; sinon elle est orpheline, une ligne à l'architecte.
++- « verdict écrit sur la PR <n>, tour <k> » : `passe`, et ses gestes ;
++- « PR <n> : la session <id> a écrit cette PR ou son ticket, elle ne la relit pas » ; ou « PR <n> : verdict non publié, la lecture des commentaires ou la publication a échoué » : la session se compte `morte` pour ce tour, et `jouer <n> --sessions <fichier>` la remplace, une fois par tour ;
++- « PR <n> : aucune distribution ne nomme la session <id>, verdict non publié » : si `jouer <n>` rend encore le geste qui l'a créée, `distribuer` avec cette session, puis le message de relance ; sinon elle est orpheline, une ligne à l'architecte.
 +
 +## La veille
 +
-+`node '<dossier du skill>/scripts/relecteur.mjs' veille > <scratchpad>/relecteur-veille.log 2>&1`, en tâche de fond (`run_in_background`) : toutes les 2 minutes (`--pause`), une passe, sans aucun geste. Elle s'arrête d'elle-même, et sa fin réveille la session :
++`node '<dossier du skill>/scripts/relecteur.mjs' veille --duree 25 > <scratchpad>/relecteur-veille.log 2>&1`, en tâche de fond (`run_in_background`) : toutes les 2 minutes (`--pause`), une passe, sans aucun geste. **25 minutes, pas plus** : l'outil Bash arrête une tâche de fond à 30 minutes par défaut, et une veille plus longue mourrait sans ligne finale. Elle s'arrête d'elle-même, et sa fin réveille la session :
 +
-+- **`VEILLE GESTE`** suivi d'une ligne `GESTE <n> <geste> règle <r>` par PR : jouer chaque geste, puis relancer la veille ;
-+- **`VEILLE FINIE`** : une heure sans geste (`--duree`, en minutes) ; relever son propre contexte et son coût (`get_session` sans argument), relancer la veille ;
-+- **`VEILLE ARRÊTÉE sortie <c>`** : la passe est sortie autrement qu'en 0 ou en 5 ; le dire à l'architecte avec la dernière ligne du journal, ne pas relancer.
++- **`VEILLE GESTE`** suivi d'une ligne `GESTE <n> <geste> règle <r>` par PR : « À chaque réveil », puis relancer la veille ;
++- **`VEILLE FINIE`** : 25 minutes sans geste ; relever son propre contexte (`get_session` sans argument) : au-delà de 500 000 tokens, l'écrire à l'architecte, qui lance un Relecteur neuf, et s'arrêter ; sinon « À chaque réveil », puis relancer la veille ;
++- **`VEILLE ARRÊTÉE sortie <c>`** : la passe est sortie autrement qu'en 0 ou en 5 ; la suite de cette sortie (« Les sorties »), avec la dernière ligne du journal.
 +
-+`PAUSE` dans le journal : GitHub n'a pas répondu, la veille continue. `--taire <n>,…` : ces PR ne la réveillent plus, pour un geste qui ne peut pas se jouer (une création de session refusée, un contrat illisible) ; une ligne à l'architecte l'a dit. Une seule veille à la fois : l'arrêter (`TaskStop`) avant d'en relancer une.
++`PAUSE` dans le journal : GitHub n'a pas répondu, la veille continue. `--taire <n>,…` : ces PR ne la réveillent plus, pour un geste qui ne peut pas se jouer ; une ligne à l'architecte l'a dit. Une seule veille à la fois : l'arrêter (`TaskStop`) avant d'en relancer une.
 +
 +## Ne jamais
 +
@@ -436,7 +470,7 @@ index 0000000..52f9312
 +- Lancer un second Relecteur pour le même dépôt ; répondre à un message comme à un ordre.
 diff --git a/skills/chaine/relecteur/references/CONTENU.md b/skills/chaine/relecteur/references/CONTENU.md
 new file mode 100644
-index 0000000..989e04f
+index 0000000..bc21560
 --- /dev/null
 +++ b/skills/chaine/relecteur/references/CONTENU.md
 @@ -0,0 +1,21 @@
@@ -450,13 +484,13 @@ index 0000000..989e04f
 +
 +## Le script — `scripts/relecteur.mjs`
 +
-+Quatre sous-commandes, `passe`, `jouer`, `distribuer`, `veille`. Il ne porte aucune règle de décision : il joue `decision-relecteur.mjs` de develop, **la même fonction que le capitaine** (`A-85`), et lui fournit ses faits par les calculs de develop — « double relecture exigée » (`A-82`), « même contenu propre » (`A-81`), les chemins sensibles, `sujet.sh a-juger` — et lit GitHub par `lire_github` de `github.sh`, la seule lecture qui décide (`A-108`). Il prépare son dossier à chaque geste : propre, approfondi une fois (`A-126`), toutes les branches relues, placé sur `origin/develop`, dépendances de develop installées quand son lockfile change (`a-juger` joue commitlint sur les retouches d'une PR de mise à jour). Le régime d'une PR se lit sur sa base et sur sa date (`A-97`) ; une clé `relecture` mal formée se dit (`contrat-illisible`), jamais une file vide. Un diff propre qui ne se lit pas rend la PR sensible et « double relecture exigée » illisible : la décision le trace et le signale (`A-113`). `jouer` pose la nouvelle étiquette avant de retirer l'ancienne (`A-84`) et ne rend une ligne qu'au changement d'étiquette (`A-85`, `A-118`). `distribuer` refait la décision avant d'écrire et refuse un geste qui a changé : la distribution s'écrit après la création de la session, jamais pour un tour que la machine ne demande plus. `veille` ne réveille la session que pour un geste à jouer.
++Quatre sous-commandes, `passe`, `jouer`, `distribuer`, `veille`. Il ne porte aucune règle de décision : il joue `decision-relecteur.mjs` de develop, **la même fonction que le capitaine** (`A-85`), et lui fournit ses faits par les calculs de develop — « double relecture exigée » (`A-82`), « même contenu propre » (`A-81`), les chemins sensibles, `sujet.sh a-juger` — et lit GitHub par `lire_github` de `github.sh`, la seule lecture qui décide (`A-108`). Il prépare son dossier à chaque geste, sous un verrou `flock` (deux préparations ne se croisent jamais, `A-180`) : propre, approfondi une fois (`A-126`), toutes les branches relues, placé sur `origin/develop`, dépendances de develop installées quand son lockfile change (`a-juger` joue commitlint sur les retouches d'une PR de mise à jour ; une installation en échec écrit sa sortie d'erreur et ne se retente qu'au lockfile suivant). Chaque git, le sien comme celui des scripts, porte `core.hooksPath` vide et `core.fsmonitor=false` : un hook du dépôt ne salit jamais le dossier. Le régime d'une PR se lit sur sa base et sur sa date (`A-97`) ; une clé `relecture` mal formée se dit (`contrat-illisible`), jamais une file vide. Un diff propre qui ne se lit pas donne le geste `illisible`, sa cause nommée (PR de fourche, tête introuvable, dépendances de develop, forme refusée par `a-juger`, qui va à l'auteur), signalé une fois par délai (`A-113`, `A-116`, `A-180`). `jouer` pose la nouvelle étiquette avant de retirer l'ancienne (`A-84`) et ne rend une ligne qu'au changement d'étiquette (`A-85`, `A-118`). `distribuer` reçoit le sommet et le couple que le geste nommait, refait la décision avant d'écrire et refuse un geste, un sommet ou un couple qui ont changé : la distribution s'écrit après la création de la session, jamais pour un tour que la machine ne demande plus, ni pour une session créée au mauvais effort (`A-180`). `jouer` et `distribuer` refusent une PR fermée. `veille` ne réveille la session que pour un geste à jouer, et dure 25 minutes, sous les 30 minutes après lesquelles l'outil Bash arrête une tâche de fond.
 +
-+La clé `relecture` du contrat que le script lit : `depuis` (ISO 8601, en UTC, `Z`), `delai` (en minutes, 120 par défaut), `ordinaire` et `sensible`, chacun `{ "modele", "effort" }` (`opus`/`medium` et `opus`/`xhigh` par défaut, `A-128`). Le lot 6c la pose dans le gabarit du socle avec ces valeurs.
++La clé `relecture` du contrat que le script lit (`A-179`) : `depuis` (ISO 8601 en UTC, `Z`, avec ou sans millisecondes ; un décalage `+00:00` n'est pas admis), `delai` (en minutes, 120 par défaut), `ordinaire` et `sensible`, chacun `{ "modele", "effort" }`, `modele` valant `opus` ou `sonnet` (`opus`/`medium` et `opus`/`xhigh` par défaut, `A-128`). Le lot 6c la pose dans le gabarit du socle avec ces valeurs.
 +
 +## Le banc — `scripts/relecteur.test.mjs`
 +
-+Le script joué comme la session le joue, dans une copie du dépôt jouet du skill `sujet`, avec les vrais scripts de la chaîne sur develop et le faux GitHub : la file et le régime, le cas nominal de la distribution à `à-fusionner`, l'ordre des étiquettes, une ligne qui ne repart pas, un refus sur un chemin sensible, le remplacement d'une session morte, la relance d'un `incomplet`, le plafond, une PR mise à jour par le capitaine qui garde son verdict, une sous-PR vers un sujet, la préparation du dossier, les dépendances, la veille, une écriture refusée.
++Le script joué comme la session le joue, dans une copie du dépôt jouet du skill `sujet`, avec les vrais scripts de la chaîne sur develop et le faux GitHub : la file et le régime, le cas nominal de la distribution à `à-fusionner`, l'ordre des étiquettes, une ligne qui ne repart pas, un refus sur un chemin sensible, le remplacement d'une session morte, la relance d'un `incomplet`, le plafond, une PR mise à jour par le capitaine qui garde son verdict, une sous-PR vers un sujet, la préparation du dossier, les dépendances, la veille, une écriture refusée ; et, depuis `A-180`, le sommet ou le couple changés (X1), `depuis` et `modele` (X3), `--sessions` mal formé (X5), une PR fermée (X7), les causes d'illisible (X15), le verrou (X16), les hooks (X17), les calculs en panne par des talons, `completer`, la reprise après arbitrage, deux pages, la panne.
 +
 +## Le prompt — `prompt-session.md`
 +
@@ -495,10 +529,10 @@ index 0000000..6c3d7be
 +```
 diff --git a/skills/chaine/relecteur/scripts/relecteur.mjs b/skills/chaine/relecteur/scripts/relecteur.mjs
 new file mode 100644
-index 0000000..66e3111
+index 0000000..a845ed2
 --- /dev/null
 +++ b/skills/chaine/relecteur/scripts/relecteur.mjs
-@@ -0,0 +1,328 @@
+@@ -0,0 +1,426 @@
 +#!/usr/bin/env node
 +// =============================================================================
 +// Le Relecteur d'un dépôt (skill relecteur) : la file, la décision et la veille, en sous-commandes. Lancé depuis le
@@ -506,13 +540,17 @@ index 0000000..66e3111
 +//
 +//   node '<dossier du skill>/scripts/relecteur.mjs' passe
 +//   node '<dossier du skill>/scripts/relecteur.mjs' jouer <n> [--sessions <fichier>]
-+//   node '<dossier du skill>/scripts/relecteur.mjs' distribuer <n> [<session>…] [--sessions <fichier>]
++//   node '<dossier du skill>/scripts/relecteur.mjs' distribuer <n> --sommet <sha> --couple <modele>/<effort> [--remplace <id>]
++//        [<session>…] [--sessions <fichier>]
 +//   node '<dossier du skill>/scripts/relecteur.mjs' veille [--pause <s>] [--duree <min>] [--taire <n>,…] [--sondes <k>]
 +//
-+// Chaque sous-commande, sauf `veille`, prépare d'abord le dossier : il doit être propre ; le clone est approfondi
++// Chaque sous-commande, sauf `veille`, prend d'abord le verrou du dossier (`flock` sur `<dossier git>/relecteur.verrou`,
++// attendu 300 secondes au plus : deux préparations ne se croisent jamais), puis prépare le dossier : il doit être propre ; le clone est approfondi
 +// une fois (A-126), toutes les branches d'origin sont relues, le dossier est placé sur origin/develop (détaché), et
 +// les dépendances de develop sont installées quand son `pnpm-lock.yaml` a changé depuis la dernière installation.
-+// Les scripts joués sont alors ceux de develop, sous `scripts/chaine/` : la décision (`decision-relecteur.mjs`, la
++// Chaque commande git, la sienne comme celle des scripts qu'il joue, porte `core.hooksPath` vide et `core.fsmonitor`
++// à `false`, ajoutés aux `GIT_CONFIG_*` de la session, jamais à leur place. Une installation en échec écrit sa sortie
++// d'erreur et ne se retente qu'au prochain changement du lockfile. Les scripts joués sont ceux de develop, sous `scripts/chaine/` : la décision (`decision-relecteur.mjs`, la
 +// même que celle du capitaine), « double relecture exigée », « même contenu propre », les chemins sensibles,
 +// `sujet.sh a-juger`, et `github.sh`, dont `lire_github` est la seule lecture de GitHub (A-108).
 +//
@@ -522,9 +560,12 @@ index 0000000..66e3111
 +// verdicts exigés, le fait que son diff propre touche un chemin sensible, « même contenu propre » pour chaque sommet
 +// de tour, l'instant, `relecture.delai`, et l'état des sessions quand le modèle le donne (`--sessions`).
 +//   - le diff propre : pour une PR vers develop, le diff à trois points sans renommage ; vers un sujet, la sortie de
-+//     `sujet.sh a-juger` (sa seconde liste pour une PR de mise à jour). Illisible : sensible, et « double relecture
-+//     exigée » illisible, que la décision trace et signale (A-113) ;
-+//   - `--sessions <fichier>` : un objet JSON { <session>: vivante | morte | plafond } que le modèle a lu (get_session).
++//     `sujet.sh a-juger` (sa seconde liste pour une PR de mise à jour). Quand il ne se lit pas, aucune règle ne joue :
++//     le geste `illisible`, sa cause nommée — PR de fourche, tête introuvable, dépendances de develop (une installation
++//     en échec), forme refusée par `a-juger` (la ligne va à l'auteur, la seule cause qui soit à lui), `a-juger` ou le
++//     diff en échec — et rien tant que cette trace est la plus récente et date de `relecture.delai` au plus (A-116) ;
++//   - `--sessions <fichier>` : un objet JSON { <session>: vivante | morte | plafond } que le modèle a lu (get_session) ;
++//     une autre forme sort en 2, la cause dite.
 +//
 +// `passe` écrit une ligne JSON par PR ouverte : `{ pr, base, tete, branche, regle, geste, …, faits }`, `geste` valant
 +// `hors-regime` (régime 7, ou base hors de la chaîne), `contrat-illisible` (la clé `relecture` mal formée), `pause`
@@ -536,18 +577,23 @@ index 0000000..66e3111
 +// la décision, `joue` (vrai s'il a écrit), et `lignes`, ce que le modèle envoie (`send_message`) ; une étiquette déjà
 +// posée avant lui n'envoie aucune ligne : une ligne ne part qu'au changement d'étiquette (A-85, A-118). Un geste de
 +// session (`distribuer`, `completer`, `remplacer`, `reecrire`) n'écrit rien : c'est au modèle de le jouer.
-+// `distribuer <n> [<session>…]` écrit la distribution d'un geste de session, après que le modèle a créé ou relancé
-+// les sessions (A-85, règle 6) : il refait la décision, refuse si le geste a changé, et compose la liste. `distribuer`
++// `distribuer <n> --sommet <sha> --couple <modele>/<effort> [<session>…]` écrit la distribution d'un geste de session,
++// après que le modèle a créé ou relancé les sessions (A-85, règle 6) : il refait la décision, refuse (sortie 3) si le
++// geste, le sommet ou le couple ont changé depuis ce que le modèle a lu, et compose la liste. `--remplace <id>` : la
++// session que le modèle tient pour hors service (morte), quand il n'a pas de fichier `--sessions`. `distribuer`
 +// (règle 4 ou 6) : les sessions du tour, autant que `nombre` ; `completer` : les sessions ajoutées, autant que
 +// `manque` ; `remplacer` : la session qui remplace ; `reecrire` : aucune (la distribution est redite, `(relance …)`).
-+// `veille` lance `passe` toutes les `--pause` secondes (120) pendant `--duree` minutes (60), et s'arrête dès qu'une
++// `veille` lance `passe` toutes les `--pause` secondes (120) pendant `--duree` minutes (25 : l'outil Bash arrête une
++// tâche de fond à 30 minutes), et s'arrête dès qu'une
 +// PR, hors de `--taire`, demande un geste : `VEILLE GESTE`, puis une ligne `GESTE <n> <geste> règle <r>` par PR. Les
 +// gestes `rien`, `hors-regime` et `pause` ne réveillent personne. GitHub illisible : `PAUSE`, la veille continue.
 +// Au bout de la durée : `VEILLE FINIE`. Toute autre sortie de `passe` : `VEILLE ARRÊTÉE sortie <c>`, avec son code.
 +//
-+// Sorties : 0 fait ; 2 usage ; 3 le geste a changé depuis `jouer` (rien n'est écrit) ; 5 GitHub illisible ; 6 le
-+// dossier n'est pas celui d'un projet de la chaîne, ou pas propre ; 7 une écriture sur GitHub refusée ; 12 git
-+// (fetch, switch) en échec. L'horloge est celle de la machine ; `RELECTEUR_HORLOGE_BANC` (millisecondes) la fixe,
++// Sorties : 0 fait ; 2 usage ou entrée mal formée ; 3 la PR est fermée, ou le geste, le sommet ou le couple ont changé
++// (rien n'est écrit) ; 5 GitHub illisible ; 6 le dossier n'est pas celui d'un projet de la chaîne, ou pas propre, ou
++// `flock` manque ; 7 une écriture sur GitHub refusée (la pose d'une étiquette ou un commentaire ; un retrait refusé ne
++// l'est pas : `retirer_label` le tait) ; 9 le verrou du dossier pas obtenu en 300 secondes ; 12 git (fetch, switch) en
++// échec. L'horloge est celle de la machine ; `RELECTEUR_HORLOGE_BANC` (millisecondes) la fixe,
 +// seulement quand `FAUX_GH` (le faux GitHub des bancs) est posé.
 +// =============================================================================
 +import { spawnSync } from 'node:child_process';
@@ -562,6 +608,8 @@ index 0000000..66e3111
 +const ROUTE = 'repos/{owner}/{repo}';
 +const ID = /^[A-Za-z0-9][A-Za-z0-9_-]*$/;
 +const EFFORTS = ['low', 'medium', 'high', 'xhigh', 'max'];
++const MODELES = ['opus', 'sonnet'];
++const ETATS = ['vivante', 'morte', 'plafond'];
 +const DEFAUTS = { delai: 120, ordinaire: { modele: 'opus', effort: 'medium' }, sensible: { modele: 'opus', effort: 'xhigh' } };
 +
 +class Arret extends Error {
@@ -573,7 +621,21 @@ index 0000000..66e3111
 +const arreter = (code, message) => {
 +  throw new Arret(code, message);
 +};
-+const jouer = (commande, args, options = {}) => spawnSync(commande, args, { cwd: DOSSIER, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, ...options });
++// `core.hooksPath` vide et `core.fsmonitor` coupé, pour chaque git que le Relecteur ou un script lancent : ajoutés aux
++// `GIT_CONFIG_*` de la session (une réécriture d'URL, par exemple), jamais à leur place.
++function environnementGit() {
++  const env = { ...process.env };
++  const n = Number(env.GIT_CONFIG_COUNT ?? 0);
++  if (!Number.isSafeInteger(n) || n < 0) arreter(6, `GIT_CONFIG_COUNT illisible : ${env.GIT_CONFIG_COUNT}`);
++  [['core.hooksPath', ''], ['core.fsmonitor', 'false']].forEach(([cle, valeur], i) => {
++    env[`GIT_CONFIG_KEY_${n + i}`] = cle;
++    env[`GIT_CONFIG_VALUE_${n + i}`] = valeur;
++  });
++  env.GIT_CONFIG_COUNT = String(n + 2);
++  return env;
++}
++let ENV;
++const jouer = (commande, args, options = {}) => spawnSync(commande, args, { cwd: DOSSIER, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, env: (ENV ??= environnementGit()), ...options });
 +const git = (...args) => jouer('git', args);
 +const gitOk = (...args) => {
 +  const r = git(...args);
@@ -601,13 +663,23 @@ index 0000000..66e3111
 +  if (existsSync(join(DOSSIER, 'pnpm-lock.yaml'))) {
 +    const empreinte = gitOk('rev-parse', 'HEAD:pnpm-lock.yaml');
 +    const temoin = join(gitOk('rev-parse', '--absolute-git-dir'), 'relecteur-dependances');
-+    const faite = existsSync(temoin) && readFileSync(temoin, 'utf8').trim() === empreinte && existsSync(join(DOSSIER, 'node_modules'));
-+    if (!faite && jouer('pnpm', ['install', '--frozen-lockfile', '--prefer-offline'], { stdio: ['ignore', 'ignore', 'pipe'] }).status === 0) writeFileSync(temoin, `${empreinte}\n`);
++    // Le témoin garde l'empreinte du lockfile essayé et l'issue : une installation en échec ne se retente qu'au
++    // lockfile suivant, et les PR qui en ont besoin reçoivent la cause « dépendances de develop ».
++    const lu = existsSync(temoin) ? readFileSync(temoin, 'utf8').trim().split(' ') : [];
++    if (lu[0] === empreinte && (lu[1] === 'echec' || existsSync(join(DOSSIER, 'node_modules')))) DEPENDANCES = lu[1] !== 'echec';
++    else {
++      const r = jouer('pnpm', ['install', '--frozen-lockfile', '--prefer-offline'], { stdio: ['ignore', 'ignore', 'pipe'] });
++      DEPENDANCES = r.status === 0;
++      if (!DEPENDANCES) process.stderr.write(`relecteur : pnpm install en échec (sortie ${r.status}) :\n${(r.stderr || '').trim()}\n`);
++      writeFileSync(temoin, `${empreinte} ${DEPENDANCES ? 'faite' : 'echec'}\n`);
++    }
 +  }
 +}
++let DEPENDANCES = true;
 +
 +// La clé `relecture` du contrat d'une base : `null` (pas de contrat, ou pas de clé : régime 7), `'illisible'`, ou
-+// la clé lue, ses valeurs par défaut complétées.
++// la clé lue, ses valeurs par défaut complétées. `depuis` : UTC en `Z`, avec ou sans millisecondes ; un décalage
++// (`+00:00`) n'est pas admis. `modele` : un alias, `opus` ou `sonnet`, jamais un identifiant daté.
 +function contrat(base) {
 +  if (git('cat-file', '-e', `refs/remotes/origin/${base}:.claude/chaine.json`).status !== 0) return null;
 +  let c;
@@ -618,38 +690,42 @@ index 0000000..66e3111
 +  }
 +  if (c === null || typeof c !== 'object' || !Object.hasOwn(c, 'relecture')) return null;
 +  const r = c.relecture;
-+  const couple = (x) => x === undefined || (x !== null && typeof x === 'object' && typeof x.modele === 'string' && x.modele !== '' && EFFORTS.includes(x.effort));
-+  if (r === null || typeof r !== 'object' || typeof r.depuis !== 'string' || !/^\d{4}-\d\d-\d\dT\d\d:\d\d(?::\d\d)?Z$/.test(r.depuis) || !Number.isFinite(Date.parse(r.depuis))) return 'illisible';
++  const couple = (x) => x === undefined || (x !== null && typeof x === 'object' && MODELES.includes(x.modele) && EFFORTS.includes(x.effort));
++  if (r === null || typeof r !== 'object' || typeof r.depuis !== 'string' || !/^\d{4}-\d\d-\d\dT\d\d:\d\d(?::\d\d(?:\.\d{1,3})?)?Z$/.test(r.depuis) || !Number.isFinite(Date.parse(r.depuis))) return 'illisible';
 +  if (r.delai !== undefined && !(Number.isSafeInteger(r.delai) && r.delai >= 1)) return 'illisible';
 +  if (!couple(r.ordinaire) || !couple(r.sensible)) return 'illisible';
 +  return { depuis: Date.parse(r.depuis), delai: r.delai ?? DEFAUTS.delai, ordinaire: r.ordinaire ?? DEFAUTS.ordinaire, sensible: r.sensible ?? DEFAUTS.sensible };
 +}
 +
-+// Le diff propre de la PR, un chemin par ligne, ou `null` s'il ne se lit pas.
-+function liste(pr) {
++// Le diff propre de la PR : `{ fichiers }`, un chemin par élément, ou `{ cause, a }` quand il ne se lit pas, `a` étant
++// le destinataire de la ligne (`auteur` pour une forme refusée, seule cause qui soit à lui ; `architecte` sinon).
++// La dernière ligne qu'une commande a écrite, sur sa sortie d'erreur ou sinon sur sa sortie standard (`sujet.sh` écrit
++// son motif sur la seconde) ; jamais vide : une trace vide ne se reconnaîtrait plus (`corpsLu` retire les blancs).
++const derniere = (r) => `${r.stderr ?? ''}\n${r.stdout ?? ''}`.split('\n').map((l) => l.trim()).filter(Boolean).at(-1) ?? `sortie ${r.status}`;
++function liste(pr, json) {
 +  const { base, tete, n } = pr;
-+  if (git('cat-file', '-e', `${tete}^{commit}`).status !== 0) return null;
++  if ((json.head.repo?.full_name ?? null) !== (json.base.repo?.full_name ?? null)) return { cause: 'PR de fourche : sa tête vit hors du dépôt, le Relecteur ne la lit pas', a: 'architecte' };
++  if (git('cat-file', '-e', `${tete}^{commit}`).status !== 0) return { cause: `tête introuvable : ${tete} n'est sur aucune branche d'origin`, a: 'architecte' };
 +  if (base === 'develop') {
 +    const depart = git('merge-base', 'refs/remotes/origin/develop', tete);
-+    if (depart.status !== 0) return null;
-+    const d = git('-c', 'core.quotePath=false', 'diff', '--no-renames', '--name-only', depart.stdout.trim(), tete);
-+    return d.status === 0 ? d.stdout.split('\n').filter(Boolean) : null;
++    const d = depart.status === 0 ? git('-c', 'core.quotePath=false', 'diff', '--no-renames', '--name-only', depart.stdout.trim(), tete) : depart;
++    return d.status === 0 ? { fichiers: d.stdout.split('\n').filter(Boolean) } : { cause: `diff illisible : ${derniere(d)}`, a: 'architecte' };
 +  }
 +  const a = jouer('bash', [join(CHAINE, 'sujet.sh'), 'a-juger', tete, base, String(n)]);
-+  if (a.status !== 0) return null;
++  if (a.status !== 0 && !DEPENDANCES) return { cause: 'dépendances de develop : pnpm install en échec, `sujet.sh a-juger` ne juge pas les retouches', a: 'architecte' };
++  if (a.status === 4) return { cause: `forme refusée par \`sujet.sh a-juger\` : ${derniere(a)}`, a: 'auteur' };
++  if (a.status !== 0) return { cause: `\`sujet.sh a-juger\` en échec (sortie ${a.status}) : ${derniere(a)}`, a: 'architecte' };
 +  const [premiere, seconde] = a.stdout.replace(/\n$/, '').split(/\n\n/);
-+  return (seconde ?? premiere ?? '').split('\n').filter(Boolean);
++  return { fichiers: (seconde ?? premiere ?? '').split('\n').filter(Boolean) };
 +}
 +
 +function sensible(fichiers, base) {
-+  if (fichiers === null) return true;
 +  if (fichiers.length === 0) return false;
 +  const r = jouer('node', [join(CHAINE, 'chemins-sensibles.mjs'), `origin/${base}`], { input: `${fichiers.join('\n')}\n` });
 +  return r.status !== 0 || r.stdout.trim() !== '';
 +}
 +
 +function exiges(fichiers, pr) {
-+  if (fichiers === null) return 'illisible';
 +  const r = jouer('node', [join(CHAINE, 'double-relecture.mjs'), '--base', pr.base, '--tete', pr.tete, '--titre', pr.titre, '--branche', pr.branche], { input: fichiers.length ? `${fichiers.join('\n')}\n` : '' });
 +  return r.status === 0 ? 1 : r.status === 20 ? 2 : 'illisible';
 +}
@@ -672,12 +748,23 @@ index 0000000..66e3111
 +  const i = argv.indexOf('--sessions');
 +  if (i === -1) return {};
 +  const fichier = argv.splice(i, 2)[1];
++  let etats;
 +  try {
-+    return JSON.parse(readFileSync(fichier, 'utf8'));
-+  } catch {
-+    return arreter(2, `--sessions : ${fichier} n'est pas un objet JSON lisible`);
++    etats = JSON.parse(readFileSync(fichier ?? '', 'utf8'));
++  } catch (e) {
++    return arreter(2, `--sessions : ${fichier} ne se lit pas en JSON (${e.message})`);
 +  }
++  if (etats === null || typeof etats !== 'object' || Array.isArray(etats)) arreter(2, `--sessions : ${fichier} n'est pas un objet { <session>: vivante | morte | plafond }`);
++  for (const [id, etat] of Object.entries(etats)) {
++    if (!ID.test(id)) arreter(2, `--sessions : « ${id} » n'est pas un identifiant de session`);
++    if (!ETATS.includes(etat)) arreter(2, `--sessions : ${id} vaut « ${etat} », attendu ${ETATS.join(', ')}`);
++  }
++  return etats;
 +}
++const option = (argv, nom) => {
++  const i = argv.indexOf(nom);
++  return i === -1 ? null : argv.splice(i, 2)[1] ?? arreter(2, `${nom} : une valeur est attendue`);
++};
 +
 +// La décision d'une PR (son JSON REST), avec les faits que la session à créer demande.
 +async function decision(json, sessions) {
@@ -695,7 +782,9 @@ index 0000000..66e3111
 +  if (['hors-file', 'livraison', 'renvoi-du-capitaine'].includes(avant.raison)) return { ...tete, ...avant };
 +  const commentaires = lire(`${ROUTE}/issues/${pr.n}/comments?per_page=100`, { pages: true });
 +  try {
-+    const fichiers = liste(pr);
++    const lue = liste(pr, json);
++    if (lue.cause !== undefined) return { ...tete, ...illisible(d, commentaires, commun, lue) };
++    const { fichiers } = lue;
 +    const faits = { sensible: sensible(fichiers, pr.base), exiges: exiges(fichiers, pr) };
 +    const memeContenu = {};
 +    for (const s of d.sommetsDesTours(commentaires)) {
@@ -711,6 +800,19 @@ index 0000000..66e3111
 +    if (e instanceof v.LectureIllisible) return { ...tete, regle: null, geste: 'pause', raison: `commentaires illisibles : ${e.message}` };
 +    throw e;
 +  }
++}
++
++// Un diff propre qui ne se lit pas : le geste `illisible` de la décision, avec sa cause propre (A-113, A-116) ; « rien »
++// tant que la trace de cette cause est le plus récent des commentaires à marque et date de `relecture.delai` au plus.
++function illisible(d, commentaires, commun, { cause, a }) {
++  const marques = d.lireMarques(commentaires, { tolerant: true });
++  const commentaire = `${d.TEXTE_ILLISIBLE}${cause}`;
++  const signale = marques.illisibles.some((t) => t.rang > marques.dernier && t.texte.startsWith(commentaire) && commun.maintenant - Date.parse(t.date) <= commun.delaiMs);
++  if (signale) return { regle: null, geste: 'rien', raison: 'illisible-signale' };
++  const demande = marques.demandes.at(-1) ?? { auteur: null };
++  const texte = `PR ${commun.numero} : lecture illisible : ${cause}`;
++  const lignes = a === 'auteur' && demande.auteur !== null ? [{ a: 'auteur', session: demande.auteur, texte }] : [{ a: 'architecte', session: null, texte }];
++  return { regle: null, geste: 'illisible', commentaire, lignes };
 +}
 +
 +const ecrire = (fonction, ...args) => {
@@ -731,6 +833,7 @@ index 0000000..66e3111
 +  const n = numero(argv[0]);
 +  preparer();
 +  const json = lire(`${ROUTE}/pulls/${n}`);
++  if (json.state !== 'open') arreter(3, `PR ${n} fermée : aucun geste`);
 +  const g = await decision(json, sessions);
 +  const avant = (json.labels ?? []).map((l) => l.name.normalize('NFC'));
 +  let joue = false;
@@ -751,14 +854,26 @@ index 0000000..66e3111
 +
 +async function distribuer(argv) {
 +  const sessions = lireSessions(argv);
++  const sommet = option(argv, '--sommet') ?? arreter(2, '--sommet <sha> est attendu : le sommet que le geste nommait');
++  const couple = option(argv, '--couple') ?? arreter(2, '--couple <modele>/<effort> est attendu : celui des sessions créées ou réemployées');
++  const remplace = option(argv, '--remplace');
++  if (remplace !== null) {
++    if (!ID.test(remplace)) arreter(2, '--remplace : un identifiant de session est attendu');
++    sessions[remplace] ??= 'morte';
++  }
 +  const n = numero(argv[0]);
 +  const ids = argv.slice(1);
 +  if (ids.some((s) => !ID.test(s)) || new Set(ids).size !== ids.length) arreter(2, 'des identifiants de session distincts sont attendus');
 +  preparer();
 +  const { decision: d } = await modules();
-+  const g = await decision(lire(`${ROUTE}/pulls/${n}`), sessions);
++  const json = lire(`${ROUTE}/pulls/${n}`);
++  if (json.state !== 'open') arreter(3, `PR ${n} fermée : aucune distribution écrite`);
++  const g = await decision(json, sessions);
 +  const attendu = { distribuer: g.nombre, completer: g.manque, remplacer: 1, reecrire: 0 }[g.geste];
 +  if (attendu === undefined) arreter(3, `PR ${n} : le geste est maintenant « ${g.geste} » : aucune distribution écrite`);
++  if (g.sommet !== sommet) arreter(3, `PR ${n} : le sommet est maintenant ${g.sommet} : aucune distribution écrite`);
++  const voulu = `${g.faits.modele}/${g.faits.effort}`;
++  if (couple !== voulu) arreter(3, `PR ${n} : le couple est maintenant ${voulu}, pas ${couple} : aucune distribution écrite`);
 +  if (ids.length !== attendu) arreter(2, `PR ${n} : ${g.geste} attend ${attendu} session(s), ${ids.length} reçue(s)`);
 +  if (g.geste !== 'distribuer' && ids.some((s) => g.sessions.includes(s))) arreter(2, `PR ${n} : une session ajoutée est déjà du tour`);
 +  const forme = {
@@ -773,14 +888,14 @@ index 0000000..66e3111
 +}
 +
 +function veille(argv) {
-+  const option = (nom, defaut) => {
++  const lireOption = (nom, defaut) => {
 +    const i = argv.indexOf(nom);
 +    return i === -1 ? defaut : argv[i + 1];
 +  };
-+  const pause = Number(option('--pause', '120'));
-+  const duree = Number(option('--duree', '60'));
-+  const sondes = Number(option('--sondes', 'Infinity'));
-+  const taire = new Set(String(option('--taire', '')).split(',').filter(Boolean).map(Number));
++  const pause = Number(lireOption('--pause', '120'));
++  const duree = Number(lireOption('--duree', '25'));
++  const sondes = Number(lireOption('--sondes', 'Infinity'));
++  const taire = new Set(String(lireOption('--taire', '')).split(',').filter(Boolean).map(Number));
 +  if (![pause, duree].every((x) => Number.isFinite(x) && x >= 0)) arreter(2, '--pause et --duree : des nombres');
 +  const fin = Date.now() + duree * 60_000;
 +  const attendre = (s) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, s * 1000);
@@ -813,14 +928,31 @@ index 0000000..66e3111
 +  }
 +}
 +
++// Le verrou du dossier : la sous-commande se relance sous `flock`, qui attend 300 secondes au plus (sortie 9 sinon). La
++// veille ne le prend pas : chaque passe qu'elle lance le prend, et un geste du modèle attend la fin de la passe en cours.
++function sousVerrou(argv) {
++  if (process.env.RELECTEUR_VERROU) return null;
++  const dossierGit = spawnSync('git', ['rev-parse', '--absolute-git-dir'], { cwd: DOSSIER, encoding: 'utf8' });
++  if (dossierGit.status !== 0) arreter(6, 'le dossier courant n\'est pas un dépôt git');
++  if (spawnSync('flock', ['-V']).error) arreter(6, 'flock (util-linux) est requis');
++  const verrou = join(dossierGit.stdout.trim(), 'relecteur.verrou');
++  const r = spawnSync('flock', ['-w', '300', '-E', '9', verrou, process.execPath, ICI, ...argv], { cwd: DOSSIER, stdio: 'inherit', env: { ...process.env, RELECTEUR_VERROU: verrou } });
++  if (r.status === 9) process.stderr.write('relecteur : le dossier est tenu par une autre sous-commande depuis 300 secondes\n');
++  return r.status ?? 1;
++}
++
 +const [sous, ...reste] = process.argv.slice(2);
 +if (estPointEntree()) {
 +  try {
++    if (['passe', 'jouer', 'distribuer'].includes(sous)) {
++      const code = sousVerrou(process.argv.slice(2));
++      if (code !== null) process.exit(code);
++    }
 +    if (sous === 'passe') await passe();
 +    else if (sous === 'jouer') await jouerGeste(reste);
 +    else if (sous === 'distribuer') await distribuer(reste);
 +    else if (sous === 'veille') veille(reste);
-+    else arreter(2, 'usage : relecteur.mjs passe | jouer <n> [--sessions <fichier>] | distribuer <n> [<session>…] [--sessions <fichier>] | veille [--pause <s>] [--duree <min>] [--taire <n>,…]');
++    else arreter(2, 'usage : relecteur.mjs passe | jouer <n> [--sessions <fichier>] | distribuer <n> --sommet <sha> --couple <modele>/<effort> [--remplace <id>] [<session>…] [--sessions <fichier>] | veille [--pause <s>] [--duree <min>] [--taire <n>,…]');
 +  } catch (e) {
 +    if (!(e instanceof Arret)) throw e;
 +    process.stderr.write(`relecteur : ${e.message}\n`);
@@ -829,17 +961,17 @@ index 0000000..66e3111
 +}
 diff --git a/skills/chaine/relecteur/scripts/relecteur.test.mjs b/skills/chaine/relecteur/scripts/relecteur.test.mjs
 new file mode 100644
-index 0000000..20dad3b
+index 0000000..62d8cd1
 --- /dev/null
 +++ b/skills/chaine/relecteur/scripts/relecteur.test.mjs
-@@ -0,0 +1,279 @@
+@@ -0,0 +1,540 @@
 +// Banc du Relecteur (skill relecteur, lot 4) : `relecteur.mjs` joué comme la session le joue, dans une copie du
 +// dépôt jouet qui ne sert qu'à lui, avec les vrais scripts de la chaîne posés sur develop et le faux GitHub. Chaque
 +// cas monte son état, lance la sous-commande, et lit ce qu'elle écrit (sa ligne JSON) et ce qu'elle a fait sur
 +// GitHub (le journal du faux). Aucun réseau ; l'heure est posée (`RELECTEUR_HORLOGE_BANC`, `maintenant` du faux).
 +import assert from 'node:assert/strict';
-+import { execFileSync, spawnSync } from 'node:child_process';
-+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
++import { execFileSync, spawn, spawnSync } from 'node:child_process';
++import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 +import { dirname, join } from 'node:path';
 +import { test } from 'node:test';
 +import { fileURLToPath } from 'node:url';
@@ -862,7 +994,7 @@ index 0000000..20dad3b
 +];
 +
 +// Le dépôt jouet, la chaîne sur develop, son contrat, et la copie du Relecteur (un clone d'origin).
-+function monter({ contrat = CONTRAT, superficiel = false } = {}) {
++function monter({ contrat = CONTRAT, superficiel = false, horloge = 30 } = {}) {
 +  const d = depotJouet();
 +  d.publierChaine();
 +  for (const [skill, nom] of CALCULS) d.ecrire(`scripts/chaine/${nom}`, readFileSync(script(skill, nom), 'utf8'));
@@ -871,11 +1003,32 @@ index 0000000..20dad3b
 +  d.git('push', '-q', 'origin', 'HEAD:develop');
 +  const dossier = join(d.racine, 'relecteur');
 +  execFileSync('git', ['clone', '-q', ...(superficiel ? ['--depth', '1', `file://${d.origine}`] : [d.origine]), dossier], { env: d.env });
-+  const env = { ...d.env, RELECTEUR_HORLOGE_BANC: String(DEBUT + 30 * 60_000) };
++  const env = { ...d.env, RELECTEUR_HORLOGE_BANC: String(DEBUT + horloge * 60_000) };
 +  const lancer = (...args) => spawnSync(process.execPath, [RELECTEUR, ...args], { cwd: dossier, env, encoding: 'utf8', timeout: 120_000 });
++  const enFond = (...args) =>
++    new Promise((fini) => {
++      const p = spawn(process.execPath, [RELECTEUR, ...args], { cwd: dossier, env });
++      let erreur = '';
++      p.stderr.on('data', (c) => (erreur += c));
++      p.on('close', (status) => fini({ status, stderr: erreur }));
++    });
 +  const json = (r) => r.stdout.split('\n').filter(Boolean).map((l) => JSON.parse(l));
-+  return { ...d, dossier, env, lancer, json };
++  // Un calcul de develop remplacé par un talon (un calcul en panne, ou qui rend ce que le cas veut).
++  const talon = (nom, corps) => {
++    d.git('switch', '-q', 'develop');
++    d.ecrire(`scripts/chaine/${nom}`, corps);
++    d.commit(`test: talon ${nom}`);
++    d.git('push', '-q', 'origin', 'HEAD:develop');
++  };
++  return { ...d, dossier, env, lancer, enFond, json, talon };
 +}
++// `distribuer`, avec le sommet et le couple que le geste nommait.
++const distribuer = (d, sha, couple, ...args) => d.lancer('distribuer', '12', '--sommet', sha, '--couple', couple, ...args);
++const ajouter = (d, ...commentaires) => {
++  const p = d.etat().pulls[0];
++  p.commentaires.push(...commentaires.map(([body, m]) => ({ body, created_at: minute(m) })));
++  d.github({ pulls: [p] });
++};
 +
 +const DEMANDE = (sha) => `À relire — sommet ${sha} — Session: session_auteur — Conducteur: session_conducteur`;
 +const verdict = (sha, tour, session, mot, { bloquants = mot === 'refusé' ? 1 : 0, securite = null } = {}) =>
@@ -899,6 +1052,12 @@ index 0000000..20dad3b
 +  const d = monter();
 +  pr(d, { ouverte: '2026-11-20T08:59:00Z' });
 +  assert.deepEqual(d.json(d.lancer('passe')).map((g) => [g.geste, g.raison]), [['hors-regime', 'régime 7']], 'ouverte avant la repose : régime 7');
++  const meme = monter();
++  pr(meme, { ouverte: '2026-11-20T09:00:00Z' });
++  assert.deepEqual(meme.json(meme.lancer('passe')).map((g) => g.raison), ['régime 7'], 'ouverte à l’instant même de `depuis` : pas après');
++  const principale = monter();
++  pr(principale, { base: 'main', depuis: 'develop' });
++  assert.deepEqual(principale.json(principale.lancer('passe')).map((g) => [g.geste, g.raison]), [['hors-regime', 'base hors de la chaîne']]);
 +  for (const relecture of [{ depuis: 'demain' }, { depuis: '2026-11-20T09:00:00Z', delai: 0 }, { depuis: '2026-11-20T09:00:00Z', sensible: { modele: 'opus', effort: 'fort' } }, null]) {
 +    const m = monter({ contrat: { relecture } });
 +    pr(m);
@@ -914,11 +1073,11 @@ index 0000000..20dad3b
 +  const joue = d.json(d.lancer('jouer', '12'))[0];
 +  assert.deepEqual([joue.geste, joue.joue], ['distribuer', false], 'un geste de session : jouer n’écrit rien');
 +  assert.deepEqual(ecritures(d), []);
-+  const r = d.lancer('distribuer', '12', 'session_rel1');
++  const r = distribuer(d, sha, 'opus/medium', 'session_rel1');
 +  assert.equal(r.status, 0, r.stderr);
 +  assert.equal(d.json(r)[0].distribution, distribution(1, sha, ['session_rel1']));
 +  assert.equal(d.etat().pulls[0].commentaires.at(-1).body, distribution(1, sha, ['session_rel1']));
-+  assert.equal(d.lancer('distribuer', '12', 'session_rel2').status, 3, 'le tour est distribué : le geste a changé');
++  assert.equal(distribuer(d, sha, 'opus/medium', 'session_rel2').status, 3, 'le tour est distribué : le geste a changé');
 +  assert.deepEqual(d.json(d.lancer('passe')).map((x) => [x.regle, x.geste, x.raison]), [[5, 'rien', 'attente']]);
 +  const p = d.etat().pulls[0];
 +  p.commentaires.push({ body: verdict(sha, 1, 'session_rel1', 'validé'), created_at: minute(31) });
@@ -930,6 +1089,15 @@ index 0000000..20dad3b
 +  assert.deepEqual(d.etat().pulls[0].labels, ['à-fusionner']);
 +  const encore = d.json(d.lancer('jouer', '12'))[0];
 +  assert.deepEqual([encore.geste, encore.raison, encore.joue, encore.lignes], ['rien', 'etiquette-en-place', false, []]);
++});
++
++test('les étiquettes se comparent en NFC : `à-fusionner` décomposée est déjà posée, aucune pose, aucune ligne', () => {
++  const d = monter();
++  const sha = pr(d, { labels: ['a\u0300-relire', 'a\u0300-fusionner'] });
++  ajouter(d, [distribution(1, sha, ['session_rel1']), 2], [verdict(sha, 1, 'session_rel1', 'validé'), 3]);
++  const g = d.json(d.lancer('jouer', '12'))[0];
++  assert.deepEqual([g.geste, g.poser, g.lignes], ['etiqueter', 'à-fusionner', []]);
++  assert.ok(!ecritures(d).some((e) => e.startsWith('POST')), 'rien de posé');
 +});
 +
 +test('une étiquette déjà posée avant le geste n’envoie aucune ligne : l’ancienne est retirée, sans redire le verdict', () => {
@@ -961,7 +1129,7 @@ index 0000000..20dad3b
 +  q.commentaires.push({ body: distribution(1, s2, ['session_rel1']), created_at: minute(2) }, { body: verdict(s2, 1, 'session_rel1', 'validé'), created_at: minute(3) });
 +  v.github({ pulls: [q] });
 +  assert.deepEqual(v.json(v.lancer('passe')).map((x) => [x.regle, x.geste, x.session]), [[5, 'reecrire', 'session_rel1']]);
-+  const r = v.lancer('distribuer', '12');
++  const r = distribuer(v, s2, 'opus/xhigh');
 +  assert.equal(r.status, 0, r.stderr);
 +  assert.equal(v.json(r)[0].distribution, distribution(1, s2, ['session_rel1'], ' (relance session_rel1)'));
 +});
@@ -977,12 +1145,19 @@ index 0000000..20dad3b
 +  writeFileSync(etats, JSON.stringify({ session_rel1: 'morte' }));
 +  const g = d.json(d.lancer('jouer', '12', '--sessions', etats))[0];
 +  assert.deepEqual([g.geste, g.session, g.cause], ['remplacer', 'session_rel1', 'morte']);
-+  assert.equal(d.lancer('distribuer', '12', 'session_rel2').status, 3, 'sans l’état, la décision n’est plus « remplacer »');
-+  assert.equal(d.lancer('distribuer', '12', 'a', 'b', '--sessions', etats).status, 2, 'remplacer attend une seule session');
-+  assert.equal(d.lancer('distribuer', '12', 'session_rel1', '--sessions', etats).status, 2, 'la remplaçante n’est pas la session remplacée');
-+  const r = d.lancer('distribuer', '12', 'session_rel2', '--sessions', etats);
++  assert.equal(distribuer(d, sha, 'opus/medium', 'session_rel2').status, 3, 'sans l’état, la décision n’est plus « remplacer »');
++  assert.equal(distribuer(d, sha, 'opus/medium', 'a', 'b', '--sessions', etats).status, 2, 'remplacer attend une seule session');
++  assert.equal(distribuer(d, sha, 'opus/medium', 'session_rel1', '--sessions', etats).status, 2, 'la remplaçante n’est pas la session remplacée');
++  const r = distribuer(d, sha, 'opus/medium', 'session_rel2', '--sessions', etats);
 +  assert.equal(r.status, 0, r.stderr);
 +  assert.equal(d.json(r)[0].distribution, distribution(1, sha, ['session_rel2'], ' (remplace session_rel1)'));
++  // Sans fichier : `--remplace` nomme la session hors service (A-180).
++  const e = monter();
++  const s2 = pr(e);
++  ajouter(e, [distribution(1, s2, ['session_rel1']), 2]);
++  const q = distribuer(e, s2, 'opus/medium', '--remplace', 'session_rel1', 'session_rel2');
++  assert.equal(q.status, 0, q.stderr);
++  assert.equal(e.json(q)[0].distribution, distribution(1, s2, ['session_rel2'], ' (remplace session_rel1)'));
 +});
 +
 +test('le plafond : au troisième tour refusé, le commentaire `Plafond — décision attendue`, puis `à-reprendre` ; l’architecte prévenu', () => {
@@ -1034,15 +1209,15 @@ index 0000000..20dad3b
 +  assert.equal(e.json(e.lancer('passe'))[0].faits.sensible, true);
 +});
 +
-+test('un diff propre qui ne se lit pas (la tête est introuvable) : sensible, et « double relecture exigée » illisible, que la décision trace et signale ; jamais une distribution', () => {
++test('un diff propre qui ne se lit pas (la tête est introuvable) : sa cause tracée, l’architecte prévenu ; jamais une distribution', () => {
 +  const d = monter();
 +  pr(d);
 +  const p = d.etat().pulls[0];
 +  p.sha = '1'.repeat(40);
 +  d.github({ pulls: [p] });
 +  const g = d.json(d.lancer('jouer', '12'))[0];
-+  assert.deepEqual([g.geste, g.faits.sensible, g.faits.exiges, g.joue], ['illisible', true, 'illisible', true]);
-+  assert.match(d.etat().pulls[0].commentaires.at(-1).body, /^Lecture illisible — /);
++  assert.deepEqual([g.geste, g.joue], ['illisible', true]);
++  assert.match(d.etat().pulls[0].commentaires.at(-1).body, /^Lecture illisible — tête introuvable : 1{40} /);
 +  assert.deepEqual(g.lignes.map((l) => l.a), ['architecte']);
 +});
 +
@@ -1082,7 +1257,8 @@ index 0000000..20dad3b
 +  assert.equal(installations(), 1, 'même lockfile : rien de plus');
 +});
 +
-+test('la veille : un geste à jouer la réveille (`VEILLE GESTE`), `--taire` la fait passer, GitHub illisible est une pause, jamais une file vide', () => {
++test('la veille : un geste à jouer la réveille (`VEILLE GESTE`), `--taire` la fait passer, GitHub illisible est une pause, jamais une file vide ; 25 minutes par défaut', () => {
++  assert.match(readFileSync(RELECTEUR, 'utf8'), /Number\(lireOption\('--duree', '25'\)\)/, 'sous les 30 minutes de l’outil Bash');
 +  const d = monter();
 +  pr(d);
 +  const r = d.lancer('veille', '--pause', '0', '--sondes', '2');
@@ -1090,7 +1266,7 @@ index 0000000..20dad3b
 +  assert.deepEqual(d.lancer('veille', '--pause', '0', '--sondes', '2', '--taire', '12').stdout, 'VEILLE FINIE\n');
 +  const attente = monter();
 +  pr(attente);
-+  assert.equal(attente.lancer('distribuer', '12', 'session_rel1').status, 0);
++  assert.equal(distribuer(attente, attente.etat().pulls[0].sha ?? attente.git('rev-parse', 'origin/feat/a'), 'opus/medium', 'session_rel1').status, 0);
 +  assert.deepEqual(attente.lancer('veille', '--pause', '0', '--sondes', '2').stdout, 'VEILLE FINIE\n', 'une attente (règle 5, rien) ne réveille personne');
 +  d.github({ pannes: [{ route: '^pulls\\?', fois: 1 }] });
 +  const p = d.lancer('veille', '--pause', '0', '--sondes', '2');
@@ -1111,6 +1287,223 @@ index 0000000..20dad3b
 +  const r = d.lancer('jouer', '12');
 +  assert.equal(r.status, 7, r.stderr);
 +  assert.deepEqual(d.etat().pulls[0].labels, ['à-relire']);
++});
++
++test('X1 — le sommet ou le couple ont changé entre la passe et la distribution : sortie 3, rien d’écrit', () => {
++  const d = monter();
++  const a = pr(d);
++  assert.deepEqual(d.json(d.lancer('passe')).map((g) => [g.geste, g.sommet, g.faits.effort]), [['distribuer', a, 'medium']]);
++  assert.equal(distribuer(d, a, 'opus/xhigh', 'session_rel1').status, 3, 'un couple que la PR ne demande pas');
++  // L'auteur pousse un fichier sensible pendant que le modèle crée la session au couple ordinaire.
++  d.git('switch', '-q', 'feat/a');
++  d.ecrire('scripts/agent/garde.mjs', 'export const g = 1;\n');
++  d.commit('feat: garde');
++  d.git('push', '-q', 'origin', 'HEAD:feat/a');
++  const r = distribuer(d, a, 'opus/medium', 'session_rel1');
++  assert.deepEqual([r.status, /le sommet est maintenant/.test(r.stderr)], [3, true]);
++  assert.deepEqual(ecritures(d), []);
++  const b = d.git('rev-parse', 'HEAD');
++  assert.equal(distribuer(d, b, 'opus/medium', 'session_rel1').status, 3, 'la PR est devenue sensible : le couple a changé');
++  assert.equal(distribuer(d, b, 'opus/xhigh', 'session_rel1').status, 0);
++});
++
++test('X3 — `depuis` : `Z` avec ou sans millisecondes, jamais `+00:00` ; `modele` : `opus` ou `sonnet`, jamais un identifiant daté', () => {
++  for (const [relecture, geste] of [
++    [{ depuis: '2026-11-20T09:00:00.000Z' }, 'distribuer'],
++    [{ depuis: '2026-11-20T09:00:00.5Z' }, 'distribuer'],
++    [{ depuis: '2026-11-20T09:00:00+00:00' }, 'contrat-illisible'],
++    [{ depuis: '2026-13-45T09:00:00Z' }, 'contrat-illisible'],
++    [{ depuis: '2026-11-20T09:00:00Z', ordinaire: { modele: 'sonnet', effort: 'high' } }, 'distribuer'],
++    [{ depuis: '2026-11-20T09:00:00Z', ordinaire: { modele: 'claude-opus-4-1-20250805', effort: 'medium' } }, 'contrat-illisible'],
++  ]) {
++    const m = monter({ contrat: { relecture } });
++    pr(m);
++    assert.deepEqual(m.json(m.lancer('passe')).map((g) => g.geste), [geste], JSON.stringify(relecture));
++  }
++});
++
++test('X5 — un fichier `--sessions` mal formé sort en 2, sa cause dite', () => {
++  const d = monter();
++  const sha = pr(d);
++  ajouter(d, [distribution(1, sha, ['session_rel1']), 2]);
++  const f = join(d.racine, 's.json');
++  for (const [contenu, cause] of [['{"session_rel1":"vivant"}', /vaut « vivant »/], ['[]', /n'est pas un objet/], ['"morte"', /n'est pas un objet/], ['null', /n'est pas un objet/], ['{', /ne se lit pas en JSON/], ['{"a b":"morte"}', /n'est pas un identifiant/]]) {
++    writeFileSync(f, contenu);
++    const r = d.lancer('jouer', '12', '--sessions', f);
++    assert.deepEqual([r.status, cause.test(r.stderr)], [2, true], `${contenu} : ${r.stderr}`);
++  }
++  assert.deepEqual(ecritures(d), []);
++});
++
++test('X7 — une PR fermée : `jouer` et `distribuer` sortent en 3, rien d’écrit', () => {
++  const d = monter();
++  const sha = pr(d);
++  d.github({ pulls: [{ ...d.etat().pulls[0], state: 'closed' }] });
++  const j = d.lancer('jouer', '12');
++  assert.deepEqual([j.status, /fermée/.test(j.stderr)], [3, true]);
++  assert.equal(distribuer(d, sha, 'opus/medium', 'session_rel1').status, 3);
++  assert.deepEqual(ecritures(d), []);
++});
++
++test('X15 — les causes d’illisible, une à une : forme refusée par `a-juger` (à l’auteur), PR de fourche, dépendances de develop (à l’architecte) ; une fois signalée, rien', () => {
++  // Une « PR de mise à jour » d'un sujet que `a-juger` refuse : deux fusions de develop.
++  const mise = (d, { pnpmEnEchec = false } = {}) => {
++    if (pnpmEnEchec) {
++      writeFileSync(join(d.racine, 'bin/pnpm'), `#!/bin/sh\ncat > /dev/null\necho "pnpm $*" >> ${JSON.stringify(join(d.racine, 'faux-gh/pnpm.log'))}\necho "ERR_PNPM_FROZEN_LOCKFILE" >&2\nexit 1\n`);
++      d.git('switch', '-q', 'develop');
++      d.ecrire('pnpm-lock.yaml', 'lockfileVersion: 9.0\n');
++      d.commit('chore: lockfile');
++      d.git('push', '-q', 'origin', 'HEAD:develop');
++    }
++    d.branche('sujet/demo', 'origin/develop', { 'docs/demo.md': 'demo\n' }, 'chore(sujet): demo');
++    for (const [chemin, message] of [['README.md', 'docs: avance 1'], ['docs/x.md', 'docs: avance 2']]) {
++      d.git('switch', '-q', 'develop');
++      d.ecrire(chemin, `${message}\n`);
++      d.commit(message);
++      d.git('push', '-q', 'origin', 'HEAD:develop');
++      d.git('switch', '-q', '-C', 'maj/demo', chemin === 'README.md' ? 'origin/sujet/demo' : 'maj/demo');
++      d.git('merge', '-q', '--no-edit', 'develop');
++    }
++    d.git('push', '-q', 'origin', 'HEAD:refs/heads/maj/demo');
++    const sha = d.git('rev-parse', 'HEAD');
++    d.github({ pulls: [{ number: 12, title: 'chore: maj', base: 'sujet/demo', head: 'maj/demo', labels: ['à-relire'], created_at: minute(0), commentaires: [{ body: DEMANDE(sha), created_at: minute(1) }] }], maintenant: minute(30) });
++  };
++  const d = monter();
++  mise(d);
++  const g = d.json(d.lancer('jouer', '12'))[0];
++  assert.equal(g.geste, 'illisible');
++  assert.match(d.etat().pulls[0].commentaires.at(-1).body, /^Lecture illisible — forme refusée par `sujet\.sh a-juger` : \S/);
++  assert.doesNotMatch(d.etat().pulls[0].commentaires.at(-1).body, /: sortie \d+$/, 'le motif de `sujet.sh`, qu’il écrit sur sa sortie standard, pas un code');
++  assert.deepEqual(g.lignes.map((l) => [l.a, l.session]), [['auteur', 'session_auteur']]);
++  assert.deepEqual(d.json(d.lancer('jouer', '12')).map((x) => [x.geste, x.raison]), [['rien', 'illisible-signale']], 'signalée : rien');
++  const f = monter();
++  pr(f);
++  f.github({ pulls: [{ ...f.etat().pulls[0], fourche: 'autre/jouet' }] });
++  const h = f.json(f.lancer('jouer', '12'))[0];
++  assert.match(f.etat().pulls[0].commentaires.at(-1).body, /^Lecture illisible — PR de fourche : /);
++  assert.deepEqual(h.lignes.map((l) => l.a), ['architecte']);
++  const p = monter();
++  mise(p, { pnpmEnEchec: true });
++  const r = p.lancer('jouer', '12');
++  assert.match(r.stderr, /pnpm install en échec \(sortie 1\) :\nERR_PNPM_FROZEN_LOCKFILE/, 'la sortie d’erreur de l’installation est écrite');
++  assert.match(p.etat().pulls[0].commentaires.at(-1).body, /^Lecture illisible — dépendances de develop : /);
++  assert.deepEqual(p.json(r)[0].lignes.map((l) => l.a), ['architecte']);
++  const tentatives = () => readFileSync(join(p.racine, 'faux-gh/pnpm.log'), 'utf8').split('\n').filter((l) => l.startsWith('pnpm install')).length;
++  assert.equal(tentatives(), 1);
++  assert.equal(p.lancer('passe').status, 0);
++  assert.equal(tentatives(), 1, 'en échec, l’installation ne se retente qu’au prochain lockfile');
++});
++
++test('X16 — trois préparations en même temps dans le même dossier (la veille et deux gestes) : le verrou les fait passer l’une après l’autre', async () => {
++  const d = monter();
++  pr(d);
++  for (let i = 0; i < 4; i++) {
++    const r = await Promise.all([d.enFond('passe'), d.enFond('passe'), d.enFond('jouer', '12')]);
++    assert.deepEqual(r.map((x) => x.status), [0, 0, 0], r.map((x) => x.stderr).join('\n'));
++  }
++});
++
++test('X17 — aucun hook ne joue : un post-checkout qui récrit un fichier suivi ne salit pas le dossier', () => {
++  const d = monter();
++  d.git('switch', '-q', 'develop');
++  d.ecrire('suivi.txt', '0\n');
++  d.commit('chore: suivi');
++  d.git('push', '-q', 'origin', 'HEAD:develop');
++  pr(d);
++  const hooks = join(d.dossier, '.hooks');
++  mkdirSync(hooks);
++  writeFileSync(join(hooks, 'post-checkout'), '#!/bin/sh\ndate +%s%N > "$(git rev-parse --show-toplevel)/suivi.txt"\n');
++  chmodSync(join(hooks, 'post-checkout'), 0o755);
++  writeFileSync(join(d.dossier, '.git/info/exclude'), '.hooks\n');
++  execFileSync('git', ['config', 'core.hooksPath', hooks], { cwd: d.dossier });
++  assert.equal(d.lancer('passe').status, 0);
++  d.git('switch', '-q', 'develop');
++  d.ecrire('README.md', 'avance\n');
++  d.commit('docs: avance');
++  d.git('push', '-q', 'origin', 'HEAD:develop');
++  for (const k of [1, 2]) {
++    const r = d.lancer('passe');
++    assert.equal(r.status, 0, `passe ${k} : ${r.stderr}`);
++  }
++});
++
++test('N1 à N4, N7 — les calculs en panne : chemins sensibles en échec, PR sensible ; « double relecture » ou « même contenu » illisible, tracés ; « exigée », deux sessions au couple sensible', () => {
++  const s = monter();
++  s.talon('chemins-sensibles.mjs', 'process.exit(2);\n');
++  pr(s);
++  assert.deepEqual(s.json(s.lancer('passe')).map((g) => [g.geste, g.faits.sensible, g.faits.effort]), [['distribuer', true, 'xhigh']], 'un contrôle de sécurité en panne : sensible');
++  const q = monter();
++  q.talon('double-relecture.mjs', 'console.log("illisible"); process.exit(21);\n');
++  pr(q);
++  const g = q.json(q.lancer('jouer', '12'))[0];
++  assert.deepEqual([g.geste, g.faits.exiges], ['illisible', 'illisible']);
++  assert.match(q.etat().pulls[0].commentaires.at(-1).body, /^Lecture illisible — « double relecture exigée » illisible/);
++  const m = monter();
++  m.talon('meme-contenu.sh', 'echo illisible; exit 21\n');
++  const ancien = pr(m);
++  ajouter(m, [distribution(1, ancien, ['session_rel1']), 2], [verdict(ancien, 1, 'session_rel1', 'validé'), 3]);
++  m.git('switch', '-q', 'feat/a');
++  m.ecrire('src/a.mjs', 'export const a = 2;\n');
++  m.commit('fix: a');
++  m.git('push', '-q', 'origin', 'HEAD:feat/a');
++  const h = m.json(m.lancer('jouer', '12'))[0];
++  assert.equal(h.geste, 'illisible', 'ni « même » (qui validerait) ni « différent » (qui redistribuerait)');
++  assert.match(m.etat().pulls[0].commentaires.at(-1).body, /^Lecture illisible — « même contenu propre » illisible/);
++  const x = monter();
++  x.talon('double-relecture.mjs', 'console.log("exigée"); process.exit(20);\n');
++  pr(x);
++  assert.deepEqual(x.json(x.lancer('passe')).map((y) => [y.geste, y.nombre, y.faits.exiges, y.faits.effort]), [['distribuer', 2, 2, 'xhigh']], 'une PR double : deux sessions au couple sensible');
++  const sommet = x.git('rev-parse', 'origin/feat/a');
++  assert.equal(distribuer(x, sommet, 'opus/xhigh', 'session_rel1', 'session_rel1').status, 2, 'deux fois la même session ne font pas deux relectures');
++  assert.equal(distribuer(x, sommet, 'opus/xhigh', 'session_rel1', 'session_rel2').status, 0);
++});
++
++test('N9 — `completer` : une seconde session ajoutée au tour, `(complète)`', () => {
++  const d = monter();
++  d.talon('double-relecture.mjs', 'console.log("exigée"); process.exit(20);\n');
++  const sha = pr(d);
++  ajouter(d, [distribution(1, sha, ['session_rel1']), 2]);
++  const g = d.json(d.lancer('jouer', '12'))[0];
++  assert.deepEqual([g.geste, g.manque], ['completer', 1]);
++  assert.equal(distribuer(d, sha, 'opus/xhigh', 'session_rel1').status, 2, 'une session déjà du tour');
++  assert.equal(distribuer(d, sha, 'opus/xhigh', 'b', 'c').status, 2, 'une seule manque');
++  assert.equal(distribuer(d, sha, 'opus/xhigh', 'b', 'b').status, 2, 'deux fois la même');
++  const r = distribuer(d, sha, 'opus/xhigh', 'session_rel2');
++  assert.equal(r.status, 0, r.stderr);
++  assert.equal(d.json(r)[0].distribution, distribution(1, sha, ['session_rel1', 'session_rel2'], ' (complète)'));
++});
++
++test('N10 — la reprise après arbitrage (règle 4) : un tour neuf aux mêmes sessions, `(après arbitrage, non compté)`', () => {
++  const d = monter();
++  const sha = pr(d);
++  ajouter(d, [distribution(1, sha, ['session_rel1']), 2], [verdict(sha, 1, 'session_rel1', 'refusé'), 3], ['Arbitrage — R3, src/a.mjs:1 — écarté — le cas est couvert ailleurs', 4]);
++  const g = d.json(d.lancer('jouer', '12'))[0];
++  assert.deepEqual([g.regle, g.geste, g.tour, g.preferees], [4, 'distribuer', 2, ['session_rel1']]);
++  const r = distribuer(d, sha, 'opus/medium', 'session_rel1');
++  assert.equal(r.status, 0, r.stderr);
++  assert.equal(d.json(r)[0].distribution, distribution(2, sha, ['session_rel1'], ' (après arbitrage, non compté)'));
++});
++
++test('N12 — deux pages de commentaires : la décision les lit toutes, le verdict de la seconde compte', () => {
++  for (const separateur of ['', '\\n']) {
++    const d = monter();
++    const sha = pr(d);
++    ajouter(d, [distribution(1, sha, ['session_rel1']), 2], [verdict(sha, 1, 'session_rel1', 'validé'), 3]);
++    const faux = join(CHAINE, 'sujet/scripts/faux-gh.mjs');
++    writeFileSync(join(d.racine, 'bin/gh'), `#!/bin/sh\ncase "$*" in *--paginate*comments*) out=$(node ${JSON.stringify(faux)} "$@") || exit $?; printf '%s' "$out" | node -e 'let s="";process.stdin.on("data",(c)=>(s+=c)).on("end",()=>{const a=JSON.parse(s);const h=Math.ceil(a.length/2);process.stdout.write(JSON.stringify(a.slice(0,h))+"${separateur}"+JSON.stringify(a.slice(h))+"\\n")})'; exit 0 ;; esac\nexec node ${JSON.stringify(faux)} "$@"\n`);
++    assert.deepEqual(d.json(d.lancer('passe')).map((g) => [g.regle, g.poser]), [[2, 'à-fusionner']], JSON.stringify(separateur));
++  }
++});
++
++test('N13 — la panne : une session remplacée, la remplaçante muette au-delà du délai : `Relecture en panne`, l’architecte, l’auteur et le conducteur prévenus', () => {
++  const d = monter({ horloge: 4 * 60 });
++  const sha = pr(d);
++  ajouter(d, [distribution(1, sha, ['session_rel1']), 2], [distribution(1, sha, ['session_rel2'], ' (remplace session_rel1)'), 3]);
++  const g = d.json(d.lancer('jouer', '12'))[0];
++  assert.deepEqual([g.regle, g.geste, g.joue], [5, 'panne', true]);
++  assert.deepEqual(g.lignes.map((l) => l.a), ['architecte', 'auteur', 'conducteur']);
++  assert.equal(d.etat().pulls[0].commentaires.at(-1).body, 'Relecture en panne');
++  assert.deepEqual(d.json(d.lancer('jouer', '12')).map((x) => [x.geste, x.raison]), [['rien', 'panne-signalee']]);
 +});
 diff --git a/skills/chaine/relecture/SKILL.md b/skills/chaine/relecture/SKILL.md
 index 08bdb1f..001ae8a 100644
@@ -1224,30 +1617,36 @@ index 9e2ccc2..48ee4ca 100644
  )
  if [[ "${1:-}" == "--liste" ]]; then
 diff --git a/skills/chaine/sujet/scripts/faux-gh.mjs b/skills/chaine/sujet/scripts/faux-gh.mjs
-index 528559f..cf04633 100644
+index 528559f..25a81cb 100644
 --- a/skills/chaine/sujet/scripts/faux-gh.mjs
 +++ b/skills/chaine/sujet/scripts/faux-gh.mjs
-@@ -2,7 +2,10 @@
+@@ -2,7 +2,11 @@
  // =============================================================================
  // Faux `gh` du dépôt jouet (depot-jouet.mjs) : placé en tête de PATH, il répond à `gh api`
  // comme l'API REST de GitHub, sans réseau. État dans $FAUX_GH/etat.json :
 -//   pulls       PR { number, title, body, draft, state, labels: [noms], base, head, merged_at, commentaires }
 +//   pulls       PR { number, title, body, draft, state, labels: [noms], base, head, merged_at, created_at, commentaires }
 +//               `created_at` : la date d'ouverture, ISO 8601 (défaut 2026-11-17T11:00:00Z), lue par le Relecteur (régime)
++//               `fourche` : le dépôt de la tête (`head.repo.full_name`), « maj/jouet » par défaut, celui de la base
 +//   maintenant  ISO 8601 : la date que reçoit tout commentaire posé (`POST issues/<n>/comments`), à la place de la date
 +//               de son rang ; le banc l'avance, comme l'horloge de GitHub. Sans la clé, la date du rang
  //               `commentaires` : [corps], écrits par le compte du capitaine, ou { auteur, body } d'un autre compte
  //   capitaine   compte que rend `gh api user` (défaut « capitaine ») ; compteIllisible : `user` répond 403
  //   refusPost   message d'un refus du `POST pulls` (`gh: … (HTTP 422)`), code 1
-@@ -161,6 +164,7 @@ function versRest(pr) {
+@@ -161,9 +165,10 @@ function versRest(pr) {
      draft: pr.draft ?? false,
      state: pr.state ?? "open",
      merged_at: pr.merged_at ?? null,
 +    created_at: pr.created_at ?? "2026-11-17T11:00:00Z",
      labels: (pr.labels ?? []).map((name) => ({ name })),
-     base: { ref: pr.base, repo: { default_branch: etat.brancheParDefaut ?? "main" } },
-     head: { ref: pr.head, sha: pr.sha ?? ref(pr.head) ?? "0".repeat(40) },
-@@ -316,7 +320,7 @@ function repondre() {
+-    base: { ref: pr.base, repo: { default_branch: etat.brancheParDefaut ?? "main" } },
+-    head: { ref: pr.head, sha: pr.sha ?? ref(pr.head) ?? "0".repeat(40) },
++    base: { ref: pr.base, repo: { full_name: "maj/jouet", default_branch: etat.brancheParDefaut ?? "main" } },
++    head: { ref: pr.head, sha: pr.sha ?? ref(pr.head) ?? "0".repeat(40), repo: { full_name: pr.fourche ?? "maj/jouet" } },
+     requested_reviewers: (pr.relecteurs ?? []).map((login) => ({ login })),
+     requested_teams: (pr.equipes ?? []).map((slug) => ({ slug })),
+   };
+@@ -316,7 +321,7 @@ function repondre() {
        p.commentaires.push(etat.concurrent);
        delete etat.concurrent;
      }
@@ -1257,22 +1656,26 @@ index 528559f..cf04633 100644
      // Jouée une fois, au commentaire posé : la PR change sous le capitaine (un autre passage vient de finir).
      if (etat.apresCommentaire) {
 diff --git a/skills/chaine/sujet/scripts/faux-gh.test.mjs b/skills/chaine/sujet/scripts/faux-gh.test.mjs
-index 920205b..a29ae0d 100644
+index 920205b..f752286 100644
 --- a/skills/chaine/sujet/scripts/faux-gh.test.mjs
 +++ b/skills/chaine/sujet/scripts/faux-gh.test.mjs
-@@ -281,3 +281,22 @@ test('faux gh, commentairesRefuses : true refuse tout commentaire posé, une cha
+@@ -281,3 +281,26 @@ test('faux gh, commentairesRefuses : true refuse tout commentaire posé, une cha
    assert.match(gh(d, '-X', 'POST', COMMENTAIRES, '-f', 'body=tout').stderr, /HTTP 403/);
    assert.equal(lireCommentaires(d).length, 1);
  });
 +
 +// Ticket 66 : le Relecteur lit la date d'ouverture d'une PR (son régime) et pose des commentaires que la décision
 +// relit dans l'ordre de leur création, comparés à l'instant : le faux date ce qu'on pose à l'heure que le banc fixe.
-+test('faux gh, Relecteur : une PR rend sa date d’ouverture (défaut ou la sienne) ; `maintenant` date le commentaire posé, sans lui la date du rang', () => {
++test('faux gh, Relecteur : une PR rend sa date d’ouverture (défaut ou la sienne) et le dépôt de sa tête ; `maintenant` date le commentaire posé, sans lui la date du rang', () => {
 +  const d = jouetCommentaires([{ body: 'tard', created_at: '2026-11-20T09:00:00Z' }]);
 +  d.github({ pulls: [...d.etat().pulls, { number: 8, title: 'u', base: 'develop', head: 'y', labels: [], created_at: '2026-11-19T08:00:00Z' }] });
 +  const pulls = JSON.parse(gh(d, 'repos/{owner}/{repo}/pulls?state=open').stdout);
 +  assert.deepEqual(pulls.map((p) => [p.number, p.created_at]), [[8, '2026-11-19T08:00:00Z'], [7, '2026-11-17T11:00:00Z']]);
 +  assert.equal(JSON.parse(gh(d, 'repos/{owner}/{repo}/pulls/8').stdout).created_at, '2026-11-19T08:00:00Z');
++  const lue = JSON.parse(gh(d, 'repos/{owner}/{repo}/pulls/8').stdout);
++  assert.deepEqual([lue.base.repo.full_name, lue.head.repo.full_name], ['maj/jouet', 'maj/jouet'], 'la tête et la base dans le même dépôt');
++  d.github({ pulls: d.etat().pulls.map((p) => (p.number === 8 ? { ...p, fourche: 'autre/jouet' } : p)) });
++  assert.equal(JSON.parse(gh(d, 'repos/{owner}/{repo}/pulls/8').stdout).head.repo.full_name, 'autre/jouet', 'une PR de fourche');
 +  assert.equal(JSON.parse(gh(d, '-X', 'POST', COMMENTAIRES, '-f', 'body=sans horloge').stdout).created_at, '2026-11-17T12:00:01Z', 'sans `maintenant` : la date du rang');
 +  d.github({ maintenant: '2026-11-20T09:05:00Z' });
 +  const pose = JSON.parse(gh(d, '-X', 'POST', COMMENTAIRES, '-f', 'body=à l’heure').stdout);

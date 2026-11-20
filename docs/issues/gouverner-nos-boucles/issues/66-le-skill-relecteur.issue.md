@@ -3,14 +3,14 @@
 Status: ready-for-agent
 Type: task
 Label: contre-revue
-Modèle: sonnet — un skill neuf de trois fichiers et un script de 328 lignes, deux bancs neufs donnés entiers, vingt et un fichiers existants retouchés par des diffs donnés mot pour mot ; le tout joué sur un clone neuf d'`origin/main` à `5bf4f39` (plugin 7.37.3) : les bancs neufs ou changés sont rouges avant le code (29 tests rouges sur six fichiers), la suite entière est verte après (« Vérification »), et 35 mutations nommées sont toutes rouges.
+Modèle: sonnet — un skill neuf de trois fichiers et un script de 426 lignes, deux bancs neufs donnés entiers, vingt et un fichiers existants retouchés par des diffs donnés mot pour mot ; le tout joué sur un clone neuf d'`origin/main` à `5bf4f39` (plugin 7.37.3) : les bancs neufs ou changés sont rouges avant le code (43 tests rouges sur six fichiers), la suite entière est verte après (« Vérification »), et les 73 mutations nommées de l'annexe, celles du ticket et celles de sa relecture, sont toutes rouges ; trois sont retirées de la liste, deux équivalentes et une hors de portée d'un banc (« Ce qui n'a pas été établi », point 6).
 Blocked by: — : rien ne bloque. Les tickets que le lot 4 attendait de l'autre programme (2, 3, 4, 5, 8, 9, 11, 13, 16, 17, 18) et ses 21 tickets sont « Fait » ; les lots 3a à 3d sont dans `main` (tickets 58 à 61, et 63) ; le ticket 57 aussi (PR 141), et le ticket 65 (PR 145, `5bf4f39`), qui a porté les points 2 et 3 d'`A-178` dans le skill `relecture`. La sonde de `/security-review` est jouée (`A-178`) : le lot 4 n'attend plus rien.
 Dépendances: —
-Fichiers chauds: `.claude-plugin/plugin.json`, `NOTES-DE-VERSION.md`, `README.md`, `skills/chaine/architecte/references/lancement.md`, `skills/chaine/fusionner/references/CONTENU.md`, `skills/chaine/fusionner/scripts/decision-relecteur.mjs` et son test, `skills/chaine/sujet/scripts/faux-gh.mjs` et son test, `scripts/relecture.test.mjs`, `scripts/points-d-entree.test.mjs`, les trois fichiers du skill `relecture` cités dans « Où », les cinq du socle de la chaîne, les deux gabarits de carte, `references-agent-integrees.json`. Six fichiers neufs, que personne d'autre n'écrit : `skills/chaine/relecteur/` (`SKILL.md`, `references/CONTENU.md`, `references/prompt-session.md`, `scripts/relecteur.mjs`, `scripts/relecteur.test.mjs`) et `scripts/relecteur.test.mjs`. Les PR ouvertes hors programme : la 44 touche `plugin.json`, `NOTES-DE-VERSION.md`, `sujet/SKILL.md`, `sujet.sh`, `sujet.test.mjs` et `coverage-diff` (les deux premiers en commun, la règle de version du § 0 suffit) ; la 56 ne touche que deux tickets de `docs/issues/pose-du-socle/` (rien en commun).
+Fichiers chauds: `.claude-plugin/plugin.json`, `NOTES-DE-VERSION.md`, `README.md`, `skills/chaine/architecte/references/lancement.md`, `skills/chaine/fusionner/references/CONTENU.md`, `skills/chaine/fusionner/scripts/decision-relecteur.mjs` et son test, `skills/chaine/sujet/scripts/faux-gh.mjs` et son test, `scripts/relecture.test.mjs`, `scripts/points-d-entree.test.mjs`, les trois fichiers du skill `relecture` cités dans « Où », les quatre du socle de la chaîne (`labels.sh`, `admin.md`, `SKILL.md`, `references/CONTENU.md`), les deux gabarits de carte, `references-agent-integrees.json`. Six fichiers neufs, que personne d'autre n'écrit : `skills/chaine/relecteur/` (`SKILL.md`, `references/CONTENU.md`, `references/prompt-session.md`, `scripts/relecteur.mjs`, `scripts/relecteur.test.mjs`) et `scripts/relecteur.test.mjs`. Les PR ouvertes hors programme : la 44 touche `plugin.json`, `NOTES-DE-VERSION.md`, `sujet/SKILL.md`, `sujet.sh`, `sujet.test.mjs` et `coverage-diff` (les deux premiers en commun, la règle de version du § 0 suffit) ; la 56 ne touche que deux tickets de `docs/issues/pose-du-socle/` (rien en commun).
 
 ## Le besoin
 
-Ce ticket réalise le **lot 4** de la spec `docs/issues/gouverner-nos-boucles/relecture-independante.spec.md` (section « Les lots », point 4) : le skill `relecteur`, sa file et sa veille sur les calculs du lot 3, le faux GitHub pour les commentaires et les étiquettes, le gabarit de lancement, les deux étiquettes neuves, les lignes `Relecteurs:` et `Relecteur:` des cartes, et la déclaration du skill. Il porte les décisions `A-83` (un rôle, un skill, une session par dépôt), `A-84` (les étiquettes, et qui les pose), `A-85` (la décision du Relecteur, déjà codée au lot 3a, et « qui fait quoi »), `A-86` (le réveil de l'auteur, que le Relecteur suppose), `A-87` (le coût, le modèle), `A-88` et `A-89` (contester, plafonner : ce que la décision rend, que le Relecteur joue), `A-90` (deux sessions), telles que les amendent `A-105`, `A-107`, `A-108`, `A-110`, `A-111`, `A-113`, `A-115`, `A-116`, `A-118` (« pour le lot 4 : l'exécutant d'un geste ne renvoie pas des lignes déjà écrites quand un passage se rejoue »), `A-126` (les appelants approfondissent le clone), `A-128` et `P-64` (le modèle et l'effort suivent le risque), `A-137` (les lignes de `fusionner/references/CONTENU.md`, de `points-d-entree.test.mjs` et de l'arbre du `README.md` pour les trois calculs partent au lot 4), `A-141` et `A-178` (C4 tient ; le lot 4 n'attend plus la sonde). Il tient les quinze promesses que le ticket 61 fait au lot 4 (« Ce que ce ticket promet au lot 4 », table ci-dessous, colonne « Tenue »).
+Ce ticket réalise le **lot 4** de la spec `docs/issues/gouverner-nos-boucles/relecture-independante.spec.md` (section « Les lots », point 4) : le skill `relecteur`, sa file et sa veille sur les calculs du lot 3, le faux GitHub pour les commentaires et les étiquettes, le gabarit de lancement, les deux étiquettes neuves, les lignes `Relecteurs:` et `Relecteur:` des cartes, et la déclaration du skill. Il porte les décisions `A-83` (un rôle, un skill, une session par dépôt), `A-84` (les étiquettes, et qui les pose), `A-85` (la décision du Relecteur, déjà codée au lot 3a, et « qui fait quoi »), `A-86` (le réveil de l'auteur, que le Relecteur suppose), `A-87` (le coût, le modèle), `A-88` et `A-89` (contester, plafonner : ce que la décision rend, que le Relecteur joue), `A-90` (deux sessions), telles que les amendent `A-105`, `A-107`, `A-108`, `A-110`, `A-111`, `A-113`, `A-115`, `A-116`, `A-118` (« pour le lot 4 : l'exécutant d'un geste ne renvoie pas des lignes déjà écrites quand un passage se rejoue »), `A-126` (les appelants approfondissent le clone), `A-128` et `P-64` (le modèle et l'effort suivent le risque), `A-179` (les trois questions du rédacteur, tranchées), `A-180` (les retouches de la relecture du ticket), `A-137` (les lignes de `fusionner/references/CONTENU.md`, de `points-d-entree.test.mjs` et de l'arbre du `README.md` pour les trois calculs partent au lot 4), `A-141` et `A-178` (C4 tient ; le lot 4 n'attend plus la sonde). Il tient les quinze promesses que le ticket 61 fait au lot 4 (« Ce que ce ticket promet au lot 4 », table ci-dessous, colonne « Tenue »).
 
 **Avec lui, la retouche de `compter`** (`A-141` : « un ticket retouche `compter` avant le lot 4 ») : sur une PR à chemin sensible, un `refusé` sans ligne `/security-review: lancée` est aujourd'hui compté `incomplet` (`decision-relecteur.mjs:245`, décision 17 du ticket 61) : la PR ne revient pas à son auteur, le Relecteur réécrit à la session au même tour, et le bénéfice d'`A-137` est perdu. Ce ticket la fait : **un refus ne compte jamais moins qu'un refus** (décision 1).
 
@@ -26,7 +26,7 @@ Ce qui est acquis et que ce ticket ne refait pas : la décision (`decider`, `tou
 | 2 | la session est créée sur la base de la PR, clone superficiel admis | `SKILL.md`, « Créer ou relancer » : `source_revision` la base, jamais la tête |
 | 3 | la session écrit au Relecteur ; quatre lignes possibles | l'identifiant du Relecteur est sur la deuxième ligne du prompt ; `SKILL.md`, « Les messages des sessions de relecture » dit ce que le Relecteur fait de chacune |
 | 4 | distribution écrite après la création de la session | `SKILL.md` (« Créer d'abord, écrire la distribution ensuite ») ; `distribuer` refait la décision avant d'écrire |
-| 5 | le fait `sensible` sur la même liste que la session ; `a-juger` joue commitlint | `relecteur.mjs`, `liste` : trois points vers develop, `a-juger` (seconde liste) vers un sujet ; les dépendances de develop installées quand son lockfile change (décision 4, question 3) |
+| 5 | le fait `sensible` sur la même liste que la session ; `a-juger` joue commitlint | `relecteur.mjs`, `liste` : trois points vers develop, `a-juger` (seconde liste) vers un sujet ; les dépendances de develop installées quand son lockfile change (décision 4, `A-179`) |
 | 6 | toutes les pages des commentaires | `lire_github --paginate`, pages concaténées en un tableau |
 | 7 | une relance rejoue le tour entier | le message de relance le dit ; `distribuer` sur `reecrire` redit la distribution `(relance …)` |
 | 8 | `compter` retouché | décision 1 |
@@ -36,7 +36,7 @@ Ce qui est acquis et que ce ticket ne refait pas : la décision (`decider`, `tou
 | 12 | seules les PR du régime 8 | `relecteur.mjs`, `decision` : base `develop` ou `sujet/<nom>`, clé `relecture`, ouverte après `depuis` |
 | 13 | les lignes des trois calculs | `fusionner/references/CONTENU.md`, `points-d-entree.test.mjs` (`double-relecture.mjs`), l'arbre du `README.md` |
 | 14 | jamais une autre PR à la même session | `SKILL.md`, « Créer ou relancer » et « Ne jamais » ; tags `pr:<n>` |
-| 15 | `bash`, `git` ≥ 2.40, `jq`, `node` | ceux de la session cloud ; le Relecteur, lui, en a besoin aussi (`meme-contenu.sh` veut git ≥ 2.41) |
+| 15 | `bash`, `git` ≥ 2.40, `jq`, `node` | ceux de la session cloud ; le Relecteur, lui, en a besoin aussi (`meme-contenu.sh` veut git ≥ 2.41), et de `flock` (util-linux) |
 
 ## Où
 
@@ -44,17 +44,17 @@ Base : `origin/main` à `5bf4f39` (plugin **7.37.3**), le 2026-11-20, après l'e
 
 | Fichier | Ce qui change |
 | --- | --- |
-| `skills/chaine/relecteur/SKILL.md` | **neuf**, 86 lignes (§ 2) |
+| `skills/chaine/relecteur/SKILL.md` | **neuf**, 101 lignes (§ 2) |
 | `skills/chaine/relecteur/references/CONTENU.md` | **neuf** (§ 2) |
 | `skills/chaine/relecteur/references/prompt-session.md` | **neuf** : le prompt d'une session de relecture et le message de relance (§ 2) |
-| `skills/chaine/relecteur/scripts/relecteur.mjs` | **neuf**, 328 lignes : `passe`, `jouer`, `distribuer`, `veille` (§ 2) |
-| `skills/chaine/relecteur/scripts/relecteur.test.mjs` | **neuf**, le banc du script, 13 tests (§ 1) |
-| `scripts/relecteur.test.mjs` | **neuf**, le banc des textes, 6 tests (§ 1) |
+| `skills/chaine/relecteur/scripts/relecteur.mjs` | **neuf**, 426 lignes : `passe`, `jouer`, `distribuer`, `veille` (§ 2) |
+| `skills/chaine/relecteur/scripts/relecteur.test.mjs` | **neuf**, le banc du script, 26 tests (§ 1) |
+| `scripts/relecteur.test.mjs` | **neuf**, le banc des textes, 7 tests (§ 1) |
 | `skills/chaine/fusionner/scripts/decision-relecteur.mjs:243-245` | `compter` (§ 3, décision 1) |
 | `skills/chaine/fusionner/scripts/decision-relecteur.test.mjs:382`, `:766` | une assertion inversée, un test neuf (§ 1) |
 | `scripts/relecture.test.mjs:380`, `:400-409` | le cas « limite connue » devient « un refus reste un refus » (§ 1) |
 | `skills/chaine/relecture/SKILL.md:140` ; `references/verdict.md:51` ; `references/CONTENU.md:31` | la limite retirée (§ 3) |
-| `skills/chaine/sujet/scripts/faux-gh.mjs:5`, `:163`, `:319` ; `faux-gh.test.mjs`, fin | la date d'ouverture d'une PR, l'heure d'un commentaire posé (§ 3, décision 15) |
+| `skills/chaine/sujet/scripts/faux-gh.mjs:5`, `:150-151`, `:163`, `:319` ; `faux-gh.test.mjs`, fin | la date d'ouverture d'une PR, le dépôt de sa tête et de sa base, l'heure d'un commentaire posé (§ 3, décision 15) |
 | `skills/chaine/architecte/references/lancement.md:65`, `:103` | la section « Le Relecteur d'un dépôt » ; `Relecteurs:` (§ 3) |
 | `skills/chaine/socle-chaine-de-production/references/labels.sh:3`, `:20` ; `admin.md:10` ; `SKILL.md:3`, `:66`, `:87` ; `references/CONTENU.md:21` | les deux labels, « neuf » (§ 3) |
 | `skills/chaine/tickets/references/gabarits/programme.md:15` ; `carte.map.md:18` | `Relecteurs:`, `Relecteur:` (§ 3) |
@@ -69,21 +69,21 @@ Aucun autre fichier. En particulier ni `github.sh`, ni `passer.sh`, ni `sujet.sh
 
 ## Décisions
 
-1. **Un refus ne compte jamais moins qu'un refus** (`A-141`, décision 17 du ticket 61). `compter` (`decision-relecteur.mjs:245`) laisse `refusé` tout verdict **lisible** qui dit `refusé`, quels que soient sa ligne `/security-review:` et son `Sommet relu:` ; un `validé` ou un `incomplet` se lit `incomplet`, comme avant, s'il est illisible, s'il a relu un autre sommet, ou si la PR est sensible sans `lancée`. Un verdict illisible n'est pas un refus lisible : `lireVerdict` le rend déjà `incomplet`, même s'il porte « refusé » (« refusé sans bloquant »), et il le reste. C'est le comportement le plus simple qui tient la règle : une condition de plus devant l'expression d'aujourd'hui, et aucune autre ligne de la décision ne bouge. Raison : un refus compté `incomplet` fait relancer la session au même tour sur un contenu déjà connu fautif (ce qu'`A-137` écartait), et un refus d'un autre sommet qui se relit `incomplet` fait perdre un refus réel quand la session s'est trompée de ligne ; dans les deux cas la PR n'entre pas, mais l'auteur ne reçoit rien. Le côté sûr est tenu : un `refusé` ne valide jamais, et un tour refusé de plus ne fait jamais qu'une alerte de plafond de trop (`A-116`). **Ce que cela amende** : la phrase d'`A-111` « un verdict dont le `Sommet relu:` n'est pas le sommet de son tour se lit `incomplet` » vaut désormais pour `validé` et `incomplet` seulement (question 2). Le capitaine, qui partagera `tourValide` (lot 5a), n'y gagne ni n'y perd : un refus n'a jamais validé.
+1. **Un refus ne compte jamais moins qu'un refus** (`A-141`, décision 17 du ticket 61). `compter` (`decision-relecteur.mjs:245`) laisse `refusé` tout verdict **lisible** qui dit `refusé`, quels que soient sa ligne `/security-review:` et son `Sommet relu:` ; un `validé` ou un `incomplet` se lit `incomplet`, comme avant, s'il est illisible, s'il a relu un autre sommet, ou si la PR est sensible sans `lancée`. Un verdict illisible n'est pas un refus lisible : `lireVerdict` le rend déjà `incomplet`, même s'il porte « refusé » (« refusé sans bloquant »), et il le reste. C'est le comportement le plus simple qui tient la règle : une condition de plus devant l'expression d'aujourd'hui, et aucune autre ligne de la décision ne bouge. Raison : un refus compté `incomplet` fait relancer la session au même tour sur un contenu déjà connu fautif (ce qu'`A-137` écartait), et un refus d'un autre sommet qui se relit `incomplet` fait perdre un refus réel quand la session s'est trompée de ligne ; dans les deux cas la PR n'entre pas, mais l'auteur ne reçoit rien. Le côté sûr est tenu : un `refusé` ne valide jamais, et un tour refusé de plus ne fait jamais qu'une alerte de plafond de trop (`A-116`). **Ce que cela amende** : la phrase d'`A-111` « un verdict dont le `Sommet relu:` n'est pas le sommet de son tour se lit `incomplet` » vaut désormais pour `validé` et `incomplet` seulement (`A-179`, point 2 : un refus a eu lieu, un nouveau sommet ne l'efface pas du compte ; l'éligibilité ne change pas, seul un `validé` au sommet courant ouvre la fusion). Le capitaine, qui partagera `tourValide` (lot 5a), n'y gagne ni n'y perd : un refus n'a jamais validé.
 2. **Le Relecteur joue les scripts de `develop`, et aucun ne se pose.** `relecteur.mjs` vit dans le skill et se lance depuis son dossier, comme `gestes.sh` du skill `relecture` ; il joue sous `scripts/chaine/` de `develop` la décision (`decision-relecteur.mjs`, **la même que celle du capitaine**, `A-85`), le lecteur de verdict, « double relecture exigée », « même contenu propre », `chemins-sensibles.mjs` et `sujet.sh a-juger`, et lit GitHub par `lire_github` de `github.sh`, la seule lecture qui décide (`A-108`). Les écritures passent par `poser_label`, `retirer_label` et `commenter` du même fichier. Il n'y a donc pas d'étape `poser` : un projet a ces scripts dès qu'il a reposé `fusionner`, `sujet` et `relecture` ; il en manque un, `passe` sort en 6 et le nomme. Raison : une seule définition par règle, celle que le capitaine joue aussi ; une copie dans le skill divergerait de la version que le projet a posée.
-3. **Le dossier du Relecteur ne sert qu'à lui, et chaque geste le prépare** (`A-126`) : propre, sinon sortie 6 ; approfondi une fois (`git fetch --unshallow origin`) ; toutes les branches d'`origin` relues (`+refs/heads/*:refs/remotes/origin/*`, le clone d'une session cloud ne suit qu'une branche) ; placé sur `origin/develop`, détaché. Raison : les scripts joués sont ceux de develop, la tête et les sommets des tours doivent être là pour « même contenu propre », et aucun calcul ne lance de `fetch` lui-même.
-4. **Le diff propre, et les dépendances.** Pour une PR vers `develop`, le diff à trois points sans renommage ; vers un sujet, la sortie de `sujet.sh a-juger`, sa seconde liste pour une PR de mise à jour (promesse 5). `a-juger` joue commitlint sur les retouches d'une PR de mise à jour : la préparation installe les dépendances de develop (`pnpm install --frozen-lockfile --prefer-offline`) quand son `pnpm-lock.yaml` a changé depuis la dernière installation réussie (un témoin dans le dossier git), et jamais sinon (question 3). Un diff propre qui ne se lit pas (tête introuvable, `a-juger` en échec) rend la PR **sensible** et « double relecture exigée » **illisible** : `decider` trace `Lecture illisible — …` et prévient l'architecte (`A-113`) ; jamais une distribution sur un diff inconnu. Un diff vide n'est pas sensible.
-5. **Le régime d'une PR** (`A-97`) : sa base est `develop` ou `sujet/<nom>` ; le `.claude/chaine.json` de cette base porte la clé `relecture` ; la PR a été ouverte strictement après `depuis`. Sinon `hors-regime`, et le Relecteur n'y touche pas. Une clé présente et mal formée donne `contrat-illisible` : une ligne à l'architecte, jamais une file vide. **La forme que ce ticket lit** (question 1) : `depuis`, ISO 8601 en UTC (`2026-12-01T10:00:00Z`) ; `delai`, en minutes, entier, 120 par défaut (`relecture.delai`, `A-85`, dont `A-111` laissait l'unité au lot 6c) ; `ordinaire` et `sensible`, chacun `{ "modele", "effort" }` (`A-128`), `effort` parmi `low`, `medium`, `high`, `xhigh`, `max`, et par défaut `opus`/`medium` et `opus`/`xhigh` (`P-64`). Le lot 6c pose la clé avec ces valeurs dans le gabarit du socle.
-6. **Ce que la session crée** : le couple `relecture.sensible` quand le diff touche un chemin sensible ou que deux verdicts sont exigés, `relecture.ordinaire` sinon (`A-128`) ; `create_session` avec la base en `source_revision`, les tags `role:relecture` et `pr:<n>`, `permission_mode` `"auto"`, et le prompt de `prompt-session.md`. Deux sessions quand `nombre` vaut 2 : la ligne « Seconde relecture » du prompt leur interdit de lire le verdict de l'autre (`A-90`).
-7. **`jouer` joue ce qui s'écrit sur GitHub, et seulement cela** : l'étiquette (la nouvelle **posée avant** que l'ancienne soit retirée, `A-84`), le commentaire du plafond, de la panne ou de l'illisible. Il refait la décision juste avant : ce qu'il joue est ce que la PR demande à cet instant, pas ce qu'une veille a vu deux minutes plus tôt. **Une ligne ne part qu'au changement d'étiquette** (`A-85`) : une étiquette déjà posée avant lui (un passage rejoué après une coupure entre la pose et le retrait) ne rend aucune ligne (`A-118`, « pour le lot 4 »). Une écriture refusée sort en 7 ; la pose refusée, rien n'est retiré.
-8. **La distribution s'écrit après la création des sessions, et jamais pour un tour que la machine ne demande plus.** `distribuer <n> <sessions…>` refait la décision, sort en 3 sans rien écrire si le geste a changé (un verdict tombé, un push), compose la liste (règles 4 et 6 : les sessions du tour ; `completer` : celles du tour et les ajoutées ; `remplacer` : la remplaçante à la place de la remplacée ; `reecrire` : aucune, la distribution redite `(relance <id>)`), refuse un nombre faux et une session ajoutée déjà du tour, puis écrit par `ecrireDistribution`. Une session créée pour rien est orpheline : une ligne à l'architecte, qui l'archive (`A-85`, règle 6).
-9. **L'état des sessions ne se demande que pour la règle 5** (`A-85`, « Qui fait quoi ») : à chaque réveil, pour les PR que la passe range en règle 5, `get_session` des sessions attendues, écrit dans un fichier `{ <id>: vivante | morte | plafond }` et passé par `--sessions` à `jouer` et à `distribuer`. `morte` : archivée, en échec, introuvable ; `plafond` : la session l'a écrit. Une session remplacée au plafond de contexte se signale au conducteur (`A-87`).
-10. **La veille ne réveille le Relecteur que pour un geste** (`A-85`) : une passe toutes les 2 minutes, pendant une heure ; `VEILLE GESTE` et une ligne par PR dès qu'un geste autre que `rien`, `hors-regime` ou `pause` apparaît, hors des PR tues (`--taire`) ; `PAUSE` quand GitHub ne répond pas (`A-108` : un refus de lecture est une pause), et la veille continue ; `VEILLE FINIE` au bout de la durée, pour que le Relecteur relève son contexte ; `VEILLE ARRÊTÉE sortie <c>` pour toute autre sortie de la passe. Une attente (règle 5, `rien`) ne réveille personne : un remplacement pour silence arrive par la passe qui suit l'échéance. **Tant que la veille tourne, la session ne lance aucune sous-commande** : chaque sous-commande prépare le dossier (`fetch`, `switch`), et deux préparations en même temps se gênent ; pour un message qui demande un geste, la session arrête la veille, joue, et la relance.
+3. **Le dossier du Relecteur ne sert qu'à lui, et chaque geste le prépare** (`A-126`), **sous un verrou** (`A-180`) : `passe`, `jouer` et `distribuer` se relancent sous `flock -w 300` sur `<dossier git>/relecteur.verrou`, comme `boucle.sh` ; un geste lancé pendant une passe de la veille attend sa fin, et sort en 9 au bout de cinq minutes. Chaque commande git, la sienne comme celle des scripts qu'il joue, porte `core.hooksPath` vide et `core.fsmonitor=false`, ajoutés aux `GIT_CONFIG_*` de la session, jamais à leur place, comme dans `relecture` : un hook du dépôt (le relais d'un outil qui récrit un fichier suivi) ne salit jamais le dossier. Le dossier doit être propre, sinon sortie 6 ; approfondi une fois (`git fetch --unshallow origin`) ; toutes les branches d'`origin` relues (`+refs/heads/*:refs/remotes/origin/*`, le clone d'une session cloud ne suit qu'une branche) ; placé sur `origin/develop`, détaché. Raison : les scripts joués sont ceux de develop, la tête et les sommets des tours doivent être là pour « même contenu propre », et aucun calcul ne lance de `fetch` lui-même.
+4. **Le diff propre, et les dépendances.** Pour une PR vers `develop`, le diff à trois points sans renommage ; vers un sujet, la sortie de `sujet.sh a-juger`, sa seconde liste pour une PR de mise à jour (promesse 5). `a-juger` joue commitlint sur les retouches d'une PR de mise à jour : la préparation installe les dépendances de develop (`pnpm install --frozen-lockfile --prefer-offline`) quand son `pnpm-lock.yaml` a changé depuis la dernière installation essayée (un témoin dans le dossier git, l'empreinte et l'issue), jamais celles de la PR (`A-179`, point 3). Une installation en échec écrit sa sortie d'erreur et ne se retente qu'au lockfile suivant (`A-180`). **Un diff propre qui ne se lit pas** ne passe pas par les règles : le script rend lui-même le geste `illisible`, la cause nommée une à une (`A-180`) — PR de fourche (sa tête vit hors du dépôt), tête introuvable, dépendances de develop (l'installation a échoué et `a-juger` ne juge pas), forme refusée par `a-juger` (sortie 4), `a-juger` ou le diff en échec. La forme refusée est la seule cause qui soit à l'auteur : la ligne va à lui (à l'architecte quand la demande ne nomme pas de session) ; les autres vont à l'architecte. Comme dans `decider`, la trace d'une cause se signale une fois par `relecture.delai` (`A-116`). Jamais une distribution sur un diff inconnu. Un diff vide n'est pas sensible ; un `chemins-sensibles.mjs` en panne rend la PR sensible.
+5. **Le régime d'une PR** (`A-97`) : sa base est `develop` ou `sujet/<nom>` ; le `.claude/chaine.json` de cette base porte la clé `relecture` ; la PR a été ouverte strictement après `depuis`. Sinon `hors-regime`, et le Relecteur n'y touche pas. Une clé présente et mal formée donne `contrat-illisible` : une ligne à l'architecte, jamais une file vide. **La forme que ce ticket lit** (`A-179`, point 1, et `A-180`) : `depuis`, ISO 8601 en UTC, `Z`, avec ou sans millisecondes (`2026-12-01T10:00:00Z`, `2026-12-01T10:00:00.000Z`) ; un décalage, `+00:00` compris, n'est pas admis : c'est une limite écrite, et la clé est alors `contrat-illisible` ; `delai`, en minutes, entier, 120 par défaut (`relecture.delai`, `A-85`, dont `A-111` laissait l'unité au lot 6c) ; `ordinaire` et `sensible`, chacun `{ "modele", "effort" }` (`A-128`), `modele` un alias, `opus` ou `sonnet`, jamais un identifiant daté, `effort` parmi `low`, `medium`, `high`, `xhigh`, `max`, et par défaut `opus`/`medium` et `opus`/`xhigh` (`P-64`). Le lot 6c pose la clé avec ces valeurs dans le gabarit du socle.
+6. **Ce que la session crée** : le couple `relecture.sensible` quand le diff touche un chemin sensible ou que deux verdicts sont exigés, `relecture.ordinaire` sinon (`A-128`) ; `create_session` avec la base en `source_revision`, les tags `role:relecture` et `pr:<n>`, `permission_mode` `"auto"`, et le prompt de `prompt-session.md`. Deux sessions quand `nombre` vaut 2 : la ligne « Seconde relecture » du prompt leur interdit de lire le verdict de l'autre (`A-90`). **Une session n'est réemployée qu'à couple égal** (`A-180`) : une PR devenue sensible ou « double » reçoit des sessions neuves au couple sensible (`P-64` prime sur `P-52`). Si `create_session` refuse `effort` (l'outil pré-approuvé dans la session qui le lance), la session n'est pas créée sans lui.
+7. **`jouer` joue ce qui s'écrit sur GitHub, et seulement cela** : l'étiquette (la nouvelle **posée avant** que l'ancienne soit retirée, `A-84`), le commentaire du plafond, de la panne ou de l'illisible. Il refait la décision juste avant : ce qu'il joue est ce que la PR demande à cet instant, pas ce qu'une veille a vu deux minutes plus tôt. **Une ligne ne part qu'au changement d'étiquette** (`A-85`) : une étiquette déjà posée avant lui (un passage rejoué après une coupure entre la pose et le retrait) ne rend aucune ligne (`A-118`, « pour le lot 4 »). Une écriture refusée sort en 7 : la pose d'une étiquette ou un commentaire ; un retrait refusé ne l'est pas (`retirer_label` le tait, et la décision le refait au passage suivant). La pose refusée, rien n'est retiré. Une PR fermée sort en 3 (`A-180`).
+8. **La distribution s'écrit après la création des sessions, et jamais pour un tour que la machine ne demande plus.** `distribuer <n> --sommet <sha> --couple <modele>/<effort> <sessions…>` refait la décision, sort en 3 sans rien écrire si le geste, le sommet ou le couple ont changé depuis ce que `passe` a montré (un verdict tombé, un push, une PR devenue sensible : `A-180`), ou si la PR est fermée, compose la liste (règles 4 et 6 : les sessions du tour ; `completer` : celles du tour et les ajoutées ; `remplacer` : la remplaçante à la place de la remplacée ; `reecrire` : aucune, la distribution redite `(relance <id>)`), refuse un nombre faux et une session ajoutée déjà du tour, puis écrit par `ecrireDistribution`. `--remplace <id>` dit la session hors service quand le modèle n'a pas de fichier `--sessions` (`A-180`). Une session créée pour rien est orpheline : une ligne à l'architecte, qui l'archive (`A-85`, règle 6).
+9. **L'état des sessions se lit par `get_session`, dans les règles 4, 5 et 6 seulement** (`A-85`, « Qui fait quoi », et `A-180`) : les `preferees` encore vivantes d'un geste `distribuer`, et, pour les PR que la passe range en règle 5, les sessions attendues, écrites dans un fichier `{ <id>: vivante | morte | plafond }` passé par `--sessions` à `jouer` et à `distribuer`. `morte` : archivée, en échec, introuvable ; `plafond` : plus de 700 000 tokens de contexte (`A-180` : la relecture n'envoie aucun message de plafond). Un fichier mal formé (pas un objet, un identifiant ou un état hors de sa forme, du JSON illisible) sort en 2, la cause dite. Une session remplacée au plafond de contexte se signale au conducteur (`A-87`).
+10. **La veille ne réveille le Relecteur que pour un geste** (`A-85`) : une passe toutes les 2 minutes, pendant **25 minutes** (`--duree 25`, le défaut du script aussi) — l'outil Bash arrête une tâche de fond à 30 minutes par défaut, et une veille d'une heure mourait sans ligne finale (`A-180`, le bloquant de la relecture ; la veille du capitaine a la même limite, c'est un ticket de suite) ; `VEILLE GESTE` et une ligne par PR dès qu'un geste autre que `rien`, `hors-regime` ou `pause` apparaît, hors des PR tues (`--taire`) ; `PAUSE` quand GitHub ne répond pas (`A-108` : un refus de lecture est une pause), et la veille continue ; `VEILLE FINIE` au bout de la durée : le Relecteur relève son propre contexte et, au-delà de 500 000 tokens, l'écrit à l'architecte et s'arrête, un Relecteur neuf étant lancé (`A-180`) ; `VEILLE ARRÊTÉE sortie <c>` pour toute autre sortie de la passe. Une attente (règle 5, `rien`) ne réveille personne : un remplacement pour silence arrive par la passe qui suit l'échéance. À chaque réveil, fin de veille ou message, `passe` d'abord, puis ses gestes (`A-180`) ; le verrou de la décision 3 sépare une passe de la veille et un geste du modèle. **Chaque sortie de `passe`, `jouer` et `distribuer` a sa suite écrite** (table « Les sorties » du `SKILL.md`) : 1 l'architecte et `--taire`, 2 l'appel refait une fois, 3 `passe` à nouveau et l'orpheline à l'architecte, 5 et 9 le réveil suivant, 6 l'architecte et l'arrêt, 7 le réveil suivant puis, au second refus, l'architecte et `--taire`, 12 le réveil suivant puis l'architecte. `TaskStop` se charge par le `ToolSearch` de la mise en place.
 11. **Les quatre messages d'une session de relecture** (promesse 3) : « verdict écrit » ne fait que hâter ; « a écrit cette PR ou son ticket » et « verdict non publié, la lecture ou la publication a échoué » font compter la session `morte` pour le tour, donc remplacée une fois, puis `Relecture en panne` (`A-115`) ; « aucune distribution ne me nomme » fait écrire la distribution si le geste qui l'a créée est encore celui que la décision rend, sinon la session est orpheline.
 12. **Le lancement du Relecteur** (`A-83`, `A-108`) : un gabarit dans `lancement.md`, sa commande en première ligne, puis les lignes « Outils : » (avec `create_session` et `get_session`), « Argument : », « Skills : » et « Version : », celles du capitaine pour ce skill, puis les consignes du produit. `tags` `["role:relecteur"]` ; `effort` `"medium"` ; `model` Sonnet, sauf tant que le produit impose un modèle à toutes les sessions (jusqu'au 2026-11-23, `P-64`). L'architecte l'inscrit sur `Relecteurs:` ; son contrôle de vie relève déjà toute session que sa carte nomme (`architecte/SKILL.md` § 5) : la ligne y entre sans mot de plus. Sans programme, le conducteur le lance et sa carte le nomme sur `Relecteur:` ; ce que `chantier` en vérifie au démarrage est du lot 6b.
 13. **Deux labels neufs**, `à-relire` (bleu `0369A1`) et `à-reprendre` (orange `C2410C`), ajoutés en fin de liste de `labels.sh` ; « sept » devient « neuf » partout où le socle le dit, et `admin.md` dit qu'ils se créent avant la repose qui passe le dépôt en régime 8 (`A-84`). Le banc des textes vérifie que les quatre étiquettes de la décision (`ETIQUETTES`) sont parmi les neuf.
 14. **Les cartes** : `Relecteurs:` sous `Capitaines:` dans la fiche d'un programme, `Relecteur:` sous `Capitaine:` dans celle d'un chantier (`A-83`). Le gate `tickets` ne lit pas ces lignes.
-15. **Le faux GitHub** rend `created_at` d'une PR (la date d'ouverture, `2026-11-17T11:00:00Z` par défaut) et date un commentaire posé à `maintenant` quand l'état la porte, sans quoi la date de son rang ; un test de `faux-gh.test.mjs` tient les deux. `A-108` donnait la date d'ouverture au lot 5a ; le Relecteur la lit le premier (le régime), elle entre ici, et le lot 5a la trouve faite. Sans l'heure posée, un commentaire que le Relecteur pose recevrait une date antérieure à ceux que le banc a datés, et `retenir` refuserait l'ordre.
+15. **Le faux GitHub** rend `created_at` d'une PR (la date d'ouverture, `2026-11-17T11:00:00Z` par défaut), `base.repo.full_name` et `head.repo.full_name` (`maj/jouet`, ou la `fourche` de la PR, pour la cause « PR de fourche ») et date un commentaire posé à `maintenant` quand l'état la porte, sans quoi la date de son rang ; un test de `faux-gh.test.mjs` tient les deux. `A-108` donnait la date d'ouverture au lot 5a ; le Relecteur la lit le premier (le régime), elle entre ici, et le lot 5a la trouve faite. Sans l'heure posée, un commentaire que le Relecteur pose recevrait une date antérieure à ceux que le banc a datés, et `retenir` refuserait l'ordre.
 16. **Les trois calculs décrits** (`A-137`, promesse 13) : trois sections dans `fusionner/references/CONTENU.md` ; `double-relecture.mjs` dans `points-d-entree.test.mjs` (ses six accès passent déjà : c'est une couverture de plus, pas un rouge) ; les quatre noms dans la ligne `scripts/` de `fusionner` de l'arbre du `README.md`.
 17. **La version** : la suivante de `main` au moment de livrer, le deuxième nombre plus un, le troisième à zéro (7.37.3 donne 7.38.0). Aucun test ne l'écrit en dur.
 
@@ -97,11 +97,7 @@ Aucun autre fichier. En particulier ni `github.sh`, ni `passer.sh`, ni `sujet.sh
 
 ## Questions à l'architecte
 
-Chacune a sa recommandation en premier ; le ticket est écrit sur elle, et dit ce qui change si l'architecte en décide autrement.
-
-1. **La forme de la clé `relecture` que le Relecteur lit** (décision 5). La spec la fait poser au lot 6c, mais le lot 4 la lit le premier : `depuis` (`A-97`), `relecture.delai` (dont `A-111` laisse l'unité au lot 6c), `relecture.ordinaire` et `relecture.sensible` (`A-128`). **Recommandation** : celle de la décision 5 — `depuis` en ISO 8601 UTC, `delai` en minutes (entier, 120 par défaut), les deux couples `{ modele, effort }` avec les défauts de `P-64` — et le lot 6c la recopie dans le gabarit du socle. Autrement : changer `contrat()` de `relecteur.mjs` et le premier test de son banc, rien d'autre.
-2. **`compter` laisse aussi `refusé` un refus qui a relu un autre sommet** (décision 1). La consigne était « un refus ne doit jamais compter moins qu'un refus » ; à la lettre, elle couvre ce cas, qu'`A-111` avait rangé avec les autres (« se lit `incomplet` »). **Recommandation** : la forme du ticket, une seule règle pour tout refus lisible. Autrement (la forme étroite, le seul cas de la ligne `/security-review:`) : l'expression devient `v.illisible || v.sommet !== sommet || (sensible && v.securite !== 'lancée' && v.verdict !== 'refusé') ? 'incomplet' : v.verdict`, et les deux cas « un autre sommet » du test « ticket 66 » de `decision-relecteur.test.mjs` passent à `reecrire` ; la mutation M2 se retire.
-3. **Le Relecteur installe les dépendances de develop** pour que `sujet.sh a-juger` lise une PR de mise à jour à retouches (décision 4, promesse 5 du ticket 61, qui laissait le choix entre cette voie et une lecture de la liste qui ne juge pas les messages). **Recommandation** : l'installation, quand le lockfile de develop change, comme la session de relecture le fait déjà ; elle ne touche aucun fichier tenu. Autrement : un ticket sur `sujet.sh` (lot 5, qui le tient) ajoute `a-juger --sans-messages`, et `liste()` l'appelle ; d'ici là, une telle PR serait « illisible ».
+Aucune ouverte. Les trois questions du premier état de ce ticket sont tranchées par `A-179` (la forme de la clé `relecture`, un refus sur un autre sommet compté refusé, les dépendances de develop installées), sur les recommandations du rédacteur, et la relecture du ticket par `A-180` ; le ticket est écrit sur elles.
 
 ## À faire, dans l'ordre
 
@@ -119,11 +115,11 @@ Chaque fichier neuf est donné entier, sous un titre qui porte son chemin ; chaq
 
 ### § 1 — Les bancs d'abord, vus rouges
 
-Écrire les deux bancs neufs et les quatre changements de bancs existants, puis les jouer : **29 tests rouges** sur `5bf4f39` (« Vérification », « Ce qui a été joué »). Les bancs demandent `git` 2.41 ou plus (« même contenu propre »), `jq` et `bash`.
+Écrire les deux bancs neufs et les quatre changements de bancs existants, puis les jouer : **43 tests rouges** sur `5bf4f39` (« Vérification », « Ce qui a été joué »). Les bancs demandent `git` 2.41 ou plus (« même contenu propre »), `jq` et `bash`.
 
 #### `skills/chaine/relecteur/scripts/relecteur.test.mjs`
 
-279 lignes, de la première à la dernière :
+540 lignes, de la première à la dernière :
 
 ```js
 // Banc du Relecteur (skill relecteur, lot 4) : `relecteur.mjs` joué comme la session le joue, dans une copie du
@@ -131,8 +127,8 @@ Chaque fichier neuf est donné entier, sous un titre qui porte son chemin ; chaq
 // cas monte son état, lance la sous-commande, et lit ce qu'elle écrit (sa ligne JSON) et ce qu'elle a fait sur
 // GitHub (le journal du faux). Aucun réseau ; l'heure est posée (`RELECTEUR_HORLOGE_BANC`, `maintenant` du faux).
 import assert from 'node:assert/strict';
-import { execFileSync, spawnSync } from 'node:child_process';
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { execFileSync, spawn, spawnSync } from 'node:child_process';
+import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
@@ -155,7 +151,7 @@ const CALCULS = [
 ];
 
 // Le dépôt jouet, la chaîne sur develop, son contrat, et la copie du Relecteur (un clone d'origin).
-function monter({ contrat = CONTRAT, superficiel = false } = {}) {
+function monter({ contrat = CONTRAT, superficiel = false, horloge = 30 } = {}) {
   const d = depotJouet();
   d.publierChaine();
   for (const [skill, nom] of CALCULS) d.ecrire(`scripts/chaine/${nom}`, readFileSync(script(skill, nom), 'utf8'));
@@ -164,11 +160,32 @@ function monter({ contrat = CONTRAT, superficiel = false } = {}) {
   d.git('push', '-q', 'origin', 'HEAD:develop');
   const dossier = join(d.racine, 'relecteur');
   execFileSync('git', ['clone', '-q', ...(superficiel ? ['--depth', '1', `file://${d.origine}`] : [d.origine]), dossier], { env: d.env });
-  const env = { ...d.env, RELECTEUR_HORLOGE_BANC: String(DEBUT + 30 * 60_000) };
+  const env = { ...d.env, RELECTEUR_HORLOGE_BANC: String(DEBUT + horloge * 60_000) };
   const lancer = (...args) => spawnSync(process.execPath, [RELECTEUR, ...args], { cwd: dossier, env, encoding: 'utf8', timeout: 120_000 });
+  const enFond = (...args) =>
+    new Promise((fini) => {
+      const p = spawn(process.execPath, [RELECTEUR, ...args], { cwd: dossier, env });
+      let erreur = '';
+      p.stderr.on('data', (c) => (erreur += c));
+      p.on('close', (status) => fini({ status, stderr: erreur }));
+    });
   const json = (r) => r.stdout.split('\n').filter(Boolean).map((l) => JSON.parse(l));
-  return { ...d, dossier, env, lancer, json };
+  // Un calcul de develop remplacé par un talon (un calcul en panne, ou qui rend ce que le cas veut).
+  const talon = (nom, corps) => {
+    d.git('switch', '-q', 'develop');
+    d.ecrire(`scripts/chaine/${nom}`, corps);
+    d.commit(`test: talon ${nom}`);
+    d.git('push', '-q', 'origin', 'HEAD:develop');
+  };
+  return { ...d, dossier, env, lancer, enFond, json, talon };
 }
+// `distribuer`, avec le sommet et le couple que le geste nommait.
+const distribuer = (d, sha, couple, ...args) => d.lancer('distribuer', '12', '--sommet', sha, '--couple', couple, ...args);
+const ajouter = (d, ...commentaires) => {
+  const p = d.etat().pulls[0];
+  p.commentaires.push(...commentaires.map(([body, m]) => ({ body, created_at: minute(m) })));
+  d.github({ pulls: [p] });
+};
 
 const DEMANDE = (sha) => `À relire — sommet ${sha} — Session: session_auteur — Conducteur: session_conducteur`;
 const verdict = (sha, tour, session, mot, { bloquants = mot === 'refusé' ? 1 : 0, securite = null } = {}) =>
@@ -192,6 +209,12 @@ test('la file : une PR en régime 8 seulement — clé sur la base et PR ouverte
   const d = monter();
   pr(d, { ouverte: '2026-11-20T08:59:00Z' });
   assert.deepEqual(d.json(d.lancer('passe')).map((g) => [g.geste, g.raison]), [['hors-regime', 'régime 7']], 'ouverte avant la repose : régime 7');
+  const meme = monter();
+  pr(meme, { ouverte: '2026-11-20T09:00:00Z' });
+  assert.deepEqual(meme.json(meme.lancer('passe')).map((g) => g.raison), ['régime 7'], 'ouverte à l’instant même de `depuis` : pas après');
+  const principale = monter();
+  pr(principale, { base: 'main', depuis: 'develop' });
+  assert.deepEqual(principale.json(principale.lancer('passe')).map((g) => [g.geste, g.raison]), [['hors-regime', 'base hors de la chaîne']]);
   for (const relecture of [{ depuis: 'demain' }, { depuis: '2026-11-20T09:00:00Z', delai: 0 }, { depuis: '2026-11-20T09:00:00Z', sensible: { modele: 'opus', effort: 'fort' } }, null]) {
     const m = monter({ contrat: { relecture } });
     pr(m);
@@ -207,11 +230,11 @@ test('nominal : distribuer (r6), écrire la distribution après la session, atte
   const joue = d.json(d.lancer('jouer', '12'))[0];
   assert.deepEqual([joue.geste, joue.joue], ['distribuer', false], 'un geste de session : jouer n’écrit rien');
   assert.deepEqual(ecritures(d), []);
-  const r = d.lancer('distribuer', '12', 'session_rel1');
+  const r = distribuer(d, sha, 'opus/medium', 'session_rel1');
   assert.equal(r.status, 0, r.stderr);
   assert.equal(d.json(r)[0].distribution, distribution(1, sha, ['session_rel1']));
   assert.equal(d.etat().pulls[0].commentaires.at(-1).body, distribution(1, sha, ['session_rel1']));
-  assert.equal(d.lancer('distribuer', '12', 'session_rel2').status, 3, 'le tour est distribué : le geste a changé');
+  assert.equal(distribuer(d, sha, 'opus/medium', 'session_rel2').status, 3, 'le tour est distribué : le geste a changé');
   assert.deepEqual(d.json(d.lancer('passe')).map((x) => [x.regle, x.geste, x.raison]), [[5, 'rien', 'attente']]);
   const p = d.etat().pulls[0];
   p.commentaires.push({ body: verdict(sha, 1, 'session_rel1', 'validé'), created_at: minute(31) });
@@ -223,6 +246,15 @@ test('nominal : distribuer (r6), écrire la distribution après la session, atte
   assert.deepEqual(d.etat().pulls[0].labels, ['à-fusionner']);
   const encore = d.json(d.lancer('jouer', '12'))[0];
   assert.deepEqual([encore.geste, encore.raison, encore.joue, encore.lignes], ['rien', 'etiquette-en-place', false, []]);
+});
+
+test('les étiquettes se comparent en NFC : `à-fusionner` décomposée est déjà posée, aucune pose, aucune ligne', () => {
+  const d = monter();
+  const sha = pr(d, { labels: ['a\u0300-relire', 'a\u0300-fusionner'] });
+  ajouter(d, [distribution(1, sha, ['session_rel1']), 2], [verdict(sha, 1, 'session_rel1', 'validé'), 3]);
+  const g = d.json(d.lancer('jouer', '12'))[0];
+  assert.deepEqual([g.geste, g.poser, g.lignes], ['etiqueter', 'à-fusionner', []]);
+  assert.ok(!ecritures(d).some((e) => e.startsWith('POST')), 'rien de posé');
 });
 
 test('une étiquette déjà posée avant le geste n’envoie aucune ligne : l’ancienne est retirée, sans redire le verdict', () => {
@@ -254,7 +286,7 @@ test('ticket 66 — sur un chemin sensible, un refus sans « /security-review: l
   q.commentaires.push({ body: distribution(1, s2, ['session_rel1']), created_at: minute(2) }, { body: verdict(s2, 1, 'session_rel1', 'validé'), created_at: minute(3) });
   v.github({ pulls: [q] });
   assert.deepEqual(v.json(v.lancer('passe')).map((x) => [x.regle, x.geste, x.session]), [[5, 'reecrire', 'session_rel1']]);
-  const r = v.lancer('distribuer', '12');
+  const r = distribuer(v, s2, 'opus/xhigh');
   assert.equal(r.status, 0, r.stderr);
   assert.equal(v.json(r)[0].distribution, distribution(1, s2, ['session_rel1'], ' (relance session_rel1)'));
 });
@@ -270,12 +302,19 @@ test('règle 5 : une session que le modèle lit morte est remplacée une fois, l
   writeFileSync(etats, JSON.stringify({ session_rel1: 'morte' }));
   const g = d.json(d.lancer('jouer', '12', '--sessions', etats))[0];
   assert.deepEqual([g.geste, g.session, g.cause], ['remplacer', 'session_rel1', 'morte']);
-  assert.equal(d.lancer('distribuer', '12', 'session_rel2').status, 3, 'sans l’état, la décision n’est plus « remplacer »');
-  assert.equal(d.lancer('distribuer', '12', 'a', 'b', '--sessions', etats).status, 2, 'remplacer attend une seule session');
-  assert.equal(d.lancer('distribuer', '12', 'session_rel1', '--sessions', etats).status, 2, 'la remplaçante n’est pas la session remplacée');
-  const r = d.lancer('distribuer', '12', 'session_rel2', '--sessions', etats);
+  assert.equal(distribuer(d, sha, 'opus/medium', 'session_rel2').status, 3, 'sans l’état, la décision n’est plus « remplacer »');
+  assert.equal(distribuer(d, sha, 'opus/medium', 'a', 'b', '--sessions', etats).status, 2, 'remplacer attend une seule session');
+  assert.equal(distribuer(d, sha, 'opus/medium', 'session_rel1', '--sessions', etats).status, 2, 'la remplaçante n’est pas la session remplacée');
+  const r = distribuer(d, sha, 'opus/medium', 'session_rel2', '--sessions', etats);
   assert.equal(r.status, 0, r.stderr);
   assert.equal(d.json(r)[0].distribution, distribution(1, sha, ['session_rel2'], ' (remplace session_rel1)'));
+  // Sans fichier : `--remplace` nomme la session hors service (A-180).
+  const e = monter();
+  const s2 = pr(e);
+  ajouter(e, [distribution(1, s2, ['session_rel1']), 2]);
+  const q = distribuer(e, s2, 'opus/medium', '--remplace', 'session_rel1', 'session_rel2');
+  assert.equal(q.status, 0, q.stderr);
+  assert.equal(e.json(q)[0].distribution, distribution(1, s2, ['session_rel2'], ' (remplace session_rel1)'));
 });
 
 test('le plafond : au troisième tour refusé, le commentaire `Plafond — décision attendue`, puis `à-reprendre` ; l’architecte prévenu', () => {
@@ -327,15 +366,15 @@ test('une sous-PR vers un sujet : le diff propre est celui de `sujet.sh a-juger`
   assert.equal(e.json(e.lancer('passe'))[0].faits.sensible, true);
 });
 
-test('un diff propre qui ne se lit pas (la tête est introuvable) : sensible, et « double relecture exigée » illisible, que la décision trace et signale ; jamais une distribution', () => {
+test('un diff propre qui ne se lit pas (la tête est introuvable) : sa cause tracée, l’architecte prévenu ; jamais une distribution', () => {
   const d = monter();
   pr(d);
   const p = d.etat().pulls[0];
   p.sha = '1'.repeat(40);
   d.github({ pulls: [p] });
   const g = d.json(d.lancer('jouer', '12'))[0];
-  assert.deepEqual([g.geste, g.faits.sensible, g.faits.exiges, g.joue], ['illisible', true, 'illisible', true]);
-  assert.match(d.etat().pulls[0].commentaires.at(-1).body, /^Lecture illisible — /);
+  assert.deepEqual([g.geste, g.joue], ['illisible', true]);
+  assert.match(d.etat().pulls[0].commentaires.at(-1).body, /^Lecture illisible — tête introuvable : 1{40} /);
   assert.deepEqual(g.lignes.map((l) => l.a), ['architecte']);
 });
 
@@ -375,7 +414,8 @@ test('les dépendances de develop : installées quand son lockfile change, une s
   assert.equal(installations(), 1, 'même lockfile : rien de plus');
 });
 
-test('la veille : un geste à jouer la réveille (`VEILLE GESTE`), `--taire` la fait passer, GitHub illisible est une pause, jamais une file vide', () => {
+test('la veille : un geste à jouer la réveille (`VEILLE GESTE`), `--taire` la fait passer, GitHub illisible est une pause, jamais une file vide ; 25 minutes par défaut', () => {
+  assert.match(readFileSync(RELECTEUR, 'utf8'), /Number\(lireOption\('--duree', '25'\)\)/, 'sous les 30 minutes de l’outil Bash');
   const d = monter();
   pr(d);
   const r = d.lancer('veille', '--pause', '0', '--sondes', '2');
@@ -383,7 +423,7 @@ test('la veille : un geste à jouer la réveille (`VEILLE GESTE`), `--taire` la 
   assert.deepEqual(d.lancer('veille', '--pause', '0', '--sondes', '2', '--taire', '12').stdout, 'VEILLE FINIE\n');
   const attente = monter();
   pr(attente);
-  assert.equal(attente.lancer('distribuer', '12', 'session_rel1').status, 0);
+  assert.equal(distribuer(attente, attente.etat().pulls[0].sha ?? attente.git('rev-parse', 'origin/feat/a'), 'opus/medium', 'session_rel1').status, 0);
   assert.deepEqual(attente.lancer('veille', '--pause', '0', '--sondes', '2').stdout, 'VEILLE FINIE\n', 'une attente (règle 5, rien) ne réveille personne');
   d.github({ pannes: [{ route: '^pulls\\?', fois: 1 }] });
   const p = d.lancer('veille', '--pause', '0', '--sondes', '2');
@@ -405,11 +445,228 @@ test('une écriture refusée par GitHub sort en 7, et rien n’est retiré avant
   assert.equal(r.status, 7, r.stderr);
   assert.deepEqual(d.etat().pulls[0].labels, ['à-relire']);
 });
+
+test('X1 — le sommet ou le couple ont changé entre la passe et la distribution : sortie 3, rien d’écrit', () => {
+  const d = monter();
+  const a = pr(d);
+  assert.deepEqual(d.json(d.lancer('passe')).map((g) => [g.geste, g.sommet, g.faits.effort]), [['distribuer', a, 'medium']]);
+  assert.equal(distribuer(d, a, 'opus/xhigh', 'session_rel1').status, 3, 'un couple que la PR ne demande pas');
+  // L'auteur pousse un fichier sensible pendant que le modèle crée la session au couple ordinaire.
+  d.git('switch', '-q', 'feat/a');
+  d.ecrire('scripts/agent/garde.mjs', 'export const g = 1;\n');
+  d.commit('feat: garde');
+  d.git('push', '-q', 'origin', 'HEAD:feat/a');
+  const r = distribuer(d, a, 'opus/medium', 'session_rel1');
+  assert.deepEqual([r.status, /le sommet est maintenant/.test(r.stderr)], [3, true]);
+  assert.deepEqual(ecritures(d), []);
+  const b = d.git('rev-parse', 'HEAD');
+  assert.equal(distribuer(d, b, 'opus/medium', 'session_rel1').status, 3, 'la PR est devenue sensible : le couple a changé');
+  assert.equal(distribuer(d, b, 'opus/xhigh', 'session_rel1').status, 0);
+});
+
+test('X3 — `depuis` : `Z` avec ou sans millisecondes, jamais `+00:00` ; `modele` : `opus` ou `sonnet`, jamais un identifiant daté', () => {
+  for (const [relecture, geste] of [
+    [{ depuis: '2026-11-20T09:00:00.000Z' }, 'distribuer'],
+    [{ depuis: '2026-11-20T09:00:00.5Z' }, 'distribuer'],
+    [{ depuis: '2026-11-20T09:00:00+00:00' }, 'contrat-illisible'],
+    [{ depuis: '2026-13-45T09:00:00Z' }, 'contrat-illisible'],
+    [{ depuis: '2026-11-20T09:00:00Z', ordinaire: { modele: 'sonnet', effort: 'high' } }, 'distribuer'],
+    [{ depuis: '2026-11-20T09:00:00Z', ordinaire: { modele: 'claude-opus-4-1-20250805', effort: 'medium' } }, 'contrat-illisible'],
+  ]) {
+    const m = monter({ contrat: { relecture } });
+    pr(m);
+    assert.deepEqual(m.json(m.lancer('passe')).map((g) => g.geste), [geste], JSON.stringify(relecture));
+  }
+});
+
+test('X5 — un fichier `--sessions` mal formé sort en 2, sa cause dite', () => {
+  const d = monter();
+  const sha = pr(d);
+  ajouter(d, [distribution(1, sha, ['session_rel1']), 2]);
+  const f = join(d.racine, 's.json');
+  for (const [contenu, cause] of [['{"session_rel1":"vivant"}', /vaut « vivant »/], ['[]', /n'est pas un objet/], ['"morte"', /n'est pas un objet/], ['null', /n'est pas un objet/], ['{', /ne se lit pas en JSON/], ['{"a b":"morte"}', /n'est pas un identifiant/]]) {
+    writeFileSync(f, contenu);
+    const r = d.lancer('jouer', '12', '--sessions', f);
+    assert.deepEqual([r.status, cause.test(r.stderr)], [2, true], `${contenu} : ${r.stderr}`);
+  }
+  assert.deepEqual(ecritures(d), []);
+});
+
+test('X7 — une PR fermée : `jouer` et `distribuer` sortent en 3, rien d’écrit', () => {
+  const d = monter();
+  const sha = pr(d);
+  d.github({ pulls: [{ ...d.etat().pulls[0], state: 'closed' }] });
+  const j = d.lancer('jouer', '12');
+  assert.deepEqual([j.status, /fermée/.test(j.stderr)], [3, true]);
+  assert.equal(distribuer(d, sha, 'opus/medium', 'session_rel1').status, 3);
+  assert.deepEqual(ecritures(d), []);
+});
+
+test('X15 — les causes d’illisible, une à une : forme refusée par `a-juger` (à l’auteur), PR de fourche, dépendances de develop (à l’architecte) ; une fois signalée, rien', () => {
+  // Une « PR de mise à jour » d'un sujet que `a-juger` refuse : deux fusions de develop.
+  const mise = (d, { pnpmEnEchec = false } = {}) => {
+    if (pnpmEnEchec) {
+      writeFileSync(join(d.racine, 'bin/pnpm'), `#!/bin/sh\ncat > /dev/null\necho "pnpm $*" >> ${JSON.stringify(join(d.racine, 'faux-gh/pnpm.log'))}\necho "ERR_PNPM_FROZEN_LOCKFILE" >&2\nexit 1\n`);
+      d.git('switch', '-q', 'develop');
+      d.ecrire('pnpm-lock.yaml', 'lockfileVersion: 9.0\n');
+      d.commit('chore: lockfile');
+      d.git('push', '-q', 'origin', 'HEAD:develop');
+    }
+    d.branche('sujet/demo', 'origin/develop', { 'docs/demo.md': 'demo\n' }, 'chore(sujet): demo');
+    for (const [chemin, message] of [['README.md', 'docs: avance 1'], ['docs/x.md', 'docs: avance 2']]) {
+      d.git('switch', '-q', 'develop');
+      d.ecrire(chemin, `${message}\n`);
+      d.commit(message);
+      d.git('push', '-q', 'origin', 'HEAD:develop');
+      d.git('switch', '-q', '-C', 'maj/demo', chemin === 'README.md' ? 'origin/sujet/demo' : 'maj/demo');
+      d.git('merge', '-q', '--no-edit', 'develop');
+    }
+    d.git('push', '-q', 'origin', 'HEAD:refs/heads/maj/demo');
+    const sha = d.git('rev-parse', 'HEAD');
+    d.github({ pulls: [{ number: 12, title: 'chore: maj', base: 'sujet/demo', head: 'maj/demo', labels: ['à-relire'], created_at: minute(0), commentaires: [{ body: DEMANDE(sha), created_at: minute(1) }] }], maintenant: minute(30) });
+  };
+  const d = monter();
+  mise(d);
+  const g = d.json(d.lancer('jouer', '12'))[0];
+  assert.equal(g.geste, 'illisible');
+  assert.match(d.etat().pulls[0].commentaires.at(-1).body, /^Lecture illisible — forme refusée par `sujet\.sh a-juger` : \S/);
+  assert.doesNotMatch(d.etat().pulls[0].commentaires.at(-1).body, /: sortie \d+$/, 'le motif de `sujet.sh`, qu’il écrit sur sa sortie standard, pas un code');
+  assert.deepEqual(g.lignes.map((l) => [l.a, l.session]), [['auteur', 'session_auteur']]);
+  assert.deepEqual(d.json(d.lancer('jouer', '12')).map((x) => [x.geste, x.raison]), [['rien', 'illisible-signale']], 'signalée : rien');
+  const f = monter();
+  pr(f);
+  f.github({ pulls: [{ ...f.etat().pulls[0], fourche: 'autre/jouet' }] });
+  const h = f.json(f.lancer('jouer', '12'))[0];
+  assert.match(f.etat().pulls[0].commentaires.at(-1).body, /^Lecture illisible — PR de fourche : /);
+  assert.deepEqual(h.lignes.map((l) => l.a), ['architecte']);
+  const p = monter();
+  mise(p, { pnpmEnEchec: true });
+  const r = p.lancer('jouer', '12');
+  assert.match(r.stderr, /pnpm install en échec \(sortie 1\) :\nERR_PNPM_FROZEN_LOCKFILE/, 'la sortie d’erreur de l’installation est écrite');
+  assert.match(p.etat().pulls[0].commentaires.at(-1).body, /^Lecture illisible — dépendances de develop : /);
+  assert.deepEqual(p.json(r)[0].lignes.map((l) => l.a), ['architecte']);
+  const tentatives = () => readFileSync(join(p.racine, 'faux-gh/pnpm.log'), 'utf8').split('\n').filter((l) => l.startsWith('pnpm install')).length;
+  assert.equal(tentatives(), 1);
+  assert.equal(p.lancer('passe').status, 0);
+  assert.equal(tentatives(), 1, 'en échec, l’installation ne se retente qu’au prochain lockfile');
+});
+
+test('X16 — trois préparations en même temps dans le même dossier (la veille et deux gestes) : le verrou les fait passer l’une après l’autre', async () => {
+  const d = monter();
+  pr(d);
+  for (let i = 0; i < 4; i++) {
+    const r = await Promise.all([d.enFond('passe'), d.enFond('passe'), d.enFond('jouer', '12')]);
+    assert.deepEqual(r.map((x) => x.status), [0, 0, 0], r.map((x) => x.stderr).join('\n'));
+  }
+});
+
+test('X17 — aucun hook ne joue : un post-checkout qui récrit un fichier suivi ne salit pas le dossier', () => {
+  const d = monter();
+  d.git('switch', '-q', 'develop');
+  d.ecrire('suivi.txt', '0\n');
+  d.commit('chore: suivi');
+  d.git('push', '-q', 'origin', 'HEAD:develop');
+  pr(d);
+  const hooks = join(d.dossier, '.hooks');
+  mkdirSync(hooks);
+  writeFileSync(join(hooks, 'post-checkout'), '#!/bin/sh\ndate +%s%N > "$(git rev-parse --show-toplevel)/suivi.txt"\n');
+  chmodSync(join(hooks, 'post-checkout'), 0o755);
+  writeFileSync(join(d.dossier, '.git/info/exclude'), '.hooks\n');
+  execFileSync('git', ['config', 'core.hooksPath', hooks], { cwd: d.dossier });
+  assert.equal(d.lancer('passe').status, 0);
+  d.git('switch', '-q', 'develop');
+  d.ecrire('README.md', 'avance\n');
+  d.commit('docs: avance');
+  d.git('push', '-q', 'origin', 'HEAD:develop');
+  for (const k of [1, 2]) {
+    const r = d.lancer('passe');
+    assert.equal(r.status, 0, `passe ${k} : ${r.stderr}`);
+  }
+});
+
+test('N1 à N4, N7 — les calculs en panne : chemins sensibles en échec, PR sensible ; « double relecture » ou « même contenu » illisible, tracés ; « exigée », deux sessions au couple sensible', () => {
+  const s = monter();
+  s.talon('chemins-sensibles.mjs', 'process.exit(2);\n');
+  pr(s);
+  assert.deepEqual(s.json(s.lancer('passe')).map((g) => [g.geste, g.faits.sensible, g.faits.effort]), [['distribuer', true, 'xhigh']], 'un contrôle de sécurité en panne : sensible');
+  const q = monter();
+  q.talon('double-relecture.mjs', 'console.log("illisible"); process.exit(21);\n');
+  pr(q);
+  const g = q.json(q.lancer('jouer', '12'))[0];
+  assert.deepEqual([g.geste, g.faits.exiges], ['illisible', 'illisible']);
+  assert.match(q.etat().pulls[0].commentaires.at(-1).body, /^Lecture illisible — « double relecture exigée » illisible/);
+  const m = monter();
+  m.talon('meme-contenu.sh', 'echo illisible; exit 21\n');
+  const ancien = pr(m);
+  ajouter(m, [distribution(1, ancien, ['session_rel1']), 2], [verdict(ancien, 1, 'session_rel1', 'validé'), 3]);
+  m.git('switch', '-q', 'feat/a');
+  m.ecrire('src/a.mjs', 'export const a = 2;\n');
+  m.commit('fix: a');
+  m.git('push', '-q', 'origin', 'HEAD:feat/a');
+  const h = m.json(m.lancer('jouer', '12'))[0];
+  assert.equal(h.geste, 'illisible', 'ni « même » (qui validerait) ni « différent » (qui redistribuerait)');
+  assert.match(m.etat().pulls[0].commentaires.at(-1).body, /^Lecture illisible — « même contenu propre » illisible/);
+  const x = monter();
+  x.talon('double-relecture.mjs', 'console.log("exigée"); process.exit(20);\n');
+  pr(x);
+  assert.deepEqual(x.json(x.lancer('passe')).map((y) => [y.geste, y.nombre, y.faits.exiges, y.faits.effort]), [['distribuer', 2, 2, 'xhigh']], 'une PR double : deux sessions au couple sensible');
+  const sommet = x.git('rev-parse', 'origin/feat/a');
+  assert.equal(distribuer(x, sommet, 'opus/xhigh', 'session_rel1', 'session_rel1').status, 2, 'deux fois la même session ne font pas deux relectures');
+  assert.equal(distribuer(x, sommet, 'opus/xhigh', 'session_rel1', 'session_rel2').status, 0);
+});
+
+test('N9 — `completer` : une seconde session ajoutée au tour, `(complète)`', () => {
+  const d = monter();
+  d.talon('double-relecture.mjs', 'console.log("exigée"); process.exit(20);\n');
+  const sha = pr(d);
+  ajouter(d, [distribution(1, sha, ['session_rel1']), 2]);
+  const g = d.json(d.lancer('jouer', '12'))[0];
+  assert.deepEqual([g.geste, g.manque], ['completer', 1]);
+  assert.equal(distribuer(d, sha, 'opus/xhigh', 'session_rel1').status, 2, 'une session déjà du tour');
+  assert.equal(distribuer(d, sha, 'opus/xhigh', 'b', 'c').status, 2, 'une seule manque');
+  assert.equal(distribuer(d, sha, 'opus/xhigh', 'b', 'b').status, 2, 'deux fois la même');
+  const r = distribuer(d, sha, 'opus/xhigh', 'session_rel2');
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(d.json(r)[0].distribution, distribution(1, sha, ['session_rel1', 'session_rel2'], ' (complète)'));
+});
+
+test('N10 — la reprise après arbitrage (règle 4) : un tour neuf aux mêmes sessions, `(après arbitrage, non compté)`', () => {
+  const d = monter();
+  const sha = pr(d);
+  ajouter(d, [distribution(1, sha, ['session_rel1']), 2], [verdict(sha, 1, 'session_rel1', 'refusé'), 3], ['Arbitrage — R3, src/a.mjs:1 — écarté — le cas est couvert ailleurs', 4]);
+  const g = d.json(d.lancer('jouer', '12'))[0];
+  assert.deepEqual([g.regle, g.geste, g.tour, g.preferees], [4, 'distribuer', 2, ['session_rel1']]);
+  const r = distribuer(d, sha, 'opus/medium', 'session_rel1');
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(d.json(r)[0].distribution, distribution(2, sha, ['session_rel1'], ' (après arbitrage, non compté)'));
+});
+
+test('N12 — deux pages de commentaires : la décision les lit toutes, le verdict de la seconde compte', () => {
+  for (const separateur of ['', '\\n']) {
+    const d = monter();
+    const sha = pr(d);
+    ajouter(d, [distribution(1, sha, ['session_rel1']), 2], [verdict(sha, 1, 'session_rel1', 'validé'), 3]);
+    const faux = join(CHAINE, 'sujet/scripts/faux-gh.mjs');
+    writeFileSync(join(d.racine, 'bin/gh'), `#!/bin/sh\ncase "$*" in *--paginate*comments*) out=$(node ${JSON.stringify(faux)} "$@") || exit $?; printf '%s' "$out" | node -e 'let s="";process.stdin.on("data",(c)=>(s+=c)).on("end",()=>{const a=JSON.parse(s);const h=Math.ceil(a.length/2);process.stdout.write(JSON.stringify(a.slice(0,h))+"${separateur}"+JSON.stringify(a.slice(h))+"\\n")})'; exit 0 ;; esac\nexec node ${JSON.stringify(faux)} "$@"\n`);
+    assert.deepEqual(d.json(d.lancer('passe')).map((g) => [g.regle, g.poser]), [[2, 'à-fusionner']], JSON.stringify(separateur));
+  }
+});
+
+test('N13 — la panne : une session remplacée, la remplaçante muette au-delà du délai : `Relecture en panne`, l’architecte, l’auteur et le conducteur prévenus', () => {
+  const d = monter({ horloge: 4 * 60 });
+  const sha = pr(d);
+  ajouter(d, [distribution(1, sha, ['session_rel1']), 2], [distribution(1, sha, ['session_rel2'], ' (remplace session_rel1)'), 3]);
+  const g = d.json(d.lancer('jouer', '12'))[0];
+  assert.deepEqual([g.regle, g.geste, g.joue], [5, 'panne', true]);
+  assert.deepEqual(g.lignes.map((l) => l.a), ['architecte', 'auteur', 'conducteur']);
+  assert.equal(d.etat().pulls[0].commentaires.at(-1).body, 'Relecture en panne');
+  assert.deepEqual(d.json(d.lancer('jouer', '12')).map((x) => [x.geste, x.raison]), [['rien', 'panne-signalee']]);
+});
 ```
 
 #### `scripts/relecteur.test.mjs`
 
-79 lignes, de la première à la dernière :
+98 lignes, de la première à la dernière :
 
 ````js
 // Banc des textes du lot 4 (ticket 66) : le skill `relecteur` est déclaré et se lance comme un rôle, ses deux
@@ -443,7 +700,26 @@ test("le skill relecteur est un rôle : marqué, sous 200 lignes, déclaré au p
   assert.ok(JSON.parse(lire(".claude-plugin/plugin.json")).skills.includes("./skills/chaine/relecteur"));
   assert.ok(JSON.parse(lire("skills/monorepo/socle-monorepo/references/scripts/verify/references-agent-integrees.json"))["skills-plugins"].includes("maj-skills:relecteur"));
   exigerDans("README.md", ["| [`relecteur`](skills/chaine/relecteur/SKILL.md)", "    relecteur/\n      SKILL.md ", "relecteur.mjs (passe, jouer, distribuer, veille)"]);
-  exigerDans(`${SKILL}/SKILL.md`, ["**La file, la décision et la veille sont des scripts**", "la nouvelle étiquette **avant** de retirer l'ancienne", "`source_revision` **la base de la PR** (jamais sa tête)", "Créer d'abord, écrire la distribution ensuite", "**sort en 3 sans rien écrire**", "Il ne se demande que pour la règle 5.", "`VEILLE GESTE`", "`VEILLE FINIE`", "`VEILLE ARRÊTÉE sortie <c>`", "**Tant que la veille tourne, la session ne lance aucune sous-commande**"]);
+  exigerDans(`${SKILL}/SKILL.md`, ["**La file, la décision et la veille sont des scripts**", "la nouvelle étiquette **avant** de retirer l'ancienne", "`source_revision` **la base de la PR** (jamais sa tête)", "Créer d'abord, écrire la distribution ensuite", "**sort en 3 sans rien écrire**", "`VEILLE GESTE`", "`VEILLE FINIE`", "`VEILLE ARRÊTÉE sortie <c>`"]);
+});
+
+test("A-180 — la veille sous le plafond de l'outil Bash, le couple au réemploi, l'état par get_session, une suite écrite pour chaque sortie", () => {
+  exigerDans(`${SKILL}/SKILL.md`, [
+    "`select:mcp__claude-code-remote__send_message,mcp__claude-code-remote__create_session,mcp__claude-code-remote__get_session,TaskStop`",
+    "relecteur.mjs' veille --duree 25 >",
+    "**25 minutes, pas plus** : l'outil Bash arrête une tâche de fond à 30 minutes par défaut",
+    "au-delà de 500 000 tokens, l'écrire à l'architecte, qui lance un Relecteur neuf, et s'arrêter",
+    "**`passe` d'abord**, toujours",
+    "**et au même couple** que celui du geste",
+    "pour les règles 4, 5 et 6 seulement",
+    "`plafond` : plus de 700 000 tokens de contexte",
+    "**Un verrou** (`flock`) tient le dossier",
+  ]);
+  const skill = lire(`${SKILL}/SKILL.md`);
+  const sorties = skill.slice(skill.indexOf("## Les sorties de `passe`, `jouer` et `distribuer`"), skill.indexOf("## Créer ou relancer les sessions"));
+  for (const code of [0, 1, 2, 3, 5, 6, 7, 9, 12]) assert.match(sorties, new RegExp(`^\\| ${code} \\| \\S`, "m"), `la sortie ${code} a sa suite`);
+  assert.match(sorties, /^\| 7 \| .*au second refus, l'architecte et `--taire <n>`/m);
+  assert.ok(!/elle a écrit qu'elle est au plafond/.test(skill), "« au plafond » ne se lit plus dans un message");
 });
 
 test("les deux étiquettes neuves : labels.sh en pose neuf, dont les quatre que la décision du Relecteur lit ; plus aucun « sept labels »", () => {
@@ -584,22 +860,26 @@ index f25a939..6a9f565 100644
 
 ```diff
 diff --git a/skills/chaine/sujet/scripts/faux-gh.test.mjs b/skills/chaine/sujet/scripts/faux-gh.test.mjs
-index 920205b..a29ae0d 100644
+index 920205b..f752286 100644
 --- a/skills/chaine/sujet/scripts/faux-gh.test.mjs
 +++ b/skills/chaine/sujet/scripts/faux-gh.test.mjs
-@@ -281,3 +281,22 @@ test('faux gh, commentairesRefuses : true refuse tout commentaire posé, une cha
+@@ -281,3 +281,26 @@ test('faux gh, commentairesRefuses : true refuse tout commentaire posé, une cha
    assert.match(gh(d, '-X', 'POST', COMMENTAIRES, '-f', 'body=tout').stderr, /HTTP 403/);
    assert.equal(lireCommentaires(d).length, 1);
  });
 +
 +// Ticket 66 : le Relecteur lit la date d'ouverture d'une PR (son régime) et pose des commentaires que la décision
 +// relit dans l'ordre de leur création, comparés à l'instant : le faux date ce qu'on pose à l'heure que le banc fixe.
-+test('faux gh, Relecteur : une PR rend sa date d’ouverture (défaut ou la sienne) ; `maintenant` date le commentaire posé, sans lui la date du rang', () => {
++test('faux gh, Relecteur : une PR rend sa date d’ouverture (défaut ou la sienne) et le dépôt de sa tête ; `maintenant` date le commentaire posé, sans lui la date du rang', () => {
 +  const d = jouetCommentaires([{ body: 'tard', created_at: '2026-11-20T09:00:00Z' }]);
 +  d.github({ pulls: [...d.etat().pulls, { number: 8, title: 'u', base: 'develop', head: 'y', labels: [], created_at: '2026-11-19T08:00:00Z' }] });
 +  const pulls = JSON.parse(gh(d, 'repos/{owner}/{repo}/pulls?state=open').stdout);
 +  assert.deepEqual(pulls.map((p) => [p.number, p.created_at]), [[8, '2026-11-19T08:00:00Z'], [7, '2026-11-17T11:00:00Z']]);
 +  assert.equal(JSON.parse(gh(d, 'repos/{owner}/{repo}/pulls/8').stdout).created_at, '2026-11-19T08:00:00Z');
++  const lue = JSON.parse(gh(d, 'repos/{owner}/{repo}/pulls/8').stdout);
++  assert.deepEqual([lue.base.repo.full_name, lue.head.repo.full_name], ['maj/jouet', 'maj/jouet'], 'la tête et la base dans le même dépôt');
++  d.github({ pulls: d.etat().pulls.map((p) => (p.number === 8 ? { ...p, fourche: 'autre/jouet' } : p)) });
++  assert.equal(JSON.parse(gh(d, 'repos/{owner}/{repo}/pulls/8').stdout).head.repo.full_name, 'autre/jouet', 'une PR de fourche');
 +  assert.equal(JSON.parse(gh(d, '-X', 'POST', COMMENTAIRES, '-f', 'body=sans horloge').stdout).created_at, '2026-11-17T12:00:01Z', 'sans `maintenant` : la date du rang');
 +  d.github({ maintenant: '2026-11-20T09:05:00Z' });
 +  const pose = JSON.parse(gh(d, '-X', 'POST', COMMENTAIRES, '-f', 'body=à l’heure').stdout);
@@ -634,7 +914,7 @@ index ff575de..17734af 100644
 
 #### `skills/chaine/relecteur/SKILL.md`
 
-86 lignes, de la première à la dernière :
+101 lignes, de la première à la dernière :
 
 ```markdown
 ---
@@ -662,37 +942,52 @@ Une PR du régime 8 n'est pas relue par son auteur : une **session de relecture*
 
 ## Mise en place (une fois par session)
 
-1. Charger les outils de session : `ToolSearch`, requête `select:mcp__claude-code-remote__send_message,mcp__claude-code-remote__create_session,mcp__claude-code-remote__get_session`. Un outil absent : l'écrire à l'architecte et s'arrêter.
-2. Le dossier de la session est **le sien seul** : il n'y écrit, n'y commite et n'y pousse rien. Les scripts le placent sur `origin/develop` à chaque geste, approfondissent le clone une fois et installent les dépendances de develop quand elles changent.
-3. Le premier geste : `node '<dossier du skill>/scripts/relecteur.mjs' passe`. Sortie 6 : le dossier n'est pas propre, ou `scripts/chaine/` n'a pas les calculs de la relecture (`fusionner`, `sujet` et `relecture` sont à reposer) : l'écrire à l'architecte, rien d'autre. Sortie 12 : git ne lit pas `origin` ; le dire de même.
-4. Puis la veille (« La veille »), et rien d'autre tant qu'elle tourne.
+1. Charger les outils de session : `ToolSearch`, requête `select:mcp__claude-code-remote__send_message,mcp__claude-code-remote__create_session,mcp__claude-code-remote__get_session,TaskStop`. Un outil absent : l'écrire à l'architecte et s'arrêter.
+2. Le dossier de la session est **le sien seul** : il n'y écrit, n'y commite et n'y pousse rien. Les scripts le placent sur `origin/develop` à chaque geste, sans hook ni fsmonitor, approfondissent le clone une fois et installent les dépendances de develop quand son lockfile change. **Un verrou** (`flock`) tient le dossier pendant chaque sous-commande : un geste lancé pendant une passe de la veille attend sa fin.
+3. Le premier geste : `node '<dossier du skill>/scripts/relecteur.mjs' passe`, et ses sorties comme celles de `jouer` (« Les sorties »).
+4. Puis la veille (« La veille »).
 
-## Ce que rend la passe
+## À chaque réveil
 
-`passe` écrit une ligne JSON par PR ouverte. Son champ `geste` dit ce que la session fait :
+Fin de la veille, message d'une session : **`passe` d'abord**, toujours, puis les gestes qu'elle rend, PR par PR. `passe` écrit une ligne JSON par PR ouverte ; son champ `geste` dit ce que la session fait :
 
 | `geste` | La session |
 | --- | --- |
-| `rien`, `hors-regime`, `pause` | rien |
+| `rien`, `hors-regime`, `pause` | rien ; sauf `rien` avec la raison `attente` (règle 5) : « L'état des sessions » |
 | `contrat-illisible` | une ligne à l'architecte (la clé `relecture` d'une base est mal formée), une fois ; la veille relancée avec `--taire <n>` |
 | `etiqueter`, `plafonner`, `panne`, `illisible` | `jouer <n>`, puis chaque ligne de `lignes` (« Les lignes ») |
-| `distribuer` (règles 4 et 6) | « Créer ou relancer les sessions », puis `distribuer <n> <sessions…>`, puis le message de relance aux sessions réemployées |
-| `completer` | créer `manque` sessions neuves, puis `distribuer <n> <neuves…>` |
-| `remplacer` | créer une session neuve, puis `distribuer <n> <neuve> --sessions <fichier>` ; cause `plafond` : une ligne au conducteur (`faits.conducteur`), « session de relecture <id> remplacée au plafond de contexte, PR <n> » |
-| `reecrire` | lire l'état de la session (« L'état des sessions ») ; vivante : `distribuer <n>`, puis le message de relance ; sinon `jouer <n> --sessions <fichier>`, qui rend `remplacer` |
+| `distribuer` (règles 4 et 6) | « Créer ou relancer les sessions », puis `distribuer <n> --sommet <sommet> --couple <modele>/<effort> <sessions…>`, puis le message de relance aux sessions réemployées |
+| `completer` | créer `manque` sessions neuves, puis `distribuer <n> --sommet … --couple … <neuves…>` |
+| `remplacer` | créer une session neuve, puis `distribuer <n> --sommet … --couple … --remplace <ancienne> <neuve>` ; cause `plafond` : une ligne au conducteur (`faits.conducteur`), « session de relecture <id> remplacée au plafond de contexte, PR <n> » |
+| `reecrire` | lire l'état de la session ; vivante : `distribuer <n> --sommet … --couple …`, puis le message de relance ; sinon `jouer <n> --sessions <fichier>`, qui rend `remplacer` |
 
-`jouer <n>` refait la décision de la PR et joue sur GitHub ce qui s'y écrit : la nouvelle étiquette **avant** de retirer l'ancienne, le commentaire du plafond, de la panne ou de l'illisible. Pour un geste de session, il n'écrit rien et rend le geste à jouer, avec `faits` : `modele` et `effort` de la session à créer, `sensible`, `exiges`, `auteur`, `conducteur`. `distribuer` refait la décision et **sort en 3 sans rien écrire** si le geste a changé entre-temps (un verdict tombé, un push) : la session créée pour rien est orpheline ; une ligne à l'architecte, qui l'archive. Sortie 7 : GitHub a refusé une écriture ; la rejouer au réveil suivant, puis l'écrire à l'architecte.
+`jouer <n>` refait la décision de la PR et joue sur GitHub ce qui s'y écrit : la nouvelle étiquette **avant** de retirer l'ancienne, le commentaire du plafond, de la panne ou de l'illisible. Pour un geste de session, il n'écrit rien et rend le geste à jouer, avec `faits` : `modele` et `effort` de la session à créer, `sensible`, `exiges`, `auteur`, `conducteur`. `distribuer` reçoit le sommet et le couple que le geste nommait, refait la décision et **sort en 3 sans rien écrire** si le geste, le sommet ou le couple ont changé entre-temps (un verdict tombé, un push, une PR devenue sensible).
+
+## Les sorties de `passe`, `jouer` et `distribuer`
+
+| Sortie | La session |
+| --- | --- |
+| 0 | la suite du geste |
+| 1 | une erreur du script (sa pile) : la ligne à l'architecte, la PR tue (`--taire <n>`), rien d'autre pour elle |
+| 2 | un appel mal formé (la cause dite) : le refaire une fois d'après la cause ; encore, l'architecte, et `--taire <n>` |
+| 3 | la PR est fermée, ou le geste a changé : `passe`, et le geste qu'elle rend ; une session créée pour rien est orpheline, une ligne à l'architecte, qui l'archive |
+| 5 | GitHub n'a pas répondu : rien, le réveil suivant rejoue |
+| 6 | le dossier n'est pas propre, `scripts/chaine/` n'a pas les calculs de la relecture (`fusionner`, `sujet`, `relecture` à reposer), ou `flock` manque : l'architecte, et s'arrêter |
+| 7 | GitHub a refusé une écriture : la rejouer au réveil suivant ; au second refus, l'architecte et `--taire <n>` |
+| 9 | le verrou n'est pas venu en 5 minutes : rejouer au réveil suivant |
+| 12 | git ne lit pas `origin` : rejouer au réveil suivant ; à la seconde fois, l'architecte, et s'arrêter |
 
 ## Créer ou relancer les sessions
 
-- **Une session par PR, et une seule** : une session de relecture ne relit jamais une autre PR. Les tours suivants d'une même PR vont aux mêmes sessions tant qu'elles vivent et ne sont pas au plafond de contexte (`preferees` du geste) ; sinon à des sessions neuves.
-- **Créer** : `create_session`, avec `title` « `<Projet> — Relecture PR <n>` », `tags` `["role:relecture", "pr:<n>"]`, `source_url` le dépôt, `source_revision` **la base de la PR** (jamais sa tête), `model` et `effort` de `faits` (`relecture.ordinaire` ou `relecture.sensible` du contrat), `permission_mode` `"auto"`, et le prompt de [`references/prompt-session.md`](references/prompt-session.md), rempli. Créer d'abord, écrire la distribution ensuite : une session que nulle distribution ne nomme ne publie rien.
+- **Une session par PR, et une seule** : une session de relecture ne relit jamais une autre PR.
+- **Réemployer**, dans les règles 4, 5 et 6, une session de `preferees` (ou du tour) seulement si `get_session` la dit vivante, à 700 000 tokens de contexte au plus, **et au même couple** que celui du geste (`model` et `effort` qu'il rend égaux à `faits.modele` et `faits.effort`) ; sinon une session neuve. Une PR devenue sensible ou « double » reçoit des sessions neuves au couple sensible (`P-64` prime sur `P-52`).
+- **Créer** : `create_session`, avec `title` « `<Projet> — Relecture PR <n>` », `tags` `["role:relecture", "pr:<n>"]`, `source_url` le dépôt, `source_revision` **la base de la PR** (jamais sa tête), `model` et `effort` de `faits` (`relecture.ordinaire` ou `relecture.sensible` du contrat, `opus` ou `sonnet`), `permission_mode` `"auto"`, et le prompt de [`references/prompt-session.md`](references/prompt-session.md), rempli. Créer d'abord, écrire la distribution ensuite : une session que nulle distribution ne nomme ne publie rien. `create_session` refuse `effort` (l'outil est pré-approuvé dans cette session) : ne pas créer sans lui ; l'architecte, et `--taire <n>`.
 - **Deux sessions** quand `nombre` vaut 2 : chacune a pour consigne de ne pas lire le verdict de l'autre (le prompt le dit).
 - **Relancer** une session réemployée : le message de relance du même fichier, par `send_message`, après la distribution.
 
 ## L'état des sessions
 
-Il ne se demande que pour la règle 5. À chaque réveil, pour chaque PR que la passe range en règle 5 (`reecrire`, ou `rien` avec la raison `attente`), lire chaque session attendue par `get_session`, écrire `{ "<session>": "vivante" | "morte" | "plafond" }` dans un fichier du scratchpad, et rejouer `jouer <n> --sessions <fichier>`. `morte` : archivée, en échec, ou introuvable ; `plafond` : elle a écrit qu'elle est au plafond de contexte ; sinon `vivante`.
+Il se lit par `get_session`, pour les règles 4, 5 et 6 seulement : les `preferees` d'un geste `distribuer`, et, pour chaque PR que la passe range en règle 5 (`reecrire`, ou `rien` avec la raison `attente`), chaque session attendue, écrite dans un fichier du scratchpad, `{ "<session>": "vivante" | "morte" | "plafond" }`, puis `jouer <n> --sessions <fichier>`. `morte` : archivée, en échec, ou introuvable ; `plafond` : plus de 700 000 tokens de contexte ; sinon `vivante`.
 
 ## Les lignes
 
@@ -700,21 +995,21 @@ Il ne se demande que pour la règle 5. À chaque réveil, pour chaque PR que la 
 
 ## Les messages des sessions de relecture
 
-Un message ne fait que hâter : la veille fait le même travail à sa sonde suivante. **Tant que la veille tourne, la session ne lance aucune sous-commande** : deux préparations du même dossier en même temps se gênent (git). Pour un message qui demande un geste, arrêter la veille (`TaskStop`), jouer, puis la relancer. Quatre lignes peuvent venir d'une session de relecture :
+Un message ne fait que hâter : la veille fait le même travail à sa sonde suivante. Quatre lignes peuvent venir d'une session de relecture :
 
-- « verdict écrit sur la PR <n>, tour <k> » : rien, la veille le lira ;
-- « PR <n> : la session <id> a écrit cette PR ou son ticket, elle ne la relit pas » ; ou « PR <n> : verdict non publié, la lecture des commentaires ou la publication a échoué » : la session se compte `morte` pour ce tour (« L'état des sessions »), et `jouer <n> --sessions <fichier>` la remplace, une fois par tour ;
-- « PR <n> : aucune distribution ne nomme la session <id>, verdict non publié » : si `jouer <n>` rend encore le geste qui l'a créée, `distribuer <n> <id…>`, puis le message de relance ; sinon elle est orpheline, une ligne à l'architecte.
+- « verdict écrit sur la PR <n>, tour <k> » : `passe`, et ses gestes ;
+- « PR <n> : la session <id> a écrit cette PR ou son ticket, elle ne la relit pas » ; ou « PR <n> : verdict non publié, la lecture des commentaires ou la publication a échoué » : la session se compte `morte` pour ce tour, et `jouer <n> --sessions <fichier>` la remplace, une fois par tour ;
+- « PR <n> : aucune distribution ne nomme la session <id>, verdict non publié » : si `jouer <n>` rend encore le geste qui l'a créée, `distribuer` avec cette session, puis le message de relance ; sinon elle est orpheline, une ligne à l'architecte.
 
 ## La veille
 
-`node '<dossier du skill>/scripts/relecteur.mjs' veille > <scratchpad>/relecteur-veille.log 2>&1`, en tâche de fond (`run_in_background`) : toutes les 2 minutes (`--pause`), une passe, sans aucun geste. Elle s'arrête d'elle-même, et sa fin réveille la session :
+`node '<dossier du skill>/scripts/relecteur.mjs' veille --duree 25 > <scratchpad>/relecteur-veille.log 2>&1`, en tâche de fond (`run_in_background`) : toutes les 2 minutes (`--pause`), une passe, sans aucun geste. **25 minutes, pas plus** : l'outil Bash arrête une tâche de fond à 30 minutes par défaut, et une veille plus longue mourrait sans ligne finale. Elle s'arrête d'elle-même, et sa fin réveille la session :
 
-- **`VEILLE GESTE`** suivi d'une ligne `GESTE <n> <geste> règle <r>` par PR : jouer chaque geste, puis relancer la veille ;
-- **`VEILLE FINIE`** : une heure sans geste (`--duree`, en minutes) ; relever son propre contexte et son coût (`get_session` sans argument), relancer la veille ;
-- **`VEILLE ARRÊTÉE sortie <c>`** : la passe est sortie autrement qu'en 0 ou en 5 ; le dire à l'architecte avec la dernière ligne du journal, ne pas relancer.
+- **`VEILLE GESTE`** suivi d'une ligne `GESTE <n> <geste> règle <r>` par PR : « À chaque réveil », puis relancer la veille ;
+- **`VEILLE FINIE`** : 25 minutes sans geste ; relever son propre contexte (`get_session` sans argument) : au-delà de 500 000 tokens, l'écrire à l'architecte, qui lance un Relecteur neuf, et s'arrêter ; sinon « À chaque réveil », puis relancer la veille ;
+- **`VEILLE ARRÊTÉE sortie <c>`** : la passe est sortie autrement qu'en 0 ou en 5 ; la suite de cette sortie (« Les sorties »), avec la dernière ligne du journal.
 
-`PAUSE` dans le journal : GitHub n'a pas répondu, la veille continue. `--taire <n>,…` : ces PR ne la réveillent plus, pour un geste qui ne peut pas se jouer (une création de session refusée, un contrat illisible) ; une ligne à l'architecte l'a dit. Une seule veille à la fois : l'arrêter (`TaskStop`) avant d'en relancer une.
+`PAUSE` dans le journal : GitHub n'a pas répondu, la veille continue. `--taire <n>,…` : ces PR ne la réveillent plus, pour un geste qui ne peut pas se jouer ; une ligne à l'architecte l'a dit. Une seule veille à la fois : l'arrêter (`TaskStop`) avant d'en relancer une.
 
 ## Ne jamais
 
@@ -740,13 +1035,13 @@ Qui lance le Relecteur et qui reçoit ses lignes (`A-83`) ; la mise en place ; l
 
 ## Le script — `scripts/relecteur.mjs`
 
-Quatre sous-commandes, `passe`, `jouer`, `distribuer`, `veille`. Il ne porte aucune règle de décision : il joue `decision-relecteur.mjs` de develop, **la même fonction que le capitaine** (`A-85`), et lui fournit ses faits par les calculs de develop — « double relecture exigée » (`A-82`), « même contenu propre » (`A-81`), les chemins sensibles, `sujet.sh a-juger` — et lit GitHub par `lire_github` de `github.sh`, la seule lecture qui décide (`A-108`). Il prépare son dossier à chaque geste : propre, approfondi une fois (`A-126`), toutes les branches relues, placé sur `origin/develop`, dépendances de develop installées quand son lockfile change (`a-juger` joue commitlint sur les retouches d'une PR de mise à jour). Le régime d'une PR se lit sur sa base et sur sa date (`A-97`) ; une clé `relecture` mal formée se dit (`contrat-illisible`), jamais une file vide. Un diff propre qui ne se lit pas rend la PR sensible et « double relecture exigée » illisible : la décision le trace et le signale (`A-113`). `jouer` pose la nouvelle étiquette avant de retirer l'ancienne (`A-84`) et ne rend une ligne qu'au changement d'étiquette (`A-85`, `A-118`). `distribuer` refait la décision avant d'écrire et refuse un geste qui a changé : la distribution s'écrit après la création de la session, jamais pour un tour que la machine ne demande plus. `veille` ne réveille la session que pour un geste à jouer.
+Quatre sous-commandes, `passe`, `jouer`, `distribuer`, `veille`. Il ne porte aucune règle de décision : il joue `decision-relecteur.mjs` de develop, **la même fonction que le capitaine** (`A-85`), et lui fournit ses faits par les calculs de develop — « double relecture exigée » (`A-82`), « même contenu propre » (`A-81`), les chemins sensibles, `sujet.sh a-juger` — et lit GitHub par `lire_github` de `github.sh`, la seule lecture qui décide (`A-108`). Il prépare son dossier à chaque geste, sous un verrou `flock` (deux préparations ne se croisent jamais, `A-180`) : propre, approfondi une fois (`A-126`), toutes les branches relues, placé sur `origin/develop`, dépendances de develop installées quand son lockfile change (`a-juger` joue commitlint sur les retouches d'une PR de mise à jour ; une installation en échec écrit sa sortie d'erreur et ne se retente qu'au lockfile suivant). Chaque git, le sien comme celui des scripts, porte `core.hooksPath` vide et `core.fsmonitor=false` : un hook du dépôt ne salit jamais le dossier. Le régime d'une PR se lit sur sa base et sur sa date (`A-97`) ; une clé `relecture` mal formée se dit (`contrat-illisible`), jamais une file vide. Un diff propre qui ne se lit pas donne le geste `illisible`, sa cause nommée (PR de fourche, tête introuvable, dépendances de develop, forme refusée par `a-juger`, qui va à l'auteur), signalé une fois par délai (`A-113`, `A-116`, `A-180`). `jouer` pose la nouvelle étiquette avant de retirer l'ancienne (`A-84`) et ne rend une ligne qu'au changement d'étiquette (`A-85`, `A-118`). `distribuer` reçoit le sommet et le couple que le geste nommait, refait la décision avant d'écrire et refuse un geste, un sommet ou un couple qui ont changé : la distribution s'écrit après la création de la session, jamais pour un tour que la machine ne demande plus, ni pour une session créée au mauvais effort (`A-180`). `jouer` et `distribuer` refusent une PR fermée. `veille` ne réveille la session que pour un geste à jouer, et dure 25 minutes, sous les 30 minutes après lesquelles l'outil Bash arrête une tâche de fond.
 
-La clé `relecture` du contrat que le script lit : `depuis` (ISO 8601, en UTC, `Z`), `delai` (en minutes, 120 par défaut), `ordinaire` et `sensible`, chacun `{ "modele", "effort" }` (`opus`/`medium` et `opus`/`xhigh` par défaut, `A-128`). Le lot 6c la pose dans le gabarit du socle avec ces valeurs.
+La clé `relecture` du contrat que le script lit (`A-179`) : `depuis` (ISO 8601 en UTC, `Z`, avec ou sans millisecondes ; un décalage `+00:00` n'est pas admis), `delai` (en minutes, 120 par défaut), `ordinaire` et `sensible`, chacun `{ "modele", "effort" }`, `modele` valant `opus` ou `sonnet` (`opus`/`medium` et `opus`/`xhigh` par défaut, `A-128`). Le lot 6c la pose dans le gabarit du socle avec ces valeurs.
 
 ## Le banc — `scripts/relecteur.test.mjs`
 
-Le script joué comme la session le joue, dans une copie du dépôt jouet du skill `sujet`, avec les vrais scripts de la chaîne sur develop et le faux GitHub : la file et le régime, le cas nominal de la distribution à `à-fusionner`, l'ordre des étiquettes, une ligne qui ne repart pas, un refus sur un chemin sensible, le remplacement d'une session morte, la relance d'un `incomplet`, le plafond, une PR mise à jour par le capitaine qui garde son verdict, une sous-PR vers un sujet, la préparation du dossier, les dépendances, la veille, une écriture refusée.
+Le script joué comme la session le joue, dans une copie du dépôt jouet du skill `sujet`, avec les vrais scripts de la chaîne sur develop et le faux GitHub : la file et le régime, le cas nominal de la distribution à `à-fusionner`, l'ordre des étiquettes, une ligne qui ne repart pas, un refus sur un chemin sensible, le remplacement d'une session morte, la relance d'un `incomplet`, le plafond, une PR mise à jour par le capitaine qui garde son verdict, une sous-PR vers un sujet, la préparation du dossier, les dépendances, la veille, une écriture refusée ; et, depuis `A-180`, le sommet ou le couple changés (X1), `depuis` et `modele` (X3), `--sessions` mal formé (X5), une PR fermée (X7), les causes d'illisible (X15), le verrou (X16), les hooks (X17), les calculs en panne par des talons, `completer`, la reprise après arbitrage, deux pages, la panne.
 
 ## Le prompt — `prompt-session.md`
 
@@ -790,7 +1085,7 @@ Relance : PR <n>, tour <tour>, sommet <sommet>. Rejoue le skill relecture depuis
 
 Lancé par `node`, jamais directement : il ne demande pas le bit exécutable (la PR le pose en mode 644).
 
-328 lignes, de la première à la dernière :
+426 lignes, de la première à la dernière :
 
 ```js
 #!/usr/bin/env node
@@ -800,13 +1095,17 @@ Lancé par `node`, jamais directement : il ne demande pas le bit exécutable (la
 //
 //   node '<dossier du skill>/scripts/relecteur.mjs' passe
 //   node '<dossier du skill>/scripts/relecteur.mjs' jouer <n> [--sessions <fichier>]
-//   node '<dossier du skill>/scripts/relecteur.mjs' distribuer <n> [<session>…] [--sessions <fichier>]
+//   node '<dossier du skill>/scripts/relecteur.mjs' distribuer <n> --sommet <sha> --couple <modele>/<effort> [--remplace <id>]
+//        [<session>…] [--sessions <fichier>]
 //   node '<dossier du skill>/scripts/relecteur.mjs' veille [--pause <s>] [--duree <min>] [--taire <n>,…] [--sondes <k>]
 //
-// Chaque sous-commande, sauf `veille`, prépare d'abord le dossier : il doit être propre ; le clone est approfondi
+// Chaque sous-commande, sauf `veille`, prend d'abord le verrou du dossier (`flock` sur `<dossier git>/relecteur.verrou`,
+// attendu 300 secondes au plus : deux préparations ne se croisent jamais), puis prépare le dossier : il doit être propre ; le clone est approfondi
 // une fois (A-126), toutes les branches d'origin sont relues, le dossier est placé sur origin/develop (détaché), et
 // les dépendances de develop sont installées quand son `pnpm-lock.yaml` a changé depuis la dernière installation.
-// Les scripts joués sont alors ceux de develop, sous `scripts/chaine/` : la décision (`decision-relecteur.mjs`, la
+// Chaque commande git, la sienne comme celle des scripts qu'il joue, porte `core.hooksPath` vide et `core.fsmonitor`
+// à `false`, ajoutés aux `GIT_CONFIG_*` de la session, jamais à leur place. Une installation en échec écrit sa sortie
+// d'erreur et ne se retente qu'au prochain changement du lockfile. Les scripts joués sont ceux de develop, sous `scripts/chaine/` : la décision (`decision-relecteur.mjs`, la
 // même que celle du capitaine), « double relecture exigée », « même contenu propre », les chemins sensibles,
 // `sujet.sh a-juger`, et `github.sh`, dont `lire_github` est la seule lecture de GitHub (A-108).
 //
@@ -816,9 +1115,12 @@ Lancé par `node`, jamais directement : il ne demande pas le bit exécutable (la
 // verdicts exigés, le fait que son diff propre touche un chemin sensible, « même contenu propre » pour chaque sommet
 // de tour, l'instant, `relecture.delai`, et l'état des sessions quand le modèle le donne (`--sessions`).
 //   - le diff propre : pour une PR vers develop, le diff à trois points sans renommage ; vers un sujet, la sortie de
-//     `sujet.sh a-juger` (sa seconde liste pour une PR de mise à jour). Illisible : sensible, et « double relecture
-//     exigée » illisible, que la décision trace et signale (A-113) ;
-//   - `--sessions <fichier>` : un objet JSON { <session>: vivante | morte | plafond } que le modèle a lu (get_session).
+//     `sujet.sh a-juger` (sa seconde liste pour une PR de mise à jour). Quand il ne se lit pas, aucune règle ne joue :
+//     le geste `illisible`, sa cause nommée — PR de fourche, tête introuvable, dépendances de develop (une installation
+//     en échec), forme refusée par `a-juger` (la ligne va à l'auteur, la seule cause qui soit à lui), `a-juger` ou le
+//     diff en échec — et rien tant que cette trace est la plus récente et date de `relecture.delai` au plus (A-116) ;
+//   - `--sessions <fichier>` : un objet JSON { <session>: vivante | morte | plafond } que le modèle a lu (get_session) ;
+//     une autre forme sort en 2, la cause dite.
 //
 // `passe` écrit une ligne JSON par PR ouverte : `{ pr, base, tete, branche, regle, geste, …, faits }`, `geste` valant
 // `hors-regime` (régime 7, ou base hors de la chaîne), `contrat-illisible` (la clé `relecture` mal formée), `pause`
@@ -830,18 +1132,23 @@ Lancé par `node`, jamais directement : il ne demande pas le bit exécutable (la
 // la décision, `joue` (vrai s'il a écrit), et `lignes`, ce que le modèle envoie (`send_message`) ; une étiquette déjà
 // posée avant lui n'envoie aucune ligne : une ligne ne part qu'au changement d'étiquette (A-85, A-118). Un geste de
 // session (`distribuer`, `completer`, `remplacer`, `reecrire`) n'écrit rien : c'est au modèle de le jouer.
-// `distribuer <n> [<session>…]` écrit la distribution d'un geste de session, après que le modèle a créé ou relancé
-// les sessions (A-85, règle 6) : il refait la décision, refuse si le geste a changé, et compose la liste. `distribuer`
+// `distribuer <n> --sommet <sha> --couple <modele>/<effort> [<session>…]` écrit la distribution d'un geste de session,
+// après que le modèle a créé ou relancé les sessions (A-85, règle 6) : il refait la décision, refuse (sortie 3) si le
+// geste, le sommet ou le couple ont changé depuis ce que le modèle a lu, et compose la liste. `--remplace <id>` : la
+// session que le modèle tient pour hors service (morte), quand il n'a pas de fichier `--sessions`. `distribuer`
 // (règle 4 ou 6) : les sessions du tour, autant que `nombre` ; `completer` : les sessions ajoutées, autant que
 // `manque` ; `remplacer` : la session qui remplace ; `reecrire` : aucune (la distribution est redite, `(relance …)`).
-// `veille` lance `passe` toutes les `--pause` secondes (120) pendant `--duree` minutes (60), et s'arrête dès qu'une
+// `veille` lance `passe` toutes les `--pause` secondes (120) pendant `--duree` minutes (25 : l'outil Bash arrête une
+// tâche de fond à 30 minutes), et s'arrête dès qu'une
 // PR, hors de `--taire`, demande un geste : `VEILLE GESTE`, puis une ligne `GESTE <n> <geste> règle <r>` par PR. Les
 // gestes `rien`, `hors-regime` et `pause` ne réveillent personne. GitHub illisible : `PAUSE`, la veille continue.
 // Au bout de la durée : `VEILLE FINIE`. Toute autre sortie de `passe` : `VEILLE ARRÊTÉE sortie <c>`, avec son code.
 //
-// Sorties : 0 fait ; 2 usage ; 3 le geste a changé depuis `jouer` (rien n'est écrit) ; 5 GitHub illisible ; 6 le
-// dossier n'est pas celui d'un projet de la chaîne, ou pas propre ; 7 une écriture sur GitHub refusée ; 12 git
-// (fetch, switch) en échec. L'horloge est celle de la machine ; `RELECTEUR_HORLOGE_BANC` (millisecondes) la fixe,
+// Sorties : 0 fait ; 2 usage ou entrée mal formée ; 3 la PR est fermée, ou le geste, le sommet ou le couple ont changé
+// (rien n'est écrit) ; 5 GitHub illisible ; 6 le dossier n'est pas celui d'un projet de la chaîne, ou pas propre, ou
+// `flock` manque ; 7 une écriture sur GitHub refusée (la pose d'une étiquette ou un commentaire ; un retrait refusé ne
+// l'est pas : `retirer_label` le tait) ; 9 le verrou du dossier pas obtenu en 300 secondes ; 12 git (fetch, switch) en
+// échec. L'horloge est celle de la machine ; `RELECTEUR_HORLOGE_BANC` (millisecondes) la fixe,
 // seulement quand `FAUX_GH` (le faux GitHub des bancs) est posé.
 // =============================================================================
 import { spawnSync } from 'node:child_process';
@@ -856,6 +1163,8 @@ const OUTILS = ['github.sh', 'decision-relecteur.mjs', 'verdict.mjs', 'double-re
 const ROUTE = 'repos/{owner}/{repo}';
 const ID = /^[A-Za-z0-9][A-Za-z0-9_-]*$/;
 const EFFORTS = ['low', 'medium', 'high', 'xhigh', 'max'];
+const MODELES = ['opus', 'sonnet'];
+const ETATS = ['vivante', 'morte', 'plafond'];
 const DEFAUTS = { delai: 120, ordinaire: { modele: 'opus', effort: 'medium' }, sensible: { modele: 'opus', effort: 'xhigh' } };
 
 class Arret extends Error {
@@ -867,7 +1176,21 @@ class Arret extends Error {
 const arreter = (code, message) => {
   throw new Arret(code, message);
 };
-const jouer = (commande, args, options = {}) => spawnSync(commande, args, { cwd: DOSSIER, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, ...options });
+// `core.hooksPath` vide et `core.fsmonitor` coupé, pour chaque git que le Relecteur ou un script lancent : ajoutés aux
+// `GIT_CONFIG_*` de la session (une réécriture d'URL, par exemple), jamais à leur place.
+function environnementGit() {
+  const env = { ...process.env };
+  const n = Number(env.GIT_CONFIG_COUNT ?? 0);
+  if (!Number.isSafeInteger(n) || n < 0) arreter(6, `GIT_CONFIG_COUNT illisible : ${env.GIT_CONFIG_COUNT}`);
+  [['core.hooksPath', ''], ['core.fsmonitor', 'false']].forEach(([cle, valeur], i) => {
+    env[`GIT_CONFIG_KEY_${n + i}`] = cle;
+    env[`GIT_CONFIG_VALUE_${n + i}`] = valeur;
+  });
+  env.GIT_CONFIG_COUNT = String(n + 2);
+  return env;
+}
+let ENV;
+const jouer = (commande, args, options = {}) => spawnSync(commande, args, { cwd: DOSSIER, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, env: (ENV ??= environnementGit()), ...options });
 const git = (...args) => jouer('git', args);
 const gitOk = (...args) => {
   const r = git(...args);
@@ -895,13 +1218,23 @@ function preparer() {
   if (existsSync(join(DOSSIER, 'pnpm-lock.yaml'))) {
     const empreinte = gitOk('rev-parse', 'HEAD:pnpm-lock.yaml');
     const temoin = join(gitOk('rev-parse', '--absolute-git-dir'), 'relecteur-dependances');
-    const faite = existsSync(temoin) && readFileSync(temoin, 'utf8').trim() === empreinte && existsSync(join(DOSSIER, 'node_modules'));
-    if (!faite && jouer('pnpm', ['install', '--frozen-lockfile', '--prefer-offline'], { stdio: ['ignore', 'ignore', 'pipe'] }).status === 0) writeFileSync(temoin, `${empreinte}\n`);
+    // Le témoin garde l'empreinte du lockfile essayé et l'issue : une installation en échec ne se retente qu'au
+    // lockfile suivant, et les PR qui en ont besoin reçoivent la cause « dépendances de develop ».
+    const lu = existsSync(temoin) ? readFileSync(temoin, 'utf8').trim().split(' ') : [];
+    if (lu[0] === empreinte && (lu[1] === 'echec' || existsSync(join(DOSSIER, 'node_modules')))) DEPENDANCES = lu[1] !== 'echec';
+    else {
+      const r = jouer('pnpm', ['install', '--frozen-lockfile', '--prefer-offline'], { stdio: ['ignore', 'ignore', 'pipe'] });
+      DEPENDANCES = r.status === 0;
+      if (!DEPENDANCES) process.stderr.write(`relecteur : pnpm install en échec (sortie ${r.status}) :\n${(r.stderr || '').trim()}\n`);
+      writeFileSync(temoin, `${empreinte} ${DEPENDANCES ? 'faite' : 'echec'}\n`);
+    }
   }
 }
+let DEPENDANCES = true;
 
 // La clé `relecture` du contrat d'une base : `null` (pas de contrat, ou pas de clé : régime 7), `'illisible'`, ou
-// la clé lue, ses valeurs par défaut complétées.
+// la clé lue, ses valeurs par défaut complétées. `depuis` : UTC en `Z`, avec ou sans millisecondes ; un décalage
+// (`+00:00`) n'est pas admis. `modele` : un alias, `opus` ou `sonnet`, jamais un identifiant daté.
 function contrat(base) {
   if (git('cat-file', '-e', `refs/remotes/origin/${base}:.claude/chaine.json`).status !== 0) return null;
   let c;
@@ -912,38 +1245,42 @@ function contrat(base) {
   }
   if (c === null || typeof c !== 'object' || !Object.hasOwn(c, 'relecture')) return null;
   const r = c.relecture;
-  const couple = (x) => x === undefined || (x !== null && typeof x === 'object' && typeof x.modele === 'string' && x.modele !== '' && EFFORTS.includes(x.effort));
-  if (r === null || typeof r !== 'object' || typeof r.depuis !== 'string' || !/^\d{4}-\d\d-\d\dT\d\d:\d\d(?::\d\d)?Z$/.test(r.depuis) || !Number.isFinite(Date.parse(r.depuis))) return 'illisible';
+  const couple = (x) => x === undefined || (x !== null && typeof x === 'object' && MODELES.includes(x.modele) && EFFORTS.includes(x.effort));
+  if (r === null || typeof r !== 'object' || typeof r.depuis !== 'string' || !/^\d{4}-\d\d-\d\dT\d\d:\d\d(?::\d\d(?:\.\d{1,3})?)?Z$/.test(r.depuis) || !Number.isFinite(Date.parse(r.depuis))) return 'illisible';
   if (r.delai !== undefined && !(Number.isSafeInteger(r.delai) && r.delai >= 1)) return 'illisible';
   if (!couple(r.ordinaire) || !couple(r.sensible)) return 'illisible';
   return { depuis: Date.parse(r.depuis), delai: r.delai ?? DEFAUTS.delai, ordinaire: r.ordinaire ?? DEFAUTS.ordinaire, sensible: r.sensible ?? DEFAUTS.sensible };
 }
 
-// Le diff propre de la PR, un chemin par ligne, ou `null` s'il ne se lit pas.
-function liste(pr) {
+// Le diff propre de la PR : `{ fichiers }`, un chemin par élément, ou `{ cause, a }` quand il ne se lit pas, `a` étant
+// le destinataire de la ligne (`auteur` pour une forme refusée, seule cause qui soit à lui ; `architecte` sinon).
+// La dernière ligne qu'une commande a écrite, sur sa sortie d'erreur ou sinon sur sa sortie standard (`sujet.sh` écrit
+// son motif sur la seconde) ; jamais vide : une trace vide ne se reconnaîtrait plus (`corpsLu` retire les blancs).
+const derniere = (r) => `${r.stderr ?? ''}\n${r.stdout ?? ''}`.split('\n').map((l) => l.trim()).filter(Boolean).at(-1) ?? `sortie ${r.status}`;
+function liste(pr, json) {
   const { base, tete, n } = pr;
-  if (git('cat-file', '-e', `${tete}^{commit}`).status !== 0) return null;
+  if ((json.head.repo?.full_name ?? null) !== (json.base.repo?.full_name ?? null)) return { cause: 'PR de fourche : sa tête vit hors du dépôt, le Relecteur ne la lit pas', a: 'architecte' };
+  if (git('cat-file', '-e', `${tete}^{commit}`).status !== 0) return { cause: `tête introuvable : ${tete} n'est sur aucune branche d'origin`, a: 'architecte' };
   if (base === 'develop') {
     const depart = git('merge-base', 'refs/remotes/origin/develop', tete);
-    if (depart.status !== 0) return null;
-    const d = git('-c', 'core.quotePath=false', 'diff', '--no-renames', '--name-only', depart.stdout.trim(), tete);
-    return d.status === 0 ? d.stdout.split('\n').filter(Boolean) : null;
+    const d = depart.status === 0 ? git('-c', 'core.quotePath=false', 'diff', '--no-renames', '--name-only', depart.stdout.trim(), tete) : depart;
+    return d.status === 0 ? { fichiers: d.stdout.split('\n').filter(Boolean) } : { cause: `diff illisible : ${derniere(d)}`, a: 'architecte' };
   }
   const a = jouer('bash', [join(CHAINE, 'sujet.sh'), 'a-juger', tete, base, String(n)]);
-  if (a.status !== 0) return null;
+  if (a.status !== 0 && !DEPENDANCES) return { cause: 'dépendances de develop : pnpm install en échec, `sujet.sh a-juger` ne juge pas les retouches', a: 'architecte' };
+  if (a.status === 4) return { cause: `forme refusée par \`sujet.sh a-juger\` : ${derniere(a)}`, a: 'auteur' };
+  if (a.status !== 0) return { cause: `\`sujet.sh a-juger\` en échec (sortie ${a.status}) : ${derniere(a)}`, a: 'architecte' };
   const [premiere, seconde] = a.stdout.replace(/\n$/, '').split(/\n\n/);
-  return (seconde ?? premiere ?? '').split('\n').filter(Boolean);
+  return { fichiers: (seconde ?? premiere ?? '').split('\n').filter(Boolean) };
 }
 
 function sensible(fichiers, base) {
-  if (fichiers === null) return true;
   if (fichiers.length === 0) return false;
   const r = jouer('node', [join(CHAINE, 'chemins-sensibles.mjs'), `origin/${base}`], { input: `${fichiers.join('\n')}\n` });
   return r.status !== 0 || r.stdout.trim() !== '';
 }
 
 function exiges(fichiers, pr) {
-  if (fichiers === null) return 'illisible';
   const r = jouer('node', [join(CHAINE, 'double-relecture.mjs'), '--base', pr.base, '--tete', pr.tete, '--titre', pr.titre, '--branche', pr.branche], { input: fichiers.length ? `${fichiers.join('\n')}\n` : '' });
   return r.status === 0 ? 1 : r.status === 20 ? 2 : 'illisible';
 }
@@ -966,12 +1303,23 @@ function lireSessions(argv) {
   const i = argv.indexOf('--sessions');
   if (i === -1) return {};
   const fichier = argv.splice(i, 2)[1];
+  let etats;
   try {
-    return JSON.parse(readFileSync(fichier, 'utf8'));
-  } catch {
-    return arreter(2, `--sessions : ${fichier} n'est pas un objet JSON lisible`);
+    etats = JSON.parse(readFileSync(fichier ?? '', 'utf8'));
+  } catch (e) {
+    return arreter(2, `--sessions : ${fichier} ne se lit pas en JSON (${e.message})`);
   }
+  if (etats === null || typeof etats !== 'object' || Array.isArray(etats)) arreter(2, `--sessions : ${fichier} n'est pas un objet { <session>: vivante | morte | plafond }`);
+  for (const [id, etat] of Object.entries(etats)) {
+    if (!ID.test(id)) arreter(2, `--sessions : « ${id} » n'est pas un identifiant de session`);
+    if (!ETATS.includes(etat)) arreter(2, `--sessions : ${id} vaut « ${etat} », attendu ${ETATS.join(', ')}`);
+  }
+  return etats;
 }
+const option = (argv, nom) => {
+  const i = argv.indexOf(nom);
+  return i === -1 ? null : argv.splice(i, 2)[1] ?? arreter(2, `${nom} : une valeur est attendue`);
+};
 
 // La décision d'une PR (son JSON REST), avec les faits que la session à créer demande.
 async function decision(json, sessions) {
@@ -989,7 +1337,9 @@ async function decision(json, sessions) {
   if (['hors-file', 'livraison', 'renvoi-du-capitaine'].includes(avant.raison)) return { ...tete, ...avant };
   const commentaires = lire(`${ROUTE}/issues/${pr.n}/comments?per_page=100`, { pages: true });
   try {
-    const fichiers = liste(pr);
+    const lue = liste(pr, json);
+    if (lue.cause !== undefined) return { ...tete, ...illisible(d, commentaires, commun, lue) };
+    const { fichiers } = lue;
     const faits = { sensible: sensible(fichiers, pr.base), exiges: exiges(fichiers, pr) };
     const memeContenu = {};
     for (const s of d.sommetsDesTours(commentaires)) {
@@ -1005,6 +1355,19 @@ async function decision(json, sessions) {
     if (e instanceof v.LectureIllisible) return { ...tete, regle: null, geste: 'pause', raison: `commentaires illisibles : ${e.message}` };
     throw e;
   }
+}
+
+// Un diff propre qui ne se lit pas : le geste `illisible` de la décision, avec sa cause propre (A-113, A-116) ; « rien »
+// tant que la trace de cette cause est le plus récent des commentaires à marque et date de `relecture.delai` au plus.
+function illisible(d, commentaires, commun, { cause, a }) {
+  const marques = d.lireMarques(commentaires, { tolerant: true });
+  const commentaire = `${d.TEXTE_ILLISIBLE}${cause}`;
+  const signale = marques.illisibles.some((t) => t.rang > marques.dernier && t.texte.startsWith(commentaire) && commun.maintenant - Date.parse(t.date) <= commun.delaiMs);
+  if (signale) return { regle: null, geste: 'rien', raison: 'illisible-signale' };
+  const demande = marques.demandes.at(-1) ?? { auteur: null };
+  const texte = `PR ${commun.numero} : lecture illisible : ${cause}`;
+  const lignes = a === 'auteur' && demande.auteur !== null ? [{ a: 'auteur', session: demande.auteur, texte }] : [{ a: 'architecte', session: null, texte }];
+  return { regle: null, geste: 'illisible', commentaire, lignes };
 }
 
 const ecrire = (fonction, ...args) => {
@@ -1025,6 +1388,7 @@ async function jouerGeste(argv) {
   const n = numero(argv[0]);
   preparer();
   const json = lire(`${ROUTE}/pulls/${n}`);
+  if (json.state !== 'open') arreter(3, `PR ${n} fermée : aucun geste`);
   const g = await decision(json, sessions);
   const avant = (json.labels ?? []).map((l) => l.name.normalize('NFC'));
   let joue = false;
@@ -1045,14 +1409,26 @@ async function jouerGeste(argv) {
 
 async function distribuer(argv) {
   const sessions = lireSessions(argv);
+  const sommet = option(argv, '--sommet') ?? arreter(2, '--sommet <sha> est attendu : le sommet que le geste nommait');
+  const couple = option(argv, '--couple') ?? arreter(2, '--couple <modele>/<effort> est attendu : celui des sessions créées ou réemployées');
+  const remplace = option(argv, '--remplace');
+  if (remplace !== null) {
+    if (!ID.test(remplace)) arreter(2, '--remplace : un identifiant de session est attendu');
+    sessions[remplace] ??= 'morte';
+  }
   const n = numero(argv[0]);
   const ids = argv.slice(1);
   if (ids.some((s) => !ID.test(s)) || new Set(ids).size !== ids.length) arreter(2, 'des identifiants de session distincts sont attendus');
   preparer();
   const { decision: d } = await modules();
-  const g = await decision(lire(`${ROUTE}/pulls/${n}`), sessions);
+  const json = lire(`${ROUTE}/pulls/${n}`);
+  if (json.state !== 'open') arreter(3, `PR ${n} fermée : aucune distribution écrite`);
+  const g = await decision(json, sessions);
   const attendu = { distribuer: g.nombre, completer: g.manque, remplacer: 1, reecrire: 0 }[g.geste];
   if (attendu === undefined) arreter(3, `PR ${n} : le geste est maintenant « ${g.geste} » : aucune distribution écrite`);
+  if (g.sommet !== sommet) arreter(3, `PR ${n} : le sommet est maintenant ${g.sommet} : aucune distribution écrite`);
+  const voulu = `${g.faits.modele}/${g.faits.effort}`;
+  if (couple !== voulu) arreter(3, `PR ${n} : le couple est maintenant ${voulu}, pas ${couple} : aucune distribution écrite`);
   if (ids.length !== attendu) arreter(2, `PR ${n} : ${g.geste} attend ${attendu} session(s), ${ids.length} reçue(s)`);
   if (g.geste !== 'distribuer' && ids.some((s) => g.sessions.includes(s))) arreter(2, `PR ${n} : une session ajoutée est déjà du tour`);
   const forme = {
@@ -1067,14 +1443,14 @@ async function distribuer(argv) {
 }
 
 function veille(argv) {
-  const option = (nom, defaut) => {
+  const lireOption = (nom, defaut) => {
     const i = argv.indexOf(nom);
     return i === -1 ? defaut : argv[i + 1];
   };
-  const pause = Number(option('--pause', '120'));
-  const duree = Number(option('--duree', '60'));
-  const sondes = Number(option('--sondes', 'Infinity'));
-  const taire = new Set(String(option('--taire', '')).split(',').filter(Boolean).map(Number));
+  const pause = Number(lireOption('--pause', '120'));
+  const duree = Number(lireOption('--duree', '25'));
+  const sondes = Number(lireOption('--sondes', 'Infinity'));
+  const taire = new Set(String(lireOption('--taire', '')).split(',').filter(Boolean).map(Number));
   if (![pause, duree].every((x) => Number.isFinite(x) && x >= 0)) arreter(2, '--pause et --duree : des nombres');
   const fin = Date.now() + duree * 60_000;
   const attendre = (s) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, s * 1000);
@@ -1107,14 +1483,31 @@ function estPointEntree() {
   }
 }
 
+// Le verrou du dossier : la sous-commande se relance sous `flock`, qui attend 300 secondes au plus (sortie 9 sinon). La
+// veille ne le prend pas : chaque passe qu'elle lance le prend, et un geste du modèle attend la fin de la passe en cours.
+function sousVerrou(argv) {
+  if (process.env.RELECTEUR_VERROU) return null;
+  const dossierGit = spawnSync('git', ['rev-parse', '--absolute-git-dir'], { cwd: DOSSIER, encoding: 'utf8' });
+  if (dossierGit.status !== 0) arreter(6, 'le dossier courant n\'est pas un dépôt git');
+  if (spawnSync('flock', ['-V']).error) arreter(6, 'flock (util-linux) est requis');
+  const verrou = join(dossierGit.stdout.trim(), 'relecteur.verrou');
+  const r = spawnSync('flock', ['-w', '300', '-E', '9', verrou, process.execPath, ICI, ...argv], { cwd: DOSSIER, stdio: 'inherit', env: { ...process.env, RELECTEUR_VERROU: verrou } });
+  if (r.status === 9) process.stderr.write('relecteur : le dossier est tenu par une autre sous-commande depuis 300 secondes\n');
+  return r.status ?? 1;
+}
+
 const [sous, ...reste] = process.argv.slice(2);
 if (estPointEntree()) {
   try {
+    if (['passe', 'jouer', 'distribuer'].includes(sous)) {
+      const code = sousVerrou(process.argv.slice(2));
+      if (code !== null) process.exit(code);
+    }
     if (sous === 'passe') await passe();
     else if (sous === 'jouer') await jouerGeste(reste);
     else if (sous === 'distribuer') await distribuer(reste);
     else if (sous === 'veille') veille(reste);
-    else arreter(2, 'usage : relecteur.mjs passe | jouer <n> [--sessions <fichier>] | distribuer <n> [<session>…] [--sessions <fichier>] | veille [--pause <s>] [--duree <min>] [--taire <n>,…]');
+    else arreter(2, 'usage : relecteur.mjs passe | jouer <n> [--sessions <fichier>] | distribuer <n> --sommet <sha> --couple <modele>/<effort> [--remplace <id>] [<session>…] [--sessions <fichier>] | veille [--pause <s>] [--duree <min>] [--taire <n>,…]');
   } catch (e) {
     if (!(e instanceof Arret)) throw e;
     process.stderr.write(`relecteur : ${e.message}\n`);
@@ -1199,30 +1592,36 @@ index 9356528..8730e69 100644
 
 ```diff
 diff --git a/skills/chaine/sujet/scripts/faux-gh.mjs b/skills/chaine/sujet/scripts/faux-gh.mjs
-index 528559f..cf04633 100644
+index 528559f..25a81cb 100644
 --- a/skills/chaine/sujet/scripts/faux-gh.mjs
 +++ b/skills/chaine/sujet/scripts/faux-gh.mjs
-@@ -2,7 +2,10 @@
+@@ -2,7 +2,11 @@
  // =============================================================================
  // Faux `gh` du dépôt jouet (depot-jouet.mjs) : placé en tête de PATH, il répond à `gh api`
  // comme l'API REST de GitHub, sans réseau. État dans $FAUX_GH/etat.json :
 -//   pulls       PR { number, title, body, draft, state, labels: [noms], base, head, merged_at, commentaires }
 +//   pulls       PR { number, title, body, draft, state, labels: [noms], base, head, merged_at, created_at, commentaires }
 +//               `created_at` : la date d'ouverture, ISO 8601 (défaut 2026-11-17T11:00:00Z), lue par le Relecteur (régime)
++//               `fourche` : le dépôt de la tête (`head.repo.full_name`), « maj/jouet » par défaut, celui de la base
 +//   maintenant  ISO 8601 : la date que reçoit tout commentaire posé (`POST issues/<n>/comments`), à la place de la date
 +//               de son rang ; le banc l'avance, comme l'horloge de GitHub. Sans la clé, la date du rang
  //               `commentaires` : [corps], écrits par le compte du capitaine, ou { auteur, body } d'un autre compte
  //   capitaine   compte que rend `gh api user` (défaut « capitaine ») ; compteIllisible : `user` répond 403
  //   refusPost   message d'un refus du `POST pulls` (`gh: … (HTTP 422)`), code 1
-@@ -161,6 +164,7 @@ function versRest(pr) {
+@@ -161,9 +165,10 @@ function versRest(pr) {
      draft: pr.draft ?? false,
      state: pr.state ?? "open",
      merged_at: pr.merged_at ?? null,
 +    created_at: pr.created_at ?? "2026-11-17T11:00:00Z",
      labels: (pr.labels ?? []).map((name) => ({ name })),
-     base: { ref: pr.base, repo: { default_branch: etat.brancheParDefaut ?? "main" } },
-     head: { ref: pr.head, sha: pr.sha ?? ref(pr.head) ?? "0".repeat(40) },
-@@ -316,7 +320,7 @@ function repondre() {
+-    base: { ref: pr.base, repo: { default_branch: etat.brancheParDefaut ?? "main" } },
+-    head: { ref: pr.head, sha: pr.sha ?? ref(pr.head) ?? "0".repeat(40) },
++    base: { ref: pr.base, repo: { full_name: "maj/jouet", default_branch: etat.brancheParDefaut ?? "main" } },
++    head: { ref: pr.head, sha: pr.sha ?? ref(pr.head) ?? "0".repeat(40), repo: { full_name: pr.fourche ?? "maj/jouet" } },
+     requested_reviewers: (pr.relecteurs ?? []).map((login) => ({ login })),
+     requested_teams: (pr.equipes ?? []).map((slug) => ({ slug })),
+   };
+@@ -316,7 +321,7 @@ function repondre() {
        p.commentaires.push(etat.concurrent);
        delete etat.concurrent;
      }
@@ -1567,6 +1966,17 @@ Une PR vers `main`, titre `feat(chaine): le skill relecteur, sa file, sa veille 
 | Les dépendances de develop, une fois par lockfile | « les dépendances » |
 | La veille : geste, `--taire`, attente muette, `PAUSE`, `VEILLE ARRÊTÉE` | « la veille » |
 | Une écriture refusée : sortie 7, rien retiré | « une écriture refusée » |
+| Le sommet ou le couple changés entre la passe et la distribution : sortie 3 | « X1 » |
+| `depuis` à millisecondes, `+00:00` et une date fausse ; `modele` daté | « X3 » |
+| `--sessions` mal formé : sortie 2, la cause | « X5 » |
+| Une PR fermée : sortie 3 | « X7 » |
+| Les causes d'illisible : forme refusée (à l'auteur), fourche, dépendances (à l'architecte) ; signalée une fois ; l'installation en échec écrite, pas retentée | « X15 » |
+| Trois sous-commandes en même temps : le verrou | « X16 » |
+| Un hook du dépôt ne joue pas | « X17 » |
+| Les calculs en panne (talons), une PR double | « N1 à N4, N7 » |
+| `completer`, la reprise après arbitrage, deux pages, la panne | « N9 », « N10 », « N12 », « N13 » |
+| Régime : à l'instant de `depuis`, une base `main` ; NFC | « la file », « les étiquettes se comparent en NFC » |
+| La veille à 25 minutes ; les suites des sorties ; le couple ; `get_session` ; 500 000 et 700 000 tokens ; `TaskStop` | `scripts/relecteur.test.mjs`, « A-180 » |
 | Le skill déclaré, marqué, sous 200 lignes | `scripts/relecteur.test.mjs`, test 1 |
 | Neuf labels, dont les quatre de la décision ; plus de « sept » | test 2 |
 | Le gabarit de lancement ; le prompt d'une session de relecture | tests 3 et 4 |
@@ -1578,19 +1988,19 @@ Une PR vers `main`, titre `feat(chaine): le skill relecteur, sa file, sa veille 
 
 ### Pour la session
 
-1. Sur la branche, avant le code (les six bancs du § 1 seuls) : `node --test skills/chaine/relecteur/scripts/relecteur.test.mjs scripts/relecteur.test.mjs skills/chaine/fusionner/scripts/decision-relecteur.test.mjs scripts/relecture.test.mjs skills/chaine/sujet/scripts/faux-gh.test.mjs scripts/points-d-entree.test.mjs` : **29 rouges** (13, 6, 2, 1, 1 et 6).
-2. Après : les mêmes, tous verts ; puis `pnpm test`, la suite entière, verte (1 256 tests sur `5bf4f39`).
-3. `node <scratchpad>/mutations.mjs` depuis la racine (l'annexe lue comme au § 0) : « toutes rouges » (35). Sur `main` plus avancé, une mutation « INTROUVABLE » dit qu'un texte a bougé : la refaire sur le texte nouveau.
+1. Sur la branche, avant le code (les six bancs du § 1 seuls) : `node --test skills/chaine/relecteur/scripts/relecteur.test.mjs scripts/relecteur.test.mjs skills/chaine/fusionner/scripts/decision-relecteur.test.mjs scripts/relecture.test.mjs skills/chaine/sujet/scripts/faux-gh.test.mjs scripts/points-d-entree.test.mjs` : **43 rouges** (26, 7, 2, 1, 1 et 6).
+2. Après : les mêmes, tous verts ; puis `pnpm test`, la suite entière, verte (1 270 tests sur `5bf4f39`).
+3. `node <scratchpad>/mutations.mjs` depuis la racine (l'annexe lue comme au § 0) : « toutes rouges » (73). Sur `main` plus avancé, une mutation « INTROUVABLE » dit qu'un texte a bougé : la refaire sur le texte nouveau.
 4. `git diff --stat origin/main` : les fichiers de « Où », et eux seuls.
 
 ### Ce qui a été joué en écrivant ce ticket
 
 Sur un clone neuf de `https://github.com/MAJ-agency/skills` à `5bf4f39` (plugin 7.37.3), le 2026-11-20, après un premier passage sur `4cd047f` (7.37.2) qu'a rendu caduc l'entrée du ticket 65 :
 
-- **Rouge avant le code.** Les six bancs du § 1 posés seuls sur `5bf4f39` : `skills/chaine/relecteur/scripts/relecteur.test.mjs` 13 rouges sur 13 (le script n'existe pas) ; `scripts/relecteur.test.mjs` 6 sur 6 ; `decision-relecteur.test.mjs` 2 sur 39 (l'assertion inversée d'`A-107` et le test « ticket 66 ») ; `scripts/relecture.test.mjs` 1 sur 39 (le cas « un refus reste un refus ») ; `faux-gh.test.mjs` 1 sur 15 ; `points-d-entree.test.mjs` 6 sur 60 (les six accès de `relecteur.mjs` ; ceux de `double-relecture.mjs` passent déjà). **29 rouges.**
-- **Vert après.** [`66-annexes/ticket-66.patch`](66-annexes/ticket-66.patch) appliqué sur un clone neuf de `5bf4f39` (`git apply --check`, puis `git apply`), puis la suite entière, `node --test` sur les quatre motifs de `pnpm test` : **1 256 tests, 1 256 verts**, aucun sauté (onze minutes sur la machine du rédacteur, chargée). Le banc du Relecteur tourne en une quinzaine de secondes.
-- **Mutations.** [`66-annexes/mutations.mjs`](66-annexes/mutations.mjs), sur l'arbre du ticket : **35 mutations, toutes rouges** ; la liste et leur résultat : [`66-annexes/mutations.txt`](66-annexes/mutations.txt). M1 est le code d'avant (`compter`), M2 le cas de la question 2, M4 l'ordre des étiquettes, M5 la ligne qui repart, M16 la distribution écrite sans refaire la décision, M20 le clone superficiel.
-- **Les bornes.** Chaque fichier neuf de ce ticket est recopié de l'arbre joué, chaque diff produit par `git diff 5bf4f39` sur cet arbre : le patch et le texte du ticket viennent du même commit.
+- **Rouge avant le code.** Les six bancs du § 1 posés seuls sur `5bf4f39` : `skills/chaine/relecteur/scripts/relecteur.test.mjs` 26 rouges sur 26 (le script n'existe pas) ; `scripts/relecteur.test.mjs` 7 sur 7 ; `decision-relecteur.test.mjs` 2 sur 39 (l'assertion inversée d'`A-107` et le test « ticket 66 ») ; `scripts/relecture.test.mjs` 1 sur 39 (le cas « un refus reste un refus ») ; `faux-gh.test.mjs` 1 sur 15 ; `points-d-entree.test.mjs` 6 sur 60 (les six accès de `relecteur.mjs` ; ceux de `double-relecture.mjs` passent déjà). **43 rouges.**
+- **Vert après.** [`66-annexes/ticket-66.patch`](66-annexes/ticket-66.patch) appliqué sur un clone neuf de `5bf4f39` (`git apply --check`, puis `git apply`), puis la suite entière, `node --test` sur les quatre motifs de `pnpm test` : **1 270 tests, 1 270 verts**, aucun sauté (onze minutes et demie sur la machine du rédacteur). Les six bancs du § 1 en sont, verts.
+- **Mutations.** [`66-annexes/mutations.mjs`](66-annexes/mutations.mjs), sur l'arbre du ticket, en quatre copies jouées ensemble : **73 mutations, toutes rouges** — M1 à M59 du ticket (sans M12, dont le texte a disparu avec `A-180`, ni M16, équivalente) et N1 à N18 de la relecture du ticket (sans N9, équivalente, ni N15, hors de portée) ; la liste et leur résultat : [`66-annexes/mutations.txt`](66-annexes/mutations.txt). Parmi celles qu'`A-180` demandait de tuer, N1 à N4, N7, N10, N12 et N13 sont rouges, et N9 est équivalente ; N5, N6, N8, N14 et N18, que la relecture avait trouvées vivantes, sont rouges aussi.
+- **Texte et patch disent le même code.** Les six fichiers neufs et les 21 diffs extraits du texte du ticket (l'extracteur de la relecture), appliqués sur un autre clone neuf de `5bf4f39` : l'arbre obtenu est celui du patch (`diff -r`).
 
 ## Ce qui n'a pas été établi
 
@@ -1598,7 +2008,9 @@ Sur un clone neuf de `https://github.com/MAJ-agency/skills` à `5bf4f39` (plugin
 2. **La pagination réelle** : le faux GitHub rend une seule page ; `lire_github --paginate` et la concaténation des pages en un tableau ne sont jouées que sur une page. La forme est celle que `lire_github` documente (« un `--paginate` concatène des pages »).
 3. **Le coût d'une veille** : une passe toutes les 2 minutes lit la liste des PR, puis, pour chaque PR de la file, ses commentaires et les calculs ; sur un dépôt à vingt PR ouvertes, ce sont des lectures GitHub et des calculs git à chaque sonde, sans session réveillée. Non mesuré.
 4. **`--depth 1` puis `--unshallow`** sont joués sur un dépôt nu local ; une session cloud a un clone à profondeur 50 sur une branche, que la préparation élargit par sa refspec explicite : même geste, non joué dans le cloud.
-5. **`github.sh:580`** dit encore « les sept labels du socle » dans un commentaire : ce ticket ne touche aucun script du capitaine (lot 5) ; le premier ticket qui rouvre `github.sh` le corrige.
+5. **`get_session` et ses nombres** : le seuil de 700 000 tokens (une session de relecture au plafond) et celui de 500 000 (le Relecteur lui-même) se lisent dans ce que `get_session` rend du contexte ; aucun banc ne joue cet outil. De même, ce que `create_session` fait d'un alias de modèle (`opus`, `sonnet`) et d'`effort` quand l'outil est pré-approuvé : le skill dit de ne pas créer sans `effort`.
+6. **Trois mutations retirées de l'annexe.** N15 (`RELECTEUR_HORLOGE_BANC` tenue hors du faux GitHub) survit : la garde qui l'ignore sans `FAUX_GH` ne se prouve que sur un vrai GitHub, qu'aucun banc ne lance. M16 (le geste non refait dans `distribuer`) est équivalente depuis `A-180` : la comparaison du sommet, qui suit, sort en 3 pour tout geste qui n'est pas de session. N9 (`completer` qui attend une seule session) est équivalente : `manque` vaut toujours 1, deux verdicts étant exigés au plus et une distribution nommant une session au moins ; le cas `completer` du banc est écrit, il tuera la mutation le jour où trois verdicts pourront être exigés.
+7. **`github.sh:580`** dit encore « les sept labels du socle » dans un commentaire : ce ticket ne touche aucun script du capitaine (lot 5) ; le premier ticket qui rouvre `github.sh` le corrige.
 
 ## Hors périmètre
 
@@ -1611,3 +2023,5 @@ Sur un clone neuf de `https://github.com/MAJ-agency/skills` à `5bf4f39` (plugin
 ## Comments
 
 - 2026-11-20 — Écrit par un agent rédacteur sur la spec (lot 4, `A-83` à `A-90` et leurs amendements, `A-141`, `A-178`) et sur `origin/main` à `4cd047f`, puis rejoué sur `5bf4f39` après l'entrée du ticket 65 (PR 145), qui avait porté les points 2 et 3 d'`A-178` : ce ticket les a retirés de son périmètre. Code, bancs et mutations joués sur un clone neuf (« Vérification »). Points remontés à l'architecte : les trois « Questions à l'architecte ».
+
+- 2026-11-20 — Relecture du ticket, tour unique : « prêt après retouches », 1 bloquant (la veille d'une heure, que l'outil Bash arrête à 30 minutes) et 19 mineurs ; ses essais X1 à X17 et ses mutations N1 à N18. Les retouches sont celles d'`A-180`, portées toutes : la veille à 25 minutes ; le couple au réemploi et dans `distribuer` (`--sommet`, `--couple`) ; les suites de chaque sortie ; `passe` à chaque réveil ; `get_session` dans les règles 4, 5 et 6, le plafond à 700 000 tokens, l'arrêt du Relecteur à 500 000 ; `TaskStop` chargé ; `modele` `opus` ou `sonnet` ; `depuis` à millisecondes ; `--sessions` vérifié ; `--remplace` ; une PR fermée refusée ; le verrou `flock` ; git sans hook ni fsmonitor ; une installation en échec écrite et pas retentée ; les causes d'illisible nommées, la forme refusée à l'auteur ; les cas du banc qui tuent N1 à N4, N7, N9, N10, N12 et N13 (et N5, N6, N8, N14, N18) ; « quatre » fichiers du socle. Tout rejoué sur un clone neuf de `5bf4f39`.
