@@ -219,7 +219,7 @@ test("le gabarit .claude/chaine.json range les gardes de la chaîne parmi les ch
     "scripts/chaine/passer.sh",
     "scripts/chaine/chemins-sensibles.mjs",
     "scripts/chaine/diff-revue.sh",
-    "scripts/github/codeowners.mjs",
+    "scripts/github/develop.sh",
     ".husky/pre-push",
     ".husky/pre-commit",
     "scripts/docs/identifiants.mjs",
@@ -832,16 +832,6 @@ test("le plafond de la garde de commandes : CONTENU.md du socle de la chaîne di
   assert.doesNotMatch(contenu, /100 000 caractères|8,2 s/, "CONTENU.md du socle de la chaîne : l'ancien plafond ou l'ancien pire cas");
 });
 
-// Le banc de CODEOWNERS, posé sans contrat ni gabarit à côté, se replie sur une liste écrite en dur : elle redit les
-// chemins sensibles du gabarit, et ne s'en écarte pas sans bruit.
-test("le dernier repli du banc de CODEOWNERS redit les cheminsSensibles du gabarit", () => {
-  const banc = readFileSync(join(RACINE, REF, "scripts/github/codeowners.test.mjs"), "utf8");
-  const liste = /^const GARDES = (\[[^\]]*\]);$/m.exec(banc)?.[1];
-  assert.ok(liste, "codeowners.test.mjs : const GARDES = [...] introuvable");
-  const gabarit = JSON.parse(readFileSync(join(RACINE, REF, "chaine.json"), "utf8"));
-  assert.deepEqual(JSON.parse(liste.replace(/'/g, '"')), gabarit.cheminsSensibles);
-});
-
 // Le skill de criticité (ticket 49) : la criticité d'une règle est fixée par un agent, dans un sous-agent en contexte
 // vierge, au moment où la règle s'écrit et avant tout code (décision du produit). Le banc tient chaque passage qui porte
 // une règle du skill (chaque section entière, et sa description), de son prompt (chaque paragraphe), des textes qui
@@ -907,6 +897,19 @@ test("le skill de criticité : sa description (au plus 1 024 caractères, sans �
   assert.deepEqual(absentes, [], `prompt.md : familles absentes : ${absentes.join(", ")}`);
 });
 
+test("recevoir develop dans un sujet est le geste du capitaine seul : le conducteur constate par un fetch à refspecs explicites et ne lance jamais rafraichir", () => {
+  const chemin = `${SKILLS_CHAINE}/chantier/SKILL.md`;
+  exiger(chemin, [
+    "le conducteur ne lance jamais `sujet.sh rafraichir`",
+    "`git fetch -q origin '+refs/heads/develop:refs/remotes/origin/develop' '+refs/heads/sujet/<nom>:refs/remotes/origin/sujet/<nom>'`",
+    "puis `git merge-base --is-ancestor origin/develop origin/sujet/<nom>`. Sortie 0, sujet à jour : il continue. Sortie 1, sujet en retard : aucune vague ne part",
+    "n'est ni « à jour » ni « en retard »",
+  ]);
+  const texte = readFileSync(join(RACINE, chemin), "utf8");
+  assert.ok(!texte.includes("sujet.sh rafraichir <"), `${chemin} : le conducteur n'est plus invité à lancer rafraichir`);
+  assert.ok(!texte.includes("git fetch -q origin develop sujet/"), `${chemin} : le constat ne se fait pas sur un fetch nu, qui laisse origin/sujet/<nom> périmée dans un clone --single-branch`);
+});
+
 test("qui rédige une règle, et quand : l'architecte, le conducteur, le skill tickets, le tracker et la fiche d'Anchorpost le disent, et l'architecte cite le gabarit et la fiche", () => {
   exiger(`${SKILLS_CHAINE}/architecte/SKILL.md`, [
     "4. **Les règles qu'elle porte** : l'architecte écrit le fichier de chaque règle nouvelle, `candidate`, à cette étape, après le grilling et avant tout code, d'après le gabarit `docs/agents/gabarits/regle.md` et la fiche d'écriture `.claude/rules/anchorpost.md` du projet (dans `skills`, `skills/chaine/tickets/references/gabarits/regle.md` et `skills/chaine/anchorpost/references/rules/anchorpost.md`). Puis il lance lui-même le skill `criticite` sur chaque règle : si l'index du projet est au pivot 3, il la classe, écrit le niveau rendu ou un plus haut, et porte la commande jouée et chaque sortie brute dans la section `## Criticité` de la PR de documentation ; sinon le skill le dit et s'arrête, et la règle reste « à classer ». Un sous-agent qui rédige une règle ne lance pas ce skill : l'architecte le lance, le fichier écrit. 5. **Validée, puis passée au conducteur.** La spec est **validée** quand le produit l'a dit : la date et la décision vont dans la carte. Ses règles écrites, et classées si l'index est au pivot 3, le chantier passe alors au conducteur (§ 4).",
@@ -959,13 +962,81 @@ test("le gabarit de règle porte `criticality`, `cases` et `notApplicableFamilie
     assert.deepEqual(lignes(entete).filter((l) => new RegExp(`^\\s*${cle}:`).test(l)), [], `${GABARIT_REGLE} : ${cle} reste en commentaire`);
   }
   exiger(GABARIT_REGLE, [
-    "# criticality: { level: low | medium | high, by: agent | <clé de roles>, reason: … } sous la forme { level, by, reason }, à partir de l'index au pivot 3 (CLI Anchorpost 2.0.0) ; la forme nue (criticality: high) est celle d'avant, qu'on n'écrit plus ; fixée par le skill `criticite` à l'écriture de la règle, avant tout code ; un agent écrit toujours by: agent, une clé de `roles` du manifeste n'est écrite que par la personne elle-même ; reason obligatoire pour low ; un agent ne la baisse jamais",
+    "# criticality: à partir de l'index au pivot 3 (CLI Anchorpost 2.0.0) ; en bloc, une clé par ligne, que nul formateur ne replie ; la forme nue (criticality: high) est celle d'avant, qu'on n'écrit plus ; fixée par le skill `criticite` à l'écriture de la règle, avant tout code ; un agent écrit toujours by: agent, une clé de `roles` du manifeste n'est écrite que par la personne elle-même ; reason obligatoire pour low ; un agent ne la baisse jamais # level: medium # low | medium | high # by: agent # agent | <clé de roles> # reason: \"…\" # entre guillemets ; sans eux, une virgule ou « : » coupe la raison",
     "# cases: à partir de l'index au pivot 3 (CLI Anchorpost 2.0.0) ; les cas attendus, rendus par le skill `criticite` # - { id: {{id-du-cas}}, title: …, kind: nominal | edge | invalid | refusal, scope: business | technical, family: … } family facultatif",
     "# notApplicableFamilies: à partir de l'index au pivot 3 (CLI Anchorpost 2.0.0) ; chaque famille sans cas, avec sa raison ; le skill `criticite` répond aux dix familles quel que soit le niveau, et une réponse par famille est obligatoire dès medium ; écrite par le skill `criticite` seul ; la réponse est un cas, un « sans objet » motivé, ou une question ouverte au registre `docs/questions-ouvertes.md` ; le gate Anchorpost signale une famille sans réponse ; en `enforce`, il la refuse, sauf quand une question ouverte bloque la règle : la règle reste alors « partielle » jusqu'à la réponse # - { family: limits | empty | invalid-input | duplicate | ordering | time | permissions | rare-state | volume | failure, reason: … }",
   ]);
   assert.ok(!lignes(entete).find((l) => /^#\s*criticality:/.test(l)).includes("Prénom Nom"), `${GABARIT_REGLE} : le by de criticality nomme une clé de roles, pas « Prénom Nom »`);
   const absentes = FAMILLES.filter((f) => !entete.includes(f));
   assert.deepEqual(absentes, [], `${GABARIT_REGLE} : familles absentes : ${absentes.join(", ")}`);
+});
+
+// Ticket 62 : les deux gardes qui lisent les textes de `skills/`. `criticality` montrée en ligne, que le mappage soit
+// sur la ligne de la clé ou replié par un formateur sur la suivante ; un nom de test anglais à la manière `should …`,
+// en tête d'un `it`/`test` (étiquettes, `.each(…)` et `.each\`…\`` compris, quelle que soit la casse) ou donné en modèle.
+const CRITICITE_EN_LIGNE = /criticality:[ \t]*(?:\r?\n[ \t]*)?\{/;
+const NOM_ANGLAIS = /\b(it|test)(\.each(\([\s\S]*?\)|`[\s\S]*?`))?\(\s*["'`](\[[^\]]*\]\s*)*(should\b|<behaviou?r>)|`should [<[]|names `should|\(`should /i;
+test("les deux gardes de textes du ticket 62 voient les formes piégées, et pas leurs voisines", () => {
+  for (const t of ["criticality: { level: high }", "criticality:\n  {\n    level: high,\n  }", "criticality:\r\n  {\r\n", "x\ncriticality: {"])
+    assert.ok(CRITICITE_EN_LIGNE.test(t), JSON.stringify(t));
+  for (const t of ["criticality:\n  level: high", "criticality: high", "# criticality: à partir de l'index", "criticality:\n\n  level: { x }"])
+    assert.ok(!CRITICITE_EN_LIGNE.test(t), JSON.stringify(t));
+  for (const t of ["it('should x')", 'it("Should x")', "test(`[RULE_ALL_A-1] SHOULD x`)", "it.each([1])('should %i')", "it.each`\n a | b\n`('should $a')", "x\r\n  it('should y')", 'test("[RULE_ALL_X-2] <behaviour>", …)', "names `should [behavior]`"])
+    assert.ok(NOM_ANGLAIS.test(t), JSON.stringify(t));
+  for (const t of ["it('refuse x quand y')", "it('shoulder')", "// on should pas", "test('[RULE_ALL_A-1] doit refuser')"])
+    assert.ok(!NOM_ANGLAIS.test(t), JSON.stringify(t));
+});
+
+// Ticket 62 : un formateur (Prettier) replie un mappage en ligne trop long, et le lecteur d'en-têtes de « double
+// relecture exigée » (A-143) refuse certaines formes repliées. Le gabarit montre `criticality` en bloc, une clé par
+// ligne : décommentée, la forme se lit comme `{ level, by, reason }` (yaml, CLI Anchorpost), et rien ne la replie.
+test("le gabarit de règle montre `criticality` en bloc, une clé par ligne ; aucun texte du plugin ne la montre en ligne", () => {
+  const entete = lignes(readFileSync(join(RACINE, GABARIT_REGLE), "utf8").match(/^---\r?\n([\s\S]*?)\r?\n---/)[1]);
+  const i = entete.findIndex((l) => /^#\s*criticality:/.test(l));
+  assert.ok(!entete[i].includes("{"), `${GABARIT_REGLE} : la ligne « # criticality: » ne porte aucun mappage en ligne`);
+  const bloc = [];
+  for (let j = i + 1; j < entete.length && /^# {3}\S/.test(entete[j]); j++) bloc.push(entete[j].slice(4));
+  assert.deepEqual(bloc.map((l) => l.split(":")[0]), ["level", "by", "reason"], `${GABARIT_REGLE} : sous « # criticality: », une clé par ligne, retrait de deux espaces`);
+  assert.match(bloc[0], /^level: medium # low \| medium \| high$/, "une seule espace avant le commentaire : la forme que Prettier rend");
+  assert.match(bloc[1], /^by: agent +# /);
+  assert.match(bloc[2], /^reason: "…" +# /, "reason entre guillemets : une raison qui porte « : » reste un texte");
+  // Ailleurs dans le plugin : la forme en ligne n'est montrée nulle part (le lecteur de la PR 134 la teste, lui).
+  const enLigne = [];
+  const parcourir = (dossier) => {
+    for (const e of readdirSync(join(RACINE, dossier), { withFileTypes: true })) {
+      const chemin = `${dossier}/${e.name}`;
+      if (e.isDirectory()) parcourir(chemin);
+      else if (!/^skills\/chaine\/fusionner\/scripts\/double-relecture/.test(chemin) && CRITICITE_EN_LIGNE.test(readFileSync(join(RACINE, chemin), "utf8")))
+        enLigne.push(chemin);
+    }
+  };
+  parcourir("skills");
+  assert.deepEqual(enLigne, [], `criticality en ligne : ${enLigne.join(", ")}`);
+});
+
+// Ticket 62 : ADR_ALL_ARC-4 (langue des identifiants) met les noms de tests dans la prose, en français. La fiche des
+// tests, ses exemples et les gabarits qui citent un nom de test l'écrivent en français, au présent, sans « should ».
+test("les noms de tests montrés par le plugin sont en français, comme le veut ADR_ALL_ARC-4", () => {
+  const FICHE_TESTS = "skills/monorepo/socle-monorepo/references/racine/.claude/rules/tests.md";
+  exiger(FICHE_TESTS, [
+    "- **Le nom dit le comportement, en français** (c'est de la prose, `ADR_ALL_ARC-4`) : `describe('<Sujet>')` puis `it('<comportement> quand <condition>')`, au présent de l'indicatif : `it('refuse une seconde licence quand la saison en a déjà une')`.",
+    "`it('[RULE_ALL_LIC-2] refuse une seconde licence quand la saison en a déjà une')`",
+  ]);
+  exiger("skills/monorepo/socle-monorepo/references/adr/ADR_ALL_ARC-4-langue-des-identifiants-de-code.md", ["noms de tests (qui citent les règles du registre, `<TRI>-<N>`)"]);
+  const fautes = [];
+  const parcourir = (dossier) => {
+    for (const e of readdirSync(join(RACINE, dossier), { withFileTypes: true })) {
+      const chemin = `${dossier}/${e.name}`;
+      if (e.isDirectory()) parcourir(chemin);
+      // Le banc des tests creux rejoue un cas réel observé (« should create »), gardé tel quel : le gate ne lit pas la langue.
+      else if (chemin !== "skills/monorepo/socle-tests/references/scripts/verify/tests-creux.test.mjs" && /\.(md|ts|tsx|mjs|js)$/.test(e.name)) {
+        const texte = readFileSync(join(RACINE, chemin), "utf8");
+        if (NOM_ANGLAIS.test(texte)) fautes.push(chemin);
+      }
+    }
+  };
+  parcourir("skills");
+  assert.deepEqual(fautes, [], `noms de tests en anglais (« should … ») : ${fautes.join(", ")}`);
 });
 
 test("chaque skill du plugin a sa ligne au README et passe le gate references-agent d'un projet qui le cite", () => {
@@ -1237,4 +1308,256 @@ test("la procédure du capitaine sans la chaîne renvoie une PR en retard, sans 
   assert.ok(!/éditeur web|garde de la mise à jour/.test(limite), "la Limite ne commente plus la garde de mise à jour");
   for (const f of ["skills/chaine/architecte/SKILL.md", "skills/chaine/architecte/references/CONTENU.md", LANCEMENT])
     assert.ok(!/signée par GitHub|noreply@github\.com/.test(readFileSync(join(RACINE, f), "utf8")), `${f} : plus de garde « signée par GitHub »`);
+});
+
+// CODEOWNERS sort du plugin (ticket 54 ; décision du produit du 2026-11-18 : pas de blocage par GitHub sur les
+// fichiers sensibles, le fichier CODEOWNERS disparaît). Plus rien ne le génère, ne le garde ni ne l'attend : il
+// n'est plus nommé que là où le plugin dit qu'il est retiré, et dans les bancs qui le prouvent. La liste est fermée :
+// trois fichiers libres (`null` : l'ADR gardée pour mémoire, la marche à suivre qui le retire d'un projet déjà posé,
+// ce banc) et cinq fichiers qui ne le nomment que par les passages donnés ici, mot pour mot, chacun une fois. Hors de
+// ces passages, une mention y est une faute, comme dans tout autre fichier.
+const SOCLE_CHAINE = `${SKILLS_CHAINE}/socle-chaine-de-production`;
+const FUSIONNER = `${SKILLS_CHAINE}/fusionner`;
+const ADR_CODEOWNERS = `${REF}/adr/ADR_ALL_ARC-N-codeowners.md`;
+const RETRAIT_CODEOWNERS = `${REF}/retrait-codeowners.md`;
+const DISENT_LE_RETRAIT = new Map([
+  [ADR_CODEOWNERS, null],
+  [RETRAIT_CODEOWNERS, null],
+  ["scripts/depot.test.mjs", null],
+  [`${SOCLE_CHAINE}/SKILL.md`, ["Un projet posé depuis le plugin 7.13.0 peut porter un `.github/CODEOWNERS` généré, que le produit a retiré : [`references/retrait-codeowners.md`](references/retrait-codeowners.md)."]],
+  [
+    `${REF}/CONTENU.md`,
+    [
+      "Un quatrième, `ADR_ALL_ARC-N-codeowners.md`, est marqué retiré (décision du produit du 2026-11-18) et ne se pose plus : il ne sert qu'à mettre à jour l'ADR d'un projet qui l'a reçue. `retrait-codeowners.md` est la marche à suivre de ce retrait, lue depuis le skill et jamais posée.",
+      "La protection des branches (dont « Block force pushes », « Restrict deletions » et aucune liste de contournement ; « Require review from Code Owners » ne se coche pas), la suppression automatique",
+    ],
+  ],
+  [`${REF}/admin.md`, ["« Require a pull request before merging », **sans** « Require review from Code Owners » (le produit l'a retirée le 2026-11-18 : aucun `.github/CODEOWNERS` n'est posé, et GitHub ne bloque aucune PR sur les chemins sensibles) et avec **« Required approvals » à 0**"]],
+  [
+    `${REF}/agent/regles.test.mjs`,
+    [
+      "// CODEOWNERS n'est plus généré ni gardé (décision du produit, 2026-11-18) : plus rien ne refuse son édition.",
+      "for (const c of ['.github/CODEOWNERS', 'CODEOWNERS', 'docs/CODEOWNERS']) assert.equal(refusEdition(c, nouvelle), null, c);",
+    ],
+  ],
+  [
+    `${FUSIONNER}/scripts/fusionner.test.mjs`,
+    [
+      '["gh: Waiting on code owner review from @exemple. (HTTP 405)", 3, DURABLE],',
+      '    "gh: Waiting on code owner review from @exemple. (HTTP 405)",\n    "gh: At least 1 approving review',
+      '  const attente = "GitHub a refusé la fusion : l\'approbation d\'un propriétaire (CODEOWNERS) manque. Le capitaine ne met plus cette PR à jour avant une nouvelle approbation.\\n\\n<!-- attente-revue-capitaine -->\\n";',
+    ],
+  ],
+]);
+const DE_CODEOWNERS = /code[ _-]?owners?|\bproprietaires\b|attend(ent)? un propriétaire|approbation d['’]un propriétaire|revue des propriétaires|propriétaires? du code|chemin possédé|tenu par GitHub|attente-revue-capitaine|attend_humain/i;
+const deCodeowners = (ligne) => DE_CODEOWNERS.test(ligne);
+// Les mentions fautives d'un fichier : ses passages admis doivent y être, une fois chacun ; eux retirés, plus aucune
+// ligne ne doit être reconnue par le lecteur.
+const mentionsFautives = (fichier, texte, passages = []) => {
+  const fautes = [];
+  for (const p of passages) {
+    const n = texte.split(p).length - 1;
+    if (n !== 1) fautes.push(`${fichier} : passage présent ${n} fois, attendu une : ${p.slice(0, 70)}…`);
+    texte = texte.split(p).join("");
+  }
+  lignes(texte).forEach((l, i) => deCodeowners(l) && fautes.push(`${fichier}:${i + 1}`));
+  return fautes;
+};
+
+test("lecteur des mentions de CODEOWNERS : entrées piégées", () => {
+  for (const l of [".github/CODEOWNERS", "pnpm codeowners", "« Require review from Code Owners »", "require_code_owner_review", "Waiting on code owner review", "`proprietaires` du contrat", "etat='attend un propriétaire'", "les PR qui attendent un propriétaire sont sautées", "la règle de develop exige la revue des propriétaires", "Inscrire chaque code-owner dans la règle", "about-code-owners", "elle attend qu'un propriétaire du code l'approuve", "elle attend l'approbation d'un propriétaire humain", "attend l’approbation d’un propriétaire", "une PR qui touche un chemin possédé", "Chemin sensible = relu par un humain, tenu par GitHub", "<!-- attente-revue-capitaine -->", "elif attend_humain \"$n\"; then", "{{ADR_CODEOWNERS}}"])
+    assert.equal(deCodeowners(l), true, l);
+  // Ce qui reste : la session auteur d'une PR (proprietaire.sh), et l'attente d'un humain au plafond des renvois.
+  for (const l of ["bash scripts/chaine/proprietaire.sh <branche>", "worktree propriétaire", "Prévenir la session propriétaire", "RENVOI 3 sur 3 : la PR attend un humain", "etat='humain'", "le rôle propriétaire ne sert qu'aux migrations", "Prévenir les sessions propriétaires", "Un nom de dépôt ou de propriétaire", "une ressource possédée par un autre compte", "l'accord du produit, donné avant", "un manifeste validé par un humain"])
+    assert.equal(deCodeowners(l), false, l);
+  // Un fichier de la liste fermée : son passage admis passe, une fois ; hors de lui, ou répété, la mention est une faute.
+  const admis = "**sans** « Require review from Code Owners »";
+  assert.deepEqual(mentionsFautives("f", `a\n- ${admis} ; b\n`, [admis]), []);
+  assert.deepEqual(mentionsFautives("f", `a\n- ${admis} ; puis cocher « Require review from Code Owners »\n`, [admis]), ["f:2"]);
+  assert.deepEqual(mentionsFautives("f", `a\n- ${admis}\npnpm codeowners\n`, [admis]), ["f:3"]);
+  assert.equal(mentionsFautives("f", `- ${admis}\n- ${admis}\n`, [admis]).length, 1, "passage répété");
+  assert.equal(mentionsFautives("f", "a\n- avec « Require review from Code Owners »\n", [admis]).length, 2, "passage absent, mention hors de lui");
+  assert.deepEqual(mentionsFautives("f", "a\n.github/CODEOWNERS\n"), ["f:2"]);
+});
+
+test("CODEOWNERS n'est plus nommé que là où le plugin dit qu'il est retiré", () => {
+  const fichiers = execFileSync("git", ["ls-files", "--", "README.md", ".claude-plugin", "scripts", "skills"], { cwd: RACINE, encoding: "utf8" })
+    .split("\n")
+    .filter(Boolean);
+  const fautes = fichiers.filter((f) => DISENT_LE_RETRAIT.get(f) !== null).flatMap((f) => mentionsFautives(f, readFileSync(join(RACINE, f), "utf8"), DISENT_LE_RETRAIT.get(f)));
+  assert.deepEqual(fautes, [], `CODEOWNERS est retiré du plugin (décision du produit, 2026-11-18) : ${fautes.join(" ; ")}`);
+  assert.ok(fichiers.length > 300 && [...DISENT_LE_RETRAIT.keys()].every((f) => fichiers.includes(f)), "le parcours lit le dépôt, et chaque fichier de la liste existe");
+  for (const f of ["scripts/github/codeowners.mjs", "scripts/github/codeowners.test.mjs"]) assert.ok(!existsSync(join(RACINE, REF, f)), `${REF}/${f} : retiré`);
+  const gabarit = JSON.parse(readFileSync(join(RACINE, REF, "chaine.json"), "utf8"));
+  assert.equal("proprietaires" in gabarit, false, "le gabarit du contrat ne porte plus la clé `proprietaires`");
+  assert.deepEqual(gabarit.gatesRapides.filter((g) => /github/.test(g)), [], "aucun gate rapide sous scripts/github/");
+  assert.ok(gabarit.cheminsSensibles.includes("scripts/github/**"), "scripts/github/** reste un chemin sensible (develop.sh, labels.sh, le check PR titre)");
+  // Le compte des clés que dit le CONTENU.md du socle est celui du gabarit (hors `$comment`), la facultative en plus.
+  const NOMBRES = ["Une", "Deux", "Trois", "Quatre", "Cinq", "Six", "Sept", "Huit", "Neuf", "Dix", "Onze", "Douze"];
+  const ORDINAUX = ["première", "deuxième", "troisième", "quatrième", "cinquième", "sixième", "septième", "huitième", "neuvième", "dixième", "onzième", "douzième", "treizième"];
+  const cles = Object.keys(gabarit).filter((c) => c !== "$comment").length;
+  exiger(`${REF}/CONTENU.md`, [`${NOMBRES[cles - 1]} clés, et rien d'autre,`, `Une ${ORDINAUX[cles]}, facultative et absente du gabarit : \`preparerCapitaine\``]);
+  // Le compte des ADR que le socle pose est celui des gabarits suivis par git sous references/adr/ (pas celui du
+  // disque : un fichier non suivi n'y compte pas), moins celui de CODEOWNERS, gardé pour mémoire : le skill, son
+  // CONTENU.md et le README disent ce nombre, et le skill nomme chaque gabarit posé.
+  const poses = fichiers.filter((f) => f.startsWith(`${REF}/adr/`) && f !== ADR_CODEOWNERS).map((f) => f.slice(`${REF}/adr/`.length));
+  const combien = NOMBRES[poses.length - 1];
+  exiger(`${SOCLE_CHAINE}/SKILL.md`, [`la méthode docs/agents/chaine-de-production.md et ${combien.toLowerCase()} ADR`, `\`node scripts/docs/next-id.mjs ADR ALL ARC\` ${combien.toLowerCase()} fois, de suite`, ...poses.map((f) => `${f}\``)]);
+  exiger(`${REF}/CONTENU.md`, [`${combien} gabarits, numérotés à l'installation`]);
+  exiger("README.md", [`une CI minimale, la méthode et ${combien.toLowerCase()} ADR |`, `labels, CI, méthode, ${combien.toLowerCase()} ADR, fragments, liste admin`]);
+});
+
+test("le socle retire CODEOWNERS d'un projet déjà posé : le fichier seulement s'il porte l'en-tête du générateur, l'ADR marquée retirée, la règle de GitHub jamais cochée", () => {
+  exiger(RETRAIT_CODEOWNERS, [
+    "Le produit les a retirés le 2026-11-18 : GitHub ne bloque aucune PR sur les chemins sensibles, et « Require review from Code Owners » ne se coche sur aucun dépôt.",
+    "Aucun `poser` ne fait ce retrait : reposer un skill copie ses fichiers, sans retirer ceux qu'une version antérieure a posés.",
+    "1. **Le fichier.** `head -n 1 .github/CODEOWNERS` rend `# Généré depuis .claude/chaine.json (cheminsSensibles, proprietaires) : ne pas éditer.` : c'est la copie du générateur, `git rm .github/CODEOWNERS`. Toute autre première ligne : le fichier est celui du projet, le laisser et le dire à qui a lancé la session. Un `CODEOWNERS` à la racine ou sous `docs/` n'a jamais été généré : ne pas y toucher.",
+    "2. **Le générateur et son gate.** `git rm scripts/github/codeowners.mjs scripts/github/codeowners.test.mjs` ; retirer de `package.json` les scripts `codeowners` et `check:codeowners`, de `scripts/check.mjs` l'étape `check:codeowners`,",
+    "3. **Le contrat.** Dans `.claude/chaine.json` : retirer la clé `proprietaires` et l'entrée `scripts/github/codeowners.mjs` de `gatesRapides`, reprendre le `$comment` de `references/chaine.json`. `cheminsSensibles` ne change pas.",
+    "La boucle en marche prend ces scripts de `develop` au tour qui suit l'entrée de cette PR, sans relance ; relancer ensuite la veille de chaque capitaine, qui garde sa copie de `file.sh` jusque-là.",
+    "6. **L'ADR.** L'ADR « CODEOWNERS » du projet garde son numéro et son texte : sa ligne `Statut` devient celle de `references/adr/ADR_ALL_ARC-N-codeowners.md`, et la section « Retrait » de ce gabarit s'y ajoute, placeholders substitués. Ce gabarit ne se pose plus dans un projet neuf.",
+    "7. **À l'admin, avant que cette PR entre dans `develop`.** Décocher « Require review from Code Owners » sur `develop` et `main` si elle l'était, et tenir « Required approvals » à 0 : une session ne le peut pas.",
+  ]);
+  const adr = readFileSync(join(RACINE, ADR_CODEOWNERS), "utf8");
+  assert.ok(lignes(adr).includes("- Statut : **retirée** par la décision du produit du 2026-11-18 (`P-49` de la carte « gouverner nos boucles » du plugin `maj-skills`) ; gardée pour mémoire"), `${ADR_CODEOWNERS} : la ligne Statut dit le retrait`);
+  assert.ok(titres(adr).indexOf("## Retrait") === 0, `${ADR_CODEOWNERS} : la section « Retrait » vient en premier`);
+  assert.equal(titres(adr).filter((t) => t === "## Retrait").length, 1, `${ADR_CODEOWNERS} : une seule section « Retrait »`);
+  // Le texte de cette section, que la marche à suivre fait recopier dans l'ADR de chaque projet (point 6) : la ligne
+  // entière, sous son titre, ni tronquée ni mise en commentaire.
+  const retrait = lignes(adr).indexOf("## Retrait");
+  assert.deepEqual(lignes(adr).slice(retrait + 1, retrait + 4), [
+    "",
+    "Le produit a retiré cette décision le 2026-11-18 : pas de blocage par GitHub sur les fichiers sensibles, et le fichier CODEOWNERS disparaît. Toutes les sessions publient sous le compte du produit, et GitHub refuse qu'un auteur approuve sa propre PR : chaque PR sensible dépendait d'une seconde personne. Sortent du projet `.github/CODEOWNERS`, `scripts/github/codeowners.mjs` et son gate, la clé `proprietaires` de `.claude/chaine.json`, le refus d'éditer CODEOWNERS, et l'attente d'un propriétaire par le capitaine ; « Require review from Code Owners » ne se coche sur aucun dépôt. Restent `cheminsSensibles`, la contre-revue et `/security-review` sur ces chemins ({{ADR_CHAINE}}), et la protection des branches (`docs/agents/chaine-admin.md`). La suite de ce document est la décision retirée, telle qu'elle était.",
+    "",
+  ], `${ADR_CODEOWNERS} : le texte de la section « Retrait »`);
+  exiger(`${REF}/admin.md`, [
+    "« Require a pull request before merging », **sans** « Require review from Code Owners » (le produit l'a retirée le 2026-11-18 : aucun `.github/CODEOWNERS` n'est posé, et GitHub ne bloque aucune PR sur les chemins sensibles)",
+    "et avec **« Required approvals » à 0** (toutes les sessions publient sous un même compte, et GitHub ne laisse pas un auteur approuver sa propre PR : avec une approbation exigée, GitHub refuse la fusion de toute PR que personne d'autre n'a approuvée, et le capitaine s'arrête sur ce refus, `passer.sh` sortie 3)",
+    "**« Restrict deletions »** ; « Do not allow bypassing the above settings », et **aucune liste de contournement** (« Bypass list » vide) : un administrateur qui contourne la règle la retire pour tous.",
+    "Pas de règle de PR sur `sujet/*` ni sur les branches de travail, où le capitaine et les sessions poussent sans PR : elle bloquerait la chaîne.",
+    "- [ ] **« Block force pushes »** sur toutes les branches (Rulesets, cible `~ALL`), sans liste de contournement.",
+  ]);
+});
+
+test("sans CODEOWNERS : une fusion refusée faute de revue arrête la boucle et le capitaine le dit sans toucher à la PR ; aucune règle de GitHub n'est plus donnée pour frontière contre une PR hostile", () => {
+  // Ce que devient un refus de fusion faute de revue (décision 6 du ticket 54) : un refus durable, et ce que le
+  // capitaine en fait, là où il le lit.
+  exiger(`${FUSIONNER}/SKILL.md`, [
+    "une fusion refusée durablement par GitHub (droit, règle du dépôt, revue exigée, méthode interdite) sort en 3 et l'arrête",
+    "**Devant un refus durable de fusion** (`ARRÊT`, `passer.sh` sortie 3, « fusion refusée par GitHub pour une autre raison qu'une branche qui a bougé » : droit du compte, règle du dépôt, revue exigée, méthode de fusion interdite), le capitaine n'y peut rien.",
+    "La PR garde `à-fusionner` et sa place dans la file : tant que la cause demeure, chaque lancement de la boucle s'arrête de nouveau sur elle, et aucune PR vers develop placée après elle ne passe.",
+    "Il ne retire pas ce label, n'écrit rien sur la PR hors le commentaire de passage que `passer.sh` pose et termine, et ne la renvoie pas (son auteur n'y peut rien) ; il le dit à son lanceur (au produit hors programme), avec le message exact de GitHub. Un humain lève la règle du dépôt (ou rend son droit au compte), puis le capitaine relance sa veille.",
+  ]);
+  exiger(`${FUSIONNER}/references/CONTENU.md`, ["tout autre refus (droit du compte, règle du dépôt, revue exigée, méthode de fusion interdite) est durable et sort en 3", "une fusion refusée durablement par GitHub en 3, faute de revue approuvée comprise (la boucle s'arrête),"]);
+  exiger(RETRAIT_CODEOWNERS, [
+    "il met à jour avec `develop` (une CI) la première PR de la file dont GitHub refuse la fusion, puis s'arrête sur ce refus (`passer.sh`, sortie 3, `ARRÊT`), et le dit.",
+    "Règle cochée, c'est la première PR qui touche un chemin possédé sans qu'un propriétaire l'ait approuvée (une PR déjà approuvée passe) ; « Required approvals » à 1 ou plus, toute PR que personne d'autre que son auteur n'a approuvée, qu'elle touche ou non un chemin possédé.",
+    "Avant que cette PR entre, relever avec l'ancien `file.sh` (le nouveau les montre `prête`) les PR « attend un propriétaire » ou « attend un humain » : la règle décochée, le capitaine reposé les fusionne sans la relecture qu'elles attendaient ; les faire relire, ou leur retirer `à-fusionner`.",
+    "La PR refusée garde `à-fusionner` et sa place dans la file : tant que la cause demeure, chaque lancement de la boucle s'arrête de nouveau sur elle, et aucune PR vers `develop` placée après elle ne passe.",
+    "Le capitaine ne retire pas ce label et n'écrit rien sur la PR, hors le commentaire de passage que `passer.sh` pose et termine ; il le dit à son lanceur (au produit hors programme), avec le message exact de GitHub, et un humain lève la règle du dépôt.",
+  ]);
+  // Une PR hostile : la protection des branches n'est plus donnée pour frontière, nulle part. Trois textes le disent.
+  exiger(`${REF}/admin.md`, ["Ce que ces règles ne tiennent pas : toutes les sessions écrivent sous le même compte, la revue exigée par le capitaine est écrite par la session, et le capitaine exécute ce qui entre (hooks git, `pnpm install`, `pnpm check`). Aucune n'arrête une PR hostile."]);
+  exiger(LANCEMENT, [
+    "Ni le commentaire ni le label ne tiennent contre une PR hostile venue d'un de ces comptes, et la protection des branches de GitHub non plus : les règles de `socle-chaine-de-production/references/admin.md` tiennent l'entrée par une PR, les checks exigés sur une branche à jour, le refus des pushs forcés et des suppressions de branche, et aucune n'arrête ce qu'un compte de confiance fait entrer (« Ce que ces règles ne tiennent pas »).",
+  ]);
+  exiger(`${FUSIONNER}/references/CONTENU.md`, [
+    "Contre une PR hostile venue d'un compte de confiance, aucune garde ne l'arrête, ni dans la chaîne ni chez GitHub : la protection des branches (`admin.md` du socle) tient l'entrée par une PR, les checks exigés sur une branche à jour, le refus des pushs forcés et des suppressions de branche, pas ce qui entre (« Ce que ces règles ne tiennent pas »). Reste, pour borner ce qu'elle atteint, un capitaine sur un poste jetable, sans autre secret que son jeton GitHub.",
+  ]);
+  for (const f of [LANCEMENT, `${FUSIONNER}/references/CONTENU.md`])
+    for (const l of lignes(readFileSync(join(RACINE, f), "utf8")).filter((x) => /PR hostile/.test(x))) assert.doesNotMatch(l, /frontière/i, `${f} : plus de « frontière » contre une PR hostile chez GitHub`);
+});
+
+// Ticket 21 : le verdict d'une contre-relecture s'écrit sur la PR, et aucun ordre ne passe un verdict non conforme.
+// Les deux lignes de verdict sont lues dans lancement.md ; la décision du capitaine est jouée sur des fils d'exemple.
+const VERDICT_NON = "contre-relecture non conforme au sommet <sha40>";
+const VERDICT_OUI = "contre-relecture conforme au sommet <sha40>";
+const RENVOI_VERDICT =
+  "à-fusionner retiré par le capitaine : contre-relecture non conforme ou absente au sommet ordonné : contre-relire ce sommet, écrire le verdict sur la PR, puis reposer le label et le commentaire";
+const lireVerdicts = (formes, fil) => {
+  const motif = /^contre-relecture (non conforme|conforme) au sommet ([0-9a-f]{40})$/;
+  const verdicts = [];
+  let edite = false;
+  let malforme = false;
+  for (const c of fil) {
+    if (!formes.associations.includes(c.author_association)) continue;
+    const premiere = c.body.trimStart().split("\n")[0].replace(/\r$/, "");
+    const m = premiere.match(motif);
+    if (!m) {
+      if (premiere.startsWith("contre-relecture non conforme")) malforme = true;
+      continue;
+    }
+    if (c.updated_at !== c.created_at) edite = true;
+    else verdicts.push({ conforme: m[1] === "conforme", sha: m[2] });
+  }
+  return { verdicts, edite, malforme };
+};
+// Le capitaine, une fois l'ordre lu : P est le sommet ordonné.
+const decider21 = (formes, fil, tete) => {
+  const base = decider(formes, fil, tete);
+  if (base !== "fusion") return base === "sommet-bouge" ? "renvoyée" : base;
+  const { verdicts, edite, malforme } = lireVerdicts(formes, fil);
+  if (edite) return "verdict-edite";
+  if (malforme) return "verdict-malforme";
+  if (verdicts.some((v) => !v.conforme && v.sha === tete)) return "renvoyée";
+  if (verdicts.length > 0 && !verdicts.some((v) => v.conforme && v.sha === tete)) return "renvoyée";
+  return "fusionnable";
+};
+test("verdict de contre-relecture : les deux lignes, le renvoi du capitaine, le cas de l'incident", () => {
+  const lancement = readFileSync(join(RACINE, LANCEMENT), "utf8");
+  for (const v of [VERDICT_NON, VERDICT_OUI]) assert.ok(lancement.includes(`\`${v}\``), `lancement.md : la ligne de verdict « ${v} » manque`);
+  const procedure = PROCEDURE_SANS_CHAINE();
+  assert.ok(procedure.includes(`\`${RENVOI_VERDICT}\``), "lancement.md : le bloc « Procédure : » n'a pas le renvoi sur un verdict non conforme ou absent");
+  const ancre = procedure.indexOf("Si P n'est pas le `head.sha`");
+  assert.ok(ancre >= 0 && procedure.indexOf(RENVOI_VERDICT) > ancre, "le renvoi sur verdict vient après la vérification du sommet");
+  assert.ok(procedure.slice(procedure.indexOf(RENVOI_VERDICT)).startsWith(`${RENVOI_VERDICT}\`, label retiré dans le même geste ; ce renvoi compte dans le plafond de trois`), "le renvoi sur verdict compte dans le plafond");
+  assert.match(procedure, /Un verdict édité[^.]*tu ne fusionnes pas la PR et tu le dis au produit/, "un verdict édité arrête la PR");
+  for (const phrase of [
+    "Si un verdict `non conforme` porte sur P, ou si la PR porte au moins un verdict et qu'aucun verdict `conforme` ne porte sur P, tu renvoies",
+    "dont `author_association` est `OWNER`, `MEMBER` ou `COLLABORATOR` et dont `updated_at` est égal à `created_at`",
+    "commence par `contre-relecture non conforme` sans avoir la forme exacte d'un verdict",
+    "Une PR sans aucun verdict suit la suite de la procédure.",
+  ])
+    assert.ok(procedure.includes(phrase), `lancement.md : la procédure ne dit pas « ${phrase} »`);
+  const formes = formesLues();
+  const ordre = (sha) => dit(`à-fusionner au sommet ${sha}`);
+  const non = (sha, options) => dit(`contre-relecture non conforme au sommet ${sha}\n- constat`, options);
+  const oui = (sha, options) => dit(`contre-relecture conforme au sommet ${sha}`, options);
+  // l'incident : un non conforme sur un sommet antérieur, puis un ordre sur un sommet plus récent sans verdict conforme
+  assert.equal(decider21(formes, [non(A), ordre(B)], B), "renvoyée", "l'incident");
+  assert.equal(decider21(formes, [non(B), ordre(B)], B), "renvoyée", "non conforme sur ce sommet");
+  assert.equal(decider21(formes, [non(A), oui(B), ordre(B)], B), "fusionnable", "contre-relu conforme depuis");
+  assert.equal(decider21(formes, [oui(A), ordre(B)], B), "renvoyée", "un verdict, aucun conforme sur ce sommet");
+  assert.equal(decider21(formes, [ordre(B)], B), "fusionnable", "aucun verdict : comme avant");
+  assert.equal(decider21(formes, [dit("relu, rien à dire"), ordre(B)], B), "fusionnable", "un commentaire ordinaire n'est pas un verdict");
+  assert.equal(decider21(formes, [non(A, { association: "NONE" }), ordre(B)], B), "fusionnable", "un verdict d'un compte étranger ne compte pas");
+  assert.equal(decider21(formes, [non(A, { edite: true }), ordre(B)], B), "verdict-edite", "un verdict édité arrête la PR");
+  assert.equal(decider21(formes, [dit(`contre-relecture conforme au sommet ${A.toUpperCase()}`), ordre(B)], B), "fusionnable", "une forme voisine de `conforme` n'est pas un verdict");
+  assert.equal(decider21(formes, [dit(`contre-relecture non conforme au sommet ${A.toUpperCase()}`), ordre(B)], B), "verdict-malforme", "sha en majuscules : la fusion s'arrête");
+  assert.equal(decider21(formes, [dit(`contre-relecture non conforme au sommet ${A}.`), ordre(B)], B), "verdict-malforme", "ponctuation finale : la fusion s'arrête");
+  assert.equal(decider21(formes, [dit(`contre-relecture non conforme au sommet ${A.slice(0, 7)}`), ordre(B)], B), "verdict-malforme", "sha abrégé : la fusion s'arrête");
+  assert.equal(decider21(formes, [dit(`  contre-relecture non conforme au sommet ${A}`), ordre(B)], B), "renvoyée", "blancs de tête retirés");
+});
+test("verdict de contre-relecture : la règle est dite dans le prompt de la session d'un ticket, la ligne « contre-relit lui-même » et architecte/SKILL.md § 5 et § 7", () => {
+  const lancement = readFileSync(join(RACINE, LANCEMENT), "utf8");
+  const ticket = lancement.split("## La session d'un ticket hors chantier")[1] ?? "";
+  const prompt = ticket.match(/```text\n([\s\S]*?)```/)?.[1] ?? "";
+  assert.ok(prompt.includes("un verdict `non conforme`") && prompt.includes("les vérifie"), "le prompt de la session d'un ticket ne porte pas la règle");
+  for (const phrase of [
+    "ni si la PR porte un verdict et qu'aucun verdict `conforme` ne porte sur ton sommet",
+    "un compte `OWNER`, `MEMBER` ou `COLLABORATOR`, non édité",
+    "tu ne poses rien et tu le dis à l'architecte",
+    "de même pour une première ligne qui commence par `contre-relecture non conforme` sans la forme exacte",
+  ])
+    assert.ok(prompt.includes(phrase), `le prompt de la session d'un ticket ne dit pas « ${phrase} »`);
+  const ligne = ticket.split("\n").find((l) => l.includes("contre-relit lui-même")) ?? "";
+  assert.ok(ligne.includes("un verdict `non conforme`") && ligne.includes("écrit son verdict sur la PR") && ligne.includes("les vérifie"), "la ligne « contre-relit lui-même » ne porte pas la règle");
+  const skill = readFileSync(join(RACINE, `${SKILLS_CHAINE}/architecte/SKILL.md`), "utf8");
+  const s5 = skill.split(/^## 5\./m)[1]?.split(/^## 6\./m)[0] ?? "";
+  const s7 = skill.split(/^## 7\./m)[1]?.split(/^## Ne jamais/m)[0] ?? "";
+  const second = "ni si la PR porte un verdict et qu'aucun verdict `conforme` ne porte sur ce sommet";
+  assert.ok(s5.includes("un verdict `non conforme`") && s5.includes(second), "SKILL.md § 5 ne porte pas les deux cas d'arrêt");
+  assert.ok(s7.includes("un verdict `non conforme`") && s7.includes(second), "SKILL.md § 7 ne porte pas les deux cas d'arrêt");
+  assert.ok(ligne.includes(second), "la ligne « contre-relit lui-même » ne porte pas le second cas d'arrêt");
+  assert.ok(ligne.includes("Il écrit son verdict avant l'ordre, jamais après"), "la ligne « contre-relit lui-même » ne dit pas que le verdict précède l'ordre");
 });

@@ -52,6 +52,23 @@ test("un cas dont la seule assertion est toBeDefined est refusé, avec son fichi
   assert.match(r.stdout, /apps\/api\/src\/a\.spec\.ts:2 : 'should create' — seule\(s\) assertion\(s\) : toBeDefined/);
 });
 
+// Les noms de tests sont en français (ADR_ALL_ARC-4) : le gate ne lit pas la langue du nom, il le recopie.
+test("un cas creux nommé en français, étiqueté par une règle, est refusé de même", () => {
+  const r = lancer(
+    depot({
+      "apps/api/src/a.spec.ts": `describe('LicenceService', () => {
+  it("[RULE_ALL_LIC-2] crée le service quand l'équipe l'appelle", async () => {
+    const r = await make();
+    expect(r).toBeDefined();
+  });
+});
+`,
+    }),
+  );
+  assert.equal(r.status, 1);
+  assert.match(r.stdout, /apps\/api\/src\/a\.spec\.ts:2 : "\[RULE_ALL_LIC-2\] crée le service quand l'équipe l'appelle" — seule\(s\) assertion\(s\) : toBeDefined/);
+});
+
 test("un cas contraint (toEqual, .not.toBeDefined mêlé à toBe, .resolves.toHaveLength) passe", () => {
   const r = lancer(
     depot({

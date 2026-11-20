@@ -561,95 +561,29 @@ signaler_arbre_different() { # <pr> <sommet testé> <squash> (squash vide : intr
   echo "ARBRE DIFFÉRENT : #$n, squash $squash (arbre $a_squash) ≠ sommet testé $teste (arbre $a_teste) : arbre du squash ≠ arbre testé, la boucle s'arrête, un humain examine"
 }
 
-# Revue des propriétaires exigée sur `<base>` (« Require review from Code Owners », ADR « CODEOWNERS » du projet) :
-# d'abord les rulesets (`rules/branches/<base>`, règle `pull_request` avec `require_code_owner_review`), sinon
-# l'ancienne protection de branche. Illisible ou absente : non (sortie 1) — la fusion refusée par GitHub le
-# rattrape (passer.sh, étape 6).
-revue_proprietaires_exigee() {
-  local b
-  b=$(uri "$1")
-  [ "$(gh api "$DEPOT/rules/branches/$b" --jq \
-    'any(.[]; .type == "pull_request" and .parameters.require_code_owner_review == true)' 2>/dev/null)" = true ] && return 0
-  [ "$(gh api "$DEPOT/branches/$b/protection/required_pull_request_reviews" --jq '.require_code_owner_reviews == true' 2>/dev/null)" = true ]
-}
-# Propriétaires du CODEOWNERS de `<base>`, lu sur `origin/<base>` dans l'ordre de GitHub (`.github/CODEOWNERS`, puis
-# `CODEOWNERS`, puis `docs/CODEOWNERS`) : un par ligne, en minuscules, `u:<login>` pour `@login`, `t:<slug>` pour
-# `@org/slug`. Commentaires et motifs ignorés. Fichier illisible : aucun propriétaire connu (rien ne fait attendre ;
-# le refus de fusion de GitHub le rattrape, passer.sh, étape 6).
-proprietaires_de() {
-  local f
-  for f in .github/CODEOWNERS CODEOWNERS docs/CODEOWNERS; do
-    git cat-file -e "origin/$1:$f" 2>/dev/null || continue
-    git show "origin/$1:$f" | sed 's/#.*//' | awk '{ for (i = 2; i <= NF; i++) print $i }' | tr 'A-Z' 'a-z' |
-      sed -n 's#^@[^/]*/\(..*\)$#t:\1#p; s#^@\([^/][^/]*\)$#u:\1#p'
-    return 0
-  done
-}
-# Relecteurs demandés d'une PR (son JSON REST, d'un `pulls/<n>` ou d'une ligne de la liste `pulls`), sous la forme
-# de `proprietaires_de`, séparés par des virgules (`-` sans aucun) : GitHub y met d'office les propriétaires
-# CODEOWNERS des fichiers touchés, et les retire quand ils approuvent.
-demandes_jq='([.requested_reviewers[]?.login | "u:" + ascii_downcase] + [.requested_teams[]?.slug | "t:" + ascii_downcase]
-  | if length == 0 then "-" else join(",") end)'
-# Un des relecteurs demandés (`<demandes>`, forme de `demandes_jq`) est un propriétaire (`<propriétaires>`, une ligne
-# chacun) : seuls comptent les propriétaires du CODEOWNERS ; un relecteur demandé à la main n'en est pas un.
-proprietaire_demande() {
-  [ "$1" != - ] && [ -n "$2" ] && grep -qxFf <(printf '%s\n' "$2") <(tr ',' '\n' <<<"$1")
-}
-# Une PR attend l'approbation d'un propriétaire : sa base exige la revue des propriétaires et un propriétaire du
-# CODEOWNERS de la base reste demandé. Ni rouge ni bloquée : le capitaine la saute sans la renvoyer et la reprend
-# au tour suivant. Il ne demande ni ne donne l'approbation, et ne contourne jamais la règle.
-attend_proprietaire() { # <json de la PR>
-  local base demandes
-  base=$(jq -r .base.ref <<<"$1")
-  demandes=$(jq -r "$demandes_jq" <<<"$1")
-  [ "$demandes" != - ] || return 1
-  proprietaire_demande "$demandes" "$(proprietaires_de "$base")" && revue_proprietaires_exigee "$base"
-}
-# Message d'un refus de fusion de GitHub qui tient à la revue (approbation d'un propriétaire, revue exigée).
-refus_pour_revue() { grep -qiE 'code owner|approving review|review is required|reviews? required' <<<"$1"; }
-# Attente d'un humain (plafond des mises à jour sans approbation) : après un refus de fusion faute de revue, le
-# capitaine commente la PR avec cette marque, invisible, et ne la met plus à jour tant qu'aucune revue `APPROVED`
-# n'est plus récente que le dernier commentaire marqué : au plus une CI par nouvelle approbation. Seuls comptent les
-# commentaires du compte du capitaine (comme MARQUE_RENVOI). Le compte des renvois n'est pas touché.
-MARQUE_ATTENTE='<!-- attente-revue-capitaine -->'
-TEXTE_ATTENTE="GitHub a refusé la fusion : l'approbation d'un propriétaire (CODEOWNERS) manque. Le capitaine ne met plus cette PR à jour avant une nouvelle approbation."
-# Sortie 0 : la PR attend un humain. Compte du capitaine illisible : 0 aussi (fermé, comme `renvois_de`), dit sur la
-# sortie d'erreur sauf si file.sh l'a déjà dit (`LOGIN_CAPITAINE=?`). Commentaires illisibles : 1 (comme les renvois,
-# compte 0), dit sur la sortie d'erreur. Revues lues seulement si la marque existe ; illisibles : 0 (fermé).
-attend_humain() {
-  local login=${LOGIN_CAPITAINE:-} dernier
-  [ -n "$login" ] || login=$(gh api user --jq .login 2>/dev/null) || login=''
-  if ! login_valide "$login"; then
-    [ -n "${LOGIN_CAPITAINE:-}" ] ||
-      echo "attente de #$1 : compte du capitaine illisible (gh api user) : la PR attend un humain" >&2
-    return 0
-  fi
-  if ! dernier=$(gh api --paginate "$DEPOT/issues/$1/comments?per_page=100" --jq ".[] | select(.user.login == \"$login\" and (.body | contains(\"$MARQUE_ATTENTE\"))) | .created_at" 2>/dev/null); then
-    echo "attente de #$1 : commentaires illisibles, lue sans attente" >&2
-    return 1
-  fi
-  dernier=$(printf '%s\n' "$dernier" | grep . | sort | tail -n 1)
-  [ -n "$dernier" ] || return 1
-  local approuvee
-  approuvee=$(gh api --paginate "$DEPOT/pulls/$1/reviews?per_page=100" --jq ".[] | select(.state == \"APPROVED\" and (.submitted_at // \"\") > \"$dernier\") | 1" 2>/dev/null) || return 0
-  [ -z "$approuvee" ]
-}
-MOTIF_PROPRIETAIRE="attend l'approbation d'un propriétaire (CODEOWNERS) : sautée sans renvoi, reprise au tour suivant"
-
 # Verrou du passage (plusieurs capitaines sur la même file, décision P-2 du produit). Au début de chaque passage
 # (passer.sh, `sujet.sh fusionner`, `sujet.sh relancer`), le capitaine pose sur la PR un commentaire visible, « Passage
-# du capitaine `<id>` depuis <hh:mm> UTC », qui porte la marque invisible `<!-- capitaine:passage <id> -->`, puis relit
-# les commentaires. Un autre capitaine qui a posé AVANT lui (id plus petit : l'ordre de GitHub départage deux capitaines
-# arrivés à la même seconde) une marque sans `<!-- capitaine:fin -->`, mise à jour (`updated_at`) à moins de 90 minutes
-# du `created_at` du sien (deux dates de GitHub, aucune horloge locale), tient la PR : le capitaine retire son
-# commentaire et la saute, sans renvoi. Ne comptent que les commentaires d'un compte de l'organisation
+# du capitaine `<id>` depuis <hh:mm> UTC », qui porte la marque invisible `<!-- capitaine:passage <id> <epoch> -->`
+# (l'heure de la pose ou du dernier rafraîchissement, en secondes depuis l'époque Unix, réécrite à chaque tour), puis
+# relit les commentaires. Un autre capitaine qui a posé AVANT lui (id plus petit : l'ordre de GitHub départage deux
+# capitaines arrivés à la même seconde) une marque sans `<!-- capitaine:fin -->`, datée à moins de 90 minutes du
+# `created_at` du sien, tient la PR : le capitaine retire son commentaire et la saute, sans renvoi. La date d'une marque
+# est le plus tard de son epoch et de son `created_at` (un epoch en retard ne la rajeunit jamais : un verrou vit au moins
+# 90 minutes depuis sa pose), son seul `created_at` si l'epoch est illisible ou plus de 5 minutes en avance sur le
+# `created_at` du lecteur (règle de `FILTRE_PASSAGE`, ci-dessous : un verrou sans nouvelles meurt 90 minutes après la
+# plus tardive de sa création et de son epoch compté, jamais de gel) ; jamais
+# `updated_at` (la documentation de GitHub ne dit pas noir sur blanc qu'une édition l'avance : décision de
+# l'architecte). Ne comptent que les commentaires d'un compte de l'organisation
 # (`author_association` OWNER, MEMBER ou COLLABORATOR) : deux capitaines de deux personnes publient sous deux comptes,
 # donc le compte du capitaine (`gh api user`, filtre des renvois) ne départage rien ici, et les sessions d'une même
 # personne publient sous un même compte, d'où l'id de session. Un commentaire, pas un label : un label de plus
 # changerait les sept labels du socle, et il ne dirait ni qui ni depuis quand. La sûreté vient de la règle
 # d'ascendance (deux capitaines ne font jamais entrer une PR non testée) : le verrou n'évite que le travail en double.
-# À toute sortie, la trappe de l'appelant joue `finir_passage` (« terminé », la marque de fin) ; pendant l'attente de
-# la CI, `rafraichir_passage` à chaque tour. Un passage tué par KILL laisse un verrou qui expire en 90 minutes.
+# À toute sortie, la trappe de l'appelant joue `finir_passage` (« terminé », la marque de fin), posée avant
+# `prendre_passage` : un TERM ou un INT pendant la pose ou la relecture termine le commentaire (pose lancée sans id
+# connu : `finir_passage` relit les commentaires et termine ses marques vivantes) ; pendant l'attente de la CI,
+# `rafraichir_passage` à chaque tour. Un passage tué par KILL laisse un verrou qui expire 90 minutes après sa dernière
+# date comptée (sa création, ou son dernier epoch, s'il n'est pas en avance sur le lecteur : `FILTRE_PASSAGE`).
 # `CAPITAINE_ID` : l'id de la session du capitaine, sans valeur par défaut ; il entre dans un commentaire HTML, d'où
 # sa forme fermée.
 capitaine_id_valide() { [[ "${1-}" =~ ^[A-Za-z0-9_-]{1,100}$ ]]; }
@@ -658,9 +592,29 @@ PASSAGE_COMMENTAIRE=''
 PASSAGE_ANCIENS=''
 PASSAGE_TOUR=0
 PASSAGE_MOTIF=''
+PASSAGE_POSE_LANCEE='' # 1 : POST du commentaire lancé, son id pas encore lu (finir_passage relit alors)
+# Horloge du verrou : celle de la machine. `PASSAGE_HORLOGE_BANC` (secondes depuis l'époque Unix, pour les bancs
+# seulement : l'epoch des marques suit alors les dates du faux GitHub) la fixe ; elle ne règle que cette heure-là, et
+# seulement si `FAUX_GH` (le faux GitHub des bancs) est posé et non vide. Posée sans lui (en production) : ignorée,
+# avec un seul avertissement sur la sortie d'erreur, donné ici, au chargement, avant tout verdict, puis retirée de
+# l'environnement : `epoch_passage` n'avertit jamais, et rien n'est écrit après la ligne de `sortir`, même depuis la
+# trappe EXIT (`finir_passage`), car la boucle lit le verdict sur la dernière ligne de la sortie.
+if [ -n "${PASSAGE_HORLOGE_BANC-}" ] && [ -z "${FAUX_GH-}" ]; then
+  echo "verrou du passage : PASSAGE_HORLOGE_BANC ignorée hors des bancs (FAUX_GH absent ou vide), horloge de la machine" >&2 || :
+  unset PASSAGE_HORLOGE_BANC
+fi
+epoch_passage() {
+  if [[ "${PASSAGE_HORLOGE_BANC-}" =~ ^[0-9]{1,12}$ ]]; then
+    printf '%s\n' "$PASSAGE_HORLOGE_BANC"
+    return
+  fi
+  date -u +%s
+}
+heure_passage() { jq -nr --argjson e "$(epoch_passage)" '$e | strftime("%H:%M")'; }
 PIED_DE_PAGE=$'\n\n---\n_Generated by [Claude Code](https://claude.ai/code)_'
 corps_passage() { # <« depuis … » ou « terminé à … »> [fin]
-  local marque="<!-- capitaine:passage $CAPITAINE_ID -->"
+  local marque
+  marque="<!-- capitaine:passage $CAPITAINE_ID $(epoch_passage) -->"
   if [ "${2:-}" = fin ]; then
     printf 'Passage du capitaine `%s` %s.\n%s\n<!-- capitaine:fin -->%s' "$CAPITAINE_ID" "$1" "$marque" "$PIED_DE_PAGE"
   else
@@ -669,28 +623,46 @@ corps_passage() { # <« depuis … » ou « terminé à … »> [fin]
 }
 # Décision du verrou, pure : les commentaires (pages de `issues/<n>/comments` sur l'entrée, concaténées) lus avec
 # `--arg moi <CAPITAINE_ID> --argjson mien <id du sien> --arg cree <created_at du sien>`. Rend { tenu, anciens } :
-# `tenu` « <autre> <updated_at> » de la plus ancienne marque vivante d'un autre capitaine posée avant la sienne, ou null ;
+# `tenu` « <autre> <date> » de la plus ancienne marque vivante d'un autre capitaine posée avant la sienne, ou null (date :
+# le plus tard de l'epoch du corps et du `created_at` de la marque, sinon son `created_at`) ;
 # `anciens` les ids de ses propres marques vivantes d'un passage précédent (tué), que finir_passage termine.
-# Une date illisible fait échouer jq : le verrou est alors illisible, jamais libre.
+# Une date illisible fait échouer jq : le verrou est alors illisible, jamais libre. Un epoch illisible (lettres, plus de
+# 12 chiffres, plus de 40 caractères, vide) laisse la marque datée par son `created_at`, jamais ignorée (la capture
+# reste bornée à 40 caractères). Un epoch en avance de plus de 5 minutes sur le `created_at` du sien (`$t`, celui du
+# lecteur : horloge en avance, valeur fausse) ne compte pas tant qu'il le reste : la marque est datée par son
+# `created_at`. Mais `$t` avance d'un lecteur à l'autre : le même epoch se met à compter quand un lecteur plus tardif
+# le rattrape, et une marque figée posée par une horloge en avance peut revivre, jusqu'à E + 90 minutes (décision A-55
+# de l'architecte : la règle reste, aucune fusion non testée, jamais de gel). Un verrou sans nouvelles meurt donc
+# 90 minutes après la plus tardive de sa création et de son epoch compté. Un epoch en retard (horloge en retard, `0`)
+# ne date jamais la marque avant son `created_at` : le verrou vit au moins 90 minutes depuis sa pose.
 # shellcheck disable=SC2016
-FILTRE_PASSAGE='def marque: [.body | match("<!-- capitaine:passage ([A-Za-z0-9_-]{1,100}) -->"; "g") | .captures[0].string] | first;
-  [.[][] | select(.author_association == "OWNER" or .author_association == "MEMBER" or .author_association == "COLLABORATOR")
+FILTRE_PASSAGE='def marque: [.body | match("<!-- capitaine:passage ([A-Za-z0-9_-]{1,100})(?: ([^ ]{0,40})[^ ]*)? -->"; "g") | .captures] | first;
+  ($cree | fromdateiso8601) as $t
+  | [.[][] | select(.author_association == "OWNER" or .author_association == "MEMBER" or .author_association == "COLLABORATOR")
     | select((.body | contains("<!-- capitaine:fin -->")) | not)
-    | {id, updated_at, m: marque} | select(.m != null and .id != $mien)] as $vivantes
-  | ($cree | fromdateiso8601) as $t
-  | { tenu: ([$vivantes[] | select(.m != $moi and .id < $mien and (.updated_at | fromdateiso8601) > $t - 5400)]
-        | sort_by(.id) | first | if . == null then null else "\(.m) \(.updated_at)" end),
+    | marque as $c | select($c != null)
+    | (if ($c[1].string // "" | test("^[0-9]{1,12}$")) then ($c[1].string | tonumber) else null end) as $e
+    | (.created_at | fromdateiso8601) as $pose
+    | {id, m: $c[0].string, date: (if $e != null and $e <= $t + 300 then ([$e, $pose] | max) else $pose end)}
+    | select(.id != $mien)] as $vivantes
+  | { tenu: ([$vivantes[] | select(.m != $moi and .id < $mien and .date > $t - 5400)]
+        | sort_by(.id) | first | if . == null then null else "\(.m) \(.date | todate)" end),
       anciens: [$vivantes[] | select(.m == $moi) | .id] }'
 # Pose le verrou sur la PR `<n>` (CAPITAINE_ID valide exigé de l'appelant). Retours : 0 pris par ce capitaine
 # (PASSAGE_COMMENTAIRE gardé, la trappe de l'appelant doit jouer finir_passage) ; 1 tenu par un autre capitaine,
-# son propre commentaire retiré, motif dans PASSAGE_MOTIF ; 2 pose ou lecture impossible, motif sur la sortie
-# d'erreur, son commentaire retiré (ou terminé) s'il a été posé : jamais un passage sans verrou, jamais un verrou
-# que personne ne tient.
+# son propre commentaire retiré, motif dans PASSAGE_MOTIF ; 2 pose impossible (écriture refusée) ; 3 lecture des
+# commentaires refusée ou illisible après la pose (une panne, A-21 : l'appelant sort en 5, pause puis reprise). En 2 et
+# 3, motif sur la sortie d'erreur, son commentaire retiré (ou terminé) s'il a été posé : jamais un passage sans verrou,
+# jamais un verrou que personne ne tient.
 prendre_passage() {
   local n=$1 erreur pose id cree lus decision tenu
   PASSAGE_PR=$n PASSAGE_COMMENTAIRE='' PASSAGE_ANCIENS='' PASSAGE_TOUR=0 PASSAGE_MOTIF=''
   erreur=$(mktemp)
-  pose=$(gh api -X POST "$DEPOT/issues/$n/comments" -f body="$(corps_passage "depuis $(date -u +%H:%M) UTC")" \
+  # Avant le POST : un signal qui tombe pendant lui (réponse en vol, `gh` tué avec le groupe) laisse un commentaire
+  # posé dont l'id n'est pas lu ; la trappe le retrouve par relecture (finir_passage). Un POST refusé aussi : GitHub a
+  # pu poser le commentaire et perdre la réponse.
+  PASSAGE_POSE_LANCEE=1
+  pose=$(gh api -X POST "$DEPOT/issues/$n/comments" -f body="$(corps_passage "depuis $(heure_passage) UTC")" \
     --jq '"\(.id) \(.created_at)"' 2>"$erreur" </dev/null) || {
     echo "verrou du passage : commentaire non posé sur #$n : $(grep . "$erreur" | tail -n 1 | masquer_url)" >&2
     rm -f "$erreur"
@@ -702,12 +674,12 @@ prendre_passage() {
     echo "verrou du passage : réponse de GitHub sans id de commentaire sur #$n" >&2
     return 2
   fi
-  PASSAGE_COMMENTAIRE=$id
+  PASSAGE_COMMENTAIRE=$id PASSAGE_POSE_LANCEE=''
   if ! lus=$(lire_github "$DEPOT/issues/$n/comments?per_page=100" --paginate) ||
     ! decision=$(jq -cs --arg moi "$CAPITAINE_ID" --argjson mien "$id" --arg cree "$cree" "$FILTRE_PASSAGE" <<<"$lus" 2>/dev/null); then
     echo "verrou du passage : commentaires de #$n illisibles (cause ci-dessus, ou date illisible) : son commentaire retiré, pas de passage sans verrou" >&2
     retirer_passage
-    return 2
+    return 3
   fi
   PASSAGE_ANCIENS=$(jq -r '.anciens | map(tostring) | join(" ")' <<<"$decision")
   tenu=$(jq -r '.tenu // ""' <<<"$decision")
@@ -727,27 +699,48 @@ retirer_passage() {
   fi
   PASSAGE_COMMENTAIRE=''
 }
-# Rafraîchit le commentaire au début de chaque tour d'attente de la CI (le PATCH met à jour `updated_at`, l'âge du
+# Rafraîchit le commentaire au début de chaque tour d'attente de la CI (le PATCH réécrit l'epoch de la marque, l'âge du
 # verrou). En échec : une ligne sur la sortie d'erreur, le passage continue (au pire le verrou expire : travail en
 # double, jamais une fusion non testée).
 rafraichir_passage() {
   [ -n "$PASSAGE_COMMENTAIRE" ] || return 0
   PASSAGE_TOUR=$((PASSAGE_TOUR + 1))
   gh api -X PATCH "$DEPOT/issues/comments/$PASSAGE_COMMENTAIRE" \
-    -f body="$(corps_passage "depuis $(date -u +%H:%M) UTC, tour $PASSAGE_TOUR")" >/dev/null 2>&1 </dev/null ||
+    -f body="$(corps_passage "depuis $(heure_passage) UTC, tour $PASSAGE_TOUR")" >/dev/null 2>&1 </dev/null ||
     echo "verrou du passage : commentaire de #$PASSAGE_PR non rafraîchi (tour $PASSAGE_TOUR), le passage continue" >&2
 }
 # Termine son commentaire (« terminé », la marque de fin), et ses marques d'un passage précédent tué. Appelée par la
-# trappe EXIT de l'appelant : en échec, une ligne sur la sortie d'erreur, jamais un autre code de sortie.
+# trappe EXIT de l'appelant : en échec, une ligne sur la sortie d'erreur, jamais un autre code de sortie. Une pose
+# lancée dont l'id n'a pas été lu (un signal pendant le POST) : relit les commentaires de la PR (`lire_github`) et
+# termine les marques vivantes de ce capitaine ; une relecture en panne se dit en une ligne, comme un PATCH refusé.
 finir_passage() {
-  local id corps
-  [ -n "$PASSAGE_COMMENTAIRE$PASSAGE_ANCIENS" ] || return 0
-  corps=$(corps_passage "terminé à $(date -u +%H:%M) UTC" fin)
+  local id corps erreur lus cause
+  if [ -n "$PASSAGE_POSE_LANCEE" ] && [ -z "$PASSAGE_COMMENTAIRE" ]; then
+    PASSAGE_POSE_LANCEE=''
+    erreur=$(mktemp 2>/dev/null) || erreur=/dev/null
+    if lus=$(lire_github "$DEPOT/issues/$PASSAGE_PR/comments?per_page=100" --paginate 2>"$erreur") &&
+      lus=$(jq -rs --arg moi "${CAPITAINE_ID-}" --argjson mien 0 --arg cree 1970-01-01T00:00:00Z \
+        "$FILTRE_PASSAGE | .anciens | map(tostring) | join(\" \")" <<<"$lus" 2>/dev/null); then
+      PASSAGE_ANCIENS="$PASSAGE_ANCIENS $lus"
+    else
+      # Jamais un échec sous `set -e` (la trappe EXIT de l'appelant) : `$erreur` est vide quand `lire_github` a
+      # réussi et que le filtre a échoué (date illisible), et grep rend alors 1.
+      cause=$({ grep . "$erreur" 2>/dev/null || :; } | tail -n 1 | masquer_url) || cause=''
+      echo "verrou du passage : commentaire de #$PASSAGE_PR non terminé (relecture impossible : ${cause:-commentaires illisibles}), il expirera 90 minutes après sa dernière date comptée" >&2 || :
+    fi
+    [ "$erreur" = /dev/null ] || rm -f "$erreur" || :
+  fi
+  [ -n "${PASSAGE_COMMENTAIRE}${PASSAGE_ANCIENS// /}" ] || return 0
+  if ! corps=$(corps_passage "terminé à $(heure_passage) UTC" fin); then
+    echo "verrou du passage : corps de fin illisible, commentaire(s) $PASSAGE_COMMENTAIRE $PASSAGE_ANCIENS de #$PASSAGE_PR non terminé(s)" >&2 || :
+    PASSAGE_COMMENTAIRE='' PASSAGE_ANCIENS='' PASSAGE_POSE_LANCEE=''
+    return 0
+  fi
   for id in $PASSAGE_COMMENTAIRE $PASSAGE_ANCIENS; do
     gh api -X PATCH "$DEPOT/issues/comments/$id" -f body="$corps" >/dev/null 2>&1 </dev/null ||
-      echo "verrou du passage : commentaire $id de #$PASSAGE_PR non terminé (il expirera en 90 minutes)" >&2
+      echo "verrou du passage : commentaire $id de #$PASSAGE_PR non terminé (il expirera 90 minutes après sa dernière date comptée)" >&2 || :
   done
-  PASSAGE_COMMENTAIRE='' PASSAGE_ANCIENS=''
+  PASSAGE_COMMENTAIRE='' PASSAGE_ANCIENS='' PASSAGE_POSE_LANCEE=''
   return 0
 }
 

@@ -786,7 +786,7 @@ Test every layer; mock at the port boundary. **Vitest** (`vitest run`), not Jest
 <!-- ══ /TENANT-B ══ -->
 - **Inbound adapters** — controller e2e-style with `supertest` (override guards/config, apply the real global `ZodValidationPipe` + `DomainErrorFilter`) to assert status codes, response shape, validation (400) and error mapping (5xx). For webhooks/cron/CLI, unit-test that the adapter deserializes/verifies input and calls `execute()` correctly.
 
-Shared mocks live in `src/utils/tests/mocks/` (`@test/mocks/`). Use AAA (Arrange-Act-Assert), fresh mocks per test (`afterEach(() => vi.clearAllMocks())`), one concern per test, descriptive names (`should [behavior] when [condition]`). Tests covering a registered rule carry its ID in the name. Test behavior, not implementation.
+Shared mocks live in `src/utils/tests/mocks/` (`@test/mocks/`). Use AAA (Arrange-Act-Assert), fresh mocks per test (`afterEach(() => vi.clearAllMocks())`), one concern per test, descriptive names in French, since a test name is prose (`ADR_ALL_ARC-4`): `<comportement> quand <condition>`, e.g. `it('refuse une seconde licence quand la saison en a déjà une')`. Tests covering a registered rule carry its ID in the name. Test behavior, not implementation.
 
 ---
 

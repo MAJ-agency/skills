@@ -78,7 +78,7 @@ Invocation : `/maj-skills:socle-mobile-expo`. Suppose la racine et les contrats 
 
 | Skill                                                                             | Ce qu'il fait                                                                                                                                                                                                                                                   |
 | --------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [`socle-chaine-de-production`](skills/chaine/socle-chaine-de-production/SKILL.md) | Pose ce que supposent les skills de la chaîne : `develop` intègre et `main` livre, les sept labels, les hooks d'agent, le contrat `.claude/chaine.json`, les index générés, une CI minimale, un `.github/CODEOWNERS` généré depuis les chemins sensibles, la méthode et quatre ADR |
+| [`socle-chaine-de-production`](skills/chaine/socle-chaine-de-production/SKILL.md) | Pose ce que supposent les skills de la chaîne : `develop` intègre et `main` livre, les sept labels, les hooks d'agent, le contrat `.claude/chaine.json`, les index générés, une CI minimale, la méthode et trois ADR |
 | [`tickets`](skills/chaine/tickets/SKILL.md)                                       | La convention des specs et tickets (`SPEC_ALL_SOC-1`, `SPEC_ALL_SOC-1.03`), les scripts qui la lisent (numéro suivant, ticket libre, vagues, avancement, archivage, gate) et la migration d'un dépôt                                                            |
 | [`anchorpost`](skills/chaine/anchorpost/SKILL.md)                                 | Branche un dépôt sur Anchorpost, le site qui montre à la MOA les règles, les preuves, les défauts et les demandes lus dans la documentation : la CLI privée, le manifeste, l'index généré et son gate, la fiche d'écriture, la recette d'installation de la clé |
 | [`criticite`](skills/chaine/criticite/SKILL.md)                                   | La criticité d'une règle à sa création ou au changement de son énoncé, avant tout code : un sous-agent vierge, dont le message est fabriqué par un script, rend le niveau et sa raison, les cas attendus et les dix familles ; jamais « basse » sans raison, le niveau supérieur dans le doute, un agent écrit `by: agent` et ne baisse jamais un niveau ; la commande et chaque sortie brute dans la PR ; sans index au pivot 3, il s'arrête |
@@ -149,7 +149,7 @@ skills/
   chaine/
     socle-chaine-de-production/
       SKILL.md         le processus, en quatre étapes
-      references/      contrat, index générés, hooks d'agent, labels, CI, CODEOWNERS et son gate, méthode, quatre ADR, fragments, liste admin
+      references/      contrat, index générés, hooks d'agent, labels, CI, méthode, trois ADR, fragments, liste admin
     tickets/
       SKILL.md         la convention, poser, au quotidien, migrer
       references/      scripts (docs/, verify/) et leurs tests, tracker, labels de triage, gabarits
@@ -189,7 +189,7 @@ Les bancs (`pnpm test`, joués aussi par la CI) demandent Node ≥ 22, `git` et 
 
 Cette règle vaut pour **tout** changement de contenu, pas seulement l'ajout d'un skill.
 
-Un skill dont l'étape `poser` copie un dossier de scripts dans `scripts/chaine/` d'un projet ajoute ce dossier à `POSES` dans `scripts/poses.test.mjs` : le garde pose ses fichiers à plat et rejoue ses bancs hors du plugin. Un banc posé ne lit jamais l'arbre du plugin sans repli vers le fichier du projet.
+Un skill dont l'étape `poser` copie un dossier de scripts dans `scripts/chaine/` d'un projet ajoute ce dossier à `POSES` dans `scripts/poses.test.mjs` : le garde pose ses fichiers à plat et rejoue ses bancs hors du plugin. Un banc posé ne lit jamais l'arbre du plugin sans repli vers le fichier du projet. Le garde joue chaque banc en tranches parallèles (`scripts/tranches.mjs`), par les noms de ses tests (`test("…", …)` en début de ligne), chaque test exactement une fois : les tranches d'un même banc tournent en même temps, donc un banc n'écrit jamais dans un chemin fixe partagé (chaque dépôt jouet par `mkdtemp`) ; un banc qui écrit des sous-tests (`t.test`, `describe`, `it`) se joue entier. Limite : un sous-test au nom calculé (`t.test(nom, …)`) ou un `test(` global appelé dans le corps d'un test n'est pas reconnu ; un banc posé n'en écrit pas.
 
 Un banc ne recopie jamais le filtre des variables `GIT_*` : il importe `environnementDeBanc()` (`scripts/docs/environnement-de-banc.mjs` du socle, réexporté par `depot-jouet.mjs`), qui retire aussi `FORCE_COLOR` et pose `NO_COLOR=1`. `scripts/un-seul-environnement-de-banc.test.mjs` refuse toute copie.
 

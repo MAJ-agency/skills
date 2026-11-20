@@ -53,19 +53,16 @@
 #      symbolique sur un index généré) : la dernière ligne dit pourquoi ; boucle.sh renvoie
 #      la PR (refus.sh) avec ce motif, jamais de saut silencieux
 #   7  pas éligible, rien à corriger côté auteur (non ouverte, brouillon, sans `à-fusionner`,
-#      déjà `fusion-bloquée`, empilée sur une parente pas encore fusionnée, ou qui attend l'approbation d'un
-#      propriétaire : CODEOWNERS et « Require review from Code Owners » sur la base, vu à l'éligibilité ou au refus
-#      de fusion de GitHub, qui fait poser un commentaire marqué ; ou qui attend un humain : fusion déjà refusée
-#      ainsi, aucune revue APPROVED plus récente que ce commentaire) : la boucle la saute sans renvoi et la reprend
-#      au tour suivant ; ou en passage chez un autre capitaine (son commentaire marqué `<!-- capitaine:passage <id> -->`,
-#      sans fin, de moins de 90 minutes, posé avant le sien), sautée sans renvoi ; ou qui n'est plus éligible une fois le
+#      déjà `fusion-bloquée`, empilée sur une parente pas encore fusionnée) : la boucle la saute sans renvoi et la
+#      reprend au tour suivant ; ou en passage chez un autre capitaine (son commentaire marqué `<!-- capitaine:passage <id> <epoch> -->`,
+#      sans fin, daté de moins de 90 minutes, le plus tard de son epoch, s'il n'est pas en avance de plus de 5 minutes
+#      sur le sien, et de sa création ; jamais de gel : FILTRE_PASSAGE de github.sh ; posé avant le sien), sautée
+#      sans renvoi ; ou qui n'est plus éligible une fois le
 #      verrou pris (relue : fermée, label retiré, sommet changé)
-#   3  fusion refusée faute d'approbation d'un propriétaire et commentaire d'attente impossible à poser : la boucle
-#      s'arrête (ARRÊT, sortie 3), sans le repasser → lire la cause (droits du compte du capitaine), relancer
 #   5  GitHub illisible (lire_github : réponse vide, non JSON, corps d'erreur ou code non nul), à la lecture de la PR,
 #      de sa parente ou pendant l'attente de la CI : la boucle se met en pause (PAUSE) puis reprend, jamais un arrêt
-#   3  fusion refusée par GitHub pour une autre raison que la revue ou une branche qui a bougé (droit du compte, règle
-#      du dépôt, méthode de fusion interdite : un refus durable) : la boucle s'arrête (ARRÊT) → lire le message, traiter.
+#   3  fusion refusée par GitHub pour une autre raison qu'une branche qui a bougé (droit du compte, règle du dépôt,
+#      revue exigée, méthode de fusion interdite : un refus durable) : la boucle s'arrête (ARRÊT) → lire le message, traiter.
 #      Avant, develop relu et la règle d'ascendance rejouée (décision A-51) : si develop n'est plus ancêtre du sommet
 #      testé (il a bougé entre le test et la fusion, un 405 « Repository rule violations » d'une branche devenue en
 #      retard), c'est une course : sortie 5 ; develop illisible à la relecture, 5 aussi (coupure) ; `ascendance` en
@@ -79,15 +76,16 @@
 #   12 fusionnée, mais arbre du squash ≠ arbre testé (ou squash introuvable) : commentaire marqué
 #      `<!-- arbre-different-capitaine -->` sur la PR, `à-fusionner` retiré, ligne `ARBRE DIFFÉRENT` ; la boucle
 #      s'arrête (ARRÊT), le capitaine le dit à son lanceur, un humain examine (`git diff <sommet testé> <squash>`)
-#   3  verrou du passage illisible (commentaire non posé, commentaires illisibles) : la boucle s'arrête, jamais un
-#      passage sans verrou → lire la cause, relancer
+#   3  verrou du passage non posé (écriture du commentaire refusée) : la boucle s'arrête, jamais un passage sans
+#      verrou → lire la cause, relancer ; commentaires illisibles à sa relecture : 5 (panne, pause puis reprise)
 #   64 CAPITAINE_ID absent ou mal formé (l'id de la session du capitaine, `^[A-Za-z0-9_-]{1,100}$`), aucune lecture
 #      GitHub → le donner en préfixe de la commande (skill fusionner, « Mise en place »)
 #   69 jq absent du poste → l'installer (sudo apt install jq), relancer
 #
 # Verrou du passage (plusieurs capitaines sur la même file) : une fois la PR jugée éligible, `prendre_passage` (github.sh)
 # pose sur elle le commentaire « Passage du capitaine <id> », relit la PR, et une seule trappe EXIT le termine à toute
-# sortie, TERM compris (`boucle.sh --arreter`) ; il est rafraîchi au début de chaque tour (étapes 2 à 5 bis).
+# sortie, TERM et INT compris (`boucle.sh --arreter`), même pendant sa pose ou sa relecture ; il est rafraîchi au
+# début de chaque tour (étapes 2 à 5 bis).
 # Usage : bash scripts/chaine/passer.sh <numéro>
 # =============================================================================
 set -euo pipefail
@@ -121,9 +119,6 @@ champ() { jq -r "$1" <<<"$pr"; }
 labels=",$(champ '[.labels[].name] | join(",")'),"
 case "$labels" in *,à-fusionner,*) ;; *) sortir 7 "sans le label à-fusionner" ;; esac
 case "$labels" in *,fusion-bloquée,*) sortir 7 "label fusion-bloquée" ;; esac
-# Fusion déjà refusée faute d'approbation, sans approbation plus récente que le commentaire du capitaine : attend
-# un humain, aucune mise à jour (au plus une CI par nouvelle approbation).
-! attend_humain "$N" || sortir 7 "attend un humain : fusion refusée faute d'approbation d'un propriétaire (CODEOWNERS), aucune approbation depuis ; sautée sans renvoi"
 
 base=$(champ .base.ref)
 tete=$(champ .head.ref)
@@ -140,9 +135,6 @@ longueur=$(node -e 'console.log(String([...process.argv[1]].length))' "$titre (#
 # vécu, #478 le 15/10 : 215 commits de develop dans le corps (445 Ko, refusé par le système).
 [ "$(git rev-parse --is-shallow-repository)" = false ] || git_masque fetch -q --unshallow origin
 git_masque fetch -q origin develop "$tete"
-# Revue des propriétaires (CODEOWNERS de la base) attendue : ni rouge ni bloquée, rien à corriger côté auteur. Vu
-# avant la mise à jour : une CI pour rien sinon, à chaque tour, jusqu'à l'approbation.
-! attend_proprietaire "$pr" || sortir 7 "$MOTIF_PROPRIETAIRE"
 origine=$(git rev-parse "origin/$tete")
 
 # Livraison de sujet : tête `sujet/<nom>`, ou livraison intermédiaire `livraison/<nom>-<AAAAMMJJ-HHMM>`, prouvée
@@ -197,18 +189,22 @@ motif=$(liens_sur_index "$origine" origin/develop) || sortir 4 "$motif"
 motif=$(node "$PASSER_OUTILS/migrations-ordre.mjs" origin/develop "$origine") || sortir 4 "$motif"
 
 # ── Verrou du passage ───────────────────────────────────────────────────────
-# Après l'éligibilité, avant toute écriture : un autre capitaine qui tient la PR la fait sauter sans renvoi (7) ;
-# un verrou illisible arrête (3), jamais un passage sans lui.
+# Après l'éligibilité, avant toute écriture : un autre capitaine qui tient la PR la fait sauter sans renvoi (7) ; une
+# lecture refusée est une panne (5) ; un commentaire non posé arrête (3) ; jamais un passage sans verrou.
+# Une seule trappe, posée AVANT le verrou : un TERM ou un INT pendant sa pose ou sa relecture le termine (finir_passage
+# ne fait rien sans commentaire ; un signal pendant le POST, réponse perdue, lui fait relire les commentaires et terminer
+# les marques vivantes du capitaine). Une seconde trappe remplacerait la première. TERM et INT passent par `exit`, donc
+# par elle.
+trap 'finir_passage; rm -f "${refus_fusion:-}" "${reponse_fusion:-}"' EXIT
+trap 'exit 143' TERM
+trap 'exit 130' INT
 prendre_passage "$N" && statut=0 || statut=$?
 case $statut in
   0) ;;
   1) sortir 7 "$PASSAGE_MOTIF" ;;
-  *) sortir 3 "verrou du passage illisible (cause ci-dessus) : la PR ne passe pas sans lui" ;;
+  3) sortir 5 "GitHub illisible à la lecture du verrou du passage (cause ci-dessus) : pause, puis reprise" ;;
+  *) sortir 3 "verrou du passage non posé (cause ci-dessus) : la PR ne passe pas sans lui" ;;
 esac
-# Une seule trappe : une seconde remplacerait la première. TERM et INT passent par `exit`, donc par elle.
-trap 'finir_passage; rm -f "${refus_fusion:-}" "${reponse_fusion:-}"' EXIT
-trap 'exit 143' TERM
-trap 'exit 130' INT
 # L'éligibilité a été lue avant le verrou : un autre capitaine a pu finir son passage entre les deux (PR fusionnée,
 # label retiré, renvoyée). La PR relue doit l'être encore, au même sommet.
 pr_relu=$(pr_json "$N") || sortir 5 "GitHub illisible à la relecture de la PR, verrou pris (cause ci-dessus) : pause, puis reprise"
@@ -390,22 +386,10 @@ corps |
   jq -Rs --arg sha "$sommet" --arg titre "$sujet" --arg methode "$methode" \
     '{merge_method: $methode, sha: $sha, commit_title: $titre, commit_message: .}' |
   gh api -X PUT "$DEPOT/pulls/$N/merge" --input - --jq .sha >"$reponse_fusion" 2>"$refus_fusion" || {
-  # Refus faute d'approbation d'un propriétaire (un propriétaire du CODEOWNERS demandé, ou seul propriétaire = l'auteur, que
-  # GitHub ne demande pas) : sortie 7, jamais 5, que la boucle relancerait puis arrêterait.
   message=$(masquer_url <"$refus_fusion")
   printf '%s\n' "$message" >&2
-  if refus_pour_revue "$message" || attend_proprietaire "$(pr_json "$N" 2>/dev/null || echo '{}')"; then
-    git switch -q --detach origin/develop
-    git branch -q -D "capitaine/$N" 2>/dev/null || true
-    # La PR attend un humain jusqu'à une nouvelle approbation : le commentaire marqué l'arrête (file.sh, attend_humain).
-    # Commentaire impossible à poser : sortie 3 (la boucle s'arrête), jamais 7, qui ferait repasser la PR, mise à jour
-    # et CI comprises, à chaque tour, ni 5, que la boucle met en pause puis reprend sans fin.
-    commenter "$N" "$(printf '%s\n%s\n\n---\n_Generated by [Claude Code](https://claude.ai/code)_' "$MARQUE_ATTENTE" "$TEXTE_ATTENTE")" ||
-      sortir 3 "fusion refusée faute d'approbation d'un propriétaire (CODEOWNERS) et commentaire d'attente non posé : sans lui, la PR repasserait à chaque tour ; lire la cause (droits du compte du capitaine), relancer"
-    sortir 7 "$MOTIF_PROPRIETAIRE"
-  fi
   # La branche ou develop a bougé (409, « Head/Base branch was modified », « not up to date »), ou GitHub en panne (5xx, aucun code HTTP) : sortie 5, la
-  # boucle se met en pause puis reprend. Tout autre refus (droit, règle du dépôt, méthode de fusion interdite) est
+  # boucle se met en pause puis reprend. Tout autre refus (droit, règle du dépôt, revue exigée, méthode de fusion interdite) est
   # durable : sortie 3, la boucle s'arrête, au lieu de refaire mise à jour et CI à chaque tour, en pause sans fin.
   # `gh` écrit `gh: <message> (HTTP <code>)`, ou `gh: HTTP <code>` sans message dans le corps (cli/cli, pkg/cmd/api).
   if grep -qiE 'HTTP (409|5[0-9]{2})([^0-9]|$)|branch was modified|not up to date' <<<"$message" || ! grep -qE 'HTTP [0-9]{3}([^0-9]|$)' <<<"$message"; then
@@ -429,7 +413,7 @@ corps |
   fi
   git switch -q --detach origin/develop
   git branch -q -D "capitaine/$N" 2>/dev/null || true
-  sortir 3 "fusion refusée par GitHub, ni pour la revue ni pour une branche qui a bougé (droit du compte, règle du dépôt, méthode de fusion) : message ci-dessus ; la boucle s'arrête, un humain lit la cause"
+  sortir 3 "fusion refusée par GitHub pour une autre raison qu'une branche qui a bougé (droit du compte, règle du dépôt, revue exigée, méthode de fusion) : message ci-dessus ; la boucle s'arrête, un humain lit la cause"
 }
 
 git_masque fetch -q origin "+refs/heads/develop:refs/remotes/origin/develop"

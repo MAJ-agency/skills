@@ -10,7 +10,7 @@ import { describe, expect, it } from "vitest";
 import { splitAmount } from "./split-amount";
 
 describe("splitAmount (propriétés)", () => {
-  it("should split any amount into parts that sum back to the total, to the cent", () => {
+  it("partage tout montant en parts dont la somme redonne le total, au centime près", () => {
     fc.assert(
       fc.property(
         fc.integer({ min: 0, max: 10_000_000 }), // montant en centimes

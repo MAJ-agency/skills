@@ -24,7 +24,7 @@ const EXAMPLE_TIME_ZONE = "Pacific/Auckland";
 
 describe("businessDay", () => {
   // Point 1 : le jour du métier, pas le jour UTC.
-  it("should give the business day, not the UTC day, when the instant passes midnight in the business time zone", () => {
+  it("donne le jour du métier, pas le jour UTC, quand l'instant passe minuit dans le fuseau du métier", () => {
     // Hiver du fuseau (UTC+12) : 2026-07-10 23:30 locale = 2026-07-10 11:30 UTC, même jour ici.
     // 2026-07-11 00:15 locale = 2026-07-10 12:15 UTC : le jour UTC est en retard d'un jour.
     const winterInstant = new Date("2026-07-10T12:15:00Z");
@@ -39,13 +39,13 @@ describe("businessDay", () => {
 
   // Point 3 : un banc à horloge posée, aux instants qui cassent (heures locales du fuseau).
   it.each([
-    { label: "midday", instant: "2026-07-10T22:00:00Z", expected: "2026-07-11" }, // 10:00 locale
-    { label: "just before midnight", instant: "2026-07-11T11:45:00Z", expected: "2026-07-11" }, // 23:45 locale
-    { label: "one minute before midnight", instant: "2026-07-11T11:59:00Z", expected: "2026-07-11" }, // 23:59 locale
-    { label: "just after midnight", instant: "2026-07-11T12:15:00Z", expected: "2026-07-12" }, // 00:15 locale
+    { label: "à midi", instant: "2026-07-10T22:00:00Z", expected: "2026-07-11" }, // 10:00 locale
+    { label: "juste avant minuit", instant: "2026-07-11T11:45:00Z", expected: "2026-07-11" }, // 23:45 locale
+    { label: "une minute avant minuit", instant: "2026-07-11T11:59:00Z", expected: "2026-07-11" }, // 23:59 locale
+    { label: "juste après minuit", instant: "2026-07-11T12:15:00Z", expected: "2026-07-12" }, // 00:15 locale
     // Lendemain du changement d'heure (2026-09-27, 02:00 → 03:00 locale) : 10:00 locale = 21:00 UTC la veille.
-    { label: "the day after the clock change", instant: "2026-09-27T21:00:00Z", expected: "2026-09-28" },
-  ])("should give $expected when the clock is set $label", ({ instant, expected }) => {
+    { label: "le lendemain du changement d'heure", instant: "2026-09-27T21:00:00Z", expected: "2026-09-28" },
+  ])("donne $expected quand l'horloge est posée $label", ({ instant, expected }) => {
     const clock: Clock = { now: () => new Date(instant) };
     expect(businessDay(clock.now(), EXAMPLE_TIME_ZONE)).toBe(expected);
   });
@@ -54,9 +54,9 @@ describe("businessDay", () => {
   // s'assert par sa forme, jamais par l'année du jour. « Demain » se calcule sur le calendrier, pas
   // en ajoutant 24 heures : un jour de changement d'heure ne dure pas 24 heures.
   it.each([
-    { label: "an ordinary evening", instant: "2026-07-11T11:45:00Z", expectedDue: "2026-07-12" }, // 23:45 locale
-    { label: "the eve of the clock change", instant: "2026-09-26T11:45:00Z", expectedDue: "2026-09-27" }, // 23:45 locale
-  ])("should create its own due date relative to the clock's day on $label, instead of reading the seed", ({ instant, expectedDue }) => {
+    { label: "un soir ordinaire", instant: "2026-07-11T11:45:00Z", expectedDue: "2026-07-12" }, // 23:45 locale
+    { label: "la veille du changement d'heure", instant: "2026-09-26T11:45:00Z", expectedDue: "2026-09-27" }, // 23:45 locale
+  ])("crée sa propre échéance relative au jour de l'horloge, $label, au lieu de lire le jeu de données", ({ instant, expectedDue }) => {
     const clock: Clock = { now: () => new Date(instant) };
     const today = businessDay(clock.now(), EXAMPLE_TIME_ZONE);
     const quote = { reference: `Q-${today.slice(0, 4)}-0001`, dueDay: nextCalendarDay(today) };

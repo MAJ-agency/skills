@@ -1,6 +1,6 @@
 # coverage-diff : un fichier que seules des suites sur base couvrent ne fait plus échouer un pre-push sans base, et la réception de develop ne remesure plus ce que develop apporte
 
-Status: ready-for-agent
+Status: Fait — PR #114
 Type: défaut
 Modèle: sonnet — deux règles pures à ajouter à `coverage-diff-regles.mjs` sur le modèle de celles qui y sont, deux points d'appel dans `coverage-diff.mjs`, et des bancs sur dépôt jouet avec un faux Vitest ; le correctif d'Iroki sert de référence de comportement.
 Blocked by: —

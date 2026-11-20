@@ -216,8 +216,8 @@ Enforce by lint (`no-restricted-imports` / `eslint-plugin-boundaries`) and repla
 - **Isolation checks**: a cross-tenant leak test proves that under tenant A nothing of tenant B is readable, and a write violating `WITH CHECK` is rejected; a GUC-leak test proves the tenant setting is reset outside the transaction; the SQL introspection gate checks every `public` table is RLS-forced or in the versioned allowlist. All three are **blocking** (`docs/methode/pare-feu-ci.md` § isolation). Ownership inside a tenant still gets its refusal test per route.
 <!-- ══ /TENANT-B ══ -->
 - **Inbound adapters**: HTTP → `supertest` e2e-style (override guards/config, real global `ZodValidationPipe` + domain filter); assert status, response shape, 400 validation, 5xx mapping. Consumers/cron/CLI → unit-test that input is deserialized and `execute()` is called.
-- Tests covering a registered business rule carry its ID in the name: `test("[RULE_ALL_XXX-2] <behaviour>", …)`.
-- Shared mocks in `@test/mocks/`. AAA pattern, fresh mocks per test (`afterEach(() => vi.clearAllMocks())`), one concern per test, names `should [behavior] when [condition]`. Test behavior, not implementation.
+- Tests covering a registered business rule carry its ID in the name: `test("[RULE_ALL_XXX-2] <comportement>", …)`, the name in French.
+- Shared mocks in `@test/mocks/`. AAA pattern, fresh mocks per test (`afterEach(() => vi.clearAllMocks())`), one concern per test, names in French, since a test name is prose (`ADR_ALL_ARC-4`): `<comportement> quand <condition>`, e.g. `it('refuse une seconde licence quand la saison en a déjà une')`. Test behavior, not implementation.
 
 ---
 

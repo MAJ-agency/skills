@@ -21,18 +21,13 @@
 //   avantFusion { branche, vers } : joué au `PUT pulls/<n>/merge` avant le contrôle « strict » et le calcul de
 //               l'arbre, puis retiré : une fusion concurrente que GitHub a acceptée
 //   exiges      checks exigés de develop ; runs : workflow_runs par PR (« #12 »)
-//   revueProprietaires  branches dont la règle de PR exige la revue des propriétaires (« Require review
-//               from Code Owners ») : ruleset `pull_request`, ou ancienne protection avec `protectionClassique`
-//   PR.relecteurs / PR.equipes  relecteurs demandés (`requested_reviewers` logins, `requested_teams` slugs) : GitHub y
-//               met d'office les propriétaires CODEOWNERS et les retire quand ils approuvent
-//   PR.approbationManquante  sur une base de `revueProprietaires`, la fusion est refusée (405, « Waiting on code
-//               owner review ») : l'approbation d'un propriétaire manque (le faux ne lit pas CODEOWNERS)
+//   PR.relecteurs / PR.equipes  relecteurs demandés (`requested_reviewers` logins, `requested_teams` slugs), comme GitHub
+//               les rend : plus rien de la chaîne ne les lit, un banc vérifie qu'ils ne font rien attendre
 //   commentairesRefuses  `true` : tout commentaire posé est refusé (403) ; une chaîne : ceux dont le corps correspond à
-//               cette expression rationnelle seulement (le commentaire d'attente refusé, celui du verrou du passage posé)
+//               cette expression rationnelle seulement (un commentaire refusé, celui du verrou du passage posé)
 //   PR.refusFusion  message d'un refus de fusion (`gh: … (HTTP 405)`) : le `PUT pulls/<n>/merge` le rend, code 1, après
 //               `avantFusion` (une fusion concurrente, puis le refus)
 //   origineCasseeAuRefus  au refus de `PR.refusFusion`, le dépôt nu est renommé : la relecture de develop échoue
-//   PR.revues   revues de la PR (`pulls/<n>/reviews`) : [{ state, submitted_at, auteur }]
 //   PR.commentaires  un corps seul reçoit un `created_at` d'office, croissant avec son rang ; un objet { body, auteur,
 //               association, created_at, updated_at } porte les siens (`association` : `author_association`, OWNER
 //               par défaut, NONE pour un compte hors de l'organisation). Id = numéro × 1000 + rang + 1 (unique dans le
@@ -348,8 +343,6 @@ function repondre() {
     (p.editions ??= {})[i] = dateDuRang(etat.horloge);
     return commentaireRest(p, i);
   }
-  if ((m = route.match(/^pulls\/(\d+)\/reviews$/)) && methode === "GET")
-    return (pr(m[1]).revues ?? []).map((r, i) => ({ id: i + 1, state: r.state, submitted_at: r.submitted_at, user: { login: r.auteur ?? "relecteur" } }));
   if (route === "user" && methode === "GET")
     return etat.compteIllisible
       ? echec("gh: Resource not accessible by integration (HTTP 403)")
@@ -367,32 +360,19 @@ function repondre() {
   if (route.match(/^commits\/[0-9a-f]+\/status$/)) return { statuses: [] };
   // Checks exigés : par ruleset (le cas nominal), ou par l'ancienne protection de branche quand
   // le dépôt jouet le déclare (`protectionClassique`) — l'autre forme répond alors comme GitHub.
-  // Revue des propriétaires : une règle `pull_request` du ruleset sur les branches de `revueProprietaires`.
-  if ((m = route.match(/^rules\/branches\/([^/]+)$/))) {
-    const branche = decodeURIComponent(m[1]);
-    if (etat.protectionClassique) return [];
-    return [
-      ...(branche === "develop"
-        ? [
-            {
-              type: "required_status_checks",
-              parameters: {
-                required_status_checks: (etat.exiges ?? []).map((context) => ({
-                  context,
-                })),
-              },
+  if (route === "rules/branches/develop")
+    return etat.protectionClassique
+      ? []
+      : [
+          {
+            type: "required_status_checks",
+            parameters: {
+              required_status_checks: (etat.exiges ?? []).map((context) => ({
+                context,
+              })),
             },
-          ]
-        : []),
-      ...((etat.revueProprietaires ?? []).includes(branche)
-        ? [{ type: "pull_request", parameters: { require_code_owner_review: true, required_approving_review_count: 1 } }]
-        : []),
-    ];
-  }
-  if ((m = route.match(/^branches\/([^/]+)\/protection\/required_pull_request_reviews$/)))
-    return etat.protectionClassique && (etat.revueProprietaires ?? []).includes(decodeURIComponent(m[1]))
-      ? { require_code_owner_reviews: true, required_approving_review_count: 1 }
-      : echec("gh: Branch not protected (HTTP 404)");
+          },
+        ];
   if (route === "branches/develop/protection/required_status_checks")
     return etat.protectionClassique
       ? { contexts: etat.exiges ?? [] }
@@ -449,8 +429,6 @@ function fusionner(
     commit_message: corps,
   },
 ) {
-  if ((etat.revueProprietaires ?? []).includes(p.base) && p.approbationManquante)
-    echec("gh: Waiting on code owner review from @proprietaire. (HTTP 405)");
   if (ref(p.head) !== sha) echec("gh: Head branch was modified (HTTP 409)");
   if (etat.avantFusion) {
     git("update-ref", `refs/heads/${etat.avantFusion.branche}`, etat.avantFusion.vers);
