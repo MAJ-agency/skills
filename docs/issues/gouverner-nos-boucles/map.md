@@ -1048,3 +1048,9 @@ La session de suite fait, dans cet ordre :
   - Après la fusion, la PR 143 reprendra `main` (7.37.1) et le ticket 64 sera lancé.
 - 2026-11-20 — 06 h 16 UTC. **PR 141 fusionnée (`860cd9c`, plugin 7.37.0) à 06 h 16 UTC : les tickets 55 et 57 sont faits.** L'arbre de `main` (`2a59290…`) est celui du sommet ordonné `e20b2b8`, et son parent est `e64f93b` (vérifié). Les tickets sont passés à « Fait » et la session des tickets 55 et 57 est archivée. La PR 143 reprendra `main` en 7.37.1. **La session du ticket 64 est lancée**, puisque son blocage par la PR 141 est levé.
 - 2026-11-20 — 06 h 17 UTC. **Session du ticket 64 lancée** : session_01BxuG2yvZEkFQbsefaJXTbp, Sonnet (ligne `Modèle:` du ticket), mode « auto », branche `claude/ticket-64-bancs-ci`, base `main` à `860cd9c`. Elle suit à la lettre la séquence du commit d'essai (décision 17) et prend le patch suivant de `main`. La session de la PR 143 sait que `main` a bougé : elle le reprend en 7.37.1 après les retouches d'`A-174`.
+- 2026-11-20 — 06 h 40 UTC. **PR 143 au sommet `eb52035`** (d'après la session) :
+  - retouches d'`A-174` (`3ac8895`, `791862e`) ;
+  - `main` (`860cd9c`) fusionné par un commit de fusion, en 7.37.1 ;
+  - banc 38 sur 38, suite 1 212 sur 1 212 ;
+  - les 7 mutations vertes et les 5 du défaut 4 sont rouges ; CI en cours.
+  **Second tour lancé** par le même contre-relecteur, sur le delta `0b6a5eb..eb52035`, résolution comprise.
