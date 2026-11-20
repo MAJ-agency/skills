@@ -1,6 +1,6 @@
 # La boucle du capitaine met à jour avec develop une PR rouge en retard, avant de la relancer ou de la renvoyer
 
-Status: needs-triage
+Status: needs-info
 Type: défaut
 Modèle: à décider au triage
 Blocked by: —
@@ -23,3 +23,4 @@ Constat sur Iroki, le 2026-11-20 : une PR de docs vers develop (MAJ-agency/iroki
 ## Comments
 
 - 2026-11-20 — Ouvert par le conducteur d'Iroki, sur le constat de son capitaine (cause et correctif attendu repris ici).
+- 2026-11-20, plus tard — **Diagnostic corrigé.** Pour MAJ-agency/iroki-monorepo#691, la cause n'était pas le retard sur develop : l'index de la branche était amputé de 683 lignes, parce que la session de l'architecte avait un `node_modules` d'avant Anchorpost 1.3.0. Le rouge était réel au sommet, et le renvoi de la boucle était juste. Le défaut de la boucle n'est donc pas prouvé par ce cas. Le ticket reste ouvert en `needs-info` : il faut un cas où le seul rouge vient du retard (sommet propre, rouge seulement après la fusion de develop). Sans ce cas, le ticket se ferme en `wontfix`.
