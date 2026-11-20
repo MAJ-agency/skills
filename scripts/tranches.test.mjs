@@ -62,6 +62,8 @@ test("`codeSeul` garde la longueur, les fins de ligne et les délimiteurs, garde
     ['f(/[/"]\\//g, 1); // it("x")\rg();', "f(/      /g, 1); //        \rg();"],
     ['s = `t ${ u("v") } w`;', 's = `  ${ u(" ") }  `;'],
     ["x = `a${ `b${ c }d` }e`;", "x = ` ${ ` ${ c } ` } `;"],
+    // Le corps d'une expression régulière sans classe ni échappement est blanchi aussi.
+    ["x = /a(b)c/g;", "x = /     /g;"],
   ];
   for (const [source, attendu] of cas) {
     assert.equal(codeSeul(source), attendu, source);
@@ -127,6 +129,9 @@ test("`ordre` : les plus lourds d'abord, tous bancs confondus ; à poids égal, 
   const copie = [...recue];
   assert.deepEqual(ordre(recue).map((x) => [x.banc, x.sorte, x.poids]), [["b", "entier", 18], ["a", "tranche", 10], ["c", "tranche", 3], ["a", "tranche", 3], ["a", "reste", 1]]);
   assert.deepEqual(recue, copie, "la liste reçue n'est pas modifiée");
+  // Beaucoup d'égalités : l'ordre reçu est gardé de bout en bout.
+  const egaux = Array.from({ length: 40 }, (_, i) => w(`b${i}`, "tranche", 1));
+  assert.deepEqual(ordre(egaux).map((x) => x.banc), egaux.map((x) => x.banc));
 });
 
 test("`pireCas` : la somme des bornes sur `parallele`, plus la plus grande", () => {
