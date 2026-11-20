@@ -1144,3 +1144,9 @@ La session de suite fait, dans cet ordre :
   - Décisions de l'architecte :
     - m1, les preuves manquantes du corps de la PR : à recopier, sans commit, donc le sommet ne bouge pas. **Aucun verdict `non conforme` n'est écrit** : un `non conforme` sur un sommet le bloque pour de bon chez le capitaine, alors que la retouche ne le change pas. Le verdict `conforme` viendra après lecture du corps.
     - m2 et m3 sont laissés : M4 est le m6 déjà relevé au ticket ; le commentaire de `trim()` est incomplet mais sans effet. Tous deux vont au prochain passage sur ces fichiers.
+- 2026-11-20 — 11 h 08 UTC. **PR 145 ordonnée** au sommet `2d563fd`.
+  - Le corps de la PR est retouché sans commit, et l'architecte l'a lu.
+  - La Vérification 4 est tenue par la contre-relecture : le gate des deux versions, joué sur les deux arbres, donne une sortie identique.
+  - La PR est clean et ses quatre contrôles sont verts, relu à la source.
+  - Sur la PR : le verdict `conforme`, qui note les deux mineurs laissés, l'ordre et le label. Le capitaine et la session sont prévenus.
+  - Le premier tour ne portait aucun constat de code, donc aucun second tour : `P-65` prévoit deux tours au plus, et rien n'a changé à relire.
