@@ -9,10 +9,9 @@ import { join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { environnementDeBanc } from "../skills/chaine/sujet/scripts/depot-jouet.mjs";
-import { spawn } from "node:child_process";
 import { availableParallelism } from "node:os";
 import { readFileSync } from "node:fs";
-import { aDesSousTests, couverture, nomsDesTests, RAPPORTEUR, travaux } from "./tranches.mjs";
+import { aDesSousTests, conclure, lancer, nomsDesTests, ordre, PLAFOND, RAPPORTEUR, travaux } from "./tranches.mjs";
 
 const RACINE = fileURLToPath(new URL("..", import.meta.url));
 // [dossier source dans le plugin, dossier de destination dans le projet]
@@ -54,9 +53,10 @@ const TAILLE = 10;
 const PARALLELE = Math.max(2, availableParallelism() - 1);
 const env = () => environnementDeBanc();
 
-// A-166 : 900 s, les bancs de la boucle (une sous-PR à la fois par sujet) ayant allongé les tranches ; la minuterie de
-// 300 s par tranche, la couverture et le plancher restent.
-test("les bancs posés à plat sous scripts/chaine/ tournent hors du plugin", { timeout: 900_000 }, async () => {
+// Ticket 64 : le délai du test est le plafond de `tranches.mjs` (garde contre un blocage, pas une assertion). Chaque
+// travail a sa borne, qui suit son poids, et est tué par son groupe de processus. Le bilan (part du plafond, pire cas, trois
+// marges les plus courtes) est rendu par `t.diagnostic`, en vert comme en rouge ; atteindre le plafond rougit.
+test("les bancs posés à plat sous scripts/chaine/ tournent hors du plugin", { timeout: PLAFOND + 60_000 }, async (t) => {
   const projet = mkdtempSync(join(tmpdir(), "poses-"));
   try {
     const poses = new Map();
@@ -84,47 +84,51 @@ test("les bancs posés à plat sous scripts/chaine/ tournent hors du plugin", { 
     // chaque test de premier niveau a tourné exactement une fois, ceux que la lecture des noms ne reconnaît pas compris
     // (tranche de reste). Un banc qui écrit des sous-tests se joue entier.
     writeFileSync(join(projet, "rapporteur-tranches.mjs"), RAPPORTEUR);
-    const liste = bancs
-      .map((banc) => {
-        const source = readFileSync(join(projet, banc), "utf8");
-        return travaux(banc, nomsDesTests(source), TAILLE, { entier: aDesSousTests(source) });
-      })
-      .sort((a, b) => b.length - a.length)
-      .flat();
-    const jouer = (t, i) =>
-      new Promise((fin) => {
-        const rapport = join(projet, `rapport-${i}.jsonl`);
-        const args = ["--test", "--test-reporter=spec", "--test-reporter-destination=stdout", "--test-reporter=./rapporteur-tranches.mjs", `--test-reporter-destination=${rapport}`, ...t.args];
-        const enfant = spawn(process.execPath, args, { cwd: projet, env: env(), stdio: ["ignore", "pipe", "pipe"] });
-        let sortie = "";
-        enfant.stdout.on("data", (d) => (sortie += d));
-        enfant.stderr.on("data", (d) => (sortie += d));
-        const minuterie = setTimeout(() => enfant.kill("SIGKILL"), 300_000);
-        enfant.on("close", (code, signal) => {
-          clearTimeout(minuterie);
-          let noms = [];
-          try {
-            noms = readFileSync(rapport, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l).nom);
-          } catch {}
-          fin({ t, code, signal, sortie: sortie.trim(), noms });
-        });
-      });
+    const parBanc = bancs.flatMap((banc) => {
+      const source = readFileSync(join(projet, banc), "utf8");
+      return travaux(banc, nomsDesTests(source), TAILLE, { entier: aDesSousTests(source), source });
+    });
+    const liste = ordre(parBanc);
+    const jouer = async (travail, i) => {
+      const rapport = join(projet, `rapport-${i}.jsonl`);
+      const args = ["--test", "--test-reporter=spec", "--test-reporter-destination=stdout", "--test-reporter=./rapporteur-tranches.mjs", `--test-reporter-destination=${rapport}`, ...travail.args];
+      const promesse = lancer(args, { cwd: projet, env: env(), borne: travail.borne });
+      enCours.add(promesse);
+      const r = await promesse;
+      enCours.delete(promesse);
+      let noms = [];
+      try {
+        noms = readFileSync(rapport, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l).nom);
+      } catch {}
+      return { ...r, t: travail, noms };
+    };
     const resultats = new Array(liste.length);
+    const enCours = new Set();
     let suivant = 0;
-    await Promise.all(
-      Array.from({ length: Math.min(PARALLELE, liste.length) }, async () => {
-        while (suivant < liste.length) {
-          const i = suivant++;
-          resultats[i] = await jouer(liste[i], i);
-        }
-      }),
-    );
-    const enEchec = resultats.filter((r) => r.code !== 0);
-    const recit = (r) => [`── ${r.t.banc} (${r.t.sorte}, sortie ${r.code ?? r.signal})`, ...r.sortie.split("\n").filter((l) => /^\s*✖/.test(l) || /\bnot ok\b/.test(l)), ...r.sortie.split("\n").slice(-40)].join("\n");
-    assert.deepEqual(enEchec.map((r) => r.t.banc), [], enEchec.map(recit).join("\n"));
-    assert.deepEqual(couverture(liste, resultats.map((r) => r.noms)), [], "chaque test d'un banc posé tourne exactement une fois");
-    const joues = resultats.reduce((n, r) => n + r.noms.length, 0);
-    assert.ok(joues >= PLANCHER, `les bancs posés ont joué ${joues} tests, plancher ${PLANCHER} : ils ne jouent rien (NODE_TEST_CONTEXT hérité ?)`);
+    let depasse = false;
+    const debut = Date.now();
+    const garde = setTimeout(() => {
+      depasse = true;
+      for (const p of enCours) p.arreter();
+    }, PLAFOND);
+    try {
+      await Promise.all(
+        Array.from({ length: Math.min(PARALLELE, liste.length) }, async () => {
+          while (suivant < liste.length && !depasse) {
+            const i = suivant++;
+            resultats[i] = await jouer(liste[i], i);
+          }
+        }),
+      );
+    } finally {
+      clearTimeout(garde);
+      for (const p of enCours) p.arreter();
+    }
+    // Un travail arrêté par la garde est un travail non joué : il compte parmi les non joués, pas parmi les résultats.
+    const rendus = resultats.map((r) => (depasse && r?.arrete ? undefined : r));
+    const { diagnostics, fautes } = conclure(liste, rendus, { parallele: PARALLELE, duree: Date.now() - debut, depasse, plancher: PLANCHER });
+    for (const ligne of diagnostics) t.diagnostic(ligne);
+    assert.deepEqual(fautes, [], "les bancs posés tournent hors du plugin, chaque test exactement une fois");
   } finally {
     rmSync(projet, { recursive: true, force: true });
   }

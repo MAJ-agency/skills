@@ -7,7 +7,9 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
-import { aDesSousTests, couverture, motif, nomsDesTests, RAPPORTEUR, travaux } from "./tranches.mjs";
+import { aDesSousTests, bilan, codeSeul, conclure, couverture, lancer, motif, nomsDesTests, ordre, pireCas, recit, RAPPORTEUR, travaux } from "./tranches.mjs";
+import { existsSync, readdirSync, readFileSync as lire } from "node:fs";
+import { fileURLToPath } from "node:url";
 
 test("les noms se lisent aux `test(` de début de ligne, nom littéral suivi d'une virgule", () => {
   const source = [
@@ -39,6 +41,46 @@ test("un banc qui écrit des sous-tests est reconnu : il se jouera entier", () =
   assert.ok(aDesSousTests('test("a", async (t) => {\r\n  await t.test("b", () => {});\r\n});'));
   assert.ok(aDesSousTests('test("a", () => {});\r\ndescribe("s", () => {})'));
   assert.ok(!aDesSousTests('test("a", () => {});\r\nconst ok = re.test(x);'));
+  // Pas de sous-test : du texte (chaîne, gabarit, commentaire, expression régulière), jamais un appel.
+  for (const s of ["const m = `feat(${nom}): suite (#2)`;", 'const t = "la suite (x)";', "const t = 'it (x)';", '// describe("x")', 'a = 1; /* t.test("x", */ b = 2;', "if (/[\"'`]/.test(x)) {}", 'test("… describe ( …", () => {});'])
+    assert.ok(!aDesSousTests(s), s);
+  // Des sous-tests : du code, y compris dans un `${…}`, après une flèche, après une expression régulière ; les faux négatifs
+  // que la liste fermée des `/` ferme (`i++ / 2`, un gabarit divisé, `return /'/`).
+  for (const s of ['t.test("x", () => {});', "t.test(`x`, () => {});", 'describe("x", () => {});', 'it("x", () => {});', 'const s = `${ t.test("x") }`;', 'f(x => t.test("y", () => {}));', 'a = /"/.test(b) || t.test("y", () => {});', 'n = i++ / 2; await t.test("x", () => {}); m = k / 3;', 'const r = `a` / 2; await t.test("x", () => {}); q = b / c;', "function f() { return /'/.test(s) && t.test(\"x\", f); // '\n}", '// commentaire\rt.test("x", () => {});'])
+    assert.ok(aDesSousTests(s), s);
+  // Le doute : le banc se joue entier.
+  for (const s of ["const m = `pas fermé;", 'const m = "pas fermé;\nb = 1;', "const m = `${ x;"]) {
+    assert.equal(codeSeul(s), null, s);
+    assert.ok(aDesSousTests(s), s);
+  }
+});
+
+test("`codeSeul` garde la longueur, les fins de ligne et les délimiteurs, garde le code des `${…}`, et blanchit le texte", () => {
+  const cas = [
+    ["a = \"x(y)\"; b = 'z';", "a = \"    \"; b = ' ';"],
+    ['n = a / b; /* t.test("x" */ m = c / 2;', "n = a / b; /*            */ m = c / 2;"],
+    ['f(/[/"]\\//g, 1); // it("x")\rg();', "f(/      /g, 1); //        \rg();"],
+    ['s = `t ${ u("v") } w`;', 's = `  ${ u(" ") }  `;'],
+    ["x = `a${ `b${ c }d` }e`;", "x = ` ${ ` ${ c } ` } `;"],
+  ];
+  for (const [source, attendu] of cas) {
+    assert.equal(codeSeul(source), attendu, source);
+    assert.equal(codeSeul(source).length, source.length);
+  }
+});
+
+test("aucun banc posé du plugin n'est pris pour un banc à sous-tests, et aucun n'est dans le doute", () => {
+  const racine = fileURLToPath(new URL("..", import.meta.url));
+  const dossiers = ["skills/chaine/fusionner/scripts", "skills/chaine/sujet/scripts", "skills/chaine/revue-adversariale/scripts", "skills/chaine/revue-de-ticket/scripts", "skills/monorepo/socle-monorepo/references/scripts/docs", "skills/chaine/tickets/references/scripts/docs", "skills/chaine/tickets/references/scripts/verify", "skills/chaine/socle-chaine-de-production/references/scripts/github"];
+  let vus = 0;
+  for (const d of dossiers)
+    for (const n of readdirSync(join(racine, d)).filter((x) => x.endsWith(".test.mjs"))) {
+      const source = lire(join(racine, d, n), "utf8");
+      assert.notEqual(codeSeul(source), null, `${d}/${n} : dans le doute`);
+      assert.ok(!aDesSousTests(source), `${d}/${n} : pris pour un banc à sous-tests`);
+      vus++;
+    }
+  assert.ok(vus >= 20, `${vus} bancs lus`);
 });
 
 test("le motif d'une liste de noms est ancré et lit chaque caractère à la lettre", () => {
@@ -49,7 +91,7 @@ test("le motif d'une liste de noms est ancré et lit chaque caractère à la let
 });
 
 test("un banc court se joue entier ; un banc long en tranches de `taille` noms, plus une tranche de reste", () => {
-  assert.deepEqual(travaux("b.test.mjs", ["a", "b"], 2), [{ banc: "b.test.mjs", args: ["b.test.mjs"], noms: ["a", "b"], sorte: "entier" }]);
+  assert.deepEqual(travaux("b.test.mjs", ["a", "b"], 2), [{ banc: "b.test.mjs", args: ["b.test.mjs"], noms: ["a", "b"], sorte: "entier", poids: 2, borne: 300_000 }]);
   const t = travaux("b.test.mjs", ["a", "b", "c", "d", "e"], 2);
   assert.deepEqual(t.map((x) => [x.sorte, x.noms]), [["tranche", ["a", "b"]], ["tranche", ["c", "d"]], ["tranche", ["e"]], ["reste", ["a", "b", "c", "d", "e"]]]);
   assert.deepEqual(t[0].args, [`--test-name-pattern=${motif(["a", "b"])}`, "b.test.mjs"]);
@@ -62,6 +104,84 @@ test("un banc court se joue entier ; un banc long en tranches de `taille` noms, 
   // Deux tests de même nom répondent au même motif : ils vont ensemble dans une seule tranche.
   const doubles = travaux("b.test.mjs", ["a", "d", "b", "d"], 1);
   assert.deepEqual(doubles.map((x) => [x.sorte, x.noms]), [["tranche", ["a"]], ["tranche", ["d", "d"]], ["tranche", ["b"]], ["reste", ["a", "d", "b", "d"]]]);
+  // Le poids et la borne : une tranche de 10 (10, 600 000), une tranche de 3 (3, 300 000, la borne minimale).
+  const dix = Array.from({ length: 13 }, (_, i) => `n${i}`);
+  const grand = travaux("b.test.mjs", dix, 10);
+  assert.deepEqual(grand.map((x) => [x.sorte, x.poids, x.borne]), [["tranche", 10, 600_000], ["tranche", 3, 300_000], ["reste", 1, 300_000]]);
+  // Un banc entier de 18 noms (18, 1 080 000) ; sans nom lu (1, 300 000).
+  const dixHuit = travaux("b.test.mjs", Array.from({ length: 18 }, (_, i) => `n${i}`), 1, { entier: true });
+  assert.deepEqual([dixHuit[0].poids, dixHuit[0].borne], [18, 1_080_000]);
+  const aucun = travaux("b.test.mjs", [], 5, { entier: true });
+  assert.deepEqual([aucun[0].poids, aucun[0].borne], [1, 300_000]);
+  // Le reste pèse les lignes `test(` de la source moins les noms lus : deux lignes non lues (2), puis aucune (1).
+  const noms = ["a", "b", "c"];
+  const deuxNonLues = 'test("a", f);\ntest("b", f);\ntest("c", f);\ntest(nom1, f);\ntest(nom2, f);\n  test("retrait", f);\n';
+  assert.equal(travaux("b.test.mjs", noms, 2, { source: deuxNonLues }).at(-1).poids, 2);
+  assert.equal(travaux("b.test.mjs", noms, 2, { source: 'test("a", f);\ntest("b", f);\ntest("c", f);\n' }).at(-1).poids, 1);
+  assert.equal(travaux("b.test.mjs", noms, 2, { source: deuxNonLues }).at(-1).borne, 300_000);
+});
+
+test("`ordre` : les plus lourds d'abord, tous bancs confondus ; à poids égal, l'ordre reçu", () => {
+  const w = (banc, sorte, poids) => ({ banc, sorte, poids, borne: 300_000 });
+  const recue = [w("a", "tranche", 10), w("a", "reste", 1), w("b", "entier", 18), w("c", "tranche", 3), w("a", "tranche", 3)];
+  const copie = [...recue];
+  assert.deepEqual(ordre(recue).map((x) => [x.banc, x.sorte, x.poids]), [["b", "entier", 18], ["a", "tranche", 10], ["c", "tranche", 3], ["a", "tranche", 3], ["a", "reste", 1]]);
+  assert.deepEqual(recue, copie, "la liste reçue n'est pas modifiée");
+});
+
+test("`pireCas` : la somme des bornes sur `parallele`, plus la plus grande", () => {
+  const liste = [300_000, 300_000, 600_000, 1_080_000].map((borne) => ({ borne }));
+  assert.equal(pireCas(liste, 2), 2_220_000);
+});
+
+const t = (banc, sorte, poids, borne) => ({ banc, sorte, poids, borne });
+test("`recit`, `bilan` et `conclure` : un travail tué nomme sa borne, le plafond atteint rougit et le dit, le bilan est rendu en vert comme en rouge", () => {
+  const liste = [t("a.test.mjs", "tranche", 10, 600_000), t("b.test.mjs", "entier", 18, 1_080_000), t("c.test.mjs", "reste", 1, 300_000), t("d.test.mjs", "entier", 2, 300_000)];
+  const ok = (ms, noms = ["x"]) => ({ code: 0, signal: null, tue: false, ms, sortie: "", noms });
+  const resultats = [ok(540_000), ok(108_000), ok(30_000), ok(150_000)];
+  const lignes = bilan(liste, resultats, { parallele: 2, duree: 900_000 });
+  assert.deepEqual(lignes, [
+    "poses : 4 travaux, 2 à la fois, 900.0 s sur un plafond de 1800 s (50.0 %), pire cas 2220.0 s",
+    "a.test.mjs (tranche, 10 tests) : 540.0 s sur 600 s, marge 10.0 %",
+    "d.test.mjs (entier, 2 tests) : 150.0 s sur 300 s, marge 50.0 %",
+    "b.test.mjs (entier, 18 tests) : 108.0 s sur 1080 s, marge 90.0 %",
+  ]);
+  // Un travail tué nomme sa borne ; un autre, sa sortie.
+  const tue = { code: null, signal: "SIGKILL", tue: true, ms: 600_000, sortie: "a\nb", t: liste[0], noms: [] };
+  assert.match(recit(tue), /^── a\.test\.mjs \(tranche, tué à sa borne de 600 s\)/);
+  const echec = { code: 1, signal: null, tue: false, ms: 5, sortie: "ok 1\nnot ok 2 - cassé\n  ✖ cassé", t: liste[2], noms: [] };
+  assert.match(recit(echec), /^── c\.test\.mjs \(reste, sortie 1\)\nnot ok 2 - cassé\n {2}✖ cassé/);
+  // Vert : aucune faute, le bilan rendu.
+  const reel = travaux("e.test.mjs", ["a", "b"], 5);
+  const vert = conclure(reel, [ok(1_000, ["a", "b"])], { parallele: 2, duree: 1_000, depasse: false, plancher: 2 });
+  assert.deepEqual(vert.fautes, []);
+  assert.equal(vert.diagnostics.length, 2);
+  // Un échec : sa faute et le bilan quand même.
+  const rouge = conclure(reel, [{ ...tue, t: reel[0] }], { parallele: 2, duree: 300_000, depasse: false, plancher: 0 });
+  assert.ok(rouge.fautes.some((f) => f.startsWith("── e.test.mjs (entier, tué à sa borne de 300 s)")), rouge.fautes.join("\n"));
+  assert.equal(rouge.diagnostics.length, 2);
+  // Le plafond atteint : sa faute dit les travaux non joués.
+  const plafond = conclure(liste, [ok(1_000), undefined, undefined, undefined], { parallele: 2, duree: 1_800_000, depasse: true, plancher: 0 });
+  assert.ok(plafond.fautes.includes("poses a atteint son plafond de 1800 s : 3 travaux non joués ; découper (un banc trop lourd, ou TAILLE)"), plafond.fautes.join("\n"));
+  assert.match(plafond.diagnostics[0], /100\.0 %/);
+});
+
+test("`lancer` : un travail tué se résout à sa borne, même quand un petit-enfant tient ses flux, et son groupe est mort", async () => {
+  const script = "const { spawn } = require('node:child_process'); const e = spawn('sleep', ['6'], { stdio: 'inherit' }); console.log(e.pid); setInterval(() => {}, 1000);";
+  const debut = Date.now();
+  const r = await lancer(["-e", script], { cwd: tmpdir(), env: { PATH: process.env.PATH }, borne: 1_000 });
+  assert.equal(r.tue, true);
+  assert.ok(Date.now() - debut < 3_000, `résolue en ${Date.now() - debut} ms`);
+  const pid = Number(r.sortie.split("\n")[0]);
+  assert.ok(pid > 0, r.sortie);
+  await new Promise((fin) => setTimeout(fin, 300));
+  const stat = `/proc/${pid}/stat`;
+  assert.ok(!existsSync(stat) || /^\d+ \(.*\) Z/.test(lire(stat, "utf8")), "le petit-enfant est mort");
+  // Un travail qui finit seul : sortie complète, pas tué.
+  const fini = await lancer(["-e", "console.log('a'); console.error('b');"], { cwd: tmpdir(), env: { PATH: process.env.PATH }, borne: 30_000 });
+  assert.equal(fini.tue, false);
+  assert.equal(fini.code, 0);
+  assert.deepEqual(fini.sortie.split("\n").sort(), ["a", "b"]);
 });
 
 test("la couverture : chaque nom lu a tourné exactement une fois, dans sa tranche ; le reste ne rejoue aucun nom lu", () => {
