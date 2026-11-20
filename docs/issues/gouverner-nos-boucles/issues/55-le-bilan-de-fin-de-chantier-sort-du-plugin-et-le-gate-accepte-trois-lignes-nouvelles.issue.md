@@ -1,6 +1,6 @@
 # Le bilan de fin de chantier sort du plugin, et le gate `tickets` juge la forme de trois écritures nouvelles sans les exiger : la ligne `Sensibles:`, la ligne `Relecture: double`, le rôle `relecture` d'une ligne de coût ; il accepte `Règles: —`
 
-Status: ready-for-agent
+Status: Fait — PR 141 (`860cd9c`, plugin 7.37.0)
 Type: task
 Label: contre-revue
 Modèle: opus — les sessions tournent sur Opus jusqu'au 2026-11-22. Une obligation retirée du gate, deux lecteurs de ligne donnés entiers avec leur banc, `Règles: —` accepté, le lecteur d'un banc retouché, quarante et un blocs donnés mot pour mot (ancien, nouveau), une version et une note communes avec le ticket 57 ; tout est joué sur une copie jetable de `main` où la PR 138 est entrée, mutations comprises (voir « Vérification »). Rien à concevoir : qui veut changer une décision l'écrit à son lanceur. Ce ticket part dans une même PR que le ticket 57 : « Dans la même PR que le ticket 57 ».

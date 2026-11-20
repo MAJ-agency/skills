@@ -1,6 +1,6 @@
 # Une sous-PR à la fois par sujet : le capitaine le tient, qui tient le sujet le garde, le conducteur ne retire plus l'étiquette
 
-Status: ready-for-agent
+Status: Fait — PR 141 (`860cd9c`, plugin 7.37.0)
 Type: task
 Label: contre-revue
 Modèle: sonnet — `traiter_sujets` récrite, les retouches de `veille.sh`, les cas des bancs, les textes des skills, le test de dépôt et la note de version sont donnés mot pour mot (Décisions 10 à 12, annexes A à F) et ont été joués sur un clone neuf d'`origin/main` à `988a6c3`, puis sur l'arbre de la PR 138 (ticket 54). Rien à concevoir : qui veut changer une décision l'écrit à son lanceur, il ne tranche pas. Si `main` a touché `traiter_sujets`, `veille.sh`, le verrou du passage (`github.sh`) ou les sorties de `sujet.sh` depuis `988a6c3`, la Décision 13 dit quoi faire ; si la PR 138 est entrée (c'est attendu), « Si le ticket 54 est entré avant » ; ce ticket part dans une même PR que le ticket 55, « Dans la même PR que le ticket 55 ».
