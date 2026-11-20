@@ -1150,3 +1150,7 @@ La session de suite fait, dans cet ordre :
   - La PR est clean et ses quatre contrôles sont verts, relu à la source.
   - Sur la PR : le verdict `conforme`, qui note les deux mineurs laissés, l'ordre et le label. Le capitaine et la session sont prévenus.
   - Le premier tour ne portait aucun constat de code, donc aucun second tour : `P-65` prévoit deux tours au plus, et rien n'a changé à relire.
+- 2026-11-20 — 11 h 36 UTC. **La PR 145 est fusionnée (`5bf4f39`, plugin 7.37.3) : le ticket 65 est fait.**
+  - Vérifié : l'arbre de `main` (`3df36b3…`) est celui du sommet ordonné `2d563fd`, et son parent est `4cd047f`.
+  - Le ticket est passé à « Fait » et sa session est archivée.
+  - Le ticket 66 (lot 4) est en cours d'écriture, 1 647 lignes au commit `a1b9f64`.
