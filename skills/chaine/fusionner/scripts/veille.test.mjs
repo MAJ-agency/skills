@@ -213,6 +213,54 @@ test("jobs rouges relancés par la boucle, de nouveau rouges à la sonde : boucl
   assert.equal(r.lancements, 2);
 });
 
+// Ticket 57 de gouverner-nos-boucles (A-104, A-142) : une sous-PR qui attend son tour reste « prête », la même ligne de
+// sonde en sonde ; celle qui tient son sujet peut quitter la file sans qu'aucune ligne n'apparaisse (étiquette retirée,
+// `fusion-bloquée`, fermée). La sonde suit donc l'état de celle qui tient le sujet.
+test("sous-PR qui attend son tour dans son sujet : un second regard à la sonde suivante, puis une relance chaque fois que celle qui tient le sujet change d'état ou quitte la file ; plus aucune quand celle qui attendait a quitté la file", () => {
+  const file = (etat80, attente = true) => `${etat80 === null ? "" : `80\t${etat80}\t\n`}${attente ? "81\tsujet/lot : prête\t\n" : ""}`;
+  const attend = "[#81] attend son tour : #80 passe d'abord dans sujet/lot\n";
+  const enCours = file("sujet/lot : CI en cours");
+  // Lecture initiale, puis cinq sondes : second regard, rien (même état), #80 bloquée, rien, #80 hors de la file.
+  const etats = [enCours, enCours, enCours, file("bloquée"), file("bloquée"), file(null)];
+  const r = veilleJouet(etats, { sorties: [attend, attend, attend, attend], sondes: 5 });
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(r.lancements, 4, r.stdout);
+  for (const etat of ["sujet\\/lot : CI en cours", "bloquée", "hors de la file"])
+    assert.match(r.stdout, new RegExp(`file à traiter \\(81 attend #80 \\(${etat}\\)\\), boucle relancée`));
+  // La boucle ne dit plus que #81 attend (elle l'a prise, ou #81 a quitté la file) : plus aucune relance.
+  assert.equal(veilleJouet(etats, { sorties: [attend, ""], sondes: 5 }).lancements, 2);
+  // Témoin : sans la ligne de la boucle, la même file ne relance rien.
+  assert.equal(veilleJouet(etats, { sondes: 5 }).lancements, 1);
+  // #81, qui attendait, quitte la file ; #80 change ensuite d'état : plus rien n'attend, rien n'est relancé.
+  const partie = [enCours, enCours, file("sujet/lot : CI en cours", false), file("bloquée", false)];
+  assert.equal(veilleJouet(partie, { sorties: [attend, attend], sondes: 3 }).lancements, 2);
+});
+
+// Ticket 57 (A-142) : un sujet tenu par une sous-PR en passage chez un autre capitaine. Si ce capitaine est mort, son
+// verrou expire sans que rien ne change dans la file : la veille lit la date du verrou dans la ligne de la boucle.
+test("sujet tenu par le verrou d'un autre capitaine : la boucle est relancée une fois quand ce verrou a expiré (sa date a plus de 95 minutes), pas avant, et pas deux fois pour la même date", () => {
+  const ilYA = (minutes) => new Date(Date.now() - minutes * 60_000).toISOString().replace(/\.\d+Z$/, "Z");
+  const tenu = (n, geste, date) => `[sujet/lot-${n}] tenu par #${n} (sortie 7 de ${geste}, verrou du ${date})\n`;
+  const file = [prete(80) + prete(82)];
+  const lancements = (...sorties) => veilleJouet(file, { sorties, sondes: 3 });
+  // Expiré : une relance. La boucle retrouve le même verrou à la même date : la veille ne relance plus pour lui.
+  const expire = ilYA(96);
+  const r = lancements(tenu(80, "fusionner", expire), tenu(80, "fusionner", expire));
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(r.lancements, 2, r.stdout);
+  assert.match(r.stdout, /^VEILLE \d\d:\d\d : verrou d'un autre capitaine expiré \(sa date a plus de 95 min\), boucle relancée$/m);
+  // Le verrou d'un passage de `relancer` se lit de même.
+  assert.equal(lancements(tenu(82, "relancer", expire), "").lancements, 2);
+  // Pas avant : 90 minutes passées, mais pas la marge de 5 ; ni un verrou récent ; ni une sortie 7 sans verrou.
+  assert.equal(lancements(tenu(80, "fusionner", ilYA(92))).lancements, 1);
+  assert.equal(lancements(tenu(80, "fusionner", ilYA(10))).lancements, 1);
+  assert.equal(lancements("[sujet/lot-80] tenu par #80 (sortie 7 de fusionner)\n").lancements, 1);
+  // Deux verrous : le premier à expirer relance la boucle.
+  assert.equal(lancements(tenu(80, "fusionner", ilYA(10)) + tenu(82, "fusionner", expire), "").lancements, 2);
+  // Le capitaine a rafraîchi son verrou entre deux tours (une autre date), qui expire à son tour : une relance de plus.
+  assert.equal(lancements(tenu(80, "fusionner", ilYA(97)), tenu(80, "fusionner", expire), tenu(80, "fusionner", expire)).lancements, 3);
+});
+
 test("PR sautée par la boucle, renvoi d'une autre : pas de relance en rond", () => {
   const r = veilleJouet([prete(32), prete(32), prete(32)], {
     sorties: ["[#32] DÉBUT 11:53\n[#32] sortie=7 11:53\n[#40] RENVOI : conflit\n"],
@@ -226,6 +274,11 @@ test("les lignes que la veille lit sont celles qu'écrivent renvoyer.sh et boucl
   const lire = (f) => readFileSync(new URL(`./${f}`, import.meta.url), "utf8");
   assert.ok(lire("renvoyer.sh").includes('echo "[#$N] RENVOI : '));
   assert.ok(lire("boucle.sh").includes('echo "[#$n] RELANCE des jobs rouges'));
+  // Ticket 57 : la sous-PR qui attend son tour, et le sujet tenu avec la date du verrou d'un autre capitaine.
+  assert.ok(lire("boucle.sh").includes(`echo "[#$n] attend son tour : #\${par%% *} passe d'abord dans $tient"`));
+  assert.ok(lire("boucle.sh").includes('echo "[$tient] tenu par #$n (${geste:-CI en cours})"'));
+  assert.ok(lire("boucle.sh").includes('geste="sortie $rc de fusionner"') && lire("boucle.sh").includes('geste="sortie $rc de relancer"'));
+  assert.ok(lire("boucle.sh").includes(`printf ', verrou du %s' "\${BASH_REMATCH[1]}"`));
 });
 
 // --- Préparation du capitaine (`preparerCapitaine`) et échéance (limite de 2 h d'une tâche de fond) ---

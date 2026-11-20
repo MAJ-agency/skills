@@ -4,4 +4,4 @@ Le skill n'a aucun script à lui. Il exécute `docs/agents/chaine-de-production.
 
 Ce qui le rend reprenable : la ligne `Phase:` de la carte du chantier, poussée à chaque changement. Une session neuve relancée avec le nom du sujet lit la fiche et repart de là, sans relire la conversation.
 
-Ce qui vient du projet : le nombre de filles par vague et les chemins sensibles de `.claude/chaine.json`, le format des tickets de `tickets`, la méthode de grilling de `docs/methode/grilling.md` (par les skills de Matt Pocock), le fichier `docs/agents/pieges.md` que la rétro alimente.
+Ce qui vient du projet : le nombre de filles par vague et les chemins sensibles de `.claude/chaine.json`, le format des tickets de `tickets`, la méthode de grilling de `docs/methode/grilling.md` (par les skills de Matt Pocock), le fichier `docs/agents/pieges.md`, où un incident sans gate reçoit sa ligne au moment où il arrive.

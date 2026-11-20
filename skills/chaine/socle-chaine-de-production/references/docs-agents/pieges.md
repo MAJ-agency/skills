@@ -1,6 +1,6 @@
 # Pièges connus (chaque ligne a coûté au moins une demi-journée)
 
-La rétro d'un chantier (skill `chantier` § 7) ajoute ici une ligne par incident qui n'a pas encore son gate. Un piège vécu deux fois sans gate est une dette.
+Un incident qui n'a pas encore son gate reçoit ici sa ligne au moment où il arrive, avec son ticket (skill `chantier` § 7) : il n'y a pas de bilan de fin de chantier. Un piège vécu deux fois sans gate est une dette.
 
 ## Dépôt, branches, worktrees
 

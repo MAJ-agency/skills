@@ -2,12 +2,14 @@
 
 Status: ready-for-agent
 Type: task # task | défaut | grilling | research — obligatoire, vérifié par le gate
-Règles: {{RULE_ALL_<TRI>-<n>, RULE_<CTX>_<TRI>-<n> — les règles que le ticket réalise ou corrige, par leur identifiant complet ; ou retirer la ligne}}
+Règles: {{RULE_ALL_<TRI>-<n>, RULE_<CTX>_<TRI>-<n> — les règles que le ticket réalise ou corrige, par leur identifiant complet ; `—` seul s'il n'en réalise aucune ; ou retirer la ligne}}
 Sujet: sujet/{{nom}}
 Blocked by: {{NN, NN — ou retirer la ligne}}
 Modèle: sonnet
 Fichiers chauds: `{{chemin}}`, `{{chemin}}` — ou `—`
 Label: contre-revue # obligatoire quand `Fichiers chauds` touche `cheminsSensibles` (le gate `tickets` le vérifie) — sinon retirer la ligne
+Sensibles: `{{chemin ou motif}}`, `{{chemin ou motif}}` — accord de {{la personne qui a accordé}}, {{AAAA-MM-JJ}} # les chemins sensibles que le ticket modifie et l'accord donné avant, ou `—` s'il n'en modifie aucun ; le gate `tickets` juge la forme sans exiger la ligne ; aucune garde ne la lit encore — ou retirer la ligne
+Relecture: double # deux relectures indépendantes, pour un ticket qui touche une règle de criticité haute ; seule valeur acceptée par le gate `tickets`, qui n'exige pas la ligne ; sans effet pour l'instant — sinon retirer la ligne
 Dépendances: `{{paquet}}`, `{{paquet}}` — ou `—`
 Maquette: {{fichier du dépôt : maquette HTML et section, ou planche recopiée sous docs/design/planches/ — jamais un artefact seul, la fille ne peut pas l'ouvrir}} — ou retirer la ligne si le ticket ne touche aucun écran
 

@@ -200,3 +200,19 @@ test('gate complet : une fille au-delà du plafond sans dépassement écrit est 
   const sans = depotJouet({ fichiers: { ...DETTE, [carte]: cout() } });
   assert.equal(lancer(sans).status, 0);
 });
+
+test('gate complet : `Sensibles:` ou `Relecture:` mal formée est refusée avec le chemin et la ligne ; bien formées, avec `Règles: —`, le ticket passe ; une carte `fini` sans `## Rétro`, avec une session de relecture, passe', () => {
+  const ticket = 'docs/features/socle/all/issues/SPEC_ALL_SOC-1-socle.01.issue.md';
+  const corps = (enTete) => `# x\n\nStatus: needs-triage\nType: task\n${enTete}`;
+  const carte = 'docs/features/socle/all/SPEC_ALL_SOC-1-socle.map.md';
+  const finie =
+    '# Carte\n\nSujet: sujet/socle\n\n## Fiche\n\nPhase: fini\nResponsable: Camille Martin\nConducteur: session_z\n\n## Coût\n\n| Rôle | Ticket | Session | Modèle | Contexte max | Coût $ |\n| --- | --- | --- | --- | --- | --- |\n| relecture | SPEC_ALL_SOC-1.01 | session_r | sonnet | 900 k | 2,00 |\n';
+  const ok = depotJouet({ fichiers: { ...DETTE, '.claude/chaine.json': '{}\n', [carte]: finie, [ticket]: corps('Sensibles: scripts/chaine/passer.sh, scripts/agent/** — accord de Camille Martin, 2026-11-18\nRelecture: double\nRègles: —\n') } });
+  const r = lancer(ok);
+  assert.equal(r.status, 0, r.stderr);
+  const ko = depotJouet({ fichiers: { ...DETTE, [ticket]: corps('Sensibles: scripts/chaine/passer.sh\nRelecture: triple\n') } });
+  const r2 = lancer(ko);
+  assert.equal(r2.status, 1);
+  assert.match(r2.stderr, /SPEC_ALL_SOC-1-socle\.01\.issue\.md:5 : Sensibles « scripts\/chaine\/passer\.sh » : attendu `—`, ou des chemins/);
+  assert.match(r2.stderr, /SPEC_ALL_SOC-1-socle\.01\.issue\.md:6 : Relecture « triple » : seule valeur `double`/);
+});

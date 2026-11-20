@@ -9,6 +9,8 @@ const {
   migrationsReservees,
   reservationsEnDouble,
   ecartsFormatPret,
+  ecartsRelecture,
+  ecartsSensibles,
   estArchive,
   ficheNommeResponsableEtConducteur,
   identifiant,
@@ -64,13 +66,15 @@ test('identifiants en double : deux specs, ou un ticket au nom d’une autre spe
   assert.deepEqual(identifiantsEnDouble(['docs/a/all/SPEC_ALL_SOC-1-socle.spec.md', 'docs/a/all/SPEC_ALL_SOC-1-socle.map.md', 'docs/a/all/issues/SPEC_ALL_SOC-1-socle.01.issue.md']), []);
 });
 
-test('carte de chantier : fiche, phase, responsable et conducteur, coût dès la vague 1, rétro à fini', () => {
+test('carte de chantier : fiche, phase, responsable et conducteur, coût dès la vague 1 ; à fini, aucune section `## Rétro` n’est exigée', () => {
   const carte = (phase, extra = '') => controlerCarte({ nom: 'SPEC_ALL_SOC-1-socle.map.md', texte: `# Carte\n\nSujet: sujet/socle\n\n## Fiche\n\nPhase: ${phase}\nResponsable: Camille Martin\nConducteur: session_y\n${extra}` });
   assert.deepEqual(carte('1-grilling').erreurs, [], 'sans programme, la ligne `Architecte:` est facultative');
   assert.deepEqual(carte('2-decoupage', 'Architecte: session_x\n').erreurs, []);
   assert.match(carte('4-vague-1').erreurs[0].message, /Coût/);
   assert.deepEqual(carte('4-vague-2', '\n## Coût\n\n| a |\n').erreurs, []);
-  assert.match(carte('fini', '\n## Coût\n\n| a |\n').erreurs[0].message, /Rétro/);
+  assert.deepEqual(carte('fini', '\n## Coût\n\n| a |\n').erreurs, [], 'le bilan de fin de chantier est supprimé : `fini` sans `## Rétro` passe');
+  assert.deepEqual(carte('fini', '\n## Coût\n\n| a |\n\n## Rétro\n\nRien.\n').erreurs, [], 'une carte d’avant garde sa section, sans effet');
+  assert.match(carte('fini').erreurs[0].message, /Coût/, '`## Coût` reste exigée à `fini`');
   assert.match(carte('7-x').erreurs[0].message, /hors vocabulaire/);
   assert.equal(controlerCarte({ nom: 'x.map.md', texte: '# sans sujet\n' }).carte, false);
 });
@@ -168,6 +172,112 @@ test("un ticket prêt sur un chemin sensible sans `Label: contre-revue` est refu
   assert.deepEqual(controlerTicket({ nom: NOM, texte: sur('`packages/contracts/src/auth.ts`'), existe, gele: true, cheminsSensibles: SENSIBLES }).erreurs, []);
 });
 
+const ACCORD = 'accord de Camille Martin, 2026-11-18';
+
+test('Sensibles: `—`, ou des chemins puis l’accord (nom, date), passe ; toute autre forme est refusée, en temps borné', () => {
+  for (const v of [
+    '—',
+    '— # aucun chemin sensible',
+    `\`scripts/chaine/passer.sh\`, \`scripts/chaine/passer*.test.mjs\` — ${ACCORD}`,
+    `scripts/agent/**, .claude/chaine.json — ${ACCORD}`,
+    'apps/api/src/paiement/ — accord de Martin, Camille, 2026-11-18 # un dossier qu’un ticket précédent rend sensible',
+  ])
+    assert.deepEqual(ecartsSensibles(v), [], v);
+  const FORME = /^Sensibles « .* » : attendu `—`, ou des chemins séparés par des virgules puis ` — accord de <nom>, <AAAA-MM-JJ>`$/;
+  for (const v of ['', 'scripts/chaine/passer.sh', 'scripts/chaine/passer.sh, scripts/agent/regles.mjs', 'scripts/chaine/passer.sh — accord de Camille Martin', `— ${ACCORD}`, `scripts/chaine/passer.sh - ${ACCORD}`, `scripts/chaine/passer.sh —  ${ACCORD}`, '— —', '—#x' /* A-161 (6) : un `#` collé n'est pas un commentaire */]) {
+    const e = ecartsSensibles(v);
+    assert.equal(e.length, 1, v);
+    assert.match(e[0], FORME, v);
+  }
+  const refus = [
+    ['scripts/chaine/passer.sh — accord de Camille Martin, 18/11/2026', /date « 18\/11\/2026 »/],
+    ['scripts/chaine/passer.sh — accord de Camille Martin, 2026-02-30', /date « 2026-02-30 »/],
+    ['scripts/chaine/passer.sh — accord de session_01Abc, 2026-11-18', /accord de « session_01Abc » : attendu la personne qui a accordé/],
+    ['scripts/chaine/passer.sh — accord de <nom>, 2026-11-18', /accord de « <nom> »/],
+    [`\`{{chemin ou motif}}\` — ${ACCORD}`, /n'est pas un chemin/],
+    [`scripts/chaine/passer.sh,, scripts/agent/regles.mjs — ${ACCORD}`, /«  » n'est pas un chemin/],
+    [`/scripts/chaine/passer.sh — ${ACCORD}`, /« \/scripts\/chaine\/passer\.sh » n'est pas un chemin/],
+    [`scripts/../.claude/chaine.json — ${ACCORD}`, /n'est pas un chemin/],
+    [`scripts/chaine/mon script.sh — ${ACCORD}`, /« scripts\/chaine\/mon script\.sh » n'est pas un chemin/],
+    [`scripts/chaine/passer.sh, — — ${ACCORD}`, /« — » n'est pas un chemin/],
+    // Retouches A-156 (relecture du ticket 55) : une accolade sans blanc (C3, K2), puis ce que la décision 3 dit
+    // refuser et que la grammaire laissait passer (C4) : `\`, `~`, un accord sans personne, un identifiant ou une URL
+    // de session, deux accords, une date hors de l'ère de la chaîne.
+    [`{{chemin}} — ${ACCORD}`, /« \{\{chemin\}\} » n'est pas un chemin/],
+    [`scripts\\..\\.claude\\chaine.json — ${ACCORD}`, /n'est pas un chemin/],
+    [`C:\\x — ${ACCORD}`, /« C:\\x » n'est pas un chemin/],
+    [`~/x — ${ACCORD}`, /« ~\/x » n'est pas un chemin/],
+    ['scripts/chaine/passer.sh — accord de —, 2026-11-18', /accord de « — » : attendu la personne qui a accordé/],
+    ['scripts/chaine/passer.sh — accord de Session_01Abc, 2026-11-18', /accord de « Session_01Abc » : attendu la personne qui a accordé/],
+    ['scripts/chaine/passer.sh — accord de https://claude.ai/code/session_01Abc, 2026-11-18', /attendu la personne qui a accordé/],
+    ['scripts/chaine/passer.sh — accord de Camille Martin — accord de Paul Durand, 2026-11-18', /attendu la personne qui a accordé/],
+    ['scripts/chaine/passer.sh — accord de Camille Martin, 0000-01-01', /date « 0000-01-01 »/],
+    ['scripts/chaine/passer.sh — accord de Camille Martin, 9999-12-31', /date « 9999-12-31 »/],
+    // A-161 (5) : un nom fait de seuls tirets ou ponctuation, `session_` où qu'il soit dans le nom, une URL.
+    // A-165 (2, 3) : un nom de seuls symboles (`~`, `−`), ou qui porte un caractère invisible ou une espace Unicode.
+    ...['-', '–', '?', 'la MOA session_01AbC', 'la MOA (session_01AbC)', 'x,session_01AbC', 'https://claude.ai/code/01AbCdEfGhIj', '~', '−'].map((nom) => [
+      `scripts/chaine/passer.sh — accord de ${nom}, 2026-11-19`,
+      /attendu la personne qui a accordé, pas un identifiant de session ni un gabarit/,
+    ]),
+    // A-170 : un caractère invisible ou une espace Unicode reçoit son propre message, qui dit la cause ; U+200C et
+    // U+200D (antiliant, liant) restent refusés : un nom s'écrit sans eux.
+    ...['\u200b', 'Camille\u200bMartin', 'Camille\u00a0Martin', 'Camille\u2009Martin', '\u2060', 'Camille\u200cMartin', 'Camille\u200dMartin'].map((nom) => [
+      `scripts/chaine/passer.sh — accord de ${nom}, 2026-11-19`,
+      /accord de « .* » : nom d'accord avec un caractère invisible ou une espace autre que l'espace ordinaire$/su,
+    ]),
+  ];
+  for (const [v, motif] of refus) {
+    const e = ecartsSensibles(v);
+    assert.equal(e.length, 1, `${v} : ${e.join(' | ')}`);
+    assert.match(e[0], motif, v);
+  }
+  assert.equal(ecartsSensibles('/a, b c — accord de session_x, 2026-13-01').length, 4, 'chaque écart est rendu');
+  const debut = performance.now();
+  ecartsSensibles(`${'a, '.repeat(100_000)}b — ${ACCORD}`);
+  ecartsSensibles(`${' \t'.repeat(150_000)}x`);
+  ecartsSensibles(`a${' — accord de '.repeat(20_000)}x, 2026-11-18`);
+  assert.ok(performance.now() - debut < 2000, 'trois valeurs hostiles de 300 000 caractères lues en moins de 2 s');
+});
+
+test('Relecture: `double` passe ; toute autre valeur est refusée, la valeur nommée', () => {
+  for (const v of ['double', 'double # règle de criticité haute']) assert.deepEqual(ecartsRelecture(v), [], v);
+  for (const v of ['', 'simple', 'Double', 'double double', 'doubles', '2', 'oui', 'double#x' /* A-161 (6) */]) {
+    const e = ecartsRelecture(v);
+    assert.equal(e.length, 1, v);
+    assert.match(e[0], /^Relecture « .* » : seule valeur `double` ; sinon retirer la ligne$/, v);
+  }
+});
+
+test('`Sensibles:` et `Relecture:` ne se lisent que dans l’en-tête, ne sont jamais exigées, et `Label: contre-revue` reste exigé à côté d’elles', () => {
+  const avec = (enTete) => PRET.replace('Modèle: sonnet\n', `Modèle: sonnet\n${enTete}`);
+  assert.deepEqual(controlerTicket({ nom: NOM, texte: PRET, existe }).erreurs, [], 'absentes : rien n’est exigé');
+  assert.deepEqual(controlerTicket({ nom: NOM, texte: avec('Sensibles: —\nRelecture: double\n'), existe }).erreurs, []);
+  assert.deepEqual(controlerTicket({ nom: NOM, texte: avec(`Sensibles: scripts/chaine/passer.sh — ${ACCORD}\r\nRelecture: double\r\n`), existe }).erreurs, [], 'CRLF');
+  assert.deepEqual(controlerTicket({ nom: NOM, texte: avec('Relecture: triple\r\n'), existe }).erreurs.map((e) => e.ligne), [7], 'CRLF, mal formée');
+  const ko = controlerTicket({ nom: NOM, texte: avec('Sensibles: scripts/chaine/passer.sh\nRelecture: triple\n'), existe });
+  assert.deepEqual(ko.erreurs.map((e) => [e.ligne, e.message.split(' ')[0]]), [[7, 'Sensibles'], [8, 'Relecture']]);
+  // Toutes les formes que lit le calcul « double relecture exigée » sont jugées, chaque ligne de l'en-tête.
+  const formes = controlerTicket({ nom: NOM, texte: avec('- Relecture: triple\n**Sensibles:** scripts/chaine/passer.sh\n* relecture : simple\nRelecture: double\nRelecture: Double\n-\tRelecture: triple\nSensibles: a\nSENSIBLES: a\n'), existe });
+  // Retouches A-156 (C3 : K13, K8, K14) : une puce suivie d'une tabulation, une seconde ligne `Sensibles:`, la clé en capitales.
+  assert.deepEqual(formes.erreurs.map((e) => e.ligne), [7, 8, 9, 11, 12, 13, 14]);
+  assert.deepEqual(controlerTicket({ nom: NOM, texte: avec('- **Relecture:** double\nsensibles: —\n'), existe }).erreurs, [], 'puce, gras, casse de la clé');
+  // Revue de ticket (S19) : les clés voisines ne sont pas lues ; la ligne en dernière ligne, sans fin de ligne, l'est.
+  assert.deepEqual(controlerTicket({ nom: NOM, texte: avec('Relectures: triple\nSensibles chauds: x\nRelecture triple\n'), existe }).erreurs, [], 'clés voisines');
+  assert.deepEqual(controlerTicket({ nom: NOM, texte: '# x\n\nStatus: needs-triage\nType: task\nRelecture: triple', existe }).erreurs.map((e) => e.ligne), [5], 'dernière ligne sans fin de ligne');
+  assert.deepEqual(controlerTicket({ nom: NOM, texte: '# x\n\nStatus: needs-triage\nType: task\r\nSensibles: a\r\n', existe }).erreurs.map((e) => e.ligne), [5], 'CRLF partout');
+  // Dans le corps (un exemple cité par le ticket), la ligne n'est pas lue.
+  assert.deepEqual(controlerTicket({ nom: NOM, texte: `${PRET}\nSensibles: scripts/chaine/passer.sh\nRelecture: triple\n`, existe }).erreurs, []);
+  // Un ticket qui n'est pas prêt, ou gelé dans la dette, est jugé de même : la forme vaut pour tout ticket.
+  assert.equal(controlerTicket({ nom: NOM, texte: '# x\n\nStatus: needs-triage\nType: task\nRelecture: simple\n', existe }).erreurs.length, 1);
+  assert.equal(controlerTicket({ nom: NOM, texte: '# x\n\nStatus: ready-for-agent\nType: task\nSensibles: a\n', existe, gele: true }).erreurs.length, 1);
+  // `Label: contre-revue` reste exigé sur un chemin sensible : `Sensibles:` ne le remplace pas.
+  const accorde = `Sensibles: apps/api/src/infrastructure/auth/jwt.ts — ${ACCORD}\n`;
+  const sans = controlerTicket({ nom: NOM, texte: sur('`apps/api/src/infrastructure/auth/jwt.ts`', accorde), existe, cheminsSensibles: SENSIBLES });
+  assert.equal(sans.erreurs.length, 1);
+  assert.match(sans.erreurs[0].message, /ready-for-agent : ligne `Label: contre-revue` absente/);
+  assert.deepEqual(controlerTicket({ nom: NOM, texte: sur('`apps/api/src/infrastructure/auth/jwt.ts`', `Label: contre-revue\n${accorde}`), existe, cheminsSensibles: SENSIBLES }).erreurs, []);
+});
+
 test('les chemins chauds se lisent entre accents graves ou en liste, et un motif `**/` accepte zéro dossier', () => {
   assert.deepEqual(cheminsChauds('`a/b.ts`, `c/*` — raison'), ['a/b.ts', 'c/*']);
   assert.deepEqual(cheminsChauds('a/b.ts, c/d.ts'), ['a/b.ts', 'c/d.ts']);
@@ -261,6 +371,36 @@ test('Règles: existante passe ; absente, d’un autre contexte, mal formée ou 
   assert.deepEqual(avecRegles(''), [], 'sans ligne `Règles:`, rien à vérifier');
   assert.match(avecRegles('Règles: RULE_FNSMR_LIC-05', 'notes.issue.md')[0], /pas d'identifiant lisible, seules les règles de ALL/);
   assert.deepEqual(avecRegles('Règles: RULE_ALL_LIC-3', 'notes.issue.md'), []);
+});
+
+test('Règles: `—` seul dit que le ticket ne réalise aucune règle et passe ; mêlé à une règle, ou un autre tiret, est refusé', () => {
+  assert.deepEqual(avecRegles('Règles: —'), []);
+  assert.deepEqual(avecRegles('Règles:   —  '), [], 'les blancs autour ne comptent pas');
+  assert.deepEqual(avecRegles('- **Règles:** —'), [], 'sous les trois formes d’en-tête');
+  for (const [ligne, motif] of [
+    ['Règles: —, RULE_ALL_LIC-3', /« — »/],
+    ['Règles: RULE_ALL_LIC-3 —', /« — »/],
+    ['Règles: -', /« - »/],
+    ['Règles: –', /« – »/],
+    ['Règles: — —', /« — »/],
+    ['Règles: `—`', /« `—` »/],
+  ])
+    assert.match(avecRegles(ligne).join(' | '), motif, ligne);
+  // A-161 (4) : chaque ligne `Règles:` de l'en-tête est jugée, comme le calcul « double relecture exigée » les lit
+  // toutes ; `Règles: —` avec une autre ligne `Règles:` se contredit.
+  assert.match(avecRegles('Règles: —\nRègles: RULE_ALL_LIC-3').join(' | '), /Règles: — .*une autre ligne `Règles:`/);
+  assert.match(avecRegles('Règles: RULE_ALL_LIC-3\nRègles: —').join(' | '), /Règles: — .*une autre ligne `Règles:`/);
+  assert.match(avecRegles('Règles: RULE_ALL_LIC-3\nRègles: voir plus bas').join(' | '), /« voir »/, 'la seconde ligne est jugée');
+  assert.match(avecRegles('Règles: RULE_ALL_LIC-3\nRègles: RULE_FNSMR_LIC-7').join(' | '), /RULE_FNSMR_LIC-7, absente du registre/);
+  assert.deepEqual(avecRegles('Règles: RULE_ALL_LIC-3\nRègles: RULE_FNSMR_LIC-05'), [], 'deux lignes bien formées passent');
+  // A-165 (1, 3) : `Règles:` se lit comme `Sensibles:`, puce étoile comprise, dans l'en-tête seul, fin de ligne CRLF ôtée.
+  assert.match(avecRegles('Règles: —\n* Règles: RULE_ALL_LIC-3').join(' | '), /Règles: — .*une autre ligne `Règles:`/, 'puce étoile');
+  assert.match(avecRegles('* Règles: voir plus bas').join(' | '), /« voir »/);
+  const corps = messages(controlerTicket({ nom: NOM_FNSMR, texte: ticket('Status: needs-triage\nType: task\nRègles: RULE_ALL_LIC-3', '\n## Contexte\n\nRègles: pas une ligne d’en-tête\n'), existe, regleExiste }));
+  assert.deepEqual(corps, [], 'une ligne `Règles:` du corps n’est pas jugée');
+  const crlf = controlerTicket({ nom: NOM_FNSMR, texte: '# x\r\n\r\nStatus: needs-triage\r\nType: task\r\nRègles: pas une règle\r\n', existe, regleExiste });
+  assert.ok(crlf.erreurs.length > 0 && crlf.erreurs.every((e) => e.ligne === 5), `CRLF : la ligne mal formée est lue et refusée, à sa ligne : ${JSON.stringify(crlf.erreurs)}`);
+  assert.match(crlf.erreurs[0].message, /« pas »/);
 });
 
 const SPEC_TS = [
@@ -413,6 +553,8 @@ test('une ligne de coût au-delà du plafond de son rôle est refusée sans lign
   assert.equal(juger(COUT('| architecte | t | s6 | opus | 900 k | 90,00 |', '| architecte | t | s7 | opus | beaucoup | 90,00 |')).length, 0);
   // Un conducteur n'est jugé que sur son contexte, un capitaine ou un rôle libre n'est pas jugé.
   assert.equal(juger(COUT('| capitaine | t | s4 | opus | 900 k | 90,00 |', '| ticket | t | s5 | opus | 900 k | 90,00 |')).length, 0);
+  // Une session de relecture d'une PR (rôle `relecture`) n'est pas jugée non plus, même illisible.
+  assert.equal(juger(COUT('| relecture | SPEC_ALL_SOC-1.02 | s10 | sonnet | 900 k | 9,00 |', '| relecture | t | s11 | sonnet | beaucoup | 9,00 |')).length, 0);
   // Sans contrat (plafonds null), rien n'est jugé.
   assert.deepEqual(controlerCarte({ nom: 'c.map.md', texte: COUT(fille) }).erreurs, []);
 });

@@ -4,13 +4,23 @@
 # `boucle.sh` s'arrête sur FILE VIDE ; une PR étiquetée `à-fusionner` ensuite n'est vue par
 # personne. La veille lance la boucle, puis sonde la file (une lecture GitHub, pas de CI) toutes
 # les `pause` secondes et relance la boucle dès qu'une PR est « prête » ou « CI rouge ». Une PR
-# « CI en cours », « attend », « bloquée » ou en brouillon ne relance rien.
+# « CI en cours », « attend », « bloquée » ou en brouillon ne relance rien d'elle-même.
 #
 # Une PR que la boucle vient de sauter reste « prête » : on ne relance que si la file contient
 # une ligne (numéro + état) absente de l'ensemble vu au dernier lancement ou à la dernière sonde.
 # Une PR que la boucle a renvoyée (`RENVOI`) ou dont elle a relancé les jobs rouges (`RELANCE`) sort
 # de cet ensemble : revenue dans la file avant la sonde suivante, même ligne qu'avant, elle relance
 # la boucle.
+# Une sous-PR qui attend son tour dans son sujet (`[#n] attend son tour : #m passe d'abord…`, boucle.sh) reste
+# « prête », la même ligne de sonde en sonde, et celle qui tient le sujet peut quitter la file sans qu'aucune ligne
+# n'apparaisse (étiquette retirée, `fusion-bloquée`, fermée, brouillon). La sonde ajoute donc, pour chaque sous-PR
+# qui attend, la ligne « n attend #m (<état de #m dans la file>) » : nouvelle à la première sonde qui suit la boucle
+# (un second regard), puis chaque fois que l'état de #m change ou que #m quitte la file, elle relance la boucle.
+# Un sujet tenu par une sous-PR en passage chez un autre capitaine (`[sujet/<nom>] tenu par #n (sortie 7 de …, verrou
+# du <date>)`, boucle.sh) : si ce capitaine est mort, son verrou expire 90 minutes après cette date sans que rien ne
+# change dans la file. La veille relance donc la boucle une fois, à la première sonde qui suit cette date de plus de
+# 95 minutes (90, et 5 de marge entre l'horloge de ce poste et celle de GitHub) : « verrou d'un autre capitaine
+# expiré ». Si la boucle retrouve le même verrou à la même date, la veille ne relance plus pour lui.
 # « prête (sans CI) » est un état à part : la boucle met de côté une PR sans CI après 5 min, et la
 # CI arrive parfois plus tard. Quand elle arrive (la ligne passe à prête ou rouge), c'est un
 # changement d'état : la boucle est relancée, sans attendre une fusion qui peut ne jamais venir.
@@ -171,16 +181,35 @@ lancer() {
   fi
   agies=$(sed -nE 's/^\[#([0-9]+)\] (RENVOI|RELANCE).*/\1/p' "$journal_boucle" | sort -u)
   [ -z "$agies" ] || vu=$(printf '%s\n' "$vu" | awk 'NR == FNR { a[$1]; next } !($1 in a)' <(printf '%s\n' "$agies") -)
+  # Sous-PR qui attendent leur tour, « n:m » (n attend que #m, qui tient son sujet, soit passée) : etat_file les suit.
+  attentes=$(sed -nE 's/^\[#([0-9]+)\] attend son tour : #([0-9]+) .*/\1:\2/p' "$journal_boucle" | tr '\n' ' ')
+  # Verrous d'un autre capitaine qui tiennent un sujet : la plus proche de leurs expirations (date + 90 min), en
+  # secondes depuis l'époque Unix ; vide : aucun, ou une date illisible.
+  expire=$(sed -nE 's/^\[sujet\/[^]]+\] tenu par #[0-9]+ \(sortie 7 de (fusionner|relancer), verrou du ([0-9TZ:-]+)\)$/\2/p' "$journal_boucle" |
+    jq -Rrs '[split("\n")[] | select(. != "") | fromdateiso8601] | min // empty | . + 5400' 2>/dev/null)
 }
 
-# Lignes « numéro état » des PR à traiter (prêtes ou rouges), triées.
+# Lignes « numéro état » des PR à traiter (prêtes ou rouges), triées ; puis, pour chaque sous-PR qui attend son tour
+# et qui est encore dans la file, « n attend #m (<état de #m>) », l'état de celle qui tient son sujet.
+# `expire` : l'expiration lue au dernier lancement (lancer) ; `tire` : celle pour laquelle la boucle a déjà été relancée.
+attentes=""
+expire=""
+tire=""
 etat_file() {
   local sortie
   sortie=$(bash "$outils/file.sh" 2>/dev/null) || return 1
-  printf '%s\n' "$sortie" | awk -F '\t' '
+  printf '%s\n' "$sortie" | awk -F '\t' -v attentes="$attentes" '
+    { etat[$1] = $2 }
     $2 ~ /CI rouge/ { print $1 " rouge"; next }
     $2 ~ /sans CI/  { print $1 " sans-ci"; next }
-    $2 ~ /prête/    { print $1 " prête" }' | sort
+    $2 ~ /prête/    { print $1 " prête" }
+    END {
+      k = split(attentes, a, " ")
+      for (i = 1; i <= k; i++) {
+        split(a[i], p, ":")
+        if (p[1] in etat) print p[1] " attend #" p[2] " (" (p[2] in etat ? etat[p[2]] : "hors de la file") ")"
+      }
+    }' | sort
 }
 
 echo "VEILLE $(heure) : durée $duree min, aucun passage après $(heure_de "$echeance") (marge $marge min)"
@@ -212,6 +241,11 @@ while [ "$SECONDS" -lt "$fin" ] && { [ -z "$sondes" ] || [ "$faites" -lt "$sonde
   vu=$actuel
   if [ -n "$nouveau" ]; then
     echo "VEILLE $(heure) : file à traiter ($(printf '%s' "$nouveau" | tr '\n' ',' | sed 's/,$//')), boucle relancée"
+    lancer
+  elif [ -n "$expire" ] && [ "$expire" != "$tire" ] && [ "$(date +%s)" -gt $((expire + 300)) ]; then
+    # Le verrou d'un autre capitaine qui tenait un sujet a expiré sans que la file change : une relance, une seule.
+    tire=$expire
+    echo "VEILLE $(heure) : verrou d'un autre capitaine expiré (sa date a plus de 95 min), boucle relancée"
     lancer
   fi
 done
