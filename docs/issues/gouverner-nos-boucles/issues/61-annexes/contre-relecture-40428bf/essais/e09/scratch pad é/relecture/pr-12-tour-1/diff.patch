@@ -1,0 +1,14 @@
+diff --git a/apps/api/src/facture/droits.ts b/apps/api/src/facture/droits.ts
+index 9f18bf9..0085969 100644
+--- a/apps/api/src/facture/droits.ts
++++ b/apps/api/src/facture/droits.ts
+@@ -1,9 +1,4 @@
+-export function ancienne(admin) {
+-  if (!admin) throw new Error("interdit");
+-  return 1;
+-}
+ export function lire(admin) {
+-  if (!admin) throw new Error("interdit");
+   return 2;
+ }
+ export const version = 2;

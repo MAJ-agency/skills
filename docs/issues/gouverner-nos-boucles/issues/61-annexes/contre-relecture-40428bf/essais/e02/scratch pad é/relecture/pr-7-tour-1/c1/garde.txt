@@ -1,0 +1,37 @@
+127308d08e455a295988071f6131fe03ce1bfee8 session.txt
+c7bff0947d5254d4d4c18d999744331dcf1db975 pr.txt
+5b2d32b0b4ec4a2bd5a85b5f47e315c96cead7fb fichiers.txt
+5b2d32b0b4ec4a2bd5a85b5f47e315c96cead7fb attendus.txt
+5b2d32b0b4ec4a2bd5a85b5f47e315c96cead7fb relus.txt
+529235a96e399505040bfa3feac80064139086a6 diff.patch
+e69de29bb2d1d6434b8b29ae775ad8c2e48c5391 binaires.txt
+e69de29bb2d1d6434b8b29ae775ad8c2e48c5391 illisibles.txt
+e69de29bb2d1d6434b8b29ae775ad8c2e48c5391 sensibles.txt
+e69de29bb2d1d6434b8b29ae775ad8c2e48c5391 binaires-sensibles.txt
+78b2a3e2a7c0f9ea02ac19d28f78e5f5b9e5a004 dispenses.txt
+e69de29bb2d1d6434b8b29ae775ad8c2e48c5391 hors.txt
+e69de29bb2d1d6434b8b29ae775ad8c2e48c5391 sans-ecart.txt
+d470078483d2790d50971cdda88b83051a4a07e4 ticket.txt
+f8ab3a0185aba00a25e9f89c5197ed7ad36ae813 titre.txt
+0a7e1186ce87237e4a5d0c6a22bbc047e9f7aa8f SKILL.md
+0c0c8bb0270b2a374fe2211fe29713e9117c0d2c references/CONTENU.md
+21ae26c6f45c07ddf0ffb4afab505a1e31689c41 references/cas-limites.md
+4560a7008694c659023bed3d5e1b921c4b518b40 references/criteres-documentation.md
+5305a9ae1ead7e1241acc37975dfd5e4928caa66 references/criteres-regles-metier.md
+070ef952e9bd474239ce5c277d13365c7fae7206 references/criteres-session.md
+f5c182e6e4db7107f5f1a8eb740feb9c2c0c148f references/criteres-ticket.md
+412f53b5de17fc6ef3c46202c226215b58c97530 references/criteres-tickets.md
+068be1c1beaf0964ba899aff16d3257fc801bdcf references/gestes.md
+b80d6ecc4a52b4209fa934d615124f370df68537 references/prompt-documentation.md
+e4fd5c359e6c200a3addaedc352733f3a337bdb7 references/prompt-regles-metier.md
+8652d0c3bd1b1538b719b3326758744cc72de8b6 references/prompt-regles.md
+408baa0a7fb27640a3e4366e6a018216211332b8 references/prompt-ticket.md
+24ac6ba93e721f54ae142453085bc977f03cf72b references/prompt-tickets.md
+7fbe7570732a4ed7357a7e500ee5f4c0646f9509 references/verdict.md
+7ea531593cdb30dabbcec518c05b585292ec8544 scripts/gestes.sh
+27f0275d80916906fd03be93d68a35d6a6e4b0f2 /home/user/agents/contre-142/essais/e02/session/CLAUDE.md
+/home/user/agents/contre-142/essais/e02/session/.claude
+/home/user/agents/contre-142/essais/e02/scratch pad é/relecture/pr-7-tour-1/arbre/.claude
+état de la session :
+état de l'arbre :
+consignes de l'arbre :

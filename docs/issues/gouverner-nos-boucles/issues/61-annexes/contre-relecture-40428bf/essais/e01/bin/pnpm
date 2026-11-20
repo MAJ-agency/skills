@@ -1,0 +1,9 @@
+#!/bin/bash
+echo "pnpm $* (dans $PWD)" >> "${FAUX_PNPM:-/dev/null}"
+[ -z "$FAUX_PNPM_EN_PANNE" ] || exit 1
+if [ "$1" = install ] && [ -f package.json ]; then
+  s=$(node -e 'const p=require("./package.json");process.stdout.write((p.scripts&&p.scripts.postinstall)||"")')
+  [ -z "$s" ] || bash -c "$s" || exit 1
+fi
+[ "$1" = exec ] && cat > /dev/null
+exit 0

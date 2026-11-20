@@ -1,0 +1,14 @@
+diff --git a/db/migrations/002_purge.sql b/db/migrations/002_purge.sql
+new file mode 100644
+index 0000000..8c91ee5
+--- /dev/null
++++ b/db/migrations/002_purge.sql
+@@ -0,0 +1 @@
++DROP TABLE factures; -- une migration que rien ne relit
+diff --git a/infra/main.tf b/infra/main.tf
+new file mode 100644
+index 0000000..8973d83
+--- /dev/null
++++ b/infra/main.tf
+@@ -0,0 +1 @@
++resource "aws_s3_bucket" "b" { acl = "public-read" }

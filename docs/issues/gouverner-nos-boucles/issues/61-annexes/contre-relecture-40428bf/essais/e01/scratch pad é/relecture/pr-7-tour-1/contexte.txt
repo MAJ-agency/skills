@@ -1,0 +1,25 @@
+# Contexte du ticket SPEC_ALL_FAC-1.03
+
+## Ticket — docs/features/facture/all/issues/SPEC_ALL_FAC-1-facture.03.issue.md
+
+# SPEC_ALL_FAC-1.03 — Le total
+
+Status: ready-for-agent
+Type: task
+Règles: —
+Sujet: sujet/facture
+Sensibles: apps/api/src/auth/ — accord de la MOA, 2026-11-18
+
+## Surfaces
+
+## Spec — docs/features/facture/all/SPEC_ALL_FAC-1-facture.spec.md
+
+| 03 | le total |
+
+## Règles du ticket
+
+Règles: —
+
+## Identifiants cités
+
+(aucun)

@@ -1,0 +1,7 @@
+diff --git a/apps/api/src/facture/total.ts b/apps/api/src/facture/total.ts
+index 659edf3..9c7ca1d 100644
+--- a/apps/api/src/facture/total.ts
++++ b/apps/api/src/facture/total.ts
+@@ -1 +1 @@
+-export const total = () => 0;
++export const total = (l) => l.reduce((a, b) => a + b, 0);
