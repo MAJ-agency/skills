@@ -233,11 +233,12 @@ export function conclure(liste, resultats, { parallele, duree, depasse, plancher
   if (depasse) {
     const non = liste.length - resultats.filter(Boolean).length;
     fautes.push(`poses a atteint son plafond de ${PLAFOND / 1000} s : ${non} travaux non joués ; découper (un banc trop lourd, ou TAILLE)`);
-  } else {
-    fautes.push(...couverture(liste, resultats.map((r) => r.noms)));
-    const joues = resultats.reduce((n, r) => n + r.noms.length, 0);
-    if (joues < plancher) fautes.push(`les bancs posés ont joué ${joues} tests, plancher ${plancher} : ils ne jouent rien (NODE_TEST_CONTEXT hérité ?)`);
   }
+  // Les travaux non joués (plafond atteint) n'ont pas de résultat : la couverture ne juge que ceux qui ont tourné.
+  const jouees = liste.map((t, i) => [t, resultats[i]]).filter(([, r]) => r && !r.arrete);
+  fautes.push(...couverture(jouees.map(([t]) => t), jouees.map(([, r]) => r.noms)));
+  const joues = jouees.reduce((n, [, r]) => n + r.noms.length, 0);
+  if (joues < plancher) fautes.push(`les bancs posés ont joué ${joues} tests, plancher ${plancher} : ils ne jouent rien (NODE_TEST_CONTEXT hérité ?)`);
   return { diagnostics: bilan(liste, resultats, { parallele, duree }), fautes };
 }
 

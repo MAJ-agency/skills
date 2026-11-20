@@ -73,7 +73,11 @@ test("`codeSeul` garde la longueur, les fins de ligne et les délimiteurs, garde
 
 test("aucun banc posé du plugin n'est pris pour un banc à sous-tests, et aucun n'est dans le doute", () => {
   const racine = fileURLToPath(new URL("..", import.meta.url));
-  const dossiers = ["skills/chaine/fusionner/scripts", "skills/chaine/sujet/scripts", "skills/chaine/revue-adversariale/scripts", "skills/chaine/revue-de-ticket/scripts", "skills/monorepo/socle-monorepo/references/scripts/docs", "skills/chaine/tickets/references/scripts/docs", "skills/chaine/tickets/references/scripts/verify", "skills/chaine/socle-chaine-de-production/references/scripts/github"];
+  // Les dossiers que `poses` pose, lus dans `poses.test.mjs` (pas recopiés), plus le banc `pr-titre` qu'il pose à part.
+  const poses = lire(join(racine, "scripts/poses.test.mjs"), "utf8");
+  const bloc = poses.slice(poses.indexOf("const POSES = ["), poses.indexOf("];", poses.indexOf("const POSES = [")));
+  const dossiers = [...bloc.matchAll(/\["([^"]+)",/g)].map((m) => m[1]);
+  assert.ok(dossiers.length >= 7, `${dossiers.length} dossiers lus dans POSES`);
   let vus = 0;
   for (const d of dossiers)
     for (const n of readdirSync(join(racine, d)).filter((x) => x.endsWith(".test.mjs"))) {
@@ -82,6 +86,9 @@ test("aucun banc posé du plugin n'est pris pour un banc à sous-tests, et aucun
       assert.ok(!aDesSousTests(source), `${d}/${n} : pris pour un banc à sous-tests`);
       vus++;
     }
+  const prTitre = "skills/chaine/socle-chaine-de-production/references/scripts/github/pr-titre.test.mjs";
+  assert.ok(!aDesSousTests(lire(join(racine, prTitre), "utf8")), `${prTitre} : pris pour un banc à sous-tests`);
+  assert.notEqual(codeSeul(lire(join(racine, prTitre), "utf8")), null, `${prTitre} : dans le doute`);
   assert.ok(vus >= 20, `${vus} bancs lus`);
 });
 
@@ -121,6 +128,9 @@ test("un banc court se joue entier ; un banc long en tranches de `taille` noms, 
   assert.equal(travaux("b.test.mjs", noms, 2, { source: deuxNonLues }).at(-1).poids, 2);
   assert.equal(travaux("b.test.mjs", noms, 2, { source: 'test("a", f);\ntest("b", f);\ntest("c", f);\n' }).at(-1).poids, 1);
   assert.equal(travaux("b.test.mjs", noms, 2, { source: deuxNonLues }).at(-1).borne, 300_000);
+  // CRLF, et une dernière ligne `test(` sans fin de ligne : comptées de même.
+  assert.equal(travaux("b.test.mjs", noms, 2, { source: deuxNonLues.replaceAll("\n", "\r\n").trimEnd() }).at(-1).poids, 2);
+  assert.equal(travaux("b.test.mjs", noms, 2, { source: 'test("a", f);\ntest("b", f);\ntest("c", f);\ntest(nom, f);\ntest(nom2, f)' }).at(-1).poids, 2);
 });
 
 test("`ordre` : les plus lourds d'abord, tous bancs confondus ; à poids égal, l'ordre reçu", () => {
@@ -165,10 +175,15 @@ test("`recit`, `bilan` et `conclure` : un travail tué nomme sa borne, le plafon
   const rouge = conclure(reel, [{ ...tue, t: reel[0] }], { parallele: 2, duree: 300_000, depasse: false, plancher: 0 });
   assert.ok(rouge.fautes.some((f) => f.startsWith("── e.test.mjs (entier, tué à sa borne de 300 s)")), rouge.fautes.join("\n"));
   assert.equal(rouge.diagnostics.length, 2);
-  // Le plafond atteint : sa faute dit les travaux non joués.
-  const plafond = conclure(liste, [ok(1_000), undefined, undefined, undefined], { parallele: 2, duree: 1_800_000, depasse: true, plancher: 0 });
-  assert.ok(plafond.fautes.includes("poses a atteint son plafond de 1800 s : 3 travaux non joués ; découper (un banc trop lourd, ou TAILLE)"), plafond.fautes.join("\n"));
+  // Le plafond atteint : sa faute dit les travaux non joués ; la couverture et le plancher jugent ceux qui ont tourné.
+  const lus = liste.map((x) => ({ ...x, noms: ["x"] }));
+  const plafond = conclure(lus, [ok(1_000), undefined, undefined, undefined], { parallele: 2, duree: 1_800_000, depasse: true, plancher: 0 });
+  assert.deepEqual(plafond.fautes, ["poses a atteint son plafond de 1800 s : 3 travaux non joués ; découper (un banc trop lourd, ou TAILLE)"]);
   assert.match(plafond.diagnostics[0], /100\.0 %/);
+  const maigre = conclure(lus, [ok(1_000), undefined, undefined, undefined], { parallele: 2, duree: 1_800_000, depasse: true, plancher: 5 });
+  assert.match(maigre.fautes.join("\n"), /ont joué 1 tests, plancher 5/);
+  const trou = conclure(lus, [ok(1_000, []), undefined, undefined, undefined], { parallele: 2, duree: 1_800_000, depasse: true, plancher: 0 });
+  assert.match(trou.fautes.join("\n"), /a\.test\.mjs : « x » a tourné 0 fois dans sa tranche/);
 });
 
 test("`lancer` : un travail tué se résout à sa borne, même quand un petit-enfant tient ses flux, et son groupe est mort", async () => {
