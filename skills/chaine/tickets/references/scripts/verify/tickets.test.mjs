@@ -249,6 +249,10 @@ test('`Sensibles:` et `Relecture:` ne se lisent que dans l’en-tête, ne sont j
   // Retouches A-156 (C3 : K13, K8, K14) : une puce suivie d'une tabulation, une seconde ligne `Sensibles:`, la clé en capitales.
   assert.deepEqual(formes.erreurs.map((e) => e.ligne), [7, 8, 9, 11, 12, 13, 14]);
   assert.deepEqual(controlerTicket({ nom: NOM, texte: avec('- **Relecture:** double\nsensibles: —\n'), existe }).erreurs, [], 'puce, gras, casse de la clé');
+  // Revue de ticket (S19) : les clés voisines ne sont pas lues ; la ligne en dernière ligne, sans fin de ligne, l'est.
+  assert.deepEqual(controlerTicket({ nom: NOM, texte: avec('Relectures: triple\nSensibles chauds: x\nRelecture triple\n'), existe }).erreurs, [], 'clés voisines');
+  assert.deepEqual(controlerTicket({ nom: NOM, texte: '# x\n\nStatus: needs-triage\nType: task\nRelecture: triple', existe }).erreurs.map((e) => e.ligne), [5], 'dernière ligne sans fin de ligne');
+  assert.deepEqual(controlerTicket({ nom: NOM, texte: '# x\n\nStatus: needs-triage\nType: task\r\nSensibles: a\r\n', existe }).erreurs.map((e) => e.ligne), [5], 'CRLF partout');
   // Dans le corps (un exemple cité par le ticket), la ligne n'est pas lue.
   assert.deepEqual(controlerTicket({ nom: NOM, texte: `${PRET}\nSensibles: scripts/chaine/passer.sh\nRelecture: triple\n`, existe }).erreurs, []);
   // Un ticket qui n'est pas prêt, ou gelé dans la dette, est jugé de même : la forme vaut pour tout ticket.

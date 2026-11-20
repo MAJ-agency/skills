@@ -2,7 +2,7 @@
 
 La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque projet par `poser` : une version publiée ne change rien chez un projet qui ne les repose pas. Chaque note dit ce qui change, puis ce qu'un projet fait pour en profiter.
 
-## 7.35.0 — 2026-11-19
+## 7.35.0 — 2026-11-20
 
 ### Ce qui change
 
@@ -10,7 +10,7 @@ La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque pro
 
 Le bilan de fin de chantier est supprimé (décision du produit du 2026-11-18), sans rien à la place : le gate `tickets` n'exige plus de section `## Rétro` pour passer une carte à `fini`, et le skill `chantier`, la méthode, `pieges.md` et le gabarit de carte ne la demandent plus. Un incident (un renvoi, une vague ratée) donne un ticket au moment où il arrive, ou, faute de gate, une ligne de `docs/agents/pieges.md`. Une carte qui garde sa section `## Rétro` passe aussi.
 
-Le gate `tickets` juge la forme de deux lignes d'en-tête qu'il ne lisait pas, sans les exiger : `Sensibles:` (`—`, ou des chemins puis ` — accord de <nom>, 2026-11-19`) et `Relecture: double`. Il les lit dans l'en-tête seul, sous les formes `X:`, `**X:**`, `- X:` et `* X:`, sans égard à la casse de la clé ; mal formée, une ligne est refusée, le fichier et la ligne nommés. Aucune garde ne les lit encore. Il accepte `Règles: —`, seul, pour un ticket qui ne réalise aucune règle. Le rôle `relecture` d'une ligne de `## Coût` passe sans être jugé au plafond et compte au registre dans le total, pas dans la part des filles. `Label: contre-revue` reste exigé comme avant.
+Le gate `tickets` juge la forme de deux lignes d'en-tête qu'il ne lisait pas, sans les exiger : `Sensibles:` (`—`, ou des chemins puis ` — accord de <nom>, <AAAA-MM-JJ>`) et `Relecture: double`. Il les lit dans l'en-tête seul, sous les formes `X:`, `**X:**`, `- X:` et `* X:`, sans égard à la casse de la clé ; mal formée, une ligne est refusée, le fichier et la ligne nommés. Aucune garde ne les lit encore. Il accepte `Règles: —`, seul, pour un ticket qui ne réalise aucune règle. Le rôle `relecture` d'une ligne de `## Coût` passe sans être jugé au plafond et compte au registre dans le total, pas dans la part des filles. `Label: contre-revue` reste exigé comme avant.
 
 ### Ce qu'un projet fait pour en profiter
 

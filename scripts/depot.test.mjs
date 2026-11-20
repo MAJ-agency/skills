@@ -1579,6 +1579,8 @@ test("le bilan de fin de chantier est supprimé : plus aucune rétro dans les te
   exiger("NOTES-DE-VERSION.md", [
     "Le bilan de fin de chantier est supprimé (décision du produit du 2026-11-18), sans rien à la place :",
     "Le gate `tickets` juge la forme de deux lignes d'en-tête qu'il ne lisait pas, sans les exiger :",
+    // La grammaire garde ses gabarits : la date de livraison ne remplace que celle du titre (revue de ticket).
+    "`Sensibles:` (`—`, ou des chemins puis ` — accord de <nom>, <AAAA-MM-JJ>`)",
   ]);
 });
 
