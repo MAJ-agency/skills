@@ -2,6 +2,76 @@
 
 La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque projet par `poser` : une version publiée ne change rien chez un projet qui ne les repose pas. Chaque note dit ce qui change, puis ce qu'un projet fait pour en profiter.
 
+## 7.37.3 — 2026-11-20
+
+### Ce qui change
+
+Trois petits correctifs (ticket 65). Pour un projet : un nom d'accord de `Sensibles:` qui porte une tabulation ou un autre caractère de contrôle est refusé, sous le message d'`A-170`. Pour qui joue la CI du plugin : l'en-tête de `codeSeul` écrit sa limite (`await`/`yield` lus comme réservés, donc une source de module) et un test tient que `poses` ne lui donne que des `.test.mjs`. Pour le skill `relecture` (qui se charge depuis le plugin, sans se poser dans un projet) : le clone de C4 reste dans le dossier de la session, et un rapport vide de `/security-review` n'est pas une preuve d'absence de faille.
+
+### Ce qu'un projet fait pour en profiter
+
+Rien d'obligatoire. Pour recevoir le gate `tickets` corrigé : `/maj-skills:fusionner poser` dans une PR du projet.
+
+## 7.37.2 — 2026-11-20
+
+### Ce qui change
+
+La CI du plugin joue mieux ses bancs posés (ticket 64). Pour qui joue la CI du plugin : `scripts/poses.test.mjs` lit les sous-tests dans le code seul (`codeSeul` : le texte d'une chaîne ou d'un commentaire, comme un titre de commit « suite (#2) », ne fait plus jouer un banc entier ; dans le doute il se joue entier), part des travaux les plus lourds en tests, donne à chaque travail une borne qui suit son poids (60 s par test, au moins 300 s) et le tue par son groupe de processus, et prend pour délai un plafond de 1 800 s. Le bilan (part du plafond, pire cas, les trois marges les plus courtes) s'écrit dans le journal en vert comme en rouge (`# poses : …`) ; atteindre le plafond rougit et dit de découper. Pour un projet : le banc posé `double-relecture.test.mjs` date son socle et sa tête, la précondition du test « un environnement hostile … (A-122) » ne dépend plus de l'horloge ni de la version de git.
+
+### Ce qu'un projet fait pour en profiter
+
+Rien d'obligatoire. Pour recevoir le banc posé stable : `/maj-skills:fusionner poser` dans une PR du projet.
+
+## 7.37.1 — 2026-11-20
+
+### Ce qui change
+
+Le skill `relecture` : les suites de la contre-relecture de 7.36.0 (trois mineurs), plus un trou trouvé en préparant le ticket.
+
+- **La résolution d'une PR de mise à jour se découpe en lots** au-delà de 2 000 lignes de `resolution.patch`, comme le diff relu et par la même fonction : par zone, `lots/resolution-<j>/`, leur union vérifiée contre `resolution.txt` (« lots de la résolution : … », sortie 12). L'axe Règles se lance une fois par lot (`lus '<brouillons>' 1 resolution-<j>`). Un seul lot : la résolution entière, comme avant.
+- **Un binaire que seule la résolution touche** (sans écart contre le sujet, la version de `develop` jetée par une résolution « ours ») est nommé parmi les binaires du tour, illisible ou sous un chemin sensible selon les mêmes règles : aucun axe n'a à le dire lu, le verdict le nomme. C'est le trou trouvé en préparant le ticket ; une commande de lecture en échec sort en 12 (« liste des binaires de la résolution illisible »).
+
+Dans le dépôt du plugin seulement : un cas de banc tient la branche du tri où `develop` ne fait que retirer et où la résolution insère à ce point ; d'autres tiennent la panne de chaque lecture de binaires, les deux parents de la fusion, le diff relu et la résolution découpés ensemble.
+
+Depuis 7.36.0, la résolution d'une PR de mise à jour se relit : `git show --remerge-diff` du commit de fusion, que l'axe Règles lit en entier ; une ligne de `develop` qu'elle retire est un constat, jamais écartée (`A-164`).
+
+### Ce qu'un projet fait pour en profiter
+
+Mettre à jour le plugin ; rien d'autre (rien n'appelle encore le skill, comme le dit la note 7.36.0).
+
+## 7.37.0 — 2026-11-20
+
+### Ce qui change
+
+« Une sous-PR à la fois par sujet » est tenue par le capitaine, plus par le conducteur. À chaque tour de sa boucle, le capitaine ne prend qu'une sous-PR étiquetée par sujet ; les autres attendent leur tour avec leur étiquette (`[#<n>] attend son tour : #<m> passe d'abord dans sujet/<nom>` dans le journal), sans mise à jour, ni CI, ni renvoi. Qui tient le sujet le garde, avant tout ordre de numéro : une sous-PR en passage chez un autre capitaine, sinon celle que la boucle tenait au tour précédent, sinon une sous-PR dont la CI tourne ; personne ne le tient, la plus ancienne (le plus petit numéro) le prend. La suivante est prise dans le tour où celle qui tient entre ou sort de la file ; tant que le sujet reste tenu, la boucle le dit à chaque tour (`[sujet/<nom>] tenu par #<n> (<raison>)`). La veille relance la boucle quand la sous-PR qui tient un sujet change d'état ou quitte la file, et une fois quand le verrou d'un autre capitaine qui tenait un sujet a expiré. Le conducteur étiquette toutes les sous-PR prêtes d'une vague : il ne retire ni ne repose plus `à-fusionner` (skill `chantier` § 6), ce qui coûtait jusqu'à 45 minutes d'attente par sous-PR. Une PR de mise à jour d'un sujet s'ouvre, comme avant, sans sous-PR étiquetée devant elle : derrière une sous-PR plus ancienne en route, elle attend son tour, puis elle est à refaire. Une sortie 128 de `sujet.sh` est une erreur fatale de git, pas un signal : elle rend le sujet, comme toute erreur ; seules les sorties 129 et plus le tiennent comme un signal. Une lecture GitHub en panne sur une sous-PR d'un sujet ne le donne à personne : à ce tour, aucune sous-PR de ce sujet n'est prise ; le sujet est repris au prochain changement de la file, ou à la veille suivante (au pire à la fin de la veille en cours, 75 minutes par défaut). Le délai du banc des scripts posés (`scripts/poses.test.mjs`, dans ce dépôt) passe de 620 à 900 secondes (décision A-166) : ses tranches jouent désormais les cas de la boucle ; la minuterie de 300 secondes par tranche, la couverture et le plancher restent. Le banc `une-sous-pr-a-la-fois.test.mjs` se joue de nouveau en tranches (décision A-169) : le titre de commit `feat(<nom>): suite (#2)` d'un de ses dépôts jouets était lu comme un sous-test (`suite(`), ce qui le faisait jouer entier ; il devient `feat(<nom>): suite, #2`.
+
+Deux limites connues. Deux capitaines aux mémoires séparées (`boucle-tenus` vaut pour un clone) peuvent mettre à jour deux fois la même sous-PR : une CI de plus, jamais une fusion non testée ; deux capitaines lancés au même instant sont départagés par le verrou du passage. Un nom de sujet qui porte un mot du filtre du `Monitor` du capitaine (`conflit`, `rouges`…) fait entrer ses lignes d'attente dans ce filtre et réveille le capitaine sans objet, à chaque tour.
+
+Le bilan de fin de chantier est supprimé (décision du produit du 2026-11-18), sans rien à la place : le gate `tickets` n'exige plus de section `## Rétro` pour passer une carte à `fini`, et le skill `chantier`, la méthode, `pieges.md` et le gabarit de carte ne la demandent plus. Un incident (un renvoi, une vague ratée) donne un ticket au moment où il arrive, ou, faute de gate, une ligne de `docs/agents/pieges.md`. Une carte qui garde sa section `## Rétro` passe aussi.
+
+Le gate `tickets` juge la forme de deux lignes d'en-tête qu'il ne lisait pas, sans les exiger : `Sensibles:` (`—`, ou des chemins puis ` — accord de <nom>, <AAAA-MM-JJ>`) et `Relecture: double`. Il les lit dans l'en-tête seul, sous les formes `X:`, `**X:**`, `- X:` et `* X:`, sans égard à la casse de la clé ; mal formée, une ligne est refusée, le fichier et la ligne nommés. Aucune garde ne les lit encore. Il accepte `Règles: —`, seul, pour un ticket qui ne réalise aucune règle. Le rôle `relecture` d'une ligne de `## Coût` passe sans être jugé au plafond et compte au registre dans le total, pas dans la part des filles. `Label: contre-revue` reste exigé comme avant.
+
+### Ce qu'un projet fait pour en profiter
+
+1. Mettre à jour le plugin : `claude plugin marketplace update maj`, puis `claude plugin update maj-skills@maj`, puis redémarrer Claude Code (session cloud : `lancement.md` § « La mise à niveau »).
+2. Reposer les scripts du capitaine, dans une PR du projet : `/maj-skills:fusionner poser`.
+3. Relancer chaque capitaine une fois cette PR entrée dans develop : `bash scripts/chaine/boucle.sh --arreter`, nouvelle copie dans `<scratchpad>/outils`, puis `CAPITAINE_ID=<id de la session> bash <scratchpad>/outils/veille.sh > <scratchpad>/veille.log 2>&1` (skill `fusionner` § « Mise en place »). La boucle se remplace d'elle-même par la version de develop ; la veille tourne sur sa copie, c'est elle qu'il faut recopier.
+4. D'ici là, le conducteur garde l'ancienne discipline, une seule sous-PR étiquetée à la fois par sujet : un capitaine dont les scripts ne sont pas reposés prend encore toutes les sous-PR étiquetées d'un sujet dans le même tour. Avec plusieurs capitaines, il ne l'abandonne qu'une fois tous relancés.
+5. Reposer le gate et les gabarits, dans une PR du projet : `/maj-skills:tickets poser` (`scripts/verify/tickets-regles.mjs`, `tickets.mjs` et leurs tests, `scripts/docs/couts.test.mjs`, les gabarits de ticket et de carte). Une ligne `Sensibles:` ou `Relecture:` mal formée dans l'en-tête d'un ticket rougit alors le gate : la corriger, ou la retirer.
+6. Dans la même PR, reporter dans `docs/agents/chaine-de-production.md` (posé par `socle-chaine-de-production`, que le projet a pu amender) le § 2 sans rétro (le schéma du cycle, la parenthèse du point 2 et le point 7), et dans `docs/agents/pieges.md` sa phrase d'en-tête : un incident donne un ticket au moment où il arrive. Une carte déjà `fini` garde sa section `## Rétro`, sans effet.
+
+## 7.36.0 — 2026-11-20
+
+### Ce qui change
+
+Le plugin porte un skill de plus, le skill `relecture` (`skills/chaine/relecture/`) : ce que joue une **session de relecture**, lancée par le Relecteur d'un dépôt et jamais par l'auteur d'une PR. Elle se place sur la base de la PR, extrait le sommet à relire dans un arbre de travail à part, y joue les scripts de la base (`diff-revue.sh`, `chemins-sensibles.mjs`, `contexte-ticket.mjs`, `sujet.sh a-juger` pour une PR vers un sujet, la régénération des index), choisit ses axes selon ce que le diff contient (Règles, Ticket, Documentation, Tickets, Règles métier), lance un sous-agent en contexte vierge par axe, trie chaque constat dans le code, puis écrit sur la PR un verdict de la forme que `verdict.mjs` lit (7.23.0). Il n'y a que deux gravités, bloquant et doute : ce que les deux skills de revue rangent « à corriger » est ici un bloquant. Un bloquant confirmé donne `refusé` même quand un axe n'a pas pu être joué ; `incomplet` veut zéro bloquant. L'échec d'un outil de la session (une installation, un réseau, un sous-agent) n'est jamais un écart de la PR : il s'écrit « non exécuté ». Toute commande dont la sortie sert à décider se lit par son code de sortie : une liste vide après un échec n'est jamais « rien à relire », et ce que la session ne peut ni lire ni jouer donne `incomplet`, avec sa cause et qui la lève. Le diff relu est vérifié contre la liste des fichiers changés : n'en sortent ni ce que la PR déclare elle-même index généré, ni un fichier texte qu'un `.gitattributes` dit binaire, ni du code rangé sous `__snapshots__/` ; le lockfile, les fichiers `.snap` et les binaires que les axes ne lisent pas sont toujours nommés au verdict. L'empreinte de ce que les axes recevront est prise avant que la session n'exécute ce que la PR déclare, et reprise après. `/security-review` ne compte pour lancée que si la session a vérifié par une commande, avant de la lancer, que le diff que la commande intégrée lit est celui de la PR. Deux axes sont neufs : Tickets (K1 à K6), pour une PR de tickets, de spec ou de carte, et Règles métier (M1 à M4), pour une règle, sa criticité ou le glossaire. La session ne colle aucun bloc de shell : chaque geste est une sous-commande d'un script du skill, `scripts/gestes.sh`, lancé depuis le dossier du skill et jamais posé dans un projet, qui s'arrête au premier échec et écrit sa cause (l'outil Bash d'une session ignore `set -e` dans un bloc collé). L'arbre à part et le clone de `/security-review` s'extraient sans les fichiers qu'une session charge comme consignes (`CLAUDE.md`, `CLAUDE.local.md`, `.claude/`, sauf `/.claude/chaine.json`) ; les axes lisent les fiches de règles sur la base, et un `CLAUDE.md` apparu pendant `C1` donne `incomplet`. Au-delà de 2 000 lignes, le script découpe les lots et vérifie leur union. Le skill ne se charge que par sa commande (`disable-model-invocation`). `CONTEXT.md` reçoit le vocabulaire de la relecture indépendante.
+
+**Rien ne l'appelle encore** : le Relecteur et la bascule vers le régime 8 ne sont pas livrés. `revue-de-ticket` et `revue-adversariale` ne changent pas, et restent la revue de toute PR.
+
+### Ce qu'un projet fait pour en profiter
+
+Mettre à jour le plugin ; rien d'autre aujourd'hui. Une session de relecture demande `git` 2.40 ou plus et `jq`. Une session de relecture demande aussi `node`. Les scripts que le skill joue sont déjà dans `scripts/chaine/` d'un projet qui a posé `revue-adversariale`, `revue-de-ticket`, `fusionner` (7.23.0 ou plus, pour `verdict.mjs`) et `sujet` (7.28.0 ou plus, pour `a-juger`) : `/maj-skills:relecture poser` le vérifie et ne copie rien de plus. Un projet qui a le gate `references-agent` ajoute `maj-skills:relecture` à `scripts/verify/references-agent-integrees.json` le jour où l'un de ses textes cite le skill par son nom qualifié.
+
 ## 7.35.0 — 2026-11-19
 
 ### Ce qui change

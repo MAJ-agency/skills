@@ -218,7 +218,7 @@ test("relancer : une sous-PR qui a bougé depuis sa lecture n'est ni jugée ni p
 // Contre-relecture (m1) : la boucle `file.sh | while read` partageait son entrée standard avec ce qu'elle lance ; le
 // faux `pnpm` du jouet la lit (`cat > /dev/null`), comme tout outil qui lit l'entrée : après une mise à jour par
 // `relancer`, les sous-PR suivantes n'étaient plus traitées dans le tour.
-test("boucle.sh : deux sous-PR en conflit d'index, la première mise à jour par relancer sous un outil qui lit l'entrée, la seconde traitée dans le même tour", () => {
+test("boucle.sh : deux sous-PR en conflit d'index, la première mise à jour par relancer sous un outil qui lit l'entrée, la seconde lue dans le même tour : elle attend son tour", () => {
   const { d, sommet } = sansChecks("index");
   const autre = d.branche("docs/autre", "origin/develop", {
     [`${ADR}/ADR_ALL_ARC-4-d.md`]: "# 4\n",
@@ -233,7 +233,10 @@ test("boucle.sh : deux sous-PR en conflit d'index, la première mise à jour par
   assert.equal(r.status, 0, r.stdout + r.stderr);
   d.git("fetch", "-q", "origin");
   assert.equal(d.git("rev-parse", "origin/docs/sous^1"), sommet, "#80 mise à jour");
-  assert.equal(d.git("rev-parse", "origin/docs/autre^1"), autre, `#81 mise à jour dans le même tour : ${r.stdout}`);
+  // La ligne de #81 est lue (l'entrée de la boucle n'est pas mangée), et #81 attend : #80 tient le sujet (ticket 57).
+  assert.match(r.stdout, /^\[#81\] attend son tour : #80 passe d'abord dans sujet\/lot$/m, r.stdout);
+  assert.match(r.stdout, /^\[sujet\/lot\] tenu par #80 \(sortie 0 de relancer\)$/m, r.stdout);
+  assert.equal(d.git("rev-parse", "origin/docs/autre"), autre, "#81 n'est pas mise à jour tant que #80 tient le sujet");
 });
 
 // Contre-relecture (M1) : un conflit mixte ne nomme que les fichiers hors index générés ; l'index se régénère.
@@ -1426,4 +1429,43 @@ test("PR de mise à jour d'un sujet : la fusion de develop par une session, jou�
   const r = spawnSync("bash", ["-c", ". scripts/chaine/github.sh && fusionner_avec origin/develop"], { cwd: d.travail, env: d.env, encoding: "utf8" });
   assert.equal(r.status, 0, r.stdout + r.stderr);
   assert.equal(d.git("log", "-1", "--format=%B"), `Merge remote-tracking branch 'origin/develop' into maj/lot\n\n${MENTION}`);
+});
+
+// ── Une sous-PR à la fois par sujet (ticket 57 de gouverner-nos-boucles, décisions A-104 et A-142) ───────────────
+// Les deux cas qui demandent une PR de mise à jour (`miseAJour`) ; les autres sont dans une-sous-pr-a-la-fois.test.mjs.
+const tourDeBoucle = (d) => {
+  const r = d.lancer(BOUCLE);
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  return r;
+};
+const sousPrDeLot = (d, depuis, checks = {}) => {
+  const sommet = d.branche("feat/sous", depuis, { "docs/sous.md": "sous\n" });
+  d.git("switch", "-q", "--detach", "origin/develop");
+  d.github({
+    pulls: [{ number: 80, title: "docs(lot): sous", head: "feat/sous", base: "sujet/lot", labels: ["à-fusionner"], body: "## Revue de ticket\n\nRien de bloquant.\n" }, ...d.etat().pulls],
+    checks: { ...d.etat().checks, ...(checks.qualite ? { [sommet]: checks } : {}) },
+  });
+  d.publierChaine();
+  return sommet;
+};
+
+test("boucle.sh : une sous-PR arrêtée par le conflit de son sujet avec develop (sortie 2) rend le sujet : la PR de mise à jour, plus récente, entre dans le même tour", () => {
+  const { d } = miseAJour();
+  sousPrDeLot(d, "origin/develop");
+  const r = tourDeBoucle(d);
+  assert.match(r.stdout, /\[#80\] sous-PR non éligible \(sortie 2\)/);
+  assert.match(r.stdout, /\[#81\] FUSIONNÉE dans sujet\/lot/);
+  assert.doesNotMatch(r.stdout, /attend son tour|tenu par/);
+});
+
+test("boucle.sh : une PR de mise à jour ouverte derrière une sous-PR plus ancienne en route attend son tour, puis est renvoyée dès que cette sous-PR entre (elle est à refaire)", () => {
+  const { d } = miseAJour();
+  const sommet = sousPrDeLot(d, "origin/sujet/lot", { qualite: "IN_PROGRESS" });
+  let r = tourDeBoucle(d);
+  assert.match(r.stdout, /^\[#81\] attend son tour : #80 passe d'abord dans sujet\/lot$/m);
+  assert.match(r.stdout, /^\[sujet\/lot\] tenu par #80 \(CI en cours\)$/m);
+  d.github({ checks: { ...d.etat().checks, [sommet]: { qualite: "SUCCESS" } } });
+  r = tourDeBoucle(d);
+  assert.match(r.stdout, /\[#80\] FUSIONNÉE dans sujet\/lot/);
+  assert.match(r.stdout, /\[#81\] RENVOI : #81, PR de mise à jour : le premier parent n'est pas le sommet de sujet\/lot/);
 });

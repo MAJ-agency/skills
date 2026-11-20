@@ -34,7 +34,7 @@ Le capitaine refuse une PR à son passage pour son titre ou sa section de revue,
 
 ## La méthode — `docs-agents/chaine-de-production.md`
 
-Les rôles, le cycle, le ticket prêt pour agent, les fichiers chauds, les consignes des filles et l'économie de tokens avec ses mesures. C'est le document que le prompt de fille cite par renvoi : il n'est écrit qu'une fois. À côté, `pieges.md` : la liste que la rétro de chaque chantier alimente, amorcée avec les pièges déjà connus.
+Les rôles, le cycle, le ticket prêt pour agent, les fichiers chauds, les consignes des filles et l'économie de tokens avec ses mesures. C'est le document que le prompt de fille cite par renvoi : il n'est écrit qu'une fois. À côté, `pieges.md` : la liste des pièges déjà connus, où un incident sans gate reçoit sa ligne au moment où il arrive.
 
 ## Les ADR — `adr/`
 
