@@ -1,0 +1,2365 @@
+diff --git a/.claude-plugin/plugin.json b/.claude-plugin/plugin.json
+index 818adbf..fd0532b 100644
+--- a/.claude-plugin/plugin.json
++++ b/.claude-plugin/plugin.json
+@@ -1,6 +1,6 @@
+ {
+   "name": "maj-skills",
+-  "version": "7.38.0",
++  "version": "7.39.0",
+   "description": "Skills d'ingénierie maison : amorçage de monorepo et de socles (API NestJS hexagonale, web Next.js, mobile Expo), chaîne de production pour des sessions d'agent en parallèle (tickets, sujets, capitaine de fusion, revue adversariale, chantier, recette). Aucune règle métier.",
+   "author": {
+     "name": "Guillaume Jauffret"
+diff --git a/NOTES-DE-VERSION.md b/NOTES-DE-VERSION.md
+index 9e2e48c..74b2ad1 100644
+--- a/NOTES-DE-VERSION.md
++++ b/NOTES-DE-VERSION.md
+@@ -2,6 +2,22 @@
+ 
+ La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque projet par `poser` : une version publiée ne change rien chez un projet qui ne les repose pas. Chaque note dit ce qui change, puis ce qu'un projet fait pour en profiter.
+ 
++## 7.39.0 — 2026-11-21
++
++### Ce qui change
++
++- **Le capitaine juge l'éligibilité par les verdicts, deux fois** (régime 8, lot 5a de la relecture indépendante) : pour une PR dont la base porte la clé `relecture` de `.claude/chaine.json` et qui a été ouverte après `depuis`, `passer.sh` et `sujet.sh fusionner` ne lisent plus la section de revue du corps ; ils exigent un tour de relecture validé pour le contenu du sommet (la règle 2 du Relecteur, `tourValide`), avant toute mise à jour et toute CI, puis de nouveau juste avant l'appel de fusion, sur le sommet fusionné. Une mise à jour du capitaine garde le verdict (« même contenu propre »). Sans tour validé : renvoi ; lecture illisible : PR sautée sans renvoi ; `à-fusionner` retirée pendant la CI : sautée. Une PR empilée en régime 8 est renvoyée. Le check `PR titre` suit le régime (variable `PR_OUVERTE` du workflow).
++- **Les gardes des fichiers sensibles** (régime 8, lot 5b) : le hook d'édition refuse d'écrire un chemin sensible que la ligne `Sensibles:` du ticket de la branche, lue sur le sujet (sur develop pour un ticket sans sujet), ne couvre pas ; `passer.sh` et `sujet.sh fusionner` renvoient une PR dont le diff propre en touche un hors de cette ligne, ou sans ticket (`chemins-sensibles.mjs --garde`) ; une PR de mise à jour d'un sujet ne touche un chemin sensible qu'en conflit et couvert par un ticket du sujet.
++- **Les renvois, les messages et le gate selon le régime** (régime 8, lot 5c) : `renvoyer.sh` fait redemander la relecture (`à-relire`), jamais remettre `à-fusionner` ; `sujet.sh demarrer` dit comment demander la relecture, et son refus ne conseille plus `sujet.sh rafraichir` à une session ; le gate `tickets` n'exige plus `Label: contre-revue` et exige `Relecture: double` sur un ticket ouvert qui cite une règle haute.
++- **`sujet.sh etat`** liste un sujet sans commit propre ni PR ouverte, en retard sur develop et pas livré (une livraison intermédiaire tout juste entrée, A-132) : la boucle du capitaine y reporte develop.
++- Rien ne change pour une PR du régime 7, ni pour un dépôt sans la clé `relecture`.
++
++### Ce qu'un projet fait pour en profiter
++
++1. Mettre à jour le plugin (comme pour 7.31.0, étape 1).
++2. Reposer, dans une PR du projet : `/maj-skills:fusionner poser`, `/maj-skills:sujet poser`, `/maj-skills:revue-adversariale poser` (la garde `--garde` de `chemins-sensibles.mjs`), `/maj-skills:socle-chaine-de-production` (le hook d'édition, `pr-titre.mjs` et son workflow) et `/maj-skills:tickets` (le gate) ; puis relancer le capitaine (les scripts de la boucle changent).
++3. Rien d'autre tant que le dépôt n'est pas en régime 8 : la clé `relecture` arrive avec la bascule (lot 6).
++
+ ## 7.38.0 — 2026-11-20
+ 
+ ### Ce qui change
+diff --git a/scripts/points-d-entree.test.mjs b/scripts/points-d-entree.test.mjs
+index 17734af..86725bc 100644
+--- a/scripts/points-d-entree.test.mjs
++++ b/scripts/points-d-entree.test.mjs
+@@ -26,6 +26,7 @@ const SCRIPTS = [
+   { nom: "contexte-regle", fichier: "skills/chaine/criticite/scripts/contexte-regle.mjs", args: [], statut: 2, sortie: /usage : node contexte-regle\.mjs/ },
+   { nom: "double-relecture", fichier: "skills/chaine/fusionner/scripts/double-relecture.mjs", args: [], statut: 21, sortie: /^illisible\n$/m },
+   { nom: "relecteur", fichier: "skills/chaine/relecteur/scripts/relecteur.mjs", args: [], statut: 2, sortie: /relecteur : usage : relecteur\.mjs passe/ },
++  { nom: "chemins-sensibles", fichier: "skills/chaine/revue-adversariale/scripts/chemins-sensibles.mjs", args: ["--garde"], statut: 2, sortie: /^usage : chemins-sensibles\.mjs --garde --base/ },
+ ];
+ 
+ const tmp = mkdtempSync(join(tmpdir(), "entree-"));
+diff --git a/skills/chaine/fusionner/scripts/github.sh b/skills/chaine/fusionner/scripts/github.sh
+index 3b609f3..0db8128 100755
+--- a/skills/chaine/fusionner/scripts/github.sh
++++ b/skills/chaine/fusionner/scripts/github.sh
+@@ -438,10 +438,68 @@ lire_github() {
+   printf '%s\n' "$sortie"
+ }
+ 
++# La clé `relecture` dans le contrat `.claude/chaine.json` d'une réf (A-97) : sortie 0 si elle y est, quelle que soit sa
++# forme (le régime d'une PR se juge par `revue-exigee.mjs`, qui la lit entière), 1 sinon : pas de contrat, pas de clé, ou un
++# contrat qui ne se lit pas. Pour les messages et les renvois (lot 5c), jamais pour décider d'une fusion.
++cle_relecture_sur() {
++  git show "$1:.claude/chaine.json" 2>/dev/null | jq -e 'type == "object" and has("relecture")' >/dev/null 2>&1
++}
++
++# Le régime d'une PR (A-97) : `regime_de_la_pr <base> <created_at>` écrit 7, 8, ou `illisible` (clé mal formée, date),
++# par `regimeDeLaPr` de `revue-exigee.mjs`, sur `origin/<base>` tel qu'il est là. Pour les messages et les renvois
++# (lot 5c) ; la fusion se juge par `revue_du_capitaine`.
++regime_de_la_pr() {
++  node --input-type=module -e 'const m = await import(process.argv[1]); const r = m.regimeDeLaPr({ base: process.argv[2], ouverte: process.argv[3] }); process.stdout.write(`${r.regime ?? "illisible"}\n`);' \
++    "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/revue-exigee.mjs" "$1" "$2"
++}
++
+ # PR en JSON REST (`state` open/closed, `draft`, `labels[].name`, `base.ref`, `head.ref`,
+-# `head.sha`, `title`). Illisible : sortie 5.
++# `head.sha`, `title`, `created_at`). Illisible : sortie 5.
+ pr_json() { lire_github "$DEPOT/pulls/$1"; }
+ 
++# La revue d'une PR au passage du capitaine, selon son régime (lot 5a) : `revue_du_capitaine <json de la PR> <sommet>
++# <base>`, les fichiers du diff propre sur l'entrée standard (celui que la relecture lit). Joue `revue-exigee.mjs`, à côté
++# de ce fichier, avec `--ouverte` (le `created_at` de la PR : le régime, A-97), `--tete <sommet>` et les commentaires de la
++# PR, toutes pages, dans un fichier (jamais en argument). `origin/develop` et les `origin/sujet/*` sont relus d'abord par
++# refspecs explicites (un clone `--single-branch` ne les met pas à jour sur un fetch nu) : les calculs ne lisent pas le
++# réseau (A-126) ; sans la clé `relecture` sur la base, ni fetch ni lecture (régime 7 sûr). Sortie de la CLI telle quelle, et son code : 0 éligible (première ligne `régime 7`, ou `régime 8 : tour
++# <k> validé au sommet <sha>`), 1 refus (première ligne `régime 7` ou `régime 8`, motif en dernière), 21 lecture illisible
++# (la cause), 2 options. 5 : origin ou GitHub illisible, la cause sur la sortie d'erreur, jamais un état.
++REVUE_EXIGEE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/revue-exigee.mjs"
++# La garde des fichiers sensibles du capitaine (lot 5b, A-76), en régime 8 : `garde_des_sensibles <base> <titre> <tête>
++# [--conflits <fichier>] [--tickets <id>,…]`, le diff propre sur l'entrée standard, après `revue_du_capitaine` (qui a relu
++# develop et les sujets). `chemins-sensibles.mjs --garde`, à côté dans un projet (scripts/chaine/), dans le skill
++# revue-adversariale du plugin. Sa sortie et son code : 0 rien, 20 motif (renvoi), 21 illisible, 2 usage.
++garde_des_sensibles() {
++  local ici script
++  ici=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
++  script="$ici/chemins-sensibles.mjs"
++  [ -f "$script" ] || script="$ici/../../revue-adversariale/scripts/chemins-sensibles.mjs"
++  node "$script" --garde --base "$1" --titre "$2" --branche "$3" "${@:4}"
++}
++revue_du_capitaine() {
++  local pr=$1 sommet=$2 base=$3 fichiers brut='[]' commentaires rc=0
++  fichiers=$(cat)
++  # Sans la clé `relecture` sur la base, la PR est en régime 7 quelle que soit sa date : rien à relire ni à lire de plus
++  # qu'aujourd'hui (aucun fetch, aucune lecture des commentaires), la CLI juge la section de revue.
++  if cle_relecture_sur "origin/$base"; then
++    git_masque fetch -q origin '+refs/heads/develop:refs/remotes/origin/develop' '+refs/heads/sujet/*:refs/remotes/origin/sujet/*' ||
++      { echo "origin illisible à la relecture de develop et des sujets (revue du capitaine)" >&2; return 5; }
++    brut=$(lire_github "$DEPOT/issues/$(jq -r .number <<<"$pr")/comments?per_page=100" --paginate) || return 5
++  fi
++  commentaires=$(mktemp)
++  # Un `--paginate` concatène des tableaux : un seul tableau, ou rien.
++  if ! jq -s 'if all(.[]; type == "array") then add else error("pages") end' <<<"$brut" >"$commentaires" 2>/dev/null; then
++    rm -f "$commentaires"
++    echo "GitHub illisible ($DEPOT/issues/<n>/comments) : pages qui ne sont pas des tableaux" >&2
++    return 5
++  fi
++  printf '%s\n' "$fichiers" | node "$REVUE_EXIGEE" "$(jq -r '.body // ""' <<<"$pr")" "$(jq -r .title <<<"$pr")" "origin/$base" \
++    --ouverte "$(jq -r '.created_at // ""' <<<"$pr")" --tete "$sommet" --branche "$(jq -r .head.ref <<<"$pr")" --commentaires "$commentaires" && rc=0 || rc=$?
++  rm -f "$commentaires"
++  return "$rc"
++}
++
+ # Tête de PR gardée : `develop`, `main`, ou la branche par défaut du dépôt (2e argument, lu dans le
+ # JSON de la PR : `base.repo.default_branch`). Le capitaine pousse la mise à jour d'une PR sur sa tête :
+ # jamais sur celles-ci (« jamais de push sur la branche par défaut »). La livraison d'un sujet
+@@ -577,7 +635,7 @@ signaler_arbre_different() { # <pr> <sommet testé> <squash> (squash vide : intr
+ # (`author_association` OWNER, MEMBER ou COLLABORATOR) : deux capitaines de deux personnes publient sous deux comptes,
+ # donc le compte du capitaine (`gh api user`, filtre des renvois) ne départage rien ici, et les sessions d'une même
+ # personne publient sous un même compte, d'où l'id de session. Un commentaire, pas un label : un label de plus
+-# changerait les sept labels du socle, et il ne dirait ni qui ni depuis quand. La sûreté vient de la règle
++# changerait les neuf labels du socle, et il ne dirait ni qui ni depuis quand. La sûreté vient de la règle
+ # d'ascendance (deux capitaines ne font jamais entrer une PR non testée) : le verrou n'évite que le travail en double.
+ # À toute sortie, la trappe de l'appelant joue `finir_passage` (« terminé », la marque de fin), posée avant
+ # `prendre_passage` : un TERM ou un INT pendant la pose ou la relecture termine le commentaire (pose lancée sans id
+diff --git a/skills/chaine/fusionner/scripts/messages-du-regime.test.mjs b/skills/chaine/fusionner/scripts/messages-du-regime.test.mjs
+new file mode 100644
+index 0000000..b8c4179
+--- /dev/null
++++ b/skills/chaine/fusionner/scripts/messages-du-regime.test.mjs
+@@ -0,0 +1,73 @@
++// Banc du lot 5c (relecture indépendante) : les renvois et les messages suivent le régime de la PR (A-97). En régime 8,
++// `renvoyer.sh` dit de redemander la relecture (`à-relire`), jamais de remettre `à-fusionner` (A-91, A-93) ; `sujet.sh
++// demarrer` dit comment demander la relecture (son refus qui ne conseille plus `sujet.sh rafraichir` : sujet.test.mjs).
++import { test } from "node:test";
++import assert from "node:assert/strict";
++import { existsSync } from "node:fs";
++const { depotJouet, script: scriptDe } = await import(
++  existsSync(new URL("./depot-jouet.mjs", import.meta.url)) ? "./depot-jouet.mjs" : "../../sujet/scripts/depot-jouet.mjs"
++);
++
++const RENVOYER = scriptDe("fusionner", "renvoyer.sh");
++const SUJET = scriptDe("sujet", "sujet.sh");
++const HUIT = { cheminsSensibles: [], relecture: { depuis: "2026-11-17T09:00:00Z" } };
++const contrat = (d, c) => {
++  d.ecrire(".claude/chaine.json", `${JSON.stringify(c)}\n`);
++  d.commit("chore: contrat");
++  d.git("push", "-q", "origin", "HEAD:develop");
++  d.git("fetch", "-q", "origin");
++};
++const commentaire = (d) => d.etat().pulls[0].commentaires.at(-1);
++
++test("renvoyer.sh : en régime 8, redemander la relecture (`à-relire`) sans retirer `fusion-bloquée`, jamais `à-fusionner` ; en régime 7, comme avant", () => {
++  for (const [c, plus, attendu, absent] of [
++    [HUIT, {}, /Corriger, puis redemander la relecture : le commentaire `À relire — sommet <sha> — Session: <la tienne> — Conducteur: <le tien>` et l'étiquette `à-relire`, sans retirer `fusion-bloquée` ; jamais `à-fusionner`/, /remettre `à-fusionner`/],
++    [HUIT, { created_at: "2026-11-17T08:00:00Z" }, /Corriger, puis retirer `fusion-bloquée` et remettre `à-fusionner`/, /à-relire/],
++    [{ cheminsSensibles: [] }, {}, /Corriger, puis retirer `fusion-bloquée` et remettre `à-fusionner`/, /à-relire/],
++  ]) {
++    const d = depotJouet();
++    contrat(d, c);
++    d.branche("feat/a", "origin/develop", { "docs/a.md": "a\n" });
++    d.github({ pulls: [{ number: 30, title: "docs(a): a", head: "feat/a", base: "develop", labels: ["à-fusionner"], ...plus }] });
++    const r = d.lancer(RENVOYER, "30", "aucun tour de relecture validé");
++    assert.equal(r.status, 0, r.stdout + r.stderr);
++    assert.match(commentaire(d), attendu, JSON.stringify(plus));
++    assert.doesNotMatch(commentaire(d), absent);
++    assert.deepEqual(d.etat().pulls[0].labels, ["fusion-bloquée"]);
++  }
++});
++
++test("renvoyer.sh : une réception de develop en deux fusions, en régime 8, fait ouvrir une nouvelle PR qui demande sa relecture", () => {
++  const d = depotJouet();
++  contrat(d, HUIT);
++  d.branche("maj/lot", "origin/develop", { "docs/a.md": "a\n" });
++  d.github({ pulls: [{ number: 81, title: "chore(sujet): met lot à jour avec develop", head: "maj/lot", base: "develop", labels: ["à-fusionner"] }] });
++  const r = d.lancer(RENVOYER, "81", "#81, PR de mise à jour : une seule fusion de develop, jamais une seconde fusion");
++  assert.equal(r.status, 0, r.stdout + r.stderr);
++  assert.match(commentaire(d), /la nouvelle PR demande sa relecture \(`à-relire`, avec son commentaire `À relire — …`\), jamais `à-fusionner`/);
++});
++
++// Un sujet `demo`, sa spec (qui le déclare) et un ticket, sur develop et sur le sujet ; le contrat de develop.
++function sujetDemo(c) {
++  const d = depotJouet();
++  d.ecrire("docs/features/demo/all/SPEC_ALL_DEM-1-demo.spec.md", "# SPEC_ALL_DEM-1\n\nSujet: sujet/demo\n");
++  d.ecrire("docs/features/demo/all/issues/SPEC_ALL_DEM-1-demo.01.issue.md", "# .01\n\nStatus: ready-for-agent\nBlocked by: —\n");
++  d.ecrire(".claude/chaine.json", `${JSON.stringify(c)}\n`);
++  d.commit("docs: specs");
++  d.git("push", "-q", "origin", "HEAD:develop", "HEAD:refs/heads/sujet/demo");
++  d.git("fetch", "-q", "origin");
++  d.git("switch", "-q", "-c", "feat/spec-all-dem-1-01-travail", "origin/develop");
++  return d;
++}
++
++test("sujet.sh demarrer : en régime 8, demander la relecture, jamais `à-fusionner` ; en régime 7, l'étiquette dès le push", () => {
++  const huit = sujetDemo(HUIT);
++  const r = huit.lancer(SUJET, "demarrer", "SPEC_ALL_DEM-1.01");
++  assert.equal(r.status, 0, r.stdout + r.stderr);
++  assert.match(r.stdout, /régime 8 : relecture indépendante ; .* étiquette à-relire\),\njamais à-fusionner : le Relecteur la pose sur un verdict validé/);
++  assert.doesNotMatch(r.stdout, /label à-fusionner dès le push/);
++  const sept = sujetDemo({ cheminsSensibles: [] });
++  const r2 = sept.lancer(SUJET, "demarrer", "SPEC_ALL_DEM-1.01");
++  assert.equal(r2.status, 0, r2.stdout + r2.stderr);
++  assert.match(r2.stdout, /label à-fusionner dès le push/);
++});
+diff --git a/skills/chaine/fusionner/scripts/passer.sh b/skills/chaine/fusionner/scripts/passer.sh
+index 21f8a94..94bca32 100755
+--- a/skills/chaine/fusionner/scripts/passer.sh
++++ b/skills/chaine/fusionner/scripts/passer.sh
+@@ -2,10 +2,12 @@
+ # =============================================================================
+ # Fait passer UNE PR de la file vers develop (skill /fusionner).
+ #
+-#   1. Éligible : ouverte, label `à-fusionner`, ni `fusion-bloquée` ni brouillon ; section
+-#      « Revue adversariale » dans la description si le diff touche du code (revue-exigee.mjs) ;
+-#      base = develop, ou branche d'une PR déjà fusionnée (pile) → reciblée sur develop
+-#      juste avant le push (un renvoi garde la parente comme base).
++#   1. Éligible : ouverte, label `à-fusionner`, ni `fusion-bloquée` ni brouillon ; selon le régime de la PR (A-97,
++#      lot 5a : sa base porte la clé `relecture` de `.claude/chaine.json` et elle a été ouverte après `depuis`), en
++#      régime 7 une section « Revue adversariale » dans la description si le diff touche du code (revue-exigee.mjs), en
++#      régime 8 un tour de relecture validé pour le contenu de son sommet (le verdict, premier des deux contrôles,
++#      A-105) ; base = develop, ou branche d'une PR déjà fusionnée (pile) → reciblée sur develop
++#      juste avant le push (un renvoi garde la parente comme base ; en régime 8, une pile est renvoyée).
+ #   2. Fusionne origin/develop DANS la branche, jamais de rebase : aucun push forcé
+ #      sur la branche d'une autre session. Conflits résolus sans jugement : index
+ #      générés (régénérés) ; fichier d'une pile dont un seul côté a changé la version
+@@ -21,6 +23,9 @@
+ #      `à-jour` : squash du sommet testé. `retard` ou `conflit-index` (develop a bougé pendant la CI, documentation
+ #      comprise) : nouveau tour (étapes 2 à 5), deux reprises au plus, puis sortie 5. `conflit` : sortie 2 (renvoi).
+ #      Illisible : sortie 3. Le capitaine ne s'en remet pas au réglage « strict » de GitHub.
++#   5 ter. Régime 8 : second contrôle du verdict, sur le sommet fusionné, une fois l'ascendance `à-jour` (A-105) :
++#      la PR relue (sans `à-fusionner` : sautée), ses commentaires relus, un tour validé pour ce sommet exigé ; une
++#      mise à jour du capitaine (fusion de develop, index régénérés) garde le verdict (« même contenu propre »).
+ #   6. Squash lié au sommet testé (`sha`) — commit de merge pour une branche sujet/ ou une
+ #      livraison intermédiaire `livraison/<nom>-<date>`, reconnue aussi après sa mise à jour
+ #      avec develop (étape 4) : son arbre est celui d'un sommet du sujet fusionné avec develop —,
+@@ -50,7 +55,9 @@
+ #      commit vide ; boucle.sh la met de côté jusqu'à la fusion suivante, qui la poussera
+ #   4  refus que l'auteur peut corriger (migration plus ancienne que la dernière de develop,
+ #      titre trop long, sans section « Revue adversariale », titre de code sur un diff docs seul, lien
+-#      symbolique sur un index généré) : la dernière ligne dit pourquoi ; boucle.sh renvoie
++#      symbolique sur un index généré ; en régime 8, aucun tour de relecture validé pour le contenu du sommet, à
++#      l'éligibilité ou juste avant la fusion, une PR empilée, un chemin sensible hors de la ligne `Sensibles:` de son
++#      ticket ou une PR sans ticket qui en touche un) : la dernière ligne dit pourquoi ; boucle.sh renvoie
+ #      la PR (refus.sh) avec ce motif, jamais de saut silencieux
+ #   7  pas éligible, rien à corriger côté auteur (non ouverte, brouillon, sans `à-fusionner`,
+ #      déjà `fusion-bloquée`, empilée sur une parente pas encore fusionnée) : la boucle la saute sans renvoi et la
+@@ -58,7 +65,9 @@
+ #      sans fin, daté de moins de 90 minutes, le plus tard de son epoch, s'il n'est pas en avance de plus de 5 minutes
+ #      sur le sien, et de sa création ; jamais de gel : FILTRE_PASSAGE de github.sh ; posé avant le sien), sautée
+ #      sans renvoi ; ou qui n'est plus éligible une fois le
+-#      verrou pris (relue : fermée, label retiré, sommet changé)
++#      verrou pris (relue : fermée, label retiré, sommet changé) ; ou, en régime 8, dont la lecture est illisible
++#      (clé `relecture` mal formée, commentaires, marque presque à la forme, « double relecture exigée » ou « même
++#      contenu propre » illisibles : A-113, son auteur n'y peut rien) ; ou qui a perdu `à-fusionner` juste avant la fusion
+ #   5  GitHub illisible (lire_github : réponse vide, non JSON, corps d'erreur ou code non nul), à la lecture de la PR,
+ #      de sa parente ou pendant l'attente de la CI : la boucle se met en pause (PAUSE) puis reprend, jamais un arrêt
+ #   3  fusion refusée par GitHub pour une autre raison qu'une branche qui a bougé (droit du compte, règle du dépôt,
+@@ -169,14 +178,41 @@ else
+   depart_pile=$(git merge-base "$origine" "$depart")
+ fi
+ 
+-# Revue adversariale (ADR « chaîne de production ») : exigée dès que le diff touche du code ou ce que la chaîne
+-# exécute (revue-exigee.mjs : apps/, packages/, scripts/, e2e/, un segment à point, un fichier de la racine hors
+-# Markdown, un package.json, un CLAUDE.md, docs/agents/), ou un chemin sensible et le fichier des critères du
+-# contrat d'origin/develop, jamais de celui de la PR.
+-# Une livraison de sujet en est dispensée : chaque sous-PR l'a passée (sujet.sh fusionner).
++# La revue, selon le régime de la PR (A-97), lu sur origin/develop (une pile y sera reciblée) : `revue_du_capitaine` de
++# github.sh. Régime 7, la revue adversariale (ADR « chaîne de production ») : exigée dès que le diff touche du code ou ce
++# que la chaîne exécute (revue-exigee.mjs : apps/, packages/, scripts/, e2e/, un segment à point, un fichier de la racine
++# hors Markdown, un package.json, un CLAUDE.md, docs/agents/), ou un chemin sensible et le fichier des critères du
++# contrat d'origin/develop, jamais de celui de la PR. Régime 8 (A-91, A-105, A-107) : premier contrôle du verdict, avant
++# toute mise à jour et toute CI, un tour validé pour le contenu de la tête lue après le fetch, sur le diff que la
++# relecture lit ; toute PR est concernée, documentation comprise. Une lecture illisible (A-113) : sautée sans renvoi.
++# Une livraison de sujet en est dispensée, dans les deux régimes (A-92) : chaque sous-PR l'a passée (sujet.sh fusionner).
++regime=7
+ if [ "$livraison_sujet" = 0 ]; then
+-  motif=$(git -c core.quotePath=false diff --no-renames --name-only "$depart" "$origine" | node "$PASSER_OUTILS/revue-exigee.mjs" "$(champ '.body // ""')" "$titre" origin/develop) ||
+-    sortir 4 "$motif"
++  revue=$(git -c core.quotePath=false diff --no-renames --name-only "$depart" "$origine" | revue_du_capitaine "$pr" "$origine" develop) && statut=0 || statut=$?
++  regime=$(sed -n '1s/^régime \([78]\).*$/\1/p' <<<"$revue")
++  # Le Relecteur ne relit qu'une PR vers develop ou vers un sujet : une pile n'aurait jamais de verdict.
++  [ "$regime" != 8 ] || [ "$base" = develop ] ||
++    sortir 4 "PR empilée sur $base en régime 8 : le Relecteur ne relit qu'une PR vers develop ou vers un sujet ; la recibler sur develop, puis demander sa relecture"
++  case $statut in
++    0) ;;
++    1) sortir 4 "$(tail -n 1 <<<"$revue")" ;;
++    21) sortir 7 "$(tail -n 1 <<<"$revue") : sautée sans renvoi, son auteur n'y peut rien (le Relecteur prévient l'architecte)" ;;
++    5) sortir 5 "origin ou GitHub illisible à la lecture des commentaires de la PR (cause ci-dessus) : pause, puis reprise" ;;
++    *) sortir 3 "revue du capitaine en échec (sortie $statut) : $(tail -n 1 <<<"$revue")" ;;
++  esac
++  regime=${regime:-7}
++fi
++# Régime 8, les gardes des fichiers sensibles (A-76, lot 5b), au même endroit que le premier contrôle (A-105), sur le
++# même diff : un chemin sensible que la ligne `Sensibles:` du ticket de la PR ne couvre pas, ou une PR sans ticket qui en
++# touche un, est renvoyée (`garde_des_sensibles` de github.sh). Une livraison de sujet n'y repasse pas.
++if [ "$regime" = 8 ]; then
++  motif=$(git -c core.quotePath=false diff --no-renames --name-only "$depart" "$origine" | garde_des_sensibles develop "$titre" "$tete") && statut=0 || statut=$?
++  case $statut in
++    0) ;;
++    20) sortir 4 "$(tail -n 1 <<<"$motif")" ;;
++    21) sortir 7 "$(tail -n 1 <<<"$motif") (chemins sensibles) : sautée sans renvoi, son auteur n'y peut rien" ;;
++    *) sortir 3 "garde des fichiers sensibles en échec (sortie $statut) : $(tail -n 1 <<<"$motif")" ;;
++  esac
+ fi
+ 
+ # Lien symbolique sur un index généré ou son dossier, que la PR ajoute ou change (livraisons comprises) : la
+@@ -361,6 +397,34 @@ while :; do
+   esac
+ done
+ 
++# ── 5 ter. Second contrôle du verdict, juste avant l'appel de fusion (régime 8, A-105) ────────────────────
++# Sur le sommet que le capitaine fusionne, une fois l'ascendance rendue « à-jour », sans CI de plus : la PR relue (ses
++# étiquettes), puis ses commentaires. Ce que rien ne relisait depuis le premier contrôle : un `refusé` tombé pendant la
++# CI, une règle montée à haute, une étiquette que le Relecteur a changée. Une mise à jour du capitaine (fusion de
++# develop, index régénérés) garde le verdict : « même contenu propre » (A-106). Nulle part ailleurs.
++quitter_capitaine() { git switch -q --detach origin/develop; git branch -q -D "capitaine/$N" 2>/dev/null || true; }
++if [ "$regime" = 8 ]; then
++  pr_relu=$(pr_json "$N") || sortir 5 "GitHub illisible à la relecture de la PR avant la fusion (cause ci-dessus) : pause, puis reprise"
++  raison=$(jq -r --arg s "$sommet" '[.labels[].name] as $l
++    | if .state != "open" then "non ouverte" elif .draft != false then "en brouillon"
++      elif ($l | index("à-fusionner")) == null then "sans le label à-fusionner"
++      elif ($l | index("fusion-bloquée")) != null then "label fusion-bloquée"
++      elif .head.sha != $s then "sommet changé" else "" end' <<<"$pr_relu")
++  case "$raison" in
++    '') ;;
++    'sommet changé') quitter_capitaine; sortir 5 "la PR a reçu un push avant la fusion, relancer" ;;
++    *) quitter_capitaine; sortir 7 "PR plus éligible juste avant la fusion ($raison) : sautée" ;;
++  esac
++  revue=$(git -c core.quotePath=false diff --no-renames --name-only "$(git merge-base "$sommet" origin/develop)" "$sommet" | revue_du_capitaine "$pr_relu" "$sommet" develop) && statut=0 || statut=$?
++  case $statut in
++    0) log "verdict relu juste avant la fusion : $(head -n 1 <<<"$revue")" ;;
++    1) quitter_capitaine; sortir 4 "$(tail -n 1 <<<"$revue") (contrôle juste avant la fusion)" ;;
++    21) quitter_capitaine; sortir 7 "$(tail -n 1 <<<"$revue") (contrôle juste avant la fusion) : sautée sans renvoi, son auteur n'y peut rien" ;;
++    5) sortir 5 "origin ou GitHub illisible à la relecture des commentaires avant la fusion (cause ci-dessus) : pause, puis reprise" ;;
++    *) quitter_capitaine; sortir 3 "revue du capitaine en échec avant la fusion (sortie $statut) : $(tail -n 1 <<<"$revue")" ;;
++  esac
++fi
++
+ # ── 6. Squash ───────────────────────────────────────────────────────────────
+ sujet="$titre (#$N)"
+ longueur=$(node -e 'console.log(String([...process.argv[1]].length))' "$sujet")
+diff --git a/skills/chaine/fusionner/scripts/renvoyer.sh b/skills/chaine/fusionner/scripts/renvoyer.sh
+index df0bab2..315498d 100755
+--- a/skills/chaine/fusionner/scripts/renvoyer.sh
++++ b/skills/chaine/fusionner/scripts/renvoyer.sh
+@@ -2,7 +2,8 @@
+ # =============================================================================
+ # Renvoie une PR de la file à sa session (skill `fusionner`) : retire `à-fusionner`,
+ # pose `fusion-bloquée`, commente la cause et donne le worktree propriétaire, pour
+-# que le capitaine prévienne la session (list_sessions → send_message).
++# que le capitaine prévienne la session (list_sessions → send_message). La suite que le commentaire donne suit le régime
++# de la PR (A-97) : en régime 8, corriger puis redemander la relecture (`à-relire`), jamais `à-fusionner`.
+ #
+ # Usage : bash scripts/chaine/renvoyer.sh <numéro> <cause>
+ # =============================================================================
+@@ -16,10 +17,26 @@ outils=$(cd "$(dirname "$0")" && pwd)
+ deja=$(renvois_de "$N")
+ plafond=$(plafond_renvois)
+ numero=$((deja + 1))
+-suite="Corriger, puis retirer \`fusion-bloquée\` et remettre \`à-fusionner\` (CLAUDE.md § « Fusion vers \`develop\` »)."
++# Le régime de la PR (A-97, lot 5c) : en régime 8, l'auteur ne pose jamais `à-fusionner`, il redemande la relecture (A-91,
++# A-93) ; le Relecteur pose `à-fusionner` sur un verdict validé et retire `fusion-bloquée`. PR ou régime illisibles : le
++# texte du régime 7.
++regime=7
++if pr=$(pr_json "$N" 2>/dev/null); then
++  regime=$(regime_de_la_pr "$(jq -r .base.ref <<<"$pr")" "$(jq -r '.created_at // ""' <<<"$pr")" 2>/dev/null) || regime=7
++fi
++if [ "$regime" = 8 ]; then
++  suite="Corriger, puis redemander la relecture : le commentaire \`À relire — sommet <sha> — Session: <la tienne> — Conducteur: <le tien>\` et l'étiquette \`à-relire\`, sans retirer \`fusion-bloquée\` ; jamais \`à-fusionner\`, que le Relecteur pose sur un verdict validé (relecture indépendante, régime 8)."
++else
++  suite="Corriger, puis retirer \`fusion-bloquée\` et remettre \`à-fusionner\` (CLAUDE.md § « Fusion vers \`develop\` »)."
++fi
+ # Une réception de develop faite en plusieurs fusions ne se corrige pas par un push : elle se refait, dans une nouvelle PR.
+ case "$cause" in
+-  *"jamais une seconde fusion"*) suite="Refaire la réception comme la cause le dit, ouvrir une nouvelle PR vers le sujet et fermer celle-ci ; la nouvelle PR porte \`à-fusionner\` (CLAUDE.md § « Fusion vers \`develop\` »)." ;;
++  *"jamais une seconde fusion"*)
++    if [ "$regime" = 8 ]; then
++      suite="Refaire la réception comme la cause le dit, ouvrir une nouvelle PR vers le sujet et fermer celle-ci ; la nouvelle PR demande sa relecture (\`à-relire\`, avec son commentaire \`À relire — …\`), jamais \`à-fusionner\` (relecture indépendante, régime 8)."
++    else
++      suite="Refaire la réception comme la cause le dit, ouvrir une nouvelle PR vers le sujet et fermer celle-ci ; la nouvelle PR porte \`à-fusionner\` (CLAUDE.md § « Fusion vers \`develop\` »)."
++    fi ;;
+ esac
+ if [ "$numero" -ge "$plafond" ]; then
+   suite="**Renvoi $numero sur $plafond : cette PR attend un humain.** La file ne la reprend plus ; un humain décide, puis le capitaine la passe à la main (\`passer.sh $N\`, ou \`sujet.sh fusionner $N\` pour une sous-PR)."
+diff --git a/skills/chaine/fusionner/scripts/revue-exigee.mjs b/skills/chaine/fusionner/scripts/revue-exigee.mjs
+index 908e31b..e31e54f 100644
+--- a/skills/chaine/fusionner/scripts/revue-exigee.mjs
++++ b/skills/chaine/fusionner/scripts/revue-exigee.mjs
+@@ -15,16 +15,33 @@
+ // alors la seule ligne Status du commit de réservation et le code reste sur la branche.
+ //
+ // Usage : printf '%s\n' "$fichiers" | node revue-exigee.mjs "$corps" ["$titre"] ["<base>"]
+-// En module : `motifsDuCapitaine` (tous les motifs, dans l'ordre de la CLI) et `lireBase`, que le check `pr-titre` du
+-// socle de la chaîne appelle (ticket 16).
++//         printf '%s\n' "$fichiers" | node revue-exigee.mjs "$corps" "$titre" "origin/<base>" --ouverte <date> --tete <sha> --branche <tête> --commentaires <fichier>
++// En module : `motifsDuCapitaine` (tous les motifs, dans l'ordre de la CLI), `lireBase` et `regimeDeLaPr`, que le check
++// `pr-titre` du socle de la chaîne appelle (ticket 16, lot 5a).
+ // `<base>` : la branche que la PR vise (`origin/develop`, `origin/sujet/<nom>`) ; ses `cheminsSensibles` et son
+ // fichier des critères s'ajoutent au plancher (`lireBase`). Sans elle, le plancher seul.
+ // Sortie 0 éligible · 1 non éligible, motif sur la sortie standard.
++//
++// Le régime d'une PR (A-97, lot 5a). Avec `--ouverte` (le `created_at` de la PR), la CLI lit d'abord le régime sur
++// `<base>` (`regimeDeLaPr`) et l'écrit en première ligne de sa sortie standard : `régime 7`, `régime 8` (puis le motif,
++// sortie 1), ou `régime 8 : tour <k> validé au sommet <sha>` (sortie 0). En régime 7, elle juge comme sans l'option.
++// En régime 8 (A-91, A-105, A-107), la section de revue et la ligne `/security-review` du corps ne sont plus lues : le verdict les remplace. La
++// PR veut un tour validé pour le contenu de `--tete`, au sens de la règle 2 du Relecteur (`tourValide` de
++// `decision-relecteur.mjs`, la même fonction), sur les mêmes faits que lui : `--commentaires`, un fichier JSON, le
++// tableau de TOUS les commentaires de la PR (toutes pages, jamais en argument : un argument trop long est refusé par le
++// système) ; le chemin sensible, lu sur le diff reçu avec le contrat de la base (`cheminSensible`, `lireBase`) ; le nombre
++// de verdicts exigés (`double-relecture.mjs`, à côté) ; « même contenu propre » de chaque sommet de tour avec `--tete`
++// (`meme-contenu.sh`, à côté). Qui appelle a relu `origin/<base>`, `origin/develop` et les `origin/sujet/*` juste avant.
++// Le titre de code sur de la documentation seule reste jugé (`motifTitreSansCode`).
++// Sortie 21 : lecture illisible (clé `relecture` mal formée, date d'ouverture, commentaires, marque presque à la forme,
++// « double relecture exigée » ou « même contenu propre » illisibles) ; la cause sur la sortie standard. Le capitaine
++// saute alors la PR sans la renvoyer (A-113) : son auteur n'y peut rien. Sortie 2 : options mal formées.
+ // =============================================================================
+ 
+-import { execFileSync } from 'node:child_process';
++import { execFileSync, spawnSync } from 'node:child_process';
+ import { realpathSync } from 'node:fs';
+-import { fileURLToPath } from 'node:url';
++import { dirname, join } from 'node:path';
++import { fileURLToPath, pathToFileURL } from 'node:url';
+ 
+ // Ce qui exige la revue, lu sur le chemin décité, en NFC et en minuscules (`cheminLu`) :
+ //   - le code : apps/, packages/, scripts/, e2e/ ;
+@@ -360,7 +377,9 @@ export function motifTitreSansCode({ titre, fichiers }) {
+  * ligne `/security-review`, titre de code sur de la documentation seule) ; `[]` si la PR peut passer. La CLI rend
+  * le premier ; le check `pr-titre` du socle les rend tous, sans recopier la règle.
+  */
+-export function motifsDuCapitaine({ corps, titre, fichiers, base = SANS_BASE }) {
++export function motifsDuCapitaine({ corps, titre, fichiers, base = SANS_BASE, regime = 7 }) {
++  // Régime 8 (lot 5a) : la section de revue et sa ligne `/security-review` ne se lisent plus, le verdict les remplace.
++  if (regime === 8) return [motifTitreSansCode({ titre, fichiers })].filter((m) => m !== null);
+   return [
+     motifSansRevue({ corps, fichiers, base }),
+     motifSansSecurite({ corps, fichiers, base }),
+@@ -368,6 +387,73 @@ export function motifsDuCapitaine({ corps, titre, fichiers, base = SANS_BASE })
+   ].filter((m) => m !== null);
+ }
+ 
++// ── Le régime d'une PR, et son verdict (relecture indépendante, lot 5a) ──────────────────────────────────────────
++const EFFORTS = ['low', 'medium', 'high', 'xhigh', 'max'];
++const MODELES = ['opus', 'sonnet'];
++const DEPUIS = /^\d{4}-\d\d-\d\dT\d\d:\d\d(?::\d\d(?:\.\d{1,3})?)?Z$/;
++/**
++ * La clé `relecture` d'un contrat `.claude/chaine.json`, son texte (`null` : pas de fichier) : `null` sans fichier ou
++ * sans clé (régime 7), `'illisible'` pour une clé mal formée ou un JSON illisible, sinon `{ depuis }` en millisecondes.
++ * La forme est celle que le Relecteur lit (`contrat` de `relecteur.mjs`, A-179) : `depuis` en UTC, `Z`, avec ou sans
++ * millisecondes, un instant qui existe ; `delai`, des minutes, un entier, 1 ou plus ; `ordinaire` et `sensible`,
++ * `{ modele: opus | sonnet, effort: low | medium | high | xhigh | max }`. Une clé que le Relecteur ne lit pas, le
++ * capitaine ne la lit pas non plus : la PR n'est alors ni relue, ni fusionnée.
++ */
++export function lireCleRelecture(texte) {
++  if (texte === null) return null;
++  let c;
++  try {
++    c = JSON.parse(texte);
++  } catch {
++    return 'illisible';
++  }
++  if (c === null || typeof c !== 'object' || !Object.hasOwn(c, 'relecture')) return null;
++  const r = c.relecture;
++  const couple = (x) => x === undefined || (x !== null && typeof x === 'object' && MODELES.includes(x.modele) && EFFORTS.includes(x.effort));
++  if (r === null || typeof r !== 'object' || typeof r.depuis !== 'string' || !DEPUIS.test(r.depuis) || !Number.isFinite(Date.parse(r.depuis))) return 'illisible';
++  if (r.delai !== undefined && !(Number.isSafeInteger(r.delai) && r.delai >= 1)) return 'illisible';
++  if (!couple(r.ordinaire) || !couple(r.sensible)) return 'illisible';
++  return { depuis: Date.parse(r.depuis) };
++}
++
++/**
++ * Le régime d'une PR (A-97) : 8 quand sa base, `develop` ou `sujet/<nom>` et celle-là seule, porte la clé `relecture`
++ * et que la PR a été ouverte strictement après `depuis` ; 7 sinon, une base hors de la chaîne comprise (comme le
++ * Relecteur, qui ne la regarde pas). `base` : un nom de branche, ou `origin/<branche>` ; `ouverte` : le `created_at` de
++ * la PR. Rend `{ regime: 7 | 8 }`, ou `{ illisible }`, sa cause : contrat qui ne se lit pas, clé mal formée, date
++ * d'ouverture illisible. `lire(ref, chemin)` : comme pour `lireBase`.
++ */
++export function regimeDeLaPr({ base, ouverte }, lire = lireGit) {
++  const nom = String(base ?? '').replace(/^origin\//, '');
++  if (nom !== 'develop' && !/^sujet\/[A-Za-z0-9._-]+$/.test(nom)) return { regime: 7 };
++  let texte;
++  try {
++    texte = lire(`refs/remotes/origin/${nom}`, '.claude/chaine.json');
++  } catch (e) {
++    return { illisible: `contrat de origin/${nom} illisible (${String(e.message).split('\n')[0]})` };
++  }
++  const cle = lireCleRelecture(texte);
++  if (cle === null) return { regime: 7 };
++  if (cle === 'illisible') return { illisible: `clé relecture de origin/${nom}:.claude/chaine.json mal formée` };
++  const t = Date.parse(ouverte ?? '');
++  if (typeof ouverte !== 'string' || !Number.isFinite(t)) return { illisible: `date d'ouverture de la PR illisible (« ${ouverte ?? ''} »)` };
++  return { regime: t > cle.depuis ? 8 : 7 };
++}
++
++/**
++ * Régime 8 (A-91, A-105) : la PR n'entre qu'avec un tour validé pour le contenu de `tete`, la règle 2 du Relecteur
++ * jouée par la même fonction (`tourValide`, reçue). `{ tour }` le tour validé, ou `{ motif }`. `LectureIllisible` (des
++ * commentaires que le lecteur refuse, une marque presque à la forme, `exiges` ou « même contenu propre » illisible)
++ * passe à l'appelant : jamais « validé ». Un `refusé`, un tour en cours, un contenu changé depuis le verdict, un seul
++ * verdict quand deux sont exigés, un verdict sans `/security-review: lancée` sur un chemin sensible : le motif.
++ */
++export function verdictDuCapitaine({ commentaires, tete, exiges, sensible, memeContenu, tourValide }) {
++  const tour = tourValide({ commentaires, tete, exiges, sensible, memeContenu });
++  if (tour !== null) return { tour };
++  const exigences = [exiges >= 2 ? 'deux verdicts validés de deux sessions exigés' : null, sensible ? 'chemin sensible : `/security-review: lancée` exigée dans le verdict' : null].filter(Boolean);
++  return { motif: `aucun tour de relecture validé pour le contenu de ce sommet (${tete.slice(0, 12)})${exigences.length ? ` (${exigences.join(' ; ')})` : ''} : le verdict manque, est refusé ou porte sur un autre contenu` };
++}
++
+ /** Vrai quand ce fichier est lancé en ligne de commande : lien symbolique, chemin à espace ou à accent, `--preserve-symlinks-main` compris. */
+ function estPointEntree() {
+   try {
+@@ -377,13 +463,98 @@ function estPointEntree() {
+   }
+ }
+ 
++const ICI = dirname(fileURLToPath(import.meta.url));
++/** Les options qui suivent les trois arguments : `{ ouverte, tete, branche, commentaires }`, toutes ou aucune ; sinon `null`. */
++export function lireOptions(argv) {
++  const options = {};
++  for (let i = 0; i < argv.length; i += 2) {
++    const cle = argv[i];
++    if (!['--ouverte', '--tete', '--branche', '--commentaires'].includes(cle) || argv[i + 1] === undefined || cle.slice(2) in options) return null;
++    options[cle.slice(2)] = argv[i + 1];
++  }
++  const n = Object.keys(options).length;
++  if (n === 0) return {};
++  return n === 4 && /^[0-9a-f]{40}$/.test(options.tete) && options.commentaires !== '' ? options : null;
++}
++
++/** Une lecture illisible de la CLI : sa cause, sortie 21. */
++class Illisible extends Error {}
++/** Le nombre de verdicts exigés (`double-relecture.mjs`, à côté) : 1, 2, ou `'illisible'`. */
++function exigesDe(fichiers, { base, tete, titre, branche }) {
++  const r = spawnSync(process.execPath, [join(ICI, 'double-relecture.mjs'), '--base', base, '--tete', tete, '--titre', titre, '--branche', branche], {
++    input: fichiers.length ? `${fichiers.join('\n')}\n` : '',
++    encoding: 'utf8',
++    maxBuffer: 64 * 1024 * 1024,
++  });
++  return r.status === 0 ? 1 : r.status === 20 ? 2 : 'illisible';
++}
++/** « Même contenu propre » de V et T vers `base` (`meme-contenu.sh`, à côté) : vrai, faux, ou `'illisible'`. */
++function memeContenuDe(v, t, base) {
++  const r = spawnSync('bash', [join(ICI, 'meme-contenu.sh'), v, t, base], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
++  return r.status === 0 ? true : r.status === 20 ? false : 'illisible';
++}
++
++/** Le verdict d'une PR en régime 8, sur les faits que le Relecteur lit : `{ tour }` ou `{ motif }` ; `Illisible` sinon. */
++async function verdictEnLigne({ fichiers, base, tete, titre, branche, commentaires: fichier }) {
++  const { readFileSync } = await import('node:fs');
++  const { sommetsDesTours, tourValide } = await import(pathToFileURL(join(ICI, 'decision-relecteur.mjs')).href);
++  const { LectureIllisible } = await import(pathToFileURL(join(ICI, 'verdict.mjs')).href);
++  let commentaires;
++  try {
++    commentaires = JSON.parse(readFileSync(fichier, 'utf8'));
++  } catch (e) {
++    throw new Illisible(`commentaires de la PR illisibles (${fichier} : ${e.message})`);
++  }
++  try {
++    const sensible = fichiers.length > 0 && cheminSensible(fichiers, lireBase(`origin/${base}`)) !== null;
++    const exiges = exigesDe(fichiers, { base, tete, titre, branche });
++    const memeContenu = {};
++    for (const s of sommetsDesTours(commentaires)) if (s !== tete) memeContenu[s] = memeContenuDe(s, tete, base);
++    return verdictDuCapitaine({ commentaires, tete, exiges, sensible, memeContenu, tourValide });
++  } catch (e) {
++    if (e instanceof LectureIllisible) throw new Illisible(e.message);
++    throw e;
++  }
++}
++
+ if (estPointEntree()) {
+   const { readFileSync } = await import('node:fs');
+   const fichiers = readFileSync(0, 'utf8').split('\n').filter(Boolean);
++  const options = lireOptions(process.argv.slice(5));
++  if (options === null) {
++    process.stdout.write('options : --ouverte <date> --tete <sha de 40 caractères> --branche <tête> --commentaires <fichier>, toutes ou aucune, après les trois arguments\n');
++    process.exit(2);
++  }
+   const base = process.argv[4] ? lireBase(process.argv[4]) : SANS_BASE;
+-  const [motif] = motifsDuCapitaine({ corps: process.argv[2] ?? '', titre: process.argv[3] ?? '', fichiers, base });
++  let regime = 7;
++  if (options.ouverte !== undefined) {
++    const lu = regimeDeLaPr({ base: process.argv[4] ?? '', ouverte: options.ouverte });
++    if (lu.illisible) {
++      process.stdout.write(`lecture illisible : ${lu.illisible}\n`);
++      process.exit(21);
++    }
++    regime = lu.regime;
++  }
++  // Avec `--ouverte`, la première ligne dit le régime, sur une PR éligible comme sur un refus (le motif suit, en dernière ligne).
++  const enTete = options.ouverte === undefined ? '' : `régime ${regime}\n`;
++  const [motif] = motifsDuCapitaine({ corps: process.argv[2] ?? '', titre: process.argv[3] ?? '', fichiers, base, regime });
+   if (motif) {
+-    process.stdout.write(`${motif}\n`);
++    process.stdout.write(`${enTete}${motif}\n`);
+     process.exit(1);
+   }
++  if (regime === 8) {
++    let lu;
++    try {
++      lu = await verdictEnLigne({ fichiers, base: process.argv[4].replace(/^origin\//, ''), tete: options.tete, titre: process.argv[3] ?? '', branche: options.branche, commentaires: options.commentaires });
++    } catch (e) {
++      if (!(e instanceof Illisible)) throw e;
++      process.stdout.write(`lecture illisible : ${e.message}\n`);
++      process.exit(21);
++    }
++    if (lu.motif) {
++      process.stdout.write(`${enTete}${lu.motif}\n`);
++      process.exit(1);
++    }
++    process.stdout.write(`régime 8 : tour ${lu.tour.numero} validé au sommet ${lu.tour.sommet}\n`);
++  } else if (options.ouverte !== undefined) process.stdout.write('régime 7\n');
+ }
+diff --git a/skills/chaine/fusionner/scripts/revue-exigee.test.mjs b/skills/chaine/fusionner/scripts/revue-exigee.test.mjs
+index 08ff8c6..bce2a7a 100644
+--- a/skills/chaine/fusionner/scripts/revue-exigee.test.mjs
++++ b/skills/chaine/fusionner/scripts/revue-exigee.test.mjs
+@@ -534,3 +534,70 @@ test('ticket 16 : motifsDuCapitaine rend ce que rend la CLI, motif pour motif, d
+     assert.equal(r.stdout, motifs.length ? `${motifs[0]}\n` : '', `${titre} ${fichiers}`);
+   }
+ });
++
++// ── Lot 5a : le régime d'une PR et son verdict ─────────────────────────────────────────────────────────────────
++test('lot 5a, lireCleRelecture : la forme que le Relecteur lit, ni plus ni moins (un 30 février passe chez lui comme ici : Date.parse le reporte)', () => {
++  const lire = (o) => revueExigee.lireCleRelecture(JSON.stringify(o));
++  assert.equal(revueExigee.lireCleRelecture(null), null, 'pas de contrat');
++  assert.equal(lire({ cheminsSensibles: [] }), null, 'pas de clé');
++  assert.equal(lire([]), null);
++  assert.equal(revueExigee.lireCleRelecture('{'), 'illisible');
++  assert.deepEqual(lire({ relecture: { depuis: '2026-12-01T10:00:00Z' } }), { depuis: Date.UTC(2026, 11, 1, 10) });
++  assert.deepEqual(lire({ relecture: { depuis: '2026-02-30T10:00:00Z' } }), { depuis: Date.UTC(2026, 2, 2, 10) });
++  assert.deepEqual(lire({ relecture: { depuis: '2026-12-01T10:00:00.250Z', delai: 30, ordinaire: { modele: 'sonnet', effort: 'low' }, sensible: { modele: 'opus', effort: 'max' } } }), { depuis: Date.UTC(2026, 11, 1, 10, 0, 0, 250) });
++  for (const r of [null, 'x', {}, { depuis: '2026-12-01T10:00:00+00:00' }, { depuis: '2026-12-01' }, { depuis: '2026-12-01T10:00:00Z', delai: 0 }, { depuis: '2026-12-01T10:00:00Z', delai: 1.5 }, { depuis: '2026-12-01T10:00:00Z', ordinaire: { modele: 'claude-opus-4-1', effort: 'high' } }, { depuis: '2026-12-01T10:00:00Z', sensible: { modele: 'opus', effort: 'fort' } }, { depuis: '2026-12-01T10:00:00Z', sensible: null }])
++    assert.equal(lire({ relecture: r }), 'illisible', JSON.stringify(r));
++});
++
++test('lot 5a, regimeDeLaPr : 8 si la base porte la clé et la PR est ouverte strictement après `depuis` ; base hors de la chaîne, 7 ; illisible dit', () => {
++  const contrat = JSON.stringify({ relecture: { depuis: '2026-11-17T09:00:00Z' } });
++  const lus = [];
++  const lire = (texte) => (ref, chemin) => {
++    lus.push(`${ref}:${chemin}`);
++    if (texte instanceof Error) throw texte;
++    return texte;
++  };
++  assert.deepEqual(revueExigee.regimeDeLaPr({ base: 'develop', ouverte: '2026-11-17T09:00:01Z' }, lire(contrat)), { regime: 8 });
++  assert.deepEqual(lus, ['refs/remotes/origin/develop:.claude/chaine.json'], 'la base seule, par sa réf distante');
++  assert.deepEqual(revueExigee.regimeDeLaPr({ base: 'origin/sujet/lot', ouverte: '2026-11-17T10:00:00Z' }, lire(contrat)), { regime: 8 });
++  assert.deepEqual(revueExigee.regimeDeLaPr({ base: 'develop', ouverte: '2026-11-17T09:00:00Z' }, lire(contrat)), { regime: 7 }, 'à l’instant même : pas après');
++  assert.deepEqual(revueExigee.regimeDeLaPr({ base: 'develop', ouverte: '2026-11-17T08:00:00Z' }, lire(contrat)), { regime: 7 });
++  assert.deepEqual(revueExigee.regimeDeLaPr({ base: 'main', ouverte: '2026-11-17T10:00:00Z' }, lire(contrat)), { regime: 7 });
++  assert.deepEqual(revueExigee.regimeDeLaPr({ base: 'develop', ouverte: undefined }, lire(null)), { regime: 7 }, 'sans contrat, la date ne se lit pas');
++  assert.match(revueExigee.regimeDeLaPr({ base: 'develop', ouverte: '' }, lire(contrat)).illisible, /date d'ouverture de la PR illisible/);
++  assert.match(revueExigee.regimeDeLaPr({ base: 'develop', ouverte: '2026-11-17T10:00:00Z' }, lire('{"relecture":1}')).illisible, /clé relecture de origin\/develop:\.claude\/chaine\.json mal formée/);
++  assert.match(revueExigee.regimeDeLaPr({ base: 'develop', ouverte: '2026-11-17T10:00:00Z' }, lire(new Error('réf absente'))).illisible, /contrat de origin\/develop illisible \(réf absente\)/);
++});
++
++test('lot 5a, motifsDuCapitaine en régime 8 : ni section de revue ni ligne `/security-review` lues ; le titre de code sur la documentation, si', () => {
++  const base = { ...revueExigee.SANS_BASE, sensibles: ['apps/**'] };
++  assert.equal(revueExigee.motifsDuCapitaine({ corps: '', titre: 'feat: x', fichiers: ['apps/x.ts'], base }).length, 2, 'régime 7 : section et ligne');
++  assert.deepEqual(revueExigee.motifsDuCapitaine({ corps: '', titre: 'feat: x', fichiers: ['apps/x.ts'], base, regime: 8 }), []);
++  assert.match(revueExigee.motifsDuCapitaine({ corps: '', titre: 'feat: x', fichiers: ['docs/x.md'], regime: 8 })[0], /mais le diff ne contient que de la documentation/);
++});
++
++test('lot 5a, verdictDuCapitaine : la règle 2 reçue décide ; sans tour validé, le motif dit ce qui manque', () => {
++  const tete = 'a'.repeat(40);
++  const recu = [];
++  const tour = { numero: 2, sommet: tete };
++  assert.deepEqual(revueExigee.verdictDuCapitaine({ commentaires: [], tete, exiges: 1, sensible: false, memeContenu: {}, tourValide: (e) => (recu.push(e), tour) }), { tour });
++  assert.deepEqual(recu, [{ commentaires: [], tete, exiges: 1, sensible: false, memeContenu: {} }]);
++  const { motif } = revueExigee.verdictDuCapitaine({ commentaires: [], tete, exiges: 2, sensible: true, memeContenu: {}, tourValide: () => null });
++  assert.equal(motif, 'aucun tour de relecture validé pour le contenu de ce sommet (aaaaaaaaaaaa) (deux verdicts validés de deux sessions exigés ; chemin sensible : `/security-review: lancée` exigée dans le verdict) : le verdict manque, est refusé ou porte sur un autre contenu');
++  assert.equal(revueExigee.verdictDuCapitaine({ commentaires: [], tete, exiges: 1, sensible: false, memeContenu: {}, tourValide: () => null }).motif, 'aucun tour de relecture validé pour le contenu de ce sommet (aaaaaaaaaaaa) : le verdict manque, est refusé ou porte sur un autre contenu');
++});
++
++test('lot 5a, CLI : les options suivent les trois arguments, toutes ou aucune ; un corps qui ressemble à une option reste un corps', () => {
++  const tete = 'b'.repeat(40);
++  assert.deepEqual(revueExigee.lireOptions([]), {});
++  assert.deepEqual(revueExigee.lireOptions(['--ouverte', 'x', '--tete', tete, '--branche', 'b', '--commentaires', 'f']), { ouverte: 'x', tete, branche: 'b', commentaires: 'f' });
++  for (const argv of [['--ouverte', 'x'], ['--ouverte', 'x', '--tete', 'abc', '--branche', 'b', '--commentaires', 'f'], ['--ouverte', 'x', '--tete', tete, '--branche', 'b', '--commentaires', ''], ['--ouverte', 'x', '--ouverte', 'y', '--branche', 'b', '--commentaires', 'f'], ['--autre', 'x']])
++    assert.equal(revueExigee.lireOptions(argv), null, argv.join(' '));
++  const cli = fileURLToPath(new URL('./revue-exigee.mjs', import.meta.url));
++  const r = spawnSync(process.execPath, [cli, '', 'feat: x', 'origin/develop', '--ouverte', 'x'], { input: 'apps/x.ts\n', encoding: 'utf8', env: jouet.environnementDeBanc() });
++  assert.equal(r.status, 2, r.stdout + r.stderr);
++  assert.match(r.stdout, /options : --ouverte <date> --tete/);
++  const corps = spawnSync(process.execPath, [cli, '--ouverte', 'feat: x', 'origin/develop'], { input: 'apps/x.ts\n', encoding: 'utf8', env: jouet.environnementDeBanc() });
++  assert.equal(corps.status, 1, 'le corps « --ouverte » est un corps : la section manque');
++  assert.match(corps.stdout, /sans section « Revue de ticket »/);
++});
+diff --git a/skills/chaine/fusionner/scripts/sensibles-du-capitaine.test.mjs b/skills/chaine/fusionner/scripts/sensibles-du-capitaine.test.mjs
+new file mode 100644
+index 0000000..10ae37a
+--- /dev/null
++++ b/skills/chaine/fusionner/scripts/sensibles-du-capitaine.test.mjs
+@@ -0,0 +1,162 @@
++// Banc du lot 5b (relecture indépendante) : les gardes des fichiers sensibles du capitaine, en régime 8 (A-74, A-76).
++// `passer.sh` et `sujet.sh fusionner` renvoient une PR dont le diff propre touche un chemin sensible que la ligne
++// `Sensibles:` de son ticket ne couvre pas, ou qui en touche un sans ticket ; une PR de mise à jour d'un sujet ne touche
++// un chemin sensible que s'il est en conflit et couvert par un ticket du sujet. Au premier contrôle (A-105), avant toute
++// mise à jour et toute CI. La garde elle-même (`chemins-sensibles.mjs --garde`) : copies du ticket, deux tickets. Aucun
++// réseau.
++import { test } from "node:test";
++import assert from "node:assert/strict";
++import { spawnSync } from "node:child_process";
++import { existsSync } from "node:fs";
++import { pathToFileURL } from "node:url";
++const { depotJouet, script: scriptDe } = await import(
++  existsSync(new URL("./depot-jouet.mjs", import.meta.url)) ? "./depot-jouet.mjs" : "../../sujet/scripts/depot-jouet.mjs"
++);
++const { ecrireDistribution } = await import(pathToFileURL(scriptDe("fusionner", "decision-relecteur.mjs")).href);
++const { ecrireVerdict } = await import(pathToFileURL(scriptDe("fusionner", "verdict.mjs")).href);
++
++const PASSER = scriptDe("fusionner", "passer.sh");
++const SUJET = scriptDe("sujet", "sujet.sh");
++const GARDE = scriptDe("revue-adversariale", "chemins-sensibles.mjs");
++const CONTRAT = { cheminsSensibles: ["scripts/agent/**", "docs/agents/"], relecture: { depuis: "2026-11-17T09:00:00Z" } };
++const valide = (sha) => [
++  ecrireDistribution({ tour: 1, sommet: sha, sessions: ["session_rel1"] }),
++  `${ecrireVerdict({ sommet: sha, tour: 1, verdict: "validé", bloquants: 0, session: "session_rel1", securite: "lancée" })}\n\n- constats`,
++];
++const dernier = (r) => r.stdout.trim().split("\n").at(-1);
++const fusions = (d) => d.journal().filter((e) => e.methode === "PUT" && /\/merge$/.test(e.route));
++const TICKET = (n) => `docs/features/demo/all/issues/SPEC_ALL_DEMO-1-demo.0${n}.issue.md`;
++const ticket = (n, ligne) => `# SPEC_ALL_DEMO-1.0${n} — x\n\nStatus: ready-for-agent\n${ligne}\n\n## Le besoin\n\nx\n`;
++const ACCORD = (chemins) => `Sensibles: ${chemins} — accord de la MOA, 2026-11-17`;
++
++// Le jouet, le contrat et les tickets (`{ n: ligne }`) sur develop.
++function monter(tickets = {}) {
++  const d = depotJouet();
++  d.ecrire(".claude/chaine.json", `${JSON.stringify(CONTRAT, null, 2)}\n`);
++  for (const [n, ligne] of Object.entries(tickets)) d.ecrire(TICKET(n), ticket(n, ligne));
++  d.commit("chore: contrat et tickets");
++  d.git("push", "-q", "origin", "HEAD:develop");
++  d.git("fetch", "-q", "origin");
++  return d;
++}
++function versDevelop(d, { fichiers, tete = "feat/spec-all-demo-1-01-x", titre = "feat(agent): x" }) {
++  const sha = d.branche(tete, "origin/develop", fichiers);
++  d.git("switch", "-q", "--detach", "origin/develop");
++  d.github({
++    exiges: ["qualite"],
++    checks: { "*": { qualite: "SUCCESS" } },
++    pulls: [{ number: 30, title: titre, head: tete, base: "develop", labels: ["à-fusionner"], commentaires: valide(sha) }],
++  });
++  return sha;
++}
++const passer = (d) => d.lancer(PASSER, "30");
++
++test("régime 8, passer.sh : un chemin sensible que la ligne `Sensibles:` du ticket couvre entre ; un autre est renvoyé, avant toute CI", () => {
++  const d = monter({ 1: ACCORD("`scripts/agent/**`") });
++  versDevelop(d, { fichiers: { "scripts/agent/x.mjs": "export {};\n" } });
++  const r = passer(d);
++  assert.equal(r.status, 0, r.stdout + r.stderr);
++  const non = monter({ 1: ACCORD("`scripts/agent/**`") });
++  versDevelop(non, { fichiers: { "scripts/agent/x.mjs": "export {};\n", "docs/agents/regles.md": "r\n" } });
++  const r2 = passer(non);
++  assert.equal(r2.status, 4, r2.stdout + r2.stderr);
++  assert.match(dernier(r2), /chemin sensible hors de la ligne `Sensibles:` de son ticket SPEC_ALL_DEMO-1\.01 \(docs\/agents\/regles\.md\)/);
++  assert.doesNotMatch(r2.stdout, /mise à jour poussée/);
++  assert.deepEqual(fusions(non), []);
++});
++
++test("régime 8, passer.sh : une PR sans ticket qui touche un chemin sensible est renvoyée ; sans chemin sensible, aucun ticket n'est demandé", () => {
++  const d = monter();
++  versDevelop(d, { fichiers: { "scripts/agent/x.mjs": "export {};\n" }, tete: "feat/x" });
++  const r = passer(d);
++  assert.equal(r.status, 4, r.stdout + r.stderr);
++  assert.match(dernier(r), /PR sans ticket qui touche un chemin sensible \(scripts\/agent\/x\.mjs\)/);
++  const doc = monter();
++  versDevelop(doc, { fichiers: { "docs/a.md": "a\n" }, tete: "feat/x", titre: "docs(a): a" });
++  assert.equal(passer(doc).status, 0);
++});
++
++test("régime 8, sujet.sh fusionner : la ligne se lit sur le sujet, jamais sur la branche ; non couverte, la sous-PR est renvoyée", () => {
++  const monterSujet = (ligne) => {
++    const d = monter();
++    d.branche("sujet/lot", "origin/develop", { [TICKET(1)]: ticket(1, ligne) });
++    const sha = d.branche("feat/spec-all-demo-1-01-x", "origin/sujet/lot", { "scripts/agent/x.mjs": "export {};\n", [TICKET(1)]: ticket(1, ACCORD("`scripts/**`")) });
++    d.git("switch", "-q", "--detach", "origin/develop");
++    d.github({
++      exiges: ["qualite"],
++      checks: { "*": { qualite: "SUCCESS" } },
++      pulls: [{ number: 80, title: "feat(agent): x", head: "feat/spec-all-demo-1-01-x", base: "sujet/lot", labels: ["à-fusionner"], commentaires: valide(sha) }],
++    });
++    return d;
++  };
++  const non = monterSujet("Sensibles: —");
++  const r = non.lancer(SUJET, "fusionner", "80");
++  assert.equal(r.status, 4, r.stdout + r.stderr);
++  assert.match(dernier(r), /^#80 chemin sensible hors de la ligne `Sensibles:`/);
++  const oui = monterSujet(ACCORD("scripts/agent/x.mjs"));
++  const r2 = oui.lancer(SUJET, "fusionner", "80");
++  assert.equal(r2.status, 0, r2.stdout + r2.stderr);
++});
++
++test("régime 8, sujet.sh fusionner : une PR de mise à jour ne touche un chemin sensible qu'en conflit et couvert par un ticket du sujet", () => {
++  const monterMaj = ({ ligne, retouche = false }) => {
++    const d = monter();
++    d.branche("sujet/lot", "origin/develop", { [TICKET(2)]: ticket(2, `Sujet: sujet/lot\n${ligne}`), "scripts/agent/x.mjs": "sujet\n" });
++    d.branche("develop", "origin/develop", { "scripts/agent/x.mjs": "develop\n" });
++    d.git("switch", "-q", "-C", "maj/lot", "origin/sujet/lot");
++    spawnSync("git", ["merge", "-q", "--no-edit", "origin/develop"], { cwd: d.travail, env: d.env });
++    d.ecrire("scripts/agent/x.mjs", "résolu\n");
++    d.git("add", "-A");
++    d.git("commit", "-q", "--no-edit");
++    if (retouche) {
++      d.ecrire("scripts/agent/y.mjs", "retouche\n");
++      d.commit("fix(agent): retouche");
++    }
++    d.git("push", "-q", "origin", "HEAD:refs/heads/maj/lot");
++    d.git("fetch", "-q", "origin");
++    const sha = d.git("rev-parse", "HEAD");
++    d.git("switch", "-q", "--detach", "origin/develop");
++    d.github({
++      exiges: ["qualite"],
++      checks: { "*": { qualite: "SUCCESS" } },
++      pulls: [{ number: 81, title: "chore(sujet): met lot à jour avec develop", head: "maj/lot", base: "sujet/lot", labels: ["à-fusionner"], commentaires: valide(sha) }],
++    });
++    return d;
++  };
++  const oui = monterMaj({ ligne: ACCORD("`scripts/agent/**`") });
++  const r = oui.lancer(SUJET, "fusionner", "81");
++  assert.equal(r.status, 0, r.stdout + r.stderr);
++  assert.match(r.stdout, /#81 fusionnée dans sujet\/lot par avance rapide/);
++  const nonCouvert = monterMaj({ ligne: "Sensibles: —" });
++  const r2 = nonCouvert.lancer(SUJET, "fusionner", "81");
++  assert.equal(r2.status, 4, r2.stdout + r2.stderr);
++  assert.match(dernier(r2), /^#81 chemin sensible hors de la ligne `Sensibles:` de son ticket SPEC_ALL_DEMO-1\.02 \(scripts\/agent\/x\.mjs\)/);
++  const horsConflit = monterMaj({ ligne: ACCORD("`scripts/agent/**`"), retouche: true });
++  const r3 = horsConflit.lancer(SUJET, "fusionner", "81");
++  assert.equal(r3.status, 4, r3.stdout + r3.stderr);
++  assert.match(dernier(r3), /^#81 PR de mise à jour : chemin sensible hors des fichiers en conflit \(scripts\/agent\/y\.mjs\)/);
++});
++
++test("garde : chaque copie du ticket doit couvrir le chemin ; avec deux tickets, l'un suffit ; une ligne illisible et un ticket introuvable se disent", () => {
++  const d = monter({ 1: ACCORD("`scripts/agent/**`"), 2: ACCORD("docs/agents/regles.md") });
++  d.branche("sujet/a", "origin/develop", { [TICKET(1)]: ticket(1, ACCORD("`scripts/agent/x.mjs`")) });
++  d.branche("sujet/b", "origin/develop", { [TICKET(1)]: ticket(1, ACCORD("`scripts/agent/**`")), "docs/b.md": "b\n" });
++  d.git("switch", "-q", "--detach", "origin/develop");
++  const garde = (fichiers, titre, branche) => spawnSync(process.execPath, [GARDE, "--garde", "--base", "develop", "--titre", titre, "--branche", branche], { cwd: d.travail, env: d.env, input: fichiers, encoding: "utf8" });
++  const x = garde("scripts/agent/x.mjs\n", "feat: x", "feat/spec-all-demo-1-01-x");
++  assert.equal(x.status, 0, x.stdout + x.stderr);
++  const y = garde("scripts/agent/y.mjs\n", "feat: x", "feat/spec-all-demo-1-01-x");
++  assert.equal(y.status, 20, "la copie de sujet/a ne couvre pas y.mjs");
++  assert.match(y.stdout, /hors de la ligne `Sensibles:` de son ticket SPEC_ALL_DEMO-1\.01 \(scripts\/agent\/y\.mjs\)/);
++  const deux = garde("scripts/agent/x.mjs\ndocs/agents/regles.md\n", "feat(demo): SPEC_ALL_DEMO-1.02 x", "feat/spec-all-demo-1-01-x");
++  assert.equal(deux.status, 0, deux.stdout + deux.stderr);
++  const introuvable = garde("scripts/agent/x.mjs\n", "feat: x", "feat/spec-all-demo-1-09-x");
++  assert.equal(introuvable.status, 20);
++  assert.match(introuvable.stdout, /ticket SPEC_ALL_DEMO-1\.09 introuvable sur les origin\/sujet\/\* et sur origin\/develop/);
++  const usage = spawnSync(process.execPath, [GARDE, "--garde", "--base", "develop"], { cwd: d.travail, env: d.env, input: "", encoding: "utf8" });
++  assert.equal(usage.status, 2);
++  const mal = monter({ 1: "Sensibles: scripts/agent/** — accord de la MOA" });
++  const r = spawnSync(process.execPath, [GARDE, "--garde", "--base", "develop", "--titre", "feat: x", "--branche", "feat/spec-all-demo-1-01-x"], { cwd: mal.travail, env: mal.env, input: "scripts/agent/x.mjs\n", encoding: "utf8" });
++  assert.equal(r.status, 20);
++  assert.match(r.stdout, /ligne `Sensibles:` du ticket SPEC_ALL_DEMO-1\.01 illisible/);
++});
+diff --git a/skills/chaine/fusionner/scripts/verdict-du-capitaine.test.mjs b/skills/chaine/fusionner/scripts/verdict-du-capitaine.test.mjs
+new file mode 100644
+index 0000000..d229cf4
+--- /dev/null
++++ b/skills/chaine/fusionner/scripts/verdict-du-capitaine.test.mjs
+@@ -0,0 +1,318 @@
++// Banc du lot 5a (relecture indépendante) : le capitaine juge l'éligibilité par les verdicts, deux fois (A-91, A-105).
++// `passer.sh` (une PR vers develop) et `sujet.sh fusionner` (une sous-PR) sur le dépôt jouet, la clé `relecture` dans le
++// contrat de develop : en régime 8, la section de revue n'est plus lue, un tour validé pour le contenu du sommet est
++// exigé avant toute mise à jour et toute CI, puis relu juste avant l'appel de fusion ; une mise à jour du capitaine garde
++// le verdict (« même contenu propre ») ; une lecture illisible fait sauter la PR sans renvoi. Le faux GitHub fait tomber
++// un verdict ou une étiquette pendant la CI (`pendantCi`). Aucun réseau.
++import { test } from "node:test";
++import assert from "node:assert/strict";
++import { existsSync, readFileSync } from "node:fs";
++import { pathToFileURL } from "node:url";
++// Posé dans un projet, depot-jouet.mjs est à côté (scripts/chaine/) ; dans le plugin, il est dans le skill sujet.
++const { depotJouet, script: scriptDe } = await import(
++  existsSync(new URL("./depot-jouet.mjs", import.meta.url)) ? "./depot-jouet.mjs" : "../../sujet/scripts/depot-jouet.mjs"
++);
++const { ecrireDistribution } = await import(pathToFileURL(scriptDe("fusionner", "decision-relecteur.mjs")).href);
++const { ecrireVerdict } = await import(pathToFileURL(scriptDe("fusionner", "verdict.mjs")).href);
++
++const PASSER = scriptDe("fusionner", "passer.sh");
++const SUJET = scriptDe("sujet", "sujet.sh");
++// La repose a posé la clé à 09 h ; le faux ouvre une PR à 11 h par défaut (`created_at`) : régime 8.
++const CONTRAT = { cheminsSensibles: ["scripts/agent/**"], relecture: { depuis: "2026-11-17T09:00:00Z" } };
++const D = (tour, sommet, sessions) => ecrireDistribution({ tour, sommet, sessions });
++const V = (sommet, tour, session, verdict, securite = null) =>
++  `${ecrireVerdict({ sommet, tour, verdict, bloquants: verdict === "refusé" ? 1 : 0, session, securite })}\n\n- constats`;
++const valide = (sha, securite = null) => [D(1, sha, ["session_rel1"]), V(sha, 1, "session_rel1", "validé", securite)];
++const dernier = (r) => r.stdout.trim().split("\n").at(-1);
++const fusions = (d) => d.journal().filter((e) => e.methode === "PUT" && /\/merge$/.test(e.route));
++
++// Le jouet, le contrat de develop posé (`contrat` : null pour aucun).
++function monter(contrat = CONTRAT) {
++  const d = depotJouet();
++  if (contrat !== null) {
++    d.ecrire(".claude/chaine.json", `${JSON.stringify(contrat, null, 2)}\n`);
++    d.commit("chore: contrat");
++    d.git("push", "-q", "origin", "HEAD:develop");
++    d.git("fetch", "-q", "origin");
++  }
++  return d;
++}
++// La PR 30 vers develop, sa branche `feat/a` partie de develop ; ses commentaires (`fil(sha)`) écrits sur son sommet.
++function versDevelop(d, { fichiers = { "docs/a.md": "a\n" }, fil = valide, titre = "docs(a): a", labels = ["à-fusionner"], plus = {}, autres = {}, tete = "feat/a" } = {}) {
++  const sha = d.branche(tete, "origin/develop", fichiers);
++  d.git("switch", "-q", "--detach", "origin/develop");
++  d.github({
++    exiges: ["qualite"],
++    checks: { "*": { qualite: "SUCCESS" } },
++    pulls: [{ number: 30, title: titre, head: tete, base: "develop", labels, commentaires: fil(sha), ...plus }],
++    ...autres,
++  });
++  return sha;
++}
++const passer = (d) => d.lancer(PASSER, "30");
++
++test("régime 8, passer.sh : sans verdict, renvoyée en sortie 4 avant toute mise à jour et toute CI", () => {
++  const d = monter();
++  const sha = versDevelop(d, { fil: () => [] });
++  d.branche("develop", "origin/develop", { "docs/b.md": "b\n" });
++  d.git("switch", "-q", "--detach", "origin/develop");
++  const r = passer(d);
++  assert.equal(r.status, 4, r.stdout + r.stderr);
++  assert.match(dernier(r), /aucun tour de relecture validé pour le contenu de ce sommet \(/);
++  assert.doesNotMatch(r.stdout, /mise à jour poussée/, "aucune mise à jour");
++  assert.equal(d.git("rev-parse", "origin/feat/a"), sha, "la branche n'a pas bougé");
++  assert.deepEqual(fusions(d), []);
++});
++
++test("régime 8, passer.sh : la section de revue n'est plus lue ; un tour validé sur la tête fait entrer la PR, verdict relu juste avant la fusion", () => {
++  const d = monter();
++  versDevelop(d, { fichiers: { "scripts/x.sh": "echo x\n" }, titre: "feat(x): x" });
++  const r = passer(d);
++  assert.equal(r.status, 0, r.stdout + r.stderr);
++  assert.match(r.stdout, /verdict relu juste avant la fusion : régime 8 : tour 1 validé au sommet [0-9a-f]{40}/);
++  assert.match(r.stdout, /FUSIONNÉE/);
++});
++
++test("régime 7, passer.sh : sans la clé, ou ouverte avant `depuis`, la section de revue est exigée et aucun verdict ne suffit", () => {
++  for (const [contrat, plus] of [[{ cheminsSensibles: [] }, {}], [CONTRAT, { created_at: "2026-11-17T08:59:00Z" }], [CONTRAT, { created_at: "2026-11-17T09:00:00Z" }]]) {
++    const d = monter(contrat);
++    versDevelop(d, { fichiers: { "scripts/x.sh": "echo x\n" }, titre: "feat(x): x", plus });
++    const r = passer(d);
++    assert.equal(r.status, 4, `${JSON.stringify(plus)} : ${r.stdout}${r.stderr}`);
++    assert.match(dernier(r), /sans section « Revue de ticket » ni « Revue adversariale »/, JSON.stringify(plus));
++  }
++});
++
++test("régime 8, passer.sh : develop a bougé, le capitaine met la PR à jour, le verdict tient (même contenu propre) et elle entre", () => {
++  const d = monter();
++  const sha = versDevelop(d);
++  d.branche("develop", "origin/develop", { "docs/b.md": "b\n" });
++  d.git("switch", "-q", "--detach", "origin/develop");
++  const r = passer(d);
++  assert.equal(r.status, 0, r.stdout + r.stderr);
++  assert.match(r.stdout, /mise à jour poussée/);
++  assert.notEqual(d.git("rev-parse", "origin/feat/a"), sha, "le sommet fusionné est celui du capitaine");
++  assert.match(r.stdout, /verdict relu juste avant la fusion : régime 8 : tour 1 validé au sommet /);
++  assert.equal(fusions(d).length, 1);
++});
++
++test("régime 8, passer.sh : un `refusé` tombé pendant la CI est vu au second contrôle : renvoyée, jamais fusionnée", () => {
++  const d = monter();
++  const sha = versDevelop(d, { autres: {} });
++  d.github({ pendantCi: [{ lectures: 1, pr: 30, commentaire: V(sha, 1, "session_rel1", "refusé") }] });
++  const r = passer(d);
++  assert.equal(r.status, 4, r.stdout + r.stderr);
++  assert.match(dernier(r), /aucun tour de relecture validé .*\(contrôle juste avant la fusion\)$/);
++  assert.deepEqual(fusions(d), []);
++});
++
++test("régime 8, passer.sh : `à-fusionner` retirée pendant la CI (le Relecteur a posé `à-reprendre`) : sautée en 7, sans renvoi", () => {
++  const d = monter();
++  versDevelop(d);
++  d.github({ pendantCi: [{ lectures: 1, pr: 30, labels: ["à-reprendre"] }] });
++  const r = passer(d);
++  assert.equal(r.status, 7, r.stdout + r.stderr);
++  assert.match(dernier(r), /PR plus éligible juste avant la fusion \(sans le label à-fusionner\) : sautée/);
++  assert.deepEqual(fusions(d), []);
++  assert.ok(!d.journal().some((e) => e.champs?.["labels[]"] === "fusion-bloquée"), "aucun renvoi");
++});
++
++test("régime 8, passer.sh : une lecture illisible (marque presque à la forme, clé mal formée) fait sauter la PR en 7, sans renvoi", () => {
++  const d = monter();
++  versDevelop(d, { fil: (sha) => [...valide(sha), `${D(2, sha, ["session_rel2"])}.`] });
++  const r = passer(d);
++  assert.equal(r.status, 7, r.stdout + r.stderr);
++  assert.match(dernier(r), /^\[#30\] lecture illisible : .*préfixe « Relecture — » sans la forme de sa marque.* : sautée sans renvoi/);
++  const m = monter({ relecture: { depuis: "2026-11-17T09:00:00+00:00" } });
++  versDevelop(m);
++  const r2 = passer(m);
++  assert.equal(r2.status, 7, r2.stdout + r2.stderr);
++  assert.match(dernier(r2), /lecture illisible : clé relecture de origin\/develop:\.claude\/chaine\.json mal formée/);
++  assert.deepEqual([...fusions(d), ...fusions(m)], []);
++});
++
++// Le ticket de la PR, sur develop, qui accorde `scripts/agent/**` (la garde des fichiers sensibles, lot 5b).
++const TICKET = "docs/features/demo/all/issues/SPEC_ALL_DEMO-1-demo.01.issue.md";
++const avecTicket = (d) => {
++  d.git("switch", "-q", "develop");
++  d.ecrire(TICKET, "# SPEC_ALL_DEMO-1.01 — x\n\nStatus: ready-for-agent\nSensibles: `scripts/agent/**` — accord de la MOA, 2026-11-17\n\n## Le besoin\n\nx\n");
++  d.commit("docs: ticket");
++  d.git("push", "-q", "origin", "HEAD:develop");
++  d.git("fetch", "-q", "origin");
++  return d;
++};
++const SENSIBLE = { fichiers: { "scripts/agent/x.mjs": "export {};\n" }, titre: "feat(agent): x", tete: "feat/spec-all-demo-1-01-x" };
++
++test("régime 8, passer.sh : sur un chemin sensible, un `validé` sans `/security-review: lancée` ne suffit pas ; avec elle, la PR entre", () => {
++  const d = avecTicket(monter());
++  versDevelop(d, SENSIBLE);
++  const r = passer(d);
++  assert.equal(r.status, 4, r.stdout + r.stderr);
++  assert.match(dernier(r), /chemin sensible : `\/security-review: lancée` exigée dans le verdict/);
++  const ok = avecTicket(monter());
++  versDevelop(ok, { ...SENSIBLE, fil: (sha) => valide(sha, "lancée") });
++  const r2 = passer(ok);
++  assert.equal(r2.status, 0, r2.stdout + r2.stderr);
++});
++
++test("régime 8, passer.sh : une PR empilée sur une parente fusionnée est renvoyée : le Relecteur ne la relirait pas", () => {
++  const d = monter();
++  const parente = d.branche("feat/parente", "origin/develop", { "docs/p.md": "p\n" });
++  d.branche("feat/fille", "origin/feat/parente", { "docs/f.md": "f\n" });
++  d.git("switch", "-q", "--detach", "origin/develop");
++  d.github({
++    exiges: ["qualite"],
++    checks: { "*": { qualite: "SUCCESS" } },
++    pulls: [
++      { number: 29, title: "docs(p): p", head: "feat/parente", base: "develop", labels: [], state: "closed", merged_at: "2026-11-17T10:00:00Z" },
++      { number: 30, title: "docs(f): f", head: "feat/fille", base: "feat/parente", labels: ["à-fusionner"], commentaires: [] },
++    ],
++  });
++  assert.ok(parente);
++  const r = passer(d);
++  assert.equal(r.status, 4, r.stdout + r.stderr);
++  assert.match(dernier(r), /PR empilée sur feat\/parente en régime 8/);
++});
++
++// La sous-PR 80 vers `sujet/lot`, partie du sujet ; ses commentaires écrits sur son sommet.
++function versSujet(d, { fil = valide, retard = false } = {}) {
++  d.branche("sujet/lot", "origin/develop", { "docs/lot.md": "lot\n" });
++  const sha = d.branche("docs/sous", "origin/sujet/lot", { "docs/sous.md": "sous\n" });
++  if (retard) d.branche("sujet/lot", "origin/sujet/lot", { "docs/lot2.md": "lot 2\n" });
++  d.git("switch", "-q", "--detach", "origin/develop");
++  d.github({
++    exiges: ["qualite"],
++    checks: { "*": { qualite: "SUCCESS" } },
++    pulls: [{ number: 80, title: "docs(sous): sous", head: "docs/sous", base: "sujet/lot", labels: ["à-fusionner"], commentaires: fil(sha) }],
++  });
++  return sha;
++}
++const fusionner = (d) => d.lancer(SUJET, "fusionner", "80");
++
++test("régime 8, sujet.sh fusionner : une sous-PR sans verdict est renvoyée en 4, sans mise à jour ni CI ; validée, en retard, elle est mise à jour et entre", () => {
++  const d = monter();
++  const sha = versSujet(d, { fil: () => [], retard: true });
++  const r = fusionner(d);
++  assert.equal(r.status, 4, r.stdout + r.stderr);
++  assert.match(dernier(r), /^#80 aucun tour de relecture validé pour le contenu de ce sommet/);
++  assert.equal(d.git("rev-parse", "origin/docs/sous"), sha, "aucune mise à jour");
++  const ok = monter();
++  const avant = versSujet(ok, { retard: true });
++  const r2 = fusionner(ok);
++  assert.equal(r2.status, 0, r2.stdout + r2.stderr);
++  assert.notEqual(ok.git("rev-parse", "origin/docs/sous"), avant, "mise à jour par le capitaine");
++  assert.match(r2.stdout, /#80 : verdict relu juste avant la fusion \(régime 8 : tour 1 validé au sommet /);
++  assert.match(r2.stdout, /#80 fusionnée dans sujet\/lot/);
++});
++
++test("régime 8, sujet.sh fusionner : un `refusé` tombé pendant la CI est vu juste avant la fusion : renvoyée en 4", () => {
++  const d = monter();
++  const sha = versSujet(d);
++  d.github({ pendantCi: [{ lectures: 1, pr: 80, commentaire: V(sha, 1, "session_rel1", "refusé") }] });
++  const r = fusionner(d);
++  assert.equal(r.status, 4, r.stdout + r.stderr);
++  assert.match(dernier(r), /\(contrôle juste avant la fusion\)$/);
++  assert.deepEqual(fusions(d), []);
++});
++
++test("régime 8, sujet.sh fusionner : `à-fusionner` retirée pendant la CI (le Relecteur a posé `à-reprendre`) : sautée en 7, sans renvoi ni fusion", () => {
++  const d = monter();
++  versSujet(d);
++  d.github({ pendantCi: [{ lectures: 1, pr: 80, labels: ["à-reprendre"] }] });
++  const r = fusionner(d);
++  assert.equal(r.status, 7, r.stdout + r.stderr);
++  assert.match(dernier(r), /^#80 : PR plus éligible juste avant la fusion \(sans le label à-fusionner\) : sautée$/);
++  assert.deepEqual(fusions(d), []);
++});
++
++// La PR 81 de mise à jour de `sujet/lot` : la fusion de develop dans le sujet, sans conflit, sans retouche.
++function miseAJour(d, fil) {
++  d.branche("sujet/lot", "origin/develop", { "docs/lot.md": "lot\n" });
++  d.branche("develop", "origin/develop", { "docs/dev.md": "dev\n" });
++  d.git("switch", "-q", "-C", "maj/lot", "origin/sujet/lot");
++  d.git("merge", "-q", "--no-edit", "origin/develop");
++  d.git("push", "-q", "origin", "HEAD:refs/heads/maj/lot");
++  d.git("fetch", "-q", "origin");
++  const sha = d.git("rev-parse", "HEAD");
++  d.git("switch", "-q", "--detach", "origin/develop");
++  d.github({
++    exiges: ["qualite"],
++    checks: { "*": { qualite: "SUCCESS" } },
++    pulls: [{ number: 81, title: "chore(sujet): met lot à jour avec develop", head: "maj/lot", base: "sujet/lot", labels: ["à-fusionner"], commentaires: fil(sha) }],
++  });
++  return sha;
++}
++
++test("régime 8, sujet.sh fusionner : une PR de mise à jour n'est pas exemptée — sans verdict renvoyée, validée elle entre par avance rapide", () => {
++  const d = monter();
++  miseAJour(d, () => []);
++  const r = d.lancer(SUJET, "fusionner", "81");
++  assert.equal(r.status, 4, r.stdout + r.stderr);
++  assert.match(dernier(r), /^#81 aucun tour de relecture validé/);
++  const ok = monter();
++  const sha = miseAJour(ok, valide);
++  const r2 = ok.lancer(SUJET, "fusionner", "81");
++  assert.equal(r2.status, 0, r2.stdout + r2.stderr);
++  assert.match(r2.stdout, /#81 : verdict relu juste avant la fusion/);
++  assert.match(r2.stdout, /#81 fusionnée dans sujet\/lot par avance rapide/);
++  assert.equal(ok.git("rev-parse", "origin/sujet/lot"), sha);
++});
++
++test("régime 8, boucle.sh : la boucle joue les calculs de develop ; une PR sans verdict est renvoyée (fusion-bloquée, à-fusionner retirée), une PR validée entre", () => {
++  const d = monter();
++  d.publierChaine();
++  // Les calculs que le capitaine joue, posés sur develop à côté de ceux que `publierChaine` pose : la boucle joue la copie
++  // de develop (`scripts/chaine`), comme dans un projet qui a reposé `fusionner`.
++  for (const nom of ["decision-relecteur.mjs", "verdict.mjs", "double-relecture.mjs", "meme-contenu.sh"]) d.ecrire(`scripts/chaine/${nom}`, readFileSync(scriptDe("fusionner", nom), "utf8"));
++  d.ecrire("scripts/chaine/chemins-sensibles.mjs", readFileSync(scriptDe("revue-adversariale", "chemins-sensibles.mjs"), "utf8"));
++  d.commit("chore(chaine): calculs");
++  d.git("push", "-q", "origin", "HEAD:develop");
++  d.git("fetch", "-q", "origin");
++  const sha = d.branche("feat/a", "origin/develop", { "docs/a.md": "a\n" });
++  d.branche("feat/b", "origin/develop", { "docs/b.md": "b\n" });
++  d.git("switch", "-q", "--detach", "origin/develop");
++  d.github({
++    exiges: ["qualite"],
++    checks: { "*": { qualite: "SUCCESS" } },
++    pulls: [
++      { number: 30, title: "docs(a): a", head: "feat/a", base: "develop", labels: ["à-fusionner"], commentaires: valide(sha) },
++      { number: 31, title: "docs(b): b", head: "feat/b", base: "develop", labels: ["à-fusionner"], commentaires: [] },
++    ],
++  });
++  const r = d.lancer(scriptDe("fusionner", "boucle.sh"));
++  assert.match(r.stdout, /FILE VIDE/, r.stdout + r.stderr);
++  assert.match(r.stdout, /\[#31\] RENVOI : aucun tour de relecture validé pour le contenu de ce sommet/);
++  const [a, b] = d.etat().pulls;
++  assert.ok(a.merged_at, "la PR validée est entrée");
++  assert.deepEqual(b.labels, ["fusion-bloquée"]);
++});
++
++test("régime 8, passer.sh : deux verdicts exigés (le ticket porte `Relecture: double`) : un seul validé ne suffit pas, deux de deux sessions, si", () => {
++  const monterDouble = () => {
++    const d = monter();
++    d.git("switch", "-q", "develop");
++    d.ecrire(TICKET, "# SPEC_ALL_DEMO-1.01 — x\n\nStatus: ready-for-agent\nRelecture: double\n\n## Le besoin\n\nx\n");
++    d.commit("docs: ticket double");
++    d.git("push", "-q", "origin", "HEAD:develop");
++    d.git("fetch", "-q", "origin");
++    return d;
++  };
++  const un = monterDouble();
++  versDevelop(un, { tete: "feat/spec-all-demo-1-01-x" });
++  const r = passer(un);
++  assert.equal(r.status, 4, r.stdout + r.stderr);
++  assert.match(dernier(r), /\(deux verdicts validés de deux sessions exigés\)/);
++  const deux = monterDouble();
++  versDevelop(deux, { tete: "feat/spec-all-demo-1-01-x", fil: (sha) => [D(1, sha, ["session_rel1", "session_rel2"]), V(sha, 1, "session_rel1", "validé"), V(sha, 1, "session_rel2", "validé")] });
++  const r2 = passer(deux);
++  assert.equal(r2.status, 0, r2.stdout + r2.stderr);
++});
++
++test("régime 8, passer.sh : GitHub illisible sur les commentaires de la PR : pause (5), jamais un verdict lu vide", () => {
++  const d = monter();
++  versDevelop(d, { autres: { pannes: [{ route: "^issues/30/comments", fois: 1 }] } });
++  const r = passer(d);
++  assert.equal(r.status, 5, r.stdout + r.stderr);
++  assert.match(dernier(r), /origin ou GitHub illisible à la lecture des commentaires de la PR/);
++  assert.deepEqual(fusions(d), []);
++});
+diff --git a/skills/chaine/revue-adversariale/scripts/chemins-sensibles.mjs b/skills/chaine/revue-adversariale/scripts/chemins-sensibles.mjs
+index 564d603..0f43f25 100644
+--- a/skills/chaine/revue-adversariale/scripts/chemins-sensibles.mjs
++++ b/skills/chaine/revue-adversariale/scripts/chemins-sensibles.mjs
+@@ -26,9 +26,23 @@
+ // Chaque ligne est lue décitée (git cite encore, sous `core.quotepath=false`, un chemin qui porte `"`, `\`,
+ // une tabulation ou un saut de ligne), en NFC (macOS écrit souvent en NFD) et sans casse (sur un système de
+ // fichiers insensible à la casse, `Scripts/agent/` est `scripts/agent/`), motifs compris ; une ligne citée mal formée : sortie 2. Le moteur reste celui du gate.
++//
++// La garde du capitaine (relecture indépendante, lot 5b : A-74, A-76), en régime 8 :
++//   printf '%s\n' "$diff_propre" | node scripts/chaine/chemins-sensibles.mjs --garde --base <branche> --titre <titre> --branche <tête>
++//        [--conflits <fichier>] [--tickets <id>,…]
++// Le diff propre (celui que la relecture lit) touche-t-il un chemin sensible que la ligne `Sensibles:` de son ticket ne
++// couvre pas ? Les chemins sensibles sont ceux du contrat de la base (`lireBase` de revue-exigee.mjs : un sujet ajoute
++// celui de develop), jamais de l'arbre de travail. Le ticket est celui de la PR (`ticketsDeLaPr` de double-relecture.mjs,
++// la définition du capitaine : son titre, sa branche) ; sa ligne se lit sur les `origin/sujet/*` qui le portent, sinon sur
++// `origin/develop` (A-74), et chaque copie doit couvrir le chemin ; avec deux tickets, l'un des deux suffit. Une PR de mise
++// à jour d'un sujet (`--conflits`, la liste des fichiers en conflit de sa fusion ; `--tickets`, les tickets et specs que
++// déclare le sujet) ne touche un chemin sensible que s'il est en conflit et couvert par la ligne d'un ticket du sujet.
++// Sorties : 0 rien à redire ; 20 un motif (renvoi : chemin non couvert, PR sans ticket, ticket introuvable, ligne
++// illisible, chemin sensible hors conflit), sur la sortie standard ; 21 lecture illisible (contrat de la base, git) ;
++// 2 usage. Qui appelle a relu `origin/<base>`, `origin/develop` et les `origin/sujet/*` juste avant.
+ // =============================================================================
+ import { execFileSync, spawnSync } from "node:child_process";
+-import { existsSync, readFileSync } from "node:fs";
++import { existsSync, readFileSync, realpathSync } from "node:fs";
+ import { dirname, join } from "node:path";
+ import { fileURLToPath, pathToFileURL } from "node:url";
+ 
+@@ -144,7 +158,147 @@ async function motifsDeLaBase(base) {
+   return lue.illisible ? { illisible: lue.illisible } : lue.sensibles;
+ }
+ 
+-try {
++const LIGNE_SENSIBLES = /^(?:[-*][ \t]+)?\**Sensibles\**\s*:\**\s*(.*)$/i;
++const ACCORD = " — accord de ";
++/**
++ * Les chemins qu'accorde la ligne `Sensibles:` d'un ticket (A-74, forme du ticket 55), lue dans l'en-tête seul (avant la
++ * première section `## `), aux formes que lit le gate `tickets`. `{ chemins: [] }` sans ligne ou pour `—` ; `{ chemins }`
++ * pour des chemins ou des motifs séparés par des virgules, entre accents graves ou nus, suivis de ` — accord de <nom>,
++ * <date>` ; `{ illisible }` sinon (deux lignes, un accord absent, un chemin à blanc, absolu, à `~`, à `\\` ou à `..`). Un
++ * commentaire ` # …` peut suivre. Copie de `lireSensibles` de `scripts/agent/regles.mjs` (le hook d'édition) : les deux
++ * bancs gardent la parité, et ce banc-ci celle avec le gate (aucun chemin que le gate refuse n'est accordé).
++ */
++export function lireSensibles(texteDuTicket) {
++  const lignes = (texteDuTicket ?? "").split(/\r?\n/);
++  const fin = lignes.findIndex((l) => /^## /.test(l));
++  const valeurs = (fin === -1 ? lignes : lignes.slice(0, fin)).map((l) => LIGNE_SENSIBLES.exec(l)?.[1]).filter((v) => v !== undefined);
++  if (valeurs.length === 0) return { chemins: [] };
++  if (valeurs.length > 1) return { illisible: "deux lignes `Sensibles:` dans l'en-tête" };
++  const i0 = valeurs[0].search(/\s#/);
++  const v = (i0 === -1 ? valeurs[0] : valeurs[0].slice(0, i0)).trim();
++  if (v === "—") return { chemins: [] };
++  const i = v.indexOf(ACCORD);
++  const accord = i === -1 ? "" : v.slice(i + ACCORD.length);
++  if (i <= 0 || !/^\S.*, \d{4}-\d{2}-\d{2}$/.test(accord)) return { illisible: `« ${v.slice(0, 120)} » : attendu \`—\`, ou des chemins puis \` — accord de <nom>, <AAAA-MM-JJ>\`` };
++  const chemins = [];
++  for (const brut of v.slice(0, i).split(",")) {
++    const c = brut.trim().replace(/^`([^`]*)`$/, "$1").trim();
++    if (c === "" || /[\s`{}\\]/.test(c) || c === "—" || c.startsWith("/") || c.startsWith("~") || c.split("/").includes(".."))
++      return { illisible: `« ${brut.trim().slice(0, 120)} » n'est pas un chemin ni un motif relatif à la racine du dépôt` };
++    chemins.push(c);
++  }
++  return { chemins };
++}
++
++const comparable = (s) => s.normalize("NFC").toUpperCase().toLowerCase();
++/** Le chemin `lu` (décité, comparable) est-il couvert par chacune des copies (listes de motifs) ? */
++export function couvert(lu, copies) {
++  return copies.length > 0 && copies.every((motifs) => motifSensibleTouche(lu, motifs.map(comparable)) !== null);
++}
++
++class Motif extends Error {}
++class Illisible extends Error {}
++function lireOptionsDeGarde(argv) {
++  const o = {};
++  for (let i = 0; i < argv.length; i += 2) {
++    const cle = argv[i];
++    if (!["--base", "--titre", "--branche", "--conflits", "--tickets"].includes(cle) || argv[i + 1] === undefined || cle.slice(2) in o) return null;
++    o[cle.slice(2)] = argv[i + 1];
++  }
++  return o.base && "titre" in o && "branche" in o ? o : null;
++}
++
++/** La garde du capitaine (en-tête) : le motif d'un renvoi, ou `null`. Lève `Illisible`. */
++async function garde({ base, titre, branche, conflits, tickets }, fichiers) {
++  const revue = outil("fusionner", "revue-exigee.mjs");
++  const double = outil("fusionner", "double-relecture.mjs");
++  if (!revue || !double) throw new Illisible("revue-exigee.mjs ou double-relecture.mjs introuvable (skill fusionner) : rejouer l'étape 0 de fusionner");
++  const { lireBase, cheminSensible } = await import(pathToFileURL(revue).href);
++  const { GRAMMAIRE, ticketsDeLaPr } = await import(pathToFileURL(double).href);
++  const contexte = lireBase(`origin/${base}`);
++  if (contexte.illisible) throw new Illisible(contexte.illisible);
++  const sensibles = fichiers.filter((f) => cheminSensible([f], contexte) !== null);
++  if (sensibles.length === 0) return null;
++  const liste = (f) => sensibles.map((c) => c.trim()).filter(f).join(", ");
++  if (conflits !== undefined) {
++    const enConflit = new Set(readFileSync(conflits, "utf8").split("\n").map((l) => l.trim()).filter(Boolean));
++    const hors = liste((c) => !enConflit.has(c));
++    if (hors) throw new Motif(`PR de mise à jour : chemin sensible hors des fichiers en conflit (${hors}) : une retouche d'un chemin sensible passe par un ticket du sujet, avec sa ligne \`Sensibles:\` (A-74)`);
++  }
++  const ids = tickets !== undefined ? tickets.split(",").map((t) => t.trim()).filter(Boolean) : ticketsDeLaPr(titre, branche);
++  if (ids.length === 0) throw new Motif(`PR sans ticket qui touche un chemin sensible (${liste(() => true)}) : en régime 8, un chemin sensible ne se modifie que sur la branche d'un ticket dont la ligne \`Sensibles:\` l'accorde (A-73)`);
++  if (!GRAMMAIRE) throw new Illisible("scripts/docs/identifiants.mjs introuvable : le ticket ne se lit pas");
++  const G = await import(pathToFileURL(GRAMMAIRE).href);
++  const git = (...a) => {
++    try {
++      return execFileSync("git", a, { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"], maxBuffer: 1 << 30 });
++    } catch {
++      throw new Illisible(`git ${a.slice(0, 2).join(" ")} en échec`);
++    }
++  };
++  const sujets = git("for-each-ref", "--format=%(objectname)", "refs/remotes/origin/sujet/").split("\n").filter(Boolean);
++  const develop = git("rev-parse", "--verify", "-q", "refs/remotes/origin/develop^{commit}").trim();
++  // Les copies d'un identifiant (un ticket, ou, avec `--tickets`, une spec : tous ses tickets) sur une liste de commits.
++  const copiesSur = (commits, id) => {
++    const parTicket = new Map();
++    for (const sha of commits)
++      for (const f of git("ls-tree", "-r", "-z", "--name-only", sha, "docs").split("\0").filter(Boolean)) {
++        const t = G.estArchive(f) ? null : G.identifiantDuTicket(f.split("/").pop() ?? "");
++        if (!t || (t !== id && !(tickets !== undefined && t.startsWith(`${id}.`)))) continue;
++        if (!parTicket.has(t)) parTicket.set(t, []);
++        parTicket.get(t).push(lireSensibles(git("show", `${sha}:${f}`)));
++      }
++    return parTicket;
++  };
++  const accords = [];
++  for (const id of ids) {
++    let parTicket = copiesSur(sujets, id);
++    if (parTicket.size === 0) parTicket = copiesSur([develop], id);
++    if (parTicket.size === 0 && tickets === undefined) throw new Motif(`ticket ${id} introuvable sur les origin/sujet/* et sur origin/develop : sa ligne \`Sensibles:\` ne se lit pas, et la PR touche un chemin sensible (${liste(() => true)})`);
++    for (const [t, copies] of parTicket) {
++      const mal = copies.find((c) => c.illisible);
++      if (mal) throw new Motif(`ligne \`Sensibles:\` du ticket ${t} illisible (${mal.illisible}) : la corriger sur le sujet`);
++      accords.push(copies.map((c) => c.chemins));
++    }
++  }
++  const horsAccord = liste((c) => {
++    const lu = cheminLu(c);
++    return lu === null || !accords.some((copies) => couvert(lu, copies));
++  });
++  return horsAccord
++    ? `chemin sensible hors de la ligne \`Sensibles:\` de ${ids.length > 1 ? "ses tickets" : `son ticket ${ids[0]}`} (${horsAccord}) : l'accord du produit se demande au conducteur, qui ajoute le chemin au ticket par une PR de documentation vers le sujet (A-75)`
++    : null;
++}
++
++/** Vrai quand ce fichier est lancé en ligne de commande : lien symbolique, chemin à espace ou à accent, `--preserve-symlinks-main` compris. */
++function estPointEntree() {
++  try {
++    return realpathSync(fileURLToPath(import.meta.url)) === realpathSync(process.argv[1]);
++  } catch {
++    return false;
++  }
++}
++
++if (estPointEntree() && process.argv[2] === "--garde") {
++  const options = lireOptionsDeGarde(process.argv.slice(3));
++  if (options === null) {
++    console.log("usage : chemins-sensibles.mjs --garde --base <branche> --titre <titre> --branche <tête> [--conflits <fichier>] [--tickets <id>,…]");
++    process.exit(2);
++  }
++  try {
++    const motif = await garde(options, readFileSync(0, "utf8").split("\n").filter((l) => l.trim() !== ""));
++    console.log(motif ?? "aucun chemin sensible hors accord");
++    process.exit(motif ? 20 : 0);
++  } catch (e) {
++    if (e instanceof Motif) {
++      console.log(e.message);
++      process.exit(20);
++    }
++    if (!(e instanceof Illisible)) throw e;
++    console.log(`lecture illisible : ${e.message}`);
++    process.exit(21);
++  }
++} else if (estPointEntree()) try {
+   const deLaBase = await motifsDeLaBase(process.argv[2] ? { ref: process.argv[2] } : baseParDefaut());
+   const motifs = Array.isArray(deLaBase) ? [...lireMotifs(), ...deLaBase] : lireMotifs();
+   const chemins = readFileSync(0, "utf8").split("\n").filter(Boolean);
+diff --git a/skills/chaine/revue-adversariale/scripts/chemins-sensibles.test.mjs b/skills/chaine/revue-adversariale/scripts/chemins-sensibles.test.mjs
+index c6893d2..e5b5242 100644
+--- a/skills/chaine/revue-adversariale/scripts/chemins-sensibles.test.mjs
++++ b/skills/chaine/revue-adversariale/scripts/chemins-sensibles.test.mjs
+@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
+ import { execFileSync, spawnSync } from "node:child_process";
+ import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+ import { join } from "node:path";
++import { fileURLToPath } from "node:url";
+ const { dossierTemporaire, environnementDeBanc } = await import(
+   existsSync(new URL("./depot-jouet.mjs", import.meta.url))
+     ? "./depot-jouet.mjs"
+@@ -253,3 +254,40 @@ test("un chemin décité qui porte un saut de ligne, \\r ou U+2028 touche encore
+     assert.match(r.stdout, new RegExp(`\\t${motif.replace(/[*/.\\]/g, "\\$&")}\\n$`), `${motif} / ${cite}`);
+   }
+ });
++
++// ── Lot 5b : `lireSensibles`, recopiée dans le hook d'édition, et jamais plus large que le gate ───────────────────
++const LIGNES_SENSIBLES = [
++  'Sensibles: `scripts/agent/**`, docs/x.md — accord de la MOA, 2026-11-18 # repose',
++  '**Sensibles:** — # rien',
++  '* sensibles: a/b — accord de la MOA, 2026-11-18',
++  'Modèle: sonnet',
++  'Sensibles: a/b',
++  'Sensibles: a/b — accord de la MOA',
++  'Sensibles: — accord de la MOA, 2026-11-18',
++  'Sensibles: /etc/x — accord de la MOA, 2026-11-18',
++  'Sensibles: a/../b — accord de la MOA, 2026-11-18',
++  'Sensibles: ~/x — accord de la MOA, 2026-11-18',
++  'Sensibles: a b — accord de la MOA, 2026-11-18',
++  'Sensibles: a\\b — accord de la MOA, 2026-11-18',
++  'Sensibles: a,, b — accord de la MOA, 2026-11-18',
++  'Sensibles: `a{b}` — accord de la MOA, 2026-11-18',
++];
++test("lot 5b, lireSensibles : la copie du hook d'édition rend la même chose ; aucun chemin que le gate refuse n'est accordé", async () => {
++  // Le hook : à côté dans un projet (scripts/agent/), dans le socle de la chaîne du plugin. Posé à plat sans lui (le banc
++  // des poses ne pose pas scripts/agent/), la copie du capitaine se compare à elle-même : regles.test.mjs tient l'autre.
++  const regles = ["../agent/regles.mjs", "../../socle-chaine-de-production/references/agent/regles.mjs"].map((c) => new URL(c, import.meta.url)).find((u) => existsSync(u)) ?? new URL(CLI, "file://");
++  const textes = LIGNES_SENSIBLES.map((ligne) => `# T\n\nStatus: ready-for-agent\n${ligne}\n\n## Le besoin\n`);
++  // Les deux copies, lues dans un processus à part, l'entrée standard vide, leurs chemins par l'environnement (jamais en
++  // argument : `process.argv[1]` ferait croire au module qu'il est lancé) : un module qui jouerait sa CLI à l'import
++  // (chemins-sensibles.mjs avant le lot 5b) sort sans rendre de JSON, au lieu d'attendre une entrée.
++  const lu = spawnSync(process.execPath, ["--input-type=module", "-e", `const e = process.env; const [a, b] = await Promise.all([import(e.CAPITAINE), import(e.HOOK)]); const t = JSON.parse(e.TEXTES); process.stdout.write(JSON.stringify([t.map(a.lireSensibles), t.map(b.lireSensibles)]));`], { input: "", encoding: "utf8", env: { ...sansGit(), CAPITAINE: CLI, HOOK: fileURLToPath(regles), TEXTES: JSON.stringify(textes) }, timeout: 30_000 });
++  assert.equal(lu.status, 0, lu.stderr);
++  const [capitaine, hook] = JSON.parse(lu.stdout);
++  const { ecartsSensibles } = await chargerGate();
++  LIGNES_SENSIBLES.forEach((ligne, i) => {
++    assert.deepEqual(hook[i], capitaine[i], ligne);
++    const valeur = /^(?:[-*][ \t]+)?\**Sensibles\**\s*:\**\s*(.*)$/i.exec(ligne)?.[1];
++    if (valeur !== undefined && ecartsSensibles(valeur.trim()).some((e) => /n'est pas un chemin|attendu `—`/.test(e))) assert.ok(capitaine[i].illisible, `le gate refuse, la garde aussi : ${ligne}`);
++  });
++  assert.deepEqual(capitaine[0], { chemins: ["scripts/agent/**", "docs/x.md"] });
++});
+diff --git a/skills/chaine/socle-chaine-de-production/references/agent/garde-fichiers.mjs b/skills/chaine/socle-chaine-de-production/references/agent/garde-fichiers.mjs
+index 863fb28..1b25006 100644
+--- a/skills/chaine/socle-chaine-de-production/references/agent/garde-fichiers.mjs
++++ b/skills/chaine/socle-chaine-de-production/references/agent/garde-fichiers.mjs
+@@ -1,5 +1,5 @@
+ #!/usr/bin/env node
+-/** Hook PreToolUse (Edit, Write, MultiEdit, NotebookEdit) : fichiers protégés. */
++/** Hook PreToolUse (Edit, Write, MultiEdit, NotebookEdit) : fichiers protégés ; en régime 8, les chemins sensibles hors de la ligne `Sensibles:` du ticket (lot 5b). */
+ import { execFileSync } from 'node:child_process';
+ 
+ // Ticket 18 : la garde ne s'ouvre jamais. Ses modules se chargent en dynamique protégé, avant toute autre chose, et
+@@ -39,7 +39,10 @@ const charger = async (fichier, attendus) => {
+   return m;
+ };
+ const { lireToolInput, relatif, RACINE } = await charger('entree.mjs', { lireToolInput: 'function', relatif: 'function', RACINE: 'string' });
+-const { refusEdition } = await charger('regles.mjs', { refusEdition: 'function' });
++const { refusEdition, lireSensibles } = await charger('regles.mjs', { refusEdition: 'function', lireSensibles: 'function' });
++// La grammaire des identifiants (skill `socle-monorepo`) : le ticket de la branche. Absente, aucun accord ne se lit et
++// tout chemin sensible est refusé en régime 8, au lieu que le hook tombe entier.
++const identifiants = await import('../docs/identifiants.mjs').catch(() => null);
+ 
+ // Le chemin visé : `file_path` (Edit, Write, MultiEdit), `notebook_path` (NotebookEdit). Entrée illisible,
+ // ou chemin absent, vide ou d'un autre type : refusé, la garde échoue fermée. Hors du dépôt : permis.
+@@ -65,7 +68,47 @@ function migrationExistante(c) {
+   return false;
+ }
+ 
+-const refus = refusEdition(chemin, { migrationExistante });
++const git = (...args) => execFileSync('git', args, { cwd: RACINE, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], timeout: 10_000 }).trim();
++
++/**
++ * Régime 8 (lot 5b, A-74, A-76) : les chemins qu'accorde la ligne `Sensibles:` du ticket de la branche courante, lue sur
++ * `origin/sujet/*` (sur `origin/develop` pour un ticket qu'aucun sujet ne porte), jamais dans l'arbre de travail ni sur
++ * la branche de la session, comme `Dépendances:` (garde-commandes.mjs). Une copie locale que `origin` ne porte pas (ref
++ * déplacée à la main) ne compte pas. `{ copies: [[motifs]…] }`, une liste par copie ; `{ illisible }` ; `null` : pas de
++ * ticket, pas de copie, origin injoignable, grammaire absente. Lu seulement quand le chemin est sensible.
++ */
++function accordes() {
++  try {
++    const id = identifiants?.identifiantDeBranche(git('rev-parse', '--abbrev-ref', 'HEAD'));
++    if (!id) return null;
++    const { estArchive, identifiantDuTicket } = identifiants;
++    const distants = new Map(
++      git('ls-remote', '--heads', 'origin', 'refs/heads/sujet/*', 'refs/heads/develop')
++        .split('\n')
++        .filter(Boolean)
++        .map((ligne) => ligne.split(/\s+/).reverse()),
++    );
++    const copiesSous = (motif) => {
++      const copies = [];
++      for (const ligne of git('for-each-ref', '--format=%(objectname) %(refname)', motif).split('\n').filter(Boolean)) {
++        const [sha, ref] = ligne.split(' ');
++        if (distants.get(ref.replace('refs/remotes/origin/', 'refs/heads/')) !== sha) continue;
++        for (const f of git('ls-tree', '-r', '-z', '--name-only', sha, 'docs').split('\0').filter(Boolean))
++          if (!estArchive(f) && identifiantDuTicket(f.split('/').pop() ?? '') === id) copies.push(lireSensibles(git('show', `${sha}:${f}`)));
++      }
++      return copies;
++    };
++    let copies = copiesSous('refs/remotes/origin/sujet/');
++    if (copies.length === 0) copies = copiesSous('refs/remotes/origin/develop');
++    if (copies.length === 0) return null;
++    const illisible = copies.find((c) => c.illisible);
++    return illisible ? { illisible: illisible.illisible } : { copies: copies.map((c) => c.chemins) };
++  } catch {
++    return null;
++  }
++}
++
++const refus = refusEdition(chemin, { migrationExistante, accordes });
+ if (refus) {
+   process.stderr.write(`${refus}\n`);
+   process.exit(2);
+diff --git a/skills/chaine/socle-chaine-de-production/references/agent/garde-fichiers.test.mjs b/skills/chaine/socle-chaine-de-production/references/agent/garde-fichiers.test.mjs
+new file mode 100644
+index 0000000..5979d8e
+--- /dev/null
++++ b/skills/chaine/socle-chaine-de-production/references/agent/garde-fichiers.test.mjs
+@@ -0,0 +1,87 @@
++// Le hook garde-fichiers sur un dépôt jouet, en régime 8 (relecture indépendante, lot 5b : A-74, A-76) : un chemin
++// sensible ne s'écrit que si la ligne `Sensibles:` du ticket de la branche le couvre, lue sur `origin/sujet/*` (sur
++// `origin/develop` pour un ticket sans sujet). Les hooks sont copiés dans un dossier `scripts/` jouet, avec
++// `scripts/docs/identifiants.mjs` et le contrat `.claude/chaine.json` à côté, comme dans un projet ; CLAUDE_PROJECT_DIR
++// désigne le clone de travail.
++import assert from 'node:assert/strict';
++import { spawnSync } from 'node:child_process';
++import { copyFileSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
++import { join } from 'node:path';
++import { test } from 'node:test';
++
++// Posé dans un projet, scripts/docs/ est à côté de scripts/agent/ ; dans le plugin, le dépôt jouet est dans le skill
++// tickets et la grammaire dans le skill socle-monorepo.
++const PROJET = existsSync(new URL('../docs/identifiants.mjs', import.meta.url));
++const DOCS = PROJET ? new URL('../docs/', import.meta.url) : new URL('../../../tickets/references/scripts/docs/', import.meta.url);
++const GRAMMAIRE = PROJET ? new URL('../docs/identifiants.mjs', import.meta.url) : new URL('../../../../monorepo/socle-monorepo/references/scripts/docs/identifiants.mjs', import.meta.url);
++const { ENV, depotJouet } = await import(new URL('depot-jouet.mjs', DOCS).href);
++
++const TICKET = 'docs/features/demo/all/issues/SPEC_ALL_DEMO-1-demo.01.issue.md';
++const ticket = (ligne) => `# SPEC_ALL_DEMO-1.01 — x\n\nStatus: ready-for-agent\n${ligne}\n\n## Le besoin\n\nx\n`;
++const ACCORD = 'Sensibles: `scripts/agent/**`, docs/agents/regles.md — accord de la MOA, 2026-11-21';
++const CONTRAT = { cheminsSensibles: ['scripts/agent/**', 'docs/agents/'], relecture: { depuis: '2026-11-21T09:00:00Z' } };
++
++/** Dépôt jouet : develop porte le ticket avec `surDevelop` ; `surSujet` (non nul) le pose sur `origin/sujet/demo`. */
++function depot({ surSujet = ACCORD, surDevelop = 'Sensibles: —', contrat = CONTRAT, branche = 'feat/spec-all-demo-1-01-garde' } = {}) {
++  const d = depotJouet({ fichiers: { [TICKET]: ticket(surDevelop) } });
++  if (surSujet !== null) {
++    writeFileSync(join(d.travail, TICKET), ticket(surSujet));
++    d.git('commit', '-q', '--allow-empty', '-am', 'sensibles');
++    d.git('push', '-q', 'origin', 'HEAD:refs/heads/sujet/demo');
++  }
++  d.git('fetch', '-q', 'origin');
++  d.git('checkout', '-q', '-b', branche, 'origin/develop');
++  const outils = join(d.racine, 'outils');
++  mkdirSync(join(outils, 'scripts/agent'), { recursive: true });
++  for (const f of ['entree.mjs', 'regles.mjs', 'garde-fichiers.mjs']) copyFileSync(new URL(f, import.meta.url), join(outils, 'scripts/agent', f));
++  mkdirSync(join(outils, 'scripts/docs'), { recursive: true });
++  copyFileSync(GRAMMAIRE, join(outils, 'scripts/docs/identifiants.mjs'));
++  mkdirSync(join(outils, '.claude'), { recursive: true });
++  if (contrat !== null) writeFileSync(join(outils, '.claude/chaine.json'), JSON.stringify(contrat));
++  return { ...d, script: join(outils, 'scripts/agent/garde-fichiers.mjs') };
++}
++const ecrire = ({ travail, bin, script }, chemin) =>
++  spawnSync(process.execPath, [script], {
++    cwd: travail,
++    env: { ...ENV, PATH: bin, CLAUDE_PROJECT_DIR: travail },
++    input: JSON.stringify({ tool_input: { file_path: join(travail, chemin) } }),
++    encoding: 'utf8',
++  });
++const refuse = (r, motif) => {
++  assert.equal(r.status, 2, r.stdout + r.stderr);
++  assert.match(r.stderr, motif ?? /chemin sensible \(`cheminsSensibles`\) hors de la ligne `Sensibles:` du ticket/);
++};
++const passe = (r) => assert.equal(r.status, 0, r.stderr);
++
++test('régime 8 : la ligne `Sensibles:` du ticket, lue sur le sujet, couvre le chemin → écrit ; un chemin sensible qu’elle ne couvre pas → refusé ; un chemin ordinaire passe', () => {
++  const d = depot();
++  passe(ecrire(d, 'scripts/agent/garde.mjs'));
++  passe(ecrire(d, 'docs/agents/regles.md'));
++  refuse(ecrire(d, 'docs/agents/autre.md'));
++  passe(ecrire(d, 'docs/notes.md'));
++});
++
++test('régime 7 (sans la clé `relecture`) : un chemin sensible s’écrit comme avant, sans ligne lue', () => {
++  const d = depot({ surSujet: null, contrat: { cheminsSensibles: ['scripts/agent/**'] } });
++  passe(ecrire(d, 'scripts/agent/garde.mjs'));
++});
++
++test('régime 8 : la copie du sujet fait foi, jamais l’arbre de travail ; sans sujet, celle de develop ; sans ticket, tout chemin sensible est refusé', () => {
++  const d = depot({ surSujet: 'Sensibles: —' });
++  writeFileSync(join(d.travail, TICKET), ticket(ACCORD));
++  refuse(ecrire(d, 'scripts/agent/garde.mjs'), /chemin sensible/);
++  const dev = depot({ surSujet: null, surDevelop: ACCORD });
++  passe(ecrire(dev, 'scripts/agent/garde.mjs'));
++  const sans = depot({ branche: 'feat/sans-ticket' });
++  refuse(ecrire(sans, 'scripts/agent/garde.mjs'), /Aucune ligne lue : branche sans ticket/);
++});
++
++test('régime 8 : une copie locale du sujet que origin ne porte pas ne compte pas ; une ligne illisible refuse en le disant', () => {
++  const d = depot({ surSujet: 'Sensibles: —' });
++  writeFileSync(join(d.travail, TICKET), ticket(ACCORD));
++  d.git('commit', '-q', '-am', 'local');
++  d.git('update-ref', 'refs/remotes/origin/sujet/demo', 'HEAD');
++  refuse(ecrire(d, 'scripts/agent/garde.mjs'));
++  const mal = depot({ surSujet: 'Sensibles: ../scripts/agent/** — accord de la MOA, 2026-11-21' });
++  refuse(ecrire(mal, 'scripts/agent/garde.mjs'), /Ligne illisible : « \.\.\/scripts\/agent\/\*\* » n'est pas un chemin/);
++});
+diff --git a/skills/chaine/socle-chaine-de-production/references/agent/regles.mjs b/skills/chaine/socle-chaine-de-production/references/agent/regles.mjs
+index 26e4909..86169e3 100644
+--- a/skills/chaine/socle-chaine-de-production/references/agent/regles.mjs
++++ b/skills/chaine/socle-chaine-de-production/references/agent/regles.mjs
+@@ -49,6 +49,9 @@ export function refusEdition(
+   {
+     migrationExistante,
+     migrations = CHAINE.migrations ?? 'apps/api/src/db/migrations/',
++    regime8 = Object.hasOwn(CHAINE, 'relecture'),
++    sensibles = CHAINE.cheminsSensibles ?? [],
++    accordes = () => null,
+   },
+ ) {
+   // Normalisé avant toute comparaison : `.//pnpm-lock.yaml`, `apps/./api/.env` ou `docs/../pnpm-lock.yaml` visent le même fichier.
+@@ -63,7 +66,71 @@ export function refusEdition(
+   if (c.startsWith(`${dossier}/`) && /\.(ts|sql|js|mjs)$/.test(c) && migrationExistante(c)) {
+     return `${c} : une migration déjà livrée ne se modifie jamais. Créer une nouvelle migration.`;
+   }
+-  return null;
++  return regime8 ? refusSensible(c, sensibles, accordes) : null;
++}
++
++// ── Les fichiers sensibles, en régime 8 (relecture indépendante, lot 5b : A-73, A-74, A-76) ─────────────────────
++// Le régime 8 se lit dans l'arbre de travail (A-97) : la clé `relecture` de `.claude/chaine.json`, quelle que soit sa
++// forme. Un chemin sensible (`cheminsSensibles` du même contrat ; une liste mal formée rend tout chemin sensible) ne
++// s'écrit que si la ligne `Sensibles:` du ticket de la branche le couvre, lue sur `origin/sujet/*` (sur `origin/develop`
++// pour un ticket sans sujet), jamais dans l'arbre de travail : `accordes()` (garde-fichiers.mjs) rend `null` (pas de
++// ticket, ou pas de copie lisible), `{ illisible }`, ou `{ copies: [[motifs]…] }`, une liste par copie du ticket ; un
++// chemin est couvert quand chaque copie le couvre.
++const RAISON_SENSIBLE =
++  "chemin sensible (`cheminsSensibles`) hors de la ligne `Sensibles:` du ticket de ta branche, lue sur le sujet : en régime 8, un chemin sensible ne se modifie qu'avec l'accord du produit, noté sur le ticket avant d'y toucher. Arrête-toi et écris à ton conducteur (à qui t'a lancé, hors chantier) : le chemin, pourquoi, ce qui y change ; il obtient l'accord et ajoute le chemin au ticket par une PR de documentation vers le sujet (A-75).";
++const comparable = (s) => s.normalize('NFC').toUpperCase().toLowerCase();
++/** Motif de chemin (`**`, `*`, dossier finissant par `/`) → expression régulière : le moteur du gate `tickets` (`regexDuMotif`). */
++function regexDuMotif(motif) {
++  const complet = motif.endsWith('/') ? `${motif}**` : motif;
++  const re = complet.replace(/\*\*\/|\*\*|\*|[.+?^${}()|[\]\\]/g, (m) => {
++    if (m === '**/') return '(?:.*/)?';
++    if (m === '**') return '.*';
++    if (m === '*') return '[^/]*';
++    return `\\${m}`;
++  });
++  return new RegExp(`^${re}$`, 's');
++}
++const touche = (c, motifs) => motifs.some((m) => regexDuMotif(comparable(m.replace(/^\.\//, ''))).test(comparable(c)));
++function refusSensible(c, sensibles, accordes) {
++  const liste = Array.isArray(sensibles) && sensibles.every((m) => typeof m === 'string') ? sensibles : ['**'];
++  if (!touche(c, liste)) return null;
++  const lu = accordes();
++  if (lu === null) return `${c} : ${RAISON_SENSIBLE} (Aucune ligne lue : branche sans ticket, ticket absent de origin/sujet/* et de origin/develop, ou origin injoignable.)`;
++  if (lu.illisible) return `${c} : ${RAISON_SENSIBLE} (Ligne illisible : ${lu.illisible}.)`;
++  return lu.copies.length > 0 && lu.copies.every((motifs) => touche(c, motifs)) ? null : `${c} : ${RAISON_SENSIBLE}`;
++}
++
++const LIGNE_SENSIBLES = /^(?:[-*][ \t]+)?\**Sensibles\**\s*:\**\s*(.*)$/i;
++const ACCORD = ' — accord de ';
++/**
++ * Les chemins qu'accorde la ligne `Sensibles:` d'un ticket (A-74, forme du ticket 55), lue dans l'en-tête seul (avant la
++ * première section `## `), aux formes que lit le gate `tickets` (`X:`, `**X:**`, `- X:`, `* X:`, sans égard à la casse).
++ * `{ chemins: [] }` sans ligne ou pour `—` ; `{ chemins }` pour des chemins ou des motifs séparés par des virgules, entre
++ * accents graves ou nus, suivis de ` — accord de <nom>, <date>` ; `{ illisible }` sinon : deux lignes, un accord absent, un
++ * chemin à blanc, absolu, à `~`, à `\` ou à `..`. Un commentaire ` # …` peut suivre. La forme entière (le nom, la date)
++ * est jugée par le gate ; une garde ne lit que les chemins, et n'en accepte jamais un que le gate refuserait.
++ * Copie de `lireSensibles` de `chemins-sensibles.mjs` (skill revue-adversariale) : les deux bancs gardent la parité.
++ */
++export function lireSensibles(texteDuTicket) {
++  const lignes = (texteDuTicket ?? '').split(/\r?\n/);
++  const fin = lignes.findIndex((l) => /^## /.test(l));
++  const valeurs = (fin === -1 ? lignes : lignes.slice(0, fin)).map((l) => LIGNE_SENSIBLES.exec(l)?.[1]).filter((v) => v !== undefined);
++  if (valeurs.length === 0) return { chemins: [] };
++  if (valeurs.length > 1) return { illisible: 'deux lignes `Sensibles:` dans l\'en-tête' };
++  const i0 = valeurs[0].search(/\s#/);
++  const v = (i0 === -1 ? valeurs[0] : valeurs[0].slice(0, i0)).trim();
++  if (v === '—') return { chemins: [] };
++  const i = v.indexOf(ACCORD);
++  const accord = i === -1 ? '' : v.slice(i + ACCORD.length);
++  if (i <= 0 || !/^\S.*, \d{4}-\d{2}-\d{2}$/.test(accord)) return { illisible: `« ${v.slice(0, 120)} » : attendu \`—\`, ou des chemins puis \` — accord de <nom>, <AAAA-MM-JJ>\`` };
++  const chemins = [];
++  for (const brut of v.slice(0, i).split(',')) {
++    const c = brut.trim().replace(/^`([^`]*)`$/, '$1').trim();
++    if (c === '' || /[\s`{}\\]/.test(c) || c === '—' || c.startsWith('/') || c.startsWith('~') || c.split('/').includes('..'))
++      return { illisible: `« ${brut.trim().slice(0, 120)} » n'est pas un chemin ni un motif relatif à la racine du dépôt` };
++    chemins.push(c);
++  }
++  return { chemins };
+ }
+ 
+ /** Commandes refusées : motif → raison. */
+diff --git a/skills/chaine/socle-chaine-de-production/references/agent/regles.test.mjs b/skills/chaine/socle-chaine-de-production/references/agent/regles.test.mjs
+index 4b879a3..ad5c779 100644
+--- a/skills/chaine/socle-chaine-de-production/references/agent/regles.test.mjs
++++ b/skills/chaine/socle-chaine-de-production/references/agent/regles.test.mjs
+@@ -1955,3 +1955,33 @@ test('ticket 18 : un message qui cite --amend passe, comme --fixup=amend', () =>
+   passent(passe.map(continuee));
+   for (const c of passe) assert.equal(amendeUnCommit(c), false, c);
+ });
++
++// ── Lot 5b : la ligne `Sensibles:` et le refus d'un chemin sensible en régime 8 ──────────────────────────────────
++test('lot 5b, lireSensibles : les chemins accordés, `—`, et ce qui ne se lit pas (copie de chemins-sensibles.mjs, même table)', async () => {
++  const { lireSensibles } = await import('./regles.mjs');
++  const enTete = (ligne) => `# T\n\nStatus: ready-for-agent\n${ligne}\n\n## Le besoin\n\nSensibles: corps/ignoré — accord de x, 2026-01-01\n`;
++  assert.deepEqual(lireSensibles(enTete('Sensibles: `scripts/agent/**`, docs/x.md — accord de la MOA, 2026-11-18 # repose')), { chemins: ['scripts/agent/**', 'docs/x.md'] });
++  assert.deepEqual(lireSensibles(enTete('**Sensibles:** — # rien')), { chemins: [] });
++  assert.deepEqual(lireSensibles(enTete('Modèle: sonnet')), { chemins: [] }, 'sans ligne : rien d’accordé, le corps n’est pas lu');
++  assert.deepEqual(lireSensibles(enTete('* sensibles: a/b — accord de la MOA, 2026-11-18')), { chemins: ['a/b'] });
++  for (const ligne of ['Sensibles: a/b', 'Sensibles: a/b — accord de la MOA', 'Sensibles: — accord de la MOA, 2026-11-18', 'Sensibles: /etc/x — accord de la MOA, 2026-11-18', 'Sensibles: a/../b — accord de la MOA, 2026-11-18', 'Sensibles: ~/x — accord de la MOA, 2026-11-18', 'Sensibles: a b — accord de la MOA, 2026-11-18', 'Sensibles: a\\b — accord de la MOA, 2026-11-18', 'Sensibles: a,, b — accord de la MOA, 2026-11-18', 'Sensibles: a — accord de la MOA, 2026-11-18\nSensibles: b — accord de la MOA, 2026-11-18'])
++    assert.ok(lireSensibles(enTete(ligne)).illisible, ligne);
++});
++
++test('lot 5b, refusEdition en régime 8 : un chemin sensible hors accord est refusé, couvert par chaque copie il passe ; hors régime 8, rien ne change', () => {
++  const base = { migrationExistante: () => false, regime8: true, sensibles: ['scripts/agent/**', 'docs/agents/'] };
++  const copies = (...c) => () => ({ copies: c });
++  assert.equal(refusEdition('scripts/agent/a.mjs', { ...base, accordes: copies(['scripts/agent/**']) }), null);
++  assert.equal(refusEdition('Scripts/Agent/a.mjs', { ...base, accordes: copies(['scripts/agent/**']) }), null, 'sans casse');
++  assert.match(refusEdition('Scripts/Agent/a.mjs', { ...base, accordes: copies(['scripts/agent/b.mjs']) }), /hors de la ligne `Sensibles:`/, 'sensible sans casse, et non couvert');
++  assert.match(refusEdition('scripts/agent/a.mjs', { ...base, accordes: copies(['scripts/agent/**'], ['scripts/agent/b.mjs']) }), /hors de la ligne `Sensibles:`/, 'une copie ne le couvre pas');
++  assert.match(refusEdition('docs/agents/x.md', { ...base, accordes: copies([]) }), /hors de la ligne `Sensibles:`/);
++  assert.match(refusEdition('docs/agents/x.md', { ...base, accordes: () => ({ copies: [] }) }), /hors de la ligne/);
++  assert.match(refusEdition('docs/agents/x.md', { ...base, accordes: () => null }), /Aucune ligne lue/);
++  assert.match(refusEdition('docs/agents/x.md', { ...base, accordes: () => ({ illisible: 'deux lignes' }) }), /Ligne illisible : deux lignes/);
++  let lu = 0;
++  assert.equal(refusEdition('docs/notes.md', { ...base, accordes: () => (lu++, null) }), null, 'un chemin ordinaire passe');
++  assert.equal(lu, 0, 'sans lire le ticket');
++  assert.equal(refusEdition('scripts/agent/a.mjs', { ...base, regime8: false, accordes: () => null }), null, 'régime 7');
++  assert.match(refusEdition('src/x.ts', { ...base, sensibles: 'pas une liste', accordes: () => null }), /chemin sensible/, 'liste mal formée : tout est sensible');
++});
+diff --git a/skills/chaine/socle-chaine-de-production/references/ci/pr-titre.yml b/skills/chaine/socle-chaine-de-production/references/ci/pr-titre.yml
+index 789c20b..ea8d0b5 100644
+--- a/skills/chaine/socle-chaine-de-production/references/ci/pr-titre.yml
++++ b/skills/chaine/socle-chaine-de-production/references/ci/pr-titre.yml
+@@ -34,4 +34,5 @@ jobs:
+           PR_BASE: ${{ github.event.pull_request.base.ref }}
+           PR_TETE: ${{ github.event.pull_request.head.ref }}
+           PR_SOMMET: ${{ github.event.pull_request.head.sha }}
++          PR_OUVERTE: ${{ github.event.pull_request.created_at }}
+         run: node scripts/github/pr-titre.mjs
+diff --git a/skills/chaine/socle-chaine-de-production/references/scripts/github/pr-titre.mjs b/skills/chaine/socle-chaine-de-production/references/scripts/github/pr-titre.mjs
+index 705d96f..da3e9c5 100644
+--- a/skills/chaine/socle-chaine-de-production/references/scripts/github/pr-titre.mjs
++++ b/skills/chaine/socle-chaine-de-production/references/scripts/github/pr-titre.mjs
+@@ -14,7 +14,13 @@
+ //   - sinon le diff depuis le merge-base de la base, comme `passer.sh`.
+ //
+ // Entrées, par l'environnement, jamais par le shell : PR_TITRE, PR_NUMERO, PR_BASE (`base.ref`), PR_TETE
+-// (`head.ref`), PR_SOMMET (`head.sha`), requises ; PR_CORPS facultative (corps vide ou nul de GitHub : `""`).
++// (`head.ref`), PR_SOMMET (`head.sha`), requises ; PR_CORPS facultative (corps vide ou nul de GitHub : `""`) ;
++// PR_OUVERTE (`created_at`), lue seulement quand la base porte la clé `relecture` de `.claude/chaine.json`.
++//
++// Le régime (lot 5a, A-97, A-107) : `regimeDeLaPr` de `revue-exigee.mjs`, sur la base et la date d'ouverture, comme le
++// capitaine. En régime 8, la section de revue et sa ligne `/security-review` ne sont plus exigées (le verdict de la
++// session de relecture les remplace, et le capitaine le juge à son passage) : le check rend les motifs du capitaine en
++// régime 8 (`motifsDuCapitaine`, `regime: 8`). La clé mal formée, ou PR_OUVERTE illisible quand elle est lue : 3.
+ // Refs `origin/develop` et `origin/<base>` déjà là (actions/checkout, `fetch-depth: 0`) : aucun appel réseau.
+ //
+ // Outils : `../chaine/sujet.sh` et `../chaine/revue-exigee.mjs` dans un projet (`scripts/github/` → `scripts/chaine/`) ;
+@@ -102,7 +108,7 @@ async function principal() {
+   const enCI = process.env.GITHUB_ACTIONS === 'true';
+   const e = entrees(process.env);
+   const { sujet, revue } = outils(enCI);
+-  const { motifsDuCapitaine, lireBase } = await import(pathToFileURL(revue).href);
++  const { motifsDuCapitaine, lireBase, regimeDeLaPr } = await import(pathToFileURL(revue).href);
+   // Clone superficiel : merge-base faux, dit tel quel (jamais « refs absentes »).
+   const superficiel = lancer('git', ['rev-parse', '--is-shallow-repository']);
+   if (superficiel.status !== 0) lectureEchouee('git rev-parse --is-shallow-repository', superficiel);
+@@ -147,8 +153,11 @@ async function principal() {
+ 
+   if (fichiers !== null) {
+     const base = lireBase(`origin/${e.base}`);
++    const lu = regimeDeLaPr({ base: e.base, ouverte: process.env.PR_OUVERTE });
++    if (lu.illisible) echouer(3, `PR titre : le régime ne se lit pas (${lu.illisible}) : le check ne conclut pas`);
++    if (lu.regime === 8) notes.push('régime 8 : la relecture se lit dans le verdict de la session de relecture, pas dans la description (section de revue non exigée)');
+     for (const liste of fichiers)
+-      for (const m of motifsDuCapitaine({ corps: e.corps, titre: e.titre, fichiers: liste, base })) if (!motifs.includes(m)) motifs.push(m);
++      for (const m of motifsDuCapitaine({ corps: e.corps, titre: e.titre, fichiers: liste, base, regime: lu.regime })) if (!motifs.includes(m)) motifs.push(m);
+   }
+ 
+   for (const n of notes) process.stdout.write(`${n}\n`);
+diff --git a/skills/chaine/socle-chaine-de-production/references/scripts/github/pr-titre.test.mjs b/skills/chaine/socle-chaine-de-production/references/scripts/github/pr-titre.test.mjs
+index 56fde44..1999f84 100644
+--- a/skills/chaine/socle-chaine-de-production/references/scripts/github/pr-titre.test.mjs
++++ b/skills/chaine/socle-chaine-de-production/references/scripts/github/pr-titre.test.mjs
+@@ -21,7 +21,7 @@ const CONFORME = /Titre et description conformes : le capitaine les acceptera\./
+ /** Joue le check dans le clone de travail du jouet ; `ci` : GITHUB_ACTIONS=true. `null` retire la variable. */
+ function check(d, entrees, { ci = false, script: chemin = CHECK } = {}) {
+   const env = { ...d.env, GITHUB_ACTIONS: ci ? 'true' : '' };
+-  for (const v of ['PR_TITRE', 'PR_NUMERO', 'PR_BASE', 'PR_TETE', 'PR_SOMMET', 'PR_CORPS']) delete env[v];
++  for (const v of ['PR_TITRE', 'PR_NUMERO', 'PR_BASE', 'PR_TETE', 'PR_SOMMET', 'PR_CORPS', 'PR_OUVERTE']) delete env[v];
+   if (!ci) delete env.GITHUB_ACTIONS;
+   const valeurs = { PR_NUMERO: '12', PR_CORPS: '', ...entrees };
+   for (const [v, x] of Object.entries(valeurs)) if (x !== null) env[v] = x;
+@@ -74,6 +74,37 @@ test('PR vers develop : du code sans section de revue est refusé avec le motif
+   assert.match(r.stdout, CONFORME);
+ });
+ 
++test('régime 8 (lot 5a) : la base porte la clé `relecture` et la PR est ouverte après `depuis` : du code sans section de revue est conforme, le titre de code sur la documentation reste refusé ; ouverte avant, régime 7 ; clé mal formée ou date absente : 3', () => {
++  const d = depotJouet();
++  d.ecrire('.claude/chaine.json', `${JSON.stringify({ cheminsSensibles: ['apps/**'], relecture: { depuis: '2026-11-17T09:00:00Z' } })}\n`);
++  d.commit('chore: contrat');
++  d.git('push', '-q', 'origin', 'HEAD:develop');
++  const sommet = d.branche('feat/x', 'origin/develop', { 'apps/x.ts': 'export const x = 1;\n' }, 'feat: x');
++  const entrees = { PR_TITRE: 'feat(demo): x', PR_BASE: 'develop', PR_TETE: 'feat/x', PR_SOMMET: sommet };
++  const huit = check(d, { ...entrees, PR_OUVERTE: '2026-11-17T11:00:00Z' });
++  assert.equal(huit.status, 0, huit.stdout + huit.stderr);
++  assert.match(huit.stdout, /régime 8 : la relecture se lit dans le verdict/);
++  assert.match(huit.stdout, CONFORME);
++  const sept = check(d, { ...entrees, PR_OUVERTE: '2026-11-17T08:00:00Z' });
++  assert.equal(sept.status, 1, sept.stdout + sept.stderr);
++  assert.match(motifs(sept)[0], /sans section « Revue de ticket »/);
++  const doc = d.branche('docs/y', 'origin/develop', { 'docs/y.md': 'y\n' }, 'docs: y');
++  const titre = check(d, { PR_TITRE: 'feat(demo): y', PR_BASE: 'develop', PR_TETE: 'docs/y', PR_SOMMET: doc, PR_OUVERTE: '2026-11-17T11:00:00Z' });
++  assert.equal(titre.status, 1, titre.stdout + titre.stderr);
++  assert.match(motifs(titre)[0], /mais le diff ne contient que de la documentation/);
++  const sansDate = check(d, entrees);
++  assert.equal(sansDate.status, 3, sansDate.stdout + sansDate.stderr);
++  assert.match(sansDate.stderr, /le régime ne se lit pas \(date d'ouverture de la PR illisible/);
++  d.git('switch', '-q', 'develop');
++  d.ecrire('.claude/chaine.json', `${JSON.stringify({ relecture: { depuis: 'hier' } })}\n`);
++  d.commit('chore: clé mal formée');
++  d.git('push', '-q', 'origin', 'HEAD:develop');
++  d.git('fetch', '-q', 'origin');
++  const mal = check(d, { ...entrees, PR_OUVERTE: '2026-11-17T11:00:00Z' });
++  assert.equal(mal.status, 3, mal.stdout + mal.stderr);
++  assert.match(mal.stderr, /clé relecture de origin\/develop:\.claude\/chaine\.json mal formée/);
++});
++
+ test('sujet du squash à plus de 120 caractères : refusé ; titre de code sur un diff de documentation seule : refusé', () => {
+   const d = depotJouet();
+   const doc = d.branche('docs/y', 'origin/develop', { 'docs/y.md': 'y\n' }, 'docs: y');
+@@ -271,3 +302,10 @@ test('une variable d’entrée manque : sortie 2 ; un corps vide n’en est pas
+     assert.doesNotMatch(r.stdout, CONFORME);
+   }
+ });
++
++// Le workflow posé avec le check (`ci/pr-titre.yml` du socle) : la date d'ouverture, que le régime lit (lot 5a). Posé dans
++// un projet, le workflow vit sous `.github/workflows/` : le banc ne le lit que dans le plugin.
++test('le workflow donne PR_OUVERTE, la date d’ouverture de la PR, comme les autres entrées : par `env:`', { skip: !existsSync(new URL('../../ci/pr-titre.yml', import.meta.url)) }, () => {
++  const yml = readFileSync(new URL('../../ci/pr-titre.yml', import.meta.url), 'utf8');
++  assert.match(yml, /^ {10}PR_OUVERTE: \$\{\{ github\.event\.pull_request\.created_at \}\}$/m);
++});
+diff --git a/skills/chaine/sujet/scripts/faux-gh.mjs b/skills/chaine/sujet/scripts/faux-gh.mjs
+index 25a81cb..007799c 100644
+--- a/skills/chaine/sujet/scripts/faux-gh.mjs
++++ b/skills/chaine/sujet/scripts/faux-gh.mjs
+@@ -21,7 +21,10 @@
+ //               branch ». Sans la clé, aucune branche n'est stricte. Aucun script ne lit ce réglage
+ //   pendantCi   déplacements de branche pendant la CI, joués dans l'ordre : [{ lectures, branche, vers }]. À la
+ //               `lectures`-ième lecture des `check-runs` (tous commits) depuis le déplacement précédent, le faux
+-//               joue `update-ref refs/heads/<branche> <vers>` dans le dépôt nu, puis retire le déplacement
++//               joue `update-ref refs/heads/<branche> <vers>` dans le dépôt nu, puis retire le déplacement. Une entrée
++//               `{ lectures, pr, commentaire }` ajoute à la place un commentaire (corps ou objet) à la PR `pr`, et
++//               `{ lectures, pr, labels }` lui donne ces étiquettes : un verdict ou une étiquette du Relecteur tombés
++//               pendant la CI d'une mise à jour du capitaine (lot 5a)
+ //   avantFusion { branche, vers } : joué au `PUT pulls/<n>/merge` avant le contrôle « strict » et le calcul de
+ //               l'arbre, puis retiré : une fusion concurrente que GitHub a acceptée
+ //   exiges      checks exigés de develop ; runs : workflow_runs par PR (« #12 »)
+@@ -221,7 +224,10 @@ function deplacerPendantCi() {
+   if (!suivant) return;
+   etat.lecturesPendantCi = (etat.lecturesPendantCi ?? 0) + 1;
+   if (etat.lecturesPendantCi < suivant.lectures) return;
+-  git("update-ref", `refs/heads/${suivant.branche}`, suivant.vers);
++  const cible = suivant.pr === undefined ? null : etat.pulls.find((x) => x.number === suivant.pr);
++  if (suivant.commentaire !== undefined) cible.commentaires = [...(cible.commentaires ?? []), suivant.commentaire];
++  else if (suivant.labels !== undefined) cible.labels = [...suivant.labels];
++  else git("update-ref", `refs/heads/${suivant.branche}`, suivant.vers);
+   etat.pendantCi.shift();
+   etat.lecturesPendantCi = 0;
+ }
+diff --git a/skills/chaine/sujet/scripts/faux-gh.test.mjs b/skills/chaine/sujet/scripts/faux-gh.test.mjs
+index f752286..8c3d592 100644
+--- a/skills/chaine/sujet/scripts/faux-gh.test.mjs
++++ b/skills/chaine/sujet/scripts/faux-gh.test.mjs
+@@ -141,6 +141,20 @@ test('faux gh, pendantCi : la cible bouge à la n-ième lecture des checks depui
+   assert.deepEqual(d.etat().pendantCi, []);
+ });
+ 
++test('faux gh, pendantCi : un commentaire ou des étiquettes tombent sur une PR à la n-ième lecture des checks (lot 5a)', () => {
++  const { d, sommet } = enRetard();
++  d.github({ pendantCi: [{ lectures: 2, pr: 1, commentaire: 'verdict tardif' }, { lectures: 1, pr: 1, labels: ['à-reprendre'] }] });
++  const lus = () => JSON.parse(gh(d, 'repos/{owner}/{repo}/issues/1/comments').stdout).map((c) => c.body);
++  etatsLus(d, sommet);
++  assert.deepEqual(lus(), [], 'première lecture : rien');
++  etatsLus(d, sommet);
++  assert.deepEqual(lus(), ['verdict tardif'], 'deuxième lecture : le commentaire');
++  assert.deepEqual(d.etat().pulls[0].labels, []);
++  etatsLus(d, sommet);
++  assert.deepEqual(d.etat().pulls[0].labels, ['à-reprendre'], 'lecture suivante : les étiquettes');
++  assert.deepEqual(d.etat().pendantCi, []);
++});
++
+ test('faux gh, avantFusion : une fusion concurrente entre juste avant la nôtre, puis le contrôle strict la voit', () => {
+   const d = depotJouet();
+   const sommet = d.branche('feat/x', 'origin/develop', { 'docs/x.md': 'x\n' });
+diff --git a/skills/chaine/sujet/scripts/sujet.sh b/skills/chaine/sujet/scripts/sujet.sh
+index 7cacd10..9186f28 100755
+--- a/skills/chaine/sujet/scripts/sujet.sh
++++ b/skills/chaine/sujet/scripts/sujet.sh
+@@ -15,7 +15,9 @@
+ #   ouvrir <nom> [--specs <pr>]
+ #                         crée sujet/<nom> depuis develop, sans protection de branche ;
+ #                         `--specs` recible sur le sujet la PR de specs du lot
+-#   fusionner <pr>        squash d'une sous-PR dans son sujet : titre qui passe commitlint, revue exigée, puis la
++#   fusionner <pr>        squash d'une sous-PR dans son sujet : titre qui passe commitlint, revue exigée selon le régime
++#                         (A-97 ; en régime 8, un tour de relecture validé pour le contenu de son sommet, contrôlé deux
++#                         fois : avant le premier contrôle d'ascendance, puis juste avant la fusion, A-105), puis la
+ #                         règle d'ascendance (`ascendance` de github.sh) : en conflit avec le sujet hors index, renvoi
+ #                         avant toute CI ; en retard, documentation comprise, ou en conflit d'index seul, mise à jour
+ #                         avec le sujet et poussée ; puis, trois tours au plus : CI exigée attendue sur le sommet
+@@ -103,10 +105,12 @@
+ #
+ # Sorties : 0 fait · 2 conflit · 3 checks rouges, ou fusion, commit ou push refusé par un hook git
+ # (sa sortie sur stderr : la lire, corriger, jamais en sautant le hook ; le pre-push contrôle l'arbre de travail) · 4 refus corrigeable par l'auteur (sa
+-# dernière ligne est le motif, `fusionner` : titre, commitlint, revue, lien symbolique sur un index généré, base ; `fusionner` et `relancer` : tête gardée, develop, main, la branche par défaut ou un sujet) · 6 arbre de travail pas
++# dernière ligne est le motif, `fusionner` : titre, commitlint, revue (en régime 8 : aucun tour validé pour le sommet),
++# lien symbolique sur un index généré, base ; `fusionner` et `relancer` : tête gardée, develop, main, la branche par défaut ou un sujet) · 6 arbre de travail pas
+ # propre (`fusionner`, `rafraichir`, `regrouper`, `relancer` : à nettoyer par qui lance, jamais un renvoi de la PR,
+ # comme la sortie 6 de passer.sh) · 7 `fusionner` d'une PR fermée, en brouillon ou d'un sujet gelé (rien à
+-# corriger : sautée) ; 7 aussi pour `fusionner` et `relancer` d'une sous-PR en passage chez un autre capitaine (son
++# corriger : sautée), et en régime 8 d'une sous-PR dont la lecture est illisible (A-113) ou qui a perdu `à-fusionner`
++# juste avant la fusion ; 7 aussi pour `fusionner` et `relancer` d'une sous-PR en passage chez un autre capitaine (son
+ # commentaire marqué `<!-- capitaine:passage <id> <epoch> -->`, verrou du passage de github.sh), ou qui n'est plus éligible une fois
+ # le verrou pris · 64 `fusionner` sans CAPITAINE_ID ou avec un CAPITAINE_ID mal formé ; `relancer` avec un CAPITAINE_ID mal
+ # formé (sans lui, joué à la main par la session propriétaire : aucun verrou posé, et il le dit) · 9 `carte <nom>` refusée, ou `geler`/`degeler` dont le push échoue deux fois (rien n'est poussé)
+@@ -244,7 +248,8 @@ verifier_ticket() {
+   spec=$(fichier_sur "$ref" "${id%.*}")
+   [ -n "$spec" ] || sortir 4 "la spec ${id%.*} n'est pas encore sur $base : sa PR de specs n'est pas fusionnée.
+ Ne pas partir de la branche de specs. La faire fusionner dans $base d'abord (\`sujet.sh ouvrir <nom> --specs <pr>\`
+-la recible sur le sujet), ou \`sujet.sh rafraichir ${base#sujet/}\` si elle est déjà dans develop."
++la recible sur le sujet) ; si elle est déjà dans develop, le capitaine la reporte dans le sujet de lui-même à chaque
++lancement de sa boucle (A-69) : attendre, ou le lui demander ; une session ne lance jamais \`sujet.sh rafraichir\`."
+   [[ "$id" == *.* ]] || return 0
+   fichier=$(fichier_sur "$ref" "$id")
+   [ -n "$fichier" ] || sortir 4 "le ticket $id n'est pas sur $base : attendre la fusion de la PR qui l'ajoute."
+@@ -498,7 +503,13 @@ ou dans sa spec (ligne « Sujet: sujet/<nom> »), puis relancer."
+   fi
+   echo "base=$branche"
+   echo "$courante part de $branche ($(git rev-parse --short "origin/$branche")) : la PR vise $branche,"
+-  echo "label à-fusionner dès le push ; le capitaine la fusionne dans le sujet quand sa CI est verte."
++  # Le message suit le régime qu'aura la PR (A-97, lot 5c) : la clé `relecture` sur sa base, et une PR ouverte maintenant.
++  if cle_relecture_sur "origin/$branche"; then
++    echo "régime 8 : relecture indépendante ; le dernier push fait, PR hors brouillon, demander la relecture (commentaire « À relire — sommet … », étiquette à-relire),"
++    echo "jamais à-fusionner : le Relecteur la pose sur un verdict validé, puis le capitaine la fusionne dans le sujet quand sa CI est verte."
++  else
++    echo "label à-fusionner dès le push ; le capitaine la fusionne dans le sujet quand sa CI est verte."
++  fi
+ }
+ 
+ ouvrir() {
+@@ -854,6 +865,44 @@ verrouiller() {
+   [ -z "$raison" ] || sortir 7 "#$n : PR plus éligible une fois le verrou pris ($raison) : sautée"
+ }
+ 
++# La suite d'une revue du capitaine (`revue_du_capitaine` de github.sh) : <n> <code> <sortie>. 0 : rien ; 1 : renvoi (4),
++# le motif en dernière ligne ; 21 : lecture illisible, sautée sans renvoi (7, A-113) ; 5 : origin ou GitHub illisible
++# (5, aucun renvoi) ; autre : côté capitaine (11, aucun renvoi).
++juger_revue() {
++  local n=$1 statut=$2 revu=$3
++  case $statut in
++    0) ;;
++    1) sortir 4 "#$n $(tail -n 1 <<<"$revu")" ;;
++    21) sortir 7 "#$n : $(tail -n 1 <<<"$revu") : sautée sans renvoi, son auteur n'y peut rien (le Relecteur prévient l'architecte)" ;;
++    5) sortir 5 "#$n : origin ou GitHub illisible à la lecture des commentaires (cause ci-dessus) : reprise au tour suivant, aucun renvoi" ;;
++    *) sortir 11 "#$n : revue du capitaine en échec (sortie $statut : $(tail -n 1 <<<"$revu")), côté capitaine : sous-PR laissée dans la file" ;;
++  esac
++}
++
++# Régime 8, le second contrôle du verdict (A-105) : <n> <sommet fusionné> <fichiers du diff propre> <base>. Juste avant
++# l'appel de fusion d'une sous-PR (l'ascendance rendue « à-jour »), ou avant d'avancer le sujet pour une PR de mise à
++# jour. Les étiquettes y sont lues, ce que `fusionner` ne fait nulle part ailleurs : sans `à-fusionner` (le Relecteur l'a
++# retirée), sautée (7) ; un push, reprise (5) ; puis les commentaires relus, un tour validé exigé pour ce sommet, sinon
++# renvoi (4). Une mise à jour du capitaine garde le verdict (« même contenu propre », A-106). Aucune CI de plus.
++verdict_avant_fusion() {
++  local n=$1 sommet=$2 fichiers=$3 base=$4 relu raison revu statut
++  relu=$(pr_json "$n") || sortir 5 "#$n : GitHub illisible à la relecture de la PR avant la fusion (cause ci-dessus) : reprise au tour suivant, aucun renvoi"
++  raison=$(jq -r --arg s "$sommet" '[.labels[].name] as $l
++    | if .state != "open" then "non ouverte" elif .draft != false then "en brouillon"
++      elif ($l | index("à-fusionner")) == null then "sans le label à-fusionner"
++      elif ($l | index("fusion-bloquée")) != null then "label fusion-bloquée"
++      elif .head.sha != $s then "sommet changé" else "" end' <<<"$relu")
++  case "$raison" in
++    '') ;;
++    'sommet changé') sortir 5 "la sous-PR #$n a reçu un push avant la fusion : reprise au tour suivant, aucun renvoi" ;;
++    *) sortir 7 "#$n : PR plus éligible juste avant la fusion ($raison) : sautée" ;;
++  esac
++  revu=$(printf '%s\n' "$fichiers" | revue_du_capitaine "$relu" "$sommet" "$base") && statut=0 || statut=$?
++  [ "$statut" != 1 ] || revu="$revu (contrôle juste avant la fusion)"
++  juger_revue "$n" "$statut" "$revu"
++  echo "#$n : verdict relu juste avant la fusion ($(head -n 1 <<<"$revu"))"
++}
++
+ fusionner() {
+   local n=${1:?numéro de la sous-PR}
+   local pr base titre sommet longueur
+@@ -889,7 +938,40 @@ fusionner() {
+   fichiers_a_juger "$n" "$sommet" "$base"
+   maj=$MAJ
+   fichiers=$FICHIERS_JUGES
+-  motif=$(juger "$fichiers") || sortir 4 "#$n $motif"
++  # La revue, selon le régime de la sous-PR (A-97, lot 5a : `revue_du_capitaine` de github.sh, le contrat lu sur le
++  # sujet). Régime 7 : la section de revue, comme avant, sur la résolution seule d'une PR de mise à jour (ses retouches
++  # se jugent après les checks). Régime 8 (A-91, A-105) : premier contrôle du verdict, juste après le jugement des
++  # fichiers et avant le premier contrôle d'ascendance, pour une sous-PR ordinaire comme pour une PR de mise à jour (sur
++  # sa résolution et ses retouches, la seconde liste de `a-juger`, ce que la relecture lit) : une sous-PR sans tour
++  # validé est renvoyée sans mise à jour ni CI ; une lecture illisible (A-113) la fait sauter sans renvoi.
++  local revu statut lus
++  lus=$fichiers
++  revu=$(printf '%s\n' "$lus" | revue_du_capitaine "$pr" "$sommet" "$base") && statut=0 || statut=$?
++  REGIME=$(sed -n '1s/^régime \([78]\).*$/\1/p' <<<"$revu")
++  if [ "$REGIME" = 8 ] && [ -n "$maj" ] && { [ "$statut" = 0 ] || [ "$statut" = 1 ]; }; then
++    lus=$(printf '%s\n%s\n' "$A_JUGER" "$MAJ_APRES" | sed '/^$/d' | sort -u)
++    revu=$(printf '%s\n' "$lus" | revue_du_capitaine "$pr" "$sommet" "$base") && statut=0 || statut=$?
++  fi
++  juger_revue "$n" "$statut" "$revu"
++  # Régime 8, les gardes des fichiers sensibles (A-76, lot 5b), au même endroit, sur le même diff : un chemin sensible
++  # hors de la ligne `Sensibles:` du ticket renvoie la sous-PR. Une PR de mise à jour (`maj/<nom>`) ne touche un chemin
++  # sensible que s'il est en conflit dans sa fusion et couvert par la ligne d'un ticket du sujet (A-74).
++  if [ "$REGIME" = 8 ]; then
++    local garde conflits='' sujet_de=()
++    if [ -n "$maj" ]; then
++      conflits=$(mktemp)
++      printf '%s\n' "$MAJ_CONFLITS" >"$conflits"
++      sujet_de=(--conflits "$conflits" --tickets "$(carte | awk -F '\t' -v s="${base#sujet/}" '$2 == s { printf "%s%s", (n++ ? "," : ""), $1 }')")
++    fi
++    garde=$(printf '%s\n' "$lus" | garde_des_sensibles "$base" "$titre" "$(jq -r .head.ref <<<"$pr")" ${sujet_de[@]+"${sujet_de[@]}"}) && statut=0 || statut=$?
++    [ -z "$conflits" ] || rm -f "$conflits"
++    case $statut in
++      0) ;;
++      20) sortir 4 "#$n $(tail -n 1 <<<"$garde")" ;;
++      21) sortir 7 "#$n : $(tail -n 1 <<<"$garde") (chemins sensibles) : sautée sans renvoi, son auteur n'y peut rien" ;;
++      *) sortir 11 "#$n : garde des fichiers sensibles en échec (sortie $statut : $(tail -n 1 <<<"$garde")), côté capitaine : sous-PR laissée dans la file" ;;
++    esac
++  fi
+   # Lien symbolique sur un index généré ou son dossier, que la PR ajoute ou change : la régénération du capitaine
+   # (mise à jour, avance, rafraichir) écrirait à travers lui.
+   motif=$(liens_sur_index "$sommet" "origin/$base") || sortir 4 "#$n $motif"
+@@ -917,7 +999,9 @@ fusionner() {
+     done <<<"$requis"
+     [ -z "$rouges" ] || sortir 3 "checks rouges sur #$n :$rouges"
+     [ "$attente" = 0 ] || sortir 5 "checks encore en cours sur #$n : reprise au tour suivant, aucun renvoi (la PR reste dans la file tant que la CI ne finit pas)"
+-    juger_retouches "$n"
++    # Régime 8 : les retouches sont dans le verdict (le premier contrôle a lu la résolution et les retouches) ; le second
++    # contrôle, avant d'avancer le sujet (A-105).
++    if [ "$REGIME" = 8 ]; then verdict_avant_fusion "$n" "$sommet" "$lus" "$base"; else juger_retouches "$n"; fi
+     avancer_sujet "$n" "$base" "$sommet"
+     return 0
+   fi
+@@ -976,6 +1060,8 @@ fusionner() {
+     mettre_a_jour
+   done
+ 
++  # Régime 8 : le second contrôle du verdict, sur le sommet fusionné, une fois l'ascendance « à-jour » (A-105).
++  [ "$REGIME" != 8 ] || verdict_avant_fusion "$n" "$sommet" "$(git -c core.quotePath=false diff --no-renames --name-only "$(git merge-base "$sommet" "origin/$base")" "$sommet")" "$base"
+   local squash refus
+   refus=$(mktemp)
+   # Le refus de GitHub, relayé, passe par masquer_url (Décision 10).
+@@ -1333,8 +1419,13 @@ etat() {
+   for b in $(branches_sujet); do
+     nom=${b#origin/sujet/}
+     avance=$(git rev-list --count --first-parent --no-merges "origin/develop..$b")
+-    [ "$avance" -gt 0 ] || [ -n "$(awk -F '\t' -v b="sujet/$nom" '$1 == b' <<<"$prs")" ] || continue
+     retard=$(git rev-list --count "$b..origin/develop")
++    # Un sujet sans commit propre ni PR ouverte (une livraison intermédiaire tout juste entrée dans develop, A-132) reste
++    # listé tant qu'il est en retard et qu'il n'est pas livré (`sujet_livre`) : la boucle du capitaine y reporte develop
++    # (`rafraichir_sujets`), et le conducteur le voit. Un sujet à jour sans rien à lui reste hors du tableau.
++    if [ "$avance" -eq 0 ] && [ -z "$(awk -F '\t' -v b="sujet/$nom" '$1 == b' <<<"$prs")" ]; then
++      [ "$retard" -gt 0 ] && ! sujet_livre "$nom" || continue
++    fi
+     # Sous-PR : celles qui visent le sujet, et les piles posées sur une sous-PR déjà fusionnée
+     # dedans (elles y seront reciblées) — sans elles, le sujet se croirait fini trop tôt.
+     fermees=$(lire_github "$DEPOT/pulls?state=closed&per_page=100&base=$(uri "sujet/$nom")" --paginate) || exit 5
+diff --git a/skills/chaine/sujet/scripts/sujet.test.mjs b/skills/chaine/sujet/scripts/sujet.test.mjs
+index 651ceca..7770234 100644
+--- a/skills/chaine/sujet/scripts/sujet.test.mjs
++++ b/skills/chaine/sujet/scripts/sujet.test.mjs
+@@ -106,7 +106,9 @@ test("demarrer refuse quand la spec du ticket n’est pas encore sur le sujet",
+   const r = demarrer(d, "SPEC_ALL_DEM-1.01");
+   assert.equal(r.status, 4, r.stdout + r.stderr);
+   assert.match(r.stdout, /spec SPEC_ALL_DEM-1 n'est pas encore sur sujet\/demo/);
+-  assert.match(r.stdout, /rafraichir demo/);
++  // A-69 (lot 5c) : une session ne reporte jamais develop dans un sujet ; c'est le capitaine qui le fait.
++  assert.match(r.stdout, /le capitaine la reporte dans le sujet de lui-même à chaque\nlancement de sa boucle \(A-69\) : attendre, ou le lui demander ; une session ne lance jamais `sujet\.sh rafraichir`\./);
++  assert.doesNotMatch(r.stdout, /`sujet\.sh rafraichir demo`/);
+ });
+ 
+ test("demarrer refuse un ticket dont la spec n’est que sur une branche de specs", () => {
+@@ -953,3 +955,35 @@ test("demarrer refuse un ticket dont la ligne Sujet: nomme plusieurs sujets (sor
+   assert.equal(propre.status, 0, propre.stdout + propre.stderr);
+   assert.match(propre.stdout, /^base=sujet\/a$/m);
+ });
++
++// A-132 (lot 5c) : après une livraison intermédiaire, le sujet n'a plus de commit propre ; tant qu'il est en retard sur
++// develop et pas livré, `etat` le liste « en cours », et la boucle du capitaine y reporte develop (`rafraichir_sujets`).
++test("etat : un sujet sans commit propre ni PR, en retard et pas livré, est listé (A-132) ; livré, ou à jour, il ne l'est pas", () => {
++  const monter = (phase) => {
++    const d = depotJouet();
++    d.ecrire(SPEC, "# SPEC_ALL_DEM-1\n\nSujet: sujet/demo\n");
++    d.commit("docs: spec");
++    d.git("push", "-q", "origin", "HEAD:develop");
++    d.branche("sujet/demo", "origin/develop", { "docs/features/demo/all/SPEC_ALL_DEM-1-demo.map.md": `# carte\n\nSujet: sujet/demo\n\nPhase: ${phase}\n`, "docs/x.md": "x\n" }, "feat(demo): x (#1)");
++    // La livraison intermédiaire : develop reçoit le sujet par un commit de merge, puis avance.
++    d.git("switch", "-q", "-C", "develop", "origin/develop");
++    d.git("merge", "-q", "--no-ff", "-m", "feat(demo): livraison intermédiaire (#2)\n\nSujet: sujet/demo", "origin/sujet/demo");
++    d.git("push", "-q", "origin", "HEAD:develop");
++    d.git("fetch", "-q", "origin");
++    d.github({ pulls: [] });
++    return d;
++  };
++  const d = monter("4-vague-2");
++  d.branche("develop", "origin/develop", { "docs/y.md": "y\n" });
++  d.git("switch", "-q", "--detach", "origin/develop");
++  assert.match(d.lancer(SCRIPT, "etat").stdout, /^demo\t0\t2\t—\t—\ten cours$/m, "la livraison et le commit suivant de develop");
++  const r = d.lancer(SCRIPT, "rafraichir", "demo", "--abandon-si-conflit");
++  assert.equal(r.status, 0, r.stdout + r.stderr);
++  d.git("fetch", "-q", "origin");
++  assert.equal(d.git("rev-parse", "origin/sujet/demo"), d.git("rev-parse", "origin/develop"), "develop reporté dans le sujet");
++  assert.doesNotMatch(d.lancer(SCRIPT, "etat").stdout, /^demo\t/m, "à jour : plus rien à reporter");
++  const livre = monter("6-nettoyage");
++  livre.branche("develop", "origin/develop", { "docs/y.md": "y\n" });
++  livre.git("switch", "-q", "--detach", "origin/develop");
++  assert.doesNotMatch(livre.lancer(SCRIPT, "etat").stdout, /^demo\t/m, "livré : jamais rouvert");
++});
+diff --git a/skills/chaine/tickets/references/scripts/verify/tickets-gate.test.mjs b/skills/chaine/tickets/references/scripts/verify/tickets-gate.test.mjs
+index ff83eeb..e1c3063 100644
+--- a/skills/chaine/tickets/references/scripts/verify/tickets-gate.test.mjs
++++ b/skills/chaine/tickets/references/scripts/verify/tickets-gate.test.mjs
+@@ -1,6 +1,6 @@
+ import assert from 'node:assert/strict';
+ import { spawnSync } from 'node:child_process';
+-import { readFileSync, writeFileSync } from 'node:fs';
++import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+ import { join } from 'node:path';
+ import { test } from 'node:test';
+ import { ENV, depotJouet, script } from '../docs/depot-jouet.mjs';
+@@ -216,3 +216,30 @@ test('gate complet : `Sensibles:` ou `Relecture:` mal formée est refusée avec
+   assert.match(r2.stderr, /SPEC_ALL_SOC-1-socle\.01\.issue\.md:5 : Sensibles « scripts\/chaine\/passer\.sh » : attendu `—`, ou des chemins/);
+   assert.match(r2.stderr, /SPEC_ALL_SOC-1-socle\.01\.issue\.md:6 : Relecture « triple » : seule valeur `double`/);
+ });
++
++// Lot 5c : en régime 8, le gate lit la criticité des règles citées par les lecteurs de `double-relecture.mjs`, posé à
++// `scripts/chaine/` avec la grammaire à `scripts/docs/` ; sans lui, il s'arrête en le disant.
++test('régime 8 : sans `Label: contre-revue` un ticket prêt sensible passe ; un ticket ouvert qui cite une règle haute sans `Relecture: double` est refusé ; sans double-relecture.mjs, sortie 2', () => {
++  // Posé dans un projet, à côté (scripts/chaine/, scripts/docs/) ; dans le plugin, dans les skills fusionner et socle-monorepo.
++  const premier = (...chemins) => readFileSync(chemins.map((c) => new URL(c, import.meta.url)).find((u) => existsSync(u)), 'utf8');
++  const OUTILS = {
++    'scripts/chaine/double-relecture.mjs': premier('../chaine/double-relecture.mjs', '../../../../fusionner/scripts/double-relecture.mjs'),
++    'scripts/docs/identifiants.mjs': premier('../docs/identifiants.mjs', '../../../../../monorepo/socle-monorepo/references/scripts/docs/identifiants.mjs'),
++  };
++  const REGLE = (niveau) => `---\nkey: RULE_ALL_SOC-1\ncriticality:\n  level: ${niveau}\n---\n# Règle\n`;
++  const HUIT = { '.claude/chaine.json': '{"cheminsSensibles":["apps/api/src/**/auth/**"],"relecture":{"depuis":"2026-11-21T09:00:00Z"}}\n' };
++  const ticket = (relecture) => PRET_SENSIBLE('').replace('Type: task\n', `Type: task\nRègles: RULE_ALL_SOC-1\n${relecture}`);
++  const depot = (niveau, relecture, outils = OUTILS) =>
++    depotJouet({ fichiers: { ...DETTE, ...HUIT, ...outils, 'docs/metier/regles/all/RULE_ALL_SOC-1.md': REGLE(niveau), 'docs/features/socle/all/issues/SPEC_ALL_SOC-1-socle.01.issue.md': ticket(relecture) } });
++  const ok = lancer(depot('medium', ''));
++  assert.equal(ok.status, 0, ok.stderr);
++  const haute = lancer(depot('high', ''));
++  assert.equal(haute.status, 1, haute.stdout + haute.stderr);
++  assert.match(haute.stderr, /SPEC_ALL_SOC-1-socle\.01\.issue\.md:\d+ : régime 8 : ligne `Relecture: double` absente alors que le ticket cite RULE_ALL_SOC-1, règle de criticité haute/);
++  assert.doesNotMatch(haute.stderr, /Label: contre-revue/);
++  const double = lancer(depot('high', 'Relecture: double\n'));
++  assert.equal(double.status, 0, double.stderr);
++  const sans = lancer(depot('high', '', {}));
++  assert.equal(sans.status, 2, sans.stdout + sans.stderr);
++  assert.match(sans.stderr, /régime 8 et scripts\/chaine\/double-relecture\.mjs introuvable/);
++});
+diff --git a/skills/chaine/tickets/references/scripts/verify/tickets-regles.mjs b/skills/chaine/tickets/references/scripts/verify/tickets-regles.mjs
+index d43666d..dd5dee0 100644
+--- a/skills/chaine/tickets/references/scripts/verify/tickets-regles.mjs
++++ b/skills/chaine/tickets/references/scripts/verify/tickets-regles.mjs
+@@ -408,14 +408,16 @@ export function motifSensibleTouche(chemin, cheminsSensibles) {
+  * la ligne `Label: contre-revue` (chaine-de-production.md § 3). L'ancienne valeur `architecte` a le même
+  * effet et reste acceptée sur tout ticket ; les messages ne nomment que `contre-revue`.
+  */
+-export function ecartsFormatPret(texte, cheminsSensibles = []) {
++export function ecartsFormatPret(texte, cheminsSensibles = [], { regime = 7 } = {}) {
+   const lignes = texte.split('\n');
+   const ecarts = [];
+   const modele = chercher(lignes, MODELE);
+   if (!modele || !/^(sonnet|opus|haiku)\b/.test(modele.valeur)) ecarts.push('ligne `Modèle: sonnet|opus` (avec la raison pour opus) absente');
+   const chauds = chercher(lignes, CHAUDS);
+   const label = chercher(lignes, LABEL);
+-  if (chauds && !/^(contre-revue|architecte)(\s|$)/.test(label?.valeur ?? '')) {
++  // Régime 8 (A-94, lot 5c) : la contre-revue du conducteur tombe, `Label: contre-revue` n'est plus exigé ; la valeur
++  // reste lisible sur les tickets existants.
++  if (regime !== 8 && chauds && !/^(contre-revue|architecte)(\s|$)/.test(label?.valeur ?? '')) {
+     for (const chemin of cheminsChauds(chauds.valeur)) {
+       const motif = motifSensibleTouche(chemin, cheminsSensibles);
+       if (motif) {
+@@ -490,6 +492,27 @@ export function ecartsSensibles(valeur) {
+   return ecarts;
+ }
+ 
++/**
++ * Régime 8 (A-90, lot 5c) : un ticket ouvert (ni `Fait`, ni `wontfix`) qui cite sur une ligne `Règles:` de son en-tête
++ * une règle de criticité haute porte la ligne `Relecture: double`, pour que le conducteur le sache au découpage.
++ * `niveauDe(id)` : `high`, `medium`, `low`, `null` (à classer, ou règle inconnue) ou `{ illisible }` (en-tête de règle ou
++ * index qui ne se lisent pas : lu comme haute, du côté sûr, et la cause dite). Le calcul « double relecture exigée »
++ * reste celui qui décide ; ce contrôle ne fait que prévenir.
++ */
++export function ecartsRelectureDouble({ status, valeursRegles, relecture, niveauDe }) {
++  if (relecture || /^(Fait|wontfix)\b/.test(status ?? '')) return [];
++  const ecarts = [];
++  for (const v of valeursRegles) {
++    if (v === '—') continue;
++    for (const id of reglesCitees(v).cites) {
++      const n = niveauDe(id);
++      if (n === 'high') ecarts.push(`régime 8 : ligne \`Relecture: double\` absente alors que le ticket cite ${id}, règle de criticité haute (deux relectures indépendantes, A-90)`);
++      else if (n?.illisible) ecarts.push(`régime 8 : ligne \`Relecture: double\` absente, et la criticité de ${id} ne se lit pas (${n.illisible}) : lue comme haute`);
++    }
++  }
++  return ecarts;
++}
++
+ /** Écarts de la ligne `Relecture:` d'un ticket : seule valeur `double` (deux relectures indépendantes). Jamais exigée. */
+ export function ecartsRelecture(valeur) {
+   return sansCommentaire(valeur) === 'double' ? [] : [`Relecture « ${valeur} » : seule valeur \`double\` ; sinon retirer la ligne`];
+@@ -555,6 +578,8 @@ export function controlerTicket({
+   cheminsSensibles = [],
+   regleExiste = () => false,
+   testExiste = () => 'absent',
++  regime = 7,
++  niveauDe = () => null,
+ }) {
+   const lignes = texte.split('\n');
+   const id = identifiantDuTicket(nom);
+@@ -596,16 +621,23 @@ export function controlerTicket({
+   if (sujet && !/^sujet\/[a-z0-9]+(?:-[a-z0-9]+)*(?:\s|$)/.test(sujet.valeur))
+     erreurs.push({ ligne: sujet.ligne, message: `Sujet « ${sujet.valeur} » : attendu \`sujet/<nom-en-kebab>\`` });
+   // Lues dans l'en-tête seul, chaque ligne : un exemple cité dans le corps du ticket n'est pas la ligne.
++  let relectureLue = false;
+   tete(lignes).forEach((brute, i) => {
+     const l = brute.replace(/\r$/, '');
+     const sensibles = SENSIBLES.exec(l);
+     if (sensibles) for (const e of ecartsSensibles(sensibles[1].trim())) erreurs.push({ ligne: i + 1, message: e });
+     const relecture = RELECTURE.exec(l);
+-    if (relecture) for (const e of ecartsRelecture(relecture[1].trim())) erreurs.push({ ligne: i + 1, message: e });
++    if (relecture) {
++      relectureLue = true;
++      for (const e of ecartsRelecture(relecture[1].trim())) erreurs.push({ ligne: i + 1, message: e });
++    }
+   });
++  if (regime === 8)
++    for (const e of ecartsRelectureDouble({ status: status?.valeur, valeursRegles: regles.map((r) => r.valeur), relecture: relectureLue, niveauDe }))
++      erreurs.push({ ligne: regles[0]?.ligne ?? 1, message: e });
+   const pret = status?.valeur === 'ready-for-agent';
+   if (pret && !gele) {
+-    for (const e of ecartsFormatPret(texte, cheminsSensibles))
++    for (const e of ecartsFormatPret(texte, cheminsSensibles, { regime }))
+       erreurs.push({ ligne: status.ligne, message: `ready-for-agent : ${e} (docs/agents/chaine-de-production.md § 3)` });
+   }
+   return { status: status?.valeur ?? null, type: type?.valeur ?? null, pret, erreurs };
+diff --git a/skills/chaine/tickets/references/scripts/verify/tickets.mjs b/skills/chaine/tickets/references/scripts/verify/tickets.mjs
+index 64f7e56..82159ae 100644
+--- a/skills/chaine/tickets/references/scripts/verify/tickets.mjs
++++ b/skills/chaine/tickets/references/scripts/verify/tickets.mjs
+@@ -38,7 +38,12 @@
+  *      (`fichier.test.ts` « titre ») qui existent dans les fichiers de tests suivis et sont actifs ;
+  *  12. `Sensibles:`, si la ligne est dans l'en-tête, vaut `—` ou des chemins (ou des motifs) séparés par des
+  *      virgules puis ` — accord de <nom>, <AAAA-MM-JJ>` : la forme seule est jugée, la ligne n'est jamais exigée ;
+- *  13. `Relecture:`, si la ligne est dans l'en-tête, vaut `double` ; elle n'est jamais exigée.
++ *  13. `Relecture:`, si la ligne est dans l'en-tête, vaut `double` ; elle n'est exigée qu'en régime 8 (règle 14) ;
++ *  14. en régime 8 (la clé `relecture` de `.claude/chaine.json`, lue dans l'arbre de travail, A-97 ; lot 5c), la règle 7
++ *      ne joue plus (`Label: contre-revue` n'est plus exigé, A-94), et un ticket ouvert qui cite une règle de criticité
++ *      haute porte `Relecture: double` (A-90) ; la criticité se lit dans l'en-tête du fichier de la règle et dans l'index
++ *      Anchorpost (`anchorpost/anchorpost.json`), la plus haute des deux, par les lecteurs du calcul « double relecture
++ *      exigée » (`scripts/chaine/double-relecture.mjs`, skill fusionner, exigé en régime 8 : sortie 2 sans lui).
+  *
+  * Usage : node scripts/verify/tickets.mjs [--elaguer | --geler-types | --geler-fiches]   (pnpm check:tickets — CI)
+  * Sortie 2 : `scripts/docs/identifiants.mjs` absent (posé par `socle-monorepo`).
+@@ -46,6 +51,7 @@
+ import { execFileSync } from 'node:child_process';
+ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+ import { basename, join } from 'node:path';
++import { pathToFileURL } from 'node:url';
+ // La grammaire est posée par socle-monorepo, pas par ce skill : sans elle, un refus qui la nomme
+ // plutôt qu'un module introuvable.
+ if (!existsSync(new URL('../docs/identifiants.mjs', import.meta.url))) {
+@@ -92,6 +98,11 @@ const regles = new Set(
+     .map(({ id }) => id),
+ );
+ const regleExiste = (id) => regles.has(id);
++const fichiersDesRegles = new Map(
++  ls('docs/metier/regles/*/RULE_*.md')
++    .map((c) => [identifiantDeLaRegle(basename(c)), c])
++    .filter(([id, c]) => id && c === `docs/metier/regles/${dossierDuContexte(lireIdentifiant(id).contexte)}/${id}.md`),
++);
+ 
+ // Fichiers de tests suivis, lus à la demande : seul un défaut `Fait` les fait ouvrir.
+ let fichiersDeTest = null;
+@@ -123,6 +134,50 @@ try {
+   process.exit(1);
+ }
+ 
++// Régime 8 (lot 5c) : la clé `relecture` dans le contrat de l'arbre de travail, quelle que soit sa forme (A-97).
++let regime = 7;
++let niveauDe = () => null;
++try {
++  const c = existsSync(CHAINE) ? JSON.parse(readFileSync(CHAINE, 'utf8')) : null;
++  if (c !== null && typeof c === 'object' && Object.hasOwn(c, 'relecture')) regime = 8;
++} catch {
++  // déjà dit par lireCheminsSensibles
++}
++if (regime === 8) {
++  const double = [join(ROOT, 'scripts/chaine/double-relecture.mjs'), new URL('../../../../fusionner/scripts/double-relecture.mjs', import.meta.url).pathname].find(existsSync);
++  if (!double) {
++    console.error('tickets : régime 8 et scripts/chaine/double-relecture.mjs introuvable (skill fusionner) : la criticité des règles citées ne se lit pas ; rejouer /maj-skills:fusionner poser');
++    process.exit(2);
++  }
++  const { enTeteDeRegle, reglesDeLIndex } = await import(pathToFileURL(double).href);
++  const comparable = (s) => s.normalize('NFC').toUpperCase().toLowerCase();
++  const INDEX = join(ROOT, 'anchorpost/anchorpost.json');
++  let index = null;
++  let indexIllisible = null;
++  if (existsSync(INDEX))
++    try {
++      index = reglesDeLIndex(readFileSync(INDEX, 'utf8'));
++    } catch (e) {
++      indexIllisible = `anchorpost/anchorpost.json : ${e.message}`;
++    }
++  const NIVEAUX = ['low', 'medium', 'high'];
++  niveauDe = (id) => {
++    if (indexIllisible) return { illisible: indexIllisible };
++    const lus = [];
++    const r = index?.get(comparable(id));
++    if (r && r.enVigueur) lus.push(r.niveau);
++    const f = fichiersDesRegles.get(id);
++    if (f)
++      try {
++        const e = enTeteDeRegle(readFileSync(join(ROOT, f), 'utf8'));
++        if (e.enVigueur) lus.push(e.niveau);
++      } catch (e) {
++        return { illisible: `${f} : ${e.message}` };
++      }
++    return lus.filter(Boolean).sort((a, b) => NIVEAUX.indexOf(b) - NIVEAUX.indexOf(a))[0] ?? null;
++  };
++}
++
+ const erreurs = [];
+ // Les fiches que les skills lisent : celles du skill `tickets`, pas celles d'origine de Matt Pocock.
+ const fiche = (nom) => (existsSync(join(ROOT, 'docs/agents', nom)) ? readFileSync(join(ROOT, 'docs/agents', nom), 'utf8') : null);
+@@ -147,9 +202,11 @@ for (const chemin of chemins) {
+     cheminsSensibles,
+     regleExiste,
+     testExiste,
++    regime,
++    niveauDe,
+   });
+   for (const e of r.erreurs) erreurs.push(`${chemin}:${e.ligne} : ${e.message}`);
+-  if (geles.has(chemin) && r.pret && ecartsFormatPret(texte, cheminsSensibles).length > 0) detteActive.add(chemin);
++  if (geles.has(chemin) && r.pret && ecartsFormatPret(texte, cheminsSensibles, { regime }).length > 0) detteActive.add(chemin);
+   if (r.type === null) sansType.push(chemin);
+ }
+ const typesEnDette = new Set(sansType.filter((c) => typesGeles.has(c)));
+diff --git a/skills/chaine/tickets/references/scripts/verify/tickets.test.mjs b/skills/chaine/tickets/references/scripts/verify/tickets.test.mjs
+index 55ca765..1dc330c 100644
+--- a/skills/chaine/tickets/references/scripts/verify/tickets.test.mjs
++++ b/skills/chaine/tickets/references/scripts/verify/tickets.test.mjs
+@@ -600,3 +600,26 @@ test('plafonds : contrat absent → aucun ; sans clé → défauts ; mal formée
+ test('le coût d’une fille ne se juge plus ici : une cellule illisible relève de `couts.mjs --verify`, pas des plafonds', () => {
+   assert.deepEqual(juger(COUT('| fille | t | s | sonnet | 100 k | 25 $ |')), []);
+ });
++
++// ── Lot 5c : le gate en régime 8 ───────────────────────────────────────────────────────────────────────────────
++test('lot 5c, régime 8 : `Label: contre-revue` n’est plus exigé ; un ticket ouvert qui cite une règle haute porte `Relecture: double`', async () => {
++  const { ecartsRelectureDouble } = await module('verify/tickets-regles.mjs');
++  const pret = (label, regles = '', relecture = '') =>
++    `# x\n\nStatus: ready-for-agent\nType: task\nModèle: sonnet\nFichiers chauds: \`apps/auth/a.ts\`\n${label}${regles}${relecture}\n## Où\n\n- a\n\n## Décisions\n\n- b\n\n## Surfaces\n\n- c\n\n## Vérification\n\n- d\n`;
++  assert.equal(ecartsFormatPret(pret(''), ['apps/auth/**']).length, 1, 'régime 7 : exigé');
++  assert.deepEqual(ecartsFormatPret(pret(''), ['apps/auth/**'], { regime: 8 }), [], 'régime 8 : plus exigé');
++  const niveauDe = (id) => (id === 'RULE_ALL_SOC-1' ? 'high' : id === 'RULE_ALL_SOC-2' ? 'medium' : id === 'RULE_ALL_SOC-3' ? { illisible: 'ligne 2 : x' } : null);
++  const nom = 'SPEC_ALL_SOC-1-socle.01.issue.md';
++  const existe = () => true;
++  const regleExiste = () => true;
++  const erreurs = (texte, regime = 8) => controlerTicket({ nom, texte, existe, regleExiste, regime, niveauDe }).erreurs.map((e) => e.message);
++  assert.deepEqual(erreurs(pret('', 'Règles: RULE_ALL_SOC-1\n')), ['régime 8 : ligne `Relecture: double` absente alors que le ticket cite RULE_ALL_SOC-1, règle de criticité haute (deux relectures indépendantes, A-90)']);
++  assert.deepEqual(erreurs(pret('', 'Règles: RULE_ALL_SOC-1\n'), 7), [], 'régime 7 : jamais exigée');
++  assert.deepEqual(erreurs(pret('', 'Règles: RULE_ALL_SOC-1\n', 'Relecture: double\n')), []);
++  assert.deepEqual(erreurs(pret('', 'Règles: RULE_ALL_SOC-2\n')), [], 'moyenne');
++  assert.deepEqual(erreurs(pret('', 'Règles: —\n')), []);
++  assert.match(erreurs(pret('', 'Règles: RULE_ALL_SOC-3\n'))[0], /la criticité de RULE_ALL_SOC-3 ne se lit pas \(ligne 2 : x\) : lue comme haute/);
++  for (const status of ['Fait — PR #12', 'wontfix'])
++    assert.deepEqual(erreurs(pret('', 'Règles: RULE_ALL_SOC-1\n').replace('ready-for-agent', status)), [], `${status} : fermé`);
++  assert.deepEqual(ecartsRelectureDouble({ status: 'needs-triage', valeursRegles: ['`RULE_ALL_SOC-1`, RULE_ALL_SOC-2'], relecture: false, niveauDe }).length, 1);
++});
