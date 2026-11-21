@@ -75,7 +75,7 @@ Tu parles au produit, qui est aussi la MOA. En français, en phrases simples : t
 
 ## Sessions du premier compte, pour mémoire
 
-Tu ne peux pas leur écrire, et tu n'en as pas besoin. Aucun réveil (`send_later`) n'est armé sur ce compte. À la levée du quota, le 22 à 19 h UTC, elles restent inactives tant que personne ne leur écrit.
+**Toutes archivées le 2026-11-21 vers 16 h 50 UTC**, comme les autres filles du chantier : aucune ne reprendra à la levée du quota. Aucun réveil (`send_later`) n'est armé sur ce compte.
 
 | Rôle | Session |
 | --- | --- |
