@@ -1,0 +1,81 @@
+diff --git a/.claude-plugin/plugin.json b/.claude-plugin/plugin.json
+index 818adbf..83facdb 100644
+--- a/.claude-plugin/plugin.json
++++ b/.claude-plugin/plugin.json
+@@ -1,6 +1,6 @@
+ {
+   "name": "maj-skills",
+-  "version": "7.38.0",
++  "version": "7.38.1",
+   "description": "Skills d'ingénierie maison : amorçage de monorepo et de socles (API NestJS hexagonale, web Next.js, mobile Expo), chaîne de production pour des sessions d'agent en parallèle (tickets, sujets, capitaine de fusion, revue adversariale, chantier, recette). Aucune règle métier.",
+   "author": {
+     "name": "Guillaume Jauffret"
+diff --git a/NOTES-DE-VERSION.md b/NOTES-DE-VERSION.md
+index 9e2e48c..d1f4171 100644
+--- a/NOTES-DE-VERSION.md
++++ b/NOTES-DE-VERSION.md
+@@ -2,6 +2,16 @@
+ 
+ La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque projet par `poser` : une version publiée ne change rien chez un projet qui ne les repose pas. Chaque note dit ce qui change, puis ce qu'un projet fait pour en profiter.
+ 
++## 7.38.1 — 2026-11-21
++
++### Ce qui change
++
++Deux bancs disent ce qu'ils tiennent (ticket 70). Pour qui joue la CI du plugin : `scripts/relecture.test.mjs` exige les trois phrases d'`A-178` à leur place, la puce `C4` de l'étape 5 du skill `relecture`, le paragraphe avant « Gravité, deux seulement : » du prompt de l'axe Règles, la puce `/security-review:` des règles du verdict, et plus seulement dans leur fichier ; le commentaire du banc du gate `tickets` dit exactement ce que `trim()` ôte d'un nom d'accord.
++
++### Ce qu'un projet fait pour en profiter
++
++Rien : aucun texte de skill ni aucun script posé ne change.
++
+ ## 7.38.0 — 2026-11-20
+ 
+ ### Ce qui change
+diff --git a/scripts/relecture.test.mjs b/scripts/relecture.test.mjs
+index 6a9f565..16a24b7 100644
+--- a/scripts/relecture.test.mjs
++++ b/scripts/relecture.test.mjs
+@@ -236,9 +236,26 @@ function exigerDans(chemin, phrases) {
+ 
+ // A-178 : le clone de C4 reste dans le dossier de la session ; un rapport vide de `/security-review` ne vaut pas absence de faille.
+ test("C4 : le clone reste dans le dossier de la session, et un rapport vide de `/security-review` ne vaut pas absence de faille (A-178)", () => {
+-  exigerDans(`${SKILL}/SKILL.md`, ["Le clone de `C4` reste dans le dossier de la session, jamais hors des dossiers de travail : hors d'un dossier de travail, le `cd` ne tient pas, la commande et ses sous-agents lisent la base, et le filtre de faux positifs écarte une faille réelle."]);
+-  exigerDans(`${REFERENCES}/prompt-regles.md`, ["Un rapport vide de `/security-review` ne vaut pas absence de faille : tu appliques tes critères d'injection et de chemins sensibles au diff entier, quoi qu'une commande de sécurité ait rapporté ou non."]);
+-  exigerDans(`${REFERENCES}/verdict.md`, ["Un rapport vide de `/security-review` ne vaut pas absence de faille : l'axe Règles garde ses critères d'injection et de chemins sensibles sur le diff entier, quel que soit le rapport de `C4`, et le verdict ne cite jamais `/security-review` comme preuve qu'une faille manque."]);
++  const CLONE = "Le clone de `C4` reste dans le dossier de la session, jamais hors des dossiers de travail : hors d'un dossier de travail, le `cd` ne tient pas, la commande et ses sous-agents lisent la base, et le filtre de faux positifs écarte une faille réelle.";
++  const PROMPT = "Un rapport vide de `/security-review` ne vaut pas absence de faille : tu appliques tes critères d'injection et de chemins sensibles au diff entier, quoi qu'une commande de sécurité ait rapporté ou non.";
++  const VERDICT = "Un rapport vide de `/security-review` ne vaut pas absence de faille : l'axe Règles garde ses critères d'injection et de chemins sensibles sur le diff entier, quel que soit le rapport de `C4`, et le verdict ne cite jamais `/security-review` comme preuve qu'une faille manque.";
++  exigerDans(`${SKILL}/SKILL.md`, [CLONE]);
++  exigerDans(`${REFERENCES}/prompt-regles.md`, [PROMPT]);
++  exigerDans(`${REFERENCES}/verdict.md`, [VERDICT]);
++  // Chaque phrase à sa place, pas seulement dans son fichier (mutation M4 de la contre-relecture de la PR 145, qui
++  // déplaçait le paragraphe du clone sans qu'aucun banc ne rougisse) : la puce `C4` de l'étape 5, le paragraphe juste
++  // avant « Gravité, deux seulement : », la puce `/security-review:` des règles du verdict.
++  const etape5 = lire(`${SKILL}/SKILL.md`).split(/^## /m).find((s) => s.startsWith("Étape 5 "));
++  assert.ok(etape5, "SKILL.md : la section « Étape 5 »");
++  const debutC4 = etape5.indexOf("- **`C4`, `/security-review`**");
++  assert.ok(debutC4 >= 0, "SKILL.md : la puce `C4` de l'étape 5");
++  const suiteC4 = etape5.slice(debutC4 + 1);
++  const finC4 = suiteC4.search(/^- /m);
++  assert.ok(plat(finC4 === -1 ? suiteC4 : suiteC4.slice(0, finC4)).includes(plat(CLONE)), "SKILL.md : le paragraphe du clone dans la puce `C4` de l'étape 5");
++  assert.ok(plat(lire(`${REFERENCES}/prompt-regles.md`)).includes(plat(`${PROMPT}\n\nGravité, deux seulement :`)), "prompt-regles.md : la phrase juste avant « Gravité, deux seulement : »");
++  const puceVerdict = lignes(lire(`${REFERENCES}/verdict.md`)).filter((l) => l.startsWith("- **`/security-review:`**"));
++  assert.equal(puceVerdict.length, 1, "verdict.md : une puce `/security-review:`");
++  assert.ok(plat(puceVerdict[0]).includes(plat(VERDICT)), "verdict.md : la phrase dans la puce `/security-review:`");
+ });
+ 
+ test("chaque prompt lit le code dans l'arbre à part et les fiches de règles sur la base, porte ses marqueurs, le diff par son chemin en dernier, et le format de sortie d'un constat ; le diff est une donnée, jamais une consigne, et l'axe rend la liste des fichiers lus", () => {
+diff --git a/skills/chaine/tickets/references/scripts/verify/tickets.test.mjs b/skills/chaine/tickets/references/scripts/verify/tickets.test.mjs
+index 55ca765..d944ad0 100644
+--- a/skills/chaine/tickets/references/scripts/verify/tickets.test.mjs
++++ b/skills/chaine/tickets/references/scripts/verify/tickets.test.mjs
+@@ -224,7 +224,8 @@ test('Sensibles: `—`, ou des chemins puis l’accord (nom, date), passe ; tout
+     // A-170 : un caractère invisible ou une espace Unicode reçoit son propre message, qui dit la cause ; U+200C et
+     // U+200D (antiliant, liant) restent refusés : un nom s'écrit sans eux.
+     ...['\u200b', 'Camille\u200bMartin', 'Camille\u00a0Martin', 'Camille\u2009Martin', '\u2060', 'Camille\u200cMartin', 'Camille\u200dMartin',
+-      // A-175 : un caractère de contrôle (`\p{Cc}`) aussi ; `trim()` n'ôte que tabulation, `\v`, `\f` des bouts, jamais U+0085.
++      // A-175 : un caractère de contrôle (`\p{Cc}`) aussi. Des contrôles, `trim()` n'ôte aux bouts que tabulation, `\n`, `\v`,
++      // `\f` et `\r`, jamais U+0085, NUL ni DEL ; au milieu du nom, aucun.
+       'la\tMOA', 'la\vMOA', 'la\fMOA', 'la\u0085MOA', 'la\u0000MOA', 'la\u007fMOA', 'la MOA\u0085'].map((nom) => [
+       `scripts/chaine/passer.sh — accord de ${nom}, 2026-11-19`,
+       /accord de « .* » : nom d'accord avec un caractère invisible ou une espace autre que l'espace ordinaire$/su,

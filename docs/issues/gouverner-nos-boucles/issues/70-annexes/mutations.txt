@@ -1,0 +1,19 @@
+# Avec le test de 25a72c7 (avant le ticket 70)
+VERTE F1 SKILL.md : le paragraphe du clone déplacé de la puce `C4` à la fin de l’étape 2 (M4 de la contre-relecture de la PR 145) (105 s)
+VERTE F2 SKILL.md : le paragraphe du clone déplacé avant la puce `C4` (dans la puce `C3`) (99 s)
+VERTE F3 SKILL.md : le paragraphe du clone déplacé dans l’étape 6 (97 s)
+ROUGE F4 prompt-regles.md : la phrase déplacée après la liste des gravités (95 s) — deux gravités, pas trois, et un mot par sens : ni « à corrig
+VERTE F5 prompt-regles.md : la phrase déplacée en tête du prompt (93 s)
+VERTE F6 verdict.md : la phrase sortie de la puce `/security-review:`, en paragraphe après elle (83 s)
+ROUGE F7 verdict.md : la phrase retirée (65 s) — C4 : le clone reste dans le dossier de la session, et un rap
+2 rouges sur 7 jouées, 7 dans le fichier
+
+# Avec le test retouché (après le ticket 70)
+ROUGE F1 SKILL.md : le paragraphe du clone déplacé de la puce `C4` à la fin de l’étape 2 (M4 de la contre-relecture de la PR 145) (56 s) — C4 : le clone reste dans le dossier de la session, et un rap
+ROUGE F2 SKILL.md : le paragraphe du clone déplacé avant la puce `C4` (dans la puce `C3`) (58 s) — C4 : le clone reste dans le dossier de la session, et un rap
+ROUGE F3 SKILL.md : le paragraphe du clone déplacé dans l’étape 6 (59 s) — C4 : le clone reste dans le dossier de la session, et un rap
+ROUGE F4 prompt-regles.md : la phrase déplacée après la liste des gravités (67 s) — deux gravités, pas trois, et un mot par sens : ni « à corrig | C4 : le clone reste dans le dossier de la session, et un rap
+ROUGE F5 prompt-regles.md : la phrase déplacée en tête du prompt (68 s) — C4 : le clone reste dans le dossier de la session, et un rap
+ROUGE F6 verdict.md : la phrase sortie de la puce `/security-review:`, en paragraphe après elle (71 s) — C4 : le clone reste dans le dossier de la session, et un rap
+ROUGE F7 verdict.md : la phrase retirée (62 s) — C4 : le clone reste dans le dossier de la session, et un rap
+7 rouges sur 7 jouées, 7 dans le fichier
