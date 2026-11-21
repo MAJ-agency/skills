@@ -40,7 +40,8 @@
 // `jouer <n>` refait la décision de la PR n et joue ce qui s'écrit sur GitHub : une étiquette (la nouvelle posée avant
 // que l'ancienne soit retirée, A-84), le commentaire du plafond, de la panne ou de l'illisible. Il écrit une ligne JSON :
 // la décision, `joue` (vrai s'il a écrit), et `lignes`, ce que le modèle envoie (`send_message`) ; une étiquette déjà
-// posée avant lui n'envoie aucune ligne : une ligne ne part qu'au changement d'étiquette (A-85, A-118). Un geste de
+// posée avant lui n'envoie aucune ligne : une ligne ne part qu'au changement d'étiquette (A-85, A-118), ou avec le
+// commentaire du plafond, qui ne s'écrit qu'une fois. Un geste de
 // session (`distribuer`, `completer`, `remplacer`, `reecrire`) n'écrit rien : c'est au modèle de le jouer.
 // `distribuer <n> --sommet <sha> --couple <modele>/<effort> [<session>…]` écrit la distribution d'un geste de session,
 // après que le modèle a créé ou relancé les sessions (A-85, règle 6) : il refait la décision, refuse (sortie 3) si le
@@ -49,10 +50,11 @@
 // (règle 4 ou 6) : les sessions du tour, autant que `nombre` ; `completer` : les sessions ajoutées, autant que
 // `manque` ; `remplacer` : la session qui remplace ; `reecrire` : aucune (la distribution est redite, `(relance …)`).
 // `veille` lance `passe` toutes les `--pause` secondes (120) pendant `--duree` minutes (25 : l'outil Bash arrête une
-// tâche de fond à 30 minutes), et s'arrête dès qu'une
+// tâche de fond à 30 minutes), sans jamais commencer une pause qui finirait après, et s'arrête dès qu'une
 // PR, hors de `--taire`, demande un geste : `VEILLE GESTE`, puis une ligne `GESTE <n> <geste> règle <r>` par PR. Les
 // gestes `rien`, `hors-regime` et `pause` ne réveillent personne. GitHub illisible : `PAUSE`, la veille continue.
 // Au bout de la durée : `VEILLE FINIE`. Toute autre sortie de `passe` : `VEILLE ARRÊTÉE sortie <c>`, avec son code.
+// La sortie d'erreur d'une passe sortie en 0 (une installation en échec) passe sur celle de la veille, dans son journal.
 //
 // Sorties : 0 fait ; 2 usage ou entrée mal formée ; 3 la PR est fermée, ou le geste, le sommet ou le couple ont changé
 // (rien n'est écrit) ; 5 GitHub illisible ; 6 le dossier n'est pas celui d'un projet de la chaîne, ou pas propre, ou
@@ -314,6 +316,9 @@ async function jouerGeste(argv) {
     for (const e of g.retirer) ecrire('retirer_label', String(n), e);
     joue = true;
   }
+  // Le plafond ne se décide que sans commentaire de plafond depuis la dernière décision : celui qu'il vient d'écrire
+  // est neuf, et ses lignes n'ont jamais pu partir, même si `à-reprendre` était déjà posée (une étiquette restée).
+  if (g.geste === 'plafonner') lignes = g.lignes;
   process.stdout.write(`${JSON.stringify({ ...g, joue, lignes })}\n`);
 }
 
@@ -365,8 +370,12 @@ function veille(argv) {
   const fin = Date.now() + duree * 60_000;
   const attendre = (s) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, s * 1000);
   for (let k = 0; k < sondes && Date.now() <= fin; k++) {
+    // Jamais une pause qui finirait après la durée : la veille finit sous le plafond de l'outil Bash (A-180).
+    if (k > 0 && Date.now() + pause * 1000 > fin) break;
     if (k > 0) attendre(pause);
     const r = jouer(process.execPath, [ICI, 'passe']);
+    // Ce que la passe écrit sur sa sortie d'erreur (une installation en échec) va au journal de la veille.
+    if (r.status === 0 && r.stderr) process.stderr.write(r.stderr);
     if (r.status === 5) {
       process.stdout.write(`PAUSE GitHub illisible : ${(r.stderr || '').trim().split('\n').at(-1)}\n`);
       continue;

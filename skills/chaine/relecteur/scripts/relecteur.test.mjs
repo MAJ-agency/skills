@@ -4,7 +4,7 @@
 // GitHub (le journal du faux). Aucun réseau ; l'heure est posée (`RELECTEUR_HORLOGE_BANC`, `maintenant` du faux).
 import assert from 'node:assert/strict';
 import { execFileSync, spawn, spawnSync } from 'node:child_process';
-import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { chmodSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
@@ -288,6 +288,27 @@ test('les dépendances de develop : installées quand son lockfile change, une s
   writeFileSync(join(d.dossier, '.git/info/exclude'), 'node_modules\n');
   assert.equal(d.lancer('passe').status, 0);
   assert.equal(installations(), 1, 'même lockfile : rien de plus');
+  assert.deepEqual(readFileSync(join(d.racine, 'faux-gh/pnpm.log'), 'utf8').split('\n').filter(Boolean), ['pnpm install --frozen-lockfile --prefer-offline'], 'jamais le lockfile récrit');
+  d.git('switch', '-q', 'develop');
+  d.ecrire('pnpm-lock.yaml', 'lockfileVersion: 9.0\n# une dépendance de plus\n');
+  d.commit('chore: lockfile neuf');
+  d.git('push', '-q', 'origin', 'HEAD:develop');
+  assert.equal(d.lancer('passe').status, 0);
+  assert.equal(installations(), 2, 'un lockfile neuf : installé');
+});
+
+test('une installation en échec : sa sortie d’erreur au journal de la veille ; une sous-PR ordinaire vers un sujet, qu’`a-juger` juge sans dépendances, se distribue', () => {
+  const d = monter();
+  writeFileSync(join(d.racine, 'bin/pnpm'), '#!/bin/sh\ncat > /dev/null\necho "pnpm $*" >> "$FAUX_GH/pnpm.log"\necho "ERR_PNPM_FROZEN_LOCKFILE" >&2\nexit 1\n');
+  d.git('switch', '-q', 'develop');
+  d.ecrire('pnpm-lock.yaml', 'lockfileVersion: 9.0\n');
+  d.commit('chore: lockfile');
+  d.git('push', '-q', 'origin', 'HEAD:develop');
+  d.branche('sujet/demo', 'origin/develop', { 'docs/demo.md': 'demo\n' }, 'chore(sujet): demo');
+  pr(d, { base: 'sujet/demo', depuis: 'sujet/demo', tete: 'feat/b', fichiers: { 'src/b.mjs': 'export const b = 1;\n' } });
+  const r = d.lancer('veille', '--pause', '0', '--sondes', '1');
+  assert.equal(r.stdout, 'VEILLE GESTE\nGESTE 12 distribuer règle 6\n', r.stderr);
+  assert.match(r.stderr, /pnpm install en échec \(sortie 1\) :\nERR_PNPM_FROZEN_LOCKFILE/, 'la passe de la veille a installé : son erreur est au journal (A-180)');
 });
 
 test('la veille : un geste à jouer la réveille (`VEILLE GESTE`), `--taire` la fait passer, GitHub illisible est une pause, jamais une file vide ; 25 minutes par défaut', () => {
@@ -423,8 +444,47 @@ test('X15 — les causes d’illisible, une à une : forme refusée par `a-juger
   assert.deepEqual(p.json(r)[0].lignes.map((l) => l.a), ['architecte']);
   const tentatives = () => readFileSync(join(p.racine, 'faux-gh/pnpm.log'), 'utf8').split('\n').filter((l) => l.startsWith('pnpm install')).length;
   assert.equal(tentatives(), 1);
-  assert.equal(p.lancer('passe').status, 0);
+  const suivante = p.lancer('passe');
+  assert.equal(suivante.status, 0);
   assert.equal(tentatives(), 1, 'en échec, l’installation ne se retente qu’au prochain lockfile');
+  assert.deepEqual(p.json(suivante).map((x) => [x.geste, x.raison]), [['rien', 'illisible-signale']], 'la même cause, signalée : jamais une forme refusée à l’auteur');
+  // Une PR écrite sans session (`Session: —`) : la forme refusée va à l'architecte, jamais à personne.
+  const s = monter();
+  mise(s);
+  const q = s.etat().pulls[0];
+  q.commentaires[0].body = q.commentaires[0].body.replace('Session: session_auteur', 'Session: —');
+  s.github({ pulls: [q] });
+  assert.deepEqual(s.json(s.lancer('jouer', '12'))[0].lignes.map((l) => [l.a, l.session]), [['architecte', null]]);
+});
+
+test('les autres causes d’illisible : `a-juger` en échec, le diff vers develop en échec, une fourche supprimée ; une cause signalée se redit après `relecture.delai`', () => {
+  const a = monter();
+  a.branche('sujet/demo', 'origin/develop', { 'docs/demo.md': 'demo\n' }, 'chore(sujet): demo');
+  a.talon('sujet.sh', '#!/usr/bin/env bash\necho "refs absentes : origin/sujet/demo introuvable, fetch d\'abord" >&2\nexit 11\n');
+  pr(a, { base: 'sujet/demo', depuis: 'sujet/demo', tete: 'feat/b', fichiers: { 'src/b.mjs': 'export const b = 1;\n' } });
+  const g = a.json(a.lancer('jouer', '12'))[0];
+  assert.deepEqual([g.geste, g.commentaire, g.lignes.map((l) => l.a)], ['illisible', "Lecture illisible — `sujet.sh a-juger` en échec (sortie 11) : refs absentes : origin/sujet/demo introuvable, fetch d'abord", ['architecte']]);
+  // Une tête sans base commune avec develop : le diff à trois points ne se calcule pas.
+  const o = monter();
+  o.git('switch', '-q', '--orphan', 'feat/orpheline');
+  o.ecrire('src/o.mjs', 'export const o = 1;\n');
+  o.git('add', 'src/o.mjs');
+  o.git('commit', '-q', '-m', 'feat: orpheline');
+  o.git('push', '-q', 'origin', 'HEAD:refs/heads/feat/orpheline');
+  const orpheline = o.git('rev-parse', 'HEAD');
+  o.github({ pulls: [{ number: 12, title: 'feat: o', base: 'develop', head: 'feat/orpheline', labels: ['à-relire'], created_at: minute(0), commentaires: [{ body: DEMANDE(orpheline), created_at: minute(1) }] }], maintenant: minute(30) });
+  const h = o.json(o.lancer('jouer', '12'))[0];
+  assert.deepEqual([h.geste, /^Lecture illisible — diff illisible : /.test(h.commentaire)], ['illisible', true], JSON.stringify(h));
+  // Trois heures plus tard (le délai est de deux), la même cause se redit (A-116).
+  const tard = { ...o.env, RELECTEUR_HORLOGE_BANC: String(DEBUT + 3 * 60 * 60_000) };
+  assert.deepEqual(o.json(spawnSync(process.execPath, [RELECTEUR, 'passe'], { cwd: o.dossier, env: tard, encoding: 'utf8' })).map((x) => x.geste), ['illisible']);
+  assert.deepEqual(o.json(o.lancer('passe')).map((x) => x.raison), ['illisible-signale'], 'avant le délai : rien');
+  // Une fourche supprimée : GitHub rend `head.repo` nul.
+  const f = monter();
+  pr(f);
+  Object.assign(f.env, { BANC_FAUX_GH: join(CHAINE, 'sujet/scripts/faux-gh.mjs') });
+  writeFileSync(join(f.racine, 'bin/gh'), '#!/bin/sh\nout=$(node "$BANC_FAUX_GH" "$@") || exit $?\nprintf \'%s\' "$out" | jq -c \'if type == "object" and has("head") then .head.repo = null else . end\'\n');
+  assert.match(f.json(f.lancer('jouer', '12'))[0].commentaire, /^Lecture illisible — PR de fourche : /);
 });
 
 test('X16 — trois préparations en même temps dans le même dossier (la veille et deux gestes) : le verrou les fait passer l’une après l’autre', async () => {
@@ -517,13 +577,21 @@ test('N10 — la reprise après arbitrage (règle 4) : un tour neuf aux mêmes s
   assert.equal(d.json(r)[0].distribution, distribution(2, sha, ['session_rel1'], ' (après arbitrage, non compté)'));
 });
 
+// Un faux `gh` qui coupe en deux pages la réponse paginée des commentaires (`[a][b]`, ou `[a]` et `[b]` sur deux
+// lignes). Son texte ne contient rien de variable (A-181) : le faux GitHub et le séparateur des pages lui viennent de
+// l'environnement (`BANC_FAUX_GH`, `BANC_SEPARATEUR`).
+const DEUX_PAGES = `#!/bin/sh
+case "$*" in *--paginate*comments*) out=$(node "$BANC_FAUX_GH" "$@") || exit $?; printf '%s' "$out" | node -e 'let s="";process.stdin.on("data",(c)=>(s+=c)).on("end",()=>{const a=JSON.parse(s);const h=Math.ceil(a.length/2);process.stdout.write(JSON.stringify(a.slice(0,h))+process.env.BANC_SEPARATEUR+JSON.stringify(a.slice(h))+"\\n")})'; exit 0 ;; esac
+exec node "$BANC_FAUX_GH" "$@"
+`;
+
 test('N12 — deux pages de commentaires : la décision les lit toutes, le verdict de la seconde compte', () => {
-  for (const separateur of ['', '\\n']) {
+  for (const separateur of ['', '\n']) {
     const d = monter();
     const sha = pr(d);
     ajouter(d, [distribution(1, sha, ['session_rel1']), 2], [verdict(sha, 1, 'session_rel1', 'validé'), 3]);
-    const faux = join(CHAINE, 'sujet/scripts/faux-gh.mjs');
-    writeFileSync(join(d.racine, 'bin/gh'), `#!/bin/sh\ncase "$*" in *--paginate*comments*) out=$(node ${JSON.stringify(faux)} "$@") || exit $?; printf '%s' "$out" | node -e 'let s="";process.stdin.on("data",(c)=>(s+=c)).on("end",()=>{const a=JSON.parse(s);const h=Math.ceil(a.length/2);process.stdout.write(JSON.stringify(a.slice(0,h))+"${separateur}"+JSON.stringify(a.slice(h))+"\\n")})'; exit 0 ;; esac\nexec node ${JSON.stringify(faux)} "$@"\n`);
+    Object.assign(d.env, { BANC_FAUX_GH: join(CHAINE, 'sujet/scripts/faux-gh.mjs'), BANC_SEPARATEUR: separateur });
+    writeFileSync(join(d.racine, 'bin/gh'), DEUX_PAGES);
     assert.deepEqual(d.json(d.lancer('passe')).map((g) => [g.regle, g.poser]), [[2, 'à-fusionner']], JSON.stringify(separateur));
   }
 });
@@ -537,4 +605,119 @@ test('N13 — la panne : une session remplacée, la remplaçante muette au-delà
   assert.deepEqual(g.lignes.map((l) => l.a), ['architecte', 'auteur', 'conducteur']);
   assert.equal(d.etat().pulls[0].commentaires.at(-1).body, 'Relecture en panne');
   assert.deepEqual(d.json(d.lancer('jouer', '12')).map((x) => [x.geste, x.raison]), [['rien', 'panne-signalee']]);
+});
+
+test('contre-relecture — la veille finit à sa durée : elle ne commence aucune pause qui finirait après, et s’arrête sans `--sondes`', () => {
+  const d = monter();
+  pr(d, { labels: [] });
+  const t0 = Date.now();
+  const r = d.lancer('veille', '--pause', '20', '--duree', '0.02');
+  assert.deepEqual([r.status, r.stdout], [0, 'VEILLE FINIE\n'], r.stderr);
+  assert.ok(Date.now() - t0 < 15_000, `une veille de 1,2 s, pause de 20 s : finie en ${Date.now() - t0} ms`);
+  const sans = spawnSync(process.execPath, [RELECTEUR, 'veille', '--pause', '0', '--duree', '0.02'], { cwd: d.dossier, env: d.env, encoding: 'utf8', timeout: 30_000 });
+  assert.deepEqual([sans.status, sans.stdout.split('\n').filter(Boolean).at(-1)], [0, 'VEILLE FINIE'], 'sans `--sondes`, la durée seule l’arrête');
+});
+
+test('contre-relecture — le plafond se dit à l’auteur, au conducteur et à l’architecte même quand `à-reprendre` est restée posée', () => {
+  const d = monter();
+  const sha = pr(d, { labels: ['à-relire', 'à-reprendre'] });
+  let m = 2;
+  for (const tour of [1, 2, 3]) ajouter(d, [distribution(tour, sha, ['session_rel1']), m++], [verdict(sha, tour, 'session_rel1', 'refusé'), m++]);
+  const g = d.json(d.lancer('jouer', '12'))[0];
+  assert.deepEqual([g.geste, g.joue, g.lignes.map((l) => l.a)], ['plafonner', true, ['auteur', 'conducteur', 'architecte']]);
+  assert.deepEqual(ecritures(d), ['POST issues/12/comments', 'DELETE issues/12/labels/à-relire']);
+  assert.deepEqual(d.json(d.lancer('jouer', '12')).map((x) => [x.geste, x.lignes]), [['rien', []]], 'rejoué : rien, aucune ligne de plus');
+});
+
+test('contre-relecture — les `GIT_CONFIG_*` de la session sont complétés, jamais remplacés : une réécriture d’URL tient', () => {
+  const d = monter();
+  pr(d);
+  execFileSync('git', ['remote', 'set-url', 'origin', 'https://depot.invalid/jouet.git'], { cwd: d.dossier });
+  Object.assign(d.env, { GIT_CONFIG_COUNT: '1', GIT_CONFIG_KEY_0: `url.${d.origine}.insteadOf`, GIT_CONFIG_VALUE_0: 'https://depot.invalid/jouet.git' });
+  const r = d.lancer('passe');
+  assert.equal(r.status, 0, r.stderr);
+  assert.deepEqual(d.json(r).map((g) => g.geste), ['distribuer']);
+});
+
+test('contre-relecture — aucun hook que git connaît ne joue, ni dans `.git/hooks` ni sous un `core.hooksPath` local, ni le fsmonitor, d’une passe à la distribution', () => {
+  const d = monter();
+  const NOMS = ['applypatch-msg', 'pre-applypatch', 'post-applypatch', 'pre-commit', 'pre-merge-commit', 'prepare-commit-msg', 'commit-msg', 'post-commit', 'pre-rebase', 'post-checkout', 'post-merge', 'pre-push', 'pre-receive', 'update', 'proc-receive', 'post-receive', 'post-update', 'reference-transaction', 'push-to-checkout', 'pre-auto-gc', 'post-rewrite', 'sendemail-validate', 'fsmonitor-watchman', 'p4-changelist', 'p4-prepare-changelist', 'p4-post-changelist', 'p4-pre-submit', 'post-index-change'];
+  const traces = join(d.racine, 'traces');
+  mkdirSync(traces);
+  Object.assign(d.env, { BANC_TRACES: traces });
+  const TRACE = '#!/bin/sh\ntouch "$BANC_TRACES/$(basename "$0")"\n';
+  for (const dossier of [join(d.dossier, '.git/hooks'), join(d.dossier, '.crochets')]) {
+    mkdirSync(dossier, { recursive: true });
+    for (const nom of NOMS) {
+      writeFileSync(join(dossier, nom), TRACE);
+      chmodSync(join(dossier, nom), 0o755);
+    }
+  }
+  writeFileSync(join(d.dossier, '.git/info/exclude'), '.crochets\nnode_modules\n');
+  execFileSync('git', ['config', 'core.hooksPath', join(d.dossier, '.crochets')], { cwd: d.dossier });
+  writeFileSync(join(d.racine, 'fsmonitor'), TRACE);
+  chmodSync(join(d.racine, 'fsmonitor'), 0o755);
+  execFileSync('git', ['config', 'core.fsmonitor', join(d.racine, 'fsmonitor')], { cwd: d.dossier });
+  // develop avance (le dossier change de commit) et porte un lockfile (une installation) ; une PR au verdict validé,
+  // mise à jour avec develop (« même contenu »), une sous-PR vers un sujet (`a-juger`).
+  const sha = d.branche('feat/a', 'origin/develop', { 'src/a.mjs': 'export const a = 1;\n' });
+  d.branche('sujet/demo', 'origin/develop', { 'docs/demo.md': 'demo\n' }, 'chore(sujet): demo');
+  const sous = d.branche('feat/b', 'origin/sujet/demo', { 'src/b.mjs': 'export const b = 1;\n' });
+  d.git('switch', '-q', 'develop');
+  d.ecrire('pnpm-lock.yaml', 'lockfileVersion: 9.0\n');
+  d.commit('chore: lockfile');
+  d.git('push', '-q', 'origin', 'HEAD:develop');
+  d.git('switch', '-q', 'feat/a');
+  d.git('merge', '-q', '--no-edit', 'develop');
+  d.git('push', '-q', 'origin', 'HEAD:feat/a');
+  d.github({
+    pulls: [
+      { number: 12, title: 'feat(a): a', base: 'develop', head: 'feat/a', labels: ['à-relire'], created_at: minute(0), commentaires: [{ body: DEMANDE(sha), created_at: minute(1) }, { body: distribution(1, sha, ['session_rel1']), created_at: minute(2) }, { body: verdict(sha, 1, 'session_rel1', 'validé'), created_at: minute(3) }] },
+      { number: 13, title: 'feat(b): b', base: 'sujet/demo', head: 'feat/b', labels: ['à-relire'], created_at: minute(0), commentaires: [{ body: DEMANDE(sous), created_at: minute(1) }] },
+    ],
+    maintenant: minute(30),
+  });
+  const passe = d.lancer('passe');
+  assert.deepEqual(d.json(passe).map((g) => [g.pr, g.geste]), [[12, 'etiqueter'], [13, 'distribuer']], passe.stderr);
+  assert.equal(d.lancer('jouer', '12').status, 0);
+  assert.equal(d.lancer('distribuer', '13', '--sommet', sous, '--couple', 'opus/medium', 'session_rel2').status, 0);
+  assert.deepEqual(readdirSync(traces), [], 'aucun hook, aucun fsmonitor');
+});
+
+test('contre-relecture — un geste attend le verrou que tient une passe, sans le contourner', () => {
+  const d = monter();
+  pr(d);
+  // Le verrou pris par un autre processus, qui le dit par une marque, puis le tient trois secondes.
+  const marque = join(d.racine, 'verrou-pris');
+  const tenu = spawn('flock', [join(d.dossier, '.git/relecteur.verrou'), 'sh', '-c', 'touch "$MARQUE"; exec sleep 3'], { env: { ...process.env, MARQUE: marque } });
+  for (let k = 0; k < 200 && !existsSync(marque); k++) Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 50);
+  assert.ok(existsSync(marque), 'le verrou est pris');
+  const t0 = Date.now();
+  const r = d.lancer('jouer', '12');
+  const attendu = Date.now() - t0;
+  tenu.kill();
+  assert.equal(r.status, 0, r.stderr);
+  assert.ok(attendu >= 2000, `le geste a attendu le verrou : ${attendu} ms`);
+});
+
+test('contre-relecture — une PR de mise à jour qu’`a-juger` accepte : son diff propre est sa seconde liste, la résolution et les retouches', () => {
+  const d = monter();
+  d.branche('sujet/demo', 'origin/develop', { 'README.md': 'jouet, côté sujet\n' }, 'chore(sujet): demo');
+  d.git('switch', '-q', 'develop');
+  d.ecrire('README.md', 'jouet, côté develop\n');
+  d.commit('docs: develop avance');
+  d.git('push', '-q', 'origin', 'HEAD:develop');
+  d.git('switch', '-q', '-C', 'maj/demo', 'origin/sujet/demo');
+  // La fusion de develop est en conflit sur README.md, résolu dans la fusion ; une retouche touche un chemin sensible.
+  assert.notEqual(spawnSync('git', ['merge', '-q', '--no-edit', 'develop'], { cwd: d.travail, env: d.env }).status, 0);
+  d.ecrire('README.md', 'jouet, résolu\n');
+  d.git('add', 'README.md');
+  d.git('commit', '-q', '--no-edit');
+  d.ecrire('scripts/agent/garde.mjs', 'export const g = 1;\n');
+  d.commit('fix(chaine): la garde suit la résolution');
+  d.git('push', '-q', 'origin', 'HEAD:refs/heads/maj/demo');
+  const sha = d.git('rev-parse', 'HEAD');
+  d.github({ pulls: [{ number: 12, title: 'chore(sujet): met demo à jour avec develop', base: 'sujet/demo', head: 'maj/demo', labels: ['à-relire'], created_at: minute(0), commentaires: [{ body: DEMANDE(sha), created_at: minute(1) }] }], maintenant: minute(30) });
+  const [g] = d.json(d.lancer('passe'));
+  assert.deepEqual([g.geste, g.faits?.sensible, g.faits?.effort], ['distribuer', true, 'xhigh'], JSON.stringify(g));
 });

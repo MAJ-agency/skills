@@ -51,6 +51,30 @@ test("A-180 — la veille sous le plafond de l'outil Bash, le couple au réemplo
   assert.ok(!/elle a écrit qu'elle est au plafond/.test(skill), "« au plafond » ne se lit plus dans un message");
 });
 
+test("contre-relecture de la PR 146 — aucun geste laissé à improviser : le délai de l'outil, toute autre sortie, la veille arrêtée, les champs de get_session, les lignes à l'architecte, une PR tue", () => {
+  exigerDans(`${SKILL}/SKILL.md`, [
+    "**au premier plan, avec le `timeout` de l'outil Bash à `600000`**",
+    "elle ne commence aucune pause qui finirait après ses 25 minutes",
+    "**aucune de ces trois lignes** (l'outil a arrêté la veille) : comme `VEILLE FINIE`",
+    "(`session_context.model` qui contient `faits.modele`, `claude-opus-…` pour `opus`, et `session_context.effort_level` égal à `faits.effort`)",
+    "`plafond` : plus de 700 000 tokens de contexte (`external_metadata.context_usage.used_tokens`)",
+    "(`get_session` sans argument, `external_metadata.context_usage.used_tokens`)",
+    "Les lignes du Relecteur lui-même à l'architecte ont trois formes, et aucune autre : « PR <n> : <cause> ; PR tue »",
+    "tant que la passe lui rend le même geste à la même règle",
+    "une erreur de `passe`, qui ne nomme aucune PR : l'architecte, et s'arrêter",
+  ]);
+  // A-182 : un champ que get_session ne rend pas, dans les deux sections qui le lisent.
+  const phrase = "Sans compte de tokens (`context_usage`), la session n'est pas tenue au plafond ; sans `effort_level`, le couple n'est pas tenu pour égal, et la PR reçoit une session neuve.";
+  const skillA182 = lire(`${SKILL}/SKILL.md`);
+  for (const [debut, fin] of [["## Créer ou relancer les sessions", "## L'état des sessions"], ["## L'état des sessions", "## Les lignes"]]) {
+    assert.ok(skillA182.slice(skillA182.indexOf(debut), skillA182.indexOf(fin)).includes(phrase), `« ${debut} » : la phrase d'A-182 attendue`);
+  }
+  const skill = lire(`${SKILL}/SKILL.md`);
+  const sorties = skill.slice(skill.indexOf("## Les sorties de `passe`, `jouer` et `distribuer`"), skill.indexOf("## Créer ou relancer les sessions"));
+  assert.match(sorties, /^\| autre, ou aucune \(l'outil a arrêté la commande\) \| \S/m, "une sortie hors de la table a sa suite");
+  assert.ok(!lire(`${SKILL}/references/CONTENU.md`).includes("pour la seule règle 5"), "l'état des sessions : règles 4, 5 et 6");
+});
+
 test("les deux étiquettes neuves : labels.sh en pose neuf, dont les quatre que la décision du Relecteur lit ; plus aucun « sept labels »", () => {
   const labels = lire("skills/chaine/socle-chaine-de-production/references/labels.sh");
   const noms = labels.slice(labels.indexOf("<<'FIN'\n") + 8, labels.indexOf("\nFIN\n")).split("\n").map((l) => l.split("|")[0]);
