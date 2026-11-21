@@ -1,0 +1,11 @@
+# Troisième tour, sur 643dd10 (trois copies) : D1 à D5 (mutations-c2.mjs) rejouées, et E1 à E3 (mutations-c3.mjs), neuves, sur les deux phrases du delta a32476a..643dd10
+# 2026-11-21, 19:00:42 → 19:03:22 UTC (2 min 40 s), charge 0,05 → 1,13
+ROUGE D1 veille : une pause qui finit après la durée recommence (91 s) — contre-relecture — la veille finit à sa durée : elle ne comm
+ROUGE D2 veille : la sortie d’erreur des passes jetée (69 s) — une installation en échec : sa sortie d’erreur au journal de
+ROUGE D3 plafond : l’architecte retiré des lignes rendues (71 s) — le plafond : au troisième tour refusé, le commentaire `Plafo | contre-relecture — le plafond se dit à l’auteur, au conducte
+ROUGE D4 SKILL.md : la phrase d’A-182 retirée de « L’état des sessions » (0 s) — contre-relecture de la PR 146 — aucun geste laissé à improvi
+ROUGE D5 SKILL.md : plus de suite pour une sortie hors table (0 s) — contre-relecture de la PR 146 — aucun geste laissé à improvi
+VERTE E1 SKILL.md : la relance de la veille déplacée sur la puce d’après (hors de `VEILLE ARRÊTÉE`) (0 s)
+VERTE E2 SKILL.md : la borne du couple déplacée de « L’état des sessions » dans « Les lignes » (0 s)
+ROUGE E3 SKILL.md : la sortie 9 retirée des sorties qui relancent la veille (0 s) — contre-relecture de la PR 146 — aucun geste laissé à improvi
+Bilan : D1 à D5 rouges (5 sur 5) ; E3 rouge ; E1 et E2 survivent au banc du dépôt (scripts/relecteur.test.mjs n'exige les deux phrases que dans le fichier, pas à leur place), et sont rouges sous les essais R1 et R2 (essais-c2.test.mjs).

@@ -174,3 +174,46 @@ Ce que le delta ouvre, relu comme par un relecteur neuf ([`essais/essais-c2.test
 ### 5. Verdict proposé
 
 **Non conforme** au sommet `a32476a1816faf4475c3786e57b1df5bb74a808d`, pour deux constats à corriger (R1, R2), deux phrases de texte. Les constats 1 à 12 du premier tour sont fermés et l'alerte 24 est fermée. Conforme une fois `retouches-tour-2.patch` porté. R3 et R4 s'ajoutent aux tickets de suite (13 à 18 du premier tour).
+
+## Troisième tour
+
+Sommet relu : `643dd1057cc86ae361cdb7233ec10da20e7352f1`, un commit, parent direct `a32476a`. Son arbre, `53b3d6f9…`, est identique à `a32476a` plus `retouches-tour-2.patch` (`ade8c2a1…`), recalculé ici à part. Le delta compte deux fichiers, +4 −2.
+
+### 1. R1 et R2
+
+Les deux constats sont fermés. Les essais R1 et R2 ([`essais/essais-c2.test.mjs`](essais/essais-c2.test.mjs)) sont verts sur `643dd10`. R3 reste rouge : c'est le mineur du second tour, laissé à la suite. Les mutations D1 à D5, rejouées sur `643dd10`, sont rouges toutes les cinq. Journal : [`essais/journal-tour-3.txt`](essais/journal-tour-3.txt), [`mutations/c3-643dd10.txt`](mutations/c3-643dd10.txt).
+
+### 2. Les deux phrases neuves, relues
+
+- **La phrase de R2** (le couple borné au réemploi) ne contredit rien. `reecrire`, qui réemploie, reste sous la règle de « Créer ou relancer » ; `completer` et `remplacer` créent ; `rien` en attente ne lit que vivante, morte ou plafond. Le seul cas encore à improviser, `reecrire` quand le couple diffère, est le constat 15 du premier tour, déjà renvoyé à un ticket de suite (`A-182`, question 2).
+- **La phrase de R1** (relancer la veille sur 9, 12 ou « autre ») ferme le réveil qui manquait, et elle n'exige pas de `TaskStop`, puisque la veille est déjà finie. Mais elle ouvre **R5, mineur (ticket de suite)** : la veille joue sa première passe sans pause, si bien que « rejouer au réveil suivant » revient à rejouer tout de suite ([`essais/essais-c3.test.mjs`](essais/essais-c3.test.mjs)).
+  - Une cause passagère de 12 ou « autre » (une coupure de quelques secondes de `git fetch`) se rejoue aussitôt, échoue une seconde fois, et la suite arrête le Relecteur. Une cause qui dure, comme un `index.lock` resté, est en revanche bien traitée par cet arrêt : deux `VEILLE ARRÊTÉE sortie 12` arrivent en quelques secondes.
+  - La sortie 9 n'a pas de « seconde fois ». Tant qu'un autre processus tient le verrou, la veille relancée attend 300 s, s'arrête en 9, est relancée, et ainsi sans fin. `VEILLE FINIE`, le seul moment où le Relecteur relève son propre contexte, ne vient jamais.
+  - En pratique la boucle est bornée : un geste au premier plan est coupé par l'outil au bout de 10 minutes et rend le verrou. Il faudrait un processus orphelin pour la rendre sans fin.
+  - Remède pour le ticket de suite : une veille relancée sur une sortie à rejouer attend une pause avant sa première passe (une option de `veille`), et la sortie 9 reçoit la même borne que 12.
+- **R6, mineur (ticket de suite).** `scripts/relecteur.test.mjs` exige les deux phrases dans le fichier, pas à leur place, alors qu'il le fait pour la phrase d'`A-182`. Les trois mutations neuves sur ces phrases ([`mutations/mutations-c3.mjs`](mutations/mutations-c3.mjs)) le montrent :
+  - E1 (la relance déplacée hors de la puce `VEILLE ARRÊTÉE`) et E2 (la borne du couple déplacée hors de « L'état des sessions ») survivent au banc du dépôt ;
+  - les essais R1 et R2 les tuent ;
+  - E3 (la sortie 9 retirée de la liste) est rouge.
+  - Remède : borner ces deux exigences à leur puce et à leur section, comme celle d'`A-182`.
+
+Aucun bloquant, aucun à corriger.
+
+### 3. Verdict proposé
+
+**Conforme** au sommet `643dd1057cc86ae361cdb7233ec10da20e7352f1`. Les constats 1 à 12 du premier tour, R1 et R2 du second, et l'alerte 24 sont fermés ; l'alerte 25 est une fausse alerte acceptée. R5 et R6 rejoignent les mineurs laissés à la suite.
+
+### 4. Les mineurs laissés à un ticket de suite, sur les trois tours
+
+| N° | Ce qui reste | Fichier |
+| --- | --- | --- |
+| 13 (C11) | un refus (règle 4) sur une `à-reprendre` restée ne prévient pas l'auteur : `jouer` ne distingue pas une étiquette restée d'un passage rejoué | `skills/chaine/relecteur/scripts/relecteur.mjs` (`jouerGeste`), `skills/chaine/fusionner/scripts/decision-relecteur.mjs` (le rang de la marque qui déclenche) |
+| 14 (C12) | un plafond à moitié écrit (sortie 7 à la pose de l'étiquette) ne prévient pas l'architecte au rejeu | `relecteur.mjs` (ordre des écritures du plafond) ou `decision-relecteur.mjs` (règle 1, première branche) |
+| 15 | une PR devenue sensible ou « double » sans push : `reecrire` et `completer` gardent la session à l'ancien couple | `decision-relecteur.mjs` (une cause « couple » pour `remplacer`), `skills/chaine/relecteur/SKILL.md` |
+| 16 | un `send_message` en échec (une ligne, une relance) n'a pas de suite | `skills/chaine/relecteur/SKILL.md` |
+| 17 | une installation en échec par une panne passagère ne se retente qu'au lockfile suivant, et rien ne dit comment la relancer | `relecteur.mjs` (`preparer`, la cause « dépendances de develop »), `SKILL.md` |
+| 18 | « tête introuvable » par une course entre le `fetch` de la préparation et la lecture de la PR | `relecteur.mjs` (`liste`) |
+| R3 | l'erreur d'une installation en échec se perd quand la passe sort ensuite en 5 | `relecteur.mjs` (`veille`) |
+| R4 | la liste des causes des lignes à l'architecte n'a ni « create_session en échec » ni la forme d'une commande coupée sans code | `SKILL.md` (« Les lignes ») |
+| R5 | une veille relancée rejoue sans pause : 12 et « autre » s'arrêtent sur une coupure de quelques secondes, et 9 se répète sans borne | `relecteur.mjs` (`veille`), `SKILL.md` (« Les sorties », la ligne 9) |
+| R6 | le banc des textes n'exige pas les phrases de R1 et R2 à leur place (E1, E2 survivent) | `scripts/relecteur.test.mjs` |

@@ -1,0 +1,10 @@
+## 643dd10 — 19:00:33 UTC, charge 0.06
+ok 1 - R1 — une veille arrêtée sur une sortie à « rejouer au réveil suivant » (9, 12, autre) relance la veille : sans elle, aucun réveil ne vient
+ok 2 - R2 — la phrase d’A-182 dans « L’état des sessions » : le couple ne se lit que pour réemployer, jamais pour une session seulement attendue
+not ok 3 - R3 (mineur, ticket de suite) — une installation en échec dans une passe que GitHub fait sortir en 5 : son erreur n’arrive pas au journal de la veille
+  error: 'l’erreur d’installation n’est écrite nulle part, et le témoin dit « echec » : elle ne se retentera pas'
+ok 4 - R5 (tenue) — la veille relancée rejoue sa première passe sans pause : un `index.lock` resté donne deux `VEILLE ARRÊTÉE sortie 12` en quelques secondes, et la suite de 12 arrête le Relecteur à la seconde
+ok 5 - R5 (tenue) — la sortie 9 renvoie au réveil suivant sans borne : relancée à chaque arrêt, la veille se rendort au plus cinq minutes, sans fin, et `VEILLE FINIE`, seul point où le Relecteur relève son contexte, ne vient jamais
+# tests 5
+# pass 4
+# fail 1
