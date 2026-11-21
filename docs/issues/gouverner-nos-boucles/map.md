@@ -284,7 +284,7 @@ Vague 1 fusionnée le 2026-11-13 par le capitaine de `skills` (`main` à `8eb1c9
 | `session_017ZgEwKC5z9pHAoJ4aYjiJy` | ticket   | 52 (PR 110, critère `T3` de la revue de ticket) | 2,82 | 187 768 |
 | `session_012xRpgYDsq5D6zHAnLX65vB` | architecte A (troisième compte, depuis le 2026-11-21) | — | en cours | en cours |
 | `session_012xRpgbsrBJEiYphDxscBJZ` | ticket   | 66, retouches du premier tour de la PR 146 (Sonnet, archivée le 2026-11-21 à 18 h 56 UTC) | 0,33 | 101 139 |
-| `session_012xRpgYjxKqgBJpU3wKnXMq` | ticket   | 66, retouches du second tour de la PR 146 (Sonnet) | en cours | en cours |
+| `session_012xRpgYjxKqgBJpU3wKnXMq` | ticket   | 66, retouches du second tour de la PR 146 (Sonnet, archivée le 2026-11-21 à 19 h 06 UTC) | 0,33 | 93 040 |
 | `session_012xRpgbTNmQa3pb3TCxF7St` | capitaine de `skills` (Sonnet) | — | en cours | en cours |
 
 La ligne de l'architecte est un relevé du 2026-11-13 à 11 h 45 UTC, session en cours (elle était à 9,20 $ et 289 647 tokens à 8 h 52) ; la cellule de coût ne porte qu'un montant, pour rester lisible par `couts.mjs`.
