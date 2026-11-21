@@ -1180,3 +1180,7 @@ La session de suite fait, dans cet ordre :
   - D'après la session : 43 rouges puis 186 verts ; la suite passe, 1 270 sur 1 270 ; les 73 mutations sont rouges ; 27 fichiers.
   - `revue-de-ticket` n'a pas été jouée, le ticket ne l'appelant pas.
   - **Premier tour de contre-relecture lancé**, en effort extra. Il rejoue les essais X1 à X17 du relecteur du ticket et écrit 15 mutations neuves.
+- 2026-11-21 — 16 h 52 UTC. **Arrêt sur la limite hebdomadaire du compte** (atteinte le 2026-11-20 vers 14 h 20 UTC, levée le 2026-11-22 à 19 h UTC). Le premier tour de contre-relecture de la PR 146 est mort à son étape 1 : la PR est identique au patch du ticket. Aucun réveil actif ne reste.
+  - **Passation écrite** pour un architecte d'un autre compte : `passation/2026-11-21-reprise-architecte-plugin.md`.
+  - Publiés sous `66-annexes/` : le rapport et les essais du tour de relecture du ticket 66 (`relecture-tour-1/`), et le rapport partiel du premier tour sur la PR 146 (`contre-relecture-d1679f3/`). Tous les chemins privés sont retirés.
+  - Décidé, à écrire comme `A-181` : l'alerte CodeQL 24 (banc) se ferme par le code ; la 25 (`relecteur.mjs:103`) est une fausse alerte acceptée, CodeQL étant vert.
