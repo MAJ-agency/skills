@@ -125,3 +125,52 @@ Preuves, sur `APRES` plus le patch : les bancs touchés verts (`relecteur.test.m
 Coût : 1 h 10 min de bout en bout (17:18 → 18:28 UTC), dont deux suites entières de 13 min 30 s chacune, jouées seules, et trois lots de mutations sur quatre copies (6 min, 4 min 37 s, 7 min 25 s).
 
 **Après les décisions de l'architecte (`A-182`)** : la recommandation de la question 1 entre dans le patch. « Sans compte de tokens (`context_usage`), la session n'est pas tenue au plafond ; sans `effort_level`, le couple n'est pas tenu pour égal, et la PR reçoit une session neuve. » s'écrit dans « Créer ou relancer les sessions » et dans « L'état des sessions », et le cas de la contre-relecture de `scripts/relecteur.test.mjs` exige cette phrase dans chacune des deux sections. `retouches-tour-1.patch` est régénéré (5 fichiers, +242 −22, sha256 `beff79068a35e8f980494011ed612b858e45dabb9d3bbc9020e465ff050118d2`) et s'applique par `git apply` sur un arbre neuf de `d1679f3`. Les bancs touchés, rejoués là : le banc du skill 34 sur 34, `scripts/relecteur.test.mjs` 8 sur 8, `scripts/points-d-entree.test.mjs` 60 sur 60 (102 tests, aucun sauté). La suite entière n'est pas rejouée pour ces deux phrases.
+
+## Second tour
+
+Sommet relu : `a32476a1816faf4475c3786e57b1df5bb74a808d` (branche `claude/ticket-66-relecteur` relue), un commit, parent direct `d1679f3`. Son arbre, `a0b9dd45…`, est celui de `d1679f3` plus `retouches-tour-1.patch` régénéré (`beff7906…`), recalculé ici à part : identique. Contrôles de la PR à ce sommet : CodeQL, Analyze ×2 verts (`bancs` en cours à la lecture).
+
+### 1. Le delta, relu
+
+Cinq fichiers, +242 −22, ceux du patch et eux seuls. Les constats 1 à 12 du premier tour sont fermés :
+
+| Constat | Fermé par | Preuve |
+| --- | --- | --- |
+| 1 la veille au-delà de sa durée | aucune pause qui finirait après `fin` | banc « la veille finit à sa durée » ; essai C1 vert ; D1 rouge |
+| 2 la veille arrêtée sans ligne | puce « aucune de ces trois lignes » | lecture ; banc des textes |
+| 3 le délai de l'outil, les sorties hors table, l'erreur de `passe` | `timeout` 600000 ; ligne « autre, ou aucune » ; sortie 1 de `passe` | banc des textes ; D5 rouge |
+| 4 les champs de `get_session` | nommés ; la phrase d'`A-182` point 1 dans les deux sections | banc des textes ; D4 rouge |
+| 5 l'erreur d'installation dans la veille | la veille écrit la sortie d'erreur de ses passes sorties en 0 | banc ; essai C5 vert ; D2 rouge |
+| 6 le plafond muet sur une étiquette restée | `lignes` du plafond toujours rendues | banc ; essai C8 vert ; D3 rouge |
+| 7 quatorze garanties sans banc | huit cas neufs, trois prolongés | K1 à K15 rouges (premier tour, même arbre) |
+| 8 alerte 24 | `DEUX_PAGES` | ci-dessous |
+| 9 à 12 les mineurs portés | les phrases du skill et de `CONTENU.md` | banc des textes |
+
+Ce que le delta ouvre, relu comme par un relecteur neuf ([`essais/essais-c2.test.mjs`](essais/essais-c2.test.mjs)) :
+
+- **R1, à corriger.** `VEILLE ARRÊTÉE sortie <c>` renvoie à « la suite de cette sortie », et trois de ces suites disent « rejouer au réveil suivant » : 9, 12 et la ligne neuve « autre, ou aucune ». Or la veille vient de s'arrêter, et seules ses deux autres fins disent « relancer la veille ». Une session qui suit le texte attend un réveil que rien ne donnera, hormis le message d'une session de relecture : le Relecteur ne sert plus la file, sans rien dire. Le trou existait pour 9 et 12 dès `d1679f3`, et le premier tour l'a manqué ; la ligne « autre » du patch l'élargit. Retouche : une proposition dans la puce, « quand cette suite dit « rejouer au réveil suivant » (9, 12, autre), relancer la veille : sa fin est ce réveil ». Essai R1, rouge sur `a32476a`, vert retouché.
+- **R2, à corriger.** La phrase d'`A-182` point 1 est à sa place dans « Créer ou relancer ». Dans « L'état des sessions », sa seconde moitié (« sans `effort_level`, … la PR reçoit une session neuve ») se lit aussi pour une session seulement attendue (règle 5, `rien`, raison `attente`). Elle n'y a pas de sens, puisque rien ne se réemploie, et le seul moyen de la suivre est d'écrire la session `morte` dans le fichier `--sessions`. Cela coûte le remplacement unique du tour ; au second `get_session` sans `effort_level` (l'outil prévient qu'un effort peut être retiré), la décision écrit `Relecture en panne` et prévient l'architecte, l'auteur et le conducteur pour rien. Retouche : la phrase reste mot pour mot, suivie de « Le couple ne se lit que pour réemployer une session (« Créer ou relancer ») : une session seulement attendue (`rien`, raison `attente`) ne s'écrit jamais `morte` pour son couple. » Elle ne tranche rien de neuf : `reecrire`, qui réemploie, reste sous la règle de « Créer ou relancer ». Essai R2, rouge sur `a32476a`, vert retouché.
+- **R3, mineur (ticket de suite).** La veille ne recopie la sortie d'erreur d'une passe que si celle-ci sort en 0. Une installation en échec dans une passe que GitHub fait ensuite sortir en 5 n'est donc écrite nulle part, alors que le témoin dit `echec` : elle ne se retente pas. Essai R3 ; remède : recopier aussi la sortie d'erreur d'une passe sortie en 5.
+- **R4, mineur (ticket de suite).** La liste des causes des lignes à l'architecte n'a ni « create_session en échec : <son message> », que la phrase neuve sur `create_session` appelle, ni la forme d'une commande coupée sans code (« sortie aucune »). Lecture.
+- Tenus, sans constat :
+  - aucune suite neuve ne contredit une autre (sortie 1 de `passe` et `VEILLE ARRÊTÉE sortie 1` ; `--taire` et « À chaque réveil » ; sortie 3 et orpheline ; les trois formes et chaque « une ligne à l'architecte » du skill) ;
+  - les huit cas neufs du banc disent ce qu'ils prouvent, chacun tuant la mutation qu'il vise ;
+  - `jouer`, au plafond, ne renvoie aucune ligne au rejeu (`A-118`) : banc « rejoué : rien ».
+
+### 2. L'alerte 24
+
+`DEUX_PAGES` (`relecteur.test.mjs`, quatre lignes) ne contient aucune interpolation (`${` absent) : le faux GitHub et le séparateur lui viennent de `BANC_FAUX_GH` et `BANC_SEPARATEUR`, posés dans l'environnement du cas. Fermée au sens d'`A-181` point 1 ; CodeQL est vert au sommet. Les faux outils que le patch ajoute ne contiennent rien de variable non plus. Alerte 25 : inchangée, fausse alerte acceptée.
+
+### 3. Bancs, essais, mutations
+
+- **Bancs touchés**, sur `a32476a` : `relecteur.test.mjs` du skill 34 sur 34, `scripts/relecteur.test.mjs` 8 sur 8, `scripts/points-d-entree.test.mjs` 60 sur 60 (72 s, charge 0,0 → 0,9). Mêmes comptes sur `a32476a` plus [`retouches-tour-2.patch`](retouches-tour-2.patch) (le cas des textes y exige les deux phrases neuves). La suite entière n'est pas rejouée.
+- **Essais** ([`essais/journal-tour-2.txt`](essais/journal-tour-2.txt)) : sur `a32476a`, 28 sur 33. Les rouges sont C11 et C12 (mineurs du premier tour, laissés à la suite), R1 et R2 (ce tour, à corriger) et R3 (mineur). Retouché : 30 sur 33, il ne reste que C11, C12 et R3.
+- **Mutations neuves sur le delta**, D1 à D5 ([`mutations/mutations-c2.mjs`](mutations/mutations-c2.mjs), journal [`mutations/c2-a32476a.txt`](mutations/c2-a32476a.txt)) : la pause d'après la durée, la sortie d'erreur des passes jetée, l'architecte retiré des lignes du plafond, la phrase d'`A-182` retirée de « L'état des sessions », la ligne « autre » retirée : **5 sur 5 rouges** (2 min 42 s). Les textes des 73 mutations de l'annexe et des 15 du premier tour sont tous là, une fois chacun, sur l'arbre retouché.
+
+### 4. Les retouches du second tour
+
+[`retouches-tour-2.patch`](retouches-tour-2.patch) : `git apply` sur `a32476a`, vérifié sur un arbre neuf ; sha256 `ade8c2a18dd125f3193b404de8bbf30d24a45f685d5945e8e64622d63037e7db` ; deux fichiers, +4 −2 (`skills/chaine/relecteur/SKILL.md`, les deux phrases de R1 et R2 ; `scripts/relecteur.test.mjs`, qui les exige). Aucun code, aucun banc du script, ni `plugin.json` ni les notes de version.
+
+### 5. Verdict proposé
+
+**Non conforme** au sommet `a32476a1816faf4475c3786e57b1df5bb74a808d`, pour deux constats à corriger (R1, R2), deux phrases de texte. Les constats 1 à 12 du premier tour sont fermés et l'alerte 24 est fermée. Conforme une fois `retouches-tour-2.patch` porté. R3 et R4 s'ajoutent aux tickets de suite (13 à 18 du premier tour).

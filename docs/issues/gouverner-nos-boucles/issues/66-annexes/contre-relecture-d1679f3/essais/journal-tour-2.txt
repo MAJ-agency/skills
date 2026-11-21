@@ -1,0 +1,74 @@
+## a32476a — 18:53:46 UTC, charge 0.98
+ok 1 - C1 — la veille ne commence jamais une pause qui finit après sa durée : 25 minutes, pas 25 plus une pause plus une passe
+ok 2 - C1 (tenue) — une veille tuée en pleine pause ne laisse aucune ligne finale : le journal n’a ni GESTE, ni FINIE, ni ARRÊTÉE
+ok 3 - C2 (tenue) — un geste attend le verrou tenu par une passe : il dure autant qu’elle (jusqu’à 300 s, plus que les 120 s par défaut de l’outil Bash)
+ok 4 - C3 — une réécriture d’URL de la session (GIT_CONFIG_COUNT=1) tient : le fetch de la préparation passe
+ok 5 - C4 — aucun des hooks que git connaît ne joue, ni dans .git/hooks ni sous un core.hooksPath local, ni le fsmonitor : passe, jouer, distribuer, a-juger, même contenu, installation
+ok 6 - C5 — une installation en échec pendant une passe de la veille écrit sa sortie d’erreur dans le journal de la veille
+ok 7 - C5 (tenue) — `--frozen-lockfile --prefer-offline` : l’installation ne récrit jamais le lockfile de develop
+ok 8 - C5 — une installation en échec rend illisible la PR de mise à jour, mais pas une sous-PR ordinaire, qu’`a-juger` juge sans dépendances
+ok 9 - C6 (tenue) — une PR dont la fourche a été supprimée (`head.repo` nul) : la cause « PR de fourche », jamais une lecture
+ok 10 - C7 (tenue) — un `validé` édité après coup ne vaut rien : on attend, puis la session muette est remplacée
+ok 11 - C8 (tenue) — trois tours refusés sur trois sommets, puis un push avant le réveil : le plafond, pas un quatrième tour
+ok 12 - C8 — le plafond se dit à l’architecte même si `à-reprendre` traîne encore sur la PR (une étiquette que l’auteur n’a pas retirée)
+ok 13 - C9 (tenue) — la reprise après arbitrage, la session préférée morte : une session neuve, le tour neuf « non compté », puis le plafond compte deux tours
+ok 14 - C10 — `a-juger` en échec (sortie 11) : la cause nommée, à l’architecte, signalée une fois ; jamais une distribution sur un diff inconnu
+ok 15 - C10 — le diff vers develop en échec (aucune base commune) : la cause nommée, à l’architecte ; jamais une distribution
+ok 16 - C10 — une forme refusée sur une PR écrite sans session (`Session: —`) : la ligne va à l’architecte, jamais à personne
+ok 17 - C10 — une cause signalée se redit après `relecture.delai`, pas avant (A-116)
+not ok 18 - C11 (mineur, ticket de suite) — un refus (règle 4) sur une PR où `à-reprendre` est restée posée : l’auteur n’est pas prévenu
+not ok 19 - C12 (mineur, ticket de suite) — un plafond à moitié écrit (commentaire posé, pose de l’étiquette refusée une fois) : au rejeu, l’architecte n’est pas prévenu
+not ok 20 - R1 — une veille arrêtée sur une sortie à « rejouer au réveil suivant » (9, 12, autre) relance la veille : sans elle, aucun réveil ne vient
+not ok 21 - R2 — la phrase d’A-182 dans « L’état des sessions » : le couple ne se lit que pour réemployer, jamais pour une session seulement attendue
+not ok 22 - R3 (mineur, ticket de suite) — une installation en échec dans une passe que GitHub fait sortir en 5 : son erreur n’arrive pas au journal de la veille
+ok 23 - X1 (A-180.2) — un push entre passe et distribuer : sortie 3, rien d’écrit ; le couple recomparé
+ok 24 - X3 (A-180.4) — `depuis` à millisecondes admis, `+00:00` refusé (limite écrite)
+ok 25 - X5 (A-180.4) — `--sessions` à un mot faux, ou pas un objet : sortie 2, la cause dite, aucune pile
+ok 26 - X7 (A-180.4) — une PR fermée : jouer et distribuer sortent en 3, rien d’écrit
+ok 27 - X8 (tenait déjà ; banc N12 d’A-180.6) — deux pages de commentaires, `[a][b]` et `[a]\\n[b]` : concaténées
+ok 28 - X12 (constat de lecture, conforme à A-84 ; règle 3 du lot 3a) — `à-fusionner` posée à la main sans tour : `à-reprendre` posée avant le retrait
+ok 29 - X13 (A-179.2) — trois tours refusés, le troisième verdict sur un autre sommet : le plafond
+ok 30 - X14 (A-179.3, tenait) — le lockfile et le package.json de la PR changent : une installation, celle de develop
+ok 31 - X15 (A-180.5) — `a-juger` refuse la forme : « forme refusée », à l’auteur, plus « double relecture illisible »
+ok 32 - X16 (A-180.5) — trois préparations simultanées, dix fois : le verrou les range, aucune sortie 12
+ok 33 - X17 (A-180.5) — un hook post-checkout qui récrit un fichier suivi : il ne joue pas, les passes suivantes sortent en 0
+# tests 33
+# pass 28
+# fail 5
+## a32476a + retouches-tour-2.patch — 18:54:14 UTC, charge 1.19
+ok 1 - C1 — la veille ne commence jamais une pause qui finit après sa durée : 25 minutes, pas 25 plus une pause plus une passe
+ok 2 - C1 (tenue) — une veille tuée en pleine pause ne laisse aucune ligne finale : le journal n’a ni GESTE, ni FINIE, ni ARRÊTÉE
+ok 3 - C2 (tenue) — un geste attend le verrou tenu par une passe : il dure autant qu’elle (jusqu’à 300 s, plus que les 120 s par défaut de l’outil Bash)
+ok 4 - C3 — une réécriture d’URL de la session (GIT_CONFIG_COUNT=1) tient : le fetch de la préparation passe
+ok 5 - C4 — aucun des hooks que git connaît ne joue, ni dans .git/hooks ni sous un core.hooksPath local, ni le fsmonitor : passe, jouer, distribuer, a-juger, même contenu, installation
+ok 6 - C5 — une installation en échec pendant une passe de la veille écrit sa sortie d’erreur dans le journal de la veille
+ok 7 - C5 (tenue) — `--frozen-lockfile --prefer-offline` : l’installation ne récrit jamais le lockfile de develop
+ok 8 - C5 — une installation en échec rend illisible la PR de mise à jour, mais pas une sous-PR ordinaire, qu’`a-juger` juge sans dépendances
+ok 9 - C6 (tenue) — une PR dont la fourche a été supprimée (`head.repo` nul) : la cause « PR de fourche », jamais une lecture
+ok 10 - C7 (tenue) — un `validé` édité après coup ne vaut rien : on attend, puis la session muette est remplacée
+ok 11 - C8 (tenue) — trois tours refusés sur trois sommets, puis un push avant le réveil : le plafond, pas un quatrième tour
+ok 12 - C8 — le plafond se dit à l’architecte même si `à-reprendre` traîne encore sur la PR (une étiquette que l’auteur n’a pas retirée)
+ok 13 - C9 (tenue) — la reprise après arbitrage, la session préférée morte : une session neuve, le tour neuf « non compté », puis le plafond compte deux tours
+ok 14 - C10 — `a-juger` en échec (sortie 11) : la cause nommée, à l’architecte, signalée une fois ; jamais une distribution sur un diff inconnu
+ok 15 - C10 — le diff vers develop en échec (aucune base commune) : la cause nommée, à l’architecte ; jamais une distribution
+ok 16 - C10 — une forme refusée sur une PR écrite sans session (`Session: —`) : la ligne va à l’architecte, jamais à personne
+ok 17 - C10 — une cause signalée se redit après `relecture.delai`, pas avant (A-116)
+not ok 18 - C11 (mineur, ticket de suite) — un refus (règle 4) sur une PR où `à-reprendre` est restée posée : l’auteur n’est pas prévenu
+not ok 19 - C12 (mineur, ticket de suite) — un plafond à moitié écrit (commentaire posé, pose de l’étiquette refusée une fois) : au rejeu, l’architecte n’est pas prévenu
+ok 20 - R1 — une veille arrêtée sur une sortie à « rejouer au réveil suivant » (9, 12, autre) relance la veille : sans elle, aucun réveil ne vient
+ok 21 - R2 — la phrase d’A-182 dans « L’état des sessions » : le couple ne se lit que pour réemployer, jamais pour une session seulement attendue
+not ok 22 - R3 (mineur, ticket de suite) — une installation en échec dans une passe que GitHub fait sortir en 5 : son erreur n’arrive pas au journal de la veille
+ok 23 - X1 (A-180.2) — un push entre passe et distribuer : sortie 3, rien d’écrit ; le couple recomparé
+ok 24 - X3 (A-180.4) — `depuis` à millisecondes admis, `+00:00` refusé (limite écrite)
+ok 25 - X5 (A-180.4) — `--sessions` à un mot faux, ou pas un objet : sortie 2, la cause dite, aucune pile
+ok 26 - X7 (A-180.4) — une PR fermée : jouer et distribuer sortent en 3, rien d’écrit
+ok 27 - X8 (tenait déjà ; banc N12 d’A-180.6) — deux pages de commentaires, `[a][b]` et `[a]\\n[b]` : concaténées
+ok 28 - X12 (constat de lecture, conforme à A-84 ; règle 3 du lot 3a) — `à-fusionner` posée à la main sans tour : `à-reprendre` posée avant le retrait
+ok 29 - X13 (A-179.2) — trois tours refusés, le troisième verdict sur un autre sommet : le plafond
+ok 30 - X14 (A-179.3, tenait) — le lockfile et le package.json de la PR changent : une installation, celle de develop
+ok 31 - X15 (A-180.5) — `a-juger` refuse la forme : « forme refusée », à l’auteur, plus « double relecture illisible »
+ok 32 - X16 (A-180.5) — trois préparations simultanées, dix fois : le verrou les range, aucune sortie 12
+ok 33 - X17 (A-180.5) — un hook post-checkout qui récrit un fichier suivi : il ne joue pas, les passes suivantes sortent en 0
+# tests 33
+# pass 30
+# fail 3

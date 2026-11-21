@@ -1,0 +1,8 @@
+# Les cinq mutations D1 à D5 (mutations-c2.mjs), sur le seul delta d1679f3..a32476a, jouées sur a32476a (trois copies)
+# 2026-11-21, 18:49:40 → 18:52:22 UTC (2 min 42 s), charge 0,83 → 1,30
+ROUGE D1 veille : une pause qui finit après la durée recommence (89 s) — contre-relecture — la veille finit à sa durée : elle ne comm
+ROUGE D2 veille : la sortie d’erreur des passes jetée (71 s) — une installation en échec : sa sortie d’erreur au journal de
+ROUGE D3 plafond : l’architecte retiré des lignes rendues (70 s) — le plafond : au troisième tour refusé, le commentaire `Plafo | contre-relecture — le plafond se dit à l’auteur, au conducte
+ROUGE D4 SKILL.md : la phrase d’A-182 retirée de « L’état des sessions » (0 s) — contre-relecture de la PR 146 — aucun geste laissé à improvi
+ROUGE D5 SKILL.md : plus de suite pour une sortie hors table (0 s) — contre-relecture de la PR 146 — aucun geste laissé à improvi
+Bilan : 5 sur 5 rouges.
