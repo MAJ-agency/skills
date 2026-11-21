@@ -282,10 +282,10 @@ Vague 1 fusionnée le 2026-11-13 par le capitaine de `skills` (`main` à `8eb1c9
 | `session_017ZgEwJdLWNnECtpcBkcKwn` | ticket   | 50 (PR 108, CODEOWNERS ; lancée par l'architecte de Fedora, reprise par cet architecte) | 16,93 | 363 300 |
 | `session_017ZgEwMF5dTU1VcxiPosYxj` | ticket   | 49 (PR 109, skill de criticité) | 12,16 | 332 882 |
 | `session_017ZgEwKC5z9pHAoJ4aYjiJy` | ticket   | 52 (PR 110, critère `T3` de la revue de ticket) | 2,82 | 187 768 |
-| `session_012xRpgYDsq5D6zHAnLX65vB` | architecte A (troisième compte, depuis le 2026-11-21) | — | en cours | en cours |
+| `session_012xRpgYDsq5D6zHAnLX65vB` | architecte A (troisième compte, depuis le 2026-11-21 ; relevé le 2026-11-21 à 20 h 18 UTC, ses sous-agents compris : contre-relecture de la PR 146, deux rédacteurs) | — | 78,64 | 302 179 |
 | `session_012xRpgbsrBJEiYphDxscBJZ` | ticket   | 66, retouches du premier tour de la PR 146 (Sonnet, archivée le 2026-11-21 à 18 h 56 UTC) | 0,33 | 101 139 |
 | `session_012xRpgYjxKqgBJpU3wKnXMq` | ticket   | 66, retouches du second tour de la PR 146 (Sonnet, archivée le 2026-11-21 à 19 h 06 UTC) | 0,33 | 93 040 |
-| `session_012xRpgbTNmQa3pb3TCxF7St` | capitaine de `skills` (Sonnet) | — | en cours | en cours |
+| `session_012xRpgbTNmQa3pb3TCxF7St` | capitaine de `skills` (Sonnet ; relevé le 2026-11-21 à 20 h 18 UTC, PR 146 fusionnée) | — | 0,98 | 160 603 |
 
 La ligne de l'architecte est un relevé du 2026-11-13 à 11 h 45 UTC, session en cours (elle était à 9,20 $ et 289 647 tokens à 8 h 52) ; la cellule de coût ne porte qu'un montant, pour rester lisible par `couts.mjs`.
 
@@ -1211,3 +1211,4 @@ La session de suite fait, dans cet ordre :
 - 2026-11-21 — 19 h 15 UTC. **PR 146 fusionnée par le capitaine** (squash, `expectedHeadSha` `643dd10`) : `main` à `25a72c7`, plugin **7.38.0**. Vérifié à la source par l'architecte : parent `5bf4f39` (l'ancien `main`), arbre `53b3d6f9…` égal à celui du sommet ordonné. **Ticket 66 à « Fait »** : le lot 4 est dans `main`.
   - Suite : les tickets de suite (ceux de la passation, et les mineurs 13 à 18 et R3 à R6 des trois tours), puis les lots 5a à 5c.
   - 19 h 25 UTC. **Deux rédacteurs lancés** (sous-agents neufs, Opus, dossiers privés), sur `main` à `25a72c7` : (1) les tickets de suite du lot 4, à partir du 67, une ou deux PR de trois tickets au plus (relecteur : 13 à 18, R3 à R5 ; bancs des textes : R6, la mutation M4 d'`A-178`, le commentaire de `tickets.test.mjs:227`) ; (2) les lots 5a à 5c en une PR (provisoirement 72 à 74), avec `A-132` (`sujet.sh etat`), la « veille morte », `archive_session` refusé au conducteur, la veille qui ne repart pas après une panne et la veille du capitaine au plafond de 30 minutes de l'outil Bash (`A-180`, point 1, rangée avec le lot 5 parce qu'elle touche les mêmes veilles). Chaque ticket recevra un tour de relecture par un agent neuf avant son lancement.
+- 2026-11-21 — 20 h 18 UTC. Contrôle de vie : capitaine de `skills` en veille, file vide, sain (0,98 $, 160 603 tokens, usage « allowed ») ; architecte à 78,64 $ et 302 179 tokens, sous-agents compris. Les deux rédacteurs travaillent.
