@@ -1,8 +1,8 @@
 diff --git a/scripts/relecteur.test.mjs b/scripts/relecteur.test.mjs
-index add3eb6..b6ac3d6 100644
+index add3eb6..2fb76d4 100644
 --- a/scripts/relecteur.test.mjs
 +++ b/scripts/relecteur.test.mjs
-@@ -51,6 +51,24 @@ test("A-180 — la veille sous le plafond de l'outil Bash, le couple au réemplo
+@@ -51,6 +51,30 @@ test("A-180 — la veille sous le plafond de l'outil Bash, le couple au réemplo
    assert.ok(!/elle a écrit qu'elle est au plafond/.test(skill), "« au plafond » ne se lit plus dans un message");
  });
  
@@ -18,6 +18,12 @@ index add3eb6..b6ac3d6 100644
 +    "tant que la passe lui rend le même geste à la même règle",
 +    "une erreur de `passe`, qui ne nomme aucune PR : l'architecte, et s'arrêter",
 +  ]);
++  // A-182 : un champ que get_session ne rend pas, dans les deux sections qui le lisent.
++  const phrase = "Sans compte de tokens (`context_usage`), la session n'est pas tenue au plafond ; sans `effort_level`, le couple n'est pas tenu pour égal, et la PR reçoit une session neuve.";
++  const skillA182 = lire(`${SKILL}/SKILL.md`);
++  for (const [debut, fin] of [["## Créer ou relancer les sessions", "## L'état des sessions"], ["## L'état des sessions", "## Les lignes"]]) {
++    assert.ok(skillA182.slice(skillA182.indexOf(debut), skillA182.indexOf(fin)).includes(phrase), `« ${debut} » : la phrase d'A-182 attendue`);
++  }
 +  const skill = lire(`${SKILL}/SKILL.md`);
 +  const sorties = skill.slice(skill.indexOf("## Les sorties de `passe`, `jouer` et `distribuer`"), skill.indexOf("## Créer ou relancer les sessions"));
 +  assert.match(sorties, /^\| autre, ou aucune \(l'outil a arrêté la commande\) \| \S/m, "une sortie hors de la table a sa suite");
@@ -28,7 +34,7 @@ index add3eb6..b6ac3d6 100644
    const labels = lire("skills/chaine/socle-chaine-de-production/references/labels.sh");
    const noms = labels.slice(labels.indexOf("<<'FIN'\n") + 8, labels.indexOf("\nFIN\n")).split("\n").map((l) => l.split("|")[0]);
 diff --git a/skills/chaine/relecteur/SKILL.md b/skills/chaine/relecteur/SKILL.md
-index 5a936b2..8f1cdeb 100644
+index 5a936b2..29e5f0e 100644
 --- a/skills/chaine/relecteur/SKILL.md
 +++ b/skills/chaine/relecteur/SKILL.md
 @@ -11,7 +11,7 @@ Une PR du régime 8 n'est pas relue par son auteur : une **session de relecture*
@@ -70,7 +76,7 @@ index 5a936b2..8f1cdeb 100644
  - **Une session par PR, et une seule** : une session de relecture ne relit jamais une autre PR.
 -- **Réemployer**, dans les règles 4, 5 et 6, une session de `preferees` (ou du tour) seulement si `get_session` la dit vivante, à 700 000 tokens de contexte au plus, **et au même couple** que celui du geste (`model` et `effort` qu'il rend égaux à `faits.modele` et `faits.effort`) ; sinon une session neuve. Une PR devenue sensible ou « double » reçoit des sessions neuves au couple sensible (`P-64` prime sur `P-52`).
 -- **Créer** : `create_session`, avec `title` « `<Projet> — Relecture PR <n>` », `tags` `["role:relecture", "pr:<n>"]`, `source_url` le dépôt, `source_revision` **la base de la PR** (jamais sa tête), `model` et `effort` de `faits` (`relecture.ordinaire` ou `relecture.sensible` du contrat, `opus` ou `sonnet`), `permission_mode` `"auto"`, et le prompt de [`references/prompt-session.md`](references/prompt-session.md), rempli. Créer d'abord, écrire la distribution ensuite : une session que nulle distribution ne nomme ne publie rien. `create_session` refuse `effort` (l'outil est pré-approuvé dans cette session) : ne pas créer sans lui ; l'architecte, et `--taire <n>`.
-+- **Réemployer**, dans les règles 4, 5 et 6, une session de `preferees` (ou du tour) seulement si `get_session` la dit vivante, à 700 000 tokens de contexte au plus (`external_metadata.context_usage.used_tokens`), **et au même couple** que celui du geste (`session_context.model` qui contient `faits.modele`, `claude-opus-…` pour `opus`, et `session_context.effort_level` égal à `faits.effort`) ; sinon une session neuve. Une PR devenue sensible ou « double » reçoit des sessions neuves au couple sensible (`P-64` prime sur `P-52`).
++- **Réemployer**, dans les règles 4, 5 et 6, une session de `preferees` (ou du tour) seulement si `get_session` la dit vivante, à 700 000 tokens de contexte au plus (`external_metadata.context_usage.used_tokens`), **et au même couple** que celui du geste (`session_context.model` qui contient `faits.modele`, `claude-opus-…` pour `opus`, et `session_context.effort_level` égal à `faits.effort`) ; sinon une session neuve. Sans compte de tokens (`context_usage`), la session n'est pas tenue au plafond ; sans `effort_level`, le couple n'est pas tenu pour égal, et la PR reçoit une session neuve. Une PR devenue sensible ou « double » reçoit des sessions neuves au couple sensible (`P-64` prime sur `P-52`).
 +- **Créer** : `create_session`, avec `title` « `<Projet> — Relecture PR <n>` », `tags` `["role:relecture", "pr:<n>"]`, `source_url` le dépôt, `source_revision` **la base de la PR** (jamais sa tête), `model` et `effort` de `faits` (`relecture.ordinaire` ou `relecture.sensible` du contrat, `opus` ou `sonnet`), `permission_mode` `"auto"`, et le prompt de [`references/prompt-session.md`](references/prompt-session.md), rempli. Créer d'abord, écrire la distribution ensuite : une session que nulle distribution ne nomme ne publie rien. `create_session` refuse `effort` (l'outil est pré-approuvé dans cette session) : ne pas créer sans lui ; l'architecte, et `--taire <n>`. `create_session` en échec pour une autre cause : rejouer le geste au réveil suivant ; à la seconde fois, l'architecte, et `--taire <n>`.
  - **Deux sessions** quand `nombre` vaut 2 : chacune a pour consigne de ne pas lire le verdict de l'autre (le prompt le dit).
  - **Relancer** une session réemployée : le message de relance du même fichier, par `send_message`, après la distribution.
@@ -78,7 +84,7 @@ index 5a936b2..8f1cdeb 100644
  ## L'état des sessions
  
 -Il se lit par `get_session`, pour les règles 4, 5 et 6 seulement : les `preferees` d'un geste `distribuer`, et, pour chaque PR que la passe range en règle 5 (`reecrire`, ou `rien` avec la raison `attente`), chaque session attendue, écrite dans un fichier du scratchpad, `{ "<session>": "vivante" | "morte" | "plafond" }`, puis `jouer <n> --sessions <fichier>`. `morte` : archivée, en échec, ou introuvable ; `plafond` : plus de 700 000 tokens de contexte ; sinon `vivante`.
-+Il se lit par `get_session`, pour les règles 4, 5 et 6 seulement : les `preferees` d'un geste `distribuer`, et, pour chaque PR que la passe range en règle 5 (`reecrire`, ou `rien` avec la raison `attente`), chaque session attendue, écrite dans un fichier du scratchpad, `{ "<session>": "vivante" | "morte" | "plafond" }`, puis `jouer <n> --sessions <fichier>`. `morte` : archivée, en échec (`status_bucket` `failed`), ou introuvable ; `plafond` : plus de 700 000 tokens de contexte (`external_metadata.context_usage.used_tokens`) ; sinon `vivante`.
++Il se lit par `get_session`, pour les règles 4, 5 et 6 seulement : les `preferees` d'un geste `distribuer`, et, pour chaque PR que la passe range en règle 5 (`reecrire`, ou `rien` avec la raison `attente`), chaque session attendue, écrite dans un fichier du scratchpad, `{ "<session>": "vivante" | "morte" | "plafond" }`, puis `jouer <n> --sessions <fichier>`. `morte` : archivée, en échec (`status_bucket` `failed`), ou introuvable ; `plafond` : plus de 700 000 tokens de contexte (`external_metadata.context_usage.used_tokens`) ; sinon `vivante`. Sans compte de tokens (`context_usage`), la session n'est pas tenue au plafond ; sans `effort_level`, le couple n'est pas tenu pour égal, et la PR reçoit une session neuve.
  
  ## Les lignes
  
