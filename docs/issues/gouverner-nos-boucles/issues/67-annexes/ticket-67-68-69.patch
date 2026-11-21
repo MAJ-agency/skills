@@ -42,7 +42,7 @@ index 9e2e48c..92e7ceb 100644
  
  ### Ce qui change
 diff --git a/scripts/relecteur.test.mjs b/scripts/relecteur.test.mjs
-index bee9b85..879f619 100644
+index bee9b85..d99ad32 100644
 --- a/scripts/relecteur.test.mjs
 +++ b/scripts/relecteur.test.mjs
 @@ -15,6 +15,22 @@ const exigerDans = (chemin, phrases) => {
@@ -87,7 +87,7 @@ index bee9b85..879f619 100644
    // A-182 : un champ que get_session ne rend pas, dans les deux sections qui le lisent.
    const phrase = "Sans compte de tokens (`context_usage`), la session n'est pas tenue au plafond ; sans `effort_level`, le couple n'est pas tenu pour égal, et la PR reçoit une session neuve.";
    const skillA182 = lire(`${SKILL}/SKILL.md`);
-@@ -122,3 +141,29 @@ test("les cartes nomment le Relecteur : `Relecteurs:` dans la fiche d'un program
+@@ -122,3 +141,33 @@ test("les cartes nomment le Relecteur : `Relecteurs:` dans la fiche d'un program
  test("fusionner/references/CONTENU.md décrit les trois calculs de la relecture (A-137)", () => {
    exigerDans("skills/chaine/fusionner/references/CONTENU.md", ["## `scripts/verdict.mjs`, `scripts/decision-relecteur.mjs`", "## `scripts/meme-contenu.sh`", "## `scripts/double-relecture.mjs`", "Un refus ne compte jamais moins qu'un refus"]);
  });
@@ -97,6 +97,10 @@ index bee9b85..879f619 100644
 +  // R5 : la sortie 9 a la borne de 12, et `--attendre` se dit dans « La veille ».
 +  exigerA(ligne(texte, "## Les sorties de `passe`, `jouer` et `distribuer`", "| 9 |"), "la ligne de la sortie 9", ["rejouer au réveil suivant ; à la seconde fois, l'architecte, et s'arrêter"]);
 +  exigerA(section(texte, "## La veille"), "« La veille »", ["`--attendre` : une pause avant la première passe aussi, sous la même borne de 25 minutes"]);
++  // A-184 (3) : un geste au premier plan qui renvoie au réveil suivant pendant un réveil fait relancer la veille avec
++  // `--attendre`, après `VEILLE GESTE` comme après `VEILLE FINIE`.
++  for (const puce of ["- **`VEILLE GESTE`**", "- **`VEILLE FINIE`**"])
++    exigerA(ligne(texte, "## La veille", puce), `la puce ${puce}`, ["puis relancer la veille, avec `--attendre` si un geste de ce réveil a rendu une suite « rejouer au réveil suivant »"]);
 +  // 15 (A-182, point 2) : l'état `couple`, lu pour `reecrire` comme pour une session attendue, remplacé une fois par tour.
 +  exigerA(section(texte, "## L'état des sessions"), "« L'état des sessions »", [
 +    '`{ "<session>": "vivante" | "morte" | "plafond" | "couple" }`',
@@ -108,9 +112,9 @@ index bee9b85..879f619 100644
 +  exigerA(ligne(texte, "## À chaque réveil", "| `remplacer` |"), "la ligne de `remplacer`", ["cause `couple` : rien de plus, la neuve est au couple de `faits`"]);
 +  // 16, R4 et C11 : `send_message` en échec, les causes des lignes à l'architecte, une étiquette restée.
 +  exigerA(section(texte, "## Les lignes"), "« Les lignes »", [
-+    "`send_message` en échec (une ligne, ou le message de relance) : le rejouer une fois ; encore en échec, une ligne à l'architecte, « PR <n> : send_message en échec vers <session> : <son message> », puis la suite du geste. Une ligne à l'architecte elle-même en échec deux fois : l'écrire dans sa réponse, et s'arrêter.",
++    "`send_message` en échec (une ligne, ou le message de relance) : le rejouer une fois ; encore en échec, une ligne à l'architecte, « PR <n> : send_message en échec vers <session> : <sa dernière ligne non vide> », puis la suite du geste. Une ligne à l'architecte elle-même en échec deux fois : l'écrire dans sa réponse, et s'arrêter.",
 +    "« <sous-commande> sortie aucune : l'outil l'a arrêtée » pour une commande coupée sans code",
-+    "« create_session en échec : <son message> »",
++    "« create_session en échec : <sa dernière ligne non vide> »",
 +    "Une étiquette déjà là, posée avant la marque la plus récente de la PR (restée d'un tour d'avant, que l'auteur n'a pas retirée), n'est pas un passage rejoué : ses lignes partent.",
 +  ]);
 +  // 17 : comment l'installation se retente.
@@ -180,7 +184,7 @@ index e22c70a..b2762f0 100644
 +  assert.throws(() => joue({ commentaires: fil(...distribue), sessions: { r1: 'autre-couple' } }), TypeError);
 +});
 diff --git a/skills/chaine/relecteur/SKILL.md b/skills/chaine/relecteur/SKILL.md
-index dda57ce..a7ce4a1 100644
+index dda57ce..93d3496 100644
 --- a/skills/chaine/relecteur/SKILL.md
 +++ b/skills/chaine/relecteur/SKILL.md
 @@ -24,7 +24,7 @@ Une PR du régime 8 n'est pas relue par son auteur : une **session de relecture*
@@ -225,17 +229,21 @@ index dda57ce..a7ce4a1 100644
 +`lignes` est une liste de `{ a, session, texte }`. `a` vaut `auteur` ou `conducteur` : le `texte` part à `session` par `send_message`, tel quel ; `session` vaut `null` (une PR écrite sans session, `Session: —`) : personne n'est sonné. `a` vaut `architecte` : le `texte` part à la session de la ligne « Architecte : ». Jamais un constat, jamais un résumé, jamais un mot de plus. `jouer` ne rend une ligne qu'au changement d'étiquette, ou avec le commentaire du plafond : rejoué, il n'en rend aucune. Une étiquette déjà là, posée avant la marque la plus récente de la PR (restée d'un tour d'avant, que l'auteur n'a pas retirée), n'est pas un passage rejoué : ses lignes partent.
  
 -Les lignes du Relecteur lui-même à l'architecte ont trois formes, et aucune autre : « PR <n> : <cause> ; PR tue » quand il fait taire une PR ; « Relecteur arrêté : <cause> » quand il s'arrête ; « PR <n> : session <id> orpheline, à archiver ». La `<cause>` : la `raison` de la passe (`contrat-illisible`) ; « <sous-commande> sortie <c> : <dernière ligne de sa sortie d'erreur> » ; « create_session refuse effort » ; « <outil> absent » ; « contexte à <k> tokens » (le sien, à `VEILLE FINIE`).
-+`send_message` en échec (une ligne, ou le message de relance) : le rejouer une fois ; encore en échec, une ligne à l'architecte, « PR <n> : send_message en échec vers <session> : <son message> », puis la suite du geste. Une ligne à l'architecte elle-même en échec deux fois : l'écrire dans sa réponse, et s'arrêter.
++`send_message` en échec (une ligne, ou le message de relance) : le rejouer une fois ; encore en échec, une ligne à l'architecte, « PR <n> : send_message en échec vers <session> : <sa dernière ligne non vide> », puis la suite du geste. Une ligne à l'architecte elle-même en échec deux fois : l'écrire dans sa réponse, et s'arrêter.
 +
-+Les lignes du Relecteur lui-même à l'architecte ont quatre formes, et aucune autre : « PR <n> : <cause> ; PR tue » quand il fait taire une PR ; « Relecteur arrêté : <cause> » quand il s'arrête ; « PR <n> : session <id> orpheline, à archiver » ; « PR <n> : send_message en échec vers <session> : <son message> », une ligne perdue. La `<cause>` : la `raison` de la passe (`contrat-illisible`) ; « <sous-commande> sortie <c> : <dernière ligne de sa sortie d'erreur> », ou « <sous-commande> sortie aucune : l'outil l'a arrêtée » pour une commande coupée sans code ; « create_session refuse effort » ; « create_session en échec : <son message> » ; « <outil> absent » ; « contexte à <k> tokens » (le sien, à `VEILLE FINIE`).
++Les lignes du Relecteur lui-même à l'architecte ont quatre formes, et aucune autre : « PR <n> : <cause> ; PR tue » quand il fait taire une PR ; « Relecteur arrêté : <cause> » quand il s'arrête ; « PR <n> : session <id> orpheline, à archiver » ; « PR <n> : send_message en échec vers <session> : <sa dernière ligne non vide> », une ligne perdue. La `<cause>` : la `raison` de la passe (`contrat-illisible`) ; « <sous-commande> sortie <c> : <dernière ligne de sa sortie d'erreur> », ou « <sous-commande> sortie aucune : l'outil l'a arrêtée » pour une commande coupée sans code ; « create_session refuse effort » ; « create_session en échec : <sa dernière ligne non vide> » ; « <outil> absent » ; « contexte à <k> tokens » (le sien, à `VEILLE FINIE`).
  
  ## Les messages des sessions de relecture
  
-@@ -91,10 +93,10 @@ Un message ne fait que hâter : la veille fait le même travail à sa sonde suiv
+@@ -89,12 +91,12 @@ Un message ne fait que hâter : la veille fait le même travail à sa sonde suiv
  
- - **`VEILLE GESTE`** suivi d'une ligne `GESTE <n> <geste> règle <r>` par PR : « À chaque réveil », puis relancer la veille ;
- - **`VEILLE FINIE`** : 25 minutes sans geste ; relever son propre contexte (`get_session` sans argument, `external_metadata.context_usage.used_tokens`) : au-delà de 500 000 tokens, l'écrire à l'architecte, qui lance un Relecteur neuf, et s'arrêter ; sinon « À chaque réveil », puis relancer la veille ;
+ `node '<dossier du skill>/scripts/relecteur.mjs' veille --duree 25 > <scratchpad>/relecteur-veille.log 2>&1`, en tâche de fond (`run_in_background`) : toutes les 2 minutes (`--pause`), une passe, sans aucun geste. **25 minutes, pas plus** : l'outil Bash arrête une tâche de fond à 30 minutes par défaut, et une veille plus longue mourrait sans ligne finale ; elle ne commence aucune pause qui finirait après ses 25 minutes. Elle s'arrête d'elle-même, et sa fin réveille la session :
+ 
+-- **`VEILLE GESTE`** suivi d'une ligne `GESTE <n> <geste> règle <r>` par PR : « À chaque réveil », puis relancer la veille ;
+-- **`VEILLE FINIE`** : 25 minutes sans geste ; relever son propre contexte (`get_session` sans argument, `external_metadata.context_usage.used_tokens`) : au-delà de 500 000 tokens, l'écrire à l'architecte, qui lance un Relecteur neuf, et s'arrêter ; sinon « À chaque réveil », puis relancer la veille ;
 -- **`VEILLE ARRÊTÉE sortie <c>`** : la passe est sortie autrement qu'en 0 ou en 5 ; la suite de cette sortie (« Les sorties »), avec la dernière ligne du journal ; quand cette suite dit « rejouer au réveil suivant » (9, 12, autre), relancer la veille : sa fin est ce réveil ;
++- **`VEILLE GESTE`** suivi d'une ligne `GESTE <n> <geste> règle <r>` par PR : « À chaque réveil », puis relancer la veille, avec `--attendre` si un geste de ce réveil a rendu une suite « rejouer au réveil suivant » ;
++- **`VEILLE FINIE`** : 25 minutes sans geste ; relever son propre contexte (`get_session` sans argument, `external_metadata.context_usage.used_tokens`) : au-delà de 500 000 tokens, l'écrire à l'architecte, qui lance un Relecteur neuf, et s'arrêter ; sinon « À chaque réveil », puis relancer la veille, avec `--attendre` si un geste de ce réveil a rendu une suite « rejouer au réveil suivant » ;
 +- **`VEILLE ARRÊTÉE sortie <c>`** : la passe est sortie autrement qu'en 0 ou en 5 ; la suite de cette sortie (« Les sorties »), avec la dernière ligne du journal ; quand cette suite dit « rejouer au réveil suivant » (9, 12, autre), relancer la veille avec `--attendre` : sa fin est ce réveil ;
  - **aucune de ces trois lignes** (l'outil a arrêté la veille) : comme `VEILLE FINIE`.
  
@@ -493,7 +501,7 @@ index 4e876d8..f4fab5e 100644
      if (!(e instanceof Arret)) throw e;
      process.stderr.write(`relecteur : ${e.message}\n`);
 diff --git a/skills/chaine/relecteur/scripts/relecteur.test.mjs b/skills/chaine/relecteur/scripts/relecteur.test.mjs
-index ac1383d..e3babec 100644
+index ac1383d..96c4fcc 100644
 --- a/skills/chaine/relecteur/scripts/relecteur.test.mjs
 +++ b/skills/chaine/relecteur/scripts/relecteur.test.mjs
 @@ -124,20 +124,22 @@ test('nominal : distribuer (r6), écrire la distribution après la session, atte
@@ -548,7 +556,7 @@ index ac1383d..e3babec 100644
    assert.deepEqual(p.json(r)[0].lignes.map((l) => l.a), ['architecte']);
    const tentatives = () => readFileSync(join(p.racine, 'faux-gh/pnpm.log'), 'utf8').split('\n').filter((l) => l.startsWith('pnpm install')).length;
    assert.equal(tentatives(), 1);
-@@ -721,3 +723,129 @@ test('contre-relecture — une PR de mise à jour qu’`a-juger` accepte : son d
+@@ -721,3 +723,141 @@ test('contre-relecture — une PR de mise à jour qu’`a-juger` accepte : son d
    const [g] = d.json(d.lancer('passe'));
    assert.deepEqual([g.geste, g.faits?.sensible, g.faits?.effort], ['distribuer', true, 'xhigh'], JSON.stringify(g));
  });
@@ -624,6 +632,18 @@ index ac1383d..e3babec 100644
 +    assert.deepEqual(g.lignes.map((l) => [l.a, l.texte]), [['auteur', 'verdict écrit sur la PR 12 : refusé'], ['conducteur', 'verdict écrit sur la PR 12 : refusé']], nom);
 +    assert.deepEqual(ecritures(d), ['DELETE issues/12/labels/à-relire'], `${nom} : rien de posé, l’ancienne retirée`);
 +  }
++});
++
++test('suite 66 — C11, A-183 point 6 : une marque plus récente que la pose (une demande refaite sans push) fait repartir les lignes', () => {
++  const d = monter();
++  const sha = pr(d, { labels: ['à-relire', 'à-reprendre'] });
++  // Le tour refusé (minute 3), `à-reprendre` posée par le Relecteur après lui (minute 4), puis l'auteur redemande la
++  // relecture du même sommet (minute 5) sans retirer `à-reprendre` : la marque la plus récente est sa demande.
++  ajouter(d, [distribution(1, sha, ['session_rel1']), 2], [verdict(sha, 1, 'session_rel1', 'refusé'), 3], [DEMANDE(sha), 5]);
++  d.github({ pulls: [{ ...d.etat().pulls[0], evenements: [{ event: 'labeled', label: 'à-reprendre', created_at: minute(4) }] }] });
++  const g = d.json(d.lancer('jouer', '12'))[0];
++  assert.deepEqual([g.regle, g.geste, g.marque], [4, 'etiqueter', minute(5)], JSON.stringify(g));
++  assert.deepEqual(g.lignes.map((l) => l.a), ['auteur', 'conducteur'], 'posée avant la marque la plus récente : les lignes partent');
 +});
 +
 +test('suite 66 — un passage rejoué (l’étiquette posée par lui, après le verdict, l’ancienne pas retirée) ne redit rien ; la dernière pose compte', () => {

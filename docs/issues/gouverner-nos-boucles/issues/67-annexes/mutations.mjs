@@ -38,6 +38,7 @@ const MUTATIONS = [
   ['B12 --sessions : `couple` refusé (relecteur.mjs)', R, "const ETATS = ['vivante', 'morte', 'plafond', 'couple'];", "const ETATS = ['vivante', 'morte', 'plafond'];", [BR]],
   ['B13 décision : `couple` refusé', D, "const ETATS_DE_SESSION = ['vivante', 'morte', 'plafond', 'couple'];", "const ETATS_DE_SESSION = ['vivante', 'morte', 'plafond'];", [BD, BR]],
   ['B14 décision : une session `couple` n’est pas hors service', D, "['morte', 'plafond', 'couple'].includes(propre(connues, s))", "['morte', 'plafond'].includes(propre(connues, s))", [BD, BR]],
+  ['B19 decision : la marque est la date du dernier verdict, pas celle de la marque la plus récente (`dernier`, A-183 point 6 ; G5 du tour de relecture)', R, '{ marque: commentaires[marques.dernier]?.created_at ?? null }', '{ marque: commentaires[marques.verdicts.at(-1)?.rang]?.created_at ?? null }', [BR]],
   ['B15 faux GitHub : la pose n’ajoute aucun événement', F, '    if (!(p.labels ?? []).includes(champs["labels[]"])) evenement(p, "labeled", champs["labels[]"]);\n', '', [BF, BR]],
   ['B16 faux GitHub : une étiquette déjà posée ajoute un événement', F, 'if (!(p.labels ?? []).includes(champs["labels[]"])) evenement(p, "labeled"', 'if (true) evenement(p, "labeled"', [BF]],
   ['B17 faux GitHub : le retrait n’ajoute aucun événement', F, '    evenement(p, "unlabeled", nom);\n', '', [BF]],
@@ -52,12 +53,14 @@ const MUTATIONS = [
   ['C6 SKILL.md : l’état `couple` absent de la forme du fichier', S, '"vivante" | "morte" | "plafond" | "couple" }`', '"vivante" | "morte" | "plafond" }`', [BT]],
   ['C7 SKILL.md : `reecrire` ne remplace pas une session à un autre couple', S, 'sinon (`morte`, `plafond` ou `couple`) `jouer <n> --sessions <fichier>`', 'sinon `jouer <n> --sessions <fichier>`', [BT]],
   ['C8 SKILL.md : `reecrire` hors de la règle de « Créer ou relancer »', S, " `reecrire`, qui réemploie la session, suit cette règle de « Créer ou relancer » : sans les deux champs, `couple`.", '', [BT]],
-  ['C9 SKILL.md : `send_message` en échec sans suite (16)', S, "`send_message` en échec (une ligne, ou le message de relance) : le rejouer une fois ; encore en échec, une ligne à l'architecte, « PR <n> : send_message en échec vers <session> : <son message> », puis la suite du geste. Une ligne à l'architecte elle-même en échec deux fois : l'écrire dans sa réponse, et s'arrêter.\n\n", '', [BT]],
+  ['C9 SKILL.md : `send_message` en échec sans suite (16)', S, "`send_message` en échec (une ligne, ou le message de relance) : le rejouer une fois ; encore en échec, une ligne à l'architecte, « PR <n> : send_message en échec vers <session> : <sa dernière ligne non vide> », puis la suite du geste. Une ligne à l'architecte elle-même en échec deux fois : l'écrire dans sa réponse, et s'arrêter.\n\n", '', [BT]],
   ['C10 SKILL.md : les lignes à l’architecte redeviennent trois formes', S, 'ont quatre formes, et aucune autre', 'ont trois formes, et aucune autre', [BT]],
-  ['C11 SKILL.md : la cause « create_session en échec » manque (R4)', S, " ; « create_session en échec : <son message> »", '', [BT]],
+  ['C11 SKILL.md : la cause « create_session en échec » manque (R4)', S, " ; « create_session en échec : <sa dernière ligne non vide> »", '', [BT]],
   ['C12 SKILL.md : la forme d’une commande coupée sans code manque (R4)', S, ", ou « <sous-commande> sortie aucune : l'outil l'a arrêtée » pour une commande coupée sans code", '', [BT]],
   ['C13 SKILL.md : une étiquette restée tue ses lignes (C11)', S, " Une étiquette déjà là, posée avant la marque la plus récente de la PR (restée d'un tour d'avant, que l'auteur n'a pas retirée), n'est pas un passage rejoué : ses lignes partent.", '', [BT]],
   ['C14 SKILL.md : comment l’installation se retente, retiré de « Mise en place » (17)', S, " Une installation en échec ne se retente qu'au lockfile suivant de develop, ou dans un Relecteur neuf (son dossier est neuf) : la cause « dépendances de develop » le dit à l'architecte.", '', [BT]],
+  ['C15 SKILL.md : après `VEILLE GESTE`, la veille relancée sans `--attendre` (A-184, point 3)', S, "« À chaque réveil », puis relancer la veille, avec `--attendre` si un geste de ce réveil a rendu une suite « rejouer au réveil suivant » ;\n- **`VEILLE FINIE`**", "« À chaque réveil », puis relancer la veille ;\n- **`VEILLE FINIE`**", [BT]],
+  ['C16 SKILL.md : après `VEILLE FINIE`, la veille relancée sans `--attendre` (A-184, point 3)', S, "sinon « À chaque réveil », puis relancer la veille, avec `--attendre` si un geste de ce réveil a rendu une suite « rejouer au réveil suivant » ;", "sinon « À chaque réveil », puis relancer la veille ;", [BT]],
 ];
 
 const voulues = process.argv.slice(2);

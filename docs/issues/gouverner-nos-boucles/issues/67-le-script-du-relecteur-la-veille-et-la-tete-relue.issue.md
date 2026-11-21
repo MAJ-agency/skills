@@ -34,7 +34,7 @@ Le second tour de contre-relecture a ajouté, sur R1, « quand cette suite dit �
 
 `P-65` et `A-149` : un tour de relecture par ticket, deux sur la PR, une famille de fichiers par PR, trois tickets au plus. Les tickets 67, 68 et 69 touchent le skill `relecteur` (son script, son banc, son texte) et la décision qu'il joue ; ils partent ensemble, en une PR, une version (7.38.1) et une note, portées par le ticket 69. L'ordre d'écriture est celui des numéros : chaque ticket se joue rouge puis vert sur l'arbre du précédent. Le patch commun, [`67-annexes/ticket-67-68-69.patch`](67-annexes/ticket-67-68-69.patch), pose les trois d'un coup et fait foi en cas d'écart de recopie ; les trois diffs donnés dans les tickets, appliqués l'un après l'autre sur `25a72c7`, rendent le même arbre (vérifié, « Vérification »).
 
-Le ticket 70 (les bancs du skill `relecture` et du gate `tickets`) part dans une autre PR : aucun fichier en commun hors de `plugin.json` et `NOTES-DE-VERSION.md`.
+Le ticket 70 (les bancs du skill `relecture` et du gate `tickets`) part dans une autre PR : aucun fichier en commun hors de `plugin.json` et `NOTES-DE-VERSION.md`. Les deux PR se suivent (`A-184`, point 1) : celle-ci est lancée seule, la première, et la session du ticket 70 ne se lance qu'après sa fusion.
 
 ## Où
 
@@ -68,7 +68,7 @@ Aucune : chaque remède est celui que le rapport propose. Les choix d'écriture 
 
 ### § 0 — Partir de `main`, et la règle de repli
 
-`git fetch origin main`, une branche depuis `origin/main`, la même pour les tickets 67, 68 et 69. Les annexes se lisent sous `docs/issues/gouverner-nos-boucles/issues/67-annexes/` de `main` si la PR de documentation qui porte ce ticket y est entrée, sinon sur la branche de documentation du programme (`git show <branche>:<chemin>`), écrites dans le scratchpad de la session, jamais dans le dépôt. Si `main` est encore à `25a72c7`, `git apply <scratchpad>/ticket-67-68-69.patch` depuis la racine pose les trois tickets ; sinon, recopier les diffs ticket par ticket, chaque ajout placé par son texte (si un repère a changé de mots, au même endroit par le sens). Si `main` a touché `relecteur.mjs` ou son banc depuis `25a72c7`, le banc du Relecteur dit ce qui ne tient plus.
+`git fetch origin main`, une branche depuis `origin/main`, la même pour les tickets 67, 68 et 69. Les annexes se lisent sous `docs/issues/gouverner-nos-boucles/issues/67-annexes/` de `main` si la PR de documentation qui porte ce ticket y est entrée, sinon sur la branche de documentation du programme (`git show <branche>:<chemin>`), écrites dans le scratchpad de la session, jamais dans le dépôt. Si `main` est encore à `25a72c7`, `git apply <scratchpad>/ticket-67-68-69.patch` depuis la racine pose les trois tickets. Si `main` n'a bougé que par la PR du ticket 70 (`git diff --stat 25a72c7 origin/main` ne nomme que ses quatre fichiers), `git apply --exclude=.claude-plugin/plugin.json --exclude=NOTES-DE-VERSION.md <scratchpad>/ticket-67-68-69.patch`, puis la version et la note à la main, sur la suivante de `main` (ticket 69, décision 9), la note au-dessus de celle du ticket 70. Sinon, recopier les diffs ticket par ticket, chaque ajout placé par son texte (si un repère a changé de mots, au même endroit par le sens). Si `main` a touché `relecteur.mjs` ou son banc depuis `25a72c7`, le banc du Relecteur dit ce qui ne tient plus.
 
 ### § 1 — Le banc d'abord, vu rouge
 
@@ -286,7 +286,7 @@ Dans [`67-annexes/mutations.mjs`](67-annexes/mutations.mjs) (la liste des trois 
 ## Vérification
 
 1. Le rouge, avant le code (§ 1) : 4 rouges sur 37.
-2. Le vert, après : `node --test skills/chaine/relecteur/scripts/relecteur.test.mjs`, 37 sur 37 (sur l'arbre de ce ticket seul) ; 41 sur 41 une fois le ticket 68 posé.
+2. Le vert, après : `node --test skills/chaine/relecteur/scripts/relecteur.test.mjs`, 37 sur 37 (sur l'arbre de ce ticket seul) ; 42 sur 42 une fois le ticket 68 posé.
 3. Les mutations A1 à A7 : `node <scratchpad>/mutations.mjs A1 A2 A3 A4 A5 A6 A7` depuis la racine, sur l'arbre de la PR : « toutes rouges ».
 4. La suite entière et le reste : « Vérification » du ticket 69, pour la PR.
 
@@ -297,7 +297,7 @@ Sur un clone neuf de `https://github.com/MAJ-agency/skills` à `25a72c7` (plugin
 - **Rouge avant le code.** Le banc du ticket seul sur `25a72c7` : `relecteur.test.mjs`, **4 rouges sur 37** (« X15 », « suite 66 — R3 », « suite 66 — R5 », « suite 66 — 18 »).
 - **Vert après.** Le diff du ticket : 37 sur 37.
 - **Mutations.** A1 à A7, sur l'arbre de la PR : 7 sur 7 rouges (de 37 à 106 secondes chacune, trois copies jouées ensemble, charge jusqu'à 10).
-- **Le patch et les diffs disent le même code.** Les diffs des tickets 67, 68 et 69, appliqués l'un après l'autre sur un clone neuf de `25a72c7`, et le patch commun appliqué seul donnent le même arbre (`git write-tree` : `c0aa2ddfd07f1651e0da93d8dd97f5bcf77e252c` les deux fois).
+- **Le patch et les diffs disent le même code.** Les diffs des tickets 67, 68 et 69, appliqués l'un après l'autre sur un clone neuf de `25a72c7`, et le patch commun appliqué seul donnent le même arbre (`git write-tree` : `b6aa23b02c2951e5448d57de44ec70974392ea9d` les deux fois, après les retouches du tour de relecture ; `c0aa2dd` avant).
 - **Les essais du rapport**, rejoués (`APRES` sur l'arbre voulu) : R3 (`essais-c2.test.mjs`) rouge sur `25a72c7`, vert sur l'arbre de la PR ; le second essai de tenue de R5 (`essais-c3.test.mjs`, « la sortie 9 renvoie au réveil suivant sans borne ») vert sur `25a72c7`, rouge sur l'arbre de la PR : il documentait le défaut, la borne est là ; le premier reste vert, il lance la veille sans `--attendre`.
 
 ## Ce qui n'a pas été établi
@@ -313,5 +313,7 @@ Sur un clone neuf de `https://github.com/MAJ-agency/skills` à `25a72c7` (plugin
 - La veille du capitaine (`fusionner`), qui meurt aussi à 30 minutes (`A-180`, point 1) : un autre ticket de suite, avec les lots 5.
 
 ## Comments
+
+- 2026-11-21 — Retouché après le tour unique de relecture (`67-annexes/relecture-tour-1/rapport.md`, constat 1 ; `A-184`) : le repli à deux `--exclude` du § 0, si `main` n'a bougé que par la PR du ticket 70.
 
 - 2026-11-21 — Écrit par un agent rédacteur sur la liste consolidée du rapport de contre-relecture de la PR 146 et sur `A-180`, `A-182` ; code, bancs et mutations joués sur un clone neuf de `25a72c7` (« Vérification »).

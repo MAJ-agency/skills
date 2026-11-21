@@ -3,10 +3,10 @@
 Status: ready-for-agent
 Type: défaut
 Label: contre-revue
-Modèle: sonnet — deux suites décidées par l'architecte (passation du 2026-11-21, « Quoi faire », point 2), un test retouché et un commentaire, donnés mot pour mot (« À faire », et le patch en annexe), joués sur un clone neuf de `main` à `25a72c7`. Rien n'est à concevoir. Ce ticket part seul, dans sa propre PR : « Une PR à lui ».
-Blocked by: —
+Modèle: sonnet — deux suites décidées par l'architecte (passation du 2026-11-21, « Quoi faire », point 2), un test retouché et un commentaire, donnés mot pour mot (« À faire », et le patch en annexe), joués sur un clone neuf de `main` à `25a72c7`. Rien n'est à concevoir. Ce ticket part seul, dans sa propre PR, après la fusion de celle des tickets 67 à 69 : « Une PR à lui ».
+Blocked by: 69
 Dépendances: —
-Fichiers chauds: `scripts/relecture.test.mjs`, `skills/chaine/tickets/references/scripts/verify/tickets.test.mjs` : aucune autre PR ne les touche (les PR ouvertes hors programme, 44 et 56 d'après la passation du 2026-11-21, ni la PR des tickets 67 à 69). `.claude-plugin/plugin.json` et `NOTES-DE-VERSION.md` : la PR des tickets 67 à 69 et la PR 44 les touchent aussi ; la version est la suivante de `main` au moment de livrer.
+Fichiers chauds: `scripts/relecture.test.mjs`, `skills/chaine/tickets/references/scripts/verify/tickets.test.mjs` : aucune autre PR ne les touche (les PR ouvertes hors programme, 44 et 56 d'après la passation du 2026-11-21, ni la PR des tickets 67 à 69). `.claude-plugin/plugin.json` et `NOTES-DE-VERSION.md` : la PR des tickets 67 à 69, fusionnée avant celle-ci, et la PR 44 les touchent aussi ; la version est la suivante de `main` (7.38.2 si la PR des tickets 67 à 69 a pris 7.38.1).
 
 ## Le besoin
 
@@ -29,7 +29,7 @@ $ node -e 'const r=[];for(let c=0;c<0x10000;c++){const s=String.fromCharCode(c);
 
 ## Une PR à lui
 
-`P-65` et `A-149` : une famille de fichiers par PR. Ces deux fichiers (le banc du skill `relecture`, le banc du gate `tickets`) n'ont rien en commun avec la PR des tickets 67 à 69, hors de `plugin.json` et `NOTES-DE-VERSION.md` ; ils partent ensemble, en une PR à deux points, comme le ticket 65 en portait trois. Le patch, [`70-annexes/ticket-70.patch`](70-annexes/ticket-70.patch), s'applique par `git apply` sur `25a72c7`, et aussi sur `25a72c7` plus le patch des tickets 67 à 69 hors de ses deux hunks de version (vérifié) ; la version se reprend alors (§ 0).
+`P-65` et `A-149` : une famille de fichiers par PR. Ces deux fichiers (le banc du skill `relecture`, le banc du gate `tickets`) n'ont rien en commun avec la PR des tickets 67 à 69, hors de `plugin.json` et `NOTES-DE-VERSION.md` ; ils partent ensemble, en une PR à deux points, comme le ticket 65 en portait trois. **Les deux PR se suivent** (`A-184`, point 1) : la session de ce ticket ne se lance qu'après la fusion de la PR des tickets 67 à 69 (`Blocked by: 69`). Le patch, [`70-annexes/ticket-70.patch`](70-annexes/ticket-70.patch), s'applique sur l'arbre de cette PR sans ses deux fichiers de version (`git apply --exclude=.claude-plugin/plugin.json --exclude=NOTES-DE-VERSION.md`, vérifié), et la version et la note s'écrivent à la main, sur la suivante de `main` (§ 0). Il s'applique aussi entier sur `25a72c7`, où il a été écrit et joué.
 
 ## Où
 
@@ -55,13 +55,13 @@ Aucun texte de skill ni aucun script posé ne change.
    ```
 
    Aucun test ne tient un commentaire ; la mesure est dans « Le besoin ».
-3. **La version** : la suivante de `main` au moment de livrer, le troisième nombre plus un (7.38.1 sur `25a72c7` ; 7.38.2 si la PR des tickets 67 à 69 est entrée avant). La note se place avant la première note du fichier, à la date du jour, avec le texte du diff.
+3. **La version** : le ticket s'applique après la PR des tickets 67 à 69, sans ses deux fichiers de version, et prend la version suivante de `main`, le troisième nombre plus un : 7.38.2 si cette PR a pris 7.38.1. La note se place avant la première note du fichier (au-dessus de celle de cette PR), à la date du jour, avec le texte du diff, son titre à la version prise. Le patch porte 7.38.1 parce qu'il a été écrit sur `25a72c7` : ses deux hunks de version ne s'appliquent pas, ils donnent le texte de la note.
 
 ## À faire, dans l'ordre
 
 ### § 0 — Partir de `main`, et la règle de repli
 
-`git fetch origin main`, une branche depuis `origin/main`. L'annexe se lit sous `docs/issues/gouverner-nos-boucles/issues/70-annexes/` de `main` si la PR de documentation y est entrée, sinon sur la branche de documentation du programme, écrite dans le scratchpad, jamais dans le dépôt. Sur `25a72c7`, `git apply <scratchpad>/ticket-70.patch` pose tout. Si `main` a bougé (la PR des tickets 67 à 69 entrée) : `git apply --exclude=.claude-plugin/plugin.json --exclude=NOTES-DE-VERSION.md <scratchpad>/ticket-70.patch`, puis la version et la note à la main, sur la suivante de `main`.
+`git fetch origin main`, une branche depuis `origin/main`. L'annexe se lit sous `docs/issues/gouverner-nos-boucles/issues/70-annexes/` de `main` si la PR de documentation y est entrée, sinon sur la branche de documentation du programme, écrite dans le scratchpad, jamais dans le dépôt. La PR des tickets 67 à 69 est fusionnée (`Blocked by: 69`) : `git apply --exclude=.claude-plugin/plugin.json --exclude=NOTES-DE-VERSION.md <scratchpad>/ticket-70.patch` depuis la racine, puis la version (`.claude-plugin/plugin.json`, la suivante de `main`) et la note (le texte du hunk de `NOTES-DE-VERSION.md` du patch, sous le numéro pris, au-dessus de la première note) à la main. Si un repère du test a changé de mots sur `main`, placer la retouche au même endroit par le sens.
 
 ### § 1 — Le banc, vu rouge sous la mutation
 
@@ -197,7 +197,8 @@ Avant : 5 vertes sur 7. Après : 7 rouges sur 7.
 
 Sur un clone neuf de `https://github.com/MAJ-agency/skills` à `25a72c7` (plugin 7.38.0), le 2026-11-21, Node 22.23.5 :
 
-- **Le patch** : `git apply --check`, puis `git apply`, sur le clone neuf ; et `git apply --check --exclude=.claude-plugin/plugin.json --exclude=NOTES-DE-VERSION.md` sur `25a72c7` plus le patch des tickets 67 à 69 : il s'applique.
+- **Le patch** : `git apply --check`, puis `git apply`, sur le clone neuf de `25a72c7`.
+- **Après la PR des tickets 67 à 69** (`A-184`, point 1), rejoué après le tour de relecture : sur `25a72c7` plus le patch commun retouché, `git apply --exclude=.claude-plugin/plugin.json --exclude=NOTES-DE-VERSION.md`, puis la version 7.38.2 et la note à la main (le texte du hunk, au-dessus de la note 7.38.1) ; `scripts/relecture.test.mjs`, `scripts/depot.test.mjs`, `tickets.test.mjs` et `scripts/relecteur.test.mjs` : 153 sur 153.
 - **Le test retouché**, sur les textes de `main` : vert (`scripts/relecture.test.mjs`, 39 sur 39).
 - **Les mutations** F1 à F7 avec le test de `25a72c7`, sur un autre clone : 5 vertes (F1, F2, F3, F5, F6), 2 rouges ; avec le test retouché : 7 rouges (de 56 à 99 secondes chacune).
 - **La mesure de `trim()`** : la commande de « Le besoin ».
@@ -214,5 +215,7 @@ Sur un clone neuf de `https://github.com/MAJ-agency/skills` à `25a72c7` (plugin
 - Le motif `\p{Cc}` du gate (`ecartsSensibles`) : il ne change pas.
 
 ## Comments
+
+- 2026-11-21 — Retouché après le tour unique de relecture (`67-annexes/relecture-tour-1/rapport.md`, constat 2 ; `A-184`, point 1) : `Blocked by: 69`, le ticket s'applique après la PR des tickets 67 à 69, sans ses deux fichiers de version, et prend la version suivante. Le patch ne change pas.
 
 - 2026-11-21 — Écrit par un agent rédacteur sur la passation de l'architecte du 2026-11-21 et sur la carte (PR 145, 2026-11-20) ; test, mutations et suite joués sur un clone neuf de `25a72c7` (« Vérification »).

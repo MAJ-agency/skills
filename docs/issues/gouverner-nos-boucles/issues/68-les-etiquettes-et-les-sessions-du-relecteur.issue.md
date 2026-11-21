@@ -38,7 +38,7 @@ Voir le ticket 67, même section : une PR, une version, une note (portées par l
   - `jouerGeste`, la pose, le commentaire, le retrait, dans cet ordre.
 - `skills/chaine/fusionner/scripts/decision-relecteur.mjs` : le JSDoc d'`EtatPR` (`sessions`), `ETATS_DE_SESSION`, `horsService` (règle 5).
 - `skills/chaine/sujet/scripts/faux-gh.mjs` : l'en-tête (`PR.evenements`), `evenement`, neuve, la pose et le retrait d'une étiquette, la route `GET issues/<n>/events`.
-- Les bancs : `relecteur.test.mjs` (deux cas d'`A-118` précisés, l'ordre du plafond, quatre cas neufs), `decision-relecteur.test.mjs` (un cas neuf, à la fin), `faux-gh.test.mjs` (un cas neuf, à la fin).
+- Les bancs : `relecteur.test.mjs` (deux cas d'`A-118` précisés, l'ordre du plafond, cinq cas neufs), `decision-relecteur.test.mjs` (un cas neuf, à la fin), `faux-gh.test.mjs` (un cas neuf, à la fin).
 
 `decision-relecteur.mjs` est posé dans chaque projet sous `scripts/chaine/` par `fusionner poser`, et `relecteur.mjs` joue celui de develop : un projet qui ne repose pas garde une décision qui refuse l'état `couple` (`TypeError`, sortie 1). La note de version le dit (ticket 69).
 
@@ -67,7 +67,7 @@ Voir le ticket 67, même section : une PR, une version, une note (portées par l
 
 ## Questions à l'architecte
 
-Chacune est écrite dans le code selon la recommandation ; une autre réponse change les lignes dites.
+Tranchées par `A-183`, points 1, 2 et 3, sur les recommandations ci-dessous, telles que le code les écrit ; le point 6 retient la marque la plus récente (décision 1). Gardées pour la trace.
 
 1. **C12, lequel des deux remèdes ?** (a) Au plafond, l'étiquette avant le commentaire (`relecteur.mjs` seul) ; (b) la règle 1, quand un plafond attend sa décision, rend aussi une ligne à l'architecte (`decision-relecteur.mjs`, un `deepEqual` du banc de la décision). **Recommandation : (a).** La décision et le capitaine n'y changent rien, et l'architecte n'apprend le plafond qu'une fois, avec la ligne qui dit « troisième tour refusé ». (b) lui redirait « décision de plafond attendue » chaque fois que l'auteur repose `à-relire` sur une PR au plafond ; ce peut être voulu, comme un rappel.
 2. **15, une session `couple` remplacée compte-t-elle dans le remplacement unique du tour ?** **Recommandation : oui**, comme `morte`, `plafond` ou `muette` : une seconde session hors service dans le même tour, c'est `Relecture en panne`, l'architecte prévenu. Le cas des deux sessions d'une PR « double » qui changent toutes deux de couple pendant un tour (le contrat de develop modifié) finit donc en panne ; `A-182` le dit rare. L'autre voie : la cause `couple` hors du compte (une condition de plus dans la règle 5).
@@ -81,7 +81,7 @@ Même branche, après le ticket 67 (« À faire » du ticket 67, § 0, pour `mai
 
 ### § 1 — Les bancs d'abord, vus rouges
 
-Les changements des trois bancs du diff ci-dessous, seuls, sur l'arbre du ticket 67 : `node --test skills/chaine/relecteur/scripts/relecteur.test.mjs skills/chaine/fusionner/scripts/decision-relecteur.test.mjs skills/chaine/sujet/scripts/faux-gh.test.mjs` rend **6 rouges sur 97** : « le plafond » (l'ordre), « suite 66 — C11 », « suite 66 — C12 », « suite 66 — A-182 (2) » du banc du Relecteur ; « A-182 (2) » du banc de la décision ; « faux gh, événements ». Les cas « NFC », « une étiquette déjà posée après la marque la plus récente » et « suite 66 — un passage rejoué » sont verts avant et après : ils tiennent qu'aucune ligne ne repart d'un passage rejoué.
+Les changements des trois bancs du diff ci-dessous, seuls, sur l'arbre du ticket 67 : `node --test skills/chaine/relecteur/scripts/relecteur.test.mjs skills/chaine/fusionner/scripts/decision-relecteur.test.mjs skills/chaine/sujet/scripts/faux-gh.test.mjs` rend **7 rouges sur 98** : « le plafond » (l'ordre), « suite 66 — C11 », « suite 66 — C11, A-183 point 6 », « suite 66 — C12 », « suite 66 — A-182 (2) » du banc du Relecteur ; « A-182 (2) » du banc de la décision ; « faux gh, événements ». Les cas « NFC », « une étiquette déjà posée après la marque la plus récente » et « suite 66 — un passage rejoué » sont verts avant et après : ils tiennent qu'aucune ligne ne repart d'un passage rejoué.
 
 ### § 2 — Le code
 
@@ -270,7 +270,7 @@ index c598be9..f4fab5e 100644
  }
  
 diff --git a/skills/chaine/relecteur/scripts/relecteur.test.mjs b/skills/chaine/relecteur/scripts/relecteur.test.mjs
-index c845332..e3babec 100644
+index c845332..96c4fcc 100644
 --- a/skills/chaine/relecteur/scripts/relecteur.test.mjs
 +++ b/skills/chaine/relecteur/scripts/relecteur.test.mjs
 @@ -124,20 +124,22 @@ test('nominal : distribuer (r6), écrire la distribution après la session, atte
@@ -316,7 +316,7 @@ index c845332..e3babec 100644
    assert.equal(d.etat().pulls[0].commentaires.at(-1).body, 'Plafond — décision attendue');
    assert.equal(d.json(d.lancer('jouer', '12'))[0].geste, 'rien', 'rejoué : rien, aucune ligne de plus');
  });
-@@ -773,3 +775,77 @@ test('suite 66 — 18 : un push entre la préparation et la lecture de la PR : l
+@@ -773,3 +775,89 @@ test('suite 66 — 18 : un push entre la préparation et la lecture de la PR : l
    assert.deepEqual([g.tete, g.geste, g.regle], [neuf, 'distribuer', 6], JSON.stringify(g));
    assert.ok(!d.etat().pulls[0].commentaires.some((c) => /^Lecture illisible/.test(c.body ?? c)), 'aucune trace d’illisible');
  });
@@ -340,6 +340,18 @@ index c845332..e3babec 100644
 +    assert.deepEqual(g.lignes.map((l) => [l.a, l.texte]), [['auteur', 'verdict écrit sur la PR 12 : refusé'], ['conducteur', 'verdict écrit sur la PR 12 : refusé']], nom);
 +    assert.deepEqual(ecritures(d), ['DELETE issues/12/labels/à-relire'], `${nom} : rien de posé, l’ancienne retirée`);
 +  }
++});
++
++test('suite 66 — C11, A-183 point 6 : une marque plus récente que la pose (une demande refaite sans push) fait repartir les lignes', () => {
++  const d = monter();
++  const sha = pr(d, { labels: ['à-relire', 'à-reprendre'] });
++  // Le tour refusé (minute 3), `à-reprendre` posée par le Relecteur après lui (minute 4), puis l'auteur redemande la
++  // relecture du même sommet (minute 5) sans retirer `à-reprendre` : la marque la plus récente est sa demande.
++  ajouter(d, [distribution(1, sha, ['session_rel1']), 2], [verdict(sha, 1, 'session_rel1', 'refusé'), 3], [DEMANDE(sha), 5]);
++  d.github({ pulls: [{ ...d.etat().pulls[0], evenements: [{ event: 'labeled', label: 'à-reprendre', created_at: minute(4) }] }] });
++  const g = d.json(d.lancer('jouer', '12'))[0];
++  assert.deepEqual([g.regle, g.geste, g.marque], [4, 'etiqueter', minute(5)], JSON.stringify(g));
++  assert.deepEqual(g.lignes.map((l) => l.a), ['auteur', 'conducteur'], 'posée avant la marque la plus récente : les lignes partent');
 +});
 +
 +test('suite 66 — un passage rejoué (l’étiquette posée par lui, après le verdict, l’ancienne pas retirée) ne redit rien ; la dernière pose compte', () => {
@@ -476,6 +488,7 @@ index f752286..37f864b 100644
 | Surface | Preuve |
 | --- | --- |
 | Une étiquette restée (posée avant la marque, à la même seconde, sans pose lue) : les lignes partent | `relecteur.test.mjs`, « suite 66 — C11 » (cinq états) ; mutations B1, B3, B5, B6, B8 |
+| La marque est la plus récente (`dernier`, `A-183` point 6) : une demande refaite après la pose fait repartir les lignes | « suite 66 — C11, A-183 point 6 » (l'essai `essai-marque` du tour de relecture) ; mutation B19 |
 | Un passage rejoué (posée après la marque ; la dernière pose compte ; NFC) : aucune ligne | « suite 66 — un passage rejoué », « NFC », « une étiquette déjà posée après la marque la plus récente » ; mutations B2, B4, B7 |
 | Au plafond, l'étiquette, puis le commentaire, puis le retrait ; un plafond à moitié écrit se rejoue entier | « le plafond », « suite 66 — C12 » (la pose refusée, le commentaire refusé) ; mutations B9, B10, B11 |
 | L'état `couple` lu, la session remplacée, cause `couple`, une fois par tour | `decision-relecteur.test.mjs`, « A-182 (2) » ; `relecteur.test.mjs`, « suite 66 — A-182 (2) » ; mutations B12, B13, B14 |
@@ -483,22 +496,22 @@ index f752286..37f864b 100644
 
 ## Mutations
 
-Dans [`67-annexes/mutations.mjs`](67-annexes/mutations.mjs), B1 à B18, sur l'arbre de la PR, chacune seule : **18 sur 18 rouges** (journal : [`67-annexes/mutations.txt`](67-annexes/mutations.txt)).
+Dans [`67-annexes/mutations.mjs`](67-annexes/mutations.mjs), B1 à B19 (B19 est G5 du tour de relecture), sur l'arbre de la PR, chacune seule : **19 sur 19 rouges** (journal : [`67-annexes/mutations.txt`](67-annexes/mutations.txt)).
 
 ## Vérification
 
-1. Le rouge, avant le code (§ 1) : 6 rouges sur 97.
-2. Le vert, après : les trois bancs, 97 sur 97 (41 pour le Relecteur, 40 pour la décision, 16 pour le faux).
-3. Les mutations B1 à B18 : « toutes rouges ».
+1. Le rouge, avant le code (§ 1) : 7 rouges sur 98.
+2. Le vert, après : les trois bancs, 98 sur 98 (42 pour le Relecteur, 40 pour la décision, 16 pour le faux).
+3. Les mutations B1 à B19 : « toutes rouges ».
 4. La suite entière : « Vérification » du ticket 69, pour la PR.
 
 ### Ce qui a été joué en écrivant ce ticket
 
 Sur le même clone neuf, après le ticket 67 :
 
-- **Rouge avant le code.** Les trois bancs du ticket sur l'arbre du ticket 67 : **6 rouges sur 97** (ceux du § 1).
-- **Vert après.** Le diff du ticket : 97 sur 97.
-- **Mutations.** B1 à B18, sur l'arbre de la PR : 18 sur 18 rouges.
+- **Rouge avant le code.** Les trois bancs du ticket sur l'arbre du ticket 67 : **7 rouges sur 98** (ceux du § 1).
+- **Vert après.** Le diff du ticket : 98 sur 98.
+- **Mutations.** B1 à B18, sur l'arbre de la PR : 18 sur 18 rouges ; B19, ajoutée après le tour de relecture, rouge.
 - **Le doute à la seconde près.** Le cas « suite 66 — C11 » joue cinq états : la pose avant le verdict, à la même minute, aucune pose, un retrait plus récent, la pose d'une autre étiquette ; chacun rend les deux lignes. Le cas « un passage rejoué » joue la vraie course : un retrait refusé (et tu) laisse les deux étiquettes, le rejeu ne redit rien.
 - **Les essais du rapport**, rejoués : C11 et C12 (`essais-c1.test.mjs`) rouges sur `25a72c7`, verts sur l'arbre de la PR.
 
@@ -514,5 +527,7 @@ Sur le même clone neuf, après le ticket 67 :
 - Le second remède de C12 (la règle 1 qui rendrait l'architecte) : question 1.
 
 ## Comments
+
+- 2026-11-21 — Retouché après le tour unique de relecture (`67-annexes/relecture-tour-1/rapport.md`, constat 4 ; `A-184`, point 3) : le cas de l'essai `essai-marque` au banc du Relecteur, et sa mutation G5 dans l'annexe, sous le nom B19 ; 7 rouges sur 98 avant le code.
 
 - 2026-11-21 — Écrit par un agent rédacteur sur la liste consolidée du rapport de contre-relecture de la PR 146 et sur `A-182` ; code, bancs et mutations joués sur un clone neuf de `25a72c7` (« Vérification »).

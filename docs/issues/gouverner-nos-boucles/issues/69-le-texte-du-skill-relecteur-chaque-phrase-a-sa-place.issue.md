@@ -6,7 +6,7 @@ Label: contre-revue
 Modèle: sonnet — six mineurs de texte (15, 16, 17, R4, R5, R6 de la contre-relecture de la PR 146) et le texte des tickets 67 et 68 ; chaque phrase est donnée mot pour mot (« À faire »), avec le banc des textes qui l'exige à sa place, la version et la note de la PR. Joué sur un clone neuf de `main` à `25a72c7`, après les tickets 67 et 68. Rien n'est à concevoir, sauf ce que « Questions à l'architecte » remonte, déjà écrit selon la recommandation. Ce ticket part dans une même PR que les tickets 67 et 68 : « Dans la même PR que les tickets 67 et 68 ».
 Blocked by: 68
 Dépendances: —
-Fichiers chauds: `skills/chaine/relecteur/SKILL.md`, `skills/chaine/relecteur/references/CONTENU.md`, `scripts/relecteur.test.mjs` : aucune autre PR ne les touche. `.claude-plugin/plugin.json` et `NOTES-DE-VERSION.md` : la PR 44 (hors programme) et la PR du ticket 70 les touchent aussi ; la version est la suivante de `main` au moment de livrer.
+Fichiers chauds: `skills/chaine/relecteur/SKILL.md`, `skills/chaine/relecteur/references/CONTENU.md`, `scripts/relecteur.test.mjs` : aucune autre PR ne les touche. `.claude-plugin/plugin.json` et `NOTES-DE-VERSION.md` : la PR 44 (hors programme) les touche aussi ; la PR du ticket 70 ne se lance qu'après la fusion de celle-ci (`A-184`, point 1).
 
 ## Le besoin
 
@@ -15,36 +15,36 @@ Les mineurs de texte de la liste consolidée du rapport de contre-relecture de l
 - **15 (`A-182`, point 2)** : le skill ne dit pas quand une session de relecture tourne à un autre couple que la PR, ni quoi en faire. Le ticket 68 donne à `--sessions` l'état `couple` ; le texte doit dire comment le lire (`get_session`), pour `reecrire` comme pour une session attendue, sans défaire la phrase de R2 (« une session seulement attendue (`rien`, raison `attente`) ne s'écrit jamais `morte` pour son couple », `SKILL.md:72`).
 - **16** : `send_message` en échec (une ligne, une relance) n'a pas de suite.
 - **17** : rien ne dit comment une installation en échec se retente ; la cause du ticket 67 le dit à l'architecte, le texte le dit à la session.
-- **R4** : la liste des causes des lignes à l'architecte (`SKILL.md:78`) n'a ni « create_session en échec : <son message> », que la phrase sur `create_session` appelle (`SKILL.md:66`), ni la forme d'une commande coupée sans code (« sortie aucune »).
+- **R4** : la liste des causes des lignes à l'architecte (`SKILL.md:78`) n'a ni la cause « create_session en échec », que la phrase sur `create_session` appelle (`SKILL.md:66`), ni la forme d'une commande coupée sans code (« sortie aucune »).
 - **R5** : la ligne de la sortie 9 (`SKILL.md:58`) dit « rejouer au réveil suivant » sans borne, et la puce `VEILLE ARRÊTÉE` (`SKILL.md:94`) relance la veille sans `--attendre` (ticket 67).
 - **R6** : `scripts/relecteur.test.mjs:65-66` exige les phrases de R1 et R2 dans le fichier, pas à leur place ; les mutations E1 (la relance hors de la puce `VEILLE ARRÊTÉE`) et E2 (la borne du couple hors de « L'état des sessions ») du rapport (`mutations/mutations-c3.mjs`) survivent au banc du dépôt.
 - **Le texte des tickets 67 et 68** : une étiquette restée n'est pas un passage rejoué (« Les lignes ») ; `CONTENU.md` décrit le script et le banc tels qu'ils sont.
 
 ## Dans la même PR que les tickets 67 et 68
 
-Voir le ticket 67, même section. Ce ticket porte la version et la note de la PR entière. Il se joue sur l'arbre du ticket 68.
+Voir le ticket 67, même section. Ce ticket porte la version et la note de la PR entière. Il se joue sur l'arbre du ticket 68. **Cette PR est lancée seule, la première** (`A-184`, point 1) : la session du ticket 70 ne se lance qu'après sa fusion, et prend la version suivante.
 
 ## Où
 
-- `skills/chaine/relecteur/SKILL.md` : « Mise en place », point 2 (17) ; la table d'« À chaque réveil », lignes `remplacer` et `reecrire` (15) ; la table des sorties, ligne 9 (R5) ; « L'état des sessions » (15) ; « Les lignes » (C11, 16, R4, la quatrième forme) ; « La veille », la puce `VEILLE ARRÊTÉE` et le paragraphe qui suit (R5). 107 lignes après, sous les 200 d'`A-98`.
+- `skills/chaine/relecteur/SKILL.md` : « Mise en place », point 2 (17) ; la table d'« À chaque réveil », lignes `remplacer` et `reecrire` (15) ; la table des sorties, ligne 9 (R5) ; « L'état des sessions » (15) ; « Les lignes » (C11, 16, R4, la quatrième forme) ; « La veille », les puces `VEILLE GESTE`, `VEILLE FINIE` et `VEILLE ARRÊTÉE` et le paragraphe qui suit (R5). 107 lignes après, sous les 200 d'`A-98`.
 - `skills/chaine/relecteur/references/CONTENU.md` : le paragraphe du script et celui du banc.
 - `scripts/relecteur.test.mjs` : deux aides, `section` et `ligne` ; le cas « contre-relecture de la PR 146 », dont les phrases de R1, R2 et des formes sont exigées à leur place ; un cas neuf, à la fin.
 - `.claude-plugin/plugin.json` et `NOTES-DE-VERSION.md`.
 
 ## Décisions
 
-1. **R5 : la sortie 9 a la borne de 12**, « rejouer au réveil suivant ; à la seconde fois, l'architecte, et s'arrêter », et la puce `VEILLE ARRÊTÉE` relance la veille **avec `--attendre`** ; « La veille » dit ce que fait l'option et pourquoi. C'est le remède du rapport, mot pour mot.
+1. **R5 : la sortie 9 a la borne de 12**, « rejouer au réveil suivant ; à la seconde fois, l'architecte, et s'arrêter », et la puce `VEILLE ARRÊTÉE` relance la veille **avec `--attendre`** ; « La veille » dit ce que fait l'option et pourquoi. C'est le remède du rapport, mot pour mot. Les puces `VEILLE GESTE` et `VEILLE FINIE` disent « puis relancer la veille, avec `--attendre` si un geste de ce réveil a rendu une suite « rejouer au réveil suivant » » (`A-184`, point 3) : un `jouer` au premier plan sorti en 12 pendant le réveil ne se rejoue pas aussitôt par la première passe de la veille relancée.
 2. **15 : l'état `couple` se lit par `get_session`**, `session_context.model` qui ne contient pas `faits.modele`, ou `session_context.effort_level` qui n'est pas `faits.effort`.
    - `reecrire` réemploie la session : il suit la règle de « Créer ou relancer » d'`A-182`, point 1 (sans les deux champs, le couple n'est pas tenu pour égal : `couple`).
    - Une session seulement attendue (`rien`, raison `attente`) n'est `couple` que si `get_session` rend les deux champs et que l'un diffère : un champ absent la laisse `vivante` (question 2). La phrase de R2 en garde le sens : elle ne s'écrit jamais `morte` pour son couple.
    - Une session `couple` est remplacée comme une morte, une fois par tour ; la ligne `remplacer` le dit (rien de plus que la session neuve au couple de `faits`), la ligne `reecrire` aussi.
 3. **16 : `send_message` en échec se rejoue une fois** ; encore en échec, une ligne à l'architecte, puis la suite du geste ; une ligne à l'architecte elle-même en échec deux fois : l'écrire dans sa réponse, et s'arrêter, comme pour un outil absent (« Mise en place », point 1). Une relance perdue n'a pas d'autre suite : la session relancée devient `muette` au délai, et la règle 5 la remplace.
-4. **Une quatrième forme de ligne à l'architecte**, pour une ligne perdue : « PR <n> : send_message en échec vers <session> : <son message> » (question 1). Les trois formes d'`A-182`, point 4, ne changent pas.
-5. **R4 : deux causes de plus** dans la liste : « <sous-commande> sortie aucune : l'outil l'a arrêtée » pour une commande coupée sans code, et « create_session en échec : <son message> ».
+4. **Une quatrième forme de ligne à l'architecte**, pour une ligne perdue : « PR <n> : send_message en échec vers <session> : <sa dernière ligne non vide> » (question 1) ; le message d'un outil se recopie par sa dernière ligne non vide, comme la sortie d'erreur d'une sous-commande. Les trois formes d'`A-182`, point 4, ne changent pas.
+5. **R4 : deux causes de plus** dans la liste : « <sous-commande> sortie aucune : l'outil l'a arrêtée » pour une commande coupée sans code, et « create_session en échec : <sa dernière ligne non vide> ».
 6. **17** : « Mise en place », point 2 : l'installation ne se retente qu'au lockfile suivant de develop, ou dans un Relecteur neuf, et la cause le dit à l'architecte.
 7. **C11 (ticket 68)** : « Les lignes » dit qu'une étiquette posée avant la marque la plus récente n'est pas un passage rejoué.
 8. **R6 : chaque phrase exigée l'est à sa place.** Deux aides du banc des textes : `section(texte, titre)`, du titre au titre suivant de même niveau ; `ligne(texte, titre, debut)`, la seule ligne de la section qui commence par `debut` (une puce, une ligne de table). Les phrases de R1 (dans la puce `VEILLE ARRÊTÉE`), de R2 (dans « L'état des sessions ») et des formes (dans « Les lignes ») passent de la liste du fichier à leur place ; chaque phrase neuve de ce ticket est exigée à la sienne. Raison : la phrase d'`A-182` l'était déjà ainsi ; une phrase déplacée hors de son geste ne se lit plus au moment de le jouer.
-9. **La version** : la PR entière prend la suivante de `main` au moment de livrer, le troisième nombre plus un (7.38.1 sur `25a72c7`) ; si `main` a bougé (la PR du ticket 70 entrée avant), la suivante de celle-là, et la note se place avant la première note du fichier, à la date du jour.
+9. **La version** : la PR entière prend la suivante de `main` au moment de livrer, le troisième nombre plus un (7.38.1 sur `25a72c7`), et la note se place avant la première note du fichier, à la date du jour. Elle est lancée seule, la première (`A-184`, point 1) : la PR du ticket 70 vient après sa fusion et prend la version d'après. Si `main` a bougé par une autre PR, la suivante de celle-là (ticket 67, § 0).
 
 ### Remèdes écartés
 
@@ -53,9 +53,9 @@ Voir le ticket 67, même section. Ce ticket porte la version et la note de la PR
 
 ## Questions à l'architecte
 
-Chacune est écrite dans le texte selon la recommandation.
+Tranchées par `A-183`, points 4 et 5, sur les recommandations ci-dessous, telles que le texte les écrit (la forme de la ligne perdue, « <sa dernière ligne non vide> », par `A-184`, point 3). Gardées pour la trace.
 
-1. **Une quatrième forme de ligne à l'architecte** (16), alors qu'`A-182`, point 4, en a fixé trois « et aucune autre ». **Recommandation : oui**, « PR <n> : send_message en échec vers <session> : <son message> ». Une ligne perdue n'est ni une PR tue, ni un arrêt, ni une orpheline ; la faire entrer dans l'une des trois mentirait sur l'état de la PR.
+1. **Une quatrième forme de ligne à l'architecte** (16), alors qu'`A-182`, point 4, en a fixé trois « et aucune autre ». **Recommandation : oui**, « PR <n> : send_message en échec vers <session> : <sa dernière ligne non vide> ». Une ligne perdue n'est ni une PR tue, ni un arrêt, ni une orpheline ; la faire entrer dans l'une des trois mentirait sur l'état de la PR.
 2. **Un champ de `get_session` absent pour une session seulement attendue** (15) : `vivante`, ou `couple` comme au réemploi ? **Recommandation : `vivante`.** R2 a borné la phrase d'`A-182`, point 1, au réemploi pour cette raison : `couple` coûterait le remplacement unique du tour, et un second `get_session` sans `effort_level` (l'outil prévient qu'un effort peut être retiré) écrirait `Relecture en panne` pour rien. `reecrire`, qui réemploie, reste sous la règle du réemploi.
 
 ## À faire, dans l'ordre
@@ -117,7 +117,7 @@ index 9e2e48c..92e7ceb 100644
  
  ### Ce qui change
 diff --git a/scripts/relecteur.test.mjs b/scripts/relecteur.test.mjs
-index bee9b85..879f619 100644
+index bee9b85..d99ad32 100644
 --- a/scripts/relecteur.test.mjs
 +++ b/scripts/relecteur.test.mjs
 @@ -15,6 +15,22 @@ const exigerDans = (chemin, phrases) => {
@@ -162,7 +162,7 @@ index bee9b85..879f619 100644
    // A-182 : un champ que get_session ne rend pas, dans les deux sections qui le lisent.
    const phrase = "Sans compte de tokens (`context_usage`), la session n'est pas tenue au plafond ; sans `effort_level`, le couple n'est pas tenu pour égal, et la PR reçoit une session neuve.";
    const skillA182 = lire(`${SKILL}/SKILL.md`);
-@@ -122,3 +141,29 @@ test("les cartes nomment le Relecteur : `Relecteurs:` dans la fiche d'un program
+@@ -122,3 +141,33 @@ test("les cartes nomment le Relecteur : `Relecteurs:` dans la fiche d'un program
  test("fusionner/references/CONTENU.md décrit les trois calculs de la relecture (A-137)", () => {
    exigerDans("skills/chaine/fusionner/references/CONTENU.md", ["## `scripts/verdict.mjs`, `scripts/decision-relecteur.mjs`", "## `scripts/meme-contenu.sh`", "## `scripts/double-relecture.mjs`", "Un refus ne compte jamais moins qu'un refus"]);
  });
@@ -172,6 +172,10 @@ index bee9b85..879f619 100644
 +  // R5 : la sortie 9 a la borne de 12, et `--attendre` se dit dans « La veille ».
 +  exigerA(ligne(texte, "## Les sorties de `passe`, `jouer` et `distribuer`", "| 9 |"), "la ligne de la sortie 9", ["rejouer au réveil suivant ; à la seconde fois, l'architecte, et s'arrêter"]);
 +  exigerA(section(texte, "## La veille"), "« La veille »", ["`--attendre` : une pause avant la première passe aussi, sous la même borne de 25 minutes"]);
++  // A-184 (3) : un geste au premier plan qui renvoie au réveil suivant pendant un réveil fait relancer la veille avec
++  // `--attendre`, après `VEILLE GESTE` comme après `VEILLE FINIE`.
++  for (const puce of ["- **`VEILLE GESTE`**", "- **`VEILLE FINIE`**"])
++    exigerA(ligne(texte, "## La veille", puce), `la puce ${puce}`, ["puis relancer la veille, avec `--attendre` si un geste de ce réveil a rendu une suite « rejouer au réveil suivant »"]);
 +  // 15 (A-182, point 2) : l'état `couple`, lu pour `reecrire` comme pour une session attendue, remplacé une fois par tour.
 +  exigerA(section(texte, "## L'état des sessions"), "« L'état des sessions »", [
 +    '`{ "<session>": "vivante" | "morte" | "plafond" | "couple" }`',
@@ -183,9 +187,9 @@ index bee9b85..879f619 100644
 +  exigerA(ligne(texte, "## À chaque réveil", "| `remplacer` |"), "la ligne de `remplacer`", ["cause `couple` : rien de plus, la neuve est au couple de `faits`"]);
 +  // 16, R4 et C11 : `send_message` en échec, les causes des lignes à l'architecte, une étiquette restée.
 +  exigerA(section(texte, "## Les lignes"), "« Les lignes »", [
-+    "`send_message` en échec (une ligne, ou le message de relance) : le rejouer une fois ; encore en échec, une ligne à l'architecte, « PR <n> : send_message en échec vers <session> : <son message> », puis la suite du geste. Une ligne à l'architecte elle-même en échec deux fois : l'écrire dans sa réponse, et s'arrêter.",
++    "`send_message` en échec (une ligne, ou le message de relance) : le rejouer une fois ; encore en échec, une ligne à l'architecte, « PR <n> : send_message en échec vers <session> : <sa dernière ligne non vide> », puis la suite du geste. Une ligne à l'architecte elle-même en échec deux fois : l'écrire dans sa réponse, et s'arrêter.",
 +    "« <sous-commande> sortie aucune : l'outil l'a arrêtée » pour une commande coupée sans code",
-+    "« create_session en échec : <son message> »",
++    "« create_session en échec : <sa dernière ligne non vide> »",
 +    "Une étiquette déjà là, posée avant la marque la plus récente de la PR (restée d'un tour d'avant, que l'auteur n'a pas retirée), n'est pas un passage rejoué : ses lignes partent.",
 +  ]);
 +  // 17 : comment l'installation se retente.
@@ -193,7 +197,7 @@ index bee9b85..879f619 100644
 +  assert.ok(!texte.includes("ont trois formes"), "les lignes à l'architecte ont quatre formes");
 +});
 diff --git a/skills/chaine/relecteur/SKILL.md b/skills/chaine/relecteur/SKILL.md
-index dda57ce..a7ce4a1 100644
+index dda57ce..93d3496 100644
 --- a/skills/chaine/relecteur/SKILL.md
 +++ b/skills/chaine/relecteur/SKILL.md
 @@ -24,7 +24,7 @@ Une PR du régime 8 n'est pas relue par son auteur : une **session de relecture*
@@ -238,17 +242,21 @@ index dda57ce..a7ce4a1 100644
 +`lignes` est une liste de `{ a, session, texte }`. `a` vaut `auteur` ou `conducteur` : le `texte` part à `session` par `send_message`, tel quel ; `session` vaut `null` (une PR écrite sans session, `Session: —`) : personne n'est sonné. `a` vaut `architecte` : le `texte` part à la session de la ligne « Architecte : ». Jamais un constat, jamais un résumé, jamais un mot de plus. `jouer` ne rend une ligne qu'au changement d'étiquette, ou avec le commentaire du plafond : rejoué, il n'en rend aucune. Une étiquette déjà là, posée avant la marque la plus récente de la PR (restée d'un tour d'avant, que l'auteur n'a pas retirée), n'est pas un passage rejoué : ses lignes partent.
  
 -Les lignes du Relecteur lui-même à l'architecte ont trois formes, et aucune autre : « PR <n> : <cause> ; PR tue » quand il fait taire une PR ; « Relecteur arrêté : <cause> » quand il s'arrête ; « PR <n> : session <id> orpheline, à archiver ». La `<cause>` : la `raison` de la passe (`contrat-illisible`) ; « <sous-commande> sortie <c> : <dernière ligne de sa sortie d'erreur> » ; « create_session refuse effort » ; « <outil> absent » ; « contexte à <k> tokens » (le sien, à `VEILLE FINIE`).
-+`send_message` en échec (une ligne, ou le message de relance) : le rejouer une fois ; encore en échec, une ligne à l'architecte, « PR <n> : send_message en échec vers <session> : <son message> », puis la suite du geste. Une ligne à l'architecte elle-même en échec deux fois : l'écrire dans sa réponse, et s'arrêter.
++`send_message` en échec (une ligne, ou le message de relance) : le rejouer une fois ; encore en échec, une ligne à l'architecte, « PR <n> : send_message en échec vers <session> : <sa dernière ligne non vide> », puis la suite du geste. Une ligne à l'architecte elle-même en échec deux fois : l'écrire dans sa réponse, et s'arrêter.
 +
-+Les lignes du Relecteur lui-même à l'architecte ont quatre formes, et aucune autre : « PR <n> : <cause> ; PR tue » quand il fait taire une PR ; « Relecteur arrêté : <cause> » quand il s'arrête ; « PR <n> : session <id> orpheline, à archiver » ; « PR <n> : send_message en échec vers <session> : <son message> », une ligne perdue. La `<cause>` : la `raison` de la passe (`contrat-illisible`) ; « <sous-commande> sortie <c> : <dernière ligne de sa sortie d'erreur> », ou « <sous-commande> sortie aucune : l'outil l'a arrêtée » pour une commande coupée sans code ; « create_session refuse effort » ; « create_session en échec : <son message> » ; « <outil> absent » ; « contexte à <k> tokens » (le sien, à `VEILLE FINIE`).
++Les lignes du Relecteur lui-même à l'architecte ont quatre formes, et aucune autre : « PR <n> : <cause> ; PR tue » quand il fait taire une PR ; « Relecteur arrêté : <cause> » quand il s'arrête ; « PR <n> : session <id> orpheline, à archiver » ; « PR <n> : send_message en échec vers <session> : <sa dernière ligne non vide> », une ligne perdue. La `<cause>` : la `raison` de la passe (`contrat-illisible`) ; « <sous-commande> sortie <c> : <dernière ligne de sa sortie d'erreur> », ou « <sous-commande> sortie aucune : l'outil l'a arrêtée » pour une commande coupée sans code ; « create_session refuse effort » ; « create_session en échec : <sa dernière ligne non vide> » ; « <outil> absent » ; « contexte à <k> tokens » (le sien, à `VEILLE FINIE`).
  
  ## Les messages des sessions de relecture
  
-@@ -91,10 +93,10 @@ Un message ne fait que hâter : la veille fait le même travail à sa sonde suiv
+@@ -89,12 +91,12 @@ Un message ne fait que hâter : la veille fait le même travail à sa sonde suiv
  
- - **`VEILLE GESTE`** suivi d'une ligne `GESTE <n> <geste> règle <r>` par PR : « À chaque réveil », puis relancer la veille ;
- - **`VEILLE FINIE`** : 25 minutes sans geste ; relever son propre contexte (`get_session` sans argument, `external_metadata.context_usage.used_tokens`) : au-delà de 500 000 tokens, l'écrire à l'architecte, qui lance un Relecteur neuf, et s'arrêter ; sinon « À chaque réveil », puis relancer la veille ;
+ `node '<dossier du skill>/scripts/relecteur.mjs' veille --duree 25 > <scratchpad>/relecteur-veille.log 2>&1`, en tâche de fond (`run_in_background`) : toutes les 2 minutes (`--pause`), une passe, sans aucun geste. **25 minutes, pas plus** : l'outil Bash arrête une tâche de fond à 30 minutes par défaut, et une veille plus longue mourrait sans ligne finale ; elle ne commence aucune pause qui finirait après ses 25 minutes. Elle s'arrête d'elle-même, et sa fin réveille la session :
+ 
+-- **`VEILLE GESTE`** suivi d'une ligne `GESTE <n> <geste> règle <r>` par PR : « À chaque réveil », puis relancer la veille ;
+-- **`VEILLE FINIE`** : 25 minutes sans geste ; relever son propre contexte (`get_session` sans argument, `external_metadata.context_usage.used_tokens`) : au-delà de 500 000 tokens, l'écrire à l'architecte, qui lance un Relecteur neuf, et s'arrêter ; sinon « À chaque réveil », puis relancer la veille ;
 -- **`VEILLE ARRÊTÉE sortie <c>`** : la passe est sortie autrement qu'en 0 ou en 5 ; la suite de cette sortie (« Les sorties »), avec la dernière ligne du journal ; quand cette suite dit « rejouer au réveil suivant » (9, 12, autre), relancer la veille : sa fin est ce réveil ;
++- **`VEILLE GESTE`** suivi d'une ligne `GESTE <n> <geste> règle <r>` par PR : « À chaque réveil », puis relancer la veille, avec `--attendre` si un geste de ce réveil a rendu une suite « rejouer au réveil suivant » ;
++- **`VEILLE FINIE`** : 25 minutes sans geste ; relever son propre contexte (`get_session` sans argument, `external_metadata.context_usage.used_tokens`) : au-delà de 500 000 tokens, l'écrire à l'architecte, qui lance un Relecteur neuf, et s'arrêter ; sinon « À chaque réveil », puis relancer la veille, avec `--attendre` si un geste de ce réveil a rendu une suite « rejouer au réveil suivant » ;
 +- **`VEILLE ARRÊTÉE sortie <c>`** : la passe est sortie autrement qu'en 0 ou en 5 ; la suite de cette sortie (« Les sorties »), avec la dernière ligne du journal ; quand cette suite dit « rejouer au réveil suivant » (9, 12, autre), relancer la veille avec `--attendre` : sa fin est ce réveil ;
  - **aucune de ces trois lignes** (l'outil a arrêté la veille) : comme `VEILLE FINIE`.
  
@@ -281,7 +289,7 @@ index 1b2ef1b..b5bf81b 100644
 
 ### § 3 — Livrer
 
-Une PR vers `main`, pour les tickets 67, 68 et 69, titre `fix(relecteur): une étiquette restée, un plafond à moitié écrit, une session à un autre couple, une veille qui attend (plugin <version>)`. `Label: contre-revue` : l'architecte la fait contre-relire. Les tickets passent à `Status: Fait — PR <n> (…)` à la fusion, par l'architecte. Dans le corps : les rouges avant (4, 6 et 2, ticket par ticket), les verts après, les mutations, la suite entière.
+Une PR vers `main`, pour les tickets 67, 68 et 69, titre `fix(relecteur): une étiquette restée, un plafond à moitié écrit, une session à un autre couple, une veille qui attend (plugin <version>)`. `Label: contre-revue` : l'architecte la fait contre-relire. Les tickets passent à `Status: Fait — PR <n> (…)` à la fusion, par l'architecte. Dans le corps : les rouges avant (4, 7 et 2, ticket par ticket), les verts après, les mutations, la suite entière. Lancée seule, la première : la PR du ticket 70 attend sa fusion (`A-184`, point 1).
 
 ## Surfaces
 
@@ -293,37 +301,39 @@ Une PR vers `main`, pour les tickets 67, 68 et 69, titre `fix(relecteur): une é
 | Les lignes `reecrire` et `remplacer` de la table (15) | « suite du ticket 66 (ticket 69)… » ; mutation C7 |
 | `send_message` en échec ; quatre formes ; les causes neuves (16, R4) | les deux cas ; mutations C9, C10, C11, C12 |
 | Une étiquette restée (C11) ; l'installation à retenter (17) | « suite du ticket 66 (ticket 69)… » ; mutations C13, C14 |
+| Après `VEILLE GESTE` et `VEILLE FINIE`, la veille relancée avec `--attendre` si un geste a rendu « rejouer au réveil suivant » (`A-184`, point 3) | « suite du ticket 66 (ticket 69)… », dans chacune des deux puces ; mutations C15, C16 |
 | `SKILL.md` sous 200 lignes, déclaré, marqué | « le skill relecteur est un rôle… », inchangé |
 | La version et la note | les tests de version de `scripts/depot.test.mjs` |
 
 ## Mutations
 
-Dans [`67-annexes/mutations.mjs`](67-annexes/mutations.mjs), C1 à C14 et C2b (C1 et C2b rejouent E1 et E2 du rapport sur les phrases neuves), chacune seule : **15 sur 15 rouges** (journal : [`67-annexes/mutations.txt`](67-annexes/mutations.txt)).
+Dans [`67-annexes/mutations.mjs`](67-annexes/mutations.mjs), C1 à C16 et C2b (C1 et C2b rejouent E1 et E2 du rapport sur les phrases neuves ; C15 et C16 sont ajoutées après le tour de relecture), chacune seule : **17 sur 17 rouges** (journal : [`67-annexes/mutations.txt`](67-annexes/mutations.txt)).
 
 ## Vérification
 
 ### Pour la session
 
-1. Le rouge, ticket par ticket, avant leur code : 4 (ticket 67), 6 (ticket 68), 2 (ticket 69).
+1. Le rouge, ticket par ticket, avant leur code : 4 (ticket 67), 7 (ticket 68), 2 (ticket 69).
 2. Le vert, après les trois : `node --test skills/chaine/relecteur/scripts/relecteur.test.mjs skills/chaine/fusionner/scripts/decision-relecteur.test.mjs skills/chaine/sujet/scripts/faux-gh.test.mjs scripts/relecteur.test.mjs scripts/depot.test.mjs scripts/points-d-entree.test.mjs scripts/relecture.test.mjs` ; puis `pnpm test`, la suite entière, d'un seul tenant, avec son compte, sa durée et la charge (`uptime` avant et après).
-3. `node <scratchpad>/mutations.mjs` depuis la racine : « toutes rouges » (40). Sur `main` plus avancé, une mutation « INTROUVABLE » dit qu'un texte a bougé : la refaire sur le texte nouveau.
+3. `node <scratchpad>/mutations.mjs` depuis la racine : « toutes rouges » (43). Sur `main` plus avancé, une mutation « INTROUVABLE » dit qu'un texte a bougé : la refaire sur le texte nouveau.
 4. `git diff --stat origin/main` : les onze fichiers des « Où » des trois tickets, et eux seuls.
 
 ### Ce qui a été joué en écrivant ce ticket
 
-Sur un clone neuf de `https://github.com/MAJ-agency/skills` à `25a72c7` (plugin 7.38.0), le 2026-11-21, Node 22.23.5, git 2.43.0, quatre cœurs :
+Sur un clone neuf de `https://github.com/MAJ-agency/skills` à `25a72c7` (plugin 7.38.0), le 2026-11-21, Node 22.23.5, git 2.43.0, quatre cœurs ; rejoué après les retouches du tour de relecture (`A-184`) :
 
-- **Rouge avant le texte.** `scripts/relecteur.test.mjs` sur l'arbre du ticket 68 : **2 rouges sur 9** (ceux du § 1). Ticket par ticket, avant chaque code : 4, 6 et 2, soit **12 rouges** pour la PR.
-- **Vert après.** `scripts/relecteur.test.mjs` 9 sur 9 ; avec `depot.test.mjs`, `points-d-entree.test.mjs` et `relecture.test.mjs` : 177 sur 177.
-- **Mutations.** Les 40 de [`67-annexes/mutations.mjs`](67-annexes/mutations.mjs) (A1 à A7, B1 à B18, C1 à C14 et C2b), sur l'arbre de la PR, chacune seule : **40 rouges sur 40** ; aucune « INTROUVABLE ». Les textes des mutations E1 et E2 du rapport n'existent plus sous leur forme d'avant : C1 et C2b les rejouent sur les phrases neuves.
+- **Rouge avant le texte.** `scripts/relecteur.test.mjs` sur l'arbre du ticket 68 : **2 rouges sur 9** (ceux du § 1). Ticket par ticket, avant chaque code : 4, 7 et 2, soit **13 rouges** pour la PR.
+- **Vert après.** `scripts/relecteur.test.mjs` 9 sur 9 ; avec le banc du Relecteur, 51 sur 51.
+- **Mutations.** Les 43 de [`67-annexes/mutations.mjs`](67-annexes/mutations.mjs) (A1 à A7, B1 à B19, C1 à C16 et C2b) : **43 rouges sur 43**, aucune « INTROUVABLE ». Les 40 d'avant le tour, sur le patch d'avant ; après le tour, les trois neuves (B19, C15, C16), les deux dont le texte a changé (C9, C11) et un échantillon de onze, sur le patch retouché : 16 sur 16 ([`67-annexes/mutations.txt`](67-annexes/mutations.txt)). Les textes des mutations E1 et E2 du rapport de la PR 146 n'existent plus sous leur forme d'avant : C1 et C2b les rejouent sur les phrases neuves.
 - **Les essais du rapport** : C11, C12 et R3 rouges sur `25a72c7`, verts sur l'arbre de la PR (tickets 67 et 68).
-- **La suite entière**, `pnpm test` (`node --test` sur ses quatre motifs), d'un seul tenant, sur le clone neuf avec le patch : **1 289 tests, 1 289 verts**, aucun échec, sauté ni annulé (1 279 sur `25a72c7`, plus les dix cas neufs : sept au banc du Relecteur, un à celui de la décision, un au faux GitHub, un au banc des textes) ; 13 min 29 s (20:07:29 → 20:20:58 UTC, `duration_ms` 808751), quatre cœurs, charge 0,91 au départ, 2,29 à la fin, notée aux bords seulement.
-- **Le patch** : [`67-annexes/ticket-67-68-69.patch`](67-annexes/ticket-67-68-69.patch), `git apply --check` puis `git apply` sur le clone neuf : onze fichiers, l'arbre `c0aa2ddfd07f1651e0da93d8dd97f5bcf77e252c`, le même que les trois diffs des tickets appliqués l'un après l'autre.
+- **La suite entière**, `pnpm test` (`node --test` sur ses quatre motifs), d'un seul tenant, sur le clone neuf avec le patch retouché : **1 290 tests, 1 290 verts**, aucun échec, sauté ni annulé (1 279 sur `25a72c7`, plus les onze cas neufs : huit au banc du Relecteur, un à celui de la décision, un au faux GitHub, un au banc des textes) ; 13 min 53 s (21:38:54 → 21:52:47 UTC, `duration_ms` 832694), quatre cœurs, charge 0,99 au départ, 3,29 à la fin, notée aux bords seulement. Avant le tour de relecture, sur le patch d'avant : 1 289 sur 1 289.
+- **Le patch** : [`67-annexes/ticket-67-68-69.patch`](67-annexes/ticket-67-68-69.patch), `git apply --check` puis `git apply` sur le clone neuf : onze fichiers, +361 −57, l'arbre `b6aa23b02c2951e5448d57de44ec70974392ea9d`, le même que les trois diffs des tickets appliqués l'un après l'autre.
 
 ## Ce qui n'a pas été établi
 
+- **Une session sensible lue `couple` parce que l'effort que rapporte `get_session` aurait baissé.** L'outil prévient qu'un effort peut être « abaissé, remplacé ou retiré » par l'organisation, le modèle ou l'environnement ; une session créée en `xhigh` et rapportée plus bas serait lue `couple`, remplacée, puis sa remplaçante aussi : la panne. La sonde de l'architecte du 2026-11-21 à 21 h 19 UTC (une session créée en `xhigh` dans l'environnement de ce dépôt rapporte `effort_level` `xhigh` à la création et après son premier tour) laisse ce risque théorique (`A-184`, point 2). S'il se produit, la voie retenue est de comparer à l'autre clé (`faits.autre`), testable par un banc ; le code ne change pas d'ici là.
 - **Les gestes du modèle** (`get_session`, `send_message`, `create_session`) ne se jouent sur aucun banc ; le banc des textes tient que le skill dit le geste à sa place, pas qu'une session le fasse.
-- **La forme exacte d'un `send_message` en échec** (le texte d'erreur de l'outil) n'est pas connue ; la ligne recopie « son message » tel quel.
+- **La forme exacte d'un `send_message` en échec** (le texte d'erreur de l'outil) n'est pas connue ; la ligne n'en recopie que la dernière ligne non vide.
 - **Les aides `section` et `ligne`** lisent le texte par ses titres et le début de ses lignes : un titre renommé rougit le banc sans faute de sens. C'est un rouge qui dit « relis la place », pas une preuve de conduite.
 
 ## Hors périmètre
@@ -332,5 +342,7 @@ Sur un clone neuf de `https://github.com/MAJ-agency/skills` à `25a72c7` (plugin
 - Les bancs du skill `relecture` et du gate `tickets` : ticket 70, une autre PR.
 
 ## Comments
+
+- 2026-11-21 — Retouché après le tour unique de relecture (`67-annexes/relecture-tour-1/rapport.md`, constats 2, 3, 5 et 6 ; `A-184`) : la PR lancée seule, la première ; le risque de l'effort rapporté dans « Ce qui n'a pas été établi » ; `--attendre` après `VEILLE GESTE` et `VEILLE FINIE`, exigé à sa place, mutations C15 et C16 ; « <sa dernière ligne non vide> ».
 
 - 2026-11-21 — Écrit par un agent rédacteur sur la liste consolidée du rapport de contre-relecture de la PR 146 et sur `A-182` ; texte, bancs et mutations joués sur un clone neuf de `25a72c7` (« Vérification »).
