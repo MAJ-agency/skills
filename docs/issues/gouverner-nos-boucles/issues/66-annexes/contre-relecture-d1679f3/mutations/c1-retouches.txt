@@ -1,0 +1,18 @@
+# Les quinze mutations K1 à K15 (mutations-c1.mjs) sur d1679f3 + retouches-tour-1.patch (quatre copies)
+# 2026-11-21, 17:48:21 → 17:55:46 UTC (7 min 25 s), charge 2,71 → pointe 5,5 → 0,62
+ROUGE K1 git : les GIT_CONFIG_* de la session remplacés, pas complétés (84 s) — contre-relecture — les `GIT_CONFIG_*` de la session sont com
+ROUGE K2 git : le fsmonitor n’est plus coupé (83 s) — contre-relecture — aucun hook que git connaît ne joue, ni da
+ROUGE K3 git : les hooks cherchés à leur place par défaut (.git/hooks) (85 s) — contre-relecture — aucun hook que git connaît ne joue, ni da
+ROUGE K4 diff propre : `a-juger` en échec lu comme une liste vide (72 s) — les autres causes d’illisible : `a-juger` en échec, le diff 
+ROUGE K5 diff propre : le diff vers develop en échec lu comme une liste vide (83 s) — les autres causes d’illisible : `a-juger` en échec, le diff 
+ROUGE K6 dépendances : une installation en échec relue comme faite (82 s) — X15 — les causes d’illisible, une à une : forme refusée par 
+ROUGE K7 dépendances : une installation en échec rend illisible toute PR vers un sujet (85 s) — une installation en échec : sa sortie d’erreur au journal de
+ROUGE K8 illisible : une cause signalée ne se redit jamais, même après le délai (71 s) — les autres causes d’illisible : `a-juger` en échec, le diff 
+ROUGE K9 illisible : une forme refusée sans session d’auteur ne sonne personne (84 s) — X15 — les causes d’illisible, une à une : forme refusée par 
+ROUGE K10 dépendances : l’installation sans `--frozen-lockfile` (83 s) — les dépendances de develop : installées quand son lockfile c
+ROUGE K11 dépendances : un lockfile de develop changé ne réinstalle pas (85 s) — les dépendances de develop : installées quand son lockfile c
+ROUGE K12 veille : elle ne s’arrête plus au bout de sa durée (192 s) — contre-relecture — la veille finit à sa durée : elle ne comm
+ROUGE K13 verrou : jamais pris (73 s) — contre-relecture — un geste attend le verrou que tient une p
+ROUGE K14 diff propre : une PR de mise à jour lue sur sa première liste (la résolution), sans ses retouches (82 s) — contre-relecture — une PR de mise à jour qu’`a-juger` accept
+ROUGE K15 fourche : une fourche supprimée (`head.repo` nul) lue comme le dépôt (85 s) — les autres causes d’illisible : `a-juger` en échec, le diff 
+Bilan : 15 sur 15 rouges.

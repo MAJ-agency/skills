@@ -1,0 +1,18 @@
+# Les quinze mutations K1 à K15 (mutations-c1.mjs) sur l'arbre de la PR, d1679f3 (quatre copies)
+# 2026-11-21, 17:43:23 → 17:48:00 UTC (4 min 37 s), charge 1,69 → pointe 5,5 → 3,79
+VERTE K1 git : les GIT_CONFIG_* de la session remplacés, pas complétés (70 s)
+VERTE K2 git : le fsmonitor n’est plus coupé (77 s)
+VERTE K3 git : les hooks cherchés à leur place par défaut (.git/hooks) (63 s)
+VERTE K4 diff propre : `a-juger` en échec lu comme une liste vide (62 s)
+VERTE K5 diff propre : le diff vers develop en échec lu comme une liste vide (69 s)
+VERTE K6 dépendances : une installation en échec relue comme faite (77 s)
+VERTE K7 dépendances : une installation en échec rend illisible toute PR vers un sujet (64 s)
+VERTE K8 illisible : une cause signalée ne se redit jamais, même après le délai (62 s)
+VERTE K9 illisible : une forme refusée sans session d’auteur ne sonne personne (69 s)
+VERTE K10 dépendances : l’installation sans `--frozen-lockfile` (77 s)
+VERTE K11 dépendances : un lockfile de develop changé ne réinstalle pas (63 s)
+VERTE K12 veille : elle ne s’arrête plus au bout de sa durée (62 s)
+ROUGE K13 verrou : jamais pris (59 s) — X16 — trois préparations en même temps dans le même dossier 
+VERTE K14 diff propre : une PR de mise à jour lue sur sa première liste (la résolution), sans ses retouches (77 s)
+VERTE K15 fourche : une fourche supprimée (`head.repo` nul) lue comme le dépôt (64 s)
+Bilan : 14 survivantes sur 15 (seule K13 rouge, par X16, un banc à course).

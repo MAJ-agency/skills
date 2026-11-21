@@ -1,0 +1,25 @@
+# Échantillon de 20 mutations de 66-annexes/mutations.mjs, jouées sur d1679f3 (quatre copies, cinq chacune)
+# Tirage : graine 20261121, générateur congruentiel (1103515245, 12345, 2^31), mélange de Fisher-Yates des 73 noms dans l'ordre du fichier, les 20 premiers.
+# Tirées : M35 M54 N18 M24 N6 M21 N4 M52 N7 M44 M14 M19 M20 M31 N2 M22 M6 N8 M47 N16
+# 2026-11-21, 17:37:14 → 17:43:16 UTC (6 min), charge 0,03 → pointe 5,24 → 2,00
+ROUGE M24 écriture refusée : passée sous silence
+ROUGE M35 SKILL.md : la veille retrouve une heure
+ROUGE M54 la cause d’une commande prise sur sa seule sortie d’erreur
+ROUGE N6 régime : une base hors de la chaîne (main) admise
+ROUGE N18 contrat : `depuis` sans date valide admis
+ROUGE M21 préparer : un dossier sale est accepté
+ROUGE M44 contrat : un modèle daté admis
+ROUGE M52 fourche : lue comme une PR du dépôt
+ROUGE N4 même contenu : illisible lu « différent »
+ROUGE N7 couple : deux verdicts exigés reçoivent le couple ordinaire
+ROUGE M14 « même contenu propre » toujours « différent »
+ROUGE M19 distribuer : une remplaçante qui est déjà du tour est admise
+ROUGE M20 préparer : le clone superficiel n’est pas approfondi
+ROUGE M31 labels.sh : `à-reprendre` manque
+ROUGE N2 exiges : double-relecture illisible lu 1
+ROUGE M6 jouer : la nouvelle étiquette n’est jamais posée
+ROUGE M22 préparer : les calculs manquants ne sont pas vus
+ROUGE M47 git : les hooks du dépôt jouent
+ROUGE N8 distribuer : des identifiants en double admis
+ROUGE N16 compter : « non requise » vaut « lancée » sur un chemin sensible
+Bilan : 20 sur 20 rouges.
