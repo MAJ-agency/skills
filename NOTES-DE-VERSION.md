@@ -2,6 +2,26 @@
 
 La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque projet par `poser` : une version publiée ne change rien chez un projet qui ne les repose pas. Chaque note dit ce qui change, puis ce qu'un projet fait pour en profiter.
 
+## 7.38.1 — 2026-11-21
+
+### Ce qui change
+
+Les mineurs de la contre-relecture de la PR 146, sur le skill `relecteur` (tickets 67 à 69) :
+
+- **Une étiquette restée n'étouffe plus une ligne** : `jouer` lit les événements de la PR ; une étiquette déjà posée n'est un passage rejoué que si elle l'a été après la marque la plus récente de la PR. Restée d'un tour d'avant, le refus ou la validation se disent à l'auteur et au conducteur.
+- **Le plafond pose l'étiquette avant son commentaire** : un plafond à moitié écrit se rejoue entier, et l'architecte en est prévenu.
+- **Une session de relecture à un autre couple que la PR** (`couple`, la PR devenue sensible ou « double » sans push) est remplacée, une fois par tour, cause `couple` (`decision-relecteur.mjs`, `A-182`).
+- **La veille** garde l'erreur d'une installation quand GitHub se tait ensuite (sortie 5) ; `--attendre` met une pause avant sa première passe, pour une veille relancée sur une sortie à rejouer ; la sortie 9 s'arrête à la seconde fois, comme 12.
+- **La préparation** relit origin avant de dire une tête introuvable ; la cause « dépendances de develop » dit comment l'installation se retente.
+- **Le skill** dit la suite d'un `send_message` en échec, les causes des lignes à l'architecte (`create_session` en échec, une commande coupée sans code), et une quatrième forme de ligne, une ligne perdue.
+- Le faux GitHub des bancs tient les événements d'étiquette d'une PR (`GET issues/<n>/events`).
+
+### Ce qu'un projet fait pour en profiter
+
+1. Mettre à jour le plugin (comme pour 7.31.0, étape 1).
+2. Reposer les scripts dans une PR du projet : `/maj-skills:fusionner poser` (la décision du Relecteur admet l'état `couple` ; sans repose, un Relecteur à jour qui l'écrit sort en 1 sur la décision de develop).
+3. Rien d'autre tant que le dépôt n'est pas en régime 8.
+
 ## 7.38.0 — 2026-11-20
 
 ### Ce qui change

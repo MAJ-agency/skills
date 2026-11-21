@@ -124,20 +124,22 @@ test('nominal : distribuer (r6), écrire la distribution après la session, atte
   assert.deepEqual([encore.geste, encore.raison, encore.joue, encore.lignes], ['rien', 'etiquette-en-place', false, []]);
 });
 
-test('les étiquettes se comparent en NFC : `à-fusionner` décomposée est déjà posée, aucune pose, aucune ligne', () => {
+test('les étiquettes se comparent en NFC : `à-fusionner` décomposée est déjà posée (après le verdict, un passage rejoué), aucune pose, aucune ligne', () => {
   const d = monter();
   const sha = pr(d, { labels: ['a\u0300-relire', 'a\u0300-fusionner'] });
   ajouter(d, [distribution(1, sha, ['session_rel1']), 2], [verdict(sha, 1, 'session_rel1', 'validé'), 3]);
+  d.github({ pulls: [{ ...d.etat().pulls[0], evenements: [{ event: 'labeled', label: 'a\u0300-fusionner', created_at: minute(4) }] }] });
   const g = d.json(d.lancer('jouer', '12'))[0];
   assert.deepEqual([g.geste, g.poser, g.lignes], ['etiqueter', 'à-fusionner', []]);
   assert.ok(!ecritures(d).some((e) => e.startsWith('POST')), 'rien de posé');
 });
 
-test('une étiquette déjà posée avant le geste n’envoie aucune ligne : l’ancienne est retirée, sans redire le verdict', () => {
+test('une étiquette déjà posée après la marque la plus récente (un passage rejoué) n’envoie aucune ligne : l’ancienne est retirée, sans redire le verdict', () => {
   const d = monter();
   const sha = pr(d, { labels: ['à-relire', 'à-fusionner'] });
   const p = d.etat().pulls[0];
   p.commentaires.push({ body: distribution(1, sha, ['session_rel1']), created_at: minute(2) }, { body: verdict(sha, 1, 'session_rel1', 'validé'), created_at: minute(3) });
+  p.evenements = [{ event: 'labeled', label: 'à-fusionner', created_at: minute(4) }];
   d.github({ pulls: [p] });
   const g = d.json(d.lancer('jouer', '12'))[0];
   assert.deepEqual([g.geste, g.poser, g.retirer, g.lignes], ['etiqueter', 'à-fusionner', ['à-relire'], []]);
@@ -193,7 +195,7 @@ test('règle 5 : une session que le modèle lit morte est remplacée une fois, l
   assert.equal(e.json(q)[0].distribution, distribution(1, s2, ['session_rel2'], ' (remplace session_rel1)'));
 });
 
-test('le plafond : au troisième tour refusé, le commentaire `Plafond — décision attendue`, puis `à-reprendre` ; l’architecte prévenu', () => {
+test('le plafond : au troisième tour refusé, `à-reprendre`, puis le commentaire `Plafond — décision attendue` ; l’architecte prévenu', () => {
   const d = monter();
   const sha = pr(d);
   const p = d.etat().pulls[0];
@@ -203,7 +205,7 @@ test('le plafond : au troisième tour refusé, le commentaire `Plafond — déci
   const g = d.json(d.lancer('jouer', '12'))[0];
   assert.deepEqual([g.regle, g.geste, g.joue], [1, 'plafonner', true]);
   assert.deepEqual(g.lignes.map((l) => l.a), ['auteur', 'conducteur', 'architecte']);
-  assert.deepEqual(ecritures(d), ['POST issues/12/comments', 'POST issues/12/labels à-reprendre', 'DELETE issues/12/labels/à-relire']);
+  assert.deepEqual(ecritures(d), ['POST issues/12/labels à-reprendre', 'POST issues/12/comments', 'DELETE issues/12/labels/à-relire'], 'l’étiquette, puis le commentaire, puis le retrait (suite du ticket 66)');
   assert.equal(d.etat().pulls[0].commentaires.at(-1).body, 'Plafond — décision attendue');
   assert.equal(d.json(d.lancer('jouer', '12'))[0].geste, 'rien', 'rejoué : rien, aucune ligne de plus');
 });
@@ -440,7 +442,7 @@ test('X15 — les causes d’illisible, une à une : forme refusée par `a-juger
   mise(p, { pnpmEnEchec: true });
   const r = p.lancer('jouer', '12');
   assert.match(r.stderr, /pnpm install en échec \(sortie 1\) :\nERR_PNPM_FROZEN_LOCKFILE/, 'la sortie d’erreur de l’installation est écrite');
-  assert.match(p.etat().pulls[0].commentaires.at(-1).body, /^Lecture illisible — dépendances de develop : /);
+  assert.match(p.etat().pulls[0].commentaires.at(-1).body, /^Lecture illisible — dépendances de develop : .* ; retentée au prochain lockfile de develop, ou par un Relecteur neuf$/, 'la cause dit comment l’installation se retente (suite du ticket 66)');
   assert.deepEqual(p.json(r)[0].lignes.map((l) => l.a), ['architecte']);
   const tentatives = () => readFileSync(join(p.racine, 'faux-gh/pnpm.log'), 'utf8').split('\n').filter((l) => l.startsWith('pnpm install')).length;
   assert.equal(tentatives(), 1);
@@ -720,4 +722,142 @@ test('contre-relecture — une PR de mise à jour qu’`a-juger` accepte : son d
   d.github({ pulls: [{ number: 12, title: 'chore(sujet): met demo à jour avec develop', base: 'sujet/demo', head: 'maj/demo', labels: ['à-relire'], created_at: minute(0), commentaires: [{ body: DEMANDE(sha), created_at: minute(1) }] }], maintenant: minute(30) });
   const [g] = d.json(d.lancer('passe'));
   assert.deepEqual([g.geste, g.faits?.sensible, g.faits?.effort], ['distribuer', true, 'xhigh'], JSON.stringify(g));
+});
+
+// --- Suite du ticket 66, ticket 67 : la veille, la préparation, la tête relue -----------------------------------------
+
+test('suite 66 — R3 : une installation en échec dans une passe que GitHub fait ensuite sortir en 5 : son erreur au journal de la veille', () => {
+  const d = monter();
+  writeFileSync(join(d.racine, 'bin/pnpm'), '#!/bin/sh\ncat > /dev/null\necho "ERR_PNPM_PASSAGERE" >&2\nexit 1\n');
+  d.git('switch', '-q', 'develop');
+  d.ecrire('pnpm-lock.yaml', 'lockfileVersion: 9.0\n');
+  d.commit('chore: lockfile');
+  d.git('push', '-q', 'origin', 'HEAD:develop');
+  // GitHub ne répond pas à la liste des PR, une fois : la passe qui a installé sort en 5.
+  d.github({ pulls: [], pannes: [{ route: '^pulls\\?', fois: 1 }] });
+  const r = d.lancer('veille', '--pause', '0', '--sondes', '2');
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stdout, /^PAUSE GitHub illisible : /m);
+  assert.match(r.stderr, /pnpm install en échec \(sortie 1\) :\nERR_PNPM_PASSAGERE/, 'le témoin dit « echec » : sans cette ligne, l’erreur ne serait écrite nulle part');
+});
+
+test('suite 66 — R5 : `veille --attendre` met une pause avant sa première passe, sous la même borne que les autres ; sans lui, la première passe part tout de suite', () => {
+  const d = monter();
+  pr(d);
+  // Un `git` tué en plein travail a laissé son verrou : toute passe sort en 12.
+  writeFileSync(join(d.dossier, '.git/index.lock'), '');
+  const sans = d.lancer('veille', '--pause', '3', '--duree', '0.01');
+  assert.deepEqual([sans.status, sans.stdout.trim().split('\n').at(-1)], [12, 'VEILLE ARRÊTÉE sortie 12']);
+  const t0 = Date.now();
+  const avec = d.lancer('veille', '--pause', '3', '--duree', '0.01', '--attendre');
+  assert.deepEqual([avec.status, avec.stdout], [0, 'VEILLE FINIE\n'], 'une pause qui finirait après la durée ne commence pas, même la première : aucune passe');
+  assert.ok(Date.now() - t0 < 2500, 'aucune pause jouée au-delà de la durée');
+  execFileSync('rm', [join(d.dossier, '.git/index.lock')]);
+  const t1 = Date.now();
+  const geste = d.lancer('veille', '--pause', '1', '--sondes', '1', '--attendre');
+  assert.deepEqual([geste.status, geste.stdout], [0, 'VEILLE GESTE\nGESTE 12 distribuer règle 6\n'], geste.stderr);
+  assert.ok(Date.now() - t1 >= 1000, 'la première passe vient après une pause');
+});
+
+test('suite 66 — 18 : un push entre la préparation et la lecture de la PR : la tête est relue une fois, jamais dite introuvable pour rien', () => {
+  const d = monter();
+  pr(d);
+  // Un commit neuf de la PR, poussé par le faux GitHub au moment où `jouer` lit la PR, après la préparation.
+  d.git('switch', '-q', 'feat/a');
+  d.ecrire('src/a.mjs', 'export const a = 2;\n');
+  d.commit('fix: a');
+  const neuf = d.git('rev-parse', 'HEAD');
+  Object.assign(d.env, { BANC_FAUX_GH: join(CHAINE, 'sujet/scripts/faux-gh.mjs'), BANC_TRAVAIL: d.travail });
+  writeFileSync(join(d.racine, 'bin/gh'), '#!/bin/sh\ncase "$*" in *pulls/12*) if [ ! -e "$FAUX_GH/pousse-faite" ]; then touch "$FAUX_GH/pousse-faite"; git -C "$BANC_TRAVAIL" push -q origin HEAD:feat/a; fi ;; esac\nexec node "$BANC_FAUX_GH" "$@"\n');
+  const r = d.lancer('jouer', '12');
+  assert.equal(r.status, 0, r.stderr);
+  const [g] = d.json(r);
+  assert.deepEqual([g.tete, g.geste, g.regle], [neuf, 'distribuer', 6], JSON.stringify(g));
+  assert.ok(!d.etat().pulls[0].commentaires.some((c) => /^Lecture illisible/.test(c.body ?? c)), 'aucune trace d’illisible');
+});
+
+// --- Suite du ticket 66, ticket 68 : une étiquette restée, un plafond à moitié écrit, une session à un autre couple ---
+
+test('suite 66 — C11 : une étiquette restée d’un tour d’avant (posée avant le verdict) n’est pas un passage rejoué : le refus se dit à l’auteur et au conducteur ; à la même seconde, ou sans pose lue, aussi', () => {
+  for (const [nom, evenements] of [
+    ['posée avant le verdict', [{ event: 'labeled', label: 'à-reprendre', created_at: minute(2) }]],
+    ['posée à la seconde du verdict', [{ event: 'labeled', label: 'à-reprendre', created_at: minute(3) }]],
+    ['aucune pose lue', []],
+    ['un retrait n’est pas une pose', [{ event: 'labeled', label: 'à-reprendre', created_at: minute(2) }, { event: 'unlabeled', label: 'à-reprendre', created_at: minute(5) }]],
+    ['la pose d’une autre étiquette ne compte pas', [{ event: 'labeled', label: 'à-reprendre', created_at: minute(2) }, { event: 'labeled', label: 'à-autre', created_at: minute(5) }]],
+  ]) {
+    const d = monter();
+    const sha = pr(d, { labels: ['à-relire', 'à-reprendre'] });
+    ajouter(d, [distribution(1, sha, ['session_rel1']), 2], [verdict(sha, 1, 'session_rel1', 'refusé'), 3]);
+    d.github({ pulls: [{ ...d.etat().pulls[0], evenements }] });
+    const g = d.json(d.lancer('jouer', '12'))[0];
+    assert.deepEqual([g.regle, g.geste, g.marque], [4, 'etiqueter', minute(3)], nom);
+    assert.deepEqual(g.lignes.map((l) => [l.a, l.texte]), [['auteur', 'verdict écrit sur la PR 12 : refusé'], ['conducteur', 'verdict écrit sur la PR 12 : refusé']], nom);
+    assert.deepEqual(ecritures(d), ['DELETE issues/12/labels/à-relire'], `${nom} : rien de posé, l’ancienne retirée`);
+  }
+});
+
+test('suite 66 — C11, A-183 point 6 : une marque plus récente que la pose (une demande refaite sans push) fait repartir les lignes', () => {
+  const d = monter();
+  const sha = pr(d, { labels: ['à-relire', 'à-reprendre'] });
+  // Le tour refusé (minute 3), `à-reprendre` posée par le Relecteur après lui (minute 4), puis l'auteur redemande la
+  // relecture du même sommet (minute 5) sans retirer `à-reprendre` : la marque la plus récente est sa demande.
+  ajouter(d, [distribution(1, sha, ['session_rel1']), 2], [verdict(sha, 1, 'session_rel1', 'refusé'), 3], [DEMANDE(sha), 5]);
+  d.github({ pulls: [{ ...d.etat().pulls[0], evenements: [{ event: 'labeled', label: 'à-reprendre', created_at: minute(4) }] }] });
+  const g = d.json(d.lancer('jouer', '12'))[0];
+  assert.deepEqual([g.regle, g.geste, g.marque], [4, 'etiqueter', minute(5)], JSON.stringify(g));
+  assert.deepEqual(g.lignes.map((l) => l.a), ['auteur', 'conducteur'], 'posée avant la marque la plus récente : les lignes partent');
+});
+
+test('suite 66 — un passage rejoué (l’étiquette posée par lui, après le verdict, l’ancienne pas retirée) ne redit rien ; la dernière pose compte', () => {
+  const d = monter();
+  const sha = pr(d);
+  ajouter(d, [distribution(1, sha, ['session_rel1']), 2], [verdict(sha, 1, 'session_rel1', 'refusé'), 3]);
+  // Un retrait refusé (et tu, comme `retirer_label` le fait) : la PR garde ses deux étiquettes.
+  Object.assign(d.env, { BANC_FAUX_GH: join(CHAINE, 'sujet/scripts/faux-gh.mjs') });
+  writeFileSync(join(d.racine, 'bin/gh'), '#!/bin/sh\ncase "$*" in *"-X DELETE"*labels*) echo "gh: Bad Gateway (HTTP 502)" >&2; exit 1 ;; esac\nexec node "$BANC_FAUX_GH" "$@"\n');
+  const premier = d.json(d.lancer('jouer', '12'))[0];
+  assert.deepEqual(premier.lignes.map((l) => l.a), ['auteur', 'conducteur']);
+  assert.deepEqual(d.etat().pulls[0].labels, ['à-relire', 'à-reprendre']);
+  const rejoue = d.json(d.lancer('jouer', '12'))[0];
+  assert.deepEqual([rejoue.geste, rejoue.poser, rejoue.lignes], ['etiqueter', 'à-reprendre', []], 'posée à la minute 30, après le verdict de la minute 3 : rien ne repart');
+  // Posée une première fois avant le verdict, retirée, puis reposée après lui : la dernière pose compte.
+  const e = monter();
+  const s2 = pr(e, { labels: ['à-relire', 'à-reprendre'] });
+  ajouter(e, [distribution(1, s2, ['session_rel1']), 2], [verdict(s2, 1, 'session_rel1', 'refusé'), 3]);
+  const evenements = [['labeled', 1], ['unlabeled', 2], ['labeled', 4]].map(([event, m]) => ({ event, label: 'à-reprendre', created_at: minute(m) }));
+  e.github({ pulls: [{ ...e.etat().pulls[0], evenements }] });
+  assert.deepEqual(e.json(e.lancer('jouer', '12'))[0].lignes, []);
+});
+
+test('suite 66 — C12 : un plafond à moitié écrit se rejoue entier : l’étiquette d’abord ; la pose ou le commentaire refusés, le rejeu prévient l’architecte, un seul commentaire', () => {
+  for (const refus of ['-X POST*labels', '-X POST*comments']) {
+    const d = monter();
+    const sha = pr(d);
+    let m = 2;
+    for (const tour of [1, 2, 3]) ajouter(d, [distribution(tour, sha, ['session_rel1']), m++], [verdict(sha, tour, 'session_rel1', 'refusé'), m++]);
+    // Un gh qui refuse une fois la première écriture de cette forme, puis laisse passer.
+    Object.assign(d.env, { BANC_FAUX_GH: join(CHAINE, 'sujet/scripts/faux-gh.mjs'), BANC_REFUS: refus });
+    writeFileSync(join(d.racine, 'bin/gh'), '#!/bin/sh\ncase "$*" in *"-X POST"*) case "$BANC_REFUS:$*" in *labels:*labels*|*comments:*comments*) if [ ! -e "$FAUX_GH/refus-fait" ]; then touch "$FAUX_GH/refus-fait"; echo "gh: Bad Gateway (HTTP 502)" >&2; exit 1; fi ;; esac ;; esac\nexec node "$BANC_FAUX_GH" "$@"\n');
+    assert.equal(d.lancer('jouer', '12').status, 7, refus);
+    const r = d.lancer('jouer', '12');
+    assert.equal(r.status, 0, r.stderr);
+    const g = d.json(r)[0];
+    assert.deepEqual([g.geste, g.lignes.map((l) => l.a)], ['plafonner', ['auteur', 'conducteur', 'architecte']], refus);
+    assert.equal(d.etat().pulls[0].commentaires.filter((c) => (c.body ?? c) === 'Plafond — décision attendue').length, 1, refus);
+    assert.deepEqual(d.etat().pulls[0].labels, ['à-reprendre'], refus);
+  }
+});
+
+test('suite 66 — A-182 (2) : une session que le modèle lit à un autre couple (`couple`) est remplacée, cause `couple`, au couple que la PR demande', () => {
+  const d = monter();
+  const sha = pr(d, { fichiers: { 'scripts/agent/garde.mjs': 'export const g = 1;\n' } });
+  ajouter(d, [distribution(1, sha, ['session_rel1']), 2]);
+  const etats = join(d.racine, 'sessions.json');
+  writeFileSync(etats, JSON.stringify({ session_rel1: 'couple' }));
+  const g = d.json(d.lancer('jouer', '12', '--sessions', etats))[0];
+  assert.deepEqual([g.geste, g.session, g.cause, g.faits.modele, g.faits.effort], ['remplacer', 'session_rel1', 'couple', 'opus', 'xhigh']);
+  const r = distribuer(d, sha, 'opus/xhigh', 'session_rel2', '--sessions', etats);
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(d.json(r)[0].distribution, distribution(1, sha, ['session_rel2'], ' (remplace session_rel1)'));
 });

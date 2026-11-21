@@ -15,6 +15,22 @@ const exigerDans = (chemin, phrases) => {
   const texte = lire(chemin);
   for (const p of phrases) assert.ok(texte.includes(p), `${chemin} : « ${p} » attendu`);
 };
+// Une section de SKILL.md, de son titre au titre suivant de même niveau ; une ligne de cette section (une puce, une
+// ligne de table) qui commence par `debut`. Une phrase exigée à sa place ne passe plus si elle quitte sa section ou sa puce.
+const section = (texte, titre) => {
+  const i = texte.indexOf(`\n${titre}\n`);
+  assert.ok(i >= 0, `section « ${titre} » attendue`);
+  const fin = texte.indexOf("\n## ", i + 1);
+  return texte.slice(i, fin === -1 ? texte.length : fin);
+};
+const ligne = (texte, titre, debut) => {
+  const l = section(texte, titre).split("\n").filter((x) => x.startsWith(debut));
+  assert.equal(l.length, 1, `« ${titre} » : une ligne qui commence par « ${debut} »`);
+  return l[0];
+};
+const exigerA = (morceau, ou, phrases) => {
+  for (const p of phrases) assert.ok(morceau.includes(p), `${ou} : « ${p} » attendu à cette place`);
+};
 const bloc = (texte, titre) => {
   const i = texte.indexOf(titre);
   assert.ok(i >= 0, `section « ${titre} » attendue`);
@@ -59,12 +75,15 @@ test("contre-relecture de la PR 146 — aucun geste laissé à improviser : le d
     "(`session_context.model` qui contient `faits.modele`, `claude-opus-…` pour `opus`, et `session_context.effort_level` égal à `faits.effort`)",
     "`plafond` : plus de 700 000 tokens de contexte (`external_metadata.context_usage.used_tokens`)",
     "(`get_session` sans argument, `external_metadata.context_usage.used_tokens`)",
-    "Les lignes du Relecteur lui-même à l'architecte ont trois formes, et aucune autre : « PR <n> : <cause> ; PR tue »",
     "tant que la passe lui rend le même geste à la même règle",
     "une erreur de `passe`, qui ne nomme aucune PR : l'architecte, et s'arrêter",
-    "quand cette suite dit « rejouer au réveil suivant » (9, 12, autre), relancer la veille : sa fin est ce réveil",
-    "une session seulement attendue (`rien`, raison `attente`) ne s'écrit jamais `morte` pour son couple",
   ]);
+  // R6 (troisième tour) : les phrases de R1 et R2 à leur place, la relance dans la puce `VEILLE ARRÊTÉE`, la borne du
+  // couple dans « L'état des sessions » (les mutations E1 et E2 les déplaçaient sans qu'aucun banc ne rougisse).
+  const texte = lire(`${SKILL}/SKILL.md`);
+  exigerA(ligne(texte, "## La veille", "- **`VEILLE ARRÊTÉE sortie <c>`**"), "la puce `VEILLE ARRÊTÉE`", ["quand cette suite dit « rejouer au réveil suivant » (9, 12, autre), relancer la veille avec `--attendre` : sa fin est ce réveil"]);
+  exigerA(section(texte, "## L'état des sessions"), "« L'état des sessions »", ["Une session seulement attendue (`rien`, raison `attente`) n'est `couple` que si `get_session` rend les deux champs et que l'un diffère ; un champ absent la laisse `vivante`, et elle ne s'écrit jamais `morte` pour son couple."]);
+  exigerA(section(texte, "## Les lignes"), "« Les lignes »", ["Les lignes du Relecteur lui-même à l'architecte ont quatre formes, et aucune autre : « PR <n> : <cause> ; PR tue »"]);
   // A-182 : un champ que get_session ne rend pas, dans les deux sections qui le lisent.
   const phrase = "Sans compte de tokens (`context_usage`), la session n'est pas tenue au plafond ; sans `effort_level`, le couple n'est pas tenu pour égal, et la PR reçoit une session neuve.";
   const skillA182 = lire(`${SKILL}/SKILL.md`);
@@ -121,4 +140,34 @@ test("les cartes nomment le Relecteur : `Relecteurs:` dans la fiche d'un program
 
 test("fusionner/references/CONTENU.md décrit les trois calculs de la relecture (A-137)", () => {
   exigerDans("skills/chaine/fusionner/references/CONTENU.md", ["## `scripts/verdict.mjs`, `scripts/decision-relecteur.mjs`", "## `scripts/meme-contenu.sh`", "## `scripts/double-relecture.mjs`", "Un refus ne compte jamais moins qu'un refus"]);
+});
+
+test("suite du ticket 66 (ticket 69) — chaque phrase neuve à sa place : `--attendre` et la borne de 9, l'état `couple`, `send_message` en échec, les causes des lignes, une étiquette restée, l'installation à retenter", () => {
+  const texte = lire(`${SKILL}/SKILL.md`);
+  // R5 : la sortie 9 a la borne de 12, et `--attendre` se dit dans « La veille ».
+  exigerA(ligne(texte, "## Les sorties de `passe`, `jouer` et `distribuer`", "| 9 |"), "la ligne de la sortie 9", ["rejouer au réveil suivant ; à la seconde fois, l'architecte, et s'arrêter"]);
+  exigerA(section(texte, "## La veille"), "« La veille »", ["`--attendre` : une pause avant la première passe aussi, sous la même borne de 25 minutes"]);
+  // A-184 (3) : un geste au premier plan qui renvoie au réveil suivant pendant un réveil fait relancer la veille avec
+  // `--attendre`, après `VEILLE GESTE` comme après `VEILLE FINIE`.
+  for (const puce of ["- **`VEILLE GESTE`**", "- **`VEILLE FINIE`**"])
+    exigerA(ligne(texte, "## La veille", puce), `la puce ${puce}`, ["puis relancer la veille, avec `--attendre` si un geste de ce réveil a rendu une suite « rejouer au réveil suivant »"]);
+  // 15 (A-182, point 2) : l'état `couple`, lu pour `reecrire` comme pour une session attendue, remplacé une fois par tour.
+  exigerA(section(texte, "## L'état des sessions"), "« L'état des sessions »", [
+    '`{ "<session>": "vivante" | "morte" | "plafond" | "couple" }`',
+    "`couple` : elle tourne à un autre couple que celui de `faits` (`session_context.model` ne contient pas `faits.modele`, ou `session_context.effort_level` n'est pas `faits.effort`)",
+    "`reecrire`, qui réemploie la session, suit cette règle de « Créer ou relancer » : sans les deux champs, `couple`.",
+    "Une session `couple` est remplacée comme une morte, une fois par tour (`remplacer`, cause `couple`).",
+  ]);
+  exigerA(ligne(texte, "## À chaque réveil", "| `reecrire` |"), "la ligne de `reecrire`", ["sinon (`morte`, `plafond` ou `couple`) `jouer <n> --sessions <fichier>`, qui rend `remplacer`"]);
+  exigerA(ligne(texte, "## À chaque réveil", "| `remplacer` |"), "la ligne de `remplacer`", ["cause `couple` : rien de plus, la neuve est au couple de `faits`"]);
+  // 16, R4 et C11 : `send_message` en échec, les causes des lignes à l'architecte, une étiquette restée.
+  exigerA(section(texte, "## Les lignes"), "« Les lignes »", [
+    "`send_message` en échec (une ligne, ou le message de relance) : le rejouer une fois ; encore en échec, une ligne à l'architecte, « PR <n> : send_message en échec vers <session> : <sa dernière ligne non vide> », puis la suite du geste. Une ligne à l'architecte elle-même en échec deux fois : l'écrire dans sa réponse, et s'arrêter.",
+    "« <sous-commande> sortie aucune : l'outil l'a arrêtée » pour une commande coupée sans code",
+    "« create_session en échec : <sa dernière ligne non vide> »",
+    "Une étiquette déjà là, posée avant la marque la plus récente de la PR (restée d'un tour d'avant, que l'auteur n'a pas retirée), n'est pas un passage rejoué : ses lignes partent.",
+  ]);
+  // 17 : comment l'installation se retente.
+  exigerA(section(texte, "## Mise en place (une fois par session)"), "« Mise en place »", ["Une installation en échec ne se retente qu'au lockfile suivant de develop, ou dans un Relecteur neuf (son dossier est neuf) : la cause « dépendances de develop » le dit à l'architecte."]);
+  assert.ok(!texte.includes("ont trois formes"), "les lignes à l'architecte ont quatre formes");
 });

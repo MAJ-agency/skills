@@ -8,6 +8,10 @@
 //   maintenant  ISO 8601 : la date que reçoit tout commentaire posé (`POST issues/<n>/comments`), à la place de la date
 //               de son rang ; le banc l'avance, comme l'horloge de GitHub. Sans la clé, la date du rang
 //               `commentaires` : [corps], écrits par le compte du capitaine, ou { auteur, body } d'un autre compte
+//               `evenements` : les poses et retraits d'étiquettes, [{ event: labeled | unlabeled, label: <nom>,
+//               created_at }], que `GET issues/<n>/events` rend comme GitHub ({ event, label: { name }, created_at }) ;
+//               une pose (`POST issues/<n>/labels`) d'une étiquette absente y ajoute `labeled`, un retrait `unlabeled`,
+//               datés de `maintenant` (sans la clé, l'heure de la machine)
 //   capitaine   compte que rend `gh api user` (défaut « capitaine ») ; compteIllisible : `user` répond 403
 //   refusPost   message d'un refus du `POST pulls` (`gh: … (HTTP 422)`), code 1
 //   brancheParDefaut  branche par défaut du dépôt (défaut « main »), dans `base.repo.default_branch`
@@ -173,6 +177,11 @@ function versRest(pr) {
     requested_teams: (pr.equipes ?? []).map((slug) => ({ slug })),
   };
 }
+// Une pose ou un retrait d'étiquette, daté comme un commentaire posé : `maintenant`, sinon l'heure de la machine.
+function evenement(p, event, label) {
+  p.evenements ??= [];
+  p.evenements.push({ event, label, created_at: etat.maintenant ?? new Date().toISOString().replace(/\.\d{3}Z$/, "Z") });
+}
 // Date d'un commentaire sans date, par son rang : 2026-11-17T12:00:00Z, puis une seconde de plus par rang.
 const dateDuRang = (i) => new Date(Date.UTC(2026, 10, 17, 12, 0, i)).toISOString().replace(/\.000Z$/, "Z");
 // Commentaire `i` de la PR `p`, comme GitHub le rend. Id unique dans le dépôt (numéro × 1000 + rang + 1), croissant
@@ -296,6 +305,7 @@ function repondre() {
     return fusionner(pr(m[1]), JSON.parse(entree));
   if ((m = route.match(/^issues\/(\d+)\/labels$/)) && methode === "POST") {
     const p = pr(m[1]);
+    if (!(p.labels ?? []).includes(champs["labels[]"])) evenement(p, "labeled", champs["labels[]"]);
     p.labels = [...new Set([...(p.labels ?? []), champs["labels[]"]])];
     return p.labels.map((name) => ({ name }));
   }
@@ -308,8 +318,12 @@ function repondre() {
     if (!(p.labels ?? []).includes(nom))
       echec("gh: Label does not exist (HTTP 404)");
     p.labels = p.labels.filter((l) => l !== nom);
+    evenement(p, "unlabeled", nom);
     return [];
   }
+  // Les événements d'étiquette de la PR, comme GitHub les rend (le Relecteur les lit pour une étiquette déjà posée).
+  if ((m = route.match(/^issues\/(\d+)\/events$/)) && methode === "GET")
+    return (pr(m[1]).evenements ?? []).map((e) => ({ event: e.event, label: { name: e.label }, created_at: e.created_at }));
   if ((m = route.match(/^issues\/(\d+)\/comments$/)) && methode === "POST") {
     const refus = etat.commentairesRefuses;
     if (refus === true || (typeof refus === "string" && new RegExp(refus).test(champs.body ?? "")))

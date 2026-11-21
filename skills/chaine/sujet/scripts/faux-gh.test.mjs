@@ -304,3 +304,22 @@ test('faux gh, Relecteur : une PR rend sa date d’ouverture (défaut ou la sien
     ['à l’heure', '2026-11-20T09:05:00Z'],
   ]);
 });
+
+// Suite du ticket 66 (ticket 68) : le Relecteur lit les événements d'une PR pour savoir quand une étiquette déjà posée
+// l'a été (une étiquette restée d'un tour d'avant, ou un passage rejoué) : le faux les tient comme GitHub.
+test('faux gh, événements : une pose d’étiquette absente ajoute `labeled`, un retrait `unlabeled`, datés de `maintenant` ; `GET issues/<n>/events` les rend comme GitHub', () => {
+  const d = depotJouet();
+  d.github({ pulls: [{ number: 3, title: 't', base: 'develop', head: 'x', labels: ['à-relire'], evenements: [{ event: 'labeled', label: 'à-relire', created_at: '2026-11-20T09:00:00Z' }] }], maintenant: '2026-11-20T10:00:00Z' });
+  assert.equal(gh(d, '-X', 'POST', 'repos/{owner}/{repo}/issues/3/labels', '-f', 'labels[]=à-fusionner').status, 0);
+  assert.equal(gh(d, '-X', 'POST', 'repos/{owner}/{repo}/issues/3/labels', '-f', 'labels[]=à-fusionner').status, 0, 'déjà posée : aucun événement de plus');
+  d.github({ maintenant: '2026-11-20T10:01:00Z' });
+  assert.equal(gh(d, '-X', 'DELETE', `repos/{owner}/{repo}/issues/3/labels/${encodeURIComponent('à-relire')}`).status, 0);
+  const lus = JSON.parse(gh(d, 'repos/{owner}/{repo}/issues/3/events?per_page=100').stdout);
+  assert.deepEqual(lus, [
+    { event: 'labeled', label: { name: 'à-relire' }, created_at: '2026-11-20T09:00:00Z' },
+    { event: 'labeled', label: { name: 'à-fusionner' }, created_at: '2026-11-20T10:00:00Z' },
+    { event: 'unlabeled', label: { name: 'à-relire' }, created_at: '2026-11-20T10:01:00Z' },
+  ]);
+  d.github({ pulls: [{ number: 4, title: 'u', base: 'develop', head: 'y', labels: [] }] });
+  assert.deepEqual(JSON.parse(gh(d, 'repos/{owner}/{repo}/issues/4/events').stdout), [], 'une PR sans événement : une liste vide');
+});

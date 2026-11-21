@@ -931,3 +931,23 @@ test("A-118 — une clé venue de l'entrée n'est jamais lue sur un prototype : 
   // L'état hérité d'une session n'est pas un état connu.
   assert.equal(joue({ commentaires: fil(DEMANDE(), D(1, V1, ['r1'])), sessions: Object.create({ r1: 'morte' }) }).raison, 'attente');
 });
+
+// --- Suite du ticket 66 (ticket 68) : A-182, point 2 -------------------------------------------------------------------
+
+test("A-182 (2) — une session à un autre couple que la PR (`couple`) est remplacée, cause `couple`, jamais relancée ; une fois par tour, puis la panne", () => {
+  const distribue = [DEMANDE(), D(1, V1, ['r1'])];
+  assert.deepEqual(joue({ commentaires: fil(...distribue), sessions: { r1: 'couple' } }), { regle: 5, geste: 'remplacer', tour: 1, sommet: V1, sessions: ['r1'], session: 'r1', cause: 'couple' });
+  // Un `incomplet` à relancer, mais la session est à l'ancien couple : remplacée, pas relancée.
+  const incomplet = [...distribue, verdict(1, 'r1', 'incomplet')];
+  assert.equal(joue({ commentaires: fil(...incomplet) }).geste, 'reecrire');
+  assert.deepEqual(joue({ commentaires: fil(...incomplet), sessions: { r1: 'couple' } }), { regle: 5, geste: 'remplacer', tour: 1, sommet: V1, sessions: ['r1'], session: 'r1', cause: 'couple' });
+  // Une PR devenue double : la session ajoutée d'abord (`completer`), puis l'ancienne au mauvais couple remplacée.
+  assert.equal(joue({ commentaires: fil(...distribue), exiges: 2, sessions: { r1: 'couple' } }).geste, 'completer');
+  assert.deepEqual(joue({ commentaires: fil(DEMANDE(), D(1, V1, ['r1']), D(1, V1, ['r1', 'r2'], 'complète')), exiges: 2, sessions: { r1: 'couple', r2: 'vivante' } }), { regle: 5, geste: 'remplacer', tour: 1, sommet: V1, sessions: ['r1', 'r2'], session: 'r1', cause: 'couple' });
+  // Déjà remplacée une fois dans ce tour : la remplaçante à un autre couple, c'est la panne.
+  const remplace = [...distribue, D(1, V1, ['r2'], 'remplace', 'r1')];
+  assert.equal(joue({ commentaires: fil(...remplace), sessions: { r2: 'couple' } }).geste, 'panne');
+  // `vivante` reste vivante, et un mot hors des quatre reste refusé.
+  assert.equal(joue({ commentaires: fil(...distribue), sessions: { r1: 'vivante' } }).raison, 'attente');
+  assert.throws(() => joue({ commentaires: fil(...distribue), sessions: { r1: 'autre-couple' } }), TypeError);
+});
