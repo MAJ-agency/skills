@@ -1,0 +1,61 @@
+skills/chaine/fusionner/scripts/verdict-du-capitaine.test.mjs	16	1	15
+    not ok 1 - régime 8, passer.sh : sans verdict, renvoyée en sortie 4 avant toute mise à jour et toute CI
+    not ok 2 - régime 8, passer.sh : la section de revue n'est plus lue ; un tour validé sur la tête fait entrer la PR, verdict relu juste avant la fusion
+    not ok 4 - régime 8, passer.sh : develop a bougé, le capitaine met la PR à jour, le verdict tient (même contenu propre) et elle entre
+    not ok 5 - régime 8, passer.sh : un `refusé` tombé pendant la CI est vu au second contrôle : renvoyée, jamais fusionnée
+    not ok 6 - régime 8, passer.sh : `à-fusionner` retirée pendant la CI (le Relecteur a posé `à-reprendre`) : sautée en 7, sans renvoi
+    not ok 7 - régime 8, passer.sh : une lecture illisible (marque presque à la forme, clé mal formée) fait sauter la PR en 7, sans renvoi
+    not ok 8 - régime 8, passer.sh : sur un chemin sensible, un `validé` sans `/security-review: lancée` ne suffit pas ; avec elle, la PR entre
+    not ok 9 - régime 8, passer.sh : une PR empilée sur une parente fusionnée est renvoyée : le Relecteur ne la relirait pas
+    not ok 10 - régime 8, sujet.sh fusionner : une sous-PR sans verdict est renvoyée en 4, sans mise à jour ni CI ; validée, en retard, elle est mise à jour et entre
+    not ok 11 - régime 8, sujet.sh fusionner : un `refusé` tombé pendant la CI est vu juste avant la fusion : renvoyée en 4
+    not ok 12 - régime 8, sujet.sh fusionner : `à-fusionner` retirée pendant la CI (le Relecteur a posé `à-reprendre`) : sautée en 7, sans renvoi ni fusion
+    not ok 13 - régime 8, sujet.sh fusionner : une PR de mise à jour n'est pas exemptée — sans verdict renvoyée, validée elle entre par avance rapide
+    not ok 14 - régime 8, boucle.sh : la boucle joue les calculs de develop ; une PR sans verdict est renvoyée (fusion-bloquée, à-fusionner retirée), une PR validée entre
+    not ok 15 - régime 8, passer.sh : deux verdicts exigés (le ticket porte `Relecture: double`) : un seul validé ne suffit pas, deux de deux sessions, si
+    not ok 16 - régime 8, passer.sh : GitHub illisible sur les commentaires de la PR : pause (5), jamais un verdict lu vide
+skills/chaine/fusionner/scripts/revue-exigee.test.mjs	37	32	5
+    not ok 33 - lot 5a, lireCleRelecture : la forme que le Relecteur lit, ni plus ni moins (un 30 février passe chez lui comme ici : Date.parse le reporte)
+    not ok 34 - lot 5a, regimeDeLaPr : 8 si la base porte la clé et la PR est ouverte strictement après `depuis` ; base hors de la chaîne, 7 ; illisible dit
+    not ok 35 - lot 5a, motifsDuCapitaine en régime 8 : ni section de revue ni ligne `/security-review` lues ; le titre de code sur la documentation, si
+    not ok 36 - lot 5a, verdictDuCapitaine : la règle 2 reçue décide ; sans tour validé, le motif dit ce qui manque
+    not ok 37 - lot 5a, CLI : les options suivent les trois arguments, toutes ou aucune ; un corps qui ressemble à une option reste un corps
+skills/chaine/socle-chaine-de-production/references/scripts/github/pr-titre.test.mjs	12	10	2
+    not ok 2 - régime 8 (lot 5a) : la base porte la clé `relecture` et la PR est ouverte après `depuis` : du code sans section de revue est conforme, le titre de code sur la documentation reste refusé ; ouverte avant, régime 7 ; clé mal formée ou date absente : 3
+    not ok 12 - le workflow donne PR_OUVERTE, la date d’ouverture de la PR, comme les autres entrées : par `env:`
+skills/chaine/sujet/scripts/faux-gh.test.mjs	16	15	1
+    not ok 8 - faux gh, pendantCi : un commentaire ou des étiquettes tombent sur une PR à la n-ième lecture des checks (lot 5a)
+skills/chaine/fusionner/scripts/sensibles-du-capitaine.test.mjs	5	0	5
+    not ok 1 - régime 8, passer.sh : un chemin sensible que la ligne `Sensibles:` du ticket couvre entre ; un autre est renvoyé, avant toute CI
+    not ok 2 - régime 8, passer.sh : une PR sans ticket qui touche un chemin sensible est renvoyée ; sans chemin sensible, aucun ticket n'est demandé
+    not ok 3 - régime 8, sujet.sh fusionner : la ligne se lit sur le sujet, jamais sur la branche ; non couverte, la sous-PR est renvoyée
+    not ok 4 - régime 8, sujet.sh fusionner : une PR de mise à jour ne touche un chemin sensible qu'en conflit et couvert par un ticket du sujet
+    not ok 5 - garde : chaque copie du ticket doit couvrir le chemin ; avec deux tickets, l'un suffit ; une ligne illisible et un ticket introuvable se disent
+skills/chaine/socle-chaine-de-production/references/agent/garde-fichiers.test.mjs	4	1	3
+    not ok 1 - régime 8 : la ligne `Sensibles:` du ticket, lue sur le sujet, couvre le chemin → écrit ; un chemin sensible qu’elle ne couvre pas → refusé ; un chemin ordinaire passe
+    not ok 3 - régime 8 : la copie du sujet fait foi, jamais l’arbre de travail ; sans sujet, celle de develop ; sans ticket, tout chemin sensible est refusé
+    not ok 4 - régime 8 : une copie locale du sujet que origin ne porte pas ne compte pas ; une ligne illisible refuse en le disant
+skills/chaine/socle-chaine-de-production/references/agent/regles.test.mjs	87	85	2
+    not ok 86 - lot 5b, lireSensibles : les chemins accordés, `—`, et ce qui ne se lit pas (copie de chemins-sensibles.mjs, même table)
+    not ok 87 - lot 5b, refusEdition en régime 8 : un chemin sensible hors accord est refusé, couvert par chaque copie il passe ; hors régime 8, rien ne change
+skills/chaine/revue-adversariale/scripts/chemins-sensibles.test.mjs	13	12	1
+    not ok 13 - lot 5b, lireSensibles : la copie du hook d'édition rend la même chose ; aucun chemin que le gate refuse n'est accordé
+scripts/points-d-entree.test.mjs	66	60	6
+    not ok 61 - chemins-sensibles agit quand on le lance : direct
+    not ok 62 - chemins-sensibles agit quand on le lance : lien symbolique
+    not ok 63 - chemins-sensibles agit quand on le lance : lien symbolique, --preserve-symlinks-main
+    not ok 64 - chemins-sensibles agit quand on le lance : lien symbolique, NODE_OPTIONS=--preserve-symlinks-main
+    not ok 65 - chemins-sensibles agit quand on le lance : dossier à espace
+    not ok 66 - chemins-sensibles agit quand on le lance : dossier à accent
+skills/chaine/fusionner/scripts/messages-du-regime.test.mjs	3	0	3
+    not ok 1 - renvoyer.sh : en régime 8, redemander la relecture (`à-relire`) sans retirer `fusion-bloquée`, jamais `à-fusionner` ; en régime 7, comme avant
+    not ok 2 - renvoyer.sh : une réception de develop en deux fusions, en régime 8, fait ouvrir une nouvelle PR qui demande sa relecture
+    not ok 3 - sujet.sh demarrer : en régime 8, demander la relecture, jamais `à-fusionner` ; en régime 7, l'étiquette dès le push
+skills/chaine/sujet/scripts/sujet.test.mjs	45	43	2
+    not ok 7 - demarrer refuse quand la spec du ticket n’est pas encore sur le sujet
+    not ok 45 - etat : un sujet sans commit propre ni PR, en retard et pas livré, est listé (A-132) ; livré, ou à jour, il ne l'est pas
+skills/chaine/tickets/references/scripts/verify/tickets-gate.test.mjs	12	11	1
+    not ok 12 - régime 8 : sans `Label: contre-revue` un ticket prêt sensible passe ; un ticket ouvert qui cite une règle haute sans `Relecture: double` est refusé ; sans double-relecture.mjs, sortie 2
+skills/chaine/tickets/references/scripts/verify/tickets.test.mjs	37	36	1
+    not ok 37 - lot 5c, régime 8 : `Label: contre-revue` n’est plus exigé ; un ticket ouvert qui cite une règle haute porte `Relecture: double`
+FIN-ROUGE

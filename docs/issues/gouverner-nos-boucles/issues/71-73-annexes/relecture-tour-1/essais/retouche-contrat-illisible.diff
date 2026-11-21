@@ -1,0 +1,28 @@
+diff --git a/skills/chaine/fusionner/scripts/revue-exigee.mjs b/skills/chaine/fusionner/scripts/revue-exigee.mjs
+index e31e54f..e906a08 100644
+--- a/skills/chaine/fusionner/scripts/revue-exigee.mjs
++++ b/skills/chaine/fusionner/scripts/revue-exigee.mjs
+@@ -405,7 +405,8 @@ export function lireCleRelecture(texte) {
+   try {
+     c = JSON.parse(texte);
+   } catch {
+-    return 'illisible';
++    // Un contrat qui ne se lit pas et ne nomme pas la clé : régime 7, jugé comme avant (`lireBase` le dit illisible).
++    return /"relecture"/.test(texte) ? 'illisible' : null;
+   }
+   if (c === null || typeof c !== 'object' || !Object.hasOwn(c, 'relecture')) return null;
+   const r = c.relecture;
+diff --git a/skills/chaine/fusionner/scripts/revue-exigee.test.mjs b/skills/chaine/fusionner/scripts/revue-exigee.test.mjs
+index bce2a7a..dd0dbbb 100644
+--- a/skills/chaine/fusionner/scripts/revue-exigee.test.mjs
++++ b/skills/chaine/fusionner/scripts/revue-exigee.test.mjs
+@@ -541,7 +541,8 @@ test('lot 5a, lireCleRelecture : la forme que le Relecteur lit, ni plus ni moins
+   assert.equal(revueExigee.lireCleRelecture(null), null, 'pas de contrat');
+   assert.equal(lire({ cheminsSensibles: [] }), null, 'pas de clé');
+   assert.equal(lire([]), null);
+-  assert.equal(revueExigee.lireCleRelecture('{'), 'illisible');
++  assert.equal(revueExigee.lireCleRelecture('{'), null, 'contrat illisible qui ne nomme pas la clé : régime 7, jugé comme avant');
++  assert.equal(revueExigee.lireCleRelecture('{ "relecture": {'), 'illisible');
+   assert.deepEqual(lire({ relecture: { depuis: '2026-12-01T10:00:00Z' } }), { depuis: Date.UTC(2026, 11, 1, 10) });
+   assert.deepEqual(lire({ relecture: { depuis: '2026-02-30T10:00:00Z' } }), { depuis: Date.UTC(2026, 2, 2, 10) });
+   assert.deepEqual(lire({ relecture: { depuis: '2026-12-01T10:00:00.250Z', delai: 30, ordinaire: { modele: 'sonnet', effort: 'low' }, sensible: { modele: 'opus', effort: 'max' } } }), { depuis: Date.UTC(2026, 11, 1, 10, 0, 0, 250) });

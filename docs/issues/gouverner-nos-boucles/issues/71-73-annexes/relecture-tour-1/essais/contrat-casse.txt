@@ -1,0 +1,4 @@
+base 25a72c7 :
+sortie 4 : [#30] section de revue sans la ligne « /security-review : lancée » alors que la PR touche un chemin sensible (scripts/x.sh ; le contrat de origin/develop illisible (Unexpected end of JSON input) : tout chemin est sensible) : lancer la skill /security-review sur ce sommet, puis écrire la ligne dans la section
+patch :
+sortie 7 : [#30] lecture illisible : clé relecture de origin/develop:.claude/chaine.json mal formée : sautée sans renvoi, son auteur n'y peut rien (le Relecteur prévient l'architecte)

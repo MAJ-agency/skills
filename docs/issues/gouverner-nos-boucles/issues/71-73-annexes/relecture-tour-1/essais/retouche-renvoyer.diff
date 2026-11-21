@@ -1,0 +1,18 @@
+diff --git a/skills/chaine/fusionner/scripts/renvoyer.sh b/skills/chaine/fusionner/scripts/renvoyer.sh
+index 315498d..a52bda6 100755
+--- a/skills/chaine/fusionner/scripts/renvoyer.sh
++++ b/skills/chaine/fusionner/scripts/renvoyer.sh
+@@ -21,7 +21,12 @@ numero=$((deja + 1))
+ # A-93) ; le Relecteur pose `à-fusionner` sur un verdict validé et retire `fusion-bloquée`. PR ou régime illisibles : le
+ # texte du régime 7.
+ regime=7
+-if pr=$(pr_json "$N" 2>/dev/null); then
++# Sans la clé `relecture` sur develop ni sur aucun sujet (lecture locale, sans appel), le régime 7 sans lecture de plus.
++cle=1
++for r in $(git for-each-ref --format='%(refname)' refs/remotes/origin/develop refs/remotes/origin/sujet/); do
++  ! cle_relecture_sur "$r" || { cle=0; break; }
++done
++if [ "$cle" = 0 ] && pr=$(pr_json "$N" 2>/dev/null); then
+   regime=$(regime_de_la_pr "$(jq -r .base.ref <<<"$pr")" "$(jq -r '.created_at // ""' <<<"$pr")" 2>/dev/null) || regime=7
+ fi
+ if [ "$regime" = 8 ]; then

@@ -1,0 +1,23 @@
+diff --git a/skills/chaine/fusionner/scripts/sensibles-du-capitaine.test.mjs b/skills/chaine/fusionner/scripts/sensibles-du-capitaine.test.mjs
+index 10ae37a..c8a5a09 100644
+--- a/skills/chaine/fusionner/scripts/sensibles-du-capitaine.test.mjs
++++ b/skills/chaine/fusionner/scripts/sensibles-du-capitaine.test.mjs
+@@ -139,14 +139,15 @@ test("régime 8, sujet.sh fusionner : une PR de mise à jour ne touche un chemin
+ 
+ test("garde : chaque copie du ticket doit couvrir le chemin ; avec deux tickets, l'un suffit ; une ligne illisible et un ticket introuvable se disent", () => {
+   const d = monter({ 1: ACCORD("`scripts/agent/**`"), 2: ACCORD("docs/agents/regles.md") });
+-  d.branche("sujet/a", "origin/develop", { [TICKET(1)]: ticket(1, ACCORD("`scripts/agent/x.mjs`")) });
+-  d.branche("sujet/b", "origin/develop", { [TICKET(1)]: ticket(1, ACCORD("`scripts/agent/**`")), "docs/b.md": "b\n" });
++  // La copie large d'abord (sujet/a), l'étroite ensuite (sujet/b) : l'ordre des refs ne fait pas l'accord.
++  d.branche("sujet/a", "origin/develop", { [TICKET(1)]: ticket(1, ACCORD("`scripts/agent/**`")), "docs/a.md": "a\n" });
++  d.branche("sujet/b", "origin/develop", { [TICKET(1)]: ticket(1, ACCORD("`scripts/agent/x.mjs`")), "docs/b.md": "b\n" });
+   d.git("switch", "-q", "--detach", "origin/develop");
+   const garde = (fichiers, titre, branche) => spawnSync(process.execPath, [GARDE, "--garde", "--base", "develop", "--titre", titre, "--branche", branche], { cwd: d.travail, env: d.env, input: fichiers, encoding: "utf8" });
+   const x = garde("scripts/agent/x.mjs\n", "feat: x", "feat/spec-all-demo-1-01-x");
+   assert.equal(x.status, 0, x.stdout + x.stderr);
+   const y = garde("scripts/agent/y.mjs\n", "feat: x", "feat/spec-all-demo-1-01-x");
+-  assert.equal(y.status, 20, "la copie de sujet/a ne couvre pas y.mjs");
++  assert.equal(y.status, 20, "la copie de sujet/b ne couvre pas y.mjs");
+   assert.match(y.stdout, /hors de la ligne `Sensibles:` de son ticket SPEC_ALL_DEMO-1\.01 \(scripts\/agent\/y\.mjs\)/);
+   const deux = garde("scripts/agent/x.mjs\ndocs/agents/regles.md\n", "feat(demo): SPEC_ALL_DEMO-1.02 x", "feat/spec-all-demo-1-01-x");
+   assert.equal(deux.status, 0, deux.stdout + deux.stderr);

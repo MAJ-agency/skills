@@ -1,0 +1,17 @@
+ROUGE A2 régime : une PR ouverte à l’instant de `depuis` est en régime 8
+ROUGE A7 verdict : tout tour vaut validé
+ROUGE A11 verdict : un illisible renvoie au lieu de sauter
+ROUGE A15 github.sh : GitHub illisible sur les commentaires lu comme une file vide
+ROUGE A17 passer.sh : `à-fusionner` retirée pendant la CI, fusionnée quand même
+ROUGE A24 sujet.sh : `à-fusionner` relue nulle part
+ROUGE B3 hook : une copie sur deux suffit
+ROUGE B5 hook : la casse compte
+ROUGE B10 garde-fichiers : une copie locale du sujet compte
+ROUGE B14 garde du capitaine : une PR sans ticket passe au motif ordinaire
+ROUGE B18 garde du capitaine : un ticket introuvable lu comme un accord vide
+ROUGE B22 sujet.sh : une PR de mise à jour sans les tickets du sujet
+ROUGE C3 github.sh : la date d’ouverture ignorée par `regime_de_la_pr`
+ROUGE C8 sujet.sh etat : un sujet livré listé de nouveau
+ROUGE C12 gate : une criticité illisible lue comme basse
+toutes rouges (15)
+sortie 0
