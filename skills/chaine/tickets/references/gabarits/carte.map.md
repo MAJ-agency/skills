@@ -16,6 +16,7 @@ Grilling: {{complet | court | aucun}}
 Filles par vague: {{n}}
 Migrations: {{horodatages réservés, séparés par des virgules (AAAAMMJJHHMM, AAAAMMJJHHMM ; AAAAMMJJHHMMSS pour des migrations Prisma) — ou « — » ; ligne lue par check:tickets, jamais deux cartes ouvertes sur le même horodatage}}
 Capitaine: {{session_id ou « absent »}}
+Relecteur: {{session_id du Relecteur du dépôt (régime 8), ou « absent »}}
 Gel:
 
 ## Decisions-so-far

@@ -2,7 +2,11 @@
 // =============================================================================
 // Faux `gh` du dépôt jouet (depot-jouet.mjs) : placé en tête de PATH, il répond à `gh api`
 // comme l'API REST de GitHub, sans réseau. État dans $FAUX_GH/etat.json :
-//   pulls       PR { number, title, body, draft, state, labels: [noms], base, head, merged_at, commentaires }
+//   pulls       PR { number, title, body, draft, state, labels: [noms], base, head, merged_at, created_at, commentaires }
+//               `created_at` : la date d'ouverture, ISO 8601 (défaut 2026-11-17T11:00:00Z), lue par le Relecteur (régime)
+//               `fourche` : le dépôt de la tête (`head.repo.full_name`), « maj/jouet » par défaut, celui de la base
+//   maintenant  ISO 8601 : la date que reçoit tout commentaire posé (`POST issues/<n>/comments`), à la place de la date
+//               de son rang ; le banc l'avance, comme l'horloge de GitHub. Sans la clé, la date du rang
 //               `commentaires` : [corps], écrits par le compte du capitaine, ou { auteur, body } d'un autre compte
 //   capitaine   compte que rend `gh api user` (défaut « capitaine ») ; compteIllisible : `user` répond 403
 //   refusPost   message d'un refus du `POST pulls` (`gh: … (HTTP 422)`), code 1
@@ -161,9 +165,10 @@ function versRest(pr) {
     draft: pr.draft ?? false,
     state: pr.state ?? "open",
     merged_at: pr.merged_at ?? null,
+    created_at: pr.created_at ?? "2026-11-17T11:00:00Z",
     labels: (pr.labels ?? []).map((name) => ({ name })),
-    base: { ref: pr.base, repo: { default_branch: etat.brancheParDefaut ?? "main" } },
-    head: { ref: pr.head, sha: pr.sha ?? ref(pr.head) ?? "0".repeat(40) },
+    base: { ref: pr.base, repo: { full_name: "maj/jouet", default_branch: etat.brancheParDefaut ?? "main" } },
+    head: { ref: pr.head, sha: pr.sha ?? ref(pr.head) ?? "0".repeat(40), repo: { full_name: pr.fourche ?? "maj/jouet" } },
     requested_reviewers: (pr.relecteurs ?? []).map((login) => ({ login })),
     requested_teams: (pr.equipes ?? []).map((slug) => ({ slug })),
   };
@@ -316,7 +321,7 @@ function repondre() {
       p.commentaires.push(etat.concurrent);
       delete etat.concurrent;
     }
-    p.commentaires.push(champs.body);
+    p.commentaires.push(etat.maintenant ? { body: champs.body, created_at: etat.maintenant } : champs.body);
     const i = p.commentaires.length - 1;
     // Jouée une fois, au commentaire posé : la PR change sous le capitaine (un autre passage vient de finir).
     if (etat.apresCommentaire) {

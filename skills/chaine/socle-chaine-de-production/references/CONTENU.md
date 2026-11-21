@@ -18,7 +18,7 @@ La forme de `.claude/settings.json` : JSON valide (une virgule en trop et Claude
 
 ## Les labels — `labels.sh`
 
-Les sept mots du protocole entre les skills, créés en REST, idempotent. Un projet n'a aucune raison de les renommer.
+Les neuf mots du protocole entre les skills (dont `à-relire` et `à-reprendre`, du régime 8 : le Relecteur les lit et pose la seconde), créés en REST, idempotent. Un projet n'a aucune raison de les renommer.
 
 ## La branche `develop` — `scripts/github/develop.sh`
 

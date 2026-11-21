@@ -281,3 +281,26 @@ test('faux gh, commentairesRefuses : true refuse tout commentaire posé, une cha
   assert.match(gh(d, '-X', 'POST', COMMENTAIRES, '-f', 'body=tout').stderr, /HTTP 403/);
   assert.equal(lireCommentaires(d).length, 1);
 });
+
+// Ticket 66 : le Relecteur lit la date d'ouverture d'une PR (son régime) et pose des commentaires que la décision
+// relit dans l'ordre de leur création, comparés à l'instant : le faux date ce qu'on pose à l'heure que le banc fixe.
+test('faux gh, Relecteur : une PR rend sa date d’ouverture (défaut ou la sienne) et le dépôt de sa tête ; `maintenant` date le commentaire posé, sans lui la date du rang', () => {
+  const d = jouetCommentaires([{ body: 'tard', created_at: '2026-11-20T09:00:00Z' }]);
+  d.github({ pulls: [...d.etat().pulls, { number: 8, title: 'u', base: 'develop', head: 'y', labels: [], created_at: '2026-11-19T08:00:00Z' }] });
+  const pulls = JSON.parse(gh(d, 'repos/{owner}/{repo}/pulls?state=open').stdout);
+  assert.deepEqual(pulls.map((p) => [p.number, p.created_at]), [[8, '2026-11-19T08:00:00Z'], [7, '2026-11-17T11:00:00Z']]);
+  assert.equal(JSON.parse(gh(d, 'repos/{owner}/{repo}/pulls/8').stdout).created_at, '2026-11-19T08:00:00Z');
+  const lue = JSON.parse(gh(d, 'repos/{owner}/{repo}/pulls/8').stdout);
+  assert.deepEqual([lue.base.repo.full_name, lue.head.repo.full_name], ['maj/jouet', 'maj/jouet'], 'la tête et la base dans le même dépôt');
+  d.github({ pulls: d.etat().pulls.map((p) => (p.number === 8 ? { ...p, fourche: 'autre/jouet' } : p)) });
+  assert.equal(JSON.parse(gh(d, 'repos/{owner}/{repo}/pulls/8').stdout).head.repo.full_name, 'autre/jouet', 'une PR de fourche');
+  assert.equal(JSON.parse(gh(d, '-X', 'POST', COMMENTAIRES, '-f', 'body=sans horloge').stdout).created_at, '2026-11-17T12:00:01Z', 'sans `maintenant` : la date du rang');
+  d.github({ maintenant: '2026-11-20T09:05:00Z' });
+  const pose = JSON.parse(gh(d, '-X', 'POST', COMMENTAIRES, '-f', 'body=à l’heure').stdout);
+  assert.deepEqual([pose.created_at, pose.updated_at, pose.author_association], ['2026-11-20T09:05:00Z', '2026-11-20T09:05:00Z', 'OWNER']);
+  assert.deepEqual(lireCommentaires(d).map((c) => [c.body, c.created_at]), [
+    ['tard', '2026-11-20T09:00:00Z'],
+    ['sans horloge', '2026-11-17T12:00:01Z'],
+    ['à l’heure', '2026-11-20T09:05:00Z'],
+  ]);
+});

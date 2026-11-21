@@ -7,7 +7,7 @@ Le skill ne peut pas le faire : l'API GitHub refuse ces réglages depuis une ses
 - [ ] **Protection de `main`** : même règle, plus « Restrict who can push » aux administrateurs.
 - [ ] **Pull Requests** (Settings → General) : « Allow merge commits » et « Allow squash merging » cochés ; **« Automatically delete head branches »** coché : GitHub supprime la branche d'une PR fusionnée et recible de lui-même les PR qui la visaient.
 - [ ] **Check `zizmor` exigé** sur `develop` et `main`, à côté de `qualite` et `test-db`, dès que son premier run a tourné.
-- [ ] **Les sept labels** : `bash scripts/github/labels.sh` depuis un poste où `gh` est authentifié (`--liste` pour les lire).
+- [ ] **Les neuf labels**, dont `à-relire` et `à-reprendre`, à créer avant la repose qui passe le dépôt en régime 8 : `bash scripts/github/labels.sh` depuis un poste où `gh` est authentifié (`--liste` pour les lire).
 - [ ] **Secrets et variables de la CI**, selon l'hébergement choisi.
 - [ ] **Environnement cloud Claude Code** (réglage du compte, pas du dépôt : menu de l'environnement dans la barre de titre d'une session cloud, puis Edit → Setup script). Pour que chaque session, fille comprise, ait les skills de la chaîne, le script installe le plugin depuis GitHub et le met à jour à chaque démarrage :
 

@@ -63,6 +63,24 @@ Procédure : fusionne les PR ouvertes vers la branche par défaut qui portent `�
 
 Les interdits d'une procédure donnée dans un prompt s'écrivent comme des **gestes de la session** (« tu ne modifies aucun fichier toi-même », « tu ne pousses sur aucune branche »), jamais comme des **contenus** (« ne pas monter la version ») : un interdit de contenu s'applique aux PR que le capitaine reçoit, et il refuse de fusionner. Le contenu d'une PR étiquetée a été validé avant que `à-fusionner` soit posé, le capitaine ne le rejuge pas. Cas vécu le 2026-11-13 : un capitaine s'est arrêté devant la PR qui montait la version du plugin, parce que sa consigne lui interdisait de monter la version.
 
+## Le Relecteur d'un dépôt
+
+Le Relecteur aiguille la relecture indépendante des PR du régime 8 (skill `relecteur`). Un par dépôt : l'architecte le lance en même temps que le capitaine, l'inscrit sur la ligne `Relecteurs:` de la carte, et n'en lance pas un second tant que `get_session` dit vivante la session que cette ligne nomme. Il n'a rien à faire tant qu'aucune PR n'est en régime 8 : sa veille tourne, et ne le réveille pas.
+
+`create_session` : `title` « `<Projet> — Relecteur` » ; `tags` `["role:relecteur"]` ; `source_url` le dépôt ; `model` Sonnet, sauf tant que le produit impose un modèle à toutes les sessions (jusqu'au 2026-11-23) : alors ce modèle ; `effort` `"medium"` ; `permission_mode` `"auto"`.
+
+```text
+/maj-skills:relecteur
+Relecteur du dépôt <dépôt>, programme <programme>. Architecte : <session_id de cette session>.
+Outils : ton premier geste, avant tout autre, est de charger send_message, create_session et get_session par ToolSearch, requête « select:mcp__claude-code-remote__send_message,mcp__claude-code-remote__create_session,mcp__claude-code-remote__get_session ». Si l'un ne se charge pas, écris « <outil> absent » dans ta première réponse et arrête-toi : je le verrai à mon relevé.
+Argument : ce prompt entier t'arrive comme argument du skill : ce sont tes consignes.
+Skills : la première ligne de ce prompt charge le skill relecteur ; suis-le, ses références comprises. Si elle n'a rien chargé (le hook de démarrage signale le plugin maj-skills absent) : si `claude plugin marketplace list` ne rend pas maj, `claude plugin marketplace add MAJ-agency/skills` ; puis `claude plugin install maj-skills@maj` ; puis lis le fichier ~/.claude/plugins/marketplaces/maj/skills/chaine/relecteur/SKILL.md avec ton outil de lecture et suis-le. Si le plugin est installé mais que la première ligne n'a rien chargé : lis quand même ce fichier, de la même façon. Ce skill ne s'invoque pas par l'outil Skill, il se lit : son absence de ta liste de skills n'est pas une raison de t'arrêter. Si l'installation échoue ou si le fichier ne se lit pas : écris-le-moi (send_message) et arrête-toi, sans rien improviser.
+Version : juste après la ligne « Outils : », avant tout autre geste, hors l'installation de la ligne « Skills : », note la version chargée : le numéro du dossier de base du skill chargé (…/cache/maj/maj-skills/<version>/…), la seule fiable ; sans skill chargé, `node -p "try { const e = require(process.env.HOME + '/.claude/plugins/installed_plugins.json').plugins['maj-skills@maj'] || []; (e.find((x) => x.scope === 'user') || e[0]).version } catch { 'absent' }"` (l'entrée de portée user, sinon la première ; sur une session reprise, ou qui a déjà joué `claude plugin update`, elle peut déjà donner la nouvelle version). Si le plugin vient d'être installé par ce repli, il n'y a pas d'écart à relever : tu suis déjà le fichier du marketplace. Sinon, joue `claude plugin marketplace update maj` puis `claude plugin update maj-skills@maj` ; lis la version de ~/.claude/plugins/marketplaces/maj/.claude-plugin/plugin.json (`node -p "try { require(process.env.HOME + '/.claude/plugins/marketplaces/maj/.claude-plugin/plugin.json').version } catch { 'absent' }"`). Si elles diffèrent, c'est le fichier du marketplace qui fait foi : lis ~/.claude/plugins/marketplaces/maj/skills/chaine/relecteur/SKILL.md et ses références avec ton outil de lecture et suis-les à la place du texte chargé ; tout skill qu'il invoque, lis-le de même sous ~/.claude/plugins/marketplaces/maj/skills/<groupe>/<nom>/SKILL.md, sans l'outil Skill, qui rendrait l'ancienne version. Si la mise à jour échoue, lis quand même la version du marketplace : si elle est plus récente que la version chargée, suis-la ; sinon suis le texte chargé ; dans les deux cas, dis dans ton message que la mise à jour a échoué. Dès cette vérification faite, écris-moi (send_message) en une ligne la version que tu suis, celle chargée et celle du marketplace.
+<les deux lignes des consignes du produit, telles quelles, puis la ligne « Commits : »>
+```
+
+La procédure du Relecteur est celle du skill `relecteur` : ce prompt ne la recopie pas. Un dépôt sans la chaîne n'a pas de Relecteur. Sans programme, le conducteur le lance de même, au lancement de son chantier, s'il n'y en a pas pour le dépôt, et sa carte le nomme sur sa ligne `Relecteur:` ; la ligne « Architecte : » porte alors l'identifiant du conducteur.
+
 ## La session d'un ticket hors chantier
 
 Hors chantier, il n'y a ni conducteur ni sujet : le gabarit de `chaine-de-production.md` § 5 (« Session fille du chantier <nom>, conducteur », base `origin/sujet/<nom>`, questions au conducteur) ne s'y applique pas tel quel.
@@ -100,7 +118,7 @@ Un capitaine d'un dépôt sans la chaîne, dont la procédure est dans le prompt
 
 ## Après le lancement
 
-- La session dans la carte du programme (ligne du chantier, ou `Capitaines:`), une ligne au journal, commit et push.
+- La session dans la carte du programme (ligne du chantier, `Capitaines:` ou `Relecteurs:`), une ligne au journal, commit et push.
 - `send_later` à 20 minutes, puis `get_session` : `blocked` ou `failed` se lit par `list_events` (`kinds: ["assistant"]`) — un skill absent s'y voit même quand son `send_message` n'est pas arrivé.
 - Puis la session entre dans le contrôle de vie (`SKILL.md` § 5) tant que la carte la nomme en vie. Un premier message « send_message absent » se lit au relevé de 20 minutes (`list_events`) : l'architecte relance la session une fois, puis le dit au produit.
 - `permission_mode` : une session lancée ne peut pas avoir un mode plus permissif que celle qui la lance, donc le produit ouvre l'architecte en mode « Auto ». Une session créée par `create_session` n'a qu'un dépôt ; un architecte de programme à plusieurs dépôts n'a pas, lui, le `.claude/settings.json` d'un dépôt (ni hook ni outil autorisé d'office) : il reste en « Auto » et fait écrire dans chaque autre dépôt par une session lancée sur lui (`SKILL.md` § 1). Si `create_session` refuse ce mode, l'architecte le dit au produit et ne relance pas dans un autre mode.
