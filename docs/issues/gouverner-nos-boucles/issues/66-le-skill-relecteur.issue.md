@@ -1,6 +1,6 @@
 # Le skill `relecteur` : la file, la décision et la veille du Relecteur, ses deux étiquettes, son lancement, et un refus qui reste un refus
 
-Status: ready-for-agent
+Status: Fait — PR 146 (`25a72c7`, plugin 7.38.0)
 Type: task
 Label: contre-revue
 Modèle: sonnet — un skill neuf de trois fichiers et un script de 426 lignes, deux bancs neufs donnés entiers, vingt et un fichiers existants retouchés par des diffs donnés mot pour mot ; le tout joué sur un clone neuf d'`origin/main` à `5bf4f39` (plugin 7.37.3) : les bancs neufs ou changés sont rouges avant le code (43 tests rouges sur six fichiers), la suite entière est verte après (« Vérification »), et les 73 mutations nommées de l'annexe, celles du ticket et celles de sa relecture, sont toutes rouges ; trois sont retirées de la liste, deux équivalentes et une hors de portée d'un banc (« Ce qui n'a pas été établi », point 6).
