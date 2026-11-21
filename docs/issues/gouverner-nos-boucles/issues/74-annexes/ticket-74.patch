@@ -1,0 +1,649 @@
+diff --git a/.claude-plugin/plugin.json b/.claude-plugin/plugin.json
+index 818adbf..83facdb 100644
+--- a/.claude-plugin/plugin.json
++++ b/.claude-plugin/plugin.json
+@@ -1,6 +1,6 @@
+ {
+   "name": "maj-skills",
+-  "version": "7.38.0",
++  "version": "7.38.1",
+   "description": "Skills d'ingénierie maison : amorçage de monorepo et de socles (API NestJS hexagonale, web Next.js, mobile Expo), chaîne de production pour des sessions d'agent en parallèle (tickets, sujets, capitaine de fusion, revue adversariale, chantier, recette). Aucune règle métier.",
+   "author": {
+     "name": "Guillaume Jauffret"
+diff --git a/NOTES-DE-VERSION.md b/NOTES-DE-VERSION.md
+index 9e2e48c..b406338 100644
+--- a/NOTES-DE-VERSION.md
++++ b/NOTES-DE-VERSION.md
+@@ -2,6 +2,17 @@
+ 
+ La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque projet par `poser` : une version publiée ne change rien chez un projet qui ne les repose pas. Chaque note dit ce qui change, puis ce qu'un projet fait pour en profiter.
+ 
++## 7.38.1 — 2026-11-21
++
++### Ce qui change
++
++- **La veille du capitaine ne meurt plus en silence** (ticket 74). Le skill `fusionner` la lance avec le `timeout` de l'outil Bash à `7200000` (l'outil arrête une tâche de fond à 30 minutes par défaut, et la veille compte sur deux heures). `veille.sh` tient un verrou (`<git-common-dir>/veille.verrou` : une seconde veille sort en 9) et écrit son état (`<git-common-dir>/veille.etat`) ; `veille.sh --etat` dit `VEILLE VIVANTE`, `VEILLE TERMINÉE` ou `VEILLE MORTE`, sans `CAPITAINE_ID` ni réseau. Une fin sans ligne finale est une veille morte : `boucle.sh --arreter`, puis la veille relancée avec `--reprendre` (sa première boucle retire le fichier d'arrêt). Un réveil de garde (`send_later`, 60 minutes, réarmé à chaque réveil de garde) relit cet état et relance une veille morte avec son conteneur.
++
++### Ce qu'un projet fait pour en profiter
++
++1. Mettre à jour le plugin (comme pour 7.31.0, étape 1) : le capitaine lit le skill à jour à son prochain lancement.
++2. Reposer les scripts dans une PR du projet : `/maj-skills:fusionner poser` (`veille.sh` change). Un capitaine en marche garde sa copie de la veille jusqu'à une nouvelle copie et une veille relancée.
++
+ ## 7.38.0 — 2026-11-20
+ 
+ ### Ce qui change
+diff --git a/scripts/veille-du-capitaine.test.mjs b/scripts/veille-du-capitaine.test.mjs
+new file mode 100644
+index 0000000..8afa364
+--- /dev/null
++++ b/scripts/veille-du-capitaine.test.mjs
+@@ -0,0 +1,85 @@
++// Banc des textes du ticket 74 (A-180 point 1, A-185 point 7) : la veille du capitaine se lance sous le plafond de
++// l'outil Bash, une fin sans ligne finale a sa suite, et un réveil de garde voit la veille morte avec son conteneur.
++// Chaque phrase est exigée à sa place dans `fusionner/SKILL.md` (le paragraphe, la liste, l'ordre), et les états que
++// le skill nomme sont ceux qu'écrit `veille.sh --etat`. Le comportement est jugé par `veille.test.mjs` et
++// `une-sous-pr-a-la-fois.test.mjs`.
++import assert from "node:assert/strict";
++import { readFileSync } from "node:fs";
++import { join } from "node:path";
++import { test } from "node:test";
++import { fileURLToPath } from "node:url";
++
++const RACINE = fileURLToPath(new URL("..", import.meta.url));
++const lire = (chemin) => readFileSync(join(RACINE, chemin), "utf8");
++const SKILL = "skills/chaine/fusionner/SKILL.md";
++const VEILLE = "skills/chaine/fusionner/scripts/veille.sh";
++
++// Le texte entre deux repères, chacun trouvé une fois et dans cet ordre.
++const entre = (texte, debut, fin) => {
++  const i = texte.indexOf(debut);
++  assert.ok(i >= 0, `« ${debut} » attendu`);
++  assert.equal(texte.indexOf(debut, i + 1), -1, `« ${debut} » une seule fois`);
++  const j = texte.indexOf(fin, i + debut.length);
++  assert.ok(j > i, `« ${fin} » attendu après « ${debut} »`);
++  return texte.slice(i, j);
++};
++const boucle = () => entre(lire(SKILL), "## Boucle\n", "## Renvoyer une PR\n");
++
++test("la veille se lance avec le `timeout` de l'outil Bash à 7200000, dans le paragraphe qui la lance et avant sa commande", () => {
++  const lancement = entre(boucle(), "**Automatique (le cas normal) : la veille.**", "```bash\n");
++  assert.ok(lancement.includes("**en tâche de fond (`run_in_background`), avec le `timeout` de l'outil Bash à `7200000`** (deux heures, son maximum)"), lancement);
++  assert.ok(lancement.includes("Sans ce `timeout`, l'outil arrête la tâche à 30 minutes, sans ligne finale, au milieu d'un passage s'il le faut"), lancement);
++  const commande = entre(boucle(), "```bash\nmkdir -p <scratchpad>/outils", "```\n\nAvant chaque lancement");
++  assert.match(commande, /--reprendre \(après une veille morte\)/);
++  assert.ok(lire(VEILLE).includes("# avec son `timeout` à 7200000 (ms, skill fusionner § « Boucle »)"), "veille.sh : l'en-tête dit le timeout");
++});
++
++test("une fin sans ligne finale est une veille morte : quatrième puce de la liste des fins, après les trois lignes finales", () => {
++  const fins = entre(boucle(), "La veille s'arrête d'elle-même, et sa fin réveille la session :\n\n", "\n\n**Réveil de garde.**");
++  const puces = fins.split("\n").filter((l) => l.startsWith("- "));
++  assert.equal(puces.length, 4, fins);
++  assert.ok(puces[0].startsWith("- **`VEILLE FINIE`** (sortie 0)"));
++  assert.ok(puces[1].startsWith("- **`VEILLE ARRÊTÉE`** :"));
++  assert.ok(puces[2].startsWith("- **`VEILLE ARRÊTÉE`, sortie 13**"));
++  assert.equal(puces[3], "- **Aucune de ces lignes** (l'outil a arrêté la tâche, hors un `TaskStop` joué par la session elle-même ; le conteneur a redémarré) : une veille morte, jamais une fin sans suite : « Réveil de garde », points 1 à 3, tout de suite.");
++  assert.ok(puces[1].includes("Sortie 9 : une autre boucle tient le verrou, ou une autre veille tourne (`une veille tourne déjà`) : ne rien relancer avant de savoir laquelle (`veille.sh --etat`)"), puces[1]);
++});
++
++test("le réveil de garde : après la liste des fins, avant le suivi du journal ; send_later à 60 minutes réarmé au seul réveil de garde, puis quatre points dans l'ordre", () => {
++  const garde = entre(boucle(), "**Réveil de garde.**", "\n\nSuivre le journal avec un `Monitor`");
++  for (const p of [
++    "Une veille morte avec son conteneur ne réveille personne (cas vécu : 5 h 40 sans lecture de la file, file vide) ; un message programmé, lui, survit au redémarrage.",
++    "charger `send_later` (ToolSearch, requête « select:mcp__claude-code-remote__send_later »), puis l'appeler : `delay_minutes` `60`",
++    "Il ne se réarme qu'au réveil de garde, jamais à un autre réveil : un seul réveil de garde attend à la fois.",
++    "`send_later` absent (session locale) : pas de garde, le dire une fois au lanceur.",
++  ]) assert.ok(garde.includes(p), `réveil de garde : « ${p} » attendu`);
++  const points = garde.split("\n").filter((l) => /^\d\. /.test(l));
++  assert.deepEqual(points.map((l) => l.slice(0, 2)), ["1.", "2.", "3.", "4."], garde);
++  assert.ok(points[0].includes("`git worktree prune`, puis « Mise en place » et la copie (« Copier, puis lancer »), sans lancer la veille"), points[0]);
++  assert.ok(points[1].startsWith("2. Depuis le worktree, `bash <scratchpad>/outils/veille.sh --etat` (ni `CAPITAINE_ID`, ni réseau) : `VEILLE VIVANTE`, sortie 0 : rien ; `VEILLE TERMINÉE : <ligne finale>`, sortie 2 : `VEILLE FINIE`, la relancer telle quelle"), points[1]);
++  assert.ok(points[1].endsWith("`VEILLE MORTE`, sortie 1 : le point 3."), points[1]);
++  assert.ok(points[2].startsWith("3. Depuis le worktree, `bash <scratchpad>/outils/boucle.sh --arreter`"), points[2]);
++  assert.ok(points[2].includes("puis relancer la veille comme ci-dessus, avec `--reprendre` : sa première boucle retire ce fichier."), points[2]);
++  assert.ok(points[2].includes("`--arreter` en échec (sortie 1, des processus tiennent encore le verrou) : le dire au lanceur, ne rien relancer."), points[2]);
++  assert.equal(points[3], "4. Réarmer : `send_later`, comme ci-dessus.");
++  // Le garde vient après la liste des fins et avant « Sans veille en cours ».
++  const texte = boucle();
++  assert.ok(texte.indexOf("**Réveil de garde.**") < texte.indexOf("**Sans veille en cours**"));
++});
++
++test("les états que nomme le skill sont ceux qu'écrit `veille.sh --etat`, avec leurs sorties", () => {
++  const veille = lire(VEILLE);
++  const etat = entre(veille, 'if [ "${1-}" = --etat ]; then', "\nfi\n");
++  for (const [ligne, code] of [
++    ['echo "VEILLE VIVANTE${lancee:+ ($lancee)}"', 0],
++    ['echo "VEILLE TERMINÉE : arrêt demandé (', 2],
++    ['echo "VEILLE TERMINÉE : $ligne"', 2],
++    ['echo "VEILLE MORTE (', 1],
++  ]) {
++    const i = etat.indexOf(ligne);
++    assert.ok(i >= 0, `veille.sh --etat : ${ligne}`);
++    assert.match(etat.slice(i).split("\n")[1], new RegExp(`^\\s*exit ${code}$`), `${ligne} : sortie ${code}`);
++  }
++  assert.ok(veille.includes("--reprendre) reprendre=1; shift; continue ;;"), "veille.sh : l'option --reprendre");
++  assert.ok(veille.includes('une veille tourne déjà ($VERROU_VEILLE) : une seule à la fois, « veille.sh --etat »"; exit 9; }'));
++});
+diff --git a/skills/chaine/fusionner/SKILL.md b/skills/chaine/fusionner/SKILL.md
+index 4f3203d..a9a9fac 100644
+--- a/skills/chaine/fusionner/SKILL.md
++++ b/skills/chaine/fusionner/SKILL.md
+@@ -69,11 +69,11 @@ Si le projet a besoin d'un environnement que la machine du capitaine perd à un
+ 
+ **Une seule boucle à la fois, arrêt d'un geste.** Un verrou `flock` (`<git-common-dir>/boucle.verrou`, tenu à travers l'`exec` de relance) refuse une seconde boucle : `REFUS`, sortie 9, même relancée par un processus d'attente oublié. `flock` (util-linux) absent : sortie 6. **Arrêter** : `bash scripts/chaine/boucle.sh --arreter`, jamais un simple `kill` ni `TaskStop` seul. Il pose `<git-common-dir>/boucle-arret`, puis termine la boucle et le passage en cours (les détenteurs réels du verrou, leurs descendants et le groupe noté ; la veille qui la porte n'est tuée que si elle partage ce groupe) ; la trappe remet le worktree propre (`merge --abort` ou `reset --hard`, puis `switch --detach origin/develop`), sortie 143 (TERM) ou 130 (INT). La boucle relit ce fichier au démarrage, en tête de tour, avant `livrer-prets`, avant chaque passage et avant le rafraîchissement final : `ARRÊT demandé`, sortie 10 ; une relance le refuse tant qu'il existe. **Reprendre** : `bash scripts/chaine/boucle.sh --reprendre` retire le fichier puis lance la boucle (refusé, sortie 9 et fichier gardé, si une boucle tient encore le verrou), puis relancer la veille. Option inconnue : `usage`, sortie 64, rien n'est lancé.
+ 
+-**Automatique (le cas normal) : la veille.** Seule la veille tourne sur une copie, puisqu'elle appelle `file.sh` et `boucle.sh` à côté d'elle pendant que `passer.sh` change la branche du worktree ; la boucle qu'elle lance se remplace d'elle-même par la version de develop. Copier, puis lancer depuis le worktree, **en tâche de fond**, la veille et non la boucle seule, sortie dans un journal :
++**Automatique (le cas normal) : la veille.** Seule la veille tourne sur une copie, puisqu'elle appelle `file.sh` et `boucle.sh` à côté d'elle pendant que `passer.sh` change la branche du worktree ; la boucle qu'elle lance se remplace d'elle-même par la version de develop. Copier, puis lancer depuis le worktree, **en tâche de fond (`run_in_background`), avec le `timeout` de l'outil Bash à `7200000`** (deux heures, son maximum), la veille et non la boucle seule, sortie dans un journal. Sans ce `timeout`, l'outil arrête la tâche à 30 minutes, sans ligne finale, au milieu d'un passage s'il le faut : la veille compte sur deux heures (`--marge 40` sous une limite de 120 minutes), et une veille de moins de 30 minutes ne laisserait aucune marge à un passage qui attend sa CI.
+ 
+ ```bash
+ mkdir -p <scratchpad>/outils && cp scripts/chaine/*.sh scripts/chaine/identifiant.mjs scripts/docs/identifiants.mjs <scratchpad>/outils/
+-CAPITAINE_ID=<id de la session> bash <scratchpad>/outils/veille.sh > <scratchpad>/veille.log 2>&1   # --pause <s> (120), --duree <min> (75), --marge <min> (40) ; --sondes <n> n'existe que pour les tests
++CAPITAINE_ID=<id de la session> bash <scratchpad>/outils/veille.sh > <scratchpad>/veille.log 2>&1   # --pause <s> (120), --duree <min> (75), --marge <min> (40), --reprendre (après une veille morte) ; --sondes <n> n'existe que pour les tests
+ ```
+ 
+ Avant chaque lancement de la boucle, la veille joue la commande de `preparerCapitaine` si la machine est neuve ou a redémarré depuis la dernière préparation réussie (`/proc/sys/kernel/random/boot_id`, gardé dans `<git-common-dir>/capitaine-boot-id` ; illisible, à chaque démarrage de la veille) : contrat relu sur `origin/develop` seulement, worktree propre détaché sur `origin/develop`, sortie de la commande dans le journal entre `VEILLE <hh:mm> : préparation (« … »)` et `préparation réussie`. Sans la clé, rien n'est joué. Au démarrage, une ligne dit la durée et l'échéance : `VEILLE <hh:mm> : durée 75 min, aucun passage après <hh:mm> (marge 40 min)`.
+@@ -82,9 +82,17 @@ Avant chaque lancement de la boucle, la veille joue la commande de `preparerCapi
+ 
+ La veille s'arrête d'elle-même, et sa fin réveille la session :
+ 
+-- **`VEILLE FINIE`** (sortie 0) : durée écoulée (75 min ; aucun passage ne commence à moins de 40 min de la limite de 2 h d'une tâche de fond, la boucle s'arrête sur `ÉCHÉANCE`), ou échéance atteinte (`VEILLE FINIE <hh:mm> (échéance)`). La relancer telle quelle.
+-- **`VEILLE ARRÊTÉE`** : la boucle est sortie en code non nul (`ARRÊT` : gates, install, CI bloquée, ou sortie 12, arbre du squash ≠ arbre testé), et la veille avec le même code. Sortie 12 : le dire au lanceur, puis un humain examine la fusion (`git diff <sommet testé> <squash>`) avant toute relance. Traiter le cas (suite par code : en-tête de `passer.sh`), puis relancer la veille. Sortie 9 : une autre boucle tient le verrou, ne rien relancer avant de savoir laquelle ; sortie 10 : arrêt demandé, `--reprendre` quand on veut repartir.
++- **`VEILLE FINIE`** (sortie 0) : durée écoulée (75 min ; aucun passage ne commence à moins de 40 min de la limite de 2 h du `timeout`, la boucle s'arrête sur `ÉCHÉANCE`), ou échéance atteinte (`VEILLE FINIE <hh:mm> (échéance)`). La relancer telle quelle.
++- **`VEILLE ARRÊTÉE`** : la boucle est sortie en code non nul (`ARRÊT` : gates, install, CI bloquée, ou sortie 12, arbre du squash ≠ arbre testé), et la veille avec le même code. Sortie 12 : le dire au lanceur, puis un humain examine la fusion (`git diff <sommet testé> <squash>`) avant toute relance. Traiter le cas (suite par code : en-tête de `passer.sh`), puis relancer la veille. Sortie 9 : une autre boucle tient le verrou, ou une autre veille tourne (`une veille tourne déjà`) : ne rien relancer avant de savoir laquelle (`veille.sh --etat`) ; sortie 10 : arrêt demandé, `--reprendre` quand on veut repartir.
+ - **`VEILLE ARRÊTÉE`, sortie 13** : la préparation du capitaine n'a pas abouti, aucune boucle n'a été lancée, rien n'est fusionné. `préparation du capitaine en échec` : lire la sortie de la commande dans le journal, corriger l'environnement, relancer la veille ; `worktree du capitaine pas propre`, `une boucle tient le verrou`, `origin/develop illisible` ou `contrat illisible` : nettoyer le worktree, arrêter la boucle (`boucle.sh --arreter`), rétablir l'accès ou corriger `.claude/chaine.json` de develop. Dans tous les cas, le dire à son lanceur.
++- **Aucune de ces lignes** (l'outil a arrêté la tâche, hors un `TaskStop` joué par la session elle-même ; le conteneur a redémarré) : une veille morte, jamais une fin sans suite : « Réveil de garde », points 1 à 3, tout de suite.
++
++**Réveil de garde.** Une veille morte avec son conteneur ne réveille personne (cas vécu : 5 h 40 sans lecture de la file, file vide) ; un message programmé, lui, survit au redémarrage. Au premier lancement de la veille dans la session, charger `send_later` (ToolSearch, requête « select:mcp__claude-code-remote__send_later »), puis l'appeler : `delay_minutes` `60`, `name` « Garde de la veille du capitaine », `message` « Réveil de garde : skill fusionner, « Réveil de garde » ». Il ne se réarme qu'au réveil de garde, jamais à un autre réveil : un seul réveil de garde attend à la fois. `send_later` absent (session locale) : pas de garde, le dire une fois au lanceur. À chaque réveil de garde, dans l'ordre :
++
++1. `test -f <scratchpad>/outils/veille.sh && git -C <scratchpad>/capitaine rev-parse -q --verify HEAD` en échec (machine recyclée, scratchpad vidé) : `git worktree prune`, puis « Mise en place » et la copie (« Copier, puis lancer »), sans lancer la veille.
++2. Depuis le worktree, `bash <scratchpad>/outils/veille.sh --etat` (ni `CAPITAINE_ID`, ni réseau) : `VEILLE VIVANTE`, sortie 0 : rien ; `VEILLE TERMINÉE : <ligne finale>`, sortie 2 : `VEILLE FINIE`, la relancer telle quelle, `VEILLE ARRÊTÉE` ou `arrêt demandé`, rien de plus que sa suite ci-dessus ; `VEILLE MORTE`, sortie 1 : le point 3.
++3. Depuis le worktree, `bash <scratchpad>/outils/boucle.sh --arreter` (la copie : le worktree peut être resté sur une PR), qui termine une boucle orpheline et son passage (sa trappe remet le worktree propre) et pose le fichier d'arrêt ; puis relancer la veille comme ci-dessus, avec `--reprendre` : sa première boucle retire ce fichier. `--arreter` en échec (sortie 1, des processus tiennent encore le verrou) : le dire au lanceur, ne rien relancer.
++4. Réarmer : `send_later`, comme ci-dessus.
+ 
+ Suivre le journal avec un `Monitor` filtré sur `VEILLE FINIE|VEILLE ARRÊTÉE|ÉCHÉANCE|préparation|FUSIONNÉE|ARBRE DIFFÉRENT|MISE À JOUR|sortie=|ARRÊT|conflit|rouges|RELANCE|RENVOI|REGROUPÉE|RECIBLÉE|SUJET EN CONFLIT|SUJET NON MIS À JOUR|REPRISE|PAUSE|LIVRÉ|REFUS|PAS PROPRE|ÉCHEC DU CAPITAINE`. La boucle traite seule les sorties 2 à 5 de `passer.sh` et la CI rouge (une relance, puis renvoi). **Une sortie 5 ne l'arrête jamais** : develop ou la PR a bougé, ou GitHub est illisible (réponse vide, non JSON, corps d'erreur : `lire_github`) ; une fusion refusée durablement par GitHub (droit, règle du dépôt, revue exigée, méthode interdite) sort en 3 et l'arrête, sauf si develop a bougé entre le test et la fusion (règle d'ascendance rejouée : une course, sortie 5) ; après un second essai immédiat, elle se met en pause (`PAUSE <hh:mm> (sortie 5) : … ; cause : GitHub illisible (<route>) : <cause>, reprise dans <s> s` : la route et le code HTTP de la cause, `(HTTP 401)` d'un jeton expiré compris, `BOUCLE_PAUSE` secondes, 120 par défaut), puis reprend au tour suivant, qui relit l'arrêt, l'échéance et les scripts de develop. Une file illisible (`file.sh` en 5) est une `PAUSE` aussi, jamais `FILE VIDE` ; `file.sh` en échec sous un autre code l'arrête (sortie 6). Un push refusé se classe par la trace de husky 9 (`husky - pre-push script failed (code N)`, écrite par `.husky/_/h`) : avec elle, le hook pre-push refuse la mise à jour avec develop, et la boucle renvoie la PR à sa session avec la sortie du hook (huit lignes au plus, masquées) ; sans elle, c'est le distant (règle du dépôt, droit, proxy, coupure) : la boucle s'arrête (`ARRÊT`), sans renvoi, et `sujet.sh` sort en 11 (`ÉCHEC DU CAPITAINE`, aucun renvoi) ; un refus corrigeable (sortie 4 : titre trop long ou refusé par commitlint, revue adversariale absente, base hors `sujet/`, tête gardée : `develop`, `main`, la branche par défaut, ou un sujet pour une sous-PR ; sortie 4 de `sujet.sh relancer` comprise) renvoie la PR avec son motif (`refus.sh`) ; une PR non éligible sans correction possible (sortie 7 : fermée, brouillon, sans label, déjà `fusion-bloquée`, empilée sur une parente non fusionnée) est sautée sans bruit. Une PR en passage chez un autre capitaine (son commentaire `passage du capitaine …` sans « terminé », daté de moins de 90 minutes : `FILTRE_PASSAGE`) est sautée sans renvoi (sortie 7) ; elle revient au tour suivant si ce passage n'a pas fusionné. Un worktree du capitaine pas propre n'est jamais un renvoi : sortie 6 de `passer.sh` (arrêt) comme de `sujet.sh fusionner`, `relancer`, `rafraichir` ou `regrouper` (`PAS PROPRE`, sous-PR laissée dans la file) ; le nettoyer, puis relancer. Une livraison de sujet, tête `sujet/<nom>` ou `livraison/<nom>-<date>`, passe avant `prio:haute`. Une sous-PR en retard sur son sujet, documentation comprise, ou en conflit avec lui **sur des index générés seuls**, n'est pas renvoyée : `sujet.sh fusionner` la met à jour, régénère, pousse, attend la CI du nouveau sommet, la contrôle de nouveau, puis la squashe (« La règle d'ascendance ») ; si cette CI ne finit pas, sortie 8 (`MISE À JOUR`) : elle repasse au tour suivant. Une sous-PR sans CI que GitHub dit en conflit se lit `prête (en conflit)` : `sujet.sh relancer` la met à jour si le conflit ne porte que sur des index générés (CI relancée), sinon elle est renvoyée avec ses fichiers hors index générés ; une mise à jour que le pre-push refuse la renvoie avec la sortie du hook. Une PR de mise à jour d'un sujet (la fusion de develop par une session fille, puis ses retouches : en-tête de `sujet.sh`) entre par avance rapide, sans squash, et le capitaine la ferme (`FUSIONNÉE`) ; chaque retouche se juge comme une sous-PR (revue exigée sur l'union des fichiers que chaque retouche touche, commit par commit ; décision A-47 ter : aucune dispense par un formateur, le capitaine n'installe rien et n'en joue aucun) ; d'une autre forme, elle est renvoyée avec son motif (sortie 4) ; un échec de ses outils (git sans `merge-tree --write-tree`, dépendances, régénération, push refusé) sort en 11, `ÉCHEC DU CAPITAINE`, sans renvoi : le capitaine lit la cause et la corrige chez lui. Une sous-PR que `sujet.sh fusionner` refuse en sortie 3 (checks rouges, conflit avec le sujet, hook) est renvoyée avec le motif de `sujet.sh`, jamais un conflit supposé ; des checks encore en cours après l'attente sortent en 5 (`REPRISE`, aucun renvoi : la PR reste dans la file tant que sa CI ne finit pas). Un sujet dont la mise à jour avec develop est refusée sans conflit se dit `SUJET NON MIS À JOUR`, pas `SUJET EN CONFLIT` : un hook, des dépendances ou le gate des index (sortie 3) se corrigent par une PR de mise à jour avec retouches, une panne du capitaine (sortie 11) ou de `sujet.sh` (69, 1) chez le capitaine, jamais par une session. Sur un `RENVOI`, le capitaine prévient la session. Les renvois se comptent sur la PR (marque invisible dans chaque commentaire de `renvoyer.sh`, comptée seulement sous le compte qui tient le capitaine, `gh api user` ; ce compte illisible, toute PR se lit au plafond, et `file.sh` le dit une fois) : au plafond (`plafonds.renvoisParPR`, 3), le commentaire et la ligne `RENVOI n sur 3` disent que la PR attend un humain, et `file.sh` la montre `humain` : ni passée, ni relancée, ni renvoyée. Une PR d'un sujet gelé (`Gel:` de sa carte : sous-PR, livraison ou PR à recibler) se lit `gelée`, avant `humain`, et reçoit le même traitement ; `sujet.sh fusionner` d'une telle sous-PR sort en 7. Le gel se lève d'une ligne (`sujet.sh degeler`). Sur l'ordre d'un humain, le capitaine la passe à la main (`passer.sh <n>`, ou `sujet.sh fusionner <n>` pour une sous-PR) ; le compte ne se remet pas à zéro.
+ 
+diff --git a/skills/chaine/fusionner/references/CONTENU.md b/skills/chaine/fusionner/references/CONTENU.md
+index c6eaf44..11c3f22 100644
+--- a/skills/chaine/fusionner/references/CONTENU.md
++++ b/skills/chaine/fusionner/references/CONTENU.md
+@@ -36,6 +36,8 @@ La veille : `boucle.sh` s'arrête sur `FILE VIDE`, et une PR étiquetée ensuite
+ 
+ Deux défauts vécus chez Iroki (novembre 2026) l'ont complétée. La plateforme recycle la machine du capitaine : la base locale disparaît, et le passage suivant échoue loin de sa cause (pre-push sans base, base recréée en `SQL_ASCII`, migration d'un sujet restée en base). La clé facultative `preparerCapitaine` de `.claude/chaine.json` nomme une commande du projet, que la veille joue avant de lancer la boucle sur une machine neuve et après chaque redémarrage, reconnu au `boot_id` du noyau et non à l'horloge ou à un marqueur de `$TMPDIR`. Le contrat se lit sur `origin/develop` seulement, après un worktree trouvé propre et détaché : un passage interrompu laisse le worktree sur le code d'une PR, dont la commande serait sinon celle jouée. Le `boot_id` est comparé d'abord : sur la même machine que la dernière préparation, aucun fetch ; sinon le fetch a trois essais, comme celui de la boucle, et un fetch passager n'arrête pas la veille ; le contrat lu une fois par une veille ne se relit pas avant un nouveau `boot_id`. La préparation tient le verrou de la boucle (`boucle.verrou`) : une boucle orpheline encore vivante n'a pas son worktree changé de branche sous elle. Tant que la préparation n'a pas réussi, rien n'est fusionné : tout échec (commande, worktree sale, develop ou contrat illisibles) arrête la veille en sortie 13, jamais une préparation sautée. Second défaut : la limite de 2 h tuait la veille au milieu d'un passage (110 min par défaut, durée testée avant chaque sonde seulement). La veille dure désormais 75 min, et calcule une échéance absolue, démarrage + (120 − `--marge`) min, qu'elle transmet à la boucle (`BOUCLE_ECHEANCE`) : la boucle la vérifie en tête de tour, avant chaque `passer` et avant chaque `sujet.sh fusionner` (le code remonte du sous-shell de `traiter_sujets` par `PIPESTATUS`, comme la sortie 12), et s'arrête sur `ÉCHÉANCE`, sortie 0, sans rien laisser en cours. La marge couvre un passage ordinaire, pas un passage qui attend plusieurs CI.
+ 
++Trois défauts de la veille morte (ticket 74 du chantier `gouverner-nos-boucles`, décisions A-180 et A-185). L'outil Bash arrête une tâche de fond à 30 minutes par défaut : la veille, qui compte sur deux heures, se lance avec le `timeout` de l'outil à 7 200 000 ms. Une veille tuée (outil, conteneur redémarré) n'écrivait aucune ligne finale et ne réveillait personne (5 h 40 sans lecture de la file, le 2026-11-19). Elle tient désormais un verrou, `<git-common-dir>/veille.verrou` (une seconde veille sort en 9 ; aucun fils n'hérite du descripteur, pour qu'un démon ou un `sleep` orphelin ne la fasse pas croire vivante), et écrit son état dans `<git-common-dir>/veille.etat` (« lancee », puis « fin » avec sa ligne finale) ; `veille.sh --etat` lit les deux et dit `VEILLE VIVANTE`, `VEILLE TERMINÉE` (fin écrite, ou fichier d'arrêt posé) ou `VEILLE MORTE`. Une veille morte se relance après `boucle.sh --arreter`, avec `--reprendre`, dont la première boucle retire le fichier d'arrêt. Un réveil de garde (`send_later`, 60 minutes, réarmé à chaque réveil de garde) lit cet état : c'est lui qui voit la veille morte avec son conteneur.
++
+ ## `scripts/renvoyer.sh`, `refus.sh`, `proprietaire.sh`
+ 
+ Le renvoi : labels échangés, cause commentée, worktree propriétaire retrouvé pour prévenir la session. Le compte des renvois ne lit que les commentaires marqués du compte qui tient le capitaine (`gh api user`, lu une fois par `file.sh`) : la marque recopiée par un autre compte ne met pas une PR en attente d'un humain ; ce compte illisible, toute PR se lit au plafond (le frein ne se lâche pas faute de savoir qui renvoie), et `file.sh` le dit une fois. Les sessions du projet commentent sous le même compte, et un collaborateur peut supprimer des commentaires : le compte est un frein contre la boucle, pas une frontière. `refus.sh` renvoie avec le dernier motif d'un refus corrigeable.
+diff --git a/skills/chaine/fusionner/scripts/une-sous-pr-a-la-fois.test.mjs b/skills/chaine/fusionner/scripts/une-sous-pr-a-la-fois.test.mjs
+index b2ae811..48b3c20 100644
+--- a/skills/chaine/fusionner/scripts/une-sous-pr-a-la-fois.test.mjs
++++ b/skills/chaine/fusionner/scripts/une-sous-pr-a-la-fois.test.mjs
+@@ -410,7 +410,7 @@ test("boucle.sh : deux capitaines — une sous-PR en passage chez un autre capit
+ 
+ // La veille du plugin lance la vraie boucle sur le dépôt jouet ; le `sleep` du jouet joue, à chaque pause de la veille
+ // (argument 7777), l'étape suivante : du JavaScript qui retouche `etat`, l'état du faux GitHub.
+-function veilleReelle(d, etapes, sondes) {
++function veilleReelle(d, etapes, sondes, plus = []) {
+   const etat = JSON.stringify(join(d.racine, "faux-gh", "etat.json"));
+   etapes.forEach((corps, k) => {
+     if (corps) writeFileSync(join(d.racine, `etape.${k}.mjs`), `import { readFileSync, writeFileSync } from "node:fs";\nconst etat = JSON.parse(readFileSync(${etat}, "utf8"));\n${corps}\nwriteFileSync(${etat}, JSON.stringify(etat));\n`);
+@@ -418,7 +418,7 @@ function veilleReelle(d, etapes, sondes) {
+   const k = JSON.stringify(join(d.racine, "k"));
+   const etape = JSON.stringify(join(d.racine, "etape."));
+   writeFileSync(join(d.racine, "bin", "sleep"), `#!/bin/sh\nif [ "$1" = 7777 ]; then k=$(cat ${k} 2>/dev/null || echo 0); echo $((k + 1)) > ${k}; [ ! -f ${etape}$k.mjs ] || node ${etape}$k.mjs; fi\nexit 0\n`);
+-  return spawnSync("bash", [VEILLE, "--pause", "7777", "--sondes", String(sondes)], { cwd: d.travail, env: d.env, encoding: "utf8" });
++  return spawnSync("bash", [VEILLE, "--pause", "7777", "--sondes", String(sondes), ...plus], { cwd: d.travail, env: d.env, encoding: "utf8" });
+ }
+ 
+ test("veille.sh et boucle.sh : le verrou d'un capitaine mort tient un sujet ; il expire sans que rien ne change dans la file, et la veille relance la boucle une fois : les sous-PR entrent ; une CI qui ne finit pas tient un sujet jusqu'au geste du capitaine, qui fait relancer la boucle", () => {
+@@ -450,6 +450,28 @@ test("veille.sh et boucle.sh : le verrou d'un capitaine mort tient un sujet ; il
+   assert.deepEqual(fusionnees(d), [80, 81, 83, 84]);
+ });
+ 
++// Ticket 74 : après une veille morte, `boucle.sh --arreter` termine une boucle orpheline et pose le fichier d'arrêt ; la
++// veille relancée sans `--reprendre` s'arrête sur lui (sortie 10), avec `--reprendre` sa première boucle le retire.
++test("veille.sh --reprendre après boucle.sh --arreter : la vraie boucle retire le fichier d'arrêt et la sous-PR entre ; sans --reprendre, VEILLE ARRÊTÉE en 10, rien de fusionné", () => {
++  const d = sousPrDeSujets({ lot: [80] });
++  ci(d, "SUCCESS");
++  const arreter = d.lancer(BOUCLE, "--arreter");
++  assert.equal(arreter.status, 0, arreter.stdout + arreter.stderr);
++  const arret = join(d.git("rev-parse", "--path-format=absolute", "--git-common-dir"), "boucle-arret");
++  assert.ok(existsSync(arret), "fichier d'arrêt posé");
++  let r = veilleReelle(d, [], 0);
++  assert.equal(r.status, 10, r.stdout + r.stderr);
++  assert.match(r.stdout, /^VEILLE ARRÊTÉE \d\d:\d\d : la boucle est sortie en 10$/m);
++  assert.deepEqual(fusionnees(d), []);
++  r = veilleReelle(d, [], 0, ["--reprendre"]);
++  assert.equal(r.status, 0, r.stdout + r.stderr);
++  assert.equal(existsSync(arret), false, "fichier d'arrêt retiré");
++  assert.deepEqual(fusionnees(d), [80]);
++  const etat = d.lancer(VEILLE, "--etat");
++  assert.equal(etat.status, 2, etat.stdout + etat.stderr);
++  assert.match(etat.stdout, /^VEILLE TERMINÉE : VEILLE FINIE \d\d:\d\d\n$/);
++});
++
+ // ── Contre-relecture de la PR 141, tour 1 (décision A-161) ─────────────────────────────────────────────────────────
+ // Une sortie 128 est une erreur fatale de git (réseau coupé, référence introuvable, index verrouillé), pas un signal :
+ // elle suit la table d'une erreur et rend le sujet. Seules les sorties 129 et plus tiennent le sujet comme un signal.
+diff --git a/skills/chaine/fusionner/scripts/veille.sh b/skills/chaine/fusionner/scripts/veille.sh
+index 1bc3dd1..ba2c64c 100755
+--- a/skills/chaine/fusionner/scripts/veille.sh
++++ b/skills/chaine/fusionner/scripts/veille.sh
+@@ -47,24 +47,75 @@
+ # préparation en échec, worktree pas propre, origin/develop ou contrat illisibles arrêtent la veille
+ # en sortie 13, « VEILLE ARRÊTÉE <hh:mm> : … », jamais une préparation sautée.
+ #
+-# Échéance. Une tâche de fond est tuée à 2 h ; tuée au milieu d'un passage, elle laisse une PR à moitié
+-# mise à jour. Aucun passage ne commence à moins de `--marge` minutes (40) de cette limite : la veille
++# Échéance. L'outil Bash arrête une tâche de fond à 30 min par défaut, à 2 h au plus : la session lance la veille
++# avec son `timeout` à 7200000 (ms, skill fusionner § « Boucle »), et la veille compte sur ces 2 h ; tuée au milieu
++# d'un passage, elle laisse une PR à moitié mise à jour. Aucun passage ne commence à moins de `--marge` minutes (40) de cette limite : la veille
+ # calcule l'échéance absolue (démarrage + (120 - marge) min), la transmet à la boucle
+ # (`BOUCLE_ECHEANCE`, secondes depuis l'époque Unix), qui la vérifie avant chaque passage et s'arrête
+ # sur `ÉCHÉANCE` (sortie 0), et ne relance plus la boucle passé l'échéance : « VEILLE FINIE <hh:mm>
+ # (échéance) ». Une `--duree` plus longue ne repousse pas l'échéance. `VEILLE_LIMITE` (minutes, décimal
+ # permis) remplace la limite de 120, pour les bancs seulement.
+ #
+-# Usage, en tâche de fond, depuis le worktree du capitaine, scripts copiés hors du worktree, `CAPITAINE_ID` (l'id de la
+-# session du capitaine) en préfixe :
+-#   CAPITAINE_ID=<id> bash <copie>/veille.sh [--pause <s>] [--duree <min>] [--marge <min>] [--sondes <n>] > <journal> 2>&1
++# Une veille à la fois, et son état. Une veille tuée (l'outil, un conteneur redémarré, `kill`) n'écrit aucune ligne
++# finale et ne réveille personne (cas vécu : 5 h 40 sans lecture de la file). La veille tient donc le verrou
++# `<git-common-dir>/veille.verrou` (`flock`, descripteur 7, qu'aucun fils n'hérite : un démon laissé par un passage, ou
++# un `sleep` orphelin, ne la ferait pas croire vivante) ; une seconde veille sort aussitôt en 9, « VEILLE ARRÊTÉE <hh:mm>
++# : une veille tourne déjà ». Elle écrit `<git-common-dir>/veille.etat` (hors de l'arbre de travail, il survit au
++# redémarrage de la machine) : « lancee <epoch> » au démarrage, « fin <epoch> <ligne finale> » avec sa ligne finale
++# (VEILLE FINIE, VEILLE ARRÊTÉE ; pas les refus d'usage d'avant le verrou, sortie 64). Tuée, elle n'écrit pas sa fin.
++# `veille.sh --etat`, depuis le worktree, sans CAPITAINE_ID ni réseau, n'écrit rien et dit, dans cet ordre :
++#   VEILLE VIVANTE (lancée à <hh:mm>)                            sortie 0 : une veille tient le verrou
++#   VEILLE TERMINÉE : arrêt demandé (<fichier>, posé le <date>) …  sortie 2 : `boucle-arret` posé (boucle.sh --arreter)
++#   VEILLE TERMINÉE : <ligne finale>                             sortie 2 : sa fin est écrite
++#   VEILLE MORTE (lancée à <hh:mm>, sans ligne finale) : …       sortie 1 : rien de cela, ou aucune trace de veille
++# `--reprendre` (après une veille morte et `boucle.sh --arreter`, qui pose le fichier d'arrêt) : le premier lancement de
++# la boucle est `boucle.sh --reprendre`, qui retire ce fichier une fois son verrou pris ; les suivants, `boucle.sh` seul.
++#
++# Usage, en tâche de fond (`timeout` 7200000), depuis le worktree du capitaine, scripts copiés hors du worktree,
++# `CAPITAINE_ID` (l'id de la session du capitaine) en préfixe :
++#   CAPITAINE_ID=<id> bash <copie>/veille.sh [--pause <s>] [--duree <min>] [--marge <min>] [--reprendre] [--sondes <n>] > <journal> 2>&1
+ #   (défauts 120 s, 75 min, 40 min)
++#   bash <copie>/veille.sh --etat
+ # VEILLE FINIE ou VEILLE ARRÊTÉE réveille la session. `--duree` : un nombre positif, décimal permis ;
+ # `--marge` : des minutes entières, sous la limite. Option invalide : sortie 64, l'option nommée.
+ # `--sondes <n>` (pour les tests seulement) : VEILLE FINIE après n sondes, durée ou pas, pour qu'un test
+ # compte des sondes sans dépendre de l'horloge. Défaut : pas de limite.
+ # =============================================================================
+ outils=$(cd "$(dirname "$0")" && pwd)
++heure() { date +%H:%M; }
++heure_de() { date -d "@$1" +%H:%M 2>/dev/null || date -r "$1" +%H:%M; }
++# Verrou et état de la veille (en-tête), dans le répertoire commun du dépôt.
++COMMUN=$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null)
++VERROU_VEILLE="$COMMUN/veille.verrou"
++ETAT_VEILLE="$COMMUN/veille.etat"
++ARRET="$COMMUN/boucle-arret"
++
++# --etat (en-tête) : avant CAPITAINE_ID, qu'il n'exige pas ; rien d'écrit, hors le fichier du verrou que `flock` crée.
++if [ "${1-}" = --etat ]; then
++  [ $# = 1 ] || { echo "usage : veille.sh --etat (seule)" >&2; exit 64; }
++  [ -n "$COMMUN" ] || { echo "veille.sh --etat : à lancer depuis le worktree du capitaine (dépôt git)" >&2; exit 64; }
++  command -v flock >/dev/null || { echo "veille.sh --etat : flock (util-linux) requis" >&2; exit 6; }
++  mot="" quand="" ligne=""
++  [ ! -f "$ETAT_VEILLE" ] || read -r mot quand ligne < "$ETAT_VEILLE"
++  [[ "$quand" =~ ^[0-9]+$ ]] || mot=""
++  lancee=""
++  [ "$mot" != lancee ] || lancee="lancée à $(heure_de "$quand")"
++  if ! flock -n "$VERROU_VEILLE" true 2>/dev/null; then
++    echo "VEILLE VIVANTE${lancee:+ ($lancee)}"
++    exit 0
++  fi
++  if [ -e "$ARRET" ]; then
++    echo "VEILLE TERMINÉE : arrêt demandé ($ARRET, posé le $(cat "$ARRET" 2>/dev/null)) ; « veille.sh --reprendre » quand on veut repartir"
++    exit 2
++  fi
++  if [ "$mot" = fin ] && [ -n "$ligne" ]; then
++    echo "VEILLE TERMINÉE : $ligne"
++    exit 2
++  fi
++  echo "VEILLE MORTE (${lancee:-aucune trace de veille}${lancee:+, sans ligne finale}) : « boucle.sh --arreter », puis la relancer avec --reprendre"
++  exit 1
++fi
++
+ # L'id de la session du capitaine (verrou de chaque passage, github.sh) : vérifié ici, pas deux minutes plus tard par la
+ # boucle. Absent ou mal formé : sortie 64.
+ [[ "${CAPITAINE_ID-}" =~ ^[A-Za-z0-9_-]{1,100}$ ]] || {
+@@ -72,12 +123,14 @@ outils=$(cd "$(dirname "$0")" && pwd)
+   exit 64
+ }
+ 
+-# Limite des tâches de fond de la plateforme (2 h), en minutes ; `VEILLE_LIMITE` pour les bancs.
++# Limite de la tâche de fond, en minutes : le `timeout` de 2 h que la session donne à l'outil Bash (30 min sans lui) ;
++# `VEILLE_LIMITE` pour les bancs.
+ limite=${VEILLE_LIMITE:-120}
+ pause=120
+ duree=75
+ marge=40
+ sondes=""
++reprendre=0
+ invalide() { echo "veille.sh : $1" >&2; exit 64; }
+ while [ $# -gt 0 ]; do
+   option=$1 valeur=${2-}
+@@ -86,7 +139,8 @@ while [ $# -gt 0 ]; do
+     --duree) duree=$valeur ;;
+     --marge) marge=$valeur ;;
+     --sondes) sondes=${valeur:?--sondes attend un nombre} ;;
+-    *) echo "usage : veille.sh [--pause <s>] [--duree <min>] [--marge <min>] [--sondes <n>]" >&2; exit 64 ;;
++    --reprendre) reprendre=1; shift; continue ;;
++    *) echo "usage : veille.sh [--pause <s>] [--duree <min>] [--marge <min>] [--reprendre] [--sondes <n>] | --etat" >&2; exit 64 ;;
+   esac
+   if [ $# -ge 2 ]; then shift 2; else shift; fi
+ done
+@@ -99,17 +153,28 @@ debut=$(date +%s)
+ echeance=$(awk -v t="$debut" -v l="$limite" -v m="$marge" 'BEGIN { printf "%d", t + (l - m) * 60 }')
+ export BOUCLE_ECHEANCE=$echeance
+ 
+-heure() { date +%H:%M; }
+-heure_de() { date -d "@$1" +%H:%M 2>/dev/null || date -r "$1" +%H:%M; }
++# Une veille à la fois (en-tête) : le verrou se tient sur le descripteur 7 jusqu'à la sortie ; chaque fils qui peut
++# survivre à la veille (boucle, tee, file.sh, sleep, fetch, préparation) est lancé avec `7>&-`. Puis l'état « lancee ».
++[ -n "$COMMUN" ] || { echo "VEILLE ARRÊTÉE $(heure) : veille.sh se lance depuis le worktree du capitaine (dépôt git)" >&2; exit 64; }
++command -v flock >/dev/null || { echo "VEILLE ARRÊTÉE $(heure) : flock (util-linux) requis"; exit 6; }
++exec 7>>"$VERROU_VEILLE"
++flock -n 7 || { echo "VEILLE ARRÊTÉE $(heure) : une veille tourne déjà ($VERROU_VEILLE) : une seule à la fois, « veille.sh --etat »"; exit 9; }
++printf 'lancee %s\n' "$debut" > "$ETAT_VEILLE"
++# Ligne finale : écrite dans l'état, puis au journal, puis la sortie. Toute fin de la veille après le verrou passe ici.
++finir() { # <code> <ligne finale>
++  printf 'fin %s %s\n' "$(date +%s)" "$2" > "$ETAT_VEILLE"
++  echo "$2"
++  exit "$1"
++}
++
+ echeance_passee() { [ "$(date +%s)" -ge "$echeance" ]; }
+ 
+ # Préparation du capitaine (en-tête). `prepare_pour` : le boot (ou « illisible ») pour lequel cette
+ # veille a déjà lu le contrat, ou préparé : plus rien à lire ni à jouer tant qu'il ne change pas.
+-COMMUN=$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null)
+ GARDE="$COMMUN/capitaine-boot-id"
+ VERROU="$COMMUN/boucle.verrou"
+ prepare_pour=""
+-arreter_preparation() { echo "VEILLE ARRÊTÉE $(heure) : $1"; exit 13; }
++arreter_preparation() { finir 13 "VEILLE ARRÊTÉE $(heure) : $1"; }
+ preparer_si_besoin() {
+   local boot cle contrat type commande racine rc
+   local essai lu
+@@ -121,7 +186,7 @@ preparer_si_besoin() {
+   # Trois essais, comme la boucle (sortie 6 au troisième) : un fetch passager n'arrête pas la veille.
+   lu=""
+   for essai in 1 2 3; do
+-    git fetch -q origin develop 2>/dev/null && { lu=1; break; }
++    git fetch -q origin develop 2>/dev/null 7>&- && { lu=1; break; }
+     [ "$essai" = 3 ] || sleep $((essai * 5))
+   done
+   [ -n "$lu" ] && git rev-parse --verify -q origin/develop >/dev/null ||
+@@ -150,7 +215,7 @@ preparer_si_besoin() {
+   racine=$(git rev-parse --show-toplevel)
+   [ -n "$boot" ] || echo "VEILLE $(heure) : boot_id illisible, préparation jouée à chaque démarrage de la veille"
+   echo "VEILLE $(heure) : préparation (« $commande »)"
+-  (cd "$racine" && sh -c "$commande" </dev/null 2>&1 8>&-)
++  (cd "$racine" && sh -c "$commande" </dev/null 2>&1 8>&- 7>&-)
+   rc=$?
+   exec 8>&-
+   [ "$rc" = 0 ] ||
+@@ -170,15 +235,16 @@ trap 'rm -f "$journal_boucle"' EXIT
+ # (`[#n] RENVOI`, renvoyer.sh) ou dont elle a relancé les jobs rouges (`[#n] RELANCE`, boucle.sh)
+ # sort de l'ensemble vu : si elle revient avant la sonde suivante, même ligne qu'avant la boucle,
+ # elle est nouvelle et relance la boucle (cas vécu : PR renvoyée, corrigée en une minute, invisible).
+-# La préparation la précède (en-tête) ; son échec sort en 13 sans lancer la boucle.
++# La préparation la précède (en-tête) ; son échec sort en 13 sans lancer la boucle. `--reprendre` : le premier
++# lancement seul est `boucle.sh --reprendre` (en-tête).
+ lancer() {
++  local suite=()
++  [ "$reprendre" = 0 ] || suite=(--reprendre)
++  reprendre=0
+   preparer_si_besoin
+-  bash "$outils/boucle.sh" | tee "$journal_boucle"
++  bash "$outils/boucle.sh" "${suite[@]}" 7>&- | tee "$journal_boucle" 7>&-
+   local rc=${PIPESTATUS[0]} agies
+-  if [ "$rc" != 0 ]; then
+-    echo "VEILLE ARRÊTÉE $(heure) : la boucle est sortie en $rc"
+-    exit "$rc"
+-  fi
++  [ "$rc" = 0 ] || finir "$rc" "VEILLE ARRÊTÉE $(heure) : la boucle est sortie en $rc"
+   agies=$(sed -nE 's/^\[#([0-9]+)\] (RENVOI|RELANCE).*/\1/p' "$journal_boucle" | sort -u)
+   [ -z "$agies" ] || vu=$(printf '%s\n' "$vu" | awk 'NR == FNR { a[$1]; next } !($1 in a)' <(printf '%s\n' "$agies") -)
+   # Sous-PR qui attendent leur tour, « n:m » (n attend que #m, qui tient son sujet, soit passée) : etat_file les suit.
+@@ -197,7 +263,7 @@ expire=""
+ tire=""
+ etat_file() {
+   local sortie
+-  sortie=$(bash "$outils/file.sh" 2>/dev/null) || return 1
++  sortie=$(bash "$outils/file.sh" 2>/dev/null 7>&-) || return 1
+   printf '%s\n' "$sortie" | awk -F '\t' -v attentes="$attentes" '
+     { etat[$1] = $2 }
+     $2 ~ /CI rouge/ { print $1 " rouge"; next }
+@@ -219,9 +285,9 @@ lancer
+ dernier_journal=-600
+ faites=0
+ while [ "$SECONDS" -lt "$fin" ] && { [ -z "$sondes" ] || [ "$faites" -lt "$sondes" ]; }; do
+-  sleep "$pause"
++  sleep "$pause" 7>&-
+   # Passé l'échéance, plus de relance : un passage commencé ne finirait pas avant la limite de 2 h.
+-  if echeance_passee; then echo "VEILLE FINIE $(heure) (échéance)"; exit 0; fi
++  if echeance_passee; then finir 0 "VEILLE FINIE $(heure) (échéance)"; fi
+   [ "$SECONDS" -lt "$fin" ] || break
+   faites=$((faites + 1))
+   if ! actuel=$(etat_file); then
+@@ -249,5 +315,4 @@ while [ "$SECONDS" -lt "$fin" ] && { [ -z "$sondes" ] || [ "$faites" -lt "$sonde
+     lancer
+   fi
+ done
+-echo "VEILLE FINIE $(heure)"
+-exit 0
++finir 0 "VEILLE FINIE $(heure)"
+diff --git a/skills/chaine/fusionner/scripts/veille.test.mjs b/skills/chaine/fusionner/scripts/veille.test.mjs
+index 55675e9..d5042cd 100644
+--- a/skills/chaine/fusionner/scripts/veille.test.mjs
++++ b/skills/chaine/fusionner/scripts/veille.test.mjs
+@@ -10,9 +10,10 @@ import {
+   mkdirSync,
+   mkdtempSync,
+   readFileSync,
++  rmSync,
+   writeFileSync,
+ } from "node:fs";
+-import { execFileSync, spawnSync } from "node:child_process";
++import { execFileSync, spawn, spawnSync } from "node:child_process";
+ import { tmpdir } from "node:os";
+ import { join } from "node:path";
+ 
+@@ -53,6 +54,7 @@ function creerJouet(etats, { rcBoucle = 0, sorties = [], contrat, apresLancement
+     join(dir, "boucle.sh"),
+     `#!/usr/bin/env bash
+ echo boucle >> "${dir}/lancements"
++echo boucle "$@" >> "${dir}/arguments"
+ echo boucle >> "${trace}"
+ echo "\${BOUCLE_ECHEANCE-absente}" > "${dir}/echeance"
+ k=$(cat "${dir}/k" 2>/dev/null || echo 0)
+@@ -100,7 +102,8 @@ cat "$f"
+     const lancements = lire("lancements") ? lire("lancements").split("\n").length : 0;
+     const compte = Number(lire("compte") || 0);
+     const lignes = lire("trace") ? lire("trace").split("\n") : [];
+-    return { ...r, lancements, compte, trace: lignes, echeance: lire("echeance") };
++    const appels = lire("arguments") ? lire("arguments").split("\n") : [];
++    return { ...r, lancements, compte, trace: lignes, echeance: lire("echeance"), arguments: appels };
+   };
+   // Publie un contrat sur le develop d'origine depuis le clone (il peut citer `trace`, connue ici seulement).
+   const publier = (c) => {
+@@ -484,7 +487,174 @@ test("démon lancé par la préparation (`(exec sleep 15) &`) : la boucle obtien
+     assert.equal(r.status, 0, r.stdout + r.stderr);
+     assert.ok(existsSync(pid), "le démon a été lancé");
+     assert.deepEqual(r.trace, ["verrou libre", "boucle"], r.stdout + r.stderr);
++    // Ticket 74 : ni le verrou de la veille (descripteur 7).
++    assert.equal(etatDe(j).status, 2, "le démon de la préparation ne tient pas la veille vivante");
+   } finally {
+     if (existsSync(pid)) spawnSync("kill", [readFileSync(pid, "utf8").trim()]);
+   }
+ });
++
++// --- Ticket 74 : la veille morte. Un verrou (`veille.verrou`) et un état (`veille.etat`) dans le répertoire commun ;
++// `--etat` dit VIVANTE, TERMINÉE ou MORTE ; `--reprendre` repart après `boucle.sh --arreter`. ---
++
++// `veille.sh --etat` du jouet, sans CAPITAINE_ID (il ne l'exige pas).
++const etatDe = (j, ...plus) => {
++  const { CAPITAINE_ID: _, ...sans } = ENV;
++  return spawnSync("bash", [join(j.dir, "veille.sh"), "--etat", ...plus], { cwd: j.clone, env: sans, encoding: "utf8" });
++};
++const fichierEtat = (j) => join(j.clone, ".git", "veille.etat");
++const MORTE_SANS_TRACE = "VEILLE MORTE (aucune trace de veille) : « boucle.sh --arreter », puis la relancer avec --reprendre\n";
++const attendre = (ms) => new Promise((ok) => setTimeout(ok, ms));
++// Un `sleep` du PATH qui note son pid : le banc retire lui-même ce qu'il laisse orphelin.
++const sleepNote = (j) => {
++  mkdirSync(join(j.dir, "bin"), { recursive: true });
++  writeFileSync(join(j.dir, "bin", "sleep"), `#!/bin/sh\necho $$ >> "${j.dir}/pids"\nexec /bin/sleep "$@"\n`, { mode: 0o755 });
++  return { ...ENV, VEILLE_BOOT_ID: j.fichierBoot, PATH: `${join(j.dir, "bin")}:${ENV.PATH ?? process.env.PATH}` };
++};
++const tuerNotes = (j) => {
++  for (const f of ["pids", "demon.pid", "demon-file.pid"]) {
++    if (!existsSync(join(j.dir, f))) continue;
++    for (const p of readFileSync(join(j.dir, f), "utf8").split("\n").filter(Boolean)) spawnSync("kill", ["-9", p]);
++  }
++};
++
++test("--etat : MORTE sans trace, VIVANTE pendant la veille, TERMINÉE avec sa ligne finale (FINIE, ARRÊTÉE de la boucle, de la préparation) ; sans CAPITAINE_ID ni état écrit ; un argument de plus : sortie 64", () => {
++  // Pendant le premier lancement de la boucle, la doublure lit l'état : la veille tient son verrou.
++  const pendant = 'if [ "$k" = 0 ]; then env -u CAPITAINE_ID bash "$(dirname "$0")/veille.sh" --etat >> "$(dirname "$0")/trace" 2>&1; echo "etat $?" >> "$(dirname "$0")/trace"; fi';
++  const j = creerJouet([""], { apresLancement: pendant });
++  let e = etatDe(j);
++  assert.equal(e.status, 1, e.stdout + e.stderr);
++  assert.equal(e.stdout, MORTE_SANS_TRACE);
++  assert.equal(existsSync(fichierEtat(j)), false, "--etat n'écrit pas l'état");
++  const r = j.lancer(ARGS(0));
++  assert.equal(r.status, 0, r.stdout + r.stderr);
++  assert.equal(r.trace.length, 3, r.trace.join("\n"));
++  assert.equal(r.trace[0], "boucle");
++  assert.match(r.trace[1], /^VEILLE VIVANTE \(lancée à \d\d:\d\d\)$/);
++  assert.equal(r.trace[2], "etat 0");
++  assert.match(readFileSync(fichierEtat(j), "utf8"), /^fin \d+ VEILLE FINIE \d\d:\d\d\n$/);
++  e = etatDe(j);
++  assert.equal(e.status, 2, e.stdout + e.stderr);
++  assert.match(e.stdout, /^VEILLE TERMINÉE : VEILLE FINIE \d\d:\d\d\n$/);
++  assert.equal(etatDe(j, "x").status, 64);
++
++  const arretee = creerJouet([""], { rcBoucle: 3 });
++  assert.equal(arretee.lancer(ARGS(1)).status, 3);
++  e = etatDe(arretee);
++  assert.equal(e.status, 2, e.stdout + e.stderr);
++  assert.match(e.stdout, /^VEILLE TERMINÉE : VEILLE ARRÊTÉE \d\d:\d\d : la boucle est sortie en 3\n$/);
++
++  const preparation = creerJouet([""], { contrat: "pas du json" });
++  assert.equal(preparation.lancer(ARGS(0)).status, 13);
++  e = etatDe(preparation);
++  assert.equal(e.status, 2, e.stdout + e.stderr);
++  assert.match(e.stdout, /^VEILLE TERMINÉE : VEILLE ARRÊTÉE \d\d:\d\d : contrat illisible/);
++
++  const echeance = creerJouet(["", prete(31)], { apresLancement: '[ "$k" != 0 ] || /bin/sleep 3.5' });
++  const fin = echeance.lancer(["--pause", "0.2", "--duree", "1", "--marge", "0", "--sondes", "3"], { VEILLE_LIMITE: "0.05" });
++  assert.equal(fin.status, 0, fin.stdout + fin.stderr);
++  assert.match(etatDe(echeance).stdout, /^VEILLE TERMINÉE : VEILLE FINIE \d\d:\d\d \(échéance\)\n$/);
++});
++
++test("--etat : le fichier d'arrêt posé (boucle.sh --arreter) passe avant la fin écrite et avant une veille morte : VEILLE TERMINÉE, arrêt demandé, sortie 2", () => {
++  const j = creerJouet([""]);
++  const arret = join(j.clone, ".git", "boucle-arret");
++  writeFileSync(fichierEtat(j), `lancee ${Math.floor(Date.now() / 1000)}\n`);
++  let e = etatDe(j);
++  assert.equal(e.status, 1, e.stdout + e.stderr);
++  assert.match(e.stdout, /^VEILLE MORTE \(lancée à \d\d:\d\d, sans ligne finale\) : « boucle\.sh --arreter », puis la relancer avec --reprendre\n$/);
++  writeFileSync(arret, "2026-11-21T22:00:00\n");
++  e = etatDe(j);
++  assert.equal(e.status, 2, e.stdout + e.stderr);
++  assert.equal(e.stdout, `VEILLE TERMINÉE : arrêt demandé (${arret}, posé le 2026-11-21T22:00:00) ; « veille.sh --reprendre » quand on veut repartir\n`);
++  writeFileSync(fichierEtat(j), "fin 1 VEILLE FINIE 12:00\n");
++  assert.match(etatDe(j).stdout, /^VEILLE TERMINÉE : arrêt demandé/);
++  // Un état illisible se lit sans trace.
++  writeFileSync(fichierEtat(j), "lancee pas-un-nombre\n");
++  rmSync(arret);
++  assert.equal(etatDe(j).stdout, MORTE_SANS_TRACE);
++});
++
++test("veille tuée pendant sa pause (kill -9, comme l'outil Bash ou un conteneur arrêté) : pas de ligne finale, et --etat dit VEILLE MORTE aussitôt, son `sleep` orphelin ne la tient pas vivante", async () => {
++  const j = creerJouet([""]);
++  const enfant = spawn("bash", [join(j.dir, "veille.sh"), "--pause", "30", "--duree", "5"], { cwd: j.clone, env: sleepNote(j), stdio: "ignore" });
++  const sortie = new Promise((ok) => enfant.on("exit", ok));
++  try {
++    // La boucle lancée (la doublure l'a noté), la veille dort 30 s dans son `sleep`.
++    for (let t = 0; !existsSync(join(j.dir, "pids")) && t < 200; t++) await attendre(100);
++    assert.ok(existsSync(join(j.dir, "pids")), "la veille dort");
++    assert.equal(etatDe(j).status, 0, "vivante avant le kill");
++    enfant.kill("SIGKILL");
++    await sortie;
++    const e = etatDe(j);
++    assert.equal(e.status, 1, e.stdout + e.stderr);
++    assert.match(e.stdout, /^VEILLE MORTE \(lancée à \d\d:\d\d, sans ligne finale\) : « boucle\.sh --arreter », puis la relancer avec --reprendre\n$/);
++    assert.match(readFileSync(fichierEtat(j), "utf8"), /^lancee \d+\n$/);
++  } finally {
++    enfant.kill("SIGKILL");
++    tuerNotes(j);
++  }
++});
++
++test("un démon laissé par la boucle ou par file.sh ne tient pas la veille vivante après sa fin", () => {
++  // Les démons écrivent ailleurs que dans le tube : la veille finit sans les attendre.
++  const demon = (pid) => `(exec /bin/sleep 20 >/dev/null 2>&1 </dev/null) & echo $! > "$(dirname "$0")/${pid}"`;
++  const j = creerJouet([""], { apresLancement: `[ "$k" != 0 ] || { ${demon("demon.pid")}; }` });
++  const file = join(j.dir, "file.sh");
++  writeFileSync(file, readFileSync(file, "utf8").replace("#!/usr/bin/env bash\n", `#!/usr/bin/env bash\n[ -f "$(dirname "$0")/demon-file.pid" ] || { ${demon("demon-file.pid")}; }\n`));
++  try {
++    const r = j.lancer(ARGS(1));
++    assert.equal(r.status, 0, r.stdout + r.stderr);
++    assert.ok(existsSync(join(j.dir, "demon.pid")) && existsSync(join(j.dir, "demon-file.pid")), "les deux démons lancés");
++    const e = etatDe(j);
++    assert.equal(e.status, 2, e.stdout + e.stderr);
++    assert.match(e.stdout, /^VEILLE TERMINÉE : VEILLE FINIE /);
++  } finally {
++    tuerNotes(j);
++  }
++});
++
++test("veille tuée pendant que `tee` attend un démon de la boucle (sa sortie dans le tube) : --etat dit VEILLE MORTE, `tee` ne la tient pas vivante", async () => {
++  // Le démon garde le tube ouvert : la boucle a fini, `tee` attend, la veille attend `tee`. On la tue là.
++  const j = creerJouet([""], {
++    apresLancement: '[ "$k" != 0 ] || { (exec /bin/sleep 20 </dev/null 2>/dev/null) & echo $! > "$(dirname "$0")/demon.pid"; }',
++  });
++  const enfant = spawn("bash", [join(j.dir, "veille.sh"), ...ARGS(1)], { cwd: j.clone, env: { ...ENV, VEILLE_BOOT_ID: j.fichierBoot }, stdio: "ignore" });
++  const sortie = new Promise((ok) => enfant.on("exit", ok));
++  try {
++    for (let t = 0; !existsSync(join(j.dir, "demon.pid")) && t < 200; t++) await attendre(100);
++    assert.ok(existsSync(join(j.dir, "demon.pid")), "le démon est lancé");
++    await attendre(500);
++    assert.equal(etatDe(j).status, 0, "vivante avant le kill");
++    enfant.kill("SIGKILL");
++    await sortie;
++    const e = etatDe(j);
++    assert.equal(e.status, 1, e.stdout + e.stderr);
++    assert.match(e.stdout, /^VEILLE MORTE \(lancée à \d\d:\d\d, sans ligne finale\)/);
++  } finally {
++    enfant.kill("SIGKILL");
++    tuerNotes(j);
++  }
++});
++
++test("une seconde veille pendant qu'une tourne : VEILLE ARRÊTÉE, sortie 9, aucune boucle lancée, l'état de la première gardé", () => {
++  // Un état témoin (« lancee 1 ») posé avant la seconde : elle ne doit pas l'écrire.
++  const seconde = 'if [ "$k" = 0 ]; then echo "lancee 1" > .git/veille.etat; bash "$(dirname "$0")/veille.sh" --pause 0.2 --duree 1 --sondes 0 > "$(dirname "$0")/seconde" 2>&1; echo "seconde $?" >> "$(dirname "$0")/trace"; cat .git/veille.etat >> "$(dirname "$0")/trace"; fi';
++  const j = creerJouet([""], { apresLancement: seconde });
++  const r = j.lancer(ARGS(0));
++  assert.equal(r.status, 0, r.stdout + r.stderr);
++  assert.deepEqual(r.trace, ["boucle", "seconde 9", "lancee 1"]);
++  assert.equal(r.lancements, 1, "la seconde n'a lancé aucune boucle");
++  assert.match(readFileSync(join(j.dir, "seconde"), "utf8"), /^VEILLE ARRÊTÉE \d\d:\d\d : une veille tourne déjà \(.*veille\.verrou\) : une seule à la fois, « veille\.sh --etat »$/m);
++  assert.match(readFileSync(fichierEtat(j), "utf8"), /^fin \d+ VEILLE FINIE \d\d:\d\d\n$/, "la fin écrite est celle de la première");
++});
++
++test("--reprendre : le premier lancement de la boucle seul reçoit --reprendre ; sans l'option, aucun", () => {
++  const avec = veilleJouet(["", prete(31)], { args: ["--pause", "0.2", "--duree", "1", "--reprendre", "--sondes", "1"] });
++  assert.equal(avec.status, 0, avec.stdout + avec.stderr);
++  assert.deepEqual(avec.arguments, ["boucle --reprendre", "boucle"]);
++  const sans = veilleJouet(["", prete(31)]);
++  assert.deepEqual(sans.arguments, ["boucle", "boucle"]);
++  const usage = veilleJouet([""], { args: ["--reprendre", "oui"] });
++  assert.equal(usage.status, 64);
++});
