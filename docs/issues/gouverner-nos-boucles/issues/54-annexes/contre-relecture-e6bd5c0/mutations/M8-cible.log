@@ -1,0 +1,38 @@
+TAP version 13
+# warning: You appear to have cloned an empty repository.
+# warning: You appear to have cloned an empty repository.
+# warning: You appear to have cloned an empty repository.
+# warning: You appear to have cloned an empty repository.
+# Subtest: passer.sh : titre au-delà de 120 caractères = sortie 4 (à renvoyer) ; brouillon = sortie 7 (sautée)
+ok 1 - passer.sh : titre au-delà de 120 caractères = sortie 4 (à renvoyer) ; brouillon = sortie 7 (sautée)
+  ---
+  duration_ms: 378.832972
+  type: 'test'
+  ...
+# Subtest: passer.sh : une PR en passage chez un autre capitaine est sautée (sortie 7), son commentaire retiré, rien n'est poussé
+ok 2 - passer.sh : une PR en passage chez un autre capitaine est sautée (sortie 7), son commentaire retiré, rien n'est poussé
+  ---
+  duration_ms: 517.14424
+  type: 'test'
+  ...
+# Subtest: passer.sh : deux capitaines à la même seconde, le premier commentaire passe, le second saute
+ok 3 - passer.sh : deux capitaines à la même seconde, le premier commentaire passe, le second saute
+  ---
+  duration_ms: 568.549938
+  type: 'test'
+  ...
+# Subtest: boucle.sh : une PR que passer.sh rend en 7 (en passage chez un autre capitaine) est sautée sans renvoi ni arrêt, la suivante passe
+ok 4 - boucle.sh : une PR que passer.sh rend en 7 (en passage chez un autre capitaine) est sautée sans renvoi ni arrêt, la suivante passe
+  ---
+  duration_ms: 11900.902736
+  type: 'test'
+  ...
+1..4
+# tests 4
+# suites 0
+# pass 4
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 13526.87547

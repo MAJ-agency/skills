@@ -1,0 +1,44 @@
+warning: You appear to have cloned an empty repository.
+
+===== ancien file.sh (avant la repose) → sortie 0
+--- stdout
+60	prête	chore(chaine): repose 7.32.0	
+61	attend un propriétaire	docs(demo): proprio	
+62	attend un humain	docs(demo): humain	
+63	prête	docs(demo): ordinaire	
+--- stderr
+
+
+===== ANCIENNE boucle.sh, un seul lancement → sortie 3
+--- stdout
+[#60] DÉBUT hh:mm
+[#60] déjà à jour avec develop
+[#60] FUSIONNÉE : <sha>, arbre = arbre testé
+[#60] sortie=0 hh:mm
+[boucle] boucle.sh a changé sur develop : relance sur la nouvelle version
+[#61] DÉBUT hh:mm
+[#61] mise à jour poussée (<sha>)
+gh: Waiting on code owner review from @proprietaire. (HTTP 405)
+[#61] fusion refusée par GitHub pour une autre raison qu'une branche qui a bougé (droit du compte, règle du dépôt, revue exigée, méthode de fusion) : message ci-dessus ; la boucle s'arrête, un humain lit la cause
+[#61] sortie=3 hh:mm
+ARRÊT sur #61 (sortie 3)
+--- stderr
+
+--- écritures GitHub
+POST issues/60/comments :: Passage du capitaine `capitaine-banc` depuis hh:mm UTC : un autre capitaine saute cette PR jusqu'à la fin du p
+PATCH issues/comments/60001 :: Passage du capitaine `capitaine-banc` depuis hh:mm UTC, tour 1 : un autre capitaine saute cette PR jusqu'à la 
+PUT pulls/60/merge
+DELETE issues/60/labels/%C3%A0-fusionner
+PATCH issues/comments/60001 :: Passage du capitaine `capitaine-banc` terminé à hh:mm UTC.⏎<!-- capitaine:passage capitaine-banc <sha> --
+POST issues/61/comments :: Passage du capitaine `capitaine-banc` depuis hh:mm UTC : un autre capitaine saute cette PR jusqu'à la fin du p
+PATCH issues/comments/61001 :: Passage du capitaine `capitaine-banc` depuis hh:mm UTC, tour 1 : un autre capitaine saute cette PR jusqu'à la 
+PUT pulls/61/merge
+PATCH issues/comments/61001 :: Passage du capitaine `capitaine-banc` terminé à hh:mm UTC.⏎<!-- capitaine:passage capitaine-banc <sha> --
+--- PR
+#60 [] fusionnée commentaires=1
+#61 ["à-fusionner"] commentaires=1
+#62 ["à-fusionner"] commentaires=1
+#63 ["à-fusionner"] commentaires=0
+--- develop porte le nouveau passer.sh : false
+--- commentaires de #62
+0: <!-- attente-revue-capitaine -->⏎GitHub a refusé la fusion : l'approbation d'un propriétaire (CODEOWNERS) manque. Le capitaine ne met plus cette PR à jour avant

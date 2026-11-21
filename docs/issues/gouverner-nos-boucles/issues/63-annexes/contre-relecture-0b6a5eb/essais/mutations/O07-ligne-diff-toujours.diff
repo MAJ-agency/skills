@@ -1,0 +1,13 @@
+diff --git a/skills/chaine/relecture/scripts/gestes.sh b/skills/chaine/relecture/scripts/gestes.sh
+index 7c2c795..3044c3b 100755
+--- a/skills/chaine/relecture/scripts/gestes.sh
++++ b/skills/chaine/relecture/scripts/gestes.sh
+@@ -316,7 +316,7 @@ diff_relu() {
+   dire "{{DIFF}} : $B/diff.patch"
+   if [ -s "$B/resolution.txt" ]; then
+     dire "résolution de la fusion : $(lignes "$B/resolution.txt") fichiers"
+-    [ -d "$B/lots/resolution-1" ] || dire "{{DIFF}} de la résolution, pour l'axe Règles : $B/resolution.patch"
++    dire "{{DIFF}} de la résolution, pour l'axe Règles : $B/resolution.patch"
+   fi
+ }
+ 

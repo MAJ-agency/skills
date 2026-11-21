@@ -1,0 +1,72 @@
+[
+ {
+  "nom": "P1 tête de source → doute",
+  "de": "if (avant === null) regex = true;",
+  "vers": "if (avant === null) return null;"
+ },
+ {
+  "nom": "P2 un identifiant ouvre une regex",
+  "de": "else if (avant.sorte === \"litteral\" || avant.sorte === \"ident\") regex = false;",
+  "vers": "else if (avant.sorte === \"litteral\") regex = false;\n      else if (avant.sorte === \"ident\") regex = true;"
+ },
+ {
+  "nom": "P3 debugger hors de la liste",
+  "de": "\"continue\", \"debugger\", \"default\"",
+  "vers": "\"continue\", \"default\""
+ },
+ {
+  "nom": "P4 ) sans mot ouvre une regex",
+  "de": "else if (avant.mot === \"\") regex = false;",
+  "vers": "else if (avant.mot === \"\") regex = true;"
+ },
+ {
+  "nom": "P5 ) d'un autre mot lu comme division",
+  "de": "else return null; // le `)` d'une `(` que précède un autre mot",
+  "vers": "else regex = false; // le `)` d'une `(` que précède un autre mot"
+ },
+ {
+  "nom": "P6 ... hors des ponctuations",
+  "de": "\"<\", \">\", \"...\"]);",
+  "vers": "\"<\", \">\"]);"
+ },
+ {
+  "nom": "P7 ... n'est plus un jeton",
+  "de": "if (c === \".\" && source[i + 1] === \".\" && source[i + 2] === \".\") { i += 3; avant = { sorte: \"ponct\", valeur: \"...\" }; continue; }",
+  "vers": ""
+ },
+ {
+  "nom": "P8 yield hors des mots avant regex",
+  "de": "\"throw\", \"yield\", \"await\"]);",
+  "vers": "\"throw\", \"await\"]);"
+ },
+ {
+  "nom": "P9 seuls les mots avant regex restent des mots",
+  "de": "else if (MOTS_ECMASCRIPT.has(mot)) avant",
+  "vers": "else if (MOTS_AVANT_REGEX.has(mot)) avant"
+ },
+ {
+  "nom": "P10 le nom de propriété garde son sens de mot",
+  "de": "if (avant?.sorte === \"ponct\" && avant.valeur === \".\") avant = { sorte: \"ident\" };\n      else if",
+  "vers": "if"
+ },
+ {
+  "nom": "P11 with hors des conditions",
+  "de": "\"for\", \"with\"]);",
+  "vers": "\"for\"]);"
+ },
+ {
+  "nom": "P12 ] → doute",
+  "de": "else if (avant.sorte === \"ponct\" && avant.valeur === \"]\") regex = false;",
+  "vers": "else if (avant.sorte === \"ponct\" && avant.valeur === \"]\") return null;"
+ },
+ {
+  "nom": "P13 étiquette : plus de doute",
+  "de": "avant = { sorte: \"doute\" };",
+  "vers": "avant = { sorte: \"ident\" };"
+ },
+ {
+  "nom": "P14 un mot de la liste non ouvrant ouvre une regex",
+  "de": "if (!MOTS_AVANT_REGEX.has(avant.valeur)) return null;",
+  "vers": "if (!MOTS_AVANT_REGEX.has(avant.valeur)) regex = true;"
+ }
+]

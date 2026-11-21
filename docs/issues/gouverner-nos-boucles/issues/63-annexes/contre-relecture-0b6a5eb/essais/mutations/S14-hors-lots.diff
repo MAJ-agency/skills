@@ -1,0 +1,55 @@
+diff --git a/skills/chaine/relecture/scripts/gestes.sh b/skills/chaine/relecture/scripts/gestes.sh
+index 7c2c795..6d9948b 100755
+--- a/skills/chaine/relecture/scripts/gestes.sh
++++ b/skills/chaine/relecture/scripts/gestes.sh
+@@ -316,7 +316,7 @@ diff_relu() {
+   dire "{{DIFF}} : $B/diff.patch"
+   if [ -s "$B/resolution.txt" ]; then
+     dire "résolution de la fusion : $(lignes "$B/resolution.txt") fichiers"
+-    [ -d "$B/lots/resolution-1" ] || dire "{{DIFF}} de la résolution, pour l'axe Règles : $B/resolution.patch"
++    [ -d "$B/hors-lots/resolution-1" ] || dire "{{DIFF}} de la résolution, pour l'axe Règles : $B/resolution.patch"
+   fi
+ }
+ 
+@@ -353,7 +353,8 @@ binaires_resolution() {
+ # à jour, la résolution (`lots resolution.patch resolution.txt resolution`, lots `lots/resolution-<j>/`), chacun dans
+ # son dossier de travail : le cas « un seul lot » ne retire que le sien.
+ lots() {
+-  local patch=$1 liste=$2 nom=$3 total qui pre n i d W
++  local patch=$1 liste=$2 nom=$3 total qui pre n i d W R
++  R=$B/lots; [ "$nom" = lot ] || R=$B/hors-lots
+   total=$(lignes "$patch")
+   [ "$total" -gt 2000 ] || return 0
+   if [ "$nom" = lot ]; then qui="le diff relu" pre=lots; else qui="la résolution" pre="lots de la résolution"; fi
+@@ -392,7 +393,7 @@ lots() {
+   fi
+   : > "$W/union.txt"
+   for i in $(seq 1 "$n"); do
+-    d=$B/lots/$nom-$i
++    d=$R/$nom-$i
+     mkdir -p -- "$d"
+     mv -- "$W/$i.patch" "$d/diff.patch"
+     mv -- "$W/$i.attendus" "$d/attendus.txt"
+@@ -405,9 +406,9 @@ lots() {
+   done
+   [ -z "$(sort "$W/union.txt" | uniq -d)" ] || quitter 12 "$pre : un fichier est dans deux lots"
+   sort -u "$W/union.txt" | cmp -s - "$liste" || quitter 12 "$pre : leur union n'est pas $qui"
+-  [ "$(cat "$B"/lots/"$nom"-*/diff.patch | wc -l | tr -d ' ')" = "$total" ] || quitter 12 "$pre : leurs lignes ne font pas $qui"
++  [ "$(cat "$R"/"$nom"-*/diff.patch | wc -l | tr -d ' ')" = "$total" ] || quitter 12 "$pre : leurs lignes ne font pas $qui"
+   rm -rf -- "$W"
+-  for i in $(seq 1 "$n"); do dire "lot $( [ "$nom" = lot ] && echo "$i" || echo "$nom-$i") : $(lignes "$B/lots/$nom-$i/relus.txt") fichiers, $(lignes "$B/lots/$nom-$i/diff.patch") lignes, {{DIFF}} : $B/lots/$nom-$i/diff.patch"; done
++  for i in $(seq 1 "$n"); do dire "lot $( [ "$nom" = lot ] && echo "$i" || echo "$nom-$i") : $(lignes "$R/$nom-$i/relus.txt") fichiers, $(lignes "$R/$nom-$i/diff.patch") lignes, {{DIFF}} : $R/$nom-$i/diff.patch"; done
+   if [ "$nom" = lot ]; then dire "lots : $n"; else dire "lots de la résolution : $n"; fi
+ }
+ 
+@@ -596,8 +597,8 @@ lus() {
+     d=$B/lots/resolution axe=$B/axe-1-lot-resolution.txt
+   elif [[ $lot =~ ^resolution-[0-9]+$ ]]; then
+     [ "$i" = 1 ] || quitter 12 "la résolution de la fusion se lit par l'axe Règles (1)"
+-    [ -d "$B/lots/$lot" ] || quitter 12 "lot inconnu : $lot"
+-    d=$B/lots/$lot axe=$B/axe-1-lot-$lot.txt
++    [ -d "$B/hors-lots/$lot" ] || quitter 12 "lot inconnu : $lot"
++    d=$B/hors-lots/$lot axe=$B/axe-1-lot-$lot.txt
+   elif [ -n "$lot" ]; then
+     [[ $lot =~ ^[0-9]+$ ]] && [ -d "$B/lots/lot-$lot" ] || quitter 12 "lot inconnu : $lot"
+     d=$B/lots/lot-$lot axe=$B/axe-$i-lot-$lot.txt

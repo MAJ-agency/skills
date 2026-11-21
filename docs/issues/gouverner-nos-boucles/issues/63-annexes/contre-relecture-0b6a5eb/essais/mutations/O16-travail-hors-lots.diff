@@ -1,0 +1,13 @@
+diff --git a/skills/chaine/relecture/scripts/gestes.sh b/skills/chaine/relecture/scripts/gestes.sh
+index 7c2c795..1d3152b 100755
+--- a/skills/chaine/relecture/scripts/gestes.sh
++++ b/skills/chaine/relecture/scripts/gestes.sh
+@@ -358,7 +358,7 @@ lots() {
+   [ "$total" -gt 2000 ] || return 0
+   if [ "$nom" = lot ]; then qui="le diff relu" pre=lots; else qui="la résolution" pre="lots de la résolution"; fi
+   mkdir -p "$B/lots"
+-  W=$(mktemp -d "$B/lots/travail-XXXXXX")
++  W=$(mktemp -d "$B/travail-XXXXXX")
+   awk -v sortie="$W" -v plafond=2000 '
+     function cle(h,   r, n) {
+       if (h ~ /^diff --git "a\//) { r = substr(h, 15); n = (length(r) - 5) / 2; return "\"" substr(r, 1, n) "\"" }

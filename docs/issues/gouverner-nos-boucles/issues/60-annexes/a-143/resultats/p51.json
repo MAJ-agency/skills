@@ -1,0 +1,12 @@
+{
+ "graine": "51",
+ "tirages": 300000,
+ "lus par le module": 173199,
+ "refusés par le module": 126801,
+ "intacts": 59862,
+ "intacts refusés par le module": 0,
+ "intacts refusés par yaml": 0,
+ "comptes": {
+  "X3-meme-lecture-hors-schema-strict": 4324
+ }
+}

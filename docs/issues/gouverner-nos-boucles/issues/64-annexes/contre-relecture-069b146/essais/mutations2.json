@@ -1,0 +1,87 @@
+[
+ {
+  "nom": "M1 ] → doute",
+  "de": "else if (avant.valeur === \"]\") regex = false;\n",
+  "vers": ""
+ },
+ {
+  "nom": "M4 continuation de ligne acceptée",
+  "de": "if (i + 1 < n && (source[i + 1] === \"\\n\" || source[i + 1] === \"\\r\")) return null;",
+  "vers": ""
+ },
+ {
+  "nom": "M8 recit : 4 dernières lignes",
+  "de": "lignes.slice(-40)",
+  "vers": "lignes.slice(-4)"
+ },
+ {
+  "nom": "M13 lancer sans groupe",
+  "de": "detached: true,",
+  "vers": "detached: false,"
+ },
+ {
+  "nom": "M16 typeof hors de la liste",
+  "de": "\"return\", \"typeof\", ",
+  "vers": "\"return\", "
+ },
+ {
+  "nom": "M17 fins de ligne blanchies",
+  "de": "if (!FIN_DE_LIGNE.test(sortie[i])) sortie[i] = \" \";",
+  "vers": "sortie[i] = \" \";"
+ },
+ {
+  "nom": "N1 un mot après . garde sa valeur",
+  "de": "if (avant?.sorte === \"ponct\" && avant.valeur === \".\") avant = { sorte: \"mot\", valeur: \"\" };\n      else if",
+  "vers": "if"
+ },
+ {
+  "nom": "N2 let hors du doute",
+  "de": "\"await\", \"let\"]",
+  "vers": "\"await\"]"
+ },
+ {
+  "nom": "N3 continue hors de la règle des étiquettes",
+  "de": "(avant.valeur === \"break\" || avant.valeur === \"continue\")",
+  "vers": "avant.valeur === \"break\""
+ },
+ {
+  "nom": "N4 with hors des conditions",
+  "de": "\"for\", \"with\"]",
+  "vers": "\"for\"]"
+ },
+ {
+  "nom": "N5 ) orphelin accepté",
+  "de": "if (parentheses.length === 0) return null; // pile déséquilibrée",
+  "vers": ""
+ },
+ {
+  "nom": "N6 ( non fermée acceptée en fin",
+  "de": "if (pile.includes(\"gabarit\") || parentheses.length > 0) return null;",
+  "vers": "if (pile.includes(\"gabarit\")) return null;"
+ },
+ {
+  "nom": "N7 ( ne retient pas le mot",
+  "de": "parentheses.push(avant?.sorte === \"mot\" ? avant.valeur : \"\")",
+  "vers": "parentheses.push(\"\")"
+ },
+ {
+  "nom": "N8 le doute d'étiquette ignoré à la /",
+  "de": "if (avant === null || avant.sorte === \"doute\") return null;",
+  "vers": "if (avant === null) return null;"
+ },
+ {
+  "nom": "N9 await hors du doute",
+  "de": "\"yield\", \"await\",",
+  "vers": "\"yield\","
+ },
+ {
+  "nom": "N10 ) d'une condition lu comme division",
+  "de": "regex = MOTS_AVANT_CONDITION.has(avant.mot);",
+  "vers": "regex = false;"
+ },
+ {
+  "nom": "N11 of hors du doute",
+  "de": "[\"of\", \"yield\"",
+  "vers": "[\"yield\""
+ }
+]

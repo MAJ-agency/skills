@@ -1,0 +1,38 @@
+M1 [cible] passer.sh n'écrit plus le message exact du refus de GitHub
+  banc : node --test --test-name-pattern=fusion refusée durablement|refus de fusion 405 skills/chaine/fusionner/scripts/fusionner.test.mjs
+  statut 0 en 27 s ; tests 3 pass 3 fail 0
+  verdict : VERT (survit)
+M4 [cible] github.sh garde refus_pour_revue et passer.sh met un refus faute de revue en pause (5)
+  banc : node --test --test-name-pattern=fusion refusée durablement|refus de fusion 405 skills/chaine/fusionner/scripts/fusionner.test.mjs
+  statut 1 en 10 s ; tests 3 pass 2 fail 1
+  verdict : rouge
+  échecs : passer.sh : une fusion refusée durablement par GitHub sort en 3 et la boucle s'arrête ; branche bougée ou panne : 5
+M7 [cible] boucle.sh met de côté (sans arrêt) un refus durable dont la sortie de passer.sh nomme une revue
+  banc : node --test --test-name-pattern=fusion refusée durablement|refus de fusion 405|boucle.sh skills/chaine/fusionner/scripts/fusionner.test.mjs
+  statut 0 en 78 s ; tests 12 pass 12 fail 0
+  verdict : VERT (survit)
+M8 [cible] boucle.sh met une sortie 7 en attente de la prochaine fusion au lieu de la sauter
+  banc : node --test --test-name-pattern=que passer.sh rend en 7|sautée|saute skills/chaine/fusionner/scripts/fusionner.test.mjs
+  statut 0 en 14 s ; tests 4 pass 4 fail 0
+  verdict : VERT (survit)
+M3 [cible] passer.sh saute encore (7) une PR qui porte le commentaire d'attente de l'ancienne version
+  banc : node --test --test-name-pattern=que passer.sh rend en 7|file ordinaire|boucle.sh skills/chaine/fusionner/scripts/fusionner.test.mjs
+  statut 0 en 61 s ; tests 9 pass 9 fail 0
+  verdict : VERT (survit)
+M5 [cible] file.sh montre encore « attend un propriétaire » une PR dont un relecteur est demandé
+  banc : node --test --test-name-pattern=file.sh skills/chaine/fusionner/scripts/fusionner.test.mjs
+  statut 0 en 45 s ; tests 9 pass 9 fail 0
+  verdict : VERT (survit)
+M6 [cible] file.sh lit encore la colonne `demandes` retirée (colonnes décalées)
+  banc : node --test --test-name-pattern=file.sh skills/chaine/fusionner/scripts/fusionner.test.mjs
+  statut 1 en 30 s ; tests 9 pass 6 fail 3
+  verdict : rouge
+  échecs : file.sh : PR dont le ticket déclare un sujet livré (carte Phase: fini) classée directe, sans écriture | file.sh : sujet en cours (Phase: 4-code) — PR toujours reciblée sur le sujet | file.sh : la sous-PR, la PR à recibler et la livraison d'un sujet gelé sont gelées, et ni --next ni --rouges ne les rendent
+M10 [cible] renvois_de compte aussi le commentaire d'attente laissé par l'ancienne version
+  banc : node --test --test-name-pattern=renvoi|plafond|humain skills/chaine/fusionner/scripts/fusionner.test.mjs
+  statut 0 en 35 s ; tests 10 pass 10 fail 0
+  verdict : VERT (survit)
+M2 [cible] passer.sh ne masque plus l'URL dans le message du refus
+  banc : node --test --test-name-pattern=fusion refusée durablement|refus de fusion 405 skills/chaine/fusionner/scripts/fusionner.test.mjs
+  statut 0 en 34 s ; tests 3 pass 3 fail 0
+  verdict : VERT (survit)

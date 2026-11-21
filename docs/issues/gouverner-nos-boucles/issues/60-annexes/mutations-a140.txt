@@ -1,0 +1,13 @@
+Mutations ajoutées par A-140 (2026-11-19), reçues de la session de reprise du ticket 60 au sommet 484e991 de la PR 134. À mettre en fin de `M`, au format du script des mutations ; chaque « ancien » se trouve une fois exactement dans le module de bfc5ce1 (inchangé à 484e991). Avec elles, le script joue 182 mutations : 182 rouges sur 182 contre le banc à 44 tests. Contre le banc de bfc5ce1 (43 tests), neuf de ces onze étaient vertes (toutes sauf la quatrième et la dixième), comme l'était « A-133 : la profondeur de flux n'est plus tenue d'une ligne à l'autre » parmi les 171.
+
+    ("A-140 : la profondeur de flux ne redescend plus", "      if (flux > 0 && (c === ']' || c === '}')) flux--;\n", ""),
+    ("A-140 : un crochet fermant hors de tout flux fait descendre la profondeur sous zéro", "if (flux > 0 && (c === ']' || c === '}')) flux--;", "if (c === ']' || c === '}') flux--;"),
+    ("A-140 : un crochet ouvrant dans un texte, hors de tout flux, ouvre un flux", "if (flux > 0 && (c === '[' || c === '{')) flux++;", "if (c === '[' || c === '{') flux++;"),
+    ("A-140 : un crochet ouvrant en tête ne monte plus la profondeur", "        if (c === '[' || c === '{') {\n          flux++;\n          continue;", "        if (c === '[' || c === '{') {\n          continue;"),
+    ("A-140 : une ligne vide remet la profondeur de flux à zéro", "    if (retrait === ligne.length) continue;\n    if (bloc !== null", "    if (retrait === ligne.length) { flux = 0; continue; }\n    if (bloc !== null"),
+    ("A-140 : un scalaire en bloc s'ouvre aussi dans un flux", "if (flux === 0 && /(?:^|[:-][ \\t]+)[|>][-+0-9]*$/.test(", "if (/(?:^|[:-][ \\t]+)[|>][-+0-9]*$/.test("),
+    ("A-140 : la ligne de même retrait que celle qui ouvre un scalaire en bloc est sautée", "if (bloc !== null && retrait > bloc) continue;", "if (bloc !== null && retrait >= bloc) continue;"),
+    ("A-140 : le scalaire en bloc ne se referme plus", "    if (bloc !== null && retrait > bloc) continue;\n    bloc = null;\n", "    if (bloc !== null && retrait > bloc) continue;\n"),
+    ("A-140 : un commentaire après `|` cache le scalaire en bloc", ".test(ligne.slice(retrait, fin).trimEnd())) bloc = retrait;", ".test(ligne.slice(retrait).trimEnd())) bloc = retrait;"),
+    ("A-140 : `''` ferme la chaîne quand on cherche sa fermeture", "    else if (g === \"'\" && ligne[j] === \"'\" && ligne[j + 1] === \"'\") j++;\n", ""),
+    ("A-140 : `\\\"` ferme la chaîne quand on cherche sa fermeture", "    if (g === '\"' && ligne[j] === '\\\\') j++;\n    else if (g === \"'\"", "    if (g === \"'\""),

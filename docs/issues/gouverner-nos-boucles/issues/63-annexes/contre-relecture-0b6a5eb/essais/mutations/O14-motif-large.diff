@@ -1,0 +1,13 @@
+diff --git a/skills/chaine/relecture/scripts/gestes.sh b/skills/chaine/relecture/scripts/gestes.sh
+index 7c2c795..f6663ca 100755
+--- a/skills/chaine/relecture/scripts/gestes.sh
++++ b/skills/chaine/relecture/scripts/gestes.sh
+@@ -594,7 +594,7 @@ lus() {
+     mkdir -p "$B/lots/resolution"
+     cp "$B/resolution.txt" "$B/lots/resolution/relus.txt"
+     d=$B/lots/resolution axe=$B/axe-1-lot-resolution.txt
+-  elif [[ $lot =~ ^resolution-[0-9]+$ ]]; then
++  elif [[ $lot =~ ^resolution- ]]; then
+     [ "$i" = 1 ] || quitter 12 "la résolution de la fusion se lit par l'axe Règles (1)"
+     [ -d "$B/lots/$lot" ] || quitter 12 "lot inconnu : $lot"
+     d=$B/lots/$lot axe=$B/axe-1-lot-$lot.txt

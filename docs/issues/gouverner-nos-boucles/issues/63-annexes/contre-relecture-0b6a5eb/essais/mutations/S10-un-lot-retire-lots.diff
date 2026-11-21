@@ -1,0 +1,14 @@
+diff --git a/skills/chaine/relecture/scripts/gestes.sh b/skills/chaine/relecture/scripts/gestes.sh
+index 7c2c795..86463e6 100755
+--- a/skills/chaine/relecture/scripts/gestes.sh
++++ b/skills/chaine/relecture/scripts/gestes.sh
+@@ -385,8 +385,7 @@ lots() {
+   ' "$patch"
+   n=$(cat "$W/nombre")
+   if [ "$n" = 1 ]; then
+-    rm -rf -- "$W"
+-    rmdir -- "$B/lots" 2> /dev/null || true
++    rm -rf -- "$B/lots"
+     [ "$nom" != lot ] || dire "un seul fichier, de plus de 2 000 lignes : un seul lot, le diff relu entier"
+     return 0
+   fi
