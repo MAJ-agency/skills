@@ -4,18 +4,18 @@ Carte de l'architecte B du programme « gouverner nos boucles », ouverte le 202
 
 ## Fiche
 
-Phase: suivi — livraison intermédiaire entrée dans `develop` le 2026-11-20 à 04 h 51 UTC (#348) ; suite : `.19`, essai à blanc et publication de la CLI 2.0.0, tickets de suite avant `.22`
-Architecte: `session_01BxuG2zBnGe6UCP6cqG1F1E` (depuis le 2026-11-19, 08 h 52 UTC)
+Phase: suivi — cycle 2.0.1 : #374 (`.67`), livraison du sujet, puis CLI 2.0.1 ; CLI 2.0.0 publiée le 2026-11-20 (`A-240`)
+Architecte: `session_012xRpgbZfY6XDgxCUwg1LXD` (second compte, depuis le 2026-11-21, 16 h 45 UTC ; avant lui `session_01BxuG2zBnGe6UCP6cqG1F1E`, premier compte, arrêté par sa limite hebdomadaire)
 Objectif: mener le chantier `SPEC_ALL_ANC-5` (la preuve suffisante) jusqu'à sa livraison dans `develop`, puis la publication de la CLI 2.0.0.
 Dépôts: `MAJ-agency/anchorpost` ; `MAJ-agency/skills` pour cette carte seule.
 Source: la passation ci-dessus ; la carte du chantier, `docs/features/anchorpost/all/SPEC_ALL_ANC-5-preuve-suffisante.map.md`, branche `sujet/preuve-suffisante-cas` d'Anchorpost.
-Capitaines: Anchorpost — `session_01BxuG34gQKsuhqcM71Hgxxi` (Opus, depuis le 2026-11-19, 19 h 52 UTC ; avant lui `session_01BxuG32bZp5xNjwqVZ9U8Fo`, Fable, de 09 h 44 à 16 h 28, archivé). `skills` — `session_01BxuG2zz5bdN5uN8N7j4ztk`, archivé le 2026-11-19 après la fusion de la PR 133.
+Capitaines: Anchorpost — `session_012xRpgYrXDKFZ87HhEeK834` (Opus, second compte, depuis le 2026-11-21, 16 h 50 UTC) ; avant lui `session_01BxuG34gQKsuhqcM71Hgxxi` (Opus, depuis le 2026-11-19, 19 h 52 UTC ; avant lui `session_01BxuG32bZp5xNjwqVZ9U8Fo`, Fable, de 09 h 44 à 16 h 28, archivé). `skills` — `session_01BxuG2zz5bdN5uN8N7j4ztk`, archivé le 2026-11-19 après la fusion de la PR 133.
 
 ## Chantiers
 
 | Chantier | Dépôt | Spec | Conducteur | État |
 | --- | --- | --- | --- | --- |
-| La preuve suffisante | `MAJ-agency/anchorpost` | `SPEC_ALL_ANC-5` | `session_01BxuG34Pue2UQGTWC51oyGb` (Opus, depuis le 2026-11-20, 02 h 32 UTC ; avant lui `session_01BxuG34SC3thVES3Npz8w7L`, Opus, 19 h 53 à 02 h 32, 68,66 $, archivé ; avant lui `session_01BxuG2zP4RpAu97AuHPdSR8`, Fable, 14 h 42 à 15 h 34, et `session_01BxuG2zwaHUkcBNJS6VVwiz`, 09 h 44 à 14 h 45, archivés) | 38 tickets faits ; `.55`, `.56`, `.57` entrés comme tickets (#324) ; `.54` (#325) à étiqueter après un commit de documentation |
+| La preuve suffisante | `MAJ-agency/anchorpost` | `SPEC_ALL_ANC-5` | `session_012xRpgbFJjNH7P4Ak4XDCZ2` (Opus, relève 7, second compte, depuis le 2026-11-21, 16 h 51 UTC ; avant lui `session_01BxuG311iKEx1FHt7nW3rSJ` (relève 6) et `session_01BxuG34FRQdzDTcis5X5tM9` (relève 5), premier compte ; avant eux `session_01BxuG34Pue2UQGTWC51oyGb`, depuis le 2026-11-20, 02 h 32 UTC ; avant lui `session_01BxuG34SC3thVES3Npz8w7L`, Opus, 19 h 53 à 02 h 32, 68,66 $, archivé ; avant lui `session_01BxuG2zP4RpAu97AuHPdSR8`, Fable, 14 h 42 à 15 h 34, et `session_01BxuG2zwaHUkcBNJS6VVwiz`, 09 h 44 à 14 h 45, archivés) | 38 tickets faits ; `.55`, `.56`, `.57` entrés comme tickets (#324) ; `.54` (#325) à étiqueter après un commit de documentation |
 
 ## Décisions
 
@@ -80,6 +80,8 @@ Capitaines: Anchorpost — `session_01BxuG34gQKsuhqcM71Hgxxi` (Opus, depuis le 2
 | `session_01BxuG2zP4RpAu97AuHPdSR8` | conducteur, relève 2 (Fable) | 8,07 $, 186 076 tokens, archivé ; ses filles comptées dans la carte du chantier |
 | `session_01BxuG34gQKsuhqcM71Hgxxi` | capitaine d'Anchorpost (Opus) | lancé à 19 h 52 UTC |
 | sous-agent | contre-relecture de la PR 133 | 321 089 tokens |
+| `session_012xRpgbZfY6XDgxCUwg1LXD` | architecte B, second compte | lancé le 2026-11-21, 16 h 28 UTC |
+| `session_012xRpgYrXDKFZ87HhEeK834` | capitaine d'Anchorpost, second compte (Opus) | lancé le 2026-11-21, 16 h 50 UTC |
 
 ## Passation
 
@@ -170,3 +172,4 @@ Rien encore.
 - 2026-11-20, 12 h 27 UTC — **CLI 2.0.0 publiée** (run 44735304350, e3bfdff, `A-240`). Le registre sert `2.0.0` avec `trustedPublisher`, et l'archive a les mêmes empreintes que l'essai à blanc. Le gel de develop est levé. Restent : correction de `.65` (ligne 50, PR docs), `.66` lancée, puis la file restante.
 - 2026-11-20, 12 h 55 UTC — relève 6 du conducteur en place (session_01BxuG311iKEx1FHt7nW3rSJ, 7.37.3). Le conducteur 5 est archivé. Fedora (484d412) et Iroki (7b21165) sont rattachés en lecture à la session de l'architecte. `A-242` corrige `A-241` sur #372.
 - 2026-11-21, 16 h 40 UTC — **PASSATION À UN ARCHITECTE D'UN AUTRE COMPTE** : [`passation/2026-11-21-architecte-anchorpost.md`](passation/2026-11-21-architecte-anchorpost.md). Le premier compte est arrêté par sa limite hebdomadaire depuis le 2026-11-20 vers 14 h 20 UTC (levée le 22 à 19 h UTC) : conducteur, capitaine et fille de `.67` sont tombés, sans perte, et la main est libre. Il reste #374 (`.67`, code poussé, à merger sur le sujet `06d84d5`, à contre-relire et à accorder), puis la livraison et la CLI 2.0.1.
+- 2026-11-21, 16 h 52 UTC — REPRISE PAR L'ARCHITECTE DU SECOND COMPTE (`session_012xRpgbZfY6XDgxCUwg1LXD`, plugin 7.37.3, égal au marketplace). État lu sur GitHub, conforme à la passation : `develop` `302abf4`, sujet `06d84d5`, seule PR ouverte #374 (`.67`, brouillon, sommet `2190590`, base `54c6761`). Lancés : capitaine `session_012xRpgYrXDKFZ87HhEeK834` et conducteur de relève 7 `session_012xRpgbFJjNH7P4Ak4XDCZ2`, Opus, « auto » ; le conducteur porte au journal du chantier `A-242` à `A-245`, puis lance une fille neuve sur #374 (merge du sujet, contre-revue, mon accord après lecture de `scan.ts`, label, entrée), puis la livraison. Prochaine décision libre : `A-246`.
