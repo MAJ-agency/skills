@@ -1,0 +1,48 @@
+### § 0
+From <essai>/origine-p2
+ * branch            main       -> FETCH_HEAD
+Reset branch 'claude/session-essai'
+branch 'claude/session-essai' set up to track 'origin/main'.
+From <essai>/origine-p2
+ * branch            claude/hopeful-lovelace-ouk6tz -> FETCH_HEAD
+4e97a67c94dc185cb0b347481e8011d10bae0e5ea14dbd3845bd2c952e61806f  $S/lot-5.patch
+  "version": "7.38.2",
+### § 1
+Preparing worktree (detached HEAD ccfe1c3)
+HEAD is now at ccfe1c3 PR B (ticket 70)
+Applied patch to 'scripts/points-d-entree.test.mjs' cleanly.
+Falling back to direct application...
+Applied patch to 'skills/chaine/fusionner/scripts/revue-exigee.test.mjs' cleanly.
+Falling back to direct application...
+Falling back to direct application...
+Applied patch to 'skills/chaine/revue-adversariale/scripts/chemins-sensibles.test.mjs' cleanly.
+Falling back to direct application...
+Applied patch to 'skills/chaine/socle-chaine-de-production/references/agent/regles.test.mjs' cleanly.
+Applied patch to 'skills/chaine/socle-chaine-de-production/references/scripts/github/pr-titre.test.mjs' cleanly.
+Applied patch to 'skills/chaine/sujet/scripts/faux-gh.test.mjs' cleanly.
+Applied patch to 'skills/chaine/sujet/scripts/sujet.test.mjs' cleanly.
+Applied patch to 'skills/chaine/tickets/references/scripts/verify/tickets-gate.test.mjs' cleanly.
+Applied patch to 'skills/chaine/tickets/references/scripts/verify/tickets.test.mjs' cleanly.
+13
+skills/chaine/fusionner/scripts/verdict-du-capitaine.test.mjs # tests 19 # pass 1 # fail 18 
+skills/chaine/fusionner/scripts/revue-exigee.test.mjs # tests 37 # pass 32 # fail 5 
+skills/chaine/socle-chaine-de-production/references/scripts/github/pr-titre.test.mjs # tests 12 # pass 10 # fail 2 
+skills/chaine/sujet/scripts/faux-gh.test.mjs # tests 17 # pass 16 # fail 1 
+skills/chaine/fusionner/scripts/sensibles-du-capitaine.test.mjs # tests 6 # pass 0 # fail 6 
+skills/chaine/socle-chaine-de-production/references/agent/garde-fichiers.test.mjs # tests 4 # pass 1 # fail 3 
+skills/chaine/socle-chaine-de-production/references/agent/regles.test.mjs # tests 87 # pass 85 # fail 2 
+skills/chaine/revue-adversariale/scripts/chemins-sensibles.test.mjs # tests 13 # pass 12 # fail 1 
+scripts/points-d-entree.test.mjs # tests 66 # pass 60 # fail 6 
+skills/chaine/fusionner/scripts/messages-du-regime.test.mjs # tests 3 # pass 0 # fail 3 
+skills/chaine/sujet/scripts/sujet.test.mjs # tests 45 # pass 43 # fail 2 
+skills/chaine/tickets/references/scripts/verify/tickets-gate.test.mjs # tests 12 # pass 11 # fail 1 
+skills/chaine/tickets/references/scripts/verify/tickets.test.mjs # tests 37 # pass 36 # fail 1 
+### § 2
+Applied patch to '.claude-plugin/plugin.json' with conflicts.
+Applied patch to 'NOTES-DE-VERSION.md' with conflicts.
+U .claude-plugin/plugin.json
+U NOTES-DE-VERSION.md
+.claude-plugin/plugin.json
+NOTES-DE-VERSION.md
+7.39.0 — 2026-11-21
+ 28 files changed, 1860 insertions(+), 54 deletions(-)

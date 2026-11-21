@@ -1,0 +1,82 @@
+ROUGE A1 régime 8 : la section de revue encore exigée
+ROUGE A2 régime : une PR ouverte à l’instant de `depuis` est en régime 8
+ROUGE A4 régime : une date d’ouverture illisible ignorée
+ROUGE A6 clé : `delai` n’est plus vérifié
+ROUGE A3 régime : une clé mal formée lue comme absente
+ROUGE A5 régime : une base hors de la chaîne lue sur son contrat
+ROUGE A8 verdict : le chemin sensible n’est jamais vu
+ROUGE A7 verdict : tout tour vaut validé
+ROUGE A10 verdict : « même contenu propre » toujours « différent »
+ROUGE A9 verdict : un seul verdict toujours exigé
+ROUGE A12 CLI : le régime 8 validé ne se dit plus (pas de second contrôle)
+ROUGE A14 CLI : des options incomplètes admises
+ROUGE A11 verdict : un illisible renvoie au lieu de sauter
+ROUGE A16 passer.sh : plus de second contrôle
+ROUGE A13 CLI : le régime ne se dit plus sur un refus
+ROUGE A18 passer.sh : une pile en régime 8 admise
+ROUGE A20 passer.sh : sans verdict, sauté au lieu d’être renvoyé
+ROUGE A15 github.sh : GitHub illisible sur les commentaires lu comme une file vide
+ROUGE A22 sujet.sh : plus de second contrôle d’une sous-PR
+ROUGE A17 passer.sh : `à-fusionner` retirée pendant la CI, fusionnée quand même
+ROUGE A24 sujet.sh : `à-fusionner` relue nulle part
+ROUGE A19 passer.sh : un illisible renvoyé
+ROUGE A26 pr-titre : un régime illisible passe
+ROUGE A21 sujet.sh : plus de premier contrôle
+ROUGE A28 faux GitHub : un commentaire de `pendantCi` ne tombe jamais
+ROUGE A23 sujet.sh : une PR de mise à jour jugée comme en régime 7 avant d’avancer
+ROUGE A25 pr-titre : le régime n’est pas passé aux motifs
+ROUGE A27 workflow : `PR_OUVERTE` n’est plus donnée
+ROUGE A29 faux GitHub : les étiquettes de `pendantCi` ne changent jamais
+ROUGE A31 régime 7 : un contrat illisible qui ne nomme pas la clé est sauté (A-186)
+ROUGE A33 sujet.sh : `fusion-bloquée` posée pendant la CI ignorée au second contrôle
+ROUGE B1 hook : le régime 8 jamais lu
+ROUGE B3 hook : une copie sur deux suffit
+ROUGE B5 hook : la casse compte
+ROUGE B7 hook : `..` accordé
+ROUGE B9 hook : un accord sans date admis
+ROUGE B11 garde-fichiers : develop jamais lu pour un ticket sans sujet
+ROUGE B13 garde du capitaine : aucun chemin sensible vu
+ROUGE B15 garde du capitaine : un chemin sensible hors conflit admis
+ROUGE B17 garde du capitaine : une copie sur deux suffit
+ROUGE B19 garde du capitaine : une ligne illisible ignorée
+ROUGE A30 github.sh : la clé `relecture` absente, les commentaires lus quand même (régime 7 : une lecture de plus)
+ROUGE B21 sujet.sh : plus de garde
+ROUGE B23 sujet.sh : les retouches d’une PR de mise à jour hors du diff lu
+ROUGE A32 github.sh : develop et les sujets ne sont plus relus avant les calculs (A-126)
+ROUGE B25 garde du capitaine : la première copie d’un ticket seule compte
+ROUGE B27 garde du capitaine : sans la grammaire, « PR sans ticket » au lieu d’illisible
+ROUGE C2 renvoyer.sh : la nouvelle réception porte `à-fusionner` en régime 8
+ROUGE C4 sujet.sh demarrer : le message du régime 8 jamais dit
+ROUGE A34 CLI : une panne de l’outil en régime 8 sort en 1, lu « renvoi »
+ROUGE B2 hook : aucun chemin sensible refusé
+ROUGE C6 sujet.sh demarrer : le refus conseille de nouveau `sujet.sh rafraichir`
+ROUGE B4 hook : aucune copie vaut accord
+ROUGE B6 hook : une liste mal formée ne rend rien sensible
+ROUGE B8 hook : deux lignes `Sensibles:` admises
+ROUGE B10 garde-fichiers : une copie locale du sujet compte
+ROUGE B12 garde-fichiers : une ligne illisible lue comme vide
+ROUGE C8 sujet.sh etat : un sujet livré listé de nouveau
+ROUGE C10 gate : `Relecture: double` jamais exigée
+ROUGE C12 gate : une criticité illisible lue comme basse
+ROUGE C14 gate : le régime 8 jamais lu dans le contrat
+ROUGE B14 garde du capitaine : une PR sans ticket passe au motif ordinaire
+ROUGE C16 gate : la criticité de l’en-tête jamais lue
+ROUGE C18 renvoyer.sh : la PR lue pour son régime même sans la clé (régime 7 : une lecture de plus)
+ROUGE B16 garde du capitaine : la copie de develop avant celles des sujets
+ROUGE B18 garde du capitaine : un ticket introuvable lu comme un accord vide
+ROUGE B20 passer.sh : plus de garde
+ROUGE B22 sujet.sh : une PR de mise à jour sans les tickets du sujet
+ROUGE B24 chemins-sensibles : le point d’entrée ne se reconnaît plus par un lien
+ROUGE B26 garde du capitaine : une spec citée par le sujet ne vaut plus ses tickets
+ROUGE C1 renvoyer.sh : en régime 8, remettre `à-fusionner`
+ROUGE C3 github.sh : la date d’ouverture ignorée par `regime_de_la_pr`
+ROUGE C5 github.sh : la clé `relecture` jamais trouvée
+ROUGE C7 sujet.sh etat : un sujet sans commit propre n’est plus listé (A-132)
+ROUGE C9 gate : `Label: contre-revue` encore exigé en régime 8
+ROUGE C11 gate : un ticket fait encore jugé
+ROUGE C13 gate : la ligne `Relecture: double` ignorée
+ROUGE C15 gate : double-relecture.mjs absent sans le dire
+ROUGE C17 gate : le régime pas transmis au contrôle des tickets
+ROUGE C19 gate : une règle rejetée de l’index compte
+toutes rouges (80)
+sortie 0 ; durée 1561 s

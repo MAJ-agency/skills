@@ -1,0 +1,10 @@
+ROUGE C9 gate : `Label: contre-revue` encore exigé en régime 8
+ROUGE C10 gate : `Relecture: double` jamais exigée
+ROUGE C13 gate : la ligne `Relecture: double` ignorée
+ROUGE C14 gate : le régime 8 jamais lu dans le contrat
+ROUGE C15 gate : double-relecture.mjs absent sans le dire
+ROUGE C16 gate : la criticité de l’en-tête jamais lue
+ROUGE C17 gate : le régime pas transmis au contrôle des tickets
+ROUGE C19 gate : une règle rejetée de l’index compte
+toutes rouges (8)
+sortie 0

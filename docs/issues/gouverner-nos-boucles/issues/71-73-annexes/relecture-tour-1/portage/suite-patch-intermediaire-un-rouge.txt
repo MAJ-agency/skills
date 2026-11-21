@@ -1,0 +1,11 @@
+charge au départ : 2.84 5.18 5.66 ; attente 780 s ; 2026-11-21T22:41:49Z
+sortie 1 ; durée 1188 s ; charge à la fin : 9.23 7.72 7.40
+# tests 1331
+# suites 0
+# pass 1330
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1187640.951653
+not ok 52 - le gabarit de règle montre `criticality` en bloc, une clé par ligne ; aucun texte du plugin ne la montre en ligne

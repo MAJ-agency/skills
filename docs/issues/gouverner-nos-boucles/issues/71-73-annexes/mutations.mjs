@@ -1,4 +1,5 @@
-// Les mutations des tickets 71 (lot 5a, A…), 72 (lot 5b, B…) et 73 (lot 5c, C…) : chacune remplace un texte exact d'un
+// Les mutations des tickets 71 (lot 5a, A…), 72 (lot 5b, B…) et 73 (lot 5c, C…), A31 à A34, B25 à B27, C18 et C19 ajoutées
+// après la relecture des tickets (A-186) : chacune remplace un texte exact d'un
 // fichier, joue les bancs qu'elle vise, et doit les rendre rouges ; le fichier est remis après chaque mutation. À lancer
 // depuis la racine d'un clone où `lot-5.patch` est appliqué : `node <chemin>/mutations.mjs [<nom>…]` (`A`, `B`, `C` : une
 // série ; `A7` : une mutation). Sortie 0 : toutes rouges ; 1 : une au moins verte ou introuvable, nommée.
@@ -70,6 +71,11 @@ const MUTATIONS = [
   ['A28 faux GitHub : un commentaire de `pendantCi` ne tombe jamais', FG, 'if (suivant.commentaire !== undefined) cible.commentaires', 'if (false) cible.commentaires', [BF, BV]],
   ['A29 faux GitHub : les étiquettes de `pendantCi` ne changent jamais', FG, 'else if (suivant.labels !== undefined) cible.labels = [...suivant.labels];', 'else if (suivant.labels !== undefined) cible.labels = cible.labels;', [BF, BV]],
   ['A30 github.sh : la clé `relecture` absente, les commentaires lus quand même (régime 7 : une lecture de plus)', G, 'if cle_relecture_sur "origin/$base"; then', 'if true; then', [BFU]],
+  // Relecture des tickets (A-186) : le régime 7 tel que main, les gestes sans banc.
+  ['A31 régime 7 : un contrat illisible qui ne nomme pas la clé est sauté (A-186)', R, "return /\"relecture\"/.test(texte) ? 'illisible' : null;", "return 'illisible';", [BR, BV]],
+  ['A32 github.sh : develop et les sujets ne sont plus relus avant les calculs (A-126)', G, "    git_masque fetch -q origin '+refs/heads/develop:refs/remotes/origin/develop' '+refs/heads/sujet/*:refs/remotes/origin/sujet/*' ||", '    true ||', [BV]],
+  ['A33 sujet.sh : `fusion-bloquée` posée pendant la CI ignorée au second contrôle', S, "  case \"$raison\" in\n    '') ;;\n    'sommet changé') sortir 5 \"la sous-PR #$n a reçu un push avant la fusion", "  case \"${raison/label fusion-bloquée/}\" in\n    '') ;;\n    'sommet changé') sortir 5 \"la sous-PR #$n a reçu un push avant la fusion", [BV]],
+  ['A34 CLI : une panne de l’outil en régime 8 sort en 1, lu « renvoi »', R, 'process.exit(3);', 'process.exit(1);', [BV]],
   // ── Ticket 72, lot 5b : les gardes des fichiers sensibles ─────────────────────────────────────────────────────
   ['B1 hook : le régime 8 jamais lu', RG, "regime8 = Object.hasOwn(CHAINE, 'relecture'),", 'regime8 = false,', [BGF]],
   ['B2 hook : aucun chemin sensible refusé', RG, 'return regime8 ? refusSensible(c, sensibles, accordes) : null;', 'return null;', [BRG, BGF]],
@@ -95,6 +101,9 @@ const MUTATIONS = [
   ['B22 sujet.sh : une PR de mise à jour sans les tickets du sujet', S, 'sujet_de=(--conflits "$conflits" --tickets "$(carte', 'sujet_de=(--conflits "$conflits" --ignore "$(carte', [BS]],
   ['B23 sujet.sh : les retouches d’une PR de mise à jour hors du diff lu', S, "lus=$(printf '%s\\n%s\\n' \"$A_JUGER\" \"$MAJ_APRES\" | sed '/^$/d' | sort -u)", "lus=$(printf '%s\\n' \"$A_JUGER\" | sed '/^$/d' | sort -u)", [BS]],
   ['B24 chemins-sensibles : le point d’entrée ne se reconnaît plus par un lien', CS, 'return realpathSync(fileURLToPath(import.meta.url)) === realpathSync(process.argv[1]);', 'return fileURLToPath(import.meta.url) === process.argv[1];', [BP]],
+  ['B25 garde du capitaine : la première copie d’un ticket seule compte', CS, 'accords.push(copies.map((c) => c.chemins));', 'accords.push([copies[0].chemins]);', [BS]],
+  ['B26 garde du capitaine : une spec citée par le sujet ne vaut plus ses tickets', CS, ' && !(tickets !== undefined && t.startsWith(`${id}.`))', '', [BS]],
+  ['B27 garde du capitaine : sans la grammaire, « PR sans ticket » au lieu d’illisible', CS, '  if (!GRAMMAIRE) throw new Illisible("scripts/docs/identifiants.mjs introuvable : le ticket ne se lit pas");\n', '', [BS]],
   // ── Ticket 73, lot 5c : les renvois, les messages et le gate selon le régime ────────────────────────────────
   ['C1 renvoyer.sh : en régime 8, remettre `à-fusionner`', RV, 'if [ "$regime" = 8 ]; then\n  suite="Corriger, puis redemander', 'if [ "$regime" = 9 ]; then\n  suite="Corriger, puis redemander', [BM]],
   ['C2 renvoyer.sh : la nouvelle réception porte `à-fusionner` en régime 8', RV, '    if [ "$regime" = 8 ]; then\n      suite="Refaire', '    if [ "$regime" = 9 ]; then\n      suite="Refaire', [BM]],
@@ -113,6 +122,8 @@ const MUTATIONS = [
   ['C15 gate : double-relecture.mjs absent sans le dire', TK, '  if (!double) {', '  if (false) {', [BTG]],
   ['C16 gate : la criticité de l’en-tête jamais lue', TK, '        if (e.enVigueur) lus.push(e.niveau);', '        if (false) lus.push(e.niveau);', [BTG]],
   ['C17 gate : le régime pas transmis au contrôle des tickets', TK, '    regime,\n    niveauDe,\n  });', '    niveauDe,\n  });', [BTG]],
+  ['C18 renvoyer.sh : la PR lue pour son régime même sans la clé (régime 7 : une lecture de plus)', RV, 'if [ "$cle" = 0 ] && pr=$(pr_json', 'if pr=$(pr_json', [BM]],
+  ['C19 gate : une règle rejetée de l’index compte', TK, 'if (r && r.enVigueur) lus.push(r.niveau);', 'if (r) lus.push(r.niveau);', [BTG]],
 ];
 
 const voulues = process.argv.slice(2);

@@ -1,0 +1,10 @@
+charge au départ : 2.72 5.78 6.83 ; attente 100 s ; 2026-11-21T23:13:17Z
+sortie 0 ; durée 1075 s ; charge à la fin : 3.95 5.35 6.46
+# tests 1331
+# suites 0
+# pass 1331
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1074453.430696
