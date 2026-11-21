@@ -69,7 +69,7 @@ Fin de la veille, message d'une session : **`passe` d'abord**, toujours, puis le
 
 ## L'état des sessions
 
-Il se lit par `get_session`, pour les règles 4, 5 et 6 seulement : les `preferees` d'un geste `distribuer`, et, pour chaque PR que la passe range en règle 5 (`reecrire`, ou `rien` avec la raison `attente`), chaque session attendue, écrite dans un fichier du scratchpad, `{ "<session>": "vivante" | "morte" | "plafond" }`, puis `jouer <n> --sessions <fichier>`. `morte` : archivée, en échec (`status_bucket` `failed`), ou introuvable ; `plafond` : plus de 700 000 tokens de contexte (`external_metadata.context_usage.used_tokens`) ; sinon `vivante`. Sans compte de tokens (`context_usage`), la session n'est pas tenue au plafond ; sans `effort_level`, le couple n'est pas tenu pour égal, et la PR reçoit une session neuve.
+Il se lit par `get_session`, pour les règles 4, 5 et 6 seulement : les `preferees` d'un geste `distribuer`, et, pour chaque PR que la passe range en règle 5 (`reecrire`, ou `rien` avec la raison `attente`), chaque session attendue, écrite dans un fichier du scratchpad, `{ "<session>": "vivante" | "morte" | "plafond" }`, puis `jouer <n> --sessions <fichier>`. `morte` : archivée, en échec (`status_bucket` `failed`), ou introuvable ; `plafond` : plus de 700 000 tokens de contexte (`external_metadata.context_usage.used_tokens`) ; sinon `vivante`. Sans compte de tokens (`context_usage`), la session n'est pas tenue au plafond ; sans `effort_level`, le couple n'est pas tenu pour égal, et la PR reçoit une session neuve. Le couple ne se lit que pour réemployer une session (« Créer ou relancer ») : une session seulement attendue (`rien`, raison `attente`) ne s'écrit jamais `morte` pour son couple.
 
 ## Les lignes
 
@@ -91,7 +91,7 @@ Un message ne fait que hâter : la veille fait le même travail à sa sonde suiv
 
 - **`VEILLE GESTE`** suivi d'une ligne `GESTE <n> <geste> règle <r>` par PR : « À chaque réveil », puis relancer la veille ;
 - **`VEILLE FINIE`** : 25 minutes sans geste ; relever son propre contexte (`get_session` sans argument, `external_metadata.context_usage.used_tokens`) : au-delà de 500 000 tokens, l'écrire à l'architecte, qui lance un Relecteur neuf, et s'arrêter ; sinon « À chaque réveil », puis relancer la veille ;
-- **`VEILLE ARRÊTÉE sortie <c>`** : la passe est sortie autrement qu'en 0 ou en 5 ; la suite de cette sortie (« Les sorties »), avec la dernière ligne du journal ;
+- **`VEILLE ARRÊTÉE sortie <c>`** : la passe est sortie autrement qu'en 0 ou en 5 ; la suite de cette sortie (« Les sorties »), avec la dernière ligne du journal ; quand cette suite dit « rejouer au réveil suivant » (9, 12, autre), relancer la veille : sa fin est ce réveil ;
 - **aucune de ces trois lignes** (l'outil a arrêté la veille) : comme `VEILLE FINIE`.
 
 `PAUSE` dans le journal : GitHub n'a pas répondu, la veille continue. `--taire <n>,…` : ces PR ne la réveillent plus, pour un geste qui ne peut pas se jouer ; une ligne à l'architecte l'a dit. Une PR tue le reste, d'une veille à la suivante, tant que la passe lui rend le même geste à la même règle ; son geste ne se joue pas au réveil. Un autre geste, ou une autre règle, la fait sortir de `--taire`. Une seule veille à la fois : l'arrêter (`TaskStop`) avant d'en relancer une.

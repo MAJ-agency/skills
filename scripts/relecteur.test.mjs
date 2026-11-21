@@ -62,6 +62,8 @@ test("contre-relecture de la PR 146 — aucun geste laissé à improviser : le d
     "Les lignes du Relecteur lui-même à l'architecte ont trois formes, et aucune autre : « PR <n> : <cause> ; PR tue »",
     "tant que la passe lui rend le même geste à la même règle",
     "une erreur de `passe`, qui ne nomme aucune PR : l'architecte, et s'arrêter",
+    "quand cette suite dit « rejouer au réveil suivant » (9, 12, autre), relancer la veille : sa fin est ce réveil",
+    "une session seulement attendue (`rien`, raison `attente`) ne s'écrit jamais `morte` pour son couple",
   ]);
   // A-182 : un champ que get_session ne rend pas, dans les deux sections qui le lisent.
   const phrase = "Sans compte de tokens (`context_usage`), la session n'est pas tenue au plafond ; sans `effort_level`, le couple n'est pas tenu pour égal, et la PR reçoit une session neuve.";
