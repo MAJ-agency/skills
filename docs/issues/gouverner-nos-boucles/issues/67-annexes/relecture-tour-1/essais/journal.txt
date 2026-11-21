@@ -1,0 +1,33 @@
+=== APRES = 25a72c7 (arbre de main)
+not ok 1 - C11 (mineur, ticket de suite) — un refus (règle 4) sur une PR où `à-reprendre` est restée posée : l’auteur n’est pas prévenu
+not ok 2 - C12 (mineur, ticket de suite) — un plafond à moitié écrit (commentaire posé, pose de l’étiquette refusée une fois) : au rejeu, l’architecte n’est pas prévenu
+# tests 2
+# pass 0
+# fail 2
+not ok 1 - R3 (mineur, ticket de suite) — une installation en échec dans une passe que GitHub fait sortir en 5 : son erreur n’arrive pas au journal de la veille
+# tests 1
+# pass 0
+# fail 1
+ok 1 - R5 (tenue) — la veille relancée rejoue sa première passe sans pause : un `index.lock` resté donne deux `VEILLE ARRÊTÉE sortie 12` en quelques secondes, et la suite de 12 arrête le Relecteur à la seconde
+ok 2 - R5 (tenue) — la sortie 9 renvoie au réveil suivant sans borne : relancée à chaque arrêt, la veille se rendort au plus cinq minutes, sans fin, et `VEILLE FINIE`, seul point où le Relecteur relève son contexte, ne vient jamais
+# tests 2
+# pass 2
+# fail 0
+=== APRES = arbre de la PR A (c0aa2dd)
+ok 1 - C11 (mineur, ticket de suite) — un refus (règle 4) sur une PR où `à-reprendre` est restée posée : l’auteur n’est pas prévenu
+ok 2 - C12 (mineur, ticket de suite) — un plafond à moitié écrit (commentaire posé, pose de l’étiquette refusée une fois) : au rejeu, l’architecte n’est pas prévenu
+# tests 2
+# pass 2
+# fail 0
+ok 1 - R3 (mineur, ticket de suite) — une installation en échec dans une passe que GitHub fait sortir en 5 : son erreur n’arrive pas au journal de la veille
+# tests 1
+# pass 1
+# fail 0
+ok 1 - R5 (tenue) — la veille relancée rejoue sa première passe sans pause : un `index.lock` resté donne deux `VEILLE ARRÊTÉE sortie 12` en quelques secondes, et la suite de 12 arrête le Relecteur à la seconde
+not ok 2 - R5 (tenue) — la sortie 9 renvoie au réveil suivant sans borne : relancée à chaque arrêt, la veille se rendort au plus cinq minutes, sans fin, et `VEILLE FINIE`, seul point où le Relecteur relève son contexte, ne vient jamais
+# tests 2
+# pass 1
+# fail 1
+=== essai du relecteur (essai-marque.snippet.mjs, lancer-essai.sh)
+25a72c7 : not ok (geste etiqueter, aucune marque rendue, lignes [])
+arbre de la PR A : ok 1 ; avec la mutation G5 : not ok 1

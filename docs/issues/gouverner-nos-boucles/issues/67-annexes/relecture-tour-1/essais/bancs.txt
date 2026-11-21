@@ -1,0 +1,48 @@
+# Bancs, rouge avant le code et vert après, ticket par ticket, sur un clone neuf de 25a72c7 (Node 22.23.5, quatre cœurs)
+== r67-rouge
+not ok 20 - X15 — les causes d’illisible, une à une : forme refusée par `a-juger` (à l’auteur), PR de fourche, dépendances de develop (à l’architecte) ; une fois signalée, rien
+not ok 35 - suite 66 — R3 : une installation en échec dans une passe que GitHub fait ensuite sortir en 5 : son erreur au journal de la veille
+not ok 36 - suite 66 — R5 : `veille --attendre` met une pause avant sa première passe, sous la même borne que les autres ; sans lui, la première passe part tout de suite
+not ok 37 - suite 66 — 18 : un push entre la préparation et la lecture de la PR : la tête est relue une fois, jamais dite introuvable pour rien
+# tests 37
+# pass 33
+# fail 4
+== r67-vert
+# tests 37
+# pass 37
+# fail 0
+== r68-rouge
+not ok 40 - A-182 (2) — une session à un autre couple que la PR (`couple`) est remplacée, cause `couple`, jamais relancée ; une fois par tour, puis la panne
+not ok 47 - le plafond : au troisième tour refusé, `à-reprendre`, puis le commentaire `Plafond — décision attendue` ; l’architecte prévenu
+not ok 78 - suite 66 — C11 : une étiquette restée d’un tour d’avant (posée avant le verdict) n’est pas un passage rejoué : le refus se dit à l’auteur et au conducteur ; à la même seconde, ou sans pose lue, aussi
+not ok 80 - suite 66 — C12 : un plafond à moitié écrit se rejoue entier : l’étiquette d’abord ; la pose ou le commentaire refusés, le rejeu prévient l’architecte, un seul commentaire
+not ok 81 - suite 66 — A-182 (2) : une session que le modèle lit à un autre couple (`couple`) est remplacée, cause `couple`, au couple que la PR demande
+not ok 97 - faux gh, événements : une pose d’étiquette absente ajoute `labeled`, un retrait `unlabeled`, datés de `maintenant` ; `GET issues/<n>/events` les rend comme GitHub
+# tests 97
+# pass 91
+# fail 6
+== r68-vert
+# tests 97
+# pass 97
+# fail 0
+== r69-rouge
+not ok 3 - contre-relecture de la PR 146 — aucun geste laissé à improviser : le délai de l'outil, toute autre sortie, la veille arrêtée, les champs de get_session, les lignes à l'architecte, une PR tue
+not ok 9 - suite du ticket 66 (ticket 69) — chaque phrase neuve à sa place : `--attendre` et la borne de 9, l'état `couple`, `send_message` en échec, les causes des lignes, une étiquette restée, l'installation à retenter
+# tests 9
+# pass 7
+# fail 2
+== r69-vert
+# tests 9
+# pass 9
+# fail 0
+== ticket 70 (25a72c7 + ticket-70.patch) : relecture.test.mjs, tickets.test.mjs, depot.test.mjs
+# tests 144 / # pass 144 / # fail 0
+== suite entière, pnpm test, arbre de la PR A (c0aa2dd, commité)
+# tests 1289
+# pass 1289
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 870943.354624
+départ 20:45:38 UTC, charge 2,57 ; fin 21:00:10 UTC, charge 7,60

@@ -1,0 +1,12 @@
+# Mutations des tickets 67 à 69, échantillon de dix (67-annexes/mutations.mjs), arbre de la PR A (c0aa2dd), 2026-11-21
+ROUGE A1 veille : la sortie d’erreur d’une passe sortie en 5 jetée (R3) (155 s) — suite 66 — R3 : une installation en échec dans une passe que
+ROUGE A3 veille : la première pause sans la borne de la durée (R5) (168 s) — suite 66 — R5 : `veille --attendre` met une pause avant sa p
+ROUGE A5 liste : la tête n’est pas relue avant d’être dite introuvable (18) (123 s) — suite 66 — 18 : un push entre la préparation et la lecture d
+ROUGE B3 poseeApres : une pose à la seconde de la marque vaut passage rejoué (98 s) — suite 66 — C11 : une étiquette restée d’un tour d’avant (pos
+ROUGE B5 poseeApres : un retrait lu comme une pose (93 s) — suite 66 — C11 : une étiquette restée d’un tour d’avant (pos
+ROUGE B8 decision : la marque est le premier commentaire, pas le plus récent à marque (78 s) — suite 66 — C11 : une étiquette restée d’un tour d’avant (pos
+ROUGE B9 decision : une marque rendue au plafond aussi (ses lignes se tairaient au rejeu) (81 s) — suite 66 — C12 : un plafond à moitié écrit se rejoue entier 
+ROUGE B10 jouer : au plafond, le commentaire avant l’étiquette (l’ordre d’avant, C12) (74 s) — le plafond : au troisième tour refusé, `à-reprendre`, puis l | suite 66 — C12 : un plafond à moitié écrit se rejoue entier 
+ROUGE B14 décision : une session `couple` n’est pas hors service (87 s) — A-182 (2) — une session à un autre couple que la PR (`couple | suite 66 — A-182 (2) : une session que le modèle lit à un au
+ROUGE C2b SKILL.md : le remplacement d’une session `couple` déplacé de « L’état des sessions » dans « Les lignes » (E2 du rapport, rejouée sur la phrase neuve) (0 s) — suite du ticket 66 (ticket 69) — chaque phrase neuve à sa pl
+toutes rouges

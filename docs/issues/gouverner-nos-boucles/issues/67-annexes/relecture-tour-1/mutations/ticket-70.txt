@@ -1,0 +1,9 @@
+# Mutations du ticket 70 (70-annexes/mutations.mjs), arbre de 25a72c7 + ticket-70.patch (4fc42e6), avec le test retouché, 2026-11-21
+ROUGE F1 SKILL.md : le paragraphe du clone déplacé de la puce `C4` à la fin de l’étape 2 (M4 de la contre-relecture de la PR 145) (99 s) — C4 : le clone reste dans le dossier de la session, et un rap
+ROUGE F2 SKILL.md : le paragraphe du clone déplacé avant la puce `C4` (dans la puce `C3`) (101 s) — C4 : le clone reste dans le dossier de la session, et un rap
+ROUGE F3 SKILL.md : le paragraphe du clone déplacé dans l’étape 6 (109 s) — C4 : le clone reste dans le dossier de la session, et un rap
+ROUGE F4 prompt-regles.md : la phrase déplacée après la liste des gravités (86 s) — deux gravités, pas trois, et un mot par sens : ni « à corrig | C4 : le clone reste dans le dossier de la session, et un rap
+ROUGE F5 prompt-regles.md : la phrase déplacée en tête du prompt (68 s) — C4 : le clone reste dans le dossier de la session, et un rap
+ROUGE F6 verdict.md : la phrase sortie de la puce `/security-review:`, en paragraphe après elle (63 s) — C4 : le clone reste dans le dossier de la session, et un rap
+ROUGE F7 verdict.md : la phrase retirée (65 s) — C4 : le clone reste dans le dossier de la session, et un rap
+toutes rouges

@@ -1,0 +1,9 @@
+# Mutations du relecteur neuf (mutations-relecteur.mjs), arbre de la PR A (c0aa2dd), 2026-11-21
+ROUGE G1 décision : une session `couple` remplacée sous la cause `morte` (153 s) — A-182 (2) — une session à un autre couple que la PR (`couple | suite 66 — A-182 (2) : une session que le modèle lit à un au
+ROUGE G2 décision : une session `couple` à relancer est relancée (`reecrire`), pas remplacée (0 s) — A-182 (2) — une session à un autre couple que la PR (`couple
+ROUGE G3 décision : le remplacement pour cause `couple` hors du remplacement unique du tour (0 s) — A-182 (2) — une session à un autre couple que la PR (`couple
+ROUGE G4 décision : une session `couple` remplacée avant que la PR devenue double soit complétée (0 s) — A-182 (2) — une session à un autre couple que la PR (`couple
+VERTE G5 relecteur.mjs : la marque est la date du dernier verdict, pas celle de la marque la plus récente (`dernier`, A-183 point 6) (167 s)
+1 mutation(s) non rouge(s)
+
+# G5 rejouée avec l'essai essais/essai-marque.snippet.mjs (lancer-essai.sh) : ROUGE
