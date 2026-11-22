@@ -1,0 +1,31 @@
+== le banc, sans scripts/docs/environnement-de-banc.mjs
+# Error [ERR_MODULE_NOT_FOUND]: Cannot find module '<chemin>' imported from <arbre>/scripts/verify/preuves.test.mjs
+not ok 1 - scripts/verify/preuves.test.mjs
+# tests 1
+# pass 0
+# fail 1
+== avec
+# tests 8
+# pass 8
+# fail 0
+== coverage-diff-regles.mjs de 2fb450e (2026-11-09, plugin "version": "3.7.1")
+# SyntaxError: The requested module './coverage-diff-regles.mjs' does not provide an export named 'BASE_DEFAUT'
+not ok 1 - scripts/verify/preuves.test.mjs
+# tests 1
+# pass 0
+# fail 1
+== coverage-diff-regles.mjs de 1b7c7fb (2026-11-10, plugin "version": "3.10.1")
+not ok 6 - une base introuvable : premier push d'un dépôt neuf, sortie 0 ; sinon sortie 2, avec le geste qui la rapatrie
+# tests 8
+# pass 7
+# fail 1
+== coverage-diff-regles.mjs de a6d8e16 (2026-11-11, plugin "version": "3.10.4")
+# tests 8
+# pass 8
+# fail 0
+== le relais (index au pivot 3, dépôt de la CLI : sortie 2 « CLI introuvable » attendue, décision 7)
+  [] preuves : la CLI Anchorpost est introuvable (node_modules/.bin/anchorpost) : pnpm install (`@maj-agency/anchorpost` ≥ 2.0.0 en devDependency)
+  [--base-auto] preuves : la CLI Anchorpost est introuvable (node_modules/.bin/anchorpost) : pnpm install (`@maj-agency/anchorpost` ≥ 2.0.0 en devDependency)
+  [--base origin/develop] preuves : la CLI Anchorpost est introuvable (node_modules/.bin/anchorpost) : pnpm install (`@maj-agency/anchorpost` ≥ 2.0.0 en devDependency)
+  [HEAD~3] preuves : usage : node scripts/verify/preuves.mjs [--base <ref> | --base-auto]
+  [--] preuves : usage : node scripts/verify/preuves.mjs [--base <ref> | --base-auto]

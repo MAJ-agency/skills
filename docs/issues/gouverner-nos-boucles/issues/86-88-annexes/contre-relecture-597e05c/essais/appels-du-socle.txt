@@ -1,0 +1,22 @@
+Les appels de preuves.mjs que le refus d'argument (597e05c, `inconnues` sans le préfixe `--`) pourrait casser, relevés
+le 2026-11-22 sur le plugin à 597e05c et sur Anchorpost `develop` à 31afa3d.
+
+1. Fin de tour (gatesRapides)
+   - plugin, skills/chaine/socle-chaine-de-production/references/agent/fin-de-tour.mjs, ligne 50 :
+       execFileSync('node', [join(RACINE, gate)], …)          → aucun argument
+   - Anchorpost, scripts/agent/fin-de-tour.mjs, ligne 29 :
+       execFileSync("node", [join(RACINE, gate)], …)          → aucun argument
+     (`gatesRapides` d'Anchorpost ne porte pas encore preuves.mjs)
+2. Pre-push : `pnpm run check:preuves --base-auto` (SKILL.md, étape 3 ; Anchorpost n'a pas encore la ligne).
+   pnpm 10.28.0, script `node a.mjs` qui écrit ses arguments :
+       pnpm run -s a --base-auto              → ["--base-auto"]
+       pnpm run -s a -- --base-auto           → ["--","--base-auto"]   (refusé avant comme après : `--` commence par --)
+       pnpm -s a --base "origin/develop"      → ["--base","origin/develop"]
+       pnpm -s a                              → []
+3. CI : `node scripts/verify/preuves.mjs --base "origin/$BASE"` (SKILL.md, étape 4) → ["--base", "origin/<cible>"] ;
+   `$BASE` vide → ["--base", ""] : refusé avant comme après (`!nommee`).
+4. Bancs : scripts/points-d-entree.test.mjs (["--tout"], sortie 2 attendue) ; preuves.test.mjs.
+
+Aucun appel du socle ni d'Anchorpost ne passe un argument positionnel : le refus ne change rien pour eux.
+Joué sur Anchorpost (essais/repose-dans-anchorpost.txt, fin) : sans option, --base-auto, --base origin/develop → la
+sortie 2 « CLI introuvable » de la décision 7 (dépôt de la CLI), inchangée ; HEAD~3 → l'usage, sortie 2.

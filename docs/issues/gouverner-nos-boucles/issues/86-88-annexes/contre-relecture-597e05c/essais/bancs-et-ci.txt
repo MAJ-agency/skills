@@ -1,0 +1,16 @@
+Les bancs touchés par le delta (preuves.test.mjs, scripts/preuve-suffisante-socle-tests.test.mjs,
+scripts/points-d-entree.test.mjs, scripts/depot.test.mjs), Node 22.23.5, pnpm 10.28.0, git 2.43.0, charge 10 à 12.
+
+- 597e05c : 152 tests, 152 verts (15 s).
+- 42c5149, les seuls fichiers de bancs de retouche-154-tour-1.patch posés (`git apply --include='*.test.mjs'`, sans
+  points-d-entree ni depot) : 83 tests, 80 verts, 3 rouges — « la fiche des tests porte la grille … », « le relais
+  preuves dit qu'il sort en 2 … », « un index illisible, une CLI absente … un usage faux ». Le rouge avant du tour 1.
+- 597e05c, retouche-154-tour-2.patch posée : 152 tests, 152 verts. Le compte ne bouge pas (des assertions dans des
+  tests existants) : la suite attendue reste 1 422.
+- 597e05c, les seuls fichiers de bancs de retouche-154-tour-2.patch posés : 152 tests, 151 verts, 1 rouge — « le relais
+  preuves dit qu'il sort en 2 … » (la phrase de SKILL.md sur les deux bases d'une mise à jour, la ligne « Reposer » de la
+  note). Les autres ajouts tiennent un comportement juste : leur rouge est celui des mutations (mutations/).
+
+La CI de GitHub sur 597e05c (PR 154, lue le 2026-11-22, lecture seule) :
+- CI, job « bancs », run 45049745361 : success, `pnpm test` 1 422 tests, 1 422 verts, 0 échec (1 036 s).
+- CodeQL : Analyze (actions) success, Analyze (javascript-typescript) success, CodeQL success.

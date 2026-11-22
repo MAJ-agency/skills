@@ -1,0 +1,23 @@
+debut 17:38:11 charge 10.26 10.35 11.75
+ROUGE D1 preuves.mjs : sans --base, le premier argument est exempté (le garde « i !== -1 » retiré) (10 s) — un index illisible, une CLI absente ou en panne, un rapport 
+ROUGE D2 preuves.mjs : --base-auto refusé (11 s) — sans index, ou d'un autre schéma que 3 : rien à comparer, la | la base : nommée par --base ; sinon le sujet visé par le pus
+ROUGE D3 preuves.mjs : --base refusé (9 s) — la base : nommée par --base ; sinon le sujet visé par le pus | une base introuvable : premier push d'un dépôt neuf, sortie  | sous GitHub Actions, le rapport entier en markdown s'ajoute 
+VERTE D4 preuves.mjs : tout ce qui suit --base est accepté (--base x HEAD~3) (13 s)
+ROUGE D5 preuves.mjs : le refus d'usage sort en 0 (11 s) — preuves agit quand on le lance : direct | preuves agit quand on le lance : lien symbolique | preuves agit quand on le lance : lien symbolique, --preserve | preuves agit quand on le lance : lien symbolique, NODE_OPTIO | preuves agit quand on le lance : dossier à espace | preuves agit quand on le lance : dossier à accent | un index illisible, une CLI absente ou en panne, un rapport 
+ROUGE D6 preuves.mjs : premier push d'un sujet neuf, repli sur develop et non sur la plus proche (10 s) — la base : nommée par --base ; sinon le sujet visé par le pus
+ROUGE D7 preuves.mjs : premier push d'un sujet neuf, rien à comparer (sortie 0 sans la CLI) (10 s) — la base : nommée par --base ; sinon le sujet visé par le pus
+VERTE D8 mutation.yml : la synthèse avant la mutation (elle lit un rapport absent) (1 s)
+VERTE D9 mutation.yml : la mesure précédente lue sur noyau seulement (1 s)
+ROUGE D10 mutation.yml : le plus ancien artefact, pas le dernier (0 s) — le workflow de mutation date sa mesure, la publie en artefac
+ROUGE D11 mutation.yml : le dossier de la précédente change (la synthèse ne la trouve plus) (0 s) — le workflow de mutation date sa mesure, la publie en artefac
+VERTE D12 fiche : « pas de cas normal » retiré de « partielle » (1 s)
+ROUGE D13 fiche : les familles exigées de la seule règle haute (0 s) — la fiche des tests porte la grille par criticité, l'étiquett
+ROUGE D14 fiche : la question ouverte compte pour une réponse (0 s) — la fiche des tests porte la grille par criticité, l'étiquett
+ROUGE D15 SKILL : « la CI juge le commit » retiré (0 s) — le relais preuves dit qu'il sort en 2 quand la CLI est un pa
+VERTE D16 SKILL : « plus large, jamais plus lâche » retiré (0 s)
+VERTE D17 note : le point 5 de l'ADR du projet n'est plus dit (1 s)
+VERTE D18 note : l'adaptation dans le dépôt de la CLI n'est plus dite (1 s)
+VERTE D19 note : ce qui casse sans les deux appuis n'est plus dit (1 s)
+ROUGE D20 note : la version de l'environnement de banc fausse (0 s) — le relais preuves dit qu'il sort en 2 quand la CLI est un pa
+VERTE D21 preuves.mjs, en-tête : les « Limites » sans l'arbre de travail (10 s)
+fin 17:39:41 charge 10.45 10.58 11.71

@@ -1,0 +1,22 @@
+### MODE=observe
+node_modules ignoré
+distance au sujet 4, à develop 3
+== fin de tour (node preuves.mjs, sans option)
+preuves : base origin/develop, mode jugé observe ; 0 règle(s) touchée(s), 0 écart(s), 0 avertissement(s)
+sortie 0
+== la CI (node preuves.mjs --base origin/sujet/x, la cible de la PR)
+preuves : base origin/sujet/x, mode jugé observe ; 1 règle(s) touchée(s), 1 écart(s), 0 avertissement(s)
+  avertissement (observe) rule-removed RULE_ALL_ANC-99 : Le fichier de la règle disparaît : une règle ne se supprime pas, elle devient obsolète. RULE_ALL_ANC-99 passe à `obsolete`, validée par une personne MOA, au lieu d'être supprimée ou renommée.
+  le rapport entier : pnpm exec anchorpost compare --base origin/sujet/x
+sortie 0
+### MODE=enforce
+node_modules ignoré
+distance au sujet 4, à develop 3
+== fin de tour (node preuves.mjs, sans option)
+preuves : base origin/develop, mode jugé enforce ; 0 règle(s) touchée(s), 0 écart(s), 0 avertissement(s)
+sortie 0
+== la CI (node preuves.mjs --base origin/sujet/x, la cible de la PR)
+preuves : base origin/sujet/x, mode jugé enforce ; 1 règle(s) touchée(s), 1 écart(s), 0 avertissement(s)
+  refus rule-removed RULE_ALL_ANC-99 : Le fichier de la règle disparaît : une règle ne se supprime pas, elle devient obsolète. RULE_ALL_ANC-99 passe à `obsolete`, validée par une personne MOA, au lieu d'être supprimée ou renommée.
+  le rapport entier : pnpm exec anchorpost compare --base origin/sujet/x
+sortie 1

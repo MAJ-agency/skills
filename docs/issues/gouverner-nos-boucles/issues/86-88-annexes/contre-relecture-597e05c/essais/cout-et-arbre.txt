@@ -1,0 +1,16 @@
+Le relais (597e05c) contre la CLI publiée 2.0.2, sur un clone d'Anchorpost `develop` (31afa3d) en `enforce`, la branche
+`maj` de essais/mise-a-jour-plus-lache.sh, `--base origin/sujet/x` :
+
+charge 8.38 9.03 10.65
+passage 1 : 10.49 s, sortie 1
+passage 2 : 10.11 s, sortie 1
+passage 3 : 10.85 s, sortie 1
+charge 9.76 9.30 10.69
+(SKILL.md : « 13 à 17 s par passage, mesurés sur Anchorpost à une charge de 14 à 18 » ; 8 s à charge 4 au ticket :
+cohérent.)
+
+L'arbre de travail jugé : la règle que le commit retire, remise dans l'arbre sans être suivie
+(`?? docs/metier/regles/all/RULE_ALL_ANC-99.md`) :
+preuves : base origin/sujet/x, mode jugé enforce ; 1 règle(s) touchée(s), 0 écart(s), 0 avertissement(s)
+sortie 0
+(le commit porte toujours le retrait : le pre-push passe, la CI, sur le commit, refuse ; ce que SKILL.md dit désormais.)
