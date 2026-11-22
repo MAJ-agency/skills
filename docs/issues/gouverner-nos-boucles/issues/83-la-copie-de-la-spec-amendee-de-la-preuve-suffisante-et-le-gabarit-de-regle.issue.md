@@ -1,6 +1,6 @@
 # La preuve suffisante, part de `skills` (K1) : la copie de la spec amendée et le gabarit de règle aux gestes datés d'une personne
 
-Status: ready-for-agent
+Status: Fait — PR 155 (`679df86`, plugin 8.1.0)
 Type: task
 Label: contre-revue
 Modèle: sonnet — une copie de lecture et deux lignes de gabarit, sans rien à concevoir ; le texte et le code entiers sont dans le patch commun aux tickets 83, 84 et 85 ([`83-85-annexes/pr-tickets.patch`](83-85-annexes/pr-tickets.patch), sha256 `32d5e04da25d3b0b5ac17fddecacdd55f613f75b8574ef3ebbe8d5874425af46`, `git apply` sur `main` à `ddb4265`, plugin 8.0.0), décrit fichier par fichier ci-dessous ; les bancs de la PR sont rouges avant le patch et verts après, les mutations de [`83-85-annexes/mutations.mjs`](83-85-annexes/mutations.mjs) toutes rouges. Rien n'est à concevoir : qui veut changer une décision l'écrit à son lanceur, il ne tranche pas. Premier des trois tickets de la PR « tickets » (83, 84, 85) : ce ticket porte les gestes de la PR entière (« À faire, dans l'ordre »).

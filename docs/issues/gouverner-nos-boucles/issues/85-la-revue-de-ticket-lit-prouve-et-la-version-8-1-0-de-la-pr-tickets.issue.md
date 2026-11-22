@@ -1,6 +1,6 @@
 # La preuve suffisante, part de `skills` (K3, suite) : la revue de ticket lit `Prouve:`, la version et la note de la PR « tickets »
 
-Status: ready-for-agent
+Status: Fait — PR 155 (`679df86`, plugin 8.1.0)
 Type: task
 Label: contre-revue
 Modèle: sonnet — la seconde moitié de la décision de l'architecte sur `Prouve:` (« le gate et la revue de ticket lisent les deux lignes »), la version et la note ; le code entier est dans le patch commun aux tickets 83, 84 et 85 ([`83-85-annexes/pr-tickets.patch`](83-85-annexes/pr-tickets.patch), sha256 `32d5e04da25d3b0b5ac17fddecacdd55f613f75b8574ef3ebbe8d5874425af46`, `git apply` sur `ddb4265`) ; les gestes sont ceux du ticket 83, « À faire, dans l'ordre ». Rien n'est à concevoir : qui veut changer une décision l'écrit à son lanceur, il ne tranche pas.
