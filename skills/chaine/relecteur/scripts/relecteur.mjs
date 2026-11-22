@@ -70,7 +70,8 @@
 // Sorties : 0 fait ; 2 usage ou entrée mal formée ; 3 la PR est fermée, ou le geste, le sommet ou le couple ont changé
 // (rien n'est écrit) ; 5 GitHub illisible ; 6 le dossier n'est pas celui d'un projet de la chaîne, ou pas propre, ou
 // `flock` manque, ou un calcul dit qu'un outil de la chaîne manque au poste (sa sortie 69 : git plus ancien que 2.41,
-// `jq` absent, la grammaire des identifiants introuvable), jamais une lecture illisible (A-192, point 1) ; 7 une écriture sur GitHub refusée (la pose d'une étiquette ou un commentaire ; un retrait refusé ne
+// `jq` absent, la grammaire des identifiants introuvable ; `jq` absent, `github.sh` le dit aussi, sa sortie 69 à son
+// chargement), jamais une lecture illisible ni GitHub illisible (A-192, point 1) ; 7 une écriture sur GitHub refusée (la pose d'une étiquette ou un commentaire ; un retrait refusé ne
 // l'est pas : `retirer_label` le tait) ; 9 le verrou du dossier pas obtenu en 300 secondes ; 12 git (fetch, switch) en
 // échec. L'horloge est celle de la machine ; `RELECTEUR_HORLOGE_BANC` (millisecondes) la fixe,
 // seulement quand `FAUX_GH` (le faux GitHub des bancs) est posé.
@@ -127,6 +128,10 @@ const github = (fonction, ...args) => jouer('bash', ['-c', 'set -o pipefail; sou
 // La seule lecture de GitHub : `lire_github`, pages concaténées rendues en un tableau.
 function lire(route, { pages = false } = {}) {
   const r = jouer('bash', ['-c', `set -o pipefail; source "$1"; lire_github "$2" ${pages ? '--paginate' : ''} | jq -cs 'if length == 1 then .[0] elif all(.[]; type == "array") then add else error("pages") end'`, '_', join(CHAINE, 'github.sh'), route]);
+  // `github.sh` sort en 69 dès son chargement quand `jq` manque au poste : il le dirait de chaque lecture. Le poste ne
+  // porte pas la chaîne, sortie 6, comme pour la sortie 69 d'un calcul ; jamais « GitHub illisible » (5), dont la veille
+  // ferait une pause sans fin, sans une ligne à personne (A-192 point 1, A-197 point 1).
+  sansOutil('github.sh', r);
   if (r.status !== 0) arreter(5, (r.stderr || '').trim() || `GitHub illisible (${route})`);
   return JSON.parse(r.stdout);
 }

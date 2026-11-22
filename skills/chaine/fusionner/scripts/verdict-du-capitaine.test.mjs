@@ -7,7 +7,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 // Posé dans un projet, depot-jouet.mjs est à côté (scripts/chaine/) ; dans le plugin, il est dans le skill sujet.
@@ -437,6 +437,47 @@ test("régime 8 : un calcul sorti en 69 (un outil de la chaîne manque au poste)
   const r21 = lancer(i, poser(i, { talon: ["double-relecture.mjs", 'console.log("illisible"); process.exit(21);\n'] }), join(i.racine, "fil.json"));
   assert.equal(r21.status, 21, r21.stdout + r21.stderr);
   assert.match(r21.stdout, /^lecture illisible : « double relecture exigée » illisible/m);
+});
+
+// Contre-relecture de la PR 153 : la sortie 69 suivie de bout en bout, sans talon. Le vrai `meme-contenu.sh` sous un git
+// qui se dit 2.40 (un `git` en tête du PATH du jouet, qui ne répond autrement qu'à `git version`) : `passer.sh` sort en 3 à
+// ses deux contrôles, `sujet.sh fusionner` en 11, jamais sautées en 7 comme une lecture illisible (ticket 75, décision 2).
+test("régime 8, de bout en bout : `meme-contenu.sh` sorti en 69 (git 2.40) arrête `passer.sh` en 3 à ses deux contrôles et `sujet.sh fusionner` en 11, la cause dite, jamais sautée en 7", () => {
+  const vrai = spawnSync("sh", ["-c", "command -v git"], { encoding: "utf8" }).stdout.trim();
+  const git240 = (d) => {
+    writeFileSync(join(d.racine, "bin", "git"), `#!/bin/sh\nif [ "$1" = version ]; then echo "git version 2.40.1"; exit 0; fi\nexec ${vrai} "$@"\n`);
+    chmodSync(join(d.racine, "bin", "git"), 0o755);
+  };
+  const cause = /revue du capitaine en échec : meme-contenu\.sh : un outil de la chaîne manque au poste \(sortie 69\) : git ≥ 2\.41 requis, ici 2\.40/;
+  // Premier contrôle : un tour validé sur un sommet plus ancien, puis un commit de l'auteur.
+  const p = monter();
+  versDevelop(p);
+  p.branche("feat/a", "feat/a", { "docs/a2.md": "a2\n" }, "docs(a): suite");
+  p.git("switch", "-q", "--detach", "origin/develop");
+  git240(p);
+  const r1 = passer(p);
+  assert.equal(r1.status, 3, r1.stdout + r1.stderr);
+  assert.match(r1.stdout + r1.stderr, /revue du capitaine en échec \(sortie 3\) : /);
+  assert.match(r1.stdout + r1.stderr, cause);
+  // Second contrôle : develop a bougé, le capitaine met la PR à jour, puis relit le verdict sur son sommet.
+  const s = monter();
+  versDevelop(s);
+  s.branche("develop", "origin/develop", { "docs/b.md": "b\n" });
+  s.git("switch", "-q", "--detach", "origin/develop");
+  git240(s);
+  const r2 = passer(s);
+  assert.equal(r2.status, 3, r2.stdout + r2.stderr);
+  assert.match(r2.stdout + r2.stderr, /revue du capitaine en échec avant la fusion \(sortie 3\) : /);
+  assert.match(r2.stdout + r2.stderr, cause);
+  // `sujet.sh fusionner`, une sous-PR en retard : mise à jour, puis le second contrôle.
+  const u = monter();
+  versSujet(u, { retard: true });
+  git240(u);
+  const r3 = fusionner(u);
+  assert.equal(r3.status, 11, r3.stdout + r3.stderr);
+  assert.match(r3.stdout + r3.stderr, /#80 : revue du capitaine en échec \(sortie 3 : /);
+  assert.match(r3.stdout + r3.stderr, cause);
+  assert.deepEqual([...fusions(p), ...fusions(s), ...fusions(u)], []);
 });
 
 test("régime 8, passer.sh : `cheminsSensibles` illisible sur la base rend tout chemin sensible, comme chez le Relecteur : un `validé` sans `/security-review: lancée` ne suffit pas", () => {

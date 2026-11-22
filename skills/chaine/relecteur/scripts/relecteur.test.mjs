@@ -4,7 +4,7 @@
 // GitHub (le journal du faux). Aucun réseau ; l'heure est posée (`RELECTEUR_HORLOGE_BANC`, `maintenant` du faux).
 import assert from 'node:assert/strict';
 import { execFileSync, spawn, spawnSync } from 'node:child_process';
-import { chmodSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { chmodSync, existsSync, mkdirSync, readdirSync, readFileSync, symlinkSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
@@ -584,6 +584,30 @@ test('suite du lot 5 — un calcul sorti en 69 (un outil de la chaîne manque au
   i.talon('double-relecture.mjs', 'console.log("illisible"); process.exit(21);\n');
   pr(i);
   assert.equal(i.json(i.lancer('jouer', '12'))[0].geste, 'illisible');
+});
+
+// Contre-relecture de la PR 153 : sans `jq`, `github.sh` sort en 69 dès son chargement, avant tout calcul ; le Relecteur
+// lisait chaque lecture de GitHub en 5, et la veille faisait une pause sans fin, sans une ligne (A-192 point 1, A-197).
+test('suite du lot 5 — un poste sans `jq` : `github.sh` sorti en 69, la passe et `jouer` sortent en 6, rien d’écrit ; la veille s’arrête, jamais une pause sans fin', () => {
+  const q = monter();
+  pr(q);
+  // Un PATH sans `jq` : chaque outil de /usr/bin et /bin en lien, sauf lui ; `node` à part.
+  const sansJq = join(q.racine, 'sans-jq');
+  mkdirSync(sansJq);
+  for (const source of ['/usr/bin', '/bin'])
+    if (existsSync(source))
+      for (const nom of readdirSync(source))
+        if (nom !== 'jq' && !existsSync(join(sansJq, nom))) symlinkSync(join(source, nom), join(sansJq, nom));
+  q.env.PATH = `${join(q.racine, 'bin')}:${sansJq}:${dirname(process.execPath)}`;
+  assert.notEqual(spawnSync('sh', ['-c', 'command -v jq'], { env: q.env }).status, 0, 'jq absent du PATH du jouet');
+  const p = q.lancer('passe');
+  assert.equal(p.status, 6, p.stdout + p.stderr);
+  assert.match(p.stderr, /^relecteur : github\.sh : un outil de la chaîne manque au poste \(sortie 69\) : ARRÊT : jq est requis par les scripts de la chaîne/m);
+  assert.equal(q.lancer('jouer', '12').status, 6);
+  const v = q.lancer('veille', '--pause', '0', '--sondes', '2');
+  assert.doesNotMatch(v.stdout, /^PAUSE /m);
+  assert.match(v.stdout, /\nVEILLE ARRÊTÉE sortie 6\n$/);
+  assert.deepEqual(ecritures(q), []);
 });
 
 test('N9 — `completer` : une seconde session ajoutée au tour, `(complète)`', () => {
