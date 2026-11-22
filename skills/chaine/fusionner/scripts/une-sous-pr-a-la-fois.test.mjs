@@ -410,7 +410,7 @@ test("boucle.sh : deux capitaines — une sous-PR en passage chez un autre capit
 
 // La veille du plugin lance la vraie boucle sur le dépôt jouet ; le `sleep` du jouet joue, à chaque pause de la veille
 // (argument 7777), l'étape suivante : du JavaScript qui retouche `etat`, l'état du faux GitHub.
-function veilleReelle(d, etapes, sondes) {
+function veilleReelle(d, etapes, sondes, plus = []) {
   const etat = JSON.stringify(join(d.racine, "faux-gh", "etat.json"));
   etapes.forEach((corps, k) => {
     if (corps) writeFileSync(join(d.racine, `etape.${k}.mjs`), `import { readFileSync, writeFileSync } from "node:fs";\nconst etat = JSON.parse(readFileSync(${etat}, "utf8"));\n${corps}\nwriteFileSync(${etat}, JSON.stringify(etat));\n`);
@@ -418,7 +418,7 @@ function veilleReelle(d, etapes, sondes) {
   const k = JSON.stringify(join(d.racine, "k"));
   const etape = JSON.stringify(join(d.racine, "etape."));
   writeFileSync(join(d.racine, "bin", "sleep"), `#!/bin/sh\nif [ "$1" = 7777 ]; then k=$(cat ${k} 2>/dev/null || echo 0); echo $((k + 1)) > ${k}; [ ! -f ${etape}$k.mjs ] || node ${etape}$k.mjs; fi\nexit 0\n`);
-  return spawnSync("bash", [VEILLE, "--pause", "7777", "--sondes", String(sondes)], { cwd: d.travail, env: d.env, encoding: "utf8" });
+  return spawnSync("bash", [VEILLE, "--pause", "7777", "--sondes", String(sondes), ...plus], { cwd: d.travail, env: d.env, encoding: "utf8" });
 }
 
 test("veille.sh et boucle.sh : le verrou d'un capitaine mort tient un sujet ; il expire sans que rien ne change dans la file, et la veille relance la boucle une fois : les sous-PR entrent ; une CI qui ne finit pas tient un sujet jusqu'au geste du capitaine, qui fait relancer la boucle", () => {
@@ -448,6 +448,28 @@ test("veille.sh et boucle.sh : le verrou d'un capitaine mort tient un sujet ; il
     assert.equal((r.stdout.match(new RegExp(`^\\[sujet/${sujet}\\] tenu par #${n} \\(sortie 7 de fusionner, verrou du ${pose}\\)$`, "gm")) ?? []).length, 2, r.stdout);
   assert.equal((r.stdout.match(/^\[sujet\/ci\] tenu par #82 \(CI en cours\)$/gm) ?? []).length, 3, r.stdout);
   assert.deepEqual(fusionnees(d), [80, 81, 83, 84]);
+});
+
+// Ticket 74 : après une veille morte, `boucle.sh --arreter` termine une boucle orpheline et pose le fichier d'arrêt ; la
+// veille relancée sans `--reprendre` s'arrête sur lui (sortie 10), avec `--reprendre` sa première boucle le retire.
+test("veille.sh --reprendre après boucle.sh --arreter : la vraie boucle retire le fichier d'arrêt et la sous-PR entre ; sans --reprendre, VEILLE ARRÊTÉE en 10, rien de fusionné", () => {
+  const d = sousPrDeSujets({ lot: [80] });
+  ci(d, "SUCCESS");
+  const arreter = d.lancer(BOUCLE, "--arreter");
+  assert.equal(arreter.status, 0, arreter.stdout + arreter.stderr);
+  const arret = join(d.git("rev-parse", "--path-format=absolute", "--git-common-dir"), "boucle-arret");
+  assert.ok(existsSync(arret), "fichier d'arrêt posé");
+  let r = veilleReelle(d, [], 0);
+  assert.equal(r.status, 10, r.stdout + r.stderr);
+  assert.match(r.stdout, /^VEILLE ARRÊTÉE \d\d:\d\d : la boucle est sortie en 10$/m);
+  assert.deepEqual(fusionnees(d), []);
+  r = veilleReelle(d, [], 0, ["--reprendre"]);
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.equal(existsSync(arret), false, "fichier d'arrêt retiré");
+  assert.deepEqual(fusionnees(d), [80]);
+  const etat = d.lancer(VEILLE, "--etat");
+  assert.equal(etat.status, 2, etat.stdout + etat.stderr);
+  assert.match(etat.stdout, /^VEILLE TERMINÉE : VEILLE FINIE \d\d:\d\d\n$/);
 });
 
 // ── Contre-relecture de la PR 141, tour 1 (décision A-161) ─────────────────────────────────────────────────────────

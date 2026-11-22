@@ -10,9 +10,10 @@ import {
   mkdirSync,
   mkdtempSync,
   readFileSync,
+  rmSync,
   writeFileSync,
 } from "node:fs";
-import { execFileSync, spawnSync } from "node:child_process";
+import { execFileSync, spawn, spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -53,6 +54,7 @@ function creerJouet(etats, { rcBoucle = 0, sorties = [], contrat, apresLancement
     join(dir, "boucle.sh"),
     `#!/usr/bin/env bash
 echo boucle >> "${dir}/lancements"
+echo boucle "$@" >> "${dir}/arguments"
 echo boucle >> "${trace}"
 echo "\${BOUCLE_ECHEANCE-absente}" > "${dir}/echeance"
 k=$(cat "${dir}/k" 2>/dev/null || echo 0)
@@ -100,7 +102,8 @@ cat "$f"
     const lancements = lire("lancements") ? lire("lancements").split("\n").length : 0;
     const compte = Number(lire("compte") || 0);
     const lignes = lire("trace") ? lire("trace").split("\n") : [];
-    return { ...r, lancements, compte, trace: lignes, echeance: lire("echeance") };
+    const appels = lire("arguments") ? lire("arguments").split("\n") : [];
+    return { ...r, lancements, compte, trace: lignes, echeance: lire("echeance"), arguments: appels };
   };
   // Publie un contrat sur le develop d'origine depuis le clone (il peut citer `trace`, connue ici seulement).
   const publier = (c) => {
@@ -484,7 +487,291 @@ test("démon lancé par la préparation (`(exec sleep 15) &`) : la boucle obtien
     assert.equal(r.status, 0, r.stdout + r.stderr);
     assert.ok(existsSync(pid), "le démon a été lancé");
     assert.deepEqual(r.trace, ["verrou libre", "boucle"], r.stdout + r.stderr);
+    // Ticket 74 : ni le verrou de la veille (descripteur 7).
+    assert.equal(etatDe(j).status, 2, "le démon de la préparation ne tient pas la veille vivante");
   } finally {
     if (existsSync(pid)) spawnSync("kill", [readFileSync(pid, "utf8").trim()]);
   }
+});
+
+// --- Ticket 74 : la veille morte. Un verrou (`veille.verrou`) et un état (`veille.etat`) dans le répertoire commun ;
+// `--etat` dit VIVANTE, TERMINÉE ou MORTE ; `--reprendre` repart après `boucle.sh --arreter`. ---
+
+// `veille.sh --etat` du jouet, sans CAPITAINE_ID (il ne l'exige pas).
+const etatDe = (j, ...plus) => {
+  const { CAPITAINE_ID: _, ...sans } = ENV;
+  return spawnSync("bash", [join(j.dir, "veille.sh"), "--etat", ...plus], { cwd: j.clone, env: sans, encoding: "utf8" });
+};
+const fichierEtat = (j) => join(j.clone, ".git", "veille.etat");
+const MORTE_SANS_TRACE = "VEILLE MORTE (aucune trace de veille) : « boucle.sh --arreter », puis la relancer avec --reprendre\n";
+const attendre = (ms) => new Promise((ok) => setTimeout(ok, ms));
+// Un `sleep` du PATH qui note son pid : le banc retire lui-même ce qu'il laisse orphelin.
+const sleepNote = (j) => {
+  mkdirSync(join(j.dir, "bin"), { recursive: true });
+  writeFileSync(join(j.dir, "bin", "sleep"), `#!/bin/sh\necho $$ >> "${j.dir}/pids"\nexec /bin/sleep "$@"\n`, { mode: 0o755 });
+  return { ...ENV, VEILLE_BOOT_ID: j.fichierBoot, PATH: `${join(j.dir, "bin")}:${ENV.PATH ?? process.env.PATH}` };
+};
+const tuerNotes = (j) => {
+  for (const f of ["pids", "demon.pid", "demon-file.pid"]) {
+    if (!existsSync(join(j.dir, f))) continue;
+    for (const p of readFileSync(join(j.dir, f), "utf8").split("\n").filter(Boolean)) spawnSync("kill", ["-9", p]);
+  }
+};
+
+test("--etat : MORTE sans trace, VIVANTE pendant la veille, TERMINÉE avec sa ligne finale (FINIE, ARRÊTÉE de la boucle, de la préparation) ; sans CAPITAINE_ID ni état écrit ; un argument de plus : sortie 64", () => {
+  // Pendant le premier lancement de la boucle, la doublure lit l'état : la veille tient son verrou.
+  const pendant = 'if [ "$k" = 0 ]; then env -u CAPITAINE_ID bash "$(dirname "$0")/veille.sh" --etat >> "$(dirname "$0")/trace" 2>&1; echo "etat $?" >> "$(dirname "$0")/trace"; fi';
+  const j = creerJouet([""], { apresLancement: pendant });
+  let e = etatDe(j);
+  assert.equal(e.status, 1, e.stdout + e.stderr);
+  assert.equal(e.stdout, MORTE_SANS_TRACE);
+  assert.equal(existsSync(fichierEtat(j)), false, "--etat n'écrit pas l'état");
+  const r = j.lancer(ARGS(0));
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.equal(r.trace.length, 3, r.trace.join("\n"));
+  assert.equal(r.trace[0], "boucle");
+  assert.match(r.trace[1], /^VEILLE VIVANTE \(lancée à \d\d:\d\d\)$/);
+  assert.equal(r.trace[2], "etat 0");
+  assert.match(readFileSync(fichierEtat(j), "utf8"), /^fin \d+ VEILLE FINIE \d\d:\d\d\n$/);
+  e = etatDe(j);
+  assert.equal(e.status, 2, e.stdout + e.stderr);
+  assert.match(e.stdout, /^VEILLE TERMINÉE : VEILLE FINIE \d\d:\d\d\n$/);
+  assert.equal(etatDe(j, "x").status, 64);
+
+  const arretee = creerJouet([""], { rcBoucle: 3 });
+  assert.equal(arretee.lancer(ARGS(1)).status, 3);
+  e = etatDe(arretee);
+  assert.equal(e.status, 2, e.stdout + e.stderr);
+  assert.match(e.stdout, /^VEILLE TERMINÉE : VEILLE ARRÊTÉE \d\d:\d\d : la boucle est sortie en 3\n$/);
+
+  const preparation = creerJouet([""], { contrat: "pas du json" });
+  assert.equal(preparation.lancer(ARGS(0)).status, 13);
+  e = etatDe(preparation);
+  assert.equal(e.status, 2, e.stdout + e.stderr);
+  assert.match(e.stdout, /^VEILLE TERMINÉE : VEILLE ARRÊTÉE \d\d:\d\d : contrat illisible/);
+
+  const echeance = creerJouet(["", prete(31)], { apresLancement: '[ "$k" != 0 ] || /bin/sleep 3.5' });
+  const fin = echeance.lancer(["--pause", "0.2", "--duree", "1", "--marge", "0", "--sondes", "3"], { VEILLE_LIMITE: "0.05" });
+  assert.equal(fin.status, 0, fin.stdout + fin.stderr);
+  assert.match(etatDe(echeance).stdout, /^VEILLE TERMINÉE : VEILLE FINIE \d\d:\d\d \(échéance\)\n$/);
+});
+
+test("--etat : le fichier d'arrêt posé (boucle.sh --arreter) passe avant la fin écrite et avant une veille morte : VEILLE TERMINÉE, arrêt demandé, sortie 2", () => {
+  const j = creerJouet([""]);
+  const arret = join(j.clone, ".git", "boucle-arret");
+  writeFileSync(fichierEtat(j), `lancee ${Math.floor(Date.now() / 1000)}\n`);
+  let e = etatDe(j);
+  assert.equal(e.status, 1, e.stdout + e.stderr);
+  assert.match(e.stdout, /^VEILLE MORTE \(lancée à \d\d:\d\d, sans ligne finale\) : « boucle\.sh --arreter », puis la relancer avec --reprendre\n$/);
+  writeFileSync(arret, "2026-11-21T22:00:00\n");
+  e = etatDe(j);
+  assert.equal(e.status, 2, e.stdout + e.stderr);
+  assert.equal(e.stdout, `VEILLE TERMINÉE : arrêt demandé (${arret}, posé le 2026-11-21T22:00:00) ; « veille.sh --reprendre » quand on veut repartir\n`);
+  writeFileSync(fichierEtat(j), "fin 1 VEILLE FINIE 12:00\n");
+  assert.match(etatDe(j).stdout, /^VEILLE TERMINÉE : arrêt demandé/);
+  // Un état illisible se lit sans trace.
+  writeFileSync(fichierEtat(j), "lancee pas-un-nombre\n");
+  rmSync(arret);
+  assert.equal(etatDe(j).stdout, MORTE_SANS_TRACE);
+});
+
+test("veille tuée pendant sa pause (kill -9, comme l'outil Bash ou un conteneur arrêté) : pas de ligne finale, et --etat dit VEILLE MORTE aussitôt, son `sleep` orphelin ne la tient pas vivante", async () => {
+  const j = creerJouet([""]);
+  const enfant = spawn("bash", [join(j.dir, "veille.sh"), "--pause", "30", "--duree", "5"], { cwd: j.clone, env: sleepNote(j), stdio: "ignore" });
+  const sortie = new Promise((ok) => enfant.on("exit", ok));
+  try {
+    // La boucle lancée (la doublure l'a noté), la veille dort 30 s dans son `sleep`.
+    for (let t = 0; !existsSync(join(j.dir, "pids")) && t < 200; t++) await attendre(100);
+    assert.ok(existsSync(join(j.dir, "pids")), "la veille dort");
+    assert.equal(etatDe(j).status, 0, "vivante avant le kill");
+    enfant.kill("SIGKILL");
+    await sortie;
+    const e = etatDe(j);
+    assert.equal(e.status, 1, e.stdout + e.stderr);
+    assert.match(e.stdout, /^VEILLE MORTE \(lancée à \d\d:\d\d, sans ligne finale\) : « boucle\.sh --arreter », puis la relancer avec --reprendre\n$/);
+    assert.match(readFileSync(fichierEtat(j), "utf8"), /^lancee \d+\n$/);
+  } finally {
+    enfant.kill("SIGKILL");
+    tuerNotes(j);
+  }
+});
+
+test("un démon laissé par la boucle ou par file.sh ne tient pas la veille vivante après sa fin", () => {
+  // Les démons écrivent ailleurs que dans le tube : la veille finit sans les attendre.
+  const demon = (pid) => `(exec /bin/sleep 20 >/dev/null 2>&1 </dev/null) & echo $! > "$(dirname "$0")/${pid}"`;
+  const j = creerJouet([""], { apresLancement: `[ "$k" != 0 ] || { ${demon("demon.pid")}; }` });
+  const file = join(j.dir, "file.sh");
+  writeFileSync(file, readFileSync(file, "utf8").replace("#!/usr/bin/env bash\n", `#!/usr/bin/env bash\n[ -f "$(dirname "$0")/demon-file.pid" ] || { ${demon("demon-file.pid")}; }\n`));
+  try {
+    const r = j.lancer(ARGS(1));
+    assert.equal(r.status, 0, r.stdout + r.stderr);
+    assert.ok(existsSync(join(j.dir, "demon.pid")) && existsSync(join(j.dir, "demon-file.pid")), "les deux démons lancés");
+    const e = etatDe(j);
+    assert.equal(e.status, 2, e.stdout + e.stderr);
+    assert.match(e.stdout, /^VEILLE TERMINÉE : VEILLE FINIE /);
+  } finally {
+    tuerNotes(j);
+  }
+});
+
+test("veille tuée pendant que `tee` attend un démon de la boucle (sa sortie dans le tube) : --etat dit VEILLE MORTE, `tee` ne la tient pas vivante", async () => {
+  // Le démon garde le tube ouvert : la boucle a fini, `tee` attend, la veille attend `tee`. On la tue là.
+  const j = creerJouet([""], {
+    apresLancement: '[ "$k" != 0 ] || { (exec /bin/sleep 20 </dev/null 2>/dev/null) & echo $! > "$(dirname "$0")/demon.pid"; }',
+  });
+  const enfant = spawn("bash", [join(j.dir, "veille.sh"), ...ARGS(1)], { cwd: j.clone, env: { ...ENV, VEILLE_BOOT_ID: j.fichierBoot }, stdio: "ignore" });
+  const sortie = new Promise((ok) => enfant.on("exit", ok));
+  try {
+    for (let t = 0; !existsSync(join(j.dir, "demon.pid")) && t < 200; t++) await attendre(100);
+    assert.ok(existsSync(join(j.dir, "demon.pid")), "le démon est lancé");
+    await attendre(500);
+    assert.equal(etatDe(j).status, 0, "vivante avant le kill");
+    enfant.kill("SIGKILL");
+    await sortie;
+    const e = etatDe(j);
+    assert.equal(e.status, 1, e.stdout + e.stderr);
+    assert.match(e.stdout, /^VEILLE MORTE \(lancée à \d\d:\d\d, sans ligne finale\)/);
+  } finally {
+    enfant.kill("SIGKILL");
+    tuerNotes(j);
+  }
+});
+
+test("une seconde veille pendant qu'une tourne : VEILLE ARRÊTÉE, sortie 9, aucune boucle lancée, l'état de la première gardé", () => {
+  // Un état témoin (« lancee 1 ») posé avant la seconde : elle ne doit pas l'écrire.
+  const seconde = 'if [ "$k" = 0 ]; then echo "lancee 1" > .git/veille.etat; bash "$(dirname "$0")/veille.sh" --pause 0.2 --duree 1 --sondes 0 > "$(dirname "$0")/seconde" 2>&1; echo "seconde $?" >> "$(dirname "$0")/trace"; cat .git/veille.etat >> "$(dirname "$0")/trace"; fi';
+  const j = creerJouet([""], { apresLancement: seconde });
+  const r = j.lancer(ARGS(0));
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.deepEqual(r.trace, ["boucle", "seconde 9", "lancee 1"]);
+  assert.equal(r.lancements, 1, "la seconde n'a lancé aucune boucle");
+  assert.match(readFileSync(join(j.dir, "seconde"), "utf8"), /^VEILLE ARRÊTÉE \d\d:\d\d : une veille tourne déjà \(.*veille\.verrou\) : une seule à la fois, « veille\.sh --etat »$/m);
+  assert.match(readFileSync(fichierEtat(j), "utf8"), /^fin \d+ VEILLE FINIE \d\d:\d\d\n$/, "la fin écrite est celle de la première");
+});
+
+test("--reprendre : le premier lancement de la boucle seul reçoit --reprendre ; sans l'option, aucun", () => {
+  const avec = veilleJouet(["", prete(31)], { args: ["--pause", "0.2", "--duree", "1", "--reprendre", "--sondes", "1"] });
+  assert.equal(avec.status, 0, avec.stdout + avec.stderr);
+  assert.deepEqual(avec.arguments, ["boucle --reprendre", "boucle"]);
+  const sans = veilleJouet(["", prete(31)]);
+  assert.deepEqual(sans.arguments, ["boucle", "boucle"]);
+  const usage = veilleJouet([""], { args: ["--reprendre", "oui"] });
+  assert.equal(usage.status, 64);
+});
+
+// --- Relecture du ticket 74, tour 1 : une veille relancée avec --reprendre retire le fichier d'arrêt avant sa
+// préparation ; aucun sous-shell de la veille (sonde, préparation) ne garde son verrou ; un --etat en cours ne fait pas
+// refuser une veille qui démarre. ---
+
+// Lance la veille du jouet en tâche de fond, journal dans `veille.log` du jouet ; rend l'enfant et sa fin.
+const enFond = (j, args, env = {}) => {
+  const enfant = spawn("bash", [join(j.dir, "veille.sh"), ...args], {
+    cwd: j.clone,
+    env: { ...ENV, VEILLE_BOOT_ID: j.fichierBoot, ...env },
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  let journal = "";
+  enfant.stdout.on("data", (b) => (journal += b));
+  enfant.stderr.on("data", (b) => (journal += b));
+  return { enfant, sortie: new Promise((ok) => enfant.on("exit", ok)), journal: () => journal };
+};
+const jusqua = async (vrai) => {
+  for (let t = 0; !vrai() && t < 200; t++) await attendre(100);
+  assert.ok(vrai(), "attente échue");
+};
+
+test("--reprendre : le fichier d'arrêt est retiré avant la préparation ; tuée pendant sa préparation, la veille se lit VEILLE MORTE, jamais « arrêt demandé »", async () => {
+  const j = creerJouet([""], { contrat: { preparerCapitaine: `echo $$ > "${"$"}(git rev-parse --git-common-dir)/../../demon.pid"; exec /bin/sleep 5` } });
+  const arret = join(j.clone, ".git", "boucle-arret");
+  writeFileSync(arret, "2026-11-21T22:00:00\n");
+  const v = enFond(j, ["--pause", "0.2", "--duree", "1", "--reprendre"]);
+  try {
+    await jusqua(() => v.journal().includes("préparation ("));
+    assert.equal(existsSync(arret), false, "fichier d'arrêt retiré avant la préparation");
+    v.enfant.kill("SIGKILL");
+    await v.sortie;
+    const e = etatDe(j);
+    assert.equal(e.status, 1, e.stdout + e.stderr);
+    assert.match(e.stdout, /^VEILLE MORTE \(lancée à \d\d:\d\d, sans ligne finale\)/);
+  } finally {
+    v.enfant.kill("SIGKILL");
+    tuerNotes(j);
+  }
+});
+
+test("--reprendre : préparation en échec (13), le fichier d'arrêt déjà retiré, --etat rend sa ligne finale ; une boucle qui tient son verrou : sortie 9, fichier gardé", () => {
+  const j = creerJouet([""], { contrat: { preparerCapitaine: "exit 1" } });
+  const arret = join(j.clone, ".git", "boucle-arret");
+  writeFileSync(arret, "2026-11-21T22:00:00\n");
+  assert.equal(j.lancer(["--pause", "0.2", "--duree", "1", "--reprendre", "--sondes", "0"]).status, 13);
+  assert.equal(existsSync(arret), false);
+  assert.match(etatDe(j).stdout, /^VEILLE TERMINÉE : VEILLE ARRÊTÉE \d\d:\d\d : préparation du capitaine en échec/);
+  const k = creerJouet([""]);
+  const arretK = join(k.clone, ".git", "boucle-arret");
+  writeFileSync(arretK, "2026-11-21T22:00:00\n");
+  const r = k.lancer(["--pause", "0.2", "--duree", "1", "--reprendre", "--sondes", "0"], {}, ["flock", join(k.clone, ".git", "boucle.verrou")]);
+  assert.equal(r.status, 9, r.stdout + r.stderr);
+  assert.match(r.stdout, /une boucle tient le verrou .* fichier d'arrêt gardé/);
+  assert.ok(existsSync(arretK), "fichier d'arrêt gardé");
+  assert.equal(r.lancements, 0);
+});
+
+test("veille tuée pendant une sonde lente (file.sh) ou pendant sa préparation : --etat dit VEILLE MORTE aussitôt, aucun sous-shell ne la tient vivante", async () => {
+  // Sonde : la lecture de rang `rang` dort 5 s (0 : la lecture initiale, avant la boucle ; 1 : la première sonde de la
+  // boucle de la veille, après sa pause).
+  for (const rang of [0, 1]) {
+    const j = creerJouet([""]);
+    const file = join(j.dir, "file.sh");
+    writeFileSync(file, readFileSync(file, "utf8").replace("#!/usr/bin/env bash\n", `#!/usr/bin/env bash\n[ "$(cat "$(dirname "$0")/compte" 2>/dev/null || echo 0)" != ${rang} ] || { echo $$ >> "$(dirname "$0")/pids"; /bin/sleep 5; }\n`));
+    const v = enFond(j, ["--pause", "0.2", "--duree", "1"]);
+    try {
+      await jusqua(() => existsSync(join(j.dir, "pids")));
+      v.enfant.kill("SIGKILL");
+      await v.sortie;
+      const e = etatDe(j);
+      assert.equal(e.status, 1, `pendant la sonde de rang ${rang} : ${e.stdout}${e.stderr}`);
+    } finally {
+      v.enfant.kill("SIGKILL");
+      tuerNotes(j);
+    }
+  }
+  // Préparation : la commande dort 5 s.
+  const p = creerJouet([""], { contrat: { preparerCapitaine: `echo $$ > "${"$"}(git rev-parse --git-common-dir)/../../demon.pid"; exec /bin/sleep 5` } });
+  const w = enFond(p, ["--pause", "0.2", "--duree", "1"]);
+  try {
+    await jusqua(() => w.journal().includes("préparation ("));
+    w.enfant.kill("SIGKILL");
+    await w.sortie;
+    const e = etatDe(p);
+    assert.equal(e.status, 1, `pendant la préparation : ${e.stdout}${e.stderr}`);
+  } finally {
+    w.enfant.kill("SIGKILL");
+    tuerNotes(p);
+  }
+});
+
+test("une veille qui démarre pendant qu'un --etat tient le verrou l'attend, sans se croire doublée", () => {
+  // `flock … sleep 1` tient le verrou une seconde, comme un --etat lent : la veille démarre après lui.
+  const j = creerJouet([""]);
+  const tenu = spawn("flock", [join(j.clone, ".git", "veille.verrou"), "/bin/sleep", "1"], { stdio: "ignore" });
+  spawnSync("/bin/sleep", ["0.2"]);
+  const r = j.lancer(ARGS(0));
+  tenu.kill("SIGKILL");
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.equal(r.lancements, 1);
+});
+
+test("--etat lit l'état sous le verrou de la veille : aucune veille ne l'écrit entre sa lecture et son verdict", () => {
+  // Un `date` du PATH, appelé par --etat pour l'heure de « lancee », note si le verrou de la veille est tenu à ce moment.
+  const j = creerJouet([""]);
+  const verrou = join(j.clone, ".git", "veille.verrou");
+  const note = join(j.dir, "verrou-a-la-lecture");
+  mkdirSync(join(j.dir, "bin"), { recursive: true });
+  writeFileSync(join(j.dir, "bin", "date"), `#!/bin/sh\nif flock -n "${verrou}" true; then echo libre >> "${note}"; else echo tenu >> "${note}"; fi\nPATH=/usr/bin:/bin exec date "$@"\n`, { mode: 0o755 });
+  writeFileSync(fichierEtat(j), `lancee ${Math.floor(Date.now() / 1000)}\n`);
+  const { CAPITAINE_ID: _, ...sans } = ENV;
+  const e = spawnSync("bash", [join(j.dir, "veille.sh"), "--etat"], { cwd: j.clone, env: { ...sans, PATH: `${join(j.dir, "bin")}:${ENV.PATH ?? process.env.PATH}` }, encoding: "utf8" });
+  assert.equal(e.status, 1, e.stdout + e.stderr);
+  assert.match(e.stdout, /^VEILLE MORTE \(lancée à \d\d:\d\d, sans ligne finale\)/);
+  assert.deepEqual(readFileSync(note, "utf8").trim().split("\n"), ["tenu"], "l'heure de « lancee » se lit verrou tenu");
 });

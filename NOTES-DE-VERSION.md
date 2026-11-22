@@ -2,6 +2,17 @@
 
 La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque projet par `poser` : une version publiée ne change rien chez un projet qui ne les repose pas. Chaque note dit ce qui change, puis ce qu'un projet fait pour en profiter.
 
+## 7.38.3 — 2026-11-22
+
+### Ce qui change
+
+- **La veille du capitaine ne meurt plus en silence** (ticket 74). Le skill `fusionner` la lance avec le `timeout` de l'outil Bash à `7200000` (l'outil arrête une tâche de fond à 30 minutes par défaut, et la veille compte sur deux heures). `veille.sh` tient un verrou (`<git-common-dir>/veille.verrou` : une seconde veille sort en 9 après 3 s) et écrit son état (`<git-common-dir>/veille.etat`) ; `veille.sh --etat` dit `VEILLE VIVANTE`, `VEILLE TERMINÉE` ou `VEILLE MORTE`, sans `CAPITAINE_ID` ni réseau. Une fin sans ligne finale est une veille morte : `boucle.sh --arreter`, puis la veille relancée avec `--reprendre`, qui retire le fichier d'arrêt dès son verrou pris, avant sa préparation. Le journal de la veille s'ouvre en ajout (`>>`). Un réveil de garde (`send_later`, 60 minutes, réarmé à chaque réveil de garde) relit cet état et relance une veille morte avec son conteneur.
+
+### Ce qu'un projet fait pour en profiter
+
+1. Mettre à jour le plugin (comme pour 7.31.0, étape 1) : le capitaine lit le skill à jour à son prochain lancement.
+2. Reposer les scripts dans une PR du projet : `/maj-skills:fusionner poser` (`veille.sh` change). Un capitaine en marche garde sa copie de la veille jusqu'à une nouvelle copie et une veille relancée.
+
 ## 7.38.2 — 2026-11-22
 
 ### Ce qui change
