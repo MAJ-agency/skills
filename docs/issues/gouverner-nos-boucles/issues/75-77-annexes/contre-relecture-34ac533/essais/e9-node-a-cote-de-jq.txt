@@ -1,0 +1,19 @@
+# E9 — le banc « un poste sans jq » joué par un node dont le dossier porte aussi jq (comme /opt/homebrew/bin, /usr/local/bin, ou /usr/bin d'un node de distribution)
+# node copié dans <tmp>/node-et-jq/, jq en lien à côté ; arbre 34ac533
+ 17:30:58 up 10:54,  0 user,  load average: 11.02, 8.79, 12.28
+jq
+node
+not ok 1 - suite du lot 5 — un poste sans `jq` : `github.sh` sorti en 69, la passe et `jouer` sortent en 6, rien d’écrit ; la veille s’arrête, jamais une pause sans fin
+  error: 'jq absent du PATH du jouet'
+  expected: 0
+  actual: 0
+  operator: 'notStrictEqual'
+# tests 1
+# pass 0
+# fail 1
+# le même, par le node du poste (dossier sans jq : /opt/node22/bin)
+ok 1 - suite du lot 5 — un poste sans `jq` : `github.sh` sorti en 69, la passe et `jouer` sortent en 6, rien d’écrit ; la veille s’arrête, jamais une pause sans fin
+# tests 1
+# pass 1
+# fail 0
+ 17:31:01 up 10:54,  0 user,  load average: 11.10, 8.84, 12.28

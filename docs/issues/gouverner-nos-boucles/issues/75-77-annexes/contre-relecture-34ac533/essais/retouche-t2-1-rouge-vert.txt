@@ -1,0 +1,27 @@
+# Retouche 1 (le banc « un poste sans jq ») : rouge avant, vert après, sur le poste et avec node à côté de jq (E9)
+ 17:33:37 up 10:56,  0 user,  load average: 9.30, 9.19, 11.89
+17:33:37
+## avant (34ac533), node à côté de jq
+not ok 1 - suite du lot 5 — un poste sans `jq` : `github.sh` sorti en 69, la passe et `jouer` sortent en 6, rien d’écrit ; la veille s’arrête, jamais une pause sans fin
+  error: 'jq absent du PATH du jouet'
+# tests 1
+# pass 0
+# fail 1
+## après (34ac533 + retouche-t2-1), node à côté de jq
+ok 1 - suite du lot 5 — un poste sans `jq` : `github.sh` sorti en 69, la passe et `jouer` sortent en 6, rien d’écrit ; la veille s’arrête, jamais une pause sans fin
+# tests 1
+# pass 1
+# fail 0
+## après, le node du poste
+ok 1 - suite du lot 5 — un poste sans `jq` : `github.sh` sorti en 69, la passe et `jouer` sortent en 6, rien d’écrit ; la veille s’arrête, jamais une pause sans fin
+# tests 1
+# pass 1
+# fail 0
+## après, G1 posée (sansOutil('github.sh', r) retiré), node à côté de jq
+not ok 1 - suite du lot 5 — un poste sans `jq` : `github.sh` sorti en 69, la passe et `jouer` sortent en 6, rien d’écrit ; la veille s’arrête, jamais une pause sans fin
+# tests 1
+# pass 0
+# fail 1
+ M skills/chaine/relecteur/scripts/relecteur.test.mjs
+17:33:46
+ 17:33:46 up 10:57,  0 user,  load average: 9.87, 9.32, 11.91

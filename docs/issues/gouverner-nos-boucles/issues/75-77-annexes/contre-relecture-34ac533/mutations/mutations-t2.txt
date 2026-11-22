@@ -1,0 +1,20 @@
+# Les mutations du tour 2 (mutations-t2.mjs) sur un arbre propre du sommet 34ac533203bf3b6849671ae23bd44b642724426e
+# chacune seule, le fichier remis après ; un motif nommé : le cas visé seul (--test-name-pattern)
+ 17:28:34 up 10:51,  0 user,  load average: 8.93, 7.64, 12.59
+17:28:34
+ROUGE C3 passer.sh : une revue du capitaine en échec (3) au premier contrôle lue comme une lecture illisible (sautée en 7) (2 s ; le cas « de bout en bout » seul ; # tests 1, # pass 0, # fail 1) — régime 8, de bout en bout : `meme-contenu.sh` sorti en 69 (git 2.40) arrête `passer.sh` en
+ROUGE C4 sujet.sh juger_revue : une revue du capitaine en échec (3) lue comme une lecture illisible (sautée en 7) (11 s ; le cas « de bout en bout » seul ; # tests 1, # pass 0, # fail 1) — régime 8, de bout en bout : `meme-contenu.sh` sorti en 69 (git 2.40) arrête `passer.sh` en
+ROUGE C6 passer.sh : une revue du capitaine en échec (3) au second contrôle lue comme une lecture illisible (sautée en 7) (6 s ; le cas « de bout en bout » seul ; # tests 1, # pass 0, # fail 1) — régime 8, de bout en bout : `meme-contenu.sh` sorti en 69 (git 2.40) arrête `passer.sh` en
+ROUGE C8 passer.sh : au premier contrôle, la sortie 3 sans sa cause (la ligne de revue-exigee.mjs tue) (2 s ; le cas « de bout en bout » seul ; # tests 1, # pass 0, # fail 1) — régime 8, de bout en bout : `meme-contenu.sh` sorti en 69 (git 2.40) arrête `passer.sh` en
+ROUGE C9 sujet.sh juger_revue : la sortie 3 d’une revue lue comme GitHub illisible (5, reprise au tour suivant, sans fin) (10 s ; le cas « de bout en bout » seul ; # tests 1, # pass 0, # fail 1) — régime 8, de bout en bout : `meme-contenu.sh` sorti en 69 (git 2.40) arrête `passer.sh` en
+ROUGE G1 relecteur.mjs : `github.sh` sorti en 69 lu « GitHub illisible » (5), le code du sommet 5213463 (2 s ; le cas « un poste sans `jq` » seul ; # tests 1, # pass 0, # fail 1) — suite du lot 5 — un poste sans `jq` : `github.sh` sorti en 69, la passe et `jouer` sortent
+ROUGE G2 relecteur.mjs : `sansOutil` après le test de la sortie 5 (sans effet : la 69 part en 5 avant) (2 s ; le cas « un poste sans `jq` » seul ; # tests 1, # pass 0, # fail 1) — suite du lot 5 — un poste sans `jq` : `github.sh` sorti en 69, la passe et `jouer` sortent
+ROUGE G3 relecteur.mjs : la cause nommée d’un autre outil que `github.sh` (1 s ; le cas « un poste sans `jq` » seul ; # tests 1, # pass 0, # fail 1) — suite du lot 5 — un poste sans `jq` : `github.sh` sorti en 69, la passe et `jouer` sortent
+ROUGE G4 relecteur.mjs : la veille lit la sortie 6 comme une pause (PAUSE, la veille continue) (2 s ; le cas « un poste sans `jq` » seul ; # tests 1, # pass 0, # fail 1) — suite du lot 5 — un poste sans `jq` : `github.sh` sorti en 69, la passe et `jouer` sortent
+ROUGE J1 relecteur.mjs : toute lecture en échec est une panne du poste (6) : une vraie panne de GitHub ne serait plus une pause (217 s ; # tests 52, # pass 48, # fail 4) — la veille : un geste à jouer la réveille (`VEILLE GESTE`), `--taire` la fait passer, GitHu | suite du lot 5 — un poste sans `jq` : `github.sh` sorti en 69, la passe et `jouer` sortent | suite 66 — R3 : une installation en échec dans une passe que GitHub fait ensuite sortir en | contre-relecture 147 — les événements de la PR ne se lisent pas : `jouer` sort en 5 sans r
+ROUGE T12 SKILL.md : la phrase de `--attendre` sans « de suite » (décision 2 du ticket 77) (0 s ; # tests 11, # pass 10, # fail 1) — suites de la PR 147 et du lot 5 (ticket 77) — la borne de la sortie 5 de `jouer`, « rejoue
+toutes rouges
+sortie 0
+17:32:48
+ 17:32:48 up 10:56,  0 user,  load average: 10.76, 9.39, 12.11
+# arbre après : 0 fichier(s) modifié(s)

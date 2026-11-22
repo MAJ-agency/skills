@@ -1,0 +1,17 @@
+# Le delta 5213463..34ac533 et le patch du tour 1
+commits : 1 (34ac533 fix(relecteur): sans jq, le Relecteur s'arrête en 6, bancs de « de suite » et des sorties du capitaine (retouche du tour 1))
+sha256 du patch retouche-153-tour-1.patch (branche des annexes) : f52479a6d18733fbc54772bde1d1d41f3e2e6616bc1314d479ed5309c7c9b5f1
+arbre de 34ac533 : 49e4206dd017b00bcd59f8cc22fba03d150770bd
+arbre de 5213463 + le patch (git apply, index) : 49e4206dd017b00bcd59f8cc22fba03d150770bd
+patch-id du delta : 7b039685bd6a0a43a05e4fcaa61987fa00dd5227
+ NOTES-DE-VERSION.md                                |  2 +-
+ scripts/relecteur.test.mjs                         |  3 ++
+ .../scripts/verdict-du-capitaine.test.mjs          | 43 +++++++++++++++++++++-
+ skills/chaine/relecteur/references/CONTENU.md      |  2 +-
+ skills/chaine/relecteur/scripts/relecteur.mjs      |  7 +++-
+ skills/chaine/relecteur/scripts/relecteur.test.mjs | 26 ++++++++++++-
+ 6 files changed, 78 insertions(+), 5 deletions(-)
+
+# La CI de GitHub sur 34ac533 (lue, rien écrit)
+run 45048933808, CI, event pull_request, head 34ac533 : completed / success (17:20:57 → 17:35:05 UTC) ; job « bancs » : 1404 tests, 1404 pass, 0 fail, 0 cancelled, 0 skipped, duration_ms 828145 ; git 2.56.1 sur le runner
+CodeQL, Analyze (actions), Analyze (javascript-typescript) : success

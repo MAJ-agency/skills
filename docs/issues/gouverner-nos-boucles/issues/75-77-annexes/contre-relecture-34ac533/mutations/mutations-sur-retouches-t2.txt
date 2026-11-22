@@ -1,0 +1,13 @@
+# G1 à G4 et C3, C4, C6 sur l'arbre des trois retouches du tour 2 (34ac533 + retouche-t2-1, -2, -3, non commitées)
+ 17:38:39 up 11:01,  0 user,  load average: 11.42, 10.62, 11.80
+ROUGE C3 passer.sh : une revue du capitaine en échec (3) au premier contrôle lue comme une lecture illisible (sautée en 7) (2 s ; le cas « de bout en bout » seul ; # tests 1, # pass 0, # fail 1) — régime 8, de bout en bout : `meme-contenu.sh` sorti en 69 (git 2.40) arrête `passer.sh` en
+ROUGE C4 sujet.sh juger_revue : une revue du capitaine en échec (3) lue comme une lecture illisible (sautée en 7) (13 s ; le cas « de bout en bout » seul ; # tests 1, # pass 0, # fail 1) — régime 8, de bout en bout : `meme-contenu.sh` sorti en 69 (git 2.40) arrête `passer.sh` en
+ROUGE C6 passer.sh : une revue du capitaine en échec (3) au second contrôle lue comme une lecture illisible (sautée en 7) (7 s ; le cas « de bout en bout » seul ; # tests 1, # pass 0, # fail 1) — régime 8, de bout en bout : `meme-contenu.sh` sorti en 69 (git 2.40) arrête `passer.sh` en
+ROUGE G1 relecteur.mjs : `github.sh` sorti en 69 lu « GitHub illisible » (5), le code du sommet 5213463 (1 s ; le cas « un poste sans `jq` » seul ; # tests 1, # pass 0, # fail 1) — suite du lot 5 — un poste sans `jq` : `github.sh` sorti en 69, la passe et `jouer` sortent
+ROUGE G2 relecteur.mjs : `sansOutil` après le test de la sortie 5 (sans effet : la 69 part en 5 avant) (2 s ; le cas « un poste sans `jq` » seul ; # tests 1, # pass 0, # fail 1) — suite du lot 5 — un poste sans `jq` : `github.sh` sorti en 69, la passe et `jouer` sortent
+ROUGE G3 relecteur.mjs : la cause nommée d’un autre outil que `github.sh` (2 s ; le cas « un poste sans `jq` » seul ; # tests 1, # pass 0, # fail 1) — suite du lot 5 — un poste sans `jq` : `github.sh` sorti en 69, la passe et `jouer` sortent
+ROUGE G4 relecteur.mjs : la veille lit la sortie 6 comme une pause (PAUSE, la veille continue) (3 s ; le cas « un poste sans `jq` » seul ; # tests 1, # pass 0, # fail 1) — suite du lot 5 — un poste sans `jq` : `github.sh` sorti en 69, la passe et `jouer` sortent
+toutes rouges
+sortie 0
+ 17:39:09 up 11:02,  0 user,  load average: 11.74, 10.76, 11.81
+# arbre après :  M NOTES-DE-VERSION.md  M skills/chaine/fusionner/scripts/verdict-du-capitaine.test.mjs  M skills/chaine/relecteur/scripts/relecteur.test.mjs 

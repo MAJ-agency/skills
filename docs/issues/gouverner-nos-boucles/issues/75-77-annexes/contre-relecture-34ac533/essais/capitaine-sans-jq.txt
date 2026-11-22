@@ -1,0 +1,4 @@
+# Le capitaine sans jq (note 8.0.1) : un PATH de liens vers /usr/bin et /bin sauf jq, node à part ; les scripts de 34ac533, lancés dans un dépôt git vide
+ 17:35:22 up 10:58,  0 user,  load average: 12.41, 10.34, 12.02
+sujet.sh fusionner 80 : sortie 69 : ARRÊT : jq est requis par les scripts de la chaîne : sudo apt install jq (ou brew install jq)
+passer.sh 30 : sortie 69 : ARRÊT : jq est requis par les scripts de la chaîne : sudo apt install jq (ou brew install jq)

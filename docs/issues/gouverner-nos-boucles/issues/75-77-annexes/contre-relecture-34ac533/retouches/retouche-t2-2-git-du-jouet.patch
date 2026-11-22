@@ -1,0 +1,13 @@
+diff --git a/skills/chaine/fusionner/scripts/verdict-du-capitaine.test.mjs b/skills/chaine/fusionner/scripts/verdict-du-capitaine.test.mjs
+index d80860e..e59430f 100644
+--- a/skills/chaine/fusionner/scripts/verdict-du-capitaine.test.mjs
++++ b/skills/chaine/fusionner/scripts/verdict-du-capitaine.test.mjs
+@@ -445,7 +445,7 @@ test("régime 8 : un calcul sorti en 69 (un outil de la chaîne manque au poste)
+ test("régime 8, de bout en bout : `meme-contenu.sh` sorti en 69 (git 2.40) arrête `passer.sh` en 3 à ses deux contrôles et `sujet.sh fusionner` en 11, la cause dite, jamais sautée en 7", () => {
+   const vrai = spawnSync("sh", ["-c", "command -v git"], { encoding: "utf8" }).stdout.trim();
+   const git240 = (d) => {
+-    writeFileSync(join(d.racine, "bin", "git"), `#!/bin/sh\nif [ "$1" = version ]; then echo "git version 2.40.1"; exit 0; fi\nexec ${vrai} "$@"\n`);
++    writeFileSync(join(d.racine, "bin", "git"), `#!/bin/sh\nif [ "$1" = version ]; then echo "git version 2.40.1"; exit 0; fi\nexec ${JSON.stringify(vrai)} "$@"\n`);
+     chmodSync(join(d.racine, "bin", "git"), 0o755);
+   };
+   const cause = /revue du capitaine en échec : meme-contenu\.sh : un outil de la chaîne manque au poste \(sortie 69\) : git ≥ 2\.41 requis, ici 2\.40/;

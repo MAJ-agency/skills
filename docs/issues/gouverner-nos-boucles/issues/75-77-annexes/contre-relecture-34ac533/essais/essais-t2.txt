@@ -1,0 +1,32 @@
+ 17:29:56 up 10:53,  0 user,  load average: 9.49, 8.17, 12.33
+17:29:56
+== sommet 34ac533
+arbre : 34ac533 ; autres fichiers modifiés : 0
+# [jq cassé, 127] passe 5 : GitHub illisible (repos/{owner}/{repo}/pulls?state=open&per_page=100) : réponse qui n'est pas du JSON | jouer 5 | veille 0 : PAUSE GitHub illisible : GitHub illisible (repos/{owner}/{repo}/pulls?state=open&per_page=100) : réponse qui n'est pas du JSON / PAUSE GitHub illisible : GitHub illisible (repos/{owner}/{repo}/pulls?state=open&per_page=100) : réponse qui n'est pas du JSON / VEILLE FINIE | écritures 0
+# [jq cassé, 126] passe 5 : GitHub illisible (repos/{owner}/{repo}/pulls?state=open&per_page=100) : réponse qui n'est pas du JSON | jouer 5 | veille 0 : PAUSE GitHub illisible : GitHub illisible (repos/{owner}/{repo}/pulls?state=open&per_page=100) : réponse qui n'est pas du JSON / PAUSE GitHub illisible : GitHub illisible (repos/{owner}/{repo}/pulls?state=open&per_page=100) : réponse qui n'est pas du JSON / VEILLE FINIE | écritures 0
+# [gh absent] passe 5 : relecteur : GitHub illisible (repos/{owner}/{repo}/pulls?state=open&per_page=100) : gh en échec (code 127) : <tmp>/jouet-rkmxdd/relecteur/scripts/chaine/github.sh: line 417: gh: command not found | jouer 5 | veille 0 : PAUSE GitHub illisible : relecteur : GitHub illisible (repos/{owner}/{repo}/pulls?state=open&per_page=100) : gh en échec (code 127) : <tmp>/jouet-rkmxdd/relecteur/scripts/chaine/github.sh: line 417: gh: command not found / PAUSE GitHub illisible : relecteur : GitHub illisible (repos/{owner}/{repo}/pulls?state=open&per_page=100) : gh en échec (code 127) : <tmp>/jouet-rkmxdd/relecteur/scripts/chaine/github.sh: line 417: gh: command not found / VEILLE FINIE | écritures 0
+# [régime 7, jq présent] passe 0 : {"pr":12,"base":"develop","tete":"1605e8e531cb2ac132674cfe064b3d58f9b4fe7f","branche":"feat/a","regle":null,"geste":"hors-regime","raison":"régime 7"} | écritures 0
+# [régime 7, jq absent] passe 6 : relecteur : github.sh : un outil de la chaîne manque au poste (sortie 69) : ARRÊT : jq est requis par les scripts de la chaîne : sudo apt install jq (ou brew install jq) | veille 6 : relecteur : github.sh : un outil de la chaîne manque au poste (sortie 69) : ARRÊT : jq est requis par les scripts de la chaîne : sudo apt install jq (ou brew install jq) / VEILLE ARRÊTÉE sortie 6 | écritures 0
+ok 1 - ESSAI-T2 E5-exigé — une vraie panne de GitHub (502, réponse vide, corps d’erreur, pas du JSON, `gh` sorti en 69) : `passe` et `jouer` en 5, la veille en pause, rien d’écrit
+ok 2 - ESSAI-T2 E5b-exigé — les commentaires de la PR en panne (`gh` sorti en 69) : `jouer` en 5, rien d’écrit
+ok 3 - ESSAI-T2 E6-observé — `jq` présent mais cassé (127 au lancement), `jq` qui répond 126, `gh` absent : les sorties telles quelles
+ok 4 - ESSAI-T2 E7-observé — le Relecteur en régime 7, avec et sans `jq`
+# tests 4
+# pass 4
+# fail 0
+== 5213463 (le sommet du tour 1, pour comparer)
+arbre : 5213463 ; autres fichiers modifiés : 0
+# [jq cassé, 127] passe 5 : GitHub illisible (repos/{owner}/{repo}/pulls?state=open&per_page=100) : réponse qui n'est pas du JSON | jouer 5 | veille 0 : PAUSE GitHub illisible : GitHub illisible (repos/{owner}/{repo}/pulls?state=open&per_page=100) : réponse qui n'est pas du JSON / PAUSE GitHub illisible : GitHub illisible (repos/{owner}/{repo}/pulls?state=open&per_page=100) : réponse qui n'est pas du JSON / VEILLE FINIE | écritures 0
+# [jq cassé, 126] passe 5 : GitHub illisible (repos/{owner}/{repo}/pulls?state=open&per_page=100) : réponse qui n'est pas du JSON | jouer 5 | veille 0 : PAUSE GitHub illisible : GitHub illisible (repos/{owner}/{repo}/pulls?state=open&per_page=100) : réponse qui n'est pas du JSON / PAUSE GitHub illisible : GitHub illisible (repos/{owner}/{repo}/pulls?state=open&per_page=100) : réponse qui n'est pas du JSON / VEILLE FINIE | écritures 0
+# [gh absent] passe 5 : relecteur : GitHub illisible (repos/{owner}/{repo}/pulls?state=open&per_page=100) : gh en échec (code 127) : <tmp>/jouet-BVoMPS/relecteur/scripts/chaine/github.sh: line 417: gh: command not found | jouer 5 | veille 0 : PAUSE GitHub illisible : relecteur : GitHub illisible (repos/{owner}/{repo}/pulls?state=open&per_page=100) : gh en échec (code 127) : <tmp>/jouet-BVoMPS/relecteur/scripts/chaine/github.sh: line 417: gh: command not found / PAUSE GitHub illisible : relecteur : GitHub illisible (repos/{owner}/{repo}/pulls?state=open&per_page=100) : gh en échec (code 127) : <tmp>/jouet-BVoMPS/relecteur/scripts/chaine/github.sh: line 417: gh: command not found / VEILLE FINIE | écritures 0
+# [régime 7, jq présent] passe 0 : {"pr":12,"base":"develop","tete":"0c521c50d94a46c0891d33fb2f65836568331fdc","branche":"feat/a","regle":null,"geste":"hors-regime","raison":"régime 7"} | écritures 0
+# [régime 7, jq absent] passe 5 : relecteur : ARRÊT : jq est requis par les scripts de la chaîne : sudo apt install jq (ou brew install jq) | veille 0 : PAUSE GitHub illisible : relecteur : ARRÊT : jq est requis par les scripts de la chaîne : sudo apt install jq (ou brew install jq) / PAUSE GitHub illisible : relecteur : ARRÊT : jq est requis par les scripts de la chaîne : sudo apt install jq (ou brew install jq) / VEILLE FINIE | écritures 0
+ok 1 - ESSAI-T2 E5-exigé — une vraie panne de GitHub (502, réponse vide, corps d’erreur, pas du JSON, `gh` sorti en 69) : `passe` et `jouer` en 5, la veille en pause, rien d’écrit
+ok 2 - ESSAI-T2 E5b-exigé — les commentaires de la PR en panne (`gh` sorti en 69) : `jouer` en 5, rien d’écrit
+ok 3 - ESSAI-T2 E6-observé — `jq` présent mais cassé (127 au lancement), `jq` qui répond 126, `gh` absent : les sorties telles quelles
+ok 4 - ESSAI-T2 E7-observé — le Relecteur en régime 7, avec et sans `jq`
+# tests 4
+# pass 4
+# fail 0
+17:30:45
+ 17:30:45 up 10:54,  0 user,  load average: 10.56, 8.63, 12.27

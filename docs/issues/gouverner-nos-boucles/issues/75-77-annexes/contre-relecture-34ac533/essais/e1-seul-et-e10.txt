@@ -1,0 +1,27 @@
+# E10 et E1 seul — le cas E1 (« de bout en bout ») joué seul : par le poste, puis avec un git dont le chemin porte une espace en tête du PATH ; arbre 34ac533
+ 17:31:55 up 10:55,  0 user,  load average: 10.75, 9.11, 12.17
+17:31:55
+## E1 seul, le poste tel quel
+ok 1 - régime 8, de bout en bout : `meme-contenu.sh` sorti en 69 (git 2.40) arrête `passer.sh` en 3 à ses deux contrôles et `sujet.sh fusionner` en 11, la cause dite, jamais sautée en 7
+  duration_ms: 12648.407634
+# tests 1
+# pass 1
+# fail 0
+## E10 : PATH=<tmp>/git avec espace:$PATH
+not ok 1 - régime 8, de bout en bout : `meme-contenu.sh` sorti en 69 (git 2.40) arrête `passer.sh` en 3 à ses deux contrôles et `sujet.sh fusionner` en 11, la cause dite, jamais sautée en 7
+  duration_ms: 954.533806
+  error: |-
+  expected: 3
+  actual: 127
+# tests 1
+# pass 0
+# fail 1
+17:32:09
+ 17:32:09 up 10:55,  0 user,  load average: 11.16, 9.25, 12.18
+## E10 témoin : le même PATH, les cas voisins du banc (« develop a bougé », « sous-PR sans verdict »)
+ok 1 - régime 8, passer.sh : develop a bougé, le capitaine met la PR à jour, le verdict tient (même contenu propre) et elle entre
+ok 2 - régime 8, sujet.sh fusionner : une sous-PR sans verdict est renvoyée en 4, sans mise à jour ni CI ; validée, en retard, elle est mise à jour et entre
+# tests 2
+# pass 2
+# fail 0
+ 17:32:30 up 10:55,  0 user,  load average: 11.53, 9.46, 12.17

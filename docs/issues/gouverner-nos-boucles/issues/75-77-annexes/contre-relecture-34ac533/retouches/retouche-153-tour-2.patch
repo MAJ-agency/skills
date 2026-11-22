@@ -1,0 +1,64 @@
+diff --git a/NOTES-DE-VERSION.md b/NOTES-DE-VERSION.md
+index 1eb7867..ec0e76d 100644
+--- a/NOTES-DE-VERSION.md
++++ b/NOTES-DE-VERSION.md
+@@ -6,7 +6,7 @@ La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque pro
+ 
+ ### Ce qui change
+ 
+-- **Un outil absent du poste est une panne** (ticket 75, `A-192` point 1) : `double-relecture.mjs` ou `meme-contenu.sh` sorti en 69 (git plus ancien que 2.41, la grammaire des identifiants introuvable) arrête le capitaine (`revue-exigee.mjs` sort en 3, `passer.sh` en 3, `sujet.sh fusionner` en 11) et le Relecteur (sortie 6), la cause dite. Ce n'est plus une lecture illisible, qui faisait sauter chaque PR en silence chez le capitaine et la traçait à chaque délai chez le Relecteur. Sans `jq`, `github.sh` sort en 69 dès son chargement, avant tout calcul : `passer.sh` s'arrête en 69, comme avant ; le Relecteur, qui lisait cette sortie « GitHub illisible » (5) et faisait une pause sans fin, s'arrête en 6 lui aussi, la cause dite (contre-relecture de la PR 153).
++- **Un calcul sorti en 69, ou `jq` absent, est une panne** (ticket 75, `A-192` point 1) : `double-relecture.mjs` ou `meme-contenu.sh` sorti en 69 (git plus ancien que 2.41, la grammaire des identifiants introuvable) arrête le capitaine (`revue-exigee.mjs` sort en 3, `passer.sh` en 3, `sujet.sh fusionner` en 11) et le Relecteur (sortie 6), la cause dite. Ce n'est plus une lecture illisible, qui faisait sauter chaque PR en silence chez le capitaine et la traçait à chaque délai chez le Relecteur. Sans `jq`, `github.sh` sort en 69 dès son chargement, avant tout calcul : `passer.sh` et `sujet.sh` s'arrêtent en 69, comme avant ; le Relecteur, qui lisait cette sortie « GitHub illisible » (5) et faisait une pause sans fin, s'arrête en 6 lui aussi, la cause dite (contre-relecture de la PR 153).
+ - **Le script du Relecteur** (ticket 76) : son usage nomme `--sondes` ; son en-tête dit qu'un plafond rejoué après un retrait refusé redit « décision de plafond attendue » à l'auteur et au conducteur, ce qui est gardé (`A-189` point 1) ; deux bancs tiennent ce plafond rejoué et une trace d'illisible qui n'est pas la marque.
+ - **Le texte du Relecteur** (ticket 77) : la sortie 5 de `jouer` a sa borne (à la seconde fois de suite sur la même PR, l'architecte et `--taire <n>`) et se lit, comme `create_session` en échec, « rejouer au réveil suivant », que `--attendre` suit ; chaque borne dit « de suite » ; `reecrire` d'une session hors service peut rendre `panne`, dont les lignes partent ; « un champ absent, `couple` » ; le plafond rejoué y est écrit ; la sortie 6 nomme la sortie 69 des calculs.
+ 
+diff --git a/skills/chaine/fusionner/scripts/verdict-du-capitaine.test.mjs b/skills/chaine/fusionner/scripts/verdict-du-capitaine.test.mjs
+index d80860e..e59430f 100644
+--- a/skills/chaine/fusionner/scripts/verdict-du-capitaine.test.mjs
++++ b/skills/chaine/fusionner/scripts/verdict-du-capitaine.test.mjs
+@@ -445,7 +445,7 @@ test("régime 8 : un calcul sorti en 69 (un outil de la chaîne manque au poste)
+ test("régime 8, de bout en bout : `meme-contenu.sh` sorti en 69 (git 2.40) arrête `passer.sh` en 3 à ses deux contrôles et `sujet.sh fusionner` en 11, la cause dite, jamais sautée en 7", () => {
+   const vrai = spawnSync("sh", ["-c", "command -v git"], { encoding: "utf8" }).stdout.trim();
+   const git240 = (d) => {
+-    writeFileSync(join(d.racine, "bin", "git"), `#!/bin/sh\nif [ "$1" = version ]; then echo "git version 2.40.1"; exit 0; fi\nexec ${vrai} "$@"\n`);
++    writeFileSync(join(d.racine, "bin", "git"), `#!/bin/sh\nif [ "$1" = version ]; then echo "git version 2.40.1"; exit 0; fi\nexec ${JSON.stringify(vrai)} "$@"\n`);
+     chmodSync(join(d.racine, "bin", "git"), 0o755);
+   };
+   const cause = /revue du capitaine en échec : meme-contenu\.sh : un outil de la chaîne manque au poste \(sortie 69\) : git ≥ 2\.41 requis, ici 2\.40/;
+diff --git a/skills/chaine/relecteur/scripts/relecteur.test.mjs b/skills/chaine/relecteur/scripts/relecteur.test.mjs
+index d9a9ad2..e8951b8 100644
+--- a/skills/chaine/relecteur/scripts/relecteur.test.mjs
++++ b/skills/chaine/relecteur/scripts/relecteur.test.mjs
+@@ -591,14 +591,27 @@ test('suite du lot 5 — un calcul sorti en 69 (un outil de la chaîne manque au
+ test('suite du lot 5 — un poste sans `jq` : `github.sh` sorti en 69, la passe et `jouer` sortent en 6, rien d’écrit ; la veille s’arrête, jamais une pause sans fin', () => {
+   const q = monter();
+   pr(q);
+-  // Un PATH sans `jq` : chaque outil de /usr/bin et /bin en lien, sauf lui ; `node` à part.
++  // Un PATH sans `jq` : chaque entrée des dossiers du PATH du banc en lien, dans leur ordre, sauf lui ; `node` lui-même
++  // en lien, jamais son dossier, qui peut porter `jq` (`/usr/bin` d'un Node de distribution, `/opt/homebrew/bin`) ; les
++  // autres outils restent où le poste les a (`flock` hors de `/usr/bin` et `/bin`, sous macOS).
+   const sansJq = join(q.racine, 'sans-jq');
+   mkdirSync(sansJq);
+-  for (const source of ['/usr/bin', '/bin'])
+-    if (existsSync(source))
+-      for (const nom of readdirSync(source))
+-        if (nom !== 'jq' && !existsSync(join(sansJq, nom))) symlinkSync(join(source, nom), join(sansJq, nom));
+-  q.env.PATH = `${join(q.racine, 'bin')}:${sansJq}:${dirname(process.execPath)}`;
++  symlinkSync(process.execPath, join(sansJq, 'node'));
++  const vus = new Set(['jq', 'node']);
++  const entrees = (dossier) => {
++    try {
++      return readdirSync(dossier);
++    } catch {
++      return [];
++    }
++  };
++  for (const source of (process.env.PATH ?? '').split(':').filter((s) => s.startsWith('/')))
++    for (const nom of entrees(source))
++      if (!vus.has(nom)) {
++        vus.add(nom);
++        symlinkSync(join(source, nom), join(sansJq, nom));
++      }
++  q.env.PATH = `${join(q.racine, 'bin')}:${sansJq}`;
+   assert.notEqual(spawnSync('sh', ['-c', 'command -v jq'], { env: q.env }).status, 0, 'jq absent du PATH du jouet');
+   const p = q.lancer('passe');
+   assert.equal(p.status, 6, p.stdout + p.stderr);

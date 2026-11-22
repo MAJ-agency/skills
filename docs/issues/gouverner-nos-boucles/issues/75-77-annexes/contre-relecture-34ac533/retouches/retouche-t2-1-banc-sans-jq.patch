@@ -1,0 +1,38 @@
+diff --git a/skills/chaine/relecteur/scripts/relecteur.test.mjs b/skills/chaine/relecteur/scripts/relecteur.test.mjs
+index d9a9ad2..e8951b8 100644
+--- a/skills/chaine/relecteur/scripts/relecteur.test.mjs
++++ b/skills/chaine/relecteur/scripts/relecteur.test.mjs
+@@ -591,14 +591,27 @@ test('suite du lot 5 — un calcul sorti en 69 (un outil de la chaîne manque au
+ test('suite du lot 5 — un poste sans `jq` : `github.sh` sorti en 69, la passe et `jouer` sortent en 6, rien d’écrit ; la veille s’arrête, jamais une pause sans fin', () => {
+   const q = monter();
+   pr(q);
+-  // Un PATH sans `jq` : chaque outil de /usr/bin et /bin en lien, sauf lui ; `node` à part.
++  // Un PATH sans `jq` : chaque entrée des dossiers du PATH du banc en lien, dans leur ordre, sauf lui ; `node` lui-même
++  // en lien, jamais son dossier, qui peut porter `jq` (`/usr/bin` d'un Node de distribution, `/opt/homebrew/bin`) ; les
++  // autres outils restent où le poste les a (`flock` hors de `/usr/bin` et `/bin`, sous macOS).
+   const sansJq = join(q.racine, 'sans-jq');
+   mkdirSync(sansJq);
+-  for (const source of ['/usr/bin', '/bin'])
+-    if (existsSync(source))
+-      for (const nom of readdirSync(source))
+-        if (nom !== 'jq' && !existsSync(join(sansJq, nom))) symlinkSync(join(source, nom), join(sansJq, nom));
+-  q.env.PATH = `${join(q.racine, 'bin')}:${sansJq}:${dirname(process.execPath)}`;
++  symlinkSync(process.execPath, join(sansJq, 'node'));
++  const vus = new Set(['jq', 'node']);
++  const entrees = (dossier) => {
++    try {
++      return readdirSync(dossier);
++    } catch {
++      return [];
++    }
++  };
++  for (const source of (process.env.PATH ?? '').split(':').filter((s) => s.startsWith('/')))
++    for (const nom of entrees(source))
++      if (!vus.has(nom)) {
++        vus.add(nom);
++        symlinkSync(join(source, nom), join(sansJq, nom));
++      }
++  q.env.PATH = `${join(q.racine, 'bin')}:${sansJq}`;
+   assert.notEqual(spawnSync('sh', ['-c', 'command -v jq'], { env: q.env }).status, 0, 'jq absent du PATH du jouet');
+   const p = q.lancer('passe');
+   assert.equal(p.status, 6, p.stdout + p.stderr);
