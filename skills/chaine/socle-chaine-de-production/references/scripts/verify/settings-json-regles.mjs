@@ -30,6 +30,14 @@ export const HOOKS_EXIGES = {
   Stop: [],
 };
 
+/**
+ * Une entrée `permissions.allow` qui pré-approuve `create_session` (l'outil exact, ou le serveur `claude-code-remote`
+ * entier). Régime 8 (relecture indépendante, A-182) : l'outil refuse `effort` à une session où il est pré-approuvé, et le
+ * Relecteur crée chaque session de relecture avec son effort (`relecture.ordinaire`, `relecture.sensible`).
+ */
+export const preApprouveCreateSession = (entree) =>
+  /^mcp__[^\s()]+__create_session$/.test(String(entree)) || ['mcp__claude-code-remote', 'mcp__claude-code-remote__*'].includes(String(entree));
+
 /** Clés qui n'ont de sens qu'à une place : `permissions` à la racine, `allow`/`deny` dessous. */
 const PLACES = { permissions: [], allow: ['permissions'], deny: ['permissions'] };
 
@@ -62,10 +70,11 @@ const commandes = (evenement) =>
 /**
  * Écarts de forme d'un `settings.json`.
  * @param {string} texte contenu du fichier
- * @param {{ fichierExiste: (chemin: string) => boolean }} contexte
+ * @param {{ fichierExiste: (chemin: string) => boolean, relecture?: boolean }} contexte `relecture` : le contrat
+ *   `.claude/chaine.json` porte la clé `relecture` (régime 8), qui interdit de pré-approuver `create_session`
  * @returns {string[]} un message par écart, vide si le fichier est conforme
  */
-export function ecartsSettings(texte, { fichierExiste }) {
+export function ecartsSettings(texte, { fichierExiste, relecture = false }) {
   let json;
   try {
     json = JSON.parse(texte);
@@ -99,6 +108,11 @@ export function ecartsSettings(texte, { fichierExiste }) {
     for (const entree of allow) {
       const bash = /^Bash\((.*?)(?::\*)?\)$/.exec(String(entree));
       const verdict = bash && decisionCommande(bash[1]);
+      if (relecture && preApprouveCreateSession(entree)) {
+        ecarts.push(
+          `ligne ${ligneDe(texte, new RegExp(JSON.stringify(entree).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))} : « ${entree} » pré-approuve \`create_session\` ; en régime 8 (clé \`relecture\` de \`.claude/chaine.json\`), l'outil refuserait alors \`effort\` aux sessions de relecture que le Relecteur crée. Retirer l'entrée : une session en mode « Auto » appelle \`create_session\` sans pré-approbation.`,
+        );
+      }
       if (verdict?.decision === 'refuser') {
         ecarts.push(
           `ligne ${ligneDe(texte, new RegExp(JSON.stringify(entree).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))} : « ${entree} » autorise ce que les hooks refusent (${verdict.raison}). Retirer l'entrée.`,

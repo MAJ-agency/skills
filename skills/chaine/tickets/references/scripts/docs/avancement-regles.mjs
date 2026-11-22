@@ -96,8 +96,17 @@ export function avancement(tickets, prs) {
     aLancer: ouverts.filter((l) => l.etat === 'prêt (agent)' && !l.pr && l.attend.length === 0).map((l) => l.id),
     bloques: ouverts.filter((l) => l.attend.length > 0).map((l) => ({ id: l.id, par: l.attend })),
     humains: ouverts.filter((l) => l.etat === 'humain' || l.etat === 'à trier').map((l) => ({ id: l.id, status: l.status })),
+    // Relecture indépendante (régime 8) : une PR ouverte que son verdict ou un renvoi fait reprendre, et une PR qui attend
+    // sa relecture, quel que soit le Status du ticket (`Fait — PR #n` s'écrit avant la relecture). Les étiquettes se
+    // comparent en NFC, comme le Relecteur les lit.
+    aReprendre: lignes.filter((l) => aEtiquette(l, 'à-reprendre') || aEtiquette(l, 'fusion-bloquée')).map((l) => l.id),
+    enRelecture: lignes.filter((l) => aEtiquette(l, 'à-relire')).map((l) => l.id),
     lignes,
   };
+}
+
+function aEtiquette(l, nom) {
+  return Boolean(l.pr && l.pr.etat !== 'fusionnée' && (l.pr.labels ?? []).some((e) => String(e).normalize('NFC') === nom.normalize('NFC')));
 }
 
 const cellule = (s) => String(s ?? '—').replace(/\\/g, '\\\\').replace(/\|/g, '\\|');
@@ -123,6 +132,8 @@ export function enMarkdown(nom, a) {
     `- **À lancer maintenant :** ${a.aLancer.join(', ') || '—'}`,
     `- **Bloqués :** ${a.bloques.map((b) => `${b.id} (attend ${b.par.join(', ')})`).join(' ; ') || '—'}`,
     `- **À un humain :** ${a.humains.map((h) => `${h.id} (${h.status})`).join(' ; ') || '—'}`,
+    `- **À reprendre (verdict refusé ou renvoi) :** ${a.aReprendre.join(', ') || '—'}`,
+    `- **En relecture :** ${a.enRelecture.join(', ') || '—'}`,
   ];
   return `${out.join('\n')}\n`;
 }

@@ -16,7 +16,7 @@ Une règle est **classée** quand `criticality`, `cases` et `notApplicableFamili
 - **Sur une règle « à classer »** (aucune criticité) : de même, par la session qui reprend la règle ; et à la repose du projet au pivot 3, sur chaque règle sans criticité.
 - **Sur une règle déjà classée** : étape 5.
 - **Le sous-agent est lancé par la session elle-même** : un sous-agent ne lance pas de sous-agent. Une session qui fait rédiger la règle par un sous-agent lance ce skill une fois le fichier écrit.
-- **Une règle que la session écrit et ne classe pas est un écart**, dès que l'index est au pivot 3 : la revue de ticket le relève (critère `D8`), bloquant.
+- **Une règle que la session écrit et ne classe pas est un écart**, dès que l'index est au pivot 3 : la relecture de la PR le relève (axe « Règles métier », critère `D8`), bloquant ; en régime 7, la revue de ticket.
 
 ## Étape 1 — L'index du projet est-il au pivot 3 ?
 

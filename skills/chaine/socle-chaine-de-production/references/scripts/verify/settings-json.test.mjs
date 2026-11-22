@@ -1,5 +1,10 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
+import { spawnSync } from 'node:child_process';
+import { cpSync, existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { ecartsSettings, MATCHER_GITHUB } from './settings-json-regles.mjs';
 
 const hook = (script) => [
@@ -156,4 +161,55 @@ test('une entrée allow qui autorise une dépendance ou un push illisible est un
   assert.ok(avec('Bash(pnpm add zod)').some((m) => /« Bash\(pnpm add zod\) » autorise ce que les hooks refusent/.test(m)));
   assert.ok(avec('Bash(git push --all:*)').some((m) => /autorise ce que les hooks refusent/.test(m)));
   assert.deepEqual(avec('Bash(pnpm:*)'), []);
+});
+
+// Régime 8 (A-182, point 3) : `create_session` pré-approuvé refuse `effort`, que chaque session de relecture reçoit.
+test('régime 8 : une entrée allow qui pré-approuve create_session est un écart ; en régime 7, non', () => {
+  for (const entree of ['mcp__claude-code-remote__create_session', 'mcp__claude-code-remote', 'mcp__claude-code-remote__*', 'mcp__autre__create_session']) {
+    const s = reglesValides();
+    s.permissions.allow.push(entree);
+    const texte = JSON.stringify(s, null, 2);
+    const huit = ecartsSettings(texte, { fichierExiste: () => true, relecture: true });
+    assert.equal(huit.length, 1, `${entree} : ${huit.join(' ; ')}`);
+    assert.match(huit[0], new RegExp(`« ${entree.replace(/[*]/g, '\\*')} » pré-approuve \`create_session\``));
+    assert.match(huit[0], /^ligne (\d+) : /);
+    assert.equal(Number(/^ligne (\d+)/.exec(huit[0])[1]), texte.split('\n').findIndex((l) => l.includes(JSON.stringify(entree))) + 1);
+    assert.deepEqual(ecartsSettings(texte, { fichierExiste: () => true }), [], `${entree} : régime 7`);
+  }
+  for (const voisine of ['mcp__claude-code-remote__send_message', 'mcp__claude-code-remote__create_session_x', 'Bash(create_session)', 'mcp__claude-code-remote__list_sessions'])
+    assert.deepEqual(ecartsSettings(JSON.stringify({ ...reglesValides(), permissions: { allow: ['Bash(pnpm check)', voisine] } }, null, 2), { fichierExiste: () => true, relecture: true }), [], voisine);
+});
+
+test('le gate lit la clé relecture de .claude/chaine.json : présente, absente, contrat illisible qui la nomme, contrat absent', () => {
+  const ici = dirname(fileURLToPath(import.meta.url));
+  const racine = mkdtempSync(join(tmpdir(), 'settings-json-'));
+  try {
+    mkdirSync(join(racine, 'scripts/verify'), { recursive: true });
+    mkdirSync(join(racine, 'scripts/agent'), { recursive: true });
+    mkdirSync(join(racine, '.claude'));
+    for (const f of ['settings-json.mjs', 'settings-json-regles.mjs']) cpSync(join(ici, f), join(racine, 'scripts/verify', f));
+    // regles.mjs des hooks : posé à côté, comme dans un projet.
+    const regles = [join(ici, '../agent'), join(ici, '../../agent')].find((d) => existsSync(join(d, 'regles.mjs')));
+    cpSync(regles, join(racine, 'scripts/agent'), { recursive: true });
+    const s = reglesValides();
+    s.permissions.allow.push('mcp__claude-code-remote__create_session');
+    writeFileSync(join(racine, '.claude/settings.json'), JSON.stringify(s, null, 2));
+    const jouer = () => spawnSync(process.execPath, [join(racine, 'scripts/verify/settings-json.mjs')], { encoding: 'utf8', env: { ...process.env, PROJET_RACINE: racine } });
+    assert.equal(jouer().status, 0, 'sans contrat : régime 7');
+    writeFileSync(join(racine, '.claude/chaine.json'), JSON.stringify({ cheminsSensibles: [] }));
+    assert.equal(jouer().status, 0, 'contrat sans la clé : régime 7');
+    // Le gabarit nomme la clé dans son `$comment` : un contrat lisible qui ne la porte pas reste en régime 7.
+    writeFileSync(join(racine, '.claude/chaine.json'), JSON.stringify({ $comment: '`relecture` : la relecture indépendante', cheminsSensibles: [] }));
+    assert.equal(jouer().status, 0, 'la clé nommée dans le $comment seulement : régime 7');
+    writeFileSync(join(racine, '.claude/chaine.json'), JSON.stringify({ relecture: { depuis: '2026-11-22T08:00:00Z' } }));
+    const r = jouer();
+    assert.equal(r.status, 1, r.stdout);
+    assert.match(r.stderr, /pré-approuve `create_session`/);
+    writeFileSync(join(racine, '.claude/chaine.json'), JSON.stringify({ relecture: null }));
+    assert.equal(jouer().status, 1, 'une clé relecture mal formée (null) compte : du côté sûr');
+    writeFileSync(join(racine, '.claude/chaine.json'), '{ "relecture": { ');
+    assert.equal(jouer().status, 1, 'contrat illisible qui nomme la clé : du côté sûr');
+  } finally {
+    rmSync(racine, { recursive: true, force: true });
+  }
 });

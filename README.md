@@ -78,7 +78,7 @@ Invocation : `/maj-skills:socle-mobile-expo`. Suppose la racine et les contrats 
 
 | Skill                                                                             | Ce qu'il fait                                                                                                                                                                                                                                                   |
 | --------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [`socle-chaine-de-production`](skills/chaine/socle-chaine-de-production/SKILL.md) | Pose ce que supposent les skills de la chaîne : `develop` intègre et `main` livre, les neuf labels, les hooks d'agent, le contrat `.claude/chaine.json`, les index générés, une CI minimale, la méthode et trois ADR |
+| [`socle-chaine-de-production`](skills/chaine/socle-chaine-de-production/SKILL.md) | Pose ce que supposent les skills de la chaîne : `develop` intègre et `main` livre, les neuf labels, les hooks d'agent, le contrat `.claude/chaine.json`, les index générés, une CI minimale, la méthode et quatre ADR |
 | [`tickets`](skills/chaine/tickets/SKILL.md)                                       | La convention des specs et tickets (`SPEC_ALL_SOC-1`, `SPEC_ALL_SOC-1.03`), les scripts qui la lisent (numéro suivant, ticket libre, vagues, avancement, archivage, gate) et la migration d'un dépôt                                                            |
 | [`anchorpost`](skills/chaine/anchorpost/SKILL.md)                                 | Branche un dépôt sur Anchorpost, le site qui montre à la MOA les règles, les preuves, les défauts et les demandes lus dans la documentation : la CLI privée, le manifeste, l'index généré et son gate, la fiche d'écriture, la recette d'installation de la clé |
 | [`criticite`](skills/chaine/criticite/SKILL.md)                                   | La criticité d'une règle à sa création ou au changement de son énoncé, avant tout code : un sous-agent vierge, dont le message est fabriqué par un script, rend le niveau et sa raison, les cas attendus et les dix familles ; jamais « basse » sans raison, le niveau supérieur dans le doute, un agent écrit `by: agent` et ne baisse jamais un niveau ; la commande et chaque sortie brute dans la PR ; sans index au pivot 3, il s'arrête |
@@ -151,7 +151,7 @@ skills/
   chaine/
     socle-chaine-de-production/
       SKILL.md         le processus, en quatre étapes
-      references/      contrat, index générés, hooks d'agent, labels, CI, méthode, trois ADR, fragments, liste admin
+      references/      contrat, index générés, hooks d'agent, labels, CI, méthode, quatre ADR, fragments, liste admin
     tickets/
       SKILL.md         la convention, poser, au quotidien, migrer
       references/      scripts (docs/, verify/) et leurs tests, tracker, labels de triage, gabarits
@@ -182,7 +182,7 @@ skills/
       references/      les prompts de lancement d'un conducteur, d'un capitaine et d'un Relecteur
     chantier/
       SKILL.md         reprendre ou démarrer, setup, les six phases, le suivi à chaque réveil, l'arrêt d'un chantier
-      references/      CONTENU.md
+      references/      CONTENU.md, regime-7.md (ce qui ne vaut qu'en régime 7, cité par chantier, architecte, fusionner et sujet)
     recette-humaine/
       SKILL.md         quand, les règles du jeu, les quatre phases
       references/      la méthode : familles de défauts, grilles, gabarit de l'inventaire

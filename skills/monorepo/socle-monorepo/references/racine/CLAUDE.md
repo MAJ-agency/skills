@@ -15,7 +15,7 @@
 | [`docs/methode/grilling.md`](docs/methode/grilling.md)         | **comment on interroge un plan** avant de l'écrire                                          |
 | [`docs/methode/decisions.md`](docs/methode/decisions.md)       | ADR, `GLOSSARY.md`, registre de règles, documentation vivante                               |
 | [`docs/methode/nomenclature.md`](docs/methode/nomenclature.md) | **nommer et citer** : `<TYPE>_<CTX>_<TRI>-<n>`, les six types, les contextes, le **registre des trigrammes**           |
-| [`docs/methode/conception.md`](docs/methode/conception.md)     | modules profonds, TDD, revue                                                                |
+| [`docs/methode/conception.md`](docs/methode/conception.md)     | modules profonds, TDD, revue, relecture indépendante                                        |
 | [`docs/methode/pare-feu-ci.md`](docs/methode/pare-feu-ci.md)   | les invariants vérifiés par la machine                                                      |
 | [`GLOSSARY.md`](GLOSSARY.md)                                   | le langage ubiquitaire (glossaire, et rien d'autre)                                         |
 | [`.claude/rules/`](.claude/rules/)                             | fiches transverses chargées par chemin — `tests.md` pour tout test ou configuration de test |

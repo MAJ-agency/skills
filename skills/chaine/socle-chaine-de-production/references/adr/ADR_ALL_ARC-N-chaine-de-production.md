@@ -41,3 +41,10 @@ Mode d'emploi : `docs/agents/chaine-de-production.md`. Skills : `chantier`, `tic
 ## Amendements du grill (16/11/2026)
 
 - Point 4 : « Toute PR de code » devient « Toute PR qui touche du code, ou ce que la chaîne exécute ou lit (liste de `revue-exigee.mjs`) ». Raison : la revue exigée ne voyait que `apps/`, `packages/` et `scripts/`, alors que la CI, les hooks, la configuration de l'agent et `docs/agents/` pilotent ce que le capitaine exécute (PR MAJ-agency/skills#94, plugin maj-skills 7.9.1).
+
+## Amendements de la relecture indépendante ({{ADR_RELECTURE}})
+
+- Point 1 : le « relecteur adversaire (sous-agent) » de la session qui code devient le **Relecteur** (un par dépôt, il aiguille les relectures) et la **session de relecture** (une par PR, deux pour une règle de criticité haute), qu'aucun auteur ne lance ni ne contrôle.
+- Point 4 : la revue par l'auteur et la contre-revue du conducteur sont remplacées par la relecture indépendante : toute PR, documentation comprise, est relue par une session de relecture, qui écrit son verdict sur la PR ; la session qui code ne se relit plus et ne pose jamais `à-fusionner`, que le Relecteur pose sur un verdict validé.
+- Point 5 : le capitaine ne lit plus de section de revue dans le corps de la PR ; il fusionne une PR dont un tour de relecture est validé pour le sommet qu'il fusionne, contrôlé à l'éligibilité puis juste avant l'appel de fusion.
+- Une PR ouverte avant la clé `relecture` de `.claude/chaine.json` finit sous la version d'avant de ces trois points.
