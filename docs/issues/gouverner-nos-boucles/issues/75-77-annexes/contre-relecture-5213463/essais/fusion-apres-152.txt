@@ -1,0 +1,46 @@
+# Le geste du ticket 77, § 3, joué pour la PR 153 (sommet 5213463) après la PR 152 (sommet 4afd6e2) entrée dans main
+# main simulé : ddb4265 suivi d'un commit dont l'arbre est celui de 4afd6e2 (la fusion par écrasement du capitaine), 8f061d4 ; il remplace origin/main dans les gestes.
+# Le 2026-11-22, Node 22.23.5, git 2.43.0.
+$ git merge --no-ff --no-edit main-apres-152
+Auto-merging NOTES-DE-VERSION.md
+CONFLICT (content): Merge conflict in NOTES-DE-VERSION.md
+Automatic merge failed; fix conflicts and then commit the result.
+sortie 1
+$ git diff --name-only --diff-filter=U
+NOTES-DE-VERSION.md
+$ git status --short
+UU NOTES-DE-VERSION.md
+M  skills/chaine/fusionner/scripts/passer.sh
+A  skills/chaine/fusionner/scripts/suites-du-lot-5.test.mjs
+M  skills/chaine/revue-adversariale/scripts/chemins-sensibles.mjs
+M  skills/chaine/socle-chaine-de-production/references/agent/garde-fichiers.mjs
+M  skills/chaine/socle-chaine-de-production/references/agent/garde-fichiers.test.mjs
+M  skills/chaine/socle-chaine-de-production/references/agent/regles.mjs
+M  skills/chaine/socle-chaine-de-production/references/agent/regles.test.mjs
+M  skills/chaine/sujet/scripts/sujet.sh
+$ git checkout main-apres-152 -- NOTES-DE-VERSION.md .claude-plugin/plugin.json
+sortie 0
+$ node version-suivante.mjs ticket-77.patch
+8.0.2 — 2026-11-22
+sortie 0
+$ git add -A && git commit --no-edit
+sortie 0
+3bd620e Merge branch 'main-apres-152' into essai-fusion
+8f061d4 fix(chaine): fourches sautées, une revue par mise à jour, le geste en tête du refus (plugin 8.0.1) (#152)
+5213463 fix(relecteur): sortie 69 des calculs en panne, usage entier, borne de la sortie 5 (plugin 8.0.1)
+  "version": "8.0.2",
+# Notes de version
+
+La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque pro
+
+## 8.0.2 — 2026-11-22
+
+### Ce qui change
+
+5:## 8.0.2 — 2026-11-22
+18:## 8.0.1 — 2026-11-22
+31:## 8.0.0 — 2026-11-22
+48:## 7.39.0 — 2026-11-22
+$ rejoué
+version-suivante : la note est déjà posée (ou 8.0.3 déjà notée) : rien n'est écrit
+sortie 1

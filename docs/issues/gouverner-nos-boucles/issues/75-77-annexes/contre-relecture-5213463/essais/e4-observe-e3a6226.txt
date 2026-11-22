@@ -1,0 +1,8 @@
+# passe : sortie 5 ; sa sortie d'erreur : relecteur : GitHub illisible (repos/{owner}/{repo}/pulls?state=open&per_page=100) : gh en échec (code 127) : <jouet>/relecteur/scripts/chaine/github.sh: line 417: gh: command not found
+# veille --pause 0 --sondes 2 : sortie 0 ; son journal :
+# PAUSE GitHub illisible : relecteur : GitHub illisible (repos/{owner}/{repo}/pulls?state=open&per_page=100) : gh en échec (code 127) : <jouet>/relecteur/scripts/chaine/github.sh: line 417: gh: command not found
+# PAUSE GitHub illisible : relecteur : GitHub illisible (repos/{owner}/{repo}/pulls?state=open&per_page=100) : gh en échec (code 127) : <jouet>/relecteur/scripts/chaine/github.sh: line 417: gh: command not found
+# VEILLE FINIE
+# tests 1
+# pass 1
+# fail 0

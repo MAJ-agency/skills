@@ -1,0 +1,41 @@
+# L'espion du régime 7 (essais/espion-regime-7.mjs), posé dans un arbre du sommet 5213463, puis 21 bancs en une passe :
+# les 19 que l'espion de la contre-relecture de la PR 149 jouait (fusionner, sujet-fusionner, une-sous-pr-a-la-fois, boucle-outils, github, veille,
+# sujet, sujet-carte, sujet-clore, sujet-refs, revue-exigee, pr-titre, chemins-sensibles, diff-revue, scripts/relecture, regles,
+# garde-commandes, tickets, tickets-gate), plus verdict-du-capitaine.test.mjs et relecteur.test.mjs (skills/chaine/relecteur).
+# node --test --test-reporter=tap <les 21>, setsid --wait timeout 2700, en tâche de fond.
+ 15:02:23 up  8:25,  0 user,  load average: 8.09, 9.74, 8.97
+15:02:23
+sortie 0
+15:24:36
+ 15:24:36 up  8:47,  0 user,  load average: 18.12, 15.64, 13.29
+# tests 713
+# pass 713
+# fail 0
+# cancelled 0
+# node espion-regime-7.mjs lire <journal> :
+669 lignes
+régimes lus : capitaine 7 (--ouverte) : 258 ; capitaine 7 (sans --ouverte) : 65 ; capitaine 8 : 42 ; relecteur 7 : 3 ; relecteur 8 : 135
+appels de sansOutil : capitaine sous le régime 8 : 44 ; relecteur sous le régime 8 : 122
+aucun écart : aucun appel de sansOutil après une lecture du régime 7
+# sortie 0
+# les lignes du journal, par sorte (pid retiré) :
+    258 capitaine regime 7 ouverte=true
+    135 relecteur regime 8 pr <n>
+    105 relecteur sansOutil double-relecture.mjs 0
+     65 capitaine regime 7 ouverte=false
+     42 capitaine regime 8 ouverte=true
+     32 capitaine sansOutil double-relecture.mjs 0
+      6 relecteur sansOutil double-relecture.mjs 20
+      4 capitaine sansOutil double-relecture.mjs 20
+      3 relecteur sansOutil meme-contenu.sh 0
+      3 relecteur sansOutil double-relecture.mjs 69
+      3 relecteur regime 7 pr <n>
+      2 relecteur sansOutil double-relecture.mjs 21
+      2 capitaine sansOutil meme-contenu.sh 20
+      2 capitaine sansOutil meme-contenu.sh 0
+      2 capitaine sansOutil double-relecture.mjs 21
+      1 relecteur sansOutil meme-contenu.sh 69
+      1 relecteur sansOutil meme-contenu.sh 21
+      1 relecteur sansOutil meme-contenu.sh 20
+      1 capitaine sansOutil meme-contenu.sh 69
+      1 capitaine sansOutil double-relecture.mjs 69

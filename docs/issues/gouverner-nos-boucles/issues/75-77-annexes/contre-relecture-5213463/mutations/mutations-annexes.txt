@@ -1,0 +1,43 @@
+# Les mutations des annexes des tickets 75, 76 et 77, rejouées telles quelles sur le sommet 5213463 (un arbre propre de la branche).
+# timeout 4800 sh -c 'for n in 75 76 77; do node <annexe>/$n/mutations.mjs; done', en tâche de fond.
+ROUGE Q1 revue-exigee.mjs : la sortie 69 de « double relecture exigée » lue « illisible » (le code d'avant) (44 s) — régime 8 : un calcul sorti en 69 (un outil de la chaîne manq
+ROUGE Q2 revue-exigee.mjs : la sortie 69 de « même contenu propre » lue « illisible » (47 s) — régime 8 : un calcul sorti en 69 (un outil de la chaîne manq
+ROUGE Q3 revue-exigee.mjs : la sortie 69 est une lecture illisible (21), pas une panne (3) (46 s) — régime 8 : un calcul sorti en 69 (un outil de la chaîne manq
+ROUGE Q4 revue-exigee.mjs : la cause est la dernière ligne non vide (« illisible »), pas celle du calcul (47 s) — régime 8 : un calcul sorti en 69 (un outil de la chaîne manq
+ROUGE Q5 revue-exigee.mjs : toute sortie non nulle est une panne (une sortie 21 aussi) (47 s) — régime 8 : un calcul sorti en 69 (un outil de la chaîne manq
+ROUGE Q6 relecteur.mjs : la sortie 69 de « double relecture exigée » lue « illisible » (le code d'avant) (100 s) — suite du lot 5 — un calcul sorti en 69 (un outil de la chaîn
+ROUGE Q7 relecteur.mjs : la sortie 69 de « même contenu propre » lue « illisible » (102 s) — suite du lot 5 — un calcul sorti en 69 (un outil de la chaîn
+ROUGE Q8 relecteur.mjs : la sortie 69 est GitHub illisible (5, une pause sans fin), pas 6 (102 s) — suite du lot 5 — un calcul sorti en 69 (un outil de la chaîn
+ROUGE Q9 relecteur.mjs : la cause est la dernière ligne non vide (« illisible »), pas celle du calcul (112 s) — suite du lot 5 — un calcul sorti en 69 (un outil de la chaîn
+ROUGE Q10 relecteur.mjs : toute sortie non nulle est une panne (une sortie 21 aussi) (123 s) — N1 à N4, N7 — les calculs en panne : chemins sensibles en éc | suite du lot 5 — un calcul sorti en 69 (un outil de la chaîn
+toutes rouges
+ROUGE U1 relecteur.mjs : l'usage omet `--sondes` (le code d'avant, mineur 7 des tickets 67 à 70) (140 s) — suite de la PR 147 — l’usage nomme chaque option de chaque s
+ROUGE U2 relecteur.mjs : l'usage omet `--remplace <id>` de `distribuer` (160 s) — suite de la PR 147 — l’usage nomme chaque option de chaque s
+ROUGE U3 relecteur.mjs : l'en-tête omet `--sondes`, l'usage le garde (les deux ne disent plus la même chose) (185 s) — suite de la PR 147 — l’usage nomme chaque option de chaque s
+ROUGE P1 jouer : un plafond rejoué (règle 1) ne redit rien, même après un retrait refusé (la question 1 tranchée autrement) (169 s) — contre-relecture — le plafond se dit à l’auteur, au conducte | suite 66 — C12 : un plafond à moitié écrit se rejoue entier  | suite de la PR 147 — un plafond rejoué après un retrait refu
+ROUGE P2 decision : la marque d'un `etiqueter` de la règle 1 est la date du dernier verdict, pas celle du commentaire du plafond (150 s) — suite de la PR 147 — un plafond rejoué après un retrait refu
+ROUGE N3 decision : les traces d'illisible comptent dans la marque (`dernier` les exclut, A-183 point 6 ; contre-relecture de la PR 147, second tour) (118 s) — suite de la PR 147 — une trace d’illisible écrite entre la p
+toutes rouges
+ROUGE T1 SKILL.md : la sortie 5 sans borne ni « rejouer au réveil suivant » (le texte d'avant, constat 8 de la PR 147) (0 s) — suites de la PR 147 et du lot 5 (ticket 77) — la borne de la
+ROUGE T2 SKILL.md : la sortie 5 sans sa borne (0 s) — suites de la PR 147 et du lot 5 (ticket 77) — la borne de la
+ROUGE T3 SKILL.md : la borne de 5 sans « sur la même PR » (0 s) — suites de la PR 147 et du lot 5 (ticket 77) — la borne de la
+ROUGE T4 SKILL.md : la sortie 9 sans « de suite » (0 s) — suite du ticket 66 (ticket 69) — chaque phrase neuve à sa pl | contre-relecture de la PR 147 — les quatre formes des lignes | suites de la PR 147 et du lot 5 (ticket 77) — la borne de la
+ROUGE T5 SKILL.md : la sortie 7 sans « de suite » (0 s) — A-180 — la veille sous le plafond de l'outil Bash, le couple | suites de la PR 147 et du lot 5 (ticket 77) — la borne de la
+ROUGE T6 SKILL.md : `create_session` en échec, « rejouer le geste au réveil suivant » (le texte d'avant) (0 s) — suites de la PR 147 et du lot 5 (ticket 77) — la borne de la
+ROUGE T7 SKILL.md : la sortie 6 ne nomme pas la sortie 69 des calculs (0 s) — suites de la PR 147 et du lot 5 (ticket 77) — la borne de la
+ROUGE T8 SKILL.md : `reecrire` ne dit plus qu'il peut rendre `panne` (0 s) — suites de la PR 147 et du lot 5 (ticket 77) — la borne de la
+ROUGE T9 SKILL.md : « sans les deux champs, `couple` » (le texte d'avant, mineur 9 de la PR 147) (0 s) — suite du ticket 66 (ticket 69) — chaque phrase neuve à sa pl | suites de la PR 147 et du lot 5 (ticket 77) — la borne de la
+ROUGE T10 SKILL.md : le plafond rejoué n'est plus écrit (0 s) — suites de la PR 147 et du lot 5 (ticket 77) — la borne de la
+ROUGE T11 SKILL.md : le plafond rejoué écrit dans « L'état des sessions », hors de « Les lignes » (0 s) — suites de la PR 147 et du lot 5 (ticket 77) — la borne de la
+toutes rouges
+# résumé :
+ 14:20:08 up  7:43,  0 user,  load average: 3.63, 7.81, 11.53
+14:20:08
+sortie 0
+14:48:21
+ 14:48:21 up  8:11,  0 user,  load average: 5.10, 6.67, 7.34
+27
+toutes rouges
+toutes rouges
+toutes rouges
+# arbre propre après (git status --short vide)

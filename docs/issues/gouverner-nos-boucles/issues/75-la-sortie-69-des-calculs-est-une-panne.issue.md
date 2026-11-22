@@ -132,7 +132,7 @@ Sur un clone neuf de `https://github.com/MAJ-agency/skills` à `97d17e3` (plugin
 
 ## Ce qui n'a pas été établi
 
-1. **Un vrai poste à git 2.40 ou sans `jq`** : les sorties 69 sont jouées par la grammaire absente (la vraie sortie 69 de `double-relecture.mjs`) et par des talons. Sans `jq`, `github.sh` sort lui-même en 69 dès son chargement : le capitaine s'arrête avant tout calcul (`passer.sh`, sortie 69), et le Relecteur lit chaque lecture de GitHub en 5 (`lire`, « GitHub illisible »), une pause, puis la borne de la sortie 5 du ticket 77. Ce chemin-là n'est pas changé ici.
+1. **Un vrai poste à git 2.40 ou sans `jq`** : les sorties 69 sont jouées par la grammaire absente (la vraie sortie 69 de `double-relecture.mjs`) et par des talons. Sans `jq`, `github.sh` sort lui-même en 69 dès son chargement : le capitaine s'arrête avant tout calcul (`passer.sh`, sortie 69), et le Relecteur lit chaque lecture de GitHub en 5 (`lire`, « GitHub illisible »), une pause, et la borne de la sortie 5 du ticket 77 ne vaut que pour `jouer`, qui ne se joue jamais ici : la veille rejouerait sans fin, sans prévenir personne. La contre-relecture de la PR 153 (tour 1, `A-203`) l'a joué ; la retouche de la PR fait de cette sortie 69 une sortie 6 (`sansOutil('github.sh', r)` en tête de `lire`).
 2. **La boucle du capitaine sur une sortie 3 de `passer.sh`** suit ce qu'elle fait aujourd'hui pour « revue du capitaine en échec » (un calcul absent, décision 4 du ticket 71) : rien de neuf n'est joué contre `boucle.sh`.
 
 ## Hors périmètre

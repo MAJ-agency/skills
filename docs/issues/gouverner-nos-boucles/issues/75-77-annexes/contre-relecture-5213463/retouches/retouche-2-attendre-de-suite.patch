@@ -1,0 +1,14 @@
+diff --git a/scripts/relecteur.test.mjs b/scripts/relecteur.test.mjs
+index 4c7319d..c66d2c8 100644
+--- a/scripts/relecteur.test.mjs
++++ b/scripts/relecteur.test.mjs
+@@ -200,6 +200,9 @@ test("suites de la PR 147 et du lot 5 (ticket 77) — la borne de la sortie 5 de
+   // A-192, point 1 : la sortie 69 d'un calcul arrête le Relecteur (sortie 6), comme des calculs absents.
+   exigerA(ligne(texte, sorties, "| 6 |"), "la ligne de la sortie 6", ["un calcul dit qu'un outil de la chaîne manque au poste (sa sortie 69 : git plus ancien que 2.41, `jq` absent, la grammaire des identifiants introuvable)", ": l'architecte, et s'arrêter"]);
+   assert.ok(!texte.includes("à la seconde fois,"), "chaque borne dit « de suite »");
++  // Décision 2 du ticket 77 : la phrase de `--attendre` dit aussi « de suite » (une pause de quelques secondes compterait
++  // sinon pour la seconde fois de suite) ; la recherche de « à la seconde fois, » ne la lit pas.
++  exigerA(section(texte, "## La veille"), "« La veille »", ["se rejouerait aussitôt et compterait pour la seconde fois de suite."]);
+   assert.ok(!texte.includes("le réveil suivant rejoue"), "la sortie 5 : « rejouer au réveil suivant »");
+   exigerA(section(texte, "## Créer ou relancer les sessions"), "« Créer ou relancer les sessions »", ["`create_session` en échec pour une autre cause : rejouer au réveil suivant ; à la seconde fois de suite, l'architecte, et `--taire <n>`."]);
+   // A-189, point 3 : `reecrire` d'une session hors service peut rendre `panne`, dont les lignes partent.

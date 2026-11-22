@@ -1,0 +1,17 @@
+# La suite entière (pnpm test, ses quatre motifs) sur l'arbre de la PR 153 fusionnée avec main après la PR 152 (essais/fusion-apres-152.txt) :
+# commit de fusion 3bd620e, arbre e622a9c9 (le même que la PR 152 suivie des trois patchs par git apply --exclude et version-suivante.mjs), 8.0.2.
+# setsid --wait timeout 3600 pnpm test, en tâche de fond ; une première passe, à timeout 1800, a été coupée à 1 800 s (sortie 124) à 727 tests, aucun échec, la charge montée à 15 par d'autres agents.
+ 13:49:39 up  7:12,  0 user,  load average: 4.87, 6.11, 9.11
+13:49:39
+sortie 0
+14:19:42
+ 14:19:42 up  7:42,  0 user,  load average: 4.45, 8.32, 11.79
+# tests 1411
+# suites 0
+# pass 1411
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1802283.205233
+# arbre propre après (git status --short vide)

@@ -1,0 +1,14 @@
+# Les mutations C3 et C4 (mutations-contre.mjs), vertes sur le banc du ticket, jouées contre les essais E1
+# (essais/capitaine-git-240.ajout.mjs ajouté à la fin de verdict-du-capitaine.test.mjs, les seuls cas ESSAI-153), sur 5213463 ;
+# 15:24:59 → 15:25:36 UTC, charge 18,4 puis 19,0.
+== C3 posée (passer.sh, premier contrôle : `21 | 3) sortir 7`)
+not ok 1 - ESSAI-153 passer.sh, git 2.40, premier contrôle (un tour sur un sommet plus ancien) : sortie 3, la cause dite, jamais sautée en 7
+# tests 3
+# pass 2
+# fail 1
+== C4 posée (sujet.sh juger_revue : `21 | 3) sortir 7`)
+not ok 3 - ESSAI-153 sujet.sh fusionner, git 2.40, second contrôle (sous-PR en retard, mise à jour) : sortie 11, côté capitaine
+# tests 3
+# pass 2
+# fail 1
+# arbre propre après

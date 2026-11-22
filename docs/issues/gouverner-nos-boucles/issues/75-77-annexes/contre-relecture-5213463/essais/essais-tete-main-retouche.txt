@@ -1,0 +1,48 @@
+=== w-tete
+arbre : 5213463 
+ok 1 - ESSAI-153 passer.sh, git 2.40, premier contrôle (un tour sur un sommet plus ancien) : sortie 3, la cause dite, jamais sautée en 7
+ok 2 - ESSAI-153 passer.sh, git 2.40, second contrôle (après la mise à jour du capitaine) : sortie 3, la cause dite
+ok 3 - ESSAI-153 sujet.sh fusionner, git 2.40, second contrôle (sous-PR en retard, mise à jour) : sortie 11, côté capitaine
+ok 4 - ESSAI-153 E2 — le vrai meme-contenu.sh sous git 2.40 : `jouer` et la passe sortent en 6, la cause dite, rien d’écrit ; la veille s’arrête
+not ok 5 - ESSAI-153 E3 — un poste sans `jq` : la passe et `jouer` sortent en 6 (« `jq` absent », la sortie 6 du texte), jamais en 5 ; la veille s’arrête au lieu de faire une pause sans fin
+  error: |-
+  expected: 6
+  actual: 5
+# tests 5
+# pass 4
+# fail 1
+=== w-main
+arbre : ddb4265 
+not ok 1 - ESSAI-153 passer.sh, git 2.40, premier contrôle (un tour sur un sommet plus ancien) : sortie 3, la cause dite, jamais sautée en 7
+  error: |-
+  expected: 3
+  actual: 7
+not ok 2 - ESSAI-153 passer.sh, git 2.40, second contrôle (après la mise à jour du capitaine) : sortie 3, la cause dite
+  error: |-
+  expected: 3
+  actual: 7
+not ok 3 - ESSAI-153 sujet.sh fusionner, git 2.40, second contrôle (sous-PR en retard, mise à jour) : sortie 11, côté capitaine
+  error: |-
+  expected: 11
+  actual: 7
+not ok 4 - ESSAI-153 E2 — le vrai meme-contenu.sh sous git 2.40 : `jouer` et la passe sortent en 6, la cause dite, rien d’écrit ; la veille s’arrête
+  error: |-
+  expected: 6
+  actual: 0
+not ok 5 - ESSAI-153 E3 — un poste sans `jq` : la passe et `jouer` sortent en 6 (« `jq` absent », la sortie 6 du texte), jamais en 5 ; la veille s’arrête au lieu de faire une pause sans fin
+  error: |-
+  expected: 6
+  actual: 5
+# tests 5
+# pass 0
+# fail 5
+=== w-retouche
+arbre : e3a6226 
+ok 1 - ESSAI-153 passer.sh, git 2.40, premier contrôle (un tour sur un sommet plus ancien) : sortie 3, la cause dite, jamais sautée en 7
+ok 2 - ESSAI-153 passer.sh, git 2.40, second contrôle (après la mise à jour du capitaine) : sortie 3, la cause dite
+ok 3 - ESSAI-153 sujet.sh fusionner, git 2.40, second contrôle (sous-PR en retard, mise à jour) : sortie 11, côté capitaine
+ok 4 - ESSAI-153 E2 — le vrai meme-contenu.sh sous git 2.40 : `jouer` et la passe sortent en 6, la cause dite, rien d’écrit ; la veille s’arrête
+ok 5 - ESSAI-153 E3 — un poste sans `jq` : la passe et `jouer` sortent en 6 (« `jq` absent », la sortie 6 du texte), jamais en 5 ; la veille s’arrête au lieu de faire une pause sans fin
+# tests 5
+# pass 5
+# fail 0

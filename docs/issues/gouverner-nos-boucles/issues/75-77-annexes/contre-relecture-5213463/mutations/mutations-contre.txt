@@ -1,0 +1,15 @@
+ 14:48:52 up  8:12,  0 user,  load average: 5.73, 6.66, 7.32
+14:48:52
+## sur 5213463
+VERTE C1 revue-exigee.mjs : la cause lue sur la sortie standard d’abord (décision 4 : la sortie d’erreur d’abord) (90 s ; # tests 26, # pass 26, # fail 0)
+VERTE C2 relecteur.mjs : la cause lue sur la sortie standard d’abord (167 s ; # tests 51, # pass 51, # fail 0)
+VERTE C3 passer.sh : une revue du capitaine en échec (3) au premier contrôle lue comme une lecture illisible (sautée en 7) (66 s ; # tests 26, # pass 26, # fail 0)
+VERTE C4 sujet.sh juger_revue : une revue du capitaine en échec (3) lue comme une lecture illisible (sautée en 7) (66 s ; # tests 26, # pass 26, # fail 0)
+ROUGE C5 relecteur.mjs : la sortie 69 d’un calcul en 3 (« le geste a changé » : la session rejoue `passe`, en rond ; A-197 point 1) (205 s ; # tests 51, # pass 50, # fail 1) — suite du lot 5 — un calcul sorti en 69 (un outil de la chaîne manque au poste) : la passe 
+VERTE T12 SKILL.md : la phrase de `--attendre` sans « de suite » (décision 2 du ticket 77) (0 s ; # tests 11, # pass 11, # fail 0)
+5 mutation(s) non rouge(s)
+## sur la retouche 1 (e3a6226)
+ROUGE G1 relecteur.mjs (retouche) : `github.sh` sorti en 69 lu « GitHub illisible » (5), le code du sommet 5213463 (192 s ; # tests 52, # pass 51, # fail 1) — suite du lot 5 — un poste sans `jq` : `github.sh` sorti en 69, la passe et `jouer` sortent
+toutes rouges
+15:01:59
+ 15:01:59 up  8:25,  0 user,  load average: 9.54, 10.12, 9.07

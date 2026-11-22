@@ -1,0 +1,16 @@
+ 13:45:25 up  7:08,  0 user,  load average: 5.72, 8.62, 10.70
+== rouge avant : 5213463, le seul banc de la retouche posé (git apply --include='*.test.mjs')
+ M skills/chaine/relecteur/scripts/relecteur.test.mjs
+13:45:25
+not ok 26 - suite du lot 5 — un poste sans `jq` : `github.sh` sorti en 69, la passe et `jouer` sortent en 6, rien d’écrit ; la veille s’arrête, jamais une pause sans fin
+# tests 52
+# pass 51
+# fail 1
+13:47:28
+== vert après : la retouche posée (e3a6226)
+13:47:28
+# tests 138
+# pass 138
+# fail 0
+13:49:29
+ 13:49:29 up  7:12,  0 user,  load average: 4.65, 6.12, 9.15

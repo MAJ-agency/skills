@@ -1,0 +1,11 @@
+# passe : sortie 5 ; sa sortie d'erreur : relecteur : ARRÊT : jq est requis par les scripts de la chaîne : sudo apt install jq (ou brew install jq)
+# jouer 12 : sortie 5
+# veille --pause 0 --sondes 3 : sortie 0 ; son journal :
+# PAUSE GitHub illisible : relecteur : ARRÊT : jq est requis par les scripts de la chaîne : sudo apt install jq (ou brew install jq)
+# PAUSE GitHub illisible : relecteur : ARRÊT : jq est requis par les scripts de la chaîne : sudo apt install jq (ou brew install jq)
+# PAUSE GitHub illisible : relecteur : ARRÊT : jq est requis par les scripts de la chaîne : sudo apt install jq (ou brew install jq)
+# VEILLE FINIE
+# écritures sur GitHub : 0
+# tests 1
+# pass 1
+# fail 0
