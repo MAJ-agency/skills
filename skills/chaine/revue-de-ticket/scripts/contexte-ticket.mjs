@@ -10,7 +10,9 @@
  *   2. sa ligne de spec (la ligne qui cite le ticket, ou la ligne de table `| <NN> |`) ;
  *   3. « Règles du ticket » : la ligne `Règles:` de l'en-tête, la liste fermée des règles dont l'axe
  *      Ticket (`T3`) relit les preuves, puis chaque fichier de règle rendu tel quel, en-tête YAML
- *      compris (c'est là que se lit si une règle déclare ses cas, clé `cases`) ;
+ *      compris (c'est là que se lit si une règle déclare ses cas, clé `cases`) ; puis la ligne
+ *      `Prouve:`, les règles que le ticket prouve sans les réaliser, rendues de même : `T3` relit
+ *      leurs preuves aussi ;
  *   4. « Identifiants cités » : le reste du corps et la ligne de spec (règles, ADR, specs, tickets,
  *      design, guides, demandes).
  * Chaque identifiant est marqué trouvé ou introuvable, avec le chemin cherché.
@@ -109,7 +111,19 @@ const ligneRegles = entete
 const valeurRegles = (ligneRegles ?? "")
   .replace(/^Règles\s*:/, "")
   .replace(/\s#.*$/, "");
-const reglesDuTicket = identifiantsCites(valeurRegles);
+const reglesRealisees = identifiantsCites(valeurRegles);
+// ── La ligne `Prouve:` de l'en-tête : les règles que le ticket prouve sans les réaliser (K3) ───────
+const ligneProuve = entete
+  .split("\n")
+  .find((l) => /^Prouve\s*:/.test(l))
+  ?.trim();
+const valeurProuve = (ligneProuve ?? "")
+  .replace(/^Prouve\s*:/, "")
+  .replace(/\s#.*$/, "");
+const reglesProuvees = identifiantsCites(valeurProuve).filter(
+  (c) => !reglesRealisees.includes(c),
+);
+const reglesDuTicket = [...reglesRealisees, ...reglesProuvees];
 /** Un jeton de la ligne sans les `(` de tête ni les `.` et `)` de queue, en un seul passage. */
 function rognerJeton(jeton) {
   let debut = 0;
@@ -119,13 +133,18 @@ function rognerJeton(jeton) {
   return jeton.slice(debut, fin);
 }
 /** Ce que la ligne porte et que la grammaire ne lit pas comme identifiant (`LIC-3`, `ALL-LIC-3`). */
-const jetonsIllisibles = valeurRegles
-  .split(/[\s,;`]+/)
-  .map(rognerJeton)
-  .filter((j) => j && !/^[—–-]$/.test(j) && !lireIdentifiant(j));
+const illisibles = (valeur) =>
+  valeur
+    .split(/[\s,;`]+/)
+    .map(rognerJeton)
+    .filter((j) => j && !/^[—–-]$/.test(j) && !lireIdentifiant(j));
+const jetonsIllisibles = illisibles(valeurRegles);
 
 // ── Les identifiants cités ailleurs ──────────────────────────────────────────────────────
-const corps = ligneRegles ? texteTicket.replace(ligneRegles, "") : texteTicket;
+const corps = [ligneRegles, ligneProuve].reduce(
+  (t, l) => (l ? t.replace(l, "") : t),
+  texteTicket,
+);
 const cites = identifiantsCites(corps + "\n" + ligneSpec.join("\n"))
   .filter((c) => c !== spec && c !== id && !reglesDuTicket.includes(c))
   .sort();
@@ -252,16 +271,29 @@ for (const j of jetonsIllisibles)
     "- illisible : la ligne `Règles:` porte un jeton qui n'est pas un identifiant de la grammaire",
     "",
   );
-for (const code of reglesDuTicket) {
-  if (lireIdentifiant(code).type !== "RULE" || lireTicket(code)) {
+const rendreLigne = (codes, nom, marque) => {
+  for (const code of codes) {
+    if (lireIdentifiant(code).type !== "RULE" || lireTicket(code)) {
+      out.push(
+        `### ${code}`,
+        `- pas une règle : la ligne \`${nom}:\` ne porte que des identifiants \`RULE_…\``,
+        "",
+      );
+      continue;
+    }
+    out.push(...rendreRegle(code, marque));
+  }
+};
+rendreLigne(reglesRealisees, "Règles", "règle du ticket");
+if (ligneProuve) {
+  out.push(ligneProuve, "");
+  for (const j of illisibles(valeurProuve))
     out.push(
-      `### ${code}`,
-      "- pas une règle : la ligne `Règles:` ne porte que des identifiants `RULE_…`",
+      `### ${j}`,
+      "- illisible : la ligne `Prouve:` porte un jeton qui n'est pas un identifiant de la grammaire",
       "",
     );
-    continue;
-  }
-  out.push(...rendreRegle(code, "règle du ticket"));
+  rendreLigne(reglesProuvees, "Prouve", "règle prouvée par le ticket, sans la réaliser");
 }
 out.push("## Identifiants cités", "");
 if (cites.length === 0) out.push("(aucun)", "");
