@@ -1,6 +1,6 @@
 # La clé relecture dans le contrat du socle, la relecture posée avec lui, l'ADR de la relecture indépendante, la version 8.0.0, et l'essai réel de la vérification d'ensemble (lot 6c, bascule 8.0.0)
 
-Status: ready-for-agent
+Status: Fait — PR 151 (`ddb4265`, plugin 8.0.0)
 Type: task
 Label: contre-revue
 Modèle: sonnet — le code et le texte entiers sont dans le patch commun aux tickets 80, 81 et 82 ([`80-82-annexes/lot-6.patch`](80-82-annexes/lot-6.patch), sha256 `1ceca4a337704551b77ef241668c3549bc02a3819a161cd095cdf5f5ff850818`, `git apply` sur `97d17e3`), décrits fichier par fichier ci-dessous ; les gestes de la PR sont ceux du ticket 80, « À faire, dans l'ordre ». L'essai réel (« Après la fusion ») n'est pas un geste de la session du ticket : l'architecte le joue. Rien n'est à concevoir : qui veut changer une décision l'écrit à son lanceur, il ne tranche pas.

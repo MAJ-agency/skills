@@ -1,6 +1,6 @@
 # Les documents du régime 8 : la méthode, le fragment, le tracker, la conception, la criticité, la recette et le tableau d'avancement disent la relecture indépendante (lot 6a, bascule 8.0.0)
 
-Status: ready-for-agent
+Status: Fait — PR 151 (`ddb4265`, plugin 8.0.0)
 Type: task
 Label: contre-revue
 Modèle: sonnet — le texte entier est dans le patch commun aux tickets 80, 81 et 82 ([`80-82-annexes/lot-6.patch`](80-82-annexes/lot-6.patch), sha256 `1ceca4a337704551b77ef241668c3549bc02a3819a161cd095cdf5f5ff850818`, `git apply` sur `97d17e3`, plugin 7.39.0), décrit fichier par fichier ci-dessous ; les bancs neufs ou changés sont rouges avant le patch et verts après, les 68 mutations de [`80-82-annexes/mutations.mjs`](80-82-annexes/mutations.mjs) sont toutes rouges, la suite entière est verte (« Vérification »). Patch repris après le tour de relecture des tickets (`A-196`, rapport [`80-82-annexes/relecture-tour-1/rapport.md`](80-82-annexes/relecture-tour-1/rapport.md)). Rien n'est à concevoir : qui veut changer une phrase ou une décision l'écrit à son lanceur, il ne tranche pas.

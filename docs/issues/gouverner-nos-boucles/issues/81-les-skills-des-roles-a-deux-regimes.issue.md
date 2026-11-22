@@ -1,6 +1,6 @@
 # Les skills des rôles à deux régimes : chantier, architecte, fusionner et sujet disent en tête comment lire le régime, décrivent le régime 8, et renvoient à regime-7.md (lot 6b, bascule 8.0.0)
 
-Status: ready-for-agent
+Status: Fait — PR 151 (`ddb4265`, plugin 8.0.0)
 Type: task
 Label: contre-revue
 Modèle: sonnet — le texte entier est dans le patch commun aux tickets 80, 81 et 82 ([`80-82-annexes/lot-6.patch`](80-82-annexes/lot-6.patch), sha256 `1ceca4a337704551b77ef241668c3549bc02a3819a161cd095cdf5f5ff850818`, `git apply` sur `97d17e3`), décrit fichier par fichier ci-dessous ; les gestes sont ceux du ticket 80, « À faire, dans l'ordre » (une seule PR). Rien n'est à concevoir : qui veut changer une phrase l'écrit à son lanceur, il ne tranche pas.
