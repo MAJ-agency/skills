@@ -40,7 +40,7 @@
 // =============================================================================
 
 import { execFileSync, spawnSync } from 'node:child_process';
-import { realpathSync } from 'node:fs';
+import { existsSync, realpathSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
@@ -498,6 +498,11 @@ function memeContenuDe(v, t, base) {
 
 /** Le verdict d'une PR en régime 8, sur les faits que le Relecteur lit : `{ tour }` ou `{ motif }` ; `Illisible` sinon. */
 async function verdictEnLigne({ fichiers, base, tete, titre, branche, commentaires: fichier }) {
+  // Un calcul absent à côté est une panne de l'outil (sortie 3), jamais une lecture illisible (21) : `spawnSync` d'un
+  // script absent rend un code que les lecteurs disent « illisible », et la PR serait sautée à chaque passage sans que
+  // personne ne le sache (décision 4 du ticket 71).
+  for (const calcul of ['decision-relecteur.mjs', 'verdict.mjs', 'double-relecture.mjs', 'meme-contenu.sh'])
+    if (!existsSync(join(ICI, calcul))) throw new Error(`${calcul} absent à côté de revue-exigee.mjs`);
   const { readFileSync } = await import('node:fs');
   const { sommetsDesTours, tourValide } = await import(pathToFileURL(join(ICI, 'decision-relecteur.mjs')).href);
   const { LectureIllisible } = await import(pathToFileURL(join(ICI, 'verdict.mjs')).href);

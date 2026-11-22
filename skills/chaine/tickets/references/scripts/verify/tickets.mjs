@@ -42,7 +42,8 @@
  *  14. en régime 8 (la clé `relecture` de `.claude/chaine.json`, lue dans l'arbre de travail, A-97 ; lot 5c), la règle 7
  *      ne joue plus (`Label: contre-revue` n'est plus exigé, A-94), et un ticket ouvert qui cite une règle de criticité
  *      haute porte `Relecture: double` (A-90) ; la criticité se lit dans l'en-tête du fichier de la règle et dans l'index
- *      Anchorpost (`anchorpost/anchorpost.json`), la plus haute des deux, par les lecteurs du calcul « double relecture
+ *      Anchorpost (`anchorpost/anchorpost.json`), la plus haute des deux, la règle en vigueur si l'un des deux le dit (comme
+ *      le calcul, A-134), par les lecteurs du calcul « double relecture
  *      exigée » (`scripts/chaine/double-relecture.mjs`, skill fusionner, exigé en régime 8 : sortie 2 sans lui).
  *
  * Usage : node scripts/verify/tickets.mjs [--elaguer | --geler-types | --geler-fiches]   (pnpm check:tickets — CI)
@@ -161,20 +162,22 @@ if (regime === 8) {
       indexIllisible = `anchorpost/anchorpost.json : ${e.message}`;
     }
   const NIVEAUX = ['low', 'medium', 'high'];
+  // Comme le calcul (`hautes` de double-relecture.mjs, A-113, A-134) : le plus haut des deux niveaux, et l'un des deux
+  // suffit à dire la règle en vigueur ; rejetée ou obsolète dans l'index et dans son en-tête, elle ne compte pas.
   niveauDe = (id) => {
     if (indexIllisible) return { illisible: indexIllisible };
     const lus = [];
     const r = index?.get(comparable(id));
-    if (r && r.enVigueur) lus.push(r.niveau);
+    if (r) lus.push(r);
     const f = fichiersDesRegles.get(id);
     if (f)
       try {
-        const e = enTeteDeRegle(readFileSync(join(ROOT, f), 'utf8'));
-        if (e.enVigueur) lus.push(e.niveau);
+        lus.push(enTeteDeRegle(readFileSync(join(ROOT, f), 'utf8')));
       } catch (e) {
         return { illisible: `${f} : ${e.message}` };
       }
-    return lus.filter(Boolean).sort((a, b) => NIVEAUX.indexOf(b) - NIVEAUX.indexOf(a))[0] ?? null;
+    if (!lus.some((l) => l.enVigueur)) return null;
+    return lus.map((l) => l.niveau).filter(Boolean).sort((a, b) => NIVEAUX.indexOf(b) - NIVEAUX.indexOf(a))[0] ?? null;
   };
 }
 

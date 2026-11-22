@@ -85,3 +85,23 @@ test('régime 8 : une copie locale du sujet que origin ne porte pas ne compte pa
   const mal = depot({ surSujet: 'Sensibles: ../scripts/agent/** — accord de la MOA, 2026-11-21' });
   refuse(ecrire(mal, 'scripts/agent/garde.mjs'), /Ligne illisible : « \.\.\/scripts\/agent\/\*\* » n'est pas un chemin/);
 });
+
+test('régime 8 : une copie locale du sujet en retard sur origin n’est pas lue, et le refus dit le geste qui la relit ; relue, le chemin accordé passe', () => {
+  const d = depot();
+  // Le sujet avance sur origin (une autre sous-PR fusionnée) sans que la session l'ait relu.
+  const avant = d.git('rev-parse', 'origin/sujet/demo').trim();
+  d.git('switch', '-q', '--detach', 'origin/sujet/demo');
+  writeFileSync(join(d.travail, 'docs/autre.md'), 'autre\n');
+  d.git('add', '-A');
+  d.git('commit', '-q', '-m', 'autre sous-PR');
+  d.git('push', '-q', 'origin', 'HEAD:refs/heads/sujet/demo');
+  d.git('update-ref', 'refs/remotes/origin/sujet/demo', avant);
+  d.git('switch', '-q', 'feat/spec-all-demo-1-01-garde');
+  const r = ecrire(d, 'scripts/agent/garde.mjs');
+  refuse(r, /Copie du ticket non lue : origin\/sujet\/demo n'est pas au sommet d'origin\. Avant d'écrire au conducteur : `git fetch --prune origin '\+refs\/heads\/develop:refs\/remotes\/origin\/develop' '\+refs\/heads\/sujet\/\*:refs\/remotes\/origin\/sujet\/\*'`, puis refaire l'écriture\./);
+  // Le geste du refus, tel qu'il est écrit, puis l'écriture refaite.
+  const geste = /`(git fetch --prune origin [^`]+)`/.exec(r.stderr)[1];
+  const args = geste.split(' ').slice(1).map((a) => a.replace(/^'|'$/g, ''));
+  d.git(...args);
+  passe(ecrire(d, 'scripts/agent/garde.mjs'));
+});

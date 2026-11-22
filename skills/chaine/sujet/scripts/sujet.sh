@@ -249,7 +249,7 @@ verifier_ticket() {
   [ -n "$spec" ] || sortir 4 "la spec ${id%.*} n'est pas encore sur $base : sa PR de specs n'est pas fusionnée.
 Ne pas partir de la branche de specs. La faire fusionner dans $base d'abord (\`sujet.sh ouvrir <nom> --specs <pr>\`
 la recible sur le sujet) ; si elle est déjà dans develop, le capitaine la reporte dans le sujet de lui-même à chaque
-lancement de sa boucle (A-69) : attendre, ou le lui demander ; une session ne lance jamais \`sujet.sh rafraichir\`."
+lancement de sa boucle (A-69) : attendre, ou l'écrire à ton conducteur (à qui t'a lancé), qui le demande au capitaine ; une session ne lance jamais \`sujet.sh rafraichir\`."
   [[ "$id" == *.* ]] || return 0
   fichier=$(fichier_sur "$ref" "$id")
   [ -n "$fichier" ] || sortir 4 "le ticket $id n'est pas sur $base : attendre la fusion de la PR qui l'ajoute."
@@ -437,6 +437,13 @@ refuser_si_gele() {
   [ -z "$g" ] || sortir 4 "sujet/${1#sujet/} est gelé (Gel: $g) : plus aucune session n'en part, plus aucune PR n'y entre. Dégeler d'abord (sujet.sh degeler ${1#sujet/}) ou demander au produit."
 }
 
+# Régime 8 (A-97, lot 5c) : ce que la session fait une fois sa PR poussée, vers <base> (develop ou sujet/<nom>). Écrit
+# quand la base porte la clé `relecture` : la PR qui part maintenant sera en régime 8.
+demande_de_relecture() {
+  echo "régime 8 : relecture indépendante ; le dernier push fait, PR hors brouillon, demander la relecture : $DEMANDE_DE_RELECTURE ; puis l'étiquette à-relire,"
+  echo "jamais à-fusionner : le Relecteur la pose sur un verdict validé, puis le capitaine la fusionne dans $1 quand sa CI est verte."
+}
+
 demarrer() {
   local arg=${1:?identifiant de ticket (SPEC_ALL_SOC-1.02) ou nom de sujet}
   local nom branche courante ticket='' ref present='' multiple
@@ -454,6 +461,7 @@ Ne pas partir de la branche de specs : attendre sa fusion (ou \`sujet.sh ouvrir 
       echo "base=develop"
       echo "$arg ne déclare pas de sujet (ligne « Sujet: sujet/<nom> » du ticket ou de sa spec) : la PR vise develop."
       echo "S'il fait partie d'un lot de plusieurs PR liées, déclarer le sujet dans la spec d'abord."
+      ! cle_relecture_sur origin/develop || demande_de_relecture develop
       return 0
     fi
     multiple=$(sujets_multiples_du_ticket "$arg")
@@ -470,6 +478,7 @@ ou dans sa spec (ligne « Sujet: sujet/<nom> »), puis relancer."
     verifier_ticket "$ticket" origin/develop
     echo "base=develop"
     echo "$branche est déjà livré dans develop : $ticket part de develop et la PR vise develop (label hors-sujet)."
+    ! cle_relecture_sur origin/develop || demande_de_relecture develop
     return 0
   fi
   # `git ls-remote` plutôt que `gh api` : marche aussi sans `gh` authentifié (session cloud).
@@ -505,8 +514,7 @@ ou dans sa spec (ligne « Sujet: sujet/<nom> »), puis relancer."
   echo "$courante part de $branche ($(git rev-parse --short "origin/$branche")) : la PR vise $branche,"
   # Le message suit le régime qu'aura la PR (A-97, lot 5c) : la clé `relecture` sur sa base, et une PR ouverte maintenant.
   if cle_relecture_sur "origin/$branche"; then
-    echo "régime 8 : relecture indépendante ; le dernier push fait, PR hors brouillon, demander la relecture (commentaire « À relire — sommet … », étiquette à-relire),"
-    echo "jamais à-fusionner : le Relecteur la pose sur un verdict validé, puis le capitaine la fusionne dans le sujet quand sa CI est verte."
+    demande_de_relecture "$branche"
   else
     echo "label à-fusionner dès le push ; le capitaine la fusionne dans le sujet quand sa CI est verte."
   fi

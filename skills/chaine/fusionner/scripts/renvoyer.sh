@@ -27,10 +27,14 @@ for r in $(git for-each-ref --format='%(refname)' refs/remotes/origin/develop re
   ! cle_relecture_sur "$r" || { cle=0; break; }
 done
 if [ "$cle" = 0 ] && pr=$(pr_json "$N" 2>/dev/null); then
-  regime=$(regime_de_la_pr "$(jq -r .base.ref <<<"$pr")" "$(jq -r '.created_at // ""' <<<"$pr")" 2>/dev/null) || regime=7
+  base=$(jq -r .base.ref <<<"$pr")
+  # Une PR empilée (sa base n'est ni develop ni un sujet) se lit sur develop, où elle sera reciblée, comme passer.sh :
+  # en régime 8, son renvoi lui dit de demander sa relecture, jamais de remettre `à-fusionner`.
+  case $base in develop | sujet/*) ;; *) base=develop ;; esac
+  regime=$(regime_de_la_pr "$base" "$(jq -r '.created_at // ""' <<<"$pr")" 2>/dev/null) || regime=7
 fi
 if [ "$regime" = 8 ]; then
-  suite="Corriger, puis redemander la relecture : le commentaire \`À relire — sommet <sha> — Session: <la tienne> — Conducteur: <le tien>\` et l'étiquette \`à-relire\`, sans retirer \`fusion-bloquée\` ; jamais \`à-fusionner\`, que le Relecteur pose sur un verdict validé (relecture indépendante, régime 8)."
+  suite="Corriger, puis redemander la relecture : $DEMANDE_DE_RELECTURE ; puis l'étiquette \`à-relire\`, sans retirer \`fusion-bloquée\` ; jamais \`à-fusionner\`, que le Relecteur pose sur un verdict validé (relecture indépendante, régime 8)."
 else
   suite="Corriger, puis retirer \`fusion-bloquée\` et remettre \`à-fusionner\` (CLAUDE.md § « Fusion vers \`develop\` »)."
 fi
@@ -38,7 +42,7 @@ fi
 case "$cause" in
   *"jamais une seconde fusion"*)
     if [ "$regime" = 8 ]; then
-      suite="Refaire la réception comme la cause le dit, ouvrir une nouvelle PR vers le sujet et fermer celle-ci ; la nouvelle PR demande sa relecture (\`à-relire\`, avec son commentaire \`À relire — …\`), jamais \`à-fusionner\` (relecture indépendante, régime 8)."
+      suite="Refaire la réception comme la cause le dit, ouvrir une nouvelle PR vers le sujet et fermer celle-ci ; la nouvelle PR demande sa relecture, $DEMANDE_DE_RELECTURE ; puis l'étiquette \`à-relire\`, jamais \`à-fusionner\` (relecture indépendante, régime 8)."
     else
       suite="Refaire la réception comme la cause le dit, ouvrir une nouvelle PR vers le sujet et fermer celle-ci ; la nouvelle PR porte \`à-fusionner\` (CLAUDE.md § « Fusion vers \`develop\` »)."
     fi ;;

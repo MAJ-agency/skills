@@ -242,12 +242,18 @@ test('régime 8 : sans `Label: contre-revue` un ticket prêt sensible passe ; un
   const sans = lancer(depot('high', '', {}));
   assert.equal(sans.status, 2, sans.stdout + sans.stderr);
   assert.match(sans.stderr, /régime 8 et scripts\/chaine\/double-relecture\.mjs introuvable/);
-  // Une règle rejetée (ou obsolète) de l'index ne compte pas, même haute : la criticité de l'en-tête seule décide.
+  // Comme le calcul « double relecture exigée » (`hautes`, A-113, A-134) : le plus haut des deux niveaux, et l'un des deux
+  // suffit à dire la règle en vigueur ; rejetée dans l'index comme dans son en-tête, elle ne compte pas, même haute.
   // La criticité de l'entrée posée par une variable : aucun texte du plugin ne la montre en ligne (scripts/depot.test.mjs).
   const niveauHaut = { level: 'high' };
   const index = (statut) => ({ 'anchorpost/anchorpost.json': `${JSON.stringify({ schema: '3', rules: [{ key: 'RULE_ALL_SOC-1', criticality: niveauHaut, validation: { status: statut } }] })}\n` });
   const rejetee = lancer(depot('medium', '', { ...OUTILS, ...index('rejected') }));
-  assert.equal(rejetee.status, 0, `règle rejetée dans l'index : ${rejetee.stderr}`);
+  assert.equal(rejetee.status, 1, `rejetée dans l'index, en vigueur dans son en-tête : le calcul l'exige (contre-relecture de la PR 149) : ${rejetee.stderr}`);
+  assert.match(rejetee.stderr, /régime 8 : ligne `Relecture: double` absente alors que le ticket cite RULE_ALL_SOC-1/);
+  const horsVigueur = (statut) => REGLE('medium').replace('criticality:', `validation:\n  status: ${statut}\ncriticality:`);
+  const rejeteePartout = depotJouet({ fichiers: { ...DETTE, ...HUIT, ...OUTILS, ...index('rejected'), 'docs/metier/regles/all/RULE_ALL_SOC-1.md': horsVigueur('rejected'), 'docs/features/socle/all/issues/SPEC_ALL_SOC-1-socle.01.issue.md': ticket('') } });
+  const rp = lancer(rejeteePartout);
+  assert.equal(rp.status, 0, `rejetée dans l'index et dans son en-tête : ${rp.stderr}`);
   const enVigueur = lancer(depot('medium', '', { ...OUTILS, ...index('validated') }));
   assert.equal(enVigueur.status, 1, "règle haute en vigueur dans l'index : Relecture: double exigée");
   assert.match(enVigueur.stderr, /régime 8 : ligne `Relecture: double` absente alors que le ticket cite RULE_ALL_SOC-1/);

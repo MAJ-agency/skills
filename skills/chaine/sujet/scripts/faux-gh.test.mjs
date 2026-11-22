@@ -337,3 +337,15 @@ test('faux gh, événements : une pose d’étiquette absente ajoute `labeled`, 
   d.github({ pulls: [{ number: 4, title: 'u', base: 'develop', head: 'y', labels: [] }] });
   assert.deepEqual(JSON.parse(gh(d, 'repos/{owner}/{repo}/issues/4/events').stdout), [], 'une PR sans événement : une liste vide');
 });
+
+test('faux gh, pageCommentaires : sans --paginate, la première page ; avec, chaque page à son tour, --jq joué sur chacune, comme gh (contre-relecture de la PR 149)', () => {
+  const d = depotJouet();
+  d.github({ pageCommentaires: 2, pulls: [{ number: 1, title: 't', head: 'x', base: 'develop', labels: [], commentaires: ['a', 'b', 'c'] }] });
+  const route = 'repos/{owner}/{repo}/issues/1/comments?per_page=100';
+  assert.deepEqual(JSON.parse(gh(d, route).stdout).map((c) => c.body), ['a', 'b'], 'sans --paginate : la première page');
+  const pages = gh(d, '--paginate', route).stdout.trim().split('\n').map((l) => JSON.parse(l).map((c) => c.body));
+  assert.deepEqual(pages, [['a', 'b'], ['c']], 'avec --paginate : deux pages, l’une après l’autre');
+  assert.equal(gh(d, '--paginate', route, '--jq', '.[].body').stdout, 'a\nb\nc\n');
+  d.github({ pageCommentaires: undefined });
+  assert.deepEqual(JSON.parse(gh(d, route).stdout).map((c) => c.body), ['a', 'b', 'c'], 'sans le réglage : tout, comme avant');
+});

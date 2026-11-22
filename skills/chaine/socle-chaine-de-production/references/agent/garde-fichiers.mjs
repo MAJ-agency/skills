@@ -74,8 +74,10 @@ const git = (...args) => execFileSync('git', args, { cwd: RACINE, encoding: 'utf
  * Régime 8 (lot 5b, A-74, A-76) : les chemins qu'accorde la ligne `Sensibles:` du ticket de la branche courante, lue sur
  * `origin/sujet/*` (sur `origin/develop` pour un ticket qu'aucun sujet ne porte), jamais dans l'arbre de travail ni sur
  * la branche de la session, comme `Dépendances:` (garde-commandes.mjs). Une copie locale que `origin` ne porte pas (ref
- * déplacée à la main) ne compte pas. `{ copies: [[motifs]…] }`, une liste par copie ; `{ illisible }` ; `null` : pas de
- * ticket, pas de copie, origin injoignable, grammaire absente. Lu seulement quand le chemin est sensible.
+ * déplacée à la main, ou en retard sur origin) ne compte pas. `{ copies: [[motifs]…] }`, une liste par copie ; `{ illisible }` ;
+ * `null` : pas de ticket, pas de copie, origin injoignable, grammaire absente. Lu seulement quand le chemin est sensible.
+ * Une copie locale qui ne compte pas et porte le ticket est nommée dans `perimees` (avec `copies`, `illisible`, ou seule à
+ * la place de `null`) : le refus dit alors le geste qui la relit, avant d'écrire au conducteur.
  */
 function accordes() {
   try {
@@ -88,20 +90,23 @@ function accordes() {
         .filter(Boolean)
         .map((ligne) => ligne.split(/\s+/).reverse()),
     );
+    const perimees = [];
     const copiesSous = (motif) => {
       const copies = [];
       for (const ligne of git('for-each-ref', '--format=%(objectname) %(refname)', motif).split('\n').filter(Boolean)) {
         const [sha, ref] = ligne.split(' ');
+        const fichiers = git('ls-tree', '-r', '-z', '--name-only', sha, 'docs').split('\0').filter((f) => f && !estArchive(f) && identifiantDuTicket(f.split('/').pop() ?? '') === id);
+        if (fichiers.length > 0 && distants.get(ref.replace('refs/remotes/origin/', 'refs/heads/')) !== sha) perimees.push(ref.replace('refs/remotes/', ''));
         if (distants.get(ref.replace('refs/remotes/origin/', 'refs/heads/')) !== sha) continue;
-        for (const f of git('ls-tree', '-r', '-z', '--name-only', sha, 'docs').split('\0').filter(Boolean))
-          if (!estArchive(f) && identifiantDuTicket(f.split('/').pop() ?? '') === id) copies.push(lireSensibles(git('show', `${sha}:${f}`)));
+        for (const f of fichiers) copies.push(lireSensibles(git('show', `${sha}:${f}`)));
       }
       return copies;
     };
     let copies = copiesSous('refs/remotes/origin/sujet/');
     if (copies.length === 0) copies = copiesSous('refs/remotes/origin/develop');
-    if (copies.length === 0) return null;
+    if (copies.length === 0) return perimees.length > 0 ? { perimees } : null;
     const illisible = copies.find((c) => c.illisible);
+    if (perimees.length > 0) return { ...(illisible ? { illisible: illisible.illisible } : { copies: copies.map((c) => c.chemins) }), perimees };
     return illisible ? { illisible: illisible.illisible } : { copies: copies.map((c) => c.chemins) };
   } catch {
     return null;

@@ -107,7 +107,7 @@ test("demarrer refuse quand la spec du ticket n’est pas encore sur le sujet", 
   assert.equal(r.status, 4, r.stdout + r.stderr);
   assert.match(r.stdout, /spec SPEC_ALL_DEM-1 n'est pas encore sur sujet\/demo/);
   // A-69 (lot 5c) : une session ne reporte jamais develop dans un sujet ; c'est le capitaine qui le fait.
-  assert.match(r.stdout, /le capitaine la reporte dans le sujet de lui-même à chaque\nlancement de sa boucle \(A-69\) : attendre, ou le lui demander ; une session ne lance jamais `sujet\.sh rafraichir`\./);
+  assert.match(r.stdout, /le capitaine la reporte dans le sujet de lui-même à chaque\nlancement de sa boucle \(A-69\) : attendre, ou l'écrire à ton conducteur \(à qui t'a lancé\), qui le demande au capitaine ; une session ne lance jamais `sujet\.sh rafraichir`\./);
   assert.doesNotMatch(r.stdout, /`sujet\.sh rafraichir demo`/);
 });
 

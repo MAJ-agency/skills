@@ -543,6 +543,8 @@ test('lot 5a, lireCleRelecture : la forme que le Relecteur lit, ni plus ni moins
   assert.equal(lire([]), null);
   assert.equal(revueExigee.lireCleRelecture('{'), null, 'contrat illisible qui ne nomme pas la clé : régime 7, jugé comme avant');
   assert.equal(revueExigee.lireCleRelecture('{ "relecture": {'), 'illisible');
+  // La clé se nomme entre guillemets : un contrat cassé dont un chemin sensible contient « relecture » reste en régime 7.
+  assert.equal(revueExigee.lireCleRelecture('{ "cheminsSensibles": ["skills/chaine/relecture/**", "relecture/"],\n'), null, 'chemin qui contient le mot');
   assert.deepEqual(lire({ relecture: { depuis: '2026-12-01T10:00:00Z' } }), { depuis: Date.UTC(2026, 11, 1, 10) });
   assert.deepEqual(lire({ relecture: { depuis: '2026-02-30T10:00:00Z' } }), { depuis: Date.UTC(2026, 2, 2, 10) });
   assert.deepEqual(lire({ relecture: { depuis: '2026-12-01T10:00:00.250Z', delai: 30, ordinaire: { modele: 'sonnet', effort: 'low' }, sensible: { modele: 'opus', effort: 'max' } } }), { depuis: Date.UTC(2026, 11, 1, 10, 0, 0, 250) });

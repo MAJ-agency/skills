@@ -11,7 +11,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 // Posé dans un projet, depot-jouet.mjs est à côté (scripts/chaine/) ; dans le plugin, il est dans le skill sujet.
-const { depotJouet, script: scriptDe } = await import(
+const { depotJouet, script: scriptDe, GRAMMAIRE } = await import(
   existsSync(new URL("./depot-jouet.mjs", import.meta.url)) ? "./depot-jouet.mjs" : "../../sujet/scripts/depot-jouet.mjs"
 );
 const { ecrireDistribution } = await import(pathToFileURL(scriptDe("fusionner", "decision-relecteur.mjs")).href);
@@ -368,4 +368,66 @@ test("régime 8 : un calcul absent à côté de revue-exigee.mjs est une panne (
   const r = spawnSync(process.execPath, [join(plat, "revue-exigee.mjs"), "", "docs(a): a", "origin/develop", "--ouverte", "2026-11-17T11:00:00Z", "--tete", "a".repeat(40), "--branche", "feat/a", "--commentaires", fil], { cwd: d.travail, env: d.env, input: "docs/a.md\n", encoding: "utf8" });
   assert.equal(r.status, 3, r.stdout + r.stderr);
   assert.match(r.stdout, /^revue du capitaine en échec : /m);
+});
+
+// Contre-relecture de la PR 149 (tour 1) : le verdict porte sur le contenu du sommet ; un calcul absent est une panne ;
+// un contrat de base illisible rend le chemin sensible, comme chez le Relecteur (les mêmes faits).
+test("régime 8, passer.sh : un tour validé sur un sommet plus ancien, puis un vrai commit de l'auteur : renvoyée en 4, jamais fusionnée", () => {
+  const d = monter();
+  versDevelop(d);
+  d.branche("feat/a", "feat/a", { "docs/a2.md": "a2\n" }, "docs(a): suite");
+  d.git("switch", "-q", "--detach", "origin/develop");
+  const r = passer(d);
+  assert.equal(r.status, 4, r.stdout + r.stderr);
+  assert.match(dernier(r), /aucun tour de relecture validé pour le contenu de ce sommet \(.*porte sur un autre contenu$/);
+  assert.deepEqual(fusions(d), []);
+});
+
+test("régime 8 : double-relecture.mjs ou meme-contenu.sh absent à côté de revue-exigee.mjs, la grammaire posée : panne (3), jamais une lecture illisible (21)", () => {
+  for (const absent of ["double-relecture.mjs", "meme-contenu.sh"]) {
+    const d = monter();
+    const chaine = join(d.racine, "projet", "scripts", "chaine");
+    mkdirSync(chaine, { recursive: true });
+    mkdirSync(join(d.racine, "projet", "scripts", "docs"));
+    writeFileSync(join(d.racine, "projet", "scripts", "docs", "identifiants.mjs"), readFileSync(GRAMMAIRE, "utf8"));
+    for (const c of ["revue-exigee.mjs", "decision-relecteur.mjs", "verdict.mjs", "double-relecture.mjs", "meme-contenu.sh"])
+      if (c !== absent) writeFileSync(join(chaine, c), readFileSync(scriptDe("fusionner", c), "utf8"));
+    const fil = join(d.racine, "fil.json");
+    writeFileSync(fil, "[]\n");
+    const r = spawnSync(process.execPath, [join(chaine, "revue-exigee.mjs"), "", "docs(a): a", "origin/develop", "--ouverte", "2026-11-17T11:00:00Z", "--tete", "a".repeat(40), "--branche", "feat/a", "--commentaires", fil], { cwd: d.travail, env: d.env, input: "docs/a.md\n", encoding: "utf8" });
+    assert.equal(r.status, 3, `${absent} : ${r.stdout}${r.stderr}`);
+    assert.match(r.stdout, new RegExp(`^revue du capitaine en échec : ${absent.replace(".", "\\.")} absent à côté de revue-exigee\\.mjs$`, "m"));
+  }
+});
+
+test("régime 8, passer.sh : `cheminsSensibles` illisible sur la base rend tout chemin sensible, comme chez le Relecteur : un `validé` sans `/security-review: lancée` ne suffit pas", () => {
+  const d = monter({ cheminsSensibles: "scripts/agent/**", relecture: CONTRAT.relecture });
+  versDevelop(d);
+  const r = passer(d);
+  assert.equal(r.status, 4, r.stdout + r.stderr);
+  assert.match(dernier(r), /chemin sensible : `\/security-review: lancée` exigée dans le verdict/);
+  assert.deepEqual(fusions(d), []);
+});
+
+test("régime 8, passer.sh : les commentaires se lisent sur toutes leurs pages (A-108) : un second tour `refusé`, en page 2, est vu ; renvoyée, jamais fusionnée", () => {
+  const d = monter();
+  versDevelop(d, { fil: (sha) => [...valide(sha), D(2, sha, ["session_rel2"]), V(sha, 2, "session_rel2", "refusé")], autres: { pageCommentaires: 2 } });
+  const r = passer(d);
+  assert.equal(r.status, 4, r.stdout + r.stderr);
+  assert.match(dernier(r), /aucun tour de relecture validé pour le contenu de ce sommet/);
+  assert.deepEqual(fusions(d), []);
+});
+
+test("régime 8, passer.sh : un push reçu entre la lecture de la PR et le fetch n'est pas renvoyé faute de verdict : sautée en 7, reprise au passage suivant", () => {
+  const d = monter();
+  // Le faux rend le sommet lu (X, validé) quand origin porte déjà le push suivant (O) : la fenêtre, figée.
+  const x = versDevelop(d);
+  d.branche("feat/a", "feat/a", { "docs/a2.md": "a2\n" }, "docs(a): suite");
+  d.git("switch", "-q", "--detach", "origin/develop");
+  const etat = d.etat();
+  d.github({ pulls: [{ ...etat.pulls[0], sha: x }] });
+  const r = passer(d);
+  assert.equal(r.status, 7, r.stdout + r.stderr);
+  assert.match(dernier(r), /la PR a reçu un push pendant sa lecture \(origin\/feat\/a n'est plus le sommet lu\) : sautée sans renvoi/);
+  assert.ok(!d.journal().some((e) => e.champs?.["labels[]"] === "fusion-bloquée"), "aucun renvoi");
 });

@@ -445,6 +445,12 @@ cle_relecture_sur() {
   git show "$1:.claude/chaine.json" 2>/dev/null | jq -e 'type == "object" and has("relecture")' >/dev/null 2>&1
 }
 
+# La demande de relecture d'un auteur, en régime 8, à la forme exacte que lit le Relecteur (`FORME_DEMANDE` de
+# decision-relecteur.mjs), pour les messages qui la font écrire (`renvoyer.sh`, `sujet.sh demarrer`) : un commentaire qui
+# commence par `À relire — ` sans cette forme est une marque presque à la forme, et la PR est sautée sans renvoi à chaque
+# passage du capitaine (A-113) tant qu'il reste.
+DEMANDE_DE_RELECTURE="le commentaire \`À relire — sommet <sha> — Session: <id> — Conducteur: <id>\`, seul dans son commentaire, sur une ligne : le sha entier (40 caractères) du dernier push, ton id de session, celui de ton conducteur (\`—\` sans conducteur)"
+
 # Le régime d'une PR (A-97) : `regime_de_la_pr <base> <created_at>` écrit 7, 8, ou `illisible` (clé mal formée, date),
 # par `regimeDeLaPr` de `revue-exigee.mjs`, sur `origin/<base>` tel qu'il est là. Pour les messages et les renvois
 # (lot 5c) ; la fusion se juge par `revue_du_capitaine`.
@@ -483,7 +489,9 @@ revue_du_capitaine() {
   # Sans la clé `relecture` sur la base, la PR est en régime 7 quelle que soit sa date : rien à relire ni à lire de plus
   # qu'aujourd'hui (aucun fetch, aucune lecture des commentaires), la CLI juge la section de revue.
   if cle_relecture_sur "origin/$base"; then
-    git_masque fetch -q origin '+refs/heads/develop:refs/remotes/origin/develop' '+refs/heads/sujet/*:refs/remotes/origin/sujet/*' ||
+    # `--prune`, comme `carte` de sujet.sh : un sujet supprimé du distant ne garde pas sa copie ancienne d'un ticket pour
+    # la garde des fichiers sensibles, qui lit toutes les refs `origin/sujet/*`.
+    git_masque fetch -q --prune origin '+refs/heads/develop:refs/remotes/origin/develop' '+refs/heads/sujet/*:refs/remotes/origin/sujet/*' ||
       { echo "origin illisible à la relecture de develop et des sujets (revue du capitaine)" >&2; return 5; }
     brut=$(lire_github "$DEPOT/issues/$(jq -r .number <<<"$pr")/comments?per_page=100" --paginate) || return 5
   fi

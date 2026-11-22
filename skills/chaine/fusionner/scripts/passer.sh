@@ -193,6 +193,10 @@ if [ "$livraison_sujet" = 0 ]; then
   # Le Relecteur ne relit qu'une PR vers develop ou vers un sujet : une pile n'aurait jamais de verdict.
   [ "$regime" != 8 ] || [ "$base" = develop ] ||
     sortir 4 "PR empilée sur $base en régime 8 : le Relecteur ne relit qu'une PR vers develop ou vers un sujet ; la recibler sur develop, puis demander sa relecture"
+  # Un push reçu entre la lecture de la PR et le fetch : le verdict manque pour un sommet que le Relecteur n'a pas encore
+  # vu, jamais un renvoi ; sautée, comme au contrôle du verrou (« sommet changé »), et reprise au passage suivant.
+  [ "$regime" != 8 ] || [ "$statut" != 1 ] || [ "$origine" = "$(champ .head.sha)" ] ||
+    sortir 7 "la PR a reçu un push pendant sa lecture (origin/$tete n'est plus le sommet lu) : sautée sans renvoi, reprise au passage suivant"
   case $statut in
     0) ;;
     1) sortir 4 "$(tail -n 1 <<<"$revue")" ;;

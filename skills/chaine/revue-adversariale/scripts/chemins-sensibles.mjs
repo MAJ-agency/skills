@@ -228,7 +228,7 @@ async function garde({ base, titre, branche, conflits, tickets }, fichiers) {
   // La grammaire d'abord : sans elle, `ticketsDeLaPr` rend `[]`, et la PR serait dite « sans ticket » à tort.
   if (!GRAMMAIRE) throw new Illisible("scripts/docs/identifiants.mjs introuvable : le ticket ne se lit pas");
   const ids = tickets !== undefined ? tickets.split(",").map((t) => t.trim()).filter(Boolean) : ticketsDeLaPr(titre, branche);
-  if (ids.length === 0) throw new Motif(`PR sans ticket qui touche un chemin sensible (${liste(() => true)}) : en régime 8, un chemin sensible ne se modifie que sur la branche d'un ticket dont la ligne \`Sensibles:\` l'accorde (A-73)`);
+  if (ids.length === 0) throw new Motif(`PR sans ticket qui touche un chemin sensible (${liste(() => true)}) : en régime 8, un chemin sensible ne se modifie que sur la branche d'un ticket dont la ligne \`Sensibles:\` l'accorde (A-73) ; l'écrire au conducteur (le chemin, pourquoi, ce qui y change) : il obtient l'accord du produit et le note sur un ticket (A-75), puis la PR repart de la branche de ce ticket`);
   const G = await import(pathToFileURL(GRAMMAIRE).href);
   const git = (...a) => {
     try {
@@ -255,10 +255,10 @@ async function garde({ base, titre, branche, conflits, tickets }, fichiers) {
   for (const id of ids) {
     let parTicket = copiesSur(sujets, id);
     if (parTicket.size === 0) parTicket = copiesSur([develop], id);
-    if (parTicket.size === 0 && tickets === undefined) throw new Motif(`ticket ${id} introuvable sur les origin/sujet/* et sur origin/develop : sa ligne \`Sensibles:\` ne se lit pas, et la PR touche un chemin sensible (${liste(() => true)})`);
+    if (parTicket.size === 0 && tickets === undefined) throw new Motif(`ticket ${id} introuvable sur les origin/sujet/* et sur origin/develop : sa ligne \`Sensibles:\` ne se lit pas, et la PR touche un chemin sensible (${liste(() => true)}) ; l'écrire au conducteur : le ticket entre d'abord sur son sujet (ou sur develop), avec l'accord sur sa ligne (A-75)`);
     for (const [t, copies] of parTicket) {
       const mal = copies.find((c) => c.illisible);
-      if (mal) throw new Motif(`ligne \`Sensibles:\` du ticket ${t} illisible (${mal.illisible}) : la corriger sur le sujet`);
+      if (mal) throw new Motif(`ligne \`Sensibles:\` du ticket ${t} illisible (${mal.illisible}) : l'écrire au conducteur, qui la corrige par une PR de documentation vers le sujet (A-75) ; la session ne l'écrit jamais elle-même`);
       accords.push(copies.map((c) => c.chemins));
     }
   }

@@ -623,4 +623,7 @@ test('lot 5c, régime 8 : `Label: contre-revue` n’est plus exigé ; un ticket 
   for (const status of ['Fait — PR #12', 'wontfix'])
     assert.deepEqual(erreurs(pret('', 'Règles: RULE_ALL_SOC-1\n').replace('ready-for-agent', status)), [], `${status} : fermé`);
   assert.deepEqual(ecartsRelectureDouble({ status: 'needs-triage', valeursRegles: ['`RULE_ALL_SOC-1`, RULE_ALL_SOC-2'], relecture: false, niveauDe }).length, 1);
+  // Un ticket gelé dans la dette (format « prêt » dispensé) n'en est pas dispensé (A-185, point 5).
+  const gele = controlerTicket({ nom, texte: pret('', 'Règles: RULE_ALL_SOC-1\n'), existe, regleExiste, regime: 8, niveauDe, gele: true }).erreurs.map((e) => e.message);
+  assert.deepEqual(gele, ['régime 8 : ligne `Relecture: double` absente alors que le ticket cite RULE_ALL_SOC-1, règle de criticité haute (deux relectures indépendantes, A-90)'], 'gelé : exigée quand même');
 });

@@ -45,6 +45,8 @@
 //               dépôt, comme GitHub). `POST issues/<n>/comments` rend { id, created_at, author_association… } ;
 //               `PATCH issues/comments/<id>` réécrit le corps et date `updated_at` (`PR.editions`, rang → date) ;
 //               `DELETE issues/comments/<id>` le retire des lectures (`PR.supprimes`, les rangs) ; les deux journalisés
+//   pageCommentaires  k : `GET issues/<n>/comments` rend ses commentaires par pages de k, comme GitHub : sans
+//               `--paginate`, la première page seule ; avec, chaque page l'une après l'autre (`--jq` joué page par page)
 //   concurrent  un commentaire (corps ou objet) d'un autre capitaine, inséré juste AVANT le prochain commentaire posé
 //               (un id plus petit), puis retiré : deux capitaines arrivés à la même seconde
 //   apresCommentaire  { state, labels… } assigné à la PR qui reçoit le prochain commentaire posé, puis retiré (jouée une
@@ -105,6 +107,7 @@ for (let essais = 0; ; essais++) {
 process.on("exit", () => rmSync(VERROU, { recursive: true, force: true }));
 
 const etat = JSON.parse(readFileSync(FICHIER, "utf8"));
+const PAGES = Symbol("pages");
 
 const args = process.argv.slice(2);
 if (args.shift() !== "api")
@@ -113,6 +116,7 @@ if (args.shift() !== "api")
   );
 let methode = "GET";
 let jqExpr = null;
+let paginer = false;
 let entree = null;
 let chemin = null;
 const champs = {};
@@ -120,7 +124,7 @@ while (args.length) {
   const a = args.shift();
   if (a === "-X") methode = args.shift();
   else if (a === "--jq") jqExpr = args.shift();
-  else if (a === "--paginate") continue;
+  else if (a === "--paginate") paginer = true;
   else if (a === "--input") {
     const source = args.shift();
     entree = readFileSync(source === "-" ? 0 : source, "utf8");
@@ -353,7 +357,12 @@ function repondre() {
   // Lecture des commentaires, comme GitHub les rend : un corps seul est du compte du capitaine. Les supprimés n'y sont plus.
   if ((m = route.match(/^issues\/(\d+)\/comments$/)) && methode === "GET") {
     const p = pr(m[1]);
-    return (p.commentaires ?? []).map((_, i) => i).filter((i) => !(p.supprimes ?? []).includes(i)).map((i) => commentaireRest(p, i));
+    const tous = (p.commentaires ?? []).map((_, i) => i).filter((i) => !(p.supprimes ?? []).includes(i)).map((i) => commentaireRest(p, i));
+    const k = etat.pageCommentaires;
+    if (!(Number.isSafeInteger(k) && k >= 1)) return tous;
+    const pages = [];
+    for (let i = 0; i < tous.length; i += k) pages.push(tous.slice(i, i + k));
+    return paginer ? { [PAGES]: pages.length ? pages : [[]] } : (pages[0] ?? []);
   }
   if ((m = route.match(/^issues\/comments\/(\d+)$/)) && (methode === "PATCH" || methode === "DELETE")) {
     const { p, i } = commentaireParId(Number(m[1]));
@@ -487,11 +496,14 @@ function fusionner(
 panne();
 const reponse = repondre();
 sauver();
-const json = JSON.stringify(reponse);
-if (jqExpr === null) process.stdout.write(`${json}\n`);
-else {
-  const r = spawnSync("jq", ["-r", jqExpr], { input: json, encoding: "utf8" });
-  process.stdout.write(r.stdout);
-  process.stderr.write(r.stderr);
-  process.exit(r.status ?? 1);
+// Plusieurs pages (`pageCommentaires`, `--paginate`) : chacune écrite à son tour, comme `gh`, `--jq` joué sur chacune.
+for (const page of reponse?.[PAGES] ?? [reponse]) {
+  const json = JSON.stringify(page);
+  if (jqExpr === null) process.stdout.write(`${json}\n`);
+  else {
+    const r = spawnSync("jq", ["-r", jqExpr], { input: json, encoding: "utf8" });
+    process.stdout.write(r.stdout);
+    process.stderr.write(r.stderr);
+    if ((r.status ?? 1) !== 0) process.exit(r.status ?? 1);
+  }
 }

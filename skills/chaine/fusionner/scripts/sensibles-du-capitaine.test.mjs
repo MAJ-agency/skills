@@ -72,6 +72,7 @@ test("régime 8, passer.sh : une PR sans ticket qui touche un chemin sensible es
   const r = passer(d);
   assert.equal(r.status, 4, r.stdout + r.stderr);
   assert.match(dernier(r), /PR sans ticket qui touche un chemin sensible \(scripts\/agent\/x\.mjs\)/);
+  assert.match(dernier(r), /l'écrire au conducteur \(le chemin, pourquoi, ce qui y change\) : il obtient l'accord du produit et le note sur un ticket \(A-75\), puis la PR repart de la branche de ce ticket$/, "le geste de l'auteur");
   const doc = monter();
   versDevelop(doc, { fichiers: { "docs/a.md": "a\n" }, tete: "feat/x", titre: "docs(a): a" });
   assert.equal(passer(doc).status, 0);
@@ -159,13 +160,13 @@ test("garde : chaque copie du ticket doit couvrir le chemin ; avec deux tickets,
   assert.equal(deux.status, 0, deux.stdout + deux.stderr);
   const introuvable = garde("scripts/agent/x.mjs\n", "feat: x", "feat/spec-all-demo-1-09-x");
   assert.equal(introuvable.status, 20);
-  assert.match(introuvable.stdout, /ticket SPEC_ALL_DEMO-1\.09 introuvable sur les origin\/sujet\/\* et sur origin\/develop/);
+  assert.match(introuvable.stdout, /ticket SPEC_ALL_DEMO-1\.09 introuvable sur les origin\/sujet\/\* et sur origin\/develop.* ; l'écrire au conducteur : le ticket entre d'abord sur son sujet \(ou sur develop\), avec l'accord sur sa ligne \(A-75\)$/m);
   const usage = spawnSync(process.execPath, [GARDE, "--garde", "--base", "develop"], { cwd: d.travail, env: d.env, input: "", encoding: "utf8" });
   assert.equal(usage.status, 2);
   const mal = monter({ 1: "Sensibles: scripts/agent/** — accord de la MOA" });
   const r = spawnSync(process.execPath, [GARDE, "--garde", "--base", "develop", "--titre", "feat: x", "--branche", "feat/spec-all-demo-1-01-x"], { cwd: mal.travail, env: mal.env, input: "scripts/agent/x.mjs\n", encoding: "utf8" });
   assert.equal(r.status, 20);
-  assert.match(r.stdout, /ligne `Sensibles:` du ticket SPEC_ALL_DEMO-1\.01 illisible/);
+  assert.match(r.stdout, /ligne `Sensibles:` du ticket SPEC_ALL_DEMO-1\.01 illisible .* : l'écrire au conducteur, qui la corrige par une PR de documentation vers le sujet \(A-75\) ; la session ne l'écrit jamais elle-même$/m);
 });
 
 test("garde : sans la grammaire des identifiants, la lecture est illisible (21), jamais « PR sans ticket »", () => {
@@ -178,4 +179,28 @@ test("garde : sans la grammaire des identifiants, la lecture est illisible (21),
   const r = spawnSync(process.execPath, [join(plat, "chemins-sensibles.mjs"), "--garde", "--base", "develop", "--titre", "feat: x", "--branche", "feat/spec-all-demo-1-01-x"], { cwd: d.travail, env: d.env, input: "scripts/agent/x.mjs\n", encoding: "utf8" });
   assert.equal(r.status, 21, r.stdout + r.stderr);
   assert.match(r.stdout, /lecture illisible : scripts\/docs\/identifiants\.mjs introuvable/);
+});
+
+test("garde : vers un sujet, les chemins sensibles sont ceux du contrat du sujet et de develop ; un chemin que seul le sujet déclare sensible est jugé (contre-relecture de la PR 149)", () => {
+  const d = monter({ 1: ACCORD("`scripts/agent/**`") });
+  // Le sujet ajoute à son contrat un chemin sensible que develop n'a pas.
+  d.branche("sujet/lot", "origin/develop", { ".claude/chaine.json": `${JSON.stringify({ ...CONTRAT, cheminsSensibles: [...CONTRAT.cheminsSensibles, "docs/lot/"] }, null, 2)}\n` });
+  d.git("switch", "-q", "--detach", "origin/develop");
+  const garde = (fichiers) => spawnSync(process.execPath, [GARDE, "--garde", "--base", "sujet/lot", "--titre", "docs(lot): x", "--branche", "feat/spec-all-demo-1-01-x"], { cwd: d.travail, env: d.env, input: fichiers, encoding: "utf8" });
+  const r = garde("docs/lot/a.md\n");
+  assert.equal(r.status, 20, r.stdout + r.stderr);
+  assert.match(r.stdout, /chemin sensible hors de la ligne `Sensibles:` de son ticket SPEC_ALL_DEMO-1\.01 \(docs\/lot\/a\.md\)/);
+  assert.equal(garde("scripts/agent/x.mjs\n").status, 0, "le chemin de develop, accordé");
+});
+
+test("régime 8, passer.sh : un sujet supprimé du distant ne garde pas, dans le clone du capitaine, sa copie ancienne du ticket (le fetch élague) (contre-relecture de la PR 149)", () => {
+  const d = monter({ 1: ACCORD("`scripts/agent/**`") });
+  // Le sujet porte une copie du ticket sans l'accord ; un autre le supprime du distant, la ref reste dans ce clone.
+  d.branche("sujet/ancien", "origin/develop", { [TICKET(1)]: ticket(1, "Sensibles: —") });
+  spawnSync("git", ["--git-dir", d.origine, "update-ref", "-d", "refs/heads/sujet/ancien"], { env: d.env });
+  versDevelop(d, { fichiers: { "scripts/agent/x.mjs": "export {};\n" } });
+  assert.ok(d.git("for-each-ref", "refs/remotes/origin/sujet/").includes("sujet/ancien"), "la ref du sujet supprimé est là avant le passage");
+  const r = passer(d);
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /FUSIONNÉE/);
 });
