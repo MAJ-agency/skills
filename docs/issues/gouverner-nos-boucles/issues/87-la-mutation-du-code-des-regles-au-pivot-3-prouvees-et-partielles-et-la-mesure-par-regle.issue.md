@@ -1,6 +1,6 @@
 # La preuve suffisante, part de `skills` (K6) : la mutation du `code` des règles lit l'index au pivot 3, garde les règles prouvées et partielles, et mesure chaque règle
 
-Status: ready-for-agent
+Status: Fait — PR 154 (`56ba394`, plugin 8.2.0)
 Type: task
 Label: contre-revue
 Modèle: sonnet — le périmètre de la mutation étendu au pivot 3 et une mesure par règle, sans rien à concevoir ; le code entier est dans le patch commun aux tickets 86, 87 et 88 ([`86-88-annexes/pr-socle-tests.patch`](86-88-annexes/pr-socle-tests.patch), sha256 `2d18d2842e677e39788054dbbe949cbde74009f57f648e24eabb2f9613a8e74a`, `git apply` sur `ddb4265`) ; les gestes sont ceux du ticket 86, « À faire, dans l'ordre ». Rien n'est à concevoir : qui veut changer une décision l'écrit à son lanceur, il ne tranche pas.

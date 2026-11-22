@@ -1,6 +1,6 @@
 # La preuve suffisante, part de `skills` (K6, suite) : la mesure datée publiée en artefact, la baisse d'une règle moyenne, le workflow, l'ADR, la version de la PR « socle-tests »
 
-Status: ready-for-agent
+Status: Fait — PR 154 (`56ba394`, plugin 8.2.0)
 Type: task
 Label: contre-revue
 Modèle: sonnet — le § 7 de `SPEC_ALL_ANC-5` et `A-26` joués dans la synthèse et le workflow du socle ; le code et le texte entiers sont dans le patch commun aux tickets 86, 87 et 88 ([`86-88-annexes/pr-socle-tests.patch`](86-88-annexes/pr-socle-tests.patch), sha256 `2d18d2842e677e39788054dbbe949cbde74009f57f648e24eabb2f9613a8e74a`, `git apply` sur `ddb4265`) ; les gestes sont ceux du ticket 86, « À faire, dans l'ordre ». Rien n'est à concevoir : qui veut changer une décision l'écrit à son lanceur, il ne tranche pas.
