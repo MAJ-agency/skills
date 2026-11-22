@@ -1,0 +1,21 @@
+# Rouges avant la retouche du tour 1 : suites-du-lot-5.test.mjs de retouche-152-tour-1.patch (8 tests), sur des codes sans elle
+## sur 4afd6e2 (le code de la PR, boucle.sh d'avant la retouche) : seul le cas de la boucle est rouge
+not ok 7 - boucle.sh : deux sous-PR d'un sujet, l'une de fourche : la fourche est sautée sans renvoi et ne tient pas son sujet, l'autre entre au même tour ; dans les deux régimes, la fourche « prête » (fusionner) ou « prête (sans CI) » (relancer) (A-201)
+# tests 8
+# pass 7
+# fail 1
+## sur ddb4265 (8.0.0)
+not ok 1 - passer.sh : une PR de fourche dont la branche porte le nom d'une branche d'origin est sautée sans renvoi (7), dans les deux régimes : rien de lu sur sa tête, rien de poussé, rien d'écrit (A-192, point 2)
+not ok 2 - sujet.sh fusionner : une sous-PR de fourche est sautée sans renvoi (7), dans les deux régimes, avant tout fetch de sa tête ; une tête sans dépôt aussi (A-192, point 2)
+not ok 3 - sujet.sh relancer : une sous-PR de fourche « prête (sans CI) » est sautée sans renvoi (7), dans les deux régimes, avant tout fetch : la branche d'origin du même nom n'est ni fusionnée ni poussée (A-192, point 2)
+not ok 4 - sujet.sh fusionner, régime 8 : une PR de mise à jour ne joue qu'une revue du capitaine au premier contrôle, puis la seconde juste avant d'avancer le sujet (la suite M1 du lot 5)
+not ok 6 - garde du capitaine : une PR de mise à jour d'un sujet qu'aucun ticket ne déclare dit son geste, jamais celui d'une PR sans ticket (la suite M2 du lot 5)
+not ok 7 - boucle.sh : deux sous-PR d'un sujet, l'une de fourche : la fourche est sautée sans renvoi et ne tient pas son sujet, l'autre entre au même tour ; dans les deux régimes, la fourche « prête » (fusionner) ou « prête (sans CI) » (relancer) (A-201)
+# tests 8
+# pass 2
+# fail 6
+## sur 4afd6e2 + retouche-152-tour-1.patch (charge 7,9 → 8,4)
+# tests 8
+# pass 8
+# fail 0
+## le banc du sens 8 → 7 (« … le régime lu d'abord est 8, la revue relit 7 … ») est vert sur 4afd6e2 comme sur 8.0.0 : il tient le code ; X4 le rougit (mutations/contre-relecture-tour-1.txt)

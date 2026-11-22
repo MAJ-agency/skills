@@ -52,3 +52,27 @@ fusionnées : [] ; écritures sur #80 : 0 ()
 ℹ tests 2
 ℹ pass 2
 ℹ fail 0
+== la PR avec retouche-152-tour-1.patch
+--- fusionner, tour 1 (sortie 0)
+[#80] #80 : PR de fourche (autre/jouet) : sa tête vit hors du dépôt, le capitaine ne la lit pas ; sautée sans renvoi
+[#80] sous-PR de fourche, sautée (aucun renvoi) : elle ne tient pas sujet/lot
+[#81] #81 fusionnée dans sujet/lot
+[#81] FUSIONNÉE dans sujet/lot 
+--- fusionner, tour 2 (sortie 0)
+[#80] #80 : PR de fourche (autre/jouet) : sa tête vit hors du dépôt, le capitaine ne la lit pas ; sautée sans renvoi
+[#80] sous-PR de fourche, sautée (aucun renvoi) : elle ne tient pas sujet/lot
+fusionnées : [81] ; écritures sur #80 : 0 ()
+--- relancer, tour 1 (sortie 0)
+[#80] #80 : PR de fourche (autre/jouet) : sa tête vit hors du dépôt, le capitaine ne la lit pas ; sautée sans renvoi
+[#80] sous-PR de fourche, sautée (aucun renvoi) : elle ne tient pas sujet/lot
+[#81] #81 fusionnée dans sujet/lot
+[#81] FUSIONNÉE dans sujet/lot 
+--- relancer, tour 2 (sortie 0)
+[#80] #80 : PR de fourche (autre/jouet) : sa tête vit hors du dépôt, le capitaine ne la lit pas ; sautée sans renvoi
+[#80] sous-PR de fourche, sautée (aucun renvoi) : elle ne tient pas sujet/lot
+fusionnées : [81] ; écritures sur #80 : 0 ()
+✔ fourche #80 « prête » (fusionner), sous-PR ordinaire #81 dans le même sujet (17352.346987ms)
+✔ fourche #80 « prête (sans CI) » (relancer), sous-PR ordinaire #81 dans le même sujet (17160.471359ms)
+ℹ tests 2
+ℹ pass 2
+ℹ fail 0

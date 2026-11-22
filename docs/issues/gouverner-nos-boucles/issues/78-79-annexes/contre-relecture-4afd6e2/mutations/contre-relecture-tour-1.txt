@@ -1,0 +1,11 @@
+ROUGE X1 sujet.sh fusionner : une tête sans dépôt (fourche supprimée) passe pour une tête du dépôt (41 s) — sujet.sh fusionner : une sous-PR de fourche est sautée sans 
+ROUGE X2 sujet.sh relancer : une tête sans dépôt (fourche supprimée) passe pour une tête du dépôt (43 s) — sujet.sh relancer : une sous-PR de fourche « prête (sans CI)
+ROUGE X3 sujet.sh fusionner : la garde de fourche ne joue qu'en régime 8 (36 s) — sujet.sh fusionner : une sous-PR de fourche est sautée sans  | boucle.sh : deux sous-PR d'un sujet, l'une de fourche : la f
+ROUGE X4 sujet.sh fusionner : la revue rejouée toujours sur la liste du régime 8 (44 s) — sujet.sh fusionner : le régime lu d'abord est 8, la revue re
+ROUGE P1 boucle.sh : la fourche n'est pas reconnue (le code de 4afd6e2 : elle tient son sujet) (20 s) — boucle.sh : deux sous-PR d'un sujet, l'une de fourche : la f
+ROUGE P2 boucle.sh : la fourche reconnue après relancer seulement (fusionner : elle tient son sujet) (19 s) — boucle.sh : deux sous-PR d'un sujet, l'une de fourche : la f
+ROUGE P3 boucle.sh : la fourche reconnue après fusionner seulement (relancer : elle tient son sujet) (34 s) — boucle.sh : deux sous-PR d'un sujet, l'une de fourche : la f
+ROUGE P4 boucle.sh : le sujet rendu, mais la ligne de relancer ne nomme pas la fourche (32 s) — boucle.sh : deux sous-PR d'un sujet, l'une de fourche : la f
+ROUGE P5 boucle.sh : toute sortie 7 rend le sujet (le verrou d'un autre capitaine compris) (592 s) — boucle.sh : une sous-PR en passage chez un autre capitaine t | boucle.sh : relancer laisse le sujet tenu quand il met à jou | boucle.sh : deux capitaines — une sous-PR en passage chez un | veille.sh et boucle.sh : le verrou d'un capitaine mort tient
+toutes rouges
+sortie 0

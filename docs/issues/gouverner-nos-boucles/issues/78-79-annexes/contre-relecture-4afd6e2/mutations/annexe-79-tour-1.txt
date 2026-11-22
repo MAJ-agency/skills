@@ -1,0 +1,10 @@
+ROUGE H1 garde-fichiers.mjs : l'héritage jugé contre la copie locale de develop, sans la confirmer (le code d'avant, M4 de la PR 149) (4 s) — régime 8 : l’héritage d’une copie de sujet se juge contre le
+ROUGE H2 garde-fichiers.mjs : develop non confirmé, sans geste (la copie compte, le refus ne dit pas de relire develop) (4 s) — régime 8 : l’héritage d’une copie de sujet se juge contre le
+ROUGE H3ʹ garde-fichiers.mjs : develop non confirmé, la copie du sujet compte (le code d'avant le tour de relecture : un accord que develop a retiré, hérité par le sujet, accorderait encore) (4 s) — régime 8 : l’héritage d’une copie de sujet se juge contre le
+ROUGE H4 garde-fichiers.mjs : le clone dit superficiel à toute base de fusion qui ne se lit pas (T2 du quatrième tour, constat 23) (5 s) — régime 8 : dans un clone entier, un refus ne nomme jamais le
+ROUGE H5 regles.mjs : le geste après la raison, entre parenthèses (l'ordre d'avant, constat 24) (13 s) — régime 8 : une copie locale du sujet en retard sur origin n’ | régime 8 : le refus ne nomme que les copies en retard qui po | régime 8 : dans un clone superficiel, la base de fusion d’un | régime 8 : l’héritage d’une copie de sujet se juge contre le | suite 24 du lot 5, refusEdition en régime 8 : le geste qui r
+ROUGE H6 regles.mjs : le geste en tête, sans « puis refaire l'écriture » (11 s) — régime 8 : une copie locale du sujet en retard sur origin n’ | régime 8 : dans un clone superficiel, la base de fusion d’un | régime 8 : l’héritage d’une copie de sujet se juge contre le | suite 24 du lot 5, refusEdition en régime 8 : le geste qui r
+ROUGE H7 regles.mjs : « Aucune ligne lue » perdu quand un geste est dit (11 s) — régime 8 : le refus ne nomme que les copies en retard qui po | suite 24 du lot 5, refusEdition en régime 8 : le geste qui r
+ROUGE H8 regles.mjs : le geste du clone superficiel oublié quand il suit celui des copies (11 s) — suite 24 du lot 5, refusEdition en régime 8 : le geste qui r
+toutes rouges
+sortie 0

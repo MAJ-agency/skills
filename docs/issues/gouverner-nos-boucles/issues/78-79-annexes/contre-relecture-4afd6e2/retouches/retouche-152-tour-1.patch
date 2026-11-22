@@ -1,0 +1,262 @@
+diff --git a/NOTES-DE-VERSION.md b/NOTES-DE-VERSION.md
+index 28515c6..183ae48 100644
+--- a/NOTES-DE-VERSION.md
++++ b/NOTES-DE-VERSION.md
+@@ -6,14 +6,15 @@ La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque pro
+ 
+ ### Ce qui change
+ 
+-- **Une PR de fourche est sautée par le capitaine** (ticket 78, `A-192` point 2) : `passer.sh`, `sujet.sh fusionner` et `sujet.sh relancer` la sautent sans renvoi (sortie 7), dans les deux régimes, avant tout fetch de sa tête, comme le Relecteur la dit illisible. Une fourche dont la branche portait le nom d'une branche d'origin faisait juger, mettre à jour, pousser et fusionner cette branche d'origin à sa place (`relancer` la mettait à jour et la poussait pour une sous-PR sans CI, `A-199`).
+-- **Une PR de mise à jour d'un sujet** (ticket 78) : elle ne joue plus qu'une revue du capitaine au premier contrôle, son régime lu d'abord sur le sujet ; et quand aucun ticket ni aucune spec ne déclare le sujet, son motif dit son geste (un ticket du sujet accorde le chemin sensible), et plus celui d'une PR sans ticket.
+-- **Le hook d'édition** (ticket 79) : l'héritage d'une copie de ticket sur un sujet se juge contre le develop d'origin ; une copie locale de develop en retard ou absente ne juge rien : la copie du sujet ne compte pas, et le refus dit de relire develop (comptée, une copie héritée d'un accord que develop a retiré l'accordait encore, `A-199` point 2). Quand le refus a un geste (relire les copies, approfondir le clone), il vient en tête, avant la demande au conducteur.
++- **Une PR de fourche est sautée par le capitaine** (ticket 78, `A-192` point 2), dans les deux régimes : `passer.sh`, `sujet.sh fusionner` et `sujet.sh relancer` la sautent sans renvoi (sortie 7), avant tout fetch de sa tête, comme le Relecteur la dit illisible. Une fourche dont la branche portait le nom d'une branche d'origin faisait juger, mettre à jour, pousser et fusionner cette branche d'origin à sa place (`relancer` la mettait à jour et la poussait pour une sous-PR sans CI, `A-199`). Une sous-PR de fourche ne tient pas son sujet (`A-201`) : `boucle.sh` la dit « sous-PR de fourche, sautée », et l'autre sous-PR du sujet entre au même tour.
++- **Une PR de mise à jour d'un sujet** (ticket 78, régime 8) : elle ne joue plus qu'une revue du capitaine au premier contrôle, son régime lu d'abord sur le sujet ; et quand aucun ticket ni aucune spec ne déclare le sujet, son motif dit son geste (un ticket du sujet accorde le chemin sensible), et plus celui d'une PR sans ticket.
++- **Le hook d'édition** (ticket 79, régime 8) : l'héritage d'une copie de ticket sur un sujet se juge contre le develop d'origin ; une copie locale de develop en retard ou absente ne juge rien : la copie du sujet ne compte pas, et le refus dit de relire develop (comptée, une copie héritée d'un accord que develop a retiré l'accordait encore, `A-199` point 2). Quand le refus a un geste (relire les copies, approfondir le clone), il vient en tête, avant la demande au conducteur.
++- Rien d'autre ne change en régime 7 (un dépôt sans la clé `relecture`) : la fourche y est sautée de même, sans tenir son sujet ; le premier contrôle d'une PR de mise à jour n'y jouait déjà qu'une revue, et la garde des chemins sensibles du capitaine comme le refus du hook n'y tournent pas.
+ 
+ ### Ce qu'un projet fait pour en profiter
+ 
+ 1. Mettre à jour le plugin (comme pour 7.31.0, étape 1).
+-2. Reposer, dans une PR du projet : `/maj-skills:fusionner poser`, `/maj-skills:sujet poser`, `/maj-skills:revue-adversariale poser` et `/maj-skills:socle-chaine-de-production` (le hook d'édition) ; puis relancer le capitaine.
++2. Reposer, dans une PR du projet : `/maj-skills:fusionner poser` (`passer.sh`, `boucle.sh`), `/maj-skills:sujet poser`, `/maj-skills:revue-adversariale poser` et `/maj-skills:socle-chaine-de-production` (le hook d'édition) ; puis relancer le capitaine.
+ 
+ ## 8.0.0 — 2026-11-22
+ 
+diff --git a/skills/chaine/fusionner/scripts/boucle.sh b/skills/chaine/fusionner/scripts/boucle.sh
+index e09b3dc..4c8caaa 100755
+--- a/skills/chaine/fusionner/scripts/boucle.sh
++++ b/skills/chaine/fusionner/scripts/boucle.sh
+@@ -337,7 +337,9 @@ rafraichir_sujets() {
+ # refusée par une sortie non classée) : la plus ancienne qui attend le prend aussitôt. Il reste tenu sur une sortie qui
+ # la laisse en route : 5, 6, 8, 11, `relancer` réussi, 7 (le verrou d'un autre capitaine) et toute sortie par signal
+ # (129 et plus : l'état du passage interrompu est inconnu, son verrou peut rester ; 128 est une erreur fatale de git,
+-# pas un signal : elle suit la table d'une erreur, A-161). Un sujet encore tenu après le
++# pas un signal : elle suit la table d'une erreur, A-161). Une sous-PR de fourche (la sortie 7 de sa garde, lue par
++# `fourche_sautee`) n'est jamais en route : sautée sans renvoi, elle rend le sujet dans le tour, dans les deux régimes,
++# et sa ligne la nomme (A-201). Un sujet encore tenu après le
+ # passage de celle qui le tient est dit à chaque tour : `[sujet/<nom>] tenu par #n (<raison>)`, écrit par la boucle une
+ # fois la sortie de `sujet.sh` classée (son code, et sa dernière ligne dans `$sortie`), jamais dans `$sortie` : la ligne
+ # ne suit pas celle du `sortir`, et `refus.sh` ne la prend pas pour un motif. Sur une sortie 7, la raison porte la date
+@@ -370,6 +372,15 @@ date_du_verrou() { # <n> <fichier de la sortie>
+   [[ "$fin" =~ ^"#$1 en passage chez le capitaine "[A-Za-z0-9_-]+" depuis "([0-9TZ:-]+)" : " ]] || return 0
+   printf ', verrou du %s' "${BASH_REMATCH[1]}"
+ }
++# Une sous-PR de fourche, lue sur la DERNIÈRE ligne d'une sortie 7 de `sujet.sh` (le `sortir` de sa garde de fourche :
++# « #<n> : PR de fourche (<dépôt>) : sa tête vit hors du dépôt, le capitaine ne la lit pas ; sautée sans renvoi »), jamais
++# sur un motif cherché dans toute la sortie. Sa cause ne passe pas d'elle-même, et n'importe qui ouvre une telle PR : elle
++# ne tient pas son sujet (A-201), l'autre sous-PR en route le prend au même tour.
++fourche_sautee() { # <n> <fichier de la sortie>
++  local fin
++  fin=$({ grep . "$2" || true; } | tail -n 1 | tr -d '\r')
++  [[ "$fin" == "#$1 : PR de fourche ("*") : sa tête vit hors du dépôt, le capitaine ne la lit pas ; sautée sans renvoi" ]]
++}
+ traiter_sujets() {
+   local n etat sujet rc tient par liste lue enroute verrou geste tenus=' ' suspendus=' '
+   verifier_arret
+@@ -455,6 +466,8 @@ traiter_sujets() {
+       sujet/*': prête (sans CI)' | sujet/*': prête (en conflit)')
+         bash "$SUJET" relancer "$n" 2>&1 | tee "$sortie" | sed "s#^#[\#$n] #"
+         rc=${PIPESTATUS[0]}
++        # Une sous-PR de fourche : classée à part, elle rend son sujet (`fourche_sautee`, A-201).
++        [ "$rc" != 7 ] || ! fourche_sautee "$n" "$sortie" || rc=fourche
+         geste="sortie $rc de relancer"
+         [ "$rc" != 7 ] || geste="$geste$(date_du_verrou "$n" "$sortie")"
+         case "$rc" in
+@@ -475,6 +488,7 @@ traiter_sujets() {
+           4) bash "$outils/refus.sh" "$n" "$sortie" ;; # tête gardée : renvoyée avec le motif
+           6) echo "[#$n] PAS PROPRE : worktree du capitaine à nettoyer, sous-PR laissée dans la file (aucun renvoi)" ;;
+           5) echo "[#$n] REPRISE au tour suivant (sous-PR bougée ou GitHub illisible), aucun renvoi" ;;
++          fourche) echo "[#$n] sous-PR de fourche, sautée (aucun renvoi) : elle ne tient pas ${etat%% :*}" ;;
+           7) echo "[#$n] en passage chez un autre capitaine : sautée (aucun renvoi)" ;;
+           # Push refusé par le distant, sans trace du hook : côté capitaine ou du distant, jamais un renvoi.
+           11) echo "[#$n] ÉCHEC DU CAPITAINE : sous-PR laissée dans la file (aucun renvoi), cause ci-dessus" ;;
+@@ -490,6 +504,7 @@ traiter_sujets() {
+         ! echeance_passee || exit "$ECHEANCE_TUBE"
+         bash "$SUJET" fusionner "$n" 2>&1 | tee "$sortie" | sed "s#^#[\#$n] #"
+         rc=${PIPESTATUS[0]}
++        [ "$rc" != 7 ] || ! fourche_sautee "$n" "$sortie" || rc=fourche
+         geste="sortie $rc de fusionner"
+         [ "$rc" != 7 ] || geste="$geste$(date_du_verrou "$n" "$sortie")"
+         case "$rc" in
+@@ -500,6 +515,7 @@ traiter_sujets() {
+           5) echo "[#$n] REPRISE au tour suivant (sous-PR ou sujet bougé, checks en cours, GitHub illisible), aucun renvoi" ;;
+           # Worktree du capitaine sale : rien que l'auteur puisse corriger, jamais un renvoi.
+           6) echo "[#$n] PAS PROPRE : worktree du capitaine à nettoyer, sous-PR laissée dans la file (aucun renvoi)" ;;
++          fourche) echo "[#$n] sous-PR de fourche, sautée (aucun renvoi) : elle ne tient pas ${etat%% :*}" ;;
+           7) echo "[#$n] sous-PR non éligible (fermée, en brouillon, ou en passage chez un autre capitaine)" ;;
+           8) echo "[#$n] MISE À JOUR avec ${etat%% :*} poussée, CI pas finie : repasse au tour suivant" ;;
+           # Arbre du squash ≠ arbre testé : arrêt. Le `while` tourne dans le sous-shell du tube : le code remonte
+diff --git a/skills/chaine/fusionner/scripts/suites-du-lot-5.test.mjs b/skills/chaine/fusionner/scripts/suites-du-lot-5.test.mjs
+index 9d5c5ed..08e422a 100644
+--- a/skills/chaine/fusionner/scripts/suites-du-lot-5.test.mjs
++++ b/skills/chaine/fusionner/scripts/suites-du-lot-5.test.mjs
+@@ -1,5 +1,6 @@
+ // Banc des suites du lot 5 chez le capitaine (contre-relecture de la PR 149, A-192 ; ticket 78) : une PR de fourche est
+-// sautée sans renvoi par `passer.sh` et par `sujet.sh fusionner`, dans les deux régimes, avant tout fetch de sa tête ;
++// sautée sans renvoi par `passer.sh`, `sujet.sh fusionner` et `sujet.sh relancer`, dans les deux régimes, avant tout fetch
++// de sa tête, et une sous-PR de fourche ne tient pas son sujet dans `boucle.sh` (A-201) ;
+ // une PR de mise à jour d'un sujet ne joue qu'une revue du capitaine au premier contrôle ; une PR de mise à jour d'un
+ // sujet qu'aucun ticket ne déclare reçoit un motif qui dit son geste. Le dépôt jouet et le faux GitHub. Aucun réseau.
+ import { test } from "node:test";
+@@ -16,6 +17,7 @@ const { ecrireDistribution } = await import(pathToFileURL(scriptDe("fusionner",
+ const { ecrireVerdict } = await import(pathToFileURL(scriptDe("fusionner", "verdict.mjs")).href);
+ 
+ const PASSER = scriptDe("fusionner", "passer.sh");
++const BOUCLE = scriptDe("fusionner", "boucle.sh");
+ const SUJET = scriptDe("sujet", "sujet.sh");
+ const FAUX = scriptDe("sujet", "faux-gh.mjs");
+ const REGIME8 = { cheminsSensibles: ["scripts/agent/**"], relecture: { depuis: "2026-11-17T09:00:00Z" } };
+@@ -46,6 +48,13 @@ function espionReseau(d) {
+   return () => (existsSync(reseau) ? readFileSync(reseau, "utf8") : "");
+ }
+ 
++// Un `gh` qui rend la PR `n` avec `head.repo` nul, comme GitHub pour une fourche supprimée, puis répond comme le faux.
++function sansDepot(d, n) {
++  writeFileSync(join(d.racine, "sans-depot.mjs"), 'let t = "";\nprocess.stdin.on("data", (c) => (t += c)).on("end", () => {\n  const p = JSON.parse(t);\n  p.head.repo = null;\n  process.stdout.write(`${JSON.stringify(p)}\\n`);\n});\n');
++  Object.assign(d.env, { BANC_FAUX_GH: FAUX, BANC_SANS_DEPOT: join(d.racine, "sans-depot.mjs") });
++  writeFileSync(join(d.racine, "bin/gh"), `#!/bin/sh\ncase "$*" in *"-X "*) ;; *pulls/${n}) node "$BANC_FAUX_GH" "$@" | node "$BANC_SANS_DEPOT"; exit 0 ;; esac\nexec node "$BANC_FAUX_GH" "$@"\n`);
++}
++
+ test("passer.sh : une PR de fourche dont la branche porte le nom d'une branche d'origin est sautée sans renvoi (7), dans les deux régimes : rien de lu sur sa tête, rien de poussé, rien d'écrit (A-192, point 2)", () => {
+   for (const contrat of [REGIME8, REGIME7]) {
+     const d = monter(contrat);
+@@ -80,37 +89,43 @@ test("passer.sh : une PR de fourche dont la branche porte le nom d'une branche d
+   assert.match(dernier(r), /PR de fourche \(dépôt supprimé\)/);
+ });
+ 
+-test("sujet.sh fusionner : une sous-PR de fourche est sautée sans renvoi (7), avant tout fetch de sa tête (A-192, point 2)", () => {
+-  const d = monter();
+-  d.branche("sujet/lot", "origin/develop", { "docs/lot.md": "lot\n" });
+-  const sha = d.branche("feat/a", "origin/sujet/lot", { "docs/a.md": "a\n" });
+-  d.git("switch", "-q", "--detach", "origin/develop");
+-  d.github({
+-    exiges: ["qualite"],
+-    checks: { "*": { qualite: "SUCCESS" } },
+-    pulls: [{ number: 80, title: "docs(a): a", head: "feat/a", base: "sujet/lot", labels: ["à-fusionner"], fourche: "autre/jouet", commentaires: valide(sha) }],
+-  });
+-  const reseau = espionReseau(d);
+-  const r = d.lancer(SUJET, "fusionner", "80");
+-  assert.equal(r.status, 7, r.stdout + r.stderr);
+-  assert.equal(reseau(), "", "aucun fetch avant la garde");
+-  assert.match(dernier(r), /^#80 : PR de fourche \(autre\/jouet\) : sa tête vit hors du dépôt, le capitaine ne la lit pas ; sautée sans renvoi$/);
+-  assert.deepEqual(d.journal(), []);
++test("sujet.sh fusionner : une sous-PR de fourche est sautée sans renvoi (7), dans les deux régimes, avant tout fetch de sa tête ; une tête sans dépôt aussi (A-192, point 2)", () => {
++  for (const [contrat, supprimee] of [[REGIME8, false], [REGIME7, false], [REGIME8, true]]) {
++    const d = monter(contrat);
++    d.branche("sujet/lot", "origin/develop", { "docs/lot.md": "lot\n" });
++    const sha = d.branche("feat/a", "origin/sujet/lot", { "docs/a.md": "a\n" });
++    d.git("switch", "-q", "--detach", "origin/develop");
++    d.github({
++      exiges: ["qualite"],
++      checks: { "*": { qualite: "SUCCESS" } },
++      pulls: [{ number: 80, title: "docs(a): a", head: "feat/a", base: "sujet/lot", labels: ["à-fusionner"], ...(supprimee ? {} : { fourche: "autre/jouet" }), commentaires: valide(sha) }],
++    });
++    if (supprimee) sansDepot(d, 80);
++    const reseau = espionReseau(d);
++    const r = d.lancer(SUJET, "fusionner", "80");
++    const cas = `${JSON.stringify(contrat)}${supprimee ? ", dépôt supprimé" : ""}`;
++    assert.equal(r.status, 7, `${cas} : ${r.stdout}${r.stderr}`);
++    assert.equal(reseau(), "", `${cas} : aucun fetch avant la garde`);
++    assert.match(dernier(r), new RegExp(`^#80 : PR de fourche \\(${supprimee ? "dépôt supprimé" : "autre\\/jouet"}\\) : sa tête vit hors du dépôt, le capitaine ne la lit pas ; sautée sans renvoi$`), cas);
++    assert.deepEqual(d.journal(), [], cas);
++  }
+ });
+ 
+ test("sujet.sh relancer : une sous-PR de fourche « prête (sans CI) » est sautée sans renvoi (7), dans les deux régimes, avant tout fetch : la branche d'origin du même nom n'est ni fusionnée ni poussée (A-192, point 2)", () => {
+-  for (const contrat of [REGIME8, REGIME7]) {
++  for (const [contrat, supprimee] of [[REGIME8, false], [REGIME7, false], [REGIME7, true]]) {
+     const d = monter(contrat);
+     d.branche("sujet/lot", "origin/develop", { "docs/lot.md": "lot\n" });
+     // La fourche copie `feat/a` d'origin, au même sommet ; le sujet avance : la sous-PR est en retard sur lui.
+     const sha = d.branche("feat/a", "origin/sujet/lot", { "docs/a.md": "a\n" });
+     d.branche("sujet/lot", "origin/sujet/lot", { "docs/lot2.md": "lot2\n" });
+     d.git("switch", "-q", "--detach", "origin/develop");
+-    d.github({ checks: {}, pulls: [{ number: 80, title: "docs(a): a", head: "feat/a", base: "sujet/lot", labels: ["à-fusionner"], fourche: "autre/jouet", commentaires: [] }] });
++    d.github({ checks: {}, pulls: [{ number: 80, title: "docs(a): a", head: "feat/a", base: "sujet/lot", labels: ["à-fusionner"], ...(supprimee ? {} : { fourche: "autre/jouet" }), commentaires: [] }] });
++    // Une tête sans dépôt (fourche supprimée) : sautée de même.
++    if (supprimee) sansDepot(d, 80);
+     const reseau = espionReseau(d);
+     const r = d.lancer(SUJET, "relancer", "80");
+     assert.equal(r.status, 7, `${JSON.stringify(contrat)} : ${r.stdout}${r.stderr}`);
+-    assert.match(dernier(r), /^#80 : PR de fourche \(autre\/jouet\) : sa tête vit hors du dépôt, le capitaine ne la lit pas ; sautée sans renvoi$/);
++    assert.match(dernier(r), new RegExp(`^#80 : PR de fourche \\(${supprimee ? "dépôt supprimé" : "autre\\/jouet"}\\) : sa tête vit hors du dépôt, le capitaine ne la lit pas ; sautée sans renvoi$`));
+     assert.equal(reseau(), "", "aucun fetch ni push");
+     assert.equal(d.git("ls-remote", "origin", "refs/heads/feat/a").split("\t")[0], sha, "la branche d'origin du même nom n'a pas bougé");
+     assert.deepEqual(d.journal(), []);
+@@ -191,3 +206,76 @@ test("garde du capitaine : une PR de mise à jour d'un sujet qu'aucun ticket ne
+   assert.equal(sans.status, 20, sans.stdout + sans.stderr);
+   assert.match(sans.stdout, /^PR sans ticket qui touche un chemin sensible \(scripts\/agent\/x\.mjs\)/);
+ });
++
++// Les calculs du régime 8 que la boucle copie d'origin/develop, à côté de ceux que `publierChaine` pose déjà.
++const CALCULS = [
++  ["fusionner", "decision-relecteur.mjs"],
++  ["fusionner", "verdict.mjs"],
++  ["fusionner", "double-relecture.mjs"],
++  ["fusionner", "meme-contenu.sh"],
++  ["revue-adversariale", "chemins-sensibles.mjs"],
++];
++
++test("boucle.sh : deux sous-PR d'un sujet, l'une de fourche : la fourche est sautée sans renvoi et ne tient pas son sujet, l'autre entre au même tour ; dans les deux régimes, la fourche « prête » (fusionner) ou « prête (sans CI) » (relancer) (A-201)", () => {
++  for (const contrat of [REGIME8, REGIME7])
++    for (const sansCi of [false, true]) {
++      const d = monter(contrat);
++      d.branche("sujet/lot", "origin/develop", { "docs/lot.md": "lot\n" });
++      const checks = {};
++      const pulls = [];
++      for (const n of [80, 81]) {
++        const sha = d.branche(`feat/pr-${n}`, "origin/sujet/lot", { [`docs/pr-${n}.md`]: `${n}\n` });
++        if (!(sansCi && n === 80)) checks[sha] = { qualite: "SUCCESS" };
++        // #80 : une fourche (`autre/jouet`) dont la branche `fourche/a` n'existe pas sur origin, le cas ordinaire.
++        pulls.push({ number: n, title: `docs(lot): pr ${n}`, head: n === 80 ? "fourche/a" : `feat/pr-${n}`, sha, base: "sujet/lot", labels: ["à-fusionner"], body: "## Revue de ticket\n\nRien de bloquant.\n", ...(n === 80 ? { fourche: "autre/jouet" } : {}), commentaires: valide(sha) });
++      }
++      d.git("push", "-q", "origin", ":refs/heads/feat/pr-80");
++      d.git("switch", "-q", "--detach", "origin/develop");
++      d.github({ exiges: ["qualite"], checks, pulls });
++      d.publierChaine();
++      for (const [skill, nom] of CALCULS) d.ecrire(`scripts/chaine/${nom}`, readFileSync(scriptDe(skill, nom), "utf8"));
++      d.commit("chore(chaine): calculs du régime 8");
++      d.git("push", "-q", "origin", "HEAD:develop");
++      d.git("fetch", "-q", "origin");
++      const cas = `${JSON.stringify(contrat)}, fourche ${sansCi ? "« prête (sans CI) »" : "« prête »"}`;
++      const r = d.lancer(BOUCLE);
++      assert.equal(r.status, 0, `${cas} : ${r.stdout}${r.stderr}`);
++      assert.match(r.stdout, /^\[#80\] sous-PR de fourche, sautée \(aucun renvoi\) : elle ne tient pas sujet\/lot$/m, `${cas} : ${r.stdout}`);
++      assert.doesNotMatch(r.stdout, /tenu par #80|^\[#81\] attend son tour|en passage chez un autre capitaine/m, cas);
++      assert.match(r.stdout, /^\[#81\] FUSIONNÉE dans sujet\/lot $/m, `${cas} : ${r.stdout}`);
++      assert.deepEqual(d.etat().pulls.filter((p) => p.merged_at).map((p) => p.number), [81], cas);
++      assert.deepEqual(d.journal().filter((e) => /^(issues|pulls)\/80\//.test(e.route)), [], `${cas} : rien d'écrit sur la fourche`);
++    }
++});
++
++test("sujet.sh fusionner : le régime lu d'abord est 8, la revue relit 7 (le contrat du sujet a perdu la clé `relecture` entre les deux lectures) : la revue est rejouée sur la liste du régime 7, la résolution seule, et les retouches se jugent après les checks (la suite M1 du lot 5, A-201)", () => {
++  const d = monter(REGIME7);
++  // La fusion de develop résout un conflit sur une documentation ; une retouche de code suit : la section de revue est
++  // exigée pour la retouche, pas pour la résolution.
++  d.branche("sujet/lot", "origin/develop", { "docs/x.md": "sujet\n" });
++  d.branche("develop", "origin/develop", { "docs/x.md": "develop\n" });
++  d.git("switch", "-q", "-C", "maj/lot", "origin/sujet/lot");
++  spawnSync("git", ["merge", "-q", "--no-edit", "origin/develop"], { cwd: d.travail, env: d.env });
++  d.ecrire("docs/x.md", "résolu\n");
++  d.git("add", "-A");
++  d.git("commit", "-q", "--no-edit");
++  d.ecrire("apps/y.mjs", "retouche\n");
++  d.commit("fix(apps): retouche");
++  d.git("push", "-q", "origin", "HEAD:refs/heads/maj/lot");
++  d.git("fetch", "-q", "origin");
++  const sha = d.git("rev-parse", "HEAD");
++  d.git("switch", "-q", "--detach", "origin/develop");
++  // Les checks de la PR encore en cours : la revue du premier contrôle passée, la sous-PR attend la CI (5), avant que
++  // `juger_retouches` ne juge la retouche ; jugée dès le premier contrôle, elle serait renvoyée (4).
++  d.github({
++    exiges: ["qualite"],
++    checks: { [sha]: { qualite: "IN_PROGRESS" } },
++    pulls: [{ number: 81, title: "chore(sujet): met lot à jour avec develop", head: "maj/lot", base: "sujet/lot", labels: ["à-fusionner"], commentaires: [] }],
++  });
++  // Un `node` qui rend « 8 » à `regime_de_la_pr`, la première lecture ; la revue, elle, lit le régime 7 du sujet.
++  writeFileSync(join(d.racine, "bin/node"), `#!/bin/sh\ncase "$*" in *regimeDeLaPr*) echo 8; exit 0 ;; esac\nexec ${JSON.stringify(process.execPath)} "$@"\n`);
++  chmodSync(join(d.racine, "bin/node"), 0o755);
++  const r = d.lancer(SUJET, "fusionner", "81");
++  assert.equal(r.status, 5, r.stdout + r.stderr);
++  assert.match(dernier(r), /^checks encore en cours sur #81 : reprise au tour suivant/);
++});

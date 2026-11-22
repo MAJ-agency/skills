@@ -3,6 +3,12 @@
 **Verdict : non conforme.** Aucun bloquant ; un à corriger (des bancs, pas du code), avec sa retouche essayée ; quatre
 mineurs.
 
+**Après les décisions de l'architecte (`A-201`)** : `retouches/retouche-152-tour-1.patch`, un patch unique sur `4afd6e2`
+(sha256 `3858cda0921cf2391e8c16688568085653b26fcafae160b40a69125d999f4b9d`), porte le constat 1 (la retouche de banc, telle
+quelle), le mineur 2 (une sous-PR de fourche ne tient plus son sujet, `boucle.sh`), le mineur 4 (le banc du sens 8 → 7) et
+le mineur 5 avec le point 2 (la note 8.0.1). Le mineur 3 et les questions 2 et 3 vont à la liste des suites. Voir
+« Retouches du tour 1 », à la fin.
+
 Relu sur un clone neuf de `https://github.com/MAJ-agency/skills`, la PR au sommet `4afd6e20c19926f0243bc2bd79b60557921b4845`
 (`claude/suites-capitaine`), contre `main` à `ddb4265` (plugin 8.0.0), les tickets et annexes lus sur
 `claude/hopeful-lovelace-ouk6tz`. Node 22.23.5, git 2.43.0, quatre cœurs partagés avec d'autres agents (charge notée aux bords
@@ -195,6 +201,98 @@ sous-PR attendent qu'on lui retire `à-fusionner`). »
 3. **Les chemins de la question 3** : lus, non joués.
 4. **Le sens 8 → 7 de M1** (mineur 4) : lu et muté (X4), pas joué de bout en bout.
 5. **Le hook dans une vraie session cloud** (clone superficiel ou à une branche) : joué sur le dépôt jouet seulement.
-6. **La suite entière à son terme** : les 1 405 sur 1 405 que la session de la PR rapporte (709,6 s, charge 1,0 puis 1,3) ne
-   sont pas rejoués jusqu'au bout ici, la machine trop chargée ; ce qui a été rendu (726 tests de tête, aucun rouge), les bancs
-   des deux tickets, ceux qui lisent `lancement.md` et l'espion du régime 7 sont verts.
+6. **La suite entière sur `4afd6e2` seul, à son terme** : les 1 405 sur 1 405 que la session de la PR rapporte (709,6 s, charge
+   1,0 puis 1,3) ne sont pas rejoués jusqu'au bout sur le sommet seul, la machine trop chargée ; ce qui a été rendu (726 tests
+   de tête, aucun rouge), les bancs des deux tickets, ceux qui lisent `lancement.md` et l'espion du régime 7 sont verts. Avec la
+   retouche du tour 1, elle l'est : 1 407 sur 1 407 (« Retouches du tour 1 »).
+7. **L'espion du régime 7 avec la retouche du tour 1** : rejoué sur `4afd6e2` seul ; la retouche ne change dans les scripts
+   que `boucle.sh`, et seulement sur une sortie 7 dont la dernière ligne est le motif de la garde de fourche, qu'aucun de ses
+   bancs ne produit (P5 rouge : toute autre sortie 7 tient toujours son sujet).
+
+## Retouches du tour 1 (après `A-201`)
+
+Un patch, `retouches/retouche-152-tour-1.patch` (sha256 `3858cda0921cf2391e8c16688568085653b26fcafae160b40a69125d999f4b9d`,
+`retouches/SHA256SUMS`), `git apply` sur `4afd6e2`, trois fichiers : `skills/chaine/fusionner/scripts/boucle.sh` (+17 −1),
+`skills/chaine/fusionner/scripts/suites-du-lot-5.test.mjs`, `NOTES-DE-VERSION.md`. Il contient `retouche-78-bancs.patch` tel
+quel. Aucun autre script ne change : `passer.sh`, `sujet.sh`, `chemins-sensibles.mjs` et le hook restent ceux de la PR.
+
+### Point 1 — constat 1 : la retouche de banc, telle quelle
+
+Les cas `fusionner` (régimes 8 et 7, puis tête sans dépôt) et `relancer` (régimes 8 et 7, puis tête sans dépôt) du banc,
+décrits au constat 1.
+
+### Point 2 — mineur 2 : une sous-PR de fourche ne tient pas son sujet
+
+**Le choix : le code de `boucle.sh`, pas un code de sortie dédié.** Un code de sortie neuf de `sujet.sh` toucherait son
+en-tête, les deux tables de sorties de `traiter_sujets` et tout appelant de `fusionner` et `relancer` ; la boucle classe déjà
+une sortie de `sujet.sh` par sa dernière ligne (`date_du_verrou` pour le verrou d'un autre capitaine, le refus du pre-push
+pour une sortie 3). `fourche_sautee <n> <sortie>` lit de même la DERNIÈRE ligne d'une sortie 7, et ne reconnaît que le motif
+entier de la garde (« `#<n> : PR de fourche (`…`) : sa tête vit hors du dépôt, le capitaine ne la lit pas ; sautée sans
+renvoi` ») : aucune autre sortie 7 ne commence ainsi (verrou : « `#<n> en passage chez le capitaine` » ; gel, brouillon,
+lecture illisible : un autre texte). Après `relancer` comme après `fusionner`, une sortie 7 reconnue devient `rc=fourche` :
+la ligne « `[#<n>] sous-PR de fourche, sautée (aucun renvoi) : elle ne tient pas sujet/<nom>` », et le sujet est rendu par
+la table qui le rend déjà (`fourche` n'est pas dans les sorties qui le tiennent) : l'autre sous-PR en route le prend au même
+tour. Rien n'est écrit sur la fourche. Le paragraphe d'en-tête de `traiter_sujets` le dit. Les deux régimes : la boucle ne lit
+pas le régime ici, et la garde de fourche joue dans les deux.
+
+**Le banc** (`suites-du-lot-5.test.mjs`, neuf) : « boucle.sh : deux sous-PR d'un sujet, l'une de fourche … », quatre cas,
+régimes 8 et 7, la fourche « prête » (`fusionner`) et « prête (sans CI) » (`relancer`) ; la fourche `autre/jouet` sur une
+branche `fourche/a` qu'origin n'a pas, la sous-PR ordinaire #81 validée ; les calculs du régime 8 publiés sur le develop du
+jouet, comme le banc du Relecteur. Attendu, au premier tour : la ligne de la fourche, ni « tenu par #80 » ni « #81 attend son
+tour », « `[#81] FUSIONNÉE dans sujet/lot` », #81 seule fusionnée, aucune écriture sur #80. Rouge sur `4afd6e2` (7 verts sur
+8, ce seul cas rouge) et sur 8.0.0 (la ligne de la fourche n'y est pas) ; vert après (`essais/rouges-tour-1.txt`). L'essai du
+mineur 2, rejoué sur l'arbre retouché : la fourche nommée, #81 FUSIONNÉE au premier tour, dans les deux états
+(`essais/fourche-tient-son-sujet.txt`, troisième bloc).
+
+### Point 3 — mineur 4 : le banc du sens 8 → 7
+
+« sujet.sh fusionner : le régime lu d'abord est 8, la revue relit 7 … » (neuf) : le contrat du sujet en régime 7, une PR de
+mise à jour qui résout un conflit sur une documentation puis retouche du code, un `node` de banc qui rend 8 à
+`regime_de_la_pr`, les checks de la PR en cours. Le code juste rejoue la revue sur la résolution seule, qui passe, et attend
+la CI (sortie 5, « checks encore en cours sur #81 ») avant que `juger_retouches` ne juge la retouche ; X4 la juge dès le
+premier contrôle et renvoie (4). Vert sur `4afd6e2` et sur 8.0.0 (il tient le code), X4 rouge (44 s).
+
+### Point 4 — mineur 5 : la note 8.0.1
+
+Elle dit : la fourche sautée « dans les deux régimes », et qu'une sous-PR de fourche ne tient pas son sujet (`A-201` ;
+« sous-PR de fourche, sautée », l'autre sous-PR entre au même tour) ; M1 et M2 « régime 8 », le hook « régime 8 » ; une puce
+« Rien d'autre ne change en régime 7 (un dépôt sans la clé `relecture`) : la fourche y est sautée de même, sans tenir son
+sujet ; le premier contrôle d'une PR de mise à jour n'y jouait déjà qu'une revue, et la garde des chemins sensibles du
+capitaine comme le refus du hook n'y tournent pas. » ; « Ce qu'un projet fait » nomme `passer.sh` et `boucle.sh` après
+`fusionner poser`. Les tests de version de `scripts/depot.test.mjs` restent verts.
+
+### Rouges avant, verts après, mutations
+
+- **Rouges avant** (`essais/rouges-tour-1.txt`) : le banc retouché (8 tests) sur `4afd6e2`, 7 verts, 1 rouge (le cas de la
+  boucle) ; sur 8.0.0, 2 verts, 6 rouges. Les comptes du ticket 78 deviennent, avec la retouche : § 1, 8 tests dont 6 rouges ;
+  § 2, 116 ; la suite entière, 1 407.
+- **Verts après** (`essais/verts-tour-1.txt`, charge 8,0 puis 2,4) : les cinq bancs du § 2 du ticket 78, avec
+  `une-sous-pr-a-la-fois.test.mjs` et `boucle-outils.test.mjs`, `# tests 159`, `# pass 159` (116 + 19 + 24) ; le § 2 du
+  ticket 79, `# tests 167`, `# pass 167`.
+- **Les mutations**, sur l'arbre retouché, chacune seule, le fichier remis après (`mutations/annexe-78-tour-1.txt`,
+  `annexe-79-tour-1.txt`, `contre-relecture-tour-1.txt` ; `mutations/arbre-apres-tour-1.txt` : la retouche seule ;
+  14:22 → 14:44 UTC, charge 2,4 puis 8,3) :
+
+| Jeu | Mutations | Issue |
+| --- | --- | --- |
+| `78-annexes/mutations.mjs` | F1, F2, F3ʹ, F4ʹ, F5, F6, M1a, M1b, M1c, M2a, M2b | 11 rouges, `toutes rouges` |
+| `79-annexes/mutations.mjs` | H1, H2, H3ʹ, H4 à H8 | 8 rouges, `toutes rouges` |
+| `mutations-contre-relecture.mjs` | X1, X2, X3 (constat 1), X4 (mineur 4) | 4 rouges |
+| la même, point 2 | P1 la fourche pas reconnue (le code de `4afd6e2`) ; P2 reconnue après `relancer` seulement ; P3 après `fusionner` seulement ; P4 le sujet rendu mais la ligne de `relancer` ne nomme pas la fourche ; P5 toute sortie 7 rend le sujet (`une-sous-pr-a-la-fois.test.mjs` : le verrou d'un autre capitaine tient toujours) | 5 rouges, `toutes rouges` |
+
+28 rouges sur 28.
+
+- **La suite entière, une fois, seule** (`essais/suite-entiere-tour-1.txt`), sur `4afd6e2` avec la retouche, l'arbre propre
+  hors la retouche : la charge, attendue 30 minutes, n'est pas descendue sous 4 (d'autres agents) ; jouée quand même, aucune
+  autre tâche de cette contre-relecture en même temps, `timeout 2700 pnpm test` (le délai de 1 800 s coupait les passes
+  d'avant sous cette charge). **`# tests 1407`, `# pass 1407`, `# fail 0`**, sortie 0, 2 073 s (15:14:36 → 15:49:09 UTC,
+  charge 10,5 avant, 10,3 après) : les 1 405 de la PR et les deux cas neufs.
+
+### Ce que la retouche ne fait pas
+
+- `fusionner/SKILL.md` (« Une sous-PR sautée ainsi garde son sujet », dit de la lecture illisible) n'est pas touché : il ne
+  parle pas des fourches, et le ticket le laisse hors périmètre ; une phrase sur la fourche y irait avec la suite de
+  `regrouper`.
+- `fusionner/references/CONTENU.md` ne liste pas `suites-du-lot-5.test.mjs`, comme les bancs du lot 5.
+- Le mineur 3 et les questions 2 et 3 : à la liste des suites (`A-201` point 5).
+

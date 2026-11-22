@@ -1,0 +1,4 @@
+# git status --short de l'arbre retouché après les mutations du tour 1 (la retouche seule)
+ M NOTES-DE-VERSION.md
+ M skills/chaine/fusionner/scripts/boucle.sh
+ M skills/chaine/fusionner/scripts/suites-du-lot-5.test.mjs

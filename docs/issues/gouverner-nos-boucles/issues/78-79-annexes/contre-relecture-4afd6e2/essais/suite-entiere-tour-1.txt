@@ -1,0 +1,20 @@
+# Suite entière, une fois, seule : 4afd6e2 + retouche-152-tour-1.patch, en tâche de fond (setsid --wait), timeout 2700 pnpm test
+# La charge, attendue sous 4 pendant 30 minutes (A-201), n'y est pas descendue (d'autres agents) : jouée quand même.
+## git status --short de l'arbre avant la suite (la retouche seule)
+ M NOTES-DE-VERSION.md
+ M skills/chaine/fusionner/scripts/boucle.sh
+ M skills/chaine/fusionner/scripts/suites-du-lot-5.test.mjs
+attente de la charge : 1801 s
+charge avant :  15:14:36 up  8:37,  0 user,  load average: 10.50, 11.28, 10.61
+début 15:14:36
+sortie 0
+fin 15:49:09
+charge après :  15:49:09 up  9:12,  0 user,  load average: 10.32, 11.54, 13.13
+# tests 1407
+# suites 0
+# pass 1407
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2072707.815301

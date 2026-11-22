@@ -1,0 +1,11 @@
+# Verts après la retouche du tour 1 (retouche-152-tour-1.patch sur 4afd6e2)
+charge avant :  14:14:19 up  7:37,  0 user,  load average: 7.98, 11.16, 13.58
+## § 2 du ticket 78 (les cinq bancs) et une-sous-pr-a-la-fois.test.mjs, boucle-outils.test.mjs
+# tests 159
+# pass 159
+# fail 0
+## § 2 du ticket 79 (garde-fichiers, regles, scripts/depot.test.mjs)
+# tests 167
+# pass 167
+# fail 0
+charge après :  14:22:55 up  7:46,  0 user,  load average: 2.38, 5.54, 10.05
