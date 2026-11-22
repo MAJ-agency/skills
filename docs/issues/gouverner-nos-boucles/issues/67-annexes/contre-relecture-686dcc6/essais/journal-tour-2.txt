@@ -1,0 +1,40 @@
+# Second tour, sommet ffb7e2c2ed9d338726a2558d754e673f768a8df6 (parent 686dcc6), 2026-11-22
+== l'arbre, en une commande : 686dcc6 + git apply --index retouches-tour-1.patch, puis write-tree
+ARBRE IDENTIQUE 52ec3e218bf093894fb7e75659ccdee4fad166b1 (= ffb7e2c^{tree}) ; git diff 686dcc6 ffb7e2c = le patch, octet pour octet (sha256 0f195513…)
+
+== témoin : les bancs neufs seuls, sans mutation
+debut 00:34:59 charge 6.16 4.83 4.29 6/246 28505
+== témoin : les bancs neufs, sans mutation, à ffb7e2c
+ok 1 - contre-relecture 147 — la marque est un commentaire à marque : un commentaire ordinaire écrit après la pose ne fait rien repartir au rejeu (A-183, point 6)
+ok 2 - contre-relecture 147 — une étiquette à poser déjà là sur une PR sans aucune marque : dans le doute, les lignes partent (ticket 68, décision 1)
+ok 3 - contre-relecture 147 — les événements de la PR ne se lisent pas : `jouer` sort en 5 sans rien écrire, ni retrait ni pose ; au rejeu, les lignes partent
+ok 4 - contre-relecture 147 — la seconde lecture d’origin (la tête relue) en échec : `jouer` sort en 12, aucune tête dite introuvable (ticket 67, décision 4)
+ok 5 - contre-relecture 147 — les événements sur deux pages, la dernière pose sur la seconde : toutes les pages se lisent, le passage rejoué ne redit rien
+# tests 5
+# pass 5
+# fail 0
+ok 1 - contre-relecture de la PR 147 — les quatre formes des lignes à l'architecte, chacune dans leur phrase, et aucune autre ; la borne de 12 et d'une sortie hors de la table, à leur ligne
+# tests 1
+# pass 1
+# fail 0
+fin 00:35:05 charge 6.07 4.83 4.29 5/235 4061
+
+== K8 (essais-ffb7e2c.test.mjs), sur ffb7e2c puis sous la mutation N3
+debut 00:37:57 charge 6.00 5.41 4.61 7/264 15890
+== K8, APRES = ffb7e2c
+ok 1 - K8 (tenue) — une trace d’illisible écrite entre la pose et le rejeu n’est pas la marque (`dernier` l’exclut, A-183 point 6) : rien ne repart
+# tests 1
+# pass 1
+# fail 0
+== K8 sous N3
+not ok 1 - K8 (tenue) — une trace d’illisible écrite entre la pose et le rejeu n’est pas la marque (`dernier` l’exclut, A-183 point 6) : rien ne repart
+# tests 1
+# pass 0
+# fail 1
+fin 00:38:01
+
+== contrôles GitHub de ffb7e2c (API REST, lecture), 00:45 UTC
+CodeQL completed success 2026-11-22T00:31:58Z (neutral à 00:32, l'analyse JavaScript en cours)
+bancs completed success 2026-11-22T00:44:30Z
+Analyze (actions) completed success 2026-11-22T00:32:04Z
+Analyze (javascript-typescript) completed success 2026-11-22T00:32:17Z

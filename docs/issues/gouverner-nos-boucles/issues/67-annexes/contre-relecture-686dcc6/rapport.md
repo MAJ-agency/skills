@@ -184,3 +184,81 @@ Les constats 1 à 6 sont dans le patch. Les mineurs 7 à 12 peuvent aller à un 
   - les miennes sur l'arbre retouché : 10 rouges sur 10.
 - **Suite entière**, arbre retouché : 1 296 sur 1 296.
 - **Temps** : 1 h 50 environ (22:31 → 00:20 UTC), dont une vingtaine de minutes à attendre la charge.
+
+## Second tour
+
+Relu le 2026-11-22, de 00:31 à 00:48 UTC, par le même agent, en lecture seule vis-à-vis de GitHub, sur le seul delta `686dcc6..ffb7e2c`. Les questions du premier tour sont tranchées par `A-189` : le plafond rejoué est gardé et sera écrit ; la borne de la sortie 5 et les mineurs 7 à 12 vont à des tickets de suite. La suite entière n'est pas rejouée, comme demandé. La charge allait de 4,3 à 6,2, avec un autre agent en parallèle ; les mutations ont été jouées une à une. Journaux : [`essais/journal-tour-2.txt`](essais/journal-tour-2.txt), [`mutations/journal-tour-2.txt`](mutations/journal-tour-2.txt).
+
+### 1. L'arbre
+
+- **Sommet** : `ffb7e2c2ed9d338726a2558d754e673f768a8df6`, un commit, parent direct `686dcc6`. Le message est conventionnel : `test(relecteur): retouches du premier tour de contre-relecture de la PR 147 (plugin 7.38.1)`.
+- **Une commande** : `686dcc6`, plus `git apply --index retouches-tour-1.patch`, puis `git write-tree`. Le résultat est `52ec3e218bf093894fb7e75659ccdee4fad166b1`, l'arbre de `ffb7e2c`. De plus, `git diff 686dcc6 ffb7e2c` est le patch, octet pour octet (sha256 `0f195513…`).
+- **Quatre fichiers**, +88 −1, et rien d'autre : `plugin.json` reste à 7.38.1, ni le code ni `SKILL.md` ne bougent. La ligne de note est sous la 7.38.1, dans « Ce qui change ».
+- **La suite** : c'est l'arbre sur lequel j'ai joué la suite entière au premier tour, 1 296 sur 1 296. La session annonce le même compte.
+- **Les contrôles GitHub de `ffb7e2c`** (API REST, lecture, à 00:45 UTC) sont verts tous les quatre : `bancs` (fini à 00:44:30), `CodeQL`, `Analyze (actions)` et `Analyze (javascript-typescript)`. `CodeQL` a d'abord été `neutral`, le temps de l'analyse JavaScript, puis `success`.
+
+### 2. Les constats 1 à 6, fermés
+
+Témoin : les bancs neufs seuls, sans mutation, sur `ffb7e2c`. Le banc du Relecteur donne 5 sur 5, celui des textes 1 sur 1.
+
+Mes dix mutations, rejouées sur `ffb7e2c` contre les bancs du dépôt (de 00:35:15 à 00:45:19 UTC) : **10 rouges sur 10**.
+
+- M1 et M3 à M10 sont tuées, chacune par le cas neuf qui la vise :
+  - M1 par « la marque est un commentaire à marque » (constat 2) ;
+  - M3 et M4 par « les événements de la PR ne se lisent pas » (constat 3) ;
+  - M6 par « les événements sur deux pages » (constat 4) ;
+  - M5 par « la seconde lecture d'origin en échec » (constat 5) ;
+  - M7 à M10 par « les quatre formes… » (constats 1 et 6).
+- M2 reste tuée par les cas du plafond, comme au premier tour.
+- M4 est jouée dans sa forme réécrite : le retrait avant la lecture, et lui seul.
+- Chaque essai qui la vise (K2, K4, K5, K6) la tue aussi.
+
+Les six constats sont fermés.
+
+### 3. Les bancs neufs tiennent-ils ce qu'ils disent ?
+
+Je les ai relus en relecteur neuf, puis attaqués par quatre mutations neuves, jouées contre **les seuls bancs neufs** ([`mutations/mutations-ffb7e2c.mjs`](mutations/mutations-ffb7e2c.mjs)) :
+
+| Mutation | Le banc visé | Ce qu'elle cherche | Résultat |
+| --- | --- | --- | --- |
+| N1 le retrait avant la lecture des événements, le retrait final laissé | « les événements de la PR ne se lisent pas » | un banc qui ne verrait que la sortie 5 | **rouge** : la sortie est bien 5, mais un retrait est écrit, et le cas l'exige vide (« sans aucune marque » rougit aussi) |
+| N2 la relecture se tait, puis une tête absente sort en 12 | « la seconde lecture d'origin en échec » | un 12 qui ne viendrait pas du `fetch` | **rouge** : la sortie d'erreur n'est pas celle du `fetch` |
+| N3 les traces d'illisible comptent dans la marque | « la marque est un commentaire à marque » | une marque prise sur un commentaire à préfixe que `dernier` exclut | **survit** aux bancs neufs, et au banc entier (47 cas) : constat 13 |
+| N4 la forme « orpheline » remplacée par un doublon de « PR tue » | « les quatre formes… » | un banc qui ne tiendrait que par le compte des `«` | **rouge** : la forme « orpheline » manque |
+
+Le reste tient. Chaque faux `gh` neuf ne contient rien de variable (`A-181`). La panne des événements ne vise que leur route (`^issues/12/events`, une fois). Le `gh` à deux pages rend la première seule sans `--paginate`, et les deux avec, comme GitHub. Le cas « sans marque » est redondant avec les cas du plafond : il les complète pour un `etiqueter`.
+
+### 4. La phrase neuve de `CONTENU.md`
+
+« … et, depuis la contre-relecture de la PR 147, la marque lue sur un commentaire à marque, une PR sans marque, des événements illisibles (rien d'écrit) ou sur deux pages, la tête relue en échec (sortie 12). »
+
+Elle ne contredit rien :
+
+- **les cas** : chacun de ses éléments est un cas du banc ;
+- **le paragraphe du script** (« une étiquette déjà là n'est un passage rejoué que si les événements de la PR la disent posée après sa marque la plus récente », « tête introuvable après une seconde lecture d'origin ») ;
+- **« Les lignes » du skill** ;
+- **`A-189`** : elle ne dit rien du plafond rejoué.
+
+La ligne de note dit la même chose, et ne promet rien de plus.
+
+### 5. Constat neuf
+
+| N° | Gravité | Le fait | La preuve | La suite |
+| --- | --- | --- | --- | --- |
+| 13 | mineur | La marque d'un `etiqueter` est `dernier`, qui exclut les traces d'illisible (`A-183` point 6). Une marque qui les compterait ferait repartir les lignes d'un passage rejoué. Cela arrive si une trace s'écrit entre la pose et le rejeu : un retrait refusé, puis un calcul en panne, revenu depuis. Le code est juste, mais aucun banc ne tient ce point : le cas neuf ne joue qu'un commentaire ordinaire | N3 survit aux 47 cas du banc du Relecteur. L'essai K8 ([`essais/essais-ffb7e2c.test.mjs`](essais/essais-ffb7e2c.test.mjs)) est vert sur `ffb7e2c` et rouge sous N3 | un ticket de suite : K8 au banc du Relecteur, N3 à la liste des mutations ; il ne retient pas la PR |
+
+### 6. Verdict proposé
+
+**Conforme** au sommet `ffb7e2c2ed9d338726a2558d754e673f768a8df6`.
+
+- **Fermés** : les constats 1 à 6 du premier tour. Les mineurs 7 à 12 vont aux tickets de suite d'`A-189`.
+- **Constat neuf** : un mineur (13), pour un ticket de suite, avec son essai. Aucun bloquant, aucun à-corriger.
+
+### 7. Comptes du second tour
+
+- **Arbre** : `ffb7e2c` donne `52ec3e2`, soit `686dcc6` plus le patch, et le delta est le patch octet pour octet.
+- **Bancs neufs** sans mutation : 5 sur 5 et 1 sur 1.
+- **Mes dix mutations** : 10 rouges sur 10.
+- **Les quatre neuves** : 3 rouges, 1 survivante (N3, constat 13). K8 la tue.
+- **Contrôles GitHub** : 4 sur 4 verts.
+- **Temps** : environ 17 minutes.

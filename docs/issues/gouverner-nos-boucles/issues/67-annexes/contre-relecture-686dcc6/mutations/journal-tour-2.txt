@@ -1,0 +1,28 @@
+# Second tour, sommet ffb7e2c : mes dix mutations (mutations-686dcc6.mjs, M4 dans sa forme réécrite), puis les quatre neuves (mutations-ffb7e2c.mjs) contre les seuls bancs neufs
+== M1 à M10
+debut 00:35:15 charge 5.84 4.82 4.29 7/242 14459
+ffb7e2c2ed9d338726a2558d754e673f768a8df6
+ROUGE aux bancs du dépôt : M1 decision : la marque est le dernier commentaire, à marque ou non (A-183 point 6) (117 s) — contre-relecture 147 — la marque est un commentaire à marque ; essai K2 : rouge — K2 (tenue) — un passage rejoué suivi d’un commentaire ordina
+ROUGE aux bancs du dépôt : M2 poseeApres : sans marque, un passage rejoué (ticket 68, décision 1 : les lignes partent) (100 s) — contre-relecture — le plafond se dit à l’auteur, au conducte | suite 66 — C12 : un plafond à moitié écrit se rejoue entier  | contre-relecture 147 — une étiquette à poser déjà là sur une ; essai K3 : rouge — K3 (tenue) — une étiquette à poser déjà là, sans aucune marq
+ROUGE aux bancs du dépôt : M3 poseeApres : des événements illisibles font partir les lignes au lieu de sortir en 5 (93 s) — contre-relecture 147 — les événements de la PR ne se lisent  ; essai K4 : rouge — K4 (tenue) — les événements de la PR ne se lisent pas : `jou
+ROUGE aux bancs du dépôt : M4 jouer : l’ancienne étiquette retirée avant la lecture des événements (les lignes perdues si elle échoue) (89 s) — contre-relecture 147 — les événements de la PR ne se lisent  ; essai K4 : rouge — K4 (tenue) — les événements de la PR ne se lisent pas : `jou
+ROUGE aux bancs du dépôt : M5 liste : la seconde lecture d’origin en échec se tait (ticket 67, décision 4 : sortie 12) (100 s) — contre-relecture 147 — la seconde lecture d’origin (la tête  ; essai K5 : rouge — K5 (tenue) — la seconde lecture d’origin (la tête relue) en 
+ROUGE aux bancs du dépôt : M6 poseeApres : les événements lus sur leur première page seule (105 s) — contre-relecture 147 — les événements sur deux pages, la der ; essai K6 : rouge — K6 (tenue) — les événements sur deux pages, la dernière pose
+ROUGE aux bancs du dépôt : M7 SKILL.md : la quatrième forme retirée de la liste des formes (A-183 point 4) (0 s) — contre-relecture de la PR 147 — les quatre formes des lignes
+ROUGE aux bancs du dépôt : M8 SKILL.md : la forme « Relecteur arrêté » retirée de la liste des formes (0 s) — contre-relecture de la PR 147 — les quatre formes des lignes
+ROUGE aux bancs du dépôt : M9 SKILL.md : la sortie 12 sans borne (0 s) — contre-relecture de la PR 147 — les quatre formes des lignes
+ROUGE aux bancs du dépôt : M10 SKILL.md : une sortie hors de la table sans borne (0 s) — contre-relecture de la PR 147 — les quatre formes des lignes
+toutes rouges aux bancs du dépôt
+sortie 0
+fin 00:45:19 charge 4.66 4.28 4.27 7/199 7994
+
+== N1 à N4
+debut 00:35:15 charge 5.84 4.82 4.29 7/232 14495
+ffb7e2c2ed9d338726a2558d754e673f768a8df6
+ROUGE aux bancs neufs (5 cas) : N1 jouer : le retrait avant la lecture des événements, le retrait final laissé (sortie 5, mais un retrait écrit) (7 s) — contre-relecture 147 — une étiquette à poser déjà là sur une PR sans a | contre-relecture 147 — les événements de la PR ne se lisent pas : `jou
+ROUGE aux bancs neufs (5 cas) : N2 liste : la relecture se tait, puis une tête absente sort en 12 (un 12 qui ne vient pas du fetch) (8 s) — contre-relecture 147 — la seconde lecture d’origin (la tête relue) en 
+SURVIT aux bancs neufs (5 cas) : N3 decision : les traces d’illisible comptent dans la marque (`dernier` les exclut, A-183 point 6) (117 s) ; banc entier (47 cas) : vert
+ROUGE aux bancs neufs (1 cas) : N4 SKILL.md : la forme « orpheline » remplacée par un doublon de « PR tue » (toujours quatre «) (0 s) — contre-relecture de la PR 147 — les quatre formes des lignes à l'archi
+1 survivante(s) aux bancs neufs
+sortie 1
+fin 00:37:27 charge 6.14 5.37 4.57 6/239 10631
