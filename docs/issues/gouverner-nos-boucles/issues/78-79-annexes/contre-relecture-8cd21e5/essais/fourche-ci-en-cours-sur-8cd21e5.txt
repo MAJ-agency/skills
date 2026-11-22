@@ -1,0 +1,43 @@
+sommet 8cd21e5f978731434d0d47604def845e89378aa0
+début 16:21:01  16:21:01 up  9:44,  0 user,  load average: 17.04, 16.44, 15.52
+TAP version 13
+# warning: You appear to have cloned an empty repository.
+# --- {"cheminsSensibles":["scripts/agent/**"],"relecture":{"depuis":"2026-11-17T09:00:00Z"}}, tour 1 (CI de la fourche en cours), sortie 0
+# [sujet/lot] tenu par \#80 (CI en cours)
+# [\#81] attend son tour : \#80 passe d'abord dans sujet/lot
+# fusionnées : []
+# --- {"cheminsSensibles":["scripts/agent/**"],"relecture":{"depuis":"2026-11-17T09:00:00Z"}}, tour 2 (CI de la fourche verte), sortie 0
+# [\#80] sous-PR de fourche, sautée (aucun renvoi) : elle ne tient pas sujet/lot
+# [\#81] FUSIONNÉE dans sujet/lot 
+# fusionnées : [81]
+# écritures sur \#80 : []
+# warning: You appear to have cloned an empty repository.
+# --- {"cheminsSensibles":["scripts/agent/**"]}, tour 1 (CI de la fourche en cours), sortie 0
+# [sujet/lot] tenu par \#80 (CI en cours)
+# [\#81] attend son tour : \#80 passe d'abord dans sujet/lot
+# fusionnées : []
+# --- {"cheminsSensibles":["scripts/agent/**"]}, tour 2 (CI de la fourche verte), sortie 0
+# [\#80] sous-PR de fourche, sautée (aucun renvoi) : elle ne tient pas sujet/lot
+# [\#81] FUSIONNÉE dans sujet/lot 
+# fusionnées : [81]
+# écritures sur \#80 : []
+# warning: You appear to have cloned an empty repository.
+# --- régime 7, mémoire sujet/lot:80, sortie 0
+# [\#80] sous-PR de fourche, sautée (aucun renvoi) : elle ne tient pas sujet/lot
+# [\#81] FUSIONNÉE dans sujet/lot 
+# fusionnées : [81]
+# boucle-tenus après : "\\n\\n"
+# Subtest: E1 — la fourche « CI en cours » : deux tours, sa CI finie au second (régimes 8 et 7)
+ok 1 - E1 — la fourche « CI en cours » : deux tours, sa CI finie au second (régimes 8 et 7)
+# Subtest: E2 — la fourche « prête » donnée pour tenante par la mémoire de la boucle (`boucle-tenus`, un tour d'avant la repose) (régime 7)
+ok 2 - E2 — la fourche « prête » donnée pour tenante par la mémoire de la boucle (`boucle-tenus`, un tour d'avant la repose) (régime 7)
+1..2
+# tests 2
+# suites 0
+# pass 2
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 81918.555862
+fin 16:22:23  16:22:23 up  9:45,  0 user,  load average: 17.68, 16.94, 15.78

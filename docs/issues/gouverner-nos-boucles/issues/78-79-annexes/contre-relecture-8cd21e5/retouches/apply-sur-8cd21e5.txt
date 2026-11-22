@@ -1,0 +1,4 @@
+git apply --check puis git apply de retouche-152-tour-2.patch sur un arbre neuf de 8cd21e5 ; git diff --stat contre le commit local de la retouche (ce75a47) : vide
+appliqué
+(identique à l'arbre retouché : sortie 0)
+ 5 files changed, 135 insertions(+), 37 deletions(-)

@@ -1,0 +1,27 @@
+sommet 8cd21e5f978731434d0d47604def845e89378aa0 (le code de la PR, sans retouche)
+début 16:43:53  16:43:53 up 10:07,  0 user,  load average: 19.39, 20.71, 18.74
+VERTE Q1 fourche_sautee cherche le motif dans toute la sortie, pas sur la dernière ligne (97 s, sortie 0)
+VERTE Q2 fourche_sautee lit la première ligne non vide, pas la dernière (106 s, sortie 0)
+VERTE Q3 fourche_sautee ne vérifie pas le numéro de la PR (112 s, sortie 0)
+VERTE Q4 fourche_sautee ne vérifie pas la fin du motif (110 s, sortie 0)
+ROUGE Q5 fourche_sautee reconnaît toute dernière ligne qui finit par « sautée sans renvoi » (le verrou compris) (96 s, sortie 1) — boucle.sh : une sous-PR en passage chez un autre capitaine tient son s | boucle.sh : relancer laisse le sujet tenu quand il met à jour une sous
+     error: |- The input did not match the regular expression /\[#80\] sous-PR non éligible \(fermée, en brouillon, ou en passage chez un autre capitaine\)/. Input: |  error: |- The input did not match the regular expression /\[#82\] en passage chez un autre capitaine : sautée \(aucun renvoi\)/. Input:
+VERTE Q6 fourche_sautee reconnaît aussi la lecture illisible de la revue (sortie 21 rendue en 7) (125 s, sortie 0)
+ROUGE Q7 relancer : toute sortie 7 devient « fourche » (le verrou rend le sujet) (147 s, sortie 1) — boucle.sh : relancer laisse le sujet tenu quand il met à jour une sous
+     error: |- The input did not match the regular expression /\[#82\] en passage chez un autre capitaine : sautée \(aucun renvoi\)/. Input:
+ROUGE Q8 fusionner : toute sortie 7 devient « fourche » (le verrou rend le sujet) (71 s, sortie 1) — boucle.sh : une sous-PR en passage chez un autre capitaine tient son s
+     error: |- The input did not match the regular expression /^\[#79\] attend son tour : #78 passe d'abord dans sujet\/course$/m. Input:
+ROUGE Q9 fusionner : le sujet rendu, mais la ligne ne nomme pas la fourche (67 s, sortie 1) — boucle.sh : deux sous-PR d'un sujet, l'une de fourche : la fourche est
+     error: |- {"cheminsSensibles":["scripts/agent/**"],"relecture":{"depuis":"2026-11-17T09:00:00Z"}}, fourche « prête » : [#80] #80 : PR de fourche (autre/jouet) 
+ROUGE Q10 relancer : la fourche nommée, mais elle tient son sujet (91 s, sortie 1) — boucle.sh : deux sous-PR d'un sujet, l'une de fourche : la fourche est
+     error: '{"cheminsSensibles":["scripts/agent/**"],"relecture":{"depuis":"2026-11-17T09:00:00Z"}}, fourche « prête (sans CI) »' code: 'ERR_ASSERTION'
+ROUGE Q11 fusionner : la fourche nommée, mais elle tient son sujet (61 s, sortie 1) — boucle.sh : deux sous-PR d'un sujet, l'une de fourche : la fourche est
+     error: '{"cheminsSensibles":["scripts/agent/**"],"relecture":{"depuis":"2026-11-17T09:00:00Z"}}, fourche « prête »' code: 'ERR_ASSERTION'
+ROUGE P5' boucle.sh : toute sortie 7 rend le sujet (le verrou d'un autre capitaine compris) (91 s, sortie 1) — boucle.sh : une sous-PR en passage chez un autre capitaine tient son s | boucle.sh : relancer laisse le sujet tenu quand il met à jour une sous
+     error: |- The input did not match the regular expression /^\[#79\] attend son tour : #78 passe d'abord dans sujet\/course$/m. Input: |  error: |- The input did not match the regular expression /\[#82\] en passage chez un autre capitaine : sautée \(aucun renvoi\)/. Input:
+ROUGE Q12 sujet.sh relancer : la garde de fourche ne joue qu'en régime 8 (129 s, sortie 1) — sujet.sh relancer : une sous-PR de fourche « prête (sans CI) » est sau | boucle.sh : deux sous-PR d'un sujet, l'une de fourche : la fourche est
+     error: |- {"cheminsSensibles":["scripts/agent/**"]} : #80 en retard sur sujet/lot : mise à jour poussée (0f9c190), attente de la CI |  error: |- {"cheminsSensibles":["scripts/agent/**"]}, fourche « prête (sans CI) » : [#80] fatal: couldn't find remote ref refs/heads/fourche/a
+5 mutation(s) non rouge(s)
+sortie 1
+fin 17:05:36  17:05:36 up 10:28,  0 user,  load average: 24.14, 25.54, 23.60
+arbre après :

@@ -1,0 +1,13 @@
+début 16:15:47  16:15:47 up  9:39,  0 user,  load average: 13.37, 14.99, 14.84
+ok 1 - passer.sh : une PR de fourche dont la branche porte le nom d'une branche d'origin est sautée sans renvoi (7), dans les deux régimes : rien de lu sur sa tête, rien de poussé, rien d'écrit (A-192, point 2)
+ok 2 - sujet.sh fusionner : une sous-PR de fourche est sautée sans renvoi (7), dans les deux régimes, avant tout fetch de sa tête ; une tête sans dépôt aussi (A-192, point 2)
+ok 3 - sujet.sh relancer : une sous-PR de fourche « prête (sans CI) » est sautée sans renvoi (7), dans les deux régimes, avant tout fetch : la branche d'origin du même nom n'est ni fusionnée ni poussée (A-192, point 2)
+ok 4 - sujet.sh fusionner, régime 8 : une PR de mise à jour ne joue qu'une revue du capitaine au premier contrôle, puis la seconde juste avant d'avancer le sujet (la suite M1 du lot 5)
+ok 5 - sujet.sh fusionner, régime 8 : le régime lu d'abord diffère de celui que la revue relit (le contrat a changé entre les deux lectures) : la revue est rejouée une fois, sur la liste de son régime, retouches comprises (la suite M1 du lot 5)
+ok 6 - garde du capitaine : une PR de mise à jour d'un sujet qu'aucun ticket ne déclare dit son geste, jamais celui d'une PR sans ticket (la suite M2 du lot 5)
+ok 7 - boucle.sh : deux sous-PR d'un sujet, l'une de fourche : la fourche est sautée sans renvoi et ne tient pas son sujet, l'autre entre au même tour ; dans les deux régimes, la fourche « prête » (fusionner) ou « prête (sans CI) » (relancer) (A-201)
+ok 8 - sujet.sh fusionner : le régime lu d'abord est 8, la revue relit 7 (le contrat du sujet a perdu la clé `relecture` entre les deux lectures) : la revue est rejouée sur la liste du régime 7, la résolution seule, et les retouches se jugent après les checks (la suite M1 du lot 5, A-201)
+# tests 8
+# pass 8
+# fail 0
+fin 16:17:13  16:17:13 up  9:40,  0 user,  load average: 14.56, 14.96, 14.84

@@ -1,0 +1,19 @@
+Le delta 4afd6e2..8cd21e5 et le patch du tour 1, vérifiés le 2026-11-22T16:30:24Z
+
+$ git log --oneline 4afd6e2..8cd21e5
+8cd21e5 fix(chaine): une sous-PR de fourche ne tient pas son sujet, bancs des trois chemins (retouche du tour 1)
+
+$ sha256sum retouche-152-tour-1.patch (lu sur claude/hopeful-lovelace-ouk6tz)
+3858cda0921cf2391e8c16688568085653b26fcafae160b40a69125d999f4b9d  retouche-152-tour-1.patch
+
+$ git worktree add --detach <arbre> 4afd6e2 ; git apply --check puis git apply retouche-152-tour-1.patch
+appliqué
+
+$ git diff --stat 8cd21e5 (l'arbre patché contre le sommet ; vide : identiques)
+(sortie 0, aucune ligne)
+
+$ git diff --stat 4afd6e2 8cd21e5
+ NOTES-DE-VERSION.md                                |   9 +-
+ skills/chaine/fusionner/scripts/boucle.sh          |  18 ++-
+ .../fusionner/scripts/suites-du-lot-5.test.mjs     | 128 +++++++++++++++++----
+ 3 files changed, 130 insertions(+), 25 deletions(-)

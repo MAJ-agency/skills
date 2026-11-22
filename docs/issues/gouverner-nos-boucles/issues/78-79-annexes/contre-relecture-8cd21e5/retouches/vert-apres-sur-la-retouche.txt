@@ -1,0 +1,16 @@
+arbre : ce75a4709101face653aece51def524df708ca28 (8cd21e5 + retouche-152-tour-2.patch, commit local)
+début 16:48:05  16:48:05 up 10:11,  0 user,  load average: 21.72, 20.68, 19.14
+ok 1 - passer.sh : une PR de fourche dont la branche porte le nom d'une branche d'origin est sautée sans renvoi (7), dans les deux régimes : rien de lu sur sa tête, rien de poussé, rien d'écrit (A-192, point 2)
+ok 2 - sujet.sh fusionner : une sous-PR de fourche est sautée sans renvoi (7), dans les deux régimes, avant tout fetch de sa tête ; une tête sans dépôt aussi (A-192, point 2)
+ok 3 - sujet.sh relancer : une sous-PR de fourche « prête (sans CI) » est sautée sans renvoi (7), dans les deux régimes, avant tout fetch : la branche d'origin du même nom n'est ni fusionnée ni poussée (A-192, point 2)
+ok 4 - sujet.sh fusionner, régime 8 : une PR de mise à jour ne joue qu'une revue du capitaine au premier contrôle, puis la seconde juste avant d'avancer le sujet (la suite M1 du lot 5)
+ok 5 - sujet.sh fusionner, régime 8 : le régime lu d'abord diffère de celui que la revue relit (le contrat a changé entre les deux lectures) : la revue est rejouée une fois, sur la liste de son régime, retouches comprises (la suite M1 du lot 5)
+ok 6 - garde du capitaine : une PR de mise à jour d'un sujet qu'aucun ticket ne déclare dit son geste, jamais celui d'une PR sans ticket (la suite M2 du lot 5)
+ok 7 - boucle.sh : deux sous-PR d'un sujet, l'une de fourche : la fourche est sautée sans renvoi et ne tient pas son sujet, l'autre entre au même tour ; dans les deux régimes, quelle que soit la CI de la fourche (verte, absente, en cours), et la fourche que seule la garde de sujet.sh voit (fusion
+ok 8 - boucle.sh : `fourche_sautee` ne lit que la DERNIÈRE ligne d'une sortie 7 de sujet.sh, et le motif entier de la garde de fourche, pour ce numéro : toute autre sortie 7 (verrou, lecture illisible, garde des chemins sensibles, une ligne après le motif, un autre numéro, un motif tronqué) tie
+ok 9 - file.sh : une sous-PR de fourche se lit « sujet/<nom> : fourche », quelle que soit sa CI (rouge comprise), une tête sans dépôt comprise : jamais dans --rouges ni --next, rien d'écrit (A-201)
+ok 10 - sujet.sh fusionner : le régime lu d'abord est 8, la revue relit 7 (le contrat du sujet a perdu la clé `relecture` entre les deux lectures) : la revue est rejouée sur la liste du régime 7, la résolution seule, et les retouches se jugent après les checks (la suite M1 du lot 5, A-201)
+# tests 10
+# pass 10
+# fail 0
+fin 16:52:49  16:52:49 up 10:16,  0 user,  load average: 21.56, 21.49, 19.91

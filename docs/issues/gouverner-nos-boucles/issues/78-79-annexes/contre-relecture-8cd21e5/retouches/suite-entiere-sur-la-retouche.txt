@@ -1,0 +1,53 @@
+La suite entière (pnpm test) sur l'arbre retouché, premier commit local de la retouche (f5e595a : le code de la retouche, son banc sans le cas « tête sans dépôt dans la liste » ajouté ensuite dans ce75a47).
+Lancée sous setsid --wait timeout 6000, seule passe sur cet arbre ; en même temps, d'autres agents et les mutations de ce relevé (sur d'autres arbres) chargeaient la machine (charge 18 à 27).
+
+arbre : f5e595a57233e1e62b02a1c7271ec4e4a01e11cd (8cd21e5 + retouche du tour 2, commit local)
+début 16:44:30  16:44:30 up 10:07,  0 user,  load average: 17.96, 20.22, 18.65
+sortie 1
+fin 17:23:59  17:23:59 up 10:47,  0 user,  load average: 5.55, 8.86, 14.77
+# tests 1409
+# pass 1408
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2368145.219045
+not ok 166 - les bancs posés à plat sous scripts/chaine/ tournent hors du plugin
+
+Le test rouge, tel que rendu (chemins de l'arbre remplacés par <arbre>, avertissements de git répétés coupés) :
+not ok 166 - les bancs posés à plat sous scripts/chaine/ tournent hors du plugin
+  ---
+  duration_ms: 1488883.474642
+  type: 'test'
+  location: '<arbre>/scripts/poses.test.mjs:59:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    les bancs posés tournent hors du plugin, chaque test exactement une fois
+    + actual - expected
+    
+    + [
+    +   '── scripts/chaine/une-sous-pr-a-la-fois.test.mjs (tranche, tué à sa borne de 600 s)\n' +
+    +   '── scripts/chaine/une-sous-pr-a-la-fois.test.mjs (tranche, tué à sa borne de 540 s)\n' +
+    +     "✔ boucle.sh : deux capitaines — une sous-PR en passage chez un autre capitaine tient son sujet devant une plus ancienne (marque de passage et CI en cours, marque seule, CI en cours seule, marque illisible), et devant celle que cette boucle tenait ; une marque expirée ne tient rien ; rien n'est écrit sur celle qui attend (155489.264296ms)\n" +
+    +     "✔ veille.sh et boucle.sh : le verrou d'un capitaine mort tient un sujet ; il expire sans que rien ne change dans la file, et la veille relance la boucle une fois : les sous-PR entrent ; une CI qui ne finit pas tient un sujet jusqu'au geste du capitaine, qui fait relancer la boucle (155285.908699ms)\n" +
+    +     "✔ veille.sh --reprendre après boucle.sh --arreter : la veille retire le fichier d'arrêt et la sous-PR entre par la vraie boucle ; sans --reprendre, VEILLE ARRÊTÉE en 10, rien de fusionné (17421.384805ms)\n" +
+    +     "✔ boucle.sh : une sortie 128 de fusionner (erreur fatale de git) n'est pas un signal : le sujet est rendu, la suivante est prise dans le tour (28589.577243ms)\n" +
+    +     '✔ boucle.sh : une sortie 129 de fusionner (un signal) laisse le sujet tenu à ce tour : la suivante attend (13453.213406ms)\n' +
+    +     "✔ boucle.sh : une lecture des commentaires en panne ne donne pas le sujet : à ce tour, aucune sous-PR de ce sujet n'est prise, et celle que la boucle tenait le garde au tour suivant (50992.807189ms)\n" +
+    +     '✔ boucle.sh : deux sous-PR « CI en cours » dans un sujet, sans mémoire ni marque : la plus ancienne tient le sujet (13510.035191ms)\n' +
+    +     "✔ boucle.sh : une lecture en panne sans mémoire : aucune des sous-PR prêtes du sujet n'entre à ce tour, la plus ancienne entre au tour suivant, la suivante est prise dans le tour (40479.614848ms)\n" +
+    +     "✔ boucle.sh : une lecture en panne pendant que la boucle tient une sous-PR plus récente : la mémoire survit au tour suspendu, celle qu'elle tenait entre la première (63512.007636ms)",
+    +   "scripts/chaine/une-sous-pr-a-la-fois.test.mjs : « boucle.sh : une sous-PR à la fois par sujet — la plus ancienne tient le sujet tant qu'elle est en route, la suivante est prise dans le tour où elle entre ; trois sous-PR, trois mises à jour, une par sous-PR ; un autre sujet n'attend pas » a tourné 0 fois dans sa tranche, attendu 1",
+    +   "scripts/chaine/une-sous-pr-a-la-fois.test.mjs : « boucle.sh : une sous-PR qui sort de la file ou n'est pas en route ne tient pas son sujet, la suivante est prise dans le même tour (renvoyée, CI rouge, bloquée, en brouillon, sans CI et déjà à jour) » a tourné 0 fois dans sa tranche, attendu 1",
+    +   'scripts/chaine/une-sous-pr-a-la-fois.test.mjs : « boucle.sh : un renvoi rend le sujet, la suivante est prise dans le même tour (conflit hors index vu par fusionner, sortie 3, et par relancer, sortie 2 ; tête gardée vue par relancer, sortie 4) » a tourné 0 fois dans sa tranche, attendu 1',
+    +   'scripts/chaine/une-sous-pr-a-la-fois.test.mjs : « boucle.sh : une sous-PR en passage chez un autre capitaine tient son sujet (sortie 7, la date du verrou lue sur la dernière ligne et dite dans la ligne du sujet tenu) ; ce passage terminé, elle entre et la suivante est prise dans le même tour ; une sortie 7 sans verrou tient le sujet un tour, sans date » a tourné 0 fois dans sa tranc
+    +   'scripts/chaine/une-sous-pr-a-la-fois.test.mjs : « boucle.sh : une reprise (sortie 5) et un échec du capitaine (sortie 11, de fusionner et de relancer) laissent le sujet tenu : la suivante attend son tour » a tourné 0 fois dans sa tranche, attendu 1',
+    +   'scripts/chaine/une-sous-pr-a-la-fois.test.mjs : « boucle.sh : relancer laisse le sujet tenu quand il met à jour une sous-PR sans CI et en retard (sortie 0), la trouve en passage chez un autre capitaine (7) ou bougée depuis sa lecture (5) : la suivante attend son tour » a tourné 0 fois dans sa tranche, attendu 1',
+    +   'scripts/chaine/une-sous-pr-a-la-fois.test.mjs : « boucle.sh : worktree du capitaine pas propre (sortie 6 de fusionner et de relancer), le sujet reste tenu : la suivante attend son tour » a tourné 0 fois dans sa tranche, attendu 1',
+    +   "scripts/chaine/une-sous-pr-a-la-fois.test.mjs : « boucle.sh : un passage interrompu par un signal (sortie 143 de fusionner et de relancer) laisse le sujet tenu à ce tour : la suivante attend, rien n'est renvoyé » a tourné 0 fois dans sa tranche, attendu 1",
+    +   'scripts/chaine/une-sous-pr-a-la-fois.test.mjs : « boucle.sh : la ligne du sujet tenu ne suit pas la ligne de sortie de sujet.sh dans ce que la boucle classe — le renvoi qui la suit dans le tour garde pour motif la dernière ligne de sujet.sh, et la sortie 3 de relancer reste classée sur la sienne ; après une sortie 8 sans CI apparue, le sujet est rendu au tour suivant » a tourné 0 
+    +   "scripts/chaine/une-sous-pr-a-la-fois.test.mjs : « boucle.sh : qui tient le sujet le garde — une sous-PR de numéro plus petit, étiquetée pendant la CI de celle qui tient, attend son tour ; la CI verte, celle qui tenait entre d'abord, et la plus ancienne est prise dans le même tour ; une mise à jour par sous-PR » a tourné 0 fois dans sa tranche, attendu 1"
+    + ]
+    - []
+    
+  code: 'ERR_ASSERTION'

@@ -1,0 +1,10 @@
+scripts/poses.test.mjs seul (tous les bancs posés à plat sous scripts/chaine/, en tranches bornées), sur l'arbre retouché ce75a47, la charge retombée :
+arbre : ce75a4709101face653aece51def524df708ca28 (8cd21e5 + retouche)
+début 17:40:05  17:40:05 up 11:03,  0 user,  load average: 8.16, 10.04, 11.50
+ok 1 - les bancs posés à plat sous scripts/chaine/ tournent hors du plugin
+# tests 1
+# pass 1
+# fail 0
+# duration_ms 657010.495861
+fin 17:51:02  17:51:02 up 11:14,  0 user,  load average: 5.41, 6.99, 9.29
+arbre après : 0 fichier modifié

@@ -1,0 +1,33 @@
+arbre : ce75a4709101face653aece51def524df708ca28 (8cd21e5 + retouche)
+début 16:52:49  16:52:49 up 10:16,  0 user,  load average: 21.56, 21.49, 19.91
+== mutations-retouche.mjs (R1 à R3)
+ROUGE R1 file.sh ne lit pas la fourche (le code de 8cd21e5 : « CI en cours », elle tient son sujet) (298 s, sortie 1) — boucle.sh : deux sous-PR d'un sujet, l'une de fourche : la fourche est | file.sh : une sous-PR de fourche se lit « sujet/<nom> : fourche », que
+     error: |- {"cheminsSensibles":["scripts/agent/**"],"relecture":{"depuis":"2026-11-17T09:00:00Z"}}, CI de la fourche IN_PROGRESS : [sujet/lot] tenu par #80 (CI  |  error: |- Expected values to be strictly deep-equal:
+ROUGE R2 file.sh lit la fourche, mais la boucle ne la nomme pas (220 s, sortie 1) — boucle.sh : deux sous-PR d'un sujet, l'une de fourche : la fourche est
+     error: |- {"cheminsSensibles":["scripts/agent/**"],"relecture":{"depuis":"2026-11-17T09:00:00Z"}}, CI de la fourche SUCCESS : [#81] #81 : verdict relu juste av
+ROUGE R3 file.sh ne lit la fourche que si sa tête a un dépôt (une fourche supprimée passe pour une PR du dépôt) (321 s, sortie 1) — file.sh : une sous-PR de fourche se lit « sujet/<nom> : fourche », que
+     error: |- Expected values to be strictly deep-equal:
+toutes rouges
+sortie 0
+== mutations-tour-2.mjs Q1 à Q4, Q6, BANCS_BS=1 (le banc de fourche_sautee)
+ROUGE Q1 fourche_sautee cherche le motif dans toute la sortie, pas sur la dernière ligne (190 s, sortie 1) — boucle.sh : `fourche_sautee` ne lit que la DERNIÈRE ligne d'une sortie
+     error: |- "#80 : PR de fourche (autre/jouet) : sa tête vit hors du dépôt, le capitaine ne la lit pas ; sautée sans renvoi\nune ligne de plus\n" : [#80] #80 : P
+ROUGE Q2 fourche_sautee lit la première ligne non vide, pas la dernière (188 s, sortie 1) — boucle.sh : `fourche_sautee` ne lit que la DERNIÈRE ligne d'une sortie
+     error: |- "#80 : PR de fourche (autre/jouet) : sa tête vit hors du dépôt, le capitaine ne la lit pas ; sautée sans renvoi\nune ligne de plus\n" : [#80] #80 : P
+ROUGE Q3 fourche_sautee ne vérifie pas le numéro de la PR (172 s, sortie 1) — boucle.sh : `fourche_sautee` ne lit que la DERNIÈRE ligne d'une sortie
+     error: |- "#81 : PR de fourche (autre/jouet) : sa tête vit hors du dépôt, le capitaine ne la lit pas ; sautée sans renvoi\n" : [#80] #81 : PR de fourche (autre
+ROUGE Q4 fourche_sautee ne vérifie pas la fin du motif (135 s, sortie 1) — boucle.sh : `fourche_sautee` ne lit que la DERNIÈRE ligne d'une sortie
+     error: |- "#80 : PR de fourche (autre/jouet) : sa tête vit hors du dépôt, le capitaine ne la lit pas\n" : [#80] #80 : PR de fourche (autre/jouet) : sa tête vit
+ROUGE Q6 fourche_sautee reconnaît aussi la lecture illisible de la revue (sortie 21 rendue en 7) (144 s, sortie 1) — boucle.sh : `fourche_sautee` ne lit que la DERNIÈRE ligne d'une sortie
+     error: |- "#80 : lecture illisible : x : sautée sans renvoi, son auteur n'y peut rien (le Relecteur prévient l'architecte)\n" : [#80] #80 : lecture illisible :
+toutes rouges
+sortie 0
+== mutations du tour 1, P1 à P4 (la défense fourche_sautee, garde seule)
+ROUGE P1 boucle.sh : la fourche n'est pas reconnue (le code de 4afd6e2 : elle tient son sujet) (76 s) — boucle.sh : deux sous-PR d'un sujet, l'une de fourche : la f | boucle.sh : `fourche_sautee` ne lit que la DERNIÈRE ligne d'
+ROUGE P2 boucle.sh : la fourche reconnue après relancer seulement (fusionner : elle tient son sujet) (76 s) — boucle.sh : deux sous-PR d'un sujet, l'une de fourche : la f | boucle.sh : `fourche_sautee` ne lit que la DERNIÈRE ligne d'
+ROUGE P3 boucle.sh : la fourche reconnue après fusionner seulement (relancer : elle tient son sujet) (105 s) — boucle.sh : deux sous-PR d'un sujet, l'une de fourche : la f
+ROUGE P4 boucle.sh : le sujet rendu, mais la ligne de relancer ne nomme pas la fourche (111 s) — boucle.sh : deux sous-PR d'un sujet, l'une de fourche : la f
+toutes rouges
+sortie 0
+fin 17:26:45  17:26:45 up 10:50,  0 user,  load average: 6.64, 6.98, 13.00
+arbre après :

@@ -1,0 +1,14 @@
+sommet 8cd21e5f978731434d0d47604def845e89378aa0
+début 16:17:31  16:17:31 up  9:40,  0 user,  load average: 17.10, 15.47, 15.01
+ROUGE X1 sujet.sh fusionner : une tête sans dépôt (fourche supprimée) passe pour une tête du dépôt (111 s) — sujet.sh fusionner : une sous-PR de fourche est sautée sans 
+ROUGE X2 sujet.sh relancer : une tête sans dépôt (fourche supprimée) passe pour une tête du dépôt (104 s) — sujet.sh relancer : une sous-PR de fourche « prête (sans CI)
+ROUGE X3 sujet.sh fusionner : la garde de fourche ne joue qu'en régime 8 (98 s) — sujet.sh fusionner : une sous-PR de fourche est sautée sans  | boucle.sh : deux sous-PR d'un sujet, l'une de fourche : la f
+ROUGE X4 sujet.sh fusionner : la revue rejouée toujours sur la liste du régime 8 (106 s) — sujet.sh fusionner : le régime lu d'abord est 8, la revue re
+ROUGE P1 boucle.sh : la fourche n'est pas reconnue (le code de 4afd6e2 : elle tient son sujet) (42 s) — boucle.sh : deux sous-PR d'un sujet, l'une de fourche : la f
+ROUGE P2 boucle.sh : la fourche reconnue après relancer seulement (fusionner : elle tient son sujet) (48 s) — boucle.sh : deux sous-PR d'un sujet, l'une de fourche : la f
+ROUGE P3 boucle.sh : la fourche reconnue après fusionner seulement (relancer : elle tient son sujet) (54 s) — boucle.sh : deux sous-PR d'un sujet, l'une de fourche : la f
+ROUGE P4 boucle.sh : le sujet rendu, mais la ligne de relancer ne nomme pas la fourche (51 s) — boucle.sh : deux sous-PR d'un sujet, l'une de fourche : la f
+ROUGE P5 boucle.sh : toute sortie 7 rend le sujet (le verrou d'un autre capitaine compris) (900 s)
+toutes rouges
+sortie 0
+fin 16:42:46  16:42:46 up 10:06,  0 user,  load average: 21.47, 21.33, 18.77
