@@ -1,0 +1,143 @@
+## develop tel quel (pivot 3, observe)
+### main
+OUT| tickets : OK — 236 tickets, dette gelée 0, 0 sans Type: gelé(s), 7 carte(s) dont 0 gelée(s), 2 fiche(s) d'avant Responsable:/Conducteur:
+SORTIE 0
+### PR
+OUT| tickets : 1 avertissement(s) de la preuve suffisante (observe : rien n'est refusé) :
+OUT|   docs/features/anchorpost/all/issues/SPEC_ALL_ANC-5-preuve-suffisante.71.issue.md:3 : ready-for-agent : preuve suffisante (observe) : RULE_ALL_ANC-9 ne déclare aucun cas attendu dans l'index : les écrire par le skill criticite (/maj-skills:criticite) a
+OUT| tickets : OK — 236 tickets, dette gelée 0, 0 sans Type: gelé(s), 7 carte(s) dont 0 gelée(s), 2 fiche(s) d'avant Responsable:/Conducteur:
+SORTIE 0
+
+## sufficiency enforce
+### main
+OUT| tickets : OK — 236 tickets, dette gelée 0, 0 sans Type: gelé(s), 7 carte(s) dont 0 gelée(s), 2 fiche(s) d'avant Responsable:/Conducteur:
+SORTIE 0
+### PR
+ERR| tickets : 1 écart(s) :
+ERR|   docs/features/anchorpost/all/issues/SPEC_ALL_ANC-5-preuve-suffisante.71.issue.md:3 : ready-for-agent : preuve suffisante (enforce) : RULE_ALL_ANC-9 ne déclare aucun cas attendu dans l'index : les écrire par le skill criticite (/maj-skills:criticite) a
+SORTIE 1
+
+## sufficiency absente
+### main
+OUT| tickets : OK — 236 tickets, dette gelée 0, 0 sans Type: gelé(s), 7 carte(s) dont 0 gelée(s), 2 fiche(s) d'avant Responsable:/Conducteur:
+SORTIE 0
+### PR
+OUT| tickets : 1 avertissement(s) de la preuve suffisante (observe : rien n'est refusé) :
+OUT|   docs/features/anchorpost/all/issues/SPEC_ALL_ANC-5-preuve-suffisante.71.issue.md:3 : ready-for-agent : preuve suffisante (observe) : RULE_ALL_ANC-9 ne déclare aucun cas attendu dans l'index : les écrire par le skill criticite (/maj-skills:criticite) a
+OUT| tickets : OK — 236 tickets, dette gelée 0, 0 sans Type: gelé(s), 7 carte(s) dont 0 gelée(s), 2 fiche(s) d'avant Responsable:/Conducteur:
+SORTIE 0
+
+## schema "2"
+### main
+OUT| tickets : OK — 236 tickets, dette gelée 0, 0 sans Type: gelé(s), 7 carte(s) dont 0 gelée(s), 2 fiche(s) d'avant Responsable:/Conducteur:
+SORTIE 0
+### PR : identique à main, octet pour octet
+
+## schema 3 (nombre)
+### main
+OUT| tickets : OK — 236 tickets, dette gelée 0, 0 sans Type: gelé(s), 7 carte(s) dont 0 gelée(s), 2 fiche(s) d'avant Responsable:/Conducteur:
+SORTIE 0
+### PR : identique à main, octet pour octet
+
+## index absent
+### main
+OUT| tickets : OK — 236 tickets, dette gelée 0, 0 sans Type: gelé(s), 7 carte(s) dont 0 gelée(s), 2 fiche(s) d'avant Responsable:/Conducteur:
+SORTIE 0
+### PR : identique à main, octet pour octet
+
+## index qui n'est pas du JSON (marqueurs de conflit)
+### main
+OUT| tickets : OK — 236 tickets, dette gelée 0, 0 sans Type: gelé(s), 7 carte(s) dont 0 gelée(s), 2 fiche(s) d'avant Responsable:/Conducteur:
+SORTIE 0
+### PR
+ERR| tickets : anchorpost/anchorpost.json illisible (Expected double-quoted property name in JSON at position 17 (line 2 column 1)) : la criticité et les cas des règles citées ne se lisent pas ; régénérer l'index
+SORTIE 1
+
+## index illisible, --elaguer
+### main
+OUT| tickets : dette élaguée — 0 ticket(s) prêt(s) hors format restent gelés
+SORTIE 0
+### PR
+ERR| tickets : anchorpost/anchorpost.json illisible (Expected property name or '}' in JSON at position 2 (line 1 column 3)) : la criticité et les cas des règles citées ne se lisent pas ; régénérer l'index
+SORTIE 1
+
+## index illisible, --geler-types
+### main
+ERR| tickets : la dette `types` est déjà gelée (clé présente dans tickets-dette.json) ; elle ne grandit jamais. Poser `Type:` sur le ticket.
+SORTIE 1
+### PR
+ERR| tickets : anchorpost/anchorpost.json illisible (Expected property name or '}' in JSON at position 2 (line 1 column 3)) : la criticité et les cas des règles citées ne se lisent pas ; régénérer l'index
+SORTIE 1
+
+## index JSON null
+### main
+OUT| tickets : OK — 236 tickets, dette gelée 0, 0 sans Type: gelé(s), 7 carte(s) dont 0 gelée(s), 2 fiche(s) d'avant Responsable:/Conducteur:
+SORTIE 0
+### PR : identique à main, octet pour octet
+
+## pivot 3 sans rules
+### main
+OUT| tickets : OK — 236 tickets, dette gelée 0, 0 sans Type: gelé(s), 7 carte(s) dont 0 gelée(s), 2 fiche(s) d'avant Responsable:/Conducteur:
+SORTIE 0
+### PR
+OUT| tickets : 1 avertissement(s) de la preuve suffisante (observe : rien n'est refusé) :
+OUT|   docs/features/anchorpost/all/issues/SPEC_ALL_ANC-5-preuve-suffisante.71.issue.md:3 : ready-for-agent : preuve suffisante (observe) : RULE_ALL_ANC-9 est absente de l'index anchorpost/anchorpost.json : régénérer l'index (la commande que nomme scripts/d
+OUT| tickets : OK — 236 tickets, dette gelée 0, 0 sans Type: gelé(s), 7 carte(s) dont 0 gelée(s), 2 fiche(s) d'avant Responsable:/Conducteur:
+SORTIE 0
+
+## régime 8 (clé relecture, double-relecture.mjs du plugin)
+### main
+ERR| tickets : 2 écart(s) :
+ERR|   docs/features/anchorpost/all/issues/SPEC_ALL_ANC-4-cli-et-pivot-v2.58.issue.md:5 : régime 8 : ligne `Relecture: double` absente alors que le ticket cite RULE_ALL_ANC-16, règle de criticité haute (deux relectures indépendantes, A-90)
+ERR|   docs/features/anchorpost/all/issues/SPEC_ALL_ANC-4-cli-et-pivot-v2.58.issue.md:5 : régime 8 : ligne `Relecture: double` absente alors que le ticket cite RULE_ALL_ANC-19, règle de criticité haute (deux relectures indépendantes, A-90)
+SORTIE 1
+### PR
+OUT| tickets : 1 avertissement(s) de la preuve suffisante (observe : rien n'est refusé) :
+OUT|   docs/features/anchorpost/all/issues/SPEC_ALL_ANC-5-preuve-suffisante.71.issue.md:3 : ready-for-agent : preuve suffisante (observe) : RULE_ALL_ANC-9 ne déclare aucun cas attendu dans l'index : les écrire par le skill criticite (/maj-skills:criticite) a
+ERR| tickets : 2 écart(s) :
+ERR|   docs/features/anchorpost/all/issues/SPEC_ALL_ANC-4-cli-et-pivot-v2.58.issue.md:5 : régime 8 : ligne `Relecture: double` absente alors que le ticket cite RULE_ALL_ANC-16, règle de criticité haute (deux relectures indépendantes, A-90)
+ERR|   docs/features/anchorpost/all/issues/SPEC_ALL_ANC-4-cli-et-pivot-v2.58.issue.md:5 : régime 8 : ligne `Relecture: double` absente alors que le ticket cite RULE_ALL_ANC-19, règle de criticité haute (deux relectures indépendantes, A-90)
+SORTIE 1
+
+## régime 8, enforce
+### main
+ERR| tickets : 2 écart(s) :
+ERR|   docs/features/anchorpost/all/issues/SPEC_ALL_ANC-4-cli-et-pivot-v2.58.issue.md:5 : régime 8 : ligne `Relecture: double` absente alors que le ticket cite RULE_ALL_ANC-16, règle de criticité haute (deux relectures indépendantes, A-90)
+ERR|   docs/features/anchorpost/all/issues/SPEC_ALL_ANC-4-cli-et-pivot-v2.58.issue.md:5 : régime 8 : ligne `Relecture: double` absente alors que le ticket cite RULE_ALL_ANC-19, règle de criticité haute (deux relectures indépendantes, A-90)
+SORTIE 1
+### PR
+ERR| tickets : 3 écart(s) :
+ERR|   docs/features/anchorpost/all/issues/SPEC_ALL_ANC-4-cli-et-pivot-v2.58.issue.md:5 : régime 8 : ligne `Relecture: double` absente alors que le ticket cite RULE_ALL_ANC-16, règle de criticité haute (deux relectures indépendantes, A-90)
+ERR|   docs/features/anchorpost/all/issues/SPEC_ALL_ANC-4-cli-et-pivot-v2.58.issue.md:5 : régime 8 : ligne `Relecture: double` absente alors que le ticket cite RULE_ALL_ANC-19, règle de criticité haute (deux relectures indépendantes, A-90)
+ERR|   docs/features/anchorpost/all/issues/SPEC_ALL_ANC-5-preuve-suffisante.71.issue.md:3 : ready-for-agent : preuve suffisante (enforce) : RULE_ALL_ANC-9 ne déclare aucun cas attendu dans l'index : les écrire par le skill criticite (/maj-skills:criticite) a
+SORTIE 1
+
+## régime 8, index illisible
+### main
+ERR| tickets : 21 écart(s) :
+ERR|   docs/features/anchorpost/all/issues/SPEC_ALL_ANC-4-cli-et-pivot-v2.58.issue.md:5 : régime 8 : ligne `Relecture: double` absente, et la criticité de RULE_ALL_ANC-16 ne se lit pas (anchorpost/anchorpost.json : anchorpost/anchorpost.json n'est pas du JSO
+ERR|   docs/features/anchorpost/all/issues/SPEC_ALL_ANC-4-cli-et-pivot-v2.58.issue.md:5 : régime 8 : ligne `Relecture: double` absente, et la criticité de RULE_ALL_ANC-19 ne se lit pas (anchorpost/anchorpost.json : anchorpost/anchorpost.json n'est pas du JSO
+ERR|   docs/features/anchorpost/all/issues/SPEC_ALL_ANC-5-preuve-suffisante.21.issue.md:5 : régime 8 : ligne `Relecture: double` absente, et la criticité de RULE_ALL_ANC-28 ne se lit pas (anchorpost/anchorpost.json : anchorpost/anchorpost.json n'est pas du J
+ERR|   docs/features/anchorpost/all/issues/SPEC_ALL_ANC-5-preuve-suffisante.22.issue.md:5 : régime 8 : ligne `Relecture: double` absente, et la criticité de RULE_ALL_ANC-28 ne se lit pas (anchorpost/anchorpost.json : anchorpost/anchorpost.json n'est pas du J
+ERR|   docs/features/anchorpost/all/issues/SPEC_ALL_ANC-5-preuve-suffisante.23.issue.md:5 : régime 8 : ligne `Relecture: double` absente, et la criticité de RULE_ALL_ANC-29 ne se lit pas (anchorpost/anchorpost.json : anchorpost/anchorpost.json n'est pas du J
+ERR|   docs/features/anchorpost/all/issues/SPEC_ALL_ANC-5-preuve-suffisante.24.issue.md:5 : régime 8 : ligne `Relecture: double` absente, et la criticité de RULE_ALL_ANC-29 ne se lit pas (anchorpost/anchorpost.json : anchorpost/anchorpost.json n'est pas du J
+ERR|   docs/features/anchorpost/all/issues/SPEC_ALL_ANC-5-preuve-suffisante.26.issue.md:5 : régime 8 : ligne `Relecture: double` absente, et la criticité de RULE_ALL_ANC-24 ne se lit pas (anchorpost/anchorpost.json : anchorpost/anchorpost.json n'est pas du J
+ERR|   docs/features/anchorpost/all/issues/SPEC_ALL_ANC-5-preuve-suffisante.26.issue.md:5 : régime 8 : ligne `Relecture: double` absente, et la criticité de RULE_ALL_ANC-28 ne se lit pas (anchorpost/anchorpost.json : anchorpost/anchorpost.json n'est pas du J
+ERR|   docs/features/anchorpost/all/issues/SPEC_ALL_ANC-5-preuve-suffisante.71.issue.md:5 : régime 8 : ligne `Relecture: double` absente, et la criticité de RULE_ALL_ANC-9 ne se lit pas (anchorpost/anchorpost.json : anchorpost/anchorpost.json n'est pas du JS
+ERR|   docs/features/anchorpost/all/issues/SPEC_ALL_ANC-9-description-feature.01.issue.md:5 : régime 8 : ligne `Relecture: double` absente, et la criticité de RULE_ALL_ANC-31 ne se lit pas (anchorpost/anchorpost.json : anchorpost/anchorpost.json n'est pas du
+ERR|   docs/features/anchorpost/all/issues/SPEC_ALL_ANC-9-description-feature.02.issue.md:5 : régime 8 : ligne `Relecture: double` absente, et la criticité de RULE_ALL_ANC-31 ne se lit pas (anchorpost/anchorpost.json : anchorpost/anchorpost.json n'est pas du
+ERR|   docs/features/anchorpost/all/issues/SPEC_ALL_ANC-9-description-feature.03.issue.md:5 : régime 8 : ligne `Relecture: double` absente, et la criticité de RULE_ALL_ANC-31 ne se lit pas (anchorpost/anchorpost.json : anchorpost/anchorpost.json n'est pas du
+ERR|   docs/features/anchorpost/all/issues/SPEC_ALL_ANC-9-description-feature.04.issue.md:5 : régime 8 : ligne `Relecture: double` absente, et la criticité de RULE_ALL_ANC-31 ne se lit pas (anchorpost/anchorpost.json : anchorpost/anchorpost.json n'est pas du
+ERR|   docs/features/anchorpost/all/issues/SPEC_ALL_ANC-9-description-feature.05.issue.md:5 : régime 8 : ligne `Relecture: double` absente, et la criticité de RULE_ALL_ANC-31 ne se lit pas (anchorpost/anchorpost.json : anchorpost/anchorpost.json n'est pas du
+ERR|   docs/features/anchorpost/all/issues/SPEC_ALL_ANC-9-description-feature.06.issue.md:5 : régime 8 : ligne `Relecture: double` absente, et la criticité de RULE_ALL_ANC-31 ne se lit pas (anchorpost/anchorpost.json : anchorpost/anchorpost.json n'est pas du
+ERR|   docs/features/anchorpost/all/issues/SPEC_ALL_ANC-9-description-feature.07.issue.md:5 : régime 8 : ligne `Relecture: double` absente, et la criticité de RULE_ALL_ANC-31 ne se lit pas (anchorpost/anchorpost.json : anchorpost/anchorpost.json n'est pas du
+ERR|   docs/features/anchorpost/all/issues/SPEC_ALL_ANC-9-description-feature.08.issue.md:5 : régime 8 : ligne `Relecture: double` absente, et la criticité de RULE_ALL_ANC-31 ne se lit pas (anchorpost/anchorpost.json : anchorpost/anchorpost.json n'est pas du
+ERR|   docs/features/anchorpost/all/issues/SPEC_ALL_ANC-9-description-feature.09.issue.md:5 : régime 8 : ligne `Relecture: double` absente, et la criticité de RULE_ALL_ANC-31 ne se lit pas (anchorpost/anchorpost.json : anchorpost/anchorpost.json n'est pas du
+ERR|   docs/features/anchorpost/all/issues/SPEC_ALL_ANC-9-description-feature.10.issue.md:5 : régime 8 : ligne `Relecture: double` absente, et la criticité de RULE_ALL_ANC-31 ne se lit pas (anchorpost/anchorpost.json : anchorpost/anchorpost.json n'est pas du
+ERR|   docs/features/anchorpost/all/issues/SPEC_ALL_ANC-9-description-feature.11.issue.md:5 : régime 8 : ligne `Relecture: double` absente, et la criticité de RULE_ALL_ANC-31 ne se lit pas (anchorpost/anchorpost.json : anchorpost/anchorpost.json n'est pas du
+ERR|   docs/features/anchorpost/all/issues/SPEC_ALL_ANC-9-description-feature.12.issue.md:5 : régime 8 : ligne `Relecture: double` absente, et la criticité de RULE_ALL_ANC-31 ne se lit pas (anchorpost/anchorpost.json : anchorpost/anchorpost.json n'est pas du
+SORTIE 1
+### PR
+ERR| tickets : anchorpost/anchorpost.json illisible (Expected property name or '}' in JSON at position 2 (line 1 column 3)) : la criticité et les cas des règles citées ne se lisent pas ; régénérer l'index
+SORTIE 1
+

@@ -1,0 +1,47 @@
+# Bancs de la PR, rouges avant, verts après (blocs du ticket 83, § 1 et § 2), Node v22.23.5, sur un clone neuf
+
+## § 1, origin/main (ddb4265) et les seuls *.test.mjs du patch (git apply --include)
+not ok 45 - le gabarit de règle montre `criticality` en bloc, une clé par ligne ; aucun texte du plugin ne la montre en ligne
+not ok 49 - T3, branche « cas déclarés » : index au pivot 3 et règle qui déclare ses cas, le relecteur ne recompte pas, il vérifie ce que la machine ne juge pas et lit ce qu'elle a compté
+not ok 70 - la copie de la spec de la preuve suffisante est celle des amendements du 2026-11-14 au 2026-11-20, sans le nom d'une personne
+not ok 71 - le gabarit de ticket porte la ligne `Prouve:` sous `Règles:`, et une ligne de `\#\# Surfaces` par cas attendu
+not ok 82 - une règle de la ligne Prouve: est rendue sous « Règles du ticket », après celles de Règles:, et n'est pas répétée parmi les cités
+not ok 95 - K3, gate : sans index ou d'un autre schéma que 3, rien ne change ; un index au pivot 3 en observe signale, en enforce refuse
+not ok 96 - K3, gate : un index présent qui n'est pas du JSON fait sortir le gate en erreur, la cause dite, au lieu de cesser de juger
+not ok 97 - K3, gate : une règle rejetée ou obsolète dans l'index ne se juge pas ; un niveau ou un cas hors de la forme de l'index ne compte pas
+not ok 135 - K3 : la ligne Prouve: se lit comme Règles: (identifiant complet, registre, contexte), et jamais pour une règle de Règles:
+not ok 136 - K3 : sans index au pivot 3, rien ; en observe, un avertissement ; en enforce, un refus, pour une règle sans criticité, sans cas ou absente de l'index
+not ok 137 - K3 : `\#\# Surfaces` nomme chaque cas attendu des règles citées, `RULE_…\#<cas>`, où que ce soit dans la section
+# tests 137
+# pass 126
+# fail 11
+
+## § 2, a95ab89, les cinq bancs et scripts/relecture.test.mjs
+# tests 176
+# pass 176
+# fail 0
+
+## § 1, avec les trois retouches de banc posées en plus
+not ok 45 - le gabarit de règle montre `criticality` en bloc, une clé par ligne ; aucun texte du plugin ne la montre en ligne
+not ok 49 - T3, branche « cas déclarés » : index au pivot 3 et règle qui déclare ses cas, le relecteur ne recompte pas, il vérifie ce que la machine ne juge pas et lit ce qu'elle a compté
+not ok 70 - la copie de la spec de la preuve suffisante est celle des amendements du 2026-11-14 au 2026-11-20, sans le nom d'une personne
+not ok 71 - le gabarit de ticket porte la ligne `Prouve:` sous `Règles:`, et une ligne de `\#\# Surfaces` par cas attendu
+not ok 72 - le gabarit de règle montre la révision des cas, `caseRevision`, après `notApplicableFamilies`, en commentaire, une clé par ligne
+not ok 83 - une règle de la ligne Prouve: est rendue sous « Règles du ticket », après celles de Règles:, et n'est pas répétée parmi les cités
+not ok 96 - K3, gate : sans index ou d'un autre schéma que 3, rien ne change ; un index au pivot 3 en observe signale, en enforce refuse
+not ok 97 - K3, gate : un index présent qui n'est pas du JSON fait sortir le gate en erreur, la cause dite, au lieu de cesser de juger
+not ok 98 - K3, gate : une règle rejetée ou obsolète dans l'index ne se juge pas ; un niveau ou un cas hors de la forme de l'index ne compte pas
+not ok 99 - K3, gate : le régime 8 juge la preuve suffisante comme le régime 7 ; un index qui n'est pas du JSON sort en 1 en régime 8, sous --elaguer et sous --geler-*, sans rien écrire
+not ok 100 - K3, gate : un index JSON qui n'est pas un objet ne juge rien ; au pivot 3 sans liste `rules`, chaque règle citée est absente de l'index
+not ok 138 - K3 : la ligne Prouve: se lit comme Règles: (identifiant complet, registre, contexte), et jamais pour une règle de Règles:
+not ok 139 - K3 : sans index au pivot 3, rien ; en observe, un avertissement ; en enforce, un refus, pour une règle sans criticité, sans cas ou absente de l'index
+not ok 140 - K3 : `\#\# Surfaces` nomme chaque cas attendu des règles citées, `RULE_…\#<cas>`, où que ce soit dans la section
+not ok 141 - K3 : la ligne Prouve: se lit et se juge sous chacune des formes de Règles: (`X:`, `**X:**`, `- X:`, `* X:`)
+# tests 141
+# pass 126
+# fail 15
+
+## § 2, a95ab89 et les quatre retouches
+# tests 180
+# pass 180
+# fail 0

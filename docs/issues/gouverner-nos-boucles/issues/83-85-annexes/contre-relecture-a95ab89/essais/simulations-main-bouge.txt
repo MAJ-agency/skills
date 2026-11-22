@@ -1,0 +1,46 @@
+# scénario p152 : claude/suites-capitaine:correctif
+- claude/suites-capitaine entrée dans main : version 8.0.1 ; conflits du squash : aucun ; restés après reprise : aucun
+- § 3 sur la PR : git merge --no-ff de main' : conflits : .claude-plugin/plugin.json NOTES-DE-VERSION.md 
+- version-mineure.mjs : 8.1.0 — 2026-11-22 ; plugin.json : "version":"8.1.0"
+- notes en tête : ## 8.1.0 — 2026-11-22;## 8.0.1 — 2026-11-22;## 8.0.0 — 2026-11-22;## 7.39.0 — 2026-11-22;
+- arbre comparé à main' + patch de la PR (hors fichiers de version) : identique
+- sommet du scénario : e8d4f7a
+# scénario p153 : claude/suites-relecteur:correctif
+- claude/suites-relecteur entrée dans main : version 8.0.1 ; conflits du squash : aucun ; restés après reprise : aucun
+- § 3 sur la PR : git merge --no-ff de main' : conflits : .claude-plugin/plugin.json NOTES-DE-VERSION.md 
+- version-mineure.mjs : 8.1.0 — 2026-11-22 ; plugin.json : "version":"8.1.0"
+- notes en tête : ## 8.1.0 — 2026-11-22;## 8.0.1 — 2026-11-22;## 8.0.0 — 2026-11-22;## 7.39.0 — 2026-11-22;
+- arbre comparé à main' + patch de la PR (hors fichiers de version) : identique
+- sommet du scénario : 39597dd
+# scénario p152-153 : claude/suites-capitaine:correctif claude/suites-relecteur:correctif
+- claude/suites-capitaine entrée dans main : version 8.0.1 ; conflits du squash : aucun ; restés après reprise : aucun
+- claude/suites-relecteur entrée dans main : version 8.0.2 ; conflits du squash : NOTES-DE-VERSION.md  ; restés après reprise : aucun
+- § 3 sur la PR : git merge --no-ff de main' : conflits : .claude-plugin/plugin.json NOTES-DE-VERSION.md 
+- version-mineure.mjs : 8.1.0 — 2026-11-22 ; plugin.json : "version":"8.1.0"
+- notes en tête : ## 8.1.0 — 2026-11-22;## 8.0.2 — 2026-11-22;## 8.0.1 — 2026-11-22;## 8.0.0 — 2026-11-22;
+- arbre comparé à main' + patch de la PR (hors fichiers de version) : identique
+- sommet du scénario : b1f7339
+# scénario p153-152 : claude/suites-relecteur:correctif claude/suites-capitaine:correctif
+- claude/suites-relecteur entrée dans main : version 8.0.1 ; conflits du squash : aucun ; restés après reprise : aucun
+- claude/suites-capitaine entrée dans main : version 8.0.2 ; conflits du squash : NOTES-DE-VERSION.md  ; restés après reprise : aucun
+- § 3 sur la PR : git merge --no-ff de main' : conflits : .claude-plugin/plugin.json NOTES-DE-VERSION.md 
+- version-mineure.mjs : 8.1.0 — 2026-11-22 ; plugin.json : "version":"8.1.0"
+- notes en tête : ## 8.1.0 — 2026-11-22;## 8.0.2 — 2026-11-22;## 8.0.1 — 2026-11-22;## 8.0.0 — 2026-11-22;
+- arbre comparé à main' + patch de la PR (hors fichiers de version) : identique
+- sommet du scénario : 4deff52
+# scénario p154 : claude/preuve-suffisante-socle-tests:mineure
+- claude/preuve-suffisante-socle-tests entrée dans main : version 8.1.0 ; conflits du squash : aucun ; restés après reprise : aucun
+- § 3 sur la PR : git merge --no-ff de main' : conflits : NOTES-DE-VERSION.md 
+- version-mineure.mjs : 8.2.0 — 2026-11-22 ; plugin.json : "version":"8.2.0"
+- notes en tête : ## 8.2.0 — 2026-11-22;## 8.1.0 — 2026-11-22;## 8.0.0 — 2026-11-22;## 7.39.0 — 2026-11-22;
+- arbre comparé à main' + patch de la PR (hors fichiers de version) : identique
+- sommet du scénario : 0df68ec
+# scénario tous : claude/suites-capitaine:correctif claude/suites-relecteur:correctif claude/preuve-suffisante-socle-tests:mineure
+- claude/suites-capitaine entrée dans main : version 8.0.1 ; conflits du squash : aucun ; restés après reprise : aucun
+- claude/suites-relecteur entrée dans main : version 8.0.2 ; conflits du squash : NOTES-DE-VERSION.md  ; restés après reprise : aucun
+- claude/preuve-suffisante-socle-tests entrée dans main : version 8.1.0 ; conflits du squash : .claude-plugin/plugin.json NOTES-DE-VERSION.md  ; restés après reprise : aucun
+- § 3 sur la PR : git merge --no-ff de main' : conflits : NOTES-DE-VERSION.md 
+- version-mineure.mjs : 8.2.0 — 2026-11-22 ; plugin.json : "version":"8.2.0"
+- notes en tête : ## 8.2.0 — 2026-11-22;## 8.1.0 — 2026-11-22;## 8.0.2 — 2026-11-22;## 8.0.1 — 2026-11-22;
+- arbre comparé à main' + patch de la PR (hors fichiers de version) : identique
+- sommet du scénario : c81cf7e

@@ -1,0 +1,42 @@
+ 15:53:37 up  9:16,  0 user,  load average: 5.19, 7.63, 11.07
+ROUGE P1 tickets-regles.mjs : la ligne Prouve: n'est pas lue (10 s) — K3, gate : sans index ou d'un autre schéma que 3, rien ne ch | K3 : la ligne Prouve: se lit comme Règles: (identifiant comp | K3 : sans index au pivot 3, rien ; en observe, un avertissem
+ROUGE P2 tickets-regles.mjs : une règle sur Règles: et sur Prouve: passe (1 s) — K3 : la ligne Prouve: se lit comme Règles: (identifiant comp
+ROUGE P3 tickets-regles.mjs : Prouve: — passe (0 s) — K3 : la ligne Prouve: se lit comme Règles: (identifiant comp
+ROUGE P4 tickets-regles.mjs : Prouve: n'entre pas dans la preuve suffisante (11 s) — K3, gate : sans index ou d'un autre schéma que 3, rien ne ch | K3 : sans index au pivot 3, rien ; en observe, un avertissem
+ROUGE S1 tickets-regles.mjs : en enforce, un avertissement et non un refus (13 s) — K3, gate : sans index ou d'un autre schéma que 3, rien ne ch | K3, gate : une règle rejetée ou obsolète dans l'index ne se  | K3 : sans index au pivot 3, rien ; en observe, un avertissem | K3 : `\#\# Surfaces` nomme chaque cas attendu des règles cit
+ROUGE S2 tickets-regles.mjs : en observe, un refus et non un avertissement (11 s) — K3, gate : sans index ou d'un autre schéma que 3, rien ne ch | K3 : sans index au pivot 3, rien ; en observe, un avertissem
+ROUGE S3 tickets-regles.mjs : une règle « à classer » passe (9 s) — K3, gate : sans index ou d'un autre schéma que 3, rien ne ch | K3, gate : une règle rejetée ou obsolète dans l'index ne se  | K3 : sans index au pivot 3, rien ; en observe, un avertissem
+ROUGE S4 tickets-regles.mjs : une règle sans cas passe (12 s) — K3, gate : sans index ou d'un autre schéma que 3, rien ne ch | K3, gate : une règle rejetée ou obsolète dans l'index ne se  | K3 : sans index au pivot 3, rien ; en observe, un avertissem
+ROUGE S5 tickets-regles.mjs : un cas que ## Surfaces ne nomme pas passe (18 s) — K3, gate : sans index ou d'un autre schéma que 3, rien ne ch | K3 : `\#\# Surfaces` nomme chaque cas attendu des règles cit
+ROUGE S6 tickets-regles.mjs : un cas voisin (#nominal-bis) nomme #nominal (0 s) — K3 : `\#\# Surfaces` nomme chaque cas attendu des règles cit
+ROUGE S7 tickets-regles.mjs : une règle absente de l'index passe (1 s) — K3 : sans index au pivot 3, rien ; en observe, un avertissem
+ROUGE S8 tickets-regles.mjs : une règle rejetée ou obsolète se juge (1 s) — K3 : sans index au pivot 3, rien ; en observe, un avertissem
+ROUGE S9 tickets-regles.mjs : un ticket prêt gelé se juge (1 s) — K3 : sans index au pivot 3, rien ; en observe, un avertissem
+ROUGE G1 tickets.mjs : un index au schéma 2 se juge comme le pivot 3 (13 s) — K3, gate : sans index ou d'un autre schéma que 3, rien ne ch
+ROUGE G2 tickets.mjs : project.sufficiency n'est pas lu (toujours observe) (14 s) — K3, gate : sans index ou d'un autre schéma que 3, rien ne ch | K3, gate : une règle rejetée ou obsolète dans l'index ne se 
+ROUGE G3 tickets.mjs : un index qui n'est pas du JSON se tait (16 s) — K3, gate : un index présent qui n'est pas du JSON fait sorti
+ROUGE G4 tickets.mjs : les avertissements ne sont pas écrits (15 s) — K3, gate : sans index ou d'un autre schéma que 3, rien ne ch
+ROUGE G5 tickets.mjs : la criticité se lit à la racine de la règle (forme nue) (14 s) — K3, gate : sans index ou d'un autre schéma que 3, rien ne ch | K3, gate : une règle rejetée ou obsolète dans l'index ne se 
+ROUGE C1 contexte-ticket.mjs : la ligne Prouve: n'est pas rendue (2 s) — une règle de la ligne Prouve: est rendue sous « Règles du ti
+ROUGE C2 contexte-ticket.mjs : une règle des deux lignes est rendue deux fois (2 s) — une règle de la ligne Prouve: est rendue sous « Règles du ti
+ROUGE C3 contexte-ticket.mjs : une règle de Prouve: est répétée parmi les cités (3 s) — une règle de la ligne Prouve: est rendue sous « Règles du ti
+ROUGE D1 copie de la spec : celle du 2026-11-13 (la tête d'avant) (1 s) — la copie de la spec de la preuve suffisante est celle des am
+ROUGE D2 copie de la spec : le nom d'une personne dans un exemple (1 s) — la copie de la spec de la preuve suffisante est celle des am
+ROUGE D3 gabarit de règle : sans la date de la criticité (1 s) — le gabarit de règle montre `criticality` en bloc, une clé pa
+ROUGE D4 gabarit de ticket : sans la ligne Prouve: (1 s) — le gabarit de ticket porte la ligne `Prouve:` sous `Règles:`
+ROUGE D5 critère T3 : Prouve: n'est plus lue (2 s) — T3, branche « cas déclarés » : index au pivot 3 et règle qui
+ROUGE D6 critère T3 du régime 8 (relecture) : Prouve: n'est plus lue (181 s) — les critères repris du régime 7 ne perdent rien : T1 à T9 et
+ROUGE G6 tickets.mjs : un schema 3 en nombre se juge comme "3" (21 s) — K3, gate : une règle rejetée ou obsolète dans l'index ne se 
+ROUGE G7 tickets.mjs : un niveau hors vocabulaire compte pour une criticité (21 s) — K3, gate : une règle rejetée ou obsolète dans l'index ne se 
+ROUGE G8 tickets.mjs : validation.status n'est pas lu (aucune règle close) (17 s) — K3, gate : une règle rejetée ou obsolète dans l'index ne se 
+ROUGE G9 tickets.mjs : une règle obsolète se juge (22 s) — K3, gate : une règle rejetée ou obsolète dans l'index ne se 
+ROUGE G10 tickets.mjs : un cas sans id compte (22 s) — K3, gate : une règle rejetée ou obsolète dans l'index ne se 
+ROUGE S10 tickets-regles.mjs : une règle citée sur deux lignes se juge deux fois (1 s) — K3 : sans index au pivot 3, rien ; en observe, un avertissem
+ROUGE C4 contexte-ticket.mjs : la ligne Prouve: se lit hors de l'en-tête (2 s) — une règle de la ligne Prouve: est rendue sous « Règles du ti
+ROUGE C5 contexte-ticket.mjs : le commentaire de Prouve: n'est pas retiré (2 s) — une règle de la ligne Prouve: est rendue sous « Règles du ti
+ROUGE D7 critère T3 (d) : un cas porté par un ticket qui le prouve sur Prouve: ne compte plus (2 s) — T3, branche « cas déclarés » : index au pivot 3 et règle qui
+ROUGE D8 critère T3 (d) du régime 8 : un cas porté par un ticket qui le prouve sur Prouve: ne compte plus (183 s) — les critères repris du régime 7 ne perdent rien : T1 à T9 et
+ROUGE D9 gabarit de ticket : la criticité qui ne descend pas par Prouve: n'est plus dite (1 s) — le gabarit de ticket porte la ligne `Prouve:` sous `Règles:`
+toutes rouges
+sortie 0
+ 16:04:24 up  9:27,  0 user,  load average: 16.24, 16.38, 14.34

@@ -1,0 +1,109 @@
+diff --git a/NOTES-DE-VERSION.md b/NOTES-DE-VERSION.md
+index 799e7ce..308cdf3 100644
+--- a/NOTES-DE-VERSION.md
++++ b/NOTES-DE-VERSION.md
+@@ -6,14 +6,14 @@ La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque pro
+ 
+ ### Ce qui change
+ 
+-- **La ligne `Prouve:`** (K3 de la preuve suffisante, `SPEC_ALL_ANC-5` § 8) : un ticket qui prouve une règle sans la réaliser (il en écrit les tests, une autre feature porte son code) la nomme sur une ligne `Prouve:` de son en-tête, jamais sur `Règles:`, qui dit ce que la feature réalise et seule lui donne sa criticité. Le gate `tickets` la lit comme `Règles:` (identifiant complet, registre, contexte), refuse `Prouve: —` et une règle citée sur les deux lignes ; la revue de ticket la rend sous « Règles du ticket », et `T3` relit les preuves de ses règles. Le gabarit de ticket porte la ligne, sous `Règles:`.
++- **La ligne `Prouve:`** (K3 de la preuve suffisante, `SPEC_ALL_ANC-5` § 8) : un ticket qui prouve une règle sans la réaliser (il en écrit les tests, une autre feature porte son code) la nomme sur une ligne `Prouve:` de son en-tête, jamais sur `Règles:`, qui dit ce que la feature réalise et seule lui donne sa criticité. Le gate `tickets` la lit comme `Règles:` (identifiant complet, registre, contexte), refuse `Prouve: —` et une règle citée sur les deux lignes ; la revue de ticket la rend sous « Règles du ticket », et `T3` relit les preuves de ses règles ; sa clause (d) accepte aussi un cas porté par un ticket ouvert dont la ligne `Prouve:` cite la règle, au régime 7 (`revue-de-ticket`) comme au régime 8 (`relecture`). Le gabarit de ticket porte la ligne, sous `Règles:`.
+ - **Le gate `tickets` juge la preuve suffisante d'un ticket prêt** (K3), quand l'index Anchorpost commis est au pivot 3 : chaque règle de `Règles:` ou de `Prouve:` a une criticité et des cas attendus dans l'index, et `## Surfaces` nomme chacun de ces cas (`RULE_ALL_LIC-3#lien-expire`), avec la preuve qui le portera ou le ticket qui la portera. Refus si l'index dit `enforce`, avertissement sinon (`observe`, le défaut) ; **sans index au pivot 3, rien ne change**. Un index présent qui n'est pas du JSON fait sortir le gate en 1.
+ - **La copie de lecture de `SPEC_ALL_ANC-5`** (`docs/issues/standard-documentation/preuve-suffisante.spec.md`, K1) est celle de la spec amendée (`develop` d'Anchorpost, `2be4e7e`) ; le gabarit de règle montre la `date` facultative d'une criticité et la révision des cas (`caseRevision`), les deux gestes d'une personne que lit la CLI Anchorpost 2.0.0.
+ 
+ ### Ce qu'un projet fait pour en profiter
+ 
+ - Rien, tant que son index Anchorpost n'est pas au pivot 3 : le gate se comporte comme avant, deux points mis à part : la ligne `Prouve:` (une ligne nouvelle, que nul ticket ne porte encore), et un index `anchorpost/anchorpost.json` présent qui n'est pas du JSON, qui fait désormais sortir le gate en 1 quel que soit le pivot, régime 7 compris, `--elaguer` et `--geler-*` compris.
+-- **Reposer** `scripts/verify/tickets.mjs` et `tickets-regles.mjs` (skill `tickets`), `scripts/chaine/contexte-ticket.mjs` et `criteres-ticket.md` (skill `revue-de-ticket`, `poser`), et les gabarits `docs/agents/gabarits/ticket.issue.md` et `regle.md`. Au pivot 3 en `observe`, `pnpm check:tickets` signale les tickets prêts qui citent une règle « à classer » ou sans cas, ou dont `## Surfaces` ne nomme pas un cas ; les corriger avant que le produit ne passe le projet en `enforce`, où ils seront refusés.
++- **Reposer** `scripts/verify/tickets.mjs` et `tickets-regles.mjs` (skill `tickets`), `scripts/chaine/contexte-ticket.mjs` (skill `revue-de-ticket`, `poser` ; les critères `criteres-ticket.md` se lisent dans le plugin, rien à reposer), et les gabarits `docs/agents/gabarits/ticket.issue.md` et `regle.md`. Au pivot 3 en `observe`, `pnpm check:tickets` signale les tickets prêts qui citent une règle « à classer » ou sans cas, ou dont `## Surfaces` ne nomme pas un cas ; les corriger avant que le produit ne passe le projet en `enforce`, où ils seront refusés.
+ 
+ ## 8.0.0 — 2026-11-22
+ 
+diff --git a/scripts/preuve-suffisante-standard.test.mjs b/scripts/preuve-suffisante-standard.test.mjs
+index d745082..3573fd1 100644
+--- a/scripts/preuve-suffisante-standard.test.mjs
++++ b/scripts/preuve-suffisante-standard.test.mjs
+@@ -41,3 +41,15 @@ test("le gabarit de ticket porte la ligne `Prouve:` sous `Règles:`, et une lign
+   assert.match(enTete[regles + 1] ?? "", /^Prouve: \{\{RULE_ALL_<TRI>-<n> — les règles que le ticket prouve sans les réaliser \(il écrit leurs tests, pas leur code\) ; jamais une règle de `Règles:` ; la criticité d'une feature ne descend pas par cette ligne, seulement par `Règles:` ; ou retirer la ligne\}\}$/);
+   assert.match(texte, /^\| \{\{RULE_<CTX>_<TRI>-<n>#<cas>\}\} \| \{\{projet suivi par Anchorpost, index au pivot 3 : une ligne par cas attendu des règles de `Règles:` et de `Prouve:`/m);
+ });
++
++// Contre-relecture de la PR 155 : la décision 3 du ticket 83 met `caseRevision` au gabarit de règle, après
++// `notApplicableFamilies` ; seule la `date` de la criticité était tenue.
++test("le gabarit de règle montre la révision des cas, `caseRevision`, après `notApplicableFamilies`, en commentaire, une clé par ligne", () => {
++  const entete = lignes(readFileSync(join(RACINE, "skills/chaine/tickets/references/gabarits/regle.md"), "utf8"));
++  const familles = entete.findIndex((l) => l.startsWith("# notApplicableFamilies:"));
++  const revision = entete.findIndex((l) => l.startsWith("# caseRevision:"));
++  assert.ok(familles >= 0 && revision > familles, "« # caseRevision: » vient après « # notApplicableFamilies: »");
++  assert.match(entete[revision], /jamais écrite par un agent/);
++  assert.match(entete[revision], /distincte de `validation`, que la MOA seule écrit/);
++  assert.deepEqual(entete.slice(revision + 1, revision + 4), ["#   date: AAAA-MM-JJ", "#   by: <clé de roles>", '#   reason: "…"']);
++});
+diff --git a/skills/chaine/tickets/references/scripts/verify/tickets-gate.test.mjs b/skills/chaine/tickets/references/scripts/verify/tickets-gate.test.mjs
+index 686407c..71bd547 100644
+--- a/skills/chaine/tickets/references/scripts/verify/tickets-gate.test.mjs
++++ b/skills/chaine/tickets/references/scripts/verify/tickets-gate.test.mjs
+@@ -331,3 +331,48 @@ test("K3, gate : une règle rejetée ou obsolète dans l'index ne se juge pas ;
+   const nombre = lancer(depotJouet({ fichiers: { ...DETTE, ...regles, 'anchorpost/anchorpost.json': `${JSON.stringify({ schema: 3, project: { sufficiency: 'enforce' }, rules: [] })}\n`, [K3_TICKET]: ticket('RULE_ALL_SOC-4') } }));
+   assert.equal(nombre.status, 0, `un schema 3 en nombre n'est pas le pivot 3 (la CLI écrit "3") : rien n'est jugé\n${nombre.stderr}`);
+ });
++
++// Contre-relecture de la PR 155 : la décision 3 du ticket 84 dit le régime de la chaîne sans effet sur K3, et l'index
++// illisible en sortie 1 « quel que soit le pivot ou le régime, `--elaguer` et `--geler-*` compris » ; rien ne le tenait.
++test("K3, gate : le régime 8 juge la preuve suffisante comme le régime 7 ; un index qui n'est pas du JSON sort en 1 en régime 8, sous --elaguer et sous --geler-*, sans rien écrire", () => {
++  const premier = (...chemins) => readFileSync(chemins.map((c) => new URL(c, import.meta.url)).find((u) => existsSync(u)), 'utf8');
++  const HUIT = {
++    '.claude/chaine.json': '{"cheminsSensibles":[],"relecture":{"depuis":"2026-11-21T09:00:00Z"}}\n',
++    'scripts/chaine/double-relecture.mjs': premier('../chaine/double-relecture.mjs', '../../../../fusionner/scripts/double-relecture.mjs'),
++    'scripts/docs/identifiants.mjs': premier('../docs/identifiants.mjs', '../../../../../monorepo/socle-monorepo/references/scripts/docs/identifiants.mjs'),
++  };
++  const enforce = lancer(depotJouet({ fichiers: { ...DETTE, ...HUIT, ...K3_REGLES, ...k3Index('3', 'enforce'), [K3_TICKET]: K3_PRET('| nominal | à écrire |\n') } }));
++  assert.equal(enforce.status, 1, `régime 8, enforce : refus\n${enforce.stdout}${enforce.stderr}`);
++  assert.match(enforce.stderr, /tickets : 3 écart\(s\) :/, enforce.stderr);
++  assert.match(enforce.stderr, /preuve suffisante \(enforce\) : `## Surfaces` ne nomme pas le cas RULE_ALL_SOC-1#nominal/);
++  const observe = lancer(depotJouet({ fichiers: { ...DETTE, ...HUIT, ...K3_REGLES, ...k3Index('3', 'observe'), [K3_TICKET]: K3_PRET('| nominal | [RULE_ALL_SOC-1#nominal] |\n') } }));
++  assert.equal(observe.status, 0, `régime 8, observe : sortie 0\n${observe.stderr}`);
++  assert.match(observe.stdout, /tickets : 2 avertissement\(s\) de la preuve suffisante \(observe : rien n'est refusé\) :/);
++  // Un ticket qui ne cite aucune règle : seul l'index illisible peut faire sortir le gate en 1.
++  const sansRegle = '# x\n\nStatus: needs-triage\nType: task\n';
++  const CASSE = { 'anchorpost/anchorpost.json': '{ cassé' };
++  const illisible = /tickets : anchorpost\/anchorpost\.json illisible \(.+\) : la criticité et les cas des règles citées ne se lisent pas ; régénérer l'index/;
++  const huit = lancer(depotJouet({ fichiers: { ...DETTE, ...HUIT, ...CASSE, [K3_TICKET]: sansRegle } }));
++  assert.equal(huit.status, 1, `régime 8 : ${huit.stdout}`);
++  assert.match(huit.stderr, illisible);
++  for (const option of ['--elaguer', '--geler-types', '--geler-fiches']) {
++    const d = depotJouet({ fichiers: { ...DETTE, ...CASSE, [K3_TICKET]: sansRegle } });
++    const r = lancer(d, option);
++    assert.equal(r.status, 1, `${option} : ${r.stdout}`);
++    assert.match(r.stderr, illisible, option);
++    assert.equal(readFileSync(join(d.travail, 'scripts/verify/tickets-dette.json'), 'utf8'), DETTE['scripts/verify/tickets-dette.json'], `${option} : la dette n'est pas récrite`);
++  }
++});
++
++test("K3, gate : un index JSON qui n'est pas un objet ne juge rien ; au pivot 3 sans liste `rules`, chaque règle citée est absente de l'index", () => {
++  const nul = lancer(depotJouet({ fichiers: { ...DETTE, ...K3_REGLES, 'anchorpost/anchorpost.json': 'null\n', [K3_TICKET]: K3_PRET('| surface | à écrire |\n') } }));
++  assert.equal(nul.status, 0, `null : rien n'est jugé\n${nul.stderr}`);
++  assert.doesNotMatch(nul.stdout + nul.stderr, /preuve suffisante/);
++  const sansRules = lancer(
++    depotJouet({ fichiers: { ...DETTE, ...K3_REGLES, 'anchorpost/anchorpost.json': `${JSON.stringify({ schema: '3', project: { sufficiency: 'enforce' } })}\n`, [K3_TICKET]: K3_PRET('| nominal | [RULE_ALL_SOC-1#nominal] |\n') } }),
++  );
++  assert.equal(sansRules.status, 1, sansRules.stderr);
++  assert.match(sansRules.stderr, /tickets : 2 écart\(s\) :/, sansRules.stderr);
++  assert.match(sansRules.stderr, /RULE_ALL_SOC-1 est absente de l'index anchorpost\/anchorpost\.json/);
++  assert.match(sansRules.stderr, /RULE_ALL_SOC-2 est absente de l'index anchorpost\/anchorpost\.json/);
++});
+diff --git a/skills/chaine/tickets/references/scripts/verify/tickets.test.mjs b/skills/chaine/tickets/references/scripts/verify/tickets.test.mjs
+index 94e0f29..ee6e2fd 100644
+--- a/skills/chaine/tickets/references/scripts/verify/tickets.test.mjs
++++ b/skills/chaine/tickets/references/scripts/verify/tickets.test.mjs
+@@ -696,3 +696,10 @@ test('K3 : `## Surfaces` nomme chaque cas attendu des règles citées, `RULE_…
+   const ailleurs = `${k3({ regles: 'Règles: RULE_ALL_SOC-1\n' })}\n## Comments\n\n${TOUS_LES_CAS}`;
+   assert.equal(k3Juger(ailleurs, suffisance('enforce')).erreurs.length, 2, 'hors de `## Surfaces`, un cas ne compte pas');
+ });
++
++// Contre-relecture de la PR 155 : la décision 1 du ticket 84 lit `Prouve:` sous les formes de `Règles:` ; le banc
++// d'au-dessus n'y citait qu'une règle valide, qui ne dit rien qu'elle soit lue ou non.
++test('K3 : la ligne Prouve: se lit et se juge sous chacune des formes de Règles: (`X:`, `**X:**`, `- X:`, `* X:`)', () => {
++  for (const ligne of ['Prouve: RULE_ALL_SOC-9', '**Prouve:** RULE_ALL_SOC-9', '- Prouve: RULE_ALL_SOC-9', '* **Prouve:** RULE_ALL_SOC-9', 'prouve: RULE_ALL_SOC-9'])
++    assert.deepEqual(k3Juger(k3({ prouve: `${ligne}\n` })).erreurs, ['Prouve cite RULE_ALL_SOC-9, absente du registre (docs/metier/regles/all/RULE_ALL_SOC-9.md)'], ligne);
++});

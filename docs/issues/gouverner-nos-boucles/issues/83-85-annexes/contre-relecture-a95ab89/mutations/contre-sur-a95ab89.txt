@@ -1,0 +1,18 @@
+ 16:04:24 up  9:27,  0 user,  load average: 16.24, 16.38, 14.34
+VERTE X1 tickets.mjs : l'index n'est lu qu'en régime 7 (K3 muet en régime 8) (17 s)
+VERTE X2 tickets-regles.mjs : la preuve suffisante ne se juge pas en régime 8 (16 s)
+VERTE X3 tickets.mjs : sous --elaguer, un index qui n'est pas du JSON se tait (17 s)
+VERTE X4 tickets.mjs : sous --geler-*, un index qui n'est pas du JSON se tait (14 s)
+VERTE X5 tickets.mjs : en régime 8, un index qui n'est pas du JSON se tait (le comportement de main) (17 s)
+VERTE X6 tickets.mjs : un index JSON null fait tomber le gate (17 s)
+VERTE X7 tickets.mjs : un index au pivot 3 sans rules fait tomber le gate (18 s)
+ROUGE X8 tickets-regles.mjs : Prouve: ne se juge que sur un ticket prêt (16 s) — K3 : la ligne Prouve: se lit comme Règles: (identifiant comp
+ROUGE X9 tickets-regles.mjs : le mode n'est pas dit dans le message (15 s) — K3, gate : sans index ou d'un autre schéma que 3, rien ne ch | K3 : sans index au pivot 3, rien ; en observe, un avertissem | K3 : `\#\# Surfaces` nomme chaque cas attendu des règles cit
+ROUGE X10 contexte-ticket.mjs : un jeton illisible de Prouve: n'est pas signalé (2 s) — une règle de la ligne Prouve: est rendue sous « Règles du ti
+VERTE X11 gabarit de règle : sans le bloc caseRevision (18 s)
+VERTE X13 tickets-regles.mjs : Prouve: lue sur la seule forme nue (17 s)
+ROUGE X14 tickets-regles.mjs : un cas nommé dans Surfaces suffit pour toute règle (identifiant de règle ignoré) (18 s) — K3 : `\#\# Surfaces` nomme chaque cas attendu des règles cit
+ROUGE X15 tickets.mjs : les avertissements écrits sur la sortie d'erreur (15 s) — K3, gate : sans index ou d'un autre schéma que 3, rien ne ch
+9 mutation(s) non rouge(s)
+sortie 1
+ 16:08:02 up  9:31,  0 user,  load average: 15.93, 16.25, 14.72

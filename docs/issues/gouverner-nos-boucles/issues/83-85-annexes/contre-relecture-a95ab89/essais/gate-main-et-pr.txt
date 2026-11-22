@@ -1,0 +1,38 @@
+# Le gate tickets de main (ddb4265) et de la PR (a95ab89), sur des copies en lecture seule, PROJET_RACINE à leur racine (bancs/gate.sh : grammaire du projet, ligne-sujet.mjs du plugin) ; OUT| = sortie standard, ERR| = sortie d'erreur
+
+## Anchorpost 318d141, pivot 2
+main et PR : identiques, octet pour octet (2 lignes, SORTIE 0)
+OUT| tickets : OK — 170 tickets, dette gelée 0, 0 sans Type: gelé(s), 7 carte(s) dont 0 gelée(s), 2 fiche(s) d'avant Responsable:/Conducteur:
+SORTIE 0
+
+## Anchorpost 2be4e7e, pivot 3, observe (le commit des tickets)
+### main
+OUT| tickets : OK — 232 tickets, dette gelée 0, 0 sans Type: gelé(s), 7 carte(s) dont 0 gelée(s), 2 fiche(s) d'avant Responsable:/Conducteur:
+SORTIE 0
+### PR
+OUT| tickets : 1 avertissement(s) de la preuve suffisante (observe : rien n'est refusé) :
+OUT|   docs/features/anchorpost/all/issues/SPEC_ALL_ANC-5-preuve-suffisante.24.issue.md:3 : ready-for-agent : preuve suffisante (observe) : RULE_ALL_ANC-29 ne déclare aucun cas attendu dans l'index : les écrire par le skill criticite (/maj-skills:criticite) 
+OUT| tickets : OK — 232 tickets, dette gelée 0, 0 sans Type: gelé(s), 7 carte(s) dont 0 gelée(s), 2 fiche(s) d'avant Responsable:/Conducteur:
+SORTIE 0
+
+## Anchorpost develop 31afa3d, pivot 3, observe
+### main
+OUT| tickets : OK — 236 tickets, dette gelée 0, 0 sans Type: gelé(s), 7 carte(s) dont 0 gelée(s), 2 fiche(s) d'avant Responsable:/Conducteur:
+SORTIE 0
+### PR
+OUT| tickets : 1 avertissement(s) de la preuve suffisante (observe : rien n'est refusé) :
+OUT|   docs/features/anchorpost/all/issues/SPEC_ALL_ANC-5-preuve-suffisante.71.issue.md:3 : ready-for-agent : preuve suffisante (observe) : RULE_ALL_ANC-9 ne déclare aucun cas attendu dans l'index : les écrire par le skill criticite (/maj-skills:criticite) a
+OUT| tickets : OK — 236 tickets, dette gelée 0, 0 sans Type: gelé(s), 7 carte(s) dont 0 gelée(s), 2 fiche(s) d'avant Responsable:/Conducteur:
+SORTIE 0
+
+## skills main ddb4265, tickets-dette.json {} posé hors suivi (le dépôt n'en a pas)
+main et PR : identiques, octet pour octet (88 lignes, SORTIE 1)
+ERR| tickets : 86 écart(s) :
+ERR|   docs/agents/issue-tracker.md : section « Réserver un ticket » absente — rejouer `/maj-skills:tickets poser` (la fiche a été réécrite, sans doute par setup-matt-pocock-skills)
+ERR|   docs/agents/issue-tracker.md : section « Un ticket prêt pour agent » absente — rejouer `/maj-skills:tickets poser` (la fiche a été réécrite, sans doute par setup-matt-pocock-skills)
+
+## skills branche de documentation 99d003b, même dette
+main et PR : identiques, octet pour octet (116 lignes, SORTIE 1)
+ERR| tickets : 114 écart(s) :
+ERR|   docs/agents/issue-tracker.md : section « Réserver un ticket » absente — rejouer `/maj-skills:tickets poser` (la fiche a été réécrite, sans doute par setup-matt-pocock-skills)
+ERR|   docs/agents/issue-tracker.md : section « Un ticket prêt pour agent » absente — rejouer `/maj-skills:tickets poser` (la fiche a été réécrite, sans doute par setup-matt-pocock-skills)

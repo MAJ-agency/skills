@@ -1,0 +1,53 @@
+diff --git a/skills/chaine/tickets/references/scripts/verify/tickets-gate.test.mjs b/skills/chaine/tickets/references/scripts/verify/tickets-gate.test.mjs
+index 686407c..71bd547 100644
+--- a/skills/chaine/tickets/references/scripts/verify/tickets-gate.test.mjs
++++ b/skills/chaine/tickets/references/scripts/verify/tickets-gate.test.mjs
+@@ -331,3 +331,48 @@ test("K3, gate : une règle rejetée ou obsolète dans l'index ne se juge pas ;
+   const nombre = lancer(depotJouet({ fichiers: { ...DETTE, ...regles, 'anchorpost/anchorpost.json': `${JSON.stringify({ schema: 3, project: { sufficiency: 'enforce' }, rules: [] })}\n`, [K3_TICKET]: ticket('RULE_ALL_SOC-4') } }));
+   assert.equal(nombre.status, 0, `un schema 3 en nombre n'est pas le pivot 3 (la CLI écrit "3") : rien n'est jugé\n${nombre.stderr}`);
+ });
++
++// Contre-relecture de la PR 155 : la décision 3 du ticket 84 dit le régime de la chaîne sans effet sur K3, et l'index
++// illisible en sortie 1 « quel que soit le pivot ou le régime, `--elaguer` et `--geler-*` compris » ; rien ne le tenait.
++test("K3, gate : le régime 8 juge la preuve suffisante comme le régime 7 ; un index qui n'est pas du JSON sort en 1 en régime 8, sous --elaguer et sous --geler-*, sans rien écrire", () => {
++  const premier = (...chemins) => readFileSync(chemins.map((c) => new URL(c, import.meta.url)).find((u) => existsSync(u)), 'utf8');
++  const HUIT = {
++    '.claude/chaine.json': '{"cheminsSensibles":[],"relecture":{"depuis":"2026-11-21T09:00:00Z"}}\n',
++    'scripts/chaine/double-relecture.mjs': premier('../chaine/double-relecture.mjs', '../../../../fusionner/scripts/double-relecture.mjs'),
++    'scripts/docs/identifiants.mjs': premier('../docs/identifiants.mjs', '../../../../../monorepo/socle-monorepo/references/scripts/docs/identifiants.mjs'),
++  };
++  const enforce = lancer(depotJouet({ fichiers: { ...DETTE, ...HUIT, ...K3_REGLES, ...k3Index('3', 'enforce'), [K3_TICKET]: K3_PRET('| nominal | à écrire |\n') } }));
++  assert.equal(enforce.status, 1, `régime 8, enforce : refus\n${enforce.stdout}${enforce.stderr}`);
++  assert.match(enforce.stderr, /tickets : 3 écart\(s\) :/, enforce.stderr);
++  assert.match(enforce.stderr, /preuve suffisante \(enforce\) : `## Surfaces` ne nomme pas le cas RULE_ALL_SOC-1#nominal/);
++  const observe = lancer(depotJouet({ fichiers: { ...DETTE, ...HUIT, ...K3_REGLES, ...k3Index('3', 'observe'), [K3_TICKET]: K3_PRET('| nominal | [RULE_ALL_SOC-1#nominal] |\n') } }));
++  assert.equal(observe.status, 0, `régime 8, observe : sortie 0\n${observe.stderr}`);
++  assert.match(observe.stdout, /tickets : 2 avertissement\(s\) de la preuve suffisante \(observe : rien n'est refusé\) :/);
++  // Un ticket qui ne cite aucune règle : seul l'index illisible peut faire sortir le gate en 1.
++  const sansRegle = '# x\n\nStatus: needs-triage\nType: task\n';
++  const CASSE = { 'anchorpost/anchorpost.json': '{ cassé' };
++  const illisible = /tickets : anchorpost\/anchorpost\.json illisible \(.+\) : la criticité et les cas des règles citées ne se lisent pas ; régénérer l'index/;
++  const huit = lancer(depotJouet({ fichiers: { ...DETTE, ...HUIT, ...CASSE, [K3_TICKET]: sansRegle } }));
++  assert.equal(huit.status, 1, `régime 8 : ${huit.stdout}`);
++  assert.match(huit.stderr, illisible);
++  for (const option of ['--elaguer', '--geler-types', '--geler-fiches']) {
++    const d = depotJouet({ fichiers: { ...DETTE, ...CASSE, [K3_TICKET]: sansRegle } });
++    const r = lancer(d, option);
++    assert.equal(r.status, 1, `${option} : ${r.stdout}`);
++    assert.match(r.stderr, illisible, option);
++    assert.equal(readFileSync(join(d.travail, 'scripts/verify/tickets-dette.json'), 'utf8'), DETTE['scripts/verify/tickets-dette.json'], `${option} : la dette n'est pas récrite`);
++  }
++});
++
++test("K3, gate : un index JSON qui n'est pas un objet ne juge rien ; au pivot 3 sans liste `rules`, chaque règle citée est absente de l'index", () => {
++  const nul = lancer(depotJouet({ fichiers: { ...DETTE, ...K3_REGLES, 'anchorpost/anchorpost.json': 'null\n', [K3_TICKET]: K3_PRET('| surface | à écrire |\n') } }));
++  assert.equal(nul.status, 0, `null : rien n'est jugé\n${nul.stderr}`);
++  assert.doesNotMatch(nul.stdout + nul.stderr, /preuve suffisante/);
++  const sansRules = lancer(
++    depotJouet({ fichiers: { ...DETTE, ...K3_REGLES, 'anchorpost/anchorpost.json': `${JSON.stringify({ schema: '3', project: { sufficiency: 'enforce' } })}\n`, [K3_TICKET]: K3_PRET('| nominal | [RULE_ALL_SOC-1#nominal] |\n') } }),
++  );
++  assert.equal(sansRules.status, 1, sansRules.stderr);
++  assert.match(sansRules.stderr, /tickets : 2 écart\(s\) :/, sansRules.stderr);
++  assert.match(sansRules.stderr, /RULE_ALL_SOC-1 est absente de l'index anchorpost\/anchorpost\.json/);
++  assert.match(sansRules.stderr, /RULE_ALL_SOC-2 est absente de l'index anchorpost\/anchorpost\.json/);
++});

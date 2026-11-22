@@ -1,0 +1,32 @@
+# Anchorpost develop (31afa3d), clone en lecture seule : les fichiers du gate reposés dans l'arbre de travail, puis remis
+## tickets.mjs et tickets-regles.mjs du plugin (main) reposés, ligne-sujet.mjs et identifiants.mjs d'Anchorpost
+tickets : OK — 236 tickets, dette gelée 0, 0 sans Type: gelé(s), 7 carte(s) dont 0 gelée(s), 2 fiche(s) d'avant Responsable:/Conducteur:
+sortie 0
+bancs d'Anchorpost (tickets.test.mjs, tickets-gate.test.mjs) :
+not ok 16 - carte de chantier : fiche, phase, responsable et conducteur, coût dès la vague 1, rétro à fini
+# tests 42
+# pass 41
+# fail 1
+## tickets.mjs et tickets-regles.mjs du plugin (pr) reposés, ligne-sujet.mjs et identifiants.mjs d'Anchorpost
+tickets : 1 avertissement(s) de la preuve suffisante (observe : rien n'est refusé) :
+  docs/features/anchorpost/all/issues/SPEC_ALL_ANC-5-preuve-suffisante.71.issue.md:3 : ready-for-agent : preuve suffisante (observe) : RULE_ALL_ANC-9 ne déclare aucun cas attendu dans l'index : les �
+tickets : OK — 236 tickets, dette gelée 0, 0 sans Type: gelé(s), 7 carte(s) dont 0 gelée(s), 2 fiche(s) d'avant Responsable:/Conducteur:
+sortie 0
+bancs d'Anchorpost (tickets.test.mjs, tickets-gate.test.mjs) :
+not ok 16 - carte de chantier : fiche, phase, responsable et conducteur, coût dès la vague 1, rétro à fini
+# tests 42
+# pass 41
+# fail 1
+## .14 (Prouve: RULE_ALL_ANC-5) et .15 (Prouve: RULE_ALL_ANC-19), Fait, gate de la PR
+OUT| tickets : 1 avertissement(s) de la preuve suffisante (observe : rien n'est refusé) :
+OUT|   docs/features/anchorpost/all/issues/SPEC_ALL_ANC-5-preuve-suffisante.71.issue.md:3 : ready-for-agent : preuve suffisante (observe) : RULE_ALL_ANC-9 ne déclare aucun cas attendu dans l'index : les écrire par le skill criticite (/maj-skills:criticite) a
+OUT| tickets : OK — 236 tickets, dette gelée 0, 0 sans Type: gelé(s), 7 carte(s) dont 0 gelée(s), 2 fiche(s) d'avant Responsable:/Conducteur:
+SORTIE 0
+## les mêmes, remis ready-for-agent
+OUT| tickets : 3 avertissement(s) de la preuve suffisante (observe : rien n'est refusé) :
+OUT|   docs/features/anchorpost/all/issues/SPEC_ALL_ANC-5-preuve-suffisante.15.issue.md:3 : ready-for-agent : preuve suffisante (observe) : `## Surfaces` ne nomme pas le cas RULE_ALL_ANC-19#ordre-indifferent : une ligne par cas attendu des règles citées, ave
+OUT|   docs/features/anchorpost/all/issues/SPEC_ALL_ANC-5-preuve-suffisante.15.issue.md:3 : ready-for-agent : preuve suffisante (observe) : `## Surfaces` ne nomme pas le cas RULE_ALL_ANC-19#source-invalide : une ligne par cas attendu des règles citées, avec 
+OUT|   docs/features/anchorpost/all/issues/SPEC_ALL_ANC-5-preuve-suffisante.71.issue.md:3 : ready-for-agent : preuve suffisante (observe) : RULE_ALL_ANC-9 ne déclare aucun cas attendu dans l'index : les écrire par le skill criticite (/maj-skills:criticite) a
+OUT| tickets : OK — 236 tickets, dette gelée 0, 0 sans Type: gelé(s), 7 carte(s) dont 0 gelée(s), 2 fiche(s) d'avant Responsable:/Conducteur:
+SORTIE 0
+## arbre remis : 0 fichier(s) modifié(s)
