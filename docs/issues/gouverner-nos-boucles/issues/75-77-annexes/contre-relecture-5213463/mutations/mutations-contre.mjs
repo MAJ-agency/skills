@@ -1,6 +1,6 @@
 // Les mutations ajoutées par la contre-relecture de la PR 153, dans la forme des annexes des tickets 75 à 77 : chacune
 // remplace un texte exact, joue les bancs qu'elle vise, et le fichier est remis après. À lancer depuis la racine d'un
-// arbre de la PR (sommet 5213463, ou avec la retouche pour G1) : `node <chemin>/mutations-contre.mjs [<nom>…]`.
+// arbre de la PR (sommet 5213463, ou avec la retouche pour G1 et C6) : `node <chemin>/mutations-contre.mjs [<nom>…]`.
 // Une mutation verte n'est pas un échec du script : elle est écrite, avec ce qu'elle dit (équivalente, ou non tenue).
 import { spawnSync } from 'node:child_process';
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -21,6 +21,7 @@ const MUTATIONS = [
   ['C2 relecteur.mjs : la cause lue sur la sortie standard d’abord', R, `const cause = ${CAUSE}`, `const cause = ${INVERSE}`, [BR]],
   ['C3 passer.sh : une revue du capitaine en échec (3) au premier contrôle lue comme une lecture illisible (sautée en 7)', P, '    21) sortir 7 "$(tail -n 1 <<<"$revue") : sautée sans renvoi, son auteur n\'y peut rien (le Relecteur prévient l\'architecte)" ;;', '    21 | 3) sortir 7 "$(tail -n 1 <<<"$revue") : sautée sans renvoi, son auteur n\'y peut rien (le Relecteur prévient l\'architecte)" ;;', [BV]],
   ['C4 sujet.sh juger_revue : une revue du capitaine en échec (3) lue comme une lecture illisible (sautée en 7)', S, '    21) sortir 7 "#$n : $(tail -n 1 <<<"$revu") : sautée sans renvoi', '    21 | 3) sortir 7 "#$n : $(tail -n 1 <<<"$revu") : sautée sans renvoi', [BV]],
+  ['C6 passer.sh : une revue du capitaine en échec (3) au second contrôle lue comme une lecture illisible (sautée en 7)', P, '    21) quitter_capitaine; sortir 7 "$(tail -n 1 <<<"$revue") (contrôle juste avant la fusion) : sautée sans renvoi, son auteur n\'y peut rien" ;;', '    21 | 3) quitter_capitaine; sortir 7 "$(tail -n 1 <<<"$revue") (contrôle juste avant la fusion) : sautée sans renvoi, son auteur n\'y peut rien" ;;', [BV]],
   ['C5 relecteur.mjs : la sortie 69 d’un calcul en 3 (« le geste a changé » : la session rejoue `passe`, en rond ; A-197 point 1)', R, '  arreter(6, `${calcul} : un outil de la chaîne manque au poste', '  arreter(3, `${calcul} : un outil de la chaîne manque au poste', [BR]],
   ['T12 SKILL.md : la phrase de `--attendre` sans « de suite » (décision 2 du ticket 77)', K, 'compterait pour la seconde fois de suite.', 'compterait pour la seconde fois.', [BT]],
   ['G1 relecteur.mjs (retouche) : `github.sh` sorti en 69 lu « GitHub illisible » (5), le code du sommet 5213463', R, "  sansOutil('github.sh', r);\n", '', [BR]],

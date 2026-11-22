@@ -1,0 +1,25 @@
+ 15:28:51 up  8:52,  0 user,  load average: 13.43, 15.33, 13.81
+== rouges avant : 5213463, les seuls bancs de retouche-153-tour-1.patch posés (git apply --include='*.test.mjs')
+ M scripts/relecteur.test.mjs
+ M skills/chaine/fusionner/scripts/verdict-du-capitaine.test.mjs
+ M skills/chaine/relecteur/scripts/relecteur.test.mjs
+15:28:51
+skills/chaine/fusionner/scripts/verdict-du-capitaine.test.mjs : tests 27 ; pass 27 ; fail 0 ; 
+skills/chaine/relecteur/scripts/relecteur.test.mjs : tests 52 ; pass 51 ; fail 1 ; 
+not ok 26 - suite du lot 5 — un poste sans `jq` : `github.sh` sorti en 69, la passe et `jouer` sortent en 6, rien d’écrit ; la veille s’arrête, jamais une pause sans fin
+scripts/relecteur.test.mjs : tests 11 ; pass 11 ; fail 0 ; 
+scripts/depot.test.mjs : tests 69 ; pass 69 ; fail 0 ; 
+scripts/points-d-entree.test.mjs : tests 66 ; pass 66 ; fail 0 ; 
+scripts/bascule.test.mjs : tests 9 ; pass 9 ; fail 0 ; 
+15:35:28
+== verts après : la retouche posée
+0aae5d5 
+15:35:28
+skills/chaine/fusionner/scripts/verdict-du-capitaine.test.mjs : tests 27 ; pass 27 ; fail 0 ; 
+skills/chaine/relecteur/scripts/relecteur.test.mjs : tests 52 ; pass 52 ; fail 0 ; 
+scripts/relecteur.test.mjs : tests 11 ; pass 11 ; fail 0 ; 
+scripts/depot.test.mjs : tests 69 ; pass 69 ; fail 0 ; 
+scripts/points-d-entree.test.mjs : tests 66 ; pass 66 ; fail 0 ; 
+scripts/bascule.test.mjs : tests 9 ; pass 9 ; fail 0 ; 
+15:41:45
+ 15:41:45 up  9:05,  0 user,  load average: 13.47, 14.90, 14.66

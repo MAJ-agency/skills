@@ -15,6 +15,10 @@ est une panne des deux côtés, et elle seule, de bout en bout (essais sans talo
 n'exécute aucune ligne neuve (espion) ; les 27 mutations des annexes sont rouges ; joué après la PR 152, le geste du § 3 du
 ticket 77 donne 8.0.2 et la suite entière **1 411 sur 1 411**.
 
+Après les décisions de l'architecte (`A-203`) : `retouches/retouche-153-tour-1.patch` réunit les retouches 1 et 2, la note
+corrigée et le banc E1 ; section « Retouche du tour 1 », à la fin (234 tests sur 234 après, 1 rouge avant ; 33 mutations
+rouges sur 35, les 2 vertes équivalentes ; un piège du § 3 du ticket 77 pour la note, et son geste).
+
 | # | Gravité | Objet |
 | --- | --- | --- |
 | 1 | **à corriger** | Relecteur, poste sans `jq` : `github.sh` sort en 69 à son chargement, et `lire` (`relecteur.mjs`, ligne 130) le lit « GitHub illisible » (5). La passe sort en 5 à chaque sonde, la veille écrit `PAUSE` puis `VEILLE FINIE`, la session rejoue au réveil suivant, sans borne (celle de la sortie 5 ne vaut que pour `jouer`, qui ne se joue jamais ici) : une boucle silencieuse. Le texte de la PR donne « `jq` absent » pour cause de la sortie 6 (SKILL.md, la ligne 6 ; l'en-tête du script, lignes 72-73 ; la note 8.0.1), et `A-192` point 1 le nomme comme le cas même d'une panne |
@@ -288,3 +292,86 @@ sommes des trois patchs des annexes : celles des tickets. Un arbre de travail pa
    table du § 3 (constat 2).
 5. **`boucle.sh`** sur la sortie 3 de `passer.sh` et la sortie 11 de `sujet.sh fusionner` pour une sortie 69 : non joué (ticket 75,
    « Ce qui n'a pas été établi » 2).
+
+## Retouche du tour 1
+
+Décisions de l'architecte (`A-203`) sur ce tour : la retouche 1 entre dans cette PR, avec la retouche 2 ; le banc E1 s'il tient
+en moins de 30 s sans dépendance ; la note 8.0.1 corrigée (constat 5, la phrase du ticket 75 corrigée par l'architecte) ;
+`gh` absent va à une suite ; la table du § 3 sera dite à la session telle qu'elle est. Un patch unique les réunit.
+
+**`retouches/retouche-153-tour-1.patch`**, sur `5213463` (`git apply --check` vert), sha256
+**`f52479a6d18733fbc54772bde1d1d41f3e2e6616bc1314d479ed5309c7c9b5f1`** (`retouches/SHA256SUMS`) : six fichiers, 78 lignes
+ajoutées, 5 retirées.
+
+| Fichier | Ce qui change |
+| --- | --- |
+| `skills/chaine/relecteur/scripts/relecteur.mjs` | `lire` : `sansOutil('github.sh', r)` avant le test de la sortie 5, et son commentaire ; l'en-tête, la sortie 6 (`jq` absent : `github.sh` le dit aussi, sa sortie 69 à son chargement) — la retouche 1 |
+| `skills/chaine/relecteur/scripts/relecteur.test.mjs` | le cas « suite du lot 5 — un poste sans `jq` … » (un PATH en liens sans `jq`) — la retouche 1 |
+| `scripts/relecteur.test.mjs` | « de suite » de `--attendre` exigé dans « La veille » — la retouche 2 |
+| `skills/chaine/fusionner/scripts/verdict-du-capitaine.test.mjs` | le cas « régime 8, de bout en bout : `meme-contenu.sh` sorti en 69 (git 2.40) arrête `passer.sh` en 3 à ses deux contrôles et `sujet.sh fusionner` en 11, la cause dite, jamais sautée en 7 » (l'essai E1, en un cas) ; `chmodSync` importé |
+| `NOTES-DE-VERSION.md` | la première puce de 8.0.1 : « `jq` absent » retiré de la parenthèse des calculs, et une phrase : « Sans `jq`, `github.sh` sort en 69 dès son chargement, avant tout calcul : `passer.sh` s'arrête en 69, comme avant ; le Relecteur, qui lisait cette sortie « GitHub illisible » (5) et faisait une pause sans fin, s'arrête en 6 lui aussi, la cause dite (contre-relecture de la PR 153). » |
+| `skills/chaine/relecteur/references/CONTENU.md` | « Le banc » : un poste sans `jq` |
+
+SKILL.md ne change pas : sa ligne de la sortie 6 (« `jq` absent ») devient vraie.
+
+**Le banc E1** tient en un cas de trois jouets, sans dépendance (un `git` du jouet qui ne ment qu'à `git version`) :
+**12,8 s** sous une charge de 15 (`duration_ms` 12801). Il rougit C3 et C4, et C6 (le second contrôle de `passer.sh`, une
+branche de `case` à part).
+
+### Rouges avant, verts après
+
+`essais/retouche-153-rouge-vert.txt`. Avant : `5213463`, les seuls bancs du patch posés (`git apply --include='*.test.mjs'`) ;
+après : le patch posé.
+
+| Banc | Avant (15:28 → 15:35 UTC) | Après (15:35 → 15:41 UTC) |
+| --- | --- | --- |
+| `skills/chaine/fusionner/scripts/verdict-du-capitaine.test.mjs` | 27 sur 27 (E1 tient le code d'aujourd'hui, voulu) | 27 sur 27 |
+| `skills/chaine/relecteur/scripts/relecteur.test.mjs` | 52, **1 rouge** (« un poste sans `jq` ») | 52 sur 52 |
+| `scripts/relecteur.test.mjs` | 11 sur 11 (la ligne de la retouche 2 tient le texte d'aujourd'hui, voulu) | 11 sur 11 |
+| `scripts/depot.test.mjs` (la version et la note) | 69 sur 69 | 69 sur 69 |
+| `scripts/points-d-entree.test.mjs` | 66 sur 66 | 66 sur 66 |
+| `scripts/bascule.test.mjs` | 9 sur 9 | 9 sur 9 |
+| **en tout** | **234, 1 rouge** | **234 sur 234** |
+
+Charge 13,4 au départ, 13,5 à la fin. Les deux cas qui tiennent un code déjà juste (E1, la ligne de `--attendre`) sont rougis par
+leurs mutations (C3, C4, C6 ; T12), comme ceux du ticket 76 par P1, P2 et N3.
+
+### Mutations sur l'arbre retouché
+
+`mutations/mutations-r153.txt`, l'arbre retouché (5213463 et le patch, commit local `0aae5d5`), chacune seule, le fichier remis
+après ; 15:42:00 → 17:05:10 UTC, charge de 4,5 à 29 (d'autres agents jouaient leurs bancs : jusqu'à 401 s pour un banc).
+
+| Mutations | Issue |
+| --- | --- |
+| les 27 des annexes (Q1 à Q10, U1 à U3, P1, P2, N3, T1 à T11), par leurs scripts tels quels | **27 rouges sur 27**, chacune sur le cas qu'elle vise, trois « toutes rouges », sortie 0 : le patch n'en a déplacé aucune ancre |
+| C3, C4, C6 (`passer.sh` aux deux contrôles et `sujet.sh juger_revue` lisant 3 comme 21) | **rouges** (le cas E1 du banc) |
+| C5 (la sortie 69 en 3 chez le Relecteur) | rouge (deux cas : le calcul sorti en 69, et le poste sans `jq`) |
+| T12 (`--attendre` sans « de suite ») | **rouge** (la ligne de la retouche 2) |
+| G1 (`sansOutil('github.sh', r)` retiré) | **rouge** (le poste sans `jq`) |
+| C1, C2 (l'ordre des deux sorties pour la cause) | vertes, équivalentes : aucun vrai calcul n'écrit une cause sur l'une et autre chose sur l'autre (« Ce que la PR devait tenir », ticket 75, décision 4) |
+
+En tout, 35 : 33 rouges, 2 vertes équivalentes ; aucune au délai ; l'arbre propre après chaque passe.
+
+### Un piège pour la session : le § 3 du ticket 77 reposerait l'ancienne note
+
+Si la PR 153 entre après la PR 152, le § 3 du ticket 77 fait reprendre `NOTES-DE-VERSION.md` de `main`, puis poser la note par
+`version-suivante.mjs "$S/77/ticket-77.patch"` : **la note du patch du ticket, celle d'avant la retouche**. Joué sur la branche
+retouchée (`essais/piege-de-la-note.txt`) :
+
+- **A, tel qu'écrit** : 8.0.2, et la note posée a l'ancienne parenthèse (« `jq` absent ») sans la phrase neuve ; la retouche de la
+  note est perdue sans un mot, aucun banc ne le voit.
+- **B, la note prise sur la branche avant la fusion** : `git diff $(git merge-base origin/main HEAD) HEAD -- NOTES-DE-VERSION.md >
+  "$S/note-153.patch"`, puis les mêmes gestes avec `node "$S/77/version-suivante.mjs" "$S/note-153.patch"` : 8.0.2, la note
+  posée est celle de la branche retouchée (titre mis à part), au-dessus de la 8.0.1 de la PR 152 ; rejoué, sortie 1 sans rien
+  écrire ; `scripts/depot.test.mjs` et `scripts/relecteur.test.mjs` sur cet arbre : 80 sur 80.
+
+À dire à la session avec le cas réel de la table (question 2) : prendre la note sur la branche (B), jamais dans le patch du
+ticket, dès qu'une retouche a touché la note.
+
+### Ce qui n'a pas été établi (retouche)
+
+1. **La suite entière sur l'arbre retouché** : laissée à la session de retouche (`A-203`). Les bancs qui lisent ou lancent les
+   fichiers touchés : 234 sur 234. Le compte attendu, compté et non joué : deux cas de plus (le poste sans `jq`, E1 ; la
+   retouche 2 est une ligne d'un cas existant), soit **1 404** sur `ddb4265` et **1 413** après la PR 152.
+2. **L'arbre B après la PR 152 sous la suite entière** : seulement les gestes et la note.
+3. **La phrase du ticket 75** (« Ce qui n'a pas été établi » 1) : corrigée par l'architecte, pas relue ici.

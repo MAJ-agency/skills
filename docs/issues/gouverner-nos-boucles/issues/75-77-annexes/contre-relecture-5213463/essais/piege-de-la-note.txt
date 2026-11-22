@@ -1,0 +1,23 @@
+# Le geste du § 3 du ticket 77 après la PR 152, sur la branche retouchée (5213463 + retouche-153-tour-1.patch, commit local) ;
+# main simulé comme dans fusion-apres-152.txt. A : tel qu'écrit (version-suivante.mjs <ticket-77.patch>) ; B : la note prise sur la branche,
+# avant la fusion : git diff $(git merge-base <main> HEAD) HEAD -- NOTES-DE-VERSION.md > <scratchpad>/note-153.patch, puis version-suivante.mjs <note-153.patch>.
+### A. Le geste du § 3 tel qu'écrit, sur la branche retouchée, après la PR 152
+Automatic merge failed; fix conflicts and then commit the result.
+NOTES-DE-VERSION.md
+8.0.2 — 2026-11-22
+-- la note posée contient-elle la phrase corrigée ? 0 ; l'ancienne parenthèse ? 1
+### B. Le même geste, la note prise sur la branche avant la fusion
+14
+Automatic merge failed; fix conflicts and then commit the result.
+NOTES-DE-VERSION.md
+8.0.2 — 2026-11-22
+-- la phrase corrigée ? 1 ; l'ancienne parenthèse ? 0
+5:## 8.0.2 — 2026-11-22
+18:## 8.0.1 — 2026-11-22
+31:## 8.0.0 — 2026-11-22
+  "version": "8.0.2",
+arbre B : 23b2a6bb283a60d6cd6724db46d9b7f06c3feeda
+version-suivante : la note est déjà posée (ou 8.0.3 déjà notée) : rien n'est écrit
+rejoué : sortie 1
+# B : la note posée (lignes 6 à 17) est celle de la branche retouchée, le titre mis à part.
+# B, l'arbre commité (23b2a6bb) : node --test scripts/depot.test.mjs scripts/relecteur.test.mjs : 80 tests, 80 verts.

@@ -1,0 +1,170 @@
+diff --git a/NOTES-DE-VERSION.md b/NOTES-DE-VERSION.md
+index 5e86ab4..1eb7867 100644
+--- a/NOTES-DE-VERSION.md
++++ b/NOTES-DE-VERSION.md
+@@ -6,7 +6,7 @@ La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque pro
+ 
+ ### Ce qui change
+ 
+-- **Un calcul qui dit un outil absent du poste est une panne** (ticket 75, `A-192` point 1) : `double-relecture.mjs` ou `meme-contenu.sh` sorti en 69 (git plus ancien que 2.41, `jq` absent, la grammaire des identifiants introuvable) arrête le capitaine (`revue-exigee.mjs` sort en 3, `passer.sh` en 3, `sujet.sh fusionner` en 11) et le Relecteur (sortie 6), la cause dite. Ce n'est plus une lecture illisible, qui faisait sauter chaque PR en silence chez le capitaine et la traçait à chaque délai chez le Relecteur.
++- **Un outil absent du poste est une panne** (ticket 75, `A-192` point 1) : `double-relecture.mjs` ou `meme-contenu.sh` sorti en 69 (git plus ancien que 2.41, la grammaire des identifiants introuvable) arrête le capitaine (`revue-exigee.mjs` sort en 3, `passer.sh` en 3, `sujet.sh fusionner` en 11) et le Relecteur (sortie 6), la cause dite. Ce n'est plus une lecture illisible, qui faisait sauter chaque PR en silence chez le capitaine et la traçait à chaque délai chez le Relecteur. Sans `jq`, `github.sh` sort en 69 dès son chargement, avant tout calcul : `passer.sh` s'arrête en 69, comme avant ; le Relecteur, qui lisait cette sortie « GitHub illisible » (5) et faisait une pause sans fin, s'arrête en 6 lui aussi, la cause dite (contre-relecture de la PR 153).
+ - **Le script du Relecteur** (ticket 76) : son usage nomme `--sondes` ; son en-tête dit qu'un plafond rejoué après un retrait refusé redit « décision de plafond attendue » à l'auteur et au conducteur, ce qui est gardé (`A-189` point 1) ; deux bancs tiennent ce plafond rejoué et une trace d'illisible qui n'est pas la marque.
+ - **Le texte du Relecteur** (ticket 77) : la sortie 5 de `jouer` a sa borne (à la seconde fois de suite sur la même PR, l'architecte et `--taire <n>`) et se lit, comme `create_session` en échec, « rejouer au réveil suivant », que `--attendre` suit ; chaque borne dit « de suite » ; `reecrire` d'une session hors service peut rendre `panne`, dont les lignes partent ; « un champ absent, `couple` » ; le plafond rejoué y est écrit ; la sortie 6 nomme la sortie 69 des calculs.
+ 
+diff --git a/scripts/relecteur.test.mjs b/scripts/relecteur.test.mjs
+index 4c7319d..c66d2c8 100644
+--- a/scripts/relecteur.test.mjs
++++ b/scripts/relecteur.test.mjs
+@@ -200,6 +200,9 @@ test("suites de la PR 147 et du lot 5 (ticket 77) — la borne de la sortie 5 de
+   // A-192, point 1 : la sortie 69 d'un calcul arrête le Relecteur (sortie 6), comme des calculs absents.
+   exigerA(ligne(texte, sorties, "| 6 |"), "la ligne de la sortie 6", ["un calcul dit qu'un outil de la chaîne manque au poste (sa sortie 69 : git plus ancien que 2.41, `jq` absent, la grammaire des identifiants introuvable)", ": l'architecte, et s'arrêter"]);
+   assert.ok(!texte.includes("à la seconde fois,"), "chaque borne dit « de suite »");
++  // Décision 2 du ticket 77 : la phrase de `--attendre` dit aussi « de suite » (une pause de quelques secondes compterait
++  // sinon pour la seconde fois de suite) ; la recherche de « à la seconde fois, » ne la lit pas.
++  exigerA(section(texte, "## La veille"), "« La veille »", ["se rejouerait aussitôt et compterait pour la seconde fois de suite."]);
+   assert.ok(!texte.includes("le réveil suivant rejoue"), "la sortie 5 : « rejouer au réveil suivant »");
+   exigerA(section(texte, "## Créer ou relancer les sessions"), "« Créer ou relancer les sessions »", ["`create_session` en échec pour une autre cause : rejouer au réveil suivant ; à la seconde fois de suite, l'architecte, et `--taire <n>`."]);
+   // A-189, point 3 : `reecrire` d'une session hors service peut rendre `panne`, dont les lignes partent.
+diff --git a/skills/chaine/fusionner/scripts/verdict-du-capitaine.test.mjs b/skills/chaine/fusionner/scripts/verdict-du-capitaine.test.mjs
+index 7cca556..d80860e 100644
+--- a/skills/chaine/fusionner/scripts/verdict-du-capitaine.test.mjs
++++ b/skills/chaine/fusionner/scripts/verdict-du-capitaine.test.mjs
+@@ -7,7 +7,7 @@
+ import { test } from "node:test";
+ import assert from "node:assert/strict";
+ import { spawnSync } from "node:child_process";
+-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
++import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+ import { join } from "node:path";
+ import { pathToFileURL } from "node:url";
+ // Posé dans un projet, depot-jouet.mjs est à côté (scripts/chaine/) ; dans le plugin, il est dans le skill sujet.
+@@ -439,6 +439,47 @@ test("régime 8 : un calcul sorti en 69 (un outil de la chaîne manque au poste)
+   assert.match(r21.stdout, /^lecture illisible : « double relecture exigée » illisible/m);
+ });
+ 
++// Contre-relecture de la PR 153 : la sortie 69 suivie de bout en bout, sans talon. Le vrai `meme-contenu.sh` sous un git
++// qui se dit 2.40 (un `git` en tête du PATH du jouet, qui ne répond autrement qu'à `git version`) : `passer.sh` sort en 3 à
++// ses deux contrôles, `sujet.sh fusionner` en 11, jamais sautées en 7 comme une lecture illisible (ticket 75, décision 2).
++test("régime 8, de bout en bout : `meme-contenu.sh` sorti en 69 (git 2.40) arrête `passer.sh` en 3 à ses deux contrôles et `sujet.sh fusionner` en 11, la cause dite, jamais sautée en 7", () => {
++  const vrai = spawnSync("sh", ["-c", "command -v git"], { encoding: "utf8" }).stdout.trim();
++  const git240 = (d) => {
++    writeFileSync(join(d.racine, "bin", "git"), `#!/bin/sh\nif [ "$1" = version ]; then echo "git version 2.40.1"; exit 0; fi\nexec ${vrai} "$@"\n`);
++    chmodSync(join(d.racine, "bin", "git"), 0o755);
++  };
++  const cause = /revue du capitaine en échec : meme-contenu\.sh : un outil de la chaîne manque au poste \(sortie 69\) : git ≥ 2\.41 requis, ici 2\.40/;
++  // Premier contrôle : un tour validé sur un sommet plus ancien, puis un commit de l'auteur.
++  const p = monter();
++  versDevelop(p);
++  p.branche("feat/a", "feat/a", { "docs/a2.md": "a2\n" }, "docs(a): suite");
++  p.git("switch", "-q", "--detach", "origin/develop");
++  git240(p);
++  const r1 = passer(p);
++  assert.equal(r1.status, 3, r1.stdout + r1.stderr);
++  assert.match(r1.stdout + r1.stderr, /revue du capitaine en échec \(sortie 3\) : /);
++  assert.match(r1.stdout + r1.stderr, cause);
++  // Second contrôle : develop a bougé, le capitaine met la PR à jour, puis relit le verdict sur son sommet.
++  const s = monter();
++  versDevelop(s);
++  s.branche("develop", "origin/develop", { "docs/b.md": "b\n" });
++  s.git("switch", "-q", "--detach", "origin/develop");
++  git240(s);
++  const r2 = passer(s);
++  assert.equal(r2.status, 3, r2.stdout + r2.stderr);
++  assert.match(r2.stdout + r2.stderr, /revue du capitaine en échec avant la fusion \(sortie 3\) : /);
++  assert.match(r2.stdout + r2.stderr, cause);
++  // `sujet.sh fusionner`, une sous-PR en retard : mise à jour, puis le second contrôle.
++  const u = monter();
++  versSujet(u, { retard: true });
++  git240(u);
++  const r3 = fusionner(u);
++  assert.equal(r3.status, 11, r3.stdout + r3.stderr);
++  assert.match(r3.stdout + r3.stderr, /#80 : revue du capitaine en échec \(sortie 3 : /);
++  assert.match(r3.stdout + r3.stderr, cause);
++  assert.deepEqual([...fusions(p), ...fusions(s), ...fusions(u)], []);
++});
++
+ test("régime 8, passer.sh : `cheminsSensibles` illisible sur la base rend tout chemin sensible, comme chez le Relecteur : un `validé` sans `/security-review: lancée` ne suffit pas", () => {
+   const d = monter({ cheminsSensibles: "scripts/agent/**", relecture: CONTRAT.relecture });
+   versDevelop(d);
+diff --git a/skills/chaine/relecteur/references/CONTENU.md b/skills/chaine/relecteur/references/CONTENU.md
+index bd4ac3e..f6210a7 100644
+--- a/skills/chaine/relecteur/references/CONTENU.md
++++ b/skills/chaine/relecteur/references/CONTENU.md
+@@ -14,7 +14,7 @@ La clé `relecture` du contrat que le script lit (`A-179`) : `depuis` (ISO 8601
+ 
+ ## Le banc — `scripts/relecteur.test.mjs`
+ 
+-Le script joué comme la session le joue, dans une copie du dépôt jouet du skill `sujet`, avec les vrais scripts de la chaîne sur develop et le faux GitHub : la file et le régime, le cas nominal de la distribution à `à-fusionner`, l'ordre des étiquettes, une ligne qui ne repart pas, un refus sur un chemin sensible, le remplacement d'une session morte, la relance d'un `incomplet`, le plafond, une PR mise à jour par le capitaine qui garde son verdict, une sous-PR vers un sujet, la préparation du dossier, les dépendances, la veille, une écriture refusée ; et, depuis `A-180`, le sommet ou le couple changés (X1), `depuis` et `modele` (X3), `--sessions` mal formé (X5), une PR fermée (X7), les causes d'illisible (X15), le verrou (X16), les hooks (X17), les calculs en panne par des talons, `completer`, la reprise après arbitrage, deux pages, la panne ; et, depuis la contre-relecture de la PR 146, la veille finie à sa durée, le plafond dit sur une étiquette restée, les `GIT_CONFIG_*` de la session gardés, aucun hook de git ni fsmonitor, le verrou attendu, une installation en échec au journal de la veille, une PR de mise à jour acceptée, les autres causes d'illisible (`a-juger` ou le diff en échec, une fourche supprimée) et leur trace redite après le délai ; et, depuis les tickets 67 et 68 (suite du ticket 66), l'erreur d'installation gardée quand GitHub se tait ensuite, `--attendre`, la tête relue après un push, l'étiquette restée et le passage rejoué lus dans les événements de la PR, le plafond à moitié écrit, une session à un autre couple ; et, depuis la contre-relecture de la PR 147, la marque lue sur un commentaire à marque, une PR sans marque, des événements illisibles (rien d'écrit) ou sur deux pages, la tête relue en échec (sortie 12) ; et, depuis les tickets 75 et 76 (suites des lots 4 et 5), un calcul sorti en 69 (un outil manque au poste : sortie 6, rien d'écrit), l'usage entier, le plafond rejoué après un retrait refusé qui redit « décision de plafond attendue » (gardé, `A-189` point 1), une trace d'illisible qui n'est pas la marque.
++Le script joué comme la session le joue, dans une copie du dépôt jouet du skill `sujet`, avec les vrais scripts de la chaîne sur develop et le faux GitHub : la file et le régime, le cas nominal de la distribution à `à-fusionner`, l'ordre des étiquettes, une ligne qui ne repart pas, un refus sur un chemin sensible, le remplacement d'une session morte, la relance d'un `incomplet`, le plafond, une PR mise à jour par le capitaine qui garde son verdict, une sous-PR vers un sujet, la préparation du dossier, les dépendances, la veille, une écriture refusée ; et, depuis `A-180`, le sommet ou le couple changés (X1), `depuis` et `modele` (X3), `--sessions` mal formé (X5), une PR fermée (X7), les causes d'illisible (X15), le verrou (X16), les hooks (X17), les calculs en panne par des talons, `completer`, la reprise après arbitrage, deux pages, la panne ; et, depuis la contre-relecture de la PR 146, la veille finie à sa durée, le plafond dit sur une étiquette restée, les `GIT_CONFIG_*` de la session gardés, aucun hook de git ni fsmonitor, le verrou attendu, une installation en échec au journal de la veille, une PR de mise à jour acceptée, les autres causes d'illisible (`a-juger` ou le diff en échec, une fourche supprimée) et leur trace redite après le délai ; et, depuis les tickets 67 et 68 (suite du ticket 66), l'erreur d'installation gardée quand GitHub se tait ensuite, `--attendre`, la tête relue après un push, l'étiquette restée et le passage rejoué lus dans les événements de la PR, le plafond à moitié écrit, une session à un autre couple ; et, depuis la contre-relecture de la PR 147, la marque lue sur un commentaire à marque, une PR sans marque, des événements illisibles (rien d'écrit) ou sur deux pages, la tête relue en échec (sortie 12) ; et, depuis les tickets 75 et 76 (suites des lots 4 et 5), un calcul sorti en 69 (un outil manque au poste : sortie 6, rien d'écrit), l'usage entier, le plafond rejoué après un retrait refusé qui redit « décision de plafond attendue » (gardé, `A-189` point 1), une trace d'illisible qui n'est pas la marque ; et, depuis la contre-relecture de la PR 153, un poste sans `jq` (`github.sh` sorti en 69 : sortie 6, rien d'écrit, jamais une pause sans fin).
+ 
+ ## Le prompt — `prompt-session.md`
+ 
+diff --git a/skills/chaine/relecteur/scripts/relecteur.mjs b/skills/chaine/relecteur/scripts/relecteur.mjs
+index 8d8224d..cc1e979 100644
+--- a/skills/chaine/relecteur/scripts/relecteur.mjs
++++ b/skills/chaine/relecteur/scripts/relecteur.mjs
+@@ -70,7 +70,8 @@
+ // Sorties : 0 fait ; 2 usage ou entrée mal formée ; 3 la PR est fermée, ou le geste, le sommet ou le couple ont changé
+ // (rien n'est écrit) ; 5 GitHub illisible ; 6 le dossier n'est pas celui d'un projet de la chaîne, ou pas propre, ou
+ // `flock` manque, ou un calcul dit qu'un outil de la chaîne manque au poste (sa sortie 69 : git plus ancien que 2.41,
+-// `jq` absent, la grammaire des identifiants introuvable), jamais une lecture illisible (A-192, point 1) ; 7 une écriture sur GitHub refusée (la pose d'une étiquette ou un commentaire ; un retrait refusé ne
++// `jq` absent, la grammaire des identifiants introuvable ; `jq` absent, `github.sh` le dit aussi, sa sortie 69 à son
++// chargement), jamais une lecture illisible ni GitHub illisible (A-192, point 1) ; 7 une écriture sur GitHub refusée (la pose d'une étiquette ou un commentaire ; un retrait refusé ne
+ // l'est pas : `retirer_label` le tait) ; 9 le verrou du dossier pas obtenu en 300 secondes ; 12 git (fetch, switch) en
+ // échec. L'horloge est celle de la machine ; `RELECTEUR_HORLOGE_BANC` (millisecondes) la fixe,
+ // seulement quand `FAUX_GH` (le faux GitHub des bancs) est posé.
+@@ -127,6 +128,10 @@ const github = (fonction, ...args) => jouer('bash', ['-c', 'set -o pipefail; sou
+ // La seule lecture de GitHub : `lire_github`, pages concaténées rendues en un tableau.
+ function lire(route, { pages = false } = {}) {
+   const r = jouer('bash', ['-c', `set -o pipefail; source "$1"; lire_github "$2" ${pages ? '--paginate' : ''} | jq -cs 'if length == 1 then .[0] elif all(.[]; type == "array") then add else error("pages") end'`, '_', join(CHAINE, 'github.sh'), route]);
++  // `github.sh` sort en 69 dès son chargement quand `jq` manque au poste : il le dirait de chaque lecture. Le poste ne
++  // porte pas la chaîne, sortie 6, comme pour la sortie 69 d'un calcul ; jamais « GitHub illisible » (5), dont la veille
++  // ferait une pause sans fin, sans une ligne à personne (A-192 point 1, A-197 point 1).
++  sansOutil('github.sh', r);
+   if (r.status !== 0) arreter(5, (r.stderr || '').trim() || `GitHub illisible (${route})`);
+   return JSON.parse(r.stdout);
+ }
+diff --git a/skills/chaine/relecteur/scripts/relecteur.test.mjs b/skills/chaine/relecteur/scripts/relecteur.test.mjs
+index 15ebab9..d9a9ad2 100644
+--- a/skills/chaine/relecteur/scripts/relecteur.test.mjs
++++ b/skills/chaine/relecteur/scripts/relecteur.test.mjs
+@@ -4,7 +4,7 @@
+ // GitHub (le journal du faux). Aucun réseau ; l'heure est posée (`RELECTEUR_HORLOGE_BANC`, `maintenant` du faux).
+ import assert from 'node:assert/strict';
+ import { execFileSync, spawn, spawnSync } from 'node:child_process';
+-import { chmodSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
++import { chmodSync, existsSync, mkdirSync, readdirSync, readFileSync, symlinkSync, writeFileSync } from 'node:fs';
+ import { dirname, join } from 'node:path';
+ import { test } from 'node:test';
+ import { fileURLToPath } from 'node:url';
+@@ -586,6 +586,30 @@ test('suite du lot 5 — un calcul sorti en 69 (un outil de la chaîne manque au
+   assert.equal(i.json(i.lancer('jouer', '12'))[0].geste, 'illisible');
+ });
+ 
++// Contre-relecture de la PR 153 : sans `jq`, `github.sh` sort en 69 dès son chargement, avant tout calcul ; le Relecteur
++// lisait chaque lecture de GitHub en 5, et la veille faisait une pause sans fin, sans une ligne (A-192 point 1, A-197).
++test('suite du lot 5 — un poste sans `jq` : `github.sh` sorti en 69, la passe et `jouer` sortent en 6, rien d’écrit ; la veille s’arrête, jamais une pause sans fin', () => {
++  const q = monter();
++  pr(q);
++  // Un PATH sans `jq` : chaque outil de /usr/bin et /bin en lien, sauf lui ; `node` à part.
++  const sansJq = join(q.racine, 'sans-jq');
++  mkdirSync(sansJq);
++  for (const source of ['/usr/bin', '/bin'])
++    if (existsSync(source))
++      for (const nom of readdirSync(source))
++        if (nom !== 'jq' && !existsSync(join(sansJq, nom))) symlinkSync(join(source, nom), join(sansJq, nom));
++  q.env.PATH = `${join(q.racine, 'bin')}:${sansJq}:${dirname(process.execPath)}`;
++  assert.notEqual(spawnSync('sh', ['-c', 'command -v jq'], { env: q.env }).status, 0, 'jq absent du PATH du jouet');
++  const p = q.lancer('passe');
++  assert.equal(p.status, 6, p.stdout + p.stderr);
++  assert.match(p.stderr, /^relecteur : github\.sh : un outil de la chaîne manque au poste \(sortie 69\) : ARRÊT : jq est requis par les scripts de la chaîne/m);
++  assert.equal(q.lancer('jouer', '12').status, 6);
++  const v = q.lancer('veille', '--pause', '0', '--sondes', '2');
++  assert.doesNotMatch(v.stdout, /^PAUSE /m);
++  assert.match(v.stdout, /\nVEILLE ARRÊTÉE sortie 6\n$/);
++  assert.deepEqual(ecritures(q), []);
++});
++
+ test('N9 — `completer` : une seconde session ajoutée au tour, `(complète)`', () => {
+   const d = monter();
+   d.talon('double-relecture.mjs', 'console.log("exigée"); process.exit(20);\n');
