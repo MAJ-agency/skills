@@ -224,7 +224,8 @@ test('Sensibles: `—`, ou des chemins puis l’accord (nom, date), passe ; tout
     // A-170 : un caractère invisible ou une espace Unicode reçoit son propre message, qui dit la cause ; U+200C et
     // U+200D (antiliant, liant) restent refusés : un nom s'écrit sans eux.
     ...['\u200b', 'Camille\u200bMartin', 'Camille\u00a0Martin', 'Camille\u2009Martin', '\u2060', 'Camille\u200cMartin', 'Camille\u200dMartin',
-      // A-175 : un caractère de contrôle (`\p{Cc}`) aussi ; `trim()` n'ôte que tabulation, `\v`, `\f` des bouts, jamais U+0085.
+      // A-175 : un caractère de contrôle (`\p{Cc}`) aussi. Des contrôles, `trim()` n'ôte aux bouts que tabulation, `\n`, `\v`,
+      // `\f` et `\r`, jamais U+0085, NUL ni DEL ; au milieu du nom, aucun.
       'la\tMOA', 'la\vMOA', 'la\fMOA', 'la\u0085MOA', 'la\u0000MOA', 'la\u007fMOA', 'la MOA\u0085'].map((nom) => [
       `scripts/chaine/passer.sh — accord de ${nom}, 2026-11-19`,
       /accord de « .* » : nom d'accord avec un caractère invisible ou une espace autre que l'espace ordinaire$/su,
