@@ -1,23 +1,31 @@
-# Mutations du ticket 74, jouées sur un worktree neuf de 25a72c7 avec ticket-74.patch (sha256 6b3b5368…), le 2026-11-21, Node 22.23.5
-ROUGE M1 veille.sh : le `sleep` de la pause hérite du verrou de la veille (42 s) — veille tuée pendant sa pause (kill -9, comme l'outil Bash ou
-ROUGE M2 veille.sh : la boucle hérite du verrou de la veille (44 s) — un démon laissé par la boucle ou par file.sh ne tient pas la | veille tuée pendant que `tee` attend un démon de la boucle (
-ROUGE M3 veille.sh : `tee` hérite du verrou de la veille (50 s) — veille tuée pendant que `tee` attend un démon de la boucle (
-ROUGE M4 veille.sh : file.sh hérite du verrou de la veille (52 s) — un démon laissé par la boucle ou par file.sh ne tient pas la
-ROUGE M5 veille.sh : la commande de préparation hérite du verrou de la veille (53 s) — démon lancé par la préparation (`(exec sleep 15) &`) : la bo
-ROUGE M6 veille.sh : pas de verrou (une seconde veille démarre) (47 s) — --etat : MORTE sans trace, VIVANTE pendant la veille, TERMIN | veille tuée pendant sa pause (kill -9, comme l'outil Bash ou | veille tuée pendant que `tee` attend un démon de la boucle ( | une seconde veille pendant qu'une tourne : VEILLE ARRÊTÉE, s
-ROUGE M7 veille.sh : l’état « lancee » n’est pas écrit (48 s) — --etat : MORTE sans trace, VIVANTE pendant la veille, TERMIN | veille tuée pendant sa pause (kill -9, comme l'outil Bash ou | veille tuée pendant que `tee` attend un démon de la boucle (
-ROUGE M8 veille.sh : la ligne finale n’est pas écrite dans l’état (47 s) — démon lancé par la préparation (`(exec sleep 15) &`) : la bo | --etat : MORTE sans trace, VIVANTE pendant la veille, TERMIN | un démon laissé par la boucle ou par file.sh ne tient pas la | une seconde veille pendant qu'une tourne : VEILLE ARRÊTÉE, s
-ROUGE M9 veille.sh : l’arrêt de la préparation n’écrit pas sa fin (47 s) — --etat : MORTE sans trace, VIVANTE pendant la veille, TERMIN
-ROUGE M10 veille.sh : la fin à l’échéance n’écrit pas sa fin (49 s) — --etat : MORTE sans trace, VIVANTE pendant la veille, TERMIN
-ROUGE M11 veille.sh : la boucle sortie en code non nul n’écrit pas sa fin (45 s) — --etat : MORTE sans trace, VIVANTE pendant la veille, TERMIN
-ROUGE M12 veille.sh : l’état écrit avant le verrou (une seconde veille l’écrase) (52 s) — une seconde veille pendant qu'une tourne : VEILLE ARRÊTÉE, s
-ROUGE M13 veille.sh --etat : le fichier d’arrêt n’est pas lu (50 s) — --etat : le fichier d'arrêt posé (boucle.sh --arreter) passe
-ROUGE M14 veille.sh --etat : la fin écrite lue avant le fichier d’arrêt (49 s) — --etat : le fichier d'arrêt posé (boucle.sh --arreter) passe
-ROUGE M15 veille.sh --etat : VIVANTE sort en 1 (43 s) — les états que nomme le skill sont ceux qu'écrit `veille.sh - | --etat : MORTE sans trace, VIVANTE pendant la veille, TERMIN | veille tuée pendant sa pause (kill -9, comme l'outil Bash ou | veille tuée pendant que `tee` attend un démon de la boucle (
-ROUGE M16 veille.sh --etat : MORTE sort en 2 (43 s) — les états que nomme le skill sont ceux qu'écrit `veille.sh - | --etat : MORTE sans trace, VIVANTE pendant la veille, TERMIN | --etat : le fichier d'arrêt posé (boucle.sh --arreter) passe | veille tuée pendant sa pause (kill -9, comme l'outil Bash ou | veille tuée pendant que `tee` attend un démon de la boucle (
-ROUGE M17 veille.sh --etat : exige CAPITAINE_ID (39 s) — démon lancé par la préparation (`(exec sleep 15) &`) : la bo | --etat : MORTE sans trace, VIVANTE pendant la veille, TERMIN | --etat : le fichier d'arrêt posé (boucle.sh --arreter) passe | veille tuée pendant sa pause (kill -9, comme l'outil Bash ou | un démon laissé par la boucle ou par file.sh ne tient pas la | veille tuée pendant que `tee` attend un démon de la boucle (
-ROUGE M18 veille.sh : --reprendre transmis à chaque lancement de la boucle (44 s) — --reprendre : le premier lancement de la boucle seul reçoit 
-ROUGE M19 veille.sh : --reprendre jamais transmis (517 s) — veille.sh --reprendre après boucle.sh --arreter : la vraie b | --reprendre : le premier lancement de la boucle seul reçoit 
+# Mutations du ticket 74, jouées le 2026-11-22 sur un clone neuf de 25a72c7 avec ticket-74.patch (sha256 c5608c9b…, retouché après sa relecture, A-190), Node 22.23.5 ; charge 1,96 au départ, 0,22 à la fin.
+# T10 a changé de cible après la passe entière (introuvable sur le texte retouché) : T10b est jouée seule ensuite, sur le même clone ; l'arbre est vérifié identique au patch après chaque passe.
+ROUGE M1 veille.sh : le `sleep` de la pause hérite du verrou de la veille (49 s) — veille tuée pendant sa pause (kill -9, comme l'outil Bash ou
+ROUGE M2 veille.sh : la boucle hérite du verrou de la veille (49 s) — un démon laissé par la boucle ou par file.sh ne tient pas la | veille tuée pendant que `tee` attend un démon de la boucle (
+ROUGE M3 veille.sh : `tee` hérite du verrou de la veille (49 s) — veille tuée pendant que `tee` attend un démon de la boucle (
+ROUGE M4 veille.sh : file.sh hérite du verrou de la veille (lecture initiale) (49 s) — un démon laissé par la boucle ou par file.sh ne tient pas la | veille tuée pendant une sonde lente (file.sh) ou pendant sa 
+ROUGE M5b veille.sh : la commande de préparation hérite du verrou de la veille (53 s) — démon lancé par la préparation (`(exec sleep 15) &`) : la bo | --reprendre : le fichier d'arrêt est retiré avant la prépara | veille tuée pendant une sonde lente (file.sh) ou pendant sa 
+ROUGE M6 veille.sh : pas de verrou (une seconde veille démarre) (49 s) — --etat : MORTE sans trace, VIVANTE pendant la veille, TERMIN | veille tuée pendant sa pause (kill -9, comme l'outil Bash ou | veille tuée pendant que `tee` attend un démon de la boucle ( | une seconde veille pendant qu'une tourne : VEILLE ARRÊTÉE, s
+ROUGE M7 veille.sh : l’état « lancee » n’est pas écrit (51 s) — --etat : MORTE sans trace, VIVANTE pendant la veille, TERMIN | veille tuée pendant sa pause (kill -9, comme l'outil Bash ou | veille tuée pendant que `tee` attend un démon de la boucle ( | --reprendre : le fichier d'arrêt est retiré avant la prépara
+ROUGE M8 veille.sh : la ligne finale n’est pas écrite dans l’état (52 s) — démon lancé par la préparation (`(exec sleep 15) &`) : la bo | --etat : MORTE sans trace, VIVANTE pendant la veille, TERMIN | un démon laissé par la boucle ou par file.sh ne tient pas la | une seconde veille pendant qu'une tourne : VEILLE ARRÊTÉE, s | --reprendre : préparation en échec (13), le fichier d'arrêt 
+ROUGE M9 veille.sh : l’arrêt de la préparation n’écrit pas sa fin (52 s) — --etat : MORTE sans trace, VIVANTE pendant la veille, TERMIN | --reprendre : préparation en échec (13), le fichier d'arrêt 
+ROUGE M10 veille.sh : la fin à l’échéance n’écrit pas sa fin (55 s) — --etat : MORTE sans trace, VIVANTE pendant la veille, TERMIN
+ROUGE M11 veille.sh : la boucle sortie en code non nul n’écrit pas sa fin (52 s) — --etat : MORTE sans trace, VIVANTE pendant la veille, TERMIN
+ROUGE M12 veille.sh : l’état écrit avant le verrou (une seconde veille l’écrase) (54 s) — une seconde veille pendant qu'une tourne : VEILLE ARRÊTÉE, s
+ROUGE M13 veille.sh --etat : le fichier d’arrêt n’est pas lu (53 s) — --etat : le fichier d'arrêt posé (boucle.sh --arreter) passe
+ROUGE M14 veille.sh --etat : la fin écrite lue avant le fichier d’arrêt (52 s) — --etat : le fichier d'arrêt posé (boucle.sh --arreter) passe
+ROUGE M15 veille.sh --etat : VIVANTE sort en 1 (49 s) — les états que nomme le skill sont ceux qu'écrit `veille.sh - | --etat : MORTE sans trace, VIVANTE pendant la veille, TERMIN | veille tuée pendant sa pause (kill -9, comme l'outil Bash ou | veille tuée pendant que `tee` attend un démon de la boucle (
+ROUGE M16 veille.sh --etat : MORTE sort en 2 (49 s) — les états que nomme le skill sont ceux qu'écrit `veille.sh - | --etat : MORTE sans trace, VIVANTE pendant la veille, TERMIN | --etat : le fichier d'arrêt posé (boucle.sh --arreter) passe | veille tuée pendant sa pause (kill -9, comme l'outil Bash ou | veille tuée pendant que `tee` attend un démon de la boucle ( | --reprendre : le fichier d'arrêt est retiré avant la prépara | veille tuée pendant une sonde lente (file.sh) ou pendant sa  | --etat lit l'état sous le verrou de la veille : aucune veill
+ROUGE M17 veille.sh --etat : exige CAPITAINE_ID (46 s) — démon lancé par la préparation (`(exec sleep 15) &`) : la bo | --etat : MORTE sans trace, VIVANTE pendant la veille, TERMIN | --etat : le fichier d'arrêt posé (boucle.sh --arreter) passe | veille tuée pendant sa pause (kill -9, comme l'outil Bash ou | un démon laissé par la boucle ou par file.sh ne tient pas la | veille tuée pendant que `tee` attend un démon de la boucle ( | --reprendre : le fichier d'arrêt est retiré avant la prépara | --reprendre : préparation en échec (13), le fichier d'arrêt  | veille tuée pendant une sonde lente (file.sh) ou pendant sa  | --etat lit l'état sous le verrou de la veille : aucune veill
+ROUGE M18 veille.sh : --reprendre transmis à chaque lancement de la boucle (51 s) — --reprendre : le premier lancement de la boucle seul reçoit 
+ROUGE M19 veille.sh : --reprendre jamais transmis (383 s) — --reprendre : le premier lancement de la boucle seul reçoit 
+ROUGE M20 veille.sh : --reprendre ne retire plus le fichier d’arrêt avant la préparation (50 s) — --reprendre : le fichier d'arrêt est retiré avant la prépara | --reprendre : préparation en échec (13), le fichier d'arrêt 
+ROUGE M21 veille.sh : --reprendre retire le fichier d’arrêt même quand une boucle tient son verrou (50 s) — --reprendre : préparation en échec (13), le fichier d'arrêt 
+ROUGE M22 veille.sh : la lecture initiale de la file garde le descripteur 7 dans son sous-shell (49 s) — veille tuée pendant une sonde lente (file.sh) ou pendant sa 
+ROUGE M26 veille.sh : la sonde de la boucle de la veille garde le descripteur 7 dans son sous-shell (50 s) — veille tuée pendant une sonde lente (file.sh) ou pendant sa 
+ROUGE M23 veille.sh : le sous-shell de la préparation garde le descripteur 7 (49 s) — --reprendre : le fichier d'arrêt est retiré avant la prépara | veille tuée pendant une sonde lente (file.sh) ou pendant sa 
+ROUGE M24 veille.sh : la veille n’attend pas un --etat en cours (flock -n) (47 s) — une veille qui démarre pendant qu'un --etat tient le verrou 
+ROUGE M25 veille.sh --etat : l’état lu avant le verrou (49 s) — --etat lit l'état sous le verrou de la veille : aucune veill
 ROUGE T1 SKILL.md : le timeout dit après la commande de la veille, plus dans le paragraphe qui la lance (0 s) — la veille se lance avec le `timeout` de l'outil Bash à 72000
 ROUGE T2 SKILL.md : le `timeout` à 600000 au lieu de 7200000 (0 s) — la veille se lance avec le `timeout` de l'outil Bash à 72000
 ROUGE T3 SKILL.md : la puce « Aucune de ces lignes » avant celle de la sortie 13 (0 s) — une fin sans ligne finale est une veille morte : quatrième p
@@ -26,9 +34,12 @@ ROUGE T5 SKILL.md : le réveil de garde déplacé après le suivi du journal (0 
 ROUGE T6 SKILL.md : le réveil de garde réarmé à chaque réveil (0 s) — le réveil de garde : après la liste des fins, avant le suivi
 ROUGE T7 SKILL.md : la garde à 120 minutes (0 s) — le réveil de garde : après la liste des fins, avant le suivi
 ROUGE T8 SKILL.md : les points 2 et 3 du réveil de garde échangés (0 s) — le réveil de garde : après la liste des fins, avant le suivi
-ROUGE T9 SKILL.md : `--reprendre` retiré du point 3 (0 s) — le réveil de garde : après la liste des fins, avant le suivi
-ROUGE T10 SKILL.md : la sortie 9 ne nomme plus une autre veille (0 s) — une fin sans ligne finale est une veille morte : quatrième p
+ROUGE T9b SKILL.md : `--reprendre` retiré du point 3, et la relance recopie (0 s) — le réveil de garde : après la liste des fins, avant le suivi
+ROUGE T10b SKILL.md : la sortie 9 ne nomme plus une autre veille, ni la suite par --etat (0 s) — une fin sans ligne finale est une veille morte : quatrième p
 ROUGE T11 veille.sh : l’en-tête ne dit plus le timeout (0 s) — la veille se lance avec le `timeout` de l'outil Bash à 72000
-30 rouges sur 30 jouées, 30 dans le fichier
+ROUGE T12 SKILL.md : la garde perd son nom (0 s) — le réveil de garde : après la liste des fins, avant le suivi
+ROUGE T13 SKILL.md : la commande de la veille tronque son journal (`>`) (0 s) — la veille se lance avec le `timeout` de l'outil Bash à 72000
+ROUGE T14 SKILL.md : le point 2 sans suite pour une autre sortie (64) (0 s) — le réveil de garde : après la liste des fins, avant le suivi
+ROUGE T15 SKILL.md : « Reprendre » rejoue boucle.sh --reprendre (0 s) — une fin sans ligne finale est une veille morte : quatrième p
+41 rouges sur 41 jouées, 41 dans le fichier
 toutes rouges
-(sortie 0)
