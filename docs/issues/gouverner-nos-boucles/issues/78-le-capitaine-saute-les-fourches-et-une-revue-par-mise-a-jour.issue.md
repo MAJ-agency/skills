@@ -1,6 +1,6 @@
 # Le capitaine, suites de la PR 149 : une PR de fourche sautée, une revue par PR de mise à jour, le motif d'une mise à jour sans ticket
 
-Status: ready-for-agent
+Status: Fait — PR 152 (`61bf51b`, plugin 8.0.1)
 Type: défaut
 Label: contre-revue
 Modèle: sonnet — trois suites de la contre-relecture de la PR 149 (Q2, M1, M2 ; `A-192` point 2), chacune avec sa décision et ses cas de banc ; le code entier est dans le patch ([`78-annexes/ticket-78.patch`](78-annexes/ticket-78.patch), sha256 `f582b4a1c897fce36cc1ab5f69b1c82047817ec8b0d1730e66a5eb306b5f0283`, `git apply` sur `97d17e3`), décrit ci-dessous ; un banc neuf, rouge avant le code, vert après ; les mutations de [`78-annexes/mutations.mjs`](78-annexes/mutations.mjs) toutes rouges. Rien n'est à concevoir : qui veut changer une décision l'écrit à son lanceur, il ne tranche pas. Premier des deux tickets de la PR B (78, 79) : « Une PR, deux tickets ».

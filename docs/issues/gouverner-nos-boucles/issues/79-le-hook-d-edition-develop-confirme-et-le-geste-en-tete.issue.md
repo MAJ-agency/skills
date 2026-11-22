@@ -1,6 +1,6 @@
 # Le hook d'édition, suites de la PR 149 : l'héritage jugé contre le develop d'origin, le geste en tête du refus, un banc du clone entier
 
-Status: ready-for-agent
+Status: Fait — PR 152 (`61bf51b`, plugin 8.0.1)
 Type: défaut
 Label: contre-revue
 Modèle: sonnet — trois mineurs des tours 3 et 4 de la contre-relecture de la PR 149 (M4, 23, 24), chacun avec sa décision et ses cas de banc ; le code entier est dans le patch ([`79-annexes/ticket-79.patch`](79-annexes/ticket-79.patch), sha256 `126f2e2d48619246f0e34ecdb39d0048d4ac8dffd716a8985dedf5bf0258da5f`, `git apply` sur `97d17e3`), avec la version et la note de la PR B ; des cas rouges avant le code, verts après ; les mutations de [`79-annexes/mutations.mjs`](79-annexes/mutations.mjs) toutes rouges ; puis la vérification et la livraison de la PR entière. Rien n'est à concevoir : qui veut changer une décision l'écrit à son lanceur, il ne tranche pas. Dernier des deux tickets de la PR B (ticket 78, « Une PR, deux tickets »).
