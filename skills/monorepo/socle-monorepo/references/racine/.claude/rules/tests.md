@@ -22,12 +22,25 @@ Le critère de séparation est **le besoin d'infrastructure**, pas la couche : u
 ## Règles
 
 - **Le nom dit le comportement, en français** (c'est de la prose, `ADR_ALL_ARC-4`) : `describe('<Sujet>')` puis `it('<comportement> quand <condition>')`, au présent de l'indicatif : `it('refuse une seconde licence quand la saison en a déjà une')`. Le sujet du `describe`, s'il nomme du code (`describe('LicenceService')`), garde le nom du code.
-- **Un test qui prouve une règle du registre porte son identifiant entre crochets en tête du nom** : `it('[RULE_ALL_LIC-2] refuse une seconde licence quand la saison en a déjà une')`. Plusieurs étiquettes se juxtaposent (`[RULE_ALL_LIC-2] [RULE_FNSMR_LIC-05] …`) ; une étiquette sur un `describe` vaut pour tous ses tests. L'identifiant est complet, contexte compris, `ALL` écrit. Jamais d'étiquette sur un test qui ne prouve pas la règle, jamais sur un test de recette (`recette.*`). C'est ce que lit `anchorpost index` pour dire qu'une règle est prouvée ; la catégorie et le niveau de la preuve viennent du tableau ci-dessus (`.spec.ts` unitaire P0, `.db.spec.ts` base réelle P0, `.property.spec.ts` propriétés P0, `apps/api/test/**` intégration P1, `tests/**` et `e2e/**` e2e P2).
+- **Un test qui prouve une règle du registre porte son identifiant entre crochets en tête du nom** : `it('[RULE_ALL_LIC-2] refuse une seconde licence quand la saison en a déjà une')`. Plusieurs étiquettes se juxtaposent (`[RULE_ALL_LIC-2] [RULE_FNSMR_LIC-05] …`) ; une étiquette sur un `describe` vaut pour tous ses tests. L'identifiant est complet, contexte compris, `ALL` écrit. Jamais d'étiquette sur un test qui ne prouve pas la règle, jamais sur un test de recette (`recette.*`). C'est ce que lit `anchorpost index` pour dire qu'une règle est prouvée ; la catégorie et le niveau de la preuve viennent du tableau ci-dessus (`.spec.ts` unitaire P0, `.db.spec.ts` base réelle P0, `.property.spec.ts` propriétés P0, `apps/api/test/**` intégration P1, `tests/**` et `e2e/**` e2e P2, `*.e2e-cli.spec.ts` qui lance la CLI construite en sous-processus, bout en bout d'une CLI, P2).
+- **Un test qui prouve un cas attendu de la règle le nomme après un `#`** : `it('[RULE_ALL_LIC-2#seconde-licence] refuse une seconde licence quand la saison en a déjà une')`. Les cas sont la clé `cases` de l'en-tête de la règle (projet suivi par Anchorpost, index au pivot 3) ; l'étiquette sans `#` prouve la règle sans prouver aucun de ses cas. Une étiquette qui nomme un cas que la règle ne déclare pas est refusée par `anchorpost check`.
 - **Tester le comportement, pas l'implémentation.** Un test qui casse à un refactor sans changement de comportement est un test à réécrire.
 - **Jamais la base mockée dans un repository.** Le mapping ligne ↔ modèle, l'atomicité et l'idempotence se prouvent contre une vraie base. Les ports, eux, se mockent dans les tests de cas d'usage.
 - **AAA, un sujet par test, mocks neufs** : `afterEach(() => vi.clearAllMocks())`. Mocks partagés dans `@test/mocks/`.
 - **Déterministe** : pas de `setTimeout` pour attendre, on attend une promesse ou une condition ; pas de date système, l'horloge est un port (voir « Le jour et l'heure ») ; pas d'ordre de tests qui compte.
 - **Un test qui clignote est un bug** jusqu'à preuve du contraire : le rejouer trois fois, puis ouvrir un ticket, jamais un `retry`.
+
+## Ce qu'une règle doit prouver, selon sa criticité
+
+Projet suivi par Anchorpost, index au pivot 3 (`RULE_ALL_ANC-28` d'Anchorpost) : jamais un nombre de tests ; un cas attendu est prouvé quand une preuve au moins porte son étiquette **au niveau qu'exige la criticité de la règle**.
+
+| Criticité de la règle | Cas normal (`nominal`) | Cas limite (`edge`) | Entrée invalide ou refus (`invalid`, `refusal`) |
+| --------------------- | ---------------------- | ------------------- | ----------------------------------------------- |
+| basse, ou à classer   | une preuve             | une preuve          | une preuve                                      |
+| moyenne               | une preuve             | une preuve          | une preuve P1 ou P2                             |
+| haute                 | une preuve P2          | une preuve          | une preuve P1 ou P2                             |
+
+P1 est la frontière de l'API (`apps/api/test/**`), P2 le bout en bout (`tests/**`, `e2e/**`, `*.e2e-cli.spec.ts`). Une règle est « prouvée » quand elle déclare un cas normal, que chacun de ses cas est prouvé et, moyenne ou haute, que chacune des dix familles de cas limites a sa réponse ; « partielle » quand elle a une preuve sans l'être (un cas sans preuve, aucun cas déclaré, pas de cas normal, une famille sans réponse). Une règle moyenne ou haute répond aux dix familles (un cas, un « sans objet » motivé, ou une question ouverte, qui la laisse partielle) : c'est le skill `criticite` qui les écrit, avant le code. Le gate `preuves` (`scripts/verify/preuves.mjs`, pre-push et fin de tour, posé par le skill `socle-tests`) joue `anchorpost compare` contre ce sur quoi le travail sera fusionné : il dit les cas sans preuve et les niveaux qui manquent sur les règles que le diff touche, en avertissement tant que le projet est en `observe`, en refus en `enforce`.
 
 ## Le jour et l'heure
 

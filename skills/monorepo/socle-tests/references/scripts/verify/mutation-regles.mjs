@@ -1,10 +1,12 @@
 /**
- * Périmètre de la mutation « règles prouvées » (skill socle-tests, ADR « score de mutation »).
+ * Périmètre de la mutation « règles qui ont des preuves » (skill socle-tests, ADR « score de mutation »).
  *
- * Un projet suivi par Anchorpost commit un index, `anchorpost/anchorpost.json` (schéma "2"). Chaque
- * règle y porte sa réalisation (`realisation.status`) et les fichiers de code qui la réalisent
- * (`code`, champ du standard). Le périmètre est l'union des `code` des règles `proven` : les fichiers
- * dont les tests sont réputés prouver une règle métier, donc ceux dont la force se mesure.
+ * Un projet suivi par Anchorpost commit un index, `anchorpost/anchorpost.json` (schéma "2" ou "3"). Chaque
+ * règle y porte sa réalisation (`realisation.status`), sa criticité (`criticality.level`, absente pour une
+ * règle « à classer ») et les fichiers de code qui la réalisent (`code`, champ du standard). Le périmètre est
+ * l'union des `code` des règles qui ont des preuves : `proven` au schéma 2 ; `proven` et `partial` au schéma 3,
+ * où « prouvée » demande chaque cas attendu prouvé et où une règle qui a des preuves sans être prouvée est
+ * « partielle » (`SPEC_ALL_ANC-5` § 2) : ses tests existent, leur force se mesure (§ 7, `RULE_ALL_ANC-29`).
  *
  * Ce module lit le JSON lui-même : il n'importe pas le paquet `@maj-agency/anchorpost`. Aucun
  * identifiant n'y est analysé : une clé de règle est portée telle que l'index l'écrit, zéros de tête
@@ -31,7 +33,10 @@ import { isAbsolute, join, posix, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 export const INDEX = "anchorpost/anchorpost.json";
-export const SCHEMA = "2";
+export const SCHEMAS = ["2", "3"];
+/** Les réalisations retenues, par schéma : celles d'une règle qui a des preuves. */
+export const RETENUES = { 2: ["proven"], 3: ["proven", "partial"] };
+const NIVEAUX = ["low", "medium", "high"];
 
 const CODE_MUTABLE = /\.[cm]?[jt]sx?$/;
 const PAS_DU_CODE = /\.(?:spec|test|e2e-spec|property\.spec|d)\.[cm]?[jt]sx?$/;
@@ -58,8 +63,9 @@ export function normaliser(chemin) {
  * @param index  l'index parsé ; `undefined` : aucun index ; autre valeur non objet (`null` d'un JSON
  *               illisible comprise) : index illisible.
  * @param existe `(cheminDuDepot) => boolean`, vrai si le chemin est un fichier du dépôt.
- * @returns `fichiers` triés et sans doublon ; `regles` : pour chaque règle prouvée qui a des fichiers
- *          retenus, `{ regle, fichiers }`, dans l'ordre de l'index ; `ecartes` : `{ regle, chemin,
+ * @returns `fichiers` triés et sans doublon ; `regles` : pour chaque règle retenue qui a des fichiers
+ *          retenus, `{ regle, criticite, fichiers }` (`criticite` : `low`, `medium`, `high`, ou `null` pour
+ *          « à classer »), dans l'ordre de l'index ; `ecartes` : `{ regle, chemin,
  *          motif }` pour un chemin laissé de côté ; `raison` quand `fichiers` est vide.
  */
 export function perimetre(index, existe) {
@@ -68,16 +74,18 @@ export function perimetre(index, existe) {
   if (index === null || typeof index !== "object" || Array.isArray(index)) {
     return vide(`index ${INDEX} illisible : rien à muter`);
   }
-  if (index.schema !== SCHEMA) {
-    return vide(`index ${INDEX} de schéma ${JSON.stringify(index.schema)}, la mutation lit le schéma "${SCHEMA}" : rien à muter`);
+  if (!SCHEMAS.includes(index.schema)) {
+    return vide(`index ${INDEX} de schéma ${JSON.stringify(index.schema)}, la mutation lit les schémas "2" et "3" : rien à muter`);
   }
   if (!Array.isArray(index.rules)) return vide(`index ${INDEX} sans liste de règles : rien à muter`);
 
-  const prouvees = index.rules.filter((r) => r?.realisation?.status === "proven");
+  const prouvees = index.rules.filter((r) => RETENUES[index.schema].includes(r?.realisation?.status));
+  const quoi = index.schema === "3" ? "prouvée(s) ou partielle(s)" : "prouvée(s)";
   const ecartes = [];
   const regles = [];
   for (const r of prouvees) {
     const regle = String(r.key ?? r.id ?? "?");
+    const criticite = NIVEAUX.includes(r?.criticality?.level) ? r.criticality.level : null;
     const retenus = [];
     for (const brut of Array.isArray(r.code) ? r.code : []) {
       const chemin = normaliser(brut);
@@ -87,7 +95,7 @@ export function perimetre(index, existe) {
         ecartes.push({ regle, chemin, motif: "hors périmètre de la mutation (test, déclaration, contrôleur, module, dto, gabarit ou autre langage)" });
       } else if (!retenus.includes(chemin)) retenus.push(chemin);
     }
-    if (retenus.length) regles.push({ regle, fichiers: retenus });
+    if (retenus.length) regles.push({ regle, criticite, fichiers: retenus });
   }
   const fichiers = [...new Set(regles.flatMap((r) => r.fichiers))].sort();
   if (fichiers.length) return { fichiers, regles, ecartes };
@@ -96,8 +104,8 @@ export function perimetre(index, existe) {
     regles,
     ecartes,
     raison: prouvees.length
-      ? `${prouvees.length} règle(s) prouvée(s), aucune ne déclare de fichier de code utilisable (champ \`code\`) : rien à muter`
-      : "aucune règle prouvée dans l'index : rien à muter",
+      ? `${prouvees.length} règle(s) ${quoi}, aucune ne déclare de fichier de code utilisable (champ \`code\`) : rien à muter`
+      : `aucune règle ${quoi.replaceAll("(s)", "")} dans l'index : rien à muter`,
   };
 }
 
@@ -144,7 +152,7 @@ export function perimetreDuPaquet(racine = racineDuDepot(), cwd = process.cwd())
     return rel !== "" && rel !== ".." && !rel.startsWith(`..${sep}`) ? rel.split(sep).join("/") : null;
   };
   const regles = p.regles
-    .map((r) => ({ regle: r.regle, fichiers: r.fichiers.filter((f) => dedans(f) !== null) }))
+    .map((r) => ({ regle: r.regle, criticite: r.criticite, fichiers: r.fichiers.filter((f) => dedans(f) !== null) }))
     .filter((r) => r.fichiers.length);
   const fichiers = p.fichiers.filter((f) => dedans(f) !== null);
   const ailleurs = p.fichiers.filter((f) => dedans(f) === null);
@@ -177,7 +185,7 @@ function main(args) {
     const cwd = process.cwd();
     const p = perimetreDuPaquet(racine, cwd);
     dire(p, (m) => console.log(m));
-    if (p.ailleurs.length) console.log(`mutation-regles : ${p.ailleurs.length} fichier(s) de règles prouvées sont dans un autre paquet, à muter par sa configuration : ${p.ailleurs.join(", ")}`);
+    if (p.ailleurs.length) console.log(`mutation-regles : ${p.ailleurs.length} fichier(s) de règles qui ont des preuves sont dans un autre paquet, à muter par sa configuration : ${p.ailleurs.join(", ")}`);
     if (!p.fichiers.length && !process.env.STRYKER_MUTATE) return 0;
     console.log(`mutation-regles : ${process.env.STRYKER_MUTATE ? "essai local" : `${p.regles.length} règle(s), ${p.fichiers.length} fichier(s) à muter`}`);
     const r = spawnSync("pnpm", ["exec", "stryker", "run", "stryker.regles.config.mjs"], { stdio: "inherit", cwd });
