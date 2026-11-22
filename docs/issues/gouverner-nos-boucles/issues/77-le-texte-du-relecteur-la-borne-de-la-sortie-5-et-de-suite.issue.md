@@ -1,6 +1,6 @@
 # Le texte du Relecteur, suites des PR 147 et 149 : la borne de la sortie 5, « rejouer au réveil suivant », « de suite », la sortie 69
 
-Status: ready-for-agent
+Status: Fait — PR 153 (`2a2d215`, plugin 8.0.2)
 Type: défaut
 Label: contre-revue
 Modèle: sonnet — les suites de texte d'`A-189` (points 1 à 3) et la suite de la sortie 6 que le ticket 75 ouvre (`A-192`, point 1), chacune mot pour mot ; le texte entier est dans le patch ([`77-annexes/ticket-77.patch`](77-annexes/ticket-77.patch), sha256 `e73b4ef762a3bae330a23007e9aa3c537164fe84cd5fe4f11bdefb5a1ffb3937`, `git apply` sur `97d17e3`), avec la version et la note de la PR A ; les phrases sont exigées à leur place par le banc des textes, rouge avant, vert après ; les mutations de [`77-annexes/mutations.mjs`](77-annexes/mutations.mjs) toutes rouges ; puis la vérification et la livraison de la PR entière. Rien n'est à concevoir : qui veut changer une décision l'écrit à son lanceur, il ne tranche pas. Dernier des trois tickets de la PR A (ticket 75, « Une PR, trois tickets »).

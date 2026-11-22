@@ -1,6 +1,6 @@
 # La sortie 69 des calculs est une panne : le capitaine sort en 3, le Relecteur en 6, la cause dite, jamais une lecture illisible
 
-Status: ready-for-agent
+Status: Fait — PR 153 (`2a2d215`, plugin 8.0.2)
 Type: défaut
 Label: contre-revue
 Modèle: sonnet — une décision d'`A-192` (point 1) jouée des deux côtés, chez le capitaine (`revue-exigee.mjs`) et chez le Relecteur (`relecteur.mjs`) ; le code entier est dans le patch ([`75-annexes/ticket-75.patch`](75-annexes/ticket-75.patch), sha256 `6cbb0e81ab0841e68f7f11c30f9a5ddd61bfecd96707c07d8ede2ec75f93e9a7`, `git apply` sur `main` à `97d17e3`, plugin 7.39.0), décrit fichier par fichier ci-dessous ; deux cas de banc rouges avant le code, verts après ; les mutations de [`75-annexes/mutations.mjs`](75-annexes/mutations.mjs) toutes rouges. Rien n'est à concevoir : qui veut changer une décision l'écrit à son lanceur, il ne tranche pas. Premier des trois tickets de la PR A (75, 76, 77) : « Une PR, trois tickets ».

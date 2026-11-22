@@ -1,6 +1,6 @@
 # Le script du Relecteur, suites de la PR 147 : l'usage entier, le plafond rejoué écrit et tenu, la marque sans les traces d'illisible
 
-Status: ready-for-agent
+Status: Fait — PR 153 (`2a2d215`, plugin 8.0.2)
 Type: défaut
 Label: contre-revue
 Modèle: sonnet — trois mineurs mesurés (le mineur 7 des tickets 67 à 70, le constat 7 et le constat 13 de la contre-relecture de la PR 147), chacun avec sa décision et son banc ; le code entier est dans le patch ([`76-annexes/ticket-76.patch`](76-annexes/ticket-76.patch), sha256 `698a71b872451d8863152db1c1bd130e49005dc45e8ca2aa0a3d18823de02be1`, `git apply` sur `97d17e3`, seul ou après le ticket 75), décrit ci-dessous ; un cas rouge avant le code, deux cas qui tiennent ce que le code fait déjà ; les mutations de [`76-annexes/mutations.mjs`](76-annexes/mutations.mjs) toutes rouges. Rien n'est à concevoir : qui veut changer une décision l'écrit à son lanceur, il ne tranche pas. Deuxième des trois tickets de la PR A (ticket 75, « Une PR, trois tickets »).
