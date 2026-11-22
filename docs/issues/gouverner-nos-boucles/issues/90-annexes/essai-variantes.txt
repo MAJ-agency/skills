@@ -1,0 +1,16 @@
+# Variantes du ticket 90, jouées le 2026-11-22 14:58:13 UTC, Node 22.23.5, charge 11.75 10.27 8.79 ; ddb4265 = main (8.0.0), bf70026 = main avec le patch
+ddb4265 — régime 8 (gabarit) : 86 verts sur 87, 1 rouges
+  not ok — refusEdition laisse éditer .claude/skills : les skills du plugin vivent hors du dépôt, ceux du projet sont à lui
+ddb4265 — régime 7 (gabarit sans relecture) : 87 verts sur 87, 0 rouges
+ddb4265 — régime 8, apps/api/** ajouté aux chemins sensibles : 84 verts sur 87, 3 rouges
+  not ok — refusEdition refuse une migration déjà livrée et laisse écrire une nouvelle
+  not ok — refusEdition laisse éditer .claude/skills : les skills du plugin vivent hors du dépôt, ceux du projet sont à lui
+  not ok — refusEdition refuse le lockfile et les fichiers .env, laisse .env.example
+ddb4265 — régime 8, un index docs/* ajouté : 84 verts sur 87, 3 rouges
+  not ok — refusEdition laisse éditer .claude/skills : les skills du plugin vivent hors du dépôt, ceux du projet sont à lui
+  not ok — refusEdition normalise le chemin avant de juger : un détour (`//`, `/./`, `x/../`, `\\`) ne contourne aucun refus
+  not ok — lot 5b, refusEdition en régime 8 : un chemin sensible hors accord est refusé, couvert par chaque copie il passe ; hors régime 8, rien ne change
+bf70026 — régime 8 (gabarit) : 87 verts sur 87, 0 rouges
+bf70026 — régime 7 (gabarit sans relecture) : 87 verts sur 87, 0 rouges
+bf70026 — régime 8, apps/api/** ajouté aux chemins sensibles : 87 verts sur 87, 0 rouges
+bf70026 — régime 8, un index docs/* ajouté : 87 verts sur 87, 0 rouges

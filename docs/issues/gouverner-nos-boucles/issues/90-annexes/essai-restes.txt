@@ -1,0 +1,15 @@
+# Ce que les bancs de references/ laissent dans un TMPDIR neuf : un passage, posés par pose-du-socle.mjs du patch au régime 8, joués d'un seul node --test (sortie 0), le 2026-11-22, Node 22.23.5. Dossiers restants, par préfixe :
+     20 garde-github
+     19 garde-illisible
+     16 next-id
+     15 mutation-regles
+      7 tests-creux
+      4 mutation-synthese
+      4 fin-de-tour
+      3 apres-edition
+      2 budget-contexte
+      1 tickets-sans-grammaire
+      1 references-agent
+      1 mutation-dehors
+      1 avancement
+# total : 94
