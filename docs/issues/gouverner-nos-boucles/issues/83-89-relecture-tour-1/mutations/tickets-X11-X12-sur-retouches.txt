@@ -1,0 +1,3 @@
+ROUGE X11 critère T3 (d) : un cas porté par un ticket qui le prouve sur Prouve: ne compte plus (1 s) — le gabarit de règle montre `criticality` en bloc, une clé pa 
+ROUGE X12 critère T3 (d) du régime 8 : idem (70 s) — les critères repris du régime 7 ne perdent rien : T1 à T9 et
+toutes rouges

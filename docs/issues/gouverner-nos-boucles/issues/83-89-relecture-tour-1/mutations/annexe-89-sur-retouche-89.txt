@@ -1,0 +1,12 @@
+ROUGE A1 manifeste : schéma 2 (le gabarit d'avant) (1 s) — le skill anchorpost suit la CLI 2.0.0 : manifest
+ROUGE A2 manifeste : sans sufficiency (1 s) — le skill anchorpost suit la CLI 2.0.0 : manifeste au schéma 
+ROUGE A3 manifeste : le plancher d'avant, sans partial (1 s) — le skill anchorpost suit la CLI 2.0.0 : manif
+INTROUVABLE A4 SKILL : la recette du jeton revient à l'installation
+ROUGE A5 SKILL : sans le passage au pivot 3 (1 s) — le skill anchorpost suit la CLI 2.0.0 : manifeste au sch
+ROUGE A6 SKILL : la repose ne relance pas le skill de criticité (1 s) — le skill anchorpost suit la CLI 2.0
+ROUGE A7 admin.md : la network secret revient (1 s) — le skill anchorpost suit la CLI 2.0.0 : manifeste au s
+ROUGE A8 fiche : sans l'étiquette de cas (1 s) — la fiche anchorpost dit comment écrire une criticité, un
+ROUGE A9 fiche : sans ce que dit compare (1 s) — la fiche anchorpost dit comment écrire une criticité, un 
+ROUGE A10 fiche : enforce ne refuse pas (1 s) — la fiche anchorpost dit comment écrire une criticité, un c
+ROUGE A11 fiche : la criticité sans sa date (1 s) — la fiche anchorpost dit comment écrire une criticité,
+1 mutation(s) non rouge(s)

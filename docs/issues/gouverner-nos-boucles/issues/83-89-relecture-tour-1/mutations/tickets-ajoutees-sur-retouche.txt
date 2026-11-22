@@ -1,0 +1,6 @@
+ROUGE X1 tickets.mjs : un schema 3 en nombre se juge comme "3" (16 s) — K3, gate : une règle rejetée ou obsolète dans l'index ne se 
+ROUGE X2 tickets.mjs : un niveau hors vocabulaire compte pour une criticité (16 s) — K3, gate : une règle rejetée ou obsolète dans l'index ne se 
+ROUGE X3 tickets.mjs : validation.status n'est pas lu (aucune règle close) (18 s) — K3, gate : une règle rejetée ou obsolète dans l'index ne se 
+ROUGE X4 tickets.mjs : une règle obsolète se juge (16 s) — K3, gate : une règle rejetée ou obsolète dans l'index ne se 
+ROUGE X5 tickets.mjs : un cas sans id compte (identifiant undefined) (15 s) — K3, gate : une règle rejetée ou obsolète dans l'index ne se 
+toutes rouges

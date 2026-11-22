@@ -1,0 +1,32 @@
+# Le gate tickets du patch et celui de main sur une copie d'Anchorpost (lecture seule), PROJET_RACINE à la racine de la copie
+## develop (2be4e7e, pivot 3, observe), gate de main
+tickets : OK — 232 tickets, dette gelée 0, 0 sans Type: gelé(s), 7 carte(s) dont 0 gelée(s), 2 fiche(s) d'avant Responsable:/Conducteur:
+sortie 0
+## develop (2be4e7e, pivot 3, observe), gate de patch
+tickets : 1 avertissement(s) de la preuve suffisante (observe : rien n'est refusé) :
+  docs/features/anchorpost/all/issues/SPEC_ALL_ANC-5-preuve-suffisante.24.issue.md:3 : ready-for-agent : preuve suffisante (observe) : RULE_ALL_ANC-29 ne déclare aucun cas attendu dans l'index : les écrire par le skill criticite (/maj-skills:criticite) avant de lancer le ticket
+tickets : OK — 232 tickets, dette gelée 0, 0 sans Type: gelé(s), 7 carte(s) dont 0 gelée(s), 2 fiche(s) d'avant Responsable:/Conducteur:
+sortie 0
+
+## régime 8 (clé relecture posée, double-relecture.mjs copié), main puis patch
+tickets : 2 écart(s) :
+  docs/features/anchorpost/all/issues/SPEC_ALL_ANC-4-cli-et-pivot-v2.58.issue.md:5 : régime 8 : ligne `Relecture: double` absente alors que le ticket cite RULE_ALL_ANC-16, règle de criticité haute (deux relectures indépendantes, A-90)
+  docs/features/anchorpost/all/issues/SPEC_ALL_ANC-4-cli-et-pivot-v2.58.issue.md:5 : régime 8 : ligne `Relecture: double` absente alors que le ticket cite RULE_ALL_ANC-19, règle de criticité haute (deux relectures indépendantes, A-90)
+--
+tickets : 1 avertissement(s) de la preuve suffisante (observe : rien n'est refusé) :
+  docs/features/anchorpost/all/issues/SPEC_ALL_ANC-5-preuve-suffisante.24.issue.md:3 : ready-for-agent : preuve suffisante (observe) : RULE_ALL_ANC-29 ne déclare aucun cas attendu dans l'index : les écrire par le skill criticite (/maj-skills:criticite) avant de lancer le ticket
+tickets : 2 écart(s) :
+  docs/features/anchorpost/all/issues/SPEC_ALL_ANC-4-cli-et-pivot-v2.58.issue.md:5 : régime 8 : ligne `Relecture: double` absente alors que le ticket cite RULE_ALL_ANC-16, règle de criticité haute (deux relectures indépendantes, A-90)
+  docs/features/anchorpost/all/issues/SPEC_ALL_ANC-4-cli-et-pivot-v2.58.issue.md:5 : régime 8 : ligne `Relecture: double` absente alors que le ticket cite RULE_ALL_ANC-19, règle de criticité haute (deux relectures indépendantes, A-90)
+
+## 318d141 (pivot 2 réel), main puis patch
+tickets : OK — 170 tickets, dette gelée 0, 0 sans Type: gelé(s), 7 carte(s) dont 0 gelée(s), 2 fiche(s) d'avant Responsable:/Conducteur:
+tickets : OK — 170 tickets, dette gelée 0, 0 sans Type: gelé(s), 7 carte(s) dont 0 gelée(s), 2 fiche(s) d'avant Responsable:/Conducteur:
+
+## variantes de l'index (patch) : enforce 1 ; schema "2" 0 sans avertissement ; schema 3 en nombre 0 ; sans sufficiency 0 (observe) ; absent 0 ; marqueurs de conflit 1
+
+# Chemins « main a bougé » (§ 3 des tickets 83, 86, 89)
+- PR B (4afd6e2, 8.0.1) entrée avant « tickets » : conflits .claude-plugin/plugin.json NOTES-DE-VERSION.md ; version-mineure.mjs : 8.1.0
+- « tickets » entrée avant « socle-tests » : conflit NOTES-DE-VERSION.md seul ; 8.2.0
+- « anchorpost » sur « tickets » + « socle-tests » (8.2.0) : 2/0/2 puis 71/71, 10 fichiers, 8.3.0, 11 rouges
+- PR B + les trois PR K par le § 3 : 8.1.0, 8.2.0 (NOTES seul), 8.3.0 (plugin.json et NOTES) ; diff avec l'empilement sur ddb4265 : les 9 fichiers de la PR B, 363 insertions, 27 suppressions

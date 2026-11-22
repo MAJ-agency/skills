@@ -1,0 +1,13 @@
+diff --git a/NOTES-DE-VERSION.md b/NOTES-DE-VERSION.md
+index 328a265..eec0fb5 100644
+--- a/NOTES-DE-VERSION.md
++++ b/NOTES-DE-VERSION.md
+@@ -12,7 +12,7 @@ La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque pro
+ 
+ ### Ce qu'un projet fait pour en profiter
+ 
+-- Rien, tant que son index Anchorpost n'est pas au pivot 3 : le gate se comporte comme avant, la ligne `Prouve:` mise à part (une ligne nouvelle, que nul ticket ne porte encore).
++- Rien, tant que son index Anchorpost n'est pas au pivot 3 : le gate se comporte comme avant, deux points mis à part : la ligne `Prouve:` (une ligne nouvelle, que nul ticket ne porte encore), et un index `anchorpost/anchorpost.json` présent qui n'est pas du JSON, qui fait désormais sortir le gate en 1 quel que soit le pivot, régime 7 compris.
+ - **Reposer** `scripts/verify/tickets.mjs` et `tickets-regles.mjs` (skill `tickets`), `scripts/chaine/contexte-ticket.mjs` et `criteres-ticket.md` (skill `revue-de-ticket`, `poser`), et les gabarits `docs/agents/gabarits/ticket.issue.md` et `regle.md`. Au pivot 3 en `observe`, `pnpm check:tickets` signale les tickets prêts qui citent une règle « à classer » ou sans cas, ou dont `## Surfaces` ne nomme pas un cas ; les corriger avant que le produit ne passe le projet en `enforce`, où ils seront refusés.
+ 
+ ## 8.0.0 — 2026-11-22

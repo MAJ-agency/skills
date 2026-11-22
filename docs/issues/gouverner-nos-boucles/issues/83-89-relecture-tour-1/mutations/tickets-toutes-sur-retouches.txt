@@ -1,0 +1,43 @@
+## annexe 83-85 sur l'arbre retouché
+ROUGE P1 tickets-regles.mjs : la ligne Prouve: n'est pas lue (15 s) — K3, gate : sans index ou d'un autre schéma que 
+ROUGE P2 tickets-regles.mjs : une règle sur Règles: et sur Prouve: passe (1 s) — K3 : la ligne Prouve: se lit comme 
+ROUGE P3 tickets-regles.mjs : Prouve: — passe (0 s) — K3 : la ligne Prouve: se lit comme Règles: (identifiant comp
+ROUGE P4 tickets-regles.mjs : Prouve: n'entre pas dans la preuve suffisante (16 s) — K3, gate : sans index ou d'un aut
+ROUGE S1 tickets-regles.mjs : en enforce, un avertissement et non un refus (19 s) — K3, gate : sans index ou d'un autr
+ROUGE S2 tickets-regles.mjs : en observe, un refus et non un avertissement (18 s) — K3, gate : sans index ou d'un autr
+ROUGE S3 tickets-regles.mjs : une règle « à classer » passe (16 s) — K3, gate : sans index ou d'un autre schéma q
+ROUGE S4 tickets-regles.mjs : une règle sans cas passe (21 s) — K3, gate : sans index ou d'un autre schéma que 3, ri
+ROUGE S5 tickets-regles.mjs : un cas que ## Surfaces ne nomme pas passe (26 s) — K3, gate : sans index ou d'un autre s
+ROUGE S6 tickets-regles.mjs : un cas voisin (#nominal-bis) nomme #nominal (1 s) — K3 : `\#\# Surfaces` nomme chaque ca
+ROUGE S7 tickets-regles.mjs : une règle absente de l'index passe (1 s) — K3 : sans index au pivot 3, rien ; en observ
+ROUGE S8 tickets-regles.mjs : une règle rejetée ou obsolète se juge (1 s) — K3 : sans index au pivot 3, rien ; en o
+ROUGE S9 tickets-regles.mjs : un ticket prêt gelé se juge (1 s) — K3 : sans index au pivot 3, rien ; en observe, un 
+ROUGE G1 tickets.mjs : un index au schéma 2 se juge comme le pivot 3 (24 s) — K3, gate : sans index ou d'un autre sch
+ROUGE G2 tickets.mjs : project.sufficiency n'est pas lu (toujours observe) (21 s) — K3, gate : sans index ou d'un autr
+ROUGE G3 tickets.mjs : un index qui n'est pas du JSON se tait (21 s) — K3, gate : un index présent qui n'est pas du J
+ROUGE G4 tickets.mjs : les avertissements ne sont pas écrits (19 s) — K3, gate : sans index ou d'un autre schéma que
+ROUGE G5 tickets.mjs : la criticité se lit à la racine de la règle (forme nue) (18 s) — K3, gate : sans index ou d'
+ROUGE C1 contexte-ticket.mjs : la ligne Prouve: n'est pas rendue (2 s) — une règle de la ligne Prouve: est rendue sou
+ROUGE C2 contexte-ticket.mjs : une règle des deux lignes est rendue deux fois (3 s) — une règle de la ligne Prouve: 
+ROUGE C3 contexte-ticket.mjs : une règle de Prouve: est répétée parmi les cités (3 s) — une règle de la ligne Pr
+ROUGE D1 copie de la spec : celle du 2026-11-13 (la tête d'avant) (1 s) — la copie de la spec de la preuve suffisante
+ROUGE D2 copie de la spec : le nom d'une personne dans un exemple (1 s) — la copie de la spec de la preuve suffisante 
+ROUGE D3 gabarit de règle : sans la date de la criticité (2 s) — le gabarit de règle montre `criticality` en bloc, 
+ROUGE D4 gabarit de ticket : sans la ligne Prouve: (1 s) — le gabarit de ticket porte la ligne `Prouve:` sous `Règles
+ROUGE D5 critère T3 : Prouve: n'est plus lue (2 s) — T3, branche « cas déclarés » : index au pivot 3 et règle qu
+ROUGE D6 critère T3 du régime 8 (relecture) : Prouve: n'est plus lue (231 s) — les critères repris du régime 7 ne 
+toutes rouges
+## ajoutées X1 à X12 sur l'arbre retouché
+ROUGE X1 tickets.mjs : un schema 3 en nombre se juge comme "3" (21 s) — K3, gate : une règle rejetée ou obsolète dans l'index ne se 
+ROUGE X2 tickets.mjs : un niveau hors vocabulaire compte pour une criticité (19 s) — K3, gate : une règle rejetée ou obsolète dans l'index ne se
+ROUGE X3 tickets.mjs : validation.status n'est pas lu (aucune règle close) (19 s) — K3, gate : une règle rejetée ou obsolète dans l'index ne se 
+ROUGE X4 tickets.mjs : une règle obsolète se juge (19 s) — K3, gate : une règle rejetée ou obsolète dans l'index ne se 
+ROUGE X5 tickets.mjs : un cas sans id compte (identifiant undefined) (17 s) — K3, gate : une règle rejetée ou obsolète dans l'index ne se 
+ROUGE X6 tickets-regles.mjs : Prouve: lue dans tout le fichier (1 s) — K3 : la ligne Prouve: se lit comme Règles: (identifiant comp
+VERTE X7 tickets-regles.mjs : une règle citée deux fois se juge deux fois (19 s)
+VERTE X8 contexte-ticket.mjs : le commentaire de Prouve: n'est pas retiré (2 s)
+VERTE X9 contexte-ticket.mjs : la ligne Prouve: lue n'importe où dans le ticket (2 s)
+ROUGE X10 tickets.mjs : l'index illisible sort en 0 (se tait sans juger) (18 s) — K3, gate : un index présent qui n'est pas du JSON fait sorti
+ROUGE X11 critère T3 (d) : un cas porté par un ticket qui le prouve sur Prouve: ne compte plus (1 s) — T3, branche « cas déclarés » : index au
+ROUGE X12 critère T3 (d) du régime 8 : idem (194 s) — les critères repris du régime 7 ne perdent rien : T1 à T9 et
+3 mutation(s) non rouge(s)

@@ -1,0 +1,17 @@
+diff --git a/scripts/preuve-suffisante-socle-tests.test.mjs b/scripts/preuve-suffisante-socle-tests.test.mjs
+index be16def..509bd26 100644
+--- a/scripts/preuve-suffisante-socle-tests.test.mjs
++++ b/scripts/preuve-suffisante-socle-tests.test.mjs
+@@ -39,6 +39,12 @@ test("le workflow de mutation date sa mesure, la publie en artefact et relit la
+     "name: mesure-regles path: apps/api/reports/mutation/mesure-regles.json",
+     "run: node ../../scripts/verify/mutation-regles-synthese.mjs --mesure reports/mutation/mesure-regles.json --precedente \"$RUNNER_TEMP/precedente/mesure-regles.json\" >> \"$GITHUB_STEP_SUMMARY\"",
+     "gh run download \"$id\" -n mesure-regles -D \"$RUNNER_TEMP/precedente\"",
++    // Décision 3 du ticket 88 : `gh` authentifié par le jeton du job, le dernier artefact non expiré de la branche par défaut.
++    "env: GH_TOKEN: ${{ github.token }} BRANCHE: ${{ github.event.repository.default_branch }}",
++    "select(.expired == false and .workflow_run.head_branch == env.BRANCHE)",
++    // Décision 4 : publiée même après un échec, gardée 90 jours.
++    "- name: Mesure datée if: env.CIBLE == 'regles' && always() uses: actions/upload-artifact@",
++    "name: mesure-regles path: apps/api/reports/mutation/mesure-regles.json if-no-files-found: ignore retention-days: 90",
+   ]);
+   // Chaque ligne d'un `run:`, la sienne et celles de son bloc (`run: |`, plus indentées que la clé).
+   const runs = [];

@@ -1,0 +1,11 @@
+VERTE Y1 mutation.yml : sans GH_TOKEN (gh n'est pas authentifié : jamais de mesure précédente, sans un mot) (0 s)
+VERTE Y2 mutation.yml : la mesure précédente de n'importe quelle branche (0 s)
+VERTE Y3 mutation.yml : un artefact expiré compte (0 s)
+VERTE Y4 mutation.yml : la mesure gardée un jour (un passage manqué la perd) (0 s)
+VERTE Y5 mutation.yml : la mesure n'est pas publiée après un échec de la synthèse (0 s)
+ROUGE Y6 synthèse : une règle non mesurée aujourd'hui est une baisse (1 s) — les baisses : une règle moyenne mesurée les deux fois dont l
+ROUGE Y7 mutation-regles.mjs : un niveau hors vocabulaire est porté (1 s) — pivot 3 : les règles prouvées et partielles entrent, avec le
+ROUGE Y8 preuves.mjs : un index en liste JSON se dit d'un autre schéma (sortie 0) (11 s) — etatDeLIndex : absent, illisible, d'un autre schéma, au pivo
+ROUGE Y9 preuves.mjs : une valeur du rapport garde ses sauts de ligne (9 s) — resume : le mode jugé, les comptes, un écart par ligne (refu
+ROUGE Y10 preuves.mjs : le mode jugé lu ailleurs que dans sufficiency (toujours observe) (10 s) — resume : le mode jugé, les comptes, un écart par ligne (refu | la sortie de la CLI est rendue : 1 sur un écart en enforce, 
+5 mutation(s) non rouge(s)

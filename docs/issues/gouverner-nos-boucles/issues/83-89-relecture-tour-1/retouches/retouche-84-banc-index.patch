@@ -1,0 +1,31 @@
+diff --git a/skills/chaine/tickets/references/scripts/verify/tickets-gate.test.mjs b/skills/chaine/tickets/references/scripts/verify/tickets-gate.test.mjs
+index 7a12a69..686407c 100644
+--- a/skills/chaine/tickets/references/scripts/verify/tickets-gate.test.mjs
++++ b/skills/chaine/tickets/references/scripts/verify/tickets-gate.test.mjs
+@@ -308,3 +308,26 @@ test("K3, gate : un index présent qui n'est pas du JSON fait sortir le gate en
+   assert.equal(r.status, 1);
+   assert.match(r.stderr, /tickets : anchorpost\/anchorpost\.json illisible \(.+\) : la criticité et les cas des règles citées ne se lisent pas ; régénérer l'index/);
+ });
++
++test("K3, gate : une règle rejetée ou obsolète dans l'index ne se juge pas ; un niveau ou un cas hors de la forme de l'index ne compte pas", () => {
++  const regles = Object.fromEntries([1, 2, 3, 4].map((n) => [`docs/metier/regles/all/RULE_ALL_SOC-${n}.md`, `---\nid: RULE_ALL_SOC-${n}\n---\n`]));
++  const index = (rules) => ({ 'anchorpost/anchorpost.json': `${JSON.stringify({ schema: '3', project: { name: 'p', sufficiency: 'enforce' }, rules })}\n` });
++  const ticket = (cites) =>
++    `# x\n\nStatus: ready-for-agent\nType: task\nRègles: ${cites}\nModèle: sonnet\nFichiers chauds: —\n\n## Où\n\n- a\n\n## Décisions\n\n- b\n\n## Surfaces\n\n| nominal | [RULE_ALL_SOC-1#nominal] |\n\n## Vérification\n\n- d\n`;
++  const jouer = (rules, cites) => lancer(depotJouet({ fichiers: { ...DETTE, ...regles, ...index(rules), [K3_TICKET]: ticket(cites) } }));
++  const classee = { key: 'RULE_ALL_SOC-1', criticality: k3Niveau, cases: [{ id: 'nominal' }] };
++  const closes = jouer(
++    [classee, { key: 'RULE_ALL_SOC-2', cases: [], validation: { status: 'rejected' } }, { key: 'RULE_ALL_SOC-3', cases: [], validation: { status: 'obsolete' } }],
++    'RULE_ALL_SOC-1, RULE_ALL_SOC-2, RULE_ALL_SOC-3',
++  );
++  assert.equal(closes.status, 0, `rejetée et obsolète : rien n'est jugé, même en enforce\n${closes.stderr}`);
++  assert.doesNotMatch(closes.stdout + closes.stderr, /preuve suffisante/);
++  const niveauHorsVocabulaire = { level: 'critique' };
++  const horsForme = jouer([classee, { key: 'RULE_ALL_SOC-4', criticality: niveauHorsVocabulaire, cases: [{ titre: 'sans id' }] }], 'RULE_ALL_SOC-1, RULE_ALL_SOC-4');
++  assert.equal(horsForme.status, 1);
++  assert.match(horsForme.stderr, /tickets : 2 écart\(s\) :/, horsForme.stderr);
++  assert.match(horsForme.stderr, /RULE_ALL_SOC-4 n'a pas de criticité dans l'index \(« à classer »\)/, 'un niveau hors de low, medium, high : à classer');
++  assert.match(horsForme.stderr, /RULE_ALL_SOC-4 ne déclare aucun cas attendu dans l'index/, 'un cas sans identifiant ne compte pas');
++  const nombre = lancer(depotJouet({ fichiers: { ...DETTE, ...regles, 'anchorpost/anchorpost.json': `${JSON.stringify({ schema: 3, project: { sufficiency: 'enforce' }, rules: [] })}\n`, [K3_TICKET]: ticket('RULE_ALL_SOC-4') } }));
++  assert.equal(nombre.status, 0, `un schema 3 en nombre n'est pas le pivot 3 (la CLI écrit "3") : rien n'est jugé\n${nombre.stderr}`);
++});

@@ -1,0 +1,6 @@
+ROUGE Y1 mutation.yml : sans GH_TOKEN (gh n'est pas authentifié : jamais de mesure précédente, sans un mot) (0 s) — le workflow de mutation date sa mesure, la publie en artefac
+ROUGE Y2 mutation.yml : la mesure précédente de n'importe quelle branche (0 s) — le workflow de mutation date sa mesure, la publie en artefac
+ROUGE Y3 mutation.yml : un artefact expiré compte (0 s) — le workflow de mutation date sa mesure, la publie en artefac
+ROUGE Y4 mutation.yml : la mesure gardée un jour (un passage manqué la perd) (0 s) — le workflow de mutation date sa mesure, la publie en artefac
+ROUGE Y5 mutation.yml : la mesure n'est pas publiée après un échec de la synthèse (0 s) — le workflow de mutation date sa mesure, la publie en artefac
+toutes rouges

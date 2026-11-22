@@ -1,0 +1,19 @@
+# Le relais preuves.mjs du patch
+## espace de travail pnpm jouet : apps/cli est @maj-agency/anchorpost (bin anchorpost), pnpm install, index au pivot 3
+bin à la racine : No such file or directory
+preuves : la CLI Anchorpost est introuvable (node_modules/.bin/anchorpost) : pnpm install (`@maj-agency/anchorpost` ≥ 2.0.0 en devDependency)
+sortie 2
+
+## dépôt jouet, CLI 2.0.1 installée à part depuis npmjs.com, manifeste du gabarit de la PR 89, sufficiency enforce, une règle (gabarit de la PR 83) dont un cas n'a pas de preuve
+preuves : base origin/develop, mode jugé enforce ; 1 règle(s) touchée(s), 1 écart(s), 0 avertissement(s)
+  refus case-without-proof RULE_ALL_JOU-1 : Le cas bord-vide de RULE_ALL_JOU-1 n'a aucune preuve.
+  le rapport entier : pnpm exec anchorpost compare --base origin/develop
+sortie 1
+2.0.1
+
+# L'étape 1 du skill anchorpost, sur un dépôt jouet qui porte la recette d'avant dans .npmrc
+## l'ordre écrit : pnpm add -Dw @maj-agency/anchorpost@^2, .npmrc encore là (jeton factice)
+ ERR_PNPM_FETCH_404  GET https://npm.pkg.github.com/@maj-agency%2Fanchorpost: Not Found - 404
+sortie 1
+## les deux lignes retirées d'abord
+sortie 0 ; anchorpost

@@ -1,0 +1,40 @@
+## annexe 86-88 sur l'arbre retouché
+ROUGE R1 preuves.mjs : un index d'un autre schéma se compare quand même (13 s) — etatDeLIndex : absent, illisible, d
+ROUGE R2 preuves.mjs : sans index, la CLI est lancée (12 s) — sans index, ou d'un autre schéma que 3 : rien à compa
+ROUGE R3 preuves.mjs : la sortie de la CLI n'est pas rendue (toujours 0) (12 s) — la sortie de la CLI est rendue : 1 s
+ROUGE R4 preuves.mjs : une panne de la CLI (sortie 2) passe pour un rapport (10 s) — un index illisible, une CLI absen
+ROUGE R5 preuves.mjs : le sujet visé par le push est ignoré (11 s) — la base : nommée par --base ; sinon le sujet v
+ROUGE R6 preuves.mjs : develop toujours, jamais le sujet le plus proche (11 s) — la base : nommée par --base ; sinon 
+ROUGE R7 preuves.mjs : le premier push d'un dépôt neuf est refusé (13 s) — une base introuvable : premier push d'un
+ROUGE R8 preuves.mjs : le rapport entier n'entre pas dans le résumé du job (13 s) — sous GitHub Actions, le rapport 
+ROUGE R9 preuves.mjs : en enforce, un écart se dit « avertissement » (11 s) — resume : le mode jugé, les comptes, 
+ROUGE R10 preuves.mjs : une option inconnue est acceptée (13 s) — un index illisible, une CLI absente ou en panne, un
+ROUGE M1 mutation-regles.mjs : au pivot 3, seules les règles prouvées (le code d'avant) (1 s) — pivot 3 : les règle
+ROUGE M2 mutation-regles.mjs : au schéma 2, partial entre aussi (1 s) — pivot 3 : les règles prouvées et partielles
+ROUGE M3 mutation-regles.mjs : le schéma 3 n'est pas lu (le code d'avant) (1 s) — pivot 3 : les règles prouvées et 
+ROUGE M4 mutation-regles.mjs : la criticité n'est pas portée (1 s) — pivot 3 : les règles prouvées et partielles e
+ROUGE T1 synthèse : une règle non mesurée vaut 0 % (1 s) — la mesure par règle : tués, survivants, score ; « non
+ROUGE T2 synthèse : une baisse d'une règle haute est dite (1 s) — les baisses : une règle moyenne mesurée les deux
+ROUGE T3 synthèse : une égalité est une baisse (1 s) — les baisses : une règle moyenne mesurée les deux fois dont
+ROUGE T4 synthèse : la mesure n'est pas écrite (0 s) — le point d'entrée : --mesure écrit la mesure datée en JSON
+ROUGE T5 synthèse : une mesure précédente d'une autre forme se lit (1 s) — lireMesure et lireOptions : une mesure d
+ROUGE T6 synthèse : la date n'est pas dite (0 s) — la synthèse dit la date, et pour chaque règle sa criticité e | 
+ROUGE T7 synthèse : une date mal écrite est acceptée (1 s) — lireMesure et lireOptions : une mesure d'une autre for
+ROUGE W1 mutation.yml : sans la permission de lire l'artefact précédent (1 s) — le workflow de mutation date sa mesu
+ROUGE W2 mutation.yml : la mesure n'est pas publiée (1 s) — le workflow de mutation date sa mesure, la publie en arte
+ROUGE W3 mutation.yml : une expression dans un run: (1 s) — le workflow de mutation date sa mesure, la publie en artef
+ROUGE F1 fiche des tests : la grille d'une règle haute n'exige pas le bout en bout (1 s) — la fiche des tests porte l
+ROUGE F2 fiche des tests : sans l'étiquette de cas (1 s) — la fiche des tests porte la grille par criticité, l'étiq
+toutes rouges
+## ajoutées Y1 à Y10 sur l'arbre retouché
+ROUGE Y1 mutation.yml : sans GH_TOKEN (gh n'est pas authentifié : jamais de mesure précédente, sans un mot) (0 s) — le workflow de mutation date 
+ROUGE Y2 mutation.yml : la mesure précédente de n'importe quelle branche (0 s) — le workflow de mutation date sa mesure, la publie en artefac
+ROUGE Y3 mutation.yml : un artefact expiré compte (0 s) — le workflow de mutation date sa mesure, la publie en artefac
+ROUGE Y4 mutation.yml : la mesure gardée un jour (un passage manqué la perd) (0 s) — le workflow de mutation date sa mesure, la publie en artefac
+ROUGE Y5 mutation.yml : la mesure n'est pas publiée après un échec de la synthèse (0 s) — le workflow de mutation date sa mesure, la publie en a
+ROUGE Y6 synthèse : une règle non mesurée aujourd'hui est une baisse (1 s) — les baisses : une règle moyenne mesurée les deux fois dont l
+ROUGE Y7 mutation-regles.mjs : un niveau hors vocabulaire est porté (1 s) — pivot 3 : les règles prouvées et partielles entrent, avec le
+ROUGE Y8 preuves.mjs : un index en liste JSON se dit d'un autre schéma (sortie 0) (11 s) — etatDeLIndex : absent, illisible, d'un autre schéma, au
+ROUGE Y9 preuves.mjs : une valeur du rapport garde ses sauts de ligne (10 s) — resume : le mode jugé, les comptes, un écart par ligne (refu
+ROUGE Y10 preuves.mjs : le mode jugé lu ailleurs que dans sufficiency (toujours observe) (10 s) — resume : le mode jugé, les comptes, un écart pa
+toutes rouges

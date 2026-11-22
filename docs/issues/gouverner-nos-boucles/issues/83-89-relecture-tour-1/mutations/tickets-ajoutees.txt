@@ -1,0 +1,11 @@
+VERTE X1 tickets.mjs : un schema 3 en nombre se juge comme "3" (9 s)
+VERTE X2 tickets.mjs : un niveau hors vocabulaire compte pour une criticité (8 s)
+VERTE X3 tickets.mjs : validation.status n'est pas lu (aucune règle close) (10 s)
+VERTE X4 tickets.mjs : une règle obsolète se juge (13 s)
+VERTE X5 tickets.mjs : un cas sans id compte (identifiant undefined) (14 s)
+ROUGE X6 tickets-regles.mjs : Prouve: lue dans tout le fichier (0 s) — K3 : la ligne Prouve: se lit comme Règles: (identifiant comp
+VERTE X7 tickets-regles.mjs : une règle citée deux fois se juge deux fois (13 s)
+VERTE X8 contexte-ticket.mjs : le commentaire de Prouve: n'est pas retiré (2 s)
+VERTE X9 contexte-ticket.mjs : la ligne Prouve: lue n'importe où dans le ticket (2 s)
+ROUGE X10 tickets.mjs : l'index illisible sort en 0 (se tait sans juger) (13 s) — K3, gate : un index présent qui n'est pas du JSON fait sorti
+8 mutation(s) non rouge(s)

@@ -1,0 +1,48 @@
+diff --git a/docs/issues/gouverner-nos-boucles/issues/83-la-copie-de-la-spec-amendee-de-la-preuve-suffisante-et-le-gabarit-de-regle.issue.md b/docs/issues/gouverner-nos-boucles/issues/83-la-copie-de-la-spec-amendee-de-la-preuve-suffisante-et-le-gabarit-de-regle.issue.md
+index 43fe37d..9b43f3e 100644
+--- a/docs/issues/gouverner-nos-boucles/issues/83-la-copie-de-la-spec-amendee-de-la-preuve-suffisante-et-le-gabarit-de-regle.issue.md
++++ b/docs/issues/gouverner-nos-boucles/issues/83-la-copie-de-la-spec-amendee-de-la-preuve-suffisante-et-le-gabarit-de-regle.issue.md
+@@ -107,7 +107,7 @@ Attendu : `sortie 0`, `27` rouges, la ligne `toutes rouges`, `git status --short
+ uptime; timeout 1800 pnpm test > "$S/suite.log" 2>&1; echo "sortie $?"; uptime; grep -E '^# (tests|suites|pass|fail|cancelled|skipped|todo|duration_ms) ' "$S/suite.log"
+ ```
+ 
+-Attendu : `sortie 0`, `# tests 1404`, `# pass 1404`, `# fail 0` sur `ddb4265` (1 396, plus 8 de cette PR) ; si d'autres PR sont entrées avant, leur compte s'ajoute (la PR « socle-tests » : 25 ; la PR « anchorpost » : 2). Puis :
++Attendu : `sortie 0`, `# tests 1404`, `# pass 1404`, `# fail 0` sur `ddb4265` (1 396, plus 8 de cette PR) ; si d'autres PR sont entrées avant, leur compte s'ajoute (la PR « socle-tests » : 25 ; la PR « anchorpost » : 2 ; la PR A des suites, tickets 75 à 77 : 6 ; la PR B, tickets 78 et 79 : 9, au sommet `4afd6e2` de la PR 152). Puis :
+ 
+ ```bash
+ git push origin claude/preuve-suffisante-tickets
+diff --git a/docs/issues/gouverner-nos-boucles/issues/86-le-gate-preuves-et-la-grille-par-criticite-de-la-fiche-des-tests.issue.md b/docs/issues/gouverner-nos-boucles/issues/86-le-gate-preuves-et-la-grille-par-criticite-de-la-fiche-des-tests.issue.md
+index 56d8796..1fb4834 100644
+--- a/docs/issues/gouverner-nos-boucles/issues/86-le-gate-preuves-et-la-grille-par-criticite-de-la-fiche-des-tests.issue.md
++++ b/docs/issues/gouverner-nos-boucles/issues/86-le-gate-preuves-et-la-grille-par-criticite-de-la-fiche-des-tests.issue.md
+@@ -120,7 +120,7 @@ Attendu : `sortie 0`, `26` rouges, la ligne `toutes rouges`, `git status --short
+ uptime; timeout 1800 pnpm test > "$S/suite.log" 2>&1; echo "sortie $?"; uptime; grep -E '^# (tests|suites|pass|fail|cancelled|skipped|todo|duration_ms) ' "$S/suite.log"
+ ```
+ 
+-Attendu : `sortie 0`, `# tests 1421`, `# pass 1421`, `# fail 0` sur `ddb4265` (1 396, plus 25 de cette PR) ; la PR « tickets » entrée avant : 8 de plus ; la PR « anchorpost » : 2. Puis :
++Attendu : `sortie 0`, `# tests 1421`, `# pass 1421`, `# fail 0` sur `ddb4265` (1 396, plus 25 de cette PR) ; la PR « tickets » entrée avant : 8 de plus ; la PR « anchorpost » : 2 ; la PR A des suites (75 à 77) : 6 ; la PR B (78 et 79, PR 152 au sommet `4afd6e2`) : 9. Puis :
+ 
+ ```bash
+ git push origin claude/preuve-suffisante-socle-tests
+@@ -185,7 +185,7 @@ Un autre fichier en conflit que ces deux-là : s'arrêter et l'écrire au lanceu
+ 
+ ## Ce qui n'a pas été établi
+ 
+-1. **Le gate dans un vrai pre-push et une vraie fin de tour** : joué par ses bancs et à la main ; la repose dans Anchorpost (`.21`) le posera.
++1. **Le gate dans un vrai pre-push et une vraie fin de tour** : joué par ses bancs et à la main ; la repose dans Anchorpost (`.21`) le posera. **Dans Anchorpost, le relais tel quel sort en 2** : la CLI y est le paquet `apps/cli` de l'espace de travail, `node_modules/.bin/anchorpost` n'existe pas à la racine (son relais `anchorpost.mjs` est déjà adapté pour cela) ; `.21` l'adapte de même, sinon chaque fin de tour qui a changé un fichier est bloquée (`SKILL.md`, étape 2.3, le dit).
+ 2. **L'étape de CI** : écrite dans `SKILL.md`, jamais jouée sous GitHub Actions ; le résumé du job est joué par son banc (`GITHUB_STEP_SUMMARY` posé à un fichier).
+ 
+ ## Hors périmètre
+diff --git a/docs/issues/gouverner-nos-boucles/issues/89-le-skill-anchorpost-suit-la-cli-2-0-0-et-sa-fiche-dit-la-criticite-les-cas-et-compare.issue.md b/docs/issues/gouverner-nos-boucles/issues/89-le-skill-anchorpost-suit-la-cli-2-0-0-et-sa-fiche-dit-la-criticite-les-cas-et-compare.issue.md
+index 6465cc1..97bd872 100644
+--- a/docs/issues/gouverner-nos-boucles/issues/89-le-skill-anchorpost-suit-la-cli-2-0-0-et-sa-fiche-dit-la-criticite-les-cas-et-compare.issue.md
++++ b/docs/issues/gouverner-nos-boucles/issues/89-le-skill-anchorpost-suit-la-cli-2-0-0-et-sa-fiche-dit-la-criticite-les-cas-et-compare.issue.md
+@@ -111,7 +111,7 @@ Attendu : `sortie 0`, `11` rouges, la ligne `toutes rouges`, `git status --short
+ uptime; timeout 1800 pnpm test > "$S/suite.log" 2>&1; echo "sortie $?"; uptime; grep -E '^# (tests|suites|pass|fail|cancelled|skipped|todo|duration_ms) ' "$S/suite.log"
+ ```
+ 
+-Attendu : `sortie 0`, `# tests 1431`, `# pass 1431`, `# fail 0` après les PR « tickets » et « socle-tests » (1 396, plus 8, 25 et 2), et le compte de toute autre PR entrée entre-temps. Puis :
++Attendu : `sortie 0`, `# tests 1431`, `# pass 1431`, `# fail 0` après les PR « tickets » et « socle-tests » (1 396, plus 8, 25 et 2), et le compte de toute autre PR entrée entre-temps (la PR A des suites, 75 à 77 : 6 ; la PR B, 78 et 79, PR 152 au sommet `4afd6e2` : 9). Puis :
+ 
+ ```bash
+ git push origin claude/preuve-suffisante-anchorpost

@@ -1,0 +1,43 @@
+diff --git a/scripts/depot.test.mjs b/scripts/depot.test.mjs
+index 74df891..9fa3924 100644
+--- a/scripts/depot.test.mjs
++++ b/scripts/depot.test.mjs
+@@ -1124,7 +1124,7 @@ test("T3, branche « cas déclarés » : index au pivot 3 et règle qui déclare
+     "(a) ce que le test affirme correspond au titre du cas : le relecteur lit l'assertion, pas le nom ; un test étiqueté d'un refus qui n'affirme pas le refus est un écart ; une preuve écrite dans un fichier de cas (`cas/*.json`, entrées `regle` et `cas`) n'affirme rien si aucun test du diff ou du dépôt ne lit ce fichier : c'est un écart ;",
+     "(b) le genre de test convient au code que le cas exerce, selon les catégories de `.claude/rules/tests.md` : un calcul pur se prouve par un test unitaire, et par un test de propriétés s'il porte un invariant chiffré ; une requête, par un test sur base réelle, jamais sur une base simulée ; un refus ou une entrée invalide d'une règle moyenne ou haute (`criticality.level` de l'entrée vaut `medium` ou `high`), exigés à la frontière de l'API (niveau `P1`), par un test qui passe par la route ; le cas normal d'une règle haute (`high`), exigé de bout en bout (niveau `P2`), par un vrai parcours. Le niveau exigé, la CLI le compte ; le niveau qu'elle donne à un test se lit dans `proofs[].level` de l'entrée : un test qui porte un niveau qu'il n'a pas (un `P1` qui ne passe pas par la route, un `P2` qui n'est pas un parcours) est un écart ;",
+     "(c) un cas dit technique l'est vraiment : chaque cas `scope: technical` qu'un test du diff étiquette, ou que le diff ajoute ou modifie dans le fichier de la règle, est une situation que seule l'équipe voit (une saisie vide, un doublon, deux actions simultanées) ; s'il est une décision du métier (un refus, une exception que la MOA reconnaîtrait), c'est un écart : il échappe à la validation de la MOA ;",
+-    "(d) ce que la CLI a compté : une de ces règles dont un cas de `cases` porte `proven: false` est un écart, quel que soit `realisation.status` (`partial` si elle a des preuves, `to-build` ou `configured` si elle n'en a aucune : `proofs` est alors vide) ; `missing.reason` dit pourquoi : `no-proof`, aucune preuve ne nomme le cas, ou `level-too-low`, ses preuves sont d'un niveau trop bas. Le relecteur ne refait pas le compte : il lit celui de l'index. L'écart ne tombe que pour un cas qu'un autre ticket porte, aux cinq conditions réunies : le ticket relu nomme ce ticket ; il est « trouvé » dans « Identifiants cités » du contexte, sans « (archivé) », et n'est pas le ticket relu ; il est ouvert, son `Status:` n'est ni `Fait` ni `wontfix` ; sa ligne `Règles:` cite la règle ; ni la mention ni cette ligne `Règles:` ne sont ajoutées par le diff relu. Le relecteur rend alors « cas <règle>#<id> porté par <ticket> », pour la section de PR. Un index que le diff n'a pas régénéré est un écart de T5, pour le seul index que (d) lit : il se régénère, et l'axe Ticket seul se rejoue. Ses signes : une de ces règles absente de `rules` ; un test étiqueté du diff dont le titre manque aux `proofs` de la règle ; des `id` de cas qui diffèrent entre l'en-tête de la règle et son entrée.",
++    "(d) ce que la CLI a compté : une de ces règles dont un cas de `cases` porte `proven: false` est un écart, quel que soit `realisation.status` (`partial` si elle a des preuves, `to-build` ou `configured` si elle n'en a aucune : `proofs` est alors vide) ; `missing.reason` dit pourquoi : `no-proof`, aucune preuve ne nomme le cas, ou `level-too-low`, ses preuves sont d'un niveau trop bas. Le relecteur ne refait pas le compte : il lit celui de l'index. L'écart ne tombe que pour un cas qu'un autre ticket porte, aux cinq conditions réunies : le ticket relu nomme ce ticket ; il est « trouvé » dans « Identifiants cités » du contexte, sans « (archivé) », et n'est pas le ticket relu ; il est ouvert, son `Status:` n'est ni `Fait` ni `wontfix` ; sa ligne `Règles:` ou `Prouve:` cite la règle ; ni la mention ni cette ligne ne sont ajoutées par le diff relu. Le relecteur rend alors « cas <règle>#<id> porté par <ticket> », pour la section de PR. Un index que le diff n'a pas régénéré est un écart de T5, pour le seul index que (d) lit : il se régénère, et l'axe Ticket seul se rejoue. Ses signes : une de ces règles absente de `rules` ; un test étiqueté du diff dont le titre manque aux `proofs` de la règle ; des `id` de cas qui diffèrent entre l'en-tête de la règle et son entrée.",
+     "Un cas de bord que l'énoncé de la règle dit et qu'aucun cas de `cases` ne porte est un écart, et qu'une famille soit dite sans objet n'y change rien : le cas se dit, la session ne l'écrit pas elle-même ; son test, étiqueté de la règle sans nom de cas, est dû dans le diff.",
+     "Un test qui porte un identifiant de règle, avec ou sans cas, qu'il ne prouve pas est un écart.",
+   ]);
+diff --git a/skills/chaine/relecture/references/criteres-ticket.md b/skills/chaine/relecture/references/criteres-ticket.md
+index 028a582..ef8a771 100644
+--- a/skills/chaine/relecture/references/criteres-ticket.md
++++ b/skills/chaine/relecture/references/criteres-ticket.md
+@@ -53,8 +53,8 @@ T3  Règles citées et leurs preuves — registre de règles, `.claude/rules/tes
+         compte : il lit celui de l'index. L'écart ne tombe que pour un cas qu'un autre ticket
+         porte, aux cinq conditions réunies : le ticket relu nomme ce ticket ; il est « trouvé »
+         dans « Identifiants cités » du contexte, sans « (archivé) », et n'est pas le ticket
+-        relu ; il est ouvert, son `Status:` n'est ni `Fait` ni `wontfix` ; sa ligne `Règles:` cite
+-        la règle ; ni la mention ni cette ligne `Règles:` ne sont ajoutées par le diff relu. L'axe
++        relu ; il est ouvert, son `Status:` n'est ni `Fait` ni `wontfix` ; sa ligne `Règles:` ou
++        `Prouve:` cite la règle ; ni la mention ni cette ligne ne sont ajoutées par le diff relu. L'axe
+         rend alors « cas <règle>#<id> porté par <ticket> », pour le verdict. Un
+         index que le diff n'a pas régénéré est un écart de T5, pour le seul index que (d) lit : son
+         auteur le régénère par sa commande. Ses signes : une de ces règles absente de
+diff --git a/skills/chaine/revue-de-ticket/references/criteres-ticket.md b/skills/chaine/revue-de-ticket/references/criteres-ticket.md
+index da662cf..890b9cb 100644
+--- a/skills/chaine/revue-de-ticket/references/criteres-ticket.md
++++ b/skills/chaine/revue-de-ticket/references/criteres-ticket.md
+@@ -51,8 +51,8 @@ T3  Règles citées et leurs preuves — registre de règles, `.claude/rules/tes
+         compte : il lit celui de l'index. L'écart ne tombe que pour un cas qu'un autre ticket
+         porte, aux cinq conditions réunies : le ticket relu nomme ce ticket ; il est « trouvé »
+         dans « Identifiants cités » du contexte, sans « (archivé) », et n'est pas le ticket
+-        relu ; il est ouvert, son `Status:` n'est ni `Fait` ni `wontfix` ; sa ligne `Règles:` cite
+-        la règle ; ni la mention ni cette ligne `Règles:` ne sont ajoutées par le diff relu. Le
++        relu ; il est ouvert, son `Status:` n'est ni `Fait` ni `wontfix` ; sa ligne `Règles:` ou
++        `Prouve:` cite la règle ; ni la mention ni cette ligne ne sont ajoutées par le diff relu. Le
+         relecteur rend alors « cas <règle>#<id> porté par <ticket> », pour la section de PR. Un
+         index que le diff n'a pas régénéré est un écart de T5, pour le seul index que (d) lit : il
+         se régénère, et l'axe Ticket seul se rejoue. Ses signes : une de ces règles absente de
