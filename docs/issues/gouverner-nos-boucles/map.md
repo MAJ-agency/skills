@@ -22,6 +22,8 @@ Plafond que l'architecte s'applique: **levé par le produit le 2026-11-14 (P-25)
 
 ## Chantiers, dans l'ordre
 
+- **Essai réel du régime 8, cas 12** — dépôt `MAJ-agency/anchorpost-essai`, spec `SPEC_ALL_ANC-10` (branche `docs/essai-regime-7`), sujet `sujet/essai-regime-7`, conducteur session_012xRpgbpK6SYFHSEHhGPpV2, lancé le 2026-11-22 à 11 h 02 UTC.
+
 | n°  | Chantier                                                                    | Dépôt                       | État                                                              |
 | --- | --------------------------------------------------------------------------- | --------------------------- | ----------------------------------------------------------------- |
 | 0   | Corriger ce qui est faux (étape 1 de la source)                             | `anchorpost`, `skills`      | lancé le 2026-11-13 : trois sessions, voir « Chantier 0 »         |
@@ -301,6 +303,7 @@ Vague 1 fusionnée le 2026-11-13 par le capitaine de `skills` (`main` à `8eb1c9
 | `session_012xRpgaY5mDsbAFor1dbiap` | ticket   | PR 151, retouches du premier tour (Sonnet, archivée le 2026-11-22 à 09 h 50 UTC) | 0,27 | 93 350 |
 | `session_012xRpgaXodsNSPrHGp52ba1` | ticket   | PR 151, retouche du second tour, CodeQL (Sonnet, archivée le 2026-11-22 à 10 h 13 UTC) | 0,23 | 92 237 |
 | `session_012xRpgZ58VHC8h71gXxzaBY` | capitaine de `skills` (Sonnet, PR 151 fusionnée, archivé le 2026-11-22 à 10 h 40 UTC) | — | 0,32 | 107 837 |
+| `session_012xRpgaVPHZj3FHj8L8GjQ6` | capitaine d'`anchorpost-essai` (Sonnet, essai réel, cas 12) | — | en cours | en cours |
 | `session_012xRpga5LgHdb5WqbuPCEXc` | ticket   | PR 149, fusion de `main` (Sonnet, archivée le 2026-11-22 à 06 h 14 UTC) | 0,26 | 94 620 |
 | `session_012xRpgaUxER8bF3B6MWgaBN` | ticket   | 70, PR 148 (Sonnet, archivée le 2026-11-22 à 01 h 23 UTC) | 0,43 | 109 389 |
 
@@ -1306,3 +1309,4 @@ La session de suite fait, dans cet ordre :
 - 2026-11-22 — 10 h 27 UTC. **PR 151, troisième tour rendu : conforme au sommet `3dcb46732557c87d3e163bb830867afeb83391c1`** (15 min) : N0 fermé, CodeQL `success` (« No new alerts »), `bancs` et les deux Analyze `success`, PR `clean`. Mineurs laissés à la suite : 14 (« posé le » comparé à la seconde), 15 (`tickets poser` qui pose seul `issue-tracker.md`), N1 (le Relecteur « en même temps que le capitaine » sans la condition de la clé), N2 (« jamais avant » sans banc), N3 (`list_triggers` lu sans `enabled` ni toutes ses pages).
   - 10 h 29 UTC. **Capitaine relancé** (session_012xRpgZ58VHC8h71gXxzaBY). PR 151 relue à la source (sommet `3dcb467`, base `97d17e3`, `clean`, quatre contrôles `success` relevés par l'architecte). **Verdict conforme** (7077804737), **ordre `à-fusionner au sommet 3dcb46732557c87d3e163bb830867afeb83391c1`** (7077807263), **label `à-fusionner`**. Après la fusion : le cas 12 de l'essai réel, le jour même (`A-196` point 3).
 - 2026-11-22 — 10 h 38 UTC. **PR 151 fusionnée par le capitaine** (squash, `expectedHeadSha` `3dcb467`) : `main` à `ddb4265`, **plugin 8.0.0 : le régime 8 de la relecture indépendante est posable.** Vérifié à la source : parent `97d17e3`, arbre `0875c036…` égal à celui du sommet ordonné ; le marketplace rend 8.0.0. **Tickets 80, 81 et 82 à « Fait » : le lot 6 est dans `main`.** Capitaine archivé (réveil supprimé d'abord ; 0,32 $). Ensuite, le jour même : le cas 12 de l'essai réel sur `MAJ-agency/anchorpost-essai` (`A-196` point 3).
+- 2026-11-22 — 11 h 02 UTC. **Essai réel, cas 12 (le régime 7 sous 8.0.0), lancé** sur `MAJ-agency/anchorpost-essai`. Spec `SPEC_ALL_ANC-10` écrite par un sous-agent (branche `docs/essai-regime-7`, `e9c9f78`, gate complet vert) : deux tickets disjoints, `.01` ordinaire (`stripRuleTag` et le suffixe `#cas`), `.02` `Label: contre-revue` (la table de `DomainErrorFilter`, contre-revue justifiée par une décision écrite de la spec, aucun chemin sensible touché). **Capitaine** session_012xRpgaVPHZj3FHj8L8GjQ6 (`/maj-skills:fusionner`, Sonnet) et **conducteur** session_012xRpgbpK6SYFHSEHhGPpV2 (`/maj-skills:chantier essai-regime-7`, Opus), plugin 8.0.0 attendu, régime 7. Attendu : `demarrer` dit le régime 7 ; la fille de `.01` pose `à-fusionner`, celle de `.02` livre sans ; le conducteur contre-relit `.02` et pose `à-fusionner` ; jamais `à-relire` ; aucun accord demandé ; le capitaine lit la section de revue ; deux fusions.
