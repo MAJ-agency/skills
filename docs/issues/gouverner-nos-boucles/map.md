@@ -291,7 +291,7 @@ Vague 1 fusionnée le 2026-11-13 par le capitaine de `skills` (`main` à `8eb1c9
 | `session_012xRpgYSe2EdesGXgrrmtad` | ticket   | PR 147, retouches du premier tour (Sonnet, archivée le 2026-11-22 à 00 h 32 UTC) | 0,37 | 92 449 |
 | `session_012xRpgY2hd22sz16Jkwdi1C` | capitaine de `skills` (Sonnet, PR 147 et 148 fusionnées, archivé le 2026-11-22 à 01 h 55 UTC) | — | 0,84 | 142 622 |
 | `session_012xRpgaLVzgAmwaUhMF6WYV` | ticket   | 71, 72 et 73, lot 5, PR 149 (Sonnet, archivée le 2026-11-22 à 02 h 23 UTC) | 0,58 | 118 213 |
-| `session_012xRpgafguF9ACVcp1jpEWi` | ticket   | 74, la veille du capitaine (Sonnet) | en cours | en cours |
+| `session_012xRpgafguF9ACVcp1jpEWi` | ticket   | 74, PR 150 (Sonnet, archivée le 2026-11-22 à 02 h 59 UTC) | 0,64 | 126 996 |
 | `session_012xRpgaUxER8bF3B6MWgaBN` | ticket   | 70, PR 148 (Sonnet, archivée le 2026-11-22 à 01 h 23 UTC) | 0,43 | 109 389 |
 
 La ligne de l'architecte est un relevé du 2026-11-13 à 11 h 45 UTC, session en cours (elle était à 9,20 $ et 289 647 tokens à 8 h 52) ; la cellule de coût ne porte qu'un montant, pour rester lisible par `couts.mjs`.
@@ -1249,3 +1249,5 @@ La session de suite fait, dans cet ordre :
   - 02 h 08 UTC. **Session du ticket 74 lancée en parallèle du lot 5** (session_012xRpgafguF9ACVcp1jpEWi, Sonnet, branche `claude/ticket-74-veille-du-capitaine`, 7.38.3 à la main sur `2e87bae`) : aucun fichier commun hors des fichiers de version (`A-187` point 6). La PR qui entre en second fusionnera `main` et prendra la version suivante, par une session neuve.
 - 2026-11-22 — 02 h 21 UTC. **PR 149 livrée** (lot 5, tickets 71 à 73, plugin 7.39.0) : sommet `9db4fb347dc3c1120c5b172b78461a75f1b9b9b7`, un commit sur `2e87bae`, 28 fichiers ; vérifié par l'architecte, hors fichiers de version l'arbre est celui de `2e87bae` plus `lot-5.patch` par `git apply -3`, la version passe à 7.39.0, note en tête. D'après la session : 51 rouges avant sur 358, 358 verts, 80 mutations rouges, suite 1 348 sur 1 348. Session archivée (0,58 $).
   - 02 h 23 UTC. **Premier tour de contre-relecture de la PR 149 lancé** (agent neuf, Opus, effort extra).
+- 2026-11-22 — 02 h 56 UTC. **PR 150 livrée** (ticket 74, plugin 7.38.3) : sommet `fb0ecb0bed43c4dfb708d73a2a7cc615ab939c85`, un commit sur `2e87bae`, 8 fichiers ; vérifié par l'architecte, hors fichiers de version l'arbre est celui de `2e87bae` plus `ticket-74.patch` (le banc neuf compris). D'après la session : 17 rouges sur 63 avant, 63 verts après, 41 mutations rouges, suite 1 313 sur 1 313. Session archivée (0,64 $).
+  - 02 h 59 UTC. **Premier tour de contre-relecture de la PR 150 lancé** (agent neuf, Opus, effort extra), en parallèle de celui de la PR 149.
