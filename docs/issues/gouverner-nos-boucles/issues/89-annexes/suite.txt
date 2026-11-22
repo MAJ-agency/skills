@@ -1,0 +1,9 @@
+# Suite entière (pnpm test), sur l'arbre des trois PR posées l'une sur l'autre (ddb4265 + tickets + socle-tests + anchorpost, plugin 8.3.0), 2026-11-22, 12:43:23 → 13:01:33 UTC, charge 0.83 au départ, 3.99 à la fin
+# tests 1431
+# suites 0
+# pass 1431
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1090263.102737

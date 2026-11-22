@@ -1,0 +1,29 @@
+# Mutations de la PR b, jouées le 2026-11-22 sur un clone neuf de ddb4265 avec le patch de la PR, Node v22.23.5 ; début 12:42:08 UTC, charge 0.94 1.60 3.23
+ROUGE R1 preuves.mjs : un index d'un autre schéma se compare quand même (6 s) — etatDeLIndex : absent, illisible, d'un autre schéma, au pivo | sans index, ou d'un autre schéma que 3 : rien à comparer, la
+ROUGE R2 preuves.mjs : sans index, la CLI est lancée (6 s) — sans index, ou d'un autre schéma que 3 : rien à comparer, la
+ROUGE R3 preuves.mjs : la sortie de la CLI n'est pas rendue (toujours 0) (6 s) — la sortie de la CLI est rendue : 1 sur un écart en enforce, 
+ROUGE R4 preuves.mjs : une panne de la CLI (sortie 2) passe pour un rapport (5 s) — un index illisible, une CLI absente ou en panne, un rapport 
+ROUGE R5 preuves.mjs : le sujet visé par le push est ignoré (6 s) — la base : nommée par --base ; sinon le sujet visé par le pus
+ROUGE R6 preuves.mjs : develop toujours, jamais le sujet le plus proche (6 s) — la base : nommée par --base ; sinon le sujet visé par le pus | la sortie de la CLI est rendue : 1 sur un écart en enforce, 
+ROUGE R7 preuves.mjs : le premier push d'un dépôt neuf est refusé (6 s) — une base introuvable : premier push d'un dépôt neuf, sortie 
+ROUGE R8 preuves.mjs : le rapport entier n'entre pas dans le résumé du job (7 s) — sous GitHub Actions, le rapport entier en markdown s'ajoute 
+ROUGE R9 preuves.mjs : en enforce, un écart se dit « avertissement » (6 s) — resume : le mode jugé, les comptes, un écart par ligne (refu | la sortie de la CLI est rendue : 1 sur un écart en enforce, 
+ROUGE R10 preuves.mjs : une option inconnue est acceptée (6 s) — un index illisible, une CLI absente ou en panne, un rapport 
+ROUGE M1 mutation-regles.mjs : au pivot 3, seules les règles prouvées (le code d'avant) (1 s) — pivot 3 : les règles prouvées et partielles entrent, avec le | pivot 3 : sans règle prouvée ou partielle, la raison le dit  | --list sur un index au pivot 3 : une règle partielle donne s
+ROUGE M2 mutation-regles.mjs : au schéma 2, partial entre aussi (1 s) — pivot 3 : les règles prouvées et partielles entrent, avec le
+ROUGE M3 mutation-regles.mjs : le schéma 3 n'est pas lu (le code d'avant) (1 s) — pivot 3 : les règles prouvées et partielles entrent, avec le | pivot 3 : sans règle prouvée ou partielle, la raison le dit  | --list sur un index au pivot 3 : une règle partielle donne s
+ROUGE M4 mutation-regles.mjs : la criticité n'est pas portée (0 s) — pivot 3 : les règles prouvées et partielles entrent, avec le
+ROUGE T1 synthèse : une règle non mesurée vaut 0 % (0 s) — la mesure par règle : tués, survivants, score ; « non mesuré | la synthèse dit la date, et pour chaque règle sa criticité e
+ROUGE T2 synthèse : une baisse d'une règle haute est dite (0 s) — les baisses : une règle moyenne mesurée les deux fois dont l
+ROUGE T3 synthèse : une égalité est une baisse (0 s) — les baisses : une règle moyenne mesurée les deux fois dont l | la section des baisses : listées avec les deux scores et la 
+ROUGE T4 synthèse : la mesure n'est pas écrite (0 s) — le point d'entrée : --mesure écrit la mesure datée en JSON, 
+ROUGE T5 synthèse : une mesure précédente d'une autre forme se lit (0 s) — lireMesure et lireOptions : une mesure d'une autre forme ne 
+ROUGE T6 synthèse : la date n'est pas dite (0 s) — la synthèse dit la date, et pour chaque règle sa criticité e | le point d'entrée : --mesure écrit la mesure datée en JSON, 
+ROUGE T7 synthèse : une date mal écrite est acceptée (0 s) — lireMesure et lireOptions : une mesure d'une autre forme ne  | le point d'entrée : --mesure écrit la mesure datée en JSON, 
+ROUGE W1 mutation.yml : sans la permission de lire l'artefact précédent (1 s) — le workflow de mutation date sa mesure, la publie en artefac
+ROUGE W2 mutation.yml : la mesure n'est pas publiée (0 s) — le workflow de mutation date sa mesure, la publie en artefac
+ROUGE W3 mutation.yml : une expression dans un run: (1 s) — le workflow de mutation date sa mesure, la publie en artefac
+ROUGE F1 fiche des tests : la grille d'une règle haute n'exige pas le bout en bout (1 s) — la fiche des tests porte la grille par criticité, l'étiquett
+ROUGE F2 fiche des tests : sans l'étiquette de cas (1 s) — la fiche des tests porte la grille par criticité, l'étiquett
+toutes rouges
+sortie 0 ; fin 12:43:15 UTC, charge 0.70 1.39 3.05 ; arbre : 0 fichier(s) modifié(s)

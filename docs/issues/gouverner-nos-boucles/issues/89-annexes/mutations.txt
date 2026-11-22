@@ -1,0 +1,14 @@
+# Mutations de la PR c, jouées le 2026-11-22 sur un clone neuf de ddb4265 avec le patch de la PR, Node v22.23.5 ; début 12:43:15 UTC, charge 0.70 1.39 3.05
+ROUGE A1 manifeste : schéma 2 (le gabarit d'avant) (1 s) — le skill anchorpost suit la CLI 2.0.0 : manifeste au schéma 
+ROUGE A2 manifeste : sans sufficiency (1 s) — le skill anchorpost suit la CLI 2.0.0 : manifeste au schéma 
+ROUGE A3 manifeste : le plancher d'avant, sans partial (1 s) — le skill anchorpost suit la CLI 2.0.0 : manifeste au schéma 
+ROUGE A4 SKILL : la recette du jeton revient à l'installation (1 s) — le skill anchorpost suit la CLI 2.0.0 : manifeste au schéma 
+ROUGE A5 SKILL : sans le passage au pivot 3 (1 s) — le skill anchorpost suit la CLI 2.0.0 : manifeste au schéma 
+ROUGE A6 SKILL : la repose ne relance pas le skill de criticité (1 s) — le skill anchorpost suit la CLI 2.0.0 : manifeste au schéma 
+ROUGE A7 admin.md : la network secret revient (1 s) — le skill anchorpost suit la CLI 2.0.0 : manifeste au schéma 
+ROUGE A8 fiche : sans l'étiquette de cas (1 s) — la fiche anchorpost dit comment écrire une criticité, un cas
+ROUGE A9 fiche : sans ce que dit compare (1 s) — la fiche anchorpost dit comment écrire une criticité, un cas
+ROUGE A10 fiche : enforce ne refuse pas (1 s) — la fiche anchorpost dit comment écrire une criticité, un cas
+ROUGE A11 fiche : la criticité sans sa date (1 s) — la fiche anchorpost dit comment écrire une criticité, un cas
+toutes rouges
+sortie 0 ; fin 12:43:23 UTC, charge 0.83 1.39 3.03 ; arbre : 0 fichier(s) modifié(s)

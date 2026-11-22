@@ -1,0 +1,1203 @@
+diff --git a/.claude-plugin/plugin.json b/.claude-plugin/plugin.json
+index c91dc0e..a5d6ea0 100644
+--- a/.claude-plugin/plugin.json
++++ b/.claude-plugin/plugin.json
+@@ -1,6 +1,6 @@
+ {
+   "name": "maj-skills",
+-  "version": "8.0.0",
++  "version": "8.1.0",
+   "description": "Skills d'ingénierie maison : amorçage de monorepo et de socles (API NestJS hexagonale, web Next.js, mobile Expo), chaîne de production pour des sessions d'agent en parallèle (tickets, sujets, capitaine de fusion, revue adversariale, chantier, recette). Aucune règle métier.",
+   "author": {
+     "name": "Guillaume Jauffret"
+diff --git a/NOTES-DE-VERSION.md b/NOTES-DE-VERSION.md
+index ba579fa..3a6426e 100644
+--- a/NOTES-DE-VERSION.md
++++ b/NOTES-DE-VERSION.md
+@@ -2,6 +2,19 @@
+ 
+ La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque projet par `poser` : une version publiée ne change rien chez un projet qui ne les repose pas. Chaque note dit ce qui change, puis ce qu'un projet fait pour en profiter.
+ 
++## 8.1.0 — 2026-11-22
++
++### Ce qui change
++
++- **Le gate `preuves`** (K2 de la preuve suffisante, `SPEC_ALL_ANC-5` § 5) : `scripts/verify/preuves.mjs`, posé par `socle-tests`, relaie `anchorpost compare` (CLI Anchorpost ≥ 2.0.0) contre ce sur quoi le travail sera fusionné, la base choisie comme `coverage-diff --base-auto`. Il résume les règles touchées et chaque écart (cas sans preuve, niveau qui manque, criticité baissée…), rend la sortie de la CLI (1 sur un écart en `enforce`, 0 en `observe`) et, sous GitHub Actions, ajoute le rapport entier au résumé du job. Sans index commis au pivot 3, il ne fait rien. Au pre-push après `check:coverage`, en fin de tour par `gatesRapides`, en CI sur la cible de la PR.
++- **La fiche des tests** porte la grille par criticité (ce qu'un cas normal, un cas limite, une entrée invalide ou un refus exigent selon que la règle est basse, moyenne ou haute), l'étiquette de cas `[RULE_ALL_LIC-2#seconde-licence]` et le niveau P2 du bout en bout d'une CLI (`*.e2e-cli.spec.ts`).
++- **La mutation du `code` des règles** (K6) lit l'index au pivot 3, et y garde les règles `proven` **et** `partial` (toujours `proven` seules au schéma 2). Sa synthèse est datée et dit, par règle, la criticité et le score, ou « non mesurée » quand aucun test rejoué n'atteint son code, jamais « 0 % ». Le workflow `Mutation` publie la mesure en artefact (`mesure-regles`), relit celle du passage précédent et signale chaque baisse de score d'une règle moyenne, sans rien refuser. Le gabarit d'ADR du score de mutation le dit (point 5).
++
++### Ce qu'un projet fait pour en profiter
++
++- Rien, tant que son index Anchorpost n'est pas au pivot 3 : `preuves.mjs` dit « rien à comparer », la mutation garde les règles `proven` du schéma 2.
++- **Reposer** (skill `socle-tests`, pièce par pièce) : `scripts/verify/preuves.mjs` et son banc, le script `check:preuves`, sa ligne au pre-push après `check:coverage`, son entrée dans `gatesRapides`, l'étape de CI sur `pull_request` ; `mutation-regles.mjs`, `mutation-regles-synthese.mjs` et leurs bancs ; `.github/workflows/mutation.yml` (permission `actions: read`, étapes « Mesure précédente » et « Mesure datée ») ; la grille et l'étiquette de cas dans `.claude/rules/tests.md`.
++
+ ## 8.0.0 — 2026-11-22
+ 
+ ### Ce qui change
+diff --git a/scripts/points-d-entree.test.mjs b/scripts/points-d-entree.test.mjs
+index 86725bc..280872b 100644
+--- a/scripts/points-d-entree.test.mjs
++++ b/scripts/points-d-entree.test.mjs
+@@ -22,6 +22,7 @@ const SCRIPTS = [
+   { nom: "vagues", fichier: "skills/chaine/tickets/references/scripts/docs/vagues.mjs", avec: ["skills/monorepo/socle-monorepo/references/scripts/docs"], args: [], statut: 2, sortie: /Usage : node scripts\/docs\/vagues\.mjs/ },
+   { nom: "couts", fichier: "skills/chaine/tickets/references/scripts/docs/couts.mjs", avec: ["skills/monorepo/socle-monorepo/references/scripts/docs"], args: ["--verify"], statut: 1, sortie: /couts : .* n'est pas à jour/ },
+   { nom: "mutation-regles", fichier: "skills/monorepo/socle-tests/references/scripts/verify/mutation-regles.mjs", args: [], statut: 2, sortie: /usage : node scripts\/verify\/mutation-regles\.mjs/ },
++  { nom: "preuves", fichier: "skills/monorepo/socle-tests/references/scripts/verify/preuves.mjs", args: ["--tout"], statut: 2, sortie: /preuves : usage : node scripts\/verify\/preuves\.mjs/ },
+   { nom: "mutation-regles-synthese", fichier: "skills/monorepo/socle-tests/references/scripts/verify/mutation-regles-synthese.mjs", args: [], statut: 0, sortie: /Mutation sur les règles prouvées : périmètre vide/ },
+   { nom: "contexte-regle", fichier: "skills/chaine/criticite/scripts/contexte-regle.mjs", args: [], statut: 2, sortie: /usage : node contexte-regle\.mjs/ },
+   { nom: "double-relecture", fichier: "skills/chaine/fusionner/scripts/double-relecture.mjs", args: [], statut: 21, sortie: /^illisible\n$/m },
+diff --git a/scripts/preuve-suffisante-socle-tests.test.mjs b/scripts/preuve-suffisante-socle-tests.test.mjs
+new file mode 100644
+index 0000000..be16def
+--- /dev/null
++++ b/scripts/preuve-suffisante-socle-tests.test.mjs
+@@ -0,0 +1,59 @@
++// Bancs de la part de `skills` de la preuve suffisante (SPEC_ALL_ANC-5 § 8, tickets 83 à 89 de gouverner-nos-boucles) :
++// les textes que les skills posent, lus à plat comme dans `depot.test.mjs` (blancs et sauts de ligne réduits à une
++// espace : une phrase exigée peut changer de ligne, une phrase glissée au milieu d'un passage le rompt).
++import assert from "node:assert/strict";
++import { readFileSync } from "node:fs";
++import { join } from "node:path";
++import { test } from "node:test";
++
++const RACINE = new URL("..", import.meta.url).pathname;
++const SKILLS_CHAINE = "skills/chaine";
++const lignes = (w) => w.split(/\r?\n/);
++const plat = (t) => t.replace(/\s+/g, " ");
++const exiger = (chemin, phrases) => {
++  const texte = plat(readFileSync(join(RACINE, chemin), "utf8"));
++  const absentes = phrases.filter((p) => !texte.includes(plat(p)));
++  assert.deepEqual(absentes, [], `${chemin} : passages absents : ${absentes.join(" | ")}`);
++};
++
++// K2 et K6 de la preuve suffisante (SPEC_ALL_ANC-5 § 5, § 7 et § 8) : la grille par criticité de la fiche des tests,
++// l'étiquette de cas, et le workflow de mutation qui date sa mesure, la publie et relit la précédente.
++test("la fiche des tests porte la grille par criticité, l'étiquette de cas et le niveau du bout en bout d'une CLI", () => {
++  const FICHE_TESTS = "skills/monorepo/socle-monorepo/references/racine/.claude/rules/tests.md";
++  exiger(FICHE_TESTS, [
++    "`*.e2e-cli.spec.ts` qui lance la CLI construite en sous-processus, bout en bout d'une CLI, P2)",
++    "- **Un test qui prouve un cas attendu de la règle le nomme après un `#`** : `it('[RULE_ALL_LIC-2#seconde-licence] refuse une seconde licence quand la saison en a déjà une')`.",
++    "## Ce qu'une règle doit prouver, selon sa criticité",
++    "| basse, ou à classer | une preuve | une preuve | une preuve |",
++    "| moyenne | une preuve | une preuve | une preuve P1 ou P2 |",
++    "| haute | une preuve P2 | une preuve | une preuve P1 ou P2 |",
++    "Le gate `preuves` (`scripts/verify/preuves.mjs`, pre-push et fin de tour, posé par le skill `socle-tests`) joue `anchorpost compare`",
++  ]);
++});
++
++test("le workflow de mutation date sa mesure, la publie en artefact et relit la précédente, sans expression dans un run:", () => {
++  const MUTATION = "skills/monorepo/socle-tests/references/ci/mutation.yml";
++  const texte = readFileSync(join(RACINE, MUTATION), "utf8");
++  exiger(MUTATION, [
++    "permissions: contents: read actions: read",
++    "name: mesure-regles path: apps/api/reports/mutation/mesure-regles.json",
++    "run: node ../../scripts/verify/mutation-regles-synthese.mjs --mesure reports/mutation/mesure-regles.json --precedente \"$RUNNER_TEMP/precedente/mesure-regles.json\" >> \"$GITHUB_STEP_SUMMARY\"",
++    "gh run download \"$id\" -n mesure-regles -D \"$RUNNER_TEMP/precedente\"",
++  ]);
++  // Chaque ligne d'un `run:`, la sienne et celles de son bloc (`run: |`, plus indentées que la clé).
++  const runs = [];
++  let bloc = -1;
++  for (const l of texte.split("\n")) {
++    const retrait = /^\s*/.exec(l)[0].length;
++    if (bloc >= 0 && l.trim() !== "" && retrait <= bloc) bloc = -1;
++    if (bloc >= 0) runs.push(l);
++    const cle = /^(\s*)(?:- )?run:(.*)$/.exec(l);
++    if (cle) {
++      runs.push(l);
++      if (cle[2].trim() === "|") bloc = cle[1].length;
++    }
++  }
++  assert.ok(runs.some((l) => l.includes("gh run download")), `${MUTATION} : le bloc d'un run: est lu`);
++  assert.deepEqual(runs.filter((l) => l.includes("${{")), [], `${MUTATION} : une expression dans un run:`);
++  assert.ok(texte.indexOf("name: Mesure précédente") < texte.indexOf("name: Mutation des règles qui ont des preuves"), "la mesure précédente se lit avant que la nouvelle ne soit publiée");
++});
+diff --git a/skills/monorepo/socle-monorepo/references/racine/.claude/rules/tests.md b/skills/monorepo/socle-monorepo/references/racine/.claude/rules/tests.md
+index 336255d..8b09a17 100644
+--- a/skills/monorepo/socle-monorepo/references/racine/.claude/rules/tests.md
++++ b/skills/monorepo/socle-monorepo/references/racine/.claude/rules/tests.md
+@@ -22,13 +22,26 @@ Le critère de séparation est **le besoin d'infrastructure**, pas la couche : u
+ ## Règles
+ 
+ - **Le nom dit le comportement, en français** (c'est de la prose, `ADR_ALL_ARC-4`) : `describe('<Sujet>')` puis `it('<comportement> quand <condition>')`, au présent de l'indicatif : `it('refuse une seconde licence quand la saison en a déjà une')`. Le sujet du `describe`, s'il nomme du code (`describe('LicenceService')`), garde le nom du code.
+-- **Un test qui prouve une règle du registre porte son identifiant entre crochets en tête du nom** : `it('[RULE_ALL_LIC-2] refuse une seconde licence quand la saison en a déjà une')`. Plusieurs étiquettes se juxtaposent (`[RULE_ALL_LIC-2] [RULE_FNSMR_LIC-05] …`) ; une étiquette sur un `describe` vaut pour tous ses tests. L'identifiant est complet, contexte compris, `ALL` écrit. Jamais d'étiquette sur un test qui ne prouve pas la règle, jamais sur un test de recette (`recette.*`). C'est ce que lit `anchorpost index` pour dire qu'une règle est prouvée ; la catégorie et le niveau de la preuve viennent du tableau ci-dessus (`.spec.ts` unitaire P0, `.db.spec.ts` base réelle P0, `.property.spec.ts` propriétés P0, `apps/api/test/**` intégration P1, `tests/**` et `e2e/**` e2e P2).
++- **Un test qui prouve une règle du registre porte son identifiant entre crochets en tête du nom** : `it('[RULE_ALL_LIC-2] refuse une seconde licence quand la saison en a déjà une')`. Plusieurs étiquettes se juxtaposent (`[RULE_ALL_LIC-2] [RULE_FNSMR_LIC-05] …`) ; une étiquette sur un `describe` vaut pour tous ses tests. L'identifiant est complet, contexte compris, `ALL` écrit. Jamais d'étiquette sur un test qui ne prouve pas la règle, jamais sur un test de recette (`recette.*`). C'est ce que lit `anchorpost index` pour dire qu'une règle est prouvée ; la catégorie et le niveau de la preuve viennent du tableau ci-dessus (`.spec.ts` unitaire P0, `.db.spec.ts` base réelle P0, `.property.spec.ts` propriétés P0, `apps/api/test/**` intégration P1, `tests/**` et `e2e/**` e2e P2, `*.e2e-cli.spec.ts` qui lance la CLI construite en sous-processus, bout en bout d'une CLI, P2).
++- **Un test qui prouve un cas attendu de la règle le nomme après un `#`** : `it('[RULE_ALL_LIC-2#seconde-licence] refuse une seconde licence quand la saison en a déjà une')`. Les cas sont la clé `cases` de l'en-tête de la règle (projet suivi par Anchorpost, index au pivot 3) ; l'étiquette sans `#` prouve la règle sans prouver aucun de ses cas. Une étiquette qui nomme un cas que la règle ne déclare pas est refusée par `anchorpost check`.
+ - **Tester le comportement, pas l'implémentation.** Un test qui casse à un refactor sans changement de comportement est un test à réécrire.
+ - **Jamais la base mockée dans un repository.** Le mapping ligne ↔ modèle, l'atomicité et l'idempotence se prouvent contre une vraie base. Les ports, eux, se mockent dans les tests de cas d'usage.
+ - **AAA, un sujet par test, mocks neufs** : `afterEach(() => vi.clearAllMocks())`. Mocks partagés dans `@test/mocks/`.
+ - **Déterministe** : pas de `setTimeout` pour attendre, on attend une promesse ou une condition ; pas de date système, l'horloge est un port (voir « Le jour et l'heure ») ; pas d'ordre de tests qui compte.
+ - **Un test qui clignote est un bug** jusqu'à preuve du contraire : le rejouer trois fois, puis ouvrir un ticket, jamais un `retry`.
+ 
++## Ce qu'une règle doit prouver, selon sa criticité
++
++Projet suivi par Anchorpost, index au pivot 3 (`RULE_ALL_ANC-28` d'Anchorpost) : jamais un nombre de tests ; un cas attendu est prouvé quand une preuve au moins porte son étiquette **au niveau qu'exige la criticité de la règle**.
++
++| Criticité de la règle | Cas normal (`nominal`) | Cas limite (`edge`) | Entrée invalide ou refus (`invalid`, `refusal`) |
++| --------------------- | ---------------------- | ------------------- | ----------------------------------------------- |
++| basse, ou à classer   | une preuve             | une preuve          | une preuve                                      |
++| moyenne               | une preuve             | une preuve          | une preuve P1 ou P2                             |
++| haute                 | une preuve P2          | une preuve          | une preuve P1 ou P2                             |
++
++P1 est la frontière de l'API (`apps/api/test/**`), P2 le bout en bout (`tests/**`, `e2e/**`, `*.e2e-cli.spec.ts`). Une règle est « prouvée » quand chacun de ses cas l'est, « partielle » quand elle a une preuve et qu'un cas manque, ou qu'elle n'en déclare aucun. Une règle moyenne ou haute répond aux dix familles de cas limites (un cas, un « sans objet » motivé, ou une question ouverte) : c'est le skill `criticite` qui les écrit, avant le code. Le gate `preuves` (`scripts/verify/preuves.mjs`, pre-push et fin de tour, posé par le skill `socle-tests`) joue `anchorpost compare` contre ce sur quoi le travail sera fusionné : il dit les cas sans preuve et les niveaux qui manquent sur les règles que le diff touche, en avertissement tant que le projet est en `observe`, en refus en `enforce`.
++
+ ## Le jour et l'heure
+ 
+ Un test qui dépend du jour, de la date ou de l'heure casse selon le moment du run s'il lit l'horloge de la machine ou le jour UTC. Trois règles :
+diff --git a/skills/monorepo/socle-tests/SKILL.md b/skills/monorepo/socle-tests/SKILL.md
+index 0eee994..0cfa992 100644
+--- a/skills/monorepo/socle-tests/SKILL.md
++++ b/skills/monorepo/socle-tests/SKILL.md
+@@ -28,9 +28,9 @@ Une seule, avec sa recommandation : **les seuils de couverture du diff**. _(Reco
+    ...(existsSync(join(root, "eslint.tests.mjs")) ? (await import(pathToFileURL(join(root, "eslint.tests.mjs")).href)).default : []),
+    ```
+    et `"eslint.tests.mjs"` dans `ignores`.
+-3. **Les gates** : `references/scripts/verify/*` → `scripts/verify/` (tests compris). Dans `package.json` : `check:tests-creux` (`node scripts/verify/tests-creux.mjs`) et `check:coverage` (`node scripts/verify/coverage-diff.mjs`). Dans `scripts/check.mjs`, une étape `check:tests-creux` après `lint`, avec son message. Dans `.husky/pre-push`, qui lit lui-même son entrée (`PRE_PUSH_REFS=$(cat)` puis `export PRE_PUSH_REFS`, que `coverage-diff --base-auto` relit : n'ajouter aucune seconde lecture, elle rendrait une entrée vide), seulement `pnpm run check:coverage --base-auto` après `pnpm run check` : la couverture se mesure contre ce sur quoi le travail sera fusionné, pas contre develop (pousser vers `sujet/<nom>` → `origin/sujet/<nom>`).
+-4. **La CI** : dans le job qui a Postgres (`test-db` du socle de la chaîne, ou le job de tests), après `test:db`, une étape sur `pull_request` : `pnpm check:coverage --base "origin/$BASE"` avec `env: BASE: ${{ github.event.pull_request.base.ref }}` (jamais le gabarit dans le `run:`, `zizmor` le refuse) et `DATABASE_URL` — les suites sur base comptent. Le job a `fetch-depth: 0` ou fait `git fetch origin <base>` avant. Puis le workflow de mutation : `references/ci/mutation.yml` → `.github/workflows/mutation.yml`, `{{SCOPE}}` et `{{PROJET}}` substitués — un `workflow_dispatch` au choix `noyau | regles` (défaut : `noyau`) et un `schedule` hebdomadaire (dimanche, heure creuse) sur `regles`, dont la synthèse va dans le résumé du job (étape `always()` : un passage interrompu dit « pas de rapport ») ; la saisie passe par `env:`, aucune expression `${{ }}` dans un `run:`, actions épinglées par empreinte comme `ci.yml` de la chaîne. Le noyau garde sa configuration et son plancher, à la demande seulement.
+-5. **Les gabarits** : `references/gabarits/exemple.property.spec.ts` et `references/gabarits/exemple.jour-metier.spec.ts` → `docs/agents/gabarits/` ; `references/gabarits/stryker.config.mjs` → `apps/api/stryker.config.mjs` (placeholders substitués, `mutate` vide, `break: 0`), et un script `mutation` (`stryker run`) dans le `package.json` de l'API ; `reports/` et `.stryker-tmp/` dans `.gitignore`. Puis la mutation des règles prouvées : `references/gabarits/stryker.regles.config.mjs` → `apps/api/stryker.regles.config.mjs` (placeholders substitués ; elle hérite de `stryker.config.mjs`, avec `break: 0` ; son `mutate` n'est pas à remplir, il vient de l'index ; `STRYKER_MUTATE` le remplace pour un essai local), et dans le `package.json` de l'API `"mutation:regles": "node ../../scripts/verify/mutation-regles.mjs --lancer && node ../../scripts/verify/mutation-regles-synthese.mjs"`. Le script (`scripts/verify/mutation-regles.mjs`, posé à l'étape 3) lit l'index commis `anchorpost/anchorpost.json` — schéma `"2"`, règles dont `realisation.status` vaut `proven`, leurs fichiers `code` — et ne mute que ceux du paquet ; **sans index, ou d'un autre schéma, il ne lance rien, dit pourquoi et sort 0** : le standard vaut pour tous les projets, Anchorpost est une option. Il ne refuse rien (pas de plancher en V1) ; `mutation-regles-synthese.mjs` écrit le rapport des survivants par règle.
++3. **Les gates** : `references/scripts/verify/*` → `scripts/verify/` (tests compris). Dans `package.json` : `check:tests-creux` (`node scripts/verify/tests-creux.mjs`), `check:coverage` (`node scripts/verify/coverage-diff.mjs`) et `check:preuves` (`node scripts/verify/preuves.mjs`, le gate de la preuve suffisante : il joue `anchorpost compare` quand l'index commis est au pivot 3, CLI Anchorpost ≥ 2.0.0, et ne fait rien sinon). Dans `scripts/check.mjs`, une étape `check:tests-creux` après `lint`, avec son message. Dans `.husky/pre-push`, qui lit lui-même son entrée (`PRE_PUSH_REFS=$(cat)` puis `export PRE_PUSH_REFS`, que `coverage-diff --base-auto` relit : n'ajouter aucune seconde lecture, elle rendrait une entrée vide), seulement `pnpm run check:coverage --base-auto` après `pnpm run check`, puis `pnpm run check:preuves --base-auto` : la couverture et les preuves se mesurent contre ce sur quoi le travail sera fusionné, pas contre develop (pousser vers `sujet/<nom>` → `origin/sujet/<nom>`). Si la chaîne est posée, `scripts/verify/preuves.mjs` entre dans `gatesRapides` de `.claude/chaine.json` : la fin de tour le joue sans option, la base choisie de même (quelques secondes : la CLI construit l'index de la base et celui de l'arbre).
++4. **La CI** : dans le job qui a Postgres (`test-db` du socle de la chaîne, ou le job de tests), après `test:db`, une étape sur `pull_request` : `pnpm check:coverage --base "origin/$BASE"` avec `env: BASE: ${{ github.event.pull_request.base.ref }}` (jamais le gabarit dans le `run:`, `zizmor` le refuse) et `DATABASE_URL` — les suites sur base comptent. Le job a `fetch-depth: 0` ou fait `git fetch origin <base>` avant. Dans le job de qualité, sur `pull_request`, le rapport de preuves : `node scripts/verify/preuves.mjs --base "origin/$BASE"` (même `env:`, `fetch-depth: 0`) ; il écrit le rapport entier de `anchorpost compare` dans le résumé du job, et ne refuse qu'en `enforce`. Puis le workflow de mutation : `references/ci/mutation.yml` → `.github/workflows/mutation.yml`, `{{SCOPE}}` et `{{PROJET}}` substitués — un `workflow_dispatch` au choix `noyau | regles` (défaut : `noyau`) et un `schedule` hebdomadaire (dimanche, heure creuse) sur `regles`, dont la synthèse va dans le résumé du job (étape `always()` : un passage interrompu dit « pas de rapport ») ; la mesure datée est publiée en artefact (`mesure-regles`) et relue au passage suivant, par le `gh` du runner et la permission `actions: read`, pour dire une baisse sur une règle moyenne ; la saisie passe par `env:`, aucune expression `${{ }}` dans un `run:`, actions épinglées par empreinte comme `ci.yml` de la chaîne. Le noyau garde sa configuration et son plancher, à la demande seulement.
++5. **Les gabarits** : `references/gabarits/exemple.property.spec.ts` et `references/gabarits/exemple.jour-metier.spec.ts` → `docs/agents/gabarits/` ; `references/gabarits/stryker.config.mjs` → `apps/api/stryker.config.mjs` (placeholders substitués, `mutate` vide, `break: 0`), et un script `mutation` (`stryker run`) dans le `package.json` de l'API ; `reports/` et `.stryker-tmp/` dans `.gitignore`. Puis la mutation des règles qui ont des preuves : `references/gabarits/stryker.regles.config.mjs` → `apps/api/stryker.regles.config.mjs` (placeholders substitués ; elle hérite de `stryker.config.mjs`, avec `break: 0` ; son `mutate` n'est pas à remplir, il vient de l'index ; `STRYKER_MUTATE` le remplace pour un essai local), et dans le `package.json` de l'API `"mutation:regles": "node ../../scripts/verify/mutation-regles.mjs --lancer && node ../../scripts/verify/mutation-regles-synthese.mjs"`. Le script (`scripts/verify/mutation-regles.mjs`, posé à l'étape 3) lit l'index commis `anchorpost/anchorpost.json` — schéma `"2"` (règles `proven`) ou `"3"` (règles `proven` et `partial`), leurs fichiers `code` — et ne mute que ceux du paquet ; **sans index, ou d'un autre schéma, il ne lance rien, dit pourquoi et sort 0** : le standard vaut pour tous les projets, Anchorpost est une option. Il ne refuse rien (pas de plancher en V1) ; `mutation-regles-synthese.mjs` écrit le rapport des survivants par règle, daté, avec la criticité et le score de chaque règle (« non mesurée » quand aucun test rejoué n'atteint son code), et la baisse d'une règle moyenne depuis la mesure précédente.
+ 6. **La fiche** `.claude/rules/tests.md` : les phrases « à poser par le ticket … » deviennent les commandes réelles (le gabarit du socle monorepo ≥ 3.1 les a déjà) ; `pnpm check:coverage`, `mutation` (le noyau, à la demande) et `mutation:regles` (les règles prouvées, chaque dimanche par le workflow) dans la section Commandes ; `docs/methode/pare-feu-ci.md` reçoit les deux gates dans son catalogue, avec la base de `coverage-diff` : la cible de la PR en CI (`--base origin/$BASE`), `--base-auto` au pre-push. Si la chaîne est posée, deux critères de projet dans le fichier de critères de la revue (`criteresRevue` de `.claude/chaine.json`) : une fonction pure nouvelle qui porte un invariant chiffré a son `*.property.spec.ts` (ADR propriétés) ; un fichier du périmètre `mutate` de `stryker.config.mjs` modifié vient avec sa mesure de mutation dans la PR (ADR mutation).
+ 7. **Les ADR** : `node scripts/docs/next-id.mjs ADR ALL ARC` trois fois, chaque ADR copiée avant l'appel suivant ; `references/adr/ADR_ALL_ARC-N-tests-sans-infrastructure.md`, `ADR_ALL_ARC-N-tests-de-proprietes.md`, `ADR_ALL_ARC-N-score-de-mutation.md` → `docs/adr/`, `{{N}}` et `{{DATE}}` substitués, une ligne `Décideurs`.
+ 8. **Le ticket** du pare-feu CI, s'il existe : un commentaire daté qui dit ce que ce skill a fermé, et ce qui reste (secrets, E2E, gates propres aux invariants).
+@@ -43,6 +43,7 @@ pnpm check:tests-creux         # « tests-creux: N cas analysés » puis OK
+ node --test scripts/verify/*.test.mjs
+ node scripts/verify/coverage-diff.mjs --dry-run
+ node scripts/verify/mutation-regles.mjs --list   # le périmètre « règles » ; sans index Anchorpost : vide, la raison sur stderr, sortie 0
++node scripts/verify/preuves.mjs                  # sans index au pivot 3 : « rien à comparer », sortie 0 ; sinon le résumé de anchorpost compare
+ ```
+ 
+ Puis **une preuve que le gate mord** : ajouter une ligne vide à un fichier de code sans test, `pnpm check:coverage` doit le refuser « aucun test n'exécute ce fichier » ; retirer la ligne. Et `pnpm check` complet, vert.
+diff --git a/skills/monorepo/socle-tests/references/CONTENU.md b/skills/monorepo/socle-tests/references/CONTENU.md
+index 9043c78..6e913da 100644
+--- a/skills/monorepo/socle-tests/references/CONTENU.md
++++ b/skills/monorepo/socle-tests/references/CONTENU.md
+@@ -14,16 +14,20 @@ Un plancher global de couverture ne voit pas un fichier neuf à 0 % : 10 % du d
+ 
+ **La base est ce sur quoi le travail sera fusionné, pas develop par défaut.** La CI nomme la cible de la PR (`--base origin/$BASE`). Le pre-push passe `--base-auto` et lit l'entrée du hook (`PRE_PUSH_REFS`, exportée par `.husky/pre-push` avant que `pnpm run check` ne la consomme) : pousser vers `refs/heads/sujet/<nom>` mesure contre `origin/sujet/<nom>` (`baseDepuisPush`) ; sinon, parmi `origin/develop` et les `origin/sujet/*`, le candidat auquel il manque le moins de commits de HEAD, sans exiger l'ascendance (une branche dont le sujet a avancé garde son sujet), develop à égalité (`choisirBase`). Cas vécu : un commit de documentation poussé sur un sujet voyait, contre develop, tout le code déjà fusionné dans le sujet, ses repositories à 0 % sans `DATABASE_URL`, et le push était refusé. Aucun seuil ne baisse, aucun fichier n'est exempté. **Sur une PR de mise à jour d'un sujet** (la fusion de develop dans le sujet, son premier commit, puis des retouches), seul compte l'écart du sommet à la fusion recalculée (`git merge-tree --write-tree` du sommet du sujet et du commit de develop), jamais ce que develop apporte : les conflits résolus et chaque retouche, jugée comme une sous-PR, formatage compris (aucune dispense par le formateur), aux seuils habituels ; la sortie le dit (« la fusion recalculée de develop dans … ») ; toute autre forme de réception de develop (fusion dont le premier parent est develop, retouche avant la fusion, sujet qui a avancé, fusion d'essai de GitHub) se lit contre `origin/develop` dès que HEAD le contient et que la base non (`referenceDuDiff`), et la sortie le dit : le code que develop apporte n'est pas remesuré. Limite connue : dans ce repli, le travail propre du sujet qui n'est pas dans develop est remesuré, c'est plus que l'écart à la fusion, jamais moins. Sans l'une de ces formes (pas de fusion de develop dans HEAD), la mesure est celle de la base entière. **Sans `DATABASE_URL`** (jamais sous GitHub Actions), les suites `*.db.spec.ts` ne sont pas jouées : un fichier en échec qu'une de ces suites du paquet cible, par un import relatif ou un alias du `tsconfig.json` lu dans les sources (`suiteSurBaseCible`), passe en avertissement (`⚠`, ligne `AVERTISSEMENT`, sortie 0 s'il n'y a pas d'autre échec) et la CI, qui a Postgres, le juge ; avec `DATABASE_URL`, rien ne change. Le journal s'écrit de façon synchrone (`writeSync`) : un tube lu lentement ne le coupe plus. En CI, le job qui joue `coverage-diff` fait le checkout de `github.event.pull_request.head.sha` avec `fetch-depth: 0` (jamais la fusion d'essai que GitHub met par défaut en `HEAD`, qui masque la forme d'une PR de mise à jour : la mesure retombe alors sur la base entière) et dispose d'`origin/develop` (`fetch-depth: 0` rapatrie toutes les branches ; sinon `git fetch origin develop`) ; il passe `--base origin/<cible de la PR>`.
+ 
++## Le gate `preuves` — `scripts/verify/preuves.mjs`
++
++La preuve suffisante d'Anchorpost (`SPEC_ALL_ANC-5` § 5) : pour les règles que le travail touche, leur criticité, leurs cas prouvés et ce qui manque. Le jugement vit dans la CLI (`anchorpost compare`, ≥ 2.0.0) ; ce fichier est un relais. Il ne fait rien sans index commis au pivot 3 (un projet qui ne suit pas Anchorpost, ou pas encore au pivot 3, garde le régime d'avant) ; il choisit la base comme `coverage-diff --base-auto` (`baseDepuisPush`, `choisirBase` et `decisionSansBase` de `coverage-diff-regles.mjs`), joue `compare --json`, en écrit un résumé d'une ligne par écart et rend la sortie de la CLI : 1 sur un écart en `enforce`, 0 en `observe`. Sous GitHub Actions, il ajoute le rapport entier au résumé du job. Au pre-push après `check:coverage`, en fin de tour par `gatesRapides`, et en CI sur la cible de la PR. Une PR de mise à jour d'un sujet se compare à la base la plus proche, jamais à la fusion recalculée : plus large, jamais plus lâche.
++
+ ## Les gabarits — `gabarits/`
+ 
+ `exemple.property.spec.ts` : la forme d'un test de propriétés `fast-check`, oracle indépendant en entiers, budget de tirages. `exemple.jour-metier.spec.ts` : le jour et l'heure d'un test, en trois points (le jour du fuseau du métier par une horloge injectée, des données créées par le test, un banc à horloge posée aux instants qui cassent), pour que la règle « Le jour et l'heure » de la fiche des tests se lise sur un exemple ; son fuseau est un fuseau d'exemple à remplacer. `stryker.config.mjs` : la mutation du noyau critique sous Vitest, périmètre vide et plancher à zéro jusqu'à la première mesure.
+ 
+-## La mutation des règles prouvées — `scripts/verify/mutation-regles.mjs`, `gabarits/stryker.regles.config.mjs`, `ci/mutation.yml`
++## La mutation des règles qui ont des preuves — `scripts/verify/mutation-regles.mjs`, `gabarits/stryker.regles.config.mjs`, `ci/mutation.yml`
+ 
+-Le noyau critique se liste à la main (`mutate` de `stryker.config.mjs`) ; les règles métier prouvées se listent d'elles-mêmes. Dans un projet suivi par Anchorpost, l'index commis `anchorpost/anchorpost.json` (schéma `"2"`) dit, pour chaque règle, sa réalisation (`realisation.status`) et les fichiers de code qui la réalisent (`code`, champ facultatif du standard, écrit dans l'en-tête du fichier de règle). Le périmètre est l'union des `code` des règles `proven` : les fichiers dont des tests sont censés prouver une exigence du métier, donc ceux dont la force vaut d'être mesurée.
++Le noyau critique se liste à la main (`mutate` de `stryker.config.mjs`) ; les règles métier prouvées se listent d'elles-mêmes. Dans un projet suivi par Anchorpost, l'index commis `anchorpost/anchorpost.json` (schéma `"2"` ou `"3"`) dit, pour chaque règle, sa réalisation (`realisation.status`), sa criticité et les fichiers de code qui la réalisent (`code`, champ facultatif du standard, écrit dans l'en-tête du fichier de règle). Le périmètre est l'union des `code` des règles qui ont des preuves : `proven` au schéma 2, `proven` et `partial` au schéma 3 (où « prouvée » exige chaque cas attendu prouvé, et une règle qui a des preuves sans l'être est « partielle ») : les fichiers dont des tests sont censés prouver une exigence du métier, donc ceux dont la force vaut d'être mesurée (`SPEC_ALL_ANC-5` § 7).
+ 
+ - **`mutation-regles.mjs`** : `perimetre(index, existe)` est pure et testée sur un index jouet ; le point d'entrée lit le JSON lui-même (il n'importe pas le paquet `@maj-agency/anchorpost`, qui n'a pas besoin d'être installé). `--list` imprime le périmètre, un fichier par ligne ; `--lancer`, depuis un paquet, joue Stryker sur les fichiers de ce paquet. Un chemin de `code` absent du dépôt, hors du dépôt, ou hors périmètre de la mutation (test, déclaration, contrôleur, module, dto, gabarit, migration, types générés, `main.ts`, autre langage) est signalé et écarté — un lien symbolique qui sort du dépôt compris ; les chemins passés à Stryker sont échappés, car il les lit comme des globs (`[id].ts` d'une route Next) : le refuser est le travail de `anchorpost check`, pas de la mutation. Une clé de règle est portée telle que l'index l'écrit, zéros de tête compris ; aucun identifiant n'est analysé.
+-- **`mutation-regles-synthese.mjs`** : le rapport des survivants par règle (règle → fichiers → mutants survivants, puis le hors périmètre), en Markdown, lu dans `reports/mutation/mutation.json`. Le workflow le joue dans une étape `always()` vers `$GITHUB_STEP_SUMMARY` : un passage interrompu (délai dépassé) dit « Pas de rapport de mutation », un périmètre vide dit qu'il est vide. Une clé de règle ou un nom de mutant est ramené à une ligne sans accent grave avant d'entrer dans le Markdown.
++- **`mutation-regles-synthese.mjs`** : le rapport des survivants par règle (règle → fichiers → mutants survivants, puis le hors périmètre), en Markdown, lu dans `reports/mutation/mutation.json`, avec la date de la mesure et, par règle, sa criticité et son score ; une règle dont aucun mutant n'est atteint par un test rejoué (preuves sur base, ou hors de Stryker) est « non mesurée », jamais « 0 % » (`RULE_ALL_ANC-29` d'Anchorpost). `--mesure` écrit la mesure datée en JSON ; `--precedente` lit celle du passage précédent et dit chaque baisse de score d'une règle moyenne, sans rien refuser. La mesure ne vit ni dans l'index ni dans le dépôt : le workflow la publie en artefact (`mesure-regles`, 90 jours) et relit, au passage suivant, le dernier artefact de ce nom sur la branche par défaut. Le workflow le joue dans une étape `always()` vers `$GITHUB_STEP_SUMMARY` : un passage interrompu (délai dépassé) dit « Pas de rapport de mutation », un périmètre vide dit qu'il est vide. Une clé de règle ou un nom de mutant est ramené à une ligne sans accent grave avant d'entrer dans le Markdown.
+ - **Sans index** (projet qui ne suit pas Anchorpost, index illisible ou d'un autre schéma) : périmètre vide, raison dite, sortie 0 — le workflow reste vert et ne mute rien.
+ - **Pas de plancher en V1** : une première mesure par règle n'existe pas encore ; poser un chiffre serait l'inventer. Le plancher reste celui du noyau.
+ - **`stryker.regles.config.mjs`** hérite de la configuration du noyau (`break: 0` : le plancher du noyau ne s'applique pas, fichier incrémental séparé, reporter `json`) et importe `perimetreDuPaquet()` : une configuration par paquet qui teste, parce que les configurations Vitest sont par paquet et que chaque mutant rejoue les suites de son paquet. Les fichiers d'une règle qui vivent dans un autre paquet se mutent par la configuration de cet autre paquet : `--lancer` et la synthèse les nomment (« Dans un autre paquet ») plutôt que de les taire.
+diff --git a/skills/monorepo/socle-tests/references/adr/ADR_ALL_ARC-N-score-de-mutation.md b/skills/monorepo/socle-tests/references/adr/ADR_ALL_ARC-N-score-de-mutation.md
+index 11a0ffb..e726ddb 100644
+--- a/skills/monorepo/socle-tests/references/adr/ADR_ALL_ARC-N-score-de-mutation.md
++++ b/skills/monorepo/socle-tests/references/adr/ADR_ALL_ARC-N-score-de-mutation.md
+@@ -16,13 +16,14 @@ Le test de mutation retourne le problème : il altère le code (un `<` en `<=`,
+ 2. **Plancher daté** : `thresholds.break`, posé sous la mesure du jour ; relevé quand elle progresse, jamais baissé. Tant qu'il n'y a pas de mesure, `break: 0`.
+ 3. **Le noyau est lancé à la demande, coût nul par défaut** : `pnpm --filter <api> mutation` en local (incrémental), ou le workflow manuel `Mutation` (cible `noyau`). Jamais à chaque PR, jamais planifié.
+ 4. **Quand le lancer** : après une modification d'un fichier du périmètre, et avant de relever le plancher. La revue adversariale demande la mesure quand un fichier du périmètre change.
+-5. **Les règles prouvées se mutent chaque semaine, sans plancher.** Dans un projet suivi par Anchorpost, le workflow `Mutation` joue le dimanche `pnpm --filter <api> mutation:regles` : le périmètre est l'union des `code` des règles `proven` de l'index commis, et la sortie est un rapport des survivants par règle. Sans index, le job reste vert et ne mute rien. Un plancher se posera quand une première série de mesures existera.
++5. **Le `code` des règles qui ont des preuves se mute chaque semaine, sans plancher.** Dans un projet suivi par Anchorpost, le workflow `Mutation`, lancé par le planificateur de la CI sur la branche par défaut et jamais par un agent, joue le dimanche `pnpm --filter <api> mutation:regles` : le périmètre est l'union des `code` des règles `proven` de l'index commis, et `partial` au pivot 3. La sortie est un rapport par règle, daté : sa criticité, son score, ou « non mesurée » quand aucun test rejoué n'atteint son code (jamais « 0 % »), et ses survivants. La mesure est publiée en artefact du job et dans son résumé ; elle n'entre ni dans l'index ni dans le dépôt. Le passage suivant relit l'artefact précédent et dit chaque baisse de score d'une règle moyenne : il la signale, il ne refuse rien. Sans index, le job reste vert et ne mute rien. Un seuil se posera sous une mesure du jour, quand une première série de mesures existera. Ce point amende le point 3 pour le `code` des règles seulement : le noyau reste à la demande. La mutation à chaque PR du `code` des règles hautes touchées, que rend `anchorpost compare`, est une décision du projet, par une ADR à part.
+ 6. **Élargir le périmètre** quand une fonction pure nouvelle porte un invariant chiffré : la propriété (ADR « tests de propriétés ») tue l'essentiel de ses mutants.
+ 
+ ## Alternatives écartées
+ 
+ - **Mutation à chaque PR** — plusieurs minutes de runner par PR pour un signal qui bouge peu.
+-- **Le noyau, planifié** — coût récurrent pour un besoin ponctuel ; l'incrémental local suffit. (Les règles prouvées, elles, se mesurent chaque semaine : leur périmètre change sans qu'on y pense, avec les règles.)
++- **Le noyau, planifié** — coût récurrent pour un besoin ponctuel ; l'incrémental local suffit. (Le `code` des règles, lui, se mesure chaque semaine : son périmètre change sans qu'on y pense, avec les règles, et une baisse de solidité n'arrive par aucun geste que l'on penserait à surveiller.)
++- **Committer la mesure** — l'index ne porte rien de vivant, et une mesure datée y serait périmée dès sa génération ; l'artefact et le résumé du job suffisent.
+ - **Tout `apps/api`** — les suites sur base rejouées par mutant : des heures. Le noyau pur concentre le risque.
+ 
+ ## Conséquences
+diff --git a/skills/monorepo/socle-tests/references/ci/mutation.yml b/skills/monorepo/socle-tests/references/ci/mutation.yml
+index 5757c4a..3e0ab89 100644
+--- a/skills/monorepo/socle-tests/references/ci/mutation.yml
++++ b/skills/monorepo/socle-tests/references/ci/mutation.yml
+@@ -1,9 +1,12 @@
+ # Mutation (skill socle-tests, ADR « score de mutation »), posé dans `.github/workflows/mutation.yml`.
+-#  - chaque dimanche, heure creuse : la mutation des règles prouvées (`regles`) ;
++#  - chaque dimanche, heure creuse : la mutation des règles qui ont des preuves (`regles`) ;
+ #  - à la demande (Actions → Mutation → Run workflow) : `noyau` (le plancher du noyau critique, par
+ #    défaut) ou `regles`.
+ # Jamais à chaque PR. Sans index Anchorpost, `regles` sort vert, ne mute rien et le dit dans le résumé.
+-# `regles` ne refuse rien : la synthèse par règle (survivants) est écrite dans le résumé du job.
++# `regles` ne refuse rien : la synthèse par règle (criticité, score ou « non mesurée », survivants) est écrite dans le
++# résumé du job, datée. La mesure, en JSON, est publiée en artefact (`mesure-regles`) : le passage suivant relit le dernier
++# artefact de ce nom sur la branche par défaut et dit chaque baisse de score d'une règle moyenne. Elle ne vit ni dans
++# l'index ni dans le dépôt.
+ name: Mutation
+ on:
+   workflow_dispatch:
+@@ -17,6 +20,7 @@ on:
+     - cron: '43 3 * * 0' # dimanche, 03 h 43 UTC
+ permissions:
+   contents: read
++  actions: read # lire l'artefact de la mesure précédente
+ concurrency:
+   group: mutation
+   cancel-in-progress: false
+@@ -39,14 +43,32 @@ jobs:
+       - name: Mutation du noyau
+         if: env.CIBLE == 'noyau'
+         run: pnpm --filter @{{SCOPE}}/{{PROJET}}-api mutation
+-      - name: Mutation des règles prouvées
++      - name: Mesure précédente
++        # Le dernier artefact `mesure-regles` de la branche par défaut ; aucun, ou illisible : la synthèse le dit.
++        if: env.CIBLE == 'regles'
++        env:
++          GH_TOKEN: ${{ github.token }}
++          BRANCHE: ${{ github.event.repository.default_branch }}
++        run: |
++          mkdir -p "$RUNNER_TEMP/precedente"
++          id=$(gh api "repos/$GITHUB_REPOSITORY/actions/artifacts?name=mesure-regles&per_page=30" --jq '[.artifacts[] | select(.expired == false and .workflow_run.head_branch == env.BRANCHE)][0].workflow_run.id // empty') || id=''
++          if [ -n "$id" ]; then gh run download "$id" -n mesure-regles -D "$RUNNER_TEMP/precedente" || echo "mesure précédente illisible"; else echo "aucune mesure précédente"; fi
++      - name: Mutation des règles qui ont des preuves
+         if: env.CIBLE == 'regles'
+         run: pnpm --filter @{{SCOPE}}/{{PROJET}}-api mutation:regles
+       - name: Synthèse par règle
+         # `always()` : un passage interrompu (délai, Stryker tué) dit « pas de rapport » au lieu de se taire.
+         if: env.CIBLE == 'regles' && always()
+         working-directory: apps/api
+-        run: node ../../scripts/verify/mutation-regles-synthese.mjs >> "$GITHUB_STEP_SUMMARY"
++        run: node ../../scripts/verify/mutation-regles-synthese.mjs --mesure reports/mutation/mesure-regles.json --precedente "$RUNNER_TEMP/precedente/mesure-regles.json" >> "$GITHUB_STEP_SUMMARY"
++      - name: Mesure datée
++        if: env.CIBLE == 'regles' && always()
++        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
++        with:
++          name: mesure-regles
++          path: apps/api/reports/mutation/mesure-regles.json
++          if-no-files-found: ignore
++          retention-days: 90
+       - name: Rapports
+         if: always()
+         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+diff --git a/skills/monorepo/socle-tests/references/gabarits/stryker.regles.config.mjs b/skills/monorepo/socle-tests/references/gabarits/stryker.regles.config.mjs
+index b451232..167e9bf 100644
+--- a/skills/monorepo/socle-tests/references/gabarits/stryker.regles.config.mjs
++++ b/skills/monorepo/socle-tests/references/gabarits/stryker.regles.config.mjs
+@@ -1,8 +1,8 @@
+-// Mutation des règles prouvées (skill socle-tests, ADR « score de mutation ») :
++// Mutation des règles qui ont des preuves (skill socle-tests, ADR « score de mutation ») :
+ // `pnpm --filter @{{SCOPE}}/{{PROJET}}-api mutation:regles`. Hérite de la configuration du noyau
+ // (`stryker.config.mjs` : runner Vitest, plugins, analyse de couverture) et n'en change que ceci.
+-// Le périmètre n'est pas écrit ici : c'est l'union des `code` des règles `proven` de l'index commis
+-// `anchorpost/anchorpost.json`, restreinte aux fichiers de ce paquet (une config par paquet qui teste).
++// Le périmètre n'est pas écrit ici : c'est l'union des `code` des règles `proven` (et `partial` au pivot 3) de l'index
++// commis `anchorpost/anchorpost.json`, restreinte aux fichiers de ce paquet (une config par paquet qui teste).
+ // Sans index Anchorpost, `mutation-regles.mjs --lancer` ne lance rien et le dit. `STRYKER_MUTATE`
+ // (fichiers séparés par des virgules, relatifs au paquet) remplace le périmètre pour un essai local ;
+ // `PROJET_RACINE` (racine du dépôt) n'a besoin d'être posée que si le dépôt n'a pas la forme du socle.
+diff --git a/skills/monorepo/socle-tests/references/scripts/verify/mutation-regles-synthese.mjs b/skills/monorepo/socle-tests/references/scripts/verify/mutation-regles-synthese.mjs
+index 52d04c1..52dfb80 100644
+--- a/skills/monorepo/socle-tests/references/scripts/verify/mutation-regles-synthese.mjs
++++ b/skills/monorepo/socle-tests/references/scripts/verify/mutation-regles-synthese.mjs
+@@ -1,16 +1,25 @@
+ /**
+- * Synthèse de la mutation « règles prouvées » : règle → fichiers → mutants survivants, en Markdown.
++ * Synthèse de la mutation « règles qui ont des preuves » : règle → fichiers → mutants survivants, en Markdown, avec,
++ * par règle, sa criticité et son score, ou « non mesurée ».
+  *
+- *   node scripts/verify/mutation-regles-synthese.mjs   (depuis le paquet muté ; lit reports/mutation/mutation.json)
++ *   node scripts/verify/mutation-regles-synthese.mjs [--date AAAA-MM-JJ] [--mesure <fichier>] [--precedente <fichier>]
++ *       (depuis le paquet muté ; lit reports/mutation/mutation.json)
++ *
++ * La mesure est datée (`--date`, par défaut le jour UTC du passage) ; `--mesure` l'écrit en JSON (`{ date, regles:
++ * [{ regle, criticite, tues, survivants, score }] }`), pour que le workflow la publie en artefact ; `--precedente` lit
++ * celle du passage précédent et la synthèse dit chaque baisse de score d'une règle moyenne (`RULE_ALL_ANC-29` : « pour
++ * une règle moyenne, la mesure ne baisse plus »), sans rien refuser. Une règle dont aucun mutant n'est atteint par un
++ * test rejoué (ses preuves sont sur base, ou ne tournent pas sous Stryker) est « non mesurée », jamais « 0 % ». La
++ * mesure ne vit ni dans l'index ni dans le dépôt (`SPEC_ALL_ANC-5`, `A-26`).
+  *
+  * Joué après `mutation:regles`, et par le workflow `Mutation` dans une étape `always()` qui redirige
+  * la sortie vers `$GITHUB_STEP_SUMMARY` : un passage interrompu (délai dépassé, Stryker tué) dit en
+  * clair « pas de rapport » au lieu de n'écrire rien. Périmètre vide (pas d'index Anchorpost) : le dit,
+- * ce n'est pas une interruption. Sortie 0 toujours : le rouge d'un passage vient de Stryker.
++ * ce n'est pas une interruption. Sortie 0 (2 sur un usage faux) : le rouge d'un passage vient de Stryker.
+  * Variable : `PROJET_RACINE` (racine du dépôt ; par défaut, deux dossiers au-dessus du script).
+  * Pas de plancher en V1 : la synthèse nomme les assertions qui manquent, elle ne refuse rien.
+  */
+-import { existsSync, readFileSync, realpathSync } from "node:fs";
++import { existsSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
+ import { join, relative, resolve, sep } from "node:path";
+ import { fileURLToPath } from "node:url";
+ import { perimetreDuPaquet, racineDuDepot } from "./mutation-regles.mjs";
+@@ -28,6 +37,46 @@ const ligne = (texte) => String(texte ?? "").replace(/\s+/g, " ").replaceAll("`"
+ 
+ const SURVIVANTS = new Set(["Survived", "NoCoverage"]);
+ const TUES = new Set(["Killed", "Timeout"]);
++const CRITICITES = { low: "basse", medium: "moyenne", high: "haute" };
++const JOUR = /^\d{4}-\d{2}-\d{2}$/;
++
++/**
++ * La mesure de chaque règle : ses mutants tués et survivants (un fichier partagé compte pour chacune de ses règles),
++ * et son score en pour cent, ou `null` quand aucun de ses mutants n'est atteint par un test rejoué (« non mesurée »).
++ */
++export function mesure(regles, mutation, versDepot = (c) => c, date = null) {
++  const parFichier = new Map();
++  for (const [cle, f] of Object.entries(mutation?.files ?? {})) parFichier.set(versDepot(cle), f?.mutants ?? []);
++  return {
++    date,
++    regles: regles.map(({ regle, criticite = null, fichiers }) => {
++      const mutants = [...new Set(fichiers)].flatMap((f) => parFichier.get(f) ?? []);
++      const tues = mutants.filter((m) => TUES.has(m.status)).length;
++      const survivants = mutants.filter((m) => SURVIVANTS.has(m.status)).length;
++      const atteints = tues + mutants.filter((m) => m.status === "Survived").length;
++      return { regle, criticite, tues, survivants, score: atteints ? Math.round((100 * tues) / (tues + survivants)) : null };
++    }),
++  };
++}
++
++/** Une mesure publiée, depuis son texte ; `null` si elle ne se lit pas (absente, tronquée, d'une autre forme). */
++export function lireMesure(texte) {
++  try {
++    const m = JSON.parse(texte);
++    if (typeof m?.date !== "string" || !Array.isArray(m.regles)) return null;
++    return m.regles.every((r) => typeof r?.regle === "string" && (r.score === null || Number.isFinite(r.score))) ? m : null;
++  } catch {
++    return null;
++  }
++}
++
++/** Les baisses de score des règles moyennes d'aujourd'hui, mesurées les deux fois : `[{ regle, avant, apres }]`. */
++export function baisses(precedente, actuelle) {
++  const avant = new Map((precedente?.regles ?? []).map((r) => [r.regle, r.score]));
++  return actuelle.regles
++    .filter((r) => r.criticite === "medium" && r.score !== null && Number.isFinite(avant.get(r.regle)) && r.score < avant.get(r.regle))
++    .map((r) => ({ regle: r.regle, avant: avant.get(r.regle), apres: r.score }));
++}
+ 
+ /**
+  * @param regles    `[{ regle, fichiers }]` de `perimetre` (ou `perimetreDuPaquet`).
+@@ -35,8 +84,10 @@ const TUES = new Set(["Killed", "Timeout"]);
+  * @param versDepot convertit une clé de `mutation.files` en chemin du dépôt (défaut : identité).
+  * @param ecartes   `[{ regle, chemin, motif }]` de `perimetre` : la section « Hors périmètre ».
+  * @param ailleurs  les fichiers prouvés d'un autre paquet (`perimetreDuPaquet().ailleurs`) : ils ne sont pas mutés ici.
++ * @param options   `date` (la date de la mesure, dite en tête) ; `precedente` : la mesure précédente (`null` si elle
++ *                  ne se lit pas) ; absente, la section des baisses n'est pas écrite.
+  */
+-export function synthese(regles, mutation, versDepot = (c) => c, ecartes = [], ailleurs = []) {
++export function synthese(regles, mutation, versDepot = (c) => c, ecartes = [], ailleurs = [], options = {}) {
+   const parFichier = new Map();
+   for (const [cle, f] of Object.entries(mutation?.files ?? {})) parFichier.set(versDepot(cle), f?.mutants ?? []);
+   const comptes = { tues: 0, survivants: 0 };
+@@ -49,20 +100,39 @@ export function synthese(regles, mutation, versDepot = (c) => c, ecartes = [], a
+   const mesures = comptes.tues + comptes.survivants;
+   const fichiers = new Set(regles.flatMap((r) => r.fichiers)).size;
+   const lignes = [
+-    "# Mutation sur les règles prouvées",
++    "# Mutation sur les règles prouvées et partielles",
+     "",
+     `${regles.length} règle(s), ${fichiers} fichier(s). ` +
+       (mesures ? `Score : ${Math.round((100 * comptes.tues) / mesures)} % (${comptes.tues} tués, ${comptes.survivants} survivants).` : "Aucun mutant mesuré."),
+     "",
+     "Pas de plancher : ce rapport nomme les assertions qui manquent, il ne refuse rien.",
+   ];
+-  for (const { regle, fichiers: fs } of regles) {
++  if (options.date) lignes.splice(3, 0, "", `Mesure du ${ligne(options.date)} (jour UTC du passage).`);
++  const parRegle = mesure(regles, mutation, versDepot).regles;
++  if (Object.hasOwn(options, "precedente")) {
++    lignes.push("", "## Baisses sur une règle moyenne", "");
++    if (!options.precedente) lignes.push("Pas de mesure précédente lisible : aucune baisse ne se juge.");
++    else {
++      const b = baisses(options.precedente, { regles: parRegle });
++      if (!b.length) lignes.push(`Aucune depuis la mesure du ${ligne(options.precedente.date)}.`);
++      for (const x of b) lignes.push(`- ${ligne(x.regle)} : ${x.avant} % le ${ligne(options.precedente.date)}, ${x.apres} % aujourd'hui`);
++    }
++  }
++  regles.forEach(({ regle, fichiers: fs }, rang) => {
+     const parChemin = fs.map((f) => ({
+       f,
+       survivants: (parFichier.get(f) ?? []).filter((m) => SURVIVANTS.has(m.status)).sort((a, b) => (a.location?.start?.line ?? 0) - (b.location?.start?.line ?? 0)),
+     }));
+     const total = parChemin.reduce((n, x) => n + x.survivants.length, 0);
+     lignes.push("", `## ${ligne(regle)} — ${total ? `${total} survivant(s)` : "aucun survivant"}`);
++    const mr = parRegle[rang];
++    lignes.push(
++      "",
++      `Criticité : ${CRITICITES[mr.criticite] ?? "à classer"}. ` +
++        (mr.score === null
++          ? "Non mesurée : aucun mutant de son code n'est atteint par un test rejoué (preuves sur base, ou hors de Stryker) ; jamais « 0 % »."
++          : `Score : ${mr.score} % (${mr.tues} tués, ${mr.survivants} survivants).`),
++    );
+     for (const { f, survivants } of parChemin) {
+       lignes.push("", `- ${code(f, 200)} — ${survivants.length ? `${survivants.length} survivant(s)` : "aucun survivant"}`);
+       for (const m of survivants) {
+@@ -70,7 +140,7 @@ export function synthese(regles, mutation, versDepot = (c) => c, ecartes = [], a
+         lignes.push(`  - ligne ${ou} : ${ligne(m.mutatorName) || "?"}${m.replacement ? ` → ${code(m.replacement)}` : ""} (${m.status === "NoCoverage" ? "aucun test ne l'atteint" : "survécu"})`);
+       }
+     }
+-  }
++  });
+   lignes.push("", "## Hors périmètre", "");
+   if (!ecartes.length) lignes.push("Aucun.");
+   for (const e of ecartes) lignes.push(`- ${ligne(e.regle)} : ${code(e.chemin, 200)} — ${e.motif}`);
+@@ -81,8 +151,12 @@ export function synthese(regles, mutation, versDepot = (c) => c, ecartes = [], a
+   return `${lignes.join("\n")}\n`;
+ }
+ 
+-/** Ce que le point d'entrée écrit : la synthèse, ou la raison pour laquelle il n'y en a pas. */
+-export function texteDuPaquet(racine = racineDuDepot(), cwd = process.cwd()) {
++/**
++ * Ce que le point d'entrée écrit : la synthèse, ou la raison pour laquelle il n'y en a pas. `options` : `date` ;
++ * `mesure`, le fichier où écrire la mesure en JSON ; `precedente`, le fichier de la mesure précédente (absent ou
++ * illisible : « pas de mesure précédente lisible »).
++ */
++export function texteDuPaquet(racine = racineDuDepot(), cwd = process.cwd(), options = {}) {
+   const p = perimetreDuPaquet(racine, cwd);
+   if (!p.fichiers.length) return `Mutation sur les règles prouvées : périmètre vide — ${p.raison}\n`;
+   const json = join(cwd, RAPPORT_JSON);
+@@ -93,7 +167,23 @@ export function texteDuPaquet(racine = racineDuDepot(), cwd = process.cwd()) {
+   } catch {
+     return "Pas de rapport de mutation (rapport illisible, passage interrompu).\n";
+   }
+-  return synthese(p.regles, mutation, (c) => relative(racine, resolve(cwd, c)).split(sep).join("/"), p.ecartes, p.ailleurs);
++  const versDepot = (c) => relative(racine, resolve(cwd, c)).split(sep).join("/");
++  const date = options.date ?? new Date().toISOString().slice(0, 10);
++  if (options.mesure) writeFileSync(resolve(cwd, options.mesure), `${JSON.stringify(mesure(p.regles, mutation, versDepot, date), null, 2)}\n`);
++  const avecPrecedente = options.precedente === undefined ? {} : { precedente: existsSync(resolve(cwd, options.precedente)) ? lireMesure(readFileSync(resolve(cwd, options.precedente), "utf8")) : null };
++  return synthese(p.regles, mutation, versDepot, p.ecartes, p.ailleurs, { date, ...avecPrecedente });
++}
++
++/** Les options du point d'entrée ; `null` sur un usage faux. */
++export function lireOptions(args) {
++  const options = {};
++  for (let i = 0; i < args.length; i += 2) {
++    const [nom, valeur] = [args[i], args[i + 1]];
++    if (!["--date", "--mesure", "--precedente"].includes(nom) || valeur === undefined || valeur.startsWith("--")) return null;
++    if (nom === "--date" && !JOUR.test(valeur)) return null;
++    options[nom.slice(2)] = valeur;
++  }
++  return options;
+ }
+ 
+ /** Vrai quand ce fichier est lancé en ligne de commande : lien symbolique, chemin à espace ou à accent, `--preserve-symlinks-main` compris. */
+@@ -105,4 +195,11 @@ function estPointEntree() {
+   }
+ }
+ 
+-if (estPointEntree()) process.stdout.write(texteDuPaquet());
++if (estPointEntree()) {
++  const options = lireOptions(process.argv.slice(2));
++  if (options === null) {
++    process.stderr.write("usage : node scripts/verify/mutation-regles-synthese.mjs [--date AAAA-MM-JJ] [--mesure <fichier>] [--precedente <fichier>]\n");
++    process.exit(2);
++  }
++  process.stdout.write(texteDuPaquet(racineDuDepot(), process.cwd(), options));
++}
+diff --git a/skills/monorepo/socle-tests/references/scripts/verify/mutation-regles-synthese.test.mjs b/skills/monorepo/socle-tests/references/scripts/verify/mutation-regles-synthese.test.mjs
+index 2571a69..ac04a60 100644
+--- a/skills/monorepo/socle-tests/references/scripts/verify/mutation-regles-synthese.test.mjs
++++ b/skills/monorepo/socle-tests/references/scripts/verify/mutation-regles-synthese.test.mjs
+@@ -131,3 +131,113 @@ test("une clé de règle ou un nom de mutant hostile ne casse pas la mise en for
+   assert.doesNotMatch(md, /^# faux titre/m);
+   assert.doesNotMatch(md, /^## piège/m);
+ });
++
++// La criticité posée par une fonction : aucun texte du plugin ne la montre en ligne (scripts/depot.test.mjs).
++const niveauDeclare = (level) => ({ level, origin: "declared" });
++// K6 de la preuve suffisante (SPEC_ALL_ANC-5 § 7, RULE_ALL_ANC-29) : la mesure datée, par règle, avec sa criticité ;
++// « non mesurée », jamais « 0 % » ; la baisse d'une règle moyenne dite d'un passage à l'autre, sans rien refuser.
++import { baisses, lireMesure, lireOptions, mesure } from "./mutation-regles-synthese.mjs";
++import { readFileSync } from "node:fs";
++import { spawnSync } from "node:child_process";
++import { fileURLToPath } from "node:url";
++
++const SUR_BASE = { files: { "src/c.ts": { mutants: [{ status: "NoCoverage" }, { status: "NoCoverage" }] }, "src/d.ts": { mutants: [{ status: "Killed" }, { status: "NoCoverage" }] } } };
++
++test("la mesure par règle : tués, survivants, score ; « non mesurée » (score null) quand aucun mutant n'est atteint par un test rejoué", () => {
++  const m = mesure(
++    [
++      { regle: "RULE_ALL_LIC-1", criticite: "medium", fichiers: ["apps/api/src/a.ts", "apps/api/src/a.ts"] },
++      { regle: "RULE_ALL_LIC-2", criticite: "high", fichiers: ["apps/api/src/c.ts"] },
++      { regle: "RULE_ALL_LIC-3", fichiers: ["apps/api/src/d.ts", "apps/api/src/absent.ts"] },
++    ],
++    { files: { ...stryker.files, ...SUR_BASE.files } },
++    versDepot,
++    "2026-11-22",
++  );
++  assert.deepEqual(m, {
++    date: "2026-11-22",
++    regles: [
++      { regle: "RULE_ALL_LIC-1", criticite: "medium", tues: 1, survivants: 2, score: 33 },
++      { regle: "RULE_ALL_LIC-2", criticite: "high", tues: 0, survivants: 2, score: null },
++      { regle: "RULE_ALL_LIC-3", criticite: null, tues: 1, survivants: 1, score: 50 },
++    ],
++  });
++  assert.deepEqual(mesure([{ regle: "RULE_ALL_LIC-4", fichiers: ["x.ts"] }], { files: {} }).regles[0].score, null, "aucun mutant : non mesurée");
++});
++
++test("la synthèse dit la date, et pour chaque règle sa criticité et son score, ou « non mesurée », jamais « 0 % »", () => {
++  const md = synthese(
++    [
++      { regle: "RULE_ALL_LIC-1", criticite: "medium", fichiers: ["apps/api/src/a.ts"] },
++      { regle: "RULE_ALL_LIC-2", criticite: "high", fichiers: ["apps/api/src/c.ts"] },
++    ],
++    { files: { ...stryker.files, ...SUR_BASE.files } },
++    versDepot,
++    [],
++    [],
++    { date: "2026-11-22" },
++  );
++  assert.match(md, /^# Mutation sur les règles prouvées et partielles\n\n2 règle\(s\), 2 fichier\(s\)\. .*\n\nMesure du 2026-11-22 \(jour UTC du passage\)\.\n/);
++  assert.match(md, /## RULE_ALL_LIC-1 — 2 survivant\(s\)\n\nCriticité : moyenne\. Score : 33 % \(1 tués, 2 survivants\)\./);
++  assert.match(md, /## RULE_ALL_LIC-2 — 2 survivant\(s\)\n\nCriticité : haute\. Non mesurée : aucun mutant de son code n'est atteint par un test rejoué/);
++  assert.doesNotMatch(md, /Score : 0 %/);
++  assert.match(synthese([{ regle: "RULE_ALL_LIC-5", fichiers: ["a.ts"] }], { files: {} }), /Criticité : à classer\. Non mesurée/);
++  assert.doesNotMatch(md, /Baisses/, "sans option precedente, pas de section des baisses");
++});
++
++test("les baisses : une règle moyenne mesurée les deux fois dont le score descend ; pas une haute, une basse, une non mesurée ou une nouvelle", () => {
++  const avant = { date: "2026-11-15", regles: [{ regle: "A", score: 80 }, { regle: "B", score: 80 }, { regle: "C", score: 80 }, { regle: "D", score: null }, { regle: "E", score: 50 }, { regle: "F", score: 70 }] };
++  const apres = {
++    regles: [
++      { regle: "A", criticite: "medium", score: 79 },
++      { regle: "B", criticite: "high", score: 10 },
++      { regle: "C", criticite: "medium", score: null },
++      { regle: "D", criticite: "medium", score: 20 },
++      { regle: "E", criticite: "medium", score: 50 },
++      { regle: "G", criticite: "medium", score: 1 },
++      { regle: "F", criticite: "low", score: 0 },
++    ],
++  };
++  assert.deepEqual(baisses(avant, apres), [{ regle: "A", avant: 80, apres: 79 }]);
++  assert.deepEqual(baisses(null, apres), []);
++});
++
++test("la section des baisses : listées avec les deux scores et la date d'avant ; aucune ; ou pas de mesure précédente lisible", () => {
++  const regles = [{ regle: "RULE_ALL_LIC-1", criticite: "medium", fichiers: ["apps/api/src/a.ts"] }];
++  const avec = (precedente) => synthese(regles, stryker, versDepot, [], [], { date: "2026-11-22", precedente });
++  assert.match(avec({ date: "2026-11-15", regles: [{ regle: "RULE_ALL_LIC-1", score: 50 }] }), /## Baisses sur une règle moyenne\n\n- RULE_ALL_LIC-1 : 50 % le 2026-11-15, 33 % aujourd'hui\n/);
++  assert.match(avec({ date: "2026-11-15", regles: [{ regle: "RULE_ALL_LIC-1", score: 33 }] }), /## Baisses sur une règle moyenne\n\nAucune depuis la mesure du 2026-11-15\./);
++  assert.match(avec(null), /## Baisses sur une règle moyenne\n\nPas de mesure précédente lisible : aucune baisse ne se juge\./);
++});
++
++test("lireMesure et lireOptions : une mesure d'une autre forme ne se lit pas ; une option inconnue, sans valeur ou une date mal écrite est un usage faux", () => {
++  assert.deepEqual(lireMesure('{"date":"2026-11-15","regles":[{"regle":"A","score":null},{"regle":"B","score":12}]}').regles.length, 2);
++  for (const t of ["", "{", "null", '{"date":"x"}', '{"date":"x","regles":[{"regle":"A","score":"12"}]}', '{"regles":[]}']) assert.equal(lireMesure(t), null, t);
++  assert.deepEqual(lireOptions(["--date", "2026-11-22", "--mesure", "m.json", "--precedente", "p.json"]), { date: "2026-11-22", mesure: "m.json", precedente: "p.json" });
++  assert.deepEqual(lireOptions([]), {});
++  for (const a of [["--date", "22/11/2026"], ["--mesure"], ["--mesure", "--date"], ["--tout", "x"]]) assert.equal(lireOptions(a), null, a.join(" "));
++});
++
++test("le point d'entrée : --mesure écrit la mesure datée en JSON, --precedente dit la baisse ; un usage faux sort en 2", () => {
++  const index = { schema: "3", rules: [{ key: "RULE_ALL_LIC-1", realisation: { status: "partial" }, criticality: niveauDeclare("medium"), code: ["apps/api/src/a.ts"] }] };
++  const racine = projet({ index, rapport: stryker });
++  writeFileSync(join(racine, "apps/api/precedente.json"), JSON.stringify({ date: "2026-11-15", regles: [{ regle: "RULE_ALL_LIC-1", score: 90 }] }));
++  const script = fileURLToPath(new URL("./mutation-regles-synthese.mjs", import.meta.url));
++  const r = spawnSync(process.execPath, [script, "--date", "2026-11-22", "--mesure", "reports/mutation/mesure-regles.json", "--precedente", "precedente.json"], {
++    cwd: join(racine, "apps/api"),
++    encoding: "utf8",
++    env: { ...process.env, PROJET_RACINE: racine },
++  });
++  assert.equal(r.status, 0, r.stderr);
++  assert.match(r.stdout, /- RULE_ALL_LIC-1 : 90 % le 2026-11-15, 33 % aujourd'hui/);
++  assert.deepEqual(JSON.parse(readFileSync(join(racine, "apps/api/reports/mutation/mesure-regles.json"), "utf8")), {
++    date: "2026-11-22",
++    regles: [{ regle: "RULE_ALL_LIC-1", criticite: "medium", tues: 1, survivants: 2, score: 33 }],
++  });
++  const absente = spawnSync(process.execPath, [script, "--precedente", "absente.json"], { cwd: join(racine, "apps/api"), encoding: "utf8", env: { ...process.env, PROJET_RACINE: racine } });
++  assert.match(absente.stdout, /Pas de mesure précédente lisible/);
++  assert.match(absente.stdout, /Mesure du \d{4}-\d{2}-\d{2} \(jour UTC du passage\)/, "sans --date, le jour UTC du passage");
++  const faux = spawnSync(process.execPath, [script, "--date", "hier"], { cwd: join(racine, "apps/api"), encoding: "utf8", env: { ...process.env, PROJET_RACINE: racine } });
++  assert.equal(faux.status, 2);
++  assert.match(faux.stderr, /usage : node scripts\/verify\/mutation-regles-synthese\.mjs \[--date AAAA-MM-JJ\]/);
++});
+diff --git a/skills/monorepo/socle-tests/references/scripts/verify/mutation-regles.mjs b/skills/monorepo/socle-tests/references/scripts/verify/mutation-regles.mjs
+index de89c21..ba0a767 100644
+--- a/skills/monorepo/socle-tests/references/scripts/verify/mutation-regles.mjs
++++ b/skills/monorepo/socle-tests/references/scripts/verify/mutation-regles.mjs
+@@ -1,10 +1,12 @@
+ /**
+- * Périmètre de la mutation « règles prouvées » (skill socle-tests, ADR « score de mutation »).
++ * Périmètre de la mutation « règles qui ont des preuves » (skill socle-tests, ADR « score de mutation »).
+  *
+- * Un projet suivi par Anchorpost commit un index, `anchorpost/anchorpost.json` (schéma "2"). Chaque
+- * règle y porte sa réalisation (`realisation.status`) et les fichiers de code qui la réalisent
+- * (`code`, champ du standard). Le périmètre est l'union des `code` des règles `proven` : les fichiers
+- * dont les tests sont réputés prouver une règle métier, donc ceux dont la force se mesure.
++ * Un projet suivi par Anchorpost commit un index, `anchorpost/anchorpost.json` (schéma "2" ou "3"). Chaque
++ * règle y porte sa réalisation (`realisation.status`), sa criticité (`criticality.level`, absente pour une
++ * règle « à classer ») et les fichiers de code qui la réalisent (`code`, champ du standard). Le périmètre est
++ * l'union des `code` des règles qui ont des preuves : `proven` au schéma 2 ; `proven` et `partial` au schéma 3,
++ * où « prouvée » demande chaque cas attendu prouvé et où une règle qui a des preuves sans être prouvée est
++ * « partielle » (`SPEC_ALL_ANC-5` § 2) : ses tests existent, leur force se mesure (§ 7, `RULE_ALL_ANC-29`).
+  *
+  * Ce module lit le JSON lui-même : il n'importe pas le paquet `@maj-agency/anchorpost`. Aucun
+  * identifiant n'y est analysé : une clé de règle est portée telle que l'index l'écrit, zéros de tête
+@@ -31,7 +33,10 @@ import { isAbsolute, join, posix, relative, resolve, sep } from "node:path";
+ import { fileURLToPath } from "node:url";
+ 
+ export const INDEX = "anchorpost/anchorpost.json";
+-export const SCHEMA = "2";
++export const SCHEMAS = ["2", "3"];
++/** Les réalisations retenues, par schéma : celles d'une règle qui a des preuves. */
++export const RETENUES = { 2: ["proven"], 3: ["proven", "partial"] };
++const NIVEAUX = ["low", "medium", "high"];
+ 
+ const CODE_MUTABLE = /\.[cm]?[jt]sx?$/;
+ const PAS_DU_CODE = /\.(?:spec|test|e2e-spec|property\.spec|d)\.[cm]?[jt]sx?$/;
+@@ -58,8 +63,9 @@ export function normaliser(chemin) {
+  * @param index  l'index parsé ; `undefined` : aucun index ; autre valeur non objet (`null` d'un JSON
+  *               illisible comprise) : index illisible.
+  * @param existe `(cheminDuDepot) => boolean`, vrai si le chemin est un fichier du dépôt.
+- * @returns `fichiers` triés et sans doublon ; `regles` : pour chaque règle prouvée qui a des fichiers
+- *          retenus, `{ regle, fichiers }`, dans l'ordre de l'index ; `ecartes` : `{ regle, chemin,
++ * @returns `fichiers` triés et sans doublon ; `regles` : pour chaque règle retenue qui a des fichiers
++ *          retenus, `{ regle, criticite, fichiers }` (`criticite` : `low`, `medium`, `high`, ou `null` pour
++ *          « à classer »), dans l'ordre de l'index ; `ecartes` : `{ regle, chemin,
+  *          motif }` pour un chemin laissé de côté ; `raison` quand `fichiers` est vide.
+  */
+ export function perimetre(index, existe) {
+@@ -68,16 +74,18 @@ export function perimetre(index, existe) {
+   if (index === null || typeof index !== "object" || Array.isArray(index)) {
+     return vide(`index ${INDEX} illisible : rien à muter`);
+   }
+-  if (index.schema !== SCHEMA) {
+-    return vide(`index ${INDEX} de schéma ${JSON.stringify(index.schema)}, la mutation lit le schéma "${SCHEMA}" : rien à muter`);
++  if (!SCHEMAS.includes(index.schema)) {
++    return vide(`index ${INDEX} de schéma ${JSON.stringify(index.schema)}, la mutation lit les schémas "2" et "3" : rien à muter`);
+   }
+   if (!Array.isArray(index.rules)) return vide(`index ${INDEX} sans liste de règles : rien à muter`);
+ 
+-  const prouvees = index.rules.filter((r) => r?.realisation?.status === "proven");
++  const prouvees = index.rules.filter((r) => RETENUES[index.schema].includes(r?.realisation?.status));
++  const quoi = index.schema === "3" ? "prouvée(s) ou partielle(s)" : "prouvée(s)";
+   const ecartes = [];
+   const regles = [];
+   for (const r of prouvees) {
+     const regle = String(r.key ?? r.id ?? "?");
++    const criticite = NIVEAUX.includes(r?.criticality?.level) ? r.criticality.level : null;
+     const retenus = [];
+     for (const brut of Array.isArray(r.code) ? r.code : []) {
+       const chemin = normaliser(brut);
+@@ -87,7 +95,7 @@ export function perimetre(index, existe) {
+         ecartes.push({ regle, chemin, motif: "hors périmètre de la mutation (test, déclaration, contrôleur, module, dto, gabarit ou autre langage)" });
+       } else if (!retenus.includes(chemin)) retenus.push(chemin);
+     }
+-    if (retenus.length) regles.push({ regle, fichiers: retenus });
++    if (retenus.length) regles.push({ regle, criticite, fichiers: retenus });
+   }
+   const fichiers = [...new Set(regles.flatMap((r) => r.fichiers))].sort();
+   if (fichiers.length) return { fichiers, regles, ecartes };
+@@ -96,8 +104,8 @@ export function perimetre(index, existe) {
+     regles,
+     ecartes,
+     raison: prouvees.length
+-      ? `${prouvees.length} règle(s) prouvée(s), aucune ne déclare de fichier de code utilisable (champ \`code\`) : rien à muter`
+-      : "aucune règle prouvée dans l'index : rien à muter",
++      ? `${prouvees.length} règle(s) ${quoi}, aucune ne déclare de fichier de code utilisable (champ \`code\`) : rien à muter`
++      : `aucune règle ${quoi.replaceAll("(s)", "")} dans l'index : rien à muter`,
+   };
+ }
+ 
+@@ -144,7 +152,7 @@ export function perimetreDuPaquet(racine = racineDuDepot(), cwd = process.cwd())
+     return rel !== "" && rel !== ".." && !rel.startsWith(`..${sep}`) ? rel.split(sep).join("/") : null;
+   };
+   const regles = p.regles
+-    .map((r) => ({ regle: r.regle, fichiers: r.fichiers.filter((f) => dedans(f) !== null) }))
++    .map((r) => ({ regle: r.regle, criticite: r.criticite, fichiers: r.fichiers.filter((f) => dedans(f) !== null) }))
+     .filter((r) => r.fichiers.length);
+   const fichiers = p.fichiers.filter((f) => dedans(f) !== null);
+   const ailleurs = p.fichiers.filter((f) => dedans(f) === null);
+@@ -177,7 +185,7 @@ function main(args) {
+     const cwd = process.cwd();
+     const p = perimetreDuPaquet(racine, cwd);
+     dire(p, (m) => console.log(m));
+-    if (p.ailleurs.length) console.log(`mutation-regles : ${p.ailleurs.length} fichier(s) de règles prouvées sont dans un autre paquet, à muter par sa configuration : ${p.ailleurs.join(", ")}`);
++    if (p.ailleurs.length) console.log(`mutation-regles : ${p.ailleurs.length} fichier(s) de règles qui ont des preuves sont dans un autre paquet, à muter par sa configuration : ${p.ailleurs.join(", ")}`);
+     if (!p.fichiers.length && !process.env.STRYKER_MUTATE) return 0;
+     console.log(`mutation-regles : ${process.env.STRYKER_MUTATE ? "essai local" : `${p.regles.length} règle(s), ${p.fichiers.length} fichier(s) à muter`}`);
+     const r = spawnSync("pnpm", ["exec", "stryker", "run", "stryker.regles.config.mjs"], { stdio: "inherit", cwd });
+diff --git a/skills/monorepo/socle-tests/references/scripts/verify/mutation-regles.test.mjs b/skills/monorepo/socle-tests/references/scripts/verify/mutation-regles.test.mjs
+index abd7936..6361900 100644
+--- a/skills/monorepo/socle-tests/references/scripts/verify/mutation-regles.test.mjs
++++ b/skills/monorepo/socle-tests/references/scripts/verify/mutation-regles.test.mjs
+@@ -29,8 +29,8 @@ test("deux règles prouvées, trois fichiers : l'union, triée, avec ses fichier
+   );
+   assert.deepEqual(p.fichiers, ["apps/api/src/a.ts", "apps/api/src/b.ts", "packages/x/src/c.ts"]);
+   assert.deepEqual(p.regles, [
+-    { regle: "RULE_ALL_LIC-1", fichiers: ["apps/api/src/b.ts", "apps/api/src/a.ts"] },
+-    { regle: "RULE_ALL_LIC-2", fichiers: ["packages/x/src/c.ts"] },
++    { regle: "RULE_ALL_LIC-1", criticite: null, fichiers: ["apps/api/src/b.ts", "apps/api/src/a.ts"] },
++    { regle: "RULE_ALL_LIC-2", criticite: null, fichiers: ["packages/x/src/c.ts"] },
+   ]);
+   assert.deepEqual(p.ecartes, []);
+   assert.equal(p.raison, undefined);
+@@ -76,7 +76,7 @@ test("pas d'index : périmètre vide, raison dite, rien d'écarté", () => {
+ test("index illisible, d'un autre schéma ou sans liste de règles : vide, avec une raison propre à chaque cas", () => {
+   assert.match(perimetre(null, tous).raison, /illisible/);
+   assert.match(perimetre([], tous).raison, /illisible/);
+-  assert.match(perimetre(index([regle("RULE_ALL_LIC-1", "proven", ["a.ts"])], "1"), tous).raison, /schéma "1".*schéma "2"/);
++  assert.match(perimetre(index([regle("RULE_ALL_LIC-1", "proven", ["a.ts"])], "1"), tous).raison, /schéma "1".*schémas "2" et "3"/);
+   assert.match(perimetre({ schema: "2" }, tous).raison, /sans liste de règles/);
+   for (const p of [perimetre(null, tous), perimetre(index([regle("RULE_ALL_LIC-1", "proven", ["a.ts"])], "1"), tous)]) assert.deepEqual(p.fichiers, []);
+ });
+@@ -155,7 +155,7 @@ test("perimetreDuPaquet ne garde que les fichiers du paquet, en chemins relatifs
+   );
+   const p = perimetreDuPaquet(racine, join(racine, "apps/api"));
+   assert.deepEqual(p.mutate, ["src/a.ts"]);
+-  assert.deepEqual(p.regles, [{ regle: "RULE_ALL_LIC-1", fichiers: ["apps/api/src/a.ts"] }]);
++  assert.deepEqual(p.regles, [{ regle: "RULE_ALL_LIC-1", criticite: null, fichiers: ["apps/api/src/a.ts"] }]);
+   assert.deepEqual(p.ailleurs, ["packages/x/src/c.ts"]);
+   assert.equal(p.raison, undefined);
+   const autre = perimetreDuPaquet(racine, join(racine, "apps/web"));
+@@ -199,7 +199,7 @@ test("--lancer nomme les fichiers prouvés d'un autre paquet, qu'il ne mute pas"
+   writeFileSync(join(racine, "anchorpost/anchorpost.json"), JSON.stringify(index([regle("RULE_ALL_LIC-1", "proven", ["packages/x/src/c.ts"])])));
+   const r = lancer(racine, ["--lancer"], join(racine, "apps/api"));
+   assert.equal(r.status, 0);
+-  assert.match(r.stdout, /1 fichier\(s\) de règles prouvées sont dans un autre paquet.*packages\/x\/src\/c\.ts/);
++  assert.match(r.stdout, /1 fichier\(s\) de règles qui ont des preuves sont dans un autre paquet.*packages\/x\/src\/c\.ts/);
+   assert.match(r.stdout, /aucun des 1 fichier\(s\) du périmètre n'est dans ce paquet/);
+ });
+ 
+@@ -253,3 +253,44 @@ test("STRYKER_MUTATE remplace le périmètre de l'index pour un essai local", ()
+   });
+   assert.deepEqual(JSON.parse(sortie.stdout), ["src/x.ts", "src/y.ts"]);
+ });
++
++// La criticité posée par une fonction : aucun texte du plugin ne la montre en ligne (scripts/depot.test.mjs).
++const niveauDeclare = (level) => ({ level, origin: "declared" });
++// K6 de la preuve suffisante (SPEC_ALL_ANC-5 § 7 et § 8) : l'index au pivot 3, où une règle qui a des preuves sans
++// avoir tous ses cas prouvés est « partielle ». Ses tests existent : sa solidité se mesure comme celle d'une prouvée.
++test("pivot 3 : les règles prouvées et partielles entrent, avec leur criticité ; to-build, configured et les autres non", () => {
++  const avec = (key, status, code, level) => ({ ...regle(key, status, code), ...(level ? { criticality: niveauDeclare(level) } : {}) });
++  const p = perimetre(
++    index(
++      [
++        avec("RULE_ALL_LIC-1", "proven", ["a.ts"], "high"),
++        avec("RULE_ALL_LIC-2", "partial", ["b.ts"], "medium"),
++        avec("RULE_ALL_LIC-3", "partial", ["c.ts"]),
++        avec("RULE_ALL_LIC-4", "to-build", ["d.ts"], "high"),
++        avec("RULE_ALL_LIC-5", "configured", ["e.ts"], "low"),
++        avec("RULE_ALL_LIC-6", "not-applicable", ["f.ts"]),
++        avec("RULE_ALL_LIC-7", "partial", ["g.ts"], "urgent"),
++      ],
++      "3",
++    ),
++    tous,
++  );
++  assert.deepEqual(p.fichiers, ["a.ts", "b.ts", "c.ts", "g.ts"]);
++  assert.deepEqual(p.regles.map((r) => [r.regle, r.criticite]), [["RULE_ALL_LIC-1", "high"], ["RULE_ALL_LIC-2", "medium"], ["RULE_ALL_LIC-3", null], ["RULE_ALL_LIC-7", null]], "« à classer », ou un niveau hors vocabulaire : null");
++  assert.deepEqual(perimetre(index([regle("RULE_ALL_LIC-2", "partial", ["b.ts"])], "2"), tous).fichiers, [], "au schéma 2, partial n'existe pas : seule proven entre");
++});
++
++test("pivot 3 : sans règle prouvée ou partielle, la raison le dit avec les mots du pivot 3", () => {
++  assert.match(perimetre(index([regle("RULE_ALL_LIC-1", "to-build", ["a.ts"])], "3"), tous).raison, /^aucune règle prouvée ou partielle dans l'index : rien à muter$/);
++  assert.match(perimetre(index([regle("RULE_ALL_LIC-1", "partial", undefined)], "3"), tous).raison, /^1 règle\(s\) prouvée\(s\) ou partielle\(s\), aucune ne déclare de fichier de code utilisable/);
++  assert.match(perimetre(index([regle("RULE_ALL_LIC-1", "proven", ["a.ts"])], 3), tous).raison, /de schéma 3, la mutation lit les schémas "2" et "3"/, "un nombre n'est pas le schéma \"3\"");
++});
++
++test("--list sur un index au pivot 3 : une règle partielle donne ses fichiers", () => {
++  const racine = projet({ avecIndex: false });
++  mkdirSync(join(racine, "anchorpost"), { recursive: true });
++  writeFileSync(join(racine, "anchorpost/anchorpost.json"), JSON.stringify(index([regle("RULE_ALL_LIC-1", "partial", ["apps/api/src/a.ts"])], "3")));
++  const r = lancer(racine, ["--list"]);
++  assert.equal(r.status, 0, r.stderr);
++  assert.equal(r.stdout, "apps/api/src/a.ts\n");
++});
+diff --git a/skills/monorepo/socle-tests/references/scripts/verify/preuves.mjs b/skills/monorepo/socle-tests/references/scripts/verify/preuves.mjs
+new file mode 100644
+index 0000000..6119e70
+--- /dev/null
++++ b/skills/monorepo/socle-tests/references/scripts/verify/preuves.mjs
+@@ -0,0 +1,176 @@
++#!/usr/bin/env node
++/**
++ * Gate `preuves` (skill `socle-tests`, la preuve suffisante d'Anchorpost, `SPEC_ALL_ANC-5` § 5) : un relais vers
++ * `anchorpost compare`, qui dit, pour les règles que le travail touche, leur criticité, leurs cas prouvés et ce qui
++ * manque, et qui refuse quand le projet est en `enforce`.
++ *
++ * Pourquoi un relais. Le jugement vit dans la CLI `@maj-agency/anchorpost` (≥ 2.0.0), versionné : ce fichier ne juge
++ * rien. Il choisit la base comme `coverage-diff --base-auto` (ce sur quoi le travail sera fusionné), joue
++ * `anchorpost compare --base <base> --json`, résume le rapport en quelques lignes et rend la sortie de la CLI.
++ *
++ * Ce qu'il fait, dans l'ordre.
++ *   1. L'index commis `anchorpost/anchorpost.json` : absent, le projet ne suit pas Anchorpost ; d'un autre schéma que
++ *      "3", la preuve suffisante ne s'y juge pas encore (le régime d'avant, A-56) : rien à comparer, sortie 0. Présent
++ *      mais pas du JSON : sortie 2 (le gate Anchorpost le refuse aussi).
++ *   2. La base : `--base <ref>` (la CI : la cible de la PR) ; sinon celle de `coverage-diff --base-auto`, la branche
++ *      `sujet/<nom>` visée par le push (`PRE_PUSH_REFS`, l'entrée du hook pre-push) ou le plus proche d'`origin/develop`
++ *      et des `origin/sujet/*` (develop à égalité). Une base introuvable en local : premier push d'un dépôt neuf (le
++ *      distant n'a aucune branche), sortie 0 ; sinon sortie 2, avec le geste qui la rapatrie.
++ *   3. `node_modules/.bin/anchorpost compare --base <base> --json` depuis la racine. Le résumé : la base, le mode jugé,
++ *      les règles touchées, puis chaque écart (un refus en `enforce`, un avertissement en `observe`) et chaque
++ *      avertissement. Sous GitHub Actions (`GITHUB_STEP_SUMMARY`), le rapport entier en markdown s'ajoute au résumé
++ *      du job (un second passage de la CLI, sa sortie ignorée).
++ *
++ * Limite : une PR de mise à jour d'un sujet (develop fusionné dans le sujet) se compare à la base la plus proche, pas
++ * à la fusion recalculée de `coverage-diff` : elle peut juger des règles que develop a touchées. La comparaison est
++ * alors plus large, jamais plus lâche.
++ *
++ * Usage :
++ *   node scripts/verify/preuves.mjs                    fin de tour (`gatesRapides`) : la base de `--base-auto`
++ *   node scripts/verify/preuves.mjs --base-auto        pre-push, après `check:coverage` (PRE_PUSH_REFS exporté)
++ *   node scripts/verify/preuves.mjs --base origin/develop   CI, la cible de la PR
++ * Sorties : 0 rien à comparer, ou la CLI sort en 0 (aucun écart, ou `observe`) · 1 un écart en `enforce` · 2 usage,
++ * index illisible, base introuvable, CLI absente, en panne ou illisible.
++ */
++import { execFileSync, spawnSync } from "node:child_process";
++import { appendFileSync, existsSync, readFileSync, realpathSync } from "node:fs";
++import { join, resolve } from "node:path";
++import { fileURLToPath } from "node:url";
++import { BASE_DEFAUT, baseDepuisPush, choisirBase, decisionSansBase } from "./coverage-diff-regles.mjs";
++
++export const INDEX = "anchorpost/anchorpost.json";
++export const CLI = "node_modules/.bin/anchorpost";
++
++/**
++ * L'état de l'index commis, depuis son texte : `absent` (`undefined`), `illisible` (pas du JSON, ou pas un objet),
++ * `autre` (un `schema` autre que "3", rendu dans `schema`), `pivot-3`.
++ */
++export function etatDeLIndex(texte) {
++  if (texte === undefined) return { etat: "absent" };
++  let lu;
++  try {
++    lu = JSON.parse(texte);
++  } catch {
++    return { etat: "illisible" };
++  }
++  if (lu === null || typeof lu !== "object" || Array.isArray(lu)) return { etat: "illisible" };
++  return lu.schema === "3" ? { etat: "pivot-3" } : { etat: "autre", schema: lu.schema };
++}
++
++/** Une valeur du rapport sur une seule ligne de terminal : caractères de contrôle et sauts de ligne en espaces. */
++const ligne = (v) => String(v ?? "").replace(/[\p{Cc}\u2028\u2029]+/gu, " ").trim();
++
++/**
++ * Le résumé du rapport JSON de `compare` (`CompareReport` de la CLI : `sufficiency`, `touched`, `gaps`, `warnings`),
++ * une ligne par écart et par avertissement. `base` : la référence comparée.
++ */
++export function resume(rapport, base) {
++  const mode = rapport?.sufficiency === "enforce" ? "enforce" : "observe";
++  const touchees = Array.isArray(rapport?.touched) ? rapport.touched : [];
++  const ecarts = Array.isArray(rapport?.gaps) ? rapport.gaps : [];
++  const avertissements = Array.isArray(rapport?.warnings) ? rapport.warnings : [];
++  const lignes = [
++    `preuves : base ${ligne(base)}, mode jugé ${mode} ; ${touchees.length} règle(s) touchée(s), ${ecarts.length} écart(s), ${avertissements.length} avertissement(s)`,
++  ];
++  const sorte = mode === "enforce" ? "refus" : "avertissement (observe)";
++  for (const e of ecarts) lignes.push(`  ${sorte} ${ligne(e?.kind)} ${ligne(e?.subject)} : ${ligne(e?.message)}`);
++  for (const a of avertissements) lignes.push(`  avertissement ${ligne(a?.kind)} ${ligne(a?.subject)} : ${ligne(a?.message)}`);
++  if (ecarts.length + avertissements.length > 0) lignes.push(`  le rapport entier : pnpm exec anchorpost compare --base ${ligne(base)}`);
++  return lignes;
++}
++
++/** Racine du dépôt : `PROJET_RACINE`, sinon deux dossiers au-dessus de `scripts/verify/`. */
++const racineDuDepot = () => resolve(process.env.PROJET_RACINE ?? fileURLToPath(new URL("../..", import.meta.url)));
++
++function main(args) {
++  const ROOT = racineDuDepot();
++  const dire = (texte) => process.stdout.write(`${texte}\n`);
++  const refuser = (texte, code = 2) => {
++    process.stderr.write(`preuves : ${texte}\n`);
++    return code;
++  };
++  const i = args.indexOf("--base");
++  const nommee = i === -1 ? null : args[i + 1];
++  const inconnues = args.filter((a, k) => a.startsWith("--") && a !== "--base" && a !== "--base-auto" && !(k === i + 1 && i !== -1));
++  if ((i !== -1 && (!nommee || nommee.startsWith("--"))) || inconnues.length) return refuser("usage : node scripts/verify/preuves.mjs [--base <ref> | --base-auto]");
++
++  // 1. L'index commis.
++  const chemin = join(ROOT, INDEX);
++  const index = etatDeLIndex(existsSync(chemin) ? readFileSync(chemin, "utf8") : undefined);
++  if (index.etat === "absent") {
++    dire(`preuves : pas d'index ${INDEX} : le projet ne suit pas Anchorpost, rien à comparer`);
++    return 0;
++  }
++  if (index.etat === "illisible") return refuser(`${INDEX} illisible (pas un objet JSON) : régénérer l'index, puis relancer`);
++  if (index.etat === "autre") {
++    dire(`preuves : index ${INDEX} au schéma ${JSON.stringify(index.schema)} : la preuve suffisante se juge au pivot 3 (CLI Anchorpost ≥ 2.0.0), rien à comparer`);
++    return 0;
++  }
++
++  // 2. La base.
++  const git = (...a) => execFileSync("git", a, { cwd: ROOT, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
++  const gitOk = (...a) => {
++    try {
++      return git(...a);
++    } catch {
++      return null;
++    }
++  };
++  const existe = (ref) => gitOk("rev-parse", "--verify", "--quiet", `${ref}^{commit}`) !== null;
++  let base = nommee;
++  if (!base) {
++    const poussee = baseDepuisPush(process.env.PRE_PUSH_REFS, gitOk("rev-parse", "HEAD"));
++    if (poussee && existe(poussee)) base = poussee;
++    else {
++      const refs = (gitOk("for-each-ref", "--format=%(refname:short)", "refs/remotes/origin/sujet") ?? "").split("\n").filter(Boolean);
++      const candidats = [BASE_DEFAUT, ...refs].filter(existe).map((ref) => ({ ref, distance: Number(gitOk("rev-list", "--count", `${ref}..HEAD`)) }));
++      base = choisirBase(candidats);
++    }
++  }
++  if (!existe(base)) {
++    const branche = base.replace(/^origin\//, "");
++    const decision = decisionSansBase(gitOk("ls-remote", "--heads", "origin"), branche);
++    if (decision === "premier-push") {
++      dire(`preuves : dépôt distant vide, premier push — rien à comparer (la base « ${base} » naîtra avec la chaîne)`);
++      return 0;
++    }
++    const conseil = {
++      "base-a-fetcher": `elle existe sur le distant : git fetch origin ${branche}`,
++      "base-absente": "le distant a des branches mais pas celle-là : la créer, ou passer --base <branche>",
++      "distant-muet": `et le distant ne répond pas : git fetch origin ${branche} quand il répond`,
++    }[decision];
++    return refuser(`référence de base « ${base} » introuvable en local — ${conseil}`);
++  }
++
++  // 3. La CLI.
++  const cli = join(ROOT, CLI);
++  if (!existsSync(cli)) return refuser(`la CLI Anchorpost est introuvable (${CLI}) : pnpm install (\`@maj-agency/anchorpost\` ≥ 2.0.0 en devDependency)`);
++  const r = spawnSync(cli, ["compare", "--base", base, "--json"], { cwd: ROOT, encoding: "utf8", maxBuffer: 256 * 1024 * 1024 });
++  if (r.status !== 0 && r.status !== 1) {
++    const cause = ligne((r.stderr || r.error?.message || "").split("\n").filter((l) => l.trim()).pop() ?? "sans cause écrite");
++    return refuser(`anchorpost compare en panne (sortie ${r.status ?? r.signal}) : ${cause}`);
++  }
++  let rapport;
++  try {
++    rapport = JSON.parse(r.stdout);
++  } catch {
++    return refuser("le rapport de anchorpost compare --json ne se lit pas (CLI Anchorpost ≥ 2.0.0 attendue)");
++  }
++  for (const l of resume(rapport, base)) dire(l);
++  if (process.env.GITHUB_STEP_SUMMARY) {
++    const md = spawnSync(cli, ["compare", "--base", base], { cwd: ROOT, encoding: "utf8", maxBuffer: 256 * 1024 * 1024 });
++    appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${md.stdout ?? ""}\n`);
++  }
++  return r.status;
++}
++
++/** Vrai quand ce fichier est lancé en ligne de commande : lien symbolique, chemin à espace ou à accent, `--preserve-symlinks-main` compris. */
++function estPointEntree() {
++  try {
++    return realpathSync(fileURLToPath(import.meta.url)) === realpathSync(process.argv[1]);
++  } catch {
++    return false;
++  }
++}
++
++if (estPointEntree()) process.exit(main(process.argv.slice(2)));
+diff --git a/skills/monorepo/socle-tests/references/scripts/verify/preuves.test.mjs b/skills/monorepo/socle-tests/references/scripts/verify/preuves.test.mjs
+new file mode 100644
+index 0000000..88f4aaa
+--- /dev/null
++++ b/skills/monorepo/socle-tests/references/scripts/verify/preuves.test.mjs
+@@ -0,0 +1,210 @@
++// `node --test scripts/verify/preuves.test.mjs` : le relais `preuves.mjs` sur de vrais dépôts git jetables (un distant
++// nu, develop, un sujet), la CLI Anchorpost remplacée par un talon qui écrit ses arguments et rend le rapport qu'on lui
++// donne. Ce qui est prouvé : rien sans index au pivot 3, la base choisie comme `coverage-diff --base-auto`, la sortie de
++// la CLI rendue, le résumé, et chaque panne dite.
++import assert from "node:assert/strict";
++import { execFileSync, spawnSync } from "node:child_process";
++import { chmodSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
++import { tmpdir } from "node:os";
++import { dirname, join } from "node:path";
++import { after, test } from "node:test";
++import { fileURLToPath } from "node:url";
++import { etatDeLIndex, resume } from "./preuves.mjs";
++
++const ICI = dirname(fileURLToPath(import.meta.url));
++// Posé dans un projet, le module est dans scripts/docs/ ; dans le plugin, dans le skill `socle-monorepo`.
++const { environnementDeBanc } = await import(
++  existsSync(join(ICI, "../docs/environnement-de-banc.mjs"))
++    ? "../docs/environnement-de-banc.mjs"
++    : "../../../../socle-monorepo/references/scripts/docs/environnement-de-banc.mjs"
++);
++const ENV = environnementDeBanc();
++
++const dossiers = [];
++const dossier = (prefixe) => {
++  const d = mkdtempSync(join(tmpdir(), prefixe));
++  dossiers.push(d);
++  return d;
++};
++after(() => {
++  for (const d of dossiers) rmSync(d, { recursive: true, force: true });
++});
++
++const git = (cwd, ...args) => execFileSync("git", args, { cwd, encoding: "utf8", env: ENV }).trim();
++function ecrire(depot, chemin, texte) {
++  mkdirSync(join(depot, dirname(chemin)), { recursive: true });
++  writeFileSync(join(depot, chemin), texte);
++}
++
++const INDEX_3 = '{ "schema": "3", "rules": [] }\n';
++// Le talon de la CLI : écrit ses arguments dans `talon.args` (un appel par ligne), puis rend `talon.json` et sort en
++// `talon.sortie` (0 par défaut). Sans `--json`, il rend le rapport en markdown, pour le résumé du job.
++const TALON = `#!/usr/bin/env node
++const { appendFileSync, existsSync, readFileSync } = require("node:fs");
++const ici = __dirname + "/../..";
++appendFileSync(ici + "/talon.args", JSON.stringify(process.argv.slice(2)) + "\\n");
++const sortie = existsSync(ici + "/talon.sortie") ? Number(readFileSync(ici + "/talon.sortie", "utf8")) : 0;
++if (sortie === 2) { process.stderr.write("Comparaison impossible : base inconnue\\n"); process.exit(2); }
++process.stdout.write(process.argv.includes("--json") ? readFileSync(ici + "/talon.json", "utf8") : "# Rapport de preuves\\n");
++process.exit(sortie);
++`;
++
++/** develop (d1) poussé ; sujet/x parti de d1, un commit ; `travail` parti du sujet, un commit. Le projet suit Anchorpost. */
++function depot({ index = INDEX_3, cli = true, rapport = { sufficiency: "observe", touched: [], gaps: [], warnings: [] } } = {}) {
++  const nu = dossier("preuves-nu-");
++  git(nu, "init", "-q", "--bare");
++  const r = dossier("preuves-depot-");
++  git(r, "init", "-q", "-b", "develop");
++  git(r, "config", "user.email", "jouet@example.invalid");
++  git(r, "config", "user.name", "Jouet");
++  git(r, "remote", "add", "origin", nu);
++  ecrire(r, ".gitignore", "node_modules/\ntalon.*\n");
++  if (index !== null) ecrire(r, "anchorpost/anchorpost.json", index);
++  git(r, "add", "-A");
++  git(r, "commit", "-q", "-m", "d1");
++  git(r, "push", "-q", "origin", "develop");
++  git(r, "checkout", "-q", "-b", "sujet/x");
++  ecrire(r, "a.ts", "export const a = 1;\n");
++  git(r, "add", "-A");
++  git(r, "commit", "-q", "-m", "s1");
++  git(r, "push", "-q", "origin", "sujet/x");
++  git(r, "checkout", "-q", "-b", "travail");
++  ecrire(r, "b.ts", "export const b = 1;\n");
++  git(r, "add", "-A");
++  git(r, "commit", "-q", "-m", "t1");
++  mkdirSync(join(r, "scripts/verify"), { recursive: true });
++  for (const f of ["preuves.mjs", "coverage-diff-regles.mjs"]) copyFileSync(join(ICI, f), join(r, "scripts/verify", f));
++  if (cli) {
++    ecrire(r, "node_modules/.bin/anchorpost", TALON);
++    chmodSync(join(r, "node_modules/.bin/anchorpost"), 0o755);
++  }
++  writeFileSync(join(r, "talon.json"), typeof rapport === "string" ? rapport : JSON.stringify(rapport));
++  return r;
++}
++const lancer = (r, args = [], env = {}) =>
++  spawnSync(process.execPath, [join(r, "scripts/verify/preuves.mjs"), ...args], {
++    cwd: r,
++    encoding: "utf8",
++    env: { ...ENV, PROJET_RACINE: undefined, PRE_PUSH_REFS: undefined, GITHUB_STEP_SUMMARY: undefined, ...env },
++  });
++const appels = (r) => (existsSync(join(r, "talon.args")) ? readFileSync(join(r, "talon.args"), "utf8").trim().split("\n").map((l) => JSON.parse(l)) : []);
++
++test("etatDeLIndex : absent, illisible, d'un autre schéma, au pivot 3", () => {
++  assert.deepEqual(etatDeLIndex(undefined), { etat: "absent" });
++  for (const t of ["{ cassé", "null", "[]", '"3"']) assert.deepEqual(etatDeLIndex(t), { etat: "illisible" }, t);
++  assert.deepEqual(etatDeLIndex('{ "schema": "2" }'), { etat: "autre", schema: "2" });
++  assert.deepEqual(etatDeLIndex('{ "schema": 3 }'), { etat: "autre", schema: 3 }, "un nombre n'est pas le pivot 3");
++  assert.deepEqual(etatDeLIndex("{}"), { etat: "autre", schema: undefined });
++  assert.deepEqual(etatDeLIndex(INDEX_3), { etat: "pivot-3" });
++});
++
++test("resume : le mode jugé, les comptes, un écart par ligne (refus en enforce, avertissement en observe), les valeurs sur une ligne", () => {
++  const rapport = {
++    sufficiency: "enforce",
++    touched: [{ key: "RULE_ALL_LIC-3" }],
++    gaps: [{ kind: "case-without-proof", subject: "RULE_ALL_LIC-3#lien-expire", message: "aucune preuve\nne porte ce cas" }],
++    warnings: [{ kind: "stale", subject: "x", message: "m" }],
++  };
++  assert.deepEqual(resume(rapport, "origin/develop"), [
++    "preuves : base origin/develop, mode jugé enforce ; 1 règle(s) touchée(s), 1 écart(s), 1 avertissement(s)",
++    "  refus case-without-proof RULE_ALL_LIC-3#lien-expire : aucune preuve ne porte ce cas",
++    "  avertissement stale x : m",
++    "  le rapport entier : pnpm exec anchorpost compare --base origin/develop",
++  ]);
++  assert.equal(resume({ ...rapport, sufficiency: "observe" }, "b")[1], "  avertissement (observe) case-without-proof RULE_ALL_LIC-3#lien-expire : aucune preuve ne porte ce cas");
++  assert.deepEqual(resume({}, "b"), ["preuves : base b, mode jugé observe ; 0 règle(s) touchée(s), 0 écart(s), 0 avertissement(s)"]);
++});
++
++test("sans index, ou d'un autre schéma que 3 : rien à comparer, la CLI n'est pas lancée, sortie 0", () => {
++  const sans = depot({ index: null });
++  const r = lancer(sans);
++  assert.equal(r.status, 0, r.stderr);
++  assert.match(r.stdout, /preuves : pas d'index anchorpost\/anchorpost\.json : le projet ne suit pas Anchorpost, rien à comparer/);
++  assert.deepEqual(appels(sans), []);
++  const deux = depot({ index: '{ "schema": "2", "rules": [] }\n' });
++  const r2 = lancer(deux, ["--base-auto"]);
++  assert.equal(r2.status, 0, r2.stderr);
++  assert.match(r2.stdout, /index anchorpost\/anchorpost\.json au schéma "2" : la preuve suffisante se juge au pivot 3 \(CLI Anchorpost ≥ 2\.0\.0\), rien à comparer/);
++  assert.deepEqual(appels(deux), []);
++});
++
++test("un index illisible, une CLI absente ou en panne, un rapport illisible, un usage faux : sortie 2, la cause dite", () => {
++  const illisible = lancer(depot({ index: "{ cassé" }));
++  assert.equal(illisible.status, 2);
++  assert.match(illisible.stderr, /preuves : anchorpost\/anchorpost\.json illisible \(pas un objet JSON\) : régénérer l'index/);
++  const sansCli = lancer(depot({ cli: false }));
++  assert.equal(sansCli.status, 2);
++  assert.match(sansCli.stderr, /la CLI Anchorpost est introuvable \(node_modules\/\.bin\/anchorpost\) : pnpm install/);
++  const panne = depot();
++  writeFileSync(join(panne, "talon.sortie"), "2");
++  const p = lancer(panne);
++  assert.equal(p.status, 2);
++  assert.match(p.stderr, /preuves : anchorpost compare en panne \(sortie 2\) : Comparaison impossible : base inconnue/);
++  const json = lancer(depot({ rapport: "pas du json" }));
++  assert.equal(json.status, 2);
++  assert.match(json.stderr, /le rapport de anchorpost compare --json ne se lit pas/);
++  for (const args of [["--base"], ["--base", "--json"], ["--tout"]]) {
++    const u = lancer(depot(), args);
++    assert.equal(u.status, 2, args.join(" "));
++    assert.match(u.stderr, /preuves : usage : node scripts\/verify\/preuves\.mjs \[--base <ref> \| --base-auto\]/);
++  }
++});
++
++test("la base : nommée par --base ; sinon le sujet visé par le push ; sinon la plus proche de develop et des sujets", () => {
++  const r = depot();
++  assert.equal(lancer(r, ["--base", "origin/develop"]).status, 0);
++  assert.equal(lancer(r).status, 0);
++  git(r, "push", "-q", "origin", "develop:sujet/y");
++  git(r, "fetch", "-q", "origin");
++  const sommet = git(r, "rev-parse", "HEAD");
++  assert.equal(lancer(r, ["--base-auto"], { PRE_PUSH_REFS: `refs/heads/travail ${sommet} refs/heads/sujet/y 0000\n` }).status, 0);
++  assert.deepEqual(appels(r), [
++    ["compare", "--base", "origin/develop", "--json"],
++    ["compare", "--base", "origin/sujet/x", "--json"],
++    ["compare", "--base", "origin/sujet/y", "--json"],
++  ], "nommée ; la plus proche (le sujet dont la branche est partie) ; celle que vise le push, même plus loin");
++  git(r, "checkout", "-q", "-b", "correctif", "develop");
++  assert.equal(lancer(r).status, 0);
++  assert.deepEqual(appels(r).at(-1), ["compare", "--base", "origin/develop", "--json"], "partie de develop : develop");
++});
++
++test("une base introuvable : premier push d'un dépôt neuf, sortie 0 ; sinon sortie 2, avec le geste qui la rapatrie", () => {
++  const r = depot();
++  git(r, "update-ref", "-d", "refs/remotes/origin/develop");
++  git(r, "update-ref", "-d", "refs/remotes/origin/sujet/x");
++  const a = lancer(r);
++  assert.equal(a.status, 2);
++  assert.match(a.stderr, /référence de base « origin\/develop » introuvable en local — elle existe sur le distant : git fetch origin develop/);
++  const neuf = depot();
++  const nu = dossier("preuves-nu-vide-");
++  git(nu, "init", "-q", "--bare");
++  git(neuf, "remote", "set-url", "origin", nu);
++  git(neuf, "update-ref", "-d", "refs/remotes/origin/develop");
++  git(neuf, "update-ref", "-d", "refs/remotes/origin/sujet/x");
++  const p = lancer(neuf);
++  assert.equal(p.status, 0, p.stderr);
++  assert.match(p.stdout, /preuves : dépôt distant vide, premier push — rien à comparer/);
++  assert.deepEqual(appels(neuf), []);
++});
++
++test("la sortie de la CLI est rendue : 1 sur un écart en enforce, 0 en observe ; le résumé dit chaque écart", () => {
++  const ecart = { kind: "case-without-proof", subject: "RULE_ALL_LIC-3#lien-expire", message: "aucune preuve ne porte ce cas" };
++  const enforce = depot({ rapport: { sufficiency: "enforce", touched: [{}], gaps: [ecart], warnings: [] } });
++  writeFileSync(join(enforce, "talon.sortie"), "1");
++  const e = lancer(enforce);
++  assert.equal(e.status, 1);
++  assert.match(e.stdout, /preuves : base origin\/sujet\/x, mode jugé enforce ; 1 règle\(s\) touchée\(s\), 1 écart\(s\), 0 avertissement\(s\)\n {2}refus case-without-proof RULE_ALL_LIC-3#lien-expire : aucune preuve ne porte ce cas\n/);
++  const observe = lancer(depot({ rapport: { sufficiency: "observe", touched: [{}], gaps: [ecart], warnings: [] } }));
++  assert.equal(observe.status, 0);
++  assert.match(observe.stdout, /avertissement \(observe\) case-without-proof RULE_ALL_LIC-3#lien-expire/);
++});
++
++test("sous GitHub Actions, le rapport entier en markdown s'ajoute au résumé du job ; la sortie reste celle du passage JSON", () => {
++  const r = depot();
++  const resumeDuJob = join(dossier("preuves-resume-"), "resume.md");
++  writeFileSync(resumeDuJob, "avant\n");
++  const s = lancer(r, ["--base", "origin/develop"], { GITHUB_STEP_SUMMARY: resumeDuJob });
++  assert.equal(s.status, 0, s.stderr);
++  assert.equal(readFileSync(resumeDuJob, "utf8"), "avant\n# Rapport de preuves\n\n");
++  assert.deepEqual(appels(r), [["compare", "--base", "origin/develop", "--json"], ["compare", "--base", "origin/develop"]]);
++});
