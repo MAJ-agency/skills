@@ -2,6 +2,19 @@
 
 La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque projet par `poser` : une version publiée ne change rien chez un projet qui ne les repose pas. Chaque note dit ce qui change, puis ce qu'un projet fait pour en profiter.
 
+## 8.2.0 — 2026-11-22
+
+### Ce qui change
+
+- **Le gate `preuves`** (K2 de la preuve suffisante, `SPEC_ALL_ANC-5` § 5) : `scripts/verify/preuves.mjs`, posé par `socle-tests`, relaie `anchorpost compare` (CLI Anchorpost ≥ 2.0.0) contre ce sur quoi le travail sera fusionné, la base choisie comme `coverage-diff --base-auto`. Il résume les règles touchées et chaque écart (cas sans preuve, niveau qui manque, criticité baissée…), rend la sortie de la CLI (1 sur un écart en `enforce`, 0 en `observe`) et, sous GitHub Actions, ajoute le rapport entier au résumé du job. Sans index commis au pivot 3, il ne fait rien. Au pre-push après `check:coverage`, en fin de tour par `gatesRapides`, en CI sur la cible de la PR.
+- **La fiche des tests** porte la grille par criticité (ce qu'un cas normal, un cas limite, une entrée invalide ou un refus exigent selon que la règle est basse, moyenne ou haute), l'étiquette de cas `[RULE_ALL_LIC-2#seconde-licence]` et le niveau P2 du bout en bout d'une CLI (`*.e2e-cli.spec.ts`).
+- **La mutation du `code` des règles** (K6) lit l'index au pivot 3, et y garde les règles `proven` **et** `partial` (toujours `proven` seules au schéma 2). Sa synthèse est datée et dit, par règle, la criticité et le score, ou « non mesurée » quand aucun test rejoué n'atteint son code, jamais « 0 % ». Le workflow `Mutation` publie la mesure en artefact (`mesure-regles`), relit celle du passage précédent et signale chaque baisse de score d'une règle moyenne, sans rien refuser. Le gabarit d'ADR du score de mutation le dit (point 5).
+
+### Ce qu'un projet fait pour en profiter
+
+- Rien, tant que son index Anchorpost n'est pas au pivot 3 : `preuves.mjs` dit « rien à comparer » (un index présent qui n'est pas un objet JSON le fait sortir en 2), la mutation garde les règles `proven` du schéma 2 ; la synthèse de la mutation porte désormais sa date, une ligne par règle et la section des baisses.
+- **Reposer** (skill `socle-tests`, pièce par pièce) : `scripts/verify/preuves.mjs` et son banc (le relais importe `BASE_DEFAUT`, `baseDepuisPush`, `choisirBase` et `decisionSansBase` de `scripts/verify/coverage-diff-regles.mjs`, du socle 3.10.4 ou plus récent, et son banc lit `scripts/docs/environnement-de-banc.mjs` du socle 7.21.0 : un projet à qui l'un manque, ou qui l'a d'avant, le repose avec ; sinon le relais ne se charge pas (`coverage-diff-regles.mjs` d'avant 3.10.1), ou son banc fait échouer `check:tickets` ; dans le dépôt de la CLI elle-même, le relais s'adapte comme son `anchorpost.mjs`), le script `check:preuves`, sa ligne au pre-push après `check:coverage`, son entrée dans `gatesRapides`, l'étape de CI sur `pull_request` ; `mutation-regles.mjs`, `mutation-regles-synthese.mjs` et leurs bancs ; `.github/workflows/mutation.yml` (permission `actions: read`, étapes « Mesure précédente » et « Mesure datée ») ; la grille et l'étiquette de cas dans `.claude/rules/tests.md` ; le point 5 de l'ADR du score de mutation du projet s'amende comme le gabarit.
+
 ## 8.1.0 — 2026-11-22
 
 ### Ce qui change
