@@ -1,0 +1,6 @@
+sommet ffa0063574fd12205d20a335136e1fbe84a1c0c4
+VERTE F1 SKILL : ce que develop ne voit pas, sans ses exemples (une règle, un cas, une criticité) (0 s)
+ROUGE F2 SKILL : « plus large, jamais plus lâche » retiré du cas du sujet (0 s) — le relais preuves dit qu'il sort en 2 quand la CLI est un pa
+ROUGE F3 note : la version où le relais se charge dite 3.10.4 au lieu de 3.10.1 (0 s) — le relais preuves dit qu'il sort en 2 quand la CLI est un pa
+ROUGE F4 SKILL : « Au pre-push et en fin de tour » retiré (la CI comprise à tort) (0 s) — le relais preuves dit qu'il sort en 2 quand la CLI est un pa
+VERTE F5 preuves.mjs, en-tête : « ne voit pas ce que la mise à jour défait du sujet » retiré (commentaire) (10 s)

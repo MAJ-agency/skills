@@ -1,0 +1,7 @@
+sommet ffa0063574fd12205d20a335136e1fbe84a1c0c4
+S=5 D=1 : distance au sujet 2, à develop 6
+preuves : base origin/sujet/x, mode jugé observe ; 0 règle(s) touchée(s), 0 écart(s), 0 avertissement(s)
+S=1 D=5 : distance au sujet 6, à develop 2
+preuves : base origin/develop, mode jugé observe ; 0 règle(s) touchée(s), 0 écart(s), 0 avertissement(s)
+S=3 D=3 : distance au sujet 4, à develop 4
+preuves : base origin/develop, mode jugé observe ; 0 règle(s) touchée(s), 0 écart(s), 0 avertissement(s)

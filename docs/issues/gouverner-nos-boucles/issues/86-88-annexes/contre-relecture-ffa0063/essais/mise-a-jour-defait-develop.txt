@@ -1,0 +1,37 @@
+sommet du plugin ffa0063574fd12205d20a335136e1fbe84a1c0c4, Anchorpost 31afa3d, CLI 2.0.2
+=== MODE=observe
+distance au sujet 3, à develop 5
+== fin de tour (node preuves.mjs, sans option)
+preuves : base origin/sujet/x, mode jugé observe ; 0 règle(s) touchée(s), 0 écart(s), 0 avertissement(s)
+sortie 0
+== la CI de la PR de mise à jour (node preuves.mjs --base origin/sujet/x, la cible de la PR)
+preuves : base origin/sujet/x, mode jugé observe ; 0 règle(s) touchée(s), 0 écart(s), 0 avertissement(s)
+sortie 0
+== la fusion recalculée (node preuves.mjs --base HEAD~1, la fusion propre du sujet et de develop)
+preuves : base HEAD~1, mode jugé observe ; 1 règle(s) touchée(s), 1 écart(s), 0 avertissement(s)
+  avertissement (observe) rule-removed RULE_ALL_ANC-99 : Le fichier de la règle disparaît : une règle ne se supprime pas, elle devient obsolète. RULE_ALL_ANC-99 passe à `obsolete`, validée par une personne MOA, au lieu d'être supprimée ou renommée.
+  le rapport entier : pnpm exec anchorpost compare --base HEAD~1
+sortie 0
+== la livraison du sujet, la mise à jour entrée (node preuves.mjs --base origin/develop)
+preuves : base origin/develop, mode jugé observe ; 1 règle(s) touchée(s), 1 écart(s), 0 avertissement(s)
+  avertissement (observe) rule-removed RULE_ALL_ANC-99 : Le fichier de la règle disparaît : une règle ne se supprime pas, elle devient obsolète. RULE_ALL_ANC-99 passe à `obsolete`, validée par une personne MOA, au lieu d'être supprimée ou renommée.
+  le rapport entier : pnpm exec anchorpost compare --base origin/develop
+sortie 0
+=== MODE=enforce
+distance au sujet 3, à develop 5
+== fin de tour (node preuves.mjs, sans option)
+preuves : base origin/sujet/x, mode jugé enforce ; 0 règle(s) touchée(s), 0 écart(s), 0 avertissement(s)
+sortie 0
+== la CI de la PR de mise à jour (node preuves.mjs --base origin/sujet/x, la cible de la PR)
+preuves : base origin/sujet/x, mode jugé enforce ; 0 règle(s) touchée(s), 0 écart(s), 0 avertissement(s)
+sortie 0
+== la fusion recalculée (node preuves.mjs --base HEAD~1, la fusion propre du sujet et de develop)
+preuves : base HEAD~1, mode jugé enforce ; 1 règle(s) touchée(s), 1 écart(s), 0 avertissement(s)
+  refus rule-removed RULE_ALL_ANC-99 : Le fichier de la règle disparaît : une règle ne se supprime pas, elle devient obsolète. RULE_ALL_ANC-99 passe à `obsolete`, validée par une personne MOA, au lieu d'être supprimée ou renommée.
+  le rapport entier : pnpm exec anchorpost compare --base HEAD~1
+sortie 1
+== la livraison du sujet, la mise à jour entrée (node preuves.mjs --base origin/develop)
+preuves : base origin/develop, mode jugé enforce ; 1 règle(s) touchée(s), 1 écart(s), 0 avertissement(s)
+  refus rule-removed RULE_ALL_ANC-99 : Le fichier de la règle disparaît : une règle ne se supprime pas, elle devient obsolète. RULE_ALL_ANC-99 passe à `obsolete`, validée par une personne MOA, au lieu d'être supprimée ou renommée.
+  le rapport entier : pnpm exec anchorpost compare --base origin/develop
+sortie 1

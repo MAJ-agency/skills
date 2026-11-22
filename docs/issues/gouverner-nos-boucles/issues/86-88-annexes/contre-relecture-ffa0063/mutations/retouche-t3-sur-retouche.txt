@@ -1,0 +1,32 @@
+ffa0063, la retouche du tour 3 posée (sha256 4c603735ab5d8a8f9d68348a2f811727155dcda4c493d12107510c0aac80438f)
+debut 18:20:54 charge 2.98 2.38 2.91
+ROUGE G1 SKILL : la phrase de ffa0063 (« plus large, jamais plus lâche » pour le sujet) (0 s) — le relais preuves dit qu'il sort en 2 quand la CLI est un pa
+ROUGE G2 SKILL : la livraison qui juge ce que la mise à jour défait de develop n'est plus dite (0 s) — le relais preuves dit qu'il sort en 2 quand la CLI est un pa
+ROUGE G3 SKILL : les exemples de ce que develop ne voit pas retirés (F1) (0 s) — le relais preuves dit qu'il sort en 2 quand la CLI est un pa
+ROUGE G4 CONTENU : la phrase d'avant (la base la plus proche, « jamais plus lâche ») (0 s) — le relais preuves dit qu'il sort en 2 quand la CLI est un pa
+ROUGE G5 CONTENU : la condition renversée (develop quand le sujet a plus) (0 s) — le relais preuves dit qu'il sort en 2 quand la CLI est un pa
+ROUGE G6 CONTENU : BASE_DEFAUT retiré des imports (0 s) — le relais preuves dit qu'il sort en 2 quand la CLI est un pa
+VERTE G7 preuves.mjs, en-tête : « la CI non plus » retiré (commentaire, sans banc) (9 s)
+== retouche-t2.mjs du tour 2, la retouche posée
+ROUGE D4 preuves.mjs : tout ce qui suit --base est accepté (--base x HEAD~3) (9 s) — un index illisible, une CLI absente ou en panne, un rapport 
+ROUGE D8 mutation.yml : la synthèse avant la mutation (elle lit un rapport absent) (0 s) — le workflow de mutation date sa mesure, la publie en artefac
+ROUGE D9 mutation.yml : la mesure précédente lue sur noyau seulement (1 s) — le workflow de mutation date sa mesure, la publie en artefac
+ROUGE D12 fiche : « pas de cas normal » retiré de « partielle » (1 s) — la fiche des tests porte la grille par criticité, l'étiquett
+ROUGE D17 note : le point 5 de l'ADR du projet n'est plus dit (1 s) — le relais preuves dit qu'il sort en 2 quand la CLI est un pa
+ROUGE D18 note : l'adaptation dans le dépôt de la CLI n'est plus dite (0 s) — le relais preuves dit qu'il sort en 2 quand la CLI est un pa
+ROUGE D19 note : ce qui casse sans les deux appuis n'est plus dit (0 s) — le relais preuves dit qu'il sort en 2 quand la CLI est un pa
+ROUGE E1 preuves.mjs : une mise à jour se mesure contre le sujet (develop écarté dès qu'il manque un commit) (8 s) — la base : nommée par --base ; sinon le sujet visé par le pus
+INTROUVABLE E2 SKILL : la phrase d'avant (« plus large, jamais plus lâche » pour les deux bases)
+ROUGE E3 SKILL : ce que develop ne voit pas n'est plus dit (0 s) — le relais preuves dit qu'il sort en 2 quand la CLI est un pa
+ROUGE E4 SKILL : la condition renversée (l'erreur de 597e05c) (0 s) — le relais preuves dit qu'il sort en 2 quand la CLI est un pa
+ROUGE E5 note : BASE_DEFAUT retiré des imports nommés (0 s) — le relais preuves dit qu'il sort en 2 quand la CLI est un pa
+ROUGE E6 note : la version de coverage-diff-regles.mjs n'est plus dite (0 s) — le relais preuves dit qu'il sort en 2 quand la CLI est un pa
+ROUGE E7 note : la repose d'un fichier qui manque n'est plus dite (0 s) — le relais preuves dit qu'il sort en 2 quand la CLI est un pa
+INTROUVABLE E8 preuves.mjs, en-tête : la condition renversée (commentaire, sans banc)
+== tour-3.mjs (les trous de ffa0063), la retouche posée
+ROUGE F1 SKILL : ce que develop ne voit pas, sans ses exemples (une règle, un cas, une criticité) (0 s) — le relais preuves dit qu'il sort en 2 quand la CLI est un pa
+INTROUVABLE F2 SKILL : « plus large, jamais plus lâche » retiré du cas du sujet
+ROUGE F3 note : la version où le relais se charge dite 3.10.4 au lieu de 3.10.1 (0 s) — le relais preuves dit qu'il sort en 2 quand la CLI est un pa
+ROUGE F4 SKILL : « Au pre-push et en fin de tour » retiré (la CI comprise à tort) (0 s) — le relais preuves dit qu'il sort en 2 quand la CLI est un pa
+INTROUVABLE F5 preuves.mjs, en-tête : « ne voit pas ce que la mise à jour défait du sujet » retiré (commentaire)
+fin 18:21:25 charge 2.74 2.37 2.90

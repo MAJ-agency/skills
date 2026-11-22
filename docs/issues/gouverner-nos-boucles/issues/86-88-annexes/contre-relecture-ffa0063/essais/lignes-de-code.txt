@@ -1,0 +1,17 @@
+Les lignes exécutées de preuves.mjs, de 597e05c à ffa0063.
+
+1. Le diff des seules lignes hors commentaire :
+   git diff -U0 597e05c ffa0063 -- skills/monorepo/socle-tests/references/scripts/verify/preuves.mjs \
+     | grep '^[-+]' | grep -v '^[-+][-+]' | grep -vE '^[-+] \*'
+   → aucune ligne (sortie 1 de grep) : les 8 lignes retirées et les 8 ajoutées sont toutes dans le bloc /** */ d'en-tête
+   (lignes 24 à 31, « Limites »).
+
+2. Le fichier réimprimé sans commentaires par l'AST de TypeScript 5.9.3 (ts.createSourceFile, puis
+   ts.createPrinter({ removeComments: true }).printFile), aux deux sommets :
+   597e05c  5db9cacca647ac2908daefd12accbd830b5db3e5a5e2318b022dce6b3d36ba3e  (133 lignes)
+   ffa0063  5db9cacca647ac2908daefd12accbd830b5db3e5a5e2318b022dce6b3d36ba3e  (133 lignes)
+   → identiques. La retouche du tour 3 posée : 5db9cacc…ba3e encore.
+
+3. L'arbre : 597e05c plus retouche-154-tour-2.patch (sha256 48fb0c01…6fc7, vérifié), `git apply` puis `git write-tree` :
+   ef10b8dbedef05bd7f5e4a386f1e8ce0eafa5bc8, l'arbre de ffa0063 (`git rev-parse ffa0063^{tree}`). Le delta est le patch
+   du tour 2 à l'octet.

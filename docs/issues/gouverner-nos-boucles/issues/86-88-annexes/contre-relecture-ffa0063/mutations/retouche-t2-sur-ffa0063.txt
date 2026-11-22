@@ -1,0 +1,18 @@
+sommet ffa0063574fd12205d20a335136e1fbe84a1c0c4
+debut 18:14:38 charge 1.59 1.57 3.09
+ROUGE D4 preuves.mjs : tout ce qui suit --base est accepté (--base x HEAD~3) (9 s) — un index illisible, une CLI absente ou en panne, un rapport 
+ROUGE D8 mutation.yml : la synthèse avant la mutation (elle lit un rapport absent) (1 s) — le workflow de mutation date sa mesure, la publie en artefac
+ROUGE D9 mutation.yml : la mesure précédente lue sur noyau seulement (0 s) — le workflow de mutation date sa mesure, la publie en artefac
+ROUGE D12 fiche : « pas de cas normal » retiré de « partielle » (0 s) — la fiche des tests porte la grille par criticité, l'étiquett
+ROUGE D17 note : le point 5 de l'ADR du projet n'est plus dit (0 s) — le relais preuves dit qu'il sort en 2 quand la CLI est un pa
+ROUGE D18 note : l'adaptation dans le dépôt de la CLI n'est plus dite (1 s) — le relais preuves dit qu'il sort en 2 quand la CLI est un pa
+ROUGE D19 note : ce qui casse sans les deux appuis n'est plus dit (1 s) — le relais preuves dit qu'il sort en 2 quand la CLI est un pa
+ROUGE E1 preuves.mjs : une mise à jour se mesure contre le sujet (develop écarté dès qu'il manque un commit) (9 s) — la base : nommée par --base ; sinon le sujet visé par le pus
+ROUGE E2 SKILL : la phrase d'avant (« plus large, jamais plus lâche » pour les deux bases) (0 s) — le relais preuves dit qu'il sort en 2 quand la CLI est un pa
+ROUGE E3 SKILL : ce que develop ne voit pas n'est plus dit (0 s) — le relais preuves dit qu'il sort en 2 quand la CLI est un pa
+ROUGE E4 SKILL : la condition renversée (l'erreur de 597e05c) (0 s) — le relais preuves dit qu'il sort en 2 quand la CLI est un pa
+ROUGE E5 note : BASE_DEFAUT retiré des imports nommés (0 s) — le relais preuves dit qu'il sort en 2 quand la CLI est un pa
+ROUGE E6 note : la version de coverage-diff-regles.mjs n'est plus dite (0 s) — le relais preuves dit qu'il sort en 2 quand la CLI est un pa
+ROUGE E7 note : la repose d'un fichier qui manque n'est plus dite (0 s) — le relais preuves dit qu'il sort en 2 quand la CLI est un pa
+VERTE E8 preuves.mjs, en-tête : la condition renversée (commentaire, sans banc) (9 s)
+fin 18:15:10 charge 1.48 1.55 3.03
