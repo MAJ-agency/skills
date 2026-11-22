@@ -2,6 +2,16 @@
 
 La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque projet par `poser` : une version publiée ne change rien chez un projet qui ne les repose pas. Chaque note dit ce qui change, puis ce qu'un projet fait pour en profiter.
 
+## 7.38.2 — 2026-11-22
+
+### Ce qui change
+
+Deux bancs disent ce qu'ils tiennent (ticket 70). Pour qui joue la CI du plugin : `scripts/relecture.test.mjs` exige les trois phrases d'`A-178` à leur place, la puce `C4` de l'étape 5 du skill `relecture`, le paragraphe avant « Gravité, deux seulement : » du prompt de l'axe Règles, la puce `/security-review:` des règles du verdict, et plus seulement dans leur fichier ; le commentaire du banc du gate `tickets` dit exactement ce que `trim()` ôte d'un nom d'accord.
+
+### Ce qu'un projet fait pour en profiter
+
+Rien : aucun texte de skill ni aucun script posé ne change.
+
 ## 7.38.1 — 2026-11-21
 
 ### Ce qui change
