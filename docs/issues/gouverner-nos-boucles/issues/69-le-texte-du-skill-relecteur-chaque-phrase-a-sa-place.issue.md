@@ -1,6 +1,6 @@
 # Le texte du skill `relecteur`, suite de la PR 146 : `--attendre` et la borne de la sortie 9, l'état `couple`, `send_message` en échec, les causes des lignes, et chaque phrase exigée à sa place
 
-Status: ready-for-agent
+Status: Fait — PR 147 (`7352df8`, plugin 7.38.1)
 Type: défaut
 Label: contre-revue
 Modèle: sonnet — six mineurs de texte (15, 16, 17, R4, R5, R6 de la contre-relecture de la PR 146) et le texte des tickets 67 et 68 ; chaque phrase est donnée mot pour mot (« À faire »), avec le banc des textes qui l'exige à sa place, la version et la note de la PR. Joué sur un clone neuf de `main` à `25a72c7`, après les tickets 67 et 68. Rien n'est à concevoir, sauf ce que « Questions à l'architecte » remonte, déjà écrit selon la recommandation. Ce ticket part dans une même PR que les tickets 67 et 68 : « Dans la même PR que les tickets 67 et 68 ».

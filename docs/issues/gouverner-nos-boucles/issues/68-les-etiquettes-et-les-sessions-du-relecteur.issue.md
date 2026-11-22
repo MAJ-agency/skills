@@ -1,6 +1,6 @@
 # Les étiquettes et les sessions du Relecteur, suite de la PR 146 : une étiquette restée ne tait plus le verdict, un plafond à moitié écrit se rejoue entier, une session à un autre couple est remplacée
 
-Status: ready-for-agent
+Status: Fait — PR 147 (`7352df8`, plugin 7.38.1)
 Type: défaut
 Label: contre-revue
 Modèle: sonnet — trois mineurs mesurés (13 ou C11, 14 ou C12, 15 de la contre-relecture de la PR 146), la décision de l'architecte pour le troisième (`A-182`, point 2), un faux GitHub qui rend les événements d'étiquette ; le changement entier est donné (« À faire », et le patch commun en annexe), joué sur un clone neuf de `main` à `25a72c7` après le ticket 67. Rien n'est à concevoir, sauf ce que « Questions à l'architecte » remonte, déjà écrit selon la recommandation. Ce ticket part dans une même PR que les tickets 67 et 69 : « Dans la même PR que les tickets 67 et 69 ».

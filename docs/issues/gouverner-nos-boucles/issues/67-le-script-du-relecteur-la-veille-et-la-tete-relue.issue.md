@@ -1,6 +1,6 @@
 # Le script du Relecteur, suite de la PR 146 : l'erreur d'installation gardée quand GitHub se tait, une veille relancée qui attend, la tête relue avant d'être dite introuvable, une cause qui dit comment se retenter
 
-Status: ready-for-agent
+Status: Fait — PR 147 (`7352df8`, plugin 7.38.1)
 Type: défaut
 Label: contre-revue
 Modèle: sonnet — quatre mineurs mesurés (R3, R5, 17, 18 de la contre-relecture de la PR 146), chacun avec sa décision, ses lignes et son cas de banc ; le changement entier est donné (« À faire », et le patch commun en annexe), joué sur un clone neuf de `main` à `25a72c7` (plugin 7.38.0). Rien n'est à concevoir : qui veut changer une décision l'écrit à son lanceur. Ce ticket part dans une même PR que les tickets 68 et 69 : « Dans la même PR que les tickets 68 et 69 ».
