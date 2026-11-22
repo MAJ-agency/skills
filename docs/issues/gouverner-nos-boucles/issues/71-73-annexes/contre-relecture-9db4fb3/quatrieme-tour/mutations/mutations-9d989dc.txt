@@ -1,0 +1,14 @@
+sommet 9d989dc62f7b0384e8bdd2cb9f7e6f0bd247f87d ; 2026-11-22T05:46:25Z
+== V1, V2, Xʹ10, W1 à W3
+ROUGE W1 garde du capitaine : sans base de fusion commune avec develop, la copie de sujet dite héritée (et ignorée)
+ROUGE W2 hook : la règle des copies héritées jouée aussi sur develop (sa copie ne compterait jamais)
+ROUGE V1 hook : un clone superficiel jamais vu (patch du tour 3)
+ROUGE V2 hook : le refus ne dit plus d’approfondir le clone (patch du tour 3)
+ROUGE Xʹ10 hook : une copie locale en retard refusée sans le geste qui la relit (X10 sur le texte du tour 3)
+ROUGE W3 hook : « héritée » jugée contre le sommet de develop, pas contre la base de fusion
+toutes rouges (6)
+== T1, T2, neuves sur le delta
+ROUGE T1 hook : sans base de fusion lue, la copie de sujet dite héritée (ignorée), dans un clone superficiel comme ailleurs
+VERTE T2 hook : le geste du clone superficiel dit à chaque refus, même dans un clone entier
+1 mutation(s) non rouge(s) sur 2
+2026-11-22T05:47:21Z

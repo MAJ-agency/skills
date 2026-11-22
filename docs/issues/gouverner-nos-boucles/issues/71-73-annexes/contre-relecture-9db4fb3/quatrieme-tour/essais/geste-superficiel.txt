@@ -1,0 +1,6 @@
+clone superficiel : true
+refus : sortie 2
+scripts/agent/x.mjs : chemin sensible (`cheminsSensibles`) hors de la ligne `Sensibles:` du ticket de ta branche, lue sur le sujet : en régime 8, un chemin sensible ne se modifie qu'avec l'accord du produit, noté sur le ticket avant d'y toucher. Arrête-toi et écris à ton conducteur (à qui t'a lancé, hors chantier) : le chemin, pourquoi, ce qui y change ; il obtient l'accord et ajoute le chemin au ticket par une PR de documentation vers le sujet (A-75). (Clone superficiel : la base de fusion d'un sujet avec develop ne s'y lit pas, et une copie du ticket que le sujet n'a pas écrite a pu compter. Avant d'écrire au conducteur : `git fetch --unshallow origin`, puis refaire l'écriture.)
+geste lu dans le refus : git fetch --unshallow origin
+hook de commandes : null
+après le geste, clone superficiel : false ; l'écriture refaite : sortie 0

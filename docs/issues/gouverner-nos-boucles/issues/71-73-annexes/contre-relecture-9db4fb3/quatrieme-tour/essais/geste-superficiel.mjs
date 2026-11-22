@@ -1,0 +1,41 @@
+// Le geste du refus du hook dans un clone superficiel (constat 19) : le texte entier du refus, puis le geste passé au
+// hook de commandes (`decisionCommande` de regles.mjs : `null`, la commande est permise), joué, et l'écriture refaite.
+// Usage : node geste-superficiel.mjs <racine de l'arbre>
+import { execFileSync, spawnSync } from 'node:child_process';
+import { copyFileSync, mkdirSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
+const racine = process.argv[2];
+const { depotJouet, GRAMMAIRE } = await import(pathToFileURL(join(racine, 'skills/chaine/sujet/scripts/depot-jouet.mjs')).href);
+const { decisionCommande } = await import(pathToFileURL(join(racine, 'skills/chaine/socle-chaine-de-production/references/agent/regles.mjs')).href);
+const TICKET = 'docs/features/demo/all/issues/SPEC_ALL_DEMO-1-demo.01.issue.md';
+const ticket = (ligne) => `# SPEC_ALL_DEMO-1.01 — x\n\nStatus: ready-for-agent\n${ligne}\n\n## Le besoin\n\nx\n`;
+const CONTRAT = { cheminsSensibles: ['scripts/agent/**'], relecture: { depuis: '2026-11-17T09:00:00Z' } };
+const d = depotJouet();
+d.ecrire('.claude/chaine.json', `${JSON.stringify(CONTRAT)}\n`);
+d.ecrire(TICKET, ticket('Sensibles: —'));
+d.commit('docs: ticket');
+d.git('push', '-q', 'origin', 'HEAD:develop');
+d.git('fetch', '-q', 'origin');
+d.branche('sujet/autre', 'origin/develop', { 'docs/autre.md': 'a\n' });
+for (let i = 0; i < 3; i++) d.branche('develop', 'origin/develop', { [`docs/f${i}.md`]: `${i}\n` });
+d.branche('develop', 'origin/develop', { [TICKET]: ticket('Sensibles: `scripts/agent/**` — accord de la MOA, 2026-11-21') });
+const ombre = join(d.racine, 'ombre');
+execFileSync('git', ['clone', '-q', '--depth', '1', '--single-branch', '-b', 'develop', `file://${d.origine}`, ombre], { env: d.env });
+const g = (...a) => execFileSync('git', a, { cwd: ombre, env: d.env, encoding: 'utf8' }).trim();
+g('fetch', '-q', 'origin', '+refs/heads/develop:refs/remotes/origin/develop', '+refs/heads/sujet/*:refs/remotes/origin/sujet/*');
+g('switch', '-q', '-c', 'feat/spec-all-demo-1-01-x', 'origin/develop');
+const outils = join(d.racine, 'outils');
+mkdirSync(join(outils, 'scripts/agent'), { recursive: true });
+for (const f of ['entree.mjs', 'regles.mjs', 'garde-fichiers.mjs']) copyFileSync(join(racine, 'skills/chaine/socle-chaine-de-production/references/agent', f), join(outils, 'scripts/agent', f));
+mkdirSync(join(outils, 'scripts/docs'), { recursive: true });
+copyFileSync(GRAMMAIRE, join(outils, 'scripts/docs/identifiants.mjs'));
+mkdirSync(join(outils, '.claude'), { recursive: true });
+writeFileSync(join(outils, '.claude/chaine.json'), JSON.stringify(CONTRAT));
+const hook = () => spawnSync(process.execPath, [join(outils, 'scripts/agent/garde-fichiers.mjs')], { cwd: ombre, env: { ...d.env, CLAUDE_PROJECT_DIR: ombre }, input: JSON.stringify({ tool_input: { file_path: join(ombre, 'scripts/agent/x.mjs') } }), encoding: 'utf8' });
+const r = hook();
+console.log(`clone superficiel : ${g('rev-parse', '--is-shallow-repository')}\nrefus : sortie ${r.status}\n${r.stderr.trim().replace(/\/[^ ]*ombre/g, '<clone>')}`);
+const geste = /`(git fetch --unshallow origin)`/.exec(r.stderr)?.[1];
+console.log(`geste lu dans le refus : ${geste}\nhook de commandes : ${JSON.stringify(decisionCommande(geste, { dependancesPrevues: () => [], brancheCourante: () => 'feat/spec-all-demo-1-01-x', brancheParDefaut: () => 'main' }))}`);
+g(...geste.split(' ').slice(1));
+console.log(`après le geste, clone superficiel : ${g('rev-parse', '--is-shallow-repository')} ; l'écriture refaite : sortie ${hook().status}`);

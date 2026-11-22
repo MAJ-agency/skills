@@ -525,3 +525,52 @@ par celui du tour 3.
 ### Temps du troisième tour
 
 De 05 h 04 à 05 h 34 UTC (30 min), dont l'espion (20 min) et les mutations (8 + 24 min) en tâche de fond.
+
+## Quatrième tour, au sommet `9d989dc` (delta `ef2b3f8..9d989dc`)
+
+Sommet `9d989dc62f7b0384e8bdd2cb9f7e6f0bd247f87d`, parent direct `ef2b3f8`, un commit. Les limites des constats 21 et 22
+sont écrites dans `A-193` ; elles, Q1, Q2 et M1 à M4 vont à la suite. Mêmes règles ; la suite entière non rejouée.
+Fichiers dans `quatrieme-tour/`.
+
+### Conclusion du quatrième tour
+
+**Verdict proposé : conforme au sommet `9d989dc62f7b0384e8bdd2cb9f7e6f0bd247f87d`.** Les constats 19 et 20 sont fermés ;
+le delta n'ouvre aucun bloquant ni aucun écart à corriger. Deux mineurs neufs, pour la suite :
+
+| # | Gravité | Constat neuf, en une ligne | Fichier |
+| --- | --- | --- | --- |
+| 23 | mineur | aucun banc ne tient que le geste du clone superficiel n'est dit que dans un clone superficiel (T2 verte) : dit dans un clone entier, `git fetch --unshallow` y échouerait (« does not make sense ») ; banc à écrire : un refus dans un clone entier ne nomme pas le clone superficiel | `skills/chaine/socle-chaine-de-production/references/agent/garde-fichiers.test.mjs` |
+| 24 | mineur | le refus commence par « Arrête-toi et écris à ton conducteur », et le geste qui relit ou approfondit vient après, entre parenthèses (« Avant d'écrire au conducteur : … ») ; le mettre en tête quand il y en a un | `skills/chaine/socle-chaine-de-production/references/agent/regles.mjs` |
+
+### Les questions du tour
+
+- **L'arbre** (`quatrieme-tour/essais/egalite.sh`, une commande, un index jetable) : `ef2b3f8` plus `retouches-tour-3.patch`
+  (sha256 `42b86c22…`) donne `f8fc5c3b…`, l'arbre de `9d989dc`.
+- **Constats 19 et 20 fermés** : V1, V2, Xʹ10, W1 à W3 **toutes rouges** sur `9d989dc` (`quatrieme-tour/mutations/mutations-9d989dc.txt`).
+- **Le geste** (`quatrieme-tour/essais/geste-superficiel.mjs`, sortie `geste-superficiel.txt`), joué de bout en bout dans un
+  clone `--depth 1 --single-branch` : le refus (sortie 2) se termine par « (Clone superficiel : la base de fusion d'un
+  sujet avec develop ne s'y lit pas, et une copie du ticket que le sujet n'a pas écrite a pu compter. Avant d'écrire au
+  conducteur : `git fetch --unshallow origin`, puis refaire l'écriture.) » ; `decisionCommande` du hook de commandes
+  rend `null` pour `git fetch --unshallow origin` (permise) ; le geste joué, le clone n'est plus superficiel et
+  l'écriture refaite passe (sortie 0). Il dit donc quoi faire ensuite : refaire l'écriture refusée.
+- **Le delta n'ouvre rien d'autre** : la détection du clone superficiel ne joue que si `git merge-base` échoue ; dans un
+  clone entier sans base commune (un sujet orphelin), rien n'est dit de plus et la copie compte (W1, T1 rouges) ; dans un
+  clone superficiel dont le sujet est réellement orphelin, le geste est dit, puis, le clone approfondi, le refus reste,
+  juste. Deux mineurs seulement (23, 24).
+- **Mutations neuves sur le delta** (`quatrieme-tour/mutations/mutations-t4.mjs`) : T1 (sans base lue, la copie dite
+  héritée) **rouge** ; T2 (le geste dit à chaque refus) **verte** (constat 23).
+- **L'espion du régime 7 n'est pas rejoué** : le delta ne touche aucun chemin que le régime 7 exécute. Ses cinq morceaux
+  de code sont dans `accordes()` de `garde-fichiers.mjs` et dans `refusSensible()` de `regles.mjs`, que `refusEdition`
+  n'appelle que sous `regime8` ; aucun code au chargement des modules ne change ; le reste est un banc et la note.
+  Vérifié : `regime7-hook-gate.mjs` rend sur `9d989dc` ce qu'il rendait au tour 1 (`regime7-hook-gate-9d989dc.txt`).
+- **Les contrôles GitHub** au sommet (`quatrieme-tour/essais/controles-github-9d989dc.txt`) : `bancs`, `CodeQL`,
+  `Analyze (actions)`, `Analyze (javascript-typescript)` terminés en succès (`bancs` à 05 h 57) ; la PR ouverte, hors
+  brouillon, sans étiquette. **`mergeable_state` « dirty »** : `main` a reçu la PR 150 (ticket 74, 7.38.3, `37233f8`) ;
+  la fusion calculée de `main` et de `9d989dc` n'est en conflit que sur `.claude-plugin/plugin.json` et
+  `NOTES-DE-VERSION.md`, le cas que le § 2 du ticket 71 prévoit (fusionner `origin/main` par un commit de fusion, prendre
+  ces deux fichiers d'`origin/main`, rejouer `note-et-version.mjs` : 7.38.3 donne encore 7.39.0), puis « Vérification »
+  à nouveau. Ce n'est pas un écart du delta ; le sommet qui portera la fusion est à revérifier (arbre, version, note).
+
+### Temps du quatrième tour
+
+De 05 h 46 à 05 h 58 UTC (12 min, dont 11 à attendre le contrôle `bancs`).
