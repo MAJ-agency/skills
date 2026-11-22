@@ -47,24 +47,87 @@
 # préparation en échec, worktree pas propre, origin/develop ou contrat illisibles arrêtent la veille
 # en sortie 13, « VEILLE ARRÊTÉE <hh:mm> : … », jamais une préparation sautée.
 #
-# Échéance. Une tâche de fond est tuée à 2 h ; tuée au milieu d'un passage, elle laisse une PR à moitié
-# mise à jour. Aucun passage ne commence à moins de `--marge` minutes (40) de cette limite : la veille
+# Échéance. L'outil Bash arrête une tâche de fond à 30 min par défaut, à 2 h au plus : la session lance la veille
+# avec son `timeout` à 7200000 (ms, skill fusionner § « Boucle »), et la veille compte sur ces 2 h ; tuée au milieu
+# d'un passage, elle laisse une PR à moitié mise à jour. Aucun passage ne commence à moins de `--marge` minutes (40) de cette limite : la veille
 # calcule l'échéance absolue (démarrage + (120 - marge) min), la transmet à la boucle
 # (`BOUCLE_ECHEANCE`, secondes depuis l'époque Unix), qui la vérifie avant chaque passage et s'arrête
 # sur `ÉCHÉANCE` (sortie 0), et ne relance plus la boucle passé l'échéance : « VEILLE FINIE <hh:mm>
 # (échéance) ». Une `--duree` plus longue ne repousse pas l'échéance. `VEILLE_LIMITE` (minutes, décimal
 # permis) remplace la limite de 120, pour les bancs seulement.
 #
-# Usage, en tâche de fond, depuis le worktree du capitaine, scripts copiés hors du worktree, `CAPITAINE_ID` (l'id de la
-# session du capitaine) en préfixe :
-#   CAPITAINE_ID=<id> bash <copie>/veille.sh [--pause <s>] [--duree <min>] [--marge <min>] [--sondes <n>] > <journal> 2>&1
+# Une veille à la fois, et son état. Une veille tuée (l'outil, un conteneur redémarré, `kill`) n'écrit aucune ligne
+# finale et ne réveille personne (cas vécu : 5 h 40 sans lecture de la file). La veille tient donc le verrou
+# `<git-common-dir>/veille.verrou` (`flock`, descripteur 7, qu'aucun fils n'hérite : un démon laissé par un passage, ou
+# un `sleep` orphelin, ne la ferait pas croire vivante) ; une seconde veille sort en 9 après 3 s (l'attente d'un `--etat` en cours), « VEILLE ARRÊTÉE <hh:mm>
+# : une veille tourne déjà ». Elle écrit `<git-common-dir>/veille.etat` (hors de l'arbre de travail, il survit au
+# redémarrage de la machine) : « lancee <epoch> » au démarrage, « fin <epoch> <ligne finale> » avec sa ligne finale
+# (VEILLE FINIE, VEILLE ARRÊTÉE ; pas les refus d'usage d'avant le verrou, sortie 64). Tuée, elle n'écrit pas sa fin.
+# `veille.sh --etat`, depuis le worktree, sans CAPITAINE_ID ni réseau, n'écrit rien et dit, dans cet ordre :
+#   VEILLE VIVANTE (lancée à <hh:mm>)                            sortie 0 : une veille tient le verrou
+#   VEILLE TERMINÉE : arrêt demandé (<fichier>, posé le <date>) …  sortie 2 : `boucle-arret` posé (boucle.sh --arreter)
+#   VEILLE TERMINÉE : <ligne finale>                             sortie 2 : sa fin est écrite
+#   VEILLE MORTE (lancée à <hh:mm>, sans ligne finale) : …       sortie 1 : rien de cela, ou aucune trace de veille
+# `--reprendre` (après une veille morte et `boucle.sh --arreter`, qui pose le fichier d'arrêt) : la veille retire ce
+# fichier dès son verrou pris, celui de la boucle libre (sinon sortie 9, fichier gardé), avant sa préparation ; la
+# boucle, elle, se lance toujours sans `--reprendre` : un arrêt posé après ce retrait (`--arreter` pendant le démarrage)
+# est un arrêt neuf, qu'elle respecte (sortie 10). `--etat` tient le verrou le temps de sa lecture : une veille qui
+# démarre l'attend (3 s au plus) ; un verrou qui ne s'ouvre pas n'est jamais une veille vivante (sortie 6).
+#
+# Usage, en tâche de fond (`timeout` 7200000), depuis le worktree du capitaine, scripts copiés hors du worktree,
+# `CAPITAINE_ID` (l'id de la session du capitaine) en préfixe :
+#   CAPITAINE_ID=<id> bash <copie>/veille.sh [--pause <s>] [--duree <min>] [--marge <min>] [--reprendre] [--sondes <n>] >> <journal> 2>&1
 #   (défauts 120 s, 75 min, 40 min)
+#   bash <copie>/veille.sh --etat
 # VEILLE FINIE ou VEILLE ARRÊTÉE réveille la session. `--duree` : un nombre positif, décimal permis ;
 # `--marge` : des minutes entières, sous la limite. Option invalide : sortie 64, l'option nommée.
 # `--sondes <n>` (pour les tests seulement) : VEILLE FINIE après n sondes, durée ou pas, pour qu'un test
 # compte des sondes sans dépendre de l'horloge. Défaut : pas de limite.
 # =============================================================================
 outils=$(cd "$(dirname "$0")" && pwd)
+heure() { date +%H:%M; }
+heure_de() { date -d "@$1" +%H:%M 2>/dev/null || date -r "$1" +%H:%M; }
+# Verrou et état de la veille (en-tête), dans le répertoire commun du dépôt.
+COMMUN=$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null)
+VERROU_VEILLE="$COMMUN/veille.verrou"
+ETAT_VEILLE="$COMMUN/veille.etat"
+ARRET="$COMMUN/boucle-arret"
+
+# --etat (en-tête) : avant CAPITAINE_ID, qu'il n'exige pas ; rien d'écrit, hors le fichier du verrou que `flock` crée.
+if [ "${1-}" = --etat ]; then
+  [ $# = 1 ] || { echo "usage : veille.sh --etat (seule)" >&2; exit 64; }
+  [ -n "$COMMUN" ] || { echo "veille.sh --etat : à lancer depuis le worktree du capitaine (dépôt git)" >&2; exit 64; }
+  command -v flock >/dev/null || { echo "veille.sh --etat : flock (util-linux) requis" >&2; exit 6; }
+  lire_etat() {
+    mot="" quand="" ligne=""
+    [ ! -f "$ETAT_VEILLE" ] || read -r mot quand ligne < "$ETAT_VEILLE"
+    [[ "$quand" =~ ^[0-9]+$ ]] || mot=""
+    lancee=""
+    [ "$mot" != lancee ] || lancee="lancée à $(heure_de "$quand")"
+  }
+  # Le verrou pris le temps de la lecture : aucune veille n'écrit l'état entre la lecture et le verdict (une veille
+  # qui démarre l'attend, `flock -w` ci-dessous).
+  exec 7>>"$VERROU_VEILLE"
+  if ! flock -n 7; then
+    # Un fichier du verrou qui ne s'ouvre pas (le descripteur 7 fermé) n'est jamais une veille vivante.
+    { : >&7; } 2>/dev/null || { echo "veille.sh --etat : verrou de la veille illisible ($VERROU_VEILLE)" >&2; exit 6; }
+    lire_etat
+    echo "VEILLE VIVANTE${lancee:+ ($lancee)}"
+    exit 0
+  fi
+  lire_etat
+  if [ -e "$ARRET" ]; then
+    echo "VEILLE TERMINÉE : arrêt demandé ($ARRET, posé le $(cat "$ARRET" 2>/dev/null)) ; « veille.sh --reprendre » quand on veut repartir"
+    exit 2
+  fi
+  if [ "$mot" = fin ] && [ -n "$ligne" ]; then
+    echo "VEILLE TERMINÉE : $ligne"
+    exit 2
+  fi
+  echo "VEILLE MORTE (${lancee:-aucune trace de veille}${lancee:+, sans ligne finale}) : « boucle.sh --arreter », puis la relancer avec --reprendre"
+  exit 1
+fi
+
 # L'id de la session du capitaine (verrou de chaque passage, github.sh) : vérifié ici, pas deux minutes plus tard par la
 # boucle. Absent ou mal formé : sortie 64.
 [[ "${CAPITAINE_ID-}" =~ ^[A-Za-z0-9_-]{1,100}$ ]] || {
@@ -72,12 +135,14 @@ outils=$(cd "$(dirname "$0")" && pwd)
   exit 64
 }
 
-# Limite des tâches de fond de la plateforme (2 h), en minutes ; `VEILLE_LIMITE` pour les bancs.
+# Limite de la tâche de fond, en minutes : le `timeout` de 2 h que la session donne à l'outil Bash (30 min sans lui) ;
+# `VEILLE_LIMITE` pour les bancs.
 limite=${VEILLE_LIMITE:-120}
 pause=120
 duree=75
 marge=40
 sondes=""
+reprendre=0
 invalide() { echo "veille.sh : $1" >&2; exit 64; }
 while [ $# -gt 0 ]; do
   option=$1 valeur=${2-}
@@ -86,7 +151,8 @@ while [ $# -gt 0 ]; do
     --duree) duree=$valeur ;;
     --marge) marge=$valeur ;;
     --sondes) sondes=${valeur:?--sondes attend un nombre} ;;
-    *) echo "usage : veille.sh [--pause <s>] [--duree <min>] [--marge <min>] [--sondes <n>]" >&2; exit 64 ;;
+    --reprendre) reprendre=1; shift; continue ;;
+    *) echo "usage : veille.sh [--pause <s>] [--duree <min>] [--marge <min>] [--reprendre] [--sondes <n>] | --etat" >&2; exit 64 ;;
   esac
   if [ $# -ge 2 ]; then shift 2; else shift; fi
 done
@@ -99,17 +165,39 @@ debut=$(date +%s)
 echeance=$(awk -v t="$debut" -v l="$limite" -v m="$marge" 'BEGIN { printf "%d", t + (l - m) * 60 }')
 export BOUCLE_ECHEANCE=$echeance
 
-heure() { date +%H:%M; }
-heure_de() { date -d "@$1" +%H:%M 2>/dev/null || date -r "$1" +%H:%M; }
+# Une veille à la fois (en-tête) : le verrou se tient sur le descripteur 7 jusqu'à la sortie ; chaque fils qui peut
+# survivre à la veille (boucle, tee, file.sh, sleep, fetch, préparation) est lancé avec `7>&-`. Puis l'état « lancee ».
+[ -n "$COMMUN" ] || { echo "VEILLE ARRÊTÉE $(heure) : veille.sh se lance depuis le worktree du capitaine (dépôt git)" >&2; exit 64; }
+command -v flock >/dev/null || { echo "VEILLE ARRÊTÉE $(heure) : flock (util-linux) requis"; exit 6; }
+exec 7>>"$VERROU_VEILLE"
+flock -w 3 7 || {
+  { : >&7; } 2>/dev/null || { echo "VEILLE ARRÊTÉE $(heure) : verrou de la veille illisible ($VERROU_VEILLE)"; exit 6; }
+  echo "VEILLE ARRÊTÉE $(heure) : une veille tourne déjà ($VERROU_VEILLE) : une seule à la fois, « veille.sh --etat »"; exit 9; }
+printf 'lancee %s\n' "$debut" > "$ETAT_VEILLE"
+# Ligne finale : écrite dans l'état, puis au journal, puis la sortie. Toute fin de la veille après le verrou passe ici.
+finir() { # <code> <ligne finale>
+  printf 'fin %s %s\n' "$(date +%s)" "$2" > "$ETAT_VEILLE"
+  echo "$2"
+  exit "$1"
+}
+# --reprendre (en-tête) : le fichier d'arrêt se retire ici, le verrou de la boucle libre, avant la préparation : une
+# veille relancée par le réveil de garde puis tuée, ou arrêtée en 13, avant sa première boucle ne laisse pas un arrêt
+# que la garde lirait comme demandé. La boucle n'en reçoit aucun : un arrêt posé ensuite est un arrêt neuf.
+if [ "$reprendre" = 1 ]; then
+  exec 8>>"$COMMUN/boucle.verrou"
+  flock -n 8 || finir 9 "VEILLE ARRÊTÉE $(heure) : une boucle tient le verrou ($COMMUN/boucle.verrou) : fichier d'arrêt gardé ; « boucle.sh --arreter », puis --reprendre"
+  rm -f "$ARRET"
+  exec 8>&-
+fi
+
 echeance_passee() { [ "$(date +%s)" -ge "$echeance" ]; }
 
 # Préparation du capitaine (en-tête). `prepare_pour` : le boot (ou « illisible ») pour lequel cette
 # veille a déjà lu le contrat, ou préparé : plus rien à lire ni à jouer tant qu'il ne change pas.
-COMMUN=$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null)
 GARDE="$COMMUN/capitaine-boot-id"
 VERROU="$COMMUN/boucle.verrou"
 prepare_pour=""
-arreter_preparation() { echo "VEILLE ARRÊTÉE $(heure) : $1"; exit 13; }
+arreter_preparation() { finir 13 "VEILLE ARRÊTÉE $(heure) : $1"; }
 preparer_si_besoin() {
   local boot cle contrat type commande racine rc
   local essai lu
@@ -121,8 +209,8 @@ preparer_si_besoin() {
   # Trois essais, comme la boucle (sortie 6 au troisième) : un fetch passager n'arrête pas la veille.
   lu=""
   for essai in 1 2 3; do
-    git fetch -q origin develop 2>/dev/null && { lu=1; break; }
-    [ "$essai" = 3 ] || sleep $((essai * 5))
+    git fetch -q origin develop 2>/dev/null 7>&- && { lu=1; break; }
+    [ "$essai" = 3 ] || sleep $((essai * 5)) 7>&-
   done
   [ -n "$lu" ] && git rev-parse --verify -q origin/develop >/dev/null ||
     arreter_preparation "origin/develop illisible : préparation inconnue ; aucune fusion, relancer la veille"
@@ -150,7 +238,7 @@ preparer_si_besoin() {
   racine=$(git rev-parse --show-toplevel)
   [ -n "$boot" ] || echo "VEILLE $(heure) : boot_id illisible, préparation jouée à chaque démarrage de la veille"
   echo "VEILLE $(heure) : préparation (« $commande »)"
-  (cd "$racine" && sh -c "$commande" </dev/null 2>&1 8>&-)
+  (exec 7>&- 8>&-; cd "$racine" && sh -c "$commande" </dev/null 2>&1)
   rc=$?
   exec 8>&-
   [ "$rc" = 0 ] ||
@@ -170,15 +258,13 @@ trap 'rm -f "$journal_boucle"' EXIT
 # (`[#n] RENVOI`, renvoyer.sh) ou dont elle a relancé les jobs rouges (`[#n] RELANCE`, boucle.sh)
 # sort de l'ensemble vu : si elle revient avant la sonde suivante, même ligne qu'avant la boucle,
 # elle est nouvelle et relance la boucle (cas vécu : PR renvoyée, corrigée en une minute, invisible).
-# La préparation la précède (en-tête) ; son échec sort en 13 sans lancer la boucle.
+# La préparation la précède (en-tête) ; son échec sort en 13 sans lancer la boucle. Jamais `boucle.sh --reprendre` :
+# `--reprendre` a retiré le fichier d'arrêt avant la préparation, et un arrêt posé depuis tient la boucle (sortie 10).
 lancer() {
   preparer_si_besoin
-  bash "$outils/boucle.sh" | tee "$journal_boucle"
+  bash "$outils/boucle.sh" 7>&- | tee "$journal_boucle" 7>&-
   local rc=${PIPESTATUS[0]} agies
-  if [ "$rc" != 0 ]; then
-    echo "VEILLE ARRÊTÉE $(heure) : la boucle est sortie en $rc"
-    exit "$rc"
-  fi
+  [ "$rc" = 0 ] || finir "$rc" "VEILLE ARRÊTÉE $(heure) : la boucle est sortie en $rc"
   agies=$(sed -nE 's/^\[#([0-9]+)\] (RENVOI|RELANCE).*/\1/p' "$journal_boucle" | sort -u)
   [ -z "$agies" ] || vu=$(printf '%s\n' "$vu" | awk 'NR == FNR { a[$1]; next } !($1 in a)' <(printf '%s\n' "$agies") -)
   # Sous-PR qui attendent leur tour, « n:m » (n attend que #m, qui tient son sujet, soit passée) : etat_file les suit.
@@ -197,7 +283,7 @@ expire=""
 tire=""
 etat_file() {
   local sortie
-  sortie=$(bash "$outils/file.sh" 2>/dev/null) || return 1
+  sortie=$(bash "$outils/file.sh" 2>/dev/null 7>&-) || return 1
   printf '%s\n' "$sortie" | awk -F '\t' -v attentes="$attentes" '
     { etat[$1] = $2 }
     $2 ~ /CI rouge/ { print $1 " rouge"; next }
@@ -214,17 +300,17 @@ etat_file() {
 
 echo "VEILLE $(heure) : durée $duree min, aucun passage après $(heure_de "$echeance") (marge $marge min)"
 SECONDS=0
-vu=$(etat_file || true)
+vu=$(exec 7>&-; etat_file || true)
 lancer
 dernier_journal=-600
 faites=0
 while [ "$SECONDS" -lt "$fin" ] && { [ -z "$sondes" ] || [ "$faites" -lt "$sondes" ]; }; do
-  sleep "$pause"
+  sleep "$pause" 7>&-
   # Passé l'échéance, plus de relance : un passage commencé ne finirait pas avant la limite de 2 h.
-  if echeance_passee; then echo "VEILLE FINIE $(heure) (échéance)"; exit 0; fi
+  if echeance_passee; then finir 0 "VEILLE FINIE $(heure) (échéance)"; fi
   [ "$SECONDS" -lt "$fin" ] || break
   faites=$((faites + 1))
-  if ! actuel=$(etat_file); then
+  if ! actuel=$(exec 7>&-; etat_file); then
     echo "VEILLE $(heure) : lecture de la file impossible, sonde sautée"
     continue
   fi
@@ -249,5 +335,4 @@ while [ "$SECONDS" -lt "$fin" ] && { [ -z "$sondes" ] || [ "$faites" -lt "$sonde
     lancer
   fi
 done
-echo "VEILLE FINIE $(heure)"
-exit 0
+finir 0 "VEILLE FINIE $(heure)"
