@@ -1,6 +1,6 @@
 # Les bancs posés isolés du contrat du projet : `regles.test.mjs` lit une copie posée seule, `develop.test.mjs` quitte `references/`, et le garde qui pose les bancs de `references/` au régime 8 et au régime 7
 
-Status: ready-for-agent
+Status: Fait — PR 156 (51596e5, plugin 8.2.1)
 Type: défaut
 Label: contre-revue
 Modèle: sonnet — deux défauts du plugin 8.0.0 trouvés à la pose réelle d'un dépôt neuf, reproduits ici, corrigés sans rien concevoir ; le code entier est dans le patch ([`90-annexes/ticket-90.patch`](90-annexes/ticket-90.patch), sha256 `75b1e31b38b2072b1ed32d77d1a26b8acb3fe8a0077856e4f26f3c2e65dd720f`, `git apply` sur `main` à `61bf51b`, plugin 8.0.1), décrit fichier par fichier ci-dessous ; le garde rouge avant le code (deux bancs posés en échec au régime 8, un au régime 7), vert après ; les 14 mutations de [`90-annexes/mutations.mjs`](90-annexes/mutations.mjs) toutes rouges. Qui veut changer une décision l'écrit à son lanceur, il ne tranche pas.
