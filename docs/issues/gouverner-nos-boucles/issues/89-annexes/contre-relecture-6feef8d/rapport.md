@@ -1,6 +1,6 @@
 # Contre-relecture de la PR 157 (« anchorpost », ticket 89) — tour 1, sommet `6feef8d`
 
-**Verdict : non conforme au sommet `6feef8dc9110dab85b5f8dc6f2cf2b746d2c8c23`** — 0 bloquant, 3 à corriger, 6 mineurs. Les trois retouches ([`retouches/`](retouches/), sommes dans [`retouches/SHA256SUMS`](retouches/SHA256SUMS)) se posent chacune seule par `git apply` sur `6feef8d`, et ensemble dans l'ordre A, B, C ; ensemble : 5 fichiers, `preuve-suffisante-anchorpost.test.mjs` et `depot.test.mjs` 71 sur 71, les 13 mutations de l'annexe toujours rouges, la suite entière verte (« Ce qui a été joué »). Le nombre de tests ne change pas.
+**Verdict : non conforme au sommet `6feef8dc9110dab85b5f8dc6f2cf2b746d2c8c23`** — 0 bloquant, 3 à corriger, 6 mineurs. Décisions de l'architecte (`A-213`) : la question 1 tranchée pour `migrate manifest` et `@^2.0.2`, la question 2 pour la fiche qui suit la CLI, les trois retouches retenues, les mineurs 4 à 8 portés. **Une seule retouche** les porte tous : [`retouches/retouche-157-tour-1.patch`](retouches/retouche-157-tour-1.patch), sur `6feef8d`, sha256 `4b0017c8d41873e9bc109d840fa6df12dbcbe90f3c3582d4f489db25e0ff7414` ([`retouches/SHA256SUMS`](retouches/SHA256SUMS)) : 5 fichiers, 40 lignes ajoutées, 12 retirées, aucun test neuf. Son banc posé seul sur `6feef8d` : 2 rouges sur 71 ; le patch entier : 113 sur 113 (les deux bancs du § 2 et les deux qui lisent la note) ; les 13 mutations de l'annexe toutes rouges, et 26 des miennes sur 26 ([« Tour retouché »](#tour-retouché-a-213)). La suite entière n'est pas rejouée sur ce patch : la session la joue.
 
 Clone neuf de `https://github.com/MAJ-agency/skills`, le 2026-11-22 : la PR à `6feef8d`, `main` à `56ba394` (8.2.0), les annexes lues sur `claude/hopeful-lovelace-ouk6tz`. Clone en lecture seule d'Anchorpost `develop` (`31afa3d`). La CLI publiée sur npmjs.com, installée sans jeton dans des dossiers jetables : 2.0.0, 2.0.1 et 2.0.2. Les constats du tour de relecture (`83-89-relecture-tour-1/rapport.md`, n° 5, 6 et 9) sont portés ; ils ne sont pas repris ici.
 
@@ -29,7 +29,7 @@ La CLI que `@^2` installe aujourd'hui, la 2.0.2, a une commande pour ce passage,
 
 *Scénario* : une session reprend un dépôt au schéma 2 par « Passer au pivot 3 ». Au point 1, la CLI lui dit `migrate manifest` ; le skill lui dit `init`. Elle suit le skill : un plancher non signé entre dans le manifeste sans qu'elle le sache, puis elle cherche une `featureCriticality` à réécrire qui l'est déjà ; ou, si une feature est basse, `init` refuse et le skill n'a pas de suite.
 
-*Retouche* : [`retouches/retouche-157-pivot-3-migrate-manifest.patch`](retouches/retouche-157-pivot-3-migrate-manifest.patch) (retouche A) : point 1, `@^2.0.2`, la raison, et « Commiter » (`--apply` exige un arbre propre) ; point 2, `migrate manifest` (le plan, puis `--apply`), ce qu'elle écrit et refuse, le cas d'une feature basse, « Jamais `init --force` », le plancher relevé à la main ; la note 8.3.0 en accord ; le banc exige les deux passages neufs. Sur `6feef8d`, le banc retouché seul : 2 tests, 1 rouge ; le patch entier : vert. C'est la question 1.
+*Retouche* (dans [`retouches/retouche-157-tour-1.patch`](retouches/retouche-157-tour-1.patch)) : point 1, `@^2.0.2`, la raison, et « Commiter » (`--apply` exige un arbre propre) ; point 2, `migrate manifest` (le plan, puis `--apply`), ce qu'elle écrit et refuse, le cas d'une feature basse, « Jamais `init --force` », le plancher relevé à la main ; la note 8.3.0 en accord ; le banc exige les passages neufs. Retenue (`A-213`, question 1).
 
 **2. [`references/rules/anchorpost.md` l. 45 (et l. 38) ; `references/manifest.json`, `$comment`] La fiche définit « prouvée » autrement que la CLI et que la fiche des tests posée par 8.2.0.**
 
@@ -39,7 +39,7 @@ La fiche : « une règle est « prouvée » quand chacun de ses cas l'est, « pa
 
 *Scénario* : une session écrit les cas d'une règle moyenne d'après la fiche, prouve chacun, et dit la règle « prouvée » dans sa PR ou relève le plancher `proven` d'autant ; l'index la dit partielle, et `check` refuse le plancher au-dessus de la mesure.
 
-*Retouche* : [`retouches/retouche-157-fiche-prouvee-et-partielle.patch`](retouches/retouche-157-fiche-prouvee-et-partielle.patch) (retouche B) : la phrase de la fiche aux mots de `tests.md` (`realisation.missing` nommé) ; la réponse d'une famille dite (un cas qui la porte, un cas `invalid` pour `invalid-input`, le « sans objet », une question ouverte) ; le `$comment` du gabarit ; le banc exige la phrase. La fiche reste à 62 lignes. Sur `6feef8d`, le banc retouché seul : 2 tests, 1 rouge ; le patch entier : vert.
+*Retouche* (dans le même patch) : la phrase de la fiche aux mots de `tests.md` (`realisation.missing` nommé) ; la réponse d'une famille dite (un cas qui la porte, un cas `invalid` pour `invalid-input`, le « sans objet », une question ouverte) ; le `$comment` du gabarit ; le banc exige la phrase de la fiche et celle du commentaire. La fiche reste à 62 lignes. Retenue (`A-213`, question 2).
 
 **3. [`scripts/preuve-suffisante-anchorpost.test.mjs`] Le banc laisse passer des mutations sur les décisions 2, 3 et 4 du ticket.**
 
@@ -49,36 +49,53 @@ Mutations neuves ([`mutations/mutations-contre.mjs`](mutations/mutations-contre.
 - décision 3 : C1, `init --force` au lieu de « sans `--force` » ; C12, le point 5 qui fait écrire `enforce` par la session « dès que `check` est vert » (le banc ne tient que « est une décision du produit, projet par projet », pas « une PR où une personne écrit ») ; C15, le plancher « ramené » au lieu de « relevé » ; C11, `admin.md` où « un agent écrit » `enforce` ;
 - décision 4 : C3, une règle sans criticité dite « basse » au lieu d'« à classer » ; C4, « le plus bas des deux » niveaux ; C7, une étiquette de cas inconnue « ignorée » au lieu de « refusée » ; C8, « Un agent lève un écart en baissant un niveau » ; C10, le manifeste qui ne dit plus qu'un agent n'y baisse rien.
 
-*Retouche* : [`retouches/retouche-157-bancs-des-decisions.patch`](retouches/retouche-157-bancs-des-decisions.patch) (retouche C), le banc seul : ces passages exigés, dans les deux tests existants (le compte ne change pas). Sur la PR telle quelle, vert (le texte les porte) ; C2, C3, C4, C7, C8, C10, C11, C12 et C15 deviennent rouges ; C1 l'est par la retouche A (« Jamais `init --force` », la phrase d'`init` disparue) ([`mutations/contre-sur-retouches.txt`](mutations/contre-sur-retouches.txt)).
+*Retouche* (dans le même patch) : ces passages exigés, dans les deux tests existants (le compte ne change pas). Retenue (`A-213`).
 
 ## Mineurs
 
-4. **Mutations encore vertes après les retouches** : C6 (les portées `business` et `technical` inversées), C9 (« la criticité d'une feature descend aussi par `Prouve:` »), C18 (le refus de criticité dit « en `observe` » dans la liste de `check`), C13 et C14 (la note sans `cheminsSensibles`, ou qui installe avant de retirer la ligne de registre). Le banc ne lit pas la note ; un autre banc du dépôt le fait pour d'autres skills (`preuve-suffisante-socle-tests.test.mjs` l. 62). À ajouter si l'architecte veut ces phrases tenues.
-5. **La fiche, « Ses écarts : »** (l. 49) se lit comme une liste fermée ; `compare` en a d'autres (`exception-posed`, `proofs-change-unvalidated`, `rule-devalidated`, `business-case-without-validation`, `base-unreadable`). Un « notamment ; la liste est celle du README de la CLI » suffirait.
-6. **« Passer au pivot 3 », point 3** : « Chaque règle sans criticité ni cas (l'alerte de projet de l'index les compte) » ; l'alerte ne compte que les règles **qui ont des preuves** sans cas ni criticité. Les règles sans preuve et sans criticité ont chacune leur alerte (« La règle est validée mais sans criticité »).
-7. **La note 8.3.0, « Ce qu'un projet fait »**, premier point : « Reposer la fiche » n'est pas réservé à un dépôt au pivot 3 ; un dépôt au schéma 2, que le second point laisse « sans rien changer », reposerait une fiche qui lui fait écrire `cases` et `criticality` que sa CLI 1.x ne lit pas. « Un dépôt au pivot 3 : reposer la fiche… » le dirait.
-8. **`SKILL.md` l. 82** : « Le manifeste … n'est jamais généré après `init` », alors que « Passer au pivot 3 » le fait réécrire par une commande. Avec la retouche A, c'est une conversion que la CLI fait à l'identique de sa lecture : une demi-phrase le dirait.
-9. **Le corps de la PR** ne recopie pas le journal des mutations (seulement « 13 rouges sur 13 »), que le § 3 du ticket demande (« le journal des mutations »).
+Les mineurs 4 à 8 sont portés par le patch (`A-213`) ; le 9 est laissé à la session.
+
+4. **Les cinq mutations vertes après les trois retouches** — C6 (les portées inversées), C9 (« la criticité d'une feature descend aussi par `Prouve:` »), C18 (le refus de criticité dit « en `observe` » dans la liste de `check`), C13 et C14 (la note sans `cheminsSensibles`, ou qui installe avant de retirer la ligne de registre). *Porté* : une ligne de banc chacune (la note lue par un `exiger` de `NOTES-DE-VERSION.md`, comme `preuve-suffisante-socle-tests.test.mjs` l. 62) ; les cinq sont rouges.
+5. **La fiche, « Ses écarts : »** (l. 49) se lisait comme une liste fermée ; `compare` en a d'autres (`exception-posed`, `proofs-change-unvalidated`, `rule-devalidated`, `business-case-without-validation`, `base-unreadable`…), trop pour une ligne. *Porté* : « Ses écarts, entre autres (la liste fermée est celle du README de la CLI) : ».
+6. **« Passer au pivot 3 », point 3** : l'alerte de projet ne compte que les règles **qui ont des preuves** sans cas ni criticité. *Porté* : « (l'alerte de projet de l'index compte celles qui ont des preuves ; les autres ont chacune leur alerte, « sans criticité » ou « aucun cas ») ».
+7. **La note 8.3.0, « Ce qu'un projet fait »**, premier point : « Reposer la fiche » n'était pas borné. *Porté* : « dans un dépôt au pivot 3 (un dépôt au schéma 2 la repose au point 4 de « Passer au pivot 3 ») ».
+8. **`SKILL.md` l. 82** : « Il n'est jamais généré après `init` » contre une commande qui réécrit le manifeste. *Porté* : « ; `anchorpost migrate manifest` le réécrit au schéma 3 tel que la CLI le lit déjà, sans rien y générer (« Passer au pivot 3 ») ».
+9. **Le corps de la PR** ne recopie pas le journal des mutations (seulement « 13 rouges sur 13 »), que le § 3 du ticket demande : la session le fera (`A-213`).
 
 ## Questions à l'architecte
 
-1. **`migrate manifest` (2.0.2) ou `init` pour passer le manifeste au schéma 3 ?** La décision 3 du ticket dit `init`, jouée sur la 2.0.1, avant que la 2.0.2 ne sorte. `init` marche sur toute la 2.0.x, mais pose des planchers non signés sur les contextes qui n'en ont pas et rebranche le projet ; `migrate manifest` est la commande que la CLI s'est donnée pour ce passage, l'alerte la nomme, elle ne touche que le manifeste et refuse une clé perdue, mais demande la 2.0.2 et un arbre propre. **Recommandation : `migrate manifest`, retouche A.** Si `init` est gardé : dire au point 2 qu'il pose un plancher mesuré sur un contexte qui n'en a pas et convertit déjà `featureCriticality`, et dire le cas d'une feature basse.
-2. **La copie de la spec** (`docs/issues/standard-documentation/preuve-suffisante.spec.md` § 2, point 3) et la spec d'Anchorpost disent « `proven` si la règle déclare au moins un cas et que chacun est prouvé », sans le cas `nominal` ni les familles que la CLI exige. **Recommandation : la fiche suit la CLI maintenant (retouche B, décision 4 : la CLI fait foi), et l'écart de la spec se signale à Anchorpost, hors de cette PR.**
+Tranchées (`A-213`) :
+
+1. **`migrate manifest` (2.0.2) ou `init` ?** `migrate manifest` et `@^2.0.2`, la retouche du constat 1.
+2. **La copie de la spec** (§ 2, point 3) et la spec d'Anchorpost disent « `proven` si la règle déclare au moins un cas et que chacun est prouvé », sans le cas `nominal` ni les familles : la fiche suit la CLI (constat 2) ; l'architecte signale l'écart à l'architecte d'Anchorpost.
+
+Aucune question neuve.
 
 ## Ce qui a été joué
 
 - **Le contenu** : `git apply --exclude=.claude-plugin/plugin.json --exclude=NOTES-DE-VERSION.md` du patch d'annexe sur `main` ; aucune différence avec `6feef8d` hors ces deux fichiers.
 - **§ 1 et § 2 du ticket** : le banc seul sur `main` : `# tests 2`, `# pass 0`, `# fail 2` ; au sommet, avec `depot.test.mjs` : **71 sur 71**.
-- **Les 13 mutations de l'annexe**, au sommet : `sortie 0`, **13 rouges sur 13**, « toutes rouges » ([`mutations/annexe-sur-6feef8d.txt`](mutations/annexe-sur-6feef8d.txt)) ; et sur l'arbre des trois retouches : toutes rouges.
-- **Mes 18 mutations** ([`mutations/mutations-contre.mjs`](mutations/mutations-contre.mjs)) : au sommet, 2 rouges, 16 vertes ([`mutations/contre-sur-6feef8d.txt`](mutations/contre-sur-6feef8d.txt)) ; sur l'arbre des trois retouches, 11 rouges, 5 vertes (mineur 4), 2 introuvables (C1 et C17, dont le texte est remplacé par les retouches A et B) ([`mutations/contre-sur-retouches.txt`](mutations/contre-sur-retouches.txt)).
-- **Les retouches** : chacune `git apply --check` seule sur `6feef8d` ; ensemble, dans l'ordre A, B, C, 5 fichiers ; le banc de chacune, seul sur `6feef8d` : A 1 rouge sur 2, B 1 rouge sur 2, C vert (il renforce, il ne change pas le texte) ; l'arbre des trois : 71 sur 71, et `relecture.test.mjs` et `preuve-suffisante-socle-tests.test.mjs`, qui lisent la note, 42 sur 42.
+- **Les 13 mutations de l'annexe**, au sommet : `sortie 0`, **13 rouges sur 13**, « toutes rouges » ([`mutations/annexe-sur-6feef8d.txt`](mutations/annexe-sur-6feef8d.txt)).
+- **Mes 18 premières mutations** (C1 à C18, [`mutations/mutations-contre.mjs`](mutations/mutations-contre.mjs)) : au sommet, 2 rouges, 16 vertes ([`mutations/contre-sur-6feef8d.txt`](mutations/contre-sur-6feef8d.txt)).
 - **La CLI publiée** : `npm view` (versions et `dist-tags`) ; 2.0.0, 2.0.1 et 2.0.2 installées à part, sans jeton ; `init` sans `--force` sur un manifeste 2 avec chacune ; `migrate manifest` sur la 2.0.1 (absente) et la 2.0.2 (plan, `--apply`, `--check`) ; `index`, `check` et `compare --base` sur le dépôt converti ; le gabarit du manifeste ; la réalisation de trois règles ; une `featureCriticality` basse de la version 2. Le script qui rejoue l'essai principal : [`essais/jouer.sh`](essais/jouer.sh) (`bash jouer.sh <dossier vide>`), sa sortie : [`essais/essais.txt`](essais/essais.txt).
 - **L'étape 1** dans un monorepo pnpm jouet qui porte la recette d'avant (la ligne de registre et le jeton) : `pnpm add` refusé tant que les lignes sont là, installé après leur retrait ; `pnpm anchorpost init` (le repli de `pnpm` sur un binaire) et `pnpm exec anchorpost …` jouent.
-- **La suite entière**, une fois, sur l'arbre des trois retouches posées sur `6feef8d`, `pnpm test` sous `setsid --wait` : `sortie 0`, **1 458 tests, 1 458 verts**, aucun échec, sauté ni annulé (le compte du corps de la PR : les retouches n'ajoutent aucun test) ; 21:15:07 → 21:32:04 UTC (`duration_ms` 1015768), charge 1,03 au départ, 2,22 à la fin ([`essais/suite-sur-retouches.txt`](essais/suite-sur-retouches.txt)).
+- **La suite entière**, une fois, avant `A-213`, sur l'arbre des trois premières retouches (constats 1 à 3, sans les mineurs) posées sur `6feef8d`, `pnpm test` sous `setsid --wait` : `sortie 0`, **1 458 tests, 1 458 verts**, aucun échec, sauté ni annulé ; 21:15:07 → 21:32:04 UTC (`duration_ms` 1015768), charge 1,03 au départ, 2,22 à la fin. Elle n'est pas rejouée sur le patch final.
+
+### Tour retouché (`A-213`)
+
+Le patch unique, sur un arbre détaché à `6feef8d` ([`essais/bancs-avant-apres.txt`](essais/bancs-avant-apres.txt), [`mutations/tour-1-sur-retouche.txt`](mutations/tour-1-sur-retouche.txt)) :
+
+- `git apply --check` : il s'applique sur `6feef8d` ; 5 fichiers (`SKILL.md`, la fiche, le gabarit du manifeste, la note, le banc).
+- **Bancs avant** (le banc du patch seul, `git apply --include='scripts/*'`) : `preuve-suffisante-anchorpost.test.mjs` et `depot.test.mjs`, **71 tests, 2 rouges** (les deux tests du banc).
+- **Bancs après** (le patch entier) : ces deux bancs, `relecture.test.mjs` et `preuve-suffisante-socle-tests.test.mjs` (qui lisent la note) : **113 sur 113**.
+- **Les 13 mutations de l'annexe** : `sortie 0`, toutes rouges.
+- **Mes mutations, C1 à C28** (dix ajoutées, C19 à C28 : `init` revenu au point 2, `init --force` permis, `@^2` seul, « prouvée » sans cas `nominal` ou sans les familles, la liste des écarts close, l'alerte qui compte toutes les règles, la note non bornée, la l. 82 sans `migrate manifest`, le commentaire du gabarit d'avant) : **26 rouges sur 26** ; C1 et C17 introuvables, leur texte étant remplacé par le patch (C19, C20, C22 et C23 les remplacent).
+- Arbre remis après chaque mutation (`git status` : le seul patch).
 
 ## Ce qui n'a pas été établi
 
 1. **Un dépôt client réel au schéma 2** qui porte encore la recette de GitHub Packages : aucun n'était accessible ; l'étape 1 et la conversion sont jouées sur des dépôts jouets. Ce que GitHub Packages sert encore à un vrai jeton (une 1.x publiée là, ou rien) n'est pas établi : le refus vu ici l'est avec un jeton factice.
 2. **`migrate manifest` sur un manifeste 1**, sur une clé hors du schéma 3 dans `contexts[]` et sur une date de plancher mal écrite : lus dans le README et le ticket `SPEC_ALL_ANC-5.70` d'Anchorpost, pas joués.
 3. **Le comportement de `compare` en `enforce`** sur les écarts que la fiche énumère : lu dans le README de la 2.0.2 ; joué seulement en `observe`, sans écart.
-4. **La 2.0.3 et les suivantes** : le skill suit `@^2` ; ce qu'une version suivante change à `init` ou à `migrate manifest` n'est pas établi.
+4. **La suite entière sur le patch final** : jouée sur les trois premières retouches seulement (1 458 sur 1 458) ; la session la joue sur le patch (`A-213`).
+5. **La 2.0.3 et les suivantes** : le skill suit `@^2` ; ce qu'une version suivante change à `init` ou à `migrate manifest` n'est pas établi.

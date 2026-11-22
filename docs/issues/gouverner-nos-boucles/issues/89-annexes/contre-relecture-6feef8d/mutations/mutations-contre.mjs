@@ -31,6 +31,17 @@ const MUTATIONS = [
   ['C16 manifeste : enforce d\'office', MF, '"sufficiency": "observe",', '"sufficiency": "enforce",'],
   ['C17 fiche : prouvée sans qu\'un cas manque', FI, '« partielle » quand elle a une preuve et qu\'un cas manque, ou qu\'elle n\'en déclare aucun', '« prouvée » aussi quand elle n\'en déclare aucun'],
   ['C18 SKILL check : enforce sans refus de criticité', SK, 'en `enforce`, une règle `validated` sans criticité', 'en `observe`, une règle `validated` sans criticité'],
+  // Ajoutées au tour 1 retouché (A-213) : les phrases neuves des retouches et des mineurs portés.
+  ['C19 SKILL pivot-3 : init revient au point 2', SK, '2. `pnpm exec anchorpost migrate manifest` (le plan, rien n\'est écrit), puis `pnpm exec anchorpost migrate manifest --apply`', '2. `pnpm anchorpost init` (sans `--force`)'],
+  ['C20 SKILL pivot-3 : init --force permis', SK, 'Jamais `init --force`. ', ''],
+  ['C21 SKILL pivot-3 : @^2 seul', SK, '`pnpm add -Dw @maj-agency/anchorpost@^2.0.2`', '`pnpm add -Dw @maj-agency/anchorpost@^2`'],
+  ['C22 fiche : prouvée sans cas nominal', FI, 'quand elle déclare un cas `nominal`, que chacun de ses cas l\'est', 'quand chacun de ses cas l\'est'],
+  ['C23 fiche : prouvée sans les familles', FI, ' et, dès `medium`, que chacune des dix familles a sa réponse ; « partielle »', ' ; « partielle »'],
+  ['C24 fiche : la liste des écarts close', FI, 'Ses écarts, entre autres (la liste fermée est celle du README de la CLI) : ', 'Ses écarts : '],
+  ['C25 SKILL pivot-3 : l\'alerte compte toutes les règles', SK, "(l'alerte de projet de l'index compte celles qui ont des preuves ; les autres ont chacune leur alerte, « sans criticité » ou « aucun cas »)", "(l'alerte de projet de l'index les compte)"],
+  ['C26 note : reposer la fiche partout', NV, ', dans un dépôt au pivot 3 (un dépôt au schéma 2 la repose au point 4 de « Passer au pivot 3 »)', ''],
+  ['C27 SKILL l. 82 : sans migrate manifest', SK, " ; `anchorpost migrate manifest` le réécrit au schéma 3 tel que la CLI le lit déjà, sans rien y générer (« Passer au pivot 3 »).", '.'],
+  ['C28 manifeste : le commentaire d\'avant', MF, 'prouvées (un cas nominal déclaré, chaque cas attendu prouvé et, dès medium, chaque famille répondue)', 'prouvées (chaque cas attendu prouvé)'],
 ];
 
 const voulues = process.argv.slice(2);

@@ -1,0 +1,10 @@
+== bancs avant (le banc du patch seul, sur 6feef8d)
+not ok 70 - le skill anchorpost suit la CLI 2.0.0 : manifeste au schéma 3, CLI publique sans jeton, passage au pivot 3
+not ok 71 - la fiche anchorpost dit comment écrire une criticité, un cas, une étiquette de cas, et ce que dit compare
+# tests 71
+# pass 69
+# fail 2
+== bancs après (le patch entier)
+# tests 113
+# pass 113
+# fail 0
