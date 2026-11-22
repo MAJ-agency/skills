@@ -41,3 +41,15 @@ test("le gabarit de ticket porte la ligne `Prouve:` sous `Règles:`, et une lign
   assert.match(enTete[regles + 1] ?? "", /^Prouve: \{\{RULE_ALL_<TRI>-<n> — les règles que le ticket prouve sans les réaliser \(il écrit leurs tests, pas leur code\) ; jamais une règle de `Règles:` ; la criticité d'une feature ne descend pas par cette ligne, seulement par `Règles:` ; ou retirer la ligne\}\}$/);
   assert.match(texte, /^\| \{\{RULE_<CTX>_<TRI>-<n>#<cas>\}\} \| \{\{projet suivi par Anchorpost, index au pivot 3 : une ligne par cas attendu des règles de `Règles:` et de `Prouve:`/m);
 });
+
+// Contre-relecture de la PR 155 : la décision 3 du ticket 83 met `caseRevision` au gabarit de règle, après
+// `notApplicableFamilies` ; seule la `date` de la criticité était tenue.
+test("le gabarit de règle montre la révision des cas, `caseRevision`, après `notApplicableFamilies`, en commentaire, une clé par ligne", () => {
+  const entete = lignes(readFileSync(join(RACINE, "skills/chaine/tickets/references/gabarits/regle.md"), "utf8"));
+  const familles = entete.findIndex((l) => l.startsWith("# notApplicableFamilies:"));
+  const revision = entete.findIndex((l) => l.startsWith("# caseRevision:"));
+  assert.ok(familles >= 0 && revision > familles, "« # caseRevision: » vient après « # notApplicableFamilies: »");
+  assert.match(entete[revision], /jamais écrite par un agent/);
+  assert.match(entete[revision], /distincte de `validation`, que la MOA seule écrit/);
+  assert.deepEqual(entete.slice(revision + 1, revision + 4), ["#   date: AAAA-MM-JJ", "#   by: <clé de roles>", '#   reason: "…"']);
+});

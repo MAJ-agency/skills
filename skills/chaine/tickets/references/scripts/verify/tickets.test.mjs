@@ -696,3 +696,10 @@ test('K3 : `## Surfaces` nomme chaque cas attendu des règles citées, `RULE_…
   const ailleurs = `${k3({ regles: 'Règles: RULE_ALL_SOC-1\n' })}\n## Comments\n\n${TOUS_LES_CAS}`;
   assert.equal(k3Juger(ailleurs, suffisance('enforce')).erreurs.length, 2, 'hors de `## Surfaces`, un cas ne compte pas');
 });
+
+// Contre-relecture de la PR 155 : la décision 1 du ticket 84 lit `Prouve:` sous les formes de `Règles:` ; le banc
+// d'au-dessus n'y citait qu'une règle valide, qui ne dit rien qu'elle soit lue ou non.
+test('K3 : la ligne Prouve: se lit et se juge sous chacune des formes de Règles: (`X:`, `**X:**`, `- X:`, `* X:`)', () => {
+  for (const ligne of ['Prouve: RULE_ALL_SOC-9', '**Prouve:** RULE_ALL_SOC-9', '- Prouve: RULE_ALL_SOC-9', '* **Prouve:** RULE_ALL_SOC-9', 'prouve: RULE_ALL_SOC-9'])
+    assert.deepEqual(k3Juger(k3({ prouve: `${ligne}\n` })).erreurs, ['Prouve cite RULE_ALL_SOC-9, absente du registre (docs/metier/regles/all/RULE_ALL_SOC-9.md)'], ligne);
+});
