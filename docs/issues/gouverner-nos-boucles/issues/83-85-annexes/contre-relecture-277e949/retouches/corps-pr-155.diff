@@ -1,0 +1,16 @@
+--- corps de la PR 155, au sommet 277e949
++++ corps proposé
+@@ -1,9 +1,9 @@
+ ## Rouges avant, verts après
+-- § 1 (bancs du patch seuls, sur `main` à `ddb4265`) : `# tests 137`, `# pass 126`, `# fail 11` (les onze attendus).
+-- § 2 (patch posé) : `# tests 176`, `# pass 176`, `# fail 0`. 19 fichiers (18 modifiés, 1 neuf). Somme du patch : `32d5e04d…af46`.
++- § 1 (bancs du patch seuls, sur `main` à `ddb4265`) : `# tests 141`, `# pass 126`, `# fail 15` (les onze attendus, et les quatre de la retouche du tour 1).
++- § 2 (patch posé) : `# tests 180`, `# pass 180`, `# fail 0`. 19 fichiers (18 modifiés, 1 neuf). Somme du patch : `32d5e04d…af46` ; retouche du tour 1 (`A-206`) : `retouche-155-tour-1.patch`, `c2eecadb…`, au sommet `277e949`.
+ 
+ ## Mutations
+-`mutations.mjs` sur la branche commitée : sortie 0, 38 rouges, « toutes rouges », arbre propre.
++`mutations.mjs` sur la branche commitée : sortie 0, 38 rouges, « toutes rouges », arbre propre. Celles de la contre-relecture (`mutations-contre.mjs`, X1 à X15) au sommet `277e949` : toutes rouges.
+ 
+ ## Suite entière
+-`pnpm test` : `# tests 1405`, `# pass 1405`, `# fail 0`, 729 667 ms ; charge 1,17 avant, 1,47 après. Compte : 1 396 (main `ddb4265`, aucune PR entrée) + 9 = 1 405.
++`pnpm test` au sommet `277e949` : `# tests 1409`, `# pass 1409`, `# fail 0`, 777 s ; charge 0,45 avant, 1,15 après. Compte : 1 396 (main `ddb4265`, aucune PR entrée) + 13 = 1 409 (9 du ticket, 4 de la retouche du tour 1).

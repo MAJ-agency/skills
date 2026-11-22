@@ -1,0 +1,5 @@
+skills/chaine/tickets/references/scripts/verify/tickets.test.mjs status=0 # tests 41 # pass 41 # fail 0 
+skills/chaine/tickets/references/scripts/verify/tickets-gate.test.mjs status=0 # tests 17 # pass 17 # fail 0 
+scripts/preuve-suffisante-standard.test.mjs status=0 # tests 3 # pass 3 # fail 0 
+scripts/depot.test.mjs status=0 # tests 69 # pass 69 # fail 0 
+skills/chaine/revue-de-ticket/scripts/contexte-ticket.test.mjs status=0 # tests 11 # pass 11 # fail 0 

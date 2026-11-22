@@ -1,0 +1,14 @@
+ROUGE Y1 tickets.mjs : sous --geler-types, la dette est récrite avant la sortie 1 d'un index illisible (17 s) — K3, gate : le régime 8 juge la preuve suffisante comme le ré
+ROUGE Y2 tickets.mjs : sous --geler-fiches seul, un index illisible se tait (17 s) — K3, gate : le régime 8 juge la preuve suffisante comme le ré
+ROUGE Y3 tickets.mjs : en régime 8, le mode est toujours observe (18 s) — K3, gate : le régime 8 juge la preuve suffisante comme le ré
+ROUGE Y4 tickets.mjs : en régime 8, le mode est toujours enforce (17 s) — K3, gate : le régime 8 juge la preuve suffisante comme le ré
+ROUGE Y5 tickets.mjs : l'index illisible ne dit pas sa cause (16 s) — K3, gate : un index présent qui n'est pas du JSON fait sorti | K3, gate : le régime 8 juge la preuve suffisante comme le ré
+ROUGE Y6 tickets.mjs : au pivot 3 sans rules, rien n'est jugé (19 s) — K3, gate : un index JSON qui n'est pas un objet ne juge rien
+ROUGE Y7 tickets.mjs : un index null est jugé comme un pivot 3 vide (14 s) — K3, gate : un index JSON qui n'est pas un objet ne juge rien
+ROUGE Y8 tickets-regles.mjs : Prouve: lue sans les puces (0 s) — K3 : la ligne Prouve: se lit et se juge sous chacune des for
+ROUGE Y9 tickets-regles.mjs : Prouve: lue sans la puce étoile (0 s) — K3 : la ligne Prouve: se lit et se juge sous chacune des for
+ROUGE Y10 tickets-regles.mjs : Prouve: sensible à la casse (0 s) — K3 : la ligne Prouve: se lit et se juge sous chacune des for
+ROUGE Y11 gabarit de règle : caseRevision sans by (0 s) — le gabarit de règle montre la révision des cas, `caseRevisio
+ROUGE Y12 gabarit de règle : caseRevision sans « jamais écrite par un agent » (0 s) — le gabarit de règle montre la révision des cas, `caseRevisio
+ROUGE Y13 gabarit de règle : caseRevision avant notApplicableFamilies (0 s) — le gabarit de règle montre la révision des cas, `caseRevisio
+toutes rouges
