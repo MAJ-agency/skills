@@ -297,7 +297,7 @@ Vague 1 fusionnée le 2026-11-13 par le capitaine de `skills` (`main` à `8eb1c9
 | `session_012xRpgZkox4m2z5t9k3qoDB` | ticket   | PR 150, retouches du premier tour (Sonnet, archivée le 2026-11-22 à 05 h 24 UTC) | 0,25 | 92 589 |
 | `session_012xRpgcTL4Xcf5j5ctVtVEm` | ticket   | PR 149, retouches du troisième tour (Sonnet, archivée le 2026-11-22 à 05 h 46 UTC) | 0,24 | 93 049 |
 | `session_012xRpgZW3hDcCoAFA3JdqgW` | capitaine de `skills` (Sonnet, PR 150 et 149 fusionnées, archivé le 2026-11-22 à 06 h 38 UTC) | — | 0,66 | 133 231 |
-| `session_012xRpgaPJfAVP2DjaS3G9fo` | ticket   | 80, 81 et 82, lot 6 (Sonnet) | en cours | en cours |
+| `session_012xRpgaPJfAVP2DjaS3G9fo` | ticket   | 80, 81 et 82, lot 6, PR 151 (Sonnet, archivée le 2026-11-22 à 08 h 35 UTC) | 0,51 | 112 720 |
 | `session_012xRpga5LgHdb5WqbuPCEXc` | ticket   | PR 149, fusion de `main` (Sonnet, archivée le 2026-11-22 à 06 h 14 UTC) | 0,26 | 94 620 |
 | `session_012xRpgaUxER8bF3B6MWgaBN` | ticket   | 70, PR 148 (Sonnet, archivée le 2026-11-22 à 01 h 23 UTC) | 0,43 | 109 389 |
 
@@ -1289,3 +1289,5 @@ La session de suite fait, dans cet ordre :
   - **À demander au produit avant l'essai réel** (réglages qu'il est seul à faire, ticket 82) : deux dépôts privés sous l'organisation (un jouet `essai-relecture-8`, une copie d'Anchorpost) ou l'accord pour que l'architecte les crée ; `develop` protégée avec « branche à jour exigée » sur chacun ; l'accès GitHub des sessions à ces dépôts ; l'environnement cloud qui les atteint.
   - 08 h 17 UTC. **Session du lot 6 lancée** (session_012xRpgaPJfAVP2DjaS3G9fo, Sonnet, branche `claude/lot-6-bascule-8`), patch vérifié par son empreinte, arrêt après la livraison.
 - 2026-11-22 — 08 h 28 UTC. **Tickets 75 à 79 écrits** (rédacteur, 1 h 50) sur `97d17e3`, deux PR indépendantes : A (75 à 77, `claude/suites-relecteur`, 27 mutations rouges, suite 1 390 sur 1 390) et B (78 et 79, `claude/suites-capitaine`, 17 mutations rouges, suite 1 392 sur 1 392). Patchs : 75 `6cbb0e81…`, 76 `698a71b8…`, 77 `6aac8d63…`, 78 `adfae35a…`, 79 `002640ab…`. Un trou réel fermé par le 78 : une PR de fourche dont la branche porte le nom d'une branche d'origine faisait fusionner celle-ci (mesuré, sortie 0). Tickets 72 et 74 retouchés (documentation). **`A-197`** : la sortie 69 en 6 chez le Relecteur ; le titre sous 120 caractères dans la consigne des rédacteurs. Tour de relecture des cinq tickets lancé.
+- 2026-11-22 — 08 h 33 UTC. **PR 151 livrée** (lot 6, tickets 80 à 82, plugin 8.0.0) : sommet `47a74897724cbb8c99e264de487748ac20c325cf`, un commit sur `97d17e3` ; vérifié par l'architecte, son arbre `fde13621…` est celui de `97d17e3` plus `lot-6.patch`. D'après la session : 18 rouges avant, 115 sur 115, 68 mutations rouges, suite 1 396 sur 1 396. Session archivée (0,51 $).
+  - 08 h 35 UTC. **Premier tour de contre-relecture de la PR 151 lancé** (agent neuf, Opus, effort extra), en parallèle du tour de relecture des tickets 75 à 79.
