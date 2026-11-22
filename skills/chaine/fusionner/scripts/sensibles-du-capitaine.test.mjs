@@ -145,7 +145,8 @@ test("régime 8, sujet.sh fusionner : une PR de mise à jour ne touche un chemin
 });
 
 test("garde : chaque copie du ticket doit couvrir le chemin ; avec deux tickets, l'un suffit ; une ligne illisible et un ticket introuvable se disent", () => {
-  const d = monter({ 1: ACCORD("`scripts/agent/**`"), 2: ACCORD("docs/agents/regles.md") });
+  // Sur develop, le ticket 1 sans accord : les deux copies des sujets sont écrites par eux, jamais héritées.
+  const d = monter({ 1: "Sensibles: —", 2: ACCORD("docs/agents/regles.md") });
   // La copie large d'abord (sujet/a), l'étroite ensuite (sujet/b) : l'ordre des refs ne fait pas l'accord.
   d.branche("sujet/a", "origin/develop", { [TICKET(1)]: ticket(1, ACCORD("`scripts/agent/**`")), "docs/a.md": "a\n" });
   d.branche("sujet/b", "origin/develop", { [TICKET(1)]: ticket(1, ACCORD("`scripts/agent/x.mjs`")), "docs/b.md": "b\n" });
@@ -203,4 +204,27 @@ test("régime 8, passer.sh : un sujet supprimé du distant ne garde pas, dans le
   const r = passer(d);
   assert.equal(r.status, 0, r.stdout + r.stderr);
   assert.match(r.stdout, /FUSIONNÉE/);
+});
+
+test("garde : une copie que le sujet n'a pas écrite, héritée de develop, ne compte pas ; celle de develop fait foi pour un ticket sans sujet, celle du sujet qui l'a écrite pour le sien (A-74) (contre-relecture de la PR 149, tour 2)", () => {
+  const garde = (d, base) => spawnSync(process.execPath, [GARDE, "--garde", "--base", base, "--titre", "feat(agent): x", "--branche", "feat/spec-all-demo-1-01-x"], { cwd: d.travail, env: d.env, input: "scripts/agent/x.mjs\n", encoding: "utf8" });
+  // Un ticket sans sujet : un autre sujet part de develop, puis l'accord entre dans develop.
+  const a = monter({ 1: "Sensibles: —" });
+  a.branche("sujet/autre", "origin/develop", { "docs/autre.md": "autre\n" });
+  a.branche("develop", "origin/develop", { [TICKET(1)]: ticket(1, ACCORD("`scripts/agent/**`")) });
+  a.git("switch", "-q", "--detach", "origin/develop");
+  const r = garde(a, "develop");
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  // Le ticket du sujet demo : entré dans develop sans accord, reçu par sujet/autre ; l'accord écrit sur sujet/demo.
+  const b = monter({ 1: "Sensibles: —" });
+  b.branche("sujet/autre", "origin/develop", { "docs/autre.md": "autre\n" });
+  b.branche("sujet/demo", "origin/develop", { [TICKET(1)]: ticket(1, ACCORD("`scripts/agent/**`")) });
+  b.git("switch", "-q", "--detach", "origin/develop");
+  const r2 = garde(b, "sujet/demo");
+  assert.equal(r2.status, 0, r2.stdout + r2.stderr);
+  // Une copie qu'un sujet a écrite compte toujours : sujet/autre écrit le ticket sans l'accord, la PR est renvoyée.
+  b.branche("sujet/autre", "origin/sujet/autre", { [TICKET(1)]: ticket(1, "Sensibles: `docs/x.md` — accord de la MOA, 2026-11-17") });
+  b.git("switch", "-q", "--detach", "origin/develop");
+  const r3 = garde(b, "sujet/demo");
+  assert.equal(r3.status, 20, r3.stdout + r3.stderr);
 });

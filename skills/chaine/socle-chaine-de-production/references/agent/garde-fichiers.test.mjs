@@ -105,3 +105,56 @@ test('régime 8 : une copie locale du sujet en retard sur origin n’est pas lue
   d.git(...args);
   passe(ecrire(d, 'scripts/agent/garde.mjs'));
 });
+
+test('régime 8 : une copie de sujet héritée de develop (le sujet ne l’a pas écrite) ne compte pas ; celle de develop fait foi (contre-relecture de la PR 149, tour 2)', () => {
+  // Develop porte le ticket sans accord ; un autre sujet en part ; puis l'accord entre dans develop.
+  const d = depot({ surSujet: null });
+  d.git('push', '-q', 'origin', 'origin/develop:refs/heads/sujet/autre');
+  d.git('switch', '-q', '--detach', 'origin/develop');
+  writeFileSync(join(d.travail, TICKET), ticket(ACCORD));
+  d.git('commit', '-q', '-am', 'accord');
+  d.git('push', '-q', 'origin', 'HEAD:develop');
+  d.git('fetch', '-q', 'origin');
+  d.git('switch', '-q', 'feat/spec-all-demo-1-01-garde');
+  passe(ecrire(d, 'scripts/agent/garde.mjs'));
+  refuse(ecrire(d, 'docs/agents/autre.md'));
+});
+
+test('régime 8 : le refus ne nomme que les copies en retard qui portent le ticket ; sans copie lue, « Aucune ligne lue » dit aussi de relire', () => {
+  // Un autre sujet, qui ne porte pas le ticket (parti d'ailleurs), avance sur origin sans être relu : il n'est pas nommé.
+  const d = depot();
+  d.git('switch', '-q', '--orphan', 'ailleurs');
+  writeFileSync(join(d.travail, 'ailleurs.md'), 'a\n');
+  d.git('add', 'ailleurs.md');
+  d.git('commit', '-q', '-m', 'ailleurs');
+  d.git('push', '-q', 'origin', 'HEAD:refs/heads/sujet/autre');
+  d.git('fetch', '-q', 'origin');
+  const avant = d.git('rev-parse', 'origin/sujet/autre').trim();
+  writeFileSync(join(d.travail, 'ailleurs2.md'), 'b\n');
+  d.git('add', 'ailleurs2.md');
+  d.git('commit', '-q', '-m', 'ailleurs 2');
+  d.git('push', '-q', 'origin', 'HEAD:refs/heads/sujet/autre');
+  d.git('update-ref', 'refs/remotes/origin/sujet/autre', avant);
+  d.git('clean', '-qfdx');
+  d.git('switch', '-q', '-f', 'feat/spec-all-demo-1-01-garde');
+  const r = ecrire(d, 'docs/agents/autre.md');
+  refuse(r);
+  assert.doesNotMatch(r.stderr, /origin\/sujet\/autre/, 'un sujet qui ne porte pas le ticket');
+  // Le ticket .02 ne vit que sur le sujet, dont la copie locale est en retard : aucune ligne lue, et le geste.
+  const s = depot({ branche: 'feat/spec-all-demo-1-02-garde' });
+  const deux = TICKET.replace('.01.', '.02.');
+  s.git('switch', '-q', '--detach', 'origin/sujet/demo');
+  writeFileSync(join(s.travail, deux), ticket(ACCORD).replace('.01', '.02'));
+  s.git('add', '-A');
+  s.git('commit', '-q', '-m', 'ticket .02');
+  s.git('push', '-q', 'origin', 'HEAD:refs/heads/sujet/demo');
+  s.git('fetch', '-q', 'origin');
+  const vieux = s.git('rev-parse', 'origin/sujet/demo').trim();
+  writeFileSync(join(s.travail, 'docs/autre.md'), 'autre\n');
+  s.git('add', '-A');
+  s.git('commit', '-q', '-m', 'autre sous-PR');
+  s.git('push', '-q', 'origin', 'HEAD:refs/heads/sujet/demo');
+  s.git('update-ref', 'refs/remotes/origin/sujet/demo', vieux);
+  s.git('switch', '-q', 'feat/spec-all-demo-1-02-garde');
+  refuse(ecrire(s, 'scripts/agent/garde.mjs'), /Aucune ligne lue : .*\(Copie du ticket non lue : origin\/sujet\/demo n'est pas au sommet d'origin\./);
+});

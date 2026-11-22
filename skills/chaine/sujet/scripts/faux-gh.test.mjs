@@ -349,3 +349,9 @@ test('faux gh, pageCommentaires : sans --paginate, la première page ; avec, cha
   d.github({ pageCommentaires: undefined });
   assert.deepEqual(JSON.parse(gh(d, route).stdout).map((c) => c.body), ['a', 'b', 'c'], 'sans le réglage : tout, comme avant');
 });
+
+test('faux gh, pageCommentaires : une PR sans commentaire, paginée, rend une page vide, comme gh', () => {
+  const d = depotJouet();
+  d.github({ pageCommentaires: 2, pulls: [{ number: 1, title: 't', head: 'x', base: 'develop', labels: [], commentaires: [] }] });
+  assert.equal(gh(d, '--paginate', 'repos/{owner}/{repo}/issues/1/comments?per_page=100').stdout, '[]\n');
+});

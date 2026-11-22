@@ -34,7 +34,8 @@
 // couvre pas ? Les chemins sensibles sont ceux du contrat de la base (`lireBase` de revue-exigee.mjs : un sujet ajoute
 // celui de develop), jamais de l'arbre de travail. Le ticket est celui de la PR (`ticketsDeLaPr` de double-relecture.mjs,
 // la définition du capitaine : son titre, sa branche) ; sa ligne se lit sur les `origin/sujet/*` qui le portent, sinon sur
-// `origin/develop` (A-74), et chaque copie doit couvrir le chemin ; avec deux tickets, l'un des deux suffit. Une PR de mise
+// `origin/develop` (A-74), et chaque copie doit couvrir le chemin ; avec deux tickets, l'un des deux suffit. Une copie de
+// sujet identique à celle de sa base de fusion avec develop n'est qu'héritée : elle ne compte pas. Une PR de mise
 // à jour d'un sujet (`--conflits`, la liste des fichiers en conflit de sa fusion ; `--tickets`, les tickets et specs que
 // déclare le sujet) ne touche un chemin sensible que s'il est en conflit et couvert par la ligne d'un ticket du sujet.
 // Sorties : 0 rien à redire ; 20 un motif (renvoi : chemin non couvert, PR sans ticket, ticket introuvable, ligne
@@ -239,13 +240,26 @@ async function garde({ base, titre, branche, conflits, tickets }, fichiers) {
   };
   const sujets = git("for-each-ref", "--format=%(objectname)", "refs/remotes/origin/sujet/").split("\n").filter(Boolean);
   const develop = git("rev-parse", "--verify", "-q", "refs/remotes/origin/develop^{commit}").trim();
-  // Les copies d'un identifiant (un ticket, ou, avec `--tickets`, une spec : tous ses tickets) sur une liste de commits.
-  const copiesSur = (commits, id) => {
+  // Une copie de sujet ne compte que si le sujet l'a écrite (A-74, A-185 point 3) : un sujet ouvert depuis develop, ou
+  // qui l'a reçu, porte tous les tickets de develop ; identique à celle de sa base de fusion avec develop, sa copie n'est
+  // qu'héritée, et c'est celle de develop qui fait foi (« sur origin/develop pour un ticket sans sujet »).
+  const objet = (spec) => {
+    const r = spawnSync("git", ["rev-parse", "-q", "--verify", spec], { encoding: "utf8" });
+    return r.status === 0 ? r.stdout.trim() : null;
+  };
+  const herite = (sha, f) => {
+    const base = spawnSync("git", ["merge-base", sha, develop], { encoding: "utf8" });
+    return base.status === 0 && objet(`${base.stdout.trim()}:${f}`) === objet(`${sha}:${f}`);
+  };
+  // Les copies d'un identifiant (un ticket, ou, avec `--tickets`, une spec : tous ses tickets) sur une liste de commits ;
+  // sur les sujets (`surUnSujet`), les seules copies que le sujet a écrites.
+  const copiesSur = (commits, id, surUnSujet = true) => {
     const parTicket = new Map();
     for (const sha of commits)
       for (const f of git("ls-tree", "-r", "-z", "--name-only", sha, "docs").split("\0").filter(Boolean)) {
         const t = G.estArchive(f) ? null : G.identifiantDuTicket(f.split("/").pop() ?? "");
         if (!t || (t !== id && !(tickets !== undefined && t.startsWith(`${id}.`)))) continue;
+        if (surUnSujet && herite(sha, f)) continue;
         if (!parTicket.has(t)) parTicket.set(t, []);
         parTicket.get(t).push(lireSensibles(git("show", `${sha}:${f}`)));
       }
@@ -254,7 +268,7 @@ async function garde({ base, titre, branche, conflits, tickets }, fichiers) {
   const accords = [];
   for (const id of ids) {
     let parTicket = copiesSur(sujets, id);
-    if (parTicket.size === 0) parTicket = copiesSur([develop], id);
+    if (parTicket.size === 0) parTicket = copiesSur([develop], id, false);
     if (parTicket.size === 0 && tickets === undefined) throw new Motif(`ticket ${id} introuvable sur les origin/sujet/* et sur origin/develop : sa ligne \`Sensibles:\` ne se lit pas, et la PR touche un chemin sensible (${liste(() => true)}) ; l'écrire au conducteur : le ticket entre d'abord sur son sujet (ou sur develop), avec l'accord sur sa ligne (A-75)`);
     for (const [t, copies] of parTicket) {
       const mal = copies.find((c) => c.illisible);

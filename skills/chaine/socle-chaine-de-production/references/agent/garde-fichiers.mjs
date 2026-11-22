@@ -74,7 +74,8 @@ const git = (...args) => execFileSync('git', args, { cwd: RACINE, encoding: 'utf
  * Régime 8 (lot 5b, A-74, A-76) : les chemins qu'accorde la ligne `Sensibles:` du ticket de la branche courante, lue sur
  * `origin/sujet/*` (sur `origin/develop` pour un ticket qu'aucun sujet ne porte), jamais dans l'arbre de travail ni sur
  * la branche de la session, comme `Dépendances:` (garde-commandes.mjs). Une copie locale que `origin` ne porte pas (ref
- * déplacée à la main, ou en retard sur origin) ne compte pas. `{ copies: [[motifs]…] }`, une liste par copie ; `{ illisible }` ;
+ * déplacée à la main, ou en retard sur origin) ne compte pas, ni une copie de sujet qu'il n'a pas écrite (identique à celle de
+ * sa base de fusion avec develop : héritée). `{ copies: [[motifs]…] }`, une liste par copie ; `{ illisible }` ;
  * `null` : pas de ticket, pas de copie, origin injoignable, grammaire absente. Lu seulement quand le chemin est sensible.
  * Une copie locale qui ne compte pas et porte le ticket est nommée dans `perimees` (avec `copies`, `illisible`, ou seule à
  * la place de `null`) : le refus dit alors le geste qui la relit, avant d'écrire au conducteur.
@@ -91,6 +92,26 @@ function accordes() {
         .map((ligne) => ligne.split(/\s+/).reverse()),
     );
     const perimees = [];
+    // Une copie de sujet ne compte que si le sujet l'a écrite (A-74) : identique à celle de sa base de fusion avec develop,
+    // elle n'est qu'héritée de develop (un sujet ouvert ou rafraîchi depuis develop porte tous ses tickets), et c'est la
+    // copie de develop qui fait foi. Comme la garde du capitaine (`chemins-sensibles.mjs --garde`).
+    const objet = (spec) => {
+      try {
+        return git('rev-parse', '-q', '--verify', spec);
+      } catch {
+        return null;
+      }
+    };
+    const develop = objet('refs/remotes/origin/develop^{commit}');
+    const herite = (sha, f) => {
+      let base;
+      try {
+        base = develop === null ? '' : git('merge-base', sha, develop);
+      } catch {
+        return false; // aucune base commune : la copie est du sujet
+      }
+      return base !== '' && objet(`${base}:${f}`) === objet(`${sha}:${f}`);
+    };
     const copiesSous = (motif) => {
       const copies = [];
       for (const ligne of git('for-each-ref', '--format=%(objectname) %(refname)', motif).split('\n').filter(Boolean)) {
@@ -98,7 +119,7 @@ function accordes() {
         const fichiers = git('ls-tree', '-r', '-z', '--name-only', sha, 'docs').split('\0').filter((f) => f && !estArchive(f) && identifiantDuTicket(f.split('/').pop() ?? '') === id);
         if (fichiers.length > 0 && distants.get(ref.replace('refs/remotes/origin/', 'refs/heads/')) !== sha) perimees.push(ref.replace('refs/remotes/', ''));
         if (distants.get(ref.replace('refs/remotes/origin/', 'refs/heads/')) !== sha) continue;
-        for (const f of fichiers) copies.push(lireSensibles(git('show', `${sha}:${f}`)));
+        for (const f of fichiers) if (!(motif.endsWith('/sujet/') && herite(sha, f))) copies.push(lireSensibles(git('show', `${sha}:${f}`)));
       }
       return copies;
     };

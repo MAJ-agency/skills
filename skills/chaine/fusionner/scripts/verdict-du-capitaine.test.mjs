@@ -431,3 +431,14 @@ test("régime 8, passer.sh : un push reçu entre la lecture de la PR et le fetch
   assert.match(dernier(r), /la PR a reçu un push pendant sa lecture \(origin\/feat\/a n'est plus le sommet lu\) : sautée sans renvoi/);
   assert.ok(!d.journal().some((e) => e.champs?.["labels[]"] === "fusion-bloquée"), "aucun renvoi");
 });
+
+test("régime 7, passer.sh : un push reçu entre la lecture de la PR et le fetch se juge comme sur main (le saut du régime 8 n'y joue pas)", () => {
+  const d = monter({ cheminsSensibles: [] });
+  const x = versDevelop(d, { fichiers: { "scripts/x.sh": "echo x\n" }, titre: "feat(x): x" });
+  d.branche("feat/a", "feat/a", { "scripts/y.sh": "echo y\n" }, "feat(x): suite");
+  d.git("switch", "-q", "--detach", "origin/develop");
+  d.github({ pulls: [{ ...d.etat().pulls[0], sha: x }] });
+  const r = passer(d);
+  assert.equal(r.status, 4, r.stdout + r.stderr);
+  assert.match(dernier(r), /sans section « Revue de ticket » ni « Revue adversariale »/);
+});
