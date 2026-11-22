@@ -438,9 +438,67 @@ lire_github() {
   printf '%s\n' "$sortie"
 }
 
+# La clé `relecture` dans le contrat `.claude/chaine.json` d'une réf (A-97) : sortie 0 si elle y est, quelle que soit sa
+# forme (le régime d'une PR se juge par `revue-exigee.mjs`, qui la lit entière), 1 sinon : pas de contrat, pas de clé, ou un
+# contrat qui ne se lit pas. Pour les messages et les renvois (lot 5c), jamais pour décider d'une fusion.
+cle_relecture_sur() {
+  git show "$1:.claude/chaine.json" 2>/dev/null | jq -e 'type == "object" and has("relecture")' >/dev/null 2>&1
+}
+
+# Le régime d'une PR (A-97) : `regime_de_la_pr <base> <created_at>` écrit 7, 8, ou `illisible` (clé mal formée, date),
+# par `regimeDeLaPr` de `revue-exigee.mjs`, sur `origin/<base>` tel qu'il est là. Pour les messages et les renvois
+# (lot 5c) ; la fusion se juge par `revue_du_capitaine`.
+regime_de_la_pr() {
+  node --input-type=module -e 'const m = await import(process.argv[1]); const r = m.regimeDeLaPr({ base: process.argv[2], ouverte: process.argv[3] }); process.stdout.write(`${r.regime ?? "illisible"}\n`);' \
+    "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/revue-exigee.mjs" "$1" "$2"
+}
+
 # PR en JSON REST (`state` open/closed, `draft`, `labels[].name`, `base.ref`, `head.ref`,
-# `head.sha`, `title`). Illisible : sortie 5.
+# `head.sha`, `title`, `created_at`). Illisible : sortie 5.
 pr_json() { lire_github "$DEPOT/pulls/$1"; }
+
+# La revue d'une PR au passage du capitaine, selon son régime (lot 5a) : `revue_du_capitaine <json de la PR> <sommet>
+# <base>`, les fichiers du diff propre sur l'entrée standard (celui que la relecture lit). Joue `revue-exigee.mjs`, à côté
+# de ce fichier, avec `--ouverte` (le `created_at` de la PR : le régime, A-97), `--tete <sommet>` et les commentaires de la
+# PR, toutes pages, dans un fichier (jamais en argument). `origin/develop` et les `origin/sujet/*` sont relus d'abord par
+# refspecs explicites (un clone `--single-branch` ne les met pas à jour sur un fetch nu) : les calculs ne lisent pas le
+# réseau (A-126) ; sans la clé `relecture` sur la base, ni fetch ni lecture (régime 7 sûr). Sortie de la CLI telle quelle, et son code : 0 éligible (première ligne `régime 7`, ou `régime 8 : tour
+# <k> validé au sommet <sha>`), 1 refus (première ligne `régime 7` ou `régime 8`, motif en dernière), 21 lecture illisible
+# (la cause), 2 options. 5 : origin ou GitHub illisible, la cause sur la sortie d'erreur, jamais un état.
+REVUE_EXIGEE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/revue-exigee.mjs"
+# La garde des fichiers sensibles du capitaine (lot 5b, A-76), en régime 8 : `garde_des_sensibles <base> <titre> <tête>
+# [--conflits <fichier>] [--tickets <id>,…]`, le diff propre sur l'entrée standard, après `revue_du_capitaine` (qui a relu
+# develop et les sujets). `chemins-sensibles.mjs --garde`, à côté dans un projet (scripts/chaine/), dans le skill
+# revue-adversariale du plugin. Sa sortie et son code : 0 rien, 20 motif (renvoi), 21 illisible, 2 usage.
+garde_des_sensibles() {
+  local ici script
+  ici=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+  script="$ici/chemins-sensibles.mjs"
+  [ -f "$script" ] || script="$ici/../../revue-adversariale/scripts/chemins-sensibles.mjs"
+  node "$script" --garde --base "$1" --titre "$2" --branche "$3" "${@:4}"
+}
+revue_du_capitaine() {
+  local pr=$1 sommet=$2 base=$3 fichiers brut='[]' commentaires rc=0
+  fichiers=$(cat)
+  # Sans la clé `relecture` sur la base, la PR est en régime 7 quelle que soit sa date : rien à relire ni à lire de plus
+  # qu'aujourd'hui (aucun fetch, aucune lecture des commentaires), la CLI juge la section de revue.
+  if cle_relecture_sur "origin/$base"; then
+    git_masque fetch -q origin '+refs/heads/develop:refs/remotes/origin/develop' '+refs/heads/sujet/*:refs/remotes/origin/sujet/*' ||
+      { echo "origin illisible à la relecture de develop et des sujets (revue du capitaine)" >&2; return 5; }
+    brut=$(lire_github "$DEPOT/issues/$(jq -r .number <<<"$pr")/comments?per_page=100" --paginate) || return 5
+  fi
+  commentaires=$(mktemp)
+  # Un `--paginate` concatène des tableaux : un seul tableau, ou rien.
+  if ! jq -s 'if all(.[]; type == "array") then add else error("pages") end' <<<"$brut" >"$commentaires" 2>/dev/null; then
+    rm -f "$commentaires"
+    echo "GitHub illisible ($DEPOT/issues/<n>/comments) : pages qui ne sont pas des tableaux" >&2
+    return 5
+  fi
+  printf '%s\n' "$fichiers" | node "$REVUE_EXIGEE" "$(jq -r '.body // ""' <<<"$pr")" "$(jq -r .title <<<"$pr")" "origin/$base" \
+    --ouverte "$(jq -r '.created_at // ""' <<<"$pr")" --tete "$sommet" --branche "$(jq -r .head.ref <<<"$pr")" --commentaires "$commentaires" && rc=0 || rc=$?
+  rm -f "$commentaires"
+  return "$rc"
+}
 
 # Tête de PR gardée : `develop`, `main`, ou la branche par défaut du dépôt (2e argument, lu dans le
 # JSON de la PR : `base.repo.default_branch`). Le capitaine pousse la mise à jour d'une PR sur sa tête :
@@ -577,7 +635,7 @@ signaler_arbre_different() { # <pr> <sommet testé> <squash> (squash vide : intr
 # (`author_association` OWNER, MEMBER ou COLLABORATOR) : deux capitaines de deux personnes publient sous deux comptes,
 # donc le compte du capitaine (`gh api user`, filtre des renvois) ne départage rien ici, et les sessions d'une même
 # personne publient sous un même compte, d'où l'id de session. Un commentaire, pas un label : un label de plus
-# changerait les sept labels du socle, et il ne dirait ni qui ni depuis quand. La sûreté vient de la règle
+# changerait les neuf labels du socle, et il ne dirait ni qui ni depuis quand. La sûreté vient de la règle
 # d'ascendance (deux capitaines ne font jamais entrer une PR non testée) : le verrou n'évite que le travail en double.
 # À toute sortie, la trappe de l'appelant joue `finir_passage` (« terminé », la marque de fin), posée avant
 # `prendre_passage` : un TERM ou un INT pendant la pose ou la relecture termine le commentaire (pose lancée sans id

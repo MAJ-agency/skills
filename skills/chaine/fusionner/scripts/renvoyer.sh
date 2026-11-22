@@ -2,7 +2,8 @@
 # =============================================================================
 # Renvoie une PR de la file à sa session (skill `fusionner`) : retire `à-fusionner`,
 # pose `fusion-bloquée`, commente la cause et donne le worktree propriétaire, pour
-# que le capitaine prévienne la session (list_sessions → send_message).
+# que le capitaine prévienne la session (list_sessions → send_message). La suite que le commentaire donne suit le régime
+# de la PR (A-97) : en régime 8, corriger puis redemander la relecture (`à-relire`), jamais `à-fusionner`.
 #
 # Usage : bash scripts/chaine/renvoyer.sh <numéro> <cause>
 # =============================================================================
@@ -16,10 +17,31 @@ outils=$(cd "$(dirname "$0")" && pwd)
 deja=$(renvois_de "$N")
 plafond=$(plafond_renvois)
 numero=$((deja + 1))
-suite="Corriger, puis retirer \`fusion-bloquée\` et remettre \`à-fusionner\` (CLAUDE.md § « Fusion vers \`develop\` »)."
+# Le régime de la PR (A-97, lot 5c) : en régime 8, l'auteur ne pose jamais `à-fusionner`, il redemande la relecture (A-91,
+# A-93) ; le Relecteur pose `à-fusionner` sur un verdict validé et retire `fusion-bloquée`. PR ou régime illisibles : le
+# texte du régime 7.
+regime=7
+# Sans la clé `relecture` sur develop ni sur aucun sujet (lecture locale, sans appel), le régime 7 sans lecture de plus.
+cle=1
+for r in $(git for-each-ref --format='%(refname)' refs/remotes/origin/develop refs/remotes/origin/sujet/); do
+  ! cle_relecture_sur "$r" || { cle=0; break; }
+done
+if [ "$cle" = 0 ] && pr=$(pr_json "$N" 2>/dev/null); then
+  regime=$(regime_de_la_pr "$(jq -r .base.ref <<<"$pr")" "$(jq -r '.created_at // ""' <<<"$pr")" 2>/dev/null) || regime=7
+fi
+if [ "$regime" = 8 ]; then
+  suite="Corriger, puis redemander la relecture : le commentaire \`À relire — sommet <sha> — Session: <la tienne> — Conducteur: <le tien>\` et l'étiquette \`à-relire\`, sans retirer \`fusion-bloquée\` ; jamais \`à-fusionner\`, que le Relecteur pose sur un verdict validé (relecture indépendante, régime 8)."
+else
+  suite="Corriger, puis retirer \`fusion-bloquée\` et remettre \`à-fusionner\` (CLAUDE.md § « Fusion vers \`develop\` »)."
+fi
 # Une réception de develop faite en plusieurs fusions ne se corrige pas par un push : elle se refait, dans une nouvelle PR.
 case "$cause" in
-  *"jamais une seconde fusion"*) suite="Refaire la réception comme la cause le dit, ouvrir une nouvelle PR vers le sujet et fermer celle-ci ; la nouvelle PR porte \`à-fusionner\` (CLAUDE.md § « Fusion vers \`develop\` »)." ;;
+  *"jamais une seconde fusion"*)
+    if [ "$regime" = 8 ]; then
+      suite="Refaire la réception comme la cause le dit, ouvrir une nouvelle PR vers le sujet et fermer celle-ci ; la nouvelle PR demande sa relecture (\`à-relire\`, avec son commentaire \`À relire — …\`), jamais \`à-fusionner\` (relecture indépendante, régime 8)."
+    else
+      suite="Refaire la réception comme la cause le dit, ouvrir une nouvelle PR vers le sujet et fermer celle-ci ; la nouvelle PR porte \`à-fusionner\` (CLAUDE.md § « Fusion vers \`develop\` »)."
+    fi ;;
 esac
 if [ "$numero" -ge "$plafond" ]; then
   suite="**Renvoi $numero sur $plafond : cette PR attend un humain.** La file ne la reprend plus ; un humain décide, puis le capitaine la passe à la main (\`passer.sh $N\`, ou \`sujet.sh fusionner $N\` pour une sous-PR)."

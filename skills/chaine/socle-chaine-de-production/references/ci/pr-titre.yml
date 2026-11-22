@@ -34,4 +34,5 @@ jobs:
           PR_BASE: ${{ github.event.pull_request.base.ref }}
           PR_TETE: ${{ github.event.pull_request.head.ref }}
           PR_SOMMET: ${{ github.event.pull_request.head.sha }}
+          PR_OUVERTE: ${{ github.event.pull_request.created_at }}
         run: node scripts/github/pr-titre.mjs

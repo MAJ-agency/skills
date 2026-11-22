@@ -21,7 +21,7 @@ const CONFORME = /Titre et description conformes : le capitaine les acceptera\./
 /** Joue le check dans le clone de travail du jouet ; `ci` : GITHUB_ACTIONS=true. `null` retire la variable. */
 function check(d, entrees, { ci = false, script: chemin = CHECK } = {}) {
   const env = { ...d.env, GITHUB_ACTIONS: ci ? 'true' : '' };
-  for (const v of ['PR_TITRE', 'PR_NUMERO', 'PR_BASE', 'PR_TETE', 'PR_SOMMET', 'PR_CORPS']) delete env[v];
+  for (const v of ['PR_TITRE', 'PR_NUMERO', 'PR_BASE', 'PR_TETE', 'PR_SOMMET', 'PR_CORPS', 'PR_OUVERTE']) delete env[v];
   if (!ci) delete env.GITHUB_ACTIONS;
   const valeurs = { PR_NUMERO: '12', PR_CORPS: '', ...entrees };
   for (const [v, x] of Object.entries(valeurs)) if (x !== null) env[v] = x;
@@ -72,6 +72,37 @@ test('PR vers develop : du code sans section de revue est refusé avec le motif 
   const r = check(d, { PR_TITRE: 'docs(demo): y', PR_BASE: 'develop', PR_TETE: 'docs/y', PR_SOMMET: doc });
   assert.equal(r.status, 0, r.stdout + r.stderr);
   assert.match(r.stdout, CONFORME);
+});
+
+test('régime 8 (lot 5a) : la base porte la clé `relecture` et la PR est ouverte après `depuis` : du code sans section de revue est conforme, le titre de code sur la documentation reste refusé ; ouverte avant, régime 7 ; clé mal formée ou date absente : 3', () => {
+  const d = depotJouet();
+  d.ecrire('.claude/chaine.json', `${JSON.stringify({ cheminsSensibles: ['apps/**'], relecture: { depuis: '2026-11-17T09:00:00Z' } })}\n`);
+  d.commit('chore: contrat');
+  d.git('push', '-q', 'origin', 'HEAD:develop');
+  const sommet = d.branche('feat/x', 'origin/develop', { 'apps/x.ts': 'export const x = 1;\n' }, 'feat: x');
+  const entrees = { PR_TITRE: 'feat(demo): x', PR_BASE: 'develop', PR_TETE: 'feat/x', PR_SOMMET: sommet };
+  const huit = check(d, { ...entrees, PR_OUVERTE: '2026-11-17T11:00:00Z' });
+  assert.equal(huit.status, 0, huit.stdout + huit.stderr);
+  assert.match(huit.stdout, /régime 8 : la relecture se lit dans le verdict/);
+  assert.match(huit.stdout, CONFORME);
+  const sept = check(d, { ...entrees, PR_OUVERTE: '2026-11-17T08:00:00Z' });
+  assert.equal(sept.status, 1, sept.stdout + sept.stderr);
+  assert.match(motifs(sept)[0], /sans section « Revue de ticket »/);
+  const doc = d.branche('docs/y', 'origin/develop', { 'docs/y.md': 'y\n' }, 'docs: y');
+  const titre = check(d, { PR_TITRE: 'feat(demo): y', PR_BASE: 'develop', PR_TETE: 'docs/y', PR_SOMMET: doc, PR_OUVERTE: '2026-11-17T11:00:00Z' });
+  assert.equal(titre.status, 1, titre.stdout + titre.stderr);
+  assert.match(motifs(titre)[0], /mais le diff ne contient que de la documentation/);
+  const sansDate = check(d, entrees);
+  assert.equal(sansDate.status, 3, sansDate.stdout + sansDate.stderr);
+  assert.match(sansDate.stderr, /le régime ne se lit pas \(date d'ouverture de la PR illisible/);
+  d.git('switch', '-q', 'develop');
+  d.ecrire('.claude/chaine.json', `${JSON.stringify({ relecture: { depuis: 'hier' } })}\n`);
+  d.commit('chore: clé mal formée');
+  d.git('push', '-q', 'origin', 'HEAD:develop');
+  d.git('fetch', '-q', 'origin');
+  const mal = check(d, { ...entrees, PR_OUVERTE: '2026-11-17T11:00:00Z' });
+  assert.equal(mal.status, 3, mal.stdout + mal.stderr);
+  assert.match(mal.stderr, /clé relecture de origin\/develop:\.claude\/chaine\.json mal formée/);
 });
 
 test('sujet du squash à plus de 120 caractères : refusé ; titre de code sur un diff de documentation seule : refusé', () => {
@@ -270,4 +301,11 @@ test('une variable d’entrée manque : sortie 2 ; un corps vide n’en est pas 
     assert.match(r.stderr, /scripts\/chaine\/revue-exigee\.mjs absent \(le poser : \/maj-skills:fusionner poser\)/);
     assert.doesNotMatch(r.stdout, CONFORME);
   }
+});
+
+// Le workflow posé avec le check (`ci/pr-titre.yml` du socle) : la date d'ouverture, que le régime lit (lot 5a). Posé dans
+// un projet, le workflow vit sous `.github/workflows/` : le banc ne le lit que dans le plugin.
+test('le workflow donne PR_OUVERTE, la date d’ouverture de la PR, comme les autres entrées : par `env:`', { skip: !existsSync(new URL('../../ci/pr-titre.yml', import.meta.url)) }, () => {
+  const yml = readFileSync(new URL('../../ci/pr-titre.yml', import.meta.url), 'utf8');
+  assert.match(yml, /^ {10}PR_OUVERTE: \$\{\{ github\.event\.pull_request\.created_at \}\}$/m);
 });

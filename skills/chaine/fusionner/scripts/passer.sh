@@ -2,10 +2,12 @@
 # =============================================================================
 # Fait passer UNE PR de la file vers develop (skill /fusionner).
 #
-#   1. Éligible : ouverte, label `à-fusionner`, ni `fusion-bloquée` ni brouillon ; section
-#      « Revue adversariale » dans la description si le diff touche du code (revue-exigee.mjs) ;
-#      base = develop, ou branche d'une PR déjà fusionnée (pile) → reciblée sur develop
-#      juste avant le push (un renvoi garde la parente comme base).
+#   1. Éligible : ouverte, label `à-fusionner`, ni `fusion-bloquée` ni brouillon ; selon le régime de la PR (A-97,
+#      lot 5a : sa base porte la clé `relecture` de `.claude/chaine.json` et elle a été ouverte après `depuis`), en
+#      régime 7 une section « Revue adversariale » dans la description si le diff touche du code (revue-exigee.mjs), en
+#      régime 8 un tour de relecture validé pour le contenu de son sommet (le verdict, premier des deux contrôles,
+#      A-105) ; base = develop, ou branche d'une PR déjà fusionnée (pile) → reciblée sur develop
+#      juste avant le push (un renvoi garde la parente comme base ; en régime 8, une pile est renvoyée).
 #   2. Fusionne origin/develop DANS la branche, jamais de rebase : aucun push forcé
 #      sur la branche d'une autre session. Conflits résolus sans jugement : index
 #      générés (régénérés) ; fichier d'une pile dont un seul côté a changé la version
@@ -21,6 +23,9 @@
 #      `à-jour` : squash du sommet testé. `retard` ou `conflit-index` (develop a bougé pendant la CI, documentation
 #      comprise) : nouveau tour (étapes 2 à 5), deux reprises au plus, puis sortie 5. `conflit` : sortie 2 (renvoi).
 #      Illisible : sortie 3. Le capitaine ne s'en remet pas au réglage « strict » de GitHub.
+#   5 ter. Régime 8 : second contrôle du verdict, sur le sommet fusionné, une fois l'ascendance `à-jour` (A-105) :
+#      la PR relue (sans `à-fusionner` : sautée), ses commentaires relus, un tour validé pour ce sommet exigé ; une
+#      mise à jour du capitaine (fusion de develop, index régénérés) garde le verdict (« même contenu propre »).
 #   6. Squash lié au sommet testé (`sha`) — commit de merge pour une branche sujet/ ou une
 #      livraison intermédiaire `livraison/<nom>-<date>`, reconnue aussi après sa mise à jour
 #      avec develop (étape 4) : son arbre est celui d'un sommet du sujet fusionné avec develop —,
@@ -50,7 +55,9 @@
 #      commit vide ; boucle.sh la met de côté jusqu'à la fusion suivante, qui la poussera
 #   4  refus que l'auteur peut corriger (migration plus ancienne que la dernière de develop,
 #      titre trop long, sans section « Revue adversariale », titre de code sur un diff docs seul, lien
-#      symbolique sur un index généré) : la dernière ligne dit pourquoi ; boucle.sh renvoie
+#      symbolique sur un index généré ; en régime 8, aucun tour de relecture validé pour le contenu du sommet, à
+#      l'éligibilité ou juste avant la fusion, une PR empilée, un chemin sensible hors de la ligne `Sensibles:` de son
+#      ticket ou une PR sans ticket qui en touche un) : la dernière ligne dit pourquoi ; boucle.sh renvoie
 #      la PR (refus.sh) avec ce motif, jamais de saut silencieux
 #   7  pas éligible, rien à corriger côté auteur (non ouverte, brouillon, sans `à-fusionner`,
 #      déjà `fusion-bloquée`, empilée sur une parente pas encore fusionnée) : la boucle la saute sans renvoi et la
@@ -58,7 +65,9 @@
 #      sans fin, daté de moins de 90 minutes, le plus tard de son epoch, s'il n'est pas en avance de plus de 5 minutes
 #      sur le sien, et de sa création ; jamais de gel : FILTRE_PASSAGE de github.sh ; posé avant le sien), sautée
 #      sans renvoi ; ou qui n'est plus éligible une fois le
-#      verrou pris (relue : fermée, label retiré, sommet changé)
+#      verrou pris (relue : fermée, label retiré, sommet changé) ; ou, en régime 8, dont la lecture est illisible
+#      (clé `relecture` mal formée, commentaires, marque presque à la forme, « double relecture exigée » ou « même
+#      contenu propre » illisibles : A-113, son auteur n'y peut rien) ; ou qui a perdu `à-fusionner` juste avant la fusion
 #   5  GitHub illisible (lire_github : réponse vide, non JSON, corps d'erreur ou code non nul), à la lecture de la PR,
 #      de sa parente ou pendant l'attente de la CI : la boucle se met en pause (PAUSE) puis reprend, jamais un arrêt
 #   3  fusion refusée par GitHub pour une autre raison qu'une branche qui a bougé (droit du compte, règle du dépôt,
@@ -169,14 +178,41 @@ else
   depart_pile=$(git merge-base "$origine" "$depart")
 fi
 
-# Revue adversariale (ADR « chaîne de production ») : exigée dès que le diff touche du code ou ce que la chaîne
-# exécute (revue-exigee.mjs : apps/, packages/, scripts/, e2e/, un segment à point, un fichier de la racine hors
-# Markdown, un package.json, un CLAUDE.md, docs/agents/), ou un chemin sensible et le fichier des critères du
-# contrat d'origin/develop, jamais de celui de la PR.
-# Une livraison de sujet en est dispensée : chaque sous-PR l'a passée (sujet.sh fusionner).
+# La revue, selon le régime de la PR (A-97), lu sur origin/develop (une pile y sera reciblée) : `revue_du_capitaine` de
+# github.sh. Régime 7, la revue adversariale (ADR « chaîne de production ») : exigée dès que le diff touche du code ou ce
+# que la chaîne exécute (revue-exigee.mjs : apps/, packages/, scripts/, e2e/, un segment à point, un fichier de la racine
+# hors Markdown, un package.json, un CLAUDE.md, docs/agents/), ou un chemin sensible et le fichier des critères du
+# contrat d'origin/develop, jamais de celui de la PR. Régime 8 (A-91, A-105, A-107) : premier contrôle du verdict, avant
+# toute mise à jour et toute CI, un tour validé pour le contenu de la tête lue après le fetch, sur le diff que la
+# relecture lit ; toute PR est concernée, documentation comprise. Une lecture illisible (A-113) : sautée sans renvoi.
+# Une livraison de sujet en est dispensée, dans les deux régimes (A-92) : chaque sous-PR l'a passée (sujet.sh fusionner).
+regime=7
 if [ "$livraison_sujet" = 0 ]; then
-  motif=$(git -c core.quotePath=false diff --no-renames --name-only "$depart" "$origine" | node "$PASSER_OUTILS/revue-exigee.mjs" "$(champ '.body // ""')" "$titre" origin/develop) ||
-    sortir 4 "$motif"
+  revue=$(git -c core.quotePath=false diff --no-renames --name-only "$depart" "$origine" | revue_du_capitaine "$pr" "$origine" develop) && statut=0 || statut=$?
+  regime=$(sed -n '1s/^régime \([78]\).*$/\1/p' <<<"$revue")
+  # Le Relecteur ne relit qu'une PR vers develop ou vers un sujet : une pile n'aurait jamais de verdict.
+  [ "$regime" != 8 ] || [ "$base" = develop ] ||
+    sortir 4 "PR empilée sur $base en régime 8 : le Relecteur ne relit qu'une PR vers develop ou vers un sujet ; la recibler sur develop, puis demander sa relecture"
+  case $statut in
+    0) ;;
+    1) sortir 4 "$(tail -n 1 <<<"$revue")" ;;
+    21) sortir 7 "$(tail -n 1 <<<"$revue") : sautée sans renvoi, son auteur n'y peut rien (le Relecteur prévient l'architecte)" ;;
+    5) sortir 5 "origin ou GitHub illisible à la lecture des commentaires de la PR (cause ci-dessus) : pause, puis reprise" ;;
+    *) sortir 3 "revue du capitaine en échec (sortie $statut) : $(tail -n 1 <<<"$revue")" ;;
+  esac
+  regime=${regime:-7}
+fi
+# Régime 8, les gardes des fichiers sensibles (A-76, lot 5b), au même endroit que le premier contrôle (A-105), sur le
+# même diff : un chemin sensible que la ligne `Sensibles:` du ticket de la PR ne couvre pas, ou une PR sans ticket qui en
+# touche un, est renvoyée (`garde_des_sensibles` de github.sh). Une livraison de sujet n'y repasse pas.
+if [ "$regime" = 8 ]; then
+  motif=$(git -c core.quotePath=false diff --no-renames --name-only "$depart" "$origine" | garde_des_sensibles develop "$titre" "$tete") && statut=0 || statut=$?
+  case $statut in
+    0) ;;
+    20) sortir 4 "$(tail -n 1 <<<"$motif")" ;;
+    21) sortir 7 "$(tail -n 1 <<<"$motif") (chemins sensibles) : sautée sans renvoi, son auteur n'y peut rien" ;;
+    *) sortir 3 "garde des fichiers sensibles en échec (sortie $statut) : $(tail -n 1 <<<"$motif")" ;;
+  esac
 fi
 
 # Lien symbolique sur un index généré ou son dossier, que la PR ajoute ou change (livraisons comprises) : la
@@ -360,6 +396,34 @@ while :; do
     *) sortir 3 "contrôle d'ascendance illisible (verdict « ${verdict%%$'\n'*} ») : la PR n'entre pas sans lui" ;;
   esac
 done
+
+# ── 5 ter. Second contrôle du verdict, juste avant l'appel de fusion (régime 8, A-105) ────────────────────
+# Sur le sommet que le capitaine fusionne, une fois l'ascendance rendue « à-jour », sans CI de plus : la PR relue (ses
+# étiquettes), puis ses commentaires. Ce que rien ne relisait depuis le premier contrôle : un `refusé` tombé pendant la
+# CI, une règle montée à haute, une étiquette que le Relecteur a changée. Une mise à jour du capitaine (fusion de
+# develop, index régénérés) garde le verdict : « même contenu propre » (A-106). Nulle part ailleurs.
+quitter_capitaine() { git switch -q --detach origin/develop; git branch -q -D "capitaine/$N" 2>/dev/null || true; }
+if [ "$regime" = 8 ]; then
+  pr_relu=$(pr_json "$N") || sortir 5 "GitHub illisible à la relecture de la PR avant la fusion (cause ci-dessus) : pause, puis reprise"
+  raison=$(jq -r --arg s "$sommet" '[.labels[].name] as $l
+    | if .state != "open" then "non ouverte" elif .draft != false then "en brouillon"
+      elif ($l | index("à-fusionner")) == null then "sans le label à-fusionner"
+      elif ($l | index("fusion-bloquée")) != null then "label fusion-bloquée"
+      elif .head.sha != $s then "sommet changé" else "" end' <<<"$pr_relu")
+  case "$raison" in
+    '') ;;
+    'sommet changé') quitter_capitaine; sortir 5 "la PR a reçu un push avant la fusion, relancer" ;;
+    *) quitter_capitaine; sortir 7 "PR plus éligible juste avant la fusion ($raison) : sautée" ;;
+  esac
+  revue=$(git -c core.quotePath=false diff --no-renames --name-only "$(git merge-base "$sommet" origin/develop)" "$sommet" | revue_du_capitaine "$pr_relu" "$sommet" develop) && statut=0 || statut=$?
+  case $statut in
+    0) log "verdict relu juste avant la fusion : $(head -n 1 <<<"$revue")" ;;
+    1) quitter_capitaine; sortir 4 "$(tail -n 1 <<<"$revue") (contrôle juste avant la fusion)" ;;
+    21) quitter_capitaine; sortir 7 "$(tail -n 1 <<<"$revue") (contrôle juste avant la fusion) : sautée sans renvoi, son auteur n'y peut rien" ;;
+    5) sortir 5 "origin ou GitHub illisible à la relecture des commentaires avant la fusion (cause ci-dessus) : pause, puis reprise" ;;
+    *) quitter_capitaine; sortir 3 "revue du capitaine en échec avant la fusion (sortie $statut) : $(tail -n 1 <<<"$revue")" ;;
+  esac
+fi
 
 # ── 6. Squash ───────────────────────────────────────────────────────────────
 sujet="$titre (#$N)"

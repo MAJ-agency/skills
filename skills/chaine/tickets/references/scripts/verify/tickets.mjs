@@ -38,7 +38,12 @@
  *      (`fichier.test.ts` « titre ») qui existent dans les fichiers de tests suivis et sont actifs ;
  *  12. `Sensibles:`, si la ligne est dans l'en-tête, vaut `—` ou des chemins (ou des motifs) séparés par des
  *      virgules puis ` — accord de <nom>, <AAAA-MM-JJ>` : la forme seule est jugée, la ligne n'est jamais exigée ;
- *  13. `Relecture:`, si la ligne est dans l'en-tête, vaut `double` ; elle n'est jamais exigée.
+ *  13. `Relecture:`, si la ligne est dans l'en-tête, vaut `double` ; elle n'est exigée qu'en régime 8 (règle 14) ;
+ *  14. en régime 8 (la clé `relecture` de `.claude/chaine.json`, lue dans l'arbre de travail, A-97 ; lot 5c), la règle 7
+ *      ne joue plus (`Label: contre-revue` n'est plus exigé, A-94), et un ticket ouvert qui cite une règle de criticité
+ *      haute porte `Relecture: double` (A-90) ; la criticité se lit dans l'en-tête du fichier de la règle et dans l'index
+ *      Anchorpost (`anchorpost/anchorpost.json`), la plus haute des deux, par les lecteurs du calcul « double relecture
+ *      exigée » (`scripts/chaine/double-relecture.mjs`, skill fusionner, exigé en régime 8 : sortie 2 sans lui).
  *
  * Usage : node scripts/verify/tickets.mjs [--elaguer | --geler-types | --geler-fiches]   (pnpm check:tickets — CI)
  * Sortie 2 : `scripts/docs/identifiants.mjs` absent (posé par `socle-monorepo`).
@@ -46,6 +51,7 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
+import { pathToFileURL } from 'node:url';
 // La grammaire est posée par socle-monorepo, pas par ce skill : sans elle, un refus qui la nomme
 // plutôt qu'un module introuvable.
 if (!existsSync(new URL('../docs/identifiants.mjs', import.meta.url))) {
@@ -92,6 +98,11 @@ const regles = new Set(
     .map(({ id }) => id),
 );
 const regleExiste = (id) => regles.has(id);
+const fichiersDesRegles = new Map(
+  ls('docs/metier/regles/*/RULE_*.md')
+    .map((c) => [identifiantDeLaRegle(basename(c)), c])
+    .filter(([id, c]) => id && c === `docs/metier/regles/${dossierDuContexte(lireIdentifiant(id).contexte)}/${id}.md`),
+);
 
 // Fichiers de tests suivis, lus à la demande : seul un défaut `Fait` les fait ouvrir.
 let fichiersDeTest = null;
@@ -123,6 +134,50 @@ try {
   process.exit(1);
 }
 
+// Régime 8 (lot 5c) : la clé `relecture` dans le contrat de l'arbre de travail, quelle que soit sa forme (A-97).
+let regime = 7;
+let niveauDe = () => null;
+try {
+  const c = existsSync(CHAINE) ? JSON.parse(readFileSync(CHAINE, 'utf8')) : null;
+  if (c !== null && typeof c === 'object' && Object.hasOwn(c, 'relecture')) regime = 8;
+} catch {
+  // déjà dit par lireCheminsSensibles
+}
+if (regime === 8) {
+  const double = [join(ROOT, 'scripts/chaine/double-relecture.mjs'), new URL('../../../../fusionner/scripts/double-relecture.mjs', import.meta.url).pathname].find(existsSync);
+  if (!double) {
+    console.error('tickets : régime 8 et scripts/chaine/double-relecture.mjs introuvable (skill fusionner) : la criticité des règles citées ne se lit pas ; rejouer /maj-skills:fusionner poser');
+    process.exit(2);
+  }
+  const { enTeteDeRegle, reglesDeLIndex } = await import(pathToFileURL(double).href);
+  const comparable = (s) => s.normalize('NFC').toUpperCase().toLowerCase();
+  const INDEX = join(ROOT, 'anchorpost/anchorpost.json');
+  let index = null;
+  let indexIllisible = null;
+  if (existsSync(INDEX))
+    try {
+      index = reglesDeLIndex(readFileSync(INDEX, 'utf8'));
+    } catch (e) {
+      indexIllisible = `anchorpost/anchorpost.json : ${e.message}`;
+    }
+  const NIVEAUX = ['low', 'medium', 'high'];
+  niveauDe = (id) => {
+    if (indexIllisible) return { illisible: indexIllisible };
+    const lus = [];
+    const r = index?.get(comparable(id));
+    if (r && r.enVigueur) lus.push(r.niveau);
+    const f = fichiersDesRegles.get(id);
+    if (f)
+      try {
+        const e = enTeteDeRegle(readFileSync(join(ROOT, f), 'utf8'));
+        if (e.enVigueur) lus.push(e.niveau);
+      } catch (e) {
+        return { illisible: `${f} : ${e.message}` };
+      }
+    return lus.filter(Boolean).sort((a, b) => NIVEAUX.indexOf(b) - NIVEAUX.indexOf(a))[0] ?? null;
+  };
+}
+
 const erreurs = [];
 // Les fiches que les skills lisent : celles du skill `tickets`, pas celles d'origine de Matt Pocock.
 const fiche = (nom) => (existsSync(join(ROOT, 'docs/agents', nom)) ? readFileSync(join(ROOT, 'docs/agents', nom), 'utf8') : null);
@@ -147,9 +202,11 @@ for (const chemin of chemins) {
     cheminsSensibles,
     regleExiste,
     testExiste,
+    regime,
+    niveauDe,
   });
   for (const e of r.erreurs) erreurs.push(`${chemin}:${e.ligne} : ${e.message}`);
-  if (geles.has(chemin) && r.pret && ecartsFormatPret(texte, cheminsSensibles).length > 0) detteActive.add(chemin);
+  if (geles.has(chemin) && r.pret && ecartsFormatPret(texte, cheminsSensibles, { regime }).length > 0) detteActive.add(chemin);
   if (r.type === null) sansType.push(chemin);
 }
 const typesEnDette = new Set(sansType.filter((c) => typesGeles.has(c)));

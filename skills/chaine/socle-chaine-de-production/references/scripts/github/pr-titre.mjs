@@ -14,7 +14,13 @@
 //   - sinon le diff depuis le merge-base de la base, comme `passer.sh`.
 //
 // Entrées, par l'environnement, jamais par le shell : PR_TITRE, PR_NUMERO, PR_BASE (`base.ref`), PR_TETE
-// (`head.ref`), PR_SOMMET (`head.sha`), requises ; PR_CORPS facultative (corps vide ou nul de GitHub : `""`).
+// (`head.ref`), PR_SOMMET (`head.sha`), requises ; PR_CORPS facultative (corps vide ou nul de GitHub : `""`) ;
+// PR_OUVERTE (`created_at`), lue seulement quand la base porte la clé `relecture` de `.claude/chaine.json`.
+//
+// Le régime (lot 5a, A-97, A-107) : `regimeDeLaPr` de `revue-exigee.mjs`, sur la base et la date d'ouverture, comme le
+// capitaine. En régime 8, la section de revue et sa ligne `/security-review` ne sont plus exigées (le verdict de la
+// session de relecture les remplace, et le capitaine le juge à son passage) : le check rend les motifs du capitaine en
+// régime 8 (`motifsDuCapitaine`, `regime: 8`). La clé mal formée, ou PR_OUVERTE illisible quand elle est lue : 3.
 // Refs `origin/develop` et `origin/<base>` déjà là (actions/checkout, `fetch-depth: 0`) : aucun appel réseau.
 //
 // Outils : `../chaine/sujet.sh` et `../chaine/revue-exigee.mjs` dans un projet (`scripts/github/` → `scripts/chaine/`) ;
@@ -102,7 +108,7 @@ async function principal() {
   const enCI = process.env.GITHUB_ACTIONS === 'true';
   const e = entrees(process.env);
   const { sujet, revue } = outils(enCI);
-  const { motifsDuCapitaine, lireBase } = await import(pathToFileURL(revue).href);
+  const { motifsDuCapitaine, lireBase, regimeDeLaPr } = await import(pathToFileURL(revue).href);
   // Clone superficiel : merge-base faux, dit tel quel (jamais « refs absentes »).
   const superficiel = lancer('git', ['rev-parse', '--is-shallow-repository']);
   if (superficiel.status !== 0) lectureEchouee('git rev-parse --is-shallow-repository', superficiel);
@@ -147,8 +153,11 @@ async function principal() {
 
   if (fichiers !== null) {
     const base = lireBase(`origin/${e.base}`);
+    const lu = regimeDeLaPr({ base: e.base, ouverte: process.env.PR_OUVERTE });
+    if (lu.illisible) echouer(3, `PR titre : le régime ne se lit pas (${lu.illisible}) : le check ne conclut pas`);
+    if (lu.regime === 8) notes.push('régime 8 : la relecture se lit dans le verdict de la session de relecture, pas dans la description (section de revue non exigée)');
     for (const liste of fichiers)
-      for (const m of motifsDuCapitaine({ corps: e.corps, titre: e.titre, fichiers: liste, base })) if (!motifs.includes(m)) motifs.push(m);
+      for (const m of motifsDuCapitaine({ corps: e.corps, titre: e.titre, fichiers: liste, base, regime: lu.regime })) if (!motifs.includes(m)) motifs.push(m);
   }
 
   for (const n of notes) process.stdout.write(`${n}\n`);

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/** Hook PreToolUse (Edit, Write, MultiEdit, NotebookEdit) : fichiers protégés. */
+/** Hook PreToolUse (Edit, Write, MultiEdit, NotebookEdit) : fichiers protégés ; en régime 8, les chemins sensibles hors de la ligne `Sensibles:` du ticket (lot 5b). */
 import { execFileSync } from 'node:child_process';
 
 // Ticket 18 : la garde ne s'ouvre jamais. Ses modules se chargent en dynamique protégé, avant toute autre chose, et
@@ -39,7 +39,10 @@ const charger = async (fichier, attendus) => {
   return m;
 };
 const { lireToolInput, relatif, RACINE } = await charger('entree.mjs', { lireToolInput: 'function', relatif: 'function', RACINE: 'string' });
-const { refusEdition } = await charger('regles.mjs', { refusEdition: 'function' });
+const { refusEdition, lireSensibles } = await charger('regles.mjs', { refusEdition: 'function', lireSensibles: 'function' });
+// La grammaire des identifiants (skill `socle-monorepo`) : le ticket de la branche. Absente, aucun accord ne se lit et
+// tout chemin sensible est refusé en régime 8, au lieu que le hook tombe entier.
+const identifiants = await import('../docs/identifiants.mjs').catch(() => null);
 
 // Le chemin visé : `file_path` (Edit, Write, MultiEdit), `notebook_path` (NotebookEdit). Entrée illisible,
 // ou chemin absent, vide ou d'un autre type : refusé, la garde échoue fermée. Hors du dépôt : permis.
@@ -65,7 +68,47 @@ function migrationExistante(c) {
   return false;
 }
 
-const refus = refusEdition(chemin, { migrationExistante });
+const git = (...args) => execFileSync('git', args, { cwd: RACINE, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], timeout: 10_000 }).trim();
+
+/**
+ * Régime 8 (lot 5b, A-74, A-76) : les chemins qu'accorde la ligne `Sensibles:` du ticket de la branche courante, lue sur
+ * `origin/sujet/*` (sur `origin/develop` pour un ticket qu'aucun sujet ne porte), jamais dans l'arbre de travail ni sur
+ * la branche de la session, comme `Dépendances:` (garde-commandes.mjs). Une copie locale que `origin` ne porte pas (ref
+ * déplacée à la main) ne compte pas. `{ copies: [[motifs]…] }`, une liste par copie ; `{ illisible }` ; `null` : pas de
+ * ticket, pas de copie, origin injoignable, grammaire absente. Lu seulement quand le chemin est sensible.
+ */
+function accordes() {
+  try {
+    const id = identifiants?.identifiantDeBranche(git('rev-parse', '--abbrev-ref', 'HEAD'));
+    if (!id) return null;
+    const { estArchive, identifiantDuTicket } = identifiants;
+    const distants = new Map(
+      git('ls-remote', '--heads', 'origin', 'refs/heads/sujet/*', 'refs/heads/develop')
+        .split('\n')
+        .filter(Boolean)
+        .map((ligne) => ligne.split(/\s+/).reverse()),
+    );
+    const copiesSous = (motif) => {
+      const copies = [];
+      for (const ligne of git('for-each-ref', '--format=%(objectname) %(refname)', motif).split('\n').filter(Boolean)) {
+        const [sha, ref] = ligne.split(' ');
+        if (distants.get(ref.replace('refs/remotes/origin/', 'refs/heads/')) !== sha) continue;
+        for (const f of git('ls-tree', '-r', '-z', '--name-only', sha, 'docs').split('\0').filter(Boolean))
+          if (!estArchive(f) && identifiantDuTicket(f.split('/').pop() ?? '') === id) copies.push(lireSensibles(git('show', `${sha}:${f}`)));
+      }
+      return copies;
+    };
+    let copies = copiesSous('refs/remotes/origin/sujet/');
+    if (copies.length === 0) copies = copiesSous('refs/remotes/origin/develop');
+    if (copies.length === 0) return null;
+    const illisible = copies.find((c) => c.illisible);
+    return illisible ? { illisible: illisible.illisible } : { copies: copies.map((c) => c.chemins) };
+  } catch {
+    return null;
+  }
+}
+
+const refus = refusEdition(chemin, { migrationExistante, accordes });
 if (refus) {
   process.stderr.write(`${refus}\n`);
   process.exit(2);

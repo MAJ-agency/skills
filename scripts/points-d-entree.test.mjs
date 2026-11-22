@@ -26,6 +26,7 @@ const SCRIPTS = [
   { nom: "contexte-regle", fichier: "skills/chaine/criticite/scripts/contexte-regle.mjs", args: [], statut: 2, sortie: /usage : node contexte-regle\.mjs/ },
   { nom: "double-relecture", fichier: "skills/chaine/fusionner/scripts/double-relecture.mjs", args: [], statut: 21, sortie: /^illisible\n$/m },
   { nom: "relecteur", fichier: "skills/chaine/relecteur/scripts/relecteur.mjs", args: [], statut: 2, sortie: /relecteur : usage : relecteur\.mjs passe/ },
+  { nom: "chemins-sensibles", fichier: "skills/chaine/revue-adversariale/scripts/chemins-sensibles.mjs", args: ["--garde"], statut: 2, sortie: /^usage : chemins-sensibles\.mjs --garde --base/ },
 ];
 
 const tmp = mkdtempSync(join(tmpdir(), "entree-"));

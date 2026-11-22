@@ -25,7 +25,10 @@
 //               branch ». Sans la clé, aucune branche n'est stricte. Aucun script ne lit ce réglage
 //   pendantCi   déplacements de branche pendant la CI, joués dans l'ordre : [{ lectures, branche, vers }]. À la
 //               `lectures`-ième lecture des `check-runs` (tous commits) depuis le déplacement précédent, le faux
-//               joue `update-ref refs/heads/<branche> <vers>` dans le dépôt nu, puis retire le déplacement
+//               joue `update-ref refs/heads/<branche> <vers>` dans le dépôt nu, puis retire le déplacement. Une entrée
+//               `{ lectures, pr, commentaire }` ajoute à la place un commentaire (corps ou objet) à la PR `pr`, et
+//               `{ lectures, pr, labels }` lui donne ces étiquettes : un verdict ou une étiquette du Relecteur tombés
+//               pendant la CI d'une mise à jour du capitaine (lot 5a)
 //   avantFusion { branche, vers } : joué au `PUT pulls/<n>/merge` avant le contrôle « strict » et le calcul de
 //               l'arbre, puis retiré : une fusion concurrente que GitHub a acceptée
 //   exiges      checks exigés de develop ; runs : workflow_runs par PR (« #12 »)
@@ -230,7 +233,10 @@ function deplacerPendantCi() {
   if (!suivant) return;
   etat.lecturesPendantCi = (etat.lecturesPendantCi ?? 0) + 1;
   if (etat.lecturesPendantCi < suivant.lectures) return;
-  git("update-ref", `refs/heads/${suivant.branche}`, suivant.vers);
+  const cible = suivant.pr === undefined ? null : etat.pulls.find((x) => x.number === suivant.pr);
+  if (suivant.commentaire !== undefined) cible.commentaires = [...(cible.commentaires ?? []), suivant.commentaire];
+  else if (suivant.labels !== undefined) cible.labels = [...suivant.labels];
+  else git("update-ref", `refs/heads/${suivant.branche}`, suivant.vers);
   etat.pendantCi.shift();
   etat.lecturesPendantCi = 0;
 }

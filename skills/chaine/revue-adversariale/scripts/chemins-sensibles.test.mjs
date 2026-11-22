@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 const { dossierTemporaire, environnementDeBanc } = await import(
   existsSync(new URL("./depot-jouet.mjs", import.meta.url))
     ? "./depot-jouet.mjs"
@@ -252,4 +253,41 @@ test("un chemin décité qui porte un saut de ligne, \\r ou U+2028 touche encore
     assert.equal(r.status, 0, r.stderr);
     assert.match(r.stdout, new RegExp(`\\t${motif.replace(/[*/.\\]/g, "\\$&")}\\n$`), `${motif} / ${cite}`);
   }
+});
+
+// ── Lot 5b : `lireSensibles`, recopiée dans le hook d'édition, et jamais plus large que le gate ───────────────────
+const LIGNES_SENSIBLES = [
+  'Sensibles: `scripts/agent/**`, docs/x.md — accord de la MOA, 2026-11-18 # repose',
+  '**Sensibles:** — # rien',
+  '* sensibles: a/b — accord de la MOA, 2026-11-18',
+  'Modèle: sonnet',
+  'Sensibles: a/b',
+  'Sensibles: a/b — accord de la MOA',
+  'Sensibles: — accord de la MOA, 2026-11-18',
+  'Sensibles: /etc/x — accord de la MOA, 2026-11-18',
+  'Sensibles: a/../b — accord de la MOA, 2026-11-18',
+  'Sensibles: ~/x — accord de la MOA, 2026-11-18',
+  'Sensibles: a b — accord de la MOA, 2026-11-18',
+  'Sensibles: a\\b — accord de la MOA, 2026-11-18',
+  'Sensibles: a,, b — accord de la MOA, 2026-11-18',
+  'Sensibles: `a{b}` — accord de la MOA, 2026-11-18',
+];
+test("lot 5b, lireSensibles : la copie du hook d'édition rend la même chose ; aucun chemin que le gate refuse n'est accordé", async () => {
+  // Le hook : à côté dans un projet (scripts/agent/), dans le socle de la chaîne du plugin. Posé à plat sans lui (le banc
+  // des poses ne pose pas scripts/agent/), la copie du capitaine se compare à elle-même : regles.test.mjs tient l'autre.
+  const regles = ["../agent/regles.mjs", "../../socle-chaine-de-production/references/agent/regles.mjs"].map((c) => new URL(c, import.meta.url)).find((u) => existsSync(u)) ?? new URL(CLI, "file://");
+  const textes = LIGNES_SENSIBLES.map((ligne) => `# T\n\nStatus: ready-for-agent\n${ligne}\n\n## Le besoin\n`);
+  // Les deux copies, lues dans un processus à part, l'entrée standard vide, leurs chemins par l'environnement (jamais en
+  // argument : `process.argv[1]` ferait croire au module qu'il est lancé) : un module qui jouerait sa CLI à l'import
+  // (chemins-sensibles.mjs avant le lot 5b) sort sans rendre de JSON, au lieu d'attendre une entrée.
+  const lu = spawnSync(process.execPath, ["--input-type=module", "-e", `const e = process.env; const [a, b] = await Promise.all([import(e.CAPITAINE), import(e.HOOK)]); const t = JSON.parse(e.TEXTES); process.stdout.write(JSON.stringify([t.map(a.lireSensibles), t.map(b.lireSensibles)]));`], { input: "", encoding: "utf8", env: { ...sansGit(), CAPITAINE: CLI, HOOK: fileURLToPath(regles), TEXTES: JSON.stringify(textes) }, timeout: 30_000 });
+  assert.equal(lu.status, 0, lu.stderr);
+  const [capitaine, hook] = JSON.parse(lu.stdout);
+  const { ecartsSensibles } = await chargerGate();
+  LIGNES_SENSIBLES.forEach((ligne, i) => {
+    assert.deepEqual(hook[i], capitaine[i], ligne);
+    const valeur = /^(?:[-*][ \t]+)?\**Sensibles\**\s*:\**\s*(.*)$/i.exec(ligne)?.[1];
+    if (valeur !== undefined && ecartsSensibles(valeur.trim()).some((e) => /n'est pas un chemin|attendu `—`/.test(e))) assert.ok(capitaine[i].illisible, `le gate refuse, la garde aussi : ${ligne}`);
+  });
+  assert.deepEqual(capitaine[0], { chemins: ["scripts/agent/**", "docs/x.md"] });
 });

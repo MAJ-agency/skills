@@ -15,16 +15,34 @@
 // alors la seule ligne Status du commit de réservation et le code reste sur la branche.
 //
 // Usage : printf '%s\n' "$fichiers" | node revue-exigee.mjs "$corps" ["$titre"] ["<base>"]
-// En module : `motifsDuCapitaine` (tous les motifs, dans l'ordre de la CLI) et `lireBase`, que le check `pr-titre` du
-// socle de la chaîne appelle (ticket 16).
+//         printf '%s\n' "$fichiers" | node revue-exigee.mjs "$corps" "$titre" "origin/<base>" --ouverte <date> --tete <sha> --branche <tête> --commentaires <fichier>
+// En module : `motifsDuCapitaine` (tous les motifs, dans l'ordre de la CLI), `lireBase` et `regimeDeLaPr`, que le check
+// `pr-titre` du socle de la chaîne appelle (ticket 16, lot 5a).
 // `<base>` : la branche que la PR vise (`origin/develop`, `origin/sujet/<nom>`) ; ses `cheminsSensibles` et son
 // fichier des critères s'ajoutent au plancher (`lireBase`). Sans elle, le plancher seul.
 // Sortie 0 éligible · 1 non éligible, motif sur la sortie standard.
+//
+// Le régime d'une PR (A-97, lot 5a). Avec `--ouverte` (le `created_at` de la PR), la CLI lit d'abord le régime sur
+// `<base>` (`regimeDeLaPr`) et l'écrit en première ligne de sa sortie standard : `régime 7`, `régime 8` (puis le motif,
+// sortie 1), ou `régime 8 : tour <k> validé au sommet <sha>` (sortie 0). En régime 7, elle juge comme sans l'option.
+// En régime 8 (A-91, A-105, A-107), la section de revue et la ligne `/security-review` du corps ne sont plus lues : le verdict les remplace. La
+// PR veut un tour validé pour le contenu de `--tete`, au sens de la règle 2 du Relecteur (`tourValide` de
+// `decision-relecteur.mjs`, la même fonction), sur les mêmes faits que lui : `--commentaires`, un fichier JSON, le
+// tableau de TOUS les commentaires de la PR (toutes pages, jamais en argument : un argument trop long est refusé par le
+// système) ; le chemin sensible, lu sur le diff reçu avec le contrat de la base (`cheminSensible`, `lireBase`) ; le nombre
+// de verdicts exigés (`double-relecture.mjs`, à côté) ; « même contenu propre » de chaque sommet de tour avec `--tete`
+// (`meme-contenu.sh`, à côté). Qui appelle a relu `origin/<base>`, `origin/develop` et les `origin/sujet/*` juste avant.
+// Le titre de code sur de la documentation seule reste jugé (`motifTitreSansCode`).
+// Sortie 21 : lecture illisible (clé `relecture` mal formée, date d'ouverture, commentaires, marque presque à la forme,
+// « double relecture exigée » ou « même contenu propre » illisibles) ; la cause sur la sortie standard. Le capitaine
+// saute alors la PR sans la renvoyer (A-113) : son auteur n'y peut rien. Sortie 2 : options mal formées. Sortie 3 : en
+// régime 8, l'outil en panne (un calcul absent à côté, une exception) : jamais un refus.
 // =============================================================================
 
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import { realpathSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 // Ce qui exige la revue, lu sur le chemin décité, en NFC et en minuscules (`cheminLu`) :
 //   - le code : apps/, packages/, scripts/, e2e/ ;
@@ -360,12 +378,82 @@ export function motifTitreSansCode({ titre, fichiers }) {
  * ligne `/security-review`, titre de code sur de la documentation seule) ; `[]` si la PR peut passer. La CLI rend
  * le premier ; le check `pr-titre` du socle les rend tous, sans recopier la règle.
  */
-export function motifsDuCapitaine({ corps, titre, fichiers, base = SANS_BASE }) {
+export function motifsDuCapitaine({ corps, titre, fichiers, base = SANS_BASE, regime = 7 }) {
+  // Régime 8 (lot 5a) : la section de revue et sa ligne `/security-review` ne se lisent plus, le verdict les remplace.
+  if (regime === 8) return [motifTitreSansCode({ titre, fichiers })].filter((m) => m !== null);
   return [
     motifSansRevue({ corps, fichiers, base }),
     motifSansSecurite({ corps, fichiers, base }),
     motifTitreSansCode({ titre, fichiers }),
   ].filter((m) => m !== null);
+}
+
+// ── Le régime d'une PR, et son verdict (relecture indépendante, lot 5a) ──────────────────────────────────────────
+const EFFORTS = ['low', 'medium', 'high', 'xhigh', 'max'];
+const MODELES = ['opus', 'sonnet'];
+const DEPUIS = /^\d{4}-\d\d-\d\dT\d\d:\d\d(?::\d\d(?:\.\d{1,3})?)?Z$/;
+/**
+ * La clé `relecture` d'un contrat `.claude/chaine.json`, son texte (`null` : pas de fichier) : `null` sans fichier ou
+ * sans clé (régime 7), `'illisible'` pour une clé mal formée ou un JSON illisible, sinon `{ depuis }` en millisecondes.
+ * La forme est celle que le Relecteur lit (`contrat` de `relecteur.mjs`, A-179) : `depuis` en UTC, `Z`, avec ou sans
+ * millisecondes, un instant qui existe ; `delai`, des minutes, un entier, 1 ou plus ; `ordinaire` et `sensible`,
+ * `{ modele: opus | sonnet, effort: low | medium | high | xhigh | max }`. Une clé que le Relecteur ne lit pas, le
+ * capitaine ne la lit pas non plus : la PR n'est alors ni relue, ni fusionnée.
+ */
+export function lireCleRelecture(texte) {
+  if (texte === null) return null;
+  let c;
+  try {
+    c = JSON.parse(texte);
+  } catch {
+    // Un contrat qui ne se lit pas et ne nomme pas la clé : régime 7, jugé comme avant (`lireBase` le dit illisible).
+    return /"relecture"/.test(texte) ? 'illisible' : null;
+  }
+  if (c === null || typeof c !== 'object' || !Object.hasOwn(c, 'relecture')) return null;
+  const r = c.relecture;
+  const couple = (x) => x === undefined || (x !== null && typeof x === 'object' && MODELES.includes(x.modele) && EFFORTS.includes(x.effort));
+  if (r === null || typeof r !== 'object' || typeof r.depuis !== 'string' || !DEPUIS.test(r.depuis) || !Number.isFinite(Date.parse(r.depuis))) return 'illisible';
+  if (r.delai !== undefined && !(Number.isSafeInteger(r.delai) && r.delai >= 1)) return 'illisible';
+  if (!couple(r.ordinaire) || !couple(r.sensible)) return 'illisible';
+  return { depuis: Date.parse(r.depuis) };
+}
+
+/**
+ * Le régime d'une PR (A-97) : 8 quand sa base, `develop` ou `sujet/<nom>` et celle-là seule, porte la clé `relecture`
+ * et que la PR a été ouverte strictement après `depuis` ; 7 sinon, une base hors de la chaîne comprise (comme le
+ * Relecteur, qui ne la regarde pas). `base` : un nom de branche, ou `origin/<branche>` ; `ouverte` : le `created_at` de
+ * la PR. Rend `{ regime: 7 | 8 }`, ou `{ illisible }`, sa cause : contrat qui ne se lit pas, clé mal formée, date
+ * d'ouverture illisible. `lire(ref, chemin)` : comme pour `lireBase`.
+ */
+export function regimeDeLaPr({ base, ouverte }, lire = lireGit) {
+  const nom = String(base ?? '').replace(/^origin\//, '');
+  if (nom !== 'develop' && !/^sujet\/[A-Za-z0-9._-]+$/.test(nom)) return { regime: 7 };
+  let texte;
+  try {
+    texte = lire(`refs/remotes/origin/${nom}`, '.claude/chaine.json');
+  } catch (e) {
+    return { illisible: `contrat de origin/${nom} illisible (${String(e.message).split('\n')[0]})` };
+  }
+  const cle = lireCleRelecture(texte);
+  if (cle === null) return { regime: 7 };
+  if (cle === 'illisible') return { illisible: `clé relecture de origin/${nom}:.claude/chaine.json mal formée` };
+  const t = Date.parse(ouverte ?? '');
+  if (typeof ouverte !== 'string' || !Number.isFinite(t)) return { illisible: `date d'ouverture de la PR illisible (« ${ouverte ?? ''} »)` };
+  return { regime: t > cle.depuis ? 8 : 7 };
+}
+
+/**
+ * Régime 8 (A-91, A-105) : la PR n'entre qu'avec un tour validé pour le contenu de `tete`, la règle 2 du Relecteur
+ * jouée par la même fonction (`tourValide`, reçue). `{ tour }` le tour validé, ou `{ motif }`. `LectureIllisible` (des
+ * commentaires que le lecteur refuse, une marque presque à la forme, `exiges` ou « même contenu propre » illisible)
+ * passe à l'appelant : jamais « validé ». Un `refusé`, un tour en cours, un contenu changé depuis le verdict, un seul
+ * verdict quand deux sont exigés, un verdict sans `/security-review: lancée` sur un chemin sensible : le motif.
+ */
+export function verdictDuCapitaine({ commentaires, tete, exiges, sensible, memeContenu, tourValide }) {
+  const tour = tourValide({ commentaires, tete, exiges, sensible, memeContenu });
+  if (tour !== null) return { tour };
+  const exigences = [exiges >= 2 ? 'deux verdicts validés de deux sessions exigés' : null, sensible ? 'chemin sensible : `/security-review: lancée` exigée dans le verdict' : null].filter(Boolean);
+  return { motif: `aucun tour de relecture validé pour le contenu de ce sommet (${tete.slice(0, 12)})${exigences.length ? ` (${exigences.join(' ; ')})` : ''} : le verdict manque, est refusé ou porte sur un autre contenu` };
 }
 
 /** Vrai quand ce fichier est lancé en ligne de commande : lien symbolique, chemin à espace ou à accent, `--preserve-symlinks-main` compris. */
@@ -377,13 +465,103 @@ function estPointEntree() {
   }
 }
 
+const ICI = dirname(fileURLToPath(import.meta.url));
+/** Les options qui suivent les trois arguments : `{ ouverte, tete, branche, commentaires }`, toutes ou aucune ; sinon `null`. */
+export function lireOptions(argv) {
+  const options = {};
+  for (let i = 0; i < argv.length; i += 2) {
+    const cle = argv[i];
+    if (!['--ouverte', '--tete', '--branche', '--commentaires'].includes(cle) || argv[i + 1] === undefined || cle.slice(2) in options) return null;
+    options[cle.slice(2)] = argv[i + 1];
+  }
+  const n = Object.keys(options).length;
+  if (n === 0) return {};
+  return n === 4 && /^[0-9a-f]{40}$/.test(options.tete) && options.commentaires !== '' ? options : null;
+}
+
+/** Une lecture illisible de la CLI : sa cause, sortie 21. */
+class Illisible extends Error {}
+/** Le nombre de verdicts exigés (`double-relecture.mjs`, à côté) : 1, 2, ou `'illisible'`. */
+function exigesDe(fichiers, { base, tete, titre, branche }) {
+  const r = spawnSync(process.execPath, [join(ICI, 'double-relecture.mjs'), '--base', base, '--tete', tete, '--titre', titre, '--branche', branche], {
+    input: fichiers.length ? `${fichiers.join('\n')}\n` : '',
+    encoding: 'utf8',
+    maxBuffer: 64 * 1024 * 1024,
+  });
+  return r.status === 0 ? 1 : r.status === 20 ? 2 : 'illisible';
+}
+/** « Même contenu propre » de V et T vers `base` (`meme-contenu.sh`, à côté) : vrai, faux, ou `'illisible'`. */
+function memeContenuDe(v, t, base) {
+  const r = spawnSync('bash', [join(ICI, 'meme-contenu.sh'), v, t, base], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
+  return r.status === 0 ? true : r.status === 20 ? false : 'illisible';
+}
+
+/** Le verdict d'une PR en régime 8, sur les faits que le Relecteur lit : `{ tour }` ou `{ motif }` ; `Illisible` sinon. */
+async function verdictEnLigne({ fichiers, base, tete, titre, branche, commentaires: fichier }) {
+  const { readFileSync } = await import('node:fs');
+  const { sommetsDesTours, tourValide } = await import(pathToFileURL(join(ICI, 'decision-relecteur.mjs')).href);
+  const { LectureIllisible } = await import(pathToFileURL(join(ICI, 'verdict.mjs')).href);
+  let commentaires;
+  try {
+    commentaires = JSON.parse(readFileSync(fichier, 'utf8'));
+  } catch (e) {
+    throw new Illisible(`commentaires de la PR illisibles (${fichier} : ${e.message})`);
+  }
+  try {
+    const sensible = fichiers.length > 0 && cheminSensible(fichiers, lireBase(`origin/${base}`)) !== null;
+    const exiges = exigesDe(fichiers, { base, tete, titre, branche });
+    const memeContenu = {};
+    for (const s of sommetsDesTours(commentaires)) if (s !== tete) memeContenu[s] = memeContenuDe(s, tete, base);
+    return verdictDuCapitaine({ commentaires, tete, exiges, sensible, memeContenu, tourValide });
+  } catch (e) {
+    if (e instanceof LectureIllisible) throw new Illisible(e.message);
+    throw e;
+  }
+}
+
 if (estPointEntree()) {
   const { readFileSync } = await import('node:fs');
   const fichiers = readFileSync(0, 'utf8').split('\n').filter(Boolean);
+  const options = lireOptions(process.argv.slice(5));
+  if (options === null) {
+    process.stdout.write('options : --ouverte <date> --tete <sha de 40 caractères> --branche <tête> --commentaires <fichier>, toutes ou aucune, après les trois arguments\n');
+    process.exit(2);
+  }
   const base = process.argv[4] ? lireBase(process.argv[4]) : SANS_BASE;
-  const [motif] = motifsDuCapitaine({ corps: process.argv[2] ?? '', titre: process.argv[3] ?? '', fichiers, base });
+  let regime = 7;
+  if (options.ouverte !== undefined) {
+    const lu = regimeDeLaPr({ base: process.argv[4] ?? '', ouverte: options.ouverte });
+    if (lu.illisible) {
+      process.stdout.write(`lecture illisible : ${lu.illisible}\n`);
+      process.exit(21);
+    }
+    regime = lu.regime;
+  }
+  // Avec `--ouverte`, la première ligne dit le régime, sur une PR éligible comme sur un refus (le motif suit, en dernière ligne).
+  const enTete = options.ouverte === undefined ? '' : `régime ${regime}\n`;
+  const [motif] = motifsDuCapitaine({ corps: process.argv[2] ?? '', titre: process.argv[3] ?? '', fichiers, base, regime });
   if (motif) {
-    process.stdout.write(`${motif}\n`);
+    process.stdout.write(`${enTete}${motif}\n`);
     process.exit(1);
   }
+  if (regime === 8) {
+    let lu;
+    try {
+      lu = await verdictEnLigne({ fichiers, base: process.argv[4].replace(/^origin\//, ''), tete: options.tete, titre: process.argv[3] ?? '', branche: options.branche, commentaires: options.commentaires });
+    } catch (e) {
+      // Une panne de l'outil (un module absent, une exception) n'est jamais un refus : sortie 3, « côté capitaine »
+      // (`passer.sh` : 3 ; `sujet.sh` : 11), jamais 1, que le capitaine lirait « renvoi ».
+      if (!(e instanceof Illisible)) {
+        process.stdout.write(`revue du capitaine en échec : ${String(e?.message ?? e).split('\n')[0]}\n`);
+        process.exit(3);
+      }
+      process.stdout.write(`lecture illisible : ${e.message}\n`);
+      process.exit(21);
+    }
+    if (lu.motif) {
+      process.stdout.write(`${enTete}${lu.motif}\n`);
+      process.exit(1);
+    }
+    process.stdout.write(`régime 8 : tour ${lu.tour.numero} validé au sommet ${lu.tour.sommet}\n`);
+  } else if (options.ouverte !== undefined) process.stdout.write('régime 7\n');
 }

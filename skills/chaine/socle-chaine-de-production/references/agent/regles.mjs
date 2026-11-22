@@ -49,6 +49,9 @@ export function refusEdition(
   {
     migrationExistante,
     migrations = CHAINE.migrations ?? 'apps/api/src/db/migrations/',
+    regime8 = Object.hasOwn(CHAINE, 'relecture'),
+    sensibles = CHAINE.cheminsSensibles ?? [],
+    accordes = () => null,
   },
 ) {
   // Normalisé avant toute comparaison : `.//pnpm-lock.yaml`, `apps/./api/.env` ou `docs/../pnpm-lock.yaml` visent le même fichier.
@@ -63,7 +66,71 @@ export function refusEdition(
   if (c.startsWith(`${dossier}/`) && /\.(ts|sql|js|mjs)$/.test(c) && migrationExistante(c)) {
     return `${c} : une migration déjà livrée ne se modifie jamais. Créer une nouvelle migration.`;
   }
-  return null;
+  return regime8 ? refusSensible(c, sensibles, accordes) : null;
+}
+
+// ── Les fichiers sensibles, en régime 8 (relecture indépendante, lot 5b : A-73, A-74, A-76) ─────────────────────
+// Le régime 8 se lit dans l'arbre de travail (A-97) : la clé `relecture` de `.claude/chaine.json`, quelle que soit sa
+// forme. Un chemin sensible (`cheminsSensibles` du même contrat ; une liste mal formée rend tout chemin sensible) ne
+// s'écrit que si la ligne `Sensibles:` du ticket de la branche le couvre, lue sur `origin/sujet/*` (sur `origin/develop`
+// pour un ticket sans sujet), jamais dans l'arbre de travail : `accordes()` (garde-fichiers.mjs) rend `null` (pas de
+// ticket, ou pas de copie lisible), `{ illisible }`, ou `{ copies: [[motifs]…] }`, une liste par copie du ticket ; un
+// chemin est couvert quand chaque copie le couvre.
+const RAISON_SENSIBLE =
+  "chemin sensible (`cheminsSensibles`) hors de la ligne `Sensibles:` du ticket de ta branche, lue sur le sujet : en régime 8, un chemin sensible ne se modifie qu'avec l'accord du produit, noté sur le ticket avant d'y toucher. Arrête-toi et écris à ton conducteur (à qui t'a lancé, hors chantier) : le chemin, pourquoi, ce qui y change ; il obtient l'accord et ajoute le chemin au ticket par une PR de documentation vers le sujet (A-75).";
+const comparable = (s) => s.normalize('NFC').toUpperCase().toLowerCase();
+/** Motif de chemin (`**`, `*`, dossier finissant par `/`) → expression régulière : le moteur du gate `tickets` (`regexDuMotif`). */
+function regexDuMotif(motif) {
+  const complet = motif.endsWith('/') ? `${motif}**` : motif;
+  const re = complet.replace(/\*\*\/|\*\*|\*|[.+?^${}()|[\]\\]/g, (m) => {
+    if (m === '**/') return '(?:.*/)?';
+    if (m === '**') return '.*';
+    if (m === '*') return '[^/]*';
+    return `\\${m}`;
+  });
+  return new RegExp(`^${re}$`, 's');
+}
+const touche = (c, motifs) => motifs.some((m) => regexDuMotif(comparable(m.replace(/^\.\//, ''))).test(comparable(c)));
+function refusSensible(c, sensibles, accordes) {
+  const liste = Array.isArray(sensibles) && sensibles.every((m) => typeof m === 'string') ? sensibles : ['**'];
+  if (!touche(c, liste)) return null;
+  const lu = accordes();
+  if (lu === null) return `${c} : ${RAISON_SENSIBLE} (Aucune ligne lue : branche sans ticket, ticket absent de origin/sujet/* et de origin/develop, ou origin injoignable.)`;
+  if (lu.illisible) return `${c} : ${RAISON_SENSIBLE} (Ligne illisible : ${lu.illisible}.)`;
+  return lu.copies.length > 0 && lu.copies.every((motifs) => touche(c, motifs)) ? null : `${c} : ${RAISON_SENSIBLE}`;
+}
+
+const LIGNE_SENSIBLES = /^(?:[-*][ \t]+)?\**Sensibles\**\s*:\**\s*(.*)$/i;
+const ACCORD = ' — accord de ';
+/**
+ * Les chemins qu'accorde la ligne `Sensibles:` d'un ticket (A-74, forme du ticket 55), lue dans l'en-tête seul (avant la
+ * première section `## `), aux formes que lit le gate `tickets` (`X:`, `**X:**`, `- X:`, `* X:`, sans égard à la casse).
+ * `{ chemins: [] }` sans ligne ou pour `—` ; `{ chemins }` pour des chemins ou des motifs séparés par des virgules, entre
+ * accents graves ou nus, suivis de ` — accord de <nom>, <date>` ; `{ illisible }` sinon : deux lignes, un accord absent, un
+ * chemin à blanc, absolu, à `~`, à `\` ou à `..`. Un commentaire ` # …` peut suivre. La forme entière (le nom, la date)
+ * est jugée par le gate ; une garde ne lit que les chemins, et n'en accepte jamais un que le gate refuserait.
+ * Copie de `lireSensibles` de `chemins-sensibles.mjs` (skill revue-adversariale) : les deux bancs gardent la parité.
+ */
+export function lireSensibles(texteDuTicket) {
+  const lignes = (texteDuTicket ?? '').split(/\r?\n/);
+  const fin = lignes.findIndex((l) => /^## /.test(l));
+  const valeurs = (fin === -1 ? lignes : lignes.slice(0, fin)).map((l) => LIGNE_SENSIBLES.exec(l)?.[1]).filter((v) => v !== undefined);
+  if (valeurs.length === 0) return { chemins: [] };
+  if (valeurs.length > 1) return { illisible: 'deux lignes `Sensibles:` dans l\'en-tête' };
+  const i0 = valeurs[0].search(/\s#/);
+  const v = (i0 === -1 ? valeurs[0] : valeurs[0].slice(0, i0)).trim();
+  if (v === '—') return { chemins: [] };
+  const i = v.indexOf(ACCORD);
+  const accord = i === -1 ? '' : v.slice(i + ACCORD.length);
+  if (i <= 0 || !/^\S.*, \d{4}-\d{2}-\d{2}$/.test(accord)) return { illisible: `« ${v.slice(0, 120)} » : attendu \`—\`, ou des chemins puis \` — accord de <nom>, <AAAA-MM-JJ>\`` };
+  const chemins = [];
+  for (const brut of v.slice(0, i).split(',')) {
+    const c = brut.trim().replace(/^`([^`]*)`$/, '$1').trim();
+    if (c === '' || /[\s`{}\\]/.test(c) || c === '—' || c.startsWith('/') || c.startsWith('~') || c.split('/').includes('..'))
+      return { illisible: `« ${brut.trim().slice(0, 120)} » n'est pas un chemin ni un motif relatif à la racine du dépôt` };
+    chemins.push(c);
+  }
+  return { chemins };
 }
 
 /** Commandes refusées : motif → raison. */
