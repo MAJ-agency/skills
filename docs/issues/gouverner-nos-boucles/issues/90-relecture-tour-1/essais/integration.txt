@@ -1,0 +1,11 @@
+# ddb4265 + patch 90 + PR 152 (8cd21e5) + 153 (34ac533) + 155 (277e949) + 154 (597e05c), sommet f7a6547
+ 18:10:54 up 11:34,  0 user,  load average: 0.88, 1.58, 3.53
+18:10:54
+# régime 8 : 30 bancs, 414 tests, 413 verts, 1 sautés
+# régime 7 : 30 bancs, 414 tests, 413 verts, 1 sautés
+# tests 91
+# pass 91
+# fail 0
+18:13:50
+ 18:13:50 up 11:37,  0 user,  load average: 1.70, 1.57, 3.17
+fini

@@ -1,0 +1,14 @@
+en conflit : NOTES-DE-VERSION.md 
+8.0.2 — 2026-11-22
+ROUGE (annexe) : la retouche de la note est perdue
+5:## 8.0.2 — 2026-11-22
+17:## 8.0.1 — 2026-11-22
+31:## 8.0.0 — 2026-11-22
+sortie 1
+en conflit : NOTES-DE-VERSION.md 
+8.0.2 — 2026-11-22
+VERT (branche) : la retouche de la note est gardée
+5:## 8.0.2 — 2026-11-22
+18:## 8.0.1 — 2026-11-22
+32:## 8.0.0 — 2026-11-22
+sortie 0

@@ -1,0 +1,18 @@
+# Mutations du relecteur, Node v22.23.5
+ 18:28:49 up 11:52,  0 user,  load average: 5.28, 4.71, 3.79
+== p90 (3bcbfcd, modifs: 0)
+VERTE M11 un banc posé saute un sous-test (sortie TAP indentée) (87 s) — # régime 8 : 29 bancs, 387 tests, 385 verts, 2 sautés
+VERTE M12 un banc posé marque « todo » un sous-test rouge (jamais jugé) (85 s) — # régime 8 : 29 bancs, 387 tests, 385 verts, 1 sautés
+VERTE M14 regles.mjs : les index de index-generes.json ne sont plus refusés (hors du ticket) (20 s)
+== retouche (3bcbfcd, modifs: 4)
+ROUGE M11 un banc posé saute un sous-test (sortie TAP indentée) (91 s) — not ok 1 - les bancs de references/, posés dans un projet au régime 8 (contrat d — # régime 8 : 29 bancs, 387 tests, 385 verts, 2 sautés
+ROUGE M12 un banc posé marque « todo » un sous-test rouge (jamais jugé) (92 s) — not ok 1 - les bancs de references/, posés dans un projet au régime 8 (contrat d — # régime 8 : 29 bancs, 387 tests, 385 verts, 1 sautés
+   apres:  M scripts/pose-du-socle.mjs
+   apres:  M scripts/references-posees.test.mjs
+   apres:  M skills/chaine/socle-chaine-de-production/references/CONTENU.md
+   apres:  M skills/chaine/socle-chaine-de-production/references/agent/regles.test.mjs
+ 18:35:04 up 11:58,  0 user,  load average: 5.82, 5.26, 4.31
+fini
+# M15, jouée à la main (regles.mjs : une ligne lue qui ne couvre pas le chemin refusée avec « (Aucune ligne lue : … ) » ajouté) :
+#   patch : regles.test.mjs 87 sur 87 (VERTE) ; garde-fichiers, garde-illisible, apres-edition 18 sur 18 (VERTE)
+#   retouche : regles.test.mjs 86 sur 87 (ROUGE) — not ok 2 - refusEdition et .claude/skills : … (assertion « hors accord : la ligne a été lue »)

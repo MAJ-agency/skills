@@ -1,0 +1,27 @@
+# garde sans NODE_PATH (la CI du plugin n'en a pas) ; Node v22.23.5
+ 18:05:36 up 11:28,  0 user,  load average: 1.54, 1.57, 4.28
+== rejeu (ddb4265, modifs: 8)
+18:05:36
+not ok 2 - les bancs de references/, posés dans un projet au régime 8 (contrat du gabarit), y passent
+    +   'scripts/verify/tests-creux.test.mjs'
+# régime 8 : 29 bancs, 379 tests, 377 verts, 1 sautés
+not ok 3 - les bancs de references/, posés dans un projet au régime 7 (contrat du gabarit), y passent
+    +   'scripts/verify/tests-creux.test.mjs'
+# régime 7 : 29 bancs, 379 tests, 377 verts, 1 sautés
+# tests 3
+# pass 1
+# fail 2
+18:08:04
+ 18:08:04 up 11:31,  0 user,  load average: 2.46, 1.95, 4.01
+typescript
+== retouche (3bcbfcd, modifs: 2)
+18:08:04
+# régime 8 : 29 bancs, 385 tests, 384 verts, 1 sautés
+# régime 7 : 29 bancs, 385 tests, 384 verts, 1 sautés
+# tests 3
+# pass 3
+# fail 0
+18:10:33
+ 18:10:33 up 11:33,  0 user,  load average: 1.24, 1.69, 3.60
+typescript
+fini

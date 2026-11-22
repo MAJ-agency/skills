@@ -1,0 +1,15 @@
+# retouche commitée 5d287ad : bancs du dépôt qui lisent les scripts
+ 18:38:37 up 12:01,  0 user,  load average: 5.26, 5.25, 4.49
+18:38:37
+scripts/bascule.test.mjs scripts/demarrer-local-socle.test.mjs scripts/depot.test.mjs scripts/mobile-en-ci.test.mjs scripts/nettoyage-des-bancs.test.mjs scripts/points-d-entree.test.mjs scripts/poses.test.mjs scripts/pre-commit-socle.test.mjs scripts/references-posees.test.mjs scripts/relecteur.test.mjs scripts/relecture.test.mjs scripts/tests-et-heure.test.mjs scripts/tranches.test.mjs scripts/un-seul-environnement-de-banc.test.mjs scripts/veille-du-capitaine.test.mjs 
+# tests 87
+# pass 87
+# fail 0
+# skipped 0
+18:38:40
+ 18:38:40 up 12:01,  0 user,  load average: 5.00, 5.19, 4.48
+fini
+# tests 79
+# pass 79
+# fail 0
+# skipped 0

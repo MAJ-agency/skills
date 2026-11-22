@@ -1,0 +1,18 @@
+ 18:02:17 up 11:25,  0 user,  load average: 0.73, 1.28, 4.84
+ M .claude-plugin/plugin.json
+ M NOTES-DE-VERSION.md
+ M skills/chaine/socle-chaine-de-production/references/CONTENU.md
+ M skills/chaine/socle-chaine-de-production/references/agent/regles.test.mjs
+ D skills/chaine/socle-chaine-de-production/references/scripts/github/develop.test.mjs
+?? scripts/pose-du-socle.mjs
+?? scripts/references-posees.test.mjs
+?? skills/chaine/socle-chaine-de-production/scripts/
+18:02:17
+# régime 8 : 29 bancs, 385 tests, 384 verts, 1 sautés
+# régime 7 : 29 bancs, 385 tests, 384 verts, 1 sautés
+# tests 101
+# pass 101
+# fail 0
+18:05:03
+ 18:05:03 up 11:28,  0 user,  load average: 2.06, 1.65, 4.39
+fini

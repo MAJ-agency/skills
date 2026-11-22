@@ -1,0 +1,19 @@
+ 17:59:24 up 11:22,  0 user,  load average: 0.02, 1.64, 5.68
+Preparing worktree (detached HEAD ddb4265)
+HEAD is now at ddb4265 feat(chaine): la bascule, le régime 8 de la relecture indépendante devient posable (plugin 8.0.0) (#151)
+?? scripts/pose-du-socle.mjs
+?? scripts/references-posees.test.mjs
+17:59:24
+not ok 2 - les bancs de references/, posés dans un projet au régime 8 (contrat du gabarit), y passent
+    +   'refusEdition laisse éditer .claude/skills : les skills du plugin vivent hors du dépôt, ceux du projet sont à lui',
+    +   'scripts/github/develop.test.mjs'
+# régime 8 : 30 bancs, 386 tests, 383 verts, 1 sautés
+not ok 3 - les bancs de references/, posés dans un projet au régime 7 (contrat du gabarit), y passent
+    +   'scripts/github/develop.test.mjs'
+# régime 7 : 30 bancs, 386 tests, 384 verts, 1 sautés
+# tests 3
+# pass 1
+# fail 2
+18:02:02
+ 18:02:02 up 11:25,  0 user,  load average: 0.85, 1.33, 4.92
+fini

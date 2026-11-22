@@ -1,0 +1,18 @@
+# § 1 avec les scripts du patch et de la retouche, sur ddb4265, sans NODE_PATH
+?? scripts/pose-du-socle.mjs
+?? scripts/references-posees.test.mjs
+ 18:35:17 up 11:58,  0 user,  load average: 5.39, 5.19, 4.29
+18:35:31
+not ok 2 - les bancs de references/, posés dans un projet au régime 8 (contrat du gabarit), y passent
+    +   'refusEdition laisse éditer .claude/skills : les skills du plugin vivent hors du dépôt, ceux du projet sont à lui',
+    +   'scripts/github/develop.test.mjs'
+# régime 8 : 30 bancs, 386 tests, 383 verts, 1 sautés
+not ok 3 - les bancs de references/, posés dans un projet au régime 7 (contrat du gabarit), y passent
+    +   'scripts/github/develop.test.mjs'
+# régime 7 : 30 bancs, 386 tests, 384 verts, 1 sautés
+# tests 3
+# pass 1
+# fail 2
+18:38:23
+ 18:38:23 up 12:01,  0 user,  load average: 5.32, 5.26, 4.48
+fini

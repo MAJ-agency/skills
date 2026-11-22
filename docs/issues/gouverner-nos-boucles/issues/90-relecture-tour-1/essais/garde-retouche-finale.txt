@@ -1,0 +1,11 @@
+# garde sur la retouche finale (5d287ad), sans NODE_PATH ; diff au patch = retouche-90-tour-1.patch : 3a6ddc392de53122
+ 18:40:50 up 12:04,  0 user,  load average: 4.57, 5.06, 4.53
+18:40:50
+# régime 8 : 29 bancs, 385 tests, 384 verts, 1 sautés
+# régime 7 : 29 bancs, 385 tests, 384 verts, 1 sautés
+# tests 3
+# pass 3
+# fail 0
+18:43:27
+ 18:43:27 up 12:06,  0 user,  load average: 1.79, 3.86, 4.17
+fini

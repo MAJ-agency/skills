@@ -1,0 +1,20 @@
+ 18:14:03 up 11:37,  0 user,  load average: 1.61, 1.56, 3.14
+18:14:03
+sortie 0
+10
+toutes rouges
+18:28:32
+ 18:28:32 up 11:51,  0 user,  load average: 5.87, 4.78, 3.79
+fini
+--- journal
+ROUGE V1 regles.test.mjs : le banc lit ./regles.mjs (le code d'avant), le contrat du projet entre dans ses défauts (156 s) — les bancs de references/, posés dans un projet au régime 8 (
+ROUGE V2 regles.mjs : .claude/skills/ laissé éditable en régime 8 (l'autre décision) (14 s) — refusEdition et .claude/skills : laissé éditable en régime 7
+ROUGE V3 regles.mjs : le régime 8 n'est jamais appliqué (13 s) — refusEdition et .claude/skills : laissé éditable en régime 7 | lot 5b, refusEdition en régime 8 : un chemin sensible hors a
+ROUGE V4 regles.mjs : les chemins sensibles gardés en régime 7 aussi (13 s) — refusEdition et .claude/skills : laissé éditable en régime 7 | lot 5b, refusEdition en régime 8 : un chemin sensible hors a
+ROUGE V5 develop.test.mjs de retour sous references/scripts/github/ (le banc d'avant, à sa place d'avant) (163 s) — les bancs de references/, posés dans un projet au régime 8 ( | les bancs de references/, posés dans un projet au régime 7 (
+ROUGE V6 un banc rangé sous references/ hors de agent/ et scripts/<d>/ (1 s) — les bancs de references/, posés dans un projet au régime 8 ( | les bancs de references/, posés dans un projet au régime 7 (
+ROUGE V7 pr-titre.test.mjs : un deuxième test sauté une fois posé (159 s) — les bancs de references/, posés dans un projet au régime 8 ( | les bancs de references/, posés dans un projet au régime 7 (
+ROUGE V8 le garde ne joue que scripts/agent/ (sous le plancher) (73 s) — les bancs de references/, posés dans un projet au régime 8 ( | les bancs de references/, posés dans un projet au régime 7 (
+ROUGE V9 pose-du-socle.mjs : le contrat posé au régime 8 n'a pas la clé relecture (98 s) — les bancs de references/, posés dans un projet au régime 8 (
+ROUGE V10 pose-du-socle.mjs : tout dossier de references/ a une place (180 s) — destinationDuDossier : agent/ et scripts/<d>/ de references/
+toutes rouges
