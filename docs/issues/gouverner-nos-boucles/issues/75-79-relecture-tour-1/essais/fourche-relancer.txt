@@ -1,0 +1,34 @@
+== PR B (78 et 79)
+# \# régime 8 relancer sortie 0 : \#80 : sujet/lot fusionné dans sa branche (e990c27), CI lancée
+# \# régime 8 git réseau : fetch -q origin +refs/heads/develop:refs/remotes/origin/develop +refs/heads/sujet/lot:refs/remotes/origin/sujet/lot +refs/heads/feat/a:refs/remotes/origin/feat/a | fetch -q origin +refs/heads/feat/a:refs/remotes/origin/feat/a | push -q origin HEAD:refs/heads/feat/a
+# \# régime 8 origin/feat/a 7ba1f85b -> e990c274
+# \# régime 7 relancer sortie 0 : \#80 : sujet/lot fusionné dans sa branche (4fe3ec4), CI lancée
+# \# régime 7 git réseau : fetch -q origin +refs/heads/develop:refs/remotes/origin/develop +refs/heads/sujet/lot:refs/remotes/origin/sujet/lot +refs/heads/feat/a:refs/remotes/origin/feat/a | fetch -q origin +refs/heads/feat/a:refs/remotes/origin/feat/a | push -q origin HEAD:refs/heads/feat/a
+# \# régime 7 origin/feat/a 0299197d -> 4fe3ec40
+# \# boucle : [\#80] \#80 en retard sur sujet/lot : mise à jour poussée (08a2e3c), attente de la CI
+# \# boucle : [\#80] \#80 : sujet/lot fusionné dans sa branche (08a2e3c), CI lancée
+# \# boucle : [sujet/lot] tenu par \#80 (sortie 0 de relancer)
+# \# boucle : lot\\t2\\t1\\t\#80 \\t—\\ten cours
+# \# boucle git réseau sur feat/a : fetch -q origin +refs/heads/develop:refs/remotes/origin/develop +refs/heads/sujet/lot:refs/remotes/origin/sujet/lot +refs/heads/feat/a:refs/remotes/origin/feat/a | fetch -q origin +refs/heads/feat/a:refs/remotes/origin/feat/a | push -q origin HEAD:refs/heads/feat/a
+not ok 1 - régime 8 : sujet.sh relancer d'une sous-PR de fourche fetch, fusionne et pousse la branche d'origin du même nom
+not ok 2 - régime 7 : sujet.sh relancer d'une sous-PR de fourche fetch, fusionne et pousse la branche d'origin du même nom
+not ok 3 - régime 8 : boucle.sh, de bout en bout, sur une sous-PR de fourche « prête (sans CI) »
+# pass 0
+# fail 3
+== PR B et les retouches 78 et 79 du relecteur
+# \# régime 8 relancer sortie 7 : \#80 : PR de fourche (autre/jouet) : sa tête vit hors du dépôt, le capitaine ne la lit pas ; sautée sans renvoi
+# \# régime 8 git réseau : 
+# \# régime 8 origin/feat/a 29c2761b -> 29c2761b
+# \# régime 7 relancer sortie 7 : \#80 : PR de fourche (autre/jouet) : sa tête vit hors du dépôt, le capitaine ne la lit pas ; sautée sans renvoi
+# \# régime 7 git réseau : 
+# \# régime 7 origin/feat/a 29917fa6 -> 29917fa6
+# \# boucle : [\#80] \#80 : PR de fourche (autre/jouet) : sa tête vit hors du dépôt, le capitaine ne la lit pas ; sautée sans renvoi
+# \# boucle : [\#80] en passage chez un autre capitaine : sautée (aucun renvoi)
+# \# boucle : [sujet/lot] tenu par \#80 (sortie 7 de relancer)
+# \# boucle : lot\\t2\\t1\\t\#80 \\t—\\ten cours
+# \# boucle git réseau sur feat/a : 
+ok 1 - régime 8 : sujet.sh relancer d'une sous-PR de fourche fetch, fusionne et pousse la branche d'origin du même nom
+ok 2 - régime 7 : sujet.sh relancer d'une sous-PR de fourche fetch, fusionne et pousse la branche d'origin du même nom
+ok 3 - régime 8 : boucle.sh, de bout en bout, sur une sous-PR de fourche « prête (sans CI) »
+# pass 3
+# fail 0

@@ -1,0 +1,64 @@
+ 08:32:50 up  1:56,  0 user,  load average: 0.02, 0.92, 3.34
+== 75 § 1
+ M skills/chaine/fusionner/scripts/verdict-du-capitaine.test.mjs
+ M skills/chaine/relecteur/scripts/relecteur.test.mjs
+not ok 22 - régime 8 : un calcul sorti en 69 (un outil de la chaîne manque au poste) est une panne (3), la cause dite, jamais une lecture illisible (21)
+not ok 51 - suite du lot 5 — un calcul sorti en 69 (un outil de la chaîne manque au poste) : la passe et `jouer` sortent en 6, la cause dite, rien d’écrit, jamais une trace d’illisible ; la veille s’arrête
+# tests 74
+# pass 72
+# fail 2
+== 75 § 2
+# tests 74
+# pass 74
+# fail 0
+== 76 § 1
+not ok 49 - suite de la PR 147 — l’usage nomme chaque option de chaque sous-commande, comme l’en-tête (`--sondes` compris)
+# tests 51
+# pass 50
+# fail 1
+== 76 § 2
+# tests 51
+# pass 51
+# fail 0
+== 77 § 1
+not ok 2 - A-180 — la veille sous le plafond de l'outil Bash, le couple au réemploi, l'état par get_session, une suite écrite pour chaque sortie
+not ok 9 - suite du ticket 66 (ticket 69) — chaque phrase neuve à sa place : `--attendre` et la borne de 9, l'état `couple`, `send_message` en échec, les causes des lignes, une étiquette restée, l'installation à retenter
+not ok 10 - contre-relecture de la PR 147 — les quatre formes des lignes à l'architecte, chacune dans leur phrase, et aucune autre ; la borne de 12 et d'une sortie hors de la table, à leur ligne
+not ok 11 - suites de la PR 147 et du lot 5 (ticket 77) — la borne de la sortie 5 de `jouer`, « rejouer au réveil suivant » partout où le réveil suivant rejoue, « de suite », `reecrire` qui peut rendre `panne`, un champ absent, le plafond rejoué, la sortie 69 des calculs
+# tests 11
+# pass 7
+# fail 4
+== 77 § 2
+7.39.1 — 2026-11-22
+# tests 80
+# pass 80
+# fail 0
+== 78 § 1
+?? skills/chaine/fusionner/scripts/suites-du-lot-5.test.mjs
+not ok 1 - passer.sh : une PR de fourche dont la branche porte le nom d'une branche d'origin est sautée sans renvoi (7), dans les deux régimes : rien de lu sur sa tête, rien de poussé, rien d'écrit (A-192, point 2)
+not ok 2 - sujet.sh fusionner : une sous-PR de fourche est sautée sans renvoi (7), avant tout fetch de sa tête (A-192, point 2)
+not ok 3 - sujet.sh fusionner, régime 8 : une PR de mise à jour ne joue qu'une revue du capitaine au premier contrôle, puis la seconde juste avant d'avancer le sujet (la suite M1 du lot 5)
+not ok 5 - garde du capitaine : une PR de mise à jour d'un sujet qu'aucun ticket ne déclare dit son geste, jamais celui d'une PR sans ticket (la suite M2 du lot 5)
+# tests 5
+# pass 1
+# fail 4
+== 78 § 2
+# tests 113
+# pass 113
+# fail 0
+== 79 § 1
+not ok 5 - régime 8 : une copie locale du sujet en retard sur origin n’est pas lue, et le refus dit le geste qui la relit ; relue, le chemin accordé passe
+not ok 7 - régime 8 : le refus ne nomme que les copies en retard qui portent le ticket ; sans copie lue, « Aucune ligne lue » dit aussi de relire
+not ok 8 - régime 8 : dans un clone superficiel, la base de fusion d’un sujet ne se lit pas : la copie héritée compte, et le refus dit d’approfondir le clone ; approfondi, le chemin accordé passe (contre-relecture de la PR 149, tour 3)
+not ok 9 - régime 8 : l’héritage d’une copie de sujet se juge contre le develop d’origin ; une copie locale de develop en retard ne juge rien, le refus dit de la relire, et relue, le chemin accordé passe (la suite M4 du lot 5)
+not ok 98 - suite 24 du lot 5, refusEdition en régime 8 : le geste qui relit ou approfondit vient en tête du refus, avant la demande au conducteur ; sans geste, le refus commence par sa raison
+# tests 98
+# pass 93
+# fail 5
+== 79 § 2
+7.39.1 — 2026-11-22
+# tests 167
+# pass 167
+# fail 0
+FIN
+ 08:43:23 up  2:06,  0 user,  load average: 2.50, 1.95, 2.63

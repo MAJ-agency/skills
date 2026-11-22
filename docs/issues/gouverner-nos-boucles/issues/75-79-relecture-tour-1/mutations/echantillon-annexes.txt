@@ -1,0 +1,18 @@
+== PR B,  09:32:57 up  2:56,  0 user,  load average: 2.70, 3.66, 4.57
+ROUGE F2 passer.sh : une tête sans dépôt (fourche supprimée) passe pour une tête du dépôt (12 s) — passer.sh : une PR de fourche dont la branche porte le nom d
+ROUGE M1b sujet.sh fusionner : la revue n'est pas rejouée quand le régime relu diffère de celui lu d'abord (8 s) — sujet.sh fusionner, régime 8 : le régime lu d'abord diffère 
+toutes rouges
+ROUGE H3 garde-fichiers.mjs : develop non confirmé, la copie du sujet dite héritée (la garde ouverte) (4 s) — régime 8 : l’héritage d’une copie de sujet se juge contre le
+ROUGE H8 regles.mjs : le geste du clone superficiel oublié quand il suit celui des copies (13 s) — suite 24 du lot 5, refusEdition en régime 8 : le geste qui r
+toutes rouges
+== PR A,  09:37:43 up  3:01,  0 user,  load average: 3.89, 4.20, 4.59
+ROUGE Q2 revue-exigee.mjs : la sortie 69 de « même contenu propre » lue « illisible » (50 s) — régime 8 : un calcul sorti en 69 (un outil de la chaîne manq
+ROUGE Q7 relecteur.mjs : la sortie 69 de « même contenu propre » lue « illisible » (116 s) — suite du lot 5 — un calcul sorti en 69 (un outil de la chaîn
+ROUGE Q9 relecteur.mjs : la cause est la dernière ligne non vide (« illisible »), pas celle du calcul (96 s) — suite du lot 5 — un calcul sorti en 69 (un outil de la chaîn
+toutes rouges
+ROUGE U3 relecteur.mjs : l'en-tête omet `--sondes`, l'usage le garde (les deux ne disent plus la même chose) (96 s) — suite de la PR 147 — l’usage nomme chaque option de chaque s
+ROUGE N3 decision : les traces d'illisible comptent dans la marque (`dernier` les exclut, A-183 point 6 ; contre-relecture de la PR 147, second tour) (96 s) — suite de la PR 147 — une trace d’illisible écrite entre la p
+toutes rouges
+ROUGE T3 SKILL.md : la borne de 5 sans « sur la même PR » (0 s) — suites de la PR 147 et du lot 5 (ticket 77) — la borne de la
+toutes rouges
+fin  09:45:19 up  3:08,  0 user,  load average: 2.75, 3.45, 4.08

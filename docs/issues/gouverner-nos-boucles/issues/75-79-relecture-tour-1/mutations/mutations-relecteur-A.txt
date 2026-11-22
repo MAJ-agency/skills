@@ -1,0 +1,4 @@
+ROUGE R5 relecteur.mjs : la sortie 69 en 3 (l'autre choix de la question 1 du ticket 75) (115 s ; attendu : rouge) — suite du lot 5 — un calcul sorti en 69 (un outil de la chaîne manque a
+ROUGE R6 relecteur.mjs : l'usage nomme `--sondes` après `--attendre` (l'ordre de l'en-tête perdu) (113 s ; attendu : rouge) — suite de la PR 147 — l’usage nomme chaque option de chaque sous-comman
+ROUGE R7 SKILL.md : la borne de la sortie 5 sans `--taire <n>` (0 s ; attendu : rouge) — suites de la PR 147 et du lot 5 (ticket 77) — la borne de la sortie 5 
+ROUGE R8 revue-exigee.mjs : la cause d'une sortie 69 lue sur la seule sortie standard (celle de meme-contenu.sh perdue) (47 s ; attendu : rouge) — régime 8 : un calcul sorti en 69 (un outil de la chaîne manque au post

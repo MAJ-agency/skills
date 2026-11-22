@@ -1,0 +1,21 @@
+== main (97d17e3)
+# \# develop local en retard : sortie 2 scripts/agent/garde.mjs : chemin sensible (`cheminsSensibles`) hors de la ligne `Sensibles:` du ticket de ta branche, lue sur le sujet : en régime 8, un chemin 
+# \# develop relu : sortie 2 scripts/agent/garde.mjs : chemin sensible (`cheminsSensibles`) hors de la ligne `Sensibles:` du ticket de ta branche, lu
+# Subtest: accord retiré de develop, hérité par un sujet ; develop local en retard, puis relu
+ok 1 - accord retiré de develop, hérité par un sujet ; develop local en retard, puis relu
+# pass 1
+# fail 0
+== PR B (78 et 79)
+# \# develop local en retard : sortie 0 
+# \# develop relu : sortie 2 scripts/agent/garde.mjs : chemin sensible (`cheminsSensibles`) hors de la ligne `Sensibles:` du ticket de ta branche, lu
+# Subtest: accord retiré de develop, hérité par un sujet ; develop local en retard, puis relu
+not ok 1 - accord retiré de develop, hérité par un sujet ; develop local en retard, puis relu
+# pass 0
+# fail 1
+== PR B et la retouche 79 du relecteur
+# \# develop local en retard : sortie 2 scripts/agent/garde.mjs : d'abord, relire les copies du ticket (origin/develop n'est pas au sommet d'origin) : `git fetch --prune origin '+refs/heads/develop:re
+# \# develop relu : sortie 2 scripts/agent/garde.mjs : chemin sensible (`cheminsSensibles`) hors de la ligne `Sensibles:` du ticket de ta branche, lu
+# Subtest: accord retiré de develop, hérité par un sujet ; develop local en retard, puis relu
+ok 1 - accord retiré de develop, hérité par un sujet ; develop local en retard, puis relu
+# pass 1
+# fail 0

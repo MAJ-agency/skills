@@ -1,0 +1,12 @@
+ROUGE F1 passer.sh : une PR de fourche n'est pas sautée (le code d'avant, Q2 de la PR 149) (10 s) — passer.sh : une PR de fourche dont la branche porte le nom d
+ROUGE F2 passer.sh : une tête sans dépôt (fourche supprimée) passe pour une tête du dépôt (13 s) — passer.sh : une PR de fourche dont la branche porte le nom d
+ROUGE F3ʹ passer.sh : la garde de fourche déplacée après le fetch de la tête (la branche d'origin du même nom lue), avant toute écriture (7 s) — passer.sh : une 
+ROUGE F4ʹ sujet.sh fusionner : une sous-PR de fourche n'est pas sautée (10 s) — sujet.sh fusionner : une sous-PR de fourche est sautée sans 
+ROUGE F5 sujet.sh relancer : une sous-PR de fourche n'est pas sautée (le code d'avant : la branche d'origin du même nom mise à jour et poussée) (8 s) — sujet.sh rel
+ROUGE F6 sujet.sh fusionner : la garde de fourche déplacée après le fetch de la tête (8 s) — sujet.sh fusionner : une sous-PR de fourche est sautée sans 
+ROUGE M1a sujet.sh fusionner : le régime n'est pas lu d'abord (deux revues au premier contrôle, le code d'avant en coût) (9 s) — sujet.sh fusionner, régime 8 : une 
+ROUGE M1b sujet.sh fusionner : la revue n'est pas rejouée quand le régime relu diffère de celui lu d'abord (9 s) — sujet.sh fusionner, régime 8 : le régime lu d'ab
+ROUGE M1c sujet.sh fusionner : la liste d'une PR de mise à jour en régime 8 sans ses retouches (10 s) — sujet.sh fusionner, régime 8 : le régime lu d'abord diffère
+ROUGE M2a chemins-sensibles.mjs : une PR de mise à jour sans ticket déclaré reçoit le motif d'une PR sans ticket (le code d'avant) (8 s) — garde du capitaine : une 
+ROUGE M2b chemins-sensibles.mjs : toute PR sans ticket reçoit le motif d'une PR de mise à jour (8 s) — garde du capitaine : une PR de mise à jour d'un sujet qu'auc
+toutes rouges

@@ -1,0 +1,80 @@
+diff --git a/skills/chaine/fusionner/scripts/suites-du-lot-5.test.mjs b/skills/chaine/fusionner/scripts/suites-du-lot-5.test.mjs
+index 17be52f..9d5c5ed 100644
+--- a/skills/chaine/fusionner/scripts/suites-du-lot-5.test.mjs
++++ b/skills/chaine/fusionner/scripts/suites-du-lot-5.test.mjs
+@@ -37,6 +37,15 @@ function monter(contrat = REGIME8) {
+   return d;
+ }
+ 
++// Un `git` du PATH qui note chaque fetch et chaque push, puis joue le vrai : une fourche est sautée avant tout fetch.
++function espionReseau(d) {
++  const reseau = join(d.racine, "reseau.log");
++  const vrai = spawnSync("sh", ["-c", "command -v git"], { encoding: "utf8" }).stdout.trim();
++  writeFileSync(join(d.racine, "bin/git"), `#!/bin/sh\ncase "$1" in fetch|push) echo "$*" >> ${JSON.stringify(reseau)} ;; esac\nexec ${vrai} "$@"\n`);
++  chmodSync(join(d.racine, "bin/git"), 0o755);
++  return () => (existsSync(reseau) ? readFileSync(reseau, "utf8") : "");
++}
++
+ test("passer.sh : une PR de fourche dont la branche porte le nom d'une branche d'origin est sautée sans renvoi (7), dans les deux régimes : rien de lu sur sa tête, rien de poussé, rien d'écrit (A-192, point 2)", () => {
+   for (const contrat of [REGIME8, REGIME7]) {
+     const d = monter(contrat);
+@@ -49,8 +58,10 @@ test("passer.sh : une PR de fourche dont la branche porte le nom d'une branche d
+       checks: { "*": { qualite: "SUCCESS" } },
+       pulls: [{ number: 30, title: "docs(a): a", head: "feat/a", base: "develop", labels: ["à-fusionner"], fourche: "autre/jouet", commentaires: valide(sha) }],
+     });
++    const reseau = espionReseau(d);
+     const r = d.lancer(PASSER, "30");
+     assert.equal(r.status, 7, `${JSON.stringify(contrat)} : ${r.stdout}${r.stderr}`);
++    assert.equal(reseau(), "", "aucun fetch avant la garde");
+     assert.match(dernier(r), /PR de fourche \(autre\/jouet\) : sa tête vit hors du dépôt, le capitaine ne la lit pas ; sautée sans renvoi$/);
+     assert.equal(d.git("rev-parse", "origin/feat/a"), sha, "la branche d'origin du même nom n'a pas bougé");
+     assert.deepEqual(d.journal(), [], "aucune écriture : ni verrou du passage, ni renvoi, ni fusion");
+@@ -79,12 +90,33 @@ test("sujet.sh fusionner : une sous-PR de fourche est sautée sans renvoi (7), a
+     checks: { "*": { qualite: "SUCCESS" } },
+     pulls: [{ number: 80, title: "docs(a): a", head: "feat/a", base: "sujet/lot", labels: ["à-fusionner"], fourche: "autre/jouet", commentaires: valide(sha) }],
+   });
++  const reseau = espionReseau(d);
+   const r = d.lancer(SUJET, "fusionner", "80");
+   assert.equal(r.status, 7, r.stdout + r.stderr);
++  assert.equal(reseau(), "", "aucun fetch avant la garde");
+   assert.match(dernier(r), /^#80 : PR de fourche \(autre\/jouet\) : sa tête vit hors du dépôt, le capitaine ne la lit pas ; sautée sans renvoi$/);
+   assert.deepEqual(d.journal(), []);
+ });
+ 
++test("sujet.sh relancer : une sous-PR de fourche « prête (sans CI) » est sautée sans renvoi (7), dans les deux régimes, avant tout fetch : la branche d'origin du même nom n'est ni fusionnée ni poussée (A-192, point 2)", () => {
++  for (const contrat of [REGIME8, REGIME7]) {
++    const d = monter(contrat);
++    d.branche("sujet/lot", "origin/develop", { "docs/lot.md": "lot\n" });
++    // La fourche copie `feat/a` d'origin, au même sommet ; le sujet avance : la sous-PR est en retard sur lui.
++    const sha = d.branche("feat/a", "origin/sujet/lot", { "docs/a.md": "a\n" });
++    d.branche("sujet/lot", "origin/sujet/lot", { "docs/lot2.md": "lot2\n" });
++    d.git("switch", "-q", "--detach", "origin/develop");
++    d.github({ checks: {}, pulls: [{ number: 80, title: "docs(a): a", head: "feat/a", base: "sujet/lot", labels: ["à-fusionner"], fourche: "autre/jouet", commentaires: [] }] });
++    const reseau = espionReseau(d);
++    const r = d.lancer(SUJET, "relancer", "80");
++    assert.equal(r.status, 7, `${JSON.stringify(contrat)} : ${r.stdout}${r.stderr}`);
++    assert.match(dernier(r), /^#80 : PR de fourche \(autre\/jouet\) : sa tête vit hors du dépôt, le capitaine ne la lit pas ; sautée sans renvoi$/);
++    assert.equal(reseau(), "", "aucun fetch ni push");
++    assert.equal(d.git("ls-remote", "origin", "refs/heads/feat/a").split("\t")[0], sha, "la branche d'origin du même nom n'a pas bougé");
++    assert.deepEqual(d.journal(), []);
++  }
++});
++
+ // Une PR de mise à jour de `sujet/lot` (81), validée sur son sommet : la fusion de develop résout un conflit sur
+ // `scripts/agent/x.mjs`. `lignes` : l'en-tête du ticket .02 sur le sujet (sa ligne `Sujet:` comprise) ; `retouche` : un
+ // commit après la fusion, qui touche `scripts/agent/y.mjs`, hors des fichiers en conflit.
+diff --git a/skills/chaine/sujet/scripts/sujet.sh b/skills/chaine/sujet/scripts/sujet.sh
+index aa76ce9..4f7e64d 100755
+--- a/skills/chaine/sujet/scripts/sujet.sh
++++ b/skills/chaine/sujet/scripts/sujet.sh
+@@ -1262,6 +1262,10 @@ EOT
+ relancer() {
+   local n=${1:?numéro de la sous-PR} pr base tete sommet verdict
+   pr=$(pr_json "$n") || sortir 5 "#$n : GitHub illisible à la lecture de la PR (cause ci-dessus) : reprise au tour suivant, aucun renvoi"
++  # Une PR de fourche : sautée sans renvoi, comme dans `fusionner` et passer.sh (A-192, point 2), avant tout fetch : sa
++  # branche n'est pas `origin/<tête>`, et la mise à jour pousserait sur la branche d'origin du même nom.
++  [ "$(jq -r '.head.repo.full_name // ""' <<<"$pr")" = "$(jq -r '.base.repo.full_name // ""' <<<"$pr")" ] ||
++    sortir 7 "#$n : PR de fourche ($(jq -r '.head.repo.full_name // "dépôt supprimé"' <<<"$pr")) : sa tête vit hors du dépôt, le capitaine ne la lit pas ; sautée sans renvoi"
+   base=$(jq -r .base.ref <<<"$pr")
+   tete=$(jq -r .head.ref <<<"$pr")
+   sommet=$(jq -r .head.sha <<<"$pr")

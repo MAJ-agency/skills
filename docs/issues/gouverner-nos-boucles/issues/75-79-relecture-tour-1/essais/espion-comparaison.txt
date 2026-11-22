@@ -1,0 +1,44 @@
+# Espion du régime 7 : espion-poser.mjs et espion-jouer.sh de la contre-relecture de la PR 149 (71-73-annexes/contre-relecture-9db4fb3/essais/), repris tels quels.
+# Les 19 bancs de main (97d17e3), joués contre les scripts de main (EM) puis contre ceux de la PR B (EB : l'arbre de la PR B, les bancs de main restaurés).
+# Charge au départ :  10:04:05 up  3:27,  0 user,  load average: 0.56, 2.58, 3.63 ; les deux en parallèle, --test-concurrency=1 chacun.
+## bancs : identiques dans les deux arbres
+skills/chaine/fusionner/scripts/fusionner.test.mjs	107	107	0	6139 appels
+skills/chaine/fusionner/scripts/sujet-fusionner.test.mjs	60	60	0	3932 appels
+skills/chaine/fusionner/scripts/une-sous-pr-a-la-fois.test.mjs	19	19	0	6499 appels
+skills/chaine/fusionner/scripts/boucle-outils.test.mjs	24	24	0	277 appels
+skills/chaine/fusionner/scripts/github.test.mjs	36	36	0	530 appels
+skills/chaine/fusionner/scripts/veille.test.mjs	41	41	0	0 appels
+skills/chaine/sujet/scripts/sujet.test.mjs	45	45	0	871 appels
+skills/chaine/sujet/scripts/sujet-carte.test.mjs	18	18	0	132 appels
+skills/chaine/sujet/scripts/sujet-clore.test.mjs	24	24	0	395 appels
+skills/chaine/sujet/scripts/sujet-refs.test.mjs	4	4	0	97 appels
+skills/chaine/fusionner/scripts/revue-exigee.test.mjs	37	37	0	0 appels
+skills/chaine/socle-chaine-de-production/references/scripts/github/pr-titre.test.mjs	12	12	0	74 appels
+skills/chaine/revue-adversariale/scripts/chemins-sensibles.test.mjs	13	13	0	6 appels
+skills/chaine/revue-adversariale/scripts/diff-revue.test.mjs	5	5	0	32 appels
+scripts/relecture.test.mjs	39	39	0	0 appels
+skills/chaine/socle-chaine-de-production/references/agent/regles.test.mjs	87	87	0	0 appels
+skills/chaine/socle-chaine-de-production/references/agent/garde-commandes.test.mjs	16	16	0	0 appels
+skills/chaine/tickets/references/scripts/verify/tickets.test.mjs	37	37	0	0 appels
+skills/chaine/tickets/references/scripts/verify/tickets-gate.test.mjs	12	12	0	0 appels
+## journaux
+identique boucle-outils.journal (277 lignes)
+identique chemins-sensibles.journal (6 lignes)
+identique diff-revue.journal (32 lignes)
+identique fusionner.journal (6139 lignes)
+identique garde-commandes.journal (0 lignes)
+identique github.journal (530 lignes)
+identique pr-titre.journal (74 lignes)
+identique regles.journal (0 lignes)
+identique relecture.journal (0 lignes)
+identique revue-exigee.journal (0 lignes)
+identique sujet-carte.journal (132 lignes)
+identique sujet-clore.journal (395 lignes)
+identique sujet-fusionner.journal (3932 lignes)
+identique sujet-refs.journal (97 lignes)
+identique sujet.journal (871 lignes)
+identique tickets-gate.journal (0 lignes)
+identique tickets.journal (0 lignes)
+identique une-sous-pr-a-la-fois.journal (6499 lignes)
+identique veille.journal (0 lignes)
+## total (main) : 560 lancements, 8022 appels gh, 6567 appels git au réseau ; identiques ligne pour ligne sur la PR B.

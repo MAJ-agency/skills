@@ -1,0 +1,78 @@
+diff --git a/skills/chaine/socle-chaine-de-production/references/agent/garde-fichiers.mjs b/skills/chaine/socle-chaine-de-production/references/agent/garde-fichiers.mjs
+index 0c2d276..bd7a2cd 100644
+--- a/skills/chaine/socle-chaine-de-production/references/agent/garde-fichiers.mjs
++++ b/skills/chaine/socle-chaine-de-production/references/agent/garde-fichiers.mjs
+@@ -80,7 +80,8 @@ const git = (...args) => execFileSync('git', args, { cwd: RACINE, encoding: 'utf
+  * Une copie locale qui ne compte pas et porte le ticket est nommée dans `perimees` (avec `copies`, `illisible`, ou seule à
+  * la place de `null`) : le refus dit alors le geste qui la relit, avant d'écrire au conducteur. L'héritage d'une copie de
+  * sujet se juge contre le develop d'origin (`ls-remote`) : une copie locale de develop que origin ne confirme pas (en
+- * retard, ou absente) ne juge rien, la copie compte comme écrite et `origin/develop` est nommée dans `perimees`.
++ * retard, ou absente) ne juge rien, la copie du sujet ne compte pas (ni écrite, ni héritée : rien n'accorde sur elle) et
++ * `origin/develop` est nommée dans `perimees`.
+  * `superficiel` : un clone superficiel n'a pas laissé lire la base de fusion d'une copie de sujet, comptée alors comme
+  * écrite ; le refus dit de l'approfondir.
+  */
+@@ -109,7 +110,8 @@ function accordes() {
+     const develop = objet('refs/remotes/origin/develop^{commit}');
+     // La base de fusion d'un sujet se lit contre le develop d'origin, jamais contre une copie locale en retard : plus
+     // ancienne que le develop que le sujet a reçu, elle ferait compter une copie héritée, sans geste (la suite M4 du
+-    // lot 5). Non confirmée, la copie du sujet compte (du côté sûr), et le refus dit de relire develop.
++    // lot 5). Non confirmée, la copie du sujet ne compte pas : comptée, une copie héritée d'un accord que develop a
++    // retiré depuis l'accorderait encore ; le refus dit de relire develop, puis la règle juge.
+     const developConfirme = develop !== null && distants.get('refs/heads/develop') === develop;
+     let developPerime = false;
+     // Un clone superficiel (sessions cloud) ne voit souvent pas la base de fusion d'un sujet avec develop : la copie compte
+@@ -118,7 +120,7 @@ function accordes() {
+     const herite = (sha, f) => {
+       if (!developConfirme) {
+         developPerime = true;
+-        return false;
++        return true;
+       }
+       let base;
+       try {
+diff --git a/skills/chaine/socle-chaine-de-production/references/agent/garde-fichiers.test.mjs b/skills/chaine/socle-chaine-de-production/references/agent/garde-fichiers.test.mjs
+index 39a733e..af3f750 100644
+--- a/skills/chaine/socle-chaine-de-production/references/agent/garde-fichiers.test.mjs
++++ b/skills/chaine/socle-chaine-de-production/references/agent/garde-fichiers.test.mjs
+@@ -207,8 +207,8 @@ test('régime 8 : l’héritage d’une copie de sujet se juge contre le develop
+   const geste = /`(git fetch --prune origin [^`]+)`/.exec(r.stderr)[1];
+   d.git(...geste.split(' ').slice(1).map((a) => a.replace(/^'|'$/g, '')));
+   passe(ecrire(d, 'scripts/agent/garde.mjs'));
+-  // Une copie que le sujet a écrite compte, develop confirmé ou non : develop en retard ne la fait jamais passer pour
+-  // héritée (elle serait sautée, et le chemin qu'elle accorde refusé faute de ligne lue).
++  // Develop en retard ne juge rien, même pour une copie que le sujet a écrite : elle ne compte qu'une fois develop relu
++  // (comptée sans lui, une copie héritée d'un accord que develop a retiré l'accorderait encore) ; relu, elle compte.
+   const e = depot();
+   const e0 = e.git('rev-parse', 'origin/develop').trim();
+   e.git('switch', '-q', '--detach', 'origin/develop');
+@@ -218,7 +218,29 @@ test('régime 8 : l’héritage d’une copie de sujet se juge contre le develop
+   e.git('push', '-q', 'origin', 'HEAD:develop');
+   e.git('update-ref', 'refs/remotes/origin/develop', e0);
+   e.git('switch', '-q', 'feat/spec-all-demo-1-01-garde');
++  const re = ecrire(e, 'scripts/agent/garde.mjs');
++  refuse(re, /^scripts\/agent\/garde\.mjs : d'abord, relire les copies du ticket \(origin\/develop n'est pas au sommet d'origin\) : /);
++  e.git(...(/`(git fetch --prune origin [^`]+)`/.exec(re.stderr)[1]).split(' ').slice(1).map((a) => a.replace(/^'|'$/g, '')));
+   passe(ecrire(e, 'scripts/agent/garde.mjs'));
++  // Un accord que develop a retiré, hérité par un sujet : develop en retard ne le rend pas (essai du relecteur des
++  // tickets 75 à 79, accord-retire.test.mjs).
++  const f = depot({ surSujet: null, surDevelop: ACCORD });
++  const f0 = f.git('rev-parse', 'origin/develop').trim();
++  f.git('push', '-q', 'origin', `${f0}:refs/heads/sujet/autre`);
++  f.git('switch', '-q', '--detach', 'origin/develop');
++  writeFileSync(join(f.travail, TICKET), ticket('Sensibles: —'));
++  f.git('commit', '-q', '-am', 'accord retiré');
++  f.git('push', '-q', 'origin', 'HEAD:develop');
++  f.git('fetch', '-q', 'origin');
++  f.git('update-ref', 'refs/remotes/origin/develop', f0);
++  f.git('switch', '-q', 'feat/spec-all-demo-1-01-garde');
++  refuse(ecrire(f, 'scripts/agent/garde.mjs'), /relire les copies du ticket \(origin\/develop n'est pas au sommet d'origin\)/);
++  f.git('fetch', '-q', 'origin', '+refs/heads/develop:refs/remotes/origin/develop');
++  refuse(ecrire(f, 'scripts/agent/garde.mjs'), /^scripts\/agent\/garde\.mjs : chemin sensible/);
++  // Une copie locale de develop absente est traitée de même : le refus dit de relire develop.
++  const g = depot();
++  g.git('update-ref', '-d', 'refs/remotes/origin/develop');
++  refuse(ecrire(g, 'scripts/agent/garde.mjs'), /^scripts\/agent\/garde\.mjs : d'abord, relire les copies du ticket \(origin\/develop n'est pas au sommet d'origin\) : /);
+ });
+ 
+ test('régime 8 : dans un clone entier, un refus ne nomme jamais le clone superficiel, même quand la base de fusion ne se lit pas (un sujet orphelin) (la suite 23 du lot 5)', () => {

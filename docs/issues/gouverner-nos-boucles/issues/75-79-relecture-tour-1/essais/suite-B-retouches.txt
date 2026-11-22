@@ -1,0 +1,17 @@
+ 09:49:23 up  3:12,  0 user,  load average: 1.37, 2.43, 3.50
+09:49:23
+sortie 0
+ 10:03:35 up  3:26,  0 user,  load average: 0.92, 2.85, 3.75
+10:03:35
+# tests 1393
+# suites 0
+# pass 1393
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 851411.524252
+ M skills/chaine/fusionner/scripts/suites-du-lot-5.test.mjs
+ M skills/chaine/socle-chaine-de-production/references/agent/garde-fichiers.mjs
+ M skills/chaine/socle-chaine-de-production/references/agent/garde-fichiers.test.mjs
+ M skills/chaine/sujet/scripts/sujet.sh

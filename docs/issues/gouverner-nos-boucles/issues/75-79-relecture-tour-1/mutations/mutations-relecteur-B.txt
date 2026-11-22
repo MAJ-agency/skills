@@ -1,0 +1,4 @@
+VERTE R1 passer.sh : la garde de fourche déplacée après le fetch de la tête (la branche d'origin du même nom lue), avant toute écriture (7 s ; attendu : verte avec le banc du ticket (décision 1, « avant tout fetch », non tenue))
+VERTE R2 sujet.sh fusionner : la garde de fourche déplacée après le fetch de la tête (7 s ; attendu : verte avec le banc du ticket)
+ROUGE R3 regles.mjs : les deux gestes dans l'ordre inverse (approfondir, puis relire) (14 s ; attendu : rouge) — suite 24 du lot 5, refusEdition en régime 8 : le geste qui relit ou ap
+VERTE R4 sujet.sh fusionner : le régime d'abord lu sur develop, pas sur le sujet (7 s ; attendu : verte (develop et le sujet portent le même contrat dans le banc ; coût seul))
