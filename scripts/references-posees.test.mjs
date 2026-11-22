@@ -43,11 +43,15 @@ for (const regime of [8, 7]) {
       assert.equal(Object.hasOwn(contrat, 'relecture'), regime === 8, 'le régime du contrat posé');
       assert.ok(contrat.cheminsSensibles.includes('.claude/**'), 'les chemins sensibles du gabarit');
       for (const b of bancs) assert.ok(existsSync(join(projet, b)), b);
+      // Sans `NODE_PATH` : un module installé hors du dépôt (un `typescript` global du poste) ne fait jamais passer un banc
+      // posé que la CI du plugin, qui n'en a pas, rougirait ; le jouet résout ses dépendances par son `node_modules`.
+      const env = { ...environnementDeBanc(), TMPDIR: temporaire };
+      delete env.NODE_PATH;
       // Un banc à la fois : `pnpm test` joue déjà ses fichiers en parallèle, et un banc posé mesure des durées (« le plafond à
       // 20 000 caractères… », sous 10 s) que trois enfants de plus, sous une charge de 16, ont fait dépasser.
       const r = spawnSync(process.execPath, ['--test', '--test-concurrency=1', '--test-reporter=tap', ...bancs], {
         cwd: projet,
-        env: { ...environnementDeBanc(), TMPDIR: temporaire },
+        env,
         encoding: 'utf8',
         timeout: 840_000,
         maxBuffer: 64 * 1024 * 1024,
@@ -63,6 +67,10 @@ for (const regime of [8, 7]) {
       assert.equal(compte('cancelled'), 0);
       assert.equal(compte('todo'), 0, `régime ${regime} : tests « todo », jamais jugés`);
       assert.deepEqual(sautes, SAUTES, `régime ${regime} : tests sautés`);
+      // Un banc posé qui n'écrit aucun test (ses tests ne s'écrivent que dans le plugin) sort comme un test vert au nom de
+      // son fichier : posé, il ne se juge plus, comme un banc sauté.
+      const vides = [...r.stdout.matchAll(/^ok \d+ - (.*)$/gm)].map((m) => m[1]).filter((nom) => bancs.includes(nom));
+      assert.deepEqual(vides, [], `régime ${regime} : bancs posés qui n'écrivent aucun test`);
       assert.ok(compte('tests') >= PLANCHER, `régime ${regime} : ${compte('tests')} tests joués, plancher ${PLANCHER}`);
     } finally {
       rmSync(racine, { recursive: true, force: true });
