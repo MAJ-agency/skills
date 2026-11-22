@@ -21,12 +21,14 @@
  *      avertissement. Sous GitHub Actions (`GITHUB_STEP_SUMMARY`), le rapport entier en markdown s'ajoute au résumé
  *      du job (un second passage de la CLI, sa sortie ignorée).
  *
- * Limites. Une PR de mise à jour d'un sujet (develop fusionné dans le sujet) se compare à la base la plus proche, ni à
- * la fusion recalculée de `coverage-diff`, ni au sujet que `coverage-diff --base-auto` retient pour elle : contre le
- * sujet, elle peut juger des règles que develop a touchées ; contre develop (le sujet a plus de commits que develop n'en
- * apporte), tout le travail du sujet. La comparaison est alors plus large, jamais plus lâche. Et `compare` juge l'arbre
- * de travail, non commis et non suivi compris, pas le commit poussé : au pre-push, une preuve restée hors du commit le
- * fait passer, un travail en cours peut le bloquer ; la CI juge le commit.
+ * Limites. Au pre-push et en fin de tour, une branche de mise à jour d'un sujet (develop fusionné dans le sujet) se
+ * compare à la plus proche de ses deux bases, pas à la fusion recalculée de `coverage-diff` ni toujours au sujet que
+ * `coverage-diff --base-auto` retient pour elle. Le sujet, quand il a plus de commits que develop n'en apporte : la
+ * comparaison juge aussi des règles que develop a touchées, plus large, jamais plus lâche. Develop, quand il en apporte
+ * autant ou plus : elle juge tout le travail du sujet, mais ne voit pas ce que la mise à jour défait du sujet (une
+ * règle, un cas, une criticité que la résolution remet comme sur develop) ; la CI, qui compare à la cible de la PR, le
+ * sujet, le juge. Et `compare` juge l'arbre de travail, non commis et non suivi compris, pas le commit poussé : au
+ * pre-push, une preuve restée hors du commit le fait passer, un travail en cours peut le bloquer ; la CI juge le commit.
  *
  * Usage :
  *   node scripts/verify/preuves.mjs                    fin de tour (`gatesRapides`) : la base de `--base-auto`

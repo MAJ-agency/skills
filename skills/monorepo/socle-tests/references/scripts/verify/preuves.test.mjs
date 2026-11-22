@@ -143,7 +143,7 @@ test("un index illisible, une CLI absente ou en panne, un rapport illisible, un 
   const json = lancer(depot({ rapport: "pas du json" }));
   assert.equal(json.status, 2);
   assert.match(json.stderr, /le rapport de anchorpost compare --json ne se lit pas/);
-  for (const args of [["--base"], ["--base", "--json"], ["--tout"], ["HEAD~3"], ["--base-auto", "origin/develop"]]) {
+  for (const args of [["--base"], ["--base", "--json"], ["--tout"], ["HEAD~3"], ["--base-auto", "origin/develop"], ["--base", "origin/develop", "HEAD~3"]]) {
     const u = lancer(depot(), args);
     assert.equal(u.status, 2, args.join(" "));
     assert.match(u.stderr, /preuves : usage : node scripts\/verify\/preuves\.mjs \[--base <ref> \| --base-auto\]/);
@@ -171,6 +171,31 @@ test("la base : nommée par --base ; sinon le sujet visé par le push ; sinon la
   git(r, "checkout", "-q", "-b", "correctif", "develop");
   assert.equal(lancer(r).status, 0);
   assert.deepEqual(appels(r).at(-1), ["compare", "--base", "origin/develop", "--json"], "partie de develop : develop");
+  // Une branche de mise à jour d'un sujet (develop fusionné dans le sujet) : la plus proche de ses deux bases, comme
+  // l'en-tête le dit. Develop apporte deux commits, le sujet en a un : develop ; puis le sujet en a quatre : le sujet.
+  git(r, "checkout", "-q", "develop");
+  for (const k of [2, 3]) {
+    ecrire(r, `d${k}.ts`, `export const d${k} = 1;\n`);
+    git(r, "add", "-A", "--", `d${k}.ts`);
+    git(r, "commit", "-q", "-m", `d${k}`);
+  }
+  git(r, "push", "-q", "origin", "develop");
+  git(r, "checkout", "-q", "-b", "maj", "origin/sujet/x");
+  git(r, "merge", "-q", "--no-edit", "origin/develop");
+  assert.equal(lancer(r).status, 0);
+  assert.deepEqual(appels(r).at(-1), ["compare", "--base", "origin/develop", "--json"], "mise à jour, develop apporte plus : develop");
+  git(r, "checkout", "-q", "-b", "sujet-long", "origin/sujet/x");
+  for (const k of [2, 3, 4]) {
+    ecrire(r, `s${k}.ts`, `export const s${k} = 1;\n`);
+    git(r, "add", "-A", "--", `s${k}.ts`);
+    git(r, "commit", "-q", "-m", `s${k}`);
+  }
+  git(r, "push", "-q", "origin", "sujet-long:sujet/x");
+  git(r, "fetch", "-q", "origin");
+  git(r, "checkout", "-q", "-b", "maj-2", "origin/sujet/x");
+  git(r, "merge", "-q", "--no-edit", "origin/develop");
+  assert.equal(lancer(r).status, 0);
+  assert.deepEqual(appels(r).at(-1), ["compare", "--base", "origin/sujet/x", "--json"], "mise à jour, le sujet a plus : le sujet");
 });
 
 test("une base introuvable : premier push d'un dépôt neuf, sortie 0 ; sinon sortie 2, avec le geste qui la rapatrie", () => {
