@@ -1,0 +1,29 @@
+diff --git a/NOTES-DE-VERSION.md b/NOTES-DE-VERSION.md
+index e6af6ca..e150253 100644
+--- a/NOTES-DE-VERSION.md
++++ b/NOTES-DE-VERSION.md
+@@ -13,7 +13,7 @@ La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque pro
+ ### Ce qu'un projet fait pour en profiter
+ 
+ - Rien, tant que son index Anchorpost n'est pas au pivot 3 : `preuves.mjs` dit « rien à comparer » (un index présent qui n'est pas un objet JSON le fait sortir en 2), la mutation garde les règles `proven` du schéma 2 ; la synthèse de la mutation porte désormais sa date, une ligne par règle et la section des baisses.
+-- **Reposer** (skill `socle-tests`, pièce par pièce) : `scripts/verify/preuves.mjs` et son banc, le script `check:preuves`, sa ligne au pre-push après `check:coverage`, son entrée dans `gatesRapides`, l'étape de CI sur `pull_request` ; `mutation-regles.mjs`, `mutation-regles-synthese.mjs` et leurs bancs ; `.github/workflows/mutation.yml` (permission `actions: read`, étapes « Mesure précédente » et « Mesure datée ») ; la grille et l'étiquette de cas dans `.claude/rules/tests.md`.
++- **Reposer** (skill `socle-tests`, pièce par pièce) : `scripts/verify/preuves.mjs` et son banc (le relais importe `baseDepuisPush`, `choisirBase` et `decisionSansBase` de `scripts/verify/coverage-diff-regles.mjs`, et son banc lit `scripts/docs/environnement-de-banc.mjs` du socle 7.21.0 : un projet qui a ces deux fichiers d'avant les repose avec, sinon le relais ne se charge pas, ou le banc fait échouer `check:tickets` ; dans le dépôt de la CLI elle-même, le relais s'adapte comme son `anchorpost.mjs`), le script `check:preuves`, sa ligne au pre-push après `check:coverage`, son entrée dans `gatesRapides`, l'étape de CI sur `pull_request` ; `mutation-regles.mjs`, `mutation-regles-synthese.mjs` et leurs bancs ; `.github/workflows/mutation.yml` (permission `actions: read`, étapes « Mesure précédente » et « Mesure datée ») ; la grille et l'étiquette de cas dans `.claude/rules/tests.md` ; le point 5 de l'ADR du score de mutation du projet s'amende comme le gabarit.
+ 
+ ## 8.0.0 — 2026-11-22
+ 
+diff --git a/scripts/preuve-suffisante-socle-tests.test.mjs b/scripts/preuve-suffisante-socle-tests.test.mjs
+index 2c461b5..3322d09 100644
+--- a/scripts/preuve-suffisante-socle-tests.test.mjs
++++ b/scripts/preuve-suffisante-socle-tests.test.mjs
+@@ -35,6 +35,11 @@ test("le relais preuves dit qu'il sort en 2 quand la CLI est un paquet de l'espa
+   exiger("skills/monorepo/socle-tests/SKILL.md", [
+     "dans un dépôt où la CLI est un paquet de l'espace de travail et non une dépendance installée (le dépôt de la CLI elle-même), ce fichier n'existe pas et le relais sort en 2, au pre-push comme en fin de tour ; ce dépôt l'adapte à la pose, comme son relais `anchorpost.mjs`.",
+   ]);
++  // Ce qu'une repose pièce par pièce doit reposer avec : sans eux, le relais ne se charge pas (exports de la base) ou son
++  // banc fait échouer `check:tickets` (l'environnement de banc), dans un projet posé avant ces fichiers (Anchorpost).
++  exiger("NOTES-DE-VERSION.md", [
++    "le relais importe `baseDepuisPush`, `choisirBase` et `decisionSansBase` de `scripts/verify/coverage-diff-regles.mjs`, et son banc lit `scripts/docs/environnement-de-banc.mjs` du socle 7.21.0 : un projet qui a ces deux fichiers d'avant les repose avec",
++  ]);
+ });
+ 
+ test("le workflow de mutation date sa mesure, la publie en artefact et relit la précédente, sans expression dans un run:", () => {

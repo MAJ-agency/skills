@@ -1,0 +1,47 @@
+Anchorpost 31afa3d, CLI 2.0.1, charge average: 13.82, 15.51, 14.98
+--- 1. tel quel : la CLI est le paquet apps/cli, pas de node_modules/.bin/anchorpost à la racine (décision 7)
+preuves : la CLI Anchorpost est introuvable (node_modules/.bin/anchorpost) : pnpm install (`@maj-agency/anchorpost` ≥ 2.0.0 en devDependency)
+sortie 2 (0.2 s)
+--- 2. la CLI 2.0.1 posée à la racine ; fin de tour (sans option), arbre propre
+preuves : base origin/develop, mode jugé observe ; 0 règle(s) touchée(s), 0 écart(s), 0 avertissement(s)
+sortie 0 (17.5 s)
+--- 3. --base HEAD~3 (une PR de trois commits)
+preuves : base HEAD~3, mode jugé observe ; 5 règle(s) touchée(s), 0 écart(s), 1 avertissement(s)
+  avertissement case-title-rewritten RULE_ALL_ANC-19 : Titre de cas réécrit sur RULE_ALL_ANC-19 (source-invalide) : la machine ne distingue pas une faute corrigée d'un sens affaibli, la revue relit le titre (SPEC_ALL_ANC-5.38).
+  le rapport entier : pnpm exec anchorpost compare --base HEAD~3
+sortie 0 (14.4 s)
+    taille du rapport JSON : 6712 octets (le tampon du relais : 256 Mio)
+--- 4. sous GitHub Actions : le rapport entier ajouté au résumé du job
+sortie 0 ; 38 lignes, la première : # Comparaison avec HEAD~3
+--- 5. enforce, un cas ajouté à RULE_ALL_ANC-19 sans preuve, dans l'arbre de travail
+preuves : base origin/develop, mode jugé enforce ; 1 règle(s) touchée(s), 1 écart(s), 0 avertissement(s)
+  refus case-without-proof RULE_ALL_ANC-19 : Le cas cas-ajoute-sans-preuve de RULE_ALL_ANC-19 n'a aucune preuve.
+  le rapport entier : pnpm exec anchorpost compare --base origin/develop
+sortie 1 (12.9 s)
+--- 6. le hook de fin de tour d'Anchorpost (scripts/agent/fin-de-tour.mjs), gatesRapides = [preuves.mjs]
+Gates rouges sur le travail en cours — corriger avant de rendre la main :
+── scripts/verify/preuves.mjs
+preuves : base origin/develop, mode jugé enforce ; 1 règle(s) touchée(s), 1 écart(s), 0 avertissement(s)
+  refus case-without-proof RULE_ALL_ANC-19 : Le cas cas-ajoute-sans-preuve de RULE_ALL_ANC-19 n'a aucune preuve.
+  le rapport entier : pnpm exec anchorpost compare --base origin/develop
+sortie 2 (13.3 s)
+--- 7. pre-push : le commit poussé porte l'écart, la preuve n'est que dans l'arbre de travail (fichier non suivi)
+preuves : base origin/develop, mode jugé enforce ; 1 règle(s) touchée(s), 0 écart(s), 0 avertissement(s)
+sortie 0 (15.0 s)
+--- 8. le même commit, arbre propre (ce que juge la CI)
+preuves : base origin/develop, mode jugé enforce ; 1 règle(s) touchée(s), 1 écart(s), 0 avertissement(s)
+  refus case-without-proof RULE_ALL_ANC-19 : Le cas cas-ajoute-sans-preuve de RULE_ALL_ANC-19 n'a aucune preuve.
+  le rapport entier : pnpm exec anchorpost compare --base origin/develop
+sortie 1 (12.5 s)
+--- 9. le banc preuves.test.mjs reposé seul dans scripts/verify/ (Anchorpost n'a pas scripts/docs/environnement-de-banc.mjs) : ce que joue check:tickets
+# Error [ERR_MODULE_NOT_FOUND]: Cannot find module '<…>/socle-monorepo/references/scripts/docs/environnement-de-banc.mjs' imported from <…>/ap-essai/scripts/verify/preuves.test.mjs (chemins abrégés : le repli du banc, le chemin du plugin, n'existe pas dans un projet)
+# tests 1
+# pass 0
+# fail 1
+--- 10. le même, avec scripts/docs/environnement-de-banc.mjs du socle posé
+# tests 8
+# pass 8
+# fail 0
+--- 11. une règle haute aux cinq cas prouvés, une famille sans réponse (limits retirée de notApplicableFamilies) : la CLI la dit partielle
+high partial {"declared":5,"proven":5} missing {"families":["limits"]}
+fin, charge average: 13.61, 14.82, 14.80

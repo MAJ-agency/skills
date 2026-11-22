@@ -1,0 +1,8 @@
+== les cinq bancs de la PR, les cinq retouches posées (b6981ef, sur 42c5149)
+# tests 125
+# pass 125
+# fail 0
+== b6981ef (les cinq retouches sur 42c5149) : scripts/depot.test.mjs, points-d-entree, preuve-suffisante-socle-tests
+# tests 144
+# pass 144
+# fail 0

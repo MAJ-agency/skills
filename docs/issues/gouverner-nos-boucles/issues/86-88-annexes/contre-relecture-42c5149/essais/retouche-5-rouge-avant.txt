@@ -1,0 +1,9 @@
+== retouche 5 : son banc seul sur 42c5149 (rouge attendu)
+not ok 1 - la fiche des tests porte la grille par criticité, l'étiquette de cas et le niveau du bout en bout d'une CLI
+# tests 3
+# pass 2
+# fail 1
+== retouche 5 entière (b6981ef) : scripts/preuve-suffisante-socle-tests.test.mjs
+# tests 3
+# pass 3
+# fail 0

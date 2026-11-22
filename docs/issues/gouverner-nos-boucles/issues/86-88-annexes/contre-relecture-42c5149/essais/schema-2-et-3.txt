@@ -1,0 +1,15 @@
+== Anchorpost à 3a6d656~1 (dernier index au schéma 2) : le périmètre de --list, main (8.0.0) contre la PR
+main : sortie 0, 0 fichier(s), stderr 1 ligne(s)
+pr : sortie 0, 0 fichier(s), stderr 1 ligne(s)
+périmètres identiques
+messages identiques
+== le relais au schéma 2
+preuves : index anchorpost/anchorpost.json au schéma "2" : la preuve suffisante se juge au pivot 3 (CLI Anchorpost ≥ 2.0.0), rien à comparer
+sortie 0
+== Anchorpost develop (pivot 3) : --list, main contre la PR
+main : sortie 0, 0 fichier(s) ; mutation-regles : périmètre vide — index anchorpost/anchorpost.json de schéma "3", la mutation lit le schéma "2" : rien à muter
+pr : sortie 0, 53 fichier(s) ; 
+== l'index de develop (31afa3d) réécrit au schéma "2" (mêmes règles, mêmes code) : main contre la PR
+main : sortie 0, 8 fichier(s), stderr : 
+pr : sortie 0, 8 fichier(s), stderr : 
+périmètres identiques (les règles proven seules)

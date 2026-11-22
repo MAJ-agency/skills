@@ -1,0 +1,3 @@
+$ node scripts/verify/preuves.mjs   # coverage-diff-regles.mjs de 1b7c7fb~1 (avant le 2026-11-10), aucun index Anchorpost
+SyntaxError: The requested module './coverage-diff-regles.mjs' does not provide an export named 'BASE_DEFAUT'
+sortie 1

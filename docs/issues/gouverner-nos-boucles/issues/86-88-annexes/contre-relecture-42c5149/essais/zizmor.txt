@@ -1,0 +1,11 @@
+== avant
+ INFO zizmor: 🌈 zizmor v1.32.0
+ INFO audit: zizmor: 🌈 completed <gabarit>/avant/.github/workflows/mutation.yml
+No findings to report. Good job!
+== apres
+ INFO zizmor: 🌈 zizmor v1.32.0
+ INFO audit: zizmor: 🌈 completed <gabarit>/apres/.github/workflows/mutation.yml
+No findings to report. Good job!
+ INFO zizmor: 🌈 zizmor v1.32.0
+ INFO audit: zizmor: 🌈 completed <gabarit>/apres/.github/workflows/mutation.yml
+No findings to report. Good job!

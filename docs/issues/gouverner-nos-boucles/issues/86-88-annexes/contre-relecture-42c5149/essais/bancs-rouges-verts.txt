@@ -1,0 +1,33 @@
+== § 1 du ticket 86 : les bancs du patch seuls, sur main à ddb4265 (arbre à part)
+# tests 103
+# pass 79
+# fail 24
+
+== § 2 : la branche à 42c5149
+# tests 125
+# pass 125
+# fail 0
+  not ok 37 - preuves agit quand on le lance : direct
+  not ok 38 - preuves agit quand on le lance : lien symbolique
+  not ok 39 - preuves agit quand on le lance : lien symbolique, --preserve-symlinks-main
+  not ok 40 - preuves agit quand on le lance : lien symbolique, NODE_OPTIONS=--preserve-symlinks-main
+  not ok 41 - preuves agit quand on le lance : dossier à espace
+  not ok 42 - preuves agit quand on le lance : dossier à accent
+  not ok 43 - mutation-regles-synthese agit quand on le lance : direct
+  not ok 44 - mutation-regles-synthese agit quand on le lance : lien symbolique
+  not ok 45 - mutation-regles-synthese agit quand on le lance : lien symbolique, --preserve-symlinks-main
+  not ok 46 - mutation-regles-synthese agit quand on le lance : lien symbolique, NODE_OPTIONS=--preserve-symlinks-main
+  not ok 47 - mutation-regles-synthese agit quand on le lance : dossier à espace
+  not ok 48 - mutation-regles-synthese agit quand on le lance : dossier à accent
+  not ok 73 - la fiche des tests porte la grille par criticité, l'étiquette de cas et le niveau du bout en bout d'une CLI
+  not ok 74 - le relais preuves dit qu'il sort en 2 quand la CLI est un paquet de l'espace de travail, et que ce dépôt l'adapte
+  not ok 75 - le workflow de mutation date sa mesure, la publie en artefact et relit la précédente, sans expression dans un run:
+  not ok 3 - skills/monorepo/socle-tests/references/scripts/verify/mutation-regles-synthese.test.mjs
+  not ok 77 - deux règles prouvées, trois fichiers : l'union, triée, avec ses fichiers par règle
+  not ok 83 - index illisible, d'un autre schéma ou sans liste de règles : vide, avec une raison propre à chaque cas
+  not ok 91 - perimetreDuPaquet ne garde que les fichiers du paquet, en chemins relatifs, et compte ce qui est ailleurs
+  not ok 94 - --lancer nomme les fichiers prouvés d'un autre paquet, qu'il ne mute pas
+  not ok 100 - pivot 3 : les règles prouvées et partielles entrent, avec leur criticité ; to-build, configured et les autres non
+  not ok 101 - pivot 3 : sans règle prouvée ou partielle, la raison le dit avec les mots du pivot 3
+  not ok 102 - --list sur un index au pivot 3 : une règle partielle donne ses fichiers
+  not ok 5 - skills/monorepo/socle-tests/references/scripts/verify/preuves.test.mjs

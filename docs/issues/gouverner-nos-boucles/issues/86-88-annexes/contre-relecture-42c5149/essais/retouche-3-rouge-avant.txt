@@ -1,0 +1,9 @@
+== retouche 3, son banc seul sur 42c5149 (rouge attendu)
+not ok 2 - le relais preuves dit qu'il sort en 2 quand la CLI est un paquet de l'espace de travail, et que ce dépôt l'adapte
+# tests 3
+# pass 2
+# fail 1
+== retouche 3 entière sur 42c5149 (vert attendu)
+# tests 3
+# pass 3
+# fail 0

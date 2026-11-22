@@ -1,0 +1,3 @@
+$ node scripts/verify/preuves.mjs HEAD~3     # un argument sans --base : ni refusé, ni lu
+preuves : base origin/develop, mode jugé observe ; 0 règle(s) touchée(s), 0 écart(s), 0 avertissement(s)
+sortie 0

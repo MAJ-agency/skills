@@ -1,0 +1,23 @@
+# La suite entière (pnpm test), une fois, sur l'arbre des quatre PR : main (ddb4265) + 152 + 153 (8.0.2) + 155 (8.1.0) simulés, puis le § 3 de la PR 154 (8.2.0). Compte attendu : 1 396 + 9 + 6 + 9 + 26 = 1 446.
+# 15:54:41
+#  15:54:41 up  9:17,  0 user,  load average: 8.78, 8.21, 11.04
+# sortie 124
+# 16:34:41
+#  16:34:41 up  9:57,  0 user,  load average: 19.79, 16.28, 15.83
+# sortie 124 : la borne de 40 min (timeout 2400) que cette relecture avait posée, atteinte sous une charge de 16 à 20 ; la session l'avait jouée en 12 min à charge 1.
+# rendus avant l'arrêt : 738 tests de premier niveau, 737 verts, 1 rouge :
+#   1036:not ok 172 - les bancs posés à plat sous scripts/chaine/ tournent hors du plugin
+  ---
+  duration_ms: 1211099.458364
+  type: 'test'
+  location: '<…>'
+  failureType: 'testCodeFailure'
+  error: |-
+    les bancs posés tournent hors du plugin, chaque test exactement une fois
+    + actual - expected
+    
+    + [
+    +   '── scripts/chaine/une-sous-pr-a-la-fois.test.mjs (tranche, tué à sa borne de 600 s)\n' +
+    +     'warning: You appear to have cloned an empty repository.\n' +
+    +     'warning: You appear to have cloned an empty repository.\n' +
+    +     'warning: You appear to have cloned an empty repository.\n' +

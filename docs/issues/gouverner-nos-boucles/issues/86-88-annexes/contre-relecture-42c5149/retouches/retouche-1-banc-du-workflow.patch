@@ -1,0 +1,23 @@
+diff --git a/scripts/preuve-suffisante-socle-tests.test.mjs b/scripts/preuve-suffisante-socle-tests.test.mjs
+index ae32f8e..2c461b5 100644
+--- a/scripts/preuve-suffisante-socle-tests.test.mjs
++++ b/scripts/preuve-suffisante-socle-tests.test.mjs
+@@ -44,7 +44,11 @@ test("le workflow de mutation date sa mesure, la publie en artefact et relit la
+     "permissions: contents: read actions: read",
+     "name: mesure-regles path: apps/api/reports/mutation/mesure-regles.json",
+     "run: node ../../scripts/verify/mutation-regles-synthese.mjs --mesure reports/mutation/mesure-regles.json --precedente \"$RUNNER_TEMP/precedente/mesure-regles.json\" >> \"$GITHUB_STEP_SUMMARY\"",
+-    "gh run download \"$id\" -n mesure-regles -D \"$RUNNER_TEMP/precedente\"",
++    // Décision 3 du ticket 88 : le dernier artefact de ce nom, et un appel ou un téléchargement en échec ne fait pas
++    // échouer le passage (`bash -e`) : la synthèse dit qu'il n'y a pas de mesure précédente lisible.
++    "gh api \"repos/$GITHUB_REPOSITORY/actions/artifacts?name=mesure-regles&per_page=30\"",
++    "][0].workflow_run.id // empty') || id=''",
++    "gh run download \"$id\" -n mesure-regles -D \"$RUNNER_TEMP/precedente\" || echo \"mesure précédente illisible\"",
+     // Décision 3 du ticket 88 : `gh` authentifié par le jeton du job, le dernier artefact non expiré de la branche par défaut.
+     "env: GH_TOKEN: ${{ github.token }} BRANCHE: ${{ github.event.repository.default_branch }}",
+     "select(.expired == false and .workflow_run.head_branch == env.BRANCHE)",
+@@ -68,4 +72,5 @@ test("le workflow de mutation date sa mesure, la publie en artefact et relit la
+   assert.ok(runs.some((l) => l.includes("gh run download")), `${MUTATION} : le bloc d'un run: est lu`);
+   assert.deepEqual(runs.filter((l) => l.includes("${{")), [], `${MUTATION} : une expression dans un run:`);
+   assert.ok(texte.indexOf("name: Mesure précédente") < texte.indexOf("name: Mutation des règles qui ont des preuves"), "la mesure précédente se lit avant que la nouvelle ne soit publiée");
++  assert.ok(texte.indexOf("name: Synthèse par règle") < texte.indexOf("name: Mesure datée"), "la mesure se publie après que la synthèse l'a écrite");
+ });

@@ -1,0 +1,15 @@
+# Le filtre de l'étape « Mesure précédente », joué en lecture contre l'API réelle (gh 2.89.0), sur un dépôt accessible
+# dont les artefacts existent (le nom remplacé par un artefact réel de ce dépôt) :
+$ BRANCHE=develop gh api "repos/MAJ-agency/anchorpost/actions/artifacts?name=anchorpost-2.0.1.tgz&per_page=30" --jq '[.artifacts[] | select(.expired == false and .workflow_run.head_branch == env.BRANCHE)][0].workflow_run.id // empty'
+45005228403
+sortie 0
+$ BRANCHE=main gh api "repos/MAJ-agency/anchorpost/actions/artifacts?name=anchorpost-2.0.1.tgz&per_page=30" --jq '…le même…'
+(vide)
+sortie 0
+# L'ordre de la liste : du plus récent au plus ancien (created_at) ; le [0] est donc le dernier passage.
+$ gh api "repos/MAJ-agency/anchorpost/actions/artifacts?per_page=5" --jq '[.artifacts[] | {n: .name, b: .workflow_run.head_branch, c: .created_at}]'
+anchorpost-2.0.2-essai-31afa3d.tgz develop 2026-11-22T15:25:19Z ; anchorpost-2.0.1.tgz develop 2026-11-22T08:58:45Z ; anchorpost-2.0.1-essai-2be4e7e.tgz develop 2026-11-21T21:29:54Z ; …
+# Sans `name=` dans l'URL (mutation C1), le [0] serait l'artefact le plus récent de la branche, de n'importe quel workflow :
+# ici un paquet de la CLI, jamais une mesure ; `gh run download <id> -n mesure-regles` échouerait, et la baisse ne se dirait jamais.
+$ gh run download 45005228403 -R MAJ-agency/anchorpost -n anchorpost-2.0.1.tgz -D <dossier>
+refusé par le mandataire réseau de la session (hôte de stockage des artefacts) : le téléchargement n'a pas tourné.

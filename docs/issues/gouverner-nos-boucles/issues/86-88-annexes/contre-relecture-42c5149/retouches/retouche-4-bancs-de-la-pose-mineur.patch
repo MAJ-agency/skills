@@ -1,0 +1,24 @@
+diff --git a/scripts/preuve-suffisante-socle-tests.test.mjs b/scripts/preuve-suffisante-socle-tests.test.mjs
+index 3322d09..8c416f5 100644
+--- a/scripts/preuve-suffisante-socle-tests.test.mjs
++++ b/scripts/preuve-suffisante-socle-tests.test.mjs
+@@ -24,6 +24,8 @@ test("la fiche des tests porte la grille par criticité, l'étiquette de cas et
+     "`*.e2e-cli.spec.ts` qui lance la CLI construite en sous-processus, bout en bout d'une CLI, P2)",
+     "- **Un test qui prouve un cas attendu de la règle le nomme après un `#`** : `it('[RULE_ALL_LIC-2#seconde-licence] refuse une seconde licence quand la saison en a déjà une')`.",
+     "## Ce qu'une règle doit prouver, selon sa criticité",
++    // Décision 8 du ticket 86 : la grille sous la seule condition du pivot 3 ; un projet sans index au pivot 3 n'y est pas tenu.
++    "Projet suivi par Anchorpost, index au pivot 3 (`RULE_ALL_ANC-28` d'Anchorpost) : jamais un nombre de tests",
+     "| basse, ou à classer | une preuve | une preuve | une preuve |",
+     "| moyenne | une preuve | une preuve | une preuve P1 ou P2 |",
+     "| haute | une preuve P2 | une preuve | une preuve P1 ou P2 |",
+@@ -33,6 +35,10 @@ test("la fiche des tests porte la grille par criticité, l'étiquette de cas et
+ 
+ test("le relais preuves dit qu'il sort en 2 quand la CLI est un paquet de l'espace de travail, et que ce dépôt l'adapte", () => {
+   exiger("skills/monorepo/socle-tests/SKILL.md", [
++    // Décision 6 du ticket 86 : où le gate se pose (le pre-push, la fin de tour, la CI).
++    "seulement `pnpm run check:coverage --base-auto` après `pnpm run check`, puis `pnpm run check:preuves --base-auto`",
++    "Si la chaîne est posée, `scripts/verify/preuves.mjs` entre dans `gatesRapides` de `.claude/chaine.json` : la fin de tour le joue sans option",
++    "Dans le job de qualité, sur `pull_request`, le rapport de preuves : `node scripts/verify/preuves.mjs --base \"origin/$BASE\"` (même `env:`, `fetch-depth: 0`)",
+     "dans un dépôt où la CLI est un paquet de l'espace de travail et non une dépendance installée (le dépôt de la CLI elle-même), ce fichier n'existe pas et le relais sort en 2, au pre-push comme en fin de tour ; ce dépôt l'adapte à la pose, comme son relais `anchorpost.mjs`.",
+   ]);
+   // Ce qu'une repose pièce par pièce doit reposer avec : sans eux, le relais ne se charge pas (exports de la base) ou son
