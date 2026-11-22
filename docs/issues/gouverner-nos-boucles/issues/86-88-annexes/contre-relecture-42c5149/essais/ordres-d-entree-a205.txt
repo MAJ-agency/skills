@@ -1,0 +1,52 @@
+== main + PR 152, la note depuis : branche
+  entrée origin/claude/suites-capitaine (conflits du squash : aucun) → 8.0.1
+  § 3 : en conflit : .claude-plugin/plugin.json NOTES-DE-VERSION.md 
+  version-mineure : 8.1.0 — 2026-11-22
+  après : 8.1.0 ; notes : ## 8.1.0 ## 8.0.1 ## 8.0.0 ## 7.39.0 
+  diff propre contre main simulé :  16 files changed, 870 insertions(+), 53 deletions(-)
+  marqueurs de conflit restants : 0
+ascendance # pass 1 ascendance # fail 0 banc de texte # pass 3 banc de texte # fail 0 
+== main + PR 152, la note depuis : annexe
+  entrée origin/claude/suites-capitaine (conflits du squash : aucun) → 8.0.1
+  § 3 : en conflit : .claude-plugin/plugin.json NOTES-DE-VERSION.md 
+  version-mineure : 8.1.0 — 2026-11-22
+  après : 8.1.0 ; notes : ## 8.1.0 ## 8.0.1 ## 8.0.0 ## 7.39.0 
+  diff propre contre main simulé :  16 files changed, 870 insertions(+), 53 deletions(-)
+  marqueurs de conflit restants : 0
+ascendance # pass 1 ascendance # fail 0 banc de texte not ok 2 - le relais preuves dit qu'il sort en 2 quand la CLI est un paquet de l'espace de travail, et que ce dépôt l'adapte banc de texte # pass 2 banc de texte # fail 1 
+== main + PR 155, la note depuis : branche
+  entrée origin/claude/preuve-suffisante-tickets (conflits du squash : aucun) → 8.1.0
+  § 3 : en conflit : NOTES-DE-VERSION.md 
+  version-mineure : 8.2.0 — 2026-11-22
+  après : 8.2.0 ; notes : ## 8.2.0 ## 8.1.0 ## 8.0.0 ## 7.39.0 
+  diff propre contre main simulé :  16 files changed, 870 insertions(+), 53 deletions(-)
+  marqueurs de conflit restants : 0
+ascendance # pass 1 ascendance # fail 0 banc de texte # pass 3 banc de texte # fail 0 
+== main + PR 155, la note depuis : annexe
+  entrée origin/claude/preuve-suffisante-tickets (conflits du squash : aucun) → 8.1.0
+  § 3 : en conflit : NOTES-DE-VERSION.md 
+  version-mineure : 8.2.0 — 2026-11-22
+  après : 8.2.0 ; notes : ## 8.2.0 ## 8.1.0 ## 8.0.0 ## 7.39.0 
+  diff propre contre main simulé :  16 files changed, 870 insertions(+), 53 deletions(-)
+  marqueurs de conflit restants : 0
+ascendance # pass 1 ascendance # fail 0 banc de texte not ok 2 - le relais preuves dit qu'il sort en 2 quand la CLI est un paquet de l'espace de travail, et que ce dépôt l'adapte banc de texte # pass 2 banc de texte # fail 1 
+== main + PR 152 153 155, la note depuis : branche
+  entrée origin/claude/suites-capitaine (conflits du squash : aucun) → 8.0.1
+  entrée origin/claude/suites-relecteur (conflits du squash : NOTES-DE-VERSION.md ) → 8.0.2
+  entrée origin/claude/preuve-suffisante-tickets (conflits du squash : .claude-plugin/plugin.json NOTES-DE-VERSION.md ) → 8.1.0
+  § 3 : en conflit : NOTES-DE-VERSION.md 
+  version-mineure : 8.2.0 — 2026-11-22
+  après : 8.2.0 ; notes : ## 8.2.0 ## 8.1.0 ## 8.0.2 ## 8.0.1 
+  diff propre contre main simulé :  16 files changed, 870 insertions(+), 53 deletions(-)
+  marqueurs de conflit restants : 0
+ascendance # pass 1 ascendance # fail 0 banc de texte # pass 3 banc de texte # fail 0 
+== main + PR 152 153 155, la note depuis : annexe
+  entrée origin/claude/suites-capitaine (conflits du squash : aucun) → 8.0.1
+  entrée origin/claude/suites-relecteur (conflits du squash : NOTES-DE-VERSION.md ) → 8.0.2
+  entrée origin/claude/preuve-suffisante-tickets (conflits du squash : .claude-plugin/plugin.json NOTES-DE-VERSION.md ) → 8.1.0
+  § 3 : en conflit : NOTES-DE-VERSION.md 
+  version-mineure : 8.2.0 — 2026-11-22
+  après : 8.2.0 ; notes : ## 8.2.0 ## 8.1.0 ## 8.0.2 ## 8.0.1 
+  diff propre contre main simulé :  16 files changed, 870 insertions(+), 53 deletions(-)
+  marqueurs de conflit restants : 0
+ascendance # pass 1 ascendance # fail 0 banc de texte not ok 2 - le relais preuves dit qu'il sort en 2 quand la CLI est un paquet de l'espace de travail, et que ce dépôt l'adapte banc de texte # pass 2 banc de texte # fail 1 

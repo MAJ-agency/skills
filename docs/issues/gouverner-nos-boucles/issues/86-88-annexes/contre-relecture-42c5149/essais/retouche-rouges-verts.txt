@@ -1,0 +1,16 @@
+# retouche-154-tour-1.patch (sha256 6c441645bac6c21d16c038b467fe80590f20f07a0a4c87db93a0df95dce7887b), les cinq bancs de la PR.
+== rouge avant : ses seuls fichiers de bancs posés sur 42c5149 (git apply --include='*.test.mjs')
+not ok 73 - la fiche des tests porte la grille par criticité, l'étiquette de cas et le niveau du bout en bout d'une CLI
+not ok 74 - le relais preuves dit qu'il sort en 2 quand la CLI est un paquet de l'espace de travail, et que ce dépôt l'adapte
+not ok 121 - un index illisible, une CLI absente ou en panne, un rapport illisible, un usage faux : sortie 2, la cause dite
+# tests 125
+# pass 122
+# fail 3
+== vert après : le patch entier sur 42c5149
+# tests 125
+# pass 125
+# fail 0
+== vert après, depot.test.mjs (le plugin entier lu : fiche, SKILL, note, version)
+# tests 69
+# pass 69
+# fail 0

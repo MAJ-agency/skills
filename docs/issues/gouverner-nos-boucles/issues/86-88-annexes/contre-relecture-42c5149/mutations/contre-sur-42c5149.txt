@@ -19,10 +19,16 @@ VERTE C7 SKILL : preuves.mjs n'entre plus dans gatesRapides (0 s)
 VERTE C8 SKILL : l'étape de CI de preuves n'est plus posée (0 s)
 VERTE C9 preuves.mjs : le sujet visé par un premier push (absent en local) est pris pour base (13 s)
 VERTE C10 preuves.mjs : une base nommée absente en local est passée telle quelle à la CLI (13 s)
-VERTE C11 preuves.mjs : le geste d'une base absente nomme toujours develop (12 s)
-VERTE C12 preuves.mjs : le rapport JSON lu sous le tampon par défaut (1 Mio) (14 s)
-ROUGE C13 preuves.mjs : les avertissements du rapport ne sont pas résumés (15 s) — resume : le mode jugé, les comptes, un écart par ligne (refu
-VERTE C14 preuves.mjs : la CLI lancée depuis le dossier courant, pas la racine (16 s)
-ROUGE C15 mutation-regles.mjs : perimetreDuPaquet ne porte pas la criticité (toujours null) (2 s) — le point d'entrée : --mesure écrit la mesure datée en JSON, 
+VERTE C11 preuves.mjs : le geste d'une base absente nomme toujours develop (13 s)
+VERTE C12 preuves.mjs : le rapport JSON lu sous le tampon par défaut (1 Mio) (13 s)
+ROUGE C13 preuves.mjs : les avertissements du rapport ne sont pas résumés (12 s) — resume : le mode jugé, les comptes, un écart par ligne (refu
+VERTE C14 preuves.mjs : la CLI lancée depuis le dossier courant, pas la racine (12 s)
+ROUGE C15 mutation-regles.mjs : perimetreDuPaquet ne porte pas la criticité (toujours null) (1 s) — le point d'entrée : --mesure écrit la mesure datée en JSON, 
 VERTE C16 synthèse : une mesure précédente dont une règle n'a pas de clé se lit (1 s)
 VERTE C17 synthèse : le score arrondi par défaut (une baisse de 0,6 point cachée ou montrée autrement) (1 s)
+INTROUVABLE C18 preuves.mjs : un argument sans -- est accepté (le filtre d'avant)
+INTROUVABLE C19 SKILL : l'arbre de travail jugé n'est plus dit
+INTROUVABLE C20 SKILL : le coût mesuré redevient « quelques secondes »
+INTROUVABLE C21 SKILL : les deux bases d'une PR de mise à jour ne sont plus dites
+INTROUVABLE C22 note : la ligne « Reposer » d'avant (sans ce que la repose repose avec)
+INTROUVABLE C23 fiche : « prouvée quand chacun de ses cas l'est » (le texte d'avant)

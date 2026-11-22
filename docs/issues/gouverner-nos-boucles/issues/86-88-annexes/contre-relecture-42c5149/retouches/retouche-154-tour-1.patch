@@ -1,0 +1,174 @@
+diff --git a/NOTES-DE-VERSION.md b/NOTES-DE-VERSION.md
+index e6af6ca..e150253 100644
+--- a/NOTES-DE-VERSION.md
++++ b/NOTES-DE-VERSION.md
+@@ -13,7 +13,7 @@ La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque pro
+ ### Ce qu'un projet fait pour en profiter
+ 
+ - Rien, tant que son index Anchorpost n'est pas au pivot 3 : `preuves.mjs` dit « rien à comparer » (un index présent qui n'est pas un objet JSON le fait sortir en 2), la mutation garde les règles `proven` du schéma 2 ; la synthèse de la mutation porte désormais sa date, une ligne par règle et la section des baisses.
+-- **Reposer** (skill `socle-tests`, pièce par pièce) : `scripts/verify/preuves.mjs` et son banc, le script `check:preuves`, sa ligne au pre-push après `check:coverage`, son entrée dans `gatesRapides`, l'étape de CI sur `pull_request` ; `mutation-regles.mjs`, `mutation-regles-synthese.mjs` et leurs bancs ; `.github/workflows/mutation.yml` (permission `actions: read`, étapes « Mesure précédente » et « Mesure datée ») ; la grille et l'étiquette de cas dans `.claude/rules/tests.md`.
++- **Reposer** (skill `socle-tests`, pièce par pièce) : `scripts/verify/preuves.mjs` et son banc (le relais importe `baseDepuisPush`, `choisirBase` et `decisionSansBase` de `scripts/verify/coverage-diff-regles.mjs`, et son banc lit `scripts/docs/environnement-de-banc.mjs` du socle 7.21.0 : un projet qui a ces deux fichiers d'avant les repose avec, sinon le relais ne se charge pas, ou le banc fait échouer `check:tickets` ; dans le dépôt de la CLI elle-même, le relais s'adapte comme son `anchorpost.mjs`), le script `check:preuves`, sa ligne au pre-push après `check:coverage`, son entrée dans `gatesRapides`, l'étape de CI sur `pull_request` ; `mutation-regles.mjs`, `mutation-regles-synthese.mjs` et leurs bancs ; `.github/workflows/mutation.yml` (permission `actions: read`, étapes « Mesure précédente » et « Mesure datée ») ; la grille et l'étiquette de cas dans `.claude/rules/tests.md` ; le point 5 de l'ADR du score de mutation du projet s'amende comme le gabarit.
+ 
+ ## 8.0.0 — 2026-11-22
+ 
+diff --git a/scripts/preuve-suffisante-socle-tests.test.mjs b/scripts/preuve-suffisante-socle-tests.test.mjs
+index ae32f8e..37056e2 100644
+--- a/scripts/preuve-suffisante-socle-tests.test.mjs
++++ b/scripts/preuve-suffisante-socle-tests.test.mjs
+@@ -24,17 +24,36 @@ test("la fiche des tests porte la grille par criticité, l'étiquette de cas et
+     "`*.e2e-cli.spec.ts` qui lance la CLI construite en sous-processus, bout en bout d'une CLI, P2)",
+     "- **Un test qui prouve un cas attendu de la règle le nomme après un `#`** : `it('[RULE_ALL_LIC-2#seconde-licence] refuse une seconde licence quand la saison en a déjà une')`.",
+     "## Ce qu'une règle doit prouver, selon sa criticité",
++    // Décision 8 du ticket 86 : la grille sous la seule condition du pivot 3 ; un projet sans index au pivot 3 n'y est pas tenu.
++    "Projet suivi par Anchorpost, index au pivot 3 (`RULE_ALL_ANC-28` d'Anchorpost) : jamais un nombre de tests",
+     "| basse, ou à classer | une preuve | une preuve | une preuve |",
+     "| moyenne | une preuve | une preuve | une preuve P1 ou P2 |",
+     "| haute | une preuve P2 | une preuve | une preuve P1 ou P2 |",
++    // « Prouvée » comme la CLI 2.0.x la calcule (`realisationOf`, SPEC_ALL_ANC-5.28) et RULE_ALL_ANC-28 la dit : le cas
++    // normal déclaré, chaque cas prouvé, et, moyenne ou haute, une réponse à chaque famille ; une question la laisse partielle.
++    "Une règle est « prouvée » quand elle déclare un cas normal, que chacun de ses cas est prouvé et, moyenne ou haute, que chacune des dix familles de cas limites a sa réponse",
++    "ou une question ouverte, qui la laisse partielle",
+     "Le gate `preuves` (`scripts/verify/preuves.mjs`, pre-push et fin de tour, posé par le skill `socle-tests`) joue `anchorpost compare`",
+   ]);
+ });
+ 
+ test("le relais preuves dit qu'il sort en 2 quand la CLI est un paquet de l'espace de travail, et que ce dépôt l'adapte", () => {
+   exiger("skills/monorepo/socle-tests/SKILL.md", [
++    // Décision 6 du ticket 86 : où le gate se pose (le pre-push, la fin de tour, la CI).
++    "seulement `pnpm run check:coverage --base-auto` après `pnpm run check`, puis `pnpm run check:preuves --base-auto`",
++    "Si la chaîne est posée, `scripts/verify/preuves.mjs` entre dans `gatesRapides` de `.claude/chaine.json` : la fin de tour le joue sans option",
++    // A-205 : le coût mesuré, l'arbre de travail jugé (pas le commit poussé), les deux bases d'une PR de mise à jour.
++    "(13 à 17 s par passage, mesurés sur Anchorpost à une charge de 14 à 18 : la CLI construit l'index de la base et celui de l'arbre)",
++    "Le gate juge l'arbre de travail, non commis et non suivi compris, pas le commit poussé : au pre-push, une preuve restée hors du commit le fait passer, un travail en cours peut le bloquer ; la CI juge le commit.",
++    "Une PR de mise à jour d'un sujet se compare à la plus proche de ses deux bases, le sujet ou develop, jamais à la fusion recalculée de `coverage-diff`",
++    "Dans le job de qualité, sur `pull_request`, le rapport de preuves : `node scripts/verify/preuves.mjs --base \"origin/$BASE\"` (même `env:`, `fetch-depth: 0`)",
+     "dans un dépôt où la CLI est un paquet de l'espace de travail et non une dépendance installée (le dépôt de la CLI elle-même), ce fichier n'existe pas et le relais sort en 2, au pre-push comme en fin de tour ; ce dépôt l'adapte à la pose, comme son relais `anchorpost.mjs`.",
+   ]);
++  // Ce qu'une repose pièce par pièce doit reposer avec : sans eux, le relais ne se charge pas (exports de la base) ou son
++  // banc fait échouer `check:tickets` (l'environnement de banc), dans un projet posé avant ces fichiers (Anchorpost).
++  exiger("NOTES-DE-VERSION.md", [
++    "le relais importe `baseDepuisPush`, `choisirBase` et `decisionSansBase` de `scripts/verify/coverage-diff-regles.mjs`, et son banc lit `scripts/docs/environnement-de-banc.mjs` du socle 7.21.0 : un projet qui a ces deux fichiers d'avant les repose avec",
++  ]);
+ });
+ 
+ test("le workflow de mutation date sa mesure, la publie en artefact et relit la précédente, sans expression dans un run:", () => {
+@@ -44,7 +63,11 @@ test("le workflow de mutation date sa mesure, la publie en artefact et relit la
+     "permissions: contents: read actions: read",
+     "name: mesure-regles path: apps/api/reports/mutation/mesure-regles.json",
+     "run: node ../../scripts/verify/mutation-regles-synthese.mjs --mesure reports/mutation/mesure-regles.json --precedente \"$RUNNER_TEMP/precedente/mesure-regles.json\" >> \"$GITHUB_STEP_SUMMARY\"",
+-    "gh run download \"$id\" -n mesure-regles -D \"$RUNNER_TEMP/precedente\"",
++    // Décision 3 du ticket 88 : le dernier artefact de ce nom, et un appel ou un téléchargement en échec ne fait pas
++    // échouer le passage (`bash -e`) : la synthèse dit qu'il n'y a pas de mesure précédente lisible.
++    "gh api \"repos/$GITHUB_REPOSITORY/actions/artifacts?name=mesure-regles&per_page=30\"",
++    "][0].workflow_run.id // empty') || id=''",
++    "gh run download \"$id\" -n mesure-regles -D \"$RUNNER_TEMP/precedente\" || echo \"mesure précédente illisible\"",
+     // Décision 3 du ticket 88 : `gh` authentifié par le jeton du job, le dernier artefact non expiré de la branche par défaut.
+     "env: GH_TOKEN: ${{ github.token }} BRANCHE: ${{ github.event.repository.default_branch }}",
+     "select(.expired == false and .workflow_run.head_branch == env.BRANCHE)",
+@@ -68,4 +91,5 @@ test("le workflow de mutation date sa mesure, la publie en artefact et relit la
+   assert.ok(runs.some((l) => l.includes("gh run download")), `${MUTATION} : le bloc d'un run: est lu`);
+   assert.deepEqual(runs.filter((l) => l.includes("${{")), [], `${MUTATION} : une expression dans un run:`);
+   assert.ok(texte.indexOf("name: Mesure précédente") < texte.indexOf("name: Mutation des règles qui ont des preuves"), "la mesure précédente se lit avant que la nouvelle ne soit publiée");
++  assert.ok(texte.indexOf("name: Synthèse par règle") < texte.indexOf("name: Mesure datée"), "la mesure se publie après que la synthèse l'a écrite");
+ });
+diff --git a/skills/monorepo/socle-monorepo/references/racine/.claude/rules/tests.md b/skills/monorepo/socle-monorepo/references/racine/.claude/rules/tests.md
+index 8b09a17..12a73a7 100644
+--- a/skills/monorepo/socle-monorepo/references/racine/.claude/rules/tests.md
++++ b/skills/monorepo/socle-monorepo/references/racine/.claude/rules/tests.md
+@@ -40,7 +40,7 @@ Projet suivi par Anchorpost, index au pivot 3 (`RULE_ALL_ANC-28` d'Anchorpost) :
+ | moyenne               | une preuve             | une preuve          | une preuve P1 ou P2                             |
+ | haute                 | une preuve P2          | une preuve          | une preuve P1 ou P2                             |
+ 
+-P1 est la frontière de l'API (`apps/api/test/**`), P2 le bout en bout (`tests/**`, `e2e/**`, `*.e2e-cli.spec.ts`). Une règle est « prouvée » quand chacun de ses cas l'est, « partielle » quand elle a une preuve et qu'un cas manque, ou qu'elle n'en déclare aucun. Une règle moyenne ou haute répond aux dix familles de cas limites (un cas, un « sans objet » motivé, ou une question ouverte) : c'est le skill `criticite` qui les écrit, avant le code. Le gate `preuves` (`scripts/verify/preuves.mjs`, pre-push et fin de tour, posé par le skill `socle-tests`) joue `anchorpost compare` contre ce sur quoi le travail sera fusionné : il dit les cas sans preuve et les niveaux qui manquent sur les règles que le diff touche, en avertissement tant que le projet est en `observe`, en refus en `enforce`.
++P1 est la frontière de l'API (`apps/api/test/**`), P2 le bout en bout (`tests/**`, `e2e/**`, `*.e2e-cli.spec.ts`). Une règle est « prouvée » quand elle déclare un cas normal, que chacun de ses cas est prouvé et, moyenne ou haute, que chacune des dix familles de cas limites a sa réponse ; « partielle » quand elle a une preuve sans l'être (un cas sans preuve, aucun cas déclaré, pas de cas normal, une famille sans réponse). Une règle moyenne ou haute répond aux dix familles (un cas, un « sans objet » motivé, ou une question ouverte, qui la laisse partielle) : c'est le skill `criticite` qui les écrit, avant le code. Le gate `preuves` (`scripts/verify/preuves.mjs`, pre-push et fin de tour, posé par le skill `socle-tests`) joue `anchorpost compare` contre ce sur quoi le travail sera fusionné : il dit les cas sans preuve et les niveaux qui manquent sur les règles que le diff touche, en avertissement tant que le projet est en `observe`, en refus en `enforce`.
+ 
+ ## Le jour et l'heure
+ 
+diff --git a/skills/monorepo/socle-tests/SKILL.md b/skills/monorepo/socle-tests/SKILL.md
+index d33eaf5..fd3b9e2 100644
+--- a/skills/monorepo/socle-tests/SKILL.md
++++ b/skills/monorepo/socle-tests/SKILL.md
+@@ -28,7 +28,7 @@ Une seule, avec sa recommandation : **les seuils de couverture du diff**. _(Reco
+    ...(existsSync(join(root, "eslint.tests.mjs")) ? (await import(pathToFileURL(join(root, "eslint.tests.mjs")).href)).default : []),
+    ```
+    et `"eslint.tests.mjs"` dans `ignores`.
+-3. **Les gates** : `references/scripts/verify/*` → `scripts/verify/` (tests compris). Dans `package.json` : `check:tests-creux` (`node scripts/verify/tests-creux.mjs`), `check:coverage` (`node scripts/verify/coverage-diff.mjs`) et `check:preuves` (`node scripts/verify/preuves.mjs`, le gate de la preuve suffisante : il joue `anchorpost compare` quand l'index commis est au pivot 3, CLI Anchorpost ≥ 2.0.0, et ne fait rien sinon). Dans `scripts/check.mjs`, une étape `check:tests-creux` après `lint`, avec son message. Dans `.husky/pre-push`, qui lit lui-même son entrée (`PRE_PUSH_REFS=$(cat)` puis `export PRE_PUSH_REFS`, que `coverage-diff --base-auto` relit : n'ajouter aucune seconde lecture, elle rendrait une entrée vide), seulement `pnpm run check:coverage --base-auto` après `pnpm run check`, puis `pnpm run check:preuves --base-auto` : la couverture et les preuves se mesurent contre ce sur quoi le travail sera fusionné, pas contre develop (pousser vers `sujet/<nom>` → `origin/sujet/<nom>`). Si la chaîne est posée, `scripts/verify/preuves.mjs` entre dans `gatesRapides` de `.claude/chaine.json` : la fin de tour le joue sans option, la base choisie de même (quelques secondes : la CLI construit l'index de la base et celui de l'arbre). Le relais lance `node_modules/.bin/anchorpost` à la racine : dans un dépôt où la CLI est un paquet de l'espace de travail et non une dépendance installée (le dépôt de la CLI elle-même), ce fichier n'existe pas et le relais sort en 2, au pre-push comme en fin de tour ; ce dépôt l'adapte à la pose, comme son relais `anchorpost.mjs`.
++3. **Les gates** : `references/scripts/verify/*` → `scripts/verify/` (tests compris). Dans `package.json` : `check:tests-creux` (`node scripts/verify/tests-creux.mjs`), `check:coverage` (`node scripts/verify/coverage-diff.mjs`) et `check:preuves` (`node scripts/verify/preuves.mjs`, le gate de la preuve suffisante : il joue `anchorpost compare` quand l'index commis est au pivot 3, CLI Anchorpost ≥ 2.0.0, et ne fait rien sinon). Dans `scripts/check.mjs`, une étape `check:tests-creux` après `lint`, avec son message. Dans `.husky/pre-push`, qui lit lui-même son entrée (`PRE_PUSH_REFS=$(cat)` puis `export PRE_PUSH_REFS`, que `coverage-diff --base-auto` relit : n'ajouter aucune seconde lecture, elle rendrait une entrée vide), seulement `pnpm run check:coverage --base-auto` après `pnpm run check`, puis `pnpm run check:preuves --base-auto` : la couverture et les preuves se mesurent contre ce sur quoi le travail sera fusionné, pas contre develop (pousser vers `sujet/<nom>` → `origin/sujet/<nom>`). Si la chaîne est posée, `scripts/verify/preuves.mjs` entre dans `gatesRapides` de `.claude/chaine.json` : la fin de tour le joue sans option, la base choisie de même (13 à 17 s par passage, mesurés sur Anchorpost à une charge de 14 à 18 : la CLI construit l'index de la base et celui de l'arbre). Le gate juge l'arbre de travail, non commis et non suivi compris, pas le commit poussé : au pre-push, une preuve restée hors du commit le fait passer, un travail en cours peut le bloquer ; la CI juge le commit. Une PR de mise à jour d'un sujet se compare à la plus proche de ses deux bases, le sujet ou develop, jamais à la fusion recalculée de `coverage-diff` : plus large, jamais plus lâche. Le relais lance `node_modules/.bin/anchorpost` à la racine : dans un dépôt où la CLI est un paquet de l'espace de travail et non une dépendance installée (le dépôt de la CLI elle-même), ce fichier n'existe pas et le relais sort en 2, au pre-push comme en fin de tour ; ce dépôt l'adapte à la pose, comme son relais `anchorpost.mjs`.
+ 4. **La CI** : dans le job qui a Postgres (`test-db` du socle de la chaîne, ou le job de tests), après `test:db`, une étape sur `pull_request` : `pnpm check:coverage --base "origin/$BASE"` avec `env: BASE: ${{ github.event.pull_request.base.ref }}` (jamais le gabarit dans le `run:`, `zizmor` le refuse) et `DATABASE_URL` — les suites sur base comptent. Le job a `fetch-depth: 0` ou fait `git fetch origin <base>` avant. Dans le job de qualité, sur `pull_request`, le rapport de preuves : `node scripts/verify/preuves.mjs --base "origin/$BASE"` (même `env:`, `fetch-depth: 0`) ; il écrit le rapport entier de `anchorpost compare` dans le résumé du job, et ne refuse qu'en `enforce`. Puis le workflow de mutation : `references/ci/mutation.yml` → `.github/workflows/mutation.yml`, `{{SCOPE}}` et `{{PROJET}}` substitués — un `workflow_dispatch` au choix `noyau | regles` (défaut : `noyau`) et un `schedule` hebdomadaire (dimanche, heure creuse) sur `regles`, dont la synthèse va dans le résumé du job (étape `always()` : un passage interrompu dit « pas de rapport ») ; la mesure datée est publiée en artefact (`mesure-regles`) et relue au passage suivant, par le `gh` du runner et la permission `actions: read`, pour dire une baisse sur une règle moyenne ; la saisie passe par `env:`, aucune expression `${{ }}` dans un `run:`, actions épinglées par empreinte comme `ci.yml` de la chaîne. Le noyau garde sa configuration et son plancher, à la demande seulement.
+ 5. **Les gabarits** : `references/gabarits/exemple.property.spec.ts` et `references/gabarits/exemple.jour-metier.spec.ts` → `docs/agents/gabarits/` ; `references/gabarits/stryker.config.mjs` → `apps/api/stryker.config.mjs` (placeholders substitués, `mutate` vide, `break: 0`), et un script `mutation` (`stryker run`) dans le `package.json` de l'API ; `reports/` et `.stryker-tmp/` dans `.gitignore`. Puis la mutation des règles qui ont des preuves : `references/gabarits/stryker.regles.config.mjs` → `apps/api/stryker.regles.config.mjs` (placeholders substitués ; elle hérite de `stryker.config.mjs`, avec `break: 0` ; son `mutate` n'est pas à remplir, il vient de l'index ; `STRYKER_MUTATE` le remplace pour un essai local), et dans le `package.json` de l'API `"mutation:regles": "node ../../scripts/verify/mutation-regles.mjs --lancer && node ../../scripts/verify/mutation-regles-synthese.mjs"`. Le script (`scripts/verify/mutation-regles.mjs`, posé à l'étape 3) lit l'index commis `anchorpost/anchorpost.json` — schéma `"2"` (règles `proven`) ou `"3"` (règles `proven` et `partial`), leurs fichiers `code` — et ne mute que ceux du paquet ; **sans index, ou d'un autre schéma, il ne lance rien, dit pourquoi et sort 0** : le standard vaut pour tous les projets, Anchorpost est une option. Il ne refuse rien (pas de plancher en V1) ; `mutation-regles-synthese.mjs` écrit le rapport des survivants par règle, daté, avec la criticité et le score de chaque règle (« non mesurée » quand aucun test rejoué n'atteint son code), et la baisse d'une règle moyenne depuis la mesure précédente.
+ 6. **La fiche** `.claude/rules/tests.md` : les phrases « à poser par le ticket … » deviennent les commandes réelles (le gabarit du socle monorepo ≥ 3.1 les a déjà) ; `pnpm check:coverage`, `mutation` (le noyau, à la demande) et `mutation:regles` (les règles prouvées, chaque dimanche par le workflow) dans la section Commandes ; `docs/methode/pare-feu-ci.md` reçoit les deux gates dans son catalogue, avec la base de `coverage-diff` : la cible de la PR en CI (`--base origin/$BASE`), `--base-auto` au pre-push. Si la chaîne est posée, deux critères de projet dans le fichier de critères de la revue (`criteresRevue` de `.claude/chaine.json`) : une fonction pure nouvelle qui porte un invariant chiffré a son `*.property.spec.ts` (ADR propriétés) ; un fichier du périmètre `mutate` de `stryker.config.mjs` modifié vient avec sa mesure de mutation dans la PR (ADR mutation).
+diff --git a/skills/monorepo/socle-tests/references/scripts/verify/preuves.mjs b/skills/monorepo/socle-tests/references/scripts/verify/preuves.mjs
+index 6119e70..63ab835 100644
+--- a/skills/monorepo/socle-tests/references/scripts/verify/preuves.mjs
++++ b/skills/monorepo/socle-tests/references/scripts/verify/preuves.mjs
+@@ -21,15 +21,19 @@
+  *      avertissement. Sous GitHub Actions (`GITHUB_STEP_SUMMARY`), le rapport entier en markdown s'ajoute au résumé
+  *      du job (un second passage de la CLI, sa sortie ignorée).
+  *
+- * Limite : une PR de mise à jour d'un sujet (develop fusionné dans le sujet) se compare à la base la plus proche, pas
+- * à la fusion recalculée de `coverage-diff` : elle peut juger des règles que develop a touchées. La comparaison est
+- * alors plus large, jamais plus lâche.
++ * Limites. Une PR de mise à jour d'un sujet (develop fusionné dans le sujet) se compare à la base la plus proche, ni à
++ * la fusion recalculée de `coverage-diff`, ni au sujet que `coverage-diff --base-auto` retient pour elle : contre le
++ * sujet, elle peut juger des règles que develop a touchées ; contre develop (le sujet a plus de commits que develop n'en
++ * apporte), tout le travail du sujet. La comparaison est alors plus large, jamais plus lâche. Et `compare` juge l'arbre
++ * de travail, non commis et non suivi compris, pas le commit poussé : au pre-push, une preuve restée hors du commit le
++ * fait passer, un travail en cours peut le bloquer ; la CI juge le commit.
+  *
+  * Usage :
+  *   node scripts/verify/preuves.mjs                    fin de tour (`gatesRapides`) : la base de `--base-auto`
+  *   node scripts/verify/preuves.mjs --base-auto        pre-push, après `check:coverage` (PRE_PUSH_REFS exporté)
+  *   node scripts/verify/preuves.mjs --base origin/develop   CI, la cible de la PR
+- * Sorties : 0 rien à comparer, ou la CLI sort en 0 (aucun écart, ou `observe`) · 1 un écart en `enforce` · 2 usage,
++ * Sorties : 0 rien à comparer, ou la CLI sort en 0 (aucun écart, ou `observe`) · 1 un écart en `enforce` · 2 usage (tout
++ * argument autre que `--base <ref>` et `--base-auto`),
+  * index illisible, base introuvable, CLI absente, en panne ou illisible.
+  */
+ import { execFileSync, spawnSync } from "node:child_process";
+@@ -91,7 +95,8 @@ function main(args) {
+   };
+   const i = args.indexOf("--base");
+   const nommee = i === -1 ? null : args[i + 1];
+-  const inconnues = args.filter((a, k) => a.startsWith("--") && a !== "--base" && a !== "--base-auto" && !(k === i + 1 && i !== -1));
++  // Tout argument autre que `--base`, sa valeur et `--base-auto` est un usage faux : un `HEAD~3` sans `--base` n'est pas lu.
++  const inconnues = args.filter((a, k) => a !== "--base" && a !== "--base-auto" && !(k === i + 1 && i !== -1));
+   if ((i !== -1 && (!nommee || nommee.startsWith("--"))) || inconnues.length) return refuser("usage : node scripts/verify/preuves.mjs [--base <ref> | --base-auto]");
+ 
+   // 1. L'index commis.
+diff --git a/skills/monorepo/socle-tests/references/scripts/verify/preuves.test.mjs b/skills/monorepo/socle-tests/references/scripts/verify/preuves.test.mjs
+index 88f4aaa..34bc5c1 100644
+--- a/skills/monorepo/socle-tests/references/scripts/verify/preuves.test.mjs
++++ b/skills/monorepo/socle-tests/references/scripts/verify/preuves.test.mjs
+@@ -143,7 +143,7 @@ test("un index illisible, une CLI absente ou en panne, un rapport illisible, un
+   const json = lancer(depot({ rapport: "pas du json" }));
+   assert.equal(json.status, 2);
+   assert.match(json.stderr, /le rapport de anchorpost compare --json ne se lit pas/);
+-  for (const args of [["--base"], ["--base", "--json"], ["--tout"]]) {
++  for (const args of [["--base"], ["--base", "--json"], ["--tout"], ["HEAD~3"], ["--base-auto", "origin/develop"]]) {
+     const u = lancer(depot(), args);
+     assert.equal(u.status, 2, args.join(" "));
+     assert.match(u.stderr, /preuves : usage : node scripts\/verify\/preuves\.mjs \[--base <ref> \| --base-auto\]/);
+@@ -163,6 +163,11 @@ test("la base : nommée par --base ; sinon le sujet visé par le push ; sinon la
+     ["compare", "--base", "origin/sujet/x", "--json"],
+     ["compare", "--base", "origin/sujet/y", "--json"],
+   ], "nommée ; la plus proche (le sujet dont la branche est partie) ; celle que vise le push, même plus loin");
++  // Le premier push d'un sujet neuf (`sujet.sh demarrer`) : `origin/sujet/neuf` n'existe pas encore, la base est la plus
++  // proche, comme pour `coverage-diff --base-auto` ; jamais un refus « base absente ».
++  const neuf = lancer(r, ["--base-auto"], { PRE_PUSH_REFS: `refs/heads/travail ${sommet} refs/heads/sujet/neuf 0000\n` });
++  assert.equal(neuf.status, 0, neuf.stderr);
++  assert.deepEqual(appels(r).at(-1), ["compare", "--base", "origin/sujet/x", "--json"], "le premier push d'un sujet neuf : la plus proche");
+   git(r, "checkout", "-q", "-b", "correctif", "develop");
+   assert.equal(lancer(r).status, 0);
+   assert.deepEqual(appels(r).at(-1), ["compare", "--base", "origin/develop", "--json"], "partie de develop : develop");
+@@ -175,6 +180,11 @@ test("une base introuvable : premier push d'un dépôt neuf, sortie 0 ; sinon so
+   const a = lancer(r);
+   assert.equal(a.status, 2);
+   assert.match(a.stderr, /référence de base « origin\/develop » introuvable en local — elle existe sur le distant : git fetch origin develop/);
++  // Une base nommée absente en local n'est pas passée à la CLI, et le geste nomme sa branche.
++  const nommee = lancer(r, ["--base", "origin/sujet/x"]);
++  assert.equal(nommee.status, 2);
++  assert.match(nommee.stderr, /référence de base « origin\/sujet\/x » introuvable en local — elle existe sur le distant : git fetch origin sujet\/x/);
++  assert.deepEqual(appels(r), [], "la CLI n'est pas lancée sur une base introuvable");
+   const neuf = depot();
+   const nu = dossier("preuves-nu-vide-");
+   git(nu, "init", "-q", "--bare");

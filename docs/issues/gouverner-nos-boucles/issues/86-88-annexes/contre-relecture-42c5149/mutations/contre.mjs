@@ -46,7 +46,7 @@ const MUTATIONS = [
   // Ajoutées : la fiche et SKILL.md.
   ['C5 fiche : la grille sans sa condition (projet suivi par Anchorpost, index au pivot 3)', F, "Projet suivi par Anchorpost, index au pivot 3 (`RULE_ALL_ANC-28` d'Anchorpost) : jamais", '`RULE_ALL_ANC-28` d\'Anchorpost : jamais', [PS]],
   ['C6 SKILL : la ligne du pre-push n\'est plus posée', K, ', puis `pnpm run check:preuves --base-auto`', '', [PS]],
-  ['C7 SKILL : preuves.mjs n\'entre plus dans gatesRapides', K, ' Si la chaîne est posée, `scripts/verify/preuves.mjs` entre dans `gatesRapides` de `.claude/chaine.json` : la fin de tour le joue sans option, la base choisie de même (quelques secondes : la CLI construit l\'index de la base et celui de l\'arbre).', '', [PS]],
+  ['C7 SKILL : preuves.mjs n\'entre plus dans gatesRapides', K, ' Si la chaîne est posée, `scripts/verify/preuves.mjs` entre dans `gatesRapides` de `.claude/chaine.json` : la fin de tour le joue sans option, la base choisie de même', ' La fin de tour joue la base choisie de même', [PS]],
   ['C8 SKILL : l\'étape de CI de preuves n\'est plus posée', K, ' Dans le job de qualité, sur `pull_request`, le rapport de preuves : `node scripts/verify/preuves.mjs --base "origin/$BASE"` (même `env:`, `fetch-depth: 0`) ; il écrit le rapport entier de `anchorpost compare` dans le résumé du job, et ne refuse qu\'en `enforce`.', '', [PS]],
 
   // Ajoutées : le relais.
@@ -61,6 +61,13 @@ const MUTATIONS = [
   ['C15 mutation-regles.mjs : perimetreDuPaquet ne porte pas la criticité (toujours null)', M, 'criticite: r.criticite, fichiers: r.fichiers.filter', 'criticite: null, fichiers: r.fichiers.filter', [BM, BS]],
   ['C16 synthèse : une mesure précédente dont une règle n\'a pas de clé se lit', S, 'm.regles.every((r) => typeof r?.regle === "string" && (r.score === null', 'm.regles.every((r) => (r.score === null', [BS]],
   ['C17 synthèse : le score arrondi par défaut (une baisse de 0,6 point cachée ou montrée autrement)', S, 'score: atteints ? Math.round((100 * tues) / (tues + survivants)) : null', 'score: atteints ? Math.floor((100 * tues) / (tues + survivants)) : null', [BS]],
+  // Ajoutées après les décisions d'A-205 (tour 1) : l'usage, les textes de SKILL.md, et les deux textes retouchés.
+  ['C18 preuves.mjs : un argument sans -- est accepté (le filtre d\'avant)', P, '  const inconnues = args.filter((a, k) => a !== "--base" && a !== "--base-auto" && !(k === i + 1 && i !== -1));', '  const inconnues = args.filter((a, k) => a.startsWith("--") && a !== "--base" && a !== "--base-auto" && !(k === i + 1 && i !== -1));', [BP]],
+  ['C19 SKILL : l\'arbre de travail jugé n\'est plus dit', K, ' Le gate juge l\'arbre de travail, non commis et non suivi compris, pas le commit poussé : au pre-push, une preuve restée hors du commit le fait passer, un travail en cours peut le bloquer ; la CI juge le commit.', '', [PS]],
+  ['C20 SKILL : le coût mesuré redevient « quelques secondes »', K, '(13 à 17 s par passage, mesurés sur Anchorpost à une charge de 14 à 18 :', '(quelques secondes :', [PS]],
+  ['C21 SKILL : les deux bases d\'une PR de mise à jour ne sont plus dites', K, ' Une PR de mise à jour d\'un sujet se compare à la plus proche de ses deux bases, le sujet ou develop, jamais à la fusion recalculée de `coverage-diff` : plus large, jamais plus lâche.', '', [PS]],
+  ['C22 note : la ligne « Reposer » d\'avant (sans ce que la repose repose avec)', 'NOTES-DE-VERSION.md', ' (le relais importe `baseDepuisPush`, `choisirBase` et `decisionSansBase` de `scripts/verify/coverage-diff-regles.mjs`, et son banc lit `scripts/docs/environnement-de-banc.mjs` du socle 7.21.0 : un projet qui a ces deux fichiers d\'avant les repose avec, sinon le relais ne se charge pas, ou le banc fait échouer `check:tickets` ; dans le dépôt de la CLI elle-même, le relais s\'adapte comme son `anchorpost.mjs`)', '', [PS]],
+  ['C23 fiche : « prouvée quand chacun de ses cas l\'est » (le texte d\'avant)', F, 'Une règle est « prouvée » quand elle déclare un cas normal, que chacun de ses cas est prouvé et, moyenne ou haute, que chacune des dix familles de cas limites a sa réponse', 'Une règle est « prouvée » quand chacun de ses cas l\'est', [PS]],
 ];
 
 const voulues = process.argv.slice(2);

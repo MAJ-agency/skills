@@ -1,0 +1,34 @@
+ROUGE W1 seul : sans la permission de lire l'artefact précédent (0 s) — le workflow de mutation date sa mesure, la publie en artefac
+ROUGE W2 seul : la mesure n'est pas publiée (0 s) — le workflow de mutation date sa mesure, la publie en artefac
+ROUGE W3 seul : une expression dans un run: (0 s) — le workflow de mutation date sa mesure, la publie en artefac
+ROUGE W4 seul : sans GH_TOKEN (0 s) — le workflow de mutation date sa mesure, la publie en artefac
+ROUGE W5 seul : la mesure précédente de n'importe quelle branche (0 s) — le workflow de mutation date sa mesure, la publie en artefac
+ROUGE W6 seul : un artefact expiré compte (0 s) — le workflow de mutation date sa mesure, la publie en artefac
+ROUGE W7 seul : la mesure gardée un jour (0 s) — le workflow de mutation date sa mesure, la publie en artefac
+ROUGE W8 seul : la mesure n'est pas publiée après un échec (0 s) — le workflow de mutation date sa mesure, la publie en artefac
+ROUGE F1 seul : la grille d'une règle haute n'exige pas le bout en bout (0 s) — la fiche des tests porte la grille par criticité, l'étiquett
+ROUGE F2 seul : sans l'étiquette de cas (0 s) — la fiche des tests porte la grille par criticité, l'étiquett
+ROUGE F3 seul : la limite du relais dans le dépôt de la CLI n'est plus dite (0 s) — le relais preuves dit qu'il sort en 2 quand la CLI est un pa
+ROUGE C1 mutation.yml : l'artefact cherché sans son nom (le dernier artefact de la branche, de n'importe quel workflow) (0 s) — le workflow de mutation date sa mesure, la publie en artefac
+ROUGE C2 mutation.yml : la mesure datée publiée avant que la synthèse ne l'écrive (0 s) — le workflow de mutation date sa mesure, la publie en artefac
+ROUGE C3 mutation.yml : un appel à l'API en échec fait échouer le passage (bash -e, plus de mutation) (0 s) — le workflow de mutation date sa mesure, la publie en artefac
+ROUGE C4 mutation.yml : un téléchargement en échec fait échouer le passage (0 s) — le workflow de mutation date sa mesure, la publie en artefac
+ROUGE C5 fiche : la grille sans sa condition (projet suivi par Anchorpost, index au pivot 3) (0 s) — la fiche des tests porte la grille par criticité, l'étiquett
+ROUGE C6 SKILL : la ligne du pre-push n'est plus posée (0 s) — le relais preuves dit qu'il sort en 2 quand la CLI est un pa
+ROUGE C7 SKILL : preuves.mjs n'entre plus dans gatesRapides (0 s) — le relais preuves dit qu'il sort en 2 quand la CLI est un pa
+ROUGE C8 SKILL : l'étape de CI de preuves n'est plus posée (0 s) — le relais preuves dit qu'il sort en 2 quand la CLI est un pa
+ROUGE C9 preuves.mjs : le sujet visé par un premier push (absent en local) est pris pour base (14 s) — la base : nommée par --base ; sinon le sujet visé par le pus
+ROUGE C10 preuves.mjs : une base nommée absente en local est passée telle quelle à la CLI (13 s) — une base introuvable : premier push d'un dépôt neuf, sortie 
+ROUGE C11 preuves.mjs : le geste d'une base absente nomme toujours develop (14 s) — une base introuvable : premier push d'un dépôt neuf, sortie 
+VERTE C12 preuves.mjs : le rapport JSON lu sous le tampon par défaut (1 Mio) (14 s)
+ROUGE C13 preuves.mjs : les avertissements du rapport ne sont pas résumés (13 s) — resume : le mode jugé, les comptes, un écart par ligne (refu
+VERTE C14 preuves.mjs : la CLI lancée depuis le dossier courant, pas la racine (14 s)
+ROUGE C15 mutation-regles.mjs : perimetreDuPaquet ne porte pas la criticité (toujours null) (1 s) — le point d'entrée : --mesure écrit la mesure datée en JSON, 
+VERTE C16 synthèse : une mesure précédente dont une règle n'a pas de clé se lit (1 s)
+VERTE C17 synthèse : le score arrondi par défaut (une baisse de 0,6 point cachée ou montrée autrement) (1 s)
+ROUGE C18 preuves.mjs : un argument sans -- est accepté (le filtre d'avant) (13 s) — un index illisible, une CLI absente ou en panne, un rapport 
+ROUGE C19 SKILL : l'arbre de travail jugé n'est plus dit (0 s) — le relais preuves dit qu'il sort en 2 quand la CLI est un pa
+ROUGE C20 SKILL : le coût mesuré redevient « quelques secondes » (0 s) — le relais preuves dit qu'il sort en 2 quand la CLI est un pa
+ROUGE C21 SKILL : les deux bases d'une PR de mise à jour ne sont plus dites (0 s) — le relais preuves dit qu'il sort en 2 quand la CLI est un pa
+ROUGE C22 note : la ligne « Reposer » d'avant (sans ce que la repose repose avec) (0 s) — le relais preuves dit qu'il sort en 2 quand la CLI est un pa
+ROUGE C23 fiche : « prouvée quand chacun de ses cas l'est » (le texte d'avant) (0 s) — la fiche des tests porte la grille par criticité, l'étiquett
