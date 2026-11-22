@@ -1,0 +1,49 @@
+sommet 6eb8864d033310fba4e5b8df8320864de1a9c3dd (ef2b3f8 + retouches-tour-3) ; 2026-11-22T05:08:45Z
+== V1, V2, Xʹ10, W1 à W3
+ROUGE W1 garde du capitaine : sans base de fusion commune avec develop, la copie de sujet dite héritée (et ignorée)
+ROUGE W2 hook : la règle des copies héritées jouée aussi sur develop (sa copie ne compterait jamais)
+ROUGE V1 hook : un clone superficiel jamais vu (patch du tour 3)
+ROUGE V2 hook : le refus ne dit plus d’approfondir le clone (patch du tour 3)
+ROUGE Xʹ10 hook : une copie locale en retard refusée sans le geste qui la relit (X10 sur le texte du tour 3)
+ROUGE W3 hook : « héritée » jugée contre le sommet de develop, pas contre la base de fusion
+toutes rouges (6)
+== Y1 à Y5, Z1 à Z3
+ROUGE Y1 passer.sh : le saut d’une PR poussée pendant sa lecture joue aussi en régime 7 (le régime 7 changerait)
+ROUGE Y2 renvoyer.sh : une sous-PR d’un sujet lue sur develop (le sujet n’est plus une base de la chaîne)
+ROUGE Y3 hook : une ref locale en retard qui ne porte pas le ticket est nommée dans le refus
+ROUGE Y4 faux GitHub : une PR sans commentaire, paginée, ne rend aucune page (lue « réponse vide »)
+ROUGE Z1 garde du capitaine : une copie de sujet héritée de develop compte de nouveau (patch du tour 2)
+ROUGE Z2 hook : une copie de sujet héritée de develop compte de nouveau (patch du tour 2)
+ROUGE Z3 garde du capitaine : « héritée » jugée contre le sommet de develop, pas contre la base de fusion (patch du tour 2)
+ROUGE Y5 hook : « Aucune ligne lue » ne dit plus de relire une copie en retard
+toutes rouges (8)
+== la série B de l'annexe
+ROUGE B1 hook : le régime 8 jamais lu
+ROUGE B2 hook : aucun chemin sensible refusé
+ROUGE B3 hook : une copie sur deux suffit
+ROUGE B4 hook : aucune copie vaut accord
+ROUGE B5 hook : la casse compte
+ROUGE B6 hook : une liste mal formée ne rend rien sensible
+ROUGE B7 hook : `..` accordé
+ROUGE B8 hook : deux lignes `Sensibles:` admises
+ROUGE B9 hook : un accord sans date admis
+ROUGE B10 garde-fichiers : une copie locale du sujet compte
+ROUGE B11 garde-fichiers : develop jamais lu pour un ticket sans sujet
+ROUGE B12 garde-fichiers : une ligne illisible lue comme vide
+ROUGE B13 garde du capitaine : aucun chemin sensible vu
+ROUGE B14 garde du capitaine : une PR sans ticket passe au motif ordinaire
+ROUGE B15 garde du capitaine : un chemin sensible hors conflit admis
+ROUGE B16 garde du capitaine : la copie de develop avant celles des sujets
+ROUGE B17 garde du capitaine : une copie sur deux suffit
+ROUGE B18 garde du capitaine : un ticket introuvable lu comme un accord vide
+ROUGE B19 garde du capitaine : une ligne illisible ignorée
+ROUGE B20 passer.sh : plus de garde
+ROUGE B21 sujet.sh : plus de garde
+ROUGE B22 sujet.sh : une PR de mise à jour sans les tickets du sujet
+ROUGE B23 sujet.sh : les retouches d’une PR de mise à jour hors du diff lu
+ROUGE B24 chemins-sensibles : le point d’entrée ne se reconnaît plus par un lien
+ROUGE B25 garde du capitaine : la première copie d’un ticket seule compte
+ROUGE B26 garde du capitaine : une spec citée par le sujet ne vaut plus ses tickets
+ROUGE B27 garde du capitaine : sans la grammaire, « PR sans ticket » au lieu d’illisible
+toutes rouges (27)
+2026-11-22T05:32:39Z

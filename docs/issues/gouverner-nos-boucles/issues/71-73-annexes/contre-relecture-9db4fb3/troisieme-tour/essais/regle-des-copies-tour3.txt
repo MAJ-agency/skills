@@ -1,0 +1,7 @@
+E1 sujet sans base commune, ticket sans accord : sortie 20 : chemin sensible hors de la ligne `Sensibles:` de son ticket SPEC_ALL_DEMO-1.01 (scripts/agent/x.mjs) : l'accord du produit se demande au conducteur, qui ajoute le chemin au ticket par une PR de documentation vers le suje
+E2 develop absent du clone : sortie 21 : lecture illisible : contrat de origin/develop illisible (Command failed: git rev-parse --verify -q origin/develop^{commit})
+E3 un sujet a supprimé le ticket, develop porte l’accord : sortie 0 : aucun chemin sensible hors accord
+E4 copie du sujet revenue au contenu de sa base, develop élargi depuis : sortie 0 : aucun chemin sensible hors accord
+E5 clone superficiel : true
+E5 hook, clone superficiel, copie héritée : sortie 2 : scripts/agent/x.mjs : chemin sensible (`cheminsSensibles`) hors de la ligne `Sensibles:` du ticket de ta branche, lue sur le sujet : en régime 8, un chemin sensible ne se modifie qu'avec l'accord du produit, noté sur le 
+E5 hook, après git fetch --unshallow origin : sortie 0 : 

@@ -1,0 +1,4 @@
+les bancs du patch du tour 3 posés seuls sur ef2b3f8 (fichier, tests, réussis, échoués) :
+skills/chaine/socle-chaine-de-production/references/agent/garde-fichiers.test.mjs	8	7	1
+    not ok 8 - régime 8 : dans un clone superficiel, la base de fusion d’un sujet ne se lit pas : la copie héritée compte, et le refus dit d’approfondir le clone ; approfondi, le chemin accordé passe (contre-relecture de la PR 149, tour 3)
+skills/chaine/fusionner/scripts/sensibles-du-capitaine.test.mjs	10	10	0

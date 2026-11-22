@@ -1,0 +1,17 @@
+sommet 6eb8864d033310fba4e5b8df8320864de1a9c3dd (ef2b3f8 + retouches-tour-3) ; 2026-11-22T05:08:45Z
+== les bancs du lot, poses.test.mjs, depot.test.mjs
+skills/chaine/fusionner/scripts/verdict-du-capitaine.test.mjs	25	25	0
+skills/chaine/fusionner/scripts/revue-exigee.test.mjs	37	37	0
+skills/chaine/socle-chaine-de-production/references/scripts/github/pr-titre.test.mjs	12	12	0
+skills/chaine/sujet/scripts/faux-gh.test.mjs	19	19	0
+skills/chaine/fusionner/scripts/sensibles-du-capitaine.test.mjs	10	10	0
+skills/chaine/socle-chaine-de-production/references/agent/garde-fichiers.test.mjs	8	8	0
+skills/chaine/socle-chaine-de-production/references/agent/regles.test.mjs	87	87	0
+skills/chaine/revue-adversariale/scripts/chemins-sensibles.test.mjs	13	13	0
+scripts/points-d-entree.test.mjs	66	66	0
+skills/chaine/fusionner/scripts/messages-du-regime.test.mjs	5	5	0
+skills/chaine/sujet/scripts/sujet.test.mjs	45	45	0
+skills/chaine/tickets/references/scripts/verify/tickets-gate.test.mjs	12	12	0
+skills/chaine/tickets/references/scripts/verify/tickets.test.mjs	37	37	0
+scripts/poses.test.mjs	1	1	0
+scripts/depot.test.mjs	69	69	0

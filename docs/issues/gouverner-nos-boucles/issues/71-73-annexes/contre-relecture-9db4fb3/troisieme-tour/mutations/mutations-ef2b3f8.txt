@@ -1,0 +1,20 @@
+sommet ef2b3f891188e0064472b4b6b1e48844f402d50a ; 2026-11-22T05:05:53Z
+== Y1 à Y5, Z1 à Z3
+ROUGE Y1 passer.sh : le saut d’une PR poussée pendant sa lecture joue aussi en régime 7 (le régime 7 changerait)
+ROUGE Y2 renvoyer.sh : une sous-PR d’un sujet lue sur develop (le sujet n’est plus une base de la chaîne)
+ROUGE Y3 hook : une ref locale en retard qui ne porte pas le ticket est nommée dans le refus
+ROUGE Y4 faux GitHub : une PR sans commentaire, paginée, ne rend aucune page (lue « réponse vide »)
+ROUGE Z1 garde du capitaine : une copie de sujet héritée de develop compte de nouveau (patch du tour 2)
+ROUGE Z2 hook : une copie de sujet héritée de develop compte de nouveau (patch du tour 2)
+ROUGE Z3 garde du capitaine : « héritée » jugée contre le sommet de develop, pas contre la base de fusion (patch du tour 2)
+ROUGE Y5 hook : « Aucune ligne lue » ne dit plus de relire une copie en retard
+toutes rouges (8)
+== W1 à W3, la règle des copies
+VERTE W1 garde du capitaine : sans base de fusion commune avec develop, la copie de sujet dite héritée (et ignorée)
+ROUGE W2 hook : la règle des copies héritées jouée aussi sur develop (sa copie ne compterait jamais)
+INTROUVABLE V1 hook : un clone superficiel jamais vu (patch du tour 3)
+INTROUVABLE V2 hook : le refus ne dit plus d’approfondir le clone (patch du tour 3)
+INTROUVABLE Xʹ10 hook : une copie locale en retard refusée sans le geste qui la relit (X10 sur le texte du tour 3)
+ROUGE W3 hook : « héritée » jugée contre le sommet de develop, pas contre la base de fusion
+4 mutation(s) non rouge(s) sur 6
+2026-11-22T05:13:51Z

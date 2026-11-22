@@ -425,3 +425,103 @@ par sa ligne `Sujet:`) demanderait au hook de lire la carte, hors de `scripts/ag
 ### Temps du second tour
 
 De 04 h 00 à 04 h 48 UTC (48 min), dont l'espion (18 min) et les mutations (8 + 22 min) en tâche de fond.
+
+## Troisième tour, au sommet `ef2b3f8` (delta `450903a..ef2b3f8`)
+
+Sommet `ef2b3f891188e0064472b4b6b1e48844f402d50a`, parent direct `450903a`, un commit. `A-193` tranche la question du
+constat 14 comme le patch du tour 2. Mêmes règles ; la suite entière non rejouée (consigne). Fichiers dans `troisieme-tour/`.
+
+### Conclusion du troisième tour
+
+**Verdict proposé : non conforme au sommet `ef2b3f891188e0064472b4b6b1e48844f402d50a`**, pour un écart neuf **à
+corriger**, le constat 19, ouvert par le patch du tour 2 lui-même ; conforme avec `troisieme-tour/retouches-tour-3.patch`
+(sur `ef2b3f8`, version inchangée). Les constats 14 à 18 sont fermés. Le régime 7 reste celui de `main`, à l'appel près.
+
+| # | Gravité | Constat neuf, en une ligne |
+| --- | --- | --- |
+| 19 | à corriger | dans un clone superficiel (les sessions cloud), le hook ne lit pas la base de fusion d'un sujet avec develop : la copie héritée compte de nouveau (le constat 14 revient pour le hook), et le refus ne dit pas d'approfondir le clone |
+| 20 | mineur | aucun banc ne tient qu'un sujet sans base de fusion commune avec develop n'hérite de rien (W1 verte) ; banc dans le patch du tour 3 |
+| 21 | mineur | limite d'`A-193` : une copie qu'un sujet a écrite puis ramenée au contenu de sa base de fusion passe pour héritée, et la pointe de develop fait foi, plus large ou plus étroite (E4) ; à écrire dans le ticket 72 |
+| 22 | mineur | le hook juge l'héritage contre la copie locale de develop, sans la confirmer par `ls-remote` : plus ancienne que le develop que le sujet a reçu, une copie héritée compte, sans geste (rare : il faut avoir relu le sujet sans develop) |
+
+### Les questions du tour, une à une
+
+- **L'arbre** (`troisieme-tour/essais/egalite.sh`, une commande, un index jetable) : `450903a` plus `retouches-tour-2.patch`
+  (sha256 `3302725c…`) donne `310fba1e…`, l'arbre de `ef2b3f8`.
+- **Les constats 14 à 18** : fermés. Y1 à Y5 et Z1 à Z3 **toutes rouges** sur `ef2b3f8`
+  (`troisieme-tour/mutations/mutations-ef2b3f8.txt`) ; les deux cas du constat 14 sortent en 0 (`copie-heritee-tour2.txt`).
+- **La règle des copies, aux bords** (`troisieme-tour/essais/regle-des-copies.mjs`, sortie `regle-des-copies-ef2b3f8.txt`) :
+  - un sujet sans base de fusion commune avec develop (E1) : sa copie compte comme écrite, la PR est renvoyée faute
+    d'accord sur elle (20) — le côté sûr ; aucun banc ne le tenait (W1 verte, constat 20) ;
+  - develop absent du clone (E2) : la garde dit illisible (21), jamais un accord ; le hook refuse (sa copie de develop ne
+    se lit pas, aucune copie de sujet n'est dite héritée) ;
+  - un ticket supprimé sur un sujet (E3) : ce sujet n'a plus de copie, la copie de develop fait foi (0) ; supprimé sur
+    develop et hérité par un sujet : la copie héritée ne compte pas, le ticket est dit introuvable (20), comme un ticket
+    qui n'existe plus ;
+  - une copie écrite par le sujet puis revenue au contenu de sa base de fusion (E4) : elle passe pour héritée, et c'est
+    la pointe de develop qui fait foi ; develop élargi depuis, la PR du sujet entre sur l'accord de develop (0). Aucune
+    règle de git ne distingue ce cas d'une copie héritée en retard (le cas même du constat 14) : c'est la limite d'`A-193`,
+    à écrire (constat 21) ; l'accord de develop est lui aussi une PR de documentation relue ;
+  - **un clone superficiel** (E5, constat 19) : voir ci-dessous.
+- **L'espion du régime 7**, une dernière fois, `main` contre `ef2b3f8` : `troisieme-tour/essais/espion-comparaison-ef2b3f8.txt`.
+- **Les contrôles GitHub** au sommet : `troisieme-tour/essais/controles-github-ef2b3f8.txt`.
+
+### Constat 19 — à corriger — le hook dans un clone superficiel (patch du tour 2, `A-193`)
+
+**Fait.** La règle d'`A-193` demande la base de fusion du sujet avec develop. Une session cloud a un clone superficiel
+(`passer.sh` le dit et l'approfondit pour le capitaine ; le hook tourne dans le clone de la session, tel quel) : la base
+de fusion n'y est pas, `git merge-base` sort en 1, et le hook compte la copie comme écrite. La copie héritée bloque de
+nouveau l'accord (le constat 14, revenu pour le hook seul ; la garde du capitaine joue dans un clone approfondi), et le
+refus demande au conducteur un accord qu'il a déjà donné. **Preuve.** E5 (`regle-des-copies-ef2b3f8.txt`) : clone
+`--depth 1`, sortie 2 ; après `git fetch --unshallow origin`, 0. Le geste passe le hook de commandes. **Retouche**
+(`retouches-tour-3.patch`) : quand la base de fusion ne se lit pas dans un clone superficiel, la copie compte toujours
+(du côté sûr) et le refus le dit, avec le geste : « Clone superficiel : … `git fetch --unshallow origin`, puis refaire
+l'écriture ». Banc `garde-fichiers.test.mjs` (clone superficiel : refus et geste ; approfondi : écrit) ; le banc du
+constat 20 dans `sensibles-du-capitaine.test.mjs`. Mutations V1, V2, et X10 récrite (Xʹ10), le texte du refus changeant.
+
+### Le patch du tour 3
+
+`troisieme-tour/retouches-tour-3.patch` sur `ef2b3f8` (sha256
+`42b86c224ddfee9a8c8a25204c64b3c85bacbc948e74d60500118e8117d8b5c9`, 5 fichiers, +64 −8 ; arbre `f8fc5c3b…`, vérifié
+par un index jetable) : `garde-fichiers.mjs`, `regles.mjs`, deux bancs, une ligne de la note sous la 7.39.0.
+
+- **Rouges avant** (`troisieme-tour/essais/tour3-rouges-avant.txt`) : 1 (le clone superficiel) ; le banc du constat 20
+  est vert sur `ef2b3f8` (il garde du code juste : W1 le prouve).
+- **Verts après** (`troisieme-tour/essais/tour3-verts-apres.txt`) : les 13 bancs du lot, **376 sur 376** (374 + 2) ;
+  `scripts/poses.test.mjs` et `scripts/depot.test.mjs` (69) verts.
+- **Mutations** (`troisieme-tour/mutations/mutations-tour3.txt`) : V1, V2, Xʹ10, W1 à W3, toutes rouges (6) ; Y1 à Y5 et
+  Z1 à Z3, toutes rouges (8) ; la série B de l'annexe (les gardes), toutes rouges (27).
+- **Régime 7** : la règle neuve ne joue que dans `accordes()`, que le hook n'appelle qu'en régime 8 ;
+  `regime7-hook-gate.mjs` rend la même chose sur `ef2b3f8` et avec le patch (`regime7-hook-gate-tour3.txt`).
+
+### Comptes du troisième tour
+
+- Arbre : identique (une commande).
+- Espion du régime 7, `main` contre `ef2b3f8`, 19 bancs de `main` (`espion-comparaison-ef2b3f8.txt`) : 554 lancers,
+  7 961 appels `gh`, 6 502 appels `git` au réseau, identiques ligne pour ligne, sauf la ligne voulue du refus de
+  `demarrer` (`A-69`) ; le hook et le gate, identiques.
+- Mutations sur `ef2b3f8` : Y1 à Y5 et Z1 à Z3, toutes rouges (8) ; W1 à W3, neuves sur la règle des copies : W2 et W3
+  rouges, **W1 verte** (constat 20).
+- Contrôles GitHub au sommet : `bancs`, `CodeQL`, `Analyze (actions)`, `Analyze (javascript-typescript)` terminés en
+  succès ; la PR ouverte, hors brouillon, `mergeable_state` « clean », sans étiquette.
+- Patch du tour 3 : 1 rouge avant, 376 sur 376 après ; avec lui 6 + 8 + 27 mutations, toutes rouges.
+
+### Ce qui reste à la suite, sur les trois tours
+
+Rien de ce qui suit ne retient la PR.
+
+| # | Tour | Nature | Ce qui reste | Fichier |
+| --- | --- | --- | --- | --- |
+| Q1 | 1 | question, `A-192` | la sortie 69 (git < 2.41, `jq` absent) des calculs fait sauter la PR en 7 sans bruit chez le capitaine ; recommandé : 3 (panne) | `skills/chaine/fusionner/scripts/revue-exigee.mjs` |
+| Q2 | 1 | question, `A-192` | aucune garde de fourche chez le capitaine (ni sur `main`) ; une fourche au nom d'une branche d'origin fait juger et pousser cette branche ; recommandé : sauter (7) | `skills/chaine/fusionner/scripts/passer.sh`, `skills/chaine/sujet/scripts/sujet.sh` |
+| M1 | 1 | mineur, relevé en lecture, non rapporté au tour 1 | une PR de mise à jour en régime 8 joue `revue_du_capitaine` deux fois (deux fetchs, deux lectures des commentaires) : coût seul | `skills/chaine/sujet/scripts/sujet.sh` |
+| M2 | 1 | mineur, relevé en lecture, non rapporté au tour 1 | une PR de mise à jour d'un sujet que la carte ne déclare pour aucun ticket reçoit `--tickets ""` et le motif « PR sans ticket », dont le geste ne vaut pas pour elle | `skills/chaine/sujet/scripts/sujet.sh`, `skills/chaine/revue-adversariale/scripts/chemins-sensibles.mjs` |
+| M3 | 3 | mineur (constat 21) | la limite d'`A-193` (une copie revenue au contenu de sa base passe pour héritée ; la pointe de develop fait foi) à écrire dans le ticket 72 et la spec | `docs/issues/gouverner-nos-boucles/issues/72-les-gardes-des-fichiers-sensibles.issue.md` |
+| M4 | 3 | mineur (constat 22) | le hook juge l'héritage contre la copie locale de develop sans la confirmer ; en retard sur le develop que le sujet a reçu, une copie héritée compte, sans geste | `skills/chaine/socle-chaine-de-production/references/agent/garde-fichiers.mjs` |
+
+Les mineurs des tours 1 et 2 (constats 7 à 13 et 15 à 18) et le constat 20 sont portés par les patchs ; le constat 19
+par celui du tour 3.
+
+### Temps du troisième tour
+
+De 05 h 04 à 05 h 34 UTC (30 min), dont l'espion (20 min) et les mutations (8 + 24 min) en tâche de fond.

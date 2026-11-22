@@ -1,0 +1,5 @@
+CodeQL	completed	success	2026-11-22T05:03:49Z	2026-11-22T05:03:55Z
+bancs	completed	success	2026-11-22T05:03:22Z	2026-11-22T05:14:09Z
+Analyze (actions)	completed	success	2026-11-22T05:03:21Z	2026-11-22T05:03:58Z
+Analyze (javascript-typescript)	completed	success	2026-11-22T05:03:21Z	2026-11-22T05:04:21Z
+PR 149 : open, brouillon false, tête ef2b3f891188e0064472b4b6b1e48844f402d50a, mergeable_state clean, étiquettes []
