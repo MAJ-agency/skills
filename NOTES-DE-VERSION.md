@@ -15,6 +15,18 @@ La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque pro
 - **Reposer la fiche** `.claude/rules/anchorpost.md`, dans un dépôt au pivot 3 (un dépôt au schéma 2 la repose au point 4 de « Passer au pivot 3 »), et la section Anchorpost de `docs/agents/admin.md`, et ajouter `anchorpost/manifest.json` aux `cheminsSensibles` de `.claude/chaine.json` (étape 4, point 5) ; un dépôt qui installait la CLI depuis GitHub Packages retire d'abord de `.npmrc` les lignes `@maj-agency:registry=…` et `…_authToken=…`, puis installe la CLI, et supprime ses jetons de lecture.
 - **Un dépôt au schéma 2** suit « Passer au pivot 3 » du skill, par une PR relue ; tant qu'il ne le fait pas, rien ne change pour lui.
 
+## 8.2.1 — 2026-11-22
+
+### Ce qui change
+
+- **Un dépôt posé de 8.0.0 à 8.2.0 peut pousser** (ticket 90) : le banc posé `scripts/agent/regles.test.mjs` lit une copie de `regles.mjs` posée seule, et plus `./regles.mjs` : le régime, les chemins sensibles et les migrations du `.claude/chaine.json` du projet, et les index de son `scripts/docs/index-generes.json`, n'entrent plus dans ses défauts. Au régime 8, avec le gabarit (`.claude/**` sensible), son cas « `.claude/skills` » était rouge, et `check:tickets` le joue au pre-push et en CI ; un projet qui ajoute `apps/api/**` à ses chemins sensibles, ou un index `docs/*` à ses index générés, en rougissait deux cas de plus. La règle ne change pas : en régime 8, `.claude/skills/` ne s'écrit qu'avec la ligne `Sensibles:` du ticket, comme tout chemin sensible ; le banc le dit.
+- **`develop.test.mjs` quitte `references/`** : banc du plugin (il lit le pre-push du gabarit de `socle-monorepo`), il vit sous `socle-chaine-de-production/scripts/`. Copié dans un projet avec `references/scripts/github/`, il y sortait en `ERR_MODULE_NOT_FOUND` à l'étape 3 du skill (`node --test scripts/github/*.test.mjs`).
+- **Un garde dans le plugin** (`scripts/references-posees.test.mjs`) : tout banc rangé sous `references/` d'un skill est posé dans un dépôt jouet, à sa place de projet, avec ses voisins, les dépendances de la racine (un lien vers `node_modules` du plugin, comme un projet a les siennes) et le contrat du gabarit au régime 8 puis au régime 7, et joué ; un échec, un saut hors du seul attendu (sous-tests compris), un test « todo », un banc qui, posé, n'écrit aucun test, un banc sans place connue sous `references/` ou moins de 350 tests joués le rougit. Il ne dépend d'aucun module installé hors du dépôt : il joue les bancs sans `NODE_PATH`, et un `typescript` global du poste ne le fait plus passer.
+
+### Ce qu'un projet fait pour en profiter
+
+- **Reposer `socle-chaine-de-production`** : `references/agent/regles.test.mjs` → `scripts/agent/regles.test.mjs`. Un projet qui avait isolé ce banc à la main (paramètres explicites) reprend le fichier du plugin. Un `scripts/github/develop.test.mjs` copié par erreur se supprime : il ne fait pas partie de la pose (étape 9 : `develop.sh` seul).
+
 ## 8.2.0 — 2026-11-22
 
 ### Ce qui change
