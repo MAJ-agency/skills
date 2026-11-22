@@ -1,0 +1,51 @@
+bancs de main joués contre les scripts de main, puis contre ceux de la PR
+skills/chaine/fusionner/scripts/fusionner.test.mjs	main 107/107 (6139 appels)	PR 107/107 (6139 appels)
+skills/chaine/fusionner/scripts/sujet-fusionner.test.mjs	main 60/60 (3932 appels)	PR 60/60 (3932 appels)
+skills/chaine/fusionner/scripts/une-sous-pr-a-la-fois.test.mjs	main 18/18 (6387 appels)	PR 18/18 (6387 appels)
+skills/chaine/fusionner/scripts/boucle-outils.test.mjs	main 24/24 (277 appels)	PR 24/24 (277 appels)
+skills/chaine/fusionner/scripts/github.test.mjs	main 36/36 (530 appels)	PR 36/36 (530 appels)
+skills/chaine/fusionner/scripts/veille.test.mjs	main 28/28 (0 appels)	PR 28/28 (0 appels)
+skills/chaine/sujet/scripts/sujet.test.mjs	main 44/44 (835 appels)	PR 43/44 (835 appels)
+skills/chaine/sujet/scripts/sujet-carte.test.mjs	main 18/18 (132 appels)	PR 18/18 (132 appels)
+skills/chaine/sujet/scripts/sujet-clore.test.mjs	main 24/24 (395 appels)	PR 24/24 (395 appels)
+skills/chaine/sujet/scripts/sujet-refs.test.mjs	main 4/4 (97 appels)	PR 4/4 (97 appels)
+skills/chaine/fusionner/scripts/revue-exigee.test.mjs	main 32/32 (0 appels)	PR 32/32 (0 appels)
+skills/chaine/socle-chaine-de-production/references/scripts/github/pr-titre.test.mjs	main 10/10 (66 appels)	PR 10/10 (66 appels)
+skills/chaine/revue-adversariale/scripts/chemins-sensibles.test.mjs	main 12/12 (6 appels)	PR 12/12 (6 appels)
+skills/chaine/revue-adversariale/scripts/diff-revue.test.mjs	main 5/5 (32 appels)	PR 5/5 (32 appels)
+scripts/relecture.test.mjs	main 39/39 (0 appels)	PR 39/39 (0 appels)
+skills/chaine/socle-chaine-de-production/references/agent/regles.test.mjs	main 85/85 (0 appels)	PR 85/85 (0 appels)
+skills/chaine/socle-chaine-de-production/references/agent/garde-commandes.test.mjs	main 16/16 (0 appels)	PR 16/16 (0 appels)
+skills/chaine/tickets/references/scripts/verify/tickets.test.mjs	main 36/36 (0 appels)	PR 36/36 (0 appels)
+skills/chaine/tickets/references/scripts/verify/tickets-gate.test.mjs	main 11/11 (0 appels)	PR 11/11 (0 appels)
+
+tests rouges sur main :
+    aucun
+tests rouges sur la PR :
+    not ok 7 - demarrer refuse quand la spec du ticket n’est pas encore sur le sujet
+
+boucle-outils.journal : identiques (277 lignes)
+chemins-sensibles.journal : identiques (6 lignes)
+diff-revue.journal : identiques (32 lignes)
+fusionner.journal : identiques (6139 lignes)
+garde-commandes.journal : identiques (0 lignes)
+github.journal : identiques (530 lignes)
+pr-titre.journal : identiques (66 lignes)
+regles.journal : identiques (0 lignes)
+relecture.journal : identiques (0 lignes)
+revue-exigee.journal : identiques (0 lignes)
+sujet-carte.journal : identiques (132 lignes)
+sujet-clore.journal : identiques (395 lignes)
+sujet-fusionner.journal : identiques (3932 lignes)
+sujet-refs.journal : identiques (97 lignes)
+sujet.journal : ÉCART
+96c96
+< <<< sujet.sh sortie 4 : la recible sur le sujet), ou `sujet.sh rafraichir demo` si elle est déjà dans develop.
+---
+> <<< sujet.sh sortie 4 : lancement de sa boucle (A-69) : attendre, ou le lui demander ; une session ne lance jamais `sujet.sh rafraichir`.
+tickets-gate.journal : identiques (0 lignes)
+tickets.journal : identiques (0 lignes)
+une-sous-pr-a-la-fois.journal : identiques (6387 lignes)
+veille.journal : identiques (0 lignes)
+
+sur main : 554 scripts lancés, 7961 appels gh, 6502 appels git réseau, 18828 lignes de journal

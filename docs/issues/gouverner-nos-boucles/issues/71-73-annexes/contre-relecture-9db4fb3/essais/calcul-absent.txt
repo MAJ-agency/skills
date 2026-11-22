@@ -1,0 +1,8 @@
+== 9db4fb3
+null absent : sortie 1 : aucun tour de relecture validé pour le contenu de ce sommet (78a02bd31281) : le verdict manque, est refusé ou porte sur un autre contenu
+double-relecture.mjs absent : sortie 21 : lecture illisible : « double relecture exigée » illisible
+meme-contenu.sh absent : sortie 21 : lecture illisible : « même contenu propre » illisible pour le sommet a4cbf96f3ebe9b3439d3cc7ab112515c763af24e
+== retouches
+null absent : sortie 1 : aucun tour de relecture validé pour le contenu de ce sommet (d29d5b90aabe) : le verdict manque, est refusé ou porte sur un autre contenu
+double-relecture.mjs absent : sortie 3 : revue du capitaine en échec : double-relecture.mjs absent à côté de revue-exigee.mjs
+meme-contenu.sh absent : sortie 3 : revue du capitaine en échec : meme-contenu.sh absent à côté de revue-exigee.mjs

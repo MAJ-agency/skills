@@ -1,0 +1,5 @@
+A32 github.sh : develop et les sujets ne sont plus relus avant les calculs (A-126) : trouvée 0 fois
+C6 sujet.sh demarrer : le refus conseille de nouveau `sujet.sh rafraichir` : trouvée 0 fois
+C16 gate : la criticité de l’en-tête jamais lue : trouvée 0 fois
+C19 gate : une règle rejetée de l’index compte : trouvée 0 fois
+80 mutations, 4 hors de leur texte

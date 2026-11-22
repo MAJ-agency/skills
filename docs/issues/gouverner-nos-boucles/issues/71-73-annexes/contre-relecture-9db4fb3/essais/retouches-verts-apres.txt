@@ -1,0 +1,21 @@
+les 13 bancs du lot sur les retouches à 6bfda6e (fichier, tests, réussis, échoués), par bancs13.sh :
+skills/chaine/fusionner/scripts/verdict-du-capitaine.test.mjs	24	24	0
+skills/chaine/fusionner/scripts/revue-exigee.test.mjs	37	37	0
+skills/chaine/socle-chaine-de-production/references/scripts/github/pr-titre.test.mjs	12	12	0
+skills/chaine/sujet/scripts/faux-gh.test.mjs	18	18	0
+skills/chaine/fusionner/scripts/sensibles-du-capitaine.test.mjs	8	8	0
+skills/chaine/socle-chaine-de-production/references/agent/garde-fichiers.test.mjs	5	5	0
+skills/chaine/socle-chaine-de-production/references/agent/regles.test.mjs	87	87	0
+skills/chaine/revue-adversariale/scripts/chemins-sensibles.test.mjs	13	13	0
+scripts/points-d-entree.test.mjs	66	66	0
+skills/chaine/fusionner/scripts/messages-du-regime.test.mjs	5	5	0
+skills/chaine/sujet/scripts/sujet.test.mjs	45	45	0
+skills/chaine/tickets/references/scripts/verify/tickets-gate.test.mjs	12	12	0
+skills/chaine/tickets/references/scripts/verify/tickets.test.mjs	37	37	0
+
+real	3m6.552s
+user	1m42.123s
+sys	0m29.952s
+
+tickets.test.mjs rejoué sur b647d3a (le dernier commit des retouches, une assertion de plus dans un test existant) :
+skills/chaine/tickets/references/scripts/verify/tickets.test.mjs	37	37	0

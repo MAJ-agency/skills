@@ -1,0 +1,13 @@
+sur 9db4fb3 (9db4fb347dc3), bancs de 9db4fb3 ; les mutations dont le texte est dans 9db4fb3
+VERTE X1 verdict : un contrat de base illisible ne rend plus le chemin sensible (le Relecteur, lui, le dit sensible)
+VERTE X2 clé : le mot « relecture » sans ses guillemets suffit à rendre un contrat cassé illisible
+VERTE X3 renvoyer.sh : la clé portée par un seul sujet n’est plus vue
+VERTE X4 demarrer : le régime lu sur develop, pas sur le sujet de la PR
+VERTE X6 github.sh : les commentaires lus sur leur première page seule (`--paginate` retiré)
+VERTE X7 github.sh : des pages lues, la première seule gardée
+VERTE X8 verdict : « même contenu propre » toujours vrai (un verdict sur un contenu ancien vaut pour le nouveau)
+VERTE X12 garde du capitaine : les chemins sensibles du sujet ignorés, ceux de develop seuls lus
+8 mutation(s) non rouge(s) sur 8
+
+X15, sur 9db4fb3 :
+VERTE X15 gate : un ticket gelé dans la dette dispensé de `Relecture: double` (A-185, point 5)

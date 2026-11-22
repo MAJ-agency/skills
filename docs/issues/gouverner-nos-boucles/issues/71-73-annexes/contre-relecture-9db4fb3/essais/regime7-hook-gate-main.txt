@@ -1,0 +1,53 @@
+warning: You appear to have cloned an empty repository.
+### hook, chemin sensible accordé
+sortie 0
+erreur : 
+sortie standard : 
+appels git (0) :
+appels réseau : 0
+### hook, chemin sensible non accordé
+sortie 0
+erreur : 
+sortie standard : 
+appels git (0) :
+appels réseau : 0
+### hook, chemin ordinaire
+sortie 0
+erreur : 
+sortie standard : 
+appels git (0) :
+appels réseau : 0
+### hook, migration livrée
+sortie 2
+erreur : apps/api/src/db/migrations/0001-init.sql : une migration déjà livrée ne se modifie jamais. Créer une nouvelle migration.
+sortie standard : 
+appels git (1) :
+  git cat-file -e origin/develop:apps/api/src/db/migrations/0001-init.sql
+appels réseau : 0
+### hook, fichier généré
+sortie 2
+erreur : pnpm-lock.yaml est généré : le régénérer avec « pnpm install / pnpm add (jamais à la main) ».
+sortie standard : 
+appels git (0) :
+appels réseau : 0
+### hook, branche sans ticket, chemin sensible
+sortie 0
+erreur : 
+sortie standard : 
+appels git (0) :
+appels réseau : 0
+### gate tickets
+sortie 1
+erreur : tickets : 5 écart(s) :
+  docs/features/socle/all/issues/SPEC_ALL_SOC-1-socle.01.issue.md:3 : ready-for-agent : ligne `Label: contre-revue` absente : `Fichiers chauds` touche `scripts/agent/x.mjs`, chemin sensible (`scripts/agent/**`, cheminsSensibles de .claude/chaine.json) (docs/agents/chaine-de-production.md § 3)
+  docs/features/socle/all/issues/SPEC_ALL_SOC-1-socle.01.issue.md:3 : ready-for-agent : section `## Où` absente (docs/agents/chaine-de-production.md § 3)
+  docs/features/socle/all/issues/SPEC_ALL_SOC-1-socle.01.issue.md:3 : ready-for-agent : section `## Décisions` absente (docs/agents/chaine-de-production.md § 3)
+  docs/features/socle/all/issues/SPEC_ALL_SOC-1-socle.01.issue.md:3 : ready-for-agent : section `## Surfaces` absente (docs/agents/chaine-de-production.md § 3)
+  docs/features/socle/all/issues/SPEC_ALL_SOC-1-socle.01.issue.md:3 : ready-for-agent : section `## Vérification` absente (docs/agents/chaine-de-production.md § 3)
+sortie standard : 
+appels git (4) :
+  git ls-files -z docs/**/issues/*.issue.md
+  git ls-files -z docs/metier/regles/*/RULE_*.md
+  git ls-files -z docs/**
+  git ls-files -z docs/**/*.map.md
+appels réseau : 0

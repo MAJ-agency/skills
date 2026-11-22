@@ -1,0 +1,30 @@
+les bancs retouchés (version 6bfda6e) posés seuls sur 9db4fb3, par bancs13.sh :
+skills/chaine/fusionner/scripts/verdict-du-capitaine.test.mjs	24	22	2
+    not ok 21 - régime 8 : double-relecture.mjs ou meme-contenu.sh absent à côté de revue-exigee.mjs, la grammaire posée : panne (3), jamais une lecture illisible (21)
+    not ok 24 - régime 8, passer.sh : un push reçu entre la lecture de la PR et le fetch n'est pas renvoyé faute de verdict : sautée en 7, reprise au passage suivant
+skills/chaine/fusionner/scripts/messages-du-regime.test.mjs	5	0	5
+    not ok 1 - renvoyer.sh : en régime 8, redemander la relecture (`à-relire`) sans retirer `fusion-bloquée`, jamais `à-fusionner` ; en régime 7, comme avant
+    not ok 2 - renvoyer.sh : une réception de develop en deux fusions, en régime 8, fait ouvrir une nouvelle PR qui demande sa relecture
+    not ok 3 - sujet.sh demarrer : en régime 8, demander la relecture, jamais `à-fusionner` ; en régime 7, l'étiquette dès le push
+    not ok 4 - sujet.sh demarrer : le régime se lit sur la base de la PR — un sujet sans la clé reste en 7 quand develop l'a ; un ticket sans sujet, en régime 8, demande aussi la relecture
+    not ok 5 - renvoyer.sh : une PR empilée se lit sur develop, où elle sera reciblée ; une sous-PR d'un sujet qui porte seul la clé est en régime 8
+skills/chaine/socle-chaine-de-production/references/agent/garde-fichiers.test.mjs	5	4	1
+    not ok 5 - régime 8 : une copie locale du sujet en retard sur origin n’est pas lue, et le refus dit le geste qui la relit ; relue, le chemin accordé passe
+skills/chaine/fusionner/scripts/sensibles-du-capitaine.test.mjs	8	5	3
+    not ok 2 - régime 8, passer.sh : une PR sans ticket qui touche un chemin sensible est renvoyée ; sans chemin sensible, aucun ticket n'est demandé
+    not ok 5 - garde : chaque copie du ticket doit couvrir le chemin ; avec deux tickets, l'un suffit ; une ligne illisible et un ticket introuvable se disent
+    not ok 8 - régime 8, passer.sh : un sujet supprimé du distant ne garde pas, dans le clone du capitaine, sa copie ancienne du ticket (le fetch élague) (contre-relecture de la PR 149)
+skills/chaine/fusionner/scripts/revue-exigee.test.mjs	37	37	0
+skills/chaine/tickets/references/scripts/verify/tickets-gate.test.mjs	12	11	1
+    not ok 12 - régime 8 : sans `Label: contre-revue` un ticket prêt sensible passe ; un ticket ouvert qui cite une règle haute sans `Relecture: double` est refusé ; sans double-relecture.mjs, sortie 2
+skills/chaine/sujet/scripts/faux-gh.test.mjs	18	17	1
+    not ok 18 - faux gh, pageCommentaires : sans --paginate, la première page ; avec, chaque page à son tour, --jq joué sur chacune, comme gh (contre-relecture de la PR 149)
+skills/chaine/sujet/scripts/sujet.test.mjs	45	44	1
+    not ok 7 - demarrer refuse quand la spec du ticket n’est pas encore sur le sujet
+
+real	2m30.925s
+user	1m13.327s
+sys	0m23.193s
+
+tickets.test.mjs, sa dernière version posée sur 9db4fb3 (l'assertion neuve garde du code juste : X15 le prouve) :
+skills/chaine/tickets/references/scripts/verify/tickets.test.mjs	37	37	0

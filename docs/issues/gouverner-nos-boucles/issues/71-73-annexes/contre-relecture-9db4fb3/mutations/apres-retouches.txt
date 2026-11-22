@@ -1,0 +1,28 @@
+sommet 6bfda6e5551da54b859b63775eacf19278bddd00 (fix(chaine): le fetch de la revue du capitaine élague les sujets supprimés) ; 2026-11-22T03:09:15Z
+ROUGE X1 verdict : un contrat de base illisible ne rend plus le chemin sensible (le Relecteur, lui, le dit sensible)
+ROUGE X2 clé : le mot « relecture » sans ses guillemets suffit à rendre un contrat cassé illisible
+ROUGE X3 renvoyer.sh : la clé portée par un seul sujet n’est plus vue
+ROUGE X4 demarrer : le régime lu sur develop, pas sur le sujet de la PR
+ROUGE X5 renvoyer.sh : une PR empilée lue sur sa parente (régime 7 et « remettre à-fusionner »)
+ROUGE X6 github.sh : les commentaires lus sur leur première page seule (`--paginate` retiré)
+ROUGE X7 github.sh : des pages lues, la première seule gardée
+ROUGE X8 verdict : « même contenu propre » toujours vrai (un verdict sur un contenu ancien vaut pour le nouveau)
+ROUGE X9 CLI : un calcul absent à côté redevient une lecture illisible (21)
+ROUGE X10 hook : une copie locale en retard sur origin refusée sans dire le geste qui la relit
+ROUGE X11 demarrer : une PR vers develop, en régime 8, ne dit plus comment demander la relecture
+ROUGE X12 garde du capitaine : les chemins sensibles du sujet ignorés, ceux de develop seuls lus
+ROUGE X13 passer.sh : un push reçu pendant la lecture de la PR, renvoyé faute de verdict
+ROUGE X14 github.sh : le fetch de la revue du capitaine n’élague plus les sujets supprimés
+ROUGE Aʹ32 github.sh : develop et les sujets ne sont plus relus avant les calculs (A32 sur le fetch retouché)
+ROUGE Cʹ6 sujet.sh demarrer : le refus conseille de nouveau `sujet.sh rafraichir` (C6 sur le texte retouché)
+ROUGE Cʹ16 gate : la criticité de l'en-tête jamais lue (C16 sur le gate retouché)
+ROUGE Cʹ19 gate : une règle hors vigueur dans l'index et dans son en-tête compte (C19 sur le gate retouché)
+toutes rouges (18)
+
+real	8m4.091s
+user	4m58.565s
+sys	1m49.042s
+
+X15, ajoutée après ce passage, sur b647d3a (le banc neuf de tickets.test.mjs ; les 18 ci-dessus ne jouent pas ce banc) :
+ROUGE X15 gate : un ticket gelé dans la dette dispensé de `Relecture: double` (A-185, point 5)
+toutes rouges (1)

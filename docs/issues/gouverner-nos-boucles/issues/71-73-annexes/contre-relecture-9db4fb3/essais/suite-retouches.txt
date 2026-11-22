@@ -1,0 +1,11 @@
+sommet b647d3a9ddc292591086bf9ce048de9119e34477 ; arbre 0072374e152d6e607f2557e3bcafc0fd466626af
+charge au départ : 2.83 3.85 4.24 ; attente 1100 s ; 2026-11-22T03:27:41Z
+sortie 0 ; durée 983 s ; charge à la fin : 1.32 3.84 5.05 ; 2026-11-22T03:44:04Z
+# tests 1359
+# suites 0
+# pass 1359
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 982642.546773

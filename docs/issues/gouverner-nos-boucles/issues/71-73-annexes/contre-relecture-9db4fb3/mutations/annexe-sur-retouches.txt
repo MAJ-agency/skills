@@ -1,0 +1,40 @@
+sommet b647d3a9ddc292591086bf9ce048de9119e34477 (retouches) ; mutations de l'annexe sur les fichiers ou les bancs que les retouches touchent ; 2026-11-22T03:17:48Z
+ROUGE A15 github.sh : GitHub illisible sur les commentaires lu comme une file vide
+ROUGE A18 passer.sh : une pile en régime 8 admise
+ROUGE A19 passer.sh : un illisible renvoyé
+ROUGE A20 passer.sh : sans verdict, sauté au lieu d’être renvoyé
+ROUGE A28 faux GitHub : un commentaire de `pendantCi` ne tombe jamais
+ROUGE A29 faux GitHub : les étiquettes de `pendantCi` ne changent jamais
+ROUGE B2 hook : aucun chemin sensible refusé
+ROUGE B3 hook : une copie sur deux suffit
+ROUGE B4 hook : aucune copie vaut accord
+ROUGE B10 garde-fichiers : une copie locale du sujet compte
+ROUGE B11 garde-fichiers : develop jamais lu pour un ticket sans sujet
+ROUGE B12 garde-fichiers : une ligne illisible lue comme vide
+ROUGE B13 garde du capitaine : aucun chemin sensible vu
+ROUGE B14 garde du capitaine : une PR sans ticket passe au motif ordinaire
+ROUGE B15 garde du capitaine : un chemin sensible hors conflit admis
+ROUGE B16 garde du capitaine : la copie de develop avant celles des sujets
+ROUGE B17 garde du capitaine : une copie sur deux suffit
+ROUGE B18 garde du capitaine : un ticket introuvable lu comme un accord vide
+ROUGE B19 garde du capitaine : une ligne illisible ignorée
+ROUGE B25 garde du capitaine : la première copie d’un ticket seule compte
+ROUGE B26 garde du capitaine : une spec citée par le sujet ne vaut plus ses tickets
+ROUGE B27 garde du capitaine : sans la grammaire, « PR sans ticket » au lieu d’illisible
+ROUGE C1 renvoyer.sh : en régime 8, remettre `à-fusionner`
+ROUGE C2 renvoyer.sh : la nouvelle réception porte `à-fusionner` en régime 8
+ROUGE C3 github.sh : la date d’ouverture ignorée par `regime_de_la_pr`
+ROUGE C4 sujet.sh demarrer : le message du régime 8 jamais dit
+ROUGE C5 github.sh : la clé `relecture` jamais trouvée
+ROUGE C9 gate : `Label: contre-revue` encore exigé en régime 8
+ROUGE C10 gate : `Relecture: double` jamais exigée
+ROUGE C13 gate : la ligne `Relecture: double` ignorée
+ROUGE C14 gate : le régime 8 jamais lu dans le contrat
+ROUGE C15 gate : double-relecture.mjs absent sans le dire
+ROUGE C17 gate : le régime pas transmis au contrôle des tickets
+ROUGE C18 renvoyer.sh : la PR lue pour son régime même sans la clé (régime 7 : une lecture de plus)
+toutes rouges (34)
+
+real	9m18.547s
+user	6m33.014s
+sys	2m18.146s

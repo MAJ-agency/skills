@@ -1,0 +1,26 @@
+sommet 9db4fb347dc3c1120c5b172b78461a75f1b9b9b7 ; graine 149 ; 2026-11-22T02:57:35Z
+ROUGE A6 clé : `delai` n’est plus vérifié
+ROUGE A7 verdict : tout tour vaut validé
+ROUGE A9 verdict : un seul verdict toujours exigé
+ROUGE A14 CLI : des options incomplètes admises
+ROUGE A16 passer.sh : plus de second contrôle
+ROUGE A20 passer.sh : sans verdict, sauté au lieu d’être renvoyé
+ROUGE A22 sujet.sh : plus de second contrôle d’une sous-PR
+ROUGE A25 pr-titre : le régime n’est pas passé aux motifs
+ROUGE A26 pr-titre : un régime illisible passe
+ROUGE A29 faux GitHub : les étiquettes de `pendantCi` ne changent jamais
+ROUGE A30 github.sh : la clé `relecture` absente, les commentaires lus quand même (régime 7 : une lecture de plus)
+ROUGE B13 garde du capitaine : aucun chemin sensible vu
+ROUGE B14 garde du capitaine : une PR sans ticket passe au motif ordinaire
+ROUGE B20 passer.sh : plus de garde
+ROUGE B24 chemins-sensibles : le point d’entrée ne se reconnaît plus par un lien
+ROUGE B25 garde du capitaine : la première copie d’un ticket seule compte
+ROUGE C2 renvoyer.sh : la nouvelle réception porte `à-fusionner` en régime 8
+ROUGE C3 github.sh : la date d’ouverture ignorée par `regime_de_la_pr`
+ROUGE C7 sujet.sh etat : un sujet sans commit propre n’est plus listé (A-132)
+ROUGE C13 gate : la ligne `Relecture: double` ignorée
+toutes rouges (20)
+
+real	14m12.800s
+user	7m21.975s
+sys	2m19.441s

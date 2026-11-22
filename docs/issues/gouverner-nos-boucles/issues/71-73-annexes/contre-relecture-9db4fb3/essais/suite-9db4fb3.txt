@@ -1,0 +1,11 @@
+sommet 9db4fb347dc3c1120c5b172b78461a75f1b9b9b7 ; arbre 76f626a86aa5c788e7be148998793de56c25265c
+charge au départ : 0.04 0.03 0.00 ; attente 0 s ; 2026-11-22T02:28:54Z
+sortie 0 ; durée 875 s ; charge à la fin : 1.92 3.07 2.58 ; 2026-11-22T02:43:29Z
+# tests 1348
+# suites 0
+# pass 1348
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 875325.932028

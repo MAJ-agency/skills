@@ -1,0 +1,6 @@
+4e97a67c94dc185cb0b347481e8011d10bae0e5ea14dbd3845bd2c952e61806f
+git apply -3 : sortie 1 ; en conflit : .claude-plugin/plugin.json NOTES-DE-VERSION.md 
+écart hors des fichiers de version : 0 ligne(s)
+ .claude-plugin/plugin.json |  2 +-
+ NOTES-DE-VERSION.md        | 16 ----------------
+ 2 files changed, 1 insertion(+), 17 deletions(-)

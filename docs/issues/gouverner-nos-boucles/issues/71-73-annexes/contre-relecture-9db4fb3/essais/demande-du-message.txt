@@ -1,0 +1,3 @@
+la demande du message de demarrer, telle quelle, passage 1 : sortie 7 : [#30] lecture illisible : commentaire 30001 : préfixe « À relire — » sans la forme de sa marque : sautée sans renvoi, son auteur n'y peut rien (le Relecteur prévient l'architecte)
+la demande du message de demarrer, telle quelle, passage 2 : sortie 7 : [#30] lecture illisible : commentaire 30001 : préfixe « À relire — » sans la forme de sa marque : sautée sans renvoi, son auteur n'y peut rien (le Relecteur prévient l'architecte)
+la forme entière, passage 1 : sortie 0 : [#30] FUSIONNÉE : 7a82282, arbre = arbre testé

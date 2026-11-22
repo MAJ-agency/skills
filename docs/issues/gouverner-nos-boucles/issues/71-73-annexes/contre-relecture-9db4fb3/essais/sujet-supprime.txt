@@ -1,0 +1,3 @@
+refs origin/sujet/* : origin/sujet/ancien
+sans --prune : sortie 20 : chemin sensible hors de la ligne `Sensibles:` de son ticket SPEC_ALL_DEMO-1.01 (scripts/agent/x.mjs) : l'accord du produit se demande au conducteur, qui ajoute le chemin au ticket par une PR de documentation vers le sujet (A-75)
+avec --prune : sortie 0 : aucun chemin sensible hors accord

@@ -1,0 +1,4 @@
+== le calcul, 9db4fb3
+index haute rejetée, en-tête moyenne en vigueur (le cas « rejetee » du banc du gate) : calcul « exigée » (RULE_ALL_SOC-1 · Règles:)
+index moyenne en vigueur, en-tête haute rejetée : calcul « exigée » (RULE_ALL_SOC-1 · Règles:)
+index haute en vigueur, en-tête moyenne en vigueur (le cas « enVigueur » du banc du gate) : calcul « exigée » (RULE_ALL_SOC-1 · Règles:)
