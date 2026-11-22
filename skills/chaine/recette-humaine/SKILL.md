@@ -6,7 +6,7 @@ argument-hint: '<module> [--phase inventaire|tests|tickets] [--base <sha>]'
 
 # Recette humaine d'un module
 
-Les gates relisent un fichier, la revue adversariale relit un diff. Aucun des deux ne compare deux écrans, ne rejoue deux clics, ni ne parcourt la machine à états d'un objet. La recette humaine fait cela : une session inventorie ce qu'un humain peut faire au module, écrit les tests qui le prouvent, et dépose les défauts en tickets. Pourquoi, ce qu'elle coûte et ce qu'elle a rapporté : l'ADR « recette humaine » du dépôt, posée par `socle-chaine-de-production`. Méthode détaillée (familles de défauts, grilles, gabarit d'inventaire) : [`references/methode.md`](references/methode.md).
+Les gates relisent un fichier, la relecture d'une PR relit un diff. Aucun des deux ne compare deux écrans, ne rejoue deux clics, ni ne parcourt la machine à états d'un objet. La recette humaine fait cela : une session inventorie ce qu'un humain peut faire au module, écrit les tests qui le prouvent, et dépose les défauts en tickets. Pourquoi, ce qu'elle coûte et ce qu'elle a rapporté : l'ADR « recette humaine » du dépôt, posée par `socle-chaine-de-production`. Méthode détaillée (familles de défauts, grilles, gabarit d'inventaire) : [`references/methode.md`](references/methode.md).
 
 ## Quand
 
@@ -17,7 +17,7 @@ Les gates relisent un fichier, la revue adversariale relit un diff. Aucun des de
 ## Règles du jeu
 
 - **Lire d'abord** `CLAUDE.md`, les règles du chemin (`apps/<service>/CLAUDE.md`, `.claude/rules/*.md`), `GLOSSARY.md`, le registre de règles (`docs/metier/regles/`) et les specs du module.
-- **Ne rien corriger** pendant l'inventaire et les tests : un défaut devient un ticket, pas un diff. Les correctifs passent par la chaîne ordinaire (ticket réservé, branche, revue adversariale, `à-fusionner`).
+- **Ne rien corriger** pendant l'inventaire et les tests : un défaut devient un ticket, pas un diff. Les correctifs passent par la chaîne ordinaire (ticket réservé, branche, relecture demandée par `à-relire`, que le Relecteur du dépôt mène ; en régime 7, revue adversariale et `à-fusionner`).
 - **N'inventer aucune règle.** Une règle sans source devient une question au produit ; deux sources qui se contredisent aussi. Chaque ligne de l'inventaire porte `[code]`, `[spec]`, `[règle]` ou `[proto]`.
 - **Arrêt après l'inventaire.** Aucun test ne s'écrit avant la validation du produit (phase 2).
 - **Branche** : `recette/<module>` depuis `origin/develop`, PR brouillon dès le premier commit, sujet `sujet/recette-<module>` si plus de trois tickets sont attendus (skill `sujet`).
@@ -63,7 +63,7 @@ Le produit relit l'inventaire, tranche ou reporte les `T-n`, retire ou ajoute de
 
 - Une spec de défauts `SPEC_<CTX>_<TRI>-<n>-defauts-recette-<module>.spec.md` (identifiant par `node scripts/docs/next-id.mjs SPEC <CTX> <TRI>`), `Sujet: sujet/recette-<module>` en tête si plus de trois tickets, et un ticket par défaut confirmé au format « prêt pour agent » (`docs/agents/chaine-de-production.md` § 3), avec `Type: défaut` et `Règles:` reprises de l'inventaire. Chaque ticket cite la ligne `D-n` de l'inventaire et nomme le test rouge dans la colonne « Preuve » de `## Surfaces` : le fichier de test entre accents graves, puis le titre exact de chaque test entre « » ou "" (`` `apps/api/src/licence/recette.licence.db.spec.ts` « refuse une licence expirée » ``). Le gate vérifie, quand le ticket est `Fait`, que chaque test nommé existe et n'est plus désactivé ; un fichier sans titre, ou un titre approché, est refusé. Forme complète : [`references/methode.md`](references/methode.md) § « Le ticket d'un défaut ».
 - Un défaut qui attend une réponse du produit : ticket `needs-info` avec la question `T-n`.
-- Puis la chaîne ordinaire : `node scripts/docs/ticket-libre.mjs`, correctif, revue adversariale, `à-fusionner`. La PR de correctifs cite les tests passés de rouge à vert.
+- Puis la chaîne ordinaire : `node scripts/docs/ticket-libre.mjs`, correctif, relecture demandée (`à-relire` ; en régime 7, revue adversariale et `à-fusionner`). La PR de correctifs cite les tests passés de rouge à vert.
 
 ## Mesures
 

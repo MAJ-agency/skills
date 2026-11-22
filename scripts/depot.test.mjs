@@ -867,7 +867,7 @@ test("le skill de criticité : sa description (au plus 1 024 caractères, sans �
     "Fixe la criticité d'une règle métier, à utiliser à toute création d'un fichier de règle et à tout changement de son énoncé, avant tout code, quelle que soit la session, et pour classer une règle « à classer ». Un sous-agent en contexte vierge, dont le message est fabriqué par le script du skill à partir du seul identifiant de la règle (l'énoncé, les specs qui la portent, les définitions du standard, rien d'autre), rend le niveau et sa raison, les cas attendus et une réponse ou une question pour chacune des dix familles ; jamais « basse » sans raison écrite, le niveau supérieur dans le doute, `by` vaut `agent`, un agent ne baisse jamais un niveau. La session écrit le niveau rendu ou un plus haut dans le fichier de la règle, et la commande jouée et chaque sortie brute dans la section « Criticité » de sa PR. Sans index Anchorpost au pivot 3, le skill le dit et s'arrête.",
     "« le skill ne rend jamais « basse » sans une raison écrite dans la règle ; dans le doute, il rend le niveau supérieur » ; « l'index dit qui a fixé chaque criticité, un agent ou une personne ».",
     "Une règle est **classée** quand `criticality`, `cases` et `notApplicableFamilies` sont écrits dans son fichier, et la commande jouée et chaque sortie brute dans la section `## Criticité` de la PR.",
-    "- **À toute création d'un fichier de règle, et à tout changement de son énoncé, avant tout code**, quelle que soit la session. D'ordinaire, la session qui écrit la spec qui porte la règle écrit son fichier, `candidate`, à l'étape de la spec, après le grilling : l'architecte d'un programme, le conducteur au cadrage d'un chantier, ou toute session qui publie une règle (skill `tickets`). Une règle naît aussi en recette, ou dans une session qui code et la découvre : cette session lance le skill de même, avant de coder ce que la règle exige. Une session qui code ne relance pas le skill sur une règle dont elle ne change pas l'énoncé. - **Sur une règle « à classer »** (aucune criticité) : de même, par la session qui reprend la règle ; et à la repose du projet au pivot 3, sur chaque règle sans criticité. - **Sur une règle déjà classée** : étape 5. - **Le sous-agent est lancé par la session elle-même** : un sous-agent ne lance pas de sous-agent. Une session qui fait rédiger la règle par un sous-agent lance ce skill une fois le fichier écrit. - **Une règle que la session écrit et ne classe pas est un écart**, dès que l'index est au pivot 3 : la revue de ticket le relève (critère `D8`), bloquant.",
+    "- **À toute création d'un fichier de règle, et à tout changement de son énoncé, avant tout code**, quelle que soit la session. D'ordinaire, la session qui écrit la spec qui porte la règle écrit son fichier, `candidate`, à l'étape de la spec, après le grilling : l'architecte d'un programme, le conducteur au cadrage d'un chantier, ou toute session qui publie une règle (skill `tickets`). Une règle naît aussi en recette, ou dans une session qui code et la découvre : cette session lance le skill de même, avant de coder ce que la règle exige. Une session qui code ne relance pas le skill sur une règle dont elle ne change pas l'énoncé. - **Sur une règle « à classer »** (aucune criticité) : de même, par la session qui reprend la règle ; et à la repose du projet au pivot 3, sur chaque règle sans criticité. - **Sur une règle déjà classée** : étape 5. - **Le sous-agent est lancé par la session elle-même** : un sous-agent ne lance pas de sous-agent. Une session qui fait rédiger la règle par un sous-agent lance ce skill une fois le fichier écrit. - **Une règle que la session écrit et ne classe pas est un écart**, dès que l'index est au pivot 3 : la relecture de la PR le relève (axe « Règles métier », critère `D8`), bloquant ; en régime 7, la revue de ticket.",
     "Le schéma strict des règles ne porte `criticality` sous la forme `{ level, by, reason }`, `cases` et `notApplicableFamilies` qu'au pivot 3 (CLI Anchorpost 2.0.0). La forme nue (`criticality: high`) est celle d'avant, qu'on n'écrit plus. La session lit le champ `schema` de l'index commis, depuis la racine du projet : ```bash node -e 'const f=require(\"fs\"),p=\"anchorpost/anchorpost.json\";console.log(f.existsSync(p)?JSON.parse(f.readFileSync(p,\"utf8\")).schema:\"absent\")' ``` **Seul l'index compte.** S'il ne rend pas `3`, le skill le dit en une phrase (« l'index du projet n'est pas au pivot 3 : la règle reste « à classer » ») et s'arrête : aucun sous-agent, rien dans la PR, rien dans le fichier. La règle s'écrit quand même `candidate`, à l'étape de la spec ; son classement viendra à la repose du projet au pivot 3, qui lance ce skill sur chaque règle sans criticité.",
     "Les mots du produit : le sous-agent « ne connaît que l'énoncé de la règle, sa spec et les définitions ». Son message est fabriqué par le script du skill, à partir du seul identifiant de la règle, jamais à la main : ```bash mkdir -p <scratchpad>/criticite node <dossier du skill>/scripts/contexte-regle.mjs <RULE_…> > <scratchpad>/criticite/<RULE_…>.md ``` La commande exacte, jouée depuis la racine du projet, sans variable d'environnement devant ; c'est elle que la section `## Criticité` recopie. `<dossier du skill>` est le dossier de base que l'outil Skill donne au chargement (à défaut, `~/.claude/plugins/marketplaces/maj/skills/chaine/criticite`). Le script se lance une fois que la ligne `Règles:` de la spec, ou d'un de ses tickets, nomme la règle. Il choisit l'entrée, pas la session : - **le fichier de la règle** : `docs/metier/regles/<ctx>/<RULE_…>.md` ; introuvable, il refuse et dit le chemin cherché ; - **l'énoncé** : son `title`, lu sur sa seule ligne, et le texte qui suit l'en-tête, l'en-tête YAML retiré (ni `validation`, ni `decisions`, ni `sources`, ni une criticité déjà écrite) et les commentaires HTML retirés ; un titre plié ou illisible, ou un en-tête qui ne se lit pas, est refusé ; - **les specs qui la portent** : toute `*.spec.md` sous `docs/` dont la ligne `Règles:` nomme la règle, ou dont un ticket la nomme dans sa ligne `Règles:` ou `Prouve:` ; chaque spec copiée au mot près, ses commentaires (HTML, ou ligne `[//]: # (…)`) retirés, même si elle porte un niveau ; une spec dont le nom ne porte pas d'identifiant lisible est ignorée et nommée ; aucune : « aucune spec ne déclare cette règle », un signal à vérifier avant de lancer le sous-agent (la ligne `Règles:` est-elle écrite ?) ; aucun lien symbolique n'est suivi, une spec qui en est un est ignorée et nommée, une règle qui en est un est refusée ; La session passe la sortie du script telle quelle, sans rien y ajouter ni rien y réécrire. Elle n'ajoute **jamais** rien : ni le niveau d'une feature lu au manifeste ou à l'index, ni l'intention de l'auteur, ni l'historique de la session, ni la description de la PR, ni le niveau ou les cas déjà écrits dans l'en-tête de la règle, ni le code, ni les tests. Un refus du script se corrige dans le fichier de la règle, puis le script se rejoue. Un contexte de plus de 300 000 caractères est refusé, avec la taille de la règle et de chaque spec : la session s'arrête, le dit, et ne tronque rien à la main. Un refus que la session ne peut pas corriger dans le fichier de la règle (projet hors convention) : elle s'arrête et le dit ; elle ne fabrique jamais l'entrée à la main.",
     "Outil **Agent**, un sous-agent neuf par règle. Son prompt est la sortie du script, entière, et rien d'autre. Le prompt lui dit de n'utiliser aucun outil : tout ce qu'il lui faut est dans son message.",
@@ -1236,7 +1236,11 @@ test("une sous-PR à la fois par sujet : le capitaine tient l'ordre, qui tient l
   exiger(`${SKILLS_CHAINE}/chantier/SKILL.md`, [
     "**Une sous-PR à la fois par sujet : le capitaine tient cet ordre, pas le conducteur.**",
     "celle qui tient déjà le sujet (sa mise à jour attend sa CI, ou un capitaine est dessus), sinon la plus ancienne (le plus petit numéro, pas la première étiquetée)",
-    "Le conducteur étiquette toutes les sous-PR prêtes d'une vague sans attendre que la précédente soit entrée, et il ne retire ni ne repose jamais `à-fusionner` pour régler l'ordre de passage.",
+    // Lot 6 (A-98) : en régime 8, le Relecteur étiquette ; la phrase du régime 7 part dans regime-7.md.
+    "Le Relecteur étiquette chaque sous-PR validée sans attendre que la précédente soit entrée, et personne ne retire ni ne repose jamais `à-fusionner` pour régler l'ordre de passage.",
+  ]);
+  exiger(`${SKILLS_CHAINE}/chantier/references/regime-7.md`, [
+    "le conducteur étiquette toutes les sous-PR prêtes d'une vague sans attendre que la précédente soit entrée, et il ne retire ni ne repose jamais `à-fusionner` pour régler l'ordre de passage.",
   ]);
   exiger(ADR_SUJET, ["dans un sujet, le capitaine ne prend qu'une sous-PR étiquetée à la fois, celle qui tient déjà le sujet, sinon la plus ancienne (le plus petit numéro), et les autres attendent leur tour avec leur étiquette."]);
   exiger("NOTES-DE-VERSION.md", ["« Une sous-PR à la fois par sujet » est tenue par le capitaine, plus par le conducteur.", "Qui tient le sujet le garde, avant tout ordre de numéro", "le sujet est repris au prochain changement de la file, ou à la veille suivante"]);
@@ -1254,7 +1258,7 @@ test("une sous-PR à la fois par sujet : le capitaine tient l'ordre, qui tient l
     assert.ok(!plat(readFileSync(join(RACINE, fichier), "utf8")).includes(ancien), `${fichier} : l'ancienne discipline y est encore (« ${ancien} »)`);
 });
 
-test("sujet/SKILL.md a la section Recevoir develop dans un sujet, avec son corps type", () => {
+test("sujet/SKILL.md a la section Recevoir develop dans un sujet, avec son corps type du régime 8, et regime-7.md celui du régime 7", () => {
   const skill = readFileSync(join(RACINE, `${SKILLS_CHAINE}/sujet/SKILL.md`), "utf8");
   // Le corps type contient lui-même des titres `## ` : la section va jusqu'au titre suivant hors bloc de code.
   const debut = skill.indexOf("\n## Recevoir develop dans un sujet\n");
@@ -1263,8 +1267,18 @@ test("sujet/SKILL.md a la section Recevoir develop dans un sujet, avec son corps
   assert.ok(plat(section).includes("une seule fusion"), "la section dit « une seule fusion »");
   const bloc = section.match(/```markdown\n([\s\S]*?)```/);
   assert.ok(bloc, "la section porte le corps type dans un bloc de code");
-  for (const titre of ["## Réception de develop", "## Retouches", "## Revue de ticket"])
+  for (const titre of ["## Réception de develop", "## Retouches"])
     assert.ok(bloc[1].includes(titre), `le corps type porte « ${titre} »`);
+  // Lot 6 (A-98, A-92) : en régime 8, la PR de réception demande sa relecture ; sa section « Revue de ticket » ne vaut
+  // qu'en régime 7.
+  assert.ok(!bloc[1].includes("## Revue de ticket"), "le corps type du régime 8 n'a pas de section « Revue de ticket »");
+  assert.ok(plat(section).includes("**La PR de réception n'est pas exemptée de relecture**"), "la section dit que la PR de réception est relue");
+  assert.ok(!plat(section).includes("étiquetée `à-fusionner`"), "la session n'étiquette pas sa PR de réception `à-fusionner`");
+  const sept = readFileSync(join(RACINE, `${SKILLS_CHAINE}/chantier/references/regime-7.md`), "utf8").split("## Les sujets (skill `sujet`)")[1] ?? "";
+  const blocSept = sept.match(/```markdown\n([\s\S]*?)```/);
+  assert.ok(blocSept, "regime-7.md : le corps type du régime 7");
+  for (const titre of ["## Réception de develop", "## Retouches", "## Revue de ticket"])
+    assert.ok(blocSept[1].includes(titre), `regime-7.md : le corps type porte « ${titre} »`);
 });
 
 // Ticket 18 : un fichier que les gardes chargent s'écrit d'un seul coup ; la garde refuse l'amend, et le gabarit le
@@ -1354,8 +1368,8 @@ test("la procédure du capitaine sans la chaîne renvoie une PR en retard, sans 
 // CODEOWNERS sort du plugin (ticket 54 ; décision du produit du 2026-11-18 : pas de blocage par GitHub sur les
 // fichiers sensibles, le fichier CODEOWNERS disparaît). Plus rien ne le génère, ne le garde ni ne l'attend : il
 // n'est plus nommé que là où le plugin dit qu'il est retiré, et dans les bancs qui le prouvent. La liste est fermée :
-// trois fichiers libres (`null` : l'ADR gardée pour mémoire, la marche à suivre qui le retire d'un projet déjà posé,
-// ce banc) et cinq fichiers qui ne le nomment que par les passages donnés ici, mot pour mot, chacun une fois. Hors de
+// quatre fichiers libres (`null` : l'ADR gardée pour mémoire, la marche à suivre qui le retire d'un projet déjà posé,
+// l'ADR de la relecture indépendante qui la remplace, ce banc) et cinq fichiers qui ne le nomment que par les passages donnés ici, mot pour mot, chacun une fois. Hors de
 // ces passages, une mention y est une faute, comme dans tout autre fichier.
 const SOCLE_CHAINE = `${SKILLS_CHAINE}/socle-chaine-de-production`;
 const FUSIONNER = `${SKILLS_CHAINE}/fusionner`;
@@ -1364,12 +1378,14 @@ const RETRAIT_CODEOWNERS = `${REF}/retrait-codeowners.md`;
 const DISENT_LE_RETRAIT = new Map([
   [ADR_CODEOWNERS, null],
   [RETRAIT_CODEOWNERS, null],
+  // Lot 6 (A-96) : l'ADR « relecture indépendante » dit qu'elle remplace l'ADR « CODEOWNERS », et pourquoi.
+  [`${REF}/adr/ADR_ALL_ARC-N-relecture-independante.md`, null],
   ["scripts/depot.test.mjs", null],
   [`${SOCLE_CHAINE}/SKILL.md`, ["Un projet posé depuis le plugin 7.13.0 peut porter un `.github/CODEOWNERS` généré, que le produit a retiré : [`references/retrait-codeowners.md`](references/retrait-codeowners.md)."]],
   [
     `${REF}/CONTENU.md`,
     [
-      "Un quatrième, `ADR_ALL_ARC-N-codeowners.md`, est marqué retiré (décision du produit du 2026-11-18) et ne se pose plus : il ne sert qu'à mettre à jour l'ADR d'un projet qui l'a reçue. `retrait-codeowners.md` est la marche à suivre de ce retrait, lue depuis le skill et jamais posée.",
+      "Un cinquième, `ADR_ALL_ARC-N-codeowners.md`, est marqué retiré (décision du produit du 2026-11-18) et ne se pose plus : il ne sert qu'à mettre à jour l'ADR d'un projet qui l'a reçue. `retrait-codeowners.md` est la marche à suivre de ce retrait, lue depuis le skill et jamais posée.",
       "La protection des branches (dont « Block force pushes », « Restrict deletions » et aucune liste de contournement ; « Require review from Code Owners » ne se coche pas), la suppression automatique",
     ],
   ],

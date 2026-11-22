@@ -2,6 +2,23 @@
 
 La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque projet par `poser` : une version publiée ne change rien chez un projet qui ne les repose pas. Chaque note dit ce qui change, puis ce qu'un projet fait pour en profiter.
 
+## 8.0.0 — 2026-11-22
+
+### Ce qui change
+
+- **La bascule : le régime 8, la relecture indépendante, devient posable** (lot 6 du chantier « relecture indépendante »). Le gabarit `.claude/chaine.json` du socle porte la clé `relecture` (`depuis`, l'instant de la pose, placeholder `{{DEPUIS}}` ; `delai` ; `ordinaire` et `sensible`, le modèle et l'effort d'une session de relecture) : un dépôt posé avec cette version est en régime 8 dès sa première PR. Toute PR y est relue par une session de relecture que lance le Relecteur du dépôt ; la session qui code ne se relit plus et ne pose jamais `à-fusionner`. Rien n'est retiré : les scripts gardent leur branche 7, et un dépôt déjà posé reste en régime 7 tant que sa repose n'a pas posé la clé.
+- **Les documents du régime 8** : `chaine-de-production.md` (les rôles, le Relecteur et la session de relecture ; la relecture dans le cycle ; la ligne `Sensibles:` et l'accord du produit avant le code ; la fille qui demande la relecture, corrige ou conteste, et son réveil de secours ; le relevé des coûts des sessions de relecture et la ligne « à archiver »), le fragment `CLAUDE.md` de la fusion, `issue-tracker.md` (livrer, c'est demander la relecture), `conception.md` et le `CLAUDE.md` du socle, les skills `criticite` et `recette-humaine`. `avancement.mjs` dit les PR « à reprendre » et « en relecture ».
+- **Les skills des rôles à deux régimes** : `chantier`, `architecte`, `fusionner` et `sujet` disent en tête comment lire le régime, puis décrivent le régime 8 ; ce qui ne vaut qu'en régime 7 est dans `chantier/references/regime-7.md`. Le conducteur ne contre-relit plus, arbitre, reçoit les plafonds, et n'archive plus : il nomme ses filles et leurs sessions de relecture à l'architecte (`à archiver : …`), qui archive. Le capitaine juge par les verdicts (« Le verdict », dans `fusionner`) et n'archive plus aucune session, en régime 7 aussi (`P-62`) : il nomme à son lanceur une session finie sans tag ; une sous-PR sautée pour une lecture illisible garde son sujet. La PR de réception de develop dans un sujet demande sa relecture. L'architecte lance un Relecteur par dépôt, arbitre les PR du conducteur, décide au plafond, et mène la repose d'un dépôt au régime 8.
+- **La veille du capitaine** : le `trigger_id` du réveil de garde est noté et supprimé avant l'archivage du capitaine ; la ligne `CAPITAINE_ID requis` d'une copie d'avant `--etat` se distingue d'un autre 64 ; un arrêt posé par la garde elle-même se reconnaît à son heure ; le pid du `REFUS` se dit une fois ; un arrêt demandé n'est levé que par qui l'a posé.
+- **Le gate `settings-json`** refuse, quand le contrat porte la clé `relecture`, une entrée `permissions.allow` qui pré-approuve `create_session` : l'outil refuserait l'effort des sessions de relecture.
+- **Une quatrième ADR** : « relecture indépendante et accord des fichiers sensibles », qui remplace l'ADR « CODEOWNERS » et amende les points 1, 4 et 5 de l'ADR de la chaîne.
+- **Contre-relecture de la bascule** : l'arbitrage et la décision de plafond sont écrits à l'auteur, qui redemande la relecture ; le réveil de secours sonne à 120 minutes ; le conducteur ne pose `à-relire` ni sur un brouillon ni sur une PR en régime 7, et relève le Relecteur ; un Relecteur ne se lance qu'avec la clé ; une garde se retrouve par son nom et sa session ; `avancement.mjs` range « en relecture », et non « à reprendre », une PR renvoyée dont la relecture est redemandée.
+
+### Ce qu'un projet fait pour en profiter
+
+- Rien, tant que sa repose n'est pas faite : sans la clé `relecture`, tout se passe comme dans la version précédente, aux textes près (les skills `chantier`, `architecte`, `fusionner` et `sujet` renvoient à `regime-7.md`). Les documents posés (`chaine-de-production.md`, le fragment `CLAUDE.md` de la fusion, `issue-tracker.md`) ne décrivent que le régime 8 : ils ne se reposent qu'avec la clé, par la repose, jamais seuls.
+- **La repose**, par l'architecte du projet (skill `architecte`, « La repose d'un dépôt au régime 8 »), dans cet ordre : l'accord du produit sur les fichiers sensibles des tickets non commencés ; le Relecteur lancé ; la PR de repose (la clé `relecture`, les scripts de `fusionner`, `sujet`, `relecture` et du socle reposés, les documents du régime 8, la quatrième ADR, les lignes `Sensibles:` accordées, `create_session` retiré des `permissions.allow`) ; puis le capitaine relancé et les conducteurs relevés.
+
 ## 7.39.0 — 2026-11-22
 
 ### Ce qui change

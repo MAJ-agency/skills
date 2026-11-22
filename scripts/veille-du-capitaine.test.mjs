@@ -49,8 +49,10 @@ test("une fin sans ligne finale est une veille morte : quatrième puce de la lis
   assert.ok(puces[1].includes("Sortie 9 : une autre veille tourne (`une veille tourne déjà`) : ne rien relancer, `veille.sh --etat` et la suite de son point 2 (« Réveil de garde »)"), puces[1]);
   // Contre-relecture de la PR 150 : une boucle qui tient le verrou sans veille qui la porte a sa suite ; `--etat`, qui ne
   // parle que des veilles, n'en donnait aucune (la suite de son point 2 renvoyait à celle-ci).
-  assert.ok(puces[1].includes("ou une boucle tient le verrou sans veille qui la porte (`la boucle est sortie en 9`, après le `REFUS` de la boucle, ou `une boucle tient le verrou` de `--reprendre`), une orpheline ou un démon du projet qui garde son verrou : le point 3 du « Réveil de garde », puis le dire au lanceur ;"), puces[1]);
-  assert.ok(puces[1].includes("sortie 10 : arrêt demandé, la veille relancée avec `--reprendre` quand on veut repartir."), puces[1]);
+  assert.ok(puces[1].includes("ou une boucle tient le verrou sans veille qui la porte (`la boucle est sortie en 9`, après le `REFUS` de la boucle, ou `une boucle tient le verrou` de `--reprendre`), une orpheline ou un démon du projet qui garde son verrou : le point 3 du « Réveil de garde », puis le dire une fois au lanceur, avec le pid du `REFUS` et le script du projet à fermer (`9>&-`) ;"), puces[1]);
+  // Mineur 13 de la PR 150 (A-194, lot 6b) : la sortie 10 dit qui lève l'arrêt.
+  assert.ok(puces[1].includes("sortie 10 : arrêt demandé, levé par qui l'a posé (`--reprendre`), jamais par la session qui se réveille."), puces[1]);
+  assert.doesNotMatch(puces[1], /quand on veut repartir/, "la sortie 10 ne laisse plus la session qui se réveille lever l'arrêt");
   assert.ok(entre(lire(SKILL), "**Une seule boucle à la fois, arrêt d'un geste.**", "\n\n").includes("**Reprendre** : relancer la veille avec `--reprendre`"), "« Reprendre » passe par la veille");
 });
 
@@ -65,6 +67,8 @@ test("le réveil de garde : après la liste des fins, avant le suivi du journal 
     "`message` « Réveil de garde : skill fusionner, « Réveil de garde » »",
     "Il ne se réarme qu'au réveil de garde, jamais à un autre réveil : un seul réveil de garde attend à la fois.",
     "`send_later` absent (session locale) : pas de garde, le dire une fois au lanceur.",
+    // A-187 point 3, A-190 mineur 12 (lot 6b) : la garde se supprime avant l'archivage du capitaine.
+    "Noter le `trigger_id` qu'il rend, chaque fois, le dernier remplaçant le précédent : avant tout arrêt du capitaine et son archivage, `delete_trigger` sur lui ; perdu, le retrouver par `list_triggers`, sous ce nom et sur cette session (`persistent_session_id`, l'id de `CAPITAINE_ID`) : chaque capitaine du compte a une garde de ce nom.",
   ]) assert.ok(garde.includes(p), `réveil de garde : « ${p} » attendu`);
   const points = garde.split("\n").filter((l) => /^\d\. /.test(l));
   assert.deepEqual(points.map((l) => l.slice(0, 2)), ["1.", "2.", "3.", "4."], garde);
@@ -72,11 +76,16 @@ test("le réveil de garde : après la liste des fins, avant le suivi du journal 
   assert.ok(points[0].startsWith("1. `test -f <scratchpad>/outils/veille.sh && git -C <scratchpad>/capitaine rev-parse -q --verify HEAD` en échec"), points[0]);
   assert.ok(points[1].startsWith("2. Depuis le worktree, `bash <scratchpad>/outils/veille.sh --etat` (ni `CAPITAINE_ID`, ni réseau) : `VEILLE VIVANTE`, sortie 0 : rien ; `VEILLE TERMINÉE : <ligne finale>`, sortie 2 : `VEILLE FINIE`, la relancer telle quelle"), points[1]);
   assert.ok(points[1].endsWith("`VEILLE MORTE`, sortie 1 : le point 3."), points[1]);
-  assert.ok(points[1].includes("une autre sortie (64 : la copie est d'avant `--etat`, les scripts du projet ne sont pas reposés) : pas de garde, le dire une fois au lanceur (scripts à reposer par « poser », dans une PR du projet), ne plus réarmer, et après une fin sans ligne finale relancer la veille sans `--reprendre` ;"), points[1]);
+  // Mineur 8 de la PR 150 (A-194, lot 6b) : la copie d'avant `--etat` se reconnaît à sa ligne, pas à la seule sortie 64.
+  assert.ok(points[1].includes("la ligne `CAPITAINE_ID requis`, sortie 64 (la copie est d'avant `--etat`, les scripts du projet ne sont pas reposés ; tout autre 64, hors d'un dépôt git par exemple, se rejoue depuis le worktree) : pas de garde, le dire une fois au lanceur (scripts à reposer par « poser », dans une PR du projet), ne plus réarmer, et après une fin sans ligne finale relancer la veille sans `--reprendre` ;"), points[1]);
+  assert.ok(lire(VEILLE).includes("CAPITAINE_ID requis (l'id de la session du capitaine"), "veille.sh : la ligne que la garde lit pour reconnaître une copie d'avant `--etat`");
   assert.ok(points[1].includes("et seulement si elle n'a pas déjà été donnée"), points[1]);
   // Décision 6 du ticket : un arrêt demandé n'est jamais levé par un réveil de garde.
   assert.ok(points[1].includes("`VEILLE ARRÊTÉE` ou `arrêt demandé`, rien de plus que sa suite ci-dessus, et seulement si elle n'a pas déjà été donnée (ce qui a été dit au lanceur ne se redit pas ; un arrêt demandé ne se lève jamais au réveil de garde : `--reprendre` attend qui l'a posé, un humain, ou le capitaine après son action à la main) ;"), points[1]);
-  assert.ok(points[2].startsWith("3. Depuis le worktree, `bash <scratchpad>/outils/boucle.sh --arreter`"), points[2]);
+  // Mineur 11 de la PR 150 (A-194, lot 6b) : l'arrêt que la garde pose elle-même se reconnaît à son heure.
+  assert.ok(points[2].startsWith("3. Noter l'heure du geste (`date +%FT%T`), puis, depuis le worktree, `bash <scratchpad>/outils/boucle.sh --arreter`"), points[2]);
+  assert.ok(points[2].endsWith("Au réveil de garde suivant, un `arrêt demandé` « posé le » à l'heure notée est le sien, resté posé parce que la relance n'a pas abouti : relancer la veille avec `--reprendre`, sans rejouer `--arreter`."), points[2]);
+  assert.ok(lire("skills/chaine/fusionner/scripts/boucle.sh").includes('date +%FT%T > "$ARRET"'), "boucle.sh --arreter écrit l'heure à la forme que la garde note");
   assert.ok(points[2].includes("puis relancer la veille par la seconde ligne du bloc ci-dessus, sans recopier (le worktree peut être resté sur une PR), en tâche de fond avec le même `timeout`, et avec `--reprendre` : elle retire ce fichier dès son verrou pris, avant sa préparation."), points[2]);
   assert.ok(points[2].includes("`--arreter` en échec (sortie 1, des processus tiennent encore le verrou) : le dire au lanceur, ne rien relancer."), points[2]);
   // Le point 4 suit chaque suite, « VEILLE VIVANTE : rien » comprise : sinon la garde meurt à sa première veille vivante.

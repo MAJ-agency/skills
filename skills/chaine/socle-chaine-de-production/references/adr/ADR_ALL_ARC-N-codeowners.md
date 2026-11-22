@@ -1,6 +1,7 @@
 # ADR_ALL_ARC-{{N}} — Un chemin sensible est relu par un humain, et c'est GitHub qui le tient : CODEOWNERS se génère depuis `cheminsSensibles`
 
 - Statut : **retirée** par la décision du produit du 2026-11-18 (`P-49` de la carte « gouverner nos boucles » du plugin `maj-skills`) ; gardée pour mémoire
+- Remplacée par : {{ADR_RELECTURE}}, « relecture indépendante et accord des fichiers sensibles » (plugin `maj-skills` 8.0.0)
 - Date : {{DATE}}
 - Portée : `.github/CODEOWNERS`, `.claude/chaine.json`, la protection de `develop` et de `main`, le capitaine de fusion
 
