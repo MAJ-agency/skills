@@ -1,0 +1,10 @@
+E1a. Refusé, contesté, relecture redemandée au même sommet AVANT l’arbitrage (à-relire posée) :
+  -> {"regle":4,"geste":"etiqueter","poser":"à-reprendre"}
+E1b. Arbitrage « écarté » écrit, la PR garde à-reprendre seule (personne ne redemande) :
+  -> {"regle":null,"geste":"rien","raison":"hors-file"}
+E1c. Le même, l’auteur ayant redemandé la relecture (à-relire) au même sommet :
+  -> {"regle":4,"geste":"distribuer","mention":"après arbitrage, non compté","tour":2}
+E2a. Plafond, puis Décision de plafond écrite, la PR garde à-reprendre seule :
+  -> {"regle":null,"geste":"rien","raison":"hors-file"}
+E2b. Le même, l’auteur ayant poussé V4 et redemandé la relecture (à-relire) :
+  -> {"regle":6,"geste":"distribuer","mention":null,"tour":4}

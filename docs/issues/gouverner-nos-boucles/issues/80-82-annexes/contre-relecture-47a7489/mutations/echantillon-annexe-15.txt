@@ -1,0 +1,20 @@
+# Échantillon de 15 mutations de 80-82-annexes/mutations.mjs au sommet 47a7489, tirées par choisir.mjs, graine 151047 (mulberry32, mélange de Fisher-Yates sur les 68 noms dans l'ordre du fichier)
+# tirées : S3 S5 R5 R13 B22 B24 R2 B28 B13 A1 B4 B2 B27 B20 R11
+ROUGE B2 fusionner : le lien vers regime-7.md mène ailleurs (0 s) — les quatre skills des rôles disent en tête comment lire le r
+ROUGE B4 regime-7.md : la section des sujets sans son titre (0 s) — les quatre skills des rôles disent en tête comment lire le r
+ROUGE B13 fusionner : le capitaine archive de nouveau les sessions sans tag (0 s) — le capitaine en régime 8 : « Le verdict », la sous-PR sautée
+ROUGE B20 lancement : la phrase du régime remise d’un seul tenant (0 s) — lancement.md : la phrase du régime coupée en deux, seule la 
+ROUGE B22 chaine-de-production.md : le relecteur adversaire revient parmi les rôles (0 s) — les documents posés sont ceux du régime 8 : la méthode, le f
+ROUGE B24 chaine-de-production.md : le réveil de secours, deux cas échangés (0 s) — les documents posés sont ceux du régime 8 : la méthode, le f
+ROUGE B27 fragment : `fusion-bloquée` fait remettre `à-fusionner` (0 s) — les documents posés sont ceux du régime 8 : la méthode, le f
+ROUGE B28 issue-tracker : livrer, c’est poser `à-fusionner` (0 s) — les documents posés sont ceux du régime 8 : la méthode, le f
+ROUGE A1 avancement : « à reprendre » ne lit que les tickets ouverts (un `Fait` en relecture disparaît) (0 s) — relecture indépendante : à reprendre (verdict refusé, renvoi
+ROUGE S3 settings-json : le serveur entier passe (0 s) — régime 8 : une entrée allow qui pré-approuve create_session 
+ROUGE S5 settings-json : le gate ne lit pas le contrat (0 s) — le gate lit la clé relecture de .claude/chaine.json : présen
+ROUGE R2 chaine-de-production § 5, étape 5 : le sha court du dernier push (0 s) — les documents posés sont ceux du régime 8 : la méthode, le f
+ROUGE R5 regime-7.md : la fille d’un ticket Label: contre-revue livre de nouveau avec à-fusionner (0 s) — regime-7.md garde ce qui ne vaut qu'en régime 7, et les skil
+ROUGE R11 réveil de secours : le cas fusion-bloquée vaut de nouveau avec à-relire (0 s) — les documents posés sont ceux du régime 8 : la méthode, le f
+ROUGE R13 chantier § 6.5 : le plafond de contexte d’une session de relecture n’est plus noté (0 s) — le conducteur en régime 8 : il ne contre-relit pas, arbitre,
+15 rouges sur 15 jouées, 68 dans le fichier
+toutes rouges
+sortie 0

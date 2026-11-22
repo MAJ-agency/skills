@@ -1,0 +1,6 @@
+# V5r et A3r (mutations-annexe-recrites.mjs) sur 47a7489 + retouches-tour-1.patch
+ROUGE V5r fusionner : le trigger_id de la garde n’est plus noté (V5 de l’annexe, sur le texte retouché) — le réveil de garde : après la liste des fins, avant le suivi
+ROUGE A3r avancement : un renvoi (`fusion-bloquée`) n’est plus « à reprendre » (A3 de l’annexe, sur le code retouché) — relecture indépendante : à reprendre (verdict refusé, renvoi
+2 rouges sur 2 jouées, 2 dans le fichier
+toutes rouges
+sortie 0

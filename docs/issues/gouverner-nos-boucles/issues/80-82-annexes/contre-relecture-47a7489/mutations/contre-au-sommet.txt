@@ -1,0 +1,16 @@
+# Mutations K1 à K12 (mutations-contre.mjs) au sommet 47a7489, sans les retouches, 2026-11-22, Node 22.23.5
+VERTE K1 cdp § 5, étape 6 : au plafond, la fille redemande la relecture sans attendre la décision
+VERTE K2 chantier § 6.5 : après l’arbitrage, c’est le conducteur qui redemande la relecture
+VERTE K3 architecte § 5 : la décision de plafond n’est dite à personne
+VERTE K4 cdp § 5, étape 7 : le réveil de secours armé à la seule première demande
+VERTE K5 avancement : « en relecture » perd la PR renvoyée qui redemande sa relecture
+VERTE K6 architecte § 4 : un Relecteur dans tout dépôt, avant la repose
+INTROUVABLE K7 chantier § 6.5 : la règle sans étiquette reprend les brouillons et les PR en régime 7
+INTROUVABLE K8 chantier § 6.1 : le Relecteur sort du contrôle de vie du conducteur
+INTROUVABLE K9 lancement : la garde supprimée sur son seul nom
+INTROUVABLE K10 architecte, Archiver : les réveils en attente d’une session ne sont plus supprimés
+INTROUVABLE K11 chantier § 0.6 : le Relecteur vérifié sans regarder la clé
+INTROUVABLE K12 cdp § 5, étape 6 : un bloquant contesté n’attend plus son arbitrage
+0 rouges sur 6 jouées, 12 dans le fichier
+12 mutation(s) non rouge(s)
+sortie 1

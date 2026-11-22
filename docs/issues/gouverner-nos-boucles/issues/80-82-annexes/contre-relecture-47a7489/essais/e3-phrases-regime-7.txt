@@ -1,0 +1,140 @@
+
+=== skills/chaine/chantier/SKILL.md
+(a) 19 phrase(s) de 7.39.0 sans place en 8.0.0
+  a1. Chacun ouvre une PR : elle passe au capitaine comme une PR de cadrage, et aucune fille ne part avant sa fusion — un chantier sans gates fait coder des filles que rien ne relit.
+  a2. Poser un socle est du cadrage, pas un ticket : le conducteur le fait lui-même.
+  a3. Sinon, dis-le au produit (il en ouvre une avec le skill `fusionner`) ; on peut avancer jusqu'à la phase 3 sans lui. ## 1.
+  a4. `Objectif:`, `Échéance:`, `Grilling:`, `Filles par vague:`, `Capitaine:`).
+  a5. Ticket dont `Fichiers chauds:` touche `cheminsSensibles` de `.claude/chaine.json` : ligne `Label: contre-revue` en tête, obligatoire (le gate `tickets` refuse le ticket sans elle ; l'ancienne valeur `Label: architecte` a
+  a6. Un ticket qui crée un module d'authentification, de droits, de chiffrement, de paiement ou d'export ajoute son dossier à `cheminsSensibles` de `.claude/chaine.json` dans la même PR de cadrage : la liste ne se complète qu
+  a7. Validation par `AskUserQuestion` au produit (un seul point de contrôle) ; dans un programme, par `send_message` à l'architecte : le tableau des vagues (ticket, objet, modèle, fichiers chauds) en aperçu ; options « Lancer
+  a8. PR de cadrage hors brouillon (`update_pull_request`), label `à-fusionner` (`issue_write`).
+  a9. 3-specs-en-fusion`) Le capitaine squashe la PR de cadrage dans le sujet dès sa CI légère verte.
+  a10. La ligne de situation particulière n'y figure que s'il y en a une, et ne redit jamais une règle : le régime de livraison se lit sur `Label:` dans l'en-tête du ticket, jamais sur le prompt (cas vécu : un prompt qui annonç
+  a11. Chaque fille écrit au conducteur (`send_message`) si elle est bloquée, et dès sa PR livrée, sans attendre ni les contrôles ni la fusion : ses cinq lignes de rendu, avec les décisions qu'elle attend de lui (ADR proposée, 
+  a12. Contre-revue du conducteur sur toute PR qui touche un chemin sensible (`.claude/chaine.json`), par sous-agent, une fois le code poussé (pas sur le seul commit de réservation) ; des écarts réels ont été trouvés dans chacu
+  a13. Le conducteur étiquette toutes les sous-PR prêtes d'une vague sans attendre que la précédente soit entrée, et il ne retire ni ne repose jamais `à-fusionner` pour régler l'ordre de passage.
+  a14. `get_session`, sa ligne dans la section `## Coût` de la carte (§ 7), puis `archive_session`.
+  a15. C'est le conducteur qui archive ses filles, pas le capitaine : le capitaine ne veille que sur sa file, et quatre filles finies sont restées ouvertes.
+  a16. Une fille qui attend une réponse ou dont la PR est renvoyée ne s'archive pas.
+  a17. Échéance proche ou sujet « VIEUX » : proposer au produit `sujet.sh livrer <nom> "<titre>"` ; la PR s'ouvre sans `à-fusionner`, que le conducteur pose après sa contre-revue si elle touche un chemin sensible (§ 6, point 5)
+  a18. Sessions filles finies : déjà archivées par le conducteur à chaque fin de vague (§ 6.6) ; archiver ici les dernières, après relevé de leur coût.
+  a19. `archive_session` après relevé du coût ; les `send_later` restants :
+(b) 31 phrase(s) neuves sans « régime 7/8 »
+  b1. Chacun ouvre une PR, et aucune autre fille ne part avant sa fusion — un chantier sans gates fait coder des filles que rien ne relit.
+  b2. `Objectif:`, `Échéance:`, `Grilling:`, `Filles par vague:`, `Capitaine:`, `Relecteur:`).
+  b3. Fichiers sensibles : l'accord avant le code.
+  b4. `Sensibles: scripts/chaine/passer.sh — accord de <nom>, <AAAA-MM-JJ>`, ou `Sensibles: —`.
+  b5. Sans elle, le hook d'édition refuse l'écriture et le capitaine renvoie la PR.
+  b6. Le conducteur écrit d'abord la demande dans la section `## Fichiers sensibles` de la carte, une ligne par fichier (ticket, chemin, pourquoi, ce qui y change) ; elle part avec le découpage (point 4) ; les lignes `Sensible
+  b7. Un ticket qui cite sur sa ligne `Règles:` une règle de criticité haute porte `Relecture: double` (le gate `tickets` l'exige d'un ticket ouvert) : deux sessions de relecture.
+  b8. Un ticket qui crée un module d'authentification, de droits, de chiffrement, de paiement ou d'export fait ajouter son dossier à `cheminsSensibles` de `.claude/chaine.json` par un ticket du chantier, le premier quand d'aut
+  b9. PR de cadrage hors brouillon (`update_pull_request`).
+  b10. La ligne de situation particulière n'y figure que s'il y en a une, et ne redit jamais une règle : le régime se lit dans la sortie de `sujet.sh demarrer`, jamais sur le prompt.
+  b11. Chaque fille écrit au conducteur (`send_message`) si elle est bloquée, et dès sa relecture demandée, sans attendre ni le verdict, ni les contrôles, ni la fusion : ses cinq lignes de rendu, avec les décisions qu'elle atte
+  b12. La relecture est indépendante : le conducteur ne contre-relit rien et ne relaie aucun constat.
+  b13. Sur la PR d'une fille, le conducteur ne pose ni ne retire jamais `à-fusionner`, `à-relire` ou `à-reprendre`, hors le cas sans étiquette ci-dessous ; ses propres PR (cadrage, documentation, nettoyage) demandent leur relec
+  b14. - Arbitrer une contestation de sa fille (`Contesté — <critère, fichier et ligne> — <raison>` sur la PR, et une ligne de la fille) : il lit le constat dans le code, puis écrit sur la PR `Arbitrage — <critère, fichier et l
+  b15. Une contestation de ses propres PR va à l'architecte (sans programme, au produit).
+  b16. - Recevoir un plafond (trois tours refusés :
+  b17. `Plafond — décision attendue` sur la PR, une ligne du Relecteur) : dans un programme, l'architecte décide, il lui donne ce qu'il sait du ticket ; sans programme, il décide lui-même si la cause est technique (ticket récri
+  b18. - Une règle haute (deux verdicts validés exigés) : le message d'information au produit part de lui, par l'architecte dans un programme : la règle, ce qui change, les deux verdicts.
+  b19. - À chaque réveil, les PR ouvertes de son sujet qui ne portent aucune des quatre étiquettes (`à-relire`, `à-reprendre`, `à-fusionner`, `fusion-bloquée`) : l'écrire à leur fille ; fille finie ou muette, il pose lui-même `
+  b20. Une ligne `Relecture en panne` ou `PR <n> : …` du Relecteur se lit, et va à l'architecte quand elle le nomme.
+  b21. Une ligne « session de relecture <id> remplacée au plafond de contexte, PR <n> » se note dans `## Dépassements` comme un plafond (point 1 bis ; décision :
+  b22. « remplacée par le Relecteur »), puis une ligne d'information au produit (dans un programme, à l'architecte) : rien n'est à décider.
+  b23. Le Relecteur étiquette chaque sous-PR validée sans attendre que la précédente soit entrée, et personne ne retire ni ne repose jamais `à-fusionner` pour régler l'ordre de passage.
+  b24. `get_session`, sa ligne dans la section `## Coût` de la carte (§ 7), et de même pour chaque session de relecture de sa PR (rôle `relecture`), lues sur les distributions du Relecteur (`Relecture — tour <k> — sommet <sha> 
+  b25. Le conducteur n'archive rien lui-même : la garde du mode « Auto » lui refuse `archive_session`, que l'outil réserve à une session dont un humain a pris acte ; l'architecte archive, sur ces lignes (`P-62`).
+  b26. C'est le conducteur qui relève et nomme ses filles, pas le capitaine : le capitaine ne veille que sur sa file, et quatre filles finies sont restées ouvertes.
+  b27. Une fille qui attend une réponse ou dont la PR est renvoyée ne se nomme pas.
+  b28. Échéance proche ou sujet « VIEUX » : proposer au produit `sujet.sh livrer <nom> "<titre>"` ; la PR s'ouvre sans `à-fusionner`, que le conducteur pose aussitôt : une livraison de sujet n'a pas de relecture propre, ce qui 
+  b29. Une livraison intermédiaire qui échoue à sa preuve redevient une PR ordinaire : il pose alors `à-relire`, et elle est relue en entier.
+  b30. Sessions filles finies : déjà nommées à l'architecte à chaque fin de vague (§ 6.6) ; nommer ici les dernières, et leurs sessions de relecture, après relevé de leur coût.
+  b31. `clore` lit cette carte), puis `bash scripts/chaine/sujet.sh clore <nom>` supprime `origin/sujet/<nom>` si GitHub ne l'a pas fait (livraison intermédiaire, ou avant le réglage « Automatically delete head branches ») : la
+
+=== skills/chaine/architecte/SKILL.md
+(a) 4 phrase(s) de 7.39.0 sans place en 8.0.0
+  a1. Puis : le conducteur dans la ligne du chantier, le capitaine dans `Capitaines:`, la session de ticket dans `## Coût`, une ligne au journal, commit et push. ## 5.
+  a2. - Une PR livrée ne se nomme à aucun capitaine : la session qui la livre pose `à-fusionner` (l'architecte le pose lui-même sur ses PR de documentation, § 7) — dans un dépôt sans la chaîne, juste après avoir écrit sur la P
+  a3. L'architecte la pousse, l'ouvre hors brouillon, joue la vérification de `chaine-de-production.md` § 5, étape 6 (« titre (#n) » sous la limite du dépôt, et `commitlint` dans un dépôt qui l'a), pose `à-fusionner` (dans un 
+  a4. Cas vécu le 2026-11-14 : un `git push` à destination variable, joué par un sous-agent dans un dépôt jouet. ## Ne jamais - Découper un chantier en tickets, relire ses tickets, lancer la fille d'un chantier qui a son condu
+(b) 17 phrase(s) neuves sans « régime 7/8 »
+  b1. Un dépôt sans `.claude/chaine.json` (celui de `skills`) garde sa procédure, celle de `references/lancement.md` : commentaire `à-fusionner au sommet <sha>`, verdicts de contre-relecture.
+  b2. Dans un dépôt à chaîne, un Relecteur se lance en même temps que le capitaine (`references/lancement.md`, « Le Relecteur d'un dépôt »), et pas un second tant que `get_session` dit vivante la session que nomme la ligne `Re
+  b3. Puis : le conducteur dans la ligne du chantier, le capitaine dans `Capitaines:`, le Relecteur dans `Relecteurs:`, la session de ticket dans `## Coût`, une ligne au journal, commit et push. ## 5.
+  b4. Il arbitre une contestation sur une PR du conducteur (`Arbitrage — <critère, fichier et ligne> — maintenu`, ou `— écarté — <raison>`, écrit sur la PR) ; celle d'une PR de l'architecte, c'est le produit.
+  b5. Il décide au plafond (trois tours refusés, `Plafond — décision attendue`) d'une PR d'une fille ou du conducteur :
+  b6. `Décision de plafond — …` sur la PR (ticket récrit ou découpé, désaccord tranché), avec ses lignes `Arbitrage — … — écarté` quand elle écarte un bloquant, et le produit en est informé en une ligne ; au plafond d'une PR d
+  b7. Une ligne du Relecteur (`Relecture en panne`, `Lecture illisible — <cause>`, une session orpheline) se lit à la source et se traite : la cause corrigée, l'orpheline archivée.
+  b8. Le message d'information au produit d'une règle haute (deux verdicts) lui arrive du conducteur, et il le passe dans la forme de § 2.
+  b9. Le Relecteur de chaque dépôt (`Relecteurs:`) se relève de même.
+  b10. Le conducteur et le capitaine ne peuvent pas archiver : la garde du mode « Auto » leur refuse `archive_session`.
+  b11. L'architecte archive chaque session que nomme une ligne `à archiver : <session>, <ticket>, <coût>` d'un conducteur, après avoir lu par `get_session` qu'elle a fini (`completed`, aucune PR ouverte qui l'attende) ; jamais 
+  b12. Qui archive l'auteur d'une PR archive aussi ses sessions de relecture, lues sur ses distributions (`Relecture — tour <k> — sommet <sha> — sessions <…>`) ; leur coût est déjà dans la carte du chantier (rôle `relecture`) ;
+  b13. Un capitaine s'archive quand plus aucun ordre n'est attendu avant plusieurs heures, sa garde supprimée d'abord (skill `fusionner`, « Réveil de garde »).
+  b14. Cas vécu le 2026-11-14 : un `git push` à destination variable, joué par un sous-agent dans un dépôt jouet. ## 8.
+  b15. Il relève, pour chaque chantier ouvert, les fichiers sensibles que ses tickets non commencés toucheront, les écrit dans la section `## Fichiers sensibles` de la carte (ticket, chemin, pourquoi, ce qui y change), et deman
+  b16. Le capitaine relancé, les conducteurs relevés : leurs sessions ont lu leur skill avant la bascule.
+  b17. Un chantier ouvert change de régime ticket par ticket. ## Ne jamais - Découper un chantier en tickets, relire ses tickets, lancer la fille d'un chantier qui a son conducteur, coder, fusionner.
+
+=== skills/chaine/architecte/references/lancement.md
+(a) 2 phrase(s) de 7.39.0 sans place en 8.0.0
+  a1. Tu livres selon la ligne Label: du ticket.
+  a2. ` ; tu corriges, puis tu écris le commentaire au nouveau sommet et tu reposes le label. <une ligne de situation particulière, s'il y en a une> ``` L'architecte y tient la place du conducteur : il reçoit les questions et 
+(b) 2 phrase(s) neuves sans « régime 7/8 »
+  b1. ` ; tu corriges, puis tu écris le commentaire au nouveau sommet et tu reposes le label. <une ligne de situation particulière, s'il y en a une> ``` L'architecte y tient la place du conducteur.
+  b2. - Archiver un capitaine du skill `fusionner`, quand plus aucun ordre n'est attendu avant plusieurs heures : d'abord sa garde, `delete_trigger` sur le `trigger_id` que le capitaine a noté, ou, s'il ne le donne plus, `list
+
+=== skills/chaine/fusionner/SKILL.md
+(a) 9 phrase(s) de 7.39.0 sans place en 8.0.0
+  a1. Décision : l'ADR « chaîne de production » du dépôt. ## Étape 0 — poser (une fois par dépôt, `poser`) `scripts/*.sh` (dont `veille.sh`), `scripts/identifiant.mjs`, `scripts/revue-exigee.mjs`, `scripts/migrations-ordre.mjs
+  a2. `file.sh` et `sujet.sh` lisent les identifiants par `identifiant.mjs`, qui l'importe. ## La règle (`CLAUDE.md` § « Fusion vers develop ») | Qui | Fait | Ne fait jamais | | -------------------- | -------------------------
+  a3. Il se donne en préfixe de chaque commande qui lance la veille, la boucle ou un geste à la main (`passer.sh`, `sujet.sh fusionner`, `sujet.sh relancer`, `boucle.sh --reprendre`), puisqu'une variable exportée ne survit pas
+  a4. Sortie 9 : une autre veille tourne (`une veille tourne déjà`) : ne rien relancer, `veille.sh --etat` et la suite de son point 2 (« Réveil de garde ») ; ou une boucle tient le verrou sans veille qui la porte (`la boucle e
+  a5. `--reprendre` attend qui l'a posé, un humain, ou le capitaine après son action à la main) ; une autre sortie (64 : la copie est d'avant `--etat`, les scripts du projet ne sont pas reposés) : pas de garde, le dire une foi
+  a6. Depuis le worktree, `bash <scratchpad>/outils/boucle.sh --arreter` (la copie : le worktree peut être resté sur une PR), qui termine une boucle orpheline et son passage (sa trappe remet le worktree propre) et pose le fich
+  a7. Les filles d'un chantier, c'est leur conducteur qui les archive (skill `chantier` § 6.6), après avoir relevé leur coût : le capitaine n'y touche pas.
+  a8. Il archive seulement une session « completed », sans PR ouverte, sans tag `chantier:`, qui n'organise aucun chantier.
+  a9. Jamais une session qui attend une réponse, ni une session active.
+(b) 23 phrase(s) neuves sans « régime 7/8 »
+  b1. Les scripts le lisent eux-mêmes, PR par PR (`regimeDeLaPr` de `revue-exigee.mjs`) : le capitaine ne choisit rien.
+  b2. `file.sh` et `sujet.sh` lisent les identifiants par `identifiant.mjs`, qui l'importe. ## La règle (`CLAUDE.md` § « Fusion vers develop ») | Qui | Fait | Ne fait jamais | | -------------------- | -------------------------
+  b3. Une PR qui ne porte plus `à-fusionner` au second contrôle est sautée (7) ; sans tour validé pour ce sommet (un `refusé` tombé pendant la CI, une règle passée à haute, un contenu changé), elle est renvoyée (4), et le renv
+  b4. Une mise à jour du capitaine (fusion de develop, index régénérés), une ou plusieurs fois, garde le verdict (« même contenu propre », `meme-contenu.sh`).
+  b5. Sur un chemin sensible, le verdict porte `/security-review: lancée` ;
+  b6. « double relecture exigée » (`double-relecture.mjs`) veut deux verdicts validés de deux sessions.
+  b7. Au premier contrôle se jugent aussi les fichiers sensibles : un diff propre qui touche un chemin sensible que la ligne `Sensibles:` de son ticket ne couvre pas, ou une PR sans ticket qui en touche un, est renvoyé ; une P
+  b8. Une lecture illisible (sortie 21 de `revue-exigee.mjs` : une marque presque à la forme, une clé `relecture` mal formée, un calcul illisible) n'est pas un renvoi : la PR est sautée (7), le Relecteur prévient l'architecte.
+  b9. Une sous-PR sautée ainsi garde son sujet :
+  b10. `boucle.sh` lit la sortie 7 comme un sujet tenu, et les autres sous-PR de ce sujet attendent tant que la cause demeure (presque toujours commune aux PR du dépôt : un en-tête de règle, un clone partiel) ; le dire une fois
+  b11. Un calcul absent ou en panne : sortie 3, jamais un renvoi.
+  b12. Une livraison de sujet n'a pas de verdict, ni le report de develop dans un sujet (`sujet.sh rafraichir`) ; une PR de mise à jour d'un sujet en a un.
+  b13. Une PR écrite par une personne ou un outil : l'architecte pose `à-relire`. ## La règle d'ascendance Aucune PR n'entre sans avoir été testée sur l'état de la branche où elle entre.
+  b14. Il se donne en préfixe de chaque commande qui lance la veille, la boucle ou un geste à la main (`passer.sh`, `sujet.sh fusionner`, `sujet.sh relancer`), puisqu'une variable exportée ne survit pas d'un appel de l'outil Ba
+  b15. Sortie 9 : une autre veille tourne (`une veille tourne déjà`) : ne rien relancer, `veille.sh --etat` et la suite de son point 2 (« Réveil de garde ») ; ou une boucle tient le verrou sans veille qui la porte (`la boucle e
+  b16. Noter le `trigger_id` qu'il rend, chaque fois, le dernier remplaçant le précédent : avant tout arrêt du capitaine et son archivage, `delete_trigger` sur lui ; perdu, le retrouver par `list_triggers`, sous ce nom.
+  b17. Une garde qui sonne une session archivée la réveille.
+  b18. `--reprendre` attend qui l'a posé, un humain, ou le capitaine après son action à la main) ; la ligne `CAPITAINE_ID requis`, sortie 64 (la copie est d'avant `--etat`, les scripts du projet ne sont pas reposés ; tout autre
+  b19. Noter l'heure du geste (`date +%FT%T`), puis, depuis le worktree, `bash <scratchpad>/outils/boucle.sh --arreter` (la copie : le worktree peut être resté sur une PR), qui termine une boucle orpheline et son passage (sa tr
+  b20. Au réveil de garde suivant, un `arrêt demandé` « posé le » à l'heure notée est le sien, resté posé parce que la relance n'a pas abouti : relancer la veille avec `--reprendre`, sans rejouer `--arreter`.
+  b21. Le capitaine n'archive aucune session : la garde du mode « Auto » refuse `archive_session` à une session dont aucun humain n'a pris acte.
+  b22. Les filles d'un chantier et leurs sessions de relecture, leur conducteur les relève et les nomme à l'architecte, qui archive (skill `chantier` § 6.6, `P-62`) ; une session « completed », sans PR ouverte, sans tag `chanti
+  b23. Le capitaine lui-même, quand plus aucun ordre n'est attendu avant plusieurs heures : il arrête sa veille et sa boucle, supprime sa garde (`delete_trigger`, « Réveil de garde »), puis son lanceur l'archive.
+
+=== skills/chaine/sujet/SKILL.md
+(a) 5 phrase(s) de 7.39.0 sans place en 8.0.0
+  a1. Décision et raisons : l'ADR « branches de sujet » du dépôt, posée par `socle-chaine-de-production`. ## Étape 0 — poser (une fois par dépôt, `poser`) `scripts/sujet.sh` → `scripts/chaine/sujet.sh` (exécutable), avec son b
+  a2. Label `à-fusionner` et PR jamais empilée :
+  a3. Le corps type de la PR, titrée `chore(sujet): met <nom> à jour avec develop`, étiquetée `à-fusionner` :
+  a4. `<fichier>` — <résolution> | aucun ## Retouches | Fichier | Raison | | ------- | ------ | | `<fichier>` | <ce que develop exige du sujet> | ## Revue de ticket <section de la revue de ticket> ``` « Retouches » quand il y 
+  a5. La PR s'ouvre sans `à-fusionner` : le poser après la relecture qu'elle demande (contre-revue si elle touche un chemin sensible), `issue_write` en session cloud.
+(b) 8 phrase(s) neuves sans « régime 7/8 »
+  b1. La relecture se demande après le dernier push, comme `demarrer` le dit (le commentaire `À relire`, puis l'étiquette `à-relire`) : jamais `à-fusionner`, que le Relecteur pose sur un verdict validé.
+  b2. Le corps type de la PR, titrée `chore(sujet): met <nom> à jour avec develop` :
+  b3. `<fichier>` — <résolution> | aucun ## Retouches | Fichier | Raison | | ------- | ------ | | `<fichier>` | <ce que develop exige du sujet> | ``` « Retouches » quand il y en a.
+  b4. La PR de réception n'est pas exemptée de relecture : la session qui la fait ne se relit pas ; après son dernier push, PR hors brouillon, elle demande la relecture (le commentaire `À relire — sommet <sha> — Session: <la s
+  b5. La session de relecture lit ce que le capitaine juge, rendu par `sujet.sh a-juger <sommet> <base>` : la résolution de la fusion, en entier, puis chaque retouche ; une forme refusée par `a-juger` est un bloquant, et la re
+  b6. La PR s'ouvre sans `à-fusionner` : le poser aussitôt, `issue_write` en session cloud ; une livraison de sujet n'a pas de relecture propre, ce qui y entre a été relu sous-PR par sous-PR (`P-60`).
+  b7. Une livraison intermédiaire qui échoue à sa preuve redevient une PR ordinaire :
+  b8. `à-relire`, et elle est relue en entier.

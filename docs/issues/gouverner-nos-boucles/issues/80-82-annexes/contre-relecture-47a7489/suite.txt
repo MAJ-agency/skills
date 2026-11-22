@@ -1,0 +1,13 @@
+# Suite entière (les quatre motifs de pnpm test, node --test, sous setsid --wait) sur 47a7489 + retouches-tour-1.patch (sha256 748dbdd7…), clone neuf, lancée après une charge sous 3 (attente de 09:04 à 09:16 UTC : un autre agent sur le poste).
+# départ 2026-11-22T09:16:03Z, charge 1.77 3.99 4.82, arbre 87b2157626c4f108919fcf4f4c463c61b5121304, Node v22.23.5
+1..1396
+# tests 1396
+# suites 0
+# pass 1396
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 934622.294879
+sortie 0
+# fin 2026-11-22T09:31:37Z

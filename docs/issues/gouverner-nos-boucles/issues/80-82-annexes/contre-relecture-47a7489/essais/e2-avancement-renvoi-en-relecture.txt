@@ -1,0 +1,2 @@
+- **À reprendre (verdict refusé ou renvoi) :** SPEC_ALL_SOC-1.01
+- **En relecture :** SPEC_ALL_SOC-1.01

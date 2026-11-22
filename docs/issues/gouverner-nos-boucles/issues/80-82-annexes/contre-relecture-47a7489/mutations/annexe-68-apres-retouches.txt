@@ -1,0 +1,72 @@
+# Les 68 mutations de 80-82-annexes/mutations.mjs sur 47a7489 + retouches-tour-1.patch : V5 et A3 introuvables (leur repère est retouché), récrites en V5r et A3r (fichier voisin), rouges
+ROUGE B1 chantier : le paragraphe des deux régimes retiré (0 s) — les quatre skills des rôles disent en tête comment lire le r
+ROUGE B2 fusionner : le lien vers regime-7.md mène ailleurs (0 s) — les quatre skills des rôles disent en tête comment lire le r
+ROUGE B3 sujet : la section de regime-7.md citée sous un autre nom (0 s) — les quatre skills des rôles disent en tête comment lire le r
+ROUGE B4 regime-7.md : la section des sujets sans son titre (0 s) — les quatre skills des rôles disent en tête comment lire le r
+ROUGE B5 chantier : le conducteur archive de nouveau lui-même (0 s) — regime-7.md garde ce qui ne vaut qu'en régime 7, et les skil | le conducteur en régime 8 : il ne contre-relit pas, arbitre,
+ROUGE B6 chantier : le Relecteur au point 5 du § 0, le capitaine au point 6 (0 s) — le conducteur en régime 8 : il ne contre-relit pas, arbitre,
+ROUGE B7 chantier : le plafond n’est plus reçu par le conducteur (0 s) — le conducteur en régime 8 : il ne contre-relit pas, arbitre,
+ROUGE B8 chantier : la contre-revue revient en titre du point 5 (0 s) — regime-7.md garde ce qui ne vaut qu'en régime 7, et les skil | le conducteur en régime 8 : il ne contre-relit pas, arbitre,
+ROUGE B9 fusionner : la sous-PR sautée ne garde plus son sujet (0 s) — le capitaine en régime 8 : « Le verdict », la sous-PR sautée
+ROUGE B10 fusionner : CAPITAINE_ID cite de nouveau `boucle.sh --reprendre` (0 s) — regime-7.md garde ce qui ne vaut qu'en régime 7, et les skil | le capitaine en régime 8 : « Le verdict », la sous-PR sautée
+ROUGE B11 fusionner : le propriétaire renvoyé remet `à-fusionner` (0 s) — regime-7.md garde ce qui ne vaut qu'en régime 7, et les skil | le capitaine en régime 8 : « Le verdict », la sous-PR sautée
+ROUGE B12 fusionner : le second contrôle du verdict n’est plus dit (0 s) — le capitaine en régime 8 : « Le verdict », la sous-PR sautée
+ROUGE B13 fusionner : le capitaine archive de nouveau les sessions sans tag (0 s) — le capitaine en régime 8 : « Le verdict », la sous-PR sautée
+ROUGE B14 sujet : le corps type de réception reprend sa « Revue de ticket » (1 s) — sujet/SKILL.md a la section Recevoir develop dans un sujet, 
+ROUGE B15 sujet : la livraison attend de nouveau une relecture (0 s) — regime-7.md garde ce qui ne vaut qu'en régime 7, et les skil | sujet en régime 8 : la session demande la relecture, la PR d
+ROUGE B16 sujet : la PR de réception exemptée (0 s) — sujet en régime 8 : la session demande la relecture, la PR d
+ROUGE B17 architecte : la repose, points 3 et 4 échangés (0 s) — l'architecte en régime 8 : le Relecteur lancé et relevé, l'a
+ROUGE B18 architecte : la repose ne retire plus create_session (0 s) — l'architecte en régime 8 : le Relecteur lancé et relevé, l'a
+ROUGE B19 architecte : le Relecteur n’est plus relevé (0 s) — l'architecte en régime 8 : le Relecteur lancé et relevé, l'a
+ROUGE B20 lancement : la phrase du régime remise d’un seul tenant (0 s) — lancement.md : la phrase du régime coupée en deux, seule la 
+ROUGE B21 lancement : le capitaine archivé sans sa garde supprimée (0 s) — lancement.md : la phrase du régime coupée en deux, seule la 
+ROUGE B22 chaine-de-production.md : le relecteur adversaire revient parmi les rôles (0 s) — les documents posés sont ceux du régime 8 : la méthode, le f
+ROUGE B23 chaine-de-production.md : la fille pose `à-fusionner` (0 s) — les documents posés sont ceux du régime 8 : la méthode, le f
+ROUGE B24 chaine-de-production.md : le réveil de secours, deux cas échangés (0 s) — les documents posés sont ceux du régime 8 : la méthode, le f
+ROUGE B25 chaine-de-production.md : `Label: contre-revue` remis obligatoire au § 3 (0 s) — les documents posés sont ceux du régime 8 : la méthode, le f
+ROUGE B26 chaine-de-production.md : la revue de ticket revient à l’étape 5 (0 s) — les documents posés sont ceux du régime 8 : la méthode, le f
+ROUGE B27 fragment : `fusion-bloquée` fait remettre `à-fusionner` (0 s) — les documents posés sont ceux du régime 8 : la méthode, le f
+ROUGE B28 issue-tracker : livrer, c’est poser `à-fusionner` (0 s) — les documents posés sont ceux du régime 8 : la méthode, le f
+ROUGE B29 conception.md : la relecture indépendante n’est plus dite (0 s) — les documents posés sont ceux du régime 8 : la méthode, le f
+ROUGE B30 chaine.json : la session sensible en effort high (0 s) — le gabarit du contrat porte la clé relecture, lue par le cap
+ROUGE B31 chaine.json : la clé relecture retirée (0 s) — le gabarit du contrat porte la clé relecture, lue par le cap
+ROUGE B32 chaine.json : depuis déjà rempli dans le gabarit (0 s) — le gabarit du contrat porte la clé relecture, lue par le cap
+ROUGE B33 CONTENU.md : « Sept clés » de nouveau (0 s) — le gabarit du contrat porte la clé relecture, lue par le cap
+ROUGE B34 socle SKILL.md : `{{DEPUIS}}` absent de la liste des placeholders (0 s) — le gabarit du contrat porte la clé relecture, lue par le cap
+ROUGE B35 socle SKILL.md : `{{ADR_RELECTURE}}` absent de la liste des placeholders (0 s) — le gabarit du contrat porte la clé relecture, lue par le cap
+ROUGE B36 socle SKILL.md : la relecture ne se pose plus (0 s) — le gabarit du contrat porte la clé relecture, lue par le cap
+ROUGE V1 fusionner : la sortie 10 laisse lever l’arrêt par qui se réveille (0 s) — une fin sans ligne finale est une veille morte : quatrième p
+ROUGE V2 fusionner : la copie d’avant `--etat` reconnue à la seule sortie 64 (0 s) — le réveil de garde : après la liste des fins, avant le suivi
+ROUGE V3 fusionner : l’heure de l’arrêt de la garde n’est plus notée (0 s) — le réveil de garde : après la liste des fins, avant le suivi
+ROUGE V4 fusionner : l’arrêt de la garde, resté posé, n’est plus reconnu (0 s) — le réveil de garde : après la liste des fins, avant le suivi
+INTROUVABLE V5 fusionner : le trigger_id de la garde n’est plus noté
+ROUGE V6 fusionner : la boucle sans veille dite à chaque passage, sans son pid (0 s) — une fin sans ligne finale est une veille morte : quatrième p
+ROUGE A1 avancement : « à reprendre » ne lit que les tickets ouverts (un `Fait` en relecture disparaît) (0 s) — relecture indépendante : à reprendre (verdict refusé, renvoi
+ROUGE A2 avancement : les étiquettes comparées sans NFC (0 s) — relecture indépendante : à reprendre (verdict refusé, renvoi
+INTROUVABLE A3 avancement : un renvoi (`fusion-bloquée`) n’est plus « à reprendre »
+ROUGE A4 avancement : une PR fusionnée compte encore (0 s) — relecture indépendante : à reprendre (verdict refusé, renvoi
+ROUGE A6 avancement : « en relecture » ne lit que les tickets ouverts (0 s) — relecture indépendante : à reprendre (verdict refusé, renvoi
+ROUGE A5 avancement : la ligne « En relecture » absente de la sortie (0 s) — relecture indépendante : à reprendre (verdict refusé, renvoi
+ROUGE S1 settings-json : create_session refusé aussi en régime 7 (0 s) — régime 8 : une entrée allow qui pré-approuve create_session  | le gate lit la clé relecture de .claude/chaine.json : présen
+ROUGE S2 settings-json : le joker du serveur passe (1 s) — régime 8 : une entrée allow qui pré-approuve create_session 
+ROUGE S3 settings-json : le serveur entier passe (1 s) — régime 8 : une entrée allow qui pré-approuve create_session 
+ROUGE S4 settings-json : un contrat illisible qui nomme la clé lu sans elle (1 s) — le gate lit la clé relecture de .claude/chaine.json : présen
+ROUGE S5 settings-json : le gate ne lit pas le contrat (1 s) — le gate lit la clé relecture de .claude/chaine.json : présen
+ROUGE S6 settings-json : la clé lue n’importe où dans le texte (le $comment du gabarit la nomme) (1 s) — le gate lit la clé relecture de .claude/chaine.json : présen
+ROUGE D1 regime-7.md : l’ordre de passage du régime 7 retiré (1 s) — une sous-PR à la fois par sujet : le capitaine tient l'ordre
+ROUGE R1 chantier, Ne jamais : archive_session de nouveau permis (0 s) — le conducteur en régime 8 : il ne contre-relit pas, arbitre,
+ROUGE R2 chaine-de-production § 5, étape 5 : le sha court du dernier push (0 s) — les documents posés sont ceux du régime 8 : la méthode, le f
+ROUGE R3 réveil de secours : relancer le Relecteur soi-même au lieu de l’écrire au conducteur (0 s) — les documents posés sont ceux du régime 8 : la méthode, le f
+ROUGE R4 architecte § 8 : `depuis` écrit avant l’ouverture de la PR de repose (0 s) — l'architecte en régime 8 : le Relecteur lancé et relevé, l'a
+ROUGE R5 regime-7.md : la fille d’un ticket Label: contre-revue livre de nouveau avec à-fusionner (1 s) — regime-7.md garde ce qui ne vaut qu'en régime 7, et les skil
+ROUGE R6 chantier § 6.5 : le conducteur pose à-fusionner sur une PR sans étiquette (0 s) — le conducteur en régime 8 : il ne contre-relit pas, arbitre,
+ROUGE R7 fusionner, Le verdict : une lecture illisible devient un renvoi (1 s) — le capitaine en régime 8 : « Le verdict », la sous-PR sautée
+ROUGE R8 settings-json : le motif de create_session sans ancre de fin (1 s) — régime 8 : une entrée allow qui pré-approuve create_session 
+ROUGE R9 settings-json : une clé relecture à null lue absente (du côté non sûr) (1 s) — le gate lit la clé relecture de .claude/chaine.json : présen
+ROUGE R10 chantier § 3 : la PR de cadrage reçoit de nouveau à-fusionner en régime 8 (0 s) — le conducteur en régime 8 : il ne contre-relit pas, arbitre,
+ROUGE R11 réveil de secours : le cas fusion-bloquée vaut de nouveau avec à-relire (0 s) — les documents posés sont ceux du régime 8 : la méthode, le f
+ROUGE R12 chantier § 0 : la pose du socle sans chaîne n’est plus dite en régime 7 (0 s) — le conducteur en régime 8 : il ne contre-relit pas, arbitre,
+ROUGE R13 chantier § 6.5 : le plafond de contexte d’une session de relecture n’est plus noté (0 s) — le conducteur en régime 8 : il ne contre-relit pas, arbitre,
+66 rouges sur 66 jouées, 68 dans le fichier
+2 mutation(s) non rouge(s)
+sortie 1

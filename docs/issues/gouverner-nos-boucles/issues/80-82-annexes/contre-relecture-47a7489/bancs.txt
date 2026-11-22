@@ -1,0 +1,15 @@
+# Les bancs du patch du lot 6 rejoués au § 1 du ticket 80, sur 97d17e3 (rouges avant), puis au sommet 47a7489 (verts après), 2026-11-22, Node 22.23.5
+## avant (97d17e3 + les *.test.mjs de lot-6.patch)
+scripts/bascule.test.mjs # tests 9 # pass 0 # fail 9
+scripts/depot.test.mjs # tests 69 # pass 65 # fail 4
+scripts/veille-du-capitaine.test.mjs # tests 4 # pass 2 # fail 2
+skills/chaine/tickets/references/scripts/docs/avancement.test.mjs # tests 9 # pass 8 # fail 1
+skills/chaine/socle-chaine-de-production/references/scripts/verify/settings-json.test.mjs # tests 24 # pass 22 # fail 2
+## après (47a7489)
+les cinq : 9/9, 69/69, 4/4, 9/9, 24/24 (115 sur 115)
+
+# Les bancs de retouches-tour-1.patch, posés seuls sur 47a7489 (rouges avant les retouches)
+scripts/bascule.test.mjs # tests 9 # pass 3 # fail 6 
+scripts/veille-du-capitaine.test.mjs # tests 4 # pass 3 # fail 1 
+skills/chaine/tickets/references/scripts/docs/avancement.test.mjs # tests 9 # pass 8 # fail 1 
+## après (47a7489 + retouches-tour-1.patch) : bascule 9/9, depot 69/69, veille-du-capitaine 4/4, avancement 9/9, settings-json 24/24
