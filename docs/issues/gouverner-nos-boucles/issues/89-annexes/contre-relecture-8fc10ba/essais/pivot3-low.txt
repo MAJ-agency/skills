@@ -1,0 +1,37 @@
+== point 1 : pnpm add -Dw @maj-agency/anchorpost@^2.0.2
++ @maj-agency/anchorpost 2.0.2
+2.0.2
+== point 1 : pnpm anchorpost:index
+  alerte docs/methode/nomenclature.md : Le domaine « TST » (par exemple RULE_ALL_TST-1) n'a pas de nom : l'ajouter au registre des trigrammes.
+  alerte docs/metier/regles/all/RULE_ALL_TST-1.md : Familles de cas sans réponse : limits, empty, invalid-input, duplicate, ordering, time, permissions, rare-state, volume, failure. Pour chacune, déclarer un cas qui la porte (`family`), ou la déclarer sans objet avec sa raison (`notApplicableFamilies`).
+  alerte docs/metier/regles/all/RULE_ALL_TST-1.md : La règle a des preuves mais son `code` est vide : nommer les chemins du code qu'elle gouverne.
+  alerte docs/metier/regles/all/RULE_ALL_TST-1.md : La règle est validée mais ne déclare aucun cas : écrire ses cas attendus (`cases`), ou déclarer une exception avec sa raison.
+  alerte docs/metier/regles/demo/RULE_DEMO_TST-2.md : La règle a des preuves mais son `code` est vide : nommer les chemins du code qu'elle gouverne.
+  alerte docs/metier/regles/demo/RULE_DEMO_TST-2.md : La règle est validée mais sans criticité : lancer le skill de criticité sur la règle, ou écrire `criticality: { level, by, reason }` dans son en-tête (ou fixer une criticité sur une feature qui la déclare, `featureCriticality` du manifeste).
+sortie 0
+== point 2 sans commit : le plan, puis --apply (arbre sale)
+ M package.json
+?? anchorpost/anchorpost.json
+?? pnpm-lock.yaml
+migrate manifest : le manifeste converti n'est pas un manifeste au schéma 3 :
+  featureCriticality.0.reason : Une criticité basse sans raison est refusée : écrire la raison (`reason`).
+Rien n'a été écrit : corriger le manifeste, puis relancer.
+sortie plan 2
+migrate manifest : le manifeste converti n'est pas un manifeste au schéma 3 :
+  featureCriticality.0.reason : Une criticité basse sans raison est refusée : écrire la raison (`reason`).
+Rien n'a été écrit : corriger le manifeste, puis relancer.
+sortie apply 2
+== Commiter, puis le plan et --apply
+migrate manifest : le manifeste converti n'est pas un manifeste au schéma 3 :
+  featureCriticality.0.reason : Une criticité basse sans raison est refusée : écrire la raison (`reason`).
+Rien n'a été écrit : corriger le manifeste, puis relancer.
+sortie plan 2
+migrate manifest : le manifeste converti n'est pas un manifeste au schéma 3 :
+  featureCriticality.0.reason : Une criticité basse sans raison est refusée : écrire la raison (`reason`).
+Rien n'a été écrit : corriger le manifeste, puis relancer.
+sortie apply 2
+== migrate manifest --check
+migrate manifest : le manifeste converti n'est pas un manifeste au schéma 3 :
+  featureCriticality.0.reason : Une criticité basse sans raison est refusée : écrire la raison (`reason`).
+Rien n'a été écrit : corriger le manifeste, puis relancer.
+sortie 2

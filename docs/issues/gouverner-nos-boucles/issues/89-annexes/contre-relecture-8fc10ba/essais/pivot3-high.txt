@@ -1,0 +1,102 @@
+== point 1 : pnpm add -Dw @maj-agency/anchorpost@^2.0.2
++ @maj-agency/anchorpost 2.0.2
+2.0.2
+== point 1 : pnpm anchorpost:index
+  alerte docs/methode/nomenclature.md : Le domaine « TST » (par exemple RULE_ALL_TST-1) n'a pas de nom : l'ajouter au registre des trigrammes.
+  alerte docs/metier/regles/all/RULE_ALL_TST-1.md : Familles de cas sans réponse : limits, empty, invalid-input, duplicate, ordering, time, permissions, rare-state, volume, failure. Pour chacune, déclarer un cas qui la porte (`family`), ou la déclarer sans objet avec sa raison (`notApplicableFamilies`).
+  alerte docs/metier/regles/all/RULE_ALL_TST-1.md : La règle a des preuves mais son `code` est vide : nommer les chemins du code qu'elle gouverne.
+  alerte docs/metier/regles/all/RULE_ALL_TST-1.md : La règle est validée mais ne déclare aucun cas : écrire ses cas attendus (`cases`), ou déclarer une exception avec sa raison.
+  alerte docs/metier/regles/demo/RULE_DEMO_TST-2.md : La règle a des preuves mais son `code` est vide : nommer les chemins du code qu'elle gouverne.
+  alerte docs/metier/regles/demo/RULE_DEMO_TST-2.md : La règle est validée mais sans criticité : lancer le skill de criticité sur la règle, ou écrire `criticality: { level, by, reason }` dans son en-tête (ou fixer une criticité sur une feature qui la déclare, `featureCriticality` du manifeste).
+sortie 0
+== point 2 sans commit : le plan, puis --apply (arbre sale)
+ M package.json
+?? anchorpost/anchorpost.json
+?? pnpm-lock.yaml
+migrate manifest (dry-run : rien n'est écrit)
+
+Manifeste : schéma 2 écrit au schéma 3 (anchorpost/manifest.json).
+  sufficiency : observe (ajouté, la valeur que la CLI lisait)
+  featureCriticality : 1 entrée(s), `validation` écrite `by` et `date`
+
+Plancher à relire : on peut le relever d'après la mesure de `anchorpost index` ; il ne se baisse que par une personne.
+  contexte all : `proven: 1` écrit `proven: 0, partial: 1`, comme la CLI le lisait ; il ne garde plus les règles prouvées.
+
+Dry-run : relancer avec `--apply` pour écrire.
+sortie plan 0
+migrate --apply refuse un arbre git qui n'est pas propre : commiter ou remiser d'abord.
+sortie apply 2
+== Commiter, puis le plan et --apply
+migrate manifest (dry-run : rien n'est écrit)
+
+Manifeste : schéma 2 écrit au schéma 3 (anchorpost/manifest.json).
+  sufficiency : observe (ajouté, la valeur que la CLI lisait)
+  featureCriticality : 1 entrée(s), `validation` écrite `by` et `date`
+
+Plancher à relire : on peut le relever d'après la mesure de `anchorpost index` ; il ne se baisse que par une personne.
+  contexte all : `proven: 1` écrit `proven: 0, partial: 1`, comme la CLI le lisait ; il ne garde plus les règles prouvées.
+
+Dry-run : relancer avec `--apply` pour écrire.
+sortie plan 0
+migrate manifest --apply
+
+Manifeste : schéma 2 écrit au schéma 3 (anchorpost/manifest.json).
+  sufficiency : observe (ajouté, la valeur que la CLI lisait)
+  featureCriticality : 1 entrée(s), `validation` écrite `by` et `date`
+
+Plancher à relire : on peut le relever d'après la mesure de `anchorpost index` ; il ne se baisse que par une personne.
+  contexte all : `proven: 1` écrit `proven: 0, partial: 1`, comme la CLI le lisait ; il ne garde plus les règles prouvées.
+
+Écrit. Relire au `git diff`, relire le plancher, puis commiter.
+sortie apply 0
+ M anchorpost/manifest.json
+diff --git a/anchorpost/manifest.json b/anchorpost/manifest.json
+index ea3cca9..7773191 100644
+--- a/anchorpost/manifest.json
++++ b/anchorpost/manifest.json
+@@ -1,13 +1,36 @@
+ {
+-  "schema": "2",
++  "schema": "3",
+   "name": "Essai",
+   "pitch": "Un essai.",
+-  "audiences": ["MOA"],
++  "audiences": [
++    "MOA"
++  ],
+   "contexts": [
+-    { "id": "all", "name": "Socle", "floor": { "date": "2026-11-01", "proven": 1 } },
+-    { "id": "demo", "name": "Démo" }
++    {
++      "id": "all",
++      "name": "Socle",
++      "floor": {
++        "date": "2026-11-01",
++        "proven": 0,
++        "partial": 1
++      }
++    },
++    {
++      "id": "demo",
++      "name": "Démo"
++    }
+   ],
+   "documents": [],
+-  "roles": { "Alice": "MOA" },
+-  "featureCriticality": [{ "feature": "SPEC_ALL_TST-3", "level": "high", "validation": { "date": "2026-11-10", "by": "Alice" } }]
++  "roles": {
++    "Alice": "MOA"
++  },
++  "featureCriticality": [
++    {
++      "feature": "SPEC_ALL_TST-3",
++      "level": "high",
++      "by": "Alice",
++      "date": "2026-11-10"
++    }
++  ],
++  "sufficiency": "observe"
+ }
+== migrate manifest --check
+Le manifeste (anchorpost/manifest.json) est déjà au schéma 3 : rien à écrire.
+sortie 0

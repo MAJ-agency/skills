@@ -1,0 +1,18 @@
+== init sur manifeste 2 bas, code de sortie
+sortie init 0 (relevé faux : arbre déjà au schéma 3 à ce moment ; rejoué sur le manifeste 2 bas : voir la fin)
+ M anchorpost/manifest.json
+ M package.json
+?? scripts/
+== code de l'alerte du schéma 2
+f0dfcc4 pivot 3 à la main
+70b1c07 CLI 2
+621a8b2 pivot 2
+[]
+2.0.0 puis @^2 : 2.0.0 ; migrate manifest : Usage : anchorpost migrate <rules-json|markdown-table|identifiers|epics> [racine] [--context <ctx>] [--apply] [--check] [--keep-source] [--write-resolutions] [--wrap-only]
+   puis @^2.0.2 : 2.0.2
+2.0.1 puis @^2 : 2.0.1 ; migrate manifest : Usage : anchorpost migrate <rules-json|markdown-table|identifiers|epics> [racine] [--context <ctx>] [--apply] [--check] [--keep-source] [--write-resolutions] [--wrap-only]
+   puis @^2.0.2 : 2.0.2
+== init (sans --force), 2.0.2, sur le manifeste 2 à la feature basse (commit « CLI 2 »)
+Init refusé, rien n'est écrit :
+  anchorpost/manifest.json : featureCriticality.0.reason : Une criticité basse sans raison est refusée : écrire la raison (`reason`).
+sortie init 2 ; git status vide

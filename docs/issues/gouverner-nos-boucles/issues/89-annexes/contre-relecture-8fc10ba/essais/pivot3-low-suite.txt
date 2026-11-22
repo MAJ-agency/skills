@@ -1,0 +1,31 @@
+== point 1 : pnpm anchorpost:index
+  alerte docs/metier/regles/all/RULE_ALL_TST-1.md : La règle est validée mais ne déclare aucun cas : écrire ses cas attendus (`cases`), ou déclarer une exception avec sa raison.
+  alerte docs/metier/regles/demo/RULE_DEMO_TST-2.md : La règle est validée mais sans criticité : lancer le skill de criticité sur la règle, ou écrire `criticality: { level, by, reason }` dans son en-tête (ou fixer une criticité sur une feature qui la déclare, `featureCriticality` du manifeste).
+sortie 0
+== point 2 sans commit : le plan, puis --apply (arbre sale)
+== init (sans --force), 2.0.2 (sortie de tail, pas d init : voir init-et-garde.txt)
+Init refusé, rien n'est écrit :
+  anchorpost/manifest.json : featureCriticality.0.reason : Une criticité basse sans raison est refusée : écrire la raison (`reason`).
+sortie 0
+== reason ajoutée dans le manifeste 2, puis migrate manifest
+migrate manifest : le schéma 3 ne porterait pas ces clés du manifeste, elles seraient perdues :
+  featureCriticality.0.reason
+Rien n'a été écrit : corriger ou retirer chaque clé, puis relancer.
+sortie 2
+  alerte anchorpost/manifest.json : 1 règle(s) ont des preuves mais aucun cas attendu ni aucune criticité : au pivot 3, leurs preuves ne les rendent que partielles. Fixer leur criticité et leurs cas avec le skill `criticite` (`/maj-skills:criticite`), règle par règle.
+  alerte anchorpost/manifest.json : Le manifeste est au schéma 2 : cette CLI le lit converti au schéma 3, sans rien écrire. Le passer au schéma 3 : `anchorpost migrate manifest`, puis relire le plancher.
+  alerte anchorpost/manifest.json : Le plancher du contexte all est écrit au schéma 2 (`proven: 1`) : cette CLI le relit `partial: 1` et `proven: 0`, car une règle prouvée au schéma 2 n'a aucun cas déclaré. Il ne garde plus les règles prouvées : passer le manifeste au schéma 3, puis le plancher est à relire : on peut le relever (`floor.proven`, `floor.partial`) d'après la mesure de `anchorpost index` ; il ne se baisse que par une personne.
+check 0
+== à la main au schéma 3, aux mêmes conversions, avec la reason
+Le manifeste (anchorpost/manifest.json) est déjà au schéma 3 : rien à écrire.
+index 0
+
+Sources et index conformes. Fiabilité : 0 erreur(s), 8 avertissement(s).
+  alerte anchorpost/manifest.json : 1 règle(s) ont des preuves mais aucun cas attendu ni aucune criticité : au pivot 3, leurs preuves ne les rendent que partielles. Fixer leur criticité et leurs cas avec le skill `criticite` (`/maj-skills:criticite`), règle par règle.
+check 0
+## Écarts (0) — mode observe (base de fusion : observe, sommet de la base : observe, tête : observe)
+
+Aucun écart.
+compare 0
+RULE_ALL_TST-1 {"by":"Alice","features":["SPEC_ALL_TST-3"],"level":"low","origin":"feature"} partial
+RULE_DEMO_TST-2 null partial

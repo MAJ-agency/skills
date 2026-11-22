@@ -1,0 +1,62 @@
+diff --git a/scripts/preuve-suffisante-anchorpost.test.mjs b/scripts/preuve-suffisante-anchorpost.test.mjs
+index f9d90dc..962b5ae 100644
+--- a/scripts/preuve-suffisante-anchorpost.test.mjs
++++ b/scripts/preuve-suffisante-anchorpost.test.mjs
+@@ -50,6 +50,14 @@ test("le skill anchorpost suit la CLI 2.0.0 : manifeste au schéma 3, CLI publiq
+     "Puis, à la main, le plancher relevé d'après la mesure du jour, avec une date nouvelle et la personne qui le pose (`floor { date, by, proven, partial }`)",
+     "une PR où une personne écrit `\"sufficiency\": \"enforce\"`.",
+   ]);
++  // Le passage par `migrate manifest` (A-213, question 1), en sa substance : l'arbre propre, ce que la commande écrit et refuse, la raison d'une feature basse.
++  exiger(`${ANCHORPOST}/SKILL.md`, [
++    "Commiter : la commande suivante exige un arbre propre.",
++    ": la commande que nomme l'alerte `manifest-schema-old`.",
++    "sa date gardée, jamais re-mesuré",
++    "elle refuse, sans rien écrire, une clé que le schéma 3 perdrait",
++    "la commande la refuse, et `init` aussi ; le manifeste se réécrit alors au schéma 3 à la main, aux mêmes conversions, avec la `reason` que donne la personne nommée par `by` : une session ne l'écrit pas à sa place, elle la demande dans sa PR.",
++  ]);
+   exiger(`${ANCHORPOST}/references/fragments/admin.md`, [
+     "- [ ] **Le passage à `enforce`** de la preuve suffisante est une décision du produit : la personne écrit `\"sufficiency\": \"enforce\"` dans le manifeste, par une PR.",
+   ]);
+@@ -58,6 +66,7 @@ test("le skill anchorpost suit la CLI 2.0.0 : manifeste au schéma 3, CLI publiq
+     "- **Reposer la fiche** `.claude/rules/anchorpost.md`, dans un dépôt au pivot 3 (un dépôt au schéma 2 la repose au point 4 de « Passer au pivot 3 »)",
+     "et ajouter `anchorpost/manifest.json` aux `cheminsSensibles` de `.claude/chaine.json` (étape 4, point 5)",
+     "retire d'abord de `.npmrc` les lignes `@maj-agency:registry=…` et `…_authToken=…`, puis installe la CLI",
++    "la CLI (≥ 2.0.2), `anchorpost migrate manifest` qui écrit le manifeste au schéma 3 tel que la CLI le lit déjà",
+   ]);
+ });
+ 
+@@ -78,6 +87,8 @@ test("la fiche anchorpost dit comment écrire une criticité, un cas, une étiqu
+     "En `observe`, ce sont des avertissements et la commande sort 0 ; en `enforce`, elle sort 1.",
+     "Un ticket qui prouve une règle sans la réaliser la nomme sur `Prouve:`, jamais sur `Règles:`",
+     "une règle est « prouvée » quand elle déclare un cas `nominal`, que chacun de ses cas l'est et, dès `medium`, que chacune des dix familles a sa réponse",
++    "un cas qui la porte (un cas `invalid` répond à `invalid-input`), ce « sans objet » motivé, ou une question ouverte dont la ligne `Bloque :` nomme la règle, qui la laisse « partielle ».",
++    "« partielle » quand elle a une preuve sans l'être (un cas sans preuve au niveau exigé, que `realisation.cases` compte ; aucun cas déclaré ; pas de cas `nominal` ou une famille sans réponse, que `realisation.missing` nomme).",
+   ]);
+   const lignesFiche = readFileSync(join(RACINE, FICHE_ANCHORPOST), "utf8").split("\n").length;
+   assert.ok(lignesFiche < 200, `${FICHE_ANCHORPOST} : ${lignesFiche} lignes, moins de deux cents (budget-contexte)`);
+diff --git a/skills/chaine/anchorpost/SKILL.md b/skills/chaine/anchorpost/SKILL.md
+index fec2c4d..b3201cc 100644
+--- a/skills/chaine/anchorpost/SKILL.md
++++ b/skills/chaine/anchorpost/SKILL.md
+@@ -110,7 +110,7 @@ Ajouter la section de [`references/fragments/admin.md`](references/fragments/adm
+ Un dépôt branché avant la CLI 2.0.0 a un manifeste et un index au schéma 2 ; la CLI 2.0.x lit le manifeste 2 converti, sans rien écrire, et le signale (`manifest-schema-old`). Le passage, par une PR relue (le manifeste est un chemin sensible), dans cet ordre :
+ 
+ 1. Les deux lignes de GitHub Packages retirées de `.npmrc` s'il les porte (étape 1, point 1), puis `pnpm add -Dw @maj-agency/anchorpost@^2.0.2` (`migrate manifest` est de la 2.0.2 ; `@^2` seul garde une 2.0.0 ou une 2.0.1 déjà installée), puis `pnpm anchorpost:index` : l'index passe au schéma `"3"` ; une règle qui avait des preuves y sort « partielle » tant que ses cas ne sont pas écrits. Commiter : la commande suivante exige un arbre propre.
+-2. `pnpm exec anchorpost migrate manifest` (le plan, rien n'est écrit), puis `pnpm exec anchorpost migrate manifest --apply` : la commande que nomme l'alerte `manifest-schema-old`. Elle écrit le manifeste au schéma `"3"` tel que la CLI le lisait déjà, et rien d'autre : `"sufficiency": "observe"` posé, chaque plancher converti (`proven: N` devient `{ proven: 0, partial: N }`, sa date gardée, jamais re-mesuré), chaque entrée `featureCriticality` d'une version 2 écrite `{ feature, level, by, date }` ; elle refuse, sans rien écrire, une clé que le schéma 3 perdrait. Une entrée `featureCriticality` basse d'une version 2 n'a pas de raison : la commande la refuse, et `init` aussi ; le manifeste se réécrit alors au schéma 3 à la main, aux mêmes conversions, avec la `reason`. Jamais `init --force`. Puis, à la main, le plancher relevé d'après la mesure du jour, avec une date nouvelle et la personne qui le pose (`floor { date, by, proven, partial }`). Puis `pnpm anchorpost:index` et `pnpm anchorpost:check`, verts.
++2. `pnpm exec anchorpost migrate manifest` (le plan, rien n'est écrit), puis `pnpm exec anchorpost migrate manifest --apply` : la commande que nomme l'alerte `manifest-schema-old`. Elle écrit le manifeste au schéma `"3"` tel que la CLI le lisait déjà, et rien d'autre : `"sufficiency": "observe"` posé, chaque plancher converti (`proven: N` devient `{ proven: 0, partial: N }`, sa date gardée, jamais re-mesuré), chaque entrée `featureCriticality` d'une version 2 écrite `{ feature, level, by, date }` ; elle refuse, sans rien écrire, une clé que le schéma 3 perdrait. Une entrée `featureCriticality` basse d'une version 2 n'a pas de raison : la commande la refuse, et `init` aussi ; le manifeste se réécrit alors au schéma 3 à la main, aux mêmes conversions, avec la `reason` que donne la personne nommée par `by` : une session ne l'écrit pas à sa place, elle la demande dans sa PR. Jamais `init --force`. Puis, à la main, le plancher relevé d'après la mesure du jour, avec une date nouvelle et la personne qui le pose (`floor { date, by, proven, partial }`). Puis `pnpm anchorpost:index` et `pnpm anchorpost:check`, verts.
+ 3. Chaque règle sans criticité ni cas (l'alerte de projet de l'index compte celles qui ont des preuves ; les autres ont chacune leur alerte, « sans criticité » ou « aucun cas ») se classe par le skill `criticite`, une règle à la fois, avant tout code qui la touche : c'est là que la repose relance le skill. `code` se renseigne sur les règles qui ont des preuves.
+ 4. La repose des skills qui lisent le pivot 3 : `tickets` (la ligne `Prouve:` et la preuve suffisante d'un ticket prêt), `socle-tests` (le gate `preuves`, la mutation des règles `proven` et `partial`), `revue-de-ticket`, et cette fiche.
+ 5. Le passage à `enforce` est une décision du produit, projet par projet : une PR où une personne écrit `"sufficiency": "enforce"`.
+diff --git a/skills/chaine/anchorpost/references/rules/anchorpost.md b/skills/chaine/anchorpost/references/rules/anchorpost.md
+index e7f4f9b..ba5574c 100644
+--- a/skills/chaine/anchorpost/references/rules/anchorpost.md
++++ b/skills/chaine/anchorpost/references/rules/anchorpost.md
+@@ -42,7 +42,7 @@ Une règle dit ce que le logiciel permet, exige, calcule ou refuse. Une fonction
+ 
+ Un test qui prouve une règle porte son identifiant entre crochets en tête de son nom : `it('[RULE_ALL_LIC-3] refuse …')`. Plusieurs étiquettes se juxtaposent ; une étiquette sur un `describe` vaut pour ses tests. Jamais d'étiquette sur un test qui ne prouve pas la règle, jamais sur un test de recette. La catégorie et le niveau de la preuve viennent du chemin et du suffixe du fichier (`.claude/rules/tests.md`).
+ 
+-**Un test qui prouve un cas le nomme après un `#`** : `it('[RULE_ALL_LIC-3#lien-expire] refuse un lien expiré')` ; dans un fichier `cas/*.json`, une entrée porte `cas`, l'identifiant du cas. L'étiquette sans `#` prouve la règle sans prouver aucun cas ; une étiquette qui nomme un cas que la règle ne déclare pas est refusée par `anchorpost check`. Un cas est prouvé quand une preuve porte son étiquette au niveau qu'exige la criticité (grille de `.claude/rules/tests.md`) ; une règle est « prouvée » quand elle déclare un cas `nominal`, que chacun de ses cas l'est et, dès `medium`, que chacune des dix familles a sa réponse ; « partielle » quand elle a une preuve sans l'être (un cas sans preuve, aucun cas déclaré, pas de cas `nominal`, une famille sans réponse : `realisation.missing` de l'index le dit).
++**Un test qui prouve un cas le nomme après un `#`** : `it('[RULE_ALL_LIC-3#lien-expire] refuse un lien expiré')` ; dans un fichier `cas/*.json`, une entrée porte `cas`, l'identifiant du cas. L'étiquette sans `#` prouve la règle sans prouver aucun cas ; une étiquette qui nomme un cas que la règle ne déclare pas est refusée par `anchorpost check`. Un cas est prouvé quand une preuve porte son étiquette au niveau qu'exige la criticité (grille de `.claude/rules/tests.md`) ; une règle est « prouvée » quand elle déclare un cas `nominal`, que chacun de ses cas l'est et, dès `medium`, que chacune des dix familles a sa réponse ; « partielle » quand elle a une preuve sans l'être (un cas sans preuve au niveau exigé, que `realisation.cases` compte ; aucun cas déclaré ; pas de cas `nominal` ou une famille sans réponse, que `realisation.missing` nomme).
+ 
+ ## Ce que dit `anchorpost compare`
+ 

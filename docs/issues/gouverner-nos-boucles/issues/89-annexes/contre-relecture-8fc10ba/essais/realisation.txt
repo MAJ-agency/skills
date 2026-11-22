@@ -1,0 +1,10 @@
+2.0.2
+index 0
+RULE_ALL_TST-1 low partial {"nominal":true}
+RULE_ALL_TST-2 low proven {}
+RULE_ALL_TST-3 medium partial {"families":["limits","empty","invalid-input","duplicate","ordering","time","permissions","rare-state","volume","failure"]}
+RULE_ALL_TST-4 medium proven {}
+RULE_ALL_TST-5 medium partial {}
+RULE_ALL_TST-6 medium partial {"families":["volume"]}
+RULE_ALL_TST-7 medium partial {"families":["volume"]}
+Sources et index conformes. Fiabilité : 0 erreur(s), 21 avertissement(s).

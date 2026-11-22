@@ -1,0 +1,28 @@
+INTROUVABLE C1 SKILL pivot-3 : init avec --force
+ROUGE C2 SKILL étape 4 : le manifeste hors de cheminsSensibles — le skill anchorpost suit la CLI 2.0.0 : manifeste au schéma 
+ROUGE C3 fiche : une règle sans criticité est basse — la fiche anchorpost dit comment écrire une criticité, un cas
+ROUGE C4 fiche : le plus bas des deux niveaux — la fiche anchorpost dit comment écrire une criticité, un cas
+ROUGE C5 fiche : la raison obligatoire pour high — la fiche anchorpost dit comment écrire une criticité, un cas
+ROUGE C6 fiche : les portées inversées — la fiche anchorpost dit comment écrire une criticité, un cas
+ROUGE C7 fiche : une étiquette de cas inconnue tolérée — la fiche anchorpost dit comment écrire une criticité, un cas
+ROUGE C8 fiche : un agent peut baisser — la fiche anchorpost dit comment écrire une criticité, un cas
+ROUGE C9 fiche : la criticité d'une feature descend par Prouve: — la fiche anchorpost dit comment écrire une criticité, un cas
+ROUGE C10 fiche : le manifeste plus sensible — la fiche anchorpost dit comment écrire une criticité, un cas
+ROUGE C11 admin.md : enforce écrit par un agent — le skill anchorpost suit la CLI 2.0.0 : manifeste au schéma 
+ROUGE C12 SKILL pivot-3 : enforce posé par la session — le skill anchorpost suit la CLI 2.0.0 : manifeste au schéma 
+ROUGE C13 note 8.3.0 : sans cheminsSensibles — le skill anchorpost suit la CLI 2.0.0 : manifeste au schéma 
+ROUGE C14 note 8.3.0 : installer avant de retirer — le skill anchorpost suit la CLI 2.0.0 : manifeste au schéma 
+ROUGE C15 SKILL pivot-3 : le plancher baissé à la main — le skill anchorpost suit la CLI 2.0.0 : manifeste au schéma 
+ROUGE C16 manifeste : enforce d'office — le skill anchorpost suit la CLI 2.0.0 : manifeste au schéma 
+INTROUVABLE C17 fiche : prouvée sans qu'un cas manque
+ROUGE C18 SKILL check : enforce sans refus de criticité — le skill anchorpost suit la CLI 2.0.0 : manifeste au schéma 
+ROUGE C19 SKILL pivot-3 : init revient au point 2 — le skill anchorpost suit la CLI 2.0.0 : manifeste au schéma 
+ROUGE C20 SKILL pivot-3 : init --force permis — le skill anchorpost suit la CLI 2.0.0 : manifeste au schéma 
+ROUGE C21 SKILL pivot-3 : @^2 seul — le skill anchorpost suit la CLI 2.0.0 : manifeste au schéma 
+ROUGE C22 fiche : prouvée sans cas nominal — la fiche anchorpost dit comment écrire une criticité, un cas
+ROUGE C23 fiche : prouvée sans les familles — la fiche anchorpost dit comment écrire une criticité, un cas
+ROUGE C24 fiche : la liste des écarts close — la fiche anchorpost dit comment écrire une criticité, un cas
+ROUGE C25 SKILL pivot-3 : l'alerte compte toutes les règles — le skill anchorpost suit la CLI 2.0.0 : manifeste au schéma 
+ROUGE C26 note : reposer la fiche partout — le skill anchorpost suit la CLI 2.0.0 : manifeste au schéma 
+ROUGE C27 SKILL l. 82 : sans migrate manifest — le skill anchorpost suit la CLI 2.0.0 : manifeste au schéma 
+ROUGE C28 manifeste : le commentaire d'avant — le skill anchorpost suit la CLI 2.0.0 : manifeste au schéma 

@@ -1,0 +1,66 @@
+== index au point 1 (commit CLI 2) : règles et alertes de projet
+schema 3
+RULE_ALL_TST-1 partial {"families":["limits","empty","invalid-input","duplicate","ordering","time","permissions","rare-state","volume","failure"],"nominal":true}
+RULE_DEMO_TST-2 partial {"nominal":true}
+[
+  'contexts',  'defects',
+  'documents', 'domains',
+  'epics',     'features',
+  'glossary',  'health',
+  'people',    'project',
+  'requests',  'rules',
+  'schema'
+]
+== après --apply, sans rien d autre : index puis check
+index 0
+
+Sources et index conformes. Fiabilité : 0 erreur(s), 8 avertissement(s).
+  alerte anchorpost/manifest.json : 1 règle(s) ont des preuves mais aucun cas attendu ni aucune criticité : au pivot 3, leurs preuves ne les rendent que partielles. Fixer leur criticité et leurs cas avec le skill `criticite` (`/maj-skills:criticite`), règle par règle.
+check 0
+ M anchorpost/anchorpost.json
+ M anchorpost/manifest.json
+== le plancher relevé à la main, avec by (Alice) et une date nouvelle
+index 0
+
+Sources et index conformes. Fiabilité : 0 erreur(s), 8 avertissement(s).
+  alerte anchorpost/manifest.json : 1 règle(s) ont des preuves mais aucun cas attendu ni aucune criticité : au pivot 3, leurs preuves ne les rendent que partielles. Fixer leur criticité et leurs cas avec le skill `criticite` (`/maj-skills:criticite`), règle par règle.
+check 0
+== compare --base HEAD~1
+## Changements
+
+| Objet | Ajouté | Retiré | Modifié |
+| --- | --- | --- | --- |
+| Règles | — | — | — |
+| Cas | — | — | — |
+| Criticité de feature | — | — | — |
+
+## Fichiers de code des règles hautes touchées
+
+Aucun.
+
+## Écarts (0) — mode observe (base de fusion : observe, sommet de la base : observe, tête : observe)
+
+Aucun écart.
+sortie compare 0
+== compare --base HEAD~2 (avant la CLI 2)
+
+## Fichiers de code des règles hautes touchées
+
+Aucun.
+
+## Écarts (0) — mode observe (base de fusion : observe, sommet de la base : observe, tête : observe)
+
+Aucun écart.
+sortie 0
+== plancher avec by hors de roles
+Groupe 9 — index absent ou périmé : 1 erreur(s).
+  anchorpost/anchorpost.json — L'index est périmé : lancer `pnpm anchorpost index`, puis commiter le fichier (RULE_ALL_ANC-20).
+ ELIFECYCLE  Command failed with exit code 1.
+check 1
+  alerte docs/metier/regles/demo/RULE_DEMO_TST-2.md : La règle est validée mais sans criticité : lancer le skill de criticité sur la règle, ou écrire `criticality: { level, by, reason }` dans son en-tête (ou fixer une criticité sur une feature qui la déclare, `featureCriticality` du manifeste).
+
+Sources et index conformes. Fiabilité : 0 erreur(s), 8 avertissement(s).
+  alerte anchorpost/manifest.json : 1 règle(s) ont des preuves mais aucun cas attendu ni aucune criticité : au pivot 3, leurs preuves ne les rendent que partielles. Fixer leur criticité et leurs cas avec le skill `criticite` (`/maj-skills:criticite`), règle par règle.
+== plancher sans by
+Sources et index conformes. Fiabilité : 0 erreur(s), 8 avertissement(s).
+  alerte anchorpost/manifest.json : 1 règle(s) ont des preuves mais aucun cas attendu ni aucune criticité : au pivot 3, leurs preuves ne les rendent que partielles. Fixer leur criticité et leurs cas avec le skill `criticite` (`/maj-skills:criticite`), règle par règle.

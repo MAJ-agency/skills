@@ -1,0 +1,12 @@
+VERTE D1 note : le pivot 3 revient à init
+VERTE D2 note : sans le plancher 2.0.2
+VERTE D3 SKILL pivot-3 : sans « Commiter »
+VERTE D4 SKILL pivot-3 : la reason ajoutée au manifeste 2
+VERTE D5 SKILL pivot-3 : le plancher re-mesuré
+VERTE D6 SKILL pivot-3 : une clé perdue sans refus
+VERTE D7 fiche : la question ouverte rend prouvée
+VERTE D8 fiche : un cas refusal répond à invalid-input
+VERTE D9 fiche : partielle sans le cas nominal
+ROUGE D10 manifeste : « dès high »
+ROUGE D11 SKILL pivot-3 : la commande que nomme l'alerte, retirée
+ROUGE D11 SKILL pivot-3 : la commande que nomme l'alerte, retirée
