@@ -1,0 +1,6 @@
+VERTE X1 sujet.sh fusionner : une tête sans dépôt (fourche supprimée) passe pour une tête du dépôt (8 s)
+VERTE X2 sujet.sh relancer : une tête sans dépôt (fourche supprimée) passe pour une tête du dépôt (8 s)
+VERTE X3 sujet.sh fusionner : la garde de fourche ne joue qu'en régime 8 (9 s)
+VERTE X4 sujet.sh fusionner : la revue rejouée toujours sur la liste du régime 8 (9 s)
+4 mutation(s) non rouge(s)
+sortie 1

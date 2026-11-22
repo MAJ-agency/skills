@@ -1,0 +1,29 @@
+== accord-retire.test.mjs (tour 1), ARBRE = 4afd6e2
+warning: You appear to have cloned an empty repository.
+# develop local en retard : sortie 2 scripts/agent/garde.mjs : d'abord, relire les copies du ticket (origin/develop n'est pas au sommet d'origin) : `git fetch --prune origin '+refs/heads/develop:re
+# develop relu : sortie 2 scripts/agent/garde.mjs : chemin sensible (`cheminsSensibles`) hors de la ligne `Sensibles:` du ticket de ta branche, lu
+✔ accord retiré de develop, hérité par un sujet ; develop local en retard, puis relu (457.497329ms)
+ℹ tests 1
+ℹ pass 1
+ℹ fail 0
+== fourche-relancer.test.mjs (tour 1), ARBRE = 4afd6e2
+warning: You appear to have cloned an empty repository.
+# régime 8 relancer sortie 7 : #80 : PR de fourche (autre/jouet) : sa tête vit hors du dépôt, le capitaine ne la lit pas ; sautée sans renvoi
+# régime 8 git réseau : 
+# régime 8 origin/feat/a f333f5a7 -> f333f5a7
+warning: You appear to have cloned an empty repository.
+# régime 7 relancer sortie 7 : #80 : PR de fourche (autre/jouet) : sa tête vit hors du dépôt, le capitaine ne la lit pas ; sautée sans renvoi
+# régime 7 git réseau : 
+# régime 7 origin/feat/a f9d9b1f9 -> f9d9b1f9
+warning: You appear to have cloned an empty repository.
+# boucle : [#80] #80 : PR de fourche (autre/jouet) : sa tête vit hors du dépôt, le capitaine ne la lit pas ; sautée sans renvoi
+# boucle : [#80] en passage chez un autre capitaine : sautée (aucun renvoi)
+# boucle : [sujet/lot] tenu par #80 (sortie 7 de relancer)
+# boucle : lot	2	1	#80 	—	en cours
+# boucle git réseau sur feat/a : 
+✔ régime 8 : sujet.sh relancer d'une sous-PR de fourche fetch, fusionne et pousse la branche d'origin du même nom (497.665474ms)
+✔ régime 7 : sujet.sh relancer d'une sous-PR de fourche fetch, fusionne et pousse la branche d'origin du même nom (449.173527ms)
+✔ régime 8 : boucle.sh, de bout en bout, sur une sous-PR de fourche « prête (sans CI) » (4968.82008ms)
+ℹ tests 3
+ℹ pass 3
+ℹ fail 0

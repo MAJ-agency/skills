@@ -1,0 +1,4 @@
+ 12:59:23 up  6:22,  0 user,  load average: 3.81, 5.84, 5.22
+début 12:59:23
+fin 13:03:31
+ 13:03:31 up  6:26,  0 user,  load average: 2.75, 4.38, 4.78

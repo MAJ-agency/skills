@@ -1,0 +1,16 @@
+== 8.0.0 (ddb4265)
+E1 develop absent : sortie 2 ; geste en tête : non ; scripts/agent/garde.mjs : chemin sensible (`cheminsSensibles… (Aucune ligne lue …)
+E2 sujet jamais lu : sortie 2 ; geste en tête : non ; scripts/agent/garde.mjs : chemin sensible (`cheminsSensibles… 
+✔ E1 : develop absent du clone, le ticket (accordé) sur develop seul (263.488716ms)
+✔ E2 : sujet porté par origin avec l’accord, jamais lu par le clone (develop à jour, sans accord) (325.820914ms)
+ℹ tests 2
+ℹ pass 2
+ℹ fail 0
+== la PR (4afd6e2)
+E1 develop absent : sortie 2 ; geste en tête : non ; scripts/agent/garde.mjs : chemin sensible (`cheminsSensibles… (Aucune ligne lue …)
+E2 sujet jamais lu : sortie 2 ; geste en tête : non ; scripts/agent/garde.mjs : chemin sensible (`cheminsSensibles… 
+✔ E1 : develop absent du clone, le ticket (accordé) sur develop seul (277.757178ms)
+✔ E2 : sujet porté par origin avec l’accord, jamais lu par le clone (develop à jour, sans accord) (312.860557ms)
+ℹ tests 2
+ℹ pass 2
+ℹ fail 0

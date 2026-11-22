@@ -1,0 +1,6 @@
+ROUGE X1 sujet.sh fusionner : une tête sans dépôt (fourche supprimée) passe pour une tête du dépôt (12 s) — sujet.sh fusionner : une sous-PR de fourche est sautée sans 
+ROUGE X2 sujet.sh relancer : une tête sans dépôt (fourche supprimée) passe pour une tête du dépôt (10 s) — sujet.sh relancer : une sous-PR de fourche « prête (sans CI)
+ROUGE X3 sujet.sh fusionner : la garde de fourche ne joue qu'en régime 8 (10 s) — sujet.sh fusionner : une sous-PR de fourche est sautée sans 
+VERTE X4 sujet.sh fusionner : la revue rejouée toujours sur la liste du régime 8 (9 s)
+1 mutation(s) non rouge(s)
+sortie 1

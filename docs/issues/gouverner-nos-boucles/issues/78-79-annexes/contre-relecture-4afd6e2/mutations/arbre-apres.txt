@@ -1,0 +1,4 @@
+# git status --short après les mutations
+## arbre de la PR (4afd6e2), après les annexes 78 et 79 et X1 à X4 : vide
+## arbre de la PR avec la retouche, après X1 à X4 et l'annexe 78 : la retouche seule
+ M skills/chaine/fusionner/scripts/suites-du-lot-5.test.mjs

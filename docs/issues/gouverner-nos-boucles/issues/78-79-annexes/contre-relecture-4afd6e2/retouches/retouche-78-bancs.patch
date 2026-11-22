@@ -1,0 +1,81 @@
+diff --git a/skills/chaine/fusionner/scripts/suites-du-lot-5.test.mjs b/skills/chaine/fusionner/scripts/suites-du-lot-5.test.mjs
+index 9d5c5ed..ff1470b 100644
+--- a/skills/chaine/fusionner/scripts/suites-du-lot-5.test.mjs
++++ b/skills/chaine/fusionner/scripts/suites-du-lot-5.test.mjs
+@@ -46,6 +46,13 @@ function espionReseau(d) {
+   return () => (existsSync(reseau) ? readFileSync(reseau, "utf8") : "");
+ }
+ 
++// Un `gh` qui rend la PR `n` avec `head.repo` nul, comme GitHub pour une fourche supprimée, puis répond comme le faux.
++function sansDepot(d, n) {
++  writeFileSync(join(d.racine, "sans-depot.mjs"), 'let t = "";\nprocess.stdin.on("data", (c) => (t += c)).on("end", () => {\n  const p = JSON.parse(t);\n  p.head.repo = null;\n  process.stdout.write(`${JSON.stringify(p)}\\n`);\n});\n');
++  Object.assign(d.env, { BANC_FAUX_GH: FAUX, BANC_SANS_DEPOT: join(d.racine, "sans-depot.mjs") });
++  writeFileSync(join(d.racine, "bin/gh"), `#!/bin/sh\ncase "$*" in *"-X "*) ;; *pulls/${n}) node "$BANC_FAUX_GH" "$@" | node "$BANC_SANS_DEPOT"; exit 0 ;; esac\nexec node "$BANC_FAUX_GH" "$@"\n`);
++}
++
+ test("passer.sh : une PR de fourche dont la branche porte le nom d'une branche d'origin est sautée sans renvoi (7), dans les deux régimes : rien de lu sur sa tête, rien de poussé, rien d'écrit (A-192, point 2)", () => {
+   for (const contrat of [REGIME8, REGIME7]) {
+     const d = monter(contrat);
+@@ -80,37 +87,43 @@ test("passer.sh : une PR de fourche dont la branche porte le nom d'une branche d
+   assert.match(dernier(r), /PR de fourche \(dépôt supprimé\)/);
+ });
+ 
+-test("sujet.sh fusionner : une sous-PR de fourche est sautée sans renvoi (7), avant tout fetch de sa tête (A-192, point 2)", () => {
+-  const d = monter();
+-  d.branche("sujet/lot", "origin/develop", { "docs/lot.md": "lot\n" });
+-  const sha = d.branche("feat/a", "origin/sujet/lot", { "docs/a.md": "a\n" });
+-  d.git("switch", "-q", "--detach", "origin/develop");
+-  d.github({
+-    exiges: ["qualite"],
+-    checks: { "*": { qualite: "SUCCESS" } },
+-    pulls: [{ number: 80, title: "docs(a): a", head: "feat/a", base: "sujet/lot", labels: ["à-fusionner"], fourche: "autre/jouet", commentaires: valide(sha) }],
+-  });
+-  const reseau = espionReseau(d);
+-  const r = d.lancer(SUJET, "fusionner", "80");
+-  assert.equal(r.status, 7, r.stdout + r.stderr);
+-  assert.equal(reseau(), "", "aucun fetch avant la garde");
+-  assert.match(dernier(r), /^#80 : PR de fourche \(autre\/jouet\) : sa tête vit hors du dépôt, le capitaine ne la lit pas ; sautée sans renvoi$/);
+-  assert.deepEqual(d.journal(), []);
++test("sujet.sh fusionner : une sous-PR de fourche est sautée sans renvoi (7), dans les deux régimes, avant tout fetch de sa tête ; une tête sans dépôt aussi (A-192, point 2)", () => {
++  for (const [contrat, supprimee] of [[REGIME8, false], [REGIME7, false], [REGIME8, true]]) {
++    const d = monter(contrat);
++    d.branche("sujet/lot", "origin/develop", { "docs/lot.md": "lot\n" });
++    const sha = d.branche("feat/a", "origin/sujet/lot", { "docs/a.md": "a\n" });
++    d.git("switch", "-q", "--detach", "origin/develop");
++    d.github({
++      exiges: ["qualite"],
++      checks: { "*": { qualite: "SUCCESS" } },
++      pulls: [{ number: 80, title: "docs(a): a", head: "feat/a", base: "sujet/lot", labels: ["à-fusionner"], ...(supprimee ? {} : { fourche: "autre/jouet" }), commentaires: valide(sha) }],
++    });
++    if (supprimee) sansDepot(d, 80);
++    const reseau = espionReseau(d);
++    const r = d.lancer(SUJET, "fusionner", "80");
++    const cas = `${JSON.stringify(contrat)}${supprimee ? ", dépôt supprimé" : ""}`;
++    assert.equal(r.status, 7, `${cas} : ${r.stdout}${r.stderr}`);
++    assert.equal(reseau(), "", `${cas} : aucun fetch avant la garde`);
++    assert.match(dernier(r), new RegExp(`^#80 : PR de fourche \\(${supprimee ? "dépôt supprimé" : "autre\\/jouet"}\\) : sa tête vit hors du dépôt, le capitaine ne la lit pas ; sautée sans renvoi$`), cas);
++    assert.deepEqual(d.journal(), [], cas);
++  }
+ });
+ 
+ test("sujet.sh relancer : une sous-PR de fourche « prête (sans CI) » est sautée sans renvoi (7), dans les deux régimes, avant tout fetch : la branche d'origin du même nom n'est ni fusionnée ni poussée (A-192, point 2)", () => {
+-  for (const contrat of [REGIME8, REGIME7]) {
++  for (const [contrat, supprimee] of [[REGIME8, false], [REGIME7, false], [REGIME7, true]]) {
+     const d = monter(contrat);
+     d.branche("sujet/lot", "origin/develop", { "docs/lot.md": "lot\n" });
+     // La fourche copie `feat/a` d'origin, au même sommet ; le sujet avance : la sous-PR est en retard sur lui.
+     const sha = d.branche("feat/a", "origin/sujet/lot", { "docs/a.md": "a\n" });
+     d.branche("sujet/lot", "origin/sujet/lot", { "docs/lot2.md": "lot2\n" });
+     d.git("switch", "-q", "--detach", "origin/develop");
+-    d.github({ checks: {}, pulls: [{ number: 80, title: "docs(a): a", head: "feat/a", base: "sujet/lot", labels: ["à-fusionner"], fourche: "autre/jouet", commentaires: [] }] });
++    d.github({ checks: {}, pulls: [{ number: 80, title: "docs(a): a", head: "feat/a", base: "sujet/lot", labels: ["à-fusionner"], ...(supprimee ? {} : { fourche: "autre/jouet" }), commentaires: [] }] });
++    // Une tête sans dépôt (fourche supprimée) : sautée de même.
++    if (supprimee) sansDepot(d, 80);
+     const reseau = espionReseau(d);
+     const r = d.lancer(SUJET, "relancer", "80");
+     assert.equal(r.status, 7, `${JSON.stringify(contrat)} : ${r.stdout}${r.stderr}`);
+-    assert.match(dernier(r), /^#80 : PR de fourche \(autre\/jouet\) : sa tête vit hors du dépôt, le capitaine ne la lit pas ; sautée sans renvoi$/);
++    assert.match(dernier(r), new RegExp(`^#80 : PR de fourche \\(${supprimee ? "dépôt supprimé" : "autre\\/jouet"}\\) : sa tête vit hors du dépôt, le capitaine ne la lit pas ; sautée sans renvoi$`));
+     assert.equal(reseau(), "", "aucun fetch ni push");
+     assert.equal(d.git("ls-remote", "origin", "refs/heads/feat/a").split("\t")[0], sha, "la branche d'origin du même nom n'a pas bougé");
+     assert.deepEqual(d.journal(), []);

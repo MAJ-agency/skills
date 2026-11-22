@@ -1,0 +1,21 @@
+# Suite entière, première passe : timeout 1800 pnpm test, sur 4afd6e2, en tâche de fond (setsid --wait)
+charge avant :  13:06:53 up  6:30,  0 user,  load average: 2.00, 3.11, 4.18
+début 13:06:53
+sortie 124
+fin 13:36:53
+charge après :  13:36:53 up  7:00,  0 user,  load average: 13.09, 14.30, 12.70
+tests de tête rendus avant la coupure : 726 ok, 0 not ok (sous-tests : 0 not ok)
+coupée par timeout (124) sous une charge de 13 à 17 (d'autres agents, et l'espion du régime 7 en même temps) : aucun compte final
+
+# Seconde passe : la même commande, arrêtée à la main (SIGTERM au groupe, sortie 15) : trois suites entières tournaient sur la machine (deux d'autres agents), charge 22
+charge avant :  13:52:24 up  7:15,  0 user,  load average: 12.49, 8.61, 9.55
+début 13:52:24
+sortie 15
+fin 14:03:26
+charge après :  14:03:26 up  7:26,  0 user,  load average: 22.87, 21.15, 16.13
+tests de tête rendus avant l'arrêt : 165 ok, 0 not ok
+
+# Puis, seuls, sur 4afd6e2 : node --test scripts/relecteur.test.mjs scripts/bascule.test.mjs scripts/relecture.test.mjs (les bancs qui lisent architecte/references/lancement.md et les skills du lot 6), charge 17 à 23
+# tests 58
+# pass 58
+# fail 0

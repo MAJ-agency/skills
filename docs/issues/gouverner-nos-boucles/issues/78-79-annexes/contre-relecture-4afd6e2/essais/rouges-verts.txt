@@ -1,0 +1,40 @@
+# Rouges avant, verts après, rejoués par la contre-relecture (Node 22.23.5, git 2.43.0), quatre cœurs partagés.
+## Ticket 78, § 1 : ddb4265 (8.0.0) + suites-du-lot-5.test.mjs de 4afd6e2 (charge 5,60 → 5,77)
+not ok 1 - passer.sh : une PR de fourche dont la branche porte le nom d'une branche d'origin est sautée sans renvoi (7), dans les deux régimes : rien de lu sur sa tête, rien de poussé, rien d'écrit (A-192, point 2)
+not ok 2 - sujet.sh fusionner : une sous-PR de fourche est sautée sans renvoi (7), avant tout fetch de sa tête (A-192, point 2)
+not ok 3 - sujet.sh relancer : une sous-PR de fourche « prête (sans CI) » est sautée sans renvoi (7), dans les deux régimes, avant tout fetch : la branche d'origin du même nom n'est ni fusionnée ni poussée (A-192, point 2)
+not ok 4 - sujet.sh fusionner, régime 8 : une PR de mise à jour ne joue qu'une revue du capitaine au premier contrôle, puis la seconde juste avant d'avancer le sujet (la suite M1 du lot 5)
+not ok 6 - garde du capitaine : une PR de mise à jour d'un sujet qu'aucun ticket ne déclare dit son geste, jamais celui d'une PR sans ticket (la suite M2 du lot 5)
+# tests 6
+# pass 1
+# fail 5
+## Ticket 79, § 1 : 4afd6e2, garde-fichiers.mjs et regles.mjs repris de ddb4265 (charge 5,69)
+not ok 5 - régime 8 : une copie locale du sujet en retard sur origin n’est pas lue, et le refus dit le geste qui la relit ; relue, le chemin accordé passe
+not ok 7 - régime 8 : le refus ne nomme que les copies en retard qui portent le ticket ; sans copie lue, « Aucune ligne lue » dit aussi de relire
+not ok 8 - régime 8 : dans un clone superficiel, la base de fusion d’un sujet ne se lit pas : la copie héritée compte, et le refus dit d’approfondir le clone ; approfondi, le chemin accordé passe (contre-relecture de la PR 149, tour 3)
+not ok 9 - régime 8 : l’héritage d’une copie de sujet se juge contre le develop d’origin ; une copie locale de develop en retard ne juge rien, le refus dit de la relire, et relue, le chemin accordé passe (la suite M4 du lot 5)
+not ok 98 - suite 24 du lot 5, refusEdition en régime 8 : le geste qui relit ou approfondit vient en tête du refus, avant la demande au conducteur ; sans geste, le refus commence par sa raison
+# tests 98
+# pass 93
+# fail 5
+## Ticket 78, § 2 : 4afd6e2, les cinq bancs (charge 5,74 → 5,15)
+# tests 114
+# pass 114
+# fail 0
+## Ticket 79, § 2 : 4afd6e2, garde-fichiers, regles, scripts/depot.test.mjs
+# tests 167
+# pass 167
+# fail 0
+## La retouche (retouches/retouche-78-bancs.patch) sur 4afd6e2 : suites-du-lot-5.test.mjs
+# tests 6
+# pass 6
+# fail 0
+## La retouche sur 8.0.0 (ddb4265, sans le code de la PR) : les comptes du § 1 du ticket 78 ne changent pas
+not ok 1 - passer.sh : une PR de fourche dont la branche porte le nom d'une branche d'origin est sautée sans renvoi (7)
+not ok 2 - sujet.sh fusionner : une sous-PR de fourche est sautée sans renvoi (7), dans les deux régimes, avant tout f
+not ok 3 - sujet.sh relancer : une sous-PR de fourche « prête (sans CI) » est sautée sans renvoi (7), dans les deux 
+not ok 4 - sujet.sh fusionner, régime 8 : une PR de mise à jour ne joue qu'une revue du capitaine au premier contrôle
+not ok 6 - garde du capitaine : une PR de mise à jour d'un sujet qu'aucun ticket ne déclare dit son geste, jamais celu
+# tests 6
+# pass 1
+# fail 5

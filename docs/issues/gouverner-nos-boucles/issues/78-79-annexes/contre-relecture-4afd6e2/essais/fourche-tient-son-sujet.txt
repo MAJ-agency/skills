@@ -1,0 +1,54 @@
+== 8.0.0 (ddb4265)
+warning: You appear to have cloned an empty repository.
+--- fusionner, tour 1 (sortie 0)
+[#80] fatal: couldn't find remote ref fourche/a
+[#80] sous-PR non éligible (sortie 128)
+[#81] #81 fusionnée dans sujet/lot
+[#81] FUSIONNÉE dans sujet/lot 
+--- fusionner, tour 2 (sortie 0)
+[#80] fatal: couldn't find remote ref fourche/a
+[#80] sous-PR non éligible (sortie 128)
+fusionnées : [81] ; écritures sur #80 : 0 ()
+warning: You appear to have cloned an empty repository.
+--- relancer, tour 1 (sortie 0)
+[#80] fatal: couldn't find remote ref refs/heads/fourche/a
+[#81] #81 fusionnée dans sujet/lot
+[#81] FUSIONNÉE dans sujet/lot 
+--- relancer, tour 2 (sortie 0)
+[#80] fatal: couldn't find remote ref refs/heads/fourche/a
+fusionnées : [81] ; écritures sur #80 : 2 (POST issues/80/comments)
+✔ fourche #80 « prête » (fusionner), sous-PR ordinaire #81 dans le même sujet (10461.490257ms)
+✔ fourche #80 « prête (sans CI) » (relancer), sous-PR ordinaire #81 dans le même sujet (11810.115993ms)
+ℹ tests 2
+ℹ pass 2
+ℹ fail 0
+== la PR (4afd6e2)
+warning: You appear to have cloned an empty repository.
+--- fusionner, tour 1 (sortie 0)
+[#80] #80 : PR de fourche (autre/jouet) : sa tête vit hors du dépôt, le capitaine ne la lit pas ; sautée sans renvoi
+[#80] sous-PR non éligible (fermée, en brouillon, ou en passage chez un autre capitaine)
+[sujet/lot] tenu par #80 (sortie 7 de fusionner)
+[#81] attend son tour : #80 passe d'abord dans sujet/lot
+--- fusionner, tour 2 (sortie 0)
+[#80] #80 : PR de fourche (autre/jouet) : sa tête vit hors du dépôt, le capitaine ne la lit pas ; sautée sans renvoi
+[#80] sous-PR non éligible (fermée, en brouillon, ou en passage chez un autre capitaine)
+[sujet/lot] tenu par #80 (sortie 7 de fusionner)
+[#81] attend son tour : #80 passe d'abord dans sujet/lot
+fusionnées : [] ; écritures sur #80 : 0 ()
+warning: You appear to have cloned an empty repository.
+--- relancer, tour 1 (sortie 0)
+[#80] #80 : PR de fourche (autre/jouet) : sa tête vit hors du dépôt, le capitaine ne la lit pas ; sautée sans renvoi
+[#80] en passage chez un autre capitaine : sautée (aucun renvoi)
+[sujet/lot] tenu par #80 (sortie 7 de relancer)
+[#81] attend son tour : #80 passe d'abord dans sujet/lot
+--- relancer, tour 2 (sortie 0)
+[#80] #80 : PR de fourche (autre/jouet) : sa tête vit hors du dépôt, le capitaine ne la lit pas ; sautée sans renvoi
+[#80] en passage chez un autre capitaine : sautée (aucun renvoi)
+[sujet/lot] tenu par #80 (sortie 7 de relancer)
+[#81] attend son tour : #80 passe d'abord dans sujet/lot
+fusionnées : [] ; écritures sur #80 : 0 ()
+✔ fourche #80 « prête » (fusionner), sous-PR ordinaire #81 dans le même sujet (10850.01294ms)
+✔ fourche #80 « prête (sans CI) » (relancer), sous-PR ordinaire #81 dans le même sujet (11246.961097ms)
+ℹ tests 2
+ℹ pass 2
+ℹ fail 0
