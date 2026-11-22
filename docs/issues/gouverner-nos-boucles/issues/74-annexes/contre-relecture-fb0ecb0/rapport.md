@@ -198,3 +198,87 @@ Si les retouches entrent, le ticket change aussi :
 Le détail est dans `comptes.txt`. Les essais sont sous `essais/` : `rejouer.sh <arbre> <veille.sh d'avant> <essais du tour 1>` les rejoue tous, et leurs sorties, chemins privés masqués, sont dans `sorties-fb0ecb0.txt` et `sorties-retouches.txt`. Les mutations sont sous `mutations/`.
 
 Le temps : de 02:57 à 05:15 UTC le 2026-11-22, soit 2 h 18. Chaque passe publiée a été jouée seule, l'une après l'autre ; les deux passes de la suite entière ont duré 13 min 20 s et 15 min 19 s.
+
+## Second tour, sommet `950f94e`
+
+Le même contre-relecteur, 2026-11-22, de 05:23 à 05:58 UTC, effort extra. Lecture seule vis-à-vis de GitHub. Le tour est limité au delta `fb0ecb0..950f94e` : un commit, `950f94e2e53c3618441333dbe69a0e17397b92c6`, de parent `fb0ecb0`. Les questions 1 et 2 sont tranchées par `A-194` : oui aux deux recommandations. Les mineurs 8, 9 et 11 vont à la partie 6b, et le 10 se corrige dans le ticket après la fusion. La suite entière n'est pas rejouée : la session la donne à 1 314 sur 1 314, et la CI `bancs` est verte au sommet.
+
+### Conclusion du second tour : conforme au sommet `950f94e`
+
+Les constats 1 à 7 sont fermés. Les retouches n'ouvrent ni bloquant ni écart à corriger. Elles laissent deux mineurs neufs (12 et 13), qui vont à la partie 6b et ne retiennent pas la PR.
+
+### L'arbre
+
+Une commande, sur un worktree neuf de `fb0ecb0` : `git apply --index retouches-tour-1.patch` (sha256 `5229b6d0…`), puis `git write-tree`. Cela donne `64c2c2a5555bd80aba414650d20a5e2e3e1caacf`, l'arbre de `950f94e`, et `git diff --cached --quiet 950f94e` est vide. Le delta touche sept fichiers, 77 lignes ajoutées et 29 retirées. C'est l'arbre sur lequel la passe « Les retouches » du premier tour a été jouée.
+
+### Les constats 1 à 7, au sommet
+
+| # | Fermé | Preuve à `950f94e` |
+| --- | --- | --- |
+| 1 | oui : la boucle ne reçoit jamais `--reprendre` ; le fichier d'arrêt se retire dans la veille, sous `boucle.verrou`, avant la préparation | N3 : un `--arreter` joué pendant le démarrage tient, la boucle sort en 10 et le fichier reste. D1 rouge. La vraie boucle fusionne la sous-PR #80 après `--reprendre` (`une-sous-pr-a-la-fois.test.mjs`). |
+| 2 | oui : le point 2 dit qu'un arrêt demandé ne se lève jamais au réveil de garde | D4 et X2 rouges |
+| 3 | oui : le point 4 suit chaque suite, `VEILLE VIVANTE` comprise | D5 rouge |
+| 4 | oui : la puce « Sortie 9 » sépare l'autre veille de la boucle sans veille | D6, T10c, Y3 et Y4 rouges ; N7, N8 |
+| 5 | oui : X1 à X10 rouges | `second-tour-950f94e/mutations/sur-950f94e.txt` |
+| 6 | oui : un verrou qui ne s'ouvre pas sort en 6 | D2, D3, Y1 et Y2 rouges ; N1.i et N1.j en 6 |
+| 7 | oui : « Sans veille en cours » sans second `send_later` | D7 rouge |
+
+### Ce que les retouches ouvrent, ou non
+
+**La boucle sans `--reprendre` quand la veille, elle, reprend : rien d'ouvert.** La veille retire le fichier d'arrêt sous `boucle.verrou`, et seulement si ce verrou est libre ; sinon elle sort en 9 et garde le fichier. Entre ce retrait et le départ de la boucle, seul `boucle.sh --arreter` pose un fichier, c'est-à-dire un arrêt demandé, que la boucle respecte (sortie 10). Aucun chemin ne fait reprendre la veille en laissant un ancien arrêt à la boucle. La relance de la boucle par `exec` (sur un `boucle.sh` neuf de develop) ne portait déjà aucun argument. La sous-PR #80 entre par la vraie boucle (`une-sous-pr-a-la-fois.test.mjs`, vert dans la CI), et un arrêt posé pendant le démarrage reste posé (`veille.test.mjs`, N3).
+
+**Le point 3 pris par une boucle sans veille : une boucle lancée à la main est arrêtée, et c'est le comportement voulu.** N8 lance une boucle à la main pendant la pause d'une veille. À la sonde suivante, la boucle de la veille refuse (`REFUS … (pid <n>)`), et la veille finit en `la boucle est sortie en 9`. Le point 3 que la puce prescrit (`--arreter`) arrête la boucle à la main par TERM (sortie 143 ; la trappe d'une vraie boucle remet le worktree propre et termine son commentaire de passage), puis la veille relancée avec `--reprendre` finit.
+
+Le skill ne prévoit aucune boucle à la main à côté d'une veille :
+
+- le geste à la main est `file.sh` et `passer.sh`, veille et boucle arrêtées (« Enseignements ») ;
+- « **Reprendre** » interdit `boucle.sh --reprendre` au premier plan ;
+- « Une seule boucle à la fois » vaut pour le clone.
+
+Seul le paragraphe `CAPITAINE_ID` cite encore `boucle.sh --reprendre` parmi les gestes à la main : c'est le mineur 9, déjà en 6b, et c'est par là qu'une session pourrait lancer une boucle que sa veille arrêterait ensuite. La puce ne dit pas « une fois » pour « le dire au lanceur » (constat 12).
+
+**La garde qui ne lève jamais un arrêt : voulu (`A-194` point 3).** Deux suites :
+
+- un arrêt posé par le point 3 de la garde elle-même, si la relance n'a pas lieu, reste posé : c'est le mineur 11, en 6b ;
+- la retouche écrit la règle pour la garde seule (« au réveil de garde »). La puce de la sortie 10, qu'une session lit quand la veille finit en 10, garde « la veille relancée avec `--reprendre` quand on veut repartir ». Lu a contrario, un arrêt posé par un humain pendant une veille pourrait être levé par la session qui se réveille à sa fin (constat 13).
+
+### Constats neufs
+
+| # | Gravité | Constat | Preuve | Suite |
+| --- | --- | --- | --- | --- |
+| 12 | mineur | « une boucle tient le verrou sans veille qui la porte … : le point 3 du « Réveil de garde », puis le dire au lanceur » ne dit pas « une fois ». Un démon du projet qui hérite du descripteur 9 à chaque passage (le « couplage fragile » de l'en-tête de `boucle.sh`) refait le même cycle à chaque fois : `REFUS`, point 3, et le lanceur prévenu de nouveau. La file avance, mais le lanceur reçoit le même message à chaque passage. | N7 (le démon arrêté par `--arreter`) ; lecture | 6b : « le dire une fois au lanceur, avec le pid du `REFUS` et le script du projet à fermer (`9>&-`) ». |
+| 13 | mineur | La règle « un arrêt demandé ne se lève jamais » n'est écrite qu'au point 2 de la garde. La puce de la sortie 10, qu'une session lit quand la veille finit en 10 (un arrêt posé pendant la veille), dit encore « quand on veut repartir », sans dire qui. | Lecture (`SKILL.md`, puce `VEILLE ARRÊTÉE`). Le texte d'avant le ticket disait de même. | 6b : « sortie 10 : arrêt demandé, levé par qui l'a posé (`--reprendre`), jamais par la session qui se réveille ». |
+
+### Mutations, sur `950f94e`
+
+Toutes ont été jouées une à la fois (`second-tour-950f94e/mutations/sur-950f94e.txt`, 05:24 → 05:43 UTC, charge de 2,6 à 0,7). L'arbre était propre après la passe.
+
+- **Quatre neuves, sur le seul delta** (`second-tour-950f94e/mutations/mutations-delta.mjs`), **4 rouges sur 4** :
+  - Y1 : le contrôle du verrou ouvert de `--etat` lit le descripteur 8, et une veille vivante se lit « illisible ». Rouge par les trois tests qui attendent `VEILLE VIVANTE`.
+  - Y2 : un verrou illisible fait sortir la veille en 9, comme une seconde veille.
+  - Y3 : la puce « Sortie 9 » ne fait plus prévenir le lanceur.
+  - Y4 : la puce envoie une autre veille au point 3, dont la boucle serait alors arrêtée en plein passage.
+- **D1 à D7, M2c et T10c** : 9 rouges sur 9.
+- **X1 à X10** : 10 rouges sur 10. X8 et X9 rougissent aussi « --reprendre : la veille retire… », en une minute.
+
+### Les essais, rejoués
+
+Le premier tour écrivait `[sortie $?]` après un tube (`--arreter … | sed | tr`), et la valeur mesurée était donc celle de `tr`. L'erreur touche N3, N4, N6 et N7. Elle est corrigée par une fonction `arreter` (`essais/env-contre.sh`), qui mesure la sortie de `--arreter` lui-même. Tous les essais ont été rejoués sur `fb0ecb0` (05:44 → 05:47 UTC) et sur `950f94e` (05:47 → 05:51), et leurs sorties remplacent `essais/sorties-fb0ecb0.txt` et `essais/sorties-retouches.txt`. Chaque `--arreter` sort bien en 0. Les autres valeurs sont celles du premier tour :
+
+- N3 avec `--reprendre` : la boucle passe à `fb0ecb0`, et sort en 10 avec le fichier gardé à `950f94e` ;
+- N1.i : `VEILLE VIVANTE` en 0 à `fb0ecb0`, sortie 6 à `950f94e` ;
+- E7 : 0 refus sur 40 ;
+- E13 : le refus reste dans le journal.
+
+N8 est neuf (`second-tour-950f94e/essais/`).
+
+### Les contrôles GitHub au sommet
+
+Lus en lecture seule à 05:51 UTC (API REST, `commits/950f94e…/check-runs`) :
+
+- `bancs` : success (05:23:00 → 05:37:49) ;
+- `CodeQL` : success ;
+- `Analyze (actions)` : success ;
+- `Analyze (javascript-typescript)` : success.
+
+La PR 150 est ouverte, hors brouillon, avec `mergeable` à true et `mergeable_state` à `clean`. Sa base est `main` à `2e87bae` : la PR 149 n'est pas encore entrée.

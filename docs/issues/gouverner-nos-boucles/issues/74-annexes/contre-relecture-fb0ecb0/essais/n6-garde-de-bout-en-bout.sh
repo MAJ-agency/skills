@@ -23,7 +23,7 @@ for cas in bash-seul groupe recyclage-commun-neuf recyclage-commun-garde; do
     recyclage-commun-garde) cd / && nettoyer; cd "$J/clone"; echo boot-2 > "$J/boot" ;;
   esac
   echo "N6 $cas : boucle.verrou tenu par : [$(tenants .git/boucle.verrou)] ; --etat : $(etat)"
-  echo "   point 3 : $(env -u CAPITAINE_ID bash "$B" --arreter 2>&1 | sed "s#$TMPDIR#<tmp>#g" | tr '\n' ' ')[sortie $?] ; boucle.verrou tenu par : [$(tenants .git/boucle.verrou)]"
+  echo "   point 3 : $(arreter "$B") ; boucle.verrou tenu par : [$(tenants .git/boucle.verrou)]"
   bash "$J/veille.sh" --pause 0.2 --duree 1 --sondes 0 --reprendre >> "$J/veille.log" 2>&1; rc=$?
   echo "   relance --reprendre : sortie $rc, « $(tail -1 "$J/veille.log") » ; boucle : $(tail -1 "$J/arguments" | cut -d' ' -f1-2) ; --etat : $(etat)"
   cd / && nettoyer && rm -rf "$J"

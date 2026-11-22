@@ -1,118 +1,120 @@
-== arbre fb0ecb0 + retouches, 2026-11-22T04:07:21Z, charge 2.94 3.48 3.86
+# Rejoué au second tour sur 950f94e, dont l'arbre (64c2c2a5) est celui de fb0ecb0 + retouches-tour-1.patch, avec la sortie de `boucle.sh --arreter` mesurée (voir sorties-fb0ecb0.txt). Les valeurs sont celles du premier tour.
+== arbre 950f94e, 2026-11-22T05:47:45Z, charge 0.75 0.84 1.42
 ### E1 (deux veilles au même instant, 20 fois)
-     14 sorties 0/9, boucles lancées 1
-      6 sorties 9/0, boucles lancées 1
+     10 sorties 0/9, boucles lancées 1
+     10 sorties 9/0, boucles lancées 1
 ### E2, E5, E6 (kill -9 pendant le sommeil, la boucle, tee)
-sommeil : avant le kill : VEILLE VIVANTE (lancée à 04:08) [sortie 0] 
-      après le kill : VEILLE MORTE (lancée à 04:08, sans ligne finale) : « boucle.sh --arreter », puis la relancer avec --reprendre [sortie 1]  ; veille.verrou tenu par : []
-boucle : avant le kill : VEILLE VIVANTE (lancée à 04:08) [sortie 0] 
-      après le kill : VEILLE MORTE (lancée à 04:08, sans ligne finale) : « boucle.sh --arreter », puis la relancer avec --reprendre [sortie 1]  ; veille.verrou tenu par : []
-tee : avant le kill : VEILLE VIVANTE (lancée à 04:08) [sortie 0] 
-      après le kill : VEILLE MORTE (lancée à 04:08, sans ligne finale) : « boucle.sh --arreter », puis la relancer avec --reprendre [sortie 1]  ; veille.verrou tenu par : []
+sommeil : avant le kill : VEILLE VIVANTE (lancée à 05:49) [sortie 0] 
+      après le kill : VEILLE MORTE (lancée à 05:49, sans ligne finale) : « boucle.sh --arreter », puis la relancer avec --reprendre [sortie 1]  ; veille.verrou tenu par : []
+boucle : avant le kill : VEILLE VIVANTE (lancée à 05:49) [sortie 0] 
+      après le kill : VEILLE MORTE (lancée à 05:49, sans ligne finale) : « boucle.sh --arreter », puis la relancer avec --reprendre [sortie 1]  ; veille.verrou tenu par : []
+tee : avant le kill : VEILLE VIVANTE (lancée à 05:49) [sortie 0] 
+      après le kill : VEILLE MORTE (lancée à 05:49, sans ligne finale) : « boucle.sh --arreter », puis la relancer avec --reprendre [sortie 1]  ; veille.verrou tenu par : []
 ### E3, E4 (kill -9 pendant une sonde lente, pendant la préparation)
-veille tuée pendant sonde : VEILLE MORTE (lancée à 04:08, sans ligne finale) : « boucle.sh --arreter », puis la relancer avec --reprendre [sortie 1] 
+veille tuée pendant sonde : VEILLE MORTE (lancée à 05:49, sans ligne finale) : « boucle.sh --arreter », puis la relancer avec --reprendre [sortie 1] 
 sh: 0: getcwd() failed: No such file or directory
 shell-init: error retrieving current directory: getcwd: cannot access parent directories: No such file or directory
 chdir: error retrieving current directory: getcwd: cannot access parent directories: No such file or directory
-veille tuée pendant preparation : VEILLE MORTE (lancée à 04:08, sans ligne finale) : « boucle.sh --arreter », puis la relancer avec --reprendre [sortie 1] 
+veille tuée pendant preparation : VEILLE MORTE (lancée à 05:49, sans ligne finale) : « boucle.sh --arreter », puis la relancer avec --reprendre [sortie 1] 
 ### E7, E8 (--etat pendant le démarrage, pendant la fin)
 E7 : veilles seules refusées en 9 par un --etat concurrent : 0 sur 40
 E8 : lectures de --etat pendant 40 veilles (démarrage, vie, fin) :
-      2 VEILLE MORTE (aucune t
-   1001 VEILLE TERMINÉE : VEI
-     24 VEILLE VIVANTE
-    573 VEILLE VIVANTE (lancé
+      1 VEILLE MORTE (aucune t
+    990 VEILLE TERMINÉE : VEI
+     17 VEILLE VIVANTE
+    592 VEILLE VIVANTE (lancé
 ### E9 (garde, --reprendre tuée pendant la préparation, préparation en 13)
 1) veille tuée pendant sa pause :
-VEILLE MORTE (lancée à 04:09, sans ligne finale) : « boucle.sh --arreter », puis la relancer avec --reprendre
+VEILLE MORTE (lancée à 05:49, sans ligne finale) : « boucle.sh --arreter », puis la relancer avec --reprendre
 [sortie 1]
 2) réveil de garde, point 3 : boucle.sh --arreter
 [boucle] aucune boucle en cours ; fichier d'arrêt posé (<tmp>/<jouet>/clone/.git/boucle-arret), --reprendre le retire
    [sortie 0]
 3) la veille relancée avec --reprendre, tuée pendant sa préparation :
-VEILLE MORTE (lancée à 04:09, sans ligne finale) : « boucle.sh --arreter », puis la relancer avec --reprendre
+VEILLE MORTE (lancée à 05:49, sans ligne finale) : « boucle.sh --arreter », puis la relancer avec --reprendre
 [sortie 1]
    arguments de la boucle : boucle ;
 4) variante : la veille relancée avec --reprendre, préparation en échec (sortie 13)
-   veille : [sortie 13] VEILLE ARRÊTÉE 04:09 : préparation du capitaine en échec (sortie 1 de « exit 1 ») : 
-VEILLE TERMINÉE : VEILLE ARRÊTÉE 04:09 : préparation du capitaine en échec (sortie 1 de « exit 1 ») : aucune fusion ; corriger l'environnement, puis relancer la veille
+   veille : [sortie 13] VEILLE ARRÊTÉE 05:49 : préparation du capitaine en échec (sortie 1 de « exit 1 ») : 
+VEILLE TERMINÉE : VEILLE ARRÊTÉE 05:49 : préparation du capitaine en échec (sortie 1 de « exit 1 ») : aucune fusion ; corriger l'environnement, puis relancer la veille
 [sortie 2]
 5) la suite de la sortie 13 : « relancer la veille » (sans --reprendre), préparation réparée
-   veille : [sortie 0] VEILLE FINIE 04:09
-VEILLE TERMINÉE : VEILLE FINIE 04:09
+   veille : [sortie 0] VEILLE FINIE 05:49
+VEILLE TERMINÉE : VEILLE FINIE 05:49
 [sortie 2]
 ### E10 à E12 (dépôt neuf, 44 états, copie d'avant le ticket)
 E10 dépôt neuf, aucune trace : VEILLE MORTE (aucune trace de veille) : « boucle.sh --arreter », puis la relancer avec --reprendre [sortie 1] 
     fichiers écrits par --etat : veille.verrou 
 E11 ''                                 arrêt=non verrou=libre -> VEILLE MORTE (aucune trace de veille) : « boucle.sh --arreter », puis la relancer avec --reprendre [sortie 1
 E11 ''                                 arrêt=non verrou=tenu  -> VEILLE VIVANTE [sortie 0] 
-E11 ''                                 arrêt=oui verrou=libre -> VEILLE TERMINÉE : arrêt demandé (<tmp>/<jouet>/clone/.git/boucle-arret, pos�
+E11 ''                                 arrêt=oui verrou=libre -> VEILLE TERMINÉE : arrêt demandé (<tmp>/<jouet>/clone/.git/boucle-arret, posé
 E11 ''                                 arrêt=oui verrou=tenu  -> VEILLE VIVANTE [sortie 0] 
 E11 lancee                             arrêt=non verrou=libre -> VEILLE MORTE (aucune trace de veille) : « boucle.sh --arreter », puis la relancer avec --reprendre [sortie 1
 E11 lancee                             arrêt=non verrou=tenu  -> VEILLE VIVANTE [sortie 0] 
-E11 lancee                             arrêt=oui verrou=libre -> VEILLE TERMINÉE : arrêt demandé (<tmp>/<jouet>/clone/.git/boucle-arret, pos�
+E11 lancee                             arrêt=oui verrou=libre -> VEILLE TERMINÉE : arrêt demandé (<tmp>/<jouet>/clone/.git/boucle-arret, posé
 E11 lancee                             arrêt=oui verrou=tenu  -> VEILLE VIVANTE [sortie 0] 
-E11 lancee\ 1795320575                 arrêt=non verrou=libre -> VEILLE MORTE (lancée à 04:09, sans ligne finale) : « boucle.sh --arreter », puis la relancer avec --repren
-E11 lancee\ 1795320575                 arrêt=non verrou=tenu  -> VEILLE VIVANTE (lancée à 04:09) [sortie 0] 
-E11 lancee\ 1795320575                 arrêt=oui verrou=libre -> VEILLE TERMINÉE : arrêt demandé (<tmp>/<jouet>/clone/.git/boucle-arret, pos�
-E11 lancee\ 1795320575                 arrêt=oui verrou=tenu  -> VEILLE VIVANTE (lancée à 04:09) [sortie 0] 
+E11 lancee\ 1795326597                 arrêt=non verrou=libre -> VEILLE MORTE (lancée à 05:49, sans ligne finale) : « boucle.sh --arreter », puis la relancer avec --repren
+E11 lancee\ 1795326597                 arrêt=non verrou=tenu  -> VEILLE VIVANTE (lancée à 05:49) [sortie 0] 
+E11 lancee\ 1795326597                 arrêt=oui verrou=libre -> VEILLE TERMINÉE : arrêt demandé (<tmp>/<jouet>/clone/.git/boucle-arret, posé
+E11 lancee\ 1795326597                 arrêt=oui verrou=tenu  -> VEILLE VIVANTE (lancée à 05:49) [sortie 0] 
 E11 lancee\ x                          arrêt=non verrou=libre -> VEILLE MORTE (aucune trace de veille) : « boucle.sh --arreter », puis la relancer avec --reprendre [sortie 1
 E11 lancee\ x                          arrêt=non verrou=tenu  -> VEILLE VIVANTE [sortie 0] 
-E11 lancee\ x                          arrêt=oui verrou=libre -> VEILLE TERMINÉE : arrêt demandé (<tmp>/<jouet>/clone/.git/boucle-arret, pos�
+E11 lancee\ x                          arrêt=oui verrou=libre -> VEILLE TERMINÉE : arrêt demandé (<tmp>/<jouet>/clone/.git/boucle-arret, posé
 E11 lancee\ x                          arrêt=oui verrou=tenu  -> VEILLE VIVANTE [sortie 0] 
 E11 fin                                arrêt=non verrou=libre -> VEILLE MORTE (aucune trace de veille) : « boucle.sh --arreter », puis la relancer avec --reprendre [sortie 1
 E11 fin                                arrêt=non verrou=tenu  -> VEILLE VIVANTE [sortie 0] 
-E11 fin                                arrêt=oui verrou=libre -> VEILLE TERMINÉE : arrêt demandé (<tmp>/<jouet>/clone/.git/boucle-arret, pos�
+E11 fin                                arrêt=oui verrou=libre -> VEILLE TERMINÉE : arrêt demandé (<tmp>/<jouet>/clone/.git/boucle-arret, posé
 E11 fin                                arrêt=oui verrou=tenu  -> VEILLE VIVANTE [sortie 0] 
-E11 fin\ 1795320575                    arrêt=non verrou=libre -> VEILLE MORTE (aucune trace de veille) : « boucle.sh --arreter », puis la relancer avec --reprendre [sortie 1
-E11 fin\ 1795320575                    arrêt=non verrou=tenu  -> VEILLE VIVANTE [sortie 0] 
-E11 fin\ 1795320575                    arrêt=oui verrou=libre -> VEILLE TERMINÉE : arrêt demandé (<tmp>/<jouet>/clone/.git/boucle-arret, pos�
-E11 fin\ 1795320575                    arrêt=oui verrou=tenu  -> VEILLE VIVANTE [sortie 0] 
-E11 fin\ 1795320575\ VEILLE\ FINIE\ 12 arrêt=non verrou=libre -> VEILLE TERMINÉE : VEILLE FINIE 12:00 [sortie 2] 
-E11 fin\ 1795320575\ VEILLE\ FINIE\ 12 arrêt=non verrou=tenu  -> VEILLE VIVANTE [sortie 0] 
-E11 fin\ 1795320575\ VEILLE\ FINIE\ 12 arrêt=oui verrou=libre -> VEILLE TERMINÉE : arrêt demandé (<tmp>/<jouet>/clone/.git/boucle-arret, pos�
-E11 fin\ 1795320575\ VEILLE\ FINIE\ 12 arrêt=oui verrou=tenu  -> VEILLE VIVANTE [sortie 0] 
+E11 fin\ 1795326597                    arrêt=non verrou=libre -> VEILLE MORTE (aucune trace de veille) : « boucle.sh --arreter », puis la relancer avec --reprendre [sortie 1
+E11 fin\ 1795326597                    arrêt=non verrou=tenu  -> VEILLE VIVANTE [sortie 0] 
+E11 fin\ 1795326597                    arrêt=oui verrou=libre -> VEILLE TERMINÉE : arrêt demandé (<tmp>/<jouet>/clone/.git/boucle-arret, posé
+E11 fin\ 1795326597                    arrêt=oui verrou=tenu  -> VEILLE VIVANTE [sortie 0] 
+E11 fin\ 1795326597\ VEILLE\ FINIE\ 12 arrêt=non verrou=libre -> VEILLE TERMINÉE : VEILLE FINIE 12:00 [sortie 2] 
+E11 fin\ 1795326597\ VEILLE\ FINIE\ 12 arrêt=non verrou=tenu  -> VEILLE VIVANTE [sortie 0] 
+E11 fin\ 1795326597\ VEILLE\ FINIE\ 12 arrêt=oui verrou=libre -> VEILLE TERMINÉE : arrêt demandé (<tmp>/<jouet>/clone/.git/boucle-arret, posé
+E11 fin\ 1795326597\ VEILLE\ FINIE\ 12 arrêt=oui verrou=tenu  -> VEILLE VIVANTE [sortie 0] 
 E11 fin\ x\ VEILLE\ FINIE              arrêt=non verrou=libre -> VEILLE MORTE (aucune trace de veille) : « boucle.sh --arreter », puis la relancer avec --reprendre [sortie 1
 E11 fin\ x\ VEILLE\ FINIE              arrêt=non verrou=tenu  -> VEILLE VIVANTE [sortie 0] 
-E11 fin\ x\ VEILLE\ FINIE              arrêt=oui verrou=libre -> VEILLE TERMINÉE : arrêt demandé (<tmp>/<jouet>/clone/.git/boucle-arret, pos�
+E11 fin\ x\ VEILLE\ FINIE              arrêt=oui verrou=libre -> VEILLE TERMINÉE : arrêt demandé (<tmp>/<jouet>/clone/.git/boucle-arret, posé
 E11 fin\ x\ VEILLE\ FINIE              arrêt=oui verrou=tenu  -> VEILLE VIVANTE [sortie 0] 
-E11 autre\ 1795320575\ z               arrêt=non verrou=libre -> VEILLE MORTE (aucune trace de veille) : « boucle.sh --arreter », puis la relancer avec --reprendre [sortie 1
-E11 autre\ 1795320575\ z               arrêt=non verrou=tenu  -> VEILLE VIVANTE [sortie 0] 
-E11 autre\ 1795320575\ z               arrêt=oui verrou=libre -> VEILLE TERMINÉE : arrêt demandé (<tmp>/<jouet>/clone/.git/boucle-arret, pos�
-E11 autre\ 1795320575\ z               arrêt=oui verrou=tenu  -> VEILLE VIVANTE [sortie 0] 
+E11 autre\ 1795326597\ z               arrêt=non verrou=libre -> VEILLE MORTE (aucune trace de veille) : « boucle.sh --arreter », puis la relancer avec --reprendre [sortie 1
+E11 autre\ 1795326597\ z               arrêt=non verrou=tenu  -> VEILLE VIVANTE [sortie 0] 
+E11 autre\ 1795326597\ z               arrêt=oui verrou=libre -> VEILLE TERMINÉE : arrêt demandé (<tmp>/<jouet>/clone/.git/boucle-arret, posé
+E11 autre\ 1795326597\ z               arrêt=oui verrou=tenu  -> VEILLE VIVANTE [sortie 0] 
 E11 ''                                 arrêt=non verrou=libre -> VEILLE MORTE (aucune trace de veille) : « boucle.sh --arreter », puis la relancer avec --reprendre [sortie 1
 E11 ''                                 arrêt=non verrou=tenu  -> VEILLE VIVANTE [sortie 0] 
-E11 ''                                 arrêt=oui verrou=libre -> VEILLE TERMINÉE : arrêt demandé (<tmp>/<jouet>/clone/.git/boucle-arret, pos�
+E11 ''                                 arrêt=oui verrou=libre -> VEILLE TERMINÉE : arrêt demandé (<tmp>/<jouet>/clone/.git/boucle-arret, posé
 E11 ''                                 arrêt=oui verrou=tenu  -> VEILLE VIVANTE [sortie 0] 
-E11 $'lancee 1795320575\nfin 179532057 arrêt=non verrou=libre -> VEILLE MORTE (lancée à 04:09, sans ligne finale) : « boucle.sh --arreter », puis la relancer avec --repren
-E11 $'lancee 1795320575\nfin 179532057 arrêt=non verrou=tenu  -> VEILLE VIVANTE (lancée à 04:09) [sortie 0] 
-E11 $'lancee 1795320575\nfin 179532057 arrêt=oui verrou=libre -> VEILLE TERMINÉE : arrêt demandé (<tmp>/<jouet>/clone/.git/boucle-arret, pos�
-E11 $'lancee 1795320575\nfin 179532057 arrêt=oui verrou=tenu  -> VEILLE VIVANTE (lancée à 04:09) [sortie 0] 
-E12 copie d'avant le ticket, --etat sans CAPITAINE_ID : VEILLE ARRÊTÉE 04:09 : CAPITAINE_ID requis (l'id de la session du capitaine, skill fusionner § « Mise en place ») [sortie 64] 
-E12 copie d'avant le ticket, --reprendre : usage : veille.sh [--pause <s>] [--duree <min>] [--marge <min>] [--sondes <n>] [sortie 64] 
+E11 $'lancee 1795326597\nfin 179532659 arrêt=non verrou=libre -> VEILLE MORTE (lancée à 05:49, sans ligne finale) : « boucle.sh --arreter », puis la relancer avec --repren
+E11 $'lancee 1795326597\nfin 179532659 arrêt=non verrou=tenu  -> VEILLE VIVANTE (lancée à 05:49) [sortie 0] 
+E11 $'lancee 1795326597\nfin 179532659 arrêt=oui verrou=libre -> VEILLE TERMINÉE : arrêt demandé (<tmp>/<jouet>/clone/.git/boucle-arret, posé
+E11 $'lancee 1795326597\nfin 179532659 arrêt=oui verrou=tenu  -> VEILLE VIVANTE (lancée à 05:49) [sortie 0] 
+cp: cannot stat 'tmp/veille-avant.sh': No such file or directory
+E12 copie d'avant le ticket, --etat sans CAPITAINE_ID : bash: <tmp>/<jouet>/vieux.sh: No such file or directory [sortie 127] 
+E12 copie d'avant le ticket, --reprendre : bash: <tmp>/<jouet>/vieux.sh: No such file or directory [sortie 127] 
 ### E13 (seconde veille, journal ouvert en ajout comme le skill le dit à fb0ecb0)
 seconde veille : sortie 9
 première veille : sortie 0
 octets NUL dans le journal : 0
 le refus est-il dans le journal ? 1
-première ligne : VEILLE 04:09 : durée 1 min, aucun passage après 05:29 (marge 40 min)
-dernière ligne à la fin : VEILLE FINIE 04:09
+première ligne : VEILLE 05:49 : durée 1 min, aucun passage après 07:09 (marge 40 min)
+dernière ligne à la fin : VEILLE FINIE 05:50
 lignes illisibles (ni VEILLE ni FILE VIDE) : 0
 ### n1 (n1-sorties-de-etat)
 N1.a argument de plus           : usage : veille.sh --etat (seule) [sortie 64] 
 N1.b hors d'un dépôt git        : veille.sh --etat : à lancer depuis le worktree du capitaine (dépôt git) [sortie 64]  ; écrit : 
 N1.c flock absent               : veille.sh --etat : flock (util-linux) requis [sortie 6] 
 N1.d aucune trace               : VEILLE MORTE (aucune trace de veille) : « boucle.sh --arreter », puis la relancer avec --reprendre [sortie 1] 
-N1.e lancee, verrou libre       : VEILLE MORTE (lancée à 04:09, sans ligne finale) : « boucle.sh --arreter », puis la relancer avec --reprendre [sortie 1] 
-N1.f lancee, verrou tenu        : VEILLE VIVANTE (lancée à 04:09) [sortie 0] 
+N1.e lancee, verrou libre       : VEILLE MORTE (lancée à 05:50, sans ligne finale) : « boucle.sh --arreter », puis la relancer avec --reprendre [sortie 1] 
+N1.f lancee, verrou tenu        : VEILLE VIVANTE (lancée à 05:50) [sortie 0] 
 N1.g fin écrite                 : VEILLE TERMINÉE : VEILLE FINIE 12:00 [sortie 2] 
-N1.h fin écrite et arrêt        : VEILLE TERMINÉE : arrêt demandé (<tmp>/n1.26182/clone/.git/boucle-arret, posé le 2026-11-22T04:09:45) ; « veille.sh --reprendre » quand on veut repartir [sortie 2] 
-N1.i verrou qui ne s'ouvre pas  : <tmp>/n1.26182/veille.sh: line 110: <tmp>/n1.26182/clone/.git/veille.verrou: Is a directory flock: 7: Bad file descriptor veille.sh --etat : verrou de la veille illisible (<tmp>/n1.26182/clone/.git/veille.verrou) [sortie 6] 
-N1.j la veille, même cause      : <tmp>/n1.26182/veille.sh: line 172: <tmp>/n1.26182/clone/.git/veille.verrou: Is a directory flock: 7: Bad file descriptor VEILLE ARRÊTÉE 04:09 : verrou de la veille illisible (<tmp>/n1.26182/clone/.git/veille.verrou) [sortie 6] 
+N1.h fin écrite et arrêt        : VEILLE TERMINÉE : arrêt demandé (<tmp>/n1.2860/clone/.git/boucle-arret, posé le 2026-11-22T05:50:07) ; « veille.sh --reprendre » quand on veut repartir [sortie 2] 
+N1.i verrou qui ne s'ouvre pas  : <tmp>/n1.2860/veille.sh: line 110: <tmp>/n1.2860/clone/.git/veille.verrou: Is a directory flock: 7: Bad file descriptor veille.sh --etat : verrou de la veille illisible (<tmp>/n1.2860/clone/.git/veille.verrou) [sortie 6] 
+N1.j la veille, même cause      : <tmp>/n1.2860/veille.sh: line 172: <tmp>/n1.2860/clone/.git/veille.verrou: Is a directory flock: 7: Bad file descriptor VEILLE ARRÊTÉE 05:50 : verrou de la veille illisible (<tmp>/n1.2860/clone/.git/veille.verrou) [sortie 6] 
 ### n2 (n2-fils-du-descripteur-7)
-A : sortie 0 ; VEILLE FINIE 04:09
-B : sortie 0 ; VEILLE FINIE 04:09 (échéance)
-C : sortie 10 ; VEILLE ARRÊTÉE 04:09 : la boucle est sortie en 10
+A : sortie 0 ; VEILLE FINIE 05:50
+B : sortie 0 ; VEILLE FINIE 05:50 (échéance)
+C : sortie 10 ; VEILLE ARRÊTÉE 05:50 : la boucle est sortie en 10
 Commandes externes vues (état du descripteur 7, commande, premier argument) :
         3 OUVERT cat capitaine-boot-id
         4 OUVERT cat boot
@@ -164,75 +166,75 @@ Commandes externes vues (état du descripteur 7, commande, premier argument) :
         1 fermé sort -k2,2
         1 fermé sort temoins.log
         6 fermé sort 
-        1 fermé tee tmp.I7zjqJXg72
-        1 fermé tee tmp.SQNWLlqokk
-        2 fermé tee tmp.0ZlExappQm
+        1 fermé tee tmp.ZqEadbfVKN
+        1 fermé tee tmp.saXVbRfHpq
+        2 fermé tee tmp.73DMUjdkP2
         4 fermé tr -d
         6 fermé wc -l
 ### n3 (n3-arret-pendant-le-demarrage)
-N3 avec-reprendre : --arreter pendant la lecture initiale : [boucle] aucune boucle en cours ; fichier d'arrêt posé (<tmp>/n3.avec-reprendre.4948/clone/.git/boucle-arret), --reprendre le retire [sortie 0]
-   veille : sortie 10, « VEILLE ARRÊTÉE 04:09 : la boucle est sortie en 10 » ; boucle : boucle ; ; fichier d'arrêt : posé ; journal : 0 FILE VIDE, 1 ARRÊT demandé
-N3 sans-reprendre : --arreter pendant la lecture initiale : [boucle] aucune boucle en cours ; fichier d'arrêt posé (<tmp>/n3.sans-reprendre.4948/clone/.git/boucle-arret), --reprendre le retire [sortie 0]
-   veille : sortie 10, « VEILLE ARRÊTÉE 04:10 : la boucle est sortie en 10 » ; boucle : boucle ; ; fichier d'arrêt : posé ; journal : 0 FILE VIDE, 1 ARRÊT demandé
-N3 préparation : --arreter pendant la préparation : [boucle] boucle arrêtée ; fichier d'arrêt posé (<tmp>/n3.preparation.4948/clone/.git/boucle-arret), --reprendre le retire  [sortie 0]
-   veille : sortie 143 (tuée par --arreter : elle tient boucle.verrou), dernière ligne « Terminated » ; boucle :  ; --etat : VEILLE TERMINÉE : arrêt demandé (<tmp>/n3.preparation.4948/clone/.git/boucle-arret, posé le 2026-11-22T04:10:03) ; « veille.sh --reprendre » quand on veut repartir [sortie 2] 
+N3 avec-reprendre : --arreter pendant la lecture initiale : [boucle] aucune boucle en cours ; fichier d'arrêt posé (<tmp>/n3.avec-reprendre.3787/clone/.git/boucle-arret), --reprendre le retire [sortie 0]
+   veille : sortie 10, « VEILLE ARRÊTÉE 05:50 : la boucle est sortie en 10 » ; boucle : boucle ; ; fichier d'arrêt : posé ; journal : 0 FILE VIDE, 1 ARRÊT demandé
+N3 sans-reprendre : --arreter pendant la lecture initiale : [boucle] aucune boucle en cours ; fichier d'arrêt posé (<tmp>/n3.sans-reprendre.3787/clone/.git/boucle-arret), --reprendre le retire [sortie 0]
+   veille : sortie 10, « VEILLE ARRÊTÉE 05:50 : la boucle est sortie en 10 » ; boucle : boucle ; ; fichier d'arrêt : posé ; journal : 0 FILE VIDE, 1 ARRÊT demandé
+N3 préparation : --arreter pendant la préparation : [boucle] boucle arrêtée ; fichier d'arrêt posé (<tmp>/n3.preparation.3787/clone/.git/boucle-arret), --reprendre le retire [sortie 0]
+   veille : sortie 143 (tuée par --arreter : elle tient boucle.verrou), dernière ligne « Terminated » ; boucle :  ; --etat : VEILLE TERMINÉE : arrêt demandé (<tmp>/n3.preparation.3787/clone/.git/boucle-arret, posé le 2026-11-22T05:50:25) ; « veille.sh --reprendre » quand on veut repartir [sortie 2] 
 ### n4 (n4-preparation-tuee)
-N4 fetch : tuée ; dernière ligne « VEILLE 04:10 : durée 1 min, aucun passage après 05:30 (marge 40 min) »
-   --etat : VEILLE MORTE (lancée à 04:10, sans ligne finale) : « boucle.sh --arreter », puis la relancer avec --reprendre [sortie 1] 
+N4 fetch : tuée ; dernière ligne « VEILLE 05:50 : durée 1 min, aucun passage après 07:10 (marge 40 min) »
+   --etat : VEILLE MORTE (lancée à 05:50, sans ligne finale) : « boucle.sh --arreter », puis la relancer avec --reprendre [sortie 1] 
    fichier d'arrêt : retiré ; veille.verrou tenu par : [] ; boucle.verrou tenu par : []
-   garde, point 3 : [boucle] aucune boucle en cours ; fichier d'arrêt posé (<tmp>/n4.fetch.12452/clone/.git/boucle-arret), --reprendre le retire [sortie 0]
-   relance --reprendre : sortie 0, « VEILLE FINIE 04:10 » ; --etat : VEILLE TERMINÉE : VEILLE FINIE 04:10 [sortie 2] 
-N4 sommeil-du-fetch : tuée ; dernière ligne « VEILLE 04:10 : file vide »
-   --etat : VEILLE MORTE (lancée à 04:10, sans ligne finale) : « boucle.sh --arreter », puis la relancer avec --reprendre [sortie 1] 
+   garde, point 3 : [boucle] aucune boucle en cours ; fichier d'arrêt posé (<tmp>/n4.fetch.4160/clone/.git/boucle-arret), --reprendre le retire [sortie 0]
+   relance --reprendre : sortie 0, « VEILLE FINIE 05:50 » ; --etat : VEILLE TERMINÉE : VEILLE FINIE 05:50 [sortie 2] 
+N4 sommeil-du-fetch : tuée ; dernière ligne « VEILLE 05:50 : file vide »
+   --etat : VEILLE MORTE (lancée à 05:50, sans ligne finale) : « boucle.sh --arreter », puis la relancer avec --reprendre [sortie 1] 
    fichier d'arrêt : retiré ; veille.verrou tenu par : [] ; boucle.verrou tenu par : []
-   garde, point 3 : [boucle] aucune boucle en cours ; fichier d'arrêt posé (<tmp>/n4.sommeil-du-fetch.12452/clone/.git/boucle-arret), --reprendre le retire [sortie 0]
-   relance --reprendre : sortie 0, « VEILLE FINIE 04:10 » ; --etat : VEILLE TERMINÉE : VEILLE FINIE 04:10 [sortie 2] 
-N4 preparation : tuée ; dernière ligne « VEILLE 04:10 : préparation (« sleep 4 ») »
-   --etat : VEILLE MORTE (lancée à 04:10, sans ligne finale) : « boucle.sh --arreter », puis la relancer avec --reprendre [sortie 1] 
+   garde, point 3 : [boucle] aucune boucle en cours ; fichier d'arrêt posé (<tmp>/n4.sommeil-du-fetch.4160/clone/.git/boucle-arret), --reprendre le retire [sortie 0]
+   relance --reprendre : sortie 0, « VEILLE FINIE 05:50 » ; --etat : VEILLE TERMINÉE : VEILLE FINIE 05:50 [sortie 2] 
+N4 preparation : tuée ; dernière ligne « VEILLE 05:50 : préparation (« sleep 4 ») »
+   --etat : VEILLE MORTE (lancée à 05:50, sans ligne finale) : « boucle.sh --arreter », puis la relancer avec --reprendre [sortie 1] 
    fichier d'arrêt : retiré ; veille.verrou tenu par : [] ; boucle.verrou tenu par : []
-   garde, point 3 : [boucle] aucune boucle en cours ; fichier d'arrêt posé (<tmp>/n4.preparation.12452/clone/.git/boucle-arret), --reprendre le retire [sortie 0]
-   relance --reprendre : sortie 0, « VEILLE FINIE 04:10 » ; --etat : VEILLE TERMINÉE : VEILLE FINIE 04:10 [sortie 2] 
-N4 boucle : tuée ; dernière ligne « VEILLE 04:10 : préparation réussie »
-   --etat : VEILLE MORTE (lancée à 04:10, sans ligne finale) : « boucle.sh --arreter », puis la relancer avec --reprendre [sortie 1] 
-   fichier d'arrêt : retiré ; veille.verrou tenu par : [] ; boucle.verrou tenu par : [11217:bash 11253:sleep ]
-   garde, point 3 : [boucle] boucle arrêtée ; fichier d'arrêt posé (<tmp>/n4.boucle.12452/clone/.git/boucle-arret), --reprendre le retire [sortie 0]
-   relance --reprendre : sortie 0, « VEILLE FINIE 04:10 » ; --etat : VEILLE TERMINÉE : VEILLE FINIE 04:10 [sortie 2] 
+   garde, point 3 : [boucle] aucune boucle en cours ; fichier d'arrêt posé (<tmp>/n4.preparation.4160/clone/.git/boucle-arret), --reprendre le retire [sortie 0]
+   relance --reprendre : sortie 0, « VEILLE FINIE 05:50 » ; --etat : VEILLE TERMINÉE : VEILLE FINIE 05:50 [sortie 2] 
+N4 boucle : tuée ; dernière ligne « VEILLE 05:50 : préparation réussie »
+   --etat : VEILLE MORTE (lancée à 05:50, sans ligne finale) : « boucle.sh --arreter », puis la relancer avec --reprendre [sortie 1] 
+   fichier d'arrêt : retiré ; veille.verrou tenu par : [] ; boucle.verrou tenu par : [6254:bash 6263:sleep ]
+   garde, point 3 : [boucle] boucle arrêtée ; fichier d'arrêt posé (<tmp>/n4.boucle.4160/clone/.git/boucle-arret), --reprendre le retire [sortie 0]
+   relance --reprendre : sortie 0, « VEILLE FINIE 05:50 » ; --etat : VEILLE TERMINÉE : VEILLE FINIE 05:50 [sortie 2] 
 N4 sonde : tuée ; dernière ligne « FILE VIDE »
-   --etat : VEILLE MORTE (lancée à 04:10, sans ligne finale) : « boucle.sh --arreter », puis la relancer avec --reprendre [sortie 1] 
+   --etat : VEILLE MORTE (lancée à 05:50, sans ligne finale) : « boucle.sh --arreter », puis la relancer avec --reprendre [sortie 1] 
    fichier d'arrêt : retiré ; veille.verrou tenu par : [] ; boucle.verrou tenu par : []
-   garde, point 3 : [boucle] aucune boucle en cours ; fichier d'arrêt posé (<tmp>/n4.sonde.12452/clone/.git/boucle-arret), --reprendre le retire [sortie 0]
-   relance --reprendre : sortie 0, « VEILLE FINIE 04:10 » ; --etat : VEILLE TERMINÉE : VEILLE FINIE 04:10 [sortie 2] 
+   garde, point 3 : [boucle] aucune boucle en cours ; fichier d'arrêt posé (<tmp>/n4.sonde.4160/clone/.git/boucle-arret), --reprendre le retire [sortie 0]
+   relance --reprendre : sortie 0, « VEILLE FINIE 05:51 » ; --etat : VEILLE TERMINÉE : VEILLE FINIE 05:51 [sortie 2] 
 ### n5 (n5-deux-veilles-et-reprendre)
-N5 seconde veille --reprendre : sortie 9 en 3.0 s, « VEILLE ARRÊTÉE 04:10 : une veille tourne déjà (<tmp>/n5.21430/clone/.git/veille.verrou) : une seule à la fois, « veille.sh --etat » »
+N5 seconde veille --reprendre : sortie 9 en 3.0 s, « VEILLE ARRÊTÉE 05:51 : une veille tourne déjà (<tmp>/n5.7162/clone/.git/veille.verrou) : une seule à la fois, « veille.sh --etat » »
    état inchangé : oui ; fichier d'arrêt : gardé ; boucles lancées : 1
-   première veille : sortie 0 « VEILLE FINIE 04:10 » ; --etat : VEILLE TERMINÉE : arrêt demandé (<tmp>/n5.21430/clone/.git/boucle-arret, posé le 2026-11-22T04:10:41) ; « veille.sh --reprendre » quand on veut repartir [sortie 2] 
+   première veille : sortie 0 « VEILLE FINIE 05:51 » ; --etat : VEILLE TERMINÉE : arrêt demandé (<tmp>/n5.7162/clone/.git/boucle-arret, posé le 2026-11-22T05:51:03) ; « veille.sh --reprendre » quand on veut repartir [sortie 2] 
 ### n6 (n6-garde-de-bout-en-bout)
-bash: line 1: 28778 Killed                  BOUCLE_SLEEP=60 bash '<tmp>/<jouet>/veille.sh' --pause 0.3 --duree 1 >> '<tmp>/<jouet>/veille.log' 2>&1
-N6 bash-seul : boucle.verrou tenu par : [28938:bash 28960:sleep ] ; --etat : VEILLE MORTE (lancée à 04:10, sans ligne finale) : « boucle.sh --arreter », puis la relancer avec --reprendre [sortie 1] 
-   point 3 : [boucle] boucle arrêtée ; fichier d'arrêt posé (<tmp>/n6.bash-seul.28660/clone/.git/boucle-arret), --reprendre le retire [sortie 0] ; boucle.verrou tenu par : []
-   relance --reprendre : sortie 0, « VEILLE FINIE 04:10 » ; boucle : boucle  ; --etat : VEILLE TERMINÉE : VEILLE FINIE 04:10 [sortie 2] 
-<essais>/n6-garde-de-bout-en-bout.sh: line 9: 31237 Killed                  setsid bash -c "BOUCLE_SLEEP=60 bash '$J/veille.sh' --pause 0.3 --duree 1 >> '$J/veille.log' 2>&1"
-N6 groupe : boucle.verrou tenu par : [] ; --etat : VEILLE MORTE (lancée à 04:10, sans ligne finale) : « boucle.sh --arreter », puis la relancer avec --reprendre [sortie 1] 
-   point 3 : [boucle] aucune boucle en cours ; fichier d'arrêt posé (<tmp>/n6.groupe.28660/clone/.git/boucle-arret), --reprendre le retire [sortie 0] ; boucle.verrou tenu par : []
-   relance --reprendre : sortie 0, « VEILLE FINIE 04:10 » ; boucle : boucle  ; --etat : VEILLE TERMINÉE : VEILLE FINIE 04:10 [sortie 2] 
-<essais>/n6-garde-de-bout-en-bout.sh: line 9:   332 Killed                  setsid bash -c "BOUCLE_SLEEP=60 bash '$J/veille.sh' --pause 0.3 --duree 1 >> '$J/veille.log' 2>&1"
+bash: line 1:  7349 Killed                  BOUCLE_SLEEP=60 bash '<tmp>/<jouet>/veille.sh' --pause 0.3 --duree 1 >> '<tmp>/<jouet>/veille.log' 2>&1
+N6 bash-seul : boucle.verrou tenu par : [7408:bash 7417:sleep ] ; --etat : VEILLE MORTE (lancée à 05:51, sans ligne finale) : « boucle.sh --arreter », puis la relancer avec --reprendre [sortie 1] 
+   point 3 : [boucle] boucle arrêtée ; fichier d'arrêt posé (<tmp>/n6.bash-seul.7310/clone/.git/boucle-arret), --reprendre le retire [sortie 0] ; boucle.verrou tenu par : []
+   relance --reprendre : sortie 0, « VEILLE FINIE 05:51 » ; boucle : boucle  ; --etat : VEILLE TERMINÉE : VEILLE FINIE 05:51 [sortie 2] 
+<essais>/n6-garde-de-bout-en-bout.sh: line 9:  7785 Killed                  setsid bash -c "BOUCLE_SLEEP=60 bash '$J/veille.sh' --pause 0.3 --duree 1 >> '$J/veille.log' 2>&1"
+N6 groupe : boucle.verrou tenu par : [] ; --etat : VEILLE MORTE (lancée à 05:51, sans ligne finale) : « boucle.sh --arreter », puis la relancer avec --reprendre [sortie 1] 
+   point 3 : [boucle] aucune boucle en cours ; fichier d'arrêt posé (<tmp>/n6.groupe.7310/clone/.git/boucle-arret), --reprendre le retire [sortie 0] ; boucle.verrou tenu par : []
+   relance --reprendre : sortie 0, « VEILLE FINIE 05:51 » ; boucle : boucle  ; --etat : VEILLE TERMINÉE : VEILLE FINIE 05:51 [sortie 2] 
+<essais>/n6-garde-de-bout-en-bout.sh: line 9:  8203 Killed                  setsid bash -c "BOUCLE_SLEEP=60 bash '$J/veille.sh' --pause 0.3 --duree 1 >> '$J/veille.log' 2>&1"
 N6 recyclage-commun-neuf : boucle.verrou tenu par : [] ; --etat : VEILLE MORTE (aucune trace de veille) : « boucle.sh --arreter », puis la relancer avec --reprendre [sortie 1] 
-   point 3 : [boucle] aucune boucle en cours ; fichier d'arrêt posé (<tmp>/n6.recyclage-commun-neuf.28660/clone/.git/boucle-arret), --reprendre le retire [sortie 0] ; boucle.verrou tenu par : []
-   relance --reprendre : sortie 0, « VEILLE FINIE 04:10 » ; boucle : boucle  ; --etat : VEILLE TERMINÉE : VEILLE FINIE 04:10 [sortie 2] 
-<essais>/n6-garde-de-bout-en-bout.sh: line 9:  2611 Killed                  setsid bash -c "BOUCLE_SLEEP=60 bash '$J/veille.sh' --pause 0.3 --duree 1 >> '$J/veille.log' 2>&1"
-N6 recyclage-commun-garde : boucle.verrou tenu par : [] ; --etat : VEILLE MORTE (lancée à 04:10, sans ligne finale) : « boucle.sh --arreter », puis la relancer avec --reprendre [sortie 1] 
-   point 3 : [boucle] aucune boucle en cours ; fichier d'arrêt posé (<tmp>/n6.recyclage-commun-garde.28660/clone/.git/boucle-arret), --reprendre le retire [sortie 0] ; boucle.verrou tenu par : []
-   relance --reprendre : sortie 0, « VEILLE FINIE 04:10 » ; boucle : boucle  ; --etat : VEILLE TERMINÉE : VEILLE FINIE 04:10 [sortie 2] 
+   point 3 : [boucle] aucune boucle en cours ; fichier d'arrêt posé (<tmp>/n6.recyclage-commun-neuf.7310/clone/.git/boucle-arret), --reprendre le retire [sortie 0] ; boucle.verrou tenu par : []
+   relance --reprendre : sortie 0, « VEILLE FINIE 05:51 » ; boucle : boucle  ; --etat : VEILLE TERMINÉE : VEILLE FINIE 05:51 [sortie 2] 
+<essais>/n6-garde-de-bout-en-bout.sh: line 9:  8837 Killed                  setsid bash -c "BOUCLE_SLEEP=60 bash '$J/veille.sh' --pause 0.3 --duree 1 >> '$J/veille.log' 2>&1"
+N6 recyclage-commun-garde : boucle.verrou tenu par : [] ; --etat : VEILLE MORTE (lancée à 05:51, sans ligne finale) : « boucle.sh --arreter », puis la relancer avec --reprendre [sortie 1] 
+   point 3 : [boucle] aucune boucle en cours ; fichier d'arrêt posé (<tmp>/n6.recyclage-commun-garde.7310/clone/.git/boucle-arret), --reprendre le retire [sortie 0] ; boucle.verrou tenu par : []
+   relance --reprendre : sortie 0, « VEILLE FINIE 05:51 » ; boucle : boucle  ; --etat : VEILLE TERMINÉE : VEILLE FINIE 05:51 [sortie 2] 
 ### n7 (n7-sortie-9-sans-issue)
 N7.a veille relancée : sortie 9 ; journal :
-     VEILLE 04:10 : durée 1 min, aucun passage après 05:30 (marge 40 min)
+     VEILLE 05:51 : durée 1 min, aucun passage après 07:11 (marge 40 min)
      REFUS : une boucle tourne déjà (pid ) : une seule à la fois, '--arreter' d'abord
-     VEILLE ARRÊTÉE 04:10 : la boucle est sortie en 9
-     --etat (ce que la sortie 9 fait lire) : VEILLE TERMINÉE : VEILLE ARRÊTÉE 04:10 : la boucle est sortie en 9 [sortie 2] 
-     --etat au réveil de garde suivant : VEILLE TERMINÉE : VEILLE ARRÊTÉE 04:10 : la boucle est sortie en 9 [sortie 2] 
-N7.b relancée avec --reprendre (un arrêt posé) : sortie 9, « VEILLE ARRÊTÉE 04:10 : une boucle tient le verrou (<tmp>/n7.4885/clone/.git/boucle.verrou) : fichier d'arrêt gardé ; « boucle.sh --arreter », puis --reprendre »
-     --etat : VEILLE TERMINÉE : arrêt demandé (<tmp>/n7.4885/clone/.git/boucle-arret, posé le 2026-11-22T04:10:55) ; « veille.sh --reprendre » quand on veut repartir [sortie 2] 
-N7.c boucle.sh --arreter : [boucle] boucle arrêtée ; fichier d'arrêt posé (<tmp>/n7.4885/clone/.git/boucle-arret), --reprendre le retire [sortie 0] ; le démon : arrêté
-     puis --reprendre : sortie 6 ; dernière ligne « VEILLE ARRÊTÉE 04:10 : la boucle est sortie en 6 »
-== fin 2026-11-22T04:10:56Z, charge 2.91 3.05 3.59
+     VEILLE ARRÊTÉE 05:51 : la boucle est sortie en 9
+     --etat (ce que la sortie 9 fait lire) : VEILLE TERMINÉE : VEILLE ARRÊTÉE 05:51 : la boucle est sortie en 9 [sortie 2] 
+     --etat au réveil de garde suivant : VEILLE TERMINÉE : VEILLE ARRÊTÉE 05:51 : la boucle est sortie en 9 [sortie 2] 
+N7.b relancée avec --reprendre (un arrêt posé) : sortie 9, « VEILLE ARRÊTÉE 05:51 : une boucle tient le verrou (<tmp>/n7.9440/clone/.git/boucle.verrou) : fichier d'arrêt gardé ; « boucle.sh --arreter », puis --reprendre »
+     --etat : VEILLE TERMINÉE : arrêt demandé (<tmp>/n7.9440/clone/.git/boucle-arret, posé le 2026-11-22T05:51:16) ; « veille.sh --reprendre » quand on veut repartir [sortie 2] 
+N7.c boucle.sh --arreter : [boucle] boucle arrêtée ; fichier d'arrêt posé (<tmp>/n7.9440/clone/.git/boucle-arret), --reprendre le retire [sortie 0] ; le démon : arrêté
+     puis --reprendre : sortie 6 ; dernière ligne « VEILLE ARRÊTÉE 05:51 : la boucle est sortie en 6 »
+== fin 2026-11-22T05:51:16Z, charge 0.18 0.48 1.15
 rc=0

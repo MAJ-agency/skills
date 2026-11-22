@@ -1,0 +1,35 @@
+# Sur 950f94e (arbre 64c2c2a5, celui de fb0ecb0 + retouches-tour-1.patch), au second tour
+# Sur 950f94e (950f94e, arbre 64c2c2a) ; 2026-11-22T05:25:27Z ; charge 2.84 2.96 2.93
+## Y1 à Y4 (le delta)
+ROUGE Y1 veille.sh --etat : le contrôle du verrou ouvert lit le descripteur 8 (une veille vivante se lit « verrou illisible ») (47 s) — --etat : MORTE sans trace, VIVANTE pendant la veille, TERMIN | veille tuée pendant sa pause (kill -9, comme l'outil Bash ou | veille tuée pendant que `tee` attend un démon de la boucle (
+ROUGE Y2 veille.sh : un verrou de la veille illisible sort en 9, comme une seconde veille (50 s) — un fichier du verrou de la veille qui ne s'ouvre pas : --eta
+ROUGE Y3 SKILL.md : sortie 9 d’une boucle sans veille, le lanceur n’est plus prévenu (0 s) — une fin sans ligne finale est une veille morte : quatrième p
+ROUGE Y4 SKILL.md : sortie 9 d’une autre veille, le point 3 (sa boucle arrêtée en plein passage) (0 s) — une fin sans ligne finale est une veille morte : quatrième p
+4 rouges sur 4 jouées, 4 dans le fichier
+toutes rouges
+## D1 à D7, M2c, T10c
+ROUGE D1 veille.sh : la première boucle reçoit encore --reprendre (fb0ecb0) (51 s) — --reprendre : la veille retire le fichier d'arrêt, la boucle
+ROUGE D2 veille.sh --etat : un verrou qui ne s’ouvre pas se lit VEILLE VIVANTE (fb0ecb0) (50 s) — un fichier du verrou de la veille qui ne s'ouvre pas : --eta
+ROUGE D3 veille.sh : un verrou qui ne s’ouvre pas se lit « une veille tourne déjà » (fb0ecb0) (49 s) — un fichier du verrou de la veille qui ne s'ouvre pas : --eta
+ROUGE D4 SKILL.md : point 2, la garde ne dit plus qu’un arrêt demandé ne se lève jamais (fb0ecb0) (0 s) — le réveil de garde : après la liste des fins, avant le suivi
+ROUGE D5 SKILL.md : point 4, « Réarmer » sans dire qu’il suit chaque suite (fb0ecb0) (0 s) — le réveil de garde : après la liste des fins, avant le suivi
+ROUGE D6 SKILL.md : la sortie 9 d’une boucle renvoyée à --etat (fb0ecb0) (0 s) — une fin sans ligne finale est une veille morte : quatrième p
+ROUGE D7 SKILL.md : sans veille en cours, un second send_later à côté de la garde (fb0ecb0) (0 s) — le réveil de garde : après la liste des fins, avant le suivi
+ROUGE M2c veille.sh : la boucle hérite du verrou de la veille (M2 sur le texte retouché) (49 s) — un démon laissé par la boucle ou par file.sh ne tient pas la | veille tuée pendant que `tee` attend un démon de la boucle (
+ROUGE T10c SKILL.md : la sortie 9 ne nomme plus une autre veille, ni la suite par --etat (T10b sur le texte retouché) (0 s) — une fin sans ligne finale est une veille morte : quatrième p
+9 rouges sur 9 jouées, 9 dans le fichier
+toutes rouges
+## X1 à X10
+ROUGE X1 SKILL.md : la garde armée à chaque lancement de la veille (les réveils de garde s’empilent) (0 s) — le réveil de garde : après la liste des fins, avant le suivi
+ROUGE X2 SKILL.md : point 2, un arrêt demandé levé par la garde (0 s) — le réveil de garde : après la liste des fins, avant le suivi
+ROUGE X3 SKILL.md : point 2, une copie d’avant --etat relancée avec --reprendre (0 s) — le réveil de garde : après la liste des fins, avant le suivi
+ROUGE X4 SKILL.md : point 2, une copie d’avant --etat, la garde réarmée (0 s) — le réveil de garde : après la liste des fins, avant le suivi
+ROUGE X5 SKILL.md : la garde sans son message (0 s) — le réveil de garde : après la liste des fins, avant le suivi
+ROUGE X6 SKILL.md : point 1, la copie manquante n’est plus vue (0 s) — le réveil de garde : après la liste des fins, avant le suivi
+ROUGE X7 veille.sh : l’état « lancee » ajouté au lieu de remplacer la fin d’avant (49 s) — veille tuée pendant sa pause (kill -9, comme l'outil Bash ou
+ROUGE X8 veille.sh : toute veille retire le fichier d’arrêt, --reprendre ou pas (359 s) — veille.sh --reprendre après boucle.sh --arreter : la veille  | une boucle tient le verrou : préparation non jouée, sortie 1 | --reprendre : la veille retire le fichier d'arrêt, la boucle
+ROUGE X9 veille.sh : --reprendre garde boucle.verrou ouvert (descripteur 8) (353 s) — veille.sh --reprendre après boucle.sh --arreter : la veille  | --reprendre : la veille retire le fichier d'arrêt, la boucle
+ROUGE X10 veille.sh : --reprendre retire le fichier d’arrêt avant le verrou de la veille (50 s) — une seconde veille pendant qu'une tourne : VEILLE ARRÊTÉE, s | --reprendre : préparation en échec (13), le fichier d'arrêt 
+10 rouges sur 10 jouées, 10 dans le fichier
+toutes rouges
+fin 2026-11-22T05:43:54Z ; charge 0.68 1.07 1.67 ; arbre après : 0 fichier(s) modifié(s)

@@ -37,7 +37,7 @@ T
   echo "   --etat : $(etat)"
   echo "   fichier d'arrêt : $([ -e .git/boucle-arret ] && echo posé || echo retiré) ; veille.verrou tenu par : [$(tenants .git/veille.verrou)] ; boucle.verrou tenu par : [$(tenants .git/boucle.verrou)]"
   printf '{"preparerCapitaine": "true"}\n' > .claude/chaine.json && git commit -qam rapide && git push -q origin HEAD:develop
-  echo "   garde, point 3 : $(env -u CAPITAINE_ID bash "$B" --arreter 2>&1 | sed "s#$TMPDIR#<tmp>#g" | tr '\n' ' ')[sortie $?]"
+  echo "   garde, point 3 : $(arreter "$B")"
   rm -f "$J/file-etat"
   bash "$J/veille.sh" --pause 0.2 --duree 1 --sondes 0 --reprendre > "$J/r.log" 2>&1; rc=$?
   echo "   relance --reprendre : sortie $rc, « $(tail -1 "$J/r.log") » ; --etat : $(etat)"

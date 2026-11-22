@@ -15,7 +15,7 @@ date +%FT%T > .git/boucle-arret
 bash "$J/veille.sh" --pause 0.2 --duree 1 --sondes 0 --reprendre > "$J/r.log" 2>&1; rc=$?
 echo "N7.b relancée avec --reprendre (un arrêt posé) : sortie $rc, « $(sed "s#$TMPDIR#<tmp>#g" "$J/r.log") »"
 echo "     --etat : $(etat)"
-echo "N7.c boucle.sh --arreter : $(env -u CAPITAINE_ID bash "$B" --arreter 2>&1 | sed "s#$TMPDIR#<tmp>#g" | tr '\n' ' ')[sortie $?] ; le démon : $(kill -0 $demon 2>/dev/null && echo vivant || echo arrêté)"
+echo "N7.c boucle.sh --arreter : $(arreter "$B") ; le démon : $(kill -0 $demon 2>/dev/null && echo vivant || echo arrêté)"
 bash "$J/veille.sh" --pause 0.2 --duree 1 --sondes 0 --reprendre > "$J/s.log" 2>&1; rc=$?
 echo "     puis --reprendre : sortie $rc ; dernière ligne « $(tail -1 "$J/s.log" | sed "s#$TMPDIR#<tmp>#g" | cut -c1-120) »"
 kill -9 $demon 2>/dev/null; cd / && nettoyer && rm -rf "$J"

@@ -1,0 +1,6 @@
+== arbre 950f94e, 2026-11-22T05:51:42Z, charge 0.12 0.44 1.12
+N8 veille : sortie 9 ; ses deux dernières lignes : REFUS : une boucle tourne déjà (pid 10204)|VEILLE ARRÊTÉE 05:51 : la boucle est sortie en 9|
+   boucle à la main : vivante ; boucle.verrou tenu par : [10204:bash 10213:sleep ] ; --etat : VEILLE TERMINÉE : VEILLE ARRÊTÉE 05:51 : la boucle est sortie en 9 [sortie 2] 
+   point 3 : [boucle] boucle arrêtée ; fichier d'arrêt posé (<tmp>/n8.10116/clone/.git/boucle-arret), --reprendre le retire [sortie 0] ; boucle à la main : arrêtée
+   sa sortie : 143
+   relance --reprendre : sortie 0, « VEILLE FINIE 05:51 » ; --etat : VEILLE TERMINÉE : VEILLE FINIE 05:51 [sortie 2] 

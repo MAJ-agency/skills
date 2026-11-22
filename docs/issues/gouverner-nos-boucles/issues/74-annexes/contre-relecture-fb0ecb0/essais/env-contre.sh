@@ -10,3 +10,6 @@ attendre() { for _ in $(seq 150); do grep -q "$2" "$1" 2>/dev/null && return 0; 
 # Les orphelins d'un essai (le sommeil d'une préparation, d'un fetch, d'une boucle tuée) : les processus dont le dossier
 # courant est dans le jouet, tous lancés par l'essai. À appeler après `cd /`.
 nettoyer() { local p c; for p in /proc/[0-9]*; do c=$(readlink "$p/cwd" 2>/dev/null) || continue; case "$c" in "$J"|"$J"/*) kill -9 "${p#/proc/}" 2>/dev/null ;; esac; done; }
+# Le vrai `boucle.sh --arreter` <boucle.sh>, depuis le dossier courant : sa sortie sur une ligne, puis sa sortie mesurée
+# (second tour : `[sortie $?]` écrit après un tube rendait celle de `tr`, pas celle de `--arreter`).
+arreter() { local s r; s=$(env -u CAPITAINE_ID bash "$1" --arreter 2>&1); r=$?; printf '%s [sortie %s]' "$(printf '%s' "$s" | sed "s#$TMPDIR#<tmp>#g" | tr '\n' ' ')" "$r"; }
