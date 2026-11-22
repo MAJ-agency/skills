@@ -1,7 +1,9 @@
 // `develop.sh` sur un dépôt jouet : origin nu qui n'a que `main`, clone de travail dont le hook
 // pre-push est celui du socle (`husky/pre-push`, augmenté de la ligne que `socle-tests` fait ajouter),
 // avec un faux `pnpm` qui journalise ses appels et refuse. Le push de develop.sh passe sous le hook :
-// rien de neuf ne part, le hook ne joue rien. Aucun réseau.
+// rien de neuf ne part, le hook ne joue rien. Aucun réseau. Banc du plugin, jamais posé : `develop.sh` part seul dans un
+// projet (étape 9 du skill), et ce banc lit le pre-push du gabarit de `socle-monorepo`, pas celui du projet ; hors de
+// `references/`, où tout banc est posé et joué dans un projet (ticket 90, `scripts/references-posees.test.mjs`).
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { execFileSync, spawnSync } from 'node:child_process';
@@ -9,12 +11,12 @@ import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileS
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { environnementDeBanc } from '../../../../sujet/scripts/depot-jouet.mjs';
+import { environnementDeBanc } from '../../sujet/scripts/depot-jouet.mjs';
 
 const ICI = dirname(fileURLToPath(import.meta.url));
-const SCRIPT = join(ICI, 'develop.sh');
-// Le pre-push du socle : à côté dans le plugin (`references/`), à sa place dans le dépôt du plugin.
-const HOOK_SOCLE = join(ICI, '../../../../../monorepo/socle-monorepo/references/husky/pre-push');
+const SCRIPT = join(ICI, '../references/scripts/github/develop.sh');
+// Le pre-push du socle : le gabarit de `socle-monorepo`, dans le plugin.
+const HOOK_SOCLE = join(ICI, '../../../monorepo/socle-monorepo/references/husky/pre-push');
 
 // Sans les GIT_* hérités : sous un hook pre-push, GIT_DIR et GIT_INDEX_FILE visent le vrai dépôt.
 const ENV = {

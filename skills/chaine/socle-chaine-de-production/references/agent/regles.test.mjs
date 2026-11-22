@@ -1,7 +1,21 @@
 import assert from 'node:assert/strict';
-import { test } from 'node:test';
-import { ajouteUneDependance, decisionCommande, decisionOutilGithub, lireDependances, paquetsAjoutes, pousseSurUnSujet, refusEdition, sansTexte, segmentsDeCommande, lintable } from './regles.mjs';
-import { lireCommande, RAISON_ILLISIBLE, LECTURE_7_9, RAISON_TROP_LONGUE, appelsGit, sauteLesHooks, ecritUneRefDeSuivi, amendeUnCommit } from './regles.mjs';
+import { copyFileSync, mkdirSync, mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { after, test } from 'node:test';
+import { pathToFileURL } from 'node:url';
+
+// Le banc lit une copie de `regles.mjs` posée seule sous un dossier neuf, jamais `./regles.mjs` : ses défauts (le
+// régime, les chemins sensibles, les migrations de `.claude/chaine.json`, les index de `scripts/docs/index-generes.json`)
+// se lisent à côté du fichier, et posé dans un projet ce sont le contrat et les index du projet (ticket 90 : au régime 8,
+// le gabarit rend `.claude/**` sensible). Chaque cas donne ce qui le concerne ; sans, il vaut pour un dépôt sans contrat.
+const ISOLE = mkdtempSync(join(tmpdir(), 'regles-'));
+after(() => rmSync(ISOLE, { recursive: true, force: true }));
+mkdirSync(join(ISOLE, 'scripts/agent'), { recursive: true });
+copyFileSync(new URL('./regles.mjs', import.meta.url), join(ISOLE, 'scripts/agent/regles.mjs'));
+const REGLES = pathToFileURL(join(ISOLE, 'scripts/agent/regles.mjs')).href;
+const { ajouteUneDependance, decisionCommande, decisionOutilGithub, lireDependances, paquetsAjoutes, pousseSurUnSujet, refusEdition, sansTexte, segmentsDeCommande, lintable } = await import(REGLES);
+const { lireCommande, RAISON_ILLISIBLE, LECTURE_7_9, RAISON_TROP_LONGUE, appelsGit, sauteLesHooks, ecritUneRefDeSuivi, amendeUnCommit } = await import(REGLES);
 
 const livree = { migrationExistante: () => true, migrations: 'apps/api/src/db/migrations/' };
 const nouvelle = { migrationExistante: () => false, migrations: 'apps/api/src/db/migrations/' };
@@ -13,8 +27,22 @@ test('refusEdition refuse une migration déjà livrée et laisse écrire une nou
   assert.match(refusEdition('apps/api/prisma/migrations/2026_x/migration.sql', { ...livree, migrations: 'apps/api/prisma/migrations' }), /ne se modifie jamais/);
 });
 
-test('refusEdition laisse éditer .claude/skills : les skills du plugin vivent hors du dépôt, ceux du projet sont à lui', () => {
-  for (const c of ['.claude/skills/chantier/SKILL.md', '.claude/skills/maj-skills.json', '.claude/skills/parcours-federation/SKILL.md']) assert.equal(refusEdition(c, nouvelle), null);
+// Ticket 90 : `.claude/skills` est sous `.claude/**`, chemin sensible du gabarit du contrat. En régime 7, rien ne le
+// garde : les skills du plugin vivent hors du dépôt, ceux du projet sont à lui. En régime 8, il ne s'écrit qu'avec
+// l'accord du produit (ligne `Sensibles:` du ticket), comme tout chemin sensible : un skill du projet est une consigne
+// que toute session suit, celles de relecture comprises.
+test('refusEdition et .claude/skills : laissé éditable en régime 7 ; en régime 8, sous `.claude/**` sensible, refusé sans la ligne `Sensibles:`, permis par elle', () => {
+  const skills = ['.claude/skills/chantier/SKILL.md', '.claude/skills/maj-skills.json', '.claude/skills/parcours-federation/SKILL.md'];
+  for (const c of skills) assert.equal(refusEdition(c, nouvelle), null, c);
+  for (const c of skills) assert.equal(refusEdition(c, { ...nouvelle, regime8: false, sensibles: ['.claude/**'] }), null, `${c} : régime 7, chemin sensible`);
+  const huit = { ...nouvelle, regime8: true, sensibles: ['.claude/**'] };
+  for (const c of skills) {
+    assert.match(refusEdition(c, huit) ?? '', /^\.claude\/skills\/.* chemin sensible .*\(Aucune ligne lue : /, `${c} : régime 8, sans ticket lu`);
+    const horsAccord = refusEdition(c, { ...huit, accordes: () => ({ copies: [['docs/x.md']] }) }) ?? '';
+    assert.match(horsAccord, /hors de la ligne `Sensibles:`/, `${c} : régime 8, hors accord`);
+    assert.doesNotMatch(horsAccord, /Aucune ligne lue/, `${c} : régime 8, hors accord : la ligne a été lue`);
+    assert.equal(refusEdition(c, { ...huit, accordes: () => ({ copies: [['.claude/skills/**']] }) }), null, `${c} : régime 8, accordé`);
+  }
 });
 
 test('refusEdition refuse le lockfile et les fichiers .env, laisse .env.example', () => {
@@ -1958,7 +1986,7 @@ test('ticket 18 : un message qui cite --amend passe, comme --fixup=amend', () =>
 
 // ── Lot 5b : la ligne `Sensibles:` et le refus d'un chemin sensible en régime 8 ──────────────────────────────────
 test('lot 5b, lireSensibles : les chemins accordés, `—`, et ce qui ne se lit pas (copie de chemins-sensibles.mjs, même table)', async () => {
-  const { lireSensibles } = await import('./regles.mjs');
+  const { lireSensibles } = await import(REGLES);
   const enTete = (ligne) => `# T\n\nStatus: ready-for-agent\n${ligne}\n\n## Le besoin\n\nSensibles: corps/ignoré — accord de x, 2026-01-01\n`;
   assert.deepEqual(lireSensibles(enTete('Sensibles: `scripts/agent/**`, docs/x.md — accord de la MOA, 2026-11-18 # repose')), { chemins: ['scripts/agent/**', 'docs/x.md'] });
   assert.deepEqual(lireSensibles(enTete('**Sensibles:** — # rien')), { chemins: [] });
