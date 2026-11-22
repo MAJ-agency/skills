@@ -308,7 +308,7 @@ Vague 1 fusionnée le 2026-11-13 par le capitaine de `skills` (`main` à `8eb1c9
 | `session_012xRpgYY3i8F4J9J7wXtkr6` | fille, cas 12 (Sonnet, `SPEC_ALL_ANC-10.01`, archivée le 2026-11-22 à 13 h 10 UTC) | — | 2,42 | 170 553 |
 | `session_012xRpgXyhYByus9Hhx6qhsy` | fille, cas 12 (Sonnet, `SPEC_ALL_ANC-10.02`, archivée le 2026-11-22 à 13 h 10 UTC) | — | 1,81 | 169 270 |
 | `session_012xRpgbG6rHDihvxrZfJppz` | pose du socle d'`essai-relecture-8` (Opus, archivée le 2026-11-22 à 15 h 10 UTC) | — | 12,54 | 320 903 |
-| `session_012xRpgcUFsMqUNb7xAPUXf3` | capitaine d'`essai-relecture-8` (Sonnet, procédure sans la chaîne) | — | en cours | en cours |
+| `session_012xRpgcUFsMqUNb7xAPUXf3` | capitaine d'`essai-relecture-8` (Sonnet, procédure sans la chaîne, PR 1, arrêté de lui-même, archivé le 2026-11-22 à 16 h 05 UTC) | — | 0,77 | 151 733 |
 | `session_012xRpgbKx2ffLAHEbcaMwsY` | ticket   | 75 à 77, PR 153 (Sonnet) | en cours | en cours |
 | `session_012xRpgbDExkzqCseVSDvMkc` | ticket   | 78 et 79, PR 152 (Sonnet) | en cours | en cours |
 | `session_012xRpga5LgHdb5WqbuPCEXc` | ticket   | PR 149, fusion de `main` (Sonnet, archivée le 2026-11-22 à 06 h 14 UTC) | 0,26 | 94 620 |
@@ -1346,3 +1346,4 @@ La session de suite fait, dans cet ordre :
 - 2026-11-22 — 15 h 45 UTC. **PR « socle-tests » livrée** : https://github.com/MAJ-agency/skills/pull/154 (`42c5149`, 8.1.0), arbre égal au patch relu (`2d18d284…`) sur `ddb4265` ; bancs 24 rouges sur 103 avant, 125/125 après ; mutations 35/35 ; suite 1 422/1 422 (727 s). Contre-relecture, tour 1, lancée (Opus, effort extra).
 - 2026-11-22 — 15 h 47 UTC. **PR « tickets » livrée** : https://github.com/MAJ-agency/skills/pull/155 (`a95ab89`, 8.1.0), arbre égal au patch relu (`32d5e04d…`) sur `ddb4265` ; § 1 11 rouges sur 137, § 2 176/176 ; mutations 38/38 ; suite 1 405/1 405 (729 s). Contre-relecture, tour 1, lancée (Opus, effort extra). Six relectures et rédactions tournent en parallèle (152, 153 retouches ; 154, 155 tour 1 ; ticket 90 ; spec d'essai).
 - 2026-11-22 — 15 h 52 UTC. **PR 152, retouche du tour 1 écrite** par le contre-relecteur (`retouche-152-tour-1.patch`, `3858cda0…`, sur `4afd6e2`) : banc des trois chemins de fourche dans les deux régimes et sur une tête sans dépôt ; `boucle.sh` reconnaît la sortie 7 de la garde de fourche par sa dernière ligne (`fourche_sautee`) et rend le sujet, la ligne « sous-PR de fourche, sautée (aucun renvoi) » ; banc du sens 8 → 7 ; note 8.0.1 précisée. Mutations 28/28 ; suite entière 1 407/1 407 (2 073 s, charge 10). Session de retouche lancée (Sonnet).
+- 2026-11-22 — 16 h 05 UTC. Le capitaine sans chaîne du jouet s'est arrêté de lui-même (file vide, deux réveils), aucun réveil programmé ; archivé (0,77 $).
