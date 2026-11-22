@@ -1,0 +1,11 @@
+# pnpm test sur ee93f84183a7f3fc31e2d1b6477fd90557797518, début 2026-11-22T01:35:59Z,  01:35:59 up  6:21,  0 user,  load average: 0.80, 1.61, 2.08
+sortie 0
+# tests 1296
+# suites 0
+# pass 1296
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 833577.751046
+# fin 2026-11-22T01:49:52Z,  01:49:52 up  6:34,  0 user,  load average: 2.12, 3.21, 3.31

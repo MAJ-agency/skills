@@ -1,0 +1,20 @@
+# F1 à F7 (70-annexes/mutations.mjs) sur ee93f84, 2026-11-22T01:24:28Z,  01:24:28 up  6:09,  0 user,  load average: 1.60, 1.92, 2.40
+ROUGE F1 SKILL.md : le paragraphe du clone déplacé de la puce `C4` à la fin de l’étape 2 (M4 de la contre-relecture de la PR 145) (51 s) — C4 : le clone reste dans le dossier de la session, et un rap
+ROUGE F2 SKILL.md : le paragraphe du clone déplacé avant la puce `C4` (dans la puce `C3`) (53 s) — C4 : le clone reste dans le dossier de la session, et un rap
+ROUGE F3 SKILL.md : le paragraphe du clone déplacé dans l’étape 6 (54 s) — C4 : le clone reste dans le dossier de la session, et un rap
+ROUGE F4 prompt-regles.md : la phrase déplacée après la liste des gravités (53 s) — deux gravités, pas trois, et un mot par sens : ni « à corrig | C4 : le clone reste dans le dossier de la session, et un rap
+ROUGE F5 prompt-regles.md : la phrase déplacée en tête du prompt (51 s) — C4 : le clone reste dans le dossier de la session, et un rap
+ROUGE F6 verdict.md : la phrase sortie de la puce `/security-review:`, en paragraphe après elle (53 s) — C4 : le clone reste dans le dossier de la session, et un rap
+ROUGE F7 verdict.md : la phrase retirée (54 s) — C4 : le clone reste dans le dossier de la session, et un rap
+toutes rouges
+sortie 0
+# G1 à G6 (mutations-contre.mjs) sur ee93f84, 2026-11-22T01:30:37Z
+VERTE G1 (attendu VERTE, 55 s) SKILL.md : le paragraphe du clone désindenté (colonne 0), au même endroit : même place, seuls des blancs changent
+VERTE G2 (attendu VERTE, 53 s) SKILL.md : le paragraphe du clone remonté juste après le bloc de code de `C4`, avant « La première ligne… » : toujours dans la puce
+VERTE G3 (attendu VERTE, 52 s) prompt-regles.md : la phrase dupliquée, deux fois de suite avant « Gravité, deux seulement : » : à sa place, le doublon n’est pas exigé absent
+ROUGE G4 (attendu VERTE, 51 s) verdict.md : la phrase de la puce `/security-review:` passée sur une ligne de continuation de la même puce : même place, un retour à la ligne (décision 1 : « un retour à la ligne ne casse rien ») — verdict.md : la phrase dans la puce `/security-review:`
+VERTE G5 (attendu VERTE, 50 s) prompt-regles.md : la ligne vide entre la phrase et « Gravité, deux seulement : » retirée : seuls des blancs changent
+ROUGE G6 (attendu ROUGE, 54 s) verdict.md : la phrase reformulée à sens égal (« n’équivaut pas à une absence ») : un mot changé, rouge par décision 1 — not ok 9 - C4 : le clone reste dans le dossier de la session, et un rapport vide de `/secu
+1 écart(s) à l'attendu
+sortie 1
+# fin 2026-11-22T01:35:50Z,  01:35:50 up  6:20,  0 user,  load average: 0.95, 1.67, 2.10
