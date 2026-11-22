@@ -1,6 +1,6 @@
 # La preuve suffisante, part de `skills` (K5) : le skill `anchorpost` suit la CLI 2.0.0, publique, au pivot 3 ; sa fiche dit la criticité, les cas, l'étiquette de cas et `compare`
 
-Status: ready-for-agent
+Status: Fait — PR 157 (24fbd72, plugin 8.3.0)
 Type: task
 Label: contre-revue
 Modèle: sonnet — du texte, aux mots de la spec et de la CLI 2.0.1, sans rien à concevoir ; le texte entier est dans le patch ([`89-annexes/pr-anchorpost.patch`](89-annexes/pr-anchorpost.patch), sha256 `7d0ceced9400bdaa60a2b8477f54e9d5404d99047a40a0d3d3057aeba95d5381`, `git apply` sur `main` à `ddb4265`, plugin 8.0.0), décrit fichier par fichier ci-dessous ; deux bancs neufs, rouges avant le patch et verts après ; les mutations de [`89-annexes/mutations.mjs`](89-annexes/mutations.mjs) toutes rouges. Rien n'est à concevoir : qui veut changer une phrase l'écrit à son lanceur, il ne tranche pas. Seul ticket de la PR « anchorpost ».
