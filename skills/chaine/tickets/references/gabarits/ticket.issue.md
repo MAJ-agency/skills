@@ -3,6 +3,7 @@
 Status: ready-for-agent
 Type: task # task | défaut | grilling | research — obligatoire, vérifié par le gate
 Règles: {{RULE_ALL_<TRI>-<n>, RULE_<CTX>_<TRI>-<n> — les règles que le ticket réalise ou corrige, par leur identifiant complet ; `—` seul s'il n'en réalise aucune ; ou retirer la ligne}}
+Prouve: {{RULE_ALL_<TRI>-<n> — les règles que le ticket prouve sans les réaliser (il écrit leurs tests, pas leur code) ; jamais une règle de `Règles:` ; la criticité d'une feature ne descend pas par cette ligne, seulement par `Règles:` ; ou retirer la ligne}}
 Sujet: sujet/{{nom}}
 Blocked by: {{NN, NN — ou retirer la ligne}}
 Modèle: sonnet
@@ -34,6 +35,7 @@ Maquette: {{fichier du dépôt : maquette HTML et section, ou planche recopiée 
 | Surface               | Preuve                     |
 | --------------------- | -------------------------- |
 | {{écran, endpoint…}}  | {{le test qui la prouve — pour un défaut : `chemin/du/fichier.spec.ts` « titre exact du test », le gate vérifie qu'il existe et n'est pas désactivé quand le ticket est `Fait`}} |
+| {{RULE_<CTX>_<TRI>-<n>#<cas>}} | {{projet suivi par Anchorpost, index au pivot 3 : une ligne par cas attendu des règles de `Règles:` et de `Prouve:`, la preuve qui le portera (`[RULE_…#<cas>]` en tête de son titre) ou le ticket qui la portera ; sinon retirer la ligne}} |
 
 ## Vérification
 

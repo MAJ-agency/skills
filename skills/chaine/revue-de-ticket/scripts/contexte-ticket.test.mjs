@@ -297,3 +297,54 @@ test("une spec citée hors de docs/features/ est trouvée ; absente, le chemin c
   assert.match(section(r.stdout, "SPEC_ALL_DES-2"), /- trouvé : docs\/design\/all\/SPEC_ALL_DES-2-charte\.spec\.md — SPEC_ALL_DES-2 — Charte/);
   assert.match(section(r.stdout, "SPEC_ALL_ARC-9"), /- introuvable : docs\/\*\*\/SPEC_ALL_ARC-9-<slug>\.spec\.md/);
 });
+
+test("une règle de la ligne Prouve: est rendue sous « Règles du ticket », après celles de Règles:, et n'est pas répétée parmi les cités", () => {
+  const r = lancer(
+    depot({
+      [SPEC]: "# SPEC_ALL_SOC-1\n",
+      [TICKET]:
+        "# Preuves de la licence\n\nStatus: ready-for-agent\nType: task\nRègles: RULE_ALL_LIC-3\nProuve: RULE_ALL_LIC-4, RULE_ALL_LIC-3, LIC-9\n\n## Où\n\nLes tests de RULE_ALL_LIC-4.\n",
+      "docs/metier/regles/all/RULE_ALL_LIC-3.md": REGLE_LIC_3,
+      "docs/metier/regles/all/RULE_ALL_LIC-4.md": REGLE_LIC_3.replaceAll("LIC-3", "LIC-4"),
+    }),
+    "SPEC_ALL_SOC-1.03",
+  );
+  assert.equal(r.status, 0, r.stderr);
+  const o = r.stdout;
+  const rangs = [
+    "## Règles du ticket\n\nRègles: RULE_ALL_LIC-3",
+    "### RULE_ALL_LIC-3 (règle du ticket)",
+    "````\n\nProuve: RULE_ALL_LIC-4, RULE_ALL_LIC-3, LIC-9",
+    "### LIC-9\n- illisible : la ligne `Prouve:` porte un jeton qui n'est pas un identifiant de la grammaire",
+    "### RULE_ALL_LIC-4 (règle prouvée par le ticket, sans la réaliser)",
+    "## Identifiants cités",
+  ].map((m) => o.indexOf(m));
+  assert.ok(rangs.every((i) => i >= 0), `un repère manque : ${rangs}\n${o}`);
+  assert.deepEqual(rangs, [...rangs].sort((a, b) => a - b), o);
+  assert.match(section(o, "RULE_ALL_LIC-4"), /- trouvée : docs\/metier\/regles\/all\/RULE_ALL_LIC-4\.md/);
+  assert.equal(o.split("### RULE_ALL_LIC-4").length, 2, "une règle de Prouve: n'est pas répétée parmi les cités");
+  assert.equal(o.split("### RULE_ALL_LIC-3").length, 2, "une règle des deux lignes est rendue une fois, sous Règles:");
+  // Le commentaire de la ligne est retiré, comme celui de Règles: ; une ligne Prouve: du corps n'est pas la ligne.
+  const regle4 = REGLE_LIC_3.replaceAll("LIC-3", "LIC-4");
+  const commente = lancer(
+    depot({
+      [SPEC]: "# SPEC_ALL_SOC-1\n",
+      [TICKET]: "# Preuves\n\nStatus: ready-for-agent\nType: task\nProuve: RULE_ALL_LIC-4 # écrit par .14\n\n## Où\n\n- a\n",
+      "docs/metier/regles/all/RULE_ALL_LIC-4.md": regle4,
+    }),
+    "SPEC_ALL_SOC-1.03",
+  );
+  assert.equal(commente.status, 0, commente.stderr);
+  assert.doesNotMatch(commente.stdout, /illisible : la ligne `Prouve:`/, "le commentaire ` # …` de Prouve: est retiré");
+  assert.match(commente.stdout, /### RULE_ALL_LIC-4 \(règle prouvée par le ticket, sans la réaliser\)/);
+  const corpsSeul = lancer(
+    depot({
+      [SPEC]: "# SPEC_ALL_SOC-1\n",
+      [TICKET]: "# Preuves\n\nStatus: ready-for-agent\nType: task\n\n## Où\n\nProuve: RULE_ALL_LIC-4\n",
+      "docs/metier/regles/all/RULE_ALL_LIC-4.md": regle4,
+    }),
+    "SPEC_ALL_SOC-1.03",
+  );
+  assert.equal(corpsSeul.status, 0, corpsSeul.stderr);
+  assert.doesNotMatch(corpsSeul.stdout, /règle prouvée par le ticket/, "une ligne Prouve: du corps n'est pas la ligne de l'en-tête");
+});

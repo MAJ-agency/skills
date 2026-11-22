@@ -627,3 +627,72 @@ test('lot 5c, régime 8 : `Label: contre-revue` n’est plus exigé ; un ticket 
   const gele = controlerTicket({ nom, texte: pret('', 'Règles: RULE_ALL_SOC-1\n'), existe, regleExiste, regime: 8, niveauDe, gele: true }).erreurs.map((e) => e.message);
   assert.deepEqual(gele, ['régime 8 : ligne `Relecture: double` absente alors que le ticket cite RULE_ALL_SOC-1, règle de criticité haute (deux relectures indépendantes, A-90)'], 'gelé : exigée quand même');
 });
+
+// ── K3 de la preuve suffisante : la ligne `Prouve:`, la criticité et les cas des règles citées ─────────────────────
+const K3_NOM = 'SPEC_ALL_SOC-1-socle.07.issue.md';
+const k3 = ({ regles = '', prouve = '', surfaces = '| surface | preuve |\n', status = 'ready-for-agent' } = {}) =>
+  `# x\n\nStatus: ${status}\nType: task\n${regles}${prouve}Modèle: sonnet\nFichiers chauds: —\n\n## Où\n\n- a\n\n## Décisions\n\n- b\n\n## Surfaces\n\n${surfaces}\n## Vérification\n\n- d\n`;
+const K3_INDEX = {
+  'RULE_ALL_SOC-1': { criticite: 'medium', cas: ['nominal', 'lien-expire'], close: false },
+  'RULE_ALL_SOC-2': { criticite: null, cas: ['nominal'], close: false },
+  'RULE_ALL_SOC-3': { criticite: 'high', cas: [], close: false },
+  'RULE_ALL_SOC-4': { criticite: null, cas: [], close: true },
+};
+const suffisance = (mode) => ({ mode, regle: (id) => K3_INDEX[id] ?? null });
+const k3Juger = (texte, s = null) => {
+  const r = controlerTicket({ nom: K3_NOM, texte, existe, regleExiste: (id) => /^RULE_ALL_SOC-[1-5]$/.test(id), suffisance: s });
+  return { erreurs: r.erreurs.map((e) => e.message), avertissements: r.avertissements.map((e) => e.message) };
+};
+const TOUS_LES_CAS = '| nominal | `a.spec.ts` « [RULE_ALL_SOC-1#nominal] … » |\n| lien expiré | [RULE_ALL_SOC-1#lien-expire] porté par .08 |\n';
+
+test('K3 : la ligne Prouve: se lit comme Règles: (identifiant complet, registre, contexte), et jamais pour une règle de Règles:', () => {
+  assert.deepEqual(k3Juger(k3({ prouve: 'Prouve: RULE_ALL_SOC-1, `RULE_ALL_SOC-2`\n' })).erreurs, []);
+  assert.deepEqual(k3Juger(k3({ prouve: '- **Prouve:** RULE_ALL_SOC-1\n' })).erreurs, [], 'les formes de Règles: : puce, gras');
+  assert.deepEqual(k3Juger(k3({ prouve: 'Prouve: LIC-3, RULE_ALL_SOC-9\n' })).erreurs, [
+    "Prouve cite « LIC-3 », qui n'est pas un identifiant de règle complet (`RULE_<CTX>_<TRI>-<n>`, `RULE_ALL_LIC-3`) ; rien d'autre sur la ligne",
+    'Prouve cite RULE_ALL_SOC-9, absente du registre (docs/metier/regles/all/RULE_ALL_SOC-9.md)',
+  ]);
+  assert.deepEqual(k3Juger(k3({ prouve: 'Prouve: RULE_FNSMR_SOC-1\n' })).erreurs, ['Prouve cite RULE_FNSMR_SOC-1, du contexte FNSMR : un ticket du contexte ALL ne cite que des règles de ALL']);
+  assert.deepEqual(k3Juger(k3({ prouve: 'Prouve:\n' })).erreurs, ['ligne `Prouve:` vide : citer au moins une règle, ou retirer la ligne']);
+  assert.deepEqual(k3Juger(k3({ prouve: 'Prouve: —\n' })).erreurs, ["Prouve: — ne dit rien : citer les règles que le ticket prouve sans les réaliser, ou retirer la ligne"]);
+  assert.deepEqual(k3Juger(k3({ regles: 'Règles: RULE_ALL_SOC-1, RULE_ALL_SOC-3\n', prouve: 'Prouve: RULE_ALL_SOC-2, RULE_ALL_SOC-1\n' })).erreurs, [
+    "RULE_ALL_SOC-1 est sur `Règles:` et sur `Prouve:` : une règle que le ticket réalise va sur `Règles:` seule ; `Prouve:` nomme celles qu'il prouve sans les réaliser",
+  ]);
+  assert.deepEqual(k3Juger(k3({ prouve: 'Prouve: RULE_ALL_SOC-9\n', status: 'needs-triage' })).erreurs, ['Prouve cite RULE_ALL_SOC-9, absente du registre (docs/metier/regles/all/RULE_ALL_SOC-9.md)'], 'quel que soit le statut, comme Règles:');
+  assert.deepEqual(k3Juger('# x\n\nStatus: needs-triage\nType: task\n\n## Le besoin\n\nProuve: RULE_ALL_SOC-9\n').erreurs, [], 'dans le corps, la ligne ne se lit pas');
+});
+
+test("K3 : sans index au pivot 3, rien ; en observe, un avertissement ; en enforce, un refus, pour une règle sans criticité, sans cas ou absente de l'index", () => {
+  const sansCriticite = k3({ regles: 'Règles: RULE_ALL_SOC-2\n', surfaces: '| nominal | [RULE_ALL_SOC-2#nominal] |\n' });
+  assert.deepEqual(k3Juger(sansCriticite), { erreurs: [], avertissements: [] }, 'sans index au pivot 3 : rien, le régime de main');
+  const attendu = "ready-for-agent : preuve suffisante (MODE) : RULE_ALL_SOC-2 n'a pas de criticité dans l'index (« à classer ») : la classer par le skill criticite (/maj-skills:criticite) avant de lancer le ticket";
+  assert.deepEqual(k3Juger(sansCriticite, suffisance('observe')), { erreurs: [], avertissements: [attendu.replace('MODE', 'observe')] });
+  assert.deepEqual(k3Juger(sansCriticite, suffisance('enforce')), { erreurs: [attendu.replace('MODE', 'enforce')], avertissements: [] });
+  const deuxLignes = k3({ regles: 'Règles: RULE_ALL_SOC-2\nRègles: RULE_ALL_SOC-2\n', surfaces: '| nominal | [RULE_ALL_SOC-2#nominal] |\n' });
+  assert.deepEqual(k3Juger(deuxLignes, suffisance('observe')).avertissements, [attendu.replace('MODE', 'observe')], 'une règle citée sur deux lignes se juge une fois');
+  assert.deepEqual(k3Juger(k3({ prouve: 'Prouve: RULE_ALL_SOC-3\n' }), suffisance('enforce')).erreurs, [
+    "ready-for-agent : preuve suffisante (enforce) : RULE_ALL_SOC-3 ne déclare aucun cas attendu dans l'index : les écrire par le skill criticite (/maj-skills:criticite) avant de lancer le ticket",
+  ], 'Prouve: se juge comme Règles:');
+  assert.deepEqual(k3Juger(k3({ regles: 'Règles: RULE_ALL_SOC-5\n' }), suffisance('enforce')).erreurs, [
+    "ready-for-agent : preuve suffisante (enforce) : RULE_ALL_SOC-5 est absente de l'index anchorpost/anchorpost.json : régénérer l'index (la commande que nomme scripts/docs/index-generes.json), puis classer la règle par le skill criticite",
+  ]);
+  assert.deepEqual(k3Juger(k3({ regles: 'Règles: RULE_ALL_SOC-4\n' }), suffisance('enforce')).erreurs, [], 'une règle rejetée ou obsolète ne se juge pas');
+  assert.deepEqual(k3Juger(k3({ regles: 'Règles: —\n' }), suffisance('enforce')).erreurs, [], 'Règles: — : aucune règle');
+  assert.deepEqual(k3Juger(k3({ regles: 'Règles: RULE_ALL_SOC-9\n' }), suffisance('enforce')).erreurs, ['Règles cite RULE_ALL_SOC-9, absente du registre (docs/metier/regles/all/RULE_ALL_SOC-9.md)'], 'absente du registre : le refus du registre seul');
+  for (const status of ['needs-triage', 'en cours — feat/x', 'Fait — PR #3'])
+    assert.deepEqual(k3Juger(k3({ regles: 'Règles: RULE_ALL_SOC-2\n', status }), suffisance('enforce')).erreurs, [], `${status} : pas prêt, pas jugé`);
+  const gele = controlerTicket({ nom: K3_NOM, texte: sansCriticite, existe, regleExiste: () => true, suffisance: suffisance('enforce'), gele: true });
+  assert.deepEqual([gele.erreurs, gele.avertissements], [[], []], 'un ticket prêt gelé dans la dette ne se juge pas, comme le format');
+});
+
+test('K3 : `## Surfaces` nomme chaque cas attendu des règles citées, `RULE_…#<cas>`, où que ce soit dans la section', () => {
+  const sans = k3({ regles: 'Règles: RULE_ALL_SOC-1\n', surfaces: '| nominal | [RULE_ALL_SOC-1#nominal] |\n' });
+  assert.deepEqual(k3Juger(sans, suffisance('enforce')).erreurs, [
+    'ready-for-agent : preuve suffisante (enforce) : `## Surfaces` ne nomme pas le cas RULE_ALL_SOC-1#lien-expire : une ligne par cas attendu des règles citées, avec la preuve qui le portera, ou le ticket qui la portera',
+  ]);
+  assert.deepEqual(k3Juger(k3({ regles: 'Règles: RULE_ALL_SOC-1\n', surfaces: TOUS_LES_CAS }), suffisance('enforce')), { erreurs: [], avertissements: [] });
+  const voisin = k3({ regles: 'Règles: RULE_ALL_SOC-1\n', surfaces: '| a | RULE_ALL_SOC-1#nominal-bis, RULE_ALL_SOC-10#lien-expire |\n' });
+  assert.equal(k3Juger(voisin, suffisance('enforce')).erreurs.length, 2, 'un cas voisin ou une règle voisine ne nomme pas le cas');
+  const ailleurs = `${k3({ regles: 'Règles: RULE_ALL_SOC-1\n' })}\n## Comments\n\n${TOUS_LES_CAS}`;
+  assert.equal(k3Juger(ailleurs, suffisance('enforce')).erreurs.length, 2, 'hors de `## Surfaces`, un cas ne compte pas');
+});

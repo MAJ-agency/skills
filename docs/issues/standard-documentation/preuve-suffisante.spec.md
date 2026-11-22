@@ -1,17 +1,18 @@
 # SPEC_ALL_ANC-5 — La preuve suffisante : criticité, cas attendus, état « partielle »
 
-> **Copie de lecture.** Le fichier qui fait foi est `docs/features/anchorpost/all/SPEC_ALL_ANC-5-preuve-suffisante.spec.md` du dépôt `MAJ-agency/anchorpost` (branche `claude/ecstatic-brahmagupta-bg4l0s`, commit `10dc74c`, en attendant son entrée dans `develop`). Copie du 2026-11-13.
+> **Copie de lecture.** Le fichier qui fait foi est `docs/features/anchorpost/all/SPEC_ALL_ANC-5-preuve-suffisante.spec.md` du dépôt `MAJ-agency/anchorpost`, branche `develop` (`2be4e7e`, fichier inchangé depuis `ee9b8a2` du 2026-11-20). Copie du 2026-11-22, qui remplace celle du 2026-11-13 (`10dc74c`) : elle porte les amendements du 2026-11-14, des 2026-11-17, du 2026-11-18 et du 2026-11-20. Un seul écart avec l'original : le nom de la personne qui a fixé la criticité de `SPEC_ALL_ANC-5` (2026-11-16) est remplacé par « une personne du produit » dans le texte et par la personne fictive `Alice Martin` dans les exemples (dépôt public). La relire, jamais la modifier : un amendement se fait dans le dépôt d'Anchorpost, puis la copie est reprise.
 
-Sujet: sujet/preuve-suffisante
-Règles: RULE_ALL_ANC-6, RULE_ALL_ANC-9, RULE_ALL_ANC-24, RULE_ALL_ANC-25, RULE_ALL_ANC-26, RULE_ALL_ANC-27, RULE_ALL_ANC-28, RULE_ALL_ANC-29
+Sujet: sujet/preuve-suffisante-cas
+Règles: RULE_ALL_ANC-6, RULE_ALL_ANC-9, RULE_ALL_ANC-24, RULE_ALL_ANC-26, RULE_ALL_ANC-27, RULE_ALL_ANC-28, RULE_ALL_ANC-29, RULE_ALL_ANC-30
+EPIC: preuves
 
-> Date : 2026-11-13 — Statut : écrite par l'architecte du programme « gouverner nos boucles », **validée par le produit le 2026-11-13**, pas encore découpée. Origine : la carte du programme (dépôt `MAJ-agency/skills`, branche `claude/compassionate-euler-st84s9`, `docs/issues/gouverner-nos-boucles/map.md`), décisions du produit `P-6` à `P-8` et `P-11` à `P-18`, décisions de l'architecte `A-19` à `A-29`. Une copie de lecture vit dans `skills`, `docs/issues/standard-documentation/preuve-suffisante.spec.md` ; ce fichier fait foi. Faits relevés sur `develop` (`e8c3857`) et sur `main` de `skills` (plugin 5.0.0).
+> Date : 2026-11-13 — Statut : écrite par l'architecte du programme « gouverner nos boucles », validée par le produit le 2026-11-13, **amendée le 2026-11-14 sur les décisions `P-22`, `P-29` et `P-30` du programme « onglet Projet » (le parcours est suspendu ; la criticité vient de la règle ou d'une feature ; la tranche 1 part seule), puis sur `P-34` et `A-16` (la tranche 1 écrit les règles déclarées d'une feature ; l'affichage web de la criticité part à `SPEC_ALL_ANC-7`), **revalidée par le produit le 2026-11-16** après cet amendement qui retire les parcours (ses mots : « tout me va »), amendée le 2026-11-17 sur deux décisions du produit (les genres de cas définis ; tous les cas d'une règle moyenne ou haute prouvés) et pour fermer le plancher abaissé par un agent, tranches 0 et 2 à 5 à découper. Les amendements sont décrits sous `## Décisions`, § « Amendement du 2026-11-14 » et § « Amendement du 2026-11-17 ». Origine : la carte du programme (dépôt `MAJ-agency/skills`, branche `claude/compassionate-euler-st84s9`, `docs/issues/gouverner-nos-boucles/map.md`), décisions du produit `P-6` à `P-8` et `P-11` à `P-18`, décisions de l'architecte `A-19` à `A-29`. Une copie de lecture vit dans `skills`, `docs/issues/standard-documentation/preuve-suffisante.spec.md` ; ce fichier fait foi. Faits relevés sur `develop` (`e8c3857`) et sur `main` de `skills` (plugin 5.0.0).
 
 ## Ce qu'on construit
 
 Aujourd'hui, une règle est « prouvée » dès qu'un seul test porte son identifiant (`apps/cli/src/build/realisation.ts`, `realisationOf`) : 20 règles sur 23 le sont, avec de 1 à 22 preuves chacune, sans que rien ne dise si c'est assez. On écrit donc l'attendu sur la règle, pour que la machine le compare à l'observé.
 
-- Chaque règle porte une **criticité**, fixée par la MOA sur un **parcours** ou sur la règle seule (`RULE_ALL_ANC-24`, `RULE_ALL_ANC-25`).
+- Chaque règle porte une **criticité**, fixée par la MOA sur la règle seule ou sur une **feature**, qui la donne à toutes ses règles ; une feature affiche la plus haute criticité de ses règles (`RULE_ALL_ANC-24`, `RULE_ALL_ANC-30`). C'est la première tranche, et elle part seule.
 - Chaque règle déclare ses **cas attendus** dans son fichier, et une preuve nomme le cas qu'elle prouve (`RULE_ALL_ANC-26`, `RULE_ALL_ANC-27`).
 - La réalisation gagne l'état **« partielle »** entre « à construire » et « prouvée » (`RULE_ALL_ANC-6` et `RULE_ALL_ANC-9`, amendées, § 6).
 - Ce qu'une règle doit prouver dépend de sa criticité (`RULE_ALL_ANC-28`), et la solidité de ses tests se mesure à une cadence qui en dépend aussi (`RULE_ALL_ANC-29`).
@@ -21,23 +22,73 @@ Jamais un nombre de tests exigé, jamais un objectif global de couverture, jamai
 
 ## Décisions
 
-Les décisions du produit sont dans la carte du programme, `## Decisions-so-far` : `P-6` (qui vérifie selon la criticité), `P-7` (les cas dans le fichier de règle), `P-8` et `P-11` (le parcours), `P-12` (« prouvée » change de sens), `P-13` (cas métier, cas technique), `P-14` (cadence du contrôle de solidité), `P-15` (« à classer »), `P-16` (règle basse), `P-17` (ce qu'Anchorpost montre), `P-18` (« prouvée » veut dire « assez testée pour sa criticité » : un cas n'est prouvé qu'avec la preuve du niveau exigé, § 2). Les décisions de l'architecte, choix techniques sans effet sur ce que voit un utilisateur :
+Les décisions du produit sont dans la carte du programme, `## Decisions-so-far` : `P-6` (qui vérifie selon la criticité), `P-7` (les cas dans le fichier de règle), `P-8` et `P-11` (le parcours, remplacées le 2026-11-14 : voir l'amendement ci-dessous), `P-12` (« prouvée » change de sens), `P-13` (cas métier, cas technique), `P-14` (cadence du contrôle de solidité), `P-15` (« à classer »), `P-16` (règle basse), `P-17` (ce qu'Anchorpost montre), `P-18` (« prouvée » veut dire « assez testée pour sa criticité » : un cas n'est prouvé qu'avec la preuve du niveau exigé, § 2). Les décisions de l'architecte, choix techniques sans effet sur ce que voit un utilisateur :
 
-- `A-19` — **Un parcours se déclare dans le manifeste, sous son module** (`epics[].journeys[]`). Un projet sans module déclaré déclare ses modules avant son premier parcours.
-- `A-20` — **Le pivot passe en version 3, la CLI en 2.0.0.** C'est l'application d'`ADR_ALL_ARC-15` (« un changement non compatible du pivot est une version majeure du paquet et une nouvelle valeur de `schema` ») : `proven` change de sens et `partial` est une valeur qu'un lecteur de la version 2 refuse. Le service lit les versions 1, 2 et 3, comme il lit déjà la 1 et la 2 (carte de `SPEC_ALL_ANC-4`, `A-24`) : une fonction pure de `packages/schema` convertit un index 2 en index 3, et une règle `proven` sans cas déclaré y devient `partial`. « Prouvée » n'a ainsi qu'un sens dans tout ce qu'Anchorpost affiche.
+- `A-19` — _(amendée le 2026-11-14)_ **La criticité d'une feature se déclare dans le manifeste, à la racine** (`featureCriticality[]` : la feature, le niveau et sa validation ; une entrée au plus par feature), pas dans l'en-tête de la spec. La clé n'est pas `features`, que `contexts[].features`, un chemin, emploie déjà. Raisons : le manifeste a un schéma strict que `check` applique, une spec n'a que des lignes `Clé: valeur` sans schéma ; la validation (`date`, `by`) a la même forme que celle d'une règle ; et toutes les criticités que la MOA fixe hors d'une règle se lisent en un fichier, écrit par un humain, jamais généré. Aucun module n'a besoin d'être déclaré. Ancien énoncé : « Un parcours se déclare dans le manifeste, sous son module (`epics[].journeys[]`). »
+- `A-20` — _(amendée le 2026-11-14 : la criticité n'attend plus la version 3, voir `A-50`)_ **Le pivot passe en version 3, la CLI à la majeure qui suit la version publiée**, pour les cas attendus et l'état « partielle ». C'est l'application d'`ADR_ALL_ARC-15` (« un changement non compatible du pivot est une version majeure du paquet et une nouvelle valeur de `schema` ») : `proven` change de sens et `partial` est une valeur qu'un lecteur de la version 2 refuse. Le service lit les versions 1, 2 et 3, comme il lit déjà la 1 et la 2 (carte de `SPEC_ALL_ANC-4`, `A-24`) : une fonction pure de `packages/schema` convertit un index 2 en index 3, et une règle `proven` sans cas déclaré y devient `partial`. « Prouvée » n'a ainsi qu'un sens dans tout ce qu'Anchorpost affiche.
 - `A-21` — **Le plancher garde ce qu'il gardait.** `contexts[].floor` devient `{ date, proven, partial }` : `proven` compte les règles prouvées au sens nouveau, `partial` celles qui ont au moins une preuve sans être prouvées. `check` refuse si `proven` passe sous `floor.proven`, ou si `proven + partial` passe sous `floor.proven + floor.partial`. À la migration d'Anchorpost, `{ proven: 20 }` devient `{ proven: 0, partial: 20 }`, puis `proven` se relève à la main, règle après règle.
 - `A-22` — **Un projet passe du constat au refus par une clé du manifeste**, `sufficiency`, qui vaut `observe` (par défaut) ou `enforce`. En `observe`, tout écart de la preuve suffisante est un avertissement ; en `enforce`, les écarts du § 5 marqués « refus » refusent. C'est la forme de « avertissement pendant la migration, puis refus » (`P-15`). La date du passage est une décision du produit, projet par projet.
 - `A-23` — **Ce qui se juge par rapport à un état précédent vit dans une commande nouvelle, `anchorpost compare`**, pas dans `check`. `check` ne lit pas git et n'a pas de base ; le refus d'un changement de criticité sans nouvelle validation (`P-15`) et celui d'un cas métier ajouté sans nouvelle validation (`P-13`) comparent deux index. L'index étant commis (`RULE_ALL_ANC-20`), l'index de base se lit par `git show <base>:anchorpost/anchorpost.json`, sans rien recalculer.
 - `A-24` — **Une PR touche une règle** quand elle modifie le fichier de la règle, un fichier de son `code`, ou un fichier de test qui porte son étiquette. Rien d'autre : une spec ou un ticket qui la cite ne la touche pas.
 - `A-25` — **Le gate ne juge que ce qu'il calcule exactement.** Il vérifie le niveau des preuves (frontière de l'API, bout en bout). Qu'un dépôt de données soit prouvé sur base réelle ou un invariant chiffré par une propriété reste un critère de la revue de ticket (`T3`, réécrit) : la nature du code ne se déduit pas sûrement d'un chemin.
 - `A-26` — **Une mesure de solidité ne vit ni dans l'index ni dans le dépôt.** L'index ne porte rien de vivant (`RULE_ALL_ANC-19`) et `develop` refuse un push direct. Le workflow publie la mesure, datée, en artefact et dans le résumé du job ; le passage suivant relit l'artefact précédent pour dire une baisse. La justification d'une altération qui survit s'écrit dans le code, par le commentaire de désactivation de Stryker, avec sa raison.
-- `A-27` — **Le chantier 1 du programme devient la première tranche de celui-ci** (renseigner `code`, installer Stryker, publier la première mesure). Même dépôt, même sujet, et la tranche 4 en dépend. La PR 113, qui le bloquait, est fusionnée (`0d43cf2`).
+- `A-27` — **Le chantier 1 du programme devient la première tranche de celui-ci** (tranche 0 : renseigner `code`, installer Stryker, publier la première mesure). Même dépôt, même sujet, et la tranche 5 en dépend (numérotation du 2026-11-14). La PR 113, qui le bloquait, est fusionnée (`0d43cf2`).
 - `A-28` — **Un cas a cinq champs** : `id`, `title`, `kind`, `scope`, et `family`, facultatif (§ 1).
 - `A-29` — **La part de `skills` (§ 8) ne passe pas par le conducteur de ce chantier** : `skills` n'a pas de conducteur (`P-4`), l'architecte y lance les sessions de ticket et son capitaine fusionne. Une session créée par une autre ne reçoit qu'un dépôt (`A-5`).
+- `A-50` — _(2026-11-14)_ **La criticité entre dans le pivot 2, en ajout compatible ; la CLI passe à la mineure qui suit la version publiée.** `rules[].criticality` et `features[].criticality` sont des clés facultatives : un lecteur de la version 2 qui ne les connaît pas les ignore, comme `rules[].epics` à la CLI 1.2.0 (`SPEC_ALL_ANC-4.49`). Rien ne change de sens, donc pas de version majeure (`ADR_ALL_ARC-15`). C'est ce qui laisse la tranche 1 partir seule, sans les cas ni « partielle » (`P-30`). La version 3 garde ces clés telles quelles.
+- `A-51` — _(2026-11-14)_ **La criticité affichée d'une feature est calculée par la CLI et écrite dans l'index**, pas recalculée par qui le lit. Raisons : seule la CLI sait quelles règles une feature _déclare_ réaliser — `features[].rules` réunit aussi les règles que le texte de la spec cite seulement (« Anchorpost V1 » en cite 21 et en déclare 19, par ses tickets), et sans module au manifeste `rules[].epics` ne nomme aucune feature ; Anchorpost ne calcule rien côté site (`docs/methode/decisions.md`, couche 3) ; et `anchorpost compare` voit changer le niveau affiché d'une feature en comparant deux index. La validation de la criticité fixée sur une feature est recopiée dans l'index pour la même raison, et un `by` que la table `roles` du manifeste ne connaît pas est un avertissement de santé, comme pour une règle.
+
+### Amendement du 2026-11-14 : le parcours est suspendu
+
+Décisions du produit prises au grilling du programme « onglet Projet » (carte `docs/programmes/onglet-projet.programme.md`, branche `claude/gifted-mayer-4dnbgx`). Elles reviennent sur `P-8` et `P-11` de « gouverner nos boucles ».
+
+- `P-22` — la notion de parcours est supprimée, pour le moment. Ses mots : « ok pour le moment on supprime la notion de parcours. La criticité est donc portée par la feature qui la donne à toutes ses règles ou directement par la règle. Une feature ne peut pas avoir une criticité plus faible qu'une de ses règles. »
+- `P-29` — la dernière phrase de `P-22` est un **calcul**, jamais un refus : une feature affiche la plus haute criticité de ses règles ; seule la criticité que la MOA fixe elle-même sur une feature descend sur toutes ses règles ; les autres règles gardent leur niveau ou restent « à classer ». Sa réponse : « Q16 : A ».
+- `P-30` — l'onglet « Projet » attend, pour être livré, la tranche qui met la criticité dans l'index. Ses mots : « Q17: on attend la criticité ».
+- `P-34` — l'onglet « Règles » d'une feature ne montre que les règles qu'elle déclare réaliser (ligne `Règles:` de sa spec et de ses tickets), pas celles que son texte cite. Ses mots : « les règles citées dans une spec sont simplement dans le markdown de la spec et sont des liens vers les règles en question. L'onglet règles n'affiche que les règles mises en place par la spec. »
+
+Et un accord de l'architecte, du même jour, avec celui du programme « onglet Projet » (`A-16` de sa carte) : la tranche 1 s'arrête à l'index, à la CLI, aux contrats et à la lecture par le service ; l'affichage web de la criticité part à la tranche 8 de `SPEC_ALL_ANC-7` (onglet « Projet ») ; et, `P-34` distinguant les règles citées des règles déclarées, l'index gagne `features[].declaredRules` à la tranche 1. Raison : un seul chantier par fichier.
+
+Ce qui change ici : le manifeste ne déclare plus de parcours, il déclare la criticité des features (`A-19`) ; la criticité d'une règle a deux origines, `declared` et `feature` (§ 2) ; `RULE_ALL_ANC-24` est réécrite, `RULE_ALL_ANC-25` n'a plus d'objet et sort de la ligne `Règles:`, `RULE_ALL_ANC-30` naît `candidate` ; la criticité devient une tranche à elle seule, la première, dans le pivot 2 (`A-50`), qui écrit aussi les règles déclarées d'une feature (`features[].declaredRules`, `P-34`) et ne touche plus au web (§ 9) ; le pilote n'a plus à déclarer les modules d'Anchorpost. Ce que le texte validé le 2026-11-13 disait du parcours vaut pour la feature : « elle vaut alors pour toutes les features du parcours et pour les règles qu'elles déclarent », « Une règle prend la plus haute des criticités qu'elle reçoit » (`RULE_ALL_ANC-24`). Les cas du § 2 en sont repris ; « à classer » découle de `P-29`.
+
+### Amendement du 2026-11-17 : les genres de cas, et le plancher
+
+Décisions du produit, prises le 2026-11-17 au lancement de la suite du chantier :
+
+- `P-31` (carte « gouverner nos boucles ») — **Les quatre genres d'un cas attendu sont définis.** Ses mots :
+  - **cas normal** (`nominal`) : la situation ordinaire que la règle traite ;
+  - **cas limite** (`edge`) : « une situation valide, au bord de la règle, où elle doit encore donner la bonne réponse » ;
+  - **entrée invalide** (`invalid`) : « la donnée est mal formée ou incomplète, l'application ne peut pas répondre et la rejette » ;
+  - **refus** (`refusal`) : « la donnée est correcte, c'est la règle qui interdit ».
+    La définition du cas normal est celle que le standard emploie déjà ; les trois autres sont celles du produit. Elles entrent dans `RULE_ALL_ANC-26` (candidate) et dans `GLOSSARY.md`. Pour départager deux genres : un cas limite reçoit une réponse correcte ; une entrée invalide n'en reçoit pas, parce que la donnée ne se lit pas ; un refus en reçoit une, et c'est « non ».
+- `P-32` (même carte) — **Pour une règle moyenne ou haute, tous les cas limites, toutes les entrées invalides et tous les refus ont leur test.** Cela **confirme `RULE_ALL_ANC-28`** telle qu'elle est écrite (« ses cas attendus disent le cas normal, les cas limites, les entrées invalides et les refus, et chacun a une preuve ») et la grille du § 2, sans rien y changer. « Tous » se lit comme la règle le lit : tous les cas attendus que la règle déclare. Ce qui garantit qu'aucun cas n'est oublié reste, pour une règle haute, la réponse à chacune des dix familles ; pour une règle moyenne, rien de plus qu'aujourd'hui (la revue de ticket, critère `T3`, § 8). La règle basse n'est pas touchée.
+
+**Qui fixe la criticité** : tranché le même jour par `P-36`, voir l'amendement (2) ci-dessous.
+
+Décision de l'architecte, du même jour, sur un constat du produit (« rien n'empêche aujourd'hui un agent de baisser lui-même `floor.proven` dans le manifeste ») :
+
+- `A-55` — **Un plancher ne baisse que par une validation nouvelle.** Le plancher est le cliquet contre la régression : un agent qui le baisse rend `check` vert sur une perte de preuves. Deux gardes :
+  1. **tout de suite**, `anchorpost/manifest.json` entre dans `cheminsSensibles` de `.claude/chaine.json` : un ticket qui le touche porte `Label: contre-revue`, et l'architecte relit la PR avant le label ;
+  2. **à la tranche 3**, `anchorpost compare` relève un plancher abaissé : `floor.proven`, ou `floor.proven + floor.partial`, plus bas que sur la base. C'est un avertissement en `observe`, une erreur en `enforce`, sauf si `floor.date` est plus récente que celle de la base, comme pour une criticité (§ 4, sortie 3). Monter un plancher reste libre. La migration d'Anchorpost (`A-21` : `{ proven: 20 }` devient `{ proven: 0, partial: 20 }`) se fait avec une date nouvelle : `proven + partial` ne baisse pas.
+
+### Amendement (2) du 2026-11-17 : un agent fixe la criticité, les familles dès la moyenne
+
+Décisions du produit, relayées par l'architecte le 2026-11-17 :
+
+- `P-35` (carte « gouverner nos boucles ») — **Les dix familles sont exigées dès la criticité moyenne.** Ses mots : « les dix familles de cas limites sont obligatoires dès la criticité moyenne (un cas ou un « sans objet » motivé par famille), plus seulement pour la haute. C'est un amendement de RULE_ALL_ANC-28 ». `RULE_ALL_ANC-28` (candidate) est réécrite en ce sens par l'architecte.
+- `P-36` (même carte) — **La criticité est fixée par un agent ; l'humain ne valide plus règle par règle.** Elle remplace `P-33`, décidée et portée le matin du même jour. Ses mots : « La criticité est fixée par un agent, plus par l'humain. Un skill de criticité, lancé dans un sous-agent en contexte vierge au moment où la règle s'écrit, avant tout code, fixe le niveau et sa raison, écrit les cas attendus et répond aux dix familles. L'humain ne valide plus règle par règle : il revoit les niveaux dans Anchorpost et corrige par une PR. » Ses deux parades : « le skill ne rend jamais « basse » sans une raison écrite dans la règle ; dans le doute, il rend le niveau supérieur » ; « l'index dit qui a fixé chaque criticité, un agent ou une personne, et Anchorpost permet de filtrer celles qu'un agent a fixées ». `RULE_ALL_ANC-24` est réécrite par l'architecte sur le texte que le produit a validé le 2026-11-17 (PR #226).
+
+Ce qui change ici, avec la plus petite modification du schéma (choix du conducteur, `A-22` de la carte) :
+
+- **Sur une règle** (§ 1) : `criticality` devient `{ level, by, reason }` : `by` vaut `agent` ou le nom d'une personne, `reason` dit pourquoi ce niveau, et il est obligatoire quand `level` vaut `low` (refus de `check`, groupe 1).
+- **Sur une feature** (§ 1) : une entrée `featureCriticality` devient `{ feature, level, by, date, reason }`, `reason` obligatoire pour `low`. Elle n'attend plus de validation. Une entrée de la version 2 (`validation: { date, by }`) se lit comme fixée par cette personne, à cette date : l'entrée d'Anchorpost (`SPEC_ALL_ANC-5`, moyenne, une personne du produit, 2026-11-16) reste valable.
+- **Dans l'index** (§ 2) : chaque criticité dit qui l'a fixée, `agent` ou la personne, et sa raison ; c'est ce qui permet à Anchorpost de filtrer les criticités fixées par un agent. `rules[].criticality.by` est facultatif (absent pour une origine `declared` venue d'un index 2). `rules[].criticality.declared { level, by, reason }` dit le niveau que la règle fixe elle-même, même quand une feature lui donne plus haut : sans lui, `compare` ne verrait pas un agent baisser ce niveau. `rules[].file` donne le chemin du fichier de la règle (§ 4, `A-24`).
+- **La sortie 3** (§ 4) : la décision « ce changement de criticité est-il accepté ? » vit dans une seule fonction de la CLI : un agent peut monter un niveau, jamais le baisser ; une personne fixe ou change n'importe quel niveau : une baisse n'est acceptée que si la nouvelle criticité est dite fixée par une personne (un `by` qui est une personne connue, clé de `roles`), monter est libre ; cela vaut pour la criticité d'une règle comme pour celle d'une feature (`RULE_ALL_ANC-24`, validée par le produit le 2026-11-17, PR #226).
+- **Les familles** (§ 2, § 3) : exigées dès la règle moyenne (`P-35`).
 
 ## 1. Ce qu'un dépôt écrit
 
-**Dans l'en-tête d'une règle** (schéma strict de `packages/schema`, version 3), trois clés nouvelles :
+**Dans l'en-tête d'une règle** (schéma strict de `packages/schema`), trois clés nouvelles : `criticality` à la tranche 1, `cases` et `notApplicableFamilies` à la tranche 2 :
 
 ```yaml
 criticality: high # low | medium | high ; clé absente : la règle ne reçoit rien de son fichier
@@ -55,39 +106,68 @@ notApplicableFamilies:
   - { family: volume, reason: "Un espace n'a qu'une poignée d'invitations en cours." }
 ```
 
-Les dix familles (`RULE_ALL_ANC-28`) s'écrivent `limits`, `empty`, `invalid-input`, `duplicate`, `ordering`, `time`, `permissions`, `rare-state`, `volume`, `failure`. Un cas `kind: invalid` répond d'office à la famille `invalid-input`.
+Les dix familles (`RULE_ALL_ANC-28`) s'écrivent `limits`, `empty`, `invalid-input`, `duplicate`, `ordering`, `time`, `permissions`, `rare-state`, `volume`, `failure`. Un cas `kind: invalid` répond d'office à la famille `invalid-input`. Les quatre genres (`kind`) sont ceux de `P-31` : `nominal` le cas normal, `edge` une situation valide au bord de la règle qui doit encore recevoir la bonne réponse, `invalid` une donnée mal formée ou incomplète que l'application rejette faute de pouvoir répondre, `refusal` une donnée correcte que la règle interdit.
 
-**Dans le manifeste**, sous un module, et à la racine :
+Amendement du 2026-11-18 (SPEC_ALL_ANC-5.37, `A-35` D3, D7 et D8, `A-37` R4) — l'en-tête d'une règle porte deux gestes signés de plus, sans rien changer à ce qu'un agent écrit :
+
+- **`criticality.date`**, facultative, au format `AAAA-MM-JJ` : `criticality: { level, by, reason, date }`. Un agent continue d'écrire `{ level, by: agent, reason }`, sans date ; une personne qui baisse le niveau la date. `check` refuse une date mal écrite (groupe 1). `compare` la juge depuis `SPEC_ALL_ANC-5.34` : une baisse déclarée par une personne exige une date nouvelle (§ 4, amendement du 2026-11-18) ;
+- **`caseRevision: { date, by, reason }`**, facultatif, écrit après `notApplicableFamilies` : la révision des cas, le geste signé qui couvre ce qu'une PR retire ou affaiblit en cas techniques sur la règle. Les trois champs sont obligatoires dès que la clé est écrite (`check`, groupe 1), `date` au format `AAAA-MM-JJ`. Un seul geste par règle, le plus récent, comme `proofsValidation` pour la liste `proofs`. Il est distinct de `validation`, qui reste la validation de la MOA et n'est jamais réécrite pour cela. Un `by` qui n'est ni `agent` ni un nom de la table `roles` est une alerte de fiabilité, comme celui d'une criticité ; un `caseRevision` signé `agent` n'est ni refusé par `check` ni signalé : c'est `compare` qui le refusera (`SPEC_ALL_ANC-5.38`) ;
+- **une validation `candidate` peut porter `date` et `by`** : le schéma l'accepte et `check` (groupe 8) ne les exige que hors `candidate`.
+
+```yaml
+criticality: { level: low, by: Alice Martin, reason: Outil interne., date: 2026-11-18 }
+caseRevision:
+  date: 2026-11-18
+  by: Alice Martin
+  reason: Le cas de volume est couvert par la règle voisine.
+```
+
+**Dans le manifeste**, à la racine :
 
 ```json
 {
   "sufficiency": "observe",
-  "epics": [
+  "featureCriticality": [
     {
-      "id": "membres",
-      "name": "Membres",
-      "domains": ["ANC"],
-      "journeys": [
-        {
-          "id": "invitation",
-          "name": "Inviter un membre",
-          "criticality": "high",
-          "features": ["SPEC_ALL_ANC-1"],
-          "validation": { "date": "2026-11-20", "by": "Camille Martin" }
-        }
-      ]
+      "feature": "SPEC_ALL_ANC-1",
+      "level": "high",
+      "validation": { "date": "2026-11-20", "by": "Alice Martin" }
     }
   ]
 }
 ```
 
-Un parcours appartient au module qui le déclare ; ses `features` sont des identifiants de spec, de ce module ou d'un autre (`RULE_ALL_ANC-25`). Sa criticité porte sa propre validation, datée et nommée, comme une règle.
+Une entrée de `featureCriticality` est la criticité fixée sur une feature : `feature` est l'identifiant de sa spec, `level` l'un des trois niveaux. Une feature a une entrée au plus ; sans entrée, elle n'a pas de criticité fixée. Depuis l'amendement (2) du 2026-11-17 (`P-36`), l'entrée dit qui l'a fixée (`by` : `agent` ou une personne), quand (`date`) et pourquoi (`reason`, obligatoire pour `low`), et n'attend aucune validation ; la forme ci-dessus, avec `validation`, est celle de la version 2. `featureCriticality` arrive à la tranche 1, `sufficiency` à la tranche 2.
 
 **Dans un test**, l'étiquette de cas : `[RULE_ALL_ANC-3#lien-expire]` en tête du titre. L'étiquette sans `#` reste valable : elle prouve la règle sans prouver de cas. Dans un fichier `cas/*.json`, chaque entrée peut porter `cas`, l'identifiant du cas qu'elle prouve.
 
 ## 2. Ce que la CLI calcule
 
-**La criticité d'une règle** : la plus haute entre celle de son fichier et celles des parcours dont une feature la déclare en `Règles:` (dans sa spec ou l'un de ses tickets : la même lecture que le rattachement d'une règle à un module, `SPEC_ALL_ANC-4.49`). L'index dit le niveau, d'où il vient (`declared`, `journey`) et par quels parcours. Sans aucune des deux, la règle est « à classer » : l'index n'écrit pas de niveau.
+**La criticité d'une règle** a deux sources, et seulement deux (`RULE_ALL_ANC-24`) :
+
+- `declared` : la clé `criticality` de son fichier ;
+- `feature` : la criticité que la MOA fixe sur une feature (`featureCriticality[]` du manifeste), qui la déclare en `Règles:`, dans sa spec ou l'un de ses tickets. C'est la même lecture que le rattachement d'une règle à un module (`SPEC_ALL_ANC-4.49`) : une règle que le texte d'une spec cite sans la déclarer ne reçoit rien. Dans l'index d'Anchorpost du 2026-11-14, « Anchorpost V1 » (`SPEC_ALL_ANC-1`) cite 21 règles et en déclare 19, par ses tickets : une criticité fixée sur elle descendrait sur ces 19 seulement.
+
+Les cas, repris du texte validé le 2026-11-13 (`RULE_ALL_ANC-24` : la criticité fixée au-dessus d'une règle « vaut alors pour […] les règles qu'elles déclarent », et « Une règle prend la plus haute des criticités qu'elle reçoit »), sauf le cinquième, qui découle de `P-29` :
+
+1. Une règle qui n'a que l'une des deux sources prend ce niveau.
+2. Une règle qui a sa criticité **et** une feature qui en fixe une autre prend **la plus haute** des deux.
+3. Une règle déclarée par plusieurs features qui fixent des niveaux différents prend **le plus haut**. Exemple : `RULE_ALL_ANC-6` est déclarée par trois features (`SPEC_ALL_ANC-1` et `SPEC_ALL_ANC-4` par leurs tickets, `SPEC_ALL_ANC-5` par sa spec).
+4. À égalité entre sa criticité et celle d'une feature, l'origine est `declared` : le niveau tient même si la feature est déclassée.
+5. Une règle sans criticité propre, et dont aucune feature qui la déclare n'a de criticité fixée — qu'elle ait des features ou non —, est « à classer » (`P-29`) : l'index n'écrit pas de criticité.
+6. Chaque criticité écrite dans l'index dit qui l'a fixée, `agent` ou une personne, et sa raison (`P-36`). Pour une origine `feature`, c'est `agent` si chaque feature qui donne le niveau l'a reçu d'un agent, sinon la première personne, dans l'ordre des features.
+
+L'index dit, pour chaque règle classée, le niveau, son origine (`declared` ou `feature`) et, pour `feature`, les features qui donnent ce niveau. `declared` reprend le mot de l'origine d'un module (`EpicOrigin` : la règle le dit elle-même) et `feature` aussi (une feature qui la déclare en `Règles:`) : un lecteur de l'index lit les deux origines de la même façon.
+
+Amendement du 2026-11-18 (SPEC_ALL_ANC-5.37) — l'index recopie les deux gestes de l'en-tête :
+
+- **`rules[].criticality.declared.date`** : la date de la criticité propre de la règle, quand l'en-tête en porte une. **Au haut niveau, `rules[].criticality.date` n'existe que pour l'origine `declared`**, comme `reason` ; pour l'origine `feature`, il n'y a pas de date au haut niveau, une règle pouvant recevoir son niveau de plusieurs features à dates différentes, et `declared.date` reste recopiée si la règle a une criticité propre ;
+- **`rules[].caseRevision`** : `{ date, by, reason }`, recopié tel quel, absent si l'en-tête n'en porte pas ;
+- **une date de l'index est une chaîne**, jamais refusée à la lecture (`criticality.date`, `declared.date`, `caseRevision.date`, comme la date d'une criticité de feature et celle d'un plancher) : la lecture de la base ne refuse jamais ce qu'elle doit juger, et `compare` traite une date de base invalide comme « pas de date ». C'est l'en-tête, à l'écriture, qui exige le format.
+
+L'API ne sert ni `criticality.date` ni `caseRevision` : aucun contrat ne change.
+
+**La criticité affichée d'une feature** (`RULE_ALL_ANC-30`) : la plus haute entre celle que la MOA fixe sur elle et celles des règles qu'elle déclare en `Règles:`. C'est un calcul, jamais un refus (`P-29`) : la feature monte d'elle-même, ses autres règles ne bougent pas, et rien n'oblige la MOA à relever la feature. Une feature sans criticité fixée dont aucune règle déclarée n'est classée est « à classer ». La CLI la calcule et l'écrit dans l'index (`A-51`).
 
 **Un cas est prouvé** quand une preuve au moins porte son étiquette et que le niveau exigé par la criticité de la règle est là (`RULE_ALL_ANC-28`) :
 
@@ -107,38 +187,181 @@ Un parcours appartient au module qui le déclare ; ses `features` sont des ident
 
 Une règle d'un contexte qui instancie une règle de socle (`instanceOf`) hérite de sa réalisation, cas compris, tant qu'elle n'a ni preuve, ni `config`, ni cas en propre.
 
-**Les familles** : pour une règle haute, chaque famille a une réponse quand un cas la porte ou que `notApplicableFamilies` la nomme avec sa raison.
+**Les familles** : pour une règle moyenne ou haute (`P-35`), chaque famille a une réponse quand un cas la porte ou que `notApplicableFamilies` la nomme avec sa raison.
 
-**Dans l'index, version 3** : `rules[].criticality` (niveau, origine, parcours), `rules[].cases[]` (les champs du cas, ses preuves, `proven`, et ce qui lui manque : `missing`), `rules[].proofs[].case`, `realisation.status` avec `partial`, `realisation.cases` (`declared`, `proven`), `epics[].journeys[]`, `contexts[].partial`, `project.sufficiency`. Clés et listes triées, aucun horodatage (`RULE_ALL_ANC-19`).
+**Dans l'index, version 2, à la tranche 1** (`A-50`), trois clés facultatives :
+
+```json
+{
+  "rules": [
+    {
+      "key": "RULE_ALL_ANC-15",
+      "criticality": { "level": "high", "origin": "feature", "features": ["SPEC_ALL_ANC-1"] }
+    },
+    { "key": "RULE_ALL_ANC-3", "criticality": { "level": "medium", "origin": "declared" } },
+    { "key": "RULE_ALL_ANC-21" }
+  ],
+  "features": [
+    {
+      "id": "SPEC_ALL_ANC-1",
+      "criticality": {
+        "level": "high",
+        "declared": {
+          "level": "high",
+          "validation": { "date": "2026-11-20", "by": "Alice Martin" }
+        }
+      }
+    },
+    {
+      "id": "SPEC_ALL_ANC-4",
+      "declaredRules": [
+        "RULE_ALL_ANC-1",
+        "RULE_ALL_ANC-2",
+        "RULE_ALL_ANC-4",
+        "RULE_ALL_ANC-6",
+        "RULE_ALL_ANC-7",
+        "RULE_ALL_ANC-13",
+        "RULE_ALL_ANC-14",
+        "RULE_ALL_ANC-19",
+        "RULE_ALL_ANC-20",
+        "RULE_ALL_ANC-22"
+      ],
+      "criticality": { "level": "medium" }
+    }
+  ]
+}
+```
+
+- `rules[].criticality` : `level` (`low`, `medium`, `high`), `origin` (`declared`, `feature`), et `features` (triées) pour `origin: feature`, seulement. Absente : la règle est « à classer ».
+- `features[].criticality` : `level`, le niveau affiché ; `declared`, le niveau que la MOA a fixé sur la feature et sa validation, recopiés de son entrée `featureCriticality` du manifeste, absent si elle n'en a pas fixé. Absente : la feature est « à classer ». La validation est recopiée pour qu'`anchorpost compare` juge un changement de criticité sans nouvelle validation en ne lisant que deux index (`A-23`). En version 3 (amendement (2), `P-36`), `declared` recopie `level`, `by`, `date` et `reason` de l'entrée, et `rules[].criticality` gagne `by` et `reason` (§ 2, point 6).
+- `features[].declaredRules` : les identifiants, triés, des règles que la feature déclare réaliser, par la ligne `Règles:` de sa spec ou de l'un de ses tickets (`P-34`). La CLI calcule déjà cette liste (`featureDeclaredRules`, `apps/cli/src/build/tracking.ts`, `SPEC_ALL_ANC-4.49`) : c'est sur elle que se calcule la criticité d'une feature et que descend celle que la MOA fixe. `features[].rules` ne change pas : il réunit toujours les règles déclarées et celles que le texte cite. Une règle citée seulement est un lien dans le markdown de la spec, rien de plus.
+- **Toute clé nouvelle de l'index est déclarée au schéma pivot** (`packages/schema/src/v2/index-schema.ts`), pas seulement écrite par la CLI : le service lit l'index par Zod, qui retire une clé inconnue. Cela vaut pour `rules[].criticality`, `features[].criticality` et `features[].declaredRules`, et pour `tickets[].title`, que porte un ticket de `SPEC_ALL_ANC-4` (`A-16` du programme « onglet Projet »). Un test lit par le schéma un index qui porte ces clés et les retrouve.
+
+**Dans l'index, version 3, à la tranche 2** : `rules[].cases[]` (les champs du cas, ses preuves, `proven`, et ce qui lui manque : `missing`), `rules[].proofs[].case`, `realisation.status` avec `partial`, `realisation.cases` (`declared`, `proven`), `contexts[].partial`, `project.sufficiency`. Les deux clés de criticité et `features[].declaredRules` y passent telles quelles. Clés et listes triées, aucun horodatage (`RULE_ALL_ANC-19`).
 
 ## 3. Ce que `check` refuse en plus
 
 La liste de `check` reste fermée (`SPEC_ALL_ANC-4` § 7) ; cette version y ajoute, dans les groupes existants :
 
-- **groupe 1** : une criticité, un genre, une famille ou une portée hors vocabulaire ; deux cas au même identifiant dans une règle ; un parcours sans `validation`, ou écrit dans un manifeste qui ne déclare aucun module ;
-- **groupe 3** : une feature de parcours qui ne désigne aucune spec ;
+- **groupe 1** : une criticité, un genre, une famille ou une portée hors vocabulaire ; une criticité `low`, sur une règle ou une feature, sans `reason` (`P-36`) ; deux cas au même identifiant dans une règle ; une entrée `featureCriticality` du manifeste sans `by` ou sans `date` (en version 2 : sans `validation` complète), ou deux entrées pour la même feature ;
+- **groupe 3** : une entrée `featureCriticality` du manifeste dont la feature ne désigne aucune spec ;
 - **groupe 6** : une étiquette de test qui nomme un cas que sa règle ne déclare pas ;
 - **groupe 7** : le plancher, selon `A-21` ;
-- **groupe 8** : une règle `validated` sans criticité, et une règle haute dont une famille n'a pas de réponse. Ces deux-là sont des avertissements en `observe`, des refus en `enforce`.
+- **groupe 8** : une règle `validated` sans criticité, et une règle moyenne ou haute dont une famille n'a pas de réponse (`P-35`). Ces deux-là sont des avertissements en `observe`, des refus en `enforce`.
 
-Santé, jamais un refus : une règle `validated` qui ne déclare aucun cas ; un `code` vide sur une règle qui a des preuves ; une famille sans réponse sur une règle basse ou moyenne.
+La tranche 1 apporte ce qui touche à la criticité (groupe 1 pour la criticité et `featureCriticality`, groupe 3, et l'avertissement « règle `validated` sans criticité », toujours un avertissement tant que `sufficiency` n'existe pas) ; la tranche 2, le reste.
+
+Santé, jamais un refus : un `by` de `featureCriticality` que la table `roles` du manifeste ne connaît pas (tranche 1) ; une règle `validated` qui ne déclare aucun cas ; un `code` vide sur une règle qui a des preuves ; une famille sans réponse sur une règle basse (`P-35`).
 
 ## 4. `anchorpost compare --base <ref>`
 
 Commande nouvelle, et fonction de la bibliothèque. Elle lit l'index de la base (`A-23`), construit celui de l'arbre courant, lit la liste des fichiers changés (`git diff --name-only <base>...HEAD`), et rend un rapport en markdown, ou en JSON par `--json` :
 
 - les règles que le changement touche (`A-24`), et pour chacune : sa criticité, sa réalisation avant et après, ses cas prouvés sur ses cas déclarés, les cas sans preuve et les niveaux qui manquent ;
-- les règles, cas et parcours ajoutés, retirés ou modifiés ;
-- les fichiers de `code` des règles hautes touchées : c'est le périmètre du contrôle de solidité de la PR (§ 7).
+- les règles, cas et criticités de feature ajoutés, retirés ou modifiés, et les features dont le niveau affiché change ;
+- les fichiers de `code` des règles hautes touchées : c'est le périmètre du contrôle de solidité de la PR (§ 7) ; l'union des `code` de la base et de la tête, pour une règle haute sur l'une ou sur l'autre, réduite aux fichiers présents dans l'arbre (amendement du 2026-11-18, SPEC_ALL_ANC-5.36) ;
+- le « code réduit » : tout chemin qui quitte le `code` d'une règle moyenne ou haute, que son fichier existe encore, soit renommé ou soit supprimé, listé sans être un écart ;
+- le « code sans fichier » : les chemins du `code` de la tête d'une règle moyenne ou haute qui ne désignent aucun fichier, listés sans être un écart.
 
 Elle sort en erreur, en `enforce` seulement, sur :
 
 1. un cas attendu sans preuve, sur une règle touchée ;
 2. un niveau exigé absent, sur une règle moyenne ou haute touchée ;
-3. une criticité changée sur une règle `validated`, ou sur un parcours, sans que sa validation ait une date nouvelle (`RULE_ALL_ANC-24`) ;
-4. un cas `scope: business` ajouté, retiré ou modifié sur une règle `validated` sans que sa validation ait une date nouvelle (`RULE_ALL_ANC-27`).
+3. une criticité, sur une règle ou fixée sur une feature (`featureCriticality`), baissée ou retirée sans être dite fixée par une personne connue ; cette décision vit dans une seule fonction de la CLI, `criticalityChangeAccepted(before, after)` : un agent peut monter un niveau, jamais le baisser ; une personne fixe ou change n'importe quel niveau : une baisse n'est acceptée que si la nouvelle criticité est dite fixée par une personne (un `by` qui est une personne connue, clé de `roles`), monter est libre ; cela vaut pour la criticité d'une règle comme pour celle d'une feature (`RULE_ALL_ANC-24`, validée par le produit le 2026-11-17, PR #226) ; depuis l'amendement du 2026-11-18 (SPEC_ALL_ANC-5.34, plus bas), la baisse jugée est celle du **niveau effectif** de la règle, d'où qu'elle vienne, et la criticité d'une règle entre dans la règle des dates ;
+4. un cas d'une règle `validated` **sur la base** changé sans le geste daté d'une personne (`RULE_ALL_ANC-27`, amendé le 2026-11-20 par SPEC_ALL_ANC-5.38, plus bas) : un cas métier ajouté, retiré ou modifié sans `validation` à date nouvelle par une personne MOA de la base (`business-case-without-validation`, étiquette 4) ; un cas technique retiré ou affaibli sans `caseRevision` à date nouvelle par une personne de la base, avec sa raison (`technical-case-without-revision`, étiquette 4).
+5. un plancher abaissé (`floor.proven`, ou `floor.proven + floor.partial`, plus bas que sur la base) sans que `floor.date` soit plus récente **et** que `floor.by` soit une personne connue de `roles` (`A-55`, et `A-55` bis du 2026-11-17, décision de l'architecte).
+6. un projet qui quitte `enforce` dans la PR (`sufficiency` passée à `observe`, ou la clé retirée) : `sufficiency-lowered`, étiquette 5, jamais acceptée ; la PR est jugée en `enforce` (SPEC_ALL_ANC-5.32).
+7. une règle qui sort du compte sans geste signé (SPEC_ALL_ANC-5.33, `A-33`, `A-35` D4 et D7, `A-37` R8 et R9) : une règle comptée sur la base qui devient `rejected` ou `obsolete` dans la PR (`rule-left-count`, étiquette 4), ou qui quitte `validated` pour `candidate` (`rule-devalidated`, étiquette 4), sans `validation` à date nouvelle portée par une personne de la base dont le rôle est `MOA` ; un fichier de règle comptée sur la base, absent de la tête (`rule-removed`, étiquette 4, jamais accepté : une règle ne se supprime pas, elle devient obsolète ; un renommage est une suppression plus un ajout) ; un contexte de la base absent de la tête dont le plancher de base n'est pas à zéro (`floor-lowered`, étiquette 5) — un contexte sans plancher sur la base compte comme un plancher à zéro, et ses règles comptées donnent chacune `rule-removed`.
 
-En `observe`, les mêmes constats sont écrits au rapport comme avertissements et la sortie est 0. Une « nouvelle validation » est une `validation.date` réécrite par un humain, avec une entrée `decisions` : la CLI compare les dates, elle ne juge pas qui a écrit.
+8. une base dont l'index ne se construit pas (SPEC_ALL_ANC-5.35, `A-35` D9) : la base de fusion ne commet pas d'index, et ses sources ne permettent pas de le construire depuis son arbre (`base-unreadable`, étiquette 5, jamais accepté) ; le message dit pourquoi, et que rien de la base n'a pu être comparé. Le même écart vaut pour un manifeste de base illisible (pas du JSON, ou du JSON qui n'est pas un objet), ou absent alors que la base commet un index : il pèse `enforce` dans le mode jugé (décision de l'architecte du 2026-11-18, `A-68` de sa carte : le juge ne se trompe que du côté sûr).
+
+9. le `code` d'une règle moyenne ou haute vidé (SPEC_ALL_ANC-5.36, `A-33` point 10, `A-35` D11) : `code` non vide sur la base et vide sur la tête, clé retirée ou `[]` (`code-emptied`, étiquette 3, jamais accepté : aucun geste signé n'accepte un `code` vidé ; la règle pointe ailleurs, ou devient obsolète par le chemin du point 7). Le niveau est le niveau effectif de la base.
+
+Les codes 3, 4 et 5 sont des étiquettes d'écart (`Gap.exit`), pas des codes de sortie : la commande sort 1 sur tout écart en `enforce`, quelle que soit sa sorte (SPEC_ALL_ANC-5.32).
+
+En `observe`, les mêmes constats sont écrits au rapport comme avertissements et la sortie est 0. Une « nouvelle validation » est une `validation.date` réécrite par un humain, avec une entrée `decisions`, à date nouvelle, et portée par une personne de la base dont le rôle est `MOA`, jamais par `agent` : la CLI compare les dates et lit le `by` dans `people` de la base (amendement du 2026-11-20, SPEC_ALL_ANC-5.38).
+Une personne est une clé de la table `roles` du manifeste, que l'index recopie dans `people` ; `agent` n'en est jamais une, quelle que soit sa casse. Retirer une criticité est une baisse. Le rapport liste chaque baisse acceptée, de criticité, de plancher, de sortie du compte (`rule-left`), de dévalidation (`devalidation`) ou de contexte retiré (`context`), avec son `by` : c'est ce que le produit relit (amendement (2) du 2026-11-17).
+
+Seules les règles déjà `rejected` ou `obsolete` sur la base sortent du compte sans jugement (`A-28`) : une règle qui le devient dans la PR est jugée sur son état de base (point 7), une règle close sur la base et ranimée dans la PR entre au compte comme ajoutée, et supprimée elle ne donne rien (amendement du 2026-11-17, SPEC_ALL_ANC-5.33).
+
+Amendement du 2026-11-17 (SPEC_ALL_ANC-5.32, `A-33`, `A-35`, `A-37`) — la tête ne désarme plus le jugement :
+
+- **la base de fusion** : l'index et le manifeste de la base se lisent à `git merge-base <base> HEAD`, jamais au sommet de la ref ; le diff reste `<base>...HEAD` ;
+- **le mode jugé** est le plus strict de trois, la base de fusion, le sommet de la ref de base et la tête : quitter `enforce` dans la PR est l'écart 6, passer à `enforce` dans la PR fait juger la PR en `enforce`, et une branche partie d'un commit en `observe` est jugée en `enforce` si la base y est passée depuis ; seul le mode se lit au sommet de la ref, l'état comparé se lit à la base de fusion (décision de l'architecte du 2026-11-17) ; le rapport dit le mode jugé et les trois modes lus ;
+- **la lecture de la base ne refuse jamais ce qu'elle doit juger** : le manifeste de la base se lit sans refuser une date de plancher qui n'est pas une date, comme l'index ; il garde `proofs`, `proofsValidation` et `extensions` ;
+- **les personnes de la base** : « une personne connue » se lit dans `people` de l'index de la base, jamais de la tête ; une base sans `people` (une table `roles` vide dans son arbre ; depuis `SPEC_ALL_ANC-5.45`, plus un index 1 commis, qui ne juge pas) ne laisse signer personne ;
+- **une date nouvelle**, pour tout geste signé (plancher, `proofsValidation`, criticité de feature, `validation`) : une date du calendrier qui existe, jamais postérieure au jour de la comparaison, strictement postérieure à la date de base du même objet ; une date de base absente, vide ou non valide vaut « pas de date de base ». Une baisse de criticité de feature à date égale à celle de la base est refusée ; deux baisses du même objet le même jour : la seconde attend le lendemain, ou va dans la même PR. La criticité d'une règle y est entrée avec sa date (`.37`, puis `.34` : amendement du 2026-11-18 plus bas). Le manifeste refuse un `floor.date` qui n'est pas une date ;
+- **le périmètre de lecture** (`extensions.anchorpost.exclude`, chemins lus d'un contexte) qui change est listé au rapport, sans être un écart.
+
+Amendement du 2026-11-18 (SPEC_ALL_ANC-5.35, `A-33` point 9, `A-35` D9 et D10, `A-37` R6 et m5) — une base sans index commis est jugée, et son repli n'est jamais un zéro muet :
+
+- **l'index de la base se construit depuis son arbre** quand la base de fusion n'en commet pas : un arbre jetable (`git worktree add --detach`) sous le dossier git (`git rev-parse --git-common-dir`), jamais sous la racine du dépôt, au nom unique, retiré à la fin même en erreur ou sur un signal d'arrêt ; il ne touche ni à l'index git ni à l'arbre de la session (y compris depuis un hook `pre-commit`), ne joue aucun hook de l'utilisateur, n'hérite pas d'un `sparse-checkout`, ne retire que lui-même et sa seule inscription (jamais `git worktree prune`), et rien ne sort du dépôt (`RULE_ALL_ANC-21`) ;
+- **la source de l'index de la base** est au rapport, à la place de « la base a un index » : `committed`, `built`, `unreadable` (avec sa raison) ou `absent` ; le markdown ne dit plus « rien à comparer, aucun écart » ;
+- **l'index ne se construit pas** (les sources de la base sont refusées) : l'écart 8, `base-unreadable`, refus en `enforce`, avertissement en `observe` ; **une panne d'outillage** (git absent, arbre impossible à créer, ou retiré pendant son usage) sort 2, comme une erreur de lecture ;
+- **une base sans manifeste ni index est une adoption** (`absent`) : pas de construction, pas de `base-unreadable` ; dans ce cas comme dans le précédent, les écarts propres à la tête restent jugés, contre une base vide, et une base sans personnes ne laisse signer personne. Un dépôt adopte en `observe`, puis passe en `enforce` ;
+- **le mode se juge sur les manifestes** (amendé le 2026-11-19 par SPEC_ALL_ANC-5.46 : l'index commis dit seulement s'il y a quelque chose à lire ; un sommet de la ref sans manifeste ni index, quand une base de fusion a l'un ou l'autre, est un sommet vidé, `emptied`, qui pèse `enforce`, sans écart propre, et le rapport dit pourquoi en une phrase ; sans manifeste ni index à la base de fusion non plus, c'est une adoption) : une base sans index commis mais en `enforce`, sous une tête en `observe`, donne l'écart 6. Un manifeste est lu s'il est valide pour son schéma, sinon il est illisible (pas du JSON, pas un objet, une clé refusée, `"sufficiency": "ENFORCE"` comprise), et le rapport écrit « illisible » ; une clé `sufficiency` absente d'un manifeste valide reste `observe`. Illisible, ou absent sous un index commis, il pèse `enforce`, au sommet de la ref comme à la base de fusion, et le rapport dit pourquoi en une phrase ; à la base de fusion c'est en plus l'écart 8 (`A-68`) : la PR qui répare sort 1, une personne la fusionne ; l'adoption ne change pas ;
+- **le manifeste de la base se lit clé par clé** (décision de l'architecte du 2026-11-17, après la contre-revue de `.32`) : une clé que le schéma refuse ne fait perdre qu'elle-même, et rend le manifeste illisible pour le mode (ci-dessus). Une liste `proofs` refusée est gardée brute, différente de toute liste valide : la tête qui la change, même pour la vider, passe par une validation. Une `proofsValidation` refusée vaut « pas de validation sur la base » (la règle unique des dates : pas de date de base). La version du manifeste de base n'est pas lue : une clé écrite est jugée ;
+- **limite écrite** (`A-37`, m5) : une base en `enforce` dont l'index ne se construit pas, ou une base dont le manifeste ne se lit pas, n'a pas de sortie par `compare`. Le geste est de réparer la base par une PR, relue et fusionnée par une personne.
+
+Amendement du 2026-11-18 (SPEC_ALL_ANC-5.36, `A-33` point 10, `A-35` D11, `A-37` R10, `A-39` point 4) — `code` ne cache plus la règle que la PR touche :
+
+- **le périmètre de la PR est une union** : `highRuleCodeFiles` réunit les `code` de la base et de la tête de chaque règle touchée qui est haute, au niveau effectif, sur la base **ou** sur la tête. Vider ou réduire `code`, ou baisser la règle, dans la PR ne la sort donc pas du contrôle de cette PR ; une règle neuve haute, ou montée à haute, y entre. `compare` ne rend que les fichiers présents dans l'arbre : un fichier supprimé ou renommé n'est pas donné au job de mutation (§ 7) ;
+- **`code` vidé** sur une règle moyenne ou haute de la base est l'écart 9, `code-emptied`, qu'aucun geste n'accepte (décision de l'architecte du 2026-11-18). Une règle basse ou sans criticité sur la base ne donne aucun écart ; une règle qui devient rejetée ou obsolète dans la PR n'est jugée que sur sa sortie (point 7), pas sur son `code` ;
+- **« code réduit »** (SPEC_ALL_ANC-5.50, décision de l'architecte du 2026-11-18) : `code` réduit ou remplacé n'est **pas** un refus, un déplacement de logique étant un geste courant, et la sortie reste 0. Le rapport liste dans sa section propre (`changes.codeReduced` : la règle et les chemins retirés) **tout** chemin retiré, que son fichier existe encore, soit renommé ou soit supprimé, pour les règles moyennes et hautes de la base ; la table « Changements » dit que `code` a changé, pour toute règle, quel que soit son niveau. Le prix, assumé : une ligne au rapport à chaque renommage légitime dont `code` est mis à jour, les renommages de git n'étant pas appariés. Quand la PR vide aussi un `code`, la section ne dit pas « ce n'est pas un écart ». **Limite écrite** : la machine ne sait pas si la logique de la règle a quitté le fichier ; c'est la contre-revue qui le vérifie ;
+- **« code sans fichier »** (SPEC_ALL_ANC-5.50) : un chemin du `code` de la tête qui ne désigne aucun fichier de l'arbre (jamais créé, supprimé et encore cité, ou un dossier) est listé dans sa section propre (`changes.codeMissing` : la règle et les chemins), sans écart, pour les règles comptées sur la tête, moyennes ou hautes sur la base ou sur la tête ; c'est `check` qui refuse une cible absente ;
+- **ce que `check` exige d'une entrée de `code`** (groupe 3, « cible absente », sans sorte d'erreur nouvelle) : le chemin exact, normalisé, d'un fichier régulier, suivi par git ou non suivi et non ignoré ; hors git, un fichier régulier. Normalisé : égal à sa forme normalisée, séparateur `/`, sans `./` de tête, sans `/` final, sans segment `..`. Un dossier, un chemin non normalisé (le message donne le chemin à écrire), un chemin absolu ou hors du dépôt, un fichier que git ignore et un lien sont refusés : `compare` lit `code` à l'égalité exacte, et l'un d'eux cacherait la règle que la PR touche. Un fichier suivi reste accepté même si un motif de `.gitignore` le couvre ; un fichier neuf pas encore ajouté à git aussi.
+- **un chemin de `code` sans caractère de contrôle** (SPEC_ALL_ANC-5.54, `A-203`, 2026-11-19) : `check` refuse au même groupe 3 une entrée de `code` qui porte un caractère de contrôle (saut de ligne, retour chariot, tabulation, NUL, tout autre contrôle, U+2028, U+2029), que son fichier existe ou non ; le message nomme la règle et le caractère par son point de code, jamais le chemin. Le refus est dans `check` seul : ni le schéma de l'en-tête ni celui de l'index ne changent, et `compare` lit encore une base qui porte un tel chemin ;
+- **le rapport markdown de `compare` est inerte** (SPEC_ALL_ANC-5.54) : toute valeur venue du dépôt ou de la ligne de commande passe par une seule neutralisation avant d'être écrite, et aucune n'ouvre un titre, ne ferme une table ni ne ferme un bloc de code ; un caractère de contrôle y est rendu visible. Le JSON (`--json`) rend les valeurs telles quelles, et ni lui ni le code de retour ne changent.
+
+Amendement du 2026-11-18 (SPEC_ALL_ANC-5.34, `A-33` points 5 et 6, `A-35` D3 à D5, `A-36`, `A-37` R1, R3, R4 et R5) — le point 3 juge le niveau qu'une règle doit prouver, d'où que vienne sa baisse :
+
+- **le niveau effectif** : `compare` juge la baisse de `criticality.level` d'une règle, pas seulement celle de `criticality.declared`, quelle qu'en soit la source : criticité déclarée, ligne `Règles:` vidée, feature baissée, feature disparue. L'écart est `criticality-change-refused`, étiquette 3 : « Le niveau effectif de <règle> baisse (<avant> → <après>, par <source>) sans criticité déclarée par une personne de la base, à date nouvelle. » Une règle dont le niveau effectif baisse est une règle touchée ;
+- **la baisse est acceptée** si la règle porte, sur la tête, une criticité déclarée à son niveau d'après, par une personne de la base, à date nouvelle ; elle est listée (`effective-criticality`, avec son `by`) ;
+- **une baisse effective dont la source est signée est acceptée** : la baisse acceptée d'une feature accepte celle de ses règles, listées une à une, sans que la MOA redéclare chaque règle ; **mais seulement jusqu'au niveau recalculé avec les seules sources signées**, les autres gardées à leur état de base (une règle haute par F1 et moyenne par F2, F1 baissée à basse par une personne et la ligne `Règles:` de F2 vidée, ne descend qu'à moyenne : le reste est un écart) ;
+- **une feature à criticité fixée qui disparaît** est listée, et ce qui est jugé est le niveau effectif de chacune de ses règles ; amendé le 2026-11-19 par SPEC_ALL_ANC-5.46 (`A-61`) : elle est en plus un écart à elle seule, `criticality-change-refused` au sujet de la feature, que rien n'accepte dans la PR (la tête ne porte ni `by` ni date pour une feature absente) ; en `enforce`, une personne fusionne ;
+- **les dates de la criticité de règle** : la criticité qu'une règle déclare entre dans la règle unique des dates ; une baisse déclarée par une personne de la base sans `date`, ou à une date qui n'est pas nouvelle (hors calendrier, future, non postérieure à celle de la base), est refusée. La date de la tête passe par la même règle que celle de la base : l'en-tête d'une règle ne valide une date que par sa forme. `criticalityChangeAccepted(before, after, isPerson, today)` reste la seule fonction de décision, et porte désormais la date ;
+- **un ticket archivé** ne baisse aucun niveau : l'index lit encore la ligne `Règles:` d'un ticket rangé sous `issues/archive/` pour les règles que sa feature déclare (criticité et module), sans le compter parmi ses tickets ; c'est `index` qui le tient, `compare` ne refuse pas l'archivage. Un ticket `wontfix` garde sa ligne ; une ligne `Règles:` déplacée d'un ticket à un autre de la même feature ne change aucun niveau ;
+- **une règle ranimée** (close sur la base, comptée sur la tête) reste listée ajoutée, et sa criticité, déclarée et effective, est jugée contre celle qu'elle avait sur la base ;
+- **une criticité illisible** sur la tête rend le fichier de règle illisible : `rule-removed`, dont le message dit que le fichier existe encore et que l'index ne le lit plus ;
+- **la criticité ne s'hérite pas par `instanceOf`** : il n'y a pas de surface d'héritage ; le cas retiré d'un socle relève de SPEC_ALL_ANC-5.38.
+
+Amendement du 2026-11-18 (SPEC_ALL_ANC-5.37, `A-35` D8) — le rapport porte des avertissements, distincts des écarts :
+
+- **une liste `warnings`**, à côté de `gaps`, dans `changes` et à la racine du rapport ; un avertissement a la forme d'un écart, `{ kind, subject, message }` ;
+- **un avertissement est écrit au rapport dans les deux modes et ne fait jamais sortir 1** : la sortie se décide sur `gaps` seulement, en `enforce` comme en `observe`. Ce n'est pas l'« avertissement » d'`observe`, qui est un écart écrit sans refus ;
+- **le markdown** n'écrit la section « Avertissements » que si la liste n'est pas vide, y compris quand la base n'a pas d'index ; le JSON porte toujours la clé ;
+- **rien ne produisait d'avertissement avant `SPEC_ALL_ANC-5.57` et `SPEC_ALL_ANC-5.38`**, qui y rangent la règle de la base lue champ par champ, le cas retiré d'une règle candidate, le titre réécrit d'un cas et l'exception posée dans la PR. Le « code réduit » garde sa section propre et n'y migre pas.
+
+Amendement du 2026-11-20 (SPEC_ALL_ANC-5.38, `A-33` point 7, `A-35` D6 et D8, `A-37` R7, R8 et mineur 10) — un cas ne baisse que par le geste daté d'une personne, dont le rôle dépend du cas (`RULE_ALL_ANC-27`) :
+
+- **les cas se jugent sur le statut de la règle sur la base** : une règle passée candidate dans la PR reste jugée comme une règle validée (sa dévalidation est jugée à part, point 7). Un cas retiré, un genre qui baisse l'exigence, un « sans objet » ou une question ouverte mis à la place d'un cas (un cas retiré, dans les deux cas) suivent trois chemins ;
+- **règle validée, cas métier** : tout changement des cas métier (ajout, renommage, retrait, genre, portée, dont `business` → `technical`, famille) est l'écart `business-case-without-validation`, « Cas métier retiré ou affaibli sans nouvelle validation par une personne MOA de la base. », sauf une `validation` à date nouvelle par une personne de la base dont le rôle est `MOA` ; accepté, il est listé (`case`, avec son `by`) ;
+- **règle validée, cas technique** : un retrait ou un genre qui baisse l'exigence est l'écart `technical-case-without-revision`, étiquette 4, « Cas technique retiré ou affaibli sans `caseRevision` d'une personne de la base, à date nouvelle. », sauf un `caseRevision` à date nouvelle (la date de la tête passe par la règle unique des dates, comme celle de la base), `by` une personne de la base quel que soit son rôle, raison non vide ; accepté, il est listé (`case`). `validation` n'est jamais réécrite pour cela. Un cas technique ajouté n'est pas un écart ;
+- **règle candidate sur la base** : un retrait ou un affaiblissement est un avertissement (`candidate-case-removed`), jamais un refus, quel que soit le mode ;
+- **un genre baisse l'exigence** quand un niveau de preuve accepté après ne l'était pas avant, par `requiredLevels`, à la criticité de la règle sur la base : sur une règle haute, `nominal` → `edge` est une baisse ;
+- **le titre d'un cas** réécrit n'est pas jugé : il est listé en avertissement (`case-title-rewritten`) ; limite écrite au README, tenue par la revue ;
+- **une instance et son socle** : un changement des cas du socle est jugé sur le socle et sur chaque instance qui en hérite sans cas en propre, à la criticité et au statut de base de chacune, la plus exigeante l'emportant (`A-222`) : un cas métier retiré d'un socle candidate hérité par une instance validée par la MOA est un écart de l'instance ; il est listé sur chaque instance ; une règle qui devient instance et perd ses cas propres est jugée comme des cas retirés ;
+- **une exception** posée dans la PR ne retire aucun cas sans le geste du chemin 1 ou 2 ; le rapport la liste (avertissement `exception-posed`).
+
+Amendement du 2026-11-19 (SPEC_ALL_ANC-5.44, `A-71`) — plusieurs bases de fusion :
+
+- **toutes les bases de fusion** : la base de fusion se lit par `git merge-base --all <base> HEAD`. Une branche partie d'un seul commit en a une, et rien ne change pour elle. Quand la base a fusionné deux lignées que la branche a fusionnées elle aussi, il y en a plusieurs, et `git merge-base` sans `--all` n'en rendrait qu'une, au gré du montage ;
+- **la PR est jugée contre chacune, et les écarts s'additionnent**, sans doublon (même sorte, même sujet, même message). Une exigence présente dans une seule base de fusion compte : une règle validée qu'une seule lignée porte, retirée par la PR, est l'écart `rule-removed` ;
+- **qui signe, et les dates** : une baisse n'est acceptée que si elle l'est contre chaque base de fusion où l'objet existe (personne de `people` de cette base, date strictement postérieure à la date de cette base). Une acceptation contre une base ne couvre pas un écart contre une autre, et la baisse n'est alors pas listée acceptée ;
+- **le mode jugé** est le plus strict de chaque base de fusion, du sommet de la ref de base et de la tête. Un manifeste illisible à l'une des bases de fusion pèse `enforce` et donne `base-unreadable`, dont le message nomme cette base ;
+- **les fichiers changés** sont l'union des diffs contre chaque base de fusion (`git diff <base de fusion> HEAD`), plus le travail en cours : `git diff <base>...HEAD` n'en prendrait qu'une, et un fichier de règle retiré par la PR, absent de cette base-là, sortirait du diff. Avec une seule base, le diff reste `<base>...HEAD` ;
+- **le rapport dit contre quelles bases il a jugé** : `mergeBases` en JSON (le commit de chacune, la source de son index, le mode de son manifeste), toujours présent ; en markdown, une ligne par base quand il y en a plusieurs, rien de plus quand il n'y en a qu'une. **Chaque écart nomme les bases de fusion contre lesquelles il est vu** : `gaps[].against` en JSON (leurs commits, triés, toujours présent, jamais vide) ; en markdown, à la fin de la ligne de l'écart quand il y a plusieurs bases, et rien avec une seule. Un écart vu contre deux bases reste un seul écart, compté une fois, qui nomme les deux. `baseIndex` et `modes.base` restent : avec plusieurs bases, ils portent la source qui en dit le moins et le mode le plus strict. Ce qu'une seule base donne (une règle ajoutée, un état d'avant) est listé : rien n'est tu ;
+- **limite** : contre chaque base de fusion, ce que l'autre lignée a apporté se lit comme un changement de la PR (règles ajoutées, fichiers changés, règles touchées). Le juge ne se trompe que du côté sûr (`A-68`) : dans le doute entre deux bases, c'est l'écart.
+
+Amendement (2) du 2026-11-19 (SPEC_ALL_ANC-5.45, `A-72` de la carte de l'architecte) — l'index commis sur la base ne juge plus. Il remplace, là où ils disent le contraire, `A-23` (« l'index de base se lit par `git show`, sans rien recalculer ») et l'amendement du 2026-11-18 (« quand la base de fusion n'en commet pas », la source `committed`) :
+
+- **le juge construit toujours l'index de la base depuis son arbre**, à chaque base de fusion, par le chemin de `SPEC_ALL_ANC-5.35` (l'arbre jetable), que la base commette un index ou non. L'index commis est un fichier généré, que la base peut avoir laissé en retard : une base qui valide une règle haute sans régénérer son index, sous une PR qui retire la règle, sortait 0 sur l'index commis et 1 sans lui. Les deux montages donnent maintenant les mêmes écarts ;
+- **l'index commis n'est pas lu pour juger** : de version 1 ou 2, illisible ou invalide, il ne lève plus à lui seul et ne change aucun écart. Sa seule lecture restante est sa présence, qui sépare une base sans manifeste d'une adoption (ci-dessous) et donne le mode `missing` ;
+- **la source de l'index de la base** (`baseIndex.source`, et `mergeBases[].index.source`) vaut `built`, `unreadable` (avec sa raison) ou `absent` ; la valeur `committed` est retirée. Le markdown dit toujours, pour une seule base de fusion, que l'index de la base a été construit depuis son arbre ;
+- **une base sans manifeste qui commet un index** n'est pas une adoption et n'est plus comparée sur cet index : sans manifeste, aucun index ne se construit. Sa source est `unreadable`, son mode `missing`, elle pèse `enforce` et donne un seul écart `base-unreadable` (`A-68`), qui dit que le manifeste est absent et que rien de la base n'a pu être comparé ; les écarts propres à la tête restent jugés, contre une base vide ;
+- **un manifeste de base illisible** (pas du JSON, pas un objet, refusé par son schéma) sous un index commis : l'index ne se construit pas non plus, et l'écart `base-unreadable`, toujours unique, dit d'abord le manifeste, puis que rien de la base n'a pu être comparé. Ce qui était jugé sur l'index commis de cette base ne l'est plus ; le refus reste, en `enforce` ;
+- **ce qui ne peut plus arriver** : un état de base que seul un index commis portait (un plancher sans date valide, un index 1 sans `people`) n'est plus un état jugé. Le plancher, les personnes et les dates de la base sont ceux de son arbre, validés par le schéma du manifeste ;
+- **le coût** : une construction d'index de plus par base de fusion, à chaque passe. Mesure sur ce dépôt dans le ticket `.45` (`## Comments`).
 
 ## 5. Le rapport de PR et le gate
 
@@ -153,61 +376,67 @@ Chaque règle reçoit une entrée `decisions` datée et son énoncé amendé ; a
 - **`RULE_ALL_ANC-6`** : la réalisation vaut `prouvée`, `partielle`, `configurée`, `à construire`, `sans objet`, `contradiction`. Une règle est « partielle » quand elle a au moins une preuve et qu'un de ses cas attendus n'est pas prouvé, ou qu'elle n'en déclare aucun ; « prouvée » quand chacun de ses cas attendus est prouvé.
 - **`RULE_ALL_ANC-9`** : une preuve peut nommer le cas attendu qu'elle prouve (`RULE_ALL_ANC-26`).
 
-Les six règles `RULE_ALL_ANC-24` à `RULE_ALL_ANC-29` sont déposées `candidate` avec cette spec : la MOA les valide en relisant la PR de specs.
+Les six règles `RULE_ALL_ANC-24` à `RULE_ALL_ANC-29` sont déposées `candidate` avec cette spec : la MOA les valide en relisant la PR de specs. À l'amendement du 2026-11-14, `RULE_ALL_ANC-25` (le parcours) est rejetée et `RULE_ALL_ANC-30` naît `candidate`.
 
 ## 7. Le contrôle de solidité, par criticité (`RULE_ALL_ANC-29`)
 
 - **La première mesure d'abord** (`A-27`) : `code` renseigné dans l'en-tête des 20 règles qui ont des preuves (point de départ : les fichiers qu'importent leurs fichiers de preuve ; `check` refuse déjà un chemin absent, `apps/cli/src/check/targets.ts`) ; Stryker installé par le skill `socle-tests` (dépendance nouvelle : la ligne `Dépendances:` du ticket la prévoit) ; `mutation:regles` lancé une fois, sa synthèse par règle publiée. Aucun seuil avant cette mesure.
 - **Chaque semaine** : le workflow `mutation.yml` du socle (`cron: '43 3 * * 0'`, sur la branche par défaut, `develop`), lancé par le planificateur de la CI, jamais par un agent. Il mesure le `code` de toutes les règles qui ont des preuves, publie la mesure datée (`A-26`), et signale une baisse sur une règle moyenne.
-- **À chaque PR** : quand `anchorpost compare` rend des fichiers de `code` de règles hautes touchées, un job mute ces seuls fichiers et refuse une altération qui survit sans justification écrite.
+- **À chaque PR** : quand `anchorpost compare` rend des fichiers de `code` de règles hautes touchées, un job mute ces seuls fichiers et refuse une altération qui survit sans justification écrite. Ce périmètre (`highRuleCodeFiles`) est l'union des `code` de la base et de la tête des règles touchées qui sont hautes sur la base ou sur la tête, réduite aux fichiers présents dans l'arbre : une PR qui vide ou réduit `code`, ou qui baisse la règle, ne s'y soustrait pas (§ 4, amendement du 2026-11-18, SPEC_ALL_ANC-5.36).
 - **La mesure périmée** : le job de PR lit la date du dernier passage hebdomadaire réussi et écrit un avertissement au rapport au-delà de huit jours. L'affichage « périmée » dans Anchorpost est au chantier suivant.
 - **`ADR_ALL_ARC-17`**, à écrire par la tranche : il amende `ADR_ALL_ARC-7` (« jamais à chaque PR, jamais planifié ») pour le `code` des règles, et laisse le noyau critique à la demande.
 
 ## 8. Ce qui change dans `skills`
 
-Tickets du dépôt `skills` (`A-29`), bloqués par la publication de la CLI 2.0.0 :
+Tickets du dépôt `skills` (`A-29`), bloqués par la publication de la majeure de la CLI qui porte le pivot 3 :
 
 - **Le standard** : `docs/issues/standard-documentation/` reçoit la copie de cette spec ; le gabarit `skills/chaine/tickets/references/gabarits/regle.md` gagne `criticality`, `cases` et `notApplicableFamilies`.
 - **`socle-tests`** : la grille par criticité dans le gabarit de `.claude/rules/tests.md` (elle n'y existe pas : une seule mention de `P0`, `P1`, `P2`, ligne 25) ; le relais `preuves.mjs` et son entrée dans `gatesRapides` ; `mutation-regles.mjs`, qui ne garde aujourd'hui que les règles `proven` (ligne 76), garde les règles `proven` et `partial` ; `mutation.yml` date sa mesure, relit la précédente, et le gabarit d'ADR de mutation suit `ADR_ALL_ARC-17`.
 - **`tickets`** : le gate refuse un ticket `ready-for-agent` dont la ligne `Règles:` cite une règle sans criticité ou sans cas (en `enforce` ; avertissement en `observe`, et rien sans index) ; le tableau `## Surfaces` d'un ticket nomme, pour chaque cas attendu des règles citées, la preuve qui le portera.
 - **`revue-de-ticket`** : le critère `T3` (`references/criteres-ticket.md`) ne dit plus « les cas de bord que la règle énonce » mais « chaque cas attendu de la règle a sa preuve, du genre que la nature du code impose » (`A-25`), et vérifie qu'un cas dit technique l'est bien (`RULE_ALL_ANC-27`).
-- **Le skill `anchorpost`** : CLI 2.0.0 ou une suivante, et la fiche `.claude/rules/anchorpost.md` dit comment écrire une criticité, un cas, une étiquette de cas.
+- **Le skill `anchorpost`** : la majeure de la CLI qui porte le pivot 3, ou une suivante, et la fiche `.claude/rules/anchorpost.md` dit comment écrire une criticité, un cas, une étiquette de cas.
 
 ## 9. Le service Anchorpost, au minimum
 
-- `packages/schema` : la version 3, la conversion de 2 en 3 (`A-20`).
-- `packages/contracts` (`src/rule.ts`) : « partielle » rejoint les statuts de réalisation ; la criticité d'une règle (`basse`, `moyenne`, `haute`, « à classer »).
-- `apps/api` : `v2-vocabulary.ts` et les mappers lisent la version 3.
-- `apps/web` : le badge « partielle » et la criticité, sur la page d'une règle (`rule-page.tsx`) et dans le tableau des règles (`rule-table.tsx`).
+- Tranche 1 : `packages/schema`, les trois clés facultatives de la version 2 (`rules[].criticality`, `features[].criticality`, `features[].declaredRules`) et la clé `featureCriticality` du manifeste (`A-50`), prouvées par un test qui lit par le schéma un index qui les porte et les retrouve (§ 2) ; `packages/contracts` (`src/rule.ts`), la criticité d'une règle (`basse`, `moyenne`, `haute`, « à classer ») ; `apps/api`, les mappers la lisent. Le service s'arrête là : il lit la criticité, il ne l'affiche pas.
+- **L'affichage web de la criticité quitte cette spec** (amendement du 2026-11-14, `A-16` du programme « onglet Projet ») : la criticité d'une règle sur sa page et dans le tableau des règles, celle d'une feature, « à classer », sont à la tranche 8 de `SPEC_ALL_ANC-7` (onglet « Projet »).
+- Tranche 2 : `packages/schema`, la version 3, la conversion de 2 en 3 (`A-20`) ; `packages/contracts`, « partielle » rejoint les statuts de réalisation ; `apps/api`, `v2-vocabulary.ts` et les mappers lisent la version 3 ; `apps/web`, le badge « partielle ».
 
 ## Les tranches, dans l'ordre
 
 Le découpage en tickets est le travail du conducteur du chantier ; l'ordre et les dépendances sont ceux-ci.
 
-| Tranche | Contenu                                                                                                                                                                            | Dépôt                      | Dépend de |
-| ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------- | --------- |
-| 0       | Première mesure de solidité : `code` des 20 règles, Stryker, synthèse publiée (§ 7, premier point)                                                                                 | `anchorpost`               | —         |
-| 1       | Pivot 3 et CLI 2.0.0 : schéma, calcul, `check`, plancher ; le service lit la version 3 ; Anchorpost migré ; règles amendées, glossaire ; pilote de trois règles, une par criticité | `anchorpost`               | —         |
-| 2       | `anchorpost compare` et le rapport de PR, en `observe`                                                                                                                             | `anchorpost`               | 1         |
-| 3       | La part de `skills` (§ 8), puis sa repose dans `anchorpost` ; passage d'Anchorpost en `enforce`, sur décision du produit                                                           | `skills`, `anchorpost`     | 2         |
-| 4       | Contrôle de solidité par criticité : hebdomadaire, sur PR pour les règles hautes, mesure datée, `ADR_ALL_ARC-17`                                                                   | `anchorpost`, `skills`     | 0, 2      |
-| 5       | Fedora et Iroki adoptent les deux champs, en `observe`                                                                                                                             | `fedora`, `iroki-monorepo` | 3         |
+| Tranche | Contenu                                                                                                                                                                                                                                                                                                                                   | Dépôt                      | Dépend de |
+| ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------- | --------- |
+| 0       | Première mesure de solidité : `code` des 20 règles, Stryker, synthèse publiée (§ 7, premier point)                                                                                                                                                                                                                                        | `anchorpost`               | —         |
+| 1       | **La criticité dans l'index**, pivot 2, CLI à la mineure qui suit la version publiée (`A-50`) : `criticality` d'une règle, `featureCriticality` du manifeste, calcul du § 2, `features[].declaredRules`, chaque clé nouvelle déclarée au schéma pivot, contrôles de criticité du § 3 ; le service lit la criticité, sans l'afficher (§ 9) | `anchorpost`               | —         |
+| 2       | Pivot 3, CLI à la majeure qui suit : cas attendus, « partielle », `check`, plancher, `sufficiency` ; le service lit la version 3 ; Anchorpost migré ; règles amendées ; pilote de trois règles, une par criticité                                                                                                                         | `anchorpost`               | 1         |
+| 3       | `anchorpost compare` et le rapport de PR, en `observe`                                                                                                                                                                                                                                                                                    | `anchorpost`               | 2         |
+| 4       | La part de `skills` (§ 8), puis sa repose dans `anchorpost` ; passage d'Anchorpost en `enforce`, sur décision du produit                                                                                                                                                                                                                  | `skills`, `anchorpost`     | 3         |
+| 5       | Contrôle de solidité par criticité : hebdomadaire, sur PR pour les règles hautes, mesure datée, `ADR_ALL_ARC-17`                                                                                                                                                                                                                          | `anchorpost`, `skills`     | 0, 3      |
+| 6       | Fedora et Iroki adoptent les deux champs, en `observe`                                                                                                                                                                                                                                                                                    | `fedora`, `iroki-monorepo` | 4         |
 
-La tranche 5 se déroule dans les chantiers de refonte de ces deux dépôts : cette spec n'en porte pas les tickets.
+La tranche 6 se déroule dans les chantiers de refonte de ces deux dépôts : cette spec n'en porte pas les tickets.
 
-**Le pilote** : trois règles d'Anchorpost, une basse, une moyenne, une haute, et un parcours au moins, ce qui demande de déclarer les modules d'Anchorpost dans son manifeste (`A-19`). Le conducteur propose les trois règles, leurs criticités et leurs cas ; la MOA les fixe (`RULE_ALL_ANC-24`).
+**La tranche 1 part seule** (`P-30`, `A-50`) : elle n'attend ni les cas attendus, ni « partielle », ni la tranche 0, et l'onglet « Projet » n'attend qu'elle. Avant l'amendement du 2026-11-14, la criticité était dans la tranche 1 avec tout le pivot 3 ; elle en sort, et ce qui suivait est renuméroté d'un cran.
+
+**Le pilote** (tranche 2) : trois règles d'Anchorpost, une basse, une moyenne, une haute, et une feature au moins dont la MOA fixe la criticité. Le conducteur propose les trois règles, leurs criticités et leurs cas ; la MOA les fixe (`RULE_ALL_ANC-24`).
 
 ## Vérification d'ensemble
 
-- Les 20 règles aujourd'hui « prouvées » sortent « partielles » de la CLI 2.0.0, et `check` est vert avec le plancher `{ proven: 0, partial: 20 }`.
+- Tranche 1, sur un dépôt d'essai : chaque feature porte `declaredRules`, ses règles déclarées seulement, triées, et `rules` reste inchangé ; un index qui porte `rules[].criticality`, `features[].criticality`, `features[].declaredRules` et `tickets[].title`, lu par le schéma pivot, les garde ; une règle à criticité propre sort `declared` ; une règle d'une feature dont la MOA a fixé la criticité sort `feature` avec cette feature ; une règle sans l'une ni l'autre n'a pas de `criticality` ; une feature dont une règle est plus haute que son niveau fixé affiche le niveau de la règle, sans refus ; un index 2 sans ces clés reste lisible par le service.
+- Les 20 règles aujourd'hui « prouvées » sortent « partielles » de la CLI du pivot 3, et `check` est vert avec le plancher `{ proven: 0, partial: 20 }`.
 - Les trois règles du pilote sortent « prouvées », avec chacun de leurs cas porté par une preuve du niveau exigé.
 - Sur une branche d'essai, retirer la preuve d'un cas d'une règle du pilote : le rapport de PR nomme la règle et le cas ; en `enforce`, `anchorpost compare` sort en erreur.
-- Sur une branche d'essai, relever la criticité d'une règle validée sans toucher à sa validation : refus en `enforce`.
+- Sur une branche d’essai, un agent baisse la criticité d’une règle, ou celle fixée sur une feature : refus en `enforce` ; la monter : aucun écart ; une personne la baisse : aucun écart (`RULE_ALL_ANC-24`).
+- Sur une branche d'essai, baisser `floor.proven` sans toucher à `floor.date` : avertissement en `observe`, refus en `enforce` (`A-55`).
 - Le passage hebdomadaire a eu lieu une fois sur `develop`, sa mesure porte sa date, et le rapport d'une PR la cite.
 
 ## Hors périmètre
 
 - **Qui vérifie le code selon la criticité** (`P-6`) : le mécanisme de la revue que l'auteur ne contrôle pas et de la lecture par une personne nommée est au chantier 3 du programme. Cette spec lui donne ce qu'il lit : la criticité des règles qu'une PR touche (§ 4).
-- **Ce qu'Anchorpost montre** (`P-17`) : le tableau des cas avec leurs preuves sur la page d'une règle, l'histoire d'une règle, la vue par PR, « qui a vérifié », l'affichage d'une mesure « périmée » sont au chantier 5. Ici, le service ne fait que lire la version 3 et montrer l'état et la criticité (§ 9).
+- **Ce qu'Anchorpost montre** (`P-17`) : le tableau des cas avec leurs preuves sur la page d'une règle, l'histoire d'une règle, la vue par PR, « qui a vérifié », l'affichage d'une mesure « périmée » sont au chantier 5. Ici, le service ne fait que lire la version 3, montrer l'état et lire la criticité (§ 9) ; l'affichage de la criticité est à `SPEC_ALL_ANC-7`, tranche 8.
 - Un nombre de tests par règle, un objectif global de couverture, un seuil chiffré de mutation avant la première mesure.
 - Une revue par un modèle en CI.
+- Le parcours, suspendu par le produit le 2026-11-14 (`P-22`) : ni manifeste, ni index, ni écart de `check` ne le nomment.
+- Une règle `rejected` sort « à construire » (`to-build`) de la CLI : c'est un défaut de la CLI, à trier sous `SPEC_ALL_ANC-4`, que cet amendement ne corrige pas.

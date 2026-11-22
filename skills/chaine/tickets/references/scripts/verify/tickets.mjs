@@ -44,7 +44,15 @@
  *      haute porte `Relecture: double` (A-90) ; la criticité se lit dans l'en-tête du fichier de la règle et dans l'index
  *      Anchorpost (`anchorpost/anchorpost.json`), la plus haute des deux, la règle en vigueur si l'un des deux le dit (comme
  *      le calcul, A-134), par les lecteurs du calcul « double relecture
- *      exigée » (`scripts/chaine/double-relecture.mjs`, skill fusionner, exigé en régime 8 : sortie 2 sans lui).
+ *      exigée » (`scripts/chaine/double-relecture.mjs`, skill fusionner, exigé en régime 8 : sortie 2 sans lui) ;
+ *  15. `Prouve:`, chaque ligne de l'en-tête : les règles qu'un ticket prouve sans les réaliser, lues comme `Règles:` (règle
+ *      10) ; jamais une règle que `Règles:` cite aussi ; `Prouve: —` est refusée (K3 de la preuve suffisante) ;
+ *  16. la preuve suffisante (K3, `SPEC_ALL_ANC-5` § 8) : quand l'index commis `anchorpost/anchorpost.json` est au pivot 3
+ *      (`"schema": "3"`), un ticket `ready-for-agent` (hors dette) dont `Règles:` ou `Prouve:` cite une règle sans
+ *      criticité, sans cas attendu, ou absente de l'index, ou dont `## Surfaces` ne nomme pas chaque cas attendu de ces
+ *      règles (`RULE_…#<cas>`), est refusé si l'index dit `project.sufficiency: enforce`, signalé sinon (`observe`, le
+ *      défaut), sans changer la sortie ; sans index au pivot 3 (absent, ou d'un autre schéma) : rien. Un index présent qui
+ *      n'est pas du JSON : sortie 1, la cause dite, quel que soit le pivot ou le régime, `--elaguer` et `--geler-*` compris.
  *
  * Usage : node scripts/verify/tickets.mjs [--elaguer | --geler-types | --geler-fiches]   (pnpm check:tickets — CI)
  * Sortie 2 : `scripts/docs/identifiants.mjs` absent (posé par `socle-monorepo`).
@@ -181,7 +189,36 @@ if (regime === 8) {
   };
 }
 
+// Preuve suffisante (règle 16) : l'index commis, lu dans l'arbre de travail ; seul son `schema` décide si elle se juge.
+let suffisance = null;
+const INDEX_ANCHORPOST = join(ROOT, 'anchorpost/anchorpost.json');
+if (existsSync(INDEX_ANCHORPOST)) {
+  let lu;
+  try {
+    lu = JSON.parse(readFileSync(INDEX_ANCHORPOST, 'utf8'));
+  } catch (e) {
+    console.error(`tickets : anchorpost/anchorpost.json illisible (${e.message.split('\n')[0]}) : la criticité et les cas des règles citées ne se lisent pas ; régénérer l'index`);
+    process.exit(1);
+  }
+  if (lu !== null && typeof lu === 'object' && lu.schema === '3') {
+    const parCle = new Map((Array.isArray(lu.rules) ? lu.rules : []).filter((r) => typeof r?.key === 'string').map((r) => [r.key, r]));
+    suffisance = {
+      mode: lu.project?.sufficiency === 'enforce' ? 'enforce' : 'observe',
+      regle: (id) => {
+        const r = parCle.get(id);
+        if (!r) return null;
+        return {
+          criticite: ['low', 'medium', 'high'].includes(r.criticality?.level) ? r.criticality.level : null,
+          cas: (Array.isArray(r.cases) ? r.cases : []).map((c) => c?.id).filter((c) => typeof c === 'string'),
+          close: ['rejected', 'obsolete'].includes(r.validation?.status),
+        };
+      },
+    };
+  }
+}
+
 const erreurs = [];
+const avertissements = [];
 // Les fiches que les skills lisent : celles du skill `tickets`, pas celles d'origine de Matt Pocock.
 const fiche = (nom) => (existsSync(join(ROOT, 'docs/agents', nom)) ? readFileSync(join(ROOT, 'docs/agents', nom), 'utf8') : null);
 erreurs.push(...ecartsFiches({ issueTracker: fiche('issue-tracker.md'), triageLabels: fiche('triage-labels.md') }));
@@ -207,8 +244,10 @@ for (const chemin of chemins) {
     testExiste,
     regime,
     niveauDe,
+    suffisance,
   });
   for (const e of r.erreurs) erreurs.push(`${chemin}:${e.ligne} : ${e.message}`);
+  for (const e of r.avertissements) avertissements.push(`${chemin}:${e.ligne} : ${e.message}`);
   if (geles.has(chemin) && r.pret && ecartsFormatPret(texte, cheminsSensibles, { regime }).length > 0) detteActive.add(chemin);
   if (r.type === null) sansType.push(chemin);
 }
@@ -281,6 +320,10 @@ if (process.argv.includes('--elaguer')) {
   writeFileSync(DETTE, `${JSON.stringify(dette, null, 2)}\n`);
   console.log(`tickets : dette élaguée — ${dette.tickets.length} ticket(s) prêt(s) hors format restent gelés`);
   process.exit(0);
+}
+if (avertissements.length > 0) {
+  console.log(`tickets : ${avertissements.length} avertissement(s) de la preuve suffisante (observe : rien n'est refusé) :`);
+  for (const a of avertissements) console.log(`  ${a}`);
 }
 if (erreurs.length > 0) {
   console.error(`tickets : ${erreurs.length} écart(s) :`);
