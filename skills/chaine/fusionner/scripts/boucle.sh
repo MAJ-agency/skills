@@ -337,7 +337,9 @@ rafraichir_sujets() {
 # refusée par une sortie non classée) : la plus ancienne qui attend le prend aussitôt. Il reste tenu sur une sortie qui
 # la laisse en route : 5, 6, 8, 11, `relancer` réussi, 7 (le verrou d'un autre capitaine) et toute sortie par signal
 # (129 et plus : l'état du passage interrompu est inconnu, son verrou peut rester ; 128 est une erreur fatale de git,
-# pas un signal : elle suit la table d'une erreur, A-161). Un sujet encore tenu après le
+# pas un signal : elle suit la table d'une erreur, A-161). Une sous-PR de fourche (la sortie 7 de sa garde, lue par
+# `fourche_sautee`) n'est jamais en route : sautée sans renvoi, elle rend le sujet dans le tour, dans les deux régimes,
+# et sa ligne la nomme (A-201). Un sujet encore tenu après le
 # passage de celle qui le tient est dit à chaque tour : `[sujet/<nom>] tenu par #n (<raison>)`, écrit par la boucle une
 # fois la sortie de `sujet.sh` classée (son code, et sa dernière ligne dans `$sortie`), jamais dans `$sortie` : la ligne
 # ne suit pas celle du `sortir`, et `refus.sh` ne la prend pas pour un motif. Sur une sortie 7, la raison porte la date
@@ -369,6 +371,15 @@ date_du_verrou() { # <n> <fichier de la sortie>
   fin=$({ grep . "$2" || true; } | tail -n 1 | tr -d '\r')
   [[ "$fin" =~ ^"#$1 en passage chez le capitaine "[A-Za-z0-9_-]+" depuis "([0-9TZ:-]+)" : " ]] || return 0
   printf ', verrou du %s' "${BASH_REMATCH[1]}"
+}
+# Une sous-PR de fourche, lue sur la DERNIÈRE ligne d'une sortie 7 de `sujet.sh` (le `sortir` de sa garde de fourche :
+# « #<n> : PR de fourche (<dépôt>) : sa tête vit hors du dépôt, le capitaine ne la lit pas ; sautée sans renvoi »), jamais
+# sur un motif cherché dans toute la sortie. Sa cause ne passe pas d'elle-même, et n'importe qui ouvre une telle PR : elle
+# ne tient pas son sujet (A-201), l'autre sous-PR en route le prend au même tour.
+fourche_sautee() { # <n> <fichier de la sortie>
+  local fin
+  fin=$({ grep . "$2" || true; } | tail -n 1 | tr -d '\r')
+  [[ "$fin" == "#$1 : PR de fourche ("*") : sa tête vit hors du dépôt, le capitaine ne la lit pas ; sautée sans renvoi" ]]
 }
 traiter_sujets() {
   local n etat sujet rc tient par liste lue enroute verrou geste tenus=' ' suspendus=' '
@@ -455,6 +466,8 @@ traiter_sujets() {
       sujet/*': prête (sans CI)' | sujet/*': prête (en conflit)')
         bash "$SUJET" relancer "$n" 2>&1 | tee "$sortie" | sed "s#^#[\#$n] #"
         rc=${PIPESTATUS[0]}
+        # Une sous-PR de fourche : classée à part, elle rend son sujet (`fourche_sautee`, A-201).
+        [ "$rc" != 7 ] || ! fourche_sautee "$n" "$sortie" || rc=fourche
         geste="sortie $rc de relancer"
         [ "$rc" != 7 ] || geste="$geste$(date_du_verrou "$n" "$sortie")"
         case "$rc" in
@@ -475,6 +488,7 @@ traiter_sujets() {
           4) bash "$outils/refus.sh" "$n" "$sortie" ;; # tête gardée : renvoyée avec le motif
           6) echo "[#$n] PAS PROPRE : worktree du capitaine à nettoyer, sous-PR laissée dans la file (aucun renvoi)" ;;
           5) echo "[#$n] REPRISE au tour suivant (sous-PR bougée ou GitHub illisible), aucun renvoi" ;;
+          fourche) echo "[#$n] sous-PR de fourche, sautée (aucun renvoi) : elle ne tient pas ${etat%% :*}" ;;
           7) echo "[#$n] en passage chez un autre capitaine : sautée (aucun renvoi)" ;;
           # Push refusé par le distant, sans trace du hook : côté capitaine ou du distant, jamais un renvoi.
           11) echo "[#$n] ÉCHEC DU CAPITAINE : sous-PR laissée dans la file (aucun renvoi), cause ci-dessus" ;;
@@ -490,6 +504,7 @@ traiter_sujets() {
         ! echeance_passee || exit "$ECHEANCE_TUBE"
         bash "$SUJET" fusionner "$n" 2>&1 | tee "$sortie" | sed "s#^#[\#$n] #"
         rc=${PIPESTATUS[0]}
+        [ "$rc" != 7 ] || ! fourche_sautee "$n" "$sortie" || rc=fourche
         geste="sortie $rc de fusionner"
         [ "$rc" != 7 ] || geste="$geste$(date_du_verrou "$n" "$sortie")"
         case "$rc" in
@@ -500,6 +515,7 @@ traiter_sujets() {
           5) echo "[#$n] REPRISE au tour suivant (sous-PR ou sujet bougé, checks en cours, GitHub illisible), aucun renvoi" ;;
           # Worktree du capitaine sale : rien que l'auteur puisse corriger, jamais un renvoi.
           6) echo "[#$n] PAS PROPRE : worktree du capitaine à nettoyer, sous-PR laissée dans la file (aucun renvoi)" ;;
+          fourche) echo "[#$n] sous-PR de fourche, sautée (aucun renvoi) : elle ne tient pas ${etat%% :*}" ;;
           7) echo "[#$n] sous-PR non éligible (fermée, en brouillon, ou en passage chez un autre capitaine)" ;;
           8) echo "[#$n] MISE À JOUR avec ${etat%% :*} poussée, CI pas finie : repasse au tour suivant" ;;
           # Arbre du squash ≠ arbre testé : arrêt. Le `while` tourne dans le sous-shell du tube : le code remonte
