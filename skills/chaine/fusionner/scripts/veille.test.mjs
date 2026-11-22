@@ -577,6 +577,8 @@ test("--etat : le fichier d'arrêt posé (boucle.sh --arreter) passe avant la fi
 
 test("veille tuée pendant sa pause (kill -9, comme l'outil Bash ou un conteneur arrêté) : pas de ligne finale, et --etat dit VEILLE MORTE aussitôt, son `sleep` orphelin ne la tient pas vivante", async () => {
   const j = creerJouet([""]);
+  // La fin d'une veille d'avant (contre-relecture de la PR 150) : l'état « lancee » la remplace, il ne s'y ajoute pas.
+  writeFileSync(fichierEtat(j), "fin 1 VEILLE FINIE 12:00\n");
   const enfant = spawn("bash", [join(j.dir, "veille.sh"), "--pause", "30", "--duree", "5"], { cwd: j.clone, env: sleepNote(j), stdio: "ignore" });
   const sortie = new Promise((ok) => enfant.on("exit", ok));
   try {
@@ -639,24 +641,54 @@ test("veille tuée pendant que `tee` attend un démon de la boucle (sa sortie da
 
 test("une seconde veille pendant qu'une tourne : VEILLE ARRÊTÉE, sortie 9, aucune boucle lancée, l'état de la première gardé", () => {
   // Un état témoin (« lancee 1 ») posé avant la seconde : elle ne doit pas l'écrire.
-  const seconde = 'if [ "$k" = 0 ]; then echo "lancee 1" > .git/veille.etat; bash "$(dirname "$0")/veille.sh" --pause 0.2 --duree 1 --sondes 0 > "$(dirname "$0")/seconde" 2>&1; echo "seconde $?" >> "$(dirname "$0")/trace"; cat .git/veille.etat >> "$(dirname "$0")/trace"; fi';
+  // Elle est lancée avec --reprendre, un arrêt posé (contre-relecture de la PR 150) : refusée, elle ne le retire pas.
+  const seconde = 'if [ "$k" = 0 ]; then echo "lancee 1" > .git/veille.etat; echo 2026-11-22T03:00:00 > .git/boucle-arret; bash "$(dirname "$0")/veille.sh" --pause 0.2 --duree 1 --sondes 0 --reprendre > "$(dirname "$0")/seconde" 2>&1; echo "seconde $?" >> "$(dirname "$0")/trace"; cat .git/veille.etat >> "$(dirname "$0")/trace"; [ ! -e .git/boucle-arret ] || echo "arrêt gardé" >> "$(dirname "$0")/trace"; fi';
   const j = creerJouet([""], { apresLancement: seconde });
   const r = j.lancer(ARGS(0));
   assert.equal(r.status, 0, r.stdout + r.stderr);
-  assert.deepEqual(r.trace, ["boucle", "seconde 9", "lancee 1"]);
+  assert.deepEqual(r.trace, ["boucle", "seconde 9", "lancee 1", "arrêt gardé"]);
   assert.equal(r.lancements, 1, "la seconde n'a lancé aucune boucle");
   assert.match(readFileSync(join(j.dir, "seconde"), "utf8"), /^VEILLE ARRÊTÉE \d\d:\d\d : une veille tourne déjà \(.*veille\.verrou\) : une seule à la fois, « veille\.sh --etat »$/m);
   assert.match(readFileSync(fichierEtat(j), "utf8"), /^fin \d+ VEILLE FINIE \d\d:\d\d\n$/, "la fin écrite est celle de la première");
 });
 
-test("--reprendre : le premier lancement de la boucle seul reçoit --reprendre ; sans l'option, aucun", () => {
-  const avec = veilleJouet(["", prete(31)], { args: ["--pause", "0.2", "--duree", "1", "--reprendre", "--sondes", "1"] });
-  assert.equal(avec.status, 0, avec.stdout + avec.stderr);
-  assert.deepEqual(avec.arguments, ["boucle --reprendre", "boucle"]);
-  const sans = veilleJouet(["", prete(31)]);
-  assert.deepEqual(sans.arguments, ["boucle", "boucle"]);
+test("--reprendre : la veille retire le fichier d'arrêt, la boucle ne reçoit jamais --reprendre et trouve son verrou libre ; un arrêt posé pendant le démarrage reste posé ; sans l'option, la veille ne retire rien", () => {
+  // Contre-relecture de la PR 150 : la lecture initiale de la file (une lecture GitHub) pose un arrêt, comme un
+  // `boucle.sh --arreter` joué pendant le démarrage ; la boucle note si l'arrêt est posé et si son verrou est libre.
+  const temoin = '{ [ -e .git/boucle-arret ] && echo "arrêt posé" || echo "pas d\'arrêt"; } >> "$(dirname "$0")/trace"; if flock -n .git/boucle.verrou true; then echo "verrou libre"; else echo "verrou tenu"; fi >> "$(dirname "$0")/trace"';
+  const avec = creerJouet(["", prete(31)], { apresLancement: `[ "$k" != 0 ] || { ${temoin}; }` });
+  const arret = join(avec.clone, ".git", "boucle-arret");
+  writeFileSync(arret, "2026-11-22T03:00:00\n");
+  const file = join(avec.dir, "file.sh");
+  writeFileSync(file, readFileSync(file, "utf8").replace("#!/usr/bin/env bash\n", `#!/usr/bin/env bash\n[ -f "$(dirname "$0")/compte" ] || { [ ! -e .git/boucle-arret ] && echo "retiré avant la lecture" >> "$(dirname "$0")/trace"; echo 2026-11-22T03:05:00 > .git/boucle-arret; }\n`));
+  const r = avec.lancer(["--pause", "0.2", "--duree", "1", "--reprendre", "--sondes", "1"]);
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.deepEqual(r.arguments, ["boucle", "boucle"], "aucun lancement de la boucle ne reçoit --reprendre");
+  assert.deepEqual(r.trace.slice(0, 4), ["retiré avant la lecture", "boucle", "arrêt posé", "verrou libre"], r.trace.join("\n"));
+  assert.equal(readFileSync(arret, "utf8"), "2026-11-22T03:05:00\n", "l'arrêt posé pendant le démarrage reste");
+  const sans = creerJouet(["", prete(31)]);
+  const arretSans = join(sans.clone, ".git", "boucle-arret");
+  writeFileSync(arretSans, "2026-11-22T03:00:00\n");
+  const s = sans.lancer(["--pause", "0.2", "--duree", "1", "--sondes", "1"]);
+  assert.deepEqual(s.arguments, ["boucle", "boucle"]);
+  assert.ok(existsSync(arretSans), "sans --reprendre, la veille ne retire pas le fichier d'arrêt");
   const usage = veilleJouet([""], { args: ["--reprendre", "oui"] });
   assert.equal(usage.status, 64);
+});
+
+test("un fichier du verrou de la veille qui ne s'ouvre pas : --etat et la veille sortent en 6, jamais VEILLE VIVANTE ni « une veille tourne déjà »", () => {
+  // Contre-relecture de la PR 150 : `flock` sur un descripteur que l'`exec` n'a pas ouvert sort en 65, pas en 1.
+  const j = creerJouet([""]);
+  mkdirSync(join(j.clone, ".git", "veille.verrou"));
+  const e = etatDe(j);
+  assert.equal(e.status, 6, e.stdout + e.stderr);
+  assert.equal(e.stdout, "");
+  assert.match(e.stderr, /veille\.sh --etat : verrou de la veille illisible \(.*veille\.verrou\)/);
+  const r = j.lancer(ARGS(0));
+  assert.equal(r.status, 6, r.stdout + r.stderr);
+  assert.match(r.stdout, /^VEILLE ARRÊTÉE \d\d:\d\d : verrou de la veille illisible \(.*veille\.verrou\)$/m);
+  assert.doesNotMatch(r.stdout, /une veille tourne déjà/);
+  assert.equal(r.lancements, 0);
 });
 
 // --- Relecture du ticket 74, tour 1 : une veille relancée avec --reprendre retire le fichier d'arrêt avant sa

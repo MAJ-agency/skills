@@ -69,9 +69,10 @@
 #   VEILLE TERMINÉE : <ligne finale>                             sortie 2 : sa fin est écrite
 #   VEILLE MORTE (lancée à <hh:mm>, sans ligne finale) : …       sortie 1 : rien de cela, ou aucune trace de veille
 # `--reprendre` (après une veille morte et `boucle.sh --arreter`, qui pose le fichier d'arrêt) : la veille retire ce
-# fichier dès son verrou pris, celui de la boucle libre (sinon sortie 9, fichier gardé), avant sa préparation ; puis le
-# premier lancement de la boucle est `boucle.sh --reprendre`, les suivants `boucle.sh` seul. `--etat` tient le verrou
-# le temps de sa lecture : une veille qui démarre l'attend (3 s au plus).
+# fichier dès son verrou pris, celui de la boucle libre (sinon sortie 9, fichier gardé), avant sa préparation ; la
+# boucle, elle, se lance toujours sans `--reprendre` : un arrêt posé après ce retrait (`--arreter` pendant le démarrage)
+# est un arrêt neuf, qu'elle respecte (sortie 10). `--etat` tient le verrou le temps de sa lecture : une veille qui
+# démarre l'attend (3 s au plus) ; un verrou qui ne s'ouvre pas n'est jamais une veille vivante (sortie 6).
 #
 # Usage, en tâche de fond (`timeout` 7200000), depuis le worktree du capitaine, scripts copiés hors du worktree,
 # `CAPITAINE_ID` (l'id de la session du capitaine) en préfixe :
@@ -108,6 +109,8 @@ if [ "${1-}" = --etat ]; then
   # qui démarre l'attend, `flock -w` ci-dessous).
   exec 7>>"$VERROU_VEILLE"
   if ! flock -n 7; then
+    # Un fichier du verrou qui ne s'ouvre pas (le descripteur 7 fermé) n'est jamais une veille vivante.
+    { : >&7; } 2>/dev/null || { echo "veille.sh --etat : verrou de la veille illisible ($VERROU_VEILLE)" >&2; exit 6; }
     lire_etat
     echo "VEILLE VIVANTE${lancee:+ ($lancee)}"
     exit 0
@@ -167,7 +170,9 @@ export BOUCLE_ECHEANCE=$echeance
 [ -n "$COMMUN" ] || { echo "VEILLE ARRÊTÉE $(heure) : veille.sh se lance depuis le worktree du capitaine (dépôt git)" >&2; exit 64; }
 command -v flock >/dev/null || { echo "VEILLE ARRÊTÉE $(heure) : flock (util-linux) requis"; exit 6; }
 exec 7>>"$VERROU_VEILLE"
-flock -w 3 7 || { echo "VEILLE ARRÊTÉE $(heure) : une veille tourne déjà ($VERROU_VEILLE) : une seule à la fois, « veille.sh --etat »"; exit 9; }
+flock -w 3 7 || {
+  { : >&7; } 2>/dev/null || { echo "VEILLE ARRÊTÉE $(heure) : verrou de la veille illisible ($VERROU_VEILLE)"; exit 6; }
+  echo "VEILLE ARRÊTÉE $(heure) : une veille tourne déjà ($VERROU_VEILLE) : une seule à la fois, « veille.sh --etat »"; exit 9; }
 printf 'lancee %s\n' "$debut" > "$ETAT_VEILLE"
 # Ligne finale : écrite dans l'état, puis au journal, puis la sortie. Toute fin de la veille après le verrou passe ici.
 finir() { # <code> <ligne finale>
@@ -177,7 +182,7 @@ finir() { # <code> <ligne finale>
 }
 # --reprendre (en-tête) : le fichier d'arrêt se retire ici, le verrou de la boucle libre, avant la préparation : une
 # veille relancée par le réveil de garde puis tuée, ou arrêtée en 13, avant sa première boucle ne laisse pas un arrêt
-# que la garde lirait comme demandé. La première boucle reçoit encore `--reprendre`.
+# que la garde lirait comme demandé. La boucle n'en reçoit aucun : un arrêt posé ensuite est un arrêt neuf.
 if [ "$reprendre" = 1 ]; then
   exec 8>>"$COMMUN/boucle.verrou"
   flock -n 8 || finir 9 "VEILLE ARRÊTÉE $(heure) : une boucle tient le verrou ($COMMUN/boucle.verrou) : fichier d'arrêt gardé ; « boucle.sh --arreter », puis --reprendre"
@@ -253,14 +258,11 @@ trap 'rm -f "$journal_boucle"' EXIT
 # (`[#n] RENVOI`, renvoyer.sh) ou dont elle a relancé les jobs rouges (`[#n] RELANCE`, boucle.sh)
 # sort de l'ensemble vu : si elle revient avant la sonde suivante, même ligne qu'avant la boucle,
 # elle est nouvelle et relance la boucle (cas vécu : PR renvoyée, corrigée en une minute, invisible).
-# La préparation la précède (en-tête) ; son échec sort en 13 sans lancer la boucle. `--reprendre` : le premier
-# lancement seul est `boucle.sh --reprendre` (en-tête).
+# La préparation la précède (en-tête) ; son échec sort en 13 sans lancer la boucle. Jamais `boucle.sh --reprendre` :
+# `--reprendre` a retiré le fichier d'arrêt avant la préparation, et un arrêt posé depuis tient la boucle (sortie 10).
 lancer() {
-  local suite=()
-  [ "$reprendre" = 0 ] || suite=(--reprendre)
-  reprendre=0
   preparer_si_besoin
-  bash "$outils/boucle.sh" "${suite[@]}" 7>&- | tee "$journal_boucle" 7>&-
+  bash "$outils/boucle.sh" 7>&- | tee "$journal_boucle" 7>&-
   local rc=${PIPESTATUS[0]} agies
   [ "$rc" = 0 ] || finir "$rc" "VEILLE ARRÊTÉE $(heure) : la boucle est sortie en $rc"
   agies=$(sed -nE 's/^\[#([0-9]+)\] (RENVOI|RELANCE).*/\1/p' "$journal_boucle" | sort -u)

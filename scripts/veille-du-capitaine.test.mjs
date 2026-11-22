@@ -46,7 +46,10 @@ test("une fin sans ligne finale est une veille morte : quatrième puce de la lis
   assert.ok(puces[1].startsWith("- **`VEILLE ARRÊTÉE`** :"));
   assert.ok(puces[2].startsWith("- **`VEILLE ARRÊTÉE`, sortie 13**"));
   assert.equal(puces[3], "- **Aucune de ces lignes** (l'outil a arrêté la tâche, hors un `TaskStop` joué par la session elle-même ; le conteneur a redémarré) : une veille morte, jamais une fin sans suite : « Réveil de garde », points 1 à 3, tout de suite.");
-  assert.ok(puces[1].includes("Sortie 9 : une autre boucle tient le verrou, ou une autre veille tourne (`une veille tourne déjà`) : ne rien relancer avant de savoir laquelle (`veille.sh --etat`) : la suite de son point 2 (« Réveil de garde »)"), puces[1]);
+  assert.ok(puces[1].includes("Sortie 9 : une autre veille tourne (`une veille tourne déjà`) : ne rien relancer, `veille.sh --etat` et la suite de son point 2 (« Réveil de garde »)"), puces[1]);
+  // Contre-relecture de la PR 150 : une boucle qui tient le verrou sans veille qui la porte a sa suite ; `--etat`, qui ne
+  // parle que des veilles, n'en donnait aucune (la suite de son point 2 renvoyait à celle-ci).
+  assert.ok(puces[1].includes("ou une boucle tient le verrou sans veille qui la porte (`la boucle est sortie en 9`, après le `REFUS` de la boucle, ou `une boucle tient le verrou` de `--reprendre`), une orpheline ou un démon du projet qui garde son verrou : le point 3 du « Réveil de garde », puis le dire au lanceur ;"), puces[1]);
   assert.ok(puces[1].includes("sortie 10 : arrêt demandé, la veille relancée avec `--reprendre` quand on veut repartir."), puces[1]);
   assert.ok(entre(lire(SKILL), "**Une seule boucle à la fois, arrêt d'un geste.**", "\n\n").includes("**Reprendre** : relancer la veille avec `--reprendre`"), "« Reprendre » passe par la veille");
 });
@@ -57,23 +60,32 @@ test("le réveil de garde : après la liste des fins, avant le suivi du journal 
     "Une veille morte avec son conteneur ne réveille personne (cas vécu : 5 h 40 sans lecture de la file, file vide) ; un message programmé, lui, survit au redémarrage.",
     "charger `send_later` (ToolSearch, requête « select:mcp__claude-code-remote__send_later »), puis l'appeler : `delay_minutes` `60`",
     "`name` « Garde de la veille du capitaine »",
+    // Contre-relecture de la PR 150 : armée une fois, et le message qui fait jouer la garde à la session réveillée.
+    "Au premier lancement de la veille dans la session, charger `send_later`",
+    "`message` « Réveil de garde : skill fusionner, « Réveil de garde » »",
     "Il ne se réarme qu'au réveil de garde, jamais à un autre réveil : un seul réveil de garde attend à la fois.",
     "`send_later` absent (session locale) : pas de garde, le dire une fois au lanceur.",
   ]) assert.ok(garde.includes(p), `réveil de garde : « ${p} » attendu`);
   const points = garde.split("\n").filter((l) => /^\d\. /.test(l));
   assert.deepEqual(points.map((l) => l.slice(0, 2)), ["1.", "2.", "3.", "4."], garde);
   assert.ok(points[0].includes("`git worktree prune`, puis « Mise en place » et la copie (« Copier, puis lancer »), sans lancer la veille"), points[0]);
+  assert.ok(points[0].startsWith("1. `test -f <scratchpad>/outils/veille.sh && git -C <scratchpad>/capitaine rev-parse -q --verify HEAD` en échec"), points[0]);
   assert.ok(points[1].startsWith("2. Depuis le worktree, `bash <scratchpad>/outils/veille.sh --etat` (ni `CAPITAINE_ID`, ni réseau) : `VEILLE VIVANTE`, sortie 0 : rien ; `VEILLE TERMINÉE : <ligne finale>`, sortie 2 : `VEILLE FINIE`, la relancer telle quelle"), points[1]);
   assert.ok(points[1].endsWith("`VEILLE MORTE`, sortie 1 : le point 3."), points[1]);
-  assert.ok(points[1].includes("une autre sortie (64 : la copie est d'avant `--etat`, les scripts du projet ne sont pas reposés) : pas de garde"), points[1]);
+  assert.ok(points[1].includes("une autre sortie (64 : la copie est d'avant `--etat`, les scripts du projet ne sont pas reposés) : pas de garde, le dire une fois au lanceur (scripts à reposer par « poser », dans une PR du projet), ne plus réarmer, et après une fin sans ligne finale relancer la veille sans `--reprendre` ;"), points[1]);
   assert.ok(points[1].includes("et seulement si elle n'a pas déjà été donnée"), points[1]);
+  // Décision 6 du ticket : un arrêt demandé n'est jamais levé par un réveil de garde.
+  assert.ok(points[1].includes("`VEILLE ARRÊTÉE` ou `arrêt demandé`, rien de plus que sa suite ci-dessus, et seulement si elle n'a pas déjà été donnée (ce qui a été dit au lanceur ne se redit pas ; un arrêt demandé ne se lève jamais au réveil de garde : `--reprendre` attend qui l'a posé, un humain, ou le capitaine après son action à la main) ;"), points[1]);
   assert.ok(points[2].startsWith("3. Depuis le worktree, `bash <scratchpad>/outils/boucle.sh --arreter`"), points[2]);
   assert.ok(points[2].includes("puis relancer la veille par la seconde ligne du bloc ci-dessus, sans recopier (le worktree peut être resté sur une PR), en tâche de fond avec le même `timeout`, et avec `--reprendre` : elle retire ce fichier dès son verrou pris, avant sa préparation."), points[2]);
   assert.ok(points[2].includes("`--arreter` en échec (sortie 1, des processus tiennent encore le verrou) : le dire au lanceur, ne rien relancer."), points[2]);
-  assert.equal(points[3], "4. Réarmer : `send_later`, comme ci-dessus.");
+  // Le point 4 suit chaque suite, « VEILLE VIVANTE : rien » comprise : sinon la garde meurt à sa première veille vivante.
+  assert.equal(points[3], "4. Réarmer, quelle qu'ait été la suite des points 2 et 3 (`VEILLE VIVANTE` comprise), sauf « ne plus réarmer » (point 2) : `send_later`, comme ci-dessus.");
   // Le garde vient après la liste des fins et avant « Sans veille en cours ».
   const texte = boucle();
   assert.ok(texte.indexOf("**Réveil de garde.**") < texte.indexOf("**Sans veille en cours**"));
+  // Un seul réveil programmé à la fois : sans veille en cours, la garde qui attend tient lieu de réveil.
+  assert.ok(entre(texte, "**Sans veille en cours**", "\n\n").includes("le réveil de garde, s'il attend, en tient lieu, jamais un second `send_later`."), "Sans veille en cours : aucun second send_later");
 });
 
 test("les états que nomme le skill sont ceux qu'écrit `veille.sh --etat`, avec leurs sorties", () => {

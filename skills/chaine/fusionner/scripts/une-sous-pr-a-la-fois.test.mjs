@@ -451,8 +451,9 @@ test("veille.sh et boucle.sh : le verrou d'un capitaine mort tient un sujet ; il
 });
 
 // Ticket 74 : après une veille morte, `boucle.sh --arreter` termine une boucle orpheline et pose le fichier d'arrêt ; la
-// veille relancée sans `--reprendre` s'arrête sur lui (sortie 10), avec `--reprendre` sa première boucle le retire.
-test("veille.sh --reprendre après boucle.sh --arreter : la vraie boucle retire le fichier d'arrêt et la sous-PR entre ; sans --reprendre, VEILLE ARRÊTÉE en 10, rien de fusionné", () => {
+// veille relancée sans `--reprendre` s'arrête sur lui (sortie 10), avec `--reprendre` elle le retire avant de lancer la
+// vraie boucle, qui ne reçoit pas `--reprendre` (contre-relecture de la PR 150).
+test("veille.sh --reprendre après boucle.sh --arreter : la veille retire le fichier d'arrêt et la sous-PR entre par la vraie boucle ; sans --reprendre, VEILLE ARRÊTÉE en 10, rien de fusionné", () => {
   const d = sousPrDeSujets({ lot: [80] });
   ci(d, "SUCCESS");
   const arreter = d.lancer(BOUCLE, "--arreter");
