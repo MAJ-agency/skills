@@ -1,6 +1,6 @@
 # La veille du capitaine ne meurt plus en silence : lancée sous le plafond de l'outil Bash, une fin sans ligne finale a sa suite, un réveil de garde voit la veille morte avec son conteneur
 
-Status: ready-for-agent
+Status: Fait — PR 150 (`37233f8`, plugin 7.38.3)
 Type: défaut
 Label: contre-revue
 Modèle: sonnet — trois défauts de la veille du capitaine (`A-185`, point 7 ; `A-180`, point 1), chacun avec sa décision et son banc ; le code entier est dans le patch ([`74-annexes/ticket-74.patch`](74-annexes/ticket-74.patch), sha256 `c5608c9b6ee2fe288d39666e9665355e59c15bc15d24712c93a84eefc2d4670f`, `git apply` sur `25a72c7`, plugin 7.38.0 ; retouché après sa relecture, `A-190`), décrit fichier par fichier ci-dessous ; les bancs neufs ou changés sont rouges avant le code et verts après, les mutations de [`74-annexes/mutations.mjs`](74-annexes/mutations.mjs) sont toutes rouges, la suite entière est verte (« Vérification »). Rien n'est à concevoir : qui veut changer une décision l'écrit à son lanceur, il ne tranche pas.
