@@ -25,7 +25,10 @@
 //               branch ». Sans la clé, aucune branche n'est stricte. Aucun script ne lit ce réglage
 //   pendantCi   déplacements de branche pendant la CI, joués dans l'ordre : [{ lectures, branche, vers }]. À la
 //               `lectures`-ième lecture des `check-runs` (tous commits) depuis le déplacement précédent, le faux
-//               joue `update-ref refs/heads/<branche> <vers>` dans le dépôt nu, puis retire le déplacement
+//               joue `update-ref refs/heads/<branche> <vers>` dans le dépôt nu, puis retire le déplacement. Une entrée
+//               `{ lectures, pr, commentaire }` ajoute à la place un commentaire (corps ou objet) à la PR `pr`, et
+//               `{ lectures, pr, labels }` lui donne ces étiquettes : un verdict ou une étiquette du Relecteur tombés
+//               pendant la CI d'une mise à jour du capitaine (lot 5a)
 //   avantFusion { branche, vers } : joué au `PUT pulls/<n>/merge` avant le contrôle « strict » et le calcul de
 //               l'arbre, puis retiré : une fusion concurrente que GitHub a acceptée
 //   exiges      checks exigés de develop ; runs : workflow_runs par PR (« #12 »)
@@ -42,6 +45,8 @@
 //               dépôt, comme GitHub). `POST issues/<n>/comments` rend { id, created_at, author_association… } ;
 //               `PATCH issues/comments/<id>` réécrit le corps et date `updated_at` (`PR.editions`, rang → date) ;
 //               `DELETE issues/comments/<id>` le retire des lectures (`PR.supprimes`, les rangs) ; les deux journalisés
+//   pageCommentaires  k : `GET issues/<n>/comments` rend ses commentaires par pages de k, comme GitHub : sans
+//               `--paginate`, la première page seule ; avec, chaque page l'une après l'autre (`--jq` joué page par page)
 //   concurrent  un commentaire (corps ou objet) d'un autre capitaine, inséré juste AVANT le prochain commentaire posé
 //               (un id plus petit), puis retiré : deux capitaines arrivés à la même seconde
 //   apresCommentaire  { state, labels… } assigné à la PR qui reçoit le prochain commentaire posé, puis retiré (jouée une
@@ -102,6 +107,7 @@ for (let essais = 0; ; essais++) {
 process.on("exit", () => rmSync(VERROU, { recursive: true, force: true }));
 
 const etat = JSON.parse(readFileSync(FICHIER, "utf8"));
+const PAGES = Symbol("pages");
 
 const args = process.argv.slice(2);
 if (args.shift() !== "api")
@@ -110,6 +116,7 @@ if (args.shift() !== "api")
   );
 let methode = "GET";
 let jqExpr = null;
+let paginer = false;
 let entree = null;
 let chemin = null;
 const champs = {};
@@ -117,7 +124,7 @@ while (args.length) {
   const a = args.shift();
   if (a === "-X") methode = args.shift();
   else if (a === "--jq") jqExpr = args.shift();
-  else if (a === "--paginate") continue;
+  else if (a === "--paginate") paginer = true;
   else if (a === "--input") {
     const source = args.shift();
     entree = readFileSync(source === "-" ? 0 : source, "utf8");
@@ -230,7 +237,10 @@ function deplacerPendantCi() {
   if (!suivant) return;
   etat.lecturesPendantCi = (etat.lecturesPendantCi ?? 0) + 1;
   if (etat.lecturesPendantCi < suivant.lectures) return;
-  git("update-ref", `refs/heads/${suivant.branche}`, suivant.vers);
+  const cible = suivant.pr === undefined ? null : etat.pulls.find((x) => x.number === suivant.pr);
+  if (suivant.commentaire !== undefined) cible.commentaires = [...(cible.commentaires ?? []), suivant.commentaire];
+  else if (suivant.labels !== undefined) cible.labels = [...suivant.labels];
+  else git("update-ref", `refs/heads/${suivant.branche}`, suivant.vers);
   etat.pendantCi.shift();
   etat.lecturesPendantCi = 0;
 }
@@ -347,7 +357,12 @@ function repondre() {
   // Lecture des commentaires, comme GitHub les rend : un corps seul est du compte du capitaine. Les supprimés n'y sont plus.
   if ((m = route.match(/^issues\/(\d+)\/comments$/)) && methode === "GET") {
     const p = pr(m[1]);
-    return (p.commentaires ?? []).map((_, i) => i).filter((i) => !(p.supprimes ?? []).includes(i)).map((i) => commentaireRest(p, i));
+    const tous = (p.commentaires ?? []).map((_, i) => i).filter((i) => !(p.supprimes ?? []).includes(i)).map((i) => commentaireRest(p, i));
+    const k = etat.pageCommentaires;
+    if (!(Number.isSafeInteger(k) && k >= 1)) return tous;
+    const pages = [];
+    for (let i = 0; i < tous.length; i += k) pages.push(tous.slice(i, i + k));
+    return paginer ? { [PAGES]: pages.length ? pages : [[]] } : (pages[0] ?? []);
   }
   if ((m = route.match(/^issues\/comments\/(\d+)$/)) && (methode === "PATCH" || methode === "DELETE")) {
     const { p, i } = commentaireParId(Number(m[1]));
@@ -481,11 +496,14 @@ function fusionner(
 panne();
 const reponse = repondre();
 sauver();
-const json = JSON.stringify(reponse);
-if (jqExpr === null) process.stdout.write(`${json}\n`);
-else {
-  const r = spawnSync("jq", ["-r", jqExpr], { input: json, encoding: "utf8" });
-  process.stdout.write(r.stdout);
-  process.stderr.write(r.stderr);
-  process.exit(r.status ?? 1);
+// Plusieurs pages (`pageCommentaires`, `--paginate`) : chacune écrite à son tour, comme `gh`, `--jq` joué sur chacune.
+for (const page of reponse?.[PAGES] ?? [reponse]) {
+  const json = JSON.stringify(page);
+  if (jqExpr === null) process.stdout.write(`${json}\n`);
+  else {
+    const r = spawnSync("jq", ["-r", jqExpr], { input: json, encoding: "utf8" });
+    process.stdout.write(r.stdout);
+    process.stderr.write(r.stderr);
+    if ((r.status ?? 1) !== 0) process.exit(r.status ?? 1);
+  }
 }

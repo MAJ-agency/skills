@@ -408,14 +408,16 @@ export function motifSensibleTouche(chemin, cheminsSensibles) {
  * la ligne `Label: contre-revue` (chaine-de-production.md § 3). L'ancienne valeur `architecte` a le même
  * effet et reste acceptée sur tout ticket ; les messages ne nomment que `contre-revue`.
  */
-export function ecartsFormatPret(texte, cheminsSensibles = []) {
+export function ecartsFormatPret(texte, cheminsSensibles = [], { regime = 7 } = {}) {
   const lignes = texte.split('\n');
   const ecarts = [];
   const modele = chercher(lignes, MODELE);
   if (!modele || !/^(sonnet|opus|haiku)\b/.test(modele.valeur)) ecarts.push('ligne `Modèle: sonnet|opus` (avec la raison pour opus) absente');
   const chauds = chercher(lignes, CHAUDS);
   const label = chercher(lignes, LABEL);
-  if (chauds && !/^(contre-revue|architecte)(\s|$)/.test(label?.valeur ?? '')) {
+  // Régime 8 (A-94, lot 5c) : la contre-revue du conducteur tombe, `Label: contre-revue` n'est plus exigé ; la valeur
+  // reste lisible sur les tickets existants.
+  if (regime !== 8 && chauds && !/^(contre-revue|architecte)(\s|$)/.test(label?.valeur ?? '')) {
     for (const chemin of cheminsChauds(chauds.valeur)) {
       const motif = motifSensibleTouche(chemin, cheminsSensibles);
       if (motif) {
@@ -490,6 +492,27 @@ export function ecartsSensibles(valeur) {
   return ecarts;
 }
 
+/**
+ * Régime 8 (A-90, lot 5c) : un ticket ouvert (ni `Fait`, ni `wontfix`) qui cite sur une ligne `Règles:` de son en-tête
+ * une règle de criticité haute porte la ligne `Relecture: double`, pour que le conducteur le sache au découpage.
+ * `niveauDe(id)` : `high`, `medium`, `low`, `null` (à classer, ou règle inconnue) ou `{ illisible }` (en-tête de règle ou
+ * index qui ne se lisent pas : lu comme haute, du côté sûr, et la cause dite). Le calcul « double relecture exigée »
+ * reste celui qui décide ; ce contrôle ne fait que prévenir.
+ */
+export function ecartsRelectureDouble({ status, valeursRegles, relecture, niveauDe }) {
+  if (relecture || /^(Fait|wontfix)\b/.test(status ?? '')) return [];
+  const ecarts = [];
+  for (const v of valeursRegles) {
+    if (v === '—') continue;
+    for (const id of reglesCitees(v).cites) {
+      const n = niveauDe(id);
+      if (n === 'high') ecarts.push(`régime 8 : ligne \`Relecture: double\` absente alors que le ticket cite ${id}, règle de criticité haute (deux relectures indépendantes, A-90)`);
+      else if (n?.illisible) ecarts.push(`régime 8 : ligne \`Relecture: double\` absente, et la criticité de ${id} ne se lit pas (${n.illisible}) : lue comme haute`);
+    }
+  }
+  return ecarts;
+}
+
 /** Écarts de la ligne `Relecture:` d'un ticket : seule valeur `double` (deux relectures indépendantes). Jamais exigée. */
 export function ecartsRelecture(valeur) {
   return sansCommentaire(valeur) === 'double' ? [] : [`Relecture « ${valeur} » : seule valeur \`double\` ; sinon retirer la ligne`];
@@ -555,6 +578,8 @@ export function controlerTicket({
   cheminsSensibles = [],
   regleExiste = () => false,
   testExiste = () => 'absent',
+  regime = 7,
+  niveauDe = () => null,
 }) {
   const lignes = texte.split('\n');
   const id = identifiantDuTicket(nom);
@@ -596,16 +621,23 @@ export function controlerTicket({
   if (sujet && !/^sujet\/[a-z0-9]+(?:-[a-z0-9]+)*(?:\s|$)/.test(sujet.valeur))
     erreurs.push({ ligne: sujet.ligne, message: `Sujet « ${sujet.valeur} » : attendu \`sujet/<nom-en-kebab>\`` });
   // Lues dans l'en-tête seul, chaque ligne : un exemple cité dans le corps du ticket n'est pas la ligne.
+  let relectureLue = false;
   tete(lignes).forEach((brute, i) => {
     const l = brute.replace(/\r$/, '');
     const sensibles = SENSIBLES.exec(l);
     if (sensibles) for (const e of ecartsSensibles(sensibles[1].trim())) erreurs.push({ ligne: i + 1, message: e });
     const relecture = RELECTURE.exec(l);
-    if (relecture) for (const e of ecartsRelecture(relecture[1].trim())) erreurs.push({ ligne: i + 1, message: e });
+    if (relecture) {
+      relectureLue = true;
+      for (const e of ecartsRelecture(relecture[1].trim())) erreurs.push({ ligne: i + 1, message: e });
+    }
   });
+  if (regime === 8)
+    for (const e of ecartsRelectureDouble({ status: status?.valeur, valeursRegles: regles.map((r) => r.valeur), relecture: relectureLue, niveauDe }))
+      erreurs.push({ ligne: regles[0]?.ligne ?? 1, message: e });
   const pret = status?.valeur === 'ready-for-agent';
   if (pret && !gele) {
-    for (const e of ecartsFormatPret(texte, cheminsSensibles))
+    for (const e of ecartsFormatPret(texte, cheminsSensibles, { regime }))
       erreurs.push({ ligne: status.ligne, message: `ready-for-agent : ${e} (docs/agents/chaine-de-production.md § 3)` });
   }
   return { status: status?.valeur ?? null, type: type?.valeur ?? null, pret, erreurs };

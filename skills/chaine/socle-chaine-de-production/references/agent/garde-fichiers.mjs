@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/** Hook PreToolUse (Edit, Write, MultiEdit, NotebookEdit) : fichiers protégés. */
+/** Hook PreToolUse (Edit, Write, MultiEdit, NotebookEdit) : fichiers protégés ; en régime 8, les chemins sensibles hors de la ligne `Sensibles:` du ticket (lot 5b). */
 import { execFileSync } from 'node:child_process';
 
 // Ticket 18 : la garde ne s'ouvre jamais. Ses modules se chargent en dynamique protégé, avant toute autre chose, et
@@ -39,7 +39,10 @@ const charger = async (fichier, attendus) => {
   return m;
 };
 const { lireToolInput, relatif, RACINE } = await charger('entree.mjs', { lireToolInput: 'function', relatif: 'function', RACINE: 'string' });
-const { refusEdition } = await charger('regles.mjs', { refusEdition: 'function' });
+const { refusEdition, lireSensibles } = await charger('regles.mjs', { refusEdition: 'function', lireSensibles: 'function' });
+// La grammaire des identifiants (skill `socle-monorepo`) : le ticket de la branche. Absente, aucun accord ne se lit et
+// tout chemin sensible est refusé en régime 8, au lieu que le hook tombe entier.
+const identifiants = await import('../docs/identifiants.mjs').catch(() => null);
 
 // Le chemin visé : `file_path` (Edit, Write, MultiEdit), `notebook_path` (NotebookEdit). Entrée illisible,
 // ou chemin absent, vide ou d'un autre type : refusé, la garde échoue fermée. Hors du dépôt : permis.
@@ -65,7 +68,84 @@ function migrationExistante(c) {
   return false;
 }
 
-const refus = refusEdition(chemin, { migrationExistante });
+const git = (...args) => execFileSync('git', args, { cwd: RACINE, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], timeout: 10_000 }).trim();
+
+/**
+ * Régime 8 (lot 5b, A-74, A-76) : les chemins qu'accorde la ligne `Sensibles:` du ticket de la branche courante, lue sur
+ * `origin/sujet/*` (sur `origin/develop` pour un ticket qu'aucun sujet ne porte), jamais dans l'arbre de travail ni sur
+ * la branche de la session, comme `Dépendances:` (garde-commandes.mjs). Une copie locale que `origin` ne porte pas (ref
+ * déplacée à la main, ou en retard sur origin) ne compte pas, ni une copie de sujet qu'il n'a pas écrite (identique à celle de
+ * sa base de fusion avec develop : héritée). `{ copies: [[motifs]…] }`, une liste par copie ; `{ illisible }` ;
+ * `null` : pas de ticket, pas de copie, origin injoignable, grammaire absente. Lu seulement quand le chemin est sensible.
+ * Une copie locale qui ne compte pas et porte le ticket est nommée dans `perimees` (avec `copies`, `illisible`, ou seule à
+ * la place de `null`) : le refus dit alors le geste qui la relit, avant d'écrire au conducteur. `superficiel` : un clone
+ * superficiel n'a pas laissé lire la base de fusion d'une copie de sujet, comptée alors comme écrite ; le refus dit de
+ * l'approfondir.
+ */
+function accordes() {
+  try {
+    const id = identifiants?.identifiantDeBranche(git('rev-parse', '--abbrev-ref', 'HEAD'));
+    if (!id) return null;
+    const { estArchive, identifiantDuTicket } = identifiants;
+    const distants = new Map(
+      git('ls-remote', '--heads', 'origin', 'refs/heads/sujet/*', 'refs/heads/develop')
+        .split('\n')
+        .filter(Boolean)
+        .map((ligne) => ligne.split(/\s+/).reverse()),
+    );
+    const perimees = [];
+    // Une copie de sujet ne compte que si le sujet l'a écrite (A-74) : identique à celle de sa base de fusion avec develop,
+    // elle n'est qu'héritée de develop (un sujet ouvert ou rafraîchi depuis develop porte tous ses tickets), et c'est la
+    // copie de develop qui fait foi. Comme la garde du capitaine (`chemins-sensibles.mjs --garde`).
+    const objet = (spec) => {
+      try {
+        return git('rev-parse', '-q', '--verify', spec);
+      } catch {
+        return null;
+      }
+    };
+    const develop = objet('refs/remotes/origin/develop^{commit}');
+    // Un clone superficiel (sessions cloud) ne voit souvent pas la base de fusion d'un sujet avec develop : la copie compte
+    // alors comme écrite, du côté sûr, et le refus dit de l'approfondir (`superficiel`).
+    let superficiel = false;
+    const herite = (sha, f) => {
+      let base;
+      try {
+        base = develop === null ? '' : git('merge-base', sha, develop);
+      } catch {
+        try {
+          superficiel ||= git('rev-parse', '--is-shallow-repository') === 'true';
+        } catch {
+          // l'état du clone ne se lit pas : rien de plus à dire
+        }
+        return false; // aucune base commune lue : la copie est du sujet
+      }
+      return base !== '' && objet(`${base}:${f}`) === objet(`${sha}:${f}`);
+    };
+    const copiesSous = (motif) => {
+      const copies = [];
+      for (const ligne of git('for-each-ref', '--format=%(objectname) %(refname)', motif).split('\n').filter(Boolean)) {
+        const [sha, ref] = ligne.split(' ');
+        const fichiers = git('ls-tree', '-r', '-z', '--name-only', sha, 'docs').split('\0').filter((f) => f && !estArchive(f) && identifiantDuTicket(f.split('/').pop() ?? '') === id);
+        if (fichiers.length > 0 && distants.get(ref.replace('refs/remotes/origin/', 'refs/heads/')) !== sha) perimees.push(ref.replace('refs/remotes/', ''));
+        if (distants.get(ref.replace('refs/remotes/origin/', 'refs/heads/')) !== sha) continue;
+        for (const f of fichiers) if (!(motif.endsWith('/sujet/') && herite(sha, f))) copies.push(lireSensibles(git('show', `${sha}:${f}`)));
+      }
+      return copies;
+    };
+    let copies = copiesSous('refs/remotes/origin/sujet/');
+    if (copies.length === 0) copies = copiesSous('refs/remotes/origin/develop');
+    if (copies.length === 0) return perimees.length > 0 ? { perimees } : null;
+    const illisible = copies.find((c) => c.illisible);
+    if (perimees.length > 0 || superficiel)
+      return { ...(illisible ? { illisible: illisible.illisible } : { copies: copies.map((c) => c.chemins) }), ...(perimees.length > 0 ? { perimees } : {}), ...(superficiel ? { superficiel } : {}) };
+    return illisible ? { illisible: illisible.illisible } : { copies: copies.map((c) => c.chemins) };
+  } catch {
+    return null;
+  }
+}
+
+const refus = refusEdition(chemin, { migrationExistante, accordes });
 if (refus) {
   process.stderr.write(`${refus}\n`);
   process.exit(2);

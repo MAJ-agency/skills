@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { test } from 'node:test';
 import { ENV, depotJouet, script } from '../docs/depot-jouet.mjs';
@@ -215,4 +215,46 @@ test('gate complet : `Sensibles:` ou `Relecture:` mal formée est refusée avec 
   assert.equal(r2.status, 1);
   assert.match(r2.stderr, /SPEC_ALL_SOC-1-socle\.01\.issue\.md:5 : Sensibles « scripts\/chaine\/passer\.sh » : attendu `—`, ou des chemins/);
   assert.match(r2.stderr, /SPEC_ALL_SOC-1-socle\.01\.issue\.md:6 : Relecture « triple » : seule valeur `double`/);
+});
+
+// Lot 5c : en régime 8, le gate lit la criticité des règles citées par les lecteurs de `double-relecture.mjs`, posé à
+// `scripts/chaine/` avec la grammaire à `scripts/docs/` ; sans lui, il s'arrête en le disant.
+test('régime 8 : sans `Label: contre-revue` un ticket prêt sensible passe ; un ticket ouvert qui cite une règle haute sans `Relecture: double` est refusé ; sans double-relecture.mjs, sortie 2', () => {
+  // Posé dans un projet, à côté (scripts/chaine/, scripts/docs/) ; dans le plugin, dans les skills fusionner et socle-monorepo.
+  const premier = (...chemins) => readFileSync(chemins.map((c) => new URL(c, import.meta.url)).find((u) => existsSync(u)), 'utf8');
+  const OUTILS = {
+    'scripts/chaine/double-relecture.mjs': premier('../chaine/double-relecture.mjs', '../../../../fusionner/scripts/double-relecture.mjs'),
+    'scripts/docs/identifiants.mjs': premier('../docs/identifiants.mjs', '../../../../../monorepo/socle-monorepo/references/scripts/docs/identifiants.mjs'),
+  };
+  const REGLE = (niveau) => `---\nkey: RULE_ALL_SOC-1\ncriticality:\n  level: ${niveau}\n---\n# Règle\n`;
+  const HUIT = { '.claude/chaine.json': '{"cheminsSensibles":["apps/api/src/**/auth/**"],"relecture":{"depuis":"2026-11-21T09:00:00Z"}}\n' };
+  const ticket = (relecture) => PRET_SENSIBLE('').replace('Type: task\n', `Type: task\nRègles: RULE_ALL_SOC-1\n${relecture}`);
+  const depot = (niveau, relecture, outils = OUTILS) =>
+    depotJouet({ fichiers: { ...DETTE, ...HUIT, ...outils, 'docs/metier/regles/all/RULE_ALL_SOC-1.md': REGLE(niveau), 'docs/features/socle/all/issues/SPEC_ALL_SOC-1-socle.01.issue.md': ticket(relecture) } });
+  const ok = lancer(depot('medium', ''));
+  assert.equal(ok.status, 0, ok.stderr);
+  const haute = lancer(depot('high', ''));
+  assert.equal(haute.status, 1, haute.stdout + haute.stderr);
+  assert.match(haute.stderr, /SPEC_ALL_SOC-1-socle\.01\.issue\.md:\d+ : régime 8 : ligne `Relecture: double` absente alors que le ticket cite RULE_ALL_SOC-1, règle de criticité haute/);
+  assert.doesNotMatch(haute.stderr, /Label: contre-revue/);
+  const double = lancer(depot('high', 'Relecture: double\n'));
+  assert.equal(double.status, 0, double.stderr);
+  const sans = lancer(depot('high', '', {}));
+  assert.equal(sans.status, 2, sans.stdout + sans.stderr);
+  assert.match(sans.stderr, /régime 8 et scripts\/chaine\/double-relecture\.mjs introuvable/);
+  // Comme le calcul « double relecture exigée » (`hautes`, A-113, A-134) : le plus haut des deux niveaux, et l'un des deux
+  // suffit à dire la règle en vigueur ; rejetée dans l'index comme dans son en-tête, elle ne compte pas, même haute.
+  // La criticité de l'entrée posée par une variable : aucun texte du plugin ne la montre en ligne (scripts/depot.test.mjs).
+  const niveauHaut = { level: 'high' };
+  const index = (statut) => ({ 'anchorpost/anchorpost.json': `${JSON.stringify({ schema: '3', rules: [{ key: 'RULE_ALL_SOC-1', criticality: niveauHaut, validation: { status: statut } }] })}\n` });
+  const rejetee = lancer(depot('medium', '', { ...OUTILS, ...index('rejected') }));
+  assert.equal(rejetee.status, 1, `rejetée dans l'index, en vigueur dans son en-tête : le calcul l'exige (contre-relecture de la PR 149) : ${rejetee.stderr}`);
+  assert.match(rejetee.stderr, /régime 8 : ligne `Relecture: double` absente alors que le ticket cite RULE_ALL_SOC-1/);
+  const horsVigueur = (statut) => REGLE('medium').replace('criticality:', `validation:\n  status: ${statut}\ncriticality:`);
+  const rejeteePartout = depotJouet({ fichiers: { ...DETTE, ...HUIT, ...OUTILS, ...index('rejected'), 'docs/metier/regles/all/RULE_ALL_SOC-1.md': horsVigueur('rejected'), 'docs/features/socle/all/issues/SPEC_ALL_SOC-1-socle.01.issue.md': ticket('') } });
+  const rp = lancer(rejeteePartout);
+  assert.equal(rp.status, 0, `rejetée dans l'index et dans son en-tête : ${rp.stderr}`);
+  const enVigueur = lancer(depot('medium', '', { ...OUTILS, ...index('validated') }));
+  assert.equal(enVigueur.status, 1, "règle haute en vigueur dans l'index : Relecture: double exigée");
+  assert.match(enVigueur.stderr, /régime 8 : ligne `Relecture: double` absente alors que le ticket cite RULE_ALL_SOC-1/);
 });

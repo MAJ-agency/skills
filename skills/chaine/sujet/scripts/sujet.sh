@@ -15,7 +15,9 @@
 #   ouvrir <nom> [--specs <pr>]
 #                         crée sujet/<nom> depuis develop, sans protection de branche ;
 #                         `--specs` recible sur le sujet la PR de specs du lot
-#   fusionner <pr>        squash d'une sous-PR dans son sujet : titre qui passe commitlint, revue exigée, puis la
+#   fusionner <pr>        squash d'une sous-PR dans son sujet : titre qui passe commitlint, revue exigée selon le régime
+#                         (A-97 ; en régime 8, un tour de relecture validé pour le contenu de son sommet, contrôlé deux
+#                         fois : avant le premier contrôle d'ascendance, puis juste avant la fusion, A-105), puis la
 #                         règle d'ascendance (`ascendance` de github.sh) : en conflit avec le sujet hors index, renvoi
 #                         avant toute CI ; en retard, documentation comprise, ou en conflit d'index seul, mise à jour
 #                         avec le sujet et poussée ; puis, trois tours au plus : CI exigée attendue sur le sommet
@@ -103,10 +105,12 @@
 #
 # Sorties : 0 fait · 2 conflit · 3 checks rouges, ou fusion, commit ou push refusé par un hook git
 # (sa sortie sur stderr : la lire, corriger, jamais en sautant le hook ; le pre-push contrôle l'arbre de travail) · 4 refus corrigeable par l'auteur (sa
-# dernière ligne est le motif, `fusionner` : titre, commitlint, revue, lien symbolique sur un index généré, base ; `fusionner` et `relancer` : tête gardée, develop, main, la branche par défaut ou un sujet) · 6 arbre de travail pas
+# dernière ligne est le motif, `fusionner` : titre, commitlint, revue (en régime 8 : aucun tour validé pour le sommet),
+# lien symbolique sur un index généré, base ; `fusionner` et `relancer` : tête gardée, develop, main, la branche par défaut ou un sujet) · 6 arbre de travail pas
 # propre (`fusionner`, `rafraichir`, `regrouper`, `relancer` : à nettoyer par qui lance, jamais un renvoi de la PR,
 # comme la sortie 6 de passer.sh) · 7 `fusionner` d'une PR fermée, en brouillon ou d'un sujet gelé (rien à
-# corriger : sautée) ; 7 aussi pour `fusionner` et `relancer` d'une sous-PR en passage chez un autre capitaine (son
+# corriger : sautée), et en régime 8 d'une sous-PR dont la lecture est illisible (A-113) ou qui a perdu `à-fusionner`
+# juste avant la fusion ; 7 aussi pour `fusionner` et `relancer` d'une sous-PR en passage chez un autre capitaine (son
 # commentaire marqué `<!-- capitaine:passage <id> <epoch> -->`, verrou du passage de github.sh), ou qui n'est plus éligible une fois
 # le verrou pris · 64 `fusionner` sans CAPITAINE_ID ou avec un CAPITAINE_ID mal formé ; `relancer` avec un CAPITAINE_ID mal
 # formé (sans lui, joué à la main par la session propriétaire : aucun verrou posé, et il le dit) · 9 `carte <nom>` refusée, ou `geler`/`degeler` dont le push échoue deux fois (rien n'est poussé)
@@ -244,7 +248,8 @@ verifier_ticket() {
   spec=$(fichier_sur "$ref" "${id%.*}")
   [ -n "$spec" ] || sortir 4 "la spec ${id%.*} n'est pas encore sur $base : sa PR de specs n'est pas fusionnée.
 Ne pas partir de la branche de specs. La faire fusionner dans $base d'abord (\`sujet.sh ouvrir <nom> --specs <pr>\`
-la recible sur le sujet), ou \`sujet.sh rafraichir ${base#sujet/}\` si elle est déjà dans develop."
+la recible sur le sujet) ; si elle est déjà dans develop, le capitaine la reporte dans le sujet de lui-même à chaque
+lancement de sa boucle (A-69) : attendre, ou l'écrire à ton conducteur (à qui t'a lancé), qui le demande au capitaine ; une session ne lance jamais \`sujet.sh rafraichir\`."
   [[ "$id" == *.* ]] || return 0
   fichier=$(fichier_sur "$ref" "$id")
   [ -n "$fichier" ] || sortir 4 "le ticket $id n'est pas sur $base : attendre la fusion de la PR qui l'ajoute."
@@ -432,6 +437,13 @@ refuser_si_gele() {
   [ -z "$g" ] || sortir 4 "sujet/${1#sujet/} est gelé (Gel: $g) : plus aucune session n'en part, plus aucune PR n'y entre. Dégeler d'abord (sujet.sh degeler ${1#sujet/}) ou demander au produit."
 }
 
+# Régime 8 (A-97, lot 5c) : ce que la session fait une fois sa PR poussée, vers <base> (develop ou sujet/<nom>). Écrit
+# quand la base porte la clé `relecture` : la PR qui part maintenant sera en régime 8.
+demande_de_relecture() {
+  echo "régime 8 : relecture indépendante ; le dernier push fait, PR hors brouillon, demander la relecture : $DEMANDE_DE_RELECTURE ; puis l'étiquette à-relire,"
+  echo "jamais à-fusionner : le Relecteur la pose sur un verdict validé, puis le capitaine la fusionne dans $1 quand sa CI est verte."
+}
+
 demarrer() {
   local arg=${1:?identifiant de ticket (SPEC_ALL_SOC-1.02) ou nom de sujet}
   local nom branche courante ticket='' ref present='' multiple
@@ -449,6 +461,7 @@ Ne pas partir de la branche de specs : attendre sa fusion (ou \`sujet.sh ouvrir 
       echo "base=develop"
       echo "$arg ne déclare pas de sujet (ligne « Sujet: sujet/<nom> » du ticket ou de sa spec) : la PR vise develop."
       echo "S'il fait partie d'un lot de plusieurs PR liées, déclarer le sujet dans la spec d'abord."
+      ! cle_relecture_sur origin/develop || demande_de_relecture develop
       return 0
     fi
     multiple=$(sujets_multiples_du_ticket "$arg")
@@ -465,6 +478,7 @@ ou dans sa spec (ligne « Sujet: sujet/<nom> »), puis relancer."
     verifier_ticket "$ticket" origin/develop
     echo "base=develop"
     echo "$branche est déjà livré dans develop : $ticket part de develop et la PR vise develop (label hors-sujet)."
+    ! cle_relecture_sur origin/develop || demande_de_relecture develop
     return 0
   fi
   # `git ls-remote` plutôt que `gh api` : marche aussi sans `gh` authentifié (session cloud).
@@ -498,7 +512,12 @@ ou dans sa spec (ligne « Sujet: sujet/<nom> »), puis relancer."
   fi
   echo "base=$branche"
   echo "$courante part de $branche ($(git rev-parse --short "origin/$branche")) : la PR vise $branche,"
-  echo "label à-fusionner dès le push ; le capitaine la fusionne dans le sujet quand sa CI est verte."
+  # Le message suit le régime qu'aura la PR (A-97, lot 5c) : la clé `relecture` sur sa base, et une PR ouverte maintenant.
+  if cle_relecture_sur "origin/$branche"; then
+    demande_de_relecture "$branche"
+  else
+    echo "label à-fusionner dès le push ; le capitaine la fusionne dans le sujet quand sa CI est verte."
+  fi
 }
 
 ouvrir() {
@@ -854,6 +873,44 @@ verrouiller() {
   [ -z "$raison" ] || sortir 7 "#$n : PR plus éligible une fois le verrou pris ($raison) : sautée"
 }
 
+# La suite d'une revue du capitaine (`revue_du_capitaine` de github.sh) : <n> <code> <sortie>. 0 : rien ; 1 : renvoi (4),
+# le motif en dernière ligne ; 21 : lecture illisible, sautée sans renvoi (7, A-113) ; 5 : origin ou GitHub illisible
+# (5, aucun renvoi) ; autre : côté capitaine (11, aucun renvoi).
+juger_revue() {
+  local n=$1 statut=$2 revu=$3
+  case $statut in
+    0) ;;
+    1) sortir 4 "#$n $(tail -n 1 <<<"$revu")" ;;
+    21) sortir 7 "#$n : $(tail -n 1 <<<"$revu") : sautée sans renvoi, son auteur n'y peut rien (le Relecteur prévient l'architecte)" ;;
+    5) sortir 5 "#$n : origin ou GitHub illisible à la lecture des commentaires (cause ci-dessus) : reprise au tour suivant, aucun renvoi" ;;
+    *) sortir 11 "#$n : revue du capitaine en échec (sortie $statut : $(tail -n 1 <<<"$revu")), côté capitaine : sous-PR laissée dans la file" ;;
+  esac
+}
+
+# Régime 8, le second contrôle du verdict (A-105) : <n> <sommet fusionné> <fichiers du diff propre> <base>. Juste avant
+# l'appel de fusion d'une sous-PR (l'ascendance rendue « à-jour »), ou avant d'avancer le sujet pour une PR de mise à
+# jour. Les étiquettes y sont lues, ce que `fusionner` ne fait nulle part ailleurs : sans `à-fusionner` (le Relecteur l'a
+# retirée), sautée (7) ; un push, reprise (5) ; puis les commentaires relus, un tour validé exigé pour ce sommet, sinon
+# renvoi (4). Une mise à jour du capitaine garde le verdict (« même contenu propre », A-106). Aucune CI de plus.
+verdict_avant_fusion() {
+  local n=$1 sommet=$2 fichiers=$3 base=$4 relu raison revu statut
+  relu=$(pr_json "$n") || sortir 5 "#$n : GitHub illisible à la relecture de la PR avant la fusion (cause ci-dessus) : reprise au tour suivant, aucun renvoi"
+  raison=$(jq -r --arg s "$sommet" '[.labels[].name] as $l
+    | if .state != "open" then "non ouverte" elif .draft != false then "en brouillon"
+      elif ($l | index("à-fusionner")) == null then "sans le label à-fusionner"
+      elif ($l | index("fusion-bloquée")) != null then "label fusion-bloquée"
+      elif .head.sha != $s then "sommet changé" else "" end' <<<"$relu")
+  case "$raison" in
+    '') ;;
+    'sommet changé') sortir 5 "la sous-PR #$n a reçu un push avant la fusion : reprise au tour suivant, aucun renvoi" ;;
+    *) sortir 7 "#$n : PR plus éligible juste avant la fusion ($raison) : sautée" ;;
+  esac
+  revu=$(printf '%s\n' "$fichiers" | revue_du_capitaine "$relu" "$sommet" "$base") && statut=0 || statut=$?
+  [ "$statut" != 1 ] || revu="$revu (contrôle juste avant la fusion)"
+  juger_revue "$n" "$statut" "$revu"
+  echo "#$n : verdict relu juste avant la fusion ($(head -n 1 <<<"$revu"))"
+}
+
 fusionner() {
   local n=${1:?numéro de la sous-PR}
   local pr base titre sommet longueur
@@ -889,7 +946,40 @@ fusionner() {
   fichiers_a_juger "$n" "$sommet" "$base"
   maj=$MAJ
   fichiers=$FICHIERS_JUGES
-  motif=$(juger "$fichiers") || sortir 4 "#$n $motif"
+  # La revue, selon le régime de la sous-PR (A-97, lot 5a : `revue_du_capitaine` de github.sh, le contrat lu sur le
+  # sujet). Régime 7 : la section de revue, comme avant, sur la résolution seule d'une PR de mise à jour (ses retouches
+  # se jugent après les checks). Régime 8 (A-91, A-105) : premier contrôle du verdict, juste après le jugement des
+  # fichiers et avant le premier contrôle d'ascendance, pour une sous-PR ordinaire comme pour une PR de mise à jour (sur
+  # sa résolution et ses retouches, la seconde liste de `a-juger`, ce que la relecture lit) : une sous-PR sans tour
+  # validé est renvoyée sans mise à jour ni CI ; une lecture illisible (A-113) la fait sauter sans renvoi.
+  local revu statut lus
+  lus=$fichiers
+  revu=$(printf '%s\n' "$lus" | revue_du_capitaine "$pr" "$sommet" "$base") && statut=0 || statut=$?
+  REGIME=$(sed -n '1s/^régime \([78]\).*$/\1/p' <<<"$revu")
+  if [ "$REGIME" = 8 ] && [ -n "$maj" ] && { [ "$statut" = 0 ] || [ "$statut" = 1 ]; }; then
+    lus=$(printf '%s\n%s\n' "$A_JUGER" "$MAJ_APRES" | sed '/^$/d' | sort -u)
+    revu=$(printf '%s\n' "$lus" | revue_du_capitaine "$pr" "$sommet" "$base") && statut=0 || statut=$?
+  fi
+  juger_revue "$n" "$statut" "$revu"
+  # Régime 8, les gardes des fichiers sensibles (A-76, lot 5b), au même endroit, sur le même diff : un chemin sensible
+  # hors de la ligne `Sensibles:` du ticket renvoie la sous-PR. Une PR de mise à jour (`maj/<nom>`) ne touche un chemin
+  # sensible que s'il est en conflit dans sa fusion et couvert par la ligne d'un ticket du sujet (A-74).
+  if [ "$REGIME" = 8 ]; then
+    local garde conflits='' sujet_de=()
+    if [ -n "$maj" ]; then
+      conflits=$(mktemp)
+      printf '%s\n' "$MAJ_CONFLITS" >"$conflits"
+      sujet_de=(--conflits "$conflits" --tickets "$(carte | awk -F '\t' -v s="${base#sujet/}" '$2 == s { printf "%s%s", (n++ ? "," : ""), $1 }')")
+    fi
+    garde=$(printf '%s\n' "$lus" | garde_des_sensibles "$base" "$titre" "$(jq -r .head.ref <<<"$pr")" ${sujet_de[@]+"${sujet_de[@]}"}) && statut=0 || statut=$?
+    [ -z "$conflits" ] || rm -f "$conflits"
+    case $statut in
+      0) ;;
+      20) sortir 4 "#$n $(tail -n 1 <<<"$garde")" ;;
+      21) sortir 7 "#$n : $(tail -n 1 <<<"$garde") (chemins sensibles) : sautée sans renvoi, son auteur n'y peut rien" ;;
+      *) sortir 11 "#$n : garde des fichiers sensibles en échec (sortie $statut : $(tail -n 1 <<<"$garde")), côté capitaine : sous-PR laissée dans la file" ;;
+    esac
+  fi
   # Lien symbolique sur un index généré ou son dossier, que la PR ajoute ou change : la régénération du capitaine
   # (mise à jour, avance, rafraichir) écrirait à travers lui.
   motif=$(liens_sur_index "$sommet" "origin/$base") || sortir 4 "#$n $motif"
@@ -917,7 +1007,9 @@ fusionner() {
     done <<<"$requis"
     [ -z "$rouges" ] || sortir 3 "checks rouges sur #$n :$rouges"
     [ "$attente" = 0 ] || sortir 5 "checks encore en cours sur #$n : reprise au tour suivant, aucun renvoi (la PR reste dans la file tant que la CI ne finit pas)"
-    juger_retouches "$n"
+    # Régime 8 : les retouches sont dans le verdict (le premier contrôle a lu la résolution et les retouches) ; le second
+    # contrôle, avant d'avancer le sujet (A-105).
+    if [ "$REGIME" = 8 ]; then verdict_avant_fusion "$n" "$sommet" "$lus" "$base"; else juger_retouches "$n"; fi
     avancer_sujet "$n" "$base" "$sommet"
     return 0
   fi
@@ -976,6 +1068,8 @@ fusionner() {
     mettre_a_jour
   done
 
+  # Régime 8 : le second contrôle du verdict, sur le sommet fusionné, une fois l'ascendance « à-jour » (A-105).
+  [ "$REGIME" != 8 ] || verdict_avant_fusion "$n" "$sommet" "$(git -c core.quotePath=false diff --no-renames --name-only "$(git merge-base "$sommet" "origin/$base")" "$sommet")" "$base"
   local squash refus
   refus=$(mktemp)
   # Le refus de GitHub, relayé, passe par masquer_url (Décision 10).
@@ -1333,8 +1427,13 @@ etat() {
   for b in $(branches_sujet); do
     nom=${b#origin/sujet/}
     avance=$(git rev-list --count --first-parent --no-merges "origin/develop..$b")
-    [ "$avance" -gt 0 ] || [ -n "$(awk -F '\t' -v b="sujet/$nom" '$1 == b' <<<"$prs")" ] || continue
     retard=$(git rev-list --count "$b..origin/develop")
+    # Un sujet sans commit propre ni PR ouverte (une livraison intermédiaire tout juste entrée dans develop, A-132) reste
+    # listé tant qu'il est en retard et qu'il n'est pas livré (`sujet_livre`) : la boucle du capitaine y reporte develop
+    # (`rafraichir_sujets`), et le conducteur le voit. Un sujet à jour sans rien à lui reste hors du tableau.
+    if [ "$avance" -eq 0 ] && [ -z "$(awk -F '\t' -v b="sujet/$nom" '$1 == b' <<<"$prs")" ]; then
+      [ "$retard" -gt 0 ] && ! sujet_livre "$nom" || continue
+    fi
     # Sous-PR : celles qui visent le sujet, et les piles posées sur une sous-PR déjà fusionnée
     # dedans (elles y seront reciblées) — sans elles, le sujet se croirait fini trop tôt.
     fermees=$(lire_github "$DEPOT/pulls?state=closed&per_page=100&base=$(uri "sujet/$nom")" --paginate) || exit 5

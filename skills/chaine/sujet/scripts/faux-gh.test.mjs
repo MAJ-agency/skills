@@ -141,6 +141,20 @@ test('faux gh, pendantCi : la cible bouge à la n-ième lecture des checks depui
   assert.deepEqual(d.etat().pendantCi, []);
 });
 
+test('faux gh, pendantCi : un commentaire ou des étiquettes tombent sur une PR à la n-ième lecture des checks (lot 5a)', () => {
+  const { d, sommet } = enRetard();
+  d.github({ pendantCi: [{ lectures: 2, pr: 1, commentaire: 'verdict tardif' }, { lectures: 1, pr: 1, labels: ['à-reprendre'] }] });
+  const lus = () => JSON.parse(gh(d, 'repos/{owner}/{repo}/issues/1/comments').stdout).map((c) => c.body);
+  etatsLus(d, sommet);
+  assert.deepEqual(lus(), [], 'première lecture : rien');
+  etatsLus(d, sommet);
+  assert.deepEqual(lus(), ['verdict tardif'], 'deuxième lecture : le commentaire');
+  assert.deepEqual(d.etat().pulls[0].labels, []);
+  etatsLus(d, sommet);
+  assert.deepEqual(d.etat().pulls[0].labels, ['à-reprendre'], 'lecture suivante : les étiquettes');
+  assert.deepEqual(d.etat().pendantCi, []);
+});
+
 test('faux gh, avantFusion : une fusion concurrente entre juste avant la nôtre, puis le contrôle strict la voit', () => {
   const d = depotJouet();
   const sommet = d.branche('feat/x', 'origin/develop', { 'docs/x.md': 'x\n' });
@@ -322,4 +336,22 @@ test('faux gh, événements : une pose d’étiquette absente ajoute `labeled`, 
   ]);
   d.github({ pulls: [{ number: 4, title: 'u', base: 'develop', head: 'y', labels: [] }] });
   assert.deepEqual(JSON.parse(gh(d, 'repos/{owner}/{repo}/issues/4/events').stdout), [], 'une PR sans événement : une liste vide');
+});
+
+test('faux gh, pageCommentaires : sans --paginate, la première page ; avec, chaque page à son tour, --jq joué sur chacune, comme gh (contre-relecture de la PR 149)', () => {
+  const d = depotJouet();
+  d.github({ pageCommentaires: 2, pulls: [{ number: 1, title: 't', head: 'x', base: 'develop', labels: [], commentaires: ['a', 'b', 'c'] }] });
+  const route = 'repos/{owner}/{repo}/issues/1/comments?per_page=100';
+  assert.deepEqual(JSON.parse(gh(d, route).stdout).map((c) => c.body), ['a', 'b'], 'sans --paginate : la première page');
+  const pages = gh(d, '--paginate', route).stdout.trim().split('\n').map((l) => JSON.parse(l).map((c) => c.body));
+  assert.deepEqual(pages, [['a', 'b'], ['c']], 'avec --paginate : deux pages, l’une après l’autre');
+  assert.equal(gh(d, '--paginate', route, '--jq', '.[].body').stdout, 'a\nb\nc\n');
+  d.github({ pageCommentaires: undefined });
+  assert.deepEqual(JSON.parse(gh(d, route).stdout).map((c) => c.body), ['a', 'b', 'c'], 'sans le réglage : tout, comme avant');
+});
+
+test('faux gh, pageCommentaires : une PR sans commentaire, paginée, rend une page vide, comme gh', () => {
+  const d = depotJouet();
+  d.github({ pageCommentaires: 2, pulls: [{ number: 1, title: 't', head: 'x', base: 'develop', labels: [], commentaires: [] }] });
+  assert.equal(gh(d, '--paginate', 'repos/{owner}/{repo}/issues/1/comments?per_page=100').stdout, '[]\n');
 });

@@ -2,6 +2,23 @@
 
 La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque projet par `poser` : une version publiée ne change rien chez un projet qui ne les repose pas. Chaque note dit ce qui change, puis ce qu'un projet fait pour en profiter.
 
+## 7.39.0 — 2026-11-22
+
+### Ce qui change
+
+- **Le capitaine juge l'éligibilité par les verdicts, deux fois** (régime 8, lot 5a de la relecture indépendante) : pour une PR dont la base porte la clé `relecture` de `.claude/chaine.json` et qui a été ouverte après `depuis`, `passer.sh` et `sujet.sh fusionner` ne lisent plus la section de revue du corps ; ils exigent un tour de relecture validé pour le contenu du sommet (la règle 2 du Relecteur, `tourValide`), avant toute mise à jour et toute CI, puis de nouveau juste avant l'appel de fusion, sur le sommet fusionné. Une mise à jour du capitaine garde le verdict (« même contenu propre »). Sans tour validé : renvoi ; lecture illisible : PR sautée sans renvoi ; `à-fusionner` retirée pendant la CI : sautée. Une PR empilée en régime 8 est renvoyée. Le check `PR titre` suit le régime (variable `PR_OUVERTE` du workflow).
+- **Les gardes des fichiers sensibles** (régime 8, lot 5b) : le hook d'édition refuse d'écrire un chemin sensible que la ligne `Sensibles:` du ticket de la branche, lue sur le sujet (sur develop pour un ticket sans sujet), ne couvre pas ; `passer.sh` et `sujet.sh fusionner` renvoient une PR dont le diff propre en touche un hors de cette ligne, ou sans ticket (`chemins-sensibles.mjs --garde`) ; une PR de mise à jour d'un sujet ne touche un chemin sensible qu'en conflit et couvert par un ticket du sujet.
+- **Les renvois, les messages et le gate selon le régime** (régime 8, lot 5c) : `renvoyer.sh` fait redemander la relecture (`à-relire`), jamais remettre `à-fusionner` ; `sujet.sh demarrer` dit comment demander la relecture, et son refus ne conseille plus `sujet.sh rafraichir` à une session ; le gate `tickets` n'exige plus `Label: contre-revue` et exige `Relecture: double` sur un ticket ouvert qui cite une règle haute.
+- **`sujet.sh etat`** liste un sujet sans commit propre ni PR ouverte, en retard sur develop et pas livré (une livraison intermédiaire tout juste entrée, A-132) : la boucle du capitaine y reporte develop.
+- Rien ne change pour une PR du régime 7, ni pour un dépôt sans la clé `relecture`, hors `sujet.sh etat` (ci-dessus, A-132) et le refus de `demarrer` (A-69), voulus dans les deux régimes.
+- Contre-relecture, tour 1 : un calcul absent à côté de `revue-exigee.mjs` est une panne (3), jamais une lecture illisible ; une PR poussée pendant sa lecture par `passer.sh` est sautée, jamais renvoyée faute de verdict ; `renvoyer.sh` et `demarrer` donnent la forme entière de la demande de relecture (`À relire — sommet <sha> — Session: <id> — Conducteur: <id>`, seule dans son commentaire), `renvoyer.sh` lit le régime d'une PR empilée sur develop et `demarrer` le dit aussi pour une PR vers develop ; le hook d'édition dit de relire le sujet quand sa copie locale du ticket est en retard sur origin ; le refus de `demarrer` dit de passer par le conducteur ; les motifs de la garde du capitaine disent qui demande l'accord, et son fetch élague les sujets supprimés ; une copie de ticket qu'un sujet n'a pas écrite, héritée de develop, ne compte ni pour la garde ni pour le hook (tour 2), et dans un clone superficiel, où la base de fusion ne se lit pas, le refus du hook dit de l'approfondir (tour 3) ; le gate lit la criticité comme le calcul (le plus haut niveau, en vigueur si l'index ou l'en-tête le dit) ; le faux GitHub pagine les commentaires.
+
+### Ce qu'un projet fait pour en profiter
+
+1. Mettre à jour le plugin (comme pour 7.31.0, étape 1).
+2. Reposer, dans une PR du projet : `/maj-skills:fusionner poser`, `/maj-skills:sujet poser`, `/maj-skills:revue-adversariale poser` (la garde `--garde` de `chemins-sensibles.mjs`), `/maj-skills:socle-chaine-de-production` (le hook d'édition, `pr-titre.mjs` et son workflow) et `/maj-skills:tickets` (le gate) ; puis relancer le capitaine (les scripts de la boucle changent).
+3. Rien d'autre tant que le dépôt n'est pas en régime 8 : la clé `relecture` arrive avec la bascule (lot 6).
+
 ## 7.38.3 — 2026-11-22
 
 ### Ce qui change

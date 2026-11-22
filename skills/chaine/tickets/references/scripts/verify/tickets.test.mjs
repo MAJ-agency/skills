@@ -601,3 +601,29 @@ test('plafonds : contrat absent → aucun ; sans clé → défauts ; mal formée
 test('le coût d’une fille ne se juge plus ici : une cellule illisible relève de `couts.mjs --verify`, pas des plafonds', () => {
   assert.deepEqual(juger(COUT('| fille | t | s | sonnet | 100 k | 25 $ |')), []);
 });
+
+// ── Lot 5c : le gate en régime 8 ───────────────────────────────────────────────────────────────────────────────
+test('lot 5c, régime 8 : `Label: contre-revue` n’est plus exigé ; un ticket ouvert qui cite une règle haute porte `Relecture: double`', async () => {
+  const { ecartsRelectureDouble } = await module('verify/tickets-regles.mjs');
+  const pret = (label, regles = '', relecture = '') =>
+    `# x\n\nStatus: ready-for-agent\nType: task\nModèle: sonnet\nFichiers chauds: \`apps/auth/a.ts\`\n${label}${regles}${relecture}\n## Où\n\n- a\n\n## Décisions\n\n- b\n\n## Surfaces\n\n- c\n\n## Vérification\n\n- d\n`;
+  assert.equal(ecartsFormatPret(pret(''), ['apps/auth/**']).length, 1, 'régime 7 : exigé');
+  assert.deepEqual(ecartsFormatPret(pret(''), ['apps/auth/**'], { regime: 8 }), [], 'régime 8 : plus exigé');
+  const niveauDe = (id) => (id === 'RULE_ALL_SOC-1' ? 'high' : id === 'RULE_ALL_SOC-2' ? 'medium' : id === 'RULE_ALL_SOC-3' ? { illisible: 'ligne 2 : x' } : null);
+  const nom = 'SPEC_ALL_SOC-1-socle.01.issue.md';
+  const existe = () => true;
+  const regleExiste = () => true;
+  const erreurs = (texte, regime = 8) => controlerTicket({ nom, texte, existe, regleExiste, regime, niveauDe }).erreurs.map((e) => e.message);
+  assert.deepEqual(erreurs(pret('', 'Règles: RULE_ALL_SOC-1\n')), ['régime 8 : ligne `Relecture: double` absente alors que le ticket cite RULE_ALL_SOC-1, règle de criticité haute (deux relectures indépendantes, A-90)']);
+  assert.deepEqual(erreurs(pret('', 'Règles: RULE_ALL_SOC-1\n'), 7), [], 'régime 7 : jamais exigée');
+  assert.deepEqual(erreurs(pret('', 'Règles: RULE_ALL_SOC-1\n', 'Relecture: double\n')), []);
+  assert.deepEqual(erreurs(pret('', 'Règles: RULE_ALL_SOC-2\n')), [], 'moyenne');
+  assert.deepEqual(erreurs(pret('', 'Règles: —\n')), []);
+  assert.match(erreurs(pret('', 'Règles: RULE_ALL_SOC-3\n'))[0], /la criticité de RULE_ALL_SOC-3 ne se lit pas \(ligne 2 : x\) : lue comme haute/);
+  for (const status of ['Fait — PR #12', 'wontfix'])
+    assert.deepEqual(erreurs(pret('', 'Règles: RULE_ALL_SOC-1\n').replace('ready-for-agent', status)), [], `${status} : fermé`);
+  assert.deepEqual(ecartsRelectureDouble({ status: 'needs-triage', valeursRegles: ['`RULE_ALL_SOC-1`, RULE_ALL_SOC-2'], relecture: false, niveauDe }).length, 1);
+  // Un ticket gelé dans la dette (format « prêt » dispensé) n'en est pas dispensé (A-185, point 5).
+  const gele = controlerTicket({ nom, texte: pret('', 'Règles: RULE_ALL_SOC-1\n'), existe, regleExiste, regime: 8, niveauDe, gele: true }).erreurs.map((e) => e.message);
+  assert.deepEqual(gele, ['régime 8 : ligne `Relecture: double` absente alors que le ticket cite RULE_ALL_SOC-1, règle de criticité haute (deux relectures indépendantes, A-90)'], 'gelé : exigée quand même');
+});

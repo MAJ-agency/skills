@@ -1955,3 +1955,33 @@ test('ticket 18 : un message qui cite --amend passe, comme --fixup=amend', () =>
   passent(passe.map(continuee));
   for (const c of passe) assert.equal(amendeUnCommit(c), false, c);
 });
+
+// ── Lot 5b : la ligne `Sensibles:` et le refus d'un chemin sensible en régime 8 ──────────────────────────────────
+test('lot 5b, lireSensibles : les chemins accordés, `—`, et ce qui ne se lit pas (copie de chemins-sensibles.mjs, même table)', async () => {
+  const { lireSensibles } = await import('./regles.mjs');
+  const enTete = (ligne) => `# T\n\nStatus: ready-for-agent\n${ligne}\n\n## Le besoin\n\nSensibles: corps/ignoré — accord de x, 2026-01-01\n`;
+  assert.deepEqual(lireSensibles(enTete('Sensibles: `scripts/agent/**`, docs/x.md — accord de la MOA, 2026-11-18 # repose')), { chemins: ['scripts/agent/**', 'docs/x.md'] });
+  assert.deepEqual(lireSensibles(enTete('**Sensibles:** — # rien')), { chemins: [] });
+  assert.deepEqual(lireSensibles(enTete('Modèle: sonnet')), { chemins: [] }, 'sans ligne : rien d’accordé, le corps n’est pas lu');
+  assert.deepEqual(lireSensibles(enTete('* sensibles: a/b — accord de la MOA, 2026-11-18')), { chemins: ['a/b'] });
+  for (const ligne of ['Sensibles: a/b', 'Sensibles: a/b — accord de la MOA', 'Sensibles: — accord de la MOA, 2026-11-18', 'Sensibles: /etc/x — accord de la MOA, 2026-11-18', 'Sensibles: a/../b — accord de la MOA, 2026-11-18', 'Sensibles: ~/x — accord de la MOA, 2026-11-18', 'Sensibles: a b — accord de la MOA, 2026-11-18', 'Sensibles: a\\b — accord de la MOA, 2026-11-18', 'Sensibles: a,, b — accord de la MOA, 2026-11-18', 'Sensibles: a — accord de la MOA, 2026-11-18\nSensibles: b — accord de la MOA, 2026-11-18'])
+    assert.ok(lireSensibles(enTete(ligne)).illisible, ligne);
+});
+
+test('lot 5b, refusEdition en régime 8 : un chemin sensible hors accord est refusé, couvert par chaque copie il passe ; hors régime 8, rien ne change', () => {
+  const base = { migrationExistante: () => false, regime8: true, sensibles: ['scripts/agent/**', 'docs/agents/'] };
+  const copies = (...c) => () => ({ copies: c });
+  assert.equal(refusEdition('scripts/agent/a.mjs', { ...base, accordes: copies(['scripts/agent/**']) }), null);
+  assert.equal(refusEdition('Scripts/Agent/a.mjs', { ...base, accordes: copies(['scripts/agent/**']) }), null, 'sans casse');
+  assert.match(refusEdition('Scripts/Agent/a.mjs', { ...base, accordes: copies(['scripts/agent/b.mjs']) }), /hors de la ligne `Sensibles:`/, 'sensible sans casse, et non couvert');
+  assert.match(refusEdition('scripts/agent/a.mjs', { ...base, accordes: copies(['scripts/agent/**'], ['scripts/agent/b.mjs']) }), /hors de la ligne `Sensibles:`/, 'une copie ne le couvre pas');
+  assert.match(refusEdition('docs/agents/x.md', { ...base, accordes: copies([]) }), /hors de la ligne `Sensibles:`/);
+  assert.match(refusEdition('docs/agents/x.md', { ...base, accordes: () => ({ copies: [] }) }), /hors de la ligne/);
+  assert.match(refusEdition('docs/agents/x.md', { ...base, accordes: () => null }), /Aucune ligne lue/);
+  assert.match(refusEdition('docs/agents/x.md', { ...base, accordes: () => ({ illisible: 'deux lignes' }) }), /Ligne illisible : deux lignes/);
+  let lu = 0;
+  assert.equal(refusEdition('docs/notes.md', { ...base, accordes: () => (lu++, null) }), null, 'un chemin ordinaire passe');
+  assert.equal(lu, 0, 'sans lire le ticket');
+  assert.equal(refusEdition('scripts/agent/a.mjs', { ...base, regime8: false, accordes: () => null }), null, 'régime 7');
+  assert.match(refusEdition('src/x.ts', { ...base, sensibles: 'pas une liste', accordes: () => null }), /chemin sensible/, 'liste mal formée : tout est sensible');
+});

@@ -534,3 +534,73 @@ test('ticket 16 : motifsDuCapitaine rend ce que rend la CLI, motif pour motif, d
     assert.equal(r.stdout, motifs.length ? `${motifs[0]}\n` : '', `${titre} ${fichiers}`);
   }
 });
+
+// ── Lot 5a : le régime d'une PR et son verdict ─────────────────────────────────────────────────────────────────
+test('lot 5a, lireCleRelecture : la forme que le Relecteur lit, ni plus ni moins (un 30 février passe chez lui comme ici : Date.parse le reporte)', () => {
+  const lire = (o) => revueExigee.lireCleRelecture(JSON.stringify(o));
+  assert.equal(revueExigee.lireCleRelecture(null), null, 'pas de contrat');
+  assert.equal(lire({ cheminsSensibles: [] }), null, 'pas de clé');
+  assert.equal(lire([]), null);
+  assert.equal(revueExigee.lireCleRelecture('{'), null, 'contrat illisible qui ne nomme pas la clé : régime 7, jugé comme avant');
+  assert.equal(revueExigee.lireCleRelecture('{ "relecture": {'), 'illisible');
+  // La clé se nomme entre guillemets : un contrat cassé dont un chemin sensible contient « relecture » reste en régime 7.
+  assert.equal(revueExigee.lireCleRelecture('{ "cheminsSensibles": ["skills/chaine/relecture/**", "relecture/"],\n'), null, 'chemin qui contient le mot');
+  assert.deepEqual(lire({ relecture: { depuis: '2026-12-01T10:00:00Z' } }), { depuis: Date.UTC(2026, 11, 1, 10) });
+  assert.deepEqual(lire({ relecture: { depuis: '2026-02-30T10:00:00Z' } }), { depuis: Date.UTC(2026, 2, 2, 10) });
+  assert.deepEqual(lire({ relecture: { depuis: '2026-12-01T10:00:00.250Z', delai: 30, ordinaire: { modele: 'sonnet', effort: 'low' }, sensible: { modele: 'opus', effort: 'max' } } }), { depuis: Date.UTC(2026, 11, 1, 10, 0, 0, 250) });
+  for (const r of [null, 'x', {}, { depuis: '2026-12-01T10:00:00+00:00' }, { depuis: '2026-12-01' }, { depuis: '2026-12-01T10:00:00Z', delai: 0 }, { depuis: '2026-12-01T10:00:00Z', delai: 1.5 }, { depuis: '2026-12-01T10:00:00Z', ordinaire: { modele: 'claude-opus-4-1', effort: 'high' } }, { depuis: '2026-12-01T10:00:00Z', sensible: { modele: 'opus', effort: 'fort' } }, { depuis: '2026-12-01T10:00:00Z', sensible: null }])
+    assert.equal(lire({ relecture: r }), 'illisible', JSON.stringify(r));
+});
+
+test('lot 5a, regimeDeLaPr : 8 si la base porte la clé et la PR est ouverte strictement après `depuis` ; base hors de la chaîne, 7 ; illisible dit', () => {
+  const contrat = JSON.stringify({ relecture: { depuis: '2026-11-17T09:00:00Z' } });
+  const lus = [];
+  const lire = (texte) => (ref, chemin) => {
+    lus.push(`${ref}:${chemin}`);
+    if (texte instanceof Error) throw texte;
+    return texte;
+  };
+  assert.deepEqual(revueExigee.regimeDeLaPr({ base: 'develop', ouverte: '2026-11-17T09:00:01Z' }, lire(contrat)), { regime: 8 });
+  assert.deepEqual(lus, ['refs/remotes/origin/develop:.claude/chaine.json'], 'la base seule, par sa réf distante');
+  assert.deepEqual(revueExigee.regimeDeLaPr({ base: 'origin/sujet/lot', ouverte: '2026-11-17T10:00:00Z' }, lire(contrat)), { regime: 8 });
+  assert.deepEqual(revueExigee.regimeDeLaPr({ base: 'develop', ouverte: '2026-11-17T09:00:00Z' }, lire(contrat)), { regime: 7 }, 'à l’instant même : pas après');
+  assert.deepEqual(revueExigee.regimeDeLaPr({ base: 'develop', ouverte: '2026-11-17T08:00:00Z' }, lire(contrat)), { regime: 7 });
+  assert.deepEqual(revueExigee.regimeDeLaPr({ base: 'main', ouverte: '2026-11-17T10:00:00Z' }, lire(contrat)), { regime: 7 });
+  assert.deepEqual(revueExigee.regimeDeLaPr({ base: 'develop', ouverte: undefined }, lire(null)), { regime: 7 }, 'sans contrat, la date ne se lit pas');
+  assert.match(revueExigee.regimeDeLaPr({ base: 'develop', ouverte: '' }, lire(contrat)).illisible, /date d'ouverture de la PR illisible/);
+  assert.match(revueExigee.regimeDeLaPr({ base: 'develop', ouverte: '2026-11-17T10:00:00Z' }, lire('{"relecture":1}')).illisible, /clé relecture de origin\/develop:\.claude\/chaine\.json mal formée/);
+  assert.match(revueExigee.regimeDeLaPr({ base: 'develop', ouverte: '2026-11-17T10:00:00Z' }, lire(new Error('réf absente'))).illisible, /contrat de origin\/develop illisible \(réf absente\)/);
+});
+
+test('lot 5a, motifsDuCapitaine en régime 8 : ni section de revue ni ligne `/security-review` lues ; le titre de code sur la documentation, si', () => {
+  const base = { ...revueExigee.SANS_BASE, sensibles: ['apps/**'] };
+  assert.equal(revueExigee.motifsDuCapitaine({ corps: '', titre: 'feat: x', fichiers: ['apps/x.ts'], base }).length, 2, 'régime 7 : section et ligne');
+  assert.deepEqual(revueExigee.motifsDuCapitaine({ corps: '', titre: 'feat: x', fichiers: ['apps/x.ts'], base, regime: 8 }), []);
+  assert.match(revueExigee.motifsDuCapitaine({ corps: '', titre: 'feat: x', fichiers: ['docs/x.md'], regime: 8 })[0], /mais le diff ne contient que de la documentation/);
+});
+
+test('lot 5a, verdictDuCapitaine : la règle 2 reçue décide ; sans tour validé, le motif dit ce qui manque', () => {
+  const tete = 'a'.repeat(40);
+  const recu = [];
+  const tour = { numero: 2, sommet: tete };
+  assert.deepEqual(revueExigee.verdictDuCapitaine({ commentaires: [], tete, exiges: 1, sensible: false, memeContenu: {}, tourValide: (e) => (recu.push(e), tour) }), { tour });
+  assert.deepEqual(recu, [{ commentaires: [], tete, exiges: 1, sensible: false, memeContenu: {} }]);
+  const { motif } = revueExigee.verdictDuCapitaine({ commentaires: [], tete, exiges: 2, sensible: true, memeContenu: {}, tourValide: () => null });
+  assert.equal(motif, 'aucun tour de relecture validé pour le contenu de ce sommet (aaaaaaaaaaaa) (deux verdicts validés de deux sessions exigés ; chemin sensible : `/security-review: lancée` exigée dans le verdict) : le verdict manque, est refusé ou porte sur un autre contenu');
+  assert.equal(revueExigee.verdictDuCapitaine({ commentaires: [], tete, exiges: 1, sensible: false, memeContenu: {}, tourValide: () => null }).motif, 'aucun tour de relecture validé pour le contenu de ce sommet (aaaaaaaaaaaa) : le verdict manque, est refusé ou porte sur un autre contenu');
+});
+
+test('lot 5a, CLI : les options suivent les trois arguments, toutes ou aucune ; un corps qui ressemble à une option reste un corps', () => {
+  const tete = 'b'.repeat(40);
+  assert.deepEqual(revueExigee.lireOptions([]), {});
+  assert.deepEqual(revueExigee.lireOptions(['--ouverte', 'x', '--tete', tete, '--branche', 'b', '--commentaires', 'f']), { ouverte: 'x', tete, branche: 'b', commentaires: 'f' });
+  for (const argv of [['--ouverte', 'x'], ['--ouverte', 'x', '--tete', 'abc', '--branche', 'b', '--commentaires', 'f'], ['--ouverte', 'x', '--tete', tete, '--branche', 'b', '--commentaires', ''], ['--ouverte', 'x', '--ouverte', 'y', '--branche', 'b', '--commentaires', 'f'], ['--autre', 'x']])
+    assert.equal(revueExigee.lireOptions(argv), null, argv.join(' '));
+  const cli = fileURLToPath(new URL('./revue-exigee.mjs', import.meta.url));
+  const r = spawnSync(process.execPath, [cli, '', 'feat: x', 'origin/develop', '--ouverte', 'x'], { input: 'apps/x.ts\n', encoding: 'utf8', env: jouet.environnementDeBanc() });
+  assert.equal(r.status, 2, r.stdout + r.stderr);
+  assert.match(r.stdout, /options : --ouverte <date> --tete/);
+  const corps = spawnSync(process.execPath, [cli, '--ouverte', 'feat: x', 'origin/develop'], { input: 'apps/x.ts\n', encoding: 'utf8', env: jouet.environnementDeBanc() });
+  assert.equal(corps.status, 1, 'le corps « --ouverte » est un corps : la section manque');
+  assert.match(corps.stdout, /sans section « Revue de ticket »/);
+});

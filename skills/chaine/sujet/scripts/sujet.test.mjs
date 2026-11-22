@@ -106,7 +106,9 @@ test("demarrer refuse quand la spec du ticket n’est pas encore sur le sujet", 
   const r = demarrer(d, "SPEC_ALL_DEM-1.01");
   assert.equal(r.status, 4, r.stdout + r.stderr);
   assert.match(r.stdout, /spec SPEC_ALL_DEM-1 n'est pas encore sur sujet\/demo/);
-  assert.match(r.stdout, /rafraichir demo/);
+  // A-69 (lot 5c) : une session ne reporte jamais develop dans un sujet ; c'est le capitaine qui le fait.
+  assert.match(r.stdout, /le capitaine la reporte dans le sujet de lui-même à chaque\nlancement de sa boucle \(A-69\) : attendre, ou l'écrire à ton conducteur \(à qui t'a lancé\), qui le demande au capitaine ; une session ne lance jamais `sujet\.sh rafraichir`\./);
+  assert.doesNotMatch(r.stdout, /`sujet\.sh rafraichir demo`/);
 });
 
 test("demarrer refuse un ticket dont la spec n’est que sur une branche de specs", () => {
@@ -952,4 +954,36 @@ test("demarrer refuse un ticket dont la ligne Sujet: nomme plusieurs sujets (sor
   const propre = demarrer(d, "SPEC_ALL_DEM-1.02");
   assert.equal(propre.status, 0, propre.stdout + propre.stderr);
   assert.match(propre.stdout, /^base=sujet\/a$/m);
+});
+
+// A-132 (lot 5c) : après une livraison intermédiaire, le sujet n'a plus de commit propre ; tant qu'il est en retard sur
+// develop et pas livré, `etat` le liste « en cours », et la boucle du capitaine y reporte develop (`rafraichir_sujets`).
+test("etat : un sujet sans commit propre ni PR, en retard et pas livré, est listé (A-132) ; livré, ou à jour, il ne l'est pas", () => {
+  const monter = (phase) => {
+    const d = depotJouet();
+    d.ecrire(SPEC, "# SPEC_ALL_DEM-1\n\nSujet: sujet/demo\n");
+    d.commit("docs: spec");
+    d.git("push", "-q", "origin", "HEAD:develop");
+    d.branche("sujet/demo", "origin/develop", { "docs/features/demo/all/SPEC_ALL_DEM-1-demo.map.md": `# carte\n\nSujet: sujet/demo\n\nPhase: ${phase}\n`, "docs/x.md": "x\n" }, "feat(demo): x (#1)");
+    // La livraison intermédiaire : develop reçoit le sujet par un commit de merge, puis avance.
+    d.git("switch", "-q", "-C", "develop", "origin/develop");
+    d.git("merge", "-q", "--no-ff", "-m", "feat(demo): livraison intermédiaire (#2)\n\nSujet: sujet/demo", "origin/sujet/demo");
+    d.git("push", "-q", "origin", "HEAD:develop");
+    d.git("fetch", "-q", "origin");
+    d.github({ pulls: [] });
+    return d;
+  };
+  const d = monter("4-vague-2");
+  d.branche("develop", "origin/develop", { "docs/y.md": "y\n" });
+  d.git("switch", "-q", "--detach", "origin/develop");
+  assert.match(d.lancer(SCRIPT, "etat").stdout, /^demo\t0\t2\t—\t—\ten cours$/m, "la livraison et le commit suivant de develop");
+  const r = d.lancer(SCRIPT, "rafraichir", "demo", "--abandon-si-conflit");
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  d.git("fetch", "-q", "origin");
+  assert.equal(d.git("rev-parse", "origin/sujet/demo"), d.git("rev-parse", "origin/develop"), "develop reporté dans le sujet");
+  assert.doesNotMatch(d.lancer(SCRIPT, "etat").stdout, /^demo\t/m, "à jour : plus rien à reporter");
+  const livre = monter("6-nettoyage");
+  livre.branche("develop", "origin/develop", { "docs/y.md": "y\n" });
+  livre.git("switch", "-q", "--detach", "origin/develop");
+  assert.doesNotMatch(livre.lancer(SCRIPT, "etat").stdout, /^demo\t/m, "livré : jamais rouvert");
 });
