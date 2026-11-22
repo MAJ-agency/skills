@@ -2,6 +2,19 @@
 
 La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque projet par `poser` : une version publiée ne change rien chez un projet qui ne les repose pas. Chaque note dit ce qui change, puis ce qu'un projet fait pour en profiter.
 
+## 8.0.1 — 2026-11-22
+
+### Ce qui change
+
+- **Un calcul qui dit un outil absent du poste est une panne** (ticket 75, `A-192` point 1) : `double-relecture.mjs` ou `meme-contenu.sh` sorti en 69 (git plus ancien que 2.41, `jq` absent, la grammaire des identifiants introuvable) arrête le capitaine (`revue-exigee.mjs` sort en 3, `passer.sh` en 3, `sujet.sh fusionner` en 11) et le Relecteur (sortie 6), la cause dite. Ce n'est plus une lecture illisible, qui faisait sauter chaque PR en silence chez le capitaine et la traçait à chaque délai chez le Relecteur.
+- **Le script du Relecteur** (ticket 76) : son usage nomme `--sondes` ; son en-tête dit qu'un plafond rejoué après un retrait refusé redit « décision de plafond attendue » à l'auteur et au conducteur, ce qui est gardé (`A-189` point 1) ; deux bancs tiennent ce plafond rejoué et une trace d'illisible qui n'est pas la marque.
+- **Le texte du Relecteur** (ticket 77) : la sortie 5 de `jouer` a sa borne (à la seconde fois de suite sur la même PR, l'architecte et `--taire <n>`) et se lit, comme `create_session` en échec, « rejouer au réveil suivant », que `--attendre` suit ; chaque borne dit « de suite » ; `reecrire` d'une session hors service peut rendre `panne`, dont les lignes partent ; « un champ absent, `couple` » ; le plafond rejoué y est écrit ; la sortie 6 nomme la sortie 69 des calculs.
+
+### Ce qu'un projet fait pour en profiter
+
+1. Mettre à jour le plugin (comme pour 7.31.0, étape 1) : le Relecteur lit son skill et son script dans le plugin à son prochain lancement.
+2. Reposer, dans une PR du projet : `/maj-skills:fusionner poser` (`revue-exigee.mjs` change), puis relancer le capitaine.
+
 ## 8.0.0 — 2026-11-22
 
 ### Ce qui change

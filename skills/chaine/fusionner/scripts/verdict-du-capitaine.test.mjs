@@ -400,6 +400,45 @@ test("régime 8 : double-relecture.mjs ou meme-contenu.sh absent à côté de re
   }
 });
 
+// Suite du lot 5 (A-192, point 1 ; ticket 75) : un calcul sorti en 69 (git plus ancien que 2.41, `jq` absent, la grammaire
+// introuvable) le dirait de chaque PR : une panne du capitaine (3), jamais une lecture illisible (21) qui ferait sauter
+// chaque PR en silence.
+test("régime 8 : un calcul sorti en 69 (un outil de la chaîne manque au poste) est une panne (3), la cause dite, jamais une lecture illisible (21)", () => {
+  const lancer = (d, chaine, fil) =>
+    spawnSync(process.execPath, [join(chaine, "revue-exigee.mjs"), "", "docs(a): a", "origin/develop", "--ouverte", "2026-11-17T11:00:00Z", "--tete", "a".repeat(40), "--branche", "feat/a", "--commentaires", fil], { cwd: d.travail, env: d.env, input: "docs/a.md\n", encoding: "utf8" });
+  const poser = (d, { grammaire = true, talon = null } = {}) => {
+    const chaine = join(d.racine, "projet", "scripts", "chaine");
+    mkdirSync(chaine, { recursive: true });
+    if (grammaire) {
+      mkdirSync(join(d.racine, "projet", "scripts", "docs"));
+      writeFileSync(join(d.racine, "projet", "scripts", "docs", "identifiants.mjs"), readFileSync(GRAMMAIRE, "utf8"));
+    }
+    for (const c of ["revue-exigee.mjs", "decision-relecteur.mjs", "verdict.mjs", "double-relecture.mjs", "meme-contenu.sh"]) writeFileSync(join(chaine, c), readFileSync(scriptDe("fusionner", c), "utf8"));
+    if (talon) writeFileSync(join(chaine, talon[0]), talon[1]);
+    return chaine;
+  };
+  // La grammaire des identifiants introuvable : le vrai `double-relecture.mjs` sort en 69.
+  const d = monter();
+  const fil = join(d.racine, "fil.json");
+  writeFileSync(fil, "[]\n");
+  const r = lancer(d, poser(d, { grammaire: false }), fil);
+  assert.equal(r.status, 3, r.stdout + r.stderr);
+  assert.match(r.stdout, /^revue du capitaine en échec : double-relecture\.mjs : un outil de la chaîne manque au poste \(sortie 69\) : scripts\/docs\/identifiants\.mjs introuvable depuis /m);
+  // `meme-contenu.sh` sorti en 69 (git plus ancien que 2.41) pour le sommet d'un tour plus ancien.
+  const m = monter();
+  const tours = join(m.racine, "fil.json");
+  writeFileSync(tours, `${JSON.stringify(valide("b".repeat(40)).map((body, i) => ({ id: i + 1, body, created_at: `2026-11-17T12:0${i}:00Z`, updated_at: `2026-11-17T12:0${i}:00Z`, author_association: "OWNER" })))}\n`);
+  const h = lancer(m, poser(m, { talon: ["meme-contenu.sh", 'echo illisible\necho "git ≥ 2.41 requis, ici 2.40" >&2\nexit 69\n'] }), tours);
+  assert.equal(h.status, 3, h.stdout + h.stderr);
+  assert.match(h.stdout, /^revue du capitaine en échec : meme-contenu\.sh : un outil de la chaîne manque au poste \(sortie 69\) : git ≥ 2\.41 requis, ici 2\.40$/m);
+  // Une sortie 21 du même calcul reste une lecture illisible : seule la sortie 69 est une panne.
+  const i = monter();
+  writeFileSync(join(i.racine, "fil.json"), "[]\n");
+  const r21 = lancer(i, poser(i, { talon: ["double-relecture.mjs", 'console.log("illisible"); process.exit(21);\n'] }), join(i.racine, "fil.json"));
+  assert.equal(r21.status, 21, r21.stdout + r21.stderr);
+  assert.match(r21.stdout, /^lecture illisible : « double relecture exigée » illisible/m);
+});
+
 test("régime 8, passer.sh : `cheminsSensibles` illisible sur la base rend tout chemin sensible, comme chez le Relecteur : un `validé` sans `/security-review: lancée` ne suffit pas", () => {
   const d = monter({ cheminsSensibles: "scripts/agent/**", relecture: CONTRAT.relecture });
   versDevelop(d);
