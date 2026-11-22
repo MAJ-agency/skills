@@ -1,7 +1,7 @@
 // Les mutations du lot 6 (tickets 80 à 82, la bascule en 8.0.0) : chacune change une phrase d'un texte du régime 8, une
 // valeur du gabarit du contrat ou une ligne de code (avancement, gate settings-json), joue les bancs qu'elle nomme, et
 // doit en rendre un rouge ; le fichier est remis après chaque mutation. À lancer depuis la racine d'un clone où
-// `lot-6.patch` est appliqué : `node <chemin>/mutations.mjs [<préfixe>…]` (`B`, `V`, `A`, `S`, `D`, ou un nom : `B12`).
+// `lot-6.patch` est appliqué : `node <chemin>/mutations.mjs [<préfixe>…]` (`B`, `V`, `A`, `S`, `D`, `R`, ou un nom : `B12`).
 // Sortie 0 : toutes rouges.
 import { spawnSync } from 'node:child_process';
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -139,6 +139,20 @@ const MUTATIONS = [
     const j = t.indexOf('\n', i);
     return i < 0 ? null : t.slice(0, i) + t.slice(j + 1);
   }, [D]],
+  // Le tour de relecture des tickets (A-196) : les trous des bancs (R1 à R9), puis les retouches (R10 à R13).
+  ['R1 chantier, Ne jamais : archive_session de nouveau permis', F.chantier, remplacer(', ou appeler `archive_session` (`P-62`).', '.'), [B]],
+  ['R2 chaine-de-production § 5, étape 5 : le sha court du dernier push', F.cdp, remplacer("le sha entier du dernier push ; puis l'étiquette", "le sha court du dernier push ; puis l'étiquette"), [B]],
+  ['R3 réveil de secours : relancer le Relecteur soi-même au lieu de l’écrire au conducteur', F.cdp, remplacer("l'écrire au conducteur (un Relecteur arrêté)", 'relancer soi-même le Relecteur'), [B]],
+  ['R4 architecte § 8 : `depuis` écrit avant l’ouverture de la PR de repose', F.architecte, remplacer('le dernier de cette PR, écrit après son ouverture', 'le premier de cette PR, écrit avant son ouverture'), [B]],
+  ['R5 regime-7.md : la fille d’un ticket Label: contre-revue livre de nouveau avec à-fusionner', F.sept, remplacer('la fille livre **sans** `à-fusionner` ; le conducteur contre-relit, puis pose le label lui-même.', 'la fille livre avec `à-fusionner` ; le conducteur contre-relit ensuite.'), [B, D]],
+  ['R6 chantier § 6.5 : le conducteur pose à-fusionner sur une PR sans étiquette', F.chantier, remplacer('il pose lui-même `à-relire` avec le commentaire', 'il pose lui-même `à-fusionner` avec le commentaire'), [B]],
+  ['R7 fusionner, Le verdict : une lecture illisible devient un renvoi', F.fusionner, remplacer("n'est pas un renvoi : la PR est sautée (7)", 'est un renvoi : la PR est renvoyée (4)'), [B, D]],
+  ['R8 settings-json : le motif de create_session sans ancre de fin', F.sReg, remplacer('__create_session$/', '__create_session/'), [S]],
+  ['R9 settings-json : une clé relecture à null lue absente (du côté non sûr)', F.sGate, remplacer("Object.hasOwn(c, 'relecture')", 'c.relecture != null'), [S]],
+  ['R10 chantier § 3 : la PR de cadrage reçoit de nouveau à-fusionner en régime 8', F.chantier, remplacer("sa relecture se demande comme celle d'une fille", 'label à-fusionner, ou sa relecture'), [B]],
+  ['R11 réveil de secours : le cas fusion-bloquée vaut de nouveau avec à-relire', F.cdp, remplacer('`fusion-bloquée` sans `à-relire`, lire le renvoi', '`fusion-bloquée`, lire le renvoi'), [B]],
+  ['R12 chantier § 0 : la pose du socle sans chaîne n’est plus dite en régime 7', F.chantier, remplacer("est en régime 7 : elle passe au capitaine comme une PR de cadrage de ce régime, `à-fusionner` posé par le conducteur", 'est relue comme les autres'), [B]],
+  ['R13 chantier § 6.5 : le plafond de contexte d’une session de relecture n’est plus noté', F.chantier, remplacer('se note dans `## Dépassements` comme un plafond', 'se lit'), [B]],
 ];
 
 const voulues = process.argv.slice(2);
