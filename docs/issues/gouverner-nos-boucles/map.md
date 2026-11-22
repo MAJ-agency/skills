@@ -292,6 +292,7 @@ Vague 1 fusionnée le 2026-11-13 par le capitaine de `skills` (`main` à `8eb1c9
 | `session_012xRpgY2hd22sz16Jkwdi1C` | capitaine de `skills` (Sonnet, PR 147 et 148 fusionnées, archivé le 2026-11-22 à 01 h 55 UTC) | — | 0,84 | 142 622 |
 | `session_012xRpgaLVzgAmwaUhMF6WYV` | ticket   | 71, 72 et 73, lot 5, PR 149 (Sonnet, archivée le 2026-11-22 à 02 h 23 UTC) | 0,58 | 118 213 |
 | `session_012xRpgafguF9ACVcp1jpEWi` | ticket   | 74, PR 150 (Sonnet, archivée le 2026-11-22 à 02 h 59 UTC) | 0,64 | 126 996 |
+| `session_012xRpga3vb5vGbqWn3qDoTn` | ticket   | PR 149, retouches du premier tour (Sonnet) | en cours | en cours |
 | `session_012xRpgaUxER8bF3B6MWgaBN` | ticket   | 70, PR 148 (Sonnet, archivée le 2026-11-22 à 01 h 23 UTC) | 0,43 | 109 389 |
 
 La ligne de l'architecte est un relevé du 2026-11-13 à 11 h 45 UTC, session en cours (elle était à 9,20 $ et 289 647 tokens à 8 h 52) ; la cellule de coût ne porte qu'un montant, pour rester lisible par `couts.mjs`.
@@ -1252,3 +1253,4 @@ La session de suite fait, dans cet ordre :
 - 2026-11-22 — 02 h 56 UTC. **PR 150 livrée** (ticket 74, plugin 7.38.3) : sommet `fb0ecb0bed43c4dfb708d73a2a7cc615ab939c85`, un commit sur `2e87bae`, 8 fichiers ; vérifié par l'architecte, hors fichiers de version l'arbre est celui de `2e87bae` plus `ticket-74.patch` (le banc neuf compris). D'après la session : 17 rouges sur 63 avant, 63 verts après, 41 mutations rouges, suite 1 313 sur 1 313. Session archivée (0,64 $).
   - 02 h 59 UTC. **Premier tour de contre-relecture de la PR 150 lancé** (agent neuf, Opus, effort extra), en parallèle de celui de la PR 149.
 - 2026-11-22 — 03 h 47 UTC. **PR 149, premier tour rendu** (1 h 25) : non conforme au sommet `9db4fb3` sans bloquant ; arbre vérifié ; rouges par ticket (26, 18, 7) ; 20 mutations de l'annexe rouges ; régime 7 inchangé à l'appel près (espion sur 19 bancs, 554 lancements identiques) ; six à corriger et sept mineurs du régime 8 ; ses 15 mutations vertes sur la PR, rouges après les retouches. `retouches-tour-1.patch` (sha256 `7941d2598bf49fdb2e37be5f7bc419b01088ff07952bdaca83ef6d7977ffad2b`, 20 fichiers, +300 −43) : 369 sur 369 aux bancs du lot, suite 1 359 sur 1 359. **`A-192`** : la sortie 69 et les PR de fourche à des tickets de suite.
+  - 03 h 46 UTC. **Verdict non conforme écrit sur la PR 149** au sommet `9db4fb3` (commentaire 7073761412). **Session des retouches lancée** (session_012xRpga3vb5vGbqWn3qDoTn, Sonnet) : le patch vérifié par son empreinte, un commit, la suite, le push, l'arrêt.
