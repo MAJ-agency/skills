@@ -1,25 +1,14 @@
-# Suite entière du ticket 90 (pnpm test), clone neuf de ddb4265, branche commitée avec le patch (arbre 62081c60…), Node 22.23.5, le 2026-11-22
-# 17:26:20 UTC, charge 2.47, 6.32, 12.96
-17:26:20
+# Suite entière du ticket 90 (pnpm test), clone neuf de 61bf51b (plugin 8.0.1), branche commitée avec le patch (sha256 75b1e31b…, arbre cec09869…, plugin 8.0.2), Node 22.23.5, le 2026-11-22, seule (après les mutations), en tâche de fond sous setsid --wait, timeout 1800
+#  19:37:44 up 13:01,  0 user,  load average: 0.81, 0.96, 1.20
+19:37:44
 sortie 0
-17:50:10
-# 17:50:10 UTC, charge 5.69, 7.36, 9.54
-# tests 1399
+19:54:47
+#  19:54:47 up 13:18,  0 user,  load average: 1.37, 2.82, 3.07
+# tests 1412
 # suites 0
-# pass 1399
+# pass 1412
 # fail 0
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 1429695.729804
-# Passage antérieur, même arbre, sous charge forte (timeout 3000) :
-# 16:52:48 UTC, charge 21.56, 21.49, 19.91
-16:52:48
-sortie 1
-17:25:52
-# 17:25:52 UTC, charge 2.98, 6.81, 13.33
-not ok 166 - les bancs posés à plat sous scripts/chaine/ tournent hors du plugin
-not ok 170 - les bancs de references/, posés dans un projet au régime 7 (contrat du gabarit), y passent
-# tests 1399
-# pass 1397
-# fail 2
+# duration_ms 1022733.728544

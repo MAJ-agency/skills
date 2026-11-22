@@ -1,9 +1,12 @@
 // Pose la version et la note de la PR du ticket 90 sur la branche de la session, quel que soit le `main` de départ
-// (reprise du script du ticket 77, inchangé hors de cet en-tête). À lancer depuis la racine, après `git apply --exclude=.claude-plugin/plugin.json --exclude=NOTES-DE-VERSION.md`
-// du patch :
-//   node <scratchpad>/version-suivante.mjs <scratchpad>/<patch qui porte la note>
-// La version : celle de `.claude-plugin/plugin.json` (celle de `main`), le troisième nombre plus un (7.39.0 donne 7.39.1,
-// 7.39.1 donne 7.39.2). La note : le texte que le patch ajoute à `NOTES-DE-VERSION.md`, pris tel quel, son titre à cette
+// (reprise du script du ticket 77, inchangé hors de cet en-tête). À lancer depuis la racine :
+//   node <scratchpad>/version-suivante.mjs <patch qui porte la note>
+// Deux usages, et deux seuls (A-205 point 2, A-212) : au départ, sur un `main` déjà bougé, après `git apply
+// --exclude=.claude-plugin/plugin.json --exclude=NOTES-DE-VERSION.md`, avec le patch d'annexe (la branche n'a pas encore
+// de note) ; à une fusion de `main`, avec la note de la branche, prise avant la fusion par `git diff $(git merge-base
+// origin/main HEAD) HEAD -- NOTES-DE-VERSION.md`, jamais avec l'annexe, qui porte la note d'avant les retouches.
+// La version : celle de `.claude-plugin/plugin.json` (celle de `main`), le troisième nombre plus un (8.0.1 donne 8.0.2,
+// 8.0.2 donne 8.0.3). La note : le texte que le patch ajoute à `NOTES-DE-VERSION.md`, pris tel quel, son titre à cette
 // version et à la date du jour (UTC), posé avant la première note du fichier, donc au-dessus de celle de `main`. Écrit
 // la version et la date prises. Sortie 1 sans rien écrire : pas de note dans le patch, ou la note déjà posée (le script
 // a déjà été joué), ou cette version déjà notée.

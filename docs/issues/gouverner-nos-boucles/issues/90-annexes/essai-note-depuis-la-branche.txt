@@ -1,0 +1,19 @@
+# 2026-11-22 19:13:47 UTC, base 61bf51b (8.0.1), main bougé = PR 153 (97428ed, 8.0.2), patch sha256 75b1e31b38b2072b…
+== recette annexe
+en conflit : NOTES-DE-VERSION.md 
+8.0.3 — 2026-11-22
+ROUGE (annexe) : la retouche de la note est perdue
+## 8.0.3 — 2026-11-22
+## 8.0.2 — 2026-11-22
+## 8.0.1 — 2026-11-22
+  "version": "8.0.3",
+sortie 1
+== recette branche
+en conflit : NOTES-DE-VERSION.md 
+8.0.3 — 2026-11-22
+VERT (branche) : la retouche de la note est gardée
+## 8.0.3 — 2026-11-22
+## 8.0.2 — 2026-11-22
+## 8.0.1 — 2026-11-22
+  "version": "8.0.3",
+sortie 0

@@ -1,50 +1,63 @@
 diff --git a/.claude-plugin/plugin.json b/.claude-plugin/plugin.json
-index c91dc0ef1aa42dc528261df8b4a71d3d2d46f48a..067bd50914b41520b1010c2a369ef287e2005986 100644
+index 067bd50914b41520b1010c2a369ef287e2005986..c963142f8715110aff01f32872eeb0884814a364 100644
 --- a/.claude-plugin/plugin.json
 +++ b/.claude-plugin/plugin.json
 @@ -1,6 +1,6 @@
  {
    "name": "maj-skills",
--  "version": "8.0.0",
-+  "version": "8.0.1",
+-  "version": "8.0.1",
++  "version": "8.0.2",
    "description": "Skills d'ingénierie maison : amorçage de monorepo et de socles (API NestJS hexagonale, web Next.js, mobile Expo), chaîne de production pour des sessions d'agent en parallèle (tickets, sujets, capitaine de fusion, revue adversariale, chantier, recette). Aucune règle métier.",
    "author": {
      "name": "Guillaume Jauffret"
 diff --git a/NOTES-DE-VERSION.md b/NOTES-DE-VERSION.md
-index ba579fa0524c9adc078d75a49397df2c8cb36303..b9769346574092b01cff8ec0e2491816aee6b223 100644
+index f7ce15677408a0b1f0a6b5920cf719e60298235d..c59975e9e51f85f5698a43e6fff06c1bd0d3f229 100644
 --- a/NOTES-DE-VERSION.md
 +++ b/NOTES-DE-VERSION.md
 @@ -2,6 +2,18 @@
  
  La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque projet par `poser` : une version publiée ne change rien chez un projet qui ne les repose pas. Chaque note dit ce qui change, puis ce qu'un projet fait pour en profiter.
  
-+## 8.0.1 — 2026-11-22
++## 8.0.2 — 2026-11-22
 +
 +### Ce qui change
 +
-+- **Un dépôt posé en 8.0.0 peut pousser** (ticket 90) : le banc posé `scripts/agent/regles.test.mjs` lit une copie de `regles.mjs` posée seule, et plus `./regles.mjs` : le régime, les chemins sensibles et les migrations du `.claude/chaine.json` du projet, et les index de son `scripts/docs/index-generes.json`, n'entrent plus dans ses défauts. Au régime 8, avec le gabarit (`.claude/**` sensible), son cas « `.claude/skills` » était rouge, et `check:tickets` le joue au pre-push et en CI ; un projet qui ajoute `apps/api/**` à ses chemins sensibles, ou un index `docs/*` à ses index générés, en rougissait deux cas de plus. La règle ne change pas : en régime 8, `.claude/skills/` ne s'écrit qu'avec la ligne `Sensibles:` du ticket, comme tout chemin sensible ; le banc le dit.
++- **Un dépôt posé en 8.0.0 ou 8.0.1 peut pousser** (ticket 90) : le banc posé `scripts/agent/regles.test.mjs` lit une copie de `regles.mjs` posée seule, et plus `./regles.mjs` : le régime, les chemins sensibles et les migrations du `.claude/chaine.json` du projet, et les index de son `scripts/docs/index-generes.json`, n'entrent plus dans ses défauts. Au régime 8, avec le gabarit (`.claude/**` sensible), son cas « `.claude/skills` » était rouge, et `check:tickets` le joue au pre-push et en CI ; un projet qui ajoute `apps/api/**` à ses chemins sensibles, ou un index `docs/*` à ses index générés, en rougissait deux cas de plus. La règle ne change pas : en régime 8, `.claude/skills/` ne s'écrit qu'avec la ligne `Sensibles:` du ticket, comme tout chemin sensible ; le banc le dit.
 +- **`develop.test.mjs` quitte `references/`** : banc du plugin (il lit le pre-push du gabarit de `socle-monorepo`), il vit sous `socle-chaine-de-production/scripts/`. Copié dans un projet avec `references/scripts/github/`, il y sortait en `ERR_MODULE_NOT_FOUND` à l'étape 3 du skill (`node --test scripts/github/*.test.mjs`).
-+- **Un garde dans le plugin** (`scripts/references-posees.test.mjs`) : tout banc rangé sous `references/` d'un skill est posé dans un dépôt jouet, à sa place de projet, avec le contrat du gabarit au régime 8 puis au régime 7, et joué ; un échec, un saut hors du seul attendu, un banc sans place connue sous `references/` ou moins de 350 tests joués le rougit.
++- **Un garde dans le plugin** (`scripts/references-posees.test.mjs`) : tout banc rangé sous `references/` d'un skill est posé dans un dépôt jouet, à sa place de projet, avec ses voisins, les dépendances de la racine (un lien vers `node_modules` du plugin, comme un projet a les siennes) et le contrat du gabarit au régime 8 puis au régime 7, et joué ; un échec, un saut hors du seul attendu (sous-tests compris), un test « todo », un banc sans place connue sous `references/` ou moins de 350 tests joués le rougit. Il ne dépend d'aucun module installé hors du dépôt : un `typescript` global du poste ne le fait plus passer.
 +
 +### Ce qu'un projet fait pour en profiter
 +
 +- **Reposer `socle-chaine-de-production`** : `references/agent/regles.test.mjs` → `scripts/agent/regles.test.mjs`. Un projet qui avait isolé ce banc à la main (paramètres explicites) reprend le fichier du plugin. Un `scripts/github/develop.test.mjs` copié par erreur se supprime : il ne fait pas partie de la pose (étape 9 : `develop.sh` seul).
 +
- ## 8.0.0 — 2026-11-22
+ ## 8.0.1 — 2026-11-22
  
  ### Ce qui change
+diff --git a/README.md b/README.md
+index 718f65d2d4c776856059677d7315b0b0708cbbb9..43336a34436d950cf5097881a5d4ffe2d1a6e4d0 100644
+--- a/README.md
++++ b/README.md
+@@ -201,6 +201,8 @@ Cette règle vaut pour **tout** changement de contenu, pas seulement l'ajout d'u
+ 
+ Un skill dont l'étape `poser` copie un dossier de scripts dans `scripts/chaine/` d'un projet ajoute ce dossier à `POSES` dans `scripts/poses.test.mjs` : le garde pose ses fichiers à plat et rejoue ses bancs hors du plugin. Un banc posé ne lit jamais l'arbre du plugin sans repli vers le fichier du projet. Le garde joue chaque banc en tranches parallèles (`scripts/tranches.mjs`), par les noms de ses tests (`test("…", …)` en début de ligne), chaque test exactement une fois : les tranches d'un même banc tournent en même temps, donc un banc n'écrit jamais dans un chemin fixe partagé (chaque dépôt jouet par `mkdtemp`) ; un banc qui écrit des sous-tests (`t.test`, `describe`, `it`) se joue entier, le texte des chaînes et des commentaires n'étant pas lu comme un appel (`codeSeul`) et le doute jouant entier. Les travaux partent du plus lourd (en tests) au plus léger ; la borne de chacun suit son poids (60 s par test, au moins 300 s) et le tue par son groupe de processus ; le test a pour délai un plafond de 1 800 s, et le journal montre son bilan (`# poses : …`, part du plafond, pire cas, trois marges les plus courtes). Limite : un sous-test au nom calculé (`t.test(nom, …)`) ou un `test(` global appelé dans le corps d'un test n'est pas reconnu ; un banc posé n'en écrit pas.
+ 
++Un banc rangé sous `references/` d'un skill est un banc posé : `scripts/references-posees.test.mjs` le pose dans un dépôt jouet, à sa place de projet (`agent/` → `scripts/agent/`, `scripts/<d>/` → `scripts/<d>/`), avec ses voisins, les dépendances de la racine et le contrat du gabarit aux régimes 8 et 7, et le joue sans `NODE_PATH` ; un banc rangé ailleurs sous `references/` le rougit. Un banc du plugin, qui lit l'arbre du plugin (un gabarit, un autre skill), vit sous `scripts/` de son skill, jamais sous `references/`.
++
+ Un banc ne recopie jamais le filtre des variables `GIT_*` : il importe `environnementDeBanc()` (`scripts/docs/environnement-de-banc.mjs` du socle, réexporté par `depot-jouet.mjs`), qui retire aussi `FORCE_COLOR` et pose `NO_COLOR=1`. `scripts/un-seul-environnement-de-banc.test.mjs` refuse toute copie.
+ 
+ Ce qui dépasse une page va dans `references/`, atteint par un pointeur depuis `SKILL.md` — le corps du skill reste lisible, et les détails ne se chargent qu'au besoin.
 diff --git a/scripts/pose-du-socle.mjs b/scripts/pose-du-socle.mjs
 new file mode 100644
-index 0000000000000000000000000000000000000000..665ce0511712c49b8049e286baf23857fd4beda4
+index 0000000000000000000000000000000000000000..7299ac6604c24bf5b2adbbca98067a6cc30e06da
 --- /dev/null
 +++ b/scripts/pose-du-socle.mjs
-@@ -0,0 +1,102 @@
+@@ -0,0 +1,107 @@
 +// Pose, dans un dossier neuf, les scripts que les skills du socle copient dans un projet, rangés à leur place de projet,
 +// avec le contrat `.claude/chaine.json` du gabarit au régime voulu : 8 (le gabarit tel quel, `{{DEPUIS}}` rempli), 7 (le
 +// gabarit sans la clé `relecture`). Lu par `references-posees.test.mjs` (ticket 90) ; une table, pour que la pose de la
 +// racine (`socle-monorepo`, TABLE-RACINE.md) puisse s'y ajouter sans réécrire le garde.
 +import { execFileSync } from 'node:child_process';
-+import { chmodSync, copyFileSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
++import { chmodSync, copyFileSync, mkdirSync, readdirSync, readFileSync, statSync, symlinkSync, writeFileSync } from 'node:fs';
 +import { join } from 'node:path';
 +import { fileURLToPath } from 'node:url';
 +import { environnementDeBanc } from '../skills/monorepo/socle-monorepo/references/scripts/docs/environnement-de-banc.mjs';
@@ -133,6 +146,11 @@ index 0000000000000000000000000000000000000000..665ce0511712c49b8049e286baf23857
 +  writeFileSync(join(projet, '.claude/chaine.json'), `${JSON.stringify(contrat, null, 2)}\n`);
 +  writeFileSync(join(projet, 'scripts/docs/index-generes.json'), readFileSync(join(RACINE, INDEX), 'utf8').replaceAll('{{SCOPE}}', 'jouet').replaceAll('{{PROJET}}', 'jouet'));
 +  writeFileSync(join(projet, 'package.json'), '{ "name": "jouet", "private": true, "type": "module" }\n');
++  // Comme un projet, le jouet a ses dépendances à sa racine (`pnpm install`) : un banc posé y résout `typescript`
++  // (`tests-creux.test.mjs`), jamais par un `NODE_PATH` ou un dossier parent du poste. Un lien vers celles du plugin,
++  // hors de l'index du jouet.
++  writeFileSync(join(projet, '.gitignore'), '/node_modules\n');
++  symlinkSync(join(RACINE, 'node_modules'), join(projet, 'node_modules'), 'dir');
 +
 +  const env = { ...environnementDeBanc(), GIT_CONFIG_GLOBAL: '/dev/null', GIT_CONFIG_NOSYSTEM: '1' };
 +  const git = (...args) => execFileSync('git', args, { cwd: projet, env, stdio: 'ignore' });
@@ -143,10 +161,10 @@ index 0000000000000000000000000000000000000000..665ce0511712c49b8049e286baf23857
 +}
 diff --git a/scripts/references-posees.test.mjs b/scripts/references-posees.test.mjs
 new file mode 100644
-index 0000000000000000000000000000000000000000..f32cda180b3099e1ef5be312b5c572e2681e29c3
+index 0000000000000000000000000000000000000000..17e68a055c52ff716201eadc6f515f2cb114d1b0
 --- /dev/null
 +++ b/scripts/references-posees.test.mjs
-@@ -0,0 +1,69 @@
+@@ -0,0 +1,71 @@
 +// Ticket 90 : tout banc rangé sous `references/` d'un skill est posé dans les projets, et un projet le joue (`check:tickets`
 +// au pre-push et en CI, l'étape 3 du socle de la chaîne). Le garde le pose comme un projet le pose (`pose-du-socle.mjs`),
 +// avec le contrat du gabarit, au régime 8 puis au régime 7, et le joue : un banc qui lit, par un défaut, le contrat ou
@@ -204,11 +222,13 @@ index 0000000000000000000000000000000000000000..f32cda180b3099e1ef5be312b5c572e2
 +      const compte = (nom) => Number((r.stdout.match(new RegExp(`^# ${nom} (\\d+)$`, 'm')) ?? [])[1]);
 +      const echecs = [...r.stdout.matchAll(/^not ok \d+ - (.*)$/gm)].map((m) => m[1]);
 +      t.diagnostic(`régime ${regime} : ${bancs.length} bancs, ${compte('tests')} tests, ${compte('pass')} verts, ${compte('skipped')} sautés`);
-+      const sautes = [...r.stdout.matchAll(/^ok \d+ - (.*) # SKIP\b/gm)].map((m) => m[1]);
++      // Un sous-test sauté sort indenté : il compte comme les autres.
++      const sautes = [...r.stdout.matchAll(/^ *ok \d+ - (.*) # SKIP\b/gm)].map((m) => m[1]);
 +      assert.deepEqual(echecs, [], `régime ${regime} : bancs posés en échec`);
 +      assert.equal(r.status, 0, `régime ${regime} : sortie ${r.status} ${r.signal ?? ''}\n${r.stderr.slice(-2000)}`);
 +      assert.equal(compte('fail'), 0);
 +      assert.equal(compte('cancelled'), 0);
++      assert.equal(compte('todo'), 0, `régime ${regime} : tests « todo », jamais jugés`);
 +      assert.deepEqual(sautes, SAUTES, `régime ${regime} : tests sautés`);
 +      assert.ok(compte('tests') >= PLANCHER, `régime ${regime} : ${compte('tests')} tests joués, plancher ${PLANCHER}`);
 +    } finally {
@@ -217,7 +237,7 @@ index 0000000000000000000000000000000000000000..f32cda180b3099e1ef5be312b5c572e2
 +  });
 +}
 diff --git a/skills/chaine/socle-chaine-de-production/references/CONTENU.md b/skills/chaine/socle-chaine-de-production/references/CONTENU.md
-index c767caa1f4d4e9776e86ac6f4f1f964dc2f60136..c703406545be59ee7f40e63eb76aedd98cba153e 100644
+index c767caa1f4d4e9776e86ac6f4f1f964dc2f60136..78d83bfedd99bf1c55db7fb92dc08287fbee4330 100644
 --- a/skills/chaine/socle-chaine-de-production/references/CONTENU.md
 +++ b/skills/chaine/socle-chaine-de-production/references/CONTENU.md
 @@ -10,7 +10,7 @@ Une liste unique des fichiers qu'on régénère et qu'on n'édite jamais, avec l
@@ -234,12 +254,12 @@ index c767caa1f4d4e9776e86ac6f4f1f964dc2f60136..c703406545be59ee7f40e63eb76aedd9
  ## La branche `develop` — `scripts/github/develop.sh`
  
 -Créée sur le distant depuis `origin/main`, une fois, puis rapatriée : la couverture du diff et la revue comparent à `origin/develop`. Par `git push` sous le hook pre-push, jamais en le sautant : le push ne porte que `origin/main`, déjà sur le distant, et le pre-push du socle (`husky/pre-push`) sort 0 quand rien de neuf ne part (chaque commit connu des refs de suivi du distant visé, puis de ses branches lues par `git ls-remote --heads` : une ref de suivi se fabrique sur place). Un `.husky/pre-push` antérieur au socle 7.0.1 jouerait `pnpm check` sur l'arbre de travail — pas ce qui part — et `coverage-diff` chercherait `origin/develop` comme base : la branche que ce push crée (refus, sortie 2, vu le 2026-11-09) ; le reposer, jamais le sauter. La commande tapée à la main reste à éviter : le script est idempotent et donne ses sorties. L'API GitHub (`POST git/refs`) ne convient pas : le proxy des sessions cloud la refuse (403), comme pour `sujet.sh ouvrir`. Sorties : 4 précondition (pas de `origin`, `main` absente du distant), 5 push refusé, 6 distant injoignable (`ls-remote` ou `fetch` en échec : jamais pris pour une `main` absente). Idempotent ; testé dans le plugin (`develop.test.mjs`, dépôt jouet sous le pre-push du socle, avec un faux `pnpm` : develop créée, rien joué ; le hook seul : commit neuf contrôlé, entrée vide ou illisible contrôlée, suppression sans contrôle, ref de suivi fabriquée sur place ou distant nommé par son URL contrôlés, l'arbre de travail jugé et non chaque commit qui part (une fusion refusée seule passe suivie de sa retouche, ce qu'exige la PR de mise à jour de `sujet.sh`), worktree sans `GIT_DIR`, variables du capitaine (`PASSER_OUTILS`, `BOUCLE_*`) retirées avant les contrôles). Limites du pre-push : un commit déjà sur une branche du distant passe sans contrôle local, la CI exigée le rejoue sur la PR ; la confirmation ouvre une seconde connexion au distant, et en interactif une seconde authentification peut être demandée ; quand le distant a un `pushurl` distinct de son URL de lecture, ou qu'un `url.<x>.pushInsteadOf` réécrit celle du push, la confirmation lit l'URL de lecture, pas celle où part le push ; une greffe locale (`.git/info/grafts`) peut faire croire au hook que le distant connaît le commit : le push échoue alors au transport, rien n'arrive sur le distant ; les variables du capitaine ne sont retirées que pour ses contrôles, pas pour un banc lancé à la main (le dépôt jouet des bancs les retire lui-même) ; un hook sauté (`HUSKY=0`, `core.hooksPath`) ne joue rien du tout. La frontière reste la CI exigée.
-+Créée sur le distant depuis `origin/main`, une fois, puis rapatriée : la couverture du diff et la revue comparent à `origin/develop`. Par `git push` sous le hook pre-push, jamais en le sautant : le push ne porte que `origin/main`, déjà sur le distant, et le pre-push du socle (`husky/pre-push`) sort 0 quand rien de neuf ne part (chaque commit connu des refs de suivi du distant visé, puis de ses branches lues par `git ls-remote --heads` : une ref de suivi se fabrique sur place). Un `.husky/pre-push` antérieur au socle 7.0.1 jouerait `pnpm check` sur l'arbre de travail — pas ce qui part — et `coverage-diff` chercherait `origin/develop` comme base : la branche que ce push crée (refus, sortie 2, vu le 2026-11-09) ; le reposer, jamais le sauter. La commande tapée à la main reste à éviter : le script est idempotent et donne ses sorties. L'API GitHub (`POST git/refs`) ne convient pas : le proxy des sessions cloud la refuse (403), comme pour `sujet.sh ouvrir`. Sorties : 4 précondition (pas de `origin`, `main` absente du distant), 5 push refusé, 6 distant injoignable (`ls-remote` ou `fetch` en échec : jamais pris pour une `main` absente). Idempotent ; testé dans le plugin, jamais posé (`scripts/develop.test.mjs` du skill, hors de `references/`, dont tout banc est posé et joué dans un projet : `scripts/references-posees.test.mjs` du plugin ; dépôt jouet sous le pre-push du socle, avec un faux `pnpm` : develop créée, rien joué ; le hook seul : commit neuf contrôlé, entrée vide ou illisible contrôlée, suppression sans contrôle, ref de suivi fabriquée sur place ou distant nommé par son URL contrôlés, l'arbre de travail jugé et non chaque commit qui part (une fusion refusée seule passe suivie de sa retouche, ce qu'exige la PR de mise à jour de `sujet.sh`), worktree sans `GIT_DIR`, variables du capitaine (`PASSER_OUTILS`, `BOUCLE_*`) retirées avant les contrôles). Limites du pre-push : un commit déjà sur une branche du distant passe sans contrôle local, la CI exigée le rejoue sur la PR ; la confirmation ouvre une seconde connexion au distant, et en interactif une seconde authentification peut être demandée ; quand le distant a un `pushurl` distinct de son URL de lecture, ou qu'un `url.<x>.pushInsteadOf` réécrit celle du push, la confirmation lit l'URL de lecture, pas celle où part le push ; une greffe locale (`.git/info/grafts`) peut faire croire au hook que le distant connaît le commit : le push échoue alors au transport, rien n'arrive sur le distant ; les variables du capitaine ne sont retirées que pour ses contrôles, pas pour un banc lancé à la main (le dépôt jouet des bancs les retire lui-même) ; un hook sauté (`HUSKY=0`, `core.hooksPath`) ne joue rien du tout. La frontière reste la CI exigée.
++Créée sur le distant depuis `origin/main`, une fois, puis rapatriée : la couverture du diff et la revue comparent à `origin/develop`. Par `git push` sous le hook pre-push, jamais en le sautant : le push ne porte que `origin/main`, déjà sur le distant, et le pre-push du socle (`husky/pre-push`) sort 0 quand rien de neuf ne part (chaque commit connu des refs de suivi du distant visé, puis de ses branches lues par `git ls-remote --heads` : une ref de suivi se fabrique sur place). Un `.husky/pre-push` antérieur au socle 7.0.1 jouerait `pnpm check` sur l'arbre de travail — pas ce qui part — et `coverage-diff` chercherait `origin/develop` comme base : la branche que ce push crée (refus, sortie 2, vu le 2026-11-09) ; le reposer, jamais le sauter. La commande tapée à la main reste à éviter : le script est idempotent et donne ses sorties. L'API GitHub (`POST git/refs`) ne convient pas : le proxy des sessions cloud la refuse (403), comme pour `sujet.sh ouvrir`. Sorties : 4 précondition (pas de `origin`, `main` absente du distant), 5 push refusé, 6 distant injoignable (`ls-remote` ou `fetch` en échec : jamais pris pour une `main` absente). Idempotent ; testé dans le plugin par un banc jamais posé (`scripts/develop.test.mjs` du skill, hors de `references/`, dont tout banc est posé et joué dans un projet : `scripts/references-posees.test.mjs` du plugin ; dépôt jouet sous le pre-push du socle, avec un faux `pnpm` : develop créée, rien joué ; le hook seul : commit neuf contrôlé, entrée vide ou illisible contrôlée, suppression sans contrôle, ref de suivi fabriquée sur place ou distant nommé par son URL contrôlés, l'arbre de travail jugé et non chaque commit qui part (une fusion refusée seule passe suivie de sa retouche, ce qu'exige la PR de mise à jour de `sujet.sh`), worktree sans `GIT_DIR`, variables du capitaine (`PASSER_OUTILS`, `BOUCLE_*`) retirées avant les contrôles). Limites du pre-push : un commit déjà sur une branche du distant passe sans contrôle local, la CI exigée le rejoue sur la PR ; la confirmation ouvre une seconde connexion au distant, et en interactif une seconde authentification peut être demandée ; quand le distant a un `pushurl` distinct de son URL de lecture, ou qu'un `url.<x>.pushInsteadOf` réécrit celle du push, la confirmation lit l'URL de lecture, pas celle où part le push ; une greffe locale (`.git/info/grafts`) peut faire croire au hook que le distant connaît le commit : le push échoue alors au transport, rien n'arrive sur le distant ; les variables du capitaine ne sont retirées que pour ses contrôles, pas pour un banc lancé à la main (le dépôt jouet des bancs les retire lui-même) ; un hook sauté (`HUSKY=0`, `core.hooksPath`) ne joue rien du tout. La frontière reste la CI exigée.
  
  ## La CI — `ci/ci.yml`
  
 diff --git a/skills/chaine/socle-chaine-de-production/references/agent/regles.test.mjs b/skills/chaine/socle-chaine-de-production/references/agent/regles.test.mjs
-index ad5c779b45546510ff790f7fb9b8bdc1bb06b771..353b3a39745b05e9d14ef6610cc2ea6a0fd4afea 100644
+index 2c5fd193afcc258d258578808601229ba76d7bbd..41ea1b5aa345ad3097aeef604101bc367795201d 100644
 --- a/skills/chaine/socle-chaine-de-production/references/agent/regles.test.mjs
 +++ b/skills/chaine/socle-chaine-de-production/references/agent/regles.test.mjs
 @@ -1,7 +1,21 @@
@@ -267,7 +287,7 @@ index ad5c779b45546510ff790f7fb9b8bdc1bb06b771..353b3a39745b05e9d14ef6610cc2ea6a
  
  const livree = { migrationExistante: () => true, migrations: 'apps/api/src/db/migrations/' };
  const nouvelle = { migrationExistante: () => false, migrations: 'apps/api/src/db/migrations/' };
-@@ -13,8 +27,20 @@ test('refusEdition refuse une migration déjà livrée et laisse écrire une nou
+@@ -13,8 +27,22 @@ test('refusEdition refuse une migration déjà livrée et laisse écrire une nou
    assert.match(refusEdition('apps/api/prisma/migrations/2026_x/migration.sql', { ...livree, migrations: 'apps/api/prisma/migrations' }), /ne se modifie jamais/);
  });
  
@@ -284,12 +304,23 @@ index ad5c779b45546510ff790f7fb9b8bdc1bb06b771..353b3a39745b05e9d14ef6610cc2ea6a
 +  const huit = { ...nouvelle, regime8: true, sensibles: ['.claude/**'] };
 +  for (const c of skills) {
 +    assert.match(refusEdition(c, huit) ?? '', /^\.claude\/skills\/.* chemin sensible .*\(Aucune ligne lue : /, `${c} : régime 8, sans ticket lu`);
-+    assert.match(refusEdition(c, { ...huit, accordes: () => ({ copies: [['docs/x.md']] }) }) ?? '', /hors de la ligne `Sensibles:`/, `${c} : régime 8, hors accord`);
++    const horsAccord = refusEdition(c, { ...huit, accordes: () => ({ copies: [['docs/x.md']] }) }) ?? '';
++    assert.match(horsAccord, /hors de la ligne `Sensibles:`/, `${c} : régime 8, hors accord`);
++    assert.doesNotMatch(horsAccord, /Aucune ligne lue/, `${c} : régime 8, hors accord : la ligne a été lue`);
 +    assert.equal(refusEdition(c, { ...huit, accordes: () => ({ copies: [['.claude/skills/**']] }) }), null, `${c} : régime 8, accordé`);
 +  }
  });
  
  test('refusEdition refuse le lockfile et les fichiers .env, laisse .env.example', () => {
+@@ -1958,7 +1986,7 @@ test('ticket 18 : un message qui cite --amend passe, comme --fixup=amend', () =>
+ 
+ // ── Lot 5b : la ligne `Sensibles:` et le refus d'un chemin sensible en régime 8 ──────────────────────────────────
+ test('lot 5b, lireSensibles : les chemins accordés, `—`, et ce qui ne se lit pas (copie de chemins-sensibles.mjs, même table)', async () => {
+-  const { lireSensibles } = await import('./regles.mjs');
++  const { lireSensibles } = await import(REGLES);
+   const enTete = (ligne) => `# T\n\nStatus: ready-for-agent\n${ligne}\n\n## Le besoin\n\nSensibles: corps/ignoré — accord de x, 2026-01-01\n`;
+   assert.deepEqual(lireSensibles(enTete('Sensibles: `scripts/agent/**`, docs/x.md — accord de la MOA, 2026-11-18 # repose')), { chemins: ['scripts/agent/**', 'docs/x.md'] });
+   assert.deepEqual(lireSensibles(enTete('**Sensibles:** — # rien')), { chemins: [] });
 diff --git a/skills/chaine/socle-chaine-de-production/references/scripts/github/develop.test.mjs b/skills/chaine/socle-chaine-de-production/scripts/develop.test.mjs
 similarity index 95%
 rename from skills/chaine/socle-chaine-de-production/references/scripts/github/develop.test.mjs
