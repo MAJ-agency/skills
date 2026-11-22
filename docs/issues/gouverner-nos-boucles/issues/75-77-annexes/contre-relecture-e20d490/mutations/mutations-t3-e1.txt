@@ -1,0 +1,8 @@
+# mutations-t2.mjs C3 C4 C6 C8 C9 (E1, en plus de la consigne), arbre e20d490, 18:06:07 UTC,  18:06:07 up 11:29,  0 user,  load average: 1.61, 1.58, 4.18
+ROUGE C3 passer.sh : une revue du capitaine en échec (3) au premier contrôle lue comme une lecture illisible (sautée en 7) (1 s ; le cas « de bout en bout » seul ; # tests 1, # pass 0, # fail 1) — régime 8, de bout en bout : `meme-contenu.sh` sorti en 69 (git 2.40) arrête `passer.sh` en
+ROUGE C4 sujet.sh juger_revue : une revue du capitaine en échec (3) lue comme une lecture illisible (sautée en 7) (6 s ; le cas « de bout en bout » seul ; # tests 1, # pass 0, # fail 1) — régime 8, de bout en bout : `meme-contenu.sh` sorti en 69 (git 2.40) arrête `passer.sh` en
+ROUGE C6 passer.sh : une revue du capitaine en échec (3) au second contrôle lue comme une lecture illisible (sautée en 7) (3 s ; le cas « de bout en bout » seul ; # tests 1, # pass 0, # fail 1) — régime 8, de bout en bout : `meme-contenu.sh` sorti en 69 (git 2.40) arrête `passer.sh` en
+ROUGE C8 passer.sh : au premier contrôle, la sortie 3 sans sa cause (la ligne de revue-exigee.mjs tue) (1 s ; le cas « de bout en bout » seul ; # tests 1, # pass 0, # fail 1) — régime 8, de bout en bout : `meme-contenu.sh` sorti en 69 (git 2.40) arrête `passer.sh` en
+ROUGE C9 sujet.sh juger_revue : la sortie 3 d’une revue lue comme GitHub illisible (5, reprise au tour suivant, sans fin) (6 s ; le cas « de bout en bout » seul ; # tests 1, # pass 0, # fail 1) — régime 8, de bout en bout : `meme-contenu.sh` sorti en 69 (git 2.40) arrête `passer.sh` en
+toutes rouges
+# fin 18:06:25 UTC,  18:06:25 up 11:29,  0 user,  load average: 1.62, 1.59, 4.14 ; arbre : 0 fichier(s) modifié(s)

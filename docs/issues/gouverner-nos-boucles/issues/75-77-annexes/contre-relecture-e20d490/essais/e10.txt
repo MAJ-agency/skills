@@ -1,0 +1,49 @@
+# E10 sur e20d490
+arbre : e20d490 ;  18:05:35 up 11:28,  0 user,  load average: 1.54, 1.57, 4.28
+## E1 seul, le poste tel quel
+ok 1 - régime 8, de bout en bout : `meme-contenu.sh` sorti en 69 (git 2.40) arrête `passer.sh` en 3 à ses deux contrôles et `sujet.sh fusionner` en 11, la cause dite, jamais sautée en 7
+  duration_ms: 5811.807267
+# tests 1
+# pass 1
+# fail 0
+## E10 : PATH=<lab>/git avec espace:$PATH
+ok 1 - régime 8, de bout en bout : `meme-contenu.sh` sorti en 69 (git 2.40) arrête `passer.sh` en 3 à ses deux contrôles et `sujet.sh fusionner` en 11, la cause dite, jamais sautée en 7
+  duration_ms: 5794.883348
+# tests 1
+# pass 1
+# fail 0
+## E10b : PATH=<lab>/git "guillemet\oblique:$PATH
+ok 1 - régime 8, de bout en bout : `meme-contenu.sh` sorti en 69 (git 2.40) arrête `passer.sh` en 3 à ses deux contrôles et `sujet.sh fusionner` en 11, la cause dite, jamais sautée en 7
+  duration_ms: 5959.386449
+# tests 1
+# pass 1
+# fail 0
+arbre après : 0 fichier(s) modifié(s) ;  18:05:53 up 11:29,  0 user,  load average: 1.60, 1.58, 4.22
+
+# E10 sur 34ac533, pour comparer
+arbre : 34ac533 ;  18:05:53 up 11:29,  0 user,  load average: 1.60, 1.58, 4.22
+## E1 seul, le poste tel quel
+ok 1 - régime 8, de bout en bout : `meme-contenu.sh` sorti en 69 (git 2.40) arrête `passer.sh` en 3 à ses deux contrôles et `sujet.sh fusionner` en 11, la cause dite, jamais sautée en 7
+  duration_ms: 6283.398874
+# tests 1
+# pass 1
+# fail 0
+## E10 : PATH=<lab>/git avec espace:$PATH
+not ok 1 - régime 8, de bout en bout : `meme-contenu.sh` sorti en 69 (git 2.40) arrête `passer.sh` en 3 à ses deux contrôles et `sujet.sh fusionner` en 11, la cause dite, jamais sautée en 7
+  duration_ms: 388.400974
+  error: |-
+  expected: 3
+  actual: 127
+# tests 1
+# pass 0
+# fail 1
+## E10b : PATH=<lab>/git "guillemet\oblique:$PATH
+not ok 1 - régime 8, de bout en bout : `meme-contenu.sh` sorti en 69 (git 2.40) arrête `passer.sh` en 3 à ses deux contrôles et `sujet.sh fusionner` en 11, la cause dite, jamais sautée en 7
+  duration_ms: 426.089637
+  error: |-
+  expected: 3
+  actual: 2
+# tests 1
+# pass 0
+# fail 1
+arbre après : 0 fichier(s) modifié(s) ;  18:06:01 up 11:29,  0 user,  load average: 1.63, 1.58, 4.21

@@ -1,0 +1,107 @@
+# E9, E9b, E11, E0 sur e20d490
+arbre : e20d490 ; mutation : aucune ;  18:02:53 up 11:26,  0 user,  load average: 1.27, 1.36, 4.74
+## E0 : node et PATH du poste
+ok 1 - suite du lot 5 — un poste sans `jq` : `github.sh` sorti en 69, la passe et `jouer` sortent en 6, rien d’écrit ; la veille s’arrête, jamais une pause sans fin
+# tests 1
+# pass 1
+# fail 0
+## E9 : node copié à côté de jq, PATH du poste
+ok 1 - suite du lot 5 — un poste sans `jq` : `github.sh` sorti en 69, la passe et `jouer` sortent en 6, rien d’écrit ; la veille s’arrête, jamais une pause sans fin
+# tests 1
+# pass 1
+# fail 0
+## E9b : le dossier node+jq en tête du PATH
+ok 1 - suite du lot 5 — un poste sans `jq` : `github.sh` sorti en 69, la passe et `jouer` sortent en 6, rien d’écrit ; la veille s’arrête, jamais une pause sans fin
+# tests 1
+# pass 1
+# fail 0
+## E11 : PATH = brew (node, jq, flock) : système (sans jq, node, flock)
+#  jq -> <lab>/brew/jq
+#  flock -> <lab>/brew/flock
+#  node -> <lab>/brew/node
+#  git -> <lab>/systeme/git
+#  bash -> <lab>/systeme/bash
+ok 1 - suite du lot 5 — un poste sans `jq` : `github.sh` sorti en 69, la passe et `jouer` sortent en 6, rien d’écrit ; la veille s’arrête, jamais une pause sans fin
+# tests 1
+# pass 1
+# fail 0
+arbre après : 0 fichier(s) modifié(s) ;  18:03:00 up 11:26,  0 user,  load average: 1.25, 1.35, 4.72
+
+# les mêmes, G1 posée (sansOutil('github.sh', r) retiré), sur e20d490
+arbre : e20d490 ; mutation : G1 ;  18:03:02 up 11:26,  0 user,  load average: 1.31, 1.36, 4.70
+## E0 : node et PATH du poste
+not ok 1 - suite du lot 5 — un poste sans `jq` : `github.sh` sorti en 69, la passe et `jouer` sortent en 6, rien d’écrit ; la veille s’arrête, jamais une pause sans fin
+  error: |-
+  expected: 6
+  actual: 5
+# tests 1
+# pass 0
+# fail 1
+## E9 : node copié à côté de jq, PATH du poste
+not ok 1 - suite du lot 5 — un poste sans `jq` : `github.sh` sorti en 69, la passe et `jouer` sortent en 6, rien d’écrit ; la veille s’arrête, jamais une pause sans fin
+  error: |-
+  expected: 6
+  actual: 5
+# tests 1
+# pass 0
+# fail 1
+## E9b : le dossier node+jq en tête du PATH
+not ok 1 - suite du lot 5 — un poste sans `jq` : `github.sh` sorti en 69, la passe et `jouer` sortent en 6, rien d’écrit ; la veille s’arrête, jamais une pause sans fin
+  error: |-
+  expected: 6
+  actual: 5
+# tests 1
+# pass 0
+# fail 1
+## E11 : PATH = brew (node, jq, flock) : système (sans jq, node, flock)
+#  jq -> <lab>/brew/jq
+#  flock -> <lab>/brew/flock
+#  node -> <lab>/brew/node
+#  git -> <lab>/systeme/git
+#  bash -> <lab>/systeme/bash
+not ok 1 - suite du lot 5 — un poste sans `jq` : `github.sh` sorti en 69, la passe et `jouer` sortent en 6, rien d’écrit ; la veille s’arrête, jamais une pause sans fin
+  error: |-
+  expected: 6
+  actual: 5
+# tests 1
+# pass 0
+# fail 1
+arbre après : 0 fichier(s) modifié(s) ;  18:03:07 up 11:26,  0 user,  load average: 1.52, 1.41, 4.70
+
+# les mêmes sur 34ac533 (avant la retouche), pour comparer
+arbre : 34ac533 ; mutation : aucune ;  18:03:09 up 11:26,  0 user,  load average: 1.52, 1.41, 4.70
+## E0 : node et PATH du poste
+ok 1 - suite du lot 5 — un poste sans `jq` : `github.sh` sorti en 69, la passe et `jouer` sortent en 6, rien d’écrit ; la veille s’arrête, jamais une pause sans fin
+# tests 1
+# pass 1
+# fail 0
+## E9 : node copié à côté de jq, PATH du poste
+not ok 1 - suite du lot 5 — un poste sans `jq` : `github.sh` sorti en 69, la passe et `jouer` sortent en 6, rien d’écrit ; la veille s’arrête, jamais une pause sans fin
+  error: 'jq absent du PATH du jouet'
+  expected: 0
+  actual: 0
+# tests 1
+# pass 0
+# fail 1
+## E9b : le dossier node+jq en tête du PATH
+not ok 1 - suite du lot 5 — un poste sans `jq` : `github.sh` sorti en 69, la passe et `jouer` sortent en 6, rien d’écrit ; la veille s’arrête, jamais une pause sans fin
+  error: 'jq absent du PATH du jouet'
+  expected: 0
+  actual: 0
+# tests 1
+# pass 0
+# fail 1
+## E11 : PATH = brew (node, jq, flock) : système (sans jq, node, flock)
+#  jq -> <lab>/brew/jq
+#  flock -> <lab>/brew/flock
+#  node -> <lab>/brew/node
+#  git -> <lab>/systeme/git
+#  bash -> <lab>/systeme/bash
+not ok 1 - suite du lot 5 — un poste sans `jq` : `github.sh` sorti en 69, la passe et `jouer` sortent en 6, rien d’écrit ; la veille s’arrête, jamais une pause sans fin
+  error: 'jq absent du PATH du jouet'
+  expected: 0
+  actual: 0
+# tests 1
+# pass 0
+# fail 1
+arbre après : 0 fichier(s) modifié(s) ;  18:03:14 up 11:26,  0 user,  load average: 1.64, 1.43, 4.69

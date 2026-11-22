@@ -1,0 +1,15 @@
+# Le delta 34ac533..e20d490 contre retouche-153-tour-2.patch (annexe du tour 2, sha256 4160c1414e10f425…)
+e20d490b4208836ad19a8f6a5bf9dbe2cecae66a test(relecteur): le banc sans jq ne dépend plus du dossier de node, note précisée (retouche du tour 2)
+ NOTES-DE-VERSION.md                                |  2 +-
+ .../scripts/verdict-du-capitaine.test.mjs          |  2 +-
+ skills/chaine/relecteur/scripts/relecteur.test.mjs | 25 ++++++++++++++++------
+ 3 files changed, 21 insertions(+), 8 deletions(-)
+arbre de e20d490 : bfc9605cba759620656dd19bccfb7d3b21ac5fb3
+arbre de 34ac533 + le patch (git apply) : bfc9605cba759620656dd19bccfb7d3b21ac5fb3
+patch-id du delta : 07717cb1155bc7886df046a0b084329e40c275e8
+patch-id du patch : 07717cb1155bc7886df046a0b084329e40c275e8
+
+# La CI de GitHub sur e20d490 (lue, rien écrit)
+job « bancs » 137300666323 (run 45052547281), tête e20d490b4208836ad19a8f6a5bf9dbe2cecae66a : success, 18:00:11 → 18:13:17 UTC ;
+git 2.56.1 ; # tests 1404, # pass 1404, # fail 0, # cancelled 0, # skipped 0.
+CodeQL, Analyze (actions), Analyze (javascript-typescript) : success.
