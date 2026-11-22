@@ -1,0 +1,20 @@
+# Échantillon de 15 de 67-annexes/mutations.mjs, graine 686 (mutations/echantillon.mjs : « 43 mutations, graine 686 : A1 A2 B1 B4 B6 B11 B14 B15 B16 B18 C1 C3 C4 C6 C14 »), sur l'arbre de la PR (686dcc6), chacune seule, le fichier remis après
+debut 23:28:08 5.35 6.49 7.00 3/222 7917
+ROUGE A1 veille : la sortie d’erreur d’une passe sortie en 5 jetée (R3) (94 s) — suite 66 — R3 : une installation en échec dans une passe que
+ROUGE A2 veille : `--attendre` ignoré (R5) (95 s) — suite 66 — R5 : `veille --attendre` met une pause avant sa p
+ROUGE B1 jouer : une étiquette déjà posée ne rend jamais de ligne (le code d’avant, C11) (109 s) — contre-relecture — le plafond se dit à l’auteur, au conducte | suite 66 — C11 : une étiquette restée d’un tour d’avant (pos | suite 66 — C11, A-183 point 6 : une marque plus récente que  | suite 66 — C12 : un plafond à moitié écrit se rejoue entier 
+ROUGE B4 poseeApres : la première pose lue, pas la dernière (164 s) — suite 66 — un passage rejoué (l’étiquette posée par lui, apr
+ROUGE B6 poseeApres : la pose d’une autre étiquette compte (166 s) — suite 66 — C11 : une étiquette restée d’un tour d’avant (pos
+ROUGE B11 jouer : l’ancienne étiquette jamais retirée, à aucun geste (155 s) — nominal : distribuer (r6), écrire la distribution après la s | une étiquette déjà posée après la marque la plus récente (un | ticket 66 — sur un chemin sensible, un refus sans « /securit | le plafond : au troisième tour refusé, `à-reprendre`, puis l | contre-relecture — le plafond se dit à l’auteur, au conducte | suite 66 — C11 : une étiquette restée d’un tour d’avant (pos | suite 66 — C12 : un plafond à moitié écrit se rejoue entier 
+ROUGE B14 décision : une session `couple` n’est pas hors service (150 s) — A-182 (2) — une session à un autre couple que la PR (`couple | suite 66 — A-182 (2) : une session que le modèle lit à un au
+ROUGE B15 faux GitHub : la pose n’ajoute aucun événement (120 s) — suite 66 — un passage rejoué (l’étiquette posée par lui, apr | faux gh, événements : une pose d’étiquette absente ajoute `l
+ROUGE B16 faux GitHub : une étiquette déjà posée ajoute un événement (8 s) — faux gh, événements : une pose d’étiquette absente ajoute `l
+ROUGE B18 faux GitHub : les événements datés de l’heure de la machine, jamais de `maintenant` (122 s) — faux gh, événements : une pose d’étiquette absente ajoute `l
+ROUGE C1 SKILL.md : la relance de la veille déplacée hors de la puce `VEILLE ARRÊTÉE` (E1 du rapport, rejouée) (0 s) — contre-relecture de la PR 146 — aucun geste laissé à improvi
+ROUGE C3 SKILL.md : la relance sans `--attendre` (0 s) — contre-relecture de la PR 146 — aucun geste laissé à improvi
+ROUGE C4 SKILL.md : la sortie 9 sans borne (R5) (0 s) — suite du ticket 66 (ticket 69) — chaque phrase neuve à sa pl
+ROUGE C6 SKILL.md : l’état `couple` absent de la forme du fichier (0 s) — suite du ticket 66 (ticket 69) — chaque phrase neuve à sa pl
+ROUGE C14 SKILL.md : comment l’installation se retente, retiré de « Mise en place » (17) (0 s) — suite du ticket 66 (ticket 69) — chaque phrase neuve à sa pl
+toutes rouges
+sortie 0
+fin 23:47:51 6.60 7.69 7.57 13/219 6852

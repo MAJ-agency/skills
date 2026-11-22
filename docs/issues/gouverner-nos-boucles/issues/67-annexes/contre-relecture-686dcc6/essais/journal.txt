@@ -1,0 +1,137 @@
+# Essais rejoués et essais de ce tour, 2026-11-21, Node 22.23.5, git 2.43.0, quatre cœurs (machine partagée)
+# Rouges avant le code, ticket par ticket (bancs du ticket seuls, sur l'arbre du ticket précédent ; 25a72c7 pour le 67)
+== ticket 67 : relecteur.test.mjs sur 25a72c7 + les bancs du ticket 67
+not ok 20 - X15 — les causes d’illisible, une à une : forme refusée par `a-juger` (à l’auteur), PR de fourche, dépendances de develop (à l’architecte) ; une fois signalée, rien
+not ok 35 - suite 66 — R3 : une installation en échec dans une passe que GitHub fait ensuite sortir en 5 : son erreur au journal de la veille
+not ok 36 - suite 66 — R5 : `veille --attendre` met une pause avant sa première passe, sous la même borne que les autres ; sans lui, la première passe part tout de suite
+not ok 37 - suite 66 — 18 : un push entre la préparation et la lecture de la PR : la tête est relue une fois, jamais dite introuvable pour rien
+# tests 37
+# pass 33
+# fail 4
+== ticket 68 : les trois bancs sur l'arbre du ticket 67 + les bancs du ticket 68
+not ok 40 - A-182 (2) — une session à un autre couple que la PR (`couple`) est remplacée, cause `couple`, jamais relancée ; une fois par tour, puis la panne
+not ok 47 - le plafond : au troisième tour refusé, `à-reprendre`, puis le commentaire `Plafond — décision attendue` ; l’architecte prévenu
+not ok 78 - suite 66 — C11 : une étiquette restée d’un tour d’avant (posée avant le verdict) n’est pas un passage rejoué : le refus se dit à l’auteur et au conducteur ; à la même seconde, ou sans pose lue, aussi
+not ok 79 - suite 66 — C11, A-183 point 6 : une marque plus récente que la pose (une demande refaite sans push) fait repartir les lignes
+not ok 81 - suite 66 — C12 : un plafond à moitié écrit se rejoue entier : l’étiquette d’abord ; la pose ou le commentaire refusés, le rejeu prévient l’architecte, un seul commentaire
+not ok 82 - suite 66 — A-182 (2) : une session que le modèle lit à un autre couple (`couple`) est remplacée, cause `couple`, au couple que la PR demande
+not ok 98 - faux gh, événements : une pose d’étiquette absente ajoute `labeled`, un retrait `unlabeled`, datés de `maintenant` ; `GET issues/<n>/events` les rend comme GitHub
+# tests 98
+# pass 91
+# fail 7
+== ticket 69 : scripts/relecteur.test.mjs sur l'arbre du ticket 68 + le banc du ticket 69
+not ok 3 - contre-relecture de la PR 146 — aucun geste laissé à improviser : le délai de l'outil, toute autre sortie, la veille arrêtée, les champs de get_session, les lignes à l'architecte, une PR tue
+not ok 9 - suite du ticket 66 (ticket 69) — chaque phrase neuve à sa place : `--attendre` et la borne de 9, l'état `couple`, `send_message` en échec, les causes des lignes, une étiquette restée, l'installation à retenter
+# tests 9
+# pass 7
+# fail 2
+
+debut 22:54:58  22:54:58 up  3:40,  0 user,  load average: 6.07, 7.75, 7.51
+=== APRES = arbre de la PR (686dcc6)
+ok 1 - C11 (mineur, ticket de suite) — un refus (règle 4) sur une PR où `à-reprendre` est restée posée : l’auteur n’est pas prévenu
+ok 2 - C12 (mineur, ticket de suite) — un plafond à moitié écrit (commentaire posé, pose de l’étiquette refusée une fois) : au rejeu, l’architecte n’est pas prévenu
+# tests 2
+# pass 2
+# fail 0
+ok 1 - R3 (mineur, ticket de suite) — une installation en échec dans une passe que GitHub fait sortir en 5 : son erreur n’arrive pas au journal de la veille
+# tests 1
+# pass 1
+# fail 0
+ok 1 - R5 (tenue) — la veille relancée rejoue sa première passe sans pause : un `index.lock` resté donne deux `VEILLE ARRÊTÉE sortie 12` en quelques secondes, et la suite de 12 arrête le Relecteur à la seconde
+not ok 2 - R5 (tenue) — la sortie 9 renvoie au réveil suivant sans borne : relancée à chaque arrêt, la veille se rendort au plus cinq minutes, sans fin, et `VEILLE FINIE`, seul point où le Relecteur relève son contexte, ne vient jamais
+# tests 2
+# pass 1
+# fail 1
+=== essai-marque du tour de relecture des tickets (lancer-essai.sh), arbre de la PR
+ok 1 - relecture — C11, A-183 point 6 : une marque plus récente que la pose (une demande refaite sans push) fait repartir les lignes
+# tests 1
+# pass 1
+# fail 0
+=== essais de ce tour, APRES = 686dcc6
+not ok 1 - K1 — un plafond entier dont le retrait de `à-relire` a été refusé (et tu) : le rejeu ne redit rien (A-118 ; vert sur 25a72c7)
+ok 2 - K2 (tenue) — un passage rejoué suivi d’un commentaire ordinaire (sans marque) : la marque reste le verdict, rien ne repart
+ok 3 - K3 (tenue) — une étiquette à poser déjà là, sans aucune marque sur la PR : dans le doute, les lignes partent (ticket 68, décision 1)
+ok 4 - K4 (tenue) — les événements de la PR ne se lisent pas : `jouer` sort en 5 sans rien écrire ; au rejeu, les lignes partent
+ok 5 - K5 (tenue) — la seconde lecture d’origin (la tête relue) en échec : `jouer` sort en 12, jamais une tête dite introuvable (ticket 67, décision 4)
+ok 6 - K6 (tenue) — les événements sur deux pages, la dernière pose sur la seconde : toutes les pages se lisent, le passage rejoué ne redit rien
+# tests 6
+# pass 5
+# fail 1
+=== essais de ce tour, APRES = 25a72c7
+ok 1 - K1 — un plafond entier dont le retrait de `à-relire` a été refusé (et tu) : le rejeu ne redit rien (A-118 ; vert sur 25a72c7)
+not ok 2 - K2 (tenue) — un passage rejoué suivi d’un commentaire ordinaire (sans marque) : la marque reste le verdict, rien ne repart
+not ok 3 - K3 (tenue) — une étiquette à poser déjà là, sans aucune marque sur la PR : dans le doute, les lignes partent (ticket 68, décision 1)
+not ok 4 - K4 (tenue) — les événements de la PR ne se lisent pas : `jouer` sort en 5 sans rien écrire ; au rejeu, les lignes partent
+not ok 5 - K5 (tenue) — la seconde lecture d’origin (la tête relue) en échec : `jouer` sort en 12, jamais une tête dite introuvable (ticket 67, décision 4)
+ok 6 - K6 (tenue) — les événements sur deux pages, la dernière pose sur la seconde : toutes les pages se lisent, le passage rejoué ne redit rien
+# tests 6
+# pass 2
+# fail 4
+=== essais de ce tour, APRES = retouche
+not ok 1 - K1 — un plafond entier dont le retrait de `à-relire` a été refusé (et tu) : le rejeu ne redit rien (A-118 ; vert sur 25a72c7)
+ok 2 - K2 (tenue) — un passage rejoué suivi d’un commentaire ordinaire (sans marque) : la marque reste le verdict, rien ne repart
+ok 3 - K3 (tenue) — une étiquette à poser déjà là, sans aucune marque sur la PR : dans le doute, les lignes partent (ticket 68, décision 1)
+ok 4 - K4 (tenue) — les événements de la PR ne se lisent pas : `jouer` sort en 5 sans rien écrire ; au rejeu, les lignes partent
+ok 5 - K5 (tenue) — la seconde lecture d’origin (la tête relue) en échec : `jouer` sort en 12, jamais une tête dite introuvable (ticket 67, décision 4)
+ok 6 - K6 (tenue) — les événements sur deux pages, la dernière pose sur la seconde : toutes les pages se lisent, le passage rejoué ne redit rien
+# tests 6
+# pass 5
+# fail 1
+fin 22:55:28  22:55:28 up  3:40,  0 user,  load average: 6.25, 7.63, 7.47
+
+=== essais de ce tour avec K7, relancés après l'ajout de K7 (APRES = 686dcc6, puis l'arbre retouché)
+== essais2-686dcc6.tap
+not ok 1 - K1 — un plafond entier dont le retrait de `à-relire` a été refusé (et tu) : le rejeu ne redit rien (A-118 ; vert sur 25a72c7)
+ok 2 - K2 (tenue) — un passage rejoué suivi d’un commentaire ordinaire (sans marque) : la marque reste le verdict, rien ne repart
+ok 3 - K3 (tenue) — une étiquette à poser déjà là, sans aucune marque sur la PR : dans le doute, les lignes partent (ticket 68, décision 1)
+ok 4 - K4 (tenue) — les événements de la PR ne se lisent pas : `jouer` sort en 5 sans rien écrire ; au rejeu, les lignes partent
+ok 5 - K5 (tenue) — la seconde lecture d’origin (la tête relue) en échec : `jouer` sort en 12, jamais une tête dite introuvable (ticket 67, décision 4)
+ok 6 - K6 (tenue) — les événements sur deux pages, la dernière pose sur la seconde : toutes les pages se lisent, le passage rejoué ne redit rien
+ok 7 - K7 (documente) — une panne des seuls événements : `passe`, qui ne les lit pas, rend le geste à chaque sonde, et `jouer`, qui les lit, sort en 5 à chaque fois ; la sortie 5 n’a pas de borne
+# tests 7
+# pass 6
+# fail 1
+== essais2-retouche.tap
+not ok 1 - K1 — un plafond entier dont le retrait de `à-relire` a été refusé (et tu) : le rejeu ne redit rien (A-118 ; vert sur 25a72c7)
+ok 2 - K2 (tenue) — un passage rejoué suivi d’un commentaire ordinaire (sans marque) : la marque reste le verdict, rien ne repart
+ok 3 - K3 (tenue) — une étiquette à poser déjà là, sans aucune marque sur la PR : dans le doute, les lignes partent (ticket 68, décision 1)
+ok 4 - K4 (tenue) — les événements de la PR ne se lisent pas : `jouer` sort en 5 sans rien écrire ; au rejeu, les lignes partent
+ok 5 - K5 (tenue) — la seconde lecture d’origin (la tête relue) en échec : `jouer` sort en 12, jamais une tête dite introuvable (ticket 67, décision 4)
+ok 6 - K6 (tenue) — les événements sur deux pages, la dernière pose sur la seconde : toutes les pages se lisent, le passage rejoué ne redit rien
+ok 7 - K7 (documente) — une panne des seuls événements : `passe`, qui ne les lit pas, rend le geste à chaque sonde, et `jouer`, qui les lit, sort en 5 à chaque fois ; la sortie 5 n’a pas de borne
+# tests 7
+# pass 6
+# fail 1
+
+=== bancs touchés par le patch, sur l'arbre retouché
+debut 23:25:40 charge 5.60 6.78 7.14 9/272 27874
+== skills/chaine/relecteur/scripts/relecteur.test.mjs
+sortie 0
+# tests 47
+# pass 47
+# fail 0
+== scripts/relecteur.test.mjs
+sortie 0
+# tests 10
+# pass 10
+# fail 0
+== scripts/depot.test.mjs
+sortie 0
+# tests 69
+# pass 69
+# fail 0
+fin 23:27:45 charge 5.36 6.60 7.05 3/223 16379
+
+=== suite entière (pnpm test), arbre retouché
+debut 22:57:36 charge 3.27 6.12 6.94 8/213 22051
+686dcc6871a877f8796f39c476b27d2fd668ac04
+ 4 files changed, 88 insertions(+), 1 deletion(-)
+sortie 0
+fin 23:15:19 charge 7.93 6.70 7.04 11/290 1896
+# tests 1296
+# pass 1296
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1062166.880333

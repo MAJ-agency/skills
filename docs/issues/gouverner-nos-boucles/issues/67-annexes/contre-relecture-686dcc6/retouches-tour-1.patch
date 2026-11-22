@@ -1,0 +1,127 @@
+diff --git a/NOTES-DE-VERSION.md b/NOTES-DE-VERSION.md
+index 92e7ceb..d6888a0 100644
+--- a/NOTES-DE-VERSION.md
++++ b/NOTES-DE-VERSION.md
+@@ -15,6 +15,7 @@ Les mineurs de la contre-relecture de la PR 146, sur le skill `relecteur` (ticke
+ - **La préparation** relit origin avant de dire une tête introuvable ; la cause « dépendances de develop » dit comment l'installation se retente.
+ - **Le skill** dit la suite d'un `send_message` en échec, les causes des lignes à l'architecte (`create_session` en échec, une commande coupée sans code), et une quatrième forme de ligne, une ligne perdue.
+ - Le faux GitHub des bancs tient les événements d'étiquette d'une PR (`GET issues/<n>/events`).
++- Les bancs tiennent aussi, depuis la contre-relecture de la PR 147, la marque lue sur un commentaire à marque, une PR sans marque, des événements illisibles ou sur deux pages, la tête relue en échec, et les quatre formes des lignes à l'architecte et les bornes de 12 et d'une sortie hors de la table, chacune à sa place.
+ 
+ ### Ce qu'un projet fait pour en profiter
+ 
+diff --git a/scripts/relecteur.test.mjs b/scripts/relecteur.test.mjs
+index d99ad32..7e145dc 100644
+--- a/scripts/relecteur.test.mjs
++++ b/scripts/relecteur.test.mjs
+@@ -171,3 +171,21 @@ test("suite du ticket 66 (ticket 69) — chaque phrase neuve à sa place : `--at
+   exigerA(section(texte, "## Mise en place (une fois par session)"), "« Mise en place »", ["Une installation en échec ne se retente qu'au lockfile suivant de develop, ou dans un Relecteur neuf (son dossier est neuf) : la cause « dépendances de develop » le dit à l'architecte."]);
+   assert.ok(!texte.includes("ont trois formes"), "les lignes à l'architecte ont quatre formes");
+ });
++
++test("contre-relecture de la PR 147 — les quatre formes des lignes à l'architecte, chacune dans leur phrase, et aucune autre ; la borne de 12 et d'une sortie hors de la table, à leur ligne", () => {
++  const texte = lire(`${SKILL}/SKILL.md`);
++  // A-183, point 4 : la liste elle-même, pas seulement son début ni la quatrième forme écrite ailleurs dans la section.
++  const phrase = ligne(texte, "## Les lignes", "Les lignes du Relecteur lui-même à l'architecte ont quatre formes, et aucune autre : ");
++  const formes = phrase.slice(0, phrase.indexOf(" La `<cause>`"));
++  exigerA(formes, "la phrase des quatre formes", [
++    "« PR <n> : <cause> ; PR tue » quand il fait taire une PR",
++    "« Relecteur arrêté : <cause> » quand il s'arrête",
++    "« PR <n> : session <id> orpheline, à archiver »",
++    "« PR <n> : send_message en échec vers <session> : <sa dernière ligne non vide> », une ligne perdue",
++  ]);
++  assert.equal(formes.split("« ").length - 1, 4, "quatre formes, et aucune autre");
++  // R5 s'appuie sur « la seconde fois » de 12 et d'une sortie hors de la table : chacune à sa ligne, comme celle de 9.
++  const sorties = "## Les sorties de `passe`, `jouer` et `distribuer`";
++  for (const debut of ["| 9 |", "| 12 |", "| autre, ou aucune (l'outil a arrêté la commande) |"])
++    exigerA(ligne(texte, sorties, debut), `la ligne ${debut}`, ["rejouer au réveil suivant ; à la seconde fois, l'architecte, et s'arrêter"]);
++});
+diff --git a/skills/chaine/relecteur/references/CONTENU.md b/skills/chaine/relecteur/references/CONTENU.md
+index b5bf81b..e2283d1 100644
+--- a/skills/chaine/relecteur/references/CONTENU.md
++++ b/skills/chaine/relecteur/references/CONTENU.md
+@@ -14,7 +14,7 @@ La clé `relecture` du contrat que le script lit (`A-179`) : `depuis` (ISO 8601
+ 
+ ## Le banc — `scripts/relecteur.test.mjs`
+ 
+-Le script joué comme la session le joue, dans une copie du dépôt jouet du skill `sujet`, avec les vrais scripts de la chaîne sur develop et le faux GitHub : la file et le régime, le cas nominal de la distribution à `à-fusionner`, l'ordre des étiquettes, une ligne qui ne repart pas, un refus sur un chemin sensible, le remplacement d'une session morte, la relance d'un `incomplet`, le plafond, une PR mise à jour par le capitaine qui garde son verdict, une sous-PR vers un sujet, la préparation du dossier, les dépendances, la veille, une écriture refusée ; et, depuis `A-180`, le sommet ou le couple changés (X1), `depuis` et `modele` (X3), `--sessions` mal formé (X5), une PR fermée (X7), les causes d'illisible (X15), le verrou (X16), les hooks (X17), les calculs en panne par des talons, `completer`, la reprise après arbitrage, deux pages, la panne ; et, depuis la contre-relecture de la PR 146, la veille finie à sa durée, le plafond dit sur une étiquette restée, les `GIT_CONFIG_*` de la session gardés, aucun hook de git ni fsmonitor, le verrou attendu, une installation en échec au journal de la veille, une PR de mise à jour acceptée, les autres causes d'illisible (`a-juger` ou le diff en échec, une fourche supprimée) et leur trace redite après le délai ; et, depuis les tickets 67 et 68 (suite du ticket 66), l'erreur d'installation gardée quand GitHub se tait ensuite, `--attendre`, la tête relue après un push, l'étiquette restée et le passage rejoué lus dans les événements de la PR, le plafond à moitié écrit, une session à un autre couple.
++Le script joué comme la session le joue, dans une copie du dépôt jouet du skill `sujet`, avec les vrais scripts de la chaîne sur develop et le faux GitHub : la file et le régime, le cas nominal de la distribution à `à-fusionner`, l'ordre des étiquettes, une ligne qui ne repart pas, un refus sur un chemin sensible, le remplacement d'une session morte, la relance d'un `incomplet`, le plafond, une PR mise à jour par le capitaine qui garde son verdict, une sous-PR vers un sujet, la préparation du dossier, les dépendances, la veille, une écriture refusée ; et, depuis `A-180`, le sommet ou le couple changés (X1), `depuis` et `modele` (X3), `--sessions` mal formé (X5), une PR fermée (X7), les causes d'illisible (X15), le verrou (X16), les hooks (X17), les calculs en panne par des talons, `completer`, la reprise après arbitrage, deux pages, la panne ; et, depuis la contre-relecture de la PR 146, la veille finie à sa durée, le plafond dit sur une étiquette restée, les `GIT_CONFIG_*` de la session gardés, aucun hook de git ni fsmonitor, le verrou attendu, une installation en échec au journal de la veille, une PR de mise à jour acceptée, les autres causes d'illisible (`a-juger` ou le diff en échec, une fourche supprimée) et leur trace redite après le délai ; et, depuis les tickets 67 et 68 (suite du ticket 66), l'erreur d'installation gardée quand GitHub se tait ensuite, `--attendre`, la tête relue après un push, l'étiquette restée et le passage rejoué lus dans les événements de la PR, le plafond à moitié écrit, une session à un autre couple ; et, depuis la contre-relecture de la PR 147, la marque lue sur un commentaire à marque, une PR sans marque, des événements illisibles (rien d'écrit) ou sur deux pages, la tête relue en échec (sortie 12).
+ 
+ ## Le prompt — `prompt-session.md`
+ 
+diff --git a/skills/chaine/relecteur/scripts/relecteur.test.mjs b/skills/chaine/relecteur/scripts/relecteur.test.mjs
+index 96c4fcc..f9c7644 100644
+--- a/skills/chaine/relecteur/scripts/relecteur.test.mjs
++++ b/skills/chaine/relecteur/scripts/relecteur.test.mjs
+@@ -861,3 +861,71 @@ test('suite 66 — A-182 (2) : une session que le modèle lit à un autre couple
+   assert.equal(r.status, 0, r.stderr);
+   assert.equal(d.json(r)[0].distribution, distribution(1, sha, ['session_rel2'], ' (remplace session_rel1)'));
+ });
++
++// --- Contre-relecture de la PR 147, premier tour : la marque, sans marque, les lectures neuves en panne ou paginées ---
++
++test('contre-relecture 147 — la marque est un commentaire à marque : un commentaire ordinaire écrit après la pose ne fait rien repartir au rejeu (A-183, point 6)', () => {
++  const d = monter();
++  const sha = pr(d);
++  ajouter(d, [distribution(1, sha, ['session_rel1']), 2], [verdict(sha, 1, 'session_rel1', 'refusé'), 3]);
++  // Un retrait refusé (et tu) : la PR garde ses deux étiquettes, `à-reprendre` posée à la minute 30.
++  Object.assign(d.env, { BANC_FAUX_GH: join(CHAINE, 'sujet/scripts/faux-gh.mjs') });
++  writeFileSync(join(d.racine, 'bin/gh'), '#!/bin/sh\ncase "$*" in *"-X DELETE"*labels*) if [ ! -e "$FAUX_GH/refus-fait" ]; then touch "$FAUX_GH/refus-fait"; echo "gh: Bad Gateway (HTTP 502)" >&2; exit 1; fi ;; esac\nexec node "$BANC_FAUX_GH" "$@"\n');
++  assert.deepEqual(d.json(d.lancer('jouer', '12'))[0].lignes.map((l) => l.a), ['auteur', 'conducteur']);
++  // Un humain écrit sur la PR après la pose, avant le rejeu : un commentaire sans marque n'est pas la marque.
++  ajouter(d, ['Merci, je regarde le refus.', 31]);
++  const rejoue = d.json(d.lancer('jouer', '12'))[0];
++  assert.deepEqual([rejoue.geste, rejoue.marque, rejoue.lignes], ['etiqueter', minute(3), []], JSON.stringify(rejoue));
++});
++
++test('contre-relecture 147 — une étiquette à poser déjà là sur une PR sans aucune marque : dans le doute, les lignes partent (ticket 68, décision 1)', () => {
++  const d = monter();
++  // `à-fusionner` sans tour (règle 3) et `à-reprendre` déjà là, posée à la minute 20 ; aucun commentaire.
++  pr(d, { labels: ['à-fusionner', 'à-reprendre'], commentaires: [] });
++  d.github({ pulls: [{ ...d.etat().pulls[0], evenements: [{ event: 'labeled', label: 'à-reprendre', created_at: minute(20) }] }] });
++  const g = d.json(d.lancer('jouer', '12'))[0];
++  assert.deepEqual([g.regle, g.geste, g.poser, g.marque], [3, 'etiqueter', 'à-reprendre', null], JSON.stringify(g));
++  assert.deepEqual(g.lignes.map((l) => l.a), ['auteur', 'conducteur']);
++  assert.deepEqual(ecritures(d), ['DELETE issues/12/labels/à-fusionner']);
++});
++
++test('contre-relecture 147 — les événements de la PR ne se lisent pas : `jouer` sort en 5 sans rien écrire, ni retrait ni pose ; au rejeu, les lignes partent', () => {
++  const d = monter();
++  const sha = pr(d, { labels: ['à-relire', 'à-reprendre'] });
++  ajouter(d, [distribution(1, sha, ['session_rel1']), 2], [verdict(sha, 1, 'session_rel1', 'refusé'), 3]);
++  d.github({ pannes: [{ route: '^issues/12/events', fois: 1 }] });
++  const r = d.lancer('jouer', '12');
++  assert.equal(r.status, 5, r.stderr);
++  assert.deepEqual(ecritures(d), [], 'rien d’écrit avant que les événements se lisent : un retrait fait ici perdrait les lignes');
++  const g = d.json(d.lancer('jouer', '12'))[0];
++  assert.deepEqual(g.lignes.map((l) => l.a), ['auteur', 'conducteur']);
++  assert.deepEqual(ecritures(d), ['DELETE issues/12/labels/à-relire']);
++});
++
++test('contre-relecture 147 — la seconde lecture d’origin (la tête relue) en échec : `jouer` sort en 12, aucune tête dite introuvable (ticket 67, décision 4)', () => {
++  const d = monter();
++  pr(d);
++  d.git('switch', '-q', 'feat/a');
++  d.ecrire('src/a.mjs', 'export const a = 2;\n');
++  d.commit('fix: a');
++  // À la lecture de la PR, après la préparation : un commit neuf poussé sur la PR, puis origin du dossier injoignable, une fois.
++  Object.assign(d.env, { BANC_FAUX_GH: join(CHAINE, 'sujet/scripts/faux-gh.mjs'), BANC_TRAVAIL: d.travail, BANC_ORIGINE: d.origine });
++  writeFileSync(join(d.racine, 'bin/gh'), '#!/bin/sh\ncase "$*" in *pulls/12*) if [ ! -e "$FAUX_GH/casse-faite" ]; then touch "$FAUX_GH/casse-faite"; git -C "$BANC_TRAVAIL" push -q origin HEAD:feat/a; node "$BANC_FAUX_GH" "$@"; s=$?; git config remote.origin.url "$BANC_ORIGINE.parti"; exit $s; fi ;; esac\nexec node "$BANC_FAUX_GH" "$@"\n');
++  const r = d.lancer('jouer', '12');
++  assert.equal(r.status, 12, `${r.stdout}\n${r.stderr}`);
++  assert.match(r.stderr, /^relecteur : git fetch -q --prune origin /m);
++  assert.ok(!d.etat().pulls[0].commentaires.some((c) => /^Lecture illisible/.test(c.body ?? c)), 'aucune trace « tête introuvable »');
++});
++
++test('contre-relecture 147 — les événements sur deux pages, la dernière pose sur la seconde : toutes les pages se lisent, le passage rejoué ne redit rien', () => {
++  const d = monter();
++  const sha = pr(d, { labels: ['à-relire', 'à-reprendre'] });
++  ajouter(d, [distribution(1, sha, ['session_rel1']), 2], [verdict(sha, 1, 'session_rel1', 'refusé'), 3]);
++  const evenements = [['labeled', 'à-reprendre', 1], ['unlabeled', 'à-reprendre', 2], ['labeled', 'à-reprendre', 4], ['labeled', 'à-relire', 4]].map(([event, label, m]) => ({ event, label, created_at: minute(m) }));
++  d.github({ pulls: [{ ...d.etat().pulls[0], evenements }] });
++  // Comme GitHub : sans `--paginate`, la première page seule ; avec, les deux, à la suite.
++  Object.assign(d.env, { BANC_FAUX_GH: join(CHAINE, 'sujet/scripts/faux-gh.mjs') });
++  writeFileSync(join(d.racine, 'bin/gh'), '#!/bin/sh\ncase "$*" in *issues/12/events*) out=$(node "$BANC_FAUX_GH" "$@") || exit $?; case "$*" in *--paginate*) tout=1 ;; *) tout= ;; esac; printf \'%s\' "$out" | TOUT="$tout" node -e \'let s="";process.stdin.on("data",(c)=>(s+=c)).on("end",()=>{const a=JSON.parse(s);const h=Math.ceil(a.length/2);process.stdout.write(JSON.stringify(a.slice(0,h))+(process.env.TOUT?JSON.stringify(a.slice(h)):"")+"\\n")})\'; exit 0 ;; esac\nexec node "$BANC_FAUX_GH" "$@"\n');
++  const g = d.json(d.lancer('jouer', '12'))[0];
++  assert.deepEqual([g.geste, g.poser, g.lignes], ['etiqueter', 'à-reprendre', []], JSON.stringify(g));
++});

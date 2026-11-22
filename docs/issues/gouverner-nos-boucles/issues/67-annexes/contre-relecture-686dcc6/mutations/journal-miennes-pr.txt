@@ -1,0 +1,25 @@
+# Mes dix mutations (mutations-686dcc6.mjs) sur l'arbre de la PR (686dcc6) : les bancs du dépôt, puis l'essai qui la vise
+## M1 à M6 (M4 dans sa première forme : tuée par le retrait joué deux fois, un artefact)
+debut 23:47:51 6.60 7.69 7.57 6/210 6883
+SURVIT aux bancs du dépôt : M1 decision : la marque est le dernier commentaire, à marque ou non (A-183 point 6) (99 s) ; essai K2 : rouge — K2 (tenue) — un passage rejoué suivi d’un commentaire ordina
+ROUGE aux bancs du dépôt : M2 poseeApres : sans marque, un passage rejoué (ticket 68, décision 1 : les lignes partent) (97 s) — contre-relecture — le plafond se dit à l’auteur, au conducte | suite 66 — C12 : un plafond à moitié écrit se rejoue entier  ; essai K3 : rouge — K3 (tenue) — une étiquette à poser déjà là, sans aucune marq
+SURVIT aux bancs du dépôt : M3 poseeApres : des événements illisibles font partir les lignes au lieu de sortir en 5 (98 s) ; essai K4 : rouge — K4 (tenue) — les événements de la PR ne se lisent pas : `jou
+ROUGE aux bancs du dépôt : M4 jouer : l’ancienne étiquette retirée avant la lecture des événements (93 s) — une étiquette déjà posée après la marque la plus récente (un | contre-relecture — le plafond se dit à l’auteur, au conducte | suite 66 — C11 : une étiquette restée d’un tour d’avant (pos ; essai K4 : rouge — K4 (tenue) — les événements de la PR ne se lisent pas : `jou
+SURVIT aux bancs du dépôt : M5 liste : la seconde lecture d’origin en échec se tait (ticket 67, décision 4 : sortie 12) (90 s) ; essai K5 : rouge — K5 (tenue) — la seconde lecture d’origin (la tête relue) en 
+SURVIT aux bancs du dépôt : M6 poseeApres : les événements lus sur leur première page seule (92 s) ; essai K6 : rouge — K6 (tenue) — les événements sur deux pages, la dernière pose
+4 survivante(s) aux bancs du dépôt
+sortie 1
+fin 23:57:21 1.96 3.23 5.31 2/163 31420
+## M4 réécrite (le retrait avant la lecture, et lui seul)
+debut 00:11:15 7.06 7.46 6.50 8/243 6093
+SURVIT aux bancs du dépôt : M4 jouer : l’ancienne étiquette retirée avant la lecture des événements (les lignes perdues si elle échoue) (124 s) ; essai K4 : rouge — K4 (tenue) — les événements de la PR ne se lisent pas : `jou
+1 survivante(s) aux bancs du dépôt
+fin 00:13:19 6.33 7.14 6.52 7/198 21055
+## M7 à M10
+debut 00:15:17 4.09 6.18 6.25 3/185 6726
+SURVIT aux bancs du dépôt : M7 SKILL.md : la quatrième forme retirée de la liste des formes (A-183 point 4) (0 s)
+SURVIT aux bancs du dépôt : M8 SKILL.md : la forme « Relecteur arrêté » retirée de la liste des formes (0 s)
+SURVIT aux bancs du dépôt : M9 SKILL.md : la sortie 12 sans borne (0 s)
+SURVIT aux bancs du dépôt : M10 SKILL.md : une sortie hors de la table sans borne (0 s)
+4 survivante(s) aux bancs du dépôt
+fin 00:15:18

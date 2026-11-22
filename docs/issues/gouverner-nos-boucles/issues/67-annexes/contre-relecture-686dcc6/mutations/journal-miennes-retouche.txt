@@ -1,0 +1,26 @@
+# Mes dix mutations sur l'arbre retouché (686dcc6 + retouches-tour-1.patch, sha256 0f195513…) : toutes rouges aux bancs du dépôt
+## M1 à M10 (M4 dans sa première forme)
+debut 23:57:21 1.96 3.23 5.31 4/162 31448
+ROUGE aux bancs du dépôt : M1 decision : la marque est le dernier commentaire, à marque ou non (A-183 point 6) (99 s) — contre-relecture 147 — la marque est un commentaire à marque ; essai K2 : rouge — K2 (tenue) — un passage rejoué suivi d’un commentaire ordina
+ROUGE aux bancs du dépôt : M2 poseeApres : sans marque, un passage rejoué (ticket 68, décision 1 : les lignes partent) (116 s) — contre-relecture — le plafond se dit à l’auteur, au conducte | suite 66 — C12 : un plafond à moitié écrit se rejoue entier  | contre-relecture 147 — une étiquette à poser déjà là sur une ; essai K3 : rouge — K3 (tenue) — une étiquette à poser déjà là, sans aucune marq
+ROUGE aux bancs du dépôt : M3 poseeApres : des événements illisibles font partir les lignes au lieu de sortir en 5 (161 s) — contre-relecture 147 — les événements de la PR ne se lisent  ; essai K4 : rouge — K4 (tenue) — les événements de la PR ne se lisent pas : `jou
+ROUGE aux bancs du dépôt : M4 jouer : l’ancienne étiquette retirée avant la lecture des événements (148 s) — une étiquette déjà posée après la marque la plus récente (un | contre-relecture — le plafond se dit à l’auteur, au conducte | suite 66 — C11 : une étiquette restée d’un tour d’avant (pos | contre-relecture 147 — une étiquette à poser déjà là sur une | contre-relecture 147 — les événements de la PR ne se lisent  ; essai K4 : rouge — K4 (tenue) — les événements de la PR ne se lisent pas : `jou
+ROUGE aux bancs du dépôt : M5 liste : la seconde lecture d’origin en échec se tait (ticket 67, décision 4 : sortie 12) (162 s) — contre-relecture 147 — la seconde lecture d’origin (la tête  ; essai K5 : rouge — K5 (tenue) — la seconde lecture d’origin (la tête relue) en 
+ROUGE aux bancs du dépôt : M6 poseeApres : les événements lus sur leur première page seule (142 s) — contre-relecture 147 — les événements sur deux pages, la der ; essai K6 : rouge — K6 (tenue) — les événements sur deux pages, la dernière pose
+ROUGE aux bancs du dépôt : M7 SKILL.md : la quatrième forme retirée de la liste des formes (A-183 point 4) (0 s) — contre-relecture de la PR 147 — les quatre formes des lignes
+ROUGE aux bancs du dépôt : M8 SKILL.md : la forme « Relecteur arrêté » retirée de la liste des formes (0 s) — contre-relecture de la PR 147 — les quatre formes des lignes
+ROUGE aux bancs du dépôt : M9 SKILL.md : la sortie 12 sans borne (0 s) — contre-relecture de la PR 147 — les quatre formes des lignes
+ROUGE aux bancs du dépôt : M10 SKILL.md : une sortie hors de la table sans borne (0 s) — contre-relecture de la PR 147 — les quatre formes des lignes
+toutes rouges aux bancs du dépôt
+sortie 0
+fin 00:11:09 7.07 7.47 6.50 6/272 31614
+ M NOTES-DE-VERSION.md
+ M scripts/relecteur.test.mjs
+ M skills/chaine/relecteur/references/CONTENU.md
+ M skills/chaine/relecteur/scripts/relecteur.test.mjs
+## M4 réécrite
+debut 00:13:24 6.23 7.11 6.51 10/209 26766
+ROUGE aux bancs du dépôt : M4 jouer : l’ancienne étiquette retirée avant la lecture des événements (les lignes perdues si elle échoue) (102 s) — contre-relecture 147 — les événements de la PR ne se lisent  ; essai K4 : rouge — K4 (tenue) — les événements de la PR ne se lisent pas : `jou
+toutes rouges aux bancs du dépôt
+fin 00:15:06 4.55 6.34 6.30 3/180 30727
+0f1955137c25b00f2d4fed811d9dbb84a77c67e553b21182240abccf729e2c77  -
