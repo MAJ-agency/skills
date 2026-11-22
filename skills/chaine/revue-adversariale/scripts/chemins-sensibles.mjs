@@ -229,6 +229,9 @@ async function garde({ base, titre, branche, conflits, tickets }, fichiers) {
   // La grammaire d'abord : sans elle, `ticketsDeLaPr` rend `[]`, et la PR serait dite « sans ticket » à tort.
   if (!GRAMMAIRE) throw new Illisible("scripts/docs/identifiants.mjs introuvable : le ticket ne se lit pas");
   const ids = tickets !== undefined ? tickets.split(",").map((t) => t.trim()).filter(Boolean) : ticketsDeLaPr(titre, branche);
+  // Une PR de mise à jour d'un sujet qu'aucun ticket ni aucune spec ne déclare (`--tickets` vide) : son geste n'est pas
+  // celui d'une PR sans ticket, qui repartirait de la branche d'un ticket (la suite M2 du lot 5).
+  if (ids.length === 0 && tickets !== undefined) throw new Motif(`PR de mise à jour de ${base} : aucun ticket ni aucune spec ne déclare ce sujet (ligne \`Sujet: ${base}\`), et sa fusion résout un conflit sur un chemin sensible (${liste(() => true)}) : l'écrire au conducteur ; un ticket du sujet, déclaré par cette ligne, accorde le chemin sur sa ligne \`Sensibles:\` par une PR de documentation vers le sujet (A-74, A-75), puis la PR de mise à jour repasse`);
   if (ids.length === 0) throw new Motif(`PR sans ticket qui touche un chemin sensible (${liste(() => true)}) : en régime 8, un chemin sensible ne se modifie que sur la branche d'un ticket dont la ligne \`Sensibles:\` l'accorde (A-73) ; l'écrire au conducteur (le chemin, pourquoi, ce qui y change) : il obtient l'accord du produit et le note sur un ticket (A-75), puis la PR repart de la branche de ce ticket`);
   const G = await import(pathToFileURL(GRAMMAIRE).href);
   const git = (...a) => {

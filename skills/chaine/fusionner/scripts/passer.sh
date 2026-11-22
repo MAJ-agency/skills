@@ -60,7 +60,7 @@
 #      ticket ou une PR sans ticket qui en touche un) : la dernière ligne dit pourquoi ; boucle.sh renvoie
 #      la PR (refus.sh) avec ce motif, jamais de saut silencieux
 #   7  pas éligible, rien à corriger côté auteur (non ouverte, brouillon, sans `à-fusionner`,
-#      déjà `fusion-bloquée`, empilée sur une parente pas encore fusionnée) : la boucle la saute sans renvoi et la
+#      déjà `fusion-bloquée`, PR de fourche, empilée sur une parente pas encore fusionnée) : la boucle la saute sans renvoi et la
 #      reprend au tour suivant ; ou en passage chez un autre capitaine (son commentaire marqué `<!-- capitaine:passage <id> <epoch> -->`,
 #      sans fin, daté de moins de 90 minutes, le plus tard de son epoch, s'il n'est pas en avance de plus de 5 minutes
 #      sur le sien, et de sa création ; jamais de gel : FILTRE_PASSAGE de github.sh ; posé avant le sien), sautée
@@ -128,6 +128,11 @@ champ() { jq -r "$1" <<<"$pr"; }
 labels=",$(champ '[.labels[].name] | join(",")'),"
 case "$labels" in *,à-fusionner,*) ;; *) sortir 7 "sans le label à-fusionner" ;; esac
 case "$labels" in *,fusion-bloquée,*) sortir 7 "label fusion-bloquée" ;; esac
+# Une PR de fourche (sa tête vit dans un autre dépôt, ou dans un dépôt supprimé) : sautée sans renvoi, dans les deux
+# régimes, comme le Relecteur la dit illisible (A-192, point 2). Avant tout fetch : `origin/<tête>` serait la branche
+# d'origin du même nom, jugée, mise à jour et poussée à sa place ; et aucun verdict ne viendrait à une fourche.
+[ "$(champ '.head.repo.full_name // ""')" = "$(champ '.base.repo.full_name // ""')" ] ||
+  sortir 7 "PR de fourche ($(champ '.head.repo.full_name // "dépôt supprimé"')) : sa tête vit hors du dépôt, le capitaine ne la lit pas ; sautée sans renvoi"
 
 base=$(champ .base.ref)
 tete=$(champ .head.ref)
