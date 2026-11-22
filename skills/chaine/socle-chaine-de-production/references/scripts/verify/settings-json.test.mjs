@@ -171,7 +171,9 @@ test('régime 8 : une entrée allow qui pré-approuve create_session est un éca
     const texte = JSON.stringify(s, null, 2);
     const huit = ecartsSettings(texte, { fichierExiste: () => true, relecture: true });
     assert.equal(huit.length, 1, `${entree} : ${huit.join(' ; ')}`);
-    assert.match(huit[0], new RegExp(`« ${entree.replace(/[*]/g, '\\*')} » pré-approuve \`create_session\``));
+    // Tout caractère spécial échappé, l'antislash compris (alerte CodeQL « Incomplete string escaping or encoding »).
+    const motif = entree.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    assert.match(huit[0], new RegExp(`« ${motif} » pré-approuve \`create_session\``));
     assert.match(huit[0], /^ligne (\d+) : /);
     assert.equal(Number(/^ligne (\d+)/.exec(huit[0])[1]), texte.split('\n').findIndex((l) => l.includes(JSON.stringify(entree))) + 1);
     assert.deepEqual(ecartsSettings(texte, { fichierExiste: () => true }), [], `${entree} : régime 7`);
