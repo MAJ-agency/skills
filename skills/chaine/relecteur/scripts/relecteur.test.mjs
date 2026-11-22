@@ -4,7 +4,7 @@
 // GitHub (le journal du faux). Aucun réseau ; l'heure est posée (`RELECTEUR_HORLOGE_BANC`, `maintenant` du faux).
 import assert from 'node:assert/strict';
 import { execFileSync, spawn, spawnSync } from 'node:child_process';
-import { chmodSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { chmodSync, existsSync, mkdirSync, readdirSync, readFileSync, symlinkSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
@@ -553,6 +553,76 @@ test('N1 à N4, N7 — les calculs en panne : chemins sensibles en échec, PR se
   assert.equal(distribuer(x, sommet, 'opus/xhigh', 'session_rel1', 'session_rel2').status, 0);
 });
 
+// Suite du lot 5 (A-192, point 1 ; ticket 75) : un calcul sorti en 69 dit qu'un outil manque au poste, pour toute PR.
+test('suite du lot 5 — un calcul sorti en 69 (un outil de la chaîne manque au poste) : la passe et `jouer` sortent en 6, la cause dite, rien d’écrit, jamais une trace d’illisible ; la veille s’arrête', () => {
+  const q = monter();
+  q.talon('double-relecture.mjs', 'console.log("# illisible : scripts/docs/identifiants.mjs introuvable depuis scripts/chaine");\nconsole.log("illisible");\nprocess.exit(69);\n');
+  pr(q);
+  const p = q.lancer('passe');
+  assert.equal(p.status, 6, p.stdout + p.stderr);
+  assert.match(p.stderr, /^relecteur : double-relecture\.mjs : un outil de la chaîne manque au poste \(sortie 69\) : scripts\/docs\/identifiants\.mjs introuvable depuis scripts\/chaine$/m);
+  const j = q.lancer('jouer', '12');
+  assert.equal(j.status, 6, j.stdout + j.stderr);
+  assert.deepEqual(ecritures(q), [], 'ni trace, ni étiquette : la PR n’y est pour rien');
+  const v = q.lancer('veille', '--pause', '0', '--sondes', '1');
+  assert.equal(v.status, 6, v.stdout + v.stderr);
+  assert.match(v.stdout, /\nVEILLE ARRÊTÉE sortie 6\n$/);
+  const m = monter();
+  m.talon('meme-contenu.sh', 'echo illisible\necho "git ≥ 2.41 requis, ici 2.40" >&2\nexit 69\n');
+  const ancien = pr(m);
+  ajouter(m, [distribution(1, ancien, ['session_rel1']), 2], [verdict(ancien, 1, 'session_rel1', 'validé'), 3]);
+  m.git('switch', '-q', 'feat/a');
+  m.ecrire('src/a.mjs', 'export const a = 2;\n');
+  m.commit('fix: a');
+  m.git('push', '-q', 'origin', 'HEAD:feat/a');
+  const h = m.lancer('jouer', '12');
+  assert.equal(h.status, 6, h.stdout + h.stderr);
+  assert.match(h.stderr, /^relecteur : meme-contenu\.sh : un outil de la chaîne manque au poste \(sortie 69\) : git ≥ 2\.41 requis, ici 2\.40$/m);
+  assert.deepEqual(ecritures(m), []);
+  // Une sortie 21 reste une lecture illisible, tracée sur la PR (N1 à N4) : seule la sortie 69 est une panne.
+  const i = monter();
+  i.talon('double-relecture.mjs', 'console.log("illisible"); process.exit(21);\n');
+  pr(i);
+  assert.equal(i.json(i.lancer('jouer', '12'))[0].geste, 'illisible');
+});
+
+// Contre-relecture de la PR 153 : sans `jq`, `github.sh` sort en 69 dès son chargement, avant tout calcul ; le Relecteur
+// lisait chaque lecture de GitHub en 5, et la veille faisait une pause sans fin, sans une ligne (A-192 point 1, A-197).
+test('suite du lot 5 — un poste sans `jq` : `github.sh` sorti en 69, la passe et `jouer` sortent en 6, rien d’écrit ; la veille s’arrête, jamais une pause sans fin', () => {
+  const q = monter();
+  pr(q);
+  // Un PATH sans `jq` : chaque entrée des dossiers du PATH du banc en lien, dans leur ordre, sauf lui ; `node` lui-même
+  // en lien, jamais son dossier, qui peut porter `jq` (`/usr/bin` d'un Node de distribution, `/opt/homebrew/bin`) ; les
+  // autres outils restent où le poste les a (`flock` hors de `/usr/bin` et `/bin`, sous macOS).
+  const sansJq = join(q.racine, 'sans-jq');
+  mkdirSync(sansJq);
+  symlinkSync(process.execPath, join(sansJq, 'node'));
+  const vus = new Set(['jq', 'node']);
+  const entrees = (dossier) => {
+    try {
+      return readdirSync(dossier);
+    } catch {
+      return [];
+    }
+  };
+  for (const source of (process.env.PATH ?? '').split(':').filter((s) => s.startsWith('/')))
+    for (const nom of entrees(source))
+      if (!vus.has(nom)) {
+        vus.add(nom);
+        symlinkSync(join(source, nom), join(sansJq, nom));
+      }
+  q.env.PATH = `${join(q.racine, 'bin')}:${sansJq}`;
+  assert.notEqual(spawnSync('sh', ['-c', 'command -v jq'], { env: q.env }).status, 0, 'jq absent du PATH du jouet');
+  const p = q.lancer('passe');
+  assert.equal(p.status, 6, p.stdout + p.stderr);
+  assert.match(p.stderr, /^relecteur : github\.sh : un outil de la chaîne manque au poste \(sortie 69\) : ARRÊT : jq est requis par les scripts de la chaîne/m);
+  assert.equal(q.lancer('jouer', '12').status, 6);
+  const v = q.lancer('veille', '--pause', '0', '--sondes', '2');
+  assert.doesNotMatch(v.stdout, /^PAUSE /m);
+  assert.match(v.stdout, /\nVEILLE ARRÊTÉE sortie 6\n$/);
+  assert.deepEqual(ecritures(q), []);
+});
+
 test('N9 — `completer` : une seconde session ajoutée au tour, `(complète)`', () => {
   const d = monter();
   d.talon('double-relecture.mjs', 'console.log("exigée"); process.exit(20);\n');
@@ -928,4 +998,49 @@ test('contre-relecture 147 — les événements sur deux pages, la dernière pos
   writeFileSync(join(d.racine, 'bin/gh'), '#!/bin/sh\ncase "$*" in *issues/12/events*) out=$(node "$BANC_FAUX_GH" "$@") || exit $?; case "$*" in *--paginate*) tout=1 ;; *) tout= ;; esac; printf \'%s\' "$out" | TOUT="$tout" node -e \'let s="";process.stdin.on("data",(c)=>(s+=c)).on("end",()=>{const a=JSON.parse(s);const h=Math.ceil(a.length/2);process.stdout.write(JSON.stringify(a.slice(0,h))+(process.env.TOUT?JSON.stringify(a.slice(h)):"")+"\\n")})\'; exit 0 ;; esac\nexec node "$BANC_FAUX_GH" "$@"\n');
   const g = d.json(d.lancer('jouer', '12'))[0];
   assert.deepEqual([g.geste, g.poser, g.lignes], ['etiqueter', 'à-reprendre', []], JSON.stringify(g));
+});
+
+// --- Suites de la PR 147 (ticket 76) : l'usage entier, le plafond rejoué gardé et écrit, la marque sans les traces ---
+
+test('suite de la PR 147 — l’usage nomme chaque option de chaque sous-commande, comme l’en-tête (`--sondes` compris)', () => {
+  const r = spawnSync(process.execPath, [RELECTEUR], { encoding: 'utf8' });
+  assert.equal(r.status, 2, r.stderr);
+  const usage = r.stderr.replace(/\s+/g, ' ');
+  const entete = readFileSync(RELECTEUR, 'utf8').split('\n// =====')[1];
+  const appels = entete.split("//   node '<dossier du skill>/scripts/relecteur.mjs' ").slice(1).map((a) => a.split('\n//\n')[0].replace(/\n\/\/\s+/g, ' ').trim());
+  assert.deepEqual(appels.map((a) => a.split(' ')[0]), ['passe', 'jouer', 'distribuer', 'veille'], 'les quatre appels de l’en-tête');
+  for (const a of appels) assert.ok(usage.includes(a), `l’usage : « ${a} » attendu, comme l’en-tête`);
+});
+
+test('suite de la PR 147 — un plafond rejoué après un retrait refusé redit « décision de plafond attendue » à l’auteur et au conducteur (A-189, point 1) : son étiquette s’est posée avant son commentaire, la marque la plus récente', () => {
+  const d = monter();
+  const sha = pr(d);
+  let m = 2;
+  for (const tour of [1, 2, 3]) ajouter(d, [distribution(tour, sha, ['session_rel1']), m++], [verdict(sha, tour, 'session_rel1', 'refusé'), m++]);
+  // Un retrait refusé une fois (un 502 passager), que `retirer_label` tait : la PR garde `à-relire` et `à-reprendre`.
+  Object.assign(d.env, { BANC_FAUX_GH: join(CHAINE, 'sujet/scripts/faux-gh.mjs') });
+  writeFileSync(join(d.racine, 'bin/gh'), '#!/bin/sh\ncase "$*" in *"-X DELETE"*labels*) if [ ! -e "$FAUX_GH/refus-fait" ]; then touch "$FAUX_GH/refus-fait"; echo "gh: Bad Gateway (HTTP 502)" >&2; exit 1; fi ;; esac\nexec node "$BANC_FAUX_GH" "$@"\n');
+  const premier = d.json(d.lancer('jouer', '12'))[0];
+  assert.deepEqual([premier.geste, premier.lignes.map((l) => l.a)], ['plafonner', ['auteur', 'conducteur', 'architecte']]);
+  assert.deepEqual([...d.etat().pulls[0].labels].sort(), ['à-relire', 'à-reprendre'], 'le retrait refusé laisse les deux étiquettes');
+  const r = d.lancer('jouer', '12');
+  assert.equal(r.status, 0, r.stderr);
+  const rejoue = d.json(r)[0];
+  assert.deepEqual([rejoue.regle, rejoue.geste, rejoue.poser], [1, 'etiqueter', 'à-reprendre'], JSON.stringify(rejoue));
+  assert.deepEqual(rejoue.lignes.map((l) => [l.a, l.session, l.texte]), [['auteur', 'session_auteur', 'PR 12 : décision de plafond attendue'], ['conducteur', 'session_conducteur', 'PR 12 : décision de plafond attendue']], 'redit, voulu : la marque la plus récente est le commentaire du plafond, posé après l’étiquette');
+  assert.deepEqual(d.etat().pulls[0].labels, ['à-reprendre']);
+  assert.equal(d.etat().pulls[0].commentaires.filter((c) => (c.body ?? c) === 'Plafond — décision attendue').length, 1, 'un seul commentaire du plafond');
+});
+
+test('suite de la PR 147 — une trace d’illisible écrite entre la pose et le rejeu n’est pas la marque (`dernier` l’exclut, A-183 point 6 ; K8, mutation N3) : rien ne repart', () => {
+  const d = monter();
+  const sha = pr(d);
+  ajouter(d, [distribution(1, sha, ['session_rel1']), 2], [verdict(sha, 1, 'session_rel1', 'refusé'), 3]);
+  Object.assign(d.env, { BANC_FAUX_GH: join(CHAINE, 'sujet/scripts/faux-gh.mjs') });
+  writeFileSync(join(d.racine, 'bin/gh'), '#!/bin/sh\ncase "$*" in *"-X DELETE"*labels*) if [ ! -e "$FAUX_GH/refus-fait" ]; then touch "$FAUX_GH/refus-fait"; echo "gh: Bad Gateway (HTTP 502)" >&2; exit 1; fi ;; esac\nexec node "$BANC_FAUX_GH" "$@"\n');
+  assert.deepEqual(d.json(d.lancer('jouer', '12'))[0].lignes.map((l) => l.a), ['auteur', 'conducteur']);
+  // Un passage suivant a écrit une trace (un calcul en panne, revenu depuis) après la pose de la minute 30.
+  ajouter(d, ['Lecture illisible — « double relecture exigée » illisible', 31]);
+  const rejoue = d.json(d.lancer('jouer', '12'))[0];
+  assert.deepEqual([rejoue.geste, rejoue.marque, rejoue.lignes], ['etiqueter', minute(3), []], JSON.stringify(rejoue));
 });

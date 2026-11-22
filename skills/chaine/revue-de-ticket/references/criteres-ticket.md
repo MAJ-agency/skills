@@ -1,6 +1,6 @@
 # Critères de l'axe Ticket (liste fermée)
 
-Le relecteur reçoit le **contexte du ticket** (`scripts/chaine/contexte-ticket.mjs <ID>` : le ticket, sa ligne de spec, ses règles — la ligne `Règles:` et chaque fichier de règle tel que le dépôt l'écrit, en-tête YAML compris — puis les identifiants cités ailleurs, chacun trouvé ou introuvable) et le **diff**, et lit dans l'index commis du projet, `anchorpost/anchorpost.json`, s'il existe, le champ `schema` et l'entrée `rules` de chaque règle du ticket. Il ne rend que des écarts rattachés à l'un de ces critères.
+Le relecteur reçoit le **contexte du ticket** (`scripts/chaine/contexte-ticket.mjs <ID>` : le ticket, sa ligne de spec, ses règles — les lignes `Règles:` et `Prouve:` et chaque fichier de règle tel que le dépôt l'écrit, en-tête YAML compris — puis les identifiants cités ailleurs, chacun trouvé ou introuvable) et le **diff**, et lit dans l'index commis du projet, `anchorpost/anchorpost.json`, s'il existe, le champ `schema` et l'entrée `rules` de chaque règle du ticket. Il ne rend que des écarts rattachés à l'un de ces critères.
 
 ```text
 T1  Surfaces prouvées — ticket § « Surfaces ». Chaque ligne de la table surface → test a son test
@@ -10,9 +10,9 @@ T2  Décisions tenues — ticket § « Décisions ». Chaque décision tranchée
     décision laissée à la fille « par défaut prudent » est prise, et notée sous ## Comments du
     ticket ; une décision contredite par le code est un écart.
 T3  Règles citées et leurs preuves — registre de règles, `.claude/rules/tests.md` § Règles. Les
-    règles sont celles de la ligne `Règles:` du ticket (« Règles du ticket » du contexte ; à défaut
-    de ligne, chaque règle que le ticket cite). Deux branches, choisies règle par règle, quelle
-    que soit la criticité de la règle.
+    règles sont celles des lignes `Règles:` et `Prouve:` du ticket (« Règles du ticket » du contexte ;
+    `Prouve:` nomme celles qu'il prouve sans les réaliser ; à défaut de ces lignes, chaque règle que le
+    ticket cite). Deux branches, choisies règle par règle, quelle que soit la criticité de la règle.
     Branche « cas déclarés » — seulement si l'index commis du projet, anchorpost/anchorpost.json,
     porte "schema": "3" (le relecteur lit ce champ dans l'index, jamais dans ce que disent le
     ticket ou la PR) et si l'en-tête de la règle, rendu dans « Règles du ticket », déclare au
@@ -51,8 +51,8 @@ T3  Règles citées et leurs preuves — registre de règles, `.claude/rules/tes
         compte : il lit celui de l'index. L'écart ne tombe que pour un cas qu'un autre ticket
         porte, aux cinq conditions réunies : le ticket relu nomme ce ticket ; il est « trouvé »
         dans « Identifiants cités » du contexte, sans « (archivé) », et n'est pas le ticket
-        relu ; il est ouvert, son `Status:` n'est ni `Fait` ni `wontfix` ; sa ligne `Règles:` cite
-        la règle ; ni la mention ni cette ligne `Règles:` ne sont ajoutées par le diff relu. Le
+        relu ; il est ouvert, son `Status:` n'est ni `Fait` ni `wontfix` ; sa ligne `Règles:` ou
+        `Prouve:` cite la règle ; ni la mention ni cette ligne ne sont ajoutées par le diff relu. Le
         relecteur rend alors « cas <règle>#<id> porté par <ticket> », pour la section de PR. Un
         index que le diff n'a pas régénéré est un écart de T5, pour le seul index que (d) lit : il
         se régénère, et l'axe Ticket seul se rejoue. Ses signes : une de ces règles absente de

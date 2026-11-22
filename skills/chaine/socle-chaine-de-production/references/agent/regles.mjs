@@ -95,21 +95,27 @@ function refusSensible(c, sensibles, accordes) {
   const liste = Array.isArray(sensibles) && sensibles.every((m) => typeof m === 'string') ? sensibles : ['**'];
   if (!touche(c, liste)) return null;
   const lu = accordes();
-  // Une copie locale du ticket que origin ne porte pas (en retard sur origin, ou déplacée) n'a pas été lue : le geste
-  // qui la relit vient avant la demande au conducteur, qui a peut-être déjà ajouté le chemin.
-  // Un clone superficiel n'a pas laissé lire la base de fusion d'une copie de sujet avec develop (A-193) : une copie que
-  // le sujet a seulement héritée a pu compter ; le geste qui approfondit le clone, avant la demande au conducteur.
-  const relire =
-    (lu?.perimees
-      ? ` (Copie du ticket non lue : ${lu.perimees.join(', ')} n'est pas au sommet d'origin. Avant d'écrire au conducteur : \`git fetch --prune origin '+refs/heads/develop:refs/remotes/origin/develop' '+refs/heads/sujet/*:refs/remotes/origin/sujet/*'\`, puis refaire l'écriture.)`
-      : '') +
-    (lu?.superficiel
-      ? " (Clone superficiel : la base de fusion d'un sujet avec develop ne s'y lit pas, et une copie du ticket que le sujet n'a pas écrite a pu compter. Avant d'écrire au conducteur : `git fetch --unshallow origin`, puis refaire l'écriture.)"
-      : '');
+  // Une copie locale du ticket, ou de develop, que origin ne porte pas (en retard sur origin, ou déplacée) n'a pas été
+  // lue : le geste qui la relit. Un clone superficiel n'a pas laissé lire la base de fusion d'une copie de sujet avec
+  // develop (A-193) : une copie que le sujet a seulement héritée a pu compter ; le geste qui approfondit le clone. Le
+  // geste vient en tête du refus, avant la demande au conducteur, qui a peut-être déjà ajouté le chemin (la suite 24 du
+  // lot 5) : une session qui lit le refus dans l'ordre fait d'abord ce qui peut le lever.
+  const gestes = [
+    ...(lu?.perimees
+      ? [`relire les copies du ticket (${lu.perimees.join(', ')} n'est pas au sommet d'origin) : \`git fetch --prune origin '+refs/heads/develop:refs/remotes/origin/develop' '+refs/heads/sujet/*:refs/remotes/origin/sujet/*'\``]
+      : []),
+    ...(lu?.superficiel
+      ? ["approfondir le clone (clone superficiel : la base de fusion d'un sujet avec develop ne s'y lit pas, et une copie du ticket que le sujet n'a pas écrite a pu compter) : `git fetch --unshallow origin`"]
+      : []),
+  ];
+  const refus = (detail) =>
+    gestes.length > 0
+      ? `${c} : d'abord, ${gestes.join(', puis ')}, puis refaire l'écriture. Encore refusée : ${RAISON_SENSIBLE}${detail}`
+      : `${c} : ${RAISON_SENSIBLE}${detail}`;
   if (lu === null || (lu.copies === undefined && lu.illisible === undefined))
-    return `${c} : ${RAISON_SENSIBLE} (Aucune ligne lue : branche sans ticket, ticket absent de origin/sujet/* et de origin/develop, ou origin injoignable.)${relire}`;
-  if (lu.illisible) return `${c} : ${RAISON_SENSIBLE} (Ligne illisible : ${lu.illisible}.)${relire}`;
-  return lu.copies.length > 0 && lu.copies.every((motifs) => touche(c, motifs)) ? null : `${c} : ${RAISON_SENSIBLE}${relire}`;
+    return refus(' (Aucune ligne lue : branche sans ticket, ticket absent de origin/sujet/* et de origin/develop, ou origin injoignable.)');
+  if (lu.illisible) return refus(` (Ligne illisible : ${lu.illisible}.)`);
+  return lu.copies.length > 0 && lu.copies.every((motifs) => touche(c, motifs)) ? null : refus('');
 }
 
 const LIGNE_SENSIBLES = /^(?:[-*][ \t]+)?\**Sensibles\**\s*:\**\s*(.*)$/i;

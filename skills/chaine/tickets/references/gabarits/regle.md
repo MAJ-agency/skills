@@ -22,10 +22,15 @@ sources:
 #   level: medium # low | medium | high
 #   by: agent # agent | <clé de roles>
 #   reason: "…" # entre guillemets ; sans eux, une virgule ou « : » coupe la raison
+#   date: AAAA-MM-JJ # facultative, à partir de la CLI Anchorpost 2.0.0 ; jamais écrite par un agent : la personne qui baisse un niveau la date, et `anchorpost compare` refuse en `enforce` une baisse qui ne porte pas une date nouvelle
 # cases:   à partir de l'index au pivot 3 (CLI Anchorpost 2.0.0) ; les cas attendus, rendus par le skill `criticite`
 #   - { id: {{id-du-cas}}, title: …, kind: nominal | edge | invalid | refusal, scope: business | technical, family: … }   family facultatif
 # notApplicableFamilies:   à partir de l'index au pivot 3 (CLI Anchorpost 2.0.0) ; chaque famille sans cas, avec sa raison ; le skill `criticite` répond aux dix familles quel que soit le niveau, et une réponse par famille est obligatoire dès medium ; écrite par le skill `criticite` seul ; la réponse est un cas, un « sans objet » motivé, ou une question ouverte au registre `docs/questions-ouvertes.md` ; le gate Anchorpost signale une famille sans réponse ; en `enforce`, il la refuse, sauf quand une question ouverte bloque la règle : la règle reste alors « partielle » jusqu'à la réponse
 #   - { family: limits | empty | invalid-input | duplicate | ordering | time | permissions | rare-state | volume | failure, reason: … }
+# caseRevision:   à partir de la CLI Anchorpost 2.0.0 ; la révision des cas, le geste daté d'une personne qui retire ou affaiblit un cas technique (`RULE_ALL_ANC-27`) ; un seul, le plus récent ; jamais écrite par un agent : signée `agent`, `anchorpost compare` la refuse en `enforce` ; distincte de `validation`, que la MOA seule écrit, et qui couvre un cas métier
+#   date: AAAA-MM-JJ
+#   by: <clé de roles>
+#   reason: "…"
 # extensions: {}   champs propres au projet, ignorés par Anchorpost
 ---
 

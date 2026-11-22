@@ -258,3 +258,121 @@ test('régime 8 : sans `Label: contre-revue` un ticket prêt sensible passe ; un
   assert.equal(enVigueur.status, 1, "règle haute en vigueur dans l'index : Relecture: double exigée");
   assert.match(enVigueur.stderr, /régime 8 : ligne `Relecture: double` absente alors que le ticket cite RULE_ALL_SOC-1/);
 });
+
+// ── K3 de la preuve suffisante : l'index commis au pivot 3 décide, son `project.sufficiency` dit refus ou avertissement ─
+const K3_TICKET = 'docs/features/socle/all/issues/SPEC_ALL_SOC-1-socle.01.issue.md';
+const K3_PRET = (surfaces) =>
+  `# x\n\nStatus: ready-for-agent\nType: task\nRègles: RULE_ALL_SOC-1\nProuve: RULE_ALL_SOC-2\nModèle: sonnet\nFichiers chauds: —\n\n## Où\n\n- a\n\n## Décisions\n\n- b\n\n## Surfaces\n\n${surfaces}\n## Vérification\n\n- d\n`;
+const K3_REGLES = { 'docs/metier/regles/all/RULE_ALL_SOC-1.md': '---\nid: RULE_ALL_SOC-1\n---\n', 'docs/metier/regles/all/RULE_ALL_SOC-2.md': '---\nid: RULE_ALL_SOC-2\n---\n' };
+const k3Niveau = { level: 'medium', origin: 'declared' };
+const k3Index = (schema, sufficiency) => ({
+  'anchorpost/anchorpost.json': `${JSON.stringify({
+    schema,
+    ...(sufficiency ? { project: { name: 'p', sufficiency } } : {}),
+    rules: [
+      { key: 'RULE_ALL_SOC-1', criticality: k3Niveau, cases: [{ id: 'nominal' }] },
+      { key: 'RULE_ALL_SOC-2', cases: [] },
+    ],
+  })}\n`,
+});
+const k3Lancer = (index, surfaces = '| nominal | [RULE_ALL_SOC-1#nominal] |\n') =>
+  lancer(depotJouet({ fichiers: { ...DETTE, ...K3_REGLES, ...index, [K3_TICKET]: K3_PRET(surfaces) } }));
+
+test("K3, gate : sans index ou d'un autre schéma que 3, rien ne change ; un index au pivot 3 en observe signale, en enforce refuse", () => {
+  for (const [quoi, index] of [['sans index', {}], ['index au schéma 2', k3Index('2', 'enforce')]]) {
+    const r = k3Lancer(index, '| surface | à écrire |\n');
+    assert.equal(r.status, 0, `${quoi} : ${r.stderr}`);
+    assert.doesNotMatch(r.stdout, /avertissement/, quoi);
+    assert.match(r.stdout, /tickets : OK — 1 tickets/, quoi);
+  }
+  const message = "SPEC_ALL_SOC-1-socle.01.issue.md:3 : ready-for-agent : preuve suffisante (MODE) : RULE_ALL_SOC-2 n'a pas de criticité dans l'index (« à classer »)";
+  for (const index of [k3Index('3', 'observe'), k3Index('3')]) {
+    const r = k3Lancer(index);
+    assert.equal(r.status, 0, r.stderr);
+    assert.match(r.stdout, /tickets : 2 avertissement\(s\) de la preuve suffisante \(observe : rien n'est refusé\) :/);
+    assert.ok(r.stdout.includes(message.replace('MODE', 'observe')), r.stdout);
+    assert.match(r.stdout, /RULE_ALL_SOC-2 ne déclare aucun cas attendu dans l'index/);
+    assert.match(r.stdout, /tickets : OK — 1 tickets/);
+  }
+  const e = k3Lancer(k3Index('3', 'enforce'));
+  assert.equal(e.status, 1);
+  assert.match(e.stderr, /tickets : 2 écart\(s\) :/);
+  assert.ok(e.stderr.includes(message.replace('MODE', 'enforce')), e.stderr);
+  const surfaces = k3Lancer(k3Index('3', 'enforce'), '| nominal | à écrire |\n');
+  assert.match(surfaces.stderr, /tickets : 3 écart\(s\) :/);
+  assert.match(surfaces.stderr, /`## Surfaces` ne nomme pas le cas RULE_ALL_SOC-1#nominal/);
+});
+
+test("K3, gate : un index présent qui n'est pas du JSON fait sortir le gate en erreur, la cause dite, au lieu de cesser de juger", () => {
+  const r = k3Lancer({ 'anchorpost/anchorpost.json': '{ cassé' });
+  assert.equal(r.status, 1);
+  assert.match(r.stderr, /tickets : anchorpost\/anchorpost\.json illisible \(.+\) : la criticité et les cas des règles citées ne se lisent pas ; régénérer l'index/);
+});
+
+test("K3, gate : une règle rejetée ou obsolète dans l'index ne se juge pas ; un niveau ou un cas hors de la forme de l'index ne compte pas", () => {
+  const regles = Object.fromEntries([1, 2, 3, 4].map((n) => [`docs/metier/regles/all/RULE_ALL_SOC-${n}.md`, `---\nid: RULE_ALL_SOC-${n}\n---\n`]));
+  const index = (rules) => ({ 'anchorpost/anchorpost.json': `${JSON.stringify({ schema: '3', project: { name: 'p', sufficiency: 'enforce' }, rules })}\n` });
+  const ticket = (cites) =>
+    `# x\n\nStatus: ready-for-agent\nType: task\nRègles: ${cites}\nModèle: sonnet\nFichiers chauds: —\n\n## Où\n\n- a\n\n## Décisions\n\n- b\n\n## Surfaces\n\n| nominal | [RULE_ALL_SOC-1#nominal] |\n\n## Vérification\n\n- d\n`;
+  const jouer = (rules, cites) => lancer(depotJouet({ fichiers: { ...DETTE, ...regles, ...index(rules), [K3_TICKET]: ticket(cites) } }));
+  const classee = { key: 'RULE_ALL_SOC-1', criticality: k3Niveau, cases: [{ id: 'nominal' }] };
+  const closes = jouer(
+    [classee, { key: 'RULE_ALL_SOC-2', cases: [], validation: { status: 'rejected' } }, { key: 'RULE_ALL_SOC-3', cases: [], validation: { status: 'obsolete' } }],
+    'RULE_ALL_SOC-1, RULE_ALL_SOC-2, RULE_ALL_SOC-3',
+  );
+  assert.equal(closes.status, 0, `rejetée et obsolète : rien n'est jugé, même en enforce\n${closes.stderr}`);
+  assert.doesNotMatch(closes.stdout + closes.stderr, /preuve suffisante/);
+  const niveauHorsVocabulaire = { level: 'critique' };
+  const horsForme = jouer([classee, { key: 'RULE_ALL_SOC-4', criticality: niveauHorsVocabulaire, cases: [{ titre: 'sans id' }] }], 'RULE_ALL_SOC-1, RULE_ALL_SOC-4');
+  assert.equal(horsForme.status, 1);
+  assert.match(horsForme.stderr, /tickets : 2 écart\(s\) :/, horsForme.stderr);
+  assert.match(horsForme.stderr, /RULE_ALL_SOC-4 n'a pas de criticité dans l'index \(« à classer »\)/, 'un niveau hors de low, medium, high : à classer');
+  assert.match(horsForme.stderr, /RULE_ALL_SOC-4 ne déclare aucun cas attendu dans l'index/, 'un cas sans identifiant ne compte pas');
+  const nombre = lancer(depotJouet({ fichiers: { ...DETTE, ...regles, 'anchorpost/anchorpost.json': `${JSON.stringify({ schema: 3, project: { sufficiency: 'enforce' }, rules: [] })}\n`, [K3_TICKET]: ticket('RULE_ALL_SOC-4') } }));
+  assert.equal(nombre.status, 0, `un schema 3 en nombre n'est pas le pivot 3 (la CLI écrit "3") : rien n'est jugé\n${nombre.stderr}`);
+});
+
+// Contre-relecture de la PR 155 : la décision 3 du ticket 84 dit le régime de la chaîne sans effet sur K3, et l'index
+// illisible en sortie 1 « quel que soit le pivot ou le régime, `--elaguer` et `--geler-*` compris » ; rien ne le tenait.
+test("K3, gate : le régime 8 juge la preuve suffisante comme le régime 7 ; un index qui n'est pas du JSON sort en 1 en régime 8, sous --elaguer et sous --geler-*, sans rien écrire", () => {
+  const premier = (...chemins) => readFileSync(chemins.map((c) => new URL(c, import.meta.url)).find((u) => existsSync(u)), 'utf8');
+  const HUIT = {
+    '.claude/chaine.json': '{"cheminsSensibles":[],"relecture":{"depuis":"2026-11-21T09:00:00Z"}}\n',
+    'scripts/chaine/double-relecture.mjs': premier('../chaine/double-relecture.mjs', '../../../../fusionner/scripts/double-relecture.mjs'),
+    'scripts/docs/identifiants.mjs': premier('../docs/identifiants.mjs', '../../../../../monorepo/socle-monorepo/references/scripts/docs/identifiants.mjs'),
+  };
+  const enforce = lancer(depotJouet({ fichiers: { ...DETTE, ...HUIT, ...K3_REGLES, ...k3Index('3', 'enforce'), [K3_TICKET]: K3_PRET('| nominal | à écrire |\n') } }));
+  assert.equal(enforce.status, 1, `régime 8, enforce : refus\n${enforce.stdout}${enforce.stderr}`);
+  assert.match(enforce.stderr, /tickets : 3 écart\(s\) :/, enforce.stderr);
+  assert.match(enforce.stderr, /preuve suffisante \(enforce\) : `## Surfaces` ne nomme pas le cas RULE_ALL_SOC-1#nominal/);
+  const observe = lancer(depotJouet({ fichiers: { ...DETTE, ...HUIT, ...K3_REGLES, ...k3Index('3', 'observe'), [K3_TICKET]: K3_PRET('| nominal | [RULE_ALL_SOC-1#nominal] |\n') } }));
+  assert.equal(observe.status, 0, `régime 8, observe : sortie 0\n${observe.stderr}`);
+  assert.match(observe.stdout, /tickets : 2 avertissement\(s\) de la preuve suffisante \(observe : rien n'est refusé\) :/);
+  // Un ticket qui ne cite aucune règle : seul l'index illisible peut faire sortir le gate en 1.
+  const sansRegle = '# x\n\nStatus: needs-triage\nType: task\n';
+  const CASSE = { 'anchorpost/anchorpost.json': '{ cassé' };
+  const illisible = /tickets : anchorpost\/anchorpost\.json illisible \(.+\) : la criticité et les cas des règles citées ne se lisent pas ; régénérer l'index/;
+  const huit = lancer(depotJouet({ fichiers: { ...DETTE, ...HUIT, ...CASSE, [K3_TICKET]: sansRegle } }));
+  assert.equal(huit.status, 1, `régime 8 : ${huit.stdout}`);
+  assert.match(huit.stderr, illisible);
+  for (const option of ['--elaguer', '--geler-types', '--geler-fiches']) {
+    const d = depotJouet({ fichiers: { ...DETTE, ...CASSE, [K3_TICKET]: sansRegle } });
+    const r = lancer(d, option);
+    assert.equal(r.status, 1, `${option} : ${r.stdout}`);
+    assert.match(r.stderr, illisible, option);
+    assert.equal(readFileSync(join(d.travail, 'scripts/verify/tickets-dette.json'), 'utf8'), DETTE['scripts/verify/tickets-dette.json'], `${option} : la dette n'est pas récrite`);
+  }
+});
+
+test("K3, gate : un index JSON qui n'est pas un objet ne juge rien ; au pivot 3 sans liste `rules`, chaque règle citée est absente de l'index", () => {
+  const nul = lancer(depotJouet({ fichiers: { ...DETTE, ...K3_REGLES, 'anchorpost/anchorpost.json': 'null\n', [K3_TICKET]: K3_PRET('| surface | à écrire |\n') } }));
+  assert.equal(nul.status, 0, `null : rien n'est jugé\n${nul.stderr}`);
+  assert.doesNotMatch(nul.stdout + nul.stderr, /preuve suffisante/);
+  const sansRules = lancer(
+    depotJouet({ fichiers: { ...DETTE, ...K3_REGLES, 'anchorpost/anchorpost.json': `${JSON.stringify({ schema: '3', project: { sufficiency: 'enforce' } })}\n`, [K3_TICKET]: K3_PRET('| nominal | [RULE_ALL_SOC-1#nominal] |\n') } }),
+  );
+  assert.equal(sansRules.status, 1, sansRules.stderr);
+  assert.match(sansRules.stderr, /tickets : 2 écart\(s\) :/, sansRules.stderr);
+  assert.match(sansRules.stderr, /RULE_ALL_SOC-1 est absente de l'index anchorpost\/anchorpost\.json/);
+  assert.match(sansRules.stderr, /RULE_ALL_SOC-2 est absente de l'index anchorpost\/anchorpost\.json/);
+});

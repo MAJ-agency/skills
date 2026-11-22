@@ -28,6 +28,10 @@
 #                       ci-dessus (« sujet/x : prête », « sujet/x : CI rouge : … ») ; une sous-PR
 #                       prête passe en premier : squash dans le sujet (`sujet.sh fusionner`), sans
 #                       mise à jour ni E2E, quelques secondes. Sans CI ou en conflit : `sujet.sh relancer`.
+#   sujet/<nom> : fourche
+#                       sous-PR de fourche (sa tête vit dans un autre dépôt, ou dans un dépôt supprimé), lue sur la liste
+#                       des PR, avant sa CI : ni fusionnée, ni mise à jour, ni renvoyée, ses jobs rouges jamais relancés ;
+#                       jamais en route, elle ne tient pas son sujet, quelle que soit sa CI (A-201)
 #   vers sujet/<nom>    vise develop, mais son ticket déclare `Sujet: sujet/<nom>` : boucle.sh la
 #                       recible (`sujet.sh regrouper`), sauf label `hors-sujet`
 #   (4e colonne « sujet livré : <nom> » : le ticket déclare un sujet déjà livré ; la PR est classée
@@ -65,7 +69,8 @@ fi
 
 prs=$(lire_github "$DEPOT/pulls?state=open&per_page=100" --paginate) || exit 5
 prs=$(jq -s '[.[][] | {number, title, draft,
-  head: .head.ref, sommet: .head.sha, base: .base.ref, labels: [.labels[].name]}]' <<<"$prs")
+  head: .head.ref, sommet: .head.sha, base: .base.ref, labels: [.labels[].name],
+  fourche: ((.head.repo.full_name // "") != (.base.repo.full_name // ""))}]' <<<"$prs")
 ouvertes=$(jq -r '.[] | "\(.head) \(.number)"' <<<"$prs")
 # Checks exigés, lus dans la protection de develop (comme passer.sh) : un check d'un autre
 # workflow, non exigé, ne retient pas la file.
@@ -102,10 +107,10 @@ entrees=$(jq -r '.[] | select(any(.labels[]; . == "à-fusionner")) | [
     .number, .sommet, .base, .draft,
     any(.labels[]; . == "fusion-bloquée"),
     any(.labels[]; . == "hors-sujet"),
-    .head, .title
+    .fourche, .head, .title
   ] | @tsv' <<<"$prs" |
   sort -t "$(printf '\t')" -k1,1n -k2,2n)
-while IFS="$(printf '\t')" read -r prio n sommet base brouillon bloquee hors_sujet tete titre; do
+while IFS="$(printf '\t')" read -r prio n sommet base brouillon bloquee hors_sujet fourche tete titre; do
   # Checks du sommet illisibles : sortie 5, que chaque appelant propage (`|| exit 5`).
   ci_de() {
     local ci etats
@@ -152,6 +157,9 @@ while IFS="$(printf '\t')" read -r prio n sommet base brouillon bloquee hors_suj
     etat='gelée'
   elif [ "$(renvois_de "$n")" -ge "$plafond" ]; then
     etat='humain'
+  elif [[ "$base" == sujet/* ]] && [ "$fourche" = true ]; then
+    # Une sous-PR de fourche, avant sa CI : la boucle ne la prend jamais, elle ne tient pas son sujet (A-201).
+    etat="$base : fourche"
   elif [[ "$base" == sujet/* ]]; then
     etat=$(ci_de) || exit 5
     etat="$base : $etat"

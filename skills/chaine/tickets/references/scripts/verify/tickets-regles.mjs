@@ -180,6 +180,8 @@ const SENSIBLES = ligneDEnTete('Sensibles');
 const RELECTURE = ligneDEnTete('Relecture');
 // `Règles:` dans l'en-tête, lue comme `Sensibles:` (puce étoile comprise, A-165), comme le calcul « double relecture exigée ».
 const REGLES_EN_TETE = ligneDEnTete('Règles');
+// `Prouve:` (K3 de la preuve suffisante) : les règles qu'un ticket prouve sans les réaliser, lue comme `Règles:`.
+const PROUVE_EN_TETE = ligneDEnTete('Prouve');
 
 export const VOCABULAIRE = ['needs-triage', 'needs-info', 'ready-for-agent', 'ready-for-human', 'wontfix', 'en cours — <branche>', 'Fait — PR #<n>'];
 
@@ -524,22 +526,51 @@ export function ecartsRelecture(valeur) {
  * règle, chacune bien formée, existante (`regleExiste(id)`) et du contexte du ticket ou de `ALL`.
  * `contexte` : celui de l'identifiant du ticket, `null` s'il est illisible (seul `ALL` est alors sûr).
  */
-export function ecartsRegles(valeur, { contexte, regleExiste }) {
+export function ecartsRegles(valeur, { contexte, regleExiste, nom = 'Règles' }) {
   if (valeur === '—') return [];
   const { cites, malformes } = reglesCitees(valeur);
   const ecarts = malformes.map(
-    (m) => `Règles cite « ${m} », qui n'est pas un identifiant de règle complet (\`RULE_<CTX>_<TRI>-<n>\`, \`RULE_ALL_LIC-3\`) ; rien d'autre sur la ligne`,
+    (m) => `${nom} cite « ${m} », qui n'est pas un identifiant de règle complet (\`RULE_<CTX>_<TRI>-<n>\`, \`RULE_ALL_LIC-3\`) ; rien d'autre sur la ligne`,
   );
-  if (cites.length === 0 && malformes.length === 0) ecarts.push('ligne `Règles:` vide : citer au moins une règle, ou retirer la ligne');
+  if (cites.length === 0 && malformes.length === 0) ecarts.push(`ligne \`${nom}:\` vide : citer au moins une règle, ou retirer la ligne`);
   for (const id of cites) {
     const ctx = lireIdentifiant(id).contexte;
     if (ctx !== 'ALL' && ctx !== contexte)
       ecarts.push(
         contexte
-          ? `Règles cite ${id}, du contexte ${ctx} : un ticket du contexte ${contexte} ne cite que des règles de ${contexte === 'ALL' ? 'ALL' : `${contexte} ou de ALL`}`
-          : `Règles cite ${id}, du contexte ${ctx} : le nom du ticket ne porte pas d'identifiant lisible, seules les règles de ALL sont acceptées`,
+          ? `${nom} cite ${id}, du contexte ${ctx} : un ticket du contexte ${contexte} ne cite que des règles de ${contexte === 'ALL' ? 'ALL' : `${contexte} ou de ALL`}`
+          : `${nom} cite ${id}, du contexte ${ctx} : le nom du ticket ne porte pas d'identifiant lisible, seules les règles de ALL sont acceptées`,
       );
-    else if (!regleExiste(id)) ecarts.push(`Règles cite ${id}, absente du registre (docs/metier/regles/${dossierDuContexte(ctx)}/${id}.md)`);
+    else if (!regleExiste(id)) ecarts.push(`${nom} cite ${id}, absente du registre (docs/metier/regles/${dossierDuContexte(ctx)}/${id}.md)`);
+  }
+  return ecarts;
+}
+
+/**
+ * La preuve suffisante d'un ticket prêt (K3, `SPEC_ALL_ANC-5` § 8) : chaque règle que ses lignes `Règles:` et `Prouve:`
+ * citent a une criticité et des cas attendus dans l'index commis, et `## Surfaces` nomme chacun de ces cas
+ * (`RULE_…#<cas>`), avec la preuve qui le portera.
+ * `suffisance` : `null` quand l'index n'est pas au pivot 3 (absent, ou d'un autre `schema`) : rien n'est jugé ; sinon
+ * `{ mode, regle(id) }`, `mode` valant `observe` ou `enforce` (`project.sufficiency` de l'index), `regle(id)` rendant
+ * `{ criticite, cas, close }` lus dans l'index (`criticite` : le niveau, ou `null` pour « à classer » ; `cas` : leurs
+ * identifiants ; `close` : rejetée ou obsolète), ou `null` pour une règle absente de l'index.
+ * Rend les messages, sans dire s'ils refusent : c'est `controlerTicket` qui les range selon le mode.
+ */
+export function ecartsSuffisance({ ids, surfaces, suffisance }) {
+  if (!suffisance) return [];
+  const ecarts = [];
+  const nommes = new Set((surfaces ?? []).join('\n').match(new RegExp(`${REGLE}#[a-z0-9]+(?:-[a-z0-9]+)*`, 'g')) ?? []);
+  for (const id of ids) {
+    const r = suffisance.regle(id);
+    if (r === null) {
+      ecarts.push(`${id} est absente de l'index anchorpost/anchorpost.json : régénérer l'index (la commande que nomme scripts/docs/index-generes.json), puis classer la règle par le skill criticite`);
+      continue;
+    }
+    if (r.close) continue;
+    if (!r.criticite) ecarts.push(`${id} n'a pas de criticité dans l'index (« à classer ») : la classer par le skill criticite (/maj-skills:criticite) avant de lancer le ticket`);
+    if (r.cas.length === 0) ecarts.push(`${id} ne déclare aucun cas attendu dans l'index : les écrire par le skill criticite (/maj-skills:criticite) avant de lancer le ticket`);
+    for (const c of r.cas)
+      if (!nommes.has(`${id}#${c}`)) ecarts.push(`\`## Surfaces\` ne nomme pas le cas ${id}#${c} : une ligne par cas attendu des règles citées, avec la preuve qui le portera, ou le ticket qui la portera`);
   }
   return ecarts;
 }
@@ -580,6 +611,7 @@ export function controlerTicket({
   testExiste = () => 'absent',
   regime = 7,
   niveauDe = () => null,
+  suffisance = null,
 }) {
   const lignes = texte.split('\n');
   const id = identifiantDuTicket(nom);
@@ -607,6 +639,27 @@ export function controlerTicket({
       if (regles.length > 1 && r.valeur === '—')
         erreurs.push({ ligne: r.ligne, message: 'Règles: — dit que le ticket ne réalise aucune règle : pas avec une autre ligne `Règles:` (une seule ligne)' });
     }
+  }
+  // `Prouve:` (K3) : les règles que le ticket prouve sans les réaliser ; jamais une règle de `Règles:`, qui garde le sens
+  // de ce que la feature réalise (`P-34`) et seule fait descendre la criticité d'une feature.
+  const prouve = [];
+  tete(lignes).forEach((brute, i) => {
+    const m = PROUVE_EN_TETE.exec(brute.replace(/\r$/, ''));
+    if (m) prouve.push({ valeur: m[1].trim(), ligne: i + 1 });
+  });
+  const realisees = new Set(regles.flatMap((r) => (r.valeur === '—' ? [] : reglesCitees(r.valeur).cites)));
+  const contexteProuve = id ? lireIdentifiant(id).contexte : null;
+  for (const p of prouve) {
+    if (p.valeur === '—') {
+      erreurs.push({ ligne: p.ligne, message: 'Prouve: — ne dit rien : citer les règles que le ticket prouve sans les réaliser, ou retirer la ligne' });
+      continue;
+    }
+    for (const e of ecartsRegles(p.valeur, { contexte: contexteProuve, regleExiste, nom: 'Prouve' })) erreurs.push({ ligne: p.ligne, message: e });
+    for (const r of reglesCitees(p.valeur).cites.filter((x) => realisees.has(x)))
+      erreurs.push({
+        ligne: p.ligne,
+        message: `${r} est sur \`Règles:\` et sur \`Prouve:\` : une règle que le ticket réalise va sur \`Règles:\` seule ; \`Prouve:\` nomme celles qu'il prouve sans les réaliser`,
+      });
   }
   if (typeDe(type?.valeur ?? '') === 'défaut' && /^Fait — PR #\d+/.test(status?.valeur ?? '')) {
     for (const e of ecartsDefautFait(lignes, testExiste)) erreurs.push({ ligne: type.ligne, message: `défaut Fait : ${e}` });
@@ -636,11 +689,18 @@ export function controlerTicket({
     for (const e of ecartsRelectureDouble({ status: status?.valeur, valeursRegles: regles.map((r) => r.valeur), relecture: relectureLue, niveauDe }))
       erreurs.push({ ligne: regles[0]?.ligne ?? 1, message: e });
   const pret = status?.valeur === 'ready-for-agent';
+  const avertissements = [];
   if (pret && !gele) {
     for (const e of ecartsFormatPret(texte, cheminsSensibles, { regime }))
       erreurs.push({ ligne: status.ligne, message: `ready-for-agent : ${e} (docs/agents/chaine-de-production.md § 3)` });
+    // K3 : en `enforce` un refus, en `observe` un avertissement, sans index au pivot 3 rien (SPEC_ALL_ANC-5 § 8, A-22).
+    const ids = [...new Set([...regles, ...prouve].flatMap((r) => (r.valeur === '—' ? [] : reglesCitees(r.valeur).cites)))].filter(regleExiste);
+    for (const e of ecartsSuffisance({ ids, surfaces: sections(lignes).get('Surfaces'), suffisance })) {
+      const message = `ready-for-agent : preuve suffisante (${suffisance.mode}) : ${e}`;
+      (suffisance.mode === 'enforce' ? erreurs : avertissements).push({ ligne: status.ligne, message });
+    }
   }
-  return { status: status?.valeur ?? null, type: type?.valeur ?? null, pret, erreurs };
+  return { status: status?.valeur ?? null, type: type?.valeur ?? null, pret, erreurs, avertissements };
 }
 
 export const PHASES = ['1-grilling', '2-decoupage', '3-specs-en-fusion', '4-vague-<k>', '5-livraison', '6-nettoyage', 'fini'];
