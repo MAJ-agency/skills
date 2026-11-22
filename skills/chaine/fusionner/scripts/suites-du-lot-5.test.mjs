@@ -1,6 +1,7 @@
 // Banc des suites du lot 5 chez le capitaine (contre-relecture de la PR 149, A-192 ; ticket 78) : une PR de fourche est
 // sautée sans renvoi par `passer.sh`, `sujet.sh fusionner` et `sujet.sh relancer`, dans les deux régimes, avant tout fetch
-// de sa tête, et une sous-PR de fourche ne tient pas son sujet dans `boucle.sh` (A-201) ;
+// de sa tête, et une sous-PR de fourche ne tient pas son sujet dans `boucle.sh`, quelle que soit sa CI (`file.sh` la lit
+// « fourche » ; la sortie 7 de la garde, lue par `fourche_sautee`, en défense) (A-201) ;
 // une PR de mise à jour d'un sujet ne joue qu'une revue du capitaine au premier contrôle ; une PR de mise à jour d'un
 // sujet qu'aucun ticket ne déclare reçoit un motif qui dit son geste. Le dépôt jouet et le faux GitHub. Aucun réseau.
 import { test } from "node:test";
@@ -53,6 +54,13 @@ function sansDepot(d, n) {
   writeFileSync(join(d.racine, "sans-depot.mjs"), 'let t = "";\nprocess.stdin.on("data", (c) => (t += c)).on("end", () => {\n  const p = JSON.parse(t);\n  p.head.repo = null;\n  process.stdout.write(`${JSON.stringify(p)}\\n`);\n});\n');
   Object.assign(d.env, { BANC_FAUX_GH: FAUX, BANC_SANS_DEPOT: join(d.racine, "sans-depot.mjs") });
   writeFileSync(join(d.racine, "bin/gh"), `#!/bin/sh\ncase "$*" in *"-X "*) ;; *pulls/${n}) node "$BANC_FAUX_GH" "$@" | node "$BANC_SANS_DEPOT"; exit 0 ;; esac\nexec node "$BANC_FAUX_GH" "$@"\n`);
+}
+
+// Un `gh` qui rend la liste des PR ouvertes avec `head.repo` nul pour la PR `n` (une fourche supprimée, vue par file.sh).
+function sansDepotDansLaListe(d, n) {
+  writeFileSync(join(d.racine, "liste-sans-depot.mjs"), `let t = "";\nprocess.stdin.on("data", (c) => (t += c)).on("end", () => {\n  const l = JSON.parse(t);\n  for (const p of l) if (p.number === ${n}) p.head.repo = null;\n  process.stdout.write(\`\${JSON.stringify(l)}\\n\`);\n});\n`);
+  Object.assign(d.env, { BANC_FAUX_GH: FAUX, BANC_LISTE_SANS_DEPOT: join(d.racine, "liste-sans-depot.mjs") });
+  writeFileSync(join(d.racine, "bin/gh"), `#!/bin/sh\ncase "$*" in *"-X "*) ;; *"/pulls?state=open"*) node "$BANC_FAUX_GH" "$@" | node "$BANC_LISTE_SANS_DEPOT"; exit 0 ;; esac\nexec node "$BANC_FAUX_GH" "$@"\n`);
 }
 
 test("passer.sh : une PR de fourche dont la branche porte le nom d'une branche d'origin est sautée sans renvoi (7), dans les deux régimes : rien de lu sur sa tête, rien de poussé, rien d'écrit (A-192, point 2)", () => {
@@ -216,36 +224,115 @@ const CALCULS = [
   ["revue-adversariale", "chemins-sensibles.mjs"],
 ];
 
-test("boucle.sh : deux sous-PR d'un sujet, l'une de fourche : la fourche est sautée sans renvoi et ne tient pas son sujet, l'autre entre au même tour ; dans les deux régimes, la fourche « prête » (fusionner) ou « prête (sans CI) » (relancer) (A-201)", () => {
-  for (const contrat of [REGIME8, REGIME7])
-    for (const sansCi of [false, true]) {
-      const d = monter(contrat);
-      d.branche("sujet/lot", "origin/develop", { "docs/lot.md": "lot\n" });
-      const checks = {};
-      const pulls = [];
-      for (const n of [80, 81]) {
-        const sha = d.branche(`feat/pr-${n}`, "origin/sujet/lot", { [`docs/pr-${n}.md`]: `${n}\n` });
-        if (!(sansCi && n === 80)) checks[sha] = { qualite: "SUCCESS" };
-        // #80 : une fourche (`autre/jouet`) dont la branche `fourche/a` n'existe pas sur origin, le cas ordinaire.
-        pulls.push({ number: n, title: `docs(lot): pr ${n}`, head: n === 80 ? "fourche/a" : `feat/pr-${n}`, sha, base: "sujet/lot", labels: ["à-fusionner"], body: "## Revue de ticket\n\nRien de bloquant.\n", ...(n === 80 ? { fourche: "autre/jouet" } : {}), commentaires: valide(sha) });
-      }
-      d.git("push", "-q", "origin", ":refs/heads/feat/pr-80");
-      d.git("switch", "-q", "--detach", "origin/develop");
-      d.github({ exiges: ["qualite"], checks, pulls });
-      d.publierChaine();
-      for (const [skill, nom] of CALCULS) d.ecrire(`scripts/chaine/${nom}`, readFileSync(scriptDe(skill, nom), "utf8"));
-      d.commit("chore(chaine): calculs du régime 8");
-      d.git("push", "-q", "origin", "HEAD:develop");
-      d.git("fetch", "-q", "origin");
-      const cas = `${JSON.stringify(contrat)}, fourche ${sansCi ? "« prête (sans CI) »" : "« prête »"}`;
-      const r = d.lancer(BOUCLE);
-      assert.equal(r.status, 0, `${cas} : ${r.stdout}${r.stderr}`);
-      assert.match(r.stdout, /^\[#80\] sous-PR de fourche, sautée \(aucun renvoi\) : elle ne tient pas sujet\/lot$/m, `${cas} : ${r.stdout}`);
-      assert.doesNotMatch(r.stdout, /tenu par #80|^\[#81\] attend son tour|en passage chez un autre capitaine/m, cas);
-      assert.match(r.stdout, /^\[#81\] FUSIONNÉE dans sujet\/lot $/m, `${cas} : ${r.stdout}`);
-      assert.deepEqual(d.etat().pulls.filter((p) => p.merged_at).map((p) => p.number), [81], cas);
-      assert.deepEqual(d.journal().filter((e) => /^(issues|pulls)\/80\//.test(e.route)), [], `${cas} : rien d'écrit sur la fourche`);
+test("boucle.sh : deux sous-PR d'un sujet, l'une de fourche : la fourche est sautée sans renvoi et ne tient pas son sujet, l'autre entre au même tour ; dans les deux régimes, quelle que soit la CI de la fourche (verte, absente, en cours), et la fourche que seule la garde de sujet.sh voit (fusionner, relancer) (A-201)", () => {
+  // [contrat, CI de la fourche (null : aucune), garde seule]. Garde seule : la liste des PR la dit du dépôt, sa lecture
+  // (`pulls/80`) sans dépôt : file.sh ne la voit pas, la sortie 7 de la garde de `sujet.sh` la nomme (`fourche_sautee`).
+  const CAS = [
+    [REGIME8, "SUCCESS", false], [REGIME7, "SUCCESS", false],
+    [REGIME8, null, false], [REGIME7, null, false],
+    [REGIME8, "IN_PROGRESS", false], [REGIME7, "IN_PROGRESS", false],
+    [REGIME8, "SUCCESS", true], [REGIME7, null, true],
+  ];
+  for (const [contrat, ciFourche, gardeSeule] of CAS) {
+    const d = monter(contrat);
+    d.branche("sujet/lot", "origin/develop", { "docs/lot.md": "lot\n" });
+    const checks = {};
+    const pulls = [];
+    for (const n of [80, 81]) {
+      const sha = d.branche(`feat/pr-${n}`, "origin/sujet/lot", { [`docs/pr-${n}.md`]: `${n}\n` });
+      const ci = n === 80 ? ciFourche : "SUCCESS";
+      if (ci) checks[sha] = { qualite: ci };
+      // #80 : une fourche (`autre/jouet`) dont la branche `fourche/a` n'existe pas sur origin, le cas ordinaire.
+      pulls.push({ number: n, title: `docs(lot): pr ${n}`, head: n === 80 ? "fourche/a" : `feat/pr-${n}`, sha, base: "sujet/lot", labels: ["à-fusionner"], body: "## Revue de ticket\n\nRien de bloquant.\n", ...(n === 80 && !gardeSeule ? { fourche: "autre/jouet" } : {}), commentaires: valide(sha) });
     }
+    d.git("push", "-q", "origin", ":refs/heads/feat/pr-80");
+    d.git("switch", "-q", "--detach", "origin/develop");
+    d.github({ exiges: ["qualite"], checks, pulls });
+    if (gardeSeule) sansDepot(d, 80);
+    d.publierChaine();
+    for (const [skill, nom] of CALCULS) d.ecrire(`scripts/chaine/${nom}`, readFileSync(scriptDe(skill, nom), "utf8"));
+    d.commit("chore(chaine): calculs du régime 8");
+    d.git("push", "-q", "origin", "HEAD:develop");
+    d.git("fetch", "-q", "origin");
+    const cas = `${JSON.stringify(contrat)}, CI de la fourche ${ciFourche ?? "absente"}${gardeSeule ? ", vue par la garde de sujet.sh seule" : ""}`;
+    const r = d.lancer(BOUCLE);
+    assert.equal(r.status, 0, `${cas} : ${r.stdout}${r.stderr}`);
+    assert.match(r.stdout, /^\[#80\] sous-PR de fourche, sautée \(aucun renvoi\) : elle ne tient pas sujet\/lot$/m, `${cas} : ${r.stdout}`);
+    assert.doesNotMatch(r.stdout, /tenu par #80|^\[#81\] attend son tour|en passage chez un autre capitaine/m, cas);
+    assert.match(r.stdout, /^\[#81\] FUSIONNÉE dans sujet\/lot $/m, `${cas} : ${r.stdout}`);
+    assert.deepEqual(d.etat().pulls.filter((p) => p.merged_at).map((p) => p.number), [81], cas);
+    assert.deepEqual(d.journal().filter((e) => /^(issues|pulls)\/80\//.test(e.route)), [], `${cas} : rien d'écrit sur la fourche`);
+  }
+});
+
+test("boucle.sh : `fourche_sautee` ne lit que la DERNIÈRE ligne d'une sortie 7 de sujet.sh, et le motif entier de la garde de fourche, pour ce numéro : toute autre sortie 7 (verrou, lecture illisible, garde des chemins sensibles, une ligne après le motif, un autre numéro, un motif tronqué) tient le sujet (A-201)", () => {
+  const MOTIF = (n) => `#${n} : PR de fourche (autre/jouet) : sa tête vit hors du dépôt, le capitaine ne la lit pas ; sautée sans renvoi`;
+  // [sortie de `sujet.sh fusionner 80` (sortie 7), le sujet rendu ?]
+  const CAS = [
+    [`${MOTIF(80)}\n`, true],
+    [`${MOTIF(80)}\nune ligne de plus\n`, false],
+    [`${MOTIF(81)}\n`, false],
+    [`${MOTIF(80).replace(" ; sautée sans renvoi", "")}\n`, false],
+    ["#80 en passage chez le capitaine autre depuis 2026-11-17T12:00:00Z : sautée sans renvoi\n", false],
+    ["#80 : lecture illisible : x : sautée sans renvoi, son auteur n'y peut rien (le Relecteur prévient l'architecte)\n", false],
+    ["#80 : x (chemins sensibles) : sautée sans renvoi, son auteur n'y peut rien\n", false],
+  ];
+  for (const [sortie, rendu] of CAS) {
+    const d = monter(REGIME7);
+    d.branche("sujet/lot", "origin/develop", { "docs/lot.md": "lot\n" });
+    const checks = {};
+    const pulls = [];
+    for (const n of [80, 81]) {
+      const sha = d.branche(`feat/pr-${n}`, "origin/sujet/lot", { [`docs/pr-${n}.md`]: `${n}\n` });
+      checks[sha] = { qualite: "SUCCESS" };
+      pulls.push({ number: n, title: `docs(lot): pr ${n}`, head: `feat/pr-${n}`, sha, base: "sujet/lot", labels: ["à-fusionner"], body: "## Revue de ticket\n\nRien de bloquant.\n", commentaires: [] });
+    }
+    d.git("switch", "-q", "--detach", "origin/develop");
+    d.github({ exiges: ["qualite"], checks, pulls });
+    // Le `sujet.sh` que la boucle copie d'origin/develop : `fusionner 80` écrit la sortie du cas et sort en 7 ; le reste
+    // est joué par le vrai, posé à côté.
+    writeFileSync(join(d.racine, "sortie-80.txt"), sortie);
+    d.env.BANC_SORTIE_80 = join(d.racine, "sortie-80.txt");
+    d.publierChaine();
+    d.ecrire("scripts/chaine/sujet-vrai.sh", readFileSync(SUJET, "utf8"));
+    d.ecrire("scripts/chaine/sujet.sh", '#!/usr/bin/env bash\ncase "$1:${2:-}" in fusionner:80) cat "$BANC_SORTIE_80"; exit 7 ;; esac\nexec bash "$(cd "$(dirname "$0")" && pwd)/sujet-vrai.sh" "$@"\n');
+    d.commit("chore(chaine): sujet.sh du banc");
+    d.git("push", "-q", "origin", "HEAD:develop");
+    d.git("fetch", "-q", "origin");
+    const cas = JSON.stringify(sortie);
+    const r = d.lancer(BOUCLE);
+    assert.equal(r.status, 0, `${cas} : ${r.stdout}${r.stderr}`);
+    if (rendu) {
+      assert.match(r.stdout, /^\[#80\] sous-PR de fourche, sautée \(aucun renvoi\) : elle ne tient pas sujet\/lot$/m, `${cas} : ${r.stdout}`);
+      assert.match(r.stdout, /^\[#81\] FUSIONNÉE dans sujet\/lot $/m, `${cas} : ${r.stdout}`);
+    } else {
+      assert.doesNotMatch(r.stdout, /sous-PR de fourche/, `${cas} : ${r.stdout}`);
+      assert.match(r.stdout, /^\[sujet\/lot\] tenu par #80 \(sortie 7 de fusionner(, verrou du [0-9TZ:-]+)?\)$/m, `${cas} : ${r.stdout}`);
+      assert.match(r.stdout, /^\[#81\] attend son tour : #80 passe d'abord dans sujet\/lot$/m, `${cas} : ${r.stdout}`);
+    }
+  }
+});
+
+test("file.sh : une sous-PR de fourche se lit « sujet/<nom> : fourche », quelle que soit sa CI (rouge comprise), une tête sans dépôt comprise : jamais dans --rouges ni --next, rien d'écrit (A-201)", () => {
+  const d = monter(REGIME7);
+  d.branche("sujet/lot", "origin/develop", { "docs/lot.md": "lot\n" });
+  const pulls = [];
+  const checks = {};
+  for (const [n, ci] of [[80, "FAILURE"], [81, "FAILURE"], [82, "IN_PROGRESS"], [83, null]]) {
+    const sha = d.branche(`feat/pr-${n}`, "origin/sujet/lot", { [`docs/pr-${n}.md`]: `${n}\n` });
+    if (ci) checks[sha] = { qualite: ci };
+    // #83 : une fourche supprimée, sa tête sans dépôt dans la liste des PR (`sansDepotDansLaListe`).
+    pulls.push({ number: n, title: `docs(lot): pr ${n}`, head: `feat/pr-${n}`, sha, base: "sujet/lot", labels: ["à-fusionner"], ...(n === 80 || n === 82 ? { fourche: "autre/jouet" } : {}), commentaires: [] });
+  }
+  d.git("switch", "-q", "--detach", "origin/develop");
+  d.github({ exiges: ["qualite"], checks, pulls });
+  sansDepotDansLaListe(d, 83);
+  const FILE = scriptDe("fusionner", "file.sh");
+  const etats = Object.fromEntries(d.lancer(FILE).stdout.trim().split("\n").map((l) => l.split("\t").slice(0, 2)));
+  assert.deepEqual(etats, { 80: "sujet/lot : fourche", 81: "sujet/lot : CI rouge : qualite", 82: "sujet/lot : fourche", 83: "sujet/lot : fourche" });
+  assert.equal(d.lancer(FILE, "--rouges").stdout, "81\tqualite\n");
+  assert.equal(d.lancer(FILE, "--next").status, 1);
+  assert.deepEqual(d.journal(), [], "file.sh ne fait que lire");
 });
 
 test("sujet.sh fusionner : le régime lu d'abord est 8, la revue relit 7 (le contrat du sujet a perdu la clé `relecture` entre les deux lectures) : la revue est rejouée sur la liste du régime 7, la résolution seule, et les retouches se jugent après les checks (la suite M1 du lot 5, A-201)", () => {

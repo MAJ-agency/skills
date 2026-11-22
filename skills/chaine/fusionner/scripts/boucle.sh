@@ -337,9 +337,10 @@ rafraichir_sujets() {
 # refusée par une sortie non classée) : la plus ancienne qui attend le prend aussitôt. Il reste tenu sur une sortie qui
 # la laisse en route : 5, 6, 8, 11, `relancer` réussi, 7 (le verrou d'un autre capitaine) et toute sortie par signal
 # (129 et plus : l'état du passage interrompu est inconnu, son verrou peut rester ; 128 est une erreur fatale de git,
-# pas un signal : elle suit la table d'une erreur, A-161). Une sous-PR de fourche (la sortie 7 de sa garde, lue par
-# `fourche_sautee`) n'est jamais en route : sautée sans renvoi, elle rend le sujet dans le tour, dans les deux régimes,
-# et sa ligne la nomme (A-201). Un sujet encore tenu après le
+# pas un signal : elle suit la table d'une erreur, A-161). Une sous-PR de fourche n'est jamais en route, quelle que soit
+# sa CI : file.sh la dit « sujet/<nom> : fourche », la boucle la saute sans renvoi et sa ligne la nomme ; une fourche que
+# seule la garde de `sujet.sh` verrait (sa sortie 7, lue par `fourche_sautee`) rend de même le sujet dans le tour, dans
+# les deux régimes (A-201). Un sujet encore tenu après le
 # passage de celle qui le tient est dit à chaque tour : `[sujet/<nom>] tenu par #n (<raison>)`, écrit par la boucle une
 # fois la sortie de `sujet.sh` classée (son code, et sa dernière ligne dans `$sortie`), jamais dans `$sortie` : la ligne
 # ne suit pas celle du `sortir`, et `refus.sh` ne la prend pas pour un motif. Sur une sortie 7, la raison porte la date
@@ -459,6 +460,8 @@ traiter_sujets() {
           6) echo "[#$n] PAS PROPRE : worktree du capitaine à nettoyer, regroupement repris au tour suivant (aucun renvoi)" ;;
           *) echo "[#$n] regroupement dans sujet/$sujet impossible (SUJET EN CONFLIT ?)" ;;
         esac ;;
+      # Une sous-PR de fourche (file.sh) : jamais prise, elle ne tient pas son sujet (A-201).
+      sujet/*' : fourche') echo "[#$n] sous-PR de fourche, sautée (aucun renvoi) : elle ne tient pas ${etat%% :*}" ;;
       'prête (à recibler sur sujet/'*)
         sujet=${etat#prête (à recibler sur }
         sujet=${sujet%)}

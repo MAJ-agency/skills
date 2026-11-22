@@ -6,7 +6,7 @@ La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque pro
 
 ### Ce qui change
 
-- **Une PR de fourche est sautée par le capitaine** (ticket 78, `A-192` point 2), dans les deux régimes : `passer.sh`, `sujet.sh fusionner` et `sujet.sh relancer` la sautent sans renvoi (sortie 7), avant tout fetch de sa tête, comme le Relecteur la dit illisible. Une fourche dont la branche portait le nom d'une branche d'origin faisait juger, mettre à jour, pousser et fusionner cette branche d'origin à sa place (`relancer` la mettait à jour et la poussait pour une sous-PR sans CI, `A-199`). Une sous-PR de fourche ne tient pas son sujet (`A-201`) : `boucle.sh` la dit « sous-PR de fourche, sautée », et l'autre sous-PR du sujet entre au même tour.
+- **Une PR de fourche est sautée par le capitaine** (ticket 78, `A-192` point 2), dans les deux régimes : `passer.sh`, `sujet.sh fusionner` et `sujet.sh relancer` la sautent sans renvoi (sortie 7), avant tout fetch de sa tête, comme le Relecteur la dit illisible. Une fourche dont la branche portait le nom d'une branche d'origin faisait juger, mettre à jour, pousser et fusionner cette branche d'origin à sa place (`relancer` la mettait à jour et la poussait pour une sous-PR sans CI, `A-199`). Une sous-PR de fourche ne tient pas son sujet, quelle que soit sa CI (`A-201`) : `file.sh` la lit « sujet/<nom> : fourche » sur la liste des PR, `boucle.sh` la dit « sous-PR de fourche, sautée », sans la mettre à jour, la renvoyer ni relancer ses jobs rouges, et l'autre sous-PR du sujet entre au même tour.
 - **Une PR de mise à jour d'un sujet** (ticket 78, régime 8) : elle ne joue plus qu'une revue du capitaine au premier contrôle, son régime lu d'abord sur le sujet ; et quand aucun ticket ni aucune spec ne déclare le sujet, son motif dit son geste (un ticket du sujet accorde le chemin sensible), et plus celui d'une PR sans ticket.
 - **Le hook d'édition** (ticket 79, régime 8) : l'héritage d'une copie de ticket sur un sujet se juge contre le develop d'origin ; une copie locale de develop en retard ou absente ne juge rien : la copie du sujet ne compte pas, et le refus dit de relire develop (comptée, une copie héritée d'un accord que develop a retiré l'accordait encore, `A-199` point 2). Quand le refus a un geste (relire les copies, approfondir le clone), il vient en tête, avant la demande au conducteur.
 - Rien d'autre ne change en régime 7 (un dépôt sans la clé `relecture`) : la fourche y est sautée de même, sans tenir son sujet ; le premier contrôle d'une PR de mise à jour n'y jouait déjà qu'une revue, et la garde des chemins sensibles du capitaine comme le refus du hook n'y tournent pas.
@@ -14,7 +14,7 @@ La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque pro
 ### Ce qu'un projet fait pour en profiter
 
 1. Mettre à jour le plugin (comme pour 7.31.0, étape 1).
-2. Reposer, dans une PR du projet : `/maj-skills:fusionner poser` (`passer.sh`, `boucle.sh`), `/maj-skills:sujet poser`, `/maj-skills:revue-adversariale poser` et `/maj-skills:socle-chaine-de-production` (le hook d'édition) ; puis relancer le capitaine.
+2. Reposer, dans une PR du projet : `/maj-skills:fusionner poser` (`passer.sh`, `boucle.sh`, `file.sh`), `/maj-skills:sujet poser`, `/maj-skills:revue-adversariale poser` et `/maj-skills:socle-chaine-de-production` (le hook d'édition) ; puis relancer le capitaine.
 
 ## 8.0.0 — 2026-11-22
 
