@@ -1,7 +1,7 @@
 ---
 name: anchorpost
-description: Branche un dépôt du socle sur Anchorpost, le site qui montre à la MOA les règles métier, leurs preuves, les défauts et les demandes lus dans la documentation du dépôt — installe la CLI privée `@maj-agency/anchorpost`, écrit le manifeste, pose la structure de dossiers du standard ou migre l'existante, déclare l'index généré et son gate, pose la fiche d'écriture `.claude/rules/anchorpost.md`, la recette d'installation de la clé et l'ADR, génère le premier index. Exige le socle de la chaîne de production et refuse sinon. Use when a project must be read by Anchorpost, when socle-monorepo asks « Anchorpost ? », when a repo's rules, tickets or identifiers must be migrated to the documentation standard, or when `anchorpost check` is red.
-argument-hint: '[poser | migrer | verifier]'
+description: Branche un dépôt du socle sur Anchorpost, le site qui montre à la MOA les règles métier, leurs preuves, les défauts et les demandes lus dans la documentation du dépôt — installe la CLI `@maj-agency/anchorpost` (≥ 2.0.0, publique sur npmjs.com), écrit le manifeste au schéma 3, pose la structure de dossiers du standard ou migre l'existante, déclare l'index généré et son gate, pose la fiche d'écriture `.claude/rules/anchorpost.md` (criticité, cas attendus, étiquette de cas, ce que dit `compare`), la recette de l'administrateur et l'ADR, génère le premier index, et passe au pivot 3 un dépôt qui n'y est pas. Exige le socle de la chaîne de production et refuse sinon. Use when a project must be read by Anchorpost, when socle-monorepo asks « Anchorpost ? », when a repo's rules, tickets or identifiers must be migrated to the documentation standard, or when `anchorpost check` is red.
+argument-hint: '[poser | migrer | verifier | pivot-3]'
 ---
 
 # Anchorpost — brancher un dépôt
@@ -27,16 +27,11 @@ Sans ces fichiers, l'index n'aurait ni gate ni protection contre l'édition à l
 
 ## Étape 1 — installer la CLI
 
-La CLI est un paquet npm **privé** sur GitHub Packages. Comme une application sur un magasin privé, il faut une clé pour la télécharger : un jeton GitHub avec le droit `read:packages` sur l'organisation.
+La CLI est un paquet npm **public** sur npmjs.com (Anchorpost `ADR_ALL_ARC-16`) : une installation ordinaire, sans jeton ni `.npmrc` particulier. Ce skill suit la **CLI 2.0.0 et les suivantes** (pivot 3 : criticité, cas attendus, état « partielle », `compare`).
 
-1. Dans `.npmrc` racine, ajouter (le fichier existe, posé par le socle) :
-   ```
-   @maj-agency:registry=https://npm.pkg.github.com
-   //npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}
-   ```
-2. `pnpm add -Dw @maj-agency/anchorpost` (le hook d'agent refuse une dépendance que la ligne `Dépendances:` du ticket ne prévoit pas : la prévoir dans le ticket).
+1. Un dépôt qui portait la recette d'avant (`@maj-agency:registry=https://npm.pkg.github.com` et `NODE_AUTH_TOKEN` dans `.npmrc`) retire d'abord ces deux lignes : tant qu'elles sont là, `pnpm` cherche le paquet sur GitHub Packages, qui ne le publie plus.
+2. `pnpm add -Dw @maj-agency/anchorpost@^2` (le hook d'agent refuse une dépendance que la ligne `Dépendances:` du ticket ne prévoit pas : la prévoir dans le ticket).
 3. Dans `package.json` racine, deux scripts : `"anchorpost:index": "anchorpost index"` et `"anchorpost:check": "anchorpost check"`.
-4. Si `NODE_AUTH_TOKEN` manque dans la session, **ne pas inventer de valeur** : écrire la recette (étape 6) et continuer ; l'installation se finira sur un poste qui a la clé. Dans un environnement cloud de Claude, la clé est une network secret pour `npm.pkg.github.com` et la variable vaut une valeur factice que le proxy remplace.
 
 ## Étape 2 — la structure, ou la migration
 
@@ -91,11 +86,12 @@ Le manifeste est écrit à la main et validé par un humain. Il n'est jamais gé
 1. `scripts/docs/index-generes.json` : une entrée `{ "chemin": "anchorpost/anchorpost.json", "commande": "pnpm anchorpost:index" }`. Le hook d'agent refuse alors l'édition à la main, et le capitaine régénère l'index à chaque fusion. Rien d'autre à poser côté hooks.
 2. `.claude/chaine.json` : `scripts/verify/anchorpost.mjs` dans `gatesRapides`, et le fichier [`references/scripts/verify/anchorpost.mjs`](references/scripts/verify/anchorpost.mjs) copié : il appelle `pnpm anchorpost:check` et ne fait rien d'autre, pour que la chaîne le trouve avec les autres gates.
 3. `scripts/check.mjs` : une étape `check:anchorpost` après `check:tickets`, et le script `"check:anchorpost": "anchorpost check"` dans `package.json`.
-4. La CI : le job de qualité joue déjà `pnpm check` ; vérifier que `NODE_AUTH_TOKEN` y vaut `${{ secrets.GITHUB_TOKEN }}` pour l'installation (l'accès du paquet est accordé au dépôt par un admin : étape 6).
+4. La CI : le job de qualité joue déjà `pnpm check` ; l'installation n'y demande aucun jeton. Le rapport de preuves d'une PR (`anchorpost compare`, en `observe` puis en `enforce`) est l'étape de CI du gate `preuves` de `socle-tests`.
+5. `.claude/chaine.json` : `anchorpost/manifest.json` dans `cheminsSensibles` (le plancher, `sufficiency` et `featureCriticality` ne se baissent que par une personne).
 
-`code` est un champ du standard (les fichiers de code qui réalisent une règle) : `socle-tests` lit `rules[].code` des règles `proven` dans l'index commis pour le périmètre de sa mutation hebdomadaire.
+`code` est un champ du standard (les fichiers de code qui réalisent une règle) : `socle-tests` lit `rules[].code` des règles `proven`, et `partial` au pivot 3, dans l'index commis pour le périmètre de sa mutation hebdomadaire ; `compare` en tire le `code` des règles hautes qu'une PR touche. Le gate `preuves` de `socle-tests` (`scripts/verify/preuves.mjs`) relaie `anchorpost compare` au pre-push et en fin de tour : le poser avec ce skill si `socle-tests` est là.
 
-Ce que `check` refuse est une liste fermée, portée par le paquet : un fichier de règle mal formé ; deux règles au même identifiant dans un contexte ; un lien, un `instanceOf` ou une source vers une cible absente, ou un chemin de `code` absent du dépôt ; un ticket dont `Type:` est hors vocabulaire ou dont `Règles:` cite une règle absente ; un défaut `Fait` dont un test nommé n'existe pas ou est désactivé ; une étiquette de test qui cite une règle absente ; un compte de règles prouvées sous le plancher de son contexte, ou un plancher au-dessus de la mesure ; un index qui n'est pas celui que les sources donnent, octet pour octet.
+Ce que `check` refuse est une liste fermée, portée par le paquet : un fichier de règle mal formé (une criticité, un genre, une famille ou une portée hors vocabulaire, une criticité basse sans raison, deux cas au même identifiant) ; deux règles au même identifiant dans un contexte ; un lien, un `instanceOf` ou une source vers une cible absente, ou un chemin de `code` absent du dépôt ; un ticket dont `Type:` est hors vocabulaire ou dont `Règles:` cite une règle absente ; un défaut `Fait` dont un test nommé n'existe pas ou est désactivé ; une étiquette de test qui cite une règle absente, ou un cas que sa règle ne déclare pas ; un compte de règles prouvées, ou de prouvées et partielles, sous le plancher de son contexte, ou un plancher au-dessus de la mesure ; en `enforce`, une règle `validated` sans criticité ou une règle moyenne ou haute dont une famille n'a pas de réponse (des avertissements en `observe`) ; un index qui n'est pas celui que les sources donnent, octet pour octet.
 
 ## Étape 5 — la fiche d'écriture
 
@@ -103,11 +99,21 @@ Copier [`references/rules/anchorpost.md`](references/rules/anchorpost.md) vers `
 
 ## Étape 6 — la recette de l'administrateur
 
-Ajouter la section de [`references/fragments/admin.md`](references/fragments/admin.md) à `docs/agents/admin.md` (posé par la chaîne) : accorder au dépôt l'accès au paquet sur GitHub Packages ; le jeton personnel sur un poste ; la network secret et la variable factice dans l'environnement cloud ; la variable sur la plateforme de déploiement si elle installe les dépendances de développement ; créer l'espace dans Anchorpost une fois l'index poussé. **Jamais une valeur de clé dans le dépôt.**
+Ajouter la section de [`references/fragments/admin.md`](references/fragments/admin.md) à `docs/agents/admin.md` (posé par la chaîne) : créer l'espace dans Anchorpost une fois l'index poussé ; retirer, d'un dépôt qui les portait, les jetons de lecture de GitHub Packages devenus inutiles. Aucune clé n'est demandée pour installer la CLI.
 
 ## Étape 7 — l'ADR
 
-`node scripts/docs/next-id.mjs ADR ALL ARC`, puis [`references/adr/ADR_ALL_ARC-N-index-anchorpost.md`](references/adr/ADR_ALL_ARC-N-index-anchorpost.md) → `docs/adr/`, `{{N}}` et `{{DATE}}` substitués, une ligne `Décideurs`. Elle dit pourquoi l'index est commis dans le dépôt et généré par un paquet privé, et ce qu'on a écarté.
+`node scripts/docs/next-id.mjs ADR ALL ARC`, puis [`references/adr/ADR_ALL_ARC-N-index-anchorpost.md`](references/adr/ADR_ALL_ARC-N-index-anchorpost.md) → `docs/adr/`, `{{N}}` et `{{DATE}}` substitués, une ligne `Décideurs`. Elle dit pourquoi l'index est commis dans le dépôt et généré par la CLI, paquet public, et ce qu'on a écarté.
+
+## Passer au pivot 3 (`pivot-3`)
+
+Un dépôt branché avant la CLI 2.0.0 a un manifeste et un index au schéma 2 ; la CLI 2.0.x lit le manifeste 2 converti, sans rien écrire, et le signale (`manifest-schema-old`). Le passage, par une PR relue (le manifeste est un chemin sensible), dans cet ordre :
+
+1. Les deux lignes de GitHub Packages retirées de `.npmrc` s'il les porte (étape 1, point 1), puis `pnpm add -Dw @maj-agency/anchorpost@^2`, puis `pnpm anchorpost:index` : l'index passe au schéma `"3"` ; une règle qui avait des preuves y sort « partielle » tant que ses cas ne sont pas écrits.
+2. `pnpm anchorpost init` (sans `--force`) réécrit le manifeste au schéma `"3"` sans rien retirer : il pose `"sufficiency": "observe"`, convertit chaque plancher (`proven: N` devient `{ proven: 0, partial: N }`, sa date gardée) et dit au rapport chaque valeur convertie ; il reboucle aussi l'index généré, le script `check:anchorpost` et le relais du gate : relire le rapport et le diff. Puis, à la main, le plancher relevé d'après la mesure du jour, avec une date nouvelle et la personne qui le pose (`floor { date, by, proven, partial }`), et une entrée `featureCriticality` d'une version 2 réécrite en `{ feature, level, by, date, reason }`. Puis `pnpm anchorpost:index` et `pnpm anchorpost:check`, verts.
+3. Chaque règle sans criticité ni cas (l'alerte de projet de l'index les compte) se classe par le skill `criticite`, une règle à la fois, avant tout code qui la touche : c'est là que la repose relance le skill. `code` se renseigne sur les règles qui ont des preuves.
+4. La repose des skills qui lisent le pivot 3 : `tickets` (la ligne `Prouve:` et la preuve suffisante d'un ticket prêt), `socle-tests` (le gate `preuves`, la mutation des règles `proven` et `partial`), `revue-de-ticket`, et cette fiche.
+5. Le passage à `enforce` est une décision du produit, projet par projet : une PR où une personne écrit `"sufficiency": "enforce"`.
 
 ## Étape 8 — le premier index, puis vérifier, puis conclure
 
