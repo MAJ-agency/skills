@@ -1,9 +1,9 @@
-# Suite entière (pnpm test), sur l'arbre des trois PR posées l'une sur l'autre (ddb4265 + tickets + socle-tests + anchorpost, plugin 8.3.0), 2026-11-22, 12:43:23 → 13:01:33 UTC, charge 0.83 au départ, 3.99 à la fin
-# tests 1431
+# Suite entière (pnpm test), sur l'arbre des trois PR posées l'une sur l'autre par leur § 3 (ddb4265 + tickets + socle-tests + anchorpost, plugin 8.3.0), patchs retouchés après A-202, rejouée par la relecture le 2026-11-22, 14:55:11 → 15:25:34 UTC, charge 7.11 au départ, 19.02 à la fin
+# tests 1433
 # suites 0
-# pass 1431
+# pass 1433
 # fail 0
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 1090263.102737
+# duration_ms 1822257.994273

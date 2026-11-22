@@ -11,7 +11,7 @@ index c91dc0e..a5d6ea0 100644
    "author": {
      "name": "Guillaume Jauffret"
 diff --git a/NOTES-DE-VERSION.md b/NOTES-DE-VERSION.md
-index ba579fa..328a265 100644
+index ba579fa..799e7ce 100644
 --- a/NOTES-DE-VERSION.md
 +++ b/NOTES-DE-VERSION.md
 @@ -2,6 +2,19 @@
@@ -28,7 +28,7 @@ index ba579fa..328a265 100644
 +
 +### Ce qu'un projet fait pour en profiter
 +
-+- Rien, tant que son index Anchorpost n'est pas au pivot 3 : le gate se comporte comme avant, la ligne `Prouve:` mise à part (une ligne nouvelle, que nul ticket ne porte encore).
++- Rien, tant que son index Anchorpost n'est pas au pivot 3 : le gate se comporte comme avant, deux points mis à part : la ligne `Prouve:` (une ligne nouvelle, que nul ticket ne porte encore), et un index `anchorpost/anchorpost.json` présent qui n'est pas du JSON, qui fait désormais sortir le gate en 1 quel que soit le pivot, régime 7 compris, `--elaguer` et `--geler-*` compris.
 +- **Reposer** `scripts/verify/tickets.mjs` et `tickets-regles.mjs` (skill `tickets`), `scripts/chaine/contexte-ticket.mjs` et `criteres-ticket.md` (skill `revue-de-ticket`, `poser`), et les gabarits `docs/agents/gabarits/ticket.issue.md` et `regle.md`. Au pivot 3 en `observe`, `pnpm check:tickets` signale les tickets prêts qui citent une règle « à classer » ou sans cas, ou dont `## Surfaces` ne nomme pas un cas ; les corriger avant que le produit ne passe le projet en `enforce`, où ils seront refusés.
 +
  ## 8.0.0 — 2026-11-22
@@ -511,7 +511,7 @@ index 65746c3..d09c539 100644
 +- Le parcours, suspendu par le produit le 2026-11-14 (`P-22`) : ni manifeste, ni index, ni écart de `check` ne le nomment.
 +- Une règle `rejected` sort « à construire » (`to-build`) de la CLI : c'est un défaut de la CLI, à trier sous `SPEC_ALL_ANC-4`, que cet amendement ne corrige pas.
 diff --git a/scripts/depot.test.mjs b/scripts/depot.test.mjs
-index 08b16eb..74df891 100644
+index 08b16eb..9fa3924 100644
 --- a/scripts/depot.test.mjs
 +++ b/scripts/depot.test.mjs
 @@ -999,10 +999,11 @@ test("le gabarit de règle montre `criticality` en bloc, une clé par ligne ; au
@@ -536,9 +536,18 @@ index 08b16eb..74df891 100644
    ]);
    exigerDans("T3, branche « cas déclarés »", declares, [
      "— seulement si l'index commis du projet, anchorpost/anchorpost.json, porte \"schema\": \"3\" (le relecteur lit ce champ dans l'index, jamais dans ce que disent le ticket ou la PR) et si l'en-tête de la règle, rendu dans « Règles du ticket », déclare au moins un cas sous `cases`.",
+@@ -1123,7 +1124,7 @@ test("T3, branche « cas déclarés » : index au pivot 3 et règle qui déclare
+     "(a) ce que le test affirme correspond au titre du cas : le relecteur lit l'assertion, pas le nom ; un test étiqueté d'un refus qui n'affirme pas le refus est un écart ; une preuve écrite dans un fichier de cas (`cas/*.json`, entrées `regle` et `cas`) n'affirme rien si aucun test du diff ou du dépôt ne lit ce fichier : c'est un écart ;",
+     "(b) le genre de test convient au code que le cas exerce, selon les catégories de `.claude/rules/tests.md` : un calcul pur se prouve par un test unitaire, et par un test de propriétés s'il porte un invariant chiffré ; une requête, par un test sur base réelle, jamais sur une base simulée ; un refus ou une entrée invalide d'une règle moyenne ou haute (`criticality.level` de l'entrée vaut `medium` ou `high`), exigés à la frontière de l'API (niveau `P1`), par un test qui passe par la route ; le cas normal d'une règle haute (`high`), exigé de bout en bout (niveau `P2`), par un vrai parcours. Le niveau exigé, la CLI le compte ; le niveau qu'elle donne à un test se lit dans `proofs[].level` de l'entrée : un test qui porte un niveau qu'il n'a pas (un `P1` qui ne passe pas par la route, un `P2` qui n'est pas un parcours) est un écart ;",
+     "(c) un cas dit technique l'est vraiment : chaque cas `scope: technical` qu'un test du diff étiquette, ou que le diff ajoute ou modifie dans le fichier de la règle, est une situation que seule l'équipe voit (une saisie vide, un doublon, deux actions simultanées) ; s'il est une décision du métier (un refus, une exception que la MOA reconnaîtrait), c'est un écart : il échappe à la validation de la MOA ;",
+-    "(d) ce que la CLI a compté : une de ces règles dont un cas de `cases` porte `proven: false` est un écart, quel que soit `realisation.status` (`partial` si elle a des preuves, `to-build` ou `configured` si elle n'en a aucune : `proofs` est alors vide) ; `missing.reason` dit pourquoi : `no-proof`, aucune preuve ne nomme le cas, ou `level-too-low`, ses preuves sont d'un niveau trop bas. Le relecteur ne refait pas le compte : il lit celui de l'index. L'écart ne tombe que pour un cas qu'un autre ticket porte, aux cinq conditions réunies : le ticket relu nomme ce ticket ; il est « trouvé » dans « Identifiants cités » du contexte, sans « (archivé) », et n'est pas le ticket relu ; il est ouvert, son `Status:` n'est ni `Fait` ni `wontfix` ; sa ligne `Règles:` cite la règle ; ni la mention ni cette ligne `Règles:` ne sont ajoutées par le diff relu. Le relecteur rend alors « cas <règle>#<id> porté par <ticket> », pour la section de PR. Un index que le diff n'a pas régénéré est un écart de T5, pour le seul index que (d) lit : il se régénère, et l'axe Ticket seul se rejoue. Ses signes : une de ces règles absente de `rules` ; un test étiqueté du diff dont le titre manque aux `proofs` de la règle ; des `id` de cas qui diffèrent entre l'en-tête de la règle et son entrée.",
++    "(d) ce que la CLI a compté : une de ces règles dont un cas de `cases` porte `proven: false` est un écart, quel que soit `realisation.status` (`partial` si elle a des preuves, `to-build` ou `configured` si elle n'en a aucune : `proofs` est alors vide) ; `missing.reason` dit pourquoi : `no-proof`, aucune preuve ne nomme le cas, ou `level-too-low`, ses preuves sont d'un niveau trop bas. Le relecteur ne refait pas le compte : il lit celui de l'index. L'écart ne tombe que pour un cas qu'un autre ticket porte, aux cinq conditions réunies : le ticket relu nomme ce ticket ; il est « trouvé » dans « Identifiants cités » du contexte, sans « (archivé) », et n'est pas le ticket relu ; il est ouvert, son `Status:` n'est ni `Fait` ni `wontfix` ; sa ligne `Règles:` ou `Prouve:` cite la règle ; ni la mention ni cette ligne ne sont ajoutées par le diff relu. Le relecteur rend alors « cas <règle>#<id> porté par <ticket> », pour la section de PR. Un index que le diff n'a pas régénéré est un écart de T5, pour le seul index que (d) lit : il se régénère, et l'axe Ticket seul se rejoue. Ses signes : une de ces règles absente de `rules` ; un test étiqueté du diff dont le titre manque aux `proofs` de la règle ; des `id` de cas qui diffèrent entre l'en-tête de la règle et son entrée.",
+     "Un cas de bord que l'énoncé de la règle dit et qu'aucun cas de `cases` ne porte est un écart, et qu'une famille soit dite sans objet n'y change rien : le cas se dit, la session ne l'écrit pas elle-même ; son test, étiqueté de la règle sans nom de cas, est dû dans le diff.",
+     "Un test qui porte un identifiant de règle, avec ou sans cas, qu'il ne prouve pas est un écart.",
+   ]);
 diff --git a/scripts/preuve-suffisante-standard.test.mjs b/scripts/preuve-suffisante-standard.test.mjs
 new file mode 100644
-index 0000000..e86ceb3
+index 0000000..d745082
 --- /dev/null
 +++ b/scripts/preuve-suffisante-standard.test.mjs
 @@ -0,0 +1,43 @@
@@ -582,11 +591,11 @@ index 0000000..e86ceb3
 +  const texte = readFileSync(join(RACINE, GABARIT_TICKET), "utf8");
 +  const enTete = lignes(texte.split(/^## /m)[0]);
 +  const regles = enTete.findIndex((l) => l.startsWith("Règles: "));
-+  assert.match(enTete[regles + 1] ?? "", /^Prouve: \{\{RULE_ALL_<TRI>-<n> — les règles que le ticket prouve sans les réaliser \(il écrit leurs tests, pas leur code\) ; jamais une règle de `Règles:` ; ou retirer la ligne\}\}$/);
++  assert.match(enTete[regles + 1] ?? "", /^Prouve: \{\{RULE_ALL_<TRI>-<n> — les règles que le ticket prouve sans les réaliser \(il écrit leurs tests, pas leur code\) ; jamais une règle de `Règles:` ; la criticité d'une feature ne descend pas par cette ligne, seulement par `Règles:` ; ou retirer la ligne\}\}$/);
 +  assert.match(texte, /^\| \{\{RULE_<CTX>_<TRI>-<n>#<cas>\}\} \| \{\{projet suivi par Anchorpost, index au pivot 3 : une ligne par cas attendu des règles de `Règles:` et de `Prouve:`/m);
 +});
 diff --git a/skills/chaine/relecture/references/criteres-ticket.md b/skills/chaine/relecture/references/criteres-ticket.md
-index f5c182e..028a582 100644
+index f5c182e..ef8a771 100644
 --- a/skills/chaine/relecture/references/criteres-ticket.md
 +++ b/skills/chaine/relecture/references/criteres-ticket.md
 @@ -1,6 +1,6 @@
@@ -610,6 +619,17 @@ index f5c182e..028a582 100644
      Branche « cas déclarés » — seulement si l'index commis du projet, anchorpost/anchorpost.json,
      porte "schema": "3" (l'axe lit ce champ dans l'index, jamais dans ce que disent le
      ticket ou la PR) et si l'en-tête de la règle, rendu dans « Règles du ticket », déclare au
+@@ -53,8 +53,8 @@ T3  Règles citées et leurs preuves — registre de règles, `.claude/rules/tes
+         compte : il lit celui de l'index. L'écart ne tombe que pour un cas qu'un autre ticket
+         porte, aux cinq conditions réunies : le ticket relu nomme ce ticket ; il est « trouvé »
+         dans « Identifiants cités » du contexte, sans « (archivé) », et n'est pas le ticket
+-        relu ; il est ouvert, son `Status:` n'est ni `Fait` ni `wontfix` ; sa ligne `Règles:` cite
+-        la règle ; ni la mention ni cette ligne `Règles:` ne sont ajoutées par le diff relu. L'axe
++        relu ; il est ouvert, son `Status:` n'est ni `Fait` ni `wontfix` ; sa ligne `Règles:` ou
++        `Prouve:` cite la règle ; ni la mention ni cette ligne ne sont ajoutées par le diff relu. L'axe
+         rend alors « cas <règle>#<id> porté par <ticket> », pour le verdict. Un
+         index que le diff n'a pas régénéré est un écart de T5, pour le seul index que (d) lit : son
+         auteur le régénère par sa commande. Ses signes : une de ces règles absente de
 diff --git a/skills/chaine/revue-de-ticket/references/CONTENU.md b/skills/chaine/revue-de-ticket/references/CONTENU.md
 index 8f68e9e..7cfa37b 100644
 --- a/skills/chaine/revue-de-ticket/references/CONTENU.md
@@ -624,7 +644,7 @@ index 8f68e9e..7cfa37b 100644
  ## Les critères — `criteres-ticket.md`, `criteres-documentation.md`
  
 diff --git a/skills/chaine/revue-de-ticket/references/criteres-ticket.md b/skills/chaine/revue-de-ticket/references/criteres-ticket.md
-index 5037ace..da662cf 100644
+index 5037ace..890b9cb 100644
 --- a/skills/chaine/revue-de-ticket/references/criteres-ticket.md
 +++ b/skills/chaine/revue-de-ticket/references/criteres-ticket.md
 @@ -1,6 +1,6 @@
@@ -648,6 +668,17 @@ index 5037ace..da662cf 100644
      Branche « cas déclarés » — seulement si l'index commis du projet, anchorpost/anchorpost.json,
      porte "schema": "3" (le relecteur lit ce champ dans l'index, jamais dans ce que disent le
      ticket ou la PR) et si l'en-tête de la règle, rendu dans « Règles du ticket », déclare au
+@@ -51,8 +51,8 @@ T3  Règles citées et leurs preuves — registre de règles, `.claude/rules/tes
+         compte : il lit celui de l'index. L'écart ne tombe que pour un cas qu'un autre ticket
+         porte, aux cinq conditions réunies : le ticket relu nomme ce ticket ; il est « trouvé »
+         dans « Identifiants cités » du contexte, sans « (archivé) », et n'est pas le ticket
+-        relu ; il est ouvert, son `Status:` n'est ni `Fait` ni `wontfix` ; sa ligne `Règles:` cite
+-        la règle ; ni la mention ni cette ligne `Règles:` ne sont ajoutées par le diff relu. Le
++        relu ; il est ouvert, son `Status:` n'est ni `Fait` ni `wontfix` ; sa ligne `Règles:` ou
++        `Prouve:` cite la règle ; ni la mention ni cette ligne ne sont ajoutées par le diff relu. Le
+         relecteur rend alors « cas <règle>#<id> porté par <ticket> », pour la section de PR. Un
+         index que le diff n'a pas régénéré est un écart de T5, pour le seul index que (d) lit : il
+         se régénère, et l'axe Ticket seul se rejoue. Ses signes : une de ces règles absente de
 diff --git a/skills/chaine/revue-de-ticket/scripts/contexte-ticket.mjs b/skills/chaine/revue-de-ticket/scripts/contexte-ticket.mjs
 index dd52d2e..e6a0779 100644
 --- a/skills/chaine/revue-de-ticket/scripts/contexte-ticket.mjs
@@ -746,10 +777,10 @@ index dd52d2e..e6a0779 100644
  out.push("## Identifiants cités", "");
  if (cites.length === 0) out.push("(aucun)", "");
 diff --git a/skills/chaine/revue-de-ticket/scripts/contexte-ticket.test.mjs b/skills/chaine/revue-de-ticket/scripts/contexte-ticket.test.mjs
-index be5bfa0..15e8dc7 100644
+index be5bfa0..020f8a1 100644
 --- a/skills/chaine/revue-de-ticket/scripts/contexte-ticket.test.mjs
 +++ b/skills/chaine/revue-de-ticket/scripts/contexte-ticket.test.mjs
-@@ -297,3 +297,31 @@ test("une spec citée hors de docs/features/ est trouvée ; absente, le chemin c
+@@ -297,3 +297,54 @@ test("une spec citée hors de docs/features/ est trouvée ; absente, le chemin c
    assert.match(section(r.stdout, "SPEC_ALL_DES-2"), /- trouvé : docs\/design\/all\/SPEC_ALL_DES-2-charte\.spec\.md — SPEC_ALL_DES-2 — Charte/);
    assert.match(section(r.stdout, "SPEC_ALL_ARC-9"), /- introuvable : docs\/\*\*\/SPEC_ALL_ARC-9-<slug>\.spec\.md/);
  });
@@ -780,6 +811,29 @@ index be5bfa0..15e8dc7 100644
 +  assert.match(section(o, "RULE_ALL_LIC-4"), /- trouvée : docs\/metier\/regles\/all\/RULE_ALL_LIC-4\.md/);
 +  assert.equal(o.split("### RULE_ALL_LIC-4").length, 2, "une règle de Prouve: n'est pas répétée parmi les cités");
 +  assert.equal(o.split("### RULE_ALL_LIC-3").length, 2, "une règle des deux lignes est rendue une fois, sous Règles:");
++  // Le commentaire de la ligne est retiré, comme celui de Règles: ; une ligne Prouve: du corps n'est pas la ligne.
++  const regle4 = REGLE_LIC_3.replaceAll("LIC-3", "LIC-4");
++  const commente = lancer(
++    depot({
++      [SPEC]: "# SPEC_ALL_SOC-1\n",
++      [TICKET]: "# Preuves\n\nStatus: ready-for-agent\nType: task\nProuve: RULE_ALL_LIC-4 # écrit par .14\n\n## Où\n\n- a\n",
++      "docs/metier/regles/all/RULE_ALL_LIC-4.md": regle4,
++    }),
++    "SPEC_ALL_SOC-1.03",
++  );
++  assert.equal(commente.status, 0, commente.stderr);
++  assert.doesNotMatch(commente.stdout, /illisible : la ligne `Prouve:`/, "le commentaire ` # …` de Prouve: est retiré");
++  assert.match(commente.stdout, /### RULE_ALL_LIC-4 \(règle prouvée par le ticket, sans la réaliser\)/);
++  const corpsSeul = lancer(
++    depot({
++      [SPEC]: "# SPEC_ALL_SOC-1\n",
++      [TICKET]: "# Preuves\n\nStatus: ready-for-agent\nType: task\n\n## Où\n\nProuve: RULE_ALL_LIC-4\n",
++      "docs/metier/regles/all/RULE_ALL_LIC-4.md": regle4,
++    }),
++    "SPEC_ALL_SOC-1.03",
++  );
++  assert.equal(corpsSeul.status, 0, corpsSeul.stderr);
++  assert.doesNotMatch(corpsSeul.stdout, /règle prouvée par le ticket/, "une ligne Prouve: du corps n'est pas la ligne de l'en-tête");
 +});
 diff --git a/skills/chaine/tickets/SKILL.md b/skills/chaine/tickets/SKILL.md
 index 5679afa..3dbbbe9 100644
@@ -849,14 +903,14 @@ index 0cd5015..1db4d5a 100644
  ---
  
 diff --git a/skills/chaine/tickets/references/gabarits/ticket.issue.md b/skills/chaine/tickets/references/gabarits/ticket.issue.md
-index 4748368..135d129 100644
+index 4748368..450d30b 100644
 --- a/skills/chaine/tickets/references/gabarits/ticket.issue.md
 +++ b/skills/chaine/tickets/references/gabarits/ticket.issue.md
 @@ -3,6 +3,7 @@
  Status: ready-for-agent
  Type: task # task | défaut | grilling | research — obligatoire, vérifié par le gate
  Règles: {{RULE_ALL_<TRI>-<n>, RULE_<CTX>_<TRI>-<n> — les règles que le ticket réalise ou corrige, par leur identifiant complet ; `—` seul s'il n'en réalise aucune ; ou retirer la ligne}}
-+Prouve: {{RULE_ALL_<TRI>-<n> — les règles que le ticket prouve sans les réaliser (il écrit leurs tests, pas leur code) ; jamais une règle de `Règles:` ; ou retirer la ligne}}
++Prouve: {{RULE_ALL_<TRI>-<n> — les règles que le ticket prouve sans les réaliser (il écrit leurs tests, pas leur code) ; jamais une règle de `Règles:` ; la criticité d'une feature ne descend pas par cette ligne, seulement par `Règles:` ; ou retirer la ligne}}
  Sujet: sujet/{{nom}}
  Blocked by: {{NN, NN — ou retirer la ligne}}
  Modèle: sonnet
@@ -869,10 +923,10 @@ index 4748368..135d129 100644
  ## Vérification
  
 diff --git a/skills/chaine/tickets/references/scripts/verify/tickets-gate.test.mjs b/skills/chaine/tickets/references/scripts/verify/tickets-gate.test.mjs
-index ba7540d..7a12a69 100644
+index ba7540d..686407c 100644
 --- a/skills/chaine/tickets/references/scripts/verify/tickets-gate.test.mjs
 +++ b/skills/chaine/tickets/references/scripts/verify/tickets-gate.test.mjs
-@@ -258,3 +258,53 @@ test('régime 8 : sans `Label: contre-revue` un ticket prêt sensible passe ; un
+@@ -258,3 +258,76 @@ test('régime 8 : sans `Label: contre-revue` un ticket prêt sensible passe ; un
    assert.equal(enVigueur.status, 1, "règle haute en vigueur dans l'index : Relecture: double exigée");
    assert.match(enVigueur.stderr, /régime 8 : ligne `Relecture: double` absente alors que le ticket cite RULE_ALL_SOC-1/);
  });
@@ -925,6 +979,29 @@ index ba7540d..7a12a69 100644
 +  const r = k3Lancer({ 'anchorpost/anchorpost.json': '{ cassé' });
 +  assert.equal(r.status, 1);
 +  assert.match(r.stderr, /tickets : anchorpost\/anchorpost\.json illisible \(.+\) : la criticité et les cas des règles citées ne se lisent pas ; régénérer l'index/);
++});
++
++test("K3, gate : une règle rejetée ou obsolète dans l'index ne se juge pas ; un niveau ou un cas hors de la forme de l'index ne compte pas", () => {
++  const regles = Object.fromEntries([1, 2, 3, 4].map((n) => [`docs/metier/regles/all/RULE_ALL_SOC-${n}.md`, `---\nid: RULE_ALL_SOC-${n}\n---\n`]));
++  const index = (rules) => ({ 'anchorpost/anchorpost.json': `${JSON.stringify({ schema: '3', project: { name: 'p', sufficiency: 'enforce' }, rules })}\n` });
++  const ticket = (cites) =>
++    `# x\n\nStatus: ready-for-agent\nType: task\nRègles: ${cites}\nModèle: sonnet\nFichiers chauds: —\n\n## Où\n\n- a\n\n## Décisions\n\n- b\n\n## Surfaces\n\n| nominal | [RULE_ALL_SOC-1#nominal] |\n\n## Vérification\n\n- d\n`;
++  const jouer = (rules, cites) => lancer(depotJouet({ fichiers: { ...DETTE, ...regles, ...index(rules), [K3_TICKET]: ticket(cites) } }));
++  const classee = { key: 'RULE_ALL_SOC-1', criticality: k3Niveau, cases: [{ id: 'nominal' }] };
++  const closes = jouer(
++    [classee, { key: 'RULE_ALL_SOC-2', cases: [], validation: { status: 'rejected' } }, { key: 'RULE_ALL_SOC-3', cases: [], validation: { status: 'obsolete' } }],
++    'RULE_ALL_SOC-1, RULE_ALL_SOC-2, RULE_ALL_SOC-3',
++  );
++  assert.equal(closes.status, 0, `rejetée et obsolète : rien n'est jugé, même en enforce\n${closes.stderr}`);
++  assert.doesNotMatch(closes.stdout + closes.stderr, /preuve suffisante/);
++  const niveauHorsVocabulaire = { level: 'critique' };
++  const horsForme = jouer([classee, { key: 'RULE_ALL_SOC-4', criticality: niveauHorsVocabulaire, cases: [{ titre: 'sans id' }] }], 'RULE_ALL_SOC-1, RULE_ALL_SOC-4');
++  assert.equal(horsForme.status, 1);
++  assert.match(horsForme.stderr, /tickets : 2 écart\(s\) :/, horsForme.stderr);
++  assert.match(horsForme.stderr, /RULE_ALL_SOC-4 n'a pas de criticité dans l'index \(« à classer »\)/, 'un niveau hors de low, medium, high : à classer');
++  assert.match(horsForme.stderr, /RULE_ALL_SOC-4 ne déclare aucun cas attendu dans l'index/, 'un cas sans identifiant ne compte pas');
++  const nombre = lancer(depotJouet({ fichiers: { ...DETTE, ...regles, 'anchorpost/anchorpost.json': `${JSON.stringify({ schema: 3, project: { sufficiency: 'enforce' }, rules: [] })}\n`, [K3_TICKET]: ticket('RULE_ALL_SOC-4') } }));
++  assert.equal(nombre.status, 0, `un schema 3 en nombre n'est pas le pivot 3 (la CLI écrit "3") : rien n'est jugé\n${nombre.stderr}`);
 +});
 diff --git a/skills/chaine/tickets/references/scripts/verify/tickets-regles.mjs b/skills/chaine/tickets/references/scripts/verify/tickets-regles.mjs
 index dd5dee0..196fa9e 100644
@@ -1054,7 +1131,7 @@ index dd5dee0..196fa9e 100644
  
  export const PHASES = ['1-grilling', '2-decoupage', '3-specs-en-fusion', '4-vague-<k>', '5-livraison', '6-nettoyage', 'fini'];
 diff --git a/skills/chaine/tickets/references/scripts/verify/tickets.mjs b/skills/chaine/tickets/references/scripts/verify/tickets.mjs
-index f2c5871..90a2e16 100644
+index f2c5871..c75785e 100644
 --- a/skills/chaine/tickets/references/scripts/verify/tickets.mjs
 +++ b/skills/chaine/tickets/references/scripts/verify/tickets.mjs
 @@ -44,7 +44,15 @@
@@ -1070,7 +1147,7 @@ index f2c5871..90a2e16 100644
 + *      criticité, sans cas attendu, ou absente de l'index, ou dont `## Surfaces` ne nomme pas chaque cas attendu de ces
 + *      règles (`RULE_…#<cas>`), est refusé si l'index dit `project.sufficiency: enforce`, signalé sinon (`observe`, le
 + *      défaut), sans changer la sortie ; sans index au pivot 3 (absent, ou d'un autre schéma) : rien. Un index présent qui
-+ *      n'est pas du JSON : sortie 1, la cause dite.
++ *      n'est pas du JSON : sortie 1, la cause dite, quel que soit le pivot ou le régime, `--elaguer` et `--geler-*` compris.
   *
   * Usage : node scripts/verify/tickets.mjs [--elaguer | --geler-types | --geler-fiches]   (pnpm check:tickets — CI)
   * Sortie 2 : `scripts/docs/identifiants.mjs` absent (posé par `socle-monorepo`).
@@ -1134,10 +1211,10 @@ index f2c5871..90a2e16 100644
    console.error(`tickets : ${erreurs.length} écart(s) :`);
    for (const e of erreurs) console.error(`  ${e}`);
 diff --git a/skills/chaine/tickets/references/scripts/verify/tickets.test.mjs b/skills/chaine/tickets/references/scripts/verify/tickets.test.mjs
-index 513ab54..0bf8103 100644
+index 513ab54..94e0f29 100644
 --- a/skills/chaine/tickets/references/scripts/verify/tickets.test.mjs
 +++ b/skills/chaine/tickets/references/scripts/verify/tickets.test.mjs
-@@ -627,3 +627,70 @@ test('lot 5c, régime 8 : `Label: contre-revue` n’est plus exigé ; un ticket
+@@ -627,3 +627,72 @@ test('lot 5c, régime 8 : `Label: contre-revue` n’est plus exigé ; un ticket
    const gele = controlerTicket({ nom, texte: pret('', 'Règles: RULE_ALL_SOC-1\n'), existe, regleExiste, regime: 8, niveauDe, gele: true }).erreurs.map((e) => e.message);
    assert.deepEqual(gele, ['régime 8 : ligne `Relecture: double` absente alors que le ticket cite RULE_ALL_SOC-1, règle de criticité haute (deux relectures indépendantes, A-90)'], 'gelé : exigée quand même');
  });
@@ -1182,6 +1259,8 @@ index 513ab54..0bf8103 100644
 +  const attendu = "ready-for-agent : preuve suffisante (MODE) : RULE_ALL_SOC-2 n'a pas de criticité dans l'index (« à classer ») : la classer par le skill criticite (/maj-skills:criticite) avant de lancer le ticket";
 +  assert.deepEqual(k3Juger(sansCriticite, suffisance('observe')), { erreurs: [], avertissements: [attendu.replace('MODE', 'observe')] });
 +  assert.deepEqual(k3Juger(sansCriticite, suffisance('enforce')), { erreurs: [attendu.replace('MODE', 'enforce')], avertissements: [] });
++  const deuxLignes = k3({ regles: 'Règles: RULE_ALL_SOC-2\nRègles: RULE_ALL_SOC-2\n', surfaces: '| nominal | [RULE_ALL_SOC-2#nominal] |\n' });
++  assert.deepEqual(k3Juger(deuxLignes, suffisance('observe')).avertissements, [attendu.replace('MODE', 'observe')], 'une règle citée sur deux lignes se juge une fois');
 +  assert.deepEqual(k3Juger(k3({ prouve: 'Prouve: RULE_ALL_SOC-3\n' }), suffisance('enforce')).erreurs, [
 +    "ready-for-agent : preuve suffisante (enforce) : RULE_ALL_SOC-3 ne déclare aucun cas attendu dans l'index : les écrire par le skill criticite (/maj-skills:criticite) avant de lancer le ticket",
 +  ], 'Prouve: se juge comme Règles:');

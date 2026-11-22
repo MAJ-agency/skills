@@ -1,4 +1,4 @@
-// Les mutations de la PR « tickets » (tickets 83 à 85) : chacune remplace un texte exact d'un fichier, joue les bancs
+// Les mutations de la PR « tickets » (tickets 83 à 85, retouchées par la relecture, A-202) : chacune remplace un texte exact d'un fichier, joue les bancs
 // qu'elle vise, et doit les rendre rouges ; le fichier est remis après chaque mutation. À lancer depuis la racine d'un
 // clone où le patch de la PR est appliqué : `node <chemin>/mutations.mjs [<nom>…]`.
 // Sortie 0 : toutes rouges ; 1 : une au moins verte ou introuvable, nommée.
@@ -48,6 +48,18 @@ const MUTATIONS = [
   ["D4 gabarit de ticket : sans la ligne Prouve:", GT, "Prouve: {{RULE_ALL_<TRI>-<n> — les règles", "Preuve: {{RULE_ALL_<TRI>-<n> — les règles", [DT, PS]],
   ["D5 critère T3 : Prouve: n'est plus lue", CR, "règles sont celles des lignes `Règles:` et `Prouve:` du ticket", "règles sont celles de la ligne `Règles:` du ticket", [DT, PS]],
   ["D6 critère T3 du régime 8 (relecture) : Prouve: n'est plus lue", CR8, "règles sont celles des lignes `Règles:` et `Prouve:` du ticket", "règles sont celles de la ligne `Règles:` du ticket", [BR8]],
+  // Relecture, tour 1 (A-202) : la lecture de l'index commis, le doublon, le contexte, la clause (d) de T3, le gabarit.
+  ["G6 tickets.mjs : un schema 3 en nombre se juge comme \"3\"", TM, "lu.schema === '3'", "String(lu.schema) === '3'", [BG]],
+  ["G7 tickets.mjs : un niveau hors vocabulaire compte pour une criticité", TM, "criticite: ['low', 'medium', 'high'].includes(r.criticality?.level) ? r.criticality.level : null,", "criticite: r.criticality?.level ?? null,", [BG]],
+  ["G8 tickets.mjs : validation.status n'est pas lu (aucune règle close)", TM, "close: ['rejected', 'obsolete'].includes(r.validation?.status),", "close: false,", [BG]],
+  ["G9 tickets.mjs : une règle obsolète se juge", TM, "close: ['rejected', 'obsolete'].includes(r.validation?.status),", "close: ['rejected'].includes(r.validation?.status),", [BG]],
+  ["G10 tickets.mjs : un cas sans id compte", TM, ".map((c) => c?.id).filter((c) => typeof c === 'string'),", ".map((c) => c?.id),", [BG]],
+  ["S10 tickets-regles.mjs : une règle citée sur deux lignes se juge deux fois", TR, "const ids = [...new Set([...regles, ...prouve].flatMap((r) => (r.valeur === '—' ? [] : reglesCitees(r.valeur).cites)))]", "const ids = [...[...regles, ...prouve].flatMap((r) => (r.valeur === '—' ? [] : reglesCitees(r.valeur).cites))]", [BT]],
+  ["C4 contexte-ticket.mjs : la ligne Prouve: se lit hors de l'en-tête", CT, "const ligneProuve = entete\n", "const ligneProuve = texteTicket\n", [BC]],
+  ["C5 contexte-ticket.mjs : le commentaire de Prouve: n'est pas retiré", CT, ".replace(/^Prouve\\s*:/, \"\")\n  .replace(/\\s#.*$/, \"\");", ".replace(/^Prouve\\s*:/, \"\");", [BC]],
+  ["D7 critère T3 (d) : un cas porté par un ticket qui le prouve sur Prouve: ne compte plus", CR, "sa ligne `Règles:` ou\n        `Prouve:` cite la règle", "sa ligne `Règles:`\n        cite la règle", [DT, PS]],
+  ["D8 critère T3 (d) du régime 8 : un cas porté par un ticket qui le prouve sur Prouve: ne compte plus", CR8, "sa ligne `Règles:` ou\n        `Prouve:` cite la règle", "sa ligne `Règles:`\n        cite la règle", [BR8]],
+  ["D9 gabarit de ticket : la criticité qui ne descend pas par Prouve: n'est plus dite", GT, " ; la criticité d'une feature ne descend pas par cette ligne, seulement par `Règles:`", "", [DT, PS]],
 ];
 
 const voulues = process.argv.slice(2);

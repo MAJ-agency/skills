@@ -3,7 +3,7 @@
 Status: ready-for-agent
 Type: task
 Label: contre-revue
-Modèle: sonnet — une décision de l'architecte (la ligne `Prouve:`, 2026-11-17) et le § 8 de `SPEC_ALL_ANC-5` joués dans le gate ; le code entier est dans le patch commun aux tickets 83, 84 et 85 ([`83-85-annexes/pr-tickets.patch`](83-85-annexes/pr-tickets.patch), sha256 `45630f0da7cfc28d5fa24fc8280332a20df4705a1d0fb43da3e4701f222f6e61`, `git apply` sur `ddb4265`), décrit ci-dessous ; les gestes sont ceux du ticket 83, « À faire, dans l'ordre » (une seule PR). Rien n'est à concevoir : qui veut changer une décision l'écrit à son lanceur, il ne tranche pas.
+Modèle: sonnet — une décision de l'architecte (la ligne `Prouve:`, 2026-11-17) et le § 8 de `SPEC_ALL_ANC-5` joués dans le gate ; le code entier est dans le patch commun aux tickets 83, 84 et 85 ([`83-85-annexes/pr-tickets.patch`](83-85-annexes/pr-tickets.patch), sha256 `32d5e04da25d3b0b5ac17fddecacdd55f613f75b8574ef3ebbe8d5874425af46`, `git apply` sur `ddb4265`), décrit ci-dessous ; les gestes sont ceux du ticket 83, « À faire, dans l'ordre » (une seule PR). Rien n'est à concevoir : qui veut changer une décision l'écrit à son lanceur, il ne tranche pas.
 Blocked by: —
 Dépendances: —
 Fichiers chauds: `skills/chaine/tickets/references/scripts/verify/tickets-regles.mjs`, `tickets.mjs`, `tickets.test.mjs`, `tickets-gate.test.mjs` ; `skills/chaine/tickets/SKILL.md`, `references/CONTENU.md`, `references/agents/issue-tracker.md`, `references/gabarits/ticket.issue.md` ; `scripts/preuve-suffisante-standard.test.mjs` (commun au ticket 83). Aucun ticket de suite ouvert ne les touche ; le lot 6 (8.0.0) a touché `issue-tracker.md` et `avancement*.mjs`, déjà sur `main`.
@@ -19,19 +19,19 @@ Sur `main` à `ddb4265`, le gate ne lit que `Règles:` (règle 10 de `tickets.mj
 | Fichier | Ce qui change |
 | --- | --- |
 | `tickets-regles.mjs` | `PROUVE_EN_TETE` ; `ecartsRegles(valeur, { contexte, regleExiste, nom })` (le nom de la ligne dans les messages) ; `ecartsSuffisance({ ids, surfaces, suffisance })`, neuve ; `controlerTicket` lit `Prouve:`, reçoit `suffisance`, et rend `avertissements` |
-| `tickets.mjs` | l'en-tête, règles 15 et 16 ; la lecture de l'index commis (`schema`, `project.sufficiency`, `rules[].criticality.level`, `rules[].cases[].id`, `rules[].validation.status`) en `suffisance` ; les avertissements écrits avant `OK` |
+| `tickets.mjs` | l'en-tête, règles 15 et 16 (un index illisible : sortie 1, quel que soit le pivot ou le régime, `--elaguer` et `--geler-*` compris) ; la lecture de l'index commis (`schema`, `project.sufficiency`, `rules[].criticality.level`, `rules[].cases[].id`, `rules[].validation.status`) en `suffisance` ; les avertissements écrits avant `OK` |
 | `tickets.test.mjs` | trois tests « K3 : … » |
-| `tickets-gate.test.mjs` | deux tests « K3, gate : … » |
+| `tickets-gate.test.mjs` | trois tests « K3, gate : … » |
 | `SKILL.md`, `CONTENU.md`, `issue-tracker.md` | la ligne `Prouve:` et la preuve suffisante d'un ticket prêt |
-| `gabarits/ticket.issue.md` | la ligne `Prouve:`, sous `Règles:` ; une ligne de `## Surfaces` par cas attendu |
+| `gabarits/ticket.issue.md` | la ligne `Prouve:`, sous `Règles:`, qui dit que la criticité d'une feature ne descend pas par elle ; une ligne de `## Surfaces` par cas attendu |
 | `scripts/preuve-suffisante-standard.test.mjs` | « le gabarit de ticket porte la ligne `Prouve:` sous `Règles:`, et une ligne de `## Surfaces` par cas attendu » |
 
 ## Décisions
 
 1. **`Prouve:` se lit comme `Règles:`** (la décision de l'architecte : « le gate et la revue de ticket lisent les deux lignes ») : chaque ligne de l'en-tête, sous les formes que lit `Règles:` (`X:`, `**X:**`, `- X:`, `* X:`), chaque identifiant complet, au registre, du contexte du ticket ou de `ALL`, quel que soit le statut du ticket. **Une règle n'est jamais sur les deux lignes** : refusée, « une règle que le ticket réalise va sur `Règles:` seule ». **`Prouve: —` est refusée** (« ne dit rien ») : `Règles: —` dit qu'un ticket ne réalise aucune règle, une ligne `Prouve:` vide n'a pas de sens.
 2. **La criticité d'une feature ne descend pas par `Prouve:`** : c'est le calcul de la CLI, qui ne lit que `Règles:` (`featureDeclaredRules`) ; le gate n'y change rien et le gabarit le dit.
-3. **Le gate se règle par l'index commis, et par lui seul** (le réglage du régime d'avant, demandé au lanceur) : `anchorpost/anchorpost.json`, lu dans l'arbre de travail, comme le skill `criticite` (`A-56` : « seul l'index compte », jamais la version de la CLI). Absent, ou d'un `schema` autre que `"3"` : **rien n'est jugé**, le gate rend ce qu'il rend sur `main`. Au pivot 3 : `project.sufficiency` de l'index (la clé `sufficiency` du manifeste, recopiée par la CLI) dit **`enforce` : refus ; `observe`, ou clé absente : avertissement**, écrit sur la sortie standard avant `OK`, sortie 0. C'est le § 8 de la spec (« en `enforce` ; avertissement en `observe`, et rien sans index ») et `A-22` (« un projet passe du constat au refus par une clé du manifeste, `sufficiency`, qui vaut `observe` (par défaut) ou `enforce` » ; la date du passage est une décision du produit). Ni la clé `relecture` (régime 7 ou 8 de la chaîne) ni une transition datée n'entrent : un projet au pivot 3 en `observe` n'est jamais refusé, un projet sans index au pivot 3 ne voit rien. Un index présent qui n'est pas du JSON fait sortir le gate en 1, la cause dite (`anchorpost check` le refuse déjà).
-4. **Ce qui se juge, sur un ticket `ready-for-agent` hors dette** (le format prêt, qu'un ticket gelé ne porte pas), pour chaque règle de `Règles:` et de `Prouve:` qui est au registre : une règle absente de l'index (« régénérer l'index ») ; sans criticité (`criticality.level` absent : « à classer ») ; sans cas (`cases` vide) ; et chaque cas attendu que `## Surfaces` ne nomme pas, `RULE_…#<cas>` (identifiant complet, `#`, l'identifiant du cas, cas voisin exclu : `#nominal-bis` ne nomme pas `#nominal`) n'importe où dans la section : la cellule dit la preuve qui le portera, ou le ticket qui la portera. Une règle rejetée ou obsolète dans l'index ne se juge pas ; une règle absente du registre n'a que le refus du registre.
+3. **Le gate se règle par l'index commis, et par lui seul** (le réglage du régime d'avant, demandé au lanceur) : `anchorpost/anchorpost.json`, lu dans l'arbre de travail, comme le skill `criticite` (`A-56` : « seul l'index compte », jamais la version de la CLI). Absent, ou d'un `schema` autre que `"3"` : **rien n'est jugé**, le gate rend ce qu'il rend sur `main`. Au pivot 3 : `project.sufficiency` de l'index (la clé `sufficiency` du manifeste, recopiée par la CLI) dit **`enforce` : refus ; `observe`, ou clé absente : avertissement**, écrit sur la sortie standard avant `OK`, sortie 0. C'est le § 8 de la spec (« en `enforce` ; avertissement en `observe`, et rien sans index ») et `A-22` (« un projet passe du constat au refus par une clé du manifeste, `sufficiency`, qui vaut `observe` (par défaut) ou `enforce` » ; la date du passage est une décision du produit). Ni la clé `relecture` (régime 7 ou 8 de la chaîne) ni une transition datée n'entrent : un projet au pivot 3 en `observe` n'est jamais refusé, un projet sans index au pivot 3 ne voit rien. Un index présent qui n'est pas du JSON fait sortir le gate en 1, la cause dite (`anchorpost check` le refuse déjà), quel que soit le pivot ou le régime de la chaîne, régime 7 compris, et sous `--elaguer` ou `--geler-*` aussi : un texte qui n'est pas du JSON n'a pas de `schema` lisible (`A-202`, question 2) ; la note de version le dit.
+4. **Ce qui se juge, sur un ticket `ready-for-agent` hors dette** (le format prêt, qu'un ticket gelé ne porte pas), pour chaque règle de `Règles:` et de `Prouve:` qui est au registre : une règle absente de l'index (« régénérer l'index ») ; sans criticité (`criticality.level` absent : « à classer ») ; sans cas (`cases` vide) ; et chaque cas attendu que `## Surfaces` ne nomme pas, `RULE_…#<cas>` (identifiant complet, `#`, l'identifiant du cas, cas voisin exclu : `#nominal-bis` ne nomme pas `#nominal`) n'importe où dans la section : la cellule dit la preuve qui le portera, ou le ticket qui la portera. Une règle rejetée ou obsolète dans l'index ne se juge pas ; une règle absente du registre n'a que le refus du registre. L'index se lit à sa forme : `schema`, la chaîne `"3"` (`3` en nombre n'est pas le pivot 3) ; `criticality.level` parmi `low`, `medium`, `high` (un autre niveau est « à classer ») ; `cases[].id`, une chaîne (un cas sans identifiant ne compte pas) ; `validation.status` `rejected` ou `obsolete`, une règle close. Une règle citée sur deux lignes se juge une fois.
 5. **Le message dit le mode et le geste** : `ready-for-agent : preuve suffisante (enforce|observe) : RULE_… n'a pas de criticité dans l'index (« à classer ») : la classer par le skill criticite (/maj-skills:criticite) avant de lancer le ticket`.
 
 ## Questions à l'architecte
@@ -43,9 +43,9 @@ Sur `main` à `ddb4265`, le gate ne lit que `Règles:` (règle 10 de `tickets.mj
 
 - **`tickets-regles.mjs`** : `const PROUVE_EN_TETE = ligneDEnTete('Prouve');` après `REGLES_EN_TETE` ; `ecartsRegles` prend `nom = 'Règles'`, ses quatre messages commencent par `${nom}` ; `ecartsSuffisance` (son commentaire dit la forme de `suffisance`) ; dans `controlerTicket`, après les lignes `Règles:`, la lecture des lignes `Prouve:` (décision 1) ; dans le bloc `pret && !gele`, `ids` (les règles des deux lignes, au registre) et le tri des messages selon `suffisance.mode` ; le retour porte `avertissements`.
 - **`tickets.mjs`** : l'en-tête, règles 15 et 16 ; avant `const erreurs`, `suffisance` (null sans index au pivot 3 ; sortie 1 sur un index qui n'est pas du JSON) ; `suffisance` passée à `controlerTicket` ; ses avertissements, écrits avant le compte rendu.
-- **`tickets.test.mjs`** : « K3 : la ligne Prouve: se lit comme Règles: … », « K3 : sans index au pivot 3, rien ; en observe, un avertissement ; en enforce, un refus … », « K3 : `## Surfaces` nomme chaque cas attendu … ».
-- **`tickets-gate.test.mjs`** : « K3, gate : sans index ou d'un autre schéma que 3, rien ne change ; un index au pivot 3 en observe signale, en enforce refuse », « K3, gate : un index présent qui n'est pas du JSON … ». La criticité de l'index jouet est posée par une variable : aucun texte du plugin ne la montre en ligne (`scripts/depot.test.mjs`).
-- **`SKILL.md`** (la table des en-têtes, le gate), **`CONTENU.md`**, **`issue-tracker.md`**, **`gabarits/ticket.issue.md`** : décisions 1 à 4, en une phrase chacune.
+- **`tickets.test.mjs`** : « K3 : la ligne Prouve: se lit comme Règles: … », « K3 : sans index au pivot 3, rien ; en observe, un avertissement ; en enforce, un refus … » (une règle citée sur deux lignes `Règles:` s'y juge une fois), « K3 : `## Surfaces` nomme chaque cas attendu … ».
+- **`tickets-gate.test.mjs`** : « K3, gate : sans index ou d'un autre schéma que 3, rien ne change ; un index au pivot 3 en observe signale, en enforce refuse », « K3, gate : un index présent qui n'est pas du JSON … », « K3, gate : une règle rejetée ou obsolète dans l'index ne se juge pas ; un niveau ou un cas hors de la forme de l'index ne compte pas » (`enforce`, sur un vrai index jouet : une règle rejetée et une obsolète sans criticité ni cas ne disent rien ; un niveau `critique` et un cas sans `id` donnent « à classer » et « aucun cas » ; `3` en nombre ne juge rien). La criticité de l'index jouet est posée par une variable : aucun texte du plugin ne la montre en ligne (`scripts/depot.test.mjs`).
+- **`SKILL.md`** (la table des en-têtes, le gate), **`CONTENU.md`**, **`issue-tracker.md`**, **`gabarits/ticket.issue.md`** : décisions 1 à 4, en une phrase chacune ; la ligne `Prouve:` du gabarit dit « la criticité d'une feature ne descend pas par cette ligne, seulement par `Règles:` » (décision 2).
 
 ## Surfaces
 
@@ -58,6 +58,9 @@ Sur `main` à `ddb4265`, le gate ne lit que `Règles:` (règle 10 de `tickets.mj
 | `## Surfaces` nomme chaque cas, un voisin ne compte pas, hors de la section non plus | `tickets.test.mjs`, « K3 : `## Surfaces` nomme chaque cas attendu … » ; S5, S6 |
 | un index qui n'est pas du JSON : sortie 1, la cause dite | `tickets-gate.test.mjs`, « K3, gate : un index présent qui n'est pas du JSON … » ; G3 |
 | le gabarit de ticket porte `Prouve:` sous `Règles:` | `preuve-suffisante-standard.test.mjs`, « le gabarit de ticket porte la ligne `Prouve:` … » ; D4 |
+| le gabarit dit que la criticité d'une feature ne descend pas par `Prouve:` | le même test ; D9 |
+| l'index lu à sa forme : une règle rejetée ou obsolète de l'index non jugée, un niveau hors vocabulaire « à classer », un cas sans identifiant ignoré, `3` en nombre qui n'est pas le pivot 3 | `tickets-gate.test.mjs`, « K3, gate : une règle rejetée ou obsolète dans l'index ne se juge pas … » ; G6 à G10 |
+| une règle citée sur deux lignes se juge une fois | `tickets.test.mjs`, « K3 : sans index au pivot 3 … » ; S10 |
 
 ## Mutations
 
@@ -84,6 +87,13 @@ Dans [`83-85-annexes/mutations.mjs`](83-85-annexes/mutations.mjs) (gestes : tick
 | G4 les avertissements ne sont pas écrits | `tickets-gate.test.mjs` | rouge |
 | G5 la criticité se lit à la racine de la règle (forme nue) | `tickets-gate.test.mjs` | rouge |
 | D4 gabarit de ticket : sans la ligne Prouve: | `depot.test.mjs`, `preuve-suffisante-standard.test.mjs` | rouge |
+| G6 un schema 3 en nombre se juge comme "3" | `tickets-gate.test.mjs` | rouge |
+| G7 un niveau hors vocabulaire compte pour une criticité | `tickets-gate.test.mjs` | rouge |
+| G8 validation.status n'est pas lu (aucune règle close) | `tickets-gate.test.mjs` | rouge |
+| G9 une règle obsolète se juge | `tickets-gate.test.mjs` | rouge |
+| G10 un cas sans id compte | `tickets-gate.test.mjs` | rouge |
+| S10 une règle citée sur deux lignes se juge deux fois | `tickets.test.mjs` | rouge |
+| D9 gabarit de ticket : la criticité qui ne descend pas par Prouve: n'est plus dite | `depot.test.mjs`, `preuve-suffisante-standard.test.mjs` | rouge |
 
 ## Vérification
 
@@ -97,6 +107,8 @@ Le gate du patch (`tickets.mjs`, `tickets-regles.mjs`, avec `ligne-sujet.mjs` du
 
 1. **Un projet au pivot 3 en `enforce`** : aucun n'existe ; le refus n'est joué que sur des dépôts jouets.
 2. **Un index périmé** (une règle écrite, l'index pas régénéré) : la règle est « absente de l'index », un avertissement ou un refus selon le mode ; le gate ne régénère rien.
+3. **La règle 14 du gate** (régime 8, `Relecture: double` exigée d'un ticket qui cite une règle haute) ne lit que `Règles:`, comme `double-relecture.mjs` : un ticket qui prouve une règle haute sur `Prouve:` n'a pas à porter `Relecture: double`. Le ticket de suite d'`A-200` point 3 couvre les deux, cette règle et le calcul, pour que le gate et le capitaine restent d'accord (`A-202`, question 4).
+4. **La clé d'une règle se lit à la lettre** (`rules[].key`) ; le calcul « double relecture exigée » la compare à la casse près. Sans effet sur un index écrit par la CLI : laissé (`A-202`).
 
 ## Hors périmètre
 
@@ -106,3 +118,4 @@ Le gate du patch (`tickets.mjs`, `tickets-regles.mjs`, avec `ligne-sujet.mjs` du
 ## Comments
 
 - 2026-11-22 — Écrit par un agent rédacteur sur `K3` de la carte de `SPEC_ALL_ANC-5`, le § 8 de la spec et la décision de l'architecte du 2026-11-17 sur `Prouve:`, sur un clone neuf de `main` à `ddb4265` ; joué avec la PR entière (ticket 85).
+- 2026-11-22 — Retouché par le relecteur du tour 1 (`83-89-relecture-tour-1/rapport.md`, « Retouches portées »), sur les décisions d'`A-202` : la lecture de l'index tenue par un banc neuf (une règle rejetée ou obsolète, un niveau hors vocabulaire, un cas sans identifiant, `3` en nombre ; G6 à G10), le doublon (S10), le gabarit qui dit que la criticité ne descend pas par `Prouve:` (D9), l'index illisible dit pour tout pivot, `--elaguer` compris ; la règle 14 et la clé à la lettre notées.

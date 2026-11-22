@@ -3,7 +3,7 @@
 Status: ready-for-agent
 Type: task
 Label: contre-revue
-Modèle: sonnet — une copie de lecture et deux lignes de gabarit, sans rien à concevoir ; le texte et le code entiers sont dans le patch commun aux tickets 83, 84 et 85 ([`83-85-annexes/pr-tickets.patch`](83-85-annexes/pr-tickets.patch), sha256 `45630f0da7cfc28d5fa24fc8280332a20df4705a1d0fb43da3e4701f222f6e61`, `git apply` sur `main` à `ddb4265`, plugin 8.0.0), décrit fichier par fichier ci-dessous ; les bancs de la PR sont rouges avant le patch et verts après, les mutations de [`83-85-annexes/mutations.mjs`](83-85-annexes/mutations.mjs) toutes rouges. Rien n'est à concevoir : qui veut changer une décision l'écrit à son lanceur, il ne tranche pas. Premier des trois tickets de la PR « tickets » (83, 84, 85) : ce ticket porte les gestes de la PR entière (« À faire, dans l'ordre »).
+Modèle: sonnet — une copie de lecture et deux lignes de gabarit, sans rien à concevoir ; le texte et le code entiers sont dans le patch commun aux tickets 83, 84 et 85 ([`83-85-annexes/pr-tickets.patch`](83-85-annexes/pr-tickets.patch), sha256 `32d5e04da25d3b0b5ac17fddecacdd55f613f75b8574ef3ebbe8d5874425af46`, `git apply` sur `main` à `ddb4265`, plugin 8.0.0), décrit fichier par fichier ci-dessous ; les bancs de la PR sont rouges avant le patch et verts après, les mutations de [`83-85-annexes/mutations.mjs`](83-85-annexes/mutations.mjs) toutes rouges. Rien n'est à concevoir : qui veut changer une décision l'écrit à son lanceur, il ne tranche pas. Premier des trois tickets de la PR « tickets » (83, 84, 85) : ce ticket porte les gestes de la PR entière (« À faire, dans l'ordre »).
 Blocked by: —
 Dépendances: —
 Fichiers chauds: `docs/issues/standard-documentation/preuve-suffisante.spec.md`, `skills/chaine/tickets/references/gabarits/regle.md`, `scripts/depot.test.mjs` (le banc du gabarit, deux lignes) et `scripts/preuve-suffisante-standard.test.mjs` (neuf, commun aux tickets 83 et 84) ; `.claude-plugin/plugin.json` et `NOTES-DE-VERSION.md`, communs à la PR (ticket 85). Aucun ticket de suite ouvert (75 à 79) ne touche ces fichiers hors des deux fichiers de version ; les PR « socle-tests » (86 à 88) et « anchorpost » (89) non plus.
@@ -49,7 +49,7 @@ git show origin/main:.claude-plugin/plugin.json | grep '"version"'
 pnpm install --frozen-lockfile
 ```
 
-Les annexes se lisent sur la branche de documentation du programme (sur `main` si la PR de documentation qui porte ces tickets y est entrée : `git show origin/main:<chemin>`), et s'écrivent dans `S`, jamais dans le dépôt. La somme attendue : **`45630f0da7cfc28d5fa24fc8280332a20df4705a1d0fb43da3e4701f222f6e61`** ; une autre : s'arrêter. La version de `main` : 8.0.0 (`ddb4265`) ; une autre (une PR de suite ou une autre PR de la preuve suffisante entrée avant) : les gestes du § 2 changent d'une ligne, dite là.
+Les annexes se lisent sur la branche de documentation du programme (sur `main` si la PR de documentation qui porte ces tickets y est entrée : `git show origin/main:<chemin>`), et s'écrivent dans `S`, jamais dans le dépôt. La somme attendue : **`32d5e04da25d3b0b5ac17fddecacdd55f613f75b8574ef3ebbe8d5874425af46`** ; une autre : s'arrêter. La version de `main` : 8.0.0 (`ddb4265`) ; une autre (une PR de suite ou une autre PR de la preuve suffisante entrée avant) : les gestes du § 2 changent d'une ligne, dite là.
 
 ### § 1 — Les bancs d'abord, vus rouges, dans un arbre à part
 
@@ -60,7 +60,7 @@ git worktree add --detach "$S/rouge" HEAD
 git worktree remove --force "$S/rouge"
 ```
 
-Cinq fichiers posés (`git status --short` : quatre ` M`, un `??`), jamais dans la branche de la session. Attendu : `# tests 136`, `# pass 126`, `# fail 10`, et les dix `not ok` : le gabarit de règle en bloc (ce ticket), la copie de la spec (ce ticket), T3 (« cas déclarés », ticket 85), le gabarit de ticket et la ligne `Prouve:` (ticket 84), le contexte de ticket et `Prouve:` (ticket 85), les deux cas « K3, gate » et les trois cas « K3 » (ticket 84). Recopier les comptes dans la PR.
+Cinq fichiers posés (`git status --short` : quatre ` M`, un `??`), jamais dans la branche de la session. Attendu : `# tests 137`, `# pass 126`, `# fail 11`, et les onze `not ok` : le gabarit de règle en bloc (ce ticket), la copie de la spec (ce ticket), T3 (« cas déclarés », ticket 85), le gabarit de ticket et la ligne `Prouve:` (ticket 84), le contexte de ticket et `Prouve:` (ticket 85), les trois cas « K3, gate » et les trois cas « K3 » (ticket 84). Recopier les comptes dans la PR.
 
 ### § 2 — Le patch, dans la branche, et ses bancs verts
 
@@ -76,7 +76,7 @@ Sur un `main` à une autre version : `git apply --exclude=.claude-plugin/plugin.
 timeout 900 node --test --test-reporter=tap scripts/depot.test.mjs scripts/preuve-suffisante-standard.test.mjs skills/chaine/revue-de-ticket/scripts/contexte-ticket.test.mjs skills/chaine/tickets/references/scripts/verify/tickets-gate.test.mjs skills/chaine/tickets/references/scripts/verify/tickets.test.mjs scripts/relecture.test.mjs 2>&1 | grep -E '^# (tests|pass|fail) |^not ok'
 ```
 
-Dix-neuf fichiers (`git status --short` : dix-huit ` M`, un `??`) ; attendu : `# tests 175`, `# pass 175`, `# fail 0` (les 136 du § 1 et les 39 de `relecture.test.mjs`, qui tient la copie du critère `T3` du régime 8, ticket 85).
+Dix-neuf fichiers (`git status --short` : dix-huit ` M`, un `??`) ; attendu : `# tests 176`, `# pass 176`, `# fail 0` (les 137 du § 1 et les 39 de `relecture.test.mjs`, qui tient la copie du critère `T3` du régime 8, ticket 85).
 
 Le patch, pour ce ticket (il fait foi) :
 
@@ -101,13 +101,13 @@ git status --short
 timeout 1800 node "$S/pr/mutations.mjs" > "$S/mutations.log" 2>&1; echo "sortie $?"; grep -c '^ROUGE' "$S/mutations.log"; grep -v '^ROUGE' "$S/mutations.log"; git status --short
 ```
 
-Attendu : `sortie 0`, `27` rouges, la ligne `toutes rouges`, `git status --short` vide. Puis la suite entière, seule (pas pendant les mutations), en tâche de fond, avec le `timeout` de l'outil Bash à `1900000` ; noter la charge avant (`uptime`) et attendre qu'elle soit sous 3 :
+Attendu : `sortie 0`, `38` rouges, la ligne `toutes rouges`, `git status --short` vide. Puis la suite entière, seule (pas pendant les mutations), en tâche de fond, avec le `timeout` de l'outil Bash à `1900000` ; noter la charge avant (`uptime`) et attendre qu'elle soit sous 3 :
 
 ```bash
 uptime; timeout 1800 pnpm test > "$S/suite.log" 2>&1; echo "sortie $?"; uptime; grep -E '^# (tests|suites|pass|fail|cancelled|skipped|todo|duration_ms) ' "$S/suite.log"
 ```
 
-Attendu : `sortie 0`, `# tests 1404`, `# pass 1404`, `# fail 0` sur `ddb4265` (1 396, plus 8 de cette PR) ; si d'autres PR sont entrées avant, leur compte s'ajoute (la PR « socle-tests » : 25 ; la PR « anchorpost » : 2). Puis :
+Attendu : `sortie 0`, `# fail 0`, et `# tests` (égal à `# pass`) : **le compte de `main` au départ, plus 9** (les tests de cette PR). Le compte de `main` : 1 396 sur `ddb4265`, soit `# tests 1405` ; sur un `main` qui a bougé, 1 396 plus les tests de chaque PR entrée depuis `ddb4265`, que donne la table du cas « `main` bouge » ci-dessous. Recopier le calcul dans la PR. Puis :
 
 ```bash
 git push origin claude/preuve-suffisante-tickets
@@ -125,7 +125,19 @@ node "$S/pr/version-mineure.mjs" "$S/pr/pr-tickets.patch"
 git add -A && git commit --no-edit && git push origin claude/preuve-suffisante-tickets
 ```
 
-Un autre fichier en conflit : s'arrêter et l'écrire au lanceur. Puis la suite entière à nouveau, et le titre de la PR à la version prise. Essayé en écrivant ce ticket (« Ce qui a été joué ») : les trois PR fusionnées l'une après l'autre par ce chemin ne mettent en conflit que ces deux fichiers, et donnent l'arbre des trois patchs posés l'un sur l'autre.
+Un autre fichier en conflit : s'arrêter et l'écrire au lanceur. Puis la suite entière à nouveau, et le titre de la PR à la version prise.
+
+Ce que donne chaque `main` de départ, au § 2 (`--exclude` et `version-mineure.mjs`) comme au § 3 (la fusion). La version prise est toujours la mineure suivante de celle de `main`. `NOTES-DE-VERSION.md` est toujours en conflit au § 3 ; `.claude-plugin/plugin.json` l'est quand la version de `main` diffère de celle de la branche. Une PR qui n'était pas fusionnée quand ce ticket a été écrit donne son compte dans le corps de sa PR (« la suite entière ») : c'est lui qui compte, pas le nombre de la table.
+
+| PR entrées dans `main` depuis `ddb4265` | version de `main` | version prise | tests à ajouter à 1 396 pour le compte de `main` |
+| --- | --- | --- | --- |
+| aucune | 8.0.0 | 8.1.0 | 0 (suite attendue : 1 405) |
+| la PR A des suites (tickets 75 à 77) | 8.0.1 | 8.1.0 | 6 |
+| la PR B des suites (tickets 78 et 79, PR 152) | 8.0.1 | 8.1.0 | 9 au sommet `4afd6e2` ; son tour 1 peut en ajouter : le compte de son corps |
+| les PR A et B | 8.0.2 | 8.1.0 | 6, plus celui de la PR B |
+| la PR « socle-tests » (86 à 88), avec ou sans A et B | 8.1.0, ou 8.1.x | 8.2.0 | 26, plus ceux de A et de B entrées |
+
+La PR « anchorpost » (89) n'entre jamais avant celle-ci (`Blocked by: 85, 88`). Essayé en écrivant ce ticket (« Ce qui a été joué ») : les trois PR fusionnées l'une après l'autre par ce chemin ne mettent en conflit que ces deux fichiers, et donnent l'arbre des trois patchs posés l'un sur l'autre.
 
 ## Surfaces
 
@@ -145,10 +157,12 @@ Un autre fichier en conflit : s'arrêter et l'écrire au lanceur. Puis la suite 
 | D2 copie de la spec : le nom d'une personne dans un exemple | les mêmes | rouge |
 | D3 gabarit de règle : sans la date de la criticité | les mêmes | rouge |
 
+Les autres mutations de la PR (35) sont dans les tickets 84 et 85.
+
 ## Vérification
 
-1. § 1 : 10 rouges sur 136 avant le patch ; § 2 : 175 verts sur 175.
-2. Les mutations de la PR, la branche commitée : « toutes rouges » (27).
+1. § 1 : 11 rouges sur 137 avant le patch ; § 2 : 176 verts sur 176.
+2. Les mutations de la PR, la branche commitée : « toutes rouges » (38).
 3. La suite entière, verte (§ 3).
 
 ### Ce qui a été joué en écrivant ce ticket
@@ -167,3 +181,4 @@ Voir le ticket 85, « Ce qui a été joué » : la PR entière.
 ## Comments
 
 - 2026-11-22 — Écrit par un agent rédacteur sur la section « Part de skills » de la carte de `SPEC_ALL_ANC-5` (Anchorpost, `develop`, `2be4e7e`) et la spec elle-même, sur un clone neuf de `main` à `ddb4265` (plugin 8.0.0) ; bancs, mutations et suite joués (ticket 85).
+- 2026-11-22 — Retouché par le relecteur du tour 1 (`83-89-relecture-tour-1/rapport.md`, « Retouches portées »), sur les décisions d'`A-202` : le patch commun régénéré (sha256 `32d5e04da25d3b0b5ac17fddecacdd55f613f75b8574ef3ebbe8d5874425af46`) ; § 1 à 11 rouges sur 137, § 2 à 176, 38 mutations ; la suite se compte « `main` au départ + 9 », avec la table de chaque ordre d'entrée (la PR A : 6 tests, la PR B : 9 au sommet `4afd6e2`).

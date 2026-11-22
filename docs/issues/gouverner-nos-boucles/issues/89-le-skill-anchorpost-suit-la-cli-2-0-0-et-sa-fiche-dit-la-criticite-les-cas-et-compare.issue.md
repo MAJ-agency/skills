@@ -3,7 +3,7 @@
 Status: ready-for-agent
 Type: task
 Label: contre-revue
-Modèle: sonnet — du texte, aux mots de la spec et de la CLI 2.0.1, sans rien à concevoir ; le texte entier est dans le patch ([`89-annexes/pr-anchorpost.patch`](89-annexes/pr-anchorpost.patch), sha256 `c329b2bab102767710a8802d51ef8e87ecd6513eb154663cb82d40951053326c`, `git apply` sur `main` à `ddb4265`, plugin 8.0.0), décrit fichier par fichier ci-dessous ; deux bancs neufs, rouges avant le patch et verts après ; les mutations de [`89-annexes/mutations.mjs`](89-annexes/mutations.mjs) toutes rouges. Rien n'est à concevoir : qui veut changer une phrase l'écrit à son lanceur, il ne tranche pas. Seul ticket de la PR « anchorpost ».
+Modèle: sonnet — du texte, aux mots de la spec et de la CLI 2.0.1, sans rien à concevoir ; le texte entier est dans le patch ([`89-annexes/pr-anchorpost.patch`](89-annexes/pr-anchorpost.patch), sha256 `7d0ceced9400bdaa60a2b8477f54e9d5404d99047a40a0d3d3057aeba95d5381`, `git apply` sur `main` à `ddb4265`, plugin 8.0.0), décrit fichier par fichier ci-dessous ; deux bancs neufs, rouges avant le patch et verts après ; les mutations de [`89-annexes/mutations.mjs`](89-annexes/mutations.mjs) toutes rouges. Rien n'est à concevoir : qui veut changer une phrase l'écrit à son lanceur, il ne tranche pas. Seul ticket de la PR « anchorpost ».
 Blocked by: 85, 88
 Dépendances: —
 Fichiers chauds: `skills/chaine/anchorpost/SKILL.md`, `references/manifest.json`, `references/rules/anchorpost.md`, `references/fragments/admin.md`, `references/adr/ADR_ALL_ARC-N-index-anchorpost.md`, `references/CONTENU.md`, `README.md` (la ligne du skill), `scripts/preuve-suffisante-anchorpost.test.mjs` (neuf) ; `.claude-plugin/plugin.json` et `NOTES-DE-VERSION.md`. Aucun ticket de suite ouvert ne les touche ; les PR « tickets » et « socle-tests » non plus, hors des deux fichiers de version.
@@ -24,7 +24,7 @@ Vérifié sur la CLI 2.0.1 : l'index qu'elle écrit porte `"schema": "3"` (`anch
 
 | Fichier | Ce qui change |
 | --- | --- |
-| `SKILL.md` | la description et `argument-hint` (`pivot-3`) ; l'étape 1 (paquet public, `@^2`, retirer la recette d'avant) ; l'étape 4 (`code` des règles `proven` et `partial`, le gate `preuves` ; la CI sans jeton ; le manifeste dans `cheminsSensibles`) ; la liste de ce que `check` refuse (le pivot 3) ; l'étape 6 (la recette de l'administrateur) ; la section neuve « Passer au pivot 3 (`pivot-3`) » avant l'étape 8 |
+| `SKILL.md` | la description et `argument-hint` (`pivot-3`) ; l'étape 1 (retirer d'abord la recette d'avant, puis le paquet public, `@^2`) ; l'étape 4 (`code` des règles `proven` et `partial`, le gate `preuves` ; la CI sans jeton ; le manifeste dans `cheminsSensibles`) ; la liste de ce que `check` refuse (le pivot 3) ; l'étape 6 (la recette de l'administrateur) ; l'étape 7 (la CLI, paquet public) ; la section neuve « Passer au pivot 3 (`pivot-3`) » avant l'étape 8 |
 | `references/manifest.json` | `"schema": "3"`, le plancher `{ date, proven, partial }`, `"sufficiency": "observe"`, le `$comment` |
 | `references/rules/anchorpost.md` | la section « Criticité et cas attendus (pivot 3, CLI Anchorpost ≥ 2.0.0) » ; l'étiquette de cas dans « Les tests prouvent » ; la section « Ce que dit `anchorpost compare` » ; `Prouve:` et la preuve suffisante dans « Les tickets et les demandes » ; le manifeste au schéma 3 |
 | `references/fragments/admin.md` | réécrit : plus de jeton ; l'espace ; le retrait des jetons d'avant ; `enforce` décidé par le produit |
@@ -35,9 +35,9 @@ Vérifié sur la CLI 2.0.1 : l'index qu'elle écrit porte `"schema": "3"` (`anch
 
 ## Décisions
 
-1. **La CLI est publique, sans jeton** (`ADR_ALL_ARC-16` d'Anchorpost) : `pnpm add -Dw @maj-agency/anchorpost@^2` ; un dépôt qui portait `@maj-agency:registry=https://npm.pkg.github.com` et `NODE_AUTH_TOKEN` dans `.npmrc` les retire, et ses jetons ; plus aucune recette de clé.
+1. **La CLI est publique, sans jeton** (`ADR_ALL_ARC-16` d'Anchorpost) : un dépôt qui portait `@maj-agency:registry=https://npm.pkg.github.com` et `NODE_AUTH_TOKEN` dans `.npmrc` les retire **d'abord** (tant qu'elles sont là, `pnpm` cherche le paquet sur GitHub Packages, qui ne le publie plus : `ERR_PNPM_FETCH_404`, `A-202`), puis `pnpm add -Dw @maj-agency/anchorpost@^2`, et supprime ses jetons ; plus aucune recette de clé ; l'étape 7 ne dit plus « paquet privé ».
 2. **Le skill suit la CLI 2.0.0 et les suivantes** (`@^2`) : le gabarit du manifeste est au schéma `"3"` et adopte en `observe` (`A-22` : « un dépôt adopte en `observe`, puis passe en `enforce` », une décision du produit, projet par projet) ; le manifeste entre dans `cheminsSensibles` (`A-55`, garde 1 : « un plancher ne baisse que par une validation nouvelle »).
-3. **Passer au pivot 3, dans cet ordre** (la section neuve) : la CLI `@^2` et `anchorpost:index` ; `anchorpost init` sans `--force`, qui réécrit le manifeste au schéma 3 sans rien retirer (plancher converti `proven: N` → `{ proven: 0, partial: N }`, `sufficiency: observe` posée, chaque valeur convertie dite), puis le plancher relevé à la main avec une date nouvelle et `by` ; chaque règle sans criticité ni cas classée par le skill `criticite`, une à la fois, avant tout code qui la touche (la relance que le ticket 49 laissait ici) ; la repose des skills qui lisent le pivot 3 (`tickets`, `socle-tests`, `revue-de-ticket`, la fiche) ; `enforce` par une PR où une personne l'écrit.
+3. **Passer au pivot 3, dans cet ordre** (la section neuve) : les deux lignes de GitHub Packages retirées de `.npmrc` s'il les porte, puis la CLI `@^2` et `anchorpost:index` ; `anchorpost init` sans `--force`, qui réécrit le manifeste au schéma 3 sans rien retirer (plancher converti `proven: N` → `{ proven: 0, partial: N }`, `sufficiency: observe` posée, chaque valeur convertie dite), puis le plancher relevé à la main avec une date nouvelle et `by` ; chaque règle sans criticité ni cas classée par le skill `criticite`, une à la fois, avant tout code qui la touche (la relance que le ticket 49 laissait ici) ; la repose des skills qui lisent le pivot 3 (`tickets`, `socle-tests`, `revue-de-ticket`, la fiche) ; `enforce` par une PR où une personne l'écrit.
 4. **La fiche dit l'écriture, la CLI fait foi** : `criticality` (`level`, `by`, `reason`, `date`), `cases` (les cinq champs, les quatre genres de `P-31`, les deux portées, les dix familles), `notApplicableFamilies`, `caseRevision` ; l'étiquette de cas et `cas` dans un fichier `cas/*.json` ; « prouvée » et « partielle » ; ce que `compare` relève, et ses sorties en `observe` et en `enforce` ; la ligne `Prouve:`. Elle reste sous deux cents lignes (`budget-contexte`) : 62.
 5. **Après les PR « tickets » et « socle-tests »** (`Blocked by: 85, 88`) : la fiche et la section « Passer au pivot 3 » décrivent la ligne `Prouve:`, la preuve suffisante du gate `tickets` et le gate `preuves` ; entrée avant elles, elle décrirait des gates absents.
 
@@ -60,7 +60,7 @@ git show origin/main:.claude-plugin/plugin.json | grep '"version"'
 pnpm install --frozen-lockfile
 ```
 
-La somme attendue : **`c329b2bab102767710a8802d51ef8e87ecd6513eb154663cb82d40951053326c`** ; une autre : s'arrêter. La version de `main` : 8.2.0 si les PR « tickets » et « socle-tests » sont entrées (`Blocked by`), et la version qui suit les autres PR entrées entre-temps.
+La somme attendue : **`7d0ceced9400bdaa60a2b8477f54e9d5404d99047a40a0d3d3057aeba95d5381`** ; une autre : s'arrêter. La version de `main` : 8.2.0 si les PR « tickets » et « socle-tests » sont entrées (`Blocked by`), et la version qui suit les autres PR entrées entre-temps.
 
 ### § 1 — Les bancs d'abord, vus rouges, dans un arbre à part
 
@@ -84,12 +84,12 @@ timeout 900 node --test --test-reporter=tap scripts/preuve-suffisante-anchorpost
 
 Le patch (il fait foi) :
 
-- **`SKILL.md`** : la description (« installe la CLI `@maj-agency/anchorpost` (≥ 2.0.0, publique sur npmjs.com), écrit le manifeste au schéma 3, … et passe au pivot 3 un dépôt qui n'y est pas ») ; l'étape 1 (décision 1) ; l'étape 4 (points 4 et 5) et le paragraphe de `code` ; la liste de `check` ; l'étape 6 ; « Passer au pivot 3 (`pivot-3`) » (décision 3), en cinq points.
+- **`SKILL.md`** : la description (« installe la CLI `@maj-agency/anchorpost` (≥ 2.0.0, publique sur npmjs.com), écrit le manifeste au schéma 3, … et passe au pivot 3 un dépôt qui n'y est pas ») ; l'étape 1 (décision 1) ; l'étape 4 (points 4 et 5) et le paragraphe de `code` ; la liste de `check` ; l'étape 6 ; l'étape 7 (« généré par la CLI, paquet public ») ; « Passer au pivot 3 (`pivot-3`) » (décision 3), en cinq points.
 - **`manifest.json`** : décision 2.
 - **`rules/anchorpost.md`** : décision 4.
 - **`admin.md`**, **`ADR_ALL_ARC-N-index-anchorpost.md`**, **`CONTENU.md`**, **`README.md`** : décision 1, en leurs mots.
-- **`preuve-suffisante-anchorpost.test.mjs`** : « le skill anchorpost suit la CLI 2.0.0 : manifeste au schéma 3, CLI publique sans jeton, passage au pivot 3 » ; « la fiche anchorpost dit comment écrire une criticité, un cas, une étiquette de cas, et ce que dit compare » (et sa longueur, moins de deux cents lignes).
-- **`NOTES-DE-VERSION.md`** : la note en tête (« Ce qui change » : le skill suit la CLI 2.0.0, passer au pivot 3, la fiche ; « Ce qu'un projet fait pour en profiter » : reposer la fiche et la recette, retirer le jeton ; un dépôt au schéma 2 suit « Passer au pivot 3 »).
+- **`preuve-suffisante-anchorpost.test.mjs`** : « le skill anchorpost suit la CLI 2.0.0 : manifeste au schéma 3, CLI publique sans jeton, passage au pivot 3 » ; « la fiche anchorpost dit comment écrire une criticité, un cas, une étiquette de cas, et ce que dit compare » (et sa longueur, moins de deux cents lignes). Le premier exige aussi l'ordre de l'étape 1 (le retrait des lignes de GitHub Packages avant `pnpm add`) et qu'aucun passage du skill ne dise « paquet privé » ni « CLI privée ».
+- **`NOTES-DE-VERSION.md`** : la note en tête (« Ce qui change » : le skill suit la CLI 2.0.0, passer au pivot 3, la fiche ; « Ce qu'un projet fait pour en profiter » : reposer la fiche et la recette, ajouter `anchorpost/manifest.json` aux `cheminsSensibles`, retirer d'abord la ligne de registre de `.npmrc` puis installer la CLI, supprimer le jeton ; un dépôt au schéma 2 suit « Passer au pivot 3 »).
 
 ### § 3 — Vérifier, commiter, livrer la PR
 
@@ -105,13 +105,13 @@ git status --short
 timeout 1800 node "$S/pr/mutations.mjs" > "$S/mutations.log" 2>&1; echo "sortie $?"; grep -c '^ROUGE' "$S/mutations.log"; grep -v '^ROUGE' "$S/mutations.log"; git status --short
 ```
 
-Attendu : `sortie 0`, `11` rouges, la ligne `toutes rouges`, `git status --short` vide. Puis la suite entière, seule, en tâche de fond, avec le `timeout` de l'outil Bash à `1900000` ; noter la charge avant (`uptime`) et attendre qu'elle soit sous 3 :
+Attendu : `sortie 0`, `13` rouges, la ligne `toutes rouges`, `git status --short` vide. Puis la suite entière, seule, en tâche de fond, avec le `timeout` de l'outil Bash à `1900000` ; noter la charge avant (`uptime`) et attendre qu'elle soit sous 3 :
 
 ```bash
 uptime; timeout 1800 pnpm test > "$S/suite.log" 2>&1; echo "sortie $?"; uptime; grep -E '^# (tests|suites|pass|fail|cancelled|skipped|todo|duration_ms) ' "$S/suite.log"
 ```
 
-Attendu : `sortie 0`, `# tests 1431`, `# pass 1431`, `# fail 0` après les PR « tickets » et « socle-tests » (1 396, plus 8, 25 et 2), et le compte de toute autre PR entrée entre-temps. Puis :
+Attendu : `sortie 0`, `# fail 0`, et `# tests` (égal à `# pass`) : **le compte de `main` au départ, plus 2** (les tests de cette PR). Le compte de `main` : 1 396 plus les tests de chaque PR entrée depuis `ddb4265`, que donne la table du cas « `main` bouge » ci-dessous ; après les seules PR « tickets » et « socle-tests », 1 396 + 9 + 26 = 1 431, soit `# tests 1433`. Recopier le calcul dans la PR. Puis :
 
 ```bash
 git push origin claude/preuve-suffisante-anchorpost
@@ -129,7 +129,16 @@ node "$S/pr/version-mineure.mjs" "$S/pr/pr-anchorpost.patch"
 git add -A && git commit --no-edit && git push origin claude/preuve-suffisante-anchorpost
 ```
 
-Un autre fichier en conflit que ces deux-là : s'arrêter et l'écrire au lanceur.
+Un autre fichier en conflit que ces deux-là : s'arrêter et l'écrire au lanceur. Puis la suite entière à nouveau, et le titre de la PR à la version prise.
+
+Ce que donne chaque `main` de départ (les PR « tickets » et « socle-tests » toujours entrées, `Blocked by: 85, 88`). La version prise est toujours la mineure suivante de celle de `main`. `NOTES-DE-VERSION.md` est toujours en conflit au § 3 ; `.claude-plugin/plugin.json` l'est quand la version de `main` diffère de celle de la branche. Une PR qui n'était pas fusionnée quand ce ticket a été écrit donne son compte dans le corps de sa PR (« la suite entière ») : c'est lui qui compte, pas le nombre de la table.
+
+| PR entrées dans `main` depuis `ddb4265` | version de `main` | version prise | tests à ajouter à 1 396 pour le compte de `main` |
+| --- | --- | --- | --- |
+| « tickets » et « socle-tests » | 8.2.0 | 8.3.0 | 9 + 26 = 35 (suite attendue : 1 433) |
+| les mêmes, et la PR A des suites (tickets 75 à 77) | 8.2.0 ou 8.2.1, selon l'ordre d'entrée | 8.3.0 | 35 + 6 |
+| les mêmes, et la PR B des suites (tickets 78 et 79, PR 152) | 8.2.0 ou 8.2.1 | 8.3.0 | 35 + 9 au sommet `4afd6e2` ; son tour 1 peut en ajouter : le compte de son corps |
+| les mêmes, et les PR A et B | 8.2.x | 8.3.0 | 35 + 6, plus celui de la PR B |
 
 ## Surfaces
 
@@ -137,6 +146,7 @@ Un autre fichier en conflit que ces deux-là : s'arrêter et l'écrire au lanceu
 | --- | --- |
 | le manifeste du gabarit au schéma 3, plancher à deux comptes, `observe` | `preuve-suffisante-anchorpost.test.mjs`, « le skill anchorpost suit la CLI 2.0.0 … » ; A1, A2, A3 |
 | l'installation sans jeton ; la recette du jeton retirée de l'administrateur et de l'ADR | le même test ; A4, A7 |
+| la ligne de registre retirée avant `pnpm add` (étape 1 et « Passer au pivot 3 ») ; l'étape 7 sans « paquet privé » | le même test ; A12, A13 |
 | « Passer au pivot 3 », la relance du skill `criticite`, `enforce` décidé par le produit | le même test ; A5, A6 |
 | la fiche : la criticité (sa date), les cas, l'étiquette de cas, `compare` et ses sorties, `Prouve:` ; sous deux cents lignes | « la fiche anchorpost dit comment écrire une criticité … » ; A8 à A11 |
 
@@ -157,16 +167,20 @@ Un autre fichier en conflit que ces deux-là : s'arrêter et l'écrire au lanceu
 | A9 fiche : sans ce que dit compare | le même | rouge |
 | A10 fiche : enforce ne refuse pas | le même | rouge |
 | A11 fiche : la criticité sans sa date | le même | rouge |
+| A12 SKILL : pnpm add avant le retrait des lignes de GitHub Packages (l'ordre d'avant) | le même | rouge |
+| A13 SKILL : l'étape 7 dit encore la CLI privée | le même | rouge |
 
-11 rouges sur 11.
+13 rouges sur 13.
 
 ## Vérification
 
 1. § 1 : 2 rouges sur 2 avant le patch ; § 2 : verts après.
-2. Les mutations, la branche commitée : « toutes rouges » (11).
+2. Les mutations, la branche commitée : « toutes rouges » (13).
 3. La suite entière, verte (§ 3).
 
 ### Ce qui a été joué en écrivant ce ticket
+
+_Avec le patch d'avant les retouches d'`A-202` ; les comptes d'après sont sous « Rejoué par la relecture »._
 
 Sur un clone neuf de `https://github.com/MAJ-agency/skills` à `ddb4265` (plugin 8.0.0), le 2026-11-22 :
 
@@ -175,6 +189,10 @@ Sur un clone neuf de `https://github.com/MAJ-agency/skills` à `ddb4265` (plugin
 - **Rouges avant** : **2 sur 2** ; **verts après** : **2 sur 2**, et `depot.test.mjs` vert.
 - **Les mutations** : **11 rouges sur 11**.
 - **La suite entière**, sur l'arbre des trois PR : la suite entière, les quatre motifs de `pnpm test` d'un seul tenant, en tâche de fond avec un `timeout` explicite, sur l'arbre des trois PR posées l'une sur l'autre (plugin 8.3.0) : **1 431 tests, 1 431 verts**, aucun échec, sauté ni annulé ; 18 min 10 s (12:43:23 → 13:01:33 UTC, `duration_ms` 1090263), charge 0,83 au départ, 3,99 à la fin (d'autres agents jouaient leurs bancs) ; [`89-annexes/suite.txt`](89-annexes/suite.txt). Une première passe, avant le patch de la copie du critère du régime 8, rendait 1 430 sur 1 431 (ticket 85). Sur `ddb4265` seul, la suite compte 1 396 tests (1 431 moins les 35 des trois PR : 8, 25 et 2), compte tiré des bancs touchés joués avant et après chaque patch.
+
+### Rejoué par la relecture, après les retouches (`A-202`)
+
+Sur un `main` simulé où « tickets » puis « socle-tests » sont entrées par leur § 3 (8.2.0), le 2026-11-22, chaque bloc des § 0 à 3 tel qu'écrit, la branche de documentation remplacée par un commit local qui porte ces tickets et ces annexes : somme vérifiée ; § 1 : 1 fichier `??`, **2 rouges sur 2** ; § 2 : `version-mineure.mjs` écrit 8.3.0, 10 fichiers (9 ` M`, 1 `??`), **71 sur 71** ; `10 files changed`, arbre propre ; mutations : `sortie 0`, **13 rouges sur 13** ([`89-annexes/mutations.txt`](89-annexes/mutations.txt)). La PR B entrée après les deux autres (8.2.1, par sa `version-suivante.mjs`), cette PR déjà ouverte, § 3 : `plugin.json` et `NOTES-DE-VERSION.md` seuls en conflit, 8.3.0, les 9 fichiers de la PR B ajoutés. La suite entière, sur l'arbre des trois PR empilées : sortie 0, **1 433 tests, 1 433 verts**, aucun échec, sauté ni annulé (1 396, plus 9, 26 et 2) ; 14:55:11 → 15:25:34 UTC (`duration_ms` 1822258), charge 7,1 au départ, 19,0 à la fin, jamais sous 4 (d'autres agents jouaient leurs bancs) ([`89-annexes/suite.txt`](89-annexes/suite.txt)).
 
 ## Ce qui n'a pas été établi
 
@@ -189,3 +207,4 @@ Sur un clone neuf de `https://github.com/MAJ-agency/skills` à `ddb4265` (plugin
 ## Comments
 
 - 2026-11-22 — Écrit par un agent rédacteur sur `K5` de la carte de `SPEC_ALL_ANC-5`, la spec, `ADR_ALL_ARC-16` d'Anchorpost et la CLI 2.0.1, sur un clone neuf de `main` à `ddb4265`.
+- 2026-11-22 — Retouché par le relecteur du tour 1 (`83-89-relecture-tour-1/rapport.md`, « Retouches portées »), sur les décisions d'`A-202` : le patch régénéré (sha256 `7d0ceced9400bdaa60a2b8477f54e9d5404d99047a40a0d3d3057aeba95d5381`) : la ligne de registre retirée avant `pnpm add` (A12), l'étape 7 sans « paquet privé » (A13), la note qui dit `cheminsSensibles` ; 13 mutations ; la suite se compte « `main` au départ + 2 », avec la table de chaque ordre d'entrée.

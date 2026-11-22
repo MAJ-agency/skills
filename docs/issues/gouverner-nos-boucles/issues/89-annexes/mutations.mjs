@@ -1,4 +1,4 @@
-// Les mutations de la PR « anchorpost » (ticket 89) : chacune remplace un texte exact d'un fichier, joue les bancs
+// Les mutations de la PR « anchorpost » (ticket 89, retouchées par la relecture, A-202) : chacune remplace un texte exact d'un fichier, joue les bancs
 // qu'elle vise, et doit les rendre rouges ; le fichier est remis après chaque mutation. À lancer depuis la racine d'un
 // clone où le patch de la PR est appliqué : `node <chemin>/mutations.mjs [<nom>…]`.
 // Sortie 0 : toutes rouges ; 1 : une au moins verte ou introuvable, nommée.
@@ -17,7 +17,9 @@ const MUTATIONS = [
   ["A1 manifeste : schéma 2 (le gabarit d'avant)", MF, '"schema": "3",', '"schema": "2",', [DT, PS]],
   ["A2 manifeste : sans sufficiency", MF, '  "sufficiency": "observe",\n', '', [DT, PS]],
   ["A3 manifeste : le plancher d'avant, sans partial", MF, '"floor": { "date": "{{DATE}}", "proven": 0, "partial": 0 }', '"floor": { "date": "{{DATE}}", "proven": 0 }', [DT, PS]],
-  ["A4 SKILL : la recette du jeton revient à l'installation", SK, "1. `pnpm add -Dw @maj-agency/anchorpost@^2` (le hook", "1. Dans `.npmrc` : `//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}`, puis `pnpm add -Dw @maj-agency/anchorpost@^2` (le hook", [DT, PS]],
+  ["A4 SKILL : la recette du jeton revient à l'installation", SK, "2. `pnpm add -Dw @maj-agency/anchorpost@^2` (le hook", "2. Dans `.npmrc` : `//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}`, puis `pnpm add -Dw @maj-agency/anchorpost@^2` (le hook", [DT, PS]],
+  ["A12 SKILL : pnpm add avant le retrait des lignes de GitHub Packages (l'ordre d'avant)", SK, "1. Un dépôt qui portait la recette d'avant (`@maj-agency:registry=https://npm.pkg.github.com` et `NODE_AUTH_TOKEN` dans `.npmrc`) retire d'abord ces deux lignes : tant qu'elles sont là, `pnpm` cherche le paquet sur GitHub Packages, qui ne le publie plus.\n2. `pnpm add -Dw @maj-agency/anchorpost@^2` (le hook d'agent refuse une dépendance que la ligne `Dépendances:` du ticket ne prévoit pas : la prévoir dans le ticket).\n", "2. `pnpm add -Dw @maj-agency/anchorpost@^2` (le hook d'agent refuse une dépendance que la ligne `Dépendances:` du ticket ne prévoit pas : la prévoir dans le ticket).\n1. Un dépôt qui portait la recette d'avant (`@maj-agency:registry=https://npm.pkg.github.com` et `NODE_AUTH_TOKEN` dans `.npmrc`) retire d'abord ces deux lignes : tant qu'elles sont là, `pnpm` cherche le paquet sur GitHub Packages, qui ne le publie plus.\n", [DT, PS]],
+  ["A13 SKILL : l'étape 7 dit encore la CLI privée", SK, "généré par la CLI, paquet public, et ce qu'on a écarté.", "généré par un paquet privé, et ce qu'on a écarté.", [DT, PS]],
   ["A5 SKILL : sans le passage au pivot 3", SK, "## Passer au pivot 3 (`pivot-3`)", "## Le pivot 3", [DT, PS]],
   ["A6 SKILL : la repose ne relance pas le skill de criticité", SK, "se classe par le skill `criticite`, une règle à la fois", "se classe à la main", [DT, PS]],
   ["A7 admin.md : la network secret revient", AD, "- [ ] **Le passage à `enforce`**", "- [ ] une network secret pour l'hôte `npm.pkg.github.com`\n- [ ] **Le passage à `enforce`**", [DT, PS]],

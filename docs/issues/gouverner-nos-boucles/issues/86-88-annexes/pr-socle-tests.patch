@@ -11,7 +11,7 @@ index c91dc0e..a5d6ea0 100644
    "author": {
      "name": "Guillaume Jauffret"
 diff --git a/NOTES-DE-VERSION.md b/NOTES-DE-VERSION.md
-index ba579fa..3a6426e 100644
+index ba579fa..e6af6ca 100644
 --- a/NOTES-DE-VERSION.md
 +++ b/NOTES-DE-VERSION.md
 @@ -2,6 +2,19 @@
@@ -28,30 +28,32 @@ index ba579fa..3a6426e 100644
 +
 +### Ce qu'un projet fait pour en profiter
 +
-+- Rien, tant que son index Anchorpost n'est pas au pivot 3 : `preuves.mjs` dit « rien à comparer », la mutation garde les règles `proven` du schéma 2.
++- Rien, tant que son index Anchorpost n'est pas au pivot 3 : `preuves.mjs` dit « rien à comparer » (un index présent qui n'est pas un objet JSON le fait sortir en 2), la mutation garde les règles `proven` du schéma 2 ; la synthèse de la mutation porte désormais sa date, une ligne par règle et la section des baisses.
 +- **Reposer** (skill `socle-tests`, pièce par pièce) : `scripts/verify/preuves.mjs` et son banc, le script `check:preuves`, sa ligne au pre-push après `check:coverage`, son entrée dans `gatesRapides`, l'étape de CI sur `pull_request` ; `mutation-regles.mjs`, `mutation-regles-synthese.mjs` et leurs bancs ; `.github/workflows/mutation.yml` (permission `actions: read`, étapes « Mesure précédente » et « Mesure datée ») ; la grille et l'étiquette de cas dans `.claude/rules/tests.md`.
 +
  ## 8.0.0 — 2026-11-22
  
  ### Ce qui change
 diff --git a/scripts/points-d-entree.test.mjs b/scripts/points-d-entree.test.mjs
-index 86725bc..280872b 100644
+index 86725bc..2b74221 100644
 --- a/scripts/points-d-entree.test.mjs
 +++ b/scripts/points-d-entree.test.mjs
-@@ -22,6 +22,7 @@ const SCRIPTS = [
+@@ -22,7 +22,8 @@ const SCRIPTS = [
    { nom: "vagues", fichier: "skills/chaine/tickets/references/scripts/docs/vagues.mjs", avec: ["skills/monorepo/socle-monorepo/references/scripts/docs"], args: [], statut: 2, sortie: /Usage : node scripts\/docs\/vagues\.mjs/ },
    { nom: "couts", fichier: "skills/chaine/tickets/references/scripts/docs/couts.mjs", avec: ["skills/monorepo/socle-monorepo/references/scripts/docs"], args: ["--verify"], statut: 1, sortie: /couts : .* n'est pas à jour/ },
    { nom: "mutation-regles", fichier: "skills/monorepo/socle-tests/references/scripts/verify/mutation-regles.mjs", args: [], statut: 2, sortie: /usage : node scripts\/verify\/mutation-regles\.mjs/ },
+-  { nom: "mutation-regles-synthese", fichier: "skills/monorepo/socle-tests/references/scripts/verify/mutation-regles-synthese.mjs", args: [], statut: 0, sortie: /Mutation sur les règles prouvées : périmètre vide/ },
 +  { nom: "preuves", fichier: "skills/monorepo/socle-tests/references/scripts/verify/preuves.mjs", args: ["--tout"], statut: 2, sortie: /preuves : usage : node scripts\/verify\/preuves\.mjs/ },
-   { nom: "mutation-regles-synthese", fichier: "skills/monorepo/socle-tests/references/scripts/verify/mutation-regles-synthese.mjs", args: [], statut: 0, sortie: /Mutation sur les règles prouvées : périmètre vide/ },
++  { nom: "mutation-regles-synthese", fichier: "skills/monorepo/socle-tests/references/scripts/verify/mutation-regles-synthese.mjs", args: [], statut: 0, sortie: /Mutation sur les règles prouvées et partielles : périmètre vide/ },
    { nom: "contexte-regle", fichier: "skills/chaine/criticite/scripts/contexte-regle.mjs", args: [], statut: 2, sortie: /usage : node contexte-regle\.mjs/ },
    { nom: "double-relecture", fichier: "skills/chaine/fusionner/scripts/double-relecture.mjs", args: [], statut: 21, sortie: /^illisible\n$/m },
+   { nom: "relecteur", fichier: "skills/chaine/relecteur/scripts/relecteur.mjs", args: [], statut: 2, sortie: /relecteur : usage : relecteur\.mjs passe/ },
 diff --git a/scripts/preuve-suffisante-socle-tests.test.mjs b/scripts/preuve-suffisante-socle-tests.test.mjs
 new file mode 100644
-index 0000000..be16def
+index 0000000..ae32f8e
 --- /dev/null
 +++ b/scripts/preuve-suffisante-socle-tests.test.mjs
-@@ -0,0 +1,59 @@
+@@ -0,0 +1,71 @@
 +// Bancs de la part de `skills` de la preuve suffisante (SPEC_ALL_ANC-5 § 8, tickets 83 à 89 de gouverner-nos-boucles) :
 +// les textes que les skills posent, lus à plat comme dans `depot.test.mjs` (blancs et sauts de ligne réduits à une
 +// espace : une phrase exigée peut changer de ligne, une phrase glissée au milieu d'un passage le rompt).
@@ -85,6 +87,12 @@ index 0000000..be16def
 +  ]);
 +});
 +
++test("le relais preuves dit qu'il sort en 2 quand la CLI est un paquet de l'espace de travail, et que ce dépôt l'adapte", () => {
++  exiger("skills/monorepo/socle-tests/SKILL.md", [
++    "dans un dépôt où la CLI est un paquet de l'espace de travail et non une dépendance installée (le dépôt de la CLI elle-même), ce fichier n'existe pas et le relais sort en 2, au pre-push comme en fin de tour ; ce dépôt l'adapte à la pose, comme son relais `anchorpost.mjs`.",
++  ]);
++});
++
 +test("le workflow de mutation date sa mesure, la publie en artefact et relit la précédente, sans expression dans un run:", () => {
 +  const MUTATION = "skills/monorepo/socle-tests/references/ci/mutation.yml";
 +  const texte = readFileSync(join(RACINE, MUTATION), "utf8");
@@ -93,6 +101,12 @@ index 0000000..be16def
 +    "name: mesure-regles path: apps/api/reports/mutation/mesure-regles.json",
 +    "run: node ../../scripts/verify/mutation-regles-synthese.mjs --mesure reports/mutation/mesure-regles.json --precedente \"$RUNNER_TEMP/precedente/mesure-regles.json\" >> \"$GITHUB_STEP_SUMMARY\"",
 +    "gh run download \"$id\" -n mesure-regles -D \"$RUNNER_TEMP/precedente\"",
++    // Décision 3 du ticket 88 : `gh` authentifié par le jeton du job, le dernier artefact non expiré de la branche par défaut.
++    "env: GH_TOKEN: ${{ github.token }} BRANCHE: ${{ github.event.repository.default_branch }}",
++    "select(.expired == false and .workflow_run.head_branch == env.BRANCHE)",
++    // Décision 4 : publiée même après un échec, gardée 90 jours.
++    "- name: Mesure datée if: env.CIBLE == 'regles' && always() uses: actions/upload-artifact@",
++    "name: mesure-regles path: apps/api/reports/mutation/mesure-regles.json if-no-files-found: ignore retention-days: 90",
 +  ]);
 +  // Chaque ligne d'un `run:`, la sienne et celles de son bloc (`run: |`, plus indentées que la clé).
 +  const runs = [];
@@ -144,7 +158,7 @@ index 336255d..8b09a17 100644
  
  Un test qui dépend du jour, de la date ou de l'heure casse selon le moment du run s'il lit l'horloge de la machine ou le jour UTC. Trois règles :
 diff --git a/skills/monorepo/socle-tests/SKILL.md b/skills/monorepo/socle-tests/SKILL.md
-index 0eee994..0cfa992 100644
+index 0eee994..d33eaf5 100644
 --- a/skills/monorepo/socle-tests/SKILL.md
 +++ b/skills/monorepo/socle-tests/SKILL.md
 @@ -28,9 +28,9 @@ Une seule, avec sa recommandation : **les seuils de couverture du diff**. _(Reco
@@ -154,7 +168,7 @@ index 0eee994..0cfa992 100644
 -3. **Les gates** : `references/scripts/verify/*` → `scripts/verify/` (tests compris). Dans `package.json` : `check:tests-creux` (`node scripts/verify/tests-creux.mjs`) et `check:coverage` (`node scripts/verify/coverage-diff.mjs`). Dans `scripts/check.mjs`, une étape `check:tests-creux` après `lint`, avec son message. Dans `.husky/pre-push`, qui lit lui-même son entrée (`PRE_PUSH_REFS=$(cat)` puis `export PRE_PUSH_REFS`, que `coverage-diff --base-auto` relit : n'ajouter aucune seconde lecture, elle rendrait une entrée vide), seulement `pnpm run check:coverage --base-auto` après `pnpm run check` : la couverture se mesure contre ce sur quoi le travail sera fusionné, pas contre develop (pousser vers `sujet/<nom>` → `origin/sujet/<nom>`).
 -4. **La CI** : dans le job qui a Postgres (`test-db` du socle de la chaîne, ou le job de tests), après `test:db`, une étape sur `pull_request` : `pnpm check:coverage --base "origin/$BASE"` avec `env: BASE: ${{ github.event.pull_request.base.ref }}` (jamais le gabarit dans le `run:`, `zizmor` le refuse) et `DATABASE_URL` — les suites sur base comptent. Le job a `fetch-depth: 0` ou fait `git fetch origin <base>` avant. Puis le workflow de mutation : `references/ci/mutation.yml` → `.github/workflows/mutation.yml`, `{{SCOPE}}` et `{{PROJET}}` substitués — un `workflow_dispatch` au choix `noyau | regles` (défaut : `noyau`) et un `schedule` hebdomadaire (dimanche, heure creuse) sur `regles`, dont la synthèse va dans le résumé du job (étape `always()` : un passage interrompu dit « pas de rapport ») ; la saisie passe par `env:`, aucune expression `${{ }}` dans un `run:`, actions épinglées par empreinte comme `ci.yml` de la chaîne. Le noyau garde sa configuration et son plancher, à la demande seulement.
 -5. **Les gabarits** : `references/gabarits/exemple.property.spec.ts` et `references/gabarits/exemple.jour-metier.spec.ts` → `docs/agents/gabarits/` ; `references/gabarits/stryker.config.mjs` → `apps/api/stryker.config.mjs` (placeholders substitués, `mutate` vide, `break: 0`), et un script `mutation` (`stryker run`) dans le `package.json` de l'API ; `reports/` et `.stryker-tmp/` dans `.gitignore`. Puis la mutation des règles prouvées : `references/gabarits/stryker.regles.config.mjs` → `apps/api/stryker.regles.config.mjs` (placeholders substitués ; elle hérite de `stryker.config.mjs`, avec `break: 0` ; son `mutate` n'est pas à remplir, il vient de l'index ; `STRYKER_MUTATE` le remplace pour un essai local), et dans le `package.json` de l'API `"mutation:regles": "node ../../scripts/verify/mutation-regles.mjs --lancer && node ../../scripts/verify/mutation-regles-synthese.mjs"`. Le script (`scripts/verify/mutation-regles.mjs`, posé à l'étape 3) lit l'index commis `anchorpost/anchorpost.json` — schéma `"2"`, règles dont `realisation.status` vaut `proven`, leurs fichiers `code` — et ne mute que ceux du paquet ; **sans index, ou d'un autre schéma, il ne lance rien, dit pourquoi et sort 0** : le standard vaut pour tous les projets, Anchorpost est une option. Il ne refuse rien (pas de plancher en V1) ; `mutation-regles-synthese.mjs` écrit le rapport des survivants par règle.
-+3. **Les gates** : `references/scripts/verify/*` → `scripts/verify/` (tests compris). Dans `package.json` : `check:tests-creux` (`node scripts/verify/tests-creux.mjs`), `check:coverage` (`node scripts/verify/coverage-diff.mjs`) et `check:preuves` (`node scripts/verify/preuves.mjs`, le gate de la preuve suffisante : il joue `anchorpost compare` quand l'index commis est au pivot 3, CLI Anchorpost ≥ 2.0.0, et ne fait rien sinon). Dans `scripts/check.mjs`, une étape `check:tests-creux` après `lint`, avec son message. Dans `.husky/pre-push`, qui lit lui-même son entrée (`PRE_PUSH_REFS=$(cat)` puis `export PRE_PUSH_REFS`, que `coverage-diff --base-auto` relit : n'ajouter aucune seconde lecture, elle rendrait une entrée vide), seulement `pnpm run check:coverage --base-auto` après `pnpm run check`, puis `pnpm run check:preuves --base-auto` : la couverture et les preuves se mesurent contre ce sur quoi le travail sera fusionné, pas contre develop (pousser vers `sujet/<nom>` → `origin/sujet/<nom>`). Si la chaîne est posée, `scripts/verify/preuves.mjs` entre dans `gatesRapides` de `.claude/chaine.json` : la fin de tour le joue sans option, la base choisie de même (quelques secondes : la CLI construit l'index de la base et celui de l'arbre).
++3. **Les gates** : `references/scripts/verify/*` → `scripts/verify/` (tests compris). Dans `package.json` : `check:tests-creux` (`node scripts/verify/tests-creux.mjs`), `check:coverage` (`node scripts/verify/coverage-diff.mjs`) et `check:preuves` (`node scripts/verify/preuves.mjs`, le gate de la preuve suffisante : il joue `anchorpost compare` quand l'index commis est au pivot 3, CLI Anchorpost ≥ 2.0.0, et ne fait rien sinon). Dans `scripts/check.mjs`, une étape `check:tests-creux` après `lint`, avec son message. Dans `.husky/pre-push`, qui lit lui-même son entrée (`PRE_PUSH_REFS=$(cat)` puis `export PRE_PUSH_REFS`, que `coverage-diff --base-auto` relit : n'ajouter aucune seconde lecture, elle rendrait une entrée vide), seulement `pnpm run check:coverage --base-auto` après `pnpm run check`, puis `pnpm run check:preuves --base-auto` : la couverture et les preuves se mesurent contre ce sur quoi le travail sera fusionné, pas contre develop (pousser vers `sujet/<nom>` → `origin/sujet/<nom>`). Si la chaîne est posée, `scripts/verify/preuves.mjs` entre dans `gatesRapides` de `.claude/chaine.json` : la fin de tour le joue sans option, la base choisie de même (quelques secondes : la CLI construit l'index de la base et celui de l'arbre). Le relais lance `node_modules/.bin/anchorpost` à la racine : dans un dépôt où la CLI est un paquet de l'espace de travail et non une dépendance installée (le dépôt de la CLI elle-même), ce fichier n'existe pas et le relais sort en 2, au pre-push comme en fin de tour ; ce dépôt l'adapte à la pose, comme son relais `anchorpost.mjs`.
 +4. **La CI** : dans le job qui a Postgres (`test-db` du socle de la chaîne, ou le job de tests), après `test:db`, une étape sur `pull_request` : `pnpm check:coverage --base "origin/$BASE"` avec `env: BASE: ${{ github.event.pull_request.base.ref }}` (jamais le gabarit dans le `run:`, `zizmor` le refuse) et `DATABASE_URL` — les suites sur base comptent. Le job a `fetch-depth: 0` ou fait `git fetch origin <base>` avant. Dans le job de qualité, sur `pull_request`, le rapport de preuves : `node scripts/verify/preuves.mjs --base "origin/$BASE"` (même `env:`, `fetch-depth: 0`) ; il écrit le rapport entier de `anchorpost compare` dans le résumé du job, et ne refuse qu'en `enforce`. Puis le workflow de mutation : `references/ci/mutation.yml` → `.github/workflows/mutation.yml`, `{{SCOPE}}` et `{{PROJET}}` substitués — un `workflow_dispatch` au choix `noyau | regles` (défaut : `noyau`) et un `schedule` hebdomadaire (dimanche, heure creuse) sur `regles`, dont la synthèse va dans le résumé du job (étape `always()` : un passage interrompu dit « pas de rapport ») ; la mesure datée est publiée en artefact (`mesure-regles`) et relue au passage suivant, par le `gh` du runner et la permission `actions: read`, pour dire une baisse sur une règle moyenne ; la saisie passe par `env:`, aucune expression `${{ }}` dans un `run:`, actions épinglées par empreinte comme `ci.yml` de la chaîne. Le noyau garde sa configuration et son plancher, à la demande seulement.
 +5. **Les gabarits** : `references/gabarits/exemple.property.spec.ts` et `references/gabarits/exemple.jour-metier.spec.ts` → `docs/agents/gabarits/` ; `references/gabarits/stryker.config.mjs` → `apps/api/stryker.config.mjs` (placeholders substitués, `mutate` vide, `break: 0`), et un script `mutation` (`stryker run`) dans le `package.json` de l'API ; `reports/` et `.stryker-tmp/` dans `.gitignore`. Puis la mutation des règles qui ont des preuves : `references/gabarits/stryker.regles.config.mjs` → `apps/api/stryker.regles.config.mjs` (placeholders substitués ; elle hérite de `stryker.config.mjs`, avec `break: 0` ; son `mutate` n'est pas à remplir, il vient de l'index ; `STRYKER_MUTATE` le remplace pour un essai local), et dans le `package.json` de l'API `"mutation:regles": "node ../../scripts/verify/mutation-regles.mjs --lancer && node ../../scripts/verify/mutation-regles-synthese.mjs"`. Le script (`scripts/verify/mutation-regles.mjs`, posé à l'étape 3) lit l'index commis `anchorpost/anchorpost.json` — schéma `"2"` (règles `proven`) ou `"3"` (règles `proven` et `partial`), leurs fichiers `code` — et ne mute que ceux du paquet ; **sans index, ou d'un autre schéma, il ne lance rien, dit pourquoi et sort 0** : le standard vaut pour tous les projets, Anchorpost est une option. Il ne refuse rien (pas de plancher en V1) ; `mutation-regles-synthese.mjs` écrit le rapport des survivants par règle, daté, avec la criticité et le score de chaque règle (« non mesurée » quand aucun test rejoué n'atteint son code), et la baisse d'une règle moyenne depuis la mesure précédente.
  6. **La fiche** `.claude/rules/tests.md` : les phrases « à poser par le ticket … » deviennent les commandes réelles (le gabarit du socle monorepo ≥ 3.1 les a déjà) ; `pnpm check:coverage`, `mutation` (le noyau, à la demande) et `mutation:regles` (les règles prouvées, chaque dimanche par le workflow) dans la section Commandes ; `docs/methode/pare-feu-ci.md` reçoit les deux gates dans son catalogue, avec la base de `coverage-diff` : la cible de la PR en CI (`--base origin/$BASE`), `--base-auto` au pre-push. Si la chaîne est posée, deux critères de projet dans le fichier de critères de la revue (`criteresRevue` de `.claude/chaine.json`) : une fonction pure nouvelle qui porte un invariant chiffré a son `*.property.spec.ts` (ADR propriétés) ; un fichier du périmètre `mutate` de `stryker.config.mjs` modifié vient avec sa mesure de mutation dans la PR (ADR mutation).
@@ -296,7 +310,7 @@ index b451232..167e9bf 100644
  // (fichiers séparés par des virgules, relatifs au paquet) remplace le périmètre pour un essai local ;
  // `PROJET_RACINE` (racine du dépôt) n'a besoin d'être posée que si le dépôt n'a pas la forme du socle.
 diff --git a/skills/monorepo/socle-tests/references/scripts/verify/mutation-regles-synthese.mjs b/skills/monorepo/socle-tests/references/scripts/verify/mutation-regles-synthese.mjs
-index 52d04c1..52dfb80 100644
+index 52d04c1..7a71ad9 100644
 --- a/skills/monorepo/socle-tests/references/scripts/verify/mutation-regles-synthese.mjs
 +++ b/skills/monorepo/socle-tests/references/scripts/verify/mutation-regles-synthese.mjs
 @@ -1,16 +1,25 @@
@@ -329,12 +343,17 @@ index 52d04c1..52dfb80 100644
  import { join, relative, resolve, sep } from "node:path";
  import { fileURLToPath } from "node:url";
  import { perimetreDuPaquet, racineDuDepot } from "./mutation-regles.mjs";
-@@ -28,6 +37,46 @@ const ligne = (texte) => String(texte ?? "").replace(/\s+/g, " ").replaceAll("`"
+@@ -28,6 +37,51 @@ const ligne = (texte) => String(texte ?? "").replace(/\s+/g, " ").replaceAll("`"
  
  const SURVIVANTS = new Set(["Survived", "NoCoverage"]);
  const TUES = new Set(["Killed", "Timeout"]);
 +const CRITICITES = { low: "basse", medium: "moyenne", high: "haute" };
 +const JOUR = /^\d{4}-\d{2}-\d{2}$/;
++/** Un jour du calendrier écrit `AAAA-MM-JJ` (`2026-02-30` et `2026-13-45` n'en sont pas). */
++const jourValide = (v) => {
++  const t = Date.parse(`${v}T00:00:00Z`);
++  return JOUR.test(v) && !Number.isNaN(t) && new Date(t).toISOString().slice(0, 10) === v;
++};
 +
 +/**
 + * La mesure de chaque règle : ses mutants tués et survivants (un fichier partagé compte pour chacune de ses règles),
@@ -376,19 +395,20 @@ index 52d04c1..52dfb80 100644
  
  /**
   * @param regles    `[{ regle, fichiers }]` de `perimetre` (ou `perimetreDuPaquet`).
-@@ -35,8 +84,10 @@ const TUES = new Set(["Killed", "Timeout"]);
+@@ -35,8 +89,11 @@ const TUES = new Set(["Killed", "Timeout"]);
   * @param versDepot convertit une clé de `mutation.files` en chemin du dépôt (défaut : identité).
   * @param ecartes   `[{ regle, chemin, motif }]` de `perimetre` : la section « Hors périmètre ».
   * @param ailleurs  les fichiers prouvés d'un autre paquet (`perimetreDuPaquet().ailleurs`) : ils ne sont pas mutés ici.
-+ * @param options   `date` (la date de la mesure, dite en tête) ; `precedente` : la mesure précédente (`null` si elle
-+ *                  ne se lit pas) ; absente, la section des baisses n'est pas écrite.
++ * @param options   `date` (la date de la mesure, dite en tête) ; `utc` : vrai quand cette date est le jour UTC du passage,
++ *                  pas une `--date` donnée ; `precedente` : la mesure précédente (`null` si elle ne se lit pas) ; absente,
++ *                  la section des baisses n'est pas écrite.
   */
 -export function synthese(regles, mutation, versDepot = (c) => c, ecartes = [], ailleurs = []) {
 +export function synthese(regles, mutation, versDepot = (c) => c, ecartes = [], ailleurs = [], options = {}) {
    const parFichier = new Map();
    for (const [cle, f] of Object.entries(mutation?.files ?? {})) parFichier.set(versDepot(cle), f?.mutants ?? []);
    const comptes = { tues: 0, survivants: 0 };
-@@ -49,20 +100,39 @@ export function synthese(regles, mutation, versDepot = (c) => c, ecartes = [], a
+@@ -49,20 +106,39 @@ export function synthese(regles, mutation, versDepot = (c) => c, ecartes = [], a
    const mesures = comptes.tues + comptes.survivants;
    const fichiers = new Set(regles.flatMap((r) => r.fichiers)).size;
    const lignes = [
@@ -401,7 +421,7 @@ index 52d04c1..52dfb80 100644
      "Pas de plancher : ce rapport nomme les assertions qui manquent, il ne refuse rien.",
    ];
 -  for (const { regle, fichiers: fs } of regles) {
-+  if (options.date) lignes.splice(3, 0, "", `Mesure du ${ligne(options.date)} (jour UTC du passage).`);
++  if (options.date) lignes.splice(3, 0, "", `Mesure du ${ligne(options.date)}${options.utc ? " (jour UTC du passage)" : ""}.`);
 +  const parRegle = mesure(regles, mutation, versDepot).regles;
 +  if (Object.hasOwn(options, "precedente")) {
 +    lignes.push("", "## Baisses sur une règle moyenne", "");
@@ -430,7 +450,7 @@ index 52d04c1..52dfb80 100644
      for (const { f, survivants } of parChemin) {
        lignes.push("", `- ${code(f, 200)} — ${survivants.length ? `${survivants.length} survivant(s)` : "aucun survivant"}`);
        for (const m of survivants) {
-@@ -70,7 +140,7 @@ export function synthese(regles, mutation, versDepot = (c) => c, ecartes = [], a
+@@ -70,7 +146,7 @@ export function synthese(regles, mutation, versDepot = (c) => c, ecartes = [], a
          lignes.push(`  - ligne ${ou} : ${ligne(m.mutatorName) || "?"}${m.replacement ? ` → ${code(m.replacement)}` : ""} (${m.status === "NoCoverage" ? "aucun test ne l'atteint" : "survécu"})`);
        }
      }
@@ -439,7 +459,7 @@ index 52d04c1..52dfb80 100644
    lignes.push("", "## Hors périmètre", "");
    if (!ecartes.length) lignes.push("Aucun.");
    for (const e of ecartes) lignes.push(`- ${ligne(e.regle)} : ${code(e.chemin, 200)} — ${e.motif}`);
-@@ -81,8 +151,12 @@ export function synthese(regles, mutation, versDepot = (c) => c, ecartes = [], a
+@@ -81,10 +157,14 @@ export function synthese(regles, mutation, versDepot = (c) => c, ecartes = [], a
    return `${lignes.join("\n")}\n`;
  }
  
@@ -452,18 +472,22 @@ index 52d04c1..52dfb80 100644
 + */
 +export function texteDuPaquet(racine = racineDuDepot(), cwd = process.cwd(), options = {}) {
    const p = perimetreDuPaquet(racine, cwd);
-   if (!p.fichiers.length) return `Mutation sur les règles prouvées : périmètre vide — ${p.raison}\n`;
+-  if (!p.fichiers.length) return `Mutation sur les règles prouvées : périmètre vide — ${p.raison}\n`;
++  if (!p.fichiers.length) return `Mutation sur les règles prouvées et partielles : périmètre vide — ${p.raison}\n`;
    const json = join(cwd, RAPPORT_JSON);
-@@ -93,7 +167,23 @@ export function texteDuPaquet(racine = racineDuDepot(), cwd = process.cwd()) {
+   if (!existsSync(json)) return "Pas de rapport de mutation (passage interrompu).\n";
+   let mutation;
+@@ -93,7 +173,24 @@ export function texteDuPaquet(racine = racineDuDepot(), cwd = process.cwd()) {
    } catch {
      return "Pas de rapport de mutation (rapport illisible, passage interrompu).\n";
    }
 -  return synthese(p.regles, mutation, (c) => relative(racine, resolve(cwd, c)).split(sep).join("/"), p.ecartes, p.ailleurs);
 +  const versDepot = (c) => relative(racine, resolve(cwd, c)).split(sep).join("/");
++  const utc = options.date === undefined;
 +  const date = options.date ?? new Date().toISOString().slice(0, 10);
 +  if (options.mesure) writeFileSync(resolve(cwd, options.mesure), `${JSON.stringify(mesure(p.regles, mutation, versDepot, date), null, 2)}\n`);
 +  const avecPrecedente = options.precedente === undefined ? {} : { precedente: existsSync(resolve(cwd, options.precedente)) ? lireMesure(readFileSync(resolve(cwd, options.precedente), "utf8")) : null };
-+  return synthese(p.regles, mutation, versDepot, p.ecartes, p.ailleurs, { date, ...avecPrecedente });
++  return synthese(p.regles, mutation, versDepot, p.ecartes, p.ailleurs, { date, utc, ...avecPrecedente });
 +}
 +
 +/** Les options du point d'entrée ; `null` sur un usage faux. */
@@ -472,14 +496,14 @@ index 52d04c1..52dfb80 100644
 +  for (let i = 0; i < args.length; i += 2) {
 +    const [nom, valeur] = [args[i], args[i + 1]];
 +    if (!["--date", "--mesure", "--precedente"].includes(nom) || valeur === undefined || valeur.startsWith("--")) return null;
-+    if (nom === "--date" && !JOUR.test(valeur)) return null;
++    if (nom === "--date" && !jourValide(valeur)) return null;
 +    options[nom.slice(2)] = valeur;
 +  }
 +  return options;
  }
  
  /** Vrai quand ce fichier est lancé en ligne de commande : lien symbolique, chemin à espace ou à accent, `--preserve-symlinks-main` compris. */
-@@ -105,4 +195,11 @@ function estPointEntree() {
+@@ -105,4 +202,11 @@ function estPointEntree() {
    }
  }
  
@@ -493,10 +517,19 @@ index 52d04c1..52dfb80 100644
 +  process.stdout.write(texteDuPaquet(racineDuDepot(), process.cwd(), options));
 +}
 diff --git a/skills/monorepo/socle-tests/references/scripts/verify/mutation-regles-synthese.test.mjs b/skills/monorepo/socle-tests/references/scripts/verify/mutation-regles-synthese.test.mjs
-index 2571a69..ac04a60 100644
+index 2571a69..e335bae 100644
 --- a/skills/monorepo/socle-tests/references/scripts/verify/mutation-regles-synthese.test.mjs
 +++ b/skills/monorepo/socle-tests/references/scripts/verify/mutation-regles-synthese.test.mjs
-@@ -131,3 +131,113 @@ test("une clé de règle ou un nom de mutant hostile ne casse pas la mise en for
+@@ -95,7 +95,7 @@ test("la synthèse nomme les fichiers prouvés d'un autre paquet, et n'écrit ri
+ test("sans index : la synthèse dit périmètre vide, pas « interrompu »", () => {
+   const racine = projet({});
+   const t = texteDuPaquet(racine, join(racine, "apps/api"));
+-  assert.match(t, /périmètre vide — pas d'index/);
++  assert.match(t, /^Mutation sur les règles prouvées et partielles : périmètre vide — pas d'index/, "le titre de la synthèse");
+   assert.doesNotMatch(t, /interrompu/);
+ });
+ 
+@@ -131,3 +131,116 @@ test("une clé de règle ou un nom de mutant hostile ne casse pas la mise en for
    assert.doesNotMatch(md, /^# faux titre/m);
    assert.doesNotMatch(md, /^## piège/m);
  });
@@ -546,7 +579,8 @@ index 2571a69..ac04a60 100644
 +    [],
 +    { date: "2026-11-22" },
 +  );
-+  assert.match(md, /^# Mutation sur les règles prouvées et partielles\n\n2 règle\(s\), 2 fichier\(s\)\. .*\n\nMesure du 2026-11-22 \(jour UTC du passage\)\.\n/);
++  assert.match(md, /^# Mutation sur les règles prouvées et partielles\n\n2 règle\(s\), 2 fichier\(s\)\. .*\n\nMesure du 2026-11-22\.\n/, "une date donnée n'est pas dite « jour UTC du passage »");
++  assert.match(synthese([], { files: {} }, versDepot, [], [], { date: "2026-11-22", utc: true }), /\n\nMesure du 2026-11-22 \(jour UTC du passage\)\.\n/);
 +  assert.match(md, /## RULE_ALL_LIC-1 — 2 survivant\(s\)\n\nCriticité : moyenne\. Score : 33 % \(1 tués, 2 survivants\)\./);
 +  assert.match(md, /## RULE_ALL_LIC-2 — 2 survivant\(s\)\n\nCriticité : haute\. Non mesurée : aucun mutant de son code n'est atteint par un test rejoué/);
 +  assert.doesNotMatch(md, /Score : 0 %/);
@@ -584,7 +618,8 @@ index 2571a69..ac04a60 100644
 +  for (const t of ["", "{", "null", '{"date":"x"}', '{"date":"x","regles":[{"regle":"A","score":"12"}]}', '{"regles":[]}']) assert.equal(lireMesure(t), null, t);
 +  assert.deepEqual(lireOptions(["--date", "2026-11-22", "--mesure", "m.json", "--precedente", "p.json"]), { date: "2026-11-22", mesure: "m.json", precedente: "p.json" });
 +  assert.deepEqual(lireOptions([]), {});
-+  for (const a of [["--date", "22/11/2026"], ["--mesure"], ["--mesure", "--date"], ["--tout", "x"]]) assert.equal(lireOptions(a), null, a.join(" "));
++  for (const a of [["--date", "22/11/2026"], ["--date", "2026-13-45"], ["--date", "2026-02-30"], ["--mesure"], ["--mesure", "--date"], ["--tout", "x"]]) assert.equal(lireOptions(a), null, a.join(" "));
++  assert.deepEqual(lireOptions(["--date", "2028-02-29"]), { date: "2028-02-29" }, "un 29 février d'année bissextile est un jour");
 +});
 +
 +test("le point d'entrée : --mesure écrit la mesure datée en JSON, --precedente dit la baisse ; un usage faux sort en 2", () => {
@@ -599,6 +634,7 @@ index 2571a69..ac04a60 100644
 +  });
 +  assert.equal(r.status, 0, r.stderr);
 +  assert.match(r.stdout, /- RULE_ALL_LIC-1 : 90 % le 2026-11-15, 33 % aujourd'hui/);
++  assert.match(r.stdout, /Mesure du 2026-11-22\.\n/, "--date donnée : pas « jour UTC du passage »");
 +  assert.deepEqual(JSON.parse(readFileSync(join(racine, "apps/api/reports/mutation/mesure-regles.json"), "utf8")), {
 +    date: "2026-11-22",
 +    regles: [{ regle: "RULE_ALL_LIC-1", criticite: "medium", tues: 1, survivants: 2, score: 33 }],

@@ -1,4 +1,4 @@
-// Les mutations de la PR « socle-tests » (tickets 86 à 88) : chacune remplace un texte exact d'un fichier, joue les
+// Les mutations de la PR « socle-tests » (tickets 86 à 88, retouchées par la relecture, A-202) : chacune remplace un texte exact d'un fichier, joue les
 // bancs qu'elle vise, et doit les rendre rouges ; le fichier est remis après chaque mutation. À lancer depuis la racine
 // d'un clone où le patch de la PR est appliqué : `node <chemin>/mutations.mjs [<nom>…]`.
 // Sortie 0 : toutes rouges ; 1 : une au moins verte ou introuvable, nommée.
@@ -37,13 +37,23 @@ const MUTATIONS = [
   ["T3 synthèse : une égalité est une baisse", S, "&& r.score < avant.get(r.regle))", "&& r.score <= avant.get(r.regle))", [BS]],
   ["T4 synthèse : la mesure n'est pas écrite", S, "  if (options.mesure) writeFileSync(", "  if (false) writeFileSync(", [BS]],
   ["T5 synthèse : une mesure précédente d'une autre forme se lit", S, "    if (typeof m?.date !== \"string\" || !Array.isArray(m.regles)) return null;", "    if (!Array.isArray(m?.regles)) return null;", [BS]],
-  ["T6 synthèse : la date n'est pas dite", S, '  if (options.date) lignes.splice(3, 0, "", `Mesure du ${ligne(options.date)} (jour UTC du passage).`);', "", [BS]],
-  ["T7 synthèse : une date mal écrite est acceptée", S, '    if (nom === "--date" && !JOUR.test(valeur)) return null;', "", [BS]],
+  ["T6 synthèse : la date n'est pas dite", S, '  if (options.date) lignes.splice(3, 0, "", `Mesure du ${ligne(options.date)}${options.utc ? " (jour UTC du passage)" : ""}.`);', "", [BS]],
+  ["T7 synthèse : une date mal écrite est acceptée", S, '    if (nom === "--date" && !jourValide(valeur)) return null;', "", [BS]],
   ["W1 mutation.yml : sans la permission de lire l'artefact précédent", W, "  actions: read # lire l'artefact de la mesure précédente\n", "", [DT, PS]],
   ["W2 mutation.yml : la mesure n'est pas publiée", W, "          name: mesure-regles\n          path: apps/api/reports/mutation/mesure-regles.json", "          name: mesure-regles\n          path: apps/api/reports/mutation/", [DT, PS]],
   ["W3 mutation.yml : une expression dans un run:", W, "id=$(gh api \"repos/$GITHUB_REPOSITORY/", "id=$(gh api \"repos/${{ github.repository }}/", [DT, PS]],
   ["F1 fiche des tests : la grille d'une règle haute n'exige pas le bout en bout", F, "| haute                 | une preuve P2          |", "| haute                 | une preuve             |", [DT, PS]],
   ["F2 fiche des tests : sans l'étiquette de cas", F, "`it('[RULE_ALL_LIC-2#seconde-licence] refuse", "`it('[RULE_ALL_LIC-2] refuse", [DT, PS]],
+  // Relecture, tour 1 (A-202) : le workflow, le relais dans le dépôt de la CLI, la date, le titre.
+  ["T8 synthèse : un jour hors calendrier est accepté (la forme seule)", S, "  return JOUR.test(v) && !Number.isNaN(t) && new Date(t).toISOString().slice(0, 10) === v;", "  return JOUR.test(v);", [BS]],
+  ["T9 synthèse : le périmètre vide garde le titre d'avant", S, "Mutation sur les règles prouvées et partielles : périmètre vide", "Mutation sur les règles prouvées : périmètre vide", [BS]],
+  ["T10 synthèse : une --date donnée est dite « jour UTC du passage »", S, '${options.utc ? " (jour UTC du passage)" : ""}', " (jour UTC du passage)", [BS]],
+  ["W4 mutation.yml : sans GH_TOKEN (gh non authentifié : jamais de mesure précédente)", W, "          GH_TOKEN: ${{ github.token }}\n", "", [DT, PS]],
+  ["W5 mutation.yml : la mesure précédente de n'importe quelle branche", W, " and .workflow_run.head_branch == env.BRANCHE", "", [DT, PS]],
+  ["W6 mutation.yml : un artefact expiré compte", W, "select(.expired == false and ", "select(", [DT, PS]],
+  ["W7 mutation.yml : la mesure gardée un jour", W, "          retention-days: 90\n", "          retention-days: 1\n", [DT, PS]],
+  ["W8 mutation.yml : la mesure n'est pas publiée après un échec", W, "      - name: Mesure datée\n        if: env.CIBLE == 'regles' && always()", "      - name: Mesure datée\n        if: env.CIBLE == 'regles'", [DT, PS]],
+  ["F3 SKILL socle-tests : la limite du relais dans le dépôt de la CLI n'est plus dite", 'skills/monorepo/socle-tests/SKILL.md', " Le relais lance `node_modules/.bin/anchorpost` à la racine : dans un dépôt où la CLI est un paquet de l'espace de travail et non une dépendance installée (le dépôt de la CLI elle-même), ce fichier n'existe pas et le relais sort en 2, au pre-push comme en fin de tour ; ce dépôt l'adapte à la pose, comme son relais `anchorpost.mjs`.", "", [DT, PS]],
 ];
 
 const voulues = process.argv.slice(2);

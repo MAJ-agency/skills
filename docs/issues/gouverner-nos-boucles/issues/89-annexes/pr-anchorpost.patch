@@ -11,7 +11,7 @@ index c91dc0e..a5d6ea0 100644
    "author": {
      "name": "Guillaume Jauffret"
 diff --git a/NOTES-DE-VERSION.md b/NOTES-DE-VERSION.md
-index ba579fa..6a1cabd 100644
+index ba579fa..48dea1a 100644
 --- a/NOTES-DE-VERSION.md
 +++ b/NOTES-DE-VERSION.md
 @@ -2,6 +2,19 @@
@@ -28,7 +28,7 @@ index ba579fa..6a1cabd 100644
 +
 +### Ce qu'un projet fait pour en profiter
 +
-+- **Reposer la fiche** `.claude/rules/anchorpost.md` et la section Anchorpost de `docs/agents/admin.md` ; un dépôt qui installait la CLI depuis GitHub Packages retire de `.npmrc` les lignes `@maj-agency:registry=…` et `…_authToken=…`, et ses jetons de lecture.
++- **Reposer la fiche** `.claude/rules/anchorpost.md` et la section Anchorpost de `docs/agents/admin.md`, et ajouter `anchorpost/manifest.json` aux `cheminsSensibles` de `.claude/chaine.json` (étape 4, point 5) ; un dépôt qui installait la CLI depuis GitHub Packages retire d'abord de `.npmrc` les lignes `@maj-agency:registry=…` et `…_authToken=…`, puis installe la CLI, et supprime ses jetons de lecture.
 +- **Un dépôt au schéma 2** suit « Passer au pivot 3 » du skill, par une PR relue ; tant qu'il ne le fait pas, rien ne change pour lui.
 +
  ## 8.0.0 — 2026-11-22
@@ -49,10 +49,10 @@ index 718f65d..e5b5971 100644
  | [`revue-de-ticket`](skills/chaine/revue-de-ticket/SKILL.md)                       | Quand un ticket est « fini » : trois sous-agents vierges — règles (la revue adversariale), ticket (surfaces, décisions, règles et cas de bord, périmètre), documentation — une seule section de PR                                                              |
 diff --git a/scripts/preuve-suffisante-anchorpost.test.mjs b/scripts/preuve-suffisante-anchorpost.test.mjs
 new file mode 100644
-index 0000000..0926c0d
+index 0000000..289f392
 --- /dev/null
 +++ b/scripts/preuve-suffisante-anchorpost.test.mjs
-@@ -0,0 +1,52 @@
+@@ -0,0 +1,56 @@
 +// Bancs de la part de `skills` de la preuve suffisante (SPEC_ALL_ANC-5 § 8, tickets 83 à 89 de gouverner-nos-boucles) :
 +// les textes que les skills posent, lus à plat comme dans `depot.test.mjs` (blancs et sauts de ligne réduits à une
 +// espace : une phrase exigée peut changer de ligne, une phrase glissée au milieu d'un passage le rompt).
@@ -81,11 +81,15 @@ index 0000000..0926c0d
 +  assert.deepEqual(Object.keys(manifeste.contexts[0].floor), ["date", "proven", "partial"]);
 +  const skill = readFileSync(join(RACINE, ANCHORPOST, "SKILL.md"), "utf8");
 +  assert.doesNotMatch(skill.split("## Étape 2")[0], /read:packages|_authToken=\$\{NODE_AUTH_TOKEN\}/, "l'installation ne demande plus de jeton");
++  const etape1 = skill.split("## Étape 1")[1].split("## Étape 2")[0];
++  assert.ok(etape1.indexOf("retire d'abord ces deux lignes") >= 0 && etape1.indexOf("retire d'abord ces deux lignes") < etape1.indexOf("pnpm add -Dw"), "les lignes de GitHub Packages se retirent avant pnpm add, qui sinon y cherche le paquet");
++  assert.doesNotMatch(skill, /paquet privé|CLI privée/, "le skill ne dit plus nulle part la CLI privée (l'étape 7, l'ADR)");
 +  for (const f of ["references/fragments/admin.md", "references/adr/ADR_ALL_ARC-N-index-anchorpost.md"])
 +    assert.doesNotMatch(readFileSync(join(RACINE, ANCHORPOST, f), "utf8"), /paquet (npm )?privé sur GitHub Packages, installé|network secret pour l'hôte/, `${f} : la recette du jeton est retirée`);
 +  exiger(`${ANCHORPOST}/SKILL.md`, [
 +    "La CLI est un paquet npm **public** sur npmjs.com (Anchorpost `ADR_ALL_ARC-16`) : une installation ordinaire, sans jeton ni `.npmrc` particulier.",
-+    "1. `pnpm add -Dw @maj-agency/anchorpost@^2`",
++    "2. `pnpm add -Dw @maj-agency/anchorpost@^2`",
++    "1. Les deux lignes de GitHub Packages retirées de `.npmrc` s'il les porte (étape 1, point 1), puis `pnpm add -Dw @maj-agency/anchorpost@^2`",
 +    "## Passer au pivot 3 (`pivot-3`)",
 +    "3. Chaque règle sans criticité ni cas (l'alerte de projet de l'index les compte) se classe par le skill `criticite`, une règle à la fois, avant tout code qui la touche",
 +    "5. Le passage à `enforce` est une décision du produit, projet par projet",
@@ -106,7 +110,7 @@ index 0000000..0926c0d
 +  assert.ok(lignesFiche < 200, `${FICHE_ANCHORPOST} : ${lignesFiche} lignes, moins de deux cents (budget-contexte)`);
 +});
 diff --git a/skills/chaine/anchorpost/SKILL.md b/skills/chaine/anchorpost/SKILL.md
-index 45b51c9..30e0e4f 100644
+index 45b51c9..42f8f3a 100644
 --- a/skills/chaine/anchorpost/SKILL.md
 +++ b/skills/chaine/anchorpost/SKILL.md
 @@ -1,7 +1,7 @@
@@ -132,11 +136,10 @@ index 45b51c9..30e0e4f 100644
 -   //npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}
 -   ```
 -2. `pnpm add -Dw @maj-agency/anchorpost` (le hook d'agent refuse une dépendance que la ligne `Dépendances:` du ticket ne prévoit pas : la prévoir dans le ticket).
--3. Dans `package.json` racine, deux scripts : `"anchorpost:index": "anchorpost index"` et `"anchorpost:check": "anchorpost check"`.
++1. Un dépôt qui portait la recette d'avant (`@maj-agency:registry=https://npm.pkg.github.com` et `NODE_AUTH_TOKEN` dans `.npmrc`) retire d'abord ces deux lignes : tant qu'elles sont là, `pnpm` cherche le paquet sur GitHub Packages, qui ne le publie plus.
++2. `pnpm add -Dw @maj-agency/anchorpost@^2` (le hook d'agent refuse une dépendance que la ligne `Dépendances:` du ticket ne prévoit pas : la prévoir dans le ticket).
+ 3. Dans `package.json` racine, deux scripts : `"anchorpost:index": "anchorpost index"` et `"anchorpost:check": "anchorpost check"`.
 -4. Si `NODE_AUTH_TOKEN` manque dans la session, **ne pas inventer de valeur** : écrire la recette (étape 6) et continuer ; l'installation se finira sur un poste qui a la clé. Dans un environnement cloud de Claude, la clé est une network secret pour `npm.pkg.github.com` et la variable vaut une valeur factice que le proxy remplace.
-+1. `pnpm add -Dw @maj-agency/anchorpost@^2` (le hook d'agent refuse une dépendance que la ligne `Dépendances:` du ticket ne prévoit pas : la prévoir dans le ticket).
-+2. Dans `package.json` racine, deux scripts : `"anchorpost:index": "anchorpost index"` et `"anchorpost:check": "anchorpost check"`.
-+3. Un dépôt qui portait la recette d'avant (`@maj-agency:registry=https://npm.pkg.github.com` et `NODE_AUTH_TOKEN` dans `.npmrc`) retire ces deux lignes : le paquet ne s'installe plus depuis GitHub Packages.
  
  ## Étape 2 — la structure, ou la migration
  
@@ -156,7 +159,7 @@ index 45b51c9..30e0e4f 100644
  
  ## Étape 5 — la fiche d'écriture
  
-@@ -103,12 +99,22 @@ Copier [`references/rules/anchorpost.md`](references/rules/anchorpost.md) vers `
+@@ -103,11 +99,21 @@ Copier [`references/rules/anchorpost.md`](references/rules/anchorpost.md) vers `
  
  ## Étape 6 — la recette de l'administrateur
  
@@ -165,21 +168,21 @@ index 45b51c9..30e0e4f 100644
  
  ## Étape 7 — l'ADR
  
- `node scripts/docs/next-id.mjs ADR ALL ARC`, puis [`references/adr/ADR_ALL_ARC-N-index-anchorpost.md`](references/adr/ADR_ALL_ARC-N-index-anchorpost.md) → `docs/adr/`, `{{N}}` et `{{DATE}}` substitués, une ligne `Décideurs`. Elle dit pourquoi l'index est commis dans le dépôt et généré par un paquet privé, et ce qu'on a écarté.
- 
+-`node scripts/docs/next-id.mjs ADR ALL ARC`, puis [`references/adr/ADR_ALL_ARC-N-index-anchorpost.md`](references/adr/ADR_ALL_ARC-N-index-anchorpost.md) → `docs/adr/`, `{{N}}` et `{{DATE}}` substitués, une ligne `Décideurs`. Elle dit pourquoi l'index est commis dans le dépôt et généré par un paquet privé, et ce qu'on a écarté.
++`node scripts/docs/next-id.mjs ADR ALL ARC`, puis [`references/adr/ADR_ALL_ARC-N-index-anchorpost.md`](references/adr/ADR_ALL_ARC-N-index-anchorpost.md) → `docs/adr/`, `{{N}}` et `{{DATE}}` substitués, une ligne `Décideurs`. Elle dit pourquoi l'index est commis dans le dépôt et généré par la CLI, paquet public, et ce qu'on a écarté.
++
 +## Passer au pivot 3 (`pivot-3`)
 +
 +Un dépôt branché avant la CLI 2.0.0 a un manifeste et un index au schéma 2 ; la CLI 2.0.x lit le manifeste 2 converti, sans rien écrire, et le signale (`manifest-schema-old`). Le passage, par une PR relue (le manifeste est un chemin sensible), dans cet ordre :
 +
-+1. `pnpm add -Dw @maj-agency/anchorpost@^2`, puis `pnpm anchorpost:index` : l'index passe au schéma `"3"` ; une règle qui avait des preuves y sort « partielle » tant que ses cas ne sont pas écrits.
++1. Les deux lignes de GitHub Packages retirées de `.npmrc` s'il les porte (étape 1, point 1), puis `pnpm add -Dw @maj-agency/anchorpost@^2`, puis `pnpm anchorpost:index` : l'index passe au schéma `"3"` ; une règle qui avait des preuves y sort « partielle » tant que ses cas ne sont pas écrits.
 +2. `pnpm anchorpost init` (sans `--force`) réécrit le manifeste au schéma `"3"` sans rien retirer : il pose `"sufficiency": "observe"`, convertit chaque plancher (`proven: N` devient `{ proven: 0, partial: N }`, sa date gardée) et dit au rapport chaque valeur convertie ; il reboucle aussi l'index généré, le script `check:anchorpost` et le relais du gate : relire le rapport et le diff. Puis, à la main, le plancher relevé d'après la mesure du jour, avec une date nouvelle et la personne qui le pose (`floor { date, by, proven, partial }`), et une entrée `featureCriticality` d'une version 2 réécrite en `{ feature, level, by, date, reason }`. Puis `pnpm anchorpost:index` et `pnpm anchorpost:check`, verts.
 +3. Chaque règle sans criticité ni cas (l'alerte de projet de l'index les compte) se classe par le skill `criticite`, une règle à la fois, avant tout code qui la touche : c'est là que la repose relance le skill. `code` se renseigne sur les règles qui ont des preuves.
 +4. La repose des skills qui lisent le pivot 3 : `tickets` (la ligne `Prouve:` et la preuve suffisante d'un ticket prêt), `socle-tests` (le gate `preuves`, la mutation des règles `proven` et `partial`), `revue-de-ticket`, et cette fiche.
 +5. Le passage à `enforce` est une décision du produit, projet par projet : une PR où une personne écrit `"sufficiency": "enforce"`.
-+
+ 
  ## Étape 8 — le premier index, puis vérifier, puis conclure
  
- ```bash
 diff --git a/skills/chaine/anchorpost/references/CONTENU.md b/skills/chaine/anchorpost/references/CONTENU.md
 index efd9607..3cc2de1 100644
 --- a/skills/chaine/anchorpost/references/CONTENU.md
