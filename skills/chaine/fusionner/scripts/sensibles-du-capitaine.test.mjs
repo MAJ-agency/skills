@@ -228,3 +228,17 @@ test("garde : une copie que le sujet n'a pas écrite, héritée de develop, ne c
   const r3 = garde(b, "sujet/demo");
   assert.equal(r3.status, 20, r3.stdout + r3.stderr);
 });
+
+test("garde : un sujet sans base de fusion commune avec develop n'hérite de rien : sa copie du ticket compte, celle de develop ne la couvre pas (contre-relecture de la PR 149, tour 3)", () => {
+  const d = monter({ 1: ACCORD("`scripts/agent/**`") });
+  d.git("switch", "-q", "--orphan", "ailleurs");
+  d.ecrire(TICKET(1), ticket(1, "Sensibles: —"));
+  d.git("add", TICKET(1));
+  d.git("commit", "-q", "-m", "ailleurs");
+  d.git("push", "-q", "origin", "HEAD:refs/heads/sujet/ailleurs");
+  d.git("fetch", "-q", "origin");
+  d.git("switch", "-q", "-f", "--detach", "origin/develop");
+  const r = spawnSync(process.execPath, [GARDE, "--garde", "--base", "develop", "--titre", "feat(agent): x", "--branche", "feat/spec-all-demo-1-01-x"], { cwd: d.travail, env: d.env, input: "scripts/agent/x.mjs\n", encoding: "utf8" });
+  assert.equal(r.status, 20, r.stdout + r.stderr);
+  assert.match(r.stdout, /hors de la ligne `Sensibles:` de son ticket SPEC_ALL_DEMO-1\.01/);
+});

@@ -97,9 +97,15 @@ function refusSensible(c, sensibles, accordes) {
   const lu = accordes();
   // Une copie locale du ticket que origin ne porte pas (en retard sur origin, ou déplacée) n'a pas été lue : le geste
   // qui la relit vient avant la demande au conducteur, qui a peut-être déjà ajouté le chemin.
-  const relire = lu?.perimees
-    ? ` (Copie du ticket non lue : ${lu.perimees.join(', ')} n'est pas au sommet d'origin. Avant d'écrire au conducteur : \`git fetch --prune origin '+refs/heads/develop:refs/remotes/origin/develop' '+refs/heads/sujet/*:refs/remotes/origin/sujet/*'\`, puis refaire l'écriture.)`
-    : '';
+  // Un clone superficiel n'a pas laissé lire la base de fusion d'une copie de sujet avec develop (A-193) : une copie que
+  // le sujet a seulement héritée a pu compter ; le geste qui approfondit le clone, avant la demande au conducteur.
+  const relire =
+    (lu?.perimees
+      ? ` (Copie du ticket non lue : ${lu.perimees.join(', ')} n'est pas au sommet d'origin. Avant d'écrire au conducteur : \`git fetch --prune origin '+refs/heads/develop:refs/remotes/origin/develop' '+refs/heads/sujet/*:refs/remotes/origin/sujet/*'\`, puis refaire l'écriture.)`
+      : '') +
+    (lu?.superficiel
+      ? " (Clone superficiel : la base de fusion d'un sujet avec develop ne s'y lit pas, et une copie du ticket que le sujet n'a pas écrite a pu compter. Avant d'écrire au conducteur : `git fetch --unshallow origin`, puis refaire l'écriture.)"
+      : '');
   if (lu === null || (lu.copies === undefined && lu.illisible === undefined))
     return `${c} : ${RAISON_SENSIBLE} (Aucune ligne lue : branche sans ticket, ticket absent de origin/sujet/* et de origin/develop, ou origin injoignable.)${relire}`;
   if (lu.illisible) return `${c} : ${RAISON_SENSIBLE} (Ligne illisible : ${lu.illisible}.)${relire}`;

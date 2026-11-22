@@ -78,7 +78,9 @@ const git = (...args) => execFileSync('git', args, { cwd: RACINE, encoding: 'utf
  * sa base de fusion avec develop : héritée). `{ copies: [[motifs]…] }`, une liste par copie ; `{ illisible }` ;
  * `null` : pas de ticket, pas de copie, origin injoignable, grammaire absente. Lu seulement quand le chemin est sensible.
  * Une copie locale qui ne compte pas et porte le ticket est nommée dans `perimees` (avec `copies`, `illisible`, ou seule à
- * la place de `null`) : le refus dit alors le geste qui la relit, avant d'écrire au conducteur.
+ * la place de `null`) : le refus dit alors le geste qui la relit, avant d'écrire au conducteur. `superficiel` : un clone
+ * superficiel n'a pas laissé lire la base de fusion d'une copie de sujet, comptée alors comme écrite ; le refus dit de
+ * l'approfondir.
  */
 function accordes() {
   try {
@@ -103,12 +105,20 @@ function accordes() {
       }
     };
     const develop = objet('refs/remotes/origin/develop^{commit}');
+    // Un clone superficiel (sessions cloud) ne voit souvent pas la base de fusion d'un sujet avec develop : la copie compte
+    // alors comme écrite, du côté sûr, et le refus dit de l'approfondir (`superficiel`).
+    let superficiel = false;
     const herite = (sha, f) => {
       let base;
       try {
         base = develop === null ? '' : git('merge-base', sha, develop);
       } catch {
-        return false; // aucune base commune : la copie est du sujet
+        try {
+          superficiel ||= git('rev-parse', '--is-shallow-repository') === 'true';
+        } catch {
+          // l'état du clone ne se lit pas : rien de plus à dire
+        }
+        return false; // aucune base commune lue : la copie est du sujet
       }
       return base !== '' && objet(`${base}:${f}`) === objet(`${sha}:${f}`);
     };
@@ -127,7 +137,8 @@ function accordes() {
     if (copies.length === 0) copies = copiesSous('refs/remotes/origin/develop');
     if (copies.length === 0) return perimees.length > 0 ? { perimees } : null;
     const illisible = copies.find((c) => c.illisible);
-    if (perimees.length > 0) return { ...(illisible ? { illisible: illisible.illisible } : { copies: copies.map((c) => c.chemins) }), perimees };
+    if (perimees.length > 0 || superficiel)
+      return { ...(illisible ? { illisible: illisible.illisible } : { copies: copies.map((c) => c.chemins) }), ...(perimees.length > 0 ? { perimees } : {}), ...(superficiel ? { superficiel } : {}) };
     return illisible ? { illisible: illisible.illisible } : { copies: copies.map((c) => c.chemins) };
   } catch {
     return null;

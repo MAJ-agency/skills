@@ -4,7 +4,7 @@
 // `scripts/docs/identifiants.mjs` et le contrat `.claude/chaine.json` à côté, comme dans un projet ; CLAUDE_PROJECT_DIR
 // désigne le clone de travail.
 import assert from 'node:assert/strict';
-import { spawnSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import { copyFileSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { test } from 'node:test';
@@ -157,4 +157,29 @@ test('régime 8 : le refus ne nomme que les copies en retard qui portent le tick
   s.git('update-ref', 'refs/remotes/origin/sujet/demo', vieux);
   s.git('switch', '-q', 'feat/spec-all-demo-1-02-garde');
   refuse(ecrire(s, 'scripts/agent/garde.mjs'), /Aucune ligne lue : .*\(Copie du ticket non lue : origin\/sujet\/demo n'est pas au sommet d'origin\./);
+});
+
+test('régime 8 : dans un clone superficiel, la base de fusion d’un sujet ne se lit pas : la copie héritée compte, et le refus dit d’approfondir le clone ; approfondi, le chemin accordé passe (contre-relecture de la PR 149, tour 3)', () => {
+  // Develop porte le ticket sans accord ; un autre sujet en part ; develop avance, puis l'accord y entre.
+  const d = depot({ surSujet: null });
+  d.git('push', '-q', 'origin', 'origin/develop:refs/heads/sujet/autre');
+  d.git('switch', '-q', '--detach', 'origin/develop');
+  for (const i of [1, 2, 3]) {
+    writeFileSync(join(d.travail, `docs/f${i}.md`), `${i}\n`);
+    d.git('add', '-A');
+    d.git('commit', '-q', '-m', `f${i}`);
+  }
+  writeFileSync(join(d.travail, TICKET), ticket(ACCORD));
+  d.git('commit', '-q', '-am', 'accord');
+  d.git('push', '-q', 'origin', 'HEAD:develop');
+  // Le clone d'une session cloud : superficiel, develop seul, puis les sujets relus.
+  const ombre = join(d.racine, 'ombre');
+  const g = (...a) => execFileSync('git', a, { cwd: ombre, env: ENV, encoding: 'utf8' }).trim();
+  execFileSync('git', ['clone', '-q', '--depth', '1', '--single-branch', '-b', 'develop', `file://${join(d.racine, 'origine.git')}`, ombre], { env: ENV });
+  g('fetch', '-q', 'origin', '+refs/heads/develop:refs/remotes/origin/develop', '+refs/heads/sujet/*:refs/remotes/origin/sujet/*');
+  g('switch', '-q', '-c', 'feat/spec-all-demo-1-01-garde', 'origin/develop');
+  const r = ecrire({ ...d, travail: ombre }, 'scripts/agent/garde.mjs');
+  refuse(r, /\(Clone superficiel : la base de fusion d'un sujet avec develop ne s'y lit pas, .* `git fetch --unshallow origin`, puis refaire l'écriture\.\)/);
+  g('fetch', '-q', '--unshallow', 'origin');
+  passe(ecrire({ ...d, travail: ombre }, 'scripts/agent/garde.mjs'));
 });
