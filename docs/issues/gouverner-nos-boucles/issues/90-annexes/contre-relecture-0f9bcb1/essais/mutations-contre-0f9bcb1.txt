@@ -1,0 +1,15 @@
+# Mutations du contre-relecteur (mutations-contre.mjs) au sommet 0f9bcb1
+ 21:51:23 up 50 min,  0 user,  load average: 0.93, 1.10, 1.72
+21:51:23
+NODE_PATH porte typescript : <NODE_PATH du poste>/typescript
+sortie 0
+21:56:13
+ 21:56:13 up 55 min,  0 user,  load average: 1.10, 1.09, 1.53
+
+VERTE (attendu VERTE) C1 V14 joué avec le NODE_PATH du poste (le jouet sans node_modules, un typescript global) (84 s) — # régime 8 : 30 bancs, 414 tests, 413 verts, 1 sautés
+VERTE (attendu VERTE) C2 un banc posé qui, posé, n'écrit aucun test (son test ne s'écrit que dans le plugin) (91 s) — # régime 8 : 31 bancs, 415 tests, 414 verts, 1 sautés
+ROUGE (attendu ROUGE) C3 regles.mjs lit le contrat sous le dossier courant (process.cwd()), plus à côté du fichier (87 s) — les bancs de references/, posés dans un projet au régime 8 ( — vus : +   'un gate rouge renvoie l’agent au travail (code 2) avec la sortie du gate ; un gate ab ; +   'régime 8 : la ligne `Sensibles:` du ticket, lue sur le sujet, couvre le chemin → écri ; +   'régime 8 : la copie du sujet fait foi, jamais l’arbre de travail ; sans sujet, celle  ; +   'régime 8 : une copie locale du sujet que origin ne porte pas ne compte pas ; une lign ; +   'régime 8 : une copie locale du sujet en retard sur origin n’est pas lue, et le refus  ; +   'régime 8 : une copie de sujet héritée de develop (le sujet ne l’a pas écrite) ne comp ; +   'régime 8 : le refus ne nomme que les copies en retard qui portent le ticket ; sans co ; +   'régime 8 : dans un clone superficiel, la base de fusion d’un sujet ne se lit pas : la ; +   'régime 8 : l’héritage d’une copie de sujet se juge contre le develop d’origin ; une c ; +   'régime 8 : dans un clone entier, un refus ne nomme jamais le clone superficiel, même  ; +   'refusEdition et .claude/skills : laissé éditable en régime 7 ; en régime 8, sous `.cl — # régime 8 : 30 bancs, 414 tests, 402 verts, 1 sautés
+ROUGE (attendu ROUGE) C4 regles.mjs n'exporte plus RAISON_ILLISIBLE (l'import dynamique rend undefined, sans erreur de liaison) (13 s) — ticket 33 : ce que le lecteur ne sait pas lire est refusé av
+ROUGE (attendu ROUGE) C5 develop.sh ne pousse plus develop (le banc déplacé le voit-il encore ?) (2 s) — crée develop sous le hook pre-push du socle, qui ne joue rie | idempotent : develop déjà sur le distant, rien de poussé, se
+ROUGE (attendu ROUGE) C6 le cas « hors accord » de .claude/skills : un refus sans la raison (12 s) — refusEdition et .claude/skills : laissé éditable en régime 7 | lot 5b, refusEdition en régime 8 : un chemin sensible hors a | suite 24 du lot 5, refusEdition en régime 8 : le geste qui r
+toutes à leur attendu

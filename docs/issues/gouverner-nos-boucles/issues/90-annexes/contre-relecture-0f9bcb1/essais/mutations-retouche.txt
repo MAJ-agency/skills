@@ -1,0 +1,17 @@
+# Sur la retouche (0f9bcb1 + retouche-156-0f9bcb1.patch + retouche-156-0f9bcb1-banc-vide.patch) : C1 et C2 (attendus ROUGE), puis V8, V11, V12, V14 de 90-annexes/mutations.mjs
+ 21:57:16 up 56 min,  0 user,  load average: 0.37, 0.87, 1.43
+21:57:16
+contre sortie 0
+annexe sortie 0
+22:05:32
+ 22:05:32 up  1:04,  0 user,  load average: 1.14, 1.03, 1.25
+
+ROUGE (attendu ROUGE) C1 V14 joué avec le NODE_PATH du poste (le jouet sans node_modules, un typescript global) (86 s) — les bancs de references/, posés dans un projet au régime 8 ( — vus : +   'scripts/verify/tests-creux.test.mjs' — # régime 8 : 30 bancs, 408 tests, 406 verts, 1 sautés
+ROUGE (attendu ROUGE) C2 un banc posé qui, posé, n'écrit aucun test (son test ne s'écrit que dans le plugin) (86 s) — les bancs de references/, posés dans un projet au régime 8 ( — vus : +   'scripts/docs/conditionnel.test.mjs' — # régime 8 : 31 bancs, 415 tests, 414 verts, 1 sautés
+toutes à leur attendu
+
+ROUGE V8 le garde ne joue que scripts/agent/ (sous le plancher) (65 s) — les bancs de references/, posés dans un projet au régime 8 ( | les bancs de references/, posés dans un projet au régime 7 (
+ROUGE V11 un banc posé saute un sous-test (la ligne TAP est indentée) (87 s) — les bancs de references/, posés dans un projet au régime 8 ( — vus : +   'sous-test sauté'
+ROUGE V12 un banc posé marque « todo » un sous-test rouge (jamais jugé, sortie 0) (87 s) — les bancs de references/, posés dans un projet au régime 8 (
+ROUGE V14 pose-du-socle.mjs : le jouet sans node_modules, joué sans NODE_PATH (la CI) (86 s) — les bancs de references/, posés dans un projet au régime 8 ( — vus : +   'scripts/verify/tests-creux.test.mjs'
+toutes rouges

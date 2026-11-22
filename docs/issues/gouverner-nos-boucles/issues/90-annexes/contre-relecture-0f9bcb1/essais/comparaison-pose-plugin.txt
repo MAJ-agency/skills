@@ -1,0 +1,49 @@
+# Les 30 bancs de references/ au sommet 0f9bcb1 : posés au régime 8 (jouer-garde.mjs, comme le garde, sans NODE_PATH) puis joués en place dans le plugin (sans NODE_PATH), un test par ligne (rapporteur.mjs), comparés banc par banc (comparer.mjs)
+ 21:29:09 up 28 min,  0 user,  load average: 5.23, 5.16, 3.47
+{"regime":8,"bancs":30,"fautes":[],"status":0,"signal":null,"secondes":85,"projet":"<C>/contre-garde-8-ysQSaJ/projet"}
+ 21:30:35 up 29 min,  0 user,  load average: 3.22, 4.61, 3.44
+plugin sortie 0
+ 21:31:57 up 30 min,  0 user,  load average: 2.32, 4.03, 3.33
+
+apres-edition.test.mjs               posé   3 (saut 0, todo 0, ko 0)  plugin   3 (saut 0, todo 0, ko 0)
+archiver-tickets.test.mjs            posé   2 (saut 0, todo 0, ko 0)  plugin   2 (saut 0, todo 0, ko 0)
+avancement.test.mjs                  posé   9 (saut 0, todo 0, ko 0)  plugin   9 (saut 0, todo 0, ko 0)
+budget-contexte.test.mjs             posé   2 (saut 0, todo 0, ko 0)  plugin   2 (saut 0, todo 0, ko 0)
+couts.test.mjs                       posé  12 (saut 0, todo 0, ko 0)  plugin  12 (saut 0, todo 0, ko 0)
+coverage-diff-regles.test.mjs        posé  16 (saut 0, todo 0, ko 0)  plugin  16 (saut 0, todo 0, ko 0)
+coverage-diff.test.mjs               posé  17 (saut 0, todo 0, ko 0)  plugin  17 (saut 0, todo 0, ko 0)
+environnement-de-banc.test.mjs       posé   2 (saut 0, todo 0, ko 0)  plugin   2 (saut 0, todo 0, ko 0)
+fin-de-tour.test.mjs                 posé   2 (saut 0, todo 0, ko 0)  plugin   2 (saut 0, todo 0, ko 0)
+garde-commandes.test.mjs             posé  16 (saut 0, todo 0, ko 0)  plugin  16 (saut 0, todo 0, ko 0)
+garde-fichiers.test.mjs              posé  10 (saut 0, todo 0, ko 0)  plugin  10 (saut 0, todo 0, ko 0)
+garde-github.test.mjs                posé   6 (saut 0, todo 0, ko 0)  plugin   6 (saut 0, todo 0, ko 0)
+garde-illisible.test.mjs             posé   7 (saut 0, todo 0, ko 0)  plugin   7 (saut 0, todo 0, ko 0)
+identifiants.test.mjs                posé  10 (saut 0, todo 0, ko 0)  plugin  10 (saut 0, todo 0, ko 0)
+ligne-sujet.test.mjs                 posé   4 (saut 0, todo 0, ko 0)  plugin   4 (saut 0, todo 0, ko 0)
+migrer-tickets.test.mjs              posé   8 (saut 0, todo 0, ko 0)  plugin   8 (saut 0, todo 0, ko 0)
+mutation-regles-synthese.test.mjs    posé  16 (saut 0, todo 0, ko 0)  plugin  16 (saut 0, todo 0, ko 0)
+mutation-regles.test.mjs             posé  26 (saut 0, todo 0, ko 0)  plugin  26 (saut 0, todo 0, ko 0)
+next-id.test.mjs                     posé  17 (saut 0, todo 0, ko 0)  plugin  17 (saut 0, todo 0, ko 0)
+pr-ouvertes.test.mjs                 posé   2 (saut 0, todo 0, ko 0)  plugin   2 (saut 0, todo 0, ko 0)
+pr-titre.test.mjs                    posé  12 (saut 1, todo 0, ko 0)  plugin  12 (saut 0, todo 0, ko 0)  <<
+preuves.test.mjs                     posé   8 (saut 0, todo 0, ko 0)  plugin   8 (saut 0, todo 0, ko 0)
+references-agent.test.mjs            posé  12 (saut 0, todo 0, ko 0)  plugin  12 (saut 0, todo 0, ko 0)
+regles.test.mjs                      posé  88 (saut 0, todo 0, ko 0)  plugin  88 (saut 0, todo 0, ko 0)
+settings-json.test.mjs               posé  24 (saut 0, todo 0, ko 0)  plugin  24 (saut 0, todo 0, ko 0)
+tests-creux.test.mjs                 posé   7 (saut 0, todo 0, ko 0)  plugin   7 (saut 0, todo 0, ko 0)
+ticket-libre.test.mjs                posé  12 (saut 0, todo 0, ko 0)  plugin  12 (saut 0, todo 0, ko 0)
+tickets-gate.test.mjs                posé  17 (saut 0, todo 0, ko 0)  plugin  17 (saut 0, todo 0, ko 0)
+tickets.test.mjs                     posé  41 (saut 0, todo 0, ko 0)  plugin  41 (saut 0, todo 0, ko 0)
+vagues.test.mjs                      posé   6 (saut 0, todo 0, ko 0)  plugin   6 (saut 0, todo 0, ko 0)
+total posé 414, plugin 414, bancs 30 ; niveaux posés : 0
+
+posé # tests 414
+posé # pass 413
+posé # fail 0
+posé # skipped 1
+posé # todo 0
+plugin # tests 414
+plugin # pass 414
+plugin # fail 0
+plugin # skipped 0
+plugin # todo 0

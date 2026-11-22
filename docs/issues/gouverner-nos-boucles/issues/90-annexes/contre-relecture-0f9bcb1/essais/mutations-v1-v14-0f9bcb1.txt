@@ -1,0 +1,22 @@
+# Mutations V1 à V14 de 90-annexes/mutations.mjs, rejouées au sommet 0f9bcb1 (clone neuf, détaché, propre)
+ 21:32:22 up 31 min,  0 user,  load average: 1.67, 3.74, 3.25
+21:32:22
+sortie 0
+21:51:06
+ 21:51:06 up 49 min,  0 user,  load average: 1.19, 1.16, 1.75
+
+ROUGE V1 regles.test.mjs : le banc lit ./regles.mjs (le code d'avant), le contrat du projet entre dans ses défauts (165 s) — les bancs de references/, posés dans un projet au régime 8 ( — vus : +   'refusEdition et .claude/skills : laissé éditable en régime 7 ; en régime 8, sous `.cl
+ROUGE V2 regles.mjs : .claude/skills/ laissé éditable en régime 8 (l'autre décision) (11 s) — refusEdition et .claude/skills : laissé éditable en régime 7
+ROUGE V3 regles.mjs : le régime 8 n'est jamais appliqué (12 s) — refusEdition et .claude/skills : laissé éditable en régime 7 | lot 5b, refusEdition en régime 8 : un chemin sensible hors a | suite 24 du lot 5, refusEdition en régime 8 : le geste qui r
+ROUGE V4 regles.mjs : les chemins sensibles gardés en régime 7 aussi (12 s) — refusEdition et .claude/skills : laissé éditable en régime 7 | lot 5b, refusEdition en régime 8 : un chemin sensible hors a
+ROUGE V5 develop.test.mjs de retour sous references/scripts/github/ (le banc d'avant, à sa place d'avant) (169 s) — les bancs de references/, posés dans un projet au régime 8 ( | les bancs de references/, posés dans un projet au régime 7 ( — vus : +   'scripts/github/develop.test.mjs'
+ROUGE V6 un banc rangé sous references/ hors de agent/ et scripts/<d>/ (1 s) — les bancs de references/, posés dans un projet au régime 8 ( | les bancs de references/, posés dans un projet au régime 7 ( — vus : +   'skills/chaine/socle-chaine-de-production/references/ci/vide.test.mjs : banc sous refe
+ROUGE V7 pr-titre.test.mjs : un deuxième test sauté une fois posé (169 s) — les bancs de references/, posés dans un projet au régime 8 ( | les bancs de references/, posés dans un projet au régime 7 ( — vus : +   'PR vers develop : du code sans section de revue est refusé avec le motif exact du cap
+ROUGE V8 le garde ne joue que scripts/agent/ (sous le plancher) (60 s) — les bancs de references/, posés dans un projet au régime 8 ( | les bancs de references/, posés dans un projet au régime 7 (
+ROUGE V9 pose-du-socle.mjs : le contrat posé au régime 8 n'a pas la clé relecture (83 s) — les bancs de references/, posés dans un projet au régime 8 (
+ROUGE V10 pose-du-socle.mjs : tout dossier de references/ a une place (173 s) — destinationDuDossier : agent/ et scripts/<d>/ de references/
+ROUGE V11 un banc posé saute un sous-test (la ligne TAP est indentée) (89 s) — les bancs de references/, posés dans un projet au régime 8 ( — vus : +   'sous-test sauté'
+ROUGE V12 un banc posé marque « todo » un sous-test rouge (jamais jugé, sortie 0) (84 s) — les bancs de references/, posés dans un projet au régime 8 (
+ROUGE V13 regles.mjs : une ligne `Sensibles:` lue qui ne couvre pas le chemin est refusée comme « Aucune ligne lue » (12 s) — refusEdition et .claude/skills : laissé éditable en régime 7
+ROUGE V14 pose-du-socle.mjs : le jouet sans node_modules, joué sans NODE_PATH (la CI) (84 s) — les bancs de references/, posés dans un projet au régime 8 ( — vus : +   'scripts/verify/tests-creux.test.mjs'
+toutes rouges

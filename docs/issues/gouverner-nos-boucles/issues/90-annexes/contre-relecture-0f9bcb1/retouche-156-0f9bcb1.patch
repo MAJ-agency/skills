@@ -1,0 +1,37 @@
+diff --git a/NOTES-DE-VERSION.md b/NOTES-DE-VERSION.md
+index 6968e98..4000f4b 100644
+--- a/NOTES-DE-VERSION.md
++++ b/NOTES-DE-VERSION.md
+@@ -6,9 +6,9 @@ La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque pro
+ 
+ ### Ce qui change
+ 
+-- **Un dépôt posé en 8.0.0 ou 8.0.1 peut pousser** (ticket 90) : le banc posé `scripts/agent/regles.test.mjs` lit une copie de `regles.mjs` posée seule, et plus `./regles.mjs` : le régime, les chemins sensibles et les migrations du `.claude/chaine.json` du projet, et les index de son `scripts/docs/index-generes.json`, n'entrent plus dans ses défauts. Au régime 8, avec le gabarit (`.claude/**` sensible), son cas « `.claude/skills` » était rouge, et `check:tickets` le joue au pre-push et en CI ; un projet qui ajoute `apps/api/**` à ses chemins sensibles, ou un index `docs/*` à ses index générés, en rougissait deux cas de plus. La règle ne change pas : en régime 8, `.claude/skills/` ne s'écrit qu'avec la ligne `Sensibles:` du ticket, comme tout chemin sensible ; le banc le dit.
++- **Un dépôt posé de 8.0.0 à 8.2.0 peut pousser** (ticket 90) : le banc posé `scripts/agent/regles.test.mjs` lit une copie de `regles.mjs` posée seule, et plus `./regles.mjs` : le régime, les chemins sensibles et les migrations du `.claude/chaine.json` du projet, et les index de son `scripts/docs/index-generes.json`, n'entrent plus dans ses défauts. Au régime 8, avec le gabarit (`.claude/**` sensible), son cas « `.claude/skills` » était rouge, et `check:tickets` le joue au pre-push et en CI ; un projet qui ajoute `apps/api/**` à ses chemins sensibles, ou un index `docs/*` à ses index générés, en rougissait deux cas de plus. La règle ne change pas : en régime 8, `.claude/skills/` ne s'écrit qu'avec la ligne `Sensibles:` du ticket, comme tout chemin sensible ; le banc le dit.
+ - **`develop.test.mjs` quitte `references/`** : banc du plugin (il lit le pre-push du gabarit de `socle-monorepo`), il vit sous `socle-chaine-de-production/scripts/`. Copié dans un projet avec `references/scripts/github/`, il y sortait en `ERR_MODULE_NOT_FOUND` à l'étape 3 du skill (`node --test scripts/github/*.test.mjs`).
+-- **Un garde dans le plugin** (`scripts/references-posees.test.mjs`) : tout banc rangé sous `references/` d'un skill est posé dans un dépôt jouet, à sa place de projet, avec ses voisins, les dépendances de la racine (un lien vers `node_modules` du plugin, comme un projet a les siennes) et le contrat du gabarit au régime 8 puis au régime 7, et joué ; un échec, un saut hors du seul attendu (sous-tests compris), un test « todo », un banc sans place connue sous `references/` ou moins de 350 tests joués le rougit. Il ne dépend d'aucun module installé hors du dépôt : un `typescript` global du poste ne le fait plus passer.
++- **Un garde dans le plugin** (`scripts/references-posees.test.mjs`) : tout banc rangé sous `references/` d'un skill est posé dans un dépôt jouet, à sa place de projet, avec ses voisins, les dépendances de la racine (un lien vers `node_modules` du plugin, comme un projet a les siennes) et le contrat du gabarit au régime 8 puis au régime 7, et joué ; un échec, un saut hors du seul attendu (sous-tests compris), un test « todo », un banc sans place connue sous `references/` ou moins de 350 tests joués le rougit. Il ne dépend d'aucun module installé hors du dépôt : il joue les bancs sans `NODE_PATH`, et un `typescript` global du poste ne le fait plus passer.
+ 
+ ### Ce qu'un projet fait pour en profiter
+ 
+diff --git a/scripts/references-posees.test.mjs b/scripts/references-posees.test.mjs
+index 17e68a0..7a2b3cc 100644
+--- a/scripts/references-posees.test.mjs
++++ b/scripts/references-posees.test.mjs
+@@ -43,11 +43,15 @@ for (const regime of [8, 7]) {
+       assert.equal(Object.hasOwn(contrat, 'relecture'), regime === 8, 'le régime du contrat posé');
+       assert.ok(contrat.cheminsSensibles.includes('.claude/**'), 'les chemins sensibles du gabarit');
+       for (const b of bancs) assert.ok(existsSync(join(projet, b)), b);
++      // Sans `NODE_PATH` : un module installé hors du dépôt (un `typescript` global du poste) ne fait jamais passer un banc
++      // posé que la CI du plugin, qui n'en a pas, rougirait ; le jouet résout ses dépendances par son `node_modules`.
++      const env = { ...environnementDeBanc(), TMPDIR: temporaire };
++      delete env.NODE_PATH;
+       // Un banc à la fois : `pnpm test` joue déjà ses fichiers en parallèle, et un banc posé mesure des durées (« le plafond à
+       // 20 000 caractères… », sous 10 s) que trois enfants de plus, sous une charge de 16, ont fait dépasser.
+       const r = spawnSync(process.execPath, ['--test', '--test-concurrency=1', '--test-reporter=tap', ...bancs], {
+         cwd: projet,
+-        env: { ...environnementDeBanc(), TMPDIR: temporaire },
++        env,
+         encoding: 'utf8',
+         timeout: 840_000,
+         maxBuffer: 64 * 1024 * 1024,

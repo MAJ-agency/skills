@@ -1,0 +1,8 @@
+# Délai de spawnSync sur un node --test enfant : ce qui reste après (essai-delai, lent.test.mjs lance sleep 47, timeout 3 s)
+{"status":1,"signal":null,"error":"ETIMEDOUT","secondes":3.01}
+ps après le retour : 22190     1       2 sleep 47   (orphelin, ppid 1 ; tué à la main)
+
+# Un banc qui n'écrit aucun test, en TAP (node --test d/vide.test.mjs d/plein.test.mjs)
+ok 1 - y
+ok 2 - d/vide.test.mjs
+# tests 2
