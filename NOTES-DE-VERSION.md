@@ -15,6 +15,7 @@ Les mineurs de la contre-relecture de la PR 146, sur le skill `relecteur` (ticke
 - **La préparation** relit origin avant de dire une tête introuvable ; la cause « dépendances de develop » dit comment l'installation se retente.
 - **Le skill** dit la suite d'un `send_message` en échec, les causes des lignes à l'architecte (`create_session` en échec, une commande coupée sans code), et une quatrième forme de ligne, une ligne perdue.
 - Le faux GitHub des bancs tient les événements d'étiquette d'une PR (`GET issues/<n>/events`).
+- Les bancs tiennent aussi, depuis la contre-relecture de la PR 147, la marque lue sur un commentaire à marque, une PR sans marque, des événements illisibles ou sur deux pages, la tête relue en échec, et les quatre formes des lignes à l'architecte et les bornes de 12 et d'une sortie hors de la table, chacune à sa place.
 
 ### Ce qu'un projet fait pour en profiter
 

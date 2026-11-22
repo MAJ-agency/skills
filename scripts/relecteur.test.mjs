@@ -171,3 +171,21 @@ test("suite du ticket 66 (ticket 69) — chaque phrase neuve à sa place : `--at
   exigerA(section(texte, "## Mise en place (une fois par session)"), "« Mise en place »", ["Une installation en échec ne se retente qu'au lockfile suivant de develop, ou dans un Relecteur neuf (son dossier est neuf) : la cause « dépendances de develop » le dit à l'architecte."]);
   assert.ok(!texte.includes("ont trois formes"), "les lignes à l'architecte ont quatre formes");
 });
+
+test("contre-relecture de la PR 147 — les quatre formes des lignes à l'architecte, chacune dans leur phrase, et aucune autre ; la borne de 12 et d'une sortie hors de la table, à leur ligne", () => {
+  const texte = lire(`${SKILL}/SKILL.md`);
+  // A-183, point 4 : la liste elle-même, pas seulement son début ni la quatrième forme écrite ailleurs dans la section.
+  const phrase = ligne(texte, "## Les lignes", "Les lignes du Relecteur lui-même à l'architecte ont quatre formes, et aucune autre : ");
+  const formes = phrase.slice(0, phrase.indexOf(" La `<cause>`"));
+  exigerA(formes, "la phrase des quatre formes", [
+    "« PR <n> : <cause> ; PR tue » quand il fait taire une PR",
+    "« Relecteur arrêté : <cause> » quand il s'arrête",
+    "« PR <n> : session <id> orpheline, à archiver »",
+    "« PR <n> : send_message en échec vers <session> : <sa dernière ligne non vide> », une ligne perdue",
+  ]);
+  assert.equal(formes.split("« ").length - 1, 4, "quatre formes, et aucune autre");
+  // R5 s'appuie sur « la seconde fois » de 12 et d'une sortie hors de la table : chacune à sa ligne, comme celle de 9.
+  const sorties = "## Les sorties de `passe`, `jouer` et `distribuer`";
+  for (const debut of ["| 9 |", "| 12 |", "| autre, ou aucune (l'outil a arrêté la commande) |"])
+    exigerA(ligne(texte, sorties, debut), `la ligne ${debut}`, ["rejouer au réveil suivant ; à la seconde fois, l'architecte, et s'arrêter"]);
+});

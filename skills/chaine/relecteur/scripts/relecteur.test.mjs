@@ -861,3 +861,71 @@ test('suite 66 — A-182 (2) : une session que le modèle lit à un autre couple
   assert.equal(r.status, 0, r.stderr);
   assert.equal(d.json(r)[0].distribution, distribution(1, sha, ['session_rel2'], ' (remplace session_rel1)'));
 });
+
+// --- Contre-relecture de la PR 147, premier tour : la marque, sans marque, les lectures neuves en panne ou paginées ---
+
+test('contre-relecture 147 — la marque est un commentaire à marque : un commentaire ordinaire écrit après la pose ne fait rien repartir au rejeu (A-183, point 6)', () => {
+  const d = monter();
+  const sha = pr(d);
+  ajouter(d, [distribution(1, sha, ['session_rel1']), 2], [verdict(sha, 1, 'session_rel1', 'refusé'), 3]);
+  // Un retrait refusé (et tu) : la PR garde ses deux étiquettes, `à-reprendre` posée à la minute 30.
+  Object.assign(d.env, { BANC_FAUX_GH: join(CHAINE, 'sujet/scripts/faux-gh.mjs') });
+  writeFileSync(join(d.racine, 'bin/gh'), '#!/bin/sh\ncase "$*" in *"-X DELETE"*labels*) if [ ! -e "$FAUX_GH/refus-fait" ]; then touch "$FAUX_GH/refus-fait"; echo "gh: Bad Gateway (HTTP 502)" >&2; exit 1; fi ;; esac\nexec node "$BANC_FAUX_GH" "$@"\n');
+  assert.deepEqual(d.json(d.lancer('jouer', '12'))[0].lignes.map((l) => l.a), ['auteur', 'conducteur']);
+  // Un humain écrit sur la PR après la pose, avant le rejeu : un commentaire sans marque n'est pas la marque.
+  ajouter(d, ['Merci, je regarde le refus.', 31]);
+  const rejoue = d.json(d.lancer('jouer', '12'))[0];
+  assert.deepEqual([rejoue.geste, rejoue.marque, rejoue.lignes], ['etiqueter', minute(3), []], JSON.stringify(rejoue));
+});
+
+test('contre-relecture 147 — une étiquette à poser déjà là sur une PR sans aucune marque : dans le doute, les lignes partent (ticket 68, décision 1)', () => {
+  const d = monter();
+  // `à-fusionner` sans tour (règle 3) et `à-reprendre` déjà là, posée à la minute 20 ; aucun commentaire.
+  pr(d, { labels: ['à-fusionner', 'à-reprendre'], commentaires: [] });
+  d.github({ pulls: [{ ...d.etat().pulls[0], evenements: [{ event: 'labeled', label: 'à-reprendre', created_at: minute(20) }] }] });
+  const g = d.json(d.lancer('jouer', '12'))[0];
+  assert.deepEqual([g.regle, g.geste, g.poser, g.marque], [3, 'etiqueter', 'à-reprendre', null], JSON.stringify(g));
+  assert.deepEqual(g.lignes.map((l) => l.a), ['auteur', 'conducteur']);
+  assert.deepEqual(ecritures(d), ['DELETE issues/12/labels/à-fusionner']);
+});
+
+test('contre-relecture 147 — les événements de la PR ne se lisent pas : `jouer` sort en 5 sans rien écrire, ni retrait ni pose ; au rejeu, les lignes partent', () => {
+  const d = monter();
+  const sha = pr(d, { labels: ['à-relire', 'à-reprendre'] });
+  ajouter(d, [distribution(1, sha, ['session_rel1']), 2], [verdict(sha, 1, 'session_rel1', 'refusé'), 3]);
+  d.github({ pannes: [{ route: '^issues/12/events', fois: 1 }] });
+  const r = d.lancer('jouer', '12');
+  assert.equal(r.status, 5, r.stderr);
+  assert.deepEqual(ecritures(d), [], 'rien d’écrit avant que les événements se lisent : un retrait fait ici perdrait les lignes');
+  const g = d.json(d.lancer('jouer', '12'))[0];
+  assert.deepEqual(g.lignes.map((l) => l.a), ['auteur', 'conducteur']);
+  assert.deepEqual(ecritures(d), ['DELETE issues/12/labels/à-relire']);
+});
+
+test('contre-relecture 147 — la seconde lecture d’origin (la tête relue) en échec : `jouer` sort en 12, aucune tête dite introuvable (ticket 67, décision 4)', () => {
+  const d = monter();
+  pr(d);
+  d.git('switch', '-q', 'feat/a');
+  d.ecrire('src/a.mjs', 'export const a = 2;\n');
+  d.commit('fix: a');
+  // À la lecture de la PR, après la préparation : un commit neuf poussé sur la PR, puis origin du dossier injoignable, une fois.
+  Object.assign(d.env, { BANC_FAUX_GH: join(CHAINE, 'sujet/scripts/faux-gh.mjs'), BANC_TRAVAIL: d.travail, BANC_ORIGINE: d.origine });
+  writeFileSync(join(d.racine, 'bin/gh'), '#!/bin/sh\ncase "$*" in *pulls/12*) if [ ! -e "$FAUX_GH/casse-faite" ]; then touch "$FAUX_GH/casse-faite"; git -C "$BANC_TRAVAIL" push -q origin HEAD:feat/a; node "$BANC_FAUX_GH" "$@"; s=$?; git config remote.origin.url "$BANC_ORIGINE.parti"; exit $s; fi ;; esac\nexec node "$BANC_FAUX_GH" "$@"\n');
+  const r = d.lancer('jouer', '12');
+  assert.equal(r.status, 12, `${r.stdout}\n${r.stderr}`);
+  assert.match(r.stderr, /^relecteur : git fetch -q --prune origin /m);
+  assert.ok(!d.etat().pulls[0].commentaires.some((c) => /^Lecture illisible/.test(c.body ?? c)), 'aucune trace « tête introuvable »');
+});
+
+test('contre-relecture 147 — les événements sur deux pages, la dernière pose sur la seconde : toutes les pages se lisent, le passage rejoué ne redit rien', () => {
+  const d = monter();
+  const sha = pr(d, { labels: ['à-relire', 'à-reprendre'] });
+  ajouter(d, [distribution(1, sha, ['session_rel1']), 2], [verdict(sha, 1, 'session_rel1', 'refusé'), 3]);
+  const evenements = [['labeled', 'à-reprendre', 1], ['unlabeled', 'à-reprendre', 2], ['labeled', 'à-reprendre', 4], ['labeled', 'à-relire', 4]].map(([event, label, m]) => ({ event, label, created_at: minute(m) }));
+  d.github({ pulls: [{ ...d.etat().pulls[0], evenements }] });
+  // Comme GitHub : sans `--paginate`, la première page seule ; avec, les deux, à la suite.
+  Object.assign(d.env, { BANC_FAUX_GH: join(CHAINE, 'sujet/scripts/faux-gh.mjs') });
+  writeFileSync(join(d.racine, 'bin/gh'), '#!/bin/sh\ncase "$*" in *issues/12/events*) out=$(node "$BANC_FAUX_GH" "$@") || exit $?; case "$*" in *--paginate*) tout=1 ;; *) tout= ;; esac; printf \'%s\' "$out" | TOUT="$tout" node -e \'let s="";process.stdin.on("data",(c)=>(s+=c)).on("end",()=>{const a=JSON.parse(s);const h=Math.ceil(a.length/2);process.stdout.write(JSON.stringify(a.slice(0,h))+(process.env.TOUT?JSON.stringify(a.slice(h)):"")+"\\n")})\'; exit 0 ;; esac\nexec node "$BANC_FAUX_GH" "$@"\n');
+  const g = d.json(d.lancer('jouer', '12'))[0];
+  assert.deepEqual([g.geste, g.poser, g.lignes], ['etiqueter', 'à-reprendre', []], JSON.stringify(g));
+});
