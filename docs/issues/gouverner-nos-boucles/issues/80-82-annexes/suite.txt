@@ -1,0 +1,10 @@
+# Suite entière (les quatre motifs de pnpm test) sur 97d17e3 + lot-6.patch, 2026-11-22 07:08 à 07:25 UTC, Node 22.23.5 ; charge 2,60 au départ, jusqu'à 8 au milieu (d'autres agents sur le poste).
+# tests 1396
+# suites 0
+# pass 1396
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1013738.312514
+sortie 0
