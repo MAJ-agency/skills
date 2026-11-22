@@ -323,7 +323,7 @@ export function tourValide(entree) {
   return juge !== null && juge.etat === 'valide' ? juge : null;
 }
 
-const ETATS_DE_SESSION = ['vivante', 'morte', 'plafond'];
+const ETATS_DE_SESSION = ['vivante', 'morte', 'plafond', 'couple'];
 
 /**
  * @typedef {object} EtatPR
@@ -337,7 +337,9 @@ const ETATS_DE_SESSION = ['vivante', 'morte', 'plafond'];
  * @property {Record<string, boolean|'illisible'>} [memeContenu]  une clé par sommet que `sommetsDesTours` rend, sans exception
  * @property {number} maintenant                      l'instant, en millisecondes depuis l'époque (un nombre fini)
  * @property {number} [delaiMs]                       `relecture.delai` en millisecondes ; `DELAI_MS` par défaut
- * @property {Record<string, 'vivante'|'morte'|'plafond'>} [sessions]  l'état des sessions, quand il est connu
+ * @property {Record<string, 'vivante'|'morte'|'plafond'|'couple'>} [sessions]  l'état des sessions, quand il est connu ;
+ *   `couple` : la session tourne à un autre modèle ou un autre effort que ceux que la PR demande (A-182) : hors
+ *   service comme `morte` ou `plafond`, elle est remplacée, une fois par tour, cause `couple`
  *
  * @param {EtatPR} etat
  * @returns {object}  un seul geste : la première règle qui s'applique
@@ -426,7 +428,8 @@ export function decider(etat) {
     if (sessions.length < exiges) return geste('completer', { manque: exiges - sessions.length });
     const attendues = sessions.filter((s) => verdicts[s]?.verdict !== 'validé');
     const relance = (s) => distributions.findLast((d) => d.mention === 'relance' && d.cible === s) ?? null;
-    const horsService = (s) => propre(connues, s) === 'morte' || propre(connues, s) === 'plafond';
+    // Hors service : morte, au plafond de contexte, ou à un autre couple que celui de la PR (A-182, point 2).
+    const horsService = (s) => ['morte', 'plafond', 'couple'].includes(propre(connues, s));
     const aRelancer = attendues.find((s) => verdicts[s] !== undefined && relance(s) === null && !horsService(s));
     if (aRelancer !== undefined) return geste('reecrire', { session: aRelancer });
     // « Depuis » : la relance de la session, sinon la distribution qui l'a nommée la première dans ce tour.
