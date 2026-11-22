@@ -24,16 +24,35 @@ test("la fiche des tests porte la grille par criticité, l'étiquette de cas et 
     "`*.e2e-cli.spec.ts` qui lance la CLI construite en sous-processus, bout en bout d'une CLI, P2)",
     "- **Un test qui prouve un cas attendu de la règle le nomme après un `#`** : `it('[RULE_ALL_LIC-2#seconde-licence] refuse une seconde licence quand la saison en a déjà une')`.",
     "## Ce qu'une règle doit prouver, selon sa criticité",
+    // Décision 8 du ticket 86 : la grille sous la seule condition du pivot 3 ; un projet sans index au pivot 3 n'y est pas tenu.
+    "Projet suivi par Anchorpost, index au pivot 3 (`RULE_ALL_ANC-28` d'Anchorpost) : jamais un nombre de tests",
     "| basse, ou à classer | une preuve | une preuve | une preuve |",
     "| moyenne | une preuve | une preuve | une preuve P1 ou P2 |",
     "| haute | une preuve P2 | une preuve | une preuve P1 ou P2 |",
+    // « Prouvée » comme la CLI 2.0.x la calcule (`realisationOf`, SPEC_ALL_ANC-5.28) et RULE_ALL_ANC-28 la dit : le cas
+    // normal déclaré, chaque cas prouvé, et, moyenne ou haute, une réponse à chaque famille ; une question la laisse partielle.
+    "Une règle est « prouvée » quand elle déclare un cas normal, que chacun de ses cas est prouvé et, moyenne ou haute, que chacune des dix familles de cas limites a sa réponse",
+    "ou une question ouverte, qui la laisse partielle",
     "Le gate `preuves` (`scripts/verify/preuves.mjs`, pre-push et fin de tour, posé par le skill `socle-tests`) joue `anchorpost compare`",
   ]);
 });
 
 test("le relais preuves dit qu'il sort en 2 quand la CLI est un paquet de l'espace de travail, et que ce dépôt l'adapte", () => {
   exiger("skills/monorepo/socle-tests/SKILL.md", [
+    // Décision 6 du ticket 86 : où le gate se pose (le pre-push, la fin de tour, la CI).
+    "seulement `pnpm run check:coverage --base-auto` après `pnpm run check`, puis `pnpm run check:preuves --base-auto`",
+    "Si la chaîne est posée, `scripts/verify/preuves.mjs` entre dans `gatesRapides` de `.claude/chaine.json` : la fin de tour le joue sans option",
+    // A-205 : le coût mesuré, l'arbre de travail jugé (pas le commit poussé), les deux bases d'une PR de mise à jour.
+    "(13 à 17 s par passage, mesurés sur Anchorpost à une charge de 14 à 18 : la CLI construit l'index de la base et celui de l'arbre)",
+    "Le gate juge l'arbre de travail, non commis et non suivi compris, pas le commit poussé : au pre-push, une preuve restée hors du commit le fait passer, un travail en cours peut le bloquer ; la CI juge le commit.",
+    "Une PR de mise à jour d'un sujet se compare à la plus proche de ses deux bases, le sujet ou develop, jamais à la fusion recalculée de `coverage-diff`",
+    "Dans le job de qualité, sur `pull_request`, le rapport de preuves : `node scripts/verify/preuves.mjs --base \"origin/$BASE\"` (même `env:`, `fetch-depth: 0`)",
     "dans un dépôt où la CLI est un paquet de l'espace de travail et non une dépendance installée (le dépôt de la CLI elle-même), ce fichier n'existe pas et le relais sort en 2, au pre-push comme en fin de tour ; ce dépôt l'adapte à la pose, comme son relais `anchorpost.mjs`.",
+  ]);
+  // Ce qu'une repose pièce par pièce doit reposer avec : sans eux, le relais ne se charge pas (exports de la base) ou son
+  // banc fait échouer `check:tickets` (l'environnement de banc), dans un projet posé avant ces fichiers (Anchorpost).
+  exiger("NOTES-DE-VERSION.md", [
+    "le relais importe `baseDepuisPush`, `choisirBase` et `decisionSansBase` de `scripts/verify/coverage-diff-regles.mjs`, et son banc lit `scripts/docs/environnement-de-banc.mjs` du socle 7.21.0 : un projet qui a ces deux fichiers d'avant les repose avec",
   ]);
 });
 
@@ -44,7 +63,11 @@ test("le workflow de mutation date sa mesure, la publie en artefact et relit la 
     "permissions: contents: read actions: read",
     "name: mesure-regles path: apps/api/reports/mutation/mesure-regles.json",
     "run: node ../../scripts/verify/mutation-regles-synthese.mjs --mesure reports/mutation/mesure-regles.json --precedente \"$RUNNER_TEMP/precedente/mesure-regles.json\" >> \"$GITHUB_STEP_SUMMARY\"",
-    "gh run download \"$id\" -n mesure-regles -D \"$RUNNER_TEMP/precedente\"",
+    // Décision 3 du ticket 88 : le dernier artefact de ce nom, et un appel ou un téléchargement en échec ne fait pas
+    // échouer le passage (`bash -e`) : la synthèse dit qu'il n'y a pas de mesure précédente lisible.
+    "gh api \"repos/$GITHUB_REPOSITORY/actions/artifacts?name=mesure-regles&per_page=30\"",
+    "][0].workflow_run.id // empty') || id=''",
+    "gh run download \"$id\" -n mesure-regles -D \"$RUNNER_TEMP/precedente\" || echo \"mesure précédente illisible\"",
     // Décision 3 du ticket 88 : `gh` authentifié par le jeton du job, le dernier artefact non expiré de la branche par défaut.
     "env: GH_TOKEN: ${{ github.token }} BRANCHE: ${{ github.event.repository.default_branch }}",
     "select(.expired == false and .workflow_run.head_branch == env.BRANCHE)",
@@ -68,4 +91,5 @@ test("le workflow de mutation date sa mesure, la publie en artefact et relit la 
   assert.ok(runs.some((l) => l.includes("gh run download")), `${MUTATION} : le bloc d'un run: est lu`);
   assert.deepEqual(runs.filter((l) => l.includes("${{")), [], `${MUTATION} : une expression dans un run:`);
   assert.ok(texte.indexOf("name: Mesure précédente") < texte.indexOf("name: Mutation des règles qui ont des preuves"), "la mesure précédente se lit avant que la nouvelle ne soit publiée");
+  assert.ok(texte.indexOf("name: Synthèse par règle") < texte.indexOf("name: Mesure datée"), "la mesure se publie après que la synthèse l'a écrite");
 });

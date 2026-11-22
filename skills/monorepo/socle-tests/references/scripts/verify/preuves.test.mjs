@@ -143,7 +143,7 @@ test("un index illisible, une CLI absente ou en panne, un rapport illisible, un 
   const json = lancer(depot({ rapport: "pas du json" }));
   assert.equal(json.status, 2);
   assert.match(json.stderr, /le rapport de anchorpost compare --json ne se lit pas/);
-  for (const args of [["--base"], ["--base", "--json"], ["--tout"]]) {
+  for (const args of [["--base"], ["--base", "--json"], ["--tout"], ["HEAD~3"], ["--base-auto", "origin/develop"]]) {
     const u = lancer(depot(), args);
     assert.equal(u.status, 2, args.join(" "));
     assert.match(u.stderr, /preuves : usage : node scripts\/verify\/preuves\.mjs \[--base <ref> \| --base-auto\]/);
@@ -163,6 +163,11 @@ test("la base : nommée par --base ; sinon le sujet visé par le push ; sinon la
     ["compare", "--base", "origin/sujet/x", "--json"],
     ["compare", "--base", "origin/sujet/y", "--json"],
   ], "nommée ; la plus proche (le sujet dont la branche est partie) ; celle que vise le push, même plus loin");
+  // Le premier push d'un sujet neuf (`sujet.sh demarrer`) : `origin/sujet/neuf` n'existe pas encore, la base est la plus
+  // proche, comme pour `coverage-diff --base-auto` ; jamais un refus « base absente ».
+  const neuf = lancer(r, ["--base-auto"], { PRE_PUSH_REFS: `refs/heads/travail ${sommet} refs/heads/sujet/neuf 0000\n` });
+  assert.equal(neuf.status, 0, neuf.stderr);
+  assert.deepEqual(appels(r).at(-1), ["compare", "--base", "origin/sujet/x", "--json"], "le premier push d'un sujet neuf : la plus proche");
   git(r, "checkout", "-q", "-b", "correctif", "develop");
   assert.equal(lancer(r).status, 0);
   assert.deepEqual(appels(r).at(-1), ["compare", "--base", "origin/develop", "--json"], "partie de develop : develop");
@@ -175,6 +180,11 @@ test("une base introuvable : premier push d'un dépôt neuf, sortie 0 ; sinon so
   const a = lancer(r);
   assert.equal(a.status, 2);
   assert.match(a.stderr, /référence de base « origin\/develop » introuvable en local — elle existe sur le distant : git fetch origin develop/);
+  // Une base nommée absente en local n'est pas passée à la CLI, et le geste nomme sa branche.
+  const nommee = lancer(r, ["--base", "origin/sujet/x"]);
+  assert.equal(nommee.status, 2);
+  assert.match(nommee.stderr, /référence de base « origin\/sujet\/x » introuvable en local — elle existe sur le distant : git fetch origin sujet\/x/);
+  assert.deepEqual(appels(r), [], "la CLI n'est pas lancée sur une base introuvable");
   const neuf = depot();
   const nu = dossier("preuves-nu-vide-");
   git(nu, "init", "-q", "--bare");

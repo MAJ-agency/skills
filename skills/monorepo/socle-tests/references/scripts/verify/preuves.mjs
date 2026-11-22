@@ -21,15 +21,19 @@
  *      avertissement. Sous GitHub Actions (`GITHUB_STEP_SUMMARY`), le rapport entier en markdown s'ajoute au résumé
  *      du job (un second passage de la CLI, sa sortie ignorée).
  *
- * Limite : une PR de mise à jour d'un sujet (develop fusionné dans le sujet) se compare à la base la plus proche, pas
- * à la fusion recalculée de `coverage-diff` : elle peut juger des règles que develop a touchées. La comparaison est
- * alors plus large, jamais plus lâche.
+ * Limites. Une PR de mise à jour d'un sujet (develop fusionné dans le sujet) se compare à la base la plus proche, ni à
+ * la fusion recalculée de `coverage-diff`, ni au sujet que `coverage-diff --base-auto` retient pour elle : contre le
+ * sujet, elle peut juger des règles que develop a touchées ; contre develop (le sujet a plus de commits que develop n'en
+ * apporte), tout le travail du sujet. La comparaison est alors plus large, jamais plus lâche. Et `compare` juge l'arbre
+ * de travail, non commis et non suivi compris, pas le commit poussé : au pre-push, une preuve restée hors du commit le
+ * fait passer, un travail en cours peut le bloquer ; la CI juge le commit.
  *
  * Usage :
  *   node scripts/verify/preuves.mjs                    fin de tour (`gatesRapides`) : la base de `--base-auto`
  *   node scripts/verify/preuves.mjs --base-auto        pre-push, après `check:coverage` (PRE_PUSH_REFS exporté)
  *   node scripts/verify/preuves.mjs --base origin/develop   CI, la cible de la PR
- * Sorties : 0 rien à comparer, ou la CLI sort en 0 (aucun écart, ou `observe`) · 1 un écart en `enforce` · 2 usage,
+ * Sorties : 0 rien à comparer, ou la CLI sort en 0 (aucun écart, ou `observe`) · 1 un écart en `enforce` · 2 usage (tout
+ * argument autre que `--base <ref>` et `--base-auto`),
  * index illisible, base introuvable, CLI absente, en panne ou illisible.
  */
 import { execFileSync, spawnSync } from "node:child_process";
@@ -91,7 +95,8 @@ function main(args) {
   };
   const i = args.indexOf("--base");
   const nommee = i === -1 ? null : args[i + 1];
-  const inconnues = args.filter((a, k) => a.startsWith("--") && a !== "--base" && a !== "--base-auto" && !(k === i + 1 && i !== -1));
+  // Tout argument autre que `--base`, sa valeur et `--base-auto` est un usage faux : un `HEAD~3` sans `--base` n'est pas lu.
+  const inconnues = args.filter((a, k) => a !== "--base" && a !== "--base-auto" && !(k === i + 1 && i !== -1));
   if ((i !== -1 && (!nommee || nommee.startsWith("--"))) || inconnues.length) return refuser("usage : node scripts/verify/preuves.mjs [--base <ref> | --base-auto]");
 
   // 1. L'index commis.
