@@ -1,0 +1,107 @@
+### e1
+== wt-patch
+     11 sorties 0/9, boucles lancées 1
+      9 sorties 9/0, boucles lancées 1
+== wt-retouche
+     10 sorties 0/9, boucles lancées 1
+     10 sorties 9/0, boucles lancées 1
+
+### e3-e4-e9
+=== wt-patch
+veille tuée pendant sonde : VEILLE VIVANTE (lancée à 23:14) [sortie 0] 
+veille tuée pendant preparation : VEILLE VIVANTE (lancée à 23:15) [sortie 0] 
+3) la veille relancée avec --reprendre, tuée pendant sa préparation :
+VEILLE TERMINÉE : arrêt demandé (<tmp>/<jouet>/clone/.git/boucle-arret, posé le 2026-11-21T23:15:15) ; « veille.sh --reprendre » quand on veut repartir
+--
+4) variante : la veille relancée avec --reprendre, préparation en échec (sortie 13)
+   veille : [sortie 13] VEILLE ARRÊTÉE 23:15 : préparation du capitaine en échec (sortie 1 de « exit 1 ») : 
+--
+5) la suite de la sortie 13 : « relancer la veille » (sans --reprendre), préparation réparée
+   veille : [sortie 10] VEILLE ARRÊTÉE 23:15 : la boucle est sortie en 10
+=== wt-retouche
+veille tuée pendant sonde : VEILLE MORTE (lancée à 23:15, sans ligne finale) : « boucle.sh --arreter », puis la relancer avec --reprendre [sortie 1] 
+veille tuée pendant preparation : VEILLE MORTE (lancée à 23:15, sans ligne finale) : « boucle.sh --arreter », puis la relancer avec --reprendre [sortie 1] 
+3) la veille relancée avec --reprendre, tuée pendant sa préparation :
+VEILLE MORTE (lancée à 23:15, sans ligne finale) : « boucle.sh --arreter », puis la relancer avec --reprendre
+--
+4) variante : la veille relancée avec --reprendre, préparation en échec (sortie 13)
+   veille : [sortie 13] VEILLE ARRÊTÉE 23:15 : préparation du capitaine en échec (sortie 1 de « exit 1 ») : 
+--
+5) la suite de la sortie 13 : « relancer la veille » (sans --reprendre), préparation réparée
+   veille : [sortie 0] VEILLE FINIE 23:15
+
+### e7-e8
+=== wt-patch
+E7 : veilles seules refusées en 9 par un --etat concurrent : 5 sur 40
+E8 : lectures de --etat pendant 40 veilles (démarrage, vie, fin) :
+      1 VEILLE MORTE (aucune t
+      1 VEILLE MORTE (lancée 
+   1232 VEILLE TERMINÉE : VEI
+     17 VEILLE VIVANTE
+    349 VEILLE VIVANTE (lancé
+=== wt-retouche
+E7 : veilles seules refusées en 9 par un --etat concurrent : 0 sur 40
+E8 : lectures de --etat pendant 40 veilles (démarrage, vie, fin) :
+      2 VEILLE MORTE (aucune t
+   1152 VEILLE TERMINÉE : VEI
+     18 VEILLE VIVANTE
+    428 VEILLE VIVANTE (lancé
+
+### e10-e12
+E10 dépôt neuf, aucune trace : VEILLE MORTE (aucune trace de veille) : « boucle.sh --arreter », puis la relancer avec --reprendre [sortie 1] 
+    fichiers écrits par --etat : veille.verrou 
+E11 ''                                 arrêt=non verrou=libre -> VEILLE MORTE (aucune trace de veille) : « boucle.sh --arreter », puis la relancer avec --reprendre [sortie 1
+E11 ''                                 arrêt=non verrou=tenu  -> VEILLE VIVANTE [sortie 0] 
+E11 ''                                 arrêt=oui verrou=libre -> VEILLE TERMINÉE : arrêt demandé (<tmp>/<jouet>/clone/.git/boucle-arret, po
+E11 ''                                 arrêt=oui verrou=tenu  -> VEILLE VIVANTE [sortie 0] 
+E11 lancee                             arrêt=non verrou=libre -> VEILLE MORTE (aucune trace de veille) : « boucle.sh --arreter », puis la relancer avec --reprendre [sortie 1
+E11 lancee                             arrêt=non verrou=tenu  -> VEILLE VIVANTE [sortie 0] 
+E11 lancee                             arrêt=oui verrou=libre -> VEILLE TERMINÉE : arrêt demandé (<tmp>/<jouet>/clone/.git/boucle-arret, po
+E11 lancee                             arrêt=oui verrou=tenu  -> VEILLE VIVANTE [sortie 0] 
+E11 lancee\ 1795303053                 arrêt=non verrou=libre -> VEILLE MORTE (lancée à 23:17, sans ligne finale) : « boucle.sh --arreter », puis la relancer avec --repren
+E11 lancee\ 1795303053                 arrêt=non verrou=tenu  -> VEILLE VIVANTE (lancée à 23:17) [sortie 0] 
+E11 lancee\ 1795303053                 arrêt=oui verrou=libre -> VEILLE TERMINÉE : arrêt demandé (<tmp>/<jouet>/clone/.git/boucle-arret, po
+E11 lancee\ 1795303053                 arrêt=oui verrou=tenu  -> VEILLE VIVANTE (lancée à 23:17) [sortie 0] 
+E11 lancee\ x                          arrêt=non verrou=libre -> VEILLE MORTE (aucune trace de veille) : « boucle.sh --arreter », puis la relancer avec --reprendre [sortie 1
+E11 lancee\ x                          arrêt=non verrou=tenu  -> VEILLE VIVANTE [sortie 0] 
+E11 lancee\ x                          arrêt=oui verrou=libre -> VEILLE TERMINÉE : arrêt demandé (<tmp>/<jouet>/clone/.git/boucle-arret, po
+E11 lancee\ x                          arrêt=oui verrou=tenu  -> VEILLE VIVANTE [sortie 0] 
+E11 fin                                arrêt=non verrou=libre -> VEILLE MORTE (aucune trace de veille) : « boucle.sh --arreter », puis la relancer avec --reprendre [sortie 1
+E11 fin                                arrêt=non verrou=tenu  -> VEILLE VIVANTE [sortie 0] 
+E11 fin                                arrêt=oui verrou=libre -> VEILLE TERMINÉE : arrêt demandé (<tmp>/<jouet>/clone/.git/boucle-arret, po
+E11 fin                                arrêt=oui verrou=tenu  -> VEILLE VIVANTE [sortie 0] 
+E11 fin\ 1795303053                    arrêt=non verrou=libre -> VEILLE MORTE (aucune trace de veille) : « boucle.sh --arreter », puis la relancer avec --reprendre [sortie 1
+E11 fin\ 1795303053                    arrêt=non verrou=tenu  -> VEILLE VIVANTE [sortie 0] 
+E11 fin\ 1795303053                    arrêt=oui verrou=libre -> VEILLE TERMINÉE : arrêt demandé (<tmp>/<jouet>/clone/.git/boucle-arret, po
+E11 fin\ 1795303053                    arrêt=oui verrou=tenu  -> VEILLE VIVANTE [sortie 0] 
+E11 fin\ 1795303053\ VEILLE\ FINIE\ 12 arrêt=non verrou=libre -> VEILLE TERMINÉE : VEILLE FINIE 12:00 [sortie 2] 
+E11 fin\ 1795303053\ VEILLE\ FINIE\ 12 arrêt=non verrou=tenu  -> VEILLE VIVANTE [sortie 0] 
+E11 fin\ 1795303053\ VEILLE\ FINIE\ 12 arrêt=oui verrou=libre -> VEILLE TERMINÉE : arrêt demandé (<tmp>/<jouet>/clone/.git/boucle-arret, po
+E11 fin\ 1795303053\ VEILLE\ FINIE\ 12 arrêt=oui verrou=tenu  -> VEILLE VIVANTE [sortie 0] 
+E11 fin\ x\ VEILLE\ FINIE              arrêt=non verrou=libre -> VEILLE MORTE (aucune trace de veille) : « boucle.sh --arreter », puis la relancer avec --reprendre [sortie 1
+E11 fin\ x\ VEILLE\ FINIE              arrêt=non verrou=tenu  -> VEILLE VIVANTE [sortie 0] 
+E11 fin\ x\ VEILLE\ FINIE              arrêt=oui verrou=libre -> VEILLE TERMINÉE : arrêt demandé (<tmp>/<jouet>/clone/.git/boucle-arret, po
+E11 fin\ x\ VEILLE\ FINIE              arrêt=oui verrou=tenu  -> VEILLE VIVANTE [sortie 0] 
+E11 autre\ 1795303053\ z               arrêt=non verrou=libre -> VEILLE MORTE (aucune trace de veille) : « boucle.sh --arreter », puis la relancer avec --reprendre [sortie 1
+E11 autre\ 1795303053\ z               arrêt=non verrou=tenu  -> VEILLE VIVANTE [sortie 0] 
+E11 autre\ 1795303053\ z               arrêt=oui verrou=libre -> VEILLE TERMINÉE : arrêt demandé (<tmp>/<jouet>/clone/.git/boucle-arret, po
+E11 autre\ 1795303053\ z               arrêt=oui verrou=tenu  -> VEILLE VIVANTE [sortie 0] 
+E11 ''                                 arrêt=non verrou=libre -> VEILLE MORTE (aucune trace de veille) : « boucle.sh --arreter », puis la relancer avec --reprendre [sortie 1
+E11 ''                                 arrêt=non verrou=tenu  -> VEILLE VIVANTE [sortie 0] 
+E11 ''                                 arrêt=oui verrou=libre -> VEILLE TERMINÉE : arrêt demandé (<tmp>/<jouet>/clone/.git/boucle-arret, po
+E11 ''                                 arrêt=oui verrou=tenu  -> VEILLE VIVANTE [sortie 0] 
+E11 $'lancee 1795303053\nfin 179530305 arrêt=non verrou=libre -> VEILLE MORTE (lancée à 23:17, sans ligne finale) : « boucle.sh --arreter », puis la relancer avec --repren
+E11 $'lancee 1795303053\nfin 179530305 arrêt=non verrou=tenu  -> VEILLE VIVANTE (lancée à 23:17) [sortie 0] 
+E11 $'lancee 1795303053\nfin 179530305 arrêt=oui verrou=libre -> VEILLE TERMINÉE : arrêt demandé (<tmp>/<jouet>/clone/.git/boucle-arret, po
+E11 $'lancee 1795303053\nfin 179530305 arrêt=oui verrou=tenu  -> VEILLE VIVANTE (lancée à 23:17) [sortie 0] 
+E12 copie d'avant le ticket, --etat sans CAPITAINE_ID : VEILLE ARRÊTÉE 23:17 : CAPITAINE_ID requis (l'id de la session du capitaine, skill fusionner § « Mise en place ») [sortie 64] 
+E12 copie d'avant le ticket, --reprendre : usage : veille.sh [--pause <s>] [--duree <min>] [--marge <min>] [--sondes <n>] [sortie 64] 
+
+### e13
+seconde veille : sortie 9
+dernière ligne du journal juste après le refus : VEILLE ARRÊTÉE 23:18 : une veille tourne déjà (<tmp>/<jouet>/clone/.git/veille.verrou) : une seule à la fois, « veille.sh --etat »
+première veille : sortie 0
+octets NUL dans le journal : 0
+le refus est-il encore dans le journal ? 1
+dernière ligne à la fin : ne seule à la fois, « veille.sh --etat »
+

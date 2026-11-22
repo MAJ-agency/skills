@@ -1,0 +1,16 @@
+# Comptes du relecteur, ticket 74, tour 1 (2026-11-21 et 22, UTC). Node 22.23.5, git 2.43.0, bash 5.2.21, quatre cœurs.
+# Bancs : scripts/veille-du-capitaine.test.mjs, fusionner/scripts/veille.test.mjs, fusionner/scripts/une-sous-pr-a-la-fois.test.mjs.
+# Vérification 3 : scripts/depot.test.mjs, scripts/relecteur.test.mjs, fusionner/scripts/fusionner.test.mjs.
+# « chaîne » : 25a72c7 + ticket-67-68-69.patch + ticket-70.patch et lot-5.patch (de la branche ec1195d), ces deux-là et 74 avec --exclude des deux fichiers de version.
+bancs, avant le code (bancs seuls), 25a72c7 : tests 58, pass 45, fail 13 (les 13 du § 1) ; 8 min 55 s
+bancs, 25a72c7 + patch : tests 58, pass 58
+bancs, chaîne + 74 : tests 58, pass 58
+bancs, 25a72c7 + patch + retouche : tests 62, pass 62
+vérification 3, 25a72c7 + patch : tests 184, pass 184
+vérification 3, chaîne + 74 : tests 185, pass 185
+vérification 3 et banc des textes, 25a72c7 + patch + retouche : tests 188, pass 188
+bancs, vérification 3 et banc des textes, chaîne + 74 + retouche : tests 247, pass 247
+mutations de l'annexe (10 choisies) : 10 rouges sur 10
+mutations du relecteur sur le patch (X1 à X6) : 3 rouges, 3 vertes (X2, X5, X6)
+retouches défaites et cibles neuves (R1 à R4, M5b, T9b, X5b) : 7 rouges sur 7
+suite entière (les quatre motifs de pnpm test, node --test, d'un seul tenant), 25a72c7 + patch : tests 1291, pass 1291, fail 0, cancelled 0, skipped 0, todo 0 ; 00:00:16 -> 00:17:53 UTC (2026-11-22), duration_ms 1057094 ; charge 1,91 au départ, 1,49 à la fin
