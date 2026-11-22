@@ -1,6 +1,6 @@
 # Deux bancs qui disent ce qu'ils tiennent : les phrases d'`A-178` exigées à leur place, et le commentaire de `trim()` rendu exact
 
-Status: ready-for-agent
+Status: Fait — PR 148 (`2e87bae`, plugin 7.38.2)
 Type: défaut
 Label: contre-revue
 Modèle: sonnet — deux suites décidées par l'architecte (passation du 2026-11-21, « Quoi faire », point 2), un test retouché et un commentaire, donnés mot pour mot (« À faire », et le patch en annexe), joués sur un clone neuf de `main` à `25a72c7`. Rien n'est à concevoir. Ce ticket part seul, dans sa propre PR, après la fusion de celle des tickets 67 à 69 : « Une PR à lui ».
