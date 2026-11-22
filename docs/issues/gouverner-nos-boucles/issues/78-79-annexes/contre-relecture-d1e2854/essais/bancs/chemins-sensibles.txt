@@ -1,0 +1,20 @@
+# skills/chaine/revue-adversariale/scripts/chemins-sensibles.test.mjs sur d1e285485e9b7c8477aafe3bf84c6cfe8be6017b ; début 18:41:57 UTC, charge 3.87 4.72 4.44
+ok 1 - la table : les motifs se lisent comme ceux du gate
+ok 2 - parité : même verdict que motifSensibleTouche du gate
+ok 3 - CLI : chemin<TAB>motif des seuls chemins touchés, sortie 0 ; sans contrat, rien et 0
+ok 4 - CLI : contrat illisible ou cheminsSensibles pas une liste de chaînes, sortie 2 avec motif sur stderr
+ok 5 - la commande de l'étape 2 : un fichier déplacé hors du dossier sensible et un chemin accentué sont vus
+ok 6 - entrée vide : sortie 2 avec un motif, jamais lue comme « rien de sensible »
+ok 7 - la commande de l'étape 2 : git en échec dans le tube, avec pipefail, sort non nul
+ok 8 - CLI : un chemin que git cite entre guillemets, ou d'une autre casse, touche son motif ; une citation mal formée sort en 2
+ok 9 - CLI : le contrat de la base s'ajoute ; une branche qui retire un chemin sensible de chaine.json et le touche reste sensible
+ok 10 - CLI : sans base donnée, le sujet du ticket de la branche fait la base
+ok 11 - CLI : un chemin en NFD touche son motif en NFC, et l'inverse
+ok 12 - un chemin décité qui porte un saut de ligne, \\r ou U+2028 touche encore son motif
+ok 13 - lot 5b, lireSensibles : la copie du hook d'édition rend la même chose ; aucun chemin que le gate refuse n'est accordé
+# tests 13
+# pass 13
+# fail 0
+# duration_ms 3998.933676
+rc=0
+# fin 18:42:01 UTC, charge 3.88 4.71 4.44

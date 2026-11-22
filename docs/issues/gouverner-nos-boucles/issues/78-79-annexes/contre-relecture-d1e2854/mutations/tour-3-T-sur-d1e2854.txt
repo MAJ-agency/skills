@@ -1,0 +1,17 @@
+# mutations-tour-3.mjs  ; arbre au sommet d1e285485e9b7c8477aafe3bf84c6cfe8be6017b ; BANCS_BS= ; début 18:30:40 UTC ; charge 3.99 4.45 3.80
+ROUGE T1 file.sh lit « fourche » toute PR de fourche, vers develop comprise (116 s, sortie 1) — file.sh avant (8cd21e5) et après (d1e2854) : une file sans sous-PR de  | file.sh avant et après : la même file plus des sous-PR de fourche ; se
+     error: |- liste telle quelle, file.sh (tableau) : sortie |  error: |- file.sh (tableau) : les autres lignes
+ROUGE T2 boucle.sh : la sous-PR « fourche » est en route et tient son sujet (72 s, sortie 1) — boucle.sh : deux sous-PR d'un sujet, l'une de fourche : la fourche est
+     error: '{"cheminsSensibles":["scripts/agent/**"],"relecture":{"depuis":"2026-11-17T09:00:00Z"}}, CI de la fourche SUCCESS' code: 'ERR_ASSERTION'
+ROUGE T3 file.sh : une sous-PR de fourche à la CI rouge reste « CI rouge » (117 s, sortie 1) — file.sh : une sous-PR de fourche se lit « sujet/<nom> : fourche », que
+     error: |- Expected values to be strictly deep-equal:
+ROUGE T4 file.sh : une sous-PR de fourche dont la CI tourne reste « CI en cours » (98 s, sortie 1) — boucle.sh : deux sous-PR d'un sujet, l'une de fourche : la fourche est | file.sh : une sous-PR de fourche se lit « sujet/<nom> : fourche », que
+     error: |- {"cheminsSensibles":["scripts/agent/**"],"relecture":{"depuis":"2026-11-17T09:00:00Z"}}, CI de la fourche IN_PROGRESS : [sujet/lot] tenu par #80 (CI  |  error: |- Expected values to be strictly deep-equal:
+ROUGE T5 boucle.sh : la sous-PR « fourche » est renvoyée (65 s, sortie 1) — boucle.sh : deux sous-PR d'un sujet, l'une de fourche : la fourche est
+     error: |- {"cheminsSensibles":["scripts/agent/**"],"relecture":{"depuis":"2026-11-17T09:00:00Z"}}, CI de la fourche SUCCESS : rien d'écrit sur la fourche
+ROUGE T6 file.sh : sans champ repo dans la liste, toute sous-PR passe pour une fourche (138 s, sortie 1) — file.sh avant (8cd21e5) et après (d1e2854) : une file sans sous-PR de 
+     error: |- liste sans champ repo, file.sh (tableau) : sortie
+toutes rouges
+rc=0
+# fin 18:40:46 UTC ; charge 4.88 5.12 4.55
+# git status --porcelain après : [] ; git diff --stat HEAD : []

@@ -1,0 +1,11 @@
+# mutations-retouche.mjs R1 R2 R3 ; arbre au sommet d1e285485e9b7c8477aafe3bf84c6cfe8be6017b ; BANCS_BS= ; début 18:22:29 UTC ; charge 2.02 2.26 2.82
+ROUGE R1 file.sh ne lit pas la fourche (le code de 8cd21e5 : « CI en cours », elle tient son sujet) (97 s, sortie 1) — boucle.sh : deux sous-PR d'un sujet, l'une de fourche : la fourche est | file.sh : une sous-PR de fourche se lit « sujet/<nom> : fourche », que
+     error: |- {"cheminsSensibles":["scripts/agent/**"],"relecture":{"depuis":"2026-11-17T09:00:00Z"}}, CI de la fourche IN_PROGRESS : [sujet/lot] tenu par #80 (CI  |  error: |- Expected values to be strictly deep-equal:
+ROUGE R2 file.sh lit la fourche, mais la boucle ne la nomme pas (81 s, sortie 1) — boucle.sh : deux sous-PR d'un sujet, l'une de fourche : la fourche est
+     error: |- {"cheminsSensibles":["scripts/agent/**"],"relecture":{"depuis":"2026-11-17T09:00:00Z"}}, CI de la fourche SUCCESS : [#81] #81 : verdict relu juste av
+ROUGE R3 file.sh ne lit la fourche que si sa tête a un dépôt (une fourche supprimée passe pour une PR du dépôt) (138 s, sortie 1) — file.sh : une sous-PR de fourche se lit « sujet/<nom> : fourche », que
+     error: |- Expected values to be strictly deep-equal:
+toutes rouges
+rc=0
+# fin 18:27:45 UTC ; charge 6.06 4.66 3.70
+# git status --porcelain après : [] ; git diff --stat HEAD : []

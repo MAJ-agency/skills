@@ -1,0 +1,17 @@
+# skills/chaine/fusionner/scripts/sensibles-du-capitaine.test.mjs sur d1e285485e9b7c8477aafe3bf84c6cfe8be6017b ; début 18:41:31 UTC, charge 3.78 4.78 4.46
+ok 1 - régime 8, passer.sh : un chemin sensible que la ligne `Sensibles:` du ticket couvre entre ; un autre est renvoyé, avant toute CI
+ok 2 - régime 8, passer.sh : une PR sans ticket qui touche un chemin sensible est renvoyée ; sans chemin sensible, aucun ticket n'est demandé
+ok 3 - régime 8, sujet.sh fusionner : la ligne se lit sur le sujet, jamais sur la branche ; non couverte, la sous-PR est renvoyée
+ok 4 - régime 8, sujet.sh fusionner : une PR de mise à jour ne touche un chemin sensible qu'en conflit et couvert par un ticket du sujet
+ok 5 - garde : chaque copie du ticket doit couvrir le chemin ; avec deux tickets, l'un suffit ; une ligne illisible et un ticket introuvable se disent
+ok 6 - garde : sans la grammaire des identifiants, la lecture est illisible (21), jamais « PR sans ticket »
+ok 7 - garde : vers un sujet, les chemins sensibles sont ceux du contrat du sujet et de develop ; un chemin que seul le sujet déclare sensible est jugé (contre-relecture de la PR 149)
+ok 8 - régime 8, passer.sh : un sujet supprimé du distant ne garde pas, dans le clone du capitaine, sa copie ancienne du ticket (le fetch élague) (contre-relecture de la PR 149)
+ok 9 - garde : une copie que le sujet n'a pas écrite, héritée de develop, ne compte pas ; celle de develop fait foi pour un ticket sans sujet, celle du sujet qui l'a écrite pour le sien (A-74) (contre-relecture de la PR 149, tour 2)
+ok 10 - garde : un sujet sans base de fusion commune avec develop n'hérite de rien : sa copie du ticket compte, celle de develop ne la couvre pas (contre-relecture de la PR 149, tour 3)
+# tests 10
+# pass 10
+# fail 0
+# duration_ms 25660.124082
+rc=0
+# fin 18:41:57 UTC, charge 3.87 4.72 4.44

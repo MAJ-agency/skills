@@ -1,0 +1,14 @@
+# CI de GitHub sur le sommet de la PR 152, lue par l'outil GitHub en lecture seule (pull_request_read get / get_check_runs, get_job_logs), 2026-11-22 vers 18:40 UTC
+PR 152 : head.sha d1e285485e9b7c8477aafe3bf84c6cfe8be6017b, base main (ddb4265), mergeable_state blocked, 13 fichiers
+checks du sommet :
+  bancs                              completed success  (run 45053523805, job 137303646772, 18:10:17 → 18:24:52 UTC)
+  CodeQL                             completed success
+  Analyze (actions)                  completed success
+  Analyze (javascript-typescript)    completed success
+fin du journal du job bancs :
+  1..1409
+  # tests 1409
+  # pass 1409
+  # fail 0
+  # duration_ms 861054.095222
+Au premier relevé (18:2x UTC), le job bancs était encore in_progress.

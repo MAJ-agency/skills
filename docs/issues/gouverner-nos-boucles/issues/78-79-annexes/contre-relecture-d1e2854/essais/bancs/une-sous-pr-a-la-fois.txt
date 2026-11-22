@@ -1,0 +1,26 @@
+# skills/chaine/fusionner/scripts/une-sous-pr-a-la-fois.test.mjs sur d1e285485e9b7c8477aafe3bf84c6cfe8be6017b ; début 18:31:18 UTC, charge 4.54 4.56 3.87
+ok 1 - boucle.sh : une sous-PR à la fois par sujet — la plus ancienne tient le sujet tant qu'elle est en route, la suivante est prise dans le tour où elle entre ; trois sous-PR, trois mises à jour, une par sous-PR ; un autre sujet n'attend pas
+ok 2 - boucle.sh : une sous-PR qui sort de la file ou n'est pas en route ne tient pas son sujet, la suivante est prise dans le même tour (renvoyée, CI rouge, bloquée, en brouillon, sans CI et déjà à jour)
+ok 3 - boucle.sh : un renvoi rend le sujet, la suivante est prise dans le même tour (conflit hors index vu par fusionner, sortie 3, et par relancer, sortie 2 ; tête gardée vue par relancer, sortie 4)
+ok 4 - boucle.sh : une sous-PR en passage chez un autre capitaine tient son sujet (sortie 7, la date du verrou lue sur la dernière ligne et dite dans la ligne du sujet tenu) ; ce passage terminé, elle entre et la suivante est prise dans le même tour ; une sortie 7 sans verrou tient le sujet un tour, sans date
+ok 5 - boucle.sh : une reprise (sortie 5) et un échec du capitaine (sortie 11, de fusionner et de relancer) laissent le sujet tenu : la suivante attend son tour
+ok 6 - boucle.sh : relancer laisse le sujet tenu quand il met à jour une sous-PR sans CI et en retard (sortie 0), la trouve en passage chez un autre capitaine (7) ou bougée depuis sa lecture (5) : la suivante attend son tour
+ok 7 - boucle.sh : worktree du capitaine pas propre (sortie 6 de fusionner et de relancer), le sujet reste tenu : la suivante attend son tour
+ok 8 - boucle.sh : un passage interrompu par un signal (sortie 143 de fusionner et de relancer) laisse le sujet tenu à ce tour : la suivante attend, rien n'est renvoyé
+ok 9 - boucle.sh : la ligne du sujet tenu ne suit pas la ligne de sortie de sujet.sh dans ce que la boucle classe — le renvoi qui la suit dans le tour garde pour motif la dernière ligne de sujet.sh, et la sortie 3 de relancer reste classée sur la sienne ; après une sortie 8 sans CI apparue, le sujet est rendu au tour suivant
+ok 10 - boucle.sh : qui tient le sujet le garde — une sous-PR de numéro plus petit, étiquetée pendant la CI de celle qui tient, attend son tour ; la CI verte, celle qui tenait entre d'abord, et la plus ancienne est prise dans le même tour ; une mise à jour par sous-PR
+ok 11 - boucle.sh : deux capitaines — une sous-PR en passage chez un autre capitaine tient son sujet devant une plus ancienne (marque de passage et CI en cours, marque seule, CI en cours seule, marque illisible), et devant celle que cette boucle tenait ; une marque expirée ne tient rien ; rien n'est écrit sur celle qui attend
+ok 12 - veille.sh et boucle.sh : le verrou d'un capitaine mort tient un sujet ; il expire sans que rien ne change dans la file, et la veille relance la boucle une fois : les sous-PR entrent ; une CI qui ne finit pas tient un sujet jusqu'au geste du capitaine, qui fait relancer la boucle
+ok 13 - veille.sh --reprendre après boucle.sh --arreter : la veille retire le fichier d'arrêt et la sous-PR entre par la vraie boucle ; sans --reprendre, VEILLE ARRÊTÉE en 10, rien de fusionné
+ok 14 - boucle.sh : une sortie 128 de fusionner (erreur fatale de git) n'est pas un signal : le sujet est rendu, la suivante est prise dans le tour
+ok 15 - boucle.sh : une sortie 129 de fusionner (un signal) laisse le sujet tenu à ce tour : la suivante attend
+ok 16 - boucle.sh : une lecture des commentaires en panne ne donne pas le sujet : à ce tour, aucune sous-PR de ce sujet n'est prise, et celle que la boucle tenait le garde au tour suivant
+ok 17 - boucle.sh : deux sous-PR « CI en cours » dans un sujet, sans mémoire ni marque : la plus ancienne tient le sujet
+ok 18 - boucle.sh : une lecture en panne sans mémoire : aucune des sous-PR prêtes du sujet n'entre à ce tour, la plus ancienne entre au tour suivant, la suivante est prise dans le tour
+ok 19 - boucle.sh : une lecture en panne pendant que la boucle tient une sous-PR plus récente : la mémoire survit au tour suspendu, celle qu'elle tenait entre la première
+# tests 19
+# pass 19
+# fail 0
+# duration_ms 520414.851349
+rc=0
+# fin 18:39:59 UTC, charge 5.22 5.22 4.55

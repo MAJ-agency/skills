@@ -1,0 +1,141 @@
+# file-avant-apres.test.mjs : AVANT = file.sh de 8cd21e5, APRES = file.sh de d1e2854, ARBRE = d1e2854 ; début 18:17:41 UTC, charge 2.24 1.83 2.91
+warning: You appear to have cloned an empty repository.
+== liste telle quelle, file.sh (tableau) : identiques (code 0, 75 appels gh)
+   30	sujet/lot : prête	docs(x): pr 30	
+   31	sujet/lot : prête (sans CI)	docs(x): pr 31	
+   32	sujet/lot : prête (en conflit)	docs(x): pr 32	
+   33	sujet/lot : CI en cours	docs(x): pr 33	
+   34	sujet/lot : CI rouge : qualite	docs(x): pr 34	
+   35	brouillon	docs(x): pr 35	
+   36	bloquée	docs(x): pr 36	
+   37	humain	docs(x): pr 37	
+   38	gelée	docs(x): pr 38	
+   22	prête	docs(demo): sujet/lot	
+   15	prête	[prio:haute] docs(x): pr 15	
+   10	prête	docs(x): pr 10	
+   11	prête (sans CI)	docs(x): pr 11	
+   12	prête (en conflit)	docs(x): pr 12	
+   13	CI en cours	docs(x): pr 13	
+   14	CI rouge : qualite	docs(x): pr 14	
+   16	brouillon	docs(x): pr 16	
+   17	bloquée	docs(x): pr 17	
+   18	humain	docs(x): pr 18	
+   19	attend #10	docs(x): pr 19	
+   20	prête (à recibler)	docs(x): pr 20	
+   21	prête (à recibler sur sujet/lot)	docs(x): pr 21	
+   23	vers sujet/lot	docs(demo): SPEC_ALL_DEM-1.03 x	
+   24	prête	docs(demo): SPEC_ALL_DEM-1.04 x	
+   25	prête	docs(fin): SPEC_ALL_FIN-1.01 x	sujet livré : fini
+   40	prête	docs(x): pr 40	
+   41	CI rouge : qualite	docs(x): pr 41	
+   42	CI en cours	docs(x): pr 42	
+   43	prête (sans CI)	docs(x): pr 43	
+   44	CI rouge : qualite	docs(x): pr 44	
+   45	vers sujet/lot	docs(demo): SPEC_ALL_DEM-1.05 x	
+   46	attend #10	docs(x): pr 46	
+   47	brouillon	docs(x): pr 47	
+   
+== liste telle quelle, file.sh --next : identiques (code 0, 75 appels gh)
+   "22\n"
+== liste telle quelle, file.sh --rouges : identiques (code 0, 75 appels gh)
+   "34\tqualite\n14\tqualite\n41\tqualite\n44\tqualite\n"
+== liste sans champ repo, file.sh (tableau) : identiques (code 0, 75 appels gh)
+   30	sujet/lot : prête	docs(x): pr 30	
+   31	sujet/lot : prête (sans CI)	docs(x): pr 31	
+   32	sujet/lot : prête (en conflit)	docs(x): pr 32	
+   33	sujet/lot : CI en cours	docs(x): pr 33	
+   34	sujet/lot : CI rouge : qualite	docs(x): pr 34	
+   35	brouillon	docs(x): pr 35	
+   36	bloquée	docs(x): pr 36	
+   37	humain	docs(x): pr 37	
+   38	gelée	docs(x): pr 38	
+   22	prête	docs(demo): sujet/lot	
+   15	prête	[prio:haute] docs(x): pr 15	
+   10	prête	docs(x): pr 10	
+   11	prête (sans CI)	docs(x): pr 11	
+   12	prête (en conflit)	docs(x): pr 12	
+   13	CI en cours	docs(x): pr 13	
+   14	CI rouge : qualite	docs(x): pr 14	
+   16	brouillon	docs(x): pr 16	
+   17	bloquée	docs(x): pr 17	
+   18	humain	docs(x): pr 18	
+   19	attend #10	docs(x): pr 19	
+   20	prête (à recibler)	docs(x): pr 20	
+   21	prête (à recibler sur sujet/lot)	docs(x): pr 21	
+   23	vers sujet/lot	docs(demo): SPEC_ALL_DEM-1.03 x	
+   24	prête	docs(demo): SPEC_ALL_DEM-1.04 x	
+   25	prête	docs(fin): SPEC_ALL_FIN-1.01 x	sujet livré : fini
+   40	prête	docs(x): pr 40	
+   41	CI rouge : qualite	docs(x): pr 41	
+   42	CI en cours	docs(x): pr 42	
+   43	prête (sans CI)	docs(x): pr 43	
+   44	CI rouge : qualite	docs(x): pr 44	
+   45	vers sujet/lot	docs(demo): SPEC_ALL_DEM-1.05 x	
+   46	attend #10	docs(x): pr 46	
+   47	brouillon	docs(x): pr 47	
+   
+== liste sans champ repo, file.sh --next : identiques (code 0, 75 appels gh)
+   "22\n"
+== liste sans champ repo, file.sh --rouges : identiques (code 0, 75 appels gh)
+   "34\tqualite\n14\tqualite\n41\tqualite\n44\tqualite\n"
+== fourche supprimée vers develop (#44), file.sh (tableau) : identiques (code 0, 75 appels gh)
+   30	sujet/lot : prête	docs(x): pr 30	
+   31	sujet/lot : prête (sans CI)	docs(x): pr 31	
+   32	sujet/lot : prête (en conflit)	docs(x): pr 32	
+   33	sujet/lot : CI en cours	docs(x): pr 33	
+   34	sujet/lot : CI rouge : qualite	docs(x): pr 34	
+   35	brouillon	docs(x): pr 35	
+   36	bloquée	docs(x): pr 36	
+   37	humain	docs(x): pr 37	
+   38	gelée	docs(x): pr 38	
+   22	prête	docs(demo): sujet/lot	
+   15	prête	[prio:haute] docs(x): pr 15	
+   10	prête	docs(x): pr 10	
+   11	prête (sans CI)	docs(x): pr 11	
+   12	prête (en conflit)	docs(x): pr 12	
+   13	CI en cours	docs(x): pr 13	
+   14	CI rouge : qualite	docs(x): pr 14	
+   16	brouillon	docs(x): pr 16	
+   17	bloquée	docs(x): pr 17	
+   18	humain	docs(x): pr 18	
+   19	attend #10	docs(x): pr 19	
+   20	prête (à recibler)	docs(x): pr 20	
+   21	prête (à recibler sur sujet/lot)	docs(x): pr 21	
+   23	vers sujet/lot	docs(demo): SPEC_ALL_DEM-1.03 x	
+   24	prête	docs(demo): SPEC_ALL_DEM-1.04 x	
+   25	prête	docs(fin): SPEC_ALL_FIN-1.01 x	sujet livré : fini
+   40	prête	docs(x): pr 40	
+   41	CI rouge : qualite	docs(x): pr 41	
+   42	CI en cours	docs(x): pr 42	
+   43	prête (sans CI)	docs(x): pr 43	
+   44	CI rouge : qualite	docs(x): pr 44	
+   45	vers sujet/lot	docs(demo): SPEC_ALL_DEM-1.05 x	
+   46	attend #10	docs(x): pr 46	
+   47	brouillon	docs(x): pr 47	
+   
+== fourche supprimée vers develop (#44), file.sh --next : identiques (code 0, 75 appels gh)
+   "22\n"
+== fourche supprimée vers develop (#44), file.sh --rouges : identiques (code 0, 75 appels gh)
+   "34\tqualite\n14\tqualite\n41\tqualite\n44\tqualite\n"
+warning: You appear to have cloned an empty repository.
+== file.sh (tableau) : avant ["60\tsujet/lot : prête\tdocs(x): pr 60\t","61\tsujet/lot : CI rouge : qualite\tdocs(x): pr 61\t","62\tsujet/lot : CI en cours\tdocs(x): pr 62\t","63\tsujet/lot : prête (sans CI)\tdocs(x): pr 63\t"]
+   après ["60\tsujet/lot : fourche\tdocs(x): pr 60\t","61\tsujet/lot : fourche\tdocs(x): pr 61\t","62\tsujet/lot : fourche\tdocs(x): pr 62\t","63\tsujet/lot : fourche\tdocs(x): pr 63\t"]
+   appels gh : avant 88 (dont 24 checks ou pulls/<n>), après 79
+== file.sh --next : avant []
+   après []
+   appels gh : avant 88 (dont 24 checks ou pulls/<n>), après 79
+== file.sh --rouges : avant ["61\tqualite"]
+   après []
+   appels gh : avant 88 (dont 24 checks ou pulls/<n>), après 79
+✔ file.sh avant (8cd21e5) et après (d1e2854) : une file sans sous-PR de fourche, fourches vers develop comprises, se lit à l'identique (tableau, --next, --rouges, erreurs, codes, appels gh) (128524.099537ms)
+✔ file.sh avant et après : la même file plus des sous-PR de fourche ; seules leurs lignes changent, et après, file.sh ne lit pour elles ni checks ni pulls/<n> (62532.825321ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 2
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 191362.701834
+rc=0
+# fin 18:20:53 UTC, charge 2.98 2.38 2.91

@@ -1,0 +1,31 @@
+# skills/chaine/fusionner/scripts/boucle-outils.test.mjs sur d1e285485e9b7c8477aafe3bf84c6cfe8be6017b ; début 18:39:59 UTC, charge 5.22 5.22 4.55
+ok 1 - un script de la chaîne modifié sur develop pendant la boucle est celui que joue le tour suivant
+ok 2 - boucle.sh modifié sur develop : la boucle se relance sur la nouvelle version
+ok 3 - scripts joués depuis la copie, pas depuis le worktree
+ok 4 - origin/develop introuvable : arrêt avec un message clair, aucun script joué
+ok 5 - scripts/docs/identifiants.mjs absent de develop : arrêt (6), aucun script joué ; présent, il est copié à côté des outils
+ok 6 - une seconde boucle lancée pendant qu'une tourne s'arrête aussitôt, sortie 9
+ok 7 - le verrou survit à l'exec de relance : un fils tient déjà le descripteur 9, la nouvelle version ne le reprend pas
+ok 8 - --arreter pendant un tour termine la boucle et ses processus, et pose le fichier d'arrêt
+ok 9 - le fichier d'arrêt est lu au début de chaque tour : sortie propre 10, pas de passage suivant
+ok 10 - une boucle relancée tant que le fichier d'arrêt existe refuse de démarrer
+ok 11 - --reprendre retire le fichier d'arrêt et lance la boucle
+ok 12 - --arreter en pleine fusion : la trappe remet le worktree propre, --reprendre repart
+ok 13 - boucle morte (kill -9) : les orphelins gardent le verrou, --arreter les tue par le groupe noté
+ok 14 - --reprendre pendant qu'une boucle tient le verrou : refusé (9), fichier d'arrêt gardé
+ok 15 - une option inconnue ne lance pas la boucle : sortie 64
+ok 16 - le fichier d'arrêt est relu avant livrer-prets : arrêt sans livraison
+ok 17 - échéance passée : ÉCHÉANCE, sortie 0, aucun passage
+ok 18 - échéance atteinte entre deux passages : le premier passe, pas le second
+ok 19 - échéance atteinte pendant le tour, après sa tête : aucun passer lancé
+ok 20 - BOUCLE_ECHEANCE illisible : sortie 64, aucun passage
+ok 21 - échéance avant une sous-PR : la boucle s'arrête sur ÉCHÉANCE, sans lancer sujet.sh fusionner
+ok 22 - une sortie 5 de passer.sh met la boucle en pause, puis elle reprend : jamais d'ARRÊT
+ok 23 - file.sh en 5 : PAUSE, puis la PR passe au tour suivant ; jamais FILE VIDE sur un échec
+ok 24 - file.sh en échec hors 5 : ARRÊT, sortie 6, jamais FILE VIDE
+# tests 24
+# pass 24
+# fail 0
+# duration_ms 48410.035635
+rc=0
+# fin 18:40:47 UTC, charge 4.88 5.12 4.55

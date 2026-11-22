@@ -1,0 +1,26 @@
+# skills/chaine/sujet/scripts/faux-gh.test.mjs sur d1e285485e9b7c8477aafe3bf84c6cfe8be6017b ; début 18:42:01 UTC, charge 3.88 4.71 4.44
+ok 1 - faux gh : des appels concurrents, lectures comprises, ne perdent aucune écriture
+ok 2 - faux gh, strict : une PR en retard sur une base stricte est refusée (405), comme GitHub
+ok 3 - faux gh, arbre de la fusion : le squash d’une PR en retard porte l’arbre de merge-tree, pas celui du sommet
+ok 4 - faux gh, arbre de la fusion : en conflit, 405 « not mergeable », rien n’est fusionné
+ok 5 - faux gh, mergeable_state : dirty en conflit avec la base, clean sinon, la clé de la PR prime, absent de la liste
+ok 6 - faux gh, checks par commit : le sha prime sur \#n, qui prime sur * ; une liste se consomme par sha
+ok 7 - faux gh, pendantCi : la cible bouge à la n-ième lecture des checks depuis le déplacement précédent
+ok 8 - faux gh, pendantCi : un commentaire ou des étiquettes tombent sur une PR à la n-ième lecture des checks (lot 5a)
+ok 9 - faux gh, avantFusion : une fusion concurrente entre juste avant la nôtre, puis le contrôle strict la voit
+ok 10 - faux gh, pannes : une route en panne deux fois répond la panne, puis normalement ; une écriture passe
+ok 11 - faux gh, commentaires : le POST rend l’id réel, created_at et author_association ; la lecture rend updated_at et author_association (OWNER par défaut, celle de l’objet sinon)
+ok 12 - faux gh, commentaires : PATCH réécrit le corps et avance updated_at, DELETE le retire de la lecture, les deux journalisés ; un id inconnu ou supprimé répond 404
+ok 13 - faux gh, concurrent : le commentaire de l’autre capitaine passe juste avant le prochain posé (id plus petit), une fois
+ok 14 - faux gh, apresCommentaire : la PR qui reçoit le prochain commentaire change (fermée, label retiré), une fois
+ok 15 - faux gh, commentairesRefuses : true refuse tout commentaire posé, une chaîne seulement ceux dont le corps y correspond
+ok 16 - faux gh, Relecteur : une PR rend sa date d’ouverture (défaut ou la sienne) et le dépôt de sa tête ; `maintenant` date le commentaire posé, sans lui la date du rang
+ok 17 - faux gh, événements : une pose d’étiquette absente ajoute `labeled`, un retrait `unlabeled`, datés de `maintenant` ; `GET issues/<n>/events` les rend comme GitHub
+ok 18 - faux gh, pageCommentaires : sans --paginate, la première page ; avec, chaque page à son tour, --jq joué sur chacune, comme gh (contre-relecture de la PR 149)
+ok 19 - faux gh, pageCommentaires : une PR sans commentaire, paginée, rend une page vide, comme gh
+# tests 19
+# pass 19
+# fail 0
+# duration_ms 7532.512316
+rc=0
+# fin 18:42:08 UTC, charge 3.75 4.65 4.43

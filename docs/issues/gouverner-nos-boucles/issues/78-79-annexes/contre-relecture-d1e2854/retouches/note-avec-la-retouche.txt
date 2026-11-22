@@ -1,0 +1,15 @@
+# retouche-152-tour-3.patch appliqué sur d1e2854 (d1e285485e9b7c8477aafe3bf84c6cfe8be6017b) ; bancs de la note : depot.test.mjs (NOTES, ascendance, une sous-PR à la fois, le bilan) et relecture.test.mjs (le plugin connaît le skill) ; début 18:33:09 UTC
+ok 1 - lecteur de NOTES-DE-VERSION.md : entrées piégées
+ok 2 - la règle d'ascendance du plugin 7.16.0 : version, note de version en tête, renvoi du README
+ok 3 - une sous-PR à la fois par sujet : le capitaine tient l'ordre, qui tient le sujet le garde, le conducteur ne retire plus l'étiquette
+ok 4 - le bilan de fin de chantier est supprimé : plus aucune rétro dans les textes du conducteur, un incident donne un ticket au moment où il arrive
+ok 5 - le plugin connaît le skill : plugin.json, la ligne et l'arbre du README, le gate references-agent, la note de version, le vocabulaire de CONTEXT.md
+# tests 5
+# pass 5
+# fail 0
+# fin 18:33:09 UTC
+# retouche-152-tour-3.patch sur d1e2854 : scripts/depot.test.mjs et scripts/relecture.test.mjs entiers ; début 18:33:17 UTC, charge 5.20 4.85 4.06
+# tests 108
+# pass 108
+# fail 0
+# fin 18:34:36 UTC, charge 6.00 5.24 4.27

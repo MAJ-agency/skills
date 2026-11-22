@@ -1,0 +1,15 @@
+# mutations-tour-2.mjs Q1 Q2 Q3 Q4 Q6 ; arbre au sommet d1e285485e9b7c8477aafe3bf84c6cfe8be6017b ; BANCS_BS=1 ; début 18:22:29 UTC ; charge 2.02 2.26 2.82
+ROUGE Q1 fourche_sautee cherche le motif dans toute la sortie, pas sur la dernière ligne (87 s, sortie 1) — boucle.sh : `fourche_sautee` ne lit que la DERNIÈRE ligne d'une sortie
+     error: |- "#80 : PR de fourche (autre/jouet) : sa tête vit hors du dépôt, le capitaine ne la lit pas ; sautée sans renvoi\nune ligne de plus\n" : [#80] #80 : P
+ROUGE Q2 fourche_sautee lit la première ligne non vide, pas la dernière (103 s, sortie 1) — boucle.sh : `fourche_sautee` ne lit que la DERNIÈRE ligne d'une sortie
+     error: |- "#80 : PR de fourche (autre/jouet) : sa tête vit hors du dépôt, le capitaine ne la lit pas ; sautée sans renvoi\nune ligne de plus\n" : [#80] #80 : P
+ROUGE Q3 fourche_sautee ne vérifie pas le numéro de la PR (111 s, sortie 1) — boucle.sh : `fourche_sautee` ne lit que la DERNIÈRE ligne d'une sortie
+     error: |- "#81 : PR de fourche (autre/jouet) : sa tête vit hors du dépôt, le capitaine ne la lit pas ; sautée sans renvoi\n" : [#80] #81 : PR de fourche (autre
+ROUGE Q4 fourche_sautee ne vérifie pas la fin du motif (99 s, sortie 1) — boucle.sh : `fourche_sautee` ne lit que la DERNIÈRE ligne d'une sortie
+     error: |- "#80 : PR de fourche (autre/jouet) : sa tête vit hors du dépôt, le capitaine ne la lit pas\n" : [#80] #80 : PR de fourche (autre/jouet) : sa tête vit
+ROUGE Q6 fourche_sautee reconnaît aussi la lecture illisible de la revue (sortie 21 rendue en 7) (108 s, sortie 1) — boucle.sh : `fourche_sautee` ne lit que la DERNIÈRE ligne d'une sortie
+     error: |- "#80 : lecture illisible : x : sautée sans renvoi, son auteur n'y peut rien (le Relecteur prévient l'architecte)\n" : [#80] #80 : lecture illisible :
+toutes rouges
+rc=0
+# fin 18:30:57 UTC ; charge 4.78 4.59 3.86
+# git status --porcelain après : [] ; git diff --stat HEAD : []

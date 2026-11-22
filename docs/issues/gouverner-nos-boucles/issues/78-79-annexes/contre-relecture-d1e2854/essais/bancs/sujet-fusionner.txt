@@ -1,0 +1,67 @@
+# skills/chaine/fusionner/scripts/sujet-fusionner.test.mjs sur d1e285485e9b7c8477aafe3bf84c6cfe8be6017b ; début 18:37:56 UTC, charge 5.58 5.30 4.47
+ok 1 - fusionner : conflit sur un index généré seul, la branche est mise à jour, index régénéré, sortie 8, aucun squash
+ok 2 - fusionner : conflit hors index, sortie 3 et branche de la sous-PR intacte
+ok 3 - fusionner : sans conflit et à jour, squash comme avant, branche intacte
+ok 4 - fusionner : FORCE_COLOR=1 dans l'environnement ne fait refuser aucun titre
+ok 5 - boucle.sh : la sortie 8 ne renvoie pas la PR (MISE À JOUR, aucun label ni commentaire)
+ok 6 - relancer : conflit sur un index généré seul, la branche est mise à jour, index régénéré, poussée, sortie 0
+ok 7 - relancer : conflit hors index, sortie 2, fichiers listés, branche intacte
+ok 8 - relancer : sur un clone --single-branch, le sujet et la tête sont lus par refspec explicite
+ok 9 - relancer : une sous-PR qui a bougé depuis sa lecture n'est ni jugée ni poussée (sortie 5)
+ok 10 - boucle.sh : deux sous-PR en conflit d'index, la première mise à jour par relancer sous un outil qui lit l'entrée, la seconde lue dans le même tour : elle attend son tour
+ok 11 - relancer : conflit mixte (code et index généré), seuls les fichiers hors index sont listés
+ok 12 - relancer : GitHub rend l'ancien sommet en conflit alors que la session a résolu et poussé : sortie 5, aucun renvoi possible
+ok 13 - boucle.sh : relancer refusé par le pre-push (trace de husky) sur un conflit d'index, la sous-PR est renvoyée avec la sortie du hook
+ok 14 - boucle.sh : une sous-PR prête (en conflit) sur un index seul est mise à jour par relancer, jamais renvoyée ; en conflit de code, renvoyée avec ses fichiers
+ok 15 - fusionner : worktree du capitaine pas propre, sortie 6 sans écriture, branche intacte
+ok 16 - rafraichir et regrouper : worktree du capitaine pas propre, sortie 6 sans écriture (boucle.sh la distingue d'un conflit de sujet)
+ok 17 - boucle.sh : worktree du capitaine pas propre, la sous-PR n'est pas renvoyée (PAS PROPRE, aucun label ni commentaire)
+ok 18 - sujet.sh fusionner : une sous-PR d'un sujet gelé sort en 7, jamais en 4, sans rien écrire
+ok 19 - fusionner : une PR de mise à jour entre dans le sujet par avance rapide, develop pour parent, index régénérés, aucun squash, PR fermée
+ok 20 - fusionner : une PR de mise à jour qui écrit hors des fichiers en conflit (ligne Dépendances: d'un ticket) sort en 4, sujet inchangé
+ok 21 - fusionner : une PR de mise à jour d'une autre forme n'entre pas (sujet avancé, develop premier parent, revue, suppression cachée par un renommage, index sans commande, message forgé, chemin cité, conflit modifier/supprimer ou binaire)
+ok 22 - fusionner : une PR de mise à jour d'un sujet gelé sort en 7, sans rien écrire
+ok 23 - fusionner : une PR de mise à jour ne réécrit jamais le sujet, un sujet qui bouge pendant le push la laisse dehors (sortie 5)
+ok 24 - fusionner : un échec du capitaine (git sans merge-tree --write-tree) sort en 11, et la boucle ne renvoie pas la PR
+ok 25 - boucle.sh : une PR de mise à jour prête est fusionnée (FUSIONNÉE), sans renvoi, et fermée
+ok 26 - fusionner : une sous-PR qui déplace un script hors de scripts/ exige la revue (renommage lu comme suppression et ajout)
+ok 27 - fusionner : une PR de mise à jour sans liste lisible des index régénérés sort en 11 ; un projet sans index généré passe, et rien n'y est dispensé
+ok 28 - fusionner : une sous-PR qui touche la configuration de la chaîne ou du code d'une autre casse sans section de revue sort en 4, sans squash
+ok 29 - fusionner : une sous-PR qui remplace un index généré par un lien symbolique sort en 4 ; rafraichir ne régénère jamais à travers un lien déjà dans le sujet
+ok 30 - fusionner : un chemin sensible du projet, lu dans le chaine.json du sujet, exige la revue d'une sous-PR
+ok 31 - fusionner : un chemin sensible déclaré par develop après le départ du sujet exige la revue d'une sous-PR
+ok 32 - fusionner : une retouche de formatage sous apps/ se juge comme une sous-PR (sortie 4 sans section de revue, avance rapide avec elle), sans pnpm install ni formateur
+ok 33 - fusionner : une retouche d'un fichier de configuration d'outil (.prettierrc, .npmrc, .pnpmfile.cjs, prettier.config.mjs) exige la revue, sans rien exécuter
+ok 34 - fusionner : une retouche de code exige la revue, la section « Retouches » n'en dispense pas, une section de revue la fait entrer
+ok 35 - fusionner : une PR de mise à jour d'une autre forme que « la fusion, puis des retouches » n'entre pas (deux fusions, retouche puis seconde fusion, retouche avant la fusion, message de retouche forgé ou hors Conventional Commits)
+ok 36 - fusionner : une retouche de documentation après la fusion entre sans revue, sans pnpm install ni formateur
+ok 37 - fusionner : une fusion qui écrit hors des fichiers en conflit est refusée (formatage compris), même avec une section de revue, sans rien exécuter
+ok 38 - fusionner : des checks encore en cours sortent en 5 (reprise, aucun renvoi), des checks rouges en 3 avec leur nom
+ok 39 - boucle.sh : une sous-PR que sujet.sh refuse en sortie 3 est renvoyée avec le motif de sujet.sh, jamais « conflit avec le sujet »
+ok 40 - boucle.sh : un sujet dont la mise à jour est refusée par un hook se dit NON MIS À JOUR, jamais EN CONFLIT ; un vrai conflit reste SUJET EN CONFLIT
+ok 41 - fusionner : un hook (post-checkout, post-merge) que la fusion écrit hors conflit ne s'exécute jamais chez le capitaine, la PR sort en 4
+ok 42 - fusionner : un fichier sous node_modules/ que la fusion écrit hors conflit n'est jamais écrit dans le dépôt du capitaine
+ok 43 - fusionner : la revue juge chaque retouche commit par commit ; un fichier ajouté par une retouche puis retiré par une autre exige la revue
+ok 44 - fusionner : une PR de mise à jour lit ses checks et ses liens sur les index avant de juger les retouches (rien installé, aucun formateur)
+ok 45 - boucle.sh : un sujet non mis à jour pour une panne du capitaine (sortie 11) ou une erreur de sujet.sh (69, 1) ne renvoie jamais à une PR de mise à jour
+ok 46 - refus.sh : une sortie 3 sans motif lisible se dit « refusée en sortie 3 », jamais « sortie 4 »
+ok 47 - sous-PR en retard de code : mise à jour, CI attendue sur le nouveau sommet, puis squash
+ok 48 - retard de documentation seule : mis à jour et retesté
+ok 49 - retard de documentation seule : mis à jour et retesté, vers develop (strict), develop qui reçoit un Markdown pendant la CI
+ok 50 - fusionner : une sous-PR en retard qui a bougé depuis sa lecture n'est ni mise à jour ni poussée (sortie 5)
+ok 51 - sujet.sh fusionner : GitHub illisible pendant l'attente de la CI de la sous-PR : sortie 5 (REPRISE), aucun renvoi
+ok 52 - sujet.sh relancer : PR illisible, sortie 5 sans rien pousser ; fusionner : refus de fusion relayé masqué
+ok 53 - sujet.sh a-juger écrit les fichiers que fusionner juge : résolution et retouches d'une PR de mise à jour, diff depuis le départ du sujet sinon ; un refus de forme sort en 4
+ok 54 - fusionner et relancer : une sous-PR en passage chez un autre capitaine est sautée (sortie 7), rien n'est poussé ; la boucle ne la renvoie pas
+ok 55 - fusionner : le commentaire du passage est rafraîchi à chaque tour d'attente de la CI
+ok 56 - fusionner et relancer : la sous-PR relue une fois le verrou pris n'est plus éligible (fermée, label retiré) : sortie 7, rien n'est poussé, le commentaire terminé
+ok 57 - rafraichir et fusionner : la mention vaut aussi pour develop dans un sujet et pour un sujet dans une sous-PR
+ok 58 - PR de mise à jour d'un sujet : la fusion de develop par une session, jouée par la recette (fusionner_avec), porte la mention et passe le commit-msg
+ok 59 - boucle.sh : une sous-PR arrêtée par le conflit de son sujet avec develop (sortie 2) rend le sujet : la PR de mise à jour, plus récente, entre dans le même tour
+ok 60 - boucle.sh : une PR de mise à jour ouverte derrière une sous-PR plus ancienne en route attend son tour, puis est renvoyée dès que cette sous-PR entre (elle est à refaire)
+# tests 60
+# pass 60
+# fail 0
+# duration_ms 214537.438629
+rc=0
+# fin 18:41:31 UTC, charge 3.78 4.78 4.46

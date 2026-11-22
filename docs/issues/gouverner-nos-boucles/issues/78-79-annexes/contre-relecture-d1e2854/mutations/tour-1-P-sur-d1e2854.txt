@@ -1,0 +1,9 @@
+# mutations-contre-relecture.mjs P1 P2 P3 P4 ; arbre au sommet d1e285485e9b7c8477aafe3bf84c6cfe8be6017b ; BANCS_BS= ; début 18:22:29 UTC ; charge 2.02 2.26 2.82
+ROUGE P1 boucle.sh : la fourche n'est pas reconnue (le code de 4afd6e2 : elle tient son sujet) (68 s) — boucle.sh : deux sous-PR d'un sujet, l'une de fourche : la f | boucle.sh : `fourche_sautee` ne lit que la DERNIÈRE ligne d'
+ROUGE P2 boucle.sh : la fourche reconnue après relancer seulement (fusionner : elle tient son sujet) (78 s) — boucle.sh : deux sous-PR d'un sujet, l'une de fourche : la f | boucle.sh : `fourche_sautee` ne lit que la DERNIÈRE ligne d'
+ROUGE P3 boucle.sh : la fourche reconnue après fusionner seulement (relancer : elle tient son sujet) (141 s) — boucle.sh : deux sous-PR d'un sujet, l'une de fourche : la f
+ROUGE P4 boucle.sh : le sujet rendu, mais la ligne de relancer ne nomme pas la fourche (119 s) — boucle.sh : deux sous-PR d'un sujet, l'une de fourche : la f
+toutes rouges
+rc=0
+# fin 18:29:15 UTC ; charge 5.17 4.73 3.82
+# git status --porcelain après : [] ; git diff --stat HEAD : []

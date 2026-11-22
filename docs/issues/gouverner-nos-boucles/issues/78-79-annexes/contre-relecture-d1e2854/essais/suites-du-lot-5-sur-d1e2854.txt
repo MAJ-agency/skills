@@ -1,0 +1,18 @@
+# suites-du-lot-5.test.mjs sur d1e2854 (git rev-parse HEAD : d1e285485e9b7c8477aafe3bf84c6cfe8be6017b), node --test, seul
+# début 18:15:44 UTC ; charge : 1.30 1.50 2.96
+ok 1 - passer.sh : une PR de fourche dont la branche porte le nom d'une branche d'origin est sautée sans renvoi (7), dans les deux régimes : rien de lu sur sa tête, rien de poussé, rien d'écrit (A-192, point 2)
+ok 2 - sujet.sh fusionner : une sous-PR de fourche est sautée sans renvoi (7), dans les deux régimes, avant tout fetch de sa tête ; une tête sans dépôt aussi (A-192, point 2)
+ok 3 - sujet.sh relancer : une sous-PR de fourche « prête (sans CI) » est sautée sans renvoi (7), dans les deux régimes, avant tout fetch : la branche d'origin du même nom n'est ni fusionnée ni poussée (A-192, point 2)
+ok 4 - sujet.sh fusionner, régime 8 : une PR de mise à jour ne joue qu'une revue du capitaine au premier contrôle, puis la seconde juste avant d'avancer le sujet (la suite M1 du lot 5)
+ok 5 - sujet.sh fusionner, régime 8 : le régime lu d'abord diffère de celui que la revue relit (le contrat a changé entre les deux lectures) : la revue est rejouée une fois, sur la liste de son régime, retouches comprises (la suite M1 du lot 5)
+ok 6 - garde du capitaine : une PR de mise à jour d'un sujet qu'aucun ticket ne déclare dit son geste, jamais celui d'une PR sans ticket (la suite M2 du lot 5)
+ok 7 - boucle.sh : deux sous-PR d'un sujet, l'une de fourche : la fourche est sautée sans renvoi et ne tient pas son sujet, l'autre entre au même tour ; dans les deux régimes, quelle que soit la CI de la fourche (verte, absente, en cours), et la fourche que seule la garde de sujet.sh voit (fusionner, relancer) (A-201)
+ok 8 - boucle.sh : `fourche_sautee` ne lit que la DERNIÈRE ligne d'une sortie 7 de sujet.sh, et le motif entier de la garde de fourche, pour ce numéro : toute autre sortie 7 (verrou, lecture illisible, garde des chemins sensibles, une ligne après le motif, un autre numéro, un motif tronqué) tient le sujet (A-201)
+ok 9 - file.sh : une sous-PR de fourche se lit « sujet/<nom> : fourche », quelle que soit sa CI (rouge comprise), une tête sans dépôt comprise : jamais dans --rouges ni --next, rien d'écrit (A-201)
+ok 10 - sujet.sh fusionner : le régime lu d'abord est 8, la revue relit 7 (le contrat du sujet a perdu la clé `relecture` entre les deux lectures) : la revue est rejouée sur la liste du régime 7, la résolution seule, et les retouches se jugent après les checks (la suite M1 du lot 5, A-201)
+# tests 10
+# pass 10
+# fail 0
+# duration_ms 104429.4741
+rc=0
+# fin 18:17:28 UTC ; charge : 2.46 1.85 2.93

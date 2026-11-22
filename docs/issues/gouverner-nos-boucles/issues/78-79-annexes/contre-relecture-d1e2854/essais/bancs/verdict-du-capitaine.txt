@@ -1,0 +1,32 @@
+# skills/chaine/fusionner/scripts/verdict-du-capitaine.test.mjs sur d1e285485e9b7c8477aafe3bf84c6cfe8be6017b ; début 18:41:40 UTC, charge 3.81 4.76 4.45
+ok 1 - régime 8, passer.sh : sans verdict, renvoyée en sortie 4 avant toute mise à jour et toute CI
+ok 2 - régime 8, passer.sh : la section de revue n'est plus lue ; un tour validé sur la tête fait entrer la PR, verdict relu juste avant la fusion
+ok 3 - régime 7, passer.sh : sans la clé, ou ouverte avant `depuis`, la section de revue est exigée et aucun verdict ne suffit
+ok 4 - régime 8, passer.sh : develop a bougé, le capitaine met la PR à jour, le verdict tient (même contenu propre) et elle entre
+ok 5 - régime 8, passer.sh : un `refusé` tombé pendant la CI est vu au second contrôle : renvoyée, jamais fusionnée
+ok 6 - régime 8, passer.sh : `à-fusionner` retirée pendant la CI (le Relecteur a posé `à-reprendre`) : sautée en 7, sans renvoi
+ok 7 - régime 8, passer.sh : une lecture illisible (marque presque à la forme, clé mal formée) fait sauter la PR en 7, sans renvoi
+ok 8 - régime 8, passer.sh : sur un chemin sensible, un `validé` sans `/security-review: lancée` ne suffit pas ; avec elle, la PR entre
+ok 9 - régime 8, passer.sh : une PR empilée sur une parente fusionnée est renvoyée : le Relecteur ne la relirait pas
+ok 10 - régime 8, sujet.sh fusionner : une sous-PR sans verdict est renvoyée en 4, sans mise à jour ni CI ; validée, en retard, elle est mise à jour et entre
+ok 11 - régime 8, sujet.sh fusionner : un `refusé` tombé pendant la CI est vu juste avant la fusion : renvoyée en 4
+ok 12 - régime 8, sujet.sh fusionner : `à-fusionner` retirée pendant la CI (le Relecteur a posé `à-reprendre`) : sautée en 7, sans renvoi ni fusion
+ok 13 - régime 8, sujet.sh fusionner : une PR de mise à jour n'est pas exemptée — sans verdict renvoyée, validée elle entre par avance rapide
+ok 14 - régime 8, boucle.sh : la boucle joue les calculs de develop ; une PR sans verdict est renvoyée (fusion-bloquée, à-fusionner retirée), une PR validée entre
+ok 15 - régime 8, passer.sh : deux verdicts exigés (le ticket porte `Relecture: double`) : un seul validé ne suffit pas, deux de deux sessions, si
+ok 16 - régime 8, passer.sh : GitHub illisible sur les commentaires de la PR : pause (5), jamais un verdict lu vide
+ok 17 - régime 8, sujet.sh fusionner : `fusion-bloquée` posée pendant la CI est vue juste avant la fusion : sautée en 7, sans fusion
+ok 18 - régime 8, passer.sh : develop et les sujets sont relus avant les calculs (A-126) : un clone à une branche voit le ticket `Relecture: double` d'un sujet
+ok 19 - régime 8 : un calcul absent à côté de revue-exigee.mjs est une panne (3), jamais un refus (1) que le capitaine renverrait
+ok 20 - régime 8, passer.sh : un tour validé sur un sommet plus ancien, puis un vrai commit de l'auteur : renvoyée en 4, jamais fusionnée
+ok 21 - régime 8 : double-relecture.mjs ou meme-contenu.sh absent à côté de revue-exigee.mjs, la grammaire posée : panne (3), jamais une lecture illisible (21)
+ok 22 - régime 8, passer.sh : `cheminsSensibles` illisible sur la base rend tout chemin sensible, comme chez le Relecteur : un `validé` sans `/security-review: lancée` ne suffit pas
+ok 23 - régime 8, passer.sh : les commentaires se lisent sur toutes leurs pages (A-108) : un second tour `refusé`, en page 2, est vu ; renvoyée, jamais fusionnée
+ok 24 - régime 8, passer.sh : un push reçu entre la lecture de la PR et le fetch n'est pas renvoyé faute de verdict : sautée en 7, reprise au passage suivant
+ok 25 - régime 7, passer.sh : un push reçu entre la lecture de la PR et le fetch se juge comme sur main (le saut du régime 8 n'y joue pas)
+# tests 25
+# pass 25
+# fail 0
+# duration_ms 54961.756347
+rc=0
+# fin 18:42:35 UTC, charge 3.09 4.42 4.36

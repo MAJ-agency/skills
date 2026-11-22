@@ -1,0 +1,48 @@
+# skills/chaine/fusionner/scripts/veille.test.mjs sur d1e285485e9b7c8477aafe3bf84c6cfe8be6017b ; début 18:40:47 UTC, charge 4.88 5.12 4.55
+ok 1 - file vide, puis une PR prête : boucle.sh relancée une fois (lancement initial compris)
+ok 2 - PR seulement « CI en cours » : pas de relance
+ok 3 - même PR sautée deux sondes de suite : une seule relance ; rouge puis prête : nouvelle relance
+ok 4 - durée écoulée : VEILLE FINIE, sortie 0
+ok 5 - boucle.sh sort en 3 : VEILLE ARRÊTÉE, sortie 3
+ok 6 - journal « file vide » : au plus une ligne par tranche de 10 min
+ok 7 - PR mise de côté sans CI : relancée quand sa CI arrive (prête ou rouge), pas avant
+ok 8 - --sondes 2 : la veille s'arrête après deux sondes (lecture initiale + 2 = 3 appels de file.sh)
+ok 9 - PR renvoyée par la boucle puis ré-étiquetée avant la sonde : boucle relancée
+ok 10 - PR renvoyée par une boucle relancée, puis ré-étiquetée : boucle relancée de nouveau
+ok 11 - jobs rouges relancés par la boucle, de nouveau rouges à la sonde : boucle relancée
+ok 12 - sous-PR qui attend son tour dans son sujet : un second regard à la sonde suivante, puis une relance chaque fois que celle qui tient le sujet change d'état ou quitte la file ; plus aucune quand celle qui attendait a quitté la file
+ok 13 - sujet tenu par le verrou d'un autre capitaine : la boucle est relancée une fois quand ce verrou a expiré (sa date a plus de 95 minutes), pas avant, et pas deux fois pour la même date
+ok 14 - PR sautée par la boucle, renvoi d'une autre : pas de relance en rond
+ok 15 - les lignes que la veille lit sont celles qu'écrivent renvoyer.sh et boucle.sh
+ok 16 - préparation jouée avant le premier lancement, boot_id gardé ; veille relancée sur le même boot : pas rejouée
+ok 17 - boot_id changé entre deux lancements de la boucle : préparation rejouée avant le lancement suivant
+ok 18 - préparation en échec : VEILLE ARRÊTÉE, sortie 13, boucle jamais lancée, boot_id non écrit
+ok 19 - sans clé preparerCapitaine : rien n'est joué ; contrat illisible ou clé non textuelle : sortie 13 sans lancer la boucle
+ok 20 - boot_id illisible : préparation jouée au démarrage, une ligne le dit, pas de nouvelle préparation entre deux lancements
+ok 21 - défauts : durée 75 min, marge 40 min, et BOUCLE_ECHEANCE transmise à la boucle
+ok 22 - --marge invalide (non entière, 120 ou plus) : sortie 64, un message qui nomme --marge ; --duree décimale acceptée
+ok 23 - preparerCapitaine se lit sur origin/develop, jamais dans l'arbre de travail : la commande d'une branche de PR n'est pas jouée
+ok 24 - échéance passée : plus de relance de la boucle
+ok 25 - --duree au-delà de limite - marge : VEILLE FINIE (échéance) avant la fin de la durée
+ok 26 - fetch passager en échec, projet sans preparerCapitaine : la veille repart au second essai, la boucle est lancée
+ok 27 - une boucle tient le verrou : préparation non jouée, sortie 13, worktree laissé tel quel
+ok 28 - démon lancé par la préparation (`(exec sleep 15) &`) : la boucle obtient le verrou (`flock -n`)
+ok 29 - --etat : MORTE sans trace, VIVANTE pendant la veille, TERMINÉE avec sa ligne finale (FINIE, ARRÊTÉE de la boucle, de la préparation) ; sans CAPITAINE_ID ni état écrit ; un argument de plus : sortie 64
+ok 30 - --etat : le fichier d'arrêt posé (boucle.sh --arreter) passe avant la fin écrite et avant une veille morte : VEILLE TERMINÉE, arrêt demandé, sortie 2
+ok 31 - veille tuée pendant sa pause (kill -9, comme l'outil Bash ou un conteneur arrêté) : pas de ligne finale, et --etat dit VEILLE MORTE aussitôt, son `sleep` orphelin ne la tient pas vivante
+ok 32 - un démon laissé par la boucle ou par file.sh ne tient pas la veille vivante après sa fin
+ok 33 - veille tuée pendant que `tee` attend un démon de la boucle (sa sortie dans le tube) : --etat dit VEILLE MORTE, `tee` ne la tient pas vivante
+ok 34 - une seconde veille pendant qu'une tourne : VEILLE ARRÊTÉE, sortie 9, aucune boucle lancée, l'état de la première gardé
+ok 35 - --reprendre : la veille retire le fichier d'arrêt, la boucle ne reçoit jamais --reprendre et trouve son verrou libre ; un arrêt posé pendant le démarrage reste posé ; sans l'option, la veille ne retire rien
+ok 36 - un fichier du verrou de la veille qui ne s'ouvre pas : --etat et la veille sortent en 6, jamais VEILLE VIVANTE ni « une veille tourne déjà »
+ok 37 - --reprendre : le fichier d'arrêt est retiré avant la préparation ; tuée pendant sa préparation, la veille se lit VEILLE MORTE, jamais « arrêt demandé »
+ok 38 - --reprendre : préparation en échec (13), le fichier d'arrêt déjà retiré, --etat rend sa ligne finale ; une boucle qui tient son verrou : sortie 9, fichier gardé
+ok 39 - veille tuée pendant une sonde lente (file.sh) ou pendant sa préparation : --etat dit VEILLE MORTE aussitôt, aucun sous-shell ne la tient vivante
+ok 40 - une veille qui démarre pendant qu'un --etat tient le verrou l'attend, sans se croire doublée
+ok 41 - --etat lit l'état sous le verrou de la veille : aucune veille ne l'écrit entre sa lecture et son verdict
+# tests 41
+# pass 41
+# fail 0
+# duration_ms 52053.898731
+rc=0
+# fin 18:41:40 UTC, charge 3.81 4.76 4.45
