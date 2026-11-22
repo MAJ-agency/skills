@@ -1,0 +1,11 @@
+ROUGE R1 chantier, Ne jamais : archive_session de nouveau permis — le conducteur en régime 8 : il ne contre-relit pas, arbitre,
+ROUGE R2 chaine-de-production § 5, étape 5 : le sha court du dernier push — les documents posés sont ceux du régime 8 : la méthode, le f
+ROUGE R3 réveil de secours : relancer le Relecteur soi-même au lieu de l’écrire au conducteur — les documents posés sont ceux du régime 8 : la méthode, le f
+ROUGE R4 architecte § 8 : `depuis` écrit avant l’ouverture de la PR de repose — l'architecte en régime 8 : le Relecteur lancé et relevé, l'a
+ROUGE R5 regime-7.md : la fille d’un ticket Label: contre-revue livre de nouveau avec à-fusionner — regime-7.md garde ce qui ne vaut qu'en régime 7, et les skil
+ROUGE R6 chantier § 6.5 : le conducteur pose à-fusionner sur une PR sans étiquette — le conducteur en régime 8 : il ne contre-relit pas, arbitre,
+ROUGE R7 fusionner, Le verdict : une lecture illisible devient un renvoi — le capitaine en régime 8 : « Le verdict », la sous-PR sautée
+ROUGE R8 settings-json : le motif de create_session sans ancre de fin — régime 8 : une entrée allow qui pré-approuve create_session 
+ROUGE R9 settings-json : une clé relecture à null lue absente (du côté non sûr) — le gate lit la clé relecture de .claude/chaine.json : présen
+9 rouges sur 9 jouées
+sortie 0

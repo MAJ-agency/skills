@@ -1,0 +1,18 @@
+ROUGE B3 sujet : la section de regime-7.md citée sous un autre nom (0 s) — les quatre skills des rôles disent en tête comment lire le r
+ROUGE B7 chantier : le plafond n’est plus reçu par le conducteur (0 s) — le conducteur en régime 8 : il ne contre-relit pas, arbitre,
+ROUGE B9 fusionner : la sous-PR sautée ne garde plus son sujet (0 s) — le capitaine en régime 8 : « Le verdict », la sous-PR sautée
+ROUGE B12 fusionner : le second contrôle du verdict n’est plus dit (0 s) — le capitaine en régime 8 : « Le verdict », la sous-PR sautée
+ROUGE B17 architecte : la repose, points 3 et 4 échangés (0 s) — l'architecte en régime 8 : le Relecteur lancé et relevé, l'a
+ROUGE B20 lancement : la phrase du régime remise d’un seul tenant (0 s) — lancement.md : la phrase du régime coupée en deux, seule la 
+ROUGE B24 chaine-de-production.md : le réveil de secours, deux cas échangés (0 s) — les documents posés sont ceux du régime 8 : la méthode, le f
+ROUGE B26 chaine-de-production.md : la revue de ticket revient à l’étape 5 (0 s) — les documents posés sont ceux du régime 8 : la méthode, le f
+ROUGE B31 chaine.json : la clé relecture retirée (0 s) — le gabarit du contrat porte la clé relecture, lue par le cap
+ROUGE B36 socle SKILL.md : la relecture ne se pose plus (0 s) — le gabarit du contrat porte la clé relecture, lue par le cap
+ROUGE V2 fusionner : la copie d’avant `--etat` reconnue à la seule sortie 64 (0 s) — le réveil de garde : après la liste des fins, avant le suivi
+ROUGE V5 fusionner : le trigger_id de la garde n’est plus noté (0 s) — le réveil de garde : après la liste des fins, avant le suivi
+ROUGE A2 avancement : les étiquettes comparées sans NFC (1 s) — relecture indépendante : à reprendre (verdict refusé, renvoi
+ROUGE A4 avancement : une PR fusionnée compte encore (1 s) — relecture indépendante : à reprendre (verdict refusé, renvoi
+ROUGE S4 settings-json : un contrat illisible qui nomme la clé lu sans elle (1 s) — le gate lit la clé relecture de .claude/chaine.json : présen
+15 rouges sur 15 jouées, 55 dans le fichier
+toutes rouges
+sortie 0
