@@ -47,10 +47,15 @@ test("le relais preuves dit qu'il sort en 2 quand la CLI est un paquet de l'espa
     "(13 à 17 s par passage, mesurés sur Anchorpost à une charge de 14 à 18 : la CLI construit l'index de la base et celui de l'arbre)",
     "Le gate juge l'arbre de travail, non commis et non suivi compris, pas le commit poussé : au pre-push, une preuve restée hors du commit le fait passer, un travail en cours peut le bloquer ; la CI juge le commit.",
     // Constat 1 du tour 2 : contre develop, la comparaison ne voit pas ce que la mise à jour défait du sujet ; la CI le juge.
-    "Au pre-push et en fin de tour, une branche de mise à jour d'un sujet se compare à la plus proche de ses deux bases, jamais à la fusion recalculée de `coverage-diff` : le sujet quand il a plus de commits que develop n'en apporte (plus large, jamais plus lâche) ; sinon develop, qui ne voit pas ce que la mise à jour défait du sujet",
-    "la CI, qui compare à la cible de la PR, le juge.",
+    // Constat 1 du tour 3 : contre le sujet, ni le gate ni la CI ne voient ce qu'elle défait de develop ; la livraison le juge.
+    "Au pre-push et en fin de tour, une branche de mise à jour d'un sujet se compare à la plus proche de ses deux bases, jamais à la fusion recalculée de `coverage-diff`, et chacune a son angle mort : le sujet quand il a plus de commits que develop n'en apporte, la base de la CI, qui ne voit pas plus que le gate ce que la mise à jour défait de develop (une règle, un cas, une criticité remis comme sur le sujet) : la livraison du sujet, comparée à develop, le juge ; sinon develop, qui ne voit pas ce que la mise à jour défait du sujet (une règle, un cas, une criticité remis comme sur develop) : la CI, qui compare à la cible de la PR, le juge.",
     "Dans le job de qualité, sur `pull_request`, le rapport de preuves : `node scripts/verify/preuves.mjs --base \"origin/$BASE\"` (même `env:`, `fetch-depth: 0`)",
     "dans un dépôt où la CLI est un paquet de l'espace de travail et non une dépendance installée (le dépôt de la CLI elle-même), ce fichier n'existe pas et le relais sort en 2, au pre-push comme en fin de tour ; ce dépôt l'adapte à la pose, comme son relais `anchorpost.mjs`.",
+  ]);
+  // Constat 2 du tour 3 : le catalogue du skill dit les deux bases comme SKILL.md, et les quatre imports comme la note.
+  exiger("skills/monorepo/socle-tests/references/CONTENU.md", [
+    "(`BASE_DEFAUT`, `baseDepuisPush`, `choisirBase` et `decisionSansBase` de `coverage-diff-regles.mjs`)",
+    "Au pre-push et en fin de tour, une branche de mise à jour d'un sujet se compare à la plus proche de ses deux bases, jamais à la fusion recalculée : contre le sujet (il a plus de commits que develop n'en apporte), ce que la mise à jour défait de develop ne se voit pas, ni en CI, qui compare au même sujet, et la livraison du sujet le juge ; contre develop (il en apporte autant ou plus), ce qu'elle défait du sujet ne se voit pas, et la CI le juge.",
   ]);
   // Ce qu'une repose pièce par pièce doit reposer avec : sans eux, le relais ne se charge pas (exports de la base) ou son
   // banc fait échouer `check:tickets` (l'environnement de banc), dans un projet posé avant ces fichiers (Anchorpost).
