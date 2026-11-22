@@ -50,6 +50,14 @@ test("le skill anchorpost suit la CLI 2.0.0 : manifeste au schéma 3, CLI publiq
     "Puis, à la main, le plancher relevé d'après la mesure du jour, avec une date nouvelle et la personne qui le pose (`floor { date, by, proven, partial }`)",
     "une PR où une personne écrit `\"sufficiency\": \"enforce\"`.",
   ]);
+  // Le passage par `migrate manifest` (A-213, question 1), en sa substance : l'arbre propre, ce que la commande écrit et refuse, la raison d'une feature basse.
+  exiger(`${ANCHORPOST}/SKILL.md`, [
+    "Commiter : la commande suivante exige un arbre propre.",
+    ": la commande que nomme l'alerte `manifest-schema-old`.",
+    "sa date gardée, jamais re-mesuré",
+    "elle refuse, sans rien écrire, une clé que le schéma 3 perdrait",
+    "la commande la refuse, et `init` aussi ; le manifeste se réécrit alors au schéma 3 à la main, aux mêmes conversions, avec la `reason` que donne la personne nommée par `by` : une session ne l'écrit pas à sa place, elle la demande dans sa PR.",
+  ]);
   exiger(`${ANCHORPOST}/references/fragments/admin.md`, [
     "- [ ] **Le passage à `enforce`** de la preuve suffisante est une décision du produit : la personne écrit `\"sufficiency\": \"enforce\"` dans le manifeste, par une PR.",
   ]);
@@ -58,6 +66,7 @@ test("le skill anchorpost suit la CLI 2.0.0 : manifeste au schéma 3, CLI publiq
     "- **Reposer la fiche** `.claude/rules/anchorpost.md`, dans un dépôt au pivot 3 (un dépôt au schéma 2 la repose au point 4 de « Passer au pivot 3 »)",
     "et ajouter `anchorpost/manifest.json` aux `cheminsSensibles` de `.claude/chaine.json` (étape 4, point 5)",
     "retire d'abord de `.npmrc` les lignes `@maj-agency:registry=…` et `…_authToken=…`, puis installe la CLI",
+    "la CLI (≥ 2.0.2), `anchorpost migrate manifest` qui écrit le manifeste au schéma 3 tel que la CLI le lit déjà",
   ]);
 });
 
@@ -78,6 +87,8 @@ test("la fiche anchorpost dit comment écrire une criticité, un cas, une étiqu
     "En `observe`, ce sont des avertissements et la commande sort 0 ; en `enforce`, elle sort 1.",
     "Un ticket qui prouve une règle sans la réaliser la nomme sur `Prouve:`, jamais sur `Règles:`",
     "une règle est « prouvée » quand elle déclare un cas `nominal`, que chacun de ses cas l'est et, dès `medium`, que chacune des dix familles a sa réponse",
+    "un cas qui la porte (un cas `invalid` répond à `invalid-input`), ce « sans objet » motivé, ou une question ouverte dont la ligne `Bloque :` nomme la règle, qui la laisse « partielle ».",
+    "« partielle » quand elle a une preuve sans l'être (un cas sans preuve au niveau exigé, que `realisation.cases` compte ; aucun cas déclaré ; pas de cas `nominal` ou une famille sans réponse, que `realisation.missing` nomme).",
   ]);
   const lignesFiche = readFileSync(join(RACINE, FICHE_ANCHORPOST), "utf8").split("\n").length;
   assert.ok(lignesFiche < 200, `${FICHE_ANCHORPOST} : ${lignesFiche} lignes, moins de deux cents (budget-contexte)`);
