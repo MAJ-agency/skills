@@ -99,7 +99,9 @@ export function avancement(tickets, prs) {
     // Relecture indépendante (régime 8) : une PR ouverte que son verdict ou un renvoi fait reprendre, et une PR qui attend
     // sa relecture, quel que soit le Status du ticket (`Fait — PR #n` s'écrit avant la relecture). Les étiquettes se
     // comparent en NFC, comme le Relecteur les lit.
-    aReprendre: lignes.filter((l) => aEtiquette(l, 'à-reprendre') || aEtiquette(l, 'fusion-bloquée')).map((l) => l.id),
+    // Une PR renvoyée dont la relecture est redemandée garde `fusion-bloquée` avec `à-relire` (A-196 point 2) : elle est
+    // en relecture, pas à reprendre.
+    aReprendre: lignes.filter((l) => aEtiquette(l, 'à-reprendre') || (aEtiquette(l, 'fusion-bloquée') && !aEtiquette(l, 'à-relire'))).map((l) => l.id),
     enRelecture: lignes.filter((l) => aEtiquette(l, 'à-relire')).map((l) => l.id),
     lignes,
   };

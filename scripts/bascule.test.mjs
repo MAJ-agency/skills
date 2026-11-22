@@ -86,7 +86,13 @@ test("le conducteur en régime 8 : il ne contre-relit pas, arbitre, reçoit les 
     "- **À chaque réveil**, les PR ouvertes de son sujet qui ne portent aucune des quatre étiquettes",
     "il pose lui-même `à-relire` avec le commentaire `À relire — sommet <sha> — Session: — — Conducteur: <la sienne>`",
     "« session de relecture <id> remplacée au plafond de contexte, PR <n> » se note dans `## Dépassements` comme un plafond",
+    // Contre-relecture de la PR 151, tour 1 : l'arbitrage et la décision de plafond sont dits à la fille ; la règle sans
+    // étiquette ne prend ni un brouillon ni une PR en régime 7.
+    "; il le lui écrit en une ligne (`send_message`), et la fille redemande la relecture (maintenu : le bloquant corrigé d'abord) : sans demande, la PR reste `à-reprendre`, hors de la file du Relecteur.",
+    "la décision écrite, par lui ou par l'architecte, il l'écrit en une ligne à la fille, qui la suit et redemande la relecture.",
+    "hors brouillon (une fille qui code, ou arrêtée avant sa demande) et en régime 8 (ouvertes après `relecture.depuis` de leur base",
   ], "chantier § 6, point 5");
+  exiger(entre(suivi, "1. `node scripts/docs/avancement.mjs sujet/<nom>`", "1 bis. **Plafonds.**"), ["et, en régime 8, au Relecteur du dépôt (l'identifiant de la ligne `Relecteur:` de la fiche ; une ligne d'une fille, « `à-relire` depuis plus de trois heures sans distribution », le fait relever aussitôt)"], "chantier § 6, point 1");
   const p6 = entre(suivi, "6. Vague entièrement fusionnée dans le sujet", "7. Le produit (ou l'architecte) demande l'avancement");
   exiger(p6, [
     "et de même pour chaque session de relecture de sa PR (rôle `relecture`), lues sur les distributions du Relecteur (`Relecture — tour <k> — sommet <sha> — sessions <…>`, remplacées comprises)",
@@ -101,13 +107,18 @@ test("le conducteur en régime 8 : il ne contre-relit pas, arbitre, reçoit les 
     "les lignes `Sensibles:` ne se remplissent qu'après l'accord, dans la PR de cadrage",
     "porte `Relecture: double`",
     "par **un ticket du chantier**, le premier quand d'autres en dépendent",
+    "En régime 8, un ticket qui cite sur sa ligne `Règles:` une règle de criticité haute porte `Relecture: double`",
+    "En régime 8, un ticket qui crée un module d'authentification",
     "avec la section `## Fichiers sensibles` de la carte, dont l'accord se donne là, une fois",
     "sa relecture se demande comme celle d'une fille (`chaine-de-production.md` § 5, étape 5 : le commentaire `À relire — sommet <sha> — Session: <la sienne> — Conducteur: —`, puis `à-relire` par `issue_write`), jamais `à-fusionner` ; en régime 7, label `à-fusionner`",
   ], "chantier § 3");
   const terrain = entre(texte, "## 0. Reprendre ou démarrer", "## 1. Setup");
   assert.ok(/^5\. Vérifie qu'un capitaine tourne/m.test(terrain), "le point 5 du § 0 reste celui des capitaines (cité ailleurs)");
   exiger(terrain, ["**aucune autre fille ne part avant sa fusion**", "est en régime 7 : elle passe au capitaine comme une PR de cadrage de ce régime, `à-fusionner` posé par le conducteur", "En régime 8, un socle posé ensuite (`socle-tests`) touche des chemins sensibles : c'est un ticket du chantier"], "chantier § 0, point 4");
-  assert.ok(/^6\. Vérifie que le \*\*Relecteur\*\* du dépôt tourne \(régime 8\)/m.test(terrain), "le point 6 vérifie le Relecteur");
+  assert.ok(/^6\. Vérifie que le \*\*Relecteur\*\* du dépôt tourne \(régime 8\), quand `\.claude\/chaine\.json` d'`origin\/develop` porte la clé `relecture`/m.test(terrain), "le point 6 vérifie le Relecteur, avec la clé seulement");
+  exiger(entre(texte, "## 4. Phase 3", "## 5. Phase 4"), ["et redemande la relecture (`chaine-de-production.md` § 5, étape 6)."], "chantier § 4");
+  const livraison = entre(texte, "## 7. Phase 5", "## Ne jamais");
+  exiger(livraison, ["que le conducteur pose aussitôt en régime 8 (en régime 7 : `references/regime-7.md`)", "redevient une PR ordinaire : en régime 8, il pose alors `à-relire`", "les sessions de relecture de ses propres PR (rôle `relecture`, lues sur leurs distributions) et, sans programme, le Relecteur qu'il a lancé (rôle `relecteur`)", "avec celles de ses propres PR fusionnées"], "chantier § 7");
   exiger(entre(texte, "## Ne jamais", "\n- Lancer une fille"), ["Contre-relire une PR, relayer ou résumer un constat, poser `à-fusionner` sur une PR en régime 8", "ou appeler `archive_session` (`P-62`)"], "chantier, Ne jamais");
 });
 
@@ -118,6 +129,7 @@ test("le capitaine en régime 8 : « Le verdict », la sous-PR sautée qui garde
     "| Session de travail   | demande la relecture (`À relire`, puis `à-relire`) après son dernier push",
     "| Relecteur            | distribue les relectures ; `à-fusionner` sur un tour validé, `à-reprendre` sur un refus",
     "| Propriétaire renvoyé | corrige, redemande la relecture (`à-relire`, sans retirer `fusion-bloquée`)",
+    "| remettre `à-fusionner` (une livraison de sujet exceptée), fusionner « puisque c'est corrigé » |",
   ], "fusionner, La règle");
   const verdict = entre(texte, "## Le verdict (régime 8)", "## La règle d'ascendance");
   exiger(verdict, [
@@ -142,20 +154,26 @@ test("sujet en régime 8 : la session demande la relecture, la PR de réception 
   const reception = entre(texte, "## Recevoir develop dans un sujet", "## Geler un chantier");
   exiger(reception, ["**La PR de réception n'est pas exemptée de relecture**", "rendu par `sujet.sh a-juger <sommet> <base>` : la résolution de la fusion, en entier, puis chaque retouche", "Et, en régime 8, un tour de relecture validé pour le sommet, contrôlé deux fois"], "sujet, Recevoir develop");
   assert.match(lire(`${C}/sujet/scripts/sujet.sh`), /a-juger\)/, "sujet.sh a la commande a-juger");
-  exiger(entre(texte, "## Livrer", "## Clore un sujet livré"), ["le poser aussitôt, `issue_write` en session cloud ; une livraison de sujet n'a pas de relecture propre", "Une livraison intermédiaire qui échoue à sa preuve redevient une PR ordinaire : `à-relire`"], "sujet, Livrer");
+  exiger(entre(texte, "## Livrer", "## Clore un sujet livré"), ["le poser aussitôt, `issue_write` en session cloud ; une livraison de sujet n'a pas de relecture propre", "Une livraison intermédiaire qui échoue à sa preuve redevient une PR ordinaire : `à-relire`", "; en régime 7, `regime-7.md`, « Les sujets » (la contre-revue d'abord, sur un chemin sensible)."], "sujet, Livrer");
 });
 
 test("l'architecte en régime 8 : le Relecteur lancé et relevé, l'arbitrage et le plafond, l'archivage, la repose en quatre gestes (A-83, A-89, A-99, P-62)", () => {
   const texte = lire(`${C}/architecte/SKILL.md`);
-  exiger(entre(texte, "## 4. Lancer", "## 5. Le suivi"), ["**un Relecteur** se lance en même temps que le capitaine", "le Relecteur dans `Relecteurs:`"], "architecte § 4");
+  exiger(entre(texte, "## 4. Lancer", "## 5. Le suivi"), ["Dans un dépôt dont `.claude/chaine.json` d'`origin/develop` porte la clé `relecture` (régime 8 ; avant la repose, aucun : § 8, point 2), **un Relecteur** se lance en même temps que le capitaine", "le Relecteur dans `Relecteurs:`"], "architecte § 4");
+  exiger(entre(texte, "## 2. Tenir la carte", "## 3. Le grilling"), ["capitaines et Relecteurs lancés par l'architecte"], "architecte § 2");
   const suivi = entre(texte, "## 5. Le suivi", "## 6. Changer d'architecte");
-  exiger(suivi, ["- **En régime 8, une PR livrée** ne se nomme ni au Relecteur ni à un capitaine", "**Il arbitre** une contestation sur une PR du conducteur", "**Il décide au plafond**", "Le Relecteur de chaque dépôt (`Relecteurs:`) se relève de même.", "**Archiver** (`P-62`)."], "architecte § 5");
+  exiger(suivi, ["- **En régime 8, une PR livrée** ne se nomme ni au Relecteur ni à un capitaine", "**Il arbitre** une contestation sur une PR du conducteur", "**Il décide au plafond**", "Le Relecteur de chaque dépôt (`Relecteurs:`) se relève de même.", "**Archiver** (`P-62`).",
+    "écrit sur la PR, puis dit au conducteur en une ligne : il redemande la relecture)",
+    "et le produit en est informé en une ligne, le conducteur aussi, qui la dit à la fille (sur sa propre PR, il la suit) : l'auteur redemande la relecture, sans quoi la PR reste `à-reprendre`, hors de la file du Relecteur",
+    "et supprimé d'abord ses réveils en attente (`list_triggers`, les entrées dont `persistent_session_id` est cette session, `delete_trigger`)",
+    "celles de ses propres PR, l'architecte les archive lui-même, la PR fusionnée",
+  ], "architecte § 5");
   assert.ok(suivi.indexOf("- **En régime 8, une PR livrée**") < suivi.indexOf("- **Une PR livrée, en régime 7 ou dans un dépôt sans la chaîne,**"), "le régime 8 d'abord, puis le régime 7 et le dépôt sans la chaîne");
   const repose = entre(texte, "## 8. La repose d'un dépôt au régime 8", "## Ne jamais");
   const points = repose.split("\n").filter((l) => /^\d\. /.test(l));
   assert.deepEqual(points.map((l) => l.slice(0, 3)), ["1. ", "2. ", "3. ", "4. "], repose);
   assert.ok(points[0].startsWith("1. **L'accord, une fois.**") && points[1].startsWith("2. **Le Relecteur**") && points[2].startsWith("3. **La PR de repose**") && points[3].startsWith("4. **Le capitaine relancé, les conducteurs relevés**"), "les quatre gestes d'A-99, dans l'ordre");
-  exiger(points[2], ["le dernier de cette PR, écrit après son ouverture", "ouverte avant `depuis`, elle est relue et fusionnée en régime 7", "Elle retire `mcp__claude-code-remote__create_session` des `permissions.allow`"], "architecte § 8, point 3");
+  exiger(points[2], ["la quatrième ADR du socle (`next-id.mjs ADR ALL ARC`, son identifiant à la place du placeholder `ADR_RELECTURE` de ces documents)", "ceux de `fusionner`, `sujet`, `relecture` et du socle, le gate `settings-json` compris", "le dernier de cette PR, écrit après son ouverture", "ouverte avant `depuis`, elle est relue et fusionnée en régime 7", "Elle retire `mcp__claude-code-remote__create_session` des `permissions.allow`"], "architecte § 8, point 3");
 });
 
 test("lancement.md : la phrase du régime coupée en deux, seule la moitié des dépôts à chaîne change (A-94, A-101) ; l'archivage d'un capitaine supprime sa garde d'abord (A-187 point 3)", () => {
@@ -171,13 +189,13 @@ test("lancement.md : la phrase du régime coupée en deux, seule la moitié des 
   const ligne = ticket.split("\n").find((l) => l.startsWith("L'architecte y tient la place du conducteur.")) ?? "";
   assert.ok(ligne.includes("En régime 8, il ne contre-relit rien") && ligne.indexOf("En régime 8") < ligne.indexOf("contre-relit lui-même"), "la place du conducteur : le régime 8 d'abord");
   const apres = lancement.split("## Après le lancement")[1] ?? "";
-  exiger(apres, ["- **Archiver un capitaine** du skill `fusionner`", "d'abord sa garde, `delete_trigger` sur le `trigger_id` que le capitaine a noté", "`list_triggers` et `delete_trigger` sur « Garde de la veille du capitaine »", "; puis `archive_session`."], "lancement.md, Après le lancement");
+  exiger(apres, ["- **Archiver un capitaine** du skill `fusionner`", "d'abord sa garde, `delete_trigger` sur le `trigger_id` que le capitaine a noté", "`list_triggers` et `delete_trigger` sur « Garde de la veille du capitaine » dont `persistent_session_id` est la session de ce capitaine, jamais sur le seul nom", "; puis `archive_session`."], "lancement.md, Après le lancement");
 });
 
 test("les documents posés sont ceux du régime 8 : la méthode, le fragment, le tracker, la conception, la criticité, la recette (A-93, A-87, P-62)", () => {
   const cdp = lire(CDP);
   const roles = entre(cdp, "## 1. Les rôles", "## 2. Le cycle");
-  for (const r of ["| Relecteur            | un par dépôt ", "| Session de relecture | une par PR et par tour "]) assert.ok(roles.includes(r), `rôles : « ${r} »`);
+  for (const r of ["| Relecteur            | un par dépôt ", "| Session de relecture | une par PR et par tour ", "poser `à-fusionner` (une livraison de sujet exceptée) ;"]) assert.ok(roles.includes(r), `rôles : « ${r} »`);
   assert.ok(!roles.includes("Relecteur adversaire"), "le relecteur adversaire de la session qui code n'est plus un rôle");
   assert.ok(entre(cdp, "## 2. Le cycle", "## 3. Un ticket").includes("4 bis. **Relecture.** Toute PR, documentation comprise, est relue par une session de relecture que lance le Relecteur du dépôt ; la session qui l'a écrite ne se relit pas."), "le cycle porte la relecture");
   const s3 = entre(cdp, "## 3. Un ticket prêt pour agent", "## 4. Branches");
@@ -187,13 +205,13 @@ test("les documents posés sont ceux du régime 8 : la méthode, le fragment, le
   const etapes = s5.split("\n").filter((l) => /^\d\. \*\*/.test(l));
   assert.deepEqual(etapes.map((l) => l.slice(0, l.indexOf("**", 5) + 2)), ["1. **Environnement.**", "2. **Réserver**", "3. **Lire**", "4. **Coder**", "5. **Demander la relecture.**", "6. **Sur `à-reprendre`**", "7. **Rendre la main**"]);
   exiger(etapes[4], ["La fille ne se relit pas et ne lance aucun relecteur", "le commentaire `À relire — sommet <sha> — Session: <la sienne> — Conducteur: <celle du conducteur>`", "**Jamais `à-fusionner`**", "le sha entier du dernier push"], "§ 5, étape 5");
-  exiger(etapes[5], ["corriger chaque bloquant avec le test qui l'aurait attrapé, ou le contester sur la PR, `Contesté — <critère, fichier et ligne> — <raison>`", "`à-relire` posée avant de retirer `à-reprendre`"], "§ 5, étape 6");
+  exiger(etapes[5], ["corriger chaque bloquant avec le test qui l'aurait attrapé, ou le contester sur la PR, `Contesté — <critère, fichier et ligne> — <raison>`", "`à-relire` posée avant de retirer `à-reprendre`", "qui arbitre (`Arbitrage — … — maintenu` ou `écarté`) et le lui écrit.", "**Un bloquant contesté attend son arbitrage** : la relecture se redemande une fois l'arbitrage écrit (maintenu : le bloquant corrigé d'abord), au même sommet si rien n'a été poussé, jamais avant", "la fille attend la décision, qu'on lui écrit, la suit, puis redemande la relecture : sans demande, la PR reste `à-reprendre`, hors de la file du Relecteur."], "§ 5, étape 6");
   // Le réveil de secours (A-86) : ses cinq cas, dans l'ordre.
   const secours = entre(etapes[6], "**le réveil de secours**", "Puis s'arrêter");
   const cas = ["si la PR porte `à-reprendre`", "`fusion-bloquée` sans `à-relire`, lire le renvoi du capitaine", "aucune des quatre étiquettes", "`à-relire` depuis plus de trois heures sans distribution", "sinon rien, et le réarmer une fois"];
   const rangs = cas.map((c) => secours.indexOf(c));
   assert.ok(rangs.every((r) => r >= 0) && rangs.every((r, i) => i === 0 || r > rangs[i - 1]), `réveil de secours : ${cas.join(" / ")}, dans l'ordre`);
-  exiger(secours, ["l'écrire au conducteur (un Relecteur arrêté)"], "réveil de secours");
+  exiger(secours, ["l'écrire au conducteur (un Relecteur arrêté)", "un `send_later` à 120 minutes (le second réveil, à quatre heures, voit le cas des trois heures), à chaque demande de relecture et à chaque contestation"], "réveil de secours");
   assert.ok(!s5.includes("Revue de ticket** (skill"), "§ 5 : la fille ne joue plus la revue de ticket");
   exiger(cdp, ["**Le conducteur nomme ensuite ses filles et leurs sessions de relecture à l'architecte**", "`à archiver : <session>, <ticket>, <coût>`"], "Relevé des coûts");
   const fragment = lire(`${C}/socle-chaine-de-production/references/fragments/claude-md-fusion.md`);

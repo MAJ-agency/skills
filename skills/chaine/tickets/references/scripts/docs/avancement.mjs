@@ -12,7 +12,7 @@
  *   - `<spec>` (ex. `SPEC_ALL_SOC-1`) : les tickets de la spec, lus sur son sujet s'il en a un ouvert.
  * PR : ouvertes et fermées (`gh api`, REST), rattachées par l'identifiant dans le titre ou le slug
  * dans la branche (comme `ticket-libre.mjs`) ; CI = check-runs du dernier commit d'une PR ouverte. Relecture
- * indépendante : « À reprendre » (`à-reprendre` ou `fusion-bloquée`) et « En relecture » (`à-relire`), lus sur
+ * indépendante : « À reprendre » (`à-reprendre`, ou `fusion-bloquée` sans `à-relire`) et « En relecture » (`à-relire`), lus sur
  * les étiquettes de la PR ouverte d'un ticket.
  * Sans `gh` : avancement sans PR ni CI, avec la recherche `search_pull_requests` à faire par
  * l'outil GitHub MCP, sortie 3.

@@ -12,6 +12,7 @@ La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque pro
 - **La veille du capitaine** : le `trigger_id` du réveil de garde est noté et supprimé avant l'archivage du capitaine ; la ligne `CAPITAINE_ID requis` d'une copie d'avant `--etat` se distingue d'un autre 64 ; un arrêt posé par la garde elle-même se reconnaît à son heure ; le pid du `REFUS` se dit une fois ; un arrêt demandé n'est levé que par qui l'a posé.
 - **Le gate `settings-json`** refuse, quand le contrat porte la clé `relecture`, une entrée `permissions.allow` qui pré-approuve `create_session` : l'outil refuserait l'effort des sessions de relecture.
 - **Une quatrième ADR** : « relecture indépendante et accord des fichiers sensibles », qui remplace l'ADR « CODEOWNERS » et amende les points 1, 4 et 5 de l'ADR de la chaîne.
+- **Contre-relecture de la bascule** : l'arbitrage et la décision de plafond sont écrits à l'auteur, qui redemande la relecture ; le réveil de secours sonne à 120 minutes ; le conducteur ne pose `à-relire` ni sur un brouillon ni sur une PR en régime 7, et relève le Relecteur ; un Relecteur ne se lance qu'avec la clé ; une garde se retrouve par son nom et sa session ; `avancement.mjs` range « en relecture », et non « à reprendre », une PR renvoyée dont la relecture est redemandée.
 
 ### Ce qu'un projet fait pour en profiter
 

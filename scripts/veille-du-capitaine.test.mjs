@@ -68,7 +68,7 @@ test("le réveil de garde : après la liste des fins, avant le suivi du journal 
     "Il ne se réarme qu'au réveil de garde, jamais à un autre réveil : un seul réveil de garde attend à la fois.",
     "`send_later` absent (session locale) : pas de garde, le dire une fois au lanceur.",
     // A-187 point 3, A-190 mineur 12 (lot 6b) : la garde se supprime avant l'archivage du capitaine.
-    "Noter le `trigger_id` qu'il rend, chaque fois, le dernier remplaçant le précédent : avant tout arrêt du capitaine et son archivage, `delete_trigger` sur lui ; perdu, le retrouver par `list_triggers`, sous ce nom.",
+    "Noter le `trigger_id` qu'il rend, chaque fois, le dernier remplaçant le précédent : avant tout arrêt du capitaine et son archivage, `delete_trigger` sur lui ; perdu, le retrouver par `list_triggers`, sous ce nom et sur cette session (`persistent_session_id`, l'id de `CAPITAINE_ID`) : chaque capitaine du compte a une garde de ce nom.",
   ]) assert.ok(garde.includes(p), `réveil de garde : « ${p} » attendu`);
   const points = garde.split("\n").filter((l) => /^\d\. /.test(l));
   assert.deepEqual(points.map((l) => l.slice(0, 2)), ["1.", "2.", "3.", "4."], garde);

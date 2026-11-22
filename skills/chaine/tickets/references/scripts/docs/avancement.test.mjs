@@ -81,20 +81,22 @@ test('sortie Markdown et PR non vérifiées sans gh', () => {
 });
 
 test('relecture indépendante : à reprendre (verdict refusé, renvoi) et en relecture, lus sur les étiquettes en NFC, Status « Fait » compris, jamais sur une PR fusionnée', () => {
-  const tickets = [ticket('01', 'Fait — PR #1'), ticket('02', 'en cours — b'), ticket('03', 'Fait — PR #3'), ticket('04', 'Fait — PR #4'), ticket('05', 'en cours — e')];
+  const tickets = [ticket('01', 'Fait — PR #1'), ticket('02', 'en cours — b'), ticket('03', 'Fait — PR #3'), ticket('04', 'Fait — PR #4'), ticket('05', 'en cours — e'), ticket('06', 'Fait — PR #6')];
   const prs = [
     { numero: 1, titre: 'x (SPEC_ALL_SOC-1.01)', branche: 'b1', etat: 'fusionnée', labels: ['à-relire'] },
     { numero: 2, titre: 'x (SPEC_ALL_SOC-1.02)', branche: 'b2', etat: 'ouverte', labels: ['a\u0300-reprendre'] },
     { numero: 3, titre: 'x (SPEC_ALL_SOC-1.03)', branche: 'b3', etat: 'ouverte', labels: ['à-fusionner', 'fusion-bloquée'] },
     { numero: 4, titre: 'x (SPEC_ALL_SOC-1.04)', branche: 'b4', etat: 'ouverte', labels: ['à-relire'] },
     { numero: 5, titre: 'x (SPEC_ALL_SOC-1.05)', branche: 'b5', etat: 'ouverte', labels: ['à-fusionner'] },
+    // Renvoyée, relecture redemandée : `fusion-bloquée` reste avec `à-relire` (A-196 point 2) ; en relecture, pas à reprendre.
+    { numero: 6, titre: 'x (SPEC_ALL_SOC-1.06)', branche: 'b6', etat: 'ouverte', labels: ['fusion-bloquée', 'a\u0300-relire'] },
   ];
   const a = avancement(tickets, prs);
   assert.deepEqual(a.aReprendre, ['SPEC_ALL_SOC-1.02', 'SPEC_ALL_SOC-1.03']);
-  assert.deepEqual(a.enRelecture, ['SPEC_ALL_SOC-1.04']);
+  assert.deepEqual(a.enRelecture, ['SPEC_ALL_SOC-1.04', 'SPEC_ALL_SOC-1.06']);
   const md = enMarkdown('sujet/x', a);
   assert.match(md, /^- \*\*À reprendre \(verdict refusé ou renvoi\) :\*\* SPEC_ALL_SOC-1\.02, SPEC_ALL_SOC-1\.03$/m);
-  assert.match(md, /^- \*\*En relecture :\*\* SPEC_ALL_SOC-1\.04$/m);
+  assert.match(md, /^- \*\*En relecture :\*\* SPEC_ALL_SOC-1\.04, SPEC_ALL_SOC-1\.06$/m);
   const vide = enMarkdown('sujet/x', avancement(tickets, null));
   assert.match(vide, /^- \*\*À reprendre \(verdict refusé ou renvoi\) :\*\* —$/m);
   assert.match(vide, /^- \*\*En relecture :\*\* —$/m);
