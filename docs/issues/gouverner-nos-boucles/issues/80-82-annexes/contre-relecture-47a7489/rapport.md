@@ -168,3 +168,26 @@ Hors de la PR, pour l'architecte : le ticket 82, sur la branche de documentation
 - Le patch ne change qu'un banc : la suite n'est pas rejouée, comme le tour le demande. CodeQL ne se joue pas ici : l'échappement retenu est celui que CodeQL accepte déjà dans le code du gate.
 
 Temps du second tour : de 09 h 50 à 09 h 58 UTC environ.
+
+## Troisième tour (sommet `3dcb46732557c87d3e163bb830867afeb83391c1`)
+
+Delta relu : `45d72a6..3dcb467`, un commit (`test(socle): l'antislash échappé dans le banc de settings-json (plugin 8.0.0)`), parent direct `45d72a6`. Son arbre, `0875c036e77408658ff370101d67aa3a88468646`, est celui de `second-tour/retouches-tour-2.patch`, et son diff est ce patch, octet pour octet. Le delta tient en une ligne de banc : le motif de l'entrée est échappé en entier, antislash compris, avant d'entrer dans la `RegExp`, par l'échappement que le gate emploie déjà. Aucun texte, aucun code de la chaîne ne change.
+
+**Proposition : conforme au sommet `3dcb46732557c87d3e163bb830867afeb83391c1`.** N0 est fermé. Il n'y a aucun constat neuf.
+
+- **Bancs et mutations au sommet** (`troisieme-tour/mutations-3dcb467.txt`) : `settings-json.test.mjs` 24 sur 24. S1 à S6, R8 et R9 sont rouges, 8 sur 8. K16, la sonde du mineur N2, reste verte, comme attendu : sa retouche va à la suite.
+- **Contrôles GitHub** (`troisieme-tour/controles-3dcb467.txt`, lecture seule, de 10 h 12 à 10 h 26 UTC) : `CodeQL` success, « No new alerts in code changed by this pull request », aucune annotation ; `bancs` success (10 h 11 → 10 h 25) ; `Analyze (actions)` success ; `Analyze (javascript-typescript)` success. Le premier relevé, à 10 h 12, lisait `CodeQL` neutre, avant la fin de l'analyse JavaScript ; il est passé à success dès qu'elle a fini. La PR est `clean`, hors brouillon, sans étiquette.
+
+### Les mineurs laissés à la suite, sur les trois tours
+
+| Tour | # | Le mineur | Fichier |
+| --- | --- | --- | --- |
+| 1 | 14 | L'arrêt « posé le » comparé à l'heure notée à la seconde exacte, alors que l'heure notée et l'heure écrite peuvent différer d'une seconde (`A-198` point 3) | `skills/chaine/fusionner/SKILL.md` (« Réveil de garde », point 3), `scripts/veille-du-capitaine.test.mjs` |
+| 1 | 15 | `tickets poser` pose seul `issue-tracker.md` du régime 8, sans regarder la clé (`A-198` point 3) | `skills/chaine/tickets/SKILL.md` |
+| 2 | N1 | Le Relecteur lancé « en même temps que le capitaine », sans la condition de la clé | `skills/chaine/architecte/references/lancement.md` (« Le Relecteur d'un dépôt »), `skills/chaine/relecteur/SKILL.md` (ligne 20) |
+| 2 | N2 | La raison de « jamais avant » ne vaut qu'au même sommet, et rien ne la fige (K16) | `skills/chaine/socle-chaine-de-production/references/docs-agents/chaine-de-production.md` (§ 5, étape 6), `scripts/bascule.test.mjs` |
+| 2 | N3 | `list_triggers` lu sans `enabled: true` ni toutes ses pages, là où l'on cherche une garde ou un réveil | `skills/chaine/fusionner/SKILL.md`, `skills/chaine/architecte/references/lancement.md`, `skills/chaine/architecte/SKILL.md` (« Archiver ») |
+
+Hors de la PR (documentation) : le ticket 82 est à remettre d'accord avec `A-198` point 4, qui fait demander l'accord sur les fichiers sensibles au moment des cas de l'essai.
+
+Temps du troisième tour : de 10 h 12 à 10 h 27 UTC, dont 13 minutes d'attente des contrôles.

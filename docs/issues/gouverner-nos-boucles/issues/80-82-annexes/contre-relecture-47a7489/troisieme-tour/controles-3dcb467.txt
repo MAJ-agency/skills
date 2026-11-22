@@ -1,0 +1,7 @@
+# Contrôles GitHub au sommet 3dcb46732557c87d3e163bb830867afeb83391c1, lus en lecture seule (REST check-runs, puis pull_request_read get_check_runs), 2026-11-22
+10:12:39 CodeQL completed neutral ; bancs in_progress ; Analyze (actions) completed success ; Analyze (javascript-typescript) in_progress
+10:14:10 CodeQL completed success ; bancs in_progress ; Analyze (actions) completed success ; Analyze (javascript-typescript) completed success
+10:25:31 CodeQL completed success ; bancs completed success ; Analyze (actions) completed success ; Analyze (javascript-typescript) completed success
+CodeQL : « No new alerts in code changed by this pull request », 0 annotation.
+bancs : 10:11:53 → 10:25:08 UTC, success.
+PR 151 : mergeable_state clean, hors brouillon, aucune étiquette (10:25:51 UTC).
