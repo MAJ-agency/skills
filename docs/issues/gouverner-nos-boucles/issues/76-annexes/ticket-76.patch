@@ -1,0 +1,77 @@
+diff --git a/skills/chaine/relecteur/scripts/relecteur.mjs b/skills/chaine/relecteur/scripts/relecteur.mjs
+index 0077e33..8d8224d 100644
+--- a/skills/chaine/relecteur/scripts/relecteur.mjs
++++ b/skills/chaine/relecteur/scripts/relecteur.mjs
+@@ -43,7 +43,9 @@
+ // que deux verdicts sont exigés, `relecture.ordinaire` sinon), et `auteur`, `conducteur`, lus sur la dernière demande.
+ // `jouer <n>` refait la décision de la PR n et joue ce qui s'écrit sur GitHub : une étiquette (la nouvelle posée avant
+ // que l'ancienne soit retirée, A-84), le commentaire du plafond, de la panne ou de l'illisible ; au plafond, l'étiquette
+-// d'abord, puis le commentaire : un plafond à moitié écrit se rejoue entier, ses lignes avec lui. Il écrit une ligne
++// d'abord, puis le commentaire : un plafond à moitié écrit se rejoue entier, ses lignes avec lui. Rejoué après un retrait
++// refusé, un plafond redit « décision de plafond attendue » à l'auteur et au conducteur : son étiquette s'est posée avant
++// son commentaire, la marque la plus récente (A-189, point 1). Il écrit une ligne
+ // JSON : la décision, `joue` (vrai s'il a écrit), et `lignes`, ce que le modèle envoie (`send_message`). Une ligne ne
+ // part qu'au changement d'étiquette (A-85, A-118), ou avec le commentaire du plafond, qui ne s'écrit qu'une fois. Une
+ // étiquette déjà posée ne renvoie rien si les événements de la PR la disent posée après sa marque la plus récente (un
+@@ -477,7 +479,7 @@ if (estPointEntree()) {
+     else if (sous === 'jouer') await jouerGeste(reste);
+     else if (sous === 'distribuer') await distribuer(reste);
+     else if (sous === 'veille') veille(reste);
+-    else arreter(2, 'usage : relecteur.mjs passe | jouer <n> [--sessions <fichier>] | distribuer <n> --sommet <sha> --couple <modele>/<effort> [--remplace <id>] [<session>…] [--sessions <fichier>] | veille [--pause <s>] [--duree <min>] [--taire <n>,…] [--attendre]');
++    else arreter(2, 'usage : relecteur.mjs passe | jouer <n> [--sessions <fichier>] | distribuer <n> --sommet <sha> --couple <modele>/<effort> [--remplace <id>] [<session>…] [--sessions <fichier>] | veille [--pause <s>] [--duree <min>] [--taire <n>,…] [--sondes <k>] [--attendre]');
+   } catch (e) {
+     if (!(e instanceof Arret)) throw e;
+     process.stderr.write(`relecteur : ${e.message}\n`);
+diff --git a/skills/chaine/relecteur/scripts/relecteur.test.mjs b/skills/chaine/relecteur/scripts/relecteur.test.mjs
+index fb2aee1..15ebab9 100644
+--- a/skills/chaine/relecteur/scripts/relecteur.test.mjs
++++ b/skills/chaine/relecteur/scripts/relecteur.test.mjs
+@@ -962,3 +962,48 @@ test('contre-relecture 147 — les événements sur deux pages, la dernière pos
+   const g = d.json(d.lancer('jouer', '12'))[0];
+   assert.deepEqual([g.geste, g.poser, g.lignes], ['etiqueter', 'à-reprendre', []], JSON.stringify(g));
+ });
++
++// --- Suites de la PR 147 (ticket 76) : l'usage entier, le plafond rejoué gardé et écrit, la marque sans les traces ---
++
++test('suite de la PR 147 — l’usage nomme chaque option de chaque sous-commande, comme l’en-tête (`--sondes` compris)', () => {
++  const r = spawnSync(process.execPath, [RELECTEUR], { encoding: 'utf8' });
++  assert.equal(r.status, 2, r.stderr);
++  const usage = r.stderr.replace(/\s+/g, ' ');
++  const entete = readFileSync(RELECTEUR, 'utf8').split('\n// =====')[1];
++  const appels = entete.split("//   node '<dossier du skill>/scripts/relecteur.mjs' ").slice(1).map((a) => a.split('\n//\n')[0].replace(/\n\/\/\s+/g, ' ').trim());
++  assert.deepEqual(appels.map((a) => a.split(' ')[0]), ['passe', 'jouer', 'distribuer', 'veille'], 'les quatre appels de l’en-tête');
++  for (const a of appels) assert.ok(usage.includes(a), `l’usage : « ${a} » attendu, comme l’en-tête`);
++});
++
++test('suite de la PR 147 — un plafond rejoué après un retrait refusé redit « décision de plafond attendue » à l’auteur et au conducteur (A-189, point 1) : son étiquette s’est posée avant son commentaire, la marque la plus récente', () => {
++  const d = monter();
++  const sha = pr(d);
++  let m = 2;
++  for (const tour of [1, 2, 3]) ajouter(d, [distribution(tour, sha, ['session_rel1']), m++], [verdict(sha, tour, 'session_rel1', 'refusé'), m++]);
++  // Un retrait refusé une fois (un 502 passager), que `retirer_label` tait : la PR garde `à-relire` et `à-reprendre`.
++  Object.assign(d.env, { BANC_FAUX_GH: join(CHAINE, 'sujet/scripts/faux-gh.mjs') });
++  writeFileSync(join(d.racine, 'bin/gh'), '#!/bin/sh\ncase "$*" in *"-X DELETE"*labels*) if [ ! -e "$FAUX_GH/refus-fait" ]; then touch "$FAUX_GH/refus-fait"; echo "gh: Bad Gateway (HTTP 502)" >&2; exit 1; fi ;; esac\nexec node "$BANC_FAUX_GH" "$@"\n');
++  const premier = d.json(d.lancer('jouer', '12'))[0];
++  assert.deepEqual([premier.geste, premier.lignes.map((l) => l.a)], ['plafonner', ['auteur', 'conducteur', 'architecte']]);
++  assert.deepEqual([...d.etat().pulls[0].labels].sort(), ['à-relire', 'à-reprendre'], 'le retrait refusé laisse les deux étiquettes');
++  const r = d.lancer('jouer', '12');
++  assert.equal(r.status, 0, r.stderr);
++  const rejoue = d.json(r)[0];
++  assert.deepEqual([rejoue.regle, rejoue.geste, rejoue.poser], [1, 'etiqueter', 'à-reprendre'], JSON.stringify(rejoue));
++  assert.deepEqual(rejoue.lignes.map((l) => [l.a, l.session, l.texte]), [['auteur', 'session_auteur', 'PR 12 : décision de plafond attendue'], ['conducteur', 'session_conducteur', 'PR 12 : décision de plafond attendue']], 'redit, voulu : la marque la plus récente est le commentaire du plafond, posé après l’étiquette');
++  assert.deepEqual(d.etat().pulls[0].labels, ['à-reprendre']);
++  assert.equal(d.etat().pulls[0].commentaires.filter((c) => (c.body ?? c) === 'Plafond — décision attendue').length, 1, 'un seul commentaire du plafond');
++});
++
++test('suite de la PR 147 — une trace d’illisible écrite entre la pose et le rejeu n’est pas la marque (`dernier` l’exclut, A-183 point 6 ; K8, mutation N3) : rien ne repart', () => {
++  const d = monter();
++  const sha = pr(d);
++  ajouter(d, [distribution(1, sha, ['session_rel1']), 2], [verdict(sha, 1, 'session_rel1', 'refusé'), 3]);
++  Object.assign(d.env, { BANC_FAUX_GH: join(CHAINE, 'sujet/scripts/faux-gh.mjs') });
++  writeFileSync(join(d.racine, 'bin/gh'), '#!/bin/sh\ncase "$*" in *"-X DELETE"*labels*) if [ ! -e "$FAUX_GH/refus-fait" ]; then touch "$FAUX_GH/refus-fait"; echo "gh: Bad Gateway (HTTP 502)" >&2; exit 1; fi ;; esac\nexec node "$BANC_FAUX_GH" "$@"\n');
++  assert.deepEqual(d.json(d.lancer('jouer', '12'))[0].lignes.map((l) => l.a), ['auteur', 'conducteur']);
++  // Un passage suivant a écrit une trace (un calcul en panne, revenu depuis) après la pose de la minute 30.
++  ajouter(d, ['Lecture illisible — « double relecture exigée » illisible', 31]);
++  const rejoue = d.json(d.lancer('jouer', '12'))[0];
++  assert.deepEqual([rejoue.geste, rejoue.marque, rejoue.lignes], ['etiqueter', minute(3), []], JSON.stringify(rejoue));
++});

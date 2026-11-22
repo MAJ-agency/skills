@@ -1,0 +1,247 @@
+diff --git a/.claude-plugin/plugin.json b/.claude-plugin/plugin.json
+index fd0532b..ba3cd44 100644
+--- a/.claude-plugin/plugin.json
++++ b/.claude-plugin/plugin.json
+@@ -1,6 +1,6 @@
+ {
+   "name": "maj-skills",
+-  "version": "7.39.0",
++  "version": "7.39.1",
+   "description": "Skills d'ingénierie maison : amorçage de monorepo et de socles (API NestJS hexagonale, web Next.js, mobile Expo), chaîne de production pour des sessions d'agent en parallèle (tickets, sujets, capitaine de fusion, revue adversariale, chantier, recette). Aucune règle métier.",
+   "author": {
+     "name": "Guillaume Jauffret"
+diff --git a/NOTES-DE-VERSION.md b/NOTES-DE-VERSION.md
+index ef59c20..9b646ce 100644
+--- a/NOTES-DE-VERSION.md
++++ b/NOTES-DE-VERSION.md
+@@ -2,6 +2,19 @@
+ 
+ La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque projet par `poser` : une version publiée ne change rien chez un projet qui ne les repose pas. Chaque note dit ce qui change, puis ce qu'un projet fait pour en profiter.
+ 
++## 7.39.1 — 2026-11-22
++
++### Ce qui change
++
++- **Une PR de fourche est sautée par le capitaine** (ticket 78, `A-192` point 2) : `passer.sh` et `sujet.sh fusionner` la sautent sans renvoi (sortie 7), dans les deux régimes, avant tout fetch de sa tête, comme le Relecteur la dit illisible. Une fourche dont la branche portait le nom d'une branche d'origin faisait juger, mettre à jour, pousser et fusionner cette branche d'origin à sa place.
++- **Une PR de mise à jour d'un sujet** (ticket 78) : elle ne joue plus qu'une revue du capitaine au premier contrôle, son régime lu d'abord sur le sujet ; et quand aucun ticket ni aucune spec ne déclare le sujet, son motif dit son geste (un ticket du sujet accorde le chemin sensible), et plus celui d'une PR sans ticket.
++- **Le hook d'édition** (ticket 79) : l'héritage d'une copie de ticket sur un sujet se juge contre le develop d'origin ; une copie locale de develop en retard ne juge rien, et le refus dit de la relire. Quand le refus a un geste (relire les copies, approfondir le clone), il vient en tête, avant la demande au conducteur.
++
++### Ce qu'un projet fait pour en profiter
++
++1. Mettre à jour le plugin (comme pour 7.31.0, étape 1).
++2. Reposer, dans une PR du projet : `/maj-skills:fusionner poser`, `/maj-skills:sujet poser`, `/maj-skills:revue-adversariale poser` et `/maj-skills:socle-chaine-de-production` (le hook d'édition) ; puis relancer le capitaine.
++
+ ## 7.39.0 — 2026-11-22
+ 
+ ### Ce qui change
+diff --git a/skills/chaine/socle-chaine-de-production/references/agent/garde-fichiers.mjs b/skills/chaine/socle-chaine-de-production/references/agent/garde-fichiers.mjs
+index a722b44..0c2d276 100644
+--- a/skills/chaine/socle-chaine-de-production/references/agent/garde-fichiers.mjs
++++ b/skills/chaine/socle-chaine-de-production/references/agent/garde-fichiers.mjs
+@@ -78,9 +78,11 @@ const git = (...args) => execFileSync('git', args, { cwd: RACINE, encoding: 'utf
+  * sa base de fusion avec develop : héritée). `{ copies: [[motifs]…] }`, une liste par copie ; `{ illisible }` ;
+  * `null` : pas de ticket, pas de copie, origin injoignable, grammaire absente. Lu seulement quand le chemin est sensible.
+  * Une copie locale qui ne compte pas et porte le ticket est nommée dans `perimees` (avec `copies`, `illisible`, ou seule à
+- * la place de `null`) : le refus dit alors le geste qui la relit, avant d'écrire au conducteur. `superficiel` : un clone
+- * superficiel n'a pas laissé lire la base de fusion d'une copie de sujet, comptée alors comme écrite ; le refus dit de
+- * l'approfondir.
++ * la place de `null`) : le refus dit alors le geste qui la relit, avant d'écrire au conducteur. L'héritage d'une copie de
++ * sujet se juge contre le develop d'origin (`ls-remote`) : une copie locale de develop que origin ne confirme pas (en
++ * retard, ou absente) ne juge rien, la copie compte comme écrite et `origin/develop` est nommée dans `perimees`.
++ * `superficiel` : un clone superficiel n'a pas laissé lire la base de fusion d'une copie de sujet, comptée alors comme
++ * écrite ; le refus dit de l'approfondir.
+  */
+ function accordes() {
+   try {
+@@ -105,13 +107,22 @@ function accordes() {
+       }
+     };
+     const develop = objet('refs/remotes/origin/develop^{commit}');
++    // La base de fusion d'un sujet se lit contre le develop d'origin, jamais contre une copie locale en retard : plus
++    // ancienne que le develop que le sujet a reçu, elle ferait compter une copie héritée, sans geste (la suite M4 du
++    // lot 5). Non confirmée, la copie du sujet compte (du côté sûr), et le refus dit de relire develop.
++    const developConfirme = develop !== null && distants.get('refs/heads/develop') === develop;
++    let developPerime = false;
+     // Un clone superficiel (sessions cloud) ne voit souvent pas la base de fusion d'un sujet avec develop : la copie compte
+     // alors comme écrite, du côté sûr, et le refus dit de l'approfondir (`superficiel`).
+     let superficiel = false;
+     const herite = (sha, f) => {
++      if (!developConfirme) {
++        developPerime = true;
++        return false;
++      }
+       let base;
+       try {
+-        base = develop === null ? '' : git('merge-base', sha, develop);
++        base = git('merge-base', sha, develop);
+       } catch {
+         try {
+           superficiel ||= git('rev-parse', '--is-shallow-repository') === 'true';
+@@ -120,7 +131,7 @@ function accordes() {
+         }
+         return false; // aucune base commune lue : la copie est du sujet
+       }
+-      return base !== '' && objet(`${base}:${f}`) === objet(`${sha}:${f}`);
++      return objet(`${base}:${f}`) === objet(`${sha}:${f}`);
+     };
+     const copiesSous = (motif) => {
+       const copies = [];
+@@ -135,6 +146,7 @@ function accordes() {
+     };
+     let copies = copiesSous('refs/remotes/origin/sujet/');
+     if (copies.length === 0) copies = copiesSous('refs/remotes/origin/develop');
++    if (developPerime && !perimees.includes('origin/develop')) perimees.push('origin/develop');
+     if (copies.length === 0) return perimees.length > 0 ? { perimees } : null;
+     const illisible = copies.find((c) => c.illisible);
+     if (perimees.length > 0 || superficiel)
+diff --git a/skills/chaine/socle-chaine-de-production/references/agent/garde-fichiers.test.mjs b/skills/chaine/socle-chaine-de-production/references/agent/garde-fichiers.test.mjs
+index a4a6fe5..39a733e 100644
+--- a/skills/chaine/socle-chaine-de-production/references/agent/garde-fichiers.test.mjs
++++ b/skills/chaine/socle-chaine-de-production/references/agent/garde-fichiers.test.mjs
+@@ -98,7 +98,7 @@ test('régime 8 : une copie locale du sujet en retard sur origin n’est pas lue
+   d.git('update-ref', 'refs/remotes/origin/sujet/demo', avant);
+   d.git('switch', '-q', 'feat/spec-all-demo-1-01-garde');
+   const r = ecrire(d, 'scripts/agent/garde.mjs');
+-  refuse(r, /Copie du ticket non lue : origin\/sujet\/demo n'est pas au sommet d'origin\. Avant d'écrire au conducteur : `git fetch --prune origin '\+refs\/heads\/develop:refs\/remotes\/origin\/develop' '\+refs\/heads\/sujet\/\*:refs\/remotes\/origin\/sujet\/\*'`, puis refaire l'écriture\./);
++  refuse(r, /^scripts\/agent\/garde\.mjs : d'abord, relire les copies du ticket \(origin\/sujet\/demo n'est pas au sommet d'origin\) : `git fetch --prune origin '\+refs\/heads\/develop:refs\/remotes\/origin\/develop' '\+refs\/heads\/sujet\/\*:refs\/remotes\/origin\/sujet\/\*'`, puis refaire l'écriture\. Encore refusée : chemin sensible/);
+   // Le geste du refus, tel qu'il est écrit, puis l'écriture refaite.
+   const geste = /`(git fetch --prune origin [^`]+)`/.exec(r.stderr)[1];
+   const args = geste.split(' ').slice(1).map((a) => a.replace(/^'|'$/g, ''));
+@@ -156,7 +156,7 @@ test('régime 8 : le refus ne nomme que les copies en retard qui portent le tick
+   s.git('push', '-q', 'origin', 'HEAD:refs/heads/sujet/demo');
+   s.git('update-ref', 'refs/remotes/origin/sujet/demo', vieux);
+   s.git('switch', '-q', 'feat/spec-all-demo-1-02-garde');
+-  refuse(ecrire(s, 'scripts/agent/garde.mjs'), /Aucune ligne lue : .*\(Copie du ticket non lue : origin\/sujet\/demo n'est pas au sommet d'origin\./);
++  refuse(ecrire(s, 'scripts/agent/garde.mjs'), /^scripts\/agent\/garde\.mjs : d'abord, relire les copies du ticket \(origin\/sujet\/demo n'est pas au sommet d'origin\) : .*Encore refusée : .*\(Aucune ligne lue : /);
+ });
+ 
+ test('régime 8 : dans un clone superficiel, la base de fusion d’un sujet ne se lit pas : la copie héritée compte, et le refus dit d’approfondir le clone ; approfondi, le chemin accordé passe (contre-relecture de la PR 149, tour 3)', () => {
+@@ -179,7 +179,61 @@ test('régime 8 : dans un clone superficiel, la base de fusion d’un sujet ne s
+   g('fetch', '-q', 'origin', '+refs/heads/develop:refs/remotes/origin/develop', '+refs/heads/sujet/*:refs/remotes/origin/sujet/*');
+   g('switch', '-q', '-c', 'feat/spec-all-demo-1-01-garde', 'origin/develop');
+   const r = ecrire({ ...d, travail: ombre }, 'scripts/agent/garde.mjs');
+-  refuse(r, /\(Clone superficiel : la base de fusion d'un sujet avec develop ne s'y lit pas, .* `git fetch --unshallow origin`, puis refaire l'écriture\.\)/);
++  refuse(r, /^scripts\/agent\/garde\.mjs : d'abord, approfondir le clone \(clone superficiel : la base de fusion d'un sujet avec develop ne s'y lit pas, [^)]+\) : `git fetch --unshallow origin`, puis refaire l'écriture\. Encore refusée : chemin sensible/);
+   g('fetch', '-q', '--unshallow', 'origin');
+   passe(ecrire({ ...d, travail: ombre }, 'scripts/agent/garde.mjs'));
+ });
++
++// --- Suites du lot 5 (contre-relecture de la PR 149, tours 3 et 4 ; ticket 79) -------------------------------------
++
++test('régime 8 : l’héritage d’une copie de sujet se juge contre le develop d’origin ; une copie locale de develop en retard ne juge rien, le refus dit de la relire, et relue, le chemin accordé passe (la suite M4 du lot 5)', () => {
++  // Develop : le ticket sans accord (D0), puis un accord sur `docs/agents/regles.md` (D1), que le sujet `autre` reçoit,
++  // puis l'accord sur `scripts/agent/**` (D2). La session a relu le sujet, pas develop : sa copie est restée à D0.
++  const d = depot({ surSujet: null });
++  const d0 = d.git('rev-parse', 'origin/develop').trim();
++  d.git('switch', '-q', '--detach', 'origin/develop');
++  writeFileSync(join(d.travail, TICKET), ticket('Sensibles: docs/agents/regles.md — accord de la MOA, 2026-11-21'));
++  d.git('commit', '-q', '-am', 'accord étroit');
++  d.git('push', '-q', 'origin', 'HEAD:develop', 'HEAD:refs/heads/sujet/autre');
++  writeFileSync(join(d.travail, TICKET), ticket(ACCORD));
++  d.git('commit', '-q', '-am', 'accord large');
++  d.git('push', '-q', 'origin', 'HEAD:develop');
++  d.git('fetch', '-q', 'origin');
++  d.git('update-ref', 'refs/remotes/origin/develop', d0);
++  d.git('switch', '-q', 'feat/spec-all-demo-1-01-garde');
++  const r = ecrire(d, 'scripts/agent/garde.mjs');
++  refuse(r, /^scripts\/agent\/garde\.mjs : d'abord, relire les copies du ticket \(origin\/develop n'est pas au sommet d'origin\) : `git fetch --prune origin [^`]+`, puis refaire l'écriture\. Encore refusée : chemin sensible/);
++  // Le geste du refus, tel qu'il est écrit, puis l'écriture refaite : la copie du sujet est héritée de D1, D2 fait foi.
++  const geste = /`(git fetch --prune origin [^`]+)`/.exec(r.stderr)[1];
++  d.git(...geste.split(' ').slice(1).map((a) => a.replace(/^'|'$/g, '')));
++  passe(ecrire(d, 'scripts/agent/garde.mjs'));
++  // Une copie que le sujet a écrite compte, develop confirmé ou non : develop en retard ne la fait jamais passer pour
++  // héritée (elle serait sautée, et le chemin qu'elle accorde refusé faute de ligne lue).
++  const e = depot();
++  const e0 = e.git('rev-parse', 'origin/develop').trim();
++  e.git('switch', '-q', '--detach', 'origin/develop');
++  writeFileSync(join(e.travail, 'docs/autre.md'), 'autre\n');
++  e.git('add', '-A');
++  e.git('commit', '-q', '-m', 'develop avance');
++  e.git('push', '-q', 'origin', 'HEAD:develop');
++  e.git('update-ref', 'refs/remotes/origin/develop', e0);
++  e.git('switch', '-q', 'feat/spec-all-demo-1-01-garde');
++  passe(ecrire(e, 'scripts/agent/garde.mjs'));
++});
++
++test('régime 8 : dans un clone entier, un refus ne nomme jamais le clone superficiel, même quand la base de fusion ne se lit pas (un sujet orphelin) (la suite 23 du lot 5)', () => {
++  const d = depot({ surSujet: null, surDevelop: ACCORD });
++  d.git('switch', '-q', '--orphan', 'orphelin');
++  mkdirSync(join(d.travail, 'docs/features/demo/all/issues'), { recursive: true });
++  writeFileSync(join(d.travail, TICKET), ticket('Sensibles: —'));
++  d.git('add', TICKET);
++  d.git('commit', '-q', '-m', 'sujet orphelin');
++  d.git('push', '-q', 'origin', 'HEAD:refs/heads/sujet/orphelin');
++  d.git('fetch', '-q', 'origin');
++  d.git('clean', '-qfdx');
++  d.git('switch', '-q', '-f', 'feat/spec-all-demo-1-01-garde');
++  assert.equal(d.git('rev-parse', '--is-shallow-repository').trim(), 'false');
++  const r = ecrire(d, 'scripts/agent/garde.mjs');
++  refuse(r, /^scripts\/agent\/garde\.mjs : chemin sensible/);
++  assert.doesNotMatch(r.stderr, /superficiel|unshallow/, 'le geste du clone superficiel échouerait dans un clone entier');
++});
+diff --git a/skills/chaine/socle-chaine-de-production/references/agent/regles.mjs b/skills/chaine/socle-chaine-de-production/references/agent/regles.mjs
+index 7694e6e..b3ea6f2 100644
+--- a/skills/chaine/socle-chaine-de-production/references/agent/regles.mjs
++++ b/skills/chaine/socle-chaine-de-production/references/agent/regles.mjs
+@@ -95,21 +95,27 @@ function refusSensible(c, sensibles, accordes) {
+   const liste = Array.isArray(sensibles) && sensibles.every((m) => typeof m === 'string') ? sensibles : ['**'];
+   if (!touche(c, liste)) return null;
+   const lu = accordes();
+-  // Une copie locale du ticket que origin ne porte pas (en retard sur origin, ou déplacée) n'a pas été lue : le geste
+-  // qui la relit vient avant la demande au conducteur, qui a peut-être déjà ajouté le chemin.
+-  // Un clone superficiel n'a pas laissé lire la base de fusion d'une copie de sujet avec develop (A-193) : une copie que
+-  // le sujet a seulement héritée a pu compter ; le geste qui approfondit le clone, avant la demande au conducteur.
+-  const relire =
+-    (lu?.perimees
+-      ? ` (Copie du ticket non lue : ${lu.perimees.join(', ')} n'est pas au sommet d'origin. Avant d'écrire au conducteur : \`git fetch --prune origin '+refs/heads/develop:refs/remotes/origin/develop' '+refs/heads/sujet/*:refs/remotes/origin/sujet/*'\`, puis refaire l'écriture.)`
+-      : '') +
+-    (lu?.superficiel
+-      ? " (Clone superficiel : la base de fusion d'un sujet avec develop ne s'y lit pas, et une copie du ticket que le sujet n'a pas écrite a pu compter. Avant d'écrire au conducteur : `git fetch --unshallow origin`, puis refaire l'écriture.)"
+-      : '');
++  // Une copie locale du ticket, ou de develop, que origin ne porte pas (en retard sur origin, ou déplacée) n'a pas été
++  // lue : le geste qui la relit. Un clone superficiel n'a pas laissé lire la base de fusion d'une copie de sujet avec
++  // develop (A-193) : une copie que le sujet a seulement héritée a pu compter ; le geste qui approfondit le clone. Le
++  // geste vient en tête du refus, avant la demande au conducteur, qui a peut-être déjà ajouté le chemin (la suite 24 du
++  // lot 5) : une session qui lit le refus dans l'ordre fait d'abord ce qui peut le lever.
++  const gestes = [
++    ...(lu?.perimees
++      ? [`relire les copies du ticket (${lu.perimees.join(', ')} n'est pas au sommet d'origin) : \`git fetch --prune origin '+refs/heads/develop:refs/remotes/origin/develop' '+refs/heads/sujet/*:refs/remotes/origin/sujet/*'\``]
++      : []),
++    ...(lu?.superficiel
++      ? ["approfondir le clone (clone superficiel : la base de fusion d'un sujet avec develop ne s'y lit pas, et une copie du ticket que le sujet n'a pas écrite a pu compter) : `git fetch --unshallow origin`"]
++      : []),
++  ];
++  const refus = (detail) =>
++    gestes.length > 0
++      ? `${c} : d'abord, ${gestes.join(', puis ')}, puis refaire l'écriture. Encore refusée : ${RAISON_SENSIBLE}${detail}`
++      : `${c} : ${RAISON_SENSIBLE}${detail}`;
+   if (lu === null || (lu.copies === undefined && lu.illisible === undefined))
+-    return `${c} : ${RAISON_SENSIBLE} (Aucune ligne lue : branche sans ticket, ticket absent de origin/sujet/* et de origin/develop, ou origin injoignable.)${relire}`;
+-  if (lu.illisible) return `${c} : ${RAISON_SENSIBLE} (Ligne illisible : ${lu.illisible}.)${relire}`;
+-  return lu.copies.length > 0 && lu.copies.every((motifs) => touche(c, motifs)) ? null : `${c} : ${RAISON_SENSIBLE}${relire}`;
++    return refus(' (Aucune ligne lue : branche sans ticket, ticket absent de origin/sujet/* et de origin/develop, ou origin injoignable.)');
++  if (lu.illisible) return refus(` (Ligne illisible : ${lu.illisible}.)`);
++  return lu.copies.length > 0 && lu.copies.every((motifs) => touche(c, motifs)) ? null : refus('');
+ }
+ 
+ const LIGNE_SENSIBLES = /^(?:[-*][ \t]+)?\**Sensibles\**\s*:\**\s*(.*)$/i;
+diff --git a/skills/chaine/socle-chaine-de-production/references/agent/regles.test.mjs b/skills/chaine/socle-chaine-de-production/references/agent/regles.test.mjs
+index ad5c779..2c5fd19 100644
+--- a/skills/chaine/socle-chaine-de-production/references/agent/regles.test.mjs
++++ b/skills/chaine/socle-chaine-de-production/references/agent/regles.test.mjs
+@@ -1985,3 +1985,15 @@ test('lot 5b, refusEdition en régime 8 : un chemin sensible hors accord est ref
+   assert.equal(refusEdition('scripts/agent/a.mjs', { ...base, regime8: false, accordes: () => null }), null, 'régime 7');
+   assert.match(refusEdition('src/x.ts', { ...base, sensibles: 'pas une liste', accordes: () => null }), /chemin sensible/, 'liste mal formée : tout est sensible');
+ });
++
++test('suite 24 du lot 5, refusEdition en régime 8 : le geste qui relit ou approfondit vient en tête du refus, avant la demande au conducteur ; sans geste, le refus commence par sa raison', () => {
++  const base = { migrationExistante: () => false, regime8: true, sensibles: ['scripts/agent/**', 'docs/agents/'] };
++  const deux = refusEdition('docs/agents/x.md', { ...base, accordes: () => ({ copies: [[]], perimees: ['origin/sujet/x'], superficiel: true }) });
++  assert.match(deux, /^docs\/agents\/x\.md : d'abord, relire les copies du ticket \(origin\/sujet\/x n'est pas au sommet d'origin\) : `git fetch --prune origin [^`]+`, puis approfondir le clone \(clone superficiel : [^)]+\) : `git fetch --unshallow origin`, puis refaire l'écriture\. Encore refusée : chemin sensible \(`cheminsSensibles`\) hors de la ligne `Sensibles:`/);
++  assert.ok(deux.indexOf('git fetch') < deux.indexOf('Arrête-toi et écris à ton conducteur'), 'le geste avant la demande au conducteur');
++  assert.match(refusEdition('docs/agents/x.md', { ...base, accordes: () => ({ perimees: ['origin/develop'] }) }), /^docs\/agents\/x\.md : d'abord, relire les copies du ticket \(origin\/develop n'est pas au sommet d'origin\) : .*Encore refusée : .* \(Aucune ligne lue : /);
++  assert.match(refusEdition('docs/agents/x.md', { ...base, accordes: () => ({ illisible: 'deux lignes', superficiel: true }) }), /^docs\/agents\/x\.md : d'abord, approfondir le clone .*Encore refusée : .* \(Ligne illisible : deux lignes\.\)$/);
++  const sans = refusEdition('docs/agents/x.md', { ...base, accordes: () => ({ copies: [[]] }) });
++  assert.match(sans, /^docs\/agents\/x\.md : chemin sensible \(`cheminsSensibles`\)/);
++  assert.doesNotMatch(sans, /d'abord|git fetch|Encore refusée/, 'sans geste, rien de plus');
++});

@@ -1,0 +1,12 @@
+# Mutations du ticket 78, jouées le 2026-11-22 sur un clone neuf de 97d17e3 avec les patchs des tickets 78 et 79 (arbre 8dfcf8b2…), Node 22.23.5 ; début 07:53:47 UTC, charge 1.89 5.64 8.08
+ROUGE F1 passer.sh : une PR de fourche n'est pas sautée (le code d'avant, Q2 de la PR 149) (8 s) — passer.sh : une PR de fourche dont la branche porte le nom d
+ROUGE F2 passer.sh : une tête sans dépôt (fourche supprimée) passe pour une tête du dépôt (12 s) — passer.sh : une PR de fourche dont la branche porte le nom d
+ROUGE F3 passer.sh : la garde de fourche après le fetch de la tête (la branche d'origin du même nom lue) (9 s) — passer.sh : une PR de fourche dont la branche porte le nom d
+ROUGE F4 sujet.sh fusionner : une sous-PR de fourche n'est pas sautée (9 s) — sujet.sh fusionner : une sous-PR de fourche est sautée sans 
+ROUGE M1a sujet.sh fusionner : le régime n'est pas lu d'abord (deux revues au premier contrôle, le code d'avant en coût) (8 s) — sujet.sh fusionner, régime 8 : une PR de mise à jour ne joue
+ROUGE M1b sujet.sh fusionner : la revue n'est pas rejouée quand le régime relu diffère de celui lu d'abord (8 s) — sujet.sh fusionner, régime 8 : le régime lu d'abord diffère 
+ROUGE M1c sujet.sh fusionner : la liste d'une PR de mise à jour en régime 8 sans ses retouches (8 s) — sujet.sh fusionner, régime 8 : le régime lu d'abord diffère 
+ROUGE M2a chemins-sensibles.mjs : une PR de mise à jour sans ticket déclaré reçoit le motif d'une PR sans ticket (le code d'avant) (7 s) — garde du capitaine : une PR de mise à jour d'un sujet qu'auc
+ROUGE M2b chemins-sensibles.mjs : toute PR sans ticket reçoit le motif d'une PR de mise à jour (7 s) — garde du capitaine : une PR de mise à jour d'un sujet qu'auc
+toutes rouges
+sortie 0 ; fin 07:55:04 UTC, charge 3.12 5.22 7.74 ; arbre après : 0 fichier(s) modifié(s)

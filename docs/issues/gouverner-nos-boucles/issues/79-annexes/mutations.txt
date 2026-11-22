@@ -1,0 +1,12 @@
+# Mutations du ticket 79, jouées le 2026-11-22 sur un clone neuf de 97d17e3 avec les patchs des tickets 78 et 79 (arbre 6f023b15…), Node 22.23.5 ; début 08:04:13 UTC, charge 6.90 6.43 7.07
+ROUGE H1 garde-fichiers.mjs : l'héritage jugé contre la copie locale de develop, sans la confirmer (le code d'avant, M4 de la PR 149) (6 s) — régime 8 : l’héritage d’une copie de sujet se juge contre le
+ROUGE H2 garde-fichiers.mjs : develop non confirmé, sans geste (la copie compte, le refus ne dit pas de relire develop) (7 s) — régime 8 : l’héritage d’une copie de sujet se juge contre le
+ROUGE H3 garde-fichiers.mjs : develop non confirmé, la copie du sujet dite héritée (la garde ouverte) (7 s) — régime 8 : l’héritage d’une copie de sujet se juge contre le
+ROUGE H4 garde-fichiers.mjs : le clone dit superficiel à toute base de fusion qui ne se lit pas (T2 du quatrième tour, constat 23) (7 s) — régime 8 : dans un clone entier, un refus ne nomme jamais le
+ROUGE H5 regles.mjs : le geste après la raison, entre parenthèses (l'ordre d'avant, constat 24) (16 s) — régime 8 : une copie locale du sujet en retard sur origin n’ | régime 8 : le refus ne nomme que les copies en retard qui po | régime 8 : dans un clone superficiel, la base de fusion d’un | régime 8 : l’héritage d’une copie de sujet se juge contre le | suite 24 du lot 5, refusEdition en régime 8 : le geste qui r
+ROUGE H6 regles.mjs : le geste en tête, sans « puis refaire l'écriture » (16 s) — régime 8 : une copie locale du sujet en retard sur origin n’ | régime 8 : dans un clone superficiel, la base de fusion d’un | régime 8 : l’héritage d’une copie de sujet se juge contre le | suite 24 du lot 5, refusEdition en régime 8 : le geste qui r
+ROUGE H7 regles.mjs : « Aucune ligne lue » perdu quand un geste est dit (18 s) — régime 8 : le refus ne nomme que les copies en retard qui po | suite 24 du lot 5, refusEdition en régime 8 : le geste qui r
+ROUGE H8 regles.mjs : le geste du clone superficiel oublié quand il suit celui des copies (17 s) — suite 24 du lot 5, refusEdition en régime 8 : le geste qui r
+toutes rouges
+sortie 0 ; fin 08:05:47 UTC, charge 7.97 6.82 7.14 ; arbre après : 0 fichier(s) modifié(s)
+# Une première passe, avant que le banc tienne H3 et que H8 soit récrite (elle ne changeait rien au code), avait laissé H3 et H8 vertes : le banc et H8 ont été corrigés, puis la passe entière rejouée (ci-dessus).

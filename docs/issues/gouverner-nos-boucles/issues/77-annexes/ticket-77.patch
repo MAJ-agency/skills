@@ -1,0 +1,170 @@
+diff --git a/.claude-plugin/plugin.json b/.claude-plugin/plugin.json
+index fd0532b..ba3cd44 100644
+--- a/.claude-plugin/plugin.json
++++ b/.claude-plugin/plugin.json
+@@ -1,6 +1,6 @@
+ {
+   "name": "maj-skills",
+-  "version": "7.39.0",
++  "version": "7.39.1",
+   "description": "Skills d'ingénierie maison : amorçage de monorepo et de socles (API NestJS hexagonale, web Next.js, mobile Expo), chaîne de production pour des sessions d'agent en parallèle (tickets, sujets, capitaine de fusion, revue adversariale, chantier, recette). Aucune règle métier.",
+   "author": {
+     "name": "Guillaume Jauffret"
+diff --git a/NOTES-DE-VERSION.md b/NOTES-DE-VERSION.md
+index ef59c20..6225886 100644
+--- a/NOTES-DE-VERSION.md
++++ b/NOTES-DE-VERSION.md
+@@ -2,6 +2,19 @@
+ 
+ La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque projet par `poser` : une version publiée ne change rien chez un projet qui ne les repose pas. Chaque note dit ce qui change, puis ce qu'un projet fait pour en profiter.
+ 
++## 7.39.1 — 2026-11-22
++
++### Ce qui change
++
++- **Un calcul qui dit un outil absent du poste est une panne** (ticket 75, `A-192` point 1) : `double-relecture.mjs` ou `meme-contenu.sh` sorti en 69 (git plus ancien que 2.41, `jq` absent, la grammaire des identifiants introuvable) arrête le capitaine (`revue-exigee.mjs` sort en 3, `passer.sh` en 3, `sujet.sh fusionner` en 11) et le Relecteur (sortie 6), la cause dite. Ce n'est plus une lecture illisible, qui faisait sauter chaque PR en silence chez le capitaine et la traçait à chaque délai chez le Relecteur.
++- **Le script du Relecteur** (ticket 76) : son usage nomme `--sondes` ; son en-tête dit qu'un plafond rejoué après un retrait refusé redit « décision de plafond attendue » à l'auteur et au conducteur, ce qui est gardé (`A-189` point 1) ; deux bancs tiennent ce plafond rejoué et une trace d'illisible qui n'est pas la marque.
++- **Le texte du Relecteur** (ticket 77) : la sortie 5 de `jouer` a sa borne (à la seconde fois de suite sur la même PR, l'architecte et `--taire <n>`) et se lit, comme `create_session` en échec, « rejouer au réveil suivant », que `--attendre` suit ; chaque borne dit « de suite » ; `reecrire` d'une session hors service peut rendre `panne`, dont les lignes partent ; « un champ absent, `couple` » ; le plafond rejoué y est écrit ; la sortie 6 nomme la sortie 69 des calculs.
++
++### Ce qu'un projet fait pour en profiter
++
++1. Mettre à jour le plugin (comme pour 7.31.0, étape 1) : le Relecteur lit son skill et son script dans le plugin à son prochain lancement.
++2. Reposer, dans une PR du projet : `/maj-skills:fusionner poser` (`revue-exigee.mjs` change), puis relancer le capitaine.
++
+ ## 7.39.0 — 2026-11-22
+ 
+ ### Ce qui change
+diff --git a/scripts/relecteur.test.mjs b/scripts/relecteur.test.mjs
+index 7e145dc..8415d13 100644
+--- a/scripts/relecteur.test.mjs
++++ b/scripts/relecteur.test.mjs
+@@ -63,7 +63,7 @@ test("A-180 — la veille sous le plafond de l'outil Bash, le couple au réemplo
+   const skill = lire(`${SKILL}/SKILL.md`);
+   const sorties = skill.slice(skill.indexOf("## Les sorties de `passe`, `jouer` et `distribuer`"), skill.indexOf("## Créer ou relancer les sessions"));
+   for (const code of [0, 1, 2, 3, 5, 6, 7, 9, 12]) assert.match(sorties, new RegExp(`^\\| ${code} \\| \\S`, "m"), `la sortie ${code} a sa suite`);
+-  assert.match(sorties, /^\| 7 \| .*au second refus, l'architecte et `--taire <n>`/m);
++  assert.match(sorties, /^\| 7 \| .*au second refus de suite, l'architecte et `--taire <n>`/m);
+   assert.ok(!/elle a écrit qu'elle est au plafond/.test(skill), "« au plafond » ne se lit plus dans un message");
+ });
+ 
+@@ -145,7 +145,7 @@ test("fusionner/references/CONTENU.md décrit les trois calculs de la relecture
+ test("suite du ticket 66 (ticket 69) — chaque phrase neuve à sa place : `--attendre` et la borne de 9, l'état `couple`, `send_message` en échec, les causes des lignes, une étiquette restée, l'installation à retenter", () => {
+   const texte = lire(`${SKILL}/SKILL.md`);
+   // R5 : la sortie 9 a la borne de 12, et `--attendre` se dit dans « La veille ».
+-  exigerA(ligne(texte, "## Les sorties de `passe`, `jouer` et `distribuer`", "| 9 |"), "la ligne de la sortie 9", ["rejouer au réveil suivant ; à la seconde fois, l'architecte, et s'arrêter"]);
++  exigerA(ligne(texte, "## Les sorties de `passe`, `jouer` et `distribuer`", "| 9 |"), "la ligne de la sortie 9", ["rejouer au réveil suivant ; à la seconde fois de suite, l'architecte, et s'arrêter"]);
+   exigerA(section(texte, "## La veille"), "« La veille »", ["`--attendre` : une pause avant la première passe aussi, sous la même borne de 25 minutes"]);
+   // A-184 (3) : un geste au premier plan qui renvoie au réveil suivant pendant un réveil fait relancer la veille avec
+   // `--attendre`, après `VEILLE GESTE` comme après `VEILLE FINIE`.
+@@ -155,7 +155,7 @@ test("suite du ticket 66 (ticket 69) — chaque phrase neuve à sa place : `--at
+   exigerA(section(texte, "## L'état des sessions"), "« L'état des sessions »", [
+     '`{ "<session>": "vivante" | "morte" | "plafond" | "couple" }`',
+     "`couple` : elle tourne à un autre couple que celui de `faits` (`session_context.model` ne contient pas `faits.modele`, ou `session_context.effort_level` n'est pas `faits.effort`)",
+-    "`reecrire`, qui réemploie la session, suit cette règle de « Créer ou relancer » : sans les deux champs, `couple`.",
++    "`reecrire`, qui réemploie la session, suit cette règle de « Créer ou relancer » : il lui faut les deux champs ; un champ absent, `couple`.",
+     "Une session `couple` est remplacée comme une morte, une fois par tour (`remplacer`, cause `couple`).",
+   ]);
+   exigerA(ligne(texte, "## À chaque réveil", "| `reecrire` |"), "la ligne de `reecrire`", ["sinon (`morte`, `plafond` ou `couple`) `jouer <n> --sessions <fichier>`, qui rend `remplacer`"]);
+@@ -187,5 +187,28 @@ test("contre-relecture de la PR 147 — les quatre formes des lignes à l'archit
+   // R5 s'appuie sur « la seconde fois » de 12 et d'une sortie hors de la table : chacune à sa ligne, comme celle de 9.
+   const sorties = "## Les sorties de `passe`, `jouer` et `distribuer`";
+   for (const debut of ["| 9 |", "| 12 |", "| autre, ou aucune (l'outil a arrêté la commande) |"])
+-    exigerA(ligne(texte, sorties, debut), `la ligne ${debut}`, ["rejouer au réveil suivant ; à la seconde fois, l'architecte, et s'arrêter"]);
++    exigerA(ligne(texte, sorties, debut), `la ligne ${debut}`, ["rejouer au réveil suivant ; à la seconde fois de suite, l'architecte, et s'arrêter"]);
++});
++
++test("suites de la PR 147 et du lot 5 (ticket 77) — la borne de la sortie 5 de `jouer`, « rejouer au réveil suivant » partout où le réveil suivant rejoue, « de suite », `reecrire` qui peut rendre `panne`, un champ absent, le plafond rejoué, la sortie 69 des calculs", () => {
++  const texte = lire(`${SKILL}/SKILL.md`);
++  const sorties = "## Les sorties de `passe`, `jouer` et `distribuer`";
++  // A-189, point 2 : la sortie 5 a sa borne, comme la sortie 7, et sa suite se lit « rejouer au réveil suivant » (ce que
++  // `--attendre` suit) ; la sortie 7 et toutes les bornes disent « de suite » (A-189, point 3).
++  exigerA(ligne(texte, sorties, "| 5 |"), "la ligne de la sortie 5", ["GitHub n'a pas répondu : rejouer au réveil suivant ; `jouer <n>` sorti en 5 pour la seconde fois de suite sur la même PR : l'architecte, et `--taire <n>`"]);
++  exigerA(ligne(texte, sorties, "| 7 |"), "la ligne de la sortie 7", ["la rejouer au réveil suivant ; au second refus de suite, l'architecte et `--taire <n>`"]);
++  // A-192, point 1 : la sortie 69 d'un calcul arrête le Relecteur (sortie 6), comme des calculs absents.
++  exigerA(ligne(texte, sorties, "| 6 |"), "la ligne de la sortie 6", ["un calcul dit qu'un outil de la chaîne manque au poste (sa sortie 69 : git plus ancien que 2.41, `jq` absent)", ": l'architecte, et s'arrêter"]);
++  assert.ok(!texte.includes("à la seconde fois,"), "chaque borne dit « de suite »");
++  assert.ok(!texte.includes("le réveil suivant rejoue"), "la sortie 5 : « rejouer au réveil suivant »");
++  exigerA(section(texte, "## Créer ou relancer les sessions"), "« Créer ou relancer les sessions »", ["`create_session` en échec pour une autre cause : rejouer au réveil suivant ; à la seconde fois de suite, l'architecte, et `--taire <n>`."]);
++  // A-189, point 3 : `reecrire` d'une session hors service peut rendre `panne`, dont les lignes partent.
++  exigerA(ligne(texte, "## À chaque réveil", "| `reecrire` |"), "la ligne de `reecrire`", ["`jouer <n> --sessions <fichier>`, qui rend `remplacer`, ou `panne` (une session déjà remplacée dans ce tour) : ses lignes (« Les lignes »)"]);
++  exigerA(section(texte, "## L'état des sessions"), "« L'état des sessions »", ["il lui faut les deux champs ; un champ absent, `couple`."]);
++  assert.ok(!texte.includes("sans les deux champs"), "« sans les deux champs » se lisait aussi « si les deux manquent »");
++  // A-189, point 1 : le plafond rejoué après un retrait refusé redit « décision de plafond attendue », et c'est voulu.
++  exigerA(section(texte, "## Les lignes"), "« Les lignes »", ["Une exception, voulue : rejoué après un retrait refusé, un plafond redit « décision de plafond attendue » à l'auteur et au conducteur (son étiquette s'est posée avant son commentaire) ; ces lignes partent comme les autres."]);
++  // La veille relancée avec `--attendre` sur toute suite « rejouer au réveil suivant » : la sortie 5 en est une.
++  for (const puce of ["- **`VEILLE GESTE`**", "- **`VEILLE FINIE`**"])
++    exigerA(ligne(texte, "## La veille", puce), `la puce ${puce}`, ["avec `--attendre` si un geste de ce réveil a rendu une suite « rejouer au réveil suivant »"]);
+ });
+diff --git a/skills/chaine/relecteur/SKILL.md b/skills/chaine/relecteur/SKILL.md
+index 93d3496..7c0e4a7 100644
+--- a/skills/chaine/relecteur/SKILL.md
++++ b/skills/chaine/relecteur/SKILL.md
+@@ -40,7 +40,7 @@ Fin de la veille, message d'une session : **`passe` d'abord**, toujours, puis le
+ | `distribuer` (règles 4 et 6) | « Créer ou relancer les sessions », puis `distribuer <n> --sommet <sommet> --couple <modele>/<effort> <sessions…>`, puis le message de relance aux sessions réemployées |
+ | `completer` | créer `manque` sessions neuves, puis `distribuer <n> --sommet … --couple … <neuves…>` |
+ | `remplacer` | créer une session neuve, puis `distribuer <n> --sommet … --couple … --remplace <ancienne> <neuve>` ; cause `plafond` : une ligne au conducteur (`faits.conducteur`), « session de relecture <id> remplacée au plafond de contexte, PR <n> » ; cause `couple` : rien de plus, la neuve est au couple de `faits` |
+-| `reecrire` | lire l'état de la session (« L'état des sessions ») ; vivante : `distribuer <n> --sommet … --couple …`, puis le message de relance ; sinon (`morte`, `plafond` ou `couple`) `jouer <n> --sessions <fichier>`, qui rend `remplacer` |
++| `reecrire` | lire l'état de la session (« L'état des sessions ») ; vivante : `distribuer <n> --sommet … --couple …`, puis le message de relance ; sinon (`morte`, `plafond` ou `couple`) `jouer <n> --sessions <fichier>`, qui rend `remplacer`, ou `panne` (une session déjà remplacée dans ce tour) : ses lignes (« Les lignes ») |
+ 
+ `jouer <n>` refait la décision de la PR et joue sur GitHub ce qui s'y écrit : la nouvelle étiquette **avant** de retirer l'ancienne, le commentaire du plafond, de la panne ou de l'illisible. Pour un geste de session, il n'écrit rien et rend le geste à jouer, avec `faits` : `modele` et `effort` de la session à créer, `sensible`, `exiges`, `auteur`, `conducteur`. `distribuer` reçoit le sommet et le couple que le geste nommait, refait la décision et **sort en 3 sans rien écrire** si le geste, le sommet ou le couple ont changé entre-temps (un verdict tombé, un push, une PR devenue sensible).
+ 
+@@ -52,28 +52,28 @@ Fin de la veille, message d'une session : **`passe` d'abord**, toujours, puis le
+ | 1 | une erreur du script (sa pile) : la ligne à l'architecte, la PR tue (`--taire <n>`), rien d'autre pour elle ; une erreur de `passe`, qui ne nomme aucune PR : l'architecte, et s'arrêter |
+ | 2 | un appel mal formé (la cause dite) : le refaire une fois d'après la cause ; encore, l'architecte, et `--taire <n>` |
+ | 3 | la PR est fermée, ou le geste a changé : `passe`, et le geste qu'elle rend ; une session créée pour rien est orpheline, une ligne à l'architecte, qui l'archive (une session que la passe nomme dans `sessions` ou `attendues` n'est pas orpheline : sa distribution est écrite) |
+-| 5 | GitHub n'a pas répondu : rien, le réveil suivant rejoue |
+-| 6 | le dossier n'est pas propre, `scripts/chaine/` n'a pas les calculs de la relecture (`fusionner`, `sujet`, `relecture` à reposer), ou `flock` manque : l'architecte, et s'arrêter |
+-| 7 | GitHub a refusé une écriture : la rejouer au réveil suivant ; au second refus, l'architecte et `--taire <n>` |
+-| 9 | le verrou n'est pas venu en 5 minutes : rejouer au réveil suivant ; à la seconde fois, l'architecte, et s'arrêter |
+-| 12 | git ne lit pas `origin` : rejouer au réveil suivant ; à la seconde fois, l'architecte, et s'arrêter |
+-| autre, ou aucune (l'outil a arrêté la commande) | rejouer au réveil suivant ; à la seconde fois, l'architecte, et s'arrêter |
++| 5 | GitHub n'a pas répondu : rejouer au réveil suivant ; `jouer <n>` sorti en 5 pour la seconde fois de suite sur la même PR : l'architecte, et `--taire <n>` |
++| 6 | le dossier n'est pas propre, `scripts/chaine/` n'a pas les calculs de la relecture (`fusionner`, `sujet`, `relecture` à reposer), un calcul dit qu'un outil de la chaîne manque au poste (sa sortie 69 : git plus ancien que 2.41, `jq` absent), ou `flock` manque : l'architecte, et s'arrêter |
++| 7 | GitHub a refusé une écriture : la rejouer au réveil suivant ; au second refus de suite, l'architecte et `--taire <n>` |
++| 9 | le verrou n'est pas venu en 5 minutes : rejouer au réveil suivant ; à la seconde fois de suite, l'architecte, et s'arrêter |
++| 12 | git ne lit pas `origin` : rejouer au réveil suivant ; à la seconde fois de suite, l'architecte, et s'arrêter |
++| autre, ou aucune (l'outil a arrêté la commande) | rejouer au réveil suivant ; à la seconde fois de suite, l'architecte, et s'arrêter |
+ 
+ ## Créer ou relancer les sessions
+ 
+ - **Une session par PR, et une seule** : une session de relecture ne relit jamais une autre PR.
+ - **Réemployer**, dans les règles 4, 5 et 6, une session de `preferees` (ou du tour) seulement si `get_session` la dit vivante, à 700 000 tokens de contexte au plus (`external_metadata.context_usage.used_tokens`), **et au même couple** que celui du geste (`session_context.model` qui contient `faits.modele`, `claude-opus-…` pour `opus`, et `session_context.effort_level` égal à `faits.effort`) ; sinon une session neuve. Sans compte de tokens (`context_usage`), la session n'est pas tenue au plafond ; sans `effort_level`, le couple n'est pas tenu pour égal, et la PR reçoit une session neuve. Une PR devenue sensible ou « double » reçoit des sessions neuves au couple sensible (`P-64` prime sur `P-52`).
+-- **Créer** : `create_session`, avec `title` « `<Projet> — Relecture PR <n>` », `tags` `["role:relecture", "pr:<n>"]`, `source_url` le dépôt, `source_revision` **la base de la PR** (jamais sa tête), `model` et `effort` de `faits` (`relecture.ordinaire` ou `relecture.sensible` du contrat, `opus` ou `sonnet`), `permission_mode` `"auto"`, et le prompt de [`references/prompt-session.md`](references/prompt-session.md), rempli. Créer d'abord, écrire la distribution ensuite : une session que nulle distribution ne nomme ne publie rien. `create_session` refuse `effort` (l'outil est pré-approuvé dans cette session) : ne pas créer sans lui ; l'architecte, et `--taire <n>`. `create_session` en échec pour une autre cause : rejouer le geste au réveil suivant ; à la seconde fois, l'architecte, et `--taire <n>`.
++- **Créer** : `create_session`, avec `title` « `<Projet> — Relecture PR <n>` », `tags` `["role:relecture", "pr:<n>"]`, `source_url` le dépôt, `source_revision` **la base de la PR** (jamais sa tête), `model` et `effort` de `faits` (`relecture.ordinaire` ou `relecture.sensible` du contrat, `opus` ou `sonnet`), `permission_mode` `"auto"`, et le prompt de [`references/prompt-session.md`](references/prompt-session.md), rempli. Créer d'abord, écrire la distribution ensuite : une session que nulle distribution ne nomme ne publie rien. `create_session` refuse `effort` (l'outil est pré-approuvé dans cette session) : ne pas créer sans lui ; l'architecte, et `--taire <n>`. `create_session` en échec pour une autre cause : rejouer au réveil suivant ; à la seconde fois de suite, l'architecte, et `--taire <n>`.
+ - **Deux sessions** quand `nombre` vaut 2 : chacune a pour consigne de ne pas lire le verdict de l'autre (le prompt le dit).
+ - **Relancer** une session réemployée : le message de relance du même fichier, par `send_message`, après la distribution.
+ 
+ ## L'état des sessions
+ 
+-Il se lit par `get_session`, pour les règles 4, 5 et 6 seulement : les `preferees` d'un geste `distribuer`, et, pour chaque PR que la passe range en règle 5 (`reecrire`, ou `rien` avec la raison `attente`), chaque session attendue, écrite dans un fichier du scratchpad, `{ "<session>": "vivante" | "morte" | "plafond" | "couple" }`, puis `jouer <n> --sessions <fichier>`. `morte` : archivée, en échec (`status_bucket` `failed`), ou introuvable ; `plafond` : plus de 700 000 tokens de contexte (`external_metadata.context_usage.used_tokens`) ; `couple` : elle tourne à un autre couple que celui de `faits` (`session_context.model` ne contient pas `faits.modele`, ou `session_context.effort_level` n'est pas `faits.effort`), une PR devenue sensible ou « double » sans push ; sinon `vivante`. Sans compte de tokens (`context_usage`), la session n'est pas tenue au plafond ; sans `effort_level`, le couple n'est pas tenu pour égal, et la PR reçoit une session neuve. `reecrire`, qui réemploie la session, suit cette règle de « Créer ou relancer » : sans les deux champs, `couple`. Une session seulement attendue (`rien`, raison `attente`) n'est `couple` que si `get_session` rend les deux champs et que l'un diffère ; un champ absent la laisse `vivante`, et elle ne s'écrit jamais `morte` pour son couple. Une session `couple` est remplacée comme une morte, une fois par tour (`remplacer`, cause `couple`).
++Il se lit par `get_session`, pour les règles 4, 5 et 6 seulement : les `preferees` d'un geste `distribuer`, et, pour chaque PR que la passe range en règle 5 (`reecrire`, ou `rien` avec la raison `attente`), chaque session attendue, écrite dans un fichier du scratchpad, `{ "<session>": "vivante" | "morte" | "plafond" | "couple" }`, puis `jouer <n> --sessions <fichier>`. `morte` : archivée, en échec (`status_bucket` `failed`), ou introuvable ; `plafond` : plus de 700 000 tokens de contexte (`external_metadata.context_usage.used_tokens`) ; `couple` : elle tourne à un autre couple que celui de `faits` (`session_context.model` ne contient pas `faits.modele`, ou `session_context.effort_level` n'est pas `faits.effort`), une PR devenue sensible ou « double » sans push ; sinon `vivante`. Sans compte de tokens (`context_usage`), la session n'est pas tenue au plafond ; sans `effort_level`, le couple n'est pas tenu pour égal, et la PR reçoit une session neuve. `reecrire`, qui réemploie la session, suit cette règle de « Créer ou relancer » : il lui faut les deux champs ; un champ absent, `couple`. Une session seulement attendue (`rien`, raison `attente`) n'est `couple` que si `get_session` rend les deux champs et que l'un diffère ; un champ absent la laisse `vivante`, et elle ne s'écrit jamais `morte` pour son couple. Une session `couple` est remplacée comme une morte, une fois par tour (`remplacer`, cause `couple`).
+ 
+ ## Les lignes
+ 
+-`lignes` est une liste de `{ a, session, texte }`. `a` vaut `auteur` ou `conducteur` : le `texte` part à `session` par `send_message`, tel quel ; `session` vaut `null` (une PR écrite sans session, `Session: —`) : personne n'est sonné. `a` vaut `architecte` : le `texte` part à la session de la ligne « Architecte : ». Jamais un constat, jamais un résumé, jamais un mot de plus. `jouer` ne rend une ligne qu'au changement d'étiquette, ou avec le commentaire du plafond : rejoué, il n'en rend aucune. Une étiquette déjà là, posée avant la marque la plus récente de la PR (restée d'un tour d'avant, que l'auteur n'a pas retirée), n'est pas un passage rejoué : ses lignes partent.
++`lignes` est une liste de `{ a, session, texte }`. `a` vaut `auteur` ou `conducteur` : le `texte` part à `session` par `send_message`, tel quel ; `session` vaut `null` (une PR écrite sans session, `Session: —`) : personne n'est sonné. `a` vaut `architecte` : le `texte` part à la session de la ligne « Architecte : ». Jamais un constat, jamais un résumé, jamais un mot de plus. `jouer` ne rend une ligne qu'au changement d'étiquette, ou avec le commentaire du plafond : rejoué, il n'en rend aucune. Une exception, voulue : rejoué après un retrait refusé, un plafond redit « décision de plafond attendue » à l'auteur et au conducteur (son étiquette s'est posée avant son commentaire) ; ces lignes partent comme les autres. Une étiquette déjà là, posée avant la marque la plus récente de la PR (restée d'un tour d'avant, que l'auteur n'a pas retirée), n'est pas un passage rejoué : ses lignes partent.
+ 
+ `send_message` en échec (une ligne, ou le message de relance) : le rejouer une fois ; encore en échec, une ligne à l'architecte, « PR <n> : send_message en échec vers <session> : <sa dernière ligne non vide> », puis la suite du geste. Une ligne à l'architecte elle-même en échec deux fois : l'écrire dans sa réponse, et s'arrêter.
+ 
+@@ -96,7 +96,7 @@ Un message ne fait que hâter : la veille fait le même travail à sa sonde suiv
+ - **`VEILLE ARRÊTÉE sortie <c>`** : la passe est sortie autrement qu'en 0 ou en 5 ; la suite de cette sortie (« Les sorties »), avec la dernière ligne du journal ; quand cette suite dit « rejouer au réveil suivant » (9, 12, autre), relancer la veille avec `--attendre` : sa fin est ce réveil ;
+ - **aucune de ces trois lignes** (l'outil a arrêté la veille) : comme `VEILLE FINIE`.
+ 
+-`PAUSE` dans le journal : GitHub n'a pas répondu, la veille continue. `--taire <n>,…` : ces PR ne la réveillent plus, pour un geste qui ne peut pas se jouer ; une ligne à l'architecte l'a dit. Une PR tue le reste, d'une veille à la suivante, tant que la passe lui rend le même geste à la même règle ; son geste ne se joue pas au réveil. Un autre geste, ou une autre règle, la fait sortir de `--taire`. `--attendre` : une pause avant la première passe aussi, sous la même borne de 25 minutes ; sans lui, une panne de quelques secondes (une coupure de `git fetch`) se rejouerait aussitôt et compterait pour la seconde fois. Une seule veille à la fois : l'arrêter (`TaskStop`) avant d'en relancer une.
++`PAUSE` dans le journal : GitHub n'a pas répondu, la veille continue. `--taire <n>,…` : ces PR ne la réveillent plus, pour un geste qui ne peut pas se jouer ; une ligne à l'architecte l'a dit. Une PR tue le reste, d'une veille à la suivante, tant que la passe lui rend le même geste à la même règle ; son geste ne se joue pas au réveil. Un autre geste, ou une autre règle, la fait sortir de `--taire`. `--attendre` : une pause avant la première passe aussi, sous la même borne de 25 minutes ; sans lui, une panne de quelques secondes (une coupure de `git fetch`) se rejouerait aussitôt et compterait pour la seconde fois de suite. Une seule veille à la fois : l'arrêter (`TaskStop`) avant d'en relancer une.
+ 
+ ## Ne jamais
+ 
+diff --git a/skills/chaine/relecteur/references/CONTENU.md b/skills/chaine/relecteur/references/CONTENU.md
+index e2283d1..bd4ac3e 100644
+--- a/skills/chaine/relecteur/references/CONTENU.md
++++ b/skills/chaine/relecteur/references/CONTENU.md
+@@ -14,7 +14,7 @@ La clé `relecture` du contrat que le script lit (`A-179`) : `depuis` (ISO 8601
+ 
+ ## Le banc — `scripts/relecteur.test.mjs`
+ 
+-Le script joué comme la session le joue, dans une copie du dépôt jouet du skill `sujet`, avec les vrais scripts de la chaîne sur develop et le faux GitHub : la file et le régime, le cas nominal de la distribution à `à-fusionner`, l'ordre des étiquettes, une ligne qui ne repart pas, un refus sur un chemin sensible, le remplacement d'une session morte, la relance d'un `incomplet`, le plafond, une PR mise à jour par le capitaine qui garde son verdict, une sous-PR vers un sujet, la préparation du dossier, les dépendances, la veille, une écriture refusée ; et, depuis `A-180`, le sommet ou le couple changés (X1), `depuis` et `modele` (X3), `--sessions` mal formé (X5), une PR fermée (X7), les causes d'illisible (X15), le verrou (X16), les hooks (X17), les calculs en panne par des talons, `completer`, la reprise après arbitrage, deux pages, la panne ; et, depuis la contre-relecture de la PR 146, la veille finie à sa durée, le plafond dit sur une étiquette restée, les `GIT_CONFIG_*` de la session gardés, aucun hook de git ni fsmonitor, le verrou attendu, une installation en échec au journal de la veille, une PR de mise à jour acceptée, les autres causes d'illisible (`a-juger` ou le diff en échec, une fourche supprimée) et leur trace redite après le délai ; et, depuis les tickets 67 et 68 (suite du ticket 66), l'erreur d'installation gardée quand GitHub se tait ensuite, `--attendre`, la tête relue après un push, l'étiquette restée et le passage rejoué lus dans les événements de la PR, le plafond à moitié écrit, une session à un autre couple ; et, depuis la contre-relecture de la PR 147, la marque lue sur un commentaire à marque, une PR sans marque, des événements illisibles (rien d'écrit) ou sur deux pages, la tête relue en échec (sortie 12).
++Le script joué comme la session le joue, dans une copie du dépôt jouet du skill `sujet`, avec les vrais scripts de la chaîne sur develop et le faux GitHub : la file et le régime, le cas nominal de la distribution à `à-fusionner`, l'ordre des étiquettes, une ligne qui ne repart pas, un refus sur un chemin sensible, le remplacement d'une session morte, la relance d'un `incomplet`, le plafond, une PR mise à jour par le capitaine qui garde son verdict, une sous-PR vers un sujet, la préparation du dossier, les dépendances, la veille, une écriture refusée ; et, depuis `A-180`, le sommet ou le couple changés (X1), `depuis` et `modele` (X3), `--sessions` mal formé (X5), une PR fermée (X7), les causes d'illisible (X15), le verrou (X16), les hooks (X17), les calculs en panne par des talons, `completer`, la reprise après arbitrage, deux pages, la panne ; et, depuis la contre-relecture de la PR 146, la veille finie à sa durée, le plafond dit sur une étiquette restée, les `GIT_CONFIG_*` de la session gardés, aucun hook de git ni fsmonitor, le verrou attendu, une installation en échec au journal de la veille, une PR de mise à jour acceptée, les autres causes d'illisible (`a-juger` ou le diff en échec, une fourche supprimée) et leur trace redite après le délai ; et, depuis les tickets 67 et 68 (suite du ticket 66), l'erreur d'installation gardée quand GitHub se tait ensuite, `--attendre`, la tête relue après un push, l'étiquette restée et le passage rejoué lus dans les événements de la PR, le plafond à moitié écrit, une session à un autre couple ; et, depuis la contre-relecture de la PR 147, la marque lue sur un commentaire à marque, une PR sans marque, des événements illisibles (rien d'écrit) ou sur deux pages, la tête relue en échec (sortie 12) ; et, depuis les tickets 75 et 76 (suites des lots 4 et 5), un calcul sorti en 69 (un outil manque au poste : sortie 6, rien d'écrit), l'usage entier, le plafond rejoué après un retrait refusé qui redit « décision de plafond attendue » (gardé, `A-189` point 1), une trace d'illisible qui n'est pas la marque.
+ 
+ ## Le prompt — `prompt-session.md`
+ 

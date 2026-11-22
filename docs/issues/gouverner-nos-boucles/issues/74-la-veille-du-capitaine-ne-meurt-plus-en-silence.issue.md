@@ -72,14 +72,14 @@ La liste des fins (`fusionner/SKILL.md`, lignes 85 à 87) a trois puces : `VEILL
 
 7. **Une fin sans ligne finale est une veille morte**, quatrième puce de la liste des fins : « **Aucune de ces lignes** (l'outil a arrêté la tâche, hors un `TaskStop` joué par la session elle-même ; le conteneur a redémarré) : une veille morte, jamais une fin sans suite : « Réveil de garde », points 1 à 3, tout de suite. » Le `TaskStop` de la session est exclu : c'est le geste d'avant une action à la main, que la session suit de `boucle.sh --arreter` (« Enseignements »).
 8. **`boucle.sh --arreter` avant de relancer**, depuis le worktree mais **la copie** (`<scratchpad>/outils/boucle.sh`) : une boucle orpheline tiendrait le verrou (la veille relancée sortirait en 9), et le worktree peut être resté sur la branche d'une PR (jouer son `boucle.sh` serait jouer le code de la PR). La trappe de la boucle tuée remet le worktree propre. `--arreter` en échec (sortie 1, des processus tiennent encore le verrou après KILL) : le dire au lanceur, ne rien relancer.
-9. **`veille.sh --reprendre`** : `--arreter` pose le fichier d'arrêt, que la boucle refuse (sortie 10). Avec `--reprendre`, la veille, son verrou pris, prend un instant celui de la boucle (`boucle.verrou`, descripteur 8) : libre, elle retire le fichier, **avant sa préparation** ; tenu, `VEILLE ARRÊTÉE <hh:mm> : une boucle tient le verrou (<verrou>) : fichier d'arrêt gardé ; « boucle.sh --arreter », puis --reprendre`, sortie 9. Le premier lancement de la boucle est encore `boucle.sh --reprendre`, les suivants `boucle.sh` seul. Raisons : `boucle.sh --reprendre` à la main lancerait une boucle au premier plan, que l'outil Bash coupe à 2 minutes par défaut (10 au plus), au milieu d'un passage ; et un fichier retiré par la seule boucle restait posé si la veille relancée par la garde mourait pendant sa préparation, ou s'y arrêtait en 13 : chaque garde suivante lisait « arrêt demandé » et ne faisait plus rien (`A-190`, point 1). Le paragraphe « **Reprendre** » du skill passe par la veille, et la sortie 10 dit « la veille relancée avec `--reprendre` ».
+9. **`veille.sh --reprendre`** : `--arreter` pose le fichier d'arrêt, que la boucle refuse (sortie 10). Avec `--reprendre`, la veille, son verrou pris, prend un instant celui de la boucle (`boucle.verrou`, descripteur 8) : libre, elle retire le fichier, **avant sa préparation** ; tenu, `VEILLE ARRÊTÉE <hh:mm> : une boucle tient le verrou (<verrou>) : fichier d'arrêt gardé ; « boucle.sh --arreter », puis --reprendre`, sortie 9. La boucle ne reçoit jamais `--reprendre`, à aucun lancement (`A-194`, point 1) : la veille a déjà retiré le fichier, et un `--reprendre` transmis ne pouvait plus que défaire un arrêt demandé pendant le démarrage, qui reste donc posé. Raisons : `boucle.sh --reprendre` à la main lancerait une boucle au premier plan, que l'outil Bash coupe à 2 minutes par défaut (10 au plus), au milieu d'un passage ; et un fichier retiré par la seule boucle restait posé si la veille relancée par la garde mourait pendant sa préparation, ou s'y arrêtait en 13 : chaque garde suivante lisait « arrêt demandé » et ne faisait plus rien (`A-190`, point 1). Le paragraphe « **Reprendre** » du skill passe par la veille, et la sortie 10 dit « la veille relancée avec `--reprendre` ».
 
 ### Le réveil de garde
 
 10. **Un réveil de garde** : au premier lancement de la veille dans la session, `send_later` (chargé par ToolSearch, `select:mcp__claude-code-remote__send_later`), `delay_minutes` `60`, `name` « Garde de la veille du capitaine », `message` « Réveil de garde : skill fusionner, « Réveil de garde » ». Raison : un message programmé survit au redémarrage du conteneur (description de `send_later` : « Delivery survives container restarts »), la tâche de fond non.
 11. **Il ne se réarme qu'au réveil de garde**, jamais à un autre réveil : la recommandation du rédacteur du lot 5 disait « réarmé à chaque réveil », mais une veille finit toutes les 75 minutes et chaque fin est un réveil : les réveils de garde s'empileraient. Un seul attend à la fois. `send_later` absent (session locale) : pas de garde, le dire une fois au lanceur.
 12. **À chaque réveil de garde, dans l'ordre** (mot pour mot dans le patch) : (1) la copie et le worktree présents, sinon `git worktree prune`, « Mise en place » et la copie, sans lancer la veille ; (2) `veille.sh --etat` : `VIVANTE`, rien ; `TERMINÉE`, la suite de sa ligne (`VEILLE FINIE` : la relancer telle quelle ; `VEILLE ARRÊTÉE` ou arrêt demandé : rien de plus, et seulement si cette suite n'a pas déjà été donnée : ce qui a été dit au lanceur ne se redit pas chaque heure) ; une autre sortie (64 : une copie d'avant `--etat`, les scripts du projet pas reposés) : pas de garde, le dire une fois au lanceur, ne plus réarmer, et après une fin sans ligne finale relancer la veille sans `--reprendre` (sinon `--reprendre` y sort en 64 aussitôt, une fin sans ligne finale, et la garde tourne en rond) ; `MORTE`, le point 3 ; (3) `boucle.sh --arreter` de la copie, puis la veille relancée par la seconde ligne de son bloc, **sans recopier** (le worktree peut être resté sur une PR, dont les scripts seraient copiés), avec `--reprendre` ; (4) réarmer.
-13. **La puce « Sortie 9 »** dit aussi « ou une autre veille tourne (`une veille tourne déjà`) : ne rien relancer avant de savoir laquelle (`veille.sh --etat`) : la suite de son point 2 (« Réveil de garde ») ».
+13. **La puce « Sortie 9 »** sépare deux cas (`A-194`, point 2) : une autre veille tourne (`une veille tourne déjà`) : sa suite par `veille.sh --etat`, le point 2 du « Réveil de garde » ; une boucle tient le verrou sans veille qui la porte (une orpheline, ou un démon qui a hérité du descripteur) : le point 3 de la garde (`boucle.sh --arreter` de la copie, puis la veille relancée avec `--reprendre`), puis le dire au lanceur. Cela remplace « ne rien relancer avant de savoir laquelle », qui laissait la file sans service et personne de prévenu. Un verrou de la veille qui ne s'ouvre pas (`exec 7>>` en échec) sort en 6, « verrou de la veille illisible », pour `--etat` comme pour la veille, jamais `VEILLE VIVANTE`.
 
 ### Le journal en ajout
 
@@ -94,7 +94,7 @@ La liste des fins (`fusionner/SKILL.md`, lignes 85 à 87) a trois puces : `VEILL
 
 ### § 0 — Partir de `main`, et la règle de repli
 
-`git fetch origin main`, une branche depuis `origin/main`. Les annexes se lisent sous `docs/issues/gouverner-nos-boucles/issues/74-annexes/` de `main` si la PR de documentation y est entrée, sinon sur la branche de documentation du programme ; les écrire dans le scratchpad, jamais dans le dépôt. Vérifier l'empreinte : `sha256sum <scratchpad>/ticket-74.patch` rend `6b3b5368bd99063553a4e2ddae139eab53b51b0a6aa9891b612e3ba043d9312e`.
+`git fetch origin main`, une branche depuis `origin/main`. Les annexes se lisent sous `docs/issues/gouverner-nos-boucles/issues/74-annexes/` de `main` si la PR de documentation y est entrée, sinon sur la branche de documentation du programme ; les écrire dans le scratchpad, jamais dans le dépôt. Vérifier l'empreinte : `sha256sum <scratchpad>/ticket-74.patch` rend `c5608c9b6ee2fe288d39666e9665355e59c15bc15d24712c93a84eefc2d4670f` (le patch retouché d'`A-190`, celui de l'en-tête ; `6b3b5368…` était sa première version). Ce qui est entré dans `main` (PR 150, `37233f8`) : ce patch, puis les retouches du premier tour de sa contre-relecture, [`74-annexes/contre-relecture-fb0ecb0/retouches-tour-1.patch`](74-annexes/contre-relecture-fb0ecb0/retouches-tour-1.patch) (sha256 `5229b6d04596cd1c61d8039680c0d6e7bd0f617af191afd3bcd4ed6e2686e3de`, `A-194`) : les décisions 9 et 13, « Surfaces » et « Mutations » disent l'arbre entré.
 
 - `main` encore à `25a72c7` : `git apply <scratchpad>/ticket-74.patch` pose tout, version 7.38.1 comprise.
 - `main` a bougé (les PR A, B ou du lot 5 entrées) : `git apply --exclude=.claude-plugin/plugin.json --exclude=NOTES-DE-VERSION.md <scratchpad>/ticket-74.patch`, puis, à la main, la version de `.claude-plugin/plugin.json` sur **la suivante de `main`** (le troisième nombre plus un : 7.39.1 si `main` est à 7.39.0), et la note du patch (son texte entier, sous `## <version> — <date du jour>`) avant la première note de `NOTES-DE-VERSION.md`. Un hunk qui ne s'applique pas hors de ces deux fichiers : s'arrêter et l'écrire à son lanceur, ne rien reprendre à la main.
@@ -162,24 +162,26 @@ Une PR vers `main`, titre `fix(fusionner): la veille du capitaine sous le timeou
 | Le journal en ajout, dans les deux commandes | le premier test ; T13 |
 | « Reprendre » par la veille, et la sortie 10 | le deuxième test ; T15 |
 | La quatrième puce, après les trois lignes finales | le deuxième test ; T3, T4 |
-| La puce « Sortie 9 » et `--etat` | le deuxième test ; T10 |
-| Le réveil de garde : sa place, `send_later` à 60 minutes et son nom, réarmé au seul réveil de garde, ses quatre points dans l'ordre, l'autre sortie (64) au point 2, `--reprendre` et la relance sans recopier au point 3 | le troisième test ; T5 à T8, T9b, T12, T14 |
+| La puce « Sortie 9 » en deux cas : une autre veille, sa suite par `--etat` ; une boucle sans veille, le point 3 de la garde, puis le lanceur prévenu | le deuxième test ; T10c, D6, Y3, Y4 |
+| Le réveil de garde : sa place, `send_later` à 60 minutes, son nom et son message, armé au premier lancement seul et réarmé au seul réveil de garde, ses quatre points dans l'ordre, la copie vue au point 1, l'autre sortie (64) au point 2 entière, un arrêt demandé jamais levé par la garde, `--reprendre` et la relance sans recopier au point 3, le point 4 après chaque suite, aucun second `send_later` sans veille en cours | le troisième test ; T5 à T8, T9b, T12, T14, X1 à X6, D4, D5, D7 |
 | Les états que nomme le skill sont ceux de `--etat`, avec leurs sorties | le quatrième test ; M15, M16 |
-| Le verrou de la veille, une seule à la fois ; une veille qui démarre attend un `--etat` en cours | `veille.test.mjs`, « une seconde veille… », « une veille qui démarre pendant qu'un --etat… » ; M6, M12, M24 |
-| Aucun fils ne garde le verrou | « veille tuée pendant sa pause », « un démon laissé… », « veille tuée pendant que `tee` attend… », « démon lancé par la préparation », « veille tuée pendant une sonde lente… » ; M1 à M4, M5b, M22, M23, M26 |
-| L'état écrit : `lancee`, puis la fin par `finir` | « --etat : MORTE sans trace… » ; M7 à M11 |
+| Le verrou de la veille, une seule à la fois ; une veille qui démarre attend un `--etat` en cours | `veille.test.mjs`, « une seconde veille… », « une veille qui démarre pendant qu'un --etat… » ; M6, M12, M24, X10 |
+| Un verrou de la veille qui ne s'ouvre pas : sortie 6, pour `--etat` comme pour la veille, jamais `VEILLE VIVANTE` | « un fichier du verrou de la veille qui ne s'ouvre pas… » ; D2, D3, Y1, Y2 |
+| Aucun fils ne garde le verrou | « veille tuée pendant sa pause », « un démon laissé… », « veille tuée pendant que `tee` attend… », « démon lancé par la préparation », « veille tuée pendant une sonde lente… » ; M1, M2c, M3, M4, M5b, M22, M23, M26 |
+| L'état écrit : `lancee`, qui remplace la fin d'une veille d'avant, puis la fin par `finir` | « --etat : MORTE sans trace… », « veille tuée pendant sa pause » ; M7 à M11, X7 |
 | `--etat` : l'ordre, l'arrêt demandé, sans `CAPITAINE_ID`, l'état lu sous le verrou | « --etat : le fichier d'arrêt posé… », « --etat : MORTE sans trace… », « --etat lit l'état sous le verrou… » ; M13, M14, M17, M25 |
-| `--reprendre` : le fichier retiré avant la préparation, gardé si une boucle tient son verrou ; la boucle reçoit `--reprendre` à son premier lancement seul | « --reprendre : le fichier d'arrêt est retiré… », « --reprendre : préparation en échec (13)… », « --reprendre : le premier lancement… » ; avec la vraie boucle, `une-sous-pr-a-la-fois.test.mjs` ; M18 à M21 |
+| `--reprendre` : le fichier retiré avant la préparation, sous le verrou de la veille, gardé si une boucle tient son verrou ; sans l'option, rien de retiré ; la boucle ne reçoit jamais `--reprendre`, et un arrêt posé pendant le démarrage reste posé | « --reprendre : le fichier d'arrêt est retiré… », « --reprendre : préparation en échec (13)… », « --reprendre : la veille retire le fichier d'arrêt, la boucle ne reçoit jamais --reprendre… », « une seconde veille… » ; avec la vraie boucle, `une-sous-pr-a-la-fois.test.mjs` ; M20, M21, D1, X8, X9, X10 |
 | La version et la note | les tests de version de `scripts/depot.test.mjs` |
 
 ## Mutations
 
-[`74-annexes/mutations.mjs`](74-annexes/mutations.mjs), depuis la racine d'un clone où le patch est appliqué : `node <scratchpad>/mutations.mjs [<nom>…]`. Chacune seule, le fichier remis après, sur les bancs qu'elle nomme ; journal : [`74-annexes/mutations.txt`](74-annexes/mutations.txt).
+[`74-annexes/mutations.mjs`](74-annexes/mutations.mjs), depuis la racine d'un clone où le patch est appliqué : `node <scratchpad>/mutations.mjs [<nom>…]`. Chacune seule, le fichier remis après, sur les bancs qu'elle nomme ; journal : [`74-annexes/mutations.txt`](74-annexes/mutations.txt). Sur l'arbre entré (le patch et `retouches-tour-1.patch`), M2, M18, M19 et T10b sont introuvables : M2c et T10c les reprennent sur le texte retouché, D1 remplace M18 et M19 ; les retouches défaites (D1 à D7), les mutations de la contre-relecture (X1 à X10) et celles de son second tour (Y1 à Y4) s'y ajoutent, jouées par le relecteur ([`contre-relecture-fb0ecb0/mutations/`](74-annexes/contre-relecture-fb0ecb0/mutations/), [`second-tour-950f94e/mutations/sur-950f94e.txt`](74-annexes/contre-relecture-fb0ecb0/second-tour-950f94e/mutations/sur-950f94e.txt)).
 
 | Mutation | Bancs | Issue |
 | --- | --- | --- |
 | M1 veille.sh : le `sleep` de la pause hérite du verrou de la veille | `veille.test.mjs` | rouge (49 s) |
-| M2 veille.sh : la boucle hérite du verrou de la veille | `veille.test.mjs` | rouge (49 s) |
+| M2 veille.sh : la boucle hérite du verrou de la veille | `veille.test.mjs` | rouge (49 s) ; introuvable sur l'arbre entré, reprise en M2c |
+| M2c veille.sh : la boucle hérite du verrou de la veille (M2 sur le texte retouché) | `veille.test.mjs` | rouge (49 s, sur `950f94e`) |
 | M3 veille.sh : `tee` hérite du verrou de la veille | `veille.test.mjs` | rouge (49 s) |
 | M4 veille.sh : file.sh hérite du verrou de la veille (lecture initiale) | `veille.test.mjs` | rouge (49 s) |
 | M5b veille.sh : la commande de préparation hérite du verrou de la veille | `veille.test.mjs` | rouge (53 s) |
@@ -195,8 +197,8 @@ Une PR vers `main`, titre `fix(fusionner): la veille du capitaine sous le timeou
 | M15 veille.sh --etat : VIVANTE sort en 1 | `veille.test.mjs`, `veille-du-capitaine.test.mjs` | rouge (49 s) |
 | M16 veille.sh --etat : MORTE sort en 2 | `veille.test.mjs`, `veille-du-capitaine.test.mjs` | rouge (49 s) |
 | M17 veille.sh --etat : exige CAPITAINE_ID | `veille.test.mjs` | rouge (46 s) |
-| M18 veille.sh : --reprendre transmis à chaque lancement de la boucle | `veille.test.mjs` | rouge (51 s) |
-| M19 veille.sh : --reprendre jamais transmis | `veille.test.mjs`, `une-sous-pr-a-la-fois.test.mjs` | rouge (383 s) |
+| M18 veille.sh : --reprendre transmis à chaque lancement de la boucle | `veille.test.mjs` | rouge (51 s) ; sans objet sur l'arbre entré (la boucle ne reçoit plus `--reprendre`) : D1 la remplace |
+| M19 veille.sh : --reprendre jamais transmis | `veille.test.mjs`, `une-sous-pr-a-la-fois.test.mjs` | rouge (383 s) ; sans objet sur l'arbre entré : c'est son comportement voulu (`A-194`, point 1) |
 | M20 veille.sh : --reprendre ne retire plus le fichier d’arrêt avant la préparation | `veille.test.mjs` | rouge (50 s) |
 | M21 veille.sh : --reprendre retire le fichier d’arrêt même quand une boucle tient son verrou | `veille.test.mjs` | rouge (50 s) |
 | M22 veille.sh : la lecture initiale de la file garde le descripteur 7 dans son sous-shell | `veille.test.mjs` | rouge (49 s) |
@@ -213,14 +215,36 @@ Une PR vers `main`, titre `fix(fusionner): la veille du capitaine sous le timeou
 | T7 SKILL.md : la garde à 120 minutes | `veille-du-capitaine.test.mjs` | rouge (0 s) |
 | T8 SKILL.md : les points 2 et 3 du réveil de garde échangés | `veille-du-capitaine.test.mjs` | rouge (0 s) |
 | T9b SKILL.md : `--reprendre` retiré du point 3, et la relance recopie | `veille-du-capitaine.test.mjs` | rouge (0 s) |
-| T10b SKILL.md : la sortie 9 ne nomme plus une autre veille, ni la suite par --etat | `veille-du-capitaine.test.mjs` | rouge (0 s) |
+| T10b SKILL.md : la sortie 9 ne nomme plus une autre veille, ni la suite par --etat | `veille-du-capitaine.test.mjs` | rouge (0 s) ; introuvable sur l'arbre entré, reprise en T10c |
+| T10c SKILL.md : la sortie 9 ne nomme plus une autre veille, ni la suite par --etat (T10b sur le texte retouché) | `veille-du-capitaine.test.mjs` | rouge (0 s, sur `950f94e`) |
 | T11 veille.sh : l’en-tête ne dit plus le timeout | `veille-du-capitaine.test.mjs` | rouge (0 s) |
 | T12 SKILL.md : la garde perd son nom | `veille-du-capitaine.test.mjs` | rouge (0 s) |
 | T13 SKILL.md : la commande de la veille tronque son journal (`>`) | `veille-du-capitaine.test.mjs` | rouge (0 s) |
 | T14 SKILL.md : le point 2 sans suite pour une autre sortie (64) | `veille-du-capitaine.test.mjs` | rouge (0 s) |
 | T15 SKILL.md : « Reprendre » rejoue boucle.sh --reprendre | `veille-du-capitaine.test.mjs` | rouge (0 s) |
+| D1 veille.sh : la première boucle reçoit encore --reprendre (fb0ecb0) | `veille.test.mjs` | rouge (51 s, sur `950f94e`) |
+| D2 veille.sh --etat : un verrou qui ne s’ouvre pas se lit VEILLE VIVANTE (fb0ecb0) | `veille.test.mjs` | rouge (50 s) |
+| D3 veille.sh : un verrou qui ne s’ouvre pas se lit « une veille tourne déjà » (fb0ecb0) | `veille.test.mjs` | rouge (49 s) |
+| D4 SKILL.md : point 2, la garde ne dit plus qu’un arrêt demandé ne se lève jamais (fb0ecb0) | `veille-du-capitaine.test.mjs` | rouge (0 s) |
+| D5 SKILL.md : point 4, « Réarmer » sans dire qu’il suit chaque suite (fb0ecb0) | `veille-du-capitaine.test.mjs` | rouge (0 s) |
+| D6 SKILL.md : la sortie 9 d’une boucle renvoyée à --etat (fb0ecb0) | `veille-du-capitaine.test.mjs` | rouge (0 s) |
+| D7 SKILL.md : sans veille en cours, un second send_later à côté de la garde (fb0ecb0) | `veille-du-capitaine.test.mjs` | rouge (0 s) |
+| X1 SKILL.md : la garde armée à chaque lancement de la veille (les réveils de garde s’empilent) | `veille-du-capitaine.test.mjs` | rouge (0 s) |
+| X2 SKILL.md : point 2, un arrêt demandé levé par la garde | `veille-du-capitaine.test.mjs` | rouge (0 s) |
+| X3 SKILL.md : point 2, une copie d’avant --etat relancée avec --reprendre | `veille-du-capitaine.test.mjs` | rouge (0 s) |
+| X4 SKILL.md : point 2, une copie d’avant --etat, la garde réarmée | `veille-du-capitaine.test.mjs` | rouge (0 s) |
+| X5 SKILL.md : la garde sans son message | `veille-du-capitaine.test.mjs` | rouge (0 s) |
+| X6 SKILL.md : point 1, la copie manquante n’est plus vue | `veille-du-capitaine.test.mjs` | rouge (0 s) |
+| X7 veille.sh : l’état « lancee » ajouté au lieu de remplacer la fin d’avant | `veille.test.mjs` | rouge (49 s) |
+| X8 veille.sh : toute veille retire le fichier d’arrêt, --reprendre ou pas | `veille.test.mjs`, `une-sous-pr-a-la-fois.test.mjs` | rouge (359 s) |
+| X9 veille.sh : --reprendre garde boucle.verrou ouvert (descripteur 8) | `veille.test.mjs`, `une-sous-pr-a-la-fois.test.mjs` | rouge (353 s) |
+| X10 veille.sh : --reprendre retire le fichier d’arrêt avant le verrou de la veille | `veille.test.mjs` | rouge (50 s) |
+| Y1 veille.sh --etat : le contrôle du verrou ouvert lit le descripteur 8 (une veille vivante se lit « verrou illisible ») | `veille.test.mjs` | rouge (47 s) |
+| Y2 veille.sh : un verrou de la veille illisible sort en 9, comme une seconde veille | `veille.test.mjs` | rouge (50 s) |
+| Y3 SKILL.md : sortie 9 d’une boucle sans veille, le lanceur n’est plus prévenu | `veille-du-capitaine.test.mjs` | rouge (0 s) |
+| Y4 SKILL.md : sortie 9 d’une autre veille, le point 3 (sa boucle arrêtée en plein passage) | `veille-du-capitaine.test.mjs` | rouge (0 s) |
 
-41 rouges sur 41, de 0 à 383 secondes chacune. Deux mutations sont vues vertes en écrivant ce ticket : M12 (l'état écrit avant le verrou), dont le test « une seconde veille… » ne lisait que l'état de fin, et qui pose désormais un état témoin avant la seconde veille ; et, à la relecture, le nom de la garde, que le banc des textes n'exigeait pas (T12). M5, T9 et T10 changent de cible avec les retouches de la relecture (M5b, T9b, T10b), M6 et M12 suivent le `flock -w 3`, et M4 aussi : la lecture initiale ferme le descripteur dans son sous-shell, si bien que `file.sh` n'en hérite plus que si les deux `7>&-` tombent ensemble ; M20 à M26 et T12 à T15 tiennent ces retouches.
+Sur le patch seul : 41 rouges sur 41, de 0 à 383 secondes chacune. Sur l'arbre entré, celui de `950f94e` (64c2c2a5…), que la PR 150 a fait entrer : les 37 trouvées de l'annexe, M2c, T10c, D1 à D7, X1 à X10 et Y1 à Y4, toutes rouges (60). Deux mutations sont vues vertes en écrivant ce ticket : M12 (l'état écrit avant le verrou), dont le test « une seconde veille… » ne lisait que l'état de fin, et qui pose désormais un état témoin avant la seconde veille ; et, à la relecture, le nom de la garde, que le banc des textes n'exigeait pas (T12). M5, T9 et T10 changent de cible avec les retouches de la relecture (M5b, T9b, T10b), M6 et M12 suivent le `flock -w 3`, et M4 aussi : la lecture initiale ferme le descripteur dans son sous-shell, si bien que `file.sh` n'en hérite plus que si les deux `7>&-` tombent ensemble ; M20 à M26 et T12 à T15 tiennent ces retouches.
 
 ## Vérification
 
@@ -271,3 +295,4 @@ Tranchées : les cinq par `A-187`, sur ces recommandations ; les trois de la rel
 
 - 2026-11-21 — Écrit par un agent rédacteur sur `A-185` (point 7), `A-180` (point 1), le ticket 73 (« Le ticket à part recommandé ») et la passation du 2026-11-19 ; bancs, mutations et suite joués sur un clone neuf de `25a72c7` (« Vérification »).
 - 2026-11-22 — Relu en un tour (`74-annexes/relecture-tour-1/rapport.md`, « prêt après retouches », un bloquant) ; retouches d'`A-190` portées par le relecteur : `ticket-74.patch` neuf (R1 à R4, les textes des constats 3, 4, 5 et 9, le journal en ajout, le nom de la garde), `mutations.mjs` à 40 mutations (M5 et T9 changent de cible, M5b et T9b) ; bancs, mutations et suite rejoués sur un clone neuf de `25a72c7`.
+- 2026-11-22 — Après la fusion (`A-194`, point 4 ; mineur 10 de la contre-relecture de la PR 150) : l'empreinte du § 0 (celle du patch retouché, `c5608c9b…`), les décisions 9 et 13, « Surfaces » et « Mutations » disent l'arbre entré, `retouches-tour-1.patch` compris. Documentation seule, par le rédacteur des tickets 75 à 79.

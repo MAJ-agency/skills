@@ -1,0 +1,184 @@
+diff --git a/skills/chaine/fusionner/scripts/revue-exigee.mjs b/skills/chaine/fusionner/scripts/revue-exigee.mjs
+index e041d4b..6282fec 100644
+--- a/skills/chaine/fusionner/scripts/revue-exigee.mjs
++++ b/skills/chaine/fusionner/scripts/revue-exigee.mjs
+@@ -36,7 +36,8 @@
+ // Sortie 21 : lecture illisible (clé `relecture` mal formée, date d'ouverture, commentaires, marque presque à la forme,
+ // « double relecture exigée » ou « même contenu propre » illisibles) ; la cause sur la sortie standard. Le capitaine
+ // saute alors la PR sans la renvoyer (A-113) : son auteur n'y peut rien. Sortie 2 : options mal formées. Sortie 3 : en
+-// régime 8, l'outil en panne (un calcul absent à côté, une exception) : jamais un refus.
++// régime 8, l'outil en panne (un calcul absent à côté, une exception, ou un calcul sorti en 69 : un outil de la chaîne
++// manque au poste, git plus ancien que 2.41, `jq` absent, A-192 point 1) : jamais un refus, jamais une lecture illisible.
+ // =============================================================================
+ 
+ import { execFileSync, spawnSync } from 'node:child_process';
+@@ -481,6 +482,18 @@ export function lireOptions(argv) {
+ 
+ /** Une lecture illisible de la CLI : sa cause, sortie 21. */
+ class Illisible extends Error {}
++/**
++ * Un calcul sorti en 69 dit qu'un outil de la chaîne manque au poste (git plus ancien que 2.41, `jq` absent, la grammaire
++ * des identifiants introuvable) : il le dirait de chaque PR. Une panne du capitaine (sortie 3), jamais « illisible » (21),
++ * qui ferait sauter chaque PR en silence à chaque passage (A-192, point 1). La cause : la première ligne qui n'est pas le
++ * seul mot du verdict, sur la sortie d'erreur puis sur la sortie standard (`double-relecture.mjs` écrit la sienne en
++ * `# illisible : …`).
++ */
++function sansOutil(calcul, r) {
++  if (r.status !== 69) return;
++  const cause = `${r.stderr ?? ''}\n${r.stdout ?? ''}`.split('\n').map((l) => l.replace(/^#\s*(?:illisible\s*:\s*)?/, '').trim()).find((l) => l !== '' && l !== 'illisible');
++  throw new Error(`${calcul} : un outil de la chaîne manque au poste (sortie 69) : ${cause ?? 'sans cause écrite'}`);
++}
+ /** Le nombre de verdicts exigés (`double-relecture.mjs`, à côté) : 1, 2, ou `'illisible'`. */
+ function exigesDe(fichiers, { base, tete, titre, branche }) {
+   const r = spawnSync(process.execPath, [join(ICI, 'double-relecture.mjs'), '--base', base, '--tete', tete, '--titre', titre, '--branche', branche], {
+@@ -488,11 +501,13 @@ function exigesDe(fichiers, { base, tete, titre, branche }) {
+     encoding: 'utf8',
+     maxBuffer: 64 * 1024 * 1024,
+   });
++  sansOutil('double-relecture.mjs', r);
+   return r.status === 0 ? 1 : r.status === 20 ? 2 : 'illisible';
+ }
+ /** « Même contenu propre » de V et T vers `base` (`meme-contenu.sh`, à côté) : vrai, faux, ou `'illisible'`. */
+ function memeContenuDe(v, t, base) {
+   const r = spawnSync('bash', [join(ICI, 'meme-contenu.sh'), v, t, base], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
++  sansOutil('meme-contenu.sh', r);
+   return r.status === 0 ? true : r.status === 20 ? false : 'illisible';
+ }
+ 
+diff --git a/skills/chaine/fusionner/scripts/verdict-du-capitaine.test.mjs b/skills/chaine/fusionner/scripts/verdict-du-capitaine.test.mjs
+index a99d114..7cca556 100644
+--- a/skills/chaine/fusionner/scripts/verdict-du-capitaine.test.mjs
++++ b/skills/chaine/fusionner/scripts/verdict-du-capitaine.test.mjs
+@@ -400,6 +400,45 @@ test("régime 8 : double-relecture.mjs ou meme-contenu.sh absent à côté de re
+   }
+ });
+ 
++// Suite du lot 5 (A-192, point 1 ; ticket 75) : un calcul sorti en 69 (git plus ancien que 2.41, `jq` absent, la grammaire
++// introuvable) le dirait de chaque PR : une panne du capitaine (3), jamais une lecture illisible (21) qui ferait sauter
++// chaque PR en silence.
++test("régime 8 : un calcul sorti en 69 (un outil de la chaîne manque au poste) est une panne (3), la cause dite, jamais une lecture illisible (21)", () => {
++  const lancer = (d, chaine, fil) =>
++    spawnSync(process.execPath, [join(chaine, "revue-exigee.mjs"), "", "docs(a): a", "origin/develop", "--ouverte", "2026-11-17T11:00:00Z", "--tete", "a".repeat(40), "--branche", "feat/a", "--commentaires", fil], { cwd: d.travail, env: d.env, input: "docs/a.md\n", encoding: "utf8" });
++  const poser = (d, { grammaire = true, talon = null } = {}) => {
++    const chaine = join(d.racine, "projet", "scripts", "chaine");
++    mkdirSync(chaine, { recursive: true });
++    if (grammaire) {
++      mkdirSync(join(d.racine, "projet", "scripts", "docs"));
++      writeFileSync(join(d.racine, "projet", "scripts", "docs", "identifiants.mjs"), readFileSync(GRAMMAIRE, "utf8"));
++    }
++    for (const c of ["revue-exigee.mjs", "decision-relecteur.mjs", "verdict.mjs", "double-relecture.mjs", "meme-contenu.sh"]) writeFileSync(join(chaine, c), readFileSync(scriptDe("fusionner", c), "utf8"));
++    if (talon) writeFileSync(join(chaine, talon[0]), talon[1]);
++    return chaine;
++  };
++  // La grammaire des identifiants introuvable : le vrai `double-relecture.mjs` sort en 69.
++  const d = monter();
++  const fil = join(d.racine, "fil.json");
++  writeFileSync(fil, "[]\n");
++  const r = lancer(d, poser(d, { grammaire: false }), fil);
++  assert.equal(r.status, 3, r.stdout + r.stderr);
++  assert.match(r.stdout, /^revue du capitaine en échec : double-relecture\.mjs : un outil de la chaîne manque au poste \(sortie 69\) : scripts\/docs\/identifiants\.mjs introuvable depuis /m);
++  // `meme-contenu.sh` sorti en 69 (git plus ancien que 2.41) pour le sommet d'un tour plus ancien.
++  const m = monter();
++  const tours = join(m.racine, "fil.json");
++  writeFileSync(tours, `${JSON.stringify(valide("b".repeat(40)).map((body, i) => ({ id: i + 1, body, created_at: `2026-11-17T12:0${i}:00Z`, updated_at: `2026-11-17T12:0${i}:00Z`, author_association: "OWNER" })))}\n`);
++  const h = lancer(m, poser(m, { talon: ["meme-contenu.sh", 'echo illisible\necho "git ≥ 2.41 requis, ici 2.40" >&2\nexit 69\n'] }), tours);
++  assert.equal(h.status, 3, h.stdout + h.stderr);
++  assert.match(h.stdout, /^revue du capitaine en échec : meme-contenu\.sh : un outil de la chaîne manque au poste \(sortie 69\) : git ≥ 2\.41 requis, ici 2\.40$/m);
++  // Une sortie 21 du même calcul reste une lecture illisible : seule la sortie 69 est une panne.
++  const i = monter();
++  writeFileSync(join(i.racine, "fil.json"), "[]\n");
++  const r21 = lancer(i, poser(i, { talon: ["double-relecture.mjs", 'console.log("illisible"); process.exit(21);\n'] }), join(i.racine, "fil.json"));
++  assert.equal(r21.status, 21, r21.stdout + r21.stderr);
++  assert.match(r21.stdout, /^lecture illisible : « double relecture exigée » illisible/m);
++});
++
+ test("régime 8, passer.sh : `cheminsSensibles` illisible sur la base rend tout chemin sensible, comme chez le Relecteur : un `validé` sans `/security-review: lancée` ne suffit pas", () => {
+   const d = monter({ cheminsSensibles: "scripts/agent/**", relecture: CONTRAT.relecture });
+   versDevelop(d);
+diff --git a/skills/chaine/relecteur/scripts/relecteur.mjs b/skills/chaine/relecteur/scripts/relecteur.mjs
+index f4fab5e..0077e33 100644
+--- a/skills/chaine/relecteur/scripts/relecteur.mjs
++++ b/skills/chaine/relecteur/scripts/relecteur.mjs
+@@ -67,7 +67,8 @@
+ //
+ // Sorties : 0 fait ; 2 usage ou entrée mal formée ; 3 la PR est fermée, ou le geste, le sommet ou le couple ont changé
+ // (rien n'est écrit) ; 5 GitHub illisible ; 6 le dossier n'est pas celui d'un projet de la chaîne, ou pas propre, ou
+-// `flock` manque ; 7 une écriture sur GitHub refusée (la pose d'une étiquette ou un commentaire ; un retrait refusé ne
++// `flock` manque, ou un calcul dit qu'un outil de la chaîne manque au poste (sa sortie 69 : git plus ancien que 2.41,
++// `jq` absent, la grammaire des identifiants introuvable), jamais une lecture illisible (A-192, point 1) ; 7 une écriture sur GitHub refusée (la pose d'une étiquette ou un commentaire ; un retrait refusé ne
+ // l'est pas : `retirer_label` le tait) ; 9 le verrou du dossier pas obtenu en 300 secondes ; 12 git (fetch, switch) en
+ // échec. L'horloge est celle de la machine ; `RELECTEUR_HORLOGE_BANC` (millisecondes) la fixe,
+ // seulement quand `FAUX_GH` (le faux GitHub des bancs) est posé.
+@@ -207,8 +208,20 @@ function sensible(fichiers, base) {
+   return r.status !== 0 || r.stdout.trim() !== '';
+ }
+ 
++// Un calcul sorti en 69 dit qu'un outil de la chaîne manque au poste (git plus ancien que 2.41, `jq` absent, la grammaire
++// des identifiants introuvable) : il le dirait de chaque PR. Le poste ne porte pas la chaîne, sortie 6, comme des
++// calculs absents ; jamais « illisible », qui tracerait chaque PR et le redirait à chaque délai (A-192, point 1). La
++// cause : la première ligne qui n'est pas le seul mot du verdict, sur la sortie d'erreur puis sur la sortie standard
++// (`double-relecture.mjs` écrit la sienne en `# illisible : …`).
++function sansOutil(calcul, r) {
++  if (r.status !== 69) return;
++  const cause = `${r.stderr ?? ''}\n${r.stdout ?? ''}`.split('\n').map((l) => l.replace(/^#\s*(?:illisible\s*:\s*)?/, '').trim()).find((l) => l !== '' && l !== 'illisible');
++  arreter(6, `${calcul} : un outil de la chaîne manque au poste (sortie 69) : ${cause ?? 'sans cause écrite'}`);
++}
++
+ function exiges(fichiers, pr) {
+   const r = jouer('node', [join(CHAINE, 'double-relecture.mjs'), '--base', pr.base, '--tete', pr.tete, '--titre', pr.titre, '--branche', pr.branche], { input: fichiers.length ? `${fichiers.join('\n')}\n` : '' });
++  sansOutil('double-relecture.mjs', r);
+   return r.status === 0 ? 1 : r.status === 20 ? 2 : 'illisible';
+ }
+ 
+@@ -272,6 +285,7 @@ async function decision(json, sessions) {
+     for (const s of d.sommetsDesTours(commentaires)) {
+       if (s === pr.tete) continue;
+       const r = jouer('bash', [join(CHAINE, 'meme-contenu.sh'), s, pr.tete, pr.base]);
++      sansOutil('meme-contenu.sh', r);
+       memeContenu[s] = r.status === 0 ? true : r.status === 20 ? false : 'illisible';
+     }
+     const geste = d.decider({ ...commun, commentaires, exiges: faits.exiges, sensible: faits.sensible, memeContenu });
+diff --git a/skills/chaine/relecteur/scripts/relecteur.test.mjs b/skills/chaine/relecteur/scripts/relecteur.test.mjs
+index f9c7644..fb2aee1 100644
+--- a/skills/chaine/relecteur/scripts/relecteur.test.mjs
++++ b/skills/chaine/relecteur/scripts/relecteur.test.mjs
+@@ -553,6 +553,39 @@ test('N1 à N4, N7 — les calculs en panne : chemins sensibles en échec, PR se
+   assert.equal(distribuer(x, sommet, 'opus/xhigh', 'session_rel1', 'session_rel2').status, 0);
+ });
+ 
++// Suite du lot 5 (A-192, point 1 ; ticket 75) : un calcul sorti en 69 dit qu'un outil manque au poste, pour toute PR.
++test('suite du lot 5 — un calcul sorti en 69 (un outil de la chaîne manque au poste) : la passe et `jouer` sortent en 6, la cause dite, rien d’écrit, jamais une trace d’illisible ; la veille s’arrête', () => {
++  const q = monter();
++  q.talon('double-relecture.mjs', 'console.log("# illisible : scripts/docs/identifiants.mjs introuvable depuis scripts/chaine");\nconsole.log("illisible");\nprocess.exit(69);\n');
++  pr(q);
++  const p = q.lancer('passe');
++  assert.equal(p.status, 6, p.stdout + p.stderr);
++  assert.match(p.stderr, /^relecteur : double-relecture\.mjs : un outil de la chaîne manque au poste \(sortie 69\) : scripts\/docs\/identifiants\.mjs introuvable depuis scripts\/chaine$/m);
++  const j = q.lancer('jouer', '12');
++  assert.equal(j.status, 6, j.stdout + j.stderr);
++  assert.deepEqual(ecritures(q), [], 'ni trace, ni étiquette : la PR n’y est pour rien');
++  const v = q.lancer('veille', '--pause', '0', '--sondes', '1');
++  assert.equal(v.status, 6, v.stdout + v.stderr);
++  assert.match(v.stdout, /\nVEILLE ARRÊTÉE sortie 6\n$/);
++  const m = monter();
++  m.talon('meme-contenu.sh', 'echo illisible\necho "git ≥ 2.41 requis, ici 2.40" >&2\nexit 69\n');
++  const ancien = pr(m);
++  ajouter(m, [distribution(1, ancien, ['session_rel1']), 2], [verdict(ancien, 1, 'session_rel1', 'validé'), 3]);
++  m.git('switch', '-q', 'feat/a');
++  m.ecrire('src/a.mjs', 'export const a = 2;\n');
++  m.commit('fix: a');
++  m.git('push', '-q', 'origin', 'HEAD:feat/a');
++  const h = m.lancer('jouer', '12');
++  assert.equal(h.status, 6, h.stdout + h.stderr);
++  assert.match(h.stderr, /^relecteur : meme-contenu\.sh : un outil de la chaîne manque au poste \(sortie 69\) : git ≥ 2\.41 requis, ici 2\.40$/m);
++  assert.deepEqual(ecritures(m), []);
++  // Une sortie 21 reste une lecture illisible, tracée sur la PR (N1 à N4) : seule la sortie 69 est une panne.
++  const i = monter();
++  i.talon('double-relecture.mjs', 'console.log("illisible"); process.exit(21);\n');
++  pr(i);
++  assert.equal(i.json(i.lancer('jouer', '12'))[0].geste, 'illisible');
++});
++
+ test('N9 — `completer` : une seconde session ajoutée au tour, `(complète)`', () => {
+   const d = monter();
+   d.talon('double-relecture.mjs', 'console.log("exigée"); process.exit(20);\n');

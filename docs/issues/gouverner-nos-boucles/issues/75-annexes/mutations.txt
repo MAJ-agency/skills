@@ -1,0 +1,13 @@
+# Mutations du ticket 75, jouées le 2026-11-22 sur un clone neuf de 97d17e3 avec les patchs des tickets 75 à 77 (arbre 9df116dc…), Node 22.23.5 ; début 07:13:07 UTC, charge 7.65 6.04 3.99
+ROUGE Q1 revue-exigee.mjs : la sortie 69 de « double relecture exigée » lue « illisible » (le code d'avant) (77 s) — régime 8 : un calcul sorti en 69 (un outil de la chaîne manq
+ROUGE Q2 revue-exigee.mjs : la sortie 69 de « même contenu propre » lue « illisible » (78 s) — régime 8 : un calcul sorti en 69 (un outil de la chaîne manq
+ROUGE Q3 revue-exigee.mjs : la sortie 69 est une lecture illisible (21), pas une panne (3) (76 s) — régime 8 : un calcul sorti en 69 (un outil de la chaîne manq
+ROUGE Q4 revue-exigee.mjs : la cause est la dernière ligne non vide (« illisible »), pas celle du calcul (70 s) — régime 8 : un calcul sorti en 69 (un outil de la chaîne manq
+ROUGE Q5 revue-exigee.mjs : toute sortie non nulle est une panne (une sortie 21 aussi) (66 s) — régime 8 : un calcul sorti en 69 (un outil de la chaîne manq
+ROUGE Q6 relecteur.mjs : la sortie 69 de « double relecture exigée » lue « illisible » (le code d'avant) (105 s) — suite du lot 5 — un calcul sorti en 69 (un outil de la chaîn
+ROUGE Q7 relecteur.mjs : la sortie 69 de « même contenu propre » lue « illisible » (107 s) — suite du lot 5 — un calcul sorti en 69 (un outil de la chaîn
+ROUGE Q8 relecteur.mjs : la sortie 69 est GitHub illisible (5, une pause sans fin), pas 6 (100 s) — suite du lot 5 — un calcul sorti en 69 (un outil de la chaîn
+ROUGE Q9 relecteur.mjs : la cause est la dernière ligne non vide (« illisible »), pas celle du calcul (97 s) — suite du lot 5 — un calcul sorti en 69 (un outil de la chaîn
+ROUGE Q10 relecteur.mjs : toute sortie non nulle est une panne (une sortie 21 aussi) (98 s) — N1 à N4, N7 — les calculs en panne : chemins sensibles en éc | suite du lot 5 — un calcul sorti en 69 (un outil de la chaîn
+toutes rouges
+sortie 0 ; fin 07:27:41 UTC, charge 1.13 3.32 4.40 ; arbre après : 0 fichier(s) modifié(s)
