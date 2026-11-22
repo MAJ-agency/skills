@@ -1,6 +1,6 @@
 # Le capitaine juge l'éligibilité par les verdicts, deux fois : à l'éligibilité, puis juste avant l'appel de fusion (lot 5a)
 
-Status: ready-for-agent
+Status: Fait — PR 149 (`97d17e3`, plugin 7.39.0)
 Type: task
 Label: contre-revue
 Modèle: sonnet — le code entier est dans le patch commun aux tickets 71, 72 et 73 ([`71-73-annexes/lot-5.patch`](71-73-annexes/lot-5.patch), écrit sur `25a72c7`, posé selon le § 2 sur `main` après les PR A et B), décrit fichier par fichier ci-dessous ; les bancs neufs ou changés sont rouges avant le code, la suite entière est verte après, et les mutations de [`71-73-annexes/mutations.mjs`](71-73-annexes/mutations.mjs) (série A) sont toutes rouges (« Vérification »). Rien à concevoir : qui veut changer une décision l'écrit à son lanceur, il ne tranche pas.

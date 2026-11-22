@@ -1,6 +1,6 @@
 # Les renvois, les messages et le gate selon le régime ; `sujet.sh etat` voit un sujet sans commit propre (lot 5c, `A-132`)
 
-Status: ready-for-agent
+Status: Fait — PR 149 (`97d17e3`, plugin 7.39.0)
 Type: task
 Label: contre-revue
 Modèle: sonnet — le code entier est dans le patch commun aux tickets 71, 72 et 73 ([`71-73-annexes/lot-5.patch`](71-73-annexes/lot-5.patch), écrit sur `25a72c7`, posé selon le § 2 du ticket 71), décrit ci-dessous ; les bancs neufs ou changés sont rouges avant le code, verts après, les mutations de la série C sont toutes rouges, et la suite entière est verte (« Vérification », qui vaut pour les trois tickets). Rien à concevoir.
