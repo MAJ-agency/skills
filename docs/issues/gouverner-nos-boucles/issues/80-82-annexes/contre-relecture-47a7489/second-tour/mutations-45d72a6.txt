@@ -1,0 +1,32 @@
+# K1 à K12 (mutations-contre.mjs) au sommet 45d72a6, 2026-11-22, Node 22.23.5
+ROUGE K1 cdp § 5, étape 6 : au plafond, la fille redemande la relecture sans attendre la décision — les documents posés sont ceux du régime 8 : la méthode, le f
+ROUGE K2 chantier § 6.5 : après l’arbitrage, c’est le conducteur qui redemande la relecture — le conducteur en régime 8 : il ne contre-relit pas, arbitre,
+ROUGE K3 architecte § 5 : la décision de plafond n’est dite à personne — l'architecte en régime 8 : le Relecteur lancé et relevé, l'a
+ROUGE K4 cdp § 5, étape 7 : le réveil de secours armé à la seule première demande — les documents posés sont ceux du régime 8 : la méthode, le f
+ROUGE K5 avancement : « en relecture » perd la PR renvoyée qui redemande sa relecture — relecture indépendante : à reprendre (verdict refusé, renvoi
+ROUGE K6 architecte § 4 : un Relecteur dans tout dépôt, avant la repose — l'architecte en régime 8 : le Relecteur lancé et relevé, l'a
+ROUGE K7 chantier § 6.5 : la règle sans étiquette reprend les brouillons et les PR en régime 7 — le conducteur en régime 8 : il ne contre-relit pas, arbitre,
+ROUGE K8 chantier § 6.1 : le Relecteur sort du contrôle de vie du conducteur — le conducteur en régime 8 : il ne contre-relit pas, arbitre,
+ROUGE K9 lancement : la garde supprimée sur son seul nom — lancement.md : la phrase du régime coupée en deux, seule la 
+ROUGE K10 architecte, Archiver : les réveils en attente d’une session ne sont plus supprimés — l'architecte en régime 8 : le Relecteur lancé et relevé, l'a
+ROUGE K11 chantier § 0.6 : le Relecteur vérifié sans regarder la clé — le conducteur en régime 8 : il ne contre-relit pas, arbitre,
+ROUGE K12 cdp § 5, étape 6 : un bloquant contesté n’attend plus son arbitrage — les documents posés sont ceux du régime 8 : la méthode, le f
+12 rouges sur 12 jouées, 12 dans le fichier
+toutes rouges
+sortie 0
+
+# V5r et A3r (mutations-annexe-recrites.mjs) au sommet 45d72a6
+ROUGE V5r fusionner : le trigger_id de la garde n’est plus noté (V5 de l’annexe, sur le texte retouché) — le réveil de garde : après la liste des fins, avant le suivi
+ROUGE A3r avancement : un renvoi (`fusion-bloquée`) n’est plus « à reprendre » (A3 de l’annexe, sur le code retouché) — relecture indépendante : à reprendre (verdict refusé, renvoi
+2 rouges sur 2 jouées, 2 dans le fichier
+toutes rouges
+sortie 0
+
+# K13 à K16 (mutations-second-tour.mjs) au sommet 45d72a6
+ROUGE K13 cdp § 1 : le conducteur ne pose jamais à-fusionner, sans l’exception de la livraison — les documents posés sont ceux du régime 8 : la méthode, le f
+ROUGE K14 fusionner, La règle : le propriétaire renvoyé ne remet jamais à-fusionner, livraison comprise — le capitaine en régime 8 : « Le verdict », la sous-PR sautée
+ROUGE K15 architecte § 8.3 : la PR de repose sans la quatrième ADR — l'architecte en régime 8 : le Relecteur lancé et relevé, l'a
+VERTE K16 cdp § 5, étape 6 : la raison de « jamais avant » récrite (sonde : rien ne la fige)
+3 rouges sur 4 jouées, 4 dans le fichier
+1 mutation(s) non rouge(s)
+sortie 1

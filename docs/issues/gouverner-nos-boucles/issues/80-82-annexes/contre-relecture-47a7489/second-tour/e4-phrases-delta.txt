@@ -1,0 +1,68 @@
+
+=== skills/chaine/chantier/SKILL.md : 12 retirée(s), 13 neuve(s)
+  r1. Vérifie que le Relecteur du dépôt tourne (régime 8) : la ligne `Relecteur:` de la fiche, puis `get_session` sur l'identifiant qu'elle nomme, sans filtre par tag ; dans un programme, l'architecte le la
+  r2. Un ticket qui cite sur sa ligne `Règles:` une règle de criticité haute porte `Relecture: double` (le gate `tickets` l'exige d'un ticket ouvert) : deux sessions de relecture.
+  r3. Un ticket qui crée un module d'authentification, de droits, de chiffrement, de paiement ou d'export fait ajouter son dossier à `cheminsSensibles` de `.claude/chaine.json` par un ticket du chantier, le
+  r4. 3-specs-en-fusion`) Le capitaine squashe la PR de cadrage dans le sujet dès sa CI légère verte, et, en régime 8, son tour de relecture validé ; sur `à-reprendre`, le conducteur lit le verdict, corrige
+  r5. Contrôle de vie : le même relevé s'étend aux capitaines du dépôt (mêmes lignes, `tags` contenant `role:capitaine` ; dans un programme, aussi les identifiants de la ligne `Capitaines:` de la carte du p
+  r6. - Arbitrer une contestation de sa fille (`Contesté — <critère, fichier et ligne> — <raison>` sur la PR, et une ligne de la fille) : il lit le constat dans le code, puis écrit sur la PR `Arbitrage — <c
+  r7. `Plafond — décision attendue` sur la PR, une ligne du Relecteur) : dans un programme, l'architecte décide, il lui donne ce qu'il sait du ticket ; sans programme, il décide lui-même si la cause est tec
+  r8. - À chaque réveil, les PR ouvertes de son sujet qui ne portent aucune des quatre étiquettes (`à-relire`, `à-reprendre`, `à-fusionner`, `fusion-bloquée`) : l'écrire à leur fille ; fille finie ou muette
+  r9. Échéance proche ou sujet « VIEUX » : proposer au produit `sujet.sh livrer <nom> "<titre>"` ; la PR s'ouvre sans `à-fusionner`, que le conducteur pose aussitôt : une livraison de sujet n'a pas de relec
+  r10. Une livraison intermédiaire qui échoue à sa preuve redevient une PR ordinaire : il pose alors `à-relire`, et elle est relue en entier.
+  r11. `external_metadata.usage.cost_usd`, `context_usage.used_tokens`, `last_served_model`) — filles du tag `chantier:<nom>` relevées à chaque fin de vague, puis capitaine et cette session-ci (rôle `conduct
+  r12. Sessions filles finies : déjà nommées à l'architecte à chaque fin de vague (§ 6.6) ; nommer ici les dernières, et leurs sessions de relecture, après relevé de leur coût.
+  n1. [dit le régime] Vérifie que le Relecteur du dépôt tourne (régime 8), quand `.claude/chaine.json` d'`origin/develop` porte la clé `relecture` (sans elle, aucun Relecteur : la ligne `Relecteur:` vaut « absent ») : la ligne `Relecteur:` de la fiche, puis `get_session` sur l'iden
+  n2. [dit le régime] En régime 8, un ticket qui cite sur sa ligne `Règles:` une règle de criticité haute porte `Relecture: double` (le gate `tickets` l'exige alors d'un ticket ouvert) : deux sessions de relecture.
+  n3. [dit le régime] En régime 8, un ticket qui crée un module d'authentification, de droits, de chiffrement, de paiement ou d'export fait ajouter son dossier à `cheminsSensibles` de `.claude/chaine.json` par un ticket du chantier, le premier quand d'autres en dépendent, dont la l
+  n4. [dit le régime] 3-specs-en-fusion`) Le capitaine squashe la PR de cadrage dans le sujet dès sa CI légère verte, et, en régime 8, son tour de relecture validé ; sur `à-reprendre`, le conducteur lit le verdict, corrige ou conteste (l'architecte arbitre ; sans programme, le prod
+  n5. [dit le régime] Contrôle de vie : le même relevé s'étend aux capitaines du dépôt (mêmes lignes, `tags` contenant `role:capitaine` ; dans un programme, aussi les identifiants de la ligne `Capitaines:` de la carte du programme) et, en régime 8, au Relecteur du dépôt (l'identifi
+  n6. [SANS régime] - Arbitrer une contestation de sa fille (`Contesté — <critère, fichier et ligne> — <raison>` sur la PR, et une ligne de la fille) : il lit le constat dans le code, puis écrit sur la PR `Arbitrage — <critère, fichier et ligne> — maintenu`, ou `— écarté — <raiso
+  n7. [SANS régime] `Plafond — décision attendue` sur la PR, une ligne du Relecteur) : dans un programme, l'architecte décide, il lui donne ce qu'il sait du ticket ; sans programme, il décide lui-même si la cause est technique (ticket récrit ou découpé, désaccord tranché), le pro
+  n8. [dit le régime] - À chaque réveil, les PR ouvertes de son sujet qui ne portent aucune des quatre étiquettes (`à-relire`, `à-reprendre`, `à-fusionner`, `fusion-bloquée`), hors brouillon (une fille qui code, ou arrêtée avant sa demande) et en régime 8 (ouvertes après `relecture
+  n9. [dit le régime] Échéance proche ou sujet « VIEUX » : proposer au produit `sujet.sh livrer <nom> "<titre>"` ; la PR s'ouvre sans `à-fusionner`, que le conducteur pose aussitôt en régime 8 (en régime 7 :
+  n10. [SANS régime] `references/regime-7.md`) : une livraison de sujet n'a pas de relecture propre, ce qui y entre a été relu sous-PR par sous-PR (`P-60`).
+  n11. [dit le régime] Une livraison intermédiaire qui échoue à sa preuve redevient une PR ordinaire : en régime 8, il pose alors `à-relire`, et elle est relue en entier.
+  n12. [SANS régime] `external_metadata.usage.cost_usd`, `context_usage.used_tokens`, `last_served_model`) — filles du tag `chantier:<nom>` relevées à chaque fin de vague, puis capitaine, cette session-ci (rôle `conducteur`), les sessions de relecture de ses propres PR (rôle `rele
+  n13. [SANS régime] Sessions filles finies : déjà nommées à l'architecte à chaque fin de vague (§ 6.6) ; nommer ici les dernières, et leurs sessions de relecture, avec celles de ses propres PR fusionnées, après relevé de leur coût.
+
+=== skills/chaine/architecte/SKILL.md : 7 retirée(s), 7 neuve(s)
+  r1. - Coût : une ligne par session que nulle carte de chantier ne compte (architectes successifs, capitaines lancés par l'architecte, sessions de ticket qu'il lance lui-même), relevée par `get_session` (`
+  r2. Dans un dépôt à chaîne, un Relecteur se lance en même temps que le capitaine (`references/lancement.md`, « Le Relecteur d'un dépôt »), et pas un second tant que `get_session` dit vivante la session qu
+  r3. Il arbitre une contestation sur une PR du conducteur (`Arbitrage — <critère, fichier et ligne> — maintenu`, ou `— écarté — <raison>`, écrit sur la PR) ; celle d'une PR de l'architecte, c'est le produi
+  r4. `Décision de plafond — …` sur la PR (ticket récrit ou découpé, désaccord tranché), avec ses lignes `Arbitrage — … — écarté` quand elle écarte un bloquant, et le produit en est informé en une ligne ; a
+  r5. L'architecte archive chaque session que nomme une ligne `à archiver : <session>, <ticket>, <coût>` d'un conducteur, après avoir lu par `get_session` qu'elle a fini (`completed`, aucune PR ouverte qui 
+  r6. Qui archive l'auteur d'une PR archive aussi ses sessions de relecture, lues sur ses distributions (`Relecture — tour <k> — sommet <sha> — sessions <…>`) ; leur coût est déjà dans la carte du chantier 
+  r7. La PR de repose pose la clé `relecture` dans `.claude/chaine.json` (`depuis` : la date et l'heure UTC du commit qui la pose, le dernier de cette PR, écrit après son ouverture), les scripts à deux régi
+  n1. [SANS régime] - Coût : une ligne par session que nulle carte de chantier ne compte (architectes successifs, capitaines et Relecteurs lancés par l'architecte, sessions de ticket qu'il lance lui-même), relevée par `get_session` (`external_metadata.usage.cost_usd`, `context_us
+  n2. [dit le régime] Dans un dépôt dont `.claude/chaine.json` d'`origin/develop` porte la clé `relecture` (régime 8 ; avant la repose, aucun : § 8, point 2), un Relecteur se lance en même temps que le capitaine (`references/lancement.md`, « Le Relecteur d'un dépôt »), et pas un se
+  n3. [SANS régime] Il arbitre une contestation sur une PR du conducteur (`Arbitrage — <critère, fichier et ligne> — maintenu`, ou `— écarté — <raison>`, écrit sur la PR, puis dit au conducteur en une ligne : il redemande la relecture) ; celle d'une PR de l'architecte, c'est le p
+  n4. [SANS régime] `Décision de plafond — …` sur la PR (ticket récrit ou découpé, désaccord tranché), avec ses lignes `Arbitrage — … — écarté` quand elle écarte un bloquant, et le produit en est informé en une ligne, le conducteur aussi, qui la dit à la fille (sur sa propre PR, 
+  n5. [SANS régime] L'architecte archive chaque session que nomme une ligne `à archiver : <session>, <ticket>, <coût>` d'un conducteur, après avoir lu par `get_session` qu'elle a fini (`completed`, aucune PR ouverte qui l'attende), et supprimé d'abord ses réveils en attente (`lis
+  n6. [SANS régime] Qui archive l'auteur d'une PR archive aussi ses sessions de relecture, lues sur ses distributions (`Relecture — tour <k> — sommet <sha> — sessions <…>`) ; leur coût est déjà dans la carte du chantier (rôle `relecture`) ; celles de ses propres PR, l'architecte 
+  n7. [dit le régime] La PR de repose pose la clé `relecture` dans `.claude/chaine.json` (`depuis` : la date et l'heure UTC du commit qui la pose, le dernier de cette PR, écrit après son ouverture), les scripts à deux régimes (ceux de `fusionner`, `sujet`, `relecture` et du socle, 
+
+=== skills/chaine/architecte/references/lancement.md : 1 retirée(s), 1 neuve(s)
+  r1. - Archiver un capitaine du skill `fusionner`, quand plus aucun ordre n'est attendu avant plusieurs heures : d'abord sa garde, `delete_trigger` sur le `trigger_id` que le capitaine a noté, ou, s'il ne 
+  n1. [SANS régime] - Archiver un capitaine du skill `fusionner`, quand plus aucun ordre n'est attendu avant plusieurs heures : d'abord sa garde, `delete_trigger` sur le `trigger_id` que le capitaine a noté, ou, s'il ne le donne plus, `list_triggers` et `delete_trigger` sur « Gar
+
+=== skills/chaine/fusionner/SKILL.md : 2 retirée(s), 2 neuve(s)
+  r1. `à-fusionner` sur un tour validé, `à-reprendre` sur un refus | relire, arbitrer, transporter un constat | | Capitaine | fait passer la file dans l'ordre, juge par les verdicts, renvoie ce qui casse | 
+  r2. Noter le `trigger_id` qu'il rend, chaque fois, le dernier remplaçant le précédent : avant tout arrêt du capitaine et son archivage, `delete_trigger` sur lui ; perdu, le retrouver par `list_triggers`, 
+  n1. [dit le régime] `à-fusionner` sur un tour validé, `à-reprendre` sur un refus | relire, arbitrer, transporter un constat | | Capitaine | fait passer la file dans l'ordre, juge par les verdicts, renvoie ce qui casse | relire, résoudre le conflit de code d'une autre session, pou
+  n2. [SANS régime] Noter le `trigger_id` qu'il rend, chaque fois, le dernier remplaçant le précédent : avant tout arrêt du capitaine et son archivage, `delete_trigger` sur lui ; perdu, le retrouver par `list_triggers`, sous ce nom et sur cette session (`persistent_session_id`, l
+
+=== skills/chaine/sujet/SKILL.md : 1 retirée(s), 1 neuve(s)
+  r1. La PR s'ouvre sans `à-fusionner` : le poser aussitôt, `issue_write` en session cloud ; une livraison de sujet n'a pas de relecture propre, ce qui y entre a été relu sous-PR par sous-PR (`P-60`).
+  n1. [dit le régime] La PR s'ouvre sans `à-fusionner` : le poser aussitôt, `issue_write` en session cloud ; une livraison de sujet n'a pas de relecture propre, ce qui y entre a été relu sous-PR par sous-PR (`P-60`) ; en régime 7, `regime-7.md`, « Les sujets » (la contre-revue d'ab
+
+=== skills/chaine/socle-chaine-de-production/references/docs-agents/chaine-de-production.md : 4 retirée(s), 5 neuve(s)
+  r1. Un travail d'un autre rôle (un deck, une étude, une contre-revue longue) part dans une autre session ou un sous-agent. | Rôle | Combien | Fait | Ne fait jamais | Modèle conseillé | | -----------------
+  r2. Sur `à-reprendre` (verdict `refusé`) : lire le verdict sur la PR, jamais un résumé ; corriger chaque bloquant avec le test qui l'aurait attrapé, ou le contester sur la PR, `Contesté — <critère, fichie
+  r3. Trois tours refusés : le plafond, que l'architecte décide (sans programme, le conducteur ou le produit) ; la fille attend la décision.
+  r4. Puis armer le réveil de secours, un `send_later`, à chaque demande de relecture : au réveil, si la PR porte `à-reprendre`, lire le verdict et corriger (étape 6) ;
+  n1. [SANS régime] Un travail d'un autre rôle (un deck, une étude, une contre-revue longue) part dans une autre session ou un sous-agent. | Rôle | Combien | Fait | Ne fait jamais | Modèle conseillé | | -------------------- | ---------------------------- | -----------------------
+  n2. [SANS régime] Sur `à-reprendre` (verdict `refusé`) : lire le verdict sur la PR, jamais un résumé ; corriger chaque bloquant avec le test qui l'aurait attrapé, ou le contester sur la PR, `Contesté — <critère, fichier et ligne> — <raison>`, et l'écrire en une ligne au conduct
+  n3. [SANS régime] Un bloquant contesté attend son arbitrage : la relecture se redemande une fois l'arbitrage écrit (maintenu : le bloquant corrigé d'abord), au même sommet si rien n'a été poussé, jamais avant (le Relecteur remettrait `à-reprendre`).
+  n4. [SANS régime] Trois tours refusés : le plafond, que l'architecte décide (sans programme, le conducteur ou le produit) ; la fille attend la décision, qu'on lui écrit, la suit, puis redemande la relecture : sans demande, la PR reste `à-reprendre`, hors de la file du Relecteur
+  n5. [SANS régime] Puis armer le réveil de secours, un `send_later` à 120 minutes (le second réveil, à quatre heures, voit le cas des trois heures), à chaque demande de relecture et à chaque contestation : au réveil, si la PR porte `à-reprendre`, lire le verdict et corriger (éta

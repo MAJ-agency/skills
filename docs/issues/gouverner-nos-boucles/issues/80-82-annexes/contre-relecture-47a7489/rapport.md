@@ -115,3 +115,56 @@ Pour le second tour : le delta est `retouches-tour-1.patch` ; les mutations K1 �
 ## 10. Temps
 
 De 08 h 33 à 09 h 35 UTC, environ une heure : arbre et rouges, 10 min ; lecture des tickets, de la spec et des cinq skills joués, 30 min ; retouches, bancs et mutations, 10 min ; la suite entière, 16 min après 12 min d'attente de la charge.
+
+## Second tour (sommet `45d72a635f5953dc37f2e1c16941a758e6937e52`)
+
+Delta relu : `47a7489..45d72a6`, un commit, parent direct `47a7489`. Son arbre, `87b2157626c4f108919fcf4f4c463c61b5121304`, est celui de `retouches-tour-1.patch` ; le diff du commit est, octet pour octet, ce patch. Décisions prises entre les tours : `A-198` (le réveil de secours à 120 minutes ; le régime lu à la main par le conducteur ; les mineurs 14 et 15 aux tickets de suite ; l'accord de l'essai demandé au moment de ses cas).
+
+**Proposition : non conforme au sommet `45d72a635f5953dc37f2e1c16941a758e6937e52`**, pour un seul constat, N0 : un contrôle exigé est rouge. Il ne vient pas du delta : il est là depuis `47a7489`, et le premier tour ne l'a pas vu, faute d'avoir lu les contrôles. Les constats 1 à 13 sont fermés. Les retouches n'ouvrent que trois mineurs (N1 à N3), qui vont aux tickets de suite.
+
+### Les constats 1 à 13 au sommet
+
+Fermés tous les treize, chacun par le texte que le premier tour proposait, et que tient un banc : K1 à K12 rougissent. Les huit bancs rouges avant les retouches (`bancs.txt`) sont verts.
+
+### Les retouches et le régime 7
+
+`second-tour/e4-phrases-delta.txt` (essai E4) liste les phrases du delta : 27 retirées, 29 neuves. Les phrases neuves qui ne disent pas le régime sont de trois sortes :
+- elles sont dans un paragraphe qui dit « régime 8 » en tête : l'arbitrage, le plafond, la règle sans étiquette (§ 6.5 de `chantier`, § 5 de `architecte`) ;
+- elles ne trouvent rien à faire en régime 7 : le coût des sessions de relecture et du Relecteur ;
+- elles changent un geste dans les deux régimes, par décision (`A-198`, constats 7 et 12) : une garde se retrouve par son nom et sa session, et l'architecte supprime les réveils en attente d'une session avant de l'archiver.
+
+Le régime 7 sous 8.0.0 tient donc, phrase par phrase : il reste celui de 7.39.0, aux décisions près, désormais sans geste neuf par erreur.
+
+### La garde retrouvée autrement que par son nom
+
+`list_triggers`, lu sur le compte (lecture seule), montre que les rappels vivants de `send_later` portent `persistent_session_id`, la session qu'ils réveillent. Les rappels éteints parce que leur session a disparu ne le portent plus. Le filtre du constat 7 trouve donc la garde d'un capitaine vivant, et elle seule. Aucun texte ne supprime plus une garde sur son seul nom : `fusionner` « Réveil de garde », `lancement.md` « Archiver un capitaine », `architecte` « Archiver ».
+
+### Les mutations
+
+- **Au sommet** : K1 à K12, 12 rouges sur 12 ; V5r et A3r, 2 rouges sur 2.
+- **K13 à K16**, quatre mutations neuves sur le seul delta (`second-tour/mutations-second-tour.mjs`) : K13, K14 et K15 sont rouges. K16 est une sonde, verte : elle récrit la raison entre parenthèses de l'étape 6, que rien ne fige (N2).
+- Détail : `second-tour/mutations-45d72a6.txt`.
+
+### Les contrôles GitHub au sommet (lecture seule, 2026-11-22 à 09 h 55 UTC)
+
+`CodeQL` est **en échec**, et c'est un contrôle exigé sur `main` (règle « required_status_checks » : `CodeQL`, `bancs`). `bancs` était en cours, `Analyze (actions)` et `Analyze (javascript-typescript)` réussis. Le même échec se lit au sommet `47a7489`. La PR est `blocked`.
+
+### Constats du second tour
+
+| # | Gravité | Le fait | La preuve | La retouche |
+| --- | --- | --- | --- | --- |
+| N0 | bloquant (contrôle exigé rouge) | CodeQL relève une alerte haute, « Incomplete string escaping or encoding », dans `settings-json.test.mjs`, ligne 174 : `entree.replace(/[*]/g, '\\*')` n'échappe pas l'antislash. La ligne vient du lot 6 (`47a7489`), pas du delta. Tant que l'alerte reste, la PR ne peut pas entrer. | Annotation du contrôle `CodeQL` au sommet `45d72a6` ; même échec au sommet `47a7489` ; aucun échec sur `main` (`97d17e3`) ; la règle de `main` exige `CodeQL`. | `second-tour/retouches-tour-2.patch`, 1 fichier, +3 −1. Le motif est échappé par l'échappement complet que le code du gate emploie déjà (`settings-json-regles.mjs`), où CodeQL ne relève rien sur `main`. |
+| N1 | mineur (ticket de suite) | Le delta fait dire à `architecte` § 4 et à `chantier` § 0.6 qu'un Relecteur ne se lance qu'avec la clé. Deux textes hors du delta disent encore « l'architecte le lance en même temps que le capitaine », sans condition : `lancement.md` (« Le Relecteur d'un dépôt ») et `relecteur/SKILL.md` (ligne 20). | Lecture. | Ticket de suite : la même condition (la clé sur `origin/develop`, ou la repose, `architecte` § 8, point 2) dans les deux textes. |
+| N2 | mineur (ticket de suite) | Étape 6 : « jamais avant (le Relecteur remettrait `à-reprendre`) ». La raison ne vaut qu'au même sommet. À un sommet neuf, une demande faite avant l'arbitrage reçoit un tour compté, qui peut relever de nouveau le constat contesté. La règle tient ; la raison peut faire croire qu'un push suffit. | K16 vert ; essai E1 (règle 6 sur un sommet neuf). | Ticket de suite : « (au même sommet, le Relecteur remettrait `à-reprendre` ; à un sommet neuf, un tour compté relèverait le constat contesté) », et un banc. |
+| N3 | mineur (ticket de suite) | `list_triggers` rend 20 entrées par défaut, avec une suite paginée, et les tâches éteintes en font partie. Aucun des trois textes qui y cherchent une garde ou un réveil ne dit de lire `enabled: true` et toutes les pages. | La lecture de `list_triggers` (`has_more`, `next_cursor`). | Ticket de suite : « `list_triggers` (`enabled: true`, toutes les pages) » dans les trois textes. |
+
+Hors de la PR, pour l'architecte : le ticket 82, sur la branche de documentation, garde « son accord, une fois, sur la liste des fichiers sensibles que l'essai touche » dans « Ce que le produit fait d'abord ». Or `A-198` point 4 fait demander cet accord au moment des cas, une question à la fois. Le ticket est à remettre d'accord avec la décision.
+
+### Preuves de `retouches-tour-2.patch`
+
+- Sur `45d72a6` : sha256 `8bb07de553e4259a3221f7ad1f60ece30e879ab676faddb4ac79e77fa9236486`, arbre `0875c036e77408658ff370101d67aa3a88468646`, version inchangée (8.0.0).
+- `settings-json.test.mjs` : 24 sur 24.
+- Les mutations du gate (S1 à S6, R8, R9) : 8 rouges sur 8 (`second-tour/preuves-tour-2.txt`).
+- Le patch ne change qu'un banc : la suite n'est pas rejouée, comme le tour le demande. CodeQL ne se joue pas ici : l'échappement retenu est celui que CodeQL accepte déjà dans le code du gate.
+
+Temps du second tour : de 09 h 50 à 09 h 58 UTC environ.

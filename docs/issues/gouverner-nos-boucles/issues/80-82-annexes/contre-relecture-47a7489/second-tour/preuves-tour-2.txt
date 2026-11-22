@@ -1,0 +1,16 @@
+# Les mutations du gate settings-json de l'annexe (S1 à S6, R8, R9) sur 45d72a6 + retouches-tour-2.patch
+ROUGE S1 settings-json : create_session refusé aussi en régime 7 — régime 8 : une entrée allow qui pré-approuve create_session  | le gate lit la clé relecture de .claude/chaine.json : présen
+ROUGE S2 settings-json : le joker du serveur passe — régime 8 : une entrée allow qui pré-approuve create_session 
+ROUGE S3 settings-json : le serveur entier passe — régime 8 : une entrée allow qui pré-approuve create_session 
+ROUGE S4 settings-json : un contrat illisible qui nomme la clé lu sans elle — le gate lit la clé relecture de .claude/chaine.json : présen
+ROUGE S5 settings-json : le gate ne lit pas le contrat — le gate lit la clé relecture de .claude/chaine.json : présen
+ROUGE S6 settings-json : la clé lue n’importe où dans le texte (le $comment du gabarit la nomme) — le gate lit la clé relecture de .claude/chaine.json : présen
+ROUGE R8 settings-json : le motif de create_session sans ancre de fin — régime 8 : une entrée allow qui pré-approuve create_session 
+ROUGE R9 settings-json : une clé relecture à null lue absente (du côté non sûr) — le gate lit la clé relecture de .claude/chaine.json : présen
+8 rouges sur 8 jouées, 68 dans le fichier
+toutes rouges
+
+# settings-json.test.mjs sur 45d72a6 + retouches-tour-2.patch
+# tests 24
+# pass 24
+# fail 0
