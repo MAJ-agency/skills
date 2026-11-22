@@ -1,0 +1,18 @@
+VERTE C1 SKILL pivot-3 : init avec --force
+VERTE C2 SKILL étape 4 : le manifeste hors de cheminsSensibles
+VERTE C3 fiche : une règle sans criticité est basse
+VERTE C4 fiche : le plus bas des deux niveaux
+ROUGE C5 fiche : la raison obligatoire pour high — la fiche anchorpost dit comment écrire une criticité, un cas
+VERTE C6 fiche : les portées inversées
+VERTE C7 fiche : une étiquette de cas inconnue tolérée
+VERTE C8 fiche : un agent peut baisser
+VERTE C9 fiche : la criticité d'une feature descend par Prouve:
+VERTE C10 fiche : le manifeste plus sensible
+VERTE C11 admin.md : enforce écrit par un agent
+VERTE C12 SKILL pivot-3 : enforce posé par la session
+VERTE C13 note 8.3.0 : sans cheminsSensibles
+VERTE C14 note 8.3.0 : installer avant de retirer
+VERTE C15 SKILL pivot-3 : le plancher baissé à la main
+ROUGE C16 manifeste : enforce d'office — le skill anchorpost suit la CLI 2.0.0 : manifeste au schéma 
+VERTE C17 fiche : prouvée sans qu'un cas manque
+VERTE C18 SKILL check : enforce sans refus de criticité

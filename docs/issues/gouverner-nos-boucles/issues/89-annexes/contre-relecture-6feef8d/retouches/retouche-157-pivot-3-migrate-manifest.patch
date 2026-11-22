@@ -1,0 +1,43 @@
+diff --git a/NOTES-DE-VERSION.md b/NOTES-DE-VERSION.md
+index 933e26e..50f1af0 100644
+--- a/NOTES-DE-VERSION.md
++++ b/NOTES-DE-VERSION.md
+@@ -7,7 +7,7 @@ La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque pro
+ ### Ce qui change
+ 
+ - **Le skill `anchorpost` suit la CLI 2.0.0** (K5 de la preuve suffisante, `SPEC_ALL_ANC-5` § 8) : la CLI est publique sur npmjs.com, installée sans jeton ni `.npmrc` (`@maj-agency/anchorpost@^2`) ; la recette de l'administrateur, l'ADR et la description du skill ne parlent plus de clé ni de GitHub Packages. Le gabarit du manifeste est au schéma `"3"` (plancher `{ date, proven, partial }`, `"sufficiency": "observe"`) ; `check` refuse ce que le pivot 3 ajoute, et le manifeste entre dans `cheminsSensibles`.
+-- **Passer au pivot 3** : une section du skill (`pivot-3`) dit l'ordre d'un dépôt branché avant la CLI 2.0.0 : la CLI, `anchorpost init` qui réécrit le manifeste au schéma 3 sans rien retirer, le plancher relevé à la main, chaque règle « à classer » classée par le skill `criticite`, la repose des skills qui lisent le pivot 3, puis `enforce` sur décision du produit.
++- **Passer au pivot 3** : une section du skill (`pivot-3`) dit l'ordre d'un dépôt branché avant la CLI 2.0.0 : la CLI (≥ 2.0.2), `anchorpost migrate manifest` qui écrit le manifeste au schéma 3 tel que la CLI le lit déjà, le plancher relevé à la main, chaque règle « à classer » classée par le skill `criticite`, la repose des skills qui lisent le pivot 3, puis `enforce` sur décision du produit.
+ - **La fiche `.claude/rules/anchorpost.md`** dit comment écrire une criticité (`{ level, by, reason }`, `date` pour la personne qui baisse), des cas attendus (`id`, `title`, `kind`, `scope`, `family`), les familles sans objet et la révision des cas, l'étiquette de cas `[RULE_…#<cas>]`, la ligne `Prouve:`, et ce que dit `anchorpost compare` (ses écarts, `observe` et `enforce`).
+ 
+ ### Ce qu'un projet fait pour en profiter
+diff --git a/scripts/preuve-suffisante-anchorpost.test.mjs b/scripts/preuve-suffisante-anchorpost.test.mjs
+index 289f392..b6131c0 100644
+--- a/scripts/preuve-suffisante-anchorpost.test.mjs
++++ b/scripts/preuve-suffisante-anchorpost.test.mjs
+@@ -34,7 +34,9 @@ test("le skill anchorpost suit la CLI 2.0.0 : manifeste au schéma 3, CLI publiq
+   exiger(`${ANCHORPOST}/SKILL.md`, [
+     "La CLI est un paquet npm **public** sur npmjs.com (Anchorpost `ADR_ALL_ARC-16`) : une installation ordinaire, sans jeton ni `.npmrc` particulier.",
+     "2. `pnpm add -Dw @maj-agency/anchorpost@^2`",
+-    "1. Les deux lignes de GitHub Packages retirées de `.npmrc` s'il les porte (étape 1, point 1), puis `pnpm add -Dw @maj-agency/anchorpost@^2`",
++    "1. Les deux lignes de GitHub Packages retirées de `.npmrc` s'il les porte (étape 1, point 1), puis `pnpm add -Dw @maj-agency/anchorpost@^2.0.2`",
++    "2. `pnpm exec anchorpost migrate manifest` (le plan, rien n'est écrit), puis `pnpm exec anchorpost migrate manifest --apply` : la commande que nomme l'alerte `manifest-schema-old`.",
++    "Jamais `init --force`.",
+     "## Passer au pivot 3 (`pivot-3`)",
+     "3. Chaque règle sans criticité ni cas (l'alerte de projet de l'index les compte) se classe par le skill `criticite`, une règle à la fois, avant tout code qui la touche",
+     "5. Le passage à `enforce` est une décision du produit, projet par projet",
+diff --git a/skills/chaine/anchorpost/SKILL.md b/skills/chaine/anchorpost/SKILL.md
+index 42f8f3a..db53cb9 100644
+--- a/skills/chaine/anchorpost/SKILL.md
++++ b/skills/chaine/anchorpost/SKILL.md
+@@ -109,8 +109,8 @@ Ajouter la section de [`references/fragments/admin.md`](references/fragments/adm
+ 
+ Un dépôt branché avant la CLI 2.0.0 a un manifeste et un index au schéma 2 ; la CLI 2.0.x lit le manifeste 2 converti, sans rien écrire, et le signale (`manifest-schema-old`). Le passage, par une PR relue (le manifeste est un chemin sensible), dans cet ordre :
+ 
+-1. Les deux lignes de GitHub Packages retirées de `.npmrc` s'il les porte (étape 1, point 1), puis `pnpm add -Dw @maj-agency/anchorpost@^2`, puis `pnpm anchorpost:index` : l'index passe au schéma `"3"` ; une règle qui avait des preuves y sort « partielle » tant que ses cas ne sont pas écrits.
+-2. `pnpm anchorpost init` (sans `--force`) réécrit le manifeste au schéma `"3"` sans rien retirer : il pose `"sufficiency": "observe"`, convertit chaque plancher (`proven: N` devient `{ proven: 0, partial: N }`, sa date gardée) et dit au rapport chaque valeur convertie ; il reboucle aussi l'index généré, le script `check:anchorpost` et le relais du gate : relire le rapport et le diff. Puis, à la main, le plancher relevé d'après la mesure du jour, avec une date nouvelle et la personne qui le pose (`floor { date, by, proven, partial }`), et une entrée `featureCriticality` d'une version 2 réécrite en `{ feature, level, by, date, reason }`. Puis `pnpm anchorpost:index` et `pnpm anchorpost:check`, verts.
++1. Les deux lignes de GitHub Packages retirées de `.npmrc` s'il les porte (étape 1, point 1), puis `pnpm add -Dw @maj-agency/anchorpost@^2.0.2` (`migrate manifest` est de la 2.0.2 ; `@^2` seul garde une 2.0.0 ou une 2.0.1 déjà installée), puis `pnpm anchorpost:index` : l'index passe au schéma `"3"` ; une règle qui avait des preuves y sort « partielle » tant que ses cas ne sont pas écrits. Commiter : la commande suivante exige un arbre propre.
++2. `pnpm exec anchorpost migrate manifest` (le plan, rien n'est écrit), puis `pnpm exec anchorpost migrate manifest --apply` : la commande que nomme l'alerte `manifest-schema-old`. Elle écrit le manifeste au schéma `"3"` tel que la CLI le lisait déjà, et rien d'autre : `"sufficiency": "observe"` posé, chaque plancher converti (`proven: N` devient `{ proven: 0, partial: N }`, sa date gardée, jamais re-mesuré), chaque entrée `featureCriticality` d'une version 2 écrite `{ feature, level, by, date }` ; elle refuse, sans rien écrire, une clé que le schéma 3 perdrait. Une entrée `featureCriticality` basse d'une version 2 n'a pas de raison : la commande la refuse, et `init` aussi ; le manifeste se réécrit alors au schéma 3 à la main, aux mêmes conversions, avec la `reason`. Jamais `init --force`. Puis, à la main, le plancher relevé d'après la mesure du jour, avec une date nouvelle et la personne qui le pose (`floor { date, by, proven, partial }`). Puis `pnpm anchorpost:index` et `pnpm anchorpost:check`, verts.
+ 3. Chaque règle sans criticité ni cas (l'alerte de projet de l'index les compte) se classe par le skill `criticite`, une règle à la fois, avant tout code qui la touche : c'est là que la repose relance le skill. `code` se renseigne sur les règles qui ont des preuves.
+ 4. La repose des skills qui lisent le pivot 3 : `tickets` (la ligne `Prouve:` et la preuve suffisante d'un ticket prêt), `socle-tests` (le gate `preuves`, la mutation des règles `proven` et `partial`), `revue-de-ticket`, et cette fiche.
+ 5. Le passage à `enforce` est une décision du produit, projet par projet : une PR où une personne écrit `"sufficiency": "enforce"`.

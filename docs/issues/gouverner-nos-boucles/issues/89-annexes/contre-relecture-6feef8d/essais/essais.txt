@@ -1,0 +1,158 @@
+== npm view
+{
+  "versions": [
+    "0.0.0-stage",
+    "0.1.0",
+    "1.0.0",
+    "1.1.0",
+    "1.1.1",
+    "1.1.2",
+    "1.2.0",
+    "1.2.1",
+    "1.3.0",
+    "2.0.0",
+    "2.0.1",
+    "2.0.2"
+  ],
+  "dist-tags": {
+    "latest": "2.0.2"
+  }
+}
+== étape 1, les lignes encore là
+
+An authorization header was used: Bearer [hidden]
+sortie 1
+== étape 1, les lignes retirées d'abord
++ @maj-agency/anchorpost 2.0.2
+sortie 0
+anchorpost/anchorpost.json écrit.
+  alerte anchorpost/manifest.json : Le manifeste est au schéma 2 : cette CLI le lit converti au schéma 3, sans rien écrire. Le passer au schéma 3 : `anchorpost migrate manifest`, puis relire le plancher.
+  alerte anchorpost/manifest.json : Le plancher du contexte all est écrit au schéma 2 (`proven: 1`) : cette CLI le relit `partial: 1` et `proven: 0`, car une règle prouvée au schéma 2 n'a aucun cas déclaré. Il ne garde plus les règles prouvées : passer le manifeste au schéma 3, puis le plancher est à relire : on peut le relever (`floor.proven`, `floor.partial`) d'après la mesure de `anchorpost index` ; il ne se baisse que par une personne.
+== pivot-3 point 2 tel qu'écrit : pnpm anchorpost init
+écrit anchorpost/manifest.json
+  clés posées par init : sufficiency
+  schema convertie : ancienne valeur remplacée ("2" → "3")
+  contexts[all].floor convertie : ancienne valeur remplacée ({"date":"2026-11-01","proven":1} → {"date":"2026-11-01","proven":0,"partial":1})
+  featureCriticality[SPEC_ALL_TST-3] convertie : ancienne valeur remplacée ({"feature":"SPEC_ALL_TST-3","level":"high","validation":{"date":"2026-11-10","by":"Alice"}} → {"feature":"SPEC_ALL_TST-3","level":"high","by":"Alice","date":"2026-11-10"})
+  plancher demo : 0 règles prouvées, 1 partielles (2026-11-22)
+écrit scripts/docs/index-generes.json
+écrit package.json
+écrit scripts/verify/anchorpost.mjs
+diff --git a/anchorpost/manifest.json b/anchorpost/manifest.json
+index ea3cca9..0630005 100644
+--- a/anchorpost/manifest.json
++++ b/anchorpost/manifest.json
+@@ -1,13 +1,41 @@
+ {
+-  "schema": "2",
++  "schema": "3",
+   "name": "Essai",
+   "pitch": "Un essai.",
+-  "audiences": ["MOA"],
++  "audiences": [
++    "MOA"
++  ],
+   "contexts": [
+-    { "id": "all", "name": "Socle", "floor": { "date": "2026-11-01", "proven": 1 } },
+-    { "id": "demo", "name": "Démo" }
++    {
++      "id": "all",
++      "name": "Socle",
++      "floor": {
++        "date": "2026-11-01",
++        "proven": 0,
++        "partial": 1
++      }
++    },
++    {
++      "id": "demo",
++      "name": "Démo",
++      "floor": {
++        "date": "2026-11-22",
++        "proven": 0,
++        "partial": 1
++      }
++    }
+   ],
+   "documents": [],
+-  "roles": { "Alice": "MOA" },
+-  "featureCriticality": [{ "feature": "SPEC_ALL_TST-3", "level": "high", "validation": { "date": "2026-11-10", "by": "Alice" } }]
++  "roles": {
++    "Alice": "MOA"
++  },
++  "sufficiency": "observe",
++  "featureCriticality": [
++    {
++      "feature": "SPEC_ALL_TST-3",
++      "level": "high",
++      "by": "Alice",
++      "date": "2026-11-10"
++    }
++  ]
+ }
+== l'alternative que nomme l'alerte : migrate manifest --apply
+migrate manifest --apply
+
+Manifeste : schéma 2 écrit au schéma 3 (anchorpost/manifest.json).
+  sufficiency : observe (ajouté, la valeur que la CLI lisait)
+  featureCriticality : 1 entrée(s), `validation` écrite `by` et `date`
+
+Plancher à relire : on peut le relever d'après la mesure de `anchorpost index` ; il ne se baisse que par une personne.
+  contexte all : `proven: 1` écrit `proven: 0, partial: 1`, comme la CLI le lisait ; il ne garde plus les règles prouvées.
+
+Écrit. Relire au `git diff`, relire le plancher, puis commiter.
+ M anchorpost/manifest.json
+diff --git a/anchorpost/manifest.json b/anchorpost/manifest.json
+index ea3cca9..7773191 100644
+--- a/anchorpost/manifest.json
++++ b/anchorpost/manifest.json
+@@ -1,13 +1,36 @@
+ {
+-  "schema": "2",
++  "schema": "3",
+   "name": "Essai",
+   "pitch": "Un essai.",
+-  "audiences": ["MOA"],
++  "audiences": [
++    "MOA"
++  ],
+   "contexts": [
+-    { "id": "all", "name": "Socle", "floor": { "date": "2026-11-01", "proven": 1 } },
+-    { "id": "demo", "name": "Démo" }
++    {
++      "id": "all",
++      "name": "Socle",
++      "floor": {
++        "date": "2026-11-01",
++        "proven": 0,
++        "partial": 1
++      }
++    },
++    {
++      "id": "demo",
++      "name": "Démo"
++    }
+   ],
+   "documents": [],
+-  "roles": { "Alice": "MOA" },
+-  "featureCriticality": [{ "feature": "SPEC_ALL_TST-3", "level": "high", "validation": { "date": "2026-11-10", "by": "Alice" } }]
++  "roles": {
++    "Alice": "MOA"
++  },
++  "featureCriticality": [
++    {
++      "feature": "SPEC_ALL_TST-3",
++      "level": "high",
++      "by": "Alice",
++      "date": "2026-11-10"
++    }
++  ],
++  "sufficiency": "observe"
+ }
+== pnpm add @^2 sur une 2.0.1 déjà installée
+2.0.1
+== la réalisation : tous les cas prouvés, sans nominal (1), basse avec nominal (2), moyenne sans familles (3)
+2.0.2
+RULE_ALL_TST-1 partial {"nominal":true} {"declared":1,"proven":1}
+RULE_ALL_TST-2 proven {} {"declared":1,"proven":1}
+RULE_ALL_TST-3 partial {"families":["limits","empty","invalid-input","duplicate","ordering","time","permissions","rare-state","volume","failure"]} {"declared":1,"proven":1}
