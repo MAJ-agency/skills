@@ -290,6 +290,7 @@ Vague 1 fusionnée le 2026-11-13 par le capitaine de `skills` (`main` à `8eb1c9
 | `session_012xRpgY2aBRU8kmb7Vtvcd8` | ticket   | 67, 68 et 69, PR 147 (Sonnet, archivée le 2026-11-21 à 22 h 33 UTC) | 0,79 | 125 629 |
 | `session_012xRpgYSe2EdesGXgrrmtad` | ticket   | PR 147, retouches du premier tour (Sonnet, archivée le 2026-11-22 à 00 h 32 UTC) | 0,37 | 92 449 |
 | `session_012xRpgY2hd22sz16Jkwdi1C` | capitaine de `skills` (Sonnet, lancé pour la PR 147) | — | en cours | en cours |
+| `session_012xRpgaUxER8bF3B6MWgaBN` | ticket   | 70, PR B (Sonnet) | en cours | en cours |
 
 La ligne de l'architecte est un relevé du 2026-11-13 à 11 h 45 UTC, session en cours (elle était à 9,20 $ et 289 647 tokens à 8 h 52) ; la cellule de coût ne porte qu'un montant, pour rester lisible par `couts.mjs`.
 
@@ -1235,3 +1236,4 @@ La session de suite fait, dans cet ordre :
 - 2026-11-22 — 00 h 48 UTC. **PR 147, second tour rendu : conforme au sommet `ffb7e2c2ed9d338726a2558d754e673f768a8df6`** (17 min). Constats 1 à 6 fermés ; delta égal au patch ; dix mutations rouges ; contrôles GitHub verts ; un mineur neuf pour la suite (13 : les traces d'illisible exclues de la marque sans banc ; l'essai K8 et la mutation N3 le tiennent).
   - 00 h 50 UTC. **Capitaine de `skills` relancé** (session_012xRpgY2hd22sz16Jkwdi1C, comptes rendus réduits, `A-188`). PR 147 relue à la source (sommet `ffb7e2c`, base `25a72c7`, aucun label, un verdict non conforme sur `686dcc6`). **Verdict conforme** (7071781815), **ordre `à-fusionner au sommet ffb7e2c2ed9d338726a2558d754e673f768a8df6`** (7071782544), **label `à-fusionner`**.
 - 2026-11-22 — 00 h 59 UTC. **PR 147 fusionnée par le capitaine** (squash, `expectedHeadSha` `ffb7e2c`) : `main` à `7352df8`, plugin **7.38.1**. Vérifié à la source : parent `25a72c7`, arbre `52ec3e21…` égal à celui du sommet ordonné. **Tickets 67, 68 et 69 à « Fait ».** Suite : la session du ticket 70 (PR B), puis le lot 5 (tickets 71 à 73), puis le ticket 74.
+  - 01 h 00 UTC. **Session du ticket 70 lancée** (session_012xRpgaUxER8bF3B6MWgaBN, Sonnet, branche `claude/ticket-70-bancs-des-textes`) : le patch B sans ses fichiers de version, 7.38.2 à la main, arrêt après la livraison. Le capitaine reste en vie : il ne rend plus compte des passages vides.
