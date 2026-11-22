@@ -1,0 +1,38 @@
+# Sur fb0ecb0 + retouches-tour-1.patch (5229b6d04596…), les retouches défaites et les mutations du banc des textes, une passe seule ; 2026-11-22T05:03:53Z ; charge 0.32 0.33 1.40
+ROUGE D1 veille.sh : la première boucle reçoit encore --reprendre (fb0ecb0) (48 s) — --reprendre : la veille retire le fichier d'arrêt, la boucle
+ROUGE D2 veille.sh --etat : un verrou qui ne s’ouvre pas se lit VEILLE VIVANTE (fb0ecb0) (49 s) — un fichier du verrou de la veille qui ne s'ouvre pas : --eta
+ROUGE D3 veille.sh : un verrou qui ne s’ouvre pas se lit « une veille tourne déjà » (fb0ecb0) (50 s) — un fichier du verrou de la veille qui ne s'ouvre pas : --eta
+ROUGE D4 SKILL.md : point 2, la garde ne dit plus qu’un arrêt demandé ne se lève jamais (fb0ecb0) (0 s) — le réveil de garde : après la liste des fins, avant le suivi
+ROUGE D5 SKILL.md : point 4, « Réarmer » sans dire qu’il suit chaque suite (fb0ecb0) (0 s) — le réveil de garde : après la liste des fins, avant le suivi
+ROUGE D6 SKILL.md : la sortie 9 d’une boucle renvoyée à --etat (fb0ecb0) (0 s) — une fin sans ligne finale est une veille morte : quatrième p
+ROUGE D7 SKILL.md : sans veille en cours, un second send_later à côté de la garde (fb0ecb0) (0 s) — le réveil de garde : après la liste des fins, avant le suivi
+ROUGE M2c veille.sh : la boucle hérite du verrou de la veille (M2 sur le texte retouché) (52 s) — un démon laissé par la boucle ou par file.sh ne tient pas la | veille tuée pendant que `tee` attend un démon de la boucle (
+ROUGE T10c SKILL.md : la sortie 9 ne nomme plus une autre veille, ni la suite par --etat (T10b sur le texte retouché) (0 s) — une fin sans ligne finale est une veille morte : quatrième p
+9 rouges sur 9 jouées, 9 dans le fichier
+toutes rouges
+ROUGE X1 SKILL.md : la garde armée à chaque lancement de la veille (les réveils de garde s’empilent) (0 s) — le réveil de garde : après la liste des fins, avant le suivi
+ROUGE X2 SKILL.md : point 2, un arrêt demandé levé par la garde (0 s) — le réveil de garde : après la liste des fins, avant le suivi
+ROUGE X3 SKILL.md : point 2, une copie d’avant --etat relancée avec --reprendre (0 s) — le réveil de garde : après la liste des fins, avant le suivi
+ROUGE X4 SKILL.md : point 2, une copie d’avant --etat, la garde réarmée (0 s) — le réveil de garde : après la liste des fins, avant le suivi
+ROUGE X5 SKILL.md : la garde sans son message (0 s) — le réveil de garde : après la liste des fins, avant le suivi
+ROUGE X6 SKILL.md : point 1, la copie manquante n’est plus vue (0 s) — le réveil de garde : après la liste des fins, avant le suivi
+6 rouges sur 6 jouées, 10 dans le fichier
+toutes rouges
+ROUGE T1 SKILL.md : le timeout dit après la commande de la veille, plus dans le paragraphe qui la lance (0 s) — la veille se lance avec le `timeout` de l'outil Bash à 72000
+ROUGE T2 SKILL.md : le `timeout` à 600000 au lieu de 7200000 (0 s) — la veille se lance avec le `timeout` de l'outil Bash à 72000
+ROUGE T3 SKILL.md : la puce « Aucune de ces lignes » avant celle de la sortie 13 (0 s) — une fin sans ligne finale est une veille morte : quatrième p
+ROUGE T4 SKILL.md : la puce « Aucune de ces lignes » retirée (0 s) — une fin sans ligne finale est une veille morte : quatrième p
+ROUGE T5 SKILL.md : le réveil de garde déplacé après le suivi du journal (0 s) — le réveil de garde : après la liste des fins, avant le suivi
+ROUGE T6 SKILL.md : le réveil de garde réarmé à chaque réveil (0 s) — le réveil de garde : après la liste des fins, avant le suivi
+ROUGE T7 SKILL.md : la garde à 120 minutes (0 s) — le réveil de garde : après la liste des fins, avant le suivi
+ROUGE T8 SKILL.md : les points 2 et 3 du réveil de garde échangés (0 s) — le réveil de garde : après la liste des fins, avant le suivi
+ROUGE T9b SKILL.md : `--reprendre` retiré du point 3, et la relance recopie (0 s) — le réveil de garde : après la liste des fins, avant le suivi
+INTROUVABLE T10b SKILL.md : la sortie 9 ne nomme plus une autre veille, ni la suite par --etat
+ROUGE T11 veille.sh : l’en-tête ne dit plus le timeout (0 s) — la veille se lance avec le `timeout` de l'outil Bash à 72000
+ROUGE T12 SKILL.md : la garde perd son nom (0 s) — le réveil de garde : après la liste des fins, avant le suivi
+ROUGE T13 SKILL.md : la commande de la veille tronque son journal (`>`) (0 s) — la veille se lance avec le `timeout` de l'outil Bash à 72000
+ROUGE T14 SKILL.md : le point 2 sans suite pour une autre sortie (64) (0 s) — le réveil de garde : après la liste des fins, avant le suivi
+ROUGE T15 SKILL.md : « Reprendre » rejoue boucle.sh --reprendre (0 s) — une fin sans ligne finale est une veille morte : quatrième p
+14 rouges sur 14 jouées, 41 dans le fichier
+1 mutation(s) non rouge(s)
+fin 2026-11-22T05:07:16Z ; charge 2.85 1.34 1.56 ; diff : 5229b6d04596

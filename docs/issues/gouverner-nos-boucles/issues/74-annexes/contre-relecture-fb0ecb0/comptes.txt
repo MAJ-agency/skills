@@ -1,0 +1,20 @@
+# Comptes de la contre-relecture de la PR 150 (ticket 74), premier tour, 2026-11-22 (UTC). Node 22.23.5, git 2.43.0,
+# bash 5.2.21, util-linux 2.39.3, quatre cœurs, machine partagée avec un autre agent. Clone neuf de MAJ-agency/skills.
+# « bancs » : scripts/veille-du-capitaine.test.mjs, fusionner/scripts/veille.test.mjs, fusionner/scripts/une-sous-pr-a-la-fois.test.mjs.
+# « vérification 3 » : scripts/depot.test.mjs, scripts/relecteur.test.mjs, fusionner/scripts/fusionner.test.mjs.
+arbre : 2e87bae + ticket-74.patch (sha256 c5608c9b…, --exclude des deux fichiers de version, --index) = fb0ecb0 hors version : git diff --stat vide
+bancs, avant le code (2e87bae, les trois bancs de fb0ecb0 seuls posés) : tests 63, pass 46, fail 17 (les 17 du § 1) ; 02:59:29 -> 03:07:45, duration_ms 496191 ; charge 4,80 -> 6,06
+bancs, fb0ecb0 : tests 63, pass 63 ; 03:08:02 -> 03:15:25, duration_ms 443237 ; charge 5,92 -> 5,41
+mutations de l'annexe, échantillon de 15 (graine 150), fb0ecb0 : 15 rouges sur 15 ; 03:15:55 -> 03:24:05 ; arbre propre après
+mutations de la contre-relecture X1 à X10, fb0ecb0 : 3 rouges (X8, X9, X10), 7 vertes (X1 à X7) ; 03:24:05 -> 03:42:04
+essais E1 à E13 et N1 à N7, fb0ecb0 : essais/sorties-fb0ecb0.txt ; 03:42:20 -> 03:45:47
+suite entière (pnpm test, ses quatre motifs, d'un seul tenant), fb0ecb0 : tests 1313, pass 1313, fail 0, cancelled 0, skipped 0, todo 0 ; 03:46:39 -> 04:00:00, duration_ms 800222 (13 min 20 s) ; charge 0,22 -> 1,04 ; arbre propre après
+retouches-tour-1.patch : sha256 5229b6d04596cd1c61d8039680c0d6e7bd0f617af191afd3bcd4ed6e2686e3de ; git apply sur fb0ecb0 ; 7 fichiers, +77 -29 ; version 7.38.3 inchangée
+bancs de la retouche sans son code (fb0ecb0 + les trois bancs retouchés) : veille.test.mjs, 2 rouges sur les 4 tests neufs ou changés (« --reprendre : la veille retire… », « … qui ne s'ouvre pas… ») ; banc des textes, 2 rouges sur 4 (tests 2 et 3)
+bancs et vérification 3, fb0ecb0 + retouches : tests 250, pass 250 (64 + 186) ; 04:00:12 -> 04:06:55, duration_ms 402903 ; charge 0,81 -> 3,72
+essais E1 à E13 et N1 à N7, fb0ecb0 + retouches : essais/sorties-retouches.txt ; 04:07:21 -> 04:10:56
+suite entière, fb0ecb0 + retouches : tests 1314, pass 1314, fail 0, cancelled 0, skipped 0, todo 0 ; 04:11:07 -> 04:26:29, duration_ms 918626 (15 min 19 s) ; charge 2,62 -> 3,84 ; diff relu avant et après = le patch (5229b6d0…)
+mutations du banc des textes, fb0ecb0 + retouches : D4 à D7 et T10c, 5 rouges sur 5 ; X1 à X6, 6 rouges sur 6 ; annexe T1 à T15, 14 rouges sur 14 trouvées, T10b introuvable (reprise en T10c)
+mutations du code, fb0ecb0 + retouches : X7 à X10, 4 rouges sur 4 ; annexe, 23 rouges sur 23 trouvées, M2, M18 et M19 introuvables (reprises par M2c et D1) ; 04:26:38 -> 05:03:36 ; diff après = le patch (5229b6d0…)
+retouches défaites D1 à D7, M2c et T10c, puis X1 à X6 et l'annexe T1 à T15, une passe seule : 9 rouges sur 9 ; 6 rouges sur 6 ; 14 rouges sur 14 trouvées, T10b introuvable (reprise en T10c) ; 05:03:53 -> 05:07:16 ; diff après = le patch
+total, fb0ecb0 + retouches : X1 à X10, 10 rouges sur 10 ; D1 à D7, M2c, T10c, 9 rouges sur 9 ; annexe, 37 rouges sur 37 trouvées (41 moins M2, M18, M19, T10b)

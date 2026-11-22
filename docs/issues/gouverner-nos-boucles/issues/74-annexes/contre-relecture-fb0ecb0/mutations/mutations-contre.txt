@@ -1,0 +1,15 @@
+# Sur fb0ecb0 (la PR telle quelle)
+sommet fb0ecb0bed43c4dfb708d73a2a7cc615ab939c85 ; 2026-11-22T03:24:05Z ; charge 3.78 4.11 4.39
+VERTE X1 SKILL.md : la garde armée à chaque lancement de la veille (les réveils de garde s’empilent) (0 s)
+VERTE X2 SKILL.md : point 2, un arrêt demandé levé par la garde (0 s)
+VERTE X3 SKILL.md : point 2, une copie d’avant --etat relancée avec --reprendre (0 s)
+VERTE X4 SKILL.md : point 2, une copie d’avant --etat, la garde réarmée (0 s)
+VERTE X5 SKILL.md : la garde sans son message (0 s)
+VERTE X6 SKILL.md : point 1, la copie manquante n’est plus vue (0 s)
+VERTE X7 veille.sh : l’état « lancee » ajouté au lieu de remplacer la fin d’avant (52 s)
+ROUGE X8 veille.sh : toute veille retire le fichier d’arrêt, --reprendre ou pas (520 s) — veille.sh --reprendre après boucle.sh --arreter : la vraie b | une boucle tient le verrou : préparation non jouée, sortie 1
+ROUGE X9 veille.sh : --reprendre garde boucle.verrou ouvert (descripteur 8) (456 s) — veille.sh --reprendre après boucle.sh --arreter : la vraie b
+ROUGE X10 veille.sh : --reprendre retire le fichier d’arrêt avant le verrou de la veille (49 s) — --reprendre : préparation en échec (13), le fichier d'arrêt 
+3 rouges sur 10 jouées, 10 dans le fichier
+7 mutation(s) non rouge(s)
+fin 2026-11-22T03:42:04Z ; charge 2.78 5.24 5.61 ; arbre propre : 0 fichier(s) modifié(s)
