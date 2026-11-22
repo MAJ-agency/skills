@@ -1985,3 +1985,15 @@ test('lot 5b, refusEdition en régime 8 : un chemin sensible hors accord est ref
   assert.equal(refusEdition('scripts/agent/a.mjs', { ...base, regime8: false, accordes: () => null }), null, 'régime 7');
   assert.match(refusEdition('src/x.ts', { ...base, sensibles: 'pas une liste', accordes: () => null }), /chemin sensible/, 'liste mal formée : tout est sensible');
 });
+
+test('suite 24 du lot 5, refusEdition en régime 8 : le geste qui relit ou approfondit vient en tête du refus, avant la demande au conducteur ; sans geste, le refus commence par sa raison', () => {
+  const base = { migrationExistante: () => false, regime8: true, sensibles: ['scripts/agent/**', 'docs/agents/'] };
+  const deux = refusEdition('docs/agents/x.md', { ...base, accordes: () => ({ copies: [[]], perimees: ['origin/sujet/x'], superficiel: true }) });
+  assert.match(deux, /^docs\/agents\/x\.md : d'abord, relire les copies du ticket \(origin\/sujet\/x n'est pas au sommet d'origin\) : `git fetch --prune origin [^`]+`, puis approfondir le clone \(clone superficiel : [^)]+\) : `git fetch --unshallow origin`, puis refaire l'écriture\. Encore refusée : chemin sensible \(`cheminsSensibles`\) hors de la ligne `Sensibles:`/);
+  assert.ok(deux.indexOf('git fetch') < deux.indexOf('Arrête-toi et écris à ton conducteur'), 'le geste avant la demande au conducteur');
+  assert.match(refusEdition('docs/agents/x.md', { ...base, accordes: () => ({ perimees: ['origin/develop'] }) }), /^docs\/agents\/x\.md : d'abord, relire les copies du ticket \(origin\/develop n'est pas au sommet d'origin\) : .*Encore refusée : .* \(Aucune ligne lue : /);
+  assert.match(refusEdition('docs/agents/x.md', { ...base, accordes: () => ({ illisible: 'deux lignes', superficiel: true }) }), /^docs\/agents\/x\.md : d'abord, approfondir le clone .*Encore refusée : .* \(Ligne illisible : deux lignes\.\)$/);
+  const sans = refusEdition('docs/agents/x.md', { ...base, accordes: () => ({ copies: [[]] }) });
+  assert.match(sans, /^docs\/agents\/x\.md : chemin sensible \(`cheminsSensibles`\)/);
+  assert.doesNotMatch(sans, /d'abord|git fetch|Encore refusée/, 'sans geste, rien de plus');
+});

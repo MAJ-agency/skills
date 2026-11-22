@@ -919,6 +919,9 @@ fusionner() {
   pr=$(pr_json "$n") || sortir 5 "#$n : GitHub illisible à la lecture de la PR (cause ci-dessus) : reprise au tour suivant, aucun renvoi"
   [ "$(jq -r .state <<<"$pr")" = open ] || sortir 7 "#$n n'est pas ouverte"
   [ "$(jq -r .draft <<<"$pr")" = false ] || sortir 7 "#$n est en brouillon"
+  # Une PR de fourche : sautée sans renvoi, comme dans passer.sh (A-192, point 2), avant tout fetch de sa tête.
+  [ "$(jq -r '.head.repo.full_name // ""' <<<"$pr")" = "$(jq -r '.base.repo.full_name // ""' <<<"$pr")" ] ||
+    sortir 7 "#$n : PR de fourche ($(jq -r '.head.repo.full_name // "dépôt supprimé"' <<<"$pr")) : sa tête vit hors du dépôt, le capitaine ne la lit pas ; sautée sans renvoi"
   base=$(jq -r .base.ref <<<"$pr")
   [[ "$base" == sujet/* ]] || sortir 4 "#$n vise $base, pas une branche sujet/ : elle passe par le capitaine"
   refuser_tete_gardee "$n" "$pr"
@@ -952,13 +955,20 @@ fusionner() {
   # fichiers et avant le premier contrôle d'ascendance, pour une sous-PR ordinaire comme pour une PR de mise à jour (sur
   # sa résolution et ses retouches, la seconde liste de `a-juger`, ce que la relecture lit) : une sous-PR sans tour
   # validé est renvoyée sans mise à jour ni CI ; une lecture illisible (A-113) la fait sauter sans renvoi.
-  local revu statut lus
-  lus=$fichiers
+  # Une seule revue par passage (la suite M1 du lot 5) : pour une PR de mise à jour, le régime est lu d'abord sur le sujet
+  # (`regime_de_la_pr`, sans réseau : le sujet vient d'être relu), et la revue reçoit d'emblée la liste de son régime.
+  # Elle relit develop et les sujets : si elle lit un autre régime que celui lu d'abord (le contrat a changé entre les
+  # deux), elle est rejouée une fois, sur la liste de ce régime.
+  local revu statut lus prevu=7 lister
+  lister() { if [ "$1" = 8 ] && [ -n "$maj" ]; then printf '%s\n%s\n' "$A_JUGER" "$MAJ_APRES" | sed '/^$/d' | sort -u; else printf '%s\n' "$fichiers"; fi; }
+  [ -z "$maj" ] || prevu=$(regime_de_la_pr "$base" "$(jq -r '.created_at // ""' <<<"$pr")")
+  lus=$(lister "$prevu")
   revu=$(printf '%s\n' "$lus" | revue_du_capitaine "$pr" "$sommet" "$base") && statut=0 || statut=$?
   REGIME=$(sed -n '1s/^régime \([78]\).*$/\1/p' <<<"$revu")
-  if [ "$REGIME" = 8 ] && [ -n "$maj" ] && { [ "$statut" = 0 ] || [ "$statut" = 1 ]; }; then
-    lus=$(printf '%s\n%s\n' "$A_JUGER" "$MAJ_APRES" | sed '/^$/d' | sort -u)
+  if [ -n "$maj" ] && [ -n "$REGIME" ] && [ "$REGIME" != "$prevu" ] && { [ "$statut" = 0 ] || [ "$statut" = 1 ]; }; then
+    lus=$(lister "$REGIME")
     revu=$(printf '%s\n' "$lus" | revue_du_capitaine "$pr" "$sommet" "$base") && statut=0 || statut=$?
+    REGIME=$(sed -n '1s/^régime \([78]\).*$/\1/p' <<<"$revu")
   fi
   juger_revue "$n" "$statut" "$revu"
   # Régime 8, les gardes des fichiers sensibles (A-76, lot 5b), au même endroit, sur le même diff : un chemin sensible
@@ -1252,6 +1262,10 @@ EOT
 relancer() {
   local n=${1:?numéro de la sous-PR} pr base tete sommet verdict
   pr=$(pr_json "$n") || sortir 5 "#$n : GitHub illisible à la lecture de la PR (cause ci-dessus) : reprise au tour suivant, aucun renvoi"
+  # Une PR de fourche : sautée sans renvoi, comme dans `fusionner` et passer.sh (A-192, point 2), avant tout fetch : sa
+  # branche n'est pas `origin/<tête>`, et la mise à jour pousserait sur la branche d'origin du même nom.
+  [ "$(jq -r '.head.repo.full_name // ""' <<<"$pr")" = "$(jq -r '.base.repo.full_name // ""' <<<"$pr")" ] ||
+    sortir 7 "#$n : PR de fourche ($(jq -r '.head.repo.full_name // "dépôt supprimé"' <<<"$pr")) : sa tête vit hors du dépôt, le capitaine ne la lit pas ; sautée sans renvoi"
   base=$(jq -r .base.ref <<<"$pr")
   tete=$(jq -r .head.ref <<<"$pr")
   sommet=$(jq -r .head.sha <<<"$pr")

@@ -78,9 +78,12 @@ const git = (...args) => execFileSync('git', args, { cwd: RACINE, encoding: 'utf
  * sa base de fusion avec develop : héritée). `{ copies: [[motifs]…] }`, une liste par copie ; `{ illisible }` ;
  * `null` : pas de ticket, pas de copie, origin injoignable, grammaire absente. Lu seulement quand le chemin est sensible.
  * Une copie locale qui ne compte pas et porte le ticket est nommée dans `perimees` (avec `copies`, `illisible`, ou seule à
- * la place de `null`) : le refus dit alors le geste qui la relit, avant d'écrire au conducteur. `superficiel` : un clone
- * superficiel n'a pas laissé lire la base de fusion d'une copie de sujet, comptée alors comme écrite ; le refus dit de
- * l'approfondir.
+ * la place de `null`) : le refus dit alors le geste qui la relit, avant d'écrire au conducteur. L'héritage d'une copie de
+ * sujet se juge contre le develop d'origin (`ls-remote`) : une copie locale de develop que origin ne confirme pas (en
+ * retard, ou absente) ne juge rien, la copie du sujet ne compte pas (ni écrite, ni héritée : rien n'accorde sur elle) et
+ * `origin/develop` est nommée dans `perimees`.
+ * `superficiel` : un clone superficiel n'a pas laissé lire la base de fusion d'une copie de sujet, comptée alors comme
+ * écrite ; le refus dit de l'approfondir.
  */
 function accordes() {
   try {
@@ -105,13 +108,23 @@ function accordes() {
       }
     };
     const develop = objet('refs/remotes/origin/develop^{commit}');
+    // La base de fusion d'un sujet se lit contre le develop d'origin, jamais contre une copie locale en retard : plus
+    // ancienne que le develop que le sujet a reçu, elle ferait compter une copie héritée, sans geste (la suite M4 du
+    // lot 5). Non confirmée, la copie du sujet ne compte pas : comptée, une copie héritée d'un accord que develop a
+    // retiré depuis l'accorderait encore ; le refus dit de relire develop, puis la règle juge.
+    const developConfirme = develop !== null && distants.get('refs/heads/develop') === develop;
+    let developPerime = false;
     // Un clone superficiel (sessions cloud) ne voit souvent pas la base de fusion d'un sujet avec develop : la copie compte
     // alors comme écrite, du côté sûr, et le refus dit de l'approfondir (`superficiel`).
     let superficiel = false;
     const herite = (sha, f) => {
+      if (!developConfirme) {
+        developPerime = true;
+        return true;
+      }
       let base;
       try {
-        base = develop === null ? '' : git('merge-base', sha, develop);
+        base = git('merge-base', sha, develop);
       } catch {
         try {
           superficiel ||= git('rev-parse', '--is-shallow-repository') === 'true';
@@ -120,7 +133,7 @@ function accordes() {
         }
         return false; // aucune base commune lue : la copie est du sujet
       }
-      return base !== '' && objet(`${base}:${f}`) === objet(`${sha}:${f}`);
+      return objet(`${base}:${f}`) === objet(`${sha}:${f}`);
     };
     const copiesSous = (motif) => {
       const copies = [];
@@ -135,6 +148,7 @@ function accordes() {
     };
     let copies = copiesSous('refs/remotes/origin/sujet/');
     if (copies.length === 0) copies = copiesSous('refs/remotes/origin/develop');
+    if (developPerime && !perimees.includes('origin/develop')) perimees.push('origin/develop');
     if (copies.length === 0) return perimees.length > 0 ? { perimees } : null;
     const illisible = copies.find((c) => c.illisible);
     if (perimees.length > 0 || superficiel)
