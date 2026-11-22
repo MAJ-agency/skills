@@ -235,3 +235,24 @@ Et de même au ticket 79 (1 398 après la PR A, 1 404 après le lot 6, 1 410 apr
 De 08 h 28 à 10 h 30 UTC (2 h 02), dont trois suites entières (18, 16 et 14 min) et deux passes de l'espion (une première
 perdue : un chemin de journal relatif, que l'espion de `gh` et de `git` écrit depuis le dépôt jouet ; rejouée en chemin
 absolu, 20 min) en tâche de fond, la charge montée à 8 par d'autres agents pendant les deux premières suites.
+
+## Retouches portées (après `A-199`)
+
+Portées par le relecteur dans les tickets 75 à 79 et leurs annexes, publiées à leurs chemins
+(`docs/issues/gouverner-nos-boucles/issues/7[5-9]-*.issue.md`, `7[7-9]-annexes/`), sur un clone neuf de `97d17e3`. Pendant ce
+travail, `main` a reçu le lot 6 (`ddb4265`, PR 151, 8.0.0, le même arbre que `claude/lot-6-bascule-8` à `3dcb467`) : les
+chemins « depuis `main` » et « après le lot 6 » ont été joués tous les deux.
+
+| Ticket | sha256 du patch | Ce qui change |
+| --- | --- | --- |
+| 75 | `6cbb0e81…` (inchangé) | § 0 : l'empreinte du 77, les versions de `main` (8.0.0 aujourd'hui) ; « Les patchs » sans l'arbre `dde9aad7…` (constat 9) |
+| 76 | `698a71b8…` (inchangé) | « Les patchs » récrit (constat 9) |
+| 77 | `e73b4ef7…` | décision 7 et la ligne de la sortie 6 : la grammaire des identifiants (constat 10 ; le banc des textes et T7 suivent) ; § 3 : le lot 6, 8.0.1, `plugin.json` en conflit, la table des comptes, le rejeu de `scripts/relecteur.test.mjs` (constat 4) |
+| 78 | `f582b4a1…` | la garde dans `relancer`, l'espion de `git`, un cas neuf (constats 1, 2) ; F3ʹ, F4ʹ, F5, F6 ; § 1 6 tests / 5 rouges, § 2 114 ; accents graves (constat 8) |
+| 79 | `126f2e2d…` | décision 1 récrite (`A-199` point 2), le cas M4 en quatre parties, H3ʹ ; la note (`relancer`, la copie qui ne compte pas) ; § 3 et sa table (constat 4) ; accents graves |
+
+Joué : chaque patch seul et à la suite sur un clone neuf de `97d17e3` (arbres `b0e930ab…`, `cd47a2b6…`) ; les § 1 et § 2 de
+chaque ticket, depuis `97d17e3` puis depuis `ddb4265`, aux mêmes comptes (`essais/rouges-verts-N.txt`,
+`essais/rouges-verts-main.txt`) ; les mutations des annexes touchées, 11 (77), 11 (78), 8 (79), toutes rouges ; les ordres
+d'entrée du § 3 (après l'autre PR, après le lot 6, après les deux) par leurs gestes, conflits et versions de la table ; la
+suite entière : voir `essais/suites-retouches.txt`.

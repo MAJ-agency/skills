@@ -3,7 +3,7 @@
 Status: ready-for-agent
 Type: défaut
 Label: contre-revue
-Modèle: sonnet — les suites de texte d'`A-189` (points 1 à 3) et la suite de la sortie 6 que le ticket 75 ouvre (`A-192`, point 1), chacune mot pour mot ; le texte entier est dans le patch ([`77-annexes/ticket-77.patch`](77-annexes/ticket-77.patch), sha256 `6aac8d63ffa63c50591fd58087fb61570b5ffbb67e009cac2e01c0d661b60e62`, `git apply` sur `97d17e3`), avec la version et la note de la PR A ; les phrases sont exigées à leur place par le banc des textes, rouge avant, vert après ; les mutations de [`77-annexes/mutations.mjs`](77-annexes/mutations.mjs) toutes rouges ; puis la vérification et la livraison de la PR entière. Rien n'est à concevoir : qui veut changer une décision l'écrit à son lanceur, il ne tranche pas. Dernier des trois tickets de la PR A (ticket 75, « Une PR, trois tickets »).
+Modèle: sonnet — les suites de texte d'`A-189` (points 1 à 3) et la suite de la sortie 6 que le ticket 75 ouvre (`A-192`, point 1), chacune mot pour mot ; le texte entier est dans le patch ([`77-annexes/ticket-77.patch`](77-annexes/ticket-77.patch), sha256 `e73b4ef762a3bae330a23007e9aa3c537164fe84cd5fe4f11bdefb5a1ffb3937`, `git apply` sur `97d17e3`), avec la version et la note de la PR A ; les phrases sont exigées à leur place par le banc des textes, rouge avant, vert après ; les mutations de [`77-annexes/mutations.mjs`](77-annexes/mutations.mjs) toutes rouges ; puis la vérification et la livraison de la PR entière. Rien n'est à concevoir : qui veut changer une décision l'écrit à son lanceur, il ne tranche pas. Dernier des trois tickets de la PR A (ticket 75, « Une PR, trois tickets »).
 Blocked by: 76
 Dépendances: —
 Fichiers chauds: `skills/chaine/relecteur/SKILL.md`, `skills/chaine/relecteur/references/CONTENU.md`, `scripts/relecteur.test.mjs` : aucun autre ticket ouvert ne les touche (le lot 6 ne nomme pas le skill `relecteur` ; s'il venait à changer `scripts/relecteur.test.mjs`, qui compare aussi des lignes de `architecte/references/lancement.md`, la PR qui entre en second fusionne `main` et rejoue ce banc). `.claude-plugin/plugin.json` et `NOTES-DE-VERSION.md` : portés ici pour la PR A ; la PR B les touche aussi ; la version est la suivante de `main` au moment de livrer (§ 3).
@@ -40,9 +40,9 @@ Les phrases, mot pour mot (le patch fait foi) :
 4. **La ligne `reecrire`** : « … `jouer <n> --sessions <fichier>`, qui rend `remplacer`, ou `panne` (une session déjà remplacée dans ce tour) : ses lignes (« Les lignes ») ».
 5. **`reecrire` et les deux champs** : « `reecrire`, qui réemploie la session, suit cette règle de « Créer ou relancer » : il lui faut les deux champs ; un champ absent, `couple`. »
 6. **Le plafond rejoué**, dans « Les lignes », après « rejoué, il n'en rend aucune. » : « Une exception, voulue : rejoué après un retrait refusé, un plafond redit « décision de plafond attendue » à l'auteur et au conducteur (son étiquette s'est posée avant son commentaire) ; ces lignes partent comme les autres. »
-7. **La sortie 6** : « …, un calcul dit qu'un outil de la chaîne manque au poste (sa sortie 69 : git plus ancien que 2.41, `jq` absent), ou `flock` manque : l'architecte, et s'arrêter ».
+7. **La sortie 6** : « …, un calcul dit qu'un outil de la chaîne manque au poste (sa sortie 69 : git plus ancien que 2.41, `jq` absent, la grammaire des identifiants introuvable), ou `flock` manque : l'architecte, et s'arrêter » : les trois causes que l'en-tête du script et la note nomment.
 8. **Le banc des textes** exige chaque phrase à sa ligne ou dans sa section (`ligne`, `section`, `exigerA`, déjà dans le fichier), et qu'aucune borne ne dise plus « à la seconde fois, », ni la sortie 5 « le réveil suivant rejoue », ni `reecrire` « sans les deux champs » ; les puces `VEILLE GESTE` et `VEILLE FINIE` gardent « avec `--attendre` si un geste de ce réveil a rendu une suite « rejouer au réveil suivant » », que la sortie 5 déclenche désormais.
-9. **La version** : la suivante de `main` au moment de livrer, le troisième nombre plus un (7.39.1 sur `97d17e3` ; 7.39.2 si la PR B est entrée avant), posée par `version-suivante.mjs` avec la note du patch, au-dessus de la première note. Le patch porte 7.39.1 : il a été écrit sur `97d17e3`.
+9. **La version** : la suivante de `main` au moment de livrer, le troisième nombre plus un (7.39.1 sur `97d17e3` ; 7.39.2 si la PR B est entrée avant ; 8.0.1 si le lot 6 est entré, 8.0.2 après le lot 6 et la PR B : § 3), posée par `version-suivante.mjs` avec la note du patch, au-dessus de la première note. Le patch porte 7.39.1 : il a été écrit sur `97d17e3`.
 
 ## À faire, dans l'ordre
 
@@ -67,7 +67,7 @@ node "$S/77/version-suivante.mjs" "$S/77/ticket-77.patch"
 timeout 600 node --test --test-reporter=tap scripts/relecteur.test.mjs scripts/depot.test.mjs 2>&1 | grep -E '^# (tests|pass|fail) |^not ok'
 ```
 
-`version-suivante.mjs` écrit la version prise et la date (« 7.39.1 — <date> » sur `97d17e3`) ; rejoué, il sort en 1 sans rien écrire. Attendu : `# tests 80`, `# pass 80`, `# fail 0` (11 et 69). `git status --short` : les neuf fichiers des trois tickets en ` M`, et eux seuls.
+`version-suivante.mjs` écrit la version prise et la date (« 8.0.1 — <date> » sur `ddb4265`, le `main` d'aujourd'hui, qui porte le lot 6 ; « 7.39.1 — <date> » sur `97d17e3`) ; rejoué, il sort en 1 sans rien écrire. Attendu : `# tests 80`, `# pass 80`, `# fail 0` (11 et 69). `git status --short` : les neuf fichiers des trois tickets en ` M`, et eux seuls.
 
 ### § 3 — Vérifier, commiter, livrer la PR A
 
@@ -89,7 +89,7 @@ Attendu : `sortie 0`, `27` rouges, trois lignes `toutes rouges`, `git status --s
 uptime; timeout 1800 pnpm test > "$S/suite.log" 2>&1; echo "sortie $?"; uptime; grep -E '^# (tests|suites|pass|fail|cancelled|skipped|todo|duration_ms) ' "$S/suite.log"
 ```
 
-Attendu : `sortie 0`, `# tests 1390`, `# pass 1390`, `# fail 0` sur `97d17e3` (1 384, plus 2 du ticket 75, 3 du ticket 76, 1 de celui-ci ; 1 398 si la PR B est entrée avant). Puis :
+Attendu : `sortie 0`, `# tests 1402`, `# pass 1402`, `# fail 0` sur `ddb4265`, le `main` d'aujourd'hui (le lot 6 entré : 1 396, plus 2 du ticket 75, 3 du ticket 76, 1 de celui-ci) ; 1 390 sur `97d17e3`. Si `main` a déjà bougé quand la branche part (ticket 75, § 0), le compte est celui de la table ci-dessous. Puis :
 
 ```bash
 git push origin claude/suites-relecteur
@@ -97,7 +97,7 @@ git push origin claude/suites-relecteur
 
 La PR vers `main`, prête (pas en brouillon), sans étiquette, son titre le message du commit. Dans le corps : les rouges avant et les verts après de chaque ticket (leurs § 1 et § 2), les trois journaux de mutations, la suite entière (compte, durée, charge avant et après). La session ne la fusionne pas. `Label: contre-revue` : l'architecte la fait contre-relire. La session rend au lanceur l'URL de la PR et ces sorties, puis s'arrête.
 
-**Si `main` bouge entre l'ouverture de la PR et sa fusion** (la PR B entrée) : fusionner `origin/main` dans la branche par un commit de fusion, jamais de rebase ni de push forcé ; `NOTES-DE-VERSION.md` (et `.claude-plugin/plugin.json` s'il l'est) en conflit, et eux seuls, se reprennent de `main` et la version suivante se pose de nouveau, la note au-dessus de celle de `main` :
+**Si `main` bouge entre l'ouverture de la PR et sa fusion** — le lot 6 (8.0.0 ; entré le 2026-11-22, `ddb4265` : une branche partie de `97d17e3` le reçoit ainsi), la PR B, ou les deux : fusionner `origin/main` dans la branche par un commit de fusion, jamais de rebase ni de push forcé ; `NOTES-DE-VERSION.md` et `.claude-plugin/plugin.json` en conflit, et eux seuls (après la seule PR B, `plugin.json` ne l'est pas : il porte 7.39.1 des deux côtés), se reprennent de `main`, et la version suivante se pose de nouveau, la note au-dessus de celle de `main` :
 
 ```bash
 git fetch origin main
@@ -107,7 +107,16 @@ node "$S/77/version-suivante.mjs" "$S/77/ticket-77.patch"
 git add -A && git commit --no-edit && git push origin claude/suites-relecteur
 ```
 
-Un autre fichier en conflit : s'arrêter et l'écrire au lanceur. Puis la suite entière à nouveau, et le titre de la PR à la version prise (7.39.2). Essayé en écrivant ce ticket : la PR B sur `97d17e3`, puis cette fusion ; seul `NOTES-DE-VERSION.md` est en conflit (`plugin.json` porte 7.39.1 des deux côtés), et l'arbre obtenu est celui de la PR B suivie des trois patchs posés par `git apply`.
+Un autre fichier en conflit : s'arrêter et l'écrire au lanceur. Puis la suite entière à nouveau (elle rejoue `scripts/relecteur.test.mjs`, qui compare des lignes de `architecte/references/lancement.md`, que le lot 6 change : `A-197`), et le titre de la PR à la version que `version-suivante.mjs` a écrite. Attendu, selon ce que `main` a reçu :
+
+| `main` a reçu | version prise | fichiers en conflit | suite entière |
+| --- | --- | --- | --- |
+| rien (`97d17e3`) | 7.39.1 | — | 1 390 |
+| la PR B | 7.39.2 | `NOTES-DE-VERSION.md` | 1 399 |
+| le lot 6 | 8.0.1 | `NOTES-DE-VERSION.md`, `.claude-plugin/plugin.json` | 1 402 |
+| le lot 6, puis la PR B | 8.0.2 | `NOTES-DE-VERSION.md`, `.claude-plugin/plugin.json` | 1 411 |
+
+Joué au tour de relecture, chaque ligne de bout en bout par ces gestes (le lot 6 : `claude/lot-6-bascule-8` à `3dcb467`, 1 396 tests) : les conflits et les versions de la table ; les comptes, voir « Ce qui a été joué ». Après la PR B, l'arbre obtenu est celui de la PR B suivie des trois patchs posés par `git apply --exclude` et `version-suivante.mjs`. Le titre, numéro compris, reste sous 120 caractères à chaque version (104 avec `(plugin 8.0.2) (#nnn)`, 105 avec 7.39.1).
 
 ## Surfaces
 
@@ -146,15 +155,17 @@ Un autre fichier en conflit : s'arrêter et l'écrire au lanceur. Puis la suite 
 ## Vérification
 
 1. § 1 : 4 rouges sur 11 ; § 2 : 80 verts sur 80.
-2. § 3 : les mutations des trois tickets, 27 rouges sur 27 ; la suite entière, 1 390 sur 1 390 sur `97d17e3` ; `git diff --stat origin/main` : les neuf fichiers, et eux seuls.
+2. § 3 : les mutations des trois tickets, 27 rouges sur 27 ; la suite entière, 1 390 sur 1 390 sur `97d17e3` (ou le compte de la table) ; `git diff --stat origin/main` : les neuf fichiers, et eux seuls.
 
 ### Ce qui a été joué en écrivant ce ticket
 
 Sur un clone neuf de `https://github.com/MAJ-agency/skills` à `97d17e3` (plugin 7.39.0), le 2026-11-22, Node 22.23.5, git 2.43.0, quatre cœurs partagés avec d'autres agents (charge notée aux bords de chaque passe) :
-- **Les patchs** : chacun des trois, `git apply --check` seul sur `97d17e3` ; puis 75, 76 et 77 l'un après l'autre : l'arbre obtenu (`9df116dc…`) est celui d'où ils sont tirés. Sur la PR B posée d'abord (tickets 78 et 79, 7.39.1), les trois s'appliquent avec les deux `--exclude`, et `version-suivante.mjs` pose 7.39.2 au-dessus de la note de la PR B ; la fusion de la PR B dans la branche (le chemin du § 3 du ticket 77) ne met en conflit que `NOTES-DE-VERSION.md` et donne le même arbre (`dde9aad7…`).
+- **Les patchs** : chacun des trois, `git apply --check` seul sur `97d17e3` ; puis 75, 76 et 77 l'un après l'autre : l'arbre obtenu (`b0e930ab…`, le ticket 77 retouché au tour de relecture) est celui de la branche que les § 1 à 3 construisent (patchs, `--exclude`, `version-suivante.mjs`, 7.39.1). Les autres ordres d'entrée, joués de bout en bout au tour de relecture par les gestes du § 3 du ticket 77 : après la PR B, seul `NOTES-DE-VERSION.md` en conflit, 7.39.2, et le même arbre que la PR B suivie des trois patchs posés par `git apply --exclude` et `version-suivante.mjs` ; après le lot 6 (`claude/lot-6-bascule-8` à `3dcb467`), les deux fichiers de version en conflit, 8.0.1 ; après le lot 6 et la PR B, 8.0.2. Ces arbres portent la date que `version-suivante.mjs` écrit dans la note : ils ne se citent pas.
 - **Rouges avant** (§ 1, sur les tickets 75 et 76, le banc des textes de ce ticket posé) : **4 rouges sur 11** ; **verts après** (§ 2) : **80 sur 80** (`scripts/relecteur.test.mjs` 11, `scripts/depot.test.mjs` 69).
 - **Les mutations des trois tickets**, chacune seule, sur l'arbre des trois patchs, le fichier remis après : 10, 6 et 11, **27 rouges sur 27** (07:13 → 07:47 UTC, charge de 7,7 à 11,5) ; l'arbre propre après chaque passe (journaux dans les annexes).
 - **La suite entière**, les quatre motifs de `pnpm test` joués par `node --test`, d'un seul tenant, en tâche de fond avec un `timeout` explicite, sur les trois patchs : **1 390 tests, 1 390 verts**, aucun échec, sauté ni annulé ; 16 min 14 s (06:56:37 → 07:12:52 UTC, `duration_ms` 974056), charge 0,37 au départ, 7,46 à la fin (un autre agent jouait ses bancs).
+
+- **Au tour de relecture** (`A-199`), sur les patchs retouchés : les blocs des § 1 et § 2 des trois tickets, depuis `97d17e3` puis depuis `ddb4265` (le lot 6 entré dans `main`), aux comptes écrits ; les mutations de ce ticket, 11 rouges sur 11 ; la suite entière **1 390 sur 1 390** sur `97d17e3` (1 107 s, 10:40:03 → 10:58:30 UTC, charge 0,95 puis 4,36), **1 402 sur 1 402** depuis `ddb4265` (975 s, 11:50:21 → 12:06:37, charge 1,66 puis 1,32), **1 411 sur 1 411** après le lot 6, la PR B et la PR A ; chaque ligne de la table du § 3 jouée par ses gestes.
 
 ## Ce qui n'a pas été établi
 
@@ -169,3 +180,4 @@ Sur un clone neuf de `https://github.com/MAJ-agency/skills` à `97d17e3` (plugin
 ## Comments
 
 - 2026-11-22 — Écrit par un agent rédacteur sur `A-189` (points 1 à 3), `A-192` (point 1) et la contre-relecture de la PR 147 (constats 7 à 12), sur un clone neuf de `main` à `97d17e3` ; banc, mutations et suite joués (« Ce qui a été joué »).
+- 2026-11-22 — Retouché au tour de relecture (`75-79-relecture-tour-1/rapport.md`, constats 4, 9 et 10 ; `A-199` point 5), par le relecteur : la sortie 6 nomme la grammaire des identifiants introuvable (décision 7, le banc des textes et T7 suivent ; `ticket-77.patch` neuf, `e73b4ef7…`) ; le § 3 dit le cas où le lot 6 est entré avant (8.0.1, `plugin.json` en conflit), les comptes de la suite pour chaque ordre d'entrée et le rejeu de `scripts/relecteur.test.mjs` (`A-197`) ; blocs, mutations et suite rejoués.

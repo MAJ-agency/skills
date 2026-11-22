@@ -1,6 +1,6 @@
-// Les mutations du ticket 79 : chacune remplace un texte exact d'un fichier, joue les bancs qu'elle vise, et doit
-// les rendre rouges ; le fichier est remis après chaque mutation. À lancer depuis la racine d'un clone où
-// `ticket-79.patch` est appliqué : `node <chemin>/mutations.mjs [<nom>…]`.
+// Les mutations du ticket 79 (H3ʹ écrite au tour de relecture, A-199 point 2) : chacune remplace un texte exact d'un fichier,
+// joue les bancs qu'elle vise, et doit les rendre rouges ; le fichier est remis après chaque mutation. À lancer depuis la
+// racine d'un clone où `ticket-79.patch` est appliqué : `node <chemin>/mutations.mjs [<nom>…]`.
 // Sortie 0 : toutes rouges ; 1 : une au moins verte ou introuvable, nommée.
 import { spawnSync } from 'node:child_process';
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -13,7 +13,7 @@ const BRG = 'skills/chaine/socle-chaine-de-production/references/agent/regles.te
 const MUTATIONS = [
   ["H1 garde-fichiers.mjs : l'héritage jugé contre la copie locale de develop, sans la confirmer (le code d'avant, M4 de la PR 149)", G, "const developConfirme = develop !== null && distants.get('refs/heads/develop') === develop;", "const developConfirme = develop !== null;", [BG]],
   ["H2 garde-fichiers.mjs : develop non confirmé, sans geste (la copie compte, le refus ne dit pas de relire develop)", G, "    if (developPerime && !perimees.includes('origin/develop')) perimees.push('origin/develop');\n", "", [BG]],
-  ["H3 garde-fichiers.mjs : develop non confirmé, la copie du sujet dite héritée (la garde ouverte)", G, "      if (!developConfirme) {\n        developPerime = true;\n        return false;\n      }", "      if (!developConfirme) {\n        developPerime = true;\n        return true;\n      }", [BG]],
+  ["H3ʹ garde-fichiers.mjs : develop non confirmé, la copie du sujet compte (le code d'avant le tour de relecture : un accord que develop a retiré, hérité par le sujet, accorderait encore)", G, "      if (!developConfirme) {\n        developPerime = true;\n        return true;\n      }", "      if (!developConfirme) {\n        developPerime = true;\n        return false;\n      }", [BG]],
   ["H4 garde-fichiers.mjs : le clone dit superficiel à toute base de fusion qui ne se lit pas (T2 du quatrième tour, constat 23)", G, "          superficiel ||= git('rev-parse', '--is-shallow-repository') === 'true';", "          superficiel = true;", [BG]],
   ["H5 regles.mjs : le geste après la raison, entre parenthèses (l'ordre d'avant, constat 24)", RG, "      ? `${c} : d'abord, ${gestes.join(', puis ')}, puis refaire l'écriture. Encore refusée : ${RAISON_SENSIBLE}${detail}`", "      ? `${c} : ${RAISON_SENSIBLE}${detail} (Avant d'écrire au conducteur : ${gestes.join(', puis ')}, puis refaire l'écriture.)`", [BG, BRG]],
   ["H6 regles.mjs : le geste en tête, sans « puis refaire l'écriture »", RG, "${gestes.join(', puis ')}, puis refaire l'écriture. Encore refusée :", "${gestes.join(', puis ')}. Encore refusée :", [BG, BRG]],

@@ -1,6 +1,6 @@
-// Les mutations du ticket 78 : chacune remplace un texte exact d'un fichier, joue les bancs qu'elle vise, et doit
-// les rendre rouges ; le fichier est remis après chaque mutation. À lancer depuis la racine d'un clone où
-// `ticket-78.patch` est appliqué : `node <chemin>/mutations.mjs [<nom>…]`.
+// Les mutations du ticket 78 (F3ʹ, F4ʹ, F5 et F6 écrites au tour de relecture, A-199) : chacune remplace un texte exact (ou
+// en déplace un), joue les bancs qu'elle vise, et doit les rendre rouges ; le fichier est remis après chaque mutation. À lancer
+// depuis la racine d'un clone où `ticket-78.patch` est appliqué : `node <chemin>/mutations.mjs [<nom>…]`.
 // Sortie 0 : toutes rouges ; 1 : une au moins verte ou introuvable, nommée.
 import { spawnSync } from 'node:child_process';
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -13,8 +13,10 @@ const BS = 'skills/chaine/fusionner/scripts/suites-du-lot-5.test.mjs';
 const MUTATIONS = [
   ["F1 passer.sh : une PR de fourche n'est pas sautée (le code d'avant, Q2 de la PR 149)", PA, "[ \"$(champ '.head.repo.full_name // \"\"')\" = \"$(champ '.base.repo.full_name // \"\"')\" ] ||\n  sortir 7", "true ||\n  sortir 7", [BS]],
   ["F2 passer.sh : une tête sans dépôt (fourche supprimée) passe pour une tête du dépôt", PA, "[ \"$(champ '.head.repo.full_name // \"\"')\" = ", "[ \"$(champ '.head.repo.full_name // .base.repo.full_name')\" = ", [BS]],
-  ["F3 passer.sh : la garde de fourche après le fetch de la tête (la branche d'origin du même nom lue)", PA, "[ \"$(champ '.head.repo.full_name // \"\"')\" = \"$(champ '.base.repo.full_name // \"\"')\" ] ||\n  sortir 7 \"PR de fourche ($(champ '.head.repo.full_name // \"dépôt supprimé\"')) : sa tête vit hors du dépôt, le capitaine ne la lit pas ; sautée sans renvoi\"\n", "", [BS]],
-  ["F4 sujet.sh fusionner : une sous-PR de fourche n'est pas sautée", SU, "  [ \"$(jq -r '.head.repo.full_name // \"\"' <<<\"$pr\")\" = \"$(jq -r '.base.repo.full_name // \"\"' <<<\"$pr\")\" ] ||\n    sortir 7", "  true ||\n    sortir 7", [BS]],
+  ["F3ʹ passer.sh : la garde de fourche déplacée après le fetch de la tête (la branche d'origin du même nom lue), avant toute écriture", PA, [["[ \"$(champ '.head.repo.full_name // \"\"')\" = \"$(champ '.base.repo.full_name // \"\"')\" ] ||\n  sortir 7 \"PR de fourche ($(champ '.head.repo.full_name // \"dépôt supprimé\"')) : sa tête vit hors du dépôt, le capitaine ne la lit pas ; sautée sans renvoi\"\n", ""], ["git_masque fetch -q origin develop \"$tete\"\n", "git_masque fetch -q origin develop \"$tete\"\n[ \"$(champ '.head.repo.full_name // \"\"')\" = \"$(champ '.base.repo.full_name // \"\"')\" ] ||\n  sortir 7 \"PR de fourche ($(champ '.head.repo.full_name // \"dépôt supprimé\"')) : sa tête vit hors du dépôt, le capitaine ne la lit pas ; sautée sans renvoi\"\n"]], [BS]],
+  ["F4ʹ sujet.sh fusionner : une sous-PR de fourche n'est pas sautée", SU, "avant tout fetch de sa tête.\n  [ \"$(jq -r '.head.repo.full_name // \"\"' <<<\"$pr\")\" = \"$(jq -r '.base.repo.full_name // \"\"' <<<\"$pr\")\" ] ||", "avant tout fetch de sa tête.\n  true ||", [BS]],
+  ["F5 sujet.sh relancer : une sous-PR de fourche n'est pas sautée (le code d'avant : la branche d'origin du même nom mise à jour et poussée)", SU, "pousserait sur la branche d'origin du même nom.\n  [ \"$(jq -r '.head.repo.full_name // \"\"' <<<\"$pr\")\" = \"$(jq -r '.base.repo.full_name // \"\"' <<<\"$pr\")\" ] ||", "pousserait sur la branche d'origin du même nom.\n  true ||", [BS]],
+  ["F6 sujet.sh fusionner : la garde de fourche déplacée après le fetch de la tête", SU, [["avant tout fetch de sa tête.\n  [ \"$(jq -r '.head.repo.full_name // \"\"' <<<\"$pr\")\" = \"$(jq -r '.base.repo.full_name // \"\"' <<<\"$pr\")\" ] ||\n    sortir 7 \"#$n : PR de fourche ($(jq -r '.head.repo.full_name // \"dépôt supprimé\"' <<<\"$pr\")) : sa tête vit hors du dépôt, le capitaine ne la lit pas ; sautée sans renvoi\"\n", "avant tout fetch de sa tête.\n"], ["  git_masque fetch -q origin develop \"$base\" \"$(jq -r .head.ref <<<\"$pr\")\"\n", "  git_masque fetch -q origin develop \"$base\" \"$(jq -r .head.ref <<<\"$pr\")\"\n  [ \"$(jq -r '.head.repo.full_name // \"\"' <<<\"$pr\")\" = \"$(jq -r '.base.repo.full_name // \"\"' <<<\"$pr\")\" ] ||\n    sortir 7 \"#$n : PR de fourche ($(jq -r '.head.repo.full_name // \"dépôt supprimé\"' <<<\"$pr\")) : sa tête vit hors du dépôt, le capitaine ne la lit pas ; sautée sans renvoi\"\n"]], [BS]],
   ["M1a sujet.sh fusionner : le régime n'est pas lu d'abord (deux revues au premier contrôle, le code d'avant en coût)", SU, "  [ -z \"$maj\" ] || prevu=$(regime_de_la_pr", "  [ -n \"$maj\" ] || prevu=$(regime_de_la_pr", [BS]],
   ["M1b sujet.sh fusionner : la revue n'est pas rejouée quand le régime relu diffère de celui lu d'abord", SU, "  if [ -n \"$maj\" ] && [ -n \"$REGIME\" ] && [ \"$REGIME\" != \"$prevu\" ]", "  if false && [ -n \"$REGIME\" ] && [ \"$REGIME\" != \"$prevu\" ]", [BS]],
   ["M1c sujet.sh fusionner : la liste d'une PR de mise à jour en régime 8 sans ses retouches", SU, "if [ \"$1\" = 8 ] && [ -n \"$maj\" ]; then printf '%s\\n%s\\n' \"$A_JUGER\" \"$MAJ_APRES\"", "if [ \"$1\" = 8 ] && [ -n \"$maj\" ]; then printf '%s\\n' \"$A_JUGER\"", [BS]],
@@ -24,15 +26,20 @@ const MUTATIONS = [
 
 const voulues = process.argv.slice(2);
 let vertes = 0;
-for (const [nom, fichier, avant, apres, bancs] of MUTATIONS) {
+for (const m of MUTATIONS) {
+  // [nom, fichier, avant, après, bancs], ou [nom, fichier, [[avant, après]…], bancs] pour un déplacement.
+  const [nom, fichier] = m;
+  const paires = Array.isArray(m[2]) ? m[2] : [[m[2], m[3]]];
+  const bancs = m.at(-1);
   if (voulues.length && !voulues.some((v) => nom.startsWith(`${v} `))) continue;
   const texte = readFileSync(fichier, 'utf8');
-  if (texte.split(avant).length !== 2) {
+  let mute = texte;
+  if (paires.some(([avant]) => mute.split(avant).length !== 2 || ((mute = mute.replace(avant, () => paires.find((p) => p[0] === avant)[1])), false))) {
     console.log(`INTROUVABLE ${nom}`);
     vertes++;
     continue;
   }
-  writeFileSync(fichier, texte.replace(avant, () => apres));
+  writeFileSync(fichier, mute);
   const t0 = Date.now();
   const r = spawnSync(process.execPath, ['--test', ...bancs], { encoding: 'utf8', timeout: 900_000 });
   writeFileSync(fichier, texte);

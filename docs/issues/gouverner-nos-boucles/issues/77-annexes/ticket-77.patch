@@ -35,7 +35,7 @@ index ef59c20..6225886 100644
  
  ### Ce qui change
 diff --git a/scripts/relecteur.test.mjs b/scripts/relecteur.test.mjs
-index 7e145dc..8415d13 100644
+index 7e145dc..4c7319d 100644
 --- a/scripts/relecteur.test.mjs
 +++ b/scripts/relecteur.test.mjs
 @@ -63,7 +63,7 @@ test("A-180 — la veille sous le plafond de l'outil Bash, le couple au réemplo
@@ -81,7 +81,7 @@ index 7e145dc..8415d13 100644
 +  exigerA(ligne(texte, sorties, "| 5 |"), "la ligne de la sortie 5", ["GitHub n'a pas répondu : rejouer au réveil suivant ; `jouer <n>` sorti en 5 pour la seconde fois de suite sur la même PR : l'architecte, et `--taire <n>`"]);
 +  exigerA(ligne(texte, sorties, "| 7 |"), "la ligne de la sortie 7", ["la rejouer au réveil suivant ; au second refus de suite, l'architecte et `--taire <n>`"]);
 +  // A-192, point 1 : la sortie 69 d'un calcul arrête le Relecteur (sortie 6), comme des calculs absents.
-+  exigerA(ligne(texte, sorties, "| 6 |"), "la ligne de la sortie 6", ["un calcul dit qu'un outil de la chaîne manque au poste (sa sortie 69 : git plus ancien que 2.41, `jq` absent)", ": l'architecte, et s'arrêter"]);
++  exigerA(ligne(texte, sorties, "| 6 |"), "la ligne de la sortie 6", ["un calcul dit qu'un outil de la chaîne manque au poste (sa sortie 69 : git plus ancien que 2.41, `jq` absent, la grammaire des identifiants introuvable)", ": l'architecte, et s'arrêter"]);
 +  assert.ok(!texte.includes("à la seconde fois,"), "chaque borne dit « de suite »");
 +  assert.ok(!texte.includes("le réveil suivant rejoue"), "la sortie 5 : « rejouer au réveil suivant »");
 +  exigerA(section(texte, "## Créer ou relancer les sessions"), "« Créer ou relancer les sessions »", ["`create_session` en échec pour une autre cause : rejouer au réveil suivant ; à la seconde fois de suite, l'architecte, et `--taire <n>`."]);
@@ -96,7 +96,7 @@ index 7e145dc..8415d13 100644
 +    exigerA(ligne(texte, "## La veille", puce), `la puce ${puce}`, ["avec `--attendre` si un geste de ce réveil a rendu une suite « rejouer au réveil suivant »"]);
  });
 diff --git a/skills/chaine/relecteur/SKILL.md b/skills/chaine/relecteur/SKILL.md
-index 93d3496..7c0e4a7 100644
+index 93d3496..145a603 100644
 --- a/skills/chaine/relecteur/SKILL.md
 +++ b/skills/chaine/relecteur/SKILL.md
 @@ -40,7 +40,7 @@ Fin de la veille, message d'une session : **`passe` d'abord**, toujours, puis le
@@ -119,7 +119,7 @@ index 93d3496..7c0e4a7 100644
 -| 12 | git ne lit pas `origin` : rejouer au réveil suivant ; à la seconde fois, l'architecte, et s'arrêter |
 -| autre, ou aucune (l'outil a arrêté la commande) | rejouer au réveil suivant ; à la seconde fois, l'architecte, et s'arrêter |
 +| 5 | GitHub n'a pas répondu : rejouer au réveil suivant ; `jouer <n>` sorti en 5 pour la seconde fois de suite sur la même PR : l'architecte, et `--taire <n>` |
-+| 6 | le dossier n'est pas propre, `scripts/chaine/` n'a pas les calculs de la relecture (`fusionner`, `sujet`, `relecture` à reposer), un calcul dit qu'un outil de la chaîne manque au poste (sa sortie 69 : git plus ancien que 2.41, `jq` absent), ou `flock` manque : l'architecte, et s'arrêter |
++| 6 | le dossier n'est pas propre, `scripts/chaine/` n'a pas les calculs de la relecture (`fusionner`, `sujet`, `relecture` à reposer), un calcul dit qu'un outil de la chaîne manque au poste (sa sortie 69 : git plus ancien que 2.41, `jq` absent, la grammaire des identifiants introuvable), ou `flock` manque : l'architecte, et s'arrêter |
 +| 7 | GitHub a refusé une écriture : la rejouer au réveil suivant ; au second refus de suite, l'architecte et `--taire <n>` |
 +| 9 | le verrou n'est pas venu en 5 minutes : rejouer au réveil suivant ; à la seconde fois de suite, l'architecte, et s'arrêter |
 +| 12 | git ne lit pas `origin` : rejouer au réveil suivant ; à la seconde fois de suite, l'architecte, et s'arrêter |
