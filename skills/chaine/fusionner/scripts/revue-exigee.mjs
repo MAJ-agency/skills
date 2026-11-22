@@ -36,7 +36,8 @@
 // Sortie 21 : lecture illisible (clé `relecture` mal formée, date d'ouverture, commentaires, marque presque à la forme,
 // « double relecture exigée » ou « même contenu propre » illisibles) ; la cause sur la sortie standard. Le capitaine
 // saute alors la PR sans la renvoyer (A-113) : son auteur n'y peut rien. Sortie 2 : options mal formées. Sortie 3 : en
-// régime 8, l'outil en panne (un calcul absent à côté, une exception) : jamais un refus.
+// régime 8, l'outil en panne (un calcul absent à côté, une exception, ou un calcul sorti en 69 : un outil de la chaîne
+// manque au poste, git plus ancien que 2.41, `jq` absent, A-192 point 1) : jamais un refus, jamais une lecture illisible.
 // =============================================================================
 
 import { execFileSync, spawnSync } from 'node:child_process';
@@ -481,6 +482,18 @@ export function lireOptions(argv) {
 
 /** Une lecture illisible de la CLI : sa cause, sortie 21. */
 class Illisible extends Error {}
+/**
+ * Un calcul sorti en 69 dit qu'un outil de la chaîne manque au poste (git plus ancien que 2.41, `jq` absent, la grammaire
+ * des identifiants introuvable) : il le dirait de chaque PR. Une panne du capitaine (sortie 3), jamais « illisible » (21),
+ * qui ferait sauter chaque PR en silence à chaque passage (A-192, point 1). La cause : la première ligne qui n'est pas le
+ * seul mot du verdict, sur la sortie d'erreur puis sur la sortie standard (`double-relecture.mjs` écrit la sienne en
+ * `# illisible : …`).
+ */
+function sansOutil(calcul, r) {
+  if (r.status !== 69) return;
+  const cause = `${r.stderr ?? ''}\n${r.stdout ?? ''}`.split('\n').map((l) => l.replace(/^#\s*(?:illisible\s*:\s*)?/, '').trim()).find((l) => l !== '' && l !== 'illisible');
+  throw new Error(`${calcul} : un outil de la chaîne manque au poste (sortie 69) : ${cause ?? 'sans cause écrite'}`);
+}
 /** Le nombre de verdicts exigés (`double-relecture.mjs`, à côté) : 1, 2, ou `'illisible'`. */
 function exigesDe(fichiers, { base, tete, titre, branche }) {
   const r = spawnSync(process.execPath, [join(ICI, 'double-relecture.mjs'), '--base', base, '--tete', tete, '--titre', titre, '--branche', branche], {
@@ -488,11 +501,13 @@ function exigesDe(fichiers, { base, tete, titre, branche }) {
     encoding: 'utf8',
     maxBuffer: 64 * 1024 * 1024,
   });
+  sansOutil('double-relecture.mjs', r);
   return r.status === 0 ? 1 : r.status === 20 ? 2 : 'illisible';
 }
 /** « Même contenu propre » de V et T vers `base` (`meme-contenu.sh`, à côté) : vrai, faux, ou `'illisible'`. */
 function memeContenuDe(v, t, base) {
   const r = spawnSync('bash', [join(ICI, 'meme-contenu.sh'), v, t, base], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
+  sansOutil('meme-contenu.sh', r);
   return r.status === 0 ? true : r.status === 20 ? false : 'illisible';
 }
 

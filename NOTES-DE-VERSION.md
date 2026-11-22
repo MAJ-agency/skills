@@ -15,6 +15,33 @@ La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque pro
 - Rien, tant que son index Anchorpost n'est pas au pivot 3 : le gate se comporte comme avant, deux points mis à part : la ligne `Prouve:` (une ligne nouvelle, que nul ticket ne porte encore), et un index `anchorpost/anchorpost.json` présent qui n'est pas du JSON, qui fait désormais sortir le gate en 1 quel que soit le pivot, régime 7 compris, `--elaguer` et `--geler-*` compris.
 - **Reposer** `scripts/verify/tickets.mjs` et `tickets-regles.mjs` (skill `tickets`), `scripts/chaine/contexte-ticket.mjs` (skill `revue-de-ticket`, `poser` ; les critères `criteres-ticket.md` se lisent dans le plugin, rien à reposer), et les gabarits `docs/agents/gabarits/ticket.issue.md` et `regle.md`. Au pivot 3 en `observe`, `pnpm check:tickets` signale les tickets prêts qui citent une règle « à classer » ou sans cas, ou dont `## Surfaces` ne nomme pas un cas ; les corriger avant que le produit ne passe le projet en `enforce`, où ils seront refusés.
 
+## 8.0.2 — 2026-11-22
+
+### Ce qui change
+
+- **Un calcul sorti en 69, ou `jq` absent, est une panne** (ticket 75, `A-192` point 1) : `double-relecture.mjs` ou `meme-contenu.sh` sorti en 69 (git plus ancien que 2.41, la grammaire des identifiants introuvable) arrête le capitaine (`revue-exigee.mjs` sort en 3, `passer.sh` en 3, `sujet.sh fusionner` en 11) et le Relecteur (sortie 6), la cause dite. Ce n'est plus une lecture illisible, qui faisait sauter chaque PR en silence chez le capitaine et la traçait à chaque délai chez le Relecteur. Sans `jq`, `github.sh` sort en 69 dès son chargement, avant tout calcul : `passer.sh` et `sujet.sh` s'arrêtent en 69, comme avant ; le Relecteur, qui lisait cette sortie « GitHub illisible » (5) et faisait une pause sans fin, s'arrête en 6 lui aussi, la cause dite (contre-relecture de la PR 153).
+- **Le script du Relecteur** (ticket 76) : son usage nomme `--sondes` ; son en-tête dit qu'un plafond rejoué après un retrait refusé redit « décision de plafond attendue » à l'auteur et au conducteur, ce qui est gardé (`A-189` point 1) ; deux bancs tiennent ce plafond rejoué et une trace d'illisible qui n'est pas la marque.
+- **Le texte du Relecteur** (ticket 77) : la sortie 5 de `jouer` a sa borne (à la seconde fois de suite sur la même PR, l'architecte et `--taire <n>`) et se lit, comme `create_session` en échec, « rejouer au réveil suivant », que `--attendre` suit ; chaque borne dit « de suite » ; `reecrire` d'une session hors service peut rendre `panne`, dont les lignes partent ; « un champ absent, `couple` » ; le plafond rejoué y est écrit ; la sortie 6 nomme la sortie 69 des calculs.
+
+### Ce qu'un projet fait pour en profiter
+
+1. Mettre à jour le plugin (comme pour 7.31.0, étape 1) : le Relecteur lit son skill et son script dans le plugin à son prochain lancement.
+2. Reposer, dans une PR du projet : `/maj-skills:fusionner poser` (`revue-exigee.mjs` change), puis relancer le capitaine.
+
+## 8.0.1 — 2026-11-22
+
+### Ce qui change
+
+- **Une PR de fourche est sautée par le capitaine** (ticket 78, `A-192` point 2), dans les deux régimes : `passer.sh`, `sujet.sh fusionner` et `sujet.sh relancer` la sautent sans renvoi (sortie 7), avant tout fetch de sa tête, comme le Relecteur la dit illisible. Une fourche dont la branche portait le nom d'une branche d'origin faisait juger, mettre à jour, pousser et fusionner cette branche d'origin à sa place (`relancer` la mettait à jour et la poussait pour une sous-PR sans CI, `A-199`). Une sous-PR de fourche ne tient pas son sujet, quelle que soit sa CI (`A-201`) : `file.sh` la lit « sujet/<nom> : fourche » sur la liste des PR, `boucle.sh` la dit « sous-PR de fourche, sautée », sans la mettre à jour, la renvoyer ni relancer ses jobs rouges, et l'autre sous-PR du sujet entre au même tour.
+- **Une PR de mise à jour d'un sujet** (ticket 78, régime 8) : elle ne joue plus qu'une revue du capitaine au premier contrôle, son régime lu d'abord sur le sujet ; et quand aucun ticket ni aucune spec ne déclare le sujet, son motif dit son geste (un ticket du sujet accorde le chemin sensible), et plus celui d'une PR sans ticket.
+- **Le hook d'édition** (ticket 79, régime 8) : l'héritage d'une copie de ticket sur un sujet se juge contre le develop d'origin ; une copie locale de develop en retard ou absente ne juge rien : la copie du sujet ne compte pas, et le refus dit de relire develop (comptée, une copie héritée d'un accord que develop a retiré l'accordait encore, `A-199` point 2). Quand le refus a un geste (relire les copies, approfondir le clone), il vient en tête, avant la demande au conducteur.
+- Rien d'autre ne change en régime 7 (un dépôt sans la clé `relecture`) : la fourche y est sautée de même, sans tenir son sujet ; le premier contrôle d'une PR de mise à jour n'y jouait déjà qu'une revue, et la garde des chemins sensibles du capitaine comme le refus du hook n'y tournent pas.
+
+### Ce qu'un projet fait pour en profiter
+
+1. Mettre à jour le plugin (comme pour 7.31.0, étape 1).
+2. Reposer, dans une PR du projet : `/maj-skills:fusionner poser` (`passer.sh`, `boucle.sh`, `file.sh`), `/maj-skills:sujet poser`, `/maj-skills:revue-adversariale poser` et `/maj-skills:socle-chaine-de-production` (le hook d'édition) ; puis relancer le capitaine.
+
 ## 8.0.0 — 2026-11-22
 
 ### Ce qui change

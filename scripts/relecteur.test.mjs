@@ -63,7 +63,7 @@ test("A-180 — la veille sous le plafond de l'outil Bash, le couple au réemplo
   const skill = lire(`${SKILL}/SKILL.md`);
   const sorties = skill.slice(skill.indexOf("## Les sorties de `passe`, `jouer` et `distribuer`"), skill.indexOf("## Créer ou relancer les sessions"));
   for (const code of [0, 1, 2, 3, 5, 6, 7, 9, 12]) assert.match(sorties, new RegExp(`^\\| ${code} \\| \\S`, "m"), `la sortie ${code} a sa suite`);
-  assert.match(sorties, /^\| 7 \| .*au second refus, l'architecte et `--taire <n>`/m);
+  assert.match(sorties, /^\| 7 \| .*au second refus de suite, l'architecte et `--taire <n>`/m);
   assert.ok(!/elle a écrit qu'elle est au plafond/.test(skill), "« au plafond » ne se lit plus dans un message");
 });
 
@@ -145,7 +145,7 @@ test("fusionner/references/CONTENU.md décrit les trois calculs de la relecture 
 test("suite du ticket 66 (ticket 69) — chaque phrase neuve à sa place : `--attendre` et la borne de 9, l'état `couple`, `send_message` en échec, les causes des lignes, une étiquette restée, l'installation à retenter", () => {
   const texte = lire(`${SKILL}/SKILL.md`);
   // R5 : la sortie 9 a la borne de 12, et `--attendre` se dit dans « La veille ».
-  exigerA(ligne(texte, "## Les sorties de `passe`, `jouer` et `distribuer`", "| 9 |"), "la ligne de la sortie 9", ["rejouer au réveil suivant ; à la seconde fois, l'architecte, et s'arrêter"]);
+  exigerA(ligne(texte, "## Les sorties de `passe`, `jouer` et `distribuer`", "| 9 |"), "la ligne de la sortie 9", ["rejouer au réveil suivant ; à la seconde fois de suite, l'architecte, et s'arrêter"]);
   exigerA(section(texte, "## La veille"), "« La veille »", ["`--attendre` : une pause avant la première passe aussi, sous la même borne de 25 minutes"]);
   // A-184 (3) : un geste au premier plan qui renvoie au réveil suivant pendant un réveil fait relancer la veille avec
   // `--attendre`, après `VEILLE GESTE` comme après `VEILLE FINIE`.
@@ -155,7 +155,7 @@ test("suite du ticket 66 (ticket 69) — chaque phrase neuve à sa place : `--at
   exigerA(section(texte, "## L'état des sessions"), "« L'état des sessions »", [
     '`{ "<session>": "vivante" | "morte" | "plafond" | "couple" }`',
     "`couple` : elle tourne à un autre couple que celui de `faits` (`session_context.model` ne contient pas `faits.modele`, ou `session_context.effort_level` n'est pas `faits.effort`)",
-    "`reecrire`, qui réemploie la session, suit cette règle de « Créer ou relancer » : sans les deux champs, `couple`.",
+    "`reecrire`, qui réemploie la session, suit cette règle de « Créer ou relancer » : il lui faut les deux champs ; un champ absent, `couple`.",
     "Une session `couple` est remplacée comme une morte, une fois par tour (`remplacer`, cause `couple`).",
   ]);
   exigerA(ligne(texte, "## À chaque réveil", "| `reecrire` |"), "la ligne de `reecrire`", ["sinon (`morte`, `plafond` ou `couple`) `jouer <n> --sessions <fichier>`, qui rend `remplacer`"]);
@@ -187,5 +187,31 @@ test("contre-relecture de la PR 147 — les quatre formes des lignes à l'archit
   // R5 s'appuie sur « la seconde fois » de 12 et d'une sortie hors de la table : chacune à sa ligne, comme celle de 9.
   const sorties = "## Les sorties de `passe`, `jouer` et `distribuer`";
   for (const debut of ["| 9 |", "| 12 |", "| autre, ou aucune (l'outil a arrêté la commande) |"])
-    exigerA(ligne(texte, sorties, debut), `la ligne ${debut}`, ["rejouer au réveil suivant ; à la seconde fois, l'architecte, et s'arrêter"]);
+    exigerA(ligne(texte, sorties, debut), `la ligne ${debut}`, ["rejouer au réveil suivant ; à la seconde fois de suite, l'architecte, et s'arrêter"]);
+});
+
+test("suites de la PR 147 et du lot 5 (ticket 77) — la borne de la sortie 5 de `jouer`, « rejouer au réveil suivant » partout où le réveil suivant rejoue, « de suite », `reecrire` qui peut rendre `panne`, un champ absent, le plafond rejoué, la sortie 69 des calculs", () => {
+  const texte = lire(`${SKILL}/SKILL.md`);
+  const sorties = "## Les sorties de `passe`, `jouer` et `distribuer`";
+  // A-189, point 2 : la sortie 5 a sa borne, comme la sortie 7, et sa suite se lit « rejouer au réveil suivant » (ce que
+  // `--attendre` suit) ; la sortie 7 et toutes les bornes disent « de suite » (A-189, point 3).
+  exigerA(ligne(texte, sorties, "| 5 |"), "la ligne de la sortie 5", ["GitHub n'a pas répondu : rejouer au réveil suivant ; `jouer <n>` sorti en 5 pour la seconde fois de suite sur la même PR : l'architecte, et `--taire <n>`"]);
+  exigerA(ligne(texte, sorties, "| 7 |"), "la ligne de la sortie 7", ["la rejouer au réveil suivant ; au second refus de suite, l'architecte et `--taire <n>`"]);
+  // A-192, point 1 : la sortie 69 d'un calcul arrête le Relecteur (sortie 6), comme des calculs absents.
+  exigerA(ligne(texte, sorties, "| 6 |"), "la ligne de la sortie 6", ["un calcul dit qu'un outil de la chaîne manque au poste (sa sortie 69 : git plus ancien que 2.41, `jq` absent, la grammaire des identifiants introuvable)", ": l'architecte, et s'arrêter"]);
+  assert.ok(!texte.includes("à la seconde fois,"), "chaque borne dit « de suite »");
+  // Décision 2 du ticket 77 : la phrase de `--attendre` dit aussi « de suite » (une pause de quelques secondes compterait
+  // sinon pour la seconde fois de suite) ; la recherche de « à la seconde fois, » ne la lit pas.
+  exigerA(section(texte, "## La veille"), "« La veille »", ["se rejouerait aussitôt et compterait pour la seconde fois de suite."]);
+  assert.ok(!texte.includes("le réveil suivant rejoue"), "la sortie 5 : « rejouer au réveil suivant »");
+  exigerA(section(texte, "## Créer ou relancer les sessions"), "« Créer ou relancer les sessions »", ["`create_session` en échec pour une autre cause : rejouer au réveil suivant ; à la seconde fois de suite, l'architecte, et `--taire <n>`."]);
+  // A-189, point 3 : `reecrire` d'une session hors service peut rendre `panne`, dont les lignes partent.
+  exigerA(ligne(texte, "## À chaque réveil", "| `reecrire` |"), "la ligne de `reecrire`", ["`jouer <n> --sessions <fichier>`, qui rend `remplacer`, ou `panne` (une session déjà remplacée dans ce tour) : ses lignes (« Les lignes »)"]);
+  exigerA(section(texte, "## L'état des sessions"), "« L'état des sessions »", ["il lui faut les deux champs ; un champ absent, `couple`."]);
+  assert.ok(!texte.includes("sans les deux champs"), "« sans les deux champs » se lisait aussi « si les deux manquent »");
+  // A-189, point 1 : le plafond rejoué après un retrait refusé redit « décision de plafond attendue », et c'est voulu.
+  exigerA(section(texte, "## Les lignes"), "« Les lignes »", ["Une exception, voulue : rejoué après un retrait refusé, un plafond redit « décision de plafond attendue » à l'auteur et au conducteur (son étiquette s'est posée avant son commentaire) ; ces lignes partent comme les autres."]);
+  // La veille relancée avec `--attendre` sur toute suite « rejouer au réveil suivant » : la sortie 5 en est une.
+  for (const puce of ["- **`VEILLE GESTE`**", "- **`VEILLE FINIE`**"])
+    exigerA(ligne(texte, "## La veille", puce), `la puce ${puce}`, ["avec `--attendre` si un geste de ce réveil a rendu une suite « rejouer au réveil suivant »"]);
 });

@@ -43,7 +43,9 @@
 // que deux verdicts sont exigés, `relecture.ordinaire` sinon), et `auteur`, `conducteur`, lus sur la dernière demande.
 // `jouer <n>` refait la décision de la PR n et joue ce qui s'écrit sur GitHub : une étiquette (la nouvelle posée avant
 // que l'ancienne soit retirée, A-84), le commentaire du plafond, de la panne ou de l'illisible ; au plafond, l'étiquette
-// d'abord, puis le commentaire : un plafond à moitié écrit se rejoue entier, ses lignes avec lui. Il écrit une ligne
+// d'abord, puis le commentaire : un plafond à moitié écrit se rejoue entier, ses lignes avec lui. Rejoué après un retrait
+// refusé, un plafond redit « décision de plafond attendue » à l'auteur et au conducteur : son étiquette s'est posée avant
+// son commentaire, la marque la plus récente (A-189, point 1). Il écrit une ligne
 // JSON : la décision, `joue` (vrai s'il a écrit), et `lignes`, ce que le modèle envoie (`send_message`). Une ligne ne
 // part qu'au changement d'étiquette (A-85, A-118), ou avec le commentaire du plafond, qui ne s'écrit qu'une fois. Une
 // étiquette déjà posée ne renvoie rien si les événements de la PR la disent posée après sa marque la plus récente (un
@@ -67,7 +69,9 @@
 //
 // Sorties : 0 fait ; 2 usage ou entrée mal formée ; 3 la PR est fermée, ou le geste, le sommet ou le couple ont changé
 // (rien n'est écrit) ; 5 GitHub illisible ; 6 le dossier n'est pas celui d'un projet de la chaîne, ou pas propre, ou
-// `flock` manque ; 7 une écriture sur GitHub refusée (la pose d'une étiquette ou un commentaire ; un retrait refusé ne
+// `flock` manque, ou un calcul dit qu'un outil de la chaîne manque au poste (sa sortie 69 : git plus ancien que 2.41,
+// `jq` absent, la grammaire des identifiants introuvable ; `jq` absent, `github.sh` le dit aussi, sa sortie 69 à son
+// chargement), jamais une lecture illisible ni GitHub illisible (A-192, point 1) ; 7 une écriture sur GitHub refusée (la pose d'une étiquette ou un commentaire ; un retrait refusé ne
 // l'est pas : `retirer_label` le tait) ; 9 le verrou du dossier pas obtenu en 300 secondes ; 12 git (fetch, switch) en
 // échec. L'horloge est celle de la machine ; `RELECTEUR_HORLOGE_BANC` (millisecondes) la fixe,
 // seulement quand `FAUX_GH` (le faux GitHub des bancs) est posé.
@@ -124,6 +128,10 @@ const github = (fonction, ...args) => jouer('bash', ['-c', 'set -o pipefail; sou
 // La seule lecture de GitHub : `lire_github`, pages concaténées rendues en un tableau.
 function lire(route, { pages = false } = {}) {
   const r = jouer('bash', ['-c', `set -o pipefail; source "$1"; lire_github "$2" ${pages ? '--paginate' : ''} | jq -cs 'if length == 1 then .[0] elif all(.[]; type == "array") then add else error("pages") end'`, '_', join(CHAINE, 'github.sh'), route]);
+  // `github.sh` sort en 69 dès son chargement quand `jq` manque au poste : il le dirait de chaque lecture. Le poste ne
+  // porte pas la chaîne, sortie 6, comme pour la sortie 69 d'un calcul ; jamais « GitHub illisible » (5), dont la veille
+  // ferait une pause sans fin, sans une ligne à personne (A-192 point 1, A-197 point 1).
+  sansOutil('github.sh', r);
   if (r.status !== 0) arreter(5, (r.stderr || '').trim() || `GitHub illisible (${route})`);
   return JSON.parse(r.stdout);
 }
@@ -207,8 +215,20 @@ function sensible(fichiers, base) {
   return r.status !== 0 || r.stdout.trim() !== '';
 }
 
+// Un calcul sorti en 69 dit qu'un outil de la chaîne manque au poste (git plus ancien que 2.41, `jq` absent, la grammaire
+// des identifiants introuvable) : il le dirait de chaque PR. Le poste ne porte pas la chaîne, sortie 6, comme des
+// calculs absents ; jamais « illisible », qui tracerait chaque PR et le redirait à chaque délai (A-192, point 1). La
+// cause : la première ligne qui n'est pas le seul mot du verdict, sur la sortie d'erreur puis sur la sortie standard
+// (`double-relecture.mjs` écrit la sienne en `# illisible : …`).
+function sansOutil(calcul, r) {
+  if (r.status !== 69) return;
+  const cause = `${r.stderr ?? ''}\n${r.stdout ?? ''}`.split('\n').map((l) => l.replace(/^#\s*(?:illisible\s*:\s*)?/, '').trim()).find((l) => l !== '' && l !== 'illisible');
+  arreter(6, `${calcul} : un outil de la chaîne manque au poste (sortie 69) : ${cause ?? 'sans cause écrite'}`);
+}
+
 function exiges(fichiers, pr) {
   const r = jouer('node', [join(CHAINE, 'double-relecture.mjs'), '--base', pr.base, '--tete', pr.tete, '--titre', pr.titre, '--branche', pr.branche], { input: fichiers.length ? `${fichiers.join('\n')}\n` : '' });
+  sansOutil('double-relecture.mjs', r);
   return r.status === 0 ? 1 : r.status === 20 ? 2 : 'illisible';
 }
 
@@ -272,6 +292,7 @@ async function decision(json, sessions) {
     for (const s of d.sommetsDesTours(commentaires)) {
       if (s === pr.tete) continue;
       const r = jouer('bash', [join(CHAINE, 'meme-contenu.sh'), s, pr.tete, pr.base]);
+      sansOutil('meme-contenu.sh', r);
       memeContenu[s] = r.status === 0 ? true : r.status === 20 ? false : 'illisible';
     }
     const geste = d.decider({ ...commun, commentaires, exiges: faits.exiges, sensible: faits.sensible, memeContenu });
@@ -463,7 +484,7 @@ if (estPointEntree()) {
     else if (sous === 'jouer') await jouerGeste(reste);
     else if (sous === 'distribuer') await distribuer(reste);
     else if (sous === 'veille') veille(reste);
-    else arreter(2, 'usage : relecteur.mjs passe | jouer <n> [--sessions <fichier>] | distribuer <n> --sommet <sha> --couple <modele>/<effort> [--remplace <id>] [<session>…] [--sessions <fichier>] | veille [--pause <s>] [--duree <min>] [--taire <n>,…] [--attendre]');
+    else arreter(2, 'usage : relecteur.mjs passe | jouer <n> [--sessions <fichier>] | distribuer <n> --sommet <sha> --couple <modele>/<effort> [--remplace <id>] [<session>…] [--sessions <fichier>] | veille [--pause <s>] [--duree <min>] [--taire <n>,…] [--sondes <k>] [--attendre]');
   } catch (e) {
     if (!(e instanceof Arret)) throw e;
     process.stderr.write(`relecteur : ${e.message}\n`);
