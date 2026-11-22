@@ -7,12 +7,12 @@ La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque pro
 ### Ce qui change
 
 - **Le skill `anchorpost` suit la CLI 2.0.0** (K5 de la preuve suffisante, `SPEC_ALL_ANC-5` § 8) : la CLI est publique sur npmjs.com, installée sans jeton ni `.npmrc` (`@maj-agency/anchorpost@^2`) ; la recette de l'administrateur, l'ADR et la description du skill ne parlent plus de clé ni de GitHub Packages. Le gabarit du manifeste est au schéma `"3"` (plancher `{ date, proven, partial }`, `"sufficiency": "observe"`) ; `check` refuse ce que le pivot 3 ajoute, et le manifeste entre dans `cheminsSensibles`.
-- **Passer au pivot 3** : une section du skill (`pivot-3`) dit l'ordre d'un dépôt branché avant la CLI 2.0.0 : la CLI, `anchorpost init` qui réécrit le manifeste au schéma 3 sans rien retirer, le plancher relevé à la main, chaque règle « à classer » classée par le skill `criticite`, la repose des skills qui lisent le pivot 3, puis `enforce` sur décision du produit.
+- **Passer au pivot 3** : une section du skill (`pivot-3`) dit l'ordre d'un dépôt branché avant la CLI 2.0.0 : la CLI (≥ 2.0.2), `anchorpost migrate manifest` qui écrit le manifeste au schéma 3 tel que la CLI le lit déjà, le plancher relevé à la main, chaque règle « à classer » classée par le skill `criticite`, la repose des skills qui lisent le pivot 3, puis `enforce` sur décision du produit.
 - **La fiche `.claude/rules/anchorpost.md`** dit comment écrire une criticité (`{ level, by, reason }`, `date` pour la personne qui baisse), des cas attendus (`id`, `title`, `kind`, `scope`, `family`), les familles sans objet et la révision des cas, l'étiquette de cas `[RULE_…#<cas>]`, la ligne `Prouve:`, et ce que dit `anchorpost compare` (ses écarts, `observe` et `enforce`).
 
 ### Ce qu'un projet fait pour en profiter
 
-- **Reposer la fiche** `.claude/rules/anchorpost.md` et la section Anchorpost de `docs/agents/admin.md`, et ajouter `anchorpost/manifest.json` aux `cheminsSensibles` de `.claude/chaine.json` (étape 4, point 5) ; un dépôt qui installait la CLI depuis GitHub Packages retire d'abord de `.npmrc` les lignes `@maj-agency:registry=…` et `…_authToken=…`, puis installe la CLI, et supprime ses jetons de lecture.
+- **Reposer la fiche** `.claude/rules/anchorpost.md`, dans un dépôt au pivot 3 (un dépôt au schéma 2 la repose au point 4 de « Passer au pivot 3 »), et la section Anchorpost de `docs/agents/admin.md`, et ajouter `anchorpost/manifest.json` aux `cheminsSensibles` de `.claude/chaine.json` (étape 4, point 5) ; un dépôt qui installait la CLI depuis GitHub Packages retire d'abord de `.npmrc` les lignes `@maj-agency:registry=…` et `…_authToken=…`, puis installe la CLI, et supprime ses jetons de lecture.
 - **Un dépôt au schéma 2** suit « Passer au pivot 3 » du skill, par une PR relue ; tant qu'il ne le fait pas, rien ne change pour lui.
 
 ## 8.2.0 — 2026-11-22
