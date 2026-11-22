@@ -314,3 +314,114 @@ celui de la branche locale des retouches). 20 fichiers : `github.sh`, `passer.sh
 De 02 h 22 à 03 h 47 UTC (1 h 25), dont la suite entière deux fois en tâche de fond (875 s, puis 983 s après 18 min
 d'attente d'une charge sous 3), l'espion du régime 7 deux fois (le premier jet tournait en rond sur un banc qui pose
 son propre `git` : corrigé, rejoué entier, 23 min), l'échantillon de 20 (14 min) et les mutations (8 + 9 min).
+
+## Second tour, au sommet `450903a` (delta `9db4fb3..450903a`)
+
+Sommet `450903a4c6f830166a7e81df1c4dfd60f4c3572a`, parent direct `9db4fb3`, un commit. Mêmes règles : lecture seule
+vis-à-vis de GitHub, clone privé, la suite entière non rejouée (consigne). Essais et mutations neufs dans `second-tour/`.
+
+### Conclusion du second tour
+
+**Verdict proposé : non conforme au sommet `450903a4c6f830166a7e81df1c4dfd60f4c3572a`**, pour un seul écart, le
+constat 14, **à corriger** : il était déjà dans `9db4fb3` (ticket 72), le premier tour ne l'avait pas vu. Conforme avec
+`second-tour/retouches-tour-2.patch` (sur `450903a`, version inchangée). Les constats 1 à 13 sont fermés. Le régime 7
+reste celui de `main`, à l'appel près, après les retouches. Les contrôles GitHub du sommet sont verts.
+
+| # | Gravité | Constat neuf, en une ligne |
+| --- | --- | --- |
+| 14 | à corriger | une copie de ticket qu'un sujet n'a pas écrite, seulement héritée de develop, fait foi pour la garde du capitaine et le hook : l'accord écrit sur develop (ticket sans sujet) ou sur le sujet du ticket est ignoré, la PR renvoyée, l'écriture refusée |
+| 15 | mineur | aucun banc ne tient que le saut d'une PR poussée pendant sa lecture (constat 7) ne joue qu'en régime 8 (Y1 verte) |
+| 16 | mineur | aucun banc ne tient que le refus du hook ne nomme que les copies en retard qui portent le ticket (Y3 verte) |
+| 17 | mineur | le faux GitHub paginé, sans commentaire : sa page vide n'est tenue par aucun banc (Y4 verte) |
+| 18 | mineur | « Aucune ligne lue » : le geste qui relit une copie en retard n'est tenu par aucun banc (Y5 verte) |
+
+Les mineurs 15 à 18 sont des bancs manquants sur les retouches du premier tour, le code est juste ; leurs bancs sont dans
+le patch du tour 2 (s'il n'entre pas, ils vont à un ticket de suite). `A-192` : la sortie 69 et les PR de fourche (Q1,
+Q2) vont à des tickets de suite.
+
+**Comptes** : arbre égal (une commande) ; espion du régime 7 sur 19 bancs de `main`, `main` contre `450903a` : 554
+lancers, 7 961 appels `gh`, 6 502 appels `git` réseau identiques, une ligne d'écart, voulue ; mes 19 mutations du premier
+tour : toutes rouges sur `450903a` ; 5 neuves sur le delta : 1 rouge, 4 vertes (constats 15 à 18), toutes rouges avec le
+patch du tour 2 ; contrôles GitHub : 4 sur 4 verts ; patch du tour 2 : 2 rouges avant, 374 sur 374 après sur les 13
+bancs du lot, `poses.test.mjs` et `depot.test.mjs` verts, ses 3 mutations Z1 à Z3 rouges, et avec lui 8 + 19 + 27
+mutations rouges.
+
+### 1. L'arbre
+
+`second-tour/essais/egalite.sh` (une commande : le patch du premier tour appliqué dans un index jetable posé sur
+`9db4fb3`) : arbre `0072374e152d…`, celui de `450903a` (`second-tour/essais/egalite.txt`).
+
+### 2. Les constats 1 à 13
+
+Tous fermés, chacun par son banc (rouge sur `9db4fb3`, vert sur `450903a`) et par sa mutation (verte ou absente sur
+`9db4fb3`, rouge sur `450903a`) : `second-tour/mutations/mutations-450903a.txt`, mes 19 mutations **toutes rouges** sur
+`450903a`. Relus en relecteur neuf : les textes de `renvoyer.sh`, `demarrer` et des motifs de la garde donnent chacun un
+geste entier ; la demande de relecture, remplie comme dite, est lue par `lireMarques` ; le gate combine la criticité
+comme `hautes` ; la note dit ce qui change.
+
+### 3. Le régime 7 après les retouches
+
+- **L'espion**, rejoué sur les 19 bancs de `main`, `main` contre `450903a` (`second-tour/essais/espion-comparaison-450903a.txt`,
+  comptes dans `second-tour/essais/espion/`) : 554 scripts lancés, 7 961 appels `gh`, 6 502 appels `git` au réseau,
+  identiques ligne pour ligne, sauf la dernière ligne du refus de `demarrer` (`sujet.test.mjs`, test 7 de `main`) : le
+  texte d'`A-69`, retouché (constat 12), voulu ; mêmes appels, même code (4). L'heure du jour qu'écrit `boucle.sh` est
+  remplacée par un jeton avant la comparaison (`espion-comparer.sh`) : les deux côtés n'ont pas tourné à la même heure.
+- **Ce que les retouches ajoutent au régime 7**, lu dans le code : `DEMANDE_DE_RELECTURE`, une variable posée au
+  chargement de `github.sh` (aucun appel) ; `cle_relecture_sur origin/develop` sur les deux chemins de `demarrer` vers
+  develop (un `git show` local) ; rien d'autre (le saut du constat 7, la base d'une pile, le `--prune`, la panne d'un
+  calcul, la copie en retard, la criticité ne jouent qu'en régime 8).
+- **Le hook et le gate** (`regime7-hook-gate.mjs`) : identiques sur `450903a` et avec le patch du tour 2
+  (`second-tour/essais/regime7-hook-gate-tour2.txt`).
+
+### 4. Les mutations neuves sur le delta
+
+`second-tour/mutations/mutations-t2.mjs` : Y1 à Y5 sur les retouches du premier tour, Z1 à Z3 sur le patch du tour 2.
+Sur `450903a` (`mutations-450903a.txt`) : Y2 rouge ; **Y1, Y3, Y4, Y5 vertes** (constats 15 à 18). Avec le patch du
+tour 2 (`mutations-tour2.txt`) : **toutes rouges (8)**, et mes 19 du premier tour, toutes rouges.
+
+### 5. Les contrôles GitHub au sommet
+
+Lus le 2026-11-22 (`second-tour/essais/controles-github-450903a.txt`) : `bancs`, `CodeQL`, `Analyze (actions)`,
+`Analyze (javascript-typescript)` : terminés, succès ; la PR ouverte, hors brouillon, `mergeable_state` « clean », sans
+étiquette.
+
+### Constat 14 — à corriger — une copie héritée de develop fait foi (ticket 72, décisions 2 et 4, `A-74`, `A-185` point 3)
+
+**Fait.** La garde du capitaine (`copiesSur`) et le hook (`copiesSous`) prennent pour copie du ticket tout fichier du
+ticket sur un `origin/sujet/*`. Or un sujet ouvert depuis develop, ou rafraîchi avec lui (la boucle y reporte develop à
+chaque lancement, `A-69`, `A-132`), porte tous les tickets de develop, qu'il n'a pas écrits. Ces copies héritées font foi
+devant celle de develop et, « chaque copie doit couvrir », bloquent l'accord : (1) un ticket sans sujet dont l'accord
+entre dans develop, alors qu'un autre sujet est parti avant, est lu sur ce sujet (`A-74` dit : « sur origin/develop pour
+un ticket sans sujet ») ; (2) un ticket de sujet entré dans develop (livraison intermédiaire) et reçu par un autre
+sujet : l'accord écrit sur son sujet (`A-75`) ne suffit plus. Le cas est ordinaire dès qu'il y a plus d'un sujet.
+**Preuve.** `second-tour/essais/copie-heritee-450903a.txt` : les deux cas, sortie 20 (renvoi) ; avec le patch,
+`copie-heritee-tour2.txt` : 0. **Retouche** (`retouches-tour-2.patch`, garde et hook, même règle) : une copie de sujet ne
+compte que si le sujet l'a écrite, c'est-à-dire si elle diffère de celle de sa base de fusion avec develop ; héritée,
+c'est la copie de develop qui fait foi. Une copie écrite par un autre sujet compte toujours (« chaque copie »). Bancs :
+`sensibles-du-capitaine.test.mjs` (les deux cas, et la copie écrite qui compte encore), `garde-fichiers.test.mjs` (le
+hook) ; le test 5 de la garde a son ticket sans accord sur develop, pour que ses deux copies de sujet soient écrites
+(sinon B25 deviendrait équivalente). Mutations Z1 à Z3.
+
+**Question à l'architecte** (la règle, que la spec ne dit pas) : « présent sur un sujet » lu comme « écrit par lui depuis
+sa base de fusion avec develop ». **Recommandation : la garder** ; l'autre lecture (seul le sujet que déclare le ticket,
+par sa ligne `Sujet:`) demanderait au hook de lire la carte, hors de `scripts/agent/`.
+
+### Le patch du tour 2
+
+`second-tour/retouches-tour-2.patch` sur `450903a` (sha256 `3302725c14cbf8f7d0ef495c072ce6e9f1056f12287443f1c80d7f9b8d521705`,
+7 fichiers, +137 −8 ; arbre `310fba1ec1eb…`, vérifié par un index jetable) : `chemins-sensibles.mjs`,
+`garde-fichiers.mjs`, quatre bancs, une ligne de la note sous la 7.39.0. Version inchangée (7.39.0).
+
+- **Rouges avant** (`second-tour/essais/tour2-rouges-avant.txt`, les bancs posés seuls sur `450903a`) : 2 (les copies
+  héritées, garde et hook) ; les quatre bancs des constats 15 à 18 y sont verts : ils gardent du code juste, Y1, Y3, Y4,
+  Y5 le prouvent.
+- **Verts après** (`second-tour/essais/tour2-verts-apres.txt`) : les 13 bancs du lot, **374 sur 374** (369 + 5) ;
+  `scripts/poses.test.mjs` (les bancs posés à plat) et `scripts/depot.test.mjs` (69) verts.
+- **Mutations** (`second-tour/mutations/mutations-tour2.txt`) : Y1 à Y5 et Z1 à Z3, toutes rouges (8) ; mes 19 du
+  premier tour, toutes rouges (19) ; la série B de l'annexe (les gardes, 27), toutes rouges.
+- **Non rejoué** : la suite entière (consigne du tour). Le patch ne touche que la garde du capitaine, le hook et des
+  bancs ; les bancs qui les jouent, et ceux qui posent les scripts à plat, sont ci-dessus.
+
+### Temps du second tour
+
+De 04 h 00 à 04 h 48 UTC (48 min), dont l'espion (18 min) et les mutations (8 + 22 min) en tâche de fond.

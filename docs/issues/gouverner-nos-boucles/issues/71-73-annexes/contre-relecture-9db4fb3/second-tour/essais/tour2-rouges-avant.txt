@@ -1,0 +1,7 @@
+les bancs du patch du tour 2 posés seuls sur 450903a (fichier, tests, réussis, échoués) :
+skills/chaine/fusionner/scripts/sensibles-du-capitaine.test.mjs	9	8	1
+    not ok 9 - garde : une copie que le sujet n'a pas écrite, héritée de develop, ne compte pas ; celle de develop fait foi pour un ticket sans sujet, celle du sujet qui l'a écrite pour le sien (A-74) (contre-relecture de la PR 149, tour 2)
+skills/chaine/socle-chaine-de-production/references/agent/garde-fichiers.test.mjs	7	6	1
+    not ok 6 - régime 8 : une copie de sujet héritée de develop (le sujet ne l’a pas écrite) ne compte pas ; celle de develop fait foi (contre-relecture de la PR 149, tour 2)
+skills/chaine/sujet/scripts/faux-gh.test.mjs	19	19	0
+skills/chaine/fusionner/scripts/verdict-du-capitaine.test.mjs	25	25	0

@@ -1,0 +1,2 @@
+(1) ticket sans sujet, accord sur develop, un autre sujet ouvert avant : sortie 0 : aucun chemin sensible hors accord
+(2) ticket du sujet demo, accord sur son sujet, le ticket hérité par sujet/autre : sortie 0 : aucun chemin sensible hors accord

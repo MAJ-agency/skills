@@ -1,0 +1,37 @@
+sommet 450903a4c6f830166a7e81df1c4dfd60f4c3572a ; mes 19 mutations du premier tour ; 2026-11-22T04:02:27Z
+ROUGE X1 verdict : un contrat de base illisible ne rend plus le chemin sensible (le Relecteur, lui, le dit sensible)
+ROUGE X2 clé : le mot « relecture » sans ses guillemets suffit à rendre un contrat cassé illisible
+ROUGE X3 renvoyer.sh : la clé portée par un seul sujet n’est plus vue
+ROUGE X4 demarrer : le régime lu sur develop, pas sur le sujet de la PR
+ROUGE X5 renvoyer.sh : une PR empilée lue sur sa parente (régime 7 et « remettre à-fusionner »)
+ROUGE X6 github.sh : les commentaires lus sur leur première page seule (`--paginate` retiré)
+ROUGE X7 github.sh : des pages lues, la première seule gardée
+ROUGE X8 verdict : « même contenu propre » toujours vrai (un verdict sur un contenu ancien vaut pour le nouveau)
+ROUGE X9 CLI : un calcul absent à côté redevient une lecture illisible (21)
+ROUGE X10 hook : une copie locale en retard sur origin refusée sans dire le geste qui la relit
+ROUGE X11 demarrer : une PR vers develop, en régime 8, ne dit plus comment demander la relecture
+ROUGE X12 garde du capitaine : les chemins sensibles du sujet ignorés, ceux de develop seuls lus
+ROUGE X13 passer.sh : un push reçu pendant la lecture de la PR, renvoyé faute de verdict
+ROUGE X14 github.sh : le fetch de la revue du capitaine n’élague plus les sujets supprimés
+ROUGE X15 gate : un ticket gelé dans la dette dispensé de `Relecture: double` (A-185, point 5)
+ROUGE Aʹ32 github.sh : develop et les sujets ne sont plus relus avant les calculs (A32 sur le fetch retouché)
+ROUGE Cʹ6 sujet.sh demarrer : le refus conseille de nouveau `sujet.sh rafraichir` (C6 sur le texte retouché)
+ROUGE Cʹ16 gate : la criticité de l'en-tête jamais lue (C16 sur le gate retouché)
+ROUGE Cʹ19 gate : une règle hors vigueur dans l'index et dans son en-tête compte (C19 sur le gate retouché)
+toutes rouges (19)
+
+real	7m38.644s
+user	5m13.884s
+sys	2m3.075s
+
+sommet 450903a4c6f830166a7e81df1c4dfd60f4c3572a ; les 5 mutations neuves du delta ; 2026-11-22T04:10:05Z
+VERTE Y1 passer.sh : le saut d’une PR poussée pendant sa lecture joue aussi en régime 7 (le régime 7 changerait)
+ROUGE Y2 renvoyer.sh : une sous-PR d’un sujet lue sur develop (le sujet n’est plus une base de la chaîne)
+VERTE Y3 hook : une ref locale en retard qui ne porte pas le ticket est nommée dans le refus
+VERTE Y4 faux GitHub : une PR sans commentaire, paginée, ne rend aucune page (lue « réponse vide »)
+VERTE Y5 hook : « Aucune ligne lue » ne dit plus de relire une copie en retard
+4 mutation(s) non rouge(s) sur 5
+
+real	8m13.477s
+user	4m14.278s
+sys	1m25.737s

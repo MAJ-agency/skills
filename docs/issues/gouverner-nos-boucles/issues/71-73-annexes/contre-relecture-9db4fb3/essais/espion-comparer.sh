@@ -13,7 +13,8 @@ total=0; lances=0; gh=0; reseau=0
 for j in "$1"/*.journal; do
   n=$(basename "$j")
   total=$((total + $(wc -l <"$j"))); lances=$((lances + $(grep -c '^>>> ' "$j"))); gh=$((gh + $(grep -c '^gh ' "$j"))); reseau=$((reseau + $(grep -c '^git ' "$j")))
-  if diff -q "$j" "$2/$n" >/dev/null; then echo "$n : identiques ($(wc -l <"$j") lignes)"; else echo "$n : ÉCART"; diff "$j" "$2/$n" | head -40; fi
+  # L'heure du jour (`03:26`, que boucle.sh écrit dans ses échéances) dépend du moment où le banc tourne : remplacée.
+  if diff -q <(sed -E 's#\b[0-2][0-9]:[0-5][0-9]\b#<hh:mm>#g' "$j") <(sed -E 's#\b[0-2][0-9]:[0-5][0-9]\b#<hh:mm>#g' "$2/$n") >/dev/null; then echo "$n : identiques ($(wc -l <"$j") lignes)"; else echo "$n : ÉCART"; diff <(sed -E 's#\b[0-2][0-9]:[0-5][0-9]\b#<hh:mm>#g' "$j") <(sed -E 's#\b[0-2][0-9]:[0-5][0-9]\b#<hh:mm>#g' "$2/$n") | head -40; fi
 done
 echo
 echo "sur main : $lances scripts lancés, $gh appels gh, $reseau appels git réseau, $total lignes de journal"

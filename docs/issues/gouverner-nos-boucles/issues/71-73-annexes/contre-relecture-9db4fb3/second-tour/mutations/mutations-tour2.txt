@@ -1,0 +1,62 @@
+sommet 68abcbca52ca0bf0db0c0a4bb94348083a7b0e59 (450903a + retouches-tour-2) ; 2026-11-22T04:25:00Z
+== Y et Z
+ROUGE Y1 passer.sh : le saut d’une PR poussée pendant sa lecture joue aussi en régime 7 (le régime 7 changerait)
+ROUGE Y2 renvoyer.sh : une sous-PR d’un sujet lue sur develop (le sujet n’est plus une base de la chaîne)
+ROUGE Y3 hook : une ref locale en retard qui ne porte pas le ticket est nommée dans le refus
+ROUGE Y4 faux GitHub : une PR sans commentaire, paginée, ne rend aucune page (lue « réponse vide »)
+ROUGE Z1 garde du capitaine : une copie de sujet héritée de develop compte de nouveau (patch du tour 2)
+ROUGE Z2 hook : une copie de sujet héritée de develop compte de nouveau (patch du tour 2)
+ROUGE Z3 garde du capitaine : « héritée » jugée contre le sommet de develop, pas contre la base de fusion (patch du tour 2)
+ROUGE Y5 hook : « Aucune ligne lue » ne dit plus de relire une copie en retard
+toutes rouges (8)
+== mes 19 du premier tour
+ROUGE X1 verdict : un contrat de base illisible ne rend plus le chemin sensible (le Relecteur, lui, le dit sensible)
+ROUGE X2 clé : le mot « relecture » sans ses guillemets suffit à rendre un contrat cassé illisible
+ROUGE X3 renvoyer.sh : la clé portée par un seul sujet n’est plus vue
+ROUGE X4 demarrer : le régime lu sur develop, pas sur le sujet de la PR
+ROUGE X5 renvoyer.sh : une PR empilée lue sur sa parente (régime 7 et « remettre à-fusionner »)
+ROUGE X6 github.sh : les commentaires lus sur leur première page seule (`--paginate` retiré)
+ROUGE X7 github.sh : des pages lues, la première seule gardée
+ROUGE X8 verdict : « même contenu propre » toujours vrai (un verdict sur un contenu ancien vaut pour le nouveau)
+ROUGE X9 CLI : un calcul absent à côté redevient une lecture illisible (21)
+ROUGE X10 hook : une copie locale en retard sur origin refusée sans dire le geste qui la relit
+ROUGE X11 demarrer : une PR vers develop, en régime 8, ne dit plus comment demander la relecture
+ROUGE X12 garde du capitaine : les chemins sensibles du sujet ignorés, ceux de develop seuls lus
+ROUGE X13 passer.sh : un push reçu pendant la lecture de la PR, renvoyé faute de verdict
+ROUGE X14 github.sh : le fetch de la revue du capitaine n’élague plus les sujets supprimés
+ROUGE X15 gate : un ticket gelé dans la dette dispensé de `Relecture: double` (A-185, point 5)
+ROUGE Aʹ32 github.sh : develop et les sujets ne sont plus relus avant les calculs (A32 sur le fetch retouché)
+ROUGE Cʹ6 sujet.sh demarrer : le refus conseille de nouveau `sujet.sh rafraichir` (C6 sur le texte retouché)
+ROUGE Cʹ16 gate : la criticité de l'en-tête jamais lue (C16 sur le gate retouché)
+ROUGE Cʹ19 gate : une règle hors vigueur dans l'index et dans son en-tête compte (C19 sur le gate retouché)
+toutes rouges (19)
+== l'annexe, série B (les gardes, que le patch du tour 2 touche)
+ROUGE B1 hook : le régime 8 jamais lu
+ROUGE B2 hook : aucun chemin sensible refusé
+ROUGE B3 hook : une copie sur deux suffit
+ROUGE B4 hook : aucune copie vaut accord
+ROUGE B5 hook : la casse compte
+ROUGE B6 hook : une liste mal formée ne rend rien sensible
+ROUGE B7 hook : `..` accordé
+ROUGE B8 hook : deux lignes `Sensibles:` admises
+ROUGE B9 hook : un accord sans date admis
+ROUGE B10 garde-fichiers : une copie locale du sujet compte
+ROUGE B11 garde-fichiers : develop jamais lu pour un ticket sans sujet
+ROUGE B12 garde-fichiers : une ligne illisible lue comme vide
+ROUGE B13 garde du capitaine : aucun chemin sensible vu
+ROUGE B14 garde du capitaine : une PR sans ticket passe au motif ordinaire
+ROUGE B15 garde du capitaine : un chemin sensible hors conflit admis
+ROUGE B16 garde du capitaine : la copie de develop avant celles des sujets
+ROUGE B17 garde du capitaine : une copie sur deux suffit
+ROUGE B18 garde du capitaine : un ticket introuvable lu comme un accord vide
+ROUGE B19 garde du capitaine : une ligne illisible ignorée
+ROUGE B20 passer.sh : plus de garde
+ROUGE B21 sujet.sh : plus de garde
+ROUGE B22 sujet.sh : une PR de mise à jour sans les tickets du sujet
+ROUGE B23 sujet.sh : les retouches d’une PR de mise à jour hors du diff lu
+ROUGE B24 chemins-sensibles : le point d’entrée ne se reconnaît plus par un lien
+ROUGE B25 garde du capitaine : la première copie d’un ticket seule compte
+ROUGE B26 garde du capitaine : une spec citée par le sujet ne vaut plus ses tickets
+ROUGE B27 garde du capitaine : sans la grammaire, « PR sans ticket » au lieu d’illisible
+toutes rouges (27)
+2026-11-22T04:46:44Z

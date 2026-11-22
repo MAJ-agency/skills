@@ -1,0 +1,250 @@
+diff --git a/NOTES-DE-VERSION.md b/NOTES-DE-VERSION.md
+index 2a76c57..5952069 100644
+--- a/NOTES-DE-VERSION.md
++++ b/NOTES-DE-VERSION.md
+@@ -11,7 +11,7 @@ La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque pro
+ - **Les renvois, les messages et le gate selon le régime** (régime 8, lot 5c) : `renvoyer.sh` fait redemander la relecture (`à-relire`), jamais remettre `à-fusionner` ; `sujet.sh demarrer` dit comment demander la relecture, et son refus ne conseille plus `sujet.sh rafraichir` à une session ; le gate `tickets` n'exige plus `Label: contre-revue` et exige `Relecture: double` sur un ticket ouvert qui cite une règle haute.
+ - **`sujet.sh etat`** liste un sujet sans commit propre ni PR ouverte, en retard sur develop et pas livré (une livraison intermédiaire tout juste entrée, A-132) : la boucle du capitaine y reporte develop.
+ - Rien ne change pour une PR du régime 7, ni pour un dépôt sans la clé `relecture`, hors `sujet.sh etat` (ci-dessus, A-132) et le refus de `demarrer` (A-69), voulus dans les deux régimes.
+-- Contre-relecture, tour 1 : un calcul absent à côté de `revue-exigee.mjs` est une panne (3), jamais une lecture illisible ; une PR poussée pendant sa lecture par `passer.sh` est sautée, jamais renvoyée faute de verdict ; `renvoyer.sh` et `demarrer` donnent la forme entière de la demande de relecture (`À relire — sommet <sha> — Session: <id> — Conducteur: <id>`, seule dans son commentaire), `renvoyer.sh` lit le régime d'une PR empilée sur develop et `demarrer` le dit aussi pour une PR vers develop ; le hook d'édition dit de relire le sujet quand sa copie locale du ticket est en retard sur origin ; le refus de `demarrer` dit de passer par le conducteur ; les motifs de la garde du capitaine disent qui demande l'accord, et son fetch élague les sujets supprimés ; le gate lit la criticité comme le calcul (le plus haut niveau, en vigueur si l'index ou l'en-tête le dit) ; le faux GitHub pagine les commentaires.
++- Contre-relecture, tour 1 : un calcul absent à côté de `revue-exigee.mjs` est une panne (3), jamais une lecture illisible ; une PR poussée pendant sa lecture par `passer.sh` est sautée, jamais renvoyée faute de verdict ; `renvoyer.sh` et `demarrer` donnent la forme entière de la demande de relecture (`À relire — sommet <sha> — Session: <id> — Conducteur: <id>`, seule dans son commentaire), `renvoyer.sh` lit le régime d'une PR empilée sur develop et `demarrer` le dit aussi pour une PR vers develop ; le hook d'édition dit de relire le sujet quand sa copie locale du ticket est en retard sur origin ; le refus de `demarrer` dit de passer par le conducteur ; les motifs de la garde du capitaine disent qui demande l'accord, et son fetch élague les sujets supprimés ; une copie de ticket qu'un sujet n'a pas écrite, héritée de develop, ne compte ni pour la garde ni pour le hook (tour 2) ; le gate lit la criticité comme le calcul (le plus haut niveau, en vigueur si l'index ou l'en-tête le dit) ; le faux GitHub pagine les commentaires.
+ 
+ ### Ce qu'un projet fait pour en profiter
+ 
+diff --git a/skills/chaine/fusionner/scripts/sensibles-du-capitaine.test.mjs b/skills/chaine/fusionner/scripts/sensibles-du-capitaine.test.mjs
+index ebb4605..d64c506 100644
+--- a/skills/chaine/fusionner/scripts/sensibles-du-capitaine.test.mjs
++++ b/skills/chaine/fusionner/scripts/sensibles-du-capitaine.test.mjs
+@@ -145,7 +145,8 @@ test("régime 8, sujet.sh fusionner : une PR de mise à jour ne touche un chemin
+ });
+ 
+ test("garde : chaque copie du ticket doit couvrir le chemin ; avec deux tickets, l'un suffit ; une ligne illisible et un ticket introuvable se disent", () => {
+-  const d = monter({ 1: ACCORD("`scripts/agent/**`"), 2: ACCORD("docs/agents/regles.md") });
++  // Sur develop, le ticket 1 sans accord : les deux copies des sujets sont écrites par eux, jamais héritées.
++  const d = monter({ 1: "Sensibles: —", 2: ACCORD("docs/agents/regles.md") });
+   // La copie large d'abord (sujet/a), l'étroite ensuite (sujet/b) : l'ordre des refs ne fait pas l'accord.
+   d.branche("sujet/a", "origin/develop", { [TICKET(1)]: ticket(1, ACCORD("`scripts/agent/**`")), "docs/a.md": "a\n" });
+   d.branche("sujet/b", "origin/develop", { [TICKET(1)]: ticket(1, ACCORD("`scripts/agent/x.mjs`")), "docs/b.md": "b\n" });
+@@ -204,3 +205,26 @@ test("régime 8, passer.sh : un sujet supprimé du distant ne garde pas, dans le
+   assert.equal(r.status, 0, r.stdout + r.stderr);
+   assert.match(r.stdout, /FUSIONNÉE/);
+ });
++
++test("garde : une copie que le sujet n'a pas écrite, héritée de develop, ne compte pas ; celle de develop fait foi pour un ticket sans sujet, celle du sujet qui l'a écrite pour le sien (A-74) (contre-relecture de la PR 149, tour 2)", () => {
++  const garde = (d, base) => spawnSync(process.execPath, [GARDE, "--garde", "--base", base, "--titre", "feat(agent): x", "--branche", "feat/spec-all-demo-1-01-x"], { cwd: d.travail, env: d.env, input: "scripts/agent/x.mjs\n", encoding: "utf8" });
++  // Un ticket sans sujet : un autre sujet part de develop, puis l'accord entre dans develop.
++  const a = monter({ 1: "Sensibles: —" });
++  a.branche("sujet/autre", "origin/develop", { "docs/autre.md": "autre\n" });
++  a.branche("develop", "origin/develop", { [TICKET(1)]: ticket(1, ACCORD("`scripts/agent/**`")) });
++  a.git("switch", "-q", "--detach", "origin/develop");
++  const r = garde(a, "develop");
++  assert.equal(r.status, 0, r.stdout + r.stderr);
++  // Le ticket du sujet demo : entré dans develop sans accord, reçu par sujet/autre ; l'accord écrit sur sujet/demo.
++  const b = monter({ 1: "Sensibles: —" });
++  b.branche("sujet/autre", "origin/develop", { "docs/autre.md": "autre\n" });
++  b.branche("sujet/demo", "origin/develop", { [TICKET(1)]: ticket(1, ACCORD("`scripts/agent/**`")) });
++  b.git("switch", "-q", "--detach", "origin/develop");
++  const r2 = garde(b, "sujet/demo");
++  assert.equal(r2.status, 0, r2.stdout + r2.stderr);
++  // Une copie qu'un sujet a écrite compte toujours : sujet/autre écrit le ticket sans l'accord, la PR est renvoyée.
++  b.branche("sujet/autre", "origin/sujet/autre", { [TICKET(1)]: ticket(1, "Sensibles: `docs/x.md` — accord de la MOA, 2026-11-17") });
++  b.git("switch", "-q", "--detach", "origin/develop");
++  const r3 = garde(b, "sujet/demo");
++  assert.equal(r3.status, 20, r3.stdout + r3.stderr);
++});
+diff --git a/skills/chaine/fusionner/scripts/verdict-du-capitaine.test.mjs b/skills/chaine/fusionner/scripts/verdict-du-capitaine.test.mjs
+index 7aab180..a99d114 100644
+--- a/skills/chaine/fusionner/scripts/verdict-du-capitaine.test.mjs
++++ b/skills/chaine/fusionner/scripts/verdict-du-capitaine.test.mjs
+@@ -431,3 +431,14 @@ test("régime 8, passer.sh : un push reçu entre la lecture de la PR et le fetch
+   assert.match(dernier(r), /la PR a reçu un push pendant sa lecture \(origin\/feat\/a n'est plus le sommet lu\) : sautée sans renvoi/);
+   assert.ok(!d.journal().some((e) => e.champs?.["labels[]"] === "fusion-bloquée"), "aucun renvoi");
+ });
++
++test("régime 7, passer.sh : un push reçu entre la lecture de la PR et le fetch se juge comme sur main (le saut du régime 8 n'y joue pas)", () => {
++  const d = monter({ cheminsSensibles: [] });
++  const x = versDevelop(d, { fichiers: { "scripts/x.sh": "echo x\n" }, titre: "feat(x): x" });
++  d.branche("feat/a", "feat/a", { "scripts/y.sh": "echo y\n" }, "feat(x): suite");
++  d.git("switch", "-q", "--detach", "origin/develop");
++  d.github({ pulls: [{ ...d.etat().pulls[0], sha: x }] });
++  const r = passer(d);
++  assert.equal(r.status, 4, r.stdout + r.stderr);
++  assert.match(dernier(r), /sans section « Revue de ticket » ni « Revue adversariale »/);
++});
+diff --git a/skills/chaine/revue-adversariale/scripts/chemins-sensibles.mjs b/skills/chaine/revue-adversariale/scripts/chemins-sensibles.mjs
+index bc313b3..7801737 100644
+--- a/skills/chaine/revue-adversariale/scripts/chemins-sensibles.mjs
++++ b/skills/chaine/revue-adversariale/scripts/chemins-sensibles.mjs
+@@ -34,7 +34,8 @@
+ // couvre pas ? Les chemins sensibles sont ceux du contrat de la base (`lireBase` de revue-exigee.mjs : un sujet ajoute
+ // celui de develop), jamais de l'arbre de travail. Le ticket est celui de la PR (`ticketsDeLaPr` de double-relecture.mjs,
+ // la définition du capitaine : son titre, sa branche) ; sa ligne se lit sur les `origin/sujet/*` qui le portent, sinon sur
+-// `origin/develop` (A-74), et chaque copie doit couvrir le chemin ; avec deux tickets, l'un des deux suffit. Une PR de mise
++// `origin/develop` (A-74), et chaque copie doit couvrir le chemin ; avec deux tickets, l'un des deux suffit. Une copie de
++// sujet identique à celle de sa base de fusion avec develop n'est qu'héritée : elle ne compte pas. Une PR de mise
+ // à jour d'un sujet (`--conflits`, la liste des fichiers en conflit de sa fusion ; `--tickets`, les tickets et specs que
+ // déclare le sujet) ne touche un chemin sensible que s'il est en conflit et couvert par la ligne d'un ticket du sujet.
+ // Sorties : 0 rien à redire ; 20 un motif (renvoi : chemin non couvert, PR sans ticket, ticket introuvable, ligne
+@@ -239,13 +240,26 @@ async function garde({ base, titre, branche, conflits, tickets }, fichiers) {
+   };
+   const sujets = git("for-each-ref", "--format=%(objectname)", "refs/remotes/origin/sujet/").split("\n").filter(Boolean);
+   const develop = git("rev-parse", "--verify", "-q", "refs/remotes/origin/develop^{commit}").trim();
+-  // Les copies d'un identifiant (un ticket, ou, avec `--tickets`, une spec : tous ses tickets) sur une liste de commits.
+-  const copiesSur = (commits, id) => {
++  // Une copie de sujet ne compte que si le sujet l'a écrite (A-74, A-185 point 3) : un sujet ouvert depuis develop, ou
++  // qui l'a reçu, porte tous les tickets de develop ; identique à celle de sa base de fusion avec develop, sa copie n'est
++  // qu'héritée, et c'est celle de develop qui fait foi (« sur origin/develop pour un ticket sans sujet »).
++  const objet = (spec) => {
++    const r = spawnSync("git", ["rev-parse", "-q", "--verify", spec], { encoding: "utf8" });
++    return r.status === 0 ? r.stdout.trim() : null;
++  };
++  const herite = (sha, f) => {
++    const base = spawnSync("git", ["merge-base", sha, develop], { encoding: "utf8" });
++    return base.status === 0 && objet(`${base.stdout.trim()}:${f}`) === objet(`${sha}:${f}`);
++  };
++  // Les copies d'un identifiant (un ticket, ou, avec `--tickets`, une spec : tous ses tickets) sur une liste de commits ;
++  // sur les sujets (`surUnSujet`), les seules copies que le sujet a écrites.
++  const copiesSur = (commits, id, surUnSujet = true) => {
+     const parTicket = new Map();
+     for (const sha of commits)
+       for (const f of git("ls-tree", "-r", "-z", "--name-only", sha, "docs").split("\0").filter(Boolean)) {
+         const t = G.estArchive(f) ? null : G.identifiantDuTicket(f.split("/").pop() ?? "");
+         if (!t || (t !== id && !(tickets !== undefined && t.startsWith(`${id}.`)))) continue;
++        if (surUnSujet && herite(sha, f)) continue;
+         if (!parTicket.has(t)) parTicket.set(t, []);
+         parTicket.get(t).push(lireSensibles(git("show", `${sha}:${f}`)));
+       }
+@@ -254,7 +268,7 @@ async function garde({ base, titre, branche, conflits, tickets }, fichiers) {
+   const accords = [];
+   for (const id of ids) {
+     let parTicket = copiesSur(sujets, id);
+-    if (parTicket.size === 0) parTicket = copiesSur([develop], id);
++    if (parTicket.size === 0) parTicket = copiesSur([develop], id, false);
+     if (parTicket.size === 0 && tickets === undefined) throw new Motif(`ticket ${id} introuvable sur les origin/sujet/* et sur origin/develop : sa ligne \`Sensibles:\` ne se lit pas, et la PR touche un chemin sensible (${liste(() => true)}) ; l'écrire au conducteur : le ticket entre d'abord sur son sujet (ou sur develop), avec l'accord sur sa ligne (A-75)`);
+     for (const [t, copies] of parTicket) {
+       const mal = copies.find((c) => c.illisible);
+diff --git a/skills/chaine/socle-chaine-de-production/references/agent/garde-fichiers.mjs b/skills/chaine/socle-chaine-de-production/references/agent/garde-fichiers.mjs
+index 3db7138..3c68960 100644
+--- a/skills/chaine/socle-chaine-de-production/references/agent/garde-fichiers.mjs
++++ b/skills/chaine/socle-chaine-de-production/references/agent/garde-fichiers.mjs
+@@ -74,7 +74,8 @@ const git = (...args) => execFileSync('git', args, { cwd: RACINE, encoding: 'utf
+  * Régime 8 (lot 5b, A-74, A-76) : les chemins qu'accorde la ligne `Sensibles:` du ticket de la branche courante, lue sur
+  * `origin/sujet/*` (sur `origin/develop` pour un ticket qu'aucun sujet ne porte), jamais dans l'arbre de travail ni sur
+  * la branche de la session, comme `Dépendances:` (garde-commandes.mjs). Une copie locale que `origin` ne porte pas (ref
+- * déplacée à la main, ou en retard sur origin) ne compte pas. `{ copies: [[motifs]…] }`, une liste par copie ; `{ illisible }` ;
++ * déplacée à la main, ou en retard sur origin) ne compte pas, ni une copie de sujet qu'il n'a pas écrite (identique à celle de
++ * sa base de fusion avec develop : héritée). `{ copies: [[motifs]…] }`, une liste par copie ; `{ illisible }` ;
+  * `null` : pas de ticket, pas de copie, origin injoignable, grammaire absente. Lu seulement quand le chemin est sensible.
+  * Une copie locale qui ne compte pas et porte le ticket est nommée dans `perimees` (avec `copies`, `illisible`, ou seule à
+  * la place de `null`) : le refus dit alors le geste qui la relit, avant d'écrire au conducteur.
+@@ -91,6 +92,26 @@ function accordes() {
+         .map((ligne) => ligne.split(/\s+/).reverse()),
+     );
+     const perimees = [];
++    // Une copie de sujet ne compte que si le sujet l'a écrite (A-74) : identique à celle de sa base de fusion avec develop,
++    // elle n'est qu'héritée de develop (un sujet ouvert ou rafraîchi depuis develop porte tous ses tickets), et c'est la
++    // copie de develop qui fait foi. Comme la garde du capitaine (`chemins-sensibles.mjs --garde`).
++    const objet = (spec) => {
++      try {
++        return git('rev-parse', '-q', '--verify', spec);
++      } catch {
++        return null;
++      }
++    };
++    const develop = objet('refs/remotes/origin/develop^{commit}');
++    const herite = (sha, f) => {
++      let base;
++      try {
++        base = develop === null ? '' : git('merge-base', sha, develop);
++      } catch {
++        return false; // aucune base commune : la copie est du sujet
++      }
++      return base !== '' && objet(`${base}:${f}`) === objet(`${sha}:${f}`);
++    };
+     const copiesSous = (motif) => {
+       const copies = [];
+       for (const ligne of git('for-each-ref', '--format=%(objectname) %(refname)', motif).split('\n').filter(Boolean)) {
+@@ -98,7 +119,7 @@ function accordes() {
+         const fichiers = git('ls-tree', '-r', '-z', '--name-only', sha, 'docs').split('\0').filter((f) => f && !estArchive(f) && identifiantDuTicket(f.split('/').pop() ?? '') === id);
+         if (fichiers.length > 0 && distants.get(ref.replace('refs/remotes/origin/', 'refs/heads/')) !== sha) perimees.push(ref.replace('refs/remotes/', ''));
+         if (distants.get(ref.replace('refs/remotes/origin/', 'refs/heads/')) !== sha) continue;
+-        for (const f of fichiers) copies.push(lireSensibles(git('show', `${sha}:${f}`)));
++        for (const f of fichiers) if (!(motif.endsWith('/sujet/') && herite(sha, f))) copies.push(lireSensibles(git('show', `${sha}:${f}`)));
+       }
+       return copies;
+     };
+diff --git a/skills/chaine/socle-chaine-de-production/references/agent/garde-fichiers.test.mjs b/skills/chaine/socle-chaine-de-production/references/agent/garde-fichiers.test.mjs
+index e3dc336..2bdcbc1 100644
+--- a/skills/chaine/socle-chaine-de-production/references/agent/garde-fichiers.test.mjs
++++ b/skills/chaine/socle-chaine-de-production/references/agent/garde-fichiers.test.mjs
+@@ -105,3 +105,56 @@ test('régime 8 : une copie locale du sujet en retard sur origin n’est pas lue
+   d.git(...args);
+   passe(ecrire(d, 'scripts/agent/garde.mjs'));
+ });
++
++test('régime 8 : une copie de sujet héritée de develop (le sujet ne l’a pas écrite) ne compte pas ; celle de develop fait foi (contre-relecture de la PR 149, tour 2)', () => {
++  // Develop porte le ticket sans accord ; un autre sujet en part ; puis l'accord entre dans develop.
++  const d = depot({ surSujet: null });
++  d.git('push', '-q', 'origin', 'origin/develop:refs/heads/sujet/autre');
++  d.git('switch', '-q', '--detach', 'origin/develop');
++  writeFileSync(join(d.travail, TICKET), ticket(ACCORD));
++  d.git('commit', '-q', '-am', 'accord');
++  d.git('push', '-q', 'origin', 'HEAD:develop');
++  d.git('fetch', '-q', 'origin');
++  d.git('switch', '-q', 'feat/spec-all-demo-1-01-garde');
++  passe(ecrire(d, 'scripts/agent/garde.mjs'));
++  refuse(ecrire(d, 'docs/agents/autre.md'));
++});
++
++test('régime 8 : le refus ne nomme que les copies en retard qui portent le ticket ; sans copie lue, « Aucune ligne lue » dit aussi de relire', () => {
++  // Un autre sujet, qui ne porte pas le ticket (parti d'ailleurs), avance sur origin sans être relu : il n'est pas nommé.
++  const d = depot();
++  d.git('switch', '-q', '--orphan', 'ailleurs');
++  writeFileSync(join(d.travail, 'ailleurs.md'), 'a\n');
++  d.git('add', 'ailleurs.md');
++  d.git('commit', '-q', '-m', 'ailleurs');
++  d.git('push', '-q', 'origin', 'HEAD:refs/heads/sujet/autre');
++  d.git('fetch', '-q', 'origin');
++  const avant = d.git('rev-parse', 'origin/sujet/autre').trim();
++  writeFileSync(join(d.travail, 'ailleurs2.md'), 'b\n');
++  d.git('add', 'ailleurs2.md');
++  d.git('commit', '-q', '-m', 'ailleurs 2');
++  d.git('push', '-q', 'origin', 'HEAD:refs/heads/sujet/autre');
++  d.git('update-ref', 'refs/remotes/origin/sujet/autre', avant);
++  d.git('clean', '-qfdx');
++  d.git('switch', '-q', '-f', 'feat/spec-all-demo-1-01-garde');
++  const r = ecrire(d, 'docs/agents/autre.md');
++  refuse(r);
++  assert.doesNotMatch(r.stderr, /origin\/sujet\/autre/, 'un sujet qui ne porte pas le ticket');
++  // Le ticket .02 ne vit que sur le sujet, dont la copie locale est en retard : aucune ligne lue, et le geste.
++  const s = depot({ branche: 'feat/spec-all-demo-1-02-garde' });
++  const deux = TICKET.replace('.01.', '.02.');
++  s.git('switch', '-q', '--detach', 'origin/sujet/demo');
++  writeFileSync(join(s.travail, deux), ticket(ACCORD).replace('.01', '.02'));
++  s.git('add', '-A');
++  s.git('commit', '-q', '-m', 'ticket .02');
++  s.git('push', '-q', 'origin', 'HEAD:refs/heads/sujet/demo');
++  s.git('fetch', '-q', 'origin');
++  const vieux = s.git('rev-parse', 'origin/sujet/demo').trim();
++  writeFileSync(join(s.travail, 'docs/autre.md'), 'autre\n');
++  s.git('add', '-A');
++  s.git('commit', '-q', '-m', 'autre sous-PR');
++  s.git('push', '-q', 'origin', 'HEAD:refs/heads/sujet/demo');
++  s.git('update-ref', 'refs/remotes/origin/sujet/demo', vieux);
++  s.git('switch', '-q', 'feat/spec-all-demo-1-02-garde');
++  refuse(ecrire(s, 'scripts/agent/garde.mjs'), /Aucune ligne lue : .*\(Copie du ticket non lue : origin\/sujet\/demo n'est pas au sommet d'origin\./);
++});
+diff --git a/skills/chaine/sujet/scripts/faux-gh.test.mjs b/skills/chaine/sujet/scripts/faux-gh.test.mjs
+index 74d9977..25c241f 100644
+--- a/skills/chaine/sujet/scripts/faux-gh.test.mjs
++++ b/skills/chaine/sujet/scripts/faux-gh.test.mjs
+@@ -349,3 +349,9 @@ test('faux gh, pageCommentaires : sans --paginate, la première page ; avec, cha
+   d.github({ pageCommentaires: undefined });
+   assert.deepEqual(JSON.parse(gh(d, route).stdout).map((c) => c.body), ['a', 'b', 'c'], 'sans le réglage : tout, comme avant');
+ });
++
++test('faux gh, pageCommentaires : une PR sans commentaire, paginée, rend une page vide, comme gh', () => {
++  const d = depotJouet();
++  d.github({ pageCommentaires: 2, pulls: [{ number: 1, title: 't', head: 'x', base: 'develop', labels: [], commentaires: [] }] });
++  assert.equal(gh(d, '--paginate', 'repos/{owner}/{repo}/issues/1/comments?per_page=100').stdout, '[]\n');
++});
