@@ -1,0 +1,20 @@
+criticality: { by: agent, reason: voir
+  ' # , level: low, '
+  , level: 'high' }
+====
+criticality: { by: agent, reason: voir la note
+  "du produit # , level: low, "
+  , level: "high" }
+====
+criticality:
+  {
+    by: agent,
+    reason: voir la note
+      "du produit # , level: low, "
+    , level: "high"
+  }
+====
+criticality: high
+validation: { date: 2026-11-16, reason: voir
+  " # , status: rejected, "
+  , status: "validated" }

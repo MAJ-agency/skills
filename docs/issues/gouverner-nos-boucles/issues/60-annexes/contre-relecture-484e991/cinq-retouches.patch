@@ -1,0 +1,69 @@
+--- a/skills/chaine/fusionner/scripts/double-relecture.mjs
++++ b/skills/chaine/fusionner/scripts/double-relecture.mjs
+@@ -179,6 +179,7 @@
+       }
+       if (tete) {
+         if (c === '-' && (i + 1 === ligne.length || blanc(ligne[i + 1]))) continue;
++        if (c === '?' && (i + 1 === ligne.length || blanc(ligne[i + 1]))) illisible("une clé explicite (`? …`) dans l'en-tête : ce lecteur ne la lit pas");
+         if (c === '!') illisible("une étiquette (`!…`) dans l'en-tête : ce lecteur ne la lit pas");
+         if (c === '&' || c === '*') illisible("une ancre ou un alias (`&…`, `*…`) dans l'en-tête : ce lecteur ne les lit pas");
+         if (c === '[' || c === '{') {
+@@ -260,6 +261,7 @@
+   const m = new Map();
+   for (const part of decouper(interieur(valeur, '{', '}'))) {
+     const i = part.indexOf(':');
++    if (i !== -1 && i + 1 < part.length && part[i + 1] !== ' ' && part[i + 1] !== '\t') illisible(`mappage illisible : ${part.slice(0, 80)}`);
+     const cle = part.slice(0, Math.max(i, 0)).trim();
+     if (cle === '' || m.has(cle)) illisible(`mappage illisible : ${part.slice(0, 80)}`);
+     m.set(cle, part.slice(i + 1));
+@@ -293,7 +295,10 @@
+ function enLigne(cle) {
+   const debut = cle.valeur !== '' ? cle.valeur : (cle.bloc[0] ?? '').trim();
+   // Chaque ligne perd son commentaire avant d'être jointe : celui d'une ligne pliée avalerait sinon la suite.
+-  return /^[[{]/.test(debut) ? [cle.valeur, ...cle.bloc].map((l) => sansCommentaire(l).trim()).filter(Boolean).join(' ') : null;
++  if (!/^[[{]/.test(debut)) return null;
++  const lignes = [cle.valeur, ...cle.bloc].map((l) => sansCommentaire(l).trim()).filter(Boolean);
++  for (let i = 1; i < lignes.length; i++) if (!/[,[{]$/.test(lignes[i - 1]) && !/^[,\]}]/.test(lignes[i])) illisible('un scalaire plié sur deux lignes dans un mappage ou une liste en ligne : ce lecteur ne le lit pas');
++  return lignes.join(' ');
+ }
+ 
+ /** Un champ d'un mappage écrit en ligne (`{ … }`) ou en bloc ; absent : `undefined` ; deux fois : illisible. */
+@@ -304,6 +309,14 @@
+   if (cle.bloc.length === 0) illisible('clé sans valeur');
+   const lignes = premierNiveau(cle.bloc).filter((l) => new RegExp(`^${nom}[ \\t]*:`).test(l));
+   if (lignes.length > 1) illisible(`\`${nom}\` écrit deux fois`);
++  if (lignes[0] && !new RegExp(`^${nom}[ \\t]*:([ \\t]|$)`).test(lignes[0])) illisible(`\`${nom}:\` sans blanc`);
++  // P5 : une valeur en ligne suivie de lignes plus profondes (scalaire plié) : illisible
++  if (lignes[0] && sansCommentaire(lignes[0].slice(lignes[0].indexOf(':') + 1)).trim() !== '') {
++    const brutes = cle.bloc.filter((l) => !/^[ \t]*(#.*)?$/.test(l));
++    const ret = (l) => l.length - l.trimStart().length;
++    const k = brutes.findIndex((l) => l.trim() === lignes[0]);
++    if (k !== -1 && brutes[k + 1] !== undefined && ret(brutes[k + 1]) > ret(brutes[k])) illisible(`\`${nom}\` : valeur pliée sur plusieurs lignes`);
++  }
+   return lignes[0]?.slice(lignes[0].indexOf(':') + 1);
+ }
+ 
+@@ -318,6 +331,7 @@
+   const m = EN_TETE.exec(texte.startsWith(BOM) ? texte.slice(1) : texte);
+   if (!m) illisible("pas d'en-tête YAML (`---` en première ligne, refermé par `---`)");
+   const lignes = m[1].split(/\r?\n/);
++  if (lignes.some((l) => /[^\S \t]/.test(l))) illisible("un blanc autre que l'espace et la tabulation dans l'en-tête");
+   refuserLesFormesNonLues(lignes);
+   const cles = new Map();
+   let courante = null;
+@@ -335,6 +349,7 @@
+   let niveau = null;
+   const criticite = cles.get('criticality');
+   if (criticite) {
++    if (criticite.valeur !== '' && enLigne(criticite) === null && criticite.bloc.some((l) => !/^[ \t]*(#.*)?$/.test(l))) illisible('`criticality` : valeur pliée sur plusieurs lignes');
+     const brut = criticite.valeur !== '' && enLigne(criticite) === null ? criticite.valeur : champ(criticite, 'level');
+     niveau = brut === undefined ? illisible('`criticality` sans `level`') : scalaire(brut);
+     if (!NIVEAUX.includes(niveau)) illisible(`criticité « ${niveau} » : attendu low, medium ou high`);
+@@ -348,6 +363,7 @@
+     if (ligne !== null) items = decouper(interieur(ligne, '[', ']'));
+     else {
+       if (c.valeur !== '' || c.bloc.length === 0) illisible(`\`code\` illisible : ${c.valeur.slice(0, 80) || 'sans valeur'}`);
++      if (new Set(c.bloc.filter((l) => !/^[ \t]*(#.*)?$/.test(l)).map((l) => l.length - l.trimStart().length)).size > 1) illisible('`code` : entrées à retraits inégaux');
+       items = premierNiveau(c.bloc).map((l) => (/^-\s+\S/.test(l) ? l.slice(1) : illisible(`\`code\` illisible : ${l}`)));
+     }
+     code = items.map(scalaire);

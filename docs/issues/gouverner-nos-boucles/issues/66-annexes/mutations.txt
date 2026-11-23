@@ -1,0 +1,79 @@
+ROUGE M1 compter : un refus sans « lancée » se relit incomplet (le code d’avant)
+ROUGE M2 compter : un refus sur un autre sommet se relit incomplet
+ROUGE M3 compter : plus aucun verdict n’exige « lancée »
+ROUGE M4 jouer : l’ancienne étiquette retirée avant que la nouvelle soit posée
+ROUGE M5 jouer : les lignes repartent quand l’étiquette était déjà posée
+ROUGE M6 jouer : la nouvelle étiquette n’est jamais posée
+ROUGE M7 jouer : le commentaire du plafond n’est pas écrit
+ROUGE M8 régime : la date d’ouverture n’est pas comparée à `depuis`
+ROUGE M9 contrat : une clé `relecture` mal formée est lue comme absente
+ROUGE M10 contrat : `delai` n’est plus vérifié
+ROUGE M11 diff propre : une sous-PR vers un sujet lue à trois points contre develop
+ROUGE M13 chemins sensibles : un chemin touché ne rend plus la PR sensible
+ROUGE M14 « même contenu propre » toujours « différent »
+ROUGE M15 couple : une PR sensible reçoit le couple ordinaire
+ROUGE M17 distribuer : la remplaçante s’ajoute au lieu de remplacer
+ROUGE M18 distribuer : la relance n’est pas tracée
+ROUGE M19 distribuer : une remplaçante qui est déjà du tour est admise
+ROUGE M20 préparer : le clone superficiel n’est pas approfondi
+ROUGE M21 préparer : un dossier sale est accepté
+ROUGE M22 préparer : les calculs manquants ne sont pas vus
+ROUGE M23 dépendances : installées à chaque passe
+ROUGE M24 écriture refusée : passée sous silence
+ROUGE M25 veille : une attente la réveille
+ROUGE M26 veille : `--taire` ignoré
+ROUGE M27 veille : GitHub illisible l’arrête
+ROUGE M28 relecteur.mjs ne reconnaît plus son point d’entrée
+ROUGE M29 faux GitHub : plus de date d’ouverture
+ROUGE M30 faux GitHub : `maintenant` ignoré
+ROUGE M31 labels.sh : `à-reprendre` manque
+ROUGE M32 gabarit : la commande du Relecteur n’est plus en première ligne
+ROUGE M33 prompt de session : la commande du skill relecture n’est plus en tête
+ROUGE M34 verdict.md : la limite de `compter` revient
+ROUGE M35 SKILL.md : la veille retrouve une heure
+ROUGE M36 veille : 60 minutes par défaut
+ROUGE M37 distribuer : le sommet n’est pas comparé
+ROUGE M38 distribuer : le couple n’est pas comparé
+ROUGE M39 jouer : une PR fermée est jouée
+ROUGE M40 distribuer : une PR fermée reçoit sa distribution
+ROUGE M41 --sessions : un état hors des trois admis
+ROUGE M42 --sessions : un tableau admis
+ROUGE M43 --remplace ignoré
+ROUGE M44 contrat : un modèle daté admis
+ROUGE M45 contrat : `depuis` à millisecondes refusé
+ROUGE M46 verrou : aucun flock
+ROUGE M47 git : les hooks du dépôt jouent
+ROUGE M48 dépendances : un échec retenté à chaque passe
+ROUGE M49 dépendances : la sortie d’erreur de l’installation tue
+ROUGE M50 dépendances en échec : la cause n’est pas nommée
+ROUGE M51 forme refusée : la ligne va à l’architecte
+ROUGE M52 fourche : lue comme une PR du dépôt
+ROUGE M53 illisible : signalé à chaque passe
+ROUGE M54 la cause d’une commande prise sur sa seule sortie d’erreur
+ROUGE M55 SKILL.md : TaskStop n’est plus chargé
+ROUGE M56 SKILL.md : le réemploi sans le couple
+ROUGE M57 SKILL.md : le plafond de contexte dans un message
+ROUGE M58 SKILL.md : la sortie 7 sans `--taire`
+ROUGE M59 faux GitHub : plus de dépôt de tête
+ROUGE N1 sensible : chemins-sensibles en échec lu « rien de sensible »
+ROUGE N2 exiges : double-relecture illisible lu 1
+ROUGE N3 même contenu : illisible lu « même »
+ROUGE N4 même contenu : illisible lu « différent »
+ROUGE N5 régime : ouverte à l’instant de `depuis` admise
+ROUGE N6 régime : une base hors de la chaîne (main) admise
+ROUGE N7 couple : deux verdicts exigés reçoivent le couple ordinaire
+ROUGE N8 distribuer : des identifiants en double admis
+ROUGE N10 distribuer : la reprise après arbitrage perd « non compté »
+ROUGE N11 préparer : seule develop est relue
+ROUGE N12 lire : seule la première page compte
+ROUGE N13 jouer : « Relecture en panne » jamais écrit
+ROUGE N14 jouer : étiquettes comparées sans NFC
+ROUGE N16 compter : « non requise » vaut « lancée » sur un chemin sensible
+ROUGE N17 compter : un validé sur un autre sommet compte validé
+ROUGE N18 contrat : `depuis` sans date valide admis
+toutes rouges
+
+Retirées de la liste, et pourquoi (ticket, « Ce qui n'a pas été établi ») :
+- M16 « le geste n'est pas refait » : équivalente depuis A-180, la comparaison du sommet, qui suit, sort en 3 pour tout geste qui n'est pas de session.
+- N9 « completer attend une seule session » : équivalente, `manque` vaut toujours 1 (deux verdicts exigés au plus, une session au moins par distribution).
+- N15 « l'heure du banc tenue hors du faux GitHub » : survit, aucun banc ne joue sans le faux GitHub.

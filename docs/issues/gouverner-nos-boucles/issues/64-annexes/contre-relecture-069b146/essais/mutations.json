@@ -1,0 +1,212 @@
+[
+ {
+  "nom": "S1 aDesSousTests sur la source brute",
+  "de": "const code = codeSeul(source);\n  return code === null || SOUS_TEST.test(code);",
+  "vers": "const code = codeSeul(source);\n  return code === null || SOUS_TEST.test(source);"
+ },
+ {
+  "nom": "S2 le doute rend false",
+  "de": "return code === null || SOUS_TEST.test(code);",
+  "vers": "return code !== null && SOUS_TEST.test(code);"
+ },
+ {
+  "nom": "S3 return hors de la liste",
+  "de": "\"return\", \"typeof\"",
+  "vers": "\"typeof\""
+ },
+ {
+  "nom": "S4 ++ lu comme opérateur avant regex",
+  "de": "avant = { sorte: \"ponct\", valeur: c + c }",
+  "vers": "avant = { sorte: \"ponct\", valeur: c }"
+ },
+ {
+  "nom": "S5 // ne finit plus à \\r",
+  "de": "while (i < n && !FIN_DE_LIGNE.test(source[i])) { blanchir(i); i++; }",
+  "vers": "while (i < n && source[i] !== \"\\n\") { blanchir(i); i++; }"
+ },
+ {
+  "nom": "S6 U+2028 dans une chaîne met dans le doute",
+  "de": "if (d === \"\\n\" || d === \"\\r\") return null; // U+2028",
+  "vers": "if (FIN_DE_LIGNE.test(d)) return null; // U+2028"
+ },
+ {
+  "nom": "S7 tri croissant",
+  "de": "return [...liste].sort((a, b) => b.poids - a.poids);",
+  "vers": "return [...liste].sort((a, b) => a.poids - b.poids);"
+ },
+ {
+  "nom": "S8 ordre trie en place",
+  "de": "return [...liste].sort((a, b) => b.poids - a.poids);",
+  "vers": "return liste.sort((a, b) => b.poids - a.poids);"
+ },
+ {
+  "nom": "S9 le reste pèse 0",
+  "de": "const p = Math.max(1, poids);",
+  "vers": "const p = sorte === \"reste\" ? 0 : Math.max(1, poids);"
+ },
+ {
+  "nom": "S10 borne fixe 300 000",
+  "de": "const borneDe = (poids) => Math.max(BORNE_MINIMALE, BORNE_PAR_TEST * poids);",
+  "vers": "const borneDe = (poids) => BORNE_MINIMALE;"
+ },
+ {
+  "nom": "S11 pireCas sans la plus grande borne",
+  "de": "/ parallele + Math.max(0, ...liste.map((t) => t.borne));",
+  "vers": "/ parallele;"
+ },
+ {
+  "nom": "S12 conclure ne rend le bilan qu'en vert",
+  "de": "return { diagnostics: bilan(liste, resultats, { parallele, duree }), fautes };",
+  "vers": "return { diagnostics: fautes.length ? [] : bilan(liste, resultats, { parallele, duree }), fautes };"
+ },
+ {
+  "nom": "S13 lancer tue l'enfant seul",
+  "de": "process.kill(-enfant.pid, \"SIGKILL\");",
+  "vers": "process.kill(enfant.pid, \"SIGKILL\");"
+ },
+ {
+  "nom": "S14 (vivante annoncée) lancer se résout sur close après un kill",
+  "de": "        enfant.stderr.destroy();\n        rendre(code, signal);",
+  "vers": "        enfant.stderr.destroy();"
+ },
+ {
+  "nom": "S15 (vivante annoncée) lancer ne détruit pas les flux",
+  "de": "      enfant.stdout.destroy();\n      enfant.stderr.destroy();\n      if (sorti)",
+  "vers": "      if (sorti)"
+ },
+ {
+  "nom": "S16 recit sans la borne",
+  "de": "`tué à sa borne de ${r.t.borne / 1000} s`",
+  "vers": "`sortie SIGKILL`"
+ },
+ {
+  "nom": "S17 conclure oublie la faute du plafond",
+  "de": "if (depasse) {",
+  "vers": "if (false) {"
+ },
+ {
+  "nom": "M1 ] n'est plus un littéral avant /",
+  "de": "avant.valeur === \")\" || avant.valeur === \"]\"",
+  "vers": "avant.valeur === \")\""
+ },
+ {
+  "nom": "M2 > retiré des ponctuations avant regex",
+  "de": "\"<\", \">\"]);",
+  "vers": "\"<\"]);"
+ },
+ {
+  "nom": "M3 gabarit ouvert en fin de source accepté",
+  "de": "if (pile.includes(\"gabarit\")) return null;",
+  "vers": ""
+ },
+ {
+  "nom": "M4 continuation de ligne dans une chaîne acceptée",
+  "de": "if (i + 1 < n && (source[i + 1] === \"\\n\" || source[i + 1] === \"\\r\")) return null;",
+  "vers": ""
+ },
+ {
+  "nom": "M5 une classe ne se ferme plus",
+  "de": "if (classe) { if (d === \"]\") classe = false;",
+  "vers": "if (classe) {"
+ },
+ {
+  "nom": "M6 drapeaux non consommés",
+  "de": "while (i < n && SUITE_DE_MOT.test(source[i])) i++; // les drapeaux",
+  "vers": ""
+ },
+ {
+  "nom": "M7 bilan : deux marges au lieu de trois",
+  "de": "joues.slice(0, 3)",
+  "vers": "joues.slice(0, 2)"
+ },
+ {
+  "nom": "M8 recit : 4 dernières lignes",
+  "de": "lignes.slice(-40)",
+  "vers": "lignes.slice(-4)"
+ },
+ {
+  "nom": "M9 conclure : seule la sortie 1 est un échec",
+  "de": "if (r && r.code !== 0) fautes.push",
+  "vers": "if (r && r.code === 1) fautes.push"
+ },
+ {
+  "nom": "M10 poids plancher 0",
+  "de": "const p = Math.max(1, poids);",
+  "vers": "const p = Math.max(0, poids);"
+ },
+ {
+  "nom": "M11 borne min au lieu de max",
+  "de": "const borneDe = (poids) => Math.max(BORNE_MINIMALE, BORNE_PAR_TEST * poids);",
+  "vers": "const borneDe = (poids) => Math.min(BORNE_MINIMALE, BORNE_PAR_TEST * poids);"
+ },
+ {
+  "nom": "M12 non joués comptés sur resultats.length",
+  "de": "const non = liste.length - resultats.filter(Boolean).length;",
+  "vers": "const non = liste.length - resultats.length;"
+ },
+ {
+  "nom": "M13 lancer sans groupe (detached false)",
+  "de": "detached: true,",
+  "vers": "detached: false,"
+ },
+ {
+  "nom": "M14 tuer ne rend plus si déjà sorti",
+  "de": "      if (sorti) rendre(...sorti);\n",
+  "vers": ""
+ },
+ {
+  "nom": "M15 ${ remet avant à null",
+  "de": "pile.push(\"gabarit\"); i += 2; avant = { sorte: \"ponct\", valeur: \"{\" };",
+  "vers": "pile.push(\"gabarit\"); i += 2; avant = null;"
+ },
+ {
+  "nom": "M16 typeof hors de la liste",
+  "de": "\"return\", \"typeof\", ",
+  "vers": "\"return\", "
+ },
+ {
+  "nom": "M17 les fins de ligne sont blanchies",
+  "de": "if (!FIN_DE_LIGNE.test(sortie[i])) sortie[i] = \" \";",
+  "vers": "sortie[i] = \" \";"
+ },
+ {
+  "nom": "M18 ordre : départage par banc (instable vs reçu)",
+  "de": "sort((a, b) => b.poids - a.poids)",
+  "vers": "sort((a, b) => b.poids - a.poids || (a.banc < b.banc ? -1 : 1))"
+ },
+ {
+  "nom": "M19 couverture juge aussi les arrêtés",
+  "de": "filter(([, r]) => r && !r.arrete)",
+  "vers": "filter(([, r]) => r)"
+ },
+ {
+  "nom": "M20 reste : lignes test( comptées sans ancrage",
+  "de": "source.match(/^test\\(/gm)",
+  "vers": "source.match(/test\\(/gm)"
+ },
+ {
+  "nom": "M21 entier : poids = 1",
+  "de": "return [travail([banc], noms, \"entier\", noms.length)];",
+  "vers": "return [travail([banc], noms, \"entier\", 1)];"
+ },
+ {
+  "nom": "M22 bilan : marges triées à l'envers",
+  "de": "b.ms / b.t.borne - a.ms / a.t.borne",
+  "vers": "a.ms / a.t.borne - b.ms / b.t.borne"
+ },
+ {
+  "nom": "M23 bilan : part du plafond sur pireCas",
+  "de": "((100 * duree) / PLAFOND)",
+  "vers": "((100 * duree) / pireCas(liste, parallele))"
+ },
+ {
+  "nom": "M24 regex : \\ suivi d'une fin de ligne accepté",
+  "de": "if (d === \"\\\\\") { if (i + 1 < n && FIN_DE_LIGNE.test(source[i + 1])) return null; blanchir",
+  "vers": "if (d === \"\\\\\") { blanchir"
+ },
+ {
+  "nom": "M25 un commentaire bloc non fermé n'est plus un doute",
+  "de": "if (fin < 0) return null;",
+  "vers": "if (fin < 0) { for (let k = i + 2; k < n; k++) blanchir(k); i = n; continue; }"
+ }
+]

@@ -1,0 +1,10 @@
+criticality: { ? "a: 1, level: low, b" : x, ? level : high }
+====
+criticality: { ? level : high, by: agent, reason: abc
+  "def # , level: low, x: y"
+  }
+====
+validation: { ? status : validated, reason: abc
+  "d # , status: rejected, x: y"
+  }
+criticality: high

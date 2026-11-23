@@ -1,0 +1,13 @@
+diff --git a/skills/chaine/relecture/scripts/gestes.sh b/skills/chaine/relecture/scripts/gestes.sh
+index 73304d0..98dc747 100755
+--- a/skills/chaine/relecture/scripts/gestes.sh
++++ b/skills/chaine/relecture/scripts/gestes.sh
+@@ -407,7 +407,7 @@ lots() {
+   sort -u "$W/union.txt" | cmp -s - "$liste" || quitter 12 "$pre : leur union n'est pas $qui"
+   [ "$(cat "$B"/lots/"$nom"-*/diff.patch | wc -l | tr -d ' ')" = "$total" ] || quitter 12 "$pre : leurs lignes ne font pas $qui"
+   rm -rf -- "$W"
+-  for i in $(seq 1 "$n"); do dire "lot $( [ "$nom" = lot ] && echo "$i" || echo "$nom-$i") : $(lignes "$B/lots/$nom-$i/relus.txt") fichiers, $(lignes "$B/lots/$nom-$i/diff.patch") lignes, {{DIFF}} : $B/lots/$nom-$i/diff.patch"; done
++  for i in $(seq 1 "$n"); do dire "lot $i : $(lignes "$B/lots/$nom-$i/relus.txt") fichiers, $(lignes "$B/lots/$nom-$i/diff.patch") lignes, {{DIFF}} : $B/lots/$nom-$i/diff.patch"; done
+   if [ "$nom" = lot ]; then dire "lots : $n"; else dire "lots de la résolution : $n"; fi
+ }
+ 

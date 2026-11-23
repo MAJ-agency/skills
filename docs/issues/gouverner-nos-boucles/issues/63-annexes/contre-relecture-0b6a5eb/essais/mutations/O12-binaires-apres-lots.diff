@@ -1,0 +1,15 @@
+diff --git a/skills/chaine/relecture/scripts/gestes.sh b/skills/chaine/relecture/scripts/gestes.sh
+index 7c2c795..cd8b8e1 100755
+--- a/skills/chaine/relecture/scripts/gestes.sh
++++ b/skills/chaine/relecture/scripts/gestes.sh
+@@ -306,9 +306,9 @@ diff_relu() {
+   # pas. Une archive qui porte du code exécutable (`.jar`, `.war`, `.whl`, `.nupkg`) est illisible.
+   { filtrer -Eiv '\.(png|jpe?g|gif|webp|avif|ico|bmp|tiff?|heic|woff2?|ttf|otf|eot|zip|gz|tgz|tar|bz2|xz|7z)"?$' "$B/binaires.txt"; } > "$B/illisibles.txt"
+   if [ -s "$B/manquants.txt" ]; then quitter 12 "manquent au diff relu :" "$(cat "$B/manquants.txt")"; fi
+-  if [ -s "$B/resolution.txt" ]; then binaires_resolution; fi
+   lots "$B/diff.patch" "$B/relus.txt" lot
+   if [ -s "$B/resolution.txt" ]; then lots "$B/resolution.patch" "$B/resolution.txt" resolution; fi
++  if [ -s "$B/resolution.txt" ]; then binaires_resolution; fi
+   touch "$B/diff.fait"
+   [ -s "$B/attendus.txt" ] || [ -s "$B/resolution.txt" ] || dire "aucun axe"
+   dire "diff relu : $(lignes "$B/relus.txt") fichiers, $(lignes "$B/diff.patch") lignes ; hors du diff : $(lignes "$B/hors.txt") ; sans écart : $(lignes "$B/sans-ecart.txt") ; binaires : $(lignes "$B/binaires.txt"), dont illisibles : $(lignes "$B/illisibles.txt")"

@@ -1,0 +1,12 @@
+diff --git a/skills/chaine/relecture/scripts/gestes.sh b/skills/chaine/relecture/scripts/gestes.sh
+index 7c2c795..e42976b 100755
+--- a/skills/chaine/relecture/scripts/gestes.sh
++++ b/skills/chaine/relecture/scripts/gestes.sh
+@@ -308,7 +308,6 @@ diff_relu() {
+   if [ -s "$B/manquants.txt" ]; then quitter 12 "manquent au diff relu :" "$(cat "$B/manquants.txt")"; fi
+   if [ -s "$B/resolution.txt" ]; then binaires_resolution; fi
+   lots "$B/diff.patch" "$B/relus.txt" lot
+-  if [ -s "$B/resolution.txt" ]; then lots "$B/resolution.patch" "$B/resolution.txt" resolution; fi
+   touch "$B/diff.fait"
+   [ -s "$B/attendus.txt" ] || [ -s "$B/resolution.txt" ] || dire "aucun axe"
+   dire "diff relu : $(lignes "$B/relus.txt") fichiers, $(lignes "$B/diff.patch") lignes ; hors du diff : $(lignes "$B/hors.txt") ; sans écart : $(lignes "$B/sans-ecart.txt") ; binaires : $(lignes "$B/binaires.txt"), dont illisibles : $(lignes "$B/illisibles.txt")"

@@ -1,0 +1,10 @@
+{
+ "graine": "41",
+ "tirages": 300000,
+ "lus par le module": 2135,
+ "refusés par le module": 297865,
+ "ecartes": 0,
+ "refusés par yaml (générateur imparfait)": 69365,
+ "lus par yaml autrement que prévu": 1385,
+ "comptes": {}
+}

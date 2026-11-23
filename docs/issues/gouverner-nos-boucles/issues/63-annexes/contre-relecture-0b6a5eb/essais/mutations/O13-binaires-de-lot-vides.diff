@@ -1,0 +1,13 @@
+diff --git a/skills/chaine/relecture/scripts/gestes.sh b/skills/chaine/relecture/scripts/gestes.sh
+index 7c2c795..eec3fad 100755
+--- a/skills/chaine/relecture/scripts/gestes.sh
++++ b/skills/chaine/relecture/scripts/gestes.sh
+@@ -400,7 +400,7 @@ lots() {
+     sort -u "$d/attendus.txt" -o "$d/attendus.txt"
+     relus_de "$d/diff.patch" > "$d/relus.txt"
+     cmp -s "$d/attendus.txt" "$d/relus.txt" || quitter 12 "$pre : le lot $i ne porte pas ses fichiers"
+-    comm -12 "$d/relus.txt" "$B/binaires.txt" > "$d/binaires.txt"
++    : > "$d/binaires.txt"
+     cat "$d/relus.txt" >> "$W/union.txt"
+   done
+   [ -z "$(sort "$W/union.txt" | uniq -d)" ] || quitter 12 "$pre : un fichier est dans deux lots"

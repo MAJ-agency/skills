@@ -1,0 +1,13 @@
+diff --git a/skills/chaine/relecture/scripts/gestes.sh b/skills/chaine/relecture/scripts/gestes.sh
+index 7c2c795..3529b3f 100755
+--- a/skills/chaine/relecture/scripts/gestes.sh
++++ b/skills/chaine/relecture/scripts/gestes.sh
+@@ -342,7 +342,7 @@ binaires_resolution() {
+   f=$(cat "$B/fusion.txt")
+   git -C "$A" diff --numstat --no-renames "$f^1" "$f" > "$B/numstat-resolution-1.txt" || quitter 12 "liste des binaires de la résolution illisible"
+   git -C "$A" diff --numstat --no-renames "$f^2" "$f" > "$B/numstat-resolution-2.txt" || quitter 12 "liste des binaires de la résolution illisible"
+-  cat "$B"/numstat-resolution-[12].txt | awk -F'\t' '$1 == "-" && $2 == "-" { print $3 }' | sort -u | comm -12 - "$B/resolution.txt" | comm -23 - "$B/attendus.txt" | sort -u - "$B/binaires.txt" -o "$B/binaires.txt"
++  cat "$B"/numstat-resolution-[12].txt | awk -F'\t' '$1 == "-" && $2 == "-" { print $3 }' | sort -u | comm -12 - "$B/resolution.txt" | comm -23 - "$B/attendus.txt" >> "$B/binaires.txt"
+   { filtrer -Eiv '\.(png|jpe?g|gif|webp|avif|ico|bmp|tiff?|heic|woff2?|ttf|otf|eot|zip|gz|tgz|tar|bz2|xz|7z)"?$' "$B/binaires.txt"; } > "$B/illisibles.txt"
+ }
+ 
