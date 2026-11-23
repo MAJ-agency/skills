@@ -1,6 +1,6 @@
 # Un socle posé en « chaîne seule » passe son propre gate : le lint et Prettier hors des scripts posés, les références d'une brique absente gelées et dites, un seul nom pour la liste de l'admin, une règle de checks exigés vide dite réglage du dépôt, et les durées de `regles.test.mjs` en étalons
 
-Status: ready-for-agent
+Status: Fait — PR 159 (`4403173`, plugin 8.3.2)
 Type: défaut
 Label: contre-revue
 Modèle: sonnet — sept défauts du plugin trouvés à la pose réelle d'un dépôt neuf en « chaîne seule » (plugin 8.0.0), reproduits sur `main` à `24fbd72` (plugin 8.3.0), corrigés sans rien concevoir ; le code entier est dans le patch ([`91-annexes/ticket-91.patch`](91-annexes/ticket-91.patch), sha256 `00365efa28362f3edc3e81809897492eb75beaeb630ba2f581a4c5da0653d1dc`, `git apply` sur `main` à `24fbd72`), décrit fichier par fichier ci-dessous, note de version 8.3.1 comprise ; les bancs neufs rouges avant le code (8 sur 9, et 1 sur 1), verts après ; les 26 mutations de [`91-annexes/mutations.mjs`](91-annexes/mutations.mjs) toutes rouges ; retouché après la relecture du ticket ([`91-annexes/relecture-tour-1.md`](91-annexes/relecture-tour-1.md), décision A-219). Qui veut changer une décision l'écrit à son lanceur, il ne tranche pas.
