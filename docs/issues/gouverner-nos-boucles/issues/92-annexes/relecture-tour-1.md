@@ -1,0 +1,59 @@
+prêt après retouches
+
+Lu et joué : le ticket 92 et ses annexes (patch, sha256 `2be7d163…b84f` conforme, `mutations.mjs`, `version-suivante.mjs`, `s1-rouge.txt`, `essai-apres-91.txt`, `mutations.txt`, `suite.txt`) lus sur la branche de documentation à `771e815` (inchangés à `e4000ec`) ; un clone neuf détaché à `24fbd72` (plugin 8.3.0), Node 22.23.5 ; § 1 rouge (2 sur 3, identique à `s1-rouge.txt`), § 2 vert (72 sur 72), § 3 (`7 files changed, 62 insertions(+), 13 deletions(-)`, les 14 mutations rouges, sortie 0, arbre propre) ; l'essai « 91 entre d'abord » (`ticket-91.patch` commité, 8.3.1, puis ce patch sans ses fichiers de version : 8.3.2, 72 sur 72) et le chemin de fusion du § 3 (branche 92 commitée, fusion d'un `main` à 91 : seul `NOTES-DE-VERSION.md` en conflit, 8.3.2, 72 sur 72) ; la CLI lue à `develop` d'Anchorpost `8dc9f12` (`init/manifest.ts`, `compare/changes.ts`, `compare/criticality-policy.ts`, `build/health.ts`, `schema/src/v3/manifest-schema.ts`, le README de la CLI, les tickets `.71` à `.78` et la carte de `SPEC_ALL_ANC-5`) ; le registre npm (`latest` = 2.0.3, publiée le 2026-11-23, pair `zod` `^3.25.76 || ^4.0.0`) et le README du paquet 2.0.3 publié ; un essai `pnpm add` jouet. La suite entière n'a pas été rejouée (consigne).
+
+## Constats
+
+### B1 — `SKILL.md:30` (et la note, `NOTES-DE-VERSION.md:9`) : la 2.0.3 rend encore des preuves qu'une aide importée fait couper
+
+- **Fait.** Le patch écrit à l'étape 1 : « la 2.0.3 ne rend plus de preuve à un test qu'une aide importée fait sauter ou couper ». La note 8.3.1 dit de même, avec une liste de formes entre parenthèses. C'est faux à `8dc9f12` comme dans le paquet publié. La 2.0.3 est la « livraison intermédiaire, .71 à .75 » (PR 394) : `.76` n'y est pas (il est `ready-for-agent`), `.77` non plus (prévu en 2.0.4). Le README de la CLI 2.0.3, dans le paquet publié comme à `8dc9f12` (§ « Limites tenues par la revue »), écrit : « deux limites connues, du côté non sûr, traitées par `SPEC_ALL_ANC-5.76` ». La première est `export class B extends A {}`, où `A`, locale au module, a une méthode qui coupe : `new B().couper()` garde sa preuve, sans note. La seconde est une aide exportée qui appelle une fonction locale non exportée portant le `test.skip()` : elle garde sa preuve, sans note. `.76` le confirme (H1, L1 en P3 : « preuve gardée, sans note »). `.77` ajoute l'aide qui appelle une fonction importée d'un chemin relatif. Le skill promet donc à la 2.0.3 une garantie qu'elle n'a pas, dans un texte qu'un agent suit à la lettre.
+- **Comment joué.** J'ai lu `.76` et `.77` (statut, constats) et la carte (« 2.0.3 : .71 à .76 » prévu, publié sans `.76`). `npm pack @maj-agency/anchorpost@2.0.3` puis une recherche dans `package/README.md` : la phrase des deux limites y est.
+- **Retouche.** Dire ce que la 2.0.3 lit en plus, sans l'absolu, par exemple à `SKILL.md:30` : « la 2.0.3 lit une aide importée par un espace de noms, par défaut, par un baril, ou méthode d'un objet ou d'une classe exportés : une preuve qu'elle fait sauter ou couper tombe (deux formes restent non lues, dites au README de la CLI, « Limites tenues par la revue ») ; et `migrate manifest` y garde la mise en forme du manifeste. » Il faut corriger de même la phrase de la note. Le test n'exige que « Ce skill suit la **CLI 2.0.3 et les suivantes** » et le titre en gras de la note : le banc et les 14 mutations restent valides. Il faut en revanche régénérer le patch et mettre sa somme à jour dans le ticket (ligne 5 et § 0), et vérifier que le `--stat` reste à 62 et 13.
+
+### m1 — Note 8.3.1, `NOTES-DE-VERSION.md:9` et `:14` : la condition de saut sur deux fixtures fait aussi tomber une preuve
+
+- **Fait.** La note dit « juge juste une condition de saut qui compare deux fixtures … (une preuve n'y tombe plus à tort) ». C'est vrai pour S2b et S3 de `.71`, deux faux refus en moins. Mais S2a (`test.skip(page !== context, "r")`), gardé jusqu'ici avec `skip-conditional` (une fausse preuve, déjà en 2.0.1), **fait désormais tomber** la preuve. « Ce qu'un projet fait » n'annonce que la chute venue d'une aide importée.
+- **Comment joué.** J'ai lu le tableau de `.71` (S2a, S2b, S3), que la ligne `.71` du ticket résume justement (« une fausse preuve … et deux faux refus de moins »).
+- **Retouche.** Écrire « (une preuve n'y tombe plus à tort, et `page !== context` la fait tomber) », et à `:14` : « (une preuve qu'une aide importée faisait sauter, ou qu'une condition `page !== context` gardait, tombe) ».
+
+### m2 — `SKILL.md:59` : « Facultative », puis une obligation
+
+- **Fait.** La question 4 dit la table « Facultative », puis, dans la phrase ajoutée, « Toute personne qui signe un `by` du manifeste (un plancher, une criticité de feature) y figure ». La décision 5 du ticket la dit facultative « pour un projet qui ne signe rien », ajoute « sans elle, aucun `floor.by` ni `featureCriticality.by` n'est connu », et le patch n'en écrit rien. Autre point : la parenthèse se lit comme une liste fermée, alors que le manifeste 3 a un troisième `by`, `proofsValidation.by`, que `compare` juge aussi contre `people` (`compare/changes.ts:412`). Le plugin ne le mentionne nulle part.
+- **Comment joué.** J'ai lu `schema/src/v3/manifest-schema.ts` (lignes 20, 51 et 67 : trois `by`) et `compare/changes.ts`, puis fait un `git grep proofsValidation` dans `skills/` (aucun résultat).
+- **Retouche.** Écrire « Facultative pour un projet où personne ne signe de `by` : toute personne qui signe un `by` du manifeste (par exemple un plancher ou une criticité de feature) y figure », ou s'en tenir à la décision 5 telle qu'elle est écrite. Le test exige la phrase « Toute personne qui signe … y figure. » : ajuster ensemble la chaîne exigée et B13.
+
+### m3 — Fiche, `rules/anchorpost.md:61` : « connu de `roles` » veut dire `roles` de la base
+
+- **Fait.** C'est vrai : `compare` tient pour un écart la baisse d'un plancher sans `floor.by` connu (`compare/changes.ts:385-396`, `personPredicate(base.people)`). Mais seules les personnes de la **base** signent : une personne que la PR ajoute à `roles` ne signe rien dans cette PR (`changes.ts:185-186`), et `agent` n'est jamais une personne. La note 8.3.1 (`:15`) dit « la personne s'y ajoute avec son rôle … par une PR » : si cette même PR baisse le plancher, `compare` la refuse.
+- **Comment joué.** J'ai lu `indexChanges` et `personPredicate` à `8dc9f12`.
+- **Retouche (facultative).** Écrire « connu de `roles` sur la base (une personne ajoutée à `roles` dans la PR n'y signe pas) ».
+
+### m4 — Test 3, `preuve-suffisante-anchorpost.test.mjs:107` : le parcours ne voit pas la forme de dépendance
+
+- **Fait.** Le parcours des `.json` de `skills/` ne cherche que `@maj-agency/anchorpost@<plage>`. La forme la plus probable d'une autre installation, `"@maj-agency/anchorpost": "^2"` dans un gabarit de `package.json`, lui échappe. Aucune n'existe aujourd'hui.
+- **Comment joué.** Un `git grep '@maj-agency/anchorpost'` dans `skills/` et `README.md` à `24fbd72` : hors des deux lignes du skill, il ne trouve que des mentions du paquet ou des datations, sans aucune forme de dépendance.
+- **Retouche (facultative).** Utiliser `/@maj-agency\/anchorpost(?:@|"\s*:\s*")(\S*)/g`, en acceptant `^2.0.3` suivi de `` ` `` ou de `"`.
+
+### m5 — § 0 : la branche nommée ne porte pas encore les annexes
+
+- **Fait.** Le § 0 lit les annexes sur `claude/hopeful-lovelace-ouk6tz`. Ce sommet, `b9ef91a`, est un ancêtre de la branche relue et n'a pas `92-annexes/`. Tel quel, le `git show` échoue, la somme ne correspond pas et la session s'arrête : c'est un échec sûr.
+- **Comment joué.** `git ls-tree` sur les deux sommets, puis `merge-base --is-ancestor`.
+- **Retouche.** Avant le lancement, pousser la branche de documentation sur ce nom, ou nommer dans le § 0 celle qui porte les annexes (de même pour le ticket 91, déjà présent sur `b9ef91a`).
+
+### m6 — « Ce qui n'a pas été établi », point 1 : établi ici
+
+- **Fait.** Dans un jouet sous pnpm 10.28.0, `pnpm add -Dw @maj-agency/anchorpost@2.0.1`, puis `@^2`, laisse 2.0.1 au lockfile (`specifier: ^2`, `version: 2.0.1`). `@^2.0.3` monte à 2.0.3. La raison donnée par la décision 1 tient.
+- **Retouche (facultative).** Déplacer ce point vers « Ce qui a été joué ».
+
+## Faits vérifiés, conformes
+
+- Le patch s'applique sur `24fbd72` (`git apply --check`), et après `ticket-91.patch` (somme `bbfa7039…1320`) commité, sans ses deux fichiers de version : `version-suivante.mjs` écrit `8.3.2 — 2026-11-23`, la note 8.3.2 vient au-dessus de la 8.3.1, et il y a sept fichiers ` M`. Le chemin de fusion du § 3 laisse en conflit le seul `NOTES-DE-VERSION.md` (le `plugin.json` des deux côtés fusionne sans conflit), et donne 8.3.2.
+- Banc : avant le texte, `# tests 3`, `# pass 1`, `# fail 2` (`not ok 1`, `not ok 3`, qui nomme `SKILL.md : @^2` et `@^2.0.2`). Après, 72 sur 72, sur `24fbd72` comme après 91. Les 14 mutations sont rouges (B12 l'est aussi au test 1) et l'arbre reste propre. `SKILL.md` fait 148 lignes, la fiche 63. Les numéros de ligne du ticket (`SKILL.md:33`, `:112`, test `:37-38`, fiche `:60`, README `:83`, 91 à `SKILL.md:102` et README `:203`) sont exacts.
+- 2.0.3 : publiée le 2026-11-23 à 08:43 UTC, en `latest`, au commit `8dc9f12` (PR 394, « .71 à .75 »). `.71` à `.75` sont `Fait` aux PR 385, 389, 391, 390 et 387. Le pair `zod` est `^3.25.76 || ^4.0.0`, facultatif, avec les types sous `zod/v4`. `migrate manifest --apply` garde la mise en forme à l'octet (`.74`, A-267). « 134 lignes de diff pour 16 valeurs » vient de `.74`, et le projet n'y est pas nommé.
+- `init` n'écrit pas `floor.by` : `init/manifest.ts:517` écrit `{ date: today, ...{ proven, partial } }`. Le gabarit n'a pas de `by` (le test le tient, B12).
+- `floor.by` est bien une clé de `roles` : le schéma v3 l'écrit (`manifest-schema.ts:20`, « la clé de `roles` de qui l'a posé (A-55 bis) »).
+- `compare` refuse une baisse de plancher sans date plus récente ou sans `floor.by` personne connue, avec `agent` exclu : c'est l'écart `floor-lowered`, sortie 5. `compare` ne juge pas une hausse.
+- À `8dc9f12`, aucune alerte de santé ne porte sur `floor.by`. Celle de `featureCriticality.by` existe (`health.ts:194-204`, `warning`, `agent` écarté). A-284 (`.78`) : une alerte de santé, jamais un refus ; un plancher sans `by` ne donne rien ; `compare` est inchangé. La carte place `.78` (avec A-284) en 2.0.4. Le ticket le dit comme un plan, et son point 2 de « non établi » couvre ce qui pourrait changer.
+- Les installations : à `24fbd72`, `SKILL.md:33` (`@^2`) et `:112` (`@^2.0.2`) sont les seules dans `skills/` et `README.md`, et le patch les passe à `^2.0.3`. Les « ≥ 2.0.0 » gardés datent tous un trait de la CLI : la fiche (`:27`, `:32`), le `$comment`, `CONTENU.md:5`, `criticite/SKILL.md:23`, le gabarit `regle.md:21-30`, et `socle-tests` (`SKILL.md:31`, `CONTENU.md:19`, `preuves.mjs:7`, `:116`, `:167`). Le cas limite est `preuves.mjs:157` (« pnpm install (`@maj-agency/anchorpost` ≥ 2.0.0 en devDependency) »), un message d'absence qui ne fixe pas de plage : une installation neuve prend `latest`, et le ticket le classe hors périmètre avec raison. Les « ≥ 1.1.1 » (`SKILL.md:80`, `nomenclature.md:175`) sont des datations.
+- Les décisions tiennent. 1 : `^2` garde une 2.0.x plus ancienne, vérifié par essai. 2 : datations. 3 : `init` sans `by`, aucune alerte sans `by`. 4 : la règle tout de suite, l'alerte plus tard, jamais un refus (B8, B9). 5 : tout signataire d'un `by` connu de `roles`, ce que confirment l'alerte de `featureCriticality`, `compare` pour le plancher et `proofsValidation` (voir m2 pour le mot). 6 : un test dans le banc existant. 7 : un patch, selon la règle « Bumper `version` » du README.
+- Rien de privé dans le ticket, le patch et les annexes : aucun nom de personne ni de projet client (le projet suivi n'est pas nommé), aucun chemin de poste, aucun identifiant de session. Les seules occurrences de « fédération » sont des lignes de contexte du skill public.

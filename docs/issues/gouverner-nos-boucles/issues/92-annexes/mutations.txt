@@ -1,16 +1,23 @@
-# Mutations du ticket 92 (node mutations.mjs), clone neuf de main à 24fbd72 (plugin 8.3.0), le patch appliqué (plugin 8.3.1), Node v22.23.5, le 2026-11-23 ; sortie 0
-ROUGE B1 SKILL, étape 1 : le `.3` retiré (`@^2.0`) (0 s) — le skill anchorpost suit la CLI 2.0.0 : manifeste au schéma  | le skill anchorpost installe la CLI à ^2.0.3, partout, et di
-ROUGE B2 SKILL, étape 1 : `@^2` remis (0 s) — le skill anchorpost suit la CLI 2.0.0 : manifeste au schéma  | le skill anchorpost installe la CLI à ^2.0.3, partout, et di
-ROUGE B3 SKILL, pivot 3 : `@^2.0.2` remis (0 s) — le skill anchorpost suit la CLI 2.0.0 : manifeste au schéma  | le skill anchorpost installe la CLI à ^2.0.3, partout, et di
-ROUGE B4 un autre texte du plugin installe la CLI à `@^2` (0 s) — le skill anchorpost installe la CLI à ^2.0.3, partout, et di
-ROUGE B5 SKILL : la description dit encore ≥ 2.0.0 (0 s) — le skill anchorpost installe la CLI à ^2.0.3, partout, et di
-ROUGE B6 README : la ligne du skill dit encore ≥ 2.0.0 (0 s) — le skill anchorpost installe la CLI à ^2.0.3, partout, et di
-ROUGE B7 fiche : la phrase `floor.by` retirée (0 s) — le skill anchorpost installe la CLI à ^2.0.3, partout, et di
-ROUGE B8 fiche : l'alerte promise dès maintenant (« la CLI alerte », sans 2.0.4) (0 s) — le skill anchorpost installe la CLI à ^2.0.3, partout, et di
-ROUGE B9 fiche : l'alerte dite refus (0 s) — le skill anchorpost installe la CLI à ^2.0.3, partout, et di
-ROUGE B10 SKILL, pivot 3 : `by` n'est plus dit clé de `roles` (0 s) — le skill anchorpost installe la CLI à ^2.0.3, partout, et di
-ROUGE B11 manifeste : le `$comment` ne dit plus `by` clé de `roles` (0 s) — le skill anchorpost installe la CLI à ^2.0.3, partout, et di
-ROUGE B12 manifeste : le gabarit écrit un nom en `floor.by` (0 s) — le skill anchorpost suit la CLI 2.0.0 : manifeste au schéma  | le skill anchorpost installe la CLI à ^2.0.3, partout, et di
-ROUGE B13 SKILL, étape 3 : la table `roles` ne dit plus qui y figure (0 s) — le skill anchorpost installe la CLI à ^2.0.3, partout, et di
-ROUGE B14 note : sans la phrase `floor.by` (0 s) — le skill anchorpost installe la CLI à ^2.0.3, partout, et di
+# Mutations du ticket 92 (node mutations.mjs), retouches du tour 1 portées, clone neuf de main à 24fbd72 (plugin 8.3.0), le patch appliqué et commité (plugin 8.3.1), Node 22.23.5, le 2026-11-23 ; sortie 0
+ROUGE B1 SKILL, étape 1 : le `.3` retiré (`@^2.0`) (1 s) — le skill anchorpost suit la CLI 2.0.0 : manifeste au schéma  | le skill anchorpost installe la CLI à ^2.0.3, partout, et di
+ROUGE B2 SKILL, étape 1 : `@^2` remis (1 s) — le skill anchorpost suit la CLI 2.0.0 : manifeste au schéma  | le skill anchorpost installe la CLI à ^2.0.3, partout, et di
+ROUGE B3 SKILL, pivot 3 : `@^2.0.2` remis (1 s) — le skill anchorpost suit la CLI 2.0.0 : manifeste au schéma  | le skill anchorpost installe la CLI à ^2.0.3, partout, et di
+ROUGE B4 un autre texte du plugin installe la CLI à `@^2` (1 s) — le skill anchorpost installe la CLI à ^2.0.3, partout, et di
+ROUGE B5 SKILL : la description dit encore ≥ 2.0.0 (1 s) — le skill anchorpost installe la CLI à ^2.0.3, partout, et di
+ROUGE B6 README : la ligne du skill dit encore ≥ 2.0.0 (1 s) — le skill anchorpost installe la CLI à ^2.0.3, partout, et di
+ROUGE B7 fiche : la phrase `floor.by` retirée (1 s) — le skill anchorpost installe la CLI à ^2.0.3, partout, et di
+ROUGE B8 fiche : l'alerte promise dès maintenant (« la CLI alerte », sans 2.0.4) (1 s) — le skill anchorpost installe la CLI à ^2.0.3, partout, et di
+ROUGE B9 fiche : l'alerte dite refus (1 s) — le skill anchorpost installe la CLI à ^2.0.3, partout, et di
+ROUGE B10 SKILL, pivot 3 : `by` n'est plus dit clé de `roles` (1 s) — le skill anchorpost installe la CLI à ^2.0.3, partout, et di
+ROUGE B11 manifeste : le `$comment` ne dit plus `by` clé de `roles` (1 s) — le skill anchorpost installe la CLI à ^2.0.3, partout, et di
+ROUGE B12 manifeste : le gabarit écrit un nom en `floor.by` (1 s) — le skill anchorpost suit la CLI 2.0.0 : manifeste au schéma  | le skill anchorpost installe la CLI à ^2.0.3, partout, et di
+ROUGE B13 SKILL, étape 3 : la table `roles` ne dit plus qui y figure (1 s) — le skill anchorpost installe la CLI à ^2.0.3, partout, et di
+ROUGE B14 note : sans la phrase `floor.by` (1 s) — le skill anchorpost installe la CLI à ^2.0.3, partout, et di
+ROUGE B15 un gabarit de `package.json` du plugin porte la CLI en dépendance à `^2` (1 s) — le skill anchorpost installe la CLI à ^2.0.3, partout, et di
+ROUGE B16 SKILL, étape 1 : la promesse absolue revient (« ne rend plus de preuve ») (1 s) — le skill anchorpost installe la CLI à ^2.0.3, partout, et di
+ROUGE B17 SKILL, étape 1 : les deux formes non lues ne sont plus dites (1 s) — le skill anchorpost installe la CLI à ^2.0.3, partout, et di
+ROUGE B18 note : la chute de `page !== context` n'est plus dite (1 s) — le skill anchorpost installe la CLI à ^2.0.3, partout, et di
+ROUGE B19 note : « Ce qu'un projet fait » ne dit plus la perte de prouvées (1 s) — le skill anchorpost installe la CLI à ^2.0.3, partout, et di
+ROUGE B20 fiche : `roles` de la base n'est plus dit (1 s) — le skill anchorpost installe la CLI à ^2.0.3, partout, et di
+ROUGE B21 SKILL, pivot 3 : la PR à part, avant, n'est plus dite (1 s) — le skill anchorpost installe la CLI à ^2.0.3, partout, et di
 toutes rouges

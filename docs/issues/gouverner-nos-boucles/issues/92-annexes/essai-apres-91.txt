@@ -1,4 +1,4 @@
-# Essai « 91 entre d abord » : main simulé à 24fbd72 + ticket-91.patch (8.3.1), puis ce patch sans ses deux fichiers de version et version-suivante.mjs, le 2026-11-23 ; les ?? sont les bancs neufs du 91, laissés hors du commit simulé
+# Essai « 91 entre d abord », retouches du tour 1 portées : main simulé à 24fbd72 + ticket-91.patch (8.3.1), puis ce patch sans ses deux fichiers de version et version-suivante.mjs, le 2026-11-23 ; les ?? sont les bancs neufs du 91, laissés hors du commit simulé
   "version": "8.3.1",
 8.3.2 — 2026-11-23
  M .claude-plugin/plugin.json

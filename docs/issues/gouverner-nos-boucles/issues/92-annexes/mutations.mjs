@@ -22,11 +22,18 @@ const MUTATIONS = [
   ['B7 fiche : la phrase `floor.by` retirée', FI, /- \*\*`floor\.by` est une clé de `roles`\*\*[^\n]*\n/, '', [DT, PS]],
   ['B8 fiche : l\'alerte promise dès maintenant (« la CLI alerte », sans 2.0.4)', FI, 'et la CLI 2.0.4 alertera, dans la santé', 'et la CLI alerte, dans la santé', [DT, PS]],
   ['B9 fiche : l\'alerte dite refus', FI, '(une alerte, jamais un refus)', '(un refus)', [DT, PS]],
-  ['B10 SKILL, pivot 3 : `by` n\'est plus dit clé de `roles`', SK, ' ; `by` est une clé de la table `roles` du manifeste, que la personne écrit elle-même.', '.', [DT, PS]],
+  ['B10 SKILL, pivot 3 : `by` n\'est plus dit clé de `roles`', SK, ' ; `by` est une clé de la table `roles` du manifeste, que la personne écrit elle-même', '', [DT, PS]],
   ['B11 manifeste : le `$comment` ne dit plus `by` clé de `roles`', MF, ' (`by`, une clé de `roles`)', '', [DT, PS]],
   ['B12 manifeste : le gabarit écrit un nom en `floor.by`', MF, '"floor": { "date": "{{DATE}}", "proven": 0', '"floor": { "date": "{{DATE}}", "by": "{{NOM}}", "proven": 0', [DT, PS]],
-  ['B13 SKILL, étape 3 : la table `roles` ne dit plus qui y figure', SK, ' Toute personne qui signe un `by` du manifeste (un plancher, une criticité de feature) y figure.', '', [DT, PS]],
+  ['B13 SKILL, étape 3 : la table `roles` ne dit plus qui y figure', SK, ' Facultative pour un projet où personne ne signe de `by` : toute personne qui signe un `by` du manifeste (par exemple un plancher, une criticité de feature, une validation des preuves) y figure ; sans elle, aucun `by` n\'est connu.', ' Facultative.', [DT, PS]],
   ['B14 note : sans la phrase `floor.by`', 'NOTES-DE-VERSION.md', '- **`floor.by` est une clé de `roles`**', '- **Le plancher**', [DT, PS]],
+  ['B15 un gabarit de `package.json` du plugin porte la CLI en dépendance à `^2`', 'skills/frontend/socle-web-next/references/squelette/apps/web/package.json', '"sonner": "^2.0.7"', '"sonner": "^2.0.7", "@maj-agency/anchorpost": "^2"', [DT, PS]],
+  ['B16 SKILL, étape 1 : la promesse absolue revient (« ne rend plus de preuve »)', SK, "; la 2.0.3 lit en plus une aide de garde importée", "; la 2.0.3 ne rend plus de preuve à un test qu'une aide importée fait sauter ou couper ; elle lit en plus une aide de garde importée", [DT, PS]],
+  ['B17 SKILL, étape 1 : les deux formes non lues ne sont plus dites', SK, " ; deux formes restent non lues (README de la CLI, « Limites tenues par la revue »)", '', [DT, PS]],
+  ['B18 note : la chute de `page !== context` n\'est plus dite', 'NOTES-DE-VERSION.md', ", et `page !== context`, qui gardait la sienne, la fait tomber", '', [DT, PS]],
+  ['B19 note : « Ce qu\'un projet fait » ne dit plus la perte de prouvées', 'NOTES-DE-VERSION.md', "l'index peut perdre des règles prouvées", "l'index peut changer", [DT, PS]],
+  ['B20 fiche : `roles` de la base n\'est plus dit', FI, "connu des `roles` de la base (une personne ajoutée à `roles` dans la PR même n'y signe pas : elle s'y ajoute par une PR à part, avant)", 'connu de `roles`', [DT, PS]],
+  ['B21 SKILL, pivot 3 : la PR à part, avant, n\'est plus dite', SK, ", et qui y figure déjà sur la base : une personne ajoutée à `roles` dans la PR même n'y signe pas, elle s'y ajoute par une PR à part, avant.", '.', [DT, PS]],
 ];
 
 const voulues = process.argv.slice(2);
