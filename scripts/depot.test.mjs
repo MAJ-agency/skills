@@ -312,9 +312,10 @@ test("aucun script du plugin ne saute un hook git", () => {
   assert.deepEqual(fautes, [], `un script saute un hook git : ${fautes.join(", ")}`);
 });
 
-// Un skill marqué `disable-model-invocation: true` ne se charge que par sa commande en tête du
-// message (documentation de Claude Code, page des skills) : tout bloc de prompt de lancement qui
-// nomme un tel skill commence par sa commande, et aucun SKILL.md ne demande au modèle de l'invoquer.
+// Un skill marqué `disable-model-invocation: true` ne se charge pas par l'outil Skill, et `create_session`
+// refuse tout prompt qui commence par « / » ou par une balise <system-reminder> (cas vécu le 2026-11-23) :
+// aucun prompt de lancement ne s'ouvre par une commande, il dit le rôle en mots et fait lire le fichier du skill,
+// et aucun SKILL.md ne demande au modèle d'invoquer un skill marqué.
 const LANCEMENT = "skills/chaine/architecte/references/lancement.md";
 const marque = (texte) => {
   const entete = texte.match(/^---\r?\n([\s\S]*?)\r?\n---/);
@@ -322,11 +323,10 @@ const marque = (texte) => {
 };
 const blocsTexte = (texte) => [...texte.matchAll(/^```text\r?\n([\s\S]*?)^```/gm)].map((m) => m[1]);
 const cmdSkill = (n) => `/maj-skills:${n}(?![\\w-])`;
-// Les skills marqués nommés dans le bloc dont la commande n'ouvre pas la première ligne.
-const horsTete = (bloc, noms) => {
-  const premiere = lignes(bloc)[0] ?? "";
-  return noms.filter((n) => new RegExp(cmdSkill(n)).test(bloc) && !new RegExp(`^${cmdSkill(n)}`).test(premiere));
-};
+// Un bloc de prompt qui s'ouvre par « / » ou par une balise <system-reminder> (refusé par create_session).
+const ouvreParUneCommande = (bloc) => /^\s*(\/|<system-reminder)/.test(bloc);
+// Les skills marqués dont le bloc donne la commande : le prompt dit de lire leur fichier, pas de les lancer.
+const nommeUneCommande = (bloc, noms) => noms.filter((n) => new RegExp(cmdSkill(n)).test(bloc));
 const skillsMarques = () => skillsDuDepot.filter((s) => marque(lire(s))).map((s) => s.split("/").pop());
 
 test("lecteurs des prompts de lancement : entrées piégées", () => {
@@ -335,20 +335,33 @@ test("lecteurs des prompts de lancement : entrées piégées", () => {
   assert.equal(marque("---\nname: x\ndisable-model-invocation: false\n---\n"), false);
   assert.equal(marque("---\nname: x\n---\ndisable-model-invocation: true\n"), false, "hors de l'en-tête");
   assert.deepEqual(blocsTexte("a\n```text\nl1\nl2\n```\n```bash\nx\n```\n"), ["l1\nl2\n"]);
-  assert.deepEqual(horsTete("/maj-skills:chantier nom\nlis /maj-skills:chantier\n", ["chantier"]), []);
-  assert.deepEqual(horsTete("Conducteur\nlis et suis /maj-skills:chantier\n", ["chantier"]), ["chantier"]);
-  assert.deepEqual(horsTete("/maj-skills:chantiers x\n", ["chantier"]), [], "nom voisin non nommé");
-  assert.deepEqual(horsTete("/maj-skills:chantierx\n/maj-skills:chantier\n", ["chantier"]), ["chantier"], "variante voisine en tête");
-  assert.deepEqual(horsTete("Session\nlis et suis /maj-skills:revue-de-ticket\n", ["chantier"]), []);
+  assert.equal(ouvreParUneCommande("/maj-skills:chantier nom\nlis\n"), true);
+  assert.equal(ouvreParUneCommande("  /maj-skills:chantier nom\n"), true, "blancs de tête");
+  assert.equal(ouvreParUneCommande("<system-reminder>x</system-reminder>\nTu es\n"), true);
+  assert.equal(ouvreParUneCommande("Tu es le conducteur\nlis /maj-skills:chantier\n"), false);
+  assert.deepEqual(nommeUneCommande("Conducteur\nlis et suis /maj-skills:chantier\n", ["chantier"]), ["chantier"]);
+  assert.deepEqual(nommeUneCommande("/maj-skills:chantiers x\n", ["chantier"]), [], "nom voisin non nommé");
+  assert.deepEqual(nommeUneCommande("Session\nlis et suis /maj-skills:revue-de-ticket\n", ["chantier"]), []);
 });
 
-test("chaque prompt de lancement qui nomme un skill marqué commence par sa commande", () => {
+test("aucun prompt de lancement ne commence par « / » ni ne donne la commande d'un skill marqué : il dit le rôle en mots et fait lire le fichier du skill", () => {
   const noms = skillsMarques();
   assert.ok(noms.includes("chantier") && noms.includes("fusionner"), "chantier et fusionner sont marqués");
-  const blocs = blocsTexte(readFileSync(join(RACINE, LANCEMENT), "utf8"));
-  assert.ok(blocs.length >= 3, `${LANCEMENT} : au moins trois blocs de prompt`);
-  const fautes = blocs.flatMap((b, i) => horsTete(b, noms).map((n) => `bloc ${i + 1} : /maj-skills:${n} hors de la première ligne`));
-  assert.deepEqual(fautes, [], `${LANCEMENT} : ${fautes.join(" ; ")}`);
+  const blocs = [
+    ...blocsTexte(readFileSync(join(RACINE, LANCEMENT), "utf8")).map((b, i) => [`${LANCEMENT} bloc ${i + 1}`, b]),
+    ...blocsTexte(readFileSync(join(RACINE, "skills/chaine/relecteur/references/prompt-session.md"), "utf8")).map((b, i) => [`prompt-session.md bloc ${i + 1}`, b]),
+    ...blocsTexte(readFileSync(join(RACINE, "skills/chaine/socle-chaine-de-production/references/docs-agents/chaine-de-production.md"), "utf8"))
+      .filter((b) => b.startsWith("Session fille du chantier"))
+      .map((b) => ["gabarit d'une fille", b]),
+  ];
+  assert.ok(blocs.length >= 6, "au moins les quatre prompts, le ticket hors chantier et la fille");
+  const fautes = blocs.flatMap(([nom, b]) => [
+    ...(ouvreParUneCommande(b) ? [`${nom} : commence par « / » ou une balise`] : []),
+    ...nommeUneCommande(b, noms).map((n) => `${nom} : /maj-skills:${n} (lire le fichier du skill)`),
+  ]);
+  assert.deepEqual(fautes, [], fautes.join(" ; "));
+  const lancement = readFileSync(join(RACINE, LANCEMENT), "utf8");
+  assert.ok(lancement.includes("2026-11-23") && lancement.includes("can't open with"), "lancement.md cite le cas vécu et l'erreur exacte");
 });
 
 test("aucun SKILL.md ne demande la commande d'un skill marqué, que le modèle ne peut pas invoquer", () => {

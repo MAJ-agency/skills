@@ -75,7 +75,7 @@ Le capitaine squashe la PR de cadrage dans le sujet dès sa CI légère verte, e
 Pour chaque ticket de la vague, `create_session` :
 
 - `title` : `<Projet> <chantier> — <identifiant> <objet court>` ; `tags` : `["chantier:<nom>"]` ; `source_url` : le dépôt ; `source_revision` : `sujet/<nom>` ; `model` : celui du ticket ; `permission_mode` : `"auto"`.
-- `prompt` : le gabarit de `docs/agents/chaine-de-production.md` § 5, cité par renvoi et non recopié. La ligne de situation particulière n'y figure que s'il y en a une, et **ne redit jamais une règle** : le régime se lit dans la sortie de `sujet.sh demarrer`, jamais sur le prompt.
+- `prompt` : le gabarit de `docs/agents/chaine-de-production.md` § 5, cité par renvoi et non recopié, et qui ne commence jamais par « / » (`create_session` refuse un tel prompt ; cas vécu le 2026-11-23). La ligne de situation particulière n'y figure que s'il y en a une, et **ne redit jamais une règle** : le régime se lit dans la sortie de `sujet.sh demarrer`, jamais sur le prompt.
 
 Chaque fille écrit au conducteur (`send_message`) si elle est bloquée, et dès sa relecture demandée, sans attendre ni le verdict, ni les contrôles, ni la fusion : ses cinq lignes de rendu, avec les décisions qu'elle attend de lui (ADR proposée, dépendance, règle à trancher), aussi écrites sous `## Comments` du ticket et dans la PR.
 

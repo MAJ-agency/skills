@@ -108,25 +108,27 @@ test("les deux étiquettes neuves : labels.sh en pose neuf, dont les quatre que 
   exigerDans("skills/chaine/socle-chaine-de-production/SKILL.md", ["les neuf labels, les hooks d'agent", "liste les neuf labels", "Les neuf labels sont le protocole des skills. Un dixième n'est lu par personne."]);
 });
 
-test("le gabarit de lancement du Relecteur : sa commande en première ligne, puis les lignes « Outils : », « Argument : », « Skills : », « Version : » et la place des consignes du produit", () => {
+test("le gabarit de lancement du Relecteur : une phrase d'ouverture en mots (jamais « / »), puis les lignes « Outils : », « Skills : », « Version : » et la place des consignes du produit", () => {
   const lancement = lire("skills/chaine/architecte/references/lancement.md");
   const relecteur = bloc(lancement, "## Le Relecteur d'un dépôt");
   const capitaine = bloc(lancement, "## Le capitaine d'un dépôt");
-  assert.equal(relecteur[0], "/maj-skills:relecteur");
-  assert.deepEqual(relecteur.map((l) => l.split(" : ")[0]).slice(2, 6), ["Outils", "Argument", "Skills", "Version"]);
-  assert.ok(relecteur[2].includes("select:mcp__claude-code-remote__send_message,mcp__claude-code-remote__create_session,mcp__claude-code-remote__get_session"));
+  assert.ok(!relecteur[0].startsWith("/"), "create_session refuse un prompt qui commence par « / » (2026-11-23)");
+  assert.ok(relecteur[0].startsWith("Tu es le Relecteur du dépôt") && relecteur[0].includes("Ton rôle est le skill relecteur de maj-skills"));
+  assert.deepEqual(relecteur.map((l) => l.split(" : ")[0]).slice(1, 4), ["Outils", "Skills", "Version"]);
+  assert.ok(relecteur[1].includes("select:mcp__claude-code-remote__send_message,mcp__claude-code-remote__create_session,mcp__claude-code-remote__get_session"));
   // Les lignes « Skills : » et « Version : » sont celles du capitaine, pour ce skill.
   const pour = (ligne) => ligne.replaceAll("fusionner", "relecteur");
-  assert.equal(relecteur[4], pour(capitaine.find((l) => l.startsWith("Skills : "))));
-  assert.equal(relecteur[5], pour(capitaine.find((l) => l.startsWith("Version : "))));
-  assert.equal(relecteur[6], "<les deux lignes des consignes du produit, telles quelles, puis la ligne « Commits : »>");
+  assert.equal(relecteur[2], pour(capitaine.find((l) => l.startsWith("Skills : "))));
+  assert.equal(relecteur[3], pour(capitaine.find((l) => l.startsWith("Version : "))));
+  assert.equal(relecteur[4], "<les deux lignes des consignes du produit, telles quelles, puis la ligne « Commits : »>");
   exigerDans("skills/chaine/architecte/references/lancement.md", ["`tags` `[\"role:relecteur\"]`", "`effort` `\"medium\"`", "l'inscrit sur la ligne `Relecteurs:` de la carte", "(ligne du chantier, `Capitaines:` ou `Relecteurs:`)"]);
 });
 
-test("le prompt d'une session de relecture commence par la commande du skill relecture, et porte les consignes du produit telles que lancement.md les donne", () => {
+test("le prompt d'une session de relecture commence par une phrase en mots (jamais « / »), et porte les consignes du produit telles que lancement.md les donne", () => {
   const texte = lire(`${SKILL}/references/prompt-session.md`);
   const prompt = bloc(texte, "# Le prompt d'une session de relecture");
-  assert.equal(prompt[0], "/maj-skills:relecture <n> <tour> <sommet>");
+  assert.ok(!prompt[0].startsWith("/"), "create_session refuse un prompt qui commence par « / » (2026-11-23)");
+  assert.ok(prompt[0].startsWith("Tu es la session de relecture de la PR <n>") && prompt[0].includes("Ton rôle est le skill relecture de maj-skills, avec pour arguments le numéro de la PR, le tour et le sommet : <n> <tour> <sommet>"));
   const consignes = bloc(lire("skills/chaine/architecte/references/lancement.md"), "## Les consignes du produit, dans chaque prompt");
   assert.deepEqual(prompt.slice(-3), consignes, "les trois lignes du produit et la ligne « Commits : », mot pour mot");
   assert.ok(prompt.some((l) => l.startsWith("Seconde relecture : ") && l.includes("Tu ne lis pas son verdict")), "A-90");

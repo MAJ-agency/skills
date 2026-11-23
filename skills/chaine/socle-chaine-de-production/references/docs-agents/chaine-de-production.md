@@ -114,6 +114,8 @@ Commits : jamais `git commit --amend` ; une correction est un commit de plus.
 <une ligne de situation particulière, s'il y en a une>
 ```
 
+_Le prompt d'une fille ne commence jamais par « / » (ni par une balise `<system-reminder>`) : `create_session` refuse un tel prompt, qui pourrait être lu comme une commande (cas vécu le 2026-11-23). Il s'ouvre par des mots, comme le gabarit ci-dessus ; un skill marqué `disable-model-invocation` que la fille doit suivre se lit dans son fichier sous `~/.claude/plugins/marketplaces/maj/skills/`, jamais par une commande en tête._
+
 _Cette ligne ne redit jamais une règle de ce document. Les deux lignes du produit sont la seule exception : elles se citent telles quelles, à sa demande (2026-11-14) ; la ligne « Commits : » qui les suit vient de l'architecte (`A-30`, `A-41`), comme dans `lancement.md`, et se recopie elle aussi. Le régime se lit dans la sortie de `sujet.sh demarrer` (la ligne `régime 8 : relecture indépendante ; …`), jamais sur le prompt._
 
 Déroulé :

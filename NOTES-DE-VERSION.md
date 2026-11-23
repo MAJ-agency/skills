@@ -2,6 +2,17 @@
 
 La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque projet par `poser` : une version publiée ne change rien chez un projet qui ne les repose pas. Chaque note dit ce qui change, puis ce qu'un projet fait pour en profiter.
 
+## 8.3.1 — 2026-11-23
+
+### Ce qui change
+
+- **Un prompt de lancement ne commence plus par une commande** : le 2026-11-23, vers 10 h UTC, dans une session cloud, `create_session` (serveur MCP `claude-code-remote`) a refusé tout prompt qui s'ouvre par « / », avec l'erreur « create_session: the new session's prompt can't open with "/" or a <system-reminder> tag, which Claude Code may read as a command. Open it with words instead, and say in plain words what to do. » Or `architecte/references/lancement.md` mettait `/maj-skills:chantier`, `/maj-skills:fusionner` et `/maj-skills:relecteur` en première ligne, seule façon de charger un skill marqué `disable-model-invocation: true`. Les prompts du conducteur, du capitaine, du Relecteur et d'une session de relecture (`relecteur/references/prompt-session.md`) s'ouvrent désormais par une phrase (« Tu es le conducteur du chantier <nom> … Ton rôle est le skill chantier de maj-skills, avec pour argument le nom du sujet : <nom> ; la suite de ce message sont tes consignes. »), la ligne « Skills : » demande de **lire** le fichier du skill sous `~/.claude/plugins/marketplaces/maj/skills/` avec l'outil de lecture, sans l'outil Skill (le plugin installé d'abord s'il manque), et la ligne « Version : » lit la version installée, met à jour, puis suit les fichiers du marketplace. Le même jour, un capitaine et deux conducteurs lancés sous cette forme ont lu le fichier et suivi la version du marketplace. La ligne « Argument : » disparaît (l'argument se dit dans la phrase d'ouverture).
+- **La règle est écrite** : le prompt d'une session, d'une fille comprise (`chaine-de-production.md` § 5), ne commence jamais par « / » ni par une balise `<system-reminder>` ; `architecte`, `chantier` et `relecteur` le disent, et un banc (`scripts/depot.test.mjs`) refuse un bloc de prompt qui s'ouvre par une commande ou qui nomme celle d'un skill marqué.
+
+### Ce qu'un projet fait pour en profiter
+
+- **Rien à reposer** : `lancement.md` est lu par l'architecte dans le plugin. Dans un dépôt posé, reposer `socle-chaine-de-production` pour que `docs/agents/chaine-de-production.md` § 5 porte la règle ; le gabarit d'une fille, lui, n'a pas changé.
+
 ## 8.3.0 — 2026-11-22
 
 ### Ce qui change
