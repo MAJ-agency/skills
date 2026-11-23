@@ -1,6 +1,6 @@
 # SPEC_ALL_ANC-5 — La preuve suffisante : criticité, cas attendus, état « partielle »
 
-> **Copie de lecture.** Le fichier qui fait foi est `docs/features/anchorpost/all/SPEC_ALL_ANC-5-preuve-suffisante.spec.md` du dépôt `MAJ-agency/anchorpost` (branche `claude/ecstatic-brahmagupta-bg4l0s`, commit `10dc74c`, en attendant son entrée dans `develop`). Copie du 2026-11-13.
+> **Copie de lecture.** Le fichier qui fait foi est `docs/features/anchorpost/all/SPEC_ALL_ANC-5-preuve-suffisante.spec.md` du dépôt `MAJ-agency/anchorpost` (branche `claude/ecstatic-brahmagupta-bg4l0s`, commit `10dc74c`, en attendant son entrée dans `develop`). Copie du 2026-11-13 ; § 2, « La réalisation d'une règle », points 3, l'instance et les familles alignés le 2026-11-23 sur l'amendement `A-279` d'Anchorpost (entré dans son sujet par la PR 392, `8975972`), texte reçu de son architecte.
 
 Sujet: sujet/preuve-suffisante
 Règles: RULE_ALL_ANC-6, RULE_ALL_ANC-9, RULE_ALL_ANC-24, RULE_ALL_ANC-25, RULE_ALL_ANC-26, RULE_ALL_ANC-27, RULE_ALL_ANC-28, RULE_ALL_ANC-29
@@ -103,11 +103,11 @@ Un parcours appartient au module qui le déclare ; ses `features` sont des ident
 
 1. `exception.status` écrit dans l'en-tête : inchangé.
 2. Aucune preuve, ni en propre ni héritée : `configured` si `config` n'est pas vide, sinon `to-build`. Des cas déclarés n'y changent rien.
-3. Au moins une preuve : `proven` si la règle déclare au moins un cas et que chacun est prouvé ; sinon `partial`. Une règle qui a des preuves et aucun cas déclaré est donc `partial`.
+3. Au moins une preuve : `proven` si la règle déclare au moins un cas, que chacun est prouvé, qu'elle déclare au moins un cas `nominal`, et, pour une règle moyenne ou haute, que chacune des dix familles a une réponse ; sinon `partial`, et `missing` dit ce qui manque au-delà des cas (`nominal`, `families`). Une règle qui a des preuves et aucun cas déclaré est donc `partial`. Une règle « à classer » se juge à la grille basse. _Amendé le 2026-11-22 (`A-279`) : la version d'avant disait « `proven` si la règle déclare au moins un cas et que chacun est prouvé » ; la CLI, de 2.0.0 à 2.0.2, exige en plus le cas normal et, dès la moyenne, les familles, comme le dit `RULE_ALL_ANC-28` (« son cas normal a une preuve » ; « Tant qu'une question reste ouverte, la règle reste « partielle ». »). C'est la CLI publiée qui fait foi ; la règle ne change pas._
 
-Une règle d'un contexte qui instancie une règle de socle (`instanceOf`) hérite de sa réalisation, cas compris, tant qu'elle n'a ni preuve, ni `config`, ni cas en propre.
+Une règle d'un contexte qui instancie une règle de socle (`instanceOf`) hérite de sa réalisation, cas compris, tant qu'elle n'a ni preuve, ni `config`, ni cas en propre : elle se juge avec les cas, les « sans objet » et les preuves du socle, mais à sa propre criticité (une instance moyenne d'un socle bas doit donc répondre aux familles ; précisé le 2026-11-22, `A-279`).
 
-**Les familles** : pour une règle haute, chaque famille a une réponse quand un cas la porte ou que `notApplicableFamilies` la nomme avec sa raison.
+**Les familles** : pour une règle moyenne ou haute (`P-35`), chaque famille a une réponse quand un cas déclaré la porte (`family`), quand un cas `invalid` répond d'office à `invalid-input`, ou que `notApplicableFamilies` la nomme avec sa raison. Une question posée à qui décide la règle, qui la bloque (ligne `Bloque :` de `docs/questions-ouvertes.md`, `hasOpenQuestion`), est la troisième réponse (`RULE_ALL_ANC-28`) ; mais « Tant qu'une question reste ouverte, la règle reste « partielle » » : le calcul de la réalisation ne la compte pas, `missing.families` nomme encore la famille, et `check` en fait un avertissement, jamais un refus, même en `enforce` (§ 3, groupe 8, `SPEC_ALL_ANC-5.30`). Une question tranchée ne répond à rien : il faut alors un cas qui porte la famille, ou un « sans objet » motivé (`A-279`).
 
 **Dans l'index, version 3** : `rules[].criticality` (niveau, origine, parcours), `rules[].cases[]` (les champs du cas, ses preuves, `proven`, et ce qui lui manque : `missing`), `rules[].proofs[].case`, `realisation.status` avec `partial`, `realisation.cases` (`declared`, `proven`), `epics[].journeys[]`, `contexts[].partial`, `project.sufficiency`. Clés et listes triées, aucun horodatage (`RULE_ALL_ANC-19`).
 
