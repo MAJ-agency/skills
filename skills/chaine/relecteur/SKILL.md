@@ -1,6 +1,6 @@
 ---
 name: relecteur
-description: Relecteur d'un dépôt — aiguille la relecture indépendante des PR du régime 8 de la chaîne. Une veille relit la file (PR ouvertes qui portent `à-relire` ou `à-fusionner`), un script prend pour chaque PR la décision du Relecteur (la même que celle du capitaine), et la session ne joue que ce que la machine ne peut pas jouer : créer une session de relecture, lui écrire, lire son état, envoyer une ligne à l'auteur, au conducteur ou à l'architecte. Il pose `à-reprendre` et `à-fusionner`, ne relit rien, n'arbitre rien. À lancer dans une session dédiée, « Relecteur », une par dépôt, par sa commande en première ligne, jamais par le modèle.
+description: Relecteur d'un dépôt — aiguille la relecture indépendante des PR du régime 8 de la chaîne. Une veille relit la file (PR ouvertes qui portent `à-relire` ou `à-fusionner`), un script prend pour chaque PR la décision du Relecteur (la même que celle du capitaine), et la session ne joue que ce que la machine ne peut pas jouer : créer une session de relecture, lui écrire, lire son état, envoyer une ligne à l'auteur, au conducteur ou à l'architecte. Il pose `à-reprendre` et `à-fusionner`, ne relit rien, n'arbitre rien. À lancer dans une session dédiée, « Relecteur », une par dépôt, par un prompt qui lui dit de lire ce fichier, jamais par l'outil Skill.
 argument-hint: '<consignes de lancement>'
 disable-model-invocation: true
 ---

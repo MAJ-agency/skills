@@ -1,6 +1,6 @@
 # Ce que contient le skill `relecteur`, et pourquoi
 
-Le lot 4 de la spec « relecture indépendante » (`A-83` à `A-90`, et ce qui les amende). Le Relecteur est un rôle, comme le capitaine : une session par dépôt, lancée par sa commande, qui tient une file.
+Le lot 4 de la spec « relecture indépendante » (`A-83` à `A-90`, et ce qui les amende). Le Relecteur est un rôle, comme le capitaine : une session par dépôt, lancée par un prompt qui s'ouvre par une phrase et lui fait lire le skill dans son fichier du marketplace, qui tient une file.
 
 ## `SKILL.md`
 
@@ -18,4 +18,4 @@ Le script joué comme la session le joue, dans une copie du dépôt jouet du ski
 
 ## Le prompt — `prompt-session.md`
 
-Le prompt d'une session de relecture, qui commence par la commande du skill `relecture` (promesse 1 du ticket 61), et le message qui la relance. Il porte les lignes « Outils : », « Version : » et « Skills : » de tout prompt de lancement, et les consignes du produit.
+Le prompt d'une session de relecture, qui s'ouvre par une phrase et fait lire le skill `relecture` dans son fichier du marketplace (promesse 1 du ticket 61), et le message qui la relance. Il porte les lignes « Outils : », « Version : » et « Skills : » de tout prompt de lancement, et les consignes du produit.

@@ -44,7 +44,7 @@ test("lecteurs du banc : entrées piégées", () => {
   assert.equal(plat("a\r\n  b\tc"), "a b c");
 });
 
-test("l'en-tête du skill : son nom, sa description (au plus 1 024 caractères, sans « : » suivi d'une espace), sa commande, et il ne se charge que par elle", () => {
+test("l'en-tête du skill : son nom, sa description (au plus 1 024 caractères, sans « : » suivi d'une espace), sa commande, et le modèle ne le charge jamais", () => {
   const entete = lire(`${SKILL}/SKILL.md`).match(/^---\r?\n([\s\S]*?)\r?\n---/)?.[1] ?? "";
   assert.match(entete, /^name: relecture$/m);
   const description = entete.match(/^description: (.*)$/m)?.[1] ?? "";
