@@ -549,29 +549,35 @@ checks_commit() {
 # branche : une réponse, pas une panne. Toute autre erreur, ou une forme inattendue : sortie 5, jamais « aucun
 # check exigé ». Une règle « Require status checks to pass » qui n'exige aucun check (ruleset ou ancienne protection) :
 # sortie 6, RÉGLAGE DU DÉPÔT sur la sortie d'erreur, jamais [] (ticket 91) : lue [], toute PR se dirait « prête
-# (sans CI) » et n'entrerait jamais ; c'est un réglage à faire par un admin, dit dès cette lecture.
+# (sans CI) » et n'entrerait jamais ; c'est un réglage à faire par un admin, dit dès cette lecture. GitHub cumule les
+# rulesets et l'ancienne protection : devant une règle vide d'un ruleset, l'ancienne protection se lit encore, et ses
+# checks font la liste ; le réglage n'est dit que si elle n'en exige aucun non plus (contre-relecture de la PR 159).
 reglage_checks_vides() { # <où la règle est lue>
   echo "RÉGLAGE DU DÉPÔT : $1 porte une règle « Require status checks to pass » (required_status_checks) qui n'exige aucun check ; toute PR vers develop s'y lirait « prête (sans CI) » et n'entrerait jamais. À un admin : y ajouter les checks exigés de la CI (qualite, test-db, zizmor : docs/agents/chaine-admin.md, « Protection de develop ») ; puis relancer le capitaine." >&2
   return 6
 }
 checks_exiges() {
-  local regles protection exiges
+  local regles protection exiges vide=''
   regles=$(lire_github "$DEPOT/rules/branches/develop") || return 5
   exiges=$(jq -c 'if type == "array" then [.[] | select(.type == "required_status_checks") | .parameters.required_status_checks[].context] | unique
     else error("pas un tableau") end' <<<"$regles" 2>/dev/null) ||
     { echo "GitHub illisible ($DEPOT/rules/branches/develop) : réponse qui n'est pas un tableau de règles" >&2; return 5; }
   if [ "$exiges" != '[]' ]; then printf '%s\n' "$exiges"; return 0; fi
   # Aucun check exigé par les rulesets : une règle required_status_checks présente est vide (le cas de l'essai réel du
-  # régime 8 : la PR vue « sans CI » pendant une heure, deux fois).
+  # régime 8 : la PR vue « sans CI » pendant une heure, deux fois). Elle se retient, et l'ancienne protection se lit
+  # avant de la dire : GitHub cumule les deux, et des checks exigés là font la liste.
   if [ "$(jq '[.[] | select(.type == "required_status_checks")] | length' <<<"$regles")" != 0 ]; then
-    reglage_checks_vides "la branche develop (ruleset $(jq -r '[.[] | select(.type == "required_status_checks") | .ruleset_id // "?" | tostring] | unique | join(", ")' <<<"$regles"))"
-    return
+    vide="la branche develop (ruleset $(jq -r '[.[] | select(.type == "required_status_checks") | .ruleset_id // "?" | tostring] | unique | join(", ")' <<<"$regles"))"
   fi
   protection=$(lire_github "$DEPOT/branches/develop/protection/required_status_checks" --absent 'null') || return 5
-  [ "$protection" != null ] || { echo '[]'; return 0; }
+  if [ "$protection" = null ]; then
+    [ -z "$vide" ] || { reglage_checks_vides "$vide"; return; }
+    echo '[]'
+    return 0
+  fi
   exiges=$(jq -c 'if type == "object" and ((.contexts // []) | type) == "array" then (.contexts // []) else error("forme inattendue") end' <<<"$protection" 2>/dev/null) ||
     { echo "GitHub illisible ($DEPOT/branches/develop/protection/required_status_checks) : forme inattendue" >&2; return 5; }
-  [ "$exiges" != '[]' ] || { reglage_checks_vides "la protection de branche de develop (Settings → Branches)"; return; }
+  [ "$exiges" != '[]' ] || { reglage_checks_vides "${vide:-la protection de branche de develop (Settings → Branches)}"; return; }
   printf '%s\n' "$exiges"
 }
 

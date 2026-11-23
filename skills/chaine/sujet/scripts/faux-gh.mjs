@@ -394,29 +394,48 @@ function repondre() {
   if (route.match(/^commits\/[0-9a-f]+\/status$/)) return { statuses: [] };
   // Checks exigés : par ruleset (le cas nominal), ou par l'ancienne protection de branche quand
   // le dépôt jouet le déclare (`protectionClassique`) — l'autre forme répond alors comme GitHub.
-  // Sans check exigé, aucune règle (un ruleset sans « Require status checks », ou la protection
-  // sans elle : 404). `regleVide` (ticket 91) : la règle est là, sans aucun check, comme sur le
-  // jouet de l'essai réel du régime 8.
-  if (route === "rules/branches/develop")
-    return etat.protectionClassique || (!(etat.exiges ?? []).length && !etat.regleVide)
-      ? []
-      : [
-          {
-            type: "required_status_checks",
-            ruleset_id: 42,
-            parameters: {
-              required_status_checks: (etat.exiges ?? []).map((context) => ({
-                context,
-              })),
+  // Sans check exigé, aucune règle de checks (la protection sans elle : 404). `regleVide` (ticket
+  // 91) : la règle est là, sans aucun check, comme sur le jouet de l'essai réel du régime 8. Un
+  // ruleset rend aussi ses autres règles, comme GitHub (`deletion`, `pull_request` : ce que pose
+  // chaine-admin.md). Contre-relecture de la PR 159 : `rulesetSansChecks`, un ruleset protège
+  // develop sans « Require status checks » ; `classique`, l'ancienne protection à côté du ruleset,
+  // ses checks exigés (GitHub cumule les deux).
+  if (route === "rules/branches/develop") {
+    const checks =
+      !etat.protectionClassique &&
+      ((etat.exiges ?? []).length > 0 || Boolean(etat.regleVide));
+    if (!checks && !etat.rulesetSansChecks) return [];
+    return [
+      { type: "deletion", ruleset_id: 42 },
+      {
+        type: "pull_request",
+        ruleset_id: 42,
+        parameters: { required_approving_review_count: 0 },
+      },
+      ...(checks
+        ? [
+            {
+              type: "required_status_checks",
+              ruleset_id: 42,
+              parameters: {
+                strict_required_status_checks_policy: true,
+                required_status_checks: (etat.exiges ?? []).map((context) => ({
+                  context,
+                })),
+              },
             },
-          },
-        ];
-  if (route === "branches/develop/protection/required_status_checks")
+          ]
+        : []),
+    ];
+  }
+  if (route === "branches/develop/protection/required_status_checks") {
+    if (Array.isArray(etat.classique)) return { contexts: etat.classique };
     return !etat.protectionClassique
       ? echec("gh: Branch not protected (HTTP 404)")
       : (etat.exiges ?? []).length || etat.regleVide
         ? { contexts: etat.exiges ?? [] }
         : echec("gh: Required status checks not enabled (HTTP 404)");
+  }
   if ((m = route.match(/^branches\/([^/]+)$/))) {
     return ref(decodeURIComponent(m[1]))
       ? { name: decodeURIComponent(m[1]) }

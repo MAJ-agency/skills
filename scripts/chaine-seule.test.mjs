@@ -70,3 +70,15 @@ test('au premier pnpm check, les skills disent ce qui se gèle (et seulement cel
   const sections = [...criteres.matchAll(/^(S\d+) .*?apps\/api\/CLAUDE\.md((?: § « [^»]+ »,?)+)/gm)].map((m) => [m[1], [...m[2].matchAll(/« ([^»]+) »/g)].length]);
   assert.deepEqual(sections, [['S1', 2], ['S2', 1], ['S4', 1], ['S8', 1], ['S9', 1], ['S10', 1]]);
 });
+
+test('le bloc socle:poses-du-plugin renvoie à la note qui l’introduit, sans numéro de version : un main qui bouge ne rend pas ce renvoi faux', () => {
+  const avecVersion = [...fichiers('skills'), 'README.md']
+    .filter((f) => /\.(md|mjs|sh|json|yml)$/.test(f))
+    .flatMap((f) => lire(f).split('\n').flatMap((l, i) => (/poses-du-plugin/.test(l) && /\b\d+\.\d+\.\d+\b/.test(l) ? [`${f}:${i + 1}`] : [])));
+  assert.deepEqual(avecVersion, [], 'une ligne qui renvoie au bloc socle:poses-du-plugin porte un numéro de version : dire « la note qui l’introduit »');
+  assert.match(lire(`${MONOREPO}/references/racine/eslint.config.mjs`), /\(NOTES-DE-VERSION\.md du plugin, la note qui l'introduit\)/);
+  assert.match(lire(`${CHAINE}/SKILL.md`), /un projet posé sans ce bloc l'ajoute \(`NOTES-DE-VERSION\.md`, la note qui l'introduit\)/);
+  // La note qui l'introduit existe : une note de version dont « Ce qui change » nomme le bloc.
+  const notes = lire('NOTES-DE-VERSION.md').split(/^## /m).slice(1);
+  assert.ok(notes.some((n) => /^### Ce qui change\n[\s\S]*?socle:poses-du-plugin[\s\S]*?^### Ce qu'un projet fait/m.test(n)), 'aucune note de version n’introduit le bloc socle:poses-du-plugin');
+});

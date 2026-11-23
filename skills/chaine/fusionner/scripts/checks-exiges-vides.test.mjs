@@ -5,6 +5,9 @@
 // admin (sortie 6, RÉGLAGE DU DÉPÔT) ; `file.sh` sort en 6, la boucle s'arrête (ARRÊT), `passer.sh` sort en 3 sur la
 // même raison. Un dépôt sans aucune règle de checks reste « sans CI » : rien n'y entre non plus (`attendre_ci` ne voit
 // aucun check exigé apparaître), un ticket de suite ; d'où le geste dit : ajouter les checks, jamais retirer la règle.
+// Contre-relecture de la PR 159 : GitHub cumule les rulesets et l'ancienne protection ; une règle vide d'un ruleset ne
+// cache pas les checks que l'ancienne protection exige, et un ruleset sans règle de checks (ses autres règles seules)
+// n'est pas un réglage du dépôt.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
@@ -76,4 +79,49 @@ test("passer.sh : une règle de checks exigés vide n'est jamais « CI non décl
   assert.doesNotMatch(r.stdout, /CI non déclenchée/);
   assert.match(r.stderr, REGLAGE);
   assert.deepEqual(d.journal().filter((e) => /^(PUT|DELETE)$/.test(e.methode) && /merge|labels/.test(e.route)), [], "ni fusion ni label retiré");
+});
+
+test("checks_exiges : une règle de checks vide d'un ruleset, à côté d'une ancienne protection qui exige des checks, rend la liste de l'ancienne protection (GitHub cumule les deux) et file.sh dit la PR prête, sans réglage ; les deux vides, le réglage nomme le ruleset", () => {
+  const d = depotJouet();
+  d.publierChaine();
+  d.branche("feat/v", "origin/develop", { "docs/v.md": "v\n" });
+  d.git("switch", "-q", "--detach", "origin/develop");
+  d.github({ regleVide: true, classique: ["qualite"], checks: { "*": { qualite: "SUCCESS" } }, pulls: [pr(72, "feat/v")] });
+  let r = fonction(d, "checks_exiges");
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.equal(r.stdout.trim(), '["qualite"]', "les checks de l'ancienne protection");
+  assert.doesNotMatch(r.stderr, /RÉGLAGE/);
+  const f = d.lancer(script("fusionner", "file.sh"));
+  assert.equal(f.status, 0, f.stdout + f.stderr);
+  assert.match(f.stdout, /^72\tprête\t/m);
+  assert.doesNotMatch(f.stderr, /RÉGLAGE/);
+  d.github({ classique: [] });
+  r = fonction(d, "checks_exiges");
+  assert.equal(r.status, 6, r.stdout + r.stderr);
+  assert.equal(r.stdout, "");
+  assert.match(r.stderr, REGLAGE);
+});
+
+test("checks_exiges : un ruleset sans règle de checks (ses autres règles seules) n'est pas un réglage du dépôt : [] sans ancienne protection, la liste de l'ancienne protection quand elle exige", () => {
+  const d = depotJouet();
+  d.github({ rulesetSansChecks: true, exiges: [] });
+  let r = fonction(d, "checks_exiges");
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.equal(r.stdout.trim(), "[]", "un ruleset sans « Require status checks », la protection absente (404) : sans CI");
+  assert.doesNotMatch(r.stderr, /RÉGLAGE/);
+  d.github({ rulesetSansChecks: true, protectionClassique: true, exiges: ["qualite"] });
+  r = fonction(d, "checks_exiges");
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.equal(r.stdout.trim(), '["qualite"]', "le ruleset pour les PR, l'ancienne protection pour les checks");
+  assert.doesNotMatch(r.stderr, /RÉGLAGE/);
+});
+
+test("checks_exiges : un ruleset sans règle de checks et une ancienne protection qui n'en exige aucun sortent en 6, le réglage nommant l'ancienne protection, jamais le ruleset", () => {
+  const d = depotJouet();
+  d.github({ rulesetSansChecks: true, classique: [] });
+  const r = fonction(d, "checks_exiges");
+  assert.equal(r.status, 6, r.stdout + r.stderr);
+  assert.equal(r.stdout, "");
+  assert.match(r.stderr, /^RÉGLAGE DU DÉPÔT : la protection de branche de develop \(Settings → Branches\) porte une règle « Require status checks to pass »/m);
+  assert.doesNotMatch(r.stderr, /ruleset/);
 });

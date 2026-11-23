@@ -30,7 +30,7 @@ const debutPoses = prettierignore.indexOf("# socle:poses-du-plugin");
 const finPoses = prettierignore.indexOf("# /socle:poses-du-plugin");
 if (debutPoses < 0 || finPoses < debutPoses)
   throw new Error(
-    ".prettierignore : le bloc « # socle:poses-du-plugin » … « # /socle:poses-du-plugin » manque ; le reprendre du gabarit de socle-monorepo (NOTES-DE-VERSION.md du plugin, 8.3.1)",
+    ".prettierignore : le bloc « # socle:poses-du-plugin » … « # /socle:poses-du-plugin » manque ; le reprendre du gabarit de socle-monorepo (NOTES-DE-VERSION.md du plugin, la note qui l'introduit)",
   );
 const posesDuPlugin = prettierignore
   .slice(debutPoses + 1, finPoses)
