@@ -53,6 +53,8 @@
 #      `gh run rerun <id> --failed` puis relancer ; sinon renvoyer
 #   3  aucun check sur le sommet après 5 min : CI non déclenchée → ni fermeture-réouverture ni
 #      commit vide ; boucle.sh la met de côté jusqu'à la fusion suivante, qui la poussera
+#   3  « réglage du dépôt » : une règle de checks exigés vide sur develop (RÉGLAGE DU DÉPÔT de checks_exiges, ticket 91) :
+#      la boucle s'arrête (ARRÊT), jamais une PR mise de côté « sans CI » → un admin règle develop, puis relancer
 #   4  refus que l'auteur peut corriger (migration plus ancienne que la dernière de develop,
 #      titre trop long, sans section « Revue adversariale », titre de code sur un diff docs seul, lien
 #      symbolique sur un index généré ; en régime 8, aucun tour de relecture validé pour le contenu du sommet, à
@@ -379,6 +381,7 @@ while :; do
     1) sortir 3 "checks exigés rouges :"$'\n'"${rouges%$'\n'}" ;;
     2) sortir 3 "aucun check sur le sommet après 5 min : CI non déclenchée (un push de la session propriétaire la lancera)" ;;
     5) sortir 5 "GitHub illisible pendant l'attente de la CI : pause, puis reprise" ;;
+    6) sortir 3 "réglage du dépôt (motif ci-dessus) : une règle de checks exigés vide sur develop ; la PR n'entre pas tant qu'un admin ne l'a pas faite" ;;
     *) sortir 3 "checks exigés toujours en attente après 60 min" ;;
   esac
   sommet_lu=$(pr_sommet "$N") || sortir 5 "GitHub illisible à la relecture du sommet de la PR (cause ci-dessus) : pause, puis reprise"

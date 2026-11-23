@@ -157,6 +157,8 @@ Chaque skill de service a ses propres vérifications (un service qui démarre, d
 
 Contrôler enfin qu'aucun lien markdown n'est cassé, qu'il ne reste **aucun placeholder `{{…}}`** (chercher `{{[A-Z_]+}}` — les doubles accolades JSX ne comptent pas) dans le dépôt généré, que les marqueurs `<!-- socle:… -->` sont toujours là, et qu'**aucun marqueur de branche ne subsiste** : `grep -rn '══' --include='*.md' .` doit ne rien renvoyer. Un marqueur restant est une décision non prise.
 
+**Les références d'une brique non posée.** Au premier `pnpm check`, `check:contexte` (`references-agent`) nomme les références des gabarits vers une brique que le projet n'a pas : sans **tests**, les quatre de `.claude/rules/tests.md` vers ce que pose `socle-tests` (`scripts/verify/preuves.mjs`, `scripts/verify/tests-creux.mjs`, `docs/agents/gabarits/exemple.jour-metier.spec.ts`, `docs/agents/gabarits/exemple.property.spec.ts`). Celles-là, et elles seules, se gèlent à cet allumage : chaque ligne `<fichier>:<ligne> — <nature> « <référence> » introuvable` du gate devient l'entrée `"<fichier>:<ligne>:<référence>"` du tableau `references` de `scripts/verify/references-agent-dette.json`, et `node scripts/verify/references-agent.mjs --elaguer` les retire quand la brique arrive. Toute autre référence nommée se corrige ; la chaîne gèle les siennes de même (son étape 3).
+
 ## Étape 8 — l'historique
 
 Des commits qui racontent le projet, pas la séance. Conventional commits, dans la langue du dépôt, en-tête de 120 caractères au plus, corps en prose replié à la main (`commitlint.config.mjs` le vérifie). Un découpage qui marche :
@@ -172,7 +174,7 @@ Des commits qui racontent le projet, pas la séance. Conventional commits, dans 
 
 Chaque commit doit laisser le dépôt **constructible**. Ne pas découper un service en morceaux qui ne compilent pas.
 
-**Chaîne** cochée : pousser `main` (ce socle exige un remote GitHub), puis invoquer `/maj-skills:socle-chaine-de-production`. Il pose `tickets`, écrit ses propres commits et `docs/agents/admin.md` (develop, rulesets, labels : ce que l'admin fait à la main). Sans remote encore : le dire, et le lancer plus tard — `chantier` le réclame avant toute fille (son § 0).
+**Chaîne** cochée : pousser `main` (ce socle exige un remote GitHub), puis invoquer `/maj-skills:socle-chaine-de-production`. Il pose `tickets`, écrit ses propres commits et `docs/agents/chaine-admin.md` (develop, rulesets, labels : ce que l'admin fait à la main). Sans remote encore : le dire, et le lancer plus tard — `chantier` le réclame avant toute fille (son § 0).
 
 **Anchorpost** coché : invoquer `/maj-skills:anchorpost` **en tout dernier**, après la chaîne. Il exige `scripts/check.mjs`, `scripts/docs/index-generes.json` et le gate des tickets, et refuse sinon ; il installe la CLI, écrit le manifeste, génère le premier index et écrit ses propres commits. Sans chaîne : le dire, et le lancer plus tard.
 

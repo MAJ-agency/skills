@@ -38,7 +38,7 @@ export function bancsDesReferences() {
 // Ce que les bancs posés appellent à côté d'eux, posé comme un projet le pose : les scripts du capitaine, des sujets
 // et de la revue (`scripts/chaine/`, que le check `PR titre` appelle), les gabarits Stryker sous `apps/api/` (étape 5 de
 // `socle-tests`), et deux fichiers de la racine (`socle-monorepo`).
-const VOISINS_PAR_DOSSIER = [
+export const VOISINS_PAR_DOSSIER = [
   ['skills/chaine/fusionner/scripts', 'scripts/chaine'],
   ['skills/chaine/sujet/scripts', 'scripts/chaine'],
   ['skills/chaine/revue-adversariale/scripts', 'scripts/chaine'],

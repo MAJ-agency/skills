@@ -17,6 +17,33 @@ const REGLES = pathToFileURL(join(ISOLE, 'scripts/agent/regles.mjs')).href;
 const { ajouteUneDependance, decisionCommande, decisionOutilGithub, lireDependances, paquetsAjoutes, pousseSurUnSujet, refusEdition, sansTexte, segmentsDeCommande, lintable } = await import(REGLES);
 const { lireCommande, RAISON_ILLISIBLE, LECTURE_7_9, RAISON_TROP_LONGUE, appelsGit, sauteLesHooks, ecritUneRefDeSuivi, amendeUnCommit } = await import(REGLES);
 
+// Les durées se bornent en étalons (ticket 91), jamais en millisecondes : un banc posé tourne aussi sur une machine
+// chargée (le pre-push et la CI du projet, le garde `references-posees.test.mjs` du plugin), où une borne fixe rougit un
+// cas qui n'a pas changé (le pire cas à 20 000 caractères : 2,5 s sur un poste libre, 13,6 s sous 20 boucles à vide
+// sur quatre cœurs). L'étalon est un travail fixe, hors de la garde, du même moteur : une expression qui recule au carré sur
+// 16 002 caractères (250 ms sur le poste de mesure). Il se mesure juste avant et juste après le cas, dans le même
+// passage, et le plus lent des deux compte : une machine chargée ralentit l'un et l'autre, le rapport reste (7,2 étalons
+// libre, 8,9 sous ces 20 boucles, pour le pire cas). Une garde devenue plus lente que sa borne la dépasse, chargée ou non.
+const ETALON = `-${'a'.repeat(16_000)}!`;
+const duree = (f) => {
+  const debut = process.hrtime.bigint();
+  const r = f();
+  return { r, ms: Number(process.hrtime.bigint() - debut) / 1e6 };
+};
+function etalon() {
+  const { ms } = duree(() => /^-[a-z]*a[a-z]*$/.test(ETALON));
+  // Un moteur qui ne reculerait plus sur cette forme rendrait l'étalon nul, et toute borne vide : le banc le refuse.
+  assert.ok(ms >= 20, `étalon de ${ms} ms : l'expression ne recule plus, l'étalon ne mesure plus rien`);
+  return ms;
+}
+/** `f()` jouée entre deux étalons : `{ r, ms, etalon, etalons }`, `etalons` sa durée rapportée au plus lent des deux. */
+function enEtalons(f) {
+  const avant = etalon();
+  const { r, ms } = duree(f);
+  const e = Math.max(avant, etalon());
+  return { r, ms, etalon: e, etalons: ms / e };
+}
+
 const livree = { migrationExistante: () => true, migrations: 'apps/api/src/db/migrations/' };
 const nouvelle = { migrationExistante: () => false, migrations: 'apps/api/src/db/migrations/' };
 
@@ -778,11 +805,11 @@ test('ticket 33 : chaque mot réservé est retiré avant les décideurs — npm 
     assert.match(decisionCommande(c)?.raison ?? '', /^npm/, c);
 });
 
-test('ticket 33 : le lecteur est linéaire — 30 000 lignes « cat <<EOF » non fermées sont refusées en moins de 5 s', () => {
+test('ticket 33 : le lecteur est linéaire — 30 000 lignes « cat <<EOF » non fermées sont refusées en moins de 20 étalons (5 s sur un poste libre)', () => {
   const c = 'cat <<EOF\n'.repeat(30000) + 'git push --force origin feat/x';
-  const debut = process.hrtime.bigint();
-  assert.equal(decisionCommande(c, CTX_33)?.decision, 'refuser');
-  assert.ok(Number(process.hrtime.bigint() - debut) / 1e9 < 5);
+  const m = enEtalons(() => decisionCommande(c, CTX_33)?.decision);
+  assert.equal(m.r, 'refuser');
+  assert.ok(m.etalons < 20, `${m.ms} ms, ${m.etalons} étalons de ${m.etalon} ms`);
 });
 
 test('ticket 33 : formes trouvées par la session, que bash exécute — expansion vide ou affectée, substitution de processus, here-string, ligne continuée, préfixe inconnu devant un shell', () => {
@@ -916,9 +943,8 @@ test('ticket 33, contre-relecture C1 : ce qui suit un mot à expansion se relit 
   const F = F_33;
   const mesure = (c) => {
     const tas = process.memoryUsage().heapUsed;
-    const debut = process.hrtime.bigint();
-    const d = decisionCommande(c, CTX_33)?.decision;
-    return { d, s: Number(process.hrtime.bigint() - debut) / 1e9, mo: (process.memoryUsage().heapUsed - tas) / 2 ** 20 };
+    const { r: d, ms, etalons } = enEtalons(() => decisionCommande(c, CTX_33)?.decision);
+    return { d, s: ms / 1000, etalons, mo: (process.memoryUsage().heapUsed - tas) / 2 ** 20 };
   };
   const continuees = (n) => 'echo ' + '"$a" \\\n'.repeat(n) + `; ${F}`;
   const nus = (n) => 'echo ' + '$a '.repeat(n);
@@ -929,9 +955,13 @@ test('ticket 33, contre-relecture C1 : ce qui suit un mot à expansion se relit 
     const petit = mesure(forme(n));
     const grand = mesure(forme(3 * n));
     assert.equal(grand.d, attendu);
-    assert.ok(grand.s < 2, `${grand.s} s`);
+    assert.ok(grand.etalons < 8, `${grand.s} s, ${grand.etalons} étalons (2 s sur un poste libre)`);
     // Trois fois plus long : moins de six fois plus de temps et de mémoire (une croissance quadratique en ferait neuf).
-    assert.ok(grand.s < 6 * petit.s + 0.2, `${petit.s} s puis ${grand.s} s`);
+    // Le temps se compare en étalons, chaque mesure rapportée à son étalon (ticket 91, retouche de la relecture) : en
+    // secondes, avec 0,2 s de marge fixe, le rapport rougissait sous charge (0,028 s puis 1,05 s). La marge de
+    // 0,8 étalon (0,2 s sur le poste de mesure) couvre le bruit d'une mesure de quelques millisecondes ; une lecture
+    // devenue quadratique y passe dès que le grand cas coûte plus d'environ deux étalons (mutation V22).
+    assert.ok(grand.etalons < 6 * petit.etalons + 0.8, `${petit.etalons} puis ${grand.etalons} étalons (${petit.s} s puis ${grand.s} s)`);
     assert.ok(grand.mo < 200, `${grand.mo} Mo`);
   }
 });
@@ -1076,9 +1106,9 @@ test('A-51 bis : la lecture de 7.9.x rend ce que rendait son motif de here-doc, 
   // Le cas qui coûtait au cube : dix « <<A » cités, 19 900 sauts de ligne (37 s avec le motif pour 20 000), sous le plafond.
   const c = "echo '" + '<<A '.repeat(10) + "'" + '\n'.repeat(19900) + 'echo ok';
   assert.ok(c.length <= 20000, `${c.length} caractères : au-delà du plafond, la commande ne serait pas lue`);
-  const t0 = Date.now();
-  assert.equal(decisionCommande(c, CTX_33), null);
-  assert.ok(Date.now() - t0 < 2000, `${Date.now() - t0} ms`);
+  const m = enEtalons(() => decisionCommande(c, CTX_33));
+  assert.equal(m.r, null);
+  assert.ok(m.etalons < 8, `${m.ms} ms, ${m.etalons} étalons de ${m.etalon} ms (2 s sur un poste libre)`);
 });
 
 test('A-51 ter : au-delà de 20 000 caractères, refus prudent, corps de here-doc compris', () => {
@@ -1093,9 +1123,9 @@ test('A-51 ter : au-delà de 20 000 caractères, refus prudent, corps de here-do
 test('A-51 ter : le plafond se teste avant toute lecture — une commande de plus de 20 000 caractères est refusée vite', () => {
   // La lecture par jetons est quadratique sur `git commit -m x ` répété : 122 s au-delà du délai du hook, avant le plafond.
   const c = 'git commit -m x '.repeat(62000) + '; npm install x';
-  const t0 = Date.now();
-  assert.deepEqual(decisionCommande(c, CTX_33), { decision: 'refuser', raison: RAISON_TROP_LONGUE });
-  assert.ok(Date.now() - t0 < 2000, `${Date.now() - t0} ms`);
+  const m = enEtalons(() => decisionCommande(c, CTX_33));
+  assert.deepEqual(m.r, { decision: 'refuser', raison: RAISON_TROP_LONGUE });
+  assert.ok(m.etalons < 8, `${m.ms} ms, ${m.etalons} étalons de ${m.etalon} ms (2 s sur un poste libre)`);
 });
 
 test('A-51 ter : le contexte est lu une fois pour les deux lectures — un seul appel de chaque', () => {
@@ -1113,6 +1143,8 @@ test('A-51 ter : le contexte est lu une fois pour les deux lectures — un seul 
 // répétée sans fin de mot en tête (26 s pour `gh pr close 1 -ddd…!` à 99 980 caractères, sous l'ancien plafond de
 // 100 000). À 20 000, le pire cas mesuré prend 1,2 s sur le poste de mesure ; le banc le borne à 10 s, marge pour une
 // machine chargée, sous le délai de 60 s du hook. Un caractère de plus, et la commande est refusée sans être lue.
+// Ticket 91 : les deux bornes en étalons (plus haut), 40 et 4, soit 10 s et 1 s sur un poste libre où l'étalon prend
+// 250 ms ; le pire cas y vaut 7,2 étalons, 8,9 sous 20 boucles à vide, où il a dépassé les 10 s (13,6 s).
 const PLAFOND = 20_000;
 const PIRES_CAS = [
   ['gh pr close 1 -', 'd', '!'],
@@ -1128,7 +1160,7 @@ const PIRES_CAS = [
   ['echo ', '9', ''],
 ];
 const pireCas = ([avant, motif, apres], n) => avant + motif.repeat(Math.ceil(n / motif.length)).slice(0, n - avant.length - apres.length) + apres;
-test('le plafond à 20 000 caractères : chaque pire cas mesuré se lit sous 10 s, et se refuse sans lecture à 20 001', () => {
+test('le plafond à 20 000 caractères : chaque pire cas mesuré se lit sous 40 étalons (10 s sur un poste libre), et se refuse sans lecture à 20 001', () => {
   assert.match(RAISON_TROP_LONGUE, /^commande trop longue pour la garde \(plus de 20 000 caractères\)/);
   assert.match(RAISON_TROP_LONGUE, /Écris le texte long dans un fichier \(git commit -F <fichier>, gh … --body-file <fichier>\)/);
   assert.equal(decisionCommande('echo ' + 'x'.repeat(PLAFOND - 5), CTX_33), null, 'au plafond : lue');
@@ -1136,14 +1168,15 @@ test('le plafond à 20 000 caractères : chaque pire cas mesuré se lit sous 10 
   for (const cas of PIRES_CAS) {
     const c = pireCas(cas, PLAFOND);
     assert.equal(c.length, PLAFOND, JSON.stringify(cas));
-    const t0 = Date.now();
-    assert.equal(decisionCommande(c, CTX_33), null, JSON.stringify(cas));
-    assert.ok(Date.now() - t0 < 10000, `${JSON.stringify(cas)} : ${Date.now() - t0} ms à ${PLAFOND} caractères`);
+    const m = enEtalons(() => decisionCommande(c, CTX_33));
+    assert.equal(m.r, null, JSON.stringify(cas));
+    assert.ok(m.etalons < 40, `${JSON.stringify(cas)} : ${m.ms} ms, ${m.etalons} étalons de ${m.etalon} ms à ${PLAFOND} caractères`);
     const long = pireCas(cas, PLAFOND + 1);
     assert.equal(long.length, PLAFOND + 1, JSON.stringify(cas));
-    const t1 = Date.now();
-    assert.deepEqual(decisionCommande(long, CTX_33), { decision: 'refuser', raison: RAISON_TROP_LONGUE }, JSON.stringify(cas));
-    assert.ok(Date.now() - t1 < 1000, `${JSON.stringify(cas)} : ${Date.now() - t1} ms pour refuser à ${PLAFOND + 1} caractères`);
+    // Le refus se rapporte à l'étalon du cas, mesuré juste avant : un refus sans lecture ne coûte rien.
+    const refus = duree(() => decisionCommande(long, CTX_33));
+    assert.deepEqual(refus.r, { decision: 'refuser', raison: RAISON_TROP_LONGUE }, JSON.stringify(cas));
+    assert.ok(refus.ms / m.etalon < 4, `${JSON.stringify(cas)} : ${refus.ms} ms pour refuser à ${PLAFOND + 1} caractères, ${refus.ms / m.etalon} étalons de ${m.etalon} ms`);
   }
 });
 
@@ -1168,9 +1201,9 @@ test("ticket 48 : `ajouts(code)` de la lecture de 7.9.x ne relance pas sa recher
     assert.equal(LECTURE_7_9.decisionCommande(c, ctx), null, c);
   assert.equal(LECTURE_7_9.decisionCommande('pnpm add react 2>/dev/null', ctx)?.decision, 'refuser');
   // Hors plafond, la lecture de 7.9.x seule : linéaire sur une longue suite de chiffres.
-  const t0 = Date.now();
-  assert.equal(LECTURE_7_9.decisionCommande('echo ' + '9'.repeat(99995), CTX_33), null);
-  assert.ok(Date.now() - t0 < 1000, `${Date.now() - t0} ms pour 99 995 chiffres`);
+  const m = enEtalons(() => LECTURE_7_9.decisionCommande('echo ' + '9'.repeat(99995), CTX_33));
+  assert.equal(m.r, null);
+  assert.ok(m.etalons < 4, `${m.ms} ms pour 99 995 chiffres, ${m.etalons} étalons de ${m.etalon} ms (1 s sur un poste libre)`);
 });
 
 // ——— Ticket 17 de capitaine-a-jour-et-teste : la garde lit git après ses options globales et refuse de sauter les hooks ———

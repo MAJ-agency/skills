@@ -544,20 +544,35 @@ checks_commit() {
 }
 
 # Checks exigés sur develop, en tableau JSON. D'abord les rulesets (`rules/branches/develop` :
-# ce que GitHub recommande, et ce que pose admin.md), qui doivent rendre un tableau ; s'ils n'exigent rien,
+# ce que GitHub recommande, et ce que pose docs/agents/chaine-admin.md), qui doivent rendre un tableau ; s'ils n'exigent rien,
 # l'ancienne protection de branche, qui répond 404 « Branch not protected » quand seul un ruleset protège la
 # branche : une réponse, pas une panne. Toute autre erreur, ou une forme inattendue : sortie 5, jamais « aucun
-# check exigé ».
+# check exigé ». Une règle « Require status checks to pass » qui n'exige aucun check (ruleset ou ancienne protection) :
+# sortie 6, RÉGLAGE DU DÉPÔT sur la sortie d'erreur, jamais [] (ticket 91) : lue [], toute PR se dirait « prête
+# (sans CI) » et n'entrerait jamais ; c'est un réglage à faire par un admin, dit dès cette lecture.
+reglage_checks_vides() { # <où la règle est lue>
+  echo "RÉGLAGE DU DÉPÔT : $1 porte une règle « Require status checks to pass » (required_status_checks) qui n'exige aucun check ; toute PR vers develop s'y lirait « prête (sans CI) » et n'entrerait jamais. À un admin : y ajouter les checks exigés de la CI (qualite, test-db, zizmor : docs/agents/chaine-admin.md, « Protection de develop ») ; puis relancer le capitaine." >&2
+  return 6
+}
 checks_exiges() {
-  local regles protection
+  local regles protection exiges
   regles=$(lire_github "$DEPOT/rules/branches/develop") || return 5
-  regles=$(jq -c 'if type == "array" then [.[] | select(.type == "required_status_checks") | .parameters.required_status_checks[].context] | unique
+  exiges=$(jq -c 'if type == "array" then [.[] | select(.type == "required_status_checks") | .parameters.required_status_checks[].context] | unique
     else error("pas un tableau") end' <<<"$regles" 2>/dev/null) ||
     { echo "GitHub illisible ($DEPOT/rules/branches/develop) : réponse qui n'est pas un tableau de règles" >&2; return 5; }
-  if [ "$regles" != '[]' ]; then printf '%s\n' "$regles"; return 0; fi
-  protection=$(lire_github "$DEPOT/branches/develop/protection/required_status_checks" --absent '{"contexts":[]}') || return 5
-  jq -c 'if type == "object" and ((.contexts // []) | type) == "array" then (.contexts // []) else error("forme inattendue") end' <<<"$protection" 2>/dev/null ||
+  if [ "$exiges" != '[]' ]; then printf '%s\n' "$exiges"; return 0; fi
+  # Aucun check exigé par les rulesets : une règle required_status_checks présente est vide (le cas de l'essai réel du
+  # régime 8 : la PR vue « sans CI » pendant une heure, deux fois).
+  if [ "$(jq '[.[] | select(.type == "required_status_checks")] | length' <<<"$regles")" != 0 ]; then
+    reglage_checks_vides "la branche develop (ruleset $(jq -r '[.[] | select(.type == "required_status_checks") | .ruleset_id // "?" | tostring] | unique | join(", ")' <<<"$regles"))"
+    return
+  fi
+  protection=$(lire_github "$DEPOT/branches/develop/protection/required_status_checks" --absent 'null') || return 5
+  [ "$protection" != null ] || { echo '[]'; return 0; }
+  exiges=$(jq -c 'if type == "object" and ((.contexts // []) | type) == "array" then (.contexts // []) else error("forme inattendue") end' <<<"$protection" 2>/dev/null) ||
     { echo "GitHub illisible ($DEPOT/branches/develop/protection/required_status_checks) : forme inattendue" >&2; return 5; }
+  [ "$exiges" != '[]' ] || { reglage_checks_vides "la protection de branche de develop (Settings → Branches)"; return; }
+  printf '%s\n' "$exiges"
 }
 
 # Attend la CI exigée de `<sommet>`, la tête de la PR `<pr>` : le sommet sur la PR (5 min au plus), un check exigé
@@ -566,7 +581,7 @@ checks_exiges() {
 # de matrice. Partagée par passer.sh et sujet.sh. Retours : 0 vert ; 1 rouge, la liste sur la sortie standard, une
 # ligne « ␣␣nom : ÉTAT » par check ; 2 aucun check exigé apparu au bout de 5 min (CI non déclenchée) ; 3 encore en
 # attente après 60 min ; 5 GitHub illisible pendant l'attente (lire_github, motif sur la sortie d'erreur) : jamais lu
-# comme « encore en attente » ni comme « aucun check ».
+# comme « encore en attente » ni comme « aucun check ». 6 réglage du dépôt (checks_exiges : une règle de checks exigés vide).
 attendre_ci() {
   local n=$1 sommet=$2 requis etats rouges attente nom c vu s
   for _ in $(seq 1 60); do
@@ -574,7 +589,7 @@ attendre_ci() {
     [ "$s" = "$sommet" ] && break
     sleep 5
   done
-  requis=$(checks_exiges) || return 5
+  requis=$(checks_exiges) || return $? # 5 illisible, 6 réglage du dépôt
   requis=$(jq -r '.[]' <<<"$requis")
   vu=0
   for _ in $(seq 1 30); do

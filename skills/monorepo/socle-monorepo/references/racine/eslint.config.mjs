@@ -1,4 +1,4 @@
-import { existsSync, readdirSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import js from "@eslint/js";
@@ -19,6 +19,23 @@ import globals from "globals";
 // options — le dernier écrase le premier. Tout ce qui concerne un groupe de
 // fichiers vit donc dans un seul bloc, dans le fichier du service concerné.
 const root = dirname(fileURLToPath(import.meta.url));
+// Les scripts posés par le plugin maj-skills (`scripts/agent/`, `scripts/chaine/`…) : du code vendu, tenu par la CI
+// du plugin, que le projet ne modifie jamais. Leur liste vit dans `.prettierignore`, entre `# socle:poses-du-plugin`
+// et `# /socle:poses-du-plugin`, seule : ESLint la lit là, Prettier et lint-staged la suivent d'eux-mêmes. Sans le
+// bloc, ESLint lirait ces scripts : la configuration le refuse, plutôt que de lire une liste vide.
+const prettierignore = readFileSync(join(root, ".prettierignore"), "utf8")
+  .split(/\r?\n/)
+  .map((ligne) => ligne.trim());
+const debutPoses = prettierignore.indexOf("# socle:poses-du-plugin");
+const finPoses = prettierignore.indexOf("# /socle:poses-du-plugin");
+if (debutPoses < 0 || finPoses < debutPoses)
+  throw new Error(
+    ".prettierignore : le bloc « # socle:poses-du-plugin » … « # /socle:poses-du-plugin » manque ; le reprendre du gabarit de socle-monorepo (NOTES-DE-VERSION.md du plugin, 8.3.1)",
+  );
+const posesDuPlugin = prettierignore
+  .slice(debutPoses + 1, finPoses)
+  .filter((ligne) => ligne && !ligne.startsWith("#"))
+  .map((dossier) => `${dossier.replace(/\/$/, "")}/**`);
 const bricks = ["packages", "apps"].flatMap((dir) => {
   const path = join(root, dir);
   if (!existsSync(path)) return [];
@@ -47,6 +64,7 @@ export default tseslint.config(
       "**/.turbo/**",
       "**/*.config.{js,cjs,mjs,ts}",
       "**/eslint.rules.mjs",
+      ...posesDuPlugin,
     ],
   },
   js.configs.recommended,

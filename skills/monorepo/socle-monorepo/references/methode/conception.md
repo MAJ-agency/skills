@@ -1,6 +1,6 @@
 # Conception — modules profonds, TDD, revue
 
-Vocabulaire et règles de conception, en amont des règles d'architecture impératives ([`apps/api/CLAUDE.md`](../../apps/api/CLAUDE.md)). L'hexagonal dit _où_ mettre le code ; ce document dit _quelle forme_ lui donner.
+Vocabulaire et règles de conception, en amont des règles d'architecture impératives (le `CLAUDE.md` de chaque service, `apps/<service>/CLAUDE.md`). L'hexagonal dit _où_ mettre le code ; ce document dit _quelle forme_ lui donner.
 
 Sources : `mattpocock-skills:codebase-design`, `mattpocock-skills:tdd`, `mattpocock-skills:code-review`.
 
