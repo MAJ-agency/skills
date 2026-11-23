@@ -1,0 +1,7 @@
+# Mutations de la retouche, sur le commit local 0921280 (arbre 7546259496eaaffb77364afa890ce28b41c456d8)
+ROUGE R1 (M1 du tour 1) : le test de présence compte toutes les règles du ruleset — 5 checks_exiges : un ruleset sans règle de checks (ses autres règles seules) n'est pas un  | 6 checks_exiges : un ruleset sans règle de checks et une ancienne protection qui n'en exig
+ROUGE R2 : la règle vide d'un ruleset se dit sans lire l'ancienne protection (le code de bf5a1c4) — 4 checks_exiges : une règle de checks vide d'un ruleset, à côté d'une ancienne protection 
+ROUGE R3 : l'ancienne protection vide fait taire la règle vide du ruleset (le réglage nomme toujours l'ancienne protection) — 4 checks_exiges : une règle de checks vide d'un ruleset, à côté d'une ancienne protection 
+ROUGE R4 : une règle vide du ruleset et une protection absente rendent [] (le réglage oublié) — 1 checks_exiges : une règle de checks exigés vide sur develop sort en 6, RÉGLAGE DU DÉPÔT  | 2 file.sh puis boucle.sh : une règle de checks exigés vide est dite à la première lecture  | 3 passer.sh : une règle de checks exigés vide n'est jamais « CI non déclenchée » : sortie 
+toutes rouges
+sortie 0 ; git status --short : []

@@ -1,0 +1,239 @@
+diff --git a/NOTES-DE-VERSION.md b/NOTES-DE-VERSION.md
+index ca64a3d..e3746ff 100644
+--- a/NOTES-DE-VERSION.md
++++ b/NOTES-DE-VERSION.md
+@@ -12,7 +12,7 @@ La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque pro
+ - **Le registre des coûts est généré à la pose** (`socle-chaine-de-production`, étape 2.3 : `node scripts/docs/couts.mjs`) : `chaine-de-production.md` le cite, `check:contexte` était rouge sans lui.
+ - **La méthode posée par la racine n'a plus de lien vers une brique absente** : `conception.md` et `pare-feu-ci.md` citaient `apps/api/CLAUDE.md` et `ADR_ALL_ARC-2` par un lien, cassé dans un dépôt sans API.
+ - **Un seul nom pour la liste de l'admin, `docs/agents/chaine-admin.md`** : `socle-monorepo`, `anchorpost` (sa recette de l'administrateur et son ADR) et `pieges.md` nommaient `docs/agents/admin.md`, que rien ne pose.
+-- **Une règle de checks exigés vide sur `develop` est un réglage du dépôt, dit à la première lecture** : `checks_exiges` (`github.sh`) sort en 6 sur `RÉGLAGE DU DÉPÔT` (la branche, la règle vide, le geste de l'admin), `file.sh` sort en 6 et la boucle s'arrête (`ARRÊT : réglage du dépôt`), `passer.sh` sort en 3 et `sujet.sh fusionner` en 11 sur la même raison ; avant, toute PR s'y lisait « prête (sans CI) » et n'entrait jamais (vu deux fois à l'essai, au bout d'une heure ou plus). `chaine-admin.md` le dit à la protection de `develop`. Un dépôt sans aucune règle de checks reste « sans CI » : rien n'y entre non plus (chaque PR « CI non déclenchée », de côté), et le capitaine ne le dit pas encore ; c'est un ticket de suite, et la ligne `RÉGLAGE DU DÉPÔT` dit d'ajouter les checks, jamais de retirer la règle.
++- **Une règle de checks exigés vide sur `develop` est un réglage du dépôt, dit à la première lecture** : `checks_exiges` (`github.sh`) sort en 6 sur `RÉGLAGE DU DÉPÔT` (la branche, la règle vide, le geste de l'admin), `file.sh` sort en 6 et la boucle s'arrête (`ARRÊT : réglage du dépôt`), `passer.sh` sort en 3 et `sujet.sh fusionner` en 11 sur la même raison ; avant, toute PR s'y lisait « prête (sans CI) » et n'entrait jamais (vu deux fois à l'essai, au bout d'une heure ou plus). Devant une règle vide d'un ruleset, `checks_exiges` lit encore l'ancienne protection de branche, que GitHub cumule avec les rulesets : si elle exige des checks, ce sont eux, et rien n'est dit ; le réglage n'est dit que si aucune des deux n'en exige. `chaine-admin.md` le dit à la protection de `develop`. Un dépôt sans aucune règle de checks reste « sans CI » : rien n'y entre non plus (chaque PR « CI non déclenchée », de côté), et le capitaine ne le dit pas encore ; c'est un ticket de suite, et la ligne `RÉGLAGE DU DÉPÔT` dit d'ajouter les checks, jamais de retirer la règle.
+ - **Les durées de `regles.test.mjs` se bornent en étalons**, un travail fixe mesuré juste avant et juste après chaque cas : sous 20 boucles à vide sur quatre cœurs, le pire cas à 20 000 caractères prenait 13,6 s pour une borne de 10 s (2,5 s sur un poste libre) ; il y vaut 8,9 étalons pour une borne de 40, contre 7,2 sur un poste libre. Le rapport du cas « contre-relecture C1 » se compare aussi en étalons : en secondes, il rougissait sous charge.
+ 
+ ### Ce qu'un projet fait pour en profiter
+diff --git a/scripts/chaine-seule.test.mjs b/scripts/chaine-seule.test.mjs
+index 9018d1e..42d0968 100644
+--- a/scripts/chaine-seule.test.mjs
++++ b/scripts/chaine-seule.test.mjs
+@@ -70,3 +70,15 @@ test('au premier pnpm check, les skills disent ce qui se gèle (et seulement cel
+   const sections = [...criteres.matchAll(/^(S\d+) .*?apps\/api\/CLAUDE\.md((?: § « [^»]+ »,?)+)/gm)].map((m) => [m[1], [...m[2].matchAll(/« ([^»]+) »/g)].length]);
+   assert.deepEqual(sections, [['S1', 2], ['S2', 1], ['S4', 1], ['S8', 1], ['S9', 1], ['S10', 1]]);
+ });
++
++test('le bloc socle:poses-du-plugin renvoie à la note qui l’introduit, sans numéro de version : un main qui bouge ne rend pas ce renvoi faux', () => {
++  const avecVersion = [...fichiers('skills'), 'README.md']
++    .filter((f) => /\.(md|mjs|sh|json|yml)$/.test(f))
++    .flatMap((f) => lire(f).split('\n').flatMap((l, i) => (/poses-du-plugin/.test(l) && /\b\d+\.\d+\.\d+\b/.test(l) ? [`${f}:${i + 1}`] : [])));
++  assert.deepEqual(avecVersion, [], 'une ligne qui renvoie au bloc socle:poses-du-plugin porte un numéro de version : dire « la note qui l’introduit »');
++  assert.match(lire(`${MONOREPO}/references/racine/eslint.config.mjs`), /\(NOTES-DE-VERSION\.md du plugin, la note qui l'introduit\)/);
++  assert.match(lire(`${CHAINE}/SKILL.md`), /un projet posé sans ce bloc l'ajoute \(`NOTES-DE-VERSION\.md`, la note qui l'introduit\)/);
++  // La note qui l'introduit existe : une note de version dont « Ce qui change » nomme le bloc.
++  const notes = lire('NOTES-DE-VERSION.md').split(/^## /m).slice(1);
++  assert.ok(notes.some((n) => /^### Ce qui change\n[\s\S]*?socle:poses-du-plugin[\s\S]*?^### Ce qu'un projet fait/m.test(n)), 'aucune note de version n’introduit le bloc socle:poses-du-plugin');
++});
+diff --git a/skills/chaine/fusionner/scripts/checks-exiges-vides.test.mjs b/skills/chaine/fusionner/scripts/checks-exiges-vides.test.mjs
+index 53116ac..fab51c6 100644
+--- a/skills/chaine/fusionner/scripts/checks-exiges-vides.test.mjs
++++ b/skills/chaine/fusionner/scripts/checks-exiges-vides.test.mjs
+@@ -5,6 +5,9 @@
+ // admin (sortie 6, RÉGLAGE DU DÉPÔT) ; `file.sh` sort en 6, la boucle s'arrête (ARRÊT), `passer.sh` sort en 3 sur la
+ // même raison. Un dépôt sans aucune règle de checks reste « sans CI » : rien n'y entre non plus (`attendre_ci` ne voit
+ // aucun check exigé apparaître), un ticket de suite ; d'où le geste dit : ajouter les checks, jamais retirer la règle.
++// Contre-relecture de la PR 159 : GitHub cumule les rulesets et l'ancienne protection ; une règle vide d'un ruleset ne
++// cache pas les checks que l'ancienne protection exige, et un ruleset sans règle de checks (ses autres règles seules)
++// n'est pas un réglage du dépôt.
+ import { test } from "node:test";
+ import assert from "node:assert/strict";
+ import { spawnSync } from "node:child_process";
+@@ -77,3 +80,48 @@ test("passer.sh : une règle de checks exigés vide n'est jamais « CI non décl
+   assert.match(r.stderr, REGLAGE);
+   assert.deepEqual(d.journal().filter((e) => /^(PUT|DELETE)$/.test(e.methode) && /merge|labels/.test(e.route)), [], "ni fusion ni label retiré");
+ });
++
++test("checks_exiges : une règle de checks vide d'un ruleset, à côté d'une ancienne protection qui exige des checks, rend la liste de l'ancienne protection (GitHub cumule les deux) et file.sh dit la PR prête, sans réglage ; les deux vides, le réglage nomme le ruleset", () => {
++  const d = depotJouet();
++  d.publierChaine();
++  d.branche("feat/v", "origin/develop", { "docs/v.md": "v\n" });
++  d.git("switch", "-q", "--detach", "origin/develop");
++  d.github({ regleVide: true, classique: ["qualite"], checks: { "*": { qualite: "SUCCESS" } }, pulls: [pr(72, "feat/v")] });
++  let r = fonction(d, "checks_exiges");
++  assert.equal(r.status, 0, r.stdout + r.stderr);
++  assert.equal(r.stdout.trim(), '["qualite"]', "les checks de l'ancienne protection");
++  assert.doesNotMatch(r.stderr, /RÉGLAGE/);
++  const f = d.lancer(script("fusionner", "file.sh"));
++  assert.equal(f.status, 0, f.stdout + f.stderr);
++  assert.match(f.stdout, /^72\tprête\t/m);
++  assert.doesNotMatch(f.stderr, /RÉGLAGE/);
++  d.github({ classique: [] });
++  r = fonction(d, "checks_exiges");
++  assert.equal(r.status, 6, r.stdout + r.stderr);
++  assert.equal(r.stdout, "");
++  assert.match(r.stderr, REGLAGE);
++});
++
++test("checks_exiges : un ruleset sans règle de checks (ses autres règles seules) n'est pas un réglage du dépôt : [] sans ancienne protection, la liste de l'ancienne protection quand elle exige", () => {
++  const d = depotJouet();
++  d.github({ rulesetSansChecks: true, exiges: [] });
++  let r = fonction(d, "checks_exiges");
++  assert.equal(r.status, 0, r.stdout + r.stderr);
++  assert.equal(r.stdout.trim(), "[]", "un ruleset sans « Require status checks », la protection absente (404) : sans CI");
++  assert.doesNotMatch(r.stderr, /RÉGLAGE/);
++  d.github({ rulesetSansChecks: true, protectionClassique: true, exiges: ["qualite"] });
++  r = fonction(d, "checks_exiges");
++  assert.equal(r.status, 0, r.stdout + r.stderr);
++  assert.equal(r.stdout.trim(), '["qualite"]', "le ruleset pour les PR, l'ancienne protection pour les checks");
++  assert.doesNotMatch(r.stderr, /RÉGLAGE/);
++});
++
++test("checks_exiges : un ruleset sans règle de checks et une ancienne protection qui n'en exige aucun sortent en 6, le réglage nommant l'ancienne protection, jamais le ruleset", () => {
++  const d = depotJouet();
++  d.github({ rulesetSansChecks: true, classique: [] });
++  const r = fonction(d, "checks_exiges");
++  assert.equal(r.status, 6, r.stdout + r.stderr);
++  assert.equal(r.stdout, "");
++  assert.match(r.stderr, /^RÉGLAGE DU DÉPÔT : la protection de branche de develop \(Settings → Branches\) porte une règle « Require status checks to pass »/m);
++  assert.doesNotMatch(r.stderr, /ruleset/);
++});
+diff --git a/skills/chaine/fusionner/scripts/github.sh b/skills/chaine/fusionner/scripts/github.sh
+index 46dd012..6a00573 100755
+--- a/skills/chaine/fusionner/scripts/github.sh
++++ b/skills/chaine/fusionner/scripts/github.sh
+@@ -549,29 +549,35 @@ checks_commit() {
+ # branche : une réponse, pas une panne. Toute autre erreur, ou une forme inattendue : sortie 5, jamais « aucun
+ # check exigé ». Une règle « Require status checks to pass » qui n'exige aucun check (ruleset ou ancienne protection) :
+ # sortie 6, RÉGLAGE DU DÉPÔT sur la sortie d'erreur, jamais [] (ticket 91) : lue [], toute PR se dirait « prête
+-# (sans CI) » et n'entrerait jamais ; c'est un réglage à faire par un admin, dit dès cette lecture.
++# (sans CI) » et n'entrerait jamais ; c'est un réglage à faire par un admin, dit dès cette lecture. GitHub cumule les
++# rulesets et l'ancienne protection : devant une règle vide d'un ruleset, l'ancienne protection se lit encore, et ses
++# checks font la liste ; le réglage n'est dit que si elle n'en exige aucun non plus (contre-relecture de la PR 159).
+ reglage_checks_vides() { # <où la règle est lue>
+   echo "RÉGLAGE DU DÉPÔT : $1 porte une règle « Require status checks to pass » (required_status_checks) qui n'exige aucun check ; toute PR vers develop s'y lirait « prête (sans CI) » et n'entrerait jamais. À un admin : y ajouter les checks exigés de la CI (qualite, test-db, zizmor : docs/agents/chaine-admin.md, « Protection de develop ») ; puis relancer le capitaine." >&2
+   return 6
+ }
+ checks_exiges() {
+-  local regles protection exiges
++  local regles protection exiges vide=''
+   regles=$(lire_github "$DEPOT/rules/branches/develop") || return 5
+   exiges=$(jq -c 'if type == "array" then [.[] | select(.type == "required_status_checks") | .parameters.required_status_checks[].context] | unique
+     else error("pas un tableau") end' <<<"$regles" 2>/dev/null) ||
+     { echo "GitHub illisible ($DEPOT/rules/branches/develop) : réponse qui n'est pas un tableau de règles" >&2; return 5; }
+   if [ "$exiges" != '[]' ]; then printf '%s\n' "$exiges"; return 0; fi
+   # Aucun check exigé par les rulesets : une règle required_status_checks présente est vide (le cas de l'essai réel du
+-  # régime 8 : la PR vue « sans CI » pendant une heure, deux fois).
++  # régime 8 : la PR vue « sans CI » pendant une heure, deux fois). Elle se retient, et l'ancienne protection se lit
++  # avant de la dire : GitHub cumule les deux, et des checks exigés là font la liste.
+   if [ "$(jq '[.[] | select(.type == "required_status_checks")] | length' <<<"$regles")" != 0 ]; then
+-    reglage_checks_vides "la branche develop (ruleset $(jq -r '[.[] | select(.type == "required_status_checks") | .ruleset_id // "?" | tostring] | unique | join(", ")' <<<"$regles"))"
+-    return
++    vide="la branche develop (ruleset $(jq -r '[.[] | select(.type == "required_status_checks") | .ruleset_id // "?" | tostring] | unique | join(", ")' <<<"$regles"))"
+   fi
+   protection=$(lire_github "$DEPOT/branches/develop/protection/required_status_checks" --absent 'null') || return 5
+-  [ "$protection" != null ] || { echo '[]'; return 0; }
++  if [ "$protection" = null ]; then
++    [ -z "$vide" ] || { reglage_checks_vides "$vide"; return; }
++    echo '[]'
++    return 0
++  fi
+   exiges=$(jq -c 'if type == "object" and ((.contexts // []) | type) == "array" then (.contexts // []) else error("forme inattendue") end' <<<"$protection" 2>/dev/null) ||
+     { echo "GitHub illisible ($DEPOT/branches/develop/protection/required_status_checks) : forme inattendue" >&2; return 5; }
+-  [ "$exiges" != '[]' ] || { reglage_checks_vides "la protection de branche de develop (Settings → Branches)"; return; }
++  [ "$exiges" != '[]' ] || { reglage_checks_vides "${vide:-la protection de branche de develop (Settings → Branches)}"; return; }
+   printf '%s\n' "$exiges"
+ }
+ 
+diff --git a/skills/chaine/socle-chaine-de-production/SKILL.md b/skills/chaine/socle-chaine-de-production/SKILL.md
+index ce8796e..21dc498 100644
+--- a/skills/chaine/socle-chaine-de-production/SKILL.md
++++ b/skills/chaine/socle-chaine-de-production/SKILL.md
+@@ -63,7 +63,7 @@ node --test scripts/github/*.test.mjs
+ node scripts/docs/next-id.mjs ADR ALL ARC
+ ```
+ 
+-Au premier `pnpm check` après cette pose, `check:contexte` nomme les références des gabarits de la chaîne vers une brique absente : sans API, les sept sections de `apps/api/CLAUDE.md` que citent les critères S1, S2, S4, S8, S9 et S10 de `docs/agents/criteres-revue.md`, et `scripts/db/demarrer-local.sh` dans `docs/agents/pieges.md`. Celles-là, et elles seules, se gèlent, comme à l'étape 7 de `socle-monorepo` (l'entrée `"<fichier>:<ligne>:<référence>"` de `scripts/verify/references-agent-dette.json`) ; `--elaguer` les retire à l'arrivée de l'API. Le lint et Prettier du projet ne lisent pas les scripts posés ici (bloc `socle:poses-du-plugin` de `.prettierignore`, gabarit de `socle-monorepo`) : un projet posé avant 8.3.1 l'ajoute (`NOTES-DE-VERSION.md`).
++Au premier `pnpm check` après cette pose, `check:contexte` nomme les références des gabarits de la chaîne vers une brique absente : sans API, les sept sections de `apps/api/CLAUDE.md` que citent les critères S1, S2, S4, S8, S9 et S10 de `docs/agents/criteres-revue.md`, et `scripts/db/demarrer-local.sh` dans `docs/agents/pieges.md`. Celles-là, et elles seules, se gèlent, comme à l'étape 7 de `socle-monorepo` (l'entrée `"<fichier>:<ligne>:<référence>"` de `scripts/verify/references-agent-dette.json`) ; `--elaguer` les retire à l'arrivée de l'API. Le lint et Prettier du projet ne lisent pas les scripts posés ici (bloc `socle:poses-du-plugin` de `.prettierignore`, gabarit de `socle-monorepo`) : un projet posé sans ce bloc l'ajoute (`NOTES-DE-VERSION.md`, la note qui l'introduit).
+ 
+ Puis : aucun placeholder `{{…}}` restant (chercher `{{[A-Z_]+}}` hors JSX) ; `.claude/settings.json` valide et les quatre hooks présents (deux graphify, deux agent) ; `git ls-remote --heads origin develop` rend une ligne ; `gh api repos/{owner}/{repo}/labels --jq '.[].name'` liste les neuf labels, ou la case correspondante de `chaine-admin.md` est ouverte.
+ 
+diff --git a/skills/chaine/sujet/scripts/faux-gh.mjs b/skills/chaine/sujet/scripts/faux-gh.mjs
+index 8c10c75..f0a4988 100644
+--- a/skills/chaine/sujet/scripts/faux-gh.mjs
++++ b/skills/chaine/sujet/scripts/faux-gh.mjs
+@@ -394,29 +394,48 @@ function repondre() {
+   if (route.match(/^commits\/[0-9a-f]+\/status$/)) return { statuses: [] };
+   // Checks exigés : par ruleset (le cas nominal), ou par l'ancienne protection de branche quand
+   // le dépôt jouet le déclare (`protectionClassique`) — l'autre forme répond alors comme GitHub.
+-  // Sans check exigé, aucune règle (un ruleset sans « Require status checks », ou la protection
+-  // sans elle : 404). `regleVide` (ticket 91) : la règle est là, sans aucun check, comme sur le
+-  // jouet de l'essai réel du régime 8.
+-  if (route === "rules/branches/develop")
+-    return etat.protectionClassique || (!(etat.exiges ?? []).length && !etat.regleVide)
+-      ? []
+-      : [
+-          {
+-            type: "required_status_checks",
+-            ruleset_id: 42,
+-            parameters: {
+-              required_status_checks: (etat.exiges ?? []).map((context) => ({
+-                context,
+-              })),
++  // Sans check exigé, aucune règle de checks (la protection sans elle : 404). `regleVide` (ticket
++  // 91) : la règle est là, sans aucun check, comme sur le jouet de l'essai réel du régime 8. Un
++  // ruleset rend aussi ses autres règles, comme GitHub (`deletion`, `pull_request` : ce que pose
++  // chaine-admin.md). Contre-relecture de la PR 159 : `rulesetSansChecks`, un ruleset protège
++  // develop sans « Require status checks » ; `classique`, l'ancienne protection à côté du ruleset,
++  // ses checks exigés (GitHub cumule les deux).
++  if (route === "rules/branches/develop") {
++    const checks =
++      !etat.protectionClassique &&
++      ((etat.exiges ?? []).length > 0 || Boolean(etat.regleVide));
++    if (!checks && !etat.rulesetSansChecks) return [];
++    return [
++      { type: "deletion", ruleset_id: 42 },
++      {
++        type: "pull_request",
++        ruleset_id: 42,
++        parameters: { required_approving_review_count: 0 },
++      },
++      ...(checks
++        ? [
++            {
++              type: "required_status_checks",
++              ruleset_id: 42,
++              parameters: {
++                strict_required_status_checks_policy: true,
++                required_status_checks: (etat.exiges ?? []).map((context) => ({
++                  context,
++                })),
++              },
+             },
+-          },
+-        ];
+-  if (route === "branches/develop/protection/required_status_checks")
++          ]
++        : []),
++    ];
++  }
++  if (route === "branches/develop/protection/required_status_checks") {
++    if (Array.isArray(etat.classique)) return { contexts: etat.classique };
+     return !etat.protectionClassique
+       ? echec("gh: Branch not protected (HTTP 404)")
+       : (etat.exiges ?? []).length || etat.regleVide
+         ? { contexts: etat.exiges ?? [] }
+         : echec("gh: Required status checks not enabled (HTTP 404)");
++  }
+   if ((m = route.match(/^branches\/([^/]+)$/))) {
+     return ref(decodeURIComponent(m[1]))
+       ? { name: decodeURIComponent(m[1]) }
+diff --git a/skills/monorepo/socle-monorepo/references/racine/eslint.config.mjs b/skills/monorepo/socle-monorepo/references/racine/eslint.config.mjs
+index bd28af4..22518ee 100644
+--- a/skills/monorepo/socle-monorepo/references/racine/eslint.config.mjs
++++ b/skills/monorepo/socle-monorepo/references/racine/eslint.config.mjs
+@@ -30,7 +30,7 @@ const debutPoses = prettierignore.indexOf("# socle:poses-du-plugin");
+ const finPoses = prettierignore.indexOf("# /socle:poses-du-plugin");
+ if (debutPoses < 0 || finPoses < debutPoses)
+   throw new Error(
+-    ".prettierignore : le bloc « # socle:poses-du-plugin » … « # /socle:poses-du-plugin » manque ; le reprendre du gabarit de socle-monorepo (NOTES-DE-VERSION.md du plugin, 8.3.1)",
++    ".prettierignore : le bloc « # socle:poses-du-plugin » … « # /socle:poses-du-plugin » manque ; le reprendre du gabarit de socle-monorepo (NOTES-DE-VERSION.md du plugin, la note qui l'introduit)",
+   );
+ const posesDuPlugin = prettierignore
+   .slice(debutPoses + 1, finPoses)

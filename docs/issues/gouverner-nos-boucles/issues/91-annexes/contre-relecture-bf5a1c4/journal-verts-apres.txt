@@ -1,0 +1,8 @@
+== verts après : commit local 0921280 (arbre 7546259496eaaffb77364afa890ce28b41c456d8), node v22.23.5,  11:50:57 up  1:07,  0 user,  load average: 0.56, 2.21, 3.01
+# tests 477
+# pass 477
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+sortie 0 ;  11:58:02 up  1:14,  0 user,  load average: 1.19, 2.22, 2.81

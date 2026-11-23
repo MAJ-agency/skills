@@ -1,0 +1,29 @@
+# Sonde checks_exiges : un faux gh réduit aux deux routes de protection (404 : « gh: Branch not protected (HTTP 404) »), github.sh de 6c37fe3, de bf5a1c4 et de la retouche
+== S1 ruleset à règle vide + ancienne protection qui exige qualite
+  6c37fe3   rc=0 out=["qualite"] err=
+  bf5a1c4   rc=6 out= err=RÉGLAGE DU DÉPÔT : la branche develop (ruleset 7) porte une règle « Require status ch
+  retouche  rc=0 out=["qualite"] err=
+== S1 bis ruleset à règle vide + ancienne protection vide
+  6c37fe3   rc=0 out=[] err=
+  bf5a1c4   rc=6 out= err=RÉGLAGE DU DÉPÔT : la branche develop (ruleset 7) porte une règle « Require status ch
+  retouche  rc=6 out= err=RÉGLAGE DU DÉPÔT : la branche develop (ruleset 7) porte une règle « Require status ch
+== S2 ruleset sans règle de checks (autres règles), protection 404
+  6c37fe3   rc=0 out=[] err=
+  bf5a1c4   rc=0 out=[] err=
+  retouche  rc=0 out=[] err=
+== S3 ruleset sans règle de checks, protection à liste vide
+  6c37fe3   rc=0 out=[] err=
+  bf5a1c4   rc=6 out= err=RÉGLAGE DU DÉPÔT : la protection de branche de develop (Settings → Branches) porte un
+  retouche  rc=6 out= err=RÉGLAGE DU DÉPÔT : la protection de branche de develop (Settings → Branches) porte un
+== S4 deux rulesets : une règle vide, une qui exige
+  6c37fe3   rc=0 out=["qualite"] err=
+  bf5a1c4   rc=0 out=["qualite"] err=
+  retouche  rc=0 out=["qualite"] err=
+== S5 aucune règle, protection 404
+  6c37fe3   rc=0 out=[] err=
+  bf5a1c4   rc=0 out=[] err=
+  retouche  rc=0 out=[] err=
+== S6 règle vide seule, protection 404
+  6c37fe3   rc=0 out=[] err=
+  bf5a1c4   rc=6 out= err=RÉGLAGE DU DÉPÔT : la branche develop (ruleset 7) porte une règle « Require status ch
+  retouche  rc=6 out= err=RÉGLAGE DU DÉPÔT : la branche develop (ruleset 7) porte une règle « Require status ch

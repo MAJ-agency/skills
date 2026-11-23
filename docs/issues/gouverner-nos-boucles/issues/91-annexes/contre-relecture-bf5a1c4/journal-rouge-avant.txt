@@ -1,0 +1,28 @@
+# Rouges avant — patch sha256 b364ec6508bbbb16c5af3af74a3c846908ecc19e9e58ab1467fc54dea26a7009, node v22.23.5, 2026-11-23T11:50:28Z
+git apply --check sur bf5a1c4 : ok
+arbre du patch appliqué sur bf5a1c4 : 7546259496eaaffb77364afa890ce28b41c456d8
+== les bancs du patch seuls sur le code de bf5a1c4 (git status --short) :
+ M scripts/chaine-seule.test.mjs
+ M skills/chaine/fusionner/scripts/checks-exiges-vides.test.mjs
+ M skills/chaine/sujet/scripts/faux-gh.mjs
+ok 1 - la liste de l’admin a un seul nom, docs/agents/chaine-admin.md : posée sous ce nom, et aucun skill ni gabarit ne nomme docs/agents/admin.md
+ok 2 - les liens de la méthode posée par socle-monorepo résolvent dans un dépôt sans service
+ok 3 - au premier pnpm check, les skills disent ce qui se gèle (et seulement cela) et le registre des coûts qui se génère
+not ok 4 - le bloc socle:poses-du-plugin renvoie à la note qui l’introduit, sans numéro de version : un main qui bouge ne rend pas ce renvoi faux
+ok 5 - checks_exiges : une règle de checks exigés vide sur develop sort en 6, RÉGLAGE DU DÉPÔT nommant la branche, la règle et le geste, rien sur la sortie standard
+ok 6 - file.sh puis boucle.sh : une règle de checks exigés vide est dite à la première lecture et arrête la boucle, jamais une PR « prête (sans CI) » mise de côt
+ok 7 - passer.sh : une règle de checks exigés vide n'est jamais « CI non déclenchée » : sortie 3 sur le réglage du dépôt, ni fusion ni label
+not ok 8 - checks_exiges : une règle de checks vide d'un ruleset, à côté d'une ancienne protection qui exige des checks, rend la liste de l'ancienne protection (GitHu
+ok 9 - checks_exiges : un ruleset sans règle de checks (ses autres règles seules) n'est pas un réglage du dépôt : [] sans ancienne protection, la liste de l'ancienne
+ok 10 - checks_exiges : un ruleset sans règle de checks et une ancienne protection qui n'en exige aucun sortent en 6, le réglage nommant l'ancienne protection, jamais l
+# tests 10
+# pass 8
+# fail 2
+== mutation length du tour 1 (github.sh:566) sur le code de bf5a1c4, bancs du patch
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+not ok 4 - checks_exiges : une règle de checks vide d'un ruleset, à côté d'une ancienne protection qui exige des checks, rend la liste de l'ancienne protection (GitHu
+not ok 5 - checks_exiges : un ruleset sans règle de checks (ses autres règles seules) n'est pas un réglage du dépôt : [] sans ancienne protection, la liste de l'anci
+not ok 6 - checks_exiges : un ruleset sans règle de checks et une ancienne protection qui n'en exige aucun sortent en 6, le réglage nommant l'ancienne protection, jamai
+# tests 6
+# pass 3
+# fail 3
