@@ -1,6 +1,6 @@
 // Le dépôt contre lui-même : tout skill est déclaré dans le plugin, tout skill déclaré existe,
 // son nom est celui de son dossier, et aucun SKILL.md ne dépasse le budget de 200 lignes
-// que le socle impose aux projets (`budget-contexte.mjs`), et un skill marqué `disable-model-invocation` ne se charge que par sa commande en tête d'un prompt de lancement.
+// que le socle impose aux projets (`budget-contexte.mjs`), et un skill marqué `disable-model-invocation` ne se charge jamais par une commande en tête d'un prompt de lancement : le prompt s'ouvre par une phrase et la session lit le skill dans son fichier du marketplace.
 import assert from "node:assert/strict";
 import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -347,12 +347,13 @@ test("lecteurs des prompts de lancement : entrées piégées", () => {
 test("aucun prompt de lancement ne commence par « / » ni ne donne la commande d'un skill marqué : il dit le rôle en mots et fait lire le fichier du skill", () => {
   const noms = skillsMarques();
   assert.ok(noms.includes("chantier") && noms.includes("fusionner"), "chantier et fusionner sont marqués");
+  const chaine = readFileSync(join(RACINE, "skills/chaine/socle-chaine-de-production/references/docs-agents/chaine-de-production.md"), "utf8");
+  const gabaritFille = blocsTexte(chaine.slice(chaine.indexOf("## 5. Session fille")))[0];
+  assert.ok(gabaritFille, "le § 5 porte le gabarit d'une fille, premier bloc text");
   const blocs = [
     ...blocsTexte(readFileSync(join(RACINE, LANCEMENT), "utf8")).map((b, i) => [`${LANCEMENT} bloc ${i + 1}`, b]),
     ...blocsTexte(readFileSync(join(RACINE, "skills/chaine/relecteur/references/prompt-session.md"), "utf8")).map((b, i) => [`prompt-session.md bloc ${i + 1}`, b]),
-    ...blocsTexte(readFileSync(join(RACINE, "skills/chaine/socle-chaine-de-production/references/docs-agents/chaine-de-production.md"), "utf8"))
-      .filter((b) => b.startsWith("Session fille du chantier"))
-      .map((b) => ["gabarit d'une fille", b]),
+    ["gabarit d'une fille", gabaritFille],
   ];
   assert.ok(blocs.length >= 6, "au moins les quatre prompts, le ticket hors chantier et la fille");
   const fautes = blocs.flatMap(([nom, b]) => [
