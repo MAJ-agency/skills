@@ -2,7 +2,7 @@
 
 La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque projet par `poser` : une version publiée ne change rien chez un projet qui ne les repose pas. Chaque note dit ce qui change, puis ce qu'un projet fait pour en profiter.
 
-## 8.3.1 — 2026-11-23
+## 8.3.2 — 2026-11-23
 
 ### Ce qui change
 
@@ -12,6 +12,18 @@ La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque pro
 ### Ce qu'un projet fait pour en profiter
 
 - **Rien à reposer** : `lancement.md` est lu par l'architecte dans le plugin. Dans un dépôt posé, reposer `socle-chaine-de-production` pour que `docs/agents/chaine-de-production.md` § 5 porte la règle ; le gabarit d'une fille, lui, n'a pas changé.
+
+## 8.3.1 — 2026-11-23
+
+### Ce qui change
+
+- **Le skill `anchorpost` installe la CLI à `^2.0.3`** (ticket 92), publiée sur npmjs.com le 2026-11-23, à l'étape 1 comme dans « Passer au pivot 3 » ; la description du skill et sa ligne du README disent ≥ 2.0.3. La 2.0.3 lit en plus une aide de garde importée par un espace de noms, par défaut, par un baril, ou méthode d'un objet ou d'une classe exportés, et une aide importée qui saute sans condition : la preuve qu'elle fait sauter ou couper tombe ; deux formes restent non lues (README de la CLI, « Limites tenues par la revue »). Elle juge une condition de saut qui compare deux fixtures de Playwright ou lit une variable au nom d'une fixture : une preuve n'y tombe plus à tort, et `page !== context`, qui gardait la sienne, la fait tomber. Elle accepte `zod` 3.25 ou 4 comme pair, et `migrate manifest` y garde la mise en forme du manifeste. `@^2` seul gardait une 2.0.x plus ancienne déjà installée.
+- **`floor.by` est une clé de `roles`** : la fiche `.claude/rules/anchorpost.md`, le gabarit du manifeste et le skill disent que la personne qui relève un plancher figure dans la table `roles` et écrit elle-même son nom en `floor.by`. La règle vaut dès maintenant (`compare` tient déjà pour un écart la baisse d'un plancher sans `floor.by` connu des `roles` de la base) ; la CLI 2.0.4 alertera, dans la santé de l'index, un `floor.by` inconnu, sans rien refuser.
+
+### Ce qu'un projet fait pour en profiter
+
+- **Monter la CLI** : `pnpm add -Dw @maj-agency/anchorpost@^2.0.3`, puis `pnpm anchorpost:index` et `pnpm anchorpost:check` ; l'index peut perdre des règles prouvées (une preuve qu'une aide importée faisait sauter, ou qu'une condition `page !== context` gardait, tombe) : le relire, et ne baisser aucun plancher sans la personne qui le signe.
+- **Reposer la fiche** `.claude/rules/anchorpost.md`, et vérifier que chaque `floor.by` du manifeste est une clé de `roles` : sinon, la personne s'y ajoute avec son rôle, ou corrige le nom, par une PR à part, avant toute baisse de plancher qu'elle signe (le manifeste est un chemin sensible ; une personne ajoutée dans la PR même n'y signe pas).
 
 ## 8.3.0 — 2026-11-22
 

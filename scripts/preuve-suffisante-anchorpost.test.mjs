@@ -2,7 +2,7 @@
 // les textes que les skills posent, lus à plat comme dans `depot.test.mjs` (blancs et sauts de ligne réduits à une
 // espace : une phrase exigée peut changer de ligne, une phrase glissée au milieu d'un passage le rompt).
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
 
@@ -34,8 +34,8 @@ test("le skill anchorpost suit la CLI 2.0.0 : manifeste au schéma 3, CLI publiq
     assert.doesNotMatch(readFileSync(join(RACINE, ANCHORPOST, f), "utf8"), /paquet (npm )?privé sur GitHub Packages, installé|network secret pour l'hôte/, `${f} : la recette du jeton est retirée`);
   exiger(`${ANCHORPOST}/SKILL.md`, [
     "La CLI est un paquet npm **public** sur npmjs.com (Anchorpost `ADR_ALL_ARC-16`) : une installation ordinaire, sans jeton ni `.npmrc` particulier.",
-    "2. `pnpm add -Dw @maj-agency/anchorpost@^2`",
-    "1. Les deux lignes de GitHub Packages retirées de `.npmrc` s'il les porte (étape 1, point 1), puis `pnpm add -Dw @maj-agency/anchorpost@^2.0.2`",
+    "2. `pnpm add -Dw @maj-agency/anchorpost@^2.0.3`",
+    "1. Les deux lignes de GitHub Packages retirées de `.npmrc` s'il les porte (étape 1, point 1), puis `pnpm add -Dw @maj-agency/anchorpost@^2.0.3`",
     "2. `pnpm exec anchorpost migrate manifest` (le plan, rien n'est écrit), puis `pnpm exec anchorpost migrate manifest --apply` : la commande que nomme l'alerte `manifest-schema-old`.",
     "Jamais `init --force`.",
     "## Passer au pivot 3 (`pivot-3`)",
@@ -92,4 +92,46 @@ test("la fiche anchorpost dit comment écrire une criticité, un cas, une étiqu
   ]);
   const lignesFiche = readFileSync(join(RACINE, FICHE_ANCHORPOST), "utf8").split("\n").length;
   assert.ok(lignesFiche < 200, `${FICHE_ANCHORPOST} : ${lignesFiche} lignes, moins de deux cents (budget-contexte)`);
+});
+
+// Ticket 92 : la CLI 2.0.3 publiée (npmjs.com, 2026-11-23), et `floor.by` une clé de `roles` (A-284 d'Anchorpost).
+test("le skill anchorpost installe la CLI à ^2.0.3, partout, et dit que floor.by est une clé de roles", () => {
+  const ANCHORPOST = `${SKILLS_CHAINE}/anchorpost`;
+  // Aucune installation de la CLI à une autre plage que ^2.0.3, dans aucun texte du plugin hors des tickets : `@^2` seul,
+  // ou `@^2.0.2`, garde une 2.0.x plus ancienne déjà installée ; de même la forme de dépendance `"@maj-agency/anchorpost": "<plage>"`.
+  const textes = (dossier) =>
+    readdirSync(join(RACINE, dossier), { withFileTypes: true }).flatMap((e) =>
+      e.isDirectory() ? (e.name === "node_modules" ? [] : textes(join(dossier, e.name))) : /\.(md|json|mjs|sh|ya?ml)$/.test(e.name) ? [join(dossier, e.name)] : [],
+    );
+  const plages = [...textes("skills"), "README.md"].flatMap((f) =>
+    [...readFileSync(join(RACINE, f), "utf8").matchAll(/@maj-agency\/anchorpost(?:@|"\s*:\s*")(\S*)/g)].filter((m) => !/^\^2\.0\.3[`"]/.test(m[1])).map((m) => `${f} : ${m[0]}`),
+  );
+  assert.deepEqual(plages, [], "la CLI s'installe à ^2.0.3");
+  exiger(`${ANCHORPOST}/SKILL.md`, [
+    "installe la CLI `@maj-agency/anchorpost` (≥ 2.0.3, publique sur npmjs.com)",
+    "Ce skill suit la **CLI 2.0.3 et les suivantes**",
+    "2. `pnpm add -Dw @maj-agency/anchorpost@^2.0.3` (`@^2` seul garde une 2.0.x plus ancienne déjà installée ;",
+    "`pnpm add -Dw @maj-agency/anchorpost@^2.0.3` (`migrate manifest` est de la 2.0.2 et garde la mise en forme du manifeste depuis la 2.0.3 ; `@^2` seul garde une 2.0.x plus ancienne déjà installée)",
+    "(`floor { date, by, proven, partial }`) ; `by` est une clé de la table `roles` du manifeste, que la personne écrit elle-même, et qui y figure déjà sur la base",
+    "la personne qui en relève un écrit son nom en `floor.by`, une clé de `roles`.",
+    "Facultative pour un projet où personne ne signe de `by` : toute personne qui signe un `by` du manifeste (par exemple un plancher, une criticité de feature, une validation des preuves) y figure ; sans elle, aucun `by` n'est connu.",
+    "lit en plus une aide de garde importée par un espace de noms, par défaut, par un baril, ou méthode d'un objet ou d'une classe exportés",
+    "deux formes restent non lues (README de la CLI, « Limites tenues par la revue »)",
+    "qui y figure déjà sur la base : une personne ajoutée à `roles` dans la PR même n'y signe pas, elle s'y ajoute par une PR à part, avant.",
+  ]);
+  exiger("README.md", ["la CLI (≥ 2.0.3), le manifeste au schéma 3"]);
+  exiger(FICHE_ANCHORPOST, [
+    "**`floor.by` est une clé de `roles`** : la personne qui relève un plancher figure dans la table `roles` du manifeste, avec son rôle, et écrit elle-même son nom en `floor.by` ; un agent n'y écrit jamais de nom.",
+    "La règle vaut dès maintenant : `compare` tient déjà pour un écart la baisse d'un plancher sans `floor.by` connu des `roles` de la base (une personne ajoutée à `roles` dans la PR même n'y signe pas : elle s'y ajoute par une PR à part, avant), et la CLI 2.0.4 alertera, dans la santé de l'index (une alerte, jamais un refus), un `floor.by` que `roles` ne connaît pas.",
+  ]);
+  const manifeste = JSON.parse(readFileSync(join(RACINE, ANCHORPOST, "references/manifest.json"), "utf8"));
+  assert.match(manifeste.$comment, /avec une date nouvelle et la personne qui le pose \(`by`, une clé de `roles`\)/, "le gabarit dit floor.by une clé de roles");
+  assert.equal("by" in manifeste.contexts[0].floor, false, "init n'écrit pas floor.by : le gabarit ne porte aucun nom");
+  exiger("NOTES-DE-VERSION.md", [
+    "**Le skill `anchorpost` installe la CLI à `^2.0.3`**",
+    "**`floor.by` est une clé de `roles`**",
+    "et `page !== context`, qui gardait la sienne, la fait tomber",
+    "l'index peut perdre des règles prouvées",
+  ]);
+  assert.doesNotMatch(plat(readFileSync(join(RACINE, ANCHORPOST, "SKILL.md"), "utf8")), /ne rend plus de preuve/, "la 2.0.3 lit des formes en plus, elle ne garantit pas tout");
 });
