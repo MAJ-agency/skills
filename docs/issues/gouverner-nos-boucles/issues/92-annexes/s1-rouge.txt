@@ -1,0 +1,8 @@
+# Rouges avant (§ 1) : clone neuf de main à 24fbd72, le seul banc du patch posé (git apply --include=*.test.mjs), le 2026-11-23
+ M scripts/preuve-suffisante-anchorpost.test.mjs
+not ok 1 - le skill anchorpost suit la CLI 2.0.0 : manifeste au schéma 3, CLI publique sans jeton, passage au pivot 3
+ok 2 - la fiche anchorpost dit comment écrire une criticité, un cas, une étiquette de cas, et ce que dit compare
+not ok 3 - le skill anchorpost installe la CLI à ^2.0.3, partout, et dit que floor.by est une clé de roles
+# tests 3
+# pass 1
+# fail 2
