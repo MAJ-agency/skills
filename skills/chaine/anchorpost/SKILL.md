@@ -99,7 +99,7 @@ Copier [`references/rules/anchorpost.md`](references/rules/anchorpost.md) vers `
 
 ## Étape 6 — la recette de l'administrateur
 
-Ajouter la section de [`references/fragments/admin.md`](references/fragments/admin.md) à `docs/agents/admin.md` (posé par la chaîne) : créer l'espace dans Anchorpost une fois l'index poussé ; retirer, d'un dépôt qui les portait, les jetons de lecture de GitHub Packages devenus inutiles. Aucune clé n'est demandée pour installer la CLI.
+Ajouter la section de [`references/fragments/admin.md`](references/fragments/admin.md) à `docs/agents/chaine-admin.md` (posé par la chaîne) : créer l'espace dans Anchorpost une fois l'index poussé ; retirer, d'un dépôt qui les portait, les jetons de lecture de GitHub Packages devenus inutiles. Aucune clé n'est demandée pour installer la CLI.
 
 ## Étape 7 — l'ADR
 

@@ -2,6 +2,26 @@
 
 La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque projet par `poser` : une version publiée ne change rien chez un projet qui ne les repose pas. Chaque note dit ce qui change, puis ce qu'un projet fait pour en profiter.
 
+## 8.3.2 — 2026-11-23
+
+### Ce qui change
+
+- **Un socle posé en « chaîne seule » passe son propre gate** (ticket 91, essai réel de la pose du plugin 8.0.0 sur un dépôt neuf, `socle-monorepo` sans service puis `socle-chaine-de-production`).
+- **Le lint et Prettier du projet ne lisent plus les scripts posés par le plugin** : le gabarit `.prettierignore` de `socle-monorepo` porte le bloc `socle:poses-du-plugin` (`scripts/agent/`, `scripts/chaine/`, `scripts/docs/`, `scripts/github/`, `scripts/verify/`), que Prettier et lint-staged suivent, et `eslint.config.mjs` le lit pour ses `ignores`. Au plugin 8.3.0, l'ESLint de la racine y trouvait 14 erreurs (`pnpm check` rouge dès la pose) et chaque commit reformatait les scripts posés. `scripts/dossiers-poses.test.mjs` tient la liste égale aux dossiers que les skills posent.
+- **Les références d'une brique non posée se gèlent à l'allumage, et le skill le dit** : `socle-monorepo` (étape 7) nomme les quatre de `.claude/rules/tests.md` vers `socle-tests`, `socle-chaine-de-production` (étape 3) les huit de `criteres-revue.md` et `pieges.md` vers l'API, et comment les geler (`scripts/verify/references-agent-dette.json`).
+- **Le registre des coûts est généré à la pose** (`socle-chaine-de-production`, étape 2.3 : `node scripts/docs/couts.mjs`) : `chaine-de-production.md` le cite, `check:contexte` était rouge sans lui.
+- **La méthode posée par la racine n'a plus de lien vers une brique absente** : `conception.md` et `pare-feu-ci.md` citaient `apps/api/CLAUDE.md` et `ADR_ALL_ARC-2` par un lien, cassé dans un dépôt sans API.
+- **Un seul nom pour la liste de l'admin, `docs/agents/chaine-admin.md`** : `socle-monorepo`, `anchorpost` (sa recette de l'administrateur et son ADR) et `pieges.md` nommaient `docs/agents/admin.md`, que rien ne pose.
+- **Une règle de checks exigés vide sur `develop` est un réglage du dépôt, dit à la première lecture** : `checks_exiges` (`github.sh`) sort en 6 sur `RÉGLAGE DU DÉPÔT` (la branche, la règle vide, le geste de l'admin), `file.sh` sort en 6 et la boucle s'arrête (`ARRÊT : réglage du dépôt`), `passer.sh` sort en 3 et `sujet.sh fusionner` en 11 sur la même raison ; avant, toute PR s'y lisait « prête (sans CI) » et n'entrait jamais (vu deux fois à l'essai, au bout d'une heure ou plus). Devant une règle vide d'un ruleset, `checks_exiges` lit encore l'ancienne protection de branche, que GitHub cumule avec les rulesets : si elle exige des checks, ce sont eux, et rien n'est dit ; le réglage n'est dit que si aucune des deux n'en exige. `chaine-admin.md` le dit à la protection de `develop`. Un dépôt sans aucune règle de checks reste « sans CI » : rien n'y entre non plus (chaque PR « CI non déclenchée », de côté), et le capitaine ne le dit pas encore ; c'est un ticket de suite, et la ligne `RÉGLAGE DU DÉPÔT` dit d'ajouter les checks, jamais de retirer la règle.
+- **Les durées de `regles.test.mjs` se bornent en étalons**, un travail fixe mesuré juste avant et juste après chaque cas : sous 20 boucles à vide sur quatre cœurs, le pire cas à 20 000 caractères prenait 13,6 s pour une borne de 10 s (2,5 s sur un poste libre) ; il y vaut 8,9 étalons pour une borne de 40, contre 7,2 sur un poste libre. Le rapport du cas « contre-relecture C1 » se compare aussi en étalons : en secondes, il rougissait sous charge.
+
+### Ce qu'un projet fait pour en profiter
+
+- **Ajouter le bloc `socle:poses-du-plugin`** du gabarit `socle-monorepo/references/racine/.prettierignore` à son `.prettierignore`, et à son `eslint.config.mjs` la lecture de ce bloc (`posesDuPlugin`, avec `readFileSync`) et `...posesDuPlugin` dans ses `ignores` (sans le bloc, la configuration du gabarit lève une erreur qui le dit, plutôt que de laisser ESLint relire les scripts posés) ; retirer les dossiers posés qu'il avait mis aux `ignores` à la main. Puis reposer les scripts du plugin tels quels (`git diff` contre le plugin : vide).
+- **Reposer `socle-chaine-de-production`** (`references/agent/regles.test.mjs`, `references/admin.md` → `docs/agents/chaine-admin.md`, `references/docs-agents/pieges.md`) et les scripts de `fusionner` et `sujet` (`github.sh`, `file.sh`, `boucle.sh`, `passer.sh`, `sujet.sh`, `faux-gh.mjs`, `sujet-fusionner.test.mjs`, `checks-exiges-vides.test.mjs`) sous `scripts/chaine/`.
+- **Un dépôt qui a un `docs/agents/admin.md`** (la section Anchorpost d'avant) la reporte dans `docs/agents/chaine-admin.md` ; rien ne lit l'autre.
+- **Vérifier la règle de checks exigés de `develop`** : `gh api repos/{owner}/{repo}/rules/branches/develop --jq '[.[] | select(.type == "required_status_checks") | .parameters.required_status_checks[].context]'` rend `qualite`, `test-db` et `zizmor`, jamais `[]`.
+
 ## 8.3.1 — 2026-11-23
 
 ### Ce qui change

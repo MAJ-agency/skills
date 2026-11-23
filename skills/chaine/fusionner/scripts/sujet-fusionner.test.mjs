@@ -1211,6 +1211,27 @@ test("sujet.sh fusionner : GitHub illisible pendant l'attente de la CI de la sou
   assert.equal(sujetDistant(d), sujet);
 });
 
+// Ticket 91 : une règle de checks exigés vide sur develop est un réglage du dépôt, jamais « GitHub illisible » ni des
+// checks « encore en cours » : `fusionner` sort en 11 (ÉCHEC DU CAPITAINE, aucun renvoi), le motif sur la sortie d'erreur.
+test("sujet.sh fusionner : une règle de checks exigés vide sur develop sort en 11 sur le réglage du dépôt, à l'attente de la CI comme à la lecture unique d'une PR de mise à jour, aucun renvoi", () => {
+  const { d, sommet } = sousPrEnConflit("aucun");
+  d.github({ regleVide: true, exiges: [] });
+  let r = d.lancer(SUJET, "fusionner", "80");
+  assert.equal(r.status, 11, r.stdout + r.stderr);
+  assert.match(r.stdout, /#80 : réglage du dépôt \(motif ci-dessus\) : une règle de checks exigés vide sur develop, aucun renvoi/);
+  assert.match(r.stderr, /^RÉGLAGE DU DÉPÔT : la branche develop \(ruleset 42\)/m);
+  assert.doesNotMatch(r.stdout, /GitHub illisible|encore en cours/);
+  assert.deepEqual(horsPassage(d), [], "ni squash, ni label, ni commentaire");
+  d.git("fetch", "-q", "origin");
+  assert.equal(d.git("rev-parse", "origin/docs/sous"), sommet);
+  const m = miseAJour();
+  m.d.github({ regleVide: true, exiges: [], checks: { "*": { qualite: "SUCCESS" } } });
+  r = m.d.lancer(SUJET, "fusionner", "81");
+  assert.equal(r.status, 11, r.stdout + r.stderr);
+  assert.match(r.stdout, /#81 : réglage du dépôt \(motif ci-dessus\)/);
+  assert.equal(sujetDistant(m.d), m.sujet);
+});
+
 // Contre-relecture (M2, M3) : `relancer` sort en 5, explicitement, sur une PR illisible ; le refus de fusion que relaie
 // `sujet.sh fusionner` est masqué.
 test("sujet.sh relancer : PR illisible, sortie 5 sans rien pousser ; fusionner : refus de fusion relayé masqué", () => {

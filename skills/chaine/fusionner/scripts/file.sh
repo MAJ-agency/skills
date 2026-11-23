@@ -45,12 +45,15 @@
 # GitHub illisible (lire_github de github.sh : réponse vide, non JSON, corps d'erreur ou code non nul) à la lecture des
 # PR ouvertes, des checks exigés, des checks d'un sommet, d'une PR sans CI (`mergeable_state`) ou de la base d'une parente : rien sur la sortie standard (les
 # lignes se rassemblent, puis s'écrivent d'un coup), le motif sur la sortie d'erreur, sortie 5. Une file illisible
-# n'est jamais une file vide : boucle.sh se met en pause (PAUSE) et relit au tour suivant.
+# n'est jamais une file vide : boucle.sh se met en pause (PAUSE) et relit au tour suivant. Une règle de checks exigés
+# vide sur develop (checks_exiges de github.sh) : RÉGLAGE DU DÉPÔT sur la sortie d'erreur, rien sur la sortie standard,
+# sortie 6 ; boucle.sh s'arrête (ARRÊT), jamais une file « sans CI » (ticket 91).
 #
 # Usage : bash scripts/chaine/file.sh          → tableau
 #         bash scripts/chaine/file.sh --next   → numéro de la prochaine PR (sortie 1 si aucune)
 #         bash scripts/chaine/file.sh --rouges → « numéro<TAB>checks rouges », une par ligne
 #         sortie 5 : GitHub illisible, rien sur la sortie standard
+#         sortie 6 : réglage du dépôt (une règle de checks exigés vide sur develop), rien sur la sortie standard
 # =============================================================================
 set -euo pipefail
 outils=$(cd "$(dirname "$0")" && pwd)
@@ -74,7 +77,7 @@ prs=$(jq -s '[.[][] | {number, title, draft,
 ouvertes=$(jq -r '.[] | "\(.head) \(.number)"' <<<"$prs")
 # Checks exigés, lus dans la protection de develop (comme passer.sh) : un check d'un autre
 # workflow, non exigé, ne retient pas la file.
-requis=$(checks_exiges) || exit 5
+requis=$(checks_exiges) || exit $? # 5 illisible, 6 réglage du dépôt
 # Tickets qui déclarent un sujet (« ticket<TAB>nom ») : une PR qui en cite un et vise develop
 # est reciblée sur le sujet.
 carte=$(bash "$SUJET" carte 2>/dev/null || true)
