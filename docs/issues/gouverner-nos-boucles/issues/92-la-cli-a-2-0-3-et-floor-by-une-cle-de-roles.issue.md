@@ -1,6 +1,6 @@
 # Le skill `anchorpost` installe la CLI à `^2.0.3`, et dit que `floor.by` est une clé de `roles`
 
-Status: ready-for-agent
+Status: Fait — PR 158, `6c37fe3` sur `main`, plugin 8.3.1
 Type: amélioration
 Modèle: sonnet — du texte et un banc, aux mots de la CLI 2.0.3 et de la décision `A-284` d'Anchorpost, sans rien à concevoir ; le code entier est dans le patch ([`92-annexes/ticket-92.patch`](92-annexes/ticket-92.patch), sha256 `55b264b5c2624e5e85e50e6841360abe0eed43453b201bccaeae8a24972bb1b7`, `git diff -U2` sur `main` à `24fbd72`, plugin 8.3.0 : deux lignes de contexte, pour que le patch ne recopie pas l'auteur de `plugin.json`), décrit fichier par fichier ci-dessous, note de version 8.3.1 comprise ; le banc rouge avant le texte (2 sur 3), vert après ; les 21 mutations de [`92-annexes/mutations.mjs`](92-annexes/mutations.mjs) toutes rouges. Qui veut changer une décision l'écrit à son lanceur, il ne tranche pas.
 Blocked by: —
