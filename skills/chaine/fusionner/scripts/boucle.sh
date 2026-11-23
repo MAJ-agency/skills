@@ -585,6 +585,8 @@ while :; do
   case "$rc" in
     0) ;;
     5) mettre_en_pause PAUSE "(file.sh, sortie 5) : file illisible" "$erreurs_file"; continue ;;
+    # Une règle de checks exigés vide sur develop (ticket 91) : un réglage du dépôt, dit tel quel (motif ci-dessus).
+    6) echo "ARRÊT : réglage du dépôt (file.sh, sortie 6, motif ci-dessus) : un admin le fait, puis le capitaine relance"; exit 6 ;;
     *) echo "ARRÊT : file.sh en échec (sortie $rc) : le capitaine traite, puis relance"; exit 6 ;;
   esac
   n=$(printf '%s\n' "$liste" | awk -F '\t' -v s="$sautees$attente_fusion" '!t && $2 ~ /^prête/ && $2 !~ /sur sujet\// && index(s, " " $1 " ") == 0 { print $1; t = 1 }')

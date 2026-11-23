@@ -47,8 +47,8 @@ for (const regime of [8, 7]) {
       // posé que la CI du plugin, qui n'en a pas, rougirait ; le jouet résout ses dépendances par son `node_modules`.
       const env = { ...environnementDeBanc(), TMPDIR: temporaire };
       delete env.NODE_PATH;
-      // Un banc à la fois : `pnpm test` joue déjà ses fichiers en parallèle, et un banc posé mesure des durées (« le plafond à
-      // 20 000 caractères… », sous 10 s) que trois enfants de plus, sous une charge de 16, ont fait dépasser.
+      // Un banc à la fois : `pnpm test` joue déjà ses fichiers en parallèle. Les durées de `regles.test.mjs` se bornent en
+      // étalons depuis le ticket 91 (une charge ne les fait plus dépasser) ; un à la fois garde le garde court en mémoire.
       const r = spawnSync(process.execPath, ['--test', '--test-concurrency=1', '--test-reporter=tap', ...bancs], {
         cwd: projet,
         env,

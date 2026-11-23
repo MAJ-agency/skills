@@ -129,7 +129,7 @@
 # `rafraichir`, `relancer`, `livrer`, `ouvrir`, `geler`, `degeler` ; la trace de husky 9 seule fait un refus du hook,
 # sortie 3), ou outil du capitaine en échec : aucun renvoi · 11 `clore` : origin ou GitHub illisible, ou suppression
 # non confirmée · 11 `fusionner`, `relancer` : verrou du passage non posé (écriture refusée), aucun renvoi ; ses
-# commentaires illisibles à la relecture sortent en 5 · 11 `relancer` : contrôle d'ascendance illisible, côté capitaine, aucun renvoi · `clore` : 3 suppression refusée par
+# commentaires illisibles à la relecture sortent en 5 · 11 `relancer` : contrôle d'ascendance illisible, côté capitaine, aucun renvoi · 11 `fusionner` : réglage du dépôt (une règle de checks exigés vide sur develop, ticket 91), aucun renvoi · `clore` : 3 suppression refusée par
 # un hook ou par le distant, 4 refus (pas livré, PR ouverte, carte, nom ou option), 5 le sommet a bougé · 69 jq absent du poste
 # Tout passe par l'API REST (`gh api`) : GraphQL est refusé depuis les sessions cloud. Depuis la
 # racine du dépôt ; sans argument, affiche cette aide.
@@ -1004,7 +1004,10 @@ fusionner() {
     # Checks exigés sur develop, lus sur le sommet de la sous-PR. Les E2E y sont sautés
     # (branche de sujet), donc comptés réussis : ils tournent sur la PR finale.
     local requis etats rouges='' attente=0 nom c
-    requis=$(checks_exiges) || sortir 5 "#$n : GitHub illisible à la lecture des checks exigés (cause ci-dessus) : reprise au tour suivant, aucun renvoi"
+    requis=$(checks_exiges) || {
+      [ $? != 6 ] || sortir 11 "#$n : réglage du dépôt (motif ci-dessus) : une règle de checks exigés vide sur develop, aucun renvoi"
+      sortir 5 "#$n : GitHub illisible à la lecture des checks exigés (cause ci-dessus) : reprise au tour suivant, aucun renvoi"
+    }
     requis=$(jq -r '.[]' <<<"$requis")
     etats=$(checks_commit "$sommet") || sortir 5 "#$n : GitHub illisible à la lecture des checks (cause ci-dessus) : reprise au tour suivant, aucun renvoi"
     while IFS= read -r nom; do
@@ -1061,6 +1064,7 @@ fusionner() {
       0) ;;
       1) sortir 3 "checks rouges sur #$n :$(awk -F ' : ' '{ sub(/^ +/, "", $1); printf " %s ;", $1 }' <<<"$rouges")" ;;
       5) sortir 5 "#$n : GitHub illisible pendant l'attente de la CI (cause ci-dessus) : reprise au tour suivant, aucun renvoi" ;;
+      6) sortir 11 "#$n : réglage du dépôt (motif ci-dessus) : une règle de checks exigés vide sur develop, aucun renvoi" ;;
       *)
         [ "$pousse" = 0 ] ||
           sortir 8 "#$n : mise à jour avec $base poussée, CI pas finie : repasse au tour suivant (aucun renvoi)"

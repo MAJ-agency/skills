@@ -8,5 +8,16 @@ pnpm-lock.yaml
 # Livrables HTML autoportés de la doc : artefacts figés, hors du gate format:check.
 docs/**/*.html
 
+# Scripts posés par le plugin maj-skills : du code vendu, que le projet ne modifie jamais (une repose les remplace)
+# et que la CI du plugin tient. Ni Prettier (ni donc lint-staged) ni ESLint ne les touchent : reformatés ou lintés
+# ici, ils différeraient du plugin à chaque repose. `eslint.config.mjs` lit ce bloc : la liste n'est écrite qu'ici.
+# socle:poses-du-plugin
+scripts/agent/
+scripts/chaine/
+scripts/docs/
+scripts/github/
+scripts/verify/
+# /socle:poses-du-plugin
+
 # Fichiers GÉNÉRÉS : les reformater les fait diverger de leur source et casse
 # les gates de dérive. Chaque service ajoute les siens ci-dessous.

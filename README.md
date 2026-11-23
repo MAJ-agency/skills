@@ -203,6 +203,8 @@ Un skill dont l'étape `poser` copie un dossier de scripts dans `scripts/chaine/
 
 Un banc rangé sous `references/` d'un skill est un banc posé : `scripts/references-posees.test.mjs` le pose dans un dépôt jouet, à sa place de projet (`agent/` → `scripts/agent/`, `scripts/<d>/` → `scripts/<d>/`), avec ses voisins, les dépendances de la racine et le contrat du gabarit aux régimes 8 et 7, et le joue sans `NODE_PATH` ; un banc rangé ailleurs sous `references/` le rougit. Un banc du plugin, qui lit l'arbre du plugin (un gabarit, un autre skill), vit sous `scripts/` de son skill, jamais sous `references/`.
 
+Un skill qui pose des scripts dans un dossier de `scripts/` d'un projet l'ajoute au bloc `socle:poses-du-plugin` du gabarit `socle-monorepo/references/racine/.prettierignore` : le lint et Prettier du projet ne lisent pas le code vendu du plugin. `scripts/dossiers-poses.test.mjs` tient ce bloc égal aux dossiers que les skills posent (`references/agent/`, `references/scripts/<d>/`, les scripts posés sous `scripts/chaine/`, et tout `scripts/<d>/` qu'un `SKILL.md` nomme), hors de `scripts/db/` (un script shell, le dossier reste au projet).
+
 Un banc ne recopie jamais le filtre des variables `GIT_*` : il importe `environnementDeBanc()` (`scripts/docs/environnement-de-banc.mjs` du socle, réexporté par `depot-jouet.mjs`), qui retire aussi `FORCE_COLOR` et pose `NO_COLOR=1`. `scripts/un-seul-environnement-de-banc.test.mjs` refuse toute copie.
 
 Ce qui dépasse une page va dans `references/`, atteint par un pointeur depuis `SKILL.md` — le corps du skill reste lisible, et les détails ne se chargent qu'au besoin.
