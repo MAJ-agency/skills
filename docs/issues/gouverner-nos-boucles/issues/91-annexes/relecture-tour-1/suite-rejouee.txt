@@ -1,0 +1,13 @@
+ 09:21:08 up 36 min,  0 user,  load average: 0.93, 4.27, 9.00
+09:21:08
+sortie 0
+09:36:08
+ 09:36:08 up 51 min,  0 user,  load average: 1.37, 3.32, 6.02
+# tests 1471
+# suites 0
+# pass 1471
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 899815.815092

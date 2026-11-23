@@ -1,4 +1,4 @@
-# Essai de pose en chaîne seule, patch appliqué (plugin 8.3.1), --geler, le 2026-11-23,  01:29:18 up  1:31,  0 user,  load average: 1.27, 2.68, 3.91
+# Essai de pose en chaîne seule, patch retouché appliqué (plugin 8.3.1, sha256 00365efa…, retouches A-219), --geler, le 2026-11-23,  10:13:50 up  1:29,  0 user,  load average: 0.72, 3.24, 6.22
 posé : 170 fichiers ; placeholders restants : aucun
 == versions : node v22.23.5, pnpm 9.15.4, eslint v9.39.5, prettier 3.10.1
 == pnpm lint
@@ -39,7 +39,7 @@ sortie 0
 
  Tasks:    0 successful, 0 total
 Cached:    0 cached, 0 total
-  Time:    11ms 
+  Time:    15ms 
 
 == reformatés par lint-staged au commit, par dossier
       1 .claude/rules
@@ -51,3 +51,4 @@ Cached:    0 cached, 0 total
       3 docs/features
       3 docs/methode
       1 eslint.config.mjs
+sortie de l'essai 0

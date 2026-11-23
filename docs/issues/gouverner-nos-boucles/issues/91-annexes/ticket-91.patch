@@ -11,7 +11,7 @@ index b4a89a7..945befe 100644
    "author": {
      "name": "Guillaume Jauffret"
 diff --git a/NOTES-DE-VERSION.md b/NOTES-DE-VERSION.md
-index fb106db..db9f560 100644
+index fb106db..1296fb3 100644
 --- a/NOTES-DE-VERSION.md
 +++ b/NOTES-DE-VERSION.md
 @@ -2,6 +2,26 @@
@@ -28,15 +28,15 @@ index fb106db..db9f560 100644
 +- **Le registre des coûts est généré à la pose** (`socle-chaine-de-production`, étape 2.3 : `node scripts/docs/couts.mjs`) : `chaine-de-production.md` le cite, `check:contexte` était rouge sans lui.
 +- **La méthode posée par la racine n'a plus de lien vers une brique absente** : `conception.md` et `pare-feu-ci.md` citaient `apps/api/CLAUDE.md` et `ADR_ALL_ARC-2` par un lien, cassé dans un dépôt sans API.
 +- **Un seul nom pour la liste de l'admin, `docs/agents/chaine-admin.md`** : `socle-monorepo`, `anchorpost` (sa recette de l'administrateur et son ADR) et `pieges.md` nommaient `docs/agents/admin.md`, que rien ne pose.
-+- **Une règle de checks exigés vide sur `develop` est un réglage du dépôt, dit à la première lecture** : `checks_exiges` (`github.sh`) sort en 6 sur `RÉGLAGE DU DÉPÔT` (la branche, la règle vide, le geste de l'admin), `file.sh` sort en 6 et la boucle s'arrête (`ARRÊT : réglage du dépôt`), `passer.sh` sort en 3 et `sujet.sh fusionner` en 11 sur la même raison ; avant, toute PR s'y lisait « prête (sans CI) » et n'entrait jamais (vu deux fois à l'essai, au bout d'une heure ou plus). `chaine-admin.md` le dit à la protection de `develop`. Un dépôt sans aucune règle de checks reste « sans CI ».
-+- **Les durées de `regles.test.mjs` se bornent en étalons**, un travail fixe mesuré juste avant et juste après chaque cas : sous une charge de 14 sur quatre cœurs, le pire cas à 20 000 caractères prenait 13 s pour une borne de 10 s ; il y vaut 7,4 étalons pour une borne de 40, comme sur un poste libre (6,8).
++- **Une règle de checks exigés vide sur `develop` est un réglage du dépôt, dit à la première lecture** : `checks_exiges` (`github.sh`) sort en 6 sur `RÉGLAGE DU DÉPÔT` (la branche, la règle vide, le geste de l'admin), `file.sh` sort en 6 et la boucle s'arrête (`ARRÊT : réglage du dépôt`), `passer.sh` sort en 3 et `sujet.sh fusionner` en 11 sur la même raison ; avant, toute PR s'y lisait « prête (sans CI) » et n'entrait jamais (vu deux fois à l'essai, au bout d'une heure ou plus). `chaine-admin.md` le dit à la protection de `develop`. Un dépôt sans aucune règle de checks reste « sans CI » : rien n'y entre non plus (chaque PR « CI non déclenchée », de côté), et le capitaine ne le dit pas encore ; c'est un ticket de suite, et la ligne `RÉGLAGE DU DÉPÔT` dit d'ajouter les checks, jamais de retirer la règle.
++- **Les durées de `regles.test.mjs` se bornent en étalons**, un travail fixe mesuré juste avant et juste après chaque cas : sous 20 boucles à vide sur quatre cœurs, le pire cas à 20 000 caractères prenait 13,6 s pour une borne de 10 s (2,5 s sur un poste libre) ; il y vaut 8,9 étalons pour une borne de 40, contre 7,2 sur un poste libre. Le rapport du cas « contre-relecture C1 » se compare aussi en étalons : en secondes, il rougissait sous charge.
 +
 +### Ce qu'un projet fait pour en profiter
 +
-+- **Ajouter le bloc `socle:poses-du-plugin`** du gabarit `socle-monorepo/references/racine/.prettierignore` à son `.prettierignore`, et à son `eslint.config.mjs` la lecture de ce bloc (`posesDuPlugin`, avec `readFileSync`) et `...posesDuPlugin` dans ses `ignores` ; retirer les dossiers posés qu'il avait mis aux `ignores` à la main. Puis reposer les scripts du plugin tels quels (`git diff` contre le plugin : vide).
++- **Ajouter le bloc `socle:poses-du-plugin`** du gabarit `socle-monorepo/references/racine/.prettierignore` à son `.prettierignore`, et à son `eslint.config.mjs` la lecture de ce bloc (`posesDuPlugin`, avec `readFileSync`) et `...posesDuPlugin` dans ses `ignores` (sans le bloc, la configuration du gabarit lève une erreur qui le dit, plutôt que de laisser ESLint relire les scripts posés) ; retirer les dossiers posés qu'il avait mis aux `ignores` à la main. Puis reposer les scripts du plugin tels quels (`git diff` contre le plugin : vide).
 +- **Reposer `socle-chaine-de-production`** (`references/agent/regles.test.mjs`, `references/admin.md` → `docs/agents/chaine-admin.md`, `references/docs-agents/pieges.md`) et les scripts de `fusionner` et `sujet` (`github.sh`, `file.sh`, `boucle.sh`, `passer.sh`, `sujet.sh`, `faux-gh.mjs`, `sujet-fusionner.test.mjs`, `checks-exiges-vides.test.mjs`) sous `scripts/chaine/`.
 +- **Un dépôt qui a un `docs/agents/admin.md`** (la section Anchorpost d'avant) la reporte dans `docs/agents/chaine-admin.md` ; rien ne lit l'autre.
-+- **Vérifier la règle de checks exigés de `develop`** : `gh api repos/{owner}/{repo}/rules/branches/develop --jq '[.[] | select(.type == "required_status_checks") | .parameters.required_status_checks[].context]'` rend `qualite` et `test-db`, jamais `[]`.
++- **Vérifier la règle de checks exigés de `develop`** : `gh api repos/{owner}/{repo}/rules/branches/develop --jq '[.[] | select(.type == "required_status_checks") | .parameters.required_status_checks[].context]'` rend `qualite`, `test-db` et `zizmor`, jamais `[]`.
 +
  ## 8.3.0 — 2026-11-22
  
@@ -56,10 +56,10 @@ index bf3e30d..3920d13 100644
  Ce qui dépasse une page va dans `references/`, atteint par un pointeur depuis `SKILL.md` — le corps du skill reste lisible, et les détails ne se chargent qu'au besoin.
 diff --git a/scripts/chaine-seule.test.mjs b/scripts/chaine-seule.test.mjs
 new file mode 100644
-index 0000000..b4f7694
+index 0000000..9018d1e
 --- /dev/null
 +++ b/scripts/chaine-seule.test.mjs
-@@ -0,0 +1,69 @@
+@@ -0,0 +1,72 @@
 +// Ticket 91 : un socle posé en « chaîne seule » (`socle-monorepo` sans aucun service, puis `socle-chaine-de-production`)
 +// passe son propre gate. Ce que l'essai réel a trouvé et que ce banc tient, hors du lint des scripts posés
 +// (`dossiers-poses.test.mjs`) : un seul nom pour la liste de l'admin, aucun lien de la méthode posée par la racine vers
@@ -85,6 +85,9 @@ index 0000000..b4f7694
 +  assert.deepEqual(autres, [], 'docs/agents/admin.md nommé : la liste de l’admin est docs/agents/chaine-admin.md');
 +  // La case des checks exigés dit la règle vide, que le capitaine refuse de lire « sans CI » (`RÉGLAGE DU DÉPÔT`).
 +  assert.match(lire(`${CHAINE}/references/admin.md`), /\*\*jamais une règle sans check\*\* : une règle « Require status checks to pass » qui n'en exige aucun [^;]+; le capitaine le dit dès sa première lecture \(`RÉGLAGE DU DÉPÔT`, sa boucle s'arrête\)/);
++  // Le geste dit est d'ajouter les checks, jamais de retirer la règle : sans aucun check exigé, rien n'entre non plus
++  // (`attendre_ci` ne voit aucun check exigé apparaître, « CI non déclenchée »), et le capitaine ne le dit pas encore.
++  assert.match(lire(`${CHAINE}/references/admin.md`), /: y ajouter les checks, jamais retirer la règle \(sans aucun check exigé, rien n'entre non plus/);
 +});
 +
 +test('les liens de la méthode posée par socle-monorepo résolvent dans un dépôt sans service', () => {
@@ -131,10 +134,10 @@ index 0000000..b4f7694
 +});
 diff --git a/scripts/dossiers-poses.test.mjs b/scripts/dossiers-poses.test.mjs
 new file mode 100644
-index 0000000..e2200a2
+index 0000000..09bd806
 --- /dev/null
 +++ b/scripts/dossiers-poses.test.mjs
-@@ -0,0 +1,89 @@
+@@ -0,0 +1,95 @@
 +// Ticket 91 : les scripts que le plugin pose dans un projet sont du code vendu, que le projet ne modifie jamais et que la
 +// CI du plugin tient ; le lint et le formateur du projet (gabarit de `socle-monorepo`) les laissent donc de côté, par une
 +// liste unique : le bloc `socle:poses-du-plugin` de `.prettierignore`, que Prettier et lint-staged suivent d'eux-mêmes et
@@ -217,6 +220,12 @@ index 0000000..e2200a2
 +  const lireLeBloc = new Function('readFileSync', 'join', 'root', `${config.slice(debut, fin + 1)}\nreturn posesDuPlugin;`);
 +  const globs = lireLeBloc((f) => readFileSync(f, 'utf8'), join, join(RACINE, GABARIT));
 +  assert.deepEqual(globs, blocDuPlugin(lire(`${GABARIT}/.prettierignore`)).map((d) => `${d}/**`));
++  // Un `.prettierignore` en fins de ligne CRLF se lit de même ; sans le bloc, la configuration lève une erreur qui le
++  // dit, jamais une liste vide (ESLint relirait les scripts posés : 14 erreurs au plugin 8.3.0). Relecture du ticket 91.
++  const sur = (texte) => lireLeBloc(() => texte, join, '/projet');
++  assert.deepEqual(sur('x\r\n# socle:poses-du-plugin\r\nscripts/a/\r\n# /socle:poses-du-plugin\r\n'), ['scripts/a/**']);
++  for (const texte of ['node_modules\n', '# /socle:poses-du-plugin\nscripts/a/\n# socle:poses-du-plugin\n'])
++    assert.throws(() => sur(texte), /\.prettierignore : le bloc « # socle:poses-du-plugin » … « # \/socle:poses-du-plugin » manque/, JSON.stringify(texte));
 +  const ignores = /ignores: \[([\s\S]*?)\]/.exec(config)?.[1] ?? '';
 +  assert.match(ignores, /\.\.\.posesDuPlugin,/, 'les dossiers lus vont aux ignores d’ESLint');
 +  // lint-staged passe les fichiers stagés par leur nom : Prettier saute de lui-même ce que `.prettierignore` ignore, ESLint
@@ -304,16 +313,17 @@ index 12ce410..9811a51 100755
    n=$(printf '%s\n' "$liste" | awk -F '\t' -v s="$sautees$attente_fusion" '!t && $2 ~ /^prête/ && $2 !~ /sur sujet\// && index(s, " " $1 " ") == 0 { print $1; t = 1 }')
 diff --git a/skills/chaine/fusionner/scripts/checks-exiges-vides.test.mjs b/skills/chaine/fusionner/scripts/checks-exiges-vides.test.mjs
 new file mode 100644
-index 0000000..5a1f7f7
+index 0000000..53116ac
 --- /dev/null
 +++ b/skills/chaine/fusionner/scripts/checks-exiges-vides.test.mjs
-@@ -0,0 +1,78 @@
+@@ -0,0 +1,79 @@
 +// Ticket 91 : une règle « Require status checks to pass » qui n'exige aucun check sur develop (un ruleset, ou l'ancienne
 +// protection de branche) n'est pas un dépôt « sans CI ». Lue [], elle faisait dire toute PR « prête (sans CI) », la
 +// boucle la mettait de côté (« CI non déclenchée ») et elle n'entrait jamais : vu deux fois à l'essai réel du régime 8,
 +// au bout d'une heure ou plus. `checks_exiges` le dit dès la première lecture, comme un réglage du dépôt à faire par un
 +// admin (sortie 6, RÉGLAGE DU DÉPÔT) ; `file.sh` sort en 6, la boucle s'arrête (ARRÊT), `passer.sh` sort en 3 sur la
-+// même raison. Un dépôt sans aucune règle de checks reste « sans CI ».
++// même raison. Un dépôt sans aucune règle de checks reste « sans CI » : rien n'y entre non plus (`attendre_ci` ne voit
++// aucun check exigé apparaître), un ticket de suite ; d'où le geste dit : ajouter les checks, jamais retirer la règle.
 +import { test } from "node:test";
 +import assert from "node:assert/strict";
 +import { spawnSync } from "node:child_process";
@@ -328,7 +338,7 @@ index 0000000..5a1f7f7
 +const GITHUB = script("fusionner", "github.sh");
 +const fonction = (d, corps) =>
 +  spawnSync("bash", ["-c", `source ${GITHUB}; ${corps}`], { cwd: d.travail, env: d.env, encoding: "utf8" });
-+const REGLAGE = /^RÉGLAGE DU DÉPÔT : la branche develop \(ruleset 42\) porte une règle « Require status checks to pass » \(required_status_checks\) qui n'exige aucun check ; toute PR vers develop s'y lirait « prête \(sans CI\) » et n'entrerait jamais\. À un admin : y ajouter les checks exigés de la CI \(qualite, test-db, zizmor : docs\/agents\/chaine-admin\.md, « Protection de develop »\), ou retirer la règle ; puis relancer le capitaine\.$/m;
++const REGLAGE = /^RÉGLAGE DU DÉPÔT : la branche develop \(ruleset 42\) porte une règle « Require status checks to pass » \(required_status_checks\) qui n'exige aucun check ; toute PR vers develop s'y lirait « prête \(sans CI\) » et n'entrerait jamais\. À un admin : y ajouter les checks exigés de la CI \(qualite, test-db, zizmor : docs\/agents\/chaine-admin\.md, « Protection de develop »\) ; puis relancer le capitaine\.$/m;
 +const pr = (number, head) => ({ number, title: `docs(demo): ${head.slice(5)}`, head, base: "develop", labels: ["à-fusionner"] });
 +
 +test("checks_exiges : une règle de checks exigés vide sur develop sort en 6, RÉGLAGE DU DÉPÔT nommant la branche, la règle et le geste, rien sur la sortie standard ; sans règle, [] ; une règle qui exige, sa liste", () => {
@@ -417,7 +427,7 @@ index 434f878..977d7f1 100755
  # est reciblée sur le sujet.
  carte=$(bash "$SUJET" carte 2>/dev/null || true)
 diff --git a/skills/chaine/fusionner/scripts/github.sh b/skills/chaine/fusionner/scripts/github.sh
-index aae1d63..ef9a7d4 100755
+index aae1d63..46dd012 100755
 --- a/skills/chaine/fusionner/scripts/github.sh
 +++ b/skills/chaine/fusionner/scripts/github.sh
 @@ -544,20 +544,35 @@ checks_commit() {
@@ -433,7 +443,7 @@ index aae1d63..ef9a7d4 100755
 +# sortie 6, RÉGLAGE DU DÉPÔT sur la sortie d'erreur, jamais [] (ticket 91) : lue [], toute PR se dirait « prête
 +# (sans CI) » et n'entrerait jamais ; c'est un réglage à faire par un admin, dit dès cette lecture.
 +reglage_checks_vides() { # <où la règle est lue>
-+  echo "RÉGLAGE DU DÉPÔT : $1 porte une règle « Require status checks to pass » (required_status_checks) qui n'exige aucun check ; toute PR vers develop s'y lirait « prête (sans CI) » et n'entrerait jamais. À un admin : y ajouter les checks exigés de la CI (qualite, test-db, zizmor : docs/agents/chaine-admin.md, « Protection de develop »), ou retirer la règle ; puis relancer le capitaine." >&2
++  echo "RÉGLAGE DU DÉPÔT : $1 porte une règle « Require status checks to pass » (required_status_checks) qui n'exige aucun check ; toute PR vers develop s'y lirait « prête (sans CI) » et n'entrerait jamais. À un admin : y ajouter les checks exigés de la CI (qualite, test-db, zizmor : docs/agents/chaine-admin.md, « Protection de develop ») ; puis relancer le capitaine." >&2
 +  return 6
 +}
  checks_exiges() {
@@ -567,7 +577,7 @@ index 1028ea9..ce8796e 100644
  
  Remettre à l'humain **la liste de `chaine-admin.md`** : rien de la chaîne ne tourne tant que `develop` n'est pas protégée avec « branche à jour exigée ». Et dire à qui a lancé la pose qu'un Relecteur doit tourner pour le dépôt avant la première PR (étape 2, point 2).
 diff --git a/skills/chaine/socle-chaine-de-production/references/admin.md b/skills/chaine/socle-chaine-de-production/references/admin.md
-index f2898b2..2824668 100644
+index f2898b2..284d966 100644
 --- a/skills/chaine/socle-chaine-de-production/references/admin.md
 +++ b/skills/chaine/socle-chaine-de-production/references/admin.md
 @@ -3,7 +3,7 @@
@@ -575,7 +585,7 @@ index f2898b2..2824668 100644
  
  - [ ] **Branche par défaut : `develop`.** Settings → General → Default branch. `develop` est créée depuis `main` par `bash scripts/github/develop.sh` ; si ce push a été refusé (droits), la créer ici : Branches → New branch, source `main`. `main` reste la branche livrée : seul le capitaine y fusionne, par la PR de livraison.
 -- [ ] **Protection de `develop`** (Settings → Branches → Add rule, ou Rulesets) : « Require a pull request before merging », **sans** « Require review from Code Owners » (le produit l'a retirée le 2026-11-18 : aucun `.github/CODEOWNERS` n'est posé, et GitHub ne bloque aucune PR sur les chemins sensibles) et avec **« Required approvals » à 0** (toutes les sessions publient sous un même compte, et GitHub ne laisse pas un auteur approuver sa propre PR : avec une approbation exigée, GitHub refuse la fusion de toute PR que personne d'autre n'a approuvée, et le capitaine s'arrête sur ce refus, `passer.sh` sortie 3) ; « Require status checks to pass » avec **« Require branches to be up to date before merging »** (le filet de GitHub ; le capitaine vérifie aussi l'ascendance lui-même avant chaque fusion, skill `fusionner`) et les checks `qualite` et `test-db` ; **« Restrict deletions »** ; « Do not allow bypassing the above settings », et **aucune liste de contournement** (« Bypass list » vide) : un administrateur qui contourne la règle la retire pour tous. Pas de « Require linear history » : un sujet entre par un commit de merge. Pas de règle de PR sur `sujet/*` ni sur les branches de travail, où le capitaine et les sessions poussent sans PR : elle bloquerait la chaîne.
-+- [ ] **Protection de `develop`** (Settings → Branches → Add rule, ou Rulesets) : « Require a pull request before merging », **sans** « Require review from Code Owners » (le produit l'a retirée le 2026-11-18 : aucun `.github/CODEOWNERS` n'est posé, et GitHub ne bloque aucune PR sur les chemins sensibles) et avec **« Required approvals » à 0** (toutes les sessions publient sous un même compte, et GitHub ne laisse pas un auteur approuver sa propre PR : avec une approbation exigée, GitHub refuse la fusion de toute PR que personne d'autre n'a approuvée, et le capitaine s'arrête sur ce refus, `passer.sh` sortie 3) ; « Require status checks to pass » avec **« Require branches to be up to date before merging »** (le filet de GitHub ; le capitaine vérifie aussi l'ascendance lui-même avant chaque fusion, skill `fusionner`) et les checks `qualite` et `test-db`, **jamais une règle sans check** : une règle « Require status checks to pass » qui n'en exige aucun (posée avant le premier run de la CI, quand GitHub n'en propose encore aucun nom) fait lire toute PR « sans CI », et aucune n'entre ; le capitaine le dit dès sa première lecture (`RÉGLAGE DU DÉPÔT`, sa boucle s'arrête) : y ajouter les checks, ou ne poser la règle qu'après le premier run ; **« Restrict deletions »** ; « Do not allow bypassing the above settings », et **aucune liste de contournement** (« Bypass list » vide) : un administrateur qui contourne la règle la retire pour tous. Pas de « Require linear history » : un sujet entre par un commit de merge. Pas de règle de PR sur `sujet/*` ni sur les branches de travail, où le capitaine et les sessions poussent sans PR : elle bloquerait la chaîne.
++- [ ] **Protection de `develop`** (Settings → Branches → Add rule, ou Rulesets) : « Require a pull request before merging », **sans** « Require review from Code Owners » (le produit l'a retirée le 2026-11-18 : aucun `.github/CODEOWNERS` n'est posé, et GitHub ne bloque aucune PR sur les chemins sensibles) et avec **« Required approvals » à 0** (toutes les sessions publient sous un même compte, et GitHub ne laisse pas un auteur approuver sa propre PR : avec une approbation exigée, GitHub refuse la fusion de toute PR que personne d'autre n'a approuvée, et le capitaine s'arrête sur ce refus, `passer.sh` sortie 3) ; « Require status checks to pass » avec **« Require branches to be up to date before merging »** (le filet de GitHub ; le capitaine vérifie aussi l'ascendance lui-même avant chaque fusion, skill `fusionner`) et les checks `qualite` et `test-db`, **jamais une règle sans check** : une règle « Require status checks to pass » qui n'en exige aucun (posée avant le premier run de la CI, quand GitHub n'en propose encore aucun nom) fait lire toute PR « sans CI », et aucune n'entre ; le capitaine le dit dès sa première lecture (`RÉGLAGE DU DÉPÔT`, sa boucle s'arrête) : y ajouter les checks, jamais retirer la règle (sans aucun check exigé, rien n'entre non plus : chaque PR se lit « CI non déclenchée » et reste de côté) ; **« Restrict deletions »** ; « Do not allow bypassing the above settings », et **aucune liste de contournement** (« Bypass list » vide) : un administrateur qui contourne la règle la retire pour tous. Pas de « Require linear history » : un sujet entre par un commit de merge. Pas de règle de PR sur `sujet/*` ni sur les branches de travail, où le capitaine et les sessions poussent sans PR : elle bloquerait la chaîne.
  - [ ] **Protection de `main`** : même règle, plus « Restrict who can push » aux administrateurs.
  - [ ] **Pull Requests** (Settings → General) : « Allow merge commits » et « Allow squash merging » cochés ; **« Automatically delete head branches »** coché : GitHub supprime la branche d'une PR fusionnée et recible de lui-même les PR qui la visaient.
  - [ ] **Check `zizmor` exigé** sur `develop` et `main`, à côté de `qualite` et `test-db`, dès que son premier run a tourné.
@@ -586,7 +596,7 @@ index f2898b2..2824668 100644
 -Vérification : `gh api repos/{owner}/{repo}/rules/branches/develop --jq '.[] | select(.type == "required_status_checks") | .parameters.strict_required_status_checks_policy'` rend `true` (l'ancienne API `branches/develop/protection` répond 404 quand un ruleset protège la branche).
 +Vérification : `gh api repos/{owner}/{repo}/rules/branches/develop --jq '.[] | select(.type == "required_status_checks") | .parameters.strict_required_status_checks_policy'` rend `true` (l'ancienne API `branches/develop/protection` répond 404 quand un ruleset protège la branche). Et `gh api repos/{owner}/{repo}/rules/branches/develop --jq '[.[] | select(.type == "required_status_checks") | .parameters.required_status_checks[].context]'` rend une liste qui contient `qualite` et `test-db`, jamais `[]`.
 diff --git a/skills/chaine/socle-chaine-de-production/references/agent/regles.test.mjs b/skills/chaine/socle-chaine-de-production/references/agent/regles.test.mjs
-index 41ea1b5..724dc47 100644
+index 41ea1b5..675aae8 100644
 --- a/skills/chaine/socle-chaine-de-production/references/agent/regles.test.mjs
 +++ b/skills/chaine/socle-chaine-de-production/references/agent/regles.test.mjs
 @@ -17,6 +17,33 @@ const REGLES = pathToFileURL(join(ISOLE, 'scripts/agent/regles.mjs')).href;
@@ -595,11 +605,11 @@ index 41ea1b5..724dc47 100644
  
 +// Les durées se bornent en étalons (ticket 91), jamais en millisecondes : un banc posé tourne aussi sur une machine
 +// chargée (le pre-push et la CI du projet, le garde `references-posees.test.mjs` du plugin), où une borne fixe rougit un
-+// cas qui n'a pas changé (le pire cas à 20 000 caractères : 2,5 s sur un poste libre, 13 s sous une charge de 14 sur
-+// quatre cœurs). L'étalon est un travail fixe, hors de la garde, du même moteur : une expression qui recule au carré sur
++// cas qui n'a pas changé (le pire cas à 20 000 caractères : 2,5 s sur un poste libre, 13,6 s sous 20 boucles à vide
++// sur quatre cœurs). L'étalon est un travail fixe, hors de la garde, du même moteur : une expression qui recule au carré sur
 +// 16 002 caractères (250 ms sur le poste de mesure). Il se mesure juste avant et juste après le cas, dans le même
-+// passage, et le plus lent des deux compte : une machine chargée ralentit l'un et l'autre, le rapport reste (6,8 étalons
-+// libre, 7,4 sous la charge de 14, pour le pire cas). Une garde devenue plus lente que sa borne la dépasse, chargée ou non.
++// passage, et le plus lent des deux compte : une machine chargée ralentit l'un et l'autre, le rapport reste (7,2 étalons
++// libre, 8,9 sous ces 20 boucles, pour le pire cas). Une garde devenue plus lente que sa borne la dépasse, chargée ou non.
 +const ETALON = `-${'a'.repeat(16_000)}!`;
 +const duree = (f) => {
 +  const debut = process.hrtime.bigint();
@@ -651,16 +661,23 @@ index 41ea1b5..724dc47 100644
    };
    const continuees = (n) => 'echo ' + '"$a" \\\n'.repeat(n) + `; ${F}`;
    const nus = (n) => 'echo ' + '$a '.repeat(n);
-@@ -929,7 +955,7 @@ test('ticket 33, contre-relecture C1 : ce qui suit un mot à expansion se relit
+@@ -929,9 +955,13 @@ test('ticket 33, contre-relecture C1 : ce qui suit un mot à expansion se relit
      const petit = mesure(forme(n));
      const grand = mesure(forme(3 * n));
      assert.equal(grand.d, attendu);
 -    assert.ok(grand.s < 2, `${grand.s} s`);
 +    assert.ok(grand.etalons < 8, `${grand.s} s, ${grand.etalons} étalons (2 s sur un poste libre)`);
      // Trois fois plus long : moins de six fois plus de temps et de mémoire (une croissance quadratique en ferait neuf).
-     assert.ok(grand.s < 6 * petit.s + 0.2, `${petit.s} s puis ${grand.s} s`);
+-    assert.ok(grand.s < 6 * petit.s + 0.2, `${petit.s} s puis ${grand.s} s`);
++    // Le temps se compare en étalons, chaque mesure rapportée à son étalon (ticket 91, retouche de la relecture) : en
++    // secondes, avec 0,2 s de marge fixe, le rapport rougissait sous charge (0,028 s puis 1,05 s). La marge de
++    // 0,8 étalon (0,2 s sur le poste de mesure) couvre le bruit d'une mesure de quelques millisecondes ; une lecture
++    // devenue quadratique y passe dès que le grand cas coûte plus d'environ deux étalons (mutation V22).
++    assert.ok(grand.etalons < 6 * petit.etalons + 0.8, `${petit.etalons} puis ${grand.etalons} étalons (${petit.s} s puis ${grand.s} s)`);
      assert.ok(grand.mo < 200, `${grand.mo} Mo`);
-@@ -1076,9 +1102,9 @@ test('A-51 bis : la lecture de 7.9.x rend ce que rendait son motif de here-doc,
+   }
+ });
+@@ -1076,9 +1106,9 @@ test('A-51 bis : la lecture de 7.9.x rend ce que rendait son motif de here-doc,
    // Le cas qui coûtait au cube : dix « <<A » cités, 19 900 sauts de ligne (37 s avec le motif pour 20 000), sous le plafond.
    const c = "echo '" + '<<A '.repeat(10) + "'" + '\n'.repeat(19900) + 'echo ok';
    assert.ok(c.length <= 20000, `${c.length} caractères : au-delà du plafond, la commande ne serait pas lue`);
@@ -673,7 +690,7 @@ index 41ea1b5..724dc47 100644
  });
  
  test('A-51 ter : au-delà de 20 000 caractères, refus prudent, corps de here-doc compris', () => {
-@@ -1093,9 +1119,9 @@ test('A-51 ter : au-delà de 20 000 caractères, refus prudent, corps de here-do
+@@ -1093,9 +1123,9 @@ test('A-51 ter : au-delà de 20 000 caractères, refus prudent, corps de here-do
  test('A-51 ter : le plafond se teste avant toute lecture — une commande de plus de 20 000 caractères est refusée vite', () => {
    // La lecture par jetons est quadratique sur `git commit -m x ` répété : 122 s au-delà du délai du hook, avant le plafond.
    const c = 'git commit -m x '.repeat(62000) + '; npm install x';
@@ -686,16 +703,16 @@ index 41ea1b5..724dc47 100644
  });
  
  test('A-51 ter : le contexte est lu une fois pour les deux lectures — un seul appel de chaque', () => {
-@@ -1113,6 +1139,8 @@ test('A-51 ter : le contexte est lu une fois pour les deux lectures — un seul
+@@ -1113,6 +1143,8 @@ test('A-51 ter : le contexte est lu une fois pour les deux lectures — un seul
  // répétée sans fin de mot en tête (26 s pour `gh pr close 1 -ddd…!` à 99 980 caractères, sous l'ancien plafond de
  // 100 000). À 20 000, le pire cas mesuré prend 1,2 s sur le poste de mesure ; le banc le borne à 10 s, marge pour une
  // machine chargée, sous le délai de 60 s du hook. Un caractère de plus, et la commande est refusée sans être lue.
 +// Ticket 91 : les deux bornes en étalons (plus haut), 40 et 4, soit 10 s et 1 s sur un poste libre où l'étalon prend
-+// 250 ms ; le pire cas y vaut 6,8 étalons, 7,4 sous une charge de 14, où il a dépassé les 10 s (13 s).
++// 250 ms ; le pire cas y vaut 7,2 étalons, 8,9 sous 20 boucles à vide, où il a dépassé les 10 s (13,6 s).
  const PLAFOND = 20_000;
  const PIRES_CAS = [
    ['gh pr close 1 -', 'd', '!'],
-@@ -1128,7 +1156,7 @@ const PIRES_CAS = [
+@@ -1128,7 +1160,7 @@ const PIRES_CAS = [
    ['echo ', '9', ''],
  ];
  const pireCas = ([avant, motif, apres], n) => avant + motif.repeat(Math.ceil(n / motif.length)).slice(0, n - avant.length - apres.length) + apres;
@@ -704,7 +721,7 @@ index 41ea1b5..724dc47 100644
    assert.match(RAISON_TROP_LONGUE, /^commande trop longue pour la garde \(plus de 20 000 caractères\)/);
    assert.match(RAISON_TROP_LONGUE, /Écris le texte long dans un fichier \(git commit -F <fichier>, gh … --body-file <fichier>\)/);
    assert.equal(decisionCommande('echo ' + 'x'.repeat(PLAFOND - 5), CTX_33), null, 'au plafond : lue');
-@@ -1136,14 +1164,15 @@ test('le plafond à 20 000 caractères : chaque pire cas mesuré se lit sous 10
+@@ -1136,14 +1168,15 @@ test('le plafond à 20 000 caractères : chaque pire cas mesuré se lit sous 10
    for (const cas of PIRES_CAS) {
      const c = pireCas(cas, PLAFOND);
      assert.equal(c.length, PLAFOND, JSON.stringify(cas));
@@ -726,7 +743,7 @@ index 41ea1b5..724dc47 100644
    }
  });
  
-@@ -1168,9 +1197,9 @@ test("ticket 48 : `ajouts(code)` de la lecture de 7.9.x ne relance pas sa recher
+@@ -1168,9 +1201,9 @@ test("ticket 48 : `ajouts(code)` de la lecture de 7.9.x ne relance pas sa recher
      assert.equal(LECTURE_7_9.decisionCommande(c, ctx), null, c);
    assert.equal(LECTURE_7_9.decisionCommande('pnpm add react 2>/dev/null', ctx)?.decision, 'refuser');
    // Hors plafond, la lecture de 7.9.x seule : linéaire sur une longue suite de chiffres.
@@ -904,7 +921,7 @@ index db5755b..5f23876 100644
  # Fichiers GÉNÉRÉS : les reformater les fait diverger de leur source et casse
  # les gates de dérive. Chaque service ajoute les siens ci-dessous.
 diff --git a/skills/monorepo/socle-monorepo/references/racine/eslint.config.mjs b/skills/monorepo/socle-monorepo/references/racine/eslint.config.mjs
-index f4fea30..f59e93f 100644
+index f4fea30..bd28af4 100644
 --- a/skills/monorepo/socle-monorepo/references/racine/eslint.config.mjs
 +++ b/skills/monorepo/socle-monorepo/references/racine/eslint.config.mjs
 @@ -1,4 +1,4 @@
@@ -913,24 +930,31 @@ index f4fea30..f59e93f 100644
  import { dirname, join } from "node:path";
  import { fileURLToPath, pathToFileURL } from "node:url";
  import js from "@eslint/js";
-@@ -19,6 +19,16 @@ import globals from "globals";
+@@ -19,6 +19,23 @@ import globals from "globals";
  // options — le dernier écrase le premier. Tout ce qui concerne un groupe de
  // fichiers vit donc dans un seul bloc, dans le fichier du service concerné.
  const root = dirname(fileURLToPath(import.meta.url));
 +// Les scripts posés par le plugin maj-skills (`scripts/agent/`, `scripts/chaine/`…) : du code vendu, tenu par la CI
 +// du plugin, que le projet ne modifie jamais. Leur liste vit dans `.prettierignore`, entre `# socle:poses-du-plugin`
-+// et `# /socle:poses-du-plugin`, seule : ESLint la lit là, Prettier et lint-staged la suivent d'eux-mêmes.
-+const prettierignore = readFileSync(join(root, ".prettierignore"), "utf8");
-+const posesDuPlugin = (prettierignore.split("# socle:poses-du-plugin\n")[1] ?? "")
-+  .split("# /socle:poses-du-plugin")[0]
-+  .split("\n")
-+  .map((ligne) => ligne.trim())
++// et `# /socle:poses-du-plugin`, seule : ESLint la lit là, Prettier et lint-staged la suivent d'eux-mêmes. Sans le
++// bloc, ESLint lirait ces scripts : la configuration le refuse, plutôt que de lire une liste vide.
++const prettierignore = readFileSync(join(root, ".prettierignore"), "utf8")
++  .split(/\r?\n/)
++  .map((ligne) => ligne.trim());
++const debutPoses = prettierignore.indexOf("# socle:poses-du-plugin");
++const finPoses = prettierignore.indexOf("# /socle:poses-du-plugin");
++if (debutPoses < 0 || finPoses < debutPoses)
++  throw new Error(
++    ".prettierignore : le bloc « # socle:poses-du-plugin » … « # /socle:poses-du-plugin » manque ; le reprendre du gabarit de socle-monorepo (NOTES-DE-VERSION.md du plugin, 8.3.1)",
++  );
++const posesDuPlugin = prettierignore
++  .slice(debutPoses + 1, finPoses)
 +  .filter((ligne) => ligne && !ligne.startsWith("#"))
 +  .map((dossier) => `${dossier.replace(/\/$/, "")}/**`);
  const bricks = ["packages", "apps"].flatMap((dir) => {
    const path = join(root, dir);
    if (!existsSync(path)) return [];
-@@ -47,6 +57,7 @@ export default tseslint.config(
+@@ -47,6 +64,7 @@ export default tseslint.config(
        "**/.turbo/**",
        "**/*.config.{js,cjs,mjs,ts}",
        "**/eslint.rules.mjs",

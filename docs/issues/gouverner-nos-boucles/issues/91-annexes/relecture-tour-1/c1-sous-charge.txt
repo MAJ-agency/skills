@@ -1,0 +1,17 @@
+ 08:54:13 up 10 min,  0 user,  load average: 8.68, 3.47, 1.44
+# Subtest: ticket 33 : le lecteur est linéaire — 30 000 lignes « cat <<EOF » non fermées sont refusées en moins de 20 étalons (5 s sur un poste libre)
+ok 30 - ticket 33 : le lecteur est linéaire — 30 000 lignes « cat <<EOF » non fermées sont refusées en moins de 20 étalons (5 s sur un poste libre)
+not ok 37 - ticket 33, contre-relecture C1 : ce qui suit un mot à expansion se relit en temps et mémoire linéaires
+# Subtest: le plafond à 20 000 caractères : chaque pire cas mesuré se lit sous 40 étalons (10 s sur un poste libre), et se refuse sans lecture à 20 001
+ok 52 - le plafond à 20 000 caractères : chaque pire cas mesuré se lit sous 40 étalons (10 s sur un poste libre), et se refuse sans lecture à 20 001
+# tests 88
+# pass 87
+# fail 1
+ 08:57:56 up 13 min,  0 user,  load average: 27.71, 16.42, 7.15
+## seconde passe
+ 08:58:22 up 14 min,  0 user,  load average: 25.78, 16.83, 7.53
+not ok 37 - ticket 33, contre-relecture C1 : ce qui suit un mot à expansion se relit en temps et mémoire linéaires
+  error: '0.027849725 s puis 1.0523034789999999 s'
+# pass 87
+# fail 1
+ 09:02:27 up 18 min,  0 user,  load average: 27.39, 22.77, 12.16

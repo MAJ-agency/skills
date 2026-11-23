@@ -1,0 +1,13 @@
+== versions : node v22.23.5, pnpm 9.15.4, eslint v9.39.5, prettier 3.10.1
+== pnpm lint
+✖ 14 problems (14 errors, 0 warnings)
+sortie 1
+== pnpm check:contexte
+references-agent : 13 référence(s) cassée(s) nouvelle(s) :
+sortie 1
+== prettier --list-different, par dossier
+== liens markdown cassés
+2 lien(s) cassé(s) sur 36 fichiers .md suivis
+== premier commit (pre-commit : lint-staged, check:commit ; commit-msg : commitlint)
+sortie 0
+== reformatés par lint-staged au commit, par dossier

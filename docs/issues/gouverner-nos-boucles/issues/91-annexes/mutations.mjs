@@ -1,4 +1,4 @@
-// Les mutations du ticket 91 : chacune remplace des textes exacts d'un fichier (ou ajoute un fichier), joue le banc
+// Les mutations du ticket 91 (V22 à V26 : retouches de la relecture, A-219) : chacune remplace des textes exacts d'un fichier (ou ajoute un fichier), joue le banc
 // qu'elle vise, et doit le rendre rouge ; le fichier est remis (ou retiré) après chaque mutation. À lancer depuis la
 // racine d'un clone où `ticket-91.patch` est appliqué et commité : `node <chemin>/mutations.mjs [<nom>…]`.
 // Une ligne par mutation : `ROUGE` (tuée), `DÉLAI` (le banc a dépassé son délai : rien n'est prouvé, elle ne compte pas
@@ -26,6 +26,7 @@ const CEV = ['skills/chaine/fusionner/scripts/checks-exiges-vides.test.mjs'];
 const SF = ['--test-name-pattern=checks exigés vide', 'skills/chaine/fusionner/scripts/sujet-fusionner.test.mjs'];
 const PLAFOND = ['--test-name-pattern=le plafond à 20 000', RT];
 const AJOUTS = ['--test-name-pattern=ajouts\\(code\\)', RT];
+const C1 = ['--test-name-pattern=contre-relecture C1', RT];
 const RE_CLOSE = '/^(-[a-zA-Z]*d[a-zA-Z]*|--delete-branch)(=.*)?$/.test(mot)';
 
 // [nom, fichier, remplacements [[avant, après, toutes?]…] ou null (le fichier est ajouté, son contenu ensuite), bancs]
@@ -55,6 +56,11 @@ const MUTATIONS = [
   ['V19 socle-chaine-de-production : la génération du registre des coûts n’est plus dite', 'skills/chaine/socle-chaine-de-production/SKILL.md', [[' Puis générer chaque index de la liste par sa `commande` : `node scripts/docs/couts.mjs` écrit le registre des coûts, `docs/agents/couts.md`, que `chaine-de-production.md` cite (sans lui, `check:contexte` est rouge).', '']], CS],
   ['V20 socle-monorepo : le gel à l’allumage n’est plus dit', 'skills/monorepo/socle-monorepo/SKILL.md', [['Celles-là, et elles seules, se gèlent à cet allumage', 'Elles se corrigent']], CS],
   ['V21 chaine-admin.md : la case des checks exigés ne dit plus la règle vide', 'skills/chaine/socle-chaine-de-production/references/admin.md', [['**jamais une règle sans check** : ', '']], CS],
+  ['V22 regles.mjs : la lecture relit toute la commande à chaque expansion (quadratique sur le cas C1)', R, [["    mot.expansion = true;\n    mot.queue = '';\n", "    mot.expansion = true;\n    mot.queue = '';\n    void this.src.split('').length;\n"]], C1],
+  ['V23 checks_exiges : RÉGLAGE DU DÉPÔT propose de nouveau de retirer la règle', GH, [['« Protection de develop ») ; puis relancer le capitaine.', '« Protection de develop »), ou retirer la règle ; puis relancer le capitaine.']], CEV],
+  ['V24 chaine-admin.md : la case des checks exigés propose de nouveau de ne poser la règle qu’après le premier run', 'skills/chaine/socle-chaine-de-production/references/admin.md', [[': y ajouter les checks, jamais retirer la règle (sans aucun check exigé, rien n\'entre non plus : chaque PR se lit « CI non déclenchée » et reste de côté) ;', ': y ajouter les checks, ou ne poser la règle qu\'après le premier run ;']], CS],
+  ['V25 eslint.config.mjs du gabarit : .prettierignore découpé sur \\n seul, sans trim (un fichier en CRLF ne se lit plus)', EC, [['  .split(/\\r?\\n/)\n  .map((ligne) => ligne.trim());\n', '  .split("\\n");\n']], D],
+  ['V26 eslint.config.mjs du gabarit : sans le bloc, aucune erreur (une liste lue au hasard)', EC, [['if (debutPoses < 0 || finPoses < debutPoses)\n', 'if (false)\n']], D],
 ];
 
 const voulues = process.argv.slice(2);

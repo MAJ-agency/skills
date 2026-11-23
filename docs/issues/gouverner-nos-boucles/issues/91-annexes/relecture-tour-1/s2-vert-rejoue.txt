@@ -1,0 +1,11 @@
+# régime 8 : 30 bancs, 414 tests, 413 verts, 1 sautés
+# régime 7 : 30 bancs, 414 tests, 413 verts, 1 sautés
+# tests 100
+# pass 100
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# tests 1
+# pass 1
+# fail 0

@@ -1,4 +1,11 @@
-# § 1 du ticket 91 rejoué : clone neuf de main à 24fbd72 (plugin 8.3.0), arbre à part, les bancs seuls du patch (git apply --include), sans NODE_PATH, le 2026-11-23
+# § 1 du ticket 91 rejoué après les retouches A-219 : clone neuf de main à 24fbd72, arbre à part, les bancs seuls du patch (sha256 00365efa…), sans NODE_PATH, le 2026-11-23
+ M scripts/pose-du-socle.mjs
+ M scripts/references-posees.test.mjs
+ M skills/chaine/fusionner/scripts/sujet-fusionner.test.mjs
+ M skills/chaine/sujet/scripts/faux-gh.mjs
+?? scripts/chaine-seule.test.mjs
+?? scripts/dossiers-poses.test.mjs
+?? skills/chaine/fusionner/scripts/checks-exiges-vides.test.mjs
 not ok 1 - la liste de l’admin a un seul nom, docs/agents/chaine-admin.md : posée sous ce nom, et aucun skill ni gabarit ne nomme docs/agents/admin.md
 not ok 2 - les liens de la méthode posée par socle-monorepo résolvent dans un dépôt sans service
 not ok 3 - au premier pnpm check, les skills disent ce qui se gèle (et seulement cela) et le registre des coûts qui se génère
@@ -15,3 +22,11 @@ not ok 1 - sujet.sh fusionner : une règle de checks exigés vide sur develop so
 # tests 1
 # pass 0
 # fail 1
+## le banc des durées de main, seul, sous charge.sh 20
+ 09:47:19 up  1:03,  0 user,  load average: 6.33, 6.89, 7.08
+not ok 52 - le plafond à 20 000 caractères : chaque pire cas mesuré se lit sous 10 s, et se refuse sans lecture à 20 001
+  error: '["gh pr close 1 -","d","!"] : 11969 ms à 20000 caractères'
+# tests 88
+# pass 87
+# fail 1
+ 09:47:36 up  1:03,  0 user,  load average: 9.58, 7.58, 7.30

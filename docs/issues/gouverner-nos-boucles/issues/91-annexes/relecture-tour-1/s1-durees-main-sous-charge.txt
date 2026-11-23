@@ -1,0 +1,7 @@
+ 08:50:30 up 6 min,  0 user,  load average: 5.97, 1.45, 0.48
+not ok 52 - le plafond à 20 000 caractères : chaque pire cas mesuré se lit sous 10 s, et se refuse sans lecture à 20 001
+  error: '["gh pr close 1 -","d","!"] : 12014 ms à 20000 caractères'
+# tests 88
+# pass 87
+# fail 1
+ 08:50:46 up 6 min,  0 user,  load average: 9.30, 2.41, 0.81

@@ -1,0 +1,16 @@
+not ok 1 - la liste de l’admin a un seul nom, docs/agents/chaine-admin.md : posée sous ce nom, et aucun skill ni gabarit ne nomme docs/agents/admin.md
+not ok 2 - les liens de la méthode posée par socle-monorepo résolvent dans un dépôt sans service
+not ok 3 - au premier pnpm check, les skills disent ce qui se gèle (et seulement cela) et le registre des coûts qui se génère
+ok 4 - blocDuPlugin : la liste entre les deux marqueurs, sans commentaire ni barre finale ; sans bloc, null
+not ok 5 - la liste du gabarit de .prettierignore est celle des dossiers de scripts/ que les skills posent, ni plus ni moins
+not ok 6 - eslint.config.mjs du gabarit lit le bloc de .prettierignore et en ignore chaque dossier ; lint-staged ne lint rien d’ignoré
+not ok 7 - checks_exiges : une règle de checks exigés vide sur develop sort en 6, RÉGLAGE DU DÉPÔT nommant la branche, la règle et le geste, rien sur la sortie standard ; sans règle, [] ; une règle qui exige, sa liste
+not ok 8 - file.sh puis boucle.sh : une règle de checks exigés vide est dite à la première lecture et arrête la boucle, jamais une PR « prête (sans CI) » mise de côté
+not ok 9 - passer.sh : une règle de checks exigés vide n'est jamais « CI non déclenchée » : sortie 3 sur le réglage du dépôt, ni fusion ni label
+# tests 9
+# pass 1
+# fail 8
+not ok 1 - sujet.sh fusionner : une règle de checks exigés vide sur develop sort en 11 sur le réglage du dépôt, à l'attente de la CI comme à la lecture unique d'une PR de mise à jour, aucun renvoi
+# tests 1
+# pass 0
+# fail 1
