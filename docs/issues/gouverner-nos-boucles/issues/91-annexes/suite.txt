@@ -1,0 +1,14 @@
+# Suite entière du ticket 91 (env -u NODE_PATH pnpm test), clone neuf de main à 24fbd72 (plugin 8.3.0), branche commitée avec le patch (arbre 5d62440d…, plugin 8.3.1), Node 22.23.5, le 2026-11-23, seule (après les mutations), en tâche de fond, timeout 1800
+ 00:54:35 up 56 min,  0 user,  load average: 0.88, 3.99, 4.50
+00:54:35
+sortie 0
+01:11:25
+ 01:11:25 up  1:13,  0 user,  load average: 1.25, 3.15, 4.31
+# tests 1471
+# suites 0
+# pass 1471
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1010276.125711

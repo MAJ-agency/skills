@@ -1,0 +1,42 @@
+# § 2 du ticket 91 rejoué : le patch appliqué sur le même clone ; git status --short, puis les bancs neufs, regles.test.mjs et le garde du ticket 90, sans NODE_PATH, le 2026-11-23
+ M .claude-plugin/plugin.json
+ M NOTES-DE-VERSION.md
+ M README.md
+ M scripts/pose-du-socle.mjs
+ M scripts/references-posees.test.mjs
+ M skills/chaine/anchorpost/SKILL.md
+ M skills/chaine/anchorpost/references/adr/ADR_ALL_ARC-N-index-anchorpost.md
+ M skills/chaine/fusionner/SKILL.md
+ M skills/chaine/fusionner/scripts/boucle.sh
+ M skills/chaine/fusionner/scripts/file.sh
+ M skills/chaine/fusionner/scripts/github.sh
+ M skills/chaine/fusionner/scripts/passer.sh
+ M skills/chaine/fusionner/scripts/sujet-fusionner.test.mjs
+ M skills/chaine/socle-chaine-de-production/SKILL.md
+ M skills/chaine/socle-chaine-de-production/references/admin.md
+ M skills/chaine/socle-chaine-de-production/references/agent/regles.test.mjs
+ M skills/chaine/socle-chaine-de-production/references/docs-agents/pieges.md
+ M skills/chaine/sujet/scripts/faux-gh.mjs
+ M skills/chaine/sujet/scripts/sujet.sh
+ M skills/monorepo/socle-monorepo/SKILL.md
+ M skills/monorepo/socle-monorepo/references/CONTENU.md
+ M skills/monorepo/socle-monorepo/references/methode/conception.md
+ M skills/monorepo/socle-monorepo/references/methode/pare-feu-ci.md
+ M skills/monorepo/socle-monorepo/references/racine/.prettierignore
+ M skills/monorepo/socle-monorepo/references/racine/eslint.config.mjs
+?? scripts/chaine-seule.test.mjs
+?? scripts/dossiers-poses.test.mjs
+?? skills/chaine/fusionner/scripts/checks-exiges-vides.test.mjs
+ 00:50:04 up 52 min,  0 user,  load average: 7.67, 8.57, 5.73
+# régime 8 : 30 bancs, 414 tests, 413 verts, 1 sautés
+# régime 7 : 30 bancs, 414 tests, 413 verts, 1 sautés
+# tests 100
+# pass 100
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# tests 1
+# pass 1
+# fail 0
+ 00:53:11 up 55 min,  0 user,  load average: 1.22, 5.07, 4.87

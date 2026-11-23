@@ -1,0 +1,66 @@
+# Chaque cas de durée de regles.test.mjs (plugin 8.3.0, regles.mjs inchangé par le patch), poste libre
+ 01:40:27 up  1:42,  0 user,  load average: 0.91, 1.85, 3.02
+A heredocs 30000	0.1 ms	borne 5000 ms
+B continuees n	9.2 ms	borne - ms
+B continuees 3n	30.5 ms	borne 2000 ms
+B nus n	12.1 ms	borne - ms
+B nus 3n	40.7 ms	borne 2000 ms
+C cube	12.2 ms	borne 2000 ms
+D 62000	0.0 ms	borne 2000 ms
+E ["gh pr close 1 -","d","!"] 20000	2620.8 ms	borne 10000 ms
+E ["gh pr close 1 -","d","!"] 20001	0.2 ms	borne 1000 ms
+E ["git commit -","n","!"] 20000	1317.7 ms	borne 10000 ms
+E ["git commit -","n","!"] 20001	0.0 ms	borne 1000 ms
+E ["git commit -m x -","nN","!"] 20000	1536.4 ms	borne 10000 ms
+E ["git commit -m x -","nN","!"] 20001	0.0 ms	borne 1000 ms
+E ["GIT commit -","n","."] 20000	1496.2 ms	borne 10000 ms
+E ["GIT commit -","n","."] 20001	0.0 ms	borne 1000 ms
+E ["git push -","f","!"] 20000	1595.1 ms	borne 10000 ms
+E ["git push -","f","!"] 20001	0.0 ms	borne 1000 ms
+E ["","`",""] 20000	483.0 ms	borne 10000 ms
+E ["","`",""] 20001	0.0 ms	borne 1000 ms
+E ["x=","`",""] 20000	494.8 ms	borne 10000 ms
+E ["x=","`",""] 20001	0.0 ms	borne 1000 ms
+E ["echo ","`a`",""] 20000	223.9 ms	borne 10000 ms
+E ["echo ","`a`",""] 20001	0.0 ms	borne 1000 ms
+E ["","git push ",""] 20000	520.9 ms	borne 10000 ms
+E ["","git push ",""] 20001	0.0 ms	borne 1000 ms
+E ["","$(a)",")"] 20000	145.3 ms	borne 10000 ms
+E ["","$(a)",")"] 20001	0.0 ms	borne 1000 ms
+E ["echo ","9",""] 20000	1.7 ms	borne 10000 ms
+E ["echo ","9",""] 20001	0.0 ms	borne 1000 ms
+F 99995 chiffres	6.6 ms	borne 1000 ms
+
+# Le même, sous 20 boucles à vide (charge.sh 20)
+ 01:40:58 up  1:42,  0 user,  load average: 6.34, 3.00, 3.36
+A heredocs 30000	0.1 ms	borne 5000 ms
+B continuees n	78.4 ms	borne - ms
+B continuees 3n	212.2 ms	borne 2000 ms
+B nus n	111.7 ms	borne - ms
+B nus 3n	299.2 ms	borne 2000 ms
+C cube	106.9 ms	borne 2000 ms
+D 62000	0.1 ms	borne 2000 ms
+E ["gh pr close 1 -","d","!"] 20000	14302.8 ms	borne 10000 ms
+E ["gh pr close 1 -","d","!"] 20001	0.1 ms	borne 1000 ms
+E ["git commit -","n","!"] 20000	8368.7 ms	borne 10000 ms
+E ["git commit -","n","!"] 20001	0.0 ms	borne 1000 ms
+E ["git commit -m x -","nN","!"] 20000	9565.1 ms	borne 10000 ms
+E ["git commit -m x -","nN","!"] 20001	0.0 ms	borne 1000 ms
+E ["GIT commit -","n","."] 20000	8311.7 ms	borne 10000 ms
+E ["GIT commit -","n","."] 20001	0.0 ms	borne 1000 ms
+E ["git push -","f","!"] 20000	8849.9 ms	borne 10000 ms
+E ["git push -","f","!"] 20001	20.1 ms	borne 1000 ms
+E ["","`",""] 20000	2978.7 ms	borne 10000 ms
+E ["","`",""] 20001	0.0 ms	borne 1000 ms
+E ["x=","`",""] 20000	2466.2 ms	borne 10000 ms
+E ["x=","`",""] 20001	0.0 ms	borne 1000 ms
+E ["echo ","`a`",""] 20000	1476.8 ms	borne 10000 ms
+E ["echo ","`a`",""] 20001	0.0 ms	borne 1000 ms
+E ["","git push ",""] 20000	3044.6 ms	borne 10000 ms
+E ["","git push ",""] 20001	0.0 ms	borne 1000 ms
+E ["","$(a)",")"] 20000	1063.2 ms	borne 10000 ms
+E ["","$(a)",")"] 20001	0.0 ms	borne 1000 ms
+E ["echo ","9",""] 20000	15.9 ms	borne 10000 ms
+E ["echo ","9",""] 20001	0.0 ms	borne 1000 ms
+F 99995 chiffres	38.2 ms	borne 1000 ms
+ 01:42:00 up  1:44,  0 user,  load average: 16.19, 6.58, 4.57

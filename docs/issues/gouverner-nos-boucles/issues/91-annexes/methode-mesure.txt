@@ -1,0 +1,53 @@
+#### le jouet posé en chaîne seule (plugin 8.3.0)
+== lu : 13 référence(s) cassée(s), dont docs/methode/ : 0
+== methode : 29 référence(s) cassée(s), dont docs/methode/ : 16
+  docs/methode/grilling.md:5 — skill qualifiée « superpowers:brainstorming » introuvable
+  docs/methode/grilling.md:162 — skill qualifiée « superpowers:brainstorming » introuvable
+  docs/methode/nomenclature.md:33 — chemin « docs/design/ » introuvable
+  docs/methode/nomenclature.md:34 — chemin « docs/architecture/ » introuvable
+  docs/methode/nomenclature.md:34 — chemin « docs/infrastructure/ » introuvable
+  docs/methode/nomenclature.md:34 — chemin « docs/metier/reference/ » introuvable
+  docs/methode/nomenclature.md:37 — ticket « SPEC_ALL_LIC-12.03 » introuvable
+  docs/methode/nomenclature.md:84 — chemin « docs/demandes/all/ » introuvable
+  docs/methode/nomenclature.md:89 — chemin « docs/architecture/ » introuvable
+  docs/methode/nomenclature.md:90 — chemin « docs/infrastructure/ » introuvable
+  docs/methode/nomenclature.md:91 — chemin « docs/design/ » introuvable
+  docs/methode/nomenclature.md:94 — chemin « docs/demandes/ » introuvable
+  docs/methode/nomenclature.md:123 — chemin « docs/metier/reunions/ » introuvable
+  docs/methode/nomenclature.md:124 — chemin « docs/design/proto/ » introuvable
+  docs/methode/nomenclature.md:175 — chemin « .claude/rules/anchorpost.md » introuvable
+  docs/methode/nomenclature.md:222 — chemin « docs/adr/0002-transactions.md » introuvable
+#### le dépôt de l’essai réel (plugin 8.0.0)
+== lu : 11 référence(s) cassée(s), dont docs/methode/ : 0
+== methode : 27 référence(s) cassée(s), dont docs/methode/ : 16
+  docs/methode/grilling.md:5 — skill qualifiée « superpowers:brainstorming » introuvable
+  docs/methode/grilling.md:162 — skill qualifiée « superpowers:brainstorming » introuvable
+  docs/methode/nomenclature.md:33 — chemin « docs/design/ » introuvable
+  docs/methode/nomenclature.md:34 — chemin « docs/architecture/ » introuvable
+  docs/methode/nomenclature.md:34 — chemin « docs/infrastructure/ » introuvable
+  docs/methode/nomenclature.md:34 — chemin « docs/metier/reference/ » introuvable
+  docs/methode/nomenclature.md:37 — ticket « SPEC_ALL_LIC-12.03 » introuvable
+  docs/methode/nomenclature.md:84 — chemin « docs/demandes/all/ » introuvable
+  docs/methode/nomenclature.md:89 — chemin « docs/architecture/ » introuvable
+  docs/methode/nomenclature.md:90 — chemin « docs/infrastructure/ » introuvable
+  docs/methode/nomenclature.md:91 — chemin « docs/design/ » introuvable
+  docs/methode/nomenclature.md:94 — chemin « docs/demandes/ » introuvable
+  docs/methode/nomenclature.md:123 — chemin « docs/metier/reunions/ » introuvable
+  docs/methode/nomenclature.md:124 — chemin « docs/design/proto/ » introuvable
+  docs/methode/nomenclature.md:177 — chemin « .claude/rules/anchorpost.md » introuvable
+  docs/methode/nomenclature.md:224 — chemin « docs/adr/0002-transactions.md » introuvable
+#### un dépôt réel posé avec api, web et la chaîne
+== lu : 1 référence(s) cassée(s), dont docs/methode/ : 0
+== methode : 12 référence(s) cassée(s), dont docs/methode/ : 12
+  docs/methode/grilling.md:5 — skill qualifiée « superpowers:brainstorming » introuvable
+  docs/methode/grilling.md:143 — skill qualifiée « superpowers:brainstorming » introuvable
+  docs/methode/nomenclature.md:34 — chemin « docs/infrastructure/ » introuvable
+  docs/methode/nomenclature.md:34 — chemin « docs/metier/reference/ » introuvable
+  docs/methode/nomenclature.md:37 — ticket « SPEC_ALL_LIC-12.03 » introuvable
+  docs/methode/nomenclature.md:84 — chemin « docs/demandes/all/ » introuvable
+  docs/methode/nomenclature.md:90 — chemin « docs/infrastructure/ » introuvable
+  docs/methode/nomenclature.md:94 — chemin « docs/demandes/ » introuvable
+  docs/methode/nomenclature.md:123 — chemin « docs/metier/reunions/ » introuvable
+  docs/methode/nomenclature.md:124 — chemin « docs/design/proto/ » introuvable
+  docs/methode/nomenclature.md:147 — chemin « apps/mobile/ » introuvable
+  docs/methode/nomenclature.md:192 — chemin « docs/adr/0002-transactions.md » introuvable

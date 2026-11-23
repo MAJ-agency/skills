@@ -1,0 +1,940 @@
+diff --git a/.claude-plugin/plugin.json b/.claude-plugin/plugin.json
+index b4a89a7..945befe 100644
+--- a/.claude-plugin/plugin.json
++++ b/.claude-plugin/plugin.json
+@@ -1,6 +1,6 @@
+ {
+   "name": "maj-skills",
+-  "version": "8.3.0",
++  "version": "8.3.1",
+   "description": "Skills d'ingénierie maison : amorçage de monorepo et de socles (API NestJS hexagonale, web Next.js, mobile Expo), chaîne de production pour des sessions d'agent en parallèle (tickets, sujets, capitaine de fusion, revue adversariale, chantier, recette). Aucune règle métier.",
+   "author": {
+     "name": "Guillaume Jauffret"
+diff --git a/NOTES-DE-VERSION.md b/NOTES-DE-VERSION.md
+index fb106db..db9f560 100644
+--- a/NOTES-DE-VERSION.md
++++ b/NOTES-DE-VERSION.md
+@@ -2,6 +2,26 @@
+ 
+ La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque projet par `poser` : une version publiée ne change rien chez un projet qui ne les repose pas. Chaque note dit ce qui change, puis ce qu'un projet fait pour en profiter.
+ 
++## 8.3.1 — 2026-11-23
++
++### Ce qui change
++
++- **Un socle posé en « chaîne seule » passe son propre gate** (ticket 91, essai réel de la pose du plugin 8.0.0 sur un dépôt neuf, `socle-monorepo` sans service puis `socle-chaine-de-production`).
++- **Le lint et Prettier du projet ne lisent plus les scripts posés par le plugin** : le gabarit `.prettierignore` de `socle-monorepo` porte le bloc `socle:poses-du-plugin` (`scripts/agent/`, `scripts/chaine/`, `scripts/docs/`, `scripts/github/`, `scripts/verify/`), que Prettier et lint-staged suivent, et `eslint.config.mjs` le lit pour ses `ignores`. Au plugin 8.3.0, l'ESLint de la racine y trouvait 14 erreurs (`pnpm check` rouge dès la pose) et chaque commit reformatait les scripts posés. `scripts/dossiers-poses.test.mjs` tient la liste égale aux dossiers que les skills posent.
++- **Les références d'une brique non posée se gèlent à l'allumage, et le skill le dit** : `socle-monorepo` (étape 7) nomme les quatre de `.claude/rules/tests.md` vers `socle-tests`, `socle-chaine-de-production` (étape 3) les huit de `criteres-revue.md` et `pieges.md` vers l'API, et comment les geler (`scripts/verify/references-agent-dette.json`).
++- **Le registre des coûts est généré à la pose** (`socle-chaine-de-production`, étape 2.3 : `node scripts/docs/couts.mjs`) : `chaine-de-production.md` le cite, `check:contexte` était rouge sans lui.
++- **La méthode posée par la racine n'a plus de lien vers une brique absente** : `conception.md` et `pare-feu-ci.md` citaient `apps/api/CLAUDE.md` et `ADR_ALL_ARC-2` par un lien, cassé dans un dépôt sans API.
++- **Un seul nom pour la liste de l'admin, `docs/agents/chaine-admin.md`** : `socle-monorepo`, `anchorpost` (sa recette de l'administrateur et son ADR) et `pieges.md` nommaient `docs/agents/admin.md`, que rien ne pose.
++- **Une règle de checks exigés vide sur `develop` est un réglage du dépôt, dit à la première lecture** : `checks_exiges` (`github.sh`) sort en 6 sur `RÉGLAGE DU DÉPÔT` (la branche, la règle vide, le geste de l'admin), `file.sh` sort en 6 et la boucle s'arrête (`ARRÊT : réglage du dépôt`), `passer.sh` sort en 3 et `sujet.sh fusionner` en 11 sur la même raison ; avant, toute PR s'y lisait « prête (sans CI) » et n'entrait jamais (vu deux fois à l'essai, au bout d'une heure ou plus). `chaine-admin.md` le dit à la protection de `develop`. Un dépôt sans aucune règle de checks reste « sans CI ».
++- **Les durées de `regles.test.mjs` se bornent en étalons**, un travail fixe mesuré juste avant et juste après chaque cas : sous une charge de 14 sur quatre cœurs, le pire cas à 20 000 caractères prenait 13 s pour une borne de 10 s ; il y vaut 7,4 étalons pour une borne de 40, comme sur un poste libre (6,8).
++
++### Ce qu'un projet fait pour en profiter
++
++- **Ajouter le bloc `socle:poses-du-plugin`** du gabarit `socle-monorepo/references/racine/.prettierignore` à son `.prettierignore`, et à son `eslint.config.mjs` la lecture de ce bloc (`posesDuPlugin`, avec `readFileSync`) et `...posesDuPlugin` dans ses `ignores` ; retirer les dossiers posés qu'il avait mis aux `ignores` à la main. Puis reposer les scripts du plugin tels quels (`git diff` contre le plugin : vide).
++- **Reposer `socle-chaine-de-production`** (`references/agent/regles.test.mjs`, `references/admin.md` → `docs/agents/chaine-admin.md`, `references/docs-agents/pieges.md`) et les scripts de `fusionner` et `sujet` (`github.sh`, `file.sh`, `boucle.sh`, `passer.sh`, `sujet.sh`, `faux-gh.mjs`, `sujet-fusionner.test.mjs`, `checks-exiges-vides.test.mjs`) sous `scripts/chaine/`.
++- **Un dépôt qui a un `docs/agents/admin.md`** (la section Anchorpost d'avant) la reporte dans `docs/agents/chaine-admin.md` ; rien ne lit l'autre.
++- **Vérifier la règle de checks exigés de `develop`** : `gh api repos/{owner}/{repo}/rules/branches/develop --jq '[.[] | select(.type == "required_status_checks") | .parameters.required_status_checks[].context]'` rend `qualite` et `test-db`, jamais `[]`.
++
+ ## 8.3.0 — 2026-11-22
+ 
+ ### Ce qui change
+diff --git a/README.md b/README.md
+index bf3e30d..3920d13 100644
+--- a/README.md
++++ b/README.md
+@@ -203,6 +203,8 @@ Un skill dont l'étape `poser` copie un dossier de scripts dans `scripts/chaine/
+ 
+ Un banc rangé sous `references/` d'un skill est un banc posé : `scripts/references-posees.test.mjs` le pose dans un dépôt jouet, à sa place de projet (`agent/` → `scripts/agent/`, `scripts/<d>/` → `scripts/<d>/`), avec ses voisins, les dépendances de la racine et le contrat du gabarit aux régimes 8 et 7, et le joue sans `NODE_PATH` ; un banc rangé ailleurs sous `references/` le rougit. Un banc du plugin, qui lit l'arbre du plugin (un gabarit, un autre skill), vit sous `scripts/` de son skill, jamais sous `references/`.
+ 
++Un skill qui pose des scripts dans un dossier de `scripts/` d'un projet l'ajoute au bloc `socle:poses-du-plugin` du gabarit `socle-monorepo/references/racine/.prettierignore` : le lint et Prettier du projet ne lisent pas le code vendu du plugin. `scripts/dossiers-poses.test.mjs` tient ce bloc égal aux dossiers que les skills posent (`references/agent/`, `references/scripts/<d>/`, les scripts posés sous `scripts/chaine/`, et tout `scripts/<d>/` qu'un `SKILL.md` nomme), hors de `scripts/db/` (un script shell, le dossier reste au projet).
++
+ Un banc ne recopie jamais le filtre des variables `GIT_*` : il importe `environnementDeBanc()` (`scripts/docs/environnement-de-banc.mjs` du socle, réexporté par `depot-jouet.mjs`), qui retire aussi `FORCE_COLOR` et pose `NO_COLOR=1`. `scripts/un-seul-environnement-de-banc.test.mjs` refuse toute copie.
+ 
+ Ce qui dépasse une page va dans `references/`, atteint par un pointeur depuis `SKILL.md` — le corps du skill reste lisible, et les détails ne se chargent qu'au besoin.
+diff --git a/scripts/chaine-seule.test.mjs b/scripts/chaine-seule.test.mjs
+new file mode 100644
+index 0000000..b4f7694
+--- /dev/null
++++ b/scripts/chaine-seule.test.mjs
+@@ -0,0 +1,69 @@
++// Ticket 91 : un socle posé en « chaîne seule » (`socle-monorepo` sans aucun service, puis `socle-chaine-de-production`)
++// passe son propre gate. Ce que l'essai réel a trouvé et que ce banc tient, hors du lint des scripts posés
++// (`dossiers-poses.test.mjs`) : un seul nom pour la liste de l'admin, aucun lien de la méthode posée par la racine vers
++// une brique qu'un dépôt sans service n'a pas, et les skills qui disent, à leur premier `pnpm check`, ce qui se gèle et
++// ce qui se génère.
++import assert from 'node:assert/strict';
++import { readdirSync, readFileSync, statSync } from 'node:fs';
++import { join, normalize } from 'node:path';
++import { test } from 'node:test';
++import { RACINE } from './pose-du-socle.mjs';
++
++const MONOREPO = 'skills/monorepo/socle-monorepo';
++const CHAINE = 'skills/chaine/socle-chaine-de-production';
++const lire = (chemin) => readFileSync(join(RACINE, chemin), 'utf8');
++const fichiers = (d) =>
++  readdirSync(join(RACINE, d), { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? fichiers(`${d}/${e.name}`) : [`${d}/${e.name}`]));
++
++test('la liste de l’admin a un seul nom, docs/agents/chaine-admin.md : posée sous ce nom, et aucun skill ni gabarit ne nomme docs/agents/admin.md', () => {
++  assert.match(lire(`${CHAINE}/SKILL.md`), /`references\/admin\.md` → `docs\/agents\/chaine-admin\.md`/);
++  const autres = [...fichiers('skills'), 'README.md']
++    .filter((f) => /\.(md|mjs|sh|json|yml)$/.test(f))
++    .flatMap((f) => lire(f).split('\n').flatMap((l, i) => (/docs\/agents\/admin\.md/.test(l) ? [`${f}:${i + 1}`] : [])));
++  assert.deepEqual(autres, [], 'docs/agents/admin.md nommé : la liste de l’admin est docs/agents/chaine-admin.md');
++  // La case des checks exigés dit la règle vide, que le capitaine refuse de lire « sans CI » (`RÉGLAGE DU DÉPÔT`).
++  assert.match(lire(`${CHAINE}/references/admin.md`), /\*\*jamais une règle sans check\*\* : une règle « Require status checks to pass » qui n'en exige aucun [^;]+; le capitaine le dit dès sa première lecture \(`RÉGLAGE DU DÉPÔT`, sa boucle s'arrête\)/);
++});
++
++test('les liens de la méthode posée par socle-monorepo résolvent dans un dépôt sans service', () => {
++  // Ce que la racine pose, à sa place de projet (TABLE-RACINE.md) : seul ce qu'un dépôt sans service est sûr d'avoir.
++  const poses = new Set();
++  const poser = (source, vers) => {
++    for (const f of fichiers(`${MONOREPO}/references/${source}`)) poses.add(normalize(`${vers}/${f.slice(`${MONOREPO}/references/${source}/`.length).replace(/^gitignore$/, '.gitignore')}`));
++  };
++  poser('racine', '.');
++  poser('methode', 'docs/methode');
++  poser('agents', 'docs/agents');
++  poser('sources', 'docs/sources');
++  for (const f of ['ADR_ALL_ARC-1-identifiants-types-et-contextes.md', 'ADR_ALL_ARC-4-langue-des-identifiants-de-code.md']) poses.add(`docs/adr/${f}`);
++  const existe = (c) => poses.has(c) || [...poses].some((p) => p.startsWith(`${c.replace(/\/$/, '')}/`));
++  const casses = [];
++  for (const f of readdirSync(join(RACINE, MONOREPO, 'references/methode'))) {
++    let bloc = false;
++    lire(`${MONOREPO}/references/methode/${f}`).split('\n').forEach((l, i) => {
++      if (/^\s*(```|~~~)/.test(l)) bloc = !bloc;
++      if (bloc) return;
++      for (const m of l.matchAll(/\]\(([^)\s#]+)(#[^)]*)?\)/g)) {
++        if (/^[a-z]+:/.test(m[1])) continue;
++        const cible = normalize(join('docs/methode', m[1]));
++        if (!existe(cible)) casses.push(`docs/methode/${f}:${i + 1} → ${m[1]}`);
++      }
++    });
++  }
++  assert.deepEqual(casses, [], 'un lien de la méthode vers une brique que le dépôt peut ne pas avoir : citer l’identifiant ou le fichier, sans lien');
++  assert.ok(poses.size > 20 && statSync(join(RACINE, MONOREPO, 'references/methode')).isDirectory());
++});
++
++test('au premier pnpm check, les skills disent ce qui se gèle (et seulement cela) et le registre des coûts qui se génère', () => {
++  const monorepo = lire(`${MONOREPO}/SKILL.md`);
++  for (const ref of ['scripts/verify/preuves.mjs', 'scripts/verify/tests-creux.mjs', 'docs/agents/gabarits/exemple.jour-metier.spec.ts', 'docs/agents/gabarits/exemple.property.spec.ts'])
++    assert.ok(monorepo.includes(`\`${ref}\``), `socle-monorepo, étape 7 : ${ref}`);
++  assert.match(monorepo, /Celles-là, et elles seules, se gèlent à cet allumage : chaque ligne `<fichier>:<ligne> — <nature> « <référence> » introuvable` du gate devient l'entrée `"<fichier>:<ligne>:<référence>"` du tableau `references` de `scripts\/verify\/references-agent-dette\.json`/);
++  const chaine = lire(`${CHAINE}/SKILL.md`);
++  assert.match(chaine, /Puis générer chaque index de la liste par sa `commande` : `node scripts\/docs\/couts\.mjs` écrit le registre des coûts, `docs\/agents\/couts\.md`/);
++  assert.match(chaine, /les sept sections de `apps\/api\/CLAUDE\.md` que citent les critères S1, S2, S4, S8, S9 et S10 de `docs\/agents\/criteres-revue\.md`, et `scripts\/db\/demarrer-local\.sh` dans `docs\/agents\/pieges\.md`\. Celles-là, et elles seules, se gèlent/);
++  // Les sept sections citées sont bien celles des critères S1, S2, S4, S8, S9 et S10 du gabarit, et elles seules.
++  const criteres = lire('skills/chaine/revue-adversariale/references/criteres-socle.md');
++  const sections = [...criteres.matchAll(/^(S\d+) .*?apps\/api\/CLAUDE\.md((?: § « [^»]+ »,?)+)/gm)].map((m) => [m[1], [...m[2].matchAll(/« ([^»]+) »/g)].length]);
++  assert.deepEqual(sections, [['S1', 2], ['S2', 1], ['S4', 1], ['S8', 1], ['S9', 1], ['S10', 1]]);
++});
+diff --git a/scripts/dossiers-poses.test.mjs b/scripts/dossiers-poses.test.mjs
+new file mode 100644
+index 0000000..e2200a2
+--- /dev/null
++++ b/scripts/dossiers-poses.test.mjs
+@@ -0,0 +1,89 @@
++// Ticket 91 : les scripts que le plugin pose dans un projet sont du code vendu, que le projet ne modifie jamais et que la
++// CI du plugin tient ; le lint et le formateur du projet (gabarit de `socle-monorepo`) les laissent donc de côté, par une
++// liste unique : le bloc `socle:poses-du-plugin` de `.prettierignore`, que Prettier et lint-staged suivent d'eux-mêmes et
++// qu'`eslint.config.mjs` lit. Ce garde tient la liste égale aux dossiers de `scripts/` que les skills posent : un dossier
++// posé hors de la liste ferait rougir le lint de tout projet posé (14 erreurs au plugin 8.3.0), et chaque repose
++// rediffèrerait d'avec le plugin, reformatée au commit.
++import assert from 'node:assert/strict';
++import { existsSync, readdirSync, readFileSync } from 'node:fs';
++import { join } from 'node:path';
++import { test } from 'node:test';
++import { destinationDuDossier, RACINE, VOISINS_PAR_DOSSIER } from './pose-du-socle.mjs';
++
++const GABARIT = 'skills/monorepo/socle-monorepo/references/racine';
++const lire = (chemin) => readFileSync(join(RACINE, chemin), 'utf8');
++// Les dossiers de `scripts/` qu'un skill pose sans qu'ils soient du code vendu, chacun avec sa raison.
++const HORS_DE_LA_LISTE = {
++  // socle-nest-hexagonal, étape « poser » : un script shell, que ni ESLint ni Prettier ne lisent ; le dossier reste au
++  // projet, qui y écrit les siens.
++  'scripts/db': 'demarrer-local.sh',
++};
++
++/** La liste du bloc `socle:poses-du-plugin` d'un `.prettierignore` : `['scripts/agent', …]`, ou `null` sans bloc. */
++export function blocDuPlugin(texte) {
++  const m = /^# socle:poses-du-plugin\n([\s\S]*?)^# \/socle:poses-du-plugin$/m.exec(texte);
++  if (!m) return null;
++  return m[1]
++    .split('\n')
++    .map((l) => l.trim())
++    .filter((l) => l && !l.startsWith('#'))
++    .map((l) => l.replace(/\/$/, ''));
++}
++
++/** Les dossiers de `scripts/` d'un projet que les skills posent, chacun avec ce qui le dit : `Map<dossier, [sources]>`. */
++export function dossiersPoses() {
++  const poses = new Map();
++  const noter = (dossier, source) => poses.set(dossier, [...(poses.get(dossier) ?? []), source]);
++  for (const famille of readdirSync(join(RACINE, 'skills')))
++    for (const skill of readdirSync(join(RACINE, 'skills', famille))) {
++      const base = `skills/${famille}/${skill}`;
++      // `references/agent/` et `references/scripts/<d>/` : leur place de projet (la table du ticket 90).
++      if (existsSync(join(RACINE, base, 'references/agent'))) noter(destinationDuDossier(`${base}/references/agent`), `${base}/references/agent`);
++      for (const sous of ['references/scripts', 'references/squelette/scripts'])
++        if (existsSync(join(RACINE, base, sous)))
++          for (const d of readdirSync(join(RACINE, base, sous), { withFileTypes: true }))
++            if (d.isDirectory()) noter(`scripts/${d.name}`, `${base}/${sous}/${d.name}`);
++      // Ce que le texte d'un skill nomme dans `scripts/<d>/` d'un projet (`→ scripts/chaine/`, « posés sous
++      // `scripts/verify/` ») : `SKILL.md` et la table de la racine.
++      for (const f of ['SKILL.md', 'references/TABLE-RACINE.md'])
++        if (existsSync(join(RACINE, base, f)))
++          for (const m of lire(`${base}/${f}`).matchAll(/`scripts\/([a-z0-9-]+)\//g)) noter(`scripts/${m[1]}`, `${base}/${f}`);
++    }
++  // Les scripts des skills de la chaîne posés à plat sous `scripts/chaine/` (étapes `poser`, table de `pose-du-socle.mjs`).
++  for (const [source, vers] of VOISINS_PAR_DOSSIER) noter(vers, source);
++  return poses;
++}
++
++test('blocDuPlugin : la liste entre les deux marqueurs, sans commentaire ni barre finale ; sans bloc, null', () => {
++  assert.deepEqual(blocDuPlugin('x\n# socle:poses-du-plugin\n# un mot\nscripts/a/\n\nscripts/b\n# /socle:poses-du-plugin\ny\n'), ['scripts/a', 'scripts/b']);
++  assert.equal(blocDuPlugin('scripts/a/\n'), null);
++});
++
++test('la liste du gabarit de .prettierignore est celle des dossiers de scripts/ que les skills posent, ni plus ni moins', () => {
++  const liste = blocDuPlugin(lire(`${GABARIT}/.prettierignore`));
++  assert.ok(liste, `${GABARIT}/.prettierignore : bloc socle:poses-du-plugin absent`);
++  const poses = dossiersPoses();
++  for (const d of Object.keys(HORS_DE_LA_LISTE)) assert.ok(poses.has(d), `${d} : hors de la liste, mais plus posé par aucun skill`);
++  const attendus = [...poses.keys()].filter((d) => !Object.hasOwn(HORS_DE_LA_LISTE, d)).sort();
++  const manquants = attendus.filter((d) => !liste.includes(d)).map((d) => `${d} (${poses.get(d).join(', ')})`);
++  assert.deepEqual(manquants, [], 'posés par un skill, absents du bloc socle:poses-du-plugin de .prettierignore : les y ajouter');
++  assert.deepEqual(liste.filter((d) => !attendus.includes(d)), [], 'dans le bloc, mais posés par aucun skill (ou au projet : HORS_DE_LA_LISTE)');
++  assert.ok(attendus.length >= 5, `${attendus.length} dossiers posés lus`);
++});
++
++test('eslint.config.mjs du gabarit lit le bloc de .prettierignore et en ignore chaque dossier ; lint-staged ne lint rien d’ignoré', () => {
++  const config = lire(`${GABARIT}/eslint.config.mjs`);
++  const debut = config.indexOf('const prettierignore = ');
++  const fin = config.indexOf(';', config.indexOf('.map((dossier) =>', debut));
++  assert.ok(debut >= 0 && fin > debut, 'la lecture du bloc dans eslint.config.mjs');
++  // La lecture telle qu'écrite, jouée sur le `.prettierignore` du gabarit.
++  const lireLeBloc = new Function('readFileSync', 'join', 'root', `${config.slice(debut, fin + 1)}\nreturn posesDuPlugin;`);
++  const globs = lireLeBloc((f) => readFileSync(f, 'utf8'), join, join(RACINE, GABARIT));
++  assert.deepEqual(globs, blocDuPlugin(lire(`${GABARIT}/.prettierignore`)).map((d) => `${d}/**`));
++  const ignores = /ignores: \[([\s\S]*?)\]/.exec(config)?.[1] ?? '';
++  assert.match(ignores, /\.\.\.posesDuPlugin,/, 'les dossiers lus vont aux ignores d’ESLint');
++  // lint-staged passe les fichiers stagés par leur nom : Prettier saute de lui-même ce que `.prettierignore` ignore, ESLint
++  // seulement avec `--no-warn-ignored` (sans lui, un avertissement par fichier ignoré, refusé par `--max-warnings 0`).
++  const etapes = Object.values(JSON.parse(lire(`${GABARIT}/package.json`))['lint-staged']).flat();
++  for (const e of etapes.filter((e) => e.startsWith('eslint'))) assert.match(e, /--no-warn-ignored/, e);
++});
+diff --git a/scripts/pose-du-socle.mjs b/scripts/pose-du-socle.mjs
+index 7299ac6..5d4dcbc 100644
+--- a/scripts/pose-du-socle.mjs
++++ b/scripts/pose-du-socle.mjs
+@@ -38,7 +38,7 @@ export function bancsDesReferences() {
+ // Ce que les bancs posés appellent à côté d'eux, posé comme un projet le pose : les scripts du capitaine, des sujets
+ // et de la revue (`scripts/chaine/`, que le check `PR titre` appelle), les gabarits Stryker sous `apps/api/` (étape 5 de
+ // `socle-tests`), et deux fichiers de la racine (`socle-monorepo`).
+-const VOISINS_PAR_DOSSIER = [
++export const VOISINS_PAR_DOSSIER = [
+   ['skills/chaine/fusionner/scripts', 'scripts/chaine'],
+   ['skills/chaine/sujet/scripts', 'scripts/chaine'],
+   ['skills/chaine/revue-adversariale/scripts', 'scripts/chaine'],
+diff --git a/scripts/references-posees.test.mjs b/scripts/references-posees.test.mjs
+index 16480a8..f19cd8e 100644
+--- a/scripts/references-posees.test.mjs
++++ b/scripts/references-posees.test.mjs
+@@ -47,8 +47,8 @@ for (const regime of [8, 7]) {
+       // posé que la CI du plugin, qui n'en a pas, rougirait ; le jouet résout ses dépendances par son `node_modules`.
+       const env = { ...environnementDeBanc(), TMPDIR: temporaire };
+       delete env.NODE_PATH;
+-      // Un banc à la fois : `pnpm test` joue déjà ses fichiers en parallèle, et un banc posé mesure des durées (« le plafond à
+-      // 20 000 caractères… », sous 10 s) que trois enfants de plus, sous une charge de 16, ont fait dépasser.
++      // Un banc à la fois : `pnpm test` joue déjà ses fichiers en parallèle. Les durées de `regles.test.mjs` se bornent en
++      // étalons depuis le ticket 91 (une charge ne les fait plus dépasser) ; un à la fois garde le garde court en mémoire.
+       const r = spawnSync(process.execPath, ['--test', '--test-concurrency=1', '--test-reporter=tap', ...bancs], {
+         cwd: projet,
+         env,
+diff --git a/skills/chaine/anchorpost/SKILL.md b/skills/chaine/anchorpost/SKILL.md
+index b3201cc..419e2f3 100644
+--- a/skills/chaine/anchorpost/SKILL.md
++++ b/skills/chaine/anchorpost/SKILL.md
+@@ -99,7 +99,7 @@ Copier [`references/rules/anchorpost.md`](references/rules/anchorpost.md) vers `
+ 
+ ## Étape 6 — la recette de l'administrateur
+ 
+-Ajouter la section de [`references/fragments/admin.md`](references/fragments/admin.md) à `docs/agents/admin.md` (posé par la chaîne) : créer l'espace dans Anchorpost une fois l'index poussé ; retirer, d'un dépôt qui les portait, les jetons de lecture de GitHub Packages devenus inutiles. Aucune clé n'est demandée pour installer la CLI.
++Ajouter la section de [`references/fragments/admin.md`](references/fragments/admin.md) à `docs/agents/chaine-admin.md` (posé par la chaîne) : créer l'espace dans Anchorpost une fois l'index poussé ; retirer, d'un dépôt qui les portait, les jetons de lecture de GitHub Packages devenus inutiles. Aucune clé n'est demandée pour installer la CLI.
+ 
+ ## Étape 7 — l'ADR
+ 
+diff --git a/skills/chaine/anchorpost/references/adr/ADR_ALL_ARC-N-index-anchorpost.md b/skills/chaine/anchorpost/references/adr/ADR_ALL_ARC-N-index-anchorpost.md
+index ce134e1..cd184d2 100644
+--- a/skills/chaine/anchorpost/references/adr/ADR_ALL_ARC-N-index-anchorpost.md
++++ b/skills/chaine/anchorpost/references/adr/ADR_ALL_ARC-N-index-anchorpost.md
+@@ -43,5 +43,5 @@ Ce projet est lu par Anchorpost, qui montre à la MOA ses règles métier, leurs
+ ## Liens
+ 
+ - `ADR_ALL_ARC-1` — les identifiants ; `ADR_ALL_ARC-<N>` — le registre, un fichier par règle
+-- `.claude/rules/anchorpost.md` — la fiche d'écriture ; `docs/agents/admin.md` — la recette de la clé
++- `.claude/rules/anchorpost.md` — la fiche d'écriture ; `docs/agents/chaine-admin.md` — la recette de la clé
+ - Anchorpost : `ANC-2` (le schéma pivot), `ARC-11`, `ARC-13` du dépôt `MAJ-agency/anchorpost`, cités sous la forme que ce dépôt leur donne tant qu'il n'a pas migré vers le standard
+diff --git a/skills/chaine/fusionner/SKILL.md b/skills/chaine/fusionner/SKILL.md
+index 1bb9d2f..978faca 100644
+--- a/skills/chaine/fusionner/SKILL.md
++++ b/skills/chaine/fusionner/SKILL.md
+@@ -103,7 +103,7 @@ La veille s'arrête d'elle-même, et sa fin réveille la session :
+ 
+ Suivre le journal avec un `Monitor` filtré sur `VEILLE FINIE|VEILLE ARRÊTÉE|ÉCHÉANCE|préparation|FUSIONNÉE|ARBRE DIFFÉRENT|MISE À JOUR|sortie=|ARRÊT|conflit|rouges|RELANCE|RENVOI|REGROUPÉE|RECIBLÉE|SUJET EN CONFLIT|SUJET NON MIS À JOUR|REPRISE|PAUSE|LIVRÉ|REFUS|PAS PROPRE|ÉCHEC DU CAPITAINE`. La boucle traite seule les sorties 2 à 5 de `passer.sh` et la CI rouge (une relance, puis renvoi). **Une sortie 5 ne l'arrête jamais** : develop ou la PR a bougé, ou GitHub est illisible (réponse vide, non JSON, corps d'erreur : `lire_github`) ; une fusion refusée durablement par GitHub (droit, règle du dépôt, revue exigée, méthode interdite) sort en 3 et l'arrête, sauf si develop a bougé entre le test et la fusion (règle d'ascendance rejouée : une course, sortie 5) ; après un second essai immédiat, elle se met en pause (`PAUSE <hh:mm> (sortie 5) : … ; cause : GitHub illisible (<route>) : <cause>, reprise dans <s> s` : la route et le code HTTP de la cause, `(HTTP 401)` d'un jeton expiré compris, `BOUCLE_PAUSE` secondes, 120 par défaut), puis reprend au tour suivant, qui relit l'arrêt, l'échéance et les scripts de develop. Une file illisible (`file.sh` en 5) est une `PAUSE` aussi, jamais `FILE VIDE` ; `file.sh` en échec sous un autre code l'arrête (sortie 6). Un push refusé se classe par la trace de husky 9 (`husky - pre-push script failed (code N)`, écrite par `.husky/_/h`) : avec elle, le hook pre-push refuse la mise à jour avec develop, et la boucle renvoie la PR à sa session avec la sortie du hook (huit lignes au plus, masquées) ; sans elle, c'est le distant (règle du dépôt, droit, proxy, coupure) : la boucle s'arrête (`ARRÊT`), sans renvoi, et `sujet.sh` sort en 11 (`ÉCHEC DU CAPITAINE`, aucun renvoi) ; un refus corrigeable (sortie 4 : titre trop long ou refusé par commitlint, revue adversariale absente, base hors `sujet/`, tête gardée : `develop`, `main`, la branche par défaut, ou un sujet pour une sous-PR ; sortie 4 de `sujet.sh relancer` comprise) renvoie la PR avec son motif (`refus.sh`) ; une PR non éligible sans correction possible (sortie 7 : fermée, brouillon, sans label, déjà `fusion-bloquée`, empilée sur une parente non fusionnée) est sautée sans bruit. Une PR en passage chez un autre capitaine (son commentaire `passage du capitaine …` sans « terminé », daté de moins de 90 minutes : `FILTRE_PASSAGE`) est sautée sans renvoi (sortie 7) ; elle revient au tour suivant si ce passage n'a pas fusionné. Un worktree du capitaine pas propre n'est jamais un renvoi : sortie 6 de `passer.sh` (arrêt) comme de `sujet.sh fusionner`, `relancer`, `rafraichir` ou `regrouper` (`PAS PROPRE`, sous-PR laissée dans la file) ; le nettoyer, puis relancer. Une livraison de sujet, tête `sujet/<nom>` ou `livraison/<nom>-<date>`, passe avant `prio:haute`. Une sous-PR en retard sur son sujet, documentation comprise, ou en conflit avec lui **sur des index générés seuls**, n'est pas renvoyée : `sujet.sh fusionner` la met à jour, régénère, pousse, attend la CI du nouveau sommet, la contrôle de nouveau, puis la squashe (« La règle d'ascendance ») ; si cette CI ne finit pas, sortie 8 (`MISE À JOUR`) : elle repasse au tour suivant. Une sous-PR sans CI que GitHub dit en conflit se lit `prête (en conflit)` : `sujet.sh relancer` la met à jour si le conflit ne porte que sur des index générés (CI relancée), sinon elle est renvoyée avec ses fichiers hors index générés ; une mise à jour que le pre-push refuse la renvoie avec la sortie du hook. Une PR de mise à jour d'un sujet (la fusion de develop par une session fille, puis ses retouches : en-tête de `sujet.sh`) entre par avance rapide, sans squash, et le capitaine la ferme (`FUSIONNÉE`) ; chaque retouche se juge comme une sous-PR (revue exigée sur l'union des fichiers que chaque retouche touche, commit par commit ; décision A-47 ter : aucune dispense par un formateur, le capitaine n'installe rien et n'en joue aucun) ; d'une autre forme, elle est renvoyée avec son motif (sortie 4) ; un échec de ses outils (git sans `merge-tree --write-tree`, dépendances, régénération, push refusé) sort en 11, `ÉCHEC DU CAPITAINE`, sans renvoi : le capitaine lit la cause et la corrige chez lui. Une sous-PR que `sujet.sh fusionner` refuse en sortie 3 (checks rouges, conflit avec le sujet, hook) est renvoyée avec le motif de `sujet.sh`, jamais un conflit supposé ; des checks encore en cours après l'attente sortent en 5 (`REPRISE`, aucun renvoi : la PR reste dans la file tant que sa CI ne finit pas). Un sujet dont la mise à jour avec develop est refusée sans conflit se dit `SUJET NON MIS À JOUR`, pas `SUJET EN CONFLIT` : un hook, des dépendances ou le gate des index (sortie 3) se corrigent par une PR de mise à jour avec retouches, une panne du capitaine (sortie 11) ou de `sujet.sh` (69, 1) chez le capitaine, jamais par une session. Sur un `RENVOI`, le capitaine prévient la session. Les renvois se comptent sur la PR (marque invisible dans chaque commentaire de `renvoyer.sh`, comptée seulement sous le compte qui tient le capitaine, `gh api user` ; ce compte illisible, toute PR se lit au plafond, et `file.sh` le dit une fois) : au plafond (`plafonds.renvoisParPR`, 3), le commentaire et la ligne `RENVOI n sur 3` disent que la PR attend un humain, et `file.sh` la montre `humain` : ni passée, ni relancée, ni renvoyée. Une PR d'un sujet gelé (`Gel:` de sa carte : sous-PR, livraison ou PR à recibler) se lit `gelée`, avant `humain`, et reçoit le même traitement ; `sujet.sh fusionner` d'une telle sous-PR sort en 7. Le gel se lève d'une ligne (`sujet.sh degeler`). Sur l'ordre d'un humain, le capitaine la passe à la main (`passer.sh <n>`, ou `sujet.sh fusionner <n>` pour une sous-PR) ; le compte ne se remet pas à zéro.
+ 
+-**Devant un refus durable de fusion** (`ARRÊT`, `passer.sh` sortie 3, « fusion refusée par GitHub pour une autre raison qu'une branche qui a bougé » : droit du compte, règle du dépôt, revue exigée, méthode de fusion interdite), le capitaine n'y peut rien. La PR garde `à-fusionner` et sa place dans la file : tant que la cause demeure, chaque lancement de la boucle s'arrête de nouveau sur elle, et aucune PR vers develop placée après elle ne passe. Il ne retire pas ce label, n'écrit rien sur la PR hors le commentaire de passage que `passer.sh` pose et termine, et ne la renvoie pas (son auteur n'y peut rien) ; il le dit à son lanceur (au produit hors programme), avec le message exact de GitHub. Un humain lève la règle du dépôt (ou rend son droit au compte), puis le capitaine relance sa veille.
++**Devant un refus durable de fusion** (`ARRÊT`, `passer.sh` sortie 3, « fusion refusée par GitHub pour une autre raison qu'une branche qui a bougé » : droit du compte, règle du dépôt, revue exigée, méthode de fusion interdite), le capitaine n'y peut rien. La PR garde `à-fusionner` et sa place dans la file : tant que la cause demeure, chaque lancement de la boucle s'arrête de nouveau sur elle, et aucune PR vers develop placée après elle ne passe. Il ne retire pas ce label, n'écrit rien sur la PR hors le commentaire de passage que `passer.sh` pose et termine, et ne la renvoie pas (son auteur n'y peut rien) ; il le dit à son lanceur (au produit hors programme), avec le message exact de GitHub. Un humain lève la règle du dépôt (ou rend son droit au compte), puis le capitaine relance sa veille. De même devant `RÉGLAGE DU DÉPÔT` (`ARRÊT : réglage du dépôt`, `file.sh` sortie 6) : une règle de checks exigés vide sur develop, que le capitaine ne contourne pas ; il transmet la ligne telle quelle, un admin ajoute les checks (`docs/agents/chaine-admin.md`), puis il relance.
+ 
+ **Sans veille en cours** (capitaine démarré avant que `veille.sh` soit posé, veille arrêtée et pas encore relancée), la file n'est relue qu'à un réveil : le capitaine relance sa veille, ou se réveille seul et relit sa file : le réveil de garde, s'il attend, en tient lieu, jamais un second `send_later`. Qui pose `à-fusionner` ne lui écrit pas : un message à un capitaine n'est jamais un ordre de fusion, le label l'est seul.
+ 
+diff --git a/skills/chaine/fusionner/scripts/boucle.sh b/skills/chaine/fusionner/scripts/boucle.sh
+index 12ce410..9811a51 100755
+--- a/skills/chaine/fusionner/scripts/boucle.sh
++++ b/skills/chaine/fusionner/scripts/boucle.sh
+@@ -585,6 +585,8 @@ while :; do
+   case "$rc" in
+     0) ;;
+     5) mettre_en_pause PAUSE "(file.sh, sortie 5) : file illisible" "$erreurs_file"; continue ;;
++    # Une règle de checks exigés vide sur develop (ticket 91) : un réglage du dépôt, dit tel quel (motif ci-dessus).
++    6) echo "ARRÊT : réglage du dépôt (file.sh, sortie 6, motif ci-dessus) : un admin le fait, puis le capitaine relance"; exit 6 ;;
+     *) echo "ARRÊT : file.sh en échec (sortie $rc) : le capitaine traite, puis relance"; exit 6 ;;
+   esac
+   n=$(printf '%s\n' "$liste" | awk -F '\t' -v s="$sautees$attente_fusion" '!t && $2 ~ /^prête/ && $2 !~ /sur sujet\// && index(s, " " $1 " ") == 0 { print $1; t = 1 }')
+diff --git a/skills/chaine/fusionner/scripts/checks-exiges-vides.test.mjs b/skills/chaine/fusionner/scripts/checks-exiges-vides.test.mjs
+new file mode 100644
+index 0000000..5a1f7f7
+--- /dev/null
++++ b/skills/chaine/fusionner/scripts/checks-exiges-vides.test.mjs
+@@ -0,0 +1,78 @@
++// Ticket 91 : une règle « Require status checks to pass » qui n'exige aucun check sur develop (un ruleset, ou l'ancienne
++// protection de branche) n'est pas un dépôt « sans CI ». Lue [], elle faisait dire toute PR « prête (sans CI) », la
++// boucle la mettait de côté (« CI non déclenchée ») et elle n'entrait jamais : vu deux fois à l'essai réel du régime 8,
++// au bout d'une heure ou plus. `checks_exiges` le dit dès la première lecture, comme un réglage du dépôt à faire par un
++// admin (sortie 6, RÉGLAGE DU DÉPÔT) ; `file.sh` sort en 6, la boucle s'arrête (ARRÊT), `passer.sh` sort en 3 sur la
++// même raison. Un dépôt sans aucune règle de checks reste « sans CI ».
++import { test } from "node:test";
++import assert from "node:assert/strict";
++import { spawnSync } from "node:child_process";
++import { existsSync } from "node:fs";
++// Posé dans un projet, depot-jouet.mjs est à côté (scripts/chaine/) ; dans le plugin, il est dans le skill sujet.
++const { depotJouet, script } = await import(
++  existsSync(new URL("./depot-jouet.mjs", import.meta.url))
++    ? "./depot-jouet.mjs"
++    : "../../sujet/scripts/depot-jouet.mjs"
++);
++
++const GITHUB = script("fusionner", "github.sh");
++const fonction = (d, corps) =>
++  spawnSync("bash", ["-c", `source ${GITHUB}; ${corps}`], { cwd: d.travail, env: d.env, encoding: "utf8" });
++const REGLAGE = /^RÉGLAGE DU DÉPÔT : la branche develop \(ruleset 42\) porte une règle « Require status checks to pass » \(required_status_checks\) qui n'exige aucun check ; toute PR vers develop s'y lirait « prête \(sans CI\) » et n'entrerait jamais\. À un admin : y ajouter les checks exigés de la CI \(qualite, test-db, zizmor : docs\/agents\/chaine-admin\.md, « Protection de develop »\), ou retirer la règle ; puis relancer le capitaine\.$/m;
++const pr = (number, head) => ({ number, title: `docs(demo): ${head.slice(5)}`, head, base: "develop", labels: ["à-fusionner"] });
++
++test("checks_exiges : une règle de checks exigés vide sur develop sort en 6, RÉGLAGE DU DÉPÔT nommant la branche, la règle et le geste, rien sur la sortie standard ; sans règle, [] ; une règle qui exige, sa liste", () => {
++  const d = depotJouet();
++  d.github({ regleVide: true });
++  let r = fonction(d, "checks_exiges");
++  assert.equal(r.status, 6, r.stdout + r.stderr);
++  assert.equal(r.stdout, "");
++  assert.match(r.stderr, REGLAGE);
++  d.github({ regleVide: true, protectionClassique: true });
++  r = fonction(d, "checks_exiges");
++  assert.equal(r.status, 6, r.stdout + r.stderr);
++  assert.equal(r.stdout, "");
++  assert.match(r.stderr, /^RÉGLAGE DU DÉPÔT : la protection de branche de develop \(Settings → Branches\) porte une règle « Require status checks to pass » \(required_status_checks\) qui n'exige aucun check ;/m);
++  d.github({ regleVide: false, protectionClassique: false, exiges: [] });
++  r = fonction(d, "checks_exiges");
++  assert.equal(r.status, 0, r.stderr);
++  assert.equal(r.stdout.trim(), "[]", "aucune règle de checks : sans CI");
++  assert.doesNotMatch(r.stderr, /RÉGLAGE/);
++  d.github({ protectionClassique: true, exiges: [] });
++  r = fonction(d, "checks_exiges");
++  assert.equal(r.status, 0, r.stderr);
++  assert.equal(r.stdout.trim(), "[]", "protection sans checks exigés (404) : sans CI");
++  d.github({ protectionClassique: false, exiges: ["qualite"] });
++  assert.equal(fonction(d, "checks_exiges").stdout.trim(), '["qualite"]');
++});
++
++test("file.sh puis boucle.sh : une règle de checks exigés vide est dite à la première lecture et arrête la boucle, jamais une PR « prête (sans CI) » mise de côté", () => {
++  const d = depotJouet();
++  d.publierChaine();
++  d.branche("feat/v", "origin/develop", { "docs/v.md": "v\n" });
++  d.git("switch", "-q", "--detach", "origin/develop");
++  d.github({ regleVide: true, checks: { "*": { qualite: "SUCCESS" } }, pulls: [pr(70, "feat/v")] });
++  const f = d.lancer(script("fusionner", "file.sh"));
++  assert.equal(f.status, 6, f.stdout + f.stderr);
++  assert.equal(f.stdout, "", "rien sur la sortie standard");
++  assert.match(f.stderr, REGLAGE);
++  const b = d.lancer(script("fusionner", "boucle.sh"));
++  assert.equal(b.status, 6, b.stdout + b.stderr);
++  assert.match(b.stdout, /^ARRÊT : réglage du dépôt \(file\.sh, sortie 6, motif ci-dessus\) : un admin le fait, puis le capitaine relance$/m);
++  assert.match(b.stderr, REGLAGE);
++  assert.doesNotMatch(b.stdout, /sans CI|CI non déclenchée|FILE VIDE|DÉBUT/);
++  assert.deepEqual(d.journal().filter((e) => e.methode !== "GET"), [], "rien n'est écrit sur GitHub");
++});
++
++test("passer.sh : une règle de checks exigés vide n'est jamais « CI non déclenchée » : sortie 3 sur le réglage du dépôt, ni fusion ni label", () => {
++  const d = depotJouet();
++  d.branche("feat/v", "origin/develop", { "docs/v.md": "v\n" });
++  d.git("switch", "-q", "--detach", "origin/develop");
++  d.github({ regleVide: true, checks: { "*": { qualite: "SUCCESS" } }, pulls: [pr(71, "feat/v")] });
++  const r = d.lancer(script("fusionner", "passer.sh"), "71");
++  assert.equal(r.status, 3, r.stdout + r.stderr);
++  assert.match(r.stdout, /^\[#71\] réglage du dépôt \(motif ci-dessus\) : une règle de checks exigés vide sur develop ; la PR n'entre pas tant qu'un admin ne l'a pas faite$/m);
++  assert.doesNotMatch(r.stdout, /CI non déclenchée/);
++  assert.match(r.stderr, REGLAGE);
++  assert.deepEqual(d.journal().filter((e) => /^(PUT|DELETE)$/.test(e.methode) && /merge|labels/.test(e.route)), [], "ni fusion ni label retiré");
++});
+diff --git a/skills/chaine/fusionner/scripts/file.sh b/skills/chaine/fusionner/scripts/file.sh
+index 434f878..977d7f1 100755
+--- a/skills/chaine/fusionner/scripts/file.sh
++++ b/skills/chaine/fusionner/scripts/file.sh
+@@ -45,12 +45,15 @@
+ # GitHub illisible (lire_github de github.sh : réponse vide, non JSON, corps d'erreur ou code non nul) à la lecture des
+ # PR ouvertes, des checks exigés, des checks d'un sommet, d'une PR sans CI (`mergeable_state`) ou de la base d'une parente : rien sur la sortie standard (les
+ # lignes se rassemblent, puis s'écrivent d'un coup), le motif sur la sortie d'erreur, sortie 5. Une file illisible
+-# n'est jamais une file vide : boucle.sh se met en pause (PAUSE) et relit au tour suivant.
++# n'est jamais une file vide : boucle.sh se met en pause (PAUSE) et relit au tour suivant. Une règle de checks exigés
++# vide sur develop (checks_exiges de github.sh) : RÉGLAGE DU DÉPÔT sur la sortie d'erreur, rien sur la sortie standard,
++# sortie 6 ; boucle.sh s'arrête (ARRÊT), jamais une file « sans CI » (ticket 91).
+ #
+ # Usage : bash scripts/chaine/file.sh          → tableau
+ #         bash scripts/chaine/file.sh --next   → numéro de la prochaine PR (sortie 1 si aucune)
+ #         bash scripts/chaine/file.sh --rouges → « numéro<TAB>checks rouges », une par ligne
+ #         sortie 5 : GitHub illisible, rien sur la sortie standard
++#         sortie 6 : réglage du dépôt (une règle de checks exigés vide sur develop), rien sur la sortie standard
+ # =============================================================================
+ set -euo pipefail
+ outils=$(cd "$(dirname "$0")" && pwd)
+@@ -74,7 +77,7 @@ prs=$(jq -s '[.[][] | {number, title, draft,
+ ouvertes=$(jq -r '.[] | "\(.head) \(.number)"' <<<"$prs")
+ # Checks exigés, lus dans la protection de develop (comme passer.sh) : un check d'un autre
+ # workflow, non exigé, ne retient pas la file.
+-requis=$(checks_exiges) || exit 5
++requis=$(checks_exiges) || exit $? # 5 illisible, 6 réglage du dépôt
+ # Tickets qui déclarent un sujet (« ticket<TAB>nom ») : une PR qui en cite un et vise develop
+ # est reciblée sur le sujet.
+ carte=$(bash "$SUJET" carte 2>/dev/null || true)
+diff --git a/skills/chaine/fusionner/scripts/github.sh b/skills/chaine/fusionner/scripts/github.sh
+index aae1d63..ef9a7d4 100755
+--- a/skills/chaine/fusionner/scripts/github.sh
++++ b/skills/chaine/fusionner/scripts/github.sh
+@@ -544,20 +544,35 @@ checks_commit() {
+ }
+ 
+ # Checks exigés sur develop, en tableau JSON. D'abord les rulesets (`rules/branches/develop` :
+-# ce que GitHub recommande, et ce que pose admin.md), qui doivent rendre un tableau ; s'ils n'exigent rien,
++# ce que GitHub recommande, et ce que pose docs/agents/chaine-admin.md), qui doivent rendre un tableau ; s'ils n'exigent rien,
+ # l'ancienne protection de branche, qui répond 404 « Branch not protected » quand seul un ruleset protège la
+ # branche : une réponse, pas une panne. Toute autre erreur, ou une forme inattendue : sortie 5, jamais « aucun
+-# check exigé ».
++# check exigé ». Une règle « Require status checks to pass » qui n'exige aucun check (ruleset ou ancienne protection) :
++# sortie 6, RÉGLAGE DU DÉPÔT sur la sortie d'erreur, jamais [] (ticket 91) : lue [], toute PR se dirait « prête
++# (sans CI) » et n'entrerait jamais ; c'est un réglage à faire par un admin, dit dès cette lecture.
++reglage_checks_vides() { # <où la règle est lue>
++  echo "RÉGLAGE DU DÉPÔT : $1 porte une règle « Require status checks to pass » (required_status_checks) qui n'exige aucun check ; toute PR vers develop s'y lirait « prête (sans CI) » et n'entrerait jamais. À un admin : y ajouter les checks exigés de la CI (qualite, test-db, zizmor : docs/agents/chaine-admin.md, « Protection de develop »), ou retirer la règle ; puis relancer le capitaine." >&2
++  return 6
++}
+ checks_exiges() {
+-  local regles protection
++  local regles protection exiges
+   regles=$(lire_github "$DEPOT/rules/branches/develop") || return 5
+-  regles=$(jq -c 'if type == "array" then [.[] | select(.type == "required_status_checks") | .parameters.required_status_checks[].context] | unique
++  exiges=$(jq -c 'if type == "array" then [.[] | select(.type == "required_status_checks") | .parameters.required_status_checks[].context] | unique
+     else error("pas un tableau") end' <<<"$regles" 2>/dev/null) ||
+     { echo "GitHub illisible ($DEPOT/rules/branches/develop) : réponse qui n'est pas un tableau de règles" >&2; return 5; }
+-  if [ "$regles" != '[]' ]; then printf '%s\n' "$regles"; return 0; fi
+-  protection=$(lire_github "$DEPOT/branches/develop/protection/required_status_checks" --absent '{"contexts":[]}') || return 5
+-  jq -c 'if type == "object" and ((.contexts // []) | type) == "array" then (.contexts // []) else error("forme inattendue") end' <<<"$protection" 2>/dev/null ||
++  if [ "$exiges" != '[]' ]; then printf '%s\n' "$exiges"; return 0; fi
++  # Aucun check exigé par les rulesets : une règle required_status_checks présente est vide (le cas de l'essai réel du
++  # régime 8 : la PR vue « sans CI » pendant une heure, deux fois).
++  if [ "$(jq '[.[] | select(.type == "required_status_checks")] | length' <<<"$regles")" != 0 ]; then
++    reglage_checks_vides "la branche develop (ruleset $(jq -r '[.[] | select(.type == "required_status_checks") | .ruleset_id // "?" | tostring] | unique | join(", ")' <<<"$regles"))"
++    return
++  fi
++  protection=$(lire_github "$DEPOT/branches/develop/protection/required_status_checks" --absent 'null') || return 5
++  [ "$protection" != null ] || { echo '[]'; return 0; }
++  exiges=$(jq -c 'if type == "object" and ((.contexts // []) | type) == "array" then (.contexts // []) else error("forme inattendue") end' <<<"$protection" 2>/dev/null) ||
+     { echo "GitHub illisible ($DEPOT/branches/develop/protection/required_status_checks) : forme inattendue" >&2; return 5; }
++  [ "$exiges" != '[]' ] || { reglage_checks_vides "la protection de branche de develop (Settings → Branches)"; return; }
++  printf '%s\n' "$exiges"
+ }
+ 
+ # Attend la CI exigée de `<sommet>`, la tête de la PR `<pr>` : le sommet sur la PR (5 min au plus), un check exigé
+@@ -566,7 +581,7 @@ checks_exiges() {
+ # de matrice. Partagée par passer.sh et sujet.sh. Retours : 0 vert ; 1 rouge, la liste sur la sortie standard, une
+ # ligne « ␣␣nom : ÉTAT » par check ; 2 aucun check exigé apparu au bout de 5 min (CI non déclenchée) ; 3 encore en
+ # attente après 60 min ; 5 GitHub illisible pendant l'attente (lire_github, motif sur la sortie d'erreur) : jamais lu
+-# comme « encore en attente » ni comme « aucun check ».
++# comme « encore en attente » ni comme « aucun check ». 6 réglage du dépôt (checks_exiges : une règle de checks exigés vide).
+ attendre_ci() {
+   local n=$1 sommet=$2 requis etats rouges attente nom c vu s
+   for _ in $(seq 1 60); do
+@@ -574,7 +589,7 @@ attendre_ci() {
+     [ "$s" = "$sommet" ] && break
+     sleep 5
+   done
+-  requis=$(checks_exiges) || return 5
++  requis=$(checks_exiges) || return $? # 5 illisible, 6 réglage du dépôt
+   requis=$(jq -r '.[]' <<<"$requis")
+   vu=0
+   for _ in $(seq 1 30); do
+diff --git a/skills/chaine/fusionner/scripts/passer.sh b/skills/chaine/fusionner/scripts/passer.sh
+index 52e69da..dab86d7 100755
+--- a/skills/chaine/fusionner/scripts/passer.sh
++++ b/skills/chaine/fusionner/scripts/passer.sh
+@@ -53,6 +53,8 @@
+ #      `gh run rerun <id> --failed` puis relancer ; sinon renvoyer
+ #   3  aucun check sur le sommet après 5 min : CI non déclenchée → ni fermeture-réouverture ni
+ #      commit vide ; boucle.sh la met de côté jusqu'à la fusion suivante, qui la poussera
++#   3  « réglage du dépôt » : une règle de checks exigés vide sur develop (RÉGLAGE DU DÉPÔT de checks_exiges, ticket 91) :
++#      la boucle s'arrête (ARRÊT), jamais une PR mise de côté « sans CI » → un admin règle develop, puis relancer
+ #   4  refus que l'auteur peut corriger (migration plus ancienne que la dernière de develop,
+ #      titre trop long, sans section « Revue adversariale », titre de code sur un diff docs seul, lien
+ #      symbolique sur un index généré ; en régime 8, aucun tour de relecture validé pour le contenu du sommet, à
+@@ -379,6 +381,7 @@ while :; do
+     1) sortir 3 "checks exigés rouges :"$'\n'"${rouges%$'\n'}" ;;
+     2) sortir 3 "aucun check sur le sommet après 5 min : CI non déclenchée (un push de la session propriétaire la lancera)" ;;
+     5) sortir 5 "GitHub illisible pendant l'attente de la CI : pause, puis reprise" ;;
++    6) sortir 3 "réglage du dépôt (motif ci-dessus) : une règle de checks exigés vide sur develop ; la PR n'entre pas tant qu'un admin ne l'a pas faite" ;;
+     *) sortir 3 "checks exigés toujours en attente après 60 min" ;;
+   esac
+   sommet_lu=$(pr_sommet "$N") || sortir 5 "GitHub illisible à la relecture du sommet de la PR (cause ci-dessus) : pause, puis reprise"
+diff --git a/skills/chaine/fusionner/scripts/sujet-fusionner.test.mjs b/skills/chaine/fusionner/scripts/sujet-fusionner.test.mjs
+index 1691993..c58af7e 100644
+--- a/skills/chaine/fusionner/scripts/sujet-fusionner.test.mjs
++++ b/skills/chaine/fusionner/scripts/sujet-fusionner.test.mjs
+@@ -1211,6 +1211,27 @@ test("sujet.sh fusionner : GitHub illisible pendant l'attente de la CI de la sou
+   assert.equal(sujetDistant(d), sujet);
+ });
+ 
++// Ticket 91 : une règle de checks exigés vide sur develop est un réglage du dépôt, jamais « GitHub illisible » ni des
++// checks « encore en cours » : `fusionner` sort en 11 (ÉCHEC DU CAPITAINE, aucun renvoi), le motif sur la sortie d'erreur.
++test("sujet.sh fusionner : une règle de checks exigés vide sur develop sort en 11 sur le réglage du dépôt, à l'attente de la CI comme à la lecture unique d'une PR de mise à jour, aucun renvoi", () => {
++  const { d, sommet } = sousPrEnConflit("aucun");
++  d.github({ regleVide: true, exiges: [] });
++  let r = d.lancer(SUJET, "fusionner", "80");
++  assert.equal(r.status, 11, r.stdout + r.stderr);
++  assert.match(r.stdout, /#80 : réglage du dépôt \(motif ci-dessus\) : une règle de checks exigés vide sur develop, aucun renvoi/);
++  assert.match(r.stderr, /^RÉGLAGE DU DÉPÔT : la branche develop \(ruleset 42\)/m);
++  assert.doesNotMatch(r.stdout, /GitHub illisible|encore en cours/);
++  assert.deepEqual(horsPassage(d), [], "ni squash, ni label, ni commentaire");
++  d.git("fetch", "-q", "origin");
++  assert.equal(d.git("rev-parse", "origin/docs/sous"), sommet);
++  const m = miseAJour();
++  m.d.github({ regleVide: true, exiges: [], checks: { "*": { qualite: "SUCCESS" } } });
++  r = m.d.lancer(SUJET, "fusionner", "81");
++  assert.equal(r.status, 11, r.stdout + r.stderr);
++  assert.match(r.stdout, /#81 : réglage du dépôt \(motif ci-dessus\)/);
++  assert.equal(sujetDistant(m.d), m.sujet);
++});
++
+ // Contre-relecture (M2, M3) : `relancer` sort en 5, explicitement, sur une PR illisible ; le refus de fusion que relaie
+ // `sujet.sh fusionner` est masqué.
+ test("sujet.sh relancer : PR illisible, sortie 5 sans rien pousser ; fusionner : refus de fusion relayé masqué", () => {
+diff --git a/skills/chaine/socle-chaine-de-production/SKILL.md b/skills/chaine/socle-chaine-de-production/SKILL.md
+index 1028ea9..ce8796e 100644
+--- a/skills/chaine/socle-chaine-de-production/SKILL.md
++++ b/skills/chaine/socle-chaine-de-production/SKILL.md
+@@ -31,15 +31,15 @@ Rien d'autre : les branches sont `develop` et `main`, les labels ont leurs noms,
+ 1. **Le skill `tickets`** : invoquer `/maj-skills:tickets poser`. Il pose les scripts de `scripts/docs/` et `scripts/verify/`, le tracker et les gabarits.
+    Puis `/maj-skills:revue-adversariale poser` (`scripts/chaine/diff-revue.sh` et `chemins-sensibles.mjs` avec leurs bancs, le fichier de critères), l'étape 0 du skill `fusionner` et `/maj-skills:sujet poser` (les scripts du capitaine et du sujet dans `scripts/chaine/`, avec leurs tests), puis l'« Étape 0 — poser » du skill `relecture`, lue et suivie de même dans son fichier, `~/.claude/plugins/marketplaces/maj/skills/chaine/relecture/SKILL.md` (elle vérifie que `fusionner` et `sujet` ont posé ce que la relecture appelle : `scripts/chaine/verdict.mjs`, `sujet.sh a-juger`). `fusionner` ne s'invoque pas d'ici : il porte `disable-model-invocation: true`, réservé à la session du capitaine ; son « Étape 0 — poser » se **lit** dans son fichier, `~/.claude/plugins/marketplaces/maj/skills/chaine/fusionner/SKILL.md`, et se suit ; les chemins relatifs s'y lisent depuis le dossier de ce fichier. Le script `check:tickets` joue aussi `node --test scripts/chaine/*.test.mjs`.
+ 2. **Le contrat** : `references/chaine.json` → `.claude/chaine.json`, rempli des réponses de l'étape 1. `{{DEPUIS}}` vaut l'instant de la pose, en UTC : `date -u +%Y-%m-%dT%H:%M:%SZ`. La clé `relecture` allume la relecture indépendante (régime 8) : toute PR ouverte ensuite est relue par une session de relecture que lance le **Relecteur** du dépôt (skill `relecteur`, lancé par l'architecte ou le conducteur : `architecte/references/lancement.md`, « Le Relecteur d'un dépôt ») ; sans Relecteur, aucune PR n'est relue, donc aucune n'entre. Un dépôt déjà posé reçoit la clé par sa repose (skill `architecte`, « La repose d'un dépôt au régime 8 »), jamais par cette étape.
+-3. **Les index générés** : `references/index-generes.json` → `scripts/docs/index-generes.json`, s'il n'existe pas. Y ajouter les index que le projet connaît déjà (OpenAPI de l'API, index de graphify s'il est versionné).
++3. **Les index générés** : `references/index-generes.json` → `scripts/docs/index-generes.json`, s'il n'existe pas. Y ajouter les index que le projet connaît déjà (OpenAPI de l'API, index de graphify s'il est versionné). Puis générer chaque index de la liste par sa `commande` : `node scripts/docs/couts.mjs` écrit le registre des coûts, `docs/agents/couts.md`, que `chaine-de-production.md` cite (sans lui, `check:contexte` est rouge).
+ 4. **Les hooks d'agent** : `references/agent/*` → `scripts/agent/`. Fusionner `references/settings-hooks.json` dans la clé `hooks` de `.claude/settings.json` : les trois entrées `PreToolUse` (fichiers, `Bash`, outils GitHub d'écriture : `garde-github.mjs`), chacune avec un `"timeout"` (30, 60 et 40 s) et `"onFailure": "block"` (Claude Code 2.1.295 ou plus récent), **s'ajoutent** à celles de graphify ; la mise à jour des gardes, du gate `settings-json` et de `.claude/settings.json` va dans une même PR, et si l'environnement refuse à la session l'édition de `.claude/settings.json`, elle l'écrit à qui l'a lancée, avec le fragment, et s'arrête : un humain le colle ; `PostToolUse` lance `apres-edition.mjs` (Prettier puis ESLint sur le fichier édité, l'erreur revient à l'agent tout de suite) ; `Stop` lance `fin-de-tour.mjs` (les `gatesRapides` de `.claude/chaine.json` qui existent, une fois, avant de rendre la main) ; `SessionStart` lance `demarrage.mjs` (fetch de develop, `origin/HEAD`, `pnpm install` si le lockfile a changé ; les étapes Postgres et base de test sont écrites, à activer dans `ETAPES_ACTIVES` quand le projet a sa base ; il signale aussi, sans rien lancer, deux manques : graphify demandé par `CLAUDE.md` et sans sa commande ou son `graphify-out/graph.json`, et les skills de la chaîne absents de la session, avec le remède de `chaine-de-production.md` § 5, étape 5). Tester : `node --test scripts/agent/*.test.mjs` (`garde-commandes.test.mjs` lit `scripts/docs/identifiants.mjs`, posé avec la racine, et `depot-jouet.mjs`, posé par `tickets` à l'étape 2.1), puis une commande refusée à la main : `echo '{"tool_input":{"command":"git push --force origin x"}}' | node scripts/agent/garde-commandes.mjs` sort en 2, et `echo '{"tool_name":"mcp__github__push_files","tool_input":{"branch":"sujet/x"}}' | node scripts/agent/garde-github.mjs` aussi.
+    4 bis. **Le gate `settings-json`** : `references/scripts/verify/settings-json*` → `scripts/verify/` ; script `check:settings` (`node scripts/verify/settings-json.mjs`) dans `package.json`, étape `check:settings` dans `scripts/check.mjs` après `check:contexte`. Il refuse un `.claude/settings.json` invalide, un `allow` hors de `permissions`, une entrée qui autorise ce que les hooks refusent, une entrée qui pré-approuve `create_session` quand `.claude/chaine.json` porte la clé `relecture` (l'outil refuserait alors l'effort des sessions de relecture ; une session en mode « Auto » l'appelle sans pré-approbation), un hook exigé absent ou qui cite un script inexistant, une garde de `PreToolUse` (fichiers, `Bash`, outils GitHub d'écriture) qui n'est pas lancée par la commande exacte du fragment dans un hook `command`, sans `"onFailure": "block"`, sans `"timeout"` numérique d'au plus 60 s ou en arrière-plan (`async`, `asyncRewake`), et `"disableAllHooks": true`. Il lit, ne corrige pas : une session ne touche pas à ses droits.
+    4 ter. **Le check `PR titre`** : `references/scripts/github/pr-titre*` → `scripts/github/` (il appelle `scripts/chaine/revue-exigee.mjs` et `sujet.sh`, posés à l'étape 2.1).
+-5. **Les labels** : `references/labels.sh` → `scripts/github/labels.sh`. Avec `gh` authentifié, le jouer ; sinon `--liste`, et la ligne va dans `admin.md`.
++5. **Les labels** : `references/labels.sh` → `scripts/github/labels.sh`. Avec `gh` authentifié, le jouer ; sinon `--liste`, et la ligne va dans `chaine-admin.md`.
+ 6. **La CI** : `references/ci/ci.yml` → `.github/workflows/ci.yml`, placeholders substitués. S'il existe déjà un workflow, y ajouter les trois jobs plutôt que le remplacer. Le job `zizmor` audite les workflows (injection par gabarit `${{ … }}` dans un `run:`, action non épinglée, `pull_request_target`, permissions larges) ; une valeur d'événement passe par `env:`, jamais dans un `run:`. Puis `references/ci/pr-titre.yml` → `.github/workflows/pr-titre.yml`, tel quel : non exigé, il ne s'ajoute pas à la protection de `develop` (le capitaine reste le juge).
+ 7. **La méthode** : `references/docs-agents/chaine-de-production.md` → `docs/agents/chaine-de-production.md`, et `references/docs-agents/pieges.md` → `docs/agents/pieges.md`.
+ 8. **Les ADR** : `node scripts/docs/next-id.mjs ADR ALL ARC` quatre fois, de suite, chaque ADR copiée avant l'appel suivant ; `references/adr/ADR_ALL_ARC-N-chaine-de-production.md`, `ADR_ALL_ARC-N-branches-de-sujet.md`, `ADR_ALL_ARC-N-recette-humaine.md`, `ADR_ALL_ARC-N-relecture-independante.md` → `docs/adr/ADR_ALL_ARC-<n>-….md`, `{{N}}` et `{{DATE}}` substitués. `{{ADR_CHAINE}}`, `{{ADR_SUJET}}` et `{{ADR_RELECTURE}}` valent ces identifiants dans tous les fichiers posés.
+-9. **La branche `develop`** : `references/scripts/github/develop.sh` → `scripts/github/develop.sh`, puis `bash scripts/github/develop.sh` : crée `develop` sur le distant depuis `origin/main` si elle n'existe pas, et la rapatrie (`origin/develop`). **Jamais `git push origin origin/main:refs/heads/develop` à la main** : le script est idempotent, rapatrie `origin/develop` et donne ses sorties. Il pousse sous le hook pre-push, jamais en le sautant : le push ne porte que `origin/main`, déjà sur le distant, et le pre-push du socle (`husky/pre-push`) conclut qu'il n'a rien à contrôler. Un `.husky/pre-push` antérieur au socle 7.0.1 refuserait ce push (`pnpm check` sur l'arbre de travail, `coverage-diff` sans `origin/develop`) : reposer le hook, jamais le sauter ; l'API GitHub (`POST git/refs`) n'est pas une option, le proxy des sessions cloud la refuse. Push refusé (droits) : la ligne va dans `admin.md`. La branche par défaut et sa protection sont à l'admin (`admin.md`).
++9. **La branche `develop`** : `references/scripts/github/develop.sh` → `scripts/github/develop.sh`, puis `bash scripts/github/develop.sh` : crée `develop` sur le distant depuis `origin/main` si elle n'existe pas, et la rapatrie (`origin/develop`). **Jamais `git push origin origin/main:refs/heads/develop` à la main** : le script est idempotent, rapatrie `origin/develop` et donne ses sorties. Il pousse sous le hook pre-push, jamais en le sautant : le push ne porte que `origin/main`, déjà sur le distant, et le pre-push du socle (`husky/pre-push`) conclut qu'il n'a rien à contrôler. Un `.husky/pre-push` antérieur au socle 7.0.1 refuserait ce push (`pnpm check` sur l'arbre de travail, `coverage-diff` sans `origin/develop`) : reposer le hook, jamais le sauter ; l'API GitHub (`POST git/refs`) n'est pas une option, le proxy des sessions cloud la refuse. Push refusé (droits) : la ligne va dans `chaine-admin.md`. La branche par défaut et sa protection sont à l'admin (`chaine-admin.md`).
+ 10. **Les fragments** : chaque fragment s'insère immédiatement au-dessus du marqueur de sa zone, sans le supprimer :
+ 
+ | Fragment                                     | Fichier racine | Zone                                   |
+@@ -63,6 +63,8 @@ node --test scripts/github/*.test.mjs
+ node scripts/docs/next-id.mjs ADR ALL ARC
+ ```
+ 
++Au premier `pnpm check` après cette pose, `check:contexte` nomme les références des gabarits de la chaîne vers une brique absente : sans API, les sept sections de `apps/api/CLAUDE.md` que citent les critères S1, S2, S4, S8, S9 et S10 de `docs/agents/criteres-revue.md`, et `scripts/db/demarrer-local.sh` dans `docs/agents/pieges.md`. Celles-là, et elles seules, se gèlent, comme à l'étape 7 de `socle-monorepo` (l'entrée `"<fichier>:<ligne>:<référence>"` de `scripts/verify/references-agent-dette.json`) ; `--elaguer` les retire à l'arrivée de l'API. Le lint et Prettier du projet ne lisent pas les scripts posés ici (bloc `socle:poses-du-plugin` de `.prettierignore`, gabarit de `socle-monorepo`) : un projet posé avant 8.3.1 l'ajoute (`NOTES-DE-VERSION.md`).
++
+ Puis : aucun placeholder `{{…}}` restant (chercher `{{[A-Z_]+}}` hors JSX) ; `.claude/settings.json` valide et les quatre hooks présents (deux graphify, deux agent) ; `git ls-remote --heads origin develop` rend une ligne ; `gh api repos/{owner}/{repo}/labels --jq '.[].name'` liste les neuf labels, ou la case correspondante de `chaine-admin.md` est ouverte.
+ 
+ Remettre à l'humain **la liste de `chaine-admin.md`** : rien de la chaîne ne tourne tant que `develop` n'est pas protégée avec « branche à jour exigée ». Et dire à qui a lancé la pose qu'un Relecteur doit tourner pour le dépôt avant la première PR (étape 2, point 2).
+diff --git a/skills/chaine/socle-chaine-de-production/references/admin.md b/skills/chaine/socle-chaine-de-production/references/admin.md
+index f2898b2..2824668 100644
+--- a/skills/chaine/socle-chaine-de-production/references/admin.md
++++ b/skills/chaine/socle-chaine-de-production/references/admin.md
+@@ -3,7 +3,7 @@
+ Le skill ne peut pas le faire : l'API GitHub refuse ces réglages depuis une session cloud, ou ils demandent le rôle d'administrateur. À faire une fois, dans Settings du dépôt, puis cocher ici.
+ 
+ - [ ] **Branche par défaut : `develop`.** Settings → General → Default branch. `develop` est créée depuis `main` par `bash scripts/github/develop.sh` ; si ce push a été refusé (droits), la créer ici : Branches → New branch, source `main`. `main` reste la branche livrée : seul le capitaine y fusionne, par la PR de livraison.
+-- [ ] **Protection de `develop`** (Settings → Branches → Add rule, ou Rulesets) : « Require a pull request before merging », **sans** « Require review from Code Owners » (le produit l'a retirée le 2026-11-18 : aucun `.github/CODEOWNERS` n'est posé, et GitHub ne bloque aucune PR sur les chemins sensibles) et avec **« Required approvals » à 0** (toutes les sessions publient sous un même compte, et GitHub ne laisse pas un auteur approuver sa propre PR : avec une approbation exigée, GitHub refuse la fusion de toute PR que personne d'autre n'a approuvée, et le capitaine s'arrête sur ce refus, `passer.sh` sortie 3) ; « Require status checks to pass » avec **« Require branches to be up to date before merging »** (le filet de GitHub ; le capitaine vérifie aussi l'ascendance lui-même avant chaque fusion, skill `fusionner`) et les checks `qualite` et `test-db` ; **« Restrict deletions »** ; « Do not allow bypassing the above settings », et **aucune liste de contournement** (« Bypass list » vide) : un administrateur qui contourne la règle la retire pour tous. Pas de « Require linear history » : un sujet entre par un commit de merge. Pas de règle de PR sur `sujet/*` ni sur les branches de travail, où le capitaine et les sessions poussent sans PR : elle bloquerait la chaîne.
++- [ ] **Protection de `develop`** (Settings → Branches → Add rule, ou Rulesets) : « Require a pull request before merging », **sans** « Require review from Code Owners » (le produit l'a retirée le 2026-11-18 : aucun `.github/CODEOWNERS` n'est posé, et GitHub ne bloque aucune PR sur les chemins sensibles) et avec **« Required approvals » à 0** (toutes les sessions publient sous un même compte, et GitHub ne laisse pas un auteur approuver sa propre PR : avec une approbation exigée, GitHub refuse la fusion de toute PR que personne d'autre n'a approuvée, et le capitaine s'arrête sur ce refus, `passer.sh` sortie 3) ; « Require status checks to pass » avec **« Require branches to be up to date before merging »** (le filet de GitHub ; le capitaine vérifie aussi l'ascendance lui-même avant chaque fusion, skill `fusionner`) et les checks `qualite` et `test-db`, **jamais une règle sans check** : une règle « Require status checks to pass » qui n'en exige aucun (posée avant le premier run de la CI, quand GitHub n'en propose encore aucun nom) fait lire toute PR « sans CI », et aucune n'entre ; le capitaine le dit dès sa première lecture (`RÉGLAGE DU DÉPÔT`, sa boucle s'arrête) : y ajouter les checks, ou ne poser la règle qu'après le premier run ; **« Restrict deletions »** ; « Do not allow bypassing the above settings », et **aucune liste de contournement** (« Bypass list » vide) : un administrateur qui contourne la règle la retire pour tous. Pas de « Require linear history » : un sujet entre par un commit de merge. Pas de règle de PR sur `sujet/*` ni sur les branches de travail, où le capitaine et les sessions poussent sans PR : elle bloquerait la chaîne.
+ - [ ] **Protection de `main`** : même règle, plus « Restrict who can push » aux administrateurs.
+ - [ ] **Pull Requests** (Settings → General) : « Allow merge commits » et « Allow squash merging » cochés ; **« Automatically delete head branches »** coché : GitHub supprime la branche d'une PR fusionnée et recible de lui-même les PR qui la visaient.
+ - [ ] **Check `zizmor` exigé** sur `develop` et `main`, à côté de `qualite` et `test-db`, dès que son premier run a tourné.
+@@ -27,4 +27,4 @@ Le skill ne peut pas le faire : l'API GitHub refuse ces réglages depuis une ses
+ 
+ Ce que ces règles ne tiennent pas : toutes les sessions écrivent sous le même compte, la revue exigée par le capitaine est écrite par la session, et le capitaine exécute ce qui entre (hooks git, `pnpm install`, `pnpm check`). Aucune n'arrête une PR hostile.
+ 
+-Vérification : `gh api repos/{owner}/{repo}/rules/branches/develop --jq '.[] | select(.type == "required_status_checks") | .parameters.strict_required_status_checks_policy'` rend `true` (l'ancienne API `branches/develop/protection` répond 404 quand un ruleset protège la branche).
++Vérification : `gh api repos/{owner}/{repo}/rules/branches/develop --jq '.[] | select(.type == "required_status_checks") | .parameters.strict_required_status_checks_policy'` rend `true` (l'ancienne API `branches/develop/protection` répond 404 quand un ruleset protège la branche). Et `gh api repos/{owner}/{repo}/rules/branches/develop --jq '[.[] | select(.type == "required_status_checks") | .parameters.required_status_checks[].context]'` rend une liste qui contient `qualite` et `test-db`, jamais `[]`.
+diff --git a/skills/chaine/socle-chaine-de-production/references/agent/regles.test.mjs b/skills/chaine/socle-chaine-de-production/references/agent/regles.test.mjs
+index 41ea1b5..724dc47 100644
+--- a/skills/chaine/socle-chaine-de-production/references/agent/regles.test.mjs
++++ b/skills/chaine/socle-chaine-de-production/references/agent/regles.test.mjs
+@@ -17,6 +17,33 @@ const REGLES = pathToFileURL(join(ISOLE, 'scripts/agent/regles.mjs')).href;
+ const { ajouteUneDependance, decisionCommande, decisionOutilGithub, lireDependances, paquetsAjoutes, pousseSurUnSujet, refusEdition, sansTexte, segmentsDeCommande, lintable } = await import(REGLES);
+ const { lireCommande, RAISON_ILLISIBLE, LECTURE_7_9, RAISON_TROP_LONGUE, appelsGit, sauteLesHooks, ecritUneRefDeSuivi, amendeUnCommit } = await import(REGLES);
+ 
++// Les durées se bornent en étalons (ticket 91), jamais en millisecondes : un banc posé tourne aussi sur une machine
++// chargée (le pre-push et la CI du projet, le garde `references-posees.test.mjs` du plugin), où une borne fixe rougit un
++// cas qui n'a pas changé (le pire cas à 20 000 caractères : 2,5 s sur un poste libre, 13 s sous une charge de 14 sur
++// quatre cœurs). L'étalon est un travail fixe, hors de la garde, du même moteur : une expression qui recule au carré sur
++// 16 002 caractères (250 ms sur le poste de mesure). Il se mesure juste avant et juste après le cas, dans le même
++// passage, et le plus lent des deux compte : une machine chargée ralentit l'un et l'autre, le rapport reste (6,8 étalons
++// libre, 7,4 sous la charge de 14, pour le pire cas). Une garde devenue plus lente que sa borne la dépasse, chargée ou non.
++const ETALON = `-${'a'.repeat(16_000)}!`;
++const duree = (f) => {
++  const debut = process.hrtime.bigint();
++  const r = f();
++  return { r, ms: Number(process.hrtime.bigint() - debut) / 1e6 };
++};
++function etalon() {
++  const { ms } = duree(() => /^-[a-z]*a[a-z]*$/.test(ETALON));
++  // Un moteur qui ne reculerait plus sur cette forme rendrait l'étalon nul, et toute borne vide : le banc le refuse.
++  assert.ok(ms >= 20, `étalon de ${ms} ms : l'expression ne recule plus, l'étalon ne mesure plus rien`);
++  return ms;
++}
++/** `f()` jouée entre deux étalons : `{ r, ms, etalon, etalons }`, `etalons` sa durée rapportée au plus lent des deux. */
++function enEtalons(f) {
++  const avant = etalon();
++  const { r, ms } = duree(f);
++  const e = Math.max(avant, etalon());
++  return { r, ms, etalon: e, etalons: ms / e };
++}
++
+ const livree = { migrationExistante: () => true, migrations: 'apps/api/src/db/migrations/' };
+ const nouvelle = { migrationExistante: () => false, migrations: 'apps/api/src/db/migrations/' };
+ 
+@@ -778,11 +805,11 @@ test('ticket 33 : chaque mot réservé est retiré avant les décideurs — npm
+     assert.match(decisionCommande(c)?.raison ?? '', /^npm/, c);
+ });
+ 
+-test('ticket 33 : le lecteur est linéaire — 30 000 lignes « cat <<EOF » non fermées sont refusées en moins de 5 s', () => {
++test('ticket 33 : le lecteur est linéaire — 30 000 lignes « cat <<EOF » non fermées sont refusées en moins de 20 étalons (5 s sur un poste libre)', () => {
+   const c = 'cat <<EOF\n'.repeat(30000) + 'git push --force origin feat/x';
+-  const debut = process.hrtime.bigint();
+-  assert.equal(decisionCommande(c, CTX_33)?.decision, 'refuser');
+-  assert.ok(Number(process.hrtime.bigint() - debut) / 1e9 < 5);
++  const m = enEtalons(() => decisionCommande(c, CTX_33)?.decision);
++  assert.equal(m.r, 'refuser');
++  assert.ok(m.etalons < 20, `${m.ms} ms, ${m.etalons} étalons de ${m.etalon} ms`);
+ });
+ 
+ test('ticket 33 : formes trouvées par la session, que bash exécute — expansion vide ou affectée, substitution de processus, here-string, ligne continuée, préfixe inconnu devant un shell', () => {
+@@ -916,9 +943,8 @@ test('ticket 33, contre-relecture C1 : ce qui suit un mot à expansion se relit
+   const F = F_33;
+   const mesure = (c) => {
+     const tas = process.memoryUsage().heapUsed;
+-    const debut = process.hrtime.bigint();
+-    const d = decisionCommande(c, CTX_33)?.decision;
+-    return { d, s: Number(process.hrtime.bigint() - debut) / 1e9, mo: (process.memoryUsage().heapUsed - tas) / 2 ** 20 };
++    const { r: d, ms, etalons } = enEtalons(() => decisionCommande(c, CTX_33)?.decision);
++    return { d, s: ms / 1000, etalons, mo: (process.memoryUsage().heapUsed - tas) / 2 ** 20 };
+   };
+   const continuees = (n) => 'echo ' + '"$a" \\\n'.repeat(n) + `; ${F}`;
+   const nus = (n) => 'echo ' + '$a '.repeat(n);
+@@ -929,7 +955,7 @@ test('ticket 33, contre-relecture C1 : ce qui suit un mot à expansion se relit
+     const petit = mesure(forme(n));
+     const grand = mesure(forme(3 * n));
+     assert.equal(grand.d, attendu);
+-    assert.ok(grand.s < 2, `${grand.s} s`);
++    assert.ok(grand.etalons < 8, `${grand.s} s, ${grand.etalons} étalons (2 s sur un poste libre)`);
+     // Trois fois plus long : moins de six fois plus de temps et de mémoire (une croissance quadratique en ferait neuf).
+     assert.ok(grand.s < 6 * petit.s + 0.2, `${petit.s} s puis ${grand.s} s`);
+     assert.ok(grand.mo < 200, `${grand.mo} Mo`);
+@@ -1076,9 +1102,9 @@ test('A-51 bis : la lecture de 7.9.x rend ce que rendait son motif de here-doc,
+   // Le cas qui coûtait au cube : dix « <<A » cités, 19 900 sauts de ligne (37 s avec le motif pour 20 000), sous le plafond.
+   const c = "echo '" + '<<A '.repeat(10) + "'" + '\n'.repeat(19900) + 'echo ok';
+   assert.ok(c.length <= 20000, `${c.length} caractères : au-delà du plafond, la commande ne serait pas lue`);
+-  const t0 = Date.now();
+-  assert.equal(decisionCommande(c, CTX_33), null);
+-  assert.ok(Date.now() - t0 < 2000, `${Date.now() - t0} ms`);
++  const m = enEtalons(() => decisionCommande(c, CTX_33));
++  assert.equal(m.r, null);
++  assert.ok(m.etalons < 8, `${m.ms} ms, ${m.etalons} étalons de ${m.etalon} ms (2 s sur un poste libre)`);
+ });
+ 
+ test('A-51 ter : au-delà de 20 000 caractères, refus prudent, corps de here-doc compris', () => {
+@@ -1093,9 +1119,9 @@ test('A-51 ter : au-delà de 20 000 caractères, refus prudent, corps de here-do
+ test('A-51 ter : le plafond se teste avant toute lecture — une commande de plus de 20 000 caractères est refusée vite', () => {
+   // La lecture par jetons est quadratique sur `git commit -m x ` répété : 122 s au-delà du délai du hook, avant le plafond.
+   const c = 'git commit -m x '.repeat(62000) + '; npm install x';
+-  const t0 = Date.now();
+-  assert.deepEqual(decisionCommande(c, CTX_33), { decision: 'refuser', raison: RAISON_TROP_LONGUE });
+-  assert.ok(Date.now() - t0 < 2000, `${Date.now() - t0} ms`);
++  const m = enEtalons(() => decisionCommande(c, CTX_33));
++  assert.deepEqual(m.r, { decision: 'refuser', raison: RAISON_TROP_LONGUE });
++  assert.ok(m.etalons < 8, `${m.ms} ms, ${m.etalons} étalons de ${m.etalon} ms (2 s sur un poste libre)`);
+ });
+ 
+ test('A-51 ter : le contexte est lu une fois pour les deux lectures — un seul appel de chaque', () => {
+@@ -1113,6 +1139,8 @@ test('A-51 ter : le contexte est lu une fois pour les deux lectures — un seul
+ // répétée sans fin de mot en tête (26 s pour `gh pr close 1 -ddd…!` à 99 980 caractères, sous l'ancien plafond de
+ // 100 000). À 20 000, le pire cas mesuré prend 1,2 s sur le poste de mesure ; le banc le borne à 10 s, marge pour une
+ // machine chargée, sous le délai de 60 s du hook. Un caractère de plus, et la commande est refusée sans être lue.
++// Ticket 91 : les deux bornes en étalons (plus haut), 40 et 4, soit 10 s et 1 s sur un poste libre où l'étalon prend
++// 250 ms ; le pire cas y vaut 6,8 étalons, 7,4 sous une charge de 14, où il a dépassé les 10 s (13 s).
+ const PLAFOND = 20_000;
+ const PIRES_CAS = [
+   ['gh pr close 1 -', 'd', '!'],
+@@ -1128,7 +1156,7 @@ const PIRES_CAS = [
+   ['echo ', '9', ''],
+ ];
+ const pireCas = ([avant, motif, apres], n) => avant + motif.repeat(Math.ceil(n / motif.length)).slice(0, n - avant.length - apres.length) + apres;
+-test('le plafond à 20 000 caractères : chaque pire cas mesuré se lit sous 10 s, et se refuse sans lecture à 20 001', () => {
++test('le plafond à 20 000 caractères : chaque pire cas mesuré se lit sous 40 étalons (10 s sur un poste libre), et se refuse sans lecture à 20 001', () => {
+   assert.match(RAISON_TROP_LONGUE, /^commande trop longue pour la garde \(plus de 20 000 caractères\)/);
+   assert.match(RAISON_TROP_LONGUE, /Écris le texte long dans un fichier \(git commit -F <fichier>, gh … --body-file <fichier>\)/);
+   assert.equal(decisionCommande('echo ' + 'x'.repeat(PLAFOND - 5), CTX_33), null, 'au plafond : lue');
+@@ -1136,14 +1164,15 @@ test('le plafond à 20 000 caractères : chaque pire cas mesuré se lit sous 10
+   for (const cas of PIRES_CAS) {
+     const c = pireCas(cas, PLAFOND);
+     assert.equal(c.length, PLAFOND, JSON.stringify(cas));
+-    const t0 = Date.now();
+-    assert.equal(decisionCommande(c, CTX_33), null, JSON.stringify(cas));
+-    assert.ok(Date.now() - t0 < 10000, `${JSON.stringify(cas)} : ${Date.now() - t0} ms à ${PLAFOND} caractères`);
++    const m = enEtalons(() => decisionCommande(c, CTX_33));
++    assert.equal(m.r, null, JSON.stringify(cas));
++    assert.ok(m.etalons < 40, `${JSON.stringify(cas)} : ${m.ms} ms, ${m.etalons} étalons de ${m.etalon} ms à ${PLAFOND} caractères`);
+     const long = pireCas(cas, PLAFOND + 1);
+     assert.equal(long.length, PLAFOND + 1, JSON.stringify(cas));
+-    const t1 = Date.now();
+-    assert.deepEqual(decisionCommande(long, CTX_33), { decision: 'refuser', raison: RAISON_TROP_LONGUE }, JSON.stringify(cas));
+-    assert.ok(Date.now() - t1 < 1000, `${JSON.stringify(cas)} : ${Date.now() - t1} ms pour refuser à ${PLAFOND + 1} caractères`);
++    // Le refus se rapporte à l'étalon du cas, mesuré juste avant : un refus sans lecture ne coûte rien.
++    const refus = duree(() => decisionCommande(long, CTX_33));
++    assert.deepEqual(refus.r, { decision: 'refuser', raison: RAISON_TROP_LONGUE }, JSON.stringify(cas));
++    assert.ok(refus.ms / m.etalon < 4, `${JSON.stringify(cas)} : ${refus.ms} ms pour refuser à ${PLAFOND + 1} caractères, ${refus.ms / m.etalon} étalons de ${m.etalon} ms`);
+   }
+ });
+ 
+@@ -1168,9 +1197,9 @@ test("ticket 48 : `ajouts(code)` de la lecture de 7.9.x ne relance pas sa recher
+     assert.equal(LECTURE_7_9.decisionCommande(c, ctx), null, c);
+   assert.equal(LECTURE_7_9.decisionCommande('pnpm add react 2>/dev/null', ctx)?.decision, 'refuser');
+   // Hors plafond, la lecture de 7.9.x seule : linéaire sur une longue suite de chiffres.
+-  const t0 = Date.now();
+-  assert.equal(LECTURE_7_9.decisionCommande('echo ' + '9'.repeat(99995), CTX_33), null);
+-  assert.ok(Date.now() - t0 < 1000, `${Date.now() - t0} ms pour 99 995 chiffres`);
++  const m = enEtalons(() => LECTURE_7_9.decisionCommande('echo ' + '9'.repeat(99995), CTX_33));
++  assert.equal(m.r, null);
++  assert.ok(m.etalons < 4, `${m.ms} ms pour 99 995 chiffres, ${m.etalons} étalons de ${m.etalon} ms (1 s sur un poste libre)`);
+ });
+ 
+ // ——— Ticket 17 de capitaine-a-jour-et-teste : la garde lit git après ses options globales et refuse de sauter les hooks ———
+diff --git a/skills/chaine/socle-chaine-de-production/references/docs-agents/pieges.md b/skills/chaine/socle-chaine-de-production/references/docs-agents/pieges.md
+index 5b917c1..4b100af 100644
+--- a/skills/chaine/socle-chaine-de-production/references/docs-agents/pieges.md
++++ b/skills/chaine/socle-chaine-de-production/references/docs-agents/pieges.md
+@@ -4,7 +4,7 @@ Un incident qui n'a pas encore son gate reçoit ici sa ligne au moment où il ar
+ 
+ ## Dépôt, branches, worktrees
+ 
+-- **Pas de Docker en session cloud** : sans base, `db:types`, `test:db` et la régénération des index par le capitaine échouent. `bash scripts/db/demarrer-local.sh` (posé par le socle API) allume la base de `compose.yaml` avec le PostgreSQL de la machine ; le script de démarrage de l'environnement cloud l'appelle pour chaque session (`admin.md`). Il ne repasse pas sur une reprise de session : relancer le script, sans risque, avant `test:db` ou `db:types`. La machine du capitaine perd aussi sa base quand la plateforme la recycle : déclarer la commande dans `preparerCapitaine` de `.claude/chaine.json`, que la veille du capitaine joue après chaque redémarrage, avant toute fusion (skill `fusionner`).
++- **Pas de Docker en session cloud** : sans base, `db:types`, `test:db` et la régénération des index par le capitaine échouent. `bash scripts/db/demarrer-local.sh` (posé par le socle API) allume la base de `compose.yaml` avec le PostgreSQL de la machine ; le script de démarrage de l'environnement cloud l'appelle pour chaque session (`chaine-admin.md`). Il ne repasse pas sur une reprise de session : relancer le script, sans risque, avant `test:db` ou `db:types`. La machine du capitaine perd aussi sa base quand la plateforme la recycle : déclarer la commande dans `preparerCapitaine` de `.claude/chaine.json`, que la veille du capitaine joue après chaque redémarrage, avant toute fusion (skill `fusionner`).
+ - **Pousser depuis un `git worktree` exige les hooks du socle ≥ 7.0.1.** Cause : sous un worktree, git exporte `GIT_DIR` au pre-push (et `GIT_DIR` plus `GIT_INDEX_FILE` au pre-commit) ; les tests qui font un `git init` jouet puis un `commit` écrivaient alors dans le dépôt réel (`core.bare=true` dans la config partagée, HEAD déplacé, commits « jouet » sur la branche du worktree). Remède : `.husky/pre-push` et `.husky/pre-commit` font `unset GIT_DIR GIT_INDEX_FILE` avant de lancer `pnpm run check` / `check:commit` ; le capitaine reste donc dans son worktree, `pnpm install` y installe les hooks. Le piège demeure pour un projet dont `.husky/` est antérieur au socle 7.0.1 : n'y pas pousser depuis un worktree tant qu'il n'a pas reposé ses hooks. Les scripts de la chaîne ne sautent jamais un hook (`--no-verify`) : un refus de hook sort en 3, sa sortie sur stderr.
+ - Un **worktree neuf n'a pas de `node_modules`** : le pre-push y échoue avec des erreurs absurdes. `pnpm install --frozen-lockfile --prefer-offline` d'abord.
+ - **La couverture du pre-push se mesure contre la base de la fusion** (`check:coverage --base-auto` : le sujet visé par le push, sinon le plus proche de develop et des `origin/sujet/*`) : sans `git fetch origin`, les `origin/sujet/*` manquent et un commit poussé sur un sujet mesure contre develop tout le code du sujet. Fetcher, ne pas contourner par une base locale.
+diff --git a/skills/chaine/sujet/scripts/faux-gh.mjs b/skills/chaine/sujet/scripts/faux-gh.mjs
+index 9b9e2f0..8c10c75 100644
+--- a/skills/chaine/sujet/scripts/faux-gh.mjs
++++ b/skills/chaine/sujet/scripts/faux-gh.mjs
+@@ -394,12 +394,16 @@ function repondre() {
+   if (route.match(/^commits\/[0-9a-f]+\/status$/)) return { statuses: [] };
+   // Checks exigés : par ruleset (le cas nominal), ou par l'ancienne protection de branche quand
+   // le dépôt jouet le déclare (`protectionClassique`) — l'autre forme répond alors comme GitHub.
++  // Sans check exigé, aucune règle (un ruleset sans « Require status checks », ou la protection
++  // sans elle : 404). `regleVide` (ticket 91) : la règle est là, sans aucun check, comme sur le
++  // jouet de l'essai réel du régime 8.
+   if (route === "rules/branches/develop")
+-    return etat.protectionClassique
++    return etat.protectionClassique || (!(etat.exiges ?? []).length && !etat.regleVide)
+       ? []
+       : [
+           {
+             type: "required_status_checks",
++            ruleset_id: 42,
+             parameters: {
+               required_status_checks: (etat.exiges ?? []).map((context) => ({
+                 context,
+@@ -408,9 +412,11 @@ function repondre() {
+           },
+         ];
+   if (route === "branches/develop/protection/required_status_checks")
+-    return etat.protectionClassique
+-      ? { contexts: etat.exiges ?? [] }
+-      : echec("gh: Branch not protected (HTTP 404)");
++    return !etat.protectionClassique
++      ? echec("gh: Branch not protected (HTTP 404)")
++      : (etat.exiges ?? []).length || etat.regleVide
++        ? { contexts: etat.exiges ?? [] }
++        : echec("gh: Required status checks not enabled (HTTP 404)");
+   if ((m = route.match(/^branches\/([^/]+)$/))) {
+     return ref(decodeURIComponent(m[1]))
+       ? { name: decodeURIComponent(m[1]) }
+diff --git a/skills/chaine/sujet/scripts/sujet.sh b/skills/chaine/sujet/scripts/sujet.sh
+index 4f7e64d..887116a 100755
+--- a/skills/chaine/sujet/scripts/sujet.sh
++++ b/skills/chaine/sujet/scripts/sujet.sh
+@@ -129,7 +129,7 @@
+ # `rafraichir`, `relancer`, `livrer`, `ouvrir`, `geler`, `degeler` ; la trace de husky 9 seule fait un refus du hook,
+ # sortie 3), ou outil du capitaine en échec : aucun renvoi · 11 `clore` : origin ou GitHub illisible, ou suppression
+ # non confirmée · 11 `fusionner`, `relancer` : verrou du passage non posé (écriture refusée), aucun renvoi ; ses
+-# commentaires illisibles à la relecture sortent en 5 · 11 `relancer` : contrôle d'ascendance illisible, côté capitaine, aucun renvoi · `clore` : 3 suppression refusée par
++# commentaires illisibles à la relecture sortent en 5 · 11 `relancer` : contrôle d'ascendance illisible, côté capitaine, aucun renvoi · 11 `fusionner` : réglage du dépôt (une règle de checks exigés vide sur develop, ticket 91), aucun renvoi · `clore` : 3 suppression refusée par
+ # un hook ou par le distant, 4 refus (pas livré, PR ouverte, carte, nom ou option), 5 le sommet a bougé · 69 jq absent du poste
+ # Tout passe par l'API REST (`gh api`) : GraphQL est refusé depuis les sessions cloud. Depuis la
+ # racine du dépôt ; sans argument, affiche cette aide.
+@@ -1004,7 +1004,10 @@ fusionner() {
+     # Checks exigés sur develop, lus sur le sommet de la sous-PR. Les E2E y sont sautés
+     # (branche de sujet), donc comptés réussis : ils tournent sur la PR finale.
+     local requis etats rouges='' attente=0 nom c
+-    requis=$(checks_exiges) || sortir 5 "#$n : GitHub illisible à la lecture des checks exigés (cause ci-dessus) : reprise au tour suivant, aucun renvoi"
++    requis=$(checks_exiges) || {
++      [ $? != 6 ] || sortir 11 "#$n : réglage du dépôt (motif ci-dessus) : une règle de checks exigés vide sur develop, aucun renvoi"
++      sortir 5 "#$n : GitHub illisible à la lecture des checks exigés (cause ci-dessus) : reprise au tour suivant, aucun renvoi"
++    }
+     requis=$(jq -r '.[]' <<<"$requis")
+     etats=$(checks_commit "$sommet") || sortir 5 "#$n : GitHub illisible à la lecture des checks (cause ci-dessus) : reprise au tour suivant, aucun renvoi"
+     while IFS= read -r nom; do
+@@ -1061,6 +1064,7 @@ fusionner() {
+       0) ;;
+       1) sortir 3 "checks rouges sur #$n :$(awk -F ' : ' '{ sub(/^ +/, "", $1); printf " %s ;", $1 }' <<<"$rouges")" ;;
+       5) sortir 5 "#$n : GitHub illisible pendant l'attente de la CI (cause ci-dessus) : reprise au tour suivant, aucun renvoi" ;;
++      6) sortir 11 "#$n : réglage du dépôt (motif ci-dessus) : une règle de checks exigés vide sur develop, aucun renvoi" ;;
+       *)
+         [ "$pousse" = 0 ] ||
+           sortir 8 "#$n : mise à jour avec $base poussée, CI pas finie : repasse au tour suivant (aucun renvoi)"
+diff --git a/skills/monorepo/socle-monorepo/SKILL.md b/skills/monorepo/socle-monorepo/SKILL.md
+index c0ff8af..3b6ddeb 100644
+--- a/skills/monorepo/socle-monorepo/SKILL.md
++++ b/skills/monorepo/socle-monorepo/SKILL.md
+@@ -157,6 +157,8 @@ Chaque skill de service a ses propres vérifications (un service qui démarre, d
+ 
+ Contrôler enfin qu'aucun lien markdown n'est cassé, qu'il ne reste **aucun placeholder `{{…}}`** (chercher `{{[A-Z_]+}}` — les doubles accolades JSX ne comptent pas) dans le dépôt généré, que les marqueurs `<!-- socle:… -->` sont toujours là, et qu'**aucun marqueur de branche ne subsiste** : `grep -rn '══' --include='*.md' .` doit ne rien renvoyer. Un marqueur restant est une décision non prise.
+ 
++**Les références d'une brique non posée.** Au premier `pnpm check`, `check:contexte` (`references-agent`) nomme les références des gabarits vers une brique que le projet n'a pas : sans **tests**, les quatre de `.claude/rules/tests.md` vers ce que pose `socle-tests` (`scripts/verify/preuves.mjs`, `scripts/verify/tests-creux.mjs`, `docs/agents/gabarits/exemple.jour-metier.spec.ts`, `docs/agents/gabarits/exemple.property.spec.ts`). Celles-là, et elles seules, se gèlent à cet allumage : chaque ligne `<fichier>:<ligne> — <nature> « <référence> » introuvable` du gate devient l'entrée `"<fichier>:<ligne>:<référence>"` du tableau `references` de `scripts/verify/references-agent-dette.json`, et `node scripts/verify/references-agent.mjs --elaguer` les retire quand la brique arrive. Toute autre référence nommée se corrige ; la chaîne gèle les siennes de même (son étape 3).
++
+ ## Étape 8 — l'historique
+ 
+ Des commits qui racontent le projet, pas la séance. Conventional commits, dans la langue du dépôt, en-tête de 120 caractères au plus, corps en prose replié à la main (`commitlint.config.mjs` le vérifie). Un découpage qui marche :
+@@ -172,7 +174,7 @@ Des commits qui racontent le projet, pas la séance. Conventional commits, dans
+ 
+ Chaque commit doit laisser le dépôt **constructible**. Ne pas découper un service en morceaux qui ne compilent pas.
+ 
+-**Chaîne** cochée : pousser `main` (ce socle exige un remote GitHub), puis invoquer `/maj-skills:socle-chaine-de-production`. Il pose `tickets`, écrit ses propres commits et `docs/agents/admin.md` (develop, rulesets, labels : ce que l'admin fait à la main). Sans remote encore : le dire, et le lancer plus tard — `chantier` le réclame avant toute fille (son § 0).
++**Chaîne** cochée : pousser `main` (ce socle exige un remote GitHub), puis invoquer `/maj-skills:socle-chaine-de-production`. Il pose `tickets`, écrit ses propres commits et `docs/agents/chaine-admin.md` (develop, rulesets, labels : ce que l'admin fait à la main). Sans remote encore : le dire, et le lancer plus tard — `chantier` le réclame avant toute fille (son § 0).
+ 
+ **Anchorpost** coché : invoquer `/maj-skills:anchorpost` **en tout dernier**, après la chaîne. Il exige `scripts/check.mjs`, `scripts/docs/index-generes.json` et le gate des tickets, et refuse sinon ; il installe la CLI, écrit le manifeste, génère le premier index et écrit ses propres commits. Sans chaîne : le dire, et le lancer plus tard.
+ 
+diff --git a/skills/monorepo/socle-monorepo/references/CONTENU.md b/skills/monorepo/socle-monorepo/references/CONTENU.md
+index 48091e0..1b4a122 100644
+--- a/skills/monorepo/socle-monorepo/references/CONTENU.md
++++ b/skills/monorepo/socle-monorepo/references/CONTENU.md
+@@ -24,7 +24,7 @@ Cinq documents qui font autorité sur la façon de travailler.
+ - **`GLOSSARY.md`** — le glossaire, **qui se construit au grilling** ; le nom qu'attendent les skills de Matt Pocock, et l'entrée de chaque terme est son nom en code (`ADR_ALL_ARC-4`).
+ - **`.claude/settings.json`** — les marketplaces `mattpocock` et `maj` et leurs plugins activés, pour que Claude Code propose les skills à l'ouverture du dépôt. Sans hooks : `graphify claude install` ajoute les siens par-dessus.
+ - **`.claude/rules/tests.md`** — la fiche transverse des tests (nommage, tests creux interdits, couverture, propriétés, commandes), chargée par chemin dès qu'un test est lu ou écrit. Sa zone `<!-- socle:tests -->` ferme le tableau des types : chaque service y insère sa ligne à infrastructure. Branche `TENANT-B` pour les tests d'isolation.
+-- **`.env.example` et `.prettierignore`** — un en-tête générique ; chaque service ajoute son bloc en fin de fichier.
++- **`.env.example` et `.prettierignore`** — un en-tête générique ; chaque service ajoute son bloc en fin de fichier. `.prettierignore` porte aussi le bloc `socle:poses-du-plugin` : les dossiers de `scripts/` que les skills posent (`agent`, `chaine`, `docs`, `github`, `verify`), du code vendu que le projet ne modifie jamais et que la CI du plugin tient ; Prettier et lint-staged le suivent d'eux-mêmes, `eslint.config.mjs` le lit pour ses `ignores`. Sans lui, le lint de la racine trouvait 14 erreurs dans les scripts posés et chaque commit les reformatait (ticket 91) ; `scripts/dossiers-poses.test.mjs` du plugin tient la liste égale aux dossiers posés.
+ - **`gitignore`** — stocké sans point pour ne pas s'appliquer au dépôt du skill ; ignore `graphify-out/` (graphe local, reconstruit en continu), `.husky/*.local` (gardes de la machine) et tout `.claude/` sauf `settings.json`, `rules/`, `chaine.json` et `skills/` (les skills propres au projet, `P-21`, sont du dépôt ; ceux du plugin vivent hors du dépôt).
+ - **Husky** — `commit-msg` (commitlint) ; `pre-commit` : point d'extension local `.husky/pre-commit.local` (non versionné), lint-staged (Prettier **et ESLint** sur les fichiers stagés — les frontières d'architecture se voient au commit) — avec `--no-warn-ignored` : ESLint 9 avertit pour chaque fichier de configuration qu'on lui passe et que sa config ignore, et `--max-warnings 0` en ferait un refus de commit puis `check:commit` (typecheck + tests sans infrastructure, cache Turborepo) ; `pre-push` : `pnpm check` complet. La boucle courte est sur le chemin de l'agent, qui commite souvent et ne pousse presque jamais. Plus les **relais** `post-commit` / `post-checkout` vers graphify, indispensables parce que Husky détourne `core.hooksPath`.
+ - **`scripts/check.mjs`** — la porte unique, étapes de la moins chère à la plus chère, et un message par échec qui dit **quoi faire** : c'est ce message que l'agent lit. Les suites qui exigent une base (`*.db.spec.ts`, `test:db`) sont hors de la porte et tournent en CI avec le service.
+diff --git a/skills/monorepo/socle-monorepo/references/methode/conception.md b/skills/monorepo/socle-monorepo/references/methode/conception.md
+index 0b70a75..7f79ea1 100644
+--- a/skills/monorepo/socle-monorepo/references/methode/conception.md
++++ b/skills/monorepo/socle-monorepo/references/methode/conception.md
+@@ -1,6 +1,6 @@
+ # Conception — modules profonds, TDD, revue
+ 
+-Vocabulaire et règles de conception, en amont des règles d'architecture impératives ([`apps/api/CLAUDE.md`](../../apps/api/CLAUDE.md)). L'hexagonal dit _où_ mettre le code ; ce document dit _quelle forme_ lui donner.
++Vocabulaire et règles de conception, en amont des règles d'architecture impératives (le `CLAUDE.md` de chaque service, `apps/<service>/CLAUDE.md`). L'hexagonal dit _où_ mettre le code ; ce document dit _quelle forme_ lui donner.
+ 
+ Sources : `mattpocock-skills:codebase-design`, `mattpocock-skills:tdd`, `mattpocock-skills:code-review`.
+ 
+diff --git a/skills/monorepo/socle-monorepo/references/methode/pare-feu-ci.md b/skills/monorepo/socle-monorepo/references/methode/pare-feu-ci.md
+index a16c5ce..78ed7fe 100644
+--- a/skills/monorepo/socle-monorepo/references/methode/pare-feu-ci.md
++++ b/skills/monorepo/socle-monorepo/references/methode/pare-feu-ci.md
+@@ -26,7 +26,7 @@ Chaque gate protège **un** invariant. À définir précisément pour le projet
+ 
+ ### Gate — isolation des données
+ 
+-La forme suit la décision prise sur la multi-tenance ([`ADR_ALL_ARC-2`](../adr/ADR_ALL_ARC-2-transactions-et-isolation.md)).
++La forme suit la décision prise sur la multi-tenance (`ADR_ALL_ARC-2`, posée avec l'API par `socle-nest-hexagonal`).
+ 
+ <!-- ══ TENANT-A ══ -->
+ **Le gate d'appartenance.** Il n'y a pas de filet : la vérification explicite dans le use case EST la protection. Le gate le prouve.
+diff --git a/skills/monorepo/socle-monorepo/references/racine/.prettierignore b/skills/monorepo/socle-monorepo/references/racine/.prettierignore
+index db5755b..5f23876 100644
+--- a/skills/monorepo/socle-monorepo/references/racine/.prettierignore
++++ b/skills/monorepo/socle-monorepo/references/racine/.prettierignore
+@@ -8,5 +8,16 @@ pnpm-lock.yaml
+ # Livrables HTML autoportés de la doc : artefacts figés, hors du gate format:check.
+ docs/**/*.html
+ 
++# Scripts posés par le plugin maj-skills : du code vendu, que le projet ne modifie jamais (une repose les remplace)
++# et que la CI du plugin tient. Ni Prettier (ni donc lint-staged) ni ESLint ne les touchent : reformatés ou lintés
++# ici, ils différeraient du plugin à chaque repose. `eslint.config.mjs` lit ce bloc : la liste n'est écrite qu'ici.
++# socle:poses-du-plugin
++scripts/agent/
++scripts/chaine/
++scripts/docs/
++scripts/github/
++scripts/verify/
++# /socle:poses-du-plugin
++
+ # Fichiers GÉNÉRÉS : les reformater les fait diverger de leur source et casse
+ # les gates de dérive. Chaque service ajoute les siens ci-dessous.
+diff --git a/skills/monorepo/socle-monorepo/references/racine/eslint.config.mjs b/skills/monorepo/socle-monorepo/references/racine/eslint.config.mjs
+index f4fea30..f59e93f 100644
+--- a/skills/monorepo/socle-monorepo/references/racine/eslint.config.mjs
++++ b/skills/monorepo/socle-monorepo/references/racine/eslint.config.mjs
+@@ -1,4 +1,4 @@
+-import { existsSync, readdirSync } from "node:fs";
++import { existsSync, readdirSync, readFileSync } from "node:fs";
+ import { dirname, join } from "node:path";
+ import { fileURLToPath, pathToFileURL } from "node:url";
+ import js from "@eslint/js";
+@@ -19,6 +19,16 @@ import globals from "globals";
+ // options — le dernier écrase le premier. Tout ce qui concerne un groupe de
+ // fichiers vit donc dans un seul bloc, dans le fichier du service concerné.
+ const root = dirname(fileURLToPath(import.meta.url));
++// Les scripts posés par le plugin maj-skills (`scripts/agent/`, `scripts/chaine/`…) : du code vendu, tenu par la CI
++// du plugin, que le projet ne modifie jamais. Leur liste vit dans `.prettierignore`, entre `# socle:poses-du-plugin`
++// et `# /socle:poses-du-plugin`, seule : ESLint la lit là, Prettier et lint-staged la suivent d'eux-mêmes.
++const prettierignore = readFileSync(join(root, ".prettierignore"), "utf8");
++const posesDuPlugin = (prettierignore.split("# socle:poses-du-plugin\n")[1] ?? "")
++  .split("# /socle:poses-du-plugin")[0]
++  .split("\n")
++  .map((ligne) => ligne.trim())
++  .filter((ligne) => ligne && !ligne.startsWith("#"))
++  .map((dossier) => `${dossier.replace(/\/$/, "")}/**`);
+ const bricks = ["packages", "apps"].flatMap((dir) => {
+   const path = join(root, dir);
+   if (!existsSync(path)) return [];
+@@ -47,6 +57,7 @@ export default tseslint.config(
+       "**/.turbo/**",
+       "**/*.config.{js,cjs,mjs,ts}",
+       "**/eslint.rules.mjs",
++      ...posesDuPlugin,
+     ],
+   },
+   js.configs.recommended,

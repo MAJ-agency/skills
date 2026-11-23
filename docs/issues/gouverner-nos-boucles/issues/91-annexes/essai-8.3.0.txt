@@ -1,0 +1,100 @@
+# Essai de pose en chaîne seule, plugin 8.3.0 (main à 24fbd72), le 2026-11-23,  01:28:55 up  1:30,  0 user,  load average: 1.04, 2.75, 3.97
+posé : 169 fichiers ; placeholders restants : aucun
+== versions : node v22.23.5, pnpm 9.15.4, eslint v9.39.5, prettier 3.10.1
+== pnpm lint
+
+<jouet>/scripts/agent/regles.mjs
+  1440:11  error  Unexpected aliasing of 'this' to local variable                    @typescript-eslint/no-this-alias
+  2828:64  error  Unexpected control character(s) in regular expression: \x00, \x1f  no-control-regex
+
+<jouet>/scripts/chaine/double-relecture.mjs
+   182:19  error  Unexpected control character(s) in regular expression: \x00, \x1f  no-control-regex
+   187:49  error  Unnecessary escape character: \/                                   no-useless-escape
+  1048:14  error  'e' is defined but never used                                      @typescript-eslint/no-unused-vars
+
+<jouet>/scripts/chaine/meme-contenu.test.mjs
+  1291:104  error  Unexpected control character(s) in regular expression: \x00, \x1f  no-control-regex
+
+<jouet>/scripts/chaine/sujet-fusionner.test.mjs
+  7:44  error  'mkdtempSync' is defined but never used  @typescript-eslint/no-unused-vars
+  7:57  error  'readdirSync' is defined but never used  @typescript-eslint/no-unused-vars
+
+<jouet>/scripts/chaine/une-sous-pr-a-la-fois.test.mjs
+  62:16  error  '_' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+<jouet>/scripts/chaine/veille.test.mjs
+  502:25  error  '_' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  804:25  error  '_' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+<jouet>/scripts/chaine/verdict.test.mjs
+  118:13  error  'defauts' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+<jouet>/scripts/verify/tickets-regles.mjs
+  19:7  error  'REGLES' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+<jouet>/scripts/verify/tickets.test.mjs
+  200:73  error  Spaces are hard to count. Use {2}  no-regex-spaces
+
+✖ 14 problems (14 errors, 0 warnings)
+  1 error and 0 warnings potentially fixable with the `--fix` option.
+
+sortie 1
+== pnpm check:contexte
+budget-contexte : OK — CLAUDE.md 71 lignes, 1 règles par chemin, 0 SKILL.md ≤ 200 lignes
+references-agent : 13 référence(s) cassée(s) nouvelle(s) :
+  .claude/rules/tests.md:43 — chemin « scripts/verify/preuves.mjs » introuvable
+  .claude/rules/tests.md:53 — chemin « docs/agents/gabarits/exemple.jour-metier.spec.ts » introuvable
+  .claude/rules/tests.md:57 — chemin « scripts/verify/tests-creux.mjs » introuvable
+  .claude/rules/tests.md:69 — chemin « docs/agents/gabarits/exemple.property.spec.ts » introuvable
+  docs/agents/chaine-de-production.md:151 — chemin « docs/agents/couts.md » introuvable
+  docs/agents/criteres-revue.md:10 — section « Golden rule — dependency direction » introuvable
+  docs/agents/criteres-revue.md:10 — section « Layer rules » introuvable
+  docs/agents/criteres-revue.md:14 — section « Contract boundaries » introuvable
+  docs/agents/criteres-revue.md:18 — section « Error handling » introuvable
+  docs/agents/criteres-revue.md:33 — section « Dependency injection » introuvable
+  docs/agents/criteres-revue.md:37 — section « Invariants » introuvable
+  docs/agents/criteres-revue.md:41 — section « Frozen architecture decisions » introuvable
+  docs/agents/pieges.md:28 — chemin « scripts/db/demarrer-local.sh » introuvable
+  Corriger la référence (elle n'a pas de raison légitime d'être fausse : un agent la lirait comme un fait).
+sortie 1
+== prettier --list-different, par dossier
+      1 .claude/rules
+      2 .github/workflows
+      1 CLAUDE.md
+      1 README.md
+      1 commitlint.config.mjs
+      5 docs/agents
+      3 docs/features
+      3 docs/methode
+      1 eslint.config.mjs
+     15 scripts/agent
+     37 scripts/chaine
+     26 scripts/docs
+      2 scripts/github
+     13 scripts/verify
+== liens markdown cassés
+docs/methode/conception.md:3 → ../../apps/api/CLAUDE.md
+docs/methode/pare-feu-ci.md:29 → ../adr/ADR_ALL_ARC-2-transactions-et-isolation.md
+2 lien(s) cassé(s) sur 36 fichiers .md suivis
+== premier commit (pre-commit : lint-staged, check:commit ; commit-msg : commitlint)
+sortie 0
+
+ Tasks:    0 successful, 0 total
+Cached:    0 cached, 0 total
+  Time:    13ms 
+
+== reformatés par lint-staged au commit, par dossier
+      1 .claude/rules
+      2 .github/workflows
+      1 CLAUDE.md
+      1 README.md
+      1 commitlint.config.mjs
+      5 docs/agents
+      3 docs/features
+      3 docs/methode
+      1 eslint.config.mjs
+     15 scripts/agent
+     37 scripts/chaine
+     26 scripts/docs
+      2 scripts/github
+     13 scripts/verify

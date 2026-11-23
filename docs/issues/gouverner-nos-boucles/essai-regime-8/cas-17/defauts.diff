@@ -1,0 +1,24 @@
+8d7
+< const CODE_SUFFIXES = [".mjs", ".js", ".cjs", ".ts", ".tsx", ".sh", ".json", ".yml", ".yaml"];
+15,16c14
+<   if (CODE_SUFFIXES.some((s) => path.endsWith(s))) return "code";
+<   return null;
+---
+>   return "code";
+24c22,24
+<   return developRemovals.some((r) => r.path === removal.path && r.text === removal.text);
+---
+>   return developRemovals.some(
+>     (r) => r.path === removal.path && r.line === removal.line && r.text === removal.text,
+>   );
+63c63,66
+<   return KEYWORDS_BEFORE_REGEX.has(word);
+---
+>   if (!KEYWORDS_BEFORE_REGEX.has(word)) return false;
+>   let j = start - 1;
+>   while (j >= 0 && isBlank(source[j])) j--;
+>   return source[j] !== ".";
+71d73
+<     "préparer",
+72a75
+>     "préparer",

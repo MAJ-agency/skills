@@ -1,0 +1,8 @@
+# V13 à V16 de mutations.mjs jouées depuis un clone de main à 24fbd72 (le banc regles.test.mjs d’avant, bornes en millisecondes), le 2026-11-23
+ 00:45:17 up 47 min,  0 user,  load average: 0.75, 1.75, 3.01
+ROUGE V13 regles.mjs : `(?<!\d)` retiré, la lecture de 7.9.x redevient quadratique sur une suite de chiffres (9 s) — ticket 48 : `ajouts(code)` de la lecture de 7.9.x ne relance pas sa re — '8699 ms pour 99 995 chiffres'
+ROUGE V14 regles.mjs : le plafond se teste après les deux lectures (une commande de 20 001 caractères est lue) (5 s) — le plafond à 20 000 caractères : chaque pire cas mesuré se lit sous 10 — '["gh pr close 1 -","d","!"] : 2568 ms pour refuser à 20001 caractères'
+ROUGE V15 regles.mjs : le pire cas `gh pr close 1 -ddd…!` dix fois plus lent (son option lue dix fois) (24 s) — le plafond à 20 000 caractères : chaque pire cas mesuré se lit sous 10 — '["gh pr close 1 -","d","!"] : 24101 ms à 20000 caractères'
+INTROUVABLE V16 regles.test.mjs : l’étalon ne recule plus (une expression linéaire), toute borne serait vide
+1 mutation(s) non rouge(s)
+sortie 1

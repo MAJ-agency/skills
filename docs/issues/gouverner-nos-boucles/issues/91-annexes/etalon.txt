@@ -1,0 +1,30 @@
+# L'étalon (16 000) et le rapport de chaque pire cas à 20 000 caractères, poste libre
+ 01:42:00 up  1:44,  0 user,  load average: 16.19, 6.58, 4.57
+["gh pr close 1 -","d","!"]            2457 ms  étalon 264/344 ms  7.15 étalons
+["git commit -","n","!"]               1809 ms  étalon 257/241 ms  7.03 étalons
+["git commit -m x -","nN","!"]         1514 ms  étalon 264/272 ms  5.56 étalons
+["GIT commit -","n","."]               1751 ms  étalon 280/281 ms  6.23 étalons
+["git push -","f","!"]                 1526 ms  étalon 250/395 ms  3.86 étalons
+["","`",""]                             565 ms  étalon 314/249 ms  1.80 étalons
+["x=","`",""]                           468 ms  étalon 263/247 ms  1.78 étalons
+["echo ","`a`",""]                      277 ms  étalon 258/256 ms  1.07 étalons
+["","git push ",""]                     511 ms  étalon 239/246 ms  2.08 étalons
+["","$(a)",")"]                         173 ms  étalon 248/252 ms  0.69 étalons
+["echo ","9",""]                          2 ms  étalon 254/274 ms  0.01 étalons
+pire rapport : 7.15 étalons
+
+# Le même, sous 20 boucles à vide (charge.sh 20)
+ 01:42:37 up  1:44,  0 user,  load average: 14.86, 7.19, 4.85
+["gh pr close 1 -","d","!"]           13583 ms  étalon 1478/1532 ms  8.86 étalons
+["git commit -","n","!"]               8314 ms  étalon 1567/1463 ms  5.31 étalons
+["git commit -m x -","nN","!"]         9409 ms  étalon 1414/1394 ms  6.66 étalons
+["GIT commit -","n","."]               8261 ms  étalon 1403/1470 ms  5.62 étalons
+["git push -","f","!"]                 8885 ms  étalon 1619/1952 ms  4.55 étalons
+["","`",""]                            2671 ms  étalon 1688/1449 ms  1.58 étalons
+["x=","`",""]                          2548 ms  étalon 1395/1422 ms  1.79 étalons
+["echo ","`a`",""]                     1364 ms  étalon 1711/1487 ms  0.80 étalons
+["","git push ",""]                    3101 ms  étalon 1749/1746 ms  1.77 étalons
+["","$(a)",")"]                        1285 ms  étalon 1525/1765 ms  0.73 étalons
+["echo ","9",""]                         24 ms  étalon 1461/1509 ms  0.02 étalons
+pire rapport : 8.86 étalons
+ 01:44:11 up  1:46,  0 user,  load average: 19.76, 10.97, 6.43

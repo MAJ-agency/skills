@@ -1,0 +1,53 @@
+# Essai de pose en chaîne seule, patch appliqué (plugin 8.3.1), --geler, le 2026-11-23,  01:29:18 up  1:31,  0 user,  load average: 1.27, 2.68, 3.91
+posé : 170 fichiers ; placeholders restants : aucun
+== versions : node v22.23.5, pnpm 9.15.4, eslint v9.39.5, prettier 3.10.1
+== pnpm lint
+sortie 0
+== génération du registre des coûts (étape 2.3)
+couts : docs/agents/couts.md écrit (0 carte(s))
+== gel des références nommées (à l'allumage)
+  gelée : .claude/rules/tests.md:43:scripts/verify/preuves.mjs
+  gelée : .claude/rules/tests.md:53:docs/agents/gabarits/exemple.jour-metier.spec.ts
+  gelée : .claude/rules/tests.md:57:scripts/verify/tests-creux.mjs
+  gelée : .claude/rules/tests.md:69:docs/agents/gabarits/exemple.property.spec.ts
+  gelée : docs/agents/criteres-revue.md:10:Golden rule — dependency direction
+  gelée : docs/agents/criteres-revue.md:10:Layer rules
+  gelée : docs/agents/criteres-revue.md:14:Contract boundaries
+  gelée : docs/agents/criteres-revue.md:18:Error handling
+  gelée : docs/agents/criteres-revue.md:33:Dependency injection
+  gelée : docs/agents/criteres-revue.md:37:Invariants
+  gelée : docs/agents/criteres-revue.md:41:Frozen architecture decisions
+  gelée : docs/agents/pieges.md:28:scripts/db/demarrer-local.sh
+== pnpm check:contexte
+budget-contexte : OK — CLAUDE.md 71 lignes, 1 règles par chemin, 0 SKILL.md ≤ 200 lignes
+references-agent : OK — 17 fichiers, 0 nouvelle, 12 gelée(s)
+sortie 0
+== prettier --list-different, par dossier
+      1 .claude/rules
+      2 .github/workflows
+      1 CLAUDE.md
+      1 README.md
+      1 commitlint.config.mjs
+      5 docs/agents
+      3 docs/features
+      3 docs/methode
+      1 eslint.config.mjs
+== liens markdown cassés
+0 lien(s) cassé(s) sur 37 fichiers .md suivis
+== premier commit (pre-commit : lint-staged, check:commit ; commit-msg : commitlint)
+sortie 0
+
+ Tasks:    0 successful, 0 total
+Cached:    0 cached, 0 total
+  Time:    11ms 
+
+== reformatés par lint-staged au commit, par dossier
+      1 .claude/rules
+      2 .github/workflows
+      1 CLAUDE.md
+      1 README.md
+      1 commitlint.config.mjs
+      5 docs/agents
+      3 docs/features
+      3 docs/methode
+      1 eslint.config.mjs
