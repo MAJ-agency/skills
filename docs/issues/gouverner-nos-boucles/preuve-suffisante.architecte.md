@@ -540,3 +540,4 @@ Rien encore.
   - `process.mainModule` va toujours au repli.
   - Le `require` global n'est neutre qu'en appel direct littéral, qui est suivi, et en `require.resolve` ; tout le reste va au repli.
   - Le raccourci se lit par `getShorthandAssignmentValueSymbol`.
+- 2026-11-24 07:58 UTC — relevé : fille de `.94` à 472 036 jetons (23,78 $) : dépassement accordé jusqu'à 600 000, passation sur #421 vers 560 000 (A-210). Usage `allowed_warning`. Prochain relevé dans 60 min.
