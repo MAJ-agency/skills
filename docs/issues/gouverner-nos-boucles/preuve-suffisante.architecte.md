@@ -535,3 +535,8 @@ Rien encore.
   2. `require` en membre compte sur `module`, `*.mainModule`, `require.main` et les objets globaux, avec les deux mêmes issues : suivi si l'appel est direct à argument littéral, repli sinon. Sur tout autre objet, il n'est suivi que s'il a un argument littéral direct, et il est neutre sinon.
   3. `module` ou `require` employés comme valeur vont au repli.
   - Un test rouge par forme. Les occurrences ajoutées par la fille, du côté sûr, sont gardées et listées au README.
+- 2026-11-24 07:57 UTC — #421 : la vérification bornée à `660dd04` n'est pas conforme. Les raccourcis `{ module }` et `{ require }`, `(module as any).parent.require`, `pm.require` (avec `pm = process.mainModule`) et `module.constructor._load` laissent encore la preuve, et une mutation survit. Décision de l'architecte : A-390 est remplacé par une **liste blanche**.
+  - Le `module` global n'est neutre qu'en `module.exports…`, `.id` ou `.filename`, ou en `module.require("…")` littéral, qui est suivi. Toute autre forme va au repli.
+  - `process.mainModule` va toujours au repli.
+  - Le `require` global n'est neutre qu'en appel direct littéral, qui est suivi, et en `require.resolve` ; tout le reste va au repli.
+  - Le raccourci se lit par `getShorthandAssignmentValueSymbol`.
