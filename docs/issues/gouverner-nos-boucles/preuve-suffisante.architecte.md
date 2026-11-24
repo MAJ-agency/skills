@@ -542,3 +542,7 @@ Rien encore.
   - Le raccourci se lit par `getShorthandAssignmentValueSymbol`.
 - 2026-11-24 07:58 UTC — relevé : fille de `.94` à 472 036 jetons (23,78 $) : dépassement accordé jusqu'à 600 000, passation sur #421 vers 560 000 (A-210). Usage `allowed_warning`. Prochain relevé dans 60 min.
 - 2026-11-24 09:00 UTC — relevé : #421 (`.94`) à `a1442f2`, CI verte, liste blanche codée (A-391 du conducteur). La vérification bornée est en cours chez le conducteur r15 (280 847 jetons, 12,95 $). La fille de `.94` est au repos (536 069 jetons, 29,26 $). Usage `allowed_warning`. Prochain relevé dans 60 min.
+- 2026-11-24 09:46 UTC — #421 présentée à `a694df9`. Depuis `79d77fd`, chaque tour de vérification bornée a trouvé un trou : A-391 (la liste blanche), A-392 (`globalThis.module`), A-393 (la clé `mainModule`). L'architecte a lu la source et n'a pas encore donné son accord. Il reste une porte : le module intégré `module` de Node (`import Module from "node:module"; Module._load(…)`, `require("module")._load(…)`) se résout hors du dépôt, et `_load` n'est pas un nom de chargeur. Décisions, numérotées par le conducteur :
+  - A-394 : tout identifiant ou littéral `mainModule` va au repli.
+  - A-395 : le module intégré `module` n'est suivi qu'en `import { createRequire }` employé dans sa forme directe ; toute autre forme va au repli.
+  - Un test rouge par forme. Si la fille atteint 600 000 jetons, une remplaçante prend la même branche.
