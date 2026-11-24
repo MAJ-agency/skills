@@ -591,3 +591,7 @@ Rien encore.
 - 2026-11-24 21:19 UTC — #428 (`.97`) entrée par `74c3525`. Fille de `.97` archivée (5,59 $, aucun réveil). Fille de `.86` lancée (`session_01BxuG34PBEUw9ffv3EMc7y9`) : elle commence par un test rouge, pour voir lesquelles des trois fausses preuves tiennent encore après `.90` à `.96`.
 - 2026-11-24 21:28 UTC — **blocage externe** : depuis 21:26 UTC, GitHub ne lance plus les jobs de CI d'Anchorpost, faute de paiement ou parce que la limite de dépenses d'Actions est atteinte (annotation relevée par le conducteur). Le run 45491194460 de #429 a échoué en 5 s, vérifié par l'architecte. Aucune PR n'entre plus. Question posée au produit. En attendant, la fille de `.86` code et rien n'est relancé.
 - 2026-11-24 21:32 UTC — le capitaine a arrêté sa boucle (fichier d'arrêt) pour ne pas user les renvois. Le renvoi de #429 ne compte pas : son compteur repart à 0 à la reprise. La reprise attend que le produit règle la facturation.
+- 2026-11-24 22:56 UTC — `.86` livré (PR #430, `a768a00`), dans le chemin de preuve : trois fausses preuves fermées (alias de test, import introuvable ou ignoré, classe ou fonction réaffectée). Index 866 → 879, 0 perdue. Décisions de l'architecte :
+  1. Pour C3, « le corps d'un test » couvre aussi les crochets et le corps d'un `describe`.
+  2. La liste d'A-354 est fermée, mais compte `B.m(…)` et `B.m` lu quand `B` est une classe ou une fonction réaffectée.
+  - Les dépôts clients seront mesurés sur la branche, puisque des verdicts changent. #430 ne pourra pas entrer avant le règlement de la facturation.
