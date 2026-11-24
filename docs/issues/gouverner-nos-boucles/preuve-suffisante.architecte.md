@@ -602,3 +602,9 @@ Rien encore.
 - 2026-11-24 23:18 UTC — la fille de `.86` a passé le plafond sans être vue (449 807 jetons) : `get_session` affichait 0 pendant tout son long tour. Elle écrit sa passation sur #430 à `0ef69c1` (A-414 et A-415 codées, 882 preuves, 0 perdue). Une remplaçante reprend A-416. Leçon de la chaîne, à porter au skill `chantier` après le 29 : le relevé du contexte reste figé pendant un tour, donc le conducteur demande son contexte à toute fille dont le tour dure plus d'une heure et demie.
 - 2026-11-24 23:19 UTC — fille de `.86` archivée par l'architecte (23,93 $, aucun réveil ; le conducteur n'a pas le droit d'archiver, P-62). Remplaçante de `.86` sur A-416 : `session_01BxuG2z39c4Pwi7dgt8nLER`.
 - 2026-11-24 23:32 UTC — la CI d'Anchorpost tourne de nouveau : le run 45505183921 de #430, lancé à 22:54 UTC, est vert. Le capitaine est prié de lever son arrêt, et le conducteur de relancer #429.
+- 2026-11-24 23:58 UTC — mesure de #430 à `6d90565` (A-416 codé ; sha256 de `cli.cjs` `0fd4b607…f907`). **Pas d'accord.**
+  - Dépôt client 2 : l'index casse sous 768 Mo de tas, et passe à 1 024 Mo (37,6 s). A-406 n'est pas tenu.
+  - Dépôt client 2 : 20 perdues, soit 11 du repli A-410 et 9 vraies preuves perdues par C5. Une fonction de module est jugée réaffectée parce qu'un `let` local du même nom, dans une autre fonction, est incrémenté.
+  - Dépôt client 1 : 0 perdue.
+  - `window` et `self` comptent comme `globalThis` hors des corps passés à `page.evaluate`, décision de l'architecte.
+  - A-417 : une réaffectation ne compte que sur le même lien, résolu par le vérificateur.
