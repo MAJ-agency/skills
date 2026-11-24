@@ -510,3 +510,4 @@ Rien encore.
     4. Le coût sur le dépôt client 2 ne dépasse pas deux fois celui de 2.0.3.
   - 2.0.4 attend un nouvel essai après ce correctif et `.92`.
 - 2026-11-24 02:50 UTC — carte du conducteur à `b3be679`. Fille de `.92` lancée en file A (`session_01BxuG31FyKVSh8nDzYA8h12`). Accord de l'architecte pour une fille de `.81` en file B, à condition de ne pas toucher `scan.ts`. Ordre de la file A : `.92`, le correctif des décisions 1 à 4, l'essai, puis `.86` et `.89`. Conducteur à 430 k.
+- 2026-11-24 02:29 UTC — décisions de l'architecte numérotées par le conducteur : A-380 (occurrence de chargeur), A-381 (`expect` global de Jest), A-382 (`require("paquet")` dans une déclaration), A-383 (coût au plus deux fois celui de 2.0.3). Ticket `.94` écrit (PR #417 à-fusionner), en file A après `.92`. `.86` est bloqué par `.94`.
