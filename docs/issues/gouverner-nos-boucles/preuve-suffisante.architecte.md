@@ -599,3 +599,4 @@ Rien encore.
   - C3, dans `.86` : toute mention d'un import introuvable dans un test, un crochet ou un `describe` fait tomber la preuve.
   - C5, dans `.86` : un `let` ou un `var` exporté et réaffecté l'est pour tout importeur, et `globalThis.X` va au repli.
   - C2 sort de `.86` et devient le ticket `.03` de SPEC_ALL_ANC-10, après le 29 : il touche les fixtures de Playwright et demande un essai à lui seul. La limite est nommée au README de la 2.0.4.
+- 2026-11-24 23:18 UTC — la fille de `.86` a passé le plafond sans être vue (449 807 jetons) : `get_session` affichait 0 pendant tout son long tour. Elle écrit sa passation sur #430 à `0ef69c1` (A-414 et A-415 codées, 882 preuves, 0 perdue). Une remplaçante reprend A-416. Leçon de la chaîne, à porter au skill `chantier` après le 29 : le relevé du contexte reste figé pendant un tour, donc le conducteur demande son contexte à toute fille dont le tour dure plus d'une heure et demie.
