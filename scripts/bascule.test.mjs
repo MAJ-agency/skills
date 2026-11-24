@@ -65,7 +65,8 @@ test("regime-7.md garde ce qui ne vaut qu'en régime 7, et les skills ne le dise
     "**La contre-revue du conducteur** sur toute PR qui touche un chemin sensible",
     "la fille livre **sans** `à-fusionner` ; le conducteur contre-relit, puis pose le label lui-même.",
     "| Session de travail   | label `à-fusionner` dès le push                        |",
-    "| Propriétaire renvoyé | corrige, retire `fusion-bloquée`, remet `à-fusionner`  |",
+    "| fusionner, remettre la branche à jour avec develop (hors renvoi pour conflit) |",
+    "| Propriétaire renvoyé | corrige (conflit : fusionne develop dans sa branche et le résout), retire `fusion-bloquée`, remet `à-fusionner` |",
     "Le renvoi dit « corriger, puis retirer `fusion-bloquée` et remettre `à-fusionner` » (`renvoyer.sh`).",
   ], REGIME_7);
   interdire(lire(`${C}/chantier/SKILL.md`), ["**Contre-revue du conducteur**", "ligne `Label: contre-revue` en tête, obligatoire", "le régime de livraison se lit sur `Label:`", "puis `archive_session`**", "que le conducteur pose après sa contre-revue", "Poser un socle est du cadrage, pas un ticket"], "chantier/SKILL.md");
@@ -128,7 +129,8 @@ test("le capitaine en régime 8 : « Le verdict », la sous-PR sautée qui garde
   exiger(regle, [
     "| Session de travail   | demande la relecture (`À relire`, puis `à-relire`) après son dernier push",
     "| Relecteur            | distribue les relectures ; `à-fusionner` sur un tour validé, `à-reprendre` sur un refus",
-    "| Propriétaire renvoyé | corrige, redemande la relecture (`à-relire`, sans retirer `fusion-bloquée`)",
+    "| se relire, poser `à-fusionner`, fusionner, remettre sa branche à jour avec develop (hors renvoi pour conflit) |",
+    "| Propriétaire renvoyé | corrige (conflit : fusionne develop dans sa branche et le résout), redemande la relecture (`à-relire`, sans retirer `fusion-bloquée`)",
     "| remettre `à-fusionner` (une livraison de sujet exceptée), fusionner « puisque c'est corrigé » |",
   ], "fusionner, La règle");
   const verdict = entre(texte, "## Le verdict (régime 8)", "## La règle d'ascendance");

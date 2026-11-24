@@ -133,7 +133,7 @@ Déroulé :
 
 Une dépendance hors de la ligne `Dépendances:` du ticket est un blocage : `send_message` au conducteur, jamais un contournement.
 
-Renvoyée par le capitaine (`fusion-bloquée`) : lire son commentaire, corriger, pousser, puis redemander la relecture (`À relire` au nouveau sommet, puis `à-relire`, sans retirer `fusion-bloquée`, que le Relecteur retire en posant `à-fusionner`) ; jamais `à-fusionner`.
+Renvoyée par le capitaine (`fusion-bloquée`) : lire son commentaire. **Conflit** : fusionner sa base (`origin/sujet/<nom>`, ou `origin/develop` pour une PR vers develop) dans sa branche, seul cas où la session met elle-même sa branche à jour, résoudre le conflit, régénérer les index générés, puis `pnpm check` ; **sinon** (CI rouge, refus, verdict absent), corriger sans fusionner sa base. Puis pousser et redemander la relecture (`À relire` au nouveau sommet, puis `à-relire`, sans retirer `fusion-bloquée`, que le Relecteur retire en posant `à-fusionner`) ; jamais `à-fusionner`.
 
 ## 6. Économie de tokens : les règles
 
