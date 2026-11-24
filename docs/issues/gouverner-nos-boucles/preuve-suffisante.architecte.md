@@ -613,3 +613,4 @@ Rien encore.
   - Famille 1, dans `.86` : la classe ou la fonction se juge par le type, avec le vérificateur. Un type non résolu compte comme appelable, du côté sûr.
   - Famille 2 (les globaux par alias) et famille 3 (le chargement dynamique) iront dans SPEC_ALL_ANC-10, en `.04` et `.05`, après le 29, avec une limite au README.
   - `.65` était une fausse preuve, fermée ; la perte de `.76` est acceptée. Le relais `export *` ignoré est inscrit en suite.
+- 2026-11-24 23:59 UTC — précision d'A-419 par l'architecte, pour protéger le patron de Playwright `let page: Page` : une annotation de type explicite décide, même si le type ne se résout pas. Une référence nue (`Page`, `Foo<T>`, une union avec `undefined`/`null`) vaut une instance, donc neutre. `typeof X`, un type de fonction ou de constructeur, `Function` et `any` valent un appelable. Un témoin vert pour `page.goto()`, un témoin rouge pour `typeof A`.
