@@ -568,3 +568,8 @@ Rien encore.
   - Pas d'accord. Décisions, numérotées par le conducteur :
     - A-404 : le coût bloque `.96`. Il faut un banc synthétique écrit de zéro, un compte des entrées de cache, et la piste de ne garder par contexte que les verdicts qui passent par un `extends` d'un constructeur de la liste.
     - A-405 : `new (A ?? Error)(…)` entre dans la liste blanche.
+- 2026-11-24 16:55 UTC — mesure de #426 à `7dabc35` (sha256 de `cli.cjs` `415bd3a2…8a66`).
+  - Preuves : dépôt client 1, 0 perdue ; dépôt client 2, 11 perdues. A-405 ne les rend pas : à vérifier.
+  - Sans plafond, le maxRSS varie du simple au double selon le ramasse-miettes (855, 1 803, 1 672 Mo) : la mesure n'est pas fiable.
+  - Sous plafond de tas, sur le dépôt client 2 : la 2.0.3 passe à 256 Mo (20,6 s). #426 casse à 512 Mo et passe à 640 Mo (41,7 s) comme à 768 Mo (38,5 s, RSS 829 Mo). Le besoin réel est d'environ 2,5 fois.
+  - Décision de l'architecte (A-406) : A-383 se mesure désormais par le plafond de tas. Pour la 2.0.4, l'index du dépôt client 2 doit passer sous 768 Mo, en au plus 45 s : c'est tenu à `7dabc35`. Le retour à 2 fois (512 Mo) devient un ticket de file B, après le 29. La contre-revue de la mémoïsation à trace reste bloquante.
