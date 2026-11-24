@@ -595,3 +595,7 @@ Rien encore.
   1. Pour C3, « le corps d'un test » couvre aussi les crochets et le corps d'un `describe`.
   2. La liste d'A-354 est fermée, mais compte `B.m(…)` et `B.m` lu quand `B` est une classe ou une fonction réaffectée.
   - Les dépôts clients seront mesurés sur la branche, puisque des verdicts changent. #430 ne pourra pas entrer avant le règlement de la facturation.
+- 2026-11-24 23:02 UTC — la contre-revue de #430 (`.86`) n'est pas conforme : d'autres fausses preuves dans les trois familles, aucune régression (toutes gardent déjà la preuve en 2.0.3). Décision A-416 de l'architecte : chaque famille se ferme par ce qui est neutre.
+  - C3, dans `.86` : toute mention d'un import introuvable dans un test, un crochet ou un `describe` fait tomber la preuve.
+  - C5, dans `.86` : un `let` ou un `var` exporté et réaffecté l'est pour tout importeur, et `globalThis.X` va au repli.
+  - C2 sort de `.86` et devient le ticket `.03` de SPEC_ALL_ANC-10, après le 29 : il touche les fixtures de Playwright et demande un essai à lui seul. La limite est nommée au README de la 2.0.4.
