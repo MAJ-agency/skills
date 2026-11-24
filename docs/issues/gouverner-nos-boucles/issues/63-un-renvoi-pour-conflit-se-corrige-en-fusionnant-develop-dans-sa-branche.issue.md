@@ -1,6 +1,6 @@
 # Un renvoi pour conflit se corrige en fusionnant `develop` dans sa branche : le seul cas où une session met elle-même sa branche à jour
 
-Status: en cours — claude-maj/zealous-hypatia-ibak4q
+Status: Fait — PR #161
 Type: défaut
 Modèle: sonnet — une précision de texte à cinq endroits, la même partout, un banc qui la tient et la version ; rien à concevoir.
 Blocked by: —
@@ -30,4 +30,4 @@ Quand le ticket est fait : chaque texte de `skills/` qui interdit à une session
 
 ## Comments
 
-- 2026-11-24 — Ouvert et réalisé dans la même PR, sur la décision du CTO du jour.
+- 2026-11-24 — Ouvert et réalisé dans la même PR (#161), sur la décision du CTO du jour. `pnpm test` : 1478 tests, 1478 verts.
