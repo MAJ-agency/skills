@@ -609,3 +609,7 @@ Rien encore.
   - `window` et `self` comptent comme `globalThis` hors des corps passés à `page.evaluate`, décision de l'architecte.
   - A-417 : une réaffectation ne compte que sur le même lien, résolu par le vérificateur.
 - 2026-11-24 23:52 UTC — numérotation corrigée par le conducteur : `window` et `self` deviennent A-417, la portée d'une réaffectation A-418. #429 (exclusion de `.stryker-tmp/**`) est entrée dans le sujet. La remplaçante de `.86` cherche les 256 Mo, avec un test de coût sous 768 Mo, et prévient à 300 000 jetons.
+- 2026-11-24 23:58 UTC — vérification bornée de #430 à `6d90565` non conforme : trois familles voisines déjà ouvertes en 2.0.3. A-419 de l'architecte, option (b) :
+  - Famille 1, dans `.86` : la classe ou la fonction se juge par le type, avec le vérificateur. Un type non résolu compte comme appelable, du côté sûr.
+  - Famille 2 (les globaux par alias) et famille 3 (le chargement dynamique) iront dans SPEC_ALL_ANC-10, en `.04` et `.05`, après le 29, avec une limite au README.
+  - `.65` était une fausse preuve, fermée ; la perte de `.76` est acceptée. Le relais `export *` ignoré est inscrit en suite.
