@@ -556,3 +556,4 @@ Rien encore.
   - Coût sur le dépôt client 2 : 47,1 s et 1 316 Mo, contre 19,2 s et 415 Mo en 2.0.3. **A-383 n'est pas tenu.**
   - Décisions de l'architecte pour un ticket `.96`, en file A après `.78`, requis pour la 2.0.4 : un argument lié par un `const` à littéral de chaîne se lit comme ce littéral ; `.not`, `.resolves` et `.rejects` gardent le `expect` du lanceur ; le coût est mesuré de nouveau, et corrigé jusqu'à tenir A-383.
 - 2026-11-24 11:17 UTC — décisions de l'essai numérotées A-396 à A-398 par le conducteur ; le ticket `.96` est écrit (PR #422, documentation seule). File A : `.78` en cours, puis `.96`, puis `.86` et `.89`.
+- 2026-11-24 11:49 UTC — le conducteur r15 est à 382 369 jetons (19,30 $), passation écrite à `15b3ec9`. Décision de l'architecte : la relève 16 est différée, faute d'usage, comme pour la relève 14. Dépassement accordé jusqu'à 590 000 jetons, avec un avertissement à 570 000.
