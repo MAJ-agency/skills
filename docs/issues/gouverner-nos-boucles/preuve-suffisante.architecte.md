@@ -496,3 +496,16 @@ Rien encore.
 - 2026-11-24 01:36 UTC — conducteur r14 à 397 868 jetons : dépassement accordé jusqu'à 600 000, passation vers 560 000 à un jalon, idéalement à l'entrée de #412 (A-210). La fille de `.90` est à 525 924 jetons. Écart de `scan.ts` de #412 entre `02ac99d` et `a69ca708` lu à la source (LOADER_NAMES, directLoader, A-379) ; `/security-review` sans faille neuve. L'architecte demande deux tests de plus avant son accord. (1) L'accès calculé à nom littéral (`vi["importActual"]`, `jest["requireActual"]`, `m["createRequire"]`). (2) `require` hors de sa forme directe (`const r = require`, `module.require`), avec `require` mis dans la règle d'occurrence ; `require.resolve` passe alors au repli, compté par l'essai.
 - 2026-11-24 01:49 UTC — relevé : fille de `.90` au travail (525 924 jetons, 33,63 $, sommet `0e72460` poussé) ; capitaine au repos (247 495 jetons, 6,21 $, garde 02:19) ; usage `allowed`. Prochain relevé dans 60 min.
 - 2026-11-24 02:00 UTC — **accord de l'architecte écrit sur #412** (`.90`) au sommet `6a9e056b80cf0eef6aabab6ffe66a55cc57aa7c6`. Écart `a69ca708..6a9e056b` lu à la source : `require` mis dans LOADER_NAMES, avec `require("…")` direct seul suivi ; la clé littérale d'un accès calculé compte comme une occurrence. `/security-review` sans faille sur les écarts. 376 tests sur 376 ; index 812 → 845 sans perte réelle, 526 Mo, 8,7 s. Prochain : le verdict et le label par le conducteur, puis l'essai sur Fedora et Iroki au sommet du sujet.
+- 2026-11-24 02:20 UTC — #412 (`.90`) entrée par `0417915` ; fille de `.90` archivée (36,89 $, 561 339 jetons, aucun réveil). Fille de `.92` lancée par le conducteur.
+- 2026-11-24 02:45 UTC — **essai au sommet `0417915`** : CLI construite à la source (sha256 de `cli.cjs` `3458ca85…a7ae`), comparée à 2.0.3 sur les deux dépôts clients. Une sonde sur chaque repli de `loadsOf` dit la cause. **Critère (e) non tenu.**
+  - Dépôt client 1 : 576 perdues sur 2 087 (contre 1 330 à `3f45023`). 447 viennent de l'espace de noms (`.92`, attendu). 129 viennent d'une déclaration « non lue » dont l'initialiseur est un `require("paquet")` direct d'un paquet externe.
+  - Dépôt client 2 : 342 perdues sur 2 134, toutes de la même cause. Un fichier partagé chargé par tous les tests de l'API fait `require(variable)` : c'est le repli A-369, verdict du dépôt. Celui-ci retient `Error` à cause d'un `expect(e).toBeInstanceOf(Error)` dont le `expect` est le global de Jest.
+  - Faux repli d'A-379 : une méthode nommée `require` (`this.x.require(…)`) est comptée comme chargeur.
+  - Coût sur le dépôt client 2 : 41,9 s et 1 208 Mo, contre 19,2 s et 415 Mo en 2.0.3.
+  - Aucune des pertes n'est une fausse preuve démontrée.
+  - Décisions de l'architecte, numérotées par le conducteur à partir d'A-380, pour un correctif en file A avant `.86` :
+    1. Seuls comptent comme occurrence de chargeur le `require` global, `module.require` et les membres de `vi` ou de `jest` ; une méthode ou une déclaration nommée `require` est neutre.
+    2. Le `expect` global de Jest sans déclaration vaut celui du lanceur, avec la limite écrite sous A-367 et traitée par `.91`.
+    3. Un `require("paquet")` direct d'un paquet externe se lit dans une déclaration comme son import.
+    4. Le coût sur le dépôt client 2 ne dépasse pas deux fois celui de 2.0.3.
+  - 2.0.4 attend un nouvel essai après ce correctif et `.92`.
