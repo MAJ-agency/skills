@@ -608,3 +608,4 @@ Rien encore.
   - Dépôt client 1 : 0 perdue.
   - `window` et `self` comptent comme `globalThis` hors des corps passés à `page.evaluate`, décision de l'architecte.
   - A-417 : une réaffectation ne compte que sur le même lien, résolu par le vérificateur.
+- 2026-11-24 23:52 UTC — numérotation corrigée par le conducteur : `window` et `self` deviennent A-417, la portée d'une réaffectation A-418. #429 (exclusion de `.stryker-tmp/**`) est entrée dans le sujet. La remplaçante de `.86` cherche les 256 Mo, avec un test de coût sous 768 Mo, et prévient à 300 000 jetons.
