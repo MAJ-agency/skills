@@ -555,3 +555,4 @@ Rien encore.
   - Dépôt client 2 : 342 perdues sur 2 134, une seule cause, vérifiée par la sonde. Un fichier partagé fait `require(nom)` avec `const nom = '…'`, d'où le repli du dépôt. Celui-ci retient `Error` à cause d'un `expect(…).rejects.toBeInstanceOf(Error)` : A-381 ne couvre pas `.rejects`.
   - Coût sur le dépôt client 2 : 47,1 s et 1 316 Mo, contre 19,2 s et 415 Mo en 2.0.3. **A-383 n'est pas tenu.**
   - Décisions de l'architecte pour un ticket `.96`, en file A après `.78`, requis pour la 2.0.4 : un argument lié par un `const` à littéral de chaîne se lit comme ce littéral ; `.not`, `.resolves` et `.rejects` gardent le `expect` du lanceur ; le coût est mesuré de nouveau, et corrigé jusqu'à tenir A-383.
+- 2026-11-24 11:17 UTC — décisions de l'essai numérotées A-396 à A-398 par le conducteur ; le ticket `.96` est écrit (PR #422, documentation seule). File A : `.78` en cours, puis `.96`, puis `.86` et `.89`.
