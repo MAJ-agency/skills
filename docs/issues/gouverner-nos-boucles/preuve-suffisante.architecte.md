@@ -541,3 +541,4 @@ Rien encore.
   - Le `require` global n'est neutre qu'en appel direct littéral, qui est suivi, et en `require.resolve` ; tout le reste va au repli.
   - Le raccourci se lit par `getShorthandAssignmentValueSymbol`.
 - 2026-11-24 07:58 UTC — relevé : fille de `.94` à 472 036 jetons (23,78 $) : dépassement accordé jusqu'à 600 000, passation sur #421 vers 560 000 (A-210). Usage `allowed_warning`. Prochain relevé dans 60 min.
+- 2026-11-24 09:00 UTC — relevé : #421 (`.94`) à `a1442f2`, CI verte, liste blanche codée (A-391 du conducteur). La vérification bornée est en cours chez le conducteur r15 (280 847 jetons, 12,95 $). La fille de `.94` est au repos (536 069 jetons, 29,26 $). Usage `allowed_warning`. Prochain relevé dans 60 min.
