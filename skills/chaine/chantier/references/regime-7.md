@@ -14,7 +14,7 @@ Les skills `chantier`, `architecte`, `fusionner` et `sujet` décrivent le **rég
 
 ## La session qui code (`docs/agents/chaine-de-production.md` § 5, tel que sa branche le porte)
 
-Revue de ticket (skill `revue-de-ticket`), section `## Revue de ticket` dans le corps de la PR, que le capitaine lit ; puis `Status: Fait — PR #<n>`, PR hors brouillon après le dernier push, label `à-fusionner` posé par la session elle-même, sauf pour un ticket `Label: contre-revue`, livré sans lui. Renvoyée par le capitaine (`fusion-bloquée`) : corriger, retirer `fusion-bloquée`, remettre `à-fusionner`.
+Revue de ticket (skill `revue-de-ticket`), section `## Revue de ticket` dans le corps de la PR, que le capitaine lit ; puis `Status: Fait — PR #<n>`, PR hors brouillon après le dernier push, label `à-fusionner` posé par la session elle-même, sauf pour un ticket `Label: contre-revue`, livré sans lui. Renvoyée par le capitaine (`fusion-bloquée`) : corriger (conflit : fusionner develop dans sa branche et le résoudre), retirer `fusion-bloquée`, remettre `à-fusionner`.
 
 ## L'architecte (skill `architecte` et `references/lancement.md`)
 
@@ -23,11 +23,11 @@ Revue de ticket (skill `revue-de-ticket`), section `## Revue de ticket` dans le 
 
 ## Le capitaine (skill `fusionner`)
 
-| Qui                  | Fait                                                   | Ne fait jamais                                                    |
-| -------------------- | ------------------------------------------------------ | ----------------------------------------------------------------- |
-| Session de travail   | label `à-fusionner` dès le push                        | fusionner, remettre la branche à jour avec develop                |
-| Capitaine            | fait passer la file dans l'ordre, renvoie ce qui casse | résoudre le conflit de code d'une autre session, pousser en force |
-| Propriétaire renvoyé | corrige, retire `fusion-bloquée`, remet `à-fusionner`  | fusionner « puisque c'est corrigé »                               |
+| Qui                  | Fait                                                                                                            | Ne fait jamais                                                                |
+| -------------------- | --------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| Session de travail   | label `à-fusionner` dès le push                                                                                 | fusionner, remettre la branche à jour avec develop (hors renvoi pour conflit) |
+| Capitaine            | fait passer la file dans l'ordre, renvoie ce qui casse                                                          | résoudre le conflit de code d'une autre session, pousser en force             |
+| Propriétaire renvoyé | corrige (conflit : fusionne develop dans sa branche et le résout), retire `fusion-bloquée`, remet `à-fusionner` | fusionner « puisque c'est corrigé »                                           |
 
 En régime 7, le capitaine lit la revue dans le corps de la PR : pour les chemins que `revue-exigee.mjs` désigne, une section « Revue de ticket » ou « Revue adversariale » (un titre Markdown hors bloc de code), et sur un chemin sensible de la base la ligne « - `/security-review` : lancée » de cette section ; une PR qui ne les porte pas est renvoyée (sortie 4), avec son motif. Il ne lit aucun verdict et ne contrôle rien une seconde fois avant l'appel de fusion. Le renvoi dit « corriger, puis retirer `fusion-bloquée` et remettre `à-fusionner` » (`renvoyer.sh`).
 

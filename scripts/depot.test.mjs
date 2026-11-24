@@ -1697,3 +1697,39 @@ test("le gabarit de ticket montre `Sensibles:` et `Relecture: double` dans son e
   assert.match(enTete[relecture], /^Relecture: double # .*seule valeur acceptée par le gate `tickets`, qui n'exige pas la ligne.*sinon retirer la ligne$/);
   assert.match(enTete[rang("Règles: ")], /; `—` seul s'il n'en réalise aucune ; ou retirer la ligne\}\}$/, `${GABARIT_TICKET} : Règles: — pour un ticket sans règle`);
 });
+
+// Le renvoi pour conflit (plugin 8.3.4, décision du CTO du 2026-11-24). Sur `fedora`, le 2026-11-24, cinq PR renvoyées
+// pour conflit sont restées arrêtées : la règle de la session disait « ne jamais remettre la branche à jour avec
+// `develop` », le capitaine ne résout pas le conflit de code d'une autre session, et chacun attendait l'autre. Un
+// conflit se corrige en fusionnant sa base dans sa branche, seul cas où la session met elle-même sa branche à jour :
+// chaque texte de `skills/` qui le lui interdit dit l'exception, et les textes posés distinguent le conflit des autres causes.
+const INTERDIT_LA_MISE_A_JOUR = /remet(tre)? (sa |la |une )?branche à jour/i;
+const sansException = (fichier, texte) =>
+  lignes(texte).flatMap((l, i) => (INTERDIT_LA_MISE_A_JOUR.test(l) && !/hors renvoi pour conflit/.test(l) ? [`${fichier}:${i + 1}`] : []));
+test("lecteur du renvoi pour conflit : entrées piégées", () => {
+  assert.deepEqual(sansException("x", "Ne jamais fusionner soi-même, ni remettre la branche à jour avec `develop`."), ["x:1"]);
+  assert.deepEqual(sansException("x", "a\n| fusionner, remettre sa branche à jour avec develop |"), ["x:2"]);
+  assert.deepEqual(sansException("x", "Personne d'autre ne fusionne ni ne remet une branche à jour."), ["x:1"]);
+  assert.deepEqual(sansException("x", "ni remettre la branche à jour avec `develop`**, hors renvoi pour conflit (`fusion-bloquée`)"), []);
+  assert.deepEqual(sansException("x", "Tu ne mets jamais une branche à jour toi-même"), [], "le capitaine sans la chaîne : une autre règle");
+});
+test("un renvoi pour conflit se corrige en fusionnant sa base dans sa branche : chaque texte qui interdit la mise à jour dit l'exception (8.3.4)", () => {
+  const fichiers = execFileSync("git", ["ls-files", "-co", "--exclude-standard", "skills/"], { cwd: RACINE, encoding: "utf8" })
+    .split("\n")
+    .filter((f) => f.endsWith(".md") && existsSync(join(RACINE, f)));
+  const vus = fichiers.filter((f) => INTERDIT_LA_MISE_A_JOUR.test(readFileSync(join(RACINE, f), "utf8")));
+  assert.ok(vus.length >= 4, `au moins le fragment, la méthode du capitaine, regime-7.md et l'ADR : ${vus.join(", ")}`);
+  const fautes = vus.flatMap((f) => sansException(f, readFileSync(join(RACINE, f), "utf8")));
+  assert.deepEqual(fautes, [], `la règle de la session sans l'exception du renvoi pour conflit : ${fautes.join(" ; ")}`);
+  exiger(`${REF}/fragments/claude-md-fusion.md`, [
+    "**Ne jamais fusionner soi-même, ni remettre la branche à jour avec `develop`**, hors renvoi pour conflit (`fusion-bloquée`, ci-dessous).",
+    "- **`fusion-bloquée`** : PR renvoyée avec commentaire. **Conflit** : la session fusionne `develop` dans sa branche (son sujet, pour une sous-PR), seule exception à la règle de la session de travail, résout le conflit, régénère les index générés et passe `pnpm check` ; **sinon** (CI rouge, refus, verdict absent), elle corrige sans fusionner `develop`. Puis elle redemande la relecture (`à-relire`, sans retirer `fusion-bloquée`).",
+  ]);
+  exiger(`${REF}/docs-agents/chaine-de-production.md`, [
+    "Renvoyée par le capitaine (`fusion-bloquée`) : lire son commentaire. **Conflit** : fusionner sa base (`origin/sujet/<nom>`, ou `origin/develop` pour une PR vers develop) dans sa branche, seul cas où la session met elle-même sa branche à jour, résoudre le conflit, régénérer les index générés, puis `pnpm check` ; **sinon** (CI rouge, refus, verdict absent), corriger sans fusionner sa base.",
+  ]);
+  // Le renvoi du capitaine dit déjà le geste : ce que les textes disent est ce que la boucle écrit.
+  const boucle = readFileSync(join(RACINE, `${SKILLS_CHAINE}/fusionner/scripts/boucle.sh`), "utf8");
+  assert.ok(boucle.includes("Fusionner develop dans la branche et le résoudre"), "boucle.sh : le renvoi d'un conflit avec develop");
+  assert.ok(boucle.includes("Fusionner ${etat%% :*} dans la branche et le résoudre"), "boucle.sh : le renvoi d'un conflit avec le sujet");
+});

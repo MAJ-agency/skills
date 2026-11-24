@@ -2,6 +2,20 @@
 
 La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque projet par `poser` : une version publiée ne change rien chez un projet qui ne les repose pas. Chaque note dit ce qui change, puis ce qu'un projet fait pour en profiter.
 
+## 8.3.4 — 2026-11-24
+
+### Ce qui change
+
+- **Un renvoi pour conflit se corrige en fusionnant `develop` dans sa branche** (ticket 63, décision du CTO du 2026-11-24). La méthode se contredisait : la règle de la session de travail disait « Ne jamais fusionner soi-même, ni remettre la branche à jour avec `develop` », celle du renvoi seulement « `fusion-bloquée` : PR renvoyée (conflit, CI rouge…) → corriger », et le capitaine ne résout pas le conflit de code d'une autre session (skill `fusionner`). Le 2026-11-24, sur `fedora`, cinq PR de constats renvoyées pour conflit sont restées arrêtées : les sessions attendaient que le capitaine mette leur branche à jour, le capitaine attendait qu'elles corrigent. Le commentaire de renvoi (`boucle.sh`) disait pourtant déjà « Fusionner develop dans la branche et le résoudre ».
+- **Le seul cas où une session met elle-même sa branche à jour est écrit** : renvoyée pour conflit, elle fusionne sa base (`develop`, ou son sujet pour une sous-PR) dans sa branche, résout le conflit, régénère les index générés et passe `pnpm check` ; pour toute autre cause (CI rouge, refus, verdict absent), elle corrige sans fusionner sa base ; puis elle redemande la relecture comme avant (`à-relire`, sans retirer `fusion-bloquée`). Le disent : le fragment `CLAUDE.md` (puces « Session de travail » et « `fusion-bloquée` »), `docs/agents/chaine-de-production.md` (§ 5, la ligne « Renvoyée par le capitaine »), la table des rôles de `fusionner`, la table du capitaine et la ligne de la session qui code de `regime-7.md`, et le point 5 du gabarit de l'ADR « chaîne de production ». Aucun script ne change.
+- **Un banc tient l'exception** (`scripts/depot.test.mjs`) : toute ligne d'un texte de `skills/` qui interdit à une session de remettre sa branche à jour dit « hors renvoi pour conflit », et le fragment et la méthode posés distinguent le conflit des autres causes.
+
+### Ce qu'un projet fait pour en profiter
+
+- **Reposer le fragment** `socle-chaine-de-production/references/fragments/claude-md-fusion.md` dans la section « Fusion vers `develop` » de son `CLAUDE.md` (puces « Session de travail » et « `fusion-bloquée` »), et **reposer `docs/agents/chaine-de-production.md`** (§ 5, la ligne « Renvoyée par le capitaine »). Un `CLAUDE.md` qui porte une forme plus ancienne de la règle (« Ne jamais fusionner soi-même, ni remettre la branche à jour avec `develop` (update-branch, merge, rebase) », « `fusion-bloquée` … → corriger ») y porte la même exception, avec la même distinction.
+- **L'ADR « chaîne de production » déjà posée garde son texte** : le gabarit ne vaut que pour une pose neuve ; un projet qui veut l'aligner amende son point 5.
+- **Une session renvoyée pour conflit avant la repose** suit le commentaire du capitaine, qui dit déjà le geste : fusionner `develop` (ou le sujet) dans sa branche et résoudre le conflit.
+
 ## 8.3.3 — 2026-11-23
 
 ### Ce qui change
