@@ -10,7 +10,7 @@ Architecte: session_01BxuG2z7ypDYopx6aF3M1sd (lancée le 2026-11-25 par la sessi
 Objectif: les sous-agents de relecture et de criticité lancés par leur nom, sur des définitions du plugin qui fixent outils (lecture seule, ou aucun), modèle et contexte ; un repli pour une session dont l'instantané ne les a pas ; une version du plugin et sa note.
 Dépôts: `MAJ-agency/skills` (dossier `agents/`, `.claude-plugin/plugin.json`, skills `relecture`, `criticite`, `revue-de-ticket`, `revue-adversariale`, `architecte`, `chantier`) ; les projets le reçoivent par la mise à jour du plugin, sans rien reposer.
 Source: le prompt de lancement de cette session (2026-11-25), recopié dans `## Source` ci-dessous — entrée brute, ni spec ni décision.
-Capitaines: `skills` : absent (à relever avant la première PR : celui de la session mère, ou un capitaine lancé avec la procédure d'un dépôt sans la chaîne)
+Capitaines: `skills` : session_01BxuG2zzeL4A2u7UmWKeD2S (lancé le 2026-11-25 à 15 h 32 UTC par l'architecte, procédure d'un dépôt sans la chaîne, file au label, Sonnet)
 Relecteurs: `skills` : absent (dépôt sans la chaîne)
 
 ## Chantiers
@@ -29,7 +29,7 @@ Décisions de l'architecte : A-1 à A-10, écrites avec leur raison dans la spec
 
 ## Fog
 
-- Le capitaine qui fusionnera les PR de `skills` : à relever avant la première PR.
+- _(tranché, journal du 2026-11-25)_ Le capitaine de `skills` : aucun en vie (relevé par la session mère) ; lancé par l'architecte.
 
 ## Coût
 
@@ -45,6 +45,7 @@ Décisions de l'architecte : A-1 à A-10, écrites avec leur raison dans la spec
 - 2026-11-25 — Architecte lancé par la session mère. Plugin chargé 8.3.3, marketplace 8.3.3 (le prompt nommait 8.3.0 ; aucun écart avec le marketplace). Faits établis par la documentation et six essais réels (`claude -p --plugin-dir`, transcripts lus) : spec, « Faits établis ». Question `P-1` posée au produit par la session mère. Alerte d'usage : le compte approche de sa limite hebdomadaire, levée le 2026-11-29 à 19 h UTC.
 
 - 2026-11-25 — Tickets 1 et 2 écrits par un sous-agent, relus par un agent neuf (« pas prêt » : P-1 non tranchée, et des écarts), corrigés ; spec amendée (A-8 étendue à `lancement.md`, A-11, A-12). PR brouillon #163. Découpage envoyé à la session mère.
+- 2026-11-25 — Capitaine de `skills` lancé (session_01BxuG2zzeL4A2u7UmWKeD2S) : la session mère n'en voyait aucun en vie. La session mère n'objecte pas à Opus (A-3).
 
 ## Source
 
