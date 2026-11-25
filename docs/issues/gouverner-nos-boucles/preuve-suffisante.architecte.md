@@ -693,3 +693,8 @@ Rien encore.
   - Livraison intermédiaire du sujet dans develop, par `sujet.sh livrer`, en retirant le label posé d'office, puis contre-revue bornée, mon accord, le verdict et un commit de merge. Le sujet reste ouvert pour .26, .81, .22, .87, .88, .98 et .99.
   - Gel de develop pour apps/cli/ et packages/schema/.
   - Puis les empreintes, l'essai à blanc du workflow depuis develop, l'essai final chez les deux clients avec l'artefact npm pack, et la question oui/non au produit.
+- 2026-11-25 22:05 UTC — Livraison du sujet : PR #433 au sommet f9e6a6f, la contre-revue bornée tourne. A-467 du conducteur : #419 est fermée le temps de la livraison, branche intacte, et sera rouverte ensuite. Essai final de l'artefact `npm pack` de f9e6a6f (cli.cjs sha256 e53b1eaa…1b35 ; CLI identique à 34d45ae), sous 768 Mo :
+  - dépôt client 2 : 0 perte, `check` vert ;
+  - dépôt client 1 : 11 pertes, exactement celles qu'accepte A-410, mais `check` sort à 1 (avec la 2.0.3, il est vert). Ces pertes retirent la seule preuve de deux règles, et deux contextes tombent d'une règle sous leur plancher. Les deux dépôts figent la CLI à une version exacte (2.0.3 et 2.0.2) : la publication ne casse rien, mais la montée de version du dépôt client 1 demandera de baisser deux planchers d'une règle, ou de sortir les fichiers du repli (le `require` dynamique).
+  - temps du dépôt client 1 : 2,5 fois la 2.0.3 dans cette série (2,2 fois au sommet admis). La variance de la machine est connue.
+  À dire au produit avec la question.
