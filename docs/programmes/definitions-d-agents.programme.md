@@ -10,7 +10,7 @@ Architecte: session_01BxuG2z7ypDYopx6aF3M1sd (lancée le 2026-11-25 par la sessi
 Objectif: les sous-agents de relecture et de criticité lancés par leur nom, sur des définitions du plugin qui fixent outils (lecture seule, ou aucun), modèle et contexte ; un repli pour une session dont l'instantané ne les a pas ; une version du plugin et sa note.
 Dépôts: `MAJ-agency/skills` (dossier `agents/`, `.claude-plugin/plugin.json`, skills `relecture`, `criticite`, `revue-de-ticket`, `revue-adversariale`, `architecte`, `chantier`) ; les projets le reçoivent par la mise à jour du plugin, sans rien reposer.
 Source: le prompt de lancement de cette session (2026-11-25), recopié dans `## Source` ci-dessous — entrée brute, ni spec ni décision.
-Capitaines: `skills` : session_01BxuG2zzeL4A2u7UmWKeD2S (lancé le 2026-11-25 à 15 h 32 UTC par l'architecte, procédure d'un dépôt sans la chaîne, file au label, Sonnet)
+Capitaines: `skills` : absent — session_01BxuG2zzeL4A2u7UmWKeD2S lancée le 2026-11-25 à 15 h 32 UTC, archivée à 16 h 49 UTC (file vide, `P-1` en attente) ; à relancer avec la même procédure à la première PR prête
 Relecteurs: `skills` : absent (dépôt sans la chaîne)
 
 ## Chantiers
@@ -35,6 +35,7 @@ Décisions de l'architecte : A-1 à A-10, écrites avec leur raison dans la spec
 
 | Rôle | Ticket | Session | Modèle | Contexte max | Coût $ |
 | ---- | ------ | ------- | ------ | ------------ | ------ |
+| capitaine | — | session_01BxuG2zzeL4A2u7UmWKeD2S | sonnet | 236 k | 2,68 |
 
 ## Passation
 
@@ -46,6 +47,7 @@ Décisions de l'architecte : A-1 à A-10, écrites avec leur raison dans la spec
 
 - 2026-11-25 — Tickets 1 et 2 écrits par un sous-agent, relus par un agent neuf (« pas prêt » : P-1 non tranchée, et des écarts), corrigés ; spec amendée (A-8 étendue à `lancement.md`, A-11, A-12). PR brouillon #163. Découpage envoyé à la session mère.
 - 2026-11-25 — Capitaine de `skills` lancé (session_01BxuG2zzeL4A2u7UmWKeD2S) : la session mère n'en voyait aucun en vie. La session mère n'objecte pas à Opus (A-3).
+- 2026-11-25 16 h 49 UTC — `P-1` sans réponse ; capitaine archivé (file vide, 2,68 $ en 1 h 15, compte en alerte d'usage hebdomadaire), son réveil désactivé (la suppression a été refusée par le contrôle du mode « Auto »). Il se relance à la première PR prête.
 
 ## Source
 
