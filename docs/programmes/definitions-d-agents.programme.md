@@ -4,7 +4,7 @@ Les sous-agents de revue de la chaîne deviennent des sous-agents définis, livr
 
 ## Fiche
 
-Phase: spec — faits établis, spec écrite sur l'option recommandée, en attente de `P-1`
+Phase: spec — spec et deux tickets relus par un agent neuf (PR brouillon #163), en attente de `P-1`
 Responsable: Guillaume Jauffret
 Architecte: session_01BxuG2z7ypDYopx6aF3M1sd (lancée le 2026-11-25 par la session mère session_01BxuG32BaRcgwrMvCr1hiet, l'architecte du programme Atalian, mode « Auto », dépôt `skills`)
 Objectif: les sous-agents de relecture et de criticité lancés par leur nom, sur des définitions du plugin qui fixent outils (lecture seule, ou aucun), modèle et contexte ; un repli pour une session dont l'instantané ne les a pas ; une version du plugin et sa note.
@@ -17,7 +17,7 @@ Relecteurs: `skills` : absent (dépôt sans la chaîne)
 
 | n°  | Chantier | Dépôt | Spec | Carte | Conducteur | État |
 | --- | -------- | ----- | ---- | ----- | ---------- | ---- |
-| 1   | Définitions d'agents | `skills` | [`definitions-d-agents.spec.md`](../issues/definitions-d-agents/definitions-d-agents.spec.md) | sans carte de chantier (A-10) | l'architecte (A-10) | spec en attente de `P-1` |
+| 1   | Définitions d'agents | `skills` | [`definitions-d-agents.spec.md`](../issues/definitions-d-agents/definitions-d-agents.spec.md) | sans carte de chantier (A-10) | l'architecte (A-10) | tickets 1 et 2 `needs-info`, en attente de `P-1` |
 
 ## Decisions-so-far
 
@@ -43,6 +43,8 @@ Décisions de l'architecte : A-1 à A-10, écrites avec leur raison dans la spec
 ## Journal
 
 - 2026-11-25 — Architecte lancé par la session mère. Plugin chargé 8.3.3, marketplace 8.3.3 (le prompt nommait 8.3.0 ; aucun écart avec le marketplace). Faits établis par la documentation et six essais réels (`claude -p --plugin-dir`, transcripts lus) : spec, « Faits établis ». Question `P-1` posée au produit par la session mère. Alerte d'usage : le compte approche de sa limite hebdomadaire, levée le 2026-11-29 à 19 h UTC.
+
+- 2026-11-25 — Tickets 1 et 2 écrits par un sous-agent, relus par un agent neuf (« pas prêt » : P-1 non tranchée, et des écarts), corrigés ; spec amendée (A-8 étendue à `lancement.md`, A-11, A-12). PR brouillon #163. Découpage envoyé à la session mère.
 
 ## Source
 
