@@ -8,11 +8,14 @@ La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque pro
 
 - **Quand « même contenu propre » garde un verdict ou un refus, le Relecteur l'écrit sur la PR, une fois** : une note d'une ligne, `Même contenu — sommet <tête> — tour <k> <validé|refusé> au sommet <sha du tour> — <raison>`, la raison étant la dernière ligne non vide de la sortie d'erreur de `meme-contenu.sh` pour ce sommet, ou `sans raison écrite`. `jouer` l'écrit après la pose de la nouvelle étiquette et avant le retrait des anciennes ; une note refusée rend d'abord la ligne JSON et ses lignes, puis sort en 7, et le rejeu écrit la note sans renvoyer de ligne. Une note par tête et par tour.
 - **Un geste neuf, `noter`** (règle 2) : le verdict gardé, l'étiquette `à-fusionner` déjà en place, la décision rend `noter` au lieu de `rien` ; `jouer` écrit la note seule, sans toucher aux étiquettes, sans ligne. Il réveille la veille une fois par tête et par tour.
+- **La sourdine de la veille tombe avec sa cause** : `--taire` prend des clés `<n>:<geste>:<règle>:<tête>`, recopiées de la ligne de `passe` (`<n>:contrat-illisible:—:*` pour une clé `relecture` mal formée, dont la cause est la base) ; un numéro seul, une clé mal formée ou deux clés pour une PR sortent en 2. La veille lève la sourdine dès que la passe rend pour la PR une autre clé (elle réveille alors), `rien`, `hors-regime`, ou ne la nomme plus ; `pause` la garde. Toute fin de veille porte en dernière ligne `SOURDINES <clé>,…` ou `SOURDINES aucune`.
+- **La relance de la veille** : la session ajoute le journal de la veille finie au journal des veilles (`<scratchpad>/relecteur-veilles.log`) et relance avec sa dernière ligne `SOURDINES`, jamais avec sa mémoire ; un Relecteur relancé la reprend de là.
 - **La note est une trace, jamais une marque qui décide** (`decision-relecteur.mjs`, `ecrireNote`, `lireMarques(...).notes`) : elle n'entre pas dans `dernier`, ne change pas `tourValide` ; un commentaire au préfixe `Même contenu — ` sans la forme est une lecture illisible, pour le Relecteur comme pour le capitaine.
 
 ### Ce qu'un projet fait pour en profiter
 
 - **Reposer `fusionner`** (étape 0) avant que son Relecteur joue la note : le script de la décision est celui de `scripts/chaine/` sur son `develop`. Le skill `relecteur` est lu dans le plugin.
+- **Un Relecteur en cours** relancé après la mise à jour : ses `--taire <n>` d'avant sortent en 2 ; il relance la veille sans sourdine, et une PR dont la cause tient se re-tait sous sa clé après deux échecs.
 
 ## 8.5.0 — 2026-11-27
 

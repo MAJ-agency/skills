@@ -7,7 +7,7 @@
 //   node '<dossier du skill>/scripts/relecteur.mjs' jouer <n> [--sessions <fichier>]
 //   node '<dossier du skill>/scripts/relecteur.mjs' distribuer <n> --sommet <sha> --couple <modele>/<effort> [--remplace <id>]
 //        [<session>…] [--sessions <fichier>]
-//   node '<dossier du skill>/scripts/relecteur.mjs' veille [--pause <s>] [--duree <min>] [--taire <n>,…] [--sondes <k>]
+//   node '<dossier du skill>/scripts/relecteur.mjs' veille [--pause <s>] [--duree <min>] [--taire <n>:<geste>:<règle>:<tête>,…] [--sondes <k>]
 //        [--attendre]
 //
 // Chaque sous-commande, sauf `veille`, prend d'abord le verrou du dossier (`flock` sur `<dossier git>/relecteur.verrou`,
@@ -65,9 +65,17 @@
 // `manque` ; `remplacer` : la session qui remplace ; `reecrire` : aucune (la distribution est redite, `(relance …)`).
 // `veille` lance `passe` toutes les `--pause` secondes (120) pendant `--duree` minutes (25 : l'outil Bash arrête une
 // tâche de fond à 30 minutes), sans jamais commencer une pause qui finirait après, et s'arrête dès qu'une
-// PR, hors de `--taire`, demande un geste : `VEILLE GESTE`, puis une ligne `GESTE <n> <geste> règle <r>` par PR. Les
+// PR, hors de sa sourdine, demande un geste : `VEILLE GESTE`, puis une ligne `GESTE <n> <geste> règle <r>` par PR. Les
 // gestes `rien`, `hors-regime` et `pause` ne réveillent personne. GitHub illisible : `PAUSE`, la veille continue.
 // Au bout de la durée : `VEILLE FINIE`. Toute autre sortie de `passe` : `VEILLE ARRÊTÉE sortie <c>`, avec son code.
+// `--taire` : les sourdines, une clé `<n>:<geste>:<règle>:<tête>` par PR, recopiée de la ligne de `passe` qui a rendu
+// le geste (`—` pour une règle nulle ; `<n>:contrat-illisible:—:*`, la tête en `*`, sa cause étant la base). Tant que la
+// passe rend pour la PR la même clé, elle se tait ; un autre geste à jouer, une autre règle ou une autre tête lèvent
+// la sourdine et la PR réveille ; `rien`, `hors-regime` ou une PR que la passe ne nomme plus la lèvent sans réveil ;
+// `pause` la garde, comme une passe en `PAUSE`. Une sourdine levée ne revient pas dans la même veille (A-225, A-239 (2)).
+// Un numéro seul, une clé mal formée, `*` hors de `contrat-illisible` ou deux clés pour une PR : sortie 2, aucune passe.
+// Dernière ligne de toute fin (`VEILLE GESTE`, `VEILLE FINIE`, `VEILLE ARRÊTÉE`) : `SOURDINES <clé>,…` dans l'ordre
+// reçu, celles qui tiennent après la dernière passe lue, ou `SOURDINES aucune` : la session relance la veille avec elle.
 // La sortie d'erreur d'une passe sortie en 0 ou en 5 (une installation en échec, puis GitHub muet) passe sur celle de
 // la veille, dans son journal. `--attendre` : une pause avant la première passe aussi (une veille relancée sur une
 // sortie à rejouer, 9, 12 ou une autre, rejoue au réveil suivant, pas tout de suite).
@@ -433,6 +441,24 @@ async function distribuer(argv) {
   process.stdout.write(`${JSON.stringify({ pr: n, geste: g.geste, tour: g.tour, sommet: g.sommet, sessions: forme.sessions, distribution: texte, faits: g.faits })}\n`);
 }
 
+// La clé d'une ligne de `passe` : `<n>:<geste>:<règle>:<tête>`, `—` pour une règle nulle, `*` pour la tête de
+// `contrat-illisible`, dont la cause est la base.
+const cleDe = (g) => `${g.pr}:${g.geste}:${g.regle ?? '—'}:${g.geste === 'contrat-illisible' ? '*' : g.tete}`;
+const FORME_CLE = /^([1-9][0-9]*):([a-z][a-z-]*):([1-9][0-9]*|—):([0-9a-f]{40}|\*)$/;
+// `--taire` : une clé par PR, dans l'ordre reçu (une table numéro → clé). Toute autre forme sort en 2 (A-225).
+function lireSourdines(texte) {
+  const taire = new Map();
+  for (const cle of texte.split(',').filter(Boolean)) {
+    const m = FORME_CLE.exec(cle);
+    if (m === null) arreter(2, `--taire : « ${cle} » n'est pas une clé <n>:<geste>:<règle>:<tête>, recopiée de la ligne de passe`);
+    if ((m[4] === '*') !== (m[2] === 'contrat-illisible')) arreter(2, `--taire : « ${cle} » : la tête \`*\` est celle de contrat-illisible, et d'elle seule`);
+    const pr = Number(m[1]);
+    if (taire.has(pr)) arreter(2, `--taire : deux clés pour la PR ${pr}`);
+    taire.set(pr, cle);
+  }
+  return taire;
+}
+
 function veille(argv) {
   const lireOption = (nom, defaut) => {
     const i = argv.indexOf(nom);
@@ -441,7 +467,8 @@ function veille(argv) {
   const pause = Number(lireOption('--pause', '120'));
   const duree = Number(lireOption('--duree', '25'));
   const sondes = Number(lireOption('--sondes', 'Infinity'));
-  const taire = new Set(String(lireOption('--taire', '')).split(',').filter(Boolean).map(Number));
+  const taire = lireSourdines(String(lireOption('--taire', '')));
+  const sourdines = () => `SOURDINES ${taire.size === 0 ? 'aucune' : [...taire.values()].join(',')}\n`;
   const differee = argv.includes('--attendre');
   if (![pause, duree].every((x) => Number.isFinite(x) && x >= 0)) arreter(2, '--pause et --duree : des nombres');
   const fin = Date.now() + duree * 60_000;
@@ -462,16 +489,23 @@ function veille(argv) {
       continue;
     }
     if (r.status !== 0) {
-      process.stdout.write(`${(r.stderr || '').trim()}\nVEILLE ARRÊTÉE sortie ${r.status}\n`);
+      process.stdout.write(`${(r.stderr || '').trim()}\nVEILLE ARRÊTÉE sortie ${r.status}\n${sourdines()}`);
       process.exit(r.status ?? 1);
     }
-    const aJouer = r.stdout.split('\n').filter(Boolean).map((l) => JSON.parse(l)).filter((g) => !['rien', 'hors-regime', 'pause'].includes(g.geste) && !taire.has(g.pr));
+    const lignes = r.stdout.split('\n').filter(Boolean).map((l) => JSON.parse(l));
+    // La levée : la PR absente de la passe, à `rien` ou `hors-regime`, ou sous une autre clé ; `pause` garde.
+    for (const [pr, cle] of taire) {
+      const g = lignes.find((x) => x.pr === pr);
+      if (g === undefined || g.geste === 'rien' || g.geste === 'hors-regime') taire.delete(pr);
+      else if (g.geste !== 'pause' && cleDe(g) !== cle) taire.delete(pr);
+    }
+    const aJouer = lignes.filter((g) => !['rien', 'hors-regime', 'pause'].includes(g.geste) && !taire.has(g.pr));
     if (aJouer.length > 0) {
-      process.stdout.write(`VEILLE GESTE\n${aJouer.map((g) => `GESTE ${g.pr} ${g.geste} règle ${g.regle ?? '—'}`).join('\n')}\n`);
+      process.stdout.write(`VEILLE GESTE\n${aJouer.map((g) => `GESTE ${g.pr} ${g.geste} règle ${g.regle ?? '—'}`).join('\n')}\n${sourdines()}`);
       return;
     }
   }
-  process.stdout.write('VEILLE FINIE\n');
+  process.stdout.write(`VEILLE FINIE\n${sourdines()}`);
 }
 
 /** Vrai quand ce fichier est lancé en ligne de commande : lien symbolique, chemin à espace ou à accent, `--preserve-symlinks-main` compris. */
@@ -507,7 +541,7 @@ if (estPointEntree()) {
     else if (sous === 'jouer') await jouerGeste(reste);
     else if (sous === 'distribuer') await distribuer(reste);
     else if (sous === 'veille') veille(reste);
-    else arreter(2, 'usage : relecteur.mjs passe | jouer <n> [--sessions <fichier>] | distribuer <n> --sommet <sha> --couple <modele>/<effort> [--remplace <id>] [<session>…] [--sessions <fichier>] | veille [--pause <s>] [--duree <min>] [--taire <n>,…] [--sondes <k>] [--attendre]');
+    else arreter(2, 'usage : relecteur.mjs passe | jouer <n> [--sessions <fichier>] | distribuer <n> --sommet <sha> --couple <modele>/<effort> [--remplace <id>] [<session>…] [--sessions <fichier>] | veille [--pause <s>] [--duree <min>] [--taire <n>:<geste>:<règle>:<tête>,…] [--sondes <k>] [--attendre]');
   } catch (e) {
     if (!(e instanceof Arret)) throw e;
     process.stderr.write(`relecteur : ${e.message}\n`);
