@@ -315,6 +315,7 @@ Vague 1 fusionnée le 2026-11-13 par le capitaine de `skills` (`main` à `8eb1c9
 | `session_012xRpgaUxER8bF3B6MWgaBN` | ticket   | 70, PR 148 (Sonnet, archivée le 2026-11-22 à 01 h 23 UTC) | 0,43 | 109 389 |
 | `session_01BxuG2z852KsPA3QESpDMK1` | ticket   | 92 (PR 158, `6c37fe3`, 8.3.1) | 1,03 | 148 623 |
 | `session_01BxuG2zto6dZVnvyHGBJrQA` | ticket   | 91 (PR 159, `4403173`, 8.3.2) | 2,77 | 200 727 |
+| `session_012xRpgZYu68zGNEriduvkFx` | ticket   | 93     | 1,35   | 171 870           |
 
 La ligne de l'architecte est un relevé du 2026-11-13 à 11 h 45 UTC, session en cours (elle était à 9,20 $ et 289 647 tokens à 8 h 52) ; la cellule de coût ne porte qu'un montant, pour rester lisible par `couts.mjs`.
 
@@ -1517,3 +1518,4 @@ La session de suite fait, dans cet ordre :
 - 2026-11-27 — 22 h 35 UTC. PR #170 (tickets 94 à 96, sommet `c4270c5`, 8.5.1) : contre-relecture tour 1 en deux axes ; 94-95 conforme ; 96 un bloquant de texte (`relecteur/SKILL.md:78`). Constats et cinq retouches envoyés à sa session ; décision A-264 (doublon de lignes toléré dans un cas rare ; la PR monte le deuxième chiffre). Ordre d'entrée : #168, #169, #170.
 - 2026-11-27 — 22 h 38 UTC. PR #170 : tour 2 (delta `c4270c5..1dfd58a`, commentaire, bancs (k), (l), (m), textes) conforme ; sommet `1dfd58a`, à remettre sur `main` après #168 et #169, deuxième chiffre (A-264).
 - 2026-11-27 — 22 h 45 UTC. **PR #168 fusionnée** (ticket 93) : `main` à `e8b36a7`, parent `3daedcd`, arbre égal au sommet ordonné `3d0c881`, plugin 8.5.1 ; vérifié à la source. PR #169 : gestes de remise sur `main` envoyés à sa session (fusion, section de note sha256 `a56c4ef…`, 8.5.2, arbre attendu `db6efe0…`, puis `CONTENU.md:9` « après le tri », arbre `1759287…`), calculés dans un worktree à part.
+- 2026-11-27 — 22 h 47 UTC. Session du ticket 93 archivée (`completed`, aucun réveil ; 1,35 $, 171 870 tokens). La PR #165 du programme « périmètre figé » (documentation seule, sans version) est aussi dans la file du capitaine : si elle entre avant #169, #169 refusionne `main` avant son ordre.
