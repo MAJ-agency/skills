@@ -1,6 +1,6 @@
 # Un garde du plugin pose un socle en « chaîne seule » et y joue `lint` et `check:contexte` : le socle posé passe son propre gate
 
-Status: needs-triage
+Status: needs-info
 Type: task
 Modèle: opus — une pose de la racine à porter depuis l'annexe du ticket 91 dans `scripts/pose-du-socle.mjs`, le gel des références écrit par les skills rejoué en code, un garde neuf qui joue deux scripts du projet posé sans `pnpm`, et quatre dépendances de développement du plugin ; les choix sont fixés par la décision `A-261`. Le garde a été joué à la main en écrivant ce ticket (« Vérification »). Qui veut changer une décision l'écrit à son lanceur, il ne tranche pas.
 Blocked by: 113
