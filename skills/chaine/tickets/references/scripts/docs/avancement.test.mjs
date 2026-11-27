@@ -1,10 +1,16 @@
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
-import { chmodSync, mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { test } from 'node:test';
+import { after, test } from 'node:test';
 import { ENV, module, script } from './depot-jouet.mjs';
+
+// Chaque dossier créé par le banc est retiré à la fin (A-258).
+const DOSSIERS = [];
+after(() => {
+  for (const d of DOSSIERS) rmSync(d, { recursive: true, force: true });
+});
 
 const { avancement, enMarkdown, etat, lireTicket, prDuTicket } = await module('docs/avancement-regles.mjs');
 
@@ -104,6 +110,7 @@ test('relecture indépendante : à reprendre (verdict refusé, renvoi) et en rel
 
 test('gh en échec : avancement sans PR, ligne search_pull_requests, sortie 3', () => {
   const racine = mkdtempSync(join(tmpdir(), 'avancement-'));
+  DOSSIERS.push(racine);
   const env = ENV;
   const git = (cwd, ...args) => execFileSync('git', args, { cwd, env, encoding: 'utf8' });
   const origine = join(racine, 'origine.git');

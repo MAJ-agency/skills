@@ -2,7 +2,7 @@
 // avec le contrat `.claude/chaine.json` du gabarit au régime voulu : 8 (le gabarit tel quel, `{{DEPUIS}}` rempli), 7 (le
 // gabarit sans la clé `relecture`). Lu par `references-posees.test.mjs` (ticket 90) ; une table, pour que la pose de la
 // racine (`socle-monorepo`, TABLE-RACINE.md) puisse s'y ajouter sans réécrire le garde.
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawn } from 'node:child_process';
 import { chmodSync, copyFileSync, mkdirSync, readdirSync, readFileSync, statSync, symlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -104,4 +104,45 @@ export function poserLeSocle(projet, { regime }) {
   git('add', '-A');
   git('-c', 'user.email=jouet@example.org', '-c', 'user.name=jouet', 'commit', '-q', '-m', 'chore: pose du socle');
   return { bancs: bancs.sort(), fautes };
+}
+
+/**
+ * Joue `node <args>` dans son propre groupe de processus et rend `{ status, signal, stdout, stderr, tue }`, les deux sorties
+ * lues à part (le garde lit le TAP sur la sortie standard seule : `lancer` de `tranches.mjs` les fond). À `borne`, tout le
+ * groupe est tué (`SIGKILL`), petits-enfants compris, et la promesse se résout sur `exit`, flux détruits : un petit-enfant qui
+ * tient le tube ne la retient pas. Sans kill, elle se résout sur `close`. Un échec de lancement rend aussi un résultat
+ * (`status` et `signal` nuls), sans lever ni pendre. Limite : un petit-enfant qui sort lui-même du groupe survit au kill.
+ */
+export function jouerEnGroupe(args, { cwd, env, borne }) {
+  return new Promise((fin) => {
+    const enfant = spawn(process.execPath, args, { cwd, env, detached: true, stdio: ['ignore', 'pipe', 'pipe'] });
+    let stdout = '';
+    let stderr = '';
+    let tue = false;
+    let rendu = false;
+    const rendre = (status, signal) => {
+      if (rendu) return;
+      rendu = true;
+      clearTimeout(minuterie);
+      fin({ status, signal, stdout, stderr, tue });
+    };
+    enfant.stdout?.on('data', (d) => (stdout += d));
+    enfant.stderr?.on('data', (d) => (stderr += d));
+    const minuterie = setTimeout(() => {
+      tue = true;
+      try {
+        process.kill(-enfant.pid, 'SIGKILL');
+      } catch (e) {
+        if (e.code !== 'ESRCH') throw e;
+      }
+    }, borne);
+    enfant.on('exit', (status, signal) => {
+      if (!tue) return;
+      enfant.stdout.destroy();
+      enfant.stderr.destroy();
+      rendre(status, signal);
+    });
+    enfant.on('close', (status, signal) => rendre(status, signal));
+    enfant.on('error', () => rendre(null, null));
+  });
 }

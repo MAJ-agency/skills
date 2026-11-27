@@ -2,15 +2,22 @@
 // .claude/chaine.json ; un fichier modifié déclenche le passage.
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
-import { test } from 'node:test';
+import { after, test } from 'node:test';
+
+// Chaque dossier créé par le banc est retiré à la fin (A-258).
+const DOSSIERS = [];
+after(() => {
+  for (const d of DOSSIERS) rmSync(d, { recursive: true, force: true });
+});
 
 const ICI = dirname(new URL(import.meta.url).pathname);
 
 function jouet({ gates = {}, modifie = 'apps/api/src/a.ts' } = {}) {
   const racine = mkdtempSync(join(tmpdir(), 'fin-de-tour-'));
+  DOSSIERS.push(racine);
   execFileSync('git', ['init', '-q', racine]);
   mkdirSync(join(racine, 'scripts/agent'), { recursive: true });
   mkdirSync(join(racine, 'scripts/verify'), { recursive: true });

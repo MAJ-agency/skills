@@ -1,11 +1,17 @@
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, symlinkSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
-import { test } from 'node:test';
+import { after, test } from 'node:test';
 import { environnementDeBanc } from './environnement-de-banc.mjs';
 import { plusGrandSurBranches } from './next-id-branches.mjs';
+
+// Chaque dossier créé par le banc est retiré à la fin (A-258).
+const DOSSIERS = [];
+after(() => {
+  for (const d of DOSSIERS) rmSync(d, { recursive: true, force: true });
+});
 
 // Dépôt jouet : un `origin` nu local avec `develop`, un clone de travail, un PATH réduit à `git` et
 // `node`. Écrit ici plutôt qu'importé : le socle pose ce banc sans la chaîne, donc sans le
@@ -21,6 +27,7 @@ const ENV = {
 };
 function depotJouet({ fichiers = {}, branches = [] } = {}) {
   const racine = mkdtempSync(join(tmpdir(), 'next-id-'));
+  DOSSIERS.push(racine);
   const origine = join(racine, 'origine.git');
   const travail = join(racine, 'travail');
   const git = (...args) => execFileSync('git', args, { cwd: travail, env: ENV, encoding: 'utf8' });
