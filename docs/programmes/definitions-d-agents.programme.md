@@ -65,6 +65,7 @@ Décisions de l'architecte : A-1 à A-10, écrites avec leur raison dans la spec
 - 2026-11-27 20 h 42 UTC — PR #166 livrée (8.5.0, sommet `452a29c`), lue à la source ; coordination écrite avec l'architecte « périmètre figé » (ses tickets de code partent après la #166, en 8.6.0).
 - 2026-11-27 21 h 05 UTC — Passation décidée par le produit (reprise sur un autre compte) ; `## Passation` écrite.
 - 2026-11-27 21 h 10 UTC — Architecte de suite (session_012xRpgXxfn5diB9dcvjpSes) : carte et passation lues. Plugin 8.4.0 chargé, marketplace 8.4.0. PR #166 lue à la source : ouverte, label et ordre `à-fusionner au sommet 452a29c…` posés, quatre contrôles verts, `clean`, aucun verdict ; elle attend le capitaine du compte sortant.
+- 2026-11-27 21 h 12 UTC — Abonnement à la #166 refusé par l'outil ; un relevé est programmé à 21 h 39 UTC à la place. L'architecte A de « gouverner nos boucles » (session_012xRpgZdqkCb5i5yCUrnRSt, même compte) a reçu ce que le programme change et le point de départ de ses tickets (main après la #166). Aucun capitaine de `skills` en vie sur ce compte.
 
 ## Source
 
