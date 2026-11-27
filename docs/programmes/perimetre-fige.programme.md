@@ -17,7 +17,7 @@ Relecteurs: `skills` : absent (dépôt sans la chaîne)
 
 | n°  | Chantier | Dépôt | Spec | Carte | Conducteur | État |
 | --- | -------- | ----- | ---- | ----- | ---------- | ---- |
-| 1   | Périmètre figé | `skills`, puis `essai-relecture-8` pour l'essai | [`perimetre-fige.spec.md`](../issues/perimetre-fige/perimetre-fige.spec.md) | sans carte de chantier (A-7) | l'architecte (A-7) | spec validée le 2026-11-27 ; PR #165 fusionnée le 2026-11-27 ; ticket 1 en cours (session_012xRpga5RtL9vtvNsYUD6Np) |
+| 1   | Périmètre figé | `skills`, puis `essai-relecture-8` pour l'essai | [`perimetre-fige.spec.md`](../issues/perimetre-fige/perimetre-fige.spec.md) | sans carte de chantier (A-7) | l'architecte (A-7) | spec validée le 2026-11-27 ; PR #165 fusionnée le 2026-11-27 ; ticket 1 livré, PR #172, à fusionner |
 
 ## Decisions-so-far
 
@@ -27,7 +27,9 @@ Décisions du produit :
 - P-2 — (2026-11-27) `Q-1` : aux tours 2 et 3 d'une PR de documentation, un constat nouveau sur un texte que l'auteur n'a pas touché ne bloque plus (spec, règle 5). Sa réponse à « doit-il encore bloquer la PR ? » : « ok non ».
 - P-3 — (2026-11-27) `Q-2` : les constats « écartés au tri » ne sont pas transmis au tour suivant ; un constat faux qui revient se traite en clarifiant le texte (A-9). Le produit a lu cette conclusion et n'a rien objecté ; sa réponse « ok non » la couvre.
 
-Décisions de l'architecte : A-1 à A-15, écrites avec leur raison dans la spec (`## Décisions de conception`).
+Décisions de l'architecte : A-1 à A-15, écrites avec leur raison dans la spec (`## Décisions de conception`). Après la fusion de la spec :
+
+- A-16 — (2026-11-27) L'entrée `**Suite**:` du glossaire (`CONTEXT.md`, § « Relecture indépendante ») est écrite par le ticket 3, qui porte le tri « renvoyé en suite » ; elle se donne dans la ligne de situation de son prompt. Raison : la revue de ticket du ticket 1 a relevé que la marque `Suite — <objet> — <ticket ou PR>` n'a pas d'entrée au glossaire ; le ticket 2 n'ajoute que « PR de documentation » et « Périmètre ».
 
 ## Fog
 
@@ -73,6 +75,7 @@ Décisions de l'architecte : A-1 à A-15, écrites avec leur raison dans la spec
 - 2026-11-27 22 h 25 UTC — PR #165 sortie du brouillon, corps mis à jour (périmètre : `P-1` à `P-3`, `A-1` à `A-15`, complété avant toute relecture), ordre `à-fusionner au sommet 36bfd22…` et label. CI verte ; `main` avancé en 8.5.1 (#168) : `main` fusionné dans la branche, ordre reposé au sommet `7203bdf…`. `pnpm test` local : 2 échecs de `tests-creux` posé, faute de `node_modules` dans la session ; `bancs` vert en CI.
 - 2026-11-27 22 h 41 UTC — PR #165 fusionnée par le capitaine (`78f6f85`) ; diff fusionné relu à la source : les six fichiers du périmètre, identiques au sommet ordonné.
 - 2026-11-27 22 h 57 UTC — Session du ticket 1 lancée depuis `main` (session_012xRpga5RtL9vtvNsYUD6Np, sonnet). La carte se tient désormais sur la branche `claude/clever-babbage-p00ozi`.
+- 2026-11-27 23 h 33 UTC — Ticket 1 livré : PR #172 (8.6.0), ordre et label posés par la session ; diff lu à la source par l'architecte, dans le périmètre du ticket (ADR, `architecte` § 5, tableau des rôles, glossaire en renvoi, banc, version). Deux doutes de sa revue tranchés : `Arbitrage — … — écarté` au plafond maintenu (règle 6, P-1, A-5) ; entrée `Suite` du glossaire renvoyée au ticket 3 (A-16). Deux échecs locaux de `references-posees` (faute de `node_modules`) déjà vus sur `main`.
 
 ## Source
 
