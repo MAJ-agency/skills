@@ -10,7 +10,7 @@ Architecte: session_01BxuG31gJXv41A7jRRFEAWi (ouverte par le produit le 2026-11-
 Objectif: une règle du régime 8, écrite dans les skills et vérifiée par des bancs et par un essai réel — périmètre déclaré, corrections limitées aux constats du verdict, fait nouveau renvoyé en suite, décision de plafond écrite par l'architecte.
 Dépôts: `MAJ-agency/skills` (skills `relecture`, `relecteur`, `fusionner`, `architecte`, `chantier`, `socle-chaine-de-production`, glossaire `CONTEXT.md`) ; `MAJ-agency/essai-relecture-8` (l'essai réel) ; les projets reçoivent la règle par la mise à jour du plugin et la repose des scripts.
 Source: le prompt d'ouverture de cette session (2026-11-27), résumé dans `## Source` — entrée brute, ni spec ni décision.
-Capitaines: `skills` : celui du programme « définitions d'agents », s'il est en vie à la première PR prête ; sinon l'architecte en lance un
+Capitaines: `skills` : absent — à lancer par l'architecte à la première PR prête (celui du programme « définitions d'agents » est archivé)
 Relecteurs: `skills` : absent (dépôt sans la chaîne)
 
 ## Chantiers
@@ -54,6 +54,7 @@ Décisions de l'architecte : A-1 à A-8, écrites avec leur raison dans la spec 
 
 - 2026-11-27 — Programme ouvert par le produit. Plugin chargé 8.4.0, marketplace 8.4.0. Relevés faits par deux sous-agents : les commentaires des PR `atalian-offer-generator#5` et `#6`, et le texte actuel des skills du régime 8. L'architecte du programme « définitions d'agents » (session_01BxuG2z7ypDYopx6aF3M1sd) a été prévenu avant tout fichier de skill : son ticket 2 ne touche ni `relecture/`, ni `relecteur/`, ni `chaine-de-production.md` ; il touche `architecte/SKILL.md` § 5, les fichiers de version et `scripts/depot.test.mjs`. Accord : les tickets de ce programme partent de `main` après la fusion de son ticket 2. Spec écrite ; `Q-1` et `Q-2` posées au produit. Alerte d'usage déjà notée par l'autre carte : limite hebdomadaire du compte, levée le 2026-11-29 à 19 h UTC.
 - 2026-11-27 20 h 47 UTC — PR brouillon #165 ouverte, périmètre déclaré dans son corps ; quatre contrôles verts. Le ticket 2 du programme « définitions d'agents » est livré (PR #166, 8.5.0), pas encore fusionné. Le produit demande s'il peut archiver la session : passation écrite, rappel programmé supprimé.
+- 2026-11-27 21 h 10 UTC — L'architecte du programme « définitions d'agents » écrit que la PR #166 est fusionnée sur `main` (plugin 8.5.0) : les tickets de ce programme peuvent partir de `main`, en 8.6.0. Son programme passe à un architecte d'un autre compte, qui ne peut pas écrire à cette session, et son capitaine est archivé : ce programme lance son propre capitaine pour `skills` à la première PR prête.
 
 ## Source
 
