@@ -360,7 +360,7 @@ test("en ligne de commande, sous le plafond : le message est celui des specs ent
 });
 
 test("en ligne de commande, au-delà du plafond : chaque spec réduite, le message et la sortie d'erreur le disent, sortie 0", () => {
-  const corps = [1, 2].map(() => `## A\n\nVoir ${ID}.\n\n## Gros\n\n${"x".repeat(PLAFOND)}\n`);
+  const corps = [1, 2].map((n) => `## A\n\nVoir ${ID}.\n\n## Gros\n\n${"x".repeat(PLAFOND / n)}\n`);
   const r = lancer(projetTri("tri", corps), ID);
   assert.equal(r.status, 0, r.stderr);
   assert.ok(!r.stdout.includes("xxxx"));
