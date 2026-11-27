@@ -76,6 +76,7 @@ Décisions de l'architecte : A-1 à A-15, écrites avec leur raison dans la spec
 - 2026-11-27 22 h 41 UTC — PR #165 fusionnée par le capitaine (`78f6f85`) ; diff fusionné relu à la source : les six fichiers du périmètre, identiques au sommet ordonné.
 - 2026-11-27 22 h 57 UTC — Session du ticket 1 lancée depuis `main` (session_012xRpga5RtL9vtvNsYUD6Np, sonnet). La carte se tient désormais sur la branche `claude/clever-babbage-p00ozi`.
 - 2026-11-27 23 h 33 UTC — Ticket 1 livré : PR #172 (8.6.0), ordre et label posés par la session ; diff lu à la source par l'architecte, dans le périmètre du ticket (ADR, `architecte` § 5, tableau des rôles, glossaire en renvoi, banc, version). Deux doutes de sa revue tranchés : `Arbitrage — … — écarté` au plafond maintenu (règle 6, P-1, A-5) ; entrée `Suite` du glossaire renvoyée au ticket 3 (A-16). Deux échecs locaux de `references-posees` (faute de `node_modules`) déjà vus sur `main`.
+- 2026-11-27 23 h 45 UTC — Coordination avec l'architecte de « gouverner nos boucles » (session_012xRpgZdqkCb5i5yCUrnRSt), qui partage le capitaine : file au premier entré, le second fusionne `main` et reprend la version suivante. Ses tickets qui touchent `architecte/SKILL.md`, `chantier/SKILL.md`, `chaine-de-production.md` et `scripts/bascule.test.mjs` partent de `main` après la fusion du ticket 2 ; je le lui écris à cette fusion, lue à la source.
 
 ## Source
 
