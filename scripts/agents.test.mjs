@@ -251,7 +251,10 @@ test("le repli de la contre-relecture de l'architecte, de la contre-revue du con
   assert.ok(lancement.includes("règles du projet d'abord"), "lancement.md : les règles lues d'abord (A-11)");
   const regime7 = lire(`${CHAINE}/chantier/references/regime-7.md`);
   const conducteur = plat(ligne(regime7, "**La contre-revue du conducteur**"));
-  assert.ok(conducteur.includes("journal de la carte du chantier"), "regime-7.md : le repli au journal de la carte");
+  for (const m of ["journal de la carte du chantier", "dans la liste à la fille", "sans repli, aucune de ces lignes"])
+    assert.ok(conducteur.includes(m), `regime-7.md, contre-revue du conducteur : « ${m} »`);
+  assert.ok(plat(ligne(regime7, "contre-relit lui-même")).includes("au repli, il relance"), "regime-7.md : la ligne de l'architecte écrite seulement au repli");
+  assert.ok(plat(ligne(lire(`${CHAINE}/architecte/references/lancement.md`), "contre-relit lui-même")).includes("sans repli, cette ligne n'est pas écrite"), "lancement.md : la ligne écrite seulement au repli");
   assert.ok(conducteur.includes("diff-revue.sh") && conducteur.includes("n'a pas Bash"), "regime-7.md : le diff dans un fichier");
   assert.match(plat(ligne(regime7, "contre-relit lui-même")), /à la fin du commentaire[^.]*jamais en première ligne/, "regime-7.md : même règle que lancement.md");
   assert.ok(plat(ligne(lire(`${CHAINE}/architecte/SKILL.md`), "Un ticket hors chantier qu'il lance lui-même")).includes("## Comments"), "architecte/SKILL.md § 5 : le repli noté sous ## Comments du ticket");
@@ -262,8 +265,9 @@ test("les prompts de revue-adversariale et de revue-de-ticket font lire les règ
     const texte = plat(lire(`${CHAINE}/${f}`));
     assert.ok(texte.includes(REGLES_DU_DEPOT), `${f} : les règles lues d'abord (A-11)`);
     assert.ok(!texte.includes("{{BASE}}"), `${f} : pas de {{BASE}}, le dépôt relu est le répertoire courant`);
-    const debut = texte.indexOf("lecture seule");
+    const debut = texte.indexOf("Tu travailles en lecture seule");
     const fin = texte.search(/Rien d'autre|tu ne modifies rien/);
+    assert.ok(debut > texte.indexOf(REGLES_DU_DEPOT), `${f} : les règles lues avant la liste de lecture`);
     assert.ok(debut >= 0 && fin > debut, `${f} : la liste de lecture`);
     assert.doesNotMatch(texte.slice(debut, fin), /CLAUDE\.md|\.claude\/rules/, `${f} : aucune fiche de règles dans la liste « pour vérifier un point »`);
   }
