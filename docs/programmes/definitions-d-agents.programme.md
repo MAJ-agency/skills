@@ -35,6 +35,7 @@ Décisions de l'architecte : A-1 à A-10, écrites avec leur raison dans la spec
 
 | Rôle | Ticket | Session | Modèle | Contexte max | Coût $ |
 | ---- | ------ | ------- | ------ | ------------ | ------ |
+| ticket | 1 | session_01BxuG2yyaJXUKmMh7bRUzzt | opus | — | — |
 | capitaine | — | session_01BxuG2zzeL4A2u7UmWKeD2S | sonnet | 236 k | 2,68 |
 
 ## Passation
@@ -48,6 +49,7 @@ Décisions de l'architecte : A-1 à A-10, écrites avec leur raison dans la spec
 - 2026-11-25 — Tickets 1 et 2 écrits par un sous-agent, relus par un agent neuf (« pas prêt » : P-1 non tranchée, et des écarts), corrigés ; spec amendée (A-8 étendue à `lancement.md`, A-11, A-12). PR brouillon #163. Découpage envoyé à la session mère.
 - 2026-11-25 — Capitaine de `skills` lancé (session_01BxuG2zzeL4A2u7UmWKeD2S) : la session mère n'en voyait aucun en vie. La session mère n'objecte pas à Opus (A-3).
 - 2026-11-25 16 h 49 UTC — `P-1` sans réponse ; capitaine archivé (file vide, 2,68 $ en 1 h 15, compte en alerte d'usage hebdomadaire), son réveil désactivé (la suppression a été refusée par le contrôle du mode « Auto »). Il se relance à la première PR prête.
+- 2026-11-27 18 h 51 UTC — `P-1` tranchée par le produit (oui : « avoir un contexte vierge et ne pas aller voir tout le projet »), relayée par la session mère. Tickets 1 et 2 `ready-for-agent`. Session du ticket 1 lancée (session_01BxuG2yyaJXUKmMh7bRUzzt, Opus). PR #163 sortie du brouillon, ordre de fusion posé ; capitaine relancé. Un second architecte travaille sur `skills` (périmètre des PR de documentation), hors de ce programme.
 
 ## Source
 
