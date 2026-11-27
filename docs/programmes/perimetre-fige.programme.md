@@ -4,7 +4,7 @@ Une PR de documentation déclare son périmètre à l'ouverture et le garde jusq
 
 ## Fiche
 
-Phase: suivi — spec validée par le produit le 2026-11-27 (`P-2`, `P-3`), tickets écrits, relus et corrigés, seconde relecture en cours
+Phase: suivi — spec validée par le produit le 2026-11-27 (`P-2`, `P-3`), tickets relus deux fois et corrigés (A-15), PR #165 à fusionner
 Responsable: Guillaume Jauffret
 Architecte: session_012xRpgZFExW5jmAkFg9zCdF (session de suite, ouverte par le produit le 2026-11-27, mode « Auto », dépôts `skills`, `anchorpost`, `fedora` ; `essai-relecture-8` à ajouter pour le ticket 4) ; précédente : session_01BxuG31gJXv41A7jRRFEAWi
 Objectif: une règle du régime 8, écrite dans les skills et vérifiée par des bancs et par un essai réel — périmètre déclaré, corrections limitées aux constats du verdict, fait nouveau renvoyé en suite, décision de plafond écrite par l'architecte.
@@ -17,7 +17,7 @@ Relecteurs: `skills` : absent (dépôt sans la chaîne)
 
 | n°  | Chantier | Dépôt | Spec | Carte | Conducteur | État |
 | --- | -------- | ----- | ---- | ----- | ---------- | ---- |
-| 1   | Périmètre figé | `skills`, puis `essai-relecture-8` pour l'essai | [`perimetre-fige.spec.md`](../issues/perimetre-fige/perimetre-fige.spec.md) | sans carte de chantier (A-7) | l'architecte (A-7) | spec validée le 2026-11-27 ; tickets relus et corrigés (A-13, A-14) |
+| 1   | Périmètre figé | `skills`, puis `essai-relecture-8` pour l'essai | [`perimetre-fige.spec.md`](../issues/perimetre-fige/perimetre-fige.spec.md) | sans carte de chantier (A-7) | l'architecte (A-7) | spec validée le 2026-11-27 ; tickets relus deux fois et corrigés (A-13 à A-15) |
 
 ## Decisions-so-far
 
@@ -27,7 +27,7 @@ Décisions du produit :
 - P-2 — (2026-11-27) `Q-1` : aux tours 2 et 3 d'une PR de documentation, un constat nouveau sur un texte que l'auteur n'a pas touché ne bloque plus (spec, règle 5). Sa réponse à « doit-il encore bloquer la PR ? » : « ok non ».
 - P-3 — (2026-11-27) `Q-2` : les constats « écartés au tri » ne sont pas transmis au tour suivant ; un constat faux qui revient se traite en clarifiant le texte (A-9). Le produit a lu cette conclusion et n'a rien objecté ; sa réponse « ok non » la couvre.
 
-Décisions de l'architecte : A-1 à A-14, écrites avec leur raison dans la spec (`## Décisions de conception`).
+Décisions de l'architecte : A-1 à A-15, écrites avec leur raison dans la spec (`## Décisions de conception`).
 
 ## Fog
 
@@ -68,6 +68,7 @@ Décisions de l'architecte : A-1 à A-14, écrites avec leur raison dans la spec
 - 2026-11-27 21 h 42 UTC — Capitaine de `skills` lancé (session_012xRpgZd6cEEptHdS4amcfr), procédure d'un dépôt sans la chaîne, entière dans son prompt. Relecture des quatre tickets en cours par un agent neuf.
 - 2026-11-27 21 h 45 UTC — L'architecte de « définitions d'agents » (reprise : session_012xRpgXxfn5diB9dcvjpSes) signale un capitaine de `skills` déjà en vie (session_012xRpgZn85fsbtT8FpRj93L), vérifié par `get_session`. Le capitaine lancé ici, en double, est archivé, son réveil supprimé d'abord. Point de contact du ticket 3 : garder verts `scripts/agents.test.mjs` et les passages recopiés de `scripts/depot.test.mjs` ; aucun numéro de version réservé, la première PR livrée prend la suivante de `main`.
 - 2026-11-27 22 h UTC — Première relecture des tickets par un agent neuf : 10 bloquants (A-10, A-11, A-12 non portés ; paraphrases de la spec ; partie auteur des règles 3 et 4 portée par aucun ticket ; surfaces sans preuve) et 5 doutes, tranchés par l'architecte : A-13 (les règles 1 à 4, côté auteur, mot pour mot dans `chaine-de-production.md` § 5, par le ticket 2) et A-14 (version : la mineure suivante de `main` à la livraison) ; fait 7 de la spec accordé à A-5. Corrections faites par un sous-agent (`13098d9`), puis seconde relecture du diff entier par un agent neuf.
+- 2026-11-27 22 h 20 UTC — Seconde relecture par un agent neuf : 6 bloquants de forme (contradictions internes, preuves qui n'exercent pas la surface) et 7 doutes, tranchés par l'architecte ; corrigés par un sous-agent (`361c3f2`). Défaut prudent du ticket 3 accepté : « le tour précédent » est le dernier tour `refuse` avec `nonCompte: false`, et non `compte`, qui écarterait les tours d'avant une décision de plafond. A-15 : pas de troisième relecture ; un écart restant se tranche par la session du ticket.
 
 ## Source
 
