@@ -9,10 +9,11 @@ C1  Index générés — scripts/docs/index-generes.json (critère D4 de l'axe D
     part, ne change aucun fichier. Un fichier que la régénération change, ou une vérification
     rouge sur ce que la PR écrit, est un écart : son auteur régénère l'index par sa commande. Un
     index sans commande n'est vérifié par rien ici : il se relit dans le diff, comme tout fichier.
-    Un fichier non suivi qu'une commande laisse n'est pas un écart. Sur une PR de mise à jour
-    d'un sujet, un index à commande que la fusion a touché n'est pas jugé ici : le skill sujet
-    fait résoudre son conflit par `git checkout --theirs`, et le capitaine le régénère ; le
-    verdict le nomme, sans écart. Un index que la fusion n'a pas touché reste jugé.
+    Un fichier non suivi qu'une commande laisse n'est pas un écart. Un index à commande que la
+    base et la tête déclarent par un chemin littéral (`dispenses.txt`, celui que « même contenu
+    propre » dispense) n'est pas jugé ici, sur aucune PR : le capitaine le régénère avant que
+    rien n'entre dans develop ; le verdict le nomme, sans écart. Tout autre fichier que la
+    régénération change reste un écart.
 C2  Forme d'une PR de mise à jour — skill sujet, « Recevoir develop dans un sujet ». Pour une PR
     dont la base est un sujet, `sujet.sh a-juger` sort en 0. Une sortie 4 est un écart, et le
     motif que la commande écrit est le constat : plusieurs fusions, un premier parent qui n'est
