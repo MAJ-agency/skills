@@ -1,6 +1,6 @@
 # `revue-de-ticket`, `revue-adversariale`, la relecture de l'architecte et la contre-revue du régime 7 lancent `maj-skills:axe-de-relecture`, avec le repli (8.5.0)
 
-Status: ready-for-agent
+Status: Fait — PR #166
 Type: task
 Modèle: sonnet — des paragraphes de procédure à reprendre dans quatre skills, trois prompts et deux gabarits de section, sans script ; la définition, la phrase du repli et le banc existent après le ticket 1, que ce ticket étend ; les décisions sont prises dans la spec et ici.
 Blocked by: 1
@@ -109,3 +109,4 @@ Lu dans le dépôt le 2026-11-25, sur la branche `docs/definitions-d-agents-prog
 
 - 2026-11-25 — Écrit par un sous-agent de l'architecte du programme définitions d'agents, d'après la spec.
 - 2026-11-27 — `P-1` tranchée (oui) ; passé à `ready-for-agent` par l'architecte.
+- 2026-11-27 — Fait, PR #166, plugin 8.5.0 (`main` était à 8.4.0). Deux points tranchés prudemment : le repli de `prompt-ticket.md` reprend la formule « autres que les fiches de règles » du ticket 1 ; l'ordre « Résultat » puis « Agent des relecteurs » est tenu par le banc. Les deux échecs de `references-posees.test.mjs` (régimes 7 et 8) existent aussi sur `origin/main`.
