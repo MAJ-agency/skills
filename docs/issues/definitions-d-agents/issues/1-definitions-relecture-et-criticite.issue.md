@@ -1,6 +1,6 @@
 # Les deux définitions d'agents du plugin, et `relecture` et `criticite` les lancent par leur nom, avec le repli (8.4.0)
 
-Status: ready-for-agent
+Status: Fait — PR #164
 Type: task
 Modèle: opus — deux fichiers neufs dont le frontmatter doit être exact, un banc neuf, cinq prompts à reprendre, des bancs existants qui figent des textes à réécrire sans les assouplir (`scripts/depot.test.mjs`, `scripts/relecture.test.mjs`), et un essai réel des définitions par `claude -p`, lu dans les transcripts des sous-agents ; les décisions sont prises dans la spec.
 Blocked by: —
@@ -138,3 +138,12 @@ Tout est lu dans le dépôt le 2026-11-25, sur la branche `docs/definitions-d-ag
 
 - 2026-11-25 — Écrit par un sous-agent de l'architecte du programme définitions d'agents, d'après la spec.
 - 2026-11-27 — `P-1` tranchée (oui) ; passé à `ready-for-agent` par l'architecte.
+- 2026-11-27 — Session du ticket (session_01BxuG2yyaJXUKmMh7bRUzzt). Choix tranchés prudemment pendant le ticket :
+  - **Version** : `main` était à 8.3.3 au départ de la branche ; le plugin passe en 8.4.0.
+  - **L'essai réel hors du scratchpad.** Lancée depuis le scratchpad (`/tmp/claude-0/…`), même la session mère ne reçoit ni le `CLAUDE.md` ni la fiche `.claude/rules/` du dossier (elle répond « AUCUNE » quand on lui demande ses chaînes `CANARI-`, avec ou sans `git init`) : l'absence des canaris n'y prouverait rien. L'essai s'est joué dans `/home/user/essai-canari`, où la session mère les reçoit, avec un témoin de plus : l'agent générique `general-purpose`, lancé du même dossier, reçoit la pièce jointe `instructions` et les deux canaris ; les deux définitions, non.
+  - **La phrase de `A-11`** entre dans le paragraphe des deux dossiers, que `relecture.test.mjs` veut identique dans les cinq prompts : la même phrase, au même endroit, dans chacun. Les fiches citées par un critère (`tests.md` pour T3, `anchorpost.md` pour M2) restent nommées, comme « l'une des fiches que tu lis d'abord ».
+  - **`criticite`, toute autre erreur de l'outil Agent** que « not found » : le skill n'avait pas de règle pour un outil en échec ; elle compte comme une sortie hors format (étape 4, point 1), donc un second essai, puis le plus haut niveau apparu ou `high`, jamais « à classer » ni « basse ».
+  - **La ligne `Agent des axes :`** prend aussi `sans objet`, quand aucun axe ne s'est lancé (diff relu « non exécuté », garde en échec).
+  - **`graphify update .`** joué ; `graphify-out/` est ignoré par git sur `main` (`.gitignore`, l. 3) : rien à commiter.
+  - `references-agent-integrees.json` ne change pas : aucun fichier posé par le plugin ne nomme les définitions.
+  - **Relecture de la branche** par un sous-agent neuf (diff et ticket seuls) : trois corrections (la liste de `prompt-ticket.md` garde les règles du dépôt autres que les fiches ; le noyau entier du repli dans `cas-limites.md` et les deux `CONTENU.md`, que le banc lit aussi ; la garde des fiches de règles du banc, qui s'arrêtait au premier point). Le reste est dans la PR #164.

@@ -4,7 +4,10 @@ Le dépôt relu est dans le dossier {{ARBRE}} (la tête de la PR, extraite à pa
 consignes) : c'est là que tu lis le code, les tests et la documentation. Les fiches de règles du
 dépôt (CLAUDE.md à toute profondeur, .claude/rules/) se lisent dans le dossier {{BASE}}, qui porte
 la base de la PR : ce sont les règles contre lesquelles la PR se juge, et ce que la PR y change est
-dans le diff. Tu ne lis rien d'autre dans {{BASE}}, ni rien hors de ces deux dossiers.
+dans le diff. Ces règles ne sont pas dans ton contexte : avant de juger, tu lis d'abord, dans
+{{BASE}}, le CLAUDE.md de la racine, celui de chaque dossier que le diff touche et de ses dossiers
+parents, et les fiches .claude/rules/*.md. Tu ne lis rien d'autre dans {{BASE}},
+ni rien hors de ces deux dossiers.
 Tu travailles en lecture seule. Pour vérifier un point, tu peux lire, dans {{ARBRE}} : les
 fichiers entiers touchés par le diff ; la spec et la carte du chantier de chaque ticket touché ;
 les autres tickets du même dossier `issues/` ; tout fichier, règle, ADR ou décision qu'un ticket,
