@@ -1,6 +1,6 @@
 # Au plafond de sa propre PR, l'architecte écrit la décision de plafond (8.6.0 attendue, A-14)
 
-Status: ready-for-agent
+Status: Fait — PR #172
 Type: task
 Modèle: sonnet — quatre phrases à reprendre dans une ADR, un skill, la méthode et le glossaire, sans script ; une exigence de plus dans un banc existant ; les décisions sont prises dans la spec (règle 6, `A-5`).
 Blocked by: —
