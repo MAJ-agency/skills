@@ -17,15 +17,18 @@
 //     `Arbitrage — <lieu> — écarté — <raison>` ;
 //   - la trace d'illisible : première ligne `Lecture illisible — <cause>` ;
 //   - la note de même contenu : `Même contenu — sommet <tête> — tour <k> <validé|refusé> au sommet <sha> — <raison>`,
-//     sur une ligne, écrite quand « même contenu propre » garde le verdict ou le refus d'un tour au sommet d'avant (A-224).
-// Deux traces vivent hors de `dernier` : la trace d'illisible, et la note de même contenu, qui n'est pas une marque qui
-// décide : elle ne change ni la ligne qui repart à la pose d'une étiquette, ni « déjà signalé » ; sa forme abîmée est une
-// lecture illisible (un verdict gardé ne disparaît pas sans bruit).
+//     sur une ligne, écrite quand « même contenu propre » garde le verdict ou le refus d'un tour au sommet d'avant (A-224) ;
+//   - la trace d'une demande écartée : `Demande écartée — commentaire <id> modifié après sa création : redemander la
+//     relecture d'un commentaire neuf, jamais modifié`, lue parmi les commentaires intacts d'un compte qui compte (A-228).
+// Hors de `dernier` vivent la trace d'illisible et deux traces à règles opposées, qui ne sont pas des marques qui
+// décident : elles ne changent ni la ligne qui repart à la pose d'une étiquette, ni « déjà signalé ». La note de même
+// contenu, dont la forme abîmée est une lecture illisible (un verdict gardé ne disparaît pas sans bruit) ; la trace
+// `Demande écartée — `, dont la forme abîmée est ignorée (elle ne fait que taire un signal déjà donné).
 // Un commentaire qui porte le préfixe d'une marque sans en avoir la forme n'est jamais ignoré : c'est une
-// lecture illisible. « Plus récent » veut dire « de rang supérieur dans le tableau reçu » ; les dates ne
+// lecture illisible, sauf la trace `Demande écartée — `, ignorée (A-228). « Plus récent » veut dire « de rang supérieur dans le tableau reçu » ; les dates ne
 // servent qu'aux délais, comparées à `maintenant`, la seule source de temps.
 //
-// Un commentaire modifié après sa création est écarté, à deux exceptions près (A-118).
+// Un commentaire modifié après sa création est écarté, à trois exceptions près (A-118).
 //   - Un verdict modifié ne peut qu'aggraver ou laisser, jamais adoucir. Quand le verdict le plus récent d'une
 //     session pour un tour a été modifié, sa lecture pour ce tour dépend de son verdict intact le plus récent
 //     pour ce tour : `refusé`, le refus tient ; `validé` ou `incomplet`, la lecture est `incomplet` ; aucun, le
@@ -33,6 +36,10 @@
 //   - Un verdict d'un compte qui compte que rien ne rattache (`Tour:` ou `Session:` illisible), intact ou
 //     modifié, plus récent que la dernière distribution du dernier tour, est une lecture illisible : un refus
 //     abîmé ne disparaît pas sans bruit. Plus ancien que cette distribution, il reste écarté.
+//   - Une demande `À relire` modifiée, d'un compte qui compte, reste écartée : elle ne fixe ni la décision ni les
+//     destinataires des autres lignes ; ses lignes `Session:` et `Conducteur:` ne servent qu'à dire l'écart, par le geste
+//     `signaler`, quand elle est plus récente que la dernière demande intacte et qu'aucune trace ne nomme encore son
+//     commentaire (A-227, A-228).
 // Les tables indexées par une clé venue de l'entrée (session, sommet) ne lisent jamais une clé héritée.
 //
 // Module pur : aucun point d'entrée, aucune horloge, aucun import hors verdict.mjs.
@@ -56,6 +63,8 @@ const FORME_SHA = new RegExp(`^${SHA}$`);
 const FORME_DISTRIBUTION = new RegExp(`^Relecture — tour ([1-9][0-9]*) — sommet (${SHA}) — sessions (${ID}(?:, ${ID})*)(?: \\((?:(remplace|relance) (${ID})|(complète|${MENTION_ARBITRAGE}))\\))?$`);
 const FORME_DEMANDE = new RegExp(`^À relire — sommet (${SHA}) — Session: (${ID}|—) — Conducteur: (${ID}|—)$`);
 const FORME_DECISION = /^Décision de plafond — \S/;
+const FORME_ECART = /^Demande écartée — commentaire ([1-9][0-9]*) modifié après sa création : redemander la relecture d'un commentaire neuf, jamais modifié$/;
+export const PREFIXE_ECART = 'Demande écartée — ';
 const FORME_NOTE = new RegExp(`^Même contenu — sommet (${SHA}) — tour ([1-9][0-9]*) (validé|refusé) au sommet (${SHA}) — (\\S.*)$`);
 const TIRET = ' — ';
 
@@ -154,6 +163,8 @@ const TRACES_ILLISIBLES = [PREFIXE_TRACE, PREFIXE_NOTE];
  *             plafonds: object[], decisions: object[], arbitragesEcartes: object[], pannes: object[],
  *             illisibles: { id, rang, date, texte: string }[],
  *             notes: { id, rang, date, tete: string, tour: number, verdict: 'validé'|'refusé', sommet: string }[],
+ *             demandesModifiees: { id, rang, date, auteur: string|null, conducteur: string|null, lisible: boolean }[],
+ *             ecarts: { id, rang, date, commentaire: string }[],
  *             presque: { id, rang, date, prefixe: string }[],
  *             dernier: number }}
  *   `verdictsModifies` : les verdicts d'un compte qui compte, modifiés après leur création, dont `Tour:` et
@@ -161,18 +172,28 @@ const TRACES_ILLISIBLES = [PREFIXE_TRACE, PREFIXE_NOTE];
  *   session de valoir à leur place (A-118) ; `presque` porte aussi, avec `verdict: true`, les verdicts que rien
  *   ne rattache, plus récents que la dernière distribution du dernier tour ; `arbitragesEcartes` : un par commentaire qui écarte au moins un bloquant ; `illisibles` : les traces,
  *   `texte` leur première ligne ; `notes` : les notes de même contenu à la forme (A-224) ; `presque` : vide hors
- *   `tolerant` ; `dernier` : le rang du plus récent commentaire à marque ou presque à la forme, traces d'illisible et
- *   notes à la forme exclues, -1 s'il n'y en a pas.
+ *   `tolerant` ; `demandesModifiees` : les demandes `À relire` d'un compte qui compte, modifiées après leur création,
+ *   `lisible` vrai quand le corps a la forme de la demande (A-227) ; `ecarts` : les traces `Demande écartée — ` à la
+ *   forme, intactes, d'un compte qui compte, `commentaire` l'identifiant qu'elles nomment (A-228) ; `dernier` : le rang
+ *   du plus récent commentaire à marque ou presque à la forme, traces d'illisible, notes et traces d'écart exclues, -1
+ *   s'il n'y en a pas.
  * @throws {LectureIllisible}  commentaires que `retenir` ne lit pas ; et, hors `tolerant`, toute marque
  *   presque à la forme
  */
 export function lireMarques(commentaires, options = {}) {
-  const m = { verdicts: [], verdictsModifies: [], distributions: [], demandes: [], plafonds: [], decisions: [], arbitragesEcartes: [], pannes: [], illisibles: [], notes: [], presque: [], dernier: -1 };
+  const m = { verdicts: [], verdictsModifies: [], distributions: [], demandes: [], plafonds: [], decisions: [], arbitragesEcartes: [], pannes: [], illisibles: [], notes: [], demandesModifiees: [], ecarts: [], presque: [], dernier: -1 };
   const { retenus, ecartes } = retenir(commentaires);
   const presque = [];
   // Les verdicts d'un compte qui compte que rien ne rattache : `Tour:` ou `Session:` ne se lit pas.
   const perdus = [];
-  for (const { id, rang, date, motif, corps } of ecartes) {
+  for (const { id, rang, motif, corps } of ecartes) {
+    const date = commentaires[rang].created_at;
+    // Une demande modifiée : écartée, ses lignes ne servent qu'à dire l'écart (A-227).
+    if (motif === 'edite' && corps.startsWith('À relire — ')) {
+      const d = FORME_DEMANDE.exec(corps);
+      m.demandesModifiees.push({ id, rang, date, auteur: d && d[2] !== '—' ? d[2] : null, conducteur: d && d[3] !== '—' ? d[3] : null, lisible: d !== null });
+      continue;
+    }
     const v = motif === 'edite' ? lireVerdict(corps) : null;
     if (v === null) continue;
     if (v.tour !== null && v.session !== null) m.verdictsModifies.push({ id, rang, date, tour: v.tour, session: v.session });
@@ -194,6 +215,12 @@ export function lireMarques(commentaires, options = {}) {
         m.illisibles.push({ ...place, texte });
         continue;
       }
+    }
+    // La trace d'un écart : à la forme, elle tait le signal ; sans la forme, elle est ignorée, jamais illisible (A-228).
+    if (corps.startsWith(PREFIXE_ECART)) {
+      const e = FORME_ECART.exec(corps);
+      if (e !== null) m.ecarts.push({ ...place, commentaire: e[1] });
+      continue;
     }
     const note = FORME_NOTE.exec(corps);
     if (note !== null && Number.isSafeInteger(Number(note[2]))) {
@@ -411,6 +438,16 @@ export function decider(etat) {
     const signale = marques.illisibles.some((t) => t.rang > marques.dernier && t.texte.startsWith(commentaire) && maintenant - Date.parse(t.date) <= delaiMs);
     if (signale) return rien(null, 'illisible-signale');
     return { regle: null, geste: 'illisible', commentaire, lignes: [{ a: 'architecte', session: null, texte: `PR ${numero} : lecture illisible : ${cause}` }] };
+  }
+
+  // La demande modifiée, avant toute règle : la trace et une ligne à qui l'a écrite, une fois par commentaire (A-228).
+  const modifiee = marques.demandesModifiees.at(-1);
+  const intacte = marques.demandes.at(-1)?.rang ?? -1;
+  if (modifiee !== undefined && modifiee.rang > intacte && /^[1-9][0-9]*$/.test(String(modifiee.id)) && !marques.ecarts.some((e) => e.commentaire === String(modifiee.id))) {
+    const texte = `PR ${numero} : demande de relecture écartée (commentaire ${modifiee.id} modifié après sa création) : en écrire une neuve, jamais modifiée`;
+    const vers = ['auteur', 'conducteur'].filter((a) => modifiee[a] !== null).map((a) => ({ a, session: modifiee[a], texte }));
+    const commentaire = `${PREFIXE_ECART}commentaire ${modifiee.id} modifié après sa création : redemander la relecture d'un commentaire neuf, jamais modifié`;
+    return { regle: null, geste: 'signaler', commentaire, lignes: vers.length > 0 ? vers : [{ a: 'architecte', session: null, texte }] };
   }
 
   const lesTours = tours(marques, etat);

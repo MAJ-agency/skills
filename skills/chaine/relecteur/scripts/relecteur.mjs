@@ -40,9 +40,12 @@
 // `hors-regime` (régime 7, ou base hors de la chaîne), `contrat-illisible` (la clé `relecture` mal formée), `pause`
 // (des commentaires que la décision ne lit pas), ou le geste de `decider`. `faits` : `sensible`, `exiges`, le couple
 // `modele`/`effort` de la session à créer (A-128 : `relecture.sensible` quand le diff touche un chemin sensible ou
-// que deux verdicts sont exigés, `relecture.ordinaire` sinon), et `auteur`, `conducteur`, lus sur la dernière demande.
+// que deux verdicts sont exigés, `relecture.ordinaire` sinon), et `auteur`, `conducteur`, lus sur la dernière demande
+// intacte : une demande modifiée ne les donne jamais ; elle rend `signaler` (A-227, A-228).
 // `jouer <n>` refait la décision de la PR n et joue ce qui s'écrit sur GitHub : une étiquette (la nouvelle posée avant
-// que l'ancienne soit retirée, A-84), le commentaire du plafond, de la panne ou de l'illisible ; au plafond, l'étiquette
+// que l'ancienne soit retirée, A-84), le commentaire du plafond, de la panne, de l'illisible ou de `signaler` (la trace
+// d'une demande `À relire` modifiée, `Demande écartée — commentaire <id> …`, et ses lignes à qui l'a écrite : la session
+// les envoie, puis rejoue `jouer <n>` aussitôt, et le geste qu'il rend) ; au plafond, l'étiquette
 // d'abord, puis le commentaire : un plafond à moitié écrit se rejoue entier, ses lignes avec lui. Rejoué après un retrait
 // refusé, un plafond redit « décision de plafond attendue » à l'auteur et au conducteur : son étiquette s'est posée avant
 // son commentaire, la marque la plus récente (A-189, point 1). Il écrit une ligne
@@ -385,7 +388,7 @@ async function jouerGeste(argv) {
     joue = true;
   }
   // Au plafond, après l'étiquette : un commentaire refusé laisse le plafond à décider de nouveau, ses lignes entières.
-  if (g.geste === 'plafonner' || g.geste === 'panne' || g.geste === 'illisible') {
+  if (g.geste === 'plafonner' || g.geste === 'panne' || g.geste === 'illisible' || g.geste === 'signaler') {
     ecrire('commenter', String(n), g.commentaire);
     joue = true;
   }

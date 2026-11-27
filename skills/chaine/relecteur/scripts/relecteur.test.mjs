@@ -523,6 +523,53 @@ test('ticket 95 — `SOURDINES` dit la liste telle que la dernière passe lue l�
   assert.match(p.stdout, new RegExp(`^PAUSE GitHub illisible : .*\nPAUSE GitHub illisible : .*\nVEILLE FINIE\nSOURDINES ${cle},7:distribuer:6:${sha}\n$`));
 });
 
+// --- Ticket 96 : une demande `À relire` modifiée se dit, sur la PR et à qui l'a écrite (A-227, A-228) ---------------------
+
+// La PR 12 dont la seule demande (commentaire 12001) a été modifiée sept secondes après sa création.
+function demandeModifiee() {
+  const d = monter();
+  const sha = pr(d, { commentaires: [] });
+  const p = d.etat().pulls[0];
+  p.commentaires = [{ body: DEMANDE(sha), created_at: minute(1), updated_at: iso(DEBUT + 60_000 + 7_000) }];
+  d.github({ pulls: [p] });
+  return { d, sha };
+}
+const TRACE_ECART = "Demande écartée — commentaire 12001 modifié après sa création : redemander la relecture d'un commentaire neuf, jamais modifié";
+
+test('ticket 96 — `jouer` écrit la trace d’une demande modifiée et rend ses lignes à qui l’a écrite ; rejoué aussitôt, il rend le geste de la PR', () => {
+  const { d, sha } = demandeModifiee();
+  const g = d.json(d.lancer('jouer', '12'))[0];
+  assert.deepEqual([g.regle, g.geste, g.joue], [null, 'signaler', true]);
+  const texte = 'PR 12 : demande de relecture écartée (commentaire 12001 modifié après sa création) : en écrire une neuve, jamais modifiée';
+  assert.deepEqual(g.lignes, [{ a: 'auteur', session: 'session_auteur', texte }, { a: 'conducteur', session: 'session_conducteur', texte }]);
+  assert.deepEqual(ecritures(d), ['POST issues/12/comments']);
+  assert.equal(d.etat().pulls[0].commentaires.at(-1).body, TRACE_ECART);
+  const suite = d.json(d.lancer('jouer', '12'))[0];
+  assert.deepEqual([suite.regle, suite.geste, suite.sommet, suite.faits.auteur], [6, 'distribuer', sha, null], 'la demande modifiée ne donne pas ses destinataires');
+});
+
+test('ticket 96 — la trace n’est pas une marque : l’étiquette posée après elle, rejouée sur un retrait perdu, ne renvoie pas ses lignes', () => {
+  const { d, sha } = demandeModifiee();
+  ajouter(d, [distribution(1, sha, ['session_rel1']), 2], [verdict(sha, 1, 'session_rel1', 'validé'), 3]);
+  assert.equal(d.json(d.lancer('jouer', '12'))[0].geste, 'signaler');
+  const pose = d.json(d.lancer('jouer', '12'))[0];
+  assert.deepEqual([pose.regle, pose.geste, pose.poser], [2, 'etiqueter', 'à-fusionner']);
+  assert.deepEqual(pose.lignes.map((l) => l.session), [null, null], 'aucune demande intacte : aucun destinataire');
+  d.github({ pulls: [{ ...d.etat().pulls[0], labels: ['à-relire', 'à-fusionner'] }] });
+  const rejoue = d.json(d.lancer('jouer', '12'))[0];
+  assert.deepEqual([rejoue.geste, rejoue.lignes], ['etiqueter', []]);
+});
+
+test('ticket 96 — la trace refusée sort en 7, rien d’écrit ; la veille se réveille sur `signaler`', () => {
+  const { d } = demandeModifiee();
+  assert.equal(d.lancer('veille', '--pause', '0', '--sondes', '1').stdout, 'VEILLE GESTE\nGESTE 12 signaler règle —\nSOURDINES aucune\n');
+  d.github({ commentairesRefuses: '^Demande écartée — ' });
+  const r = d.lancer('jouer', '12');
+  assert.equal(r.status, 7, r.stderr);
+  assert.equal(r.stdout, '', 'aucune ligne : la trace n’est pas écrite, le rejeu les rendra');
+  assert.deepEqual(d.etat().pulls[0].commentaires.map((c) => c.body), [d.etat().pulls[0].commentaires[0].body], 'la trace n’est pas sur la PR');
+});
+
 test('une écriture refusée par GitHub sort en 7, et rien n’est retiré avant que la nouvelle étiquette soit posée', () => {
   const d = monter();
   const sha = pr(d);
