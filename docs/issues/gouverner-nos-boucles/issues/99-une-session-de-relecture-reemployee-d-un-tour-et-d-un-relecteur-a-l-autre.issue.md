@@ -1,8 +1,8 @@
-# Une session de relecture réemployée d'un tour et d'un Relecteur à l'autre : c'est voulu, le ticket propose `wontfix`
+# Une session de relecture réemployée d'un tour et d'un Relecteur à l'autre : c'est voulu, le ticket se ferme `wontfix`
 
-Status: needs-triage
+Status: wontfix — A-231 (P-52, A-85 règle 6, A-111, A-180)
 Type: défaut
-Modèle: aucun si `wontfix` est accepté. Le seuil de réemploi est une question de coût, posée à l'architecte (« La question »), que ce ticket ne tranche pas.
+Modèle: aucun : `A-231` ferme le ticket en `wontfix`. Le seuil de réemploi est une question de coût, qui se mesure avant d'être discutée (« La question ») ; ce ticket ne la tranche pas.
 Blocked by: —
 Dépendances: —
 Fichiers chauds: aucun si `wontfix`. Si le seuil change : `skills/chaine/relecteur/SKILL.md` (lignes 65 et 72, « 700 000 tokens »), `scripts/relecteur.test.mjs` (lignes 60 et 76, dans les tests `A-180` et de la contre-relecture de la PR 146), la spec (`A-180`, point 3) et les fichiers de version ; après les tickets 96 et 97.
@@ -20,17 +20,19 @@ Constat (15) de l'essai réel du régime 8 (journal de la carte, 2026-11-23 : 10
 
 Le comportement de l'essai est celui que ces décisions fixent. Ce qui n'est pas établi : le contexte de la session de #7 au moment du réemploi de son dernier tour. Le journal ne donne que sa valeur finale (717 000 tokens). Si elle avait passé 700 000 avant d'être réemployée, ce serait un défaut du relevé de `get_session` par le Relecteur, à ouvrir à part ; rien dans le journal ne le dit.
 
-## Proposé
+## Décidé
 
-**`wontfix`**, avec cette raison : le réemploi est la règle 6 d'`A-85`, tirée de `P-52` et bornée par `A-180`. Le changer change le sens d'une décision du produit.
+**`wontfix`** (`A-231`, 2026-11-27), avec cette raison : le réemploi est la règle 6 d'`A-85`, tirée de `P-52` et bornée par `A-180`. Le changer change le sens d'une décision du produit.
 
 ## La question (à l'architecte, puis au produit s'il le juge utile)
 
-Le seuil de 700 000 tokens fixe quand une session neuve remplace la session réemployée. Le journal (17 h 00) avance un seuil plus bas, « par exemple 300 000 », où une session neuve coûterait moins cher qu'un tour de plus sur un long contexte. C'est un arbitrage de coût, donc une question, pas une décision de ce ticket. Pour la trancher, il faut mesurer, sur les PR de l'essai : le coût par tour d'une session réemployée selon son contexte, contre celui d'une session neuve (qui relit tout : le ticket, les règles, le diff). Ce qu'une session neuve perd : la mémoire des tours d'avant (les bloquants qu'elle a écrits, les arbitrages). Le verdict de chaque tour les porte sur la PR, mais une session neuve les relira.
+Le seuil de 700 000 tokens fixe quand une session neuve remplace la session réemployée. Le journal (17 h 00) avance un seuil plus bas, « par exemple 300 000 », où une session neuve coûterait moins cher qu'un tour de plus sur un long contexte. C'est un arbitrage de coût, donc une question, pas une décision de ce ticket ; `A-231` le dit : le seuil de 700 000 tokens se mesure avant d'être discuté. Pour la trancher, il faut mesurer, sur les PR de l'essai : le coût par tour d'une session réemployée selon son contexte, contre celui d'une session neuve (qui relit tout : le ticket, les règles, le diff). Ce qu'une session neuve perd : la mémoire des tours d'avant (les bloquants qu'elle a écrits, les arbitrages). Le verdict de chaque tour les porte sur la PR, mais une session neuve les relira.
 
 ## Quand le ticket est fait
 
-- **`wontfix` accepté** : `Status: wontfix — P-52, A-85 (règle 6), A-180` et la raison sous `## Comments`.
+- **`wontfix`** : `Status: wontfix — A-231 (P-52, A-85 règle 6, A-111, A-180)` et la raison sous `## Comments`.
 - **Seuil changé** (décision de l'architecte ou du produit) : un ticket neuf, qui change la valeur à `relecteur/SKILL.md:65` et `:72`, la spec et son banc de texte ; pas ce ticket.
 
 ## Comments
+
+- 2026-11-27 — Fermé `wontfix` sur `A-231` : le réemploi d'une session de relecture d'un tour et d'un Relecteur à l'autre est voulu (`P-52`, `A-85` règle 6, `A-111`, `A-180`) ; le changer changerait le sens d'une décision du produit. Le seuil de 700 000 tokens se mesure avant d'être discuté : la mesure décrite sous « La question » n'est pas faite, aucun ticket n'est ouvert pour elle. Rien à coder.
