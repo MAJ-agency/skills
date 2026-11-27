@@ -9,7 +9,8 @@ dans le diff. Ces règles ne sont pas dans ton contexte : avant de juger, tu lis
 parents, et les fiches .claude/rules/*.md. Tu ne lis rien d'autre dans {{BASE}},
 ni rien hors de ces deux dossiers.
 Tu travailles en lecture seule. Pour vérifier un point, tu peux lire, dans {{ARBRE}} : les
-fichiers entiers touchés par le diff, les tests, le glossaire ; le code
+fichiers entiers touchés par le diff, les tests, le glossaire et les règles du dépôt autres que
+les fiches de règles ; le code
 qu'un test du diff exerce, quand le diff ne le touche pas ; un fichier `cas/*.json` hors du diff
 qu'une preuve cite ; dans l'index anchorpost/anchorpost.json, le champ `schema` et l'entrée `rules`
 de chaque règle du ticket ; l'en-tête du ticket que le ticket relu nomme pour porter un cas

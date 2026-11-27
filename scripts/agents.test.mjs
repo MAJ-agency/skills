@@ -152,11 +152,16 @@ test("relecture lance chaque axe par maj-skills:axe-de-relecture, avec le repli 
     assert.ok(plat(etape6).includes(phrase), `relecture/SKILL.md, étape 6 : « ${phrase} »`);
   const verdict = lire(`${RELECTURE}/references/verdict.md`);
   assert.ok(verdict.includes("\nAgent des axes : <maj-skills:axe-de-relecture | agent générique, maj-skills:axe-de-relecture introuvable dans cette session (repli) | sans objet>\n"), "verdict.md : la ligne « Agent des axes : » du gabarit");
+  for (const f of [`${RELECTURE}/references/cas-limites.md`, `${RELECTURE}/references/CONTENU.md`, `${CRITICITE}/references/CONTENU.md`])
+    assert.ok(plat(lire(f)).includes(REPLI), `${f} : le noyau du repli, « ${REPLI} »`);
   assert.ok(plat(lire(`${RELECTURE}/references/cas-limites.md`)).includes("| 6 | L'outil Agent répond « Agent type 'maj-skills:axe-de-relecture' not found »"), "cas-limites.md : la ligne du repli dans la table de l'étape 6");
   for (const p of PROMPTS) {
     const texte = plat(lire(`${RELECTURE}/references/${p}`));
     assert.ok(texte.includes(REGLES_DABORD), `${p} : les règles lues d'abord (A-11)`);
-    assert.doesNotMatch(texte, /pour vérifier un point[^.]*(CLAUDE\.md|\.claude\/rules)/, `${p} : les fiches de règles hors de la liste « pour vérifier un point »`);
+    // La liste « pour vérifier un point » va jusqu'à « Rien d'autre » ou « tu ne modifies rien » : aucune fiche de règles n'y revient.
+    const liste = texte.match(/pour vérifier un point([\s\S]*?)(Rien d'autre|tu ne modifies rien)/i);
+    assert.ok(liste, `${p} : la liste « pour vérifier un point »`);
+    assert.doesNotMatch(liste[1], /CLAUDE\.md|\.claude\/rules/, `${p} : les fiches de règles hors de la liste « pour vérifier un point »`);
   }
 });
 
