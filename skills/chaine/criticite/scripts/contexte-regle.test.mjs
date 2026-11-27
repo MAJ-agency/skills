@@ -8,7 +8,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { after, test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { AUCUNE_SPEC, PLAFOND, cloture, contexteDeLaRegle, enonceDeLaRegle, ligneNomme, message, nomExact, nomIllisible, sansCommentaires, titreDeLEnTete } from "./contexte-regle.mjs";
+import { AUCUNE_SPEC, PLAFOND, cloture, contexteDeLaRegle, decouper, enonceDeLaRegle, extrait, ligneNomme, message, nomExact, nomIllisible, nommePar, sansCommentaires, titreDeLEnTete } from "./contexte-regle.mjs";
 
 const SCRIPT = fileURLToPath(new URL("./contexte-regle.mjs", import.meta.url));
 const PROMPT = readFileSync(fileURLToPath(new URL("../references/prompt.md", import.meta.url)), "utf8");
@@ -282,6 +282,101 @@ test("en ligne de commande : un contexte de plus de 300 000 caractères est refu
   assert.match(r.stderr, /contexte trop long : \d+ caractères \(plafond 300000\)/);
   assert.match(r.stderr, /règle : \d+ caractères/);
   assert.match(r.stderr, /docs\/features\/lic\/all\/SPEC_ALL_LIC-1-licence\.spec\.md : 3000\d\d caractères/);
+});
+
+const ID = "RULE_ALL_LIC-3";
+const PUCE = "une spec peut n'arriver qu'en extrait";
+
+test("extrait : l'en-tête et les sections qui citent la règle, au mot près", () => {
+  const spec = [
+    "# S", "", "Règles: —", "",
+    "## A", "", "| cas | règle |", "| --- | --- |", `| licence | ${ID} |`, "",
+    "## B", "", "Sans citation.", "",
+    `## Ce que dit ${ID}`, "",
+    "Sans corps qui la cite.", "",
+  ].join("\n");
+  const r = extrait(spec, ID);
+  const [tete, a, , c] = spec.split(/(?=^## )/m);
+  assert.equal(r.texte, tete + a + c);
+  assert.deepEqual(r.titres, ["## A", `## Ce que dit ${ID}`]);
+  assert.equal(r.ecartees, 1);
+});
+
+test("extrait : l'en-tête seul quand aucune section ne cite la règle ; une spec sans section passe entière", () => {
+  const spec = `# S\n\nRègles: ${ID}\n\n## A\n\nRien.\n\n## B\n\nRien.\n`;
+  const r = extrait(spec, ID);
+  assert.equal(r.texte, `# S\n\nRègles: ${ID}\n\n`);
+  assert.deepEqual(r.titres, []);
+  assert.equal(r.ecartees, 2);
+  const seule = `# S\n\nRègles: ${ID}\n\nUn corps.\n`;
+  assert.deepEqual(extrait(seule, ID), { texte: seule, titres: [], ecartees: 0 });
+});
+
+test("decouper : la clôture, les sous-sections, le niveau 1, le retrait, le bloc indenté et le CRLF", () => {
+  const titres = (t) => decouper(t).map((m) => m.titre);
+  const rejoint = (t) => decouper(t).map((m) => m.texte).join("");
+  const t1 = "# S\n## A\n```\n## faux\n```\n~~~~\n## faux\n~~~~~\n## B\n";
+  assert.deepEqual(titres(t1), [null, "## A", "## B"]);
+  assert.equal(rejoint(t1), t1);
+  const t2 = "# S\n## A\n```\n## faux\n## encore faux\n";
+  assert.deepEqual(titres(t2), [null, "## A"]);
+  const t3 = "# S\n## A\n### A.1\ntexte\n## B\n";
+  assert.deepEqual(titres(t3), [null, "## A", "## B"]);
+  assert.ok(decouper(t3)[1].texte.includes("### A.1"));
+  const t4 = "# S\n## A\ntexte\n# Annexe\nannexe\n## C\nc\n";
+  assert.deepEqual(titres(t4), [null, "## A", "# Annexe", "## C"]);
+  const t5 = "# S\n## A\n  ## retrait\n\n    ## indenté\n## B\n";
+  assert.deepEqual(titres(t5), [null, "## A", "## B"]);
+  const t6 = "# S\r\n## A  \r\ntexte\r\n## B\r\n";
+  assert.equal(rejoint(t6), t6);
+  assert.deepEqual(titres(t6), [null, "## A", "## B"]);
+  assert.deepEqual(decouper("sans titre\n"), [{ titre: null, texte: "sans titre\n" }]);
+});
+
+test("nommePar : l'identifiant borné comme ligneNomme ; un commentaire ne cite pas", () => {
+  const nomme = nommePar(ID);
+  for (const non of ["RULE_ALL_LIC-30", "RULE_ALL_LIC-3-slug", "RULE_ALL_LIC-3.03"]) assert.equal(nomme.test(non), false, non);
+  for (const oui of ["[r](../RULE_ALL_LIC-3.md)", "voir RULE_ALL_LIC-3."]) assert.equal(nomme.test(oui), true, oui);
+  const spec = `# S\n\n## A\n\n<!-- ${ID} -->\nRien.\n\n## B\n\nVoir ${ID}.\n`;
+  assert.deepEqual(extrait(sansCommentaires(spec), ID).titres, ["## B"]);
+});
+
+/** Un projet jouet : la règle, et des specs `SPEC_ALL_LIC-<n>` dont le corps est donné. */
+function projetTri(nom, corps) {
+  const fichiers = { [`docs/metier/regles/all/${ID}.md`]: REGLE };
+  corps.forEach((sections, i) => {
+    fichiers[`docs/features/lic/all/SPEC_ALL_LIC-${i + 1}-s${i + 1}.spec.md`] = `# Spec ${i + 1}\n\nRègles: ${ID}\n\n${sections}`;
+  });
+  return projet(nom, fichiers);
+}
+
+test("en ligne de commande, sous le plafond : le message est celui des specs entières, rien sur la sortie d'erreur", () => {
+  const racine = projetTri("sous-plafond", [`## A\n\nSans citation.\n\n## B\n\nVoir ${ID}.\n`, "## C\n\nRien.\n"]);
+  const r = lancer(racine, ID);
+  const { regle, specs } = contexteDeLaRegle(racine, ID);
+  assert.equal(r.status, 0);
+  assert.equal(r.stderr, "");
+  assert.equal(r.stdout, `${message({ prompt: PROMPT, regle, specs })}\n`);
+});
+
+test("en ligne de commande, au-delà du plafond : chaque spec réduite, le message et la sortie d'erreur le disent, sortie 0", () => {
+  const corps = [1, 2].map(() => `## A\n\nVoir ${ID}.\n\n## Gros\n\n${"x".repeat(PLAFOND)}\n`);
+  const r = lancer(projetTri("tri", corps), ID);
+  assert.equal(r.status, 0, r.stderr);
+  assert.ok(!r.stdout.includes("xxxx"));
+  assert.equal(r.stdout.split("(extrait : en-tête, « ## A » ; écartées : 1) :").length, 3);
+  assert.ok(r.stdout.includes(PUCE));
+  assert.match(r.stderr, /contexte réduit : \d+ caractères, \d+ après le tri \(plafond 300000\)/);
+  for (const n of [1, 2]) assert.match(r.stderr, new RegExp(`SPEC_ALL_LIC-${n}-s${n}\\.spec\\.md : \\d+ caractères, \\d+ en extrait \\(en-tête, « ## A »\\)`));
+});
+
+test("en ligne de commande, le refus après le tri : tailles avant et après, sections retenues, sortie 2", () => {
+  const r = lancer(projetTri("refus-tri", [`## A\n\nVoir ${ID}.\n\n${"x".repeat(PLAFOND)}\n`]), ID);
+  assert.equal(r.status, 2);
+  assert.equal(r.stdout, "");
+  assert.match(r.stderr, /contexte trop long : \d+ caractères \(plafond 300000\) après le tri, \d+ avant/);
+  assert.match(r.stderr, /SPEC_ALL_LIC-1-s1\.spec\.md : \d+ caractères, \d+ en extrait \(en-tête, « ## A »\)/);
+  assert.match(r.stderr, /rien n'est tronqué/);
 });
 
 test("en ligne de commande : un identifiant, la sortie est le message ; usage, règle introuvable ou titre plié, sortie 2", () => {

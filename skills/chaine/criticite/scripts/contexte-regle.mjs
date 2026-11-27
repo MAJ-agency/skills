@@ -17,6 +17,9 @@
  * dont un ticket (`<SPEC>-<slug>.<NN>.issue.md`, archive comprise) la nomme dans sa ligne `Règles:` ou
  * `Prouve:`. Les specs passent au mot près, leurs commentaires (HTML, ou ligne `[//]: # (…)`) retirés, pas les tickets. Aucune : « aucune spec ne déclare
  * cette règle ».
+ * Le plafond : si le message entier passe 300 000 caractères, chaque spec est réduite à son en-tête et aux
+ * sections (titre de niveau 1 ou 2, hors clôture de code) qui citent la règle, le message nomme ce qui est
+ * retenu, et la sortie d'erreur dit le tri (sortie 0). Encore au-delà après le tri : refus.
  * Aucun lien symbolique n'est suivi : une spec qui en est un est ignorée, et le message le dit ; une
  * règle qui en est un, ou dont un dossier en est un, est refusée. Un nom de fichier qui porte un
  * caractère de contrôle est refusé : un chemin n'est écrit qu'après ce refus.
@@ -24,7 +27,7 @@
  * Usage : node <dossier du skill>/scripts/contexte-regle.mjs <RULE_<CTX>_<TRI>-<n>>   (depuis la racine du projet)
  * Racine : le dossier courant, sans variable d'environnement.
  * Sorties : 0 · 2 usage, règle introuvable ou lien, nom illisible, en-tête ou titre illisible, contexte de plus de 300 000
- * caractères, ou prompt sans ses marques.
+ * caractères après le tri, ou prompt sans ses marques.
  */
 import { existsSync, lstatSync, readFileSync, readdirSync, realpathSync } from "node:fs";
 import { basename, dirname, join, relative } from "node:path";
@@ -72,10 +75,13 @@ export function enonceDeLaRegle(texte) {
   return titre ? `# ${titre}\n\n${corps}`.trimEnd() : corps;
 }
 
+/** Le motif de l'identifiant exact, borné des deux côtés : `-30`, `-3-slug` et `-3.03` ne nomment pas `-3`. */
+export const nommePar = (id) => new RegExp(`(?<![\\w-])${id}(?![\\w-]|\\.\\d+(?!\\w))`);
+
 /** Vrai quand la ligne `Clé:` de l'en-tête d'un document (avant sa première section) nomme la règle. */
 export function ligneNomme(texte, cles, id) {
   const tete = sansBom(texte).split(/\r?\n## /)[0];
-  const nom = new RegExp(`(?<![\\w-])${id}(?![\\w-]|\\.\\d+(?!\\w))`);
+  const nom = nommePar(id);
   // Les trois formes du gate tickets (`X:`, `**X:**`, `- X:`), toute casse : tickets-regles.mjs.
   const entete = new RegExp(`^(?:- )?\\**(?:${cles.join("|")})\\**\\s*:`, "i");
   return tete.split(/\r?\n/).some((l) => entete.test(l) && nom.test(l.replace(/\s#.*$/, "")));
@@ -87,17 +93,87 @@ export function cloture(texte) {
   return `${c}text\n${texte}\n${c}`;
 }
 
+/**
+ * Un texte coupé en morceaux : `[{ titre: null, texte }, { titre, texte }…]`, l'en-tête (ce qui précède le
+ * premier titre de niveau 2) puis les sections. Un titre est une ligne qui commence en colonne 0 par `#` ou
+ * `##` et une espace ou une tabulation, hors clôture de code (``` ou ~~~, non refermée : jusqu'à la fin).
+ * Une section court jusqu'au titre de niveau 1 ou 2 suivant ; `###` reste dans la sienne. Les morceaux,
+ * mis bout à bout, rendent le texte octet pour octet.
+ */
+export function decouper(texte) {
+  const morceaux = [{ titre: null, texte: "" }];
+  let cloture = null;
+  let enTete = true;
+  for (const ligne of texte.split(/(?<=\n)/)) {
+    const nue = ligne.replace(/\r?\n$/, "");
+    const ouvre = cloture ? null : /^ {0,3}(`{3,}|~{3,})/.exec(nue);
+    if (cloture) {
+      const ferme = new RegExp(`^ {0,3}${cloture.car}{${cloture.n},}[ \\t]*$`);
+      if (ferme.test(nue)) cloture = null;
+    } else if (ouvre) {
+      cloture = { car: ouvre[1][0] === "`" ? "`" : "~", n: ouvre[1].length };
+    } else {
+      const titre = /^(#{1,2})[ \t]/.exec(nue);
+      if (titre && (titre[1] === "##" || !enTete)) {
+        enTete = false;
+        morceaux.push({ titre: nue.trim(), texte: "" });
+      }
+    }
+    morceaux[morceaux.length - 1].texte += ligne;
+  }
+  return morceaux;
+}
+
+/** L'extrait d'une spec : l'en-tête, puis les sections qui citent la règle (titre compris), chacune entière. */
+export function extrait(texte, id) {
+  const cite = nommePar(id);
+  const [tete, ...sections] = decouper(texte);
+  const gardees = sections.filter((m) => cite.test(m.texte));
+  return {
+    texte: tete.texte + gardees.map((m) => m.texte).join(""),
+    titres: gardees.map((m) => m.titre),
+    ecartees: sections.length - gardees.length,
+  };
+}
+
+/** Ce qu'une spec réduite garde, dit en une suite de mots : « en-tête, « ## A » » ou « en-tête seul ». */
+const retenu = (titres) => (titres.length ? `en-tête, ${titres.map((t) => `« ${t} »`).join(", ")}` : "en-tête seul");
+
 /** Le message entier : le prompt, l'énoncé et les specs, chacun dans sa clôture ; les specs ignorées, nommées. */
 export function message({ prompt, regle, specs, ignorees = [], horsConvention = [] }) {
   const morceaux = prompt.split("<règle>");
   const suite = morceaux.length === 2 ? morceaux[1].split("<spec>") : [];
   if (suite.length !== 2) throw new Error("prompt sans ses marques : une seule <règle>, puis une seule <spec>");
   const texteSpecs = specs.length
-    ? specs.map(({ nom, texte }) => `${nom} :\n\n${cloture(texte)}`).join("\n\n")
+    ? specs
+        .map(({ nom, texte, titres, ecartees }) => {
+          const note = ecartees > 0 ? ` (extrait : ${retenu(titres)} ; écartées : ${ecartees})` : "";
+          return `${nom}${note} :\n\n${cloture(texte)}`;
+        })
+        .join("\n\n")
     : AUCUNE_SPEC;
   const notes = ignorees.map((nom) => `\n\n(spec ignorée, lien symbolique : ${nom})`).join("") +
     horsConvention.map((nom) => `\n\n(spec ignorée : nom hors convention : ${nom})`).join("");
   return morceaux[0] + cloture(enonceDeLaRegle(regle)) + suite[0] + texteSpecs + notes + suite[1];
+}
+
+/**
+ * Le message, borné : entier s'il tient sous `PLAFOND` ; sinon chaque spec réduite à son extrait, puis
+ * recomposé. `reduites` vaut `null` sans tri, sinon une entrée par spec : `{ nom, entier, extrait, titres, ecartees }`.
+ */
+export function messageBorne({ prompt, regle, specs, ignorees = [], horsConvention = [], id }) {
+  const entier = message({ prompt, regle, specs, ignorees, horsConvention });
+  if (entier.length <= PLAFOND) return { texte: entier, avant: entier.length, reduites: null };
+  const extraits = specs.map((s) => ({ nom: s.nom, ...extrait(s.texte, id) }));
+  const texte = message({ prompt, regle, specs: extraits, ignorees, horsConvention });
+  const reduites = extraits.map((e, i) => ({
+    nom: e.nom,
+    entier: specs[i].texte.length,
+    extrait: e.texte.length,
+    titres: e.titres,
+    ecartees: e.ecartees,
+  }));
+  return { texte, avant: entier.length, reduites };
 }
 
 /** Vrai quand un nom de fichier porte un caractère de contrôle. */
@@ -180,12 +256,18 @@ if (estPointEntree()) {
   if (!existsSync(prompt)) sortir(`contexte-regle : prompt introuvable : ${prompt}`);
   try {
     const { regle, specs, ignorees, horsConvention } = contexteDeLaRegle(process.cwd(), id);
-    const texte = message({ prompt: readFileSync(prompt, "utf8"), regle, specs, ignorees, horsConvention });
+    const { texte, avant, reduites } = messageBorne({ prompt: readFileSync(prompt, "utf8"), regle, specs, ignorees, horsConvention, id });
+    const ligne = (r) => `\n${r.nom} : ${r.entier} caractères, ${r.extrait} en extrait (${retenu(r.titres)})`;
     if (texte.length > PLAFOND)
       sortir(
-        `contexte-regle : contexte trop long : ${texte.length} caractères (plafond ${PLAFOND}) ; règle : ${regle.length} caractères` +
-          specs.map((s) => `\n${s.nom} : ${s.texte.length} caractères`).join("") +
+        `contexte-regle : contexte trop long : ${texte.length} caractères (plafond ${PLAFOND}) après le tri, ${avant} avant ; règle : ${regle.length} caractères` +
+          reduites.map(ligne).join("") +
           "\nrien n'est tronqué : la session s'arrête et le dit",
+      );
+    if (reduites)
+      console.error(
+        `contexte-regle : contexte réduit : ${avant} caractères, ${texte.length} après le tri (plafond ${PLAFOND}) ; chaque spec réduite à son en-tête et aux sections qui citent la règle` +
+          reduites.filter((r) => r.ecartees > 0).map(ligne).join(""),
       );
     process.stdout.write(`${texte}\n`);
   } catch (e) {
