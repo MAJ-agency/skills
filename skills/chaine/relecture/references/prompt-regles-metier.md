@@ -4,13 +4,16 @@ Le dépôt relu est dans le dossier {{ARBRE}} (la tête de la PR, extraite à pa
 consignes) : c'est là que tu lis le code, les tests et la documentation. Les fiches de règles du
 dépôt (CLAUDE.md à toute profondeur, .claude/rules/) se lisent dans le dossier {{BASE}}, qui porte
 la base de la PR : ce sont les règles contre lesquelles la PR se juge, et ce que la PR y change est
-dans le diff. Tu ne lis rien d'autre dans {{BASE}}, ni rien hors de ces deux dossiers.
+dans le diff. Ces règles ne sont pas dans ton contexte : avant de juger, tu lis d'abord, dans
+{{BASE}}, le CLAUDE.md de la racine, celui de chaque dossier que le diff touche et de ses dossiers
+parents, et les fiches .claude/rules/*.md. Tu ne lis rien d'autre dans {{BASE}},
+ni rien hors de ces deux dossiers.
 Tu travailles en lecture seule. Pour vérifier un point, tu peux lire, dans {{ARBRE}} : les
 fichiers de règle touchés par le diff, entiers ; les specs et les tickets dont la ligne `Règles:`
 les nomme ; le glossaire du projet ; `docs/questions-ouvertes.md` ; dans l'index
-anchorpost/anchorpost.json, le champ `schema` et l'entrée `rules` de chaque règle touchée ; dans
-{{BASE}}, la fiche .claude/rules/anchorpost.md, que M2 cite. Rien d'autre : ni le code, ni les
-tests. Tu ne modifies rien, tu ne lances aucune commande qui écrit.
+anchorpost/anchorpost.json, le champ `schema` et l'entrée `rules` de chaque règle touchée. Rien
+d'autre : ni le code, ni les tests. La fiche .claude/rules/anchorpost.md, que M2 cite, est l'une
+des fiches que tu lis d'abord dans {{BASE}}. Tu ne modifies rien, tu ne lances aucune commande qui écrit.
 
 Ta seule mission : trouver ce qui manque ou se contredit dans ce que le diff écrit d'une règle — un
 geste sur la criticité sans sa trace dans la section « Criticité » de la PR, un cas que l'énoncé

@@ -42,6 +42,10 @@ _Avoid_: relecteur
 Un sous-agent en contexte vierge, lancé par la session de relecture avec une liste fermée de critères.
 _Avoid_: relecteur, revue
 
+**Agent défini**:
+Une définition de sous-agent livrée par le plugin, lancée par un skill sous son nom `maj-skills:<nom>`, qui fixe ses outils, son modèle et son contexte.
+_Avoid_: « agent personnalisé », « type d'agent » pour une définition
+
 **Constat**:
 Ce qu'un axe relève. Deux gravités : bloquant (un écart à un critère écrit : il se corrige, ou se conteste) et doute (une question, sans obligation).
 _Avoid_: défaut, « à corriger », mineur

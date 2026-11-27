@@ -23,6 +23,8 @@ Axes et contrôles :
 
 Pour lever un « non exécuté » : <qui lève chaque cause, et comment | sans objet>
 
+Agent des axes : <maj-skills:axe-de-relecture | agent générique, maj-skills:axe-de-relecture introuvable dans cette session (repli) | sans objet>
+
 | Gravité | Axe | Critère | Fichier et ligne | Constat | Test qui l'aurait attrapé |
 | --- | --- | --- | --- | --- | --- |
 | <bloquant ou doute> | <axe> | <critère, et la règle écrite qu'il applique> | `<fichier>:<ligne>` | <le constat, une phrase> | <pour un bloquant : le test ; pour un doute : —> |
@@ -53,6 +55,7 @@ Aucune ligne ne s'ajoute à l'en-tête, aucune ne s'y déplace. La commande de c
 ## Remplir le corps
 
 - Un axe ou un contrôle que le diff ne déclenche pas est « sans objet ». Un axe dont le sous-agent a échoué deux fois ou n'a pas lu tout le diff, un contrôle dont l'outil manque : « non exécuté », avec la cause. Quand le diff relu lui-même est « non exécuté », aucun axe ne s'est joué : chacun s'écrit « non exécuté », avec cette cause. « Pour lever un « non exécuté » » dit, pour chaque cause, qui la lève et comment (`cas-limites.md`, « Qui lève un `incomplet` ») : un `incomplet` sans cette ligne laisse la PR sans issue. Un verdict `refusé` qui porte un « non exécuté » le dit ainsi, sur la ligne de l'axe ou du contrôle : l'auteur sait ce que le tour suivant jouera en plus.
+- « Agent des axes » s'écrit **toujours** : `maj-skills:axe-de-relecture` quand chaque axe s'est lancé par ce nom ; `agent générique, maj-skills:axe-de-relecture introuvable dans cette session (repli)` quand l'outil a répondu « Agent type … not found » et que la session a relancé le même message par l'agent générique (étape 6 de `SKILL.md`) ; si un axe a eu la définition et un autre non, la ligne nomme les axes du repli ; `sans objet` quand aucun axe ne s'est lancé. Un repli n'est pas un « non exécuté » : l'axe est joué. La ligne permet de compter les replis.
 - Une ligne du tableau par constat gardé au tri, les bloquants d'abord. Sans constat : le tableau se remplace par la phrase « Aucun constat. ».
 - Le critère est cité par son identifiant (`S3`, `P2`, `T1`, `D4`, `K5`, `M2`, `C3`) et par la règle écrite qu'il applique.
 - Pour un bloquant, la dernière colonne dit le test qui l'aurait attrapé : l'auteur corrige le bloquant avec ce test, ou le conteste. Quand aucun test ne peut le tenir (un écart de documentation, un ticket), elle dit « aucun test », et pourquoi.
@@ -83,6 +86,8 @@ Axes et contrôles :
 - Session : `C1` joué · `C2` joué · `C3` sans objet · `C4` sans objet
 
 Pour lever un « non exécuté » : Documentation, le tour suivant le rejoue après la correction de l'auteur
+
+Agent des axes : maj-skills:axe-de-relecture
 
 | Gravité | Axe | Critère | Fichier et ligne | Constat | Test qui l'aurait attrapé |
 | --- | --- | --- | --- | --- | --- |
