@@ -45,9 +45,12 @@ Une **PR de documentation** est une PR dont le diff ne contient aucun chemin qui
 - **A-2 — Le contrôle des fichiers est fait par le Relecteur, avant la distribution.** `relecteur.mjs` connaît déjà le sommet de chaque tour et la tête. S'il manque la déclaration, ou si un fichier sort du périmètre, il écrit `Périmètre absent` ou `Périmètre dépassé — <fichiers>`, pose `à-reprendre` et ne lance aucune session. Raison : le contrôle est mécanique, il ne coûte aucune session de relecture et ne consomme aucun tour.
 - **A-3 — Le contrôle du contenu est un critère des axes de documentation.** Raison : une décision nouvelle peut entrer dans un fichier déjà déclaré (sur la PR #6, P-55 et A-42 entrent dans la carte du programme) ; seul un lecteur le voit.
 - **A-4 — Une suite ne lève un bloquant qu'au tri de la session de relecture, jamais par la seule parole de l'auteur.** Raison : l'auteur ne juge pas ses propres bloquants. La session vérifie que le ticket ou la PR nommé existe.
-- **A-5 — L'architecte décide au plafond de sa propre PR** (`P-1`). L'ADR de la relecture indépendante, `architecte/SKILL.md` § 5 et `chantier/SKILL.md` sont amendés. « L'arbitre n'est jamais l'auteur » reste vrai pour une contestation. Raison : au plafond, la décision est un découpage (ce qui entre, ce qui part en suite), que l'architecte a le droit de faire ; la demander au produit est une demande d'autorisation.
+- **A-5 — L'architecte décide au plafond de sa propre PR** (`P-1`). L'ADR de la relecture indépendante et `architecte/SKILL.md` § 5 sont amendés ; `chantier/SKILL.md`, relu à la source, ne porte pas l'ancienne règle et reste inchangé. « L'arbitre n'est jamais l'auteur » reste vrai pour une contestation. Raison : au plafond, la décision est un découpage (ce qui entre, ce qui part en suite), que l'architecte a le droit de faire ; la demander au produit est une demande d'autorisation.
 - **A-6 — Les constats « écartés au tri » ne sont pas transmis au tour suivant** (`P-3`). Raison : voir « Questions au produit ».
 - **A-9 — Un constat faux qui revient se traite dans le texte relu, pas dans la mémoire des relecteurs.** La règle 2 autorise l'auteur à clarifier un passage écarté au tri comme « faux ». Raison : six sessions neuves ont fait la même mauvaise lecture des deux mêmes passages de la PR #6 (fait 4) ; l'erreur vient du texte, et le clarifier sert tous les lecteurs suivants sans toucher à l'indépendance de la relecture.
+- **A-10 — Les fichiers nommés par un bloquant sont tous les chemins que sa ligne du verdict cite, dans la colonne « Fichier et ligne » comme dans le texte du constat.** Raison : un bloquant nomme le lieu de l'écart, et sa correction est parfois ailleurs ; un terme sans entrée au glossaire se corrige dans le glossaire, que le constat cite.
+- **A-11 — Une PR de documentation se reconnaît par `revue-exigee.mjs` seul**, pour le Relecteur comme pour la session de relecture. Raison : `gestes.sh axes` compte aussi comme code tout fichier qui n'est pas en Markdown ; deux définitions donneraient deux réponses pour une même PR.
+- **A-12 — L'axe Tickets reçoit la déclaration de périmètre, bien qu'il ne reçoive pas la section `## Criticité`.** Raison : la règle 3 vaut pour les trois axes de documentation.
 - **A-7 — Pas de conducteur ni de sujet : des tickets hors chantier, en série, lancés par l'architecte.** Raison : le dépôt `skills` n'a pas la chaîne, et les tickets touchent les mêmes fichiers de version.
 - **A-8 — Les tickets partent de `main` après la fusion du ticket 2 du programme « définitions d'agents ».** Raison : ce ticket modifie `architecte/SKILL.md` § 5, `plugin.json`, `NOTES-DE-VERSION.md` et `scripts/depot.test.mjs`, que ce programme modifie aussi.
 
@@ -67,7 +70,7 @@ Relus par un agent neuf avant leur lancement.
 
 | Ticket | Objet | Dépôt | Modèle |
 | ------ | ----- | ----- | ------ |
-| 1 | La décision de plafond de l'architecte sur sa propre PR (règle 6) : ADR, `architecte`, `chantier`, glossaire | `skills` | sonnet |
+| 1 | La décision de plafond de l'architecte sur sa propre PR (règle 6) : ADR, `architecte`, glossaire | `skills` | sonnet |
 | 2 | La déclaration et le contrôle des fichiers par le Relecteur (règles 1 et 2) : scripts, bancs, `chaine-de-production.md`, glossaire | `skills` | opus |
 | 3 | Le critère de périmètre, la suite et les tours 2 et 3 (règles 3, 4 et 5) : `relecture`, ses prompts, son verdict, ses bancs | `skills` | opus |
 | 4 | L'essai réel | `essai-relecture-8` | sonnet |

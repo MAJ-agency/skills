@@ -27,7 +27,7 @@ Décisions du produit :
 - P-2 — (2026-11-27) `Q-1` : aux tours 2 et 3 d'une PR de documentation, un constat nouveau sur un texte que l'auteur n'a pas touché ne bloque plus (spec, règle 5). Sa réponse à « doit-il encore bloquer la PR ? » : « ok non ».
 - P-3 — (2026-11-27) `Q-2` : les constats « écartés au tri » ne sont pas transmis au tour suivant ; un constat faux qui revient se traite en clarifiant le texte (A-9). Le produit a lu cette conclusion et n'a rien objecté ; sa réponse « ok non » la couvre.
 
-Décisions de l'architecte : A-1 à A-9, écrites avec leur raison dans la spec (`## Décisions de conception`).
+Décisions de l'architecte : A-1 à A-12, écrites avec leur raison dans la spec (`## Décisions de conception`).
 
 ## Fog
 
@@ -47,9 +47,9 @@ Décisions de l'architecte : A-1 à A-9, écrites avec leur raison dans la spec 
 Écrite le 2026-11-27, le produit ayant demandé un prompt pour qu'un autre architecte reprenne.
 
 - **Où en est le chantier.** La spec est validée par le produit (`P-1` à `P-3`). La carte et la spec sont dans la PR brouillon `MAJ-agency/skills#165` (branche `claude-jfrt-fam/great-lovelace-pwm6uo`, à jour avec `main` en 8.5.0). Aucun fichier de skill n'est modifié.
-- **Tickets.** Quatre tickets sont prévus (spec, « Les tickets, dans l'ordre »). S'ils sont sous `docs/issues/perimetre-fige/issues/` sur la branche, un sous-agent les a écrits et il reste à les faire relire par un agent neuf. S'ils n'y sont pas, ils sont à écrire.
+- **Tickets.** Les quatre tickets sont écrits par un sous-agent et commités sous `docs/issues/perimetre-fige/issues/` (versions 8.6.0, 8.7.0, 8.8.0, puis l'essai). Ils ne sont pas relus : un agent neuf les relit avant tout lancement, et vérifie qu'ils portent A-10, A-11 et A-12, écrites après eux. Le rapport du sous-agent est résumé au journal.
 - **Suite, dans l'ordre.** Tickets relus par un agent neuf et corrigés ; PR #165 sortie du brouillon, sans sortir de son périmètre déclaré (carte, spec, tickets) ; commentaire `à-fusionner au sommet <sha>` puis label `à-fusionner` ; un capitaine lancé pour `skills` (procédure d'un dépôt sans la chaîne, `architecte/references/lancement.md`) ; ticket 1 lancé depuis `main`, puis les tickets 2 et 3 en série ; ticket 4 sur `essai-relecture-8`.
-- **Ce qui attend le produit.** Rien.
+- **Ce qui attend le produit.** Rien aujourd'hui. Avant le ticket 4 : l'accord du produit sur la repose des scripts dans `essai-relecture-8`, qui touche un chemin sensible (`scripts/chaine/**`).
 - **Sessions en vie.** Aucune session lancée par cet architecte, aucun réveil programmé, aucun suivi de PR.
 - **À transmettre au programme Atalian.** Deux passages de `atalian-offer-generator` provoquent un constat faux à chaque tour (`GLOSSARY.md:320`, ticket `.14:77`) : journal du 2026-11-27, A-9.
 - **Environnement de la session de suite.** Ouverte par le produit, en « Auto », sur `MAJ-agency/skills` ; `MAJ-agency/essai-relecture-8` pour le ticket 4.
@@ -61,6 +61,7 @@ Décisions de l'architecte : A-1 à A-9, écrites avec leur raison dans la spec 
 - 2026-11-27 21 h 10 UTC — L'architecte du programme « définitions d'agents » écrit que la PR #166 est fusionnée sur `main` (plugin 8.5.0) : les tickets de ce programme peuvent partir de `main`, en 8.6.0. Son programme passe à un architecte d'un autre compte, qui ne peut pas écrire à cette session, et son capitaine est archivé : ce programme lance son propre capitaine pour `skills` à la première PR prête.
 - 2026-11-27 — A-9 ajoutée à la spec après un échange avec le produit sur les deux constats faux répétés de la PR #6 : l'auteur peut clarifier un passage écarté au tri comme « faux ». Les deux passages eux-mêmes sont dans `atalian-offer-generator` (`GLOSSARY.md:320`, ticket `.14:77`) : leur correction revient au programme Atalian, cette session n'y écrit pas.
 - 2026-11-27 — Le produit tranche `Q-1` et `Q-2` (`P-2`, `P-3`) : spec validée. Le produit n'a pas archivé la session : la passation ci-dessus reste écrite, l'architecte continue. Tickets confiés à un sous-agent.
+- 2026-11-27 — Quatre tickets écrits par un sous-agent, commités, non relus. Son rapport : versions mineures 8.6.0, 8.7.0, 8.8.0 (le README dit « majeure quand un skill existant change de contrat » : l'usage des notes 8.4.0 et 8.5.0 est la mineure, retenue) ; `chantier/SKILL.md` ne porte pas l'ancienne règle du plafond (A-5 corrigée) ; un bloquant nomme le lieu de l'écart et non celui de la correction (A-10) ; deux lectures de « PR de documentation » (A-11) ; l'axe Tickets ne reçoit pas la criticité (A-12) ; le critère `D9` casse un banc d'égalité avec le régime 7, que le ticket 3 borne à `D1`–`D8` ; `relecteur/SKILL.md` dit que le Relecteur ne lit pas le corps d'un verdict, alors que le script le lira pour lui (ticket 2). Avant le ticket 4 : accord du produit sur le chemin sensible, Relecteur et capitaine à lancer sur `essai-relecture-8` ; le « relevé tardif » ne se provoque pas à coup sûr, le ticket 4 traite les trois issues.
 
 ## Source
 

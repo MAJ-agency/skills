@@ -1,0 +1,92 @@
+# Au plafond de sa propre PR, l'architecte écrit la décision de plafond (8.6.0)
+
+Status: ready-for-agent
+Type: task
+Modèle: sonnet — quatre phrases à reprendre dans une ADR, un skill, la méthode et le glossaire, sans script ; une exigence de plus dans un banc existant ; les décisions sont prises dans la spec (règle 6, `A-5`).
+Blocked by: —
+Dépendances: — (aucune dépendance nouvelle)
+Fichiers chauds: `skills/chaine/socle-chaine-de-production/references/adr/ADR_ALL_ARC-N-relecture-independante.md`, `skills/chaine/architecte/SKILL.md`, `skills/chaine/socle-chaine-de-production/references/docs-agents/chaine-de-production.md`, `CONTEXT.md`, `scripts/bascule.test.mjs`, `.claude-plugin/plugin.json`, `NOTES-DE-VERSION.md`
+
+Programme : [`../../../programmes/perimetre-fige.programme.md`](../../../programmes/perimetre-fige.programme.md). Spec : [`../perimetre-fige.spec.md`](../perimetre-fige.spec.md) (fait 7, règle 6, décisions `A-5`, `A-7`, `A-8`, `P-1`). Premier ticket de la série : il part de `main` (plugin 8.5.0).
+
+## Le besoin
+
+En régime 8, une PR refusée trois fois atteint le plafond et attend une `Décision de plafond`. Quand l'auteur de la PR est l'architecte, les skills renvoient cette décision au produit (fait 7). Le produit a dit que l'architecte a le droit de l'écrire lui-même (`P-1`). La PR `atalian-offer-generator#6` a été fusionnée à la main, sans ce commentaire.
+
+**Quand le ticket est fait :**
+
+1. L'ADR de la relecture indépendante, `architecte/SKILL.md` § 5 et le tableau des rôles de `chaine-de-production.md` disent : au plafond d'une PR dont il est l'auteur, l'architecte écrit `Décision de plafond — …` lui-même.
+2. Ces textes disent ce que la décision contient : bloquant par bloquant, ce qui est corrigé dans la PR, ce qui part en suite, ce qui est écarté (`Arbitrage — … — écarté — <raison>`).
+3. Ils gardent trois limites : un bloquant sur une règle de criticité haute reste décidé par le produit ; l'arbitrage d'une contestation sur une PR de l'architecte reste au produit ; le produit est informé de la décision en une ligne.
+4. Rien ne change pour la PR d'une fille ou d'un conducteur.
+5. Le glossaire (`CONTEXT.md`, « Décision de plafond ») dit la même règle.
+6. `scripts/bascule.test.mjs` exige la phrase nouvelle d'`architecte/SKILL.md` § 5 et refuse l'ancienne.
+7. Le plugin passe en 8.6.0, avec sa note.
+
+## Où
+
+Tout est lu dans le dépôt le 2026-11-27, sur la branche `claude-jfrt-fam/great-lovelace-pwm6uo`, à jour avec `main` (plugin 8.5.0). Les lignes de skill dépassent souvent mille caractères : chaque citation donne le passage à chercher dans la ligne.
+
+- **`skills/chaine/socle-chaine-de-production/references/adr/ADR_ALL_ARC-N-relecture-independante.md`**, l. 18, point 5 : « **Trois tours refusés au plus.** Au-delà, la décision de plafond : l'architecte pour une PR d'une fille ou du conducteur, le produit pour une PR de l'architecte ; sans programme, le conducteur pour une PR d'une fille quand la cause est technique, le produit sinon ; qui décide en informe le produit. Un bloquant se corrige avec son test, ou se conteste ; l'arbitre n'est jamais l'auteur. » Le passage « le produit pour une PR de l'architecte » change. La dernière phrase reste.
+- **`skills/chaine/architecte/SKILL.md`**, § 5 (« ## 5. Le suivi : les cartes, les questions, le découpage », l. 70), l. 76, puce « - **En régime 8, une PR livrée** ». Trois passages de cette ligne :
+  - « **Il arbitre** une contestation sur une PR du conducteur (…) ; celle d'une PR de l'architecte, c'est le produit. » : **inchangé** ;
+  - « **Il décide au plafond** (trois tours refusés, `Plafond — décision attendue`) d'une PR d'une fille ou du conducteur : `Décision de plafond — …` sur la PR (ticket récrit ou découpé, désaccord tranché), avec ses lignes `Arbitrage — … — écarté` quand elle écarte un bloquant, et le produit en est informé en une ligne, le conducteur aussi, qui la dit à la fille (sur sa propre PR, il la suit) : l'auteur redemande la relecture, sans quoi la PR reste `à-reprendre`, hors de la file du Relecteur » : le début change (« d'une PR d'une fille ou du conducteur »), la suite reste ;
+  - « ; au plafond d'une PR de l'architecte, le produit décide. » : remplacé.
+- **`skills/chaine/socle-chaine-de-production/references/docs-agents/chaine-de-production.md`** :
+  - l. 18, tableau des rôles, ligne « | Architecte » : « arbitre les contestations des PR du conducteur, décide au plafond d'une PR d'une fille ou du conducteur, archive les sessions finies » : change ;
+  - l. 41, point « 4 bis. **Relecture.** » : « Trois tours refusés au plus : au-delà, la décision de plafond (l'architecte ; sans programme, le conducteur pour une cause technique, le produit sinon). » : déjà juste, **inchangé** ;
+  - l. 131, § 5, étape 6 : « Trois tours refusés : le plafond, que l'architecte décide (sans programme, le conducteur ou le produit) ; la fille attend la décision » : parle de la PR d'une fille, **inchangé**.
+- **`CONTEXT.md`**, § « Relecture indépendante », l. 71 à 73 : « **Décision de plafond**: » puis « Ce que décide l'architecte après le troisième tour refusé d'une PR. Ce plafond compte des tours de relecture, pas la mémoire de travail d'une session (« Plafond », plus bas). » puis « _Avoid_: arbitrage ». La définition gagne une phrase. L. 68 et 69, « **Arbitrage**: La décision d'un arbitre, qui n'est jamais l'auteur, de maintenir ou d'écarter un bloquant contesté. » : **inchangé**.
+- **`skills/chaine/chantier/SKILL.md`**, l. 100, puce « - **Recevoir un plafond** » : « dans un programme, l'architecte décide, il lui donne ce qu'il sait du ticket ; sans programme, il décide lui-même si la cause est technique (ticket récrit ou découpé, désaccord tranché), le produit sinon ». Ce texte parle de la PR d'une fille. Il ne dit nulle part que le produit décide pour une PR de l'architecte. **Inchangé** (décision 5).
+- **`skills/chaine/architecte/references/lancement.md`**, l. 99 : « arbitre une contestation de la session et décide au plafond (`SKILL.md` § 5) » : parle de la PR d'une session de ticket hors chantier, **inchangé**.
+- **`skills/chaine/fusionner/scripts/decision-relecteur.mjs`** : `FORME_DECISION` (l. 52, `/^Décision de plafond — \S/`) et la marque `Décision de plafond` (l. 116) acceptent déjà ce commentaire de tout compte de confiance. **Aucun script ne change.**
+- **`.claude-plugin/plugin.json`**, l. 3 : `"version": "8.5.0"`.
+- **`NOTES-DE-VERSION.md`**, l. 5 : la note la plus récente est `## 8.5.0 — 2026-11-27`.
+
+**Bancs existants qui figent un texte que ce ticket change :**
+
+- `scripts/bascule.test.mjs`, test « l'architecte en régime 8 : le Relecteur lancé et relevé, l'arbitrage et le plafond, l'archivage, la repose en quatre gestes (A-83, A-89, A-99, P-62) » (l. 160). Il exige dans § 5 d'`architecte/SKILL.md` (l. 165 à 167) : « **Il arbitre** une contestation sur une PR du conducteur », « **Il décide au plafond** », « écrit sur la PR, puis dit au conducteur en une ligne : il redemande la relecture) » et « et le produit en est informé en une ligne, le conducteur aussi, qui la dit à la fille (sur sa propre PR, il la suit) : l'auteur redemande la relecture, sans quoi la PR reste `à-reprendre`, hors de la file du Relecteur ». Ces quatre passages restent tels quels dans le skill.
+- `scripts/bascule.test.mjs`, test « le conducteur en régime 8 … » (l. 76) : exige dans `chantier/SKILL.md` « - **Recevoir un plafond** (trois tours refusés : `Plafond — décision attendue` sur la PR, une ligne du Relecteur) » (l. 84) et « la décision écrite, par lui ou par l'architecte, il l'écrit en une ligne à la fille, qui la suit et redemande la relecture. » (l. 92). `chantier/SKILL.md` ne change pas : ces lignes restent vertes.
+- `scripts/relecture.test.mjs`, test « le plugin connaît le skill … » (l. 478) : l. 494 à 498, le terme « Décision de plafond » de `CONTEXT.md` a sa définition sur la ligne qui suit, longue de plus de 20 caractères, qui ne commence ni par `_Avoid_` ni par `**`. La phrase ajoutée reste sur cette même ligne.
+- `scripts/depot.test.mjs` l. 1397 : l'ADR de la relecture indépendante est un fichier libre de la table `DISENT_LE_RETRAIT` (`null`) ; aucun passage n'y est figé.
+- `scripts/depot.test.mjs` l. 1227 à 1230 : la première note de `NOTES-DE-VERSION.md` commence par la version de `plugin.json` et porte « ### Ce qui change » et « ### Ce qu'un projet fait pour en profiter ».
+- Aucun banc ne fige aujourd'hui « au plafond d'une PR de l'architecte, le produit décide » ni le point 5 de l'ADR (recherche de ces passages dans `scripts/*.test.mjs` et `skills/chaine/*/scripts/*.test.mjs` : aucune occurrence).
+
+## Décisions
+
+1. **La règle** : spec, règle 6, reprise mot pour mot. « Au plafond d'une PR dont il est l'auteur, l'architecte écrit `Décision de plafond — …`. Elle dit, bloquant par bloquant, ce qui est corrigé dans la PR, ce qui part en suite (avec son commentaire `Suite`) et ce qui est écarté (`Arbitrage — … — écarté — <raison>`). Il en informe le produit en une ligne. Un bloquant sur une règle de criticité haute reste décidé par le produit. Rien ne change pour la PR d'une fille ou d'un conducteur, ni pour l'arbitrage d'une contestation. »
+2. **`architecte/SKILL.md` l. 76.** Le passage « ; au plafond d'une PR de l'architecte, le produit décide. » est remplacé par la règle de la décision 1, écrite à la suite, dans la même puce. La phrase « celle d'une PR de l'architecte, c'est le produit » (l'arbitrage d'une contestation) reste. « **Il décide au plafond** (trois tours refusés, `Plafond — décision attendue`) d'une PR d'une fille ou du conducteur » reste aussi : la phrase nouvelle ajoute le cas de sa propre PR, elle ne récrit pas celui des autres. Raison : les quatre passages que `bascule.test.mjs` exige ne sont pas coupés.
+3. **L'ADR, point 5.** « le produit pour une PR de l'architecte » devient : l'architecte pour une PR dont il est l'auteur, sauf un bloquant sur une règle de criticité haute, que le produit décide. « qui décide en informe le produit » et « l'arbitre n'est jamais l'auteur » restent. Une phrase dit pourquoi (`A-5`) : au plafond, la décision est un découpage (ce qui entre, ce qui part en suite), que l'architecte a le droit de faire ; l'arbitrage d'une contestation reste à un autre que l'auteur.
+4. **`chaine-de-production.md` l. 18.** « décide au plafond d'une PR d'une fille ou du conducteur » devient « décide au plafond d'une PR d'une fille, du conducteur ou de la sienne (un bloquant sur une règle de criticité haute : le produit) ». Les cellules du tableau gardent leur forme.
+5. **`chantier/SKILL.md` ne change pas.** La spec (`A-5`) le nomme parmi les textes amendés, mais sa ligne 100 ne porte pas l'ancienne règle : elle dit qui décide pour la PR d'une fille, et la règle 6 n'y change rien. Si la session trouve dans `chantier/` un autre passage qui renvoie au produit le plafond d'une PR de l'architecte, elle l'amende de même et le note sous `## Comments`.
+6. **Le commentaire `Suite`.** La décision de plafond nomme ce qui part en suite « avec son commentaire `Suite` ». Sa forme (`Suite — <objet> — <ticket ou PR>`, spec, règle 4) est lue par la machine au ticket 2 et par la session de relecture au ticket 3. Ce ticket n'écrit que le nom du commentaire et sa forme, dans la phrase de la décision 1.
+7. **Qui lit la criticité.** La spec ne dit pas comment l'architecte sait qu'un bloquant porte sur une règle de criticité haute. À trancher prudemment par la session, noté sous `## Comments` ; défaut prudent écrit dans le skill : le bloquant cite une règle (colonne « Critère » du verdict), l'architecte lit son niveau dans le fichier de la règle ; dans le doute, le produit décide.
+8. **`CONTEXT.md`.** La définition de « Décision de plafond » garde sa première phrase et gagne, sur la même ligne : l'architecte la prend aussi sur sa propre PR ; un bloquant sur une règle de criticité haute reste décidé par le produit. La ligne `_Avoid_: arbitrage` reste.
+9. **Le banc.** Dans `scripts/bascule.test.mjs`, test de la l. 160 : la liste exigée de § 5 gagne le noyau de la phrase nouvelle (« Au plafond d'une PR dont il est l'auteur, l'architecte écrit `Décision de plafond — …` » et « Un bloquant sur une règle de criticité haute reste décidé par le produit »), et une assertion refuse « au plafond d'une PR de l'architecte, le produit décide ». Une assertion de plus lit l'ADR : elle ne porte plus « le produit pour une PR de l'architecte ». Rouge avant le texte, vert après. Aucun banc existant n'est retiré ni assoupli.
+10. **Version : 8.6.0.** `README.md` l. 199 : « Patch pour une correction, mineure pour un skill ou un gabarit ajouté, majeure quand un skill existant change de contrat. » Ce ticket n'est pas une correction : il change une règle, donc pas 8.5.1. Aucun script posé, aucune forme lue par la machine et aucun fichier d'un projet ne cessent de valoir : `decision-relecteur.mjs` lit déjà ce commentaire. Le ticket suit donc l'usage des notes 8.4.0 et 8.5.0 (un comportement de skill qui change sans rien casser chez un projet : mineure) et la carte du programme (« en 8.6.0 », journal du 2026-11-27). La version est la mineure suivante de `main` au moment de la PR, après fusion de `origin/main` dans la branche ; si `main` a dépassé 8.5.0, la suivante, notée sous `## Comments`.
+11. **La note de version.** « Ce qui change » : au plafond de sa propre PR, l'architecte écrit la décision de plafond ; ses trois limites ; rien pour la PR d'une fille ou d'un conducteur. « Ce qu'un projet fait pour en profiter » : le skill `architecte` est lu dans le plugin, rien à reposer pour lui ; un projet en régime 8 qui veut la règle dans ses propres documents amende le point 5 de son ADR de la relecture indépendante et repose `docs/agents/chaine-de-production.md` (tableau des rôles), dans une PR de son dépôt.
+12. **Pas de README.** `README.md` l. 91 (ligne du skill `architecte`) dit « relaie les plafonds au produit » : ce sont les plafonds de session signalés par les conducteurs, pas le plafond de relecture. Inchangé.
+
+## Surfaces
+
+| Surface | Preuve |
+| --- | --- |
+| ADR, point 5 | `scripts/bascule.test.mjs`, test « l'architecte en régime 8 … » : l'ADR ne porte plus « le produit pour une PR de l'architecte » ; `grep -n "le produit pour une PR de l'architecte" skills/chaine/socle-chaine-de-production/references/adr/ADR_ALL_ARC-N-relecture-independante.md` ne rend rien |
+| `architecte/SKILL.md` § 5 | `scripts/bascule.test.mjs`, même test : les deux noyaux de la phrase nouvelle exigés, l'ancienne phrase refusée, les quatre passages des l. 165 à 167 toujours verts |
+| `chaine-de-production.md`, tableau des rôles | `grep -n "du conducteur ou de la sienne" skills/chaine/socle-chaine-de-production/references/docs-agents/chaine-de-production.md` rend la l. 18 ; `scripts/bascule.test.mjs` l. 196 à 226 vert |
+| `chantier/SKILL.md` | inchangé : `git diff --stat origin/main -- skills/chaine/chantier` ne rend rien ; `scripts/bascule.test.mjs` l. 76 à 96 vert |
+| `CONTEXT.md`, « Décision de plafond » | `scripts/relecture.test.mjs`, test « le plugin connaît le skill … » (l. 478) vert ; `grep -n -A1 "^\*\*Décision de plafond\*\*:" CONTEXT.md` rend la définition avec « criticité haute » |
+| version et note | `scripts/depot.test.mjs` l. 1227 à 1230 vert sur 8.6.0 |
+
+## Vérification
+
+1. `pnpm test` vert, sa sortie (le bilan, et `scripts/bascule.test.mjs` en entier) dans la PR. Les assertions ajoutées se voient rouges avant le texte qu'elles tiennent.
+2. `grep -rn "PR de l'architecte" skills CONTEXT.md` recopié dans la PR. Attendu : `architecte/SKILL.md` l. 76 (« celle d'une PR de l'architecte, c'est le produit », l'arbitrage) et l. 105 (le cas vécu du 2026-11-14) ; aucune occurrence qui renvoie un plafond au produit.
+3. `graphify update .` après les modifications (règle du `CLAUDE.md` du dépôt). `graphify-out/` est ignoré par git (`.gitignore`, l. 3) : rien à commiter.
+4. Revue de ticket de la branche (trois sous-agents, lancés par `maj-skills:axe-de-relecture`), puis la PR.
+
+**Consignes de livraison.** Jamais `--no-verify`, jamais de push forcé, jamais `git commit --amend` : une correction est un commit de plus. `pnpm test` vert avant de livrer. Le dépôt `skills` n'a pas la chaîne : la PR vise `main`, la session écrit le commentaire `à-fusionner au sommet <sha>` (le sha complet du sommet livré), puis pose le label `à-fusionner` ; elle ne fusionne pas. **Le corps de la PR déclare son périmètre** (spec, « Vérification », « Cette PR ») : une ligne `Périmètre — <objet>`, puis `Fichiers:` (les fichiers chauds de ce ticket et ce ticket), `Décisions:` (aucune) et `Sujets:`. Un fait ou une décision hors de cette liste part dans un autre ticket, cité sur la PR.
+
+## Comments
+
+- 2026-11-27 — Écrit par un sous-agent de l'architecte du programme « périmètre figé », d'après la spec validée (`P-2`, `P-3`).
