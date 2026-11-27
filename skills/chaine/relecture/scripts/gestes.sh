@@ -249,6 +249,14 @@ diff_relu() {
   export GIT_ATTR_SOURCE=$ARBRE_VIDE
   config_git core.quotePath false diff.renames false
   [ ! -f "$B/maj" ] || resolution
+  # Les index à commande que la base ET la tête déclarent par un chemin littéral : la liste de chacune, lue par le
+  # script de la base.
+  local L='.index[] | objects | select((.commande // "") != "" and (.chemin | contains("*") | not)) | .chemin'
+  bash -c '. "$1/scripts/chaine/github.sh" && index_json' _ "$S" > "$B/index-base.json" || quitter 12 "liste des index de la base illisible"
+  jq -r "$L" < "$B/index-base.json" | sort -u > "$B/index-base.txt" || quitter 12 "liste des index de la base illisible"
+  (cd "$A" && bash -c '. "$1/scripts/chaine/github.sh" && index_json' _ "$S") > "$B/index-tete.json" || quitter 12 "liste des index de la tête illisible"
+  jq -r "$L" < "$B/index-tete.json" | sort -u > "$B/index-tete.txt" || quitter 12 "liste des index de la tête illisible"
+  comm -12 "$B/index-base.txt" "$B/index-tete.txt" | { filtrer -Fxv scripts/docs/index-generes.json; } | { filtrer .; } > "$B/dispenses.txt"
   if [ ! -s "$B/fichiers.txt" ]; then
     : > "$B/attendus.txt"
     touch "$B/diff.fait"
@@ -263,14 +271,6 @@ diff_relu() {
     [ "$s" = 1 ] && grep -q '^diff-revue : diff vide' "$B/diff-revue.err" || quitter 12 "diff non écrit, sortie $s"
   fi
   [ -f "$B/diff.patch" ] || quitter 12 "diff non écrit : diff.patch absent"
-  # Les index à commande que la base ET la tête déclarent par un chemin littéral : la liste de chacune, lue par le
-  # script de la base.
-  local L='.index[] | objects | select((.commande // "") != "" and (.chemin | contains("*") | not)) | .chemin'
-  bash -c '. "$1/scripts/chaine/github.sh" && index_json' _ "$S" > "$B/index-base.json" || quitter 12 "liste des index de la base illisible"
-  jq -r "$L" < "$B/index-base.json" | sort -u > "$B/index-base.txt" || quitter 12 "liste des index de la base illisible"
-  (cd "$A" && bash -c '. "$1/scripts/chaine/github.sh" && index_json' _ "$S") > "$B/index-tete.json" || quitter 12 "liste des index de la tête illisible"
-  jq -r "$L" < "$B/index-tete.json" | sort -u > "$B/index-tete.txt" || quitter 12 "liste des index de la tête illisible"
-  comm -12 "$B/index-base.txt" "$B/index-tete.txt" | { filtrer -Fxv scripts/docs/index-generes.json; } | { filtrer .; } > "$B/dispenses.txt"
   git -C "$A" diff --name-only --no-renames "origin/$base...HEAD" > "$B/ecarts-cites.txt" || quitter 12 "liste des écarts illisible"
   sort -u "$B/ecarts-cites.txt" > "$B/ecarts.txt"
   git -C "$A" diff --name-only --no-renames -z "origin/$base...HEAD" > "$B/ecarts.z" || quitter 12 "liste des écarts illisible"
@@ -470,17 +470,6 @@ c1() {
   git -C "$A" -c core.quotePath=false diff --name-only HEAD > "$B/c1/c1.txt" || c=$?
   { git -C "$A" reset -q --hard "$sommet" && git -C "$A" clean -fdqx && git -C "$A" sparse-checkout set --no-cone "${SANS_CONSIGNES[@]}" &&
     git -C "$A" reset -q --hard "$sommet"; } || r=$?
-  : > "$B/c1/index-fusion.txt"
-  if [ -f "$B/maj" ]; then
-    local f
-    f=$(git rev-list --merges "$sommet" "^origin/$base" ^origin/develop) || f=''
-    if [ -n "$f" ] && [ "$(printf '%s\n' "$f" | wc -l | tr -d ' ')" = 1 ]; then
-      git -c core.quotePath=false diff --name-only --no-renames "$f^1" "$f" | sort -u | comm -12 - "$B/dispenses.txt" > "$B/c1/index-fusion.txt" ||
-        { : > "$B/c1/index-fusion.txt"; dire "index que la fusion a touchés : illisibles, rien n'est laissé au capitaine"; }
-    else
-      dire "fusion introuvable : rien n'est laissé au capitaine"
-    fi
-  fi
   empreinte > "$B/c1/apres.txt" || quitter 14 "empreinte illisible après C1 : aucun axe"
   [ "$r" = 0 ] || quitter 14 "l'arbre à part ne revient pas au sommet : aucun axe"
   if ! cmp -s "$B/c1/avant.txt" "$B/c1/apres.txt"; then
@@ -495,8 +484,8 @@ c1() {
     13) quitter 13 "liste des index illisible : C1 non exécuté" ;;
   esac
   [ "$c" = 0 ] || quitter 12 "c1.txt non écrit : C1 non exécuté"
-  sort -u "$B/c1/c1.txt" | comm -23 - "$B/c1/index-fusion.txt" > "$B/c1/perimes.txt"
-  sort -u "$B/c1/c1.txt" | comm -12 - "$B/c1/index-fusion.txt" > "$B/c1/au-capitaine.txt"
+  sort -u "$B/c1/c1.txt" | comm -23 - "$B/dispenses.txt" > "$B/c1/perimes.txt"
+  sort -u "$B/c1/c1.txt" | comm -12 - "$B/dispenses.txt" > "$B/c1/au-capitaine.txt"
   dire "index périmés : $(lignes "$B/c1/perimes.txt")"
   [ ! -s "$B/c1/perimes.txt" ] || cat "$B/c1/perimes.txt"
   dire "index à régénérer par le capitaine : $(lignes "$B/c1/au-capitaine.txt")"
