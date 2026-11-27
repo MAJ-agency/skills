@@ -42,11 +42,18 @@ Décisions de l'architecte : A-1 à A-8, écrites avec leur raison dans la spec 
 
 ## Passation
 
-—
+Écrite le 2026-11-27, à la demande du produit d'archiver la session.
+
+- **Où en est le chantier.** La carte et la spec sont dans la PR brouillon `MAJ-agency/skills#165` (branche `claude-jfrt-fam/great-lovelace-pwm6uo`), contrôles verts au sommet de la spec. Aucun ticket n'est écrit. Aucun fichier de skill n'est modifié.
+- **Ce qui attend le produit.** `Q-1` et `Q-2` (spec, « Questions au produit »), posées le 2026-11-27, sans réponse. La spec n'est pas validée.
+- **Suite, dans l'ordre.** Réponses du produit portées dans la carte (`P-2`, `P-3`) et dans la spec ; les quatre tickets écrits par un sous-agent, relus par un agent neuf, ajoutés à la PR #165, dont le périmètre déclaré les couvre ; PR sortie du brouillon, commentaire `à-fusionner au sommet <sha>` puis label `à-fusionner` ; un capitaine pour `skills` s'il n'y en a pas en vie ; ticket 1 lancé depuis `main` après la fusion de `MAJ-agency/skills#166`.
+- **Sessions en vie.** Aucune session lancée par cet architecte. L'architecte du programme « définitions d'agents » (session_01BxuG2z7ypDYopx6aF3M1sd) a dit qu'il préviendrait de la fusion de la PR #166 : la session de suite lit l'état de cette PR sur GitHub.
+- **Environnement de la session de suite.** Ouverte par le produit, en « Auto », sur `MAJ-agency/skills` ; `MAJ-agency/essai-relecture-8` pour le ticket 4 ; `MAJ-agency/atalian-offer-generator` en lecture, seulement pour relire les verdicts d'origine.
 
 ## Journal
 
 - 2026-11-27 — Programme ouvert par le produit. Plugin chargé 8.4.0, marketplace 8.4.0. Relevés faits par deux sous-agents : les commentaires des PR `atalian-offer-generator#5` et `#6`, et le texte actuel des skills du régime 8. L'architecte du programme « définitions d'agents » (session_01BxuG2z7ypDYopx6aF3M1sd) a été prévenu avant tout fichier de skill : son ticket 2 ne touche ni `relecture/`, ni `relecteur/`, ni `chaine-de-production.md` ; il touche `architecte/SKILL.md` § 5, les fichiers de version et `scripts/depot.test.mjs`. Accord : les tickets de ce programme partent de `main` après la fusion de son ticket 2. Spec écrite ; `Q-1` et `Q-2` posées au produit. Alerte d'usage déjà notée par l'autre carte : limite hebdomadaire du compte, levée le 2026-11-29 à 19 h UTC.
+- 2026-11-27 20 h 47 UTC — PR brouillon #165 ouverte, périmètre déclaré dans son corps ; quatre contrôles verts. Le ticket 2 du programme « définitions d'agents » est livré (PR #166, 8.5.0), pas encore fusionné. Le produit demande s'il peut archiver la session : passation écrite, rappel programmé supprimé.
 
 ## Source
 
