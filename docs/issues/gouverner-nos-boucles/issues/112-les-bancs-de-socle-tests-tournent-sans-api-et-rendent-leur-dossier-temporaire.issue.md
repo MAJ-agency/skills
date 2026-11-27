@@ -1,6 +1,6 @@
 # Les bancs de `socle-tests` tournent dans un projet sans API, et rendent leur dossier temporaire
 
-Status: needs-triage
+Status: ready-for-agent
 Type: défaut
 Modèle: sonnet — un import rendu paresseux et deux tests sautés avec leur raison dans `mutation-regles.test.mjs`, une phrase aux étapes 4 et 5 de `socle-tests`, et un `after()` qui retire les dossiers créés dans trois bancs ; rien à concevoir hors des décisions `A-257` et `A-258`. Le correctif de `mutation-regles.test.mjs` a été joué en écrivant ce ticket (« Vérification »). Qui veut changer une décision l'écrit à son lanceur, il ne tranche pas.
 Blocked by: —
@@ -27,7 +27,7 @@ Lignes lues sur `origin/main` à `3daedcd` (plugin 8.5.0).
 
 Décidées le 2026-11-27 par l'architecte : **`A-257`** et **`A-258`**. Ce qui suit les applique ; rien n'y est à trancher.
 
-1. **`A-257` (1) — Le banc sans configuration.** `const SANS_CONFIG = CONFIG && CONFIG_NOYAU ? false : "configuration Stryker absente (apps/api/ sans stryker.config.mjs ni stryker.regles.config.mjs) : rien à éprouver"` ; `base` ne s'importe que si `SANS_CONFIG` est faux. Les deux tests de `:229` et `:247` prennent `{ skip: SANS_CONFIG }` : sautés avec leur raison, visibles en `# SKIP`. `projet()` crée `apps/api/` et n'y copie les configurations que si elles existent. Aucun autre test ne change. Pourquoi un saut et non un test qui ne s'écrit pas : un test absent ne se voit nulle part ; un saut se lit dans la sortie, avec sa raison. Dans le plugin, et dans le garde `references-posees.test.mjs` qui pose les gabarits sous `apps/api/` (`VOISINS` de `pose-du-socle.mjs:46-47`), `SANS_CONFIG` est faux : rien n'y est sauté, et `SAUTES` du garde ne change pas.
+1. **`A-257` (1) — Le banc sans configuration.** `const SANS_CONFIG = CONFIG && CONFIG_NOYAU ? false : "configuration Stryker absente (apps/api/ sans stryker.config.mjs ni stryker.regles.config.mjs) : rien à éprouver"` ; `base` ne s'importe que si `SANS_CONFIG` est faux. Les deux tests de `:229` et `:247` prennent `{ skip: SANS_CONFIG }` : sautés avec leur raison, visibles en `# SKIP`. `projet()` n'y copie les configurations que si elles existent ; il n'a pas à créer `apps/api/` : `depot()` le crée déjà, par `apps/api/src/a.ts` de ses fichiers (`:166-169`). Aucun autre test ne change. Pourquoi un saut et non un test qui ne s'écrit pas : un test absent ne se voit nulle part ; un saut se lit dans la sortie, avec sa raison. Dans le plugin, et dans le garde `references-posees.test.mjs` qui pose les gabarits sous `apps/api/` (`VOISINS` de `pose-du-socle.mjs:46-47`), `SANS_CONFIG` est faux : rien n'y est sauté, et `SAUTES` du garde ne change pas.
 2. **`A-257` (2) — La pose sans API.** `socle-tests/SKILL.md`, étape 5 : « Sans `apps/api/` (un projet sans API, ou une API ailleurs) : ni les deux configurations Stryker, ni les scripts `mutation` et `mutation:regles` ; le banc `mutation-regles.test.mjs` saute alors ses deux tests de configuration, la raison dite. » Étape 4 : sans `apps/api/`, `mutation.yml` n'est pas posé (il lance les scripts de l'API). `references/CONTENU.md` le dit en une phrase dans sa section de la mutation des règles.
 3. **`A-258` (1) — Chaque banc retire ce qu'il crée.** Dans chacun des trois bancs : `after` importé de `node:test` et `rmSync` de `node:fs` ; une liste `DOSSIERS` au niveau du module ; chaque `mkdtempSync` y pousse son dossier ; `after(() => { for (const d of DOSSIERS) rmSync(d, { recursive: true, force: true }); })`. C'est la forme de `regles.test.mjs` (`ISOLE`, `after`, lignes 12-13 du banc posé). `rmSync` ne suit pas un lien : le lien vers `typescript` de `tests-creux.test.mjs:29` et le lien `src/lien` de `mutation-regles.test.mjs:140` sont retirés sans toucher leur cible (vérifié). Aucun `GARDER_JOUETS` ici : ce n'est pas le dépôt jouet partagé (`depot-jouet.mjs`), qui a déjà le sien.
 4. **`A-258` (2) — La preuve** vient au ticket 113 : l'assertion « dossier temporaire vide » du garde. Ici, le banc ciblé de chaque fichier (« Surfaces »).
@@ -39,7 +39,7 @@ Décidées le 2026-11-27 par l'architecte : **`A-257`** et **`A-258`**. Ce qui s
 | --- | --- |
 | `skills/monorepo/socle-tests/references/scripts/verify/mutation-regles.test.mjs:11-16` | `SANS_CONFIG`, l'import de `base` paresseux, le commentaire |
 | `…/mutation-regles.test.mjs:116-127`, `:137` | `depot` et `mutation-dehors-` poussent leur dossier dans `DOSSIERS` ; `after` |
-| `…/mutation-regles.test.mjs:166-176` | `projet()` : `apps/api/` créé, copie des configurations sous condition |
+| `…/mutation-regles.test.mjs:166-176` | `projet()` : copie des configurations sous condition (`apps/api/` existe déjà par `depot()`) |
 | `…/mutation-regles.test.mjs:229`, `:247` | **changent à dessein** : `{ skip: SANS_CONFIG }` en second argument ; leurs corps inchangés |
 | `skills/monorepo/socle-tests/references/scripts/verify/tests-creux.test.mjs:20-21` | `DOSSIERS`, `after` |
 | `skills/monorepo/socle-tests/references/scripts/verify/mutation-regles-synthese.test.mjs:65-66` | `DOSSIERS`, `after` |
@@ -73,13 +73,13 @@ Chacune seule, le fichier remis après : chacune rouge.
 | Mutation | Rougit |
 | --- | --- |
 | `base` importé sans condition | le banc posé sans `apps/api/` (levée à l'import) |
-| `SANS_CONFIG` toujours vrai | le banc du plugin (`# skipped 2` au lieu de 0) ; le garde (`SAUTES`) |
-| `projet()` qui copie sans condition | le banc posé sans `apps/api/` (`ENOENT` sur `copyFileSync`) |
+| `SANS_CONFIG` toujours vrai | le garde seul (`SAUTES` : deux sauts de plus) ; le banc du plugin, lui, sort en 0 avec deux sauts : ce n'est pas un rouge, la lecture de `# skipped 0` reste à la « Vérification » |
+| `projet()` qui copie sans condition | le banc posé sans `apps/api/` (`ERR_INVALID_ARG_TYPE`, un `TypeError` : `copyFileSync(undefined, …)`) |
 | l'`after` d'un des trois bancs retiré | l'étape 2 (`TMPDIR` non vide) ; le garde du ticket 113 |
 
 ## Vérification
 
-1. Les bancs ciblés, dans le plugin : `env -u NODE_PATH node --test skills/monorepo/socle-tests/references/scripts/verify/mutation-regles.test.mjs skills/monorepo/socle-tests/references/scripts/verify/tests-creux.test.mjs skills/monorepo/socle-tests/references/scripts/verify/mutation-regles-synthese.test.mjs`, verts.
+1. Les bancs ciblés, dans le plugin : `env -u NODE_PATH node --test skills/monorepo/socle-tests/references/scripts/verify/mutation-regles.test.mjs skills/monorepo/socle-tests/references/scripts/verify/tests-creux.test.mjs skills/monorepo/socle-tests/references/scripts/verify/mutation-regles-synthese.test.mjs`, verts ; pour `mutation-regles.test.mjs`, lire `# skipped 0` dans la sortie (deux sauts dans le plugin sont un défaut, qu'aucun rouge ne dit).
 2. Joué en écrivant ce ticket, sur `3daedcd` : le correctif de la décision 1 posé seul sans `apps/api/` rend 26 tests, 24 verts, 2 sautés ; dans le plugin, 26 verts.
 3. La suite entière, seule, en tâche de fond, sans `NODE_PATH`, après le ticket 113 : `env -u NODE_PATH timeout 1800 pnpm test`, sortie 0, `# fail 0`, `# tests` égal à `# pass` (le compte de `main` au départ, plus les tests neufs des deux tickets), recopié dans la PR.
 

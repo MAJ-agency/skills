@@ -1,11 +1,11 @@
 # Une règle haute citée sur `Prouve:` exige la double relecture comme sur `Règles:`, au calcul du capitaine et au gate `tickets` ; et la demande `À relire` dit le pied de page qu'elle tolère
 
-Status: needs-triage
+Status: ready-for-agent
 Type: défaut
 Modèle: sonnet — une ligne d'en-tête de plus lue par `double-relecture.mjs` et sa cause nommée, les valeurs de `Prouve:` passées à la règle 14 du gate `tickets`, deux phrases de `chaine-de-production.md` ; rien à concevoir hors de la décision `A-262`, qui applique `A-200` (3) et `A-202` (4). Le correctif du calcul a été joué en écrivant ce ticket. Qui veut changer une décision l'écrit à son lanceur, il ne tranche pas.
-Blocked by: 104
+Blocked by: 100, 104
 Dépendances: —
-Fichiers chauds: `skills/chaine/fusionner/scripts/double-relecture.mjs` (l'en-tête, 4-8 et 55-61 ; `ligneDEnTete` et `REGLES_CITEES`, 763-768 ; `reglesCitees`, 776-789 ; `enTeteDuTicket`, 796-810 ; le pas 3 de `doubleRelecture`, 944-953) et `double-relecture.test.mjs` (un test neuf après 356) ; `skills/chaine/tickets/references/scripts/verify/tickets-regles.mjs` (`ecartsRelectureDouble`, 497-516 ; son appel, 687-690) et `tickets.mjs` (l'en-tête, règle 14, 42-47) ; `skills/chaine/tickets/references/scripts/verify/tickets.test.mjs` (un cas de plus dans le test de 606-630) ; `skills/chaine/socle-chaine-de-production/references/docs-agents/chaine-de-production.md` (§ 3, ligne 88 ; § 5, étape 5, ligne 130) ; `.claude-plugin/plugin.json` et `NOTES-DE-VERSION.md`. **Le ticket 104 récrit l'étape 5 de `chaine-de-production.md`** (lignes 130, 131 et 136 : la demande par `demande.mjs`), après 96 et 101 qui la touchent aussi : d'où `Blocked by: 104`, et la phrase du pied de page se pose sur son texte, relu sur `main`. Le ticket 101 cite `double-relecture.mjs` comme modèle d'un point d'entrée, sans le changer. Aucun autre des tickets 93 à 110 ne touche ces fichiers. Le ticket 111 (`needs-info`) relira les exemples d'identifiants des tests de `tickets` et de `fusionner` : le second à entrer relit ces bancs sur `main`. Lignes lues sur `origin/main` à `3daedcd` (plugin 8.5.0) : relire chaque ligne citée sur la branche.
+Fichiers chauds: `skills/chaine/fusionner/scripts/double-relecture.mjs` (l'en-tête, 4-8 et 55-61 ; `ligneDEnTete` et `REGLES_CITEES`, 763-768 ; `reglesCitees`, 776-789 ; `enTeteDuTicket`, 796-810 ; le pas 3 de `doubleRelecture`, 944-953) et `double-relecture.test.mjs` (un test neuf après 356) ; `skills/chaine/tickets/references/scripts/verify/tickets-regles.mjs` (`ecartsRelectureDouble`, 497-516 ; son appel, 687-690) et `tickets.mjs` (l'en-tête, règle 14, 42-47) ; `skills/chaine/tickets/references/scripts/verify/tickets.test.mjs` (un cas de plus dans le test de 606-630) et `tickets-gate.test.mjs` (le test de 222, son `ticket()` de 231) ; `skills/chaine/chantier/SKILL.md` (§ 1, point 2, ligne 64) et `scripts/bascule.test.mjs` (ligne 110) ; `skills/chaine/socle-chaine-de-production/references/docs-agents/chaine-de-production.md` (§ 3, ligne 88 ; § 5, étape 5, ligne 130) ; `.claude-plugin/plugin.json` et `NOTES-DE-VERSION.md`. **Le ticket 104 récrit l'étape 5 de `chaine-de-production.md`** (lignes 130, 131 et 136 : la demande par `demande.mjs`), après 96 et 101 qui la touchent aussi : d'où `Blocked by: 104`, et la phrase du pied de page se pose sur son texte, relu sur `main`. **`chantier/SKILL.md` et `scripts/bascule.test.mjs` sont touchés par la PR de 104, 102 et 100**, et `chantier/SKILL.md` encore par 108 et 109 : d'où `Blocked by: 100`, la dernière des trois ; la ligne 64 et l'assertion de `bascule.test.mjs:110` se relisent sur `main` (108 et 109 ne touchent pas la ligne 64, mais `chantier/SKILL.md` : la seconde PR à entrer la relit). Le ticket 101 cite `double-relecture.mjs` comme modèle d'un point d'entrée, sans le changer. Aucun autre des tickets 93 à 110 ne touche ces fichiers. Le ticket 111 (`needs-info`) relira les exemples d'identifiants des tests de `tickets` et de `fusionner` : le second à entrer relit ces bancs sur `main`. Lignes lues sur `origin/main` à `3daedcd` (plugin 8.5.0) : relire chaque ligne citée sur la branche.
 
 ## Le besoin
 
@@ -26,9 +26,9 @@ Lignes lues sur `origin/main` à `3daedcd` (plugin 8.5.0).
 
 Décidée le 2026-11-27 par l'architecte : **`A-262`**, qui applique `A-200` (3) et `A-202` (4). Ce qui suit l'applique ; rien n'y est à trancher.
 
-1. **Le calcul** : `PROUVE_CITEES = ligneDEnTete('Prouve')`, aux mêmes formes que `Règles:` (puce, gras, casse, étoile) ; `enTeteDuTicket` lit ses valeurs dans l'en-tête, par `reglesCitees` (une valeur hors liste est « illisible », comme pour `Règles:`, la ligne nommée `Prouve:` dans le message), et les rend avec `motif: 'Prouve:'`. Le pas 3 pousse la cause avec ce motif. **Pas d'héritage par la spec** : `Prouve:` est une ligne de ticket (le gate K3 ne la lit que là) ; `sansLigne` reste celui de `Règles:` seul. L'en-tête (`:4-8`, `:55-61`) dit les deux lignes, et la ligne de sortie liste le motif `Prouve:` parmi les causes.
+1. **Le calcul** : `PROUVE_CITEES = ligneDEnTete('Prouve')`, aux mêmes formes que `Règles:` (puce, gras, casse, étoile) ; `enTeteDuTicket` lit ses valeurs dans l'en-tête, par `reglesCitees`, qui reçoit désormais le nom de la ligne (`Règles` ou `Prouve`) et le met dans son message (une valeur hors liste est « illisible », « ligne `Prouve:`, « … » n'est pas un identifiant de règle » ; pour `Règles:`, le message est celui d'aujourd'hui, et l'assertion de `double-relecture.test.mjs:347` reste verte), et les rend avec `motif: 'Prouve:'`. Le pas 3 pousse la cause avec ce motif. **Pas d'héritage par la spec** : `Prouve:` est une ligne de ticket (le gate K3 ne la lit que là) ; `sansLigne` reste celui de `Règles:` seul. L'en-tête (`:4-8`, `:55-61`) dit les deux lignes, et la ligne de sortie liste le motif `Prouve:` parmi les causes.
 2. **Le gate** : `ecartsRelectureDouble` reçoit les valeurs de `Règles:` et de `Prouve:` (sauf `—`) ; le message reste « alors que le ticket cite <règle> », vrai pour les deux. Sa ligne est celle de la première ligne `Règles:`, sinon de la première ligne `Prouve:`. `tickets.mjs`, règle 14 : « qui cite sur `Règles:` ou sur `Prouve:` une règle de criticité haute ».
-3. **Le texte de la chaîne** : `chaine-de-production.md:88`, « qui cite sur sa ligne `Règles:` ou `Prouve:` une règle de criticité haute » ; et, à l'étape 5, sur le texte que 104 y aura posé : « Le pied de page qu'une session cloud ajoute à un commentaire (`---` puis `_Generated by [Claude Code](https://claude.ai/code)_`) est retiré à la lecture s'il est exact ; tout autre texte après la ligne, un pied altéré compris, fait que la demande n'est pas lue. »
+3. **Le texte de la chaîne** : `chaine-de-production.md:88`, « qui cite sur sa ligne `Règles:` ou `Prouve:` une règle de criticité haute » ; `chantier/SKILL.md:64` (décidé par l'architecte), « En régime 8, un ticket qui cite sur sa ligne `Règles:` ou `Prouve:` une règle de criticité haute porte `Relecture: double` », et **`scripts/bascule.test.mjs:110` change à dessein** : la chaîne exigée devient ce texte-là ; et, à l'étape 5, sur le texte que 104 y aura posé : « Le pied de page qu'une session cloud ajoute à un commentaire (`---` puis `_Generated by [Claude Code](https://claude.ai/code)_`) est retiré à la lecture s'il est exact ; tout autre texte après la ligne, un pied altéré compris, fait que la demande n'est pas lue. »
 4. **La version** : la suivante de `main` au moment de livrer, au troisième chiffre. La note dit qu'un ticket qui prouve une règle haute exige désormais deux relectures et la ligne `Relecture: double` (régime 8), et qu'un projet repose `scripts/chaine/` (`/maj-skills:fusionner poser`) et `scripts/verify/` (`/maj-skills:tickets`) ensemble : le gate et le calcul restent d'accord.
 
 ## Où
@@ -42,11 +42,14 @@ Décidée le 2026-11-27 par l'architecte : **`A-262`**, qui applique `A-200` (3)
 | `skills/chaine/tickets/references/scripts/verify/tickets.mjs:42-47` | le texte de la règle 14 |
 | `skills/chaine/tickets/references/scripts/verify/tickets.test.mjs:606-630` | des cas de plus dans ce test (« Surfaces ») ; ses assertions existantes inchangées |
 | `skills/chaine/socle-chaine-de-production/references/docs-agents/chaine-de-production.md:88`, `:130` | décision 3 |
+| `skills/chaine/chantier/SKILL.md:64` | décision 3, la phrase de `Relecture: double` |
+| `scripts/bascule.test.mjs:110` | **change à dessein** : la chaîne exigée devient « En régime 8, un ticket qui cite sur sa ligne `Règles:` ou `Prouve:` une règle de criticité haute porte `Relecture: double` » |
+| `skills/chaine/tickets/references/scripts/verify/tickets-gate.test.mjs:222-240` | le cas ferme de « Surfaces » ; ses assertions existantes inchangées |
 | `.claude-plugin/plugin.json`, `NOTES-DE-VERSION.md` | la version, la note |
 
 ## À faire, dans l'ordre
 
-1. **Partir de `main`**, 104 entré : une branche neuve depuis `origin/main` ; relire chaque ligne citée.
+1. **Partir de `main`**, 104 et 100 entrés : une branche neuve depuis `origin/main` ; relire chaque ligne citée.
 2. **Les bancs, rouges** (« Surfaces »).
 3. **Le calcul**, puis **le gate** (décisions 1 et 2). Les bancs verts.
 4. **Les textes** (décision 3). Un commit ; la version et sa note.
@@ -60,7 +63,8 @@ Décidée le 2026-11-27 par l'architecte : **`A-262`**, qui applique `A-200` (3)
 | `Prouve:` mal formée (`Prouve: FAC-16`) : « illisible », le message nomme la ligne `Prouve:` | de même |
 | `Prouve:` dans le corps du ticket, ou sur la spec seule : non lue | de même |
 | la règle 14 : un ticket ouvert à `Prouve: RULE_ALL_SOC-1` (haute) sans `Relecture: double`, refusé en régime 8, le message habituel ; avec la ligne, passe ; en régime 7, passe ; `Fait` ou `wontfix`, passe | `tickets.test.mjs:606`, cas de plus |
-| le gate et le calcul d'accord : le même ticket, en ligne de commande, rend sortie 1 au gate sans la ligne, et « exigée » au calcul | `tickets-gate.test.mjs:222`, un cas de plus sur son dépôt jouet, si le banc s'y prête ; sinon les deux bancs ci-dessus, et la PR le dit |
+| le gate en ligne de commande lit `Prouve:` : dans le dépôt jouet de `tickets-gate.test.mjs:222`, le `ticket()` de la ligne 231 écrit `Prouve: RULE_ALL_SOC-1` au lieu de `Règles: RULE_ALL_SOC-1` ; règle haute, sans `Relecture: double` : sortie 1, le message habituel ; avec la ligne : sortie 0 | `tickets-gate.test.mjs:222`, un cas de plus (le calcul n'y est pas joué en ligne de commande) |
+| `chantier/SKILL.md:64` dit `Prouve:` | `scripts/bascule.test.mjs:110` |
 
 ## Mutations
 
@@ -71,11 +75,12 @@ Chacune seule, le fichier remis après : chacune rouge.
 | `PROUVE_CITEES` non lue dans `enTeteDuTicket` | le test neuf du calcul |
 | la cause poussée avec `motif: 'Règles:'` pour une ligne `Prouve:` | le test neuf (la cause) |
 | `Prouve:` héritée de la spec | le test neuf (la spec seule) |
-| `ecartsRelectureDouble` sans les valeurs de `Prouve:` | le cas neuf de `tickets.test.mjs` |
+| `ecartsRelectureDouble` sans les valeurs de `Prouve:` | le cas neuf de `tickets.test.mjs` ; le cas neuf de `tickets-gate.test.mjs` |
+| `chantier/SKILL.md:64` sans « ou `Prouve:` » | `scripts/bascule.test.mjs:110` |
 
 ## Vérification
 
-1. Les bancs ciblés : `env -u NODE_PATH node --test skills/chaine/fusionner/scripts/double-relecture.test.mjs skills/chaine/tickets/references/scripts/verify/tickets.test.mjs skills/chaine/tickets/references/scripts/verify/tickets-gate.test.mjs`, rouges à l'étape 2, verts après.
+1. Les bancs ciblés : `env -u NODE_PATH node --test skills/chaine/fusionner/scripts/double-relecture.test.mjs skills/chaine/tickets/references/scripts/verify/tickets.test.mjs skills/chaine/tickets/references/scripts/verify/tickets-gate.test.mjs scripts/bascule.test.mjs`, rouges à l'étape 2, verts après.
 2. Joué en écrivant ce ticket, sur `3daedcd` : le correctif de la décision 1 et son test (« La cause », 5).
 3. La suite entière, seule, en tâche de fond, sans `NODE_PATH` : `env -u NODE_PATH timeout 1800 pnpm test`, sortie 0, `# fail 0`, `# tests` égal à `# pass` (le compte de `main` au départ, plus les tests neufs), recopié dans la PR.
 
@@ -86,7 +91,7 @@ Chacune seule, le fichier remis après : chacune rouge.
 
 ## Hors périmètre
 
-- **« Refusé, double » annoncé avant le verdict de la seconde session** (essai, PR 3, tour 2, journal de la carte, 2026-11-22, 22 h 46 UTC). Établi à la source : un tour à deux sessions est `refuse` dès le premier refus (`decision-relecteur.mjs:269`) ; la règle 4 (`:419-422`) pose `à-reprendre` et envoie `verdict écrit sur la PR <n> : refusé, double` (`:390`) ; le verdict de la seconde session, s'il vient avant la distribution suivante, compte pour ce tour, mais aucune ligne ne le dit (l'étiquette est en place : `rien`). La session qui corrige n'a que les bloquants du premier refus, et le tour suivant peut tomber sur ceux du second (à l'essai : tour 2 refusé par l'une, tour 3 par l'autre, puis le plafond). Attendre tous les verdicts du tour avant d'annoncer le refus, ou annoncer le second verdict à part, change le moment des règles et le compte des tours vers le plafond : une question à l'architecte, pas tranchée ici.
+- **« Refusé, double » annoncé avant le verdict de la seconde session** (essai, PR 3, tour 2) : tranché par `A-265` (1) : un ticket à part, famille relecture, après 97.
 - La lecture de `Prouve:` par `contexte-ticket.mjs` de `revue-de-ticket` (forme nue seulement, même entrée du journal) : un autre ticket, famille `revue-de-ticket`.
 
 ## Comments
