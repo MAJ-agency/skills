@@ -1,0 +1,16 @@
+--- a/skills/chaine/fusionner/scripts/double-relecture.mjs	2026-11-19 15:18:36.418291235 +0000
++++ b/skills/chaine/fusionner/scripts/double-relecture.mjs
+@@ -330,6 +330,13 @@
+         i++;
+         return fluxPlie(R, suivante.texte, suivante.n);
+       }
++      // La troisième forme du formateur : le mappage ou la liste en ligne, seuls sur la ligne qui suit leur clé, au retrait R+2.
++      if ((suivante.texte[0] === '{' || suivante.texte[0] === '[') && reste === '' && suivante.retrait === R + 2 && suivante.n === u.n + 1) {
++        i++;
++        const [lu, suite] = fluxEnLigne(suivante.texte, suivante.n);
++        finDeLigne(suivante.texte, suite, suivante.n);
++        return lu;
++      }
+       return suivante.texte.startsWith('- ') ? liste(suivante.retrait) : mappage(suivante.retrait);
+     }
+     return suivante && suivante.retrait === R && suivante.texte.startsWith('- ') ? liste(R) : null;

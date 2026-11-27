@@ -1,0 +1,37 @@
+criticality: high
+validation: { status:rejected }
+====
+criticality: high
+validation:
+  status:rejected
+====
+criticality: high
+validation:
+<NBSP>status: rejected
+====
+criticality: high
+validation:
+<CR>status: rejected
+====
+criticality: high
+validation: { status: rejected<NBSP>}
+====
+criticality: high
+validation:
+  status: rejected
+    x
+====
+criticality: high
+validation:
+ |
+ status: rejected
+====
+criticality: { level:low }
+====
+criticality:
+  level: low
+    x
+====
+code:
+- apps/x
+ y/f.ts

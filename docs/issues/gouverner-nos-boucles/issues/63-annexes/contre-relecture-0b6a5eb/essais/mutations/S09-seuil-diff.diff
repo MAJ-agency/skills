@@ -1,0 +1,13 @@
+diff --git a/skills/chaine/relecture/scripts/gestes.sh b/skills/chaine/relecture/scripts/gestes.sh
+index 7c2c795..e956574 100755
+--- a/skills/chaine/relecture/scripts/gestes.sh
++++ b/skills/chaine/relecture/scripts/gestes.sh
+@@ -354,7 +354,7 @@ binaires_resolution() {
+ # son dossier de travail : le cas « un seul lot » ne retire que le sien.
+ lots() {
+   local patch=$1 liste=$2 nom=$3 total qui pre n i d W
+-  total=$(lignes "$patch")
++  total=$(lignes "$B/diff.patch")
+   [ "$total" -gt 2000 ] || return 0
+   if [ "$nom" = lot ]; then qui="le diff relu" pre=lots; else qui="la résolution" pre="lots de la résolution"; fi
+   mkdir -p "$B/lots"

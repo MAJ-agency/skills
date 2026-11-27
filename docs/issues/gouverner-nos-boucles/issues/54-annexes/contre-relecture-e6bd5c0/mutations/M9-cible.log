@@ -1,0 +1,536 @@
+TAP version 13
+# Subtest: refusEdition refuse une migration déjà livrée et laisse écrire une nouvelle
+ok 1 - refusEdition refuse une migration déjà livrée et laisse écrire une nouvelle
+  ---
+  duration_ms: 2.393198
+  type: 'test'
+  ...
+# Subtest: refusEdition laisse éditer .claude/skills : les skills du plugin vivent hors du dépôt, ceux du projet sont à lui
+ok 2 - refusEdition laisse éditer .claude/skills : les skills du plugin vivent hors du dépôt, ceux du projet sont à lui
+  ---
+  duration_ms: 0.176376
+  type: 'test'
+  ...
+# Subtest: refusEdition refuse le lockfile et les fichiers .env, laisse .env.example
+ok 3 - refusEdition refuse le lockfile et les fichiers .env, laisse .env.example
+  ---
+  duration_ms: 0.10122
+  type: 'test'
+  ...
+# Subtest: refusEdition normalise le chemin avant de juger : un détour (`//`, `/./`, `x/../`, `\\`) ne contourne aucun refus
+not ok 4 - refusEdition normalise le chemin avant de juger : un détour (`//`, `/./`, `x/../`, `\\`) ne contourne aucun refus
+  ---
+  duration_ms: 0.46498
+  type: 'test'
+  location: '<dossier du contre-relecteur>/mut/skills/chaine/socle-chaine-de-production/references/agent/regles.test.mjs:27:1'
+  failureType: 'testCodeFailure'
+  error: 'apps/../pnpm-lock.yaml'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual: ''
+  operator: 'match'
+  stack: |-
+    TestContext.<anonymous> (file://<dossier du contre-relecteur>/mut/skills/chaine/socle-chaine-de-production/references/agent/regles.test.mjs:29:12)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: decisionCommande refuse le push forcé, --no-verify, le push direct sur develop/main, le rebase d’un sujet
+ok 5 - decisionCommande refuse le push forcé, --no-verify, le push direct sur develop/main, le rebase d’un sujet
+  ---
+  duration_ms: 7.018682
+  type: 'test'
+  ...
+# Subtest: une dépendance nouvelle est refusée, une réinstallation passe
+ok 6 - une dépendance nouvelle est refusée, une réinstallation passe
+  ---
+  duration_ms: 1.184664
+  type: 'test'
+  ...
+# Subtest: paquetsAjoutes : noms sans version, portée gardée, alias et sources gardés entiers
+ok 7 - paquetsAjoutes : noms sans version, portée gardée, alias et sources gardés entiers
+  ---
+  duration_ms: 0.840588
+  type: 'test'
+  ...
+# Subtest: un paquet prévu par le ticket passe sans question, avec ou sans version
+ok 8 - un paquet prévu par le ticket passe sans question, avec ou sans version
+  ---
+  duration_ms: 0.638039
+  type: 'test'
+  ...
+# Subtest: un paquet prévu et un non prévu, un alias ou une option de source : la commande entière est refusée
+ok 9 - un paquet prévu et un non prévu, un alias ou une option de source : la commande entière est refusée
+  ---
+  duration_ms: 1.329113
+  type: 'test'
+  ...
+# Subtest: ticket introuvable (contexte null ou vide) : refusé ; les refus restent
+ok 10 - ticket introuvable (contexte null ou vide) : refusé ; les refus restent
+  ---
+  duration_ms: 0.61375
+  type: 'test'
+  ...
+# Subtest: tout push forcé est refusé, sur toute branche et sous toute forme ; la consigne de sujet.sh demarrer passe
+ok 11 - tout push forcé est refusé, sur toute branche et sous toute forme ; la consigne de sujet.sh demarrer passe
+  ---
+  duration_ms: 3.718958
+  type: 'test'
+  ...
+# Subtest: un push vers un sujet est refusé, quelle que soit la branche et la forme de la commande
+ok 12 - un push vers un sujet est refusé, quelle que soit la branche et la forme de la commande
+  ---
+  duration_ms: 2.52962
+  type: 'test'
+  ...
+# Subtest: tout git push vers un sujet est refusé, quelle que soit la branche, et le refus indique sujet.sh carte
+ok 13 - tout git push vers un sujet est refusé, quelle que soit la branche, et le refus indique sujet.sh carte
+  ---
+  duration_ms: 5.99419
+  type: 'test'
+  ...
+# Subtest: un git push nu, ou vers HEAD, depuis une branche sujet/… est refusé
+ok 14 - un git push nu, ou vers HEAD, depuis une branche sujet/… est refusé
+  ---
+  duration_ms: 0.984325
+  type: 'test'
+  ...
+# Subtest: un refspec illisible (variable, substitution, motif, --all, --mirror) est refusé
+ok 15 - un refspec illisible (variable, substitution, motif, --all, --mirror) est refusé
+  ---
+  duration_ms: 1.500106
+  type: 'test'
+  ...
+# Subtest: ce qui n’écrit pas sur un sujet passe, sujet.sh carte compris
+ok 16 - ce qui n’écrit pas sur un sujet passe, sujet.sh carte compris
+  ---
+  duration_ms: 0.827436
+  type: 'test'
+  ...
+# Subtest: un git push vers develop, main ou la branche par défaut est refusé sous toutes ses graphies ; une source develop ou un nom voisin passent
+ok 17 - un git push vers develop, main ou la branche par défaut est refusé sous toutes ses graphies ; une source develop ou un nom voisin passent
+  ---
+  duration_ms: 1.208298
+  type: 'test'
+  ...
+# Subtest: une barre oblique inverse ne cache ni git ni gh : lignes continuées recollées, \\git lu comme git
+ok 18 - une barre oblique inverse ne cache ni git ni gh : lignes continuées recollées, \\git lu comme git
+  ---
+  duration_ms: 1.003777
+  type: 'test'
+  ...
+# Subtest: une substitution de commande ne cache ni git ni gh : lue à part, remplacée dans la commande englobante par un mot illisible
+ok 19 - une substitution de commande ne cache ni git ni gh : lue à part, remplacée dans la commande englobante par un mot illisible
+  ---
+  duration_ms: 1.910156
+  type: 'test'
+  ...
+# Subtest: decisionOutilGithub : écrire ou fusionner vers une branche gardée, ou mettre à jour une PR dont la tête est gardée, est refusé, sous toutes ses graphies
+ok 20 - decisionOutilGithub : écrire ou fusionner vers une branche gardée, ou mettre à jour une PR dont la tête est gardée, est refusé, sous toutes ses graphies
+  ---
+  duration_ms: 0.557981
+  type: 'test'
+  ...
+# Subtest: gh en écriture vers une branche, un fichier ou une règle de branche est refusé ; la lecture, les PR et les labels passent
+ok 21 - gh en écriture vers une branche, un fichier ou une règle de branche est refusé ; la lecture, les PR et les labels passent
+  ---
+  duration_ms: 5.26118
+  type: 'test'
+  ...
+# Subtest: contournements relevés pendant le ticket 27 : champ gh collé ou route après un champ à blancs, $'git', casse, programme caché derrière un mot en /git, séparateur cité, option en /git après le programme, fragment ou option groupée de gh, git après une substitution, branche en ./ ou à barre finale, substitution parenthésée, -n et --no-veri… de git commit, mot cité seul
+ok 22 - contournements relevés pendant le ticket 27 : champ gh collé ou route après un champ à blancs, $'git', casse, programme caché derrière un mot en /git, séparateur cité, option en /git après le programme, fragment ou option groupée de gh, git après une substitution, branche en ./ ou à barre finale, substitution parenthésée, -n et --no-veri… de git commit, mot cité seul
+  ---
+  duration_ms: 4.121536
+  type: 'test'
+  ...
+# Subtest: A-51 ter : un here-doc quoté lu par un consommateur inerte, avec une apostrophe, est refusé comme sur main (refus à tort de 7.9.x)
+ok 23 - A-51 ter : un here-doc quoté lu par un consommateur inerte, avec une apostrophe, est refusé comme sur main (refus à tort de 7.9.x)
+  ---
+  duration_ms: 5.339852
+  type: 'test'
+  ...
+# Subtest: ticket 33 : ce qui passait passe encore (corps de PR, apostrophes, $'…', boucle, deux here-docs sur une ligne)
+ok 24 - ticket 33 : ce qui passait passe encore (corps de PR, apostrophes, $'…', boucle, deux here-docs sur une ligne)
+  ---
+  duration_ms: 1.788013
+  type: 'test'
+  ...
+# Subtest: ticket 33 : ce que bash exécute se lit — ligne d’ouverture, après le terminateur, corps donné à un shell, substitutions d’un corps non quoté ; l’illisible est refusé
+ok 25 - ticket 33 : ce que bash exécute se lit — ligne d’ouverture, après le terminateur, corps donné à un shell, substitutions d’un corps non quoté ; l’illisible est refusé
+  ---
+  duration_ms: 3.549886
+  type: 'test'
+  ...
+# Subtest: ticket 33 : lireCommande rend les affectations, les mots, les here-strings et les here-docs de chaque commande simple, dans l’ordre du source
+ok 26 - ticket 33 : lireCommande rend les affectations, les mots, les here-strings et les here-docs de chaque commande simple, dans l’ordre du source
+  ---
+  duration_ms: 0.539356
+  type: 'test'
+  ...
+# Subtest: ticket 33 : ce que le lecteur ne sait pas lire est refusé avec RAISON_ILLISIBLE, avant tout autre refus
+ok 27 - ticket 33 : ce que le lecteur ne sait pas lire est refusé avec RAISON_ILLISIBLE, avant tout autre refus
+  ---
+  duration_ms: 3.217785
+  type: 'test'
+  ...
+# Subtest: ticket 33 : les trois lectures d’un corps de here-doc — retiré, lu comme des commandes, relu par prudence
+ok 28 - ticket 33 : les trois lectures d’un corps de here-doc — retiré, lu comme des commandes, relu par prudence
+  ---
+  duration_ms: 1.480553
+  type: 'test'
+  ...
+# Subtest: ticket 33 : chaque mot réservé est retiré avant les décideurs — npm install x derrière lui est refusé
+ok 29 - ticket 33 : chaque mot réservé est retiré avant les décideurs — npm install x derrière lui est refusé
+  ---
+  duration_ms: 0.700079
+  type: 'test'
+  ...
+# Subtest: ticket 33 : le lecteur est linéaire — 30 000 lignes « cat <<EOF » non fermées sont refusées en moins de 5 s
+ok 30 - ticket 33 : le lecteur est linéaire — 30 000 lignes « cat <<EOF » non fermées sont refusées en moins de 5 s
+  ---
+  duration_ms: 0.087108
+  type: 'test'
+  ...
+# Subtest: ticket 33 : formes trouvées par la session, que bash exécute — expansion vide ou affectée, substitution de processus, here-string, ligne continuée, préfixe inconnu devant un shell
+ok 31 - ticket 33 : formes trouvées par la session, que bash exécute — expansion vide ou affectée, substitution de processus, here-string, ligne continuée, préfixe inconnu devant un shell
+  ---
+  duration_ms: 1.490559
+  type: 'test'
+  ...
+# Subtest: ticket 33, contre-relecture B1 : dans un texte cité, "git, 'git, `gh et \\git se lisent sans leurs guillemets, barres obliques inverses ni accents graves (lecture L2, comme 7.9.x)
+ok 32 - ticket 33, contre-relecture B1 : dans un texte cité, "git, 'git, `gh et \\git se lisent sans leurs guillemets, barres obliques inverses ni accents graves (lecture L2, comme 7.9.x)
+  ---
+  duration_ms: 1.31669
+  type: 'test'
+  ...
+# Subtest: ticket 33, contre-relecture B2 : les valeurs affectées à un tableau se relisent — a=(git push -f); "${a[@]}" est refusé
+ok 33 - ticket 33, contre-relecture B2 : les valeurs affectées à un tableau se relisent — a=(git push -f); "${a[@]}" est refusé
+  ---
+  duration_ms: 0.941352
+  type: 'test'
+  ...
+# Subtest: ticket 33, contre-relecture B3 : un corps relu par prudence passe par tous les décideurs — push, gh, COMMANDES_INTERDITES, dépendances
+ok 34 - ticket 33, contre-relecture B3 : un corps relu par prudence passe par tous les décideurs — push, gh, COMMANDES_INTERDITES, dépendances
+  ---
+  duration_ms: 0.656955
+  type: 'test'
+  ...
+# Subtest: ticket 33, banc de monotonie : un texte cité lu en L2 qui commence une commande passe aussi par COMMANDES_INTERDITES et les dépendances
+ok 35 - ticket 33, banc de monotonie : un texte cité lu en L2 qui commence une commande passe aussi par COMMANDES_INTERDITES et les dépendances
+  ---
+  duration_ms: 1.917376
+  type: 'test'
+  ...
+# Subtest: ticket 33, /security-review : un here-doc non quoté se ferme sur sa ligne logique, lignes continuées par \\ recollées, comme bash
+ok 36 - ticket 33, /security-review : un here-doc non quoté se ferme sur sa ligne logique, lignes continuées par \\ recollées, comme bash
+  ---
+  duration_ms: 0.948059
+  type: 'test'
+  ...
+# Subtest: ticket 33, contre-relecture C1 : ce qui suit un mot à expansion se relit en temps et mémoire linéaires
+ok 37 - ticket 33, contre-relecture C1 : ce qui suit un mot à expansion se relit en temps et mémoire linéaires
+  ---
+  duration_ms: 69.051956
+  type: 'test'
+  ...
+# Subtest: lireDependances : la ligne d’en-tête, accents graves ou nus, — ou absente → []
+ok 38 - lireDependances : la ligne d’en-tête, accents graves ou nus, — ou absente → []
+  ---
+  duration_ms: 0.597334
+  type: 'test'
+  ...
+# Subtest: le texte libre d’une commande (message de commit, heredoc) n’est pas lu
+ok 39 - le texte libre d’une commande (message de commit, heredoc) n’est pas lu
+  ---
+  duration_ms: 0.943157
+  type: 'test'
+  ...
+# Subtest: planDemarrage ne lance que les étapes manquantes et actives
+ok 40 - planDemarrage ne lance que les étapes manquantes et actives
+  ---
+  duration_ms: 1.921142
+  type: 'test'
+  ...
+# Subtest: le démarrage signale graphify quand CLAUDE.md le demande et que la commande ou le graphe manque
+ok 41 - le démarrage signale graphify quand CLAUDE.md le demande et que la commande ou le graphe manque
+  ---
+  duration_ms: 0.343032
+  type: 'test'
+  ...
+# Subtest: le démarrage signale les skills de la chaîne absents, avec les lignes du script de l’environnement
+ok 42 - le démarrage signale les skills de la chaîne absents, avec les lignes du script de l’environnement
+  ---
+  duration_ms: 0.421212
+  type: 'test'
+  ...
+# Subtest: un dépôt prêt ne signale rien
+ok 43 - un dépôt prêt ne signale rien
+  ---
+  duration_ms: 0.162614
+  type: 'test'
+  ...
+# Subtest: lintable : le code TypeScript et les scripts, jamais les sorties de build ni node_modules
+ok 44 - lintable : le code TypeScript et les scripts, jamais les sorties de build ni node_modules
+  ---
+  duration_ms: 0.29726
+  type: 'test'
+  ...
+# Subtest: A-51 bis : l’union refuse ce que la lecture de 7.9.x refusait en citations imbriquées, et que bash lance
+ok 45 - A-51 bis : l’union refuse ce que la lecture de 7.9.x refusait en citations imbriquées, et que bash lance
+  ---
+  duration_ms: 0.571241
+  type: 'test'
+  ...
+# Subtest: A-51 ter, /security-review de 83d3e01 : un corps retiré changeait l’appariement des here-docs de 7.9.x — refusé
+ok 46 - A-51 ter, /security-review de 83d3e01 : un corps retiré changeait l’appariement des here-docs de 7.9.x — refusé
+  ---
+  duration_ms: 0.476918
+  type: 'test'
+  ...
+# Subtest: A-51 ter : monotone par construction — tout refus de la lecture de 7.9.x sur la commande d’origine est un refus de la garde
+ok 47 - A-51 ter : monotone par construction — tout refus de la lecture de 7.9.x sur la commande d’origine est un refus de la garde
+  ---
+  duration_ms: 55.641073
+  type: 'test'
+  ...
+# Subtest: A-51 bis : la lecture de 7.9.x rend ce que rendait son motif de here-doc, sans son coût
+ok 48 - A-51 bis : la lecture de 7.9.x rend ce que rendait son motif de here-doc, sans son coût
+  ---
+  duration_ms: 339.015028
+  type: 'test'
+  ...
+# Subtest: A-51 ter : au-delà de 20 000 caractères, refus prudent, corps de here-doc compris
+ok 49 - A-51 ter : au-delà de 20 000 caractères, refus prudent, corps de here-doc compris
+  ---
+  duration_ms: 6.331311
+  type: 'test'
+  ...
+# Subtest: A-51 ter : le plafond se teste avant toute lecture — une commande de plus de 20 000 caractères est refusée vite
+ok 50 - A-51 ter : le plafond se teste avant toute lecture — une commande de plus de 20 000 caractères est refusée vite
+  ---
+  duration_ms: 0.155995
+  type: 'test'
+  ...
+# Subtest: A-51 ter : le contexte est lu une fois pour les deux lectures — un seul appel de chaque
+ok 51 - A-51 ter : le contexte est lu une fois pour les deux lectures — un seul appel de chaque
+  ---
+  duration_ms: 0.36425
+  type: 'test'
+  ...
+# Subtest: le plafond à 20 000 caractères : chaque pire cas mesuré se lit sous 10 s, et se refuse sans lecture à 20 001
+ok 52 - le plafond à 20 000 caractères : chaque pire cas mesuré se lit sous 10 s, et se refuse sans lecture à 20 001
+  ---
+  duration_ms: 5396.274999
+  type: 'test'
+  ...
+# Subtest: ticket 48 : `ajouts(code)` de la lecture de 7.9.x ne relance pas sa recherche sur chaque chiffre, et rend le même remplacement
+ok 53 - ticket 48 : `ajouts(code)` de la lecture de 7.9.x ne relance pas sa recherche sur chaque chiffre, et rend le même remplacement
+  ---
+  duration_ms: 60.449353
+  type: 'test'
+  ...
+# Subtest: ticket 17 : les cinq contournements joués sur 7.15.0 sont refusés
+ok 54 - ticket 17 : les cinq contournements joués sur 7.15.0 sont refusés
+  ---
+  duration_ms: 0.829654
+  type: 'test'
+  ...
+# Subtest: ticket 17 : --no-verify et -n se lisent après les options globales de git, valeur opaque comprise
+ok 55 - ticket 17 : --no-verify et -n se lisent après les options globales de git, valeur opaque comprise
+  ---
+  duration_ms: 2.081653
+  type: 'test'
+  ...
+# Subtest: ticket 17 : git pull --no-verify et git am -n sont refusés ; --no-verify-signatures et git push -n passent
+ok 56 - ticket 17 : git pull --no-verify et git am -n sont refusés ; --no-verify-signatures et git push -n passent
+  ---
+  duration_ms: 0.84558
+  type: 'test'
+  ...
+# Subtest: ticket 17 : core.hooksPath et include posés par -c ou --config-env sont refusés avant toute sous-commande
+ok 57 - ticket 17 : core.hooksPath et include posés par -c ou --config-env sont refusés avant toute sous-commande
+  ---
+  duration_ms: 1.121197
+  type: 'test'
+  ...
+# Subtest: ticket 17 : git config qui écrit, vide ou retire core.hooksPath ou un include est refusé ; la lecture passe
+ok 58 - ticket 17 : git config qui écrit, vide ou retire core.hooksPath ou un include est refusé ; la lecture passe
+  ---
+  duration_ms: 2.123608
+  type: 'test'
+  ...
+# Subtest: ticket 17 : HUSKY, GIT_CONFIG_PARAMETERS et GIT_CONFIG_COUNT affectés ou exportés sont refusés ; en argument, ils passent
+ok 59 - ticket 17 : HUSKY, GIT_CONFIG_PARAMETERS et GIT_CONFIG_COUNT affectés ou exportés sont refusés ; en argument, ils passent
+  ---
+  duration_ms: 2.510519
+  type: 'test'
+  ...
+# Subtest: ticket 17 : git update-ref vers refs/remotes est refusé ; une branche locale passe
+ok 60 - ticket 17 : git update-ref vers refs/remotes est refusé ; une branche locale passe
+  ---
+  duration_ms: 0.852742
+  type: 'test'
+  ...
+# Subtest: ticket 17 : --config-env prend sa valeur, un push vers un sujet derrière lui est refusé
+ok 61 - ticket 17 : --config-env prend sa valeur, un push vers un sujet derrière lui est refusé
+  ---
+  duration_ms: 0.163422
+  type: 'test'
+  ...
+# Subtest: ticket 17 : le push matching est refusé comme une destination illisible
+ok 62 - ticket 17 : le push matching est refusé comme une destination illisible
+  ---
+  duration_ms: 0.142996
+  type: 'test'
+  ...
+# Subtest: ticket 17 : une destination de push portée par la configuration est illisible
+ok 63 - ticket 17 : une destination de push portée par la configuration est illisible
+  ---
+  duration_ms: 0.729259
+  type: 'test'
+  ...
+# Subtest: ticket 17 : un texte cité qui porte une commande git refusée est refusé, un message de commit passe
+ok 64 - ticket 17 : un texte cité qui porte une commande git refusée est refusé, un message de commit passe
+  ---
+  duration_ms: 0.723408
+  type: 'test'
+  ...
+# Subtest: ticket 17 : les commandes ordinaires de la chaîne passent toujours
+ok 65 - ticket 17 : les commandes ordinaires de la chaîne passent toujours
+  ---
+  duration_ms: 3.702588
+  type: 'test'
+  ...
+# Subtest: ticket 17 : chaque refus du ticket, coupé en ligne continuée à chaque espace, reste un refus
+ok 66 - ticket 17 : chaque refus du ticket, coupé en ligne continuée à chaque espace, reste un refus
+  ---
+  duration_ms: 5.227378
+  type: 'test'
+  ...
+# Subtest: ticket 17 : appelsGit lit les options globales, leur valeur opaque, la sous-commande, et le premier git du segment seul
+ok 67 - ticket 17 : appelsGit lit les options globales, leur valeur opaque, la sous-commande, et le premier git du segment seul
+  ---
+  duration_ms: 0.332569
+  type: 'test'
+  ...
+# Subtest: ticket 17 : le hook de lecture des push reste le même, --config-env compris
+ok 68 - ticket 17 : le hook de lecture des push reste le même, --config-env compris
+  ---
+  duration_ms: 0.101661
+  type: 'test'
+  ...
+# Subtest: ticket 17 : les prédicats nouveaux sont exportés et se lisent un par un
+ok 69 - ticket 17 : les prédicats nouveaux sont exportés et se lisent un par un
+  ---
+  duration_ms: 0.206516
+  type: 'test'
+  ...
+# Subtest: ticket 17 : recherche adversariale — chaque contournement trouvé sur le dépôt à hook témoin est refusé
+ok 70 - ticket 17 : recherche adversariale — chaque contournement trouvé sur le dépôt à hook témoin est refusé
+  ---
+  duration_ms: 3.439442
+  type: 'test'
+  ...
+# Subtest: ticket 17 : /security-review — chaque contournement confirmé sur un dépôt jouet est refusé
+ok 71 - ticket 17 : /security-review — chaque contournement confirmé sur un dépôt jouet est refusé
+  ---
+  duration_ms: 1.206413
+  type: 'test'
+  ...
+# Subtest: banc repris : --no-verify refusé derrière les options globales
+ok 72 - banc repris : --no-verify refusé derrière les options globales
+  ---
+  duration_ms: 0.733238
+  type: 'test'
+  ...
+# Subtest: banc repris : push sur develop ou main, rebase ou reset --hard d’une branche partagée, derrière les options globales
+ok 73 - banc repris : push sur develop ou main, rebase ou reset --hard d’une branche partagée, derrière les options globales
+  ---
+  duration_ms: 0.478041
+  type: 'test'
+  ...
+# Subtest: banc repris : core.hooksPath refusé par -c, par l’environnement ou par git config
+ok 74 - banc repris : core.hooksPath refusé par -c, par l’environnement ou par git config
+  ---
+  duration_ms: 0.929831
+  type: 'test'
+  ...
+# Subtest: banc repris : ce qui parle de core.hooksPath sans le poser passe
+ok 75 - banc repris : ce qui parle de core.hooksPath sans le poser passe
+  ---
+  duration_ms: 0.565531
+  type: 'test'
+  ...
+# Subtest: banc repris : les commandes ordinaires de la chaîne passent toujours
+ok 76 - banc repris : les commandes ordinaires de la chaîne passent toujours
+  ---
+  duration_ms: 1.755168
+  type: 'test'
+  ...
+# Subtest: banc repris : git config, seule une action de lecture placée avant la clé exempte ; guillemets et barres obliques lus
+ok 77 - banc repris : git config, seule une action de lecture placée avant la clé exempte ; guillemets et barres obliques lus
+  ---
+  duration_ms: 1.492753
+  type: 'test'
+  ...
+# Subtest: banc repris : une valeur non citée à blancs de -C ou -c ne cache plus la sous-commande
+ok 78 - banc repris : une valeur non citée à blancs de -C ou -c ne cache plus la sous-commande
+  ---
+  duration_ms: 4.519709
+  type: 'test'
+  ...
+# Subtest: banc repris : git config --comment ne fait pas passer une écriture pour une lecture
+ok 79 - banc repris : git config --comment ne fait pas passer une écriture pour une lecture
+  ---
+  duration_ms: 0.524509
+  type: 'test'
+  ...
+# Subtest: ticket 17 : contre-relecture de l’architecte — programme à expansion, env -S, accolades, alias, et variantes citées
+ok 80 - ticket 17 : contre-relecture de l’architecte — programme à expansion, env -S, accolades, alias, et variantes citées
+  ---
+  duration_ms: 2.027227
+  type: 'test'
+  ...
+# Subtest: ticket 17 : seconde contre-relecture (A-47) — un tableau ou hash -p en position de programme
+ok 81 - ticket 17 : seconde contre-relecture (A-47) — un tableau ou hash -p en position de programme
+  ---
+  duration_ms: 1.536187
+  type: 'test'
+  ...
+# Subtest: ticket 17 : troisième contre-relecture (A-49) — tableau modifié, opérateur d’expansion ou paramètres positionnels en programme
+ok 82 - ticket 17 : troisième contre-relecture (A-49) — tableau modifié, opérateur d’expansion ou paramètres positionnels en programme
+  ---
+  duration_ms: 1.162504
+  type: 'test'
+  ...
+# Subtest: ticket 17 : quatrième contre-relecture (A-50) — un motif non cité dans le programme
+ok 83 - ticket 17 : quatrième contre-relecture (A-50) — un motif non cité dans le programme
+  ---
+  duration_ms: 0.617693
+  type: 'test'
+  ...
+# Subtest: ticket 18 : git commit --amend est refusé, sous ses abréviations et derrière toute option globale
+ok 84 - ticket 18 : git commit --amend est refusé, sous ses abréviations et derrière toute option globale
+  ---
+  duration_ms: 2.425805
+  type: 'test'
+  ...
+# Subtest: ticket 18 : un message qui cite --amend passe, comme --fixup=amend
+ok 85 - ticket 18 : un message qui cite --amend passe, comme --fixup=amend
+  ---
+  duration_ms: 1.539116
+  type: 'test'
+  ...
+1..85
+# tests 85
+# suites 0
+# pass 84
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 6140.771628

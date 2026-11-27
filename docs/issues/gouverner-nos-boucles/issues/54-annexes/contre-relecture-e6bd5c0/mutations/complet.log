@@ -1,0 +1,29 @@
+M7 [complet] boucle.sh met de côté (sans arrêt) un refus durable dont la sortie de passer.sh nomme une revue
+  banc : node --test skills/chaine/fusionner/scripts/fusionner.test.mjs
+  statut 0 en 372 s ; tests 106 pass 106 fail 0
+  verdict : VERT (survit)
+M3 [complet] passer.sh saute encore (7) une PR qui porte le commentaire d'attente de l'ancienne version
+  banc : node --test skills/chaine/fusionner/scripts/fusionner.test.mjs
+  statut 0 en 359 s ; tests 106 pass 106 fail 0
+  verdict : VERT (survit)
+M5 [complet] file.sh montre encore « attend un propriétaire » une PR dont un relecteur est demandé
+  banc : node --test skills/chaine/fusionner/scripts/fusionner.test.mjs
+  statut 0 en 344 s ; tests 106 pass 106 fail 0
+  verdict : VERT (survit)
+M1 [complet] passer.sh n'écrit plus le message exact du refus de GitHub
+  banc : node --test skills/chaine/fusionner/scripts/fusionner.test.mjs
+  statut 0 en 271 s ; tests 106 pass 106 fail 0
+  verdict : VERT (survit)
+M8 [complet] boucle.sh met une sortie 7 en attente de la prochaine fusion au lieu de la sauter
+  banc : node --test skills/chaine/fusionner/scripts/fusionner.test.mjs
+  statut 0 en 264 s ; tests 106 pass 106 fail 0
+  verdict : VERT (survit)
+M10 [complet] renvois_de compte aussi le commentaire d'attente laissé par l'ancienne version
+  banc : node --test skills/chaine/fusionner/scripts/fusionner.test.mjs
+  statut 0 en 244 s ; tests 106 pass 106 fail 0
+  verdict : VERT (survit)
+M2 [complet] passer.sh ne masque plus l'URL dans le message du refus
+  banc : node --test skills/chaine/fusionner/scripts/fusionner.test.mjs
+  statut 0 en 245 s ; tests 106 pass 106 fail 0
+  verdict : VERT (survit)
+fini

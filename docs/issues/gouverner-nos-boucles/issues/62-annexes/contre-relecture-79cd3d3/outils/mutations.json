@@ -1,0 +1,191 @@
+[
+ {
+  "id": "MC1",
+  "fichier": "skills/chaine/fusionner/scripts/meme-contenu.sh",
+  "banc": "skills/chaine/fusionner/scripts/meme-contenu.test.mjs",
+  "motif": "^(un clone partiel|le dépôt d'un autre propriétaire|un dépôt nu trouvé sans --git-dir)",
+  "old": "'^(extensions\\.partialclone|remote\\..+\\.promisor)$'",
+  "new": "'^(extensions\\.partialclone)$'",
+  "quoi": "remote.<nom>.promisor n'est plus lu (seul extensions.partialclone)"
+ },
+ {
+  "id": "MC2",
+  "fichier": "skills/chaine/fusionner/scripts/meme-contenu.sh",
+  "banc": "skills/chaine/fusionner/scripts/meme-contenu.test.mjs",
+  "motif": "^(un clone partiel|le dépôt d'un autre propriétaire|un dépôt nu trouvé sans --git-dir)",
+  "old": "! [ -e \"${racine%/}/.git\" ]",
+  "new": "! [ -d \"${racine%/}/.git\" ]",
+  "quoi": "la racine ne reconnaît plus un .git fichier (arbre lié, sous-module)"
+ },
+ {
+  "id": "MC3",
+  "fichier": "skills/chaine/fusionner/scripts/meme-contenu.sh",
+  "banc": "skills/chaine/fusionner/scripts/meme-contenu.test.mjs",
+  "motif": "^(un clone partiel|le dépôt d'un autre propriétaire|un dépôt nu trouvé sans --git-dir)",
+  "old": "[ -z \"$sur\" ] || reports+=(safe.directory \"$sur\")",
+  "new": "[ -z \"$sur\" ] || reports+=(safe.directory '*')",
+  "quoi": "le report au dépôt réel est * au lieu de la racine"
+ },
+ {
+  "id": "MC4",
+  "fichier": "skills/chaine/fusionner/scripts/meme-contenu.sh",
+  "banc": "skills/chaine/fusionner/scripts/meme-contenu.test.mjs",
+  "motif": "^(un clone partiel|le dépôt d'un autre propriétaire|un dépôt nu trouvé sans --git-dir)",
+  "old": "[ \"$nu_vu\" = 0 ] || [ \"$nu\" = all ] ||",
+  "new": "[ \"$nu_vu\" = 0 ] || [ \"$nu\" != explicit ] ||",
+  "quoi": "la cause n'est nommée que sous explicit (pas sous une valeur vide ou inconnue)"
+ },
+ {
+  "id": "MC5",
+  "fichier": "skills/chaine/fusionner/scripts/meme-contenu.sh",
+  "banc": "skills/chaine/fusionner/scripts/meme-contenu.test.mjs",
+  "motif": "^(un clone partiel|le dépôt d'un autre propriétaire|un dépôt nu trouvé sans --git-dir)",
+  "old": "[ \"$(SANS_NU=1 r rev-parse --is-bare-repository 2>/dev/null)\" != true ]",
+  "new": "[ \"$(SANS_NU=1 r rev-parse --is-bare-repository 2>/dev/null)\" = false ]",
+  "quoi": "diagnostic en échec (sortie vide) lu comme « dépôt nu »"
+ },
+ {
+  "id": "MC6",
+  "fichier": "skills/chaine/fusionner/scripts/meme-contenu.sh",
+  "banc": "skills/chaine/fusionner/scripts/meme-contenu.test.mjs",
+  "motif": "^(un clone partiel|le dépôt d'un autre propriétaire|un dépôt nu trouvé sans --git-dir)",
+  "old": "for variable in GIT_CONFIG_GLOBAL GIT_CONFIG_SYSTEM GIT_CONFIG_NOSYSTEM; do",
+  "new": "for variable in GIT_CONFIG_GLOBAL GIT_CONFIG_SYSTEM; do",
+  "quoi": "GIT_CONFIG_NOSYSTEM n'est plus transmise à la lecture des déclarations"
+ },
+ {
+  "id": "MD1",
+  "fichier": "skills/chaine/fusionner/scripts/double-relecture.mjs",
+  "banc": "skills/chaine/fusionner/scripts/double-relecture.test.mjs",
+  "motif": "^un dépôt nu trouvé sans --git-dir",
+  "old": "const env = Object.fromEntries(Object.entries(process.env).filter(([cle]) => !cle.startsWith('GIT_') || LIEU.includes(cle)));\n  let lus;",
+  "new": "const env = Object.fromEntries(Object.entries(process.env).filter(([cle]) => !cle.startsWith('GIT_')));\n  let lus;",
+  "quoi": "bareDeclare ne transmet plus GIT_CONFIG_GLOBAL/SYSTEM/NOSYSTEM"
+ },
+ {
+  "id": "MD2",
+  "fichier": "skills/chaine/fusionner/scripts/double-relecture.mjs",
+  "banc": "skills/chaine/fusionner/scripts/double-relecture.test.mjs",
+  "motif": "^un dépôt nu trouvé sans --git-dir",
+  "old": "  if ('GIT_CONFIG_COUNT' in process.env || 'GIT_CONFIG_PARAMETERS' in process.env) return 'explicit';",
+  "new": "  if ('GIT_CONFIG_COUNT' in process.env) return 'explicit';",
+  "quoi": "GIT_CONFIG_PARAMETERS présente ne donne plus explicit"
+ },
+ {
+  "id": "MD3",
+  "fichier": "skills/chaine/fusionner/scripts/double-relecture.mjs",
+  "banc": "skills/chaine/fusionner/scripts/double-relecture.test.mjs",
+  "motif": "",
+  "old": "      if (e instanceof Illisible || e instanceof OutilManquant) throw e;\n      // Un dépôt nu",
+  "new": "      if (e instanceof Illisible) throw e;\n      // Un dépôt nu",
+  "quoi": "git absent à la première lecture : illisible au lieu d'outil manquant (69)"
+ },
+ {
+  "id": "MD4",
+  "fichier": "skills/chaine/fusionner/scripts/double-relecture.mjs",
+  "banc": "skills/chaine/fusionner/scripts/double-relecture.test.mjs",
+  "motif": "^un dépôt nu trouvé sans --git-dir",
+  "old": "...(avecNu && nu !== null ? [['safe.bareRepository', nu]] : [])",
+  "new": "...(avecNu && nu ? [['safe.bareRepository', nu]] : [])",
+  "quoi": "une valeur vide n'est plus reportée"
+ },
+ {
+  "id": "MD5",
+  "fichier": "skills/chaine/fusionner/scripts/double-relecture.mjs",
+  "banc": "skills/chaine/fusionner/scripts/double-relecture.test.mjs",
+  "motif": "",
+  "old": "nuRefuse = texte(git(sansNu, ['rev-parse', '--is-bare-repository'])) === 'true';",
+  "new": "nuRefuse = texte(git(sansNu, ['rev-parse', '--is-bare-repository'])) !== 'false';",
+  "quoi": "diagnostic : toute réponse autre que false lue comme « dépôt nu »"
+ },
+ {
+  "id": "MT1",
+  "fichier": "scripts/tranches.mjs",
+  "banc": "scripts/tranches.test.mjs",
+  "motif": "",
+  "old": "n.replace(/[.*+?^${}()|[\\]\\\\/]/g, \"\\\\$&\")",
+  "new": "n.replace(/[.*+?^${}()[\\]\\\\/]/g, \"\\\\$&\")",
+  "quoi": "le motif n'échappe plus |"
+ },
+ {
+  "id": "MT2",
+  "fichier": "scripts/tranches.mjs",
+  "banc": "scripts/tranches.test.mjs",
+  "motif": "",
+  "old": "new Set(noms).size <= taille",
+  "new": "new Set(noms).size < taille",
+  "quoi": "un banc d'exactement `taille` noms est découpé"
+ },
+ {
+  "id": "MT3",
+  "fichier": "scripts/tranches.mjs",
+  "banc": "scripts/tranches.test.mjs",
+  "motif": "",
+  "old": "liste.push({ banc, args: [`--test-name-pattern=${motif(paquet)}`, banc], noms: avecDoublons, sorte: \"tranche\" });",
+  "new": "liste.push({ banc, args: [`--test-name-pattern=${motif(paquet)}`, banc], noms: paquet, sorte: \"tranche\" });",
+  "quoi": "une tranche n'attend plus ses doublons"
+ },
+ {
+  "id": "MT4",
+  "fichier": "scripts/tranches.mjs",
+  "banc": "scripts/tranches.test.mjs",
+  "motif": "",
+  "old": "(m[1] ?? m[2] ?? m[3]).replace(/\\\\(.)/g, \"$1\")",
+  "new": "(m[1] ?? m[2] ?? m[3])",
+  "quoi": "les échappements du nom ne sont plus retirés"
+ },
+ {
+  "id": "MT5",
+  "fichier": "scripts/tranches.mjs",
+  "banc": "scripts/tranches.test.mjs",
+  "motif": "",
+  "old": "const SOUS_TEST = /\\b\\w+\\.test\\(\\s*[\"'`]|",
+  "new": "const SOUS_TEST = /\\b\\w+\\.test\\([\"'`]|",
+  "quoi": "`t.test( \"…\"` (espace avant le nom) n'est plus vu"
+ },
+ {
+  "id": "MT6",
+  "fichier": "scripts/tranches.mjs",
+  "banc": "scripts/tranches.test.mjs",
+  "motif": "",
+  "old": "return [{ banc, args: [banc], noms, sorte: \"entier\" }];",
+  "new": "return [{ banc, args: [banc], noms: [...new Set(noms)], sorte: \"entier\" }];",
+  "quoi": "un banc entier n'attend plus ses doublons"
+ },
+ {
+  "id": "MT7",
+  "fichier": "scripts/tranches.mjs",
+  "banc": "scripts/tranches.test.mjs",
+  "motif": "",
+  "old": "liste.push({ banc, args: [`--test-skip-pattern=${motif(noms)}`, banc], noms, sorte: \"reste\" });",
+  "new": "liste.push({ banc, args: [`--test-name-pattern=${motif(noms)}`, banc], noms, sorte: \"reste\" });",
+  "quoi": "le reste joue les noms lus au lieu de les sauter"
+ },
+ {
+  "id": "MT8",
+  "fichier": "scripts/tranches.mjs",
+  "banc": "scripts/tranches.test.mjs",
+  "motif": "",
+  "old": "liste.push({ banc, args: [`--test-skip-pattern=${motif(noms)}`, banc], noms, sorte: \"reste\" });",
+  "new": "",
+  "quoi": "plus de tranche de reste"
+ },
+ {
+  "id": "MT9",
+  "fichier": "scripts/tranches.mjs",
+  "banc": "scripts/tranches.test.mjs",
+  "motif": "",
+  "old": "if ((e.type !== \"test:pass\" && e.type !== \"test:fail\") || e.data.nesting !== 0",
+  "new": "if ((e.type !== \"test:pass\") || e.data.nesting !== 0",
+  "quoi": "le rapporteur ne compte plus un test en échec"
+ },
+ {
+  "id": "MD6",
+  "fichier": "skills/chaine/fusionner/scripts/double-relecture.mjs",
+  "banc": "skills/chaine/fusionner/scripts/double-relecture.test.mjs",
+  "motif": "",
+  "old": "...(sur ? [['safe.directory', sur]] : [])",
+  "new": "...(sur ? [['safe.directory', '*']] : [])",
+  "quoi": "le report au dépôt réel est * au lieu de la racine"
+ }
+]

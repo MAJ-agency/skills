@@ -1,0 +1,22 @@
+true: a
+True: b
+criticality: high
+====
+null: a
+Null: b
+criticality: low
+====
+extensions: { true: a, TRUE: b }
+criticality: low
+====
+sources:
+- { ref: a, path: b }
+code:
+- apps/a.ts
+criticality: high
+====
+l:
+  - a:
+    - x
+  - b: 1
+criticality: low

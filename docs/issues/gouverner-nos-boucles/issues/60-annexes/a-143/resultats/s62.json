@@ -1,0 +1,9 @@
+{
+ "graine": "62",
+ "tirages": 200000,
+ "lus par le module": 4113,
+ "refusés par le module": 195887,
+ "comptes": {
+  "X3-meme-lecture-hors-schema-strict": 858
+ }
+}
