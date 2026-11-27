@@ -126,7 +126,8 @@ Invocation : `/maj-skills:socle-chaine-de-production` une fois par dépôt (depu
 ```
 .claude-plugin/
   marketplace.json     le marketplace « maj », qui expose le plugin
-  plugin.json          le plugin « maj-skills », qui déclare ses skills
+  plugin.json          le plugin « maj-skills », qui déclare ses skills et ses agents
+agents/                deux définitions de sous-agents : axe-de-relecture, classeur-de-criticite
 skills/
   monorepo/
     socle-monorepo/
@@ -198,6 +199,8 @@ Les bancs (`pnpm test`, joués aussi par la CI) demandent Node ≥ 22, `git` et 
 4. **Bumper `version` dans `.claude-plugin/plugin.json`** — c'est ce champ que `claude plugin update maj-skills@maj` compare : sans bump, aucun changement de contenu n'est détecté chez ceux qui ont installé le plugin. Patch pour une correction, mineure pour un skill ou un gabarit ajouté, majeure quand un skill existant change de contrat. Écrire sa note en tête de `NOTES-DE-VERSION.md` (« Ce qui change », « Ce qu'un projet fait pour en profiter »).
 
 Cette règle vaut pour **tout** changement de contenu, pas seulement l'ajout d'un skill.
+
+Une définition de sous-agent neuve s'ajoute dans `agents/<nom>.md` et dans la liste `agents` de `.claude-plugin/plugin.json` ; un skill la lance par son nom, `maj-skills:<nom>`. Le banc `scripts/agents.test.mjs` tient la liste, le frontmatter de chaque définition et chaque nom cité sous `skills/`.
 
 Un skill dont l'étape `poser` copie un dossier de scripts dans `scripts/chaine/` d'un projet ajoute ce dossier à `POSES` dans `scripts/poses.test.mjs` : le garde pose ses fichiers à plat et rejoue ses bancs hors du plugin. Un banc posé ne lit jamais l'arbre du plugin sans repli vers le fichier du projet. Le garde joue chaque banc en tranches parallèles (`scripts/tranches.mjs`), par les noms de ses tests (`test("…", …)` en début de ligne), chaque test exactement une fois : les tranches d'un même banc tournent en même temps, donc un banc n'écrit jamais dans un chemin fixe partagé (chaque dépôt jouet par `mkdtemp`) ; un banc qui écrit des sous-tests (`t.test`, `describe`, `it`) se joue entier, le texte des chaînes et des commentaires n'étant pas lu comme un appel (`codeSeul`) et le doute jouant entier. Les travaux partent du plus lourd (en tests) au plus léger ; la borne de chacun suit son poids (60 s par test, au moins 300 s) et le tue par son groupe de processus ; le test a pour délai un plafond de 1 800 s, et le journal montre son bilan (`# poses : …`, part du plafond, pire cas, trois marges les plus courtes). Limite : un sous-test au nom calculé (`t.test(nom, …)`) ou un `test(` global appelé dans le corps d'un test n'est pas reconnu ; un banc posé n'en écrit pas.
 

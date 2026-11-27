@@ -2,7 +2,7 @@
 
 La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque projet par `poser` : une version publiée ne change rien chez un projet qui ne les repose pas. Chaque note dit ce qui change, puis ce qu'un projet fait pour en profiter.
 
-## 8.3.4 — 2026-11-25
+## 8.4.1 — 2026-11-27
 
 ### Ce qui change
 
@@ -15,6 +15,20 @@ La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque pro
 
 - **Reposer `scripts/chaine/`** (`/maj-skills:fusionner poser`, avec `sujet.sh` du skill `sujet`) et le nouveau banc `livraisons-avant-sujets.test.mjs`. La boucle se relance d'elle-même sur la version de develop dès que la PR qui la repose y est entrée.
 - Sur une file qui ne se vide jamais, un sujet au repos attend develop plus longtemps qu'avant : sa livraison (`passer.sh`) le met à jour de toute façon, et un conducteur qui attend develop dans son sujet le voit à la première file vide.
+
+## 8.4.0 — 2026-11-27
+
+### Ce qui change
+
+- **Deux définitions de sous-agents livrées par le plugin** (dossier `agents/`, liste `agents` de `.claude-plugin/plugin.json`) : `maj-skills:axe-de-relecture` (Read, Grep et Glob seulement, Opus) et `maj-skills:classeur-de-criticite` (aucun outil, Opus). Toutes deux portent `omitClaudeMd: true` : le `CLAUDE.md` et les fiches `.claude/rules/` de la session qui les lance n'entrent plus dans leur contexte. Avant, l'agent générique avait tous les outils, le modèle de la session et ces consignes ; la lecture seule et le contexte vierge ne tenaient que par le texte du prompt.
+- **`relecture` lance chaque axe par `maj-skills:axe-de-relecture`, `criticite` son sous-agent par `maj-skills:classeur-de-criticite`**, sans paramètre `model`. Les messages restent les prompts des skills, fabriqués comme avant.
+- **Les cinq prompts de `relecture` font lire les règles d'abord** : avant de juger, l'axe lit, dans la base, le `CLAUDE.md` de la racine, celui de chaque dossier que le diff touche et les fiches `.claude/rules/`, qui n'arrivent plus d'elles-mêmes. Le prompt de `criticite` ne change pas.
+- **Le repli** : une session dont l'instantané du plugin est antérieur à 8.4.0 n'a pas les définitions (les agents se chargent au démarrage de la session, `claude plugin update` ne les recharge pas). L'outil répond « Agent type 'maj-skills:…' not found » ; la session relance le même message, entier, par l'agent générique, et le dit : la ligne `Agent des axes :` du verdict de `relecture`, toujours écrite, et, dans la section `## Criticité`, l'agent qui a rendu chaque sortie brute. Une telle session relit comme avant jusqu'au renouvellement de son instantané.
+- **Un banc neuf, `scripts/agents.test.mjs`**, tient les définitions (leurs clés, leurs outils, leur modèle, leur description), la liste du plugin, chaque nom `maj-skills:<nom>` cité sous `skills/`, et les skills qui nomment leur agent avec la phrase du repli. « Agent défini » entre au glossaire (`CONTEXT.md`).
+
+### Ce qu'un projet fait pour en profiter
+
+- **Rien à reposer** : les définitions, les skills et les prompts qui les nomment sont lus dans le plugin. Une session lancée avant la mise à jour du plugin ne les a pas : elle se replie sur l'agent générique et le dit.
 
 ## 8.3.3 — 2026-11-23
 
